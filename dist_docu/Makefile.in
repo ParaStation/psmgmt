@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.1 2002/10/17 15:35:03 eicker Exp $
+# $Id: Makefile.in,v 1.2 2002/11/22 16:07:06 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -17,11 +17,14 @@ TOP_BUILDDIR := ..
 DISTPATH := opt/parastation
 
 DOCDIR := $(DISTPATH)/doc
-DOCS = html/adminguide html/api # html/userguide
-DOCS += pdf/adminguide.pdf # pdf/userguide.pdf
+DOCS = html/index.html html/adminguide html/api html/userguide
+DOCS += pdf/adminguide.pdf pdf/userguide.pdf
 
 MANDIR := $(DISTPATH)/man
 MANS := man1 man3 man5 man7 man8
+
+EXAMPLEDIR := $(DOCDIR)/examples
+EXAMPLES := native.c
 
 MISCDIR := $(DOCDIR)/html $(DOCDIR)/pdf
 
@@ -41,7 +44,7 @@ dirs: $(DIRS)
 #
 # Documentation
 #
-docu: docs manuals
+docu: docs manuals examples
 
 docs: $(DOCDIR) $(patsubst %,$(DOCDIR)/%,$(DOCS))
 
@@ -51,6 +54,11 @@ $(DOCDIR)/%: $(TOP_BUILDDIR)/docu/%
 manuals: $(MANDIR) $(patsubst %,$(MANDIR)/%,$(MANS))
 
 $(MANDIR)/%: $(TOP_BUILDDIR)/docu/man/%
+	cp -rp $< $@
+
+examples: $(EXAMPLEDIR) $(patsubst %,$(EXAMPLEDIR)/%,$(EXAMPLES))
+
+$(EXAMPLEDIR)/%: $(TOP_SRCDIR)/examples/%
 	cp -rp $< $@
 
 ######################################################
