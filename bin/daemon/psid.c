@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.35 2002/02/12 15:09:06 eicker Exp $
+ * $Id: psid.c,v 1.36 2002/02/12 19:09:09 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.35 2002/02/12 15:09:06 eicker Exp $ 
+ * $Id: psid.c,v 1.36 2002/02/12 19:09:09 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.35 2002/02/12 15:09:06 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.36 2002/02/12 19:09:09 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -63,7 +63,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.35 $";
+static char psid_cvsid[] = "$Revision: 1.36 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -103,7 +103,7 @@ struct daemon_t{
     PStask_t* tasklist;      /* tasklist of that node */
 };
 
-struct daemon_t daemons[FD_SETSIZE];
+struct daemon_t *daemons = NULL;
 
 /*-----------------------------
  * tasklist of tasks which
@@ -523,7 +523,7 @@ void initDaemon(int fd, int id)
 {
     daemons[id].fd = fd;
     daemons[id].node = id;
-    daemons[id].tasklist = 0;
+    daemons[id].tasklist = NULL;
 
     PSID_hoststatus[id] |= PSPHOSTUP;
 }
@@ -601,15 +601,16 @@ void send_TASKLIST(DDMsg_t *inmsg)
     int success=1;
     int node = PSI_getnode(inmsg->dest);
 
-    if((node<0) && (node >= PSI_nrofnodes))
+    if ((node<0) && (node >= PSI_nrofnodes)) {
 	return;
+    }
 
     if (PSI_isoption(PSP_ODEBUG)){
 	sprintf(PSI_txt, "send_TASKLIST(%lx,%lx)\n",
 		inmsg->sender, inmsg->dest);
 	SYSLOG(8,(LOG_ERR,PSI_txt));
     }
-    for(task=daemons[node].tasklist; task && (success>0); task=task->link){
+    for (task=daemons[node].tasklist; task && (success>0); task=task->link) {
 	/*
 	 * send all tasks in the tasklist to the fd
 	 */
@@ -1165,7 +1166,7 @@ int send_OPTIONS(int destnode)
 /******************************************
  *  msg_DAEMONCONNECT()
  */
-void msg_DAEMONCONNECT(int fd,int number)
+void msg_DAEMONCONNECT(int fd, int number)
 {
     DDMsg_t msg;
     int success;
@@ -1765,8 +1766,14 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 	    PSHALInfoCounter_t *ic;
 
 	    msg.header.type = PSP_CD_COUNTSTATUSRESPONSE;
-	    ic=PSHALSYSGetInfoCounter();
-	    memcpy(msg.buf, ic, sizeof(*ic));
+	    memcpy(msg.buf, &PSID_CardPresent, sizeof(PSID_CardPresent));
+	    msg.header.len += sizeof(PSID_CardPresent);
+
+	    if (PSID_CardPresent) {
+		ic = PSHALSYSGetInfoCounter();
+		memcpy(msg.buf+sizeof(PSID_CardPresent), ic, sizeof(*ic));
+	    }
+
 	    msg.header.len += sizeof(*ic);
 	    break;
 	}
@@ -1814,45 +1821,52 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 /******************************************
  *  msg_SETOPTION()
  */
-void
-msg_SETOPTION(DDOptionMsg_t *msg)
+void msg_SETOPTION(DDOptionMsg_t *msg)
 {
     int i, val;
-    for(i=0;i<msg->count;i++){
-	if (PSI_isoption(PSP_ODEBUG)){
+    for (i=0;i<msg->count;i++) {
+	if (PSI_isoption(PSP_ODEBUG)) {
 	    sprintf(PSI_txt,"SETOPTION()option: %ld value 0x%lx \n",
 		    msg->opt[i].option,msg->opt[i].value);
 	    SYSLOG(3,(LOG_ERR,PSI_txt));
 	}
-	switch(msg->opt[i].option){
+	switch (msg->opt[i].option) {
 	case PSP_OP_SMALLPACKETSIZE:
-	    if(PSHALSYS_GetSmallPacketSize()!=msg->opt[i].value){
-		PSHALSYS_SetSmallPacketSize(msg->opt[i].value);
-		ConfigSmallPacketSize = msg->opt[i].value;
+	    if (PSID_CardPresent) {
+		if (PSHALSYS_GetSmallPacketSize()!=msg->opt[i].value) {
+		    PSHALSYS_SetSmallPacketSize(msg->opt[i].value);
+		    ConfigSmallPacketSize = msg->opt[i].value;
+		}
 	    }
 	    break;
 	case PSP_OP_RESENDTIMEOUT:
-	    if (PSHALSYS_GetMCPParam(MCP_PARAM_RTO, &val, NULL))
-		break;
-	    if (val != msg->opt[i].value) {
-		PSHALSYS_SetMCPParam(MCP_PARAM_RTO, msg->opt[i].value);
-		ConfigRTO = msg->opt[i].value;
+	    if (PSID_CardPresent) {
+		if (PSHALSYS_GetMCPParam(MCP_PARAM_RTO, &val, NULL))
+		    break;
+		if (val != msg->opt[i].value) {
+		    PSHALSYS_SetMCPParam(MCP_PARAM_RTO, msg->opt[i].value);
+		    ConfigRTO = msg->opt[i].value;
+		}
 	    }
 	    break;
 	case PSP_OP_HNPEND:
-	    if (PSHALSYS_GetMCPParam(MCP_PARAM_HNPEND, &val, NULL))
-		break;
-	    if (val != msg->opt[i].value) {
-		PSHALSYS_SetMCPParam(MCP_PARAM_HNPEND, msg->opt[i].value);
-		ConfigHNPend = msg->opt[i].value;
+	    if (PSID_CardPresent) {
+		if (PSHALSYS_GetMCPParam(MCP_PARAM_HNPEND, &val, NULL))
+		    break;
+		if (val != msg->opt[i].value) {
+		    PSHALSYS_SetMCPParam(MCP_PARAM_HNPEND, msg->opt[i].value);
+		    ConfigHNPend = msg->opt[i].value;
+		}
 	    }
 	    break;
 	case PSP_OP_ACKPEND:
-	    if (PSHALSYS_GetMCPParam(MCP_PARAM_ACKPEND, &val, NULL))
-		break;
-	    if (val != msg->opt[i].value) {
-		PSHALSYS_SetMCPParam(MCP_PARAM_ACKPEND, msg->opt[i].value);
-		ConfigAckPend = msg->opt[i].value;
+	    if (PSID_CardPresent) {
+		if (PSHALSYS_GetMCPParam(MCP_PARAM_ACKPEND, &val, NULL))
+		    break;
+		if (val != msg->opt[i].value) {
+		    PSHALSYS_SetMCPParam(MCP_PARAM_ACKPEND, msg->opt[i].value);
+		    ConfigAckPend = msg->opt[i].value;
+		}
 	    }
 	    break;
 	case PSP_OP_PROCLIMIT:
@@ -1884,45 +1898,60 @@ msg_SETOPTION(DDOptionMsg_t *msg)
 	}
     }
     /* Message is for a remote node */
-    if((msg->header.dest != PSI_gettid(PSI_myid,0))
-       && (msg->header.dest !=-1))
+    if ((msg->header.dest != PSI_gettid(PSI_myid,0))
+	&& (msg->header.dest !=-1))
 	sendMsg(msg);
     /* Message is for any node so do a broadcast */
-    if(msg->header.dest ==-1)
+    if (msg->header.dest ==-1)
 	broadcastMsg(msg);
 }
 
 /******************************************
  *  msg_GETOPTION()
  */
-void
-msg_GETOPTION(DDOptionMsg_t* msg)
+void msg_GETOPTION(DDOptionMsg_t* msg)
 {
     int i, val;
-    for(i=0;i<msg->count;i++){
-	if (PSI_isoption(PSP_ODEBUG)){
+    for (i=0;i<msg->count;i++) {
+	if (PSI_isoption(PSP_ODEBUG)) {
 	    sprintf(PSI_txt,"GETOPTION() sender %lx option: %ld \n",
 		    msg->header.sender, msg->opt[i].option);
 	    SYSLOG(3,(LOG_ERR,PSI_txt));
 	}
-	switch(msg->opt[i].option){
+	switch (msg->opt[i].option) {
 	case PSP_OP_SMALLPACKETSIZE:
-	    msg->opt[i].value = PSHALSYS_GetSmallPacketSize();
+	    if (PSID_CardPresent) {
+		msg->opt[i].value = PSHALSYS_GetSmallPacketSize();
+	    } else {
+		msg->opt[i].value = -1;
+	    }
 	    break;
 	case PSP_OP_RESENDTIMEOUT:
-	    if (PSHALSYS_GetMCPParam(MCP_PARAM_RTO, &val, NULL))
-		break;
-	    msg->opt[i].value = val;
+	    if (PSID_CardPresent) {
+		if (PSHALSYS_GetMCPParam(MCP_PARAM_RTO, &val, NULL))
+		    break;
+		msg->opt[i].value = val;
+	    } else {
+		msg->opt[i].value = -1;
+	    }
 	    break;
 	case PSP_OP_HNPEND:
-	    if (PSHALSYS_GetMCPParam(MCP_PARAM_HNPEND, &val, NULL))
-		break;
-	    msg->opt[i].value = val;
+	    if (PSID_CardPresent) {
+		if (PSHALSYS_GetMCPParam(MCP_PARAM_HNPEND, &val, NULL))
+		    break;
+		msg->opt[i].value = val;
+	    } else {
+		msg->opt[i].value = -1;
+	    }
 	    break;
 	case PSP_OP_ACKPEND:
-	    if (PSHALSYS_GetMCPParam(MCP_PARAM_ACKPEND, &val, NULL))
-		break;
-	    msg->opt[i].value = val;
+	    if (PSID_CardPresent) {
+		if (PSHALSYS_GetMCPParam(MCP_PARAM_ACKPEND, &val, NULL))
+		    break;
+		msg->opt[i].value = val;
+	    } else {
+		msg->opt[i].value = -1;
+	    }
 	    break;
 	case PSP_OP_PROCLIMIT:
 	    msg->opt[i].value = MAXPROCLimit;
@@ -1957,36 +1986,36 @@ msg_GETOPTION(DDOptionMsg_t* msg)
 /******************************************
  *  msg_NOTIFYDEAD()
  */
-void
-msg_NOTIFYDEAD(DDSignalMsg_t *msg)
+void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 {
     int node;
     PStask_t* task;
 
-    if (PSI_isoption(PSP_ODEBUG)){
+    if (PSI_isoption(PSP_ODEBUG)) {
 	sprintf(PSI_txt,"msg_NOTIFYDEAD(sender = 0x%lx tid= 0x%lx sig %d)\n",
 		msg->header.sender, msg->header.dest, msg->signal);
 	PSI_logerror(PSI_txt);
     }
 
-    if(msg->header.dest==0){
+    if (msg->header.dest==0) {
 	task = PStasklist_find(daemons[PSI_myid].tasklist,
 			       msg->header.sender);
-	if(task){
+	if (task) {
 	    task->childsignal = msg->signal;
 	    msg->signal = 0;     /* sucess */
-	}else
+	} else {
 	    msg->signal = ESRCH; /* failure */
+	}
 
 	msg->header.type = PSP_DD_NOTIFYDEADRES;
 	msg->header.dest = msg->header.sender;
 	msg->header.sender = PSI_gettid(PSI_myid,0);
 	msg->header.len = sizeof(*msg);
 	sendMsg(msg);
-    }else{
+    } else {
 	node = PSI_getnode(msg->header.dest);
 
-	if((0>node)||(node>=PSI_nrofnodes)){
+	if ((0>node)||(node>=PSI_nrofnodes)) {
 	    msg->header.type = PSP_DD_NOTIFYDEADRES;
 	    msg->header.dest = msg->header.sender;
 	    msg->header.sender = PSI_gettid(PSI_myid,0);
@@ -1998,7 +2027,7 @@ msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 
 	task = PStasklist_find(daemons[node].tasklist,msg->header.dest);
 
-	if(task){
+	if (task) {
 	    sprintf(PSI_txt,"msg_NOTIFYDEAD() "
 		    "setsignalreceiver (0x%lx,0x%lx,%d)\n",
 		    msg->header.dest, msg->header.sender, msg->signal);
@@ -2011,7 +2040,7 @@ msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 	    msg->header.sender = PSI_gettid(PSI_myid,0);
 	    msg->header.len = sizeof(*msg);
 	    sendMsg(msg);
-	}else{
+	} else {
 	    sprintf(PSI_txt,"msg_NOTIFYDEAD(sender= 0x%lx tid 0x%lx sig %d) "
 		    "FATAL error: no task!!\n",
 		    msg->header.sender, msg->header.dest, msg->signal);
@@ -2030,13 +2059,12 @@ msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 /******************************************
  *  msg_RELEASE()
  */
-void
-msg_RELEASE(DDSignalMsg_t *msg)
+void msg_RELEASE(DDSignalMsg_t *msg)
 {
     int node;
     PStask_t* task;
 
-    if (PSI_isoption(PSP_ODEBUG)){
+    if (PSI_isoption(PSP_ODEBUG)) {
 	sprintf(PSI_txt,"msg_RELEASE(sender = 0x%lx tid= 0x%lx)\n",
 		msg->header.sender, msg->header.dest);
 	PSI_logerror(PSI_txt);
@@ -2044,7 +2072,7 @@ msg_RELEASE(DDSignalMsg_t *msg)
 
     node = PSI_getnode(msg->header.dest);
 
-    if(node != PSI_myid){
+    if (node != PSI_myid) {
 	sprintf(PSI_txt,"msg_RELEASE(sender= 0x%lx tid 0x%lx) "
 		"FATAL error: only local release!!\n",
 		msg->header.sender, msg->header.dest);
@@ -2058,7 +2086,7 @@ msg_RELEASE(DDSignalMsg_t *msg)
 	sendMsg(msg);
     }
 
-    if(msg->header.sender != msg->header.dest){
+    if (msg->header.sender != msg->header.dest) {
 	sprintf(PSI_txt,"msg_RELEASE(sender= 0x%lx tid 0x%lx) "
 		"FATAL error: don't release foreign task!!\n",
 		msg->header.sender, msg->header.dest);
@@ -2074,7 +2102,7 @@ msg_RELEASE(DDSignalMsg_t *msg)
 
     task = PStasklist_find(daemons[PSI_myid].tasklist,msg->header.sender);
 
-    if(task){
+    if (task) {
 	sprintf(PSI_txt,"msg_RELEASE() release (0x%lx)\n",
 		msg->header.sender);
 	PSI_logerror(PSI_txt);
@@ -2086,7 +2114,7 @@ msg_RELEASE(DDSignalMsg_t *msg)
 	msg->header.sender = PSI_gettid(PSI_myid,0);
 	msg->header.len = sizeof(*msg);
 	sendMsg(msg);
-    }else{
+    } else {
 	sprintf(PSI_txt,"msg_RELEASE(sender= 0x%lx tid 0x%lx) "
 		"FATAL error: no task!!\n",
 		msg->header.sender, msg->header.dest);
@@ -2114,8 +2142,8 @@ void msg_LOADREQ(DDMsg_t* inmsg)
     }
 
     nodenr = PSI_getnode(inmsg->dest);
-    if((nodenr<0) || (nodenr>=PSI_nrofnodes)
-       || (PSID_hoststatus[nodenr] & PSPHOSTUP) == 0){
+    if ((nodenr<0) || (nodenr>=PSI_nrofnodes)
+	|| (PSID_hoststatus[nodenr] & PSPHOSTUP) == 0) {
 	DDErrorMsg_t errmsg;
 	errmsg.header.len = sizeof(errmsg);
 	errmsg.request = inmsg->type;
@@ -2158,8 +2186,8 @@ void msg_PROCREQ(DDMsg_t* inmsg)
 
     node = PSI_getnode(inmsg->dest);
 
-    if((node<0) || (node>=PSI_nrofnodes)
-       || !(PSID_hoststatus[node] & PSPHOSTUP)){
+    if ((node<0) || (node>=PSI_nrofnodes)
+	|| !(PSID_hoststatus[node] & PSPHOSTUP)) {
 	DDErrorMsg_t errmsg;
 	errmsg.header.len = sizeof(errmsg);
 	errmsg.request = inmsg->type;
@@ -2174,10 +2202,10 @@ void msg_PROCREQ(DDMsg_t* inmsg)
 	PStask_t* task;
 	DDLoadMsg_t msg;
 	double procs = 0.0;
-	for(task=daemons[node].tasklist; task; task=task->link){
-	    if (task->group==TG_ANY){ /* dont count special task */
+	for (task=daemons[node].tasklist; task; task=task->link) {
+	    if (task->group==TG_ANY) { /* dont count special task */
 		procs += 1.0;
-	    }else{
+	    } else {
 		procs += 0.0;
 	    }
 	}
@@ -2201,18 +2229,18 @@ void msg_WHODIED(DDSignalMsg_t* msg)
 {
     PStask_t* task;
 
-    if (PSI_isoption(PSP_ODEBUG)){
+    if (PSI_isoption(PSP_ODEBUG)) {
 	sprintf(PSI_txt,"WHODIED(who = %lx sig %d \n",
 		msg->header.sender, msg->signal);
 	PSI_logerror(PSI_txt);
     }
 
     task = PStasklist_find(daemons[PSI_myid].tasklist, msg->header.sender);
-    if(task){
+    if (task) {
 	long tid;
 	tid =  PStask_getsignalsender(task,&msg->signal);
 
-	if (PSI_isoption(PSP_ODEBUG)){
+	if (PSI_isoption(PSP_ODEBUG)) {
 	    sprintf(PSI_txt,"WHODIED( )tid= 0x%lx(pid %d) sig = %d) \n",
 		    tid, PSI_getpid(tid), msg->signal);
 	    PSI_logerror(PSI_txt);
@@ -2221,7 +2249,7 @@ void msg_WHODIED(DDSignalMsg_t* msg)
 	msg->header.sender = tid;
 	msg->header.len = sizeof(*msg);
 	sendMsg(msg);
-    }else{
+    } else {
 	msg->header.dest = msg->header.sender;
 	msg->header.sender = -1;
 	msg->header.len = sizeof(*msg);
@@ -2290,8 +2318,8 @@ int request_options(int node)
 void msg_DAEMONESTABLISHED(int fd, DDMsg_t* msg)
 {
     int node = PSI_getnode(msg->sender);
-    if((abs(daemons[node].fd)!=fd)   /* other fd than local info suggests */
-       &&(daemons[node].fd!=0)){
+    if ((abs(daemons[node].fd)!=fd)   /* other fd than local info suggests */
+	&&(daemons[node].fd!=0)) {
 	/* remove the pointer of the client to the daemon */
 	int oldfd;
 	oldfd = abs(daemons[node].fd);
@@ -2853,7 +2881,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.35 $";
+    char revision[] = "$Revision: 1.36 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -3048,9 +3076,8 @@ int main(int argc, char **argv)
     /*
      * read the config file
      */
-    if (!PSID_readconfigfile()) {
-	SYSLOG(0,(LOG_ERR,"%s: PSI Daemon: init failed \n",argv[0]));
-	exit(1);
+    if (!(i=PSID_readconfigfile())) {
+	SYSLOG(0,(LOG_ERR,"%s: PSI Daemon: No card present: %d\n",argv[0],i));
     }
 
     if (ConfigSyslog!=LOG_DAEMON) {
@@ -3095,6 +3122,15 @@ int main(int argc, char **argv)
     selecttimer.tv_usec = 0;
     gettimeofday(&maintimer,NULL);
 
+    daemons = malloc(PSI_nrofnodes * sizeof(*daemons));
+
+    for(i=0;i<PSI_nrofnodes;i++){
+	daemons[i].fd = 0;
+	daemons[i].node = 0;
+	daemons[i].tasklist = 0;
+	PSID_hoststatus[i] &= ~PSPHOSTUP;
+    }
+
     for(i=0; i<FD_SETSIZE; i++){
 	clients[i].tid =-1;
 	clients[i].ob.daemon = NULL;
@@ -3110,7 +3146,7 @@ int main(int argc, char **argv)
 	unsigned int *hostlist;
 	int MCastSock;
 
-	hostlist = malloc((PSI_nrofnodes+1) * sizeof (unsigned int));
+	hostlist = malloc((PSI_nrofnodes+1) * sizeof(unsigned int));
 	if (!hostlist) {
 	    SYSLOG(0,(LOG_ERR, "Not enough memory for hostlist\n"));
 	    exit(1);
@@ -3118,6 +3154,7 @@ int main(int argc, char **argv)
 
 	for (i=0; i<=PSI_nrofnodes; i++) {
 	    hostlist[i] = psihosttable[i].inet;
+	    SYSLOG(0,(LOG_ERR, "%d: %x\n", i, psihosttable[i].inet));
 	}
 
 	/*
@@ -3146,15 +3183,6 @@ int main(int argc, char **argv)
 	free(hostlist);
     }
 
-    SYSLOG(2,(LOG_ERR,"Contacting other daemons in the cluster\n"));
-    for(i=0;i<PSI_nrofnodes;i++){
-	daemons[i].fd = 0;
-	daemons[i].node = 0;
-	daemons[i].tasklist = 0;
-	PSID_hoststatus[i] &= ~PSPHOSTUP;
-    }
-
-    SYSLOG(2,(LOG_ERR, "Contacting other daemons in the cluster. DONE\n"));
     SYSLOG(1,(LOG_ERR, "SelectTimer=%ld sec DeclareDeadInterval=%ld\n",
 	      ConfigPsidSelectTime, ConfigDeclareDeadInterval));
 
@@ -3165,9 +3193,11 @@ int main(int argc, char **argv)
     /*
      * check if the Cluster is ready
      */
+    SYSLOG(2,(LOG_ERR,"Contacting other daemons in the cluster\n"));
     checkCluster();
     startDaemons();
     checkCluster();
+    SYSLOG(2,(LOG_ERR, "Contacting other daemons in the cluster. DONE\n"));
 
     /*
      * Main loop

@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.24 2002/02/12 15:09:06 eicker Exp $
+ * $Id: psidutil.c,v 1.25 2002/02/12 19:09:09 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.24 2002/02/12 15:09:06 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.25 2002/02/12 19:09:09 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -49,7 +49,15 @@ static char errtxt[256];
 void PSID_ReConfig(int nodeid, int nrofnodes, char *licensekey, char *module,
 		   char *routingfile)
 {
+    int ret;
     card_init_t card_info;
+
+    PSI_myid = nodeid;
+    PSI_nrofnodes = nrofnodes;
+
+    if (! PSID_CardPresent) {
+	return;
+    }
 
     SYSLOG(1,(LOG_ERR, "PSID_ReConfig: %d '%s' '%s' '%s'"
 	      " small packets %d, ResendTimeout %d\n",
@@ -63,10 +71,11 @@ void PSID_ReConfig(int nodeid, int nrofnodes, char *licensekey, char *module,
     card_info.routing_file = routingfile;
 
     card_cleanup();
-    card_init(&card_info);
-
-    PSI_myid = nodeid;
-    PSI_nrofnodes = nrofnodes;
+    ret = card_init(&card_info);
+    if (ret) {
+	PSID_CardPresent = 0;	
+	return;
+    }
 
     if(ConfigSmallPacketSize != -1){
 	PSHALSYS_SetSmallPacketSize(ConfigSmallPacketSize);
@@ -89,7 +98,9 @@ void PSID_ReConfig(int nodeid, int nrofnodes, char *licensekey, char *module,
 
 void PSID_CardStop(void)
 {
-    card_cleanup();
+    if (PSID_CardPresent) {
+	card_cleanup();
+    }
 }
 
 /***************************************************************************
@@ -186,8 +197,8 @@ int PSID_readconfigfile(void)
      * else if (PSIconfigvalue !=-1)  use value of ConfigValue
      * else  use value of #define
      */
-    for(i=0; i<PSI_nrofnodes; i++){
-	if (!(PSID_inserthost(psihosttable[i].inet,i))){
+    for (i=0; i<PSI_nrofnodes; i++) {
+	if (!PSID_inserthost(psihosttable[i].inet,i)) {
 	    /* error: the host could not be inserted 
 	       in the hostlist */
 	    snprintf(errtxt, sizeof(errtxt),
@@ -198,7 +209,7 @@ int PSID_readconfigfile(void)
 	}
     }
 
-    if (PSID_host(sin_addr.s_addr)==-1){
+    if (PSID_host(sin_addr.s_addr)==-1) {
 	PSID_CardPresent = 0;
 	SYSLOG(1,(LOG_ERR,"No card present\n"));
 	return PSID_CardPresent;
@@ -540,11 +551,8 @@ int PSID_inserthost(unsigned int addr, unsigned short psino)
     unsigned int hostno;
     struct PSID_host_t *host;
 
-#ifdef BIGENDIAN
-    hostno = addr & 0xFF;
-#else   
-    hostno = addr>>24;
-#endif
+    hostno = ntohl(addr) & 0xff;
+
     for (host = PSID_hosts[hostno];  host; host = host->next){
 	if (host->saddr == addr){
 	    host->psino = psino;
@@ -587,19 +595,11 @@ int PSID_host(unsigned int addr)
     }
 #endif
     /* loopback address */
-#ifdef BIGENDIAN
-    if ((addr >> 24 ) == 0x7F)
-#else
-    if ((addr & 0xFF) == 0x7F)
-#endif
+    if ((ntohl(addr) >> 24 ) == 0x7F)
 	return PSI_myid;
 
     /* other addresses */
-#ifdef BIGENDIAN
-    hostno = addr & 0xFF;
-#else
-    hostno = addr >> 24;
-#endif
+    hostno = ntohl(addr) & 0xFF;
     for (host = PSID_hosts[hostno]; host; host = host->next){
 	if (host->saddr == addr)
 	    return host->psino ;
