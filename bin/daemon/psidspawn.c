@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidspawn.c,v 1.14 2003/10/30 16:31:06 eicker Exp $
+ * $Id: psidspawn.c,v 1.15 2003/12/10 16:47:06 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.14 2003/10/30 16:31:06 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.15 2003/12/10 16:47:06 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -44,7 +44,27 @@ static char *get_strerror(int eno)
     if (ret) return ret; else return "UNKNOWN";
 }
 
-int PSID_execv(const char *path, char *const argv[])
+/**
+ * @brief Frontend to execv(3).
+ *
+ * Frontend to execv(3). Retry execv() on failure after a delay of
+ * 400ms. With 5 tries at all this results in a total trial time of
+ * about 2sec.
+ *
+ * @param path The pathname of the file to be executed.
+ *
+ * @param argv Array of pointers to null-terminated strings that
+ * represent the argument list available to the new program. The first
+ * argument, by convention, should point to the file name associated
+ * with the file being executed. The array of pointers must be
+ * terminated by a NULL pointer.
+ *
+ *
+ * @return Like the execv(3) return value.
+ *
+ * @see execv(3)
+ */
+static int myexecv(const char *path, char *const argv[])
 {
     int ret;
     int cnt;
@@ -60,8 +80,25 @@ int PSID_execv(const char *path, char *const argv[])
     return ret;
 }
 
-/* (workaround for automounter problems) */
-int PSID_stat(char *file_name, struct stat *buf)
+/**
+ * @brief Frontend to stat(2).
+ *
+ * Frontend to stat(2). Retry stat() on failure after a delay of
+ * 400ms. With 5 tries at all this results in a total trial time of
+ * about 2sec.
+ *
+ * This is mainly a workaround for automounter problems.
+ *
+ * @param file_name The name of the file to stat. This might be a
+ * absolute or relative path to the file.
+ *
+ * @param buf Buffer to hold the returned stat information of the file.
+ *
+ * @return Like the stat(2) return value.
+ *
+ * @see stat(2)
+ */
+static int mystat(char *file_name, struct stat *buf)
 {
     int ret;
     int cnt;
@@ -76,7 +113,10 @@ int PSID_stat(char *file_name, struct stat *buf)
 }
 
 
-int PSID_execClient(PStask_t *task, int controlchannel)
+/**
+ * @brief @todo
+ */
+static int execClient(PStask_t *task, int controlchannel)
 {
     /* logging is done via the forwarder thru stderr! */
     struct stat sb;
@@ -129,7 +169,7 @@ int PSID_execClient(PStask_t *task, int controlchannel)
     }
 
     /* Test if executable is there */
-    if (PSID_stat(task->argv[0], &sb) == -1) {
+    if (mystat(task->argv[0], &sb) == -1) {
 	fprintf(stderr, "%s: stat(%s): %s\n", __func__,
 		task->argv[0] ? task->argv[0] : "", get_strerror(errno));
 	write(controlchannel, &errno, sizeof(errno));
@@ -147,7 +187,7 @@ int PSID_execClient(PStask_t *task, int controlchannel)
     }
 
     /* execute the image */
-    if (PSID_execv(task->argv[0], &(task->argv[0]))<0) {
+    if (myexecv(task->argv[0], &(task->argv[0]))<0) {
 	fprintf(stderr, "%s: execv: %s", __func__, get_strerror(errno));
     }
     /* never reached, if execv succesful */
@@ -160,7 +200,10 @@ int PSID_execClient(PStask_t *task, int controlchannel)
     exit(0);
 }
 
-int PSID_execForwarder(PStask_t *task, int daemonfd, int controlchannel)
+/**
+ * @brief @todo
+ */
+static int execForwarder(PStask_t *task, int daemonfd, int controlchannel)
 {
     pid_t pid;
     int clientfds[2], stdinfds[2], stdoutfds[2], stderrfds[2];
@@ -313,7 +356,7 @@ int PSID_execForwarder(PStask_t *task, int daemonfd, int controlchannel)
 	close(stderrfds[1]);
 
 	/* try to start the client */
-	PSID_execClient(task, clientfds[1]);
+	execClient(task, clientfds[1]);
     }
 
     /* this is the forwarder process */
@@ -495,7 +538,7 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
 	    }
 	}
 
-	PSID_execForwarder(client, socketfds[1], forwarderfds[1]);
+	execForwarder(client, socketfds[1], forwarderfds[1]);
     }
 
     /* this is the parent process */
