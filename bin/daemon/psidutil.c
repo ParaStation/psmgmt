@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.46 2002/08/06 08:24:19 eicker Exp $
+ * $Id: psidutil.c,v 1.47 2002/08/07 11:33:23 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.46 2002/08/06 08:24:19 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.47 2002/08/07 11:33:23 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -53,11 +53,11 @@ void PSID_initLog(int usesyslog, FILE *logfile)
 
 	if (fno!=STDERR_FILENO) {
 	    dup2(fno, STDERR_FILENO);
-	    fclose(logfile);
+	    close(fno);
 	}
     }
 
-    initErrLog("PSID", usesyslog);
+    initErrLog(usesyslog ? NULL : "PSID", usesyslog);
 }
 
 int PSID_getDebugLevel(void)
