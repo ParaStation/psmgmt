@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidinfo.c,v 1.5 2003/11/26 17:45:05 eicker Exp $
+ * $Id: psidinfo.c,v 1.6 2003/12/19 15:06:07 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidinfo.c,v 1.5 2003/11/26 17:45:05 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidinfo.c,v 1.6 2003/12/19 15:06:07 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -31,6 +31,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidinfo.c,v 1.5 2003/11/26
 #include "psidutil.h"
 #include "psidcomm.h"
 #include "psidtask.h"
+#include "psidstatus.h"
 
 #include "psidinfo.h"
 
@@ -40,18 +41,20 @@ extern char psid_cvsid[];
 
 void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 {
-    int id = PSC_getID(inmsg->header.dest);
+    int destID = PSC_getID(inmsg->header.dest);
     int header = 0;
     char funcStr[80];
 
     snprintf(errtxt, sizeof(errtxt), "%s: type %d for %d from requester %s",
-	     __func__, inmsg->type, id, PSC_printTID(inmsg->header.sender));
+	     __func__, inmsg->type, destID,
+	     PSC_printTID(inmsg->header.sender));
     PSID_errlog(errtxt, 1);
 
     snprintf(funcStr, sizeof(funcStr),
 	     "%s(%s)", __func__, PSP_printInfo(inmsg->type));
 
-    if (id!=PSC_getMyID()) {
+    if (destID != PSC_getMyID()) {
+	/* request for remote daemon */
 	DDErrorMsg_t errmsg = {
 	    .header = {
 		.type = PSP_CD_ERROR,
@@ -61,44 +64,54 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    .request = inmsg->header.type,
 	    .error = 0};
 
-	/* request for remote daemon */
-	if (PSnodes_isUp(id)) {
+	if (PSnodes_isUp(destID)) {
+	    DDTypedMsg_t msg = {
+		.header = {
+		    .type = PSP_CD_INFORESPONSE,
+		    .sender = PSC_getMyTID(),
+		    .dest = inmsg->header.sender,
+		    .len = sizeof(msg) },
+		.type = PSP_INFO_UNKNOWN };
+
 	    if (PSC_getID(inmsg->header.sender) == PSC_getMyID()) {
 		/* Test for correct protocol version */
 		PStask_t *requester = PStasklist_find(managedTasks,
 						      inmsg->header.sender);
-		DDTypedMsg_t msg = {
-		    .header = {
-			.type = PSP_CD_INFORESPONSE,
-			.sender = PSC_getMyTID(),
-			.dest = inmsg->header.sender,
-			.len = sizeof(msg) },
-		    .type = PSP_INFO_UNKNOWN };
-
 		if (!requester) {
 		    snprintf(errtxt, sizeof(errtxt),
 			     "%s: requester %s not found",
 			     funcStr, PSC_printTID(inmsg->header.sender));
 		    PSID_errlog(errtxt, 0);
 		    inmsg = (DDTypedBufferMsg_t *)&msg;
-		} else if (requester->protocolVersion < 329) {
-		    switch (inmsg->type) {
-		    case PSP_INFO_LIST_VIRTCPUS:
-		    case PSP_INFO_LIST_PHYSCPUS:
-		    case PSP_INFO_LIST_HWSTATUS:
-		    case PSP_INFO_LIST_LOAD:
-		    case PSP_INFO_LIST_ALLJOBS:
-		    case PSP_INFO_LIST_NORMJOBS:
-			inmsg = (DDTypedBufferMsg_t *)&msg;
-			break;
-		    default:
-			;
+		} else {
+		    /* Test for protocol changes */
+		    if (requester->protocolVersion < 329) {
+			switch (inmsg->type) {
+			case PSP_INFO_LIST_VIRTCPUS:
+			case PSP_INFO_LIST_PHYSCPUS:
+			case PSP_INFO_LIST_HWSTATUS:
+			case PSP_INFO_LIST_LOAD:
+			case PSP_INFO_LIST_ALLJOBS:
+			case PSP_INFO_LIST_NORMJOBS:
+			    inmsg = (DDTypedBufferMsg_t *)&msg;
+			    break;
+			default:
+			    ;
+			}
+		    }
+		    if (requester->protocolVersion > 327) {
+			switch (inmsg->type) {
+			case PSP_INFO_NODELIST:
+			case PSP_INFO_PARTITION:
+			    inmsg = (DDTypedBufferMsg_t *)&msg;
+			    break;
+			default:
+			    ;
+			}
 		    }
 		}
 	    }
-	    /*
-	     * transfer the request to the remote daemon
-	     */
+	    /* transfer to remote daemon */
 	    if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
 		/* system error */
 		errmsg.error = EHOSTUNREACH;
@@ -238,68 +251,34 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    break;
 	}
 	case PSP_INFO_NODELIST:
-	{
-	    int i;
-	    PStask_t *requester;
-
-	    requester = PStasklist_find(managedTasks, inmsg->header.sender);
-
-	    if (!requester) {
-		snprintf(errtxt, sizeof(errtxt), "%s: requester %s not found",
-			 funcStr, PSC_printTID(inmsg->header.sender));
-		PSID_errlog(errtxt, 0);
-		err = 1;
-		break;
-	    }
-
-	    if (requester->protocolVersion < 328) {
-		static NodelistEntry_t *nodelist = NULL;
-		static int nodelistlen = 0;
-		/* @todo Check for message limit */
-		if (nodelistlen < PSC_getNrOfNodes()) {
-		    nodelistlen = PSC_getNrOfNodes();
-		    nodelist = realloc(nodelist,
-				       nodelistlen * sizeof(*nodelist));
-		}
-		for (i=0; i<PSC_getNrOfNodes(); i++) {
-		    MCastConInfo_t info;
-
-		    nodelist[i].up = PSnodes_isUp(i);
-		    nodelist[i].numCPU = PSnodes_getVirtCPUs(i);
-		    nodelist[i].hwStatus = PSnodes_getHWStatus(i);
-
-		    getInfoMCast(i, &info);
-		    nodelist[i].load[0] = info.load.load[0];
-		    nodelist[i].load[1] = info.load.load[1];
-		    nodelist[i].load[2] = info.load.load[2];
-		    nodelist[i].totalJobs = info.jobs.total;
-		    nodelist[i].normalJobs = info.jobs.normal;
-		}
-		memcpy(msg.buf, nodelist, PSC_getNrOfNodes()
-		       * sizeof(*nodelist));
-		msg.header.len += PSC_getNrOfNodes() * sizeof(*nodelist);
-	    } else {
-		msg.type = PSP_INFO_UNKNOWN;
-	    }
-	    break;
-	}
 	case PSP_INFO_PARTITION:
 	{
 	    int i, j;
 	    unsigned int hwType;
-	    PStask_t *requester;
+	    PStask_t *requester = NULL;
 
-	    requester = PStasklist_find(managedTasks, inmsg->header.sender);
-
-	    if (!requester) {
-		snprintf(errtxt, sizeof(errtxt), "%s: requester %s not found",
-			 funcStr, PSC_printTID(inmsg->header.sender));
-		PSID_errlog(errtxt, 0);
-		err = 1;
-		break;
+	    if ((! config->useMCast) && (PSC_getMyID() != getMasterID())) {
+		/* Handled by master node -> forward */
+		inmsg->header.dest = PSC_getTID(getMasterID(), 0);
+		msg_INFOREQUEST(inmsg);
+		return;
 	    }
 
-	    if (requester->protocolVersion < 328) {
+	    if (PSC_getID(inmsg->header.sender) == PSC_getMyID()) {
+		requester = PStasklist_find(managedTasks,
+					    inmsg->header.sender);
+
+		if (!requester) {
+		    snprintf(errtxt, sizeof(errtxt),
+			     "%s: requester %s not found", funcStr,
+			     PSC_printTID(inmsg->header.sender));
+		    PSID_errlog(errtxt, 0);
+		    err = 1;
+		    break;
+		}
+	    }
+
+	    if (!requester || requester->protocolVersion < 328) {
 		static NodelistEntry_t *nodelist = NULL;
 		static int nodelistlen = 0;
 		/* @todo Check for message limit */
@@ -312,31 +291,30 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		hwType = *(unsigned int *) inmsg->buf;
 
 		for (i=0, j=0; i<PSC_getNrOfNodes(); i++) {
-		    MCastConInfo_t info;
+		    PSID_NodeStatus_t status = getStatus(i);
 
-		    getInfoMCast(i, &info);
-
-		    if ((!hwType || PSnodes_getHWStatus(i) & hwType)
-			&& (PSnodes_getUser(i) == PSNODES_ANYUSER
-			    || PSnodes_getUser(i) == requester->uid
-			    || !requester->uid)
-			&& (PSnodes_getProcs(i) == PSNODES_ANYPROC
-			    || PSnodes_getProcs(i) > info.jobs.normal)
-			&& (PSnodes_getGroup(i) == PSNODES_ANYGROUP
-			    || PSnodes_getGroup(i) == requester->gid
-			    || !requester->gid)
-			&& PSnodes_runJobs(i)) {
+		    if ((inmsg->type == PSP_INFO_NODELIST)
+			|| ((!hwType || PSnodes_getHWStatus(i) & hwType)
+			    && (PSnodes_getUser(i) == PSNODES_ANYUSER
+				|| PSnodes_getUser(i) == requester->uid
+				|| !requester->uid)
+			    && (PSnodes_getProcs(i) == PSNODES_ANYPROC
+				|| PSnodes_getProcs(i) > status.jobs.normal)
+			    && (PSnodes_getGroup(i) == PSNODES_ANYGROUP
+				|| PSnodes_getGroup(i) == requester->gid
+				|| !requester->gid)
+			    && PSnodes_runJobs(i))) {
 
 			nodelist[j].id = i;
 			nodelist[j].up = PSnodes_isUp(i);
 			nodelist[j].numCPU = PSnodes_getVirtCPUs(i);
 			nodelist[j].hwStatus = PSnodes_getHWStatus(i);
 
-			nodelist[j].load[0] = info.load.load[0];
-			nodelist[j].load[1] = info.load.load[1];
-			nodelist[j].load[2] = info.load.load[2];
-			nodelist[j].totalJobs = info.jobs.total;
-			nodelist[j].normalJobs = info.jobs.normal;
+			nodelist[j].load[0] = status.load.load[0];
+			nodelist[j].load[1] = status.load.load[1];
+			nodelist[j].load[2] = status.load.load[2];
+			nodelist[j].totalJobs = status.jobs.total;
+			nodelist[j].normalJobs = status.jobs.normal;
 			nodelist[j].maxJobs = PSnodes_getProcs(i);
 
 			j++;
@@ -462,13 +440,19 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    }
 	    break;
 	}
+	case PSP_INFO_LIST_LOAD:
+	case PSP_INFO_LIST_ALLJOBS:
+	case PSP_INFO_LIST_NORMJOBS:
+	    if ((! config->useMCast) && (PSC_getMyID() != getMasterID())) {
+		/* Handled by master node -> forward */
+		inmsg->header.dest = PSC_getTID(getMasterID(), 0);
+		msg_INFOREQUEST(inmsg);
+		return;
+	    }
 	case PSP_INFO_LIST_HOSTSTATUS:
 	case PSP_INFO_LIST_VIRTCPUS:
 	case PSP_INFO_LIST_PHYSCPUS:
 	case PSP_INFO_LIST_HWSTATUS:
-	case PSP_INFO_LIST_LOAD:
-	case PSP_INFO_LIST_ALLJOBS:
-	case PSP_INFO_LIST_NORMJOBS:
 	{
 	    PStask_t *requester = NULL;
 	    PSnodes_ID_t node;
@@ -499,10 +483,10 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		}
 	    } else {
 		const size_t chunkSize = 1024;
+		PSID_NodeStatus_t status;
 		size_t size = 0;
 		unsigned int idx = 0;
 		for (node=0; node<PSC_getNrOfNodes(); node++) {
-		    MCastConInfo_t info;
 		    switch (inmsg->type) {
 		    case PSP_INFO_LIST_HOSTSTATUS:
 			((char *)msg.buf)[idx] = PSnodes_isUp(node);
@@ -521,20 +505,20 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 			size = sizeof(uint32_t);
 			break;
 		    case PSP_INFO_LIST_LOAD:
-			getInfoMCast(node, &info);
-			((float *)msg.buf)[3*idx+0] = info.load.load[0];
-			((float *)msg.buf)[3*idx+1] = info.load.load[1];
-			((float *)msg.buf)[3*idx+2] = info.load.load[2];
+			status = getStatus(node);
+			((float *)msg.buf)[3*idx+0] = status.load.load[0];
+			((float *)msg.buf)[3*idx+1] = status.load.load[1];
+			((float *)msg.buf)[3*idx+2] = status.load.load[2];
 			size = 3*sizeof(float);
 			break;
 		    case PSP_INFO_LIST_ALLJOBS:
-			getInfoMCast(node, &info);
-			((uint16_t *)msg.buf)[idx] = info.jobs.total;
+			status = getStatus(node);
+			((uint16_t *)msg.buf)[idx] = status.jobs.total;
 			size = sizeof(uint16_t);
 			break;
 		    case PSP_INFO_LIST_NORMJOBS:
-			getInfoMCast(node, &info);
-			((uint16_t *)msg.buf)[idx] = info.jobs.normal;
+			status = getStatus(node);
+			((uint16_t *)msg.buf)[idx] = status.jobs.normal;
 			size = sizeof(uint16_t);
 			break;
 		    default:
