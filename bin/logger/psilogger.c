@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.37 2004/06/14 17:09:34 eicker Exp $
+ * $Id$
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.37 2004/06/14 17:09:34 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.37 2004/06/14 17:09:34 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -48,7 +48,8 @@ int PrependSource = 0;
 /**
  * The rank of the process all input is forwarded to.
  *
- * Set in main() to the value given by the environment variable PSI_INPUTDEST.
+ * Set in main() to the value given by the environment variable
+ * PSI_INPUTDEST. Will be set to -1 if no stdin is connected.
  */
 int InputDest = 0;
 
@@ -849,9 +850,18 @@ int main( int argc, char**argv)
     envstr=getenv("PSI_INPUTDEST");
     if (envstr) {
 	InputDest = atoi(envstr);
+    }
+    if (daemonSock) {
 	if (verbose) {
 	    fprintf(stderr, "PSIlogger: Input goes to [%d].\n", InputDest);
 	}
+    } else {
+	/* daemonSock = 0, this means there is no stdin connected */
+	if (verbose) {
+	    fprintf(stderr, "PSIlogger: No stdin available.\n");
+	}
+	/* Never ever forward input */
+	InputDest = -1;
     }
 
     if (getenv("PSI_RUSAGE")) {
