@@ -1,0 +1,88 @@
+# Process this file with autoconf to produce a configure script.
+AC_INIT(["psmlib"],[""],["hauke@par-tec.com"])
+AC_CONFIG_SRCDIR([README])
+
+AC_CONFIG_AUX_DIR(["scripts"]) 
+AC_CANONICAL_TARGET([]) 
+AC_PROG_RANLIB 
+
+path_cleanup()
+{
+	case $1 in
+	[[\\/]]* | ?:[[\\/]]* ) # Absolute path.
+      		echo $1 ;;
+	*) # Relative path.
+		echo `pwd`/$1 ;;
+	esac
+}
+
+AC_SUBST(MCPBINHEADERDIR)
+AC_SUBST(MYRI_HOME)
+AC_ARG_WITH([mcpbinheader], [  --with-mcpbinheader=dir location of mcp bin headers] ,
+[
+	MCPBINHEADERDIR=`path_cleanup ${withval}`;
+	# ToDo: Check for: $MCPBINHEADERDIR/psm_mcp9x_bench.h
+]
+,
+[
+	MCPBINHEADERDIR=
+	echo -n "checking for LANai-tools..."
+	AC_ARG_WITH([lanaitools], [  --with-lanaitools=dir   location of lanai tools] ,
+	[
+		MYRI_HOME=`path_cleanup ${withval}`;
+	],[
+		if MYRI_HOME=`which lanai-gcc` ; then
+#			MYRI_HOME=`which lanai-gcc`
+			MYRI_HOME=`dirname $MYRI_HOME`/..
+			MYRI_HOME=`path_cleanup $MYRI_HOME`
+		else
+			cat <<DOK
+
+Cant find the LANai-tools!
+please configure with --with-mcpbinheader or --with-lanaitools
+DOK
+			exit 1
+		fi
+	])
+	echo " $MYRI_HOME"
+])
+	
+
+AC_SUBST([KERNELLIST])
+AC_ARG_WITH([kernellist], [  --with-kernellist=file    file with kernelnames and kerneldirs] ,
+[
+	KERNELLIST=`path_cleanup $withval`
+],[
+	KERNELLIST=`path_cleanup kernellist`
+])
+
+
+
+AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([libs/pshal/Makefile])
+AC_CONFIG_FILES([libs/psport/Makefile])
+AC_CONFIG_FILES([libs/arg/Makefile])
+AC_CONFIG_FILES([libs/pvar/Makefile])
+AC_CONFIG_FILES([kern/mcp/Makefile])
+AC_CONFIG_FILES([kern/Makefile.include])
+AC_CONFIG_FILES([tools/Makefile])
+
+
+AC_SUBST([PSM_OSDIR])
+
+case $target_os in
+linux)
+	PSM_OSDIR=kern/Linux
+	AC_CONFIG_FILES([kern/Linux/Makefile])
+	AC_CONFIG_FILES([kern/Linux/Makefile.second])
+	;;
+*)
+	echo "Unkown os ($target_os)"
+	exit 1
+	;;
+esac
+	
+
+
+
+AC_OUTPUT

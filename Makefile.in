@@ -1,0 +1,60 @@
+#############################################################################
+#      @(#)makefile    2.00 (Karlsruhe) 2000
+#
+#      27.06.2000   Jens Hauke
+#      23.08.2000
+#############################################################################
+#Create Only mcp's:
+#>make mcp
+#Create mcp pshal and kernelmodule:
+#>make all
+#Create pshal and kernelmodule:
+#>make allbutmcp
+#or simple
+#>make
+#
+#On Linux use KDIR to set Kerneldir and optionalOSSUF for extra info like SMP
+#>make KDIR=/usr/src/linux-2.2.16 OSSUF=_SMP
+#
+#On Problems with .kernelrelease call "make include/linux/version.h" as
+# root inside Kerneldir
+
+
+LIBS := psport pshal arg pvar
+PSM_OSDIR := @PSM_OSDIR@
+
+LIBDIRS := $(patsubst %,libs/%,$(LIBS))
+
+SUBDIRS := $(LIBDIRS) kern/mcp $(PSM_OSDIR)
+
+.PHONY all: mcp psm libs tools
+
+
+mcp:
+	$(MAKE) -C kern/mcp
+psm:
+	$(MAKE) -C $(PSM_OSDIR)
+
+libs: $(LIBS)
+$(LIBS): 
+	$(MAKE) -C libs/$@
+
+tools:
+	$(MAKE) -C tools tools
+
+clean:
+	@for i in $(SUBDIRS) ; do \
+		$(MAKE) -C $$i clean ;\
+	done
+
+
+
+
+
+
+
+
+
+
+
+
