@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.26 2002/01/18 15:42:00 eicker Exp $
+ * $Id: psid.c,v 1.27 2002/01/21 16:13:12 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.26 2002/01/18 15:42:00 eicker Exp $ 
+ * $Id: psid.c,v 1.27 2002/01/21 16:13:12 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.26 2002/01/18 15:42:00 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.27 2002/01/21 16:13:12 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -61,7 +61,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.26 $";
+static char psid_cvsid[] = "$Revision: 1.27 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -189,13 +189,16 @@ static int sendMsg(void* amsg)
 	}
     } else if (PSI_getnode(msg->dest)<PSI_nrofnodes) {
 	int ret;
-	if ((ret = Rsendto(PSI_getnode(msg->dest),msg,msg->len))<msg->len) {
+	if ((ret=Rsendto(PSI_getnode(msg->dest), msg, msg->len)) == -1) {
+	    char *errstr;
+	    errstr=strerror(errno);
 	    sprintf(PSI_txt,
 		    "sendMsg(type %s (len=%ld) to task 0x%lx[%d,%d] "
-		    "return %d ERROR %d\n",
+		    "error (%d) while Rsendto: %s\n",
 		    PSPctrlmsg(msg->type), msg->len, msg->dest,
 		    msg->dest==-1 ? -1 : PSI_getnode(msg->dest),
-		    PSI_getpid(msg->dest), ret, errno);
+		    PSI_getpid(msg->dest), errno,
+		    errstr ? errstr : "UNKNOWN errno");
 	    SYSLOG(1,(LOG_ERR,PSI_txt));
 	}
 	return ret;
@@ -266,7 +269,7 @@ static int recvMsg(int fd, DDMsg_t* msg,int size)
     if (n==-1) {
 	char* errstr;
 	errstr = strerror(errno);
-	SYSLOG(1,(LOG_ERR, "recvMsg(%d): error(%d) while read: %s\n",
+	SYSLOG(1,(LOG_ERR, "recvMsg(%d): error (%d) while read: %s\n",
 		  fd, errno, errstr ? errstr : "UNKNOWN errno"));
     } else if (PSI_isoption(PSP_ODEBUG)){
 	if (n==0) {
@@ -2695,7 +2698,7 @@ void CheckFileTable()
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.26 $";
+    char revision[] = "$Revision: 1.27 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
