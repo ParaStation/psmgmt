@@ -40,6 +40,9 @@ psconfig:psconfig.c $(LIB)/libpshal.a $(LIB)/libarg.a
 psroute:psroute.c $(LIB)/libpshal.a $(LIB)/libarg.a
 	gcc $< -I$(INC) -I.. -L$(LIB) -larg -lpshal -lm -o $@
 
+pscounter:pscounter.c $(LIB)/libpshal.a
+	gcc $< -I$(INC) -I.. -L$(LIB) -lpshal -lm -o $@
+
 %:	%.c
 	gcc $< -I$(INC) -I.. -L$(LIB) -lpshal -o $@
 

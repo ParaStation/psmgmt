@@ -1,7 +1,7 @@
 /*
  *
  *
- *      $Id: pshal.h,v 1.15 2001/08/31 13:42:46 hauke Exp $	
+ *      $Id: pshal.h,v 1.16 2001/09/04 16:22:31 hauke Exp $	
  *
  *      written by Jens Hauke
  *
@@ -91,6 +91,16 @@ typedef struct PSHALMCPRoutings_T{
     int			nmemb;		/**< num routing entries */
     PSHALSYSRouting_t	*Routes;	/**< ptr to routing entries */
 }PSHALSYSRoutings_t;
+
+#define MAX_PSHAL_INFO_COUNTER 32
+
+typedef struct PSHALInfoCounter_T{
+    unsigned		n; /* in: max counters out: recved counters */
+    struct {
+	char		name[32];
+	unsigned	value;
+    }counter[MAX_PSHAL_INFO_COUNTER];
+}PSHALInfoCounter_t;
 
     
 /*------------------------------------------------------------------------------
@@ -533,6 +543,18 @@ int PSHALSYSGetDevHandle(void);
  *
  */
 int PSHALSYSGetCounter( struct PSHALMCPCount_T * counter );
+
+/*------------------------------------------------------------------------------
+ * PSHALInfoCounter_t * counter PSHALSYSGetInfoCounter(void)
+ */
+/**
+ * Get ptr to info counter
+ *
+ * @return	0	on error
+ * @return	infoptr	on success
+ *
+ */
+PSHALInfoCounter_t * PSHALSYSGetInfoCounter(void);
 
 
 /*------------------------------------------------------------------------------
