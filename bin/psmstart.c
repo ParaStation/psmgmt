@@ -5,20 +5,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psmstart.c,v 1.6 2003/06/05 17:23:03 eicker Exp $
+ * $Id: psmstart.c,v 1.7 2003/07/18 11:09:45 eicker Exp $
  *
  */
 /**
  * @file Simple wrapper to allow non ParaStation aware programs to be
  * distributed in a cluster.
  *
- * $Id: psmstart.c,v 1.6 2003/06/05 17:23:03 eicker Exp $
+ * $Id: psmstart.c,v 1.7 2003/07/18 11:09:45 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c,v 1.6 2003/06/05 17:23:03 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c,v 1.7 2003/07/18 11:09:45 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -49,20 +49,6 @@ int main(int argc, char *argv[])
 
     if (rank == -1){
 	/* I am the logger */
-
-#ifdef __linux__
-	char myexec[PATH_MAX];
-	int length;
-
-	length = readlink("/proc/self/exe", myexec, sizeof(myexec)-1);
-	if (length<0) {
-	    perror("readlink");
-	} else {
-	    myexec[length]='\0';
-	}
-
-	argv[0] = myexec;
-#endif
 
 	/* Set default HW to none: */
 	PSE_setHWType(0);
