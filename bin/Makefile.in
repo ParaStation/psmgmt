@@ -1,0 +1,75 @@
+
+
+CFLAGS += -O2 -Wall -g
+PSM_OSDIR := @PSM_OSDIR@
+CPPFLAGS += -I@top_srcdir@/include -MMD
+
+
+VPATH += @srcdir@
+
+LIBDIR := ../libs
+
+TOOLS:=psconfig pscounter
+# test_nodes
+
+tools:	$(TOOLS)
+
+
+unlock: unlock.o
+unlock: $(LIBDIR)/pshal/libpshal.a
+
+tracemcp: tracemcp.o
+tracemcp: $(LIBDIR)/pvar/libpvar.a
+tracemcp: $(LIBDIR)/pvshal/libpshal.a
+
+
+
+psconfig: psconfig.o
+psconfig: $(LIBDIR)/pshal/libpshal.a
+psconfig: $(LIBDIR)/arg/libarg.a
+psconfig: -lm
+
+pscounter: pscounter.o
+pscounter: $(LIBDIR)/pshal/libpshal.a
+pscounter: -lm
+
+test_nodes: test_nodes.o 
+test_nodes: $(LIBDIR)/pshal/libpshal.a 
+test_nodes: $(LIBDIR)/psport/libpsport.a
+test_nodes: $(LIBDIR)/arg/libarg.a
+test_nodes: $(LIBDIR)/pse/libpse.a
+test_nodes: $(LIBDIR)/psi/libpsi.a
+test_nodes: -lm
+test_nodes: -lpthread
+
+
+test_pse: test_pse.o
+test_pse: $(LIBDIR)/arg/libarg.a
+test_pse: $(LIBDIR)/pshal/libpshal.a 
+test_pse: $(LIBDIR)/psport/libpsport.a
+test_pse: $(LIBDIR)/pse/libpse.a
+test_pse: $(LIBDIR)/psi/libpsi.a
+test_pse: -lpthread
+test_pse: -lm
+
+clean:
+	$(RM) $(TOOLS)
+
+
+DEPFILES := $(wildcard *.d)
+
+-include $(DEPFILES)
+
+
+
+
+
+
+
+
+
+
+
+
+
+

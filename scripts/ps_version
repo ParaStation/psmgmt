@@ -1,0 +1,11 @@
+#!/bin/sh
+
+cat <<EOF
+/* Generated File! Dont edit */
+#define PSM_BUILD ""
+#define PSM_COMPILE_DATE "`date `"
+#define PSM_COMPILE_BY "`whoami`"
+#define PSM_COMPILE_HOST "`hostname`"
+#define PSM_COMPILE_DIR "`cd ..;pwd|sed "sQ.*/QQ" `"
+#define PSM_COMPILE_COM ""
+EOF
