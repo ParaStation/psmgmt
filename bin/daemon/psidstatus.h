@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidstatus.h,v 1.4 2004/01/28 14:02:06 eicker Exp $
+ * $Id: psidstatus.h,v 1.5 2004/03/10 08:45:11 eicker Exp $
  *
  */
 /**
  * @file
  * Helper functions for master-node detection and status actions.
  *
- * $Id: psidstatus.h,v 1.4 2004/01/28 14:02:06 eicker Exp $
+ * $Id: psidstatus.h,v 1.5 2004/03/10 08:45:11 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -87,6 +87,21 @@ void incJobs(int total, int normal);
  * @return No return value
  */
 void decJobs(int total, int normal);
+
+/**
+ * @brief Give job info hint.
+ *
+ * Give a hint to the status handling system that the number of normal
+ * jobs on node @a node will be decreased by one soon, i.e. most
+ * likely when the next PSP_DD_LOAD message will be received from this
+ * node.
+ *
+ * @param node The node on which the number of normal jobs will be
+ * decreased by one soon.
+ *
+ * @return No return value
+ */
+void decJobsHint(PSnodes_ID_t node);
 
 /** @brief Get node status info.
  *

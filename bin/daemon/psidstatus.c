@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidstatus.c,v 1.7 2004/03/09 08:49:33 eicker Exp $
+ * $Id: psidstatus.c,v 1.8 2004/03/10 08:45:11 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidstatus.c,v 1.7 2004/03/09 08:49:33 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidstatus.c,v 1.8 2004/03/10 08:45:11 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -265,6 +265,15 @@ void decJobs(int total, int normal)
     if (normal) myJobs.normal--;
 
     if (config->useMCast) decJobsMCast(PSC_getMyID(), total, normal);
+}
+
+void decJobsHint(PSnodes_ID_t node)
+{
+    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, node);
+    PSID_errlog(errtxt, 10);
+
+    if (clientStat && clientStat[node].jobs.normal)
+	clientStat[node].jobs.normal--;
 }
 
 PSID_NodeStatus_t getStatus(PSnodes_ID_t node)
