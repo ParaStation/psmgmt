@@ -1,5 +1,5 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * psispawn.c
  *
  * Spawning of processes and helper functions.
@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.45 2003/08/27 12:56:00 eicker Exp $
+ * $Id: psispawn.c,v 1.46 2003/09/12 14:20:01 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.45 2003/08/27 12:56:00 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.46 2003/09/12 14:20:01 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -37,328 +37,20 @@ static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.45 2003/08/2
 #include "psilog.h"
 #include "info.h"
 #include "psienv.h"
+#include "psipartition.h"
 
 #include "psispawn.h"
 
-/*
- * The name for the environment variable setting the nodes used
- * when spawning.
- */
-#define ENV_NODE_PRIV      "__PSI_NODES_PRIV"
-#define ENV_NODE_NODES     "PSI_NODES"
-#define ENV_NODE_HOSTS     "PSI_HOSTS"
-#define ENV_NODE_HOSTFILE  "PSI_HOSTFILE"
-#define ENV_NODE_HOSTS_LSF "LSB_HOSTS"
-#define ENV_NODE_SORT      "PSI_NODES_SORT"
-#define ENV_NODE_NUM       "PSI_PROCSPERNODE"
 #define ENV_NODE_RARG      "PSI_RARG_PRE_%d"
-
-short *PSI_Partition = NULL;  /** The partition to use.
-				  Initialize via PSI_getPartition() */
-int PSI_PartitionSize = 0;    /** The size of the partition to use. */
-int PSI_PartitionIndex = 0;   /** Index of the next node to use. */
 
 static char errtxt[256];
 
-static int dospawn(int count, short *dstnodes, char *workingdir,
-		   int argc, char **argv,
-		   long loggertid,
-		   int rank, int *errors, long *tids);
+static uid_t defaultUID = 0;
 
-int PSI_spawnM(int count, short *dstnodes, char *workdir,
-	       int argc, char **argv,
-	       long loggertid,
-	       int rank, int *errors, long *tids)
+void PSI_setUID(uid_t uid)
 {
-    short *mydstnodes=NULL;
-    int ret, i;
-
-    snprintf(errtxt, sizeof(errtxt), "%s()", __func__);
-    PSI_errlog(errtxt, 10);
-
-    if (count<=0) return 0;
-
-    if (!dstnodes) {
-	if (!PSI_Partition) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: you have to call PSI_getPartition() beforehand.",
-		     __func__);
-	    PSI_errlog(errtxt, 0);
-	    *errors = ENXIO;
-	    return -1;
-	}
-
-	mydstnodes = (short*) malloc(count*sizeof(short));
-
-	for (i=0; i<count; i++) {
-	    mydstnodes[i] = PSI_Partition[PSI_PartitionIndex];
-	    PSI_PartitionIndex++;
-	    PSI_PartitionIndex %= PSI_PartitionSize;
-	}
-    } else {
-	mydstnodes = dstnodes;
-    }
-
-    snprintf(errtxt, sizeof(errtxt), "%s: will spawn to:", __func__);
-    for (i=0; i<count; i++) {
-	snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
-		 " %2d", mydstnodes[i]);
-    }
-    snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt), ".");
-    PSI_errlog(errtxt, 1);
-
-    ret = dospawn(count, mydstnodes, workdir, argc, argv,
-		  loggertid, rank, errors, tids);
-
-    /*
-     * if I allocated mydstnodes myself, free() it now
-     */
-    if (!dstnodes) free(mydstnodes);
-
-    return ret;
-}
-
-/**
- * @todo docu
- */
-static char *mygetwd(const char *ext)
-{
-    char *dir;
-
-    if (!ext || (ext[0]!='/')) {
-	char *temp = getenv("PWD");
-
-	if (temp) {
-	    dir = strdup(temp);
-	    if (!dir) {
-		errno = ENOMEM;
-		return NULL;
-	    }
-	} else {
-#if defined __osf__ || defined __linux__
-	    dir = getcwd(NULL, 0);
-#else
-#error wrong OS
-#endif
-	    if (!dir) return NULL;
-	}
-
-	/* Enlarge the string */
-	dir = realloc(dir, strlen(dir) + (ext ? strlen(ext) : 0) + 2);
-	if (!dir) {
-	    errno = ENOMEM;
-	    return NULL;
-	}
-
-	strcat(dir, "/");
-	strcat(dir, ext ? ext : "");
-
-	/* remove automount directory name. */
-	if (strncmp(dir, "/tmp_mnt", strlen("/tmp_mnt"))==0) {
-	    temp = dir;
-	    dir = strdup(&temp[strlen("/tmp_mnt")]);
-	    free(temp);
-	} else if (strncmp(dir, "/export", strlen("/export"))==0) {
-	    temp = dir;
-	    dir = strdup(&temp[strlen("/export")]);
-	    free(temp);
-	}
-	if (!dir) {
-	    errno = ENOMEM;
-	    return NULL;
-	}
-    } else {
-	dir = strdup(ext);
-	if (!dir) {
-	    errno = ENOMEM;
-	    return NULL;
-	}
-    }
-
-    return dir;
-}
-
-/* used for sorting the nodes */
-typedef struct {
-    int    id;
-    double rating;
-} sort_block;
-
-static int compareNodes(const void *entry1, const void *entry2)
-{
-    int ret;
-
-    sort_block *sb1 = (sort_block *) entry1, *sb2 = (sort_block *) entry2;
-
-    if (sb2->rating < sb1->rating)
-	ret = 1;
-    else if (sb2->rating > sb1->rating)
-	ret =  -1;
-    else if (sb2->id < sb1->id)
-	ret =  1;
-    else
-	ret = -1;
-
-    return ret;
-}
-
-enum sortType {none, proc, load_1, load_5, load_15, proc_load};
-
-/*-----------------------------------------------------------------------------
- * PSI_SortNodesInPartition
- *
- * Sort the nodes in the array depending on
- * - their load if PSI_NODES_SORT is load or empty
- * - nothing otherwise
- * (and if they are alive).
- * Parameter: nodes    : an array of nodenumbers.
- *            maxnodes : number of nodes to be sorted, starting with nodes[0]
- * Returns:   0 if OK
- *           -1 on error
- */
-/* Help function for sorting the nodes with qsort */
-
-static int sortNodes(short nodes[], int numNodes, NodelistEntry_t nodelist[])
-{
-    int i;
-    sort_block *node_entry;
-    char *env_sort;
-    double (*loadfunc)(unsigned short, int) = NULL;
-
-    /* get the way to sort from the environment */
-    enum sortType sort = none;
-
-    if (!(env_sort = getenv(ENV_NODE_SORT))) {
-	/* default now PROC jh 2001-12-21 */
-	env_sort = "PROC";
-    }
-
-    if (strcasecmp(env_sort,"LOAD")==0
-	|| strcasecmp(env_sort,"LOAD_1")==0) {
-	sort = load_1;
-    } else if (strcasecmp(env_sort,"LOAD_5")==0) {
-	sort = load_5;
-    } else if (strcasecmp(env_sort,"LOAD_15")==0) {
-	sort = load_15;
-    } else if (strcasecmp(env_sort,"PROC")==0) {
-	sort = proc;
-    } else if (strcasecmp(env_sort,"PROC+LOAD")==0) {
-	sort = proc_load;
-    }
-
-    if (sort != none) {
-	node_entry = (sort_block *)malloc(numNodes * sizeof(sort_block));
-
-	if (!node_entry) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: not enough memory.", __func__);
-	    PSI_errlog(errtxt, 0);
-	    return -1;
-	}
-
-	/* Create the struct to sort */
-	for (i=0; i<numNodes; i++) {
-	    node_entry[i].id = nodes[i];
-	}
-
-	switch (sort) {
-	case load_1:
-	    for (i=0; i<numNodes; i++) {
-		node_entry[i].rating =
-		    nodelist[nodes[i]].load[0] / nodelist[nodes[i]].numCPU;
-	    }
-	    break;
-	case load_5:
-	    for (i=0; i<numNodes; i++) {
-		node_entry[i].rating =
-		    nodelist[nodes[i]].load[1] / nodelist[nodes[i]].numCPU;
-	    }
-	    break;
-	case load_15:
-	    for (i=0; i<numNodes; i++) {
-		node_entry[i].rating =
-		    nodelist[nodes[i]].load[2] / nodelist[nodes[i]].numCPU;
-	    }
-	    break;
-	case proc:
-	    for (i=0; i<numNodes; i++) {
-		node_entry[i].rating =
-		    nodelist[nodes[i]].normalJobs / nodelist[nodes[i]].numCPU;
-	    }
-	    break;
-	case proc_load:
-	    for (i=0; i<numNodes; i++) {
-		/* Take the worse of load and jobs */
-		NodelistEntry_t *node = &nodelist[nodes[i]];
-
-		node_entry[i].rating =
-		    (node->normalJobs + node->load[0]) / node->numCPU;
-	    }
-	    break;
-	default:
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: unknown value for sort = %d.", __func__, sort);
-	    PSI_errlog(errtxt, 0);
-	    return -1;
-	}
-
-	/* Sort the nodes */
-	qsort(node_entry, numNodes, sizeof(sort_block), compareNodes);
-
-	/* Transfer the results */
-	for ( i=0; i<numNodes; i++ ) {
-	    nodes[i] = node_entry[i].id;
-	}
-	free(node_entry);
-    }
-
-    return 0;
-}
-
-/* Workaround to make gcc-2.95 libs work with gcc-3.2 */
-static int myisspace(int c)
-{
-    return c==' ' || c=='\f' || c=='\n' || c=='\r' || c=='\t' || c=='\v';
-}
-
-/* Get white-space seperatet field. Return value must be freed
- * with free(). If next is set, *next return the beginning of the next field */
-char *get_wss_entry(char *str, char **next)
-{
-    char *start=str;
-    char *end=NULL;
-    char *ret=NULL;
-
-    if (!str) goto no_str;
-
-    while (myisspace(*start)) start++;
-    end=start;
-    while ((!myisspace(*end)) && (*end)) end++;
-
-    if (start != end) {
-	ret = (char*)malloc(end-start + 1);
-	strncpy(ret, start, end-start);
-	ret[end-start]=0;
-    }
-
- no_str:
-    if (next) *next=end;
-    return ret;
-}
-
-void PSI_LSF(void)
-{
-    char *lsf_hosts=NULL;
-
-    snprintf(errtxt, sizeof(errtxt), "%s()", __func__);
-    PSI_errlog(errtxt, 10);
-
-    lsf_hosts=getenv(ENV_NODE_HOSTS_LSF);
-    if (lsf_hosts) {
-	setenv(ENV_NODE_SORT, "none", 1);
-	unsetenv(ENV_NODE_HOSTFILE);
-	unsetenv(ENV_NODE_NODES);
-	setenv(ENV_NODE_HOSTS, lsf_hosts, 1);
+    if (!getuid()) {
+	defaultUID = uid;
     }
 }
 
@@ -406,605 +98,58 @@ void PSI_RemoteArgs(int Argc, char **Argv, int *RArgc, char ***RArgv)
     return;
 }
 
-char *PSI_createPGfile(int num, const char *prog, int local)
+/**
+ * @todo docu
+ */
+static char *mygetwd(const char *ext)
 {
-    char *PIfilename, *myprog, filename[20];
-    FILE *PIfile;
-    int i, j=0;
+    char *dir;
 
-    if (!PSI_Partition) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: you have to call PSI_getPartition() beforehand.",
-		 __func__);
-	PSI_errlog(errtxt, 0);
-	return NULL;
-    }
+    if (!ext || (ext[0]!='/')) {
+	char *temp = getenv("PWD");
 
-    myprog = mygetwd(prog);
-    if (!myprog) {
-	char *errstr = strerror(errno);
-
-	snprintf(errtxt, sizeof(errtxt), "%s: mygetwd() failed: %s",
-		 __func__, errstr ? errstr : "UNKNOWN");
-	PSI_errlog(errtxt, 0);
-
-	return NULL;
-    }
-
-    snprintf(filename, sizeof(filename), "PI%d", getpid());
-    PIfile = fopen(filename, "w+");
-
-    if (PIfile) {
-	PIfilename = strdup(filename);
-    } else {	
-	/* File open failed, lets try the user's home directory */
-	char *home;
-
-	home = getenv("HOME");
-
-	PIfilename = malloc((strlen(home)+strlen(filename)+2) * sizeof(char));
-	strcpy(PIfilename, home);
-	strcat(PIfilename, "/");
-	strcat(PIfilename, filename);
-
-	PIfile = fopen(PIfilename, "w+");
-
-	/* File open failed finally */
-	if (!PIfile) {
-	    char *errstr = strerror(errno);
-
-	    snprintf(errtxt, sizeof(errtxt), "%s: fopen() failed: %s",
-		     __func__, errstr ? errstr : "UNKNOWN");
-	    PSI_errlog(errtxt, 0);
-
-	    free(PIfilename);
-	    return NULL;
-	}
-    }
-
-    for (i=0; i<num; i++) {
-	struct in_addr hostaddr;
-
-	hostaddr.s_addr = INFO_request_node(PSI_Partition[local ? 0 : j], 0);
-
-	fprintf(PIfile, "%s %d %s\n", inet_ntoa(hostaddr), (i != 0), myprog);
-	
-
-	j = (j+1) % PSI_PartitionSize;
-    }
-    fclose(PIfile);
-
-    if (local) {
-	char *priv_str;
-	char *end;
-
-	priv_str = getPSIEnv(ENV_NODE_PRIV);
-
-	end = strchr(priv_str, ',');
-
-	if (end) {
-	    *end = '\0';
-	    setPSIEnv(ENV_NODE_PRIV, priv_str, 1);
-	}
-    }
-
-    return PIfilename;
-}
-
-static int nodeOK(short node, NodelistEntry_t *nodelist)
-{
-    if ( node < 0 || node >= PSC_getNrOfNodes()) {
-	snprintf(errtxt, sizeof(errtxt), "%s: node %d out of range.",
-		 __func__, node);
-	PSI_errlog(errtxt, 0);
-	return 0;
-    }
-
-    if (!nodelist) {
-	/* This must be from priv_str. Always ok */
-	return 1;
-    }
-
-    if (nodelist[node].id == -1) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: node %d not in nodelist.", __func__, node);
-	PSI_errlog(errtxt, 8);
-	return 0;
-    }
-
-    if (! nodelist[node].up) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: node %d not UP, excluding from partition.",
-		 __func__, node);
-	PSI_errlog(errtxt, 8);
-	return 0;
-    }
-
-    if (nodelist[node].maxJobs != -1
-	&& nodelist[node].normalJobs >= nodelist[node].maxJobs) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: too many jobs on node %d.", __func__, node);
-	PSI_errlog(errtxt, 8);
-	return 0;
-    }
-
-    return 1;
-}
-
-static void addNode(short node, NodelistEntry_t *nodelist)
-{
-    PSI_Partition[PSI_PartitionSize] = node;
-    PSI_PartitionSize++;
-    if (nodelist) {
-	nodelist[node].normalJobs++;
-	nodelist[node].totalJobs++;
-    }
-}
-
-static int getNodesFromNodeStr(char *node_str, NodelistEntry_t *nodelist)
-{
-    int next_node;
-    char* tmp_node_str, *tmp_node_str_begin, *tmp_node_str_end;
-
-    tmp_node_str = tmp_node_str_begin = strdup(node_str);
-
-    if (! tmp_node_str) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: not enough memory to parse '%s'.",
-		 __func__, ENV_NODE_NODES);
-	PSI_errlog(errtxt, 0);
-	return 0;
-    }
-
-    /* first guess the size of the partition */
-    PSI_PartitionSize = 0;
-    while ((tmp_node_str_end = strchr(tmp_node_str,','))) {
-	PSI_PartitionSize++;
-	tmp_node_str = tmp_node_str_end+1;
-    }
-    /* Another entry after the last ',' */
-    PSI_PartitionSize++;
-
-    /* Allocate PSI_Partition with the correct size */
-    PSI_Partition = realloc(PSI_Partition, sizeof(short) * PSI_PartitionSize);
-    if (!PSI_Partition) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: not enough memory for PSI_Partition.", __func__);
-	PSI_errlog(errtxt, 0);
-	return 0;
-    }
-
-    /* Reset some stuff for the real parsing */
-    PSI_PartitionSize = 0;
-    tmp_node_str = tmp_node_str_begin;
-
-    /* Now do the real parsing */
-    while ((tmp_node_str_end = strchr(tmp_node_str,','))) {
-	/* while there are more node numbers in string */
-	*tmp_node_str_end = '\0';
-
-	if (sscanf(tmp_node_str, "%d", &next_node)>0) {
-	    if (nodeOK(next_node, nodelist)) {
-		addNode(next_node, nodelist);
-	    }
+	if (temp) {
+	    dir = strdup(temp);
 	} else {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: ID '%s' not correct.", __func__, tmp_node_str);
-	    PSI_errlog(errtxt, 0);
-	    free(tmp_node_str_begin);
-	    return 0;
+#if defined __osf__ || defined __linux__
+	    dir = getcwd(NULL, 0);
+#else
+#error wrong OS
+#endif
 	}
+	if (!dir) goto error;
 
-	tmp_node_str = tmp_node_str_end+1;
-    }
+	/* Enlarge the string */
+	dir = realloc(dir, strlen(dir) + (ext ? strlen(ext) : 0) + 2);
+	if (!dir) goto error;
 
-    /* Check if the last element is a node_nr */
-    if (sscanf(tmp_node_str, "%d", &next_node)>0) {
-	if (nodeOK(next_node, nodelist)) {
-	    addNode(next_node, nodelist);
+	strcat(dir, "/");
+	strcat(dir, ext ? ext : "");
+
+	/* remove automount directory name. */
+	if (strncmp(dir, "/tmp_mnt", strlen("/tmp_mnt"))==0) {
+	    temp = dir;
+	    dir = strdup(&temp[strlen("/tmp_mnt")]);
+	    free(temp);
+	} else if (strncmp(dir, "/export", strlen("/export"))==0) {
+	    temp = dir;
+	    dir = strdup(&temp[strlen("/export")]);
+	    free(temp);
 	}
     } else {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: ID '%s' not correct.", __func__, tmp_node_str);
-	PSI_errlog(errtxt, 0);
-	free(tmp_node_str_begin);
-	return 0;
+	dir = strdup(ext);
     }
+    if (!dir) goto error;
 
-    free(tmp_node_str_begin);
-    return 1;
-}
-	
-static int getNodesFromHostStr(char *host_str, NodelistEntry_t *nodelist)
-{
-    /* parse host_str for nodenames */
-    int next_node;
-    char *hostname;
-    char *p = host_str;
-    struct in_addr sin_addr;
-    struct hostent *hp;
+    return dir;
 
-    /* first guess the size of the partition */
-    PSI_PartitionSize = 0;
-    while (get_wss_entry(p, &p)) {
-	PSI_PartitionSize++;
-    }
-
-    /* Allocate PSI_Partition with the correct size */
-    PSI_Partition = realloc(PSI_Partition, sizeof(short) * PSI_PartitionSize);
-    if (!PSI_Partition) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: not enough memory for PSI_Partition.", __func__);
-	PSI_errlog(errtxt, 0);
-	return 0;
-    }
-
-    /* Reset some stuff for the real parsing */
-    PSI_PartitionSize = 0;
-    p = host_str;
-
-    /* Now do the real parsing */
-    while ((hostname=get_wss_entry(p, &p))) {
-	hp = gethostbyname(hostname);
-	if (!hp) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: unknown node '%s'.", __func__, hostname);
-	    PSI_errlog(errtxt, 0);
-	} else {
-	    memcpy(&sin_addr, hp->h_addr, hp->h_length);
-	    next_node = INFO_request_host(sin_addr.s_addr, 0);
-
-	    if (next_node != -1) {
-		if (nodeOK(next_node, nodelist)) {
-		    addNode(next_node, nodelist);
-		}
-	    } else {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: cannot get ParaStation ID for node '%s'.",
-			 __func__, hostname);
-		PSI_errlog(errtxt, 0);
-	    }
-	}
-	free(hostname);
-    }
-    endhostent();
-
-    return 1;
-}
-
-static int getNodesFromHostFile(char *hostfile_str, NodelistEntry_t *nodelist)
-{
-    int next_node;
-    char hostname[1024];
-    FILE* file;
-    struct in_addr sin_addr;
-    struct hostent *hp;
-
-    /* Try to open the file */
-    file = fopen(hostfile_str, "r");
-    if (!file) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: cannot open file <%s>.", __func__, hostfile_str);
-	PSI_errlog(errtxt, 0);
-	return 0;
-    }
-
-    /* guess the size of the partition */
-    PSI_PartitionSize = 0;
-    while (fscanf(file, "%s", hostname)>0) {
-	if (hostname[0] == '#') continue;
-	PSI_PartitionSize++;
-    }
-
-    /* Allocate PSI_Partition with the correct size */
-    PSI_Partition = realloc(PSI_Partition, sizeof(short) * PSI_PartitionSize);
-    if (!PSI_Partition) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: not enough memory for PSI_Partition.", __func__);
-	PSI_errlog(errtxt, 0);
-	return 0;
-    }
-
-    /* Reset some stuff for the real parsing */
-    PSI_PartitionSize = 0;
-    rewind(file);
-
-    /* Now do the real parsing */
-    while(fscanf(file, "%s", hostname)>0) {
-	if (hostname[0] == '#') continue;
-
-	hp = gethostbyname(hostname);
-	if (!hp) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: unknown node '%s'.", __func__, hostname);
-	    PSI_errlog(errtxt, 0);
-	} else {
-	    memcpy(&sin_addr, hp->h_addr, hp->h_length);
-	    next_node = INFO_request_host(sin_addr.s_addr, 0);
-
-	    if (next_node != -1) {
-		if (nodeOK(next_node, nodelist)) {
-		    addNode(next_node, nodelist);
-		}
-	    } else {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: cannot get ParaStation ID for node '%s'.",
-			 __func__, hostname);
-		PSI_errlog(errtxt, 0);
-	    }
-	}
-    }
-    endhostent();
-    fclose(file);
-
-    return 1;
-}
-
-short PSI_getPartition(unsigned int hwType, int myRank)
-{
-    int i;
-    char *priv_str=NULL, *node_str=NULL, *host_str=NULL, *hostfile_str=NULL;
-
-    NodelistEntry_t *nodelist=NULL;
-
-    snprintf(errtxt, sizeof(errtxt), "%s([%s], %d)",
-	     __func__, INFO_printHWType(hwType), myRank);
-    PSI_errlog(errtxt, 10);
-
-    /* Get the selected nodes */
-    if (! (priv_str = getenv(ENV_NODE_PRIV))) {
-	if (! (node_str = getenv(ENV_NODE_NODES))) {
-	    if (! (host_str = getenv(ENV_NODE_HOSTS))) {
-		hostfile_str = getenv(ENV_NODE_HOSTFILE);
-	    }
-	}
-    }
-
-    if (priv_str) {
-	/* ENV_NODE_PRIV and ENV_NODE_SELECT have the same syntax */
-	node_str = priv_str;
-	priv_str = strdup(node_str); /* priv_str will be freed later! */
-    } else {
-	/* We need to get a nodelist from the daemon */
-	int ret;
-	size_t nodelist_size = PSC_getNrOfNodes() * sizeof(NodelistEntry_t);
-	nodelist = (NodelistEntry_t *)malloc(nodelist_size);
-
-	if (!nodelist) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: not enough memory for nodelist.", __func__);
-	    PSI_errlog(errtxt, 0);
-	    free(PSI_Partition);
-	    PSI_Partition = NULL;
-	    return -1;
-	}
-
-	ret = INFO_request_partition(hwType, nodelist, nodelist_size, 0);
-
-	{
-	    int i,j;
-	    NodelistEntry_t *nodelist2;
-
-	    nodelist2 = (NodelistEntry_t *)malloc(nodelist_size);
-
-	    if (!nodelist2) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: not enough memory for nodelist2.", __func__);
-		PSI_errlog(errtxt, 0);
-		free(PSI_Partition);
-		free(nodelist);
-		PSI_Partition = NULL;
-		return -1;
-	    }
-
-	    for (i=0, j=0; i<PSC_getNrOfNodes(); i++, j++) {
-		if (nodelist[j].id == -1) {
-		    while (i<PSC_getNrOfNodes()) {
-			nodelist2[i].id = -1;
-			i++;
-		    }
-		    break;
-		}
-		while (i<nodelist[j].id) {
-		    nodelist2[i].id = -1;
-		    i++;
-		}
-		memcpy(&nodelist2[i], &nodelist[j], sizeof(*nodelist));
-	    }
-
-	    free(nodelist);
-	    nodelist = nodelist2;
-	}
-
-	if (ret==-1) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: error while getting nodelist.", __func__);
-	    PSI_errlog(errtxt, 0);
-	    free(nodelist);
-	    free(PSI_Partition);
-	    PSI_Partition = NULL;
-	    return -1;
-	}
-    }
-
-    if (node_str) {
-	if (!getNodesFromNodeStr(node_str, nodelist)) {
-	    if (nodelist) free(nodelist);
-	    if (PSI_Partition) free(PSI_Partition);
-	    PSI_Partition = NULL;
-	    return -1;
-	}
-    } else if (host_str) {
-	if (!getNodesFromHostStr(host_str, nodelist)) {
-	    if (nodelist) free(nodelist);
-	    if (PSI_Partition) free(PSI_Partition);
-	    PSI_Partition = NULL;
-	    return -1;
-	}
-    } else if (hostfile_str) {
-	if (!getNodesFromHostFile(hostfile_str, nodelist)) {
-	    if (nodelist) free(nodelist);
-	    if (PSI_Partition) free(PSI_Partition);
-	    PSI_Partition = NULL;
-	    return -1;
-	}
-    } else {
-        /* No variable found - get list from daemon */
-	/* Allocate PSI_Partition with the correct size */
-	PSI_Partition = (short*)realloc(PSI_Partition,
-					sizeof(short)*PSC_getNrOfNodes());
-	if (!PSI_Partition) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: not enough memory for PSI_Partition.", __func__);
-	    PSI_errlog(errtxt, 0);
-	    if (nodelist) free(nodelist);
-	    return -1;
-	}
-
-	PSI_PartitionSize = 0;
-
-	for (i=0; i<PSC_getNrOfNodes(); i++) {
-	    if (nodeOK(i, nodelist)) {
-		addNode(i, nodelist);
-	    }
-	}
-    }
-
-    if (!PSI_PartitionSize) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: cannot get any hosts with correct HW. HW is %s.",
-		 __func__, INFO_printHWType(hwType));
-	PSI_errlog(errtxt, 0);
-	if (nodelist) free(nodelist);
-	free(PSI_Partition);
-	PSI_Partition = NULL;
-	return -1;
-    }
-
-    if (!priv_str) {
-	/* Now sort the nodes as requested */
-	if (sortNodes(PSI_Partition, PSI_PartitionSize, nodelist) == -1) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: sortNodes() failed.", __func__);
-	    PSI_errlog(errtxt, 0);
-	    if (nodelist) free(nodelist);
-	    free(PSI_Partition);
-	    PSI_Partition = NULL;
-	    return -1;
-	}
-    }
-
-    if (nodelist) free(nodelist);
-
-    /* Expand Partition if ENV_NODE_NUM is given */
-    if (!priv_str) {
-	char *num_str;
-	int num;
-
-	num_str = getenv(ENV_NODE_NUM);
-
-	if (num_str) {
-	    char *end;
-	    num = strtol(num_str, &end, 10);
-	    if (*end != '\0') {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: %s's value '%s' is invalid.", __func__,
-			 ENV_NODE_NUM, num_str);
-		PSI_errlog(errtxt, 0);
-		return -1;
-	    }
-
-	    if (num > 1) {
-		short *oldPart = PSI_Partition;
-		int oldSize = PSI_PartitionSize;
-
-		PSI_Partition = (short *)malloc(num * oldSize * sizeof(short));
-
-		if (!PSI_Partition) {
-		    snprintf(errtxt, sizeof(errtxt),
-			     "%s: not enough memory for PSI_Partition.",
-			     __func__);
-		    PSI_errlog(errtxt, 0);
-		    if (nodelist) free(nodelist);
-		    free(oldPart);
-		    PSI_Partition = NULL;
-		    return 1;
-		}
-
-		PSI_PartitionSize = 0;
-
-		for (i=0; i<oldSize; i++) {
-		    int j;
-		    /* decrease temporarily to make nodeOK() working */
-		    nodelist[oldPart[i]].normalJobs--;
-		    for (j=0; j<num; j++) {
-			if (nodeOK(oldPart[i], nodelist)) {
-			    addNode(oldPart[i], nodelist);
-			}
-		    }
-		}
-
-		free(oldPart);
-	    }
-	}
-    }
-
-    /* Set PartitionIndex to the next node */
-    PSI_PartitionIndex = (myRank + 1) % PSI_PartitionSize;
-
-    /* Propagate partition to clients */
-    if (!priv_str) {
-	/* Create priv_str from PSI_Partition */
-	priv_str = (char *) malloc(PSI_PartitionSize * 5 + 1);
-	if (!priv_str) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: not enough memory to propagate information.",
-		     __func__);
-	    PSI_errlog(errtxt, 0);
-	    free(PSI_Partition);
-	    PSI_Partition = NULL;
-	    return -1;
-	}
-
-	for (i=0; i<PSI_PartitionSize; i++) {
-	    sprintf(&priv_str[5*i], "%4d,", PSI_Partition[i]);
-	}
-	priv_str[5*PSI_PartitionSize-1] = 0;
-    }
-
-    setPSIEnv(ENV_NODE_PRIV, priv_str, 1);
-    setPSIEnv(ENV_NODE_SORT, "none", 1);
-
-    free(priv_str);
-
-    return PSI_PartitionSize;
-}
-
-short PSI_getPartitionNode(int rank)
-{
-    if (!PSI_Partition) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: you have to call PSI_getPartition() beforehand.",
-		 __func__);
-	PSI_errlog(errtxt, 0);
-	return -1;
-    }
-
-    return PSI_Partition[rank%PSI_PartitionSize];
-}
-
-static uid_t defaultUID = 0;
-
-void PSI_setUID(uid_t uid)
-{
-    if (!getuid()) {
-	defaultUID = uid;
-    }
+ error:
+    errno = ENOMEM;
+    return NULL;
 }
 
 static int dospawn(int count, short *dstnodes, char *workingdir,
 		   int argc, char **argv,
-		   long loggertid,
 		   int rank, int *errors, long *tids)
 {
     int outstanding_answers=0;
@@ -1058,7 +203,7 @@ static int dospawn(int count, short *dstnodes, char *workingdir,
 	ioctl(fd, TIOCGWINSZ, &task->winsize);
     }
     task->group = TG_ANY;
-    task->loggertid = loggertid;
+    task->loggertid = INFO_request_taskinfo(PSC_getMyTID(), INFO_LOGGERTID, 0);
 
     mywd = mygetwd(workingdir);
 
@@ -1071,7 +216,6 @@ static int dospawn(int count, short *dstnodes, char *workingdir,
 	struct stat statbuf;
 
 	if (stat(argv[0], &statbuf)) {
-	    /* @todo realpath() might be a good candidate to replace this */
 #ifdef __linux__
 	    char myexec[PATH_MAX];
 	    int length;
@@ -1119,22 +263,22 @@ static int dospawn(int count, short *dstnodes, char *workingdir,
 	    tids[i] = -1;
 	} else {
 	    /*
-	     * set the correct rank
-	     */
-	    task->rank = rank++;
-
-	    /* pack the task information in the msg */
-	    msg.header.len = PStask_encode(msg.buf, sizeof(msg.buf), task);
-
-	    /*
 	     * put the type of the msg in the head
 	     * put the length of the whole msg to the head of the msg
 	     * and return this value
 	     */
 	    msg.header.type = PSP_CD_SPAWNREQUEST;
-	    msg.header.len += sizeof(msg.header);;
-	    msg.header.sender = PSC_getMyTID();
 	    msg.header.dest = PSC_getTID(dstnodes[i],0);
+	    msg.header.sender = PSC_getMyTID();
+	    msg.header.len = sizeof(msg.header);;
+
+	    /*
+	     * set the correct rank
+	     */
+	    task->rank = rank++;
+
+	    /* pack the task information in the msg */
+	    msg.header.len += PStask_encode(msg.buf, sizeof(msg.buf), task);
 
 	    if (PSI_sendMsg(&msg)<0) {
 		char *errstr = strerror(errno);
@@ -1223,6 +367,170 @@ static int dospawn(int count, short *dstnodes, char *workingdir,
 
     if (error) ret = -ret;
     return ret;
+}
+
+int PSI_spawn(int count, char *workdir, int argc, char **argv,
+	      int *errors, long *tids)
+{
+    int total = 0;
+    short *nodes;
+
+    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, count);
+    PSI_errlog(errtxt, 10);
+
+    if (count<=0) return 0;
+
+    nodes = malloc(sizeof(*nodes) * GETNODES_CHUNK);
+    if (!nodes) {
+	*errors = ENOMEM;
+	return -1;
+    }
+
+    while (count>0) {
+	int chunk = (count>GETNODES_CHUNK) ? GETNODES_CHUNK : count;
+	int rank = PSI_getNodes(chunk, nodes);
+	int i, ret;
+
+	if (rank < 0) {
+	    errors[total] = ENXIO;
+	    free(nodes);
+	    return -1;
+	}
+
+	snprintf(errtxt, sizeof(errtxt), "%s: will spawn to:", __func__);
+	for (i=0; i<chunk; i++) {
+	    snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
+		     " %2d", nodes[i]);
+	}
+	snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt), ".");
+	snprintf(errtxt, sizeof(errtxt), "%s: first rank: %d", __func__, rank);
+	PSI_errlog(errtxt, 1);
+
+	ret = dospawn(chunk, nodes, workdir, argc, argv, rank, errors, tids);
+	if (ret != chunk) {
+	    free(nodes);
+	    return -1;
+	}
+	    
+	count -= chunk;
+	total += chunk;
+    }
+
+    free(nodes);
+    return total;
+}
+
+long PSI_spawnRank(int rank, char *workdir, int argc, char **argv, int *error)
+{
+    short node;
+    int ret;
+    long tid;
+
+    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, rank);
+    PSI_errlog(errtxt, 10);
+
+    ret = INFO_request_rankID(rank, 1);
+    if (ret < 0) {
+	*error = ENXIO;
+	return 0;
+    }
+    node = ret;
+
+    snprintf(errtxt, sizeof(errtxt), "%s: will spawn to: %d", __func__, node);
+    PSI_errlog(errtxt, 1);
+
+    ret = dospawn(1, &node, workdir, argc, argv, rank, error, &tid);
+    if (ret != 1) return 0;
+
+    return tid;
+}
+
+long PSI_spawnGMSpawner(int np, char *workdir, int argc, char **argv,
+			int *error)
+{
+    short node;
+    int ret;
+    long tid;
+
+    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, np);
+    PSI_errlog(errtxt, 10);
+
+    ret = INFO_request_rankID(0, 1);
+    if (ret < 0) {
+	*error = ENXIO;
+	return 0;
+    }
+    node = ret;
+
+    snprintf(errtxt, sizeof(errtxt), "%s: will spawn to: %d", __func__, node);
+    PSI_errlog(errtxt, 1);
+
+    ret = dospawn(1, &node, workdir, argc, argv, np, error, &tid);
+    if (ret != 1) return 0;
+
+    return tid;
+}
+
+char *PSI_createPGfile(int num, const char *prog, int local)
+{
+    char *PIfilename, *myprog, filename[20];
+    FILE *PIfile;
+    int i, j=0;
+
+    myprog = mygetwd(prog);
+    if (!myprog) {
+	char *errstr = strerror(errno);
+
+	snprintf(errtxt, sizeof(errtxt), "%s: mygetwd() failed: %s",
+		 __func__, errstr ? errstr : "UNKNOWN");
+	PSI_errlog(errtxt, 0);
+
+	return NULL;
+    }
+
+    snprintf(filename, sizeof(filename), "PI%d", getpid());
+    PIfile = fopen(filename, "w+");
+
+    if (PIfile) {
+	PIfilename = strdup(filename);
+    } else {	
+	/* File open failed, lets try the user's home directory */
+	char *home = getenv("HOME");
+	PIfilename = malloc((strlen(home)+strlen(filename)+2) * sizeof(char));
+	strcpy(PIfilename, home);
+	strcat(PIfilename, "/");
+	strcat(PIfilename, filename);
+
+	PIfile = fopen(PIfilename, "w+");
+	/* File open failed finally */
+	if (!PIfile) {
+	    char *errstr = strerror(errno);
+	    snprintf(errtxt, sizeof(errtxt), "%s: fopen() failed: %s",
+		     __func__, errstr ? errstr : "UNKNOWN");
+	    PSI_errlog(errtxt, 0);
+	    free(PIfilename);
+	    return NULL;
+	}
+    }
+
+    for (i=0; i<num; i++) {
+	int node;
+	static struct in_addr hostaddr;
+
+	if (!local || !i) {
+	    node = INFO_request_rankID(i, 0);
+	    if (node<0) {
+		fclose(PIfile);
+		free(PIfilename);
+		return NULL;
+	    }
+	    hostaddr.s_addr = INFO_request_node(node, 0);
+	}
+	fprintf(PIfile, "%s %d %s\n", inet_ntoa(hostaddr), (i != 0), myprog);
+    }
+    fclose(PIfile);
+
+    return PIfilename;
 }
 
 int PSI_kill(long tid, short signal)
