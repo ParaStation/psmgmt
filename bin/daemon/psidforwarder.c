@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidforwarder.c,v 1.8 2003/04/04 09:33:42 eicker Exp $
+ * $Id: psidforwarder.c,v 1.9 2003/04/07 14:22:32 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.8 2003/04/04 09:33:42 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.9 2003/04/07 14:22:32 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -688,9 +688,8 @@ static void loop(void)
     FD_SET(stderrSock, &myfds);
     FD_SET(daemonSock, &myfds);
 
-    /*
-     * Loop forever. We exit on SIGCHLD.
-     */
+    /* Loop forever. We exit on SIGCHLD. */
+    PSID_blockSig(0, SIGCHLD);
     while (1) {
 	memcpy(&afds, &myfds, sizeof(afds));
 	atv = mytv;
@@ -789,11 +788,9 @@ void PSID_forwarder(PStask_t *task, int daemonfd,
 
     PSLog_init(daemonSock, childRank, 1);
 
-    PSID_blockSig(0, SIGCHLD);
-
     if (connectLogger(task->loggertid) != 0) {
 	/* There is no logger. Just wait for the client to finish. */
-
+	PSID_blockSig(0, SIGCHLD);
 	while (1) sleep(10);
     }
 
