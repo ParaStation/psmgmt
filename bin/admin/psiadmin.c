@@ -559,8 +559,7 @@ void PSIADM_TestNetwork(int mode)
     case 2: spawnargs[1]="-v";break;
     default: spawnargs[1]="-o";break;
     }
-    tid = PSI_spawn(mynode,
-		    PSI_installdir ? PSI_installdir:PSI_LookupInstalldir(),
+    tid = PSI_spawn(mynode, PSI_LookupInstalldir(),
 		    spawnargc,spawnargs,-1,-1,0,&errno);
     if(tid<0){
 	char *txt=NULL;
