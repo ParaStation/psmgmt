@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.44 2003/03/04 15:34:13 eicker Exp $
+ * $Id: psi.c,v 1.45 2003/03/11 18:16:16 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.44 2003/03/04 15:34:13 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.45 2003/03/11 18:16:16 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -44,7 +44,8 @@ static int daemonSocket(void)
     int sock;
     struct sockaddr_un sa;
 
-    PSI_errlog("daemonSocket()", 10);
+    snprintf(errtxt, sizeof(errtxt), "%s()", __func__);
+    PSI_errlog(errtxt, 10);
 
     sock = socket(PF_UNIX, SOCK_STREAM, 0);
     if (sock <0) {
@@ -76,7 +77,7 @@ static int connectDaemon(PStask_group_t taskGroup)
     int ret;
 
     snprintf(errtxt, sizeof(errtxt),
-	     "connectDaemon(%s)", PStask_printGrp(taskGroup));
+	     "%s(%s)", __func__, PStask_printGrp(taskGroup));
     PSI_errlog(errtxt, 10);
 
     /*
@@ -100,8 +101,9 @@ static int connectDaemon(PStask_group_t taskGroup)
 	    PSC_startDaemon(INADDR_ANY);
 	} else {
 	    char *errstr = strerror(errno);
-	    snprintf(errtxt, sizeof(errtxt), "connectDaemon():"
-		 " failed finally: %s", errstr ? errstr : "UNKNOWN");
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: failed finally: %s",
+		     __func__, errstr ? errstr : "UNKNOWN");
 	    PSI_errlog(errtxt, 0);
 	    return 0;
 	}
@@ -132,8 +134,9 @@ static int connectDaemon(PStask_group_t taskGroup)
 
     if (PSI_sendMsg(&msg)<0) {
 	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "connectDaemon():"
-		 "PSI_sendMsg() failed: %s", errstr ? errstr : "UNKNOWN");
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: PSI_sendMsg() failed: %s",
+		 __func__, errstr ? errstr : "UNKNOWN");
 	PSI_errlog(errtxt, 0);
 	return 0;
     }
@@ -141,14 +144,14 @@ static int connectDaemon(PStask_group_t taskGroup)
     ret = PSI_recvMsg(&msg);
     if (ret<=0) {
 	if (!ret) {
-	    snprintf(errtxt, sizeof(errtxt), "connectDaemon():"
-		     " unexpected message length 0.");
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: unexpected message length 0.", __func__);
 	    PSI_errlog(errtxt, 0);
 	} else {
 	    char* errstr = strerror(errno);
-	    snprintf(errtxt, sizeof(errtxt), "connectDaemon():"
-		     " PSI_recvMsg() failed: %s",
-		     errstr ? errstr : "UNKNOWN");
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: PSI_recvMsg() failed: %s",
+		     __func__, errstr ? errstr : "UNKNOWN");
 	    PSI_errlog(errtxt, 0);
 	}
 
@@ -162,37 +165,37 @@ static int connectDaemon(PStask_group_t taskGroup)
 	    sleep(1);
 	    goto RETRY_CONNECT;
 	}
-	snprintf(errtxt, sizeof(errtxt),"connectDaemon():"
-		 " Daemon is in a state were new connections are not allowed");
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s:  Daemon state does not allow new connections", __func__);
 	PSI_errlog(errtxt, 0);
 	break;
     case PSP_CD_CLIENTREFUSED :
 	if (taskGroup!=TG_RESET) {
-	    snprintf(errtxt, sizeof(errtxt),"connectDaemon():"
-		     " Daemon refused connection.");
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: Daemon refused connection.", __func__);
 	    PSI_errlog(errtxt, 0);
 	}
 	break;
     case PSP_CD_NOSPACE :
-	snprintf(errtxt, sizeof(errtxt),"connectDaemon():"
-		 " Daemon has no space available.");
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: Daemon has no space available.", __func__);
 	PSI_errlog(errtxt, 0);
 	break;
     case PSP_CD_UIDLIMIT :
-	snprintf(errtxt, sizeof(errtxt),"connectDaemon():"
-		 " Node is limited to user id %d.", msg.myid);
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: Node is limited to user id %d.", __func__, msg.myid);
 	PSI_errlog(errtxt, 0);
 	break;
     case PSP_CD_PROCLIMIT :
-	snprintf(errtxt, sizeof(errtxt),"connectDaemon():"
-		 "Node is limited to %d processes.", msg.myid);
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: Node is limited to %d processes.", __func__, msg.myid);
 	PSI_errlog(errtxt, 0);
 	break;
     case PSP_CD_OLDVERSION :
-	snprintf(errtxt, sizeof(errtxt),"connectDaemon():"
-		 " Daemon (ver. %ld) does not support this library (ver. %d)."
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: Daemon (%ld) does not support this library version(%d)."
 		 " Pleases relink program.",
-		 msg.version, PSprotocolversion );
+		 __func__, msg.version, PSprotocolversion );
 	PSI_errlog(errtxt, 0);
 	break;
     case PSP_CD_CLIENTESTABLISHED :
@@ -200,8 +203,9 @@ static int connectDaemon(PStask_group_t taskGroup)
 	PSC_setMyID(msg.myid);
 	PSC_setInstalldir(msg.instdir);
 	if (strcmp(msg.instdir, PSC_lookupInstalldir())) {
-	    snprintf(errtxt, sizeof(errtxt),"connectDaemon():"
-		     "Installation directory '%s' not correct.", msg.instdir);
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: Installation directory '%s' not correct.",
+		     __func__, msg.instdir);
 	    PSI_errlog(errtxt, 0);
 	    break;
 	}
@@ -211,8 +215,9 @@ static int connectDaemon(PStask_group_t taskGroup)
 	return 1;
 	break;
     default :
-	snprintf(errtxt, sizeof(errtxt),"connectDaemon():"
-		 "unexpected return code %s .", PSP_printMsg(msg.header.type));
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: unexpected return code %s .",
+		 __func__, PSP_printMsg(msg.header.type));
 	PSI_errlog(errtxt, 0);
  	break;
     }
