@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiforwarder.c,v 1.5 2002/01/02 12:28:09 eicker Exp $
+ * $Id: psiforwarder.c,v 1.6 2002/01/07 08:48:37 eicker Exp $
  *
  */
 /**
  * \file
  * psiforwarder: Forwarding-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psiforwarder.c,v 1.5 2002/01/02 12:28:09 eicker Exp $ 
+ * $Id: psiforwarder.c,v 1.6 2002/01/07 08:48:37 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.5 2002/01/02 12:28:09 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.6 2002/01/07 08:48:37 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -100,7 +100,7 @@ int loggerconnect(unsigned int node, int port)
 	return(-1);
     }
 
-    bzero((char *)&sa, sizeof(sa)); 
+    memset(&sa, 0, sizeof(sa)); 
     sa.sin_family = PF_INET; 
     sa.sin_addr.s_addr = node;
     sa.sin_port = htons(port);
@@ -141,7 +141,7 @@ void CheckFileTable(fd_set* openfds)
 
     for(fd=0;fd<FD_SETSIZE;){
 	if(FD_ISSET(fd,openfds)){
-	    bzero(&rfds,sizeof(rfds));
+	    memset(&rfds, 0, sizeof(rfds));
 	    FD_SET(fd,&rfds);
 
 	    tv.tv_sec=0;
@@ -228,7 +228,7 @@ void loop(int stdoutport, int stderrport)
      * Loop until there is no connection left.
      */
     while (noclients > 0) {
-	bcopy((char *)&myfds, (char *)&afds, sizeof(afds)); 
+	memcpy(&afds, &myfds, sizeof(afds)); 
 	atv = mytv;
 	if(select(FD_SETSIZE, &afds, NULL, NULL, &atv) < 0){
 	    snprintf(obuf, sizeof(obuf), "PSIforwarder: error on select(%d):"

@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.6 2002/01/02 12:47:59 eicker Exp $
+ * $Id: psilogger.c,v 1.7 2002/01/07 08:48:37 eicker Exp $
  *
  */
 /**
  * \file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.6 2002/01/02 12:47:59 eicker Exp $ 
+ * $Id: psilogger.c,v 1.7 2002/01/07 08:48:37 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.6 2002/01/02 12:47:59 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.7 2002/01/07 08:48:37 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -117,7 +117,7 @@ void CheckFileTable(fd_set* openfds)
 
     for(fd=0;fd<FD_SETSIZE;){
 	if(FD_ISSET(fd,openfds)){
-	    bzero(&rfds,sizeof(rfds));
+	    memset(&rfds, 0, sizeof(rfds));
 	    FD_SET(fd,&rfds);
 
 	    tv.tv_sec=0;
@@ -200,7 +200,7 @@ void loop(int listen)
      * phase, while no connection exists. Thus wait at least 10 * mytv.
      */
     while ( noclients > 0 || timeoutval < 10 ) {
-	bcopy((char *)&myfds, (char *)&afds, sizeof(afds)); 
+	memcpy(&afds, &myfds, sizeof(afds)); 
 	atv = mytv;
 	if ( select(FD_SETSIZE, &afds, NULL,NULL,&atv) < 0 ) {
 	    fprintf(stderr, "PSIlogger: error on select(%d): %s\n", errno,

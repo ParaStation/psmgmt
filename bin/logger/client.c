@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <netdb.h>
+#include <netinet/in.h>
 #include <logger.h>
 
 int PSI_myid = 0;
@@ -33,7 +34,7 @@ int main(int argc, char *argv[])
 
     /* Get own IP-Address */
     hp = gethostbyname("localhost");
-    bcopy((char *)hp->h_addr, (char*)&in_addr, hp->h_length);
+    memcpy(&in_addr, hp->h_addr, hp->h_length);
 
     printf("My IP-address is %d[%x]\n", in_addr.s_addr, in_addr.s_addr);
 

@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: logmsg.c,v 1.4 2002/01/02 12:20:44 eicker Exp $ 
+ * $Id: logmsg.c,v 1.5 2002/01/07 08:48:37 eicker Exp $ 
  *
  */
 
-static char vcid[] __attribute__ (( unused )) = "$Id: logmsg.c,v 1.4 2002/01/02 12:20:44 eicker Exp $";
+static char vcid[] __attribute__ (( unused )) = "$Id: logmsg.c,v 1.5 2002/01/07 08:48:37 eicker Exp $";
 
 #include <stdio.h>
 #include <unistd.h>
@@ -33,8 +33,8 @@ int writelog(int sock, FLMsg_msg_t type, int node, char *buf, size_t count)
 	msg.header.sender = node;
 	if(count < 0) return 0;
 	do {
-	    n = (count>sizeof(msg.buf))?sizeof(msg.buf):count;
-	    bcopy(buf, msg.buf, n);
+	    n = (count>sizeof(msg.buf)) ? sizeof(msg.buf) : count;
+	    memcpy(msg.buf, buf, n);
 	    msg.header.len = sizeof(msg.header) + n;
 	    n = write(sock, &msg, msg.header.len);
 	    if (n < 0){
