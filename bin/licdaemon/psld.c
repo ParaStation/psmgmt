@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.24 2002/07/17 17:51:22 hauke Exp $
+ * $Id: psld.c,v 1.25 2002/07/17 19:37:58 hauke Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Daemon
  *
- * $Id: psld.c,v 1.24 2002/07/17 17:51:22 hauke Exp $
+ * $Id: psld.c,v 1.25 2002/07/17 19:37:58 hauke Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.24 2002/07/17 17:51:22 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.25 2002/07/17 19:37:58 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -46,6 +46,9 @@ static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.24 2002/07/17 17
 #include "mcast.h"
 
 #include "config_parsing.h"
+
+/* magic license check */
+#include "../license/pslic_hidden.h"
 
 static int usesyslog = 1;  /* flag if syslog is used */
 static int loglevel = 0;   /* the default logging level */
@@ -238,7 +241,7 @@ void sighandler(int sig)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.24 $";
+    char revision[] = "$Revision: 1.25 $";
     snprintf(errtxt, sizeof(errtxt), "psld %s\b ", revision+11);
     errlog(errtxt, 0);
 }
@@ -281,6 +284,9 @@ int main(int argc, char *argv[])
     int msock;
     int interface;
     struct timeval tv;
+    int lok;
+    int lc = 10;
+    int lc2 = 1;
 
     unsigned int *hostlist;         /* hostlist for RDP and MCast */
 
@@ -375,6 +381,8 @@ int main(int argc, char *argv[])
 
     check_machine(&interface);
 
+    lok = lic_isvalid(&ConfigLicEnv); /* delay exit on failure */
+
     if (usesyslog) {
 	closelog();
 	openlog("psld", LOG_PID, ConfigLogDest);
@@ -404,6 +412,20 @@ int main(int argc, char *argv[])
 
 	while(1){
 	    Tselect(0,NULL,NULL,NULL,&tv);
+	    if (--lc < 0) { /* first check after 10 sec */
+		lc = 3600; /* Next check in 1 h */
+		if (!lok) {
+		peng:
+		    /* Licensefile is corrupted */
+		    errlog("Illegal license!\n", 0);
+		    /* What to do ??? */
+		    exit(1);
+		}
+		if (--lc2 < 0) { /* second check after 1 h */
+		    if (!lic_isvalid(&ConfigLicEnv)) goto peng;
+		    lc2 = 24; /* and one time every day */
+		}
+	    }
 	}
 /*      } */
 

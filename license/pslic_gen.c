@@ -144,7 +144,7 @@ int main(int argc, char **argv)
     ret = lic_fromfile(&env, "-"); /* Read from stdin */
 
     if (ret < 0){
-	perror("ERROR: lic_fromfile");
+	fprintf(stderr, "lic_fromfile: %s\n", lic_errstr ? lic_errstr : "unknown");
 	exit(1);
     }
 

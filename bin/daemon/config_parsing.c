@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.6 2002/07/11 11:23:39 eicker Exp $
+ * $Id: config_parsing.c,v 1.7 2002/07/17 19:37:58 hauke Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.6 2002/07/11 11:23:39 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.7 2002/07/17 19:37:58 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -25,6 +25,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.6 2002
 #include <syslog.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <libgen.h>
 
 #include "parser.h"
 
@@ -34,6 +35,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.6 2002
 #include "psidutil.h"
 
 #include "config_parsing.h"
+#include "pslic.h"
 
 int nodesfound = 0;
 
@@ -56,7 +58,10 @@ struct node_t licNode = {
 char *Configfile = NULL;
 char *ConfigInstDir = NULL;
 
-char *ConfigLicenseKey = NULL;
+char *ConfigLicenseFile = NULL;
+env_fields_t ConfigLicEnv = { NULL, 0, 0 };
+
+char *ConfigLicenseKeyMCP = NULL;
 char *ConfigMyriModule = NULL;
 char *ConfigRoutefile = NULL;
 
@@ -438,13 +443,13 @@ static int getLicServer(char *token)
     return 0;
 }
 
-static int getLicKey(char *token)
+static int getLicFile(char *token)
 {
-    char *lickey = parser_getString();
+    char *licfile = parser_getString();
 
-    if (ConfigLicenseKey) free(ConfigLicenseKey);
+    if (ConfigLicenseFile) free(ConfigLicenseFile);
 
-    ConfigLicenseKey = strdup(lickey);
+    ConfigLicenseFile = strdup(licfile);
 
     return 0;
 }
@@ -920,8 +925,8 @@ static keylist_t config_list[] = {
     {"hasip", getHasIPLine},
     {"licenseserver", getLicServer},
     {"licserver", getLicServer},
-    {"licensekey", getLicKey},
-    {"lickey", getLicKey},
+    {"licensefile", getLicFile},
+    {"licfile", getLicFile},
     {"mcastgroup", getMCastGroup},
     {"mcastport", getMCastPort},
     {"rdpport", getRDPPort},
@@ -937,6 +942,9 @@ static keylist_t config_list[] = {
 
 static parser_t config_parser = {" \t\n", config_list};
 
+#define DEFAULT_CONFIGFILE "/etc/parastation.conf"
+#define DEFAULT_LICFILE "license"
+
 int parseConfig(int usesyslog, int loglevel)
 {
     int ret;
@@ -946,7 +954,7 @@ int parseConfig(int usesyslog, int loglevel)
      * Set MyId to my own ID (needed for installhost())
      */
     if (!Configfile) {
-	Configfile = "/etc/parastation.conf";
+	Configfile = DEFAULT_CONFIGFILE;
     }
 
     if ((cfd = fopen(Configfile,"r"))) {
@@ -983,6 +991,25 @@ int parseConfig(int usesyslog, int loglevel)
     fclose(cfd);
 
     /*
+     * Read the Licensefile 
+     */
+    if (!ConfigLicenseFile) {
+	char *tmp = strdup(Configfile);
+	ConfigLicenseFile = (char *)malloc(strlen(Configfile) + 1 +
+					   sizeof(DEFAULT_LICFILE) + 3);
+	strcpy(ConfigLicenseFile, dirname(tmp));
+	strcat(ConfigLicenseFile, "/" DEFAULT_LICFILE);
+	free(tmp);
+    }
+    if (lic_fromfile(&ConfigLicEnv, ConfigLicenseFile) < 0) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "ERROR: %s.", lic_errstr ? lic_errstr : "in licensefile");
+	parser_comment(errtxt, 0);
+	return -1;
+    }
+    ConfigLicenseKeyMCP = env_get(&ConfigLicEnv, LIC_MCPKEY);
+    
+    /*
      * Sanity Checks
      */
     if (NrOfNodes==-1) {
@@ -990,9 +1017,19 @@ int parseConfig(int usesyslog, int loglevel)
 	return -1;
     }
 
+    if (NrOfNodes > lic_numval(&ConfigLicEnv, LIC_NODES, 0)) {
+	parser_comment("ERROR: NrOfNodes to large for this License.", 0);
+	return -1;
+    }
+
+    if (lic_isexpired(&ConfigLicEnv)) {
+	parser_comment("ERROR: License expired.", 0);
+	return -1;
+    }
+    
     if (NrOfNodes>nodesfound) { /* hosts missing in hostlist */
 	parser_comment("WARNING: # hosts in hostlist less than NrOfNodes", 0);
     }
-
+    
     return 0;
 }

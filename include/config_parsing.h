@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.h,v 1.5 2002/07/11 10:44:39 eicker Exp $
+ * $Id: config_parsing.h,v 1.6 2002/07/17 19:37:58 hauke Exp $
  *
  */
 /**
  * \file
  * parse: Parser for the config file of the ParaStation daemon
  *
- * $Id: config_parsing.h,v 1.5 2002/07/11 10:44:39 eicker Exp $
+ * $Id: config_parsing.h,v 1.6 2002/07/17 19:37:58 hauke Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -63,8 +63,8 @@ extern struct node_t licNode;
 extern char *Configfile;
 extern char *ConfigInstDir;
 
-extern char *ConfigLicenseKey;
-
+extern struct env_fields_s ConfigLicEnv;
+extern char *ConfigLicenseKeyMCP;
 extern char *ConfigMyriModule;
 extern char *ConfigRoutefile;
 extern int ConfigSmallPacketSize;

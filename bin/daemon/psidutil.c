@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.37 2002/07/17 18:49:51 hauke Exp $
+ * $Id: psidutil.c,v 1.38 2002/07/17 19:37:58 hauke Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.37 2002/07/17 18:49:51 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.38 2002/07/17 19:37:58 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -96,7 +96,7 @@ void PSID_ReConfig(void)
 	} else if (!ConfigRoutefile) {
 	    PSID_errlog("ERROR: Routefile not defined", 0);
 	} else {
-	    strncpy(licdot, ConfigLicenseKey ? ConfigLicenseKey : "none",
+	    strncpy(licdot, ConfigLicenseKeyMCP ? ConfigLicenseKeyMCP : "none",
 		    sizeof(licdot));
 	    licdot[4] = licdot[5] = licdot[6] = '.';
 	    licdot[7] = 0;
@@ -108,7 +108,7 @@ void PSID_ReConfig(void)
 	    PSID_errlog(errtxt, 1);
 
 	    card_info.node_id = PSC_getMyID();
-	    card_info.licensekey = ConfigLicenseKey;
+	    card_info.licensekey = ConfigLicenseKeyMCP;
 	    card_info.module = ConfigMyriModule;
 	    card_info.options = NULL;
 	    card_info.routing_file = ConfigRoutefile;

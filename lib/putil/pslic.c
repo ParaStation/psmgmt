@@ -7,7 +7,7 @@
 /**
  * pslic.c: License handling
  *
- * $Id: pslic.c,v 1.1 2002/07/16 19:25:14 hauke Exp $
+ * $Id: pslic.c,v 1.2 2002/07/17 19:37:58 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -28,6 +28,9 @@
 
 #include "pslic.h"
 #include "psstrings.h"
+
+char *lic_errstr = NULL;
+
 
 int env_index(env_fields_t *env, const char *name)
 {
@@ -191,6 +194,8 @@ int lic_fromfile(env_fields_t *env, char *filename)
     int cnt;
     int lineno = 0;
 
+    if (!filename) goto err_filename;
+    
     if (strcmp("-", filename)){
 	f = fopen(filename, "r");
     } else {
@@ -202,14 +207,22 @@ int lic_fromfile(env_fields_t *env, char *filename)
 	char *field, *val, *rest;
 	if (!lic_parseline(line, &field, &val, &rest) && !rest){
 	    env_set(env, field, val);
-	} else {
-	    printf("Error in %s:%d\n", filename, lineno);
-	}
+	} else goto err_parse;
     }
 
     if (f != stdin) fclose(f);
     return 0;
+ err_filename:
+    lic_errstr = (char*)realloc(lic_errstr, 100 + 1);
+    snprintf(lic_errstr, 100, "No licensefile\n");
+    return -1;
  err_fopen:
-    printf("Cant open file %s\n", filename);
+    lic_errstr = (char*)realloc(lic_errstr, 100 + 1);
+    snprintf(lic_errstr, 100, "Cant open licensefile %s : %s\n", filename, strerror(errno));
+    return -1;
+ err_parse:
+    if (f != stdin) fclose(f);
+    lic_errstr = (char*)realloc(lic_errstr, 100 + 1);
+    snprintf(lic_errstr, 100, "Error in licensefile %s:%d\n", filename, lineno);
     return -1;
 }

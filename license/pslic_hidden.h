@@ -11,7 +11,7 @@
  *        DO NOT DISTRIBUTE THIS FILE !!!
  *
  *
- * $Id: pslic_hidden.h,v 1.1 2002/07/16 19:25:14 hauke Exp $
+ * $Id: pslic_hidden.h,v 1.2 2002/07/17 19:37:58 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -80,48 +80,6 @@ extern inline int lic_isvalid(env_fields_t *env)
     char *ch = lic_calchash(env, f ? f : "x");
 
     return !strcmp( h ? h : "", ch ? ch : "x");
-}
-
-/* check if the License is expired */
-extern inline int lic_isexpired(env_fields_t *env)
-{
-    long int from, to, now;
-
-    now = time(NULL);
-    from = str_datetotime_d(env_get(env, LIC_DATE), 0);
-    to = str_datetotime_d(env_get(env,LIC_EXPIRE), now + 1);
-
-    return (now < from) || (to < now);
-}
-
-/* check for a feature inside a featurelist (case sensitive!) */
-extern inline int lic_hasfeature(env_fields_t *env, char *featurevar, char *feature)
-{
-    int ret = 0;
-    char *_fl = env_get(env, featurevar);
-    char *fl = fl ? strdup(_fl) : strdup("");
-    char *f;
-    
-    f = strtok(fl, " \t\n");
-    while (f) {
-	if (!strcmp(f, feature)){
-	    ret = 1;
-	    break;
-	}
-	f = strtok(NULL, " \t\n");
-    }
-    free(fl);
-    return ret;
-}
-
-/* get a nummerical value. return def on error */
-extern inline int lic_numval(env_fields_t *env, char *varname, int def)
-{
-    char *val = env_get(env, varname);
-    char *err;
-    int ret;
-    ret = strtol(val ? val : "x", &err, 10);
-    return (*err) ? def : ret;
 }
 
 #endif /* _PSLIC_HIDDEN_H_ */
