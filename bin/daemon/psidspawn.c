@@ -1,15 +1,15 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * psidspawn.c
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidspawn.c,v 1.12 2003/08/04 15:00:09 eicker Exp $
+ * $Id: psidspawn.c,v 1.13 2003/10/08 14:52:15 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.12 2003/08/04 15:00:09 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.13 2003/10/08 14:52:15 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -28,7 +28,6 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.12 2003/08/
 
 #include "pscommon.h"
 
-#include "config_parsing.h"
 #include "psidutil.h"
 #include "psidforwarder.h"
 
@@ -428,7 +427,7 @@ int PSID_execForwarder(PStask_t *task, int daemonfd, int controlchannel)
 #endif
 
     /* Rename the syslog tag */
-    openlog("psidforwarder", LOG_PID|LOG_CONS, ConfigLogDest);
+    openlog("psidforwarder", LOG_PID|LOG_CONS, config->logDest);
 
     /* Release the waiting daemon and exec forwarder */
     close(controlchannel);
@@ -472,7 +471,7 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
 	return errno;
     }
 
-    if (!lic_isvalid(&ConfigLicEnv)) {
+    if (!lic_isvalid(&config->licEnv)) {
     	PSID_errlog("Corrupted license!\n", 0);
 	exit(1);
     }
