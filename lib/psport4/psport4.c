@@ -7,7 +7,7 @@
 /**
  * name: Description
  *
- * $Id: psport4.c,v 1.2 2002/06/11 00:16:00 hauke Exp $
+ * $Id: psport4.c,v 1.3 2002/06/11 17:57:42 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -39,9 +39,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <sys/ioctl.h>
 #include <sched.h>
-#include <netinet/in.h>
 #include <netdb.h>
 
 #define PSP_DPRINT_LEVEL 0
@@ -61,7 +61,41 @@
 #endif
 
 
-#define DP_SR(fmt,arg... ) printf( fmt ,##arg)
+//#define DP_SR(fmt,arg... ) printf( fmt ,##arg)
+#define DP_SR(fmt,arg... )
+
+//#define DP_CLONE(fmt,arg... ) printf( fmt ,##arg)
+#define DP_CLONE(fmt,arg... )
+
+#define DPRINT(level,fmt,arg... ) do{					\
+    if ((level)<=env_debug){						\
+	printf( "<PSP:"fmt">\n" ,##arg);				\
+    }									\
+}while(0);
+
+#define SENDMSG
+#define RECVMSG
+
+
+/* Set Debuglevel */
+#define ENV_DEBUG     "PSP_DEBUG"
+/* Socket options */
+#define ENV_SO_SNDBUF "PSP_SO_SNDBUF"
+#define ENV_SO_RCVBUF "PSP_SO_RCVBUF"
+#define ENV_TCP_NODELAY "PSP_TCP_NODELAY"
+/* Dont start bgthread (boolean) */
+#define ENV_NOBGTHREAD "PSP_NOBGTHREAD"
+
+/* Debugoutput on signal SIGQUIT (i386:3) (key: ^\) */ 
+#define ENV_SIGQUIT "PSP_SIGQUIT"
+
+static int env_debug = 0;
+static int env_so_sndbuf = 16384;
+static int env_so_rcvbuf = 16384;
+static int env_tcp_nodelay = 1;
+static int env_nobgthread = 0;
+static int env_sigquit = 0;
+
 
 /* Check Request Usage, PSP_DPRINT_LEVEL should be >= 1 */
 //#define PSP_ENABLE_MAGICREQ
@@ -184,7 +218,7 @@ typedef struct PSP_Port_s{
 	PSP_Request_t	**PostedSendRequestsTailP;
 	PSP_Request_t	*RunningRecvRequest;
     } conns[PSP_FE_MAX_CONNS];
-    int		used_cons;
+    int		min_connid;
     fd_set	fds_read;
     fd_set	fds_write;
     int		nfds;
@@ -385,14 +419,10 @@ PSP_Request_t * GetPostedRequest( PSP_RecvReqList_t *rl, PSP_Header_Net_t *nh,
     prev_p = &rl->PostedRecvRequests;
     req    =  rl->PostedRecvRequests;
 
-    printf("GetPostedRequest\n");
-    
     while (req && ( ! req->cb( nh, from, req->cb_param ))){
-	printf("Check %p failed\n", req);
 	prev_p = &req->Next;
 	req    =  req->Next;
     }
-    printf("%pGetPostedRequest result\n",req);
 
     if (req){
 	// dequeue
@@ -599,16 +629,13 @@ PSP_Request_t *GetGeneratedRequestFromHash( PSP_GenRecvReq_t *hash_,
     prev_p = &hash_->GenReqHead;
     req    =  hash_->GenReqHead;
 
-    printf("ENTER "__FUNCTION__" \n");
     while (req &&
 	   ( ! cb(
 	       REQ_TO_HEADER_NET( req ),
 	       REQ_TO_HEADER( req )->addr.from, cb_param ))){
-	printf("%ptest failed "__FUNCTION__" \n",req);
 	prev_p = &req->NextGen;
 	req    =  req->NextGen;
     }
-    printf("%pLEAVE "__FUNCTION__" \n",req);
     
     if (req){
 	// dequeue
@@ -631,7 +658,6 @@ static inline
 PSP_Request_t * GetGeneratedRequest(
     PSP_RecvReqList_t *rl, PSP_RecvCallBack_t *cb, void* cb_param, int from)
 {
-    printf("ENTER "__FUNCTION__ " from %d\n",from);
     if (from != PSP_AnySender){
 	return GetGeneratedRequestFromHash( &rl->GenReqHash[ PSP_MSGQ_HASH( from )],
 					    cb, cb_param );
@@ -872,7 +898,7 @@ PSP_Port_t *AllocPortStructInitialized( void )
 	FD_ZERO( &port->fds_read );
 	FD_ZERO( &port->fds_write );
 	port->nfds = 0;
-	port->used_cons = 0;
+	port->min_connid = PSP_FE_MAX_CONNS;
     }
 #endif
     return port;    
@@ -933,9 +959,9 @@ PSP_Port_t *DelPort( PSP_Port_t *Port)
 static
 void ConfigureConnection( int fd )
 {
-#ifdef USE_SIGURGSOCK
     int ret;
     int val;
+#ifdef USE_SIGURGSOCK
 
 /*
   TCP  supports  urgent  data. Urgent data is used to signal
@@ -964,6 +990,23 @@ void ConfigureConnection( int fd )
 #else
     unused_var( fd );
 #endif
+
+    errno = 0;
+    val = env_so_sndbuf;
+    ret = setsockopt( fd, SOL_SOCKET, SO_SNDBUF, &val, sizeof(val));
+    DPRINT( 2, "setsockopt( %d, SOL_SOCKET, SO_SNDBUF, [%d], %d ) = %d : %s",
+	    fd, val, sizeof(val), ret, strerror( errno ));
+
+    errno = 0;
+    val = env_so_rcvbuf;
+    ret = setsockopt( fd, SOL_SOCKET, SO_RCVBUF, &val, sizeof(val));
+    DPRINT( 2, "setsockopt( %d, SOL_SOCKET, SO_RCVBUF, [%d], %d ) = %d : %s",
+	    fd, val, sizeof(val), ret, strerror( errno ));
+    errno = 0;
+    val = env_tcp_nodelay;
+    ret = setsockopt( fd, IPPROTO_TCP, TCP_NODELAY, &val, sizeof(val));
+    DPRINT( 2, "setsockopt( %d, IPPROTO_TCP, TCP_NODELAY, [%d], %d ) = %d : %s",
+	    fd, val, sizeof(val), ret, strerror( errno ));
 }
 #endif
 
@@ -975,7 +1018,7 @@ int GetUnusedCon( PSP_Port_t *port )
     /* Find a free conn */
     for( con=PSP_FE_MAX_CONNS-1; con >=0  ; con--){
 	if ( port->conns[con].con_fd < 0 ){
-	    port->used_cons = PSP_MAX( port->used_cons, con + 1 );
+	    port->min_connid = PSP_MIN( port->min_connid, con );
 	    break;
 	}
     }
@@ -989,7 +1032,7 @@ void DoAccept( PSP_Port_t *port )
     struct sockaddr_in si;
     int len = sizeof(si);
     int con_fd;
-    int con;
+    int con = -1;
     
     con_fd = accept( port->port_fd, (struct sockaddr*)&si, &len);
     if ( con_fd < 0 ) goto err_accept;
@@ -997,7 +1040,7 @@ void DoAccept( PSP_Port_t *port )
     con = GetUnusedCon( port );
     if ( con < 0 ) goto err_nocon;
 
-    printf( "Accept connection from %s:%d\n",
+    DPRINT( 1, "ACCEPT conn %d from %s:%d", con,
 	    inetstr( ntohl( si.sin_addr.s_addr )), ntohs( si.sin_port ));
     
     port->conns[ con ].con_fd = con_fd;
@@ -1008,8 +1051,9 @@ void DoAccept( PSP_Port_t *port )
  err_nocon:
     shutdown( con_fd, 2 );
     close( con_fd );
-    return;
  err_accept:
+    DPRINT( 1, "REJECT conn %d from %s:%d", con,
+	    inetstr( ntohl( si.sin_addr.s_addr )), ntohs( si.sin_port ));
     return;
 }
 
@@ -1020,7 +1064,11 @@ int recvall(int fd, void *buf, int count)
     int c=count;
 
     while (c>0){
+#ifdef RECVMSG
 	len = recv( fd, buf, c, 0/*MSG_NOSIGNAL | MSG_DONTWAIT*/ );
+#else
+	len = read( fd, buf, c );
+#endif
 	if (len<=0){
 	    if (( len < 0 ) && ( errno == EINTR )/* || (errno == EAGAIN )*/){
 		perror(__FUNCTION__);
@@ -1088,7 +1136,7 @@ int DoRecvNewMessage( PSP_Port_t *port, int con )
     return 0;
  err_recvall:
     if (errno != EINTR){
-	printf( "Connection %d is broken(recvnew : %s)\n", con,
+	DPRINT( 1, "STOPPED conn %d (recvnew : %s)", con,
 		strerror( errno ));
 	/* ToDo: Terminate connection */
 	FD_CLR( port->conns[con].con_fd, &port->fds_read );
@@ -1108,8 +1156,18 @@ void DoRecv( PSP_Port_t *port, int con )
 	/* continue this request */
 	if ( req->msgheader.msg_iovlen ){
 	trymore1:
+#ifdef RECVMSG
 	    ret = recvmsg( port->conns[con].con_fd,
 			   &req->msgheader, MSG_NOSIGNAL | MSG_DONTWAIT );
+#else
+	    if (req->msgheader.msg_iovlen >=0 ){
+		ret = read( port->conns[con].con_fd,
+			    req->msgheader.msg_iov->iov_base,
+			    req->msgheader.msg_iov->iov_len );
+	    }else{
+		ret = 0;
+	    }
+#endif
 	    if ( ret < 0 ) goto err_recvmsg; 
 	    if ( ret == 0 ) goto out;
 	    proceed_header( REQ_TO_HEADER( req ), ret );
@@ -1151,7 +1209,7 @@ void DoRecv( PSP_Port_t *port, int con )
  err_recv:
  err_recvmsg:
     if ((errno != EAGAIN) && (errno != EINTR)){
-	printf( "Connection %d is broken(recv : %s)\n", con,
+	DPRINT( 1, "STOPPED conn %d (recv : %s)", con,
 		strerror( errno ));
 	/* ToDo: Terminate connection */
 	FD_CLR( port->conns[con].con_fd, &port->fds_read );
@@ -1164,13 +1222,20 @@ void DoSend( PSP_Port_t *port, int con )
 {
     PSP_Request_t *req = port->conns[con].PostedSendRequests;
     int ret;
-    
+
+#ifdef SENDMSG
     ret = sendmsg( port->conns[con].con_fd,
 		   &req->msgheader, MSG_NOSIGNAL |
 #ifdef USE_SIGURGSOCK
 		   MSG_OOB|
 #endif
 		   MSG_DONTWAIT );
+#else
+    ret = writev(  port->conns[con].con_fd,
+		   req->msgheader.msg_iov,
+		   req->msgheader.msg_iovlen );
+#endif
+    
     if ( ret < 0 ) goto err_sendmsg; 
 
     proceed_header( REQ_TO_HEADER( req ), ret );
@@ -1183,7 +1248,7 @@ void DoSend( PSP_Port_t *port, int con )
     return;
  err_sendmsg:
     if (errno != EINTR){
-	printf( "Connection %d is broken(send : %s)\n", con,
+	DPRINT( 1, "STOPPED conn %d (send : %s)", con,
 		strerror( errno ));
 	/* ToDo: Terminate connection */
 	FD_CLR( port->conns[con].con_fd, &port->fds_write );
@@ -1205,7 +1270,7 @@ int DoBackgroundWorkWait( PSP_Port_t *port, struct timeval *timeout )
     nfds = select( port->nfds, &fds_read, &fds_write, NULL, timeout );
     if ( nfds <= 0 ) return 0;
 
-    for ( i=0; i<port->used_cons; i++ ){
+    for ( i = PSP_FE_MAX_CONNS-1; i>=port->min_connid; i-- ){
 	if ( port->conns[i].con_fd >= 0 ){
 	    if ( FD_ISSET( port->conns[i].con_fd, &fds_read )){
 		FD_CLR( port->conns[i].con_fd, &fds_read );
@@ -1248,23 +1313,27 @@ void sigurg( int signal )
     unused_var( signal );
     if (!sigurglock){
 	sigurgretry = 0;
-	printf(" +++++++++ SIGURG START+++++++++ \n");
+	DP_CLONE(" +++++++++ SIGURG START+++++++++ \n");
 	for( port = Ports; port; port = port->NextPort ){
 	    DoBackgroundWork( port );
 	}
-	printf(" +++++++++ SIGURG END  +++++++++ \n");
+	DP_CLONE(" +++++++++ SIGURG END  +++++++++ \n");
     }else{
-	printf(" +++++++++ SIGURG IGNORE  ++++++ \n");
+	DP_CLONE(" +++++++++ SIGURG IGNORE  ++++++ \n");
 	sigurgretry = 1;
     }	
 }
 #endif
 
 static
-void sigio( int signal )
+void sigquit( int signal )
 {
     unused_var( signal );
-    printf(" +++++++++ SIGIO  IGNORE  ++++++ \n");
+    printf(" +++++++++ SIGQUIT START ++++ \n");
+    printf(" GenReq:%d (%d) PostedReq: %d(%d)\n",
+	   GenReqs-GenReqsUsed, GenReqs,
+	   PostedRecvReqs-PostedRecvReqsUsed, PostedRecvReqs);
+    printf(" +++++++++ SIGQUIT END ++++++ \n");
 }
 
 
@@ -1296,20 +1365,19 @@ int PSP_bg_thread(void *arg)
 	    fds_write = Ports->fds_write;
 	    to.tv_sec = 5;
 	    to.tv_usec = 0;
-	    printf("PSP_bg_thread() sellect  ##########\n");
+	    DP_CLONE("PSP_bg_thread() sellect  ##########\n");
 	    nfds = select( nfds, &fds_read, &fds_write, NULL, &to );
 	    if (nfds > 0){
-		printf("PSP_bg_thread() wakeup   ##########\n");
+		DP_CLONE("PSP_bg_thread() wakeup   ##########\n");
 		kill( parent, SIGURG );
 	    }else{
 		/* timeout happens */
-		printf("PSP_bg_thread() timeout  ##########\n");
+		DP_CLONE("PSP_bg_thread() timeout  ##########\n");
 	    }
-	    usleep(20*1000); /* Context switch */
 	}else{
-	    printf("PSP_bg_thread() sleep    ##########\n");
+	    DP_CLONE("PSP_bg_thread() sleep    ##########\n");
 	    sleep(1);
-	    printf("PSP_bg_thread() slwakeup ##########\n");
+	    DP_CLONE("PSP_bg_thread() slwakeup ##########\n");
 	}
     }
 }
@@ -1323,18 +1391,55 @@ void init_clone()
 
 }
 #endif
+
+static void
+intgetenv( int *val, char *name )
+{
+    char *aval;
+
+    aval = getenv( name );
+    if ( aval ){
+	*val = atoi( aval );
+	DPRINT( 1, "set %s = %d", name, *val );
+    } else {
+	DPRINT( 2, "default %s = %d", name, *val );
+    }
+}
+
+static
+void init_env( void )
+{
+    intgetenv( &env_debug, ENV_DEBUG );
+    intgetenv( &env_so_sndbuf, ENV_SO_SNDBUF );
+    intgetenv( &env_so_rcvbuf, ENV_SO_RCVBUF );
+    intgetenv( &env_tcp_nodelay, ENV_TCP_NODELAY );
+    intgetenv( &env_nobgthread, ENV_NOBGTHREAD );
+    intgetenv( &env_sigquit, ENV_SIGQUIT );
+}
+
+
+
+
 
 /**********************************************************************/
 int PSP_Init()
 /**********************************************************************/
 {
+    static int init=0;
+
+    if (init) return 0;
+    init = 1;
+
+    init_env();
 #ifdef USE_SIGURGCLONE
     init_clone();
 #endif    
     PSP_LOCK_INIT;
     PSP_LOCK;
 
-    signal( SIGIO, sigio );
+    if ( env_sigquit )
+	signal( SIGQUIT, sigquit );
+
     /* Initialize Ports */
     InitPorts();
     PSP_SetReadAhead( READAHEADXHEADLENDEFAULT );
@@ -1372,7 +1477,7 @@ int PSP_GetNodeID(void)
     return ntohl(*(int *)*mhost->h_addr_list);
 
  err_nohostent:
-    printf( __FUNCTION__ "(): gethostbyname() failed\n");
+    fprintf( stderr, __FUNCTION__ "(): gethostbyname() failed\n");
     exit(1);
 }
 
@@ -1392,7 +1497,7 @@ PSP_PortH_t PSP_OpenPort(int portno)
     
     if (portno == PSP_ANYPORT){
 	srandom( getpid());
-	port->portid.id.portno = random();
+	port->portid.id.portno = (uint16_t)random();
     }else{
 	port->portid.id.portno = portno;
     }
@@ -1428,7 +1533,7 @@ PSP_PortH_t PSP_OpenPort(int portno)
 #endif
 	if (portno != PSP_ANYPORT) break; /* Bind failed */
 	/* try another number */
-	port->portid.id.portno = random();
+	port->portid.id.portno = (uint16_t)random();
     }
 
     if (ret) goto err_bind;
@@ -1493,10 +1598,10 @@ int PSP_Connect_( PSP_PortH_t porth, struct sockaddr *sa, socklen_t addrlen )
     port->conns[con].con_fd = con_fd;
     FD_SET2( con_fd, &port->fds_read, &port->nfds );
 
-    printf("CONNECT to %s:%d id %d\n",
-	   inetstr(ntohl( ((struct sockaddr_in*)sa)->sin_addr.s_addr)),
-	   ntohs(((struct sockaddr_in*)sa)->sin_port),
-	   con);
+    DPRINT( 1, "CONNECT conn %d to %s:%d",
+	    con,
+	    inetstr(ntohl( ((struct sockaddr_in*)sa)->sin_addr.s_addr)),
+	    ntohs(((struct sockaddr_in*)sa)->sin_port));
     
     return con;
  err_connect:
@@ -1599,6 +1704,7 @@ PSP_RequestH_t PSP_ISend(PSP_PortH_t porth,
 	if ( dest == PSP_DEST_LOOPBACK ){
 	    return ISendLoopback( porth, buf, buflen, header, xheaderlen );
 	}else{
+	    errno = EINVAL;
 	    goto err_inval;
 	}
     }
@@ -1639,9 +1745,11 @@ PSP_RequestH_t PSP_ISend(PSP_PortH_t porth,
     /* req not valid hereafter ! */
     
     return (PSP_RequestH_t) header;
- err_inval:
  err_notconnected:
+    errno = ECONNREFUSED;
+ err_inval:
     PSP_UNLOCK;
+    DPRINT( 1, "SEND to conn %d failed : %s", dest, strerror(errno));
     header->Req.state = PSP_MAGICREQ_VALID |
 	PSP_REQ_STATE_SENDNOTCON | PSP_REQ_STATE_PROCESSED;
     return (PSP_RequestH_t) header;
@@ -1854,46 +1962,8 @@ PSP_Status_t PSP_Wait(PSP_PortH_t portH, PSP_RequestH_t request)
     ExecBHandUnlock();
 
     while (! (header->Req.state & PSP_REQ_STATE_PROCESSED)){
-	struct timeval to;
-	to.tv_sec = 2;
-	to.tv_usec = 0;
-
 	PSP_LOCK;
-	printf("wait enter\n");
-	if (!DoBackgroundWorkWait( port, &to )){
-	    printf("wait leave timeout Gen:%d (%d) Posted: %d(%d)\n",
-		   GenReqs-GenReqsUsed, GenReqs,
-		   PostedRecvReqs-PostedRecvReqsUsed, PostedRecvReqs
-		   );
-	    if (Ports->ReqList.GenReqHashHead &&
-		Ports->ReqList.GenReqHashHead->GenReqHead){
-		printf("Gen: %s\n",
-		       dumpstr( REQ_TO_HEADER_NET(Ports->ReqList.GenReqHashHead->GenReqHead),
-						  16+8));
-	    
-		if (Ports->ReqList.PostedRecvRequests){
-		    printf("PST: %s\n",
-			   dumpstr( REQ_TO_HEADER_NET(Ports->ReqList.PostedRecvRequests),
-				    16+8));
-		    
-		    {
-			/* Check Callback: */
-			
-			printf("CB ret: %d\n",
-			       Ports->ReqList.PostedRecvRequests->cb(
-				   REQ_TO_HEADER_NET( Ports->ReqList.GenReqHashHead->GenReqHead ),
-				   REQ_TO_HEADER(Ports->ReqList.GenReqHashHead->GenReqHead)->
-				   addr.from, Ports->ReqList.PostedRecvRequests->cb_param));
-		    }
-		    
-		    
-		}
-	    }
-	}else{
-	    printf("wait done\n");
-	}
-	/* ToDo:*/
-	//DoBackgroundWork( port );
+	DoBackgroundWorkWait( port, NULL );
 	ExecBHandUnlock();
     }
 
@@ -1909,10 +1979,13 @@ PSP_Status_t PSP_Cancel(PSP_PortH_t port, PSP_RequestH_t request)
 /**********************************************************************/
 {
 // ToDo: Implement PSP_Cancel
+    static int cancelwarn = 0;
     unused_var( port );
     unused_var( request );
-    fprintf(stderr,"PSP_Cancel() not implementet yet\n");
-    exit(-1);
+    if (!cancelwarn)
+	fprintf(stderr,"PSP_Cancel() not implementet yet\n");
+    cancelwarn = 1;
+    return PSP_SUCCESS;
 }
 
 
