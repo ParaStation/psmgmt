@@ -1,7 +1,7 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.18 2001/10/05 17:45:54 hauke Exp $
+ * $Id: psport.h,v 1.19 2002/02/21 11:11:34 moschny Exp $
  *
  * @author
  * Jens Hauke <hauke@par-tec.com>,
@@ -270,14 +270,41 @@ typedef struct PSP_RecvFrom_Param_T{
  * @param dcb call-back function that will be called upon completion
  * of the receive request
  * @param dcb_param this pointer is passed to dcb
+ * @param sender one can specify the sender (node number) of the
+ * message to be received here if already known, or PSP_AnySender
  * @return Returns a handle for the request or NULL if there is an
  * error. The handle can be passed to PSP_Test() and PSP_Wait().
  */
+PSP_RequestH_t PSP_IReceiveCBFrom(PSP_PortH_t porth,
+				  void* buf, unsigned buflen,
+				  PSP_Header_t* header, unsigned xheaderlen,
+				  PSP_RecvCallBack_t* cb, void* cb_param,
+				  PSP_DoneCallback_t* dcb, void* dcb_param,
+				  int sender);
+
+#define PSP_AnySender -1
+
+static inline
 PSP_RequestH_t PSP_IReceiveCB(PSP_PortH_t porth,
 			      void* buf, unsigned buflen,
 			      PSP_Header_t* header, unsigned xheaderlen,
 			      PSP_RecvCallBack_t* cb, void* cb_param,
-			      PSP_DoneCallback_t* dcb, void* dcb_param);
+			      PSP_DoneCallback_t* dcb, void* dcb_param)
+{
+    return PSP_IReceiveCBFrom(porth, buf, buflen, header, xheaderlen,
+			      cb, cb_param, 0, 0, PSP_AnySender);
+}
+
+static inline
+PSP_RequestH_t PSP_IReceiveFrom(PSP_PortH_t porth,
+				void* buf, unsigned buflen,
+				PSP_Header_t* header, unsigned xheaderlen,
+				PSP_RecvCallBack_t* cb, void* cb_param,
+				int sender)
+{
+    return PSP_IReceiveCBFrom(porth, buf, buflen, header, xheaderlen,
+			      cb, cb_param, 0, 0, sender);
+}
 
 static inline
 PSP_RequestH_t PSP_IReceive(PSP_PortH_t porth,
@@ -285,8 +312,8 @@ PSP_RequestH_t PSP_IReceive(PSP_PortH_t porth,
 			    PSP_Header_t* header, unsigned xheaderlen,
 			    PSP_RecvCallBack_t* cb, void* cb_param)
 {
-    return PSP_IReceiveCB(porth, buf, buflen, header, xheaderlen,
-			  cb, cb_param, 0, 0);
+    return PSP_IReceiveCBFrom(porth, buf, buflen, header, xheaderlen,
+			      cb, cb_param, 0, 0, PSP_AnySender);
 }
 
 /* ----------------------------------------------------------------------
