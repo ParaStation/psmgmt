@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidclient.c,v 1.3 2003/07/04 10:59:53 eicker Exp $
+ * $Id: psidclient.c,v 1.4 2003/07/31 15:31:30 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidclient.c,v 1.3 2003/07/04 10:59:53 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidclient.c,v 1.4 2003/07/31 15:31:30 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -256,6 +256,7 @@ static size_t readall(int fd, void *buf, size_t count)
     return count;
 }
 
+/* @todo This will handle different client versions */
 int recvInitialMsg(int fd, DDInitMsg_t *msg, size_t size)
 {
     return 0;
@@ -266,7 +267,6 @@ int recvClient(int fd, DDMsg_t *msg, size_t size)
 {
     int n;
     int count = 0;
-    int fromnode = -1;
 
     if (clients[fd].flags & INITIALCONTACT) {
 	/*

@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidspawn.c,v 1.10 2003/07/11 14:08:49 eicker Exp $
+ * $Id: psidspawn.c,v 1.11 2003/07/31 15:26:33 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.10 2003/07/11 14:08:49 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.11 2003/07/31 15:26:33 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -150,7 +150,7 @@ int PSID_execForwarder(PStask_t *task, int daemonfd, int controlchannel)
 {
     pid_t pid;
     int clientfds[2], stdinfds[2], stdoutfds[2], stderrfds[2];
-    int ret, buf, i;
+    int ret, buf;
 
     /* Block until the forwarder has handled all output */
     PSID_blockSig(1, SIGCHLD);

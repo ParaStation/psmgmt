@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.102 2003/07/22 18:31:53 eicker Exp $
+ * $Id: psid.c,v 1.103 2003/07/31 15:31:30 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.102 2003/07/22 18:31:53 eicker Exp $ 
+ * $Id: psid.c,v 1.103 2003/07/31 15:31:30 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.102 2003/07/22 18:31:53 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.103 2003/07/31 15:31:30 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -78,7 +78,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.102 $";
+static char psid_cvsid[] = "$Revision: 1.103 $";
 
 static int PSID_mastersock;
 
@@ -1318,7 +1318,6 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 void msg_SETOPTION(DDOptionMsg_t *msg)
 {
     int i;
-    unsigned int val;
 
     snprintf(errtxt, sizeof(errtxt), "%s from requester %s",
 	     __func__, PSC_printTID(msg->header.sender));
@@ -1507,7 +1506,6 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 	}
     } else {
 	int i;
-	unsigned int val;
 	for (i=0; i<msg->count; i++) {
 	    snprintf(errtxt, sizeof(errtxt), "%s option: %ld",
 		     __func__, msg->opt[i].option);
@@ -2600,7 +2598,7 @@ void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.102 $";
+    char revision[] = "$Revision: 1.103 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 

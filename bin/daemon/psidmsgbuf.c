@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidmsgbuf.c,v 1.1 2003/07/04 09:33:59 eicker Exp $
+ * $Id: psidmsgbuf.c,v 1.2 2003/07/31 15:26:33 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidmsgbuf.c,v 1.1 2003/07/04 09:33:59 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidmsgbuf.c,v 1.2 2003/07/31 15:26:33 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -50,9 +50,6 @@ static msgbuf_t *getInitializedList(size_t size)
 
 void initMsgList(void)
 {
-    int i, count;
-    msgbuf_t *buf;
-
     msgFreeList = getInitializedList(NUM_MESSAGES);
 
     if (!msgFreeList) {

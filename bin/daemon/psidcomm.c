@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidcomm.c,v 1.2 2003/07/04 11:09:01 eicker Exp $
+ * $Id: psidcomm.c,v 1.3 2003/07/31 15:31:30 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidcomm.c,v 1.2 2003/07/04 11:09:01 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidcomm.c,v 1.3 2003/07/31 15:31:30 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -112,7 +112,6 @@ int sendMsg(void *amsg)
 int recvMsg(int fd, DDMsg_t *msg, size_t size)
 {
     int ret;
-    int count = 0;
 
     if (fd == RDPSocket) {
 	ret = recvRDP(msg, size);
