@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mlisten.c,v 1.4 2002/01/07 09:06:31 eicker Exp $
+ * $Id: mlisten.c,v 1.5 2002/01/07 13:41:22 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mlisten.c,v 1.4 2002/01/07 09:06:31 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mlisten.c,v 1.5 2002/01/07 13:41:22 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -59,12 +59,21 @@ void init(int num_nodes)
 }
 
 /*
+ * Print version info
+ */
+void version(void)
+{
+    char revision[] = "$Revision: 1.5 $";
+    fprintf(stderr, "mlisten %s\b \n", revision+10);
+}
+
+/*
  * Print usage message
  */
 void usage(void)
 {
-    fprintf(stderr, "usage: mlisten [-h] [-D] [-# nodes] [-m MCAST] [-n NET]"
-	    " [-p PORT]\n");
+    fprintf(stderr, "usage: mlisten [-h] [-v] [-D] [-# nodes] [-m MCAST]"
+	    " [-n NET] [-p PORT]\n");
 }
 
 /*
@@ -82,7 +91,8 @@ void help(void)
 	    " Default is INADDR_ANY.\n");
     fprintf(stderr," -p PORT  : Listen on port PORT. Default is %s.\n",
 	    MCASTSERVICE);
-    fprintf(stderr," -h,      : print this screen.\n");
+    fprintf(stderr," -v,      : output version information and exit.\n");
+    fprintf(stderr," -h,      : display this help and exit.\n");
 }
     
 int main(int argc, char *argv[])
@@ -94,7 +104,6 @@ int main(int argc, char *argv[])
     int nodes = NODES;
 
     struct servent *pse;     /* pointer to service information entry */ 
-    unsigned char loop;
     int reuse;
     struct ip_mreq mreq;
     struct sockaddr_in sin;  /* an internet endpoint address */ 
@@ -106,7 +115,7 @@ int main(int argc, char *argv[])
     int debug=0;
 
     optarg = NULL;
-    while (((c = getopt(argc,argv, "DhH#:m:n:p:")) != -1)) {
+    while (((c = getopt(argc,argv, "DhvVH#:m:n:p:")) != -1)) {
 	switch (c) {
 	case 'p':
 	    service = optarg; 
@@ -126,6 +135,11 @@ int main(int argc, char *argv[])
 	    break;
 	case 'D':
 	    debug=1;
+	    break;
+	case 'v':
+	case 'V':
+	    version();
+	    return 0;
 	    break;
 	case 'h':
 	case 'H':
@@ -165,15 +179,6 @@ int main(int argc, char *argv[])
 		 ntohl(mreq.imr_multiaddr.s_addr));
 	perror(errtxt);
 	return -1;
-    }
-
-    /*
-     * Enable MCast loopback
-     */
-    loop = 1; /* 0 = disable, 1 = enable (default) */
-    if (setsockopt(mcastsock, IPPROTO_IP, IP_MULTICAST_LOOP, &loop,
-		   sizeof(loop)) == -1) {
-	perror("unable to enable mcast loop");
     }
 
     /*
