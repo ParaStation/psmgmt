@@ -39,39 +39,19 @@
   <bookinfo>
     &infoblurb;
 
-    <releaseinfo>Release 0.99.4</releaseinfo>
-    <pubdate>November 2002</pubdate>
+    <releaseinfo>Release 1.0</releaseinfo>
+    <pubdate>December 2002</pubdate>
 
     <revhistory>
       <revision>
 	<revnumber>1.0</revnumber>
-	<date>??????</date> <!-- <date>20 Nov 2002</date> -->
+	<date>10 Dec 2002</date>
 	<revremark>First official release</revremark>
-      </revision>
-      <revision>
-	<revnumber>0.99.4</revnumber>
-	<date>28 Nov 2002</date>
-	<revremark>New titlepage.</revremark>
-      </revision>
-      <revision>
-	<revnumber>0.99.3</revnumber>
-	<date>22 Nov 2002</date>
-	<revremark>PS/PS FE comments in intro.</revremark>
-      </revision>
-      <revision>
-	<revnumber>0.99.2</revnumber>
-	<date>8 Nov 2002</date>
-	<revremark>Minor changes.</revremark>
-      </revision>
-      <revision>
-	<revnumber>0.99.1</revnumber>
-	<date>30 Oct 2002</date>
-	<revremark>New PDF and man layout. Minor changes.</revremark>
       </revision>
       <revision>
 	<revnumber>0.99</revnumber>
 	<date>16 Oct 2002</date>
-	<revremark>First release candidate</revremark>
+	<revremark>Release candidate</revremark>
       </revision>
       <revision>
 	<revnumber>0.9</revnumber>
@@ -95,7 +75,7 @@
     <referenceinfo>
       <title>ParTec</title>
       <productname>ParaStation</productname>
-      <date>October 2002</date>
+      <date>December 2002</date>
     </referenceinfo>
     <title>Reference Pages</title>
     &mlisten;
