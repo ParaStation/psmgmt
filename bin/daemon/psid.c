@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.118 2003/12/09 16:59:38 eicker Exp $
+ * $Id: psid.c,v 1.119 2003/12/19 15:19:54 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.118 2003/12/09 16:59:38 eicker Exp $ 
+ * $Id: psid.c,v 1.119 2003/12/19 15:19:54 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.118 2003/12/09 16:59:38 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.119 2003/12/19 15:19:54 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -27,27 +27,26 @@ static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.118 2003/12/09 1
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <errno.h>
+#include <signal.h>
+#include <syslog.h>
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/wait.h>
-#include <netdb.h>
 #include <netinet/in.h>
-#include <string.h>
-#include <signal.h>
-#include <syslog.h>
-#include <fcntl.h>
 #include <arpa/inet.h>
-#include <time.h>
+
 #include <popt.h>
 
 #ifdef __osf__
 #include <sys/table.h>
 #endif
 
-#include "timer.h"
+#include "selector.h"
 #include "mcast.h"
 #include "rdp.h"
 #include "config_parsing.h"
@@ -69,21 +68,17 @@ static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.118 2003/12/09 1
 #include "psidinfo.h"
 #include "psidoption.h"
 #include "psidpartition.h"
+#include "psidstatus.h"
 
 struct timeval mainTimer;
 struct timeval selectTime;
 
 static struct timeval shutdownTimer;
 
-char psid_cvsid[] = "$Revision: 1.118 $";
+char psid_cvsid[] = "$Revision: 1.119 $";
 
 /** Master socket (type UNIX) for clients to connect */
 static int masterSock;
-
-/** Total number of nodes connected. Needed for license testing */
-static int totalNodes = 0;
-/** Total number of physical CPUs connected. Needed for license testing */
-static int totalCPUs = 0;
 
 /** Another helper status. This one is for reset/shutdown */
 static int myStatus;
@@ -167,7 +162,7 @@ int shutdownNode(int phase)
 	}
     }
     if (phase > 2) {
-	exitMCast();
+	if (config->useMCast) exitMCast();
 	exitRDP();
 	PSID_stopAllHW();
 	snprintf(errtxt, sizeof(errtxt), "%s() good bye", __func__);
@@ -175,99 +170,6 @@ int shutdownNode(int phase)
 	exit(0);
     }
     return 1;
-}
-
-/******************************************
- * declareNodeDead()
- * is called when a connection to a daemon is lost
- */
-static void declareNodeDead(PSnodes_ID_t id)
-{
-    PStask_t *task;
-
-    if (PSnodes_isUp(id)) {
-	totalCPUs -= PSnodes_getPhysCPUs(id);
-	totalNodes--;
-    }
-    PSnodes_bringDown(id);
-    PSnodes_setPhysCPUs(id, 0);
-    PSnodes_setVirtCPUs(id, 0);
-    
-    clearRDPMsgs(id);
-
-    /* Send signals to all processes that controlled task on the dead node */
-    task=managedTasks;
-    /* loop over all tasks */
-    while (task) {
-	PStask_sig_t *sig = task->assignedSigs;
-	/* loop over all controlled tasks */
-	while (sig) {
-	    if (PSC_getID(sig->tid)==id) {
-		/* controlled task was on dead node */
-		PStask_ID_t senderTid = sig->tid;
-		int signal = sig->signal;
-
-		/* Send the signal */
-		PSID_sendSignal(task->tid, task->uid, senderTid, signal, 0);
-
-		sig = sig->next;
-		/* Remove signal from list */
-		PSID_removeSignal(&task->assignedSigs, senderTid, signal);
-	    } else {
-		sig = sig->next;
-	    }
-	}
-	task = task->next;
-    }
-
-    snprintf(errtxt, sizeof(errtxt),
-	     "Lost connection to daemon of node %d", id);
-    PSID_errlog(errtxt, 2);
-}
-
-static void declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs)
-{
-    snprintf(errtxt, sizeof(errtxt), "%s: node %d", __func__, id);
-    PSID_errlog(errtxt, 2);
-
-    if (id<0 || id>=PSC_getNrOfNodes()) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: id %d out of range", __func__, id);
-	PSID_errlog(errtxt, 0);
-	return;
-    }
-
-    if (PSnodes_isUp(id)) {
-	totalCPUs += physCPUs - PSnodes_getPhysCPUs(id);
-    } else {
-	totalNodes++;
-	totalCPUs += physCPUs;
-    }
-    PSnodes_bringUp(id);
-    PSnodes_setPhysCPUs(id, physCPUs);
-    PSnodes_setVirtCPUs(id, virtCPUs);
-
-    /* Test the license */
-    if (totalNodes > lic_numval(&config->licEnv, LIC_NODES, 0)) {
-	if (id <= PSC_getMyID()) {
-	    snprintf(errtxt, sizeof(errtxt), "%s: too many nodes.", __func__);
-	    PSID_errlog(errtxt, 0);
-	    shutdownNode(1);
-	    return;
-	} else {
-	    declareNodeDead(id);
-	}
-    }
-    if (totalCPUs > lic_numval(&config->licEnv, LIC_CPUs, 0)) {
-	if (id <= PSC_getMyID()) {
-	    snprintf(errtxt, sizeof(errtxt), "%s: too many CPUs.", __func__);
-	    PSID_errlog(errtxt, 0);
-	    shutdownNode(1);
-	    return;
-	} else {
-	    declareNodeDead(id);
-	}
-    }
 }
 
 /******************************************
@@ -317,10 +219,78 @@ static int doReset(void)
     return 1;
 }
 
-/******************************************
- *  msg_RESET()
+/**
+ * @brief Handle a PSP_CD_DAEMONSTART message.
+ *
+ * Handle the message @a msg of type PSP_CD_DAEMONSTART.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
  */
-void msg_DAEMONRESET(DDBufferMsg_t *msg)
+static void msg_DAEMONSTART(DDBufferMsg_t *msg)
+{
+    PSnodes_ID_t starter = PSC_getID(msg->header.dest);
+    PSnodes_ID_t node = *(PSnodes_ID_t *) msg->buf;
+
+    /*
+     * contact the other node if no connection already exist
+     */
+    snprintf(errtxt, sizeof(errtxt), "%s: received (starter=%d node=%d)",
+	     __func__, starter, node);
+    PSID_errlog(errtxt, 1);
+
+    if (starter==PSC_getMyID()) {
+	if (node<PSC_getNrOfNodes()) {
+	    if (!PSnodes_isUp(node)) {
+		unsigned int addr = PSnodes_getAddr(node);
+		if (addr != INADDR_ANY)	PSC_startDaemon(addr);
+	    } else {
+		snprintf(errtxt, sizeof(errtxt), "%s: node %d already up",
+			 __func__, node);
+		PSID_errlog(errtxt, 0);
+	    }
+	}
+    } else {
+	if (PSnodes_isUp(starter)) {
+	    /* forward message */
+	    sendMsg(&msg);
+	} else {
+	    snprintf(errtxt, sizeof(errtxt), "%s: starter %d is down",
+		     __func__, starter);
+	    PSID_errlog(errtxt, 0);
+	}
+    }
+}
+
+/**
+ * @brief Handle a PSP_CD_DAEMONSTOP message.
+ *
+ * Handle the message @a msg of type PSP_CD_DAEMONSTOP.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_DAEMONSTOP(DDMsg_t *msg)
+{
+    if (PSC_getID(msg->dest) == PSC_getMyID()) {
+	shutdownNode(1);
+    } else {
+	sendMsg(msg);
+    }
+}
+
+/**
+ * @brief Handle a PSP_CD_DAEMONRESET message.
+ *
+ * Handle the message @a msg of type PSP_CD_DAEMONRESET.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_DAEMONRESET(DDBufferMsg_t *msg)
 {
 
     if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
@@ -346,7 +316,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 {
     PStask_t *task;
     DDTypedBufferMsg_t outmsg;
-    MCastConInfo_t info;
+    PSID_NodeStatus_t status;
     pid_t pid;
     uid_t uid;
     gid_t gid;
@@ -428,9 +398,9 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	if (msg->group == TG_GMSPAWNER) {
 	    task->group = msg->group;
 
-	    /* Fix MCast info about the spawner task */
-	    decJobsMCast(PSC_getMyID(), 1, 1);
-	    incJobsMCast(PSC_getMyID(), 1, 0);
+	    /* Fix the info about the spawner task */
+	    decJobs(1, 1);
+	    incJobs(1, 0);
 	}
     } else {
 	char tasktxt[128];
@@ -475,16 +445,16 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 
 	PStasklist_enqueue(&managedTasks, task);
 
-	/* Tell MCast about the new task */
-	incJobsMCast(PSC_getMyID(), 1, (task->group==TG_ANY));
+	/* Tell everybody about the new task */
+	incJobs(1, (task->group==TG_ANY));
     }
 
     registerClient(fd, tid, task);
 
     /*
-     * Get the number of processes from MCast
+     * Get the number of processes
      */
-    getInfoMCast(PSC_getMyID(), &info);
+    status = getStatus(PSC_getMyID());
 
     /*
      * Reject or accept connection
@@ -516,7 +486,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	*(gid_t *)outmsg.buf = PSnodes_getGroup(PSC_getMyID());
 	outmsg.header.len += sizeof(gid_t);
     } else if (PSnodes_getProcs(PSC_getMyID()) !=  PSNODES_ANYPROC
-	       && info.jobs.normal > PSnodes_getProcs(PSC_getMyID())) {
+	       && status.jobs.normal > PSnodes_getProcs(PSC_getMyID())) {
 	outmsg.type = PSP_CONN_ERR_PROCLIMIT;
 	*(int *)outmsg.buf = PSnodes_getProcs(PSC_getMyID());
 	outmsg.header.len += sizeof(int);
@@ -537,7 +507,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 		 PSC_printTID(task->tid), msg->version, PSprotocolVersion,
 		 uid, PSnodes_getUser(PSC_getMyID()),
 		 gid, PSnodes_getGroup(PSC_getMyID()),
-		 info.jobs.normal, PSnodes_getProcs(PSC_getMyID()));
+		 status.jobs.normal, PSnodes_getProcs(PSC_getMyID()));
 	PSID_errlog(errtxt, 1);
 
 	sendMsg(&outmsg);
@@ -556,131 +526,6 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	outmsg.type = PSC_getMyID();
 
 	sendMsg(&outmsg);
-    }
-}
-
-/******************************************
-*  contactdaemon()
-*/
-int send_DAEMONCONNECT(int id)
-{
-    DDBufferMsg_t msg = (DDBufferMsg_t) {
-	.header = (DDMsg_t) {
-	    .type = PSP_DD_DAEMONCONNECT,
-	    .sender = PSC_getMyTID(),
-	    .dest = PSC_getTID(id, 0),
-	    .len = sizeof(msg.header) },
-	.buf = {'\0'} };
-    int32_t *CPUs = (int32_t *)msg.buf;
-
-    CPUs[0] = PSnodes_getPhysCPUs(PSC_getMyID());
-    CPUs[1] = PSnodes_getVirtCPUs(PSC_getMyID());
-    msg.header.len += 2 * sizeof(*CPUs);
-
-    return sendMsg(&msg);
-}
-
-/******************************************
- *  msg_DAEMONCONNECT()
- */
-void msg_DAEMONCONNECT(DDBufferMsg_t *msg)
-{
-    int id = PSC_getID(msg->header.sender);
-    int32_t *CPUs = (int32_t *) msg->buf;
-    int physCPUs = CPUs[0];
-    int virtCPUs = CPUs[1];
-
-    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, id);
-    PSID_errlog(errtxt, 1);
-
-    /*
-     * accept this request and send an ESTABLISH msg back to the requester
-     */
-    declareNodeAlive(id, physCPUs, virtCPUs);
-
-    msg->header = (DDMsg_t) {
-	.type = PSP_DD_DAEMONESTABLISHED,
-	.sender = PSC_getMyTID(),
-	.dest = PSC_getTID(id, 0),
-	.len = sizeof(msg->header) };
-
-    CPUs[0] = PSnodes_getPhysCPUs(PSC_getMyID());
-    CPUs[1] = PSnodes_getVirtCPUs(PSC_getMyID());
-    msg->header.len += 2 * sizeof(*CPUs);
-
-    if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
-	snprintf(errtxt, sizeof(errtxt), "%s: sendMsg() errno %d: %s",
-		 __func__, errno, strerror(errno));
-	PSID_errlog(errtxt, 2);
-    } else {
-	send_OPTIONS(id);
-    }
-}
-
-/******************************************
- *  msg_DAEMONESTABLISHED()
- */
-void msg_DAEMONESTABLISHED(DDBufferMsg_t *msg)
-{
-    int id = PSC_getID(msg->header.sender);
-    int32_t *CPUs = (int32_t *) msg->buf;
-    int physCPUs = CPUs[0];
-    int virtCPUs = CPUs[1];
-
-    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, id);
-    PSID_errlog(errtxt, 1);
-
-    declareNodeAlive(id, physCPUs, virtCPUs);
-
-    /* Send some info about me to the other node */
-    send_OPTIONS(id);
-}
-
-void msg_DAEMONSTART(DDBufferMsg_t *msg)
-{
-    unsigned short starter = PSC_getID(msg->header.dest);
-    unsigned short node = *(unsigned short *) msg->buf;
-
-    /*
-     * contact the other node if no connection already exist
-     */
-    snprintf(errtxt, sizeof(errtxt), "%s: received (starter=%d node=%d)",
-	     __func__, starter, node);
-    PSID_errlog(errtxt, 1);
-
-    if (starter==PSC_getMyID()) {
-	if (node<PSC_getNrOfNodes()) {
-	    if (!PSnodes_isUp(node)) {
-		unsigned int addr = PSnodes_getAddr(node);
-		if (addr != INADDR_ANY)	PSC_startDaemon(addr);
-	    } else {
-		snprintf(errtxt, sizeof(errtxt), "%s: node %d already up",
-			 __func__, node);
-		PSID_errlog(errtxt, 0);
-	    }
-	}
-    } else {
-	if (PSnodes_isUp(starter)) {
-	    /* forward message */
-	    sendMsg(&msg);
-	} else {
-	    snprintf(errtxt, sizeof(errtxt), "%s: starter %d is down",
-		     __func__, starter);
-	    PSID_errlog(errtxt, 0);
-	}
-    }
-}
-
-/******************************************
- *  msg_DAEMONSTOP()
- *   sender node requested a psid-stop on the receiver node.
- */
-void msg_DAEMONSTOP(DDMsg_t *msg)
-{
-    if (PSC_getID(msg->dest) == PSC_getMyID()) {
-	shutdownNode(1);
-    } else {
-	sendMsg(msg);
     }
 }
 
@@ -865,8 +710,8 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	    registerClient(forwarder->fd, forwarder->tid, forwarder);
 	    setEstablishedClient(forwarder->fd);
 	    FD_SET(forwarder->fd, &PSID_readfds);
-	    /* Tell MCast about the new forwarder task */
-	    incJobsMCast(PSC_getMyID(), 1, (forwarder->group==TG_ANY));
+	    /* Tell everybody about the new forwarder task */
+	    incJobs(1, (forwarder->group==TG_ANY));
 
 	    /*
 	     * The task will get a signal from its parent. Thus add ptid
@@ -875,8 +720,8 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	    PSID_setSignal(&task->assignedSigs, task->ptid, -1);
 	    /* Enqueue the task */
 	    PStasklist_enqueue(&managedTasks, task);
-	    /* Tell MCast about the new task */
-	    incJobsMCast(PSC_getMyID(), 1, (task->group==TG_ANY));
+	    /* Tell everybody about the new task */
+	    incJobs(1, (task->group==TG_ANY));
 
 	    answer.header.sender = task->tid;
 
@@ -918,8 +763,9 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	    sendMsg(msg);
 
 	    /* Tell MCast about the new task (until the real ping comes in) */
-	    incJobsMCast(PSC_getID(msg->header.dest), 1, 1);
-
+	    if (config->useMCast) {
+		incJobsMCast(PSC_getID(msg->header.dest), 1, 1);
+	    }
 	} else {
 	    answer.header.type = PSP_CD_SPAWNFAILED;
 	    answer.header.sender = msg->header.dest;
@@ -1895,9 +1741,6 @@ void RDPCallBack(int msgid, void *buf)
 
 	declareNodeDead(node);
 
-	/* Tell MCast */
-	declareNodeDeadMCast(node);
-
 	break;
     case RDP_CAN_CONTINUE:
 	node = *(int*)buf;
@@ -2193,7 +2036,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.118 $";
+    char revision[] = "$Revision: 1.119 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -2247,8 +2090,8 @@ int main(int argc, const char *argv[])
     if (!logfile) {
 	openlog("psid",LOG_PID|LOG_CONS,LOG_DAEMON);
     }
-    PSID_initLog(logfile ? 0 : 1, logfile);
-    PSC_initLog(logfile ? 0 : 1, logfile);
+    PSID_initLog(!logfile, logfile);
+    PSC_initLog(!logfile, logfile);
 
     if (rc < -1) {
         /* an error occurred during option processing */
@@ -2289,10 +2132,8 @@ int main(int argc, const char *argv[])
 
 	dummy_fd=open("/dev/null", O_WRONLY , 0);
 	dup2(dummy_fd, STDIN_FILENO);
-	dup2(dummy_fd, STDOUT_FILENO);
-	if (!logfile) {
-	    dup2(dummy_fd, STDERR_FILENO);
-	}
+	if (logfile!=stdout) dup2(dummy_fd, STDOUT_FILENO);
+	if (logfile!=stderr) dup2(dummy_fd, STDERR_FILENO);
 	close(dummy_fd);
     }
 
@@ -2319,6 +2160,7 @@ int main(int argc, const char *argv[])
      * read the config file
      */
     PSID_readConfigFile(!logfile, configfile);
+    /* Now we can rely on the config structure */
 
     {
 	unsigned int addr;
@@ -2332,7 +2174,7 @@ int main(int argc, const char *argv[])
 	PSID_errlog(errtxt, 1);
     }
 
-    if (!logfile && config->logDest!=LOG_DAEMON) {
+    if (config->useSyslog && config->logDest!=LOG_DAEMON) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "Changing logging dest from LOG_DAEMON to %s",
 		 config->logDest==LOG_KERN ? "LOG_KERN":
@@ -2407,11 +2249,11 @@ int main(int argc, const char *argv[])
     PSID_errlog(errtxt, 0);
 
     /*
-     * Prepare hostlist for initialization of RDP and MCast
+     * Prepare hostlist to initialize RDP and MCast
      */
     {
 	unsigned int *hostlist;
-	int MCastSock, i;
+	int i;
 
 	hostlist = malloc(PSC_getNrOfNodes() * sizeof(unsigned int));
 	if (!hostlist) {
@@ -2424,26 +2266,30 @@ int main(int argc, const char *argv[])
 	    hostlist[i] = PSnodes_getAddr(i);
 	}
 
-	/*
-	 * Initialize MCast and RDP
-	 */
-	MCastSock = initMCast(PSC_getNrOfNodes(),
-			      config->MCastGroup, config->MCastPort,
-			      !logfile, hostlist,
-			      PSC_getMyID(), MCastCallBack);
-	if (MCastSock<0) {
-	    PSID_errexit("Error while trying initMCast()", errno);
-	}
-	setDeadLimitMCast(config->deadInterval);
+	errtxt[0] = '\0';
+	if (config->useMCast) {
+	    /* Initialize MCast */
+	    int MCastSock = initMCast(PSC_getNrOfNodes(),
+				      config->MCastGroup, config->MCastPort,
+				      config->useSyslog, hostlist,
+				      PSC_getMyID(), MCastCallBack);
+	    if (MCastSock<0) {
+		PSID_errexit("Error while trying initMCast()", errno);
+	    }
+	    setDeadLimitMCast(config->deadInterval);
 
+	    snprintf(errtxt, sizeof(errtxt), "MCast and ");
+	}
+
+	/* Initialize RDP */
 	RDPSocket = initRDP(PSC_getNrOfNodes(), config->RDPPort,
-			    !logfile, hostlist, RDPCallBack);
+			    config->useSyslog, hostlist, RDPCallBack);
 	if (RDPSocket<0) {
 	    PSID_errexit("Error while trying initRDP()", errno);
 	}
 
-	snprintf(errtxt, sizeof(errtxt), "MCast and RDP (%d) initialized.",
-		 RDPSocket);
+	snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
+		 "RDP (%d) initialized.", RDPSocket);
 	PSID_errlog(errtxt, 0);
 
 	FD_SET(RDPSocket, &PSID_readfds);
@@ -2470,16 +2316,16 @@ int main(int argc, const char *argv[])
 	memcpy(&rfds, &PSID_readfds, sizeof(rfds));
 	memcpy(&wfds, &PSID_writefds, sizeof(wfds));
 
-	if (Tselect(FD_SETSIZE, &rfds, &wfds, (fd_set *)NULL, &tv) < 0) {
+	if (Sselect(FD_SETSIZE, &rfds, &wfds, (fd_set *)NULL, &tv) < 0) {
 	    char *errstr = strerror(errno);
 	    snprintf(errtxt, sizeof(errtxt),
-		     "Error while Tselect: %s", errstr ? errstr : "UNKNOWN");
+		     "Error while Sselect: %s", errstr ? errstr : "UNKNOWN");
 	    PSID_errlog(errtxt, 0);
 
 	    checkFileTable(&PSID_readfds);
 	    checkFileTable(&PSID_writefds);
 
-	    snprintf(errtxt, sizeof(errtxt),"Error while Tselect continueing");
+	    snprintf(errtxt, sizeof(errtxt),"Error while Sselect continueing");
 	    PSID_errlog(errtxt, 6);
 
 	    continue;
@@ -2552,7 +2398,7 @@ int main(int argc, const char *argv[])
 
 	    tv.tv_sec = 0;
 	    tv.tv_usec = 0;
-	    if (Tselect(RDPSocket+1,
+	    if (Sselect(RDPSocket+1,
 			&rfds, (fd_set *)NULL, (fd_set *)NULL, &tv) < 0) {
 		break;
 	    }
