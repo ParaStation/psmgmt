@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: commands.c,v 1.10 2004/01/16 09:37:09 eicker Exp $
+ * $Id: commands.c,v 1.11 2004/01/28 10:51:11 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.10 2004/01/16 09:37:09 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.11 2004/01/28 10:51:11 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -35,7 +35,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.10 2004/01/
 
 #include "commands.h"
 
-char commandsversion[] = "$Revision: 1.10 $";
+char commandsversion[] = "$Revision: 1.11 $";
 
 /* @todo PSI_sendMsg(): Wrapper, control if sendMsg was successful or exit */
 
@@ -181,13 +181,30 @@ static inline int getTaskInfo(PSnodes_ID_t node, int count, int full)
 static sizedList_t tnnList = { .actSize = 0, .list = NULL };
 /** List used for storing of full task number informations. */
 static sizedList_t tnfList = { .actSize = 0, .list = NULL };
+/** List used for storing of allocated task number informations. */
+static sizedList_t tnaList = { .actSize = 0, .list = NULL };
 
 /** Simple wrapper for retrieval of task numbers */
-static inline int getTaskNum(int full)
+static inline int getTaskNum(PSP_Info_t what)
 {
-    return getFullList(full ? &tnfList : &tnnList,
-		       full ? PSP_INFO_LIST_ALLJOBS : PSP_INFO_LIST_NORMJOBS,
-		       sizeof(uint16_t));
+    sizedList_t *list;
+
+    switch (what) {
+    case PSP_INFO_LIST_NORMJOBS:
+	list = &tnnList;
+	break;
+    case PSP_INFO_LIST_ALLJOBS:
+	list = &tnfList;
+	break;
+    case PSP_INFO_LIST_ALLOCJOBS:
+	list = &tnaList;
+	break;
+    default:
+	printf("%s: Unknown type %s\n", __func__, PSP_printInfo(what));
+	return 0;
+    }
+
+    return getFullList(list, what, sizeof(uint16_t));
 }
 
 /** List used for storing of load informations. */
@@ -507,7 +524,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
     int task, num;
 
     if (! getHostStatus()) return;
-    if (! getTaskNum(full)) return;
+    if (! getTaskNum(PSP_INFO_LIST_ALLJOBS)) return;
     taskNum = full ? (uint16_t *) tnfList.list : (uint16_t *) tnnList.list;
 
     printf("%4s %22s %22s %3s %9s\n",
@@ -551,25 +568,27 @@ void PSIADM_LoadStat(char *nl)
 {
     PSnodes_ID_t node;
     float *loads;
-    uint16_t *taskNumFull, *taskNumNorm;
+    uint16_t *taskNumFull, *taskNumNorm, *taskNumAlloc;
 
     if (! getHostStatus()) return;
     if (! getLoads()) return;
     loads = (float *)ldList.list;
-    if (! getTaskNum(1)) return;
+    if (! getTaskNum(PSP_INFO_LIST_ALLJOBS)) return;
     taskNumFull = (uint16_t *) tnfList.list;
-    if (! getTaskNum(0)) return;
+    if (! getTaskNum(PSP_INFO_LIST_NORMJOBS)) return;
     taskNumNorm = (uint16_t *) tnnList.list;
+    if (! getTaskNum(PSP_INFO_LIST_ALLOCJOBS)) return;
+    taskNumAlloc = (uint16_t *) tnaList.list;
 
     printf("Node\t\t Load\t\t     Jobs\n");
-    printf("\t 1 min\t 5 min\t15 min\t tot.\tnorm.\n");
+    printf("\t 1 min\t 5 min\t15 min\t tot.\tnorm.\talloc.\n");
 
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 	if (hostStatus.list[node]) {
-	    printf("%4d\t%2.4f\t%2.4f\t%2.4f\t%4d\t%4d\n", node,
+	    printf("%4d\t%2.4f\t%2.4f\t%2.4f\t%4d\t%4d\t%4d\n", node,
 		   loads[3*node+0], loads[3*node+1], loads[3*node+2],
-		   taskNumFull[node], taskNumNorm[node]);
+		   taskNumFull[node], taskNumNorm[node], taskNumAlloc[node]);
 	} else {
 	    printf("%4d\t down\n", node);
 	}
