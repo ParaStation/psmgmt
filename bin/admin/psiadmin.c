@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.36 2002/07/11 11:19:37 eicker Exp $
+ * $Id: psiadmin.c,v 1.37 2002/07/11 15:01:23 hauke Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.36 2002/07/11 11:19:37 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.37 2002/07/11 15:01:23 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -44,7 +44,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.36 $";
+static char psiadmversion[] = "$Revision: 1.37 $";
 static int doRestart = 0;
 
 static char *hoststatus;
@@ -235,11 +235,11 @@ void PSIADM_LoadStat(int first, int last)
     static size_t nl_size = 0;
     static NodelistEntry_t *nl = NULL;
 
-    printf("nodelist_size %ld\n", nl_size);
+    printf("nodelist_size %ld\n", (long int)nl_size);
     if (nl_size != sizeof(NodelistEntry_t) * PSC_getNrOfNodes()) {
 	nl_size = sizeof(NodelistEntry_t) * PSC_getNrOfNodes();
 	nl = (NodelistEntry_t *) realloc(nl, nl_size);
-	printf("nodelist_size changed to %ld\n", nl_size);
+	printf("nodelist_size changed to %ld\n", (long int)nl_size);
     }
 
     first = (first==ALLNODES) ? 0 : first;
