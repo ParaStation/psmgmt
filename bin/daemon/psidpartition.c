@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidpartition.c,v 1.2 2003/09/26 14:22:16 eicker Exp $
+ * $Id: psidpartition.c,v 1.3 2003/10/08 14:50:21 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.2 2003/09/26 14:22:16 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.3 2003/10/08 14:50:21 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -249,6 +249,7 @@ static int nodeOK(unsigned short node, request_t *req)
 	&& (PSnodes_getProcs(node) == PSNODES_ANYPROC
 	    || (PSnodes_getProcs(node) > info.jobs.normal)
 	    || (req->option & PART_OPT_OVERBOOK))
+	&& (PSnodes_getCPUs(node))
 	&& (! (req->option & PART_OPT_EXCLUSIVE) || !info.jobs.normal)
 	&& (! (req->option & PART_OPT_OVERBOOK) || !info.jobs.normal)) {
 
