@@ -19,7 +19,7 @@ ask=1;while [ "$ask" == 1 ];do     ask=0
 	;;
     fe|FE)
 	id="ParaStation FE"
-	ver="3.1"
+	ver="1.0"
 	features=""
 	calcmcpkey=0
 	;;
