@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidspawn.h,v 1.4 2003/10/30 16:30:45 eicker Exp $
+ * $Id: psidspawn.h,v 1.5 2003/12/10 16:44:01 eicker Exp $
  *
  */
 /**
  * \file
  * Spawning of client processes and forwarding for the ParaStation daemon
  *
- * $Id: psidspawn.h,v 1.4 2003/10/30 16:30:45 eicker Exp $
+ * $Id: psidspawn.h,v 1.5 2003/12/10 16:44:01 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -29,46 +29,6 @@ extern "C" {
 #endif
 
 #include "pstask.h"
-
-/**
- * @brief Frontend to execv(3).
- *
- * Frontend to execv(3). Retry execv() on failure after a delay of
- * 400ms. With 5 tries at all this results in a total trial time of
- * about 2sec.
- *
- * @param path The pathname of the file to be executed.
- *
- * @param argv Array of pointers to null-terminated strings that
- * represent the argument list available to the new program. The first
- * argument, by convention, should point to the file name associated
- * with the file being executed. The array of pointers must be
- * terminated by a NULL pointer.
- *
- *
- * @return Like the execv(3) return value.
- *
- * @see execv(3)
- */
-int PSID_execv( const char *path, char *const argv[]);
-
-/**
- * @brief Frontend to stat(2).
- *
- * Frontend to stat(2). Retry stat() on failure after a delay of
- * 400ms. With 5 tries at all this results in a total trial time of
- * about 2sec.
- *
- * @param file_name The name of the file to stat. This might be a
- * absolute or relative path to the file.
- *
- * @param buf Buffer to hold the returned stat information of the file.
- *
- * @return Like the stat(2) return value.
- *
- * @see stat(2)
- */
-int PSID_stat(char *file_name, struct stat *buf);
 
 /**
  * @brief Spawn a new process.
