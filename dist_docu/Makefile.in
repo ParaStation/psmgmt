@@ -1,26 +1,29 @@
 ###################################################### -*- Makefile -*- #####
-#                  ParaStation3
-#        Copyright (c) 2002 ParTec AG Karlsruhe
+#                  ParaStation
+#        Copyright (c) 2002-2003 ParTec AG Karlsruhe
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.4 2002/12/10 19:15:41 eicker Exp $
+# $Id: Makefile.in,v 1.5 2003/07/18 14:15:47 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
+#         Norbert Eicker <eicker@par-tec.de>
 #############################################################################
 
 TOP_SRCDIR := @top_srcdir@
 TOP_BUILDDIR := ..
 
 #s.o. clean:
+BUILDDIR := build
 DISTPATH := opt/parastation
+DISTDIR := $(BUILDDIR)/$(DISTDIR)
 
-DOCDIR := $(DISTPATH)/doc
+DOCDIR := $(DISTDIR)/doc
 DOCS = html/index.html html/adminguide html/userguide html/images html/api
 DOCS += pdf/adminguide.pdf pdf/userguide.pdf
 
-MANDIR := $(DISTPATH)/man
+MANDIR := $(DISTDIR)/man
 MANS := man1 man3 man5 man7 man8
 
 EXAMPLEDIR := $(DOCDIR)/examples
@@ -80,21 +83,21 @@ tarcleanups:
 	chmod -R og+r *
 
 tar:	tarcleanups
-	tar --owner=0 --group=0 -czf \
-		ps-doc-$(DVER)-`date +%Y%m%d`.tar.gz $(DISTPATH)
+	tar --owner=0 --group=0 -C $(BUILDDIR) -czf \
+		psdoc-$(DVER)-`date +%Y%m%d`.tar.gz $(DISTPATH)
 
 rpm:	tarcleanups
 	$(TOP_SRCDIR)/scripts/rpmbuilddoc $(DVER)
 
 endif
-DISTCLEAN+= ps-doc*.tar.gz
-DISTCLEAN+= ps-doc*.rpm
-DISTCLEAN+= ps-doc*.spec
+DISTCLEAN+= psdoc*.tar.gz
+DISTCLEAN+= psdoc*.rpm
+DISTCLEAN+= psdoc*.spec
 
 
 ######################################################
 clean:
-	rm -rf opt/parastation
+	$(RM) -r $(BUILDDIR)
 
-distclean: clean
+realclean distclean: clean
 	$(RM) $(DISTCLEAN)

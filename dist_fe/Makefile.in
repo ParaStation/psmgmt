@@ -1,13 +1,14 @@
 ###################################################### -*- Makefile -*- #####
-#                  ParaStation3
-#        Copyright (c) 2002 ParTec AG Karlsruhe
+#                  ParaStation
+#        Copyright (c) 2002-2003 ParTec AG Karlsruhe
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.16 2003/07/03 14:01:16 hauke Exp $
+# $Id: Makefile.in,v 1.17 2003/07/18 14:16:14 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
+#         Norbert Eicker <eicker@par-tec.de>
 #############################################################################
 
 TOP_SRCDIR := @top_srcdir@
@@ -17,18 +18,20 @@ TARGET_OS := @target_os@
 TARGET_CPU := @target_cpu@
 
 #s.o. clean:
+BUILDDIR := build
 DISTPATH := opt/parastation
+DISTDIR := $(BUILDDIR)/$(DISTPATH)
 
 INCLUDES += psport4.h
-INCDIR := $(DISTPATH)/include
+INCDIR := $(DISTDIR)/include
 
 LIBS += libpsport4.a
 ifeq ("$(TARGET_OS)","linux")
 LIBS += libpsport4.so
 endif
-LIBDIR := $(DISTPATH)/lib
+LIBDIR := $(DISTDIR)/lib
 
-CONFIGDIR := $(DISTPATH)/config
+CONFIGDIR := $(DISTDIR)/config
 
 MISC += config/ps_ethernet
 
@@ -37,7 +40,7 @@ MISC += VERSION.psfe
 DIRS += $(LIBDIR) $(INCDIR) $(CONFIGDIR)
 
 ######################################################
-MISCEXP := $(patsubst %,$(DISTPATH)/%, $(MISC))
+MISCEXP := $(patsubst %,$(DISTDIR)/%, $(MISC))
 
 all: dirs libs includes $(MISCEXP) tar rpm
 
@@ -86,11 +89,11 @@ includes: $(INCDIR) $(patsubst %,$(INCDIR)/%,$(INCLUDES))
 # Misc files
 #
 
-$(DISTPATH)/config/ps_ethernet: $(TOP_SRCDIR)/scripts/ps_ethernet
+$(DISTDIR)/config/ps_ethernet: $(TOP_SRCDIR)/scripts/ps_ethernet
 	cp $< $@
 
-.PHONY: $(DISTPATH)/VERSION.psfe
-$(DISTPATH)/VERSION.psfe:
+.PHONY: $(DISTDIR)/VERSION.psfe
+$(DISTDIR)/VERSION.psfe:
 	echo "ParaStation FE $(DVER) ($(shell date))" > $@
 
 ######################################################
@@ -131,7 +134,7 @@ endif
 endif
 
 tar:	tarcleanups
-	$(TAR) --owner=0 --group=0 -czf \
+	$(TAR) --owner=0 --group=0 -C $(BUILDDIR) -czf \
 		psfe-$(DVER)-`date +%Y%m%d`.$(TARCPU).tar.gz $(DISTPATH)
 
 rpm:	tarcleanups
@@ -145,7 +148,7 @@ DISTCLEAN+= psfe*.spec
 
 ######################################################
 clean:
-	rm -rf opt/parastation
+	$(RM) -r $(BUILDDIR)
 
-distclean: clean
+realclean distclean: clean
 	$(RM) $(DISTCLEAN)

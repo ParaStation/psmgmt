@@ -1,13 +1,14 @@
 ###################################################### -*- Makefile -*- #####
-#                  ParaStation3
-#        Copyright (c) 2002 ParTec AG Karlsruhe
+#                  ParaStation
+#        Copyright (c) 2002-2003 ParTec AG Karlsruhe
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.5 2003/07/03 14:01:16 hauke Exp $
+# $Id: Makefile.in,v 1.6 2003/07/18 14:16:32 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
+#         Norbert Eicker <eicker@par-tec.de>
 #############################################################################
 
 TOP_SRCDIR := @top_srcdir@
@@ -17,22 +18,24 @@ TARGET_OS := @target_os@
 TARGET_CPU := @target_cpu@
 
 #s.o. clean:
+BUILDDIR := build
 DISTPATH := opt/parastation
+DISTDIR := $(BUILDDIR)/$(DISTPATH)
 
 INCLUDES += pshwtypes.h pse.h
-INCDIR := $(DISTPATH)/include
+INCDIR := $(DISTDIR)/include
 
-BINS += psiadmin psid psld
-BINS += psilogger mlisten psmstart mpirun_chp4 psispawn
-BINDIR := $(DISTPATH)/bin
+BINS += psiadmin psid psld psilogger mlisten
+BINS += psmstart mpirun_chp4 psispawn mpirun_chgm gmspawner
+BINDIR := $(DISTDIR)/bin
 
 LIBS += libpsi.a libpse.a
 ifeq ("$(TARGET_OS)","linux")
 LIBS += libpsi.so libpse.so
 endif
-LIBDIR := $(DISTPATH)/lib
+LIBDIR := $(DISTDIR)/lib
 
-CONFIGDIR := $(DISTPATH)/config
+CONFIGDIR := $(DISTDIR)/config
 
 MISC += config/parastation.conf.tmpl VERSION.psmgmt INSTALL config/PSM_INSTALL
 MISC += ChangeLog.psmgmt
@@ -42,7 +45,7 @@ MISCDIR :=
 DIRS += $(BINDIR) $(LIBDIR) $(INCDIR) $(MISCDIR) $(CONFIGDIR)
 
 ######################################################
-MISCEXP := $(patsubst %,$(DISTPATH)/%, $(MISC))
+MISCEXP := $(patsubst %,$(DISTDIR)/%, $(MISC))
 
 all: dirs libs bins includes $(MISCEXP) tar rpm
 
@@ -90,35 +93,35 @@ includes: $(INCDIR) $(patsubst %,$(INCDIR)/%,$(INCLUDES))
 #
 # Misc files
 #
-$(DISTPATH)/config/parastation.conf.tmpl: $(TOP_SRCDIR)/doc/parastation.conf
+$(DISTDIR)/config/parastation.conf.tmpl: $(TOP_SRCDIR)/doc/parastation.conf
 	cp $< $@
 
-$(DISTPATH)/INSTALL: $(TOP_SRCDIR)/doc/INSTALL
+$(DISTDIR)/INSTALL: $(TOP_SRCDIR)/doc/INSTALL
 	cp $< $@
 
-$(DISTPATH)/config/ps_myrinet: $(TOP_SRCDIR)/scripts/ps_myrinet
+$(DISTDIR)/config/ps_myrinet: $(TOP_SRCDIR)/scripts/ps_myrinet
 	cp $< $@
 
-$(DISTPATH)/config/ps_ethernet: $(TOP_SRCDIR)/scripts/ps_ethernet
+$(DISTDIR)/config/ps_ethernet: $(TOP_SRCDIR)/scripts/ps_ethernet
 	cp $< $@
 
-$(DISTPATH)/config/findmodule: $(TOP_SRCDIR)/scripts/findmodule
+$(DISTDIR)/config/findmodule: $(TOP_SRCDIR)/scripts/findmodule
 	cp $< $@
 
-$(DISTPATH)/config/PSM_INSTALL: $(TOP_SRCDIR)/scripts/PSM_INSTALL@TRU64FILEADD@
+$(DISTDIR)/config/PSM_INSTALL: $(TOP_SRCDIR)/scripts/PSM_INSTALL@TRU64FILEADD@
 	cp $< $@
 
-$(DISTPATH)/config/sysconfigtab: $(TOP_SRCDIR)/kern/OSF1/sysconfigtab
+$(DISTDIR)/config/sysconfigtab: $(TOP_SRCDIR)/kern/OSF1/sysconfigtab
 	cp $< $@
 
-$(DISTPATH)/config/psm_makedev: $(TOP_SRCDIR)/scripts/psm_makedev
+$(DISTDIR)/config/psm_makedev: $(TOP_SRCDIR)/scripts/psm_makedev
 	cp $< $@
 
-.PHONY: $(DISTPATH)/VERSION.psmgmt
-$(DISTPATH)/VERSION.psmgmt:
+.PHONY: $(DISTDIR)/VERSION.psmgmt
+$(DISTDIR)/VERSION.psmgmt:
 	echo "ParaStation Management $(DVER) ($(shell date))" > $@
 
-$(DISTPATH)/ChangeLog.psmgmt: $(TOP_SRCDIR)/dist_mgmt/ChangeLog
+$(DISTDIR)/ChangeLog.psmgmt: $(TOP_SRCDIR)/dist_mgmt/ChangeLog
 	cp $< $@
 
 ######################################################
@@ -159,7 +162,7 @@ endif
 endif
 
 tar:	tarcleanups
-	$(TAR) --owner=0 --group=0 -czf \
+	$(TAR) --owner=0 --group=0 -C $(BUILDDIR) -czf \
 		psmgmt-$(DVER)-`date +%Y%m%d`.$(TARCPU).tar.gz $(DISTPATH)
 
 rpm:	tarcleanups
@@ -173,7 +176,8 @@ DISTCLEAN+= psmgmt*.spec
 
 ######################################################
 clean:
-	rm -rf opt/parastation
+	$(RM) -r $(BUILDDIR)
 
-distclean: clean
+realclean distclean: clean
 	$(RM) $(DISTCLEAN)
+
