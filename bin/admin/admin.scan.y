@@ -8,7 +8,7 @@
 #include "psiadmin.h"
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.8 2002/01/21 10:18:12 eicker Exp $";
+static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.9 2002/01/21 12:01:34 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #define NODEERR -2
@@ -197,9 +197,7 @@ helpline:
 
         | HELPOP SETOP                 {PrintSetHelp();}
         | HELPOP SETOP MAXPROC         {PrintSetHelp();}
-        | HELPOP SETOP NOMAXPROC       {PrintSetHelp();}
         | HELPOP SETOP USER            {PrintSetHelp();}
-        | HELPOP SETOP NOUSER          {PrintSetHelp();}
         | HELPOP SETOP SMALLPACKETSIZE {PrintSetHelp();}
         | HELPOP SETOP RESENDTIMEOUT   {PrintSetHelp();}
         | HELPOP SETOP DEBUGMASK       {PrintSetHelp();}
