@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pspartition.c,v 1.3 2004/01/28 10:43:31 eicker Exp $
+ * $Id: pspartition.c,v 1.4 2004/01/28 13:59:49 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pspartition.c,v 1.3 2004/01/28 10:43:31 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pspartition.c,v 1.4 2004/01/28 13:59:49 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -110,7 +110,7 @@ static struct {
     
 size_t PSpart_encodeReq(char *buffer, size_t size, PSpart_request_t *request)
 {
-    snprintf(errtxt, sizeof(errtxt), "%s(%p, %ld, reqeust(", __func__,
+    snprintf(errtxt, sizeof(errtxt), "%s(%p, %ld, request(", __func__,
 	     buffer, (long)size);
     PSpart_snprintf(errtxt+strlen(errtxt),
 		    sizeof(errtxt)-strlen(errtxt), request);
