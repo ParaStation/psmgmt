@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.61 2002/07/23 12:46:40 eicker Exp $
+ * $Id: psid.c,v 1.62 2002/07/26 15:28:59 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.61 2002/07/23 12:46:40 eicker Exp $ 
+ * $Id: psid.c,v 1.62 2002/07/26 15:28:59 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.61 2002/07/23 12:46:40 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.62 2002/07/26 15:28:59 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -57,6 +57,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.61 2002/07/23 12
 
 #include "psidutil.h"
 #include "psidtask.h"
+#include "psidspawn.h"
 #include "config_parsing.h"
 
 struct timeval maintimer;
@@ -70,7 +71,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.61 $";
+static char psid_cvsid[] = "$Revision: 1.62 $";
 
 static int PSID_mastersock;
 
@@ -101,11 +102,9 @@ struct {
 } clients[FD_SETSIZE];
 
 
-/** List of tasks which are spawned, but haven't connected yet */
-PStask_t *spawnedTasksWaitingForConnect = NULL;
-
-/** List of tasks which connected */
-PStask_t *connectedTasks = NULL;
+/** List of all managed tasks (i.e. tasks that have connected or were
+    spawned). */
+PStask_t *managedTasks = NULL;
 
 /*----------------------------------------------------------------------*/
 /* states of the daemons                                                */
@@ -365,7 +364,7 @@ static void startDaemons(void)
 int killClients(int phase)
 {
     int i;
-    int pid;
+    pid_t pid;
 
     if (timercmp(&maintimer, &killclientstimer, <)) {
 	snprintf(errtxt, sizeof(errtxt),
@@ -527,8 +526,8 @@ void closeConnection(int fd)
 
 void sendSignal(long tid, uid_t uid, long senderTid, int signal)
 {
-    PStask_t *task = PStasklist_find(connectedTasks, tid);
-    int pid = PSC_getPID(tid);
+    PStask_t *task = PStasklist_find(managedTasks, tid);
+    pid_t pid = PSC_getPID(tid);
 
     if (!task) {
 	snprintf(errtxt, sizeof(errtxt),
@@ -590,7 +589,7 @@ void declareDaemonDead(int id)
     nodes[id].isUp = 0;
 
     /* Send signals to all processes that controlled task on the dead node */
-    task=connectedTasks;
+    task=managedTasks;
     /* loop over all tasks */
     while (task) {
 	PStask_sig_t *sig = task->assignedSigs;
@@ -661,10 +660,8 @@ void deleteClient(int fd)
 	     "deleteClient(): closing connection to %s", PSC_printTID(tid));
     PSID_errlog(errtxt, 1);
 
-    task = PStasklist_dequeue(&connectedTasks, tid);
+    task = PStasklist_dequeue(&managedTasks, tid);
     if (task) {
-	decJobsMCast(PSC_getMyID(), 1, (task->group==TG_ANY));
-
 	/*
 	 * send all task which want to receive a signal
 	 * the signal they want to receive
@@ -887,26 +884,13 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
      * first check if it is a reconnection
      * this can happen due to a exec call.
      */
-    task = PStasklist_find(connectedTasks, clients[fd].tid);
-    if (!task) {
-	/*
-	 * Task not found, maybe it's in spawnedTasksWaitingForConnect
-	 */
-	task = PStasklist_dequeue(&spawnedTasksWaitingForConnect,
-				  clients[fd].tid);
-	if (task) {
-	    task->next = NULL;
-	    task->prev = NULL;
-	    PStasklist_enqueue(&connectedTasks, task);
-	}
-    }
+    task = PStasklist_find(managedTasks, clients[fd].tid);
     if (task) {
 	/* reconnection */
 	/* use the old task struct and close the old fd */
-	/* use old PCB and close all sockets with FD_CLOEXEC flag set.*/
 	snprintf(errtxt, sizeof(errtxt),
-		 "CLIENTCONNECT reconnection to a PCB new fd=%d old fd=%d",
-		 fd, task->fd);
+		 "CLIENTCONNECT reconnection old fd=%d new fd=%d",
+		 task->fd, fd);
 	PSID_errlog(errtxt, 1);
 
 	/* close the previous socket */
@@ -921,6 +905,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	task->tid = clients[fd].tid;
 	task->fd = fd;
 	task->uid = msg->uid;
+	task->gid = msg->gid;
 	/* New connection, this task will become logger */
 	if (msg->group == TG_ANY) {
 	    task->group = TG_LOGGER;
@@ -934,7 +919,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 		 "Connection request from: %s", tasktxt);
 	PSID_errlog(errtxt, 9);
 
-	PStasklist_enqueue(&connectedTasks, task);
+	PStasklist_enqueue(&managedTasks, task);
 	clients[fd].task = task;
     }
 
@@ -1015,16 +1000,14 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	outmsg.myid = PSC_getMyID();
 	outmsg.loggernode = task->loggernode;
 	outmsg.loggerport = task->loggerport;
-	outmsg.rank = task->rank;
 	outmsg.group = msg->group;
 	strncpy(outmsg.instdir, PSC_lookupInstalldir(),
 		sizeof(outmsg.instdir));
 	outmsg.instdir[sizeof(outmsg.instdir)-1] = '\0';
 	strncpy(outmsg.psidvers, psid_cvsid, sizeof(outmsg.psidvers));
 	outmsg.psidvers[sizeof(outmsg.psidvers)-1] = '\0';
-	if (sendMsg(&outmsg)>0) {
-	    incJobsMCast(PSC_getMyID(), 1, (task->group==TG_ANY));
-	}
+
+	sendMsg(&outmsg);
     }
 }
 
@@ -1145,37 +1128,76 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
     answer.header.dest = msg->header.sender;
     answer.header.sender = PSC_getMyTID();
     answer.header.len = sizeof(answer);
-    /*
-     * If starting is not allowed on my host, test if someone tries
-     * to do so anyhow.
-     */
-    if (!nodes[PSC_getMyID()].starter /* starting not allowed */
-	&& PSC_getID(msg->header.sender)==PSC_getMyID()) { /* from my node */
+    answer.error = 0;
 
-	snprintf(errtxt, sizeof(errtxt), "SPAWNREQUEST: spawning not allowed");
-	PSID_errlog(errtxt, 0);
+    /* If message is from my node, test if everything is okay */
+    if (PSC_getID(msg->header.sender)==PSC_getMyID()) {
+	PStask_t *ptask;
 
-	PStask_delete(task);
+	if (!nodes[PSC_getMyID()].starter) {
+	     /* starting not allowed */
+	    PSID_errlog("SPAWNREQUEST: spawning not allowed", 0);
+	    answer.error = EACCES;
+	}
 
-	answer.header.type = PSP_DD_SPAWNFAILED;
-	answer.error = EACCES;
+	if (msg->header.sender!=task->ptid) {
+	    /* Sender has to be parent */
+	    PSID_errlog("SPAWNREQUEST: spawner tries to cheat", 0);
+	    answer.error = EACCES;
+	}
 
-	sendMsg(&answer);
+	ptask = PStasklist_find(managedTasks, task->ptid);
 
-    } else if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
+	if (!ptask) {
+	    /* Parent not found */
+	    PSID_errlog("SPAWNREQUEST: parent task not found", 0);
+	    answer.error = EACCES;
+	}
+
+	if (ptask->uid && task->uid!=ptask->uid) {
+	    /* Spawn tries to change uid */
+	    PSID_errlog("SPAWNREQUEST: tries to setuid()", 0);
+	    answer.error = EACCES;
+	}
+
+	if (ptask->gid && task->gid!=ptask->gid) {
+	    /* Spawn tries to change gid */
+	    PSID_errlog("SPAWNREQUEST: tries to setgid()", 0);
+	    snprintf(errtxt, sizeof(errtxt),
+		     "task->gid = %d  ptask->gid = %d", task->gid, ptask->gid);
+	    PSID_errlog(errtxt, 0);
+	    answer.error = EACCES;
+	}
+
+	if (answer.error) {
+	    PStask_delete(task);
+
+	    answer.header.type = PSP_DD_SPAWNFAILED;
+
+	    sendMsg(&answer);
+
+	    return;
+	}	
+    }
+    
+    if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
+	PStask_t *forwarder;
 	/*
 	 * this is a request for my node
 	 */
+	forwarder = PStask_clone(task);
+	forwarder->group = TG_FORWARDER;
 	/*
 	 * try to start the task
 	 */
-	err = PSID_taskspawn(task);
+	err = PSID_spawnTask(forwarder, task);
 
 	answer.header.type = (err ? PSP_DD_SPAWNFAILED : PSP_DD_SPAWNSUCCESS);
 	answer.error = err;
 
 	if (!err) {
-	    PStasklist_enqueue(&spawnedTasksWaitingForConnect, task);
+	    PStasklist_enqueue(&managedTasks, forwarder);
+	    PStasklist_enqueue(&managedTasks, task);
 	    answer.header.sender = task->tid;
 	} else {
 	    char *errstr = strerror(err);
@@ -1184,6 +1206,7 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 		     errstr ? errstr : "UNKNOWN");
 	    PSID_errlog(errtxt, 3);
 
+	    PStask_delete(forwarder);
 	    PStask_delete(task);
 	}
 
@@ -1278,7 +1301,7 @@ void sendAllSignals(PStask_t *task)
  */
 void sendSignalToParent(long ptid, long tid, uid_t uid)
 {
-    PStask_t *task = PStasklist_find(connectedTasks, tid);
+    PStask_t *task = PStasklist_find(managedTasks, tid);
 
     if (PSC_getID(ptid)==PSC_getMyID()) {
 	/* receiver is on local node, send signal */
@@ -1331,7 +1354,7 @@ void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
     PSID_errlog(errtxt, 1);
 
     /* include into assigned Sigs */
-    task = PStasklist_find(connectedTasks, ptid);
+    task = PStasklist_find(managedTasks, ptid);
     if (task) {
 	PSID_setSignal(&task->assignedSigs, tid, -1);
     }
@@ -1432,22 +1455,28 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 
 	    if (PSC_getPID(inmsg->dest)) {
 		/* request info for a special task */
-		task = PStasklist_find(connectedTasks, inmsg->dest);
+		task = PStasklist_find(managedTasks, inmsg->dest);
 		if (task) {
 		    outmsg.tid = task->tid;
 		    outmsg.ptid = task->ptid;
+		    outmsg.loggertid = task->loggertid;
 		    outmsg.uid = task->uid;
 		    outmsg.group = task->group;
+		    outmsg.rank = task->rank;
+		    outmsg.connected = (task->fd != -1);
 
 		    sendMsg(&outmsg);
 		}
 	    } else {
 		/* request info for all tasks */
-		for (task=connectedTasks; task; task=task->next) {
+		for (task=managedTasks; task; task=task->next) {
 		    outmsg.tid = task->tid;
 		    outmsg.ptid = task->ptid;
+		    outmsg.loggertid = task->loggertid;
 		    outmsg.uid = task->uid;
 		    outmsg.group = task->group;
+		    outmsg.rank = task->rank;
+		    outmsg.connected = (task->fd != -1);
 
 		    sendMsg(&outmsg);
 		}
@@ -1829,7 +1858,7 @@ void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
     answer.signal = msg->signal;
 
     if (!tid) {
-	task = PStasklist_find(connectedTasks, registrarTid);
+	task = PStasklist_find(managedTasks, registrarTid);
 	if (task) {
 	    /* @todo more logging */
 	    task->childsignal = msg->signal;
@@ -1845,7 +1874,7 @@ void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 	    answer.param = EHOSTUNREACH; /* failure */
 	} else if (id==PSC_getMyID()) {
 	    /* task is on my node */
-	    task = PStasklist_find(connectedTasks, tid);
+	    task = PStasklist_find(managedTasks, tid);
 
 	    if (task) {
 		snprintf(errtxt, sizeof(errtxt),
@@ -1862,7 +1891,7 @@ void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 
 		if (PSC_getID(registrarTid)==PSC_getMyID()) {
 		    /* registrar is on my node */
-		    task = PStasklist_find(connectedTasks, registrarTid);
+		    task = PStasklist_find(managedTasks, registrarTid);
 		    if (task) {
 			PSID_setSignal(&task->assignedSigs, tid, msg->signal);
 		    } else {
@@ -1920,7 +1949,7 @@ void msg_NOTIFYDEADRES(DDSignalMsg_t *msg)
 		 PSC_printTID(registrarTid));
 	PSID_errlog(errtxt, 1);
 
-	task = PStasklist_find(connectedTasks, registrarTid);
+	task = PStasklist_find(managedTasks, registrarTid);
 	if (task) {
 	    PSID_setSignal(&task->assignedSigs, controlledTid, msg->signal);
 	}
@@ -1948,7 +1977,7 @@ static int releaseSignal(long tid, long receiverTid, int signal)
     snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt), " from %s",
 	     PSC_printTID(tid));
 
-    task = PStasklist_find(connectedTasks, tid);
+    task = PStasklist_find(managedTasks, tid);
 
     if (!task) {
 	snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
@@ -1988,7 +2017,7 @@ static int releaseTask(DDSignalMsg_t *msg)
     PStask_t *task;
     int ret;
 
-    task = PStasklist_find(connectedTasks, tid);
+    task = PStasklist_find(managedTasks, tid);
     if (task) {
 	PStask_sig_t *sig;
 
@@ -2088,7 +2117,7 @@ void msg_RELEASE(DDSignalMsg_t *msg)
 
 	if (msg->param) sendMsg(msg);
 
-	task = PStasklist_find(connectedTasks, tid);
+	task = PStasklist_find(managedTasks, tid);
 
 	if (!task) {
 	    snprintf(errtxt, sizeof(errtxt), "msg_RELEASE(): no task");
@@ -2129,7 +2158,7 @@ void msg_RELEASERES(DDSignalMsg_t *msg)
     long tid = msg->header.dest;
     PStask_t *task;
 
-    task = PStasklist_find(connectedTasks, tid);
+    task = PStasklist_find(managedTasks, tid);
 
     if (!task) {
 	snprintf(errtxt, sizeof(errtxt),
@@ -2210,7 +2239,7 @@ void msg_WHODIED(DDSignalMsg_t *msg)
 	     PSC_printTID(msg->header.sender), msg->signal);
     PSID_errlog(errtxt, 1);
 
-    task = PStasklist_find(connectedTasks, msg->header.sender);
+    task = PStasklist_find(managedTasks, msg->header.sender);
     if (task) {
 	long tid;
 	tid = PSID_getSignal(&task->signalSender, &msg->signal);
@@ -2629,7 +2658,7 @@ void MCastCallBack(int msgid, void *buf)
 		 "MCastCallBack(MCAST_LIC_LOST) Start Lic-Server on host %s",
 		 inet_ntoa(hostaddr));
 	PSID_errlog(errtxt, 2);
-	PSID_startlicenseserver(hostaddr.s_addr);
+	PSID_startLicServer(hostaddr.s_addr);
 	break;
     case MCAST_LIC_SHUTDOWN:
 	snprintf(errtxt, sizeof(errtxt),
@@ -2776,20 +2805,18 @@ void sighandler(int sig)
 	break;
     case SIGCHLD:
     {
-	int pid;           /* pid of the child process */
+	pid_t pid;         /* pid of the child process */
 	long tid;          /* tid of the child process */
 	int estatus;       /* termination status of the child process */
 
 	while ((pid = waitpid(-1, &estatus, WNOHANG)) > 0){
-	    /* Nothing to do right now */
 	    /*
 	     * I have to clean up when the socket gets closed.
-	     * If the task hasn't connected yet, I have to delete him from
-	     * the waiting_list_for_connect
+	     * If the task hasn't connected yet, I have to delete him now.
 	     */
-	    /* I'll just report it to the logfile */
-	    PStask_t *diedtask = NULL;
+	    PStask_t *diedtask;
 
+	    /* I'll just report it to the logfile */
 	    snprintf(errtxt, sizeof(errtxt),
 		     "Received SIGCHLD for pid %d (0x%06x) with status %d",
 		     pid, pid, estatus);
@@ -2798,40 +2825,49 @@ void sighandler(int sig)
 	    } else {
 		PSID_errlog(errtxt, 1);
 	    }
-	    /*
-	     * remove the task from the waiting list (if it is on list)
-	     */
+
 	    tid = PSC_getTID(-1, pid);
-	    diedtask = PStasklist_dequeue(&spawnedTasksWaitingForConnect, tid);
-	    /*
-	     * if the task hasn't connected yet
-	     * inform the node of the parent, that the task died
-	     */
-	    if (diedtask && diedtask->ptid) {
-		DDSignalMsg_t msg;
-
+	    diedtask = PStasklist_find(managedTasks, tid);
+	    if (!diedtask) {
 		snprintf(errtxt, sizeof(errtxt),
-			 "Send CHILDDEAD message to %s",
-			 PSC_printTID(diedtask->ptid));
-		snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
-			 " due to unconnected task %s",
-			 PSC_printTID(diedtask->tid));
+			 "sighandler() no task with tid %s found",
+			 PSC_printTID(tid));
 		PSID_errlog(errtxt, 1);
+	    }
 
-		msg.header.type = PSP_DD_CHILDDEAD;
-		msg.header.dest = diedtask->ptid;
-		msg.header.sender = diedtask->tid;
-		msg.header.len = sizeof(msg);
-		msg.param = diedtask->uid;
-		if (PSC_getID(diedtask->ptid)==PSC_getMyID()) {
+	    /*
+	     * if the task hasn't connected yet, remove it from the tasklist
+	     * and inform the parent, that the task has died.
+	     */
+	    if (diedtask && (diedtask->fd==-1)) {
+		PStasklist_dequeue(&managedTasks, tid);
+
+		if (diedtask->ptid && diedtask->group != TG_FORWARDER) {
+		    DDSignalMsg_t msg;
+
+		    snprintf(errtxt, sizeof(errtxt),
+			     "Send CHILDDEAD message to %s",
+			     PSC_printTID(diedtask->ptid));
+		    snprintf(errtxt+strlen(errtxt),
+			     sizeof(errtxt)-strlen(errtxt),
+			     " due to unconnected task %s",
+			     PSC_printTID(diedtask->tid));
+		    PSID_errlog(errtxt, 1);
+
 		    /* send the parent a SIGCHILD signal */
-		    msg_CHILDDEAD(&msg);
-		} else {
-		    /* send spawning node a sign that the new task is dead */
-		    sendMsg(&msg);
+		    msg.header.type = PSP_DD_CHILDDEAD;
+		    msg.header.dest = diedtask->ptid;
+		    msg.header.sender = diedtask->tid;
+		    msg.header.len = sizeof(msg);
+		    msg.param = diedtask->uid;
+		    if (PSC_getID(diedtask->ptid)==PSC_getMyID()) {
+			msg_CHILDDEAD(&msg);
+		    } else {
+			sendMsg(&msg);
+		    }
 		}
 	    }
-	    if (diedtask) free(diedtask);
+	    if (diedtask) PStask_delete(diedtask);
 	}
     }
     /* reset the sighandler */
@@ -2970,7 +3006,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.61 $";
+    char revision[] = "$Revision: 1.62 $";
     snprintf(errtxt, sizeof(errtxt), "psid %s\b ", revision+11);
     PSID_errlog(errtxt, 0);
 }
@@ -3173,7 +3209,7 @@ int main(int argc, char **argv)
     /*
      * read the config file
      */
-    PSID_readconfigfile(usesyslog);
+    PSID_readConfigFile(usesyslog);
 
     snprintf(errtxt, sizeof(errtxt), "My ID is %d", PSC_getMyID());
     PSID_errlog(errtxt, 1);
@@ -3292,8 +3328,6 @@ int main(int argc, char **argv)
 	     "SelectTime=%ld sec    DeadInterval=%ld",
 	      ConfigSelectTime, ConfigDeadInterval);
     PSID_errlog(errtxt, 0);
-
-    spawnedTasksWaitingForConnect = 0;
 
     /*
      * check if the Cluster is ready
