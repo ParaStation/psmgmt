@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: commands.c,v 1.11 2004/01/28 10:51:11 eicker Exp $
+ * $Id: commands.c,v 1.12 2004/02/06 11:23:23 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.11 2004/01/28 10:51:11 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.12 2004/02/06 11:23:23 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -35,7 +35,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.11 2004/01/
 
 #include "commands.h"
 
-char commandsversion[] = "$Revision: 1.11 $";
+char commandsversion[] = "$Revision: 1.12 $";
 
 /* @todo PSI_sendMsg(): Wrapper, control if sendMsg was successful or exit */
 
@@ -524,7 +524,8 @@ void PSIADM_ProcStat(int count, int full, char *nl)
     int task, num;
 
     if (! getHostStatus()) return;
-    if (! getTaskNum(PSP_INFO_LIST_ALLJOBS)) return;
+    if (! getTaskNum(full ? PSP_INFO_LIST_ALLJOBS : PSP_INFO_LIST_NORMJOBS))
+	return;
     taskNum = full ? (uint16_t *) tnfList.list : (uint16_t *) tnnList.list;
 
     printf("%4s %22s %22s %3s %9s\n",
