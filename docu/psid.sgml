@@ -172,8 +172,9 @@
         </term>
 	<listitem>
 	  <para>Choose <replaceable>file</replaceable> to be the destination
-	    for logging output. <replaceable>file</replaceable> may be a
-	    ordinary file or 'stdin' of 'stdout'. The default is to use
+	    for logging output. <replaceable>file</replaceable> may be the name
+	    of an ordinary file or <filename>stdin</filename> or
+	    <filename>stdout</filename>. The default is to use
 	    <citerefentry>
 	      <refentrytitle>syslog</refentrytitle>
 	      <manvolnum>3</manvolnum>
