@@ -4,7 +4,7 @@ CFLAGS += -O2 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
 PSM_OSDIR := @PSM_OSDIR@
 CPPFLAGS += -I@top_srcdir@/include -I@top_srcdir@/$(PSM_OSDIR) @CPPFLAG_MMD@
 
-PSIOBJS := psilog.o psi.o psienv.o psitask.o psispawn.o info.o psp.o logger.o 
+PSIOBJS := psi.o psilog.o psienv.o psispawn.o info.o logger.o 
 PSIDEPS := $(PSIOBJS:.o=@DEPEXTENSION@)
 
 RANLIB := @RANLIB@
@@ -13,7 +13,8 @@ VPATH += @srcdir@
 
 all: ../libpsi.a
 
-../libpsi.a: $(PSIOBJS)
+../libpsi.a: $(PSIOBJS) ../libpscommon.a
+	cp ../libpscommon.a $@
 	$(AR) rcv $@ $(PSIOBJS)
 	$(RANLIB) $@
 
@@ -22,9 +23,4 @@ clean:
 
 
 -include $(PSIDEPS)
-
-
-
-
-
 
