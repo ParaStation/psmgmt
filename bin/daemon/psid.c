@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.47 2002/04/03 15:32:26 eicker Exp $
+ * $Id: psid.c,v 1.48 2002/04/22 18:15:30 hauke Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.47 2002/04/03 15:32:26 eicker Exp $ 
+ * $Id: psid.c,v 1.48 2002/04/22 18:15:30 hauke Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.47 2002/04/03 15:32:26 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.48 2002/04/22 18:15:30 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -67,7 +67,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.47 $";
+static char psid_cvsid[] = "$Revision: 1.48 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -1837,7 +1837,8 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 
 	    if (PSID_CardPresent) {
 		ic = PSHALSYSGetInfoCounter();
-		memcpy(msg.buf+sizeof(PSID_CardPresent), ic, sizeof(*ic));
+		if (ic)
+		    memcpy(msg.buf+sizeof(PSID_CardPresent), ic, sizeof(*ic));
 	    }
 
 	    msg.header.len += sizeof(*ic);
@@ -2965,7 +2966,7 @@ void sighandler(int sig)
     break;
 
     case  SIGHUP    : /* hangup, generated when terminal disconnects */
-    case  SIGINT    : /* interrupt, generated from terminal special char */
+//    case  SIGINT    : /* interrupt, generated from terminal special char */
     case  SIGQUIT   : /* (*) quit, generated from terminal special char */
     case  SIGTSTP   : /* (@) interactive stop */
     case  SIGCONT   : /* (!) continue if stopped */
@@ -3083,7 +3084,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.47 $";
+    char revision[] = "$Revision: 1.48 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -3113,7 +3114,6 @@ static void help(void)
 
 int main(int argc, char **argv)
 {
-    struct servent *service;
     struct sockaddr_in sa;
 
     int fd;             /* master socket and socket to check connections*/
@@ -3215,9 +3215,9 @@ int main(int argc, char **argv)
     /*
      * Disable stdin,stdout,stderr and install dummy replacement
      */
-    {
+    if( !DEBUGGING){
 	int dummy_fd;
-
+	
 	dummy_fd=open("/dev/null",O_WRONLY ,0);
 	dup2(dummy_fd, STDIN_FILENO);
 	dup2(dummy_fd, STDOUT_FILENO);
@@ -3236,10 +3236,7 @@ int main(int argc, char **argv)
      * create the socket to listen to the client
      */
     PSI_msock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if ((service = getservbyname("psids","tcp")) == NULL){
-	SYSLOG(0,(LOG_ERR, "can't get \"psids\" service entry\n"));
-	exit(1);
-    }
+
     {
 	int reuse = 1;
 	setsockopt(PSI_msock,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(reuse));
@@ -3251,7 +3248,7 @@ int main(int argc, char **argv)
     memset(&sa, 0, sizeof(sa));
     sa.sin_family = AF_INET;
     sa.sin_addr.s_addr = INADDR_ANY;
-    sa.sin_port = service->s_port;
+    sa.sin_port = htons(PSI_GetServicePort("psids",889));
     if (bind(PSI_msock, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
 	if(DEBUGGING){
 	    errstr = strerror(errno);
