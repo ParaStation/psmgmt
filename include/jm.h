@@ -15,11 +15,11 @@
 #define JM_MEM_BASE SHARED_MEM_BASE
 
 
-#define jm_MTU	(8192)
-#define jm_DMA_SIZE	16
+#define jm_DMA_SIZE	64
 
+#define jm_MTU	(8192 + 256 )
 #define jm_HalMaxXHeadSize	(256)
-#define jm_HalMaxDataXHeadSize	(jm_MTU - (sizeof(psjm_halheader_t)+sizeof(jm_DMAMarker_t))) 
+#define jm_HalMaxData		(jm_MTU- jm_HalMaxXHeadSize) 
 
 #define jm_H2N_CMDQ_SIZE	1024
 #define jm_N2H_CMDQ_SIZE	1024
@@ -30,23 +30,24 @@
 #define jm_NNodes		4096
 #define jm_NContext		128
 
+#define jm_DMABufs_COUNT	10
 
 #define jm_MinRecvPosted	40
 
 #define jm_IT0			(4*1000*1000*2) /* 4 sec */
 
 
-#define jm_H2NCmd_MASK	0xff000000
-#define jm_H2NCmd_Shift	24
+#define jm_H2NCmd_MASK		0xff000000
+#define jm_H2NCmd_Shift			24
 
-#define jm_H2NCmd_Hello	0x01000000 /* Hello. Lower bits param */
-#define jm_H2NCmd_Send	0x02000000 /* Send. Lower bits:address to LANaiBuf */
-#define jm_H2NCmd_Recv 	0x03000000 /* Recv. Lower bits:address to LANaiBuf */
+#define jm_H2NCmd_Hello		0x01000000 /* Hello. Lower bits param */
+#define jm_H2NCmd_Send		0x02000000 /* Send. Lower bits:address to LANaiBuf */
+#define jm_H2NCmd_Recv		0x03000000 /* Recv. Lower bits:address to LANaiBuf */
 
 
 
-#define jm_N2HCmd_MASK	0xff000000
-#define jm_N2HCmd_Shift	24
+#define jm_N2HCmd_MASK		0xff000000
+#define jm_N2HCmd_Shift			24
 
 #define jm_N2HCmd_Hello		0x01000000 /* Unknown H2NCmd. Lower bits param */
 #define jm_N2HCmd_Unknown	0x02000000 /* Unknown H2NCmd. Lower bits:Cmd >> 8 */
@@ -90,7 +91,7 @@ typedef struct jm_NetRecvParam_T{
 }jm_NetRecvParam_t;
 
 typedef struct jm_DMAMarker_T{
-    UINT32	lastbyte_and_rawlen;
+    UINT32	param;
     volatile UINT32	type_and_boff;
 }jm_DMAMarker_t;
 
