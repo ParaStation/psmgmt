@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.48 2003/10/29 17:32:25 eicker Exp $
+ * $Id: psispawn.c,v 1.49 2003/10/30 16:36:25 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.48 2003/10/29 17:32:25 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.49 2003/10/30 16:36:25 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -99,7 +99,23 @@ void PSI_RemoteArgs(int Argc, char **Argv, int *RArgc, char ***RArgv)
 }
 
 /**
- * @todo docu
+ * @brief Get current working directory.
+ *
+ * Get the current working directory. If @a ext is given, it will be
+ * appended to the determined string. If the working directory starts
+ * with a string indicating the use of an automount ("/tmp_mnt" or
+ * "/export" for now), this signiture will be cut from the string.
+ *
+ * The strategy to determine the current working directory is to
+ * firstly look for the PWD environment variable and if this is not
+ * present, to call getcwd(3).
+ *
+ * @param ext The extension to append to determined directory.
+ *
+ * @return On success, a pointer to a character array containing the
+ * extended working directory is returned. This array is allocated via
+ * malloc() and should be free()ed by the user when it is no longer
+ * needed. If something went wrong, NULL is returned.
  */
 static char *mygetwd(const char *ext)
 {
@@ -148,7 +164,42 @@ static char *mygetwd(const char *ext)
     return NULL;
 }
 
-static int dospawn(int count, short *dstnodes, char *workingdir,
+/**
+ * @brief Actually spawn processes.
+ *
+ * Actually spawn @a count processes on the nodes stored within @a
+ * dstnodes. The spawned processes will be started within @a
+ * workingdir as the current working directory. The @a argc arguments
+ * used in order to start the processes are stored within @a argv. The
+ * first process spawned will get the unique rank @a rank, all further
+ * processes will get successive ranks. Upon return the array @a
+ * errors will hold @a count error codes indicating if the
+ * corresponding spawn was successful and if not, what cause the
+ * failure. The array @a tids will hold the unique task ID of the
+ * started processes.
+ *
+ * @param count The number of processes to spawn.
+ *
+ * @param dstnodes The nodes used in order to spawn processes.
+ *
+ * @param workingdir The initial working directory of the spawned processes.
+ *
+ * @param argc The number of arguments used to spawn the processes.
+ *
+ * @param argv The arguments used to spawn the processes.
+ *
+ * @param rank The rank of the first process spawned.
+ *
+ * @param errors Array holding error codes upon return.
+ *
+ * @param tids Array holding unique task IDs upon return.
+ *
+ * @return Upon success, the number of processes spawned is returned,
+ * i.e. usually this is @a count. Otherwise a negativ value is
+ * returned which indicates the number of answer got from spawn
+ * requests.
+ */
+static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 		   int argc, char **argv,
 		   int rank, int *errors, PStask_ID_t *tids)
 {
@@ -373,7 +424,7 @@ int PSI_spawn(int count, char *workdir, int argc, char **argv,
 	      int *errors, PStask_ID_t *tids)
 {
     int total = 0;
-    short *nodes;
+    PSnodes_ID_t *nodes;
 
     snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, count);
     PSI_errlog(errtxt, 10);
@@ -423,19 +474,18 @@ int PSI_spawn(int count, char *workdir, int argc, char **argv,
 PStask_ID_t PSI_spawnRank(int rank, char *workdir, int argc, char **argv,
 			  int *error)
 {
-    short node;
+    PSnodes_ID_t node;
     int ret;
     PStask_ID_t tid;
 
     snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, rank);
     PSI_errlog(errtxt, 10);
 
-    ret = INFO_request_rankID(rank, 1);
-    if (ret < 0) {
+    node = INFO_request_rankID(rank, 1);
+    if (node < 0) {
 	*error = ENXIO;
 	return 0;
     }
-    node = ret;
 
     snprintf(errtxt, sizeof(errtxt), "%s: will spawn to: %d", __func__, node);
     PSI_errlog(errtxt, 1);
@@ -449,19 +499,18 @@ PStask_ID_t PSI_spawnRank(int rank, char *workdir, int argc, char **argv,
 PStask_ID_t PSI_spawnGMSpawner(int np, char *workdir, int argc, char **argv,
 			       int *error)
 {
-    short node;
+    PSnodes_ID_t node;
     int ret;
     PStask_ID_t tid;
 
     snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, np);
     PSI_errlog(errtxt, 10);
 
-    ret = INFO_request_rankID(0, 1);
-    if (ret < 0) {
+    node = INFO_request_rankID(0, 1);
+    if (node < 0) {
 	*error = ENXIO;
 	return 0;
     }
-    node = ret;
 
     snprintf(errtxt, sizeof(errtxt), "%s: will spawn to: %d", __func__, node);
     PSI_errlog(errtxt, 1);
@@ -515,7 +564,7 @@ char *PSI_createPGfile(int num, const char *prog, int local)
     }
 
     for (i=0; i<num; i++) {
-	int node;
+	PSnodes_ID_t node;
 	static struct in_addr hostaddr;
 
 	if (!local || !i) {
