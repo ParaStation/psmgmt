@@ -45,6 +45,10 @@ struct timeval shutdowntimer;
 struct timeval killclientstimer;
 struct timeval pingtimer;
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+static char psid_cvsid[] __attribute__(( unused )) = "$Id: psid.c,v 1.14 2002/01/07 08:10:55 eicker Exp $";
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
 #define timerset(tvp,fvp)        {(tvp)->tv_sec  = (fvp)->tv_sec;\
                                   (tvp)->tv_usec = (fvp)->tv_usec;}
 #define timerop(tvp,sec,usec,op) {(tvp)->tv_sec  = (tvp)->tv_sec op sec;\
@@ -706,7 +710,7 @@ void client_task_delete(long thisclienttid)
 		  "clientdelete():closing connection to T%lx[%d:%ld]\n",
 		  thisclienttid,
 		  thisclienttid==-1?-1:PSI_getnode(thisclienttid),
-		  PSI_getpid(thisclienttid)));
+		  (long) PSI_getpid(thisclienttid)));
 
     oldtask = PStasklist_dequeue(&daemons[PSI_myid].tasklist,thisclienttid);
     if(oldtask){
@@ -728,7 +732,7 @@ void client_task_delete(long thisclienttid)
 		  "task(T%lx[%d:%ld]) not in my tasklist,",
 		  thisclienttid,
 		  thisclienttid==-1?-1:PSI_getnode(thisclienttid),
-		  PSI_getpid(thisclienttid)));
+		  (long) PSI_getpid(thisclienttid)));
     }
     pid = PSI_getpid(thisclienttid);
 
@@ -948,8 +952,8 @@ void GetProcessProperties(PStask_t* task)
 	fclose(file);
     }
     SYSLOG(4,(LOG_ERR, "GetProcessProperties(%lx[%d,%ld]) arg[%d]=%s",
-	      task->tid,PSI_getnode(task->tid),PSI_getpid(task->tid),
-	      task->argc,task->argv?(task->argv[0]?task->argv[0]:""):""));
+	      task->tid, PSI_getnode(task->tid), (long) PSI_getpid(task->tid),
+	      task->argc, task->argv?(task->argv[0]?task->argv[0]:""):""));
 #else
 #error wrong architecture
 #endif
@@ -960,7 +964,7 @@ void GetProcessProperties(PStask_t* task)
  *   a client trys to connect to the daemon.
  *   accept the connection request if enough resources are available
  */
-void msg_CLIENTCONNECT(int fd,DDInitMsg_t* msg)
+void msg_CLIENTCONNECT(int fd, DDInitMsg_t* msg)
 {
     PStask_t* task;
     int NumberProcs;
@@ -972,7 +976,7 @@ void msg_CLIENTCONNECT(int fd,DDInitMsg_t* msg)
     SYSLOG(3,(LOG_ERR,"connection request from T%lx[%d:%ld] at fd%d, "
 	      "group=%ld,version =%ld, uid=%d\n", clients[fd].tid,
 	      clients[fd].tid==-1?-1:PSI_getnode(clients[fd].tid),
-	      PSI_getpid(clients[fd].tid), fd, msg->group,msg->version,
+	      (long) PSI_getpid(clients[fd].tid), fd, msg->group, msg->version,
 	      msg->uid));
     /*
      * first check if it is a reconnection
@@ -1108,6 +1112,8 @@ void msg_CLIENTCONNECT(int fd,DDInitMsg_t* msg)
 	outmsg.masterport = task->masterport;
 	outmsg.rank = task->rank;
 	outmsg.group = msg->group;
+	strncpy(outmsg.psidvers, psid_cvsid, sizeof(outmsg.psidvers));
+	outmsg.psidvers[sizeof(outmsg.psidvers)-1] = '\0';
 	if(MsgSend(&outmsg)>0)
 	    send_PROCESS(clients[fd].tid,PSP_DD_NEWPROCESS,NULL);
     }
@@ -1216,7 +1222,7 @@ void msg_SPAWNREQUEST(DDBufferMsg_t* msg)
     PStask_decode(msg->buf,task);
 
     PStask_sprintf(buffer,task);
-    SYSLOG(5,(LOG_ERR,"request from %x msglen %ld task %s",
+    SYSLOG(5,(LOG_ERR,"request from %lx msglen %ld task %s",
 	      msg->header.sender, msg->header.len, buffer));
 
     if (task->nodeno == PSI_myid){
@@ -1665,11 +1671,11 @@ msg_TASKKILL(DDSignalMsg_t* msg)
 		error = kill(pid,msg->signal);
 		if(error){
 		    errtxt=strerror(errno);
-		    SYSLOG(1,(LOG_ERR,"msg_TASKKILL(kill %d (%x): [%d] %s",
-			      pid,msg->header.dest,errno,
+		    SYSLOG(1,(LOG_ERR,"msg_TASKKILL(kill %d (%lx): [%d] %s",
+			      pid, msg->header.dest, errno,
 			      errtxt?errtxt:"UNKNOWN errno"));
 		}else{
-		    SYSLOG(1,(LOG_ERR,"msg_TASKKILL(kill %d (%x)): SUCESS",
+		    SYSLOG(1,(LOG_ERR,"msg_TASKKILL(kill %d (%lx)): SUCESS",
 			      pid,msg->header.dest));
 		    PStask_setsignalsender(receivertask,msg->header.sender,
 					   msg->signal);
@@ -2211,7 +2217,7 @@ void psicontrol(int fd )
 
     CalledFromRSelect=1;
     /* read the whole msg */
-    msglen = MsgReceive(fd,(DDMsg_t*)&msg,sizeof(msg));
+    msglen = MsgReceive(fd, (DDMsg_t*)&msg, sizeof(msg));
     CalledFromRSelect=0;
 
     if(msglen==0){
@@ -2452,8 +2458,8 @@ void RDPCallBack(int msgid, void* buf)
     case RDP_PKT_UNDELIVERABLE:
 	msg = (DDMsg_t*)(((RDP_Deadbuf*)buf)->buf);
 	SYSLOG(2,(LOG_ERR,"RDPCallBack(RDP_PKT_UNDELIVERABLE,"
-		  "dest %x source %x %s). \n",
-		  msg->dest,msg->sender,PSPctrlmsg(msg->type)));
+		  "dest %lx source %lx %s). \n",
+		  msg->dest, msg->sender, PSPctrlmsg(msg->type)));
 	if(PSI_getpid(msg->sender))
 	{
 	    /* sender is a client (somewhere) */
@@ -2759,7 +2765,6 @@ main(int argc, char **argv)
 	signal(SIGIOT	,sighandler);
 	signal(SIGBUS	,sighandler);
 	signal(SIGFPE	,sighandler);
-	signal(SIGKILL	,sighandler);
 	signal(SIGUSR1	,sighandler);
 	signal(SIGSEGV	,sighandler);
 	signal(SIGUSR2	,sighandler);
@@ -2768,7 +2773,6 @@ main(int argc, char **argv)
 	signal(SIGTERM	,sighandler);
 	signal(SIGCHLD	,sighandler);
 	signal(SIGCONT	,sighandler);
-	signal(SIGSTOP	,sighandler);
 	signal(SIGTSTP	,sighandler);
 	signal(SIGTTIN	,sighandler);
 	signal(SIGTTOU	,sighandler);
@@ -2791,17 +2795,11 @@ main(int argc, char **argv)
 	signal( SIGSYS  ,sighandler);
 	signal( SIGINFO ,sighandler);
 #endif
-#if !defined(__sun)
-#if !defined(__osf__)
-#if !defined(__alpha)
+#if !defined(__sun) && !defined(__osf__) && !defined(__alpha)
 	signal(SIGSTKFLT,sighandler);
 #endif
-#endif
-#endif
-
 	signal(SIGHUP   ,SIG_IGN);
-	signal(SIGCHLD  ,sighandler);
-	signal(SIGTERM  ,sighandler);
+
 	/*
 	 * Disable stdin,stdout,stderr and install dummy replacement
 	 */
@@ -2946,8 +2944,8 @@ main(int argc, char **argv)
 
 	    SYSLOG(2,(LOG_ERR,
 		      "Contacting other daemons in the cluster. DONE\n"));
-	    SYSLOG(1,(LOG_ERR,"SelectTimer=%ld sec DeclareDeadInterval=%ld\n",
-		      ConfigPsidSelectTime,ConfigDeclareDeadInterval));
+	    SYSLOG(1,(LOG_ERR, "SelectTimer=%ld sec DeclareDeadInterval=%ld\n",
+		      ConfigPsidSelectTime, ConfigDeclareDeadInterval));
 
 	    spawned_tasks_waiting_for_connect = 0;
 
@@ -2963,12 +2961,11 @@ main(int argc, char **argv)
 	    /*
 	     * Main loop
 	     */
-	    while (1){
-
-		timerset(&tv,&selecttimer);
-		BlockSig(0,SIGCHLD);
-		BlockSig(1,SIGCHLD);
-		BlockSig(0,SIGALRM);
+	    while (1) {
+		timerset(&tv, &selecttimer);
+		BlockSig(0, SIGCHLD);
+		BlockSig(1, SIGCHLD);
+		BlockSig(0, SIGALRM);
 		bcopy((char *)&openfds, (char *)&rfds, sizeof(rfds));
 		CalledFromRSelect=1;
 
@@ -3044,7 +3041,7 @@ main(int argc, char **argv)
 		 */
 		for (fd=0; fd<nfds; ++fd)
 		    if (fd != PSI_msock      /* handled before */
-			&& fd !=RDPSocket     /* handled below */
+			&& fd != RDPSocket     /* handled below */
 			&& FD_ISSET(fd, &rfds)){
 			psicontrol(fd);
 		    }
@@ -3057,8 +3054,8 @@ main(int argc, char **argv)
 		    FD_SET(RDPSocket,&rfds);
 
 		    BlockSig(0,SIGALRM);
-		    tv.tv_sec=0;
-		    tv.tv_usec=0;
+		    tv.tv_sec = 0;
+		    tv.tv_usec = 0;
 		    CalledFromRSelect=1;
 		    if (Rselect(RDPSocket+1,
 				&rfds, (fd_set *)0, (fd_set *)0, &tv) < 0)
