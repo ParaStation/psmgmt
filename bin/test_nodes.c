@@ -6,20 +6,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <fcntl.h>
 #include <string.h>
-#include <errno.h>
-#include <syslog.h>
-#include <sys/mman.h>
-#include <sys/ioctl.h>
+#include <signal.h>
+#include <sys/time.h>
+
+#include <popt.h>
 
 #include "ps_types.h"
 #include "pshal.h"
 #include "psport.h"
 #include "pse.h"
-#include <signal.h>
-#include "arg.h"
-#include <sys/time.h>
 
 void cleanup(int signal)
 {
@@ -437,37 +433,51 @@ void run(int argc,char **argv,int np)
 }
 
 
-
-
-
-int main(int argc, char **argv)
+int main(int argc, char *argv[])
 {
+    poptContext optCon;   /* context for parsing command-line options */
+    int rc;
+
+    struct poptOption optionsTable[] = {
+        { "np", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
+	  &arg_np, 0, "number of processes to start", "num"},
+        { "cnt", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
+	  &arg_cnt, 0, "number of test messages to send", "num"},
+        { "map", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH,
+	  &arg_map, 0, "print map", NULL},
+	POPT_AUTOHELP
+	{ NULL, '\0', 0, NULL, 0, NULL, NULL}
+    };
+
     signal(SIGINT , cleanup);
     //printf(__DATE__" "__TIME__"\n");
 
-    if (arg_parse(argc, argv,
-		  "", "Usage: %s [options]", argv[0],
-		  "-np %d",&arg_np," ",
-		  "-cnt %d",&arg_cnt," ",
-		  "-map",ARG_FLAG(&arg_map)," print map",
-		  0) < 0){
-        exit(1);
+    optCon = poptGetContext(NULL, argc, (const char **)argv, optionsTable, 0);
+    rc = poptGetNextOpt(optCon);
+
+    if (rc < -1) {
+	/* an error occurred during option processing */
+	poptPrintUsage(optCon, stderr, 0);
+	fprintf(stderr, "%s: %s\n",
+		poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
+		poptStrerror(rc));
+	return 1;
     }
-//    pshal_default_mcp=NULL;
-//    PSHALStartUp(0);
 
     if (arg_np <= 0) {
-	fprintf(stderr,"missing arg -np\n");
+	fprintf(stderr, "missing arg -np\n");
+	exit(1);
+    }
+
+    if (arg_np > maxnp) {
+	fprintf(stderr, "to many processes (max. %d)\n", maxnp);
 	exit(1);
     }
 
     run(argc,argv,arg_np);
-//    PSE_finalize();
+
     return 0;
 }
-
-
-
 
 /*
  * Local Variables:
