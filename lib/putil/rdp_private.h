@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp_private.h,v 1.15 2003/07/11 14:05:27 eicker Exp $
+ * $Id: rdp_private.h,v 1.16 2003/09/12 13:59:03 eicker Exp $
  *
  */
 /**
@@ -14,7 +14,7 @@
  *
  * Private functions and definitions
  *
- * $Id: rdp_private.h,v 1.15 2003/07/11 14:05:27 eicker Exp $
+ * $Id: rdp_private.h,v 1.16 2003/09/12 13:59:03 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -123,13 +123,10 @@ static int RDPPktLoss = 0;
 static int RDPMaxRetransCount = 128;
 
 /**
- * @todo This is not correct!! What happens on overflow?
- *
- * RSEQCMP: Compare two sequence numbers
- * result of a - b      relationship in sequence space
- *      -               a precedes b
- *      0               a equals b
- *      +               a follows b
+ * Compare two sequence numbers. The sign of the result represents the
+ * relationship in sequence space similar to the result of
+ * strcmp(). '-' means a precedes b, '0' stands for a equals b and '+'
+ * represents a follows b.
  */
 #define RSEQCMP(a,b) ( (a) - (b) )
 
@@ -427,7 +424,7 @@ static ackent *getAckEnt(void);
  *
  * Put a ACK buffer back to the pool of free ones @ref AckFreeList.
  *
- * @param pp The ACK buffer to be put back.
+ * @param ap The ACK buffer to be put back.
  *
  * @return No return value.
  */
@@ -436,9 +433,13 @@ static void putAckEnt(ackent *ap);
 /**
  * @brief Enqueue a message to the ACK list.
  *
- * @todo
- * Append the ACK buffer 
- * enqueue msg into list of msg's waiting to be acked
+ * Append a message to the list of messages waiting to be
+ * ACKed. Therefore an ACK buffer is taken from the pool using
+ * getAckEnt(), configured appropriately and appended to the list of
+ * buffer waiting to be ACKed.
+ *
+ * @param Pointer to the message to be appended.
+ *
  * @return Pointer to the ACK buffer taken from the pool.
  */
 static ackent *enqAck(msgbuf *bufptr);
@@ -446,9 +447,10 @@ static ackent *enqAck(msgbuf *bufptr);
 /**
  * @brief Dequeue ACK buffer.
  *
- * remove msg from list of msg's waiting to be acked
+ * Remove a ACK buffer from the list of buffers waiting to be ACKed.
  *
- * @todo
+ * @param ap Pointer to the message to be removed.
+ *
  * @return No return value.
  */
 static void deqAck(ackent *ap);
