@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psnodes.c,v 1.5 2003/10/08 13:44:47 eicker Exp $
+ * $Id: psnodes.c,v 1.6 2003/10/29 17:25:09 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psnodes.c,v 1.5 2003/10/08 13:44:47 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psnodes.c,v 1.6 2003/10/29 17:25:09 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -24,7 +24,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psnodes.c,v 1.5 2003/10/08 
 
 
 /** Number of nodes that can be currently handled. Set within PSnodes_init() */
-static int numNodes = -1;
+static PSnodes_ID_t numNodes = -1;
 
 /** Hashed host table for reverse lookup (ip-addr given, determine id) */
 struct host_t {
@@ -53,7 +53,7 @@ struct node_t {
 
 static struct node_t *nodes = NULL;
 
-int PSnodes_init(int num)
+int PSnodes_init(PSnodes_ID_t num)
 {
     int i;
 
@@ -85,12 +85,12 @@ int PSnodes_init(int num)
     return 0;
 }
 
-int PSnodes_getNum(void)
+PSnodes_ID_t PSnodes_getNum(void)
 {
     return numNodes;
 }
 
-static int ID_ok(int id)
+static int ID_ok(PSnodes_ID_t id)
 {
     if (PSnodes_getNum() == -1 || id < 0 || id >= PSnodes_getNum()) {
 	/* id out of Range */
@@ -100,7 +100,7 @@ static int ID_ok(int id)
     return 1;
 }
 
-int PSnodes_register(int id, unsigned int IPaddr)
+int PSnodes_register(PSnodes_ID_t id, unsigned int IPaddr)
 {
     unsigned int hostno;
     struct host_t *host;
@@ -136,7 +136,7 @@ int PSnodes_register(int id, unsigned int IPaddr)
     return 0;
 }
 
-int PSnodes_lookupHost(unsigned int IPaddr)
+PSnodes_ID_t PSnodes_lookupHost(unsigned int IPaddr)
 {
     unsigned int hostno;
     struct host_t *host;
@@ -156,7 +156,7 @@ int PSnodes_lookupHost(unsigned int IPaddr)
     return -1;
 }
 
-unsigned int PSnodes_getAddr(int id)
+unsigned int PSnodes_getAddr(PSnodes_ID_t id)
 {
     if (ID_ok(id)) {
 	return nodes[id].addr;
@@ -166,7 +166,7 @@ unsigned int PSnodes_getAddr(int id)
 }
 
 
-int PSnodes_bringUp(int id)
+int PSnodes_bringUp(PSnodes_ID_t id)
 {
     if (ID_ok(id)) {
 	nodes[id].isUp = 1;
@@ -176,7 +176,7 @@ int PSnodes_bringUp(int id)
     }
 }
 
-int PSnodes_bringDown(int id)
+int PSnodes_bringDown(PSnodes_ID_t id)
 {
     if (ID_ok(id)) {
 	nodes[id].isUp = 0;
@@ -186,7 +186,7 @@ int PSnodes_bringDown(int id)
     }
 }
 
-int PSnodes_isUp(int id)
+int PSnodes_isUp(PSnodes_ID_t id)
 {
     if (ID_ok(id)) {
 	return nodes[id].isUp;
@@ -198,7 +198,7 @@ int PSnodes_isUp(int id)
 /**********************************************************************/
 /* @todo This does not really make sense, but is a good start.
    Actually each piece of information needs its own version number */
-int PSnodes_setInfoVersion(int id, unsigned int version)
+int PSnodes_setInfoVersion(PSnodes_ID_t id, unsigned int version)
 {
     if (ID_ok(id)) {
 	nodes[id].version = version;
@@ -208,7 +208,7 @@ int PSnodes_setInfoVersion(int id, unsigned int version)
     }
 }
 
-int PSnodes_getInfoVersion(int id)
+int PSnodes_getInfoVersion(PSnodes_ID_t id)
 {
     if (ID_ok(id)) {
 	return nodes[id].version;
@@ -218,7 +218,7 @@ int PSnodes_getInfoVersion(int id)
 }
 /**********************************************************************/
 
-int PSnodes_setHWType(int id, int hwType)
+int PSnodes_setHWType(PSnodes_ID_t id, int hwType)
 {
     if (ID_ok(id)) {
 	nodes[id].hwType = hwType;
@@ -228,7 +228,7 @@ int PSnodes_setHWType(int id, int hwType)
     }
 }
 
-int PSnodes_getHWType(int id)
+int PSnodes_getHWType(PSnodes_ID_t id)
 {
     if (ID_ok(id)) {
 	return nodes[id].hwType;
@@ -237,7 +237,7 @@ int PSnodes_getHWType(int id)
     }
 }
 
-int PSnodes_setRunJobs(int id, int runjobs)
+int PSnodes_setRunJobs(PSnodes_ID_t id, int runjobs)
 {
     if (ID_ok(id)) {
 	nodes[id].jobs = runjobs;
@@ -248,7 +248,7 @@ int PSnodes_setRunJobs(int id, int runjobs)
 }
 
 
-int PSnodes_runJobs(int id)
+int PSnodes_runJobs(PSnodes_ID_t id)
 {
     if (ID_ok(id)) {
 	return nodes[id].jobs;
@@ -257,7 +257,7 @@ int PSnodes_runJobs(int id)
     }
 }
 
-int PSnodes_setIsStarter(int id, int starter)
+int PSnodes_setIsStarter(PSnodes_ID_t id, int starter)
 {
     if (ID_ok(id)) {
 	nodes[id].starter = starter;
@@ -267,7 +267,7 @@ int PSnodes_setIsStarter(int id, int starter)
     }
 }
 
-int PSnodes_isStarter(int id)
+int PSnodes_isStarter(PSnodes_ID_t id)
 {
     if (ID_ok(id)) {
 	return nodes[id].starter;
@@ -276,7 +276,7 @@ int PSnodes_isStarter(int id)
     }
 }
 
-int PSnodes_setExtraIP(int id, unsigned int addr)
+int PSnodes_setExtraIP(PSnodes_ID_t id, unsigned int addr)
 {
     if (ID_ok(id)) {
 	nodes[id].extraIP = addr;
@@ -286,7 +286,7 @@ int PSnodes_setExtraIP(int id, unsigned int addr)
     }
 }
 
-unsigned int PSnodes_getExtraIP(int id)
+unsigned int PSnodes_getExtraIP(PSnodes_ID_t id)
 {
     if (ID_ok(id)) {
 	return nodes[id].extraIP;
@@ -295,7 +295,7 @@ unsigned int PSnodes_getExtraIP(int id)
     }
 }
 
-int PSnodes_setCPUs(int id, short numCPU)
+int PSnodes_setCPUs(PSnodes_ID_t id, short numCPU)
 {
     if (ID_ok(id)) {
 	nodes[id].numCPU = numCPU;
@@ -305,7 +305,7 @@ int PSnodes_setCPUs(int id, short numCPU)
     }
 }
 
-short PSnodes_getCPUs(int id)
+short PSnodes_getCPUs(PSnodes_ID_t id)
 {
     if (ID_ok(id)) {
 	return nodes[id].numCPU;
@@ -314,7 +314,7 @@ short PSnodes_getCPUs(int id)
     }
 }
 
-int PSnodes_setHWStatus(int id, int hwStatus)
+int PSnodes_setHWStatus(PSnodes_ID_t id, int hwStatus)
 {
     if (ID_ok(id)) {
 	nodes[id].hwStatus = hwStatus;
@@ -324,7 +324,7 @@ int PSnodes_setHWStatus(int id, int hwStatus)
     }
 }
 
-int PSnodes_getHWStatus(int id)
+int PSnodes_getHWStatus(PSnodes_ID_t id)
 {
     if (ID_ok(id)) {
 	return nodes[id].hwStatus;
@@ -333,7 +333,7 @@ int PSnodes_getHWStatus(int id)
     }
 }
 
-int PSnodes_setUser(int id, uid_t uid)
+int PSnodes_setUser(PSnodes_ID_t id, uid_t uid)
 {
     if (ID_ok(id)) {
 	nodes[id].uid = uid;
@@ -343,7 +343,7 @@ int PSnodes_setUser(int id, uid_t uid)
     }
 }
 
-uid_t PSnodes_getUser(int id)
+uid_t PSnodes_getUser(PSnodes_ID_t id)
 {
     if (ID_ok(id)) {
 	return nodes[id].uid;
@@ -352,7 +352,7 @@ uid_t PSnodes_getUser(int id)
     }
 }
 
-int PSnodes_setGroup(int id, gid_t gid)
+int PSnodes_setGroup(PSnodes_ID_t id, gid_t gid)
 {
     if (ID_ok(id)) {
 	nodes[id].gid = gid;
@@ -362,7 +362,7 @@ int PSnodes_setGroup(int id, gid_t gid)
     }
 }
 
-gid_t PSnodes_getGroup(int id)
+gid_t PSnodes_getGroup(PSnodes_ID_t id)
 {
     if (ID_ok(id)) {
 	return nodes[id].gid;
@@ -371,7 +371,7 @@ gid_t PSnodes_getGroup(int id)
     }
 }
 
-int PSnodes_setProcs(int id, int procs)
+int PSnodes_setProcs(PSnodes_ID_t id, int procs)
 {
     if (ID_ok(id)) {
 	nodes[id].procs = procs;
@@ -381,7 +381,7 @@ int PSnodes_setProcs(int id, int procs)
     }
 }
 
-int PSnodes_getProcs(int id)
+int PSnodes_getProcs(PSnodes_ID_t id)
 {
     if (ID_ok(id)) {
 	return nodes[id].procs;
