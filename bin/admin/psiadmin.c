@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.67 2003/08/15 13:24:07 eicker Exp $
+ * $Id: psiadmin.c,v 1.68 2003/08/27 12:44:29 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.67 2003/08/15 13:24:07 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.68 2003/08/27 12:44:29 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -29,18 +29,14 @@ static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.67 2003/08/1
 #include "commands.h"
 #include "adminparser.h"
 
-char psiadmversion[] = "$Revision: 1.67 $";
-
-void PSIADM_Version(void)
-{
-}
+char psiadmversion[] = "$Revision: 1.68 $";
 
 /*
  * Print version info
  */
 static void printVersion(void)
 {
-    fprintf(stderr, "psiadmin %s\b \n", psiadmversion+11);
+    fprintf(stderr, "psiadmin %s\b \b\b\n", psiadmversion+11);
 }
 
 static void doReset(void)
