@@ -41,10 +41,15 @@
   <bookinfo>
     &infoblurb;
 
-    <releaseinfo>Release 1.2 (Draft)</releaseinfo>
-    <pubdate>April 2004</pubdate>
+    <releaseinfo>Release 1.3</releaseinfo>
+    <pubdate>Oct 2004</pubdate>
 
     <revhistory>
+      <revision>
+	<revnumber>1.3</revnumber>
+	<date>15 Oct 2004</date>
+	<revremark>&ps4; V4.1.4</revremark>
+      </revision>
       <revision>
 	<revnumber>1.2 (Draft)</revnumber>
 	<date>15 Apr 2004</date>
