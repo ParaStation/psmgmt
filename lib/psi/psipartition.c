@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psipartition.c,v 1.2 2003/09/12 15:20:58 eicker Exp $
+ * $Id: psipartition.c,v 1.3 2003/09/12 15:26:49 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.2 2003/09/12 15:20:58 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.3 2003/09/12 15:26:49 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -440,12 +440,15 @@ int PSI_createPartition(unsigned int size, unsigned int hwType)
 	snprintf(errtxt, sizeof(errtxt), "%s: error in command %s : %s\n",
 		 __func__, PSP_printMsg(((DDErrorMsg_t*)&msg)->request),
 		 errtxt ? errtxt : "UNKNOWN");
+	PSI_errlog(errtxt, 0);
 	return -1;
 	break;
     }
     default:
-	fprintf(stderr, "%s: received unexpected msgtype '%s'.",
-		__func__, PSP_printMsg(msg.header.type));
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: received unexpected msgtype '%s'.",
+		 __func__, PSP_printMsg(msg.header.type));
+	PSI_errlog(errtxt, 0);
 	return -1;
     }
 
@@ -508,11 +511,14 @@ int PSI_getNodes(unsigned int num, short *nodes)
 	snprintf(errtxt, sizeof(errtxt), "%s: error in command %s : %s\n",
 		 __func__, PSP_printMsg(((DDErrorMsg_t*)&msg)->request),
 		 errtxt ? errtxt : "UNKNOWN");
+	PSI_errlog(errtxt, 0);
 	break;
     }
     default:
-	fprintf(stderr, "%s: received unexpected msgtype '%s'.",
-		__func__, PSP_printMsg(msg.header.type));
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: received unexpected msgtype '%s'.",
+		 __func__, PSP_printMsg(msg.header.type));
+	PSI_errlog(errtxt, 0);
     }
 
     return ret;
