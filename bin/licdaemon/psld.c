@@ -20,7 +20,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/time.h>
-/* #include <sys/types.h> */
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/resource.h>
@@ -32,16 +31,12 @@
 #include <fcntl.h>
 #include <signal.h>
 
-/* #include <netinet/in.h> */
 #include <netdb.h>
 
 #include "rdp.h"
 #include "../psid/parse.h"
 
 int syslogerror = 0;    /* flag if syslog is used */
-
-// #include "psmlib/mcpif.h"
-// #include "psmlib/pshalconfig.h"
 
 char statarray[256];
 int display=0;
@@ -373,7 +368,7 @@ int main(int argc, char *argv[])
 	    dofork=0;
 	    break;
 	case 'D':
-	    RDP_SetDBGLevel(1);
+	    RDP_SetDBGLevel(10);
 	    display=0;
 	    dofork=0;
 	    usesyslog=0;
@@ -429,7 +424,7 @@ int main(int argc, char *argv[])
     signal(SIGTERM,sighandler);
     signal(SIGINT,sighandler);
 
-    if(check_license(usesyslog)){
+//    if(check_license(usesyslog)){
 
 	RDP_SetLogMsg(1);
 	msock = RDPMCASTinit(NrOfNodes, ConfigMgroup, iflist[interface].name,
@@ -443,7 +438,7 @@ int main(int argc, char *argv[])
 	    Mselect(0,NULL,NULL,NULL,&tv);
 	    if(display)printstatus(NrOfNodes);
 	}
-    }
+//  }
 
     return 0;
 }
