@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.54 2002/07/05 14:45:48 eicker Exp $
+ * $Id: psid.c,v 1.55 2002/07/08 15:01:30 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.54 2002/07/05 14:45:48 eicker Exp $ 
+ * $Id: psid.c,v 1.55 2002/07/08 15:01:30 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.54 2002/07/05 14:45:48 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.55 2002/07/08 15:01:30 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -69,7 +69,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.54 $";
+static char psid_cvsid[] = "$Revision: 1.55 $";
 
 static int PSID_mastersock;
 
@@ -522,7 +522,7 @@ int shutdownNode(int phase)
 	exitRDP();
 	PSID_CardStop();
 	PSID_errlog("shutdownNode() good bye", 0);
-	exit(1);
+	exit(0);
     }
     return 1;
 }
@@ -2700,12 +2700,14 @@ void psicontrol(int fd)
 		if ((node2 >=0 && node2<PSC_getNrOfNodes())) {
 		    if (!isUpDaemon(node2)) {
 			PSC_startDaemon(nodes[node2].addr);
-			if (send_DAEMONCONNECT(node2)<0) {
-			    snprintf(errtxt, sizeof(errtxt),
-				     "CONTACTNODE send_DAEMONCONNECT()"
-				     " returned with error %d", errno);
-			    PSID_errlog(errtxt, 0);
-			}
+			/* Do not actively contact node. */
+			/* @todo to be removed */
+/*  			if (send_DAEMONCONNECT(node2)<0) { */
+/*  			    snprintf(errtxt, sizeof(errtxt), */
+/*  				     "CONTACTNODE send_DAEMONCONNECT()" */
+/*  				     " returned with error %d", errno); */
+/*  			    PSID_errlog(errtxt, 0); */
+/*  			} */
 		    } else {
 			snprintf(errtxt, sizeof(errtxt),
 				 "CONTACTNODE received but node2 is "
@@ -3178,7 +3180,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.54 $";
+    char revision[] = "$Revision: 1.55 $";
     snprintf(errtxt, sizeof(errtxt), "psid %s\b ", revision+11);
     PSID_errlog(errtxt, 0);
 }
