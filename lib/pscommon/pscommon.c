@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.c,v 1.2 2002/07/03 20:22:33 eicker Exp $
+ * $Id: pscommon.c,v 1.3 2002/07/09 14:00:04 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.2 2002/07/03 20:22:33 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.3 2002/07/09 14:00:04 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -139,7 +139,7 @@ unsigned short PSC_getID(long tid)
     if (tid>=0) {
 	return (tid>>24)&0xFFFFFF;
     } else {
-	return PSI_getMyID();
+	return PSC_getMyID();
     }
 #endif
 }
