@@ -29,9 +29,9 @@ include $(ROOTDIR)/Makefile.include
 
 ifeq ($(shell cd .;pwd),$(ROOTDIR))
 
-allbutmcp:	dep psm pshal psport pvar arg
+allbutmcp:	dep psm pshal psport pvar arg buildno
 
-all:	mcpdep mcp allbutmcp
+all:	mcpdep mcp allbutmcp buildno
 
 mcp:	mcpdep
 	make -C $(MCPDIR) all
@@ -64,6 +64,11 @@ dep:
 	make -C $(PSMDIR) $@
 	make -C $(PSHALDIR) $@
 	make -C $(PSPORTDIR) $@
+
+buildno:
+	@echo "## Build #################################################"
+	@cat include/.build
+	@echo "##########################################################"
 
 clean:
 	make -C $(PSMDIR) $@
