@@ -1,17 +1,17 @@
 /*
  *               ParaStation3
- * psitask.c
+ * psidtask.c
  *
  * ParaStation tasks and helper functions.
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidtask.c,v 1.6 2002/08/06 08:28:04 eicker Exp $
+ * $Id: psidtask.c,v 1.7 2003/02/21 13:07:49 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.6 2002/08/06 08:28:04 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.7 2003/02/21 13:07:49 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -27,6 +27,8 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.6 2002/08/06
 #include "psidtask.h"
 
 static char errtxt[256];
+
+PStask_t *managedTasks = NULL;
 
 void PSID_setSignal(PStask_sig_t **siglist, long tid, int signal)
 {

@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidtask.h,v 1.5 2002/08/06 08:26:07 eicker Exp $
+ * $Id: psidtask.h,v 1.6 2003/02/21 13:07:49 eicker Exp $
  *
  */
 /**
  * @file
  * Functions for interaction with ParaStation tasks within the Daemon
  *
- * $Id: psidtask.h,v 1.5 2002/08/06 08:26:07 eicker Exp $
+ * $Id: psidtask.h,v 1.6 2003/02/21 13:07:49 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -57,6 +57,10 @@ long PSID_getSignal(PStask_sig_t **siglist, int *signal);
 
 
 /* Tasklist routines */
+
+/** List of all managed tasks (i.e. tasks that have connected or were
+    spawned). Further tasklists might be defined. */
+extern PStask_t *managedTasks;
 
 /**
  * @brief Remove complete tasklist
