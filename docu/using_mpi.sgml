@@ -1,14 +1,14 @@
-<chapter>
+<chapter id="mpi">
   <title>Using MPI</title>
   <para>
     The aim of this chapter is to explain how to compile and link MPI
     applications using the adapted version of <ulink
       url="http://www.unix.mcs.anl.gov/mpi/mpich">MPIch</ulink> comming with
-    ParaStation. Within this chapter is is assumed that this version of MPI is
+    &ps;. Within this chapter it is assumed that this version of MPI is
     installed in the default location, i.e.
     <filename>/opt/parastion/mpich</filename>. If this is not the case please
     refer to the section <quote>Installation of MPIch</quote> within the <ulink
-      url="../adminguide/index.html" type="dontshow">ParaStation Administrators
+      url="../adminguide/index.html" type="dontshow">&ps; Administrators
       Guide</ulink> in order to setup things correctly.
   </para>
   <para>
@@ -19,8 +19,8 @@
   <para>
     This chapter is not intended to be a tutorial on how to use the MPI message
     passing interface. It is assumed that the reader knows how to write MPI
-    applications and how to compile programs in general on the platform
-    ParaStation is running on. If you don't know about MPI yet the <ulink
+    applications and how to compile programs in general on the platform &ps; is
+    running on. If you don't know about MPI yet the <ulink
       url="http://www-unix.mcs.anl.gov/mpi/">MPI homepage</ulink> is a good
     starting point.
   </para>
@@ -71,7 +71,7 @@
     <para>
       All what has been said about spawning and input/output redirection in
       <xref linkend="startup"/> is totally true for MPI applications linked
-      against ParaStation. I.e. all the environment variables discussed in
+      against &ps;. I.e. all the environment variables discussed in
       <xref linkend="environment"/> can be used to steer the distribution of
       processes within the cluster.
     </para>
@@ -88,7 +88,7 @@
       Most of the described environment variables are also discussed in the
       manual pages comming with MPIch. The only exception is
       <envar>MPID_PSP_MAXSMALLMSG</envar>. This will steer the communication
-      layer used by ParaStation, which is not part of the standard MPIch
+      layer used by &ps;, which is not part of the standard MPIch
       distribution but an extension provided by ParTec.
     </para>
     <para>
@@ -99,34 +99,32 @@
       <varlistentry>
 	<term><envar>MPICH_CC</envar></term>
 	<listitem>
-	  <para>
-	    This will set the actual C compiler used to compile the code. The
-	    default compiler used usually is the GNU C compiler <ulink
+	  <para>This will set the actual C compiler used to compile the code.
+	    The default compiler used usually is the GNU C compiler <ulink
 	      url="http://gcc.gnu.org">gcc</ulink>. Use this variable to
 	    overwrite the default setting.
 	  </para>
 	  <para>
 	    In order to use a compiler different from the default, it has to be
 	    guaranteed that the produced object files are compatible to the
-	    <command>gcc</command> ones, since the MPI and ParaStation
-	    libraries are produced with this compiler. This is normally no
-	    problem, since object code produced by most compilers is compatible
-	    to the <command>gcc</command> stuff (or vice versa).
+	    <command>gcc</command> ones, since the MPI and &ps; libraries are
+	    produced with this compiler. This is normally no problem, since
+	    object code produced by most compilers is compatible to the
+	    <command>gcc</command> stuff (or vice versa).
 	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
 	<term><envar>MPICH_CLINKER</envar></term>
 	<listitem>
-	  <para>
-	    This will set the actual C linker used to link the code. The
+	  <para>This will set the actual C linker used to link the code. The
 	    default linker used ususally is the GNU C compiler <ulink
 	      url="http://gcc.gnu.org">gcc</ulink>.
 	  </para>
 	  <para>
 	    In order to use a linker different from the default, it has to be
 	    guaranteed that the linked object files are compatible to the
-	    <command>gcc</command> ones, since the MPI and ParaStation
+	    <command>gcc</command> ones, since the MPI and &ps;
 	    libraries are produced with this compiler.
 	  </para>
 	</listitem>
@@ -140,16 +138,15 @@
       <varlistentry>
 	<term><envar>MPICH_CCC</envar></term>
 	<listitem>
-	  <para>
-	    This will set the actual C++ compiler used to compile the code. The
-	    default compiler used usually is the GNU C++ compiler <ulink
+	  <para>This will set the actual C++ compiler used to compile the code.
+	    The default compiler used usually is the GNU C++ compiler <ulink
 	      url="http://gcc.gnu.org">g++</ulink>. Use this variable to
 	    overwrite the default setting.
 	  </para>
 	  <para>
 	    In order to use a compiler different from the default, it has to be
 	    guaranteed that the produced object files are compatible to the
-	    <command>g++</command> ones, since the MPI and ParaStation
+	    <command>g++</command> ones, since the MPI and &ps;
 	    libraries are produced with this compiler. This is normally no
 	    problem, since object code produced by most compilers is compatible
 	    to the <command>gcc</command> stuff (or vice versa).
@@ -159,15 +156,14 @@
       <varlistentry>
 	<term><envar>MPICH_CCLINKER</envar></term>
 	<listitem>
-	  <para>
-	    This will set the actual C++ linker used to link the code. The
+	  <para>This will set the actual C++ linker used to link the code. The
 	    default linker used ususally is the GNU C++ compiler <ulink
 	      url="http://gcc.gnu.org">g++</ulink>.
 	  </para>
 	  <para>
 	    In order to use a linker different from the default, it has to be
 	    guaranteed that the linked object files are compatible to the
-	    <command>g++</command> ones, since the MPI and ParaStation
+	    <command>g++</command> ones, since the MPI and &ps;
 	    libraries are produced with this compiler.
 	  </para>
 	</listitem>
@@ -181,9 +177,8 @@
       <varlistentry>
 	<term><envar>MPICH_F77</envar></term>
 	<listitem>
-	  <para>
-	    This will set the actual Fortran 77 compiler used to compile the
-	    code. The default compiler on i386 platforms is the GNU Fortran
+	  <para>This will set the actual Fortran 77 compiler used to compile
+	    the code. The default compiler on i386 platforms is the GNU Fortran
 	    compiler <ulink url="http://gcc.gnu.org">g77</ulink>, an
 	    alternative version of the wrapper script called
 	    <command>mpif77-ifc</command> will use the Intel Fortran compiler
@@ -196,7 +191,7 @@
 	  <para>
 	    In order to use a compiler different from the default, it has to be
 	    guaranteed that the produced object files are compatible to the
-	    default ones, since the MPI and ParaStation libraries are produced
+	    default ones, since the MPI and &ps; libraries are produced
 	    with this compiler. Different to C compilers this might be a major
 	    problem for Fortran build.
 	  </para>
@@ -205,11 +200,10 @@
       <varlistentry>
 	<term><envar>MPICH_FLINKER</envar></term>
 	<listitem>
-	  <para>
-	    This will set the actual Fortran 77 linker used to link the code.
-	    The default linker on i386 platforms is the GNU Fortran 77 compiler
-	    <ulink url="http://gcc.gnu.org">g77</ulink> or the Intel Fortran
-	    compiler <ulink
+	  <para>This will set the actual Fortran 77 linker used to link the
+	    code. The default linker on i386 platforms is the GNU Fortran 77
+	    compiler <ulink url="http://gcc.gnu.org">g77</ulink> or the Intel
+	    Fortran compiler <ulink
 	      url="http://developer.intel.com/software/products/compilers/f60l">ifc</ulink> 
 	    within the alternative <command>mpif77-ifc</command> script, on the
 	    alpha platform it is the Compaq Fortran compiler <ulink
@@ -218,7 +212,7 @@
 	  <para>
 	    In order to use a linker different from the default, it has to be
 	    guaranteed that the linked object files are compatible to the
-	    standard ones, since the MPI and ParaStation libraries are produced
+	    standard ones, since the MPI and &ps; libraries are produced
 	    with this compiler.
 	  </para>
 	  <note>
@@ -243,9 +237,8 @@
       <varlistentry>
 	<term><envar>MPICH_F90</envar></term>
 	<listitem>
-	  <para>
-	    This will set the actual Fortran 90 compiler used to compile the
-	    code. The default compiler on the i386 platform is the Intel
+	  <para>This will set the actual Fortran 90 compiler used to compile
+	    the code. The default compiler on the i386 platform is the Intel
 	    Fortran 90 compiler <ulink
 	      url="http://developer.intel.com/software/products/compilers/f60l">ifc</ulink>, 
 	    on the alpha platform it is the Compaq Fortran compiler <ulink
@@ -255,7 +248,7 @@
 	  <para>
 	    In order to use a compiler different from the default, it has to be
 	    guaranteed that the produced object files are compatible to the
-	    standard ones, since the MPI and ParaStation libraries are produced
+	    standard ones, since the MPI and &ps; libraries are produced
 	    with this compiler.
 	  </para>
 	</listitem>
@@ -263,17 +256,17 @@
       <varlistentry>
 	<term><envar>MPICH_F90LINKER</envar></term>
 	<listitem>
-	  <para>
-	    This will set the actual linker used to link Fortran 90 code. The
-	    default linker on i386 platforms is the  Intel Fortran 90 compiler
-	    <ulink
-	      url="http://developer.intel.com/software/products/compilers/f60l">ifc</ulink>, on alpha platforms the Compaq Fortran compiler <ulink
+	  <para>This will set the actual linker used to link Fortran 90 code.
+	    The default linker on i386 platforms is the  Intel Fortran 90
+	    compiler <ulink
+	      url="http://developer.intel.com/software/products/compilers/f60l">ifc</ulink>, 
+	    on alpha platforms the Compaq Fortran compiler <ulink
 	      url="http://www.compaq.com/fortran/linux/">fort</ulink> is used.
 	  </para>
 	  <para>
 	    In order to use a linker different from the default, it has to be
 	    guaranteed that the linked object files are compatible to the
-	    standard ones, since the MPI and ParaStation libraries are produced
+	    standard ones, since the MPI and &ps; libraries are produced
 	    with this compiler.
 	  </para>
 	</listitem>
@@ -286,23 +279,22 @@
     </para>
     <para>
       The last environment variable discussed in this section will steer the
-      communication layer in between the actual MPIch library and the PSPort
+      communication layer in between the actual MPIch library and &ps;s PSPort
       library used to really do the communication:
     </para>
     <variablelist>
       <varlistentry>
 	<term>MPID_PSP_MAXSMALLMSG</term>
 	<listitem>
-	  <para>
-	    The ADI supplied by ParaStation that is used within MPIch to
-	    actually send data to a different node uses two distinct protocols
-	    depending on the length of the message to send.
+	  <para>The ADI supplied by &ps; which is used within MPIch to actually
+	    send data to a different node uses two distinct protocols depending
+	    on the length of the message to send.
 	  </para>
 	  <para>
 	    For long messages a so called rendezvous protocol is used to send,
-	    small messages are handled with a simpler protocol. With this
-	    environment variable the length (in bytes) of the largest message
-	    sent without rendezvous may be set.
+	    small messages are handled with a simpler protocol. Use this
+	    environment variable to set the length of the largest message (in
+	    bytes) which is sent without rendezvous.
 	  </para>
 	  <para>
 	    The default value used when <envar>MPID_PSP_MAXSMALLMSG</envar> is

@@ -1,13 +1,15 @@
 <?xml version="1.0" standalone="no"?>
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN"
                   "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd"[
-<!ENTITY ps "ParaStation">
+<!ENTITY ps "<emphasis>ParaStation</emphasis>">
+<!ENTITY psfe "<emphasis>ParaStation FE</emphasis>">
 
 <!ENTITY infoblurb SYSTEM "infoblurb.sgml">
 
 <!ENTITY intro_user SYSTEM "intro_user.sgml">
 <!ENTITY intro_common SYSTEM "intro.sgml">
 
+<!ENTITY overview SYSTEM "overview.sgml">
 <!ENTITY startup SYSTEM "startup.sgml">
 <!ENTITY using_mpi SYSTEM "using_mpi.sgml">
 <!ENTITY building SYSTEM "building.sgml">
@@ -21,12 +23,17 @@
 <!ENTITY glossary SYSTEM "glossary.sgml">
 ]>
 <book id="userguide">
-  <title>&ps; Users Guide</title>
+  <title><inlinemediaobject>
+      <imageobject>
+	<imagedata scale="85" fileref="../images/parastation.png"/>
+      </imageobject>
+    </inlinemediaobject>  Users Guide</title>
+  <titleabbrev>&ps;  Users Guide</titleabbrev>
 
   <bookinfo>
     &infoblurb;
 
-    <releaseinfo>Release 0.1</releaseinfo>
+    <releaseinfo>Release 0.2</releaseinfo>
 
     <revhistory>
 <!--       <revision> -->
@@ -40,6 +47,11 @@
 <!-- 	<revremark>First beta release</revremark> -->
 <!--       </revision> -->
       <revision>
+	<revnumber>0.2</revnumber>
+	<date>30 Oct 2002</date>
+	<revremark>Internal interim release.</revremark>
+      </revision>
+      <revision>
 	<revnumber>0.1</revnumber>
 	<date>26 Sep 2002</date>
 	<revremark>Initial revision</revremark>
@@ -49,11 +61,17 @@
   </bookinfo>
 
   &intro_user;
+  &overview;
   &startup;
   &using_mpi;
   &building;
 
   <reference id="references_user">
+    <referenceinfo>
+      <title>ParTec</title>
+      <productname>ParaStation</productname>
+      <date>October 2002</date>
+    </referenceinfo>
     <title>Reference Pages</title>
     &mpirun;
     &psmstart;

@@ -22,13 +22,12 @@
   <refsect1>
     <title>Description</title>
     <para>
-      Start <command>program</command> on a remote node using the
-      ParaStation daemon <citerefentry>
+      Start <command>program</command> on a remote node using the &ps; daemon
+      <citerefentry>
 	<refentrytitle>psid</refentrytitle>
 	<manvolnum>8</manvolnum>
-      </citerefentry>. All arguments given at the
-      command line will be passed to the remotely started
-      <command>program</command>.
+      </citerefentry>. All arguments given at the command line will be passed
+      to the remotely started <command>program</command>.
     </para>
     <para>
       All output produced by <command>program</command> will be forwarded
@@ -42,7 +41,7 @@
     <title>Implementation</title>
     <para>
       If <command>psmstart</command> is called, <command>program</command> is
-      started remotely using the ParaStation daemon <citerefentry>
+      started remotely using the &ps; daemon <citerefentry>
 	<refentrytitle>psid</refentrytitle>
 	<manvolnum>8</manvolnum>
       </citerefentry>. Within the startup the local process will become a IO
@@ -60,20 +59,17 @@
     <title>Limitations</title>
     <itemizedlist>
       <listitem>
-	<para>
-	  The suspending of remotely started processes is not possible.
+	<para>The suspension of remotely started processes is not possible.
 	</para> 
       </listitem>
       <listitem>
-	<para>
-	  Signals sent to the local process will <emphasis
+	<para>Signals sent to the local process will <emphasis
 	    role="bold">not</emphasis> be forwarded correctly to the remote
 	  process.
 	</para> 
       </listitem>
       <listitem>
-	<para>
-	  The return value of <command>program</command> will <emphasis
+	<para>The return value of <command>program</command> will <emphasis
 	    role="bold">not</emphasis> be forwarded correctly to the
 	  controlling shell. 
 	</para>

@@ -1,23 +1,366 @@
 <chapter id="startup">
   <title>Starting up programs</title>
   <para>
-    ToDo
+    Starting up parallel programs is a non-trivial task if it should be done
+    reliably, fast and stable. Furthermore the job of controlling the started
+    parallel tasks and cleaning up if something went wrong is even harder.
+  </para>
+  <para>
+    &ps;'s management and task handling facilities are intended to solve the
+    problems arising with this requirement. On the one hand they implement a
+    fast and robust startup mechanism for parallel tasks. On the other hand the
+    &ps; daemons running on each node of the cluster control the various
+    remotely started <link linkend="process">processes</link> forming the
+    parallel <link linkend="task">task</link> in a combined effort and clean up
+    the whole task if one of the processes dies unexpectedly.
+  </para>
+  <para>
+    Within this chapter it is assumed that an executable ready to run on a &ps;
+    cluster is existing. It might have been build by the end-user using the MPI
+    framework as described in <xref linkend="mpi"/>, have been provided by an
+    independent software vendor or can be a native &ps; application only making
+    use of the low-level communication and management functions as described in
+    <xref linkend="native_apps"/>. Anyhow it has to make use of the &ps;
+    management library as described in the <ulink url="../api/index.html"
+      type="dontshow">API reference</ulink>.
+  </para>
+  <para>
+    This chapter describes within the subsequent sections how to start a &ps;
+    aware executable, how the processes will be distributed within the cluster,
+    how to steer the distribution strategy used by &ps; and how the mechanism
+    of input and output redirection works.
   </para>
   <section>
     <title>Spawning processes</title>
-    <para></para>
+    <para>
+      In order to start an executable <filename>prog</filename> on N nodes
+      simply change the directory where <filename>prog</filename> resides.
+      Starting a parallel task consisting of N processes running on the same
+      number of nodes then is as simple as executing:
+    </para>
+    <programlisting>	./prog -np N <option><replaceable>args</replaceable></option></programlisting>
+    <para>
+      Here <replaceable>args</replaceable> are the argument that will be passed
+      to each instance of <filename>prog</filename> within the cluster.
+    </para>
+    <para>
+      Given the default settings of &ps; the N instances of
+      <filename>prog</filename> will be distributed to N free processors in the
+      cluster. If not that much processors are available, the N least used
+      processors, i.e. the processors running the least number of processes
+      controlled by &ps;, will be used.
+    </para>
+    <para>
+      Let's have a brief look behind the scenes to understands what is
+      happening while starting a parallel task, i.e. when distributing the
+      processes forming the task within the cluster.
+    </para>
+    <para>
+      First of all the locally started process (i.e. the process actually
+      created when <filename>./prog</filename> is started) connects the local
+      &ps; daemon <citerefentry>
+	<refentrytitle>psid</refentrytitle>
+	<manvolnum>8</manvolnum>
+      </citerefentry>, registers there and request for a list of available
+      nodes supporting certain features. This list of nodes then is evaluated
+      and sorted according to the requirements discussed in <xref
+	linkend="spawn_strategy"/> and <xref linkend="environment"/>. From
+      this, now sorted, list of nodes the process will pick one after the other
+      in a round robin scheme and request the &ps; daemon on that node to start
+      another instance of <filename>prog</filename>, i.e. to spawn a process
+      being part of the parallel task. This will happen N times, which means
+      that <emphasis role="bold">all</emphasis> <quote>working</quote>
+      processes of the parallel task will be spawned ones. As a last step the
+      first locally started process will convert to an I/O handling process,
+      the so called <link linkend="loggerfull">&ps; logger</link> process.
+    </para>
+    <para>
+      The whole I/O handling machinery will be discussed in detail in <xref
+	linkend="io_redirect"/>
+    </para>
+    <para>
+      Of course the distribution of the processes building the parallel task
+      can be steered in order to match the site's policy or to improve to usage
+      of the cluster. Since the field of possible applications running on
+      clusters is very wide and the variety of users emploing clusters is
+      similary large the possibility of detailed calibration of the spawning
+      strategy has to be provided by a cluster management system.
+    </para>
+    <para>
+      The options made available by &ps; will be discussed within the next
+      section.
+    </para>
   </section>
-  <section>
+  <section id="spawn_strategy">
     <title>Spawning strategies</title>
-    <para></para>
+    <para>
+      Depending on the field of application and the usage policy of the cluster
+      the favored strategy of how to spawn process within the cluster might
+      vary significantly. On the one hand one might want to make the whole
+      cluster available to a every possible user accepting the consequence to
+      <quote>overload</quote> one or more nodes, i.e. to run more processes
+      than available CPUs on a special node. On the other hand one might want
+      to virtually split the machine into partitions that are made available to
+      a user exclusively<footnote>
+	<para>
+	  One has to take into account that splitting the cluster into
+	  partitions throws away a good part of the flexibility gained by the
+	  concept of virtual nodes implemented in &ps; in order to make the
+	  cluster more fault tolerant.
+	</para>
+	<para>
+	  On the other hand the definition of virtual partitions can also be
+	  done dynamically via a batch system like LSF, OpenPBS, PBSPro or Grid
+	  Engine. This will give back the flexibility.
+	</para>
+	<para>
+	  The integration of &ps; with a batch system is discussed in detail in
+	  the <emphasis role="bold">&ps; Administrators Guide</emphasis>.
+	</para>
+      </footnote>.
+    </para>
+    <para>
+      Both strategies are available within the &ps; management facility and can
+      be addressed via environment variables. Furthermore the criterium used in
+      order to sort the nodes forming a partition (where the whole cluster is a
+      very special partition) can be chosen from different possibilities.
+    </para>
+    <section>
+      <title>Partitioning</title>
+      <para>
+	In order to partition the cluster different ways are available to do
+	so:
+      </para>
+      <itemizedlist>
+	<listitem>
+	  <para>You can choose the nodes forming the partition by the &ps; ID
+	    of the nodes. In order to do so the environment variable
+	    <envar>PSI_NODES</envar> has to be set to a comma separated list of
+	    IDs. E.g. a value of
+	  </para>
+	  <programlisting>
+	    0, 1, 3, 17, 18
+	  </programlisting>
+	  <para>
+	    will enable the nodes with IDs 0, 1, 3, 17 and 18 to form the
+	    partition that is used by the parallel task.
+	  </para>
+	</listitem>
+	
+	<listitem>
+	  <para>You also can choose the nodes by their hostnames, i.e. either
+	    by their symbolic ones or by their IP address. A space separated
+	    list of such hostnames can be provided via the
+	    <envar>PSI_HOSTS</envar> environment variable.
+	  </para>
+	  <para>
+	  Be aware of the fact that all the symbolic hostnames have to be
+	    resolvable, i.e. the <citerefentry>
+	      <refentrytitle>resolver</refentrytitle>
+	      <manvolnum>3</manvolnum>
+	  </citerefentry> has to be able to convert a symbolic name to its
+	    corresponding IP address. The possibility to do so usually can be
+	    tested using the <filename>nslookup</filename>,
+	    <filename>dig</filename> or <filename>host</filename> command.
+	  </para>
+	</listitem>
+	
+	<listitem>
+	  <para>A further possibility to choose nodes by their hostnames is to
+	    provide a file containing a list of hostnames (or IP addresse). In
+	    order to make this file public towards &ps; the environment
+	    variable <envar>PSI_HOSTFILE</envar> has to be set to the name of
+	    this file.
+	  </para>
+	  <para>
+	    The format of the hostfile is one hostname per line. Exactly as for
+	    the <envar>PSI_HOSTS</envar> environment variable the hostnames
+	    listed within the hostfile have to be resolvable.
+	  </para>
+	</listitem>
+      </itemizedlist>
+
+      <para>
+	If a any node(s) listed in one of the environment variables or the
+	hostfile is down during startup of the parallel task, it will be
+	silently ignored and the partition is downsized by that node(s). This
+	may cause that some nodes will get more than one process to run which
+	can lead to a significant increase of runtime (i.e. wallclock time)
+	used by the parallel task.
+      </para>
+      <para>
+	If none of the above environment variables is set, the
+	<quote>partition</quote> to be used by the parallel task consists out
+	of the whole cluster.
+      </para>
+    </section>
+    <section>
+      <title>Sorting</title>
+      <para>
+	After assigning a partition the parallel task should use one might want
+	to modify the criterium used to bring the nodes into an appropriate
+	order. This is really important if no partitioning at all is used,
+	since otherwise all parallel tasks will use only the first few nodes of
+	the cluster (i.e. the nodes with the smallest &ps; IDs) leaving the big
+	rest of the cluster unused<footnote>
+	  <para>This is not completely true since the default is to sort the
+	    nodes according to the number of processes controlled by &ps;
+	    running on them.
+	  </para>
+	</footnote>. But sorting might also be a good idea if partitioning is
+	used depening on the actual usage of the cluster and the kind of
+	application to run.
+      </para>
+      <para>
+	The sorting criterium is choosen by the value of the environment
+	variable <envar>PSI_NODES_SORT</envar>:
+      </para>
+      <itemizedlist>
+	<listitem>
+	  <para>If it is set to <envar>PROC</envar>, the number of processes
+	    controlled by &ps; on the nodes is used<footnote>
+	      <para>
+		In fact not the pure number of processes is used but the number
+		of processes divided by the number of CPUs on that node. This
+		will lead to a better load balancing in a heterogenous cluster.
+		Within a homogenous cluster of course the division by the
+		(constant) number of CPUs will make no difference.
+	      </para>
+	    </footnote>. When sorting is finished the node with the fewest
+	    processes is at the first position on the list of nodes, and so on.
+	    Nodes with the same number of processes are sorted according to
+	    their &ps; ID.
+	  </para>
+	  <para>
+	    This is the default, i.e. if <envar>PSI_NODES_SORT</envar> is not
+	    set at all, the number of processes will be used in order to sort
+	    the nodes.
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>If set to <envar>LOAD</envar>, the actual load of the nodes is
+	    used. In fact this option can be subdivided into three different
+	    ones. <envar>LOAD</envar> or  <envar>LOAD_1</envar> means to use
+	    the 1 minute average of the load, <envar>LOAD_5</envar> to use the
+	    5 minute average and <envar>LOAD_15</envar> means to use the 15
+	    minute average<footnote>
+	      <para>
+		As for the <envar>PROC</envar> case in fact not the pure load
+		is used but the load divided by the number of CPUs on that node
+		on order to reach better load balancing on heterogenous
+		clusters.
+	      </para>
+	    </footnote>.
+	  </para>
+	  <para>
+	    After sorting the first position of the nodelist is taken by the
+	    node with the lowest load, and so on.
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>If the value is <envar>NONE</envar> or
+	    <envar>ROUNDROBIN</envar> no sorting at all is appied to the list
+	    of nodes, i.e. the nodes are used in the order they appear in one
+	    of the environment variables mentioned in the last section. If none
+	    of these variables is set, the nodes or used in their natural
+	    order, i.e. in order of increasing &ps; ID.
+	  </para>
+	</listitem>
+      </itemizedlist>
+
+      <para>
+	Having sorted the nodes within the partition to use the nodes will be
+	taken one after the other in order to start processes appendant to the
+	parallel task. If more processes than nodes available within the
+	partition are started, the nodes are <quote>reused</quote> in a round
+	robin fashion. I.e. if the partition consists of N nodes, the first N
+	processes will be started on the nodes in the sorting order. The next
+	(N+1st) process will be started on the first node again, and so on.
+      </para>
+      <para>
+	If <emphasis>ParaStation3</emphasis> is used, up to 4 processes might
+	be started on a node. Other versions of &ps; don't have any limits
+	concerning the number of processes that can access the &ps;
+	communication interface.
+      </para>
+    </section>
+
   </section>
+
   <section>
     <title>Spawning the environment</title>
-    <para></para>
+    <para>
+      
+    </para>
   </section>
-  <section>
+
+  <section id="io_redirect">
     <title>Redirecting input and output</title>
-    <para></para>
+    <para>
+      The redirection of input and output is done without further user
+      interaction automatically. 
+    </para>
+    <para>ToDo</para>
+  </section>
+
+  <section>
+    <title>Starting of serial jobs</title>
+    <para>
+      It is even possible to start serial jobs that are not &ps; aware
+      somewhere inside the cluster managed by &ps;. Within this scenario &ps;
+      takes care over load balancing between different jobs running in the
+      cluster, the remote startup procedure and the redirection of input and
+      output data.
+    </para>
+    <para>
+      In order to start the serial executable <filename>exec</filename>
+      somewhere within the cluster conforming to the choosen spawning strategy
+      set up as discussed in the previous section, you simply have to execute
+    </para>
+    <programlisting>	psmstart exec <option><replaceable>args</replaceable></option></programlisting>
+    <para>
+      where <replaceable>args</replaceable> are the arguments that shall be
+      passed to <filename>exec</filename>.
+    </para>
+    <para>
+      Depending on the setting of the environment variables as discussed in the
+      previous sections <filename>exec</filename> will be started on a distinct
+      node of the cluster. Parts of the current environment will eventually by
+      passed to this node, too. Also the input and output is forwarded
+      correctly to the remotely started process.
+    </para>
+    <para>
+      The start even of serial processes using the &ps; management facilities
+      has three main advantages:
+    </para>
+    <itemizedlist>
+      <listitem>
+	<para>On the one hand the remote start enables &ps; to do load
+	  balancing on serial processes, which usually results in a much better
+	  usage of the whole cluster in contrast of distributing the jobs
+	  manually.
+	</para>
+      </listitem>
+      <listitem>
+	<para>On the other hand this allows the end-user to just start serial
+	  from the front-end machine <quote>somewhere</quote> within the
+	  cluster without having to deal with the question, on which node it
+	  will be started actually. &ps; takes and solves the jobs of finding
+	  an appropritate node within the cluster which e.g. has a sufficiently
+	  small load or has no other jobs running.
+	</para>
+      </listitem>
+      <listitem>
+	<para>Last but not least the possibility of starting serial jobs from
+	  the front-end machine without having to log on to the node that
+	  actually runs the jobs enables the system operator to disallow the
+	  users to log on the nodes in general. This enables much better
+	  control over the cluster and increases the security of the system.
+	</para>
+      </listitem>
+    </itemizedlist>
   </section>
 </chapter>
   <!-- Keep this comment at the end of the file
