@@ -5,7 +5,7 @@ ROOTDIR := $(shell until [ -f .ROOTDIR ];do cd ..;done;pwd)
 include $(ROOTDIR)/Makefile.include
 VPATH+=$(shell until [ -f .SOURCEDIR ];do cd ..;done;pwd)
 
-TOOLS:=psconfig pscounter
+TOOLS:=psconfig pscounter test_nodes
 
 #
 # if we are in SOURCEDIR change to osdir and call make again:
