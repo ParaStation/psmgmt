@@ -14,13 +14,17 @@ VPATH += $(SRCDIR)
 
 LIBDIR := ../lib
 
-.LIBPATTERNS += $(LIBDIR)/lib%.a
 
-TOOLS:=psconfig pscounter psiadmin psid psld parastation
+ifeq ("@target_os@","linux")
+.LIBPATTERNS+= $(LIBDIR)/lib%.a
+else
+.LIBPATTERNS:=  /usr/shlib/lib%.so $(.LIBPATTERNS) $(LIBDIR)/lib%.a
+endif
+
+TOOLS:=psconfig pscounter test_nodes psiadmin psid psld parastation
 # test_nodes
 
 bin:	$(TOOLS)
-
 
 unlock: unlock.o -lpshal
 
@@ -30,7 +34,7 @@ psconfig: psconfig.o -lpshal -larg -lm
 
 pscounter: pscounter.o -lpshal -lm
 
-test_nodes: test_nodes.o -lpshal -lpsport -larg -lpse -lpsi -lm -pthread
+test_nodes: test_nodes.o -lpshal -lpsport -larg -lpse -lpsi -lm -lpthread
 
 test_pse: test_pse.o -lpshal -lpsport -larg -lpse -lpsi -lm -lpthread
 
