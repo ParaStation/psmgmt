@@ -246,15 +246,26 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>kill</command>
+	    <arg><replaceable>-sig</replaceable></arg>
 	    <arg choice="plain"><replaceable>tid</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>Kill the process with the task ID <option>tid</option> by
-	    sending a SIGTERM signal.
+	  <para>Send the process with the task ID <option>tid</option> the
+	    signal <replaceable>sig</replaceable>.
 	  </para>
 	  <para>
-	    Processes can only be killed by the user who ownes the process or
+	    <replaceable>sig</replaceable> has to be a positive number
+	    representing a UNIX signal. For a list of available signals please
+	    consult the <citerefentry>
+	      <refentrytitle>signal</refentrytitle>
+	      <manvolnum>7</manvolnum>
+	    </citerefentry> manual page. If <replaceable>sig</replaceable> is
+	    not given, a SIGTERM signal (i.e. 15) is sent to the corresponding
+	    process.
+	  </para>
+	  <para>
+	    Processes can only be signaled by the user who ownes the process or
 	    by root.
 	  </para>
 	</listitem>
