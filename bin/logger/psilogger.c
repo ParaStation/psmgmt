@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.17 2002/02/26 13:21:15 eicker Exp $
+ * $Id: psilogger.c,v 1.18 2002/03/26 13:53:01 eicker Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.17 2002/02/26 13:21:15 eicker Exp $
+ * $Id: psilogger.c,v 1.18 2002/03/26 13:53:01 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.17 2002/02/26 13:21:15 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.18 2002/03/26 13:53:01 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* DEBUG_LOGGER allows logger debuging without the daemon
@@ -50,20 +50,31 @@ static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.17 2002/02/
  * Set in main() to 1 if environment variable PSI_SOURCEPRINTF is defined.
  */
 int PrependSource = 0;
+
+/**
+ * The rank of the process all input is forwarded to.
+ *
+ * Set in main() to the value given by the environment variable PSI_INPUTDEST.
+ */
+int InputDest = 0;
+
 /**
  * Verbosity of Forwarders (1=Yes, 0=No)
  *
  * Set in main() to 1 if environment variable PSI_FORWARDERDEBUG is defined.
  */
 int forw_verbose = 0;
+
 /**
  * Verbosity of Logger (1=Yes, 0=No)
  *
  * Set in main() to 1 if environment variable PSI_LOGGERDEBUG is defined.
  */
 int verbose = 0;
+
 /** Number of connected forwarders */
 int noclients;
+
 /**
  * Set of fds, the logger listens to. Each member is connected to a forwarder
  * or to the connector socket.
@@ -347,9 +358,9 @@ void loop(int listen)
 			    }
 			    write(outfd, msg.buf,
 				  msg.header.len - sizeof(msg.header));
-			    if ((msg.header.sender == 0)
+			    if ((msg.header.sender == InputDest)
 				&& (forward_input_sock < 0)) {
-				/* rank 0 want the input */
+				/* rank InputDest wants the input */
 				forward_input_sock = sock;
 				FD_SET(STDIN_FILENO,&myfds);
 				if(verbose){
@@ -439,6 +450,7 @@ unsigned short LOGGERopenPort(void)
 int main( int argc, char**argv)
 {
     int listen;
+    char *envstr;
 
     /* become process group leader */
     // setpgid(0,0);
@@ -469,6 +481,13 @@ int main( int argc, char**argv)
 	PrependSource = 1;
 	if (verbose) {
 	    fprintf(stderr, "PSIlogger: Will print source-info.\n");
+	}
+    }
+
+    if ( (envstr=getenv("PSI_INPUTDEST")) != NULL ) {
+	InputDest = atoi(envstr);
+	if (verbose) {
+	    fprintf(stderr, "PSIlogger: Input goes to [%d].\n", InputDest);
 	}
     }
 
