@@ -30,6 +30,7 @@ ROOTDIR := $(shell until [ -f .ROOTDIR ];do cd ..;done;pwd)
 PSMDIR := $(ROOTDIR)/kern
 ZLIBDIR := $(ROOTDIR)/zlib
 PSHALDIR := $(ROOTDIR)/pshal
+PSPORTDIR := $(ROOTDIR)/psport
 MCPDIR := $(ROOTDIR)/kern/mcp
 INCLUDEDIR := $(ROOTDIR)/include
 OSNAME := $(shell uname -s)
@@ -62,7 +63,7 @@ GCCINC := -I$(INC) -I$(PSMDIR)/$(OSNAME)
 
 ifeq ($(shell cd .;pwd),$(ROOTDIR))
 
-allbutmcp:	dep psm pshal pvar arg
+allbutmcp:	dep psm pshal psport pvar arg
 
 all:	mcpdep mcp allbutmcp
 
@@ -77,6 +78,9 @@ psm:
 
 pshal:	FORCE	
 	make -C $(PSHALDIR) pshal
+
+psport:	FORCE	
+	make -C $(PSPORTDIR) psport
 
 pvar:	FORCE	
 	make -C $(PSHALDIR) pvar
@@ -93,10 +97,12 @@ mcpclean:
 dep:
 	make -C $(PSMDIR) $@
 	make -C $(PSHALDIR) $@
+	make -C $(PSPORTDIR) $@
 
 clean:
 	make -C $(PSMDIR) $@
 	make -C $(PSHALDIR) $@
+	make -C $(PSPORTDIR) $@
 	rm -rf tmp/*
 
 TAGS:

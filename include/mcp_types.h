@@ -217,6 +217,9 @@ typedef struct MCP_Route_T {
 #define MCP_NOTIFYK_PNB_G(PrNo,PoNo,Val) (PoNo)=(UINT16)(Val);(PrNo)= (((Val) >> 16)& 0xff) + PSHAL_RAWDATA;
 
 
+#define MCP_NOTIFYK_LOWRECV	0x03000000/*< Notification about low ressource on port */
+#define MCP_NOTIFYK_LOWRECV_P(PrNo,PoNo) (MCP_NOTIFYK_RECV|(PoNo&0xffff)|((((PrNo) - PSHAL_RAWDATA)&0xff)<<16))
+#define MCP_NOTIFYK_LOWRECV_G(PrNo,PoNo,Val) (PoNo)=(UINT16)(Val);(PrNo)= (((Val) >> 16)& 0xff) + PSHAL_RAWDATA;
 
 
 
