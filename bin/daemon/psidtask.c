@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidtask.c,v 1.12 2004/01/09 15:59:26 eicker Exp $
+ * $Id: psidtask.c,v 1.13 2004/01/22 13:26:02 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.12 2004/01/09 15:59:26 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.13 2004/01/22 13:26:02 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -117,7 +117,7 @@ void PStasklist_delete(PStask_t **list)
 {
     PStask_t *task;
 
-    snprintf(errtxt, sizeof(errtxt), "PStasklist_delete(%p[%lx])",
+    snprintf(errtxt, sizeof(errtxt), "%s(%p[%lx])", __func__,
 	     list, *list ? (long)*list : -1);
     PSID_errlog(errtxt, 10);
 
@@ -130,7 +130,7 @@ void PStasklist_delete(PStask_t **list)
 
 int PStasklist_enqueue(PStask_t **list, PStask_t *task)
 {
-    snprintf(errtxt, sizeof(errtxt), "PStasklist_enqueue(%p[%lx],%p) %s",
+    snprintf(errtxt, sizeof(errtxt), "%s(%p[%lx],%p) %s", __func__,
 	     list, *list ? (long)*list : -1, task, PSC_printTID(task->tid));
     PSID_errlog(errtxt, 10);
 
@@ -152,7 +152,7 @@ PStask_t *PStasklist_dequeue(PStask_t **list, PStask_ID_t tid)
 {
     PStask_t *task = NULL;
 
-    snprintf(errtxt, sizeof(errtxt), "PStasklist_dequeue(%p[%lx], %s)",
+    snprintf(errtxt, sizeof(errtxt), "%s(%p[%lx], %s)", __func__,
 	     list, *list ? (long)*list : -1, PSC_printTID(tid));
     PSID_errlog(errtxt, 10);
 
@@ -178,7 +178,7 @@ PStask_t *PStasklist_find(PStask_t *list, PStask_ID_t tid)
 {
     PStask_t *task;
 
-    snprintf(errtxt, sizeof(errtxt), "PStasklist_find(%p, %s)",
+    snprintf(errtxt, sizeof(errtxt), "%s(%p, %s)", __func__,
 	     list, PSC_printTID(tid));
     PSID_errlog(errtxt, 10);
 
