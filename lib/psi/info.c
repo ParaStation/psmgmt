@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.21 2002/07/11 16:54:09 eicker Exp $
+ * $Id: info.c,v 1.22 2002/07/18 11:37:39 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.21 2002/07/11 16:54:09 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.22 2002/07/18 11:37:39 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -123,14 +123,14 @@ static int INFO_receive(INFO_info_t what, void *buffer, size_t size,
 		char* errtxt;
 		errtxt = strerror(((DDErrorMsg_t*)&msg)->error);
 		printf("INFO_receive: error in command %s : %s\n", 
-		       PSPctrlmsg(((DDErrorMsg_t*)&msg)->request),
+		       PSP_printMsg(((DDErrorMsg_t*)&msg)->request),
 		       errtxt ? errtxt : "UNKNOWN");
 	    }
 	    break;
 	}
 	default:
-	    fprintf(stderr, "INFO_receive: received msgtype '%s'."
-		    " Don't know what to do!\n", PSPctrlmsg(msg.header.type));
+	    fprintf(stderr, "INFO_receive: received unexpected msgtype '%s'.",
+		    PSP_printMsg(msg.header.type));
 	    }
     }
 
