@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.12 2002/01/17 13:16:04 eicker Exp $
+ * $Id: psld.c,v 1.13 2002/01/22 16:18:09 eicker Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Daemon
  *
- * $Id: psld.c,v 1.12 2002/01/17 13:16:04 eicker Exp $
+ * $Id: psld.c,v 1.13 2002/01/22 16:18:09 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.12 2002/01/17 13:16:04 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.13 2002/01/22 16:18:09 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -296,7 +296,7 @@ void sighandler(int sig)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.12 $";
+    char revision[] = "$Revision: 1.13 $";
     snprintf(errtxt, sizeof(errtxt), "psld %s\b ", revision+11);
     ERR_OUT(errtxt);
 }
@@ -332,10 +332,12 @@ static void help(void)
 
 int main(int argc, char *argv[])
 {
-    int c, errflg = 0, helpflg = 0, verflg = 0, dofork = 1;
+    int c, i, errflg = 0, helpflg = 0, verflg = 0, dofork = 1;
     int msock;
     int interface;
     struct timeval tv;
+
+    unsigned int *hostlist;         /* hostlist for RDP and MCast */
 
     while ( (c = getopt(argc,argv, "dDhHvVf:")) != -1 ) {
 	switch (c) {
@@ -407,7 +409,7 @@ int main(int argc, char *argv[])
     signal(SIGTERM,sighandler);
     signal(SIGINT,sighandler);
 
-    if (parse_config(usesyslog) < 0) {
+    if (parseConfig(usesyslog) < 0) {
 	if (usesyslog) closelog();
 	return -1;
     }
@@ -424,8 +426,22 @@ int main(int argc, char *argv[])
 
 /*      if(check_license(usesyslog)){ */
 
-        setRDPLogMsg(1);
-	msock = initRDPMCAST(NrOfNodes, ConfigMgroup, usesyslog, NULL);
+	/*
+	 * Prepare hostlist for initialization of RDP and MCast
+	 */
+	hostlist = malloc((NrOfNodes+1) * sizeof (unsigned int));
+	if (!hostlist) {
+	    ERR_OUT("Not enough memory for hostlist\n");
+	    if (usesyslog) closelog();
+	    return -1;
+	}
+
+	for (i=0; i<=NrOfNodes; i++) {
+	    hostlist[i] = psihosttable[i].inet;
+	}
+
+	msock = initRDPMCAST(NrOfNodes, ConfigMgroup, usesyslog, hostlist,
+			     NULL);
 
 	tv.tv_sec = 1;
 	tv.tv_usec = 0;
