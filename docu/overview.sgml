@@ -18,15 +18,335 @@
     </listitem>
   </itemizedlist>
   <para>
-    Both will be discussed within the next sections in detail.
+    The first ingredient of &ps; consists mainly of a few libraries and a
+    kernel module. Applications that want to benefit from the &ps;
+    communication system have to be build against these libraries. Furthermore
+    the cluster nodes running this application have to have the kernel module
+    loaded.
+  </para>
+  <para>
+    The management part of &ps; is implemented as a hurd of daemons running on
+    each of the cluster nodes. These daemons constantly gather and interchange
+    information in order to get a unique global view to the cluster.
+    Applications that want to profit from this view to the cluster have to talk
+    to this daemons. This is usually done via an interface implemented in
+    another library. Thus parallel applications have to be linked against this
+    library, too.
+  </para>
+  <para>
+    Both parts of &ps; will be discussed in detail within next sections of this
+    chapter.
+  </para>
+  <para>
+    In order to preserve the high communication bandwidth of the fast network
+    to the applications, a strict separation between communication and
+    administration traffic is made. Due to this target the Myrinet is only used
+    for applications communications traffic. The main concept of splitting the
+    two different types of communication is point out in <xref
+      linkend="network"/>.
   </para>
 
+  <figure id="network">
+    <title>The &ps; network setup.</title>
+    <mediaobject>
+      <imageobject>
+	<imagedata scale="45" align="center"
+	  fileref="../images/network.png"/>
+      </imageobject>
+    </mediaobject>
+  </figure>
+
+  <para>
+    By enabling the Myrinet to also handle TCP/IP traffic via a separate
+    IP-address bound to the Myrinet-NIC, it is even possible to split this kind
+    of communication load between the two distinct networks available within
+    the cluster. Yet the decision which network to use on the level of
+    different services is possible.
+  </para>
+  <para>
+    As also depicted in <xref linkend="network"/> it is possible to have an
+    optional frontend machine not connected by a fast network to the cluster,
+    all the same being fully integrated into the &ps; management system. Thus
+    it is possible to start application from this machine, making it
+    unnecessary for the user to be able to login on every cluster node.
+    Furthermore the front end machine might act as an
+    <filename>home</filename>-directory and compile server for the users.
+  </para>
+
+  <para>
+    Most of the statements made within this chapter regarding communication is
+    only true for the &ps; 3 version of the software. Due to the fact that
+    &psfe; uses the Ethernet via the standard kernel implementation of the
+    TCP/IP stack, on the one hand communication is far less performant than in
+    the Myrinet case, on the other hand the separation of communication and
+    administration traffice cannot be persevered.
+  </para>
+  <para>
+    Nevertheless the communication interfaces of &ps; 3 are partly provided by
+    &psfe;, too. Most notably an improved MPI implementation and the PSPort
+    interface are still part of the distribution. This enables the user to
+    benefit from the advanced communication capabilities provided by &ps;.
+  </para>
+  <para>
+    Furthermore the whole &ps; cluster management facility is along with both
+    version of &ps; giving an outstanding potential concerning the simplicity
+    and effectivity of both, cluster administration and job management.
+  </para>
 
   <section>
     <title>The Communication Subsytem</title>
+
     <para>
-      Jens (?).
+      The high speed communication subsystem consists of different
+      constituent. Besides own firmware and device drivers running the
+      Myrinet-NIC there exist kernel extensions and high performance libraries
+      implementing the different interfaces provided by &ps;
     </para>
+    <section>
+      <title>Firmware</title>
+      <para>
+	The &ps; firmware replaces the standard firmware provided by
+	Myricom. This replacement is made possible due to the open architecture
+	of the Myrinet communication hardware.
+      </para>
+      <para>
+	The &ps; firmware implements a secure protocols using a ACK/NACK
+	scheme. Therefore a custom Reliable Data Protocol (RDP) is used. It
+	creates point to point connections identified by unique connection IDs
+	negotiated during connection startup. Within the connection each
+	packet has a serial number ensuring that no packet will be lost.
+      </para>
+      <para>
+	Furthermore each packet contains a checksum. This checksum guarantees
+	that corrupted packets will be recognized and dumped. Due to the serial
+	number dumped or lost packets will be noticed and a resend is initiated
+	automatically.
+      </para>
+      <para>
+	Since the reliable protocol is implemented within the firmware, a huge
+	amount of overhead by means of the resend of packets can be avoided.
+	The payload data does not have to go through low level protocol layers
+	or the PCI bus again, since the error is detected within the NIC where
+	not yet acknowledged packets will be saved until the ACK is received.
+      </para>
+      <para>
+	Due to close cooperation between sender and receiver within the
+	hardware layer extraordinary performances can be reached even if the
+	network is running in the region of saturation.
+      </para>
+    </section>
+
+    <section>
+      <title>User level communication</title>
+
+      <figure id="comm_approach">
+	<title>The &ps; approach for communication.</title>
+	<mediaobject>
+	  <imageobject>
+	    <imagedata scale="30" align="center"
+	      fileref="../images/approach.png"/>
+	  </imageobject>
+	</mediaobject>
+      </figure>
+
+      <para>
+	Another foundation of the outstanding communication performance of the
+	&ps; software is the use of user level communication. This concept
+	circumvents the operating system in order to do communication and fades
+	the communication hardware into the application's address space.
+      </para>
+      <para>
+	All available optimized communication interfaces are implemented using
+	this concept<footnote>
+	  <para>This is not true for the TCP/IP over Myrinet interface which
+	    resides within the kernel. Therefore the access to the
+	    communication hardware is done within the kernel address space,
+	    too.
+	  </para>
+	</footnote>.
+	Therefore the administrative overhead induced by the communincation can
+	be reduced significantly. This results in small latencies and large
+	throughput.
+      </para>
+      <para>
+	The concept of user level communication is schematically depicted in
+	<xref linkend="comm_approach"/>.
+      </para>
+    </section>
+
+    <section>
+      <title>Communication interfaces</title>
+
+      <figure id="comm_interface">
+	<title>The &ps; communication interfaces.</title>
+	<mediaobject>
+	  <imageobject>
+	    <imagedata scale="40" align="center"
+	    fileref="../images/interfc.png"/>
+	  </imageobject>
+	</mediaobject>
+      </figure>
+
+      <para>
+	As already mentioned &ps; provides several communication
+	interfaces. These allow the use of high performance communication in
+	almost every application. Depending on the application one might choose
+	to use one of the low level interfaces, the MPI interface or the TCP/IP
+	interface. All the interfaces will be briefly discussed within this
+	section.
+      </para>
+      <para>
+	<xref linkend="comm_interface"/> illustrates the basic architecture of
+	the various layers of &ps; communication subsystem. Furthermore an
+	overview of the available interfaces is given.
+      </para>
+      <variablelist>
+	<varlistentry>
+	  <term><emphasis role="bold">PSHAL</emphasis></term>
+	  <listitem>
+	    <para>The <emphasis role="bold">PSHAL</emphasis> is the hardware
+	      abstraction layer of the &ps; communication subsystem. The
+	      management of send- and receive buffers is done within this part
+	      of the communication interface.
+	    </para>
+	    <para>
+	      Its highlights are:
+	    </para>
+	    <itemizedlist>
+	      <listitem>
+		<para>Packets with up to 8 kByte payload.</para>
+	      </listitem>
+	      <listitem>
+		<para>Up to 256 Byte of control data within packets.</para>
+	      </listitem>
+	      <listitem>
+		<para>Zero copy interface.</para>
+	      </listitem>
+	    </itemizedlist>
+	    <para>
+	      This communication level is usually not used by the end-user. Its
+	      main purpose is to enable user-level programs to access the
+	      communication hardware.
+	    </para>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term><emphasis role="bold">PSPort</emphasis></term>
+	  <listitem>
+	    <para>The <emphasis role="bold">PSPort</emphasis> interface is the
+	      low-level communication interface provided by &ps;. Any
+	      communication can be done using this interface, although programs
+	      using it will not be portable. Thus it is recommended to use a
+	      standard interface as MPI discussed below.
+	    </para>
+	    <para>
+	      The main features of the <emphasis role="bold">PSPort</emphasis>
+	      interface are:
+	    </para>
+	    <itemizedlist>
+	      <listitem>
+		<para>De-/fragmentation of large messages.</para>
+	      </listitem>
+	      <listitem>
+		<para>Buffering of asynchronous received messages</para>
+	      </listitem>
+	      <listitem>
+		<para>Provision of ports</para>
+	      </listitem>
+	      <listitem>
+		<para>Selective receive</para>
+	      </listitem>
+	      <listitem>
+		<para>Thread save</para>
+	      </listitem>
+	      <listitem>
+		<para>Control Data possible in every message</para>
+	      </listitem>
+	    </itemizedlist>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term><emphasis role="bold">Socket</emphasis></term>
+	  <listitem>
+	    <para>This is a emulation layer used to enable TCP/IP over Myrinet.
+	      It uses the kernel's IP stack in order to provide full compliance
+	      with according RFCs describing the TCP/IP protocol.
+	    </para>
+	    <para>
+	      Features:
+	    </para>
+	    <itemizedlist>
+	      <listitem>
+		<para>Supports TCP, UDP, ICMP, ....</para>
+	      </listitem>
+	      <listitem>
+		<para>Fully transparent towards applications.</para>
+	      </listitem>
+	    </itemizedlist>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term><emphasis role="bold">MPI</emphasis></term>
+	  <listitem>
+	    <para>This is an implementation of the MPI Message Passing
+	      Interface. It is assumed as the standard interface in order to
+	      write parallel aplications.
+	    </para>
+	    <para>
+	      Its key features are:
+	    </para>
+	    <itemizedlist>
+	      <listitem>
+		<para>Based on MPIch 1.2.4.</para>
+	      </listitem>
+	      <listitem>
+		<para>Synchronous and asynchronous communication.</para>
+	      </listitem>
+	      <listitem>
+		<para>Zero copy communication.</para>
+	      </listitem>
+	      <listitem>
+		<para>Implements the whole 1.2 standard of MPI-1 and parts of
+		  MPI-2.</para>
+	      </listitem>
+	      <listitem>
+		<para>Support for MPI-IO to PVFS.</para>
+	      </listitem>
+	    </itemizedlist>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term><emphasis role="bold">RMI</emphasis></term>
+	  <listitem>
+	    <para>This interface enables even Java to profit from the
+	      high-performance communication provided by &ps;.
+	    </para>
+	    <para>
+	      This interface is mainly a research project and thus not included
+	      within the standard distribution. The corresponding parts of &ps;
+	      may be obained by request from ParTec. Please contact
+	      <email>support@par-tec.com</email>.
+	    </para>
+	    <para>
+	      The main features of the <emphasis role="bold">RMI</emphasis>
+	      interface are:
+	    </para>
+	    <itemizedlist>
+	      <listitem>
+		<para>Enable Remote Method Invocation over Myrinet.</para>
+	      </listitem>
+	      <listitem>
+		<para>Serialization of objects is provided.</para>
+	      </listitem>
+	    </itemizedlist>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+    </section>
   </section>
 
   <section>
@@ -35,7 +355,7 @@
       In addition to the pure communication tasks that build the primary
       requirements of parallel application running on a cluster, further
       assistence of the runtime environment is needed in order to startup and
-      control this applications.
+      control these applications.
     </para>
     <para>
       The main requirements demanded from a cluster management framework are:
@@ -65,16 +385,17 @@
 	  <para>The management system has to provide a transparent mechanism to
 	    start parallel tasks. Load balancing has to be considered within
 	    this process. Further requirements to special resources only
-	    provided on some nodes has to be taken into account. The actual
+	    provided by some nodes have to be taken into account. The actual
 	    behaviour should be widely configurable.</para>
 	</listitem>
       </varlistentry>
       <varlistentry>
 	<term>Job control &amp; Error management</term>
 	<listitem>
-	  <para>If some or all processes forming a parallel task fail, the
-	    management system has to reset left over processes and clean up the
-	    accessed node in order to keep the cluster in a usable state.
+	  <para>If some or all processes forming a parallel task fail
+	    unexpectedly, the management system has to reset left over
+	    processes and clean up the accessed node in order to keep the
+	    cluster in a usable state.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -86,15 +407,15 @@
       </varlistentry>
     </variablelist>
     <para>
-      &ps; fulfills all this requirements by by providing a framework for
+      &ps; fulfills all this requirements by providing a framework for
       cluster-wide job and resource management. The backbone of the &ps;
       management facility is build by the &ps; daemons <citerefentry>
 	<refentrytitle>psid</refentrytitle>
 	<manvolnum>8</manvolnum>
       </citerefentry> running on every node of the cluster, communicating
       underneath each other constantly. Thus the management system is not
-      located on a single node but distributed throughout the whole
-      cluster. This design prevents the creation of single points of failure.
+      located on a single node but distributed throughout the whole cluster.
+      This design prevents the creation of single points of failure.
     </para>
     <para>
       The main tasks of the &ps; daemons are:
@@ -112,11 +433,8 @@
 	</para>
       </listitem>
       <listitem>
-	<para>the initialization of the local communication layer,
-	</para>
-      </listitem>
-      <listitem>
-	<para>the status control of the local communication layer
+	<para>the initialization and the status control of the local
+	  communication layer,
 	</para>
       </listitem>
       <listitem>
@@ -125,7 +443,7 @@
 	</para>
       </listitem>
       <listitem>
-	<para>the control of started processes
+	<para>the control of the locally started processes
 	</para>
       </listitem>
       <listitem>
@@ -142,19 +460,175 @@
 	</para>
       </listitem>
     </itemizedlist>
+
     <section>
       <title>Node management</title>
       <para>
-	In order to provide a fault tolerant node management &ps; uses the
+	In order to provide a fault tolerant node management, &ps; uses the
 	concept of virtual nodes in contrast to the classical approach of
-	handling statical node list. This means the user has the option to
-	request for any N nodes, albeit special nodes may be requested, too.
-	&ps; then decides which nodes are available and fit best to the
-	requirements of the user.
+	handling statical node list. The main idea of this concept is the fact,
+	that nodes are not managed by their hostnames put into some lists by
+	the users but to have a pool of virtual nodes. These virtual nodes of
+	course represent the physical nodes available. On the other hand users
+	normally do not request for special nodes but for a set of virtual
+	nodes.
+      </para>
+      <para>
+	The main advantage of this concept becomes clear if one or more nodes
+	are temporarily unavailable or even down. While the concept of static
+	nodelists require the user to change their lists manually, within the
+	setup choosen by &ps; the pool becomes smaller because of the lacking
+	nodes. On the other hand the user does not have to change the syntax or
+	any configuration in order to get a required number of nodes, at least
+	as long as enough nodes are available.
+      </para>
+      <para>
+	Albeit the request of special nodes is unnecessary due to the virtual
+	node concept, a defined set of nodes may be requested, too. This
+	behavior is quite usefull in the case where a virtual partitioning of
+	the cluster steered by an external batch system is wanted.
+      </para>
+      <para>
+	Normally the user will request for any N nodes. &ps; then decides which
+	nodes are available and fit best to the requirements of the user. These
+	nodes will be given to the user and the parallel task will be spawned
+	throughout these nodes.
+      </para>
+      <para>
+	Further request for virtual nodes posted by any other user will
+	recognize the processes of this parallel task and take them into
+	account when processes have to be spawned, too.
       </para>
       <para>
 	The detail of process distribution within the startup of parallel tasks
 	will be discussed in detail in <xref linkend="startup"/>
+      </para>
+    </section>
+
+    <section>
+      <title>Fault tolerance</title>
+      <para>
+	Within &ps; fault tolerance is given in many ways. First of all the
+	concept of virtual nodes provides stability against node failure in the
+	sense that the cluster as a whole will work even if several nodes are
+	temporarily unavailable.
+      </para>
+      <para>
+	Nevertheless &ps; offers further mechanisms in order to increase the
+	reliability and stability of the cluster system. E.g. if a node failes
+	while it is utilized by parallel tasks this task will be shut down in a
+	controlled manner. Thus the remaining nodes that where used by this
+	task will be cleaned up and released for further jobs.
+      </para>
+      <para>
+	The distributed concept of &ps;'s management facilities make an
+	administration of the cluster feasible even if some nodes are
+	down. Furthermore it prevents the emerge of single point of failure
+	that would lead to an unusable cluster due to a local failure on just
+	one node.
+      </para>
+    </section>
+
+    <section>
+      <title>Process management</title>
+      <para>
+	The management facility of &ps; offers a complete process management
+	system. Within this complex &ps; recognices and controls dependencies
+	between processes building a parallel task on various nodes of the
+	cluster.
+      </para>
+      <para>
+	The process management includes the possibility to create processes on
+	remote nodes, the control of the I/O channels of these remotely started
+	processes and the management of signals across node boundaries.
+      </para>
+      <para>
+	In contrast to the spawning mechanism used by many other cluster
+	management systems, i.e. the spawning via a rsh/ssh mechanism, the
+	startup of remote processes via &ps; is very fast since the &ps; daemon
+	<citerefentry>
+	  <refentrytitle>psid</refentrytitle>
+	  <manvolnum>8</manvolnum>
+	</citerefentry> is constantly in a stand-by mode in order to start
+	these processes. Therefore no further login or authentification
+	overhead is necessary.
+      </para>
+      <para>
+	Since &ps; knows about the dependencies between the processes building
+	a parallel task it can take them into account. The processes are no
+	longer independent but form a task in the same sense as the nodes no
+	longer are independent computers but form the cluster as a unique
+	system. The fact, that &ps; handles distributed processes as a unit,
+	plays an important rule especially in the context of job control and
+	error management discussed within the next section.
+      </para>
+      <para>
+	Furthermore &ps; takes care that output produced by remote processes is
+	forwarded to the intended destination. This is usually the controlling
+	<filename>tty</filename> of the I/O handling process, i.e. the process
+	that was initially started in order to bring up the parallel task, but
+	might also be a normal file the output is turned into. Input directed
+	to the parallel task is forwarded, too. The default is to send it to
+	the process with rank 0, but it might be addressed to any process of
+	the parallel task.
+      </para>
+      <para>
+	Last but not least &ps; handles the propagation of signals. This means
+	that signals send to the I/O handling process will be forwarded to all
+	processes of the task.
+      </para>
+    </section>
+
+    <section>
+      <title>Job control &amp; Error management</title>
+      <para>
+	Beside the job control already discussed in the last section, error
+	management plays an important role in order to run a cluster without
+	much administrative engagement on a day to day basis. It is
+	unacceptable to clean up remaining processes of crashed parallel task
+	by hand, to lose output due to erroneous processes or to leave the user
+	without meaningful error messages after a parallel task has failed.
+      </para>
+      <para>
+	&ps; supports the administrator and the end user within this complex.
+	Since the management facility controls all running processes that were
+	notified towards &ps; it is capable to take action in the case that one
+	of the processes fail.
+      </para>
+      <para>
+	If an unexpected failure of a process is recognized, other processes
+	within the parallel task the crashed process belonged to will be
+	notified. If it is a parent process, this will be done
+	automatically. All other processes including childs will be signaled
+	only on request.
+      </para>
+      <para>
+	Furthermore all necessary measure will be taken in order to clean up
+	the resources that were allocated by the crashed process.
+      </para>
+      <para>
+	Besides the fact that all output that was <quote>on the line</quote>
+	when the failure took place will reach its final destination, the user
+	will get feedback about the kind error that crashed the process. This
+	feedback is usually of the form <quote>Got
+	  <replaceable>sigxxx</replaceable> on node
+	  <replaceable>nodenum</replaceable></quote>.
+      </para>
+    </section>
+
+    <section>
+      <title>Intregration into existing environments</title>
+      <para>
+	Beside the inherent management capabilities of &ps; it is prepared for
+	easy interaction with more evolved batch systems as e.g. LSF, OpenPBS
+	or PBSpro. This enables a &ps; cluster to get embedded into an existing
+	environment or even to build a node within a Grid.
+      </para>
+      <para>
+	The integration of a &ps; cluster into an existing environment relieves
+	the end user from learning just another runtime environment.
+	Furthermore it makes the use of a cluster more stream lined with an
+	existing site policy concerning the use of supercomputing facilities.
       </para>
     </section>
   </section>
