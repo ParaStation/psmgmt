@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.28 2002/07/26 15:11:24 eicker Exp $
+ * $Id: pse.c,v 1.29 2002/07/31 08:42:32 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.28 2002/07/26 15:11:24 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.29 2002/07/31 08:42:32 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -336,11 +336,6 @@ void PSE_finalize(void)
 
     fflush(stdout);
     fflush(stderr);
-
-    /* release our forwarder */
-    close(STDERR_FILENO);
-    close(STDOUT_FILENO);
-    close(STDIN_FILENO);
 }
 
 /*  Barry Smith suggests that this indicate who is aborting the program.
