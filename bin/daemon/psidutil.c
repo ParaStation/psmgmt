@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.60 2003/06/27 16:55:39 eicker Exp $
+ * $Id: psidutil.c,v 1.61 2003/07/04 13:29:07 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.60 2003/06/27 16:55:39 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.61 2003/07/04 13:29:07 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -490,32 +490,16 @@ long PSID_getParam(int hw, long type)
     }
 }
 
-/* Reading and basic handling of the configuration */
-
-void PSID_readConfigFile(int usesyslog, char *configfile)
+/* Determine the local node ID */
+static int getOwnID(void)
 {
     struct in_addr *sin_addr;
 
-    int numNICs = 2;
-    int skfd, n;
+    int numNICs = 1;
+    int skfd, n, ownID = -1;
     struct ifconf ifc;
     struct ifreq *ifr;
 
-    /* Parse the configfile */
-    if (parseConfig(usesyslog, PSID_getDebugLevel(), configfile)<0) {
-	snprintf(errtxt, sizeof(errtxt), "Parsing of <%s> failed.",
-		 configfile);
-	PSID_errlog(errtxt, 0);
-	exit(1);
-    }
-
-    /* Set correct debugging level if given in config-file */
-    if (ConfigLogLevel && !PSID_getDebugLevel()) {
-	PSID_setDebugLevel(ConfigLogLevel);
-	PSC_setDebugLevel(ConfigLogLevel);
-    }
-
-    /* Try to find out if node is configured */
     /* Get any socket */
     skfd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (skfd<0) {
@@ -552,10 +536,10 @@ void PSID_readConfigFile(int usesyslog, char *configfile)
 	    snprintf(errtxt, sizeof(errtxt),
 		     "Testing address %s", inet_ntoa(*sin_addr));
 	    PSID_errlog(errtxt, 10);
-	    if ((MyPsiId=PSnodes_lookupHost(sin_addr->s_addr))!=-1) {
+	    if ((ownID=PSnodes_lookupHost(sin_addr->s_addr))!=-1) {
 		/* node is configured */
 		snprintf(errtxt, sizeof(errtxt),
-			 "Node found to have ID %d", MyPsiId);
+			 "Node found to have ID %d", ownID);
 		PSID_errlog(errtxt, 10);
 		break;
 	    }
@@ -566,13 +550,37 @@ void PSID_readConfigFile(int usesyslog, char *configfile)
     free(ifc.ifc_buf);
     close(skfd);
 
-    if (MyPsiId == -1) {
+    return ownID;
+}
+
+/* Reading and basic handling of the configuration */
+void PSID_readConfigFile(int usesyslog, char *configfile)
+{
+    int ownID;
+
+    /* Parse the configfile */
+    if (parseConfig(usesyslog, PSID_getDebugLevel(), configfile)<0) {
+	snprintf(errtxt, sizeof(errtxt), "Parsing of <%s> failed.",
+		 configfile);
+	PSID_errlog(errtxt, 0);
+	exit(1);
+    }
+
+    /* Set correct debugging level if given in config-file */
+    if (ConfigLogLevel && !PSID_getDebugLevel()) {
+	PSID_setDebugLevel(ConfigLogLevel);
+	PSC_setDebugLevel(ConfigLogLevel);
+    }
+
+    /* Try to find out if node is configured */
+    ownID = getOwnID();
+    if (ownID == -1) {
 	PSID_errlog("Node not configured", 0);
 	exit(1);
     }
 
     PSC_setNrOfNodes(PSnodes_getNum());
-    PSC_setMyID(MyPsiId);
+    PSC_setMyID(ownID);
     PSC_setDaemonFlag(1); /* To get the correct result from PSC_getMyTID() */
 }
 
