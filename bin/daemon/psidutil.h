@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.h,v 1.20 2003/10/29 17:20:21 eicker Exp $
+ * $Id: psidutil.h,v 1.21 2003/10/30 15:24:22 eicker Exp $
  *
  */
 /**
  * \file
  * Utilities for the ParaStation daemon
  *
- * $Id: psidutil.h,v 1.20 2003/10/29 17:20:21 eicker Exp $
+ * $Id: psidutil.h,v 1.21 2003/10/30 15:24:22 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -142,7 +142,17 @@ extern config_t *config;
 void PSID_readConfigFile(int usesyslog, char *configfile);
 
 /**
- * @todo
+ * @brief (Un-)Block signal.
+ *
+ * Block or unblock the signal @a sig depending on the value of @a
+ * block. If block is 0, the signal will be blocked. Otherwise it will
+ * be unblocked.
+ *
+ * @param block Flag steering the (un-)blocking of the signal.
+ *
+ * @param sig The signal to block or unblock.
+ *
+ * @return No return value.
  */
 void PSID_blockSig(int block, int sig);
 
@@ -209,17 +219,56 @@ void PSID_stopAllHW(void);
 void PSID_stopHW(int hw);
 
 /**
- * @todo
+ * @brief Get hardware counters.
+ *
+ * Read out the hardware counters of the hardware @a hw. The value of
+ * the counter is determined via calling the script registered to this
+ * hardware. The output of this script is stored to the buffer @a buf
+ * with size @a size.
+ *
+ * Depending on the value of @a header, either a header line
+ * describing the different values of the counter line is created (@a
+ * header = 1) or the actual counter line is generated.
+ *
+ * @param hw The hardware type of the counters to read out.
+ *
+ * @param buf The buffer to store the headerline to.
+ *
+ * @param size The actual size of @a buf.
+ *
+ * @param header Flag marking, if a headerline or a counterline should
+ * be generated.
+ *
+ * @return No return value.
  */
 void PSID_getCounter(int hw, char *buf, size_t size, int header);
 
 /**
- * @todo
+ * @brief Set hardware parameter.
+ *
+ * Set parameter described by @a option of the hardware @a hw to @a value. 
+ *
+ * @param hw The hardware type the parameter is connected to.
+ *
+ * @param option The hardware parameter to be set.
+ *
+ * @param value The value to be set.
+ *
+ * @return No return value.
  */
 void PSID_setParam(int hw, PSP_Option_t option, PSP_Optval_t value);
 
 /**
- * @todo
+ * @brief Get hardware parameter.
+ *
+ * Read out the parameter described by @a option of the hardware @a hw.
+ *
+ * @param hw The hardware type the parameter is connected to.
+ *
+ * @param option The hardware parameter to be read out.
+ *
+ * @return If no error occurred, the value of the parameter to read
+ * out is returned. Otherwise -1 is returned.
  */
 PSP_Optval_t PSID_getParam(int hw, PSP_Option_t option);
 
