@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.23 2002/07/16 19:25:13 hauke Exp $
+ * $Id: pse.c,v 1.24 2002/07/17 22:05:30 hauke Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.23 2002/07/16 19:25:13 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.24 2002/07/17 22:05:30 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -57,6 +57,7 @@ static int   worldRankPSE = -1;
 static long* s_pSpawnedProcesses;     /* size: <worldSizePSE>  */
 static long  parenttidPSE = -1;
 
+static unsigned int default_hwType = PSP_HW_MYRINET;
 
 void PSEkillmachine(void)
 {}
@@ -143,6 +144,12 @@ void PSEinit(int NP, int *rank)
     }
 }
 
+void PSEhwtype(unsigned int hwType)
+{
+    default_hwType = hwType;
+}
+
+
 void PSEspawn(int Argc, char** Argv,
 	      int *masternode, int *masterport, int rank)
 {
@@ -151,7 +158,7 @@ void PSEspawn(int Argc, char** Argv,
     /* Check for LSF-Parallel */
     PSI_LSF();
     /* get the partition */
-    PSI_getPartition(PSP_HW_ETHERNET, rank);
+    PSI_getPartition(default_hwType, rank);
 
     /* client process? */
     if (rank == -1) {

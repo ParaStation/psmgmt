@@ -7,7 +7,7 @@
 /**
  * name: Description
  *
- * $Id: psport4.c,v 1.6 2002/06/13 20:06:16 hauke Exp $
+ * $Id: psport4.c,v 1.7 2002/07/17 22:05:31 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -1571,6 +1571,16 @@ int PSP_Init()
     return 0;
 }
 
+unsigned int PSP_UsedHW(void)
+{
+/*
+  From psprotocol.h:
+#define PSP_HW_ETHERNET            0x0001
+#define PSP_HW_MYRINET             0x0002
+#define PSP_HW_GIGAETHERNET        0x0004
+*/
+    return 0x0001;
+}
 
 
 /**********************************************************************/

@@ -7,7 +7,7 @@
 /**
  * PSPort: Communication Library for Parastation , third edition
  *
- * $Id: psport4.h,v 1.4 2002/06/12 14:19:02 hauke Exp $
+ * $Id: psport4.h,v 1.5 2002/07/17 22:05:30 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -157,6 +157,8 @@ extern unsigned PSP_GenReqUsedCount;
  * might have been written to stderr.
  */
 PSP_Err_t PSP_Init(void);
+
+unsigned int PSP_UsedHW(void);
 
 /* ----------------------------------------------------------------------
  * PSP_GetNodeID()

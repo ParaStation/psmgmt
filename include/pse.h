@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.h,v 1.7 2002/07/03 20:04:08 eicker Exp $
+ * $Id: pse.h,v 1.8 2002/07/17 22:05:30 hauke Exp $
  *
  */
 /**
  * @file
  * ParaStation Programming Environment
  *
- * $Id: pse.h,v 1.7 2002/07/03 20:04:08 eicker Exp $
+ * $Id: pse.h,v 1.8 2002/07/17 22:05:30 hauke Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -69,6 +69,13 @@ extern "C" {
  *         PSEfinalize, PSEkillmachine, PSIspawn, PSEgetmyrank
  */
 void PSEinit(int NP, int *rank);
+
+/**
+ * @brief PSEhwtype Set hwType for spawn
+ *
+ * @param hwType
+ */
+void PSEhwtype(unsigned int hwType);
 
 /**
  * @brief PSEspawn
