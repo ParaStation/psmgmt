@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidspawn.c,v 1.6 2003/02/11 19:31:36 eicker Exp $
+ * $Id: psidspawn.c,v 1.7 2003/02/21 13:09:45 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.6 2003/02/11 19:31:36 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.7 2003/02/21 13:09:45 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -282,6 +282,13 @@ int PSID_execForwarder(PStask_t *task, int daemonfd, int controlchannel)
     if (!(pid = fork())) {
 	/* this is the client process */
 
+	/*
+	 * Create a new process group. This is needed since the daemon
+	 * kills whole process groups. Otherwise the daemon might
+	 * also kill the forwarder by sending a signal to the client.
+	 */
+	setpgid(0, 0);
+
 	/* close the reading pipe */
 	close(clientfds[0]);
 
@@ -483,6 +490,13 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
     /* fork the forwarder */
     if (!(pid = fork())) {
 	/* this is the forwarder process */
+
+	/*
+	 * Create a new process group. This is needed since the daemon
+	 * kills whole process groups. Otherwise the daemon might
+	 * commit suicide by sending signals to its clients.
+	 */
+	setpgid(0, 0);
 
 	/* close all fds except the control channel, stdin/stdout/stderr and
 	   the connecting socket */
