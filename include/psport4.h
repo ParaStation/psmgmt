@@ -7,7 +7,7 @@
 /**
  * PSPort: Communication Library for Parastation , third edition
  *
- * $Id: psport4.h,v 1.2 2002/06/11 00:14:15 hauke Exp $
+ * $Id: psport4.h,v 1.3 2002/06/11 17:58:45 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -28,6 +28,7 @@ extern "C" {
 #ifdef XREF
 #include <stdint.h>
 #endif
+#include <sys/uio.h>
 #include "p4io.h"
 /**
  * Handle to identify an open port.
