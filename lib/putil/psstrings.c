@@ -7,7 +7,7 @@
 /**
  * psstrings.c: string handling
  *
- * $Id: psstrings.c,v 1.2 2003/08/15 13:30:35 eicker Exp $
+ * $Id: psstrings.c,v 1.3 2003/10/14 15:33:19 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -23,6 +23,24 @@
 
 #include "psstrings.h"
 
+/* ps_isspace: Like isspace() in the standard `"C"' locale.
+ * This function dont need GLIBC 2.3 __ctype_b_loc */
+static
+int ps_isspace(unsigned char ch)
+{
+    switch (ch) {
+    case ' ':  /* space */
+    case '\f': /* formfeed */
+    case '\n': /* newline */
+    case '\r': /* carriage */
+    case '\t': /* horizontal tab */
+    case '\v': /* vertical tab */
+	return 1;
+    default:
+	return 0;
+    }
+}
+
 /* remove head and tail spaces. return the modified str (equal str) */
 char *strshrink(char *str)
 {
@@ -33,7 +51,7 @@ char *strshrink(char *str)
     if (!str) return str;
     
     for (tmp = str; *tmp; tmp++){
-	if (!isspace(*tmp)) {
+	if (!ps_isspace(*tmp)) {
 	    if (!beg) {
 		beg = tmp;
 		len = 1;
