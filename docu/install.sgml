@@ -30,12 +30,12 @@
       </para>
       <para>
 	Furthermore of course the nodes need to be interconnected. Usually
-	there is a connection via fast or gigabit ethernet between the nodes.
-	&ps; needs this ethernet interconnect for management purposes. Beyond
+	there is a connection via fast or gigabit Ethernet between the nodes.
+	&ps; needs this Ethernet interconnect for management purposes. Beyond
 	that the possibility to have a fast interconnect in order to do high
 	bandwith, low latency communication exists. At the moment Myrinet is
 	supported to do this kind of communication. There also exists a version
-	supporting communication via fast ethernet. Naturally this version
+	supporting communication via fast Ethernet. Naturally this version
 	lacks of really high throughput and low latency due to the limited
 	capabilities of the hardware.
       </para>
@@ -55,7 +55,7 @@
       </para>
       <para>
 	Besides the kernel supporting multicast, the hardware has to support
-	multicast, too. Since modern ethernet switches support multicast and
+	multicast, too. Since modern Ethernet switches support multicast and
 	the nodes of a cluster of workstation usually live in a private subnet,
 	there should be no problem about this. In the case of a gateway in
 	between the nodes of a cluster this gateway has to be configured
@@ -63,7 +63,7 @@
 	cluster from all nodes.
       </para>
       <para>
-	On nodes with more than one ethernet interface you have to setup a
+	On nodes with more than one Ethernet interface you have to setup a
 	defaultroute for the multicast traffic. This is done by
       </para>
       <programlisting>	route add -net 224.0.0.0 netmask 240.0.0.0 dev <replaceable>ethX</replaceable></programlisting>
@@ -76,7 +76,7 @@
 	type of Linux distribution in use.
       </para>
       <para>
-	Usually only the front-end machine of a cluster has two ethernet
+	Usually only the front-end machine of a cluster has two Ethernet
 	interfaces in use. Then you have to add the Multicast route to the
 	interface connecting the front-end to all other nodes of the cluster.
       </para>
@@ -90,7 +90,7 @@
 	&ps; distribution is needed. These modules support the standard kernels
 	of common distributions, even if you have recompiled theses kernels in
 	a slightly modified way. They are not needed for the communication via
-	fast ethernet.
+	fast Ethernet.
       </para>
       <para>
 	If there is the need for special version of the modules, it is possible
@@ -645,12 +645,15 @@
     </para>
     <para>
       The intendet starting point for the HTML documentation is
-      <filename>file:///opt/parastation/doc/index.html</filename>. The PDF
-      documentation is included in a single PDF file called
-      <filename>ParaStation.pdf</filename> which may be found in the
-      <filename>/opt/parastation/doc</filename> directory. The PDF
-      documentation can be viewed using the Acrobat Reader, which can be found
-      on the Adobe homepage.
+      <filename>file:///opt/parastation/doc/html/index.html</filename>. The PDF
+      documentation is included in two PDF file called
+      <filename>adminguide.pdf</filename> for the <citetitle>&ps;
+	Administrators Guide</citetitle> and <filename>userguide.pdf</filename>
+      for the <citetitle>&ps; Users Guide</citetitle>. Both may be found in the
+      <filename>/opt/parastation/doc/pdf</filename> directory. The PDF
+      documentation can be viewed using the Acrobat Reader, which can be
+      retrieved from the <ulink url="http://www.adobe.com">Adobe
+	homepage</ulink>.
     </para>
     <para>
       Hardcopies of the &ps; documentation can be obtained from ParTec,
