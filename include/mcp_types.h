@@ -222,6 +222,8 @@ typedef struct MCP_Route_T {
 #define MCP_NOTIFYK_LOWRECV_G(PrNo,PoNo,Val) (PoNo)=(UINT16)(Val);(PrNo)= (((Val) >> 16)& 0xff) + PSHAL_RAWDATA;
 
 
+#define MCP_NOTIFYK_LICINVAL	0x04000000/*< Notification about wrong Licensekey */
+#define MCP_NOTIFYK_NOP 	0x05000000/*< No Message, Only Intr */
 
 
 

@@ -30,7 +30,12 @@ static int arg_sps=-1;
 static int arg_queryparam=-1;
 static int arg_param=-1;
 static int arg_param_value=-1;
+static char *arg_lickey=0;
 
+void do_setlickey()
+{
+    PSHALSYSSetLicKey(arg_lickey);
+}
 
 void do_setid()
 {
@@ -102,6 +107,7 @@ int main(int argc, char **argv)
     if (arg_parse(argc, argv,
 		  "", "Usage: %s [options]", argv[0],
 		  "", "This program set routes",
+		  "-key %S",&arg_lickey,"Set license key",
 		  "-id %d",&arg_id,"Node ID",
 		  "-r %d %d[%d[%d[%d[%d[%d[%d[%d]]]]]]]",
 		  &arg_routenode,
@@ -117,6 +123,7 @@ int main(int argc, char **argv)
     }
     PSHALStartUp(0);
 
+    if (arg_lickey != 0) do_setlickey();
     if (arg_id != -1) do_setid();
     if (arg_routenode != -1) do_setroute();
     if (arg_param != -1) do_set_param();

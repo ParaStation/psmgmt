@@ -2,7 +2,7 @@
  *
  *      @(#)pshal.h    1.00 (Karlsruhe) 08/15/2000
  *
- *      $Id: pshal.h,v 1.3 2001/05/08 16:12:09 hauke Exp $	
+ *      $Id: pshal.h,v 1.4 2001/05/18 14:32:13 hauke Exp $	
  *
  *      written by Joachim Blum
  *                 Jens Hauke
@@ -445,6 +445,20 @@ int PSHALPortDelete( int ProtocolNo,int Port );
  *
  */
 int PSHALPortSleep( int ProtocolNo,int Port, int SeqNo );
+
+
+/*------------------------------------------------------------------------------
+ * int PSHALSYSSetID(int ID)
+ */
+/**
+ * Set the license key.
+ * @return	0	on success
+ * @return	ERRNO	on error
+ *
+ * Set the ParaStation license key. User process must have root permissions.
+ */
+int PSHALSYSSetLicKey(char *LicKey);
+
 
 /*------------------------------------------------------------------------------
  * int PSHALSYSSetID(int ID)

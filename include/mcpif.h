@@ -20,6 +20,7 @@
 #include "ps_types.h"
 #include "ps_develop.h"
 #include "mcp_types.h"
+#include "license_pub.h"
 #include "lanai_def.h"
 
 
@@ -399,6 +400,7 @@ typedef struct MCPmem_T {
     MCP_POINTER(struct dispatch_table)
 				dtp;       /*< Pointer to dispatch table*/
     UINT32			MCPParams[ MCP_MAX_MCP_PARAMS ];
+    pslic_binpub_t		LicPub;   /* Encoded Licensekey */
     INT32			dummy;
     volatile INT32		t[8];
     volatile INT32		c[8];
@@ -406,6 +408,8 @@ typedef struct MCPmem_T {
 
     volatile INT32		errcode; 
     volatile char		errmsg[64];
+    UINT8			mac[6 + 2];/* +2 be aligned */
+    UINT32			Date;
     MCPTimer_t			Timer[8];
     MCP_Counter_t		Counter;
     TRACEVARS
