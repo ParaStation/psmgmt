@@ -25,7 +25,7 @@ PSM_OSDIR := @PSM_OSDIR@
 
 LIBDIRS := $(patsubst %,libs/%,$(LIBS))
 
-SUBDIRS := $(LIBDIRS) kern/mcp $(PSM_OSDIR)
+SUBDIRS := $(LIBDIRS) kern/mcp $(PSM_OSDIR) tools
 
 .PHONY all: mcp psm libs tools
 
