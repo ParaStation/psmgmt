@@ -22,6 +22,7 @@ else
 endif
 
 TOOLS:=psconfig pscounter test_nodes psiadmin psid psld parastation
+TOOLS += psilogger psiforwarder
 # test_nodes
 
 bin:	$(TOOLS)
@@ -68,6 +69,11 @@ psld: psld.o license.o
 psld: parse.o psid.tab.o lex.psid.o
 psld: timer.o mcast.o
 psld: -lpsi -lm
+
+# logger
+VPATH += $(SRCDIR)/logger
+psiforwarder: psiforwarder.o logmsg.o -lpsi -lm
+psilogger: psilogger.o logmsg.o -lpsi -lm
 
 
 
