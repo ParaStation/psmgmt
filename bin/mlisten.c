@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mlisten.c,v 1.12 2002/04/23 16:09:49 eicker Exp $
+ * $Id: mlisten.c,v 1.13 2002/08/07 09:25:10 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mlisten.c,v 1.12 2002/04/23 16:09:49 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mlisten.c,v 1.13 2002/08/07 09:25:10 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -21,10 +21,9 @@ static char vcid[] __attribute__(( unused )) = "$Id: mlisten.c,v 1.12 2002/04/23
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <popt.h>
 
 #include "mcast.h"
-
-#define NODES 129
 
 static char errtxt[256];
 
@@ -42,8 +41,8 @@ void init(int num_nodes)
     if (count) free(count);
     if (display) free(display);
 
-    count = malloc(num_nodes * sizeof(*count));
-    display = malloc((2*num_nodes + 1) * sizeof(*display));
+    count = (unsigned int *)malloc(num_nodes * sizeof(*count));
+    display = (char *)malloc((2*num_nodes + 1) * sizeof(*display));
 
     for (i=0; i<num_nodes; i++) {
 	count[i] = 0;
@@ -58,38 +57,10 @@ void init(int num_nodes)
 /*
  * Print version info
  */
-static void version(void)
+static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.12 $";
+    char revision[] = "$Revision: 1.13 $";
     fprintf(stderr, "mlisten %s\b \n", revision+11);
-}
-
-/*
- * Print usage message
- */
-static void usage(void)
-{
-    fprintf(stderr, "usage: mlisten [-h] [-v] [-D] [-# nodes] [-m MCAST]"
-	    " [-n NET] [-p PORT]\n");
-}
-
-/*
- * Print more detailed help message
- */
-static void help(void)
-{
-    usage();
-    fprintf(stderr,"\n");
-    fprintf(stderr," -D       : Activate debugging.\n");
-    fprintf(stderr," -# NODES : Expect NODES nodes. Default is %d.\n", NODES);
-    fprintf(stderr," -m MCAST : Listen to multicast group MCAST."
-	    " Default is %d.\n", DEFAULT_MCAST_GROUP);
-    fprintf(stderr," -n NET   : Listen only on network NET."
-	    " Default is INADDR_ANY.\n");
-    fprintf(stderr," -p PORT  : Listen on port PORT. Default is %d.\n",
-	    DEFAULT_MCAST_PORT);
-    fprintf(stderr," -v,      : output version information and exit.\n");
-    fprintf(stderr," -h,      : display this help and exit.\n");
 }
 
 #if 0
@@ -107,12 +78,15 @@ static int lale_snprintf( char *dest,size_t cnt,const char *fmt, ...)
 }
 #endif
 
-int main(int argc, char *argv[])
+int main(int argc, const char *argv[])
 {
-    int MCAST_GROUP = DEFAULT_MCAST_GROUP;
-    unsigned short MCAST_PORT = DEFAULT_MCAST_PORT;
+    int mcastGroup = 237;
+    unsigned short mcastPort = 1889;
     char *net = NULL;
-    int nodes = NODES;
+    int nodes = 129;
+    int version = 0;
+
+    poptContext optCon;   /* context for parsing command-line options */
 
     int reuse;
     struct ip_mreq mreq;
@@ -121,45 +95,45 @@ int main(int argc, char *argv[])
     fd_set rfds;
     socklen_t slen;
     MCastMsg buf;
-    char c;
-    int debug=0;
+    int rc, debug=0;
 
-    while (((c = getopt(argc,argv, "DhvVH#:m:n:p:")) != -1)) {
-	switch (c) {
-	case 'p':
-	    sscanf(optarg, "%hu", &MCAST_PORT);
-	    printf("using port %hu\n", MCAST_PORT);
-	    break;
-	case 'n':
-	    net = optarg; 
-	    printf("using network %s\n",net);
-	    break;
-	case 'm':
-	    sscanf(optarg, "%d", &MCAST_GROUP);
-	    printf("using mcast %d\n", MCAST_GROUP);
-	    break;
-	case '#':
-	    sscanf(optarg, "%d", &nodes);
-	    printf("using %d nodes\n", nodes);
-	    break;
-	case 'D':
-	    debug=1;
-	    break;
-	case 'v':
-	case 'V':
-	    version();
-	    return 0;
-	    break;
-	case 'h':
-	case 'H':
-	    help();
-	    return 0;
-	    break;
-	default:
-	    usage();
-	    return -1;
-	}
+    struct poptOption optionsTable[] = {
+	{ "debug", 'd', POPT_ARG_NONE, &debug, 0, "activate debugging", NULL},
+	{ "mcast", 'm', POPT_ARG_INT, &mcastGroup, 0,
+	  "listen to multicast group <MCAST> (default is 237)", "MCAST"},
+	{ "port", 'p', POPT_ARG_INT, &mcastPort, 0,
+	  "listen to UDP port <PORT> (default is 1889)", "PORT"},
+	{ "network", 'n', POPT_ARG_STRING, &net, 0,
+	  "listen on interface with address <IP>", "IP"},
+	{ "nodes", '#', POPT_ARG_INT, &nodes, 0,
+	  "display information for <NODES> nodes (including psld)",
+	  "NODES"},
+  	{ "version", 'v', POPT_ARG_NONE, &version, -1,
+	  "output version information and exit", NULL},
+	POPT_AUTOHELP
+	{ NULL, '\0', 0, NULL, 0, NULL, NULL}
+    };
+
+    optCon = poptGetContext(NULL, argc, argv, optionsTable, 0);
+    rc = poptGetNextOpt(optCon);
+
+    if (rc < -1) {
+	/* an error occurred during option processing */
+	poptPrintUsage(optCon, stderr, 0);
+	fprintf(stderr, "%s: %s\n",
+		poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
+		poptStrerror(rc));
+	return 1;
     }
+
+    if (version) {
+	printVersion();
+	return 0;
+    }
+
+    if (mcastGroup != 237) printf("listen to mcast group %d\n", mcastGroup);
+    if (mcastPort != 1889) printf("listen on UDP port %hu\n", mcastPort);
+    if (net) printf("listen on interface %s\n", net);
 
     /*
      * allocate socket
@@ -172,7 +146,7 @@ int main(int argc, char *argv[])
     /*
      * Join the MCast group
      */
-    mreq.imr_multiaddr.s_addr = htonl(INADDR_UNSPEC_GROUP | MCAST_GROUP);
+    mreq.imr_multiaddr.s_addr = htonl(INADDR_UNSPEC_GROUP | mcastGroup);
     if (net == NULL) {
 	mreq.imr_interface.s_addr = INADDR_ANY; 
     } else {
@@ -205,7 +179,7 @@ int main(int argc, char *argv[])
     memset(&sin, 0, sizeof(sin));
     sin.sin_family = AF_INET;
     sin.sin_addr.s_addr = mreq.imr_multiaddr.s_addr;
-    sin.sin_port = htons(MCAST_PORT);
+    sin.sin_port = htons(mcastPort);
 
     /* Do the bind */
     if (bind(mcastsock, (struct sockaddr *)&sin, sizeof(sin)) < 0) {

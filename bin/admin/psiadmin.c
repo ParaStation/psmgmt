@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.45 2002/08/06 08:31:06 eicker Exp $
+ * $Id: psiadmin.c,v 1.46 2002/08/07 09:22:33 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.45 2002/08/06 08:31:06 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.46 2002/08/07 09:22:33 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -24,6 +24,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.45 2002/08/0
 #include <termios.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <popt.h>
 
 #include <psport.h>
 
@@ -47,7 +48,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.45 $";
+static char psiadmversion[] = "$Revision: 1.46 $";
 static int doRestart = 0;
 
 static char *hoststatus = NULL;
@@ -1093,60 +1094,45 @@ void sighandler(int sig)
 /*
  * Print version info
  */
-static void version(void)
+static void printVersion(void)
 {
     fprintf(stderr, "psiadmin %s\b \n", psiadmversion+11);
 }
 
-/*
- * Print usage message
- */
-static void usage(void)
-{
-    fprintf(stderr,"usage: psiadmin [-h] [-v] [-c command] [-r]\n");
-}
-
-/*
- * Print more detailed help message
- */
-static void help(void)
-{
-    usage();
-    fprintf(stderr,"\n");
-    fprintf(stderr," -r         : Do reset on startup (only as root).\n");
-    fprintf(stderr," -c command : Execute a single command and exit.\n");
-    fprintf(stderr," -v,      : output version information and exit.\n");
-    fprintf(stderr," -h,      : display this help and exit.\n");
-}
-
-int main(int argc, char **argv)
+int main(int argc, const char **argv)
 {
     void *line_state = NULL;
     char *copt = NULL, *line = (char *) NULL, line_field[256];
-    int opt, len, reset=0;
+    int rc, len, version=0, reset=0;
 
-    while ((opt = getopt(argc, argv, "hHvVc:r")) != -1) {
-	switch (opt) {
-	case 'c':
-	    copt = optarg;
-	    break;
-	case 'r':
-	    reset=1;
-	    break;
-	case 'h':
-	case 'H':
-	    help();
-	    return 0;
-	    break;
-	case 'v':
-	case 'V':
-	    version();
-	    return 0;
-	    break;
-	default:
-	    usage();
-	    return -1;
-	}
+    poptContext optCon;   /* context for parsing command-line options */
+
+    struct poptOption optionsTable[] = {
+	{ "command", 'c', POPT_ARG_STRING, &copt, 0,
+	  "execute a single <command> and exit", "command"},
+	{ "reset", 'r', POPT_ARG_NONE, &reset, 0,
+	  "do a reset of the ParaStation daemons on startup", NULL},
+  	{ "version", 'v', POPT_ARG_NONE, &version, -1,
+	  "output version information and exit", NULL},
+	POPT_AUTOHELP
+	{ NULL, '\0', 0, NULL, 0, NULL, NULL}
+    };
+
+    optCon = poptGetContext(NULL, argc, argv, optionsTable, 0);
+    rc = poptGetNextOpt(optCon);
+
+    if (rc < -1) {
+	/* an error occurred during option processing */
+	poptPrintUsage(optCon, stderr, 0);
+	fprintf(stderr, "%s: %s\n",
+		poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
+		poptStrerror(rc));
+	return 1;
+    }
+
+    if (version) {
+	printVersion();
+	return 0;
     }
 
     if (reset) {
