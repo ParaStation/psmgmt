@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.55 2002/07/08 15:01:30 eicker Exp $
+ * $Id: psid.c,v 1.56 2002/07/08 16:21:53 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.55 2002/07/08 15:01:30 eicker Exp $ 
+ * $Id: psid.c,v 1.56 2002/07/08 16:21:53 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.55 2002/07/08 15:01:30 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.56 2002/07/08 16:21:53 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -69,7 +69,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.55 $";
+static char psid_cvsid[] = "$Revision: 1.56 $";
 
 static int PSID_mastersock;
 
@@ -636,7 +636,6 @@ void send_TASKLIST(DDMsg_t *inmsg)
 	 * send all tasks in the tasklist to the fd
 	 */
 	task->error = 0;
-	task->nodeno = id;
 
 	msg.header.len = sizeof(msg.header);
 	msg.header.len += PStask_encode(msg.buf, task);
@@ -672,9 +671,9 @@ void send_TASKLIST(DDMsg_t *inmsg)
 *   send a NEWPROCESS or DELETEPROCESS msg to all other daemons
 *
 */
-void send_PROCESS(long tid, long msgtype, PStask_t* oldtask)
+void send_PROCESS(long tid, long msgtype, PStask_t *oldtask)
 {
-    PStask_t* task;
+    PStask_t *task;
     DDBufferMsg_t msg;
 
     if (oldtask)
@@ -687,7 +686,6 @@ void send_PROCESS(long tid, long msgtype, PStask_t* oldtask)
 	 * broadcast the creation of a new task
 	 */
 	task->error = 0;
-	task->nodeno = PSC_getMyID();
 
 	msg.header.len = sizeof(msg.header);
 	msg.header.len +=  PStask_encode(msg.buf, task);
@@ -1023,8 +1021,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t* msg)
 	task->tid = clients[fd].tid;
 	task->fd = fd;
 	task->uid = msg->uid;
-	task->nodeno = PSC_getMyID();
-	/* Now connection, this task becomes logger */
+	/* New connection, this task will become logger */
 	if (msg->group == TG_ANY) {
 	    task->group = TG_LOGGER;
 	} else {
@@ -1274,7 +1271,7 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	sendMsg(msg);
     }
 
-    if (task->nodeno == PSC_getMyID()) {
+    if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
 	/*
 	 * this is a request for my node
 	 */
@@ -1300,9 +1297,8 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	 * send the existence or failure of the request
 	 */
 	task->error = err;
-	task->nodeno = PSC_getMyID();
 
-	msg->header.len =  PStask_encode(msg->buf, task);
+	msg->header.len = PStask_encode(msg->buf, task);
 	msg->header.len += sizeof(msg->header);
 
 	msg->header.dest = msg->header.sender;
@@ -1312,17 +1308,17 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	if (err) {
 	    PStask_delete(task);
 	}
-    }else{
+    } else {
 	/*
 	 * this is a request for a remote site.
 	 */
-	if (isUpDaemon(task->nodeno)) {
+	if (isUpDaemon(PSC_getID(msg->header.dest))) {
 	    /* the daemon of the requested node is connected to me */
 	    snprintf(errtxt, sizeof(errtxt),
-		     "sending spawnrequest to node %d", task->nodeno);
+		     "sending spawnrequest to node %d",
+		     PSC_getID(msg->header.dest));
 	    PSID_errlog(errtxt, 1);
 
-	    msg->header.dest = PSC_getTID(task->nodeno, 0);
 	    sendMsg(msg);
 	} else {
 	    /*
@@ -1331,14 +1327,16 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	     * The daemon is actual not connected
 	     * It's not possible to spawn
 	     */
-	    if (task->nodeno>=PSC_getNrOfNodes()) {
+	    if (PSC_getID(msg->header.dest)>=PSC_getNrOfNodes()) {
 		task->error = EHOSTUNREACH;
 		snprintf(errtxt, sizeof(errtxt),
-			 "SPAWNREQUEST: node %d does not exist",task->nodeno);
+			 "SPAWNREQUEST: node %d does not exist",
+			 PSC_getID(msg->header.dest));
 	    } else {
 		task->error = EHOSTDOWN;
 		snprintf(errtxt, sizeof(errtxt),
-			 "SPAWNREQUEST: node %d is down", task->nodeno);
+			 "SPAWNREQUEST: node %d is down",
+			 PSC_getID(msg->header.dest));
 	    }
 
 	    PSID_errlog(errtxt, 0);
@@ -1362,10 +1360,10 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
  * receives information about a task and enqueues the this task in the
  * the list of the daemon it is residing on
  */
-void msg_TASKINFO(DDBufferMsg_t* msg)
+void msg_TASKINFO(DDBufferMsg_t *msg)
 {
-    PStask_t* task=0;
-    PStask_t* task2=0;
+    PStask_t *task = NULL;
+    PStask_t *task2 = NULL;
 
     task = PStask_new();
 
@@ -1380,12 +1378,13 @@ void msg_TASKINFO(DDBufferMsg_t* msg)
     /*
      * if already in the PStask_queue -> remove it
      */
-    task2 = PStasklist_dequeue(&nodes[task->nodeno].tasklist, task->tid);
+    task2 = PStasklist_dequeue(&nodes[PSC_getID(task->tid)].tasklist,
+			       task->tid);
     if (task2) {
 	/* found and already dequeued -> delete it */
 	PStask_delete(task2);
     }
-    PStasklist_enqueue(&nodes[task->nodeno].tasklist, task);
+    PStasklist_enqueue(&nodes[PSC_getID(task->tid)].tasklist, task);
 }
 
 /******************************************
@@ -1474,7 +1473,8 @@ void msg_NEWPROCESS(DDBufferMsg_t* msg)
 	     " with parent(%s)", printTaskNum(task->ptid));
     PSID_errlog(errtxt, 1);
 
-    oldtask = PStasklist_dequeue(&nodes[task->nodeno].tasklist, task->tid);
+    oldtask = PStasklist_dequeue(&nodes[PSC_getID(task->tid)].tasklist,
+				 task->tid);
     if (oldtask) {
 	long sigtid;
 	int sig=-1;
@@ -1493,7 +1493,7 @@ void msg_NEWPROCESS(DDBufferMsg_t* msg)
 	}
 	PStask_delete(oldtask);
     }
-    PStasklist_enqueue(&nodes[task->nodeno].tasklist, task);
+    PStasklist_enqueue(&nodes[PSC_getID(task->tid)].tasklist, task);
 }
 
 /*----------------------------------------------------------------------------
@@ -1566,10 +1566,10 @@ void TaskDeleteSendSignalsToParent(long tid, long ptid, int signal)
 /******************************************
  *  msg_DELETEPROCESS()
  */
-void msg_DELETEPROCESS(DDBufferMsg_t* msg)
+void msg_DELETEPROCESS(DDBufferMsg_t *msg)
 {
-    PStask_t* task;
-    PStask_t* oldtask;
+    PStask_t *task;
+    PStask_t *oldtask;
 
     task = PStask_new();
 
@@ -1590,7 +1590,8 @@ void msg_DELETEPROCESS(DDBufferMsg_t* msg)
 	     " to parent(%s)", printTaskNum(task->ptid));
     PSID_errlog(errtxt, 1);
 
-    oldtask = PStasklist_dequeue(&nodes[task->nodeno].tasklist, task->tid);
+    oldtask = PStasklist_dequeue(&nodes[PSC_getID(task->tid)].tasklist,
+				 task->tid);
     if (oldtask) {
 	TaskDeleteSendSignals(oldtask);
 	PStask_delete(oldtask);
@@ -1662,7 +1663,8 @@ void msg_SPAWNSUCCESS(DDBufferMsg_t *msg)
 	 * @todo enqueue the task. This will be removed as soon as the
 	 * task are only save within the local daemon
 	 */
-	oldtask = PStasklist_dequeue(&nodes[task->nodeno].tasklist, task->tid);
+	oldtask = PStasklist_dequeue(&nodes[PSC_getID(task->tid)].tasklist,
+				     task->tid);
 
 	if (oldtask) {
 	    if (oldtask->tid == task->tid) {
@@ -1675,7 +1677,7 @@ void msg_SPAWNSUCCESS(DDBufferMsg_t *msg)
 	    PStask_delete(oldtask);
 	}
 
-	PStasklist_enqueue(&nodes[task->nodeno].tasklist, task);
+	PStasklist_enqueue(&nodes[PSC_getID(task->tid)].tasklist, task);
     } else {
 	PStask_delete(task);
     }
@@ -3180,7 +3182,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.55 $";
+    char revision[] = "$Revision: 1.56 $";
     snprintf(errtxt, sizeof(errtxt), "psid %s\b ", revision+11);
     PSID_errlog(errtxt, 0);
 }
