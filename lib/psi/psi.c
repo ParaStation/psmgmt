@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.28 2002/05/10 09:55:38 eicker Exp $
+ * $Id: psi.c,v 1.29 2002/05/22 13:44:22 hauke Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.28 2002/05/10 09:55:38 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.29 2002/05/22 13:44:22 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -58,7 +58,13 @@ enum TaskOptions PSI_mychildoptions = TaskOption_SENDSTDHEADER;
  */
 pid_t PSI_getpid(long tid)
 {
+#ifndef __osf__
     return (tid & 0xFFFF);
+#else
+    /* Maybe we should do this on every architecture ? *JH* */
+    /* Tru64 V5.1 use 19 bit for PID's, we reserve 24 bits */
+    return (tid & 0xFFFFFF);
+#endif    
 }
 
 static pid_t PSIgetpid(void)
@@ -83,11 +89,21 @@ static pid_t PSIgetpid(void)
  */
 unsigned short PSI_getnode(long tid)
 {
+#ifndef __osf__
     if (tid>=0) {
 	return (tid>>16)&0xFFFF;
     } else {
 	return PSI_myid;
     }
+#else
+    /* Maybe we should do this on every architecture ? *JH* */
+    /* Tru64 V5.1 use 19 bit for PID's, we reserve 24 bits */
+    if (tid>=0) {
+	return (tid>>24)&0xFFFFFF;
+    } else {
+	return PSI_myid;
+    }
+#endif
 }
 
 /****************************************
@@ -108,11 +124,21 @@ short PSI_getnrofnodes(void)
  */
 long PSI_gettid(short node, pid_t pid)
 {
+#ifndef __osf__
     if (node<0) {
 	return (((PSI_myid&0xFFFF)<<16)|pid);
     } else {
 	return (((node&0xFFFF)<<16)|pid);
     }
+#else
+    /* Maybe we should do this on every architecture ? *JH* */
+    /* Tru64 V5.1 use 19 bit for PID's, we reserve 24 bits */
+    if (node<0) {
+	return (((PSI_myid&0xFFFFL)<<24)|pid);
+    } else {
+	return (((node&0xFFFFL)<<24)|pid);
+    }
+#endif
 }
 
 long PSI_options=0;
