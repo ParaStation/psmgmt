@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.38 2002/07/31 09:02:56 eicker Exp $
+ * $Id: psi.c,v 1.39 2003/02/07 16:10:25 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.38 2002/07/31 09:02:56 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.39 2003/02/07 16:10:25 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -33,10 +33,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.38 2002/07/31 09:
 
 #include "psi.h"
 
-int PSI_msock = -1;
-
-unsigned int PSI_loggernode;   /* IP number of my loggernode (or 0) */
-int PSI_loggerport;            /* port of my logger process */
+int daemonSock = -1;
 
 static char *psidVersion = NULL;
 
@@ -91,13 +88,13 @@ static int connectDaemon(PStask_group_t taskGroup)
 
  RETRY_CONNECT:
 
-    if (PSI_msock!=-1) {
-	shutdown(PSI_msock, 2);
-	close(PSI_msock);
-	PSI_msock = -1;
+    if (daemonSock!=-1) {
+	shutdown(daemonSock, 2);
+	close(daemonSock);
+	daemonSock = -1;
     }
 
-    while ((PSI_msock=daemonSocket())==-1) {
+    while ((daemonSock=daemonSocket())==-1) {
 	/*
 	 * start the local ParaStation daemon via inetd
 	 */
@@ -154,9 +151,9 @@ static int connectDaemon(PStask_group_t taskGroup)
 	    PSI_errlog(errtxt, 0);
 	}
 
-	shutdown(PSI_msock, 2);
-	close(PSI_msock);
-	PSI_msock = -1;
+	shutdown(daemonSock, 2);
+	close(daemonSock);
+	daemonSock = -1;
 
 	return 0;
     }
@@ -204,8 +201,8 @@ static int connectDaemon(PStask_group_t taskGroup)
     case PSP_CD_CLIENTESTABLISHED :
 	PSC_setNrOfNodes(msg.nrofnodes);
 	PSC_setMyID(msg.myid);
-	PSI_loggernode = msg.loggernode;
-	PSI_loggerport = msg.loggerport;
+//	PSI_loggernode = msg.loggernode;
+//	PSI_loggerport = msg.loggerport;
 	PSC_setInstalldir(msg.instdir);
 	if (strcmp(msg.instdir, PSC_lookupInstalldir())) {
 	    snprintf(errtxt, sizeof(errtxt),"connectDaemon():"
@@ -225,9 +222,9 @@ static int connectDaemon(PStask_group_t taskGroup)
  	break;
     }
 
-    shutdown(PSI_msock, SHUT_RDWR);
-    close(PSI_msock);
-    PSI_msock = -1;
+    shutdown(daemonSock, SHUT_RDWR);
+    close(daemonSock);
+    daemonSock = -1;
 
     return 0;
 }
@@ -254,7 +251,7 @@ int PSI_initClient(PStask_group_t taskGroup)
 	     "PSI_initClient(%s)", PStask_printGrp(taskGroup));
     PSI_errlog(errtxt, 10);
 
-    if (PSI_msock != -1) {
+    if (daemonSock != -1) {
 	/* Allready connected */
 	return 1;
     }
@@ -313,16 +310,16 @@ int PSI_exitClient(void)
     snprintf(errtxt, sizeof(errtxt), "PSI_exitClient()");
     PSI_errlog(errtxt, 10);
 
-    if (PSI_msock == -1) {
+    if (daemonSock == -1) {
 	return 1;
     }
 
     /*
      * close connection to local PSI daemon
      */
-    shutdown(PSI_msock, 2);
-    close(PSI_msock);
-    PSI_msock = -1;
+    shutdown(daemonSock, 2);
+    close(daemonSock);
+    daemonSock = -1;
 
     return 1;
 }
@@ -337,7 +334,7 @@ int PSI_sendMsg(void *amsg)
     DDMsg_t *msg = (DDMsg_t *)amsg;
     int ret = 0;
 
-    ret = write(PSI_msock, msg, msg->len);
+    ret = write(daemonSock, msg, msg->len);
 
     if (!ret) {
 	snprintf(errtxt, sizeof(errtxt), "PSI_sendMsg():"
@@ -361,9 +358,9 @@ int PSI_recvMsg(void *amsg)
 
     do {
 	if (!count) {
-	    n = read(PSI_msock, msg, sizeof(*msg));
+	    n = read(daemonSock, msg, sizeof(*msg));
 	} else {
-	    n = read(PSI_msock, &((char*)msg)[count], msg->len-count);
+	    n = read(daemonSock, &((char*)msg)[count], msg->len-count);
 	}
 	if (n>0) count+=n;
 	if (!n) {
@@ -556,4 +553,56 @@ int PSI_recvFinish(int outstanding)
     }
 
     return error;
+}
+
+static int myexecv( const char *path, char *const argv[])
+{
+    int ret;
+    int cnt;
+
+    /* Try 5 times with delay 400ms = 2 sec overall */
+    for (cnt=0; cnt<5; cnt++){
+	ret = execv(path, argv);
+	usleep(1000 * 400);
+    }
+    return ret;
+}
+
+void PSI_execLogger(void)
+{
+    int i;
+    char* argv[4];
+    char *errstr;
+    /*
+     * close all open filedesciptor except my std* and the daemonSock
+     */
+    for (i=1; i<FD_SETSIZE; i++) {
+	if (i != daemonSock && i != STDOUT_FILENO && i != STDERR_FILENO) {
+	    close(i);
+	}
+    }
+
+    argv[0] = (char*)malloc(strlen(PSC_lookupInstalldir()) + 20);
+    sprintf(argv[0],"%s/bin/psilogger", PSC_lookupInstalldir());
+    argv[1] = (char*)malloc(10);
+    sprintf(argv[1],"%d", daemonSock);
+    argv[2] = (char*)malloc(10);
+    sprintf(argv[2],"%d", PSC_getMyID());
+    argv[3] = NULL;
+
+    myexecv(argv[0], argv);
+
+    /*
+     * Usually never reached, but if execv() fails just exit. This should
+     * also shutdown all spawned processes.
+     */
+    close(daemonSock);
+
+    errstr = strerror(errno);
+
+    fprintf(stderr, "PSI_execLogger(execv): %s [%d] %s", argv[0],
+	    errno, errstr ? errstr : "UNKNOWN");
+    perror("execv()");
+
+    exit(1);
 }
