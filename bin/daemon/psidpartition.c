@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidpartition.c,v 1.11 2004/01/28 16:38:07 eicker Exp $
+ * $Id: psidpartition.c,v 1.12 2004/01/28 18:03:54 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.11 2004/01/28 16:38:07 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.12 2004/01/28 18:03:54 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -1793,14 +1793,16 @@ void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
     ptr += sizeof(uint32_t);
 
     if (request->size) {
-	request->nodes = malloc(request->num * sizeof(*request->nodes));
+	request->nodes = malloc(request->size * sizeof(*request->nodes));
 	if (!request->nodes) {
 	    snprintf(errtxt, sizeof(errtxt), "%s: No memory", __func__);
 	    PSID_errlog(errtxt, 0);
 	    PSpart_delReq(request);
 	    return;
 	}
-	enqueueRequest(&runReq, request);
+	request->numGot = 0;
+	request->num = request->size;
+	enqueueRequest(&pendReq, request);
     } else {
 	snprintf(errtxt, sizeof(errtxt), "%s: Task %s without partition.",
 		 __func__, PSC_printTID(request->tid));
@@ -1811,7 +1813,7 @@ void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
 
 void msg_PROVIDETASKNL(DDBufferMsg_t *inmsg)
 {
-    PSpart_request_t *req = findRequest(runReq, inmsg->header.sender);
+    PSpart_request_t *req = findRequest(pendReq, inmsg->header.sender);
 
     if (!knowMaster() || PSC_getMyID() != getMasterID()) return;
 
@@ -1823,7 +1825,7 @@ void msg_PROVIDETASKNL(DDBufferMsg_t *inmsg)
     }
     appendToNodelist(inmsg->buf, req);
 
-    if (req->numGot == (int) req->size) {
+    if (req->numGot == req->num) {
 	if (!dequeueRequest(&pendReq, req)) {
 	    snprintf(errtxt, sizeof(errtxt),
 		     "%s: Unable to dequeue request %s",
@@ -1833,6 +1835,6 @@ void msg_PROVIDETASKNL(DDBufferMsg_t *inmsg)
 	    return;
 	}
 	registerReq(req);
-	PSpart_delReq(req);
+	enqueueRequest(&runReq, req);
     }
 }
