@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.26 2002/03/27 14:28:10 eicker Exp $
+ * $Id: psi.c,v 1.27 2002/04/22 18:20:15 hauke Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.26 2002/03/27 14:28:10 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.27 2002/04/22 18:20:15 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -139,7 +139,6 @@ int PSI_setoption(long option, char value)
 int PSI_startdaemon(unsigned int hostaddr)
 {
     int sock;
-    struct servent *service;
     struct sockaddr_in sa;
 #if defined(DEBUG)
     if (PSP_DEBUGADMIN & (PSI_debugmask )) {
@@ -152,16 +151,10 @@ int PSI_startdaemon(unsigned int hostaddr)
      */
     sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-    if ((service = getservbyname("psid","tcp")) == NULL) {
-	fprintf(stderr, "can't get \"psid\" service entry\n");
-	shutdown(sock,2);
-	close(sock);
-	return 0;
-    }
     memset(&sa, 0, sizeof(sa));
     sa.sin_family = AF_INET;
     sa.sin_addr.s_addr = hostaddr;
-    sa.sin_port = service->s_port;
+    sa.sin_port =  htons(PSI_GetServicePort("psid",888));
     if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0) {
 	perror("PSI daemon connect for start with inetd.");
 	shutdown(sock,2);
@@ -180,7 +173,6 @@ int PSI_startdaemon(unsigned int hostaddr)
 int PSI_daemonsocket(unsigned int hostaddr)
 {
     int sock;
-    struct servent *service;
     struct sockaddr_in sa;
 
 #if defined(DEBUG)
@@ -195,16 +187,10 @@ int PSI_daemonsocket(unsigned int hostaddr)
 	return -1;
     }
 
-    if ((service = getservbyname("psids", "tcp")) == NULL) {
-	fprintf(stderr, "can't get \"psids\" service entry\n");
-	shutdown(sock,2);
-	close(sock);
-	return -1;
-    }
     memset(&sa, 0, sizeof(sa));
     sa.sin_family = AF_INET;
     sa.sin_addr.s_addr = hostaddr;
-    sa.sin_port = service->s_port;
+    sa.sin_port = htons(PSI_GetServicePort("psids",889));
 
     if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0) {
 	shutdown(sock,2);
@@ -679,7 +665,10 @@ char * PSI_LookupInstalldir(void)
 	name=NULL;
     }
 
-    return PSI_installdir;
+    if (PSI_installdir)
+	return PSI_installdir;
+    else
+	return "";
 }
 
 void PSI_SetInstalldir(char * installdir)
@@ -698,4 +687,17 @@ void PSI_SetInstalldir(char * installdir)
 	PSI_installdir = instdir;
     }
     free(name);
+}
+
+
+int PSI_GetServicePort( char *name , int def)
+{
+    struct servent *service;
+
+    if ((service = getservbyname(name,"tcp")) == NULL){
+	SYSLOG(0,(LOG_WARNING, "can't get \"%s\" service entry. Now using port %d.\n",name,def));
+	return def;
+    }else{
+	return ntohs(service->s_port);
+    }
 }
