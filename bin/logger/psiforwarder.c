@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiforwarder.c,v 1.14 2002/04/26 12:43:59 eicker Exp $
+ * $Id: psiforwarder.c,v 1.15 2002/07/26 15:10:37 eicker Exp $
  *
  */
 /**
  * @file
  * psiforwarder: Forwarding-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psiforwarder.c,v 1.14 2002/04/26 12:43:59 eicker Exp $
+ * $Id: psiforwarder.c,v 1.15 2002/07/26 15:10:37 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.14 2002/04/26 12:43:59 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.15 2002/07/26 15:10:37 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -242,7 +242,7 @@ int read_from_logger(int logfd, int stdinport)
  * @return No return value.
  *
  */
-void loop(int stdoutport, int stderrport)
+void loop(int stdinport, int stdoutport, int stderrport)
 {
     int sock;      /* client socket */
     fd_set afds;
@@ -252,8 +252,9 @@ void loop(int stdoutport, int stderrport)
     FLMsg_msg_t type;
 
     if (verbose) {
-	snprintf(obuf, sizeof(obuf), "PSIforwarder: stdout=%d stderr=%d\n",
-		 stdoutport, stderrport);
+	snprintf(obuf, sizeof(obuf),
+		 "PSIforwarder: stdin=%d stdout=%d stderr=%d\n",
+		 stdinport, stdoutport, stderrport);
 	printlog(loggersock, STDERR, id, obuf);
     }
 
@@ -282,7 +283,7 @@ void loop(int stdoutport, int stderrport)
 	    if (FD_ISSET(sock, &afds)) { /* socket ready */
 		if (sock==loggersock) {
 		    /* Read new input */
-		    if (read_from_logger(loggersock,stdoutport) <= 0) {
+		    if (read_from_logger(loggersock, stdinport) <= 0) {
 			/* connection to logger broken */
 			exit(1);
 		    }
@@ -309,7 +310,7 @@ void loop(int stdoutport, int stderrport)
 			     n, sock);
 		    printlog(loggersock, STDERR, id, obuf);
 		}
-		if (n==0) {
+		if (n==0 || (n<0 && errno==EIO)) {
 		    /* socket closed */
 		    if (verbose) {
 			snprintf(obuf, sizeof(obuf),
@@ -363,7 +364,8 @@ void loop(int stdoutport, int stderrport)
 int main( int argc, char**argv)
 {
     unsigned int logger_node;
-    int logger_port, stdoutport, stderrport;
+    int logger_port, stdinport, stdoutport, stderrport;
+    pid_t pid;
 
     int ret;
 
@@ -376,8 +378,10 @@ int main( int argc, char**argv)
     sscanf(argv[1], "%u", &logger_node);
     sscanf(argv[2], "%d", &logger_port);
     sscanf(argv[3], "%d", &id);
-    sscanf(argv[4], "%d", &stdoutport);
-    sscanf(argv[5], "%d", &stderrport);
+    sscanf(argv[4], "%d", &stdinport);
+    sscanf(argv[5], "%d", &stdoutport);
+    sscanf(argv[6], "%d", &stderrport);
+    sscanf(argv[7], "%d", &pid);
 
     if ((ret=loggerconnect(logger_node, logger_port)) < 0) {
 	exit(1);
@@ -387,7 +391,7 @@ int main( int argc, char**argv)
     noclients = 2;
 
     /* call the loop which does all the work */
-    loop(stdoutport, stderrport);
+    loop(stdinport, stdoutport, stderrport);
 
     if (verbose) {
 	printlog(loggersock, STDERR, id, "PSIforwarder: Closing log\n");
