@@ -37,12 +37,12 @@
     &infoblurb;
 
     <releaseinfo>Release 1.1</releaseinfo>
-    <pubdate>March 2003</pubdate>
+    <pubdate>May 2003</pubdate>
 
     <revhistory>
       <revision>
 	<revnumber>1.1</revnumber>
-	<date>xx Mar 2003</date>
+	<date>28 May 2003</date>
 	<revremark>mpirun_chp4 added</revremark>
       </revision>
       <revision>
