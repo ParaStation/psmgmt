@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.c,v 1.17 2003/11/24 09:58:56 eicker Exp $
+ * $Id: mcast.c,v 1.18 2003/12/10 16:26:26 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.17 2003/11/24 09:58:56 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.18 2003/12/10 16:26:26 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -84,16 +84,17 @@ static void initIPTable(void)
 {
     int i;
     for (i=0; i<256; i++) {
-	iptable[i].ipnr = INADDR_ANY;
-	iptable[i].node = 0;
-	iptable[i].next = NULL;
+	iptable[i] = (ipentry_t) {
+	    .ipnr = INADDR_ANY,
+	    .node = 0,
+	    .next = NULL };
     }
     return;
 }
 
 static void insertIPTable(unsigned int ip_addr, int node)
 {
-    ipentry *ip;
+    ipentry_t *ip;
     int idx = ntohl(ip_addr) & 0xff;  /* use last byte of IP addr */
 
     if (ip_addr==INADDR_ANY) return;
@@ -103,7 +104,7 @@ static void insertIPTable(unsigned int ip_addr, int node)
 		 "Node %d goes to table %d [NEW ENTRY]", node, idx);
 	ip = &iptable[idx];
 	while (ip->next) ip = ip->next; /* search end */
-	ip->next = malloc(sizeof(ipentry));
+	ip->next = malloc(sizeof(ipentry_t));
 	ip = ip->next;
 	ip->next = NULL;
 	ip->ipnr = ip_addr;
@@ -121,7 +122,7 @@ static void insertIPTable(unsigned int ip_addr, int node)
 
 static int lookupIPTable(unsigned int ip_addr)
 {
-    ipentry *ip;
+    ipentry_t *ip;
     int idx = ntohl(ip_addr) & 0xff;  /* use last byte of IP addr */
 
     ip = &iptable[idx];
@@ -143,7 +144,7 @@ static void initConntable(int nodes, unsigned int host[])
     int i;
     struct timeval tv;
 
-    if (!conntable) conntable = malloc(nodes * sizeof(Mconninfo));
+    if (!conntable) conntable = malloc(nodes * sizeof(Mconninfo_t));
     initIPTable();
     gettimeofday(&tv, NULL);
     srandom(tv.tv_sec+tv.tv_usec);
@@ -314,7 +315,7 @@ static void handleTimeoutMCast(int fd)
 
 static int handleMCast(int fd)
 {
-    MCastMsg msg;
+    MCastMsg_t msg;
     struct sockaddr_in sin;
     struct timeval tv;
     fd_set rdfs;
@@ -397,9 +398,9 @@ static int handleMCast(int fd)
     return 0;
 }
 
-static MCastLoad getLoad(void)
+static MCastLoad_t getLoad(void)
 {
-    MCastLoad load = {{0.0, 0.0, 0.0}};
+    MCastLoad_t load = {{0.0, 0.0, 0.0}};
 #ifdef __linux__
     struct sysinfo s_info;
 
@@ -427,9 +428,9 @@ static MCastLoad getLoad(void)
     return load;
 }
 
-static void pingMCast(MCastState state)
+static void pingMCast(MCastState_t state)
 {
-    MCastMsg msg;
+    MCastMsg_t msg;
 
     msg.node = myID;
     msg.type = T_INFO;
@@ -460,7 +461,7 @@ static void pingMCast(MCastState state)
     return;
 }
 
-static char *stateStringMCast(MCastState state)
+static char *stateStringMCast(MCastState_t state)
 {
     switch (state) {
     case DOWN:
@@ -530,9 +531,11 @@ int initMCast(int nodes, int mcastgroup, unsigned short portno, int usesyslog,
 
 void exitMCast(void)
 {
-    pingMCast(DOWN);               /* send shutdown msg */
-    removeTimer(mcastsock);        /* stop interval timer */
-    close(mcastsock);              /* close Multicast socket */
+    if (nrOfNodes) {
+	pingMCast(DOWN);               /* send shutdown msg */
+	removeTimer(mcastsock);        /* stop interval timer */
+	close(mcastsock);              /* close Multicast socket */
+    }
 }
 
 void declareNodeDeadMCast(int node)
@@ -593,19 +596,28 @@ void decJobsMCast(int node, int total, int normal)
     }
 }
 
-void getInfoMCast(int n, MCastConInfo_t *info)
+void getInfoMCast(int node, MCastConInfo_t *info)
 {
-    info->state = conntable[n].state;
-    info->load = conntable[n].load;
-    info->jobs = conntable[n].jobs;
-    info->misscounter = conntable[n].misscounter;
+    if (conntable) {
+	info->load = conntable[node].load;
+	info->jobs = conntable[node].jobs;
+    } else {
+	*info = (MCastConInfo_t) {
+	    .load = {{0.0, 0.0, 0.0}},
+	    .jobs = (MCastJobs_t) {.total = -1, .normal = -1},
+	};
+    }
     return;
 }
 
 void getStateInfoMCast(int node, char *s, size_t len)
 {
-    snprintf(s, len, "%3d [%s]: miss=%d", node,
-	     stateStringMCast(conntable[node].state),
-	     conntable[node].misscounter);
+    if (conntable) {
+	snprintf(s, len, "%3d [%s]: miss=%d", node,
+		 stateStringMCast(conntable[node].state),
+		 conntable[node].misscounter);
+    } else {
+	snprintf(s, len, "%3d MCast not configured", node);
+    }
     return;
 }
