@@ -1,0 +1,24 @@
+# -*- Makefile -*-
+
+CFLAGS += -O2 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
+PSM_OSDIR := @PSM_OSDIR@
+CPPFLAGS += -I@top_srcdir@/include -I@top_srcdir@/$(PSM_OSDIR) @CPPFLAG_MMD@
+
+PUTILOBJS := mcast.o rdp.o timer.o
+PUTILDEPS := $(PUTILOBJS:.o=@DEPEXTENSION@)
+
+RANLIB := @RANLIB@
+
+VPATH += @srcdir@
+
+all: ../libputil.a
+
+../libputil.a: $(PUTILOBJS)
+	$(AR) rcv $@ $(PUTILOBJS)
+	$(RANLIB) $@
+
+clean:
+	$(RM) $(PUTILDEPS) $(PUTILOBJS) 
+
+
+-include $(PUTILDEPS)
