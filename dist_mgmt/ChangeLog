@@ -1,3 +1,7 @@
+2003-07-11  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Catch error within daemon if to many files are open.
+
 2003-07-04  Norbert Eicker  <eicker@par-tec.com>
 
 	* Bugfix: RDP flow control heals output loss.
