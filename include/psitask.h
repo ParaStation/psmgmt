@@ -10,6 +10,7 @@
 #define TG_ADMIN      0x0002
 #define TG_RESET      0x0003
 #define TG_RESETABORT 0x0004
+#define TG_LOGGER     0x0005
 
 /*----------------------------------------------------------------------
  *   TaskOptions
