@@ -7,7 +7,7 @@
 /**
  * name: Description
  *
- * $Id: psport4.c,v 1.5 2002/06/13 17:31:49 eicker Exp $
+ * $Id: psport4.c,v 1.6 2002/06/13 20:06:16 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -88,6 +88,7 @@
 
 /* Debugoutput on signal SIGQUIT (i386:3) (key: ^\) */ 
 #define ENV_SIGQUIT "PSP_SIGQUIT"
+#define ENV_READAHEAD "PSP_READAHEAD"
 
 static int env_debug = 0;
 static int env_so_sndbuf = 16384;
@@ -95,6 +96,7 @@ static int env_so_rcvbuf = 16384;
 static int env_tcp_nodelay = 1;
 static int env_nobgthread = 0;
 static int env_sigquit = 0;
+static int env_readahead = 100;
 
 
 /* Check Request Usage, PSP_DPRINT_LEVEL should be >= 1 */
@@ -200,6 +202,13 @@ typedef struct PSP_RecvReqList_T{
 #define PSP_PORTIDMAGIC  (*(uint32_t *)"port")
 #define PSP_FE_MAX_CONNS 1024
 
+typedef struct ReadAhead_s{
+    int	 n;	/*< Used bytes */
+    int	 len;	/*< Allocated bytes */
+    char *buf;	/*< Ptr to buffer */
+}ReadAhead_t;
+
+
 typedef struct PSP_Port_s{
     struct PSP_Port_s	*NextPort;
     union{
@@ -216,6 +225,7 @@ typedef struct PSP_Port_s{
 #if PSP_VER == FE
     struct{
 	int	con_fd;
+	ReadAhead_t	readahead; /*< store data between two reads */
 	PSP_Request_t	*PostedSendRequests;
 	PSP_Request_t	**PostedSendRequestsTailP;
 	PSP_Request_t	*RunningRecvRequest;
@@ -232,9 +242,9 @@ typedef struct PSP_Port_s{
 }PSP_Port_t;
 
 
-#define READAHEADXHEADLENDEFAULT 100
-static unsigned int ReadAheadXHeadlen;
-PSP_Header_Net_t *ReadAheadBuf = NULL;
+//  #define READAHEADXHEADLENDEFAULT 100
+//  static unsigned int ReadAheadXHeadlen;
+//  PSP_Header_Net_t *ReadAheadBuf = NULL;
 
 #define TRASHSIZE 65536
 char *trash;
@@ -252,13 +262,13 @@ static int PostedRecvReqs = 0;
 static int PostedRecvReqsUsed = 0;
 
 
-static
-void PSP_SetReadAhead( int len )
-{
-    ReadAheadXHeadlen = len;
-    ReadAheadBuf = (PSP_Header_Net_t *)realloc(
-	ReadAheadBuf, sizeof( PSP_Header_Net_t ) + ReadAheadXHeadlen );
-}
+//  static
+//  void PSP_SetReadAhead( int len )
+//  {
+//      ReadAheadXHeadlen = len;
+//      ReadAheadBuf = (PSP_Header_Net_t *)realloc(
+//  	ReadAheadBuf, sizeof( PSP_Header_Net_t ) + ReadAheadXHeadlen );
+//  }
 
 static
 char *inetstr( int addr )
@@ -296,8 +306,17 @@ char *dumpstr( void *buf, int size )
     return ret;
 }
 
+static inline void ReadAHInit( ReadAhead_t *rh, int len )
+{
+    rh->n = 0;
+    rh->len = len;
+    rh->buf = (char *)malloc( len );
+}
+
+/* copy maximal len bytes from from to the header.
+   return the number of bytes left in the header */
 static inline
-void copy_to_header( PSP_Header_t *header, void *from, size_t len )
+int copy_to_header( PSP_Header_t *header, void *from, size_t len )
 {
     struct msghdr *mh;
 
@@ -315,15 +334,23 @@ void copy_to_header( PSP_Header_t *header, void *from, size_t len )
 	    memcpy( mh->msg_iov->iov_base, from, len );
 	    ((char*)mh->msg_iov->iov_base) += len;
 	    mh->msg_iov->iov_len           -= len;
-	    goto out;
+	    return 0;
 	}
 	if ( len == 0 )
-	    goto out;
+	    return 0;
     };
     if (len){
-	header->Req.skip -= len;
+	if ( header->Req.skip > len ){
+	    header->Req.skip -= len;
+	    return 0;
+	}else{
+	    len -= header->Req.skip;
+	    header->Req.skip = 0;
+	    return len;
+	}
+    }else{
+	return 0;
     }
- out:
 }
 
 static inline
@@ -892,6 +919,7 @@ PSP_Port_t *AllocPortStructInitialized( void )
 	int i;
 	for( i = 0;i < PSP_FE_MAX_CONNS; i++ ){
 	    port->conns[i].con_fd = -1;
+	    ReadAHInit( &port->conns[i].readahead, env_readahead );
 	    port->conns[i].PostedSendRequests = NULL;
 	    port->conns[i].PostedSendRequestsTailP =
 		&port->conns[i].PostedSendRequests;
@@ -993,18 +1021,22 @@ void ConfigureConnection( int fd )
     unused_var( fd );
 #endif
 
+    if ( env_so_sndbuf ){
+	errno = 0;
+	val = env_so_sndbuf;
+	ret = setsockopt( fd, SOL_SOCKET, SO_SNDBUF, &val, sizeof(val));
+	DPRINT( 2, "setsockopt( %d, SOL_SOCKET, SO_SNDBUF, [%d], %d ) = %d : %s",
+		fd, val, sizeof(val), ret, strerror( errno ));
+    }
+    if ( env_so_rcvbuf ){
+	errno = 0;
+	val = env_so_rcvbuf;
+	ret = setsockopt( fd, SOL_SOCKET, SO_RCVBUF, &val, sizeof(val));
+	DPRINT( 2, "setsockopt( %d, SOL_SOCKET, SO_RCVBUF, [%d], %d ) = %d : %s",
+		fd, val, sizeof(val), ret, strerror( errno ));
+    }
     errno = 0;
-    val = env_so_sndbuf;
-    ret = setsockopt( fd, SOL_SOCKET, SO_SNDBUF, &val, sizeof(val));
-    DPRINT( 2, "setsockopt( %d, SOL_SOCKET, SO_SNDBUF, [%d], %ld ) = %d : %s",
-	    fd, val, (long) sizeof(val), ret, strerror( errno ));
 
-    errno = 0;
-    val = env_so_rcvbuf;
-    ret = setsockopt( fd, SOL_SOCKET, SO_RCVBUF, &val, sizeof(val));
-    DPRINT( 2, "setsockopt( %d, SOL_SOCKET, SO_RCVBUF, [%d], %ld ) = %d : %s",
-	    fd, val, (long) sizeof(val), ret, strerror( errno ));
-    errno = 0;
     val = env_tcp_nodelay;
     ret = setsockopt( fd, IPPROTO_TCP, TCP_NODELAY, &val, sizeof(val));
     DPRINT( 2, "setsockopt( %d, IPPROTO_TCP, TCP_NODELAY, [%d], %ld ) = %d : %s",
@@ -1087,63 +1119,137 @@ int recvall(int fd, void *buf, int count)
     return count;
 }
 
+/* Try to fill the readaheadbuffer with maximal max bytes by reading from
+   con_fd, return the number of bytes in the buffer,
+   or -1 on problems with the connection */
+int ReadAHreadahead( ReadAhead_t *rh, int con_fd, int min, int max )
+{
+    int len;
+    if ( max > rh->len ){
+	rh->buf = (char*)realloc( rh->buf, max );
+    }
+    if ( rh->n < min ){
+#ifdef RECVMSG
+	len = recv( con_fd, rh->buf + rh->n,
+		    max - rh->n, MSG_NOSIGNAL | MSG_DONTWAIT );
+#else
+	len = read( con_fd, rh->buf + rh->n,
+		    max - rh->n );
+#endif
+	if ( len <= 0 ) {
+	    if (len == 0) errno = ECONNREFUSED;
+	    return -1;
+	}
+	rh->n += len;
+    }
+    return rh->n;
+}
 
+static inline
+void ReadAHRemove( ReadAhead_t *rh, int d )
+{
+    if ( rh->n - d > 0 ){
+	memmove( rh->buf, rh->buf + d, rh->n - d );
+    }
+    rh->n = rh->n - d;
+}
+
+static inline
+void ReadAHClear( ReadAhead_t *rh )
+{
+    rh->n = 0;
+}
+
+/* Receive (at least) the beginning of a message.
+   return 0, if maybe more data available.
+   The readahead buffer is only used inside DoRecvNewMessage.
+   If DoRecvNewMessage enqueue a new request in RunningRecvRequest,
+   the readaheaed buffer is alway empty!
+*/
 static inline
 int DoRecvNewMessage( PSP_Port_t *port, int con )
 {
     int ret;
     PSP_Request_t *req;
+    int con_fd = port->conns[con].con_fd;
+    ReadAhead_t *rh = &port->conns[con].readahead;
+    int hlen; /*< headerlen ( PSP_Header_Net_t + xhlen ) */
+    int rlen; /*< length of the readahbuf */
+    int mlen; /*< lenght of the whole message ( PSP_Header_Net_t + xhlen +data ) */
+    int minrm; /*< min( rlen, mlen ) */
+
     /* Read at least the PSP_Header_Net_t and the xheader !!! */
-    /* ToDo: Now we block until all nessasary data is available.
-       But we should save the data in a intermediate buffer between two calls
-       for each connection !! */
 
     /* Read psport header */
-    ret = recvall( port->conns[con].con_fd, ReadAheadBuf, sizeof( PSP_Header_Net_t ));
-    if ( ret < (int)sizeof(PSP_Header_Net_t)) goto err_recvall;
+    ret = ReadAHreadahead( rh, con_fd, sizeof( PSP_Header_Net_t ), env_readahead );
+    if ( ret < (int)sizeof(PSP_Header_Net_t))
+	goto unfinished;
+    
+    /* PSP_Header_Net_t is complete. Now read the xheader.
+       With luck the first readahead call already read this data. */
+    hlen = sizeof( PSP_Header_Net_t ) + ((PSP_Header_Net_t *)rh->buf)->xheaderlen;
+    ret = ReadAHreadahead( rh, con_fd, hlen, hlen );
+    
+    if ( ret < hlen )
+	goto unfinished;
 
-    /* Increase ReadAheadBuf if nessasary to hold the xheader*/
-    if ( ReadAheadBuf->xheaderlen > ReadAheadXHeadlen )
-	PSP_SetReadAhead( ReadAheadBuf->xheaderlen );
+    /* also the xheader is complete and maybe some data from the
+       first ReadAHreadahead */
 
-    /* Read the xheader */
-    ret = recvall( port->conns[con].con_fd, ReadAheadBuf + 1,
-		   ReadAheadBuf->xheaderlen );
-    if ( ret < (int)ReadAheadBuf->xheaderlen ) goto err_recvall;
-
+    mlen = hlen + ((PSP_Header_Net_t *)rh->buf)->datalen;
+    rlen = ret;
+ more:
+    minrm = PSP_MIN( rlen, mlen );
+    
     /* Search or generate the Request */
-    req = GetPostedRequest( &port->ReqList, ReadAheadBuf,
-			    sizeof( PSP_Header_Net_t ) + ReadAheadBuf->xheaderlen,
-			    con );
+    req = GetPostedRequest( &port->ReqList, (PSP_Header_Net_t *)rh->buf, minrm, con );
     if (!req){
 	/* receive without posted RecvRequest */
-	req = GenerateRequest( &port->ReqList , ReadAheadBuf,
-			       sizeof( PSP_Header_Net_t ) + ReadAheadBuf->xheaderlen,
-			       con );
+	req = GenerateRequest( &port->ReqList , (PSP_Header_Net_t *)rh->buf,
+			       minrm, con );
     }
 
     REQ_TO_HEADER( req )->addr.from = con;
-    /*
-      If ReadAheadBuf->datalen equal zero, the request is already
-      finished. This is equivalent to:
-      (iovec[1].iov_len == 0) && (skip == 0))
-    */
-    if ( ReadAheadBuf->datalen ){
+
+    if ( mlen <= rlen ){
+	/* Message is complete */
+	/* "port->conns[ con ].RunningRecvRequest = 0" already done */
+	FinishRequest( port, req );
+	/* remove the used data */
+	ReadAHRemove( rh, mlen );
+	if (rh->n >= (int)sizeof( PSP_Header_Net_t )){
+	    hlen = sizeof( PSP_Header_Net_t ) + ((PSP_Header_Net_t *)rh->buf)->xheaderlen;
+	    mlen = hlen + ((PSP_Header_Net_t *)rh->buf)->datalen;
+	    rlen = rh->n;
+	    if ( rh->n >= mlen ){
+		/* There is a complet message in the readahead buffer.
+		   We MUST read this now, else we will block
+		   in the next select forever. */
+		goto more;
+	    }
+	}
+	return 1;
+    }else{
 	/* Enq running req */
 	port->conns[ con ].RunningRecvRequest = req;
+	/* whole readahead buffer used */
+	ReadAHClear( rh );
+	return 0;
+    }
+    
+ unfinished:
+    /* PSP_Header_Net_t not complete */
+    if ( ret >= 0 ){
+	return 1;
     }else{
-	 /* "port->conns[ con ].RunningRecvRequest = 0" already done */
-	FinishRequest( port, req );
+	if ((errno != EAGAIN) && (errno != EWOULDBLOCK) && (errno != EINTR)){
+	    DPRINT( 1, "STOPPED conn %d (recvnew : %s)", con,
+		    strerror( errno ));
+	    /* ToDo: Terminate connection */
+	    FD_CLR( port->conns[con].con_fd, &port->fds_read );
+	}
+	return 1;
     }
-    return 0;
- err_recvall:
-    if (errno != EINTR){
-	DPRINT( 1, "STOPPED conn %d (recvnew : %s)", con,
-		strerror( errno ));
-	/* ToDo: Terminate connection */
-	FD_CLR( port->conns[con].con_fd, &port->fds_read );
-    }
-    return 1;
 }
 
 
@@ -1170,8 +1276,7 @@ void DoRecv( PSP_Port_t *port, int con )
 		ret = 0;
 	    }
 #endif
-	    if ( ret < 0 ) goto err_recvmsg; 
-	    if ( ret == 0 ) goto out;
+	    if ( ret <= 0 ) goto err_recvmsg; 
 	    proceed_header( REQ_TO_HEADER( req ), ret );
 	    
 	    if (( req->msgheader.msg_iovlen == 0 ) &&
@@ -1186,10 +1291,9 @@ void DoRecv( PSP_Port_t *port, int con )
 	    /* skip the last bytes from the message (user buffer was to small)*/
 	    ret = recv( port->conns[con].con_fd,
 			trash,
-			PSP_MIN( port->conns[con].RunningRecvRequest->skip, TRASHSIZE ),
+			PSP_MIN( req->skip, TRASHSIZE ),
 			MSG_NOSIGNAL | MSG_DONTWAIT );
-	    if ( ret < 0 ) goto err_recv; 
-	    if ( ret == 0 ) goto out;
+	    if ( ret <= 0 ) goto err_recv; 
 	    port->conns[con].RunningRecvRequest->skip -= ret;
 
 	    if ( port->conns[con].RunningRecvRequest->skip == 0){
@@ -1206,11 +1310,11 @@ void DoRecv( PSP_Port_t *port, int con )
 	}
     }
 
- out:
     return;
  err_recv:
  err_recvmsg:
-    if ((errno != EAGAIN) && (errno != EINTR)){
+    if (ret == 0) errno = ECONNREFUSED;
+    if ((errno != EAGAIN) && (errno != EWOULDBLOCK) && (errno != EINTR)){
 	DPRINT( 1, "STOPPED conn %d (recv : %s)", con,
 		strerror( errno ));
 	/* ToDo: Terminate connection */
@@ -1249,7 +1353,7 @@ void DoSend( PSP_Port_t *port, int con )
     }
     return;
  err_sendmsg:
-    if (errno != EINTR){
+    if ((errno != EAGAIN) && (errno != EWOULDBLOCK) && (errno != EINTR)){
 	DPRINT( 1, "STOPPED conn %d (send : %s)", con,
 		strerror( errno ));
 	/* ToDo: Terminate connection */
@@ -1270,20 +1374,23 @@ int DoBackgroundWorkWait( PSP_Port_t *port, struct timeval *timeout )
     fds_write = port->fds_write;
 
     nfds = select( port->nfds, &fds_read, &fds_write, NULL, timeout );
+
     if ( nfds <= 0 ) return 0;
 
     for ( i = PSP_FE_MAX_CONNS-1; i>=port->min_connid; i-- ){
 	if ( port->conns[i].con_fd >= 0 ){
-	    if ( FD_ISSET( port->conns[i].con_fd, &fds_read )){
-		FD_CLR( port->conns[i].con_fd, &fds_read );
-//		printf("r");
-		DoRecv( port, i );
-	    }
 	    if ( FD_ISSET( port->conns[i].con_fd, &fds_write )){
 		FD_CLR( port->conns[i].con_fd, &fds_write );
 //		printf("s");
 		DoSend( port, i );
+		if ( !(--nfds) ) return 1;
 	    }	    
+	    if ( FD_ISSET( port->conns[i].con_fd, &fds_read )){
+		FD_CLR( port->conns[i].con_fd, &fds_read );
+//		printf("r");
+		DoRecv( port, i );
+		if ( !(--nfds) ) return 1;
+	    }
 	}
     }
 
@@ -1300,11 +1407,11 @@ void DoBackgroundWork( PSP_Port_t *port )
 {
     struct timeval to;
     int ret;
-    do{
+//    do{
 	to.tv_sec = 0;
 	to.tv_usec = 0;
 	ret = DoBackgroundWorkWait( port, &to );
-    }while ( ret );
+//    }while ( ret );
 }
 
 #ifdef USE_SIGURG
@@ -1330,11 +1437,23 @@ void sigurg( int signal )
 static
 void sigquit( int signal )
 {
+    PSP_Port_t *port;
+    int i;
     unused_var( signal );
     printf(" +++++++++ SIGQUIT START ++++ \n");
     printf(" GenReq:%d (%d) PostedReq: %d(%d)\n",
 	   GenReqs-GenReqsUsed, GenReqs,
 	   PostedRecvReqs-PostedRecvReqsUsed, PostedRecvReqs);
+
+    for ( port = Ports; port; port = port->NextPort ){
+	for ( i=0; i<PSP_FE_MAX_CONNS; i++ ){
+	    if ( port->conns[i].readahead.n ) {
+		printf( "port: %d con: %d rhbuf: %s\n",
+			port->portid.id.portno, i,
+			dumpstr( port->conns[i].readahead.buf, port->conns[i].readahead.n ));
+	    }
+	}
+    }
     printf(" +++++++++ SIGQUIT END ++++++ \n");
 }
 
@@ -1390,7 +1509,6 @@ void init_clone()
     clone(PSP_bg_thread,&bg_thread_stack[bg_thread_stack_size-8],
 	  CLONE_VM | CLONE_FS | CLONE_FILES ,(void*)getpid());
 
-
 }
 #endif
 
@@ -1417,6 +1535,8 @@ void init_env( void )
     intgetenv( &env_tcp_nodelay, ENV_TCP_NODELAY );
     intgetenv( &env_nobgthread, ENV_NOBGTHREAD );
     intgetenv( &env_sigquit, ENV_SIGQUIT );
+    intgetenv( &env_readahead, ENV_READAHEAD );
+    env_readahead = PSP_MAX( env_readahead, (int)sizeof( PSP_Header_Net_t ));
 }
 
 
@@ -1444,7 +1564,7 @@ int PSP_Init()
 
     /* Initialize Ports */
     InitPorts();
-    PSP_SetReadAhead( READAHEADXHEADLENDEFAULT );
+//    PSP_SetReadAhead( READAHEADXHEADLENDEFAULT );
     trash = (char*)malloc( TRASHSIZE );
     PSP_UNLOCK;
     
@@ -1841,6 +1961,7 @@ PSP_RequestH_t PSP_IReceiveCBFrom(PSP_PortH_t porth,
 
 	if (( header->addr.from != PSP_DEST_LOOPBACK ) &&
 	    ( port->conns[ header->addr.from ].RunningRecvRequest == req )){
+	    /* RunningRecvRequest == req means: The request is not finished */
 	    /* Replace the running request */
 	    port->conns[ header->addr.from ].RunningRecvRequest =
 		&header->Req;
@@ -1959,9 +2080,9 @@ PSP_Status_t PSP_Wait(PSP_PortH_t portH, PSP_RequestH_t request)
     }
 #endif
 
-    PSP_LOCK;
-    DoBackgroundWork( port );
-    ExecBHandUnlock();
+//      PSP_LOCK;
+//      DoBackgroundWork( port );
+//      ExecBHandUnlock();
 
     while (! (header->Req.state & PSP_REQ_STATE_PROCESSED)){
 	PSP_LOCK;
