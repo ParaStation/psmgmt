@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.c,v 1.8 2002/05/22 18:43:50 hauke Exp $
+ * $Id: mcast.c,v 1.9 2002/07/03 20:14:47 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.8 2002/05/22 18:43:50 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.9 2002/07/03 20:14:47 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -346,6 +346,8 @@ static void checkConnectionsMCast(void)
     }
 
     /* Ping from LicServer missing for to long -> shutdown */
+    /* @todo Das sollte hardcoded sein, sonst durch großes MCastDeadLimit
+       zu umgehen !! */
     if (conntableMCast[nrOfNodes].misscounter > (10 * MCastDeadLimit) ) {
 	errlog("Lost connection to LicServer, shutting down operation", 0);
 	if (MCastCallback != NULL) { /* inform daemon */
@@ -568,7 +570,7 @@ int initMCast(int nodes, int mcastgroup, unsigned short portno, int usesyslog,
 	portno = DEFAULT_MCAST_PORT;
     }
 
-    initConntableMCast(nodes, hosts, htons(portno));
+    initConntableMCast(nrOfNodes, hosts, htons(portno));
 
     if (!isInitializedTimer()) {
 	initTimer(usesyslog);
