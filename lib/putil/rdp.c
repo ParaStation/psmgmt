@@ -397,8 +397,8 @@ typedef struct msgbuf_ {
 static msgbuf *msgfreelist;	/* list of msg buf's ready to use */
 static Smsg   *Smsgfreelist;	/* list of Smsg buf's ready to use */
 
-#define MAX_WINDOW_SIZE	32
-#define MAX_ACK_PENDING  8
+#define MAX_WINDOW_SIZE	64
+#define MAX_ACK_PENDING  4
 struct timeval RESEND_TIMEOUT = {0,100000}; /* sec, usec */
 /*  timeout for retransmission in us  (100.000) == 100ms */
 #define TIMER_LOOP	2	/* frequency of interval timer in s (used as ping freq) */
