@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: helpmsgs.c,v 1.9 2004/01/27 21:04:19 eicker Exp $
+ * $Id: helpmsgs.c,v 1.10 2004/03/11 14:27:58 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.9 2004/01/27 21:04:19 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.10 2004/03/11 14:27:58 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -196,8 +196,9 @@ static info_t setInfo = {
 	.cmd = "set",
 	.arg = "{maxproc {<num>|any} | user {<user>|any} | group {<group>|any}"
 	" | psiddebug <level> | rdpdebug <level> | rdppktloss <rate> "
-	" | rdpmaxretrans <val> | mcastdebug <level> | smallpacketsize <size>"
-	" | hnpend <val> | ackpend <val>} <nodes>"
+	" | rdpmaxretrans <val> | mcastdebug <level>"
+	" | {smallpacketsize|sps} <size> | hnpend <val> | ackpend <val>"
+	" | {freeonsuspend|fos} } <nodes>"
     }},
     .nodes = 1,
     .descr = "Set one of various parameters of the ParaStation system:",
@@ -235,12 +236,16 @@ static info_t setInfo = {
 	  " seleceted nodes. Depending on <level> the daemon might log a huge"
 	  " amount of messages to the syslog. Thus do not use large values"
 	  " for <level> for a long time." },
-	{ .tag = "set smallpacketsize <size>",
+	{ .tag = "set {smallpacketsize|sps} <size>",
 	  .descr = "Set MCP's maximum size of PIO packets to <size> bytes." },
 	{ .tag = "set ackpend <val>",
 	  .descr = "Set MCP's ACKPend parameter to <val>." },
 	{ .tag = "set hnpend <val>",
 	  .descr = "Set MCP's HNPend parameter to <val>." },
+	{ .tag = "set {freeonsuspend|fos} <val>",
+	  .descr = "Set flag marking if resources of suspended jobs are freed"
+	  " temporarily to <val>. Relevant values are 0 or different from 0."
+	  " Only the value on the master node really steers the behaviour!" },
 	{ NULL, NULL }
     },
     .comment = "For more information reffer to 'help set <subcommand>'"
@@ -251,8 +256,8 @@ static info_t showInfo = {
     .syntax = (syntax_t[]) {{
 	.cmd = "show",
 	.arg = "{maxproc | user | group | psiddebug | rdpdebug | rdppktloss"
-	" | rdpmaxretrans | mcastdebug | master | smallpacketsize"
-	" | resendtimeout | hnpend | ackpend} <nodes>"
+	" | rdpmaxretrans | mcastdebug | master | {smallpacketsize|sps}"
+	" | resendtimeout | hnpend | ackpend | {freeonsuspend|fos}} <nodes>"
     }},
     .nodes = 1,
     .descr = "Show various parameters of the ParaStation system:",
@@ -283,6 +288,10 @@ static info_t showInfo = {
 	  .descr = "Show MCP's HNPend parameter." },
 	{ .tag = "show ackpend",
 	  .descr = "Show MCP's AckPend parameter." },
+	{ .tag = "set {freeonsuspend|fos} <val>",
+	  .descr = "Show flag marking if resources of suspended jobs are freed"
+	  " temporarily. Only the value on the master node really steers the"
+	  " behaviour!" },
 	{ NULL, NULL }
     },
     .comment = NULL
