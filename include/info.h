@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.h,v 1.16 2003/03/11 10:17:10 eicker Exp $
+ * $Id: info.h,v 1.17 2003/03/19 17:08:00 eicker Exp $
  *
  */
 /**
  * @file
  * info: Functions for information retrieving from ParaStation daemon
  *
- * $Id: info.h,v 1.16 2003/03/11 10:17:10 eicker Exp $
+ * $Id: info.h,v 1.17 2003/03/19 17:08:00 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -134,12 +134,16 @@ typedef struct {
 int INFO_request_tasklist(int nodeno, INFO_taskinfo_t taskinfo[], size_t size,
 			  int verbose);
 
+int INFO_request_nrofnodes(int verbose);
+
+char *INFO_request_instdir(int verbose);
+
+char *INFO_request_psidver(int verbose);
 
 /**
  * Type of taskinfo request
  */
 typedef enum {
-    INFO_GETINFO = 0x01,    /**< get infos of this task (internally used) */
     INFO_ISALIVE = 0x02,    /**< check if the tid is alive */
     INFO_PTID = 0x03,       /**< get the parents TID */
     INFO_LOGGERTID = 0x04,  /**< get the loggers TID */
