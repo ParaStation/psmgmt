@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: commands.c,v 1.7 2003/12/10 16:39:28 eicker Exp $
+ * $Id: commands.c,v 1.8 2004/01/15 16:21:40 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.7 2003/12/10 16:39:28 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.8 2004/01/15 16:21:40 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -19,20 +19,10 @@ static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.7 2003/12/1
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#include <arpa/inet.h>
 #include <sys/types.h>
-#include <netdb.h>
 #include <signal.h>
 #include <pwd.h>
 #include <grp.h>
-#include <termios.h>
-#include <readline/readline.h>
-#include <readline/history.h>
-#include <popt.h>
-
-#ifndef MIN
-#define MIN(a,b)      (((a)<(b))?(a):(b))
-#endif
 
 #include "pscommon.h"
 #include "parser.h"
@@ -45,15 +35,12 @@ static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.7 2003/12/1
 
 #include "commands.h"
 
-char commandsversion[] = "$Revision: 1.7 $";
-
-static int doRestart = 0;
-
+char commandsversion[] = "$Revision: 1.8 $";
 
 /* @todo PSI_sendMsg(): Wrapper, control if sendMsg was successful or exit */
 
 
-/** Simple array with attached actual size. */
+/** Simple array with current size attached */
 typedef struct {
     size_t actSize;  /**< The actual size of the array @ref list */
     char *list;      /**< The array. */
@@ -94,12 +81,13 @@ static int extendList(sizedList_t *list, size_t size, const char *caller)
 /**
  * @brief Get a full list.
  *
- * Get a full list from the daemon. Therefor a list of type @a what is
+ * Get a full list from the daemon. Therefore a list of type @a what is
  * stored to @a list. Each item of the list is expected to have size
  * @a itemSize. In order to provide this function with the correct @a
  * itemSize, please refer to the documentation within psiinfo.h.
  *
- * This function expects the list to be of length PSC_getNrOfNodes().
+ * This function expects the list to be of length returned by @ref
+ * PSC_getNrOfNodes().
  *
  *
  * @param list A sized list to store the result to.
@@ -189,60 +177,40 @@ static inline int getTaskInfo(PSnodes_ID_t node, int count, int full)
     return tasks / sizeof(PSP_taskInfo_t);
 }
 
-/** @todo */
-static sizedList_t tn0List = { .actSize = 0, .list = NULL };
-/** @todo */
-static sizedList_t tn1List = { .actSize = 0, .list = NULL };
+/** List used for storing of normal task number informations. */
+static sizedList_t tnnList = { .actSize = 0, .list = NULL };
+/** List used for storing of full task number informations. */
+static sizedList_t tnfList = { .actSize = 0, .list = NULL };
 
-/**
- * @brief Update @ref taskNum.
- *
- * Update the @ref taskNum variable.
- *
- * @param full @todo
- *
- * @return On success, 1 is returned, or 0, if an error occurred.
- */
+/** Simple wrapper for retrieval of task numbers */
 static inline int getTaskNum(int full)
 {
-    PSP_Info_t what = full ? PSP_INFO_LIST_ALLJOBS : PSP_INFO_LIST_NORMJOBS;
-
-    return getFullList(full ? &tn1List : &tn0List, what, sizeof(uint16_t));
+    return getFullList(full ? &tnfList : &tnnList,
+		       full ? PSP_INFO_LIST_ALLJOBS : PSP_INFO_LIST_NORMJOBS,
+		       sizeof(uint16_t));
 }
 
-/** @todo */
+/** List used for storing of load informations. */
 static sizedList_t ldList = { .actSize = 0, .list = NULL };
 
-/**
- * @todo
- * @brief Update @ref taskInfo.
- *
- * Update the @ref taskInfo variable from node @a node.
- *
- * @param node @todo
- *
- * @param count @todo
- *
- * @return On success, the number of task infos received and stored to
- * @a taskInfo is returned, or 0, if an error occurred.
- */
+/** Simple wrapper for retrieval of loads */
 static inline int getLoads(void)
 {
     return getFullList(&ldList, PSP_INFO_LIST_LOAD, 3 * sizeof(float));
 }
 
-/** @todo */
+/** List used for storing of physical CPU informations. */
 static sizedList_t pcpuList = { .actSize = 0, .list = NULL };
-/** @todo */
+/** List used for storing of virtual CPU informations. */
 static sizedList_t vcpuList = { .actSize = 0, .list = NULL };
 
-/** @todo */
+/** Simple wrapper for retrieval of physical CPU numbers */
 static inline int getPhysCPUs(void)
 {
     return getFullList(&pcpuList, PSP_INFO_LIST_PHYSCPUS, sizeof(uint16_t));
 }
 
-/** @todo */
+/** Simple wrapper for retrieval of virtual CPU numbers */
 static inline int getVirtCPUs(void)
 {
     return getFullList(&vcpuList, PSP_INFO_LIST_VIRTCPUS, sizeof(uint16_t));
@@ -540,7 +508,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 
     if (! getHostStatus()) return;
     if (! getTaskNum(full)) return;
-    taskNum = full ? (uint16_t *) tn1List.list : (uint16_t *) tn0List.list;
+    taskNum = full ? (uint16_t *) tnfList.list : (uint16_t *) tnnList.list;
 
     printf("%4s %22s %22s %3s %9s\n",
 	   "Node", "TaskId", "ParentTaskId", "Con", "UserId");
@@ -589,9 +557,9 @@ void PSIADM_LoadStat(char *nl)
     if (! getLoads()) return;
     loads = (float *)ldList.list;
     if (! getTaskNum(1)) return;
-    taskNumFull = (uint16_t *) tn1List.list;
+    taskNumFull = (uint16_t *) tnfList.list;
     if (! getTaskNum(0)) return;
-    taskNumNorm = (uint16_t *) tn0List.list;
+    taskNumNorm = (uint16_t *) tnnList.list;
 
     printf("Node\t\t Load\t\t     Jobs\n");
     printf("\t 1 min\t 5 min\t15 min\t tot.\tnorm.\n");
@@ -757,6 +725,12 @@ void PSIADM_ShowParam(PSP_Option_t type, char *nl)
 	}
     }
 }
+
+/**
+ * Flag to mark an ongoing restart of the local daemon. Thus SIGTERM
+ * signals sent by the daemon can be ignored if different from 0.
+ */
+static int doRestart = 0;
 
 void PSIADM_sighandler(int sig)
 {
