@@ -32,9 +32,16 @@ else
 OSVERSION := $(shell uname -r)
 endif
 
+DEVELOP := $(shell grep -q -e '^\#define *DEVELOP *$\' $(INCLUDEDIR)/ps_develop.h && echo 1 || echo 0)
+#'
+ifeq ($(DEVELOP),1)
+DEVSUF:=_devel
+endif
+
+
 OSARCHITECTUR :=  $(shell uname -m)
-OSID  := $(OSARCHITECTUR)_$(OSNAME)_$(OSVERSION)
-OSSID := $(OSARCHITECTUR)_$(OSNAME)$(OSSUF)
+OSID  := $(OSARCHITECTUR)$(DEVSUF)_$(OSNAME)_$(OSVERSION)
+OSSID := $(OSARCHITECTUR)$(DEVSUF)_$(OSNAME)$(OSSUF)
 
 
 MODULEARCHIVEDIR := $(ROOTDIR)/modules/$(OSID)
@@ -46,7 +53,6 @@ INC := $(INCLUDEDIR)
 GCCINC := -I$(INC) -I$(PSMDIR)/$(OSNAME)
 
 
-DEVELOP := $(shell grep -q -e '^\#define *DEVELOP *$\' $(INCLUDEDIR)/ps_develop.h && echo 1 || echo 0)
 
 
 
