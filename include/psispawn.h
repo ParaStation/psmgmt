@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.h,v 1.12 2003/07/22 18:31:01 eicker Exp $
+ * $Id: psispawn.h,v 1.13 2003/08/04 15:18:38 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for spawning of ParaStation tasks.
  *
- * $Id: psispawn.h,v 1.12 2003/07/22 18:31:01 eicker Exp $
+ * $Id: psispawn.h,v 1.13 2003/08/04 15:18:38 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -20,6 +20,8 @@
  */
 #ifndef __PSISPAWN_H__
 #define __PSISPAWN_H__
+
+#include <sys/types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -139,6 +141,19 @@ int PSI_spawnM(int count, short* dstnodes, char *workingdir,
 	       int argc, char **argv,
 	       long loggertid,
 	       int rank, int *errors, long *tids);
+
+/**
+ * @brief Set UID for spawns
+ *
+ * Set the UID for subsequently spawned processes to @a uid. This will
+ * only affect processes spawned via PSI_spawnM() of PSI_spawn(). Only
+ * root (i.e. UID 0) is allowed to change the UID of spawned processes.
+ *
+ * @param uid The UID of the processes to spawn.
+ *
+ * @return No return value.
+ */
+void PSI_setUID(uid_t uid);
 
 /**
  * @brief Check the presence of LSF-Parallel.
