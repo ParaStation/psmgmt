@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.25 2002/07/18 12:19:31 eicker Exp $
+ * $Id: pse.c,v 1.26 2002/07/19 12:52:57 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.25 2002/07/18 12:19:31 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.26 2002/07/19 12:52:57 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -101,8 +101,9 @@ void PSE_init(int NP, int *rank)
 
     env_str = getenv("PSI_DEBUGLEVEL");
     if (env_str) {
+	loglevel = atoi(env_str);
 	/* Propagate to client */
-	putPSIEnv(env_str);
+	setPSIEnv("PSI_DEBUGLEVEL", env_str, 1);
     }
 
     initErrLog("PSE", 0 /* Don't use syslog */);
