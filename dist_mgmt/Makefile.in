@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.8 2003/08/27 13:03:44 hauke Exp $
+# $Id: Makefile.in,v 1.9 2003/10/13 17:19:47 hauke Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -25,7 +25,7 @@ DISTDIR := $(BUILDDIR)/$(DISTPATH)
 INCLUDES += pshwtypes.h pse.h
 INCDIR := $(DISTDIR)/include
 
-BINS += psiadmin psid psld psilogger mlisten
+BINS += psiadmin psid psilogger mlisten
 BINS += psmstart mpirun_chp4 psispawn mpirun_chgm gmspawner
 BINDIR := $(DISTDIR)/bin
 
