@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.5 2002/07/24 06:24:14 eicker Exp $
+ * $Id: psprotocol.h,v 1.6 2002/07/26 15:23:01 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation client-daemon and daemon-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.5 2002/07/24 06:24:14 eicker Exp $
+ * $Id: psprotocol.h,v 1.6 2002/07/26 15:23:01 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -31,7 +31,7 @@ extern "C" {
 #endif
 #endif
 
-#define PSprotocolversion  314
+#define PSprotocolversion  315
 
 /** @todo Documentation */
 
@@ -192,11 +192,20 @@ typedef struct {
     short numCPU;          /* Number of CPUs in that node */
 } DDConnectMsg_t;
 
+#define BufMsgSize 8000
+
 /* untyped Buffer Message */
 typedef struct {
     DDMsg_t header;        /* header of the message */
-    char buf[8000];        /* buffer for Message */
+    char buf[BufMsgSize];  /* buffer for Message */
 } DDBufferMsg_t;
+
+/* typed Buffer Message */
+typedef struct {
+    DDMsg_t header;        /* header of the message */
+    int type;              /* type of buffer message */
+    char buf[BufMsgSize-sizeof(int)];        /* buffer for Message */
+} DDTypedBufferMsg_t;
 
 /* Init Message */
 typedef struct {
@@ -206,11 +215,11 @@ typedef struct {
     long version;          /* version of the PS library */
     int nrofnodes;         /* # of nodes */
     int myid;              /* PS id of this node */
-    unsigned int loggernode;/* @todo Obsolete as soon as new forwarder works */
-    short loggerport;       /* @todo Obsolete as soon as new forwarder works */
-    int rank;              /* rank of client passed by spawn */
-    int uid;               /* user id */
-    int pid;               /* process id */
+    unsigned int loggernode;/* @todo Obsolete with new forwarder; loggernode */
+    short loggerport;       /* @todo Obsolete with new forwarder; loggerport */
+    int pid;               /* @todo Obsolete with UNIX sockets; process id */
+    int uid;               /* @todo Obsolete with UNIX sockets; user id */
+    int gid;               /* @todo Obsolete with UNIX sockets; group id */
     char instdir[80];      /** Installation directory of ParaStation stuff */
     char psidvers[80];     /** CVS version-string of the ParaStation daemon */
 } DDInitMsg_t;
@@ -246,8 +255,11 @@ typedef struct {
     DDMsg_t header;        /**< header of the message */
     long tid;              /**< tasks unique identifier */
     long ptid;             /**< unique identifier of tasks parent-task */
+    long loggertid;        /**< unique identifier of tasks logger-task */
     uid_t uid;             /**< user id of the task */
     long group;            /**< process group of the task */
+    int rank;              /**< rank of the task within process group */
+    int connected;         /**< flag if task has connected the daemon */
 } DDTaskinfoMsg_t;
 
 

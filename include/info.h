@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.h,v 1.12 2002/07/08 16:13:56 eicker Exp $
+ * $Id: info.h,v 1.13 2002/07/26 15:23:01 eicker Exp $
  *
  */
 /**
  * @file
  * info: Functions for information retrieving from ParaStation daemon
  *
- * $Id: info.h,v 1.12 2002/07/08 16:13:56 eicker Exp $
+ * $Id: info.h,v 1.13 2002/07/26 15:23:01 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -95,8 +95,11 @@ int INFO_request_host(unsigned int addr, int verbose);
 typedef struct {
     long tid;
     long ptid;
+    long loggertid;
     uid_t uid;
     long group;
+    int rank;
+    int connected;
 } INFO_taskinfo_t;
 
 /*****************************
@@ -118,7 +121,9 @@ typedef enum {
     INFO_GETINFO = 0x01,    /**< get infos of this task (internally used) */
     INFO_ISALIVE = 0x02,    /**< check if the tid is alive */
     INFO_PTID = 0x03,       /**< get the parents TID */
-    INFO_UID = 0x04         /**< get the uid of the task */
+    INFO_LOGGERTID = 0x04,  /**< get the loggers TID */
+    INFO_UID = 0x05,        /**< get the uid of the task */
+    INFO_RANK = 0x06        /**< get the rank of the task */
 } INFO_info_t;
 
 /*----------------------------------------------------------------------*/
@@ -131,23 +136,25 @@ typedef enum {
  */
 long INFO_request_taskinfo(long tid, INFO_info_t what, int verbose);
 
-/*----------------------------------------------------------------------*/
-/*
+/**
+ * @todo May be obsolete
+ *
  * INFO_request_load(node)
  *
  *  gets the load of the given node
  *  RETURN the load of the node
  */
-double INFO_request_load(unsigned short node, int verbose);
+// double INFO_request_load(unsigned short node, int verbose);
 
-/*----------------------------------------------------------------------*/
-/*
+/**
+ * @todo May be obsolete
+ *
  * INFO_request_proc(node)
  *
  *  gets the number of processes on the given node
  *  RETURN the number of processes on the node
  */
-double INFO_request_proc(unsigned short node, int verbose);
+// double INFO_request_proc(unsigned short node, int verbose);
 
 int INFO_request_option(unsigned short node, int num, long option[],
 			long value[], int verbose);

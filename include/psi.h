@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.h,v 1.17 2002/07/24 06:24:41 eicker Exp $
+ * $Id: psi.h,v 1.18 2002/07/26 15:23:01 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with the ParaStation system.
  *
- * $Id: psi.h,v 1.17 2002/07/24 06:24:41 eicker Exp $
+ * $Id: psi.h,v 1.18 2002/07/26 15:23:01 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -36,18 +36,12 @@ extern "C" {
  *
  * PSI_msock only needed by logger (-> to be removed for new logger)
  * PSI_loggernode/PSI_loggerport (-> to be removed for new logger)
- * PSI_myrank -> new call PSI_getRank()
- * PSI_psidversion -> new call PSI_getDaemonVersion()
  *
  */
 extern int PSI_msock;                 /* master socket to connect psid */
 
 extern unsigned int PSI_loggernode;   /* IP number of my loggernode (or 0) */
 extern int PSI_loggerport;            /* port of my logger process */
-
-extern int PSI_myrank;                /* rank inside my process-group */
-
-extern char *PSI_psidversion;  /** CVS versionstring of psid */
 
 /** @todo Documentation */
 
@@ -64,6 +58,15 @@ int PSI_initClient(PStask_group_t taskGroup);
  *   reconfigs all variable so that a PSI_clientinit() will be successful
  */
 int PSI_exitClient(void);
+
+/**
+ * @brief Get psid's version string.
+ *
+ * Get the CVS version string of the local psid that is contacted.
+ *
+ * @return The version string is returned.
+ */
+char *PSI_getPsidVersion(void);
 
 /**
  * @brief Send a message.
