@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidtask.c,v 1.5 2002/07/31 09:05:12 eicker Exp $
+ * $Id: psidtask.c,v 1.6 2002/08/06 08:28:04 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.5 2002/07/31 09:05:12 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.6 2002/08/06 08:28:04 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -30,38 +30,38 @@ static char errtxt[256];
 
 void PSID_setSignal(PStask_sig_t **siglist, long tid, int signal)
 {
-    PStask_sig_t *thissignal;
+    PStask_sig_t *thissig;
 
-    thissignal = (PStask_sig_t*) malloc(sizeof(PStask_sig_t));
+    thissig = (PStask_sig_t*) malloc(sizeof(PStask_sig_t));
 
-    thissignal->signal = signal;
-    thissignal->tid = tid;
-    thissignal->next = *siglist;
+    thissig->signal = signal;
+    thissig->tid = tid;
+    thissig->next = *siglist;
 
-    *siglist = thissignal;
+    *siglist = thissig;
 }
 
 int PSID_removeSignal(PStask_sig_t **siglist, long tid, int signal)
 {
-    PStask_sig_t *this, *prev = NULL;
+    PStask_sig_t *thissig, *prev = NULL;
 
-    this = *siglist;
-    while (this && this->tid != tid && this->signal != signal) {
-	prev = this;
-	this = this->next;
+    thissig = *siglist;
+    while (thissig && thissig->tid != tid && thissig->signal != signal) {
+	prev = thissig;
+	thissig = thissig->next;
     }
 
-    if (this) {
+    if (thissig) {
 	/* Signal found */
-	if (this == *siglist) {
+	if (thissig == *siglist) {
 	    /* First element in siglist */
-	    *siglist = this->next;
+	    *siglist = thissig->next;
 	} else {
 	    /* Somewhere in the middle */
-	    prev->next = this->next;
+	    prev->next = thissig->next;
 	}
 
-	free(this);
+	free(thissig);
 
 	return 1;
     }
@@ -72,34 +72,34 @@ int PSID_removeSignal(PStask_sig_t **siglist, long tid, int signal)
 long PSID_getSignal(PStask_sig_t **siglist, int *signal)
 {
     long tid;
-    PStask_sig_t *this, *prev = NULL;
+    PStask_sig_t *thissig, *prev = NULL;
 
     if (!*siglist)
 	return 0;
 
-    this = *siglist;
+    thissig = *siglist;
 
     /* Take any signal if *signal==-1, i.e. first entry */
     if (*signal!=-1) {
-	while (this && this->signal != *signal) {
-	    prev = this;
-	    this = this->next;
+	while (thissig && thissig->signal != *signal) {
+	    prev = thissig;
+	    thissig = thissig->next;
 	}
     }
 
-    if (this) {
+    if (thissig) {
 	/* Signal found */
-	*signal = this->signal;
-	tid = this->tid;
-	if (this == *siglist) {
+	*signal = thissig->signal;
+	tid = thissig->tid;
+	if (thissig == *siglist) {
 	    /* First element in siglist */
-	    *siglist = this->next;
+	    *siglist = thissig->next;
 	} else {
 	    /* Somewhere in the middle */
-	    prev->next = this->next;
+	    prev->next = thissig->next;
 	}
 
-	free(this);
+	free(thissig);
 
 	return tid;
     }
@@ -141,9 +141,6 @@ int PStasklist_enqueue(PStask_t **list, PStask_t *task)
 	(*list) = task;
     }
 
-    /* Tell MCast about the new task */
-    incJobsMCast(PSC_getMyID(), 1, (task->group==TG_ANY));
-
     return 0;
 }
 
@@ -168,9 +165,6 @@ PStask_t *PStasklist_dequeue(PStask_t **list, long tid)
 	if (task->next) {
 	    task->next->prev = task->prev;
 	}
-
-	/* Tell MCast about removing the task */
-	decJobsMCast(PSC_getMyID(), 1, (task->group==TG_ANY));
     }
 
     return task;
