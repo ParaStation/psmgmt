@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.14 2003/04/03 13:14:37 hauke Exp $
+# $Id: Makefile.in,v 1.15 2003/04/04 13:51:02 hauke Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -16,36 +16,31 @@ TOP_BUILDDIR := ..
 TARGET_OS := @target_os@
 TARGET_CPU := @target_cpu@
 
-
 #s.o. clean:
 DISTPATH := opt/parastation
 
-INCLUDES += psport4.h pshwtypes.h pse.h
+INCLUDES += psport4.h
 INCDIR := $(DISTPATH)/include
 
-BINS += psiadmin psid psld
-BINS += psilogger mlisten psmstart mpirun_chp4 psispawn
-BINDIR := $(DISTPATH)/bin
-
-LIBS += libpsport4.a libpsi.a libpse.a
+LIBS += libpsport4.a
 ifeq ("$(TARGET_OS)","linux")
-LIBS += libpsport4.so libpsi.so libpse.so
+LIBS += libpsport4.so
 endif
 LIBDIR := $(DISTPATH)/lib
 
 CONFIGDIR := $(DISTPATH)/config
 
-MISC += config/parastation.conf.tmpl VERSION INSTALL config/PSM_INSTALL
-.PHONY: VERSION
+MISC += config/ps_ethernet
 
-MISCDIR :=
+MISC += VERSION.psfe
+.PHONY: VERSION.psfe
 
-DIRS += $(BINDIR) $(LIBDIR) $(INCDIR) $(MISCDIR) $(CONFIGDIR)
+DIRS += $(LIBDIR) $(INCDIR) $(CONFIGDIR)
 
 ######################################################
 MISCEXP := $(patsubst %,$(DISTPATH)/%, $(MISC))
 
-all: dirs libs bins includes $(MISCEXP) tar rpm
+all: dirs libs includes $(MISCEXP) tar rpm
 
 dist:	all
 
@@ -91,25 +86,11 @@ includes: $(INCDIR) $(patsubst %,$(INCDIR)/%,$(INCLUDES))
 #
 # Misc files
 #
-$(DISTPATH)/config/parastation.conf.tmpl: $(TOP_SRCDIR)/doc/parastation.conf
+
+$(DISTPATH)/config/ps_ethernet: $(TOP_SRCDIR)/scripts/ps_ethernet
 	cp $< $@
 
-$(DISTPATH)/INSTALL: $(TOP_SRCDIR)/doc/INSTALL
-	cp $< $@
-
-$(DISTPATH)/bin/parastation: $(TOP_SRCDIR)/scripts/parastation@TRU64FILEADD@
-	cp $< $@
-
-$(DISTPATH)/config/PSM_INSTALL: $(TOP_SRCDIR)/scripts/PSM_INSTALL
-	cp $< $@
-
-$(DISTPATH)/config/sysconfigtab: $(TOP_SRCDIR)/kern/OSF1/sysconfigtab
-	cp $< $@
-
-$(DISTPATH)/config/psm_makedev: $(TOP_SRCDIR)/scripts/psm_makedev
-	cp $< $@
-
-$(DISTPATH)/VERSION:
+$(DISTPATH)/VERSION.psfe:
 	echo "ParaStation FE $(DVER) ($(shell date))" > $@
 
 ######################################################

@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.1 2003/04/03 13:10:00 hauke Exp $
+# $Id: Makefile.in,v 1.2 2003/04/04 13:51:02 hauke Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -15,7 +15,6 @@ TOP_BUILDDIR := ..
 
 TARGET_OS := @target_os@
 TARGET_CPU := @target_cpu@
-
 
 #s.o. clean:
 DISTPATH := opt/parastation
@@ -97,10 +96,16 @@ $(DISTPATH)/config/parastation.conf.tmpl: $(TOP_SRCDIR)/doc/parastation.conf
 $(DISTPATH)/INSTALL: $(TOP_SRCDIR)/doc/INSTALL
 	cp $< $@
 
-$(DISTPATH)/bin/parastation: $(TOP_SRCDIR)/scripts/parastation@TRU64FILEADD@
+$(DISTPATH)/config/ps_myrinet: $(TOP_SRCDIR)/scripts/ps_myrinet
 	cp $< $@
 
-$(DISTPATH)/config/PSM_INSTALL: $(TOP_SRCDIR)/scripts/PSM_INSTALL
+$(DISTPATH)/config/ps_ethernet: $(TOP_SRCDIR)/scripts/ps_ethernet
+	cp $< $@
+
+$(DISTPATH)/config/findmodule: $(TOP_SRCDIR)/scripts/findmodule
+	cp $< $@
+
+$(DISTPATH)/config/PSM_INSTALL: $(TOP_SRCDIR)/scripts/PSM_INSTALL@TRU64FILEADD@
 	cp $< $@
 
 $(DISTPATH)/config/sysconfigtab: $(TOP_SRCDIR)/kern/OSF1/sysconfigtab

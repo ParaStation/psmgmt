@@ -7,24 +7,22 @@ BINDIR=$BUILDDIR/opt/parastation
 SPECFILE=psfe-$DVER.spec
 
 cat > $SPECFILE <<EOF
-Summary:   ParaStation FE Cluster Communication and Management
+Summary:   ParaStation FE Cluster Communication libraries
 Vendor:    ParTec AG, Karlsruhe, Germany
 Name:      psfe
 Version:   $DVER
 Release:   `date +%Y%m%d`
-Copyright: (c) 2001-2002 ParTec AG
+Copyright: (c) 2001-2003 ParTec AG
 Group:     System/Development/Libraries
 Packager:  support@par-tec.de
-
+Requires:  psmgmt
 BuildRoot: $BUILDDIR
  
 %description
-ParaStation FE Cluster Communication and Management. TCP/IP Version.
+ParaStation FE Cluster Communication libraries. TCP/IP Version.
 
 %post
-    /opt/parastation/config/PSM_INSTALL -i
 %preun
-    /opt/parastation/config/PSM_INSTALL -u
 %files
 %attr(-,root,root) /opt/parastation
 EOF
