@@ -19,30 +19,11 @@ void PSIADM_SetMaxProc(int count, int first, int last);
 void PSIADM_ShowMaxProc(int first, int last);
 void PSIADM_SetUser(int uid, int first, int last);
 void PSIADM_ShowUser(int first, int last);
-void PSIADM_SetPsidDebug(int val, int first, int last);
-void PSIADM_ShowPsidDebug(int first, int last);
-void PSIADM_SetPsidSelectTime(int val, int first, int last);
-void PSIADM_ShowPsidSelectTime(int first, int last);
-void PSIADM_SetRDPDebug(int val, int first, int last);
-void PSIADM_ShowRDPDebug(int first, int last);
-void PSIADM_SetRDPPktLoss(int val, int first, int last);
-void PSIADM_ShowRDPPktLoss(int first, int last);
-void PSIADM_SetRDPMaxRetrans(int val, int first, int last);
-void PSIADM_ShowRDPMaxRetrans(int first, int last);
-void PSIADM_SetMCastDebug(int val, int first, int last);
-void PSIADM_ShowMCastDebug(int first, int last);
+void PSIADM_SetParam(int type, int value, int first, int last);
+void PSIADM_ShowParam(int type, int first, int last);
 
 void PSIADM_Version(void);
 void PSIADM_ShowConfig(void);
-
-void PSIADM_SetSmallPacketSize(int smallpacketsize);
-void PSIADM_ShowSmallPacketSize(void);
-void PSIADM_SetResendTimeout(int time);
-void PSIADM_ShowResendTimeout(void);
-void PSIADM_SetHNPend(int val);
-void PSIADM_ShowHNPend(void);
-void PSIADM_SetAckPend(int val);
-void PSIADM_ShowAckPend(void);
 
 void PSIADM_Reset(int reset_hw, int first, int last);
 void PSIADM_ShutdownCluster(int first, int last);
