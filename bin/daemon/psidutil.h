@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.h,v 1.15 2003/03/06 14:11:24 eicker Exp $
+ * $Id: psidutil.h,v 1.16 2003/04/03 15:30:59 eicker Exp $
  *
  */
 /**
  * \file
  * Utilities for the ParaStation daemon
  *
- * $Id: psidutil.h,v 1.15 2003/03/06 14:11:24 eicker Exp $
+ * $Id: psidutil.h,v 1.16 2003/04/03 15:30:59 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -117,6 +117,7 @@ void PSID_errlog(char *s, int level);
 void PSID_errexit(char *s, int errorno);
 
 /**
+ * @todo Update for configfile
  * @brief Read (and parse) the configuration-file.
  *
  * Read (and parse) the configuration-file. Furthermore basic tests on
@@ -128,7 +129,7 @@ void PSID_errexit(char *s, int errorno);
  *
  * @return No return value.
  */
-void PSID_readConfigFile(int usesyslog);
+void PSID_readConfigFile(int usesyslog, char *configfile);
 
 /**
  * @todo
@@ -148,7 +149,9 @@ void PSID_blockSig(int block, int sig);
  *
  * @see PSID_readConfigFile()
  */
-void PSID_startHW(void);
+void PSID_startAllHW(void);
+
+void PSID_startHW(int hw);
 
 /**
  * @brief Stop the communication hardware.
@@ -157,7 +160,15 @@ void PSID_startHW(void);
  *
  * @return No return value.
  */
-void PSID_stopHW(void);
+void PSID_stopAllHW(void);
+
+void PSID_stopHW(int hw);
+
+void PSID_getCounter(int hw, char *buf, size_t size, int header);
+
+void PSID_setParam(int hw, long option, long value);
+
+long PSID_getParam(int hw, long option);
 
 /**
  * @brief Start the license-server.
