@@ -85,7 +85,7 @@ psscan: genid.o route.o psscan.o -lpshal -lm -lpopt
 
 # psmon
 VPATH += $(SRCDIR)/mon
-psmon: psmon.o sock_ext.o edsdict.o edserr.o -lpsi -lpthread -lpopt
+psmon: psmon.o sock_ext.o edsdict.o edserr.o -lpsi -lpthread -lpopt -lcrypt
 #lst.o hosts_dict.o
 
 #psview
