@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.17 2003/06/25 16:31:39 eicker Exp $
+ * $Id: psprotocol.h,v 1.18 2003/08/27 13:10:46 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation client-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.17 2003/06/25 16:31:39 eicker Exp $
+ * $Id: psprotocol.h,v 1.18 2003/08/27 13:10:46 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -142,6 +142,8 @@ typedef enum {
 #define PSP_CD_DAEMONSTART       0x0050  /**< Request to start remote daemon */
 #define PSP_CD_DAEMONSTOP        0x0051  /**< Request to stop remote daemon */
 #define PSP_CD_DAEMONRESET       0x0052  /**< Request to reset daemon */
+#define PSP_CD_HWSTART           0x0053  /**< Request to start comm hardware */
+#define PSP_CD_HWSTOP            0x0054  /**< Request to stop comm hardware */
 
 /** Client-client messages. These are fully transparent for the daemons. */
 #define PSP_CC_MSG               0x0080  /**< Message between clients. */
@@ -224,14 +226,17 @@ typedef struct {
 
 #define DDOptionMsgMax 16
 
+typedef struct {
+/*     PSP_Option_t option;   /\**< option to be set/requested *\/ */
+    long option;           /**< option to be set/requested */
+    long value;            /**< value of option to be set */
+} DDOption_t;
+
 /* Option message used to set or get various options. */
 typedef struct {
     DDMsg_t header;        /**< message header */
     char count;            /**< no of options in opt[] */
-    struct {
-        long option;       /**< option to be set/requested */
-	long value;        /**< value of option to be set */
-    }opt[DDOptionMsgMax];  /**< array of option-value pairs */
+    DDOption_t opt[DDOptionMsgMax]; /**< array of option-value pairs */
 } DDOptionMsg_t;
 
 /* Signal message used to (de)register and send signals. */
