@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiforwarder.c,v 1.12 2002/02/11 13:27:04 eicker Exp $
+ * $Id: psiforwarder.c,v 1.13 2002/02/11 14:15:46 eicker Exp $
  *
  */
 /**
  * @file
  * psiforwarder: Forwarding-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psiforwarder.c,v 1.12 2002/02/11 13:27:04 eicker Exp $
+ * $Id: psiforwarder.c,v 1.13 2002/02/11 14:15:46 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.12 2002/02/11 13:27:04 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.13 2002/02/11 14:15:46 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -206,7 +206,7 @@ int writeall(int fd, void *buf, int count)
     return count;
 }
 
-void read_from_logger(int logfd, int stdinport)
+int read_from_logger(int logfd, int stdinport)
 {
     FLBufferMsg_t msg;
     char obuf[120];
@@ -214,15 +214,15 @@ void read_from_logger(int logfd, int stdinport)
 
     ret = readlog(logfd, &msg);
     if (ret > 0) {
-	if (msg.header.type == STDIN){
+	if (msg.header.type == STDIN) {
 	    if (verbose) {
 		snprintf(obuf, sizeof(obuf),
-			 "PSIforwarder: receive %d byte for STDIN\n",
-			    msg.header.len - sizeof(msg.header) );
+			 "PSIforwarder: receive %ld byte for STDIN\n",
+			 msg.header.len - sizeof(msg.header) );
 		printlog(loggersock, STDERR, id, obuf);
 	    }
 	    writeall(stdinport, msg.buf, msg.header.len - sizeof(msg.header)); 
-	}else{
+	} else {
 	    /* unexpected message. Ignore. */
 	}
     }
