@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.4 2003/07/04 09:28:44 eicker Exp $
+ * $Id: config_parsing.c,v 1.5 2003/10/08 14:44:06 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.4 2003/07/04 09:28:44 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.5 2003/10/08 14:44:06 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -36,23 +36,23 @@ static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.4 2003
 #include "config_parsing.h"
 #include "pslic.h"
 
-char *ConfigInstDir = NULL;
+/* magic license check */
+#include "../../license/pslic_hidden.h"
 
-env_fields_t ConfigLicEnv;
-
-long ConfigSelectTime = 2;
-long ConfigDeadInterval = 10;
-long ConfigLicDeadInterval = 30;
-int ConfigRDPPort = 886;
-int ConfigMCastGroup = 237;
-int ConfigMCastPort = 1889;
-
-int ConfigLogLevel = 0;          /* default logging level */
-int ConfigLogDest = LOG_DAEMON;
+static config_t config = (config_t) {
+    .instDir = NULL,
+    .licEnv = { NULL, 0, 0},
+    .selectTime = 2,
+    .deadInterval = 10,
+    .RDPPort = 886,
+    .MCastGroup = 237,
+    .MCastPort = 1889,
+    .logLevel = 0,
+    .logDest = LOG_DAEMON,
+};
 
 static int nodesfound = 0;
 
-static char *absLicFile = NULL;
 static char *licFile = NULL;
 
 static char errtxt[256];
@@ -215,38 +215,6 @@ static int getNumNodes(char *token)
     return ret;
 }
 
-static int getLicServer(char *token)
-{
-    char *hname;
-    unsigned int ipaddr;
-
-    hname = parser_getString();
-
-    if (!hname) {
-	return parser_error(token);
-    }
-
-    ipaddr = parser_getHostname(hname);
-    
-    if (!ipaddr) {
-	snprintf(errtxt, sizeof(errtxt), "license server '%s' invalid", hname);
-	parser_comment(errtxt, 0);
-
-	return -1;
-    }
-
-    if (PSnodes_getAddr(PSNODES_LIC) != INADDR_ANY) {
-	/* duplicated LicServer */
-	parser_comment("license server defined twice in config file", 0);
-	return -1;
-    }
-
-    /* install hostname */
-    PSnodes_register(PSNODES_LIC, ipaddr);
-
-    return 0;
-}
-
 static int getLicFile(char *token)
 {
     char *licfile = parser_getString();
@@ -266,18 +234,18 @@ static int getLicFile(char *token)
 static int getMCastGroup(char *token)
 {
     return parser_getNumValue(parser_getString(),
-			      &ConfigMCastGroup, "MCast group");
+			      &config.MCastGroup, "MCast group");
 }
 
 static int getMCastPort(char *token)
 {
     return parser_getNumValue(parser_getString(),
-			      &ConfigMCastPort, "MCast port");
+			      &config.MCastPort, "MCast port");
 }
 
 static int getRDPPort(char *token)
 {
-    return parser_getNumValue(parser_getString(), &ConfigRDPPort, "RDP port");
+    return parser_getNumValue(parser_getString(), &config.RDPPort, "RDP port");
 }
 
 static int getSelectTime(char *token)
@@ -288,7 +256,7 @@ static int getSelectTime(char *token)
 
     if (ret) return ret;
 
-    ConfigSelectTime = (long) temp;
+    config.selectTime = (long) temp;
 
     return ret;
 }
@@ -301,21 +269,7 @@ static int getDeadInterval(char *token)
 
     if (ret) return ret;
 
-    ConfigDeadInterval = (long) temp;
-
-    return ret;
-}
-
-static int getLicDeadInterval(char *token)
-{
-    int temp, ret;
-
-    ret = parser_getNumValue(parser_getString(), &temp,
-			     "license-server dead interval");
-
-    if (ret) return ret;
-
-    ConfigLicDeadInterval = (long) temp;
+    config.deadInterval = (long) temp;
 
     return ret;
 }
@@ -323,7 +277,7 @@ static int getLicDeadInterval(char *token)
 static int getLogLevel(char *token)
 {
     return parser_getNumValue(parser_getString(),
-			      &ConfigLogLevel, "loglevel");
+			      &config.logLevel, "loglevel");
 }
 
 static int getLogDest(char *token)
@@ -339,29 +293,29 @@ static int getLogDest(char *token)
     }
 
     if (strcasecmp(token, "daemon")==0) {
-	ConfigLogDest = LOG_DAEMON;
+	config.logDest = LOG_DAEMON;
     } else if (strcasecmp(token, "kernel")==0) {
-	ConfigLogDest = LOG_KERN;
+	config.logDest = LOG_KERN;
     } else if (strcasecmp(token, "kern")==0) {
-	ConfigLogDest = LOG_KERN;
+	config.logDest = LOG_KERN;
     } else if (strcasecmp(token, "local0")==0) {
-	ConfigLogDest = LOG_LOCAL0;
+	config.logDest = LOG_LOCAL0;
     } else if (strcasecmp(token, "local1")==0) {
-	ConfigLogDest = LOG_LOCAL1;
+	config.logDest = LOG_LOCAL1;
     } else if (strcasecmp(token, "local2")==0) {
-	ConfigLogDest = LOG_LOCAL2;
+	config.logDest = LOG_LOCAL2;
     } else if (strcasecmp(token, "local3")==0) {
-	ConfigLogDest = LOG_LOCAL3;
+	config.logDest = LOG_LOCAL3;
     } else if (strcasecmp(token, "local4")==0) {
-	ConfigLogDest = LOG_LOCAL4;
+	config.logDest = LOG_LOCAL4;
     } else if (strcasecmp(token, "local5")==0) {
-	ConfigLogDest = LOG_LOCAL5;
+	config.logDest = LOG_LOCAL5;
     } else if (strcasecmp(token, "local6")==0) {
-	ConfigLogDest = LOG_LOCAL6;
+	config.logDest = LOG_LOCAL6;
     } else if (strcasecmp(token, "local7")==0) {
-	ConfigLogDest = LOG_LOCAL7;
+	config.logDest = LOG_LOCAL7;
     } else {
-	return parser_getNumValue(token, &ConfigLogDest, "log destination");
+	return parser_getNumValue(token, &config.logDest, "log destination");
     }
 
     return 0;
@@ -1028,12 +982,8 @@ static keylist_t config_list[] = {
     {"starter", getCSLine},
     {"node", getNodes},
     {"nodes", getNodes},
-    {"licenseserver", getLicServer},
-    {"licserver", getLicServer},
     {"licensefile", getLicFile},
     {"licfile", getLicFile},
-    {"licensedeadinterval", getLicDeadInterval},
-    {"licdeadinterval", getLicDeadInterval},
     {"mcastgroup", getMCastGroup},
     {"mcastport", getMCastPort},
     {"rdpport", getRDPPort},
@@ -1050,29 +1000,30 @@ static keylist_t config_list[] = {
 
 static parser_t config_parser = {" \t\n", config_list};
 
-#define DEFAULT_CONFIGFILE "/etc/parastation.conf"
 #define DEFAULT_LICFILE "license"
 
-int parseConfig(int usesyslog, int loglevel, char *configfile)
+config_t *parseConfig(int usesyslog, int loglevel, char *configfile)
 {
-    int ret;
     FILE *cfd;
-
-    /*
-     * Set MyId to my own ID (needed for installhost())
-     */
-    if (!configfile) {
-	configfile = DEFAULT_CONFIGFILE;
-    }
+    char *absLicFile = NULL;
+    int ret;
 
     parser_init(usesyslog, NULL);
 
+    if (!configfile) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "No configuration file defined", configfile);
+	parser_comment(errtxt, 0);
+
+	return NULL;
+    }
+ 
     if (!(cfd = fopen(configfile,"r"))) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "Unable to locate configuration file <%s>", configfile);
 	parser_comment(errtxt, 0);
 
-	return -1;
+	return NULL;
     }
     parser_setFile(cfd);
 
@@ -1090,7 +1041,7 @@ int parseConfig(int usesyslog, int loglevel, char *configfile)
 		 configfile);
 	parser_comment(errtxt, 0);
 
-	return -1;
+	return NULL;
     }
 
     fclose(cfd);
@@ -1100,7 +1051,7 @@ int parseConfig(int usesyslog, int loglevel, char *configfile)
      */
     if (PSnodes_getNum()==-1) {
 	parser_comment("ERROR: NrOfNodes not defined", 0);
-	return -1;
+	return NULL;
     }
 
     /*
@@ -1124,7 +1075,7 @@ int parseConfig(int usesyslog, int loglevel, char *configfile)
 		 "Unable to locate LicenseFile '%s'", licFile);
 	parser_comment(errtxt, 0);
 
-	return -1;
+	return NULL;
     } else {
  	snprintf(errtxt, sizeof(errtxt),
 		 "Using <%s> as license file", absLicFile);
@@ -1134,17 +1085,17 @@ int parseConfig(int usesyslog, int loglevel, char *configfile)
     /*
      * Read the Licensefile 
      */
-    env_init(&ConfigLicEnv);
-    if (lic_fromfile(&ConfigLicEnv, absLicFile) < 0) {
+    env_init(&config.licEnv);
+    if (lic_fromfile(&config.licEnv, absLicFile) < 0) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "ERROR: %s.", lic_errstr ? lic_errstr : "in licensefile");
 	parser_comment(errtxt, 0);
-	return -1;
+	return NULL;
     }
 
     {
 	/* Put the MCP license key into the right environment */
-	char *LicKeyMCP = env_get(&ConfigLicEnv, LIC_MCPKEY);
+	char *LicKeyMCP = env_get(&config.licEnv, LIC_MCPKEY);
 
 	if (LicKeyMCP) {
 	    int hw = HW_index("myrinet");
@@ -1162,15 +1113,20 @@ int parseConfig(int usesyslog, int loglevel, char *configfile)
 	parser_comment("WARNING: # hosts in hostlist less than NrOfNodes", 0);
     }
     
-    if (PSnodes_getNum() > lic_numval(&ConfigLicEnv, LIC_NODES, 0)) {
-	parser_comment("ERROR: NrOfNodes to large for this License.", 0);
-	return -1;
-    }
-
-    if (lic_isexpired(&ConfigLicEnv)) {
-	parser_comment("ERROR: License expired.", 0);
-	return -1;
+    if (!lic_isvalid(&config.licEnv)) {
+	parser_comment("ERROR: Corrupted license.", 0);
+	return NULL;
     }
     
-    return 0;
+    if (PSnodes_getNum() > lic_numval(&config.licEnv, LIC_NODES, 0)) {
+	parser_comment("ERROR: NrOfNodes to large for this License.", 0);
+	return NULL;
+    }
+
+    if (lic_isexpired(&config.licEnv)) {
+	parser_comment("ERROR: License expired.", 0);
+	return NULL;
+    }
+    
+    return &config;
 }
