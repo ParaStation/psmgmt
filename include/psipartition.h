@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psipartition.h,v 1.4 2004/01/28 10:27:44 eicker Exp $
+ * $Id: psipartition.h,v 1.5 2004/01/28 13:59:05 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for partitions of ParaStation nodes.
  *
- * $Id: psipartition.h,v 1.4 2004/01/28 10:27:44 eicker Exp $
+ * $Id: psipartition.h,v 1.5 2004/01/28 13:59:05 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -124,10 +124,10 @@ void PSI_PBS(void);
  * nodes, if possible. Usually consecutive processes are placed on the
  * same node.
  *
- * - PSI_WAIT: If the ressources available at the time the parallel
+ * - PSI_WAIT: If the resources available at the time the parallel
  * task is started are not sufficient, wait until they are. Usually
- * the task will stop immediately if it cannot get the reqeusted
- * ressources.
+ * the task will stop immediately if it cannot get the requested
+ * resources.
  *
  * The so build nodelist is propagated unmodified to all child
  * processes.

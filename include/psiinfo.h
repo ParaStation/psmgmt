@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiinfo.h,v 1.3 2004/01/28 10:27:08 eicker Exp $
+ * $Id: psiinfo.h,v 1.4 2004/01/28 13:59:05 eicker Exp $
  *
  */
 /**
@@ -13,7 +13,7 @@
  * psiinfo: Functions for information retrieving from ParaStation
  * daemon
  *
- * $Id: psiinfo.h,v 1.3 2004/01/28 10:27:08 eicker Exp $
+ * $Id: psiinfo.h,v 1.4 2004/01/28 13:59:05 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -125,7 +125,7 @@ int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * as configured within the configuration file. No further parameters
  * needed.
  *
- * - PSP_INFO_DAEMONVER reqeust the version string of the ParaStation
+ * - PSP_INFO_DAEMONVER request the version string of the ParaStation
  * daemon. No further parameters needed.
  *
  *
@@ -198,7 +198,7 @@ int PSI_infoTaskID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * running on. @a param has to point to a @c uint32_t datum holding
  * the requested rank.
  *
- * -PSP_INFO_HOST reqeust the ParaStation ID corresponding to an IP
+ * -PSP_INFO_HOST request the ParaStation ID corresponding to an IP
  * address within the cluster. @a param has to point to the IP address
  * of interest stored within a @c uint32_t datum.
  *
