@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.16 2002/01/09 20:01:45 eicker Exp $
+ * $Id: psiadmin.c,v 1.17 2002/01/16 17:07:30 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.16 2002/01/09 20:01:45 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.17 2002/01/16 17:07:30 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -40,7 +40,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.16 $";
+static char psiadmversion[] = "$Revision: 1.17 $";
 static int  DoRestart = 1;
 
 int PSIADM_LookUpNodeName(char* hostname)
@@ -233,7 +233,7 @@ void PSIADM_SetPsidDebug(int val, int node)
 {
     DDOptionMsg_t msg;
 
-    if(geteuid()){
+    if (geteuid()) {
 	printf("Sorry, only root access\n");
 	return;
     }
@@ -244,7 +244,7 @@ void PSIADM_SetPsidDebug(int val, int node)
     msg.header.sender = PSI_mytid;
     msg.header.dest = PSI_gettid(node,0);
     msg.header.len = sizeof(msg);
-    msg.count =1;
+    msg.count = 1;
     msg.opt[0].option = PSP_OP_PSIDDEBUG;
     msg.opt[0].value = val;
 
@@ -257,7 +257,7 @@ void PSIADM_SetRdpDebug(int val, int node)
 {
     DDOptionMsg_t msg;
 
-    if(geteuid()){
+    if (geteuid()) {
 	printf("Sorry, only root access\n");
 	return;
     }
