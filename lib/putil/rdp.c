@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.25 2002/07/08 14:58:14 eicker Exp $
+ * $Id: rdp.c,v 1.26 2002/07/11 09:46:50 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.25 2002/07/08 14:58:14 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.26 2002/07/11 09:46:50 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -683,7 +683,7 @@ static int updateStateRDP(rdphdr *hdr, int node)
 		     cp->frameExpected, hdr->seqno, hdr->connid,
 		     cp->ConnID_in);
 	    errlog(errtxt, 8);
-	    clearMsgQ(node);
+	    closeConnectionRDP(node);
 	    switch (hdr->type) {
 	    case RDP_SYN:
 	    case RDP_SYNNACK:
@@ -714,7 +714,7 @@ static int updateStateRDP(rdphdr *hdr, int node)
 	} else { /* SYN Packet on OLD Connection (probably lost answers) */
 	    switch (hdr->type) {
 	    case RDP_SYN:
-		clearMsgQ(node);
+		closeConnectionRDP(node);
 	        cp->state = SYN_RECVD;
 		cp->frameExpected = hdr->seqno; /* Accept new seqno */
 		snprintf(errtxt, sizeof(errtxt),
