@@ -5,15 +5,16 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.29 2002/05/22 13:44:22 hauke Exp $
+ * $Id: psi.c,v 1.30 2002/06/13 09:51:18 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.29 2002/05/22 13:44:22 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.30 2002/06/13 09:51:18 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <unistd.h>
@@ -646,49 +647,25 @@ long PSI_whodied(int sig)
     return msg.header.sender;
 }
 
-struct installdir_{
-    int nr;
-    char name[80];
-} installdir[] = {
-    { 0, "/opt/psm" },
-    { 1, "/opt/PSM" },
-    { 2, "/opt/parastation" },
-    { 3, "/direct/psm" },
-    { 4, "/direct/PSM" },
-    { 5, "/direct/parastation" },
-    { 7, "/usr/psm" },
-    { 8, "/usr/PSM" },
-    { 9, "/usr/opt/psm" },
-    { 10, "/usr/opt/PSM" },
-    { 11, "/usr/opt/PSM100" },
-    { 12, "/PSM" },
-    { -1, "" },
-};
+char default_installdir[] = "/opt/parastation";
 
-static char * PSI_installdir = NULL;
+static char *PSI_installdir = NULL;
 
-char * PSI_LookupInstalldir(void)
+char *PSI_LookupInstalldir(void)
 {
-    int i=0, found=(PSI_installdir != NULL);
-    char *name = NULL, logger[] = "/bin/psiforwarder";
-    struct stat sbuf;
+    char *name = NULL, logger[] = "/bin/psilogger";
+    struct stat fstat;
 
-    while ((installdir[i].nr != -1) && !found ) {
-	if (!name) {
-	    name = (char*) malloc(sizeof(installdir[0].name)
-				  + strlen(logger)+1);
-	}
-	strcpy(name, installdir[i].name);
+    if (!PSI_installdir) {
+	name = (char*) malloc(strlen(default_installdir) + strlen(logger) + 1);
+	strcpy(name, default_installdir);
 	strcat(name, logger);
-	if (stat(name, &sbuf) != -1) { /* Installdir found */
-	    PSI_installdir = installdir[i].name;
-	    found=1;
+
+	if (stat(name, &fstat)==0 && S_ISREG(fstat.st_mode)) {
+	    /* InstallDir found */
+	    PSI_installdir = default_installdir;
 	}
-	i++;
-    }
-    if (name) {
 	free(name);
-	name=NULL;
     }
 
     if (PSI_installdir)
@@ -697,21 +674,30 @@ char * PSI_LookupInstalldir(void)
 	return "";
 }
 
-void PSI_SetInstalldir(char * installdir)
+void PSI_SetInstalldir(char *installdir)
 {
-    char *name, logger[] = "/bin/psiforwarder";
+    char *name, logger[] = "/bin/psilogger";
     static char *instdir=NULL;
-    struct stat sbuf;
+    struct stat fstat;
 
     name = (char*) malloc(strlen(installdir) + strlen(logger) + 1);
     strcpy(name,installdir);
     strcat(name,logger);
-    if ( stat(name, &sbuf) == 0 ) { /* Installdir valid */
-	if (instdir) free(instdir);
-	instdir = (char*) malloc(strlen(installdir) + 1);
-	strcpy(instdir, installdir);
-	PSI_installdir = instdir;
+    if (stat(name, &fstat)) {
+	perror(name);
+	free(name);
+	return;
     }
+
+    if (!S_ISREG(fstat.st_mode)) {
+	fprintf(stderr, "%s: not a regular file\n", name);
+	free(name);
+	return;
+    }
+	    
+    if (instdir) free(instdir);
+    instdir = strdup(installdir);
+    PSI_installdir = instdir;
     free(name);
 }
 
