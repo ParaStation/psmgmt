@@ -1,0 +1,29 @@
+
+# -*- Makefile -*-
+
+
+CFLAGS += -O3 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
+CPPFLAGS += -I@top_srcdir@/include @CPPFLAG_MMD@
+
+PSPORT4OBJS := psport4.o 
+PSPORT4DEPS := $(PSPORT4OBJS:.o=@DEPEXTENSION@)
+
+RANLIB := @RANLIB@
+
+VPATH += @srcdir@
+
+all: ../libpsport4.a
+
+../libpsport4.a: $(PSPORT4OBJS)
+	$(AR) rcv $@ $(PSPORT4OBJS)
+	$(RANLIB) $@
+
+clean:
+	$(RM) $(PSPORT4DEPS) $(PSPORT4OBJS) 
+
+
+-include $(PSPORT4DEPS)
+
+
+
+
