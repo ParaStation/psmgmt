@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.49 2003/10/30 16:36:25 eicker Exp $
+ * $Id: psispawn.c,v 1.50 2003/10/31 12:05:20 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.49 2003/10/30 16:36:25 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.50 2003/10/31 12:05:20 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -391,8 +391,9 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 		    ret++;
 		} else {
 		    snprintf(errtxt, sizeof(errtxt),
-			     "%s: SPAWNSUCCESS/FAILED from unknown node %d.",
-			     __func__, PSC_getID(answer.header.sender));
+			     "%s: %s from unknown node %d.",
+			     __func__, PSP_printMsg(answer.header.type),
+			     PSC_getID(answer.header.sender));
 		    PSI_errlog(errtxt, 0);
 		}
 	    }

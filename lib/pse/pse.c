@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.43 2003/10/23 16:27:35 eicker Exp $
+ * $Id: pse.c,v 1.44 2003/10/31 12:04:51 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.43 2003/10/23 16:27:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.44 2003/10/31 12:04:51 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -296,14 +296,12 @@ void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
 
 	    snprintf(errtxt, sizeof(errtxt),
 		     "Could%s spawn '%s' process %d%s%s.",
-		     errors[i] ? " not" : " ", argv[0], i+1,
+		     errors[i] ? " not" : "", argv[0], i+1,
 		     errors[i] ? ", error = " : "",
 		     errors[i] ? (errstr ? errstr : "UNKNOWN") : "");
-	    errlog(errtxt, 1);
-	    if (errors[i]) {
-		exitAll(errtxt, 10);
-	    }
+	    errlog(errtxt, errors[i] ? 0 : 1);
 	}
+	exitAll("Exiting", 10);
     }
     free(errors);
 
