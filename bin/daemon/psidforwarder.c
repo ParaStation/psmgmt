@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidforwarder.c,v 1.5 2003/03/04 15:43:12 eicker Exp $
+ * $Id: psidforwarder.c,v 1.6 2003/03/11 18:13:26 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.5 2003/03/04 15:43:12 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.6 2003/03/11 18:13:26 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -306,7 +306,7 @@ static void releaseLogger(int status)
     if (ret < 0) {
 	if (errno == EPIPE) {
 	    snprintf(txt, sizeof(txt),
-		     "%s(): logger already dissapeared\n", __func__);
+		     "%s: logger already dissapeared\n", __func__);
 	    PSID_errlog(txt, 0);
 	} else {
 	    char *errstr = strerror(errno);
@@ -316,13 +316,13 @@ static void releaseLogger(int status)
 	}
     } else if (!ret) {
 	snprintf(txt, sizeof(txt),
-		 "%s(): receive timed out. logger dissapeared\n", __func__);
+		 "%s: receive timed out. logger dissapeared\n", __func__);
 	PSID_errlog(txt, 0);
     } else if (msg.type != EXIT) {
 	snprintf(txt, sizeof(txt),
-		 "%s(): Protocol messed up (type %d) from %s\n",
+		 "%s: Protocol messed up (type %d) from %s\n",
 		 __func__, msg.type, PSC_printTID(msg.header.sender));
-	PSID_errlog(txt, 0);
+	PSID_errlog(txt, 1);
     }
 
     loggerTID = -1;
@@ -637,6 +637,12 @@ static int read_from_logger(int logfd, int stdinport)
 		printMsg(STDERR, obuf);
 	    }
 	    writeall(stdinport, msg.buf, msg.header.len - PSLog_headerSize); 
+	} else 	if ((msg.header.type == PSP_CC_MSG) && (msg.type == EXIT)) {
+	    /* Logger is going to die */
+	    /* Release the daemon */
+	    close(daemonSock);
+
+	    exit(0);
 	} else {
 	    /* unexpected message. Ignore. */
 	}
@@ -720,7 +726,6 @@ static void loop(void)
 		    continue;
 		}
 
-		/* @todo collect "micro"reads as from time */
 		n = collectRead(sock, buf, sizeof(buf), &total);
 		if (verbose) {
 		    snprintf(obuf, sizeof(obuf),
