@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psdaemonprotocol.h,v 1.1 2003/03/19 17:05:42 eicker Exp $
+ * $Id: psdaemonprotocol.h,v 1.2 2003/07/04 07:27:17 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation daemon-daemon high-level protocol.
  *
- * $Id: psdaemonprotocol.h,v 1.1 2003/03/19 17:05:42 eicker Exp $
+ * $Id: psdaemonprotocol.h,v 1.2 2003/07/04 07:27:17 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -43,6 +43,9 @@ extern "C" {
 #define PSP_DD_DAEMONCONNECT       0x0100  /**< Request to connect daemon */
 #define PSP_DD_DAEMONESTABLISHED   0x0101  /**< Connection request accepted */
 #define PSP_DD_DAEMONREFUSED       0x0102  /**< Connection request denied */
+
+#define PSP_DD_SENDSTOP            0x0108  /**< Stop sending further packets */
+#define PSP_DD_SENDCONT            0x0109  /**< Continue sending packets */
 
 /** Message between daemon and the daemon forwarder part */
 #define PSP_DD_CHILDDEAD           0x0110  /**< Tell a child has finished */

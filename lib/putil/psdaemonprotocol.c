@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psdaemonprotocol.c,v 1.1 2003/03/19 16:58:53 eicker Exp $
+ * $Id: psdaemonprotocol.c,v 1.2 2003/07/04 07:27:17 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psdaemonprotocol.c,v 1.1 2003/03/19 16:58:53 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psdaemonprotocol.c,v 1.2 2003/07/04 07:27:17 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -29,6 +29,9 @@ static struct {
     { PSP_DD_DAEMONCONNECT    , "PSP_DD_DAEMONCONNECT"    }, 
     { PSP_DD_DAEMONESTABLISHED, "PSP_DD_DAEMONESTABLISHED"}, 
     { PSP_DD_DAEMONREFUSED    , "PSP_DD_DAEMONREFUSED"    }, 
+
+    { PSP_DD_SENDSTOP         , "PSP_DD_SENDSTOP"         }, 
+    { PSP_DD_SENDCONT         , "PSP_DD_SENDCONT"         }, 
 
     { PSP_DD_CHILDDEAD        , "PSP_DD_CHILDDEAD"        },
 
