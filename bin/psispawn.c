@@ -5,20 +5,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.7 2003/09/12 14:34:14 eicker Exp $
+ * $Id: psispawn.c,v 1.8 2003/10/23 16:27:35 eicker Exp $
  *
  */
 /**
  * @file Simple wrapper to allow MPIch/P4 programs to run under the
  * control of ParaStation.
  *
- * $Id: psispawn.c,v 1.7 2003/09/12 14:34:14 eicker Exp $
+ * $Id: psispawn.c,v 1.8 2003/10/23 16:27:35 eicker Exp $
  *
  * @author Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.7 2003/09/12 14:34:14 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.8 2003/10/23 16:27:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
     /* spawning the process */
     {
 	int error, dup_argc;
-	long spawnedProcess;
+	PStask_ID_t spawnedProcess;
 	char **dup_argv;
 
 	PSI_RemoteArgs(argc-5, &argv[5], &dup_argc, &dup_argv);

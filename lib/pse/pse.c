@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.42 2003/09/29 09:15:51 eicker Exp $
+ * $Id: pse.c,v 1.43 2003/10/23 16:27:35 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.42 2003/09/29 09:15:51 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.43 2003/10/23 16:27:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -24,6 +24,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.42 2003/09/29 09:
 #include "errlog.h"
 
 #include "pscommon.h"
+#include "pstask.h"
 #include "pshwtypes.h"
 
 #include "psi.h"
@@ -42,7 +43,7 @@ static int worldSize = -1;  /* @todo only used within deprecated functions */
 static int worldRank = -2;
 static int masterNode = -1;
 static int masterPort = -1;
-static long parentTID = -1;
+static PStask_ID_t parentTID = -1;
 
 static unsigned int defaultHWType = 0; /* Take any node */
 
@@ -205,7 +206,7 @@ void PSE_setUID(uid_t uid)
 void PSE_spawnMaster(int argc, char *argv[])
 {
     /* spawn master process (we are going to be logger) */
-    long spawnedProcess = -1;
+    PStask_ID_t spawnedProcess = -1;
     int error;
 
     snprintf(errtxt, sizeof(errtxt), "%s(%s)", __func__, argv[0]);
@@ -247,7 +248,7 @@ void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
 {
     /* spawning processes */
     int i, ret, *errors;
-    long *spawnedProcesses;
+    PStask_ID_t *spawnedProcesses;
     char envstr[80];
 
     snprintf(errtxt, sizeof(errtxt), "%s(%d, %d, %d, %s)",
@@ -272,7 +273,7 @@ void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
 
     /* init table of spawned processes */
     myWorldSize = num;
-    spawnedProcesses = malloc(sizeof(long) * num);
+    spawnedProcesses = malloc(sizeof(*spawnedProcesses) * num);
     if (!spawnedProcesses) {
 	snprintf(errtxt, sizeof(errtxt), "%s: No memory.", __func__);
 	exitAll(errtxt, 10);

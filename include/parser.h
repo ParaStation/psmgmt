@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: parser.h,v 1.5 2003/08/15 13:32:49 eicker Exp $
+ * $Id: parser.h,v 1.6 2003/10/23 16:27:35 eicker Exp $
  *
  */
 /**
  * @file
  * General parser utility for ParaStation daemon and admin
  *
- * $Id: parser.h,v 1.5 2003/08/15 13:32:49 eicker Exp $
+ * $Id: parser.h,v 1.6 2003/10/23 16:27:35 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -308,7 +308,7 @@ int parser_getComment(char *token);
  *
  * @return On success the number is returned, or -1 otherwise.
  */
-long int parser_getNumber(char *token);
+long parser_getNumber(char *token);
 
 /**
  * @brief Get a filename.

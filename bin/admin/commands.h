@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: commands.h,v 1.2 2003/08/27 12:45:57 eicker Exp $
+ * $Id: commands.h,v 1.3 2003/10/23 16:27:35 eicker Exp $
  *
  */
 /**
  * \file
  * Commands of the ParaStation adminstration tool
  *
- * $Id: commands.h,v 1.2 2003/08/27 12:45:57 eicker Exp $
+ * $Id: commands.h,v 1.3 2003/10/23 16:27:35 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -20,6 +20,8 @@
  */
 #ifndef __COMMANDS_H
 #define __COMMANDS_H
+
+#include "pstask.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -65,7 +67,7 @@ void PSIADM_Version(void);
 
 void PSIADM_Reset(int reset_hw, char *nl);
 void PSIADM_TestNetwork(int mode);
-void PSIADM_KillProc(long tid, int sig);
+void PSIADM_KillProc(PStask_ID_t tid, int sig);
 
 void PSIADM_Exit(void);
 

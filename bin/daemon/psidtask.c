@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidtask.c,v 1.9 2003/09/12 14:43:20 eicker Exp $
+ * $Id: psidtask.c,v 1.10 2003/10/23 16:27:35 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.9 2003/09/12 14:43:20 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.10 2003/10/23 16:27:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -32,7 +32,7 @@ static char errtxt[256];
 
 PStask_t *managedTasks = NULL;
 
-void PSID_setSignal(PStask_sig_t **siglist, long tid, int signal)
+void PSID_setSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal)
 {
     PStask_sig_t *thissig;
 
@@ -45,7 +45,7 @@ void PSID_setSignal(PStask_sig_t **siglist, long tid, int signal)
     *siglist = thissig;
 }
 
-int PSID_removeSignal(PStask_sig_t **siglist, long tid, int signal)
+int PSID_removeSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal)
 {
     PStask_sig_t *thissig, *prev = NULL;
 
@@ -73,9 +73,9 @@ int PSID_removeSignal(PStask_sig_t **siglist, long tid, int signal)
     return 0;
 }
 
-long PSID_getSignal(PStask_sig_t **siglist, int *signal)
+PStask_ID_t PSID_getSignal(PStask_sig_t **siglist, int *signal)
 {
-    long tid;
+    PStask_ID_t tid;
     PStask_sig_t *thissig, *prev = NULL;
 
     if (!*siglist)
@@ -148,7 +148,7 @@ int PStasklist_enqueue(PStask_t **list, PStask_t *task)
     return 0;
 }
 
-PStask_t *PStasklist_dequeue(PStask_t **list, long tid)
+PStask_t *PStasklist_dequeue(PStask_t **list, PStask_ID_t tid)
 {
     PStask_t *task = NULL;
 
@@ -174,7 +174,7 @@ PStask_t *PStasklist_dequeue(PStask_t **list, long tid)
     return task;
 }
 
-PStask_t *PStasklist_find(PStask_t *list, long tid)
+PStask_t *PStasklist_find(PStask_t *list, PStask_ID_t tid)
 {
     PStask_t *task;
 
@@ -191,7 +191,7 @@ PStask_t *PStasklist_find(PStask_t *list, long tid)
     return task;
 }
 
-void PStask_cleanup(long tid)
+void PStask_cleanup(PStask_ID_t tid)
 {
     PStask_t *task, *clone = NULL;
 
@@ -226,7 +226,7 @@ void PStask_cleanup(long tid)
 
 	if (task->group==TG_FORWARDER && !task->released) {
 	    /* cleanup child */
-	    long childTID;
+	    PStask_ID_t childTID;
 	    int sig = -1;
 
 	    childTID = PSID_getSignal(&clone->childs, &sig);

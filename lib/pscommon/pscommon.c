@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.c,v 1.11 2003/10/20 18:56:02 eicker Exp $
+ * $Id: pscommon.c,v 1.12 2003/10/23 16:27:35 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.11 2003/10/20 18:56:02 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.12 2003/10/23 16:27:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -32,7 +32,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.11 2003/10/2
 static short PSC_nrOfNodes = -1;
 static short PSC_myID = -1;
 
-static long PSC_myTID = -1;
+static PStask_ID_t PSC_myTID = -1;
 
 static char errtxt[256];
 
@@ -93,7 +93,7 @@ void PSC_setMyID(short id)
     PSC_myID = id;
 }
 
-long PSC_getTID(short node, pid_t pid)
+PStask_ID_t PSC_getTID(short node, pid_t pid)
 {
 #ifndef __osf__
     if (node<0) {
@@ -112,7 +112,7 @@ long PSC_getTID(short node, pid_t pid)
 #endif
 }
 
-unsigned short PSC_getID(long tid)
+unsigned short PSC_getID(PStask_ID_t tid)
 {
 #ifndef __osf__
     if (tid>=0) {
@@ -131,7 +131,7 @@ unsigned short PSC_getID(long tid)
 #endif
 }
 
-pid_t PSC_getPID(long tid)
+pid_t PSC_getPID(PStask_ID_t tid)
 {
 #ifndef __osf__
     return (tid & 0xFFFF);
@@ -149,7 +149,7 @@ void PSC_setDaemonFlag(int flag)
     daemonFlag = flag;
 }
 
-long PSC_getMyTID(void)
+PStask_ID_t PSC_getMyTID(void)
 {
     if (PSC_myTID == -1) {
 	/* First call, have to determine TID */
@@ -163,7 +163,7 @@ long PSC_getMyTID(void)
     return PSC_myTID;
 }
 
-char *PSC_printTID(long tid)
+char *PSC_printTID(PStask_ID_t tid)
 {
     static char taskNumString[40];
 

@@ -5,20 +5,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mpirun_chp4.c,v 1.8 2003/09/12 14:32:19 eicker Exp $
+ * $Id: mpirun_chp4.c,v 1.9 2003/10/23 16:27:35 eicker Exp $
  *
  */
 /**
  * @file Replacement for the standard mpirun command provided by MPIch in order
  * to start MPIch/P4 application within a ParaStation cluster.
  *
- * $Id: mpirun_chp4.c,v 1.8 2003/09/12 14:32:19 eicker Exp $
+ * $Id: mpirun_chp4.c,v 1.9 2003/10/23 16:27:35 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chp4.c,v 1.8 2003/09/12 14:32:19 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chp4.c,v 1.9 2003/10/23 16:27:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -40,7 +40,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chp4.c,v 1.8 2003/09
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.8 $";
+    char revision[] = "$Revision: 1.9 $";
     fprintf(stderr, "mpirun_chp4 %s\b \n", revision+11);
 }
 
@@ -409,7 +409,7 @@ int main(int argc, const char *argv[])
 
     {
 	/* spawn master process (we are going to be logger) */
-	long spawnedProcess = -1;
+	PStask_ID_t spawnedProcess = -1;
 	int error;
 	char *rmstring;
 

@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.33 2003/08/27 13:03:44 hauke Exp $
+ * $Id: psilogger.c,v 1.34 2003/10/23 16:27:35 eicker Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.33 2003/08/27 13:03:44 hauke Exp $
+ * $Id: psilogger.c,v 1.34 2003/10/23 16:27:35 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.33 2003/08/27 13:03:44 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.34 2003/10/23 16:27:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -35,6 +35,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.33 2003/08/
 #include <signal.h>
 
 #include "pscommon.h"
+#include "pstask.h"
 #include "pslog.h"
 
 /**
@@ -79,7 +80,7 @@ int noClients;
 fd_set myfds;
 
 /** Array to store the forwarder TIDs indexed by the clients rank. */
-long *clientTID;
+PStask_ID_t *clientTID;
 
 /** The actual size of #clientTID. */
 int maxClients = 64;
@@ -132,7 +133,7 @@ static void closeDaemonSock(void)
  * i.e. usually this is @a len. On error, -1 is returned, and errno is
  * set appropriately.
  */
-static int sendMsg(long tid, PSLog_msg_t type, char *buf, size_t len)
+static int sendMsg(PStask_ID_t tid, PSLog_msg_t type, char *buf, size_t len)
 {
     int ret = 0;
 
@@ -509,7 +510,7 @@ static void CheckFileTable(fd_set* openfds)
  *
  * @return No return value.
  */
-static void forwardInput(int std_in, long fwTID)
+static void forwardInput(int std_in, PStask_ID_t fwTID)
 {
     char buf[1000];
     int len;
@@ -555,7 +556,7 @@ static void loop(void)
     struct timeval mytv={2,0}, atv;
     PSLog_Msg_t msg;
     int timeoutval;
-    long forwardInputTID = -1; /* client TID which wants stdin */
+    PStask_ID_t forwardInputTID = -1; /* client TID which wants stdin */
 
     FD_ZERO(&myfds);
     FD_SET(daemonSock, &myfds);

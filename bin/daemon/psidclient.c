@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidclient.c,v 1.4 2003/07/31 15:31:30 eicker Exp $
+ * $Id: psidclient.c,v 1.5 2003/10/23 16:27:35 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidclient.c,v 1.4 2003/07/31 15:31:30 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidclient.c,v 1.5 2003/10/23 16:27:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -36,10 +36,10 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidclient.c,v 1.4 2003/07/
 #define INITIALCONTACT  0x00000001   /* No message yet (only accept()ed) */
 
 static struct {
-    long tid;       /**< Clients task ID */
-    PStask_t *task; /**< Clients task structure */
-    long flags;     /**< Special flags. Up to now only INITIALCONTACT */
-    msgbuf_t *msgs; /**< Chain of undelivered messages */
+    PStask_ID_t tid; /**< Clients task ID */
+    PStask_t *task;  /**< Clients task structure */
+    long flags;      /**< Special flags. Up to now only INITIALCONTACT */
+    msgbuf_t *msgs;  /**< Chain of undelivered messages */
 } clients[FD_SETSIZE];
 
 static char errtxt[256]; /**< General string to create error messages */
@@ -57,7 +57,7 @@ void initClients(void)
 }
 
 
-void registerClient(int fd, long tid, PStask_t *task)
+void registerClient(int fd, PStask_ID_t tid, PStask_t *task)
 {
     clients[fd].tid = tid;
     clients[fd].task = task;
@@ -65,7 +65,7 @@ void registerClient(int fd, long tid, PStask_t *task)
     clients[fd].msgs = NULL;
 }
 
-long getClientTID(int fd)
+PStask_ID_t getClientTID(int fd)
 {
     return clients[fd].tid;
 }
@@ -75,7 +75,7 @@ PStask_t *getClientTask(int fd)
     return clients[fd].task;
 }
 
-int getClientFD(long tid)
+int getClientFD(PStask_ID_t tid)
 {
     int fd;
 
@@ -348,7 +348,7 @@ void closeConnection(int fd)
 void deleteClient(int fd)
 {
     PStask_t *task;
-    long tid;
+    PStask_ID_t tid;
 
     if (fd<0) {
 	snprintf(errtxt, sizeof(errtxt), "%s(%d): fd < 0.", __func__, fd);

@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.c,v 1.14 2003/09/12 14:01:29 eicker Exp $
+ * $Id: pstask.c,v 1.15 2003/10/23 16:27:35 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.14 2003/09/12 14:01:29 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.15 2003/10/23 16:27:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -271,8 +271,8 @@ void PStask_snprintf(char *txt, size_t size, PStask_t * task)
 }
 
 static struct {
-    long tid;
-    long ptid;
+    PStask_ID_t tid;
+    PStask_ID_t ptid;
     uid_t uid;
     gid_t gid;
     unsigned int aretty;
@@ -280,7 +280,7 @@ static struct {
     struct winsize winsize;
     PStask_group_t group;
     int rank;
-    long loggertid;
+    PStask_ID_t loggertid;
     int argc;
 } tmpTask;
     

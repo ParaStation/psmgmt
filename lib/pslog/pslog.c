@@ -1,15 +1,15 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * pslog.c
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pslog.c,v 1.2 2003/07/31 11:53:37 eicker Exp $
+ * $Id: pslog.c,v 1.3 2003/10/23 16:27:36 eicker Exp $
  *
  */
 
-static char vcid[] __attribute__ (( unused )) = "$Id: pslog.c,v 1.2 2003/07/31 11:53:37 eicker Exp $";
+static char vcid[] __attribute__ (( unused )) = "$Id: pslog.c,v 1.3 2003/10/23 16:27:36 eicker Exp $";
 
 #include <stdio.h>
 #include <unistd.h>
@@ -19,6 +19,7 @@ static char vcid[] __attribute__ (( unused )) = "$Id: pslog.c,v 1.2 2003/07/31 1
 #include <sys/types.h>
 
 #include "pscommon.h"
+#include "pstask.h"
 
 #include "pslog.h"
 
@@ -42,7 +43,7 @@ void PSLog_close(void)
     daemonsock = -1;
 }
 
-int PSLog_write(long destTID, PSLog_msg_t type, char *buf, size_t count)
+int PSLog_write(PStask_ID_t destTID, PSLog_msg_t type, char *buf, size_t count)
 {
     int n;
     size_t c = count;
@@ -83,7 +84,7 @@ int PSLog_write(long destTID, PSLog_msg_t type, char *buf, size_t count)
     return count;
 }
 
-int PSLog_print(long destTID, PSLog_msg_t type, char *buf)
+int PSLog_print(PStask_ID_t destTID, PSLog_msg_t type, char *buf)
 {
     return PSLog_write(destTID, type, buf, strlen(buf));
 }

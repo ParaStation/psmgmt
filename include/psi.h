@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.h,v 1.21 2003/07/22 18:29:33 eicker Exp $
+ * $Id: psi.h,v 1.22 2003/10/23 16:27:35 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with the ParaStation system.
  *
- * $Id: psi.h,v 1.21 2003/07/22 18:29:33 eicker Exp $
+ * $Id: psi.h,v 1.22 2003/10/23 16:27:35 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -129,7 +129,7 @@ int PSI_recvMsg(void *msg);
  *
  * @return On success, 0 is returned. Or -1, if an error occurred.
  */
-int PSI_notifydead(long tid, int sig);
+int PSI_notifydead(PStask_ID_t tid, int sig);
 
 /**
  * @brief Release a process.
@@ -152,7 +152,7 @@ int PSI_notifydead(long tid, int sig);
  *
  * @return On success, 0 is returned. Or -1, if an error occurred.
  */
-int PSI_release(long tid);
+int PSI_release(PStask_ID_t tid);
 
 /**
  * @brief Request signal's sender.
@@ -169,7 +169,7 @@ int PSI_release(long tid);
  * @return On success, the senders task ID is returned, or -1 if the
  * sender could not be determined.
  */
-long PSI_whodied(int sig);
+PStask_ID_t PSI_whodied(int sig);
 
 /**
  * @brief Send a finish message.
@@ -186,7 +186,7 @@ long PSI_whodied(int sig);
  *
  * @return On success, 0 is returned. Or -1, if an error occured.
  */
-int PSI_sendFinish(long parenttid);
+int PSI_sendFinish(PStask_ID_t parenttid);
 
 /**
  * @brief Receive finish messages.

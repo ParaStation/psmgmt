@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.h,v 1.8 2003/09/26 14:12:01 eicker Exp $
+ * $Id: pscommon.h,v 1.9 2003/10/23 16:27:35 eicker Exp $
  *
  */
 /**
  * @file
  * Functions used in user-programs and daemon.
  *
- * $Id: pscommon.h,v 1.8 2003/09/26 14:12:01 eicker Exp $
+ * $Id: pscommon.h,v 1.9 2003/10/23 16:27:35 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -23,6 +23,8 @@
 
 #include <stdio.h>
 #include <sys/types.h>
+
+#include "pstask.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -91,7 +93,7 @@ void PSC_setMyID(short id);
  *
  * @return The unique task ID is returned.
  */
-long PSC_getTID(short node, pid_t pid);
+PStask_ID_t PSC_getTID(short node, pid_t pid);
 
 /**
  * @brief Computes the node number from a task ID.
@@ -103,7 +105,7 @@ long PSC_getTID(short node, pid_t pid);
  *
  * @return The node number on which the process resides is returned.
  */
-unsigned short PSC_getID(long tid);
+unsigned short PSC_getID(PStask_ID_t tid);
 
 /**
  * @brief Computes the process ID from a task ID.
@@ -115,7 +117,7 @@ unsigned short PSC_getID(long tid);
  *
  * @return The process ID of the process is returned.
  */
-pid_t PSC_getPID(long tid);
+pid_t PSC_getPID(PStask_ID_t tid);
 
 /**
  * @brief Mark the actual process to be a ParaStation daemon.
@@ -143,7 +145,7 @@ void PSC_setDaemonFlag(int flag);
  *
  * @see PSC_setDaemonFlag()
  */
-long PSC_getMyTID(void);
+PStask_ID_t PSC_getMyTID(void);
 
 /**
  * @brief Get string describing the task ID.
@@ -160,7 +162,7 @@ long PSC_getMyTID(void);
  * @return A pointer to a static character array containing task ID's
  * description. Do not try to free(2) this array.
  */
-char *PSC_printTID(long tid);
+char *PSC_printTID(PStask_ID_t tid);
 
 /**
  * @brief Start a ParaStation daemon.

@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidsignal.c,v 1.6 2003/07/04 13:57:40 eicker Exp $
+ * $Id: psidsignal.c,v 1.7 2003/10/23 16:27:35 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidsignal.c,v 1.6 2003/07/04 13:57:40 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidsignal.c,v 1.7 2003/10/23 16:27:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -93,8 +93,8 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
     return 0;
 }
 
-void PSID_sendSignal(long tid, uid_t uid, long senderTid, int signal,
-		     int pervasive)
+void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t senderTid,
+		     int signal, int pervasive)
 {
     if (PSC_getID(tid)==PSC_getMyID()) {
 	/* receiver is on local node, send signal */
@@ -117,7 +117,7 @@ void PSID_sendSignal(long tid, uid_t uid, long senderTid, int signal,
 	    PSID_errlog(errtxt, 0);
 	} else if (pervasive) {
 	    PStask_t *clone = PStask_clone(dest);
-	    long childTID;
+	    PStask_ID_t childTID;
 	    int sig = -1;
 
 	    while ((childTID = PSID_getSignal(&clone->childs, &sig))) {
@@ -183,7 +183,7 @@ void PSID_sendSignal(long tid, uid_t uid, long senderTid, int signal,
 void PSID_sendAllSignals(PStask_t *task)
 {
     int sig=-1;
-    long sigtid;
+    PStask_ID_t sigtid;
 
     while ((sigtid = PSID_getSignal(&task->signalReceiver, &sig))) {
 	PSID_sendSignal(sigtid, task->uid, task->tid, sig, 0);
@@ -200,7 +200,7 @@ void PSID_sendAllSignals(PStask_t *task)
 
 void PSID_sendSignalsToRelatives(PStask_t *task)
 {
-    long sigtid;
+    PStask_ID_t sigtid;
     int sig = -1;
 
     sigtid = task->ptid;

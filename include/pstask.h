@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.h,v 1.17 2003/09/12 13:44:15 eicker Exp $
+ * $Id: pstask.h,v 1.18 2003/10/23 16:27:35 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with ParaStation tasks.
  *
- * $Id: pstask.h,v 1.17 2003/09/12 13:44:15 eicker Exp $
+ * $Id: pstask.h,v 1.18 2003/10/23 16:27:35 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -47,6 +47,9 @@ typedef enum {
     TG_MONITOR    /**< A special task that monitors the daemon. Don't kill */
 } PStask_group_t;
 
+/** Type to store unique task IDs in */
+typedef long PStask_ID_t;
+
 /**
  * @brief Get the name of a PStask_group.
  *
@@ -61,7 +64,7 @@ char *PStask_printGrp(PStask_group_t taskgroup);
 
 /** Signal structure */
 typedef struct PSsig_T{
-    long tid;                 /**< unique task identifier */
+    PStask_ID_t tid;          /**< unique task identifier */
     int signal;               /**< signal to send, or -1 for childsignal */
     struct PSsig_T *next;     /**< link to the next signal */
 } PStask_sig_t;
@@ -72,15 +75,15 @@ typedef struct PStask_T{
     struct PStask_T *next;         /**< link to the next task */
     struct PStask_T *prev;         /**< link to the previous task */
 
-    long tid;                /*C*/ /**< unique task identifier */
-    long ptid;               /*C*/ /**< unique identifier of parent task */
+    PStask_ID_t tid;         /*C*/ /**< unique task identifier */
+    PStask_ID_t ptid;        /*C*/ /**< unique identifier of parent task */
     uid_t uid;               /*C*/ /**< user id */
     gid_t gid;               /*C*/ /**< group id */
     unsigned int aretty;     /*C*/ /**< flag stdin, stdout & stderr as tty */
     struct termios termios;  /*C*/ /**< parameters of the controlling tty */
     struct winsize winsize;  /*C*/ /**< window size of the controlling tty */
     PStask_group_t group;    /*C*/ /**< task group @see PStask_group_t */
-    long loggertid;          /*C*/ /**< unique identifier of the logger */
+    PStask_ID_t loggertid;   /*C*/ /**< unique identifier of the logger */
     int rank;                /*C*/ /**< rank of task within task group */
     short fd;                      /**< connection fd within psid */
     char *workingdir;        /*C*/ /**< working directory */

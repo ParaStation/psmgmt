@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidforwarder.c,v 1.11 2003/07/31 17:58:35 eicker Exp $
+ * $Id: psidforwarder.c,v 1.12 2003/10/23 16:27:35 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.11 2003/07/31 17:58:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.12 2003/10/23 16:27:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -26,6 +26,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.11 2003
 
 #include "psidutil.h"
 #include "pscommon.h"
+#include "pstask.h"
 #include "psdaemonprotocol.h"
 #include "pslog.h"
 
@@ -41,7 +42,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.11 2003
 int verbose = 0;
 
 /** The ParaStation task ID of the logger */
-long loggerTID = -1;
+PStask_ID_t loggerTID = -1;
 
 /** The rank of the local task */
 int childRank = -1;
@@ -240,7 +241,7 @@ static int sendDaemonMsg(DDErrorMsg_t *msg)
  * Simultaneously #loggerTID is set.
  * On error, -1 is returned, and errno is set appropriately.
  */
-static int connectLogger(long tid)
+static int connectLogger(PStask_ID_t tid)
 {
     char txt[128];
     PSLog_Msg_t msg;

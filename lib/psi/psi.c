@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.54 2003/10/09 16:39:27 eicker Exp $
+ * $Id: psi.c,v 1.55 2003/10/23 16:27:35 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.54 2003/10/09 16:39:27 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.55 2003/10/23 16:27:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -454,7 +454,7 @@ int PSI_recvMsg(void *amsg)
 }
 
 
-int PSI_notifydead(long tid, int sig)
+int PSI_notifydead(PStask_ID_t tid, int sig)
 {
     DDSignalMsg_t msg;
     int ret;
@@ -505,7 +505,7 @@ int PSI_notifydead(long tid, int sig)
     return 0;
 }
 
-int PSI_release(long tid)
+int PSI_release(PStask_ID_t tid)
 {
     DDSignalMsg_t msg;
     int ret;
@@ -556,7 +556,7 @@ int PSI_release(long tid)
     return 0;
 }
 
-long PSI_whodied(int sig)
+PStask_ID_t PSI_whodied(int sig)
 {
     DDSignalMsg_t msg;
 
@@ -588,7 +588,7 @@ long PSI_whodied(int sig)
     return msg.header.sender;
 }
 
-int PSI_sendFinish(long parenttid)
+int PSI_sendFinish(PStask_ID_t parenttid)
 {
     DDMsg_t msg;
 

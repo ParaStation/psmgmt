@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.h,v 1.15 2003/09/12 13:51:27 eicker Exp $
+ * $Id: psispawn.h,v 1.16 2003/10/23 16:27:35 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for spawning of ParaStation tasks.
  *
- * $Id: psispawn.h,v 1.15 2003/09/12 13:51:27 eicker Exp $
+ * $Id: psispawn.h,v 1.16 2003/10/23 16:27:35 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -22,6 +22,7 @@
 #define __PSISPAWN_H__
 
 #include <sys/types.h>
+#include "pstask.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -112,7 +113,7 @@ void PSI_RemoteArgs(int Argc,char **Argv,int *RArgc,char ***RArgv);
  * @see PSI_createPartition() PSI_getNodes()
  */
 int PSI_spawn(int count, char *workingdir, int argc, char **argv,
-	       int *errors, long *tids);
+	       int *errors, PStask_ID_t *tids);
 
 /**
  * @brief Spawn a special task within the cluster.
@@ -158,8 +159,8 @@ int PSI_spawn(int count, char *workingdir, int argc, char **argv,
  *
  * @see PSI_createPartition() INFO_request_rankID()
  */
-long PSI_spawnRank(int rank, char *workingdir, int argc, char **argv,
-		   int *error);
+PStask_ID_t PSI_spawnRank(int rank, char *workingdir, int argc, char **argv,
+			  int *error);
 
 /**
  * @brief Spawn a gmspawner task within the cluster.
@@ -207,8 +208,8 @@ long PSI_spawnRank(int rank, char *workingdir, int argc, char **argv,
  *
  * @see PSI_createPartition() INFO_request_rankID()
  */
-long PSI_spawnGMSpawner(int np, char *workingdir, int argc, char **argv,
-			int *error);
+PStask_ID_t PSI_spawnGMSpawner(int np, char *workingdir, int argc, char **argv,
+			       int *error);
 
 /**
  * @brief Create a pg (process group) file for MPIch/P4
@@ -251,7 +252,7 @@ char *PSI_createPGfile(int num, const char *prog, int local);
  *
  * @return On success 0 is returned or -1, if an error occurred.
  */
-int PSI_kill(long tid, short signal);
+int PSI_kill(PStask_ID_t tid, short signal);
 
 #ifdef __cplusplus
 }/* extern "C" */

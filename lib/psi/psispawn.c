@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.46 2003/09/12 14:20:01 eicker Exp $
+ * $Id: psispawn.c,v 1.47 2003/10/23 16:27:36 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.46 2003/09/12 14:20:01 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.47 2003/10/23 16:27:36 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -150,7 +150,7 @@ static char *mygetwd(const char *ext)
 
 static int dospawn(int count, short *dstnodes, char *workingdir,
 		   int argc, char **argv,
-		   int rank, int *errors, long *tids)
+		   int rank, int *errors, PStask_ID_t *tids)
 {
     int outstanding_answers=0;
     DDBufferMsg_t msg;
@@ -370,7 +370,7 @@ static int dospawn(int count, short *dstnodes, char *workingdir,
 }
 
 int PSI_spawn(int count, char *workdir, int argc, char **argv,
-	      int *errors, long *tids)
+	      int *errors, PStask_ID_t *tids)
 {
     int total = 0;
     short *nodes;
@@ -420,11 +420,12 @@ int PSI_spawn(int count, char *workdir, int argc, char **argv,
     return total;
 }
 
-long PSI_spawnRank(int rank, char *workdir, int argc, char **argv, int *error)
+PStask_ID_t PSI_spawnRank(int rank, char *workdir, int argc, char **argv,
+			  int *error)
 {
     short node;
     int ret;
-    long tid;
+    PStask_ID_t tid;
 
     snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, rank);
     PSI_errlog(errtxt, 10);
@@ -445,12 +446,12 @@ long PSI_spawnRank(int rank, char *workdir, int argc, char **argv, int *error)
     return tid;
 }
 
-long PSI_spawnGMSpawner(int np, char *workdir, int argc, char **argv,
-			int *error)
+PStask_ID_t PSI_spawnGMSpawner(int np, char *workdir, int argc, char **argv,
+			       int *error)
 {
     short node;
     int ret;
-    long tid;
+    PStask_ID_t tid;
 
     snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, np);
     PSI_errlog(errtxt, 10);
@@ -533,7 +534,7 @@ char *PSI_createPGfile(int num, const char *prog, int local)
     return PIfilename;
 }
 
-int PSI_kill(long tid, short signal)
+int PSI_kill(PStask_ID_t tid, short signal)
 {
     DDSignalMsg_t  msg;
 

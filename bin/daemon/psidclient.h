@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidclient.h,v 1.2 2003/07/04 10:59:03 eicker Exp $
+ * $Id: psidclient.h,v 1.3 2003/10/23 16:27:35 eicker Exp $
  *
  */
 /**
  * \file
  * Functions for client handling within the ParaStation daemon
  *
- * $Id: psidclient.h,v 1.2 2003/07/04 10:59:03 eicker Exp $
+ * $Id: psidclient.h,v 1.3 2003/10/23 16:27:35 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -61,7 +61,7 @@ void initClients(void);
  *
  * @see isEstablishedClient(), setEstablishedClient()
  */
-void registerClient(int fd, long tid, PStask_t *task);
+void registerClient(int fd, PStask_ID_t tid, PStask_t *task);
 
 /**
  * @brief Get a clients task ID.
@@ -73,7 +73,7 @@ void registerClient(int fd, long tid, PStask_t *task);
  * @return On success, i.e. if a client is connected to @a fd, the
  * clients task ID is given. Otherwise -1 is returned.
  */
-long getClientTID(int fd);
+PStask_ID_t getClientTID(int fd);
 
 /**
  * @brief Get a clients task structure.
@@ -98,7 +98,7 @@ PStask_t *getClientTask(int fd);
  * @return On success, the file descriptor is returned. If no valid
  * file descriptor is found, FD_SETSIZE is returned.
  */
-int getClientFD(long tid);
+int getClientFD(PStask_ID_t tid);
 
 /**
  * @brief Establish client's connection.

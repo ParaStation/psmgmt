@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidpartition.c,v 1.3 2003/10/08 14:50:21 eicker Exp $
+ * $Id: psidpartition.c,v 1.4 2003/10/23 16:27:35 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.3 2003/10/08 14:50:21 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.4 2003/10/23 16:27:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -47,7 +47,7 @@ static int masterNode = -1; // @todo Hack 'till real masternode defined */
  */
 typedef struct request{
     struct request *next;    /**< Pointer to the next request */
-    long tid;                /**< TaskID of the requesting process */
+    PStask_ID_t tid;         /**< TaskID of the requesting process */
     unsigned int size;       /**< Requested size of the partition */
     unsigned int hwType;     /**< Hardware type of the requested nodes */
     uid_t uid;               /**< UID of the requesting process */
@@ -150,7 +150,7 @@ static void enqueueRequest(request_t *req)
  * @return On success, i.e. if a corresponding request was found, a
  * pointer to this request is returned. Or NULL in case of an error.
  */
-static request_t *findRequest(long tid)
+static request_t *findRequest(PStask_ID_t tid)
 {
     request_t *r = requests;
 

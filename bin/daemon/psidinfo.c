@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidinfo.c,v 1.1 2003/09/12 14:40:57 eicker Exp $
+ * $Id: psidinfo.c,v 1.2 2003/10/23 16:27:35 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidinfo.c,v 1.1 2003/09/12 14:40:57 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidinfo.c,v 1.2 2003/10/23 16:27:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -304,7 +304,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	case PSP_INFO_RANKID:
 	case PSP_INFO_TASKSIZE:
 	{
-	    long tid = PSC_getPID(inmsg->header.dest) ?
+	    PStask_ID_t tid = PSC_getPID(inmsg->header.dest) ?
 		inmsg->header.dest : inmsg->header.sender;
 	    PStask_t *task = PStasklist_find(managedTasks, tid);
 	    if (task) {
