@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.29 2003/07/04 07:32:54 eicker Exp $
+ * $Id: rdp.c,v 1.30 2003/10/08 13:46:16 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.29 2003/07/04 07:32:54 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.30 2003/10/08 13:46:16 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -240,8 +240,7 @@ static void putSMsg(Smsg *mp)
 
 /* ---------------------------------------------------------------------- */
 
-static void initConntableRDP(int nodes,
-			     unsigned int host[], unsigned short port)
+static void initConntable(int nodes, unsigned int host[], unsigned short port)
 {
     int i;
     struct timeval tv;
@@ -1366,7 +1365,7 @@ int initRDP(int nodes, unsigned short portno, int usesyslog,
 	portno = DEFAULT_RDP_PORT;
     }
 
-    initConntableRDP(nodes, hosts, htons(portno));
+    initConntable(nodes, hosts, htons(portno));
 
     rdpsock = initSockRDP(htons(portno), 0);
 
