@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.h,v 1.13 2002/04/30 17:35:58 eicker Exp $
+ * $Id: rdp.h,v 1.14 2002/07/03 19:56:53 eicker Exp $
  *
  */
 /**
  * @file
  * Reliable Datagram Protocol for ParaStation daemon
  *
- * $Id: rdp.h,v 1.13 2002/04/30 17:35:58 eicker Exp $
+ * $Id: rdp.h,v 1.14 2002/07/03 19:56:53 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -27,6 +27,8 @@ extern "C" {
 } /* <- just for emacs indentation */
 #endif
 #endif
+
+#include <sys/types.h>
 
 /**
  * Information container for callback of type @ref RDP_PKT_UNDELIVERABLE.
@@ -68,12 +70,17 @@ typedef struct {
  *
  * Initializes the RDP machinery for @a nodes nodes.
  *
+ *
  * @param nodes Number of nodes to handle.
+ *
  * @param portno The UDP port number in host byteorder to use for sending and
  * receiving packets. If 0, @ref DEFAULT_RDP_PORT is used.
+ *
  * @param usesyslog If true, all error-messages are printed via syslog().
+ *
  * @param hosts An array of size @a nodes containing the IP-addresses of the
  * participating nodes in network-byteorder.
+ *
  * @param callback Pointer to a callback-function. This function is called if
  * something exceptional happens. If NULL, no callbacks will be done.
  * The callback function is expected to accept two arguments. The first one,
@@ -81,6 +88,7 @@ typedef struct {
  * It will be set to one of @ref RDP_NEW_CONNECTION, @ref RDP_LOST_CONNECTION
  * or @ref RDP_PKT_UNDELIVERABLE. The second argument points to further
  * information depending on the type of the callback.
+ *
  *
  * @return On success, the filedescriptor of the RDP socket is returned.
  * On error, exit() is called within this function.
@@ -188,16 +196,20 @@ void setMaxRetransRDP(int count);
  *
  * Send a RDP packet of length @a len in @a buf to node @a node.
  *
+ *
  * @param node The node to send the message to.
+ *
  * @param buf Buffer containing the actual message.
+ *
  * @param len The length of the message.
+ *
  *
  * @return On success, the number of bytes sent is returned, or -1 if an error
  * occured.
  *
  * @see sendto(2)
  */
-int Rsendto(int node, void *buf, int len);
+int Rsendto(int node, void *buf, size_t len);
 
 /**
  * @brief Receive a RDP packet.
@@ -205,16 +217,20 @@ int Rsendto(int node, void *buf, int len);
  * Receive a RDP packet of maximal length @a len. The message is stored in
  * @a buf, the node it was received from in @a node.
  *
+ *
  * @param node Source node of the message.
+ *
  * @param buf Buffer to store the message in.
+ *
  * @param len The maximum length of the message, i.e. the size of @a buf.
+ *
  *
  * @return On success, the number of bytes received is returned, or -1 if
  * an error occured.
  *
  * @see recvfrom(2)
  */
-int Rrecvfrom(int *node, void *buf, int len);
+int Rrecvfrom(int *node, void *buf, size_t len);
 
 /**
  * @brief Get status info.
@@ -223,10 +239,14 @@ int Rrecvfrom(int *node, void *buf, int len);
  * node @a node. The result is returned in @a string and can be directly
  * put out via printf() and friends.
  *
+ *
  * @param node The node, which is joined via the connection, the status
  * information is retrieved from.
+ *
  * @param string The string to which the status information is written.
+ *
  * @param len The length of @a string.
+ *
  *
  * @return No return value.
  *
