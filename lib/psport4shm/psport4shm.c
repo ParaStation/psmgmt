@@ -7,7 +7,7 @@
 /**
  * name: Description
  *
- * $Id: psport4shm.c,v 1.4 2003/04/07 16:48:42 hauke Exp $
+ * $Id: psport4shm.c,v 1.5 2003/04/16 15:56:46 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -19,7 +19,7 @@
  */
 
 static char vcid[] __attribute__(( unused )) =
-"$Id: psport4shm.c,v 1.4 2003/04/07 16:48:42 hauke Exp $";
+"$Id: psport4shm.c,v 1.5 2003/04/16 15:56:46 hauke Exp $";
 
 #ifdef XREF
 #include <sys/uio.h>
@@ -2256,38 +2256,19 @@ char **PSP_HWList(void)
     return HWList;
 }
 
+#include "getid.c"
+
 
 /**********************************************************************/
 int PSP_GetNodeID(void)
 /**********************************************************************/
 {
-    struct hostent *mhost;
-    char myname[256];
     static uint32_t id = 0;
 
     if (!id) {
-	/* ToDo: This was psid code: Maybe buggy! */
-	/* Lookup hostname */
-	gethostname(myname, sizeof(myname));
-	
-	/* Get list of IP-addresses */
-	mhost = gethostbyname(myname);
-	
-	if (!mhost) goto err_nohostent;
-	
-	/*
-	  while (*mhost->h_addr_list) {
-	  printf( " -Addr: %08x\n", 
-	  ((struct in_addr *) *mhost->h_addr_list)->s_addr);
-	  mhost->h_addr_list++;
-	  }
-	*/
-	id = ntohl(*(int *)*mhost->h_addr_list);
+	id = psp_getid(); /* Use env PSP_NETWORK to get an IP */
     }
     return id;
- err_nohostent:
-    fprintf(stderr, __FUNCTION__ "(): gethostbyname() failed\n");
-    exit(1);
 }
 
 
