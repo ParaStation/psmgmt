@@ -1,7 +1,7 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.5 2001/05/21 11:38:07 moschny Exp $
+ * $Id: psport.h,v 1.6 2001/05/23 07:55:50 hauke Exp $
  *
  * @author
  * Jens Hauke <hauke@par-tec.com>,
@@ -13,6 +13,13 @@
 #define _PSPORT_H_
 
 #include "pshal.h"
+
+#ifdef __cplusplus
+extern "C" {
+#if 0
+} // <- just for emacs indentation
+#endif
+#endif
 
 /**
  * Handle to identify an open port.
@@ -381,5 +388,10 @@ PSP_Status_t PSP_Wait(PSP_PortH_t porth, PSP_RequestH_t request);
  * not canceled.
  */
 PSP_Status_t PSP_Cancel(PSP_PortH_t porth, PSP_RequestH_t request);
+    
+#ifdef __cplusplus
+}/* extern "C" */
+#endif
 
 #endif /* _PSPORT_H_ */
+
