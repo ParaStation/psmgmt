@@ -2,10 +2,10 @@
 
 INETD_PSIDMASK="^[ 	]*psid[ 	]"
 #INETD_PSIDMASK="^psid"
-INETD_PSIDLINE="psid	stream	tcp	nowait	root	/opt/parastation/bin/psid"
+INETD_PSIDLINE="psid	stream	tcp	nowait	root	/opt/parastation/bin/psid psid"
 #INETD_PSLDMASK="^psld"
 INETD_PSLDMASK="^[ 	]*psld[ 	]"
-INETD_PSLDLINE="psld	stream	tcp	nowait	root	/opt/parastation/bin/psld"
+INETD_PSLDLINE="psld	stream	tcp	nowait	root	/opt/parastation/bin/psld psld"
 
 SERV_PSLDMASK="^[ 	]*psld[ 	]"
 #SERV_PSLDMASK="^psld"
@@ -17,7 +17,7 @@ SERV_PSIDLINE="psid             888/tcp       # ParaStation Daemon Start Port"
 self_post_inst_msg() {
     echo "#################################################################"
     echo "  Please, prepare and mantain the file                           "
-    echo "  /opt/parastation/config/psm.config! (s.o. psm.config.template) "
+    echo "  /opt/parastation/config/parastation.conf! (s.o. parastation.conf.tmpl) "
     echo "#################################################################"
 }
 
@@ -283,6 +283,7 @@ update_inetd() {
         self_update_inetd_conf
     fi
     reload_inetd
+    ln -s /opt/parastation/config/parastation.conf /etc/parastation.conf
 }
 
 self_clear_inetd_conf() {
@@ -695,8 +696,6 @@ REQKRN=0
 PSMAIN="/opt/parastation"
 PSMDIR="/opt/parastation/bin/modules/osf5.1"
 PSMCNFDIR="/opt/parastation/config"
-#PSMDIR="/home/syrchyn/p3.build/kern/OSF1"
-#PSMCNFDIR="/home/syrchyn/p3/kern/OSF1"
 PSMDRV="psmx"
 PSMMODCNF="sysconfigtab"
 
