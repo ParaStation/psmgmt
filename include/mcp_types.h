@@ -200,8 +200,10 @@ typedef struct MCP_Route_T {
 /* Buffer Busy */
 #define MCP_NOTIFY_BufBusy		0x00070000
 /* Sequenceerror detected */
-#define MCP_NOTIFY_SE	0x00080000
+#define MCP_NOTIFY_SE		0x00080000
 
+/* Result of PortBind */
+#define MCP_NOTIFY_PortBind	0x00090000 /* 0:0k 1:no more ports 2:port busy */
 
 /********************************************************************
  * ParaStation3 Host Notifications (Kernel)
