@@ -3,6 +3,8 @@
                   "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd"[
 <!ENTITY ps "ParaStation">
 
+<!ENTITY infoblurb SYSTEM "infoblurb.sgml">
+
 <!ENTITY intro_admin SYSTEM "intro_admin.sgml">
 <!ENTITY intro_common SYSTEM "intro.sgml">
 
@@ -27,20 +29,10 @@
   <title>&ps; Administrators Guide</title>
 
   <bookinfo>
-    <copyright><year>2002</year><holder>ParTec AG</holder></copyright>
+    &infoblurb;
+
     <releaseinfo>Release 1.0</releaseinfo>
-    <corpname>ParTec AG</corpname>
-    <author>
-      <firstname>Norbert</firstname>
-      <surname>Eicker</surname>
-      <email>eicker@par-tec.com</email>
-    </author>
-    <mediaobject>
-      <imageobject>
-	<imagedata scale="35" align="center"
-	  fileref="../images/ParTecLogo.png"/>
-      </imageobject>
-    </mediaobject>
+
     <revhistory>
       <revision>
 	<revnumber>1.0</revnumber>
