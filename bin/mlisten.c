@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mlisten.c,v 1.9 2002/01/30 10:46:07 eicker Exp $
+ * $Id: mlisten.c,v 1.10 2002/04/03 15:34:15 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mlisten.c,v 1.9 2002/01/30 10:46:07 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mlisten.c,v 1.10 2002/04/03 15:34:15 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -61,7 +61,7 @@ void init(int num_nodes)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.9 $";
+    char revision[] = "$Revision: 1.10 $";
     fprintf(stderr, "mlisten %s\b \n", revision+11);
 }
 
@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
     struct sockaddr_in sin;  /* an internet endpoint address */ 
     int mcastsock;
     fd_set rfds;
-    int slen;
+    socklen_t slen;
     MCastMsg buf;
     char c;
     int debug=0;
