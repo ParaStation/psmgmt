@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidoption.c,v 1.5 2003/12/09 16:17:51 eicker Exp $
+ * $Id: psidoption.c,v 1.6 2003/12/10 16:43:00 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidoption.c,v 1.5 2003/12/09 16:17:51 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidoption.c,v 1.6 2003/12/10 16:43:00 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -35,19 +35,28 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidoption.c,v 1.5 2003/12/
 
 static char errtxt[256]; /**< General string to create error messages */
 
-void send_OPTIONS(int destnode)
+void send_OPTIONS(PSnodes_ID_t destnode)
 {
-    DDOptionMsg_t msg;
-
-    msg.header.type = PSP_CD_SETOPTION;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.dest = PSC_getTID(destnode, 0);
-    msg.header.len = sizeof(msg);
-
-    msg.count = 0;
+    DDOptionMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_SETOPTION,
+	    .sender = PSC_getMyTID(),
+	    .dest = PSC_getTID(destnode, 0),
+	    .len = sizeof(msg) },
+	.count = 0,
+	.opt = {{ .option = 0, .value = 0 }} };
 
     msg.opt[(int) msg.count].option = PSP_OP_HWSTATUS;
     msg.opt[(int) msg.count].value = PSnodes_getHWStatus(PSC_getMyID());
+    msg.count++;
+    msg.opt[(int) msg.count].option = PSP_OP_PROCLIMIT;
+    msg.opt[(int) msg.count].value = PSnodes_getProcs(PSC_getMyID());
+    msg.count++;
+    msg.opt[(int) msg.count].option = PSP_OP_UIDLIMIT;
+    msg.opt[(int) msg.count].value = PSnodes_getUser(PSC_getMyID());
+    msg.count++;
+    msg.opt[(int) msg.count].option = PSP_OP_GIDLIMIT;
+    msg.opt[(int) msg.count].value = PSnodes_getGroup(PSC_getMyID());
     msg.count++;
 
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
@@ -97,16 +106,17 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 	    break;
 	    case PSP_OP_PROCLIMIT:
 		if (PSC_getPID(msg->header.sender)) {
-		    DDOptionMsg_t info;
+		    DDOptionMsg_t info = {
+			.header = {
+			    .type = PSP_CD_SETOPTION,
+			    .sender = PSC_getMyTID(),
+			    .dest = 0,
+			    .len = sizeof(info) },
+			.count = 1,
+			.opt = {{ .option = msg->opt[i].option,
+				  .value = msg->opt[i].value }} };
+			    
 		    PSnodes_setProcs(PSC_getMyID(), msg->opt[i].value);
-
-		    info.header.type = PSP_CD_SETOPTION;
-		    info.header.sender = PSC_getMyTID();
-		    info.header.len = sizeof(info);
-
-		    info.count = 1;
-		    info.opt[0].option = msg->opt[i].option;
-		    info.opt[0].value = msg->opt[i].value;
 
 		    /* Info all nodes about my PROCLIMIT */
 		    broadcastMsg(&info);
@@ -117,16 +127,17 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_UIDLIMIT:
 		if (PSC_getPID(msg->header.sender)) {
-		    DDOptionMsg_t info;
+		    DDOptionMsg_t info = {
+			.header = {
+			    .type = PSP_CD_SETOPTION,
+			    .sender = PSC_getMyTID(),
+			    .dest = 0,
+			    .len = sizeof(info) },
+			.count = 1,
+			.opt = {{ .option = msg->opt[i].option,
+				  .value = msg->opt[i].value }} };
+			    
 		    PSnodes_setUser(PSC_getMyID(), msg->opt[i].value);
-
-		    info.header.type = PSP_CD_SETOPTION;
-		    info.header.sender = PSC_getMyTID();
-		    info.header.len = sizeof(info);
-
-		    info.count = 1;
-		    info.opt[0].option = msg->opt[i].option;
-		    info.opt[0].value = msg->opt[i].value;
 
 		    /* Info all nodes about my UIDLIMIT */
 		    broadcastMsg(&info);
@@ -137,16 +148,17 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_GIDLIMIT:
 		if (PSC_getPID(msg->header.sender)) {
-		    DDOptionMsg_t info;
+		    DDOptionMsg_t info = {
+			.header = {
+			    .type = PSP_CD_SETOPTION,
+			    .sender = PSC_getMyTID(),
+			    .dest = 0,
+			    .len = sizeof(info) },
+			.count = 1,
+			.opt = {{ .option = msg->opt[i].option,
+				  .value = msg->opt[i].value }} };
+
 		    PSnodes_setGroup(PSC_getMyID(), msg->opt[i].value);
-
-		    info.header.type = PSP_CD_SETOPTION;
-		    info.header.sender = PSC_getMyTID();
-		    info.header.len = sizeof(info);
-
-		    info.count = 1;
-		    info.opt[0].option = msg->opt[i].option;
-		    info.opt[0].value = msg->opt[i].value;
 
 		    /* Info all nodes about my GIDLIMIT */
 		    broadcastMsg(&info);
