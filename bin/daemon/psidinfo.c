@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidinfo.c,v 1.9 2004/02/23 18:34:29 eicker Exp $
+ * $Id: psidinfo.c,v 1.10 2004/02/23 20:45:19 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidinfo.c,v 1.9 2004/02/23 18:34:29 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidinfo.c,v 1.10 2004/02/23 20:45:19 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -46,8 +46,8 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
     int header = 0;
     char funcStr[80];
 
-    snprintf(errtxt, sizeof(errtxt), "%s: type %d for %d from requester %s",
-	     __func__, inmsg->type, destID,
+    snprintf(errtxt, sizeof(errtxt), "%s: type %s for %d from requester %s",
+	     __func__, PSP_printInfo(inmsg->type), destID,
 	     PSC_printTID(inmsg->header.sender));
     PSID_errlog(errtxt, 1);
 
