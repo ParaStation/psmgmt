@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.48 2002/11/22 16:08:41 eicker Exp $
+ * $Id: psidutil.c,v 1.49 2003/02/25 12:08:40 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.48 2002/11/22 16:08:41 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.49 2003/02/25 12:08:40 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -98,6 +98,7 @@ static card_init_t card_info;
 void PSID_startHW(void)
 {
     char licdot[10];
+    int ret;
 
     PSID_HWstatus = 0;
 
@@ -124,12 +125,16 @@ void PSID_startHW(void)
 	    card_info.options = NULL;
 	    card_info.routing_file = ConfigRoutefile;
 
-	    if (card_init(&card_info)) {
-		snprintf(errtxt, sizeof(errtxt), "PSID_startHW(): %s",
-			 card_errstr());
+	    ret = card_init(&card_info);
+	    if (ret) {
+		snprintf(errtxt, sizeof(errtxt),
+			 "%s(): card_init() returned %d: %s",
+			 __func__, ret, card_errstr());
 		PSID_errlog(errtxt, 0);
 	    } else {
-		PSID_errlog("PSID_startHW(): cardinit(): success", 10);
+		snprintf(errtxt, sizeof(errtxt), "%s(): cardinit(): success",
+			 __func__);
+		PSID_errlog(errtxt, 10);
 
 		PSID_HWstatus |= PSHW_MYRINET;
 
