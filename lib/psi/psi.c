@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.41 2003/02/13 17:02:05 eicker Exp $
+ * $Id: psi.c,v 1.42 2003/02/21 12:23:13 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.41 2003/02/13 17:02:05 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.42 2003/02/21 12:23:13 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -39,7 +39,7 @@ static char *psidVersion = NULL;
 
 static char errtxt[256];
 
-int daemonSocket(void)
+static int daemonSocket(void)
 {
     int sock;
     struct sockaddr_un sa;
@@ -56,7 +56,6 @@ int daemonSocket(void)
     strncpy(sa.sun_path, PSmasterSocketName, sizeof(sa.sun_path));
 
     if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0) {
-	shutdown(sock,2);
 	close(sock);
 	return -1;
     }
@@ -89,7 +88,6 @@ static int connectDaemon(PStask_group_t taskGroup)
  RETRY_CONNECT:
 
     if (daemonSock!=-1) {
-	shutdown(daemonSock, 2);
 	close(daemonSock);
 	daemonSock = -1;
     }
@@ -153,10 +151,6 @@ static int connectDaemon(PStask_group_t taskGroup)
 		     errstr ? errstr : "UNKNOWN");
 	    PSI_errlog(errtxt, 0);
 	}
-
-	shutdown(daemonSock, 2);
-	close(daemonSock);
-	daemonSock = -1;
 
 	return 0;
     }
@@ -223,8 +217,8 @@ static int connectDaemon(PStask_group_t taskGroup)
  	break;
     }
 
-    shutdown(daemonSock, SHUT_RDWR);
     close(daemonSock);
+
     daemonSock = -1;
 
     return 0;
@@ -258,7 +252,7 @@ int PSI_initClient(PStask_group_t taskGroup)
     }
 
     /*
-     * connect to local PSI daemon
+     * contact the local PSI daemon
      */
     if (!connectDaemon(taskGroup)) {
 	if (taskGroup!=TG_RESET) {
@@ -318,7 +312,6 @@ int PSI_exitClient(void)
     /*
      * close connection to local PSI daemon
      */
-    shutdown(daemonSock, 2);
     close(daemonSock);
     daemonSock = -1;
 
@@ -335,17 +328,33 @@ int PSI_sendMsg(void *amsg)
     DDMsg_t *msg = (DDMsg_t *)amsg;
     int ret = 0;
 
-    ret = write(daemonSock, msg, msg->len);
-
-    if (!ret) {
-	snprintf(errtxt, sizeof(errtxt), "PSI_sendMsg():"
-		 " Lost connection to ParaStation daemon");
-	PSI_errexit(errtxt, errno);
+    if (daemonSock == -1) {
+	errno = ENOTCONN;
+	return -1;
     }
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "PSI_sendMsg() type %s (len=%d) to %s",
-	     PSP_printMsg(msg->type), msg->len, PSC_printTID(msg->dest));
+    ret = write(daemonSock, msg, msg->len);
+
+    if (ret <= 0) {
+        char* errstr;
+
+	if (!errno) errno = ENOTCONN;
+	errstr = strerror(errno);
+
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s(): Lost connection to ParaStation daemon: %s",
+		 __func__, errstr ? errstr : "UNKNOWN");
+	PSI_errlog(errtxt, 0);
+
+	close(daemonSock);
+	daemonSock = -1;
+
+	return -1;
+    }
+
+    snprintf(errtxt, sizeof(errtxt), "%s() type %s (len=%d) to %s",
+	     __func__, PSP_printMsg(msg->type), msg->len,
+	     PSC_printTID(msg->dest));
     PSI_errlog(errtxt, 12);
 
     return ret;
@@ -357,29 +366,49 @@ int PSI_recvMsg(void *amsg)
     int n;
     int count = 0;
 
+    if (daemonSock == -1) {
+	errno = ENOTCONN;
+	return -1;
+    }
+
     do {
 	if (!count) {
 	    n = read(daemonSock, msg, sizeof(*msg));
 	} else {
 	    n = read(daemonSock, &((char*)msg)[count], msg->len-count);
 	}
-	if (n>0) count+=n;
-	if (!n) {
-	    snprintf(errtxt, sizeof(errtxt), "PSI_recvMsg():"
-		     " Lost connection to ParaStation daemon.");
+	if (n>0) {
+	    count+=n;
+	} else {
+	    char* errstr;
+
+	    if (errno) {
+		errstr = strerror(errno);
+	    } else {
+		errstr = strerror(ENOTCONN);
+	    }
+
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s(): Lost connection to ParaStation daemon: %s"
+		     __func__,  errstr ? errstr : "UNKNOWN");
 	    if (!errno) {
 		snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
 			 " Maybe version of daemon and library do not match.");
-		errno = EPIPE;
+		errno = ENOTCONN;
 	    }
-	    PSI_errexit(errtxt, errno);
+	    PSI_errlog(errtxt, 0);
+
+	    close(daemonSock);
+	    daemonSock = -1;
 	}
     } while (msg->len>count && n>0);
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "PSI_recvMsg() type %s (len=%d) from %s",
-	     PSP_printMsg(msg->type), msg->len, PSC_printTID(msg->sender));
-    PSI_errlog(errtxt, 12);
+    if (count > sizeof(*msg)) {
+	snprintf(errtxt, sizeof(errtxt), "%s() type %s (len=%d) from %s",
+		 __func__, PSP_printMsg(msg->type), msg->len,
+		 PSC_printTID(msg->sender));
+	PSI_errlog(errtxt, 12);
+    }
 
     if (count==msg->len) {
 	return msg->len;
@@ -431,8 +460,9 @@ int PSI_notifydead(long tid, int sig)
 int PSI_release(long tid)
 {
     DDSignalMsg_t msg;
+    int ret;
 
-    snprintf(errtxt, sizeof(errtxt), "PSI_release(%lx)", tid);
+    snprintf(errtxt, sizeof(errtxt), "%s(%lx)", __func__, tid);
     PSI_errlog(errtxt, 10);
 
     msg.header.type = PSP_DD_RELEASE;
@@ -443,13 +473,14 @@ int PSI_release(long tid)
 
     if (PSI_sendMsg(&msg)<0) {
 	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "PSI_release():"
-		 "PSI_sendMsg() failed: %s", errstr ? errstr : "UNKNOWN");
+	snprintf(errtxt, sizeof(errtxt), "%s(): PSI_sendMsg() failed: %s",
+		 __func__, errstr ? errstr : "UNKNOWN");
 	PSI_errlog(errtxt, 0);
 	return -1;
     }
 
-    if (PSI_recvMsg(&msg)<0) {
+    ret = PSI_recvMsg(&msg);
+    if (ret<0) {
 	char* errstr = strerror(errno);
 	snprintf(errtxt, sizeof(errtxt), "PSI_release():"
 		 " PSI_recvMsg() failed: %s", errstr ? errstr : "UNKNOWN");
@@ -457,10 +488,22 @@ int PSI_release(long tid)
 	return -1;
     }
 
-    if (msg.param) {
+    if (ret==0) {
+	snprintf(errtxt, sizeof(errtxt), "PSI_release():"
+		 " PSI_recvMsg() returned 0");
+	PSI_errlog(errtxt, 0);
+	return -1;
+    }
+
+    if (msg.header.type != PSP_DD_RELEASERES) {
+	snprintf(errtxt, sizeof(errtxt), "PSI_release():"
+		 " wrong message type %d.", msg.header.type);
+	PSI_errlog(errtxt, 0);
+	return -1;
+    } else if (msg.param) {
 	snprintf(errtxt, sizeof(errtxt), "PSI_release():"
 		 " error = %d (ESRCH=%d).", msg.param, ESRCH);
-	PSI_errlog(errtxt, 1);
+	PSI_errlog(errtxt, 0);
 	return -1;
     }
 
@@ -527,15 +570,14 @@ int PSI_recvFinish(int outstanding)
     DDMsg_t msg;
     int error = 0;
 
-    snprintf(errtxt, sizeof(errtxt), "PSI_recv_finish(%d)", outstanding);
+    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, outstanding);
     PSI_errlog(errtxt, 10);
 
     while (outstanding>0) {
 	if (PSI_recvMsg(&msg)<0) {
 	    char *errstr = strerror(errno);
-	    snprintf(errtxt, sizeof(errtxt), "PSI_recv_finish():"
-		     " PSI_recvMsg() failed: %s",
-		     errstr ? errstr : "UNKNOWN");
+	    snprintf(errtxt, sizeof(errtxt), "%s(): PSI_recvMsg() failed: %s",
+		     __func__, errstr ? errstr : "UNKNOWN");
 	    PSI_errlog(errtxt, 0);
 	    error = 1;
 	    break;
@@ -544,8 +586,7 @@ int PSI_recvFinish(int outstanding)
 	case PSP_DD_SPAWNFINISH:
 	    break;
 	default:
-	    snprintf(errtxt, sizeof(errtxt), "PSI_recv_finish():"
-		     " UNKNOWN answer");
+	    snprintf(errtxt, sizeof(errtxt), "%s(): UNKNOWN answer", __func__);
 	    PSI_errlog(errtxt, 0);
 	    error = 1;
 	    break;
@@ -601,7 +642,7 @@ void PSI_execLogger(void)
 
     errstr = strerror(errno);
 
-    fprintf(stderr, "PSI_execLogger(execv): %s [%d] %s", argv[0],
+    fprintf(stderr, "%s(): execv(%s) returned %d: %s", __func__, argv[0],
 	    errno, errstr ? errstr : "UNKNOWN");
     perror("execv()");
 
