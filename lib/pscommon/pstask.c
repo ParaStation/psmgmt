@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.c,v 1.3 2002/07/11 10:27:32 eicker Exp $
+ * $Id: pstask.c,v 1.4 2002/07/11 17:00:20 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.3 2002/07/11 10:27:32 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.4 2002/07/11 17:00:20 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -44,8 +44,7 @@ int PStask_init(PStask_t *task)
     task->loggernode = 0;
     task->loggerport = 0;
     task->fd = -1;
-    task->error = 0;
-    task->confirmed = 1;
+    task->confirmed = 1; /* obsolete */
     task->workingdir = NULL;
     task->argc = 0;
     task->argv = NULL;
@@ -118,11 +117,10 @@ void PStask_snprintf(char *txt, size_t size, PStask_t * task)
 	return ;
 
     snprintf(txt, size, " links(%08lx,%08lx) tid %08lx, ptid %08lx, uid %d"
-	     " loggernode %x loggerport %d"
-	     " group0x%lx rank %x error %ld fd %d argc %d ",
+	     " loggernode %x loggerport %d group %s rank %x fd %d argc %d ",
 	     (long)task->next, (long)task->prev, task->tid, task->ptid,
 	     task->uid, task->loggernode, task->loggerport,
-	     task->group, task->rank, task->error, task->fd, task->argc);
+	     PStask_groupMsg(task->group), task->rank, task->fd, task->argc);
     if (strlen(txt)+1 == size) return;
 
     snprintf(txt+strlen(txt), size-strlen(txt), "dir=\"%s\",command=\"",
@@ -269,4 +267,12 @@ int PStask_decode(char* buffer, PStask_t * task)
 #endif
 
     return msglen;
+}
+
+char *PStask_groupMsg(PStask_group_t tg)
+{
+    return (tg==TG_ANY) ? "TG_ANY" :
+	(tg==TG_ADMIN) ? "TG_ADMIN" :
+	(tg==TG_RESET) ? "TG_RESET" :
+	(tg==TG_LOGGER) ? "TG_ADMIN" : "UNKNOWN";
 }
