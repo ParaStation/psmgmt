@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidtask.h,v 1.3 2002/07/25 13:49:04 eicker Exp $
+ * $Id: psidtask.h,v 1.4 2002/07/26 15:26:31 eicker Exp $
  *
  */
 /**
  * @file
  * Functions for interaction with ParaStation tasks within the Daemon
  *
- * $Id: psidtask.h,v 1.3 2002/07/25 13:49:04 eicker Exp $
+ * $Id: psidtask.h,v 1.4 2002/07/26 15:26:31 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -74,7 +74,7 @@ void PStasklist_delete(PStask_t **list);
  *  enqueus a task into a tasklist.
  *  RETURN: 0 on success
  */
-int PStasklist_enqueue(PStask_t **list, PStask_t *newtask);
+int PStasklist_enqueue(PStask_t **list, PStask_t *task);
 
 /*----------------------------------------------------------------------*/
 /*
