@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidtask.c,v 1.13 2004/01/22 13:26:02 eicker Exp $
+ * $Id: psidtask.c,v 1.14 2004/01/28 14:03:55 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.13 2004/01/22 13:26:02 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.14 2004/01/28 14:03:55 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -25,6 +25,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.13 2004/01/2
 #include "psidutil.h"
 #include "psidsignal.h"
 #include "psidstatus.h"
+#include "psidpartition.h"
 
 #include "psidtask.h"
 
@@ -223,6 +224,10 @@ void PStask_cleanup(PStask_ID_t tid)
 	if (!task->duplicate) {
 	    decJobs(1, (task->group==TG_ANY));
 	}
+
+	/* Tell master about exiting root process */
+	if (task->request) send_CANCELPART(tid);
+	if (task->partition && task->partitionSize) send_TASKDEAD(tid);
 
 	if (task->group==TG_FORWARDER && !task->released) {
 	    /* cleanup child */
