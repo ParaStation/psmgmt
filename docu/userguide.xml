@@ -1,0 +1,75 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN"
+                  "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd"[
+<!ENTITY ps "ParaStation">
+
+<!ENTITY intro_user SYSTEM "intro_user.sgml">
+<!ENTITY intro_common SYSTEM "intro.sgml">
+
+<!ENTITY startup SYSTEM "startup.sgml">
+<!ENTITY using_mpi SYSTEM "using_mpi.sgml">
+<!ENTITY building SYSTEM "building.sgml">
+
+<!ENTITY psmstart SYSTEM "psmstart.sgml">
+<!ENTITY mpirun SYSTEM "mpirun.sgml">
+<!ENTITY environment SYSTEM "ps_environment.sgml">
+
+<!ENTITY spawning SYSTEM "spawning.sgml">
+
+<!ENTITY glossary SYSTEM "glossary.sgml">
+]>
+<book id="userguide">
+  <title>&ps; Users Guide</title>
+
+  <bookinfo>
+    <copyright><year>2002</year><holder>ParTec AG</holder></copyright>
+    <releaseinfo>Release 0.1</releaseinfo>
+    <corpname>ParTec AG</corpname>
+    <author>
+      <firstname>Norbert</firstname>
+      <surname>Eicker</surname>
+      <email>eicker@par-tec.com</email>
+    </author>
+    <mediaobject>
+      <imageobject>
+	<imagedata fileref="../images/parastation.png"/>
+      </imageobject>
+    </mediaobject>
+  </bookinfo>
+
+  &intro_user;
+  &startup;
+  &using_mpi;
+  &building;
+
+  <reference id="references_user">
+    <title>Reference Pages</title>
+    &mpirun;
+    &psmstart;
+    &environment;
+  </reference>
+
+  <appendix><title>Spawning strategies</title>
+    &spawning;
+  </appendix>
+
+  &glossary;
+</book>
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: xml
+sgml-omittag:nil
+sgml-shorttag:nil
+sgml-namecase-general:nil
+sgml-general-insert-case:lower
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:2
+sgml-indent-data:t
+sgml-parent-document:nil
+sgml-default-dtd-file:"userguide.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+-->
