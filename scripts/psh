@@ -37,7 +37,43 @@ function psstart()
     # sleep 1: hack around a bug
     "${PARASTATIONSTART}" "$* ; sleep 1"
 }
-###################
+
+#############################
+# create a default template 
+if [ ! -e "${D_CONFIG}" ] ; then
+    mkdir -p ${D_CONFIG_D}
+    cat >> ${D_CONFIG} <<EOF
+## psh defaults
+## uncomment all options you need...
+
+## default nodelist:
+# node nodename[01-16]
+
+## default remote command:
+# rcmd ssh -x
+
+## dont start more than 1 remote shell at the same time?
+# max 1
+
+## be always verbose ?
+# verbose
+
+EOF
+fi
+
+####################################################
+# alternative default? (hostname%dx,hostnamex,default)
+tmp=$(hostname -s)
+if [ -e "${D_CONFIG_D}/${tmp}" ] ; then
+    D_CONFIG=${D_CONFIG_D}/${tmp}
+else 
+    tmp=${tmp//[0-9]/}
+    if [ -e "${D_CONFIG_D}/${tmp}" ] ; then
+	D_CONFIG=${D_CONFIG_D}/${tmp}
+    fi
+fi
+
+#######################
 
 function help
 {
@@ -382,6 +418,7 @@ fi
 
 if [ "$VERBOSE" = 1 ];then
 cat <<EOF
+CONFIG  ${D_CONFIG}
 NODES   ${NODES[*]}
 NODESSHORT $(namemerge ${NODES[*]})
 RCMD    $RCMD
