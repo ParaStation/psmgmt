@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp_private.h,v 1.12 2003/06/04 07:59:27 eicker Exp $
+ * $Id: rdp_private.h,v 1.13 2003/07/04 07:24:10 eicker Exp $
  *
  */
 /**
@@ -14,7 +14,7 @@
  *
  * Private functions and definitions
  *
- * $Id: rdp_private.h,v 1.12 2003/06/04 07:59:27 eicker Exp $
+ * $Id: rdp_private.h,v 1.13 2003/07/04 07:24:10 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -104,14 +104,13 @@ typedef struct {
  */
 #define MAX_ACK_PENDING  4
 
-/** Timeout for retransmission = 100msec */
-struct timeval RESEND_TIMEOUT = {0, 100000}; /* sec, usec */
+/** Timeout for retransmission = 10msec */
+struct timeval RESEND_TIMEOUT = {0, 10000}; /* sec, usec */
 
 /**
- * The timeout used for RDP timer = 1 sec. The is a const for now and can only
- * changed in the sources.
+ * The timeout used for RDP timer = 100 msec. The is a const for now
+ * and can only changed in the sources.
  */
-//struct timeval RDPTimeout = {1, 0}; /* sec, usec */
 struct timeval RDPTimeout = {0, 100000}; /* sec, usec */
 
 /** The actual packet-loss rate. Get/set by getPktLossRDP()/setPktLossRDP() */
