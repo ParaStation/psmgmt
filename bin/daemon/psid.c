@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.124 2004/01/22 14:36:07 eicker Exp $
+ * $Id: psid.c,v 1.125 2004/01/22 16:56:21 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.124 2004/01/22 14:36:07 eicker Exp $ 
+ * $Id: psid.c,v 1.125 2004/01/22 16:56:21 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.124 2004/01/22 14:36:07 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.125 2004/01/22 16:56:21 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -75,7 +75,7 @@ struct timeval selectTime;
 
 static struct timeval shutdownTimer;
 
-char psid_cvsid[] = "$Revision: 1.124 $";
+char psid_cvsid[] = "$Revision: 1.125 $";
 
 /**
  * Master socket (type UNIX) for clients to connect. Setup within @ref
@@ -1643,6 +1643,7 @@ int handleMsg(int fd, DDBufferMsg_t *msg)
 	msg_PROVIDEPARTNL(msg);
 	break;
     case PSP_CD_GETNODES:
+    case PSP_DD_GETNODES:
 	msg_GETNODES(msg);
 	break;
     case PSP_CD_NODESRES:
@@ -2194,7 +2195,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.124 $";
+    char revision[] = "$Revision: 1.125 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
