@@ -5,20 +5,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.5 2003/04/10 17:37:09 eicker Exp $
+ * $Id: psispawn.c,v 1.6 2003/07/31 17:56:40 eicker Exp $
  *
  */
 /**
  * @file Simple wrapper to allow MPIch/P4 programs to run under the
  * control of ParaStation.
  *
- * $Id: psispawn.c,v 1.5 2003/04/10 17:37:09 eicker Exp $
+ * $Id: psispawn.c,v 1.6 2003/07/31 17:56:40 eicker Exp $
  *
  * @author Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.5 2003/04/10 17:37:09 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.6 2003/07/31 17:56:40 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -44,9 +44,9 @@ void usage(char *progname)
 
 int main(int argc, char *argv[])
 {
-    int worldRank, i, totlen = 0;
+    int worldRank, i;
 
-    char *host, command;
+    char *host;
 
     if (argc < 6) {
 	fprintf(stderr, "You need to give at least five argument\n");
