@@ -370,17 +370,11 @@ int PSID_taskspawn(PStask_t* task)
 	/*
 	 * Start the forwarder and redirect stdout/stderr
 	 */
-	{
-	    int forwport;
-	    forwport=LOGGERspawnforwarder(task->loggernode, task->loggerport);
+	LOGGERspawnforwarder(task->loggernode, task->loggerport);
 
-	    if(LOGGERredirect_std(PSID_hostaddress(PSI_myid),
-				  forwport, task)<0){
-		buf = errno;
-		write(fds[1],&buf,sizeof(buf));
-		exit(0);
-	    }
-	}
+	/* we don't need them any more */
+	close(stdout_fileno_backup);
+	close(stderr_fileno_backup);
 
 	/*
 	 * execute the image

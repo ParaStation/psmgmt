@@ -416,7 +416,6 @@ PSI_dospawn(int count, short *dstnodes, char *workingdir,
     char hostname[256];
     struct in_addr sin_addr;
     struct hostent *hp;
-    int forwport;
 
     int i;          /* count variable */
     int ret=0;      /* return value */
@@ -459,27 +458,9 @@ PSI_dospawn(int count, short *dstnodes, char *workingdir,
     task->loggerport = LOGGERspawnlogger();
 
     /*
-     * psilogger is started. Now start forwarder.
+     * psilogger is started. Now start forwarder and redirect output.
      */
-    forwport = LOGGERspawnforwarder(task->loggernode, task->loggerport);
-
-    /*
-     * backup stdout and stderr for reuse after PSEfinalize();
-     */
-    stdout_fileno_backup=dup(STDOUT_FILENO);
-    stderr_fileno_backup=dup(STDERR_FILENO);
-
-    /*
-     * and redirect output
-     */
-    if(LOGGERredirect_std(task->loggernode, forwport, task)<0){
-	char *errtxt;
-
-	errtxt = strerror(errno);
-	printf("spawnforwarder failed error(%d):%s\n", ret,
-	       errtxt?errtxt:"UNKNOWN");
-	exit(0);
-    }
+    LOGGERspawnforwarder(task->loggernode, task->loggerport);
 
     if ((workingdir==NULL)||(workingdir[0]!='/')){
 	/*

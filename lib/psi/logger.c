@@ -24,248 +24,40 @@ pid_t logger_pid=0;
 int stdout_fileno_backup=-1;
 int stderr_fileno_backup=-1;
 
-/*************************************************************
- * int
- * LOGGERstdconnect(u_int node, int port, int fd, PStask_t* task)
- *
- * creates a socket and connects it to the port. It signals the logger that
- * it will be used as std(STDOUT/STDERR).
- *
- * RETURN the newly created socket.
- */
-int LOGGERstdconnect(unsigned int node, int port, int std, PStask_t* task)
-{
-    int sock;                   /* master socket to log to */
-    struct sockaddr_in sa;	/* socket address */ 
-    struct LOGGERclient_t mystruct;
-
-    int delay;
-
-    if((sock = socket(PF_INET,SOCK_STREAM,0))<0){
-#ifdef DEBUG
-	sprintf(PSI_txt,"LOGGERstdconnect: socket() error %d\n",errno);
-	PSI_logerror(PSI_txt);
-#endif
-	return(-1);
-    }
-
-    delay = 1;
-    setsockopt(sock, SOL_TCP, TCP_NODELAY, (void *) &delay, sizeof(delay));
-
-    bzero((char *)&sa, sizeof(sa)); 
-    sa.sin_family = PF_INET; 
-    sa.sin_addr.s_addr = node;
-    sa.sin_port = htons(port);
-
-    if((connect(sock,(struct sockaddr *)&sa, sizeof(sa)))<0){
-	perror("Logger: can't connect socket:");
-#ifdef DEBUG
-	sprintf(PSI_txt,"LOGGERstdconnect: connect() error %d\n",errno);
-	PSI_logerror(PSI_txt);
-#endif
-	return(-1);
-    }
-
-    mystruct.id = PSI_gettid(-1,getpid());
-    mystruct.std = std;
-
-    if(task->options & TaskOption_SENDSTDHEADER){
-	write(sock,&mystruct,sizeof(struct LOGGERclient_t));
-    }
-
-    dup2(sock, std);
-    close(sock);
-
-    return sock;
-}
-
-/*************************************************************
- * int LOGGERstdDevNull(int std)
- * 
- * redirect stdout/stderr to /dev/null
- *
- * RETURN 0 success
- *        -1 error errno is set.
- */
-int LOGGERstdDevNull(int std)
-{
-    int fd;
-
-    if((fd = open("/dev/null",O_WRONLY, S_IRUSR|S_IWUSR))<0){
-#ifdef DEBUG
-	sprintf(PSI_txt,"LOGGERstdDevNull: Even </dev/null> is not "
-		"usable for %s!! PANIC exit (errno %d)!!",
-		(std==STDOUT_FILENO)?"STDOUT":"STDERR",errno);
-	PSI_logerror(PSI_txt);
-#endif
-	errno = EIO;
-	return -1;
-    }
-#ifdef DEBUG
-    sprintf(PSI_txt,"LOGGERredirect_std: Now using /dev/null for %s\n",
-	    (std==STDOUT_FILENO)?"STDOUT":"STDERR");
-    PSI_logerror(PSI_txt);
-#endif
-    dup2(fd, std);
-    close(fd);
-
-    return 0;
-}
-
-/*************************************************************
- * int
- * LOGGERredirect_std(unsigned int node, int port, PStask_t* task)
- * 
- * redirect stdout/stderr to sockets connected to port
- * RETURN 0 success
- *        -1 error errno is set.
- */
-int LOGGERredirect_std(unsigned int node, int port, PStask_t* task)
-{
-    int sock;     /* master socket to listen to.*/
-
-    if(port>0){
-	/* logging should take place to an remote logger */
-	/* 
-	 * - create a socket for stdout 
-	 * - close the original stdout 
-	 * - redirect the original stdout to the new socket
-	 */
-	fflush(stdout);
-	fflush(stderr);
-	if((sock = LOGGERstdconnect(node, port, STDOUT_FILENO, task))<0)
-	    if(LOGGERstdDevNull(STDOUT_FILENO)<0)
-		return -1;
-
-	/* 
-	 * - create a socket for stderr 
-	 * - close the original stderr
-	 * - redirect the original stderr to the new socket
-	 */
-	if(task->options & TaskOption_ONESTDOUTERR){
-	    dup2(STDOUT_FILENO, STDERR_FILENO);
-	}else if((sock = LOGGERstdconnect(node, port, STDERR_FILENO, task))<0)
-	    if(LOGGERstdDevNull(STDERR_FILENO)<0)
-		return -1;
-    }else{
-	int fd;           /* filedesc. of the stdout/stderr while creating */
-	char stdname[40]; /* name for stdout/stderr files of spawned process*/
-
-	/* open stdout && stderr */
-	sprintf(stdname,"/tmp/%s.%d.stdout",task->argv[0],getpid());
-	if((fd = open(stdname,O_WRONLY|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR))<0){
-	    char* errtxt;
-	    errtxt=strerror(errno);
-	    sprintf(PSI_txt,"LOGGERredirect_std: can not open new stdout "
-		    " errno(%d) %s <%s>>", errno,
-		    errtxt?errtxt:"UNKNOWN", stdname);
-	    PSI_logerror(PSI_txt);
-	    if(LOGGERstdDevNull(STDOUT_FILENO)<0)
-		return -1;
-	}else{
-	    dup2(fd, STDOUT_FILENO);
-	    close(fd);
-	}
-	sprintf(stdname,"/tmp/%s.%d.stderr",task->argv[0],getpid());
-	if((fd = open(stdname, O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR))<0){
-	    char* errtxt;
-	    errtxt=strerror(errno);
-	    sprintf(PSI_txt,"LOGGERredirect_std: can not open new stderr "
-		    " errno(%d) %s <%s>",
-		    errno,errtxt?errtxt:"UNKNOWN",stdname);
-	    PSI_logerror(PSI_txt);
-	    if(LOGGERstdDevNull(STDERR_FILENO)<0)
-		return -1;
-	}else{
-	    dup2(fd, STDERR_FILENO);
-	    close(fd);
-	}
-    }
-
-    return 0;
-}
-
-/************************************************************************
- * LOGGERcreateport(int * portno)
- *  creates an INET port for the logger to listen to.
- *  it trys to bind to the portno and decrements this portno if a bind is
- *  not possible. 
- *  RETURN -1 on error; socketfd of success
- *         portno is set to the real portno
- */
-int LOGGERcreateport(int *portno)
-{
-    struct sockaddr_in sa;	/* socket address */ 
-    int sock;
-    int err;                    /* error code while binding */
-
-#ifdef DEBUG
-    if(0){
-	sprintf(PSI_txt,"LOGGERcreateport(%d)\n",*portno);
-	PSI_logerror(PSI_txt);
-    }
-#endif
-
-    if((sock = socket(AF_INET,SOCK_STREAM,0))<0){
-	perror("PSIlogger: can't create socket:");
-	return(-1);
-    }
-    bzero((char *)&sa, sizeof(sa)); 
-    sa.sin_family = AF_INET; 
-    sa.sin_addr.s_addr = INADDR_ANY;
-
-    sa.sin_port = htons(*portno); 
-
-    while(((err = bind(sock,(struct sockaddr *)&sa, sizeof(sa)))<0)
-	  &&(errno == EADDRINUSE)){
-	sa.sin_port = htons(ntohs(sa.sin_port)-1); 
-    }
-    if(err <0){
-	perror("PSIlogger: can't bind socket:");
-	return(-1);
-    }
-
-    if((listen(sock,256))<0){
-	perror("PSIlogger: can't listen to socket:");
-	return(-1);
-    }
-    *portno = ntohs(sa.sin_port);
-
-    return sock;
-}
-
 /*********************************************************************
- * int LOGGERspawnforwarder()
+ * void LOGGERspawnforwarder()
  *
- * spawns a forwarder.
- * RETURN the portno of the forwarder
+ * spawns a forwarder connected with 2 pipes and redirects stdout and
+ * stderr to this pipes. stdout and stderr are backed up for later reuse
+ *
+ * RETURN nothing
  */
-int LOGGERspawnforwarder(unsigned int logger_node, int logger_port)
+void LOGGERspawnforwarder(unsigned int logger_node, int logger_port)
 {
-    int portno, listen;
+    int pid;
+    int stdoutfds[2], stderrfds[2];
 
     /* 
-     * create to port for the forwarder to listen to. 
+     * create two pipes for the forwarder to listen to. 
      */
-    portno = 20000;
-    listen = LOGGERcreateport(&portno);
+    pipe(stdoutfds);
+    pipe(stderrfds);
 
-    if(listen < 0)
-	return -1;
     /* 
      * fork to forwarder
      */
-    if(fork()==0){
+    if((pid = fork())==0){
 	/*
 	 *   L O G G E R 
 	 */
 	int i;
-	char* argv[5];
+	char* argv[7];
+        char *errtxt;
 	/*
-	 * close all open filedesciptor except my FORWARDERSOCK
+	 * close all open filedesciptor except my pipes for reading
 	 */
-	for(i=3; i<FD_SETSIZE; i++)
-	    if(i != listen)
+	for(i=1; i<FD_SETSIZE; i++)
+	    if(i != stdoutfds[0] && i !=stderrfds[0])
 		close(i);
 
 	argv[0] = (char*)malloc(strlen(PSI_LookupInstalldir()) + 20);
@@ -275,25 +67,65 @@ int LOGGERspawnforwarder(unsigned int logger_node, int logger_port)
 	argv[2] = (char*)malloc(10);
 	sprintf(argv[2],"%d", logger_port);
 	argv[3] = (char*)malloc(10);
-	sprintf(argv[3],"%d", listen);
-	argv[4] = NULL;
+	sprintf(argv[3],"%d", PSI_myid);
+	argv[4] = (char*)malloc(10);
+	sprintf(argv[4],"%d", stdoutfds[0]);
+	argv[5] = (char*)malloc(10);
+	sprintf(argv[5],"%d", stderrfds[0]);
+	argv[6] = NULL;
 
 	execv(argv[0], argv);
 
-	/* usually never reached, but if execv fails try to do the logging 
-	   inside this program
-	*/
+	/*
+	 * usually never reached, but if execv fails stop the whole porgram
+	 */
+	close(stdoutfds[0]);
+	close(stderrfds[0]);
+        errtxt = strerror(errno);
+        syslog(LOG_ERR, "LOGGERspawnforwarder(execv): [%d] %s", errno,
+               errtxt?errtxt:"UNKNOWN");
+        perror("fork()");
 	exit(1);
     }
     /*
      * P A R E N T 
      */
-    /*
-     * close the socket which is used by forwarder to listen for connections.
-     */
-    close(listen);
 
-    return portno;
+    /*
+     * close the reading pipes.
+     */
+    close(stdoutfds[0]);
+    close(stderrfds[0]);
+
+    /*
+     * check if fork() was successful
+     */
+    if (pid ==-1){
+        char *errtxt;
+
+	close(stdoutfds[1]);
+	close(stderrfds[1]);
+
+	errtxt = strerror(errno);
+        syslog(LOG_ERR, "LOGGERspawnforwarder(fork): [%d] %s", errno,
+               errtxt?errtxt:"UNKNOWN");
+        perror("fork()");
+	exit(1);
+    }
+
+    /*
+     * backup stdout and stderr for later reuse
+     */
+    stdout_fileno_backup=dup(STDOUT_FILENO);
+    stderr_fileno_backup=dup(STDERR_FILENO);
+
+    /*
+     * redirect output
+     */
+    dup2(stdoutfds[1], STDOUT_FILENO);
+    close(stdoutfds[1]);
+    dup2(stderrfds[1], STDERR_FILENO);
+    close(stderrfds[1]);
 }
 
 /*********************************************************************
@@ -304,16 +136,40 @@ int LOGGERspawnforwarder(unsigned int logger_node, int logger_port)
  */
 int LOGGERspawnlogger(void)
 {
-    int portno, listen;
+    int portno, listenport;
+    struct sockaddr_in sa;	/* socket address */ 
+    int err;                    /* error code while binding */
 
     /*
-     * create to port for the logger to listen to.
+     * create a port for the logger to listen to.
      */
     portno = 20000;
-    listen = LOGGERcreateport(&portno);
 
-    if(listen < 0)
-	return -1;
+    if((listenport = socket(AF_INET,SOCK_STREAM,0))<0){
+	perror("LOGGERspawnlogger: can't create socket:");
+	exit(1);
+    }
+    bzero((char *)&sa, sizeof(sa)); 
+    sa.sin_family = AF_INET;
+    sa.sin_addr.s_addr = INADDR_ANY;
+
+    sa.sin_port = htons(portno); 
+
+    while(((err = bind(listenport, (struct sockaddr *)&sa, sizeof(sa)))<0)
+	  &&(errno == EADDRINUSE)){
+	sa.sin_port = htons(ntohs(sa.sin_port)-1); 
+    }
+    if(err <0){
+	perror("LOGGERspawnlogger: can't bind socket:");
+	exit(1);
+    }
+
+    if(listen(listenport, 256)<0){
+	perror("LOGGERspawnlogger: can't listen to socket:");
+	exit(1);
+    }
+    portno = ntohs(sa.sin_port);
+
     /* 
      * fork to logger
      */
@@ -327,13 +183,13 @@ int LOGGERspawnlogger(void)
 	 * close all open filedesciptor except my std* and the LOGGERSOCK
 	 */
 	for(i=3; i<FD_SETSIZE; i++)
-	    if(i != listen)
+	    if(i != listenport)
 		close(i);
 
 	argv[0] = (char*)malloc(strlen(PSI_LookupInstalldir()) + 20);
 	sprintf(argv[0],"%s/bin/psilogger", PSI_LookupInstalldir());
 	argv[1] = (char*)malloc(10);
-	sprintf(argv[1],"%d", listen);
+	sprintf(argv[1],"%d", listenport);
 	argv[2] = NULL;
 
 	execv(argv[0], argv);
@@ -349,7 +205,7 @@ int LOGGERspawnlogger(void)
     /*
      * close the socket which is used by logger to listen for new connections.
      */
-    close(listen);
+    close(listenport);
 
     return portno;
 }

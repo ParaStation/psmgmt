@@ -39,20 +39,10 @@ int readlog(int sock, FLBufferMsg_t *msg)
     char *buf=(char *)msg;
 
     if(sock > 0){
-	/* Fixme: What happens, if the last message sticks out of the buffer */
-	/*        Hopefully this problem won't occur with RDP */
-	/* For now we're filling the buffer only half in the first read(),
-	   hoping the last message is smaller than sizeof(*msg)/2 */
-	n=read(sock, buf, (sizeof(*msg)/2>SSIZE_MAX)?SSIZE_MAX:sizeof(*msg)/2);
+	n=read(sock, buf, sizeof(FLMsg_t));
 	total=n;
 	if(n<=0) return n;
 	nleft = msg->header.len-n;
-	while(nleft < 0){      /* More than one message received */
-	    buf += msg->header.len;  /* Skip to next message */
-	    n -= msg->header.len;
-	    msg = (FLBufferMsg_t *)buf;
-	    nleft += msg->header.len;
-	}
 	buf += n;
 	while(nleft > 0){      /* Complete message */
 	    n = read(sock, buf, (nleft>SSIZE_MAX)?SSIZE_MAX:nleft);

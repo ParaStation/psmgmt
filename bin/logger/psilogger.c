@@ -59,7 +59,8 @@ int newrequest(int listen)
 	char *cli_name;
 	cli_name = inet_ntoa(sa.sin_addr);
         cli_port = ntohs(sa.sin_port);
-	printf("PSIlogger: new connection from %s (%d)\n", cli_name, cli_port);
+	fprintf(stderr, "PSIlogger: new connection from %s (%d)\n",
+		cli_name, cli_port);
     }
 
     reuse = 1;
@@ -143,14 +144,13 @@ void loop(int listen)
     fd_set afds;
     struct timeval mytv={2,0},atv;
     FLBufferMsg_t msg;
-    char *buf=(char *)&msg;
     int n;                       /* number of bytes received */
     int outfd;
     int timeoutval;
     int startup=1;
 
     if(verbose)
-	printf("PSIlogger: listening on port %d\n", listen);
+	fprintf(stderr, "PSIlogger: listening on port %d\n", listen);
 
     FD_ZERO(&myfds);
     FD_SET(listen, &myfds);
@@ -181,7 +181,7 @@ void loop(int listen)
 		startup=0;
 		noclients++;
 		if(verbose)
-		    printf("PSIlogger: opening %d\n", sock);
+		    fprintf(stderr, "PSIlogger: opening %d\n", sock);
 	    }
 	}
 	/*
@@ -192,7 +192,8 @@ void loop(int listen)
 	       &&(sock != listen)){   /* not my listen socket */
 		n = readlog(sock, &msg);
 		if(verbose)
-		    printf("PSIlogger: Got %d bytes on sock %d\n", n, sock); 
+		    fprintf(stderr, "PSIlogger: Got %d bytes on sock %d\n",
+			    n, sock); 
 		if(n==0){
   		    /* socket closed */
 		    fprintf(stderr, "PSIlogger: socket %d closed without"
@@ -206,39 +207,33 @@ void loop(int listen)
 		    perror("PSIlogger: read()");
 		else{
 		    /* Analyze messages */
-		    buf=(char *)&msg;
-		    while(n > 0){
-			outfd = STDOUT_FILENO;
-			switch(((FLBufferMsg_t *)buf)->header.type){
-			case FINALIZE:
-			    if(verbose)
-				printf("PSIlogger: closing %d on FINALIZE\n",
-				       sock);
-			    writelog(sock, EXIT, 0, NULL, 0);
-			    close(sock);
-			    FD_CLR(sock,&myfds);
-			    noclients--;
-			    break;
-			case STDERR:
-			    outfd = STDERR_FILENO;
-			case STDOUT:
-			    if(PrependSource){
-				char prefix[30];
-				snprintf(prefix, sizeof(prefix), "[%d, %d]:",
-					 ((FLBufferMsg_t *)buf)->header.sender,
-					 ((FLBufferMsg_t *)buf)->header.len);
-				write(outfd, prefix, strlen(prefix));
-			    }
-			    write(outfd, ((FLBufferMsg_t *)buf)->buf,
-				  ((FLBufferMsg_t *)buf)->header.len
-				  - sizeof(msg.header));
-			    break;
-			default:
+		    outfd = STDOUT_FILENO;
+		    switch(msg.header.type){
+		    case FINALIZE:
+			if(verbose)
 			    fprintf(stderr,
-				    "PSIlogger: Unknown message type!\n");
+				   "PSIlogger: closing %d on FINALIZE\n",
+				   sock);
+			writelog(sock, EXIT, 0, NULL, 0);
+			close(sock);
+			FD_CLR(sock,&myfds);
+			noclients--;
+			break;
+		    case STDERR:
+			outfd = STDERR_FILENO;
+		    case STDOUT:
+			if(PrependSource){
+			    char prefix[30];
+			    snprintf(prefix, sizeof(prefix), "[%d, %d]:",
+				     msg.header.sender, msg.header.len);
+			    write(outfd, prefix, strlen(prefix));
 			}
-			n -= ((FLBufferMsg_t *)buf)->header.len;
-			buf += ((FLBufferMsg_t *)buf)->header.len;
+			write(outfd, msg.buf,
+			      msg.header.len - sizeof(msg.header));
+			break;
+		    default:
+			fprintf(stderr,
+				"PSIlogger: Unknown message type!\n");
 		    }
 		}
 	    }

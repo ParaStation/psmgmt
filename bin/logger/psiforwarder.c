@@ -10,20 +10,14 @@
 #include <arpa/inet.h>
 #include <signal.h>
 
-#include "psi.h"
-#include "logger.h"
 #include "logmsg.h"
-
-struct LOGGERclient_t *clients=NULL;
 
 int verbose;
 int noclients;
-int maxclients=0;
 fd_set myfds;
 
 int loggersock=-1;
 int id=-1;
-
 
 /******************************************
  *  closelog()
@@ -104,70 +98,6 @@ int loggerconnect(unsigned int node, int port)
     return loggersock;
 }
 
-/*********************************************************************
- * newrequest(int listen)
- *
- * accepts a new connection to a client.
- * The client sends its parameters 
- * and this routine packs them in a client_t struct
- *
- * RETURN the new fd (which is also index in the client array
- *        -1 on error
- */
-int newrequest(int listen)
-{
-    struct sockaddr_in sa; /* socket address */ 
-    int salen;
-    int sock, reuse;
-    char buf[80];
-
-    salen = sizeof(sa);
-    sock = accept(listen, &sa, &salen);
-
-    if(verbose){
-	int cli_port;
-	char *cli_name;
-
-	cli_name = inet_ntoa(sa.sin_addr);
-        cli_port = ntohs(sa.sin_port);
-	snprintf(buf, sizeof(buf),
-		 "PSIforwarder: new connection from %s (%d)\n",
-		 cli_name, cli_port);
-	printlog(loggersock, STDERR, id, buf);
-    }
-
-    reuse = 1;
-    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
-
-    if(sock >= maxclients){
-	/* Expand client array */
-	maxclients = sock + 16;
-	clients = (struct LOGGERclient_t *)
-	    realloc(clients, maxclients * sizeof(struct LOGGERclient_t));
-    }
-
-    if(read(sock, &clients[sock], sizeof(struct LOGGERclient_t)) > 0){
-	if(clients[sock].std==STDOUT_FILENO)
-	    clients[sock].std = STDOUT;
-	else
-	    clients[sock].std = STDERR;
-	id=PSI_getnode(clients[sock].id);
-	if(verbose){
-	    snprintf(buf, sizeof(buf),
-		     "PSIforwarder: %lx [%d,%d] is logging his %s\n",
-		     clients[sock].id, PSI_getnode(clients[sock].id),
-		     PSI_getpid(clients[sock].id),
-		     (clients[sock].std==STDOUT)?"STDOUT":"STDERR");
-	    printlog(loggersock, STDERR, id, buf);
-	}
-    }else{
-	close(sock);
-	sock = -1;
-    }
-
-    return sock;
-}
-
 /******************************************
  *  CheckFileTable()
  */
@@ -238,7 +168,7 @@ void CheckFileTable(fd_set* openfds)
  * output to the logger.
  *
  */
-void loop(int listen)
+void loop(int stdoutport, int stderrport)
 {
     int sock;      /* client socket */
     fd_set afds;
@@ -246,25 +176,25 @@ void loop(int listen)
     char buf[4000], obuf[120];
     int n;                       /* number of bytes received */
     int timeoutval;
-    int startup=1;
+    enum msg_type type;
 
     if(verbose){
-	snprintf(obuf, sizeof(obuf), "PSIforwarder: listening on port %d\n",
-		 listen);
+	snprintf(obuf, sizeof(obuf), "PSIforwarder: stdout=%d stderr=%d\n",
+		 stdoutport, stderrport);
 	printlog(loggersock, STDERR, id, obuf);
     }
 
     FD_ZERO(&myfds);
-    FD_SET(listen, &myfds);
+    FD_SET(stdoutport, &myfds);
+    FD_SET(stderrport, &myfds);
 
-    noclients = 0;
     timeoutval=0;
 
     /*
      * Loop until there is no connection left. Pay attention to the startup
      * phase, while no connection exists.
      */
-    while(startup || (noclients > 0 && timeoutval < 10)){
+    while(noclients > 0 && timeoutval < 10){
 	bcopy((char *)&myfds, (char *)&afds, sizeof(afds)); 
 	atv = mytv;
 	if(select(FD_SETSIZE, &afds, NULL, NULL, &atv) < 0){
@@ -275,27 +205,25 @@ void loop(int listen)
 	    continue;
 	}
 	/*
-	 * check the listen socket for any new connections
-	 */
-	if(FD_ISSET(listen, &afds)){
-	    /* a connection request on my master socket */
-	    if((sock = newrequest(listen)) > 0){
-		FD_SET(sock, &myfds);
-		startup=0;
-		noclients++;
-		if(verbose){
-		    snprintf(obuf, sizeof(obuf), "PSIforwarder: opening %d\n",
-			     sock);
-		    printlog(loggersock, STDERR, id, obuf);
-		}
-	    }
-	}
-	/*
 	 * check the rest sockets for any outputs
 	 */
-	for(sock=3; sock<FD_SETSIZE; sock++)
-	    if(FD_ISSET(sock, &afds) /* socket ready */
-	       &&(sock != listen)){   /* not my listen socket */
+	for(sock=1; sock<FD_SETSIZE; sock++){
+	    if(FD_ISSET(sock, &afds)){ /* socket ready */
+		if(sock==stdoutport){
+		    type=STDOUT;
+		}else if(sock==stderrport){
+		    type=STDERR;
+		}else{
+		    snprintf(obuf, sizeof(obuf),
+			     "PSIforwarder: PANIC: sock %d, which is neither"
+			     " stdout (%d) nor stderr (%d) is active!!\n",
+			     sock, stdoutport, stderrport);
+		    printlog(loggersock, STDERR, id, obuf);
+		    /* At least, read this stuff and throw it away */
+		    n = read(sock, buf, sizeof(buf));
+		    continue;
+		}
+
 		n = read(sock, buf, sizeof(buf));
 		if(verbose){
 		    snprintf(obuf, sizeof(obuf),
@@ -315,16 +243,17 @@ void loop(int listen)
 		    noclients--;
 		}else if(n<0){
 		    /* ignore the error */
-		    snprintf(obuf, sizeof(obuf), "PSIforwarder: read():%s\n",
-			     strerror(errno));
+		    snprintf(obuf, sizeof(obuf),
+			     "PSIforwarder: read():%s\n", strerror(errno));
 		    printlog(loggersock, STDERR, id, obuf);
 		}else{
 		    /* forward it to logger */
-		    writelog(loggersock, clients[sock].std,
-			     PSI_getnode(clients[sock].id), buf, n);
+		    writelog(loggersock, type, id, buf, n);
 		}
+		break;
 	    }
-	if(!startup && noclients==0)
+	}
+	if(noclients==0)
 	    timeoutval++;
     }
 
@@ -334,7 +263,7 @@ void loop(int listen)
 int main( int argc, char**argv)
 {
     unsigned int logger_node;
-    int logger_port, listen;
+    int logger_port, stdoutport, stderrport;
 
     int ret;
 
@@ -343,25 +272,23 @@ int main( int argc, char**argv)
     }
     sscanf(argv[1], "%u", &logger_node);
     sscanf(argv[2], "%d", &logger_port);
-    sscanf(argv[3], "%d", &listen);
+    sscanf(argv[3], "%d", &id);
+    sscanf(argv[4], "%d", &stdoutport);
+    sscanf(argv[5], "%d", &stderrport);
 
+    
     if((ret=loggerconnect(logger_node, logger_port)) < 0){
 	exit(1);
     }
 
-    /*
-     * Init clients array. Will be expanded if necessary.
-     */
-    maxclients = 16;
-    clients = (struct LOGGERclient_t *)
-	malloc(maxclients * sizeof(struct LOGGERclient_t));
-
     signal(SIGHUP,sighandler);	
 
+    /* Two clients allready connected (stdout/stderr) */      
+    noclients = 2;
     /*
      * call the loop which does all the work
      */
-    loop(listen);
+    loop(stdoutport, stderrport);
 
     closelog();
 
