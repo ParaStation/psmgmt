@@ -8,7 +8,7 @@
 #**
 #* PSM_INSTALL: ParaStation De-/Installationscript
 #*
-#* $Id: PSM_INSTALL,v 1.11 2002/08/05 17:36:44 hauke Exp $
+#* $Id: PSM_INSTALL,v 1.12 2002/09/26 15:12:47 eicker Exp $
 #*
 #* @author  
 #*         Eduard Syrchyn <syrchyn@par-tec.de>
@@ -36,9 +36,9 @@ PSMMTH="$PSMDRV.mth"
 
 #/etc/inetd.conf
 INETD_PSIDMASK="^[ 	]*psid[ 	]"
-INETD_PSIDLINE="psid	stream	tcp	nowait	root	$PSMAIN/bin/psid psid -f $PSMAIN/config/parastation.conf"
+INETD_PSIDLINE="psid	stream	tcp	nowait	root	$PSMAIN/bin/psid psid"
 INETD_PSLDMASK="^[ 	]*psld[ 	]"
-INETD_PSLDLINE="psld	stream	tcp	nowait	root	$PSMAIN/bin/psld psld -f $PSMAIN/config/parastation.conf"
+INETD_PSLDLINE="psld	stream	tcp	nowait	root	$PSMAIN/bin/psld psld"
 INETD_PID="/var/run/inetd.pid"
 INETD_CNF="$ETC_DIR/inetd.conf"
 INETD_BKP="$INETD_CNF.psm"
@@ -280,6 +280,14 @@ cleanup_devicefiles() {
    rm /dev/psm
 }
 
+create_configlink() {
+   ln -s $PSMAIN/config/parastation.conf $ETC_DIR/parastation.conf
+}
+
+cleanup_configlink() {
+   rm -f $ETC_DIR/parastation.conf
+}
+
 do_install() {
     echo "Install ParaStation"
     do_info
@@ -299,6 +307,7 @@ do_install() {
     else
 	create_devicefiles
     fi
+    create_configlink
 }
 
 do_uninstall() {
@@ -319,6 +328,7 @@ do_uninstall() {
     else
 	cleanup_devicefiles
     fi
+    cleanup_configlink
 }
 
 do_info() {
