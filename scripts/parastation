@@ -5,12 +5,20 @@ MODULEFULLNAME=$PS_MODULE
 MODULENAME=`basename $MODULEFULLNAME .o`
 PSCONFIG=`dirname $0`/psconfig
 
-
 case "$1" in
     start)
-	lsmod | grep $MODULENAME
-	CONFIGURED=$?
-        if [ $CONFIGURED != 1 ] ; then
+	# Test if module is already loaded
+	#
+	modules=`lsmod | tail +2 | colrm 20`
+	found=0
+	for mod in $modules; do
+	    if [ $mod == $MODULENAME ]; then
+		found=1;
+	    fi
+	done
+	unset modules mod
+
+	if [ $found == 0 ] ; then
 	    insmod "$MODULEFULLNAME"
             if [ $? -ne 0 ]
             then
@@ -24,7 +32,7 @@ case "$1" in
 	;;
 
     stop)
-	rmmod -u "$MODULENAME"
+	rmmod "$MODULENAME"
 	;;
 
 
