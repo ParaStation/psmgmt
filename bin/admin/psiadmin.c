@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.21 2002/01/21 16:12:20 eicker Exp $
+ * $Id: psiadmin.c,v 1.22 2002/01/30 10:14:48 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.21 2002/01/21 16:12:20 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.22 2002/01/30 10:14:48 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -40,7 +40,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.21 $";
+static char psiadmversion[] = "$Revision: 1.22 $";
 static int  DoRestart = 1;
 
 int PSIADM_LookUpNodeName(char* hostname)
@@ -112,6 +112,21 @@ void PSIADM_RDPStat(int first, int last)
     last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
     for (i = first; i < last; i++) {
 	INFO_request_rdpstatus(i,s,sizeof(s));
+	printf("%s",s);
+    }
+
+    return;
+}
+
+void PSIADM_MCastStat(int first, int last)
+{
+    int i;
+    char s[255];
+
+    first = (first==ALLNODES) ? 0 : first;
+    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+    for (i = first; i < last; i++) {
+	INFO_request_mcaststatus(i,s,sizeof(s));
 	printf("%s",s);
     }
 
@@ -299,7 +314,7 @@ void PSIADM_SetPsidDebug(int val, int first, int last)
     return;
 }
 
-void PSIADM_SetRdpDebug(int val, int first, int last)
+void PSIADM_SetRDPDebug(int val, int first, int last)
 {
     int i;
     DDOptionMsg_t msg;
@@ -320,6 +335,37 @@ void PSIADM_SetRdpDebug(int val, int first, int last)
     msg.header.len = sizeof(msg);
     msg.count = 1;
     msg.opt[0].option = PSP_OP_RDPDEBUG;
+    msg.opt[0].value = val;
+
+    for (i = first; i < last; i++) {
+	msg.header.dest = PSI_gettid(i, 0);
+	ClientMsgSend(&msg);
+    }
+
+    return;
+}
+
+void PSIADM_SetMCastDebug(int val, int first, int last)
+{
+    int i;
+    DDOptionMsg_t msg;
+
+    if (geteuid()) {
+	printf("Sorry, only root access\n");
+	return;
+    }
+
+    first = (first==ALLNODES) ? 0 : first;
+    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+
+    /*
+     * prepare the message to send it to the daemon
+     */
+    msg.header.type = PSP_DD_SETOPTION;
+    msg.header.sender = PSI_mytid;
+    msg.header.len = sizeof(msg);
+    msg.count = 1;
+    msg.opt[0].option = PSP_OP_MCASTDEBUG;
     msg.opt[0].value = val;
 
     for (i = first; i < last; i++) {

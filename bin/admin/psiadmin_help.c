@@ -5,13 +5,13 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin_help.c,v 1.4 2002/01/21 10:18:12 eicker Exp $
+ * $Id: psiadmin_help.c,v 1.5 2002/01/30 10:14:48 eicker Exp $
  *
  * \todo More detailed messages for 'status' and 'set'.
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin_help.c,v 1.4 2002/01/21 10:18:12 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin_help.c,v 1.5 2002/01/30 10:14:48 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 static void PrintHelp(void)
@@ -108,7 +108,8 @@ static void PrintStatHelp(void)
     printf("Status command:\n");
     printf("===============\n");
     printf("\n");
-    printf("SYNTAX:   STATUS [NODE | COUNT | RDP | PROC | ALL] [FROM [TO]]\n");
+    printf("SYNTAX:   STATUS [NODE | COUNT | RDP | MCAST | PROC | ALL]"
+	   " [FROM [TO]]\n");
     NodeInfo();
     printf("Description: STATUS [NODE] shows the active node(s) amongst the"
 	   " selected ones.\n");
@@ -117,6 +118,9 @@ static void PrintStatHelp(void)
     printf("             STATUS RDP    shows the status of the RDP protocol on"
 	   " the selected\n");
     printf("                           node(s).\n");
+    printf("             STATUS MCAST  shows the status of the MCast facility"
+	   " on the\n");
+    printf("                           selected node(s).\n");
     printf("             STATUS PROC   shows processes using ParaStation on"
 	   " the selected\n");
     printf("                           node(s).\n");
@@ -160,6 +164,17 @@ static void PrintStatRDPHelp(void)
     printf("===================\n");
     printf("\n");
     printf("SYNTAX:    STATUS RDP [FROM [TO]]\n");
+    NodeInfo();
+    return;
+}
+
+static void PrintStatMCastHelp(void)
+{
+    printf("\n");
+    printf("Status MCast command:\n");
+    printf("=====================\n");
+    printf("\n");
+    printf("SYNTAX:    STATUS MCAST [FROM [TO]]\n");
     NodeInfo();
     return;
 }
@@ -250,7 +265,8 @@ static void PrintSetHelp(void)
     printf("SYNTAX:    SET {USER {username|ANY} | MAXPROC {num|ANY}"
 	   " | SMALLPACKETSIZE mask\n");
     printf("                | RESENDTIMEOUT | DEBUGMASK}\n");
-    printf("      or   SET {[NO]PSIDDEBUG | RDPDEBUG} [FROM [TO]]\n");
+    printf("      or   SET {[NO]PSIDDEBUG | RDPDEBUG | MCASTDEBUG} "
+	   "[FROM [TO]]\n");
     NodeInfo();
     printf("Description: SET USER {username|ANY}  grants access to the"
 	   " cluster to\n");
@@ -268,6 +284,9 @@ static void PrintSetHelp(void)
     printf("\n");
     printf("             SET RDPDEBUG level       set verbosity level for RDP"
 	   " protocol on\n");
+    printf("                                      the selected nodes.\n");
+    printf("             SET RDPDEBUG level       set verbosity level for the"
+	   " MCast facility on\n");
     printf("                                      the selected nodes.\n");
     printf("             SET PSIDDEBUG            set psid to verbose mode on"
 	   " the selected\n");
@@ -298,15 +317,33 @@ static void PrintPsidDebugHelp(void)
     return;
 }
 
-static void PrintRdpDebugHelp(void)
+static void PrintRDPDebugHelp(void)
 {
     printf("\n");
     printf("Setting Debugging mode of RDP protocol:\n");
-    printf("======================================\n");
+    printf("=======================================\n");
     printf("\n");
     printf("SYNTAX:    SET RDPDEBUG level [FROM [TO]]\n");
     NodeInfo();
     printf("Description: Sets debugging level of the RDP protocol to <level>"
+	   " on the\n");
+    printf("             selected nodes.\n");
+    printf("             For high values of <level> the daemon logs a huge"
+	   " amount of\n");
+    printf("             messages in the syslog.\n");
+    printf("             Don't use a high level too long!\n");
+    return;
+}
+
+static void PrintMCastDebugHelp(void)
+{
+    printf("\n");
+    printf("Setting Debugging mode of MCast facility:\n");
+    printf("=========================================\n");
+    printf("\n");
+    printf("SYNTAX:    SET MCASTDEBUG level [FROM [TO]]\n");
+    NodeInfo();
+    printf("Description: Sets debugging level of the MCast facility to <level>"
 	   " on the\n");
     printf("             selected nodes.\n");
     printf("             For high values of <level> the daemon logs a huge"

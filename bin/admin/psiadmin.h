@@ -9,6 +9,7 @@ void PSIADM_AddNode(int first, int last);
 
 void PSIADM_NodeStat(int first, int last);
 void PSIADM_RDPStat(int first, int last);
+void PSIADM_MCastStat(int first, int last);
 void PSIADM_CountStat(int first, int last);
 void PSIADM_ProcStat(int first, int last);
 void PSIADM_LoadStat(int first, int last);
@@ -17,7 +18,8 @@ void PSIADM_SetMaxProc(int count);
 void PSIADM_SetUser(int uid);
 void PSIADM_SetDebugmask(long newmask);
 void PSIADM_SetPsidDebug(int val, int first, int last);
-void PSIADM_SetRdpDebug(int val, int first, int last);
+void PSIADM_SetRDPDebug(int val, int first, int last);
+void PSIADM_SetMCastDebug(int val, int first, int last);
 
 void PSIADM_Version(void);
 void PSIADM_ShowConfig(void);

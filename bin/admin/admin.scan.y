@@ -8,7 +8,7 @@
 #include "psiadmin.h"
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.9 2002/01/21 12:01:34 eicker Exp $";
+static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.10 2002/01/30 10:14:48 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #define NODEERR -2
@@ -34,12 +34,12 @@ static void CheckUserName(char *name);
 %token ADDOP SETOP STATOP KILLOP CONFIGOP RESTARTOP SHUTDOWNOP RESETOP TESTOP
 %token QUITOP HELPOP VERSIONOP NULLOP
 
-%token SMALLPACKETSIZE RESENDTIMEOUT DEBUGMASK RDPDEBUG PSIDDEBUG NOPSIDDEBUG
-%token SELECTTIME
+%token SMALLPACKETSIZE RESENDTIMEOUT DEBUGMASK RDPDEBUG MCASTDEBUG PSIDDEBUG
+%token NOPSIDDEBUG SELECTTIME
 
 %token MAXPROC USER ANY
 
-%token NODE COUNT RDP PROC LOAD ALL
+%token NODE COUNT RDP MCAST PROC LOAD ALL
 
 %token HW
 
@@ -125,7 +125,9 @@ setline:
         | SETOP NOPSIDDEBUG nodes
                 {MySetPsidDebug(0,FirstNode,LastNode);}
         | SETOP RDPDEBUG NUMBER nodes
-                {MySetRdpDebug($3,FirstNode,LastNode);}
+                {MySetRDPDebug($3,FirstNode,LastNode);}
+        | SETOP MCASTDEBUG NUMBER nodes
+                {MySetMCastDebug($3,FirstNode,LastNode);}
         ;
 
 statline:
@@ -138,6 +140,7 @@ statline:
         | STATOP PROC nodes   {MyProcStat(FirstNode, LastNode);}
         | STATOP LOAD nodes   {MyLoadStat(FirstNode, LastNode);}
         | STATOP RDP nodes    {MyRDPStat(FirstNode, LastNode);}
+        | STATOP MCAST nodes  {MyMCastStat(FirstNode, LastNode);}
         ;
 
 resetline:
@@ -177,6 +180,7 @@ helpline:
         | HELPOP STATOP NODE nodes     {PrintStatNodeHelp();}
         | HELPOP STATOP COUNT nodes    {PrintStatCountHelp();}
         | HELPOP STATOP RDP nodes      {PrintStatRDPHelp();}
+        | HELPOP STATOP MCAST nodes    {PrintStatMCastHelp();}
         | HELPOP STATOP PROC nodes     {PrintStatProcHelp();}
         | HELPOP STATOP ALL nodes      {PrintStatNodeHelp();
                                         PrintStatCountHelp();
@@ -203,7 +207,8 @@ helpline:
         | HELPOP SETOP DEBUGMASK       {PrintSetHelp();}
         | HELPOP SETOP PSIDDEBUG       {PrintPsidDebugHelp();}
         | HELPOP SETOP NOPSIDDEBUG     {PrintPsidDebugHelp();}
-        | HELPOP SETOP RDPDEBUG        {PrintRdpDebugHelp();}
+        | HELPOP SETOP RDPDEBUG        {PrintRDPDebugHelp();}
+        | HELPOP SETOP MCASTDEBUG      {PrintMCastDebugHelp();}
 
         | HELPOP TESTOP                {PrintTestHelp();}
         | HELPOP TESTOP NORMAL         {PrintTestHelp();}
@@ -317,6 +322,14 @@ static void MyRDPStat(int first, int last)
     return;
 }
 
+static void MyMCastStat(int first, int last)
+{
+    if ( (first != NODEERR) && (last != NODEERR))
+	PSIADM_MCastStat(first, last);
+
+    return;
+}
+
 static void MyReset(int what, int first, int last)
 {
     if ( (first != NODEERR) && (last != NODEERR))
@@ -329,8 +342,14 @@ static void MySetPsidDebug(int what, int first, int last)
 	PSIADM_SetPsidDebug(what, first, last);
 }
 
-static void MySetRdpDebug(int what, int first, int last)
+static void MySetRDPDebug(int what, int first, int last)
 {
     if ( (first != NODEERR) && (last != NODEERR))
-	PSIADM_SetRdpDebug(what, first, last);
+	PSIADM_SetRDPDebug(what, first, last);
+}
+
+static void MySetMCastDebug(int what, int first, int last)
+{
+    if ( (first != NODEERR) && (last != NODEERR))
+	PSIADM_SetMCastDebug(what, first, last);
 }
