@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidspawn.c,v 1.15 2003/12/10 16:47:06 eicker Exp $
+ * $Id: psidspawn.c,v 1.16 2004/01/09 16:07:23 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.15 2003/12/10 16:47:06 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.16 2004/01/09 16:07:23 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -36,8 +36,24 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.15 2003/12/
 
 #include "psidspawn.h"
 
-static char errtxt[256];
+static char errtxt[256]; /**< General string to create error messages */
 
+/**
+ * @brief Get error string from errno.
+ *
+ * Create a error string describing the error marked by @a eno. @a eno
+ * is the error number created by a recent failed system call and
+ * returned within @a errno.
+ *
+ * The error string is either created using the strerror()
+ * function. If this fails, i.e. the corresponding error number is
+ * unknown to this function, the error string is set to "UNKNOWN".
+ *
+ * @return A pointer to a error description string is returned. This
+ * string might also be "UNKNOWN".
+ *
+ * @see errno(3), strerror(3)
+ */
 static char *get_strerror(int eno)
 {
     char *ret = strerror(eno);
@@ -114,7 +130,7 @@ static int mystat(char *file_name, struct stat *buf)
 
 
 /**
- * @brief @todo
+ * @brief @doctodo
  */
 static int execClient(PStask_t *task, int controlchannel)
 {
@@ -202,6 +218,7 @@ static int execClient(PStask_t *task, int controlchannel)
 
 /**
  * @brief @todo
+ * Split into smaller parts, e.g. first, then part reuse, resetSigHandler().
  */
 static int execForwarder(PStask_t *task, int daemonfd, int controlchannel)
 {
