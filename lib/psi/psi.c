@@ -492,6 +492,46 @@ int PSI_notifydead(long tid, int sig)
 }
 
 /*----------------------------------------------------------------------*/
+/*
+ * PSI_release()
+ *
+ *  PSI_release() helps parent to survive if task is exiting. Quite usefull
+ *       this in PSE_finalize().
+ *
+ * PARAMETERS
+ *  tid: the task identifier of the task that should *not* kill the parent
+ *
+ * RETURN  0 on success
+ *         -1 on error
+ */
+int PSI_release(long tid)
+{
+  DDSignalMsg_t msg;
+
+  msg.header.type = PSP_DD_RELEASE;
+  msg.header.sender = PSI_mytid;
+  msg.header.dest = tid;
+  msg.header.len = sizeof(msg);
+  msg.signal = -1;
+
+  if(ClientMsgSend(&msg)<0)
+    {
+      return -1;
+    }
+  
+  if(ClientMsgReceive(&msg)<0)
+    {
+      return -1;
+    }
+  else
+    {
+      if(msg.signal!=0)
+	return -1;
+    }
+  return 0;
+}
+
+/*----------------------------------------------------------------------*/
 /* 
  * PSI_whodied()
  *  
