@@ -81,8 +81,10 @@ struct PSPctrlmessages_t PSPctrlmessages[]=
    
    { PSP_DD_TASKKILL           ,"PSP_DD_TASKKILL           "}, 
    { PSP_DD_NOTIFYDEAD         ,"PSP_DD_NOTIFYDEAD         "},
+   { PSP_DD_RELEASE            ,"PSP_DD_RELEASE            "},
    { PSP_DD_WHODIED            ,"PSP_DD_WHODIED            "},
    { PSP_DD_NOTIFYDEADRES      ,"PSP_DD_NOTIFYDEADRES      "},
+   { PSP_DD_RELEASERES         ,"PSP_DD_RELEASERES         "},
 
    { PSP_DD_SYSTEMERROR        ,"PSP_DD_SYSTEMERROR        "}, 
    { PSP_DD_STATENOCONNECT     ,"PSP_DD_STATENOCONNECT     "},
