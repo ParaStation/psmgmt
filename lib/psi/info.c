@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.28 2003/03/06 13:57:10 eicker Exp $
+ * $Id: info.c,v 1.29 2003/03/06 14:41:02 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.28 2003/03/06 13:57:10 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.29 2003/03/06 14:41:02 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -168,7 +168,7 @@ int INFO_request_rdpstatus(int nodeno, void *buffer, size_t size, int verbose)
 	PSI_errexit(errtxt, errno);
     }
 
-    if (receive(INFO_GETINFO, buffer, size, verbose)
+    if (INFO_receive(INFO_GETINFO, buffer, size, verbose)
 	== PSP_CD_RDPSTATUSRESPONSE) {
 	return size;
     }
@@ -193,7 +193,7 @@ int INFO_request_mcaststatus(int nodeno,
 	PSI_errexit(errtxt, errno);
     }
 
-    if (receive(INFO_GETINFO, buffer, size, verbose)
+    if (INFO_receive(INFO_GETINFO, buffer, size, verbose)
 	== PSP_CD_MCASTSTATUSRESPONSE) {
 	return size;
     }
@@ -216,7 +216,7 @@ int INFO_request_countstatus(int nodeno,
 	PSI_errexit(errtxt, errno);
     }
 
-    if (receive(INFO_GETINFO, buffer, size, verbose)
+    if (INFO_receive(INFO_GETINFO, buffer, size, verbose)
 	== PSP_CD_COUNTSTATUSRESPONSE) {
 	return size;
     }
@@ -238,7 +238,7 @@ int INFO_request_hoststatus(void *buffer, size_t size, int verbose)
 	PSI_errexit(errtxt, errno);
     }
 
-    if (receive(INFO_GETINFO, buffer, size, verbose)
+    if (INFO_receive(INFO_GETINFO, buffer, size, verbose)
 	== PSP_CD_HOSTSTATUSRESPONSE) {
 	return size;
     }
@@ -264,7 +264,7 @@ int INFO_request_host(unsigned int address, int verbose)
 	PSI_errexit(errtxt, errno);
     }
 
-    if (receive(INFO_GETINFO, &host, sizeof(host), verbose)
+    if (INFO_receive(INFO_GETINFO, &host, sizeof(host), verbose)
 	== PSP_CD_HOSTRESPONSE) {
 	return host;
     }
@@ -290,7 +290,7 @@ unsigned int INFO_request_node(int node, int verbose)
 	PSI_errexit(errtxt, errno);
     }
 
-    if (receive(INFO_GETINFO, &address, sizeof(address), verbose)
+    if (INFO_receive(INFO_GETINFO, &address, sizeof(address), verbose)
 	== PSP_CD_NODERESPONSE) {
 	if (address == INADDR_ANY) {
 	    return -1;
@@ -316,7 +316,7 @@ int INFO_request_nodelist(NodelistEntry_t *buffer, size_t size, int verbose)
 	PSI_errexit(errtxt, errno);
     }
 
-    if (receive(INFO_GETINFO, buffer, size, verbose)
+    if (INFO_receive(INFO_GETINFO, buffer, size, verbose)
 	== PSP_CD_NODELISTRESPONSE) {
 	return size;
     }
@@ -346,10 +346,10 @@ int INFO_request_tasklist(int nodeno, INFO_taskinfo_t taskinfo[], size_t size,
     tasknum = 0;
     do {
 	if (tasknum<maxtask) {
-	    msgtype = receive(INFO_GETINFO, &taskinfo[tasknum],
+	    msgtype = INFO_receive(INFO_GETINFO, &taskinfo[tasknum],
 				   sizeof(*taskinfo), verbose);
 	} else {
-	    msgtype = receive(INFO_GETINFO, NULL, 0, verbose);
+	    msgtype = INFO_receive(INFO_GETINFO, NULL, 0, verbose);
 	}
 	tasknum++;
     } while (msgtype == PSP_CD_TASKINFO);
@@ -375,7 +375,7 @@ long INFO_request_taskinfo(long tid, INFO_info_t what, int verbose)
 
     errno = 8888;
     do {
-	msgtype = receive(what, &answer, sizeof(answer), verbose);
+	msgtype = INFO_receive(what, &answer, sizeof(answer), verbose);
     } while (msgtype == PSP_CD_TASKINFO);
 
 
@@ -398,7 +398,7 @@ long INFO_request_taskinfo(long tid, INFO_info_t what, int verbose)
 /* 	PSI_errexit(errtxt, errno); */
 /*      } */
 
-/*      msgtype = receive(INFO_GETINFO, &answer, sizeof(answer), verbose); */
+/*      msgtype = INFO_receive(INFO_GETINFO, &answer, sizeof(answer), verbose); */
 
 /*      if (msgtype == PSP_CD_LOADRESPONSE) { */
 /*  	return answer; */
@@ -423,7 +423,7 @@ long INFO_request_taskinfo(long tid, INFO_info_t what, int verbose)
 /* 	PSI_errexit(errtxt, errno); */
 /*      } */
 
-/*      msgtype = receive(INFO_GETINFO, &answer, sizeof(answer), verbose); */
+/*      msgtype = INFO_receive(INFO_GETINFO, &answer, sizeof(answer), verbose); */
 
 /*      if (msgtype == PSP_CD_PROCRESPONSE) { */
 /*  	return answer; */
@@ -459,7 +459,7 @@ int INFO_request_option(unsigned short node, int num, long option[],
 	PSI_errexit(errtxt, errno);
     }
 
-    msgtype = receive(INFO_GETINFO, value, sizeof(*value)*num, verbose);
+    msgtype = INFO_receive(INFO_GETINFO, value, sizeof(*value)*num, verbose);
 
     if (msgtype == PSP_DD_SETOPTION) {
 	return num;
