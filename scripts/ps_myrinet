@@ -6,7 +6,7 @@
 #
 # Author: Jens Hauke <hauke@par-tec.com>, Norbert Eicker <eicker@par-tec.com>
 #
-# $Id: ps_myrinet,v 1.2 2003/04/04 13:16:52 eicker Exp $
+# $Id: ps_myrinet,v 1.3 2003/04/07 15:47:35 hauke Exp $
 #
 
 #checks
@@ -112,3 +112,4 @@ case "$1" in
 esac
 
 
+exit 0

@@ -4,7 +4,7 @@
 #
 # Author: Jens Hauke <hauke@par-tec.com>
 #
-# $Id: ps_ethernet,v 1.1 2003/04/04 10:59:24 hauke Exp $
+# $Id: ps_ethernet,v 1.2 2003/04/07 15:47:35 hauke Exp $
 #
 
 case "$1" in
@@ -29,3 +29,4 @@ case "$1" in
 esac
 
 
+exit 0
