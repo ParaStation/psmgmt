@@ -66,6 +66,24 @@
     of supported processor types, communication interconnect and operating
     systems.
   </para>
+  <para>
+    Version 3 of the &ps; software for Myrinet is a rewrite from scratch now
+    fully in the responsibility of ParTec. Of course all the know-how and
+    experiences gained from the former versions of the software flew into this
+    version. It was presented in 2001 and was a major breaktrough in respect to
+    troughput, latency and stability of the software. Nevertheless it is
+    enhanced constantly in respect to performance, stability and usability.
+  </para>
+  <para>
+    In 2002 the &psfe; software was presented opening the &ps; software
+    environment to Ethernet communication hardware. This first step in the
+    direction of indepence from the underlying communication hardware brought
+    the convenient &ps; management facility to beowulf clusters for the first
+    time. Furthermore the suboptimal communication performance of the MPIch/P4
+    implementation of the MPI message passing interface, the de facto standard
+    on beowulf clusters, for large packages was improved to the limits that are
+    to be expected from the physical circumstances.
+  </para>
 </section>
 
   <!-- Keep this comment at the end of the file
