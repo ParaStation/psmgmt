@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.h,v 1.16 2003/04/03 15:30:59 eicker Exp $
+ * $Id: psidutil.h,v 1.17 2003/07/04 07:49:59 eicker Exp $
  *
  */
 /**
  * \file
  * Utilities for the ParaStation daemon
  *
- * $Id: psidutil.h,v 1.16 2003/04/03 15:30:59 eicker Exp $
+ * $Id: psidutil.h,v 1.17 2003/07/04 07:49:59 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -20,6 +20,8 @@
  */
 #ifndef __PSIDUTIL_H
 #define __PSIDUTIL_H
+
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
