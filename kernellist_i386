@@ -1,13 +1,4 @@
 # SuSE
-2.2.16.SuSE		/home/phoenix/kernel/i386/linux-2.2.16.SuSE
-2.2.16-SMP.SuSE		/home/phoenix/kernel/i386/linux-2.2.16-SMP.SuSE  
-
-2.2.18.SuSE		/home/phoenix/kernel/i386/linux-2.2.18.SuSE
-2.2.18-SMP.SuSE		/home/phoenix/kernel/i386/linux-2.2.18-SMP.SuSE
-
-2.4.2.SuSE		/home/phoenix/kernel/i386/linux-2.4.2.SuSE
-2.4.2-SMP.SuSE		/home/phoenix/kernel/i386/linux-2.4.2-SMP.SuSE
-
 2.4.7.SuSE		/home/phoenix/kernel/i386/linux-2.4.7.SuSE
 2.4.7-SMP.SuSE		/home/phoenix/kernel/i386/linux-2.4.7-SMP.SuSE
 2.4.7-4GB-SMP.SuSE	/home/phoenix/kernel/i386/linux-2.4.7-4GB-SMP.SuSE
@@ -24,25 +15,23 @@
 2.4.18-64GB-SMP.SuSE	/home/phoenix/kernel/i386/linux-2.4.18-64GB-SMP.SuSE
 
 # SuSE 8.1
-2.4.19.SuSE		/home/phoenix/kernel/i386/linux-2.4.19.SuSE
-2.4.19-4GB.SuSE		/home/phoenix/kernel/i386/linux-2.4.19-4GB.SuSE
-2.4.19-SMP.SuSE		/home/phoenix/kernel/i386/linux-2.4.19-SMP.SuSE
-2.4.19-4GB-SMP.SuSE	/home/phoenix/kernel/i386/linux-2.4.19-4GB-SMP.SuSE
-2.4.19-64GB-SMP.SuSE	/home/phoenix/kernel/i386/linux-2.4.19-64GB-SMP.SuSE
+2.4.19.SuSE		/home/phoenix/kernel/i386/linux-2.4.19.SuSE  NR_RUNNINGFUNC=1
+2.4.19-4GB.SuSE		/home/phoenix/kernel/i386/linux-2.4.19-4GB.SuSE  NR_RUNNINGFUNC=1
+2.4.19-SMP.SuSE		/home/phoenix/kernel/i386/linux-2.4.19-SMP.SuSE  NR_RUNNINGFUNC=1
+2.4.19-4GB-SMP.SuSE	/home/phoenix/kernel/i386/linux-2.4.19-4GB-SMP.SuSE  NR_RUNNINGFUNC=1
+2.4.19-64GB-SMP.SuSE	/home/phoenix/kernel/i386/linux-2.4.19-64GB-SMP.SuSE  NR_RUNNINGFUNC=1
+2.4.20-4GB-SMP	/home/phoenix/kernel/i386/linux-2.4.20-4GB-SMP
 
 # redhat
-#make KDIR=		/home/phoenix/kernel/i386/linux-2.4.2.redhat
-2.4.2-2smp.redhat	/home/phoenix/kernel/i386/linux-2.4.2-SMP.redhat
-
 2.4.7-10smp.redhat	/home/phoenix/kernel/i386/linux-2.4.7-10smp.redhat
-2.4.18-3smp.redhat      /home/phoenix/kernel/i386/linux-2.4.18-3SMP.redhat
-2.4.18-3-4GB-smp.redhat      /home/phoenix/kernel/i386/linux-2.4.18-3-4GB-SMP.redhat
-2.4.18-14-64GB-smp.redhat    /home/phoenix/kernel/i386/linux-2.4.18-14-64GB-SMP.redhat
+2.4.18-3smp.redhat      /home/phoenix/kernel/i386/linux-2.4.18-3SMP.redhat  NR_RUNNINGFUNC=1
+2.4.18-3-4GB-smp.redhat      /home/phoenix/kernel/i386/linux-2.4.18-3-4GB-SMP.redhat  NR_RUNNINGFUNC=1
+2.4.18-14-64GB-smp.redhat    /home/phoenix/kernel/i386/linux-2.4.18-14-64GB-SMP.redhat   NR_RUNNINGFUNC=1
 
-#vanilla
-2.4.2			/home/phoenix/kernel/i386/linux-2.4.2
-2.4.2-SMP		/home/phoenix/kernel/i386/linux-2.4.2-SMP
+# 2.4.18-27.8.0smp.redhat    	/home/phoenix/kernel/i386/linux-2.4.18-27.8.0smp.redhat NR_RUNNINGFUNC=1
+2.4.18-27.7.xsmp.redhat		/home/phoenix/kernel/i386/linux-2.4.18-27.7.xsmp.redhat NR_RUNNINGFUNC=1
 
+vanilla
 2.4.9			/home/phoenix/kernel/i386/linux-2.4.9
 2.4.9-SMP		/home/phoenix/kernel/i386/linux-2.4.9-SMP
 
@@ -59,3 +48,4 @@
 
 #MSC
 2.4.18-9-4GB-SMP.msc /home/phoenix/kernel/i386/linux-2.4.18-9-4GB-SMP.msc
+2.4.18-9-4GB.msc /home/phoenix/kernel/i386/linux-2.4.18-9-4GB.msc
