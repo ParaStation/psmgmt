@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.116 2003/10/31 13:22:48 eicker Exp $
+ * $Id: psid.c,v 1.117 2003/11/26 17:37:13 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.116 2003/10/31 13:22:48 eicker Exp $ 
+ * $Id: psid.c,v 1.117 2003/11/26 17:37:13 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.116 2003/10/31 13:22:48 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.117 2003/11/26 17:37:13 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -81,14 +81,14 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-char psid_cvsid[] = "$Revision: 1.116 $";
+char psid_cvsid[] = "$Revision: 1.117 $";
 
 /** Master socket (type UNIX) for clients to connect */
 static int masterSock;
 
 /** Total number of nodes connected. Needed for license testing */
 static int totalNodes = 0;
-/** Total number of CPUs connected. Needed for license testing */
+/** Total number of physical CPUs connected. Needed for license testing */
 static int totalCPUs = 0;
 
 /** Another helper status. This one is for reset/shutdown */
@@ -249,16 +249,17 @@ int shutdownNode(int phase)
  * declareNodeDead()
  * is called when a connection to a daemon is lost
  */
-static void declareNodeDead(int id)
+static void declareNodeDead(PSnodes_ID_t id)
 {
     PStask_t *task;
 
     if (PSnodes_isUp(id)) {
-	totalCPUs -= PSnodes_getCPUs(id);
+	totalCPUs -= PSnodes_getPhysCPUs(id);
 	totalNodes--;
     }
     PSnodes_bringDown(id);
-    PSnodes_setCPUs(id, 0);
+    PSnodes_setPhysCPUs(id, 0);
+    PSnodes_setVirtCPUs(id, 0);
     
     clearRDPMsgs(id);
 
@@ -292,7 +293,7 @@ static void declareNodeDead(int id)
     PSID_errlog(errtxt, 2);
 }
 
-static void declareNodeAlive(int id, int cpus)
+static void declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs)
 {
     snprintf(errtxt, sizeof(errtxt), "%s: node %d", __func__, id);
     PSID_errlog(errtxt, 2);
@@ -305,17 +306,18 @@ static void declareNodeAlive(int id, int cpus)
     }
 
     if (PSnodes_isUp(id)) {
-	totalCPUs += cpus - PSnodes_getCPUs(id);
+	totalCPUs += physCPUs - PSnodes_getPhysCPUs(id);
     } else {
 	totalNodes++;
-	totalCPUs += cpus;
+	totalCPUs += physCPUs;
     }
     PSnodes_bringUp(id);
-    PSnodes_setCPUs(id, cpus);
+    PSnodes_setPhysCPUs(id, physCPUs);
+    PSnodes_setVirtCPUs(id, virtCPUs);
 
     /* Test the license */
     if (totalNodes > lic_numval(&config->licEnv, LIC_NODES, 0)) {
-	if (id < PSC_getMyID()) {
+	if (id <= PSC_getMyID()) {
 	    snprintf(errtxt, sizeof(errtxt), "%s: too many nodes.", __func__);
 	    PSID_errlog(errtxt, 0);
 	    shutdownNode(1);
@@ -324,9 +326,8 @@ static void declareNodeAlive(int id, int cpus)
 	    declareNodeDead(id);
 	}
     }
-#if 0  /* @todo Do not test on CPUs since we cannot handle hyperthreading. */
     if (totalCPUs > lic_numval(&config->licEnv, LIC_CPUs, 0)) {
-	if (id < PSC_getMyID()) {
+	if (id <= PSC_getMyID()) {
 	    snprintf(errtxt, sizeof(errtxt), "%s: too many CPUs.", __func__);
 	    PSID_errlog(errtxt, 0);
 	    shutdownNode(1);
@@ -335,7 +336,6 @@ static void declareNodeAlive(int id, int cpus)
 	    declareNodeDead(id);
 	}
     }
-#endif
 }
 
 /******************************************
@@ -632,13 +632,18 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 */
 int send_DAEMONCONNECT(int id)
 {
-    DDTypedMsg_t msg = (DDTypedMsg_t) {
+    DDBufferMsg_t msg = (DDBufferMsg_t) {
 	.header = (DDMsg_t) {
 	    .type = PSP_DD_DAEMONCONNECT,
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getTID(id, 0),
-	    .len = sizeof(msg) },
-	.type = PSnodes_getCPUs(PSC_getMyID()) };
+	    .len = sizeof(msg.header) },
+	.buf = {'\0'} };
+    int32_t *CPUs = (int32_t *)msg.buf;
+
+    CPUs[0] = PSnodes_getPhysCPUs(PSC_getMyID());
+    CPUs[1] = PSnodes_getVirtCPUs(PSC_getMyID());
+    msg.header.len += 2 * sizeof(*CPUs);
 
     return sendMsg(&msg);
 }
@@ -646,10 +651,12 @@ int send_DAEMONCONNECT(int id)
 /******************************************
  *  msg_DAEMONCONNECT()
  */
-void msg_DAEMONCONNECT(DDTypedMsg_t *msg)
+void msg_DAEMONCONNECT(DDBufferMsg_t *msg)
 {
     int id = PSC_getID(msg->header.sender);
-    int cpus = msg->type;
+    int32_t *CPUs = (int32_t *) msg->buf;
+    int physCPUs = CPUs[0];
+    int virtCPUs = CPUs[1];
 
     snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, id);
     PSID_errlog(errtxt, 1);
@@ -657,13 +664,17 @@ void msg_DAEMONCONNECT(DDTypedMsg_t *msg)
     /*
      * accept this request and send an ESTABLISH msg back to the requester
      */
-    declareNodeAlive(id, cpus);
+    declareNodeAlive(id, physCPUs, virtCPUs);
 
-    msg->header.type = PSP_DD_DAEMONESTABLISHED;
-    msg->header.sender = PSC_getMyTID();
-    msg->header.dest = PSC_getTID(id, 0);
-    msg->header.len = sizeof(*msg);
-    msg->type = PSnodes_getCPUs(PSC_getMyID());
+    msg->header = (DDMsg_t) {
+	.type = PSP_DD_DAEMONESTABLISHED,
+	.sender = PSC_getMyTID(),
+	.dest = PSC_getTID(id, 0),
+	.len = sizeof(msg->header) };
+
+    CPUs[0] = PSnodes_getPhysCPUs(PSC_getMyID());
+    CPUs[1] = PSnodes_getVirtCPUs(PSC_getMyID());
+    msg->header.len += 2 * sizeof(*CPUs);
 
     if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
 	snprintf(errtxt, sizeof(errtxt), "%s: sendMsg() errno %d: %s",
@@ -677,15 +688,17 @@ void msg_DAEMONCONNECT(DDTypedMsg_t *msg)
 /******************************************
  *  msg_DAEMONESTABLISHED()
  */
-void msg_DAEMONESTABLISHED(DDTypedMsg_t *msg)
+void msg_DAEMONESTABLISHED(DDBufferMsg_t *msg)
 {
     int id = PSC_getID(msg->header.sender);
-    int cpus = msg->type;
+    int32_t *CPUs = (int32_t *) msg->buf;
+    int physCPUs = CPUs[0];
+    int virtCPUs = CPUs[1];
 
     snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, id);
     PSID_errlog(errtxt, 1);
 
-    declareNodeAlive(id, cpus);
+    declareNodeAlive(id, physCPUs, virtCPUs);
 
     /* Send some info about me to the other node */
     send_OPTIONS(id);
@@ -1771,10 +1784,10 @@ void psicontrol(int fd)
 	    /* Ignore */
 	    break;
 	case PSP_DD_DAEMONCONNECT:
-	    msg_DAEMONCONNECT((DDTypedMsg_t *)&msg);
+	    msg_DAEMONCONNECT(&msg);
 	    break;
 	case PSP_DD_DAEMONESTABLISHED:
-	    msg_DAEMONESTABLISHED((DDTypedMsg_t *)&msg);
+	    msg_DAEMONESTABLISHED(&msg);
 	    break;
 	case PSP_DD_CHILDDEAD:
 	    msg_CHILDDEAD((DDErrorMsg_t*)&msg);
@@ -2248,7 +2261,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.116 $";
+    char revision[] = "$Revision: 1.117 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -2437,10 +2450,6 @@ int main(int argc, const char *argv[])
     }
 #endif
 
-    /* Determine the number of CPUs */
-    PSnodes_setCPUs(PSC_getMyID(), sysconf(_SC_NPROCESSORS_CONF));
-    totalCPUs += PSnodes_getCPUs(PSC_getMyID());
-
     /* Start up all the hardware */
     snprintf(errtxt, sizeof(errtxt), "%s: starting up the hardware", __func__);
     PSID_errlog(errtxt, 1);
@@ -2448,8 +2457,8 @@ int main(int argc, const char *argv[])
     PSnodes_setHWStatus(PSC_getMyID(), 0);
     PSID_startAllHW();
 
-    PSnodes_bringUp(PSC_getMyID());
-    totalNodes++;
+    /* Bring node up with correct numbers of CPUs */
+    declareNodeAlive(PSC_getMyID(), PSID_getPhysCPUs(), PSID_getVirtCPUs());
 
     /* Initialize timers */
     timerclear(&shutdowntimer);
