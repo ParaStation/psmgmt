@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.81 2003/03/06 14:23:06 eicker Exp $
+ * $Id: psid.c,v 1.82 2003/03/07 16:05:44 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.81 2003/03/06 14:23:06 eicker Exp $ 
+ * $Id: psid.c,v 1.82 2003/03/07 16:05:44 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.81 2003/03/06 14:23:06 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.82 2003/03/07 16:05:44 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -75,12 +75,9 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.81 $";
+static char psid_cvsid[] = "$Revision: 1.82 $";
 
 static int PSID_mastersock;
-
-int UIDLimit = -1;   /* not limited to any user */
-int MAXPROCLimit = -1;   /* not limited to any number of processes */
 
 int myStatus;         /* Another helper status. This is for reset/shutdown */
 
@@ -208,6 +205,12 @@ int sendMsg(void *amsg)
 	}
 	return n;
     }
+
+    snprintf(errtxt, sizeof(errtxt),
+	     "%s(type %s (len=%d) to %s error: dest not found",
+	     __func__, PSP_printMsg(msg->type),
+	     msg->len, PSC_printTID(msg->dest));
+    PSID_errlog(errtxt, 1);
 
     return -1;
 }
@@ -539,29 +542,6 @@ void declareDaemonDead(int id)
     PSID_errlog(errtxt, 2);
 }
 
-/******************************************
-*  contactdaemon()
-*/
-int send_DAEMONCONNECT(int id)
-{
-    DDConnectMsg_t msg;
-
-    msg.header.type = PSP_DD_DAEMONCONNECT;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.dest = PSC_getTID(id, 0);
-    msg.header.len = sizeof(msg);
-    /* @todo put the next two into separate SETOPTION messages */
-    msg.hwStatus = PSnodes_getHWStatus(PSC_getMyID());
-    msg.numCPU = PSnodes_getCPUs(PSC_getMyID());
-
-    if (sendMsg(&msg)==msg.header.len) {
-	/* successful connection request is sent */
-	return 0;
-    }
-
-    return -1;
-}
-
 void cleanupTask(long tid)
 {
     PStask_t *task, *clone = NULL;
@@ -588,7 +568,9 @@ void cleanupTask(long tid)
 	}
 
 	/* Tell MCast about removing the task */
-	decJobsMCast(PSC_getMyID(), 1, (task->group==TG_ANY));
+	if (!task->duplicate) {
+	    decJobsMCast(PSC_getMyID(), 1, (task->group==TG_ANY));
+	}
 
 	if (task->group==TG_FORWARDER && !task->released) {
 	    /* cleanup child */
@@ -597,9 +579,8 @@ void cleanupTask(long tid)
 
 	    childTID = PSID_getSignal(&clone->childs, &sig);
 
-	    snprintf(errtxt, sizeof(errtxt),
-		     "cleanupTask(): forwarder kills child %s",
-		     PSC_printTID(childTID));
+	    snprintf(errtxt, sizeof(errtxt), "%s: forwarder kills child %s",
+		     __func__, PSC_printTID(childTID));
 	    PSID_errlog(errtxt, 0);
 
 	    if (childTID) cleanupTask(childTID);
@@ -610,9 +591,8 @@ void cleanupTask(long tid)
 	PStask_delete(task);
 
     } else {
-	snprintf(errtxt, sizeof(errtxt),
-		 "cleanupTask(): task(%s) not in my tasklist",
-		 PSC_printTID(tid));
+	snprintf(errtxt, sizeof(errtxt), "%s(): task(%s) not in my tasklist",
+		 __func__, PSC_printTID(tid));
 	PSID_errlog(errtxt, 0);
     }
 }
@@ -626,13 +606,13 @@ void deleteClient(int fd)
     long tid;
 
     if (fd<0) {
-	snprintf(errtxt, sizeof(errtxt), "deleteClient(%d): fd < 0.", fd);
+	snprintf(errtxt, sizeof(errtxt), "%s(%d): fd < 0.", __func__, fd);
 	PSID_errlog(errtxt, 0);
 
 	return;
     }
 
-    snprintf(errtxt, sizeof(errtxt), "deleteClient(%d)", fd);
+    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, fd);
     PSID_errlog(errtxt, 4);
 
     tid = clients[fd].tid;
@@ -640,8 +620,8 @@ void deleteClient(int fd)
 
     if (tid==-1) return;
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "deleteClient(): closing connection to %s", PSC_printTID(tid));
+    snprintf(errtxt, sizeof(errtxt), "%s(): closing connection to %s",
+	     __func__, PSC_printTID(tid));
     PSID_errlog(errtxt, 1);
 
     cleanupTask(tid);
@@ -781,6 +761,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 
 	    if (child) {
 		child->tid = clients[fd].tid;
+		child->duplicate = 1;
 		PSID_setSignal(&child->assignedSigs, child->ptid, -1);
 		PStasklist_enqueue(&managedTasks, child);
 
@@ -860,12 +841,14 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
     /*
      * Reject or accept connection
      */
-    if (msg->group ==TG_RESET
+    if (msg->group == TG_RESET
 	|| (myStatus & PSID_STATE_NOCONNECT)
 	|| !task
 	|| msg->version!=PSprotocolversion
-	|| (uid && UIDLimit!=-1 && (int)uid!=UIDLimit)
-	|| (MAXPROCLimit!=-1 && info.jobs.normal>=MAXPROCLimit)) {
+	|| (uid && PSnodes_getUser(PSC_getMyID()) != (uid_t) -1
+	    && uid != PSnodes_getUser(PSC_getMyID()))
+	|| (PSnodes_getProcs(PSC_getMyID()) != -1
+	    && info.jobs.normal >= PSnodes_getProcs(PSC_getMyID()))) {
 	DDInitMsg_t outmsg;
 	outmsg.header.len = sizeof(outmsg);
 	/* Connection refused answer message */
@@ -873,10 +856,14 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	    outmsg.header.type = PSP_CD_OLDVERSION;
 	} else if (!task) {
 	    outmsg.header.type = PSP_CD_NOSPACE;
-	} else if (uid && UIDLimit!=-1 && (int)uid!=UIDLimit) {
+	} else if (uid && PSnodes_getUser(PSC_getMyID()) != (uid_t) -1
+		   && uid != PSnodes_getUser(PSC_getMyID())) {
 	    outmsg.header.type = PSP_CD_UIDLIMIT;
-	} else if (MAXPROCLimit !=-1 && info.jobs.normal>=MAXPROCLimit) {
+	    outmsg.myid = PSnodes_getUser(PSC_getMyID());
+	} else if (PSnodes_getProcs(PSC_getMyID()) != -1
+		   && info.jobs.normal >= PSnodes_getProcs(PSC_getMyID())) {
 	    outmsg.header.type = PSP_CD_PROCLIMIT;
+	    outmsg.myid = PSnodes_getProcs(PSC_getMyID());
 	} else if (myStatus & PSID_STATE_NOCONNECT) {
 	    snprintf(errtxt, sizeof(errtxt),
 		     "CLIENTCONNECT daemon state problems: mystate %x",
@@ -892,17 +879,12 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	outmsg.version = PSprotocolversion;
 	outmsg.group = msg->group;
 
-	if (uid && UIDLimit!=-1 && (int)uid!=UIDLimit) {
-	    outmsg.myid = UIDLimit;
-	} else if(MAXPROCLimit!=-1 && info.jobs.normal>=MAXPROCLimit) {
-	    outmsg.myid = MAXPROCLimit;
-	}
-
 	snprintf(errtxt, sizeof(errtxt), "CLIENTCONNECT connection refused:"
 		 "group %s task %s version %ld vs. %d uid %d %d jobs %d %d",
 		 PStask_printGrp(msg->group), PSC_printTID(task->tid),
 		 msg->version, PSprotocolversion,
-		 uid, UIDLimit, info.jobs.normal, MAXPROCLimit);
+		 uid, PSnodes_getUser(PSC_getMyID()),
+		 info.jobs.normal, PSnodes_getProcs(PSC_getMyID()));
 	PSID_errlog(errtxt, 1);
 
 	sendMsg(&outmsg);
@@ -937,6 +919,133 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 }
 
 /******************************************
+ *  send_OPTIONS()
+ * Transfers the options to an other node
+ */
+int send_OPTIONS(int destnode)
+{
+    DDOptionMsg_t msg;
+    int success;
+
+    msg.header.type = PSP_DD_SETOPTION;
+    msg.header.sender = PSC_getMyTID();
+    msg.header.dest = PSC_getTID(destnode, 0);
+    msg.header.len = sizeof(msg);
+
+    msg.count = 0;
+    /*
+    if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
+	msg.opt[(int) msg.count].option = PSP_OP_SMALLPACKETSIZE;
+	msg.opt[(int) msg.count].value = ConfigSmallPacketSize;
+	msg.count++;
+
+	msg.opt[(int) msg.count].option = PSP_OP_RESENDTIMEOUT;
+	msg.opt[(int) msg.count].value = ConfigRTO;
+	msg.count++;
+
+	msg.opt[(int) msg.count].option = PSP_OP_HNPEND;
+	msg.opt[(int) msg.count].value = ConfigHNPend;
+	msg.count++;
+
+	msg.opt[(int) msg.count].option = PSP_OP_ACKPEND;
+	msg.opt[(int) msg.count].value = ConfigAckPend;
+	msg.count++;
+    }
+    */
+
+    msg.opt[(int) msg.count].option = PSP_OP_HWSTATUS;
+    msg.opt[(int) msg.count].value = PSnodes_getHWStatus(PSC_getMyID());
+    msg.count++;
+
+    msg.opt[(int) msg.count].option = PSP_OP_CPUS;
+    msg.opt[(int) msg.count].value = PSnodes_getCPUs(PSC_getMyID());
+    msg.count++;
+
+    success = sendMsg(&msg);
+    if (success<0) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: sendMsg(): errno %d", __func__, errno);
+	PSID_errlog(errtxt, 0);
+    }
+
+    return success;
+}
+
+/******************************************
+*  contactdaemon()
+*/
+int send_DAEMONCONNECT(int id)
+{
+    DDMsg_t msg;
+
+    msg.type = PSP_DD_DAEMONCONNECT;
+    msg.sender = PSC_getMyTID();
+    msg.dest = PSC_getTID(id, 0);
+    msg.len = sizeof(msg);
+
+    if (sendMsg(&msg)==msg.len) {
+	/* successful connection request is sent */
+	return 0;
+    }
+
+    return -1;
+}
+
+/******************************************
+ *  msg_DAEMONCONNECT()
+ */
+void msg_DAEMONCONNECT(DDMsg_t *msg)
+{
+    int success;
+    int id = PSC_getID(msg->sender);
+
+    snprintf(errtxt, sizeof(errtxt),
+	     "msg_DAEMONCONNECT (%p) daemons[%d]", msg, id);
+    PSID_errlog(errtxt, 1);
+
+    /*
+     * with RDP all Daemons are sending messages through one socket
+     * so no difficult initialization is needed
+     */
+
+    snprintf(errtxt, sizeof(errtxt),
+	     "New connection to daemon on node %d", id);
+    PSID_errlog(errtxt, 2);
+
+    /*
+     * accept this request and send an ESTABLISH msg back to the requester
+     */
+    PSnodes_bringUp(id);
+
+    msg->type = PSP_DD_DAEMONESTABLISHED;
+    msg->sender = PSC_getMyTID();
+    msg->dest = PSC_getTID(id, 0);
+    msg->len = sizeof(*msg);
+
+    if ((success = sendMsg(msg))<=0) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "sending Daemonestablished errno %d: %s",
+		 errno, strerror(errno));
+	PSID_errlog(errtxt, 2);
+    }
+
+    if (success>0) send_OPTIONS(id);
+}
+
+/******************************************
+ *  msg_DAEMONESTABLISHED()
+ */
+void msg_DAEMONESTABLISHED(DDMsg_t *msg)
+{
+    int id = PSC_getID(msg->sender);
+
+    PSnodes_bringUp(id);
+
+    /* Send some info about me to the other node */
+    send_OPTIONS(id);
+}
+
+/******************************************
  *  msg_DAEMONSTOP()
  *   sender node requested a psid-stop on the receiver node.
  */
@@ -950,86 +1059,6 @@ void msg_DAEMONSTOP(DDResetMsg_t *msg)
 	return;
 
     shutdownNode(1);
-}
-
-/******************************************
- *  send_OPTIONS()
- * Transfers the options to an other node
- */
-int send_OPTIONS(int destnode)
-{
-    DDOptionMsg_t msg;
-    int success=1;
-    msg.header.type = PSP_DD_SETOPTION;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.dest = PSC_getTID(destnode, 0);
-    msg.header.len = sizeof(msg);
-
-    msg.count = 1;
-    msg.opt[0].option = PSP_OP_PROCLIMIT;
-    msg.opt[0].value = MAXPROCLimit;
-    success = sendMsg(&msg);
-
-    msg.opt[0].option = PSP_OP_UIDLIMIT;
-    msg.opt[0].value = UIDLimit;
-
-    if (success>0) {
-	if ((success=sendMsg(&msg))<0) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "sending MAXPROCLimit/UIDLimits errno %d", errno);
-	    PSID_errlog(errtxt, 2);
-	}
-    }
-
-    return success;
-}
-
-/******************************************
- *  msg_DAEMONCONNECT()
- */
-void msg_DAEMONCONNECT(DDConnectMsg_t *msg)
-{
-    int success;
-    int id = PSC_getID(msg->header.sender);
-
-    snprintf(errtxt, sizeof(errtxt),
-	     "msg_DAEMONCONNECT (%p) daemons[%d]", msg, id);
-    PSID_errlog(errtxt, 1);
-
-    /*
-     * with RDP all Daemons are sending messages through one socket
-     * so no difficult initialization is needed
-     */
-
-    snprintf(errtxt, sizeof(errtxt),
-	     "New connection to daemon on node %d (hw:%x)", id, msg->hwStatus);
-    PSID_errlog(errtxt, 2);
-
-    /*
-     * accept this request and send an ESTABLISH msg back to the requester
-     */
-    PSnodes_bringUp(id);
-    /* @todo put the next two into separate SETOPTION messages */
-    PSnodes_setHWStatus(id, msg->hwStatus);
-    PSnodes_setCPUs(id, msg->numCPU);
-
-    msg->header.type = PSP_DD_DAEMONESTABLISHED;
-    msg->header.sender = PSC_getMyTID();
-    msg->header.dest = PSC_getTID(id, 0);
-    msg->header.len = sizeof(*msg);
-    /* @todo put the next two into separate SETOPTION messages */
-    msg->hwStatus = PSnodes_getHWStatus(PSC_getMyID());
-    msg->numCPU = PSnodes_getCPUs(PSC_getMyID());
-
-    if ((success = sendMsg(msg))<=0) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "sending Daemonestablished errno %d: %s",
-		 errno, strerror(errno));
-	PSID_errlog(errtxt, 2);
-    }
-
-    if (success>0)
-	success = send_OPTIONS(id);
 }
 
 /******************************************
@@ -1578,79 +1607,102 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
     int i;
     unsigned int val;
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "SETOPTION from requester %s",
-	     PSC_printTID(msg->header.sender));
+    snprintf(errtxt, sizeof(errtxt), "%s from requester %s",
+	     __func__, PSC_printTID(msg->header.sender));
     PSID_errlog(errtxt, 1);
 
-    for (i=0; i<msg->count; i++) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "SETOPTION()option: %ld value 0x%lx",
-		 msg->opt[i].option, msg->opt[i].value);
-	PSID_errlog(errtxt, 3);
+    if (msg->header.dest == PSC_getMyTID() || msg->header.dest == -1) {
+	/* Message is for me */
+	for (i=0; i<msg->count; i++) {
+	    snprintf(errtxt, sizeof(errtxt), "%s: option %ld value 0x%lx",
+		     __func__, msg->opt[i].option, msg->opt[i].value);
+	    PSID_errlog(errtxt, 3);
 
-	switch (msg->opt[i].option) {
-	case PSP_OP_SMALLPACKETSIZE:
-	    if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
-		if (PSHALSYS_GetSmallPacketSize()!=msg->opt[i].value) {
-		    PSHALSYS_SetSmallPacketSize(msg->opt[i].value);
-		    ConfigSmallPacketSize = msg->opt[i].value;
+	    switch (msg->opt[i].option) {
+	    case PSP_OP_SMALLPACKETSIZE:
+		if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
+		    if (ConfigSmallPacketSize != msg->opt[i].value) {
+			ConfigSmallPacketSize = msg->opt[i].value;
+			PSHALSYS_SetSmallPacketSize(ConfigSmallPacketSize);
+		    }
 		}
-	    }
-	    break;
-	case PSP_OP_RESENDTIMEOUT:
-	    if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
-		unsigned int optval = msg->opt[i].value;
-		if (PSHALSYS_GetMCPParam(MCP_PARAM_RTO, &val, NULL))
-		    break;
-		if (val != optval) {
-		    PSHALSYS_SetMCPParam(MCP_PARAM_RTO, optval);
-		    ConfigRTO = optval;
+		break;
+	    case PSP_OP_RESENDTIMEOUT:
+		if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
+		    if (ConfigRTO != msg->opt[i].value) {
+			ConfigRTO = msg->opt[i].value;
+			PSHALSYS_SetMCPParam(MCP_PARAM_RTO, ConfigRTO);
+		    }
 		}
-	    }
-	    break;
-	case PSP_OP_HNPEND:
-	    if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
-		unsigned int optval = msg->opt[i].value;
-		if (PSHALSYS_GetMCPParam(MCP_PARAM_HNPEND, &val, NULL))
-		    break;
-		if (val != optval) {
-		    PSHALSYS_SetMCPParam(MCP_PARAM_HNPEND, optval);
-		    ConfigHNPend = optval;
+		break;
+	    case PSP_OP_HNPEND:
+		if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
+		    if (ConfigHNPend != msg->opt[i].value) {
+			ConfigHNPend = msg->opt[i].value;
+			PSHALSYS_SetMCPParam(MCP_PARAM_HNPEND, ConfigHNPend);
+		    }
 		}
-	    }
-	    break;
-	case PSP_OP_ACKPEND:
-	    if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
-		unsigned int optval = msg->opt[i].value;
-		if (PSHALSYS_GetMCPParam(MCP_PARAM_ACKPEND, &val, NULL))
-		    break;
-		if (val != optval) {
-		    PSHALSYS_SetMCPParam(MCP_PARAM_ACKPEND, optval);
-		    ConfigAckPend = optval;
+		break;
+	    case PSP_OP_ACKPEND:
+		if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
+		    if (ConfigAckPend != msg->opt[i].value) {
+			ConfigAckPend = msg->opt[i].value;
+			PSHALSYS_SetMCPParam(MCP_PARAM_ACKPEND, ConfigAckPend);
+		    }
 		}
-	    }
-	    break;
-	case PSP_OP_PSIDSELECTTIME:
-	    if (msg->header.dest == PSC_getMyTID()         /* for me */
-		|| msg->header.dest == -1)                 /* for any */
+		break;
+	    case PSP_OP_PSIDSELECTTIME:
 		if (msg->opt[i].value > 0) {
 		    selecttimer.tv_sec = msg->opt[i].value;
 		}
 	    break;
-	case PSP_OP_PROCLIMIT:
-	    if (msg->header.dest == PSC_getMyTID()         /* for me */
-		|| msg->header.dest == -1)                 /* for any */
-		MAXPROCLimit = msg->opt[i].value;
-	    break;
-	case PSP_OP_UIDLIMIT:
-	    if (msg->header.dest == PSC_getMyTID()         /* for me */
-		|| msg->header.dest == -1)                 /* for any */
-		UIDLimit = msg->opt[i].value;
-	    break;
-	case PSP_OP_PSIDDEBUG:
-	    if (msg->header.dest == PSC_getMyTID()         /* for me */
-		|| msg->header.dest == -1) {               /* for any */
+	    case PSP_OP_PROCLIMIT:
+		if (PSC_getPID(msg->header.sender)) {
+		    DDOptionMsg_t info;
+		    PSnodes_setProcs(PSC_getMyID(), msg->opt[i].value);
+
+		    info.header.type = PSP_DD_SETOPTION;
+		    info.header.sender = PSC_getMyTID();
+		    info.header.len = sizeof(info);
+
+		    info.count = 1;
+		    info.opt[0].option = msg->opt[i].option;
+		    info.opt[0].value = msg->opt[i].value;
+
+		    broadcastMsg(&info);
+		} else {
+		    PSnodes_setProcs(PSC_getID(msg->header.sender),
+				     msg->opt[i].value);
+		}
+		break;
+	    case PSP_OP_UIDLIMIT:
+		if (PSC_getPID(msg->header.sender)) {
+		    DDOptionMsg_t info;
+		    PSnodes_setUser(PSC_getMyID(), msg->opt[i].value);
+
+		    info.header.type = PSP_DD_SETOPTION;
+		    info.header.sender = PSC_getMyTID();
+		    info.header.len = sizeof(info);
+
+		    info.count = 1;
+		    info.opt[0].option = msg->opt[i].option;
+		    info.opt[0].value = msg->opt[i].value;
+
+		    broadcastMsg(&info);
+		} else {
+		    PSnodes_setProcs(PSC_getID(msg->header.sender),
+				     msg->opt[i].value);
+		}
+		break;
+	    case PSP_OP_HWSTATUS:
+		PSnodes_setHWStatus(PSC_getID(msg->header.sender),
+				    msg->opt[i].value);
+		break;
+	    case PSP_OP_CPUS:
+		PSnodes_setCPUs(PSC_getID(msg->header.sender),
+				msg->opt[i].value);
+		break;
+	    case PSP_OP_PSIDDEBUG:
 		PSID_setDebugLevel(msg->opt[i].value);
 		PSC_setDebugLevel(msg->opt[i].value);
 
@@ -1663,45 +1715,35 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 			     "Debugging mode disabled");
 		}
 		PSID_errlog(errtxt, 0);
-	    }
-	    break;
-	case PSP_OP_RDPDEBUG:
-	    if (msg->header.dest == PSC_getMyTID()         /* for me */
-		|| msg->header.dest == -1)                 /* for any */
+		break;
+	    case PSP_OP_RDPDEBUG:
 		setDebugLevelRDP(msg->opt[i].value);
-	    break;
-	case PSP_OP_RDPPKTLOSS:
-	    if (msg->header.dest == PSC_getMyTID()         /* for me */
-		|| msg->header.dest == -1)                 /* for any */
+		break;
+	    case PSP_OP_RDPPKTLOSS:
 		setPktLossRDP(msg->opt[i].value);
-	    break;
-	case PSP_OP_RDPMAXRETRANS:
-	    if (msg->header.dest == PSC_getMyTID()         /* for me */
-	        || msg->header.dest == -1)                 /* for any */
+		break;
+	    case PSP_OP_RDPMAXRETRANS:
 		setMaxRetransRDP(msg->opt[i].value);
-	    break;
-	case PSP_OP_MCASTDEBUG:
-	    if (msg->header.dest == PSC_getMyTID()         /* for me */
-		|| msg->header.dest == -1)                 /* for any */
+		break;
+	    case PSP_OP_MCASTDEBUG:
 		setDebugLevelMCast(msg->opt[i].value);
-	    break;
-	default:
-	    snprintf(errtxt, sizeof(errtxt),
-		     "SETOPTION(): unknown option %ld",
-		     msg->opt[i].option);
-	    PSID_errlog(errtxt, 0);
+		break;
+	    default:
+		snprintf(errtxt, sizeof(errtxt), "%s: unknown option %ld",
+			 __func__, msg->opt[i].option);
+		PSID_errlog(errtxt, 0);
+	    }
 	}
-    }
 
-    /* Message is for a remote node */
-    if ((msg->header.dest != PSC_getMyTID()) && (msg->header.dest !=-1)) {
+	/* Message is for any node so do a broadcast */
+	if (msg->header.dest ==-1) {
+	    broadcastMsg(msg);
+	}
+    } else {
+	/* Message is for a remote node */
 	sendMsg(msg);
     }
 
-    /* Message is for any node so do a broadcast */
-    if (msg->header.dest ==-1) {
-	broadcastMsg(msg);
-    }
 }
 
 /******************************************
@@ -1711,9 +1753,8 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 {
     int id = PSC_getID(msg->header.dest);
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "GETOPTION from node %d for requester %s",
-	     id, PSC_printTID(msg->header.sender));
+    snprintf(errtxt, sizeof(errtxt), "%s from node %d for requester %s",
+	     __func__, id, PSC_printTID(msg->header.sender));
     PSID_errlog(errtxt, 1);
 
     if (id!=PSC_getMyID()) {
@@ -1748,41 +1789,35 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 	int i;
 	unsigned int val;
 	for (i=0; i<msg->count; i++) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "GETOPTION() option: %ld", msg->opt[i].option);
+	    snprintf(errtxt, sizeof(errtxt), "%s option: %ld",
+		     __func__, msg->opt[i].option);
 	    PSID_errlog(errtxt, 3);
 
 	    switch (msg->opt[i].option) {
 	    case PSP_OP_SMALLPACKETSIZE:
 		if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
-		    msg->opt[i].value = PSHALSYS_GetSmallPacketSize();
+		    msg->opt[i].value = ConfigSmallPacketSize;
 		} else {
 		    msg->opt[i].value = -1;
 		}
 		break;
 	    case PSP_OP_RESENDTIMEOUT:
 		if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
-		    if (PSHALSYS_GetMCPParam(MCP_PARAM_RTO, &val, NULL))
-			break;
-		    msg->opt[i].value = val;
+		    msg->opt[i].value = ConfigRTO;
 		} else {
 		    msg->opt[i].value = -1;
 		}
 		break;
 	    case PSP_OP_HNPEND:
 		if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
-		    if (PSHALSYS_GetMCPParam(MCP_PARAM_HNPEND, &val, NULL))
-			break;
-		    msg->opt[i].value = val;
+		    msg->opt[i].value = ConfigHNPend;
 		} else {
 		    msg->opt[i].value = -1;
 		}
 		break;
 	    case PSP_OP_ACKPEND:
 		if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
-		    if (PSHALSYS_GetMCPParam(MCP_PARAM_ACKPEND, &val, NULL))
-			break;
-		    msg->opt[i].value = val;
+		    msg->opt[i].value = ConfigAckPend;
 		} else {
 		    msg->opt[i].value = -1;
 		}
@@ -1794,10 +1829,10 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		msg->opt[i].value = selecttimer.tv_sec;
 		break;
 	    case PSP_OP_PROCLIMIT:
-		msg->opt[i].value = MAXPROCLimit;
+		msg->opt[i].value = PSnodes_getProcs(PSC_getMyID());
 		break;
 	    case PSP_OP_UIDLIMIT:
-		msg->opt[i].value = UIDLimit;
+		msg->opt[i].value = PSnodes_getUser(PSC_getMyID());
 		break;
 	    case PSP_OP_RDPDEBUG:
 		msg->opt[i].value = getDebugLevelRDP();
@@ -1812,9 +1847,8 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		msg->opt[i].value = getDebugLevelMCast();
 		break;
 	    default:
-		snprintf(errtxt, sizeof(errtxt),
-			 "GETOPTION(): unknown option %ld",
-			 msg->opt[i].option);
+		snprintf(errtxt, sizeof(errtxt), "%s: unknown option %ld",
+			 __func__, msg->opt[i].option);
 		PSID_errlog(errtxt, 0);
 		return;
 	    }
@@ -2344,59 +2378,6 @@ void msg_WHODIED(DDSignalMsg_t *msg)
 /*  } */
 
 /******************************************
- * requestOptions()
- * request the options of the remote node
- */
-int requestOptions(int node)
-{
-    int success=0;
-    DDOptionMsg_t msg;
-
-    msg.header.dest = PSC_getTID(node, 0);
-    msg.header.sender = PSC_getMyTID();
-    msg.header.type = PSP_DD_GETOPTION;
-    msg.header.len = sizeof(msg);
-
-    msg.count = 0;
-
-    msg.opt[(int) msg.count].option = PSP_OP_SMALLPACKETSIZE;
-    msg.count++;
-
-    msg.opt[(int) msg.count].option = PSP_OP_RESENDTIMEOUT;
-    msg.count++;
-
-    if (success>0) {
-	if ((success = sendMsg(&msg))<=0) {
-	    char *errstr = strerror(errno);
-	    snprintf(errtxt, sizeof(errtxt),
-		     "requestOptions() sendMsg: %s",
-		     errstr ? errstr : "UNKNOWN");
-	    PSID_errlog(errtxt, 0);
-	}
-    }
-
-    return (success>0) ? 0 : -1;
-}
-
-/******************************************
- *  msg_DAEMONESTABLISHED()
- */
-void msg_DAEMONESTABLISHED(DDConnectMsg_t *msg)
-{
-    int id = PSC_getID(msg->header.sender);
-
-    PSnodes_bringUp(id);
-    /* @todo put the next two into separate SETOPTION messages */
-    PSnodes_setHWStatus(id, msg->hwStatus);
-    PSnodes_setCPUs(id, msg->numCPU);
-
-    /*
-     * request the remote options
-     */
-    requestOptions(id);
-}
-
-/******************************************
  *  psicontrol(int fd)
  */
 void psicontrol(int fd)
@@ -2436,7 +2417,7 @@ void psicontrol(int fd)
 	    msg_CLIENTCONNECT(fd, (DDInitMsg_t *)&msg);
 	    break;
 	case PSP_DD_DAEMONCONNECT:
-	    msg_DAEMONCONNECT((DDConnectMsg_t *)&msg);
+	    msg_DAEMONCONNECT((DDMsg_t *)&msg);
 	    break;
 	case PSP_CD_DAEMONSTOP:
 	    msg.header.type = PSP_DD_DAEMONSTOP;
@@ -2446,7 +2427,7 @@ void psicontrol(int fd)
 	    msg_DAEMONSTOP((DDResetMsg_t *)&msg);
 	    break;
 	case PSP_DD_DAEMONESTABLISHED:
-	    msg_DAEMONESTABLISHED((DDConnectMsg_t *)&msg);
+	    msg_DAEMONESTABLISHED((DDMsg_t *)&msg);
 	    break;
 	case PSP_DD_SPAWNREQUEST :
 	    msg_SPAWNREQUEST(&msg);
@@ -2547,7 +2528,7 @@ void psicontrol(int fd)
 	case PSP_DD_SETOPTION:
 	    /*
 	     * set different options.
-	     * If it is a msg form a client distribute the msg to all
+	     * If it is a msg from a client distribute the msg to all
 	     * other daemons
 	     */
 	    msg_SETOPTION((DDOptionMsg_t*)&msg);
@@ -2862,7 +2843,8 @@ void sighandler(int sig)
 	    task = PStasklist_find(managedTasks, tid);
 	    if (task && (task->fd == -1)) {
 		cleanupTask(tid);
-	    } else if (task && task->group == TG_FORWARDER) {
+	    } else if (task
+		       && task->group == TG_FORWARDER && !task->released) {
 		DDMsg_t msg;
 
 		msg.type = PSP_CC_ERROR;
@@ -3011,7 +2993,7 @@ void checkFileTable(void)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.81 $";
+    char revision[] = "$Revision: 1.82 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
