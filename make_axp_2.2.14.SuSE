@@ -1,0 +1,5 @@
+#!/bin/sh
+
+
+make KDIR=/home/i41pc17/hauke/psmlib/kernel/axp/linux-2.2.14.SuSE $* OSSUF=.SuSE
+make KDIR=/home/i41pc17/hauke/psmlib/kernel/axp/linux-2.2.14-SMP.SuSE $* OSSUF=.SuSE
