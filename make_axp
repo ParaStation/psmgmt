@@ -2,20 +2,20 @@
 
 #libs
 make clean
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/axp/linux-2.2.14.SuSE       KNAME=2.2.14.SuSE libs
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/axp/linux-2.2.14.SuSE       KNAME=2.2.14.SuSE tools
+make KDIR=/home/phoenix/kernel/axp/linux-2.2.14.SuSE       KNAME=2.2.14.SuSE libs
+make KDIR=/home/phoenix/kernel/axp/linux-2.2.14.SuSE       KNAME=2.2.14.SuSE tools
 
 # SuSE
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/axp/linux-2.2.14.SuSE       KNAME=2.2.14.SuSE         psm
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/axp/linux-2.2.14-SMP.SuSE   KNAME=2.2.14-SMP.SuSE     psm
+make KDIR=/home/phoenix/kernel/axp/linux-2.2.14.SuSE       KNAME=2.2.14.SuSE         psm
+make KDIR=/home/phoenix/kernel/axp/linux-2.2.14-SMP.SuSE   KNAME=2.2.14-SMP.SuSE     psm
 
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/axp/linux-2.2.16.SuSE       KNAME=2.2.16.SuSE         psm
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/axp/linux-2.2.16-SMP.SuSE   KNAME=2.2.16-SMP.SuSE     psm
+make KDIR=/home/phoenix/kernel/axp/linux-2.2.16.SuSE       KNAME=2.2.16.SuSE         psm
+make KDIR=/home/phoenix/kernel/axp/linux-2.2.16-SMP.SuSE   KNAME=2.2.16-SMP.SuSE     psm
 
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/axp/linux-2.2.19.SuSE       KNAME=2.2.19.SuSE         psm
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/axp/linux-2.2.19-SMP.SuSE   KNAME=2.2.19-SMP.SuSE     psm
+make KDIR=/home/phoenix/kernel/axp/linux-2.2.19.SuSE       KNAME=2.2.19.SuSE         psm
+make KDIR=/home/phoenix/kernel/axp/linux-2.2.19-SMP.SuSE   KNAME=2.2.19-SMP.SuSE     psm
 
 #redhat
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/axp/linux-2.2.19.redhat     KNAME=2.2.19-7.0.8.redhat psm
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/axp/linux-2.2.19-SMP.redhat KNAME=2.2.19-7.0.8smp.redhat psm
+make KDIR=/home/phoenix/kernel/axp/linux-2.2.19.redhat     KNAME=2.2.19-7.0.8.redhat psm
+make KDIR=/home/phoenix/kernel/axp/linux-2.2.19-SMP.redhat KNAME=2.2.19-7.0.8smp.redhat psm
 

@@ -2,31 +2,31 @@
 
 #first build all
 make clean
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.2.16.SuSE      KNAME=2.2.16.SuSE all
+make KDIR=/home/phoenix/kernel/i386/linux-2.2.16.SuSE      KNAME=2.2.16.SuSE all
 
 #and now the modules
 # SuSE
 
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.2.16.SuSE      KNAME=2.2.16.SuSE     psm
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.2.16-SMP.SuSE  KNAME=2.2.16-SMP.SuSE psm
+make KDIR=/home/phoenix/kernel/i386/linux-2.2.16.SuSE      KNAME=2.2.16.SuSE     psm
+make KDIR=/home/phoenix/kernel/i386/linux-2.2.16-SMP.SuSE  KNAME=2.2.16-SMP.SuSE psm
 
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.2.18.SuSE      KNAME=2.2.18.SuSE     psm
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.2.18-SMP.SuSE  KNAME=2.2.18-SMP.SuSE psm
+make KDIR=/home/phoenix/kernel/i386/linux-2.2.18.SuSE      KNAME=2.2.18.SuSE     psm
+make KDIR=/home/phoenix/kernel/i386/linux-2.2.18-SMP.SuSE  KNAME=2.2.18-SMP.SuSE psm
 
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.4.2.SuSE       KNAME=2.4.2.SuSE      psm
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.4.2-SMP.SuSE   KNAME=2.4.2-SMP.SuSE  psm
+make KDIR=/home/phoenix/kernel/i386/linux-2.4.2.SuSE       KNAME=2.4.2.SuSE      psm
+make KDIR=/home/phoenix/kernel/i386/linux-2.4.2-SMP.SuSE   KNAME=2.4.2-SMP.SuSE  psm
 
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.4.7.SuSE       KNAME=2.4.7.SuSE      psm
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.4.7-SMP.SuSE   KNAME=2.4.7-SMP.SuSE  psm
+make KDIR=/home/phoenix/kernel/i386/linux-2.4.7.SuSE       KNAME=2.4.7.SuSE      psm
+make KDIR=/home/phoenix/kernel/i386/linux-2.4.7-SMP.SuSE   KNAME=2.4.7-SMP.SuSE  psm
 
 # redhat
-#make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.4.2.redhat LINUXVERSION=L24 OSVER=2.4.2-2 OSSUF=.redhat psm
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.4.2-SMP.redhat KNAME=2.4.2-2smp.redhat psm
+#make KDIR=/home/phoenix/kernel/i386/linux-2.4.2.redhat LINUXVERSION=L24 OSVER=2.4.2-2 OSSUF=.redhat psm
+make KDIR=/home/phoenix/kernel/i386/linux-2.4.2-SMP.redhat KNAME=2.4.2-2smp.redhat psm
 
 #vanilla
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.4.2            KNAME=2.4.2           psm
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.4.2-SMP        KNAME=2.4.2-SMP       psm
+make KDIR=/home/phoenix/kernel/i386/linux-2.4.2            KNAME=2.4.2           psm
+make KDIR=/home/phoenix/kernel/i386/linux-2.4.2-SMP        KNAME=2.4.2-SMP       psm
 
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.4.9            KNAME=2.4.9           psm
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.4.9-SMP        KNAME=2.4.9-SMP       psm
+make KDIR=/home/phoenix/kernel/i386/linux-2.4.9            KNAME=2.4.9           psm
+make KDIR=/home/phoenix/kernel/i386/linux-2.4.9-SMP        KNAME=2.4.9-SMP       psm
 
