@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.8 2002/01/16 18:14:24 eicker Exp $
+ * $Id: rdp.c,v 1.9 2002/01/17 13:05:12 eicker Exp $
  *
  */
 /**
  * \file
  * rdp: ParaStation Reliable Datagram Protocol
  *
- * $Id: rdp.c,v 1.8 2002/01/16 18:14:24 eicker Exp $
+ * $Id: rdp.c,v 1.9 2002/01/17 13:05:12 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.8 2002/01/16 18:14:24 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.9 2002/01/17 13:05:12 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -269,8 +269,7 @@ static int passivesock (unsigned short port, int qlen)
      * allocate a socket
      */
     if ( (s = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
-	snprintf(errtxt, sizeof(errtxt), "can't create socket");
-	errexit(errtxt, syslogerror, errno);
+	errexit("can't create socket", syslogerror, errno);
     }
 
     /*
@@ -290,16 +289,13 @@ static int passivesock (unsigned short port, int qlen)
 #if defined(__linux__LATER)
     val = 1;
     if ( setsockopt(s, SOL_IP, IP_RECVERR, &val, sizeof(int)) < 0) {
-	snprintf(errtxt, sizeof(errtxt), "can't set socketoption IP_RECVERR");
-	errexit(errtxt, syslogerror, errno);
+	errexit("can't set socketoption IP_RECVERR", syslogerror, errno);
     }
 #endif
 #if defined (__linux)
 /*      val = 1; */
 /*      if ( setsockopt(s, SOL_SOCKET, SO_BSDCOMPAT, &val, sizeof(int)) < 0) { */
-/*  	snprintf(errtxt, sizeof(errtxt), */
-/*  		 "can't set socketoption SO_BSDCOMPAT"); */
-/*  	errexit(errtxt, syslogerror, errno); */
+/*  	errexit("can't set socketoption SO_BSDCOMPAT", syslogerror, errno); */
 /*      } */
 #endif
 
@@ -428,7 +424,7 @@ static Rconninfo *conntable = NULL;
  * ipentry & iptabel is used to lookup node_nr if ip_nr is given
  */
 typedef struct ipentry_ {
-    int ipnr;               /* ip nr of host */
+    unsigned int ipnr;      /* ip nr of host */
     int node;               /* logical node number */
     struct ipentry_ *next;  /* pointer to next entry */
 } ipentry;
@@ -593,8 +589,7 @@ static msgbuf *getMsg(void)
 {
     msgbuf *mp = MsgFreeList;
     if (mp == NULL) {
-	snprintf(errtxt, sizeof(errtxt), "no more elements in MsgFreeList");
-	errlog(errtxt, syslogerror, 0);
+	errlog("no more elements in MsgFreeList", syslogerror, 0);
     } else {
 	MsgFreeList = MsgFreeList->next;
 	mp->node = -1;
@@ -642,8 +637,7 @@ static Smsg *getSMsg(void)
 {
     Smsg *mp = SMsgFreeList;
     if (mp == NULL) {
-	snprintf(errtxt, sizeof(errtxt), "no more elements in SMsgFreeList");
-	errlog(errtxt, syslogerror, 0);
+	errlog("no more elements in SMsgFreeList", syslogerror, 0);
     } else {
 	SMsgFreeList = SMsgFreeList->next;
     }
@@ -666,7 +660,7 @@ static void putSMsg(Smsg *mp)
 typedef struct ackent_ {
     struct ackent_ *prev;     /* pointer to previous msg waiting for an ack */
     struct ackent_ *next;     /* pointer to next msg waiting for an ack */
-    msgbuf *bufptr;           /* pointer to first message buffer */
+    msgbuf *bufptr;           /* pointer to message buffer */
 }ackent;
 
 static ackent *AckListHead; /* head of ack list */
@@ -706,8 +700,7 @@ static ackent *getAckEnt(void)
 {
     ackent *ap = AckFreeList;
     if (ap == NULL) {
-	snprintf(errtxt, sizeof(errtxt), "no more elements in AckFreeList");
-	errlog(errtxt, syslogerror, 0);
+	errlog("no more elements in AckFreeList", syslogerror, 0);
     } else {
 	AckFreeList = AckFreeList->next;
     }
@@ -779,8 +772,7 @@ static void RDPtimer(int sec, int usec)
     itv.it_value.tv_sec = sec;
     itv.it_value.tv_usec = usec;
     if (setitimer(ITIMER_REAL,&itv,NULL)==-1) {
-	snprintf(errtxt, sizeof(errtxt), "unable to set itimer");
-	errexit(errtxt, syslogerror, errno);
+	errexit("unable to set itimer", syslogerror, errno);
     }
 
     return;
@@ -863,9 +855,8 @@ static void checkConnection(void)
 	}
     }
     if (conntable[nr_of_nodes].misscounter > (100 * DEAD_LIMIT) ) {
-	snprintf(errtxt, sizeof(errtxt),"Lost connection to License Server,"
-		 " shutting down operation");
-	errlog(errtxt, syslogerror, 0);
+	errlog("Lost connection to License Server, shutting down operation",
+	       syslogerror, 0);
 	if (callback != NULL) { /* inform daemon */
 	    info = LIC_LOST_CONECTION;
 	    conntable[nr_of_nodes].misscounter = 0; /* HACK HACK HACK : TOM */
@@ -1033,7 +1024,7 @@ static int updateState(rdphdr *hdr, int node)
 		      " FrameEx=%d", node, cp->FrameExpected);
 	    Derrlog(errtxt, syslogerror, 12);
 	    sendSYNNACK(node,hdr->seqno);
-	    retval = RDP_SYNACK;
+	    retval = RDP_SYNNACK;
 	    break;
 	default:
 	    cp->state = SYN_SENT;
@@ -1324,7 +1315,8 @@ static int resequenceMsgQ(int node, int new_sno, int old_sno)
 	} else {
 	    /* resequence outstanding mgs's */
 	    Dsnprintf(errtxt, sizeof(errtxt),
-		      "Changing SeqNo from %d to %d", mp->msg.small->header.seqno,
+		      "Changing SeqNo from %d to %d",
+		      mp->msg.small->header.seqno,
 		      old_sno + count);
 	    Derrlog(errtxt, syslogerror, 2);
 	    mp->msg.small->header.seqno = old_sno + count;
@@ -1543,8 +1535,7 @@ int initRDP(int nodes, int mgroup, int usesyslog, void (*func)(int, void*))
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
     if (sigaction(SIGALRM,&sa,0)==-1) {
-	snprintf(errtxt, sizeof(errtxt), "unable set sighandler");
-	errexit(errtxt, syslogerror, errno);
+	errexit("unable set sighandler", syslogerror, errno);
     }
 
     portno = getServicePort(MCASTSERVICE);
@@ -1595,16 +1586,13 @@ static int wait_for_answer(int node, int id)
 	case EBADF:
 	case EINVAL:
 	case ENOMEM:
-	    snprintf(errtxt, sizeof(errtxt), "error in select");
-	    errexit(errtxt, syslogerror, errno);
+	    errexit("error in select", syslogerror, errno);
 	    break;
 	case EINTR:
-	    snprintf(errtxt, sizeof(errtxt), "error in select (EINTR)");
-	    errlog(errtxt, syslogerror, 0);
+	    errlog("error in select (EINTR)", syslogerror, 0);
 	    break;
 	default:
-	    snprintf(errtxt, sizeof(errtxt), "unknown error in select");
-	    errlog(errtxt, syslogerror, 0);
+	    errlog("unknown error in select", syslogerror, 0);
 	    break;
 	}
     }
@@ -1663,13 +1651,11 @@ static void reestablishConnection(rdphdr *hdr, int node)
 	      "Going to reestablish connection to node %d", node);
     Derrlog(errtxt, syslogerror, 7);
     if (hdr->type == RDP_SYNNACK) {
-	Dsnprintf(errtxt, sizeof(errtxt), "Resequencing MSG-Q");
-	Derrlog(errtxt, syslogerror, 7);
+	Derrlog("Resequencing MSG-Q", syslogerror, 7);
 	conntable[node].msg_pending =
 	    resequenceMsgQ(node,hdr->seqno,hdr->ackno);
     } else {
-	Dsnprintf(errtxt, sizeof(errtxt), "Clearing MSG-Q");
-	Derrlog(errtxt, syslogerror, 7);
+	Derrlog("Clearing MSG-Q", syslogerror, 7);
 	clearMsgQ(node); /* clear outgoing MSG-Q */
     }
     updateState(hdr, node);
@@ -1706,7 +1692,7 @@ int Rsendto(int node, void *buf, int len)
 		 "Rsendto: len [%d] > RDP_MAX_DATA_SIZE [%d]", len,
 		 RDP_MAX_DATA_SIZE);
 	errlog(errtxt, syslogerror, 0);
-	errno = EINVAL;
+	errno = EMSGSIZE;
 	return -1;
     }
     if (conntable[node].state != ACTIVE) { /* connection not established */
@@ -1865,9 +1851,8 @@ static void handleControlPacket(rdphdr *hdr, int node)
 	reestablishConnection(hdr, node);
 	break;
     default:
-	snprintf(errtxt, sizeof(errtxt),
-		 "RDPHandler got unknown msg-type on RDP port, deleting msg");
-	errlog(errtxt, syslogerror, 0);
+	errlog("RDPHandler got unknown msg-type on RDP port, deleting msg",
+	       syslogerror, 0);
 	break;
     }
     return;
@@ -2042,7 +2027,10 @@ int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 
     } while (timeout==NULL || timercmp(&start,&end,<));
 
-    if (!rdpreq) FD_CLR(rdpsock, &rfds);
+    if (!rdpreq && FD_ISSET(rdpsock, &rfds)) {
+	FD_CLR(rdpsock, &rfds);
+	retval--;
+    }
 
     /* copy fds back */
     if (readfds)   memcpy(readfds, &rfds, sizeof(rfds));
@@ -2065,8 +2053,7 @@ int Rrecvfrom(int *node, void *msg, int len)
 
     if ( (node == NULL) || (msg == NULL) ) {
 	/* we definitely need a pointer */
-	snprintf(errtxt, sizeof(errtxt), "Rrecvfrom: got NULL pointer");
-	errlog(errtxt, syslogerror, 0);
+	errlog("Rrecvfrom: got NULL pointer", syslogerror, 0);
 	errno = EINVAL;
 	return -1;
     }
@@ -2074,13 +2061,6 @@ int Rrecvfrom(int *node, void *msg, int len)
 	/* illegal node number */
 	snprintf(errtxt, sizeof(errtxt),
 		 "Rrecvfrom: illegal node number [%d]", *node);
-	errlog(errtxt, syslogerror, 0);
-	errno = EINVAL;
-	return -1;
-    }
-    if (len>RDP_MAX_DATA_SIZE) { /* msg too large */
-	snprintf(errtxt, sizeof(errtxt),
-		 "Rrecvfrom: len > RDP_MAX_DATA_SIZE [%d]", RDP_MAX_DATA_SIZE);
 	errlog(errtxt, syslogerror, 0);
 	errno = EINVAL;
 	return -1;
@@ -2101,11 +2081,10 @@ int Rrecvfrom(int *node, void *msg, int len)
     }
 
     slen = sizeof(sin);
+    /* get pending msg */
     if ( (retval = MYrecvfrom(rdpsock, &msgbuf, sizeof(Lmsg), 0,
-			     (struct sockaddr *)&sin, &slen)) <0 ) {
-	/* get pending msg */
-	snprintf(errtxt, sizeof(errtxt), "recvfrom4");
-	errexit(errtxt, syslogerror, errno);
+			      (struct sockaddr *)&sin, &slen)) <0 ) {
+	errexit("Rrecvfrom: recvfrom()", syslogerror, errno);
     }
     fromnode = lookupIPTable(sin.sin_addr);        /* lookup node */
 
@@ -2204,7 +2183,7 @@ static void initMCAST(int group, unsigned short port)
 
     if (setsockopt(mcastsock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq,
 		   sizeof(mreq)) == -1) {
-	snprintf(errtxt, sizeof(errtxt), "unable to join mcast group '%s'",
+	snprintf(errtxt, sizeof(errtxt), "unable to join mcast group %s",
 		 inet_ntoa(mreq.imr_multiaddr));
 	errexit(errtxt, syslogerror, errno);
     }
@@ -2231,13 +2210,13 @@ static void initMCAST(int group, unsigned short port)
     reuse = 1; /* 0 = disable (default), 1 = enable */
     if (setsockopt(mcastsock, SOL_SOCKET, SO_REUSEPORT, &reuse,
 		   sizeof(reuse)) == -1) {
-	snprintf(errtxt, sizeof(errtxt), "unable to set reuse flag");
-	errexit(errtxt, syslogerror, errno);
+	errexit("unable to set reuse flag", syslogerror, errno);
     }
 #endif
 
     Dsnprintf(errtxt, sizeof(errtxt),
-	      "I'm node %d, using saddr %x", myid, mreq.imr_interface.s_addr);
+	      "I'm node %d, using saddr %s",
+	      myid, inet_ntoa(mreq.imr_interface));
     Derrlog(errtxt, syslogerror, 2);
 
     /*
@@ -2285,7 +2264,7 @@ static void handleMCAST(void)
 		continue;
 	    } else {
 		snprintf(errtxt, sizeof(errtxt),
-			 "select (handleMCAST) returns: %s", strerror(errno));
+			 "handleMCAST: select returns: %s", strerror(errno));
 		errlog(errtxt, syslogerror, 0);
 		break;
 	    }
@@ -2297,7 +2276,8 @@ static void handleMCAST(void)
 	if (MYrecvfrom(mcastsock, &msg, sizeof(msg), 0,
 		       (struct sockaddr *)&sin, &slen)<0) { /* get msg */
 	    snprintf(errtxt, sizeof(errtxt),
-		     "MCAST recvfrom returns[%d]: %s", errno, strerror(errno));
+		     "handleMCAST: recvfrom returns[%d]: %s",
+		     errno, strerror(errno));
 	    errlog(errtxt, syslogerror, 0);
 	    break;
 	}
@@ -2331,9 +2311,8 @@ static void handleMCAST(void)
 	    break;
 	case T_KILL:
 	    /* Got a KILL msg (from LIC Server) */
-	    snprintf(errtxt, sizeof(errtxt),
-		     "License Server told me to shut down operation !");
-	    errlog(errtxt, syslogerror, 0);
+	    errlog("License Server told me to shut down operation !",
+		   syslogerror, 0);
 	    if (callback != NULL) { /* inform daemon */
 		info = LIC_KILL_MSG;
 		callback(RDP_LIC_SHUTDOWN, &info);
@@ -2386,8 +2365,7 @@ int initRDPMCAST(int nodes, int mgroup, int usesyslog,
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
     if (sigaction(SIGALRM,&sa,0)==-1) {
-	snprintf(errtxt, sizeof(errtxt), "unable set sighandler");
-	errexit(errtxt, syslogerror, errno);
+	errexit("unable set sighandler", syslogerror, errno);
     }
 
     initMCAST(mgroup, portno);
@@ -2461,9 +2439,8 @@ int Mselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
     if (writefds)  memcpy(writefds, &wfds, sizeof(wfds));
     if (exceptfds) memcpy(exceptfds, &efds, sizeof(efds));
     if (retval < -1) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "PANIC: STRANGE THINGS HAPPEN (negative retval in Mselect)");
-	errlog(errtxt, syslogerror, 0);
+	errlog("PANIC: STRANGE THINGS HAPPEN (negative retval in Mselect)",
+	       syslogerror, 0);
 	return (-1);
     }
     return retval;
