@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.h,v 1.8 2002/07/17 22:05:30 hauke Exp $
+ * $Id: pse.h,v 1.9 2002/07/18 13:05:23 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation Programming Environment
  *
- * $Id: pse.h,v 1.8 2002/07/17 22:05:30 hauke Exp $
+ * $Id: pse.h,v 1.9 2002/07/18 13:05:23 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -20,6 +20,8 @@
  */
 #ifndef __PSE_H
 #define __PSE_H
+
+#include <pshwtypes.h>
 
 /* time limit within which parent process must receive the global
    portid of each spawned child process                           */
@@ -68,14 +70,14 @@ extern "C" {
  * SEE     
  *         PSEfinalize, PSEkillmachine, PSIspawn, PSEgetmyrank
  */
-void PSEinit(int NP, int *rank);
+void PSE_init(int NP, int *rank);
 
 /**
- * @brief PSEhwtype Set hwType for spawn
+ * @brief Set hwType for spawn
  *
  * @param hwType
  */
-void PSEhwtype(unsigned int hwType);
+void PSE_setHWType(unsigned int hwType);
 
 /**
  * @brief PSEspawn
@@ -88,7 +90,7 @@ void PSEhwtype(unsigned int hwType);
  *
  * @return
  */
-void PSEspawn(int Argc, char** Argv,
+void PSE_spawn(int Argc, char** Argv,
 	      int *masternode, int *masterport, int rank);
 
 /**
@@ -101,7 +103,7 @@ void PSEspawn(int Argc, char** Argv,
  *
  * @see PSEabort()
  */
-void PSEfinalize(void);
+void PSE_finalize(void);
 
 /**
  * @brief Finish the actual process and shut down the whole process group.
@@ -114,7 +116,7 @@ void PSEfinalize(void);
  *
  * @see PSEabort()
  */
-void PSEabort(int nCode);
+void PSE_abort(int nCode);
 
 /**
  * @brief Get the rank of the process.
@@ -124,7 +126,7 @@ void PSEabort(int nCode);
  * @return On success, the actual rank of the process within the group
  * is returned, or -1, if an error occurred.
  */
-int PSEgetmyrank(void);
+int PSE_getRank(void);
 
 /**
  * @brief Get the size of the process group.
@@ -134,7 +136,15 @@ int PSEgetmyrank(void);
  * @return On success, the actual size of the process group is
  * returned, or -1, if an error occurred.
  */
-int PSEgetsize(void);
+int PSE_getSize(void);
+
+/* For compatibility with old versions, to be removed soon */
+#define PSEinit      PSE_init
+#define PSEspawn     PSE_spawn
+#define PSEfinalize  PSE_finalize
+#define PSEabort     PSE_abort
+#define PSEgetmyrank PSE_getRank
+#define PSEgetsize   PSE_getSize
 
 #ifdef __cplusplus
 }/* extern "C" */
