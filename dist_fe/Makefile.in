@@ -12,7 +12,7 @@ INCLUDES += psport4.h pshwtypes.h pse.h
 INCDIR := $(DISTPATH)/include
 
 BINS += psiadmin psid psld
-BINS += psiforwarder psilogger mlisten
+BINS += psiforwarder psilogger mlisten psmstart
 BINDIR := $(DISTPATH)/bin
 
 LIBS += libpsport4.a libpsi.a libpse.a
