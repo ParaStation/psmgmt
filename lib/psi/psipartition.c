@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psipartition.c,v 1.4 2003/09/26 14:18:39 eicker Exp $
+ * $Id: psipartition.c,v 1.5 2003/10/29 17:31:49 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.4 2003/09/26 14:18:39 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.5 2003/10/29 17:31:49 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -26,6 +26,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.4 2003/0
 
 #include "pscommon.h"
 #include "psprotocol.h"
+#include "psnodes.h"
 
 #include "psi.h"
 #include "psilog.h"
@@ -209,9 +210,9 @@ static PSpart_option_t getPartitionOptions(void)
 
 /** Structure to hold a nodelist */
 typedef struct {
-    int size;              /**< Number of valid entries within nodes[] */
-    int maxsize;           /**< Maximum number of entries within nodes[] */
-    unsigned short *nodes; /**< ParaStation IDs of the requested nodes. */
+    int size;             /**< Actual number of valid entries within nodes[] */
+    int maxsize;          /**< Maximum number of entries within nodes[] */
+    PSnodes_ID_t *nodes;  /**< ParaStation IDs of the requested nodes. */
 } nodelist_t;
 
 /**
@@ -225,10 +226,10 @@ typedef struct {
  * @param nl The nodelist to be extended.
  *
  * @return On success, i.e. if the nodelist's allocated space was
- * large enough or if the extension of this space worked woll, 1 is
+ * large enough or if the extension of this space worked well, 1 is
  * returned. Or 0, if something went wrong.
  */
-static int addNode(unsigned short node, nodelist_t *nl)
+static int addNode(PSnodes_ID_t node, nodelist_t *nl)
 {
     snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, node);
     PSI_errlog(errtxt, 10);
@@ -336,7 +337,7 @@ static int nodelistFromHost(char *host, nodelist_t *nodelist)
 {
     struct hostent *hp;
     struct in_addr sin_addr;
-    int node;
+    PSnodes_ID_t node;
 
     hp = gethostbyname(host);
     if (!hp) {
@@ -461,7 +462,6 @@ static int nodelistFromHostFile(char *fileName, nodelist_t *nodelist)
  */
 static nodelist_t *getNodelist(void)
 {
-    int i;
     char *nodeStr = getenv(ENV_NODE_NODES);
     char *hostStr = getenv(ENV_NODE_HOSTS);
     char *hostfileStr = getenv(ENV_NODE_HOSTFILE);
@@ -536,9 +536,9 @@ static int sendNodelist(nodelist_t *nodelist, DDBufferMsg_t *msg)
 	char *ptr = msg->buf;
 	msg->header.len = sizeof(msg->header);
 
-	*(int *)ptr = chunk;
-	ptr += sizeof(int);
-	msg->header.len += sizeof(int);
+	*(int16_t *)ptr = chunk;
+	ptr += sizeof(int16_t);
+	msg->header.len += sizeof(int16_t);
 
 	memcpy(ptr, nodelist->nodes+offset, chunk * sizeof(*nodelist->nodes));
 	msg->header.len += chunk * sizeof(*nodelist->nodes);
@@ -699,7 +699,7 @@ int PSI_getNodes(unsigned int num, short *nodes)
     case PSP_CD_NODESRES:
     {
 	char *ptr = msg.buf;
-	ret = *(int *) ptr;
+	ret = *(int *)ptr;
 	ptr += sizeof(int);
 	if (ret<0) {
 	    snprintf(errtxt, sizeof(errtxt),
