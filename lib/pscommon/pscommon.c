@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.c,v 1.13 2003/10/29 17:28:20 eicker Exp $
+ * $Id: pscommon.c,v 1.14 2003/11/28 15:49:22 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.13 2003/10/29 17:28:20 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.14 2003/11/28 15:49:22 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -29,10 +29,10 @@ static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.13 2003/10/2
 
 #include "pscommon.h"
 
-static PSnodes_ID_t PSC_nrOfNodes = -1;
-static PSnodes_ID_t PSC_myID = -1;
+static PSnodes_ID_t nrOfNodes = -1;
+static PSnodes_ID_t myID = -1;
 
-static PStask_ID_t PSC_myTID = -1;
+static PStask_ID_t myTID = -1;
 
 static char errtxt[256];
 
@@ -75,22 +75,22 @@ void PSC_errexit(char *s, int errorno)
 
 PSnodes_ID_t PSC_getNrOfNodes(void)
 {
-    return PSC_nrOfNodes;
+    return nrOfNodes;
 }
 
 void PSC_setNrOfNodes(PSnodes_ID_t numNodes)
 {
-    PSC_nrOfNodes = numNodes;
+    nrOfNodes = numNodes;
 }
 
 PSnodes_ID_t PSC_getMyID(void)
 {
-    return PSC_myID;
+    return myID;
 }
 
 void PSC_setMyID(PSnodes_ID_t id)
 {
-    PSC_myID = id;
+    myID = id;
 }
 
 PStask_ID_t PSC_getTID(PSnodes_ID_t node, pid_t pid)
@@ -155,16 +155,25 @@ void PSC_setDaemonFlag(int flag)
 
 PStask_ID_t PSC_getMyTID(void)
 {
-    if (PSC_myTID == -1) {
+    PStask_ID_t tmp;
+
+    if (myTID == -1) {
 	/* First call, have to determine TID */
 	if (daemonFlag) {
-	    PSC_myTID = PSC_getTID(-1, 0);
+	    tmp = PSC_getTID(-1, 0);
 	} else {
-	    PSC_myTID = PSC_getTID(-1, getpid());
+	    tmp = PSC_getTID(-1, getpid());
+	}
+
+	if (PSC_getMyID() != -1) {
+	    /* myID valid, make myTID persistent */
+	    myTID = tmp;
+	} else {
+	    return tmp;
 	}
     }
 
-    return PSC_myTID;
+    return myTID;
 }
 
 char *PSC_printTID(PStask_ID_t tid)
