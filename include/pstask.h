@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.h,v 1.2 2002/07/08 16:14:06 eicker Exp $
+ * $Id: pstask.h,v 1.3 2002/07/11 10:29:24 eicker Exp $
  *
  */
 /**
  * @file
  * pstask: User-functions for interaction with ParaStation tasks.
  *
- * $Id: pstask.h,v 1.2 2002/07/08 16:14:06 eicker Exp $
+ * $Id: pstask.h,v 1.3 2002/07/11 10:29:24 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -51,8 +51,8 @@ struct PSsignal_t{
 };
 
 typedef struct PStask_T{
-    struct PStask_T *link;       /* link to the next task */
-    struct PStask_T *rlink;      /* link to the previous task */
+    struct PStask_T *next;       /* link to the next task */
+    struct PStask_T *prev;       /* link to the previous task */
     long tid;                    /* task identifier */
     long ptid;                   /* parent tid */
     uid_t uid;                   /* user id */

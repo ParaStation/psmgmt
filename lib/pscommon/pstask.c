@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.c,v 1.2 2002/07/08 16:42:52 eicker Exp $
+ * $Id: pstask.c,v 1.3 2002/07/11 10:27:32 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.2 2002/07/08 16:42:52 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.3 2002/07/11 10:27:32 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -33,8 +33,8 @@ PStask_t *PStask_new()
 
 int PStask_init(PStask_t *task)
 {
-    task->link = 0;
-    task->rlink = 0;
+    task->next = NULL;
+    task->prev = NULL;
     task->tid = 0;
     task->ptid = 0;
     task->uid = -1;
@@ -120,7 +120,7 @@ void PStask_snprintf(char *txt, size_t size, PStask_t * task)
     snprintf(txt, size, " links(%08lx,%08lx) tid %08lx, ptid %08lx, uid %d"
 	     " loggernode %x loggerport %d"
 	     " group0x%lx rank %x error %ld fd %d argc %d ",
-	     (long)task->link, (long)task->rlink, task->tid, task->ptid,
+	     (long)task->next, (long)task->prev, task->tid, task->ptid,
 	     task->uid, task->loggernode, task->loggerport,
 	     task->group, task->rank, task->error, task->fd, task->argc);
     if (strlen(txt)+1 == size) return;
@@ -215,8 +215,8 @@ int PStask_decode(char* buffer, PStask_t * task)
 
     msglen = sizeof(PStask_t);
     memcpy(task, buffer, sizeof(PStask_t));
-    task->link = NULL;
-    task->rlink = NULL;
+    task->next = NULL;
+    task->prev = NULL;
 
     len = strlen(&buffer[msglen]);
 
