@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.12 2003/02/06 10:22:47 hauke Exp $
+# $Id: Makefile.in,v 1.13 2003/02/17 10:55:08 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -24,7 +24,7 @@ INCLUDES += psport4.h pshwtypes.h pse.h
 INCDIR := $(DISTPATH)/include
 
 BINS += psiadmin psid psld
-BINS += psiforwarder psilogger mlisten psmstart
+BINS += psiforwarder psilogger mlisten psmstart mpirun_chp4 psispawn
 BINDIR := $(DISTPATH)/bin
 
 LIBS += libpsport4.a libpsi.a libpse.a
