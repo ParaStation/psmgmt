@@ -1,0 +1,72 @@
+#!/bin/csh -v
+
+mknod /dev/psm0  c $1 0
+mknod /dev/psm1  c $1 2
+mknod /dev/psm2  c $1 4
+mknod /dev/psm3  c $1 6
+
+mknod /dev/psm8  c $1 8
+mknod /dev/psm9  c $1 9
+
+mknod /dev/psm10 c $1 10
+mknod /dev/psm11 c $1 11
+mknod /dev/psm12 c $1 12
+mknod /dev/psm13 c $1 13
+mknod /dev/psm14 c $1 14
+mknod /dev/psm15 c $1 15
+mknod /dev/psm16 c $1 16
+mknod /dev/psm17 c $1 17
+mknod /dev/psm18 c $1 18
+mknod /dev/psm19 c $1 19
+
+mknod /dev/psm20 c $1 20
+mknod /dev/psm21 c $1 21
+mknod /dev/psm22 c $1 22
+mknod /dev/psm23 c $1 23
+mknod /dev/psm24 c $1 24
+mknod /dev/psm25 c $1 25
+mknod /dev/psm26 c $1 26
+mknod /dev/psm27 c $1 27
+mknod /dev/psm28 c $1 28
+mknod /dev/psm29 c $1 29
+
+mknod /dev/psm30 c $1 30
+mknod /dev/psm31 c $1 31
+mknod /dev/psm32 c $1 32
+mknod /dev/psm33 c $1 33
+mknod /dev/psm34 c $1 34
+mknod /dev/psm35 c $1 35
+mknod /dev/psm36 c $1 36
+mknod /dev/psm37 c $1 37
+mknod /dev/psm38 c $1 38
+mknod /dev/psm39 c $1 39
+
+mknod /dev/psm40 c $1 40
+mknod /dev/psm41 c $1 41
+mknod /dev/psm42 c $1 42
+mknod /dev/psm43 c $1 43
+mknod /dev/psm44 c $1 44
+mknod /dev/psm45 c $1 45
+mknod /dev/psm46 c $1 46
+mknod /dev/psm47 c $1 47
+mknod /dev/psm48 c $1 48
+mknod /dev/psm49 c $1 49
+
+mknod /dev/psm50 c $1 50
+mknod /dev/psm51 c $1 51
+mknod /dev/psm52 c $1 52
+mknod /dev/psm53 c $1 53
+mknod /dev/psm54 c $1 54
+mknod /dev/psm55 c $1 55
+mknod /dev/psm56 c $1 56
+mknod /dev/psm57 c $1 57
+mknod /dev/psm58 c $1 58
+mknod /dev/psm59 c $1 59
+
+mknod /dev/psm60 c $1 60
+mknod /dev/psm61 c $1 61
+mknod /dev/psm62 c $1 62
+mknod /dev/psm63 c $1 63
+
+chmod a+rw /dev/psm*
+
