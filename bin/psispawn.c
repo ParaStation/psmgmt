@@ -5,26 +5,27 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.4 2003/03/19 16:49:34 eicker Exp $
+ * $Id: psispawn.c,v 1.5 2003/04/10 17:37:09 eicker Exp $
  *
  */
 /**
  * @file Simple wrapper to allow MPIch/P4 programs to run under the
  * control of ParaStation.
  *
- * $Id: psispawn.c,v 1.4 2003/03/19 16:49:34 eicker Exp $
+ * $Id: psispawn.c,v 1.5 2003/04/10 17:37:09 eicker Exp $
  *
  * @author Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.4 2003/03/19 16:49:34 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.5 2003/04/10 17:37:09 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <signal.h>
 #include <pwd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -92,6 +93,12 @@ int main(int argc, char *argv[])
 	fprintf(stderr, "Could not determine the rank.\n");
 	exit(1);
     }
+
+    signal(SIGHUP,  SIG_IGN);
+    signal(SIGINT,  SIG_IGN);
+    signal(SIGTERM, SIG_IGN);
+    signal(SIGUSR1, SIG_IGN);
+    signal(SIGUSR2, SIG_IGN);
 
     /* We will use PSI instead of PSE since our task is more low-level */
     if (!PSI_initClient(TG_SPAWNER)) {
