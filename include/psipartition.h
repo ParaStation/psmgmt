@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psipartition.h,v 1.1 2003/09/12 13:56:38 eicker Exp $
+ * $Id: psipartition.h,v 1.2 2003/09/26 14:14:34 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for partitions of ParaStation nodes.
  *
- * $Id: psipartition.h,v 1.1 2003/09/12 13:56:38 eicker Exp $
+ * $Id: psipartition.h,v 1.2 2003/09/26 14:14:34 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -31,14 +31,29 @@ extern "C" {
 #endif
 
 /**
- * @brief Check the presence of LSF-Parallel.
+ * @brief Handle LSF environment variables.
  *
- * Check for the presence of LSF-Parallel. If LSF-Parallel is present,
- * modify the environment variable PSI_HOSTS.
+ * Handle LSF environment variables. Thus @a ENV_NODES_HOSTS is set to
+ * the value of the LSB_HOSTS environment variable, if
+ * available. Furthermore all other environment variables steering the
+ * partition are cleared and any sorting of nodes is switched off.
  *
  * @return No return value.
  */
 void PSI_LSF(void);
+
+/**
+ * @brief Handle OpenPBS/PBSPro environment variables.
+ *
+ * Handle OpenPBS/PBSPro environment variables. Thus @a
+ * ENV_NODE_HOSTFILE is set to the value of the PBS_NODEFILE
+ * environment variable, if available. Furthermore all other
+ * environment variables steering the partition are cleared and any
+ * sorting of nodes is switched off.
+ *
+ * @return No return value.
+ */
+void PSI_PBS(void);
 
 /**
  * @brief Create a partition.
@@ -56,13 +71,14 @@ void PSI_LSF(void);
  * the parastation.conf configuration file.
  *
  * - Otherwise if PSI_HOSTS is present, use this. PSI_HOSTS has to
- * contain a space-separated list of hostnames. Each of them has to be
- * present in the parastation.conf configuration file.
+ * contain a whitespace separated list of hostnames. Each of them has
+ * to be resolvable and the corresponding IP address has to be defined
+ * within the ParaStation system.
  *
  * - If the pool is not build yet, use PSI_HOSTFILE. If PSI_HOSTFILE
  * is set, it has to contain a filename. The according file consists
- * of lines, each containing exactly one hostnames. Every hostname has
- * to be present in the parastation.conf configuration file.
+ * of lines, each containing a whitespace separated list of hostnames
+ * with the same properties as discussed along the PSI_HOSTS variable.
  *
  * - If none of the three addressed environment variables is present,
  * take all nodes managed by ParaStation to build the pool.
@@ -96,15 +112,22 @@ void PSI_LSF(void);
  *
  * - NONE or anything else: Don't sort the pool.
  *
- * @todo Describe more variables!
+ * Furthermore there are options that affect the partition's creation:
  *
- * As a last step the PSI_PROCSPERNODE variable denotes the number of
- * processes started on each node of the nodelist. This has to be a
- * positive number (larger than 0). If a value different from 1 is
- * given, the nodelist is rebuild by replacing each node by the
- * requested number of successive occurrences of this node. I.e. the
- * the nodelist grows to by a factor of the requested value.
- * This might be useful on clusters of SMP machines.
+ * - PSI_EXCLUSIVE: Only get exclusive nodes, i.e. no further
+ * processes are allowed on that node.
+ *
+ * - PSI_OVERBOOK: Allow more than one process per node.  This
+ * induces PSI_EXCLUSIVE implicitely.
+ *
+ * - PSI_LOOP_NODES_FIRST: Place consecutive processes on different
+ * nodes, if possible. Usually consecutive processes are placed on the
+ * same node.
+ *
+ * - PSI_WAIT: If the ressources available at the time the parallel
+ * task is started are not sufficient, wait until they are. Usually
+ * the task will stop immediately if it cannot get the reqeusted
+ * ressources. @todo not yet implemented.
  *
  * The so build nodelist is propagated unmodified to all child
  * processes.
