@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.29 2002/04/24 13:20:47 eicker Exp $
+ * $Id: psidutil.c,v 1.30 2002/04/26 13:06:33 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.29 2002/04/24 13:20:47 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.30 2002/04/26 13:06:33 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -117,23 +117,22 @@ int PSID_checklicense(unsigned int myIP)
 {
     /* check the license key at Node 0 */
 /*      unsigned int IP;  */
-    long nodes=50000;
-    unsigned long end=0;
-    unsigned long start=0;
-/*      long version; */
+    long nodes = 50000;
+    time_t end = 0;
+    time_t start = 0;
     time_t now;
+/*      long version; */
 
 /*      IpNodesEndFromLicense(ConfigLicensekey, &IP, &nodes, &start, &end, */
 /*  			  &version); */
 
     now = time(NULL);
     if (now<start) {
-	/* License is no more valid */
+	/* It seams that somebody trys to cheat */
 	SYSLOG(0,(LOG_ERR,"PSID_checklicense(): Your clock is running wrong"));
 	exit(-1);
     }
     if (start+end==0) {
-	/* License is no more valid */
 	SYSLOG(0,(LOG_ERR,"PSID_checklicense(): Licensekey invalid."));
 	exit(-1);
     }

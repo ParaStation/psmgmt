@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.49 2002/04/24 13:19:52 eicker Exp $
+ * $Id: psid.c,v 1.50 2002/04/26 13:06:33 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.49 2002/04/24 13:19:52 eicker Exp $ 
+ * $Id: psid.c,v 1.50 2002/04/26 13:06:33 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.49 2002/04/24 13:19:52 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.50 2002/04/26 13:06:33 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -67,7 +67,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.49 $";
+static char psid_cvsid[] = "$Revision: 1.50 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -871,32 +871,32 @@ msg_RESET(DDResetMsg_t* msg)
 }
 
 
-void parseArguments(char* buf,int size, PStask_t* task)
+void parseArguments(char* buf, size_t size, PStask_t* task)
 {
     int i;
-    char* pbuf;
+    char *pbuf;
     int len;
     /* count arguments */
     task->argc = 0;
-    len =0;
-    for(;;){
+    len = 0;
+    for (;;) {
 	pbuf = &buf[len];
 	if(strlen(pbuf)==0)
 	    break;
 	if((strlen(pbuf)+len) > size)
 	    break;
 	task->argc++;
-	len +=strlen(pbuf)+1;
+	len += strlen(pbuf)+1;
     }
     /* NOW: argc == no of arguments */
-    if(task->argc==0)
+    if (task->argc==0)
 	return;
-    task->argv = (char**)malloc((task->argc)*sizeof(char*));
-    len =0;
-    for(i=0;i<task->argc;i++){
+    task->argv = (char**) malloc((task->argc)*sizeof(char*));
+    len = 0;
+    for (i=0;i<task->argc;i++) {
 	pbuf = &buf[len];
 	task->argv[i] = strdup(pbuf);
-	len +=strlen(pbuf)+1;
+	len += strlen(pbuf)+1;
     }
 }
 
@@ -917,7 +917,7 @@ void GetProcessProperties(PStask_t* task)
 	return;
     }
     buf[sizeof(buf)-1]=0;
-    parseArguments(buf,sizeof(buf),task);
+    parseArguments(buf, sizeof(buf), task);
 
     SYSLOG(4,(LOG_ERR,"GetProcessProperties(%x[%d,%d]) arg[%d]=%s",
 	      task->tid,PSI_getnode(task->tid),PSI_getpid(task->tid),
@@ -931,7 +931,7 @@ void GetProcessProperties(PStask_t* task)
     if((file=fopen(filename,"r"))!=NULL){
 	int size;
 	size = fread(buf,sizeof(buf),1,file);
-	parseArguments(buf,sizeof(buf),task);
+	parseArguments(buf, sizeof(buf), task);
 	fclose(file);
     }
     sprintf(filename,"/proc/%d/status",PSI_getpid(task->tid));
@@ -1930,31 +1930,34 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 	    break;
 	case PSP_OP_RESENDTIMEOUT:
 	    if (PSID_CardPresent) {
+		unsigned int optval = msg->opt[i].value;
 		if (PSHALSYS_GetMCPParam(MCP_PARAM_RTO, &val, NULL))
 		    break;
-		if (val != msg->opt[i].value) {
-		    PSHALSYS_SetMCPParam(MCP_PARAM_RTO, msg->opt[i].value);
-		    ConfigRTO = msg->opt[i].value;
+		if (val != optval) {
+		    PSHALSYS_SetMCPParam(MCP_PARAM_RTO, optval);
+		    ConfigRTO = optval;
 		}
 	    }
 	    break;
 	case PSP_OP_HNPEND:
 	    if (PSID_CardPresent) {
+		unsigned int optval = msg->opt[i].value;
 		if (PSHALSYS_GetMCPParam(MCP_PARAM_HNPEND, &val, NULL))
 		    break;
-		if (val != msg->opt[i].value) {
-		    PSHALSYS_SetMCPParam(MCP_PARAM_HNPEND, msg->opt[i].value);
-		    ConfigHNPend = msg->opt[i].value;
+		if (val != optval) {
+		    PSHALSYS_SetMCPParam(MCP_PARAM_HNPEND, optval);
+		    ConfigHNPend = optval;
 		}
 	    }
 	    break;
 	case PSP_OP_ACKPEND:
 	    if (PSID_CardPresent) {
+		unsigned int optval = msg->opt[i].value;
 		if (PSHALSYS_GetMCPParam(MCP_PARAM_ACKPEND, &val, NULL))
 		    break;
-		if (val != msg->opt[i].value) {
-		    PSHALSYS_SetMCPParam(MCP_PARAM_ACKPEND, msg->opt[i].value);
-		    ConfigAckPend = msg->opt[i].value;
+		if (val != optval) {
+		    PSHALSYS_SetMCPParam(MCP_PARAM_ACKPEND, optval);
+		    ConfigAckPend = optval;
 		}
 	    }
 	    break;
@@ -3084,7 +3087,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.49 $";
+    char revision[] = "$Revision: 1.50 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
