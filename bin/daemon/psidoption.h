@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidoption.h,v 1.1 2003/09/12 14:41:53 eicker Exp $
+ * $Id: psidoption.h,v 1.2 2003/12/10 16:40:57 eicker Exp $
  *
  */
 /**
  * @file
  * Handle option requests to the ParaStation daemon.
  *
- * $Id: psidoption.h,v 1.1 2003/09/12 14:41:53 eicker Exp $
+ * $Id: psidoption.h,v 1.2 2003/12/10 16:40:57 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -22,6 +22,7 @@
 #define __PSIDOPTIONS_H
 
 #include "psprotocol.h"
+#include "psnodes.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,7 +41,7 @@ extern "C" {
  *
  * @return No return value.
  */
-void send_OPTIONS(int destnode);
+void send_OPTIONS(PSnodes_ID_t destnode);
 
 /**
  * @brief Handle a PSP_CD_SETOPTION message.
