@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psp.h,v 1.9 2002/01/30 10:12:58 eicker Exp $
+ * $Id: psp.h,v 1.10 2002/02/08 10:37:48 eicker Exp $
  *
  */
 /**
@@ -13,7 +13,7 @@
  * psp: The ParaStation Protocol
  *      Used for daemon-daemon and client-daemon communication.
  *
- * $Id: psp.h,v 1.9 2002/01/30 10:12:58 eicker Exp $
+ * $Id: psp.h,v 1.10 2002/02/08 10:37:48 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -29,7 +29,7 @@ extern "C" {
 #endif
 #endif
 
-#define PSPprotocolversion  303
+#define PSPprotocolversion  304
 
 /*------------------------------------------------------------------------- 
 * PSP_ctrl messages through the OS socket of the daemon
@@ -179,8 +179,8 @@ typedef struct{
     long version;     /* version of the PS library */
     int nrofnodes;    /* # of nodes */
     int myid;         /* PS id of this node */
-    int masternode;   /* node of parent passed in a spawn */
-    int masterport;   /* port of parent passed in a spawn */
+    unsigned int loggernode; /* */
+    int loggerport;   /* */
     int rank;         /* rank of client passed by spawn */
     int uid;          /* user id */
     int pid;          /* process id */
