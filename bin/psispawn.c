@@ -5,20 +5,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.3 2003/03/04 15:35:41 eicker Exp $
+ * $Id: psispawn.c,v 1.4 2003/03/19 16:49:34 eicker Exp $
  *
  */
 /**
  * @file Simple wrapper to allow MPIch/P4 programs to run under the
  * control of ParaStation.
  *
- * $Id: psispawn.c,v 1.3 2003/03/04 15:35:41 eicker Exp $
+ * $Id: psispawn.c,v 1.4 2003/03/19 16:49:34 eicker Exp $
  *
  * @author Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.3 2003/03/04 15:35:41 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.4 2003/03/19 16:49:34 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
 	DDErrorMsg_t msg;
 
 	ret = PSI_recvMsg(&msg);
-	if (msg.header.type != PSP_DD_CHILDDEAD || ret != sizeof(msg)) {
+	if (msg.header.type != PSP_CD_SPAWNFINISH || ret != sizeof(msg)) {
 	    fprintf(stderr, "[%d] got strange message type %s\n",
 		    worldRank, PSP_printMsg(msg.header.type));
 	} else {
