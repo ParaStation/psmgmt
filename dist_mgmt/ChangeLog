@@ -1,0 +1,85 @@
+2003-06-26  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extensions: Use mpirun_chgm to start MPIch/GM apps within ParaStation
+
+2003-06-25  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Root can start on any node now.
+
+	* Bugfix: Distribute correct info on restricting node to special user.
+
+	* Extension: Nodes may be restricted to special groups.
+
+2003-06-18  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Root can start on any node now.
+
+
+Changes since psmgmt-4.0.1:
+===========================
+
+2003-06-16  Jens Hauke  <hauke@par-tec.com>
+
+	* Release: psmgmt-4.0.2 released.
+
+2003-06-13  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Change to InstallDir before daemon executes scripts.
+
+2003-06-06  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Make gcc-2.95 libraries work with gcc-3.2.
+
+2003-06-05  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Resolving of hardware types might fail.
+
+2003-06-04  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Correct message handling within resendMsgs() of RDP.
+
+2003-06-02  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Daemon hangs if script floods buffer with output.
+
+	* Bugfix: Don't crash on unresolvable hostnames in PSI_HOSTS or
+	hostfile.
+
+2003-05-28  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extensions: Remove obsolete 'config' command from psiadmin.
+
+	* Bugfix: Correct help message for psiadmin's 'show' command.
+
+	* Bugfix: Make psmstart work even if not called with absolute path.
+
+2003-04-11  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Don't call PSC_startDaemon() with invalid address in psid.
+
+2003-04-10  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extensions: Most signals sent to logger are forwarded to all
+	distributed processes of a parallel task.
+
+Changes since psmgmt-4.0.0:
+===========================
+
+2003-04-08  Jens Hauke  <hauke@par-tec.com>
+
+	* Release: psmgmt-4.0.1 released.
+
+2003-04-07  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extension: Send SIGKILL if process ignores killing after 10 seconds.
+
+	* Bugfix: Fix task handling.
+
+	* Bugfix: Fix output leak.
+
+	* Bugfix: Clients held an open socket to the daemon.
+
+2003-04-04  Jens Hauke  <hauke@par-tec.com>
+
+	* Release: psmgmt-4.0.0 released.
+
