@@ -22,9 +22,9 @@ BuildRoot: $BUILDDIR
 ParaStation Cluster Communication and Management
 
 %post
-
+    /opt/parastation/config/PSM_INSTALL -i
 %preun
-
+    /opt/parastation/config/PSM_INSTALL -u
 %files
 %attr(-,root,root) /opt/parastation
 EOF
