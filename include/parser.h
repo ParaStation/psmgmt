@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: parser.h,v 1.4 2002/08/07 13:08:54 eicker Exp $
+ * $Id: parser.h,v 1.5 2003/08/15 13:32:49 eicker Exp $
  *
  */
 /**
  * @file
  * General parser utility for ParaStation daemon and admin
  *
- * $Id: parser.h,v 1.4 2002/08/07 13:08:54 eicker Exp $
+ * $Id: parser.h,v 1.5 2003/08/15 13:32:49 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -80,127 +80,117 @@ void parser_init(int usesyslog, FILE *input);
 void parser_setFile(FILE *input);
 
 /**
- * @brief Parses a token.
+ * @brief Handle a token.
  *
- * @todo Docu not up to date any more!!
+ * Handle the character array @a token pursuant to the syntax given by
+ * @a parser.
  *
- * Parses the character array @a string pursuant to the syntax given
- * by @a parser.
+ * In order to handle it, @a token will be converted to lowercase
+ * characters. The converted token is compared to each key in @a
+ * parser->keylist. If a key matches the token, the corresponding
+ * action() is called. The token is passed as an argument.
  *
+ * If the last key in @a parser->keylist also does not match like all
+ * keys before @b and is NULL, the corresponding action() is called
+ * with token passed as an argument (default action).
  *
- * @param string The character array to parse.
+ * @param token The character array to handle.
  *
  * @param parser The parser syntax used for parsing.
  *
- *
- * Parsing is started by getting the first token in @a string via
- * strtok(). Tokens are delimited per @a parser->delim. Tokens will be
- * converted to lowercase characters. The converted token is compared
- * to each key in @a parser->keylist. If a key matches the token, the
- * corresponding action() is called. The token is passed as an
- * argument.
- *
- * If the last key in @a parser->keylist also does not match like all
- * keys befor @b and is NULL, the corresponding action() is called
- * with token passed as an argument (default action).
- *
- * If action() returns 0, parsing goes on without regard to further
- * keys, otherwise the return value of action() is returned.
- *
- * @return If @a string can be parsed without error (as shown by all
- * action() calls returning 0), 0 is returned. Otherwise the return
- * value of the first action() call displaying an error is returned.
- *
- * @see strtok(3)
+ * @return If @a token matches a key, the return value of the
+ * corresponding action is returned. Otherwise 0 is returned.
  */
 int parser_parseToken(char *token, parser_t *parser);
 
 /**
- * @brief Parses a string.
- *
- * @todo Docu not up to date any more!!
- *
- * Parses the character array @a string pursuant to the syntax given
- * by @a parser.
- *
- *
- * @param string The character array to parse.
- *
- * @param parser The parser syntax used for parsing.
- *
- *
- * Parsing is started by getting the first token in @a string via
- * strtok(). Tokens are delimited per @a parser->delim. Tokens will be
- * converted to lowercase characters. The converted token is compared
- * to each key in @a parser->keylist. If a key matches the token, the
- * corresponding action() is called. The token is passed as an
- * argument.
- *
- * If the last key in @a parser->keylist also does not match like all
- * keys befor @b and is NULL, the corresponding action() is called
- * with token passed as an argument (default action).
- *
- * If action() returns 0, parsing goes on without regard to further
- * keys, otherwise the return value of action() is returned.
- *
- * @return If @a string can be parsed without error (as shown by all
- * action() calls returning 0), 0 is returned. Otherwise the return
- * value of the first action() call displaying an error is returned.
- *
- * @see strtok(3)
- */
-int parser_parseString(char *token, parser_t *parser);
-
-/**
  * @brief Register a string to parse.
  *
- * @todo Docu not up to date!!
+ * Register the character array @a string to get parsed pursuant to
+ * the syntax given by @a parser. The actual parsing is done within
+ * subsequent calls to @ref parser_parseString().
  *
- * Parses the character array @a string pursuant to the syntax given
- * by @a parser.
- *
+ * Parsing is started by getting the first token in @a string via
+ * strtok_r() while using @a parser->delim as delimiters. The token
+ * gained in this way is returned to the calling function and usually
+ * will be handled by further call to @ref parser_parseString().
  *
  * @param string The character array to parse.
  *
  * @param parser The parser syntax used for parsing.
  *
+ * @return The first token returned by the registering strtok_r() call
+ * is returned.
  *
- * Parsing is started by getting the first token in @a string via
- * strtok(). Tokens are delimited per @a parser->delim. Tokens will be
- * converted to lowercase characters. The converted token is compared
- * to each key in @a parser->keylist. If a key matches the token, the
- * corresponding action() is called. The token is passed as an
- * argument.
- *
- * If the last key in @a parser->keylist also does not match like all
- * keys befor @b and is NULL, the corresponding action() is called
- * with token passed as an argument (default action).
- *
- * If action() returns 0, parsing goes on without regard to further
- * keys, otherwise the return value of action() is returned.
- *
- * @return If @a string can be parsed without error (as shown by all
- * action() calls returning 0), 0 is returned. Otherwise the return
- * value of the first action() call displaying an error is returned.
- *
- * @see strtok(3)
+ * @see strtok_r(3)
  */
 char * parser_registerString(char *string, parser_t *parser);
 
 /**
+ * @brief Parses a string.
+ *
+ * Parses the string registered via @ref parser_registerString()
+ * pursuant to the syntax given by @a parser.
+ *
+ * Parsing is started by registering a string using @ref
+ * parser_registerString(). The token returned by this function has to
+ * be passed to this function as the @a token argument. Further tokens
+ * will be gained within this function using strtok_r() subsequently.
+ *
+ * Each token will be handled using the @ref parser_parseToken()
+ * function. The return value of this function will steer the ongoing
+ * parsing process. As long as 0 is returned, parsing goes on by
+ * getting the next token and evaluating it using @ref
+ * parser_parseToken(). Otherwise the parsing will be interrupted
+ * returning the corresponding value.
+ *
+ * @param token The first token to handle.
+ *
+ * @param parser The parser syntax used for parsing.
+ *
+ * @return If the registered string can be parsed without error (as
+ * shown by all @ref parser_parseToken() calls returning 0), 0 is
+ * returned. Otherwise the return value of the first @ref
+ * parser_parseToken() call different from 0 is returned.
+ *
+ * @see strtok_r(3)
+ */
+int parser_parseString(char *token, parser_t *parser);
+
+/**
+ * @brief Remove comment.
+ *
+ * Remove comments from line @a line. A comment starts with a hash
+ * ('#') character and ends at the end of the line, i.e. the whole
+ * rest of the line following the hash character will be omitted.
+ *
+ * Hash characters within quoted or double qouted parts of the line
+ * will be ignored.
+ *
+ * This function might modify the character array @a line, i.e. it
+ * will replace the hash character delimiting the comment with a null
+ * ('\0') character throwing away the whole rest of @a line.
+ *
+ * @param line The line from which comments shall be removed.
+ *
+ * @return No return value.
+ */
+void parser_removeComment(char *line);
+
+/**
  * @brief Parses a character stream.
  *
- * Parses the character stream set via @ref parser_init() pursuant to
- * the syntax given by @parser.
+ * Parses the character stream set via @ref parser_init() or @ref
+ * parser_setFile() pursuant to the syntax given by @parser.
  *
  *
  * @param parser The parser syntax used for parsing by passing to @ref
- * parser_parseString().
+ * parser_registerString() and @ref parser_parseString().
  *
  *
  * Parsing is done by reading whole lines from the character
- * stream. Following the line is parsed using @ref
- * parser_parseString().
+ * stream. Following each line is parsed using @ref
+ * parser_registerString() and @ref parser_parseString() calls.
  *
  * If @ref parser_parseString() returns 0, parsing goes on, otherwise
  * the return value of @ref parser_parseString() is returned.
@@ -254,15 +244,22 @@ void parser_setDebugLevel(int level);
 /**
  * @brief Print out a comment.
  *
+ * Print out a comment concerning actual parsing. The @a comment will
+ * be prepended with the actual line number the parser acts at while
+ * the comment is launched.
  *
- * @param token The actual token where the error was noticed.
+ * Actually the comment will only be launched if @a level is smaller
+ * or equal to the current debug level of the parser subsystem. The
+ * debug level might be read/set using
+ * parser_getDebugLevel()/parser_setDebugLevel().
  *
  * @param comment A user-defined comment added to the message.
  *
- * @param level The @todo
- *
+ * @param level The minimum debug level to actually launch the message.
  *
  * @return No return value.
+ *
+ * @see parser_getDebugLevel() parser_setDebugLevel()
  */
 void parser_comment(char *comment, int level);
 
