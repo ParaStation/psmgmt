@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.64 2003/10/29 17:20:53 eicker Exp $
+ * $Id: psidutil.c,v 1.65 2003/10/30 16:30:02 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.64 2003/10/29 17:20:53 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.65 2003/10/30 16:30:02 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -83,7 +83,8 @@ void PSID_blockSig(int block, int sig)
     sigaddset(&set, sig);
 
     if (sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &set, NULL)) {
-	PSID_errlog("blockSig(): sigprocmask()", 0);
+	snprintf(errtxt, sizeof(errtxt), "%s: sigprocmask()", __func__);
+	PSID_errlog(errtxt, 0);
     }
 }
 
@@ -385,13 +386,13 @@ void PSID_getCounter(int hw, char *buf, size_t size, int header)
 
 	    if (res) {
 		snprintf(errtxt, sizeof(errtxt),
-			 "%s(): callScript(%s, %s) returned %d: %s",
+			 "%s: callScript(%s, %s) returned %d: %s",
 			 __func__, HW_name(hw), script, res, scriptOut);
 		PSID_errlog(errtxt, 0);
 		strncpy(buf, errtxt, size);
 	    } else {
 		snprintf(errtxt, sizeof(errtxt),
-			 "%s(): callScript(%s, %s): success",
+			 "%s: callScript(%s, %s): success",
 			 __func__, HW_name(hw), script);
 		PSID_errlog(errtxt, 10);
 
@@ -400,7 +401,7 @@ void PSID_getCounter(int hw, char *buf, size_t size, int header)
 	} else {
 	    /* No script, cannot get counter */
 	    snprintf(errtxt, sizeof(errtxt),
-		     "%s(): no %s-script for %s available",
+		     "%s: no %s-script for %s available",
 		     __func__, header ? "header" : "counter", HW_name(hw));
 	    PSID_errlog(errtxt, 1);
 
@@ -408,7 +409,7 @@ void PSID_getCounter(int hw, char *buf, size_t size, int header)
 	}
     } else {
 	/* No HW, cannot get counter */
-	snprintf(errtxt, sizeof(errtxt), "%s(): no %s hardware available",
+	snprintf(errtxt, sizeof(errtxt), "%s: no %s hardware available",
 		 __func__, HW_name(hw));
 	PSID_errlog(errtxt, 0);
 
@@ -439,6 +440,7 @@ void PSID_setParam(int hw, PSP_Option_t type, PSP_Optval_t value)
 		option = "-p 5";
 		break;
 	    default:
+		break;
 	    }
 	}
     }
@@ -474,6 +476,7 @@ PSP_Optval_t PSID_getParam(int hw, PSP_Option_t type)
 		option=" -qp | grep ACKPEND | tr -s ' ' | cut -d ' ' -f4";
 		break;
 	    default:
+		break;
 	    }
 	}
     }
