@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pspartition.c,v 1.2 2004/01/22 17:16:50 eicker Exp $
+ * $Id: pspartition.c,v 1.3 2004/01/28 10:43:31 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pspartition.c,v 1.2 2004/01/22 17:16:50 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pspartition.c,v 1.3 2004/01/28 10:43:31 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -47,7 +47,8 @@ void PSpart_initReq(PSpart_request_t *request)
 	.priority = 0,
 	.num = -1,
 	.numGot = -1,
-	.nodes = NULL };
+	.nodes = NULL,
+	.deleted = 0, };
 }
 
 void PSpart_reinitReq(PSpart_request_t *request)
@@ -76,8 +77,9 @@ void PSpart_snprintf(char *txt, size_t size, PSpart_request_t *request)
 
     if (!request) return;
 
-    snprintf(txt, size, "tid 0x%08x size %d hwType 0x%x uid %d gid %d"
+    snprintf(txt, size, "%stid 0x%08x size %d hwType 0x%x uid %d gid %d"
 	     " sort 0x%x options 0x%x priority %d num %d",
+	     request->deleted ? "!DELETED! " : "",
 	     request->tid, request->size, request->hwType,
 	     request->uid, request->gid,
 	     request->sort, request->options, request->priority, request->num);
