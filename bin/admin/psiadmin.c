@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.35 2002/07/08 16:18:16 eicker Exp $
+ * $Id: psiadmin.c,v 1.36 2002/07/11 11:19:37 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.35 2002/07/08 16:18:16 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.36 2002/07/11 11:19:37 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -44,8 +44,8 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.35 $";
-static int  DoRestart = 1;
+static char psiadmversion[] = "$Revision: 1.36 $";
+static int doRestart = 0;
 
 static char *hoststatus;
 
@@ -100,9 +100,9 @@ void PSIADM_NodeStat(int first, int last)
     last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
     for (i = first; i < last; i++) {
 	if (hoststatus[i]) {
-	    printf("%d up.\n",i);
+	    printf("%4d up.\n",i);
 	} else {
-	    printf("%d down.\n",i);
+	    printf("%4d down.\n",i);
 	}
     }
 
@@ -148,6 +148,8 @@ void PSIADM_CountStat(int first, int last)
 	PSHALInfoCounter_t ic;
     } countstat;
 
+    INFO_request_hoststatus(hoststatus, PSC_getNrOfNodes(), 1);
+
     first = (first==ALLNODES) ? 0 : first;
     last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
 
@@ -164,22 +166,26 @@ void PSIADM_CountStat(int first, int last)
     printf("\n");
 
     for (i = first; i < last; i++) {
-	printf("%6u ", i); fflush(stdout);
+	printf("%4d ", i);
 
-	if (INFO_request_countstatus(i, &countstat,
-				     sizeof(countstat), 1) != -1) {
-	    if (countstat.present) {
-		for (j=0; j<countstat.ic.n; j++){
-		    char ch[10];
-		    /* calc column size from name length */
-		    sprintf(ch, "%%%du ",
-			    (int) MAX(strlen(countstat.ic.counter[j].name),8));
-		    printf(ch, countstat.ic.counter[j].value);
+	if (hoststatus[i]) {
+	    if (INFO_request_countstatus(i, &countstat,
+					 sizeof(countstat), 1) != -1) {
+		if (countstat.present) {
+		    for (j=0; j<countstat.ic.n; j++){
+			char ch[10];
+			/* calc column size from name length */
+			sprintf(ch, "%%%du ", (int) MAX(strlen(
+			    countstat.ic.counter[j].name),8));
+			printf(ch, countstat.ic.counter[j].value);
+		    }
+		    printf("\n");
+		} else {
+		    printf("    No card present\n");
 		}
-		printf("\n");
-	    } else {
-		printf("    No card present\n");
 	    }
+	} else {
+	    printf("\tdown\n");
 	}
     }
 
@@ -193,26 +199,30 @@ void PSIADM_ProcStat(int first, int last)
     INFO_taskinfo_t taskinfo[NUMTASKS];
     int i, j, num;
 
+    INFO_request_hoststatus(hoststatus, PSC_getNrOfNodes(), 1);
+
     first = (first==ALLNODES) ? 0 : first;
     last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
+
     printf("%4s %23s %23s %8s\n",
 	   "Node", "TaskId(Dec/Hex)", "ParentTaskId(Dec/Hex)", "UserId");
     for (i = first; i < last; i++) {
 	printf("---------------------------------------------------------"
 	       "----\n");
-	num = INFO_request_tasklist(i, taskinfo, sizeof(taskinfo), 1);
-	for (j=0; j<MIN(num,NUMTASKS); j++) {
-	    printf("%4d %10ld 0x%010lx %10ld 0x%010lx ",
-		   PSC_getID(taskinfo[j].tid),
-		   taskinfo[j].tid, taskinfo[j].tid,
-		   taskinfo[j].ptid, taskinfo[j].ptid);
-	    printf("%5d%s\n", taskinfo[j].uid,
-		   taskinfo[j].group==TG_ADMIN ? "(A)" :
-		   taskinfo[j].group==TG_LOGGER ? "(L)" : "");
-	}
-
-	if (num>NUMTASKS) {
-	    printf(" + %d more tasks\n", num-NUMTASKS);
+	if (hoststatus[i]) {
+	    num = INFO_request_tasklist(i, taskinfo, sizeof(taskinfo), 1);
+	    for (j=0; j<MIN(num,NUMTASKS); j++) {
+		printf("%4d %10ld 0x%010lx %10ld 0x%010lx %5d %s\n",
+		       i, taskinfo[j].tid, taskinfo[j].tid,
+		       taskinfo[j].ptid, taskinfo[j].ptid, taskinfo[j].uid,
+		       taskinfo[j].group==TG_ADMIN ? "(A)" :
+		       taskinfo[j].group==TG_LOGGER ? "(L)" : "");
+	    }
+	    if (num>NUMTASKS) {
+		printf(" + %d more tasks\n", num-NUMTASKS);
+	    }
+	} else {
+	    printf("%4d\tdown\n", i);
 	}
     }
 
@@ -222,14 +232,31 @@ void PSIADM_ProcStat(int first, int last)
 void PSIADM_LoadStat(int first, int last)
 {
     int i;
-    double load;
+    static size_t nl_size = 0;
+    static NodelistEntry_t *nl = NULL;
+
+    printf("nodelist_size %ld\n", nl_size);
+    if (nl_size != sizeof(NodelistEntry_t) * PSC_getNrOfNodes()) {
+	nl_size = sizeof(NodelistEntry_t) * PSC_getNrOfNodes();
+	nl = (NodelistEntry_t *) realloc(nl, nl_size);
+	printf("nodelist_size changed to %ld\n", nl_size);
+    }
 
     first = (first==ALLNODES) ? 0 : first;
     last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
-    printf("NodeNr Load\n");
+
+    INFO_request_nodelist(nl, nl_size, 1);
+    printf("Node\t\t Load\t\t     Jobs\n");
+    printf("\t 1 min\t 5 min\t15 min\t tot.\tnorm.\n");
     for (i = first; i < last; i++) {
-	load = INFO_request_load(i, 1);
-	printf("%6d %2.4f\n",i,load);
+	if (nl[i].up) {
+	    printf("%4d\t%2.4f\t%2.4f\t%2.4f\t%4d\t%4d\n", i,
+		   nl[i].load[0], nl[i].load[1], nl[i].load[2],
+		   nl[i].totalJobs, nl[i].normalJobs);
+	} else {
+	    printf("%4d\t down\n", i);
+	}
+	
     }
 
     return;
@@ -889,6 +916,7 @@ void PSIADM_Reset(int reset_hw, int first, int last)
 	printf("Insufficient priviledge\n");
 	return;
     }
+
     /*
      * prepare the message to send it to the daemon
      */
@@ -900,7 +928,10 @@ void PSIADM_Reset(int reset_hw, int first, int last)
     msg.first = (first==ALLNODES) ? 0 : first;
     msg.last = (last==ALLNODES) ? PSC_getNrOfNodes()-1 : last;
     msg.action = 0;
-    if(reset_hw) msg.action |= PSP_RESET_HW;
+    if (reset_hw) {
+	msg.action |= PSP_RESET_HW;
+	doRestart = 1;
+    }
 
     PSI_sendMsg(&msg);
 
@@ -918,8 +949,6 @@ void PSIADM_ShutdownCluster(int first, int last)
     }
 
     nrofnodes = PSC_getNrOfNodes();
-
-    DoRestart = 0;
 
     msg.header.type = PSP_CD_DAEMONSTOP;
     msg.header.len = sizeof(msg);
@@ -1011,21 +1040,22 @@ void sighandler(int sig)
 {
     switch(sig){
     case SIGTERM:
-	if (DoRestart==0) {
-	    fprintf(stderr, "\nPSIadmin: Got SIGTERM .... exiting"
-		    " ...This seem to be OK. \nBye..\n");
+	if (!doRestart) {
+	    fprintf(stderr, "\nPSIadmin: Got SIGTERM .... exiting\n");
 	    exit(0);
 	}
-	fprintf(stderr,"\nPSIadmin: Got SIGTERM .... exiting"
+
+	fprintf(stderr, "\nPSIadmin: Got SIGTERM .... exiting"
 		" ...wait for a reconnect..\n");
 	PSI_clientexit();
 	sleep(2);
-	fprintf(stderr,"PSIadmin: Restarting...\n");
+	fprintf(stderr, "PSIadmin: Restarting...\n");
 	if (!PSI_clientinit(TG_ADMIN)) {
-	    fprintf(stderr,"can't contact my own daemon.\n");
+	    fprintf(stderr, "can't contact my own daemon.\n");
 	    exit(-1);
         }
-	signal(SIGTERM,sighandler);
+	doRestart = 0;
+	signal(SIGTERM, sighandler);
 
 	break;
     }
