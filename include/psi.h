@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.h,v 1.8 2002/02/08 10:50:45 eicker Exp $
+ * $Id: psi.h,v 1.9 2002/02/11 12:32:04 eicker Exp $
  *
  */
 /**
  * @file
  * psi: User-functions for interaction with the ParaStation system.
  *
- * $Id: psi.h,v 1.8 2002/02/08 10:50:45 eicker Exp $
+ * $Id: psi.h,v 1.9 2002/02/11 12:32:04 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -110,12 +110,12 @@ pid_t PSI_getpid(long tid);
  *
  *       starts the daemon via the inetd
  */
-int PSI_startdaemon(unsigned long hostaddr);
+int PSI_startdaemon(unsigned int hostaddr);
 
 /***************************************************************************
  *       PSI_mastersocket()
  */
-int PSI_mastersocket(unsigned long hostaddr);
+int PSI_daemonsocket(unsigned int hostaddr);
 
 /*----------------------------------------------------------------------*/
 /* 
@@ -160,27 +160,8 @@ int PSI_release(long tid);
  */
 long PSI_whodied(int sig);
 
-/*----- Working area ---------------------------------------------------*/
-/* 
- * PSI_getload()
- *  
- *  PSI_getload asks the ParaStation system of the load for a given node.
- *  
- * PARAMETERS
- *         nodenr the number of the node to be asked.
- * RETURN  the load of the given node
- *         -1 on error
- */
-double PSI_getload(unsigned short node);
-
-/*
- * PSI_getNumberOfProcs(int node)
- *   Get number of running procs on node node
- *   Admin procs count as 0.01 procs :-)
- */
-double PSI_getNumberOfProcs(unsigned short node);
-
 char * PSI_LookupInstalldir(void);
+
 void PSI_SetInstalldir(char *installdir);
 
 #ifdef __cplusplus
