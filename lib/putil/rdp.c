@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.30 2003/10/08 13:46:16 eicker Exp $
+ * $Id: rdp.c,v 1.31 2003/11/24 09:58:56 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.30 2003/10/08 13:46:16 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.31 2003/11/24 09:58:56 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -1652,7 +1652,7 @@ int Rrecvfrom(int *node, void *msg, size_t len)
 void getStateInfoRDP(int node, char *s, size_t len)
 {
     snprintf(s, len, "%3d [%s]: ID[%08x|%08x] FTS=%08x AE=%08x FE=%08x"
-	     " AP=%3d MP=%3d Bptr=%p\n",
+	     " AP=%3d MP=%3d Bptr=%p",
 	     node, stateStringRDP(conntableRDP[node].state),
 	     conntableRDP[node].ConnID_in,     conntableRDP[node].ConnID_out,
 	     conntableRDP[node].frameToSend,   conntableRDP[node].ackExpected,

@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.c,v 1.16 2003/10/23 13:34:50 eicker Exp $
+ * $Id: mcast.c,v 1.17 2003/11/24 09:58:56 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.16 2003/10/23 13:34:50 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.17 2003/11/24 09:58:56 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -604,7 +604,7 @@ void getInfoMCast(int n, MCastConInfo_t *info)
 
 void getStateInfoMCast(int node, char *s, size_t len)
 {
-    snprintf(s, len, "%3d [%s]: miss=%d\n", node,
+    snprintf(s, len, "%3d [%s]: miss=%d", node,
 	     stateStringMCast(conntable[node].state),
 	     conntable[node].misscounter);
     return;
