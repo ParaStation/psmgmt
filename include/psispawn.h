@@ -47,6 +47,21 @@ int PSI_spawnM(int count, short* dstnodes, char *workingdir, int argc,
 int PSI_isalive(long tid);
 
 /*------------------------------------------------------------
+ * PSI_LSF()
+ *
+ * Check for the presence of LSF-Parallel. And if present, modify
+ * ENV_NODE_HOSTS
+ */
+void PSI_LSF(void);
+
+/*------------------------------------------------------------
+ * PSI_RemoteArgs(int Argc,char **Argv,int &RArgc,char ***RArgv)
+ *
+ * Modify Args of remote tasks.
+ */
+void PSI_RemoteArgs(int Argc,char **Argv,int *RArgc,char ***RArgv);
+
+/*------------------------------------------------------------
  * PSIGetPartition()
  *
  * Set the available node numbers in an array.

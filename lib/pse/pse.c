@@ -120,8 +120,12 @@ void PSEinit(int NP, int Argc, char** Argv,
 
 	int *errors;
 	int num_processes;   /* number of valid table entries      */
-
+	
 	*rank = s_nPSE_MyWorldRank = 0;
+
+	/* Check for LSF-Parallel */
+	PSI_LSF();
+	PSI_RemoteArgs(Argc,Argv,&Argc,&Argv);
 
 	/* get the partition */
 	maxnodes_partition = PSI_getPartition();

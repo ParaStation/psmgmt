@@ -6,6 +6,7 @@
 #include <string.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <ctype.h>
 
 #include "psp.h"
 #include "psitask.h"
@@ -23,7 +24,10 @@
  */
 #define ENV_NODE_SELECT  "PSI_NODES"
 #define ENV_NODE_HOSTFILENAME "PSI_HOSTFILE"
+#define ENV_NODE_HOSTS   "PSI_HOSTS"
+#define ENV_NODE_HOSTS_LSF "LSB_HOSTS"
 #define ENV_NODE_SORT  "PSI_NODES_SORT"
+#define ENV_NODE_RARG  "PSI_RARG_PRE_%d"
 
 short* PSI_Partition = NULL;
 short PSI_PartitionSize = 0;
@@ -303,6 +307,93 @@ int PSI_SortNodesInPartition(short nodes[], int maxnodes)
     return 0;
 }
 
+
+/* Get white-space seperatet field. Return value must be freed
+ * with free(). If next is set, *next return the beginning of the next field */
+char *get_wss_entry(char *str,char **next)
+{
+    char *start=str;
+    char *end=NULL;
+    char *ret=NULL;
+    if (!str) goto no_str;
+    while(isspace(*start)) start++;
+    end=start;
+    while( (!isspace(*end)) && (*end)) end++;
+    if (start != end){
+	ret=(char*)malloc(end-start +1);
+	strncpy(ret,start,end-start);
+	ret[end-start]=0;
+    }
+ no_str:
+    if (next) *next=end;
+    return ret;
+}
+
+void PSI_LSF(void)
+{
+    char *lsf_hosts=NULL;
+    lsf_hosts=getenv(ENV_NODE_HOSTS_LSF);
+    if (lsf_hosts){
+	char *p=lsf_hosts;
+	char *ret,*host,*first;
+	setenv(ENV_NODE_SORT,"none",1);
+	unsetenv(ENV_NODE_HOSTFILENAME);
+	unsetenv(ENV_NODE_SELECT);
+	/* Move first hostname to the end of the list */
+	ret=(char*)malloc(strlen(lsf_hosts)+1);
+	*ret=0;
+	first=get_wss_entry(p,&p);
+	if (first){
+	    while ((host=get_wss_entry(p,&p))){
+		strcat(ret,host);
+		strcat(ret," ");
+		free(host);
+	    }
+	    strcat(ret,first);
+	    free(first);
+	}
+	setenv(ENV_NODE_HOSTS,ret,1);
+	free(ret);
+    }
+}
+
+void PSI_RemoteArgs(int Argc,char **Argv,int *RArgc,char ***RArgv){
+    int new_argc=0;
+    char **new_argv;
+    char env_name[ sizeof(ENV_NODE_RARG) + 20];
+    int cnt;
+    int i;
+    cnt=0;
+    for(;;){
+	snprintf(env_name,sizeof(env_name)-1,
+		 ENV_NODE_RARG,cnt);
+	if (getenv(env_name)){
+	    cnt++;
+	}else{
+	    break;
+	}
+    }
+    if (cnt){
+	new_argc=cnt+Argc;
+	new_argv=malloc(sizeof(char *)*(new_argc+1));
+	new_argv[new_argc]=NULL;
+	
+	for(i=0;i<cnt;i++){
+	    snprintf(env_name,sizeof(env_name)-1,ENV_NODE_RARG,i);
+	    new_argv[i]=getenv(env_name);
+	}
+	for(i=0;i<Argc;i++){
+	    new_argv[i+cnt]=Argv[i];
+	}
+	*RArgc=new_argc;
+	*RArgv=new_argv;
+    }else{
+	*RArgc=Argc;
+	*RArgv=Argv;
+    }
+    return;
+}
+
 /*------------------------------------------------------------
  * PSIGetPartition()
  *
@@ -317,7 +408,8 @@ short PSI_getPartition(void)
 {
     char* hostfilename=NULL;
     int maxnodes;
-    char *node_str;
+    char *node_str=NULL;
+    char *hosts_str=NULL;
 
     maxnodes = PSI_getnrofnodes();
 
@@ -345,6 +437,9 @@ short PSI_getPartition(void)
 	if(hostfilename==NULL)
 	    hostfilename = PSI_getenv(ENV_NODE_HOSTFILENAME);
     }
+
+    hosts_str=getenv(ENV_NODE_HOSTS);
+    
     if(PSI_Partition)
 	free(PSI_Partition);
     /*
@@ -381,6 +476,30 @@ short PSI_getPartition(void)
 	    PSI_PartitionSize++;
 	}
 	free(tmp_node_str_begin);
+    }else if (hosts_str){
+	/* parse hosts_str for nodenames */
+	char *hostname;
+	char *p=hosts_str;
+	struct in_addr sin_addr;
+	struct hostent *hp;
+	PSI_PartitionSize= 0;
+	while((hostname=get_wss_entry(p,&p))
+	      && PSI_PartitionSize<4*maxnodes){
+	    hp = gethostbyname(hostname);
+	    bcopy((char *)hp->h_addr, (char*)&sin_addr, hp->h_length);
+	    if ((PSI_Partition[PSI_PartitionSize] =
+		 INFO_request_host(sin_addr.s_addr)) != -1){
+		/* printf("Host #%d '%s' PSID: %d\n",
+		       PSI_PartitionSize,hostname,
+		       PSI_Partition[PSI_PartitionSize]); */
+		PSI_PartitionSize++;
+	    }else{
+		/* printf("Host #%d '%s' PSID: ???\n",
+		   PSI_PartitionSize,hostname); */
+	    }
+	    free(hostname);
+	}
+	endhostent();
     }else if(hostfilename){
 	/* either in ENV or in PSI_ENV there exists
 	   the name of the hostfile

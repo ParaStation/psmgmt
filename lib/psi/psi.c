@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.18 2002/01/22 16:12:28 eicker Exp $
+ * $Id: psi.c,v 1.19 2002/01/29 14:56:04 hauke Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
@@ -61,6 +61,21 @@ PSI_getpid(long tid)
 {
     return (tid & 0xFFFF);
 }
+
+static
+pid_t PSIgetpid(void)
+{
+    char *env_str;
+    /* if we are a child of a psid process (remote process),
+     * we use the pid of our parent. */
+    env_str=getenv("PSI_PID");
+    if (env_str){
+	return atoi(env_str);
+    }else{
+	return getpid();
+    }
+}
+
 
 /****************************************
 *  PSI_getnode()
@@ -245,8 +260,8 @@ PSI_daemon_connect(u_short protocol, u_long hostaddr)
 	    return 0;
 	}
     }
-
-    pid = getpid();
+    
+    pid = PSIgetpid();
     uid = getuid();
 
     /* local connect */
@@ -399,7 +414,7 @@ PSI_clientinit(u_short protocol)
 	return 0;
     }
 
-    PSI_mypid = getpid();
+    PSI_mypid = PSIgetpid();
     PSI_mytid = PSI_gettid(-1,PSI_mypid);
 
     if(! PSI_hoststatus)

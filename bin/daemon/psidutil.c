@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.18 2002/01/22 16:17:27 eicker Exp $
+ * $Id: psidutil.c,v 1.19 2002/01/29 14:56:04 hauke Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.18 2002/01/22 16:17:27 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.19 2002/01/29 14:56:04 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -384,7 +384,14 @@ int PSID_taskspawn(PStask_t* task)
 	    for(i=0; i < task->environc; i++)
 		if (task->environ[i]) putenv(task->environ[i]);
 	}
-
+	{
+	    /*
+	     * store client PID in environment
+	     */
+	    char pid_str[20];
+	    snprintf(pid_str,sizeof(pid_str)+1,"%d",getpid());
+	    setenv("PSI_PID",pid_str,1);
+	}
 	if (stat(task->argv[0], &sb) == -1
 	    || ((sb.st_mode & S_IFMT) != S_IFREG)
 	    || !(sb.st_mode & S_IEXEC)){
