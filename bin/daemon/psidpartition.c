@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidpartition.c,v 1.5 2003/10/29 17:19:18 eicker Exp $
+ * $Id: psidpartition.c,v 1.6 2003/11/11 21:46:19 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.5 2003/10/29 17:19:18 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.6 2003/11/11 21:46:19 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -1161,7 +1161,8 @@ void msg_GETNODES(DDBufferMsg_t *inmsg)
     }
 
     if (!task->partitionSize || !task->partition) {
-	snprintf(errtxt, sizeof(errtxt), "%s: No Partition created", __func__);
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: Create partition first", __func__);
 	PSID_errlog(errtxt, 0);
 	goto error;
     }
