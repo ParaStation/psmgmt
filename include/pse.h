@@ -66,25 +66,6 @@
 
 #define DEBUG3(s, arg1, arg2, arg3) DEBUG((stderr, "[%d(%d)]: " s,\
                               s_nPSE_MyWorldRank,getpid(), arg1, arg2, arg3))
-#define DEBUG4(s, arg1, arg2, arg3, arg4) DEBUG((stderr, "[%d]: " s,\
-                              s_nPSE_MyWorldRank, arg1, arg2, arg3, arg4))
-
-#define ERROR(args) {fprintf args ;fflush(stderr);fflush(stdout);}
-
-#define ERROR0(s) ERROR((stderr, "[%d(%d)]: " s,\
-                              s_nPSE_MyWorldRank,getpid()))
-
-#define ERROR1(s, arg1) ERROR((stderr, "[%d(%d)]: " s,\
-                              s_nPSE_MyWorldRank,getpid(), arg1))
-
-#define ERROR2(s, arg1, arg2) ERROR((stderr, "[%d(%d)]: " s,\
-                              s_nPSE_MyWorldRank,getpid(), arg1, arg2))
-
-#define ERROR3(s, arg1, arg2, arg3) ERROR((stderr, "[%d(%d)]: " s,\
-                              s_nPSE_MyWorldRank,getpid(), arg1, arg2, arg3))
-#define ERROR4(s, arg1, arg2, arg3, arg4) ERROR((stderr, "[%d]: " s,\
-                              s_nPSE_MyWorldRank, arg1, arg2, arg3, arg4))
-
 
 #define EXIT(s, arg) {char reason[200];sprintf(reason, "[%d]: " s, s_nPSE_MyWorldRank, arg);\
                       PSE_SYexitall(reason,10);}
@@ -93,9 +74,6 @@
                       PSE_SYexitall(reason,10);}
 #define EXIT3(s, arg1, arg2, arg3) {char reason[200];sprintf(reason, "[%d]: " s, s_nPSE_MyWorldRank,\
                                       arg1, arg2,arg3);\
-                      PSE_SYexitall(reason,10);}
-#define EXIT4(s, arg1, arg2, arg3, arg4) {char reason[200];sprintf(reason, "[%d]: " s, s_nPSE_MyWorldRank,\
-                                      arg1, arg2,arg3,arg4);\
                       PSE_SYexitall(reason,10);}
 
 #ifdef __cplusplus
@@ -158,6 +136,8 @@ void PSEinit(int NP, int Argc, char** Argv);
  */
 void PSEfinalize(void);
 
+void PSE_Abort(int nCode);
+
 /***************************************************************************
  * void      PSEkillmachine(void);
  *  
@@ -189,6 +169,26 @@ int PSEgetmyrank(void);
  *         -1 not in a task group
  */
 int PSEgetsize(void);
+
+/***************************************************************************
+ * int       PSEgetnodeno();
+ *
+ *  PSEgetnodeno  returns the number of the current node
+ *
+ * PARAMETERS
+ * RETURN  node number
+ */
+int PSEgetnodeno(void);
+
+/***************************************************************************
+ * int       PSEgetportno();
+ *
+ *  PSEgetportno  returns the number of the current port
+ *
+ * PARAMETERS
+ * RETURN  port number
+ */
+int PSEgetportno(void);
 
 /***************************************************************************
  * PSPORT_t  PSEgetport(int nRank);
