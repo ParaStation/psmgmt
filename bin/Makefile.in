@@ -22,7 +22,7 @@ else
 .LIBPATTERNS:=  /usr/shlib/lib%.so $(.LIBPATTERNS) $(LIBDIR)/lib%.a
 endif
 
-TOOLS:=psconfig pscounter test_nodes psiadmin psid psld parastation
+TOOLS:=psconfig pscounter test_nodes psiadmin psid psld
 TOOLS += psilogger mlisten test_config_parsing psmstart mpirun_chp4 psispawn
 TOOLS += psscan psroute
 
