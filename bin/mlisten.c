@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mlisten.c,v 1.13 2002/08/07 09:25:10 eicker Exp $
+ * $Id: mlisten.c,v 1.14 2003/12/10 16:31:33 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mlisten.c,v 1.13 2002/08/07 09:25:10 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mlisten.c,v 1.14 2003/12/10 16:31:33 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -59,7 +59,7 @@ void init(int num_nodes)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.13 $";
+    char revision[] = "$Revision: 1.14 $";
     fprintf(stderr, "mlisten %s\b \n", revision+11);
 }
 
@@ -94,7 +94,7 @@ int main(int argc, const char *argv[])
     int mcastsock;
     fd_set rfds;
     socklen_t slen;
-    MCastMsg buf;
+    MCastMsg_t buf;
     int rc, debug=0;
 
     struct poptOption optionsTable[] = {
