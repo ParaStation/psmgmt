@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.27 2002/04/22 18:16:36 hauke Exp $
+ * $Id: psidutil.c,v 1.28 2002/04/22 22:51:38 hauke Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.27 2002/04/22 18:16:36 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.28 2002/04/22 22:51:38 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -126,7 +126,7 @@ int PSID_checklicense(unsigned int myIP)
 /*  			  &version); */
 
     now = time(NULL);
-    if(now-start<0){
+    if(now<start){
 	/* License is no more valid */
 	SYSLOG(0,(LOG_ERR,"PSID_checklicense(): Your clock is running wrong"));
 	exit(-1);
