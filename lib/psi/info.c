@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.29 2003/03/06 14:41:02 eicker Exp $
+ * $Id: info.c,v 1.30 2003/03/11 10:10:35 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.29 2003/03/06 14:41:02 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.30 2003/03/11 10:10:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -107,6 +107,7 @@ static int INFO_receive(INFO_info_t what, void *buffer, size_t size,
 	case PSP_CD_MCASTSTATUSRESPONSE:
 	case PSP_CD_HOSTSTATUSRESPONSE:
 	case PSP_CD_NODELISTRESPONSE:
+	case PSP_CD_PARTITIONRESPONSE:
 	case PSP_CD_HOSTRESPONSE:
 	case PSP_CD_NODERESPONSE:
 	    memcpy(buffer, msg.buf, size);
@@ -318,6 +319,32 @@ int INFO_request_nodelist(NodelistEntry_t *buffer, size_t size, int verbose)
 
     if (INFO_receive(INFO_GETINFO, buffer, size, verbose)
 	== PSP_CD_NODELISTRESPONSE) {
+	return size;
+    }
+
+    return -1;
+}
+
+int INFO_request_partition(unsigned int hwType,
+			   NodelistEntry_t *buffer, size_t size, int verbose)
+{
+    DDBufferMsg_t msg;
+
+    msg.header.type = PSP_CD_PARTITIONREQUEST;
+    msg.header.dest = PSC_getTID(-1, 0);
+    msg.header.sender = PSC_getMyTID();
+    msg.header.len = sizeof(msg.header);
+
+    *(unsigned int *)msg.buf = hwType;
+    msg.header.len += sizeof(hwType);
+
+    if (PSI_sendMsg(&msg)<0) {
+	snprintf(errtxt, sizeof(errtxt), "%s: write", __func__);
+	PSI_errexit(errtxt, errno);
+    }
+
+    if (INFO_receive(INFO_GETINFO, buffer, size, verbose)
+	== PSP_CD_PARTITIONRESPONSE) {
 	return size;
     }
 
