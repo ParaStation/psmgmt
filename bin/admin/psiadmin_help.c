@@ -1,3 +1,17 @@
+/*
+ *               ParaStation3
+ * psiadmin_help.c
+ *
+ * Copyright (C) ParTec AG Karlsruhe
+ * All rights reserved.
+ *
+ * $Id: psiadmin_help.c,v 1.2 2002/01/07 08:18:00 eicker Exp $
+ *
+ */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin_help.c,v 1.2 2002/01/07 08:18:00 eicker Exp $";
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
 static void PrintHelp(void)
 {
     printf("\n");
