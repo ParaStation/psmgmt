@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.h,v 1.6 2002/01/30 10:09:35 eicker Exp $
+ * $Id: info.h,v 1.7 2002/02/11 12:27:26 eicker Exp $
  *
  */
 /**
  * @file
  * info: Functions for information retrieving from ParaStation daemon
  *
- * $Id: info.h,v 1.6 2002/01/30 10:09:35 eicker Exp $
+ * $Id: info.h,v 1.7 2002/02/11 12:27:26 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -30,15 +30,53 @@ extern "C" {
 #endif
 #endif
 
+/*****************************
+ *
+ * request_rdpstatus(int nodeno)
+ *
+ * requests the status of RDP on the local PSID to the node nodeno
+ * RETURN: filled buffer
+ *
+ */
 int INFO_request_rdpstatus(int nodeno, void* buffer, int size);
 
+/*****************************
+ *
+ * request_mcaststatus(int nodeno)
+ *
+ * requests the status of MCast on the local PSID to the node nodeno
+ * RETURN: filled buffer
+ *
+ */
 int INFO_request_mcaststatus(int nodeno, void* buffer, int size);
 
+/*****************************
+ *
+ * request_countstatus(int nodeno)
+ *
+ */
 int INFO_request_countstatus(int nodeno, void* buffer, int size);
 
+/*****************************
+ *
+ * request_hoststatus(void *buffer, int size)
+ *
+ * requests the status of all hosts on the local PSID
+ * RETURN: filled buffer
+ *
+ */
 int INFO_request_hoststatus(void* buffer, int size);
 
+/*****************************
+ *
+ * request_host(unsigned int address)
+ *
+ * requests the PS id for host with IP-address address
+ * RETURN: the PS id
+ *
+ */
 int INFO_request_host(unsigned int addr);
+
 
 typedef struct {
     short nodeno;
@@ -48,12 +86,20 @@ typedef struct {
     long group;
 } INFO_taskinfo_t;
 
+/*****************************
+ *
+ * request_countstatus(int nodeno)
+ * size in byte!
+ * Liest solange nach taskinfo, bis array voll, zählt dann aber weiter.
+ * Gibt Anzahl der tasks zurück.
+ *
+ */
 int INFO_request_tasklist(int nodeno, INFO_taskinfo_t taskinfo[], int size);
+
 
 /**
  * Type of taskinfo request
  */
-
 typedef enum {
     INFO_GETINFO = 0x01,    /**< get infos of this task (internally used) */
     INFO_ISALIVE = 0x02,    /**< check if the tid is alive */
@@ -61,7 +107,34 @@ typedef enum {
     INFO_UID = 0x04         /**< get the uid of the task */
 } INFO_info_t;
 
+/*----------------------------------------------------------------------*/
+/*
+ * INFO_request_taskinfo(PSTID tid,what)
+ *
+ *  gets the user id of the given task identifier tid
+ *  @todo Das stimmt nicht, es gibt verschiedene Aufgaben.
+ *  RETURN the uid of the task
+ */
 long INFO_request_taskinfo(long tid, INFO_info_t what);
+
+/*----------------------------------------------------------------------*/
+/*
+ * INFO_request_load(node)
+ *
+ *  gets the load of the given node
+ *  RETURN the load of the node
+ */
+double INFO_request_load(unsigned short node);
+
+/*----------------------------------------------------------------------*/
+/*
+ * INFO_request_proc(node)
+ *
+ *  gets the number of processes on the given node
+ *  RETURN the number of processes on the node
+ */
+double INFO_request_proc(unsigned short node);
+
 
 #ifdef __cplusplus
 }/* extern "C" */

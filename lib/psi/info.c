@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.11 2002/01/30 10:09:35 eicker Exp $
+ * $Id: info.c,v 1.12 2002/02/11 12:27:26 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.11 2002/01/30 10:09:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.12 2002/02/11 12:27:26 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -35,7 +35,6 @@ static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.11 2002/01/30 10
  * int size: size of buffer
  * RETURN type of the msg received
  */
-
 static int INFO_receive(INFO_info_t what, void* buffer, int size)
 {
     DDBufferMsg_t msg;
@@ -95,6 +94,11 @@ static int INFO_receive(INFO_info_t what, void* buffer, int size)
 	case PSP_CD_HOSTRESPONSE:
 	    memcpy(buffer, msg.buf, size);
 	    break;
+	case PSP_CD_LOADRES:
+	case PSP_CD_PROCRES:
+	    /* changed from 5min to 1 min avg load jh 2001-12-21 */
+	    *(double *)buffer = ((DDLoadMsg_t*)&msg)->load[0];
+	    break;
 	case PSP_DD_SYSTEMERROR:
 	{
 	    char* errtxt;
@@ -113,14 +117,6 @@ static int INFO_receive(INFO_info_t what, void* buffer, int size)
     return msg.header.type;
 }
 
-/*****************************
- *
- * request_rdpstatus(int nodeno)
- *
- * requests the status of RDP on the local PSID to the node nodeno
- * RETURN: filled buffer
- *
- */
 int INFO_request_rdpstatus(int nodeno, void* buffer, int size)
 {
     DDBufferMsg_t msg;
@@ -144,14 +140,6 @@ int INFO_request_rdpstatus(int nodeno, void* buffer, int size)
     return -1;
 }
 
-/*****************************
- *
- * request_mcaststatus(int nodeno)
- *
- * requests the status of MCast on the local PSID to the node nodeno
- * RETURN: filled buffer
- *
- */
 int INFO_request_mcaststatus(int nodeno, void* buffer, int size)
 {
     DDBufferMsg_t msg;
@@ -175,11 +163,6 @@ int INFO_request_mcaststatus(int nodeno, void* buffer, int size)
     return -1;
 }
 
-/*****************************
- *
- * request_countstatus(int nodeno)
- *
- */
 int INFO_request_countstatus(int nodeno, void* buffer, int size)
 {
     DDMsg_t msg;
@@ -201,14 +184,6 @@ int INFO_request_countstatus(int nodeno, void* buffer, int size)
     return -1;
 }
 
-/*****************************
- *
- * request_hoststatus(void *buffer, int size)
- *
- * requests the status of all hosts on the local PSID
- * RETURN: filled buffer
- *
- */
 int INFO_request_hoststatus(void* buffer, int size)
 {
     DDMsg_t msg;
@@ -230,14 +205,6 @@ int INFO_request_hoststatus(void* buffer, int size)
     return -1;
 }
 
-/*****************************
- *
- * request_host(unsigned int address)
- *
- * requests the PS id for host with IP-address address
- * RETURN: the PS id
- *
- */
 int INFO_request_host(unsigned int address)
 {
     DDBufferMsg_t msg;
@@ -262,14 +229,6 @@ int INFO_request_host(unsigned int address)
     return -1;
 }
 
-/*****************************
- *
- * request_countstatus(int nodeno)
- * size in byte!
- * Liest solange nach taskinfo, bis array voll, zählt dann aber weiter.
- * Gibt Anzahl der tasks zurück.
- *
- */
 int INFO_request_tasklist(int nodeno, INFO_taskinfo_t taskinfo[], int size)
 {
     DDMsg_t msg;
@@ -301,14 +260,6 @@ int INFO_request_tasklist(int nodeno, INFO_taskinfo_t taskinfo[], int size)
     return tasknum-1;
 }
 
-/*----------------------------------------------------------------------*/
-/*
- * INFO_request_taskinfo(PSTID tid,what)
- *
- *  gets the user id of the given task identifier tid
- *  \todo Das stimmt nicht, es gibt verschiedene Aufgaben.
- *  RETURN the uid of the task
- */
 long INFO_request_taskinfo(long tid, INFO_info_t what)
 {
     int msgtype;
@@ -320,7 +271,7 @@ long INFO_request_taskinfo(long tid, INFO_info_t what)
     msg.sender = PSI_mytid;
     msg.len = sizeof(msg);
 
-    if  (ClientMsgSend(&msg)<0) {
+    if (ClientMsgSend(&msg)<0) {
 	perror("INFO_request_taskinfo: write");
 	exit(-1);
     }
@@ -332,4 +283,54 @@ long INFO_request_taskinfo(long tid, INFO_info_t what)
     }
 
     return answer;
+}
+
+double INFO_request_load(unsigned short node)
+{
+    int msgtype;
+    double answer;
+    DDBufferMsg_t msg;
+
+    msg.header.type = PSP_CD_LOADREQ;
+    msg.header.sender = PSI_mytid;
+    msg.header.dest = PSI_gettid(node, 0);
+    msg.header.len = sizeof(msg.header);
+
+    if (ClientMsgSend(&msg)<0) {
+	perror("INFO_request_load: write");
+	exit(-1);
+    }
+
+    msgtype = INFO_receive(INFO_GETINFO, &answer, sizeof(answer));
+
+    if (msgtype == PSP_CD_LOADRES) {
+	return answer;
+    } else {
+	return -1.0;
+    }
+}
+
+double INFO_request_proc(unsigned short node)
+{
+    int msgtype;
+    double answer;
+    DDBufferMsg_t msg;
+
+    msg.header.type = PSP_CD_PROCREQ;
+    msg.header.sender = PSI_mytid;
+    msg.header.dest = PSI_gettid(node, 0);
+    msg.header.len = sizeof(msg.header);
+
+    if (ClientMsgSend(&msg)<0) {
+	perror("INFO_request_load: write");
+	exit(-1);
+    }
+
+    msgtype = INFO_receive(INFO_GETINFO, &answer, sizeof(answer));
+
+    if (msgtype == PSP_CD_PROCRES) {
+	return answer;
+    } else {
+	return -1.0;
+    }
 }
