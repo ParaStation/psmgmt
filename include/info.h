@@ -1,29 +1,32 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * info.h
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.h,v 1.22 2003/10/30 16:39:20 eicker Exp $
+ * $Id: info.h,v 1.23 2003/11/26 17:10:58 eicker Exp $
  *
  */
 /**
  * @file
- * info: Functions for information retrieving from ParaStation daemon
+ * info: Deprecated functions for information retrieving from
+ * ParaStation daemon
  *
- * $Id: info.h,v 1.22 2003/10/30 16:39:20 eicker Exp $
+ * $Id: info.h,v 1.23 2003/11/26 17:10:58 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
+#warning "Obsolete library. Will be removed soon."
+
 #ifndef __INFO_H
 #define __INFO_H
 
-#include <sys/types.h>
+#include <stdint.h>
+
 #include "psnodes.h"
-#include "pstask.h"
 #include "psprotocol.h"
 
 #ifdef __cplusplus
@@ -33,154 +36,184 @@ extern "C" {
 #endif
 #endif
 
-/** @todo Documentation */
-
-/*****************************
- *
- * request_rdpstatus(int nodeno)
- *
- * requests the status of RDP on the local PSID to the node nodeno
- * RETURN: filled buffer
- *
+/**
+ * Structure returned by @ref INFO_request_tasklist(). This is just
+ * handed over from @c psprotocol.h
  */
-int INFO_request_rdpstatus(PSnodes_ID_t node,
-			   void* buf, size_t size, int verbose);
+typedef PSP_taskInfo_t INFO_taskinfo_t;
 
-/*****************************
+/**
+ * @brief Get a up to date counter status.
  *
- * request_mcaststatus(int nodeno)
+ * Get a up to date counter status of the hardware @a hwindex from
+ * node @a node. The counter status string created is stored to the
+ * buffer @a buf.
  *
- * requests the status of MCast on the local PSID to the node nodeno
- * RETURN: filled buffer
+ * @param node The ParaStation ID of the node to request 
  *
+ * @param hwindex Hardware index of the hardware to request. 
+ *
+ * @param buf Buffer to store the requested counter string in.
+ *
+ * @param size Size of the buffer @a buf.
+ *
+ * @param verbose Flag to be more verbose, if something within the
+ * information retrival went wrong.
+ *
+ * @return On success, the length of the string received is
+ * returned. Otherwise, e.g. if the space provided within buffer is to
+ * small or some other error occurred, -1 is returned.
+ *
+ * @deprecated Better use @ref
+ * PSI_infoString(..,PSP_INFO_COUNTSTATUS,...) in order to get the
+ * requested information.
  */
-int INFO_request_mcaststatus(PSnodes_ID_t node,
+int INFO_request_countstatus(PSnodes_ID_t node, int32_t hwindex,
 			     void* buf, size_t size, int verbose);
 
-/*****************************
+/**
+ * @brief Get a up to date host status.
  *
- * request_countstatus(int nodeno)
+ * Get a up to date host status. Each host is represented by a
+ * character within the buffer @a buf, indexed by the hosts
+ * ParaStation ID.
  *
- */
-int INFO_request_countheader(PSnodes_ID_t node, int hwindex,
-			     void* buf, size_t size, int verbose);
-
-int INFO_request_countstatus(PSnodes_ID_t node, int hwindex,
-			     void* buf, size_t size, int verbose);
-
-/*****************************
+ * @param buf Buffer to store the requested host status in.
  *
- * request_hoststatus(void *buffer, int size)
+ * @param size Size of the buffer @a buf. Size has to be at least the
+ * number of nodes within the ParaStation cluster.
  *
- * requests the status of all hosts on the local PSID
- * RETURN: filled buffer
+ * @param verbose Flag to be more verbose, if something within the
+ * information retrival went wrong.
  *
+ * @return On success, the length of the status array received is
+ * returned. This usually equals to the result of @ref
+ * PSC_getNrOfNodes().  Otherwise, e.g. if the space provided within
+ * buffer is to small or some other error occurred, -1 is returned.
+ *
+ * @deprecated Better use @ref
+ * PSI_infoList(..,PSP_INFO_LIST_HOSTSTATUS,...) in order to get the
+ * requested information.
  */
 int INFO_request_hoststatus(void* buf, size_t size, int verbose);
 
-/*****************************
+/**
+ * @brief Get a up to date nodelist.
  *
- * request_hostlist(void *buffer, int size)
+ * Get a up to date nodelist.  Each node is represented by a @ref
+ * NodelistEntry_t structure within the buffer @a buf, indexed by the
+ * hosts ParaStation ID.
  *
- * requests a list of all nodes
- * RETURN: filled buffer
+ * @warning The member @a maxJobs within the @ref NodelistEntry_t
+ * structure will not contain the correct value stored on the
+ * nodes. In order to get this information, use a call to @ref
+ * PSI_infoOption() with the @a option parameter set to @a
+ * PSP_OP_PROCLIMIT.
  *
+ * @param buf Buffer to store the requested nodelist in.
+ *
+ * @param size Size of the buffer @a buf.
+ *
+ * @param verbose Flag to be more verbose, if something within the
+ * information retrival went wrong.
+ *
+ * @return On success, the length of the nodelist received in byte is
+ * returned. Otherwise, e.g. if the space provided within buffer is to
+ * small or some other error occurred, -1 is returned.
+ *
+ * @deprecated Better use one or more calls to @ref
+ * PSI_infoList(..,what,...) with @a what being one of @a
+ * PSP_INFO_LIST_HOSTSTATUS, @a PSP_INFO_LIST_ALLJOBS, @a
+ * PSP_INFO_LIST_NORMJOBS, @a PSP_INFO_LIST_VIRTCPUS, @a
+ * PSP_INFO_LIST_HWSTATUS or @a PSP_INFO_LIST_LOAD in order to get to
+ * corresponding information.
+ *
+ * 
+ in order to
+ * get the requested information.
  */
 int INFO_request_nodelist(NodelistEntry_t *buf, size_t size, int verbose);
 
-/*****************************
+/**
+ * @brief Get a up to date tasklist.
  *
- * request_partition(void *buffer, int size)
+ * Get a up to date tasklist of node @a node. Each task is represented
+ * by a @ref INFO_taskinfo_t structure within the buffer @a taskinfo,
+ * indexed by the task's running number.
  *
- * requests a list of nodes conforming hwtype
- * RETURN: filled buffer
+ * @param node The ParaStation ID of the node to request 
  *
- */
-int INFO_request_partition(unsigned int hwtype,
-			   NodelistEntry_t *buf, size_t size, int verbose);
-
-PSnodes_ID_t INFO_request_rankID(unsigned int rank, int verbose);
-
-int INFO_request_taskSize(int verbose);
-
-/*****************************
+ * @param taskinfo Buffer to store the requested tasklist in.
  *
- * request_host(unsigned int address)
+ * @param size Size of the buffer @a taskinfo.
  *
- * requests the PS id for host with IP-address address
- * RETURN: the PS id
+ * @param verbose Flag to be more verbose, if something within the
+ * information retrival went wrong.
  *
- */
-PSnodes_ID_t INFO_request_host(unsigned int addr, int verbose);
-
-/*****************************
+ * @return On success, the total number of jobs running on node @a
+ * node is returned, even if this number is bigger than the
+ * corresponding space provided within @a taskinfo. Otherwise, e.g. if
+ * some error occurred, -1 is returned.
  *
- * request_node(int node)
- *
- * requests the IP-address for host with PS id node
- * RETURN: the IP-address
- *
- */
-unsigned int INFO_request_node(PSnodes_ID_t node, int verbose);
-
-typedef struct {
-    PStask_ID_t tid;
-    PStask_ID_t ptid;
-    PStask_ID_t loggertid;
-    uid_t uid;
-    PStask_group_t group;
-    int rank;
-    int connected;
-} INFO_taskinfo_t;
-
-/*****************************
- *
- * request_countstatus(int nodeno)
- * size in byte!
- * Liest solange nach taskinfo, bis array voll, zählt dann aber weiter.
- * Gibt Anzahl der tasks zurück.
- *
+ * @deprecated Better use one or more calls to @ref
+ * PSI_infoString(..,what,...) with @a what being one of @a
+ * PSP_INFO_LIST_ALLJOBS or @a PSP_INFO_LIST_ALLTASKS in order to get
+ * to requested information.
  */
 int INFO_request_tasklist(PSnodes_ID_t node,
 			  INFO_taskinfo_t taskinfo[], size_t size,int verbose);
 
-int INFO_request_nrofnodes(int verbose);
-
-char *INFO_request_instdir(int verbose);
-
-char *INFO_request_psidver(int verbose);
-
+/**
+ * @brief Get the number of supported hardware types.
+ *
+ * Get the number of hardware types supported by the ParaStation
+ * system in the actual configuration. This corresponds to the number
+ * of @c Hardware entries within the ParaStation configuration file.
+ *
+ * @param verbose Flag to be more verbose, if something within the
+ * information retrival went wrong.
+ *
+ * @return On success, the number of supported hardware types is
+ * returned. Otherwise -1 is returned.
+ *
+ * @deprecated Better use @ref PSI_infoInt(..,PSP_INFO_HWNUM,...) in
+ * order to get to requested information.
+ */
 int INFO_request_hwnum(int verbose);
 
+/**
+ * @brief Get a hardware index.
+ *
+ * Get the actual index of the hardware named as @a type within the
+ * ParaStation configuration file.
+ *
+ * @param type The name of the hardware the index is requested for.
+ *
+ * @param verbose Flag to be more verbose, if something within the
+ * information retrival went wrong.
+ *
+ * @return On success, the actual hardware index is
+ * returned. Otherwise -1 is returned.
+ */
 int INFO_request_hwindex(char *type, int verbose);
 
-char *INFO_request_hwname(int index, int verbose);
-
-char *INFO_printHWType(unsigned int hwType);
-
 /**
- * Type of taskinfo request
- */
-typedef enum {
-    INFO_ISALIVE = 0x02,    /**< check if the tid is alive */
-    INFO_PTID = 0x03,       /**< get the parents TID */
-    INFO_LOGGERTID = 0x04,  /**< get the loggers TID */
-    INFO_UID = 0x05,        /**< get the uid of the task */
-    INFO_RANK = 0x06        /**< get the rank of the task */
-} INFO_info_t;
-
-/*----------------------------------------------------------------------*/
-/*
- * INFO_request_taskinfo(PSTID tid,what)
+ * @brief Get a hardware's name.
  *
- *  gets the user id of the given task identifier tid
- *  @todo Das stimmt nicht, es gibt verschiedene Aufgaben.
- *  RETURN the uid of the task
+ * Get the name of the hardware with index number @a index.
+ *
+ * @param index The index of the requested hardware name.
+ *
+ * @param verbose Flag to be more verbose, if something within the
+ * information retrival went wrong.
+ *
+ * @return On success, a pointer to a static string that contains the
+ * hardware name is returned. Successiv calls to this function might
+ * change this string, i.e. don't count on the content of this string
+ * after further calls to this function. If an error occurred during
+ * information retrival, NULL is returned.
  */
-long INFO_request_taskinfo(PStask_ID_t tid, INFO_info_t what, int verbose);
-
-int INFO_request_option(PSnodes_ID_t node, int num, PSP_Option_t option[],
-			PSP_Optval_t value[], int verbose);
+char *INFO_request_hwname(int32_t index, int verbose);
 
 #ifdef __cplusplus
 }/* extern "C" */
