@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.h,v 1.17 2003/07/04 07:49:59 eicker Exp $
+ * $Id: psidutil.h,v 1.18 2003/07/04 14:07:37 eicker Exp $
  *
  */
 /**
  * \file
  * Utilities for the ParaStation daemon
  *
- * $Id: psidutil.h,v 1.17 2003/07/04 07:49:59 eicker Exp $
+ * $Id: psidutil.h,v 1.18 2003/07/04 14:07:37 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -119,15 +119,15 @@ void PSID_errlog(char *s, int level);
 void PSID_errexit(char *s, int errorno);
 
 /**
- * @todo Update for configfile
  * @brief Read (and parse) the configuration-file.
  *
- * Read (and parse) the configuration-file. Furthermore basic tests on
- * the consistancy of the configuration is done and the communciation
- * hardware (if present and configured) is initialized.
+ * Read (and parse) the configuration file @a configfile. Furthermore
+ * basic tests on the consistancy of the configuration is done.
  *
  * @param usesyslog Flag to mark syslog(3) to be used for any output
  * within the parser.
+ *
+ * @param configfile The filename of the configuration file.
  *
  * @return No return value.
  */
@@ -139,37 +139,80 @@ void PSID_readConfigFile(int usesyslog, char *configfile);
 void PSID_blockSig(int block, int sig);
 
 /**
- * @brief Initialize the communication hardware.
+ * @brief Init all communication hardware.
  *
- * Initialize the configured communication hardware. Various
+ * Initialize all the configured communication hardware. Various
  * parameters have to be set before. This is usually done by reading
  * and parsing the configuration file within @ref
  * PSID_readConfigFile(). For further details take a look on the
  * source code.
  *
+ * The actual initialization of the various hardware types defined is
+ * done via calls to the PSID_startHW() function.
+ *
  * @return No return value.
  *
- * @see PSID_readConfigFile()
+ * @see PSID_readConfigFile(), PSID_startHW()
  */
 void PSID_startAllHW(void);
 
-void PSID_startHW(int hw);
-
 /**
- * @brief Stop the communication hardware.
+ * @brief Init distinct communciation hardware.
  *
- * Stop the configured communication hardware.
+ * Initialize the distinct communication hardware @a hw. @a hw is a
+ * unique number describing the hardware and is defined from the
+ * configuration file.
+ *
+ * @param hw A unique number of the communication hardware to start.
  *
  * @return No return value.
  */
+void PSID_startHW(int hw);
+
+/**
+ * @brief Stop all communication hardware.
+ *
+ * Stop and bring down all the configured and initialized
+ * communication hardware. Various parameters have to be set
+ * before. This is usually done by reading and parsing the
+ * configuration file within @ref PSID_readConfigFile(). For further
+ * details take a look on the source code.
+ *
+ * The actual stopping of the various hardware types defined is done
+ * via calls to the PSID_stopHW() function.
+ *
+ * @return No return value.
+ *
+ * @see PSID_readConfigFile(), PSID_stopHW()
+ */
 void PSID_stopAllHW(void);
 
+/**
+ * @brief Stop distinct communciation hardware.
+ *
+ * Stop and bring down the distinct communication hardware @a hw. @a
+ * hw is a unique number describing the hardware and is defined from
+ * the configuration file.
+ *
+ * @param hw A unique number of the communication hardware to start.
+ *
+ * @return No return value.
+ */
 void PSID_stopHW(int hw);
 
+/**
+ * @todo
+ */
 void PSID_getCounter(int hw, char *buf, size_t size, int header);
 
+/**
+ * @todo
+ */
 void PSID_setParam(int hw, long option, long value);
 
+/**
+ * @todo
+ */
 long PSID_getParam(int hw, long option);
 
 /**
