@@ -1,3 +1,17 @@
+/*
+ *               ParaStation3
+ * info.c
+ *
+ * Copyright (C) ParTec AG Karlsruhe
+ * All rights reserved.
+ *
+ * $Id: info.c,v 1.6 2002/01/08 21:33:40 eicker Exp $
+ *
+ */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.6 2002/01/08 21:33:40 eicker Exp $";
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
