@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.h,v 1.14 2003/02/13 17:06:30 eicker Exp $
+ * $Id: info.h,v 1.15 2003/02/14 15:20:33 eicker Exp $
  *
  */
 /**
  * @file
  * info: Functions for information retrieving from ParaStation daemon
  *
- * $Id: info.h,v 1.14 2003/02/13 17:06:30 eicker Exp $
+ * $Id: info.h,v 1.15 2003/02/14 15:20:33 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -91,6 +91,16 @@ int INFO_request_nodelist(NodelistEntry_t *buffer, size_t size, int verbose);
  *
  */
 int INFO_request_host(unsigned int addr, int verbose);
+
+/*****************************
+ *
+ * request_node(int node)
+ *
+ * requests the IP-address for host with PS id node
+ * RETURN: the IP-address
+ *
+ */
+unsigned int INFO_request_node(int node, int verbose);
 
 typedef struct {
     long tid;
