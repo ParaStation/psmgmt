@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.c,v 1.3 2002/07/09 14:00:04 eicker Exp $
+ * $Id: pscommon.c,v 1.4 2002/07/18 12:31:55 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.3 2002/07/09 14:00:04 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.4 2002/07/18 12:31:55 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -174,6 +174,15 @@ long PSC_getMyTID(void)
     }
 
     return PSC_myTID;
+}
+
+char *PSC_printTID(long tid)
+{
+    static char taskNumString[40];
+
+    snprintf(taskNumString, sizeof(taskNumString), "0x%08lx[%d:%ld]",
+	     tid, (tid==-1) ? -1 : PSC_getID(tid), (long) PSC_getPID(tid));
+    return taskNumString;
 }
 
 int PSC_startDaemon(unsigned int hostaddr)
