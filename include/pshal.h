@@ -2,7 +2,7 @@
  *
  *      @(#)pshal.h    1.00 (Karlsruhe) 08/15/2000
  *
- *      $Id: pshal.h,v 1.8 2001/06/26 20:53:03 hauke Exp $	
+ *      $Id: pshal.h,v 1.9 2001/06/28 12:24:12 hauke Exp $	
  *
  *      written by Joachim Blum
  *                 Jens Hauke
@@ -359,7 +359,7 @@ struct PSHALMCPCount_T;
 extern unsigned PSHALMaxRecvBuffersPosted; /**< How many RecvBufs should be posted to MCP
 					 *  Initialized with PSHAL_INITIAL_RECV_BUFFERS */
 extern unsigned PSHALMinFreeSendBuffers; /**< Initialized with PSM_MAX_SENDBUFS(for send) */
-#define PSHAL_INITIAL_MAX_PIO_BYTES	100
+#define PSHAL_INITIAL_MAX_PIO_BYTES	250
 extern unsigned PSHALMaxPIOBytes;	/**< How many bytes send with PIO? More bytes with dma*/
 
 extern unsigned PSHAL_SendPIOCount; /**< count packets send via PIO */
