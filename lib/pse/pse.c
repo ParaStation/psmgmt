@@ -146,7 +146,7 @@ void PSEinit(int NP, int Argc, char** Argv,
 		    EXIT2("Could not spawn process (%s) error = %s !\n",
 			  Argv[0],
 			  (errors[num_processes]<sys_nerr) ?
-			  sys_errlist[errors[num_processes]]:"UNKNOWN ERROR");
+			  strerror(errors[num_processes]):"UNKNOWN ERROR");
 	    }
 	}
 	free(errors);
