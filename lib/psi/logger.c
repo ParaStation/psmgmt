@@ -601,9 +601,8 @@ LOGGERspawnlogger()
 	    if(i!=LOGGERlisten)
 		close(i);
 
-	argv[0] = (char*)malloc(100);
-	sprintf(argv[0],"%s/bin/psilogger",
-		PSI_installdir ? PSI_installdir:PSI_LookupInstalldir());
+	argv[0] = (char*)malloc(strlen(PSI_LookupInstalldir()) + 20);
+	sprintf(argv[0],"%s/bin/psilogger", PSI_LookupInstalldir());
 	argv[1] = (char*)malloc(10);
 	sprintf(argv[1],"%d",LOGGERlisten);
 	argv[2]=NULL;
