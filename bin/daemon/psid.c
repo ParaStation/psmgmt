@@ -2276,6 +2276,7 @@ void psicontrol(int fd )
 	case PSP_CD_COUNTSTATUSREQUEST:
 	case PSP_CD_RDPSTATUSREQUEST:
 	case PSP_CD_HOSTSTATUSREQUEST:
+	case PSP_CD_HOSTREQUEST:
 	    /*
 	     * request to send the information about a specific info
 	     */
@@ -2284,6 +2285,7 @@ void psicontrol(int fd )
 	case PSP_CD_COUNTSTATUSRESPONSE:
 	case PSP_CD_RDPSTATUSRESPONSE:
 	case PSP_CD_HOSTSTATUSRESPONSE:
+	case PSP_CD_HOSTRESPONSE:
 	    /*
 	     * request to send the information about a specific info
 	     */
@@ -2384,8 +2386,8 @@ void psicontrol(int fd )
 	    msg_LOADREQ((DDMsg_t*)&msg);
 	    break;
 	default :
-	    SYSLOG(1,(LOG_ERR,"psid: Wrong msgtype %ld on socket %d \n",
-		      msg.header.type,fd));
+	    SYSLOG(1,(LOG_ERR,"psid: Wrong msgtype %ld (%s) on socket %d \n",
+		      msg.header.type, PSPctrlmsg(msg.header.type), fd));
 	}
     }
 }
