@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psnodes.h,v 1.3 2003/04/03 14:54:31 eicker Exp $
+ * $Id: psnodes.h,v 1.4 2003/06/25 16:32:25 eicker Exp $
  *
  */
 /**
@@ -13,7 +13,7 @@
  * Functions for handling the various informations about the nodes
  * with a ParaStation cluster
  *
- * $Id: psnodes.h,v 1.3 2003/04/03 14:54:31 eicker Exp $
+ * $Id: psnodes.h,v 1.4 2003/06/25 16:32:25 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -302,7 +302,7 @@ int PSnodes_setUser(int id, uid_t uid);
 /**
  * @brief Get the exclusive user of a node.
  *
- * Get the  of the node with ParaStation ID @a id.
+ * Get the exclusive user of the node with ParaStation ID @a id.
  *
  * @param id ParaStation ID of the node to look up.
  *
@@ -310,6 +310,35 @@ int PSnodes_setUser(int id, uid_t uid);
  * -1, if an error occured.
  */
 uid_t PSnodes_getUser(int id);
+
+
+/** Pseudo user ID to allow any group to run on a specific node */
+#define PSNODES_ANYGROUP (gid_t) -1
+
+/**
+ * @brief Set the exclusive group of a node.
+ *
+ * Set the exclusive group of the node with ParaStation ID @a id to @a gid.
+ *
+ * @param id ParaStation ID of the node to be modified.
+ *
+ * @param uid The exclusive group to be set to this node.
+ *
+ * @return On success, 0 is returned or -1, if an error occured.
+ */
+int PSnodes_setGroup(int id, uid_t uid);
+
+/**
+ * @brief Get the exclusive group of a node.
+ *
+ * Get the exclusive group of the node with ParaStation ID @a id.
+ *
+ * @param id ParaStation ID of the node to look up.
+ *
+ * @return If the node was found, the exclusive group is returned. Or
+ * -1, if an error occured.
+ */
+uid_t PSnodes_getGroup(int id);
 
 
 /** Pseudo number of processes to allow any job to run on a specific node */

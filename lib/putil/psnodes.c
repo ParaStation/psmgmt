@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psnodes.c,v 1.3 2003/04/03 14:54:31 eicker Exp $
+ * $Id: psnodes.c,v 1.4 2003/06/25 16:33:24 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psnodes.c,v 1.3 2003/04/03 14:54:31 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psnodes.c,v 1.4 2003/06/25 16:33:24 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -47,6 +47,7 @@ struct node_t {
     int jobs;              /**< Flag to mark that node to run jobs */
     int starter;           /**< Flag to allow to start jobs from that node */
     uid_t uid;             /**< User this nodes is reserved to */
+    gid_t gid;             /**< Group this nodes is reserved to */
     int procs;             /**< Number of processes this node will handle */
 };
 
@@ -79,6 +80,7 @@ int PSnodes_init(int num)
 	nodes[i].jobs = 0;
 	nodes[i].starter = 0;
 	nodes[i].uid = -1;
+	nodes[i].gid = -1;
 	nodes[i].procs = -1;
     }
 
@@ -349,6 +351,25 @@ uid_t PSnodes_getUser(int id)
 {
     if (ID_ok(id)) {
 	return nodes[id].uid;
+    } else {
+	return -1;
+    }
+}
+
+int PSnodes_setGroup(int id, gid_t gid)
+{
+    if (ID_ok(id)) {
+	nodes[id].gid = gid;
+	return 0;
+    } else {
+	return -1;
+    }
+}
+
+gid_t PSnodes_getGroup(int id)
+{
+    if (ID_ok(id)) {
+	return nodes[id].gid;
     } else {
 	return -1;
     }
