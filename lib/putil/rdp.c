@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.27 2003/06/04 08:04:57 eicker Exp $
+ * $Id: rdp.c,v 1.28 2003/06/06 13:40:01 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.27 2003/06/04 08:04:57 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.28 2003/06/06 13:40:01 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -252,8 +252,7 @@ static void initConntableRDP(int nodes,
     initIPTable();
     gettimeofday(&tv, NULL);
     srandom(tv.tv_sec+tv.tv_usec);
-    snprintf(errtxt, sizeof(errtxt),
-	     "init conntableRDP for %d nodes, win is %d",
+    snprintf(errtxt, sizeof(errtxt), "%s: nodes=%d, win is %d", __func__,
 	     nodes, MAX_WINDOW_SIZE);
     errlog(errtxt, 4);
     for (i=0; i<nodes; i++) {
@@ -262,8 +261,8 @@ static void initConntableRDP(int nodes,
 	conntableRDP[i].sin.sin_addr.s_addr = host[i];
 	conntableRDP[i].sin.sin_port = port;
 	insertIPTable(conntableRDP[i].sin.sin_addr, i);
-	snprintf(errtxt, sizeof(errtxt), "IP-ADDR of node %d is %s",
-		 i, inet_ntoa(conntableRDP[i].sin.sin_addr));
+	snprintf(errtxt, sizeof(errtxt), "%s: IP-ADDR of node %d is %s",
+		 __func__, i, inet_ntoa(conntableRDP[i].sin.sin_addr));
 	errlog(errtxt, 4);
 	conntableRDP[i].bufptr = NULL;
 	conntableRDP[i].ConnID_in = -1;
@@ -271,15 +270,13 @@ static void initConntableRDP(int nodes,
 	conntableRDP[i].ackPending = 0;
 	conntableRDP[i].msgPending = 0;
 	conntableRDP[i].frameToSend = random();
-	snprintf(errtxt, sizeof(errtxt),
-		 "frameToSend to node %d set to %d", i,
-		 conntableRDP[i].frameToSend);
+	snprintf(errtxt, sizeof(errtxt), "%s: frameToSend to %d set to %d",
+		 __func__, i, conntableRDP[i].frameToSend);
 	errlog(errtxt, 4);
 	conntableRDP[i].ackExpected = conntableRDP[i].frameToSend;
 	conntableRDP[i].frameExpected = random();
-	snprintf(errtxt, sizeof(errtxt),
-		 "frameExpected from node %d set to %d", i,
-		 conntableRDP[i].frameExpected);
+	snprintf(errtxt, sizeof(errtxt), "%s: frameExpected from %d set to %d",
+		 __func__, i, conntableRDP[i].frameExpected);
 	errlog(errtxt, 4);
 	conntableRDP[i].ConnID_out = random();;
 	conntableRDP[i].state = CLOSED;
@@ -378,9 +375,8 @@ static void sendSYN(int node)
     hdr.seqno = conntableRDP[node].frameToSend;     /* Tell initial seqno */
     hdr.ackno = 0;                                  /* nothing to ack yet */
     hdr.connid = conntableRDP[node].ConnID_out;
-    snprintf(errtxt, sizeof(errtxt),
-	     "sending SYN to node %d (%s), NFTS=%d", node,
-	     inet_ntoa(conntableRDP[node].sin.sin_addr), hdr.seqno);
+    snprintf(errtxt, sizeof(errtxt), "%s: to node %d (%s), NFTS=%d", __func__,
+	     node, inet_ntoa(conntableRDP[node].sin.sin_addr), hdr.seqno);
     errlog(errtxt, 8);
     MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
 	     (struct sockaddr *)&conntableRDP[node].sin,
@@ -397,8 +393,8 @@ static void sendACK(int node)
     hdr.seqno = 0;                                  /* ACKs have no seqno */
     hdr.ackno = conntableRDP[node].frameExpected-1; /* ACK Expected - 1 */
     hdr.connid = conntableRDP[node].ConnID_out;
-    snprintf(errtxt, sizeof(errtxt),
-	     "sending ACK to node %d, FE=%d", node, hdr.ackno);
+    snprintf(errtxt, sizeof(errtxt), "%s: to node %d, FE=%d", __func__,
+	     node, hdr.ackno);
     errlog(errtxt, 14);
     MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
 	     (struct sockaddr *)&conntableRDP[node].sin,
@@ -416,9 +412,8 @@ static void sendSYNACK(int node)
     hdr.seqno = conntableRDP[node].frameToSend;     /* Tell initial seqno */
     hdr.ackno = conntableRDP[node].frameExpected-1; /* ACK Expected - 1 */
     hdr.connid = conntableRDP[node].ConnID_out;
-    snprintf(errtxt, sizeof(errtxt),
-	     "sending SYNACK to node %d, NFTS=%d, FE=%d",
-	     node, hdr.seqno, hdr.ackno);
+    snprintf(errtxt, sizeof(errtxt), "%s: to node %d, NFTS=%d, FE=%d",
+	     __func__, node, hdr.seqno, hdr.ackno);
     errlog(errtxt, 8);
     MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
 	     (struct sockaddr *)&conntableRDP[node].sin,
@@ -436,9 +431,8 @@ static void sendSYNNACK(int node, int oldseq)
     hdr.seqno = conntableRDP[node].frameToSend;     /* Tell initial seqno */
     hdr.ackno = oldseq;                             /* NACK for old seqno */
     hdr.connid = conntableRDP[node].ConnID_out;
-    snprintf(errtxt, sizeof(errtxt),
-	     "sending SYNNACK to node %d, NFTS=%d, FE=%d",
-	     node, hdr.seqno, hdr.ackno);
+    snprintf(errtxt, sizeof(errtxt), "%s: to node %d, NFTS=%d, FE=%d",
+	     __func__, node, hdr.seqno, hdr.ackno);
     errlog(errtxt, 8);
     MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
 	     (struct sockaddr *)&conntableRDP[node].sin,
@@ -457,7 +451,7 @@ static void sendNACK(int node)
     hdr.seqno = 0;                                  /* NACKs have no seqno */
     hdr.ackno = conntableRDP[node].frameExpected-1; /* The frame I expect */
     hdr.connid = conntableRDP[node].ConnID_out;
-    snprintf(errtxt, sizeof(errtxt), "sending NACK to node %d, FE=%d",
+    snprintf(errtxt, sizeof(errtxt), "%s: to node %d, FE=%d", __func__,
 	     node, hdr.ackno);
     errlog(errtxt, 8);
     MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
@@ -763,10 +757,8 @@ static void clearMsgQ(int node)
 	    deadbuf.buflen = mp->len;
 	    RDPCallback(RDP_PKT_UNDELIVERABLE, &deadbuf);
 	}
-	snprintf(errtxt, sizeof(errtxt),
-		 "clearMsgQ(): Dropping msg %d to node %d",
-		 mp->msg.small->header.seqno,
-		 node);
+	snprintf(errtxt, sizeof(errtxt), "%s: Dropping msg %d to node %d",
+		 __func__, mp->msg.small->header.seqno, node);
 	errlog(errtxt, 6);
 	if (mp->len > RDP_SMALL_DATA_SIZE) {    /* release msg frame */
 	    free(mp->msg.large);                /* free memory */
@@ -793,7 +785,7 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
     msgbuf *mp;
     int count = 0;
 
-    errlog("Resequencing MsgQ", 8);
+    errlog(__func__, 8);
 
     cp = &conntableRDP[node];
     mp = cp->bufptr;
@@ -813,9 +805,8 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
 		deadbuf.buflen = mp->len;
 		RDPCallback(RDP_PKT_UNDELIVERABLE, &deadbuf);
 	    }
-	    snprintf(errtxt, sizeof(errtxt),
-		     "resequenceMsgQ(): Dropping msg %d to node %d",
-		     mp->msg.small->header.seqno, node);
+	    snprintf(errtxt, sizeof(errtxt), "%s: Dropping msg %d to node %d",
+		     __func__, mp->msg.small->header.seqno, node);
 	    errlog(errtxt, 6);
 	    /* release msg frame */
 	    if (mp->len > RDP_SMALL_DATA_SIZE) {
@@ -830,9 +821,8 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
 	    cp->window++;                  /* another packet allowed to send */
 	} else {
 	    /* resequence outstanding mgs's */
-	    snprintf(errtxt, sizeof(errtxt),
-		     "Changing SeqNo from %d to %d",
-		     mp->msg.small->header.seqno, newSend + count);
+	    snprintf(errtxt, sizeof(errtxt),"%s: Changing SeqNo from %d to %d",
+		     __func__, mp->msg.small->header.seqno, newSend + count);
 	    errlog(errtxt, 8);
 	    mp->msg.small->header.seqno = newSend + count;
 	    mp = mp->next;                 /* next message */
@@ -847,7 +837,7 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
 
 static void closeConnectionRDP(int node)
 {
-    snprintf(errtxt, sizeof(errtxt), "Closing connection to node %d", node);
+    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, node);
     errlog(errtxt, 0);
     clearMsgQ(node);
     conntableRDP[node].state = CLOSED;
@@ -1098,7 +1088,7 @@ static void handleControlPacket(rdphdr *hdr, int node)
 	updateStateRDP(hdr, node);
 	break;
     default:
-	errlog("handleControlPacket(): deleting unknown msg", 0);
+	errlog("handleControlPacket: deleting unknown msg", 0);
 	break;
     }
     return;
@@ -1126,33 +1116,31 @@ static int handleErr(void)
     iov.iov_base = NULL;
     iov.iov_len = 0;
     if (recvmsg(rdpsock, &errmsg, MSG_ERRQUEUE) == -1) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "handleErr(): Error in recvmsg [%d]: %s",
-		 errno, strerror(errno));
+	snprintf(errtxt, sizeof(errtxt), "%s: Error in recvmsg [%d]: %s",
+		 __func__, errno, strerror(errno));
 	errlog(errtxt, 0);
 	return -1;
     }
 
     if (! (errmsg.msg_flags & MSG_ERRQUEUE)) {
-	errlog("handleErr(): MSG_ERRQUEUE requested but not returned", 0);
+	errlog("handleErr: MSG_ERRQUEUE requested but not returned", 0);
 	return -1;
     }
 
     if (errmsg.msg_flags & MSG_CTRUNC) {
-	errlog("handleErr(): cmsg truncated.", 0);
+	errlog("handleErr: cmsg truncated.", 0);
 	return -1;
     }
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "handleErr(): errmsg: msg_name->sinaddr = %s,"
+    snprintf(errtxt, sizeof(errtxt), "%s: errmsg: msg_name->sinaddr = %s,"
 	     " msg_namelen = %d, msg_iovlen = %ld, msg_controllen = %d",
-	     inet_ntoa(sin.sin_addr),
+	     __func__, inet_ntoa(sin.sin_addr),
 	     errmsg.msg_namelen, (unsigned long) errmsg.msg_iovlen,
 	     (unsigned int) errmsg.msg_controllen);
     errlog(errtxt, 10);
 
     snprintf(errtxt, sizeof(errtxt),
-	     "handleErr(): errmsg.msg_flags: < %s%s%s%s%s%s>",
+	     "%s: errmsg.msg_flags: < %s%s%s%s%s%s>", __func__,
 	     errmsg.msg_flags & MSG_EOR ? "MSG_EOR ":"",
 	     errmsg.msg_flags & MSG_TRUNC ? "MSG_TRUNC ":"",
 	     errmsg.msg_flags & MSG_CTRUNC ? "MSG_CTRUNC ":"",
@@ -1163,35 +1151,33 @@ static int handleErr(void)
 
     cmsg = CMSG_FIRSTHDR(&errmsg);
     if (!cmsg) {
-	errlog("handleErr(): cmsg is NULL", 0);
+	errlog("handleErr: cmsg is NULL", 0);
 	return -1;
     }
 
     snprintf(errtxt, sizeof(errtxt),
-	     "handleErr(): cmsg: cmsg_len = %d,"
-	     " cmsg_level = %d (SOL_IP=%d),"
-	     " cmsg_type = %d (IP_RECVERR = %d)",
+	     "%s: cmsg: cmsg_len = %d, cmsg_level = %d (SOL_IP=%d),"
+	     " cmsg_type = %d (IP_RECVERR = %d)", __func__,
 	     (unsigned int) cmsg->cmsg_len, cmsg->cmsg_level, SOL_IP,
 	     cmsg->cmsg_type, IP_RECVERR);
     errlog(errtxt, 10);
 
     if (! cmsg->cmsg_len) {
-	errlog("handleErr(): cmsg->cmsg_len = 0, local error?", 0);
+	errlog("handleErr: cmsg->cmsg_len = 0, local error?", 0);
 	return -1;
     }
 
     extErr = (struct sock_extended_err *)CMSG_DATA(cmsg);
     if (!cmsg) {
-	errlog("handleErr(): extErr is NULL", 0);
+	errlog("handleErr: extErr is NULL", 0);
 	return -1;
     }
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "handleErr(): sock_extended_err: ee_errno = %u,"
+    snprintf(errtxt, sizeof(errtxt), "%s: sock_extended_err: ee_errno = %u,"
 	     " ee_origin = %hhu, ee_type = %hhu,"
 	     " ee_code = %hhu, ee_pad = %hhu,"
 	     " ee_info = %u, ee_data = %u",
-	     extErr->ee_errno, extErr->ee_origin,  extErr->ee_type,
+	     __func__, extErr->ee_errno, extErr->ee_origin,  extErr->ee_type,
 	     extErr->ee_code,  extErr->ee_pad,  extErr->ee_info,
 	     extErr->ee_data);
     errlog(errtxt, 10);
@@ -1207,20 +1193,20 @@ static int handleErr(void)
     switch (handleErrno) {
     case ECONNREFUSED:
 	snprintf(errtxt, sizeof(errtxt),
-		 "handleErr(): CONNREFUSED from node %d (%s) port %d",
+		 "%s: CONNREFUSED from node %d (%s) port %d", __func__,
 		 node, inet_ntoa(sinp->sin_addr), ntohs(sinp->sin_port));
 	errlog(errtxt, 0);
 	closeConnectionRDP(node);
 	break;
     case EHOSTUNREACH:
 	snprintf(errtxt, sizeof(errtxt),
-		 "handleErr(): HOSTUNREACH from node %d (%s) port %d",
+		 "%s: HOSTUNREACH from node %d (%s) port %d", __func__,
 		 node, inet_ntoa(sinp->sin_addr), ntohs(sinp->sin_port));
 	errlog(errtxt, 0);
 	break;
     default:
 	snprintf(errtxt, sizeof(errtxt),
-		 "handleErr(): UNKNOWN from node %d (%s) port %d",
+		 "%s: UNKNOWN from node %d (%s) port %d", __func__,
 		 node, inet_ntoa(sinp->sin_addr), ntohs(sinp->sin_port));
 	errlog(errtxt, 0);
     }
@@ -1241,24 +1227,18 @@ int handleRDP(int fd)
     /* read msg for inspection */
     if (MYrecvfrom(rdpsock, &msg, sizeof(msg), MSG_PEEK,
 		   (struct sockaddr *)&sin, &slen)<0) {
+	snprintf(errtxt, sizeof(errtxt), "%s: recvfrom(MSG_PEEK) returns: %s",
+		 __func__, strerror(errno));
+	errlog(errtxt, 0);
+
 #if defined(__linux__)
 	switch (errno) {
 	case ECONNREFUSED:
 	case EHOSTUNREACH:
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: recvfrom(MSG_PEEK) returns: %s",
-		     __func__, strerror(errno));
-	    errlog(errtxt, 0);
-
 	    return handleErr();
 	    break;
 	default:
 #endif
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: recvfrom(MSG_PEEK) returns: %s",
-		     __func__, strerror(errno));
-	    errlog(errtxt, 0);
-
 	    return -1;
 #if defined(__linux__)
 	}
@@ -1271,8 +1251,7 @@ int handleRDP(int fd)
 	    /* really get the msg */
 	    if (MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
 			   (struct sockaddr *) &sin, &slen)<0) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: recvfrom(0) returns: %s",
+		snprintf(errtxt, sizeof(errtxt), "%s: recvfrom(0) returns: %s",
 			 __func__, strerror(errno));
 		errexit(errtxt, errno);
 	    }
@@ -1290,8 +1269,7 @@ int handleRDP(int fd)
 	/* really get the msg */
 	if (MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
 		       (struct sockaddr *) &sin, &slen)<0) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: recvfrom(0) returns: %s",
+	    snprintf(errtxt, sizeof(errtxt), "%s: recvfrom(0) returns: %s",
 		     __func__, strerror(errno));
 	    errexit(errtxt, errno);
 	}
@@ -1308,8 +1286,7 @@ int handleRDP(int fd)
 	slen = sizeof(sin);
 	if (MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
 		       (struct sockaddr *) &sin, &slen)<0) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s/CDTA: recvfrom(0) returns: %s",
+	    snprintf(errtxt, sizeof(errtxt), "%s/CDTA: recvfrom() returns: %s",
 		     __func__, strerror(errno));
 	    errexit(errtxt, errno);
 	}
@@ -1362,7 +1339,7 @@ int initRDP(int nodes, unsigned short portno, int usesyslog,
     RDPCallback = callback;
     nrOfNodes = nodes;
 
-    snprintf(errtxt, sizeof(errtxt), "initRDP for %d nodes", nrOfNodes);
+    snprintf(errtxt, sizeof(errtxt), "%s: %d nodes", __func__, nrOfNodes);
     errlog(errtxt, 2);
 
     initMsgList(nodes);
@@ -1427,8 +1404,8 @@ int Rsendto(int node, void *buf, size_t len)
 
     if (((node < 0) || (node >= nrOfNodes))) {
 	/* illegal node number */
-	snprintf(errtxt, sizeof(errtxt),
-		 "Rsendto(): illegal node number %d", node);
+	snprintf(errtxt, sizeof(errtxt), "%s: illegal node number %d",
+		 __func__, node);
 	errlog(errtxt, 0);
 	errno = EINVAL;
 	return -1;
@@ -1436,17 +1413,16 @@ int Rsendto(int node, void *buf, size_t len)
 
     if (conntableRDP[node].window == 0) {
 	/* transmission window full */
-	snprintf(errtxt, sizeof(errtxt),
-		 "Rsendto(): transmission window to node %d full", node);
+	snprintf(errtxt, sizeof(errtxt), "%s: window to node %d full",
+		 __func__, node);
 	errlog(errtxt, 0);
 	errno = EAGAIN;
 	return -1;
     }
     if (len>RDP_MAX_DATA_SIZE) {
 	/* msg too large */
-	snprintf(errtxt, sizeof(errtxt),
-		 "Rsendto(): len [%ld] > RDP_MAX_DATA_SIZE [%d]", (long) len,
-		 RDP_MAX_DATA_SIZE);
+	snprintf(errtxt, sizeof(errtxt), "%s: len=%ld > RDP_MAX_DATA_SIZE(%d)",
+		 __func__, (long) len, RDP_MAX_DATA_SIZE);
 	errlog(errtxt, 0);
 	errno = EMSGSIZE;
 	return -1;
@@ -1496,8 +1472,8 @@ int Rsendto(int node, void *buf, size_t len)
     case CLOSED:
 	conntableRDP[node].state = SYN_SENT;
     case SYN_SENT:
-	snprintf(errtxt, sizeof(errtxt),
-		 "Rsendto(): connection to node %d not established", node);
+	snprintf(errtxt, sizeof(errtxt), "%s: no connection to %d yet",
+		 __func__, node);
 	errlog(errtxt, 8);
 
 	sendSYN(node);
@@ -1506,8 +1482,8 @@ int Rsendto(int node, void *buf, size_t len)
 	retval = len + sizeof(rdphdr);
 	break;
     case SYN_RECVD:
-	snprintf(errtxt, sizeof(errtxt),
-		 "Rsendto(): connection to node %d not established", node);
+	snprintf(errtxt, sizeof(errtxt), "%s: no connection to %d yet",
+		 __func__, node);
 	errlog(errtxt, 8);
 
 	sendSYNACK(node);
@@ -1519,8 +1495,8 @@ int Rsendto(int node, void *buf, size_t len)
 	/* connection already established */
 	/* send the data */
 	snprintf(errtxt, sizeof(errtxt),
-		 "sending DATA[len=%ld] to node %d (seq=%d, ack=%d)",
-		 (long) len, node, conntableRDP[node].frameToSend,
+		 "%s: sending DATA[len=%ld] to node %d (seq=%d, ack=%d)",
+		 __func__, (long) len, node, conntableRDP[node].frameToSend,
 		 conntableRDP[node].frameExpected);
 	errlog(errtxt, 12);
 
@@ -1533,9 +1509,8 @@ int Rsendto(int node, void *buf, size_t len)
 
 	break;
     default:
-	snprintf(errtxt, sizeof(errtxt),
-		 "Rsendto(): unknown state %d for node %d",
-		 conntableRDP[node].state, node);
+	snprintf(errtxt, sizeof(errtxt), "%s: unknown state %d for node %d",
+		 __func__, conntableRDP[node].state, node);
 	errlog(errtxt, 0);
     }
 
@@ -1545,8 +1520,8 @@ int Rsendto(int node, void *buf, size_t len)
     conntableRDP[node].window--;
 
     if (retval==-1) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "sendto returns %d [%s]", retval, strerror(errno));
+	snprintf(errtxt, sizeof(errtxt), "%s: return %d [%s]",
+		 __func__, retval, strerror(errno));
 	errlog(errtxt, 0);
 	return retval;
     }
@@ -1564,22 +1539,23 @@ int Rrecvfrom(int *node, void *msg, size_t len)
 
     if ((node == NULL) || (msg == NULL)) {
 	/* we definitely need a pointer */
-	errlog("Rrecvfrom(): got NULL pointer", 0);
+	snprintf(errtxt, sizeof(errtxt), "%s: got NULL pointer", __func__);
+	errlog(errtxt, 0);
 	errno = EINVAL;
 	return -1;
     }
     if (((*node < -1) || (*node >= nrOfNodes))) {
 	/* illegal node number */
-	snprintf(errtxt, sizeof(errtxt),
-		 "Rrecvfrom(): illegal node number [%d]", *node);
+	snprintf(errtxt, sizeof(errtxt), "%s: illegal node number [%d]",
+		 __func__, *node);
 	errlog(errtxt, 0);
 	errno = EINVAL;
 	return -1;
     }
     if ((*node != -1) && (conntableRDP[*node].state != ACTIVE)) {
 	/* connection not established */
-	snprintf(errtxt, sizeof(errtxt),
-		 "Rrecvfrom(): node %d NOT ACTIVE", *node);
+	snprintf(errtxt, sizeof(errtxt), "%s: node %d NOT ACTIVE",
+		 __func__, *node);
 	errlog(errtxt, 0);
 	errno = EAGAIN;
 	return -1;
@@ -1595,9 +1571,8 @@ int Rrecvfrom(int *node, void *msg, size_t len)
     fromnode = lookupIPTable(sin.sin_addr);        /* lookup node */
 
     if (msgbuf.header.type != RDP_DATA) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "Rrecvfrom(): type not RDP_DATA [%d] from node %d",
-		 fromnode, msgbuf.header.type);
+	snprintf(errtxt, sizeof(errtxt), "%s: not RDP_DATA [%d] from node %d",
+		 __func__, fromnode, msgbuf.header.type);
 	errlog(errtxt, 0);
 	handleControlPacket(&msgbuf.header, fromnode);
 	*node = -1;
@@ -1605,9 +1580,8 @@ int Rrecvfrom(int *node, void *msg, size_t len)
 	return -1;
     }
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "Rrecvfrom(): got DATA from %d (seq=%d, ack=%d)", fromnode,
-	     msgbuf.header.seqno, msgbuf.header.ackno);
+    snprintf(errtxt, sizeof(errtxt), "%s: got DATA from %d (seq=%d, ack=%d)",
+	     __func__, fromnode, msgbuf.header.seqno, msgbuf.header.ackno);
     errlog(errtxt, 12);
 
     switch (conntableRDP[fromnode].state) {
@@ -1624,9 +1598,8 @@ int Rrecvfrom(int *node, void *msg, size_t len)
     case ACTIVE:
 	break;
     default:
-	snprintf(errtxt, sizeof(errtxt),
-		 "Rrecvfrom(): unknown state %d for node %d",
-		 conntableRDP[fromnode].state, fromnode);
+	snprintf(errtxt, sizeof(errtxt), "%s: unknown state %d for node %d",
+		 __func__, conntableRDP[fromnode].state, fromnode);
 	errlog(errtxt, 0);
     }
 
@@ -1634,9 +1607,8 @@ int Rrecvfrom(int *node, void *msg, size_t len)
     if (conntableRDP[fromnode].frameExpected == msgbuf.header.seqno) {
 	/* msg is good */
 	conntableRDP[fromnode].frameExpected++;  /* update seqno counter */
-	snprintf(errtxt, sizeof(errtxt),
-		 "INC FE for node %d to %d", fromnode,
-		 conntableRDP[fromnode].frameExpected);
+	snprintf(errtxt, sizeof(errtxt), "%s: INC FE for node %d to %d",
+		 __func__, fromnode, conntableRDP[fromnode].frameExpected);
 	errlog(errtxt, 12);
 	conntableRDP[fromnode].ackPending++;
 	if (conntableRDP[fromnode].ackPending >= MAX_ACK_PENDING) {
