@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidpartition.c,v 1.9 2003/12/19 15:10:21 eicker Exp $
+ * $Id: psidpartition.c,v 1.10 2004/01/09 16:05:10 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.9 2003/12/19 15:10:21 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.10 2004/01/09 16:05:10 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -37,9 +37,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.9 2003/
 
 #include "psidpartition.h"
 
-static char errtxt[256];
-
-static int masterNode = -1; // @todo Hack 'till real masternode defined */
+static char errtxt[256]; /**< General string to create error messages */
 
 /**
  * Structure describing a actual request to create a partition
@@ -738,8 +736,8 @@ static int sendPartition(unsigned short *part, request_t *req)
 
     msg.header.type = PSP_DD_PROVIDEPARTNL;
     while (offset < req->size) {
-	int chunk = (req->size-offset > GETNODES_CHUNK) ?
-	    GETNODES_CHUNK : req->size-offset;
+	int chunk = (req->size-offset > NODES_CHUNK) ?
+	    NODES_CHUNK : req->size-offset;
 	msg.header.len = sizeof(msg.header);
 	ptr = msg.buf;
 
@@ -848,8 +846,10 @@ void msg_CREATEPART(DDBufferMsg_t *inmsg)
 	goto error;
     }
 
+    /* @todo Store this for backup, if master dies */
+    /* @todo Test if master is known */
     inmsg->header.type = PSP_DD_GETPART;
-    inmsg->header.dest = PSC_getTID(masterNode, 0);
+    inmsg->header.dest = PSC_getTID(getMasterID(), 0);
     *(uid_t *)ptr = task->uid;
     ptr += sizeof(uid_t);
     inmsg->header.len += sizeof(uid_t);
@@ -959,8 +959,10 @@ void msg_CREATEPARTNL(DDBufferMsg_t *inmsg)
 	goto error;
     }
 
+    /* @todo Store this for backup, if master dies */
+    /* @todo Test if master is known */
     inmsg->header.type = PSP_DD_GETPARTNL;
-    inmsg->header.dest = PSC_getTID(masterNode, 0);
+    inmsg->header.dest = PSC_getTID(getMasterID(), 0);
 
     if (PSC_getID(inmsg->header.dest) == PSC_getMyID()) {
 	msg_GETPARTNL(inmsg);
