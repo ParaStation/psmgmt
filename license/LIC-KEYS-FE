@@ -130,3 +130,28 @@ CPUs, Features"
 
 Hash     = 7dbe9252-66b7cb00
 
+#
+# ParaStation license
+#
+
+ID       = "ParaStation FE"
+Ver      = "1.0"
+Cpr      = "COPYRIGHT (C) 2003 ParTec AG Karlsruhe"
+
+Name     = "Rubys Demo"
+Contact  = "Ruby Krishnaswamy <a.goldwurm@wanadoo.fr>"
+License  = "1470-4125-12"
+LicType  = "commercial"
+
+Date     = "2003-03-18"
+Expire   = "2003-06-16"
+
+Nodes    = 16
+CPUs     = 32
+Features = ""
+
+Fields   = "ID, Ver, Cpr, Name, License, LicType, Date, Expire, Nodes,\
+CPUs, Features"
+
+Hash     = 7dceec1a-ee05d38e
+
