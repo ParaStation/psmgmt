@@ -5,7 +5,7 @@
     &ps; is at first a high speed communication subsystem, which is used to
     cluster standard workstations and PCs. A high speed interconnect enables
     you to use your cluster as a parallel computer. Communication is done via
-    an additional parallel communication network card, e.g. Myrinet or gigabit
+    an additional parallel communication network card, e.g. Myrinet or Gigabit
     Ethernet, and does not involve any Operating System communication paths.
   </para>
   
@@ -17,20 +17,24 @@
   </para>
 
   <para>
-    Furthermore another version called &psfe; exists. This variant of &ps; uses
-    Ethernet for communication in an optimized way but cannot give the high
-    throughput, low latency communication one is used to from the Myrinet
-    version due to the limited potential provided by Ethernet. Additionally
-    some disadvantages of the MPIch communication implementations are
-    eliminated doubling the throughput for big packets (i.e. larger than 32
-    kByte).
+    At the time three different versions of &ps; exist. Besides the well known
+    &ps3; software using the Myrinet high speed communication interconnect
+    there are two further variants running on top of Ethernet: On the one hand
+    a version called &psfe; running on top of TCP/IP, on the other hand &ps4;
+    which runs an optimized protocol and enables Ethernet to play a role in the
+    market of high throughput, low latency communication. While both versions
+    running on Ethernet eliminate some disadvantages of the MPIch communication
+    implementations doubling the throughput for big packets (i.e. larger than
+    32 kByte), &psfe; obviously cannot give the same performance as &ps4; due
+    to the complete different communication architecture.
   </para>
 
   <para>
-    In addition &ps; offers an integrated cluster administration and cluster
-    management environment. Using Unix daemon processes an effective resource
-    management and single point of administration is implemented. This results
-    in a single system image view of the cluster to deal with.
+    All variants of the &ps; software offer an integrated cluster
+    administration and cluster management environment. Using Unix daemon
+    processes an effective resource management and single point of
+    administration is implemented. This results in a single system image view
+    of the cluster to deal with.
   </para>
 
   <para>
@@ -51,11 +55,10 @@
     University.
   </para>
   <para>
-    When in 1998 ParaStation2 was presented, it was a pure software project.
-    The communication platform used then was Myrinet, a gigabit interconnect
+    When in 1998 &ps;2 was presented, it was a pure software project. The
+    communication platform used then was Myrinet, a gigabit interconnect
     developed  by <ulink url="http://www.myri.com"> Myricom</ulink>. The
-    development of ParaStation2 still took place at the University of
-    Karlsruhe.
+    development of &ps;2 still took place at the University of Karlsruhe.
   </para>
   <para>
     &ps; became commercial in 1999 when <ulink
@@ -84,6 +87,12 @@
     packets gained from the MPIch/P4 implementation of the MPI message passing
     interface, the de facto standard on beowulf clusters, was improved to the
     limits that are to be expected from the physical circumstances.
+  </para>
+  <para>
+    With &ps4; presented in 2003 the software became really communication
+    platform independent. With this version of the software even Gigabit
+    Ethernet became a serious alternative as a cluster interconnect due to the
+    throughput and latency that could be achieved.
   </para>
 </section>
 
