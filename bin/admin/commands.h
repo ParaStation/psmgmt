@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: commands.h,v 1.3 2003/10/23 16:27:35 eicker Exp $
+ * $Id: commands.h,v 1.4 2003/10/29 17:13:36 eicker Exp $
  *
  */
 /**
  * \file
  * Commands of the ParaStation adminstration tool
  *
- * $Id: commands.h,v 1.3 2003/10/23 16:27:35 eicker Exp $
+ * $Id: commands.h,v 1.4 2003/10/29 17:13:36 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -30,15 +30,10 @@ extern "C" {
 #endif
 #endif
 
-#define ALLNODES	-1
-
 extern char commandsversion[];
 
 void PSIADM_Init(void);
 void PSIADM_sighandler(int signal);
-
-int PSIADM_Debug(char* protocol,long portno);
-int PSIADM_LookUpNodeName(char* hostname);
 
 void PSIADM_AddNode(char *nl);
 void PSIADM_ShutdownNode(char *nl);
