@@ -7,21 +7,12 @@ INETD_PSIDLINE="psid	stream	tcp	nowait	root	/opt/parastation/bin/psid"
 INETD_PSLDMASK="^[ 	]*psld[ 	]"
 INETD_PSLDLINE="psld	stream	tcp	nowait	root	/opt/parastation/bin/psld"
 
-SERV_PSRDPMASK="^[ 	]*psrdp[ 	]"
-#SERV_PSRDPMASK="^psrdp"
-SERV_PSRDPLINE="psrdp            886/udp       # ParaStation Daemon RDP Port"
 SERV_PSLDMASK="^[ 	]*psld[ 	]"
 #SERV_PSLDMASK="^psld"
 SERV_PSLDLINE="psld             887/tcp       # ParaStation License Daemon Start Port"
 SERV_PSIDMASK="^[ 	]*psid[ 	]"
 #SERV_PSIDMASK="^psid"
 SERV_PSIDLINE="psid             888/tcp       # ParaStation Daemon Start Port"
-SERV_PSIDSMASK="^[ 	]*psids[ 	]"
-#SERV_PSIDSMASK="^psids"
-SERV_PSIDSLINE="psids            889/tcp       # ParaStation Daemon Connection Port"
-SERV_PSMCASTMASK="^[ 	]*psmcast[ 	]"
-#SERV_PSMCASTMASK="^psmcast"
-SERV_PSMCASTLINE="psmcast         1889/udp       # ParaStation MCAST Port"
 
 self_post_inst_msg() {
     echo "#################################################################"
@@ -198,23 +189,20 @@ self_change_service_conf() {
     if [ -f $SERV_CNF ] 
     then		
 	echo "Updating of $SERV_CNF..."
-	cat $SERV_CNF | grep -v -e "$SERV_PSRDPMASK" -e "$SERV_PSLDMASK" -e "$SERV_PSIDMASK" -e "$SERV_PSIDSMASK" -e "$SERV_PSMCASTMASK" > $SERV_TRG
+	cat $SERV_CNF | grep -v -e "$SERV_PSLDMASK" -e "$SERV_PSIDMASK" > $SERV_TRG
 	VSTATE=$?
 	if [ $1 -eq 1 ]
 	then
 	    # now append...	    
-	    echo "$SERV_PSRDPLINE" >> $SERV_TRG
 	    echo "$SERV_PSLDLINE" >> $SERV_TRG
 	    echo "$SERV_PSIDLINE" >> $SERV_TRG
-	    echo "$SERV_PSIDSLINE" >> $SERV_TRG
-	    echo "$SERV_PSMCASTLINE" >> $SERV_TRG
 	fi    
         if [ $VSTATE = 0 ]
 	then
 	    if [ $1 -eq 1 ]
 	    then
 	    #if installation
-    		cat $SERV_CNF | grep -e "$SERV_PSRDPMASK" -e "$SERV_PSLDMASK" -e "$SERV_PSIDMASK" -e "$SERV_PSIDSMASK" -e "$SERV_PSMCASTMASK"
+    		cat $SERV_CNF | grep -e "$SERV_PSLDMASK" -e "$SERV_PSIDMASK"
 		if [ $? -eq 0 ]
 		then
 		# there is some entries in $INETD_CNF
