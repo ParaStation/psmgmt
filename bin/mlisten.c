@@ -81,6 +81,28 @@ void init(void)
     display[258]=0;
 }
 
+void usage(void)
+{
+    fprintf(stderr,"usage: mlisten [-h] [-D] [-m MCAST] [-n NET] [-p PORT]\n");
+}
+
+/******************************************
+ *  help()
+ */
+void help(void)
+{
+    usage();
+    fprintf(stderr,"\n");
+    fprintf(stderr," -D       : Activate debugging.\n");
+    fprintf(stderr," -m MCAST : Listen to multicast group MCAST."
+	    " Default is %d.\n", MGROUP);
+    fprintf(stderr," -n NET   : Listen only on network NET."
+	    " Default is INADDR_ANY.\n");
+    fprintf(stderr," -p PORT  : Listen on port PORT. Default is %s.\n",
+	    MCASTSERVICE);
+    fprintf(stderr," -h,      : print this screen.\n");
+}
+    
 int main(int argc, char *argv[])
 {
     char host[80];
@@ -100,11 +122,10 @@ int main(int argc, char *argv[])
     int slen;
     Mmsg buf;
     char c;
-    int errflg=0;
     int debug=0;
 
     optarg = NULL;
-    while (!errflg && ((c = getopt(argc,argv, "p:n:m:D")) != -1)){
+    while (((c = getopt(argc,argv, "DhHm:n:p:")) != -1)){
 	switch(c){
 	case 'p':
 	    service = optarg; 
@@ -121,9 +142,14 @@ int main(int argc, char *argv[])
 	case 'D':
 	    debug=1;
 	    break;
-	default:
-	    errflg++;
+	case 'h':
+	case 'H':
+	    help();
+	    return 0;
 	    break;
+	default:
+	    usage();
+	    return -1;
 	}
     }
 
