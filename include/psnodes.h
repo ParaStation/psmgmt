@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psnodes.h,v 1.4 2003/06/25 16:32:25 eicker Exp $
+ * $Id: psnodes.h,v 1.5 2003/07/22 18:31:23 eicker Exp $
  *
  */
 /**
@@ -13,7 +13,7 @@
  * Functions for handling the various informations about the nodes
  * with a ParaStation cluster
  *
- * $Id: psnodes.h,v 1.4 2003/06/25 16:32:25 eicker Exp $
+ * $Id: psnodes.h,v 1.5 2003/07/22 18:31:23 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -61,7 +61,8 @@ int PSnodes_getNum(void);
  * @brief Register a new node.
  *
  * Register a new node with ParaStation ID @a id. This node will
- * reside on the host with IP address @a IPaddr.
+ * reside on the host with IP address @a IPaddr. The IP address has to
+ * be given in network byteorder.
  *
  * @param id ParaStation ID of the new node.
  *
@@ -75,9 +76,10 @@ int PSnodes_register(int id, unsigned int IPaddr);
 /**
  * @brief Get the ParaStation ID of a node.
  *
- * Get the ParaStation ID of the node with IP address @a IPaddr.
+ * Get the ParaStation ID of the node with IP address @a IPaddr. The
+ * IP address has to be given in network byteorder.
  *
- * @param IPaddr IP address of the new node.
+ * @param IPaddr IP address of the node to lookup.
  *
  * @return If the node was found, the ParaStation ID is returned. Or
  * -1, if an error occured.
@@ -87,7 +89,8 @@ int PSnodes_lookupHost(unsigned int IPaddr);
 /**
  * @brief Get the IP address of a node.
  *
- * Get the IP address of the node with ParaStation ID @a id.
+ * Get the IP address of the node with ParaStation ID @a id. The IP
+ * address will be given in network byteorder.
  *
  * @param id ParaStation ID of the node to look up.
  *
