@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidtask.c,v 1.3 2002/07/18 13:16:35 eicker Exp $
+ * $Id: psidtask.c,v 1.4 2002/07/25 13:50:56 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.3 2002/07/18 13:16:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.4 2002/07/25 13:50:56 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -19,6 +19,8 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.3 2002/07/18
 #include <string.h>
 
 #include "pstask.h"
+#include "pscommon.h"
+#include "mcast.h"
 
 #include "psidutil.h"
 
@@ -122,22 +124,25 @@ void PStasklist_delete(PStask_t **list)
     }
 }
 
-int PStasklist_enqueue(PStask_t **list, PStask_t *newtask)
+int PStasklist_enqueue(PStask_t **list, PStask_t *task)
 {
     snprintf(errtxt, sizeof(errtxt), "PStasklist_enqueue(%p[%lx],%p)",
-	     list, *list ? (long)*list : -1, newtask);
+	     list, *list ? (long)*list : -1, task);
     PSID_errlog(errtxt, 10);
 
     if (*list) {
-	newtask->next = (*list)->next;
-	newtask->prev = (*list);
-	(*list)->next = newtask;
-	if (newtask->next) {
-	    newtask->next->prev = newtask;
+	task->next = (*list)->next;
+	task->prev = (*list);
+	(*list)->next = task;
+	if (task->next) {
+	    task->next->prev = task;
 	}
     } else {
-	(*list) = newtask;
+	(*list) = task;
     }
+
+    /* Tell MCast about the new task */
+    incJobsMCast(PSC_getMyID(), 1, (task->group==TG_ANY));
 
     return 0;
 }
@@ -163,6 +168,9 @@ PStask_t *PStasklist_dequeue(PStask_t **list, long tid)
 	if (task->next) {
 	    task->next->prev = task->prev;
 	}
+
+	/* Tell MCast about removing the task */
+	decJobsMCast(PSC_getMyID(), 1, (task->group==TG_ANY));
     }
 
     return task;
