@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.103 2003/07/31 15:31:30 eicker Exp $
+ * $Id: psid.c,v 1.104 2003/08/27 13:04:38 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.103 2003/07/31 15:31:30 eicker Exp $ 
+ * $Id: psid.c,v 1.104 2003/08/27 13:04:38 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.103 2003/07/31 15:31:30 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.104 2003/08/27 13:04:38 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -78,7 +78,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.103 $";
+static char psid_cvsid[] = "$Revision: 1.104 $";
 
 static int PSID_mastersock;
 
@@ -418,7 +418,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
     }
     if (task) {
 	/* reconnection */
-	/* use the old task struct and close the old fd */
+	/* use the old task struct but close the old fd */
 	snprintf(errtxt, sizeof(errtxt),
 		 "CLIENTCONNECT reconnection old fd=%d new fd=%d",
 		 task->fd, fd);
@@ -664,6 +664,41 @@ void msg_DAEMONESTABLISHED(DDMsg_t *msg)
     send_OPTIONS(id);
 }
 
+void msg_DAEMONSTART(DDBufferMsg_t *msg)
+{
+    unsigned short starter = PSC_getID(msg->header.dest);
+    int node = *(long *) msg->buf;
+
+    /*
+     * contact the other node if no connection already exist
+     */
+    snprintf(errtxt, sizeof(errtxt), "%s: received (starter=%d node=%d)",
+	     __func__, starter, node);
+    PSID_errlog(errtxt, 1);
+
+    if (starter==PSC_getMyID()) {
+	if ((node >=0 && node<PSC_getNrOfNodes())) {
+	    if (!PSnodes_isUp(node)) {
+		unsigned int addr = PSnodes_getAddr(node);
+		if (addr != INADDR_ANY)	PSC_startDaemon(addr);
+	    } else {
+		snprintf(errtxt, sizeof(errtxt), "%s: node %d already up",
+			 __func__, node);
+		PSID_errlog(errtxt, 0);
+	    }
+	}
+    } else {
+	if (PSnodes_isUp(starter)) {
+	    /* forward message */
+	    sendMsg(&msg);
+	} else {
+	    snprintf(errtxt, sizeof(errtxt), "%s: starter %d is down",
+		     __func__, starter);
+	    PSID_errlog(errtxt, 0);
+	}
+    }
+}
+
 /******************************************
  *  msg_DAEMONSTOP()
  *   sender node requested a psid-stop on the receiver node.
@@ -676,6 +711,70 @@ void msg_DAEMONSTOP(DDMsg_t *msg)
 	sendMsg(msg);
     }
 }
+
+static void informOtherNodes(void)
+{
+    DDOptionMsg_t msg = (DDOptionMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CD_SETOPTION,
+	    .sender = PSC_getMyTID(),
+	    .dest = 0,
+	    .len = sizeof(msg) },
+	.count = 1,
+	.opt = {(DDOption_t) {
+	    .option =  PSP_OP_HWSTATUS,
+	    .value =  PSnodes_getHWStatus(PSC_getMyID()) }
+	}};
+
+    if (broadcastMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: broadcastMsg(): errno %d", __func__, errno);
+	PSID_errlog(errtxt, 0);
+    }
+}
+
+void msg_HWSTART(DDBufferMsg_t *msg)
+{
+    snprintf(errtxt, sizeof(errtxt), "%s from requester %s",
+	     __func__, PSC_printTID(msg->header.sender));
+    PSID_errlog(errtxt, 1);
+
+    if (msg->header.dest == PSC_getMyTID()) {
+	int hw = *(int *)msg->buf;
+	int status = PSnodes_getHWStatus(PSC_getMyID());
+
+	if (hw == -1) {
+	    PSID_startAllHW();
+	} else {
+	    PSID_startHW(hw);
+	}
+	if (status != PSnodes_getHWStatus(PSC_getMyID())) informOtherNodes();
+    } else {
+	sendMsg(msg);
+    }
+}
+
+void msg_HWSTOP(DDBufferMsg_t *msg)
+{
+    snprintf(errtxt, sizeof(errtxt), "%s from requester %s",
+	     __func__, PSC_printTID(msg->header.sender));
+    PSID_errlog(errtxt, 1);
+
+    if (msg->header.dest == PSC_getMyTID()) {
+	int hw = *(int *)msg->buf;
+	int status = PSnodes_getHWStatus(PSC_getMyID());
+
+	if (hw == -1) {
+	    PSID_stopAllHW();
+	} else {
+	    PSID_stopHW(hw);
+	}
+	if (status != PSnodes_getHWStatus(PSC_getMyID())) informOtherNodes();
+    } else {
+	sendMsg(msg);
+    }
+}
+
 
 /******************************************
  *  msg_SPAWNREQUEST()
@@ -1035,30 +1134,27 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
     PSID_errlog(errtxt, 1);
 
     if (id!=PSC_getMyID()) {
-	/* a request for a remote daemon */
+	DDErrorMsg_t errmsg = (DDErrorMsg_t) {
+	    .header = (DDMsg_t) {
+		.type = PSP_CD_ERROR,
+		.dest = inmsg->header.sender,
+		.sender = PSC_getMyTID(),
+		.len = sizeof(errmsg) },
+	    .request = inmsg->header.type,
+	    .error = 0};
+
+	/* request for remote daemon */
 	if (PSnodes_isUp(id)) {
 	    /*
 	     * transfer the request to the remote daemon
 	     */
 	    if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
 		/* system error */
-		DDErrorMsg_t errmsg;
-		errmsg.header.type = PSP_CD_ERROR;
-		errmsg.header.dest = inmsg->header.sender;
-		errmsg.header.sender = PSC_getMyTID();
-		errmsg.header.len = sizeof(errmsg);
-		errmsg.request = inmsg->header.type;
 		errmsg.error = EHOSTUNREACH;
 		sendMsg(&errmsg);
 	    }
 	} else {
 	    /* node is down */
-	    DDErrorMsg_t errmsg;
-	    errmsg.header.type = PSP_CD_ERROR;
-	    errmsg.header.dest = inmsg->header.sender;
-	    errmsg.header.sender = PSC_getMyTID();
-	    errmsg.header.len = sizeof(errmsg);
-	    errmsg.request = inmsg->header.type;
 	    errmsg.error = EHOSTDOWN;
 	    sendMsg(&errmsg);
 	}
@@ -1323,7 +1419,7 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 	     __func__, PSC_printTID(msg->header.sender));
     PSID_errlog(errtxt, 1);
 
-    if (msg->header.dest == PSC_getMyTID() || msg->header.dest == -1) {
+    if (msg->header.dest == PSC_getMyTID()) {
 	/* Message is for me */
 	for (i=0; i<msg->count; i++) {
 	    snprintf(errtxt, sizeof(errtxt), "%s: option %ld value 0x%lx",
@@ -1453,11 +1549,6 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 		PSID_errlog(errtxt, 0);
 	    }
 	}
-
-	/* Message is for any node so do a broadcast */
-	if (msg->header.dest ==-1) {
-	    broadcastMsg(msg);
-	}
     } else {
 	/* Message is for a remote node */
 	sendMsg(msg);
@@ -1477,6 +1568,15 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
     PSID_errlog(errtxt, 1);
 
     if (id!=PSC_getMyID()) {
+	DDErrorMsg_t errmsg = (DDErrorMsg_t) {
+	    .header = (DDMsg_t) {
+		.type = PSP_CD_ERROR,
+		.dest = msg->header.sender,
+		.sender = PSC_getMyTID(),
+		.len = sizeof(errmsg) },
+	    .request = msg->header.type,
+	    .error = 0};
+
 	/* a request for a remote daemon */
 	if (PSnodes_isUp(id)) {
 	    /*
@@ -1484,23 +1584,11 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 	     */
 	    if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
 		/* system error */
-		DDErrorMsg_t errmsg;
-		errmsg.header.type = PSP_CD_ERROR;
-		errmsg.header.dest = msg->header.sender;
-		errmsg.header.sender = PSC_getMyTID();
-		errmsg.header.len = sizeof(errmsg);
-		errmsg.request = msg->header.type;
 		errmsg.error = EHOSTUNREACH;
 		sendMsg(&errmsg);
 	    }
 	} else {
 	    /* node is down */
-	    DDErrorMsg_t errmsg;
-	    errmsg.header.type = PSP_CD_ERROR;
-	    errmsg.header.dest = msg->header.sender;
-	    errmsg.header.sender = PSC_getMyTID();
-	    errmsg.header.len = sizeof(errmsg);
-	    errmsg.request = msg->header.type;
 	    errmsg.error = EHOSTDOWN;
 	    sendMsg(&errmsg);
 	}
@@ -1597,8 +1685,6 @@ void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
     msg->header.type = PSP_CD_NOTIFYDEADRES;
     msg->header.dest = registrarTid;
     msg->header.sender = tid;
-    // msg->header.len = sizeof(*msg);
-    // msg->signal = msg->signal;
 
     if (!tid) {
 	task = PStasklist_find(managedTasks, registrarTid);
@@ -1780,7 +1866,6 @@ static int releaseTask(DDSignalMsg_t *msg)
 		PSID_errlog(errtxt, 1);
 
 		msg->header.dest = task->ptid;
-		// msg->header.len = sizeof(*msg);
 		msg->signal = -1;
 
 		sendMsg(msg);
@@ -1806,7 +1891,6 @@ static int releaseTask(DDSignalMsg_t *msg)
 		PSID_errlog(errtxt, 1);
 
 		msg->header.dest = senderTid;
-		// msg->header.len = sizeof(*msg);
 		msg->signal = signal;
 
 		sendMsg(msg);
@@ -1850,7 +1934,6 @@ void msg_RELEASE(DDSignalMsg_t *msg)
 	msg->header.type = PSP_CD_RELEASERES;
 	msg->header.dest = msg->header.sender;
 	msg->header.sender = tid;
-	// msg->header.len = sizeof(*msg);
 	msg->param = ret;
 
 	if (msg->param) sendMsg(msg);
@@ -1876,7 +1959,6 @@ void msg_RELEASE(DDSignalMsg_t *msg)
 	msg->header.type = PSP_CD_RELEASERES;
 	msg->header.dest = msg->header.sender;
 	msg->header.sender = tid;
-	// msg->header.len = sizeof(*msg);
 	msg->param = releaseSignal(tid, registrarTid, msg->signal);
     } else {
 	/* receiving task (task to release) is remote, send a message */
@@ -2038,11 +2120,9 @@ void msg_WHODIED(DDSignalMsg_t *msg)
 
 	msg->header.dest = msg->header.sender;
 	msg->header.sender = tid;
-	// msg->header.len = sizeof(*msg);
     } else {
 	msg->header.dest = msg->header.sender;
 	msg->header.sender = -1;
-	// msg->header.len = sizeof(*msg);
     }
 
     sendMsg(msg);
@@ -2152,50 +2232,21 @@ void psicontrol(int fd)
 	    msg_WHODIED((DDSignalMsg_t*)&msg);
 	    break;
 	case PSP_CD_DAEMONSTART:
-	{
-	    unsigned short node1;
-	    int node2;
-	    node1 = PSC_getID(msg.header.dest);
-	    node2 = *(long *) msg.buf;
-
-	    /*
-	     * contact the other node if no connection already exist
-	     */
-	    snprintf(errtxt, sizeof(errtxt),
-		     "CONTACTNODE received (node1=%d node2=%d)", node1, node2);
-	    PSID_errlog(errtxt, 1);
-
-	    if (node1==PSC_getMyID()) {
-		if ((node2 >=0 && node2<PSC_getNrOfNodes())) {
-		    if (!PSnodes_isUp(node2)) {
-			unsigned int addr = PSnodes_getAddr(node2);
-			if (addr != INADDR_ANY)	PSC_startDaemon(addr);
-		    } else {
-			snprintf(errtxt, sizeof(errtxt),
-				 "CONTACTNODE received but node %d is"
-				 " already up", node2);
-			PSID_errlog(errtxt, 0);
-		    }
-		}
-	    } else {
-		if (PSnodes_isUp(node1)) {
-		    /* forward message */
-		    sendMsg(&msg);
-		} else {
-		    snprintf(errtxt, sizeof(errtxt),
-			     "CONTACTNODE received but could not forward "
-			     "since node %d is down", node1);
-		    PSID_errlog(errtxt, 0);
-		}
-	    }
+	    /* Start remote daemon */
+	    msg_DAEMONSTART(&msg);
 	    break;
-	}
 	case PSP_CD_DAEMONSTOP:
 	    /* Stop local or remote daemon */
 	    msg_DAEMONSTOP((DDMsg_t *)&msg);
 	    break;
 	case PSP_CD_DAEMONRESET:
 	    msg_DAEMONRESET(&msg);
+	    break;
+	case PSP_CD_HWSTART:
+	    msg_HWSTART(&msg);
+	    break;
+	case PSP_CD_HWSTOP:
+	    msg_HWSTOP(&msg);
 	    break;
 	case PSP_CC_MSG:
 	    /* Forward this message. If this fails, send an error message. */
@@ -2320,15 +2371,15 @@ void RDPCallBack(int msgid, void *buf)
     switch(msgid) {
     case RDP_NEW_CONNECTION:
 	node = *(int*)buf;
-	snprintf(errtxt, sizeof(errtxt),
-		 "RDPCallBack(RDP_NEW_CONNECTION,%d)", node);
+	snprintf(errtxt, sizeof(errtxt), "%s(RDP_NEW_CONNECTION,%d)",
+		 __func__, node);
 	PSID_errlog(errtxt, 2);
 	if (node != PSC_getMyID() && !PSnodes_isUp(node)) {
 	    PSnodes_bringUp(node);  /* @todo needed ? */
 	    if (send_DAEMONCONNECT(node)<0) {
 		snprintf(errtxt, sizeof(errtxt),
-			 "RDPCallBack() send_DAEMONCONNECT()"
-			 " returned with error %d", errno);
+			 "%s: send_DAEMONCONNECT(): error %d",
+			 __func__, errno);
 		PSID_errlog(errtxt, 2);
 	    }
 	}
@@ -2336,7 +2387,7 @@ void RDPCallBack(int msgid, void *buf)
     case RDP_PKT_UNDELIVERABLE:
 	msg = (DDMsg_t*)((RDPDeadbuf*)buf)->buf;
 	snprintf(errtxt, sizeof(errtxt),
-		 "RDPCallBack(RDP_PKT_UNDELIVERABLE, dest %lx source %lx %s)",
+		 "%s(RDP_PKT_UNDELIVERABLE, dest %lx source %lx %s)", __func__,
 		 msg->dest, msg->sender, PSDaemonP_printMsg(msg->type));
 	PSID_errlog(errtxt, 2);
 
@@ -2347,27 +2398,28 @@ void RDPCallBack(int msgid, void *buf)
 	    case PSP_CD_INFOREQUEST:
 	    {
 		/* Sender expects an answer */
-		DDErrorMsg_t errmsg;
-		errmsg.header.type = PSP_CD_ERROR;
-		errmsg.header.dest = msg->sender;
-		errmsg.header.sender = PSC_getMyTID();
-		errmsg.header.len = sizeof(errmsg);
-		errmsg.request = msg->type;
-		errmsg.error = EHOSTUNREACH;
+		DDErrorMsg_t errmsg = (DDErrorMsg_t) {
+		    .header = (DDMsg_t) {
+			.type = PSP_CD_ERROR,
+			.dest = msg->sender,
+			.sender = PSC_getMyTID(),
+			.len = sizeof(errmsg) },
+		    .request = msg->type,
+		    .error = EHOSTUNREACH };
 		sendMsg(&errmsg);
 		break;
 	    }
 	    case PSP_CD_SPAWNREQUEST:
 	    {
-		DDErrorMsg_t answer;
-
-		answer.header.type = PSP_CD_SPAWNFAILED;
-		answer.header.dest = msg->sender;
-		answer.header.sender = PSC_getMyTID();
-		answer.header.len = sizeof(answer);
-		answer.error = EHOSTDOWN;
-
-		sendMsg(&answer);
+		DDErrorMsg_t answer = (DDErrorMsg_t) {
+		    .header = (DDMsg_t) {
+			.type = PSP_CD_SPAWNFAILED,
+			.dest = msg->sender,
+			.sender = PSC_getMyTID(),
+			.len = sizeof(answer) },
+		    .request = msg->type,
+		    .error = EHOSTDOWN };
+		    sendMsg(&answer);
 		break;
 	    }
 	    case PSP_CD_RELEASE:
@@ -2380,8 +2432,8 @@ void RDPCallBack(int msgid, void *buf)
 	break;
     case RDP_LOST_CONNECTION:
 	node = *(int*)buf;
-	snprintf(errtxt, sizeof(errtxt),
-		 "RDPCallBack(RDP_LOST_CONNECTION,%d)", node);
+	snprintf(errtxt, sizeof(errtxt), "%s(RDP_LOST_CONNECTION,%d)",
+		 __func__, node);
 	PSID_errlog(errtxt, 2);
 
 	declareDaemonDead(node);
@@ -2395,9 +2447,8 @@ void RDPCallBack(int msgid, void *buf)
 	flushRDPMsgs(node);
 	break;
     default:
-	snprintf(errtxt, sizeof(errtxt),
-		 "RDPCallBack(%d,%p). Unhandled message",
-		 msgid, buf);
+	snprintf(errtxt, sizeof(errtxt), "%s(%d,%p). Unhandled message",
+		 __func__, msgid, buf);
 	PSID_errlog(errtxt, 0);
     }
 }
@@ -2598,7 +2649,7 @@ void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.103 $";
+    char revision[] = "$Revision: 1.104 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
