@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidinfo.c,v 1.4 2003/10/31 13:22:21 eicker Exp $
+ * $Id: psidinfo.c,v 1.5 2003/11/26 17:45:05 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidinfo.c,v 1.4 2003/10/31 13:22:21 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidinfo.c,v 1.5 2003/11/26 17:45:05 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -42,14 +42,18 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 {
     int id = PSC_getID(inmsg->header.dest);
     int header = 0;
+    char funcStr[80];
 
     snprintf(errtxt, sizeof(errtxt), "%s: type %d for %d from requester %s",
 	     __func__, inmsg->type, id, PSC_printTID(inmsg->header.sender));
     PSID_errlog(errtxt, 1);
 
+    snprintf(funcStr, sizeof(funcStr),
+	     "%s(%s)", __func__, PSP_printInfo(inmsg->type));
+
     if (id!=PSC_getMyID()) {
-	DDErrorMsg_t errmsg = (DDErrorMsg_t) {
-	    .header = (DDMsg_t) {
+	DDErrorMsg_t errmsg = {
+	    .header = {
 		.type = PSP_CD_ERROR,
 		.dest = inmsg->header.sender,
 		.sender = PSC_getMyTID(),
@@ -59,6 +63,39 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 
 	/* request for remote daemon */
 	if (PSnodes_isUp(id)) {
+	    if (PSC_getID(inmsg->header.sender) == PSC_getMyID()) {
+		/* Test for correct protocol version */
+		PStask_t *requester = PStasklist_find(managedTasks,
+						      inmsg->header.sender);
+		DDTypedMsg_t msg = {
+		    .header = {
+			.type = PSP_CD_INFORESPONSE,
+			.sender = PSC_getMyTID(),
+			.dest = inmsg->header.sender,
+			.len = sizeof(msg) },
+		    .type = PSP_INFO_UNKNOWN };
+
+		if (!requester) {
+		    snprintf(errtxt, sizeof(errtxt),
+			     "%s: requester %s not found",
+			     funcStr, PSC_printTID(inmsg->header.sender));
+		    PSID_errlog(errtxt, 0);
+		    inmsg = (DDTypedBufferMsg_t *)&msg;
+		} else if (requester->protocolVersion < 329) {
+		    switch (inmsg->type) {
+		    case PSP_INFO_LIST_VIRTCPUS:
+		    case PSP_INFO_LIST_PHYSCPUS:
+		    case PSP_INFO_LIST_HWSTATUS:
+		    case PSP_INFO_LIST_LOAD:
+		    case PSP_INFO_LIST_ALLJOBS:
+		    case PSP_INFO_LIST_NORMJOBS:
+			inmsg = (DDTypedBufferMsg_t *)&msg;
+			break;
+		    default:
+			;
+		    }
+		}
+	    }
 	    /*
 	     * transfer the request to the remote daemon
 	     */
@@ -74,8 +111,8 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	}
     } else {
 	/* a request for my own Information*/
-	DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	    .header = (DDMsg_t) {
+	DDTypedBufferMsg_t msg = {
+	    .header = {
 		.type = PSP_CD_INFORESPONSE,
 		.sender = PSC_getMyTID(),
 		.dest = inmsg->header.sender,
@@ -84,14 +121,14 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    .buf = { 0 } };
 	int err=0;
 
-	switch(inmsg->type){
-	case PSP_INFO_TASK:
+	switch((PSP_Info_t) inmsg->type){
+	case PSP_INFO_LIST_TASKS:
 	    if (PSC_getPID(inmsg->header.dest)) {
 		/* request info for a special task */
 		PStask_t *task = PStasklist_find(managedTasks,
 						 inmsg->header.dest);
 		if (task) {
-		    Taskinfo_t *taskinfo = (Taskinfo_t *)msg.buf;
+		    PSP_taskInfo_t *taskinfo = (PSP_taskInfo_t *)msg.buf;
 		    taskinfo->tid = task->tid;
 		    taskinfo->ptid = task->ptid;
 		    taskinfo->loggertid = task->loggertid;
@@ -100,15 +137,15 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		    taskinfo->rank = task->rank;
 		    taskinfo->connected = (task->fd != -1);
 
-		    msg.header.len += sizeof(Taskinfo_t);
+		    msg.header.len += sizeof(PSP_taskInfo_t);
 		    sendMsg(&msg);
-		    msg.header.len -= sizeof(Taskinfo_t);
+		    msg.header.len -= sizeof(PSP_taskInfo_t);
 		}
 	    } else {
 		/* request info for all tasks */
 		PStask_t *task;
 		for (task=managedTasks; task; task=task->next) {
-		    Taskinfo_t *taskinfo = (Taskinfo_t *)msg.buf;
+		    PSP_taskInfo_t *taskinfo = (PSP_taskInfo_t *)msg.buf;
 		    taskinfo->tid = task->tid;
 		    taskinfo->ptid = task->ptid;
 		    taskinfo->loggertid = task->loggertid;
@@ -117,17 +154,48 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		    taskinfo->rank = task->rank;
 		    taskinfo->connected = (task->fd != -1);
 
-		    msg.header.len += sizeof(Taskinfo_t);
+		    msg.header.len += sizeof(PSP_taskInfo_t);
 		    sendMsg(&msg);
-		    msg.header.len -= sizeof(Taskinfo_t);
+		    msg.header.len -= sizeof(PSP_taskInfo_t);
 		}
 	    }
 
 	    /*
 	     * send a EndOfList Sign
 	     */
-	    msg.type = PSP_INFO_TASKEND;
+	    msg.type = PSP_INFO_LIST_END;
 	    break;
+	case PSP_INFO_LIST_NORMTASKS:
+	case PSP_INFO_LIST_ALLTASKS:
+	{
+	    /* request info for all normal tasks */
+	    PStask_t *task;
+	    PSP_taskInfo_t *taskinfo = (PSP_taskInfo_t *)msg.buf;
+	    for (task=managedTasks; task; task=task->next) {
+		if ((PSP_Info_t) inmsg->type == PSP_INFO_LIST_NORMTASKS && (
+			task->group == TG_FORWARDER
+			|| task->group == TG_SPAWNER
+			|| task->group == TG_GMSPAWNER
+			|| task->group == TG_MONITOR )) continue;
+		taskinfo->tid = task->tid;
+		taskinfo->ptid = task->ptid;
+		taskinfo->loggertid = task->loggertid;
+		taskinfo->uid = task->uid;
+		taskinfo->group = task->group;
+		taskinfo->rank = task->rank;
+		taskinfo->connected = (task->fd != -1);
+
+		msg.header.len += sizeof(PSP_taskInfo_t);
+		sendMsg(&msg);
+		msg.header.len -= sizeof(PSP_taskInfo_t);
+	    }
+
+	    /*
+	     * send a EndOfList Sign
+	     */
+	    msg.type = PSP_INFO_LIST_END;
+	    break;
+	}
  	case PSP_INFO_COUNTHEADER:
 	    header = 1;
 	case PSP_INFO_COUNTSTATUS:
@@ -144,22 +212,15 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    break;
 	}
 	case PSP_INFO_RDPSTATUS:
-	    getStateInfoRDP(*(int *) inmsg->buf, msg.buf, sizeof(msg.buf));
+	    getStateInfoRDP(*(PSnodes_ID_t *) inmsg->buf,
+			    msg.buf, sizeof(msg.buf));
 	    msg.header.len += strlen(msg.buf)+1;
 	    break;
 	case PSP_INFO_MCASTSTATUS:
-	    getStateInfoMCast(*(int *) inmsg->buf, msg.buf, sizeof(msg.buf));
+	    getStateInfoMCast(*(PSnodes_ID_t *) inmsg->buf,
+			      msg.buf, sizeof(msg.buf));
 	    msg.header.len += strlen(msg.buf)+1;
 	    break;
-	case PSP_INFO_HOSTSTATUS:
-	{
-	    int i;
-	    for (i=0; i<PSC_getNrOfNodes(); i++) {
-		msg.buf[i] = PSnodes_isUp(i);
-	    }
-	    msg.header.len += sizeof(*msg.buf) * PSC_getNrOfNodes();
-	    break;
-	}
 	case PSP_INFO_HOST:
 	    *(PSnodes_ID_t *)msg.buf =
 		PSnodes_lookupHost(*(unsigned int *) inmsg->buf);
@@ -185,14 +246,14 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 
 	    if (!requester) {
 		snprintf(errtxt, sizeof(errtxt), "%s: requester %s not found",
-			 __func__, PSC_printTID(inmsg->header.sender));
+			 funcStr, PSC_printTID(inmsg->header.sender));
 		PSID_errlog(errtxt, 0);
 		err = 1;
 		break;
 	    }
 
 	    if (requester->protocolVersion < 328) {
-		static NodelistEntryOld_t *nodelist = NULL;
+		static NodelistEntry_t *nodelist = NULL;
 		static int nodelistlen = 0;
 		/* @todo Check for message limit */
 		if (nodelistlen < PSC_getNrOfNodes()) {
@@ -204,7 +265,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		    MCastConInfo_t info;
 
 		    nodelist[i].up = PSnodes_isUp(i);
-		    nodelist[i].numCPU = PSnodes_getCPUs(i);
+		    nodelist[i].numCPU = PSnodes_getVirtCPUs(i);
 		    nodelist[i].hwStatus = PSnodes_getHWStatus(i);
 
 		    getInfoMCast(i, &info);
@@ -218,31 +279,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		       * sizeof(*nodelist));
 		msg.header.len += PSC_getNrOfNodes() * sizeof(*nodelist);
 	    } else {
-		static NodelistEntry_t *nodelist = NULL;
-		static int nodelistlen = 0;
-		/* @todo Check for message limit */
-		if (nodelistlen < PSC_getNrOfNodes()) {
-		    nodelistlen = PSC_getNrOfNodes();
-		    nodelist = realloc(nodelist,
-				       nodelistlen * sizeof(*nodelist));
-		}
-		for (i=0; i<PSC_getNrOfNodes(); i++) {
-		    MCastConInfo_t info;
-
-		    nodelist[i].up = PSnodes_isUp(i);
-		    nodelist[i].numCPU = PSnodes_getCPUs(i);
-		    nodelist[i].hwStatus = PSnodes_getHWStatus(i);
-
-		    getInfoMCast(i, &info);
-		    nodelist[i].load[0] = info.load.load[0];
-		    nodelist[i].load[1] = info.load.load[1];
-		    nodelist[i].load[2] = info.load.load[2];
-		    nodelist[i].totalJobs = info.jobs.total;
-		    nodelist[i].normalJobs = info.jobs.normal;
-		}
-		memcpy(msg.buf, nodelist, PSC_getNrOfNodes()
-		       * sizeof(*nodelist));
-		msg.header.len += PSC_getNrOfNodes() * sizeof(*nodelist);
+		msg.type = PSP_INFO_UNKNOWN;
 	    }
 	    break;
 	}
@@ -256,64 +293,13 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 
 	    if (!requester) {
 		snprintf(errtxt, sizeof(errtxt), "%s: requester %s not found",
-			 __func__, PSC_printTID(inmsg->header.sender));
+			 funcStr, PSC_printTID(inmsg->header.sender));
 		PSID_errlog(errtxt, 0);
 		err = 1;
 		break;
 	    }
 
 	    if (requester->protocolVersion < 328) {
-		static NodelistEntryOld_t *nodelist = NULL;
-		static int nodelistlen = 0;
-		/* @todo Check for message limit */
-		if (nodelistlen < PSC_getNrOfNodes()) {
-		    nodelistlen = PSC_getNrOfNodes();
-		    nodelist = realloc(nodelist,
-				       nodelistlen * sizeof(*nodelist));
-		}
-
-		hwType = *(unsigned int *) inmsg->buf;
-
-		for (i=0, j=0; i<PSC_getNrOfNodes(); i++) {
-		    MCastConInfo_t info;
-
-		    getInfoMCast(i, &info);
-
-		    if ((!hwType || PSnodes_getHWStatus(i) & hwType)
-			&& (PSnodes_getUser(i) == PSNODES_ANYUSER
-			    || PSnodes_getUser(i) == requester->uid
-			    || !requester->uid)
-			&& (PSnodes_getProcs(i) == PSNODES_ANYPROC
-			    || PSnodes_getProcs(i) > info.jobs.normal)
-			&& (PSnodes_getGroup(i) == PSNODES_ANYGROUP
-			    || PSnodes_getGroup(i) == requester->gid
-			    || !requester->gid)
-			&& PSnodes_runJobs(i)) {
-
-			nodelist[j].id = i;
-			nodelist[j].up = PSnodes_isUp(i);
-			nodelist[j].numCPU = PSnodes_getCPUs(i);
-			nodelist[j].hwStatus = PSnodes_getHWStatus(i);
-
-			nodelist[j].load[0] = info.load.load[0];
-			nodelist[j].load[1] = info.load.load[1];
-			nodelist[j].load[2] = info.load.load[2];
-			nodelist[j].totalJobs = info.jobs.total;
-			nodelist[j].normalJobs = info.jobs.normal;
-			nodelist[j].maxJobs = PSnodes_getProcs(i);
-
-			j++;
-		    }
-		}
-
-		if (j<PSC_getNrOfNodes()) {
-		    nodelist[j].id = -1;
-		    j++;
-		}
-
-		memcpy(msg.buf, nodelist, j * sizeof(*nodelist));
-		msg.header.len += j * sizeof(*nodelist);
-	    } else {
 		static NodelistEntry_t *nodelist = NULL;
 		static int nodelistlen = 0;
 		/* @todo Check for message limit */
@@ -343,7 +329,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 
 			nodelist[j].id = i;
 			nodelist[j].up = PSnodes_isUp(i);
-			nodelist[j].numCPU = PSnodes_getCPUs(i);
+			nodelist[j].numCPU = PSnodes_getVirtCPUs(i);
 			nodelist[j].hwStatus = PSnodes_getHWStatus(i);
 
 			nodelist[j].load[0] = info.load.load[0];
@@ -364,6 +350,8 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 
 		memcpy(msg.buf, nodelist, j * sizeof(*nodelist));
 		msg.header.len += j * sizeof(*nodelist);
+	    } else {
+		msg.type = PSP_INFO_UNKNOWN;
 	    }
 
 	    break;
@@ -441,6 +429,132 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    } else {
 		*(int *)msg.buf = -1;
 		msg.header.len += sizeof(int);
+	    }
+	    break;
+	}
+	case PSP_INFO_TASKRANK:
+	case PSP_INFO_PARENTTID:
+	case PSP_INFO_LOGGERTID:
+	{
+	    PStask_t *task=PStasklist_find(managedTasks, inmsg->header.sender);
+
+	    if (!task) {
+		snprintf(errtxt, sizeof(errtxt), "%s: task %s not found",
+			 funcStr, PSC_printTID(inmsg->header.sender));
+		PSID_errlog(errtxt, 0);
+		err = 1;
+		break;
+	    }
+
+	    switch (inmsg->type) {
+	    case PSP_INFO_TASKRANK:
+		*(int32_t *)msg.buf = task->rank;
+		msg.header.len += sizeof(int32_t);
+		break;
+	    case PSP_INFO_PARENTTID:
+		*(PStask_ID_t *)msg.buf = task->ptid;
+		msg.header.len += sizeof(PStask_ID_t);
+		break;
+	    case PSP_INFO_LOGGERTID:
+		*(PStask_ID_t *)msg.buf = task->loggertid;
+		msg.header.len += sizeof(PStask_ID_t);
+		break;
+	    }
+	    break;
+	}
+	case PSP_INFO_LIST_HOSTSTATUS:
+	case PSP_INFO_LIST_VIRTCPUS:
+	case PSP_INFO_LIST_PHYSCPUS:
+	case PSP_INFO_LIST_HWSTATUS:
+	case PSP_INFO_LIST_LOAD:
+	case PSP_INFO_LIST_ALLJOBS:
+	case PSP_INFO_LIST_NORMJOBS:
+	{
+	    PStask_t *requester = NULL;
+	    PSnodes_ID_t node;
+
+	    if (PSC_getID(inmsg->header.sender) == PSC_getMyID()) {
+		requester = PStasklist_find(managedTasks,
+					    inmsg->header.sender);
+
+		if (!requester) {
+		    snprintf(errtxt, sizeof(errtxt),
+			     "%s: requester %s not found", funcStr,
+			     PSC_printTID(inmsg->header.sender));
+		    PSID_errlog(errtxt, 0);
+		    err = 1;
+		    break;
+		}
+	    }
+
+	    if (requester && requester->protocolVersion < 329) {
+		switch (inmsg->type) {
+		case PSP_INFO_LIST_HOSTSTATUS:
+		    for (node=0; node<PSC_getNrOfNodes(); node++) {
+			msg.buf[node] = PSnodes_isUp(node);
+		    }
+		    msg.header.len += sizeof(*msg.buf) * PSC_getNrOfNodes();
+		default:
+		    msg.type = PSP_INFO_UNKNOWN;
+		}
+	    } else {
+		const size_t chunkSize = 1024;
+		size_t size = 0;
+		unsigned int idx = 0;
+		for (node=0; node<PSC_getNrOfNodes(); node++) {
+		    MCastConInfo_t info;
+		    switch (inmsg->type) {
+		    case PSP_INFO_LIST_HOSTSTATUS:
+			((char *)msg.buf)[idx] = PSnodes_isUp(node);
+			size = sizeof(char);
+			break;
+		    case PSP_INFO_LIST_VIRTCPUS:
+			((uint16_t *)msg.buf)[idx] = PSnodes_getVirtCPUs(node);
+			size = sizeof(uint16_t);
+			break;
+		    case PSP_INFO_LIST_PHYSCPUS:
+			((uint16_t *)msg.buf)[idx] = PSnodes_getPhysCPUs(node);
+			size = sizeof(uint16_t);
+			break;
+		    case PSP_INFO_LIST_HWSTATUS:
+			((uint32_t *)msg.buf)[idx] = PSnodes_getHWStatus(node);
+			size = sizeof(uint32_t);
+			break;
+		    case PSP_INFO_LIST_LOAD:
+			getInfoMCast(node, &info);
+			((float *)msg.buf)[3*idx+0] = info.load.load[0];
+			((float *)msg.buf)[3*idx+1] = info.load.load[1];
+			((float *)msg.buf)[3*idx+2] = info.load.load[2];
+			size = 3*sizeof(float);
+			break;
+		    case PSP_INFO_LIST_ALLJOBS:
+			getInfoMCast(node, &info);
+			((uint16_t *)msg.buf)[idx] = info.jobs.total;
+			size = sizeof(uint16_t);
+			break;
+		    case PSP_INFO_LIST_NORMJOBS:
+			getInfoMCast(node, &info);
+			((uint16_t *)msg.buf)[idx] = info.jobs.normal;
+			size = sizeof(uint16_t);
+			break;
+		    default:
+			msg.type = PSP_INFO_UNKNOWN;
+			size = 0;
+		    }
+		    idx++;
+		    if (size && (idx == chunkSize/size)) {
+			msg.header.len += idx * size;
+			sendMsg(&msg);
+			msg.header.len -= idx * size;
+			idx=0;
+		    }
+		}
+		if (idx) {
+		    msg.header.len += idx * size;
+		    sendMsg(&msg);
+		    msg.header.len -= idx * size;
+		}
+		msg.type = PSP_INFO_LIST_END;
 	    }
 	    break;
 	}
