@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.c,v 1.15 2004/09/15 15:37:28 eicker Exp $
+ * $Id: pscommon.c,v 1.16 2004/09/22 09:13:55 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.15 2004/09/15 15:37:28 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.16 2004/09/22 09:13:55 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -352,4 +352,34 @@ char *PSC_parseNodelist(char *descr)
     }
 
     return nl;
+}
+
+void PSC_printNodelist(char *nl)
+{
+    size_t pos=0, numNodes = (size_t)PSC_getNrOfNodes();
+    int first=1;
+
+    while (!nl[pos] && pos < numNodes) pos++;
+    if (pos == numNodes) {
+	printf("<empty>");
+	return;
+    }
+
+    while (pos < numNodes) {
+	size_t start=pos, end;
+
+	while (nl[pos] && pos < numNodes) pos++;
+	end = pos - 1;
+
+	if (start==end) {
+	    printf("%s%d", first ? "" : ",", start);
+	} else {
+	    printf("%s%d-%d", first ? "" : ",", start, end);
+	}
+	first = 0;
+
+	while (!nl[pos] && pos < numNodes) pos++;
+    }
+
+    return;
 }

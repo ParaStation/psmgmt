@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.h,v 1.11 2004/01/15 16:07:12 eicker Exp $
+ * $Id: pscommon.h,v 1.12 2004/09/22 09:13:55 eicker Exp $
  *
  */
 /**
  * @file
  * Functions used in user-programs and daemon.
  *
- * $Id: pscommon.h,v 1.11 2004/01/15 16:07:12 eicker Exp $
+ * $Id: pscommon.h,v 1.12 2004/09/22 09:13:55 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -348,6 +348,24 @@ int PSC_getServicePort(char *name , int def);
  * NULL, if an (parsing-) error occured.
  */
 char *PSC_parseNodelist(char *descr);
+
+/**
+ * @brief Print a nodelist description.
+ *
+ * Print a string to stdout that describes the nodelist stored in @a
+ * nl. The printed string might be parsed by @ref PSC_parseNodelist()
+ * and the returned result will be identical to @a nl.
+ *
+ * The string printed out is expected to be the shortest description
+ * of the nodelist @a nl that is possible.
+ *
+ * @param nl A nodelist as returned by the PSC_parseNodelist() function.
+ *
+ * @return No return value.
+ *
+ * @see PSC_parseNodelist()
+ */
+void PSC_printNodelist(char *nl);
 
 #ifdef __cplusplus
 }/* extern "C" */
