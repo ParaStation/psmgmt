@@ -9,8 +9,20 @@
     <glossterm>Address Resolution Protocol</glossterm>
     <glossdef>
       <para>
-	<!-- @todo RFC -->
-	ToDo
+	A sending host decides, through a protocols routing mechanism, that it
+	wants to transmit to a target host located some place on a connected
+	piece of a physical network. To actually transmit the hardware packet
+	usually a hardware address must be generated. In the case of Ethernet
+	this is 48 bit Ethernet address. The addresses of hosts within a
+	protocol are not always compatible with the corresponding hardware
+	address (being different lengths or values).
+      </para>
+      <para>
+	The Address Resolution Protocol (ARP) is used by the sending host in
+	order to resolv the Ethernet address of the target host from its IP
+	address. It is described in the <ulink
+	  url="http://www.faqs.org/rfcs/rfc826.html">RFC 826</ulink>. The ARP
+	is part of the TCP/IP protocol family.
       </para>
     </glossdef>
   </glossentry>
@@ -24,8 +36,21 @@
     <glossterm>Direct Memory Access</glossterm>
     <glossdef>
       <para>
-	<!-- @todo -->
-	ToDo
+	In the old days devices within a computer where not able to put data
+	into memory on their own but the CPU had to fetch it from them and to
+	store it to the final destination manually.
+      </para>
+      <para>
+	Nowadays devices as Ethernet cards, harddisk controllers, MyriNet cards
+	etc. are capable to store chunks of data into memory on their
+	own. E.g. a disk controller is told to fetch an amount of memory from a
+	hard disk and to store it to a given address. The rest of the jobs is
+	done by this controller without producing further load to the CPU.
+      </para>
+      <para>
+	Obviously this concept helps to disburden the CPU from work which is
+	not its first task and thus gives more power to solve the actual
+	application.
       </para>
     </glossdef>
   </glossentry>
@@ -65,8 +90,9 @@
     <glossterm>Network Interface Card</glossterm>
     <glossdef>
       <para>
-	<!-- @todo -->
-	ToDo
+	The physical device which connects a computer to a network. Examples
+	are Ethernet cards (which are nowadays often found to be on board) or
+	Myrinet cards.
       </para>
     </glossdef>
   </glossentry>
@@ -75,8 +101,14 @@
     <glossterm>ParaStation logger</glossterm>
     <glossdef>
       <para>
-	<!-- @todo -->
-	ToDo
+	The counterpart to the <link linkend="forwarderfull">ParaStation
+	  forwarder</link>. It receives the all the output collected by the
+	forwarder processes and puts it their destination. Furthermore input to
+	the ParaStation task is forwarded to a specific process.
+      </para>
+      <para>
+	The first process of the task started usually converts to the logger
+	processes after spawning all the other processes of 
       </para>
     </glossdef>
   </glossentry>
@@ -87,7 +119,7 @@
       <para>
 	Collects output written by ParaStation controlled processes to
 	<filename>stdout</filename> or <filename>stderr</filename> and sends it
-	to the ParaStation <link linkend="logger">logger</link>.
+	to the <link linkend="loggerfull">ParaStation logger</link>.
       </para>
       <para>
 	Furthermore the forwareder controls the process and sends information
