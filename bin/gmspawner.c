@@ -5,20 +5,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: gmspawner.c,v 1.2 2003/06/27 11:02:03 eicker Exp $
+ * $Id: gmspawner.c,v 1.3 2003/09/12 14:28:23 eicker Exp $
  *
  */
 /**
  * @file Helper in order to start MPIch/GM applications within a ParaStation
  * cluster.
  *
- * $Id: gmspawner.c,v 1.2 2003/06/27 11:02:03 eicker Exp $
+ * $Id: gmspawner.c,v 1.3 2003/09/12 14:28:23 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: gmspawner.c,v 1.2 2003/06/27 11:02:03 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: gmspawner.c,v 1.3 2003/09/12 14:28:23 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -547,8 +547,6 @@ int main(int argc, const char *argv[])
 	exit(1);
     }
 
-    PSI_getPartition(0 /* HWType none */, -1 /* my rank */);
-
     srandom(time(NULL));
     magic = random()%9999999;
     setIntEnv("GMPI_MAGIC", magic);
@@ -578,9 +576,7 @@ int main(int argc, const char *argv[])
 
     {
 	/* spawn all processes */
-	long spawnedProcess = -1;
 	int error;
-	long logger = INFO_request_taskinfo(PSC_getMyTID(), INFO_LOGGERTID, 0);
 
 	PSI_RemoteArgs(argc - dup_argc, (char **) &argv[dup_argc],
 		       &dup_argc, &dup_argv);
@@ -597,7 +593,7 @@ int main(int argc, const char *argv[])
 		short id;
 		struct in_addr ip;
 
-		id = PSI_getPartitionNode(rank);
+		id = INFO_request_rankID(rank, 1 /* verbose */);
 		ip.s_addr = INFO_request_node(id, 1 /* verbose */);
 
 		snprintf(slavestring, sizeof(slavestring),
@@ -607,8 +603,7 @@ int main(int argc, const char *argv[])
 	    }
 	    
 	    /* spawn the process */
-	    if (PSI_spawnM(1, NULL, ".", dup_argc, dup_argv, logger,
-			   rank, &error, &spawnedProcess) < 0 ) {
+	    if (!PSI_spawnRank(rank, ".", dup_argc, dup_argv, &error)) {
 		if (error) {
 		    char *errstr = strerror(error);
 		    fprintf(stderr,
@@ -645,6 +640,7 @@ int main(int argc, const char *argv[])
 	    // printf("%d clients left\n", np);
 	}
     }
+    PSI_release(PSC_getMyTID());
     PSI_exitClient();
 
     exit(0);
