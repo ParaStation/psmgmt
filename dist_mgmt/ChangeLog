@@ -1,6 +1,12 @@
 Changes since psmgmt-4.0.3:
 ===========================
 
+2003-07-31  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Close of client's stdin from forwarder.
+	* Bugfix: Correct handling of daemonSock in logger/forwarder.
+	* Bugfix: Enable jobs started via psmstart to be killed by SIGINT.
+
 2003-07-25  Norbert Eicker  <eicker@par-tec.com>
 
 	* Extension: Enable basic GM support.
