@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.22 2003/02/10 14:32:37 eicker Exp $
+ * $Id: psilogger.c,v 1.23 2003/02/21 12:41:45 eicker Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.22 2003/02/10 14:32:37 eicker Exp $
+ * $Id: psilogger.c,v 1.23 2003/02/21 12:41:45 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.22 2003/02/10 14:32:37 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.23 2003/02/21 12:41:45 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -188,7 +188,7 @@ static int recvMsg(PSLog_Msg_t *msg)
 	break;
     default:
 	fprintf(stderr, "PSIlogger: recvMsg(): Unknown message type %s.\n",
-		PSP_printMsg(msg->type));
+		PSP_printMsg(msg->header.type));
 
 	ret = 0;
     }
@@ -223,7 +223,7 @@ void sighandler(int sig)
     int i;
     static int firstTERM = 1;
 
-    switch(sig){
+    switch(sig) {
     case SIGTERM:
 	if (verbose && firstTERM) {
 	    fprintf(stderr, "PSIlogger: Got SIGTERM. Problem with child?\n");
@@ -342,16 +342,16 @@ static void CheckFileTable(fd_set* openfds)
     struct timeval tv;
     char* errtxt;
 
-    for(fd=0;fd<FD_SETSIZE;){
-	if(FD_ISSET(fd,openfds)){
+    for (fd=0;fd<FD_SETSIZE;) {
+	if (FD_ISSET(fd,openfds)) {
 	    memset(&rfds, 0, sizeof(rfds));
 	    FD_SET(fd,&rfds);
 
 	    tv.tv_sec=0;
 	    tv.tv_usec=0;
-	    if (select(FD_SETSIZE, &rfds, (fd_set *)0, (fd_set *)0, &tv) < 0){
+	    if (select(FD_SETSIZE, &rfds, (fd_set *)0, (fd_set *)0, &tv) < 0) {
 		/* error : check if it is a wrong fd in the table */
-		switch(errno){
+		switch(errno) {
 		case EBADF :
 		    fprintf(stderr,"CheckFileTable(%d):"
 			    " EBADF -> close socket\n",fd);
@@ -496,7 +496,7 @@ static void loop(int daemonSock)
 			/* rank InputDest wants the input */
 			forwardInputTID = msg.header.sender;
 			FD_SET(STDIN_FILENO,&myfds);
-			if(verbose){
+			if (verbose) {
 			    fprintf(stderr, "PSIlogger: loop():"
 				    " forward input to %s (rank %d)\n",
 				    PSC_printTID(forwardInputTID), msg.sender);
@@ -516,6 +516,7 @@ static void loop(int daemonSock)
 	    case STDERR:
 		outfd = STDERR_FILENO;
 	    case STDOUT:
+	    {
 		if (verbose) {
 		    fprintf(stderr, "PSIlogger: Got %d bytes from %s\n",
 			    msg.header.len - PSLog_headerSize,
@@ -523,20 +524,37 @@ static void loop(int daemonSock)
 		}
 		if (PrependSource) { 
 		    char prefix[30];
+		    char *buf = msg.buf;
+		    size_t count = msg.header.len - PSLog_headerSize;
+
 		    if (verbose) {
 			snprintf(prefix, sizeof(prefix), "[%d, %d]:",
 				 msg.sender,
 				 msg.header.len - PSLog_headerSize);
-		    } else if (msg.header.len - PSLog_headerSize > 0){
-			snprintf(prefix, sizeof(prefix),
-				 "[%d]:", msg.sender);
-		    } else {
-			prefix[0] = '\0';
+		    } else if (count > 0) {
+			snprintf(prefix, sizeof(prefix), "[%d]:", msg.sender);
 		    }
-		    write(outfd, prefix, strlen(prefix));
+
+		    while (count>0) {
+			char *nl = memchr(buf, '\n', count);
+
+			if (nl) nl++; /* Thus nl points behind the newline */
+
+			write(outfd, prefix, strlen(prefix));
+			write(outfd, buf, nl ? nl - buf : count);
+
+			if (nl) {
+			    count -= nl - buf;
+			    buf = nl;
+			} else {
+			    count = 0;
+			}
+		    }
+		} else {
+		    write(outfd, msg.buf, msg.header.len - PSLog_headerSize);
 		}
-		write(outfd, msg.buf, msg.header.len - PSLog_headerSize);
 		break;
+	    }
 	    case USAGE:
 		if (usage) {
 		    struct rusage usage;
@@ -575,7 +593,7 @@ static void loop(int daemonSock)
 		    }
 		}
 
-		if(verbose)
+		if (verbose)
 		    fprintf(stderr,
 			    "PSIlogger: closing %s (rank %d) on FINALIZE\n",
 			    PSC_printTID(msg.header.sender), msg.sender);
