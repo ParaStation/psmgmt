@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: license_pub.h,v 1.4 2003/11/26 17:11:16 eicker Exp $
+ * $Id: license_pub.h,v 1.5 2004/06/15 13:47:30 eicker Exp $
  *
  */
 /**
@@ -13,7 +13,7 @@
  *
  * license_pub.h: Public definitions and functions for licensing.
  *
- * $Id: license_pub.h,v 1.4 2003/11/26 17:11:16 eicker Exp $
+ * $Id: license_pub.h,v 1.5 2004/06/15 13:47:30 eicker Exp $
  *
  * @author
  * Jens Hauke <hauke@par-tec.com>
@@ -22,8 +22,10 @@
 #ifndef _LICENSE_PUB_H_
 #define _LICENSE_PUB_H_
 
+#include <stdint.h>
+
 typedef struct pslic_binpub_T{
-    UINT32	param[4];
+    uint32_t	param[4];
 }pslic_binpub_t;
 
 //  0               1               2               3         
