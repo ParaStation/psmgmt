@@ -5,20 +5,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.1 2003/02/14 16:30:37 eicker Exp $
+ * $Id: psispawn.c,v 1.2 2003/02/21 14:02:14 eicker Exp $
  *
  */
 /**
- * @file Simple wrapper to allow MPIch/P4 programs to run under control of
- * ParaStation.
+ * @file Simple wrapper to allow MPIch/P4 programs to run under the
+ * control of ParaStation.
  *
- * $Id: psispawn.c,v 1.1 2003/02/14 16:30:37 eicker Exp $
+ * $Id: psispawn.c,v 1.2 2003/02/21 14:02:14 eicker Exp $
  *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- * */
+ * @author Norbert Eicker <eicker@par-tec.com>
+ *
+ */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.1 2003/02/14 16:30:37 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.2 2003/02/21 14:02:14 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -27,6 +27,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.1 2003/02/14
 #include <string.h>
 #include <pwd.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 #include "pscommon.h"
 #include "pshwtypes.h"
@@ -72,6 +73,13 @@ int main(int argc, char *argv[])
 	usage(argv[0]);
     }
 
+    /* Replace '\-' at begin of argument by '-' */
+    for (i=5; i<argc; i++) {
+	if (argv[i][0] == '\\' && argv[i][1] == '-') {
+	    argv[i]++;
+	}
+    }
+
     worldRank = -1; // get rank from command line.
     for (i=0; i<argc; i++) {
 	if (strstr(argv[i], "-p4rmrank") && i<argc-1) {
@@ -82,19 +90,14 @@ int main(int argc, char *argv[])
 
     if (worldRank == -1) {
 	fprintf(stderr, "Could not determine the rank.\n");
+	exit(1);
     }
 
     /* We will use PSI instead of PSE since our task is more low-level */
-    /**********************************************************************/ 
-    /* init PSI */
     if (!PSI_initClient(TG_SPAWNER)) {
         fprintf(stderr, "Initialization of PSI failed.");
 	exit(1);
     }
-
-
-    fprintf(stderr, "[%d] My TID is %s.",
-	    worldRank, PSC_printTID(PSC_getMyTID()));
 
     /* Propagate some environment variables */
     {
@@ -114,9 +117,8 @@ int main(int argc, char *argv[])
 	}
     }
 
-    // void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
+    /* spawning the process */
     {
-	/* spawning processes */
 	int error, ret;
 	long spawnedProcess = -1;
 
@@ -139,11 +141,22 @@ int main(int argc, char *argv[])
 	}
     }
 
-    fprintf(stderr, "Spawned process %d.\n", worldRank);
+    /* Wait for the spawned process to complete */
+    while (1) {
+	int ret;
+	DDErrorMsg_t msg;
 
-    /* One minute should be sufficient for the client to connect the master */
-    sleep(60);
+	ret = PSI_recvMsg(&msg);
+	if (msg.header.type != PSP_DD_CHILDDEAD || ret != sizeof(msg)) {
+	    fprintf(stderr, "[%d] got strange message type %s\n",
+		    worldRank, PSP_printMsg(msg.header.type));
+	} else {
+	    /* I'm done */
+	    break;
+	}
+    }
 
     PSI_exitClient();
+
     return(0);
 }
