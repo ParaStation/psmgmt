@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.1 2002/10/16 16:40:20 eicker Exp $
+# $Id: Makefile.in,v 1.2 2002/10/16 18:01:08 eicker Exp $
 #
 # @author
 #         Norbert Eicker <eicker@par-tec.de>
@@ -25,7 +25,7 @@ CLASSPATH:=$(CLASSPATH)":fop/lib/xml-apis.jar:fop/lib/logkit-1.0.jar"
 CLASSPATH:=$(CLASSPATH)":fop/lib/avalon-framework-cvs-20020315.jar"
 
 
-TARGETS = adminguide userguide
+TARGETS = adminguide # userguide
 
 ADMINMAN1 = man1/mlisten.1 man1/psiadmin.1 man1/test_nodes.1
 ADMINMAN5 = man5/parastation.conf.5
@@ -56,7 +56,7 @@ DOXYINDEX = $(DOXYDIR)/index.html
 HTMLDIRS = html/adminguide html/userguide
 MANDIRS = man/man1 man/man5 man/man8 man/man7
 
-DIRS = $(HTMLDIRS) $(MANDIRS) $(DOXYDIR)
+DIRS = $(HTMLDIRS) $(MANDIRS) $(DOXYDIR) pdf
 
 all: dirs validate HTML man PDF doxygen
 
