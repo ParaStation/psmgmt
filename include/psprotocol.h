@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.2 2002/07/11 10:40:45 eicker Exp $
+ * $Id: psprotocol.h,v 1.3 2002/07/11 16:51:03 eicker Exp $
  *
  */
 /**
@@ -13,7 +13,7 @@
  * psp: The ParaStation Protocol
  *      Used for daemon-daemon and client-daemon communication.
  *
- * $Id: psprotocol.h,v 1.2 2002/07/11 10:40:45 eicker Exp $
+ * $Id: psprotocol.h,v 1.3 2002/07/11 16:51:03 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -22,6 +22,8 @@
 #ifndef __PSPROTOCOL_H
 #define __PSPROTOCOL_H
 
+#include "pstask.h"
+
 #ifdef __cplusplus
 extern "C" {
 #if 0
@@ -29,7 +31,7 @@ extern "C" {
 #endif
 #endif
 
-#define PSprotocolversion  312
+#define PSprotocolversion  313
 
 /** @todo Documentation */
 
@@ -81,10 +83,11 @@ extern "C" {
 
 #define PSP_DD_TASKKILL            0x0040
 #define PSP_DD_NOTIFYDEAD          0x0041
-#define PSP_DD_RELEASE             0x0042
-#define PSP_DD_WHODIED             0x0043
-#define PSP_DD_NOTIFYDEADRES       0x0044
-#define PSP_DD_RELEASERES          0x0045
+#define PSP_DD_NOTIFYDEADRES       0x0042
+#define PSP_DD_RELEASE             0x0043
+#define PSP_DD_RELEASERES          0x0044
+#define PSP_DD_SIGNAL              0x0045
+#define PSP_DD_WHODIED             0x0046
 
 #define PSP_DD_SYSTEMERROR         0x0050
 #define PSP_DD_STATENOCONNECT      0x0051
@@ -173,7 +176,7 @@ typedef struct {
 /* Error Message */
 typedef struct {
     DDMsg_t header;         /* header of the message */
-    int err;                /* error number */
+    int error;              /* error number */
     long request;           /* request which caused the error */
 } DDErrorMsg_t;
 
@@ -208,7 +211,7 @@ typedef struct {
 typedef struct {
     DDMsg_t header;         /* header of the message */
     long reason;            /* reason for unaccepted connect */
-    long group;             /* process group of the task */
+    PStask_group_t group;   /* process group of the task */
     long version;           /* version of the PS library */
     int nrofnodes;          /* # of nodes */
     int myid;               /* PS id of this node */
