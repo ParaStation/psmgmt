@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidclient.c,v 1.7 2003/12/09 16:22:57 eicker Exp $
+ * $Id: psidclient.c,v 1.8 2004/01/22 14:39:06 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidclient.c,v 1.7 2003/12/09 16:22:57 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidclient.c,v 1.8 2004/01/22 14:39:06 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -185,15 +185,10 @@ int flushClientMsgs(int fd)
 	clients[fd].msgs = oldmsg->next;
 	if (PSC_getPID(oldmsg->msg->sender)) {
 	    DDMsg_t contmsg = { .type = PSP_DD_SENDCONT,
-				.len = sizeof(DDMsg_t),
 				.sender = oldmsg->msg->dest,
-				.dest = oldmsg->msg->sender };
-
-	    if (PSC_getID(contmsg.dest) == PSC_getMyID()) {
-		msg_SENDCONT(&contmsg);
-	    } else {
-		sendMsg(&contmsg);
-	    }
+				.dest = oldmsg->msg->sender,
+				.len = sizeof(DDMsg_t) };
+	    sendMsg(&contmsg);
 	}
 	freeMsg(oldmsg);
     }

@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidrdp.c,v 1.4 2004/01/09 16:06:03 eicker Exp $
+ * $Id: psidrdp.c,v 1.5 2004/01/22 14:38:30 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidrdp.c,v 1.4 2004/01/09 16:06:03 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidrdp.c,v 1.5 2004/01/22 14:38:30 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -124,15 +124,11 @@ int flushRDPMsgs(int node)
 	node_bufs[node] = oldmsg->next;
 	if (PSC_getPID(oldmsg->msg->sender)) {
 	    DDMsg_t contmsg = { .type = PSP_DD_SENDCONT,
-				.len = sizeof(DDMsg_t),
 				.sender = oldmsg->msg->dest,
-				.dest = oldmsg->msg->sender };
+				.dest = oldmsg->msg->sender,
+				.len = sizeof(DDMsg_t) };
 
-	    if (PSC_getID(contmsg.dest) == PSC_getMyID()) {
-		msg_SENDCONT(&contmsg);
-	    } else {
-		sendMsg(&contmsg);
-	    }
+	    sendMsg(&contmsg);
 	}
 	freeMsg(oldmsg);
     }
