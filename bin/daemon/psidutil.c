@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.41 2002/07/19 12:56:32 eicker Exp $
+ * $Id: psidutil.c,v 1.42 2002/07/23 15:44:33 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.41 2002/07/19 12:56:32 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.42 2002/07/23 15:44:33 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -45,7 +45,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.41 2002/07/1
 /* magic license check */
 #include "../license/pslic_hidden.h"
 
-int PSID_HWstatus;
+unsigned int PSID_HWstatus;
 short PSID_numCPU;
 
 static char errtxt[256];

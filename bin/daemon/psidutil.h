@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.h,v 1.10 2002/07/11 11:08:07 eicker Exp $
+ * $Id: psidutil.h,v 1.11 2002/07/23 15:44:33 eicker Exp $
  *
  */
 /**
  * \file
  * psidutil: Utilities for ParaStation daemon
  *
- * $Id: psidutil.h,v 1.10 2002/07/11 11:08:07 eicker Exp $
+ * $Id: psidutil.h,v 1.11 2002/07/23 15:44:33 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -30,8 +30,8 @@ extern "C" {
 
 #include "pstask.h"
 
-extern int PSID_HWstatus;    /* indicates which HW is present */
-extern short PSID_numCPU;    /* actual number of CPUs */
+extern unsigned int PSID_HWstatus;   /* indicates which HW is present */
+extern short PSID_numCPU;            /* actual number of CPUs */
 
 void PSID_initLog(int usesyslog, FILE *logfile);
 
