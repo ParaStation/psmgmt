@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: logmsg.c,v 1.7 2002/01/23 11:28:42 eicker Exp $
+ * $Id: logmsg.c,v 1.8 2002/02/08 20:30:58 hauke Exp $
  *
  */
 
-static char vcid[] __attribute__ (( unused )) = "$Id: logmsg.c,v 1.7 2002/01/23 11:28:42 eicker Exp $";
+static char vcid[] __attribute__ (( unused )) = "$Id: logmsg.c,v 1.8 2002/02/08 20:30:58 hauke Exp $";
 
 #include <stdio.h>
 #include <unistd.h>
@@ -25,15 +25,15 @@ int writelog(int sock, FLMsg_msg_t type, int node, char *buf, size_t count)
      * This implementation is *not* correct !!
      * What happens if less then msg.header.len bytes are written ?
      */
-    int n, sent = 0;
+    int n, c = count;
     FLBufferMsg_t msg;
 
     if(sock > 0){
 	msg.header.type = type;
 	msg.header.sender = node;
-	if(count < 0) return 0;
-	do {
-	    n = (count>sizeof(msg.buf)) ? sizeof(msg.buf) : count;
+	if (c < 0) return 0;/* allow NULL messages */
+	do{
+	    n = (c>sizeof(msg.buf)) ? sizeof(msg.buf) : c;
 	    memcpy(msg.buf, buf, n);
 	    msg.header.len = sizeof(msg.header) + n;
 	    n = write(sock, &msg, msg.header.len);
@@ -45,13 +45,12 @@ int writelog(int sock, FLMsg_msg_t type, int node, char *buf, size_t count)
 		    return(n);             /* error, return < 0 */
 		}
 	    }
-	    sent += n - sizeof(msg.header);
-	    count -= n - sizeof(msg.header);
+	    c -= n - sizeof(msg.header);
 	    buf += n - sizeof(msg.header);
-	} while(sent < count);
+	}while (c > 0);
     }
 
-    return sent;
+    return count;
 }
 
 int printlog(int sock, FLMsg_msg_t type, int node, char *buf)
