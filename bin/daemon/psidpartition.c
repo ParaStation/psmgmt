@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidpartition.c,v 1.8 2003/12/10 16:48:42 eicker Exp $
+ * $Id: psidpartition.c,v 1.9 2003/12/19 15:10:21 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.8 2003/12/10 16:48:42 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.9 2003/12/19 15:10:21 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -20,8 +20,6 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.8 2003/
 #include <string.h>
 #include <errno.h>
 #include <sys/types.h>
-
-#include "mcast.h"
 
 #include "pscommon.h"
 #include "psprotocol.h"
@@ -35,6 +33,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.8 2003/
 #include "psidutil.h"
 #include "psidcomm.h"
 #include "psidtask.h"
+#include "psidstatus.h"
 
 #include "psidpartition.h"
 
@@ -220,9 +219,15 @@ static request_t *dequeueRequest(request_t *req)
  * @return If the node is suitable to fulfill the request @a req, 1 is
  * returned. Or 0 otherwise.
  */
-static int nodeOK(unsigned short node, request_t *req)
+static int nodeOK(PSnodes_ID_t node, request_t *req)
 {
-    MCastConInfo_t info;
+    int procs;
+    if (config->useMCast) {
+	PSID_NodeStatus_t status = getStatus(node);
+	procs = status.jobs.normal;
+    } else {
+	procs = -1; // @todo use placedJobs
+    }
 
     if (node >= PSC_getNrOfNodes()) {
 	snprintf(errtxt, sizeof(errtxt), "%s: node %d out of range.",
@@ -239,7 +244,6 @@ static int nodeOK(unsigned short node, request_t *req)
 	return 0;
     }
 
-    getInfoMCast(node, &info);
     if ((!req->hwType || PSnodes_getHWStatus(node) & req->hwType)
 	&& PSnodes_runJobs(node)
 	&& (PSnodes_getUser(node) == PSNODES_ANYUSER
@@ -247,11 +251,11 @@ static int nodeOK(unsigned short node, request_t *req)
 	&& (PSnodes_getGroup(node) == PSNODES_ANYGROUP
 	    || !req->gid || PSnodes_getGroup(node) == req->gid)
 	&& (PSnodes_getProcs(node) == PSNODES_ANYPROC
-	    || (PSnodes_getProcs(node) > info.jobs.normal)
+	    || (PSnodes_getProcs(node) > procs)
 	    || (req->option & PART_OPT_OVERBOOK))
 	&& (PSnodes_getVirtCPUs(node))
-	&& (! (req->option & PART_OPT_EXCLUSIVE) || !info.jobs.normal)
-	&& (! (req->option & PART_OPT_OVERBOOK) || !info.jobs.normal)) {
+	&& (! (req->option & PART_OPT_EXCLUSIVE) || !procs)
+	&& (! (req->option & PART_OPT_OVERBOOK) || !procs)) {
 
 	return 1;
     }
@@ -261,7 +265,7 @@ static int nodeOK(unsigned short node, request_t *req)
 
 /** Entries of the sortable candidate list */
 typedef struct {
-    unsigned short id;  /**< ParaStation ID */
+    PSnodes_ID_t id;    /**< ParaStation ID */
     int cpus;           /**< Number of cpus */
     int jobs;           /**< Number of normal jobs running on this node */
     double rating;      /**< The sorting criterium */
@@ -304,29 +308,28 @@ static sortlist_t *getCandidateList(request_t *request)
 
     for (i=0; i<request->num; i++) {
 	if (nodeOK(request->nodes[i], request)) {
-	    MCastConInfo_t info;
 	    PSnodes_ID_t node = request->nodes[i];
+	    PSID_NodeStatus_t status = getStatus(node);
 	    int cpus = PSnodes_getVirtCPUs(node);
 	    list.entry[list.size].id = node;
-	    getInfoMCast(node, &info);
 	    list.entry[list.size].cpus = cpus;
-	    list.entry[list.size].jobs = info.jobs.normal;
+	    list.entry[list.size].jobs = status.jobs.normal;// @todo placedJobs
 	    switch (request->sort) {
 	    case PART_SORT_PROC:
-		list.entry[list.size].rating = info.jobs.normal/cpus;
+		list.entry[list.size].rating = status.jobs.normal/cpus;
 		break;
 	    case PART_SORT_LOAD_1:
-		list.entry[list.size].rating = info.load.load[0]/cpus;
+		list.entry[list.size].rating = status.load.load[0]/cpus;
 		break;
 	    case PART_SORT_LOAD_5:
-		list.entry[list.size].rating = info.load.load[1]/cpus;
+		list.entry[list.size].rating = status.load.load[1]/cpus;
 		break;
 	    case PART_SORT_LOAD_15:
-		list.entry[list.size].rating = info.load.load[2]/cpus;
+		list.entry[list.size].rating = status.load.load[2]/cpus;
 		break;
 	    case PART_SORT_PROCLOAD:
 		list.entry[list.size].rating =
-		    (info.jobs.normal + info.load.load[0])/cpus;
+		    (status.jobs.normal + status.load.load[0])/cpus;
 		break;
 	    case PART_SORT_NONE:
 		break;
@@ -406,6 +409,7 @@ static void sortCandidates(sortlist_t *list)
 static void registerCPU(unsigned short id, int exclusive)
 {
     /* @todo Bind CPU to parallel task's parition */
+    /* Count up the placedJobs number */
 }
 
 /**
