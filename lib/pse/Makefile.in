@@ -1,0 +1,30 @@
+# -*- Makefile -*-
+
+CFLAGS += -O2 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
+PSM_OSDIR := @PSM_OSDIR@
+CPPFLAGS += -I@top_srcdir@/include -I@top_srcdir@/$(PSM_OSDIR) @CPPFLAG_MMD@
+
+PSEOBJS := pse.o 
+PSEDEPS := $(PSEOBJS:.o=@DEPEXTENSION@)
+
+RANLIB := @RANLIB@
+
+VPATH += @srcdir@
+
+all: ../libpse.a
+
+../libpse.a: $(PSEOBJS)
+	$(AR) rcv $@ $(PSEOBJS)
+	$(RANLIB) $@
+
+clean:
+	$(RM) $(PSEDEPS) $(PSEOBJS) 
+
+
+-include $(PSEDEPS)
+
+
+
+
+
+
