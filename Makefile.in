@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.12 2002/10/01 12:42:50 hauke Exp $
+# $Id: Makefile.in,v 1.13 2002/10/16 14:13:14 hauke Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -26,10 +26,10 @@
 
 PSM_OSDIR := @PSM_OSDIR@
 
-SUBDIRS := lib kern/mcp $(PSM_OSDIR) bin dist dist_fe
+SUBDIRS := lib kern/mcp $(PSM_OSDIR) bin dist dist_fe dist_gui
 
-.PHONY all: psm lib bin
-.PHONY: dist dist_fe
+all: psm lib bin
+.PHONY: psm $(SUBDIRS)
 
 
 mcp:
@@ -52,3 +52,5 @@ dist:
 	$(MAKE) -C dist
 dist_fe:
 	$(MAKE) -C dist_fe
+dist_gui:
+	$(MAKE) -C dist_gui

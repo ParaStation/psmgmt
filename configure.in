@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: configure.in,v 1.19 2002/10/01 12:42:50 hauke Exp $
+# $Id: configure.in,v 1.20 2002/10/16 14:13:14 hauke Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -71,16 +71,6 @@ AC_ARG_ENABLE([java], [  --enable-java    (default: disabled)] ,
 ],[
 	JAVA_ENABLED="no"
 ])
-
-AC_SUBST([PSMON_ENABLED])
-# default is no
-AC_ARG_ENABLE([psmon], [  --enable-psmon    (default: disabled)] ,
-[
-	PSMON_ENABLED=$enableval
-],[
-	PSMON_ENABLED="no"
-])
-
 
 
 AC_SUBST([PSM_OSDIR])
@@ -169,6 +159,7 @@ AC_CONFIG_FILES([bin/java/psview/Makefile])
 AC_CONFIG_FILES([dist/Makefile])
 AC_CONFIG_FILES([dist/Doxyfile])
 AC_CONFIG_FILES([dist_fe/Makefile])
+AC_CONFIG_FILES([dist_gui/Makefile])
 
 
 

@@ -1,0 +1,14 @@
+#!/bin/bash
+
+self=$(which $0)
+
+bindir=$(dirname $self)
+psviewjar=${bindir}/java/PSView.jar
+
+# start one instance of the monitor server
+$bindir/psmon &
+
+# start PSView
+cd $(dirname $psviewjar)
+java -cp ${psviewjar} PSView
+

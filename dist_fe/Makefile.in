@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.8 2002/10/01 12:42:50 hauke Exp $
+# $Id: Makefile.in,v 1.9 2002/10/16 14:13:14 hauke Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -16,9 +16,6 @@ TOP_BUILDDIR := ..
 TARGET_OS := @target_os@
 TARGET_CPU := @target_cpu@
 
-# "yes" or "no" allowed ("configure --enable-java" or "configure --disable-java") 
-JAVA_ENABLED=@JAVA_ENABLED@
-PSMON_ENABLED=@PSMON_ENABLED@
 
 #s.o. clean:
 DISTPATH := opt/parastation
@@ -28,14 +25,7 @@ INCDIR := $(DISTPATH)/include
 
 BINS += psiadmin psid psld
 BINS += psiforwarder psilogger mlisten psmstart
-ifeq ($(PSMON_ENABLED),yes)
-BINS += psmon
-endif
 BINDIR := $(DISTPATH)/bin
-
-ifeq ($(JAVA_ENABLED),yes)
-BINS += java/PSView.jar
-endif
 
 LIBS += libpsport4.a libpsi.a libpse.a
 ifeq ("$(TARGET_OS)","linux")
@@ -89,11 +79,6 @@ $(BINDIR)/%: $(TOP_BUILDDIR)/bin/%
 #	strip $< -o $@
 
 bins: $(BINDIR) $(patsubst %,$(BINDIR)/%,$(BINS))
-
-# From java build tree
-$(BINDIR)/java/PSView.jar: $(TOP_BUILDDIR)/bin/java/psview/PSView.jar
-	mkdir -p `dirname $@`
-	cp $< $@
 
 #
 # copy includes
