@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidtask.h,v 1.6 2003/02/21 13:07:49 eicker Exp $
+ * $Id: psidtask.h,v 1.7 2003/06/06 14:50:24 eicker Exp $
  *
  */
 /**
  * @file
  * Functions for interaction with ParaStation tasks within the Daemon
  *
- * $Id: psidtask.h,v 1.6 2003/02/21 13:07:49 eicker Exp $
+ * $Id: psidtask.h,v 1.7 2003/06/06 14:50:24 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -115,6 +115,11 @@ PStask_t *PStasklist_dequeue(PStask_t **list, long tid);
  * NULL if no task with TID @a tid was found within @a list.
  * */
 PStask_t *PStasklist_find(PStask_t *list, long tid);
+
+/**
+ * @todo Write docu
+ */
+void PStask_cleanup(long tid);
 
 #ifdef __cplusplus
 }/* extern "C" */

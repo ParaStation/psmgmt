@@ -7,22 +7,24 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidtask.c,v 1.7 2003/02/21 13:07:49 eicker Exp $
+ * $Id: psidtask.c,v 1.8 2003/06/06 14:50:24 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.7 2003/02/21 13:07:49 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.8 2003/06/06 14:50:24 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <signal.h>
 
 #include "pstask.h"
 #include "pscommon.h"
 #include "mcast.h"
 
 #include "psidutil.h"
+#include "psidsignal.h"
 
 #include "psidtask.h"
 
@@ -187,4 +189,70 @@ PStask_t *PStasklist_find(PStask_t *list, long tid)
     }
 
     return task;
+}
+
+void PStask_cleanup(long tid)
+{
+    PStask_t *task, *clone = NULL;
+
+    snprintf(errtxt, sizeof(errtxt), "%s(%s)", __func__, PSC_printTID(tid));
+    PSID_errlog(errtxt, 10);
+
+    task = PStasklist_dequeue(&managedTasks, tid);
+    if (task) {
+	/*
+	 * send all task which want to receive a signal
+	 * the signal they want to receive
+	 */
+	PSID_sendAllSignals(task);
+
+	if (task->group==TG_FORWARDER && !task->released) {
+	    /*
+	     * Backup task in order to get the child later. The child
+	     * list will be destroyd within sendSignalsToRelatives()
+	     */
+	    clone = PStask_clone(task);
+	}
+
+	/* Check the relatives */
+	if (!task->released) {
+	    PSID_sendSignalsToRelatives(task);
+	}
+
+	/* Tell MCast about removing the task */
+	if (!task->duplicate) {
+	    decJobsMCast(PSC_getMyID(), 1, (task->group==TG_ANY));
+	}
+
+	if (task->group==TG_FORWARDER && !task->released) {
+	    /* cleanup child */
+	    long childTID;
+	    int sig = -1;
+
+	    childTID = PSID_getSignal(&clone->childs, &sig);
+
+	    if (childTID) {
+		PStask_t *child = PStasklist_find(managedTasks, childTID);
+
+		if (child && child->fd == -1) {
+		    snprintf(errtxt, sizeof(errtxt),
+			     "%s: forwarder kills child %s",
+			     __func__, PSC_printTID(child->tid));
+		    PSID_errlog(errtxt, 0);
+
+		    PSID_kill(-PSC_getPID(child->tid), SIGKILL, child->uid);
+		    PStask_cleanup(child->tid);
+		}
+	    }
+
+	    PStask_delete(clone);
+	}
+
+	PStask_delete(task);
+
+    } else {
+	snprintf(errtxt, sizeof(errtxt), "%s: task(%s) not in my tasklist",
+		 __func__, PSC_printTID(tid));
+	PSID_errlog(errtxt, 0);
+    }
 }
