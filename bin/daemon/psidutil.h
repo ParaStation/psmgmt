@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.h,v 1.14 2003/02/10 18:48:13 eicker Exp $
+ * $Id: psidutil.h,v 1.15 2003/03/06 14:11:24 eicker Exp $
  *
  */
 /**
  * \file
  * Utilities for the ParaStation daemon
  *
- * $Id: psidutil.h,v 1.14 2003/02/10 18:48:13 eicker Exp $
+ * $Id: psidutil.h,v 1.15 2003/03/06 14:11:24 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -27,9 +27,6 @@ extern "C" {
 } /* <- just for emacs indentation */
 #endif
 #endif
-
-extern unsigned int PSID_HWstatus;   /** Indicates which HW is present */
-extern short PSID_numCPU;            /** The actual number of CPUs */
 
 /**
  * @brief Initialize the PSID logging facility.
