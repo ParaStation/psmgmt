@@ -5,7 +5,12 @@
 #include <syslog.h>
 
 #include "parse.h"
-%}
+
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+static char yaccid[] __attribute__(( unused )) = "$Id: psid.scan.y,v 1.8 2002/02/12 15:09:06 eicker Exp $";
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
+ %}
 
 
 %union{
@@ -17,118 +22,130 @@
 %token <string> HOSTNAME 
 %token <string> FILENAME 
 %token <string> KEY
-%token NL COMMENT NROFNODES INSTDIR
-%token LICENSEKEY LICENSESERVER ROUTINGFILE MODULE
-%token DECLAREDEAD PSIDSELECTTIME SMALLPACKET RLIMITDATASIZE RESENDTIMEOUT
-%token AT CONFIG MCAST SYSLOGLEVEL SYSLOG
+
+%token NL COMMENT
+
+%token NROFNODES INSTDIR MODULE ROUTINGFILE
+
+%token HWTYPE MYRINET ETHERNET NONE
+
+%token LICENSEKEY LICENSESERVER
+
+%token SMALLPACKET RESENDTIMEOUT HNPEND ACKPEND
+
+%token MCAST PSIDSELECTTIME DECLAREDEAD
+%token RLIMITDATASIZE
+
+%token SYSLOGLEVEL SYSLOG
 %token PSLOG_KERN PSLOG_DAEMON
 %token PSLOG_LOCAL0 PSLOG_LOCAL1 PSLOG_LOCAL2 PSLOG_LOCAL3 
 %token PSLOG_LOCAL4 PSLOG_LOCAL5 PSLOG_LOCAL6 PSLOG_LOCAL7
 %%
 file:   /* empty */  
-	| file listline
-	;
+        | file listline
+        ;
 
 listline: NL
-	| COMMENT
-	| instdirline COMMENT
-	| instdirline NL
-	| nodesline COMMENT
-	| nodesline NL
-	| hostlist COMMENT
-	| hostlist NL
-	| psiddeclaredeadintervalline COMMENT
-	| psiddeclaredeadintervalline NL
-	| psidselecttimeline COMMENT
-	| psidselecttimeline NL
-	| licenseline COMMENT
-	| licenseline NL
-	| moduleline COMMENT
-	| moduleline NL
-	| routingline COMMENT
-	| routingline NL
-	| smallpacketline COMMENT
-	| smallpacketline NL
-	| resendtimeoutline COMMENT
-	| resendtimeoutline NL
-	| rlimitdatasizeline COMMENT
-	| rlimitdatasizeline NL
-	| sysloglevelline COMMENT
-	| sysloglevelline NL
-	| syslogline COMMENT
-	| syslogline NL
-	| mcastline COMMENT
-	| mcastline NL
-	;
+        | COMMENT
+        | commline COMMENT
+        | commline NL
+        ;
+
+commline: instdirline
+        | nodesline
+        | hostlist
+        | psiddeclaredeadintervalline
+        | psidselecttimeline
+        | licenseline
+        | moduleline
+        | routingline
+        | smallpacketline
+        | resendtimeoutline
+        | hnpendline
+        | ackpendline
+        | rlimitdatasizeline
+        | sysloglevelline
+        | syslogline
+        | mcastline
+        ;
 
 instdirline:
-	INSTDIR HOSTNAME          { strcpy(ConfigInstDir,$2); }
+        INSTDIR HOSTNAME          { strcpy(ConfigInstDir,$2); }
         | INSTDIR FILENAME        { strcpy(ConfigInstDir,$2); }
-	;
+        ;
+
 nodesline: 
-	NROFNODES NUMBER         { setNrOfNodes($2); }
-	;
+        NROFNODES NUMBER         { setNrOfNodes($2); }
+        ;
 
 hostlist:
-	HOSTNAME NUMBER          { installhost(getlasthname(),$2); }
-	;
+        HOSTNAME NUMBER          { installHost(getlasthname(),$2); }
+        ;
 
 psiddeclaredeadintervalline:
-	DECLAREDEAD NUMBER       { ConfigDeclareDeadInterval = $2;}
-	;
+        DECLAREDEAD NUMBER       { ConfigDeclareDeadInterval = $2;}
+        ;
 
 psidselecttimeline:
-	PSIDSELECTTIME NUMBER    { ConfigPsidSelectTime = $2;}
-	;
+        PSIDSELECTTIME NUMBER    { ConfigPsidSelectTime = $2;}
+        ;
 
 licenseline:
-	LICENSEKEY KEY           { strcpy(ConfigLicensekey,$2);}
-        | LICENSESERVER HOSTNAME { installhost(getlasthname(),NrOfNodes); }
-	;
+        LICENSEKEY KEY           { strcpy(ConfigLicensekey,$2);}
+        | LICENSESERVER HOSTNAME { installHost(getlasthname(),NrOfNodes); }
+        ;
 
 moduleline:
-	MODULE HOSTNAME          { strcpy(ConfigModule,$2); }
+        MODULE HOSTNAME          { strcpy(ConfigModule,$2); }
         | MODULE FILENAME        { strcpy(ConfigModule,$2); }
-	;
+        ;
 
 routingline:
-	ROUTINGFILE HOSTNAME     { strcpy(ConfigRoutefile,$2); }
+        ROUTINGFILE HOSTNAME     { strcpy(ConfigRoutefile,$2); }
         | ROUTINGFILE FILENAME   { strcpy(ConfigRoutefile,$2); }
-	;
+        ;
 
 smallpacketline:
-	SMALLPACKET NUMBER       { ConfigSmallPacketSize=$2; }
-	;
+        SMALLPACKET NUMBER       { ConfigSmallPacketSize=$2; }
+        ;
 
 resendtimeoutline:
-	RESENDTIMEOUT NUMBER     { ConfigResendTimeout=$2; }
-	;
+        RESENDTIMEOUT NUMBER     { ConfigRTO=$2; }
+        ;
+
+hnpendline:
+        HNPEND NUMBER            { ConfigHNPend=$2; }
+        ;
+
+ackpendline:
+        ACKPEND NUMBER           { ConfigAckPend=$2; }
+        ;
 
 rlimitdatasizeline:
-	RLIMITDATASIZE NUMBER    { ConfigRLimitDataSize=$2; }
-	;
+        RLIMITDATASIZE NUMBER    { ConfigRLimitDataSize=$2; }
+        ;
 
 sysloglevelline:
-	SYSLOGLEVEL NUMBER       { ConfigSyslogLevel=$2; }
-	;
+        SYSLOGLEVEL NUMBER       { ConfigSyslogLevel=$2; }
+        ;
 
 syslogline:
-	SYSLOG NUMBER            { ConfigSyslog=$2; }
-	| SYSLOG PSLOG_KERN      { ConfigSyslog=LOG_KERN; }
-	| SYSLOG PSLOG_DAEMON    { ConfigSyslog=LOG_DAEMON; }
-	| SYSLOG PSLOG_LOCAL0    { ConfigSyslog=LOG_LOCAL0; }
-	| SYSLOG PSLOG_LOCAL1    { ConfigSyslog=LOG_LOCAL1; }
-	| SYSLOG PSLOG_LOCAL2    { ConfigSyslog=LOG_LOCAL2; }
-	| SYSLOG PSLOG_LOCAL3    { ConfigSyslog=LOG_LOCAL3; }
-	| SYSLOG PSLOG_LOCAL4    { ConfigSyslog=LOG_LOCAL4; }
-	| SYSLOG PSLOG_LOCAL5    { ConfigSyslog=LOG_LOCAL5; }
-	| SYSLOG PSLOG_LOCAL6    { ConfigSyslog=LOG_LOCAL6; }
-	| SYSLOG PSLOG_LOCAL7    { ConfigSyslog=LOG_LOCAL7; }
-	;
+        SYSLOG NUMBER            { ConfigSyslog=$2; }
+        | SYSLOG PSLOG_KERN      { ConfigSyslog=LOG_KERN; }
+        | SYSLOG PSLOG_DAEMON    { ConfigSyslog=LOG_DAEMON; }
+        | SYSLOG PSLOG_LOCAL0    { ConfigSyslog=LOG_LOCAL0; }
+        | SYSLOG PSLOG_LOCAL1    { ConfigSyslog=LOG_LOCAL1; }
+        | SYSLOG PSLOG_LOCAL2    { ConfigSyslog=LOG_LOCAL2; }
+        | SYSLOG PSLOG_LOCAL3    { ConfigSyslog=LOG_LOCAL3; }
+        | SYSLOG PSLOG_LOCAL4    { ConfigSyslog=LOG_LOCAL4; }
+        | SYSLOG PSLOG_LOCAL5    { ConfigSyslog=LOG_LOCAL5; }
+        | SYSLOG PSLOG_LOCAL6    { ConfigSyslog=LOG_LOCAL6; }
+        | SYSLOG PSLOG_LOCAL7    { ConfigSyslog=LOG_LOCAL7; }
+        ;
 
 mcastline: 
-	MCAST NUMBER		       { ConfigMgroup = $2; }
-	;
+        MCAST NUMBER             { ConfigMgroup = $2; }
+        ;
 %%
 
 int lineno=0;
@@ -162,4 +179,3 @@ char *getlasthname(void)
 {
   return (char *)lasthname;
 }
-

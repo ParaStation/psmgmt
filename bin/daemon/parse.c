@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: parse.c,v 1.11 2002/01/22 16:14:15 eicker Exp $
+ * $Id: parse.c,v 1.12 2002/02/12 15:09:06 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: parse.c,v 1.11 2002/01/22 16:14:15 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: parse.c,v 1.12 2002/02/12 15:09:06 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -39,29 +39,33 @@ char ConfigLicensekey[100];
 char ConfigModule[100];
 char ConfigRoutefile[100];
 char ConfigInstDir[255];
-int MyPsiId=-1;
-unsigned int MyId=-1;
+int MyPsiId = -1;
+unsigned int MyId = -1;
 
 int NrOfNodes = -1;
 
-int ConfigSmallPacketSize=-1;
-int ConfigResendTimeout=-1;
-int ConfigRLimitDataSize=-1;
-int ConfigSyslogLevel=10;          /* default max. syslog level */
-int ConfigSyslog=LOG_DAEMON;
-int ConfigMgroup=237;
-long ConfigPsidSelectTime=-1;
-long ConfigDeclareDeadInterval=-1;
+int ConfigSmallPacketSize = -1;
+int ConfigRTO = -1;
+int ConfigHNPend = -1;
+int ConfigAckPend = -1;
+
+int ConfigRLimitDataSize = -1;
+int ConfigSyslogLevel = 10;          /* default max. syslog level */
+int ConfigSyslog = LOG_DAEMON;
+int ConfigMgroup = 237;
+long ConfigPsidSelectTime = -1;
+long ConfigDeclareDeadInterval = -1;
+
+HWType ConfigHWType = none;
 
 struct psihosttable *psihosttable = NULL;
 
-static int usesyslog=0;
+static int usesyslog = 0;
 static char errtxt[255];
 
 #define ERR_OUT(msg) if(usesyslog)syslog(LOG_ERR,msg);else fprintf(stderr,msg);
 
-
-unsigned int GetIP(char *s)
+unsigned int getIP(char *s)
 {
     struct hostent *host;
     unsigned int id;
@@ -130,12 +134,12 @@ int lookupHost(char *s)
     return 0;
 }
 
-void installhost(char *s,int n)
+void installHost(char *s,int n)
 {
     int localid;
     int licserver;
 
-    localid = GetIP(s);
+    localid = getIP(s);
 
     if (NrOfNodes==-1) { /* NrOfNodes not defined */
 	snprintf(errtxt, sizeof(errtxt),
@@ -202,7 +206,7 @@ int parseConfig(int syslogreq)
      * Set MyId to my own ID (needed for installhost())
      */
     gethostname(myname,255);
-    MyId = GetIP(myname);
+    MyId = getIP(myname);
     if(!Configfile){
 	char *tmpnam;
 	tmpnam = PSI_LookupInstalldir();

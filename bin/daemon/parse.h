@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: parse.h,v 1.5 2002/01/22 16:14:48 eicker Exp $
+ * $Id: parse.h,v 1.6 2002/02/12 15:09:06 eicker Exp $
  *
  */
 /**
  * \file
  * parse: Parser for ParaStation daemon
  *
- * $Id: parse.h,v 1.5 2002/01/22 16:14:48 eicker Exp $
+ * $Id: parse.h,v 1.6 2002/02/12 15:09:06 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -34,30 +34,38 @@ struct psihosttable{
     char *name;
 };
 
+typedef enum {myrinet, ethernet, none} HWType;
+
 extern struct psihosttable *psihosttable;
 
 extern char *Configfile;
 
 extern int NrOfNodes;
 
-extern long ConfigPsidSelectTime;
-extern long ConfigDeclareDeadInterval;
-
 extern char ConfigInstDir[];
 extern char ConfigLicensekey[];
 extern char ConfigModule[];
 extern char ConfigRoutefile[];
+
 extern int ConfigSmallPacketSize;
-extern int ConfigResendTimeout;
+extern int ConfigRTO;
+extern int ConfigHNPend;
+extern int ConfigAckPend;
+
+extern long ConfigPsidSelectTime;
+extern long ConfigDeclareDeadInterval;
+extern int ConfigMgroup;
 extern int ConfigRLimitDataSize;
+
 extern int ConfigSyslogLevel;
 extern int ConfigSyslog;
-extern int ConfigMgroup;
+
+extern HWType ConfigHWType;
 
 extern int MyPsiId;
 extern unsigned int MyId;
 
-void installhost(char *s,int n);
+void installHost(char *s,int n);
 void setNrOfNodes(int n);
 
 int parseConfig(int syslogerror);

@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.23 2002/02/11 12:54:02 eicker Exp $
+ * $Id: psidutil.c,v 1.24 2002/02/12 15:09:06 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.23 2002/02/11 12:54:02 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.24 2002/02/12 15:09:06 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -26,6 +26,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.23 2002/02/1
 #include <stdlib.h>
 
 #include <pshal.h>
+#include <psm_mcpif.h>
 
 #include "license.h"
 
@@ -53,7 +54,7 @@ void PSID_ReConfig(int nodeid, int nrofnodes, char *licensekey, char *module,
     SYSLOG(1,(LOG_ERR, "PSID_ReConfig: %d '%s' '%s' '%s'"
 	      " small packets %d, ResendTimeout %d\n",
 	      nodeid, licensekey, module, routingfile,
-	      ConfigSmallPacketSize,ConfigResendTimeout));
+	      ConfigSmallPacketSize,ConfigRTO));
 
     card_info.node_id = nodeid;
     card_info.licensekey = licensekey;
@@ -71,8 +72,16 @@ void PSID_ReConfig(int nodeid, int nrofnodes, char *licensekey, char *module,
 	PSHALSYS_SetSmallPacketSize(ConfigSmallPacketSize);
     }
 
-    if(ConfigResendTimeout != -1){
-	PSHALSYS_SetResendTimeout(ConfigResendTimeout);
+    if(ConfigRTO != -1){
+	PSHALSYS_SetMCPParam(MCP_PARAM_RTO, ConfigRTO);
+    }
+
+    if(ConfigHNPend != -1){
+	PSHALSYS_SetMCPParam(MCP_PARAM_HNPEND, ConfigHNPend);
+    }
+
+    if(ConfigAckPend != -1){
+	PSHALSYS_SetMCPParam(MCP_PARAM_ACKPEND, ConfigAckPend);
     }
 
     return;

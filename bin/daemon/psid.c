@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.34 2002/02/11 12:39:01 eicker Exp $
+ * $Id: psid.c,v 1.35 2002/02/12 15:09:06 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.34 2002/02/11 12:39:01 eicker Exp $ 
+ * $Id: psid.c,v 1.35 2002/02/12 15:09:06 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.34 2002/02/11 12:39:01 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.35 2002/02/12 15:09:06 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -40,6 +40,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.34 2002/02/11 12
 #include <arpa/inet.h>
 
 #include <pshal.h>
+#include <psm_mcpif.h>
 
 #include "timer.h"
 #include "mcast.h"
@@ -62,7 +63,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.34 $";
+static char psid_cvsid[] = "$Revision: 1.35 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -1816,7 +1817,7 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 void
 msg_SETOPTION(DDOptionMsg_t *msg)
 {
-    int i;
+    int i, val;
     for(i=0;i<msg->count;i++){
 	if (PSI_isoption(PSP_ODEBUG)){
 	    sprintf(PSI_txt,"SETOPTION()option: %ld value 0x%lx \n",
@@ -1831,9 +1832,27 @@ msg_SETOPTION(DDOptionMsg_t *msg)
 	    }
 	    break;
 	case PSP_OP_RESENDTIMEOUT:
-	    if(PSHALSYS_GetResendTimeout()!= msg->opt[i].value){
-		PSHALSYS_SetResendTimeout(msg->opt[i].value);
-		ConfigResendTimeout = msg->opt[i].value;
+	    if (PSHALSYS_GetMCPParam(MCP_PARAM_RTO, &val, NULL))
+		break;
+	    if (val != msg->opt[i].value) {
+		PSHALSYS_SetMCPParam(MCP_PARAM_RTO, msg->opt[i].value);
+		ConfigRTO = msg->opt[i].value;
+	    }
+	    break;
+	case PSP_OP_HNPEND:
+	    if (PSHALSYS_GetMCPParam(MCP_PARAM_HNPEND, &val, NULL))
+		break;
+	    if (val != msg->opt[i].value) {
+		PSHALSYS_SetMCPParam(MCP_PARAM_HNPEND, msg->opt[i].value);
+		ConfigHNPend = msg->opt[i].value;
+	    }
+	    break;
+	case PSP_OP_ACKPEND:
+	    if (PSHALSYS_GetMCPParam(MCP_PARAM_ACKPEND, &val, NULL))
+		break;
+	    if (val != msg->opt[i].value) {
+		PSHALSYS_SetMCPParam(MCP_PARAM_ACKPEND, msg->opt[i].value);
+		ConfigAckPend = msg->opt[i].value;
 	    }
 	    break;
 	case PSP_OP_PROCLIMIT:
@@ -1879,7 +1898,7 @@ msg_SETOPTION(DDOptionMsg_t *msg)
 void
 msg_GETOPTION(DDOptionMsg_t* msg)
 {
-    int i;
+    int i, val;
     for(i=0;i<msg->count;i++){
 	if (PSI_isoption(PSP_ODEBUG)){
 	    sprintf(PSI_txt,"GETOPTION() sender %lx option: %ld \n",
@@ -1891,7 +1910,19 @@ msg_GETOPTION(DDOptionMsg_t* msg)
 	    msg->opt[i].value = PSHALSYS_GetSmallPacketSize();
 	    break;
 	case PSP_OP_RESENDTIMEOUT:
-	    msg->opt[i].value = PSHALSYS_GetResendTimeout();
+	    if (PSHALSYS_GetMCPParam(MCP_PARAM_RTO, &val, NULL))
+		break;
+	    msg->opt[i].value = val;
+	    break;
+	case PSP_OP_HNPEND:
+	    if (PSHALSYS_GetMCPParam(MCP_PARAM_HNPEND, &val, NULL))
+		break;
+	    msg->opt[i].value = val;
+	    break;
+	case PSP_OP_ACKPEND:
+	    if (PSHALSYS_GetMCPParam(MCP_PARAM_ACKPEND, &val, NULL))
+		break;
+	    msg->opt[i].value = val;
 	    break;
 	case PSP_OP_PROCLIMIT:
 	    msg->opt[i].value = MAXPROCLimit;
@@ -2822,7 +2853,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.34 $";
+    char revision[] = "$Revision: 1.35 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 

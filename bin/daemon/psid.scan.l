@@ -1,8 +1,13 @@
 %{
 #include "y.tab.h"
+
 extern int lineno;
 extern unsigned char lasthname[];
 void install(char *s);
+
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+static char lexid[] __attribute__(( unused )) = "$Id: psid.scan.l,v 1.6 2002/02/12 15:09:06 eicker Exp $";
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 %}
 
 %%
@@ -10,18 +15,31 @@ void install(char *s);
 #.*			{ return COMMENT; }
 [0-9]+			{ sscanf(yytext,"%d",&yylval.val); return NUMBER; }
 0x[0-9a-fA-F]+		{ sscanf(yytext,"%x",&yylval.val); return NUMBER; }
+
 installdir		{ return INSTDIR; }
 NrOfNodes		{ return NROFNODES; }
-mcast			{ return MCAST; }
-declaredeadinterval	{ return DECLAREDEAD; }
-psidselecttime		{ return PSIDSELECTTIME; }
-licensekey		{ return LICENSEKEY; }
-routingfile		{ return ROUTINGFILE; }
 module			{ return MODULE; }
+routingfile		{ return ROUTINGFILE; }
+
+hwtype			{ return HWTYPE; }
+myrinet			{ return MYRINET; }
+ethernet		{ return ETHERNET; }
+none			{ return NONE; }
+
 licenseserver		{ return LICENSESERVER; }
+licensekey		{ return LICENSEKEY; }
+
 smallpacketsize		{ return SMALLPACKET; }
 resendtimeout		{ return RESENDTIMEOUT; }
+hnpend			{ return HNPEND; }
+ackpend			{ return ACKPEND; }
+
+mcast			{ return MCAST; }
+psidselecttime		{ return PSIDSELECTTIME; }
+declaredeadinterval	{ return DECLAREDEAD; }
+
 rlimitdatasize		{ return RLIMITDATASIZE; }
+
 sysloglevel		{ return SYSLOGLEVEL; }
 syslog			{ return SYSLOG; }
 log_daemon		{ return PSLOG_DAEMON; }
@@ -34,7 +52,7 @@ log_local4|local4	{ return PSLOG_LOCAL4; }
 log_local5|local5	{ return PSLOG_LOCAL5; }
 log_local6|local6	{ return PSLOG_LOCAL6; }
 log_local7|local7	{ return PSLOG_LOCAL7; }
-at|@			{ return AT; }
+
 [\n]			{ lineno++; return NL; }
 [-a-zA-Z0-9.]+		{ yylval.string=lasthname; install(yytext); return HOSTNAME; }
 [-a-zA-Z0-9_./~#]+	{ yylval.string=lasthname; install(yytext); return FILENAME; }
