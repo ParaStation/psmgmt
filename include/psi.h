@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.h,v 1.19 2003/02/07 16:25:04 eicker Exp $
+ * $Id: psi.h,v 1.20 2003/02/27 18:29:54 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with the ParaStation system.
  *
- * $Id: psi.h,v 1.19 2003/02/07 16:25:04 eicker Exp $
+ * $Id: psi.h,v 1.20 2003/02/27 18:29:54 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -132,12 +132,17 @@ int PSI_recvFinish(int num);
 /**
  * @brief Transform to psilogger
  *
- * Transforms the current process to a psilogger process.
+ * Transforms the current process to a psilogger process. If @a
+ * command is different from NULL, it will be executed using the
+ * system(3) call after the logger has done his job, i.e. after all
+ * clients have finished.
  *
+ * @param command Command to execute after by the logger after all
+ * clients have closed their connection.
  *
  * @return No return value.
  */
-void PSI_execLogger(void);
+void PSI_execLogger(const char *command);
 
 
 #ifdef __cplusplus
