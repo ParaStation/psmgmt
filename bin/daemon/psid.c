@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.70 2002/08/07 13:06:46 eicker Exp $
+ * $Id: psid.c,v 1.71 2002/12/19 13:26:06 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.70 2002/08/07 13:06:46 eicker Exp $ 
+ * $Id: psid.c,v 1.71 2002/12/19 13:26:06 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.70 2002/08/07 13:06:46 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.71 2002/12/19 13:26:06 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -73,7 +73,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.70 $";
+static char psid_cvsid[] = "$Revision: 1.71 $";
 
 static int PSID_mastersock;
 
@@ -1186,6 +1186,9 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	if (ptask->uid && task->uid!=ptask->uid) {
 	    /* Spawn tries to change uid */
 	    PSID_errlog("SPAWNREQUEST: tries to setuid()", 0);
+	    snprintf(errtxt, sizeof(errtxt),
+		     "task->uid = %d  ptask->uid = %d", task->uid, ptask->uid);
+	    PSID_errlog(errtxt, 0);
 	    answer.error = EACCES;
 	}
 
@@ -1261,6 +1264,10 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	    PSID_errlog(errtxt, 1);
 
 	    sendMsg(msg);
+
+	    /* Tell MCast about the new task (until the real ping comes in) */
+	    incJobsMCast(PSC_getID(msg->header.dest), 1, 1);
+
 	} else {
 	    /*
 	     * The address is wrong
@@ -3046,7 +3053,7 @@ void checkFileTable(void)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.70 $";
+    char revision[] = "$Revision: 1.71 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
