@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.h,v 1.5 2002/02/08 10:45:06 eicker Exp $
+ * $Id: pse.h,v 1.6 2002/02/18 19:51:26 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation Programming Environment
  *
- * $Id: pse.h,v 1.5 2002/02/08 10:45:06 eicker Exp $
+ * $Id: pse.h,v 1.6 2002/02/18 19:51:26 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -61,6 +61,10 @@
                       PSE_SYexitall(reason,10);}
 #define EXIT3(s, arg1, arg2, arg3) {char reason[200];sprintf(reason,"[%d]: "s,\
                               worldRankPSE, arg1, arg2,arg3);\
+                      PSE_SYexitall(reason,10);}
+#define EXIT6(s, arg1, arg2, arg3, arg4, arg5, arg6)\
+                      {char reason[400];sprintf(reason,"[%d]: "s,\
+                            worldRankPSE, arg1, arg2, arg3, arg4, arg5, arg6);\
                       PSE_SYexitall(reason,10);}
 
 #ifdef __cplusplus
