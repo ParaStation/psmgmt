@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.h,v 1.20 2003/11/14 17:52:14 eicker Exp $
+ * $Id: pstask.h,v 1.21 2004/01/22 14:57:42 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with ParaStation tasks.
  *
- * $Id: pstask.h,v 1.20 2003/11/14 17:52:14 eicker Exp $
+ * $Id: pstask.h,v 1.21 2004/01/22 14:57:42 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -27,7 +27,6 @@
 #include <sys/ioctl.h>
 #include <time.h>
 
-#include "pspartition.h"
 #include "psnodes.h"
 
 #ifdef __cplusplus
@@ -71,6 +70,8 @@ typedef struct PSsig_T{
     struct PSsig_T *next;     /**< link to the next signal */
 } PStask_sig_t;
 
+#include "pspartition.h"
+
 /** Task structure */
 /* Members marked with C are (un)packed by PStask_encode()/PStask_decode() */
 typedef struct PStask_T{
@@ -103,6 +104,7 @@ typedef struct PStask_T{
 				      the task should really go away. */
     uint16_t protocolVersion;      /**< Protocol version the task speaks. */
     PStask_sig_t *childs;          /**< Childs of the task. Signal not used. */
+    PSpart_request_t *request;     /**< Pointer to temp. partition request */
     unsigned int partitionSize;    /**< Size of the partition. */
     PSpart_option_t options;       /**< The partition's options. */
     PSnodes_ID_t *partition;       /**< The actual partition. List of nodes. */
@@ -207,7 +209,7 @@ void PStask_snprintf(char *txt, size_t size, PStask_t *task);
  *
  * @param size The size of the buffer.
  *
- * @param The task structure to encode.
+ * @param task The task structure to encode.
  *
  * @return On success, the number of bytes written to the buffer are
  * returned. If the return value is larger than @a size, the buffer is
