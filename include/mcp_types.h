@@ -572,7 +572,7 @@ typedef struct MCP_TimeoutEntry_T {
 #else
     UINT32	Call;
 #endif
-    INT32	Time;
+    UINT32	Time;
 }MCP_TimeoutEntry_t;
 
 
@@ -634,8 +634,7 @@ typedef struct MCP_ConnInfo_T{
     INT32	Dest;		/* DestNo */
 
     INT16	ConnID_in;	/* Connection ID to recognize that node */
-//    INT16	ConnID_out;	/* My Connection ID to that node */
-				/* Now in mcp_mem, gobal to all connections */
+    INT16	ConnID_out;	/* My Connection ID to that node */
 
     INT16	NextFrameToSend;/* Seq Nr for next frame going to that host */
     INT16	FrameExpected;	/* Expected Seq Nr for msg coming from that host */
