@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.3 2003/04/04 09:52:54 eicker Exp $
+ * $Id: config_parsing.c,v 1.4 2003/07/04 09:28:44 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.3 2003/04/04 09:52:54 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.4 2003/07/04 09:28:44 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -49,8 +49,6 @@ int ConfigMCastPort = 1889;
 
 int ConfigLogLevel = 0;          /* default logging level */
 int ConfigLogDest = LOG_DAEMON;
-
-int MyPsiId = -1;
 
 static int nodesfound = 0;
 

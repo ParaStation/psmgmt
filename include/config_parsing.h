@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.h,v 1.13 2003/04/03 15:06:30 eicker Exp $
+ * $Id: config_parsing.h,v 1.14 2003/07/04 09:28:44 eicker Exp $
  *
  */
 /**
  * \file
  * Parser for the config file of the ParaStation daemon
  *
- * $Id: config_parsing.h,v 1.13 2003/04/03 15:06:30 eicker Exp $
+ * $Id: config_parsing.h,v 1.14 2003/07/04 09:28:44 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -46,8 +46,6 @@ extern int ConfigMCastPort;
 
 extern int ConfigLogLevel;
 extern int ConfigLogDest;
-
-extern int MyPsiId;
 
 int parseConfig(int usesyslog, int loglevel, char *configfile);
 
