@@ -7,7 +7,7 @@
 #include "parse.h"
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char yaccid[] __attribute__(( unused )) = "$Id: psid.scan.y,v 1.9 2002/02/15 19:35:25 eicker Exp $";
+static char yaccid[] __attribute__(( unused )) = "$Id: psid.scan.y,v 1.10 2002/04/03 15:33:05 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
  %}
@@ -72,8 +72,8 @@ commline: instdirline
         ;
 
 instdirline:
-        INSTDIR HOSTNAME          { strcpy(ConfigInstDir,$2); }
-        | INSTDIR FILENAME        { strcpy(ConfigInstDir,$2); }
+        INSTDIR HOSTNAME          { strcpy(ConfigInstDir,(char *)$2); }
+        | INSTDIR FILENAME        { strcpy(ConfigInstDir,(char *)$2); }
         ;
 
 nodesline: 
@@ -93,18 +93,18 @@ psidselecttimeline:
         ;
 
 licenseline:
-        LICENSEKEY KEY           { strcpy(ConfigLicensekey,$2);}
+        LICENSEKEY KEY           { strcpy(ConfigLicensekey,(char *)$2);}
         | LICENSESERVER HOSTNAME { installHost(getlasthname(),NrOfNodes); }
         ;
 
 moduleline:
-        MODULE HOSTNAME          { strcpy(ConfigModule,$2); }
-        | MODULE FILENAME        { strcpy(ConfigModule,$2); }
+        MODULE HOSTNAME          { strcpy(ConfigModule,(char *)$2); }
+        | MODULE FILENAME        { strcpy(ConfigModule,(char *)$2); }
         ;
 
 routingline:
-        ROUTINGFILE HOSTNAME     { strcpy(ConfigRoutefile,$2); }
-        | ROUTINGFILE FILENAME   { strcpy(ConfigRoutefile,$2); }
+        ROUTINGFILE HOSTNAME     { strcpy(ConfigRoutefile,(char *)$2); }
+        | ROUTINGFILE FILENAME   { strcpy(ConfigRoutefile,(char *)$2); }
         ;
 
 smallpacketline:
@@ -174,7 +174,7 @@ void yyerror(char *s)
   fprintf(stderr,"%s in configuration file at line %d\n",s,lineno);
 }
 
-unsigned char lasthname[80];
+char lasthname[80];
 
 /*******************/
 void install(char *s)
@@ -188,5 +188,5 @@ void install(char *s)
 char *getlasthname(void)
 /**********************/
 {
-  return (char *)lasthname;
+  return lasthname;
 }
