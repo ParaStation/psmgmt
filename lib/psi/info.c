@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.7 2002/01/09 20:21:18 eicker Exp $
+ * $Id: info.c,v 1.8 2002/01/17 12:45:44 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.7 2002/01/09 20:21:18 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.8 2002/01/17 12:45:44 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -141,7 +141,7 @@ INFO_request_receive(long *what, void* buffer,int size)
  * RETURN: filled buffer
  *
  */
-int INFO_request_rdpstatus(int nodeno,void* buffer, int size)
+int INFO_request_rdpstatus(int nodeno, void* buffer, int size)
 {
     DDTagedBufferMsg_t msg;
     long what=0;
@@ -149,8 +149,9 @@ int INFO_request_rdpstatus(int nodeno,void* buffer, int size)
     msg.header.type = PSP_CD_RDPSTATUSREQUEST;
     msg.header.dest = PSI_gettid(PSI_myid,0);
     msg.header.sender = PSI_mytid;
-    msg.header.len = sizeof(msg);
+    msg.header.len = sizeof(msg.header);
     msg.tag[0] = nodeno;
+    msg.header.len += sizeof(msg.tag);
 
     if(ClientMsgSend(&msg)<0){
 	perror("write");
@@ -230,13 +231,13 @@ int INFO_request_host(unsigned int address)
  */
 int INFO_request_countstatus(int nodeno, int header)
 {
-    DDBufferMsg_t msg;
+    DDMsg_t msg;
     long what=header;
 
-    msg.header.type = PSP_CD_COUNTSTATUSREQUEST;
-    msg.header.dest = PSI_gettid(nodeno,0);
-    msg.header.sender = PSI_mytid;
-    msg.header.len = sizeof(msg);
+    msg.type = PSP_CD_COUNTSTATUSREQUEST;
+    msg.dest = PSI_gettid(nodeno,0);
+    msg.sender = PSI_mytid;
+    msg.len = sizeof(msg);
 
     if(ClientMsgSend(&msg)<0){
 	perror("write");
@@ -255,14 +256,14 @@ int INFO_request_countstatus(int nodeno, int header)
 int
 INFO_request_tasklist(int nodeno)
 {
-    DDBufferMsg_t msg;
+    DDMsg_t msg;
     int msgtype;
     long what;
 
-    msg.header.type = PSP_CD_TASKLISTREQUEST;
-    msg.header.dest = PSI_gettid(nodeno,0);
-    msg.header.sender = PSI_mytid;
-    msg.header.len = sizeof(msg);
+    msg.type = PSP_CD_TASKLISTREQUEST;
+    msg.dest = PSI_gettid(nodeno,0);
+    msg.sender = PSI_mytid;
+    msg.len = sizeof(msg);
 
     if(ClientMsgSend(&msg)<0){
 	perror("write");
@@ -291,12 +292,12 @@ INFO_request_tasklist(int nodeno)
 long INFO_request_taskinfo(long tid,long what)
 {
     int msgtype;
-    DDBufferMsg_t msg;
+    DDMsg_t msg;
 
-    msg.header.type = PSP_CD_TASKINFOREQUEST;
-    msg.header.dest = tid;
-    msg.header.sender = PSI_mytid;
-    msg.header.len = sizeof(msg);
+    msg.type = PSP_CD_TASKINFOREQUEST;
+    msg.dest = tid;
+    msg.sender = PSI_mytid;
+    msg.len = sizeof(msg);
 
     if(ClientMsgSend(&msg)<0){
 	perror("write");
