@@ -24,6 +24,6 @@ $(SUBDIRS):
 .PHONY: clean distclean
 
 clean distclean:
-	@for i in $(LIBS) ; do \
+	@for i in $(SUBDIRS) ; do \
 		$(MAKE) -C $$i $@; \
 	done
