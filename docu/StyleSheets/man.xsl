@@ -438,6 +438,10 @@
 	<xsl:text>'</xsl:text>
       </xsl:when>
 
+      <xsl:when test="$type='glossentry'">
+	<xsl:value-of select="$target/glossterm"/>
+      </xsl:when>
+
       <xsl:otherwise>
 	<xsl:text>[xref to </xsl:text>
 	<xsl:value-of select="$type"/>
