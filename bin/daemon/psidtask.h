@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidtask.h,v 1.10 2003/10/23 16:27:35 eicker Exp $
+ * $Id: psidtask.h,v 1.11 2003/12/19 14:28:43 eicker Exp $
  *
  */
 /**
  * @file
  * Functions for interaction with ParaStation tasks within the Daemon
  *
- * $Id: psidtask.h,v 1.10 2003/10/23 16:27:35 eicker Exp $
+ * $Id: psidtask.h,v 1.11 2003/12/19 14:28:43 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -161,7 +161,7 @@ PStask_t *PStasklist_find(PStask_t *list, PStask_ID_t tid);
  * - If the task was found, all signal requested explicitely by other
  * tasks will be send, then all relatives will be signaled.
  *
- * - The MCast facility will be informed on removing the task.
+ * - The status facility will be informed on removing the task.
  *
  * - If the task is of type TG_FORWARDER and not released, the
  * controlled child will be killed.
