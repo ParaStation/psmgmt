@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.h,v 1.13 2003/04/03 13:33:06 hauke Exp $
+ * $Id: pse.h,v 1.14 2003/04/03 15:26:00 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation Programming Environment
  *
- * $Id: pse.h,v 1.13 2003/04/03 13:33:06 hauke Exp $
+ * $Id: pse.h,v 1.14 2003/04/03 15:26:00 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -20,8 +20,6 @@
  */
 #ifndef __PSE_H
 #define __PSE_H
-
-#include <pshwtypes.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -135,13 +133,13 @@ void PSE_registerToParent(void);
  * spawn_strategy "here".
  *
  * If no call to this function is made before @ref PSE_spawnMaster()
- * is called, the default hardware-type, @ref PSHW_MYRINET, is used.
+ * is called, the default hardware-type 0 is used. This means, any
+ * node is accepted.
  *
  * @param hwType The hardware-type nodes have to support to get a
  * process spawned on. @a hwType is a bitwise or of the hardware-types
- * defined in @ref pshwtypes.h, which are @ref PSHW_ETHERNET, @ref
- * PSHW_MYRINET and @ref PSHW_GIGAETHERNET at the moment or 0. If @a
- * hwType is 0, any node is taken to spawn tasks on.
+ * requested via 1<<INFO_request_hwindex() or 0. If @a hwType is 0, any
+ * node is taken to spawn tasks on.
  *
  * @return No return value.
  *
