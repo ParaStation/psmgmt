@@ -7,7 +7,7 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.24 2002/06/11 19:27:24 hauke Exp $
+ * $Id: psport.h,v 1.25 2002/06/17 14:03:00 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -45,11 +45,12 @@ typedef enum {
   PSP_OK = 0,                /**< no error, operation successful */
   PSP_UNSPECIFIED_ERR = -1,  /**< there was some error, but we don't
 				know the details */
-  PSP_WRONG_ARG = -2         /**< one of the arguments is invalid */
+  PSP_WRONG_ARG = -2,        /**< one of the arguments is invalid */
+  PSP_CANCEL_FAILED = -3     /**< A PSP_Cancel failed */
 } PSP_Err_t;
 
 /**
- * The PSP_Test(), PSP_Wait() and PSP_Cancel() routines show the
+ * The PSP_Test() and PSP_Wait() routines show the
  * status of the request and, if the request is complete, the status
  * of the operation itself.
  *
@@ -64,8 +65,10 @@ typedef enum {
   PSP_NOT_COMPLETE = 0,      /**< request is pending */
   PSP_SUCCESS = 1,           /**< request is complete and the send or
 				receive operation was successful */
-  PSP_CANCELED = 2           /**< request is complete (but the send or
+  PSP_CANCELED = 2,          /**< request is complete (but the send or
 				receive operation was canceled) */
+  PSP_SHORTREAD = 4          /**< request is complete (but the receive
+				operation truncate the message) */
 } PSP_Status_t;
 
 /**
@@ -522,11 +525,9 @@ PSP_Status_t PSP_Wait(PSP_PortH_t porth, PSP_RequestH_t request);
  *
  * @param porth handle of the port, from PSP_OpenPort()
  * @param request handle of the send or receive request
- * @return Returns information about the status of the send/receive
- * operation. If this call returns PSP_NOT_READY, the request could
- * not canceled.
+ * @return PSP_OK on Success, PSP_CANCEL_FAILED otherwise.
  */
-PSP_Status_t PSP_Cancel(PSP_PortH_t porth, PSP_RequestH_t request);
+PSP_Err_t PSP_Cancel(PSP_PortH_t portH, PSP_RequestH_t request);
     
 #ifdef __cplusplus
 }/* extern "C" */
