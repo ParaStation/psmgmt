@@ -417,7 +417,7 @@ typedef struct MCPHostSendBuf_T {
 
 
 typedef struct MCPHostNotifyEntry_T {
-    UINT32	Message;
+    volatile UINT32	Message;
 } MCPHostNotifyEntry_t;
 
 
