@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidinfo.h,v 1.1 2003/09/12 14:40:57 eicker Exp $
+ * $Id: psidinfo.h,v 1.2 2004/01/09 16:02:07 eicker Exp $
  *
  */
 /**
  * @file
  * Handle info requests to the ParaStation daemon.
  *
- * $Id: psidinfo.h,v 1.1 2003/09/12 14:40:57 eicker Exp $
+ * $Id: psidinfo.h,v 1.2 2004/01/09 16:02:07 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -34,6 +34,8 @@ extern "C" {
  * @brief Handle a PSP_CD_INFOREQUEST message.
  *
  * Handle the message @a inmsg of type PSP_CD_INFOREQUEST.
+ *
+ * @doctodo
  *
  * @param inmsg Pointer to the message to handle.
  *
