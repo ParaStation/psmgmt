@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.76 2003/02/21 13:55:20 eicker Exp $
+ * $Id: psid.c,v 1.77 2003/02/27 18:25:36 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.76 2003/02/21 13:55:20 eicker Exp $ 
+ * $Id: psid.c,v 1.77 2003/02/27 18:25:36 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.76 2003/02/21 13:55:20 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.77 2003/02/27 18:25:36 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -74,7 +74,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.76 $";
+static char psid_cvsid[] = "$Revision: 1.77 $";
 
 static int PSID_mastersock;
 
@@ -754,6 +754,7 @@ void msg_RESET(DDResetMsg_t *msg)
  *   a client trys to connect to the daemon.
  *   accept the connection request if enough resources are available
  */
+pid_t getpgid(pid_t); /* @todo HACK HACK HACK */
 void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 {
     PStask_t *task;
@@ -788,6 +789,17 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
      * this can happen due to a exec call.
      */
     task = PStasklist_find(managedTasks, clients[fd].tid);
+    if (!task) {
+	long pgtid = PSC_getTID(-1, getpgid(pid));
+
+	task = PStasklist_find(managedTasks, pgtid);
+
+	if (task) {
+	    /* Spawned process has changed pid */
+	    /* This might happen due to a /usr/bin/time in PSI_RARG_PRE_0 */
+	    task->tid = clients[fd].tid;
+	}
+    }
     if (task) {
 	/* reconnection */
 	/* use the old task struct and close the old fd */
@@ -1281,13 +1293,10 @@ void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	    task->released = 1;
 	}
 
-	if (task->fd == -1) {
-	    /*
-	     * Unconnected task. Good chance that this is a MPIch/P4 process.
-	     * Send a SIGTERM to the process group in order to stop listener
-	     */
-	    PSID_kill(-PSC_getPID(task->tid), SIGTERM, task->uid);
-	}
+	/*
+	 * Send a SIGTERM to the process group in order to stop fork()ed childs
+	 */
+	PSID_kill(-PSC_getPID(task->tid), SIGTERM, task->uid);
 
 	/* Send a message to the parent (a TG_SPAWNER might wait for it ) */
 	msg->header.dest = task->ptid;
@@ -2992,7 +3001,7 @@ void checkFileTable(void)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.76 $";
+    char revision[] = "$Revision: 1.77 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
