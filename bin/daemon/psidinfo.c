@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidinfo.c,v 1.3 2003/10/30 16:32:07 eicker Exp $
+ * $Id: psidinfo.c,v 1.4 2003/10/31 13:22:21 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidinfo.c,v 1.3 2003/10/30 16:32:07 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidinfo.c,v 1.4 2003/10/31 13:22:21 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -179,45 +179,9 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	case PSP_INFO_NODELIST:
 	{
 	    int i;
-	    static NodelistEntry_t *nodelist = NULL;
-	    static int nodelistlen = 0;
-	    if (nodelistlen < PSC_getNrOfNodes()) {
-		nodelist = (NodelistEntry_t *)
-		    realloc(nodelist, PSC_getNrOfNodes() * sizeof(*nodelist));
-		nodelistlen = PSC_getNrOfNodes();
-	    }
-	    for (i=0; i<PSC_getNrOfNodes(); i++) {
-		MCastConInfo_t info;
-
-		nodelist[i].up = PSnodes_isUp(i);
-		nodelist[i].numCPU = PSnodes_getCPUs(i);
-		nodelist[i].hwStatus = PSnodes_getHWStatus(i);
-
-		getInfoMCast(i, &info);
-		nodelist[i].load[0] = info.load.load[0];
-		nodelist[i].load[1] = info.load.load[1];
-		nodelist[i].load[2] = info.load.load[2];
-		nodelist[i].totalJobs = info.jobs.total;
-		nodelist[i].normalJobs = info.jobs.normal;
-	    }
-	    memcpy(msg.buf, nodelist, PSC_getNrOfNodes() * sizeof(*nodelist));
-	    msg.header.len += PSC_getNrOfNodes() * sizeof(*nodelist);
-	    break;
-	}
-	case PSP_INFO_PARTITION:
-	{
-	    int i, j;
-	    static NodelistEntry_t *nodelist = NULL;
-	    static int nodelistlen = 0;
-	    unsigned int hwType;
 	    PStask_t *requester;
 
 	    requester = PStasklist_find(managedTasks, inmsg->header.sender);
-
-	    if (nodelistlen < PSC_getNrOfNodes()) {
-		nodelistlen = PSC_getNrOfNodes();
-		nodelist = realloc(nodelist, nodelistlen * sizeof(*nodelist));
-	    }
 
 	    if (!requester) {
 		snprintf(errtxt, sizeof(errtxt), "%s: requester %s not found",
@@ -227,46 +191,181 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		break;
 	    }
 
-	    hwType = *(unsigned int *) inmsg->buf;
+	    if (requester->protocolVersion < 328) {
+		static NodelistEntryOld_t *nodelist = NULL;
+		static int nodelistlen = 0;
+		/* @todo Check for message limit */
+		if (nodelistlen < PSC_getNrOfNodes()) {
+		    nodelistlen = PSC_getNrOfNodes();
+		    nodelist = realloc(nodelist,
+				       nodelistlen * sizeof(*nodelist));
+		}
+		for (i=0; i<PSC_getNrOfNodes(); i++) {
+		    MCastConInfo_t info;
 
-	    for (i=0, j=0; i<PSC_getNrOfNodes(); i++) {
-		MCastConInfo_t info;
+		    nodelist[i].up = PSnodes_isUp(i);
+		    nodelist[i].numCPU = PSnodes_getCPUs(i);
+		    nodelist[i].hwStatus = PSnodes_getHWStatus(i);
 
-		getInfoMCast(i, &info);
+		    getInfoMCast(i, &info);
+		    nodelist[i].load[0] = info.load.load[0];
+		    nodelist[i].load[1] = info.load.load[1];
+		    nodelist[i].load[2] = info.load.load[2];
+		    nodelist[i].totalJobs = info.jobs.total;
+		    nodelist[i].normalJobs = info.jobs.normal;
+		}
+		memcpy(msg.buf, nodelist, PSC_getNrOfNodes()
+		       * sizeof(*nodelist));
+		msg.header.len += PSC_getNrOfNodes() * sizeof(*nodelist);
+	    } else {
+		static NodelistEntry_t *nodelist = NULL;
+		static int nodelistlen = 0;
+		/* @todo Check for message limit */
+		if (nodelistlen < PSC_getNrOfNodes()) {
+		    nodelistlen = PSC_getNrOfNodes();
+		    nodelist = realloc(nodelist,
+				       nodelistlen * sizeof(*nodelist));
+		}
+		for (i=0; i<PSC_getNrOfNodes(); i++) {
+		    MCastConInfo_t info;
 
-		if ((!hwType || PSnodes_getHWStatus(i) & hwType)
-		    && (PSnodes_getUser(i) == PSNODES_ANYUSER
-			|| PSnodes_getUser(i) == requester->uid
-			|| !requester->uid)
-		    && (PSnodes_getProcs(i) == PSNODES_ANYPROC
-			|| PSnodes_getProcs(i) > info.jobs.normal)
-		    && (PSnodes_getGroup(i) == PSNODES_ANYGROUP
-			|| PSnodes_getGroup(i) == requester->gid
-			|| !requester->gid)
-		    && PSnodes_runJobs(i)) {
+		    nodelist[i].up = PSnodes_isUp(i);
+		    nodelist[i].numCPU = PSnodes_getCPUs(i);
+		    nodelist[i].hwStatus = PSnodes_getHWStatus(i);
 
-		    nodelist[j].id = i;
-		    nodelist[j].up = PSnodes_isUp(i);
-		    nodelist[j].numCPU = PSnodes_getCPUs(i);
-		    nodelist[j].hwStatus = PSnodes_getHWStatus(i);
+		    getInfoMCast(i, &info);
+		    nodelist[i].load[0] = info.load.load[0];
+		    nodelist[i].load[1] = info.load.load[1];
+		    nodelist[i].load[2] = info.load.load[2];
+		    nodelist[i].totalJobs = info.jobs.total;
+		    nodelist[i].normalJobs = info.jobs.normal;
+		}
+		memcpy(msg.buf, nodelist, PSC_getNrOfNodes()
+		       * sizeof(*nodelist));
+		msg.header.len += PSC_getNrOfNodes() * sizeof(*nodelist);
+	    }
+	    break;
+	}
+	case PSP_INFO_PARTITION:
+	{
+	    int i, j;
+	    unsigned int hwType;
+	    PStask_t *requester;
 
-		    nodelist[j].load[0] = info.load.load[0];
-		    nodelist[j].load[1] = info.load.load[1];
-		    nodelist[j].load[2] = info.load.load[2];
-		    nodelist[j].totalJobs = info.jobs.total;
-		    nodelist[j].normalJobs = info.jobs.normal;
-		    nodelist[j].maxJobs = PSnodes_getProcs(i);
+	    requester = PStasklist_find(managedTasks, inmsg->header.sender);
 
+	    if (!requester) {
+		snprintf(errtxt, sizeof(errtxt), "%s: requester %s not found",
+			 __func__, PSC_printTID(inmsg->header.sender));
+		PSID_errlog(errtxt, 0);
+		err = 1;
+		break;
+	    }
+
+	    if (requester->protocolVersion < 328) {
+		static NodelistEntryOld_t *nodelist = NULL;
+		static int nodelistlen = 0;
+		/* @todo Check for message limit */
+		if (nodelistlen < PSC_getNrOfNodes()) {
+		    nodelistlen = PSC_getNrOfNodes();
+		    nodelist = realloc(nodelist,
+				       nodelistlen * sizeof(*nodelist));
+		}
+
+		hwType = *(unsigned int *) inmsg->buf;
+
+		for (i=0, j=0; i<PSC_getNrOfNodes(); i++) {
+		    MCastConInfo_t info;
+
+		    getInfoMCast(i, &info);
+
+		    if ((!hwType || PSnodes_getHWStatus(i) & hwType)
+			&& (PSnodes_getUser(i) == PSNODES_ANYUSER
+			    || PSnodes_getUser(i) == requester->uid
+			    || !requester->uid)
+			&& (PSnodes_getProcs(i) == PSNODES_ANYPROC
+			    || PSnodes_getProcs(i) > info.jobs.normal)
+			&& (PSnodes_getGroup(i) == PSNODES_ANYGROUP
+			    || PSnodes_getGroup(i) == requester->gid
+			    || !requester->gid)
+			&& PSnodes_runJobs(i)) {
+
+			nodelist[j].id = i;
+			nodelist[j].up = PSnodes_isUp(i);
+			nodelist[j].numCPU = PSnodes_getCPUs(i);
+			nodelist[j].hwStatus = PSnodes_getHWStatus(i);
+
+			nodelist[j].load[0] = info.load.load[0];
+			nodelist[j].load[1] = info.load.load[1];
+			nodelist[j].load[2] = info.load.load[2];
+			nodelist[j].totalJobs = info.jobs.total;
+			nodelist[j].normalJobs = info.jobs.normal;
+			nodelist[j].maxJobs = PSnodes_getProcs(i);
+
+			j++;
+		    }
+		}
+
+		if (j<PSC_getNrOfNodes()) {
+		    nodelist[j].id = -1;
 		    j++;
 		}
+
+		memcpy(msg.buf, nodelist, j * sizeof(*nodelist));
+		msg.header.len += j * sizeof(*nodelist);
+	    } else {
+		static NodelistEntry_t *nodelist = NULL;
+		static int nodelistlen = 0;
+		/* @todo Check for message limit */
+		if (nodelistlen < PSC_getNrOfNodes()) {
+		    nodelistlen = PSC_getNrOfNodes();
+		    nodelist = realloc(nodelist,
+				       nodelistlen * sizeof(*nodelist));
+		}
+
+		hwType = *(unsigned int *) inmsg->buf;
+
+		for (i=0, j=0; i<PSC_getNrOfNodes(); i++) {
+		    MCastConInfo_t info;
+
+		    getInfoMCast(i, &info);
+
+		    if ((!hwType || PSnodes_getHWStatus(i) & hwType)
+			&& (PSnodes_getUser(i) == PSNODES_ANYUSER
+			    || PSnodes_getUser(i) == requester->uid
+			    || !requester->uid)
+			&& (PSnodes_getProcs(i) == PSNODES_ANYPROC
+			    || PSnodes_getProcs(i) > info.jobs.normal)
+			&& (PSnodes_getGroup(i) == PSNODES_ANYGROUP
+			    || PSnodes_getGroup(i) == requester->gid
+			    || !requester->gid)
+			&& PSnodes_runJobs(i)) {
+
+			nodelist[j].id = i;
+			nodelist[j].up = PSnodes_isUp(i);
+			nodelist[j].numCPU = PSnodes_getCPUs(i);
+			nodelist[j].hwStatus = PSnodes_getHWStatus(i);
+
+			nodelist[j].load[0] = info.load.load[0];
+			nodelist[j].load[1] = info.load.load[1];
+			nodelist[j].load[2] = info.load.load[2];
+			nodelist[j].totalJobs = info.jobs.total;
+			nodelist[j].normalJobs = info.jobs.normal;
+			nodelist[j].maxJobs = PSnodes_getProcs(i);
+
+			j++;
+		    }
+		}
+
+		if (j<PSC_getNrOfNodes()) {
+		    nodelist[j].id = -1;
+		    j++;
+		}
+
+		memcpy(msg.buf, nodelist, j * sizeof(*nodelist));
+		msg.header.len += j * sizeof(*nodelist);
 	    }
 
-	    if (j<PSC_getNrOfNodes()) {
-		nodelist[j].id = -1;
-	    }
-
-	    memcpy(msg.buf, nodelist, PSC_getNrOfNodes() * sizeof(*nodelist));
-	    msg.header.len += PSC_getNrOfNodes() * sizeof(*nodelist);
 	    break;
 	}
 	case PSP_INFO_INSTDIR:
