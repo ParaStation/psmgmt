@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiinfo.h,v 1.6 2004/03/09 08:39:13 eicker Exp $
+ * $Id: psiinfo.h,v 1.7 2004/03/11 14:12:13 eicker Exp $
  *
  */
 /**
@@ -13,7 +13,7 @@
  * psiinfo: Functions for information retrieving from ParaStation
  * daemon
  *
- * $Id: psiinfo.h,v 1.6 2004/03/09 08:39:13 eicker Exp $
+ * $Id: psiinfo.h,v 1.7 2004/03/11 14:12:13 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -303,12 +303,12 @@ int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * the according node. A node's allocated number of jobs is provided
  * as a @c uint16_t. No further parameters needed.
  *
- * - PSP_INFO_LIST_EXCLUSIVE @doctodo requests the total number of allocated
- * jobs of all nodes within the ParaStation cluster. Allocated jobs
- * are job slots assigned to a task during a partition
- * request. I.e. the task is allowed to start this number of jobs on
- * the according node. A node's allocated number of jobs is provided
- * as a @c uint16_t. No further parameters needed. @doctodo
+ * - PSP_INFO_LIST_EXCLUSIVE requests the exclusive flag of all nodes
+ * within the ParaStation cluster. Nodes are marked to be exclusive if
+ * the task running on it has requested exclusive access to this node
+ * and this was granted by the resource manager on the master node. On
+ * nodes marked as exclusive no other parallel applications are
+ * allowed to start processes on.
  *
  *
  * @param node The ParaStation ID of the node to ask.
