@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.h,v 1.15 2003/10/08 14:44:06 eicker Exp $
+ * $Id: config_parsing.h,v 1.16 2003/10/29 17:34:49 eicker Exp $
  *
  */
 /**
  * \file
  * Parser for the config file of the ParaStation daemon
  *
- * $Id: config_parsing.h,v 1.15 2003/10/08 14:44:06 eicker Exp $
+ * $Id: config_parsing.h,v 1.16 2003/10/29 17:34:49 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -40,9 +40,9 @@ typedef struct {
 			    Result of 'InstallDir'. Default is NULL. */
     env_fields_t licEnv; /**< License environment. Read from license file.
 			    Results from 'LicenseFile'. */
-    long selectTime;     /**< Time spent within psid's central select().
+    int selectTime;      /**< Time spent within psid's central select().
 			    Result of 'SelectTime'. Default is 2. */
-    long deadInterval;   /**< Declare node dead after this # missing pings.
+    int deadInterval;    /**< Declare node dead after this # missing pings.
 			    Result of 'DeadInterval'. Default is 10. */
     int RDPPort;         /**< The UDP port to use for RDP messages.
 			    Result of 'RDPPort'. Default is 886. */
