@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.97 2003/06/26 10:10:46 eicker Exp $
+ * $Id: psid.c,v 1.98 2003/06/26 16:38:11 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.97 2003/06/26 10:10:46 eicker Exp $ 
+ * $Id: psid.c,v 1.98 2003/06/26 16:38:11 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.97 2003/06/26 10:10:46 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.98 2003/06/26 16:38:11 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -78,7 +78,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.97 $";
+static char psid_cvsid[] = "$Revision: 1.98 $";
 
 static int PSID_mastersock;
 
@@ -96,28 +96,6 @@ static char errtxt[256]; /**< General string to create error messages */
 
 #define PSID_STATE_NOCONNECT (PSID_STATE_DORESET \
 			      | PSID_STATE_SHUTDOWN | PSID_STATE_SHUTDOWN2)
-
-
-/******************************************
- *  startDaemons()
- * if an applications contacts the daemon, the daemon trys
- * to start the other daemons on the cluster.
- */
-static void startDaemons(void)
-{
-    int id;
-
-    if (fork()==0) {
-	/* fork a process which starts all other daemons */
-	for (id=0; id<PSC_getNrOfNodes(); id++) {
-	    if (!PSnodes_isUp(id)) {
-		unsigned int addr = PSnodes_getAddr(id);
-		if (addr != INADDR_ANY)	PSC_startDaemon(addr);
-	    }
-	}
-	exit(0);
-    }
-}
 
 /******************************************
  *  killClients()
@@ -2645,7 +2623,7 @@ void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.97 $";
+    char revision[] = "$Revision: 1.98 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -3006,17 +2984,6 @@ int main(int argc, const char *argv[])
 	     "SelectTime=%ld sec    DeadInterval=%ld",
 	      ConfigSelectTime, ConfigDeadInterval);
     PSID_errlog(errtxt, 0);
-
-    /*
-     * check if the Cluster is ready
-     */
-    snprintf(errtxt, sizeof(errtxt),"Contacting other daemons in the cluster");
-    PSID_errlog(errtxt, 1);
-    startDaemons();
-
-    snprintf(errtxt, sizeof(errtxt),
-	     "Contacting other daemons in the cluster. DONE");
-    PSID_errlog(errtxt, 1);
 
     /*
      * Main loop
