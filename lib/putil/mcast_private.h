@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast_private.h,v 1.8 2002/07/03 20:15:41 eicker Exp $
+ * $Id: mcast_private.h,v 1.9 2002/07/05 14:37:58 eicker Exp $
  *
  */
 /**
@@ -14,7 +14,7 @@
  *
  * Private functions and definitions.
  *
- * $Id: mcast_private.h,v 1.8 2002/07/03 20:15:41 eicker Exp $
+ * $Id: mcast_private.h,v 1.9 2002/07/05 14:37:58 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -46,7 +46,7 @@ extern "C" {
 #endif
 
 /** Flag whether we are LicServer. Set via initMCast(). */
-static int licserver = 0;
+static int licServer = 0;
 
 /**
  * The socket used to send and receive MCast packets. Will be opened in
@@ -62,9 +62,9 @@ static int  nrOfNodes = 0;
 
 static char errtxt[256];         /**< String to hold error messages. */
 
-/** My node-ID withing the cluster. Determined in initMCast(). */
+/** My node-ID withing the cluster. Set within initMCast(). */
 static int myID;
-/** My IP */
+/** My IP address. Set within initMCast(). */
 struct in_addr myIP;
 
 
