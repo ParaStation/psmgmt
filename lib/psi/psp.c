@@ -69,6 +69,9 @@ struct PSPctrlmessages_t PSPctrlmessages[]=
    { PSP_CD_LOADREQ            ,"PSP_CD_LOADREQ"            },
    { PSP_CD_LOADRES            ,"PSP_CD_LOADRES"            },
 
+   { PSP_CD_PROCREQ            ,"PSP_CD_PROCREQ"            },
+   { PSP_CD_PROCRES            ,"PSP_CD_PROCRES"            },
+
    { PSP_CD_COUNTSTATUSREQUEST ,"PSP_CD_COUNTSTATUSREQUEST" },
    { PSP_CD_COUNTSTATUSRESPONSE,"PSP_CD_COUNTSTATUSRESPONSE"},
 
