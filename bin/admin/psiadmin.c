@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.32 2002/05/10 09:56:42 eicker Exp $
+ * $Id: psiadmin.c,v 1.33 2002/07/03 20:59:03 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.32 2002/05/10 09:56:42 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.33 2002/07/03 20:59:03 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -26,10 +26,11 @@ static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.32 2002/05/1
 
 #include <psport.h>
 
-#include "info.h"
+#include "pscommon.h"
+#include "pstask.h"
+
 #include "psi.h"
-#include "psp.h"
-#include "psilog.h"
+#include "info.h"
 #include "psispawn.h"
 
 #include "psiadmin.h"
@@ -43,8 +44,10 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.32 $";
+static char psiadmversion[] = "$Revision: 1.33 $";
 static int  DoRestart = 1;
+
+static char *hoststatus;
 
 int PSIADM_LookUpNodeName(char* hostname)
 {
@@ -66,20 +69,20 @@ void PSIADM_AddNode(int first, int last)
 
     msg.header.type = PSP_DD_CONTACTNODE;
     msg.header.len = sizeof(msg);
-    msg.header.sender = PSI_mytid;
-    msg.header.dest = PSI_gettid(PSI_myid,0);
+    msg.header.sender = PSC_getMyTID();
+    msg.header.dest = PSC_getTID(-1, 0);
 
-    INFO_request_hoststatus(PSI_hoststatus, PSI_nrofnodes, 1);
+    INFO_request_hoststatus(hoststatus, PSC_getNrOfNodes(), 1);
 
     first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
     for (i = first; i < last; i++) {
-	if (PSI_hoststatus[i]&PSPHOSTUP) {
+	if (hoststatus[i]) {
 	    printf("%d already up.\n",i);
 	} else {
 	    printf("starting node %d\n",i);
 	    msg.partner = i;
-	    ClientMsgSend(&msg);
+	    PSI_sendMsg(&msg);
 	}
     }
 
@@ -91,12 +94,12 @@ void PSIADM_NodeStat(int first, int last)
 {
     int i;
 
-    INFO_request_hoststatus(PSI_hoststatus, PSI_nrofnodes, 1);
+    INFO_request_hoststatus(hoststatus, PSC_getNrOfNodes(), 1);
 
     first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
     for (i = first; i < last; i++) {
-	if (PSI_hoststatus[i]&PSPHOSTUP) {
+	if (hoststatus[i]) {
 	    printf("%d up.\n",i);
 	} else {
 	    printf("%d down.\n",i);
@@ -112,7 +115,7 @@ void PSIADM_RDPStat(int first, int last)
     char s[255];
 
     first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
     for (i = first; i < last; i++) {
 	INFO_request_rdpstatus(i,s,sizeof(s), 1);
 	printf("%s",s);
@@ -127,7 +130,7 @@ void PSIADM_MCastStat(int first, int last)
     char s[256];
 
     first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
     for (i = first; i < last; i++) {
 	INFO_request_mcaststatus(i, s, sizeof(s), 1);
 	printf("%s", s);
@@ -146,11 +149,11 @@ void PSIADM_CountStat(int first, int last)
     } countstat;
 
     first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
 
     /* Get header info from own daemon */
     memset(&countstat, 0, sizeof(countstat));
-    for (i=0; i<PSI_nrofnodes; i++) {
+    for (i=0; i<PSC_getNrOfNodes(); i++) {
 	INFO_request_countstatus(i, &countstat, sizeof(countstat), 0);
 	if (countstat.present) break;
     }
@@ -191,7 +194,7 @@ void PSIADM_ProcStat(int first, int last)
     int i, j, num;
 
     first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
     printf("%4s %23s %23s %8s\n",
 	   "Node", "TaskId(Dec/Hex)", "ParentTaskId(Dec/Hex)", "UserId");
     for (i = first; i < last; i++) {
@@ -221,7 +224,7 @@ void PSIADM_LoadStat(int first, int last)
     double load;
 
     first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
     printf("NodeNr Load\n");
     for (i = first; i < last; i++) {
 	load = INFO_request_load(i, 1);
@@ -245,13 +248,13 @@ void PSIADM_SetMaxProc(int count)
      */
     msg.header.type = PSP_DD_SETOPTION;
     msg.header.len = sizeof(msg);
-    msg.header.sender = PSI_mytid;
-    /*msg.header.dest = PULC_gettid(PSI_myid,0);*/
+    msg.header.sender = PSC_getMyTID();
+    /*msg.header.dest = PULC_gettid(PSC_getMyID(), 0);*/
     msg.header.dest = -1 /* broadcast */;
     msg.count =1;
     msg.opt[0].option = PSP_OP_PROCLIMIT;
     msg.opt[0].value = count;
-    ClientMsgSend(&msg);
+    PSI_sendMsg(&msg);
 
     return;
 }
@@ -287,13 +290,13 @@ void PSIADM_SetUser(int uid)
      */
     msg.header.type = PSP_DD_SETOPTION;
     msg.header.len = sizeof(msg);
-    msg.header.sender = PSI_mytid;
-    /*msg.header.dest = PULC_gettid(PSI_myid,0);*/
+    msg.header.sender = PSC_getMyTID();
+    /*msg.header.dest = PULC_gettid(PSC_getMyID(), 0);*/
     msg.header.dest = -1 /* broadcast */;
     msg.count =1;
     msg.opt[0].option = PSP_OP_UIDLIMIT;
     msg.opt[0].value = uid;
-    ClientMsgSend(&msg);
+    PSI_sendMsg(&msg);
 
     return;
 }
@@ -318,7 +321,7 @@ void PSIADM_ShowUser(void)
 
 void PSIADM_SetDebugmask(long newmask)
 {
-    printf("debugmask was %lx\n",PSI_debugmask);
+    // printf("debugmask was %lx\n",PSI_debugmask);
 
     if(geteuid()){
 	printf("Sorry, only root access\n");
@@ -328,8 +331,10 @@ void PSIADM_SetDebugmask(long newmask)
     return;
 
     /* @todo TODO Norbert: Neue debugmask an daemon senden! Neue Nachricht!! */
-    PSI_debugmask = newmask;
-    printf("debugmask is now %lx\n", PSI_debugmask);
+    /* @todo Norbert: DebugLevel für Daemon setzen, Neue Nachtricht
+       (wie MCast, RDP, ...) */
+    // PSI_debugmask = newmask;
+    // printf("debugmask is now %lx\n", PSI_debugmask);
     return;
 }
 
@@ -350,7 +355,7 @@ void PSIADM_SetPsidSelectTime(int val, int first, int last)
     }
 
     first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
 
     if (val<1) {
 	printf(" value must be > 0.\n");
@@ -361,15 +366,15 @@ void PSIADM_SetPsidSelectTime(int val, int first, int last)
      * prepare the message to send it to the daemon
      */
     msg.header.type = PSP_DD_SETOPTION;
-    msg.header.sender = PSI_mytid;
+    msg.header.sender = PSC_getMyTID();
     msg.header.len = sizeof(msg);
     msg.count = 1;
     msg.opt[0].option = PSP_OP_PSIDSELECTTIME;
     msg.opt[0].value = val;
 
     for (i = first; i < last; i++) {
-	msg.header.dest = PSI_gettid(i,0);
-	ClientMsgSend(&msg);
+	msg.header.dest = PSC_getTID(i, 0);
+	PSI_sendMsg(&msg);
     }
 
     return;
@@ -381,7 +386,7 @@ void PSIADM_ShowPsidSelectTime(int first, int last)
     long option = PSP_OP_PSIDSELECTTIME, selecttime;
 
     first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
 
     for (i = first; i < last; i++) {
 	printf("%3d:  ", i);
@@ -405,21 +410,21 @@ void PSIADM_SetPsidDebug(int val, int first, int last)
     }
 
     first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
 
     /*
      * prepare the message to send it to the daemon
      */
     msg.header.type = PSP_DD_SETOPTION;
-    msg.header.sender = PSI_mytid;
+    msg.header.sender = PSC_getMyTID();
     msg.header.len = sizeof(msg);
     msg.count = 1;
     msg.opt[0].option = PSP_OP_PSIDDEBUG;
     msg.opt[0].value = val;
 
     for (i = first; i < last; i++) {
-	msg.header.dest = PSI_gettid(i,0);
-	ClientMsgSend(&msg);
+	msg.header.dest = PSC_getTID(i, 0);
+	PSI_sendMsg(&msg);
     }
 
     return;
@@ -431,7 +436,7 @@ void PSIADM_ShowPsidDebug(int first, int last)
     long option = PSP_OP_PSIDDEBUG, psiddebug;
 
     first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
 
     for (i = first; i < last; i++) {
 	printf("%3d:  ", i);
@@ -455,7 +460,7 @@ void PSIADM_SetRDPDebug(int val, int first, int last)
     }
 
     first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
 
     if (val<0) {
 	printf(" value must be >= 0.\n");
@@ -466,15 +471,15 @@ void PSIADM_SetRDPDebug(int val, int first, int last)
      * prepare the message to send it to the daemon
      */
     msg.header.type = PSP_DD_SETOPTION;
-    msg.header.sender = PSI_mytid;
+    msg.header.sender = PSC_getMyTID();
     msg.header.len = sizeof(msg);
     msg.count = 1;
     msg.opt[0].option = PSP_OP_RDPDEBUG;
     msg.opt[0].value = val;
 
     for (i = first; i < last; i++) {
-	msg.header.dest = PSI_gettid(i, 0);
-	ClientMsgSend(&msg);
+	msg.header.dest = PSC_getTID(i, 0);
+	PSI_sendMsg(&msg);
     }
 
     return;
@@ -486,7 +491,7 @@ void PSIADM_ShowRDPDebug(int first, int last)
     long option = PSP_OP_RDPDEBUG, rdpdebug;
 
     first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
 
     for (i = first; i < last; i++) {
 	printf("%3d:  ", i);
@@ -510,7 +515,7 @@ void PSIADM_SetRDPPktLoss(int val, int first, int last)
     }
 
     first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
 
     if (val<0 || val>100) {
 	printf(" value must be 0 <= val <=100.\n");
@@ -521,15 +526,15 @@ void PSIADM_SetRDPPktLoss(int val, int first, int last)
      * prepare the message to send it to the daemon
      */
     msg.header.type = PSP_DD_SETOPTION;
-    msg.header.sender = PSI_mytid;
+    msg.header.sender = PSC_getMyTID();
     msg.header.len = sizeof(msg);
     msg.count = 1;
     msg.opt[0].option = PSP_OP_RDPPKTLOSS;
     msg.opt[0].value = val;
 
     for (i = first; i < last; i++) {
-	msg.header.dest = PSI_gettid(i, 0);
-	ClientMsgSend(&msg);
+	msg.header.dest = PSC_getTID(i, 0);
+	PSI_sendMsg(&msg);
     }
 
     return;
@@ -541,7 +546,7 @@ void PSIADM_ShowRDPPktLoss(int first, int last)
     long option = PSP_OP_RDPPKTLOSS, pktloss;
 
     first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
 
     for (i = first; i < last; i++) {
 	printf("%3d:  ", i);
@@ -570,21 +575,21 @@ void PSIADM_SetRDPMaxRetrans(int val, int first, int last)
     }
 
     first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
 
     /*
      * prepare the message to send it to the daemon
      */
     msg.header.type = PSP_DD_SETOPTION;
-    msg.header.sender = PSI_mytid;
+    msg.header.sender = PSC_getMyTID();
     msg.header.len = sizeof(msg);
     msg.count = 1;
     msg.opt[0].option = PSP_OP_RDPMAXRETRANS;
     msg.opt[0].value = val;
 
     for (i = first; i < last; i++) {
-	msg.header.dest = PSI_gettid(i, 0);
-	ClientMsgSend(&msg);
+	msg.header.dest = PSC_getTID(i, 0);
+	PSI_sendMsg(&msg);
     }
 
     return;
@@ -596,7 +601,7 @@ void PSIADM_ShowRDPMaxRetrans(int first, int last)
     long option = PSP_OP_RDPMAXRETRANS, maxretrans;
 
     first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
 
     for (i = first; i < last; i++) {
 	printf("%3d:  ", i);
@@ -620,7 +625,7 @@ void PSIADM_SetMCastDebug(int val, int first, int last)
     }
 
     first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
 
     if (val<0) {
 	printf(" value must be >= 0.\n");
@@ -631,15 +636,15 @@ void PSIADM_SetMCastDebug(int val, int first, int last)
      * prepare the message to send it to the daemon
      */
     msg.header.type = PSP_DD_SETOPTION;
-    msg.header.sender = PSI_mytid;
+    msg.header.sender = PSC_getMyTID();
     msg.header.len = sizeof(msg);
     msg.count = 1;
     msg.opt[0].option = PSP_OP_MCASTDEBUG;
     msg.opt[0].value = val;
 
     for (i = first; i < last; i++) {
-	msg.header.dest = PSI_gettid(i, 0);
-	ClientMsgSend(&msg);
+	msg.header.dest = PSC_getTID(i, 0);
+	PSI_sendMsg(&msg);
     }
 
     return;
@@ -651,7 +656,7 @@ void PSIADM_ShowMCastDebug(int first, int last)
     long option = PSP_OP_MCASTDEBUG, mcastdebug;
 
     first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
 
     for (i = first; i < last; i++) {
 	printf("%3d:  ", i);
@@ -669,9 +674,9 @@ void PSIADM_Version(void)
     printf("PSIADMIN: ParaStation administration tool\n");
     printf("Copyright (C) 1996-2002 ParTec AG Karlsruhe\n");
     printf("\n");
-    printf("PSIADMIN: %s\b \n", psiadmversion+11);
-    printf("PSID:     %s\b \n", PSI_psidversion+11);
-    printf("PSILIB:   %d\n", PSPprotocolversion);
+    printf("PSIADMIN:   %s\b \n", psiadmversion+11);
+    printf("PSID:       %s\b \n", PSI_psidversion+11);
+    printf("PSProtocol: %d\n", PSprotocolversion);
     return;
 }
 
@@ -749,12 +754,12 @@ void PSIADM_SetSmallPacketSize(int smallpacketsize)
      */
     msg.header.type = PSP_DD_SETOPTION;
     msg.header.len = sizeof(msg);
-    msg.header.sender = PSI_mytid;
+    msg.header.sender = PSC_getMyTID();
     msg.header.dest = -1 /* broadcast */;
     msg.count =1;
     msg.opt[0].option = PSP_OP_SMALLPACKETSIZE;
     msg.opt[0].value = smallpacketsize;
-    ClientMsgSend(&msg);
+    PSI_sendMsg(&msg);
 
     return;
 }
@@ -789,12 +794,12 @@ void PSIADM_SetResendTimeout(int time)
      */
     msg.header.type = PSP_DD_SETOPTION;
     msg.header.len = sizeof(msg);
-    msg.header.sender = PSI_mytid;
+    msg.header.sender = PSC_getMyTID();
     msg.header.dest = -1 /* broadcast */;
     msg.count =1;
     msg.opt[0].option = PSP_OP_RESENDTIMEOUT;
     msg.opt[0].value = time;
-    ClientMsgSend(&msg);
+    PSI_sendMsg(&msg);
 
     return;
 }
@@ -829,12 +834,12 @@ void PSIADM_SetHNPend(int val)
      */
     msg.header.type = PSP_DD_SETOPTION;
     msg.header.len = sizeof(msg);
-    msg.header.sender = PSI_mytid;
+    msg.header.sender = PSC_getMyTID();
     msg.header.dest = -1 /* broadcast */;
     msg.count =1;
     msg.opt[0].option = PSP_OP_HNPEND;
     msg.opt[0].value = val;
-    ClientMsgSend(&msg);
+    PSI_sendMsg(&msg);
 
     return;
 }
@@ -869,12 +874,12 @@ void PSIADM_SetAckPend(int val)
      */
     msg.header.type = PSP_DD_SETOPTION;
     msg.header.len = sizeof(msg);
-    msg.header.sender = PSI_mytid;
+    msg.header.sender = PSC_getMyTID();
     msg.header.dest = -1 /* broadcast */;
     msg.count =1;
     msg.opt[0].option = PSP_OP_ACKPEND;
     msg.opt[0].value = val;
-    ClientMsgSend(&msg);
+    PSI_sendMsg(&msg);
 
     return;
 }
@@ -914,14 +919,14 @@ void PSIADM_Reset(int reset_hw, int first, int last)
     /*  msg.header.type = PSP_CD_RESET_START_REQ;*/
     msg.header.type = PSP_CD_RESET;
     msg.header.len = sizeof(msg);
-    msg.header.sender = PSI_mytid;
-    msg.header.dest = PSI_gettid(PSI_myid,0);
+    msg.header.sender = PSC_getMyTID();
+    msg.header.dest = PSC_getTID(-1, 0);
     msg.first = (first==ALLNODES) ? 0 : first;
-    msg.last = (last==ALLNODES) ? PSI_nrofnodes-1 : last;
+    msg.last = (last==ALLNODES) ? PSC_getNrOfNodes()-1 : last;
     msg.action = 0;
     if(reset_hw) msg.action |= PSP_RESET_HW;
 
-    ClientMsgSend(&msg);
+    PSI_sendMsg(&msg);
 
     return;
 }
@@ -936,36 +941,36 @@ void PSIADM_ShutdownCluster(int first, int last)
 	return;
     }
 
-    nrofnodes = PSI_nrofnodes;
+    nrofnodes = PSC_getNrOfNodes();
 
     DoRestart = 0;
 
     msg.header.type = PSP_CD_DAEMONSTOP;
     msg.header.len = sizeof(msg);
-    msg.header.sender = PSI_mytid;
-    msg.header.dest = PSI_gettid(PSI_myid,0);
+    msg.header.sender = PSC_getMyTID();
+    msg.header.dest = PSC_getTID(-1, 0);
     msg.first = (first==ALLNODES) ? 0 : first;
-    msg.last = (last==ALLNODES) ? PSI_nrofnodes : last;
+    msg.last = (last==ALLNODES) ? PSC_getNrOfNodes() : last;
     msg.action = 0;
 
-    ClientMsgSend(&msg);
+    PSI_sendMsg(&msg);
 }
 
 void PSIADM_TestNetwork(int mode)
 {
     char *dir;
     char command[100];
-    dir = PSI_LookupInstalldir();
-    if (dir){
-	chdir( dir );
-    }else{
+    dir = PSC_lookupInstalldir();
+    if (dir) {
+	chdir (dir);
+    } else {
 	printf("Cant find 'test_nodes'.\n");
 	return;
     }
-    snprintf(command,sizeof(command),
-	     "./bin/test_nodes -np %d",PSI_nrofnodes);
-    if (system(command) < 0){
-	printf("Cant execute %s : %s\n",command,strerror(errno));
+    snprintf(command, sizeof(command),
+	     "./bin/test_nodes -np %d", PSC_getNrOfNodes());
+    if (system(command) < 0) {
+	printf("Cant execute %s : %s\n", command, strerror(errno));
     }
     return;
     
@@ -977,11 +982,11 @@ void PSIADM_TestNetwork(int mode)
     long tid;
 
     /* printf("TestNetwork\n"); */
-    if(geteuid()){
+    if (geteuid()) {
 	printf("Insufficient priviledge\n");
 	return;
     }
-    mynode = PSI_myid;
+    mynode = PSC_getMyID();
     spawnargc = 2;
     spawnargs = (char**) malloc(spawnargc*sizeof(char*));
 
@@ -999,13 +1004,12 @@ void PSIADM_TestNetwork(int mode)
     default:
 	spawnargs[1]="-o";
     }
-    tid = PSI_spawn(mynode, PSI_LookupInstalldir(),
-		    spawnargc,spawnargs,-1,-1,0,&errno);
-    if(tid<0) {
-	char *txt=NULL;
-	txt=strerror(errno);
+    tid = PSI_spawn(mynode, PSC_lookupInstalldir(),
+		    spawnargc, spawnargs, -1, -1, 0, &errno);
+    if (tid<0) {
+	char *errstr = strerror(errno);
 	printf("Couln't spawn the test task. Error <%d>: %s\n",
-	       errno,txt!=NULL?txt:"UNKNOWN");
+	       errno, errstr ? txt : "UNKNOWN");
     } else {
 	printf("Spawning test task successfull.\n");
     }
@@ -1017,7 +1021,7 @@ void PSIADM_TestNetwork(int mode)
 
 void PSIADM_KillProc(int id)
 {
-    PSI_kill(id,SIGTERM);
+    PSI_kill(id, SIGTERM);
     return;
 }
 
@@ -1130,6 +1134,12 @@ int main(int argc, char **argv)
     if (!PSI_clientinit(TG_ADMIN)) {
 	fprintf(stderr,"can't contact my own daemon.\n");
 	exit(-1);
+    }
+
+    hoststatus = malloc(sizeof(char) * PSC_getNrOfNodes());
+    if (!hoststatus) {
+	printf("node memory\n");
+	exit(1);
     }
 
     signal(SIGTERM,sighandler);
