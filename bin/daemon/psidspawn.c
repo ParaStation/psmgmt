@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidspawn.c,v 1.16 2004/01/09 16:07:23 eicker Exp $
+ * $Id: psidspawn.c,v 1.17 2004/01/28 14:04:59 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.16 2004/01/09 16:07:23 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.17 2004/01/28 14:04:59 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -130,7 +130,9 @@ static int mystat(char *file_name, struct stat *buf)
 
 
 /**
- * @brief @doctodo
+ * @brief Actually start the client process.
+ *
+ * @doctodo
  */
 static int execClient(PStask_t *task, int controlchannel)
 {
