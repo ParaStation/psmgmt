@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.35 2003/03/11 18:21:16 eicker Exp $
+ * $Id: psispawn.c,v 1.36 2003/03/19 17:21:55 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.35 2003/03/11 18:21:16 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.36 2003/03/19 17:21:55 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -1098,7 +1098,7 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
 	     * put the length of the whole msg to the head of the msg
 	     * and return this value
 	     */
-	    msg.header.type = PSP_DD_SPAWNREQUEST;
+	    msg.header.type = PSP_CD_SPAWNREQUEST;
 	    msg.header.len += sizeof(msg.header);;
 	    msg.header.sender = PSC_getMyTID();
 	    msg.header.dest = PSC_getTID(dstnodes[i],0);
@@ -1135,8 +1135,8 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
 	    break;
 	}
 	switch (answer.header.type) {
-	case PSP_DD_SPAWNFAILED:
-	case PSP_DD_SPAWNSUCCESS:
+	case PSP_CD_SPAWNFAILED:
+	case PSP_CD_SPAWNSUCCESS:
 	    /*
 	     * find the right task request
 	     */
@@ -1169,7 +1169,7 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
 		}
 	    }
 
-	    if (answer.header.type==PSP_DD_SPAWNFAILED) {
+	    if (answer.header.type==PSP_CD_SPAWNFAILED) {
 		snprintf(errtxt, sizeof(errtxt), "PSI_dospawn():"
 			 " spawn to node %d failed.",
 			 PSC_getID(answer.header.sender));
@@ -1199,7 +1199,7 @@ int PSI_kill(long tid, short signal)
     PSI_errlog(errtxt, 10);
 
     msg.header.len = sizeof(msg);
-    msg.header.type = PSP_DD_SIGNAL;
+    msg.header.type = PSP_CD_SIGNAL;
     msg.header.sender = PSC_getMyTID();
     msg.header.dest = tid;
     msg.signal = signal;
