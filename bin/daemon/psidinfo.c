@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidinfo.c,v 1.2 2003/10/23 16:27:35 eicker Exp $
+ * $Id: psidinfo.c,v 1.3 2003/10/30 16:32:07 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidinfo.c,v 1.2 2003/10/23 16:27:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidinfo.c,v 1.3 2003/10/30 16:32:07 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -161,8 +161,9 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    break;
 	}
 	case PSP_INFO_HOST:
-	    *(int *)msg.buf = PSnodes_lookupHost(*(unsigned int *) inmsg->buf);
-	    msg.header.len += sizeof(int);
+	    *(PSnodes_ID_t *)msg.buf =
+		PSnodes_lookupHost(*(unsigned int *) inmsg->buf);
+	    msg.header.len += sizeof(PSnodes_ID_t);
 	    break;
 	case PSP_INFO_NODE:
 	{
@@ -322,19 +323,21 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		    if (msg.type == PSP_INFO_RANKID) {
 			unsigned int rank = *(unsigned int *) inmsg->buf;
 			if (rank >= task->partitionSize) {
+			    /* @todo Think about how to use OVERBOOK */
 			    if (task->options & PART_OPT_OVERBOOK) {
-				*(int *)msg.buf =
+				*(PSnodes_ID_t *)msg.buf =
 				    task->partition[rank%task->partitionSize];
 			    } else {
-				*(int *)msg.buf = -1;
+				*(PSnodes_ID_t *)msg.buf = -1;
 			    }
 			} else {
-			    *(int *)msg.buf = task->partition[rank];
+			    *(PSnodes_ID_t *)msg.buf = task->partition[rank];
 			}
+			msg.header.len += sizeof(PSnodes_ID_t);
 		    } else {
 			*(int *)msg.buf = task->nextRank;
+			msg.header.len += sizeof(int);
 		    }
-		    msg.header.len += sizeof(int);
 		}
 	    } else {
 		*(int *)msg.buf = -1;
