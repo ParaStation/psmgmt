@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidcomm.c,v 1.3 2003/07/31 15:31:30 eicker Exp $
+ * $Id: psidcomm.c,v 1.4 2004/01/22 14:37:58 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidcomm.c,v 1.3 2003/07/31 15:31:30 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidcomm.c,v 1.4 2004/01/22 14:37:58 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -38,6 +38,9 @@ void initComm(void)
     initRDPMsgs();
 }
 
+/* External function. @todo */
+int handleMsg(int fd, DDBufferMsg_t *msg);
+
 int sendMsg(void *amsg)
 {
     DDMsg_t *msg = (DDMsg_t *)amsg;
@@ -51,7 +54,11 @@ int sendMsg(void *amsg)
 	PSID_errlog(errtxt, 10);
     }
 
-    if (PSC_getID(msg->dest)==PSC_getMyID()) { /* my own node */
+    if (msg->dest==PSC_getMyTID()) { /* myself */
+	sender="handleMsg";
+	ret = handleMsg(-1, (DDBufferMsg_t *) msg) - 1;
+	if (ret) errno = EINVAL;
+    } else if (PSC_getID(msg->dest)==PSC_getMyID()) { /* my own node */
 	sender="sendClient";
 	ret = sendClient(amsg);
 
@@ -91,19 +98,15 @@ int sendMsg(void *amsg)
 
 	if (errno==EWOULDBLOCK && PSC_getPID(msg->sender)) {
 	    DDMsg_t stopmsg = { .type = PSP_DD_SENDSTOP,
-				.len = sizeof(DDMsg_t),
 				.sender = msg->dest,
-				.dest = msg->sender };
+				.dest = msg->sender,
+				.len = sizeof(DDMsg_t) };
 
 	    snprintf(errtxt, sizeof(errtxt), "%s: SENDSTOP for %s triggered",
 		     __func__, PSC_printTID(stopmsg.dest));
 	    PSID_errlog(errtxt, 2);
 
-	    if (PSC_getID(stopmsg.dest) == PSC_getMyID()) {
-		msg_SENDSTOP(&stopmsg);
-	    } else {
-		sendMsg(&stopmsg);
-	    }
+	    sendMsg(&stopmsg);
 	}
     }
     return ret;
