@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.h,v 1.18 2003/10/23 13:05:20 eicker Exp $
+ * $Id: mcast.h,v 1.19 2003/12/10 16:21:18 eicker Exp $
  *
  */
 /**
  * \file
  * ParaStation MultiCast facility
  *
- * $Id: mcast.h,v 1.18 2003/10/23 13:05:20 eicker Exp $
+ * $Id: mcast.h,v 1.19 2003/12/10 16:21:18 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -36,26 +36,24 @@ extern "C" {
 typedef enum {
     DOWN = 0x1,  /**< node is down */
     UP   = 0x2   /**< node is up */
-} MCastState;
+} MCastState_t;
 
 /** The load info of a node */
 typedef struct {
     double load[3];           /**< The actual load parameters */
-} MCastLoad;
+} MCastLoad_t;
 
 /** The jobs of a node */
 typedef struct {
     short total;              /**< The total number of jobs */
     short normal;             /**< Number of "normal" jobs (i.e. without
 				   admin, logger etc.) */
-} MCastJobs;
+} MCastJobs_t;
 
-/** The whole MCast info about a node */
+/** The MCast status info about a node */
 typedef struct {
-    MCastState state;    /**< The state info of the node @see MCastState */
-    MCastLoad load;      /**< The load info of the node @see MCastLoad */
-    MCastJobs jobs;      /**< The job info of the node @see MCastJobs */
-    int misscounter;     /**< The number of missing pings from this node */
+    MCastLoad_t load;    /**< The load info of the node @see MCastLoad_t */
+    MCastJobs_t jobs;    /**< The job info of the node @see MCastJobs_t */
 } MCastConInfo_t;
 
 /** Structure of a MCast message */
@@ -69,10 +67,10 @@ typedef struct {
 #endif
     short node;          /**< Sender ID */
     short type;          /**< Message type */
-    MCastState state;    /**< The state info @see MCastState */
-    MCastLoad load;      /**< The load info @see MCastLoad */
-    MCastJobs jobs;      /**< The job info @see MCastJobs */
-} MCastMsg;
+    MCastState_t state;  /**< The state info @see MCastState_t */
+    MCastLoad_t load;    /**< The load info @see MCastLoad_t */
+    MCastJobs_t jobs;    /**< The job info @see MCastJobs_t */
+} MCastMsg_t;
 
 /** Tag to @ref MCastCallback: New connection detected */
 #define MCAST_NEW_CONNECTION  0x80

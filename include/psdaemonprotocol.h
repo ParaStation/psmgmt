@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psdaemonprotocol.h,v 1.4 2003/10/09 19:18:09 eicker Exp $
+ * $Id: psdaemonprotocol.h,v 1.5 2003/12/10 16:21:18 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation daemon-daemon high-level protocol.
  *
- * $Id: psdaemonprotocol.h,v 1.4 2003/10/09 19:18:09 eicker Exp $
+ * $Id: psdaemonprotocol.h,v 1.5 2003/12/10 16:21:18 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -47,16 +47,22 @@ extern "C" {
 #define PSP_DD_SENDSTOP            0x0108  /**< Stop sending further packets */
 #define PSP_DD_SENDCONT            0x0109  /**< Continue sending packets */
 
-/** Message between daemon and the daemon forwarder part */
+/** Messages between daemon and the daemon forwarder part */
 #define PSP_DD_CHILDDEAD           0x0110  /**< Tell a child has finished */
 
-/** Message between daemon and master */
+/** Messages between daemon and master */
 #define PSP_DD_GETPART             0x0120  /**< Get partition from master */
 #define PSP_DD_GETPARTNL           0x0121  /**< Partition request nodelist */
 #define PSP_DD_PROVIDEPART         0x0122  /**< Reply partition bound */
 #define PSP_DD_PROVIDEPARTNL       0x0123  /**< Partition reply nodelist */
 #define PSP_DD_GETTASKS            0x0124  /**< Get tasks from slaves */
 #define PSP_DD_PROVIDETASKS        0x0125  /**< Reply tasks */
+
+/** Messages used to find master */
+#define PSP_DD_LOAD                0x0130  /**< Load message to master */
+#define PSP_DD_ACTIVE_NODES        0x0131  /**< Master's active clients list */
+#define PSP_DD_DEAD_NODE           0x0132  /**< Master's dead node info */
+#define PSP_DD_MASTER_IS           0x0133  /**< Info about correct master */
 
 /**
  * @brief Generate a string describing the message type.
