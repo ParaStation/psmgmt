@@ -76,12 +76,14 @@ INFO_request_receive(long *what, void* buffer,int size)
 
 	    /* Print Header if requested */
 	    if(*what){
+		printf("%8s ", "NODE");
 		for (i=0;i<ic->n;i++){
 		    printf("%8s ",ic->counter[i].name);
 		}
 		printf("\n");
 	    }
 
+	    printf("%8u ", PSI_getnode(msg.header.sender));
 	    for (i=0;i<ic->n;i++){
 		char ch[10];
 		/* calc column size from name length */
@@ -226,10 +228,8 @@ int INFO_request_countstatus(int nodeno, int header)
 	perror("write");
 	exit(-1);
     }
-    
-    printf("----node %2d----------------------------------------------\n",
-	   nodeno);
-    INFO_request_receive(&what,NULL,0);
+
+    INFO_request_receive(&what, NULL, 0);
     return 0;
 }
 
