@@ -1,17 +1,17 @@
 /*
  *               ParaStation3
- * parsing.c
+ * parser.c
  *
  * General parser utility for ParaStation daemon and admin
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: parser.c,v 1.1 2002/04/30 17:49:02 eicker Exp $
+ * $Id: parser.c,v 1.2 2002/06/12 15:15:20 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: parser.c,v 1.1 2002/04/30 17:49:02 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: parser.c,v 1.2 2002/06/12 15:15:20 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -21,6 +21,10 @@ static char vcid[] __attribute__(( unused )) = "$Id: parser.c,v 1.1 2002/04/30 1
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <netdb.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "errlog.h"
 
@@ -36,41 +40,37 @@ static char *nextline(void)
 {
     static char line[256];
 
-    do {
-	parseline++;
+    parseline++;
 
-	if (!fgets(line, sizeof(line), parsefile)) {
-	    errlog("Got EOF", 5);
-	    line[0] = '\0';
-	    return line;
+    if (!fgets(line, sizeof(line), parsefile)) {
+	errlog("Got EOF", 5);
+	line[0] = '\0';
+	return line;
+    }
+
+    if (parser_getDebugLevel() >= 12) {
+	int errlen;
+
+	snprintf(errtxt, sizeof(errtxt), "Parsing '%s'", line);
+	if (errtxt[(errlen=strlen(errtxt)-2)] == '\n'
+	    && strlen(errtxt)+1 < sizeof(errtxt)) {
+	    errtxt[errlen++] = '\\';
+	    errtxt[errlen++] = 'n';
+	    errtxt[errlen++] = '\'';
+	    errtxt[errlen++] = '\0';
 	}
+	errlog(errtxt, 12);
+    }
 
-	if (parse_getDebugLevel() > 10) {
-	    snprintf(errtxt, sizeof(errtxt), "Got '%s'", line);
-	    if (errtxt[strlen(errtxt)-2] == '\n'
-		&& strlen(errtxt)+1 < sizeof(errtxt)) {
-		errtxt[strlen(errtxt)-2] = '\\';
-		errtxt[strlen(errtxt)-1] = 'n';
-		errtxt[strlen(errtxt)] = '\'';
-		errtxt[strlen(errtxt)+1] = '\0';
-	    }
-	    errlog(errtxt, 10);
-	}
-
-	if (strlen(line) == (sizeof(line) - 1)) {
-	    errlog("Line too long: '%s'\n", 0);
-	    return NULL;
-	}
-
-	if (line[0] == '#') continue;
-
-	break;
-    } while (1);
+    if (strlen(line) == (sizeof(line) - 1)) {
+	errlog("Line too long: '%s'\n", 0);
+	return NULL;
+    }
 
     return line;
 }
 
-void parse_init(int usesyslog, FILE *input)
+void parser_init(int usesyslog, FILE *input)
 {
     initErrLog("Parser", usesyslog);
 
@@ -79,17 +79,17 @@ void parse_init(int usesyslog, FILE *input)
     parseline = 0;
 }
 
-int parse_getDebugLevel(void)
+int parser_getDebugLevel(void)
 {
     return getErrLogLevel();
 }
 
-void parse_setDebugLevel(int level)
+void parser_setDebugLevel(int level)
 {
     setErrLogLevel(level);
 }
 
-int parse_string(char *string, parse_t *parser)
+int parser_parseString(char *string, parser_t *parser)
 {
     char *token;
     unsigned int i;
@@ -100,13 +100,8 @@ int parse_string(char *string, parse_t *parser)
     do {
 	if (!token) break; /* end of string */
 
-	/* Convert token to lowercase */
-	for (i=0; i<strlen(token); i++) {
-	    token[i] = tolower(token[i]);
-	}
-
 	for (i=0; parser->keylist[i].key; i++) {
-	    if (strcmp(token, parser->keylist[i].key)==0) {
+	    if (strcasecmp(token, parser->keylist[i].key)==0) {
 		if (parser->keylist[i].action) {
 		    ret = parser->keylist[i].action(token);
 		    if (ret) return ret;
@@ -129,7 +124,7 @@ int parse_string(char *string, parse_t *parser)
     return 0;
 }
 
-int parse_file(parse_t *parser)
+int parser_parseFile(parser_t *parser)
 {
     char *line;
     int ret;
@@ -143,7 +138,7 @@ int parse_file(parse_t *parser)
 
 	if (!strlen(line)) break; /* EOF reached */
 
-	ret = parse_string(line, parser);
+	ret = parser_parseString(line, parser);
 	if (ret) return ret;
 
     } while(1);
@@ -151,7 +146,7 @@ int parse_file(parse_t *parser)
     return 0;
 }
 
-int parse_error(char *token)
+int parser_error(char *token)
 {
     snprintf(errtxt, sizeof(errtxt),
 	     "Error in line %d at '%s'", parseline, token);
@@ -160,67 +155,91 @@ int parse_error(char *token)
     return -1;
 }
 
-char *parse_getString(void)
+void parser_comment(char *comment, int level)
+{
+    snprintf(errtxt, sizeof(errtxt), "in line %d: %s", parseline, comment);
+
+    errlog(errtxt, level);
+}
+
+char *parser_getString(void)
 {
     return strtok(NULL, " \t\n");
 }
 
-char *parse_getLine(void)
+char *parser_getLine(void)
 {
     return strtok(NULL, "\n");
 }
 
-long int parse_getNumber(char *token)
+int parser_getComment(char *token)
+{
+    char *line = parser_getLine();
+
+    if (line) {
+	snprintf(errtxt, sizeof(errtxt), "Got comment '%s'", line);
+    } else {
+	snprintf(errtxt, sizeof(errtxt), "Got empty comment");
+    }
+
+    errlog(errtxt, 12);
+
+
+    return 0;
+}
+
+long int parser_getNumber(char *token)
 {
     char *end;
     long int num;
 
     num = strtol(token, &end, 0);
     if (*end != '\0') {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%ld (parsed from '%s') is not a valid number\n", num, token);
-	errlog(errtxt, 0);
-
 	return -1;
     }
 
     return num;
 }
 
-char *parse_getFilename(char *prefix, char *extradir)
+char *parser_getFilename(char *token, char *prefix, char *extradir)
 {
-    char *fname;
-    static char *absname = NULL;
+    char *absname = NULL;
     struct stat fstat;
 
-    fname = parse_getString();
-
-    if (absname) free(absname);
-
-    if (fname[0]=='/') {
-	absname = strdup(fname);
+    if (token[0]=='/') {
+	absname = strdup(token);
     } else {
-	absname = malloc(strlen(prefix) + extradir ? strlen(extradir):0
-			 + strlen(fname) + 3);
+	absname = malloc(strlen(prefix) + (extradir ? strlen(extradir) : 0)
+			 + strlen(token) + 3);
+
 	if (extradir) {
 	    strcpy(absname, prefix);
 	    strcat(absname, "/");
 	    strcat(absname, extradir);
 	    strcat(absname, "/");
-	    strcat(absname, fname);
+	    strcat(absname, token);
 
 	    if (stat(absname, &fstat)==0 && S_ISREG(fstat.st_mode)) {
 		return absname;
 	    }
+
+	    snprintf(errtxt, sizeof(errtxt),
+		     "parser_getFilename(): file '%s' not found", absname);
+	    errlog(errtxt, 10);
 	}
+
 	strcpy(absname, prefix);
 	strcat(absname, "/");
-	strcat(absname, fname);
+	strcat(absname, token);
     }
 
     if (stat(absname, &fstat)==0 && S_ISREG(fstat.st_mode)) {
 	return absname;
     }
+
+    snprintf(errtxt, sizeof(errtxt),
+	     "parser_getFilename(): file '%s' not found", absname);
+    errlog(errtxt, 10);
 
     free(absname);
     absname = NULL;
@@ -228,41 +247,107 @@ char *parse_getFilename(char *prefix, char *extradir)
     return NULL;
 }
 
-char *parse_getHostname(void)
+unsigned int parser_getHostname(char *token)
 {
     char *hname;
+    struct in_addr in_addr;
 
-    hname = parse_getString();
-    /* ToDo: Test if hname is a valid hostname (DNS lookup??) */
-    return NULL;
+    struct hostent *hostinfo;
+
+    hname = token;
+
+    hostinfo = gethostbyname(hname);
+
+    if (!hostinfo) {
+	snprintf(errtxt, sizeof(errtxt), "%s: %s", hname, hstrerror(h_errno));
+	errlog(errtxt, 0);
+
+	return 0;
+    }
+
+    if (hostinfo->h_length != sizeof(in_addr.s_addr)) {
+	snprintf(errtxt, sizeof(errtxt), "%s: Wrong size of address", hname);
+	errlog(errtxt, 0);
+
+	h_errno = NO_ADDRESS;
+
+	return 0;
+    }
+
+    memcpy(&in_addr.s_addr, hostinfo->h_addr_list[0], sizeof(in_addr.s_addr));
+
+    snprintf(errtxt, sizeof(errtxt), "Found host '%s' to have address %s",
+	     hname, inet_ntoa(in_addr));
+    errlog(errtxt, 8);
+    
+    return in_addr.s_addr;
 }
 
-int parse_getNumValue(char *token, int *value, char *valname)
+int parser_getNumValue(char *token, int *value, char *valname)
 {
     int num;
 
-    num = parse_getNumber(token);
+    num = parser_getNumber(token);
 
-    if (num <= 0) {
+    if (num < 0) {
 	snprintf(errtxt, sizeof(errtxt),
-		 "'%s' is not a valid '%s'\n", token, valname);
+		 "'%s' is not a valid number for '%s'", token, valname);
 	errlog(errtxt, 0);
 
 	return -1;
     }
+
+    snprintf(errtxt, sizeof(errtxt), "Got '%d' for '%s'", num, valname);
+    errlog(errtxt, 8);
 
     *value = num;
 
     return 0;
 }
 
-int parse_continue(char *line, parse_t *parser)
+int parser_getBool(char *token, int *value, char *valname)
+{
+    if (strcasecmp(token, "true")==0) {
+	*value = 1;
+    } else if (strcasecmp(token, "false")==0) {
+	*value = 0;
+    } else if (strcasecmp(token, "yes")==0) {
+	*value = 1;
+    } else if (strcasecmp(token, "no")==0) {
+	*value = 0;
+    } else {
+	int num;
+
+	num = parser_getNumber(token);
+
+	if (num < 0) {
+	    snprintf(errtxt, sizeof(errtxt),
+		     "'%s' is not a valid boolean value for '%s'",
+		     token, valname);
+	    errlog(errtxt, 0);
+
+	    return -1;
+	}
+
+	*value = num;
+    }
+
+    snprintf(errtxt, sizeof(errtxt), "Got '%s' for boolean value '%s'",
+	     *value ? "TRUE" : "FALSE", valname);
+    errlog(errtxt, 8);
+
+    return 0;
+}
+
+int parser_parseOn(char *line, parser_t *parser)
 {
     int ret;
 
-    ret = parse_string(line, parser);
+    ret = parser_parseString(line, parser);
 
-    if (ret) return ret;
+    if (!ret) {
+	ret = parser_parseFile(parser);
+    }
 
-    return parse_file(parser);
+    return ret;
 }
