@@ -1,9 +1,4 @@
 <!DOCTYPE style-sheet PUBLIC "-//James Clark//DTD DSSSL Style Sheet//EN" [
-<!ENTITY % html "IGNORE">
-<![%html;[
-<!ENTITY % print "IGNORE">
-<!ENTITY docbook.dsl SYSTEM "/usr/share/sgml/docbook/dsssl-stylesheets/html/docbook.dsl" CDATA dsssl>
-]]>
 <!ENTITY % print "INCLUDE">
 <![%print;[
 <!ENTITY docbook.dsl SYSTEM "/usr/share/sgml/docbook/dsssl-stylesheets/print/docbook.dsl" CDATA dsssl>
@@ -37,12 +32,6 @@
   ;; Default indent of body text
   0pt)
 
-;; use graphics in admonitions, and have their path be "."
-;; NO: we are not yet ready to use gifs in TeX and so forth
-(define %admon-graphics-path%
-  "./")
-(define %admon-graphics%
-  #f)
 (define %hyphenation% #t)
 (define %default-quadding% 'justify)
 
@@ -58,9 +47,6 @@
   ;; Are sections enumerated?
   #t)
 
-;; (define %title-font-family% 
-;;   ;; The font family used in titles
-;;   "Ariel")
 (define %visual-acuity%
   ;; General measure of document text size
   ;; "presbyopic"
@@ -75,13 +61,20 @@
   ;; Which Lists of Titles should be produced for Books?
   (list ))
 
-;; (define %block-start-indent% 10pt)
-
 (define %footer-margin% 
   ;; Height of footer margin
   6pi)
 
-;; (define %graphic-default-extension% "eps")
+(define %title-font-family% "Helvetica")
+(define %body-font-family% "Helvetica")
+
+;; Alternative fonts
+;;(define %title-font-family% "iso-sanserif")
+;;(define %body-font-family% "iso-sanserif")
+
+;; Alternative fonts
+;;(define %title-font-family% "Computer-Modern-Sans")
+;;(define %body-font-family% "Computer-Modern-Sans")
 
 (define (book-titlepage-recto-elements)
   (list (normalize "mediaobject")
@@ -89,7 +82,7 @@
 	(normalize "releaseinfo")))
 					 
 (define (book-titlepage-verso-elements)
-  (list (normalize "title")
+  (list (normalize "titleabbrev")
 	(normalize "releaseinfo")
 	(normalize "author")
 	(normalize "copyright")
@@ -178,53 +171,6 @@
           (empty-sosofo))
       (process-children))))
 
-
-;;
-;; Restart page numbering at *start* of book (i.e. before TOC)
-;;
-(element book 
-  (let* ((bookinfo  (select-elements (children (current-node)) 
-                                     (normalize "bookinfo")))
-         (dedication (select-elements (children (current-node)) 
-                                      (normalize "dedication")))
-         (nl        (titlepage-info-elements (current-node) bookinfo)))
-    (make sequence
-      (if %generate-book-titlepage%
-          (make simple-page-sequence
-            page-n-columns: %titlepage-n-columns%
-	    page-number-restart?: #t
-            input-whitespace-treatment: 'collapse
-            use: default-text-style
-            (book-titlepage nl 'recto)
-            (make display-group
-              break-before: 'page
-              (book-titlepage nl 'verso)))
-          (empty-sosofo))
-
-      (if (node-list-empty? dedication)
-          (empty-sosofo)
-          (with-mode dedication-page-mode
-            (process-node-list dedication)))
-
-      (if %generate-book-toc%
-          (make simple-page-sequence
-            page-n-columns: %page-n-columns%
-            page-number-format: ($page-number-format$ (normalize "toc"))
-            use: default-text-style
-            left-header:   ($left-header$ (normalize "toc"))
-            center-header: ($center-header$ (normalize "toc"))
-            right-header:  ($right-header$ (normalize "toc"))
-            left-footer:   ($left-footer$ (normalize "toc"))
-            center-footer: ($center-footer$ (normalize "toc"))
-            right-footer:  ($right-footer$ (normalize "toc"))
-            input-whitespace-treatment: 'collapse
-            (build-toc (current-node)
-                       (toc-depth (current-node))))
-          (empty-sosofo))
-
-      (process-children)
-      (empty-sosofo))))
-
 ;;
 ;; Don't append '(url)' if type in ulink is given.
 ;;
@@ -289,7 +235,7 @@ note"))))
       use: book-titlepage-recto-style
       font-size: (HSIZE 7)
       line-spacing: (* (HSIZE 7) %line-spacing-factor%)
-      space-before: (* (HSIZE 7) %head-before-factor%)
+      space-before: (* (HSIZE 9) %head-before-factor%)
       quadding: %division-title-quadding%
       keep-with-next?: #t
       heading-level: (if %generate-heading-level% 1 0)
@@ -303,6 +249,14 @@ note"))))
 ;; - More space between lines
 ;;
 (mode book-titlepage-verso-mode
+  (element titleabbrev
+    (make sequence
+      font-family-name: %title-font-family%
+      font-weight: 'bold
+      font-size: (HSIZE 2)
+      line-spacing: (* (HSIZE 2) %line-spacing-factor%)
+      (process-children)))
+
   (element (revhistory revision)
     (let ((revnumber (select-elements (descendants (current-node)) 
                                       (normalize "revnumber")))
@@ -362,7 +316,107 @@ note"))))
                   (process-node-list revremark))
                 (empty-sosofo))))))))
 
-(element referenceinfo ( literal "" ))
+;; The titleabbrev is handled quite simply
+(element titleabbrev (make paragraph (process-children)))
+;; Ignore the book/titleabbrev entries
+(element (book titleabbrev) (empty-sosofo))
+
+;; Ignore referenceinfo entries
+(element referenceinfo (empty-sosofo))
+
+(define (titlepage-info-elements node info #!optional (intro (empty-node-list)))
+  ;; Returns a node-list of the elements that might appear on a title
+  ;; page.  This node-list is constructed as follows:
+  ;;
+  ;; 1. The "title" child of node is considered as a possibility
+  ;; 2. The "titleabbrev" child of node is considered as a possibility
+  ;; 3. If info is not empty, then node-list starts as the children
+  ;;    of info.  If the children of info don't include a title, then
+  ;;    the title from the node is added.
+  ;; 4. If info is empty, then node-list starts as the children of node,
+  ;;    but with "partintro" filtered out.
+
+  (let* ((title (select-elements (children node) (normalize "title")))
+	 (titleabb (select-elements (children node) (normalize "titleabbrev")))
+         (nl    (if (node-list-empty? info)
+                    (node-list-filter-by-not-gi (children node) 
+                                                (list (normalize "partintro")))
+                    (children info)))
+         (nltitle (node-list-filter-by-gi nl (list (normalize "title")))))
+    (if (node-list-empty? info)
+        (node-list nl
+                   intro)
+        (node-list (if (node-list-empty? nltitle)
+                       title
+                       (empty-node-list))
+		   titleabb
+		   nl
+                   intro))))
+
+
+;; Some setup to get document title for footer entry
+(define ($doctitle-header-footer-element$)
+  (let* ((firstancestor (node-list-first (ancestors (current-node))))
+         (metainfo   (if (node-list-empty? firstancestor)
+                         (current-node)
+			 firstancestor))
+         (metatitle  (select-elements (children metainfo)
+				      (normalize "title")))
+         (metatabb   (select-elements (children metainfo)
+				      (normalize "titleabbrev")))
+
+         (title      (select-elements (children (current-node)) 
+                                      (normalize "title")))
+         (titleabb   (select-elements (children (current-node)) 
+                                      (normalize "titleabbrev"))))
+    (if (node-list-empty? metatabb)
+        (if (node-list-empty? titleabb)
+            (if (node-list-empty? metatitle)
+                title
+                metatitle)
+            titleabb)
+        metatabb)))
+(define ($doctitle-header-footer$)
+  (let* ((title ($doctitle-header-footer-element$)))
+    (make sequence
+      font-family-name: %title-font-family%
+      (with-mode hf-mode 
+        (process-node-list title)))))
+
+;; Inner footer always document title
+(define (first-page-inner-footer gi)
+  (cond
+   ((equal? (normalize gi) (normalize "dedication")) (empty-sosofo))
+   ((equal? (normalize gi) (normalize "part")) (empty-sosofo))
+   (else ($doctitle-header-footer$))))
+(define (page-inner-footer gi)
+  (cond
+   ((equal? (normalize gi) (normalize "dedication")) (empty-sosofo))
+   ((equal? (normalize gi) (normalize "part")) (empty-sosofo))
+   (else ($doctitle-header-footer$))))
+
+(define ($page-number-header-footer$) 
+  (let ((component (ancestor-member (current-node) 
+                                    (append (division-element-list)
+                                            (component-element-list)))))
+    (make sequence
+      font-family-name: %title-font-family%
+      ;; font-posture: 'italic
+      (literal 
+       (gentext-page)
+       (if %page-number-restart%
+           (cond
+            ((equal? (gi component) (normalize "appendix") ) 
+             (string-append
+              (element-label component #t)
+              (gentext-intra-label-sep "_pagenumber")))
+            ((equal? (gi component) (normalize "chapter"))
+             (string-append
+              (element-label component #t)
+              (gentext-intra-label-sep "_pagenumber")))
+            (else ""))
+           ""))
+      (page-number-sosofo))))
 
 </style-specification-body>
 </style-specification>
