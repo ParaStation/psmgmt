@@ -143,7 +143,7 @@ int ClientMsgSend(void* amsg)
     int ret = 0;
 
     if((ret = write(PSI_msock,msg,msg->len))==0){
-	perror("PANIC: Lost connection to ParaStation daemon");
+	perror("PANIC in Send: Lost connection to ParaStation daemon");
 	exit(-1);
     }
     return ret;
@@ -165,7 +165,7 @@ int ClientMsgReceive(void * amsg)
 	    n = read(PSI_msock,&((char*)msg)[count], msg->len-count);
 	if(n>0)count+=n;
 	if(n==0){
-	    perror("PANIC: Lost connection to ParaStation daemon");
+	    perror("PANIC in Recv: Lost connection to ParaStation daemon");
 	    exit(-1);
 	}
     }while((msg->len >count) && n>0);
