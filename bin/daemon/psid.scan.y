@@ -12,11 +12,11 @@
   unsigned char *string;
 }
 
-%token <val> NUMBER PORT
-%token <string> HOSTNAME 
-%token <string> FILENAME 
+%token <val> NUMBER
+%token <string> NAME 
+%token <string> KEY
 %token NL COMMENT NROFNODES
-%token LICENSEKEY LICENSESERVER ROUTINGFILE
+%token LICENSEKEY LICENSESERVER ROUTINGFILE MODULE
 %token DECLAREDEAD PSIDSELECTTIME SMALLPACKET RLIMITDATASIZE RESENDTIMEOUT
 %token AT CONFIG MCAST SYSLOGLEVEL SYSLOG
 %token PSLOG_KERN PSLOG_DAEMON
@@ -39,6 +39,8 @@ listline: NL
 	| psidselecttimeline NL
 	| licenseline COMMENT
 	| licenseline NL
+	| moduleline COMMENT
+	| moduleline NL
 	| routingline COMMENT
 	| routingline NL
 	| smallpacketline COMMENT
@@ -60,7 +62,7 @@ nodesline:
 	;
 
 hostlist:
-	HOSTNAME NUMBER          { installhost(getlasthname(),$2); }
+	NAME NUMBER              { installhost(getlasthname(),$2); }
 	;
 
 psiddeclaredeadintervalline:
@@ -72,12 +74,16 @@ psidselecttimeline:
 	;
 
 licenseline:
-	LICENSEKEY HOSTNAME      { strcpy(ConfigLicensekey,$2);}
-        | LICENSESERVER HOSTNAME { installhost(getlasthname(),NrOfNodes); }
+	LICENSEKEY KEY           { strcpy(ConfigLicensekey,$2);}
+        | LICENSESERVER NAME     { installhost(getlasthname(),NrOfNodes); }
+	;
+
+moduleline:
+	MODULE NAME              { strcpy(ConfigModule,$2); }
 	;
 
 routingline:
-	ROUTINGFILE FILENAME     { strcpy(ConfigRoutefile,$2); }
+	ROUTINGFILE NAME         { strcpy(ConfigRoutefile,$2); }
 	;
 
 smallpacketline:
