@@ -88,17 +88,17 @@ void LOGGERspawnforwarder(unsigned int logger_node, int logger_port)
 		close(i);
 
 	argv[0] = (char*)malloc(strlen(PSI_LookupInstalldir()) + 20);
-	sprintf(argv[0],"%s/bin/psiforwarder", PSI_LookupInstalldir());
+	sprintf(argv[0], "%s/bin/psiforwarder", PSI_LookupInstalldir());
 	argv[1] = (char*)malloc(10);
-	sprintf(argv[1],"%u", logger_node);
+	sprintf(argv[1], "%u", logger_node);
 	argv[2] = (char*)malloc(10);
-	sprintf(argv[2],"%d", logger_port);
+	sprintf(argv[2], "%d", logger_port);
 	argv[3] = (char*)malloc(10);
-	sprintf(argv[3],"%d", PSI_myid);
+	sprintf(argv[3], "%d", PSI_myid);
 	argv[4] = (char*)malloc(10);
-	sprintf(argv[4],"%d", stdoutfds[0]);
+	sprintf(argv[4], "%d", stdoutfds[0]);
 	argv[5] = (char*)malloc(10);
-	sprintf(argv[5],"%d", stderrfds[0]);
+	sprintf(argv[5], "%d", stderrfds[0]);
 	argv[6] = NULL;
 
 	LOGGERexecv(argv[0], argv);
