@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.h,v 1.16 2003/07/22 18:29:10 eicker Exp $
+ * $Id: mcast.h,v 1.17 2003/10/08 13:50:03 eicker Exp $
  *
  */
 /**
  * \file
  * ParaStation MultiCast facility
  *
- * $Id: mcast.h,v 1.16 2003/07/22 18:29:10 eicker Exp $
+ * $Id: mcast.h,v 1.17 2003/10/08 13:50:03 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -78,27 +78,6 @@ typedef struct {
 #define MCAST_NEW_CONNECTION  0x80
 /** Tag to @ref MCastCallback: Connection lost */
 #define MCAST_LOST_CONNECTION 0x81
-/** Tag to @ref MCastCallback: License-daemon not needed any longer */
-#define MCAST_LIC_END         0x82
-/** Tag to @ref MCastCallback: Connection to license server lost */
-#define MCAST_LIC_LOST        0x88
-/**
- * Tag to @ref MCastCallback: Connection to license server lost for too long
- * or explicit shutdown.
- */
-#define MCAST_LIC_SHUTDOWN    0x89
-
-/**
- * Tag for @ref MCAST_LIC_SHUTDOWN message to @ref MCastCallback: Connection
- * to license server lost for too long.
- */
-#define LIC_LOST_CONECTION    0x1
-/**
- * Tag for @ref MCAST_LIC_SHUTDOWN message to @ref MCastCallback: Got explicit
- * shutdown from license server.
- */
-#define LIC_KILL_MSG          0x2
-
 
 /**
  * @brief Initialize the MCast module.
@@ -106,8 +85,7 @@ typedef struct {
  * Initializes the MCast machinery for @a nodes nodes.
  *
  *
- * @param nodes Number of nodes to handle (minus the node of the
- * license-daemon).
+ * @param nodes Number of nodes to handle.
  *
  * @param mcastgroup The MCast group to use. If 0, @ref DEFAULT_MCAST_GROUP is
  * used.
@@ -117,13 +95,11 @@ typedef struct {
  *
  * @param usesyslog If true, all error-messages are printed via syslog().
  *
- * @param hosts An array of size @a nodes+1 containing the
- * IP-addresses of the participating nodes in network-byteorder. The
- * first @ref nodes entries represent the ordinary nodes, the last entry
- * is the node of the license-daemon.
+ * @param hosts An array of size @a nodes containing the IP-addresses
+ * of the participating nodes in network-byteorder.
  *
  * @param id The id of the actual node within the participating
- * nodes. The license server has to have @a id = @a nodes.
+ * nodes.
  *
  * @param callback Pointer to a callback-function. This function is called if
  * something exceptional happens. If NULL, no callbacks will be done.
