@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.23 2003/02/21 12:41:45 eicker Exp $
+ * $Id: psilogger.c,v 1.24 2003/02/27 18:20:57 eicker Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.23 2003/02/21 12:41:45 eicker Exp $
+ * $Id: psilogger.c,v 1.24 2003/02/27 18:20:57 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.23 2003/02/21 12:41:45 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.24 2003/02/27 18:20:57 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -152,8 +152,8 @@ static int recvMsg(PSLog_Msg_t *msg)
 
     if (ret < 0) {
 	char *errstr = strerror(errno);
-	fprintf(stderr, "PSIlogger: recvMsg(): error (%d): %s\n",
-		errno, errstr ? errstr : "UNKNOWN");
+	fprintf(stderr, "PSIlogger: %s(): error (%d): %s\n",
+		__func__, errno, errstr ? errstr : "UNKNOWN");
 
 	return ret;
     }
@@ -167,14 +167,14 @@ static int recvMsg(PSLog_Msg_t *msg)
 	while ((i < maxClients) && (clientTID[i] != msg->header.sender)) i++;
 
 	if (i == maxClients) {
-	    fprintf(stderr, "PSIlogger: recvMsg():"
-		    " CC_ERROR from unknown task %s.\n",
-		    PSC_printTID(msg->header.sender));
+	    fprintf(stderr,
+		    "PSIlogger: %s(): CC_ERROR from unknown task %s.\n",
+		    __func__, PSC_printTID(msg->header.sender));
 	    ret = 0;
 	} else {
-	    fprintf(stderr, "PSIlogger: recvMsg():"
-		    " forwarder %s (rank %d) disappeared.\n",
-		    PSC_printTID(msg->header.sender), i);
+	    fprintf(stderr,
+		    "PSIlogger: %s(): forwarder %s (rank %d) disappeared.\n",
+		    __func__, PSC_printTID(msg->header.sender), i);
 
 	    clientTID[i] = -1;
 	    noClients--;
@@ -187,8 +187,8 @@ static int recvMsg(PSLog_Msg_t *msg)
     case PSP_CC_MSG:
 	break;
     default:
-	fprintf(stderr, "PSIlogger: recvMsg(): Unknown message type %s.\n",
-		PSP_printMsg(msg->header.type));
+	fprintf(stderr, "PSIlogger: %s(): Unknown message type %s.\n",
+		__func__, PSP_printMsg(msg->header.type));
 
 	ret = 0;
     }
@@ -648,7 +648,7 @@ static void loop(int daemonSock)
 int main( int argc, char**argv)
 {
     int daemonSock, i;
-    char *envstr;
+    char *envstr, *end;
 
     sigset_t set;
 
@@ -663,20 +663,37 @@ int main( int argc, char**argv)
     signal(SIGTSTP, sighandler);
     signal(SIGCONT, sighandler);
 
-    if (argc != 3) {
+    if (argc < 3) {
 	fprintf(stderr, "PSIlogger: Sorry, program must be called correctly"
 		" inside an application.\n");
 	fprintf(stderr, "%d arguments:", argc);
 	for (i=0; i<argc; i++)
 	    fprintf(stderr, " '%s'", argv[i]);
 	fprintf(stderr, "\n");
+
 	exit(1);
     }
 
     /* daemonSock lost during exec() */
-    daemonSock = atol(argv[1]);
+    daemonSock = strtol(argv[1], &end, 10);
+    if (*end != '\0' || (daemonSock==0 && errno==EINVAL)) {
+	fprintf(stderr, "PSIlogger: Sorry, program must be called correctly"
+		" inside an application.\n");
+	fprintf(stderr, "PSIlogger: '%s' is not a socket number.\n", argv[1]);
+
+	exit(1);
+    }
+
     /* ParaStation ID lost during exec() */
-    PSC_setMyID(atol(argv[2]));
+    i = strtol(argv[2], &end, 10);
+    if (*end != '\0' || (i==0 && errno==EINVAL)) {
+	fprintf(stderr, "PSIlogger: Sorry, program must be called correctly"
+		" inside an application.\n");
+	fprintf(stderr, "PSIlogger: '%s' is not a ParaStation ID.\n", argv[2]);
+
+	exit(1);
+    }
+    PSC_setMyID(i);
 
     if (getenv("PSI_LOGGERDEBUG")) {
 	verbose=1;
@@ -721,6 +738,11 @@ int main( int argc, char**argv)
     loop(daemonSock);
 
     close(daemonSock);
+
+    for (i=3; i<argc; i++) {
+	if (verbose) fprintf(stderr, "Execute '%s'\n", argv[i]);
+	system(argv[i]);
+    }
 
     return 0;
 }
