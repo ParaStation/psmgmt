@@ -1,5 +1,4 @@
 
-
 I. Requirements:
 
 1) Installed snmp-server (snmpd), which has agentx. This version of this SNMP agent was tested with 
@@ -92,7 +91,7 @@ because I have started my snmpd with help of script /etc/init.d/snmpd.
 	
 4) Installation
 
-4.1) installation of dynamically loaded agents modules:
+4.1) The installation of dynamically loaded agents modules:
     You must add to the active configuration file of snmpd (f.e. /etc/snmpd.conf) following lines:
 
 	dlmod ps3ClusterSet /opt/parastation/lib/ps3ClusterSet.so
@@ -104,11 +103,13 @@ because I have started my snmpd with help of script /etc/init.d/snmpd.
 	 /etc/init.d/snmpd reload
      or 
 	 killproc -HUP /usr/sbin/snmpd
+     or 
+	 sss=`cat /var/run/snmpd.pid`; kill -s HUP $sss
      or restart it
 	/etc/init.d/snmpd stop
 	/etc/init.d/snmpd start
 	
-4.2) installation of dynamically loaded agents modules "on the fly":
+4.2) The installation of dynamically loaded agents modules "on the fly":
     snmpset <security settings> <host> UCD-DLMOD-MIB::dlmodStatus.<N> i create
     snmpset <security settings> <host> UCD-DLMOD-MIB::dlmodName.<N> s "ps3ClusterSet" UCD-DLMOD-MIB::dlmodPath.<N> s "/opt/parastation/lib/ps3ClusterSet.so"
     snmpset <security settings> <host> UCD-DLMOD-MIB::dlmodStatus.<N> i load	
