@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: parse.h,v 1.7 2002/02/15 19:35:25 eicker Exp $
+ * $Id: parse.h,v 1.8 2002/04/22 22:51:11 hauke Exp $
  *
  */
 /**
  * \file
  * parse: Parser for ParaStation daemon
  *
- * $Id: parse.h,v 1.7 2002/02/15 19:35:25 eicker Exp $
+ * $Id: parse.h,v 1.8 2002/04/22 22:51:11 hauke Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -27,6 +27,9 @@ extern "C" {
 } /* <- just for emacs indentation */
 #endif
 #endif
+
+#define yylex psidlex
+#define yyin psidin
 
 struct psihosttable{
     char found;

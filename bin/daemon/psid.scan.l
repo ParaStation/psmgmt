@@ -1,12 +1,13 @@
 %{
-#include "y.tab.h"
+#include "psid.tab.h"
+#include <stdlib.h>
 
 extern int lineno;
 extern unsigned char lasthname[];
 void install(char *s);
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: psid.scan.l,v 1.7 2002/02/15 19:35:25 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: psid.scan.l,v 1.8 2002/04/22 22:51:11 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 %}
 

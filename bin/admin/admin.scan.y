@@ -7,8 +7,10 @@
 #include "psi.h"
 #include "psiadmin.h"
 
+#define yylex adminlex
+
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.12 2002/02/15 19:25:00 eicker Exp $";
+static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.13 2002/04/22 22:50:52 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #define NODEERR -2
@@ -251,7 +253,7 @@ quitline:
 
 #include "psiadmin_help.c"
 
-int yywrap(void)
+int adminwrap(void)
 {
     return 0;
 }

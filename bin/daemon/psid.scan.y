@@ -7,7 +7,7 @@
 #include "parse.h"
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char yaccid[] __attribute__(( unused )) = "$Id: psid.scan.y,v 1.11 2002/04/22 18:16:03 hauke Exp $";
+static char yaccid[] __attribute__(( unused )) = "$Id: psid.scan.y,v 1.12 2002/04/22 22:51:11 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
  %}
@@ -162,7 +162,7 @@ mcastportline:
 int lineno=0;
 
 /***************/
-int yywrap(void){
+int psidwrap(void){
 /***************/
   return 1;
 }

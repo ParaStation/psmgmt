@@ -1,8 +1,10 @@
 %{
-#include "y.tab.h"
+#include "admin.tab.h"
 #include <string.h>
+#include <stdlib.h>
+
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: admin.scan.l,v 1.9 2002/02/15 19:25:00 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: admin.scan.l,v 1.10 2002/04/22 22:50:52 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 %}
 
