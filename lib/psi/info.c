@@ -2,41 +2,13 @@
 #include <string.h>
 #include <errno.h>
 
+#include <pshal.h>
+
 #include "psp.h"
 #include "psitask.h"
 #include "psi.h"
 
 #include "info.h"
-
-void INFO_printCount(INFO_COUNT info)
-{
-    printf("T1:%d[%x] T2:%d[%x] T3:%d[%x] T4:%d[%x] T5:%d[%x]"
-	   " T6:%d[%x] T7:%d[%x] T8:%d[%x]\n",
-	   info.t[0], info.t[0], info.t[1], info.t[1],
-	   info.t[2], info.t[2], info.t[3], info.t[3],
-	   info.t[4], info.t[4], info.t[5], info.t[5],
-	   info.t[6], info.t[6], info.t[7], info.t[7]);
-    printf("C1:%d[%x] C2:%d[%x] C3:%d[%x] C4:%d[%x] C5:%d[%x]"
-	   " C6:%d[%x] C7:%d[%x] C8:%d[%x]\n",
-	   info.c[0], info.c[0], info.c[1], info.c[1],
-	   info.c[2], info.c[2], info.c[3], info.c[3],
-	   info.c[4], info.c[4], info.c[5], info.c[5],
-	   info.c[6], info.c[6], info.c[7], info.c[7]);
-    return;
-}
-
-void INFO_printStatus(INFO_STATUS info)
-{
-    printf("Myid: %d, NrOfNodes: %d, Interface: %s [%d loops],"
-	   " Err[%d,%d,%d,%d,%d]\n",
-	   info.myid, info.nrofnodes, (info.speed>0.0)?"UP":"DOWN", info.speed,
-	   info.aos_err, info.da_err, info.nack_err, info.crc_err,
-	   info.rsa_err);
-    printf("Buff: Send[%d|%d], MCPRecv[%d|%d], HostRecv[%d|%d]\n",
-	   info.sbuf, info.maxsbuf, info.irbuf, info.maxirbuf,
-	   info.rbuf, info.maxrbuf);
-    return;
-}
 
 /*--------------------------------------------------------------------
  * int INFO_request_receive()
@@ -95,18 +67,26 @@ INFO_request_receive(long *what, void* buffer,int size)
 	    break;
 	case PSP_CD_COUNTSTATUSRESPONSE:
 	{
-	    INFO_COUNT info;
-	    bcopy(msg.buf,&info,sizeof(info));
+	    PSHALInfoCounter_t *ic;
+	    int i;
 
-	    INFO_printCount(info);
-	    break;
-	}
-	case PSP_CD_PSISTATUSRESPONSE:
-	{
-	    INFO_STATUS info;
-	    bcopy(msg.buf,&info,sizeof(info));
+	    ic = (PSHALInfoCounter_t *) msg.buf;
 
-	    INFO_printStatus(info);
+	    /* Print Header if requested */
+	    if(*what){
+		for (i=0;i<ic->n;i++){
+		    printf("%8s ",ic->counter[i].name);
+		}
+		printf("\n");
+	    }
+
+	    for (i=0;i<ic->n;i++){
+		char ch[10];
+		/* calc column size from name length */
+		sprintf(ch,"%%%du ",(int) MAX(strlen(ic->counter[i].name),8));
+		printf(ch,ic->counter[i].value);
+	    }
+	    printf("\n");
 	    break;
 	}
 	case PSP_CD_RDPSTATUSRESPONSE:
@@ -133,32 +113,6 @@ INFO_request_receive(long *what, void* buffer,int size)
 	}
     }
     return msg.header.type;
-}
-
-/*****************************
- *
- * request_psistatus(int nodeno)
- *
- */
-int INFO_request_psistatus(int nodeno)
-{
-    DDBufferMsg_t msg;
-    long what=0;
-
-    msg.header.type = PSP_CD_PSISTATUSREQUEST;
-    msg.header.dest = PSI_gettid(nodeno,0);
-    msg.header.sender = PSI_mytid;
-    msg.header.len = sizeof(msg);
-
-    if(ClientMsgSend(&msg)<0){
-	perror("write");
-	exit(-1);
-    }
-
-    printf("----node %2d----------------------------------------------\n",
-	   nodeno);
-    INFO_request_receive(&what,NULL,0);
-    return 0;
 }
 
 /*****************************
@@ -256,26 +210,25 @@ int INFO_request_host(unsigned int address)
  * request_countstatus(int nodeno)
  *
  */
-int INFO_request_countstatus(int nodeno)
+int INFO_request_countstatus(int nodeno, int header)
 {
-  DDBufferMsg_t msg;
-  long what=0;
-  
-  msg.header.type = PSP_CD_COUNTSTATUSREQUEST;
-  msg.header.dest = PSI_gettid(nodeno,0);
-  msg.header.sender = PSI_mytid;
-  msg.header.len = sizeof(msg);
+    DDBufferMsg_t msg;
+    long what=header;
 
-  if(ClientMsgSend(&msg)<0)
-    {
+    msg.header.type = PSP_CD_COUNTSTATUSREQUEST;
+    msg.header.dest = PSI_gettid(nodeno,0);
+    msg.header.sender = PSI_mytid;
+    msg.header.len = sizeof(msg);
+
+    if(ClientMsgSend(&msg)<0){
 	perror("write");
 	exit(-1);
     }
     
-  printf("----node %2d----------------------------------------------\n",
-	 nodeno);
-  INFO_request_receive(&what,NULL,0);
-  return 0;
+    printf("----node %2d----------------------------------------------\n",
+	   nodeno);
+    INFO_request_receive(&what,NULL,0);
+    return 0;
 }
 
 /*****************************
