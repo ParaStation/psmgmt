@@ -26,6 +26,10 @@
 	linkend="psscan"/> and write a routing table to stdout.
     </para>
     <para>
+      A detailed description of the <filename>map-file</filename>'s format can
+      be found in the <xref linkend="psscan"/> manual page.
+    </para>
+    <para>
       The routing table is fed by the &ps; daemon <xref linkend="psid"/> into
       the &ps; Myrinet module in order to enable proper routing.
     </para>
@@ -49,8 +53,57 @@
   <refsect1>
     <title>The routing table's format</title>
     <para>
-      ToDo
+      The first line of the routing table has to consist of the string
+      <quote>routing table</quote> only. This is a magic strings for the
+      &ps; daemon to identify the routing table.
     </para>
+    <para>
+      All further lines are sequences of numbers and look like:
+    </para>
+    <programlisting>	3 7 5 ...</programlisting>
+    <para>
+      Here the first number (i.e. <quote>3</quote>) denotes the &ps; ID of the
+      routes source node, the second number (i.e. <quote>7</quote>) the
+      corresponding ID of the target node and all the rest represent the
+      route.
+    </para>
+    <para>
+      For a route of length N, i.e. the connection between the source node and
+      the target node visits N atomic Myrinet switches, N numbers have to be
+      supplied.
+    </para>
+    <para>
+      Every number in the route description represents the difference of the
+      input port number and the output port number of the specific switch.
+    </para>
+    <para>
+      To give a simple example assume that the nodes with &ps; IDs 0 and 5 are
+      connected to the same Myrinet switch. The shall be connected to the ports
+      4 and 7 respectively. The line describing the route from node 0 to node 5
+      then reads:
+    </para>
+    <programlisting>	0 5 3</programlisting>
+    <para>
+      since 7-4 = 3.
+    </para>
+    <para>
+      The other lines of the routing table will be:
+    </para>
+    <programlisting>	0 0 0
+	5 0 -2
+	5 5 0</programlisting>
+    <para>
+      To give a simple example using a non-trivial route, i.e. a route that
+      contains more than on hop, assume node 0 is connected to port 5 of switch
+      1, node 1 is connected to port 3 of switch 2 and port 7 of switch 1 is
+      connected to port 6 of switch 2. This will lead to the following routing
+      table:
+    </para>
+    <programlisting>	routing table
+	0 0 0
+	0 1 2 -3
+	1 0 3 -2
+	1 1 0</programlisting>
   </refsect1>
   <refsect1>
     <title>See also</title>
