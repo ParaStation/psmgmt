@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: configure.in,v 1.28 2003/07/18 14:07:12 eicker Exp $
+# $Id: configure.in,v 1.29 2003/07/18 14:09:12 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -12,7 +12,7 @@
 #############################################################################
 
 # Process this file with autoconf to produce a configure script.
-AC_INIT(["psmgmt"],["$Revision: 1.28 $"],["eicker@par-tec.com"])
+AC_INIT(["psmgmt"],[""],["eicker@par-tec.com"])
 AC_CONFIG_SRCDIR([configure.in])
 
 AC_CONFIG_AUX_DIR(["scripts"]) 
