@@ -4,6 +4,8 @@
 #include <string.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
+
 #include <logger.h>
 
 int PSI_myid = 0;
@@ -36,7 +38,7 @@ int main(int argc, char *argv[])
     hp = gethostbyname("localhost");
     memcpy(&in_addr, hp->h_addr, hp->h_length);
 
-    printf("My IP-address is %d[%x]\n", in_addr.s_addr, in_addr.s_addr);
+    printf("My IP-address is %s\n", inet_ntoa(in_addr));
 
     LOGGERspawnforwarder(in_addr.s_addr, loggerport);
 

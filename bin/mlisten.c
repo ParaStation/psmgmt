@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mlisten.c,v 1.7 2002/01/07 15:22:56 eicker Exp $
+ * $Id: mlisten.c,v 1.8 2002/01/17 12:50:06 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mlisten.c,v 1.7 2002/01/07 15:22:56 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mlisten.c,v 1.8 2002/01/17 12:50:06 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -63,7 +63,7 @@ void init(int num_nodes)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.7 $";
+    char revision[] = "$Revision: 1.8 $";
     fprintf(stderr, "mlisten %s\b \n", revision+11);
 }
 
@@ -174,8 +174,8 @@ int main(int argc, char *argv[])
 
     if (setsockopt(mcastsock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq,
 		   sizeof(mreq)) == -1) {
-	snprintf(errtxt, sizeof(errtxt), "unable to join mcast group '%x'",
-		 ntohl(mreq.imr_multiaddr.s_addr));
+	snprintf(errtxt, sizeof(errtxt), "unable to join mcast group %s",
+		 inet_ntoa(mreq.imr_multiaddr));
 	perror(errtxt);
 	return -1;
     }
@@ -210,15 +210,15 @@ int main(int argc, char *argv[])
     /* Do the bind */
     if (bind(mcastsock, (struct sockaddr *)&sin, sizeof(sin)) < 0) {
 	snprintf(errtxt, sizeof(errtxt),
-		 "can't bind mcast socket mcast addr[%x]",
-		 ntohl(sin.sin_addr.s_addr));
+		 "can't bind mcast socket mcast group %s",
+		 inet_ntoa(sin.sin_addr));
 	perror(errtxt);
 	return -1;
     }
 
     printf("listening on port %d\n",ntohs(sin.sin_port));
 
-    printf("using mcast addr %x\n",ntohl(mreq.imr_multiaddr.s_addr));
+    printf("using mcast addr %s\n",inet_ntoa(mreq.imr_multiaddr));
 
     init(nodes);
     printf("%s",display); fflush(stdout);
@@ -231,16 +231,16 @@ int main(int argc, char *argv[])
 	    recvfrom(mcastsock, &buf, sizeof(Mmsg), 0,
 		     (struct sockaddr *)&sin, &slen);
 	    if (debug) {
-		printf("receiving MCAST Ping from %x, type=%x state[%x]:%x"
+		printf("receiving MCAST Ping from %s, type=%x state[%x]:%x"
 		       " Load[%.2f|%.2f|%.2f]\n",
-		       sin.sin_addr.s_addr, buf.type, buf.node, buf.state,
+		       inet_ntoa(sin.sin_addr), buf.type, buf.node, buf.state,
 		       buf.load.load[0],buf.load.load[1],buf.load.load[2]);
 	    } else {
 		if (buf.node >= nodes) {
 		    /* Got ping from node that exceeds num_nodes */
-		    fprintf(stderr, "receiving MCAST Ping from %x, type=%x"
-			    " state[%x]:%x\n",sin.sin_addr.s_addr, buf.type,
-			    buf.node, buf.state);
+		    fprintf(stderr, "receiving MCAST Ping from %s, type=%x"
+			    " state[%x]:%x\n", inet_ntoa(sin.sin_addr),
+			    buf.type, buf.node, buf.state);
 		    fprintf(stderr, "buf.node = %d >= nodes = %d\n", buf.node,
 			    nodes);
 		    fprintf(stderr,
