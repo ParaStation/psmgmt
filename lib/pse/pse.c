@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.10 2002/02/08 10:45:06 eicker Exp $
+ * $Id: pse.c,v 1.11 2002/02/08 10:57:53 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.10 2002/02/08 10:45:06 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.11 2002/02/08 10:57:53 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -187,7 +187,7 @@ void PSEspawn(int Argc, char** Argv,
 	 * dies.
 	 */
 	parenttid = INFO_request_taskinfo(PSI_mytid,INFO_PTID);
-	if((parenttid<=0) || (PSI_notifydead(parenttid,SIGTERM)<0))
+	if((parenttid<=0) || (PSI_notifydead(parenttid, SIGTERM)<0))
 	    EXIT3("Parent with tid 0x%lx[%d:%d] is probably no more alive."
 		  " This shouldn't happen. I'm exiting.\n",
 		  parenttid, PSI_getnode(parenttid), PSI_getpid(parenttid));
