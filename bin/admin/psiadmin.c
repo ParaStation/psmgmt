@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.30 2002/04/22 22:50:52 hauke Exp $
+ * $Id: psiadmin.c,v 1.31 2002/04/26 12:43:59 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.30 2002/04/22 22:50:52 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.31 2002/04/26 12:43:59 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -43,7 +43,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.30 $";
+static char psiadmversion[] = "$Revision: 1.31 $";
 static int  DoRestart = 1;
 
 int PSIADM_LookUpNodeName(char* hostname)
@@ -138,7 +138,8 @@ void PSIADM_MCastStat(int first, int last)
 
 void PSIADM_CountStat(int first, int last)
 {
-    int i, j;
+    int i;
+    unsigned int j;
     struct {
 	int present;
 	PSHALInfoCounter_t ic;
@@ -199,13 +200,9 @@ void PSIADM_ProcStat(int first, int last)
 	    printf("%4d %10ld 0x%010lx %10ld 0x%010lx ",
 		   taskinfo[j].nodeno, taskinfo[j].tid, taskinfo[j].tid,
 		   taskinfo[j].ptid, taskinfo[j].ptid);
-	    if (taskinfo[j].uid==-1) {
-		printf("%8s\n", "NONE");
-	    } else {
-		printf("%5d%s\n", taskinfo[j].uid,
-		       taskinfo[j].group==TG_ADMIN ? "(A)" :
-		       taskinfo[j].group==TG_LOGGER ? "(L)" : "");
-	    }
+	    printf("%5d%s\n", taskinfo[j].uid,
+		   taskinfo[j].group==TG_ADMIN ? "(A)" :
+		   taskinfo[j].group==TG_LOGGER ? "(L)" : "");
 	}
 
 	if (num>NUMTASKS) {

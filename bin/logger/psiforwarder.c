@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiforwarder.c,v 1.13 2002/02/11 14:15:46 eicker Exp $
+ * $Id: psiforwarder.c,v 1.14 2002/04/26 12:43:59 eicker Exp $
  *
  */
 /**
  * @file
  * psiforwarder: Forwarding-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psiforwarder.c,v 1.13 2002/02/11 14:15:46 eicker Exp $
+ * $Id: psiforwarder.c,v 1.14 2002/04/26 12:43:59 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.13 2002/02/11 14:15:46 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.14 2002/04/26 12:43:59 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -218,7 +218,7 @@ int read_from_logger(int logfd, int stdinport)
 	    if (verbose) {
 		snprintf(obuf, sizeof(obuf),
 			 "PSIforwarder: receive %ld byte for STDIN\n",
-			 msg.header.len - sizeof(msg.header) );
+			 (long) msg.header.len - sizeof(msg.header));
 		printlog(loggersock, STDERR, id, obuf);
 	    }
 	    writeall(stdinport, msg.buf, msg.header.len - sizeof(msg.header)); 

@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.22 2002/03/08 14:17:23 eicker Exp $
+ * $Id: rdp.c,v 1.23 2002/04/26 12:43:59 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.22 2002/03/08 14:17:23 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.23 2002/04/26 12:43:59 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -1149,9 +1149,10 @@ static int handleErr(void)
 
     snprintf(errtxt, sizeof(errtxt),
 	     "handleErr(): errmsg: msg_name->sinaddr = %s,"
-	     " msg_namelen = %d, msg_iovlen = %ld, msg_controllen = %ld",
+	     " msg_namelen = %d, msg_iovlen = %ld, msg_controllen = %d",
 	     inet_ntoa(sin.sin_addr),
-	     errmsg.msg_namelen, errmsg.msg_iovlen, errmsg.msg_controllen);
+	     errmsg.msg_namelen, (unsigned long) errmsg.msg_iovlen,
+	     (unsigned int) errmsg.msg_controllen);
     errlog(errtxt, 10);
 
     snprintf(errtxt, sizeof(errtxt),
@@ -1171,10 +1172,10 @@ static int handleErr(void)
     }
 
     snprintf(errtxt, sizeof(errtxt),
-	     "handleErr(): cmsg: cmsg_len = %ld,"
+	     "handleErr(): cmsg: cmsg_len = %d,"
 	     " cmsg_level = %d (SOL_IP=%d),"
 	     " cmsg_type = %d (IP_RECVERR = %d)",
-	     cmsg->cmsg_len, cmsg->cmsg_level, SOL_IP,
+	     (unsigned int) cmsg->cmsg_len, cmsg->cmsg_level, SOL_IP,
 	     cmsg->cmsg_type, IP_RECVERR);
     errlog(errtxt, 10);
 
