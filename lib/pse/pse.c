@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.17 2002/03/25 18:10:11 eicker Exp $
+ * $Id: pse.c,v 1.18 2002/03/26 13:53:23 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.17 2002/03/25 18:10:11 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.18 2002/03/26 13:53:23 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -342,7 +342,6 @@ void PSEfinalize(void)
 	    EXIT("%sFailed to receive SPAWNFINISH from chields.\n", "");
 	}
 	PSI_release(PSI_mytid);
-    } else {
     }
 
     DEBUG0("Quitting program, good bye.\n");
