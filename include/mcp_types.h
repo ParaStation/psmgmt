@@ -229,7 +229,6 @@ typedef struct MCP_Route_T {
 #define MCP_NOTIFYK_LOWRECV_P(PrNo,PoNo) (MCP_NOTIFYK_LOWRECV|(PoNo&0xffff)|((((PrNo) - PSHAL_RAWDATA)&0xff)<<16))
 #define MCP_NOTIFYK_LOWRECV_G(PrNo,PoNo,Val) (PoNo)=(UINT16)(Val);(PrNo)= (((Val) >> 16)& 0xff) + PSHAL_RAWDATA;
 
-
 #define MCP_NOTIFYK_LICINVAL	0x04000000/*< Notification about wrong Licensekey */
 #define MCP_NOTIFYK_NOP 	0x05000000/*< No Message, Only Intr */
 
@@ -240,6 +239,10 @@ typedef struct MCP_Route_T {
 #define MCP_NOTIFYK_LOWMCPRECV	0x07000000/*< Notification about low mcp ressource */
 #define MCP_NOTIFYK_LOWMCPRECV_P(McpCtx) (MCP_NOTIFYK_LOWMCPRECV|(McpCtx&0xffff))
 #define MCP_NOTIFYK_LOWMCPRECV_G(McpCtx,Val) (McpCtx)=(UINT16)(Val);
+
+#define MCP_NOTIFYK_HIGHPRIO	0x08000000/*< Notification about high prior. message on port */
+#define MCP_NOTIFYK_HIGHPRIO_P(PrNo,PoNo) (MCP_NOTIFYK_HIGHPRIO|(PoNo&0xffff)|((((PrNo) - PSHAL_RAWDATA)&0xff)<<16))
+#define MCP_NOTIFYK_HIGHPRIO_G(PrNo,PoNo,Val) (PoNo)=(UINT16)(Val);(PrNo)= (((Val) >> 16)& 0xff) + PSHAL_RAWDATA;
 
 
 /********************************************************************
@@ -923,6 +926,9 @@ BITDEC1( val,					\
 
 
 #define DBX_PARAM_SIZE	FIFO_ENTRIES
+
+
+#define MSGFLAG_HIGHPRIO 0x0001
 
 
 

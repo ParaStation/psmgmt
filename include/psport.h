@@ -1,7 +1,7 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.17 2001/08/23 12:40:33 hauke Exp $
+ * $Id: psport.h,v 1.18 2001/10/05 17:45:54 hauke Exp $
  *
  * @author
  * Jens Hauke <hauke@par-tec.com>,
@@ -375,12 +375,14 @@ int PSP_Probe(PSP_PortH_t porth,
  * user-provided memory for the header data is valid and not altered
  * (e.g. reused for another send or receive request.)
  */
+#define PSP_MSGFLAG_HIGHPRIO PSHAL_MSGFLAG_HIGHPRIO
 
 PSP_RequestH_t PSP_ISendCB(PSP_PortH_t porth,
 			   void* buf, unsigned buflen,
 			   PSP_Header_t* header, unsigned xheaderlen,
 			   int dest, int destport,
-			   PSP_DoneCallback_t *dcb, void* dcb_param);
+			   PSP_DoneCallback_t *dcb, void* dcb_param,
+			   int flags);
 
 static inline
 PSP_RequestH_t PSP_ISend(PSP_PortH_t porth,
@@ -389,7 +391,7 @@ PSP_RequestH_t PSP_ISend(PSP_PortH_t porth,
 			 int dest, int destport)
 {
     return PSP_ISendCB(porth, buf, buflen, header, xheaderlen,
-		       dest, destport, 0, 0);
+		       dest, destport, 0, 0, 0);
 }
 
 /* ----------------------------------------------------------------------

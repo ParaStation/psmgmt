@@ -1,7 +1,7 @@
 /*
  *
  *
- *      $Id: pshal.h,v 1.16 2001/09/04 16:22:31 hauke Exp $	
+ *      $Id: pshal.h,v 1.17 2001/10/05 17:45:54 hauke Exp $	
  *
  *      written by Jens Hauke
  *
@@ -28,7 +28,8 @@ extern "C" {
 
 #define PSHAL_MSGSIZE    8192
 
-
+// like MSGFLAG_HIGHPRIO in mcp_types.h
+#define PSHAL_MSGFLAG_HIGHPRIO 0x0001
 
 /*------------------------------------------------------------------------------
  *  PSHALSendHeader_t  */
@@ -45,6 +46,7 @@ typedef struct PSHALSendHeader_T{
     INT16    srcport;     /**< source port of the message      */
     INT16    srcnode;     /**< source node of the message      */
     INT16    tag;         /**< protocol specific used tag      */
+    INT16    flags;       /**< packet flags                    */
     void     *xheader;	  /**< ptr to begining of extra header */
     
 }PSHALSendHeader_t;
