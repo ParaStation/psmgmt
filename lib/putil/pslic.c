@@ -7,7 +7,7 @@
 /**
  * pslic.c: License handling
  *
- * $Id: pslic.c,v 1.2 2002/07/17 19:37:58 hauke Exp $
+ * $Id: pslic.c,v 1.3 2002/08/23 17:47:16 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -24,7 +24,8 @@
 #include <time.h>
 #include <inttypes.h>
 #include <paths.h>
-#include <envz.h>
+/*#include <envz.h>*/
+#include <errno.h>
 
 #include "pslic.h"
 #include "psstrings.h"

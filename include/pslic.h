@@ -7,7 +7,7 @@
 /**
  * pslic.h: Licensekey handling
  *
- * $Id: pslic.h,v 1.4 2002/08/06 14:53:33 eicker Exp $
+ * $Id: pslic.h,v 1.5 2002/08/23 17:47:16 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -87,7 +87,7 @@ extern inline int lic_hasfeature(env_fields_t *env, char *featurevar, char *feat
 {
     int ret = 0;
     char *_fl = env_get(env, featurevar);
-    char *fl = fl ? strdup(_fl) : strdup("");
+    char *fl = _fl ? strdup(_fl) : strdup("");
     char *f;
     
     f = strtok(fl, " \t\n");
