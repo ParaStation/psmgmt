@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidsignal.c,v 1.8 2004/01/09 16:06:29 eicker Exp $
+ * $Id: psidsignal.c,v 1.9 2004/03/11 14:22:58 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidsignal.c,v 1.8 2004/01/09 16:06:29 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidsignal.c,v 1.9 2004/03/11 14:22:58 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -29,6 +29,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidsignal.c,v 1.8 2004/01/
 #include "psidtask.h"
 #include "psidutil.h"
 #include "psidcomm.h"
+#include "psidpartition.h"
 
 #include "psidsignal.h"
 
@@ -220,4 +221,135 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
 
 	sigtid = PSID_getSignal(&task->childs, &sig);
     }
+}
+
+void msg_SIGNAL(DDSignalMsg_t *msg)
+{
+    if (msg->header.dest == -1) {
+	snprintf(errtxt, sizeof(errtxt), "%s: no broadcast", __func__);
+	PSID_errlog(errtxt, 0);
+	return;
+    }
+
+    if (PSC_getPID(msg->header.sender)) {
+	PStask_t *sender = PStasklist_find(managedTasks, msg->header.sender);
+	if (sender && sender->protocolVersion < 325
+	    && sender->group != TG_LOGGER) {
+
+	    /* Client uses old protocol. Map to new one. */
+	    static DDSignalMsg_t newMsg;
+
+	    newMsg.header.type = msg->header.type;
+	    newMsg.header.sender = msg->header.sender;
+	    newMsg.header.dest = msg->header.dest;
+	    newMsg.header.len = sizeof(newMsg);
+	    newMsg.signal = msg->signal;
+	    newMsg.param = msg->param;
+	    newMsg.pervasive = 0;
+
+	    msg = &newMsg;
+	} else if (sender && sender->protocolVersion < 328
+		   && sender->group != TG_LOGGER) {
+
+	    /* Client uses old protocol. Map to new one. */
+	    static DDSignalMsg_t newMsg;
+
+	    newMsg.header.type = msg->header.type;
+	    newMsg.header.sender = msg->header.sender;
+	    newMsg.header.dest = msg->header.dest;
+	    newMsg.header.len = sizeof(newMsg);
+	    newMsg.signal = msg->signal;
+	    newMsg.param = msg->param;
+	    newMsg.pervasive = *(int *)&msg->pervasive;
+
+	    msg = &newMsg;
+	}
+
+    }
+
+    if (PSC_getID(msg->header.dest)==PSC_getMyID()) {
+	/* receiver is on local node, send signal */
+	snprintf(errtxt, sizeof(errtxt), "%s: sending signal %d to %s",
+		 __func__, msg->signal, PSC_printTID(msg->header.dest));
+	PSID_errlog(errtxt, 1);
+
+	if (msg->pervasive) {
+	    PStask_t *dest = PStasklist_find(managedTasks, msg->header.dest);
+	    if (dest) {
+		PStask_t *clone = PStask_clone(dest);
+		PStask_ID_t childTID;
+		int sig = -1;
+
+		while ((childTID = PSID_getSignal(&clone->childs, &sig))) {
+		    PSID_sendSignal(childTID, msg->param, msg->header.sender,
+				    msg->signal, 1);
+		    sig = -1;
+		}
+
+		/* Don't send back to the original sender */
+		if (msg->header.sender != msg->header.dest) {
+		    PSID_sendSignal(msg->header.dest, msg->param,
+				    msg->header.sender, msg->signal, 0);
+		}
+		PStask_delete(clone);
+
+		/* Now inform the master, if necessary */
+		if (dest->partition && dest->partitionSize) {
+		    if (msg->signal == SIGSTOP) {
+			dest->suspended = 1;
+			send_TASKSUSPEND(dest->tid);
+		    } else if (msg->signal == SIGCONT) {
+			dest->suspended = 0;
+			send_TASKRESUME(dest->tid);
+		    }
+		}
+	    } else {
+		snprintf(errtxt, sizeof(errtxt), "%s: sender %s:",
+			 __func__, PSC_printTID(msg->header.sender));
+		snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
+			 " dest %s not found", PSC_printTID(msg->header.dest));
+		PSID_errlog(errtxt, 0);
+	    }
+	} else {
+	    PSID_sendSignal(msg->header.dest, msg->param, msg->header.sender,
+			    msg->signal, msg->pervasive);
+	}
+    } else {
+	/*
+	 * this is a request for a remote site.
+	 * find the right fd to send to request
+	 */
+	snprintf(errtxt, sizeof(errtxt), "%s: sending to node %d", __func__,
+		 PSC_getID(msg->header.dest));
+	PSID_errlog(errtxt, 1);
+
+	sendMsg(msg);
+    }
+}
+
+void msg_WHODIED(DDSignalMsg_t *msg)
+{
+    PStask_t *task;
+
+    snprintf(errtxt, sizeof(errtxt), "%s: who=%s sig=%d", __func__,
+	     PSC_printTID(msg->header.sender), msg->signal);
+    PSID_errlog(errtxt, 1);
+
+    task = PStasklist_find(managedTasks, msg->header.sender);
+    if (task) {
+	PStask_ID_t tid;
+	tid = PSID_getSignal(&task->signalSender, &msg->signal);
+
+	snprintf(errtxt, sizeof(errtxt), "%s: tid=%s sig=%d)", __func__,
+		 PSC_printTID(tid), msg->signal);
+	PSID_errlog(errtxt, 1);
+
+	msg->header.dest = msg->header.sender;
+	msg->header.sender = tid;
+    } else {
+	msg->header.dest = msg->header.sender;
+	msg->header.sender = -1;
+    }
+
+    sendMsg(msg);
 }

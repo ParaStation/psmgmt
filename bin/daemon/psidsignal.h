@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidsignal.h,v 1.5 2004/01/09 16:11:42 eicker Exp $
+ * $Id: psidsignal.h,v 1.6 2004/03/11 14:22:58 eicker Exp $
  *
  */
 /**
  * @file
  * Functions for sending signals to ParaStation tasks within the Daemon
  *
- * $Id: psidsignal.h,v 1.5 2004/01/09 16:11:42 eicker Exp $
+ * $Id: psidsignal.h,v 1.6 2004/03/11 14:22:58 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -135,6 +135,43 @@ void PSID_sendAllSignals(PStask_t *task);
  * @return No return value.
  */
 void PSID_sendSignalsToRelatives(PStask_t *task);
+
+/**
+ * @brief Handle a PSP_CD_SIGNAL message.
+ *
+ * Handle the message @a msg of type PSP_CD_SIGNAL.
+ *
+ * With this kind of message signals might be send to remote
+ * processes. On the receiving node a process is fork()ed in order to
+ * set up the requested user and group IDs and than to actually send
+ * the signal to the receiving process.
+ *
+ * Furthermore if the signal sent is marked to be pervasive, this
+ * signal is also forwarded to all child processes of the receiving
+ * process, local or remote.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+void msg_SIGNAL(DDSignalMsg_t *msg);
+
+/**
+ * @brief Handle a PSP_CD_WHODIED message.
+ *
+ * Handle the message @a msg of type PSP_CD_WHODIED.
+ *
+ * With this kind of message a client to the local daemon might
+ * request the sender of a signal received. Therefor all signals send
+ * to local clients are stored to the corresponding task ID and looked
+ * up within this function. The result is sent back to the requester
+ * within a answering PSP_CD_WHODIED message.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+void msg_WHODIED(DDSignalMsg_t *msg);
 
 #ifdef __cplusplus
 }/* extern "C" */
