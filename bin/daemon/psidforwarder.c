@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidforwarder.c,v 1.7 2003/03/19 17:14:07 eicker Exp $
+ * $Id: psidforwarder.c,v 1.8 2003/04/04 09:33:42 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.7 2003/03/19 17:14:07 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.8 2003/04/04 09:33:42 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -459,7 +459,8 @@ static void sighandler(int sig)
 		    }
 		    break;
 		} else if (ret > 0) {
-		    int sock, n, total;
+		    int sock, n;
+		    size_t total;
 		    char buf[256];
 		    PSLog_msg_t type;
 
@@ -478,8 +479,8 @@ static void sighandler(int sig)
 			    n = collectRead(sock, buf, sizeof(buf), &total);
 			    if (verbose) {
 				snprintf(txt, sizeof(txt), "PSID_forwarder:"
-					 " got %d bytes on sock %d %d %d\n",
-					 total, sock, n, errno);
+					 " got %ld bytes on sock %d %d %d\n",
+					 (long) total, sock, n, errno);
 				printMsg(STDERR, txt);
 			    }
 			    if (n==0 || (n<0 && errno==EIO)) {
@@ -670,7 +671,8 @@ static void loop(void)
     fd_set afds;
     struct timeval mytv={2,0}, atv;
     char buf[4000], obuf[120];
-    int n, total;
+    int n;
+    size_t total;
     int openfds = 2;
     PSLog_msg_t type;
 
@@ -730,8 +732,8 @@ static void loop(void)
 		n = collectRead(sock, buf, sizeof(buf), &total);
 		if (verbose) {
 		    snprintf(obuf, sizeof(obuf),
-			     "PSID_forwarder: got %d bytes on sock %d\n",
-			     total, sock);
+			     "PSID_forwarder: got %ld bytes on sock %d\n",
+			     (long) total, sock);
 		    printMsg(STDERR, obuf);
 		}
 		if (n==0 || (n<0 && errno==EIO)) {
