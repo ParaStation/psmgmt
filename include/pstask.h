@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.h,v 1.8 2002/08/06 08:21:52 eicker Exp $
+ * $Id: pstask.h,v 1.9 2003/02/10 18:24:33 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with ParaStation tasks.
  *
- * $Id: pstask.h,v 1.8 2002/08/06 08:21:52 eicker Exp $
+ * $Id: pstask.h,v 1.9 2003/02/10 18:24:33 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -78,8 +78,6 @@ typedef struct PStask_T{
     struct termios termios;  /*C*/ /**< @todo */
     struct winsize winsize;  /*C*/ /**< @todo */
     PStask_group_t group;    /*C*/ /**< task group @see PStask_group_t */
-    unsigned int loggernode; /*C*//*obsolete*/ /* the logging peer for any output */
-    int loggerport;          /*C*//*obsolete*/ /* the logging peer for any output */
     long loggertid;          /*C*/ /**< unique identifier of the logger */
     int rank;                /*C*/ /**< rank of task within task group */
     short fd;                      /**< connection fd within psid */
@@ -87,10 +85,12 @@ typedef struct PStask_T{
     int argc;                /*C*/ /**< num of args, length of @a argv */
     char **argv;             /*C*/ /**< command line arguments */
     char **environ;          /*C*/ /**< PS environment, used for spawning */
-    int childsignal;               /**< the signal sent when a child dies */
+    int relativesignal;            /**< the signal sent when a relative (i.e.
+				      parent or child) dies */
     int pendingReleaseRes;         /**< num of pending RELEASERES messages */
     int released;                  /**< flag to mark released task, i.e. don't
-				        send signal to parent on exit */
+				      send signal to parent on exit */
+    PStask_sig_t *childs;          /**< Childs of the task. signal not used */
 
     PStask_sig_t *signalSender;    /**< Tasks which sent signals */
     PStask_sig_t *signalReceiver;  /**< Tasks which want to receive signals */
