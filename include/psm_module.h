@@ -1,6 +1,6 @@
 
 /*************************************************************fdb*
- * $Id: psm_module.h,v 1.3 2001/12/13 18:17:09 hauke Exp $
+ * $Id: psm_module.h,v 1.4 2002/04/15 09:28:16 hauke Exp $
  * structures and prototypes of psm_module.c
  *
  *************************************************************fde*/
@@ -14,7 +14,7 @@
 typedef unsigned long psm_context_t;
 
 
-struct psm_mod {
+struct psm_mod_T {
     struct psm_pci_dev	* pci_dev;
     struct psm_lanai	* lanai;
     struct psm_lanaiif	* lanaiif;
@@ -41,7 +41,7 @@ struct psm_mcpif {
     void (*irq)  ( unsigned int irq,void * ptr);
     int (*open)  ( psm_context_t );
     int (*close) ( psm_context_t );
-    int (*init)  ( struct psm_mod * psm_mod ,unsigned long param );
+    int (*init)  ( struct psm_mod_T * psm_mod ,unsigned long param );
     int (*cleanup) ( void );
 };
 
