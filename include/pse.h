@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.h,v 1.11 2002/08/01 18:38:51 eicker Exp $
+ * $Id: pse.h,v 1.12 2002/08/02 10:58:42 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation Programming Environment
  *
- * $Id: pse.h,v 1.11 2002/08/01 18:38:51 eicker Exp $
+ * $Id: pse.h,v 1.12 2002/08/02 10:58:42 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -131,7 +131,7 @@ void PSE_registerToParent(void);
  * If @ref PSE_spawnMaster() is called, the node pool is constituted
  * from nodes which suppport all the hardware requested in @a hwType.
  * Subsequent calls to @ref PSE_spawnTasks() will only spawn within
- * this node pool. For details on the spawning strategy, look @ref
+ * this node pool. For details on the spawning strategy look @ref
  * spawn_strategy "here".
  *
  * If no call to this function is made before @ref PSE_spawnMaster()
@@ -266,7 +266,7 @@ void PSE_spawnMaster(int argc, char *argv[]);
  * For spawning, the node pool constituted within @ref
  * PSE_spawnMaster() is used. Subsequent calls to @a PSE_spawnTasks()
  * will only spawn within this node pool. For details on the spawning
- * strategy, look @ref spawn_strategy "here".
+ * strategy look @ref spawn_strategy "here".
  *
  * If an error occures, an error message is generated and the process
  * exits.
