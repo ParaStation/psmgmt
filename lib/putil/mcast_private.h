@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast_private.h,v 1.9 2002/07/05 14:37:58 eicker Exp $
+ * $Id: mcast_private.h,v 1.10 2002/07/11 09:51:46 eicker Exp $
  *
  */
 /**
@@ -14,7 +14,7 @@
  *
  * Private functions and definitions.
  *
- * $Id: mcast_private.h,v 1.9 2002/07/05 14:37:58 eicker Exp $
+ * $Id: mcast_private.h,v 1.10 2002/07/11 09:51:46 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -74,9 +74,7 @@ struct in_addr myIP;
  */
 static void (*MCastCallback)(int, void*) = NULL;
 
-/**
- * The possible MCast message types.
- */
+/** The possible MCast message types. */
 typedef enum {
     T_INFO = 0x01,   /**< Normal info message */
     T_CLOSE,         /**< Info message from node going down */
@@ -91,9 +89,12 @@ typedef enum {
 static struct timeval MCastTimeout = {2, 0}; /* sec, usec */
 
 /**
- * The actual dead-limit. Get/set by getDeadLimitMCast()/setDeadLimitMCast()
+ * The actual dead-limit. Get/set by getDeadLimitMCast()/setDeadLimitMCast().
  */
 static int MCastDeadLimit = 10;
+
+/** The jobs on my local node. */
+static MCastJobs jobsMCast = {0, 0};
 
 /* ---------------------------------------------------------------------- */
 
@@ -218,6 +219,7 @@ typedef struct Mconninfo_ {
     struct timeval lastping; /**< Timestamp of last received ping */
     int misscounter;         /**< Number of pings missing */
     MCastLoad load;          /**< Load parameters of node */
+    MCastJobs jobs;          /**< Number of jobs on the node */
     struct sockaddr_in sin;  /**< Pre-built descriptor for sendto */
     MCastState state;        /**< State of the node (determined from pings */
 } Mconninfo;
