@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.10 2002/01/18 15:54:22 eicker Exp $
+ * $Id: info.c,v 1.11 2002/01/30 10:09:35 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.10 2002/01/18 15:54:22 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.11 2002/01/30 10:09:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -90,6 +90,7 @@ static int INFO_receive(INFO_info_t what, void* buffer, int size)
 	    break;
 	case PSP_CD_COUNTSTATUSRESPONSE:
 	case PSP_CD_RDPSTATUSRESPONSE:
+	case PSP_CD_MCASTSTATUSRESPONSE:
 	case PSP_CD_HOSTSTATUSRESPONSE:
 	case PSP_CD_HOSTRESPONSE:
 	    memcpy(buffer, msg.buf, size);
@@ -137,6 +138,37 @@ int INFO_request_rdpstatus(int nodeno, void* buffer, int size)
     }
 
     if (INFO_receive(INFO_GETINFO, buffer, size)==PSP_CD_RDPSTATUSRESPONSE) {
+	return size;
+    }
+
+    return -1;
+}
+
+/*****************************
+ *
+ * request_mcaststatus(int nodeno)
+ *
+ * requests the status of MCast on the local PSID to the node nodeno
+ * RETURN: filled buffer
+ *
+ */
+int INFO_request_mcaststatus(int nodeno, void* buffer, int size)
+{
+    DDBufferMsg_t msg;
+
+    msg.header.type = PSP_CD_MCASTSTATUSREQUEST;
+    msg.header.dest = PSI_gettid(PSI_myid,0);
+    msg.header.sender = PSI_mytid;
+    msg.header.len = sizeof(msg.header);
+    *(int *)msg.buf = nodeno;
+    msg.header.len += sizeof(int);
+
+    if (ClientMsgSend(&msg)<0) {
+	perror("INFO_request_rdpstatus: write");
+	exit(-1);
+    }
+
+    if (INFO_receive(INFO_GETINFO, buffer, size)==PSP_CD_MCASTSTATUSRESPONSE) {
 	return size;
     }
 

@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.h,v 1.5 2002/01/23 11:25:49 eicker Exp $
+ * $Id: info.h,v 1.6 2002/01/30 10:09:35 eicker Exp $
  *
  */
 /**
  * @file
  * info: Functions for information retrieving from ParaStation daemon
  *
- * $Id: info.h,v 1.5 2002/01/23 11:25:49 eicker Exp $
+ * $Id: info.h,v 1.6 2002/01/30 10:09:35 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -31,6 +31,8 @@ extern "C" {
 #endif
 
 int INFO_request_rdpstatus(int nodeno, void* buffer, int size);
+
+int INFO_request_mcaststatus(int nodeno, void* buffer, int size);
 
 int INFO_request_countstatus(int nodeno, void* buffer, int size);
 
