@@ -687,7 +687,13 @@ struct installdir_{
     { 3, "/direct/psm" },
     { 4, "/direct/PSM" },
     { 5, "/direct/parastation" },
-    { -1, "" }
+    { 7, "/usr/psm" },
+    { 8, "/usr/PSM" },
+    { 9, "/usr/opt/psm" },
+    { 10, "/usr/opt/PSM" },
+    { 11, "/usr/opt/PSM100" },
+    { 12, "/PSM" },
+    { -1, "" },
 };
 
 char * PSI_installdir = NULL;
@@ -695,19 +701,43 @@ char * PSI_installdir = NULL;
 char * PSI_LookupInstalldir(void)
 {
     int i=0,found=0;
-    char name[80];
+    char *name = NULL, logger[] = "/bin/psilogger";
     struct stat sbuf;
 
     while( (installdir[i].nr != -1) && !found ){
-/* printf("Checking %s\n",installdir[i].name); */
-	strcpy(name,installdir[i].name);
-	strcat(name,"/bin/psid");
+	if(!name)
+	    name = (char*) malloc(sizeof(installdir[0].name) + strlen(logger));
+	strcpy(name, installdir[i].name);
+	strcat(name, logger);
 	if(stat(name, &sbuf) != -1){ /* Installdir found */
-	    PSI_installdir=installdir[i].name;
+	    PSI_installdir = installdir[i].name;
 	    found=1;
 	}
 	i++;
     }
-/* printf("Returning %p [%s]\n",psminstalldir,psminstalldir); */
+    if(name){
+	free(name);
+	name=NULL;
+    }
+
     return PSI_installdir;
+}
+
+void PSI_SetInstalldir(char * installdir)
+{
+    char *name, logger[] = "/bin/psilogger";
+    static char *instdir=NULL;
+    struct stat sbuf;
+
+    name = (char*) malloc(strlen(installdir) + strlen(logger) + 1);
+    strcpy(name,installdir);
+    strcat(name,logger);
+    if(stat(name, &sbuf) != -1){ /* Installdir valid */
+	if(instdir)
+	    free(instdir);
+	instdir = (char*) malloc(strlen(installdir) + 1);
+	strcpy(instdir, installdir);
+	PSI_installdir=instdir;
+    }
+    free(name);
 }
