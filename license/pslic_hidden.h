@@ -11,7 +11,7 @@
  *        DO NOT DISTRIBUTE THIS FILE !!!
  *
  *
- * $Id: pslic_hidden.h,v 1.3 2002/07/19 12:17:48 hauke Exp $
+ * $Id: pslic_hidden.h,v 1.4 2002/08/06 08:15:45 eicker Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -28,7 +28,7 @@
 #include "psstrings.h"
 
 /* Caculate the hash from all Fields in HashFields (, seppareted) */
-extern inline char *lic_calchash(env_fields_t *env, char *HashFields)
+extern inline char *lic_calchash(env_fields_t *env, const char *HashFields)
 {
     char *hf;
     char *fn;
