@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.26 2003/03/19 17:11:39 eicker Exp $
+ * $Id: psilogger.c,v 1.27 2003/04/04 09:34:17 eicker Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.26 2003/03/19 17:11:39 eicker Exp $
+ * $Id: psilogger.c,v 1.27 2003/04/04 09:34:17 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.26 2003/03/19 17:11:39 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.27 2003/04/04 09:34:17 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -315,8 +315,8 @@ static int newrequest(PSLog_Msg_t *msg)
 	int i;
 	clientTID = realloc(clientTID, sizeof(*clientTID) * 2 * msg->sender);
 	if (!clientTID) {
-	    fprintf(stderr, "PSIlogger: newrequest(): realloc(%d) failed.\n",
-		    sizeof(*clientTID) * 2 * msg->sender);
+	    fprintf(stderr, "PSIlogger: newrequest(): realloc(%ld) failed.\n",
+		    (long) sizeof(*clientTID) * 2 * msg->sender);
 	    exit(1);
 	}	    
 	for (i=maxClients; i<2*msg->sender; i++) clientTID[i] = -1;
