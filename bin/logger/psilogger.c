@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.32 2003/07/31 17:56:06 eicker Exp $
+ * $Id: psilogger.c,v 1.33 2003/08/27 13:03:44 hauke Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.32 2003/07/31 17:56:06 eicker Exp $
+ * $Id: psilogger.c,v 1.33 2003/08/27 13:03:44 hauke Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.32 2003/07/31 17:56:06 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.33 2003/08/27 13:03:44 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -643,7 +643,7 @@ static void loop(void)
 			if (nl) nl++; /* Thus nl points behind the newline */
 
 			write(outfd, prefix, strlen(prefix));
-			write(outfd, buf, nl ? nl - buf : count);
+			write(outfd, buf, nl ? (size_t)(nl - buf) : count);
 
 			if (nl) {
 			    count -= nl - buf;

@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.7 2003/07/25 13:15:55 eicker Exp $
+# $Id: Makefile.in,v 1.8 2003/08/27 13:03:44 hauke Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -157,19 +157,25 @@ TAR = tar
 ifeq ("$(TARGET_OS)","linux")
 ifeq ("$(TARGET_CPU)","i686")
 TARCPU  := i386
-endif
+else
 ifeq ("$(TARGET_CPU)","alphaev56")
 TARCPU  := alpha
-endif
+else
+ifeq ("$(TARGET_CPU)","ia64")
+TARCPU  := ia64
+else
+$(error "error: Unknown target CPU $(TARGET_CPU)!")
+endif # ia64
+endif # alphaev56
+endif # i686
 else
 ifeq ("$(TARGET_OS)","osf5.1")
 TARCPU  := tru64
 TAR = gtar
 else
-tar rpm:
-	@echo Unknown target OS $(TARGET_OS).
-endif
-endif
+$(error "error: Unknown target OS $(TARGET_OS)!")
+endif # osf
+endif # linux
 
 tar:	tarcleanups
 	$(TAR) --owner=0 --group=0 -C $(BUILDDIR) -czf \

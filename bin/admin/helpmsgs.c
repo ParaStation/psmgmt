@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: helpmsgs.c,v 1.1 2003/08/15 13:18:30 eicker Exp $
+ * $Id: helpmsgs.c,v 1.2 2003/08/27 13:03:44 hauke Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.1 2003/08/15 13:18:30 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.2 2003/08/27 13:03:44 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -385,7 +385,7 @@ static void printSyntax(syntax_t *syntax)
 	    char *end = pos + lwidth;
 	    while (*end != ' ') end--;
 	    if (*(end-1) == '|') end --; /* Don't end with '|' */
-	    printf("%.*s\n", end-pos, pos);
+	    printf("%.*s\n", (int)(end-pos), pos);
 	    printf("%.*s", width-lwidth, space);
 	    pos = end;
 	    len = strlen(pos);
@@ -407,7 +407,7 @@ static void printDescr(const char *tag, char *descr)
 	while (len>lwidth) {
 	    char *end = pos + lwidth - 1;
 	    while (*end != ' ') end--;
-	    printf("%.*s\n", end-pos, pos);
+	    printf("%.*s\n", (int)(end-pos), pos);
 	    printf("%.*s", width-lwidth, space);
 	    pos = end+1;             /* Ignore the separating space */
 	    len = strlen(pos);
