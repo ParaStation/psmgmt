@@ -1,18 +1,18 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * psidutil.h
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.h,v 1.18 2003/07/04 14:07:37 eicker Exp $
+ * $Id: psidutil.h,v 1.19 2003/10/08 14:56:37 eicker Exp $
  *
  */
 /**
  * \file
  * Utilities for the ParaStation daemon
  *
- * $Id: psidutil.h,v 1.18 2003/07/04 14:07:37 eicker Exp $
+ * $Id: psidutil.h,v 1.19 2003/10/08 14:56:37 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -22,6 +22,7 @@
 #define __PSIDUTIL_H
 
 #include <stdio.h>
+#include "config_parsing.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -119,6 +120,11 @@ void PSID_errlog(char *s, int level);
 void PSID_errexit(char *s, int errorno);
 
 /**
+ * This holds most of the daemon's configuration.
+ */
+extern config_t *config;
+
+/**
  * @brief Read (and parse) the configuration-file.
  *
  * Read (and parse) the configuration file @a configfile. Furthermore
@@ -214,20 +220,6 @@ void PSID_setParam(int hw, long option, long value);
  * @todo
  */
 long PSID_getParam(int hw, long option);
-
-/**
- * @brief Start the license-server.
- *
- * Start th license-server on node @a hostaddr. This is done by
- * connecting the according node. The connected port is given by the
- * entry 'psld' in /etc/services or, if nothing is found, 887.
- *
- * @param hostaddr The IP-address in network-byteorder of the node on
- * which the license-daemon should be startet.
- *
- * @return On success 1 is returned or 0, if an error occured.
- */
-int PSID_startLicServer(unsigned int hostaddr);
 
 #ifdef __cplusplus
 }/* extern "C" */
