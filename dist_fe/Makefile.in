@@ -1,0 +1,149 @@
+
+TOP_SRCDIR := @top_srcdir@
+TOP_BUILDDIR := ..
+
+TARGET_OS := @target_os@
+TARGET_CPU := @target_cpu@
+
+#s.o. clean:
+DISTPATH := opt/parastation
+
+INCLUDES += psport4.h pse.h
+INCDIR := $(DISTPATH)/include
+
+BINS += psiadmin psid psld
+BINS += psiforwarder psilogger mlisten
+BINDIR := $(DISTPATH)/bin
+
+LIBS += libpsport4.a libpsi.a libpse.a
+LIBDIR := $(DISTPATH)/lib
+
+CONFIGDIR := $(DISTPATH)/config
+
+MISC += config/psm.config.template  INSTALL config/PSM_INSTALL
+
+MISCDIR :=
+
+DIRS += $(BINDIR) $(LIBDIR) $(INCDIR) $(MISCDIR) $(CONFIGDIR)
+
+######################################################
+MISCEXP := $(patsubst %,$(DISTPATH)/%, $(MISC))
+
+all: dirs libs bins includes $(MISCEXP) tar rpm
+
+dist:	all
+
+# Creating directories
+$(DIRS):
+	mkdir -p $@
+
+dirs: $(DIRS)
+
+#
+# building striped libs
+#
+ifeq ("@target_os@","linux")
+$(LIBDIR)/%: $(TOP_BUILDDIR)/lib/%
+	strip -g $< -o $@
+endif
+ifeq ("@target_os@","osf5.1")
+$(LIBDIR)/%: $(TOP_BUILDDIR)/lib/%
+	cp $< $@
+endif
+
+libs: $(LIBDIR) $(patsubst %,$(LIBDIR)/%,$(LIBS))
+
+#
+# building striped bins
+#
+$(BINDIR)/%: $(TOP_BUILDDIR)/bin/%
+	cp $< $@
+	strip $@
+#	strip $< -o $@
+
+bins: $(BINDIR) $(patsubst %,$(BINDIR)/%,$(BINS))
+
+#
+# copy includes
+#
+$(INCDIR)/%: $(TOP_SRCDIR)/include/%
+	cp $< $@
+
+includes: $(INCDIR) $(patsubst %,$(INCDIR)/%,$(INCLUDES))
+
+#
+# Misc files
+#
+$(DISTPATH)/config/psm.config.template: $(TOP_SRCDIR)/doc/psm.config.template
+	cp $< $@
+
+$(DISTPATH)/INSTALL: $(TOP_SRCDIR)/doc/INSTALL
+	cp $< $@
+
+$(DISTPATH)/bin/parastation: $(TOP_SRCDIR)/scripts/parastation@TRU64FILEADD@
+	cp $< $@
+
+$(DISTPATH)/config/PSM_INSTALL: $(TOP_SRCDIR)/scripts/PSM_INSTALL
+	cp $< $@
+
+$(DISTPATH)/config/sysconfigtab: $(TOP_SRCDIR)/kern/OSF1/sysconfigtab
+	cp $< $@
+
+$(DISTPATH)/config/psm_makedev: $(TOP_SRCDIR)/scripts/psm_makedev
+	cp $< $@
+
+
+######################################################
+# Create tar file
+
+ifeq ($(DVER),)
+tar rpm:
+	@echo Use DVER=x.x.x to create $@ file.
+else
+
+tarcleanups:
+	@echo "cleanup dirs"
+	find . -name "*~" -exec rm {} \;
+	@echo "change dir attribs"
+	find . -type d -exec chmod 755 {} \;
+	@echo "change -w flag for group and other"
+	chmod -R og-w *
+	@echo "change +r flag for group and other"
+	chmod -R og+r *
+
+ifeq ("$(TARGET_OS)","linux")
+ifeq ("$(TARGET_CPU)","i686")
+TARCPU  := i386
+endif
+ifeq ("$(TARGET_CPU)","alphaev56")
+TARCPU  := alpha
+endif
+
+tar:	tarcleanups
+	tar --owner=0 --group=0 -czf psfe_$(TARCPU)-$(DVER).tgz $(DISTPATH)
+
+endif
+ifeq ("$(TARGET_OS)","osf5.1")
+TARCPU  := tru64
+
+tar:	tarcleanups
+	gtar --owner=0 --group=0 -czf psfe_$(TARCPU)-$(DVER).tar.gz $(DISTPATH)
+
+endif
+
+rpm:	tarcleanups
+	$(TOP_SRCDIR)/scripts/rpmbuildpsfe $(DVER)
+
+endif
+DISTCLEAN+= psfe*.tar.gz
+DISTCLEAN+= psfe*.tgz
+DISTCLEAN+= psfe*.rpm
+DISTCLEAN+= psfe*.spec
+
+
+######################################################
+clean:
+	rm -rf opt/parastation
+
+distclean: clean
+	$(RM) $(DISTCLEAN)
