@@ -1,7 +1,7 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.8 2001/05/28 16:38:33 moschny Exp $
+ * $Id: psport.h,v 1.9 2001/06/07 13:00:03 moschny Exp $
  *
  * @author
  * Jens Hauke <hauke@par-tec.com>,
@@ -388,6 +388,8 @@ PSP_Status_t PSP_Cancel(PSP_PortH_t porth, PSP_RequestH_t request);
 
 /*
  * Local Variables:
+ *   mode: c
  *   c-basic-offset: 4
- *  End:
+ *   c-font-lock-extra-types: ( "\\sw+_t" "UINT16" "UINT32" )
+ * End:
  */
