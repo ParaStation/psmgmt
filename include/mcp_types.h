@@ -783,6 +783,8 @@ TRACE(name,_RECVPTR2NO(mcp_mem.RecvPool->Next));
 /* Interrupt on context notify */
 #define FIFOCMD_WANT_NOTIFY_INTR	112	/* Param 0 or 1 (bool) */
 
+#define FIFOCMD_OPEN_CONTEXT	113	/* Param  context permissions */
+
 /*--------------------------------------------------------------------*/
 // Copy Host Buffer srch to LANai buffer desl,
 // use byteoffset desoff(0-511) and dwordlen (len= des32len*4+4)
