@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.23 2002/02/08 20:38:36 hauke Exp $
+ * $Id: psiadmin.c,v 1.24 2002/02/11 12:36:57 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.23 2002/02/08 20:38:36 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.24 2002/02/11 12:36:57 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -40,7 +40,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.23 $";
+static char psiadmversion[] = "$Revision: 1.24 $";
 static int  DoRestart = 1;
 
 int PSIADM_LookUpNodeName(char* hostname)
@@ -190,8 +190,7 @@ void PSIADM_ProcStat(int first, int last)
 	    } else {
 		printf("%5d%s\n", taskinfo[j].uid,
 		       taskinfo[j].group==TG_ADMIN ? "(A)" :
-		       taskinfo[j].group==TG_LOGGER ? "(L)" :
-		       "");
+		       taskinfo[j].group==TG_LOGGER ? "(L)" : "");
 	    }
 	}
 
@@ -212,7 +211,7 @@ void PSIADM_LoadStat(int first, int last)
     last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
     printf("NodeNr Load\n");
     for (i = first; i < last; i++) {
-	load = PSI_getload(i);
+	load = INFO_request_load(i);
 	printf("%6d %2.4f\n",i,load);
     }
 
