@@ -274,7 +274,8 @@ typedef struct MCP_Route_T {
 */
 
 typedef struct MCPNetSendHeader_T {
-    INT32		ALIGN8(route[NR_OF_RWORDS]); 	/* Route Info  (up to 8 Bytes)*/
+//    INT32		ALIGN8(route[NR_OF_RWORDS]); 	/* Route Info  (up to 8 Bytes)*/
+    TALIGN8(INT32,	route[NR_OF_RWORDS]); 	/* Route Info  (up to 8 Bytes)*/
 
     INT16		type;			/* packet Type */
     INT16		connid;			/* ConnID */
@@ -294,7 +295,7 @@ typedef struct MCPNetSendHeader_T {
 
 
 typedef struct MCPNetRecvHeader_T {
-    INT16		ALIGN8(type);			/* packet Type */
+    TALIGN8(INT16,	type);			/* packet Type */
     INT16		connid;			/* ConnID */
     INT16		flags;			/* Flags (Retransmission) */
     UINT16		datalen;		/* Length of Packet */
@@ -618,7 +619,7 @@ typedef struct MCP_TIMEOUTQ_T {
 
 
 typedef struct MCPDMAControlBlock_T {
-    DMA_CONTROL_BLOCK		ALIGN8( dma );
+    TALIGN8(DMA_CONTROL_BLOCK,	dma );
     MCP_POINTER( UINT32 )	notify;
     UINT32			_align8_;
 } MCPDMAControlBlock_t;
@@ -642,7 +643,7 @@ enum MCP_ConnState {
     CS_MASK		= 0x00000003,
     /* Connection attribs */
     CSA_PackToInTOQ	= 0x00000004, /* Packet Timeout is Enqueued */
-    CSA_Sleep		= 0x00000008, /* Dont send until sleep cleared
+    CSA_Sleep		= 0x00000008  /* Dont send until sleep cleared
 					 inside Timeout */
 // unused   CSA_CNACK_SEND	= 0x00000010  /* Send CNACKS instead SNACKs */
 };

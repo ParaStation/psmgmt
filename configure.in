@@ -32,13 +32,13 @@ AC_ARG_WITH([mcpbinheader], [  --with-mcpbinheader=dir location of mcp bin heade
 		MYRI_HOME=`path_cleanup ${withval}`;
 		echo " $MYRI_HOME"
 	],[
-		if MYRI_HOME=`which lanai-gcc` ; then
-#			MYRI_HOME=`which lanai-gcc`
-			MYRI_HOME=`dirname $MYRI_HOME`/..
-			MYRI_HOME=`path_cleanup $MYRI_HOME`
-			echo " $MYRI_HOME"
-		else
+		AC_PATH_PROG(lanaigccpath,lanai-gcc)
+		if test -z "$lanaigccpath" ; then
 			MCPBINHEADERDIRauto=yes
+		else
+			MYRI_HOME=`dirname $lanaigccpath`/..
+			MYRI_HOME=`path_cleanup $MYRI_HOME`
+#			echo " $MYRI_HOME"
 		fi
 	])
 ])
@@ -52,8 +52,13 @@ AC_ARG_WITH([kernellist], [  --with-kernellist=file    file with kernelnames and
 	KERNELLIST=`path_cleanup kernellist`
 ])
 
-AC_SUBST([PSM_OSDIR])
 
+AC_SUBST([PSM_OSDIR])
+AC_SUBST([CFLAG_WALL])
+AC_SUBST([CFLAG_G])
+AC_SUBST([CFLAG_COMPAT])
+AC_SUBST([CPPFLAG_MMD])
+AC_SUBST([DEPEXTENSION])
 case $target_os in
 linux)
 	PSM_OSDIR=kern/Linux
@@ -62,11 +67,21 @@ linux)
 	if test "$MCPBINHEADERDIRauto" = "yes"; then
 		MCPBINHEADERDIR=`path_cleanup $srcdir`/kern/mcp/build
 	fi;
+	CFLAG_WALL="-W -Wall -Wno-unused"
+	CFLAG_G=-g
+	CPPFLAG_MMD=-MMD
+	DEPEXTENSION=.d
 	;;
 osf5.1)
+	PSM_OSDIR=kern/OSF1
 	if test "$MCPBINHEADERDIRauto" = "yes"; then
 		MCPBINHEADERDIR=`path_cleanup $srcdir`/kern/mcp/build_nozc
 	fi;
+	CFLAG_WALL="-w0  -msg_disable incomparry,unreachcode"
+	CFLAG_G=-g3
+	CFLAG_COMPAT="-FIcompat_tru64.h"
+	CPPFLAG_MMD=-MD
+	DEPEXTENSION=.o.d
 #	AC_CONFIG_FILES([kern/OSF1/Makefile])
 	;;
 *)
@@ -96,6 +111,7 @@ AC_CONFIG_FILES([lib/pvar/Makefile])
 AC_CONFIG_FILES([kern/mcp/Makefile])
 AC_CONFIG_FILES([kern/Makefile.include])
 AC_CONFIG_FILES([bin/Makefile])
+AC_CONFIG_FILES([bin/test/Makefile])
 
 
 

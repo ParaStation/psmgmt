@@ -1,7 +1,7 @@
 /**
  * PSPort2: Communication Library for Parastation , second edition
  *
- * $Id: psport2.h,v 1.1 2001/07/27 17:11:27 hauke Exp $
+ * $Id: psport2.h,v 1.2 2002/04/12 20:38:31 hauke Exp $
  *
  * @author
  * Jens Hauke <hauke@par-tec.com>,
@@ -74,7 +74,7 @@ typedef struct PSP_HalHeader_T {
     PSP_MessageID_t	MessageID;
     UINT32		FragOffset;
     UINT32		MessageSize;
-    long		xheader[0];  /**< from here on, the extra
+    long		xheader[zeroarray];  /**< from here on, the extra
 					header is placed */
 } PSP_HalHeader_t;
 
@@ -86,7 +86,7 @@ typedef struct PSP_RecvHeader_T {
     UINT32		HAL_xhlen;   /* xheadersize of HAL(send and recv)*/
     psjm_halport_t	From;
     PSP_HalHeader_t	HAL_xhead;
-    long		xheader[0];  /**< from here on, the extra
+    long		xheader[zeroarray];  /**< from here on, the extra
 					header is placed */
 } PSP_RecvHeader_t;
 
@@ -101,7 +101,7 @@ typedef struct PSP_Header_T {
 					read-only. */
     int			_space1_;    /* align From to 8 byte on alpha */
     PSP_RecvHeader_t	header;
-    long		xheader[0];  /**< from here on, the extra
+    long		xheader[zeroarray];  /**< from here on, the extra
 					header is placed */
 } PSP_Header_t;
 

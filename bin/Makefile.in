@@ -1,8 +1,8 @@
 
 
-CFLAGS += -O2 -Wall -g
+CFLAGS += -O2 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
 PSM_OSDIR := @PSM_OSDIR@
-CPPFLAGS += -I@top_srcdir@/include -MMD
+CPPFLAGS += -I@top_srcdir@/include @CPPFLAG_MMD@
 
 
 VPATH += @srcdir@
@@ -29,7 +29,8 @@ test_nodes: test_nodes.o -lpshal -lpsport -larg -lpse -lpsi -lm -pthread
 
 test_pse: test_pse.o -lpshal -lpsport -larg -lpse -lpsi -lm -lpthread
 
-DEPFILES := $(wildcard *.d) dummy.d
+# WARNING!!! if DEPEXTENSION from configure is empty, make clean remove all files!!
+DEPFILES := $(wildcard *@DEPEXTENSION@) dummy.d
 
 clean:
 	$(RM) $(DEPFILES) *.o

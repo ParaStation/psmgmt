@@ -1,7 +1,7 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.21 2002/02/26 12:28:25 moschny Exp $
+ * $Id: psport.h,v 1.22 2002/04/12 20:38:31 hauke Exp $
  *
  * @author
  * Jens Hauke <hauke@par-tec.com>,
@@ -39,7 +39,7 @@ typedef enum {
   PSP_OK = 0,                /**< no error, operation successful */
   PSP_UNSPECIFIED_ERR = -1,  /**< there was some error, but we don't
 				know the details */
-  PSP_WRONG_ARG = -2,        /**< one of the arguments is invalid */
+  PSP_WRONG_ARG = -2         /**< one of the arguments is invalid */
 } PSP_Err_t;
 
 /**
@@ -77,7 +77,7 @@ typedef struct PSP_RecvHeader_T {
     PSP_MessageID_t	MessageID;
     UINT32		FragOffset;
     UINT32		MessageSize;
-    long		xheader[0];  /**< from here on, the extra
+    long		xheader[zeroarray];  /**< from here on, the extra
 					header is placed */
 } PSP_RecvHeader_t;
 
@@ -95,7 +95,7 @@ typedef struct PSP_Header_T {
     PSP_MessageID_t     MessageID;
     UINT32              FragOffset;
     UINT32              MessageSize;
-    long		xheader[0];  /**< from here on, the extra
+    long		xheader[zeroarray];  /**< from here on, the extra
 					header is placed */
 } PSP_Header_t;
 

@@ -13,7 +13,21 @@
 #include "fifo.h"
 
 //#include "psm_osif.h"
+#if ( MAX_HOST_PAGESIZE < PAGE_SIZE )
+ . error MAX_HOST_PAGESIZE to small !!
+#endif
 
+#ifdef __GNUC__
+#define ALIGNPAGE( var ) ALIGN(MAX_HOST_PAGESIZE,var)
+#endif
+#ifdef __DECC 
+/* There is no pragma for ALIGNPAGE on DECC compiler.
+   We must do the Alignement by hand!
+   Be carefull with ALIGNPAGE!!!
+*/
+#define ALIGNPAGE( var ) var
+#endif
+ 
 extern struct psm_mcpif psm_mcpif;
 
 typedef struct host_send_buf * host_send_buf_p ;
@@ -41,6 +55,7 @@ typedef struct Context_Host_Info {
     int		psm_contextNo;
 } Context_Host_Info;
 
+#ifdef __GNUC__
 struct psm_mcpif_mmap_struct {
     /* All Entrys must be page aligned !!! */
     UINT32			ALIGNPAGE(doorbell[DOORBELL_CONTEXTSIZE/sizeof(UINT32)]);
@@ -57,6 +72,30 @@ struct psm_mcpif_mmap_struct {
 //    struct MCPmem_T		ALIGNPAGE(mcp_mem);
 //#endif
 };
+#endif
+
+#ifdef __DECC
+/* There is no pragma for ALIGNPAGE on DECC compiler. We must do the Alignement by hand */
+struct psm_mcpif_mmap_struct {
+    /* All Entrys must be page aligned !!! */
+    UINT32			doorbell[DOORBELL_CONTEXTSIZE/sizeof(UINT32)];
+    struct MCPHostSendBuf_T	host_send_buf[PSM_MAX_HSENDBUFS];
+    struct MCPSendBuf_T		mcp_send_buf[PSM_MAX_SENDBUFS];
+    char _fill_[ ROUND_UP(MAX_HOST_PAGESIZE
+			  ,(sizeof(struct MCPSendBuf_T)*PSM_MAX_SENDBUFS)  )-
+	       (sizeof(struct MCPSendBuf_T)*PSM_MAX_SENDBUFS)  ];
+    struct PSMHostNotify_T	host_notify;
+
+    struct PSMClusterInfo_T	ClusterInfo;
+    /* structs for local communication */
+    struct PSMLocRecvInfo_T	LocRecvInfo;
+    struct MCPHostSendBuf_T	LocRecvBuf[PSM_MAX_LRBUFS];
+    
+//#ifdef DEBUG_MCPMEM
+//    struct MCPmem_T		ALIGNPAGE(mcp_mem);
+//#endif
+};
+#endif
 
 struct psm_mcpif_struct { /* ptrs to the entrys of psm_mcpif_mmap_struct for kernelif */
     UINT32			*doorbell;//[DOORBELL_CONTEXTSIZE/sizeof(UINT32)]);
@@ -88,12 +127,13 @@ void psm_mcpif_print(char *str);
 
 #else
 #define psm_mcpif_print(str)
+#ifndef NO_MACRODOTDOT
 #define MCPIF_PRINT(fmt,rest...)
+#else
+static inline void MCPIF_PRINT(char *fmt,...){}
+#endif
 #endif
 
-#if ( MAX_HOST_PAGESIZE < PAGE_SIZE )
- . error MAX_HOST_PAGESIZE to small !!
-#endif
 
 #endif
 

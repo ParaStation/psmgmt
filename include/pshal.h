@@ -1,7 +1,7 @@
 /*
  *
  *
- *      $Id: pshal.h,v 1.18 2002/03/25 14:55:07 hauke Exp $	
+ *      $Id: pshal.h,v 1.19 2002/04/12 20:38:31 hauke Exp $	
  *
  *      written by Jens Hauke
  *
@@ -77,7 +77,7 @@ typedef struct PSHALRecvHeader_T {
     INT16		tag;		/**< protocol specific used tag      */
     INT16		xheaderlen;	/**< length of the extra header      */
     INT32		portseqno;	/**< SequenceNo of Port		     */
-    long		xheader[0];	/**< begining of extra header */
+    long		xheader[zeroarray];	/**< begining of extra header */
 } PSHALRecvHeader_t;
 
 

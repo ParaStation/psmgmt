@@ -5,6 +5,14 @@
  *							      
  *************************************************************fde*/
 
+#ifdef __osf__
+/*
+ * osf needs more specified _IOx Macrocalls than Linux.
+ * But we dont want change the old _IOx.
+ */
+#include "psm_ioctl_tru64.h"
+#endif
+
 #ifndef _PSM_IOCTL_H_
 #define _PSM_IOCTL_H_
 

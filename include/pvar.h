@@ -35,6 +35,11 @@
     extern "C" {
 #endif	
 
+#if defined( __GNUC__ )
+#define zeroarray 0
+#else
+#define zeroarray 
+#endif
 
 typedef struct stabsstr_t{
     char typechar;
@@ -51,7 +56,7 @@ typedef struct stabsstr_t{
 	int bitfrom;
 	int bitto;
 	char * name;
-    } field[0];
+    } field[zeroarray];
 }stabsstr_T;
 
 
