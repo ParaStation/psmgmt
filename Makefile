@@ -29,11 +29,16 @@ include $(ROOTDIR)/Makefile.include
 
 ifeq ($(shell cd .;pwd),$(ROOTDIR))
 
-allbutmcp:	dep psm libs tools buildno
+allbutmcp:	dep psm libs tools libstrip buildno
 
 all:	mcpdep mcp allbutmcp buildno
 
 libs:	pshal psport pvar arg
+
+libstrip: $(LIBARCHIVEDIR)/*
+	mkdir -p $(LIBARCHIVEDIR)_strip
+	cp $^ $(LIBARCHIVEDIR)_strip/.
+	strip -g $(LIBARCHIVEDIR)_strip/*
 
 mcp:	mcpdep
 	make -C $(MCPDIR) all
@@ -67,6 +72,9 @@ mcpclean:
 
 tools:	FORCE
 	make -C $(TOOLDIR) tools
+
+toolsstrip:	FORCE
+	make -C $(TOOLDIR) toolsstrip
 
 dep:
 	make -C $(PSMDIR) $@
