@@ -20,10 +20,10 @@ typedef struct pslic_ascii_T{
 
 
 typedef struct pslic_bin_T{
-    INT32	Nodes;
-    UINT32	ValidFrom;
-    UINT32	ValidTo;
-    UINT32	Magic;
+    int32_t	Nodes;
+    uint32_t	ValidFrom;
+    uint32_t	ValidTo;
+    uint32_t	Magic;
 }pslic_bin_t;
 
 
@@ -35,9 +35,9 @@ typedef struct pslic_bin_T{
 
 #define pslic_encode(buf,buflen,magic)					\
 {									\
-    UINT8 *buf_=(UINT8 *)(buf);						\
+    uint8_t *buf_=(uint8_t *)(buf);					\
     int buflen_ = buflen;						\
-    UINT32 magic_ = magic;						\
+    uint32_t magic_ = magic;						\
     while (buflen_--){							\
 	(*buf_) =							\
 	    (LIC16SHUFFELEnc[ (*buf_) & 0xf ]) |			\
@@ -50,11 +50,11 @@ typedef struct pslic_bin_T{
 
 #define pslic_decode(buf,buflen,magic)						\
 {										\
-    UINT8 *buf_=(UINT8 *)(buf);							\
+    uint8_t *buf_=(uint8_t *)(buf);						\
     int buflen_ = buflen;							\
-    UINT32 magic_ = magic;							\
+    uint32_t magic_ = magic;							\
     while (buflen_--){								\
-	UINT8 ch;								\
+	uint8_t ch;								\
 	ch = *buf_;								\
 	(*buf_) =								\
 	    (LIC16SHUFFELDec[ (*buf_) & 0xf ]) |				\
