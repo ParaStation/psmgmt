@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp_private.h,v 1.2 2002/01/15 11:45:32 eicker Exp $
+ * $Id: rdp_private.h,v 1.3 2002/01/16 17:59:51 eicker Exp $
  *
  */
 /**
@@ -13,7 +13,7 @@
  * rdp_private: Reliable Datagram Protocol for ParaStation daemon
  *              Private functions and definitions
  *
- * $Id: rdp_private.h,v 1.2 2002/01/15 11:45:32 eicker Exp $
+ * $Id: rdp_private.h,v 1.3 2002/01/16 17:59:51 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -25,7 +25,7 @@
 #ifdef __cplusplus
 extern "C" {
 #if 0
-} // <- just for emacs indentation
+} /* <- just for emacs indentation */
 #endif
 #endif
 
@@ -45,4 +45,4 @@ static char *CIstate(RDPState state);
 }/* extern "C" */
 #endif
 
-#endif /* __RDP_H */
+#endif /* __RDP_PRIVATE_H */
