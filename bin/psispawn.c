@@ -1,24 +1,24 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * psispawn.c
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.8 2003/10/23 16:27:35 eicker Exp $
+ * $Id: psispawn.c,v 1.9 2003/11/26 17:15:05 eicker Exp $
  *
  */
 /**
  * @file Simple wrapper to allow MPIch/P4 programs to run under the
  * control of ParaStation.
  *
- * $Id: psispawn.c,v 1.8 2003/10/23 16:27:35 eicker Exp $
+ * $Id: psispawn.c,v 1.9 2003/11/26 17:15:05 eicker Exp $
  *
  * @author Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.8 2003/10/23 16:27:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.9 2003/11/26 17:15:05 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -32,11 +32,11 @@ static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.8 2003/10/23
 
 #include "pscommon.h"
 #include "pshwtypes.h"
+#include "psprotocol.h"
 #include "psi.h"
 #include "psienv.h"
 #include "psipartition.h"
 #include "psispawn.h"
-#include "info.h"
 
 void usage(char *progname)
 {
