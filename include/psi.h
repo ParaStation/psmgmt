@@ -204,5 +204,6 @@ double PSI_getload(unsigned short nodenr);
 long PSI_whodied(int sig);
 
 char * PSI_LookupInstalldir(void);
+void PSI_SetInstalldir(char *installdir);
 
 #endif 
