@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.h,v 1.12 2003/03/06 14:09:57 eicker Exp $
+ * $Id: config_parsing.h,v 1.13 2003/04/03 15:06:30 eicker Exp $
  *
  */
 /**
  * \file
  * Parser for the config file of the ParaStation daemon
  *
- * $Id: config_parsing.h,v 1.12 2003/03/06 14:09:57 eicker Exp $
+ * $Id: config_parsing.h,v 1.13 2003/04/03 15:06:30 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -33,23 +33,9 @@ extern "C" {
 
 /** @todo Documentation */
 
-extern char *Configfile;
 extern char *ConfigInstDir;
 
 extern struct env_fields_s ConfigLicEnv;
-extern char *ConfigLicenseKeyMCP;
-extern char *ConfigMyriModule;
-extern char *ConfigRoutefile;
-extern int ConfigSmallPacketSize;
-extern int ConfigRTO;
-extern int ConfigHNPend;
-extern int ConfigAckPend;
-
-extern char *ConfigIPModule;
-extern char *ConfigIPPrefix;
-extern int ConfigIPPrefixLen;
-
-extern char *ConfigGigaEtherModule;
 
 extern long ConfigSelectTime;
 extern long ConfigDeadInterval;
@@ -58,17 +44,12 @@ extern int ConfigRDPPort;
 extern int ConfigMCastGroup;
 extern int ConfigMCastPort;
 
-extern rlim_t ConfigRLimitCPUTime;
-extern rlim_t ConfigRLimitDataSize;
-extern rlim_t ConfigRLimitStackSize;
-extern rlim_t ConfigRLimitRSSSize;
-
 extern int ConfigLogLevel;
 extern int ConfigLogDest;
 
 extern int MyPsiId;
 
-int parseConfig(int usesyslog, int loglevel);
+int parseConfig(int usesyslog, int loglevel, char *configfile);
 
 #ifdef __cplusplus
 }/* extern "C" */
