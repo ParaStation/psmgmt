@@ -1,10 +1,10 @@
 <chapter id="installation">
   <title>Installation</title>
   <para>
-    Beforehand describing the installation of &ps;, this chapter discusses the
-    prerequisites to do so. There are specified three different ways to install
-    &ps;, discriminating against each other in the level of automatization of
-    the installation process.
+    This chapter describes the installation of &ps;. Beforehand the
+    prerequisites to use &ps; are discussed. There are three different ways to
+    install &ps;, discriminating against each other in the level of
+    automatization of the installation process.
   </para>
   <para>
     Of course, the less automatized the choosen way of installation is, the
@@ -30,14 +30,14 @@
       </para>
       <para>
 	Furthermore of course the nodes need to be interconnected. Usually
-	there is a connection via fast or gigabit Ethernet between the nodes.
+	there is a connection via Fast or Gigabit Ethernet between the nodes.
 	&ps; needs this Ethernet interconnect for management purposes. Beyond
 	that the possibility to have a fast interconnect in order to do high
 	bandwith, low latency communication exists. At the moment Myrinet is
 	supported to do this kind of communication. There also exists a version
-	supporting communication via fast Ethernet. Naturally this version
-	lacks of really high throughput and low latency due to the limited
-	capabilities of the hardware.
+	supporting communication via Fast Ethernet called &psfe;. Naturally
+	this version lacks of really high throughput and low latency due to the
+	limited capabilities of the hardware.
       </para>
     </simplesect>
 
@@ -90,7 +90,7 @@
 	&ps; distribution is needed. These modules support the standard kernels
 	of common distributions, even if you have recompiled theses kernels in
 	a slightly modified way. They are not needed for the communication via
-	fast Ethernet.
+	Fast Ethernet.
       </para>
       <para>
 	If there is the need for special version of the modules, it is possible
@@ -107,22 +107,20 @@
     </para>
     <itemizedlist>
       <listitem>
-	<para>
-	  whether the &ps; files should reside physically on one node and will
-	  be mounted on all the other nodes using NFS (this will called
+	<para>whether the &ps; files should reside physically on one node and
+	  will be mounted on all the other nodes using NFS (this will called
 	  <quote>centralized</quote> installation within this document),
 	</para>
       </listitem>
       <listitem>
-	<para>
-	  or whether they should be stored identically in a distributed fashion
-	  on every node (which will be called <quote>distributed</quote>
-	  installation).
+	<para>or whether they should be stored identically in a distributed
+	  fashion on every node (which will be called
+	  <quote>distributed</quote> installation).
 	</para>
       </listitem>
     </itemizedlist>
     <para>
-      Both ans&auml;tze have their pros and cons. On the one hand a centralized
+      Both approaches have their pros and cons. On the one hand a centralized
       installation saves from inconsistent versions of executables or
       configuration files within the cluster, but on the other hand it
       introduces a possible single point of failure, the NFS server. This
@@ -144,7 +142,7 @@
     </para>
     <para>
       Within the discussion of the different installation methods below both
-      modi will be described, the <quote>distributed</quote> and the
+      modes will be described, the <quote>distributed</quote> and the
       <quote>centralized</quote> one.
     </para>
     <para>
@@ -160,9 +158,10 @@
 	  <refentrytitle>automount</refentrytitle>
 	  <manvolnum>8</manvolnum>
       </citerefentry> may cause major problems during startup of &ps; or
-	application startup. This is due to the fact that requests to the NFS
-	server might timeout if many clients try to mount directories almost
-	concurrently. On the other hand there is no real need using
+	application startup. This is due to the fact that requests of the
+	automount daemon to the NFS server might timeout if many clients try to
+	mount directories almost concurrently. On the other hand there is no
+	real need using
       <citerefentry>
 	  <refentrytitle>automount</refentrytitle>
 	  <manvolnum>8</manvolnum>
@@ -186,8 +185,7 @@
 	    <filename>bin</filename>
 	  </term>
 	  <listitem>
-	    <para>
-	      contains all executables building the &ps; system. Remember to
+	    <para>contains all executables forming the &ps; system. Remember to
 	      include this directory into the <envar>PATH</envar> environment.
 	    </para>
 	  </listitem>
@@ -197,8 +195,7 @@
 	    <filename>config</filename>
 	  </term>
 	  <listitem>
-	    <para>
-	      contains the installation script
+	    <para>contains the installation script
 	      <filename>PSM_INSTALL</filename>, the example configuration file
 	      <filename>parastation.conf.tmpl</filename> and some example
 	      routing files for the &ps; Myrinet driver.
@@ -219,8 +216,7 @@
 	    <filename>doc</filename>
 	  </term>
 	  <listitem>
-	    <para>
-	      contains the &ps; documentation after installing the
+	    <para>contains the &ps; documentation after installing the
 	      corresponding RPM or <filename>.tar.gz</filename> file. The
 	      necessary steps are described in <xref linkend="docu_install"/>.
 	    </para>
@@ -231,8 +227,7 @@
 	    <filename>include</filename>
 	  </term>
 	  <listitem>
-	    <para>
-	      contains the header files needed in order to build &ps;
+	    <para>contains the header files needed in order to build &ps;
 	      applications. These are primarily needed for building
 	      applications using the low level PSPort or PSHAL libraries.
 	    </para>
@@ -247,8 +242,7 @@
 	    <filename>lib</filename>
 	  </term>
 	  <listitem>
-	    <para>
-	      contains various libraries needed in order to build &ps;
+	    <para>contains various libraries needed in order to build &ps;
 	      applications. These are primarily needed for building MPI
 	      applications or such using the low level PSPort or PSHAL
 	      libraries.
@@ -260,11 +254,10 @@
 	    <filename>man</filename>
 	  </term>
 	  <listitem>
-	    <para>
-	      contains the manual pages describing the &ps; daemons, utilities
-	      and configuration files after installing the documentation RPM or
-	      <filename>.tar.gz</filename> file. The necessary step are
-	      described in <xref linkend="docu_install"/>.
+	    <para>contains the manual pages describing the &ps; daemons,
+	      utilities and configuration files after installing the
+	      documentation RPM or <filename>.tar.gz</filename> file. The
+	      necessary steps are described in <xref linkend="docu_install"/>.
 	    </para>
 	    <para>
 	      In order to enable this pages to the user via the
@@ -272,7 +265,7 @@
 		<refentrytitle>man</refentrytitle>
 		<manvolnum>1</manvolnum>
 	    </citerefentry> command please consult the corresponding
-	      documentation how to do this<footnote>
+	      documentation<footnote>
 		<para>
 		  Usually this is either done by modifying the
 		  <envar>MANPATH</envar> environment variable or by editing the
@@ -291,10 +284,9 @@
 	    <filename>mpich</filename>
 	  </term>
 	  <listitem>
-	    <para>
-	      contains a adapted version of <ulink
+	    <para>contains a adapted version of <ulink
 		url="http://www.unix.mcs.anl.gov/mpi/mpich">MPIch</ulink> after
-	      installing the ParaStation/MPIch RPM or
+	      installing the &ps;/MPIch RPM or
 	      <filename>.tar.gz</filename> file. The necessary steps are
 	      described in <xref linkend="mpich_install"/>.
 	    </para>
@@ -325,13 +317,12 @@
 	<filename>i386</filename><!--, <filename>x86-64</filename>,
 	<filename>ia64</filename>-->, <filename>alpha</filename> or
 	<filename>tru64</filename>. The first architectures are assumed to run
-	Linux, while the last one is for HP's Tru64 running on the Alpha
+	Linux, while the last one is for HP's Tru64 UNIX running on the Alpha
 	processor.
       </para>
       <para>
-	In order to install the ethernet version called ParaStation FE the name
-	of the RPM changes from <filename>psm</filename> to
-	<filename>psfe</filename>.
+	In order to install the ethernet version called &psfe; the name of the
+	RPM changes from <filename>psm</filename> to <filename>psfe</filename>.
       </para>
       <para>
 	The detailed naming of the RPM file may vary depending on the actual
@@ -403,12 +394,12 @@
 	<filename>i386</filename><!--, <filename>x86-64</filename>,
 	<filename>ia64</filename>-->, <filename>alpha</filename> or
 	<filename>tru64</filename>. The first architectures are assumed to run
-	Linux, while the last one is for HP's Tru64 running on the Alpha
+	Linux, while the last one is for HP's Tru64 UNIX running on the Alpha
 	processor.
       </para>
       <para>
-	In order to install the ethernet version called ParaStation FE the name
-	of the <filename>.tar.gz</filename> file changes from
+	In order to install &psfe;, the ethernet version of &ps; the name of
+	the <filename>.tar.gz</filename> file changes from
 	<filename>psm</filename> to <filename>psfe</filename>.
       </para>
       <para>
@@ -501,8 +492,7 @@
 	<note>
 	  <para>
 	    This has only to be done for the Myrinet version of &ps;. You can
-	    leave out this step within the installation procedure of
-	    ParaStation FE.
+	    omit this step within the installation procedure of &psfe;.
 	  </para>
 	</note>
       </listitem>
@@ -536,16 +526,15 @@
 	  distributions. If your system has
 	  <itemizedlist>
 	    <listitem>
-	      <para>
-		a file named <filename>/etc/inetd.conf</filename> (e.g. a SuSE
-		distributions), read section <xref
+	      <para>a file named <filename>/etc/inetd.conf</filename> (e.g. a
+		SuSE distributions), read section <xref
 		  linkend="ibh_inetd_suse"/>,
 	      </para>
 	    </listitem>
 	    <listitem>
-	      <para>
-		a directory <filename>/etc/xinetd.d</filename> (e.g. a RedHat
-		distributions), read section <xref linkend="ibh_inetd_rh"/>.
+	      <para>a directory <filename>/etc/xinetd.d</filename> (e.g. a
+		RedHat distributions), read section <xref
+		  linkend="ibh_inetd_rh"/>.
 	      </para>
 	    </listitem>
 	  </itemizedlist>
@@ -574,6 +563,9 @@
 	      must be triggered to reload this file:
 	    </para>
 	    <programlisting>	/etc/init.d/inetd reload</programlisting>
+	    <para>
+	      or send the signal <filename>SIGHUP</filename> to the daemon.
+	    </para>
 	  </listitem>
 	  <listitem id="ibh_inetd_rh">
 	    <para><emphasis role="bold">Xinetd Configuration</emphasis></para>
@@ -622,7 +614,7 @@
   <section id="docu_install">
     <title>Installation of the documentation</title>
     <para>
-      The &ps; documentation is delivered in three format: A PDF file, a
+      The &ps; documentation is delivered in three formats: As PDF files, a
       browsable HTML documentation and manual pages for all &ps; programs and
       configuration files.
     </para>
@@ -653,14 +645,15 @@
       in <filename>/opt/parastation/man</filename>.
     </para>
     <para>
-      The intendet starting point for the HTML documentation is
+      The intended starting point to browse the HTML version of the
+      documentation is
       <filename>file:///opt/parastation/doc/html/index.html</filename>. The PDF
       documentation is included in two PDF file called
-      <filename>adminguide.pdf</filename> for the <citetitle>&ps;
-	Administrators Guide</citetitle> and <filename>userguide.pdf</filename>
-      for the <citetitle>&ps; Users Guide</citetitle>. Both may be found in the
-      <filename>/opt/parastation/doc/pdf</filename> directory. The PDF
-      documentation can be viewed using the Acrobat Reader, which can be
+      <filename>adminguide.pdf</filename> for the <emphasis role="bold">&ps;
+	Administrators Guide</emphasis> and <filename>userguide.pdf</filename>
+      for the <emphasis role="bold">&ps; Users Guide</emphasis>. Both may be
+      found in the <filename>/opt/parastation/doc/pdf</filename> directory. The
+      PDF documentation can be viewed using the Acrobat Reader, which can be
       retrieved from the <ulink url="http://www.adobe.com">Adobe
 	homepage</ulink>.
     </para>
@@ -681,6 +674,7 @@
 
   <section id="mpich_install">
     <title>Installation of MPIch</title>
+    <!-- @todo: insert RPM description -->
     <para>In order to enable MPI over &ps; might be enabled on the cluster by
       installing an adapted version of <ulink
 	url="http://www-unix.mcs.anl.gov/mpi/mpich/">MPIch</ulink>. A
@@ -696,16 +690,17 @@
       <filename>ia64</filename>--> or <filename>alpha</filename>.
     </para>
     <para>
-      The corresponding file for Tru64 has the name
+      The corresponding file for Tru64 UNIX has the name
       <filename>mpich_a.b.cpsx.y.z_tru64.tar.gz</filename>.
     </para>
     <note>
       <para>
-	The &ps; version number may differ from the one of the latest &ps;
-	release. This is due to the fact that bug fixes within &ps; that don't
-	break compatibility of linked programs result in a change of the minor
-	version number. Since the old version of MPIch is still compatible, it
-	is not necessary to rebuild the MPIch distribution in this case.
+	The &ps; version number of the MPIch packet may differ from the one of
+	the latest &ps; release. This is due to the fact that bug fixes within
+	&ps; that don't break compatibility of linked programs result in a
+	change of the minor version number. Since the old version of MPIch is
+	still compatible, it is not necessary to rebuild the MPIch distribution
+	in this case.
       </para>
     </note>
     <para>
@@ -717,7 +712,7 @@
 	cd /
 	gzip -cd mpich_a.b.cpsx.y.z_arch.tar.gz | tar xvf -</programlisting>
     <para>
-      This will extract the ParaStation/MPIch distribution to
+      This will extract the &ps;/MPIch distribution to
       <filename>/opt/parastation/mpich</filename>. Since all these files are
       only needed for building MPI applications, but not for running them, it
       is sufficient to do the extraction only on the nodes used for compilation
@@ -745,24 +740,21 @@
     </para>
     <itemizedlist>
       <listitem>
-	<para>
-	  <link linkend="config_ps">the configuration of the &ps; system</link>
+	<para><link linkend="config_ps">the configuration of the &ps;
+	    system</link>
 	</para>
       </listitem>
       <listitem>
-	<para>
-	  <link linkend="setup_route">setting up the routing for Myrinet
+	<para><link linkend="setup_route">setting up the routing for Myrinet
 	    communication</link>
 	</para>
       </listitem>
       <listitem>
-	<para>
-	  <link linkend="testing">testing if everything works well</link>
+	<para><link linkend="testing">testing if everything works well</link>
 	</para>
       </listitem>
       <listitem>
-	<para>
-	  <link linkend="embed">optionally the embedding of the &ps; system
+	<para><link linkend="embed">optionally the embedding of the &ps; system
 	    into an allready existing batch system.</link>
 	</para>
       </listitem>
