@@ -7,7 +7,7 @@
 /**
  * pslic.c: License handling
  *
- * $Id: pslic.c,v 1.4 2003/03/24 17:52:18 eicker Exp $
+ * $Id: pslic.c,v 1.5 2003/08/15 13:30:20 eicker Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -98,13 +98,15 @@ char *lic_readline(FILE *f, int *lineno)
 
 int lic_parseline(char *line, char **fieldname, char **val, char **rest)
 {
+    char *work;
+
     if (!*line){
 	return -1;
     }
 
     /* Parse line: */
-    *fieldname = strtok(line, "=");
-    *val = strtok(NULL, "\0" );
+    *fieldname = strtok_r(line, "=", &work);
+    *val = strtok_r(NULL, "\0", &work);
     if (!*val || !*fieldname) return -1;
 
     *fieldname = strshrink(*fieldname);

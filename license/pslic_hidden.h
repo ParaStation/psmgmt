@@ -11,7 +11,7 @@
  *        DO NOT DISTRIBUTE THIS FILE !!!
  *
  *
- * $Id: pslic_hidden.h,v 1.5 2002/08/26 10:00:01 hauke Exp $
+ * $Id: pslic_hidden.h,v 1.6 2003/08/15 13:30:03 eicker Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -40,6 +40,7 @@ EXTERNINLINE char *lic_calchash(env_fields_t *env, const char *HashFields)
     char *hf;
     char *fn;
     char *val;
+    char *work;
     static char res[20];
     uint32_t h1 = 0x6f6c6168;/* *(uint32_t *)"halo";*/
     uint32_t h2 = 0x62756c62;/* *(uint32_t *)"blub";*/
@@ -48,7 +49,7 @@ EXTERNINLINE char *lic_calchash(env_fields_t *env, const char *HashFields)
     if (!HashFields) goto err;
     hf = strdup(HashFields);
 
-    fn = strtok(hf, ", \t\n");
+    fn = strtok_r(hf, ", \t\n", &work);
     
     while (fn) {
 	val = env_get(env, fn);
@@ -65,7 +66,7 @@ EXTERNINLINE char *lic_calchash(env_fields_t *env, const char *HashFields)
 	    fn++;
 	}
 	
-	fn = strtok(NULL, ", \t\n");
+	fn = strtok_r(NULL, ", \t\n", &work);
     }
 
     snprintf(res, sizeof(res), "%08x-%08x", h1, h2);

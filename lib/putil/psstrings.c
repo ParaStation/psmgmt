@@ -7,7 +7,7 @@
 /**
  * psstrings.c: string handling
  *
- * $Id: psstrings.c,v 1.1 2002/07/16 19:25:14 hauke Exp $
+ * $Id: psstrings.c,v 1.2 2003/08/15 13:30:35 eicker Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -97,7 +97,7 @@ char *strunquote_r(char *str, char **ptrptr)
 long int str_datetotime_d(char *str, long int def)
 {
     struct tm tm;
-    char *tmp;
+    char *tmp, *work;
     char *d = NULL;
     long int ret;
 
@@ -106,15 +106,15 @@ long int str_datetotime_d(char *str, long int def)
     memset(&tm, 0, sizeof(tm));
     d = strdup(str);
 
-    tmp = strtok(d, "-");
+    tmp = strtok_r(d, "-", &work);
     if (!tmp) goto err;
     tm.tm_year = strtol(tmp, NULL, 10) - 1900;
 
-    tmp = strtok(NULL, "-");
+    tmp = strtok_r(NULL, "-", &work);
     if (!tmp) goto err;
     tm.tm_mon = strtol(tmp, NULL, 10) - 1;
 
-    tmp = strtok(NULL, "");
+    tmp = strtok_r(NULL, "", &work);
     if (!tmp) goto err;
     tm.tm_mday = strtol(tmp, NULL, 10);
     
