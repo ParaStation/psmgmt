@@ -27,11 +27,17 @@
       last longer than one line.
     </para>
     <para>
-      Comments are denoted by a "#" at the beginning of a line or a "#"
-      followed by an withspace character (i.e. space or tab) somewhere in the
-      middle of a line. Comments end at the end of a line.
+      Line continuation is possible. If the last character within a
+      line before the newline character is a "\", the newline
+      character will be ignored and the next line is appended to the
+      current line.
     </para>
-    <!-- @todo Continuation of lines. Not implemented yet -->
+    <para>
+      Comments are starting with a "#". All remaining characters on
+      the line will be ignored. Keep in mind that line continuation
+      also works within comments, i.e. if the last character of the
+      line is a "\", the next line will be ignored, too.
+    </para>
     <para>
       The parser used to analyze <filename>parastation.conf</filename> is
       <emphasis role="bold">not</emphasis> case sensitive. This means, that all
