@@ -1,0 +1,97 @@
+/***********************************************************
+ *                  ParaStation4
+ *
+ *       Copyright (c) 2002 ParTec AG Karlsruhe
+ *       All rights reserved.
+ ***********************************************************/
+/**
+ * env.c: Simple environment handling
+ *
+ * $Id: env.c,v 1.1 2003/03/24 17:52:18 eicker Exp $
+ *
+ * @author
+ *         Jens Hauke <hauke@par-tec.de>
+ *
+ * @file
+ ***********************************************************/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "env.h"
+
+int env_index(env_fields_t *env, const char *name)
+{
+    int len;
+    int i;
+    int idx = -1;
+
+    if (!name || strchr(name,'=')) return -1; /* illegal name */
+    len = strlen(name);
+    for (i = 0; i < env->cnt; i++) {
+	if ((strncmp(name, env->vars[i], len) == 0) && (env->vars[i][len] == '=')){
+	    idx = i;
+	    break;
+	}
+    }
+    return idx;
+}
+
+int env_unset(env_fields_t *env, const char *name)
+{
+    int idx;
+
+    idx = env_index(env, name);
+    if (idx < 0) return -1;
+
+    free(env->vars[idx]);
+    env->cnt--;
+    env->vars[idx] = env->vars[env->cnt]; /* cnt >= 1 because idx != -1 */
+    env->vars[env->cnt] = NULL;
+    
+    return 0;
+}
+
+int env_set(env_fields_t *env, const char *name, const char *val)
+{
+    char *tmp;
+
+    /* 
+     * search for the name in string 
+     */
+    if (!name || strchr(name,'=')) return -1; /* illegal name */
+    if (!val) val = "";
+
+    env_unset(env, name);
+
+    tmp = (char *)malloc(strlen(name) + 1 + strlen(val) + 1);
+    tmp[0] = 0;
+    strcpy(tmp, name);
+    strcat(tmp, "=");
+    strcat(tmp, val);
+
+    if (env->size < env->cnt + 2) {
+	env->size += 5;
+	env->vars = (char **)realloc(env->vars, env->size * sizeof(char *));
+    }
+    env->vars[env->cnt] = tmp;
+    env->cnt++;
+    env->vars[env->cnt] = NULL;
+
+    return 0;
+}
+
+char *env_get(env_fields_t *env, const char *name)
+{
+    int idx;
+
+    idx = env_index(env, name);
+    if (idx < 0) return 0;
+    return strchr(env->vars[idx],'=') + 1;
+}
+
+void env_init(env_fields_t *env)
+{
+    memset(env, 0, sizeof(*env));
+}
