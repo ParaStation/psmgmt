@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.h,v 1.14 2003/06/20 13:46:50 eicker Exp $
+ * $Id: pstask.h,v 1.15 2003/06/27 16:52:25 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with ParaStation tasks.
  *
- * $Id: pstask.h,v 1.14 2003/06/20 13:46:50 eicker Exp $
+ * $Id: pstask.h,v 1.15 2003/06/27 16:52:25 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -45,7 +45,8 @@ typedef enum {
     TG_LOGGER,    /**< A special task, the logger */
     TG_FORWARDER, /**< A special task, the forwarder */
     TG_SPAWNER,   /**< A special task, the spawner (helper to spawn p4 jobs) */
-    TG_GMSPAWNER  /**< A special task, the gmspawner (helper to spawn GM) */
+    TG_GMSPAWNER, /**< A special task, the gmspawner (helper to spawn GM) */
+    TG_MONITOR    /**< A special task that monitors the daemon. Don't kill */
 } PStask_group_t;
 
 /**
