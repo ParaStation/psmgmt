@@ -23,6 +23,10 @@
 
 #include "psidutil.h"
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.12 2002/01/07 09:38:35 eicker Exp $";
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
 int PSID_CardPresent;
 
 struct PSID_host_t *PSID_hosts[256];
