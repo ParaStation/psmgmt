@@ -7,18 +7,30 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.c,v 1.4 2002/07/11 17:00:20 eicker Exp $
+ * $Id: pstask.c,v 1.5 2002/07/18 12:51:34 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.4 2002/07/11 17:00:20 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.5 2002/07/18 12:51:34 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
+#include "pscommon.h"
+
 #include "pstask.h"
+
+static char errtxt[256];
+
+char *PStask_printGrp(PStask_group_t tg)
+{
+    return (tg==TG_ANY) ? "TG_ANY" :
+	(tg==TG_ADMIN) ? "TG_ADMIN" :
+	(tg==TG_RESET) ? "TG_RESET" :
+	(tg==TG_LOGGER) ? "TG_ADMIN" : "UNKNOWN";
+}
 
 PStask_t *PStask_new()
 {
@@ -35,25 +47,28 @@ int PStask_init(PStask_t *task)
 {
     task->next = NULL;
     task->prev = NULL;
+
     task->tid = 0;
     task->ptid = 0;
     task->uid = -1;
     task->gid = -1;
     task->group = TG_ANY;
     task->rank = -1;
-    task->loggernode = 0;
-    task->loggerport = 0;
+    task->loggernode = 0; /* obsolete */
+    task->loggerport = 0; /* obsolete */
+    task->loggertid = 0;
     task->fd = -1;
-    task->confirmed = 1; /* obsolete */
     task->workingdir = NULL;
     task->argc = 0;
     task->argv = NULL;
     task->environ = NULL;
     task->childsignal = -1;
-    task->signalsender = NULL;
-    task->signalreceiver = NULL;
-    /* CAUTION: each pointer must be set to NULL in PStask_encode
-       after copying an task to the buffer */
+    task->pendingReleaseRes = 0;
+    task->released = 0;
+
+    task->signalSender = NULL;
+    task->signalReceiver = NULL;
+    task->assignedSigs = NULL;
 
     return 1;
 }
@@ -62,7 +77,7 @@ int PStask_reinit(PStask_t *task)
 {
     int i;
 
-    if (task==0)
+    if (!task)
 	return 0;
 
     if (task->workingdir)
@@ -82,17 +97,24 @@ int PStask_reinit(PStask_t *task)
 	task->environ = NULL;
     }
 
-    while (task->signalsender) {
-	struct PSsignal_t* thissignal = task->signalsender;
-	task->signalsender = thissignal->next;
+    while (task->signalSender) {
+	PStask_sig_t *thissignal = task->signalSender;
+	task->signalSender = thissignal->next;
 	free(thissignal);
     }
 
-    while (task->signalreceiver) {
-	struct PSsignal_t* thissignal = task->signalreceiver;
-	task->signalreceiver = thissignal->next;
+    while (task->signalReceiver) {
+	PStask_sig_t *thissignal = task->signalReceiver;
+	task->signalReceiver = thissignal->next;
 	free(thissignal);
     }
+
+    while (task->assignedSigs) {
+	PStask_sig_t *thissignal = task->assignedSigs;
+	task->assignedSigs = thissignal->next;
+	free(thissignal);
+    }
+    
     PStask_init(task);
 
     return 1;
@@ -100,7 +122,7 @@ int PStask_reinit(PStask_t *task)
 
 int PStask_delete(PStask_t * task)
 {
-    if (task==0)
+    if (!task)
 	return 0;
 
     PStask_reinit(task);
@@ -116,11 +138,17 @@ void PStask_snprintf(char *txt, size_t size, PStask_t * task)
     if (task==NULL)
 	return ;
 
-    snprintf(txt, size, " links(%08lx,%08lx) tid %08lx, ptid %08lx, uid %d"
-	     " loggernode %x loggerport %d group %s rank %x fd %d argc %d ",
+/*      snprintf(txt, size, "tid 0x%08lx ptid 0x%08lx uid %d gid %d group %s" */
+/*  	     " rank %d links(0x%08lx,0x%08lx) loggertid %08lx fd %d argc %d ", */
+/*  	     task->tid, task->ptid, task->uid, task->gid, */
+/*  	     PStask_printGrp(task->group), task->rank, */
+/*  	     (long)task->next, (long)task->prev, */
+/*  	     task->loggertid, task->fd, task->argc); */
+    snprintf(txt, size, " links(0x%08lx,0x%08lx) tid 0x%08lx, ptid 0x%08lx, uid %d"
+	     " loggernode 0x%08x loggerport %d group %s rank %d fd %d argc %d ",
 	     (long)task->next, (long)task->prev, task->tid, task->ptid,
 	     task->uid, task->loggernode, task->loggerport,
-	     PStask_groupMsg(task->group), task->rank, task->fd, task->argc);
+	     PStask_printGrp(task->group), task->rank, task->fd, task->argc);
     if (strlen(txt)+1 == size) return;
 
     snprintf(txt+strlen(txt), size-strlen(txt), "dir=\"%s\",command=\"",
@@ -145,31 +173,47 @@ void PStask_snprintf(char *txt, size_t size, PStask_t * task)
     }
 }
 
-int PStask_encode(char* buffer, PStask_t * task)
+static struct {
+    long tid;
+    long ptid;
+    uid_t uid;
+    gid_t gid;
+    PStask_group_t group;
+    int rank;
+    unsigned int loggernode; /* obsolete */
+    int loggerport;          /* obsolete */
+    long loggertid;
+    int argc;
+} tmpTask;
+    
+int PStask_encode(char *buffer, size_t size, PStask_t *task)
 {
-    int msglen=0;
-    int i;
+    /* @todo size ignored !! */
+    int msglen, i;
 
-#if 0
-    if (PSP_DEBUGTASK & PSI_debugmask) {
-	sprintf(PSI_txt,"PStask_encode(%lx,task(",(long)buffer);
-	PStask_sprintf(PSI_txt+strlen(PSI_txt),task);
-	sprintf(PSI_txt+strlen(PSI_txt),")\n");
-	PSI_logerror(PSI_txt);
-    }
-#endif
+    snprintf(errtxt, sizeof(errtxt),
+	     "PStask_encode(%p, %ld, task(", buffer, (long)size);
+    PStask_snprintf(errtxt+strlen(errtxt),
+		    sizeof(errtxt)-strlen(errtxt), task);
+    snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt), ")");
+    PSC_errlog(errtxt, 10);
 
-    msglen = sizeof(PStask_t);
-    memcpy(buffer, task, sizeof(PStask_t));
-    /* reinit the pointers */
-    ((PStask_t*)buffer)->workingdir = NULL;
-    ((PStask_t*)buffer)->argv = NULL;
-    ((PStask_t*)buffer)->environ = NULL;
-    ((PStask_t*)buffer)->signalsender = NULL;
-    ((PStask_t*)buffer)->signalreceiver = NULL;
+    tmpTask.tid = task->tid;
+    tmpTask.ptid = task->ptid;
+    tmpTask.uid = task->uid;
+    tmpTask.gid = task->gid;
+    tmpTask.group = task->group;
+    tmpTask.rank = task->rank;
+    tmpTask.loggernode = task->loggernode; /* obsolete */
+    tmpTask.loggerport = task->loggerport; /* obsolete */
+    tmpTask.loggertid = task->loggertid;
+    tmpTask.argc = task->argc;
+
+    msglen = sizeof(tmpTask);
+    memcpy(buffer, &tmpTask, sizeof(tmpTask));
 
     if (task->workingdir) {
-	strcpy(&buffer[msglen],task->workingdir);
+	strcpy(&buffer[msglen], task->workingdir);
 	msglen += strlen(task->workingdir);
     } else {
 	buffer[msglen]=0;
@@ -195,34 +239,39 @@ int PStask_encode(char* buffer, PStask_t * task)
     return msglen;
 }
 
-int PStask_decode(char* buffer, PStask_t * task)
+int PStask_decode(char *buffer, PStask_t *task)
 {
     int msglen, len, count, i;
 
-#if 0
-    if (PSP_DEBUGTASK & PSI_debugmask) {
-	sprintf(PSI_txt,"PStask_decode(%lx,%lx)\n",
-		(long)buffer,(long)task);
-	PSI_logerror(PSI_txt);
-    }
-#endif
+    snprintf(errtxt, sizeof(errtxt), "PStask_decode(%p, task(", buffer);
+    PStask_snprintf(errtxt+strlen(errtxt),
+		    sizeof(errtxt)-strlen(errtxt), task);
+    snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt), ")");
+    PSC_errlog(errtxt, 10);
 
     if (!task)
 	return 0;
-    /* unpack buffer */
 
-    msglen = sizeof(PStask_t);
-    memcpy(task, buffer, sizeof(PStask_t));
-    task->next = NULL;
-    task->prev = NULL;
+    PStask_reinit(task);
+
+    /* unpack buffer */
+    msglen = sizeof(tmpTask);
+    memcpy(&tmpTask, buffer, sizeof(tmpTask));
+
+    task->tid = tmpTask.tid;
+    task->ptid = tmpTask.ptid;
+    task->uid = tmpTask.uid;
+    task->gid = tmpTask.gid;
+    task->group = tmpTask.group;
+    task->rank = tmpTask.rank;
+    task->loggernode = tmpTask.loggernode; /* obsolete */
+    task->loggerport = tmpTask.loggerport; /* obsolete */
+    task->loggertid = tmpTask.loggertid;
+    task->argc = tmpTask.argc;
 
     len = strlen(&buffer[msglen]);
 
-    if (len) {
-	task->workingdir = strdup(&buffer[msglen]);
-    } else {
-	task->workingdir = NULL;
-    }
+    if (len) task->workingdir = strdup(&buffer[msglen]);
     msglen += len+1;
 
     /* Get the arguments */
@@ -241,11 +290,8 @@ int PStask_decode(char* buffer, PStask_t * task)
 	len += strlen(&buffer[len])+1;
     }
 
-    if (count) {
-	task->environ = (char**)malloc((count+1)*sizeof(char*));
-    } else {
-	task->environ = NULL;
-    }
+    if (count) task->environ = (char**)malloc((count+1)*sizeof(char*));
+
     if (task->environ) {
 	i = 0;
 	while (strlen(&buffer[msglen])) {
@@ -257,22 +303,8 @@ int PStask_decode(char* buffer, PStask_t * task)
 	msglen++;
     }
 
-#if 0
-    if (PSP_DEBUGTASK & PSI_debugmask) {
-	sprintf(PSI_txt, "PStask_decode(%lx,task(", (long)buffer);
-	PStask_sprintf(PSI_txt+strlen(PSI_txt), task);
-	sprintf(PSI_txt+strlen(PSI_txt), ")Returns %d\n", msglen);
-	PSI_logerror(PSI_txt);
-    }
-#endif
+    snprintf(errtxt, sizeof(errtxt), "PStask_decode() returns %d", msglen);
+    PSC_errlog(errtxt, 10);
 
     return msglen;
-}
-
-char *PStask_groupMsg(PStask_group_t tg)
-{
-    return (tg==TG_ANY) ? "TG_ANY" :
-	(tg==TG_ADMIN) ? "TG_ADMIN" :
-	(tg==TG_RESET) ? "TG_RESET" :
-	(tg==TG_LOGGER) ? "TG_ADMIN" : "UNKNOWN";
 }
