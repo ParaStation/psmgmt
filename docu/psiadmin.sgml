@@ -192,6 +192,7 @@
 	</listitem>
       </varlistentry>
 
+<!--
       <varlistentry>
 	<term>
 	  <cmdsynopsis>
@@ -214,6 +215,7 @@
 	  </para>
 	</listitem>
       </varlistentry>
+-->
 
       <varlistentry>
 	<term>
@@ -347,11 +349,11 @@
 		</para>
 		<para>
 		  PIO packets are send directly to the node's memory by the
-		  <link linkend="MCP">MCP</link> and copied by a <citerefentry>
+		  <xref linkend="MCP"/> and copied by a <citerefentry>
 		    <refentrytitle>memcpy</refentrytitle>
 		    <manvolnum>3</manvolnum>
 		  </citerefentry> into the final destination. Non-PIO packets
-		  are send via <link linkend="DMA">DMA</link> immediately to
+		  are send via <xref linkend="DMA"/> immediately to
 		  their final destination.
 		</para>
 	      </listitem>
@@ -387,15 +389,15 @@
 		  selected node(s).
 		</para>
 		<para>
-		  Host notify messages are send by the <link
-		    linkend="MCP">MCP</link> to the kernel to mark send buffers
-		  as free. This is done when data, that was sent successfully
-		  via this buffer, was acknowledged by the destination node.
+		  Host notify messages are send by the <xref linkend="MCP"/> to
+		  the kernel to mark send buffers as free. This is done when
+		  data, that was sent successfully via this buffer, was
+		  acknowledged by the destination node.
 		</para>
 		<para>
-		  Usually not every free buffer is communicated, but the <link
-		    linkend="MCP">MCP</link> waits until several buffers are
-		  freed and sends accumulated host notify messages then.
+		  Usually not every free buffer is communicated, but the <xref
+		    linkend="MCP"/> waits until several buffers are freed and
+		  sends accumulated host notify messages then.
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -606,14 +608,14 @@
 		      <para>
 			Furthermore administrativ processes, i.e. <xref
 			  linkend="psiadmin"/> processes connected to a local
-			daemon are marked by <quote>(A)</quote> after the
+			daemon are marked with <quote>(A)</quote> after the
 			user ID.
 		      </para>
 		      <para>
-			Logger processes, i.e. root processes of a parallel
-			task which converted to a <link
-			  linkend="loggerfull">&ps; logger</link> process are
-			tagged by <quote>(L)</quote> after the user ID.
+			Logger processes, i.e. root processes of parallel
+			tasks which converted to a <xref linkend="loggerfull"/>
+			process, are tagged with <quote>(L)</quote> after the
+			user ID.
 		      </para>
 		    </listitem>
 		  </varlistentry>
@@ -640,7 +642,7 @@
 		  The output fields of the process list are described within
 		  the <command>status <option>proc</option></command>
 		  directive. In addition to the process classes described
-		  there, <link linkend="forwarder">&ps; forwarder</link>
+		  there, <xref linkend="forwarderfull"/>
 		  processes, i.e. processes spawned by the &ps; daemon <xref
 		    linkend="psid"/> in order to control a spawned process, are
 		  marked by <quote>(F)</quote> after the user ID.
@@ -662,9 +664,8 @@
 		  The three load values displayed are the averages for 1, 5 and
 		  15 minutes respectively. The two numbers of processes are as
 		  follows: The total number of processes contains all processes
-		  managed by the &ps; system, including <link
-		    linkend="logger">logger</link> processes, <link
-		    linkend="forwarder">forwarder</link> processes and <xref
+		  managed by the &ps; system, including <xref
+		    linkend="logger"/>, <xref linkend="forwarder"/> and <xref
 		    linkend="psiadmin"/> processes. Furthermore of course the
 		  actual working processes started by the users are included.
 		  The latter ones are the <quote>normal</quote> processes,
@@ -693,11 +694,11 @@
 		  <command>count</command>
 		</cmdsynopsis>
 	      </term>
+	      <!-- @todo Extension for non-Myrinet counters -->
 	      <listitem>
 		<para>Show the status of the Myrinet communication system on
-		  the selected node(s). Various counters of the <link
-		    linkend="MCP">MCP</link> running on the Myrinet card are
-		  displayed.
+		  the selected node(s). Various counters of the <xref
+		    linkend="MCP"/> running on the Myrinet card are displayed.
 		</para>
 		<para>
 		  The listed counters have the following meaning:
@@ -837,13 +838,12 @@
 		      <command>CNACK_MCP</command>
 		    </term>
 		    <listitem>
-		      <para>The number of <link linkend="MCP">MCP</link>
-			Capacity NACKs send. These are released when the <link
-			  linkend="MCP">MCP</link> is unable to receive further
-			data because no receive buffers are left. This might be
-			due to sends on the source side of the communication
-			while no receive is posted on the destination side or
-			to a slow PCI bus.
+		      <para>The number of <xref linkend="MCP"/> Capacity NACKs
+			send. These are released when the <xref linkend="MCP"/>
+			is unable to receive further data because no receive
+			buffers are left. This might be due to sends on the
+			source side of the communication while no receive is
+			posted on the destination side or to a slow PCI bus.
 		      </para>
  		      <para>
 			Higher counts (a few ppm of <command>SEND</command> +
@@ -1090,13 +1090,13 @@
 		  </para>
 		  <para>
 		    PIO packets are send directly to the node's memory by the
-		    <link linkend="MCP">MCP</link> and copied by a
+		    <xref linkend="MCP"/> and copied by a
 		    <citerefentry>
 		      <refentrytitle>memcpy</refentrytitle>
 		      <manvolnum>3</manvolnum>
 		    </citerefentry> into the final destination. Non-PIO packets
-		    are send via <link linkend="DMA">DMA</link> immediately to
-		    their final destination.
+		    are send via <xref linkend="DMA"/> immediately to their
+		    final destination.
 		  </para>
 		  <para>
 		    This parameter can be set persistently via the
@@ -1150,16 +1150,15 @@
 		    <option>val</option> on the selected node(s).
 		  </para>
 		  <para>
-		    Host notify messages are send by the <link
-		      linkend="MCP">MCP</link> to the kernel to mark send
-		    buffers as free. This is done when data, that was sent
-		    successfully via this buffer, was acknowledged by the
-		    destination node.
+		    Host notify messages are send by the <xref linkend="MCP"/>
+		    to the kernel to mark send buffers as free. This is done
+		    when data, that was sent successfully via this buffer, was
+		    acknowledged by the destination node.
 		  </para>
 		  <para>
 		    Usually not every freed buffer is communicated, but the
-		    <link linkend="MCP">MCP</link> waits until several buffers
-		    are freed and sends accumulated host notify messages then.
+		    <xref linkend="MCP"/> waits until several buffers are freed
+		    and sends accumulated host notify messages then.
 		    <option>val</option> is the number of accumulated messages
 		    to be sent simultaniously.
 		  </para>
