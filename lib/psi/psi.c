@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.34 2002/07/18 12:52:55 eicker Exp $
+ * $Id: psi.c,v 1.35 2002/07/23 12:40:10 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.34 2002/07/18 12:52:55 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.35 2002/07/23 12:40:10 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -236,10 +236,21 @@ static int connectDaemon(PStask_group_t taskGroup, unsigned int hostaddr)
 
 int PSI_initClient(PStask_group_t taskGroup)
 {
-    char* envstrvalue;
+    char* envStr;
 
     PSI_initLog(0 /* don't use syslog */, NULL /* No special logfile */);
     PSC_initLog(0 /* don't use syslog */, NULL /* No special logfile */);
+
+    envStr = getenv("PSI_DEBUGLEVEL");
+    if (envStr) {
+	int loglevel = atoi(envStr);
+
+	/* Propagate to client */
+	setPSIEnv("PSI_DEBUGLEVEL", envStr, 1);
+
+	PSI_setDebugLevel(loglevel);
+	PSC_setDebugLevel(loglevel);
+    }
 
     snprintf(errtxt, sizeof(errtxt),
 	     "PSI_initClient(%s)", PStask_printGrp(taskGroup));
@@ -266,29 +277,33 @@ int PSI_initClient(PStask_group_t taskGroup)
      * If it is set, then take the environment variables
      * mentioned there into the PSI_environment
      */
-    if ((envstrvalue=getenv("PSI_EXPORTS"))!=NULL) {
-	char *envstr, *newstr;
-	char *envstrstart;
+    envStr = getenv("PSI_EXPORTS");
+
+    if (envStr) {
+	char *envStrStart, *thisEnv, *nextEnv;
 
 	/* Propagate PSI_EXPORTS */
-	setPSIEnv("PSI_EXPORTS", envstrvalue, 1);
+	setPSIEnv("PSI_EXPORTS", envStr, 1);
 
 	/* Now handle PSI_EXPORTS */
-	envstrstart = strdup(envstrvalue);
-	if (envstrstart) {
-	    envstr = envstrstart;
-	    while ((newstr = strchr(envstr,','))!=NULL) {
-		newstr[0]=0; /* replace the "," with EOS */
-		newstr++;    /* move to the start of the next string */
-		if ((envstrvalue=getenv(envstr))!=NULL) {
-		    setPSIEnv(envstr, envstrvalue, 1);
+	envStrStart = strdup(envStr);
+	if (envStrStart) {
+	    thisEnv = envStrStart;
+	    while ((nextEnv = strchr(thisEnv,','))) {
+		nextEnv[0]=0; /* replace the "," with EOS */
+		nextEnv++;    /* move to the start of the next string */
+		envStr = getenv(thisEnv);
+		if (envStr) {
+		    setPSIEnv(thisEnv, envStr, 1);
 		}
-		envstr = newstr;
+		thisEnv = nextEnv;
 	    }
-	    if ((envstrvalue=getenv(envstr))!=NULL) {
-		setPSIEnv(envstr, envstrvalue, 1);
+	    /* Handle the last entry in PSI_EXPORTS */
+	    envStr=getenv(thisEnv);
+	    if (envStr) {
+		setPSIEnv(thisEnv, envStr, 1);
 	    }
-	    free(envstrstart);
+	    free(envStrStart);
 	}
     }
 
@@ -327,6 +342,11 @@ int PSI_sendMsg(void *amsg)
 	PSI_errexit(errtxt, errno);
     }
 
+    snprintf(errtxt, sizeof(errtxt),
+	     "PSI_sendMsg() type %s (len=%ld) to %s",
+	     PSP_printMsg(msg->type), msg->len, PSC_printTID(msg->dest));
+    PSI_errlog(errtxt, 12);
+
     return ret;
 }
 
@@ -349,6 +369,11 @@ int PSI_recvMsg(void *amsg)
 	    PSI_errexit(errtxt, errno);
 	}
     } while (msg->len>count && n>0);
+
+    snprintf(errtxt, sizeof(errtxt),
+	     "PSI_recvMsg() type %s (len=%ld) from %s",
+	     PSP_printMsg(msg->type), msg->len, PSC_printTID(msg->sender));
+    PSI_errlog(errtxt, 12);
 
     if (count==msg->len) {
 	return msg->len;
