@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.42 2002/02/26 12:40:00 eicker Exp $
+ * $Id: psid.c,v 1.43 2002/03/05 13:26:23 hauke Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.42 2002/02/26 12:40:00 eicker Exp $ 
+ * $Id: psid.c,v 1.43 2002/03/05 13:26:23 hauke Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.42 2002/02/26 12:40:00 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.43 2002/03/05 13:26:23 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -63,7 +63,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.42 $";
+static char psid_cvsid[] = "$Revision: 1.43 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -1881,7 +1881,7 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 	    }
 	    j=0;
 	    for (i=0; i<PSI_nrofnodes; i++) {
-		if (DaemonIsUp && daemons[i].hasCard) {
+		if (DaemonIsUp(i) && daemons[i].hasCard) {
 		    nodelist[j] = (short) i;
 		    j++;
 		}
@@ -3083,7 +3083,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.42 $";
+    char revision[] = "$Revision: 1.43 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
