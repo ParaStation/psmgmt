@@ -1,7 +1,7 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.13 2001/07/16 19:22:45 hauke Exp $
+ * $Id: psport.h,v 1.14 2001/07/16 19:38:19 hauke Exp $
  *
  * @author
  * Jens Hauke <hauke@par-tec.com>,
@@ -73,7 +73,7 @@ typedef UINT16 PSP_MessageID_t;
  * Receive header.
  */
 typedef struct PSP_RecvHeader_T {
-    PSHALRecvHeader_t	ALIGN(sizeof(int),HALHeader);
+    PSHALRecvHeader_t	ALIGN(sizeof(long),HALHeader);
     PSP_MessageID_t	MessageID;
     UINT32		FragOffset;
     UINT32		MessageSize;
@@ -91,7 +91,7 @@ typedef struct PSP_Header_T {
     unsigned            datalen;     /**< len of message data,
 					read-only. */
     
-    PSHALRecvHeader_t   ALIGN(sizeof(int),HALHeader);
+    PSHALRecvHeader_t   ALIGN(sizeof(long),HALHeader);
     PSP_MessageID_t     MessageID;
     UINT32              FragOffset;
     UINT32              MessageSize;
