@@ -1,0 +1,77 @@
+
+
+I. Requirements:
+
+1) Installed snmp-server (snmpd), which has agentx. This version of this SNMP agent was tested with 
+ucd-snmp 4.2.3 (which is included as rpm package in distributive of SUSe Linux 7.3) and 4.2.5
+2) Parastation dynamic loaded libraries (files libpsi.so, libpse.so, libpshal.so). psmParamSet.so
+and psmTasksSet.so are compiled with options -rpath "/opt/parastation/lib". It means files
+libpsi.so, libpse.so, libpshal.so must be places in /opt/parastation/lib.
+If you have files libpsi.so, libpse.so, libpshal.so in different directory you can
+- create directory /opt/parastation/lib "by hand" and copy libpsi.so, libpse.so, libpshal.so to
+this directory
+- change "by hand" the path of search: 
+    You can use the environment variable LD_LIBRARY_PATH for describing path to dll. 
+F.e. LD_LIBRARY_PATH=<path>; export LD_LIBRARY_PATH.
+    If you are superuser you can add directory of to file /etc/ld.so.conf and then start ldconfig.
+
+
+II. Installation:
+
+0) Let's think
+    - You have installed _client_ part of SNMP on your workstation, and path to files snmpget, snmpset, snmpwalk 
+    is included in PATH environment variable
+    
+
+1) It is neccessary to check your SNMP security subsystem, if you have one :)
+    - Is my security subsystem active?
+    If after command f.e.
+	snmpwalk <host>  UCD-DLMOD-MIB::dlmodName
+    you have error, which looks like this:
+	snmpwalk: Decryption error
+    I think, you have security subsystem and this subsystem is active
+    
+    Example of my security subsystem - 
+    part of my configuration file of snmpd (snmpd.conf)
+
+	<Later>
+
+    configuration file (snmp.conf (~/.snmp/snmp.conf))
+
+	<Later>
+
+2) Do you have installed dynamic loaded agents already?
+	snmpwalk <security settings> <host>  UCD-DLMOD-MIB::dlmodName
+    If output looks like
+	enterprises.ucdavis.ucdExperimental.ucdDlmodMIB.dlmodTable.dlmodEntry.dlmodName.1 = XXXX
+	enterprises.ucdavis.ucdExperimental.ucdDlmodMIB.dlmodTable.dlmodEntry.dlmodName.2 = YYYY
+	<...>
+    I think, you have installed agents and if output looks like this
+	enterprises.ucdavis.ucdExperimental.ucdDlmodMIB.dlmodTable.dlmodEntry.dlmodName.1 = psmParamSet
+	enterprises.ucdavis.ucdExperimental.ucdDlmodMIB.dlmodTable.dlmodEntry.dlmodName.2 = psmTasksSet    
+	<...>
+    I think, you have installed Parastation SNMP agent's modules and you must remove it firstly, if you want to 
+    reinstall it...
+	
+3) Installation
+
+    snmpset <security settings> <host> UCD-DLMOD-MIB::dlmodStatus.<N> i create
+    snmpset <security settings> <host> UCD-DLMOD-MIB::dlmodName.<N> s "psmParamSet" UCD-DLMOD-MIB::dlmodPath.<N> s "<path_to>/psmParamSet.so"
+    snmpset <security settings> <host> UCD-DLMOD-MIB::dlmodStatus.<N> i load	
+
+    snmpset <security settings> <host> UCD-DLMOD-MIB::dlmodStatus.<N+1> i create
+    snmpset <security settings> <host> UCD-DLMOD-MIB::dlmodName.<N+1> s "psmTasksSet" UCD-DLMOD-MIB::dlmodPath.<N+1> s "<path_to>/psmTasksSet.so"
+    snmpset <security settings> <host> UCD-DLMOD-MIB::dlmodStatus.<N+1> i load    
+    
+
+4) Using Parastation MIB file
+    If you want to use the symbolic MIBs of Parastation SNMP parameters, you must put the file PSM-SNMP-PARAMS-MIB.txt 
+    to ~/.snmp/mibs/PSM-SNMP-PARAMS-MIB.txt and add to you snmp.conf lines 
+    
+        mibdirs +~/.snmp/mibs
+        mibs +UCD-SNMP-TUTORIAL-MIB
+        mibs +PSM-SNMP-PARAMS-MIB	
+	
+    or 
+	<Later>
+    
