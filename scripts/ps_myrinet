@@ -6,7 +6,7 @@
 #
 # Author: Jens Hauke <hauke@par-tec.com>, Norbert Eicker <eicker@par-tec.com>
 #
-# $Id: ps_myrinet,v 1.4 2003/04/08 08:54:16 hauke Exp $
+# $Id: ps_myrinet,v 1.5 2003/04/15 09:23:46 hauke Exp $
 #
 
 #checks
@@ -67,7 +67,7 @@ load_module ()
 case "$1" in
     start|stop)
 	MODULE_PSM=$($FINDMOD $PS_MODULE)
-	test -f $MODULE_PSM || { echo "Cant find module $PS_MODULE" ; exit 1;}
+	test -f "$MODULE_PSM" || { echo "Cant find module $PS_MODULE" ; exit 1;}
 	if [ "$PS_IPENABLED" = "1" ]; then
 	  MODULE_IP=$($FINDMOD $PS_IPMODULE) || echo "Cant find module $PS_IPMODULE"
 	fi
@@ -86,16 +86,16 @@ case "$1" in
 	test -z "$PS_ACKPEND" || $PSCONFIG -p 5 "$PS_ACKPEND"
 
 	if [ "$PS_IPENABLED" = "1" ]; then
-	    $PSNINOUT -m ${MODULE_IP} -n ${PS_IPPREFIX} -p ${PS_IPPREFIXLEN}
+	    $PSNINOUT -m "${MODULE_IP}" -n "${PS_IPPREFIX}" -p "${PS_IPPREFIXLEN}"
 	fi
 	
 	;;
 
     stop)
 	if [ "$PS_IPENABLED" = "1" ]; then
-	    $PSNINOUT -m ${MODULE_IP} -o
+	    $PSNINOUT -m "${MODULE_IP}" -o
 	fi
-	${RMMOD} $(basename ${MODULE_PSM} .o)
+	${RMMOD} $(basename "${MODULE_PSM}" .o)
 	;;
 
     statusheader)
