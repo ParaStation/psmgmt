@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.c,v 1.4 2002/08/06 08:20:47 eicker Exp $
+ * $Id: psprotocol.c,v 1.5 2003/02/10 18:26:06 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psprotocol.c,v 1.4 2002/08/06 08:20:47 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psprotocol.c,v 1.5 2003/02/10 18:26:06 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -77,9 +77,10 @@ struct PSPctrlmessages_t{
     { PSP_DD_SYSTEMERROR        ,"PSP_DD_SYSTEMERROR"        }, 
     { PSP_DD_STATENOCONNECT     ,"PSP_DD_STATENOCONNECT"     },
 
-    { PSP_DD_RESET              ,"PSP_DD_RESET"              },
-
     { PSP_CD_RESET              ,"PSP_CD_RESET"              },
+
+    { PSP_CC_MSG                ,"PSP_CC_MSG"                },
+    { PSP_CC_ERROR              ,"PSP_CC_ERROR"              },
 
     { PSP_DD_DAEMONCONNECT      ,"PSP_DD_DAEMONCONNECT"      }, 
     { PSP_DD_DAEMONESTABLISHED  ,"PSP_DD_DAEMONESTABLISHED"  }, 
