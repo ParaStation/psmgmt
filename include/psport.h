@@ -1,7 +1,7 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.15 2001/07/17 14:45:25 hauke Exp $
+ * $Id: psport.h,v 1.16 2001/08/06 09:00:08 moschny Exp $
  *
  * @author
  * Jens Hauke <hauke@par-tec.com>,
@@ -289,6 +289,55 @@ PSP_RequestH_t PSP_IReceive(PSP_PortH_t porth,
     return PSP_IReceiveCB(porth, buf, buflen, header, xheaderlen,
 			  cb, cb_param, 0, 0);
 }
+
+/* ----------------------------------------------------------------------
+ * PSP_IProbe()
+ * ----------------------------------------------------------------------
+ */
+
+/**
+ * @brief Test for availability of a message.
+ *
+ * This call returns true if a message is already available that would
+ * be received by a call to PSP_IReceive() with the same callback
+ * function and parameters. The header data of this message is copied
+ * to the given header buffer, then.
+ *
+ * @param porth handle of the port, from PSP_OpenPort()
+ * @param header address of buffer for header data
+ * @param xheaderlen length of message extra header buffer, in bytes
+ * @param cb callback function
+ * @param cb_param this pointer is passed to the callback function
+ * @return Returns true if a matching message is available (already
+ * received) and false otherwise.
+ */
+int PSP_IProbe(PSP_PortH_t porth,
+	       PSP_Header_t* header, unsigned xheaderlen,
+	       PSP_RecvCallBack_t *cb, void* cb_param);
+
+/* ----------------------------------------------------------------------
+ * PSP_Probe()
+ * ----------------------------------------------------------------------
+ */
+
+/**
+ * @brief Wait for availability of a message.
+ *
+ * This call returns when and if a message is available that would be
+ * received by a call to PSP_IReceive() with the same callback
+ * function and parameters. The header data of this message is copied
+ * to the given header buffer.
+ *
+ * @param porth handle of the port, from PSP_OpenPort()
+ * @param header address of buffer for header data
+ * @param xheaderlen length of message extra header buffer, in bytes
+ * @param cb callback function
+ * @param cb_param this pointer is passed to the callback function
+ * @return Returns true.
+ */
+int PSP_Probe(PSP_PortH_t porth,
+	      PSP_Header_t* header, unsigned xheaderlen,
+	      PSP_RecvCallBack_t *cb, void* cb_param);
 
 /* ----------------------------------------------------------------------
  * PSP_ISend()
