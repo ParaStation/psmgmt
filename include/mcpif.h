@@ -339,6 +339,7 @@ typedef struct MCPmem_T {
     UINT32			MagicStart;
     volatile INT32		handshake; /* won't work without volatile */
 #if ( DMACHAIN0_SIZE !=0 )
+    /* Aligned to 8 byte */
     MCPDMAControlBlock_t	DMAChain0[ DMACHAIN0_SIZE ];
     struct {
 	/* DMAq 0 dont use notify nor head! */
@@ -347,7 +348,9 @@ typedef struct MCPmem_T {
         INT32			notifycnt;
     } DMAChain0Info;
 #endif
+    INT32 _fill_1;		
 #if ( DMACHAIN2_SIZE !=0 )
+    /* Aligned to 8 byte */
     MCPDMAControlBlock_t	DMAChain2[ DMACHAIN2_SIZE ];
     struct {
 	MCP_POINTER(MCPDMAControlBlock_t) head;
