@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidforwarder.c,v 1.4 2003/02/27 18:21:27 eicker Exp $
+ * $Id: psidforwarder.c,v 1.5 2003/03/04 15:43:12 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.4 2003/02/27 18:21:27 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.5 2003/03/04 15:43:12 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -241,27 +241,30 @@ static int connectLogger(long tid)
     loggerTID = -1;
 
     if (ret <= 0) {
-	snprintf(txt, sizeof(txt), "%s(): Connection refused\n", __func__);
+	snprintf(txt, sizeof(txt), "%s(%s): Connection refused\n",
+		 __func__, PSC_printTID(tid));
 	PSID_errlog(txt, 0);
 	errno = ECONNREFUSED;
 	return -1;
     }
 
     if (msg.header.len != PSLog_headerSize + (int) sizeof(int)) {
-	snprintf(txt, sizeof(txt), "%s(): Message to short\n", __func__);
+	snprintf(txt, sizeof(txt), "%s(%s): Message to short\n",
+		 __func__, PSC_printTID(tid));
 	PSID_errlog(txt, 0);
 
 	errno = ECONNREFUSED;
 	return -1;
     } else if (msg.type != INITIALIZE) {
-	snprintf(txt, sizeof(txt), "%s(): Protocol messed up\n", __func__);
+	snprintf(txt, sizeof(txt), "%s(%s): Protocol messed up\n",
+		 __func__, PSC_printTID(tid));
 	PSID_errlog(txt, 0);
 
 	errno = ECONNREFUSED;
 	return -1;
     } else if (msg.header.sender != tid) {
-	snprintf(txt, sizeof(txt),
-		 "%s(): Got INITIALIZE not from logger\n", __func__);
+	snprintf(txt, sizeof(txt), "%s(%s): Got INITIALIZE not from logger\n",
+		 __func__, PSC_printTID(tid));
 	PSID_errlog(txt, 0);
 
 	errno = ECONNREFUSED;
@@ -269,7 +272,8 @@ static int connectLogger(long tid)
     } else {
 	loggerTID = tid;
 	verbose = *(int *) msg.buf;
-	snprintf(txt, sizeof(txt), "%s(): Connected\n", __func__);
+	snprintf(txt, sizeof(txt), "%s(%s): Connected\n",
+		 __func__, PSC_printTID(tid));
 	PSID_errlog(txt, 10);
     }
 
@@ -325,6 +329,69 @@ static void releaseLogger(int status)
 }
 
 /**
+ * @brief Collect some output before forwarding
+ *
+ * This is a replacement for the read(2) function call. read(2) is
+ * called repeatedly until an EOL ('\n') is received as the last
+ * character or a timeout occured.
+ *
+ * @param sock Socket to read(2) from.
+ *
+ * @param buf Array to store to
+ *
+ * @param count Size of @a *buf. At most this number of bytes are received.
+ *
+ * @param total Actual number of bytes received.
+ *
+ *
+ * @return The number of bytes received within the last round. 0
+ * denotes an EOF. If an error occured, -1 is returned and errno is
+ * set approriately. If the last round timed out, -1 is returned and
+ * errno is set to ETIME.
+ */
+size_t collectRead(int sock, char *buf, size_t count, size_t *total)
+{
+    char txt[128];
+    int n;
+
+    *total = 0;
+
+    do {
+	fd_set readfds;
+	struct timeval timeout;
+
+	FD_ZERO(&readfds);
+	FD_SET(sock, &readfds);
+	timeout = (struct timeval) {0, 1000};
+
+	n = select(sock+1, &readfds, NULL, NULL, &timeout);
+	if (n < 0) {
+	    if (errno == EINTR) {
+		continue;
+	    } else {
+		snprintf(txt, sizeof(txt),
+			 "PSID_forwarder: error on select(%d): %s\n",
+			 errno, strerror(errno));
+		printMsg(STDERR, txt);
+		break;
+	    }
+	}
+
+	if (n) {
+	    n = read(sock, &buf[*total], count-*total);
+	    if (n > 0) *total += n;
+	} else {
+	    /* Only return 0 on close */
+	    errno = ETIME;
+	    n = -1;
+	}
+    } while (n > 0 && *total < count && buf[*total-1] != '\n');
+
+    return n;
+}
+
+
+/**
  * @brief Signal handler
  *
  * This handles the 
@@ -374,55 +441,65 @@ static void sighandler(int sig)
 	if (!canend) {
 	    /* Read all the remaining stuff from the controlled fds */
 	    fd_set afds;
-	    struct timeval atv={0,0};
+	    struct timeval atv;
 	    int ret;
 
-	    memcpy(&afds, &myfds, sizeof(afds));
-	    
-	    ret = select(FD_SETSIZE, &afds, NULL, NULL, &atv);
-	    if (ret < 0) {
-		if (errno != EINTR) {
-		    snprintf(txt, sizeof(txt),
-			     "PSID_forwarder: error on select(%d): %s\n",
-			     errno, strerror(errno));
-		    printMsg(STDERR, txt);
-		}
-	    } else if (ret) {
-		int sock, n;
-		char buf[4000];
-		PSLog_msg_t type;
+	    do {
+		memcpy(&afds, &myfds, sizeof(afds));
+		atv = (struct timeval) {0,1000};
 
-		for (sock=0; sock<FD_SETSIZE; sock++) {
-		    if (FD_ISSET(sock, &afds)) { /* socket ready */
-			if (sock==stdoutSock) {
-			    type=STDOUT;
-			} else if (sock==stderrSock) {
-			    type=STDERR;
-			} else {
-			    continue;
-			}
+		ret = select(FD_SETSIZE, &afds, NULL, NULL, &atv);
+		if (ret < 0) {
+		    if (errno != EINTR) {
+			snprintf(txt, sizeof(txt),
+				 "PSID_forwarder: error on select(%d): %s\n",
+				 errno, strerror(errno));
+			printMsg(STDERR, txt);
+		    }
+		    break;
+		} else if (ret > 0) {
+		    int sock, n, total;
+		    char buf[256];
+		    PSLog_msg_t type;
 
-			n = read(sock, buf, sizeof(buf));
-			if (verbose) {
-			    snprintf(txt, sizeof(txt), "PSID_forwarder:"
-				     " got %d bytes on sock %d\n", n, sock);
-			    printMsg(STDERR, txt);
+		    for (sock=0; sock<FD_SETSIZE; sock++) {
+			if (FD_ISSET(sock, &afds)) { /* socket ready */
+			    if (sock==stdoutSock) {
+				type=STDOUT;
+			    } else if (sock==stderrSock) {
+				type=STDERR;
+			    } else {
+				/* ignore */
+				ret--;
+				continue;
+			    }
+
+			    n = collectRead(sock, buf, sizeof(buf), &total);
+			    if (verbose) {
+				snprintf(txt, sizeof(txt), "PSID_forwarder:"
+					 " got %d bytes on sock %d %d %d\n",
+					 total, sock, n, errno);
+				printMsg(STDERR, txt);
+			    }
+			    if (n==0 || (n<0 && errno==EIO)) {
+				/* socket closed */
+				close(sock);
+				FD_CLR(sock,&myfds);
+			    } else if (n<0 && errno!=ETIME) {
+				/* ignore the error */
+				snprintf(txt, sizeof(txt),
+					 "PSID_forwarder: collectRead():%s\n",
+					 strerror(errno));
+				printMsg(STDERR, txt);
+			    }
+			    if (total) {
+				/* something received. forward it to logger */
+				sendMsg(type, buf, total);
+			    }
 			}
-			if (n==0 || (n<0 && errno==EIO)) {
-			    /* socket closed */
-			} else if (n<0) {
-			    /* ignore the error */
-			    snprintf(txt, sizeof(txt), "PSID_forwarder:"
-				     " read():%s\n", strerror(errno));
-			    printMsg(STDERR, txt);
-			} else {
-			    /* forward it to logger */
-			    sendMsg(type, buf, n);
-			}
-			break;
 		    }
 		}
-	    } // else ret == 0
+	    } while (ret);
 	}
 
 	pid = wait3(&status, 0, &rusage);
@@ -586,7 +663,7 @@ static void loop(void)
     fd_set afds;
     struct timeval mytv={2,0}, atv;
     char buf[4000], obuf[120];
-    int n;                       /* number of bytes received */
+    int n, total;
     int openfds = 2;
     PSLog_msg_t type;
 
@@ -621,6 +698,7 @@ static void loop(void)
 	/*
 	 * check the remaining sockets for any outputs
 	 */
+	PSID_blockSig(1, SIGCHLD);
 	for (sock=0; sock<FD_SETSIZE; sock++) {
 	    if (FD_ISSET(sock, &afds)) { /* socket ready */
 		if (sock==daemonSock) {
@@ -643,16 +721,15 @@ static void loop(void)
 		}
 
 		/* @todo collect "micro"reads as from time */
-		n = read(sock, buf, sizeof(buf));
+		n = collectRead(sock, buf, sizeof(buf), &total);
 		if (verbose) {
 		    snprintf(obuf, sizeof(obuf),
 			     "PSID_forwarder: got %d bytes on sock %d\n",
-			     n, sock);
+			     total, sock);
 		    printMsg(STDERR, obuf);
 		}
 		if (n==0 || (n<0 && errno==EIO)) {
 		    /* socket closed */
-		    PSID_blockSig(1, SIGCHLD);
 		    if (verbose) {
 			snprintf(obuf, sizeof(obuf),
 				 "PSID_forwarder: closing %d\n", sock);
@@ -671,19 +748,19 @@ static void loop(void)
 			}
 			canend = 1;
 		    }
-		    PSID_blockSig(0, SIGCHLD);
-		} else if (n<0) {
+		} else if (n<0 && errno!=ETIME) {
 		    /* ignore the error */
 		    snprintf(obuf, sizeof(obuf),
 			     "PSID_forwarder: read():%s\n", strerror(errno));
 		    printMsg(STDERR, obuf);
-		} else {
-		    /* forward it to logger */
-		    sendMsg(type, buf, n);
 		}
-		break;
+		if (total) {
+		    /* forward it to logger */
+		    sendMsg(type, buf, total);
+		}
 	    }
 	}
+	PSID_blockSig(0, SIGCHLD);
     }
 
     return;
