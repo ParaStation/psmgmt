@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: parser.h,v 1.3 2002/07/03 20:04:08 eicker Exp $
+ * $Id: parser.h,v 1.4 2002/08/07 13:08:54 eicker Exp $
  *
  */
 /**
  * @file
  * General parser utility for ParaStation daemon and admin
  *
- * $Id: parser.h,v 1.3 2002/07/03 20:04:08 eicker Exp $
+ * $Id: parser.h,v 1.4 2002/08/07 13:08:54 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -56,12 +56,28 @@ typedef struct parser_T {
  *
  * @param usesyslog If true, all error-messages are printed via syslog().
  *
- * @param input The inputstream the parser is expected to act on.
+ * @param input The inputstream the parser is expected to act on. This
+ * parameter is optional and may be NULL. If @a input is NULL, the
+ * inputstream has to be set via @ref parser_setFile() before any
+ * parsing is done.
  *
  *
  * @return No return value.
- */
+ *
+ * @see parser_setFile()
+ * */
 void parser_init(int usesyslog, FILE *input);
+
+/**
+ * @brief Set the input stream.
+ *
+ * Set the inputstream to parse to @a input.
+ *
+ * @param input The inputstream the parser is expected to act on. *
+ *
+ * @return No return value.
+ * */
+void parser_setFile(FILE *input);
 
 /**
  * @brief Parses a token.

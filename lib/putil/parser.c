@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: parser.c,v 1.4 2002/07/25 11:32:37 eicker Exp $
+ * $Id: parser.c,v 1.5 2002/08/07 13:08:54 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: parser.c,v 1.4 2002/07/25 11:32:37 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: parser.c,v 1.5 2002/08/07 13:08:54 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -87,6 +87,13 @@ int parser_getDebugLevel(void)
 void parser_setDebugLevel(int level)
 {
     setErrLogLevel(level);
+}
+
+void parser_setFile(FILE *input)
+{
+    parsefile = input;
+
+    parseline = 0;
 }
 
 int parser_parseToken(char *token, parser_t *parser)
