@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.h,v 1.19 2003/10/29 17:35:17 eicker Exp $
+ * $Id: pstask.h,v 1.20 2003/11/14 17:52:14 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with ParaStation tasks.
  *
- * $Id: pstask.h,v 1.19 2003/10/29 17:35:17 eicker Exp $
+ * $Id: pstask.h,v 1.20 2003/11/14 17:52:14 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -67,7 +67,7 @@ char *PStask_printGrp(PStask_group_t taskgroup);
 /** Signal structure */
 typedef struct PSsig_T{
     PStask_ID_t tid;          /**< unique task identifier */
-    int signal;               /**< signal to send, or -1 for childsignal */
+    int32_t signal;           /**< signal to send, or -1 for childsignal */
     struct PSsig_T *next;     /**< link to the next signal */
 } PStask_sig_t;
 
@@ -81,15 +81,15 @@ typedef struct PStask_T{
     PStask_ID_t ptid;        /*C*/ /**< unique identifier of parent task */
     uid_t uid;               /*C*/ /**< user id */
     gid_t gid;               /*C*/ /**< group id */
-    unsigned int aretty;     /*C*/ /**< flag stdin, stdout & stderr as tty */
+    uint32_t aretty;         /*C*/ /**< flag stdin, stdout & stderr as tty */
     struct termios termios;  /*C*/ /**< parameters of the controlling tty */
     struct winsize winsize;  /*C*/ /**< window size of the controlling tty */
     PStask_group_t group;    /*C*/ /**< task group @see PStask_group_t */
     PStask_ID_t loggertid;   /*C*/ /**< unique identifier of the logger */
-    int rank;                /*C*/ /**< rank of task within task group */
+    int32_t rank;            /*C*/ /**< rank of task within task group */
     short fd;                      /**< connection fd within psid */
     char *workingdir;        /*C*/ /**< working directory */
-    int argc;                /*C*/ /**< num of args, length of @a argv */
+    int32_t argc;            /*C*/ /**< num of args, length of @a argv */
     char **argv;             /*C*/ /**< command line arguments */
     char **environ;          /*C*/ /**< PS environment, used for spawning */
     int relativesignal;            /**< the signal sent when a relative (i.e.
