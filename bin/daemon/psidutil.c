@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.19 2002/01/29 14:56:04 hauke Exp $
+ * $Id: psidutil.c,v 1.20 2002/02/04 18:26:27 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.19 2002/01/29 14:56:04 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.20 2002/02/04 18:26:27 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -474,7 +474,15 @@ int PSID_taskspawn(PStask_t* task)
 	}
 
 	close(fds[1]);
-	if(read(fds[0], &buf, sizeof(buf)) == 0){
+
+    restart:
+	if ((ret=read(fds[0], &buf, sizeof(buf))) < 0) {
+	    if (errno == EINTR) {
+		goto restart;
+	    }
+	}
+
+	if(ret == 0){
 	    /*
 	     * the control channel was closed in case of a successful execv
 	     */
