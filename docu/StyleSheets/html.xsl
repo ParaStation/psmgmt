@@ -3,7 +3,7 @@
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                 version='1.0'>
 
-  <xsl:import href="/usr/share/sgml/docbook/docbook-xsl-stylesheets-1.53.0/html/chunk.xsl"/>
+  <xsl:import href="/usr/share/sgml/docbook/docbook-xsl-stylesheets/html/chunk.xsl"/>
 
   <xsl:param name="shade.verbatim" select="1"/>
 
