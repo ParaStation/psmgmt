@@ -2753,12 +2753,8 @@ main(int argc, char **argv)
 	    exit(1);
 	}
 	{
-	    int reuse =1;
-#ifdef __linux__
-	    setsockopt(PSI_msock,SOL_IP,SO_REUSEADDR,&reuse,sizeof(reuse));
-#else
+	    int reuse = 1;
 	    setsockopt(PSI_msock,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(reuse));
-#endif
 	}
 
 //	SYSLOG(0,(LOG_ERR, "***************************************"
