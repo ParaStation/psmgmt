@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: parser.h,v 1.6 2003/10/23 16:27:35 eicker Exp $
+ * $Id: parser.h,v 1.7 2003/10/30 16:40:20 eicker Exp $
  *
  */
 /**
  * @file
  * General parser utility for ParaStation daemon and admin
  *
- * $Id: parser.h,v 1.6 2003/10/23 16:27:35 eicker Exp $
+ * $Id: parser.h,v 1.7 2003/10/30 16:40:20 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -408,9 +408,6 @@ int parser_getBool(char *token, int *value, char *valname);
  * returns 0.
  */
 int parser_parseOn(char *line, parser_t *parser);
-
-
-#define UP 17 /* Some magic value */
 
 #ifdef __cplusplus
 }/* extern "C" */
