@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: adminparser.c,v 1.10 2004/01/16 14:03:53 eicker Exp $
+ * $Id: adminparser.c,v 1.11 2004/01/27 21:05:14 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.10 2004/01/16 14:03:53 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.11 2004/01/27 21:05:14 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -37,7 +37,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.10 2004/
 
 #include "helpmsgs.c"
 
-static char parserversion[] = "$Revision: 1.10 $";
+static char parserversion[] = "$Revision: 1.11 $";
 
 static char *getNodeList(char *nl_descr)
 {
@@ -116,14 +116,14 @@ static int shutdownCommand(char *token)
 
 static int startCommand(char *token)
 {
-    /** @todo */
+    /** @todo implement this */
     printf("Not implemented\n");
     return 0;
 }
 
 static int stopCommand(char *token)
 {
-    /** @todo */
+    /** @todo implement this */
     printf("Not implemented\n");
     return 0;
 }
