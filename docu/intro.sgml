@@ -53,14 +53,14 @@
   <para>
     When in 1998 ParaStation2 was presented, it was a pure software project.
     The communication platform used then was Myrinet, a gigabit interconnect
-    developed  by <ulink url="http://www.myri.com"> MyriCom</ulink>. The
+    developed  by <ulink url="http://www.myri.com"> Myricom</ulink>. The
     development of ParaStation2 still took place at the University of
     Karlsruhe.
   </para>
   <para>
     &ps; became commercial in 1999 when <ulink
       url="http://www.par-tec.com">ParTec AG</ulink> was founded. This spin-off
-    from the University of Karlsruhe now owns all rights and patent connected
+    from the University of Karlsruhe now owns all rights and patents connected
     with the &ps; software. ParTec promoted the further development and
     improvement of the software. This includes the support of a broader basis
     of supported processor types, communication interconnect and operating
@@ -81,7 +81,7 @@
     direction of independence from the underlying communication hardware
     brought the convenient &ps; management facility to beowulf clusters for the
     first time. Furthermore the suboptimal communication performance for large
-    packages gained from the MPIch/P4 implementation of the MPI message passing
+    packets gained from the MPIch/P4 implementation of the MPI message passing
     interface, the de facto standard on beowulf clusters, was improved to the
     limits that are to be expected from the physical circumstances.
   </para>

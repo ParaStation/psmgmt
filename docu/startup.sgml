@@ -7,8 +7,8 @@
   </para>
   <para>
     &ps;'s management and task handling facilities are intended to solve the
-    problems arising with this requirements. On the one hand they implement a
-    fast and robust startup mechanism for parallel tasks. On the other hand the
+    problems arising from this requirements. On the one hand they implement a
+    fast and robust startup mechanism for parallel tasks, on the other hand the
     &ps; daemons running on each node of the cluster control the various
     remotely started <link linkend="process">processes</link> forming the
     parallel <link linkend="task">task</link> in a combined effort and clean up
@@ -40,7 +40,7 @@
     </para>
     <programlisting>	./prog -np N <optional><replaceable>args</replaceable></optional></programlisting>
     <para>
-      Here <replaceable>args</replaceable> are one or more further argument
+      Here <replaceable>args</replaceable> are one or more further arguments
       that will be passed to each instance of <filename>prog</filename> within
       the cluster.
     </para>
@@ -65,15 +65,16 @@
       </citerefentry>, registers there and request for a list of available
       nodes supporting certain features. This list of nodes then is evaluated
       and sorted according to the requirements that will be discussed in <xref
-	linkend="spawn_strategy"/> and <xref linkend="environment"/>. From
-      this, now sorted, list of nodes the process will pick one after the other
-      in a round robin scheme and request the &ps; daemon on that node to start
-      another instance of <filename>prog</filename>, i.e. to spawn a process
-      being part of the parallel task. This will happen N times, which means
-      that <emphasis role="bold">all</emphasis> <quote>working</quote>
-      processes of the parallel task will be spawned ones. As a last step the
-      first locally started process will convert to an I/O handling process,
-      the so called <link linkend="loggerfull">&ps; logger</link> process.
+	linkend="spawn_strategy"/> and the <xref linkend="environment"/> manual
+      page. From this, now sorted, list of nodes the process will pick one
+      after the other in a round robin scheme and request the &ps; daemon on
+      that node to start another instance of <filename>prog</filename>, i.e. to
+      spawn a process being part of the parallel task. This will happen N
+      times, which means that <emphasis role="bold">all</emphasis>
+      <quote>working</quote> processes of the parallel task will be spawned
+      ones. As a last step the first locally started process will convert to an
+      I/O handling process, the so called <link linkend="loggerfull">&ps;
+	logger</link> process.
     </para>
     <para>
       The whole I/O handling machinery will be discussed in detail in <xref
@@ -95,11 +96,11 @@
   <section id="spawn_strategy">
     <title>Spawning strategies</title>
     <para>
-      Depending on the field of application and the local usage policy of the
-      cluster the favored strategy of how to spawn process within the cluster
-      might vary significantly. On the one hand one might want to make the
-      whole cluster available to every possible user accepting the consequence
-      to <quote>overload</quote> one or more nodes, i.e. to run more processes
+      Depending on the field of application and the local site policy the
+      favored strategy of how to spawn processes within the cluster might vary
+      significantly. On the one hand one might want to make the whole cluster
+      available to every possible user accepting the consequence to
+      <quote>overload</quote> one or more nodes, i.e. to run more processes
       than available CPUs on a special node. On the other hand one might want
       to virtually split the cluster into partitions that are made available to
       a user exclusively<footnote>
@@ -176,19 +177,19 @@
 	  </para>
 	  <para>
 	    The format of the hostfile is one hostname per line. Exactly as for
-	    the <envar>PSI_HOSTS</envar> environment variable the hostnames
+	    the <envar>PSI_HOSTS</envar> environment variable, the hostnames
 	    listed within the hostfile have to be resolvable.
 	  </para>
 	</listitem>
       </itemizedlist>
 
       <para>
-	If any node(s) listed in one of the environment variables or the
-	hostfile is down during startup of the parallel task, it will be
-	silently ignored and the partition is downsized by that number of
-	node(s). This may cause that some nodes will get more than one process
-	to run which can lead to a significant increase of runtime (i.e.
-	wallclock time) used by the parallel task.
+	If any node listed in one of the environment variables or the hostfile
+	is down during startup of the parallel task, it will be silently
+	ignored. The partition is downsized by the corresponding number of
+	nodes. This may cause that some nodes will get more than one process to
+	run which can lead to a significant increase of runtime (i.e. wallclock
+	time) used by the parallel task.
       </para>
       <para>
 	If none of the above environment variables is set, the
@@ -333,7 +334,7 @@
     <para>
       Input data is handled in a quite similar way. The <link
 	linkend="loggerfull">&ps; logger</link> process reads the input from
-      the (virtual) terminal or the file to which the input is redirected and
+      the (virtual) terminal or the file from which the input is redirected and
       sends it to a forwarder. The default is to send it to the forwarder of
       the process with rank 0. This behaviour might be modified as discussed
       below.
@@ -370,12 +371,12 @@
       <varlistentry>
 	<term>PSI_SOURCEPRINTF</term>
 	<listitem>
-	  <para>If this environment variable is set, to each fraction of output
-	    a tag providing the rank of the process producing it is prepended.
-	    If the <link linkend="loggerfull">&ps; logger</link> is put into
-	    the verbose mode using the <envar>PSI_LOGGERDEBUG</envar>
-	    environment variable, also the length of the output fraction to
-	    print is displayed.
+	  <para>If this environment variable is set, each fraction of output is
+	    prepended with a tag providing the rank of the process that was
+	    producing it. If the <link linkend="loggerfull">&ps; logger</link>
+	    is put into the verbose mode using the
+	    <envar>PSI_LOGGERDEBUG</envar> environment variable, also the
+	    length of the output fraction to print is displayed.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -427,12 +428,12 @@
     <title>Spawning the environment</title>
     <para>
       Beside the possibility to redirect I/O of remotely spawned processes one
-      might also be able to affect the environment of these processes. With
-      &ps; it is possible to do so by setting the environment variable
+      might also want to be able to affect the environment of these processes.
+      With &ps; it is possible to do so by setting the environment variable
       <envar>PSI_EXPORTS</envar> to an appropriate value.
     </para>
     <para>
-      <envar>PSI_EXPORTS</envar> should contain a comma separated list of
+      <envar>PSI_EXPORTS</envar> has to contain a comma separated list of
       names of environment variables. Then all processes spawned using &ps;
       will get an environment containing the listed environment variables set
       to the actual value within the context of the spawning process.
@@ -479,14 +480,14 @@
     <itemizedlist>
       <listitem>
 	<para>On the one hand the remote start enables &ps; to do load
-	  balancing on serial processes, which usually results in a much better
-	  usage of the whole cluster in contrast of distributing the jobs
-	  manually.
+	  balancing towards serial processes, which usually results in a much
+	  better usage of the whole cluster in contrast of distributing the
+	  jobs manually.
 	</para>
       </listitem>
       <listitem>
 	<para>On the other hand this allows the end-user to just start serial
-	  from the front-end machine <quote>somewhere</quote> within the
+	  jobs from the front-end machine <quote>somewhere</quote> within the
 	  cluster without having to deal with the question, on which node it
 	  will be started actually. &ps; takes and solves the jobs of finding
 	  an appropritate node within the cluster which e.g. has a sufficiently
