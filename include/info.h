@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.h,v 1.15 2003/02/14 15:20:33 eicker Exp $
+ * $Id: info.h,v 1.16 2003/03/11 10:17:10 eicker Exp $
  *
  */
 /**
  * @file
  * info: Functions for information retrieving from ParaStation daemon
  *
- * $Id: info.h,v 1.15 2003/02/14 15:20:33 eicker Exp $
+ * $Id: info.h,v 1.16 2003/03/11 10:17:10 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -81,6 +81,17 @@ int INFO_request_hoststatus(void* buffer, size_t size, int verbose);
  *
  */
 int INFO_request_nodelist(NodelistEntry_t *buffer, size_t size, int verbose);
+
+/*****************************
+ *
+ * request_partition(void *buffer, int size)
+ *
+ * requests a list of nodes conforming hwtype
+ * RETURN: filled buffer
+ *
+ */
+int INFO_request_partition(unsigned int hwtype,
+			   NodelistEntry_t *buffer, size_t size, int verbose);
 
 /*****************************
  *
