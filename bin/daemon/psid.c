@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.90 2003/04/10 17:42:28 eicker Exp $
+ * $Id: psid.c,v 1.91 2003/04/11 13:17:24 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.90 2003/04/10 17:42:28 eicker Exp $ 
+ * $Id: psid.c,v 1.91 2003/04/11 13:17:24 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.90 2003/04/10 17:42:28 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.91 2003/04/11 13:17:24 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -76,7 +76,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.90 $";
+static char psid_cvsid[] = "$Revision: 1.91 $";
 
 static int PSID_mastersock;
 
@@ -349,7 +349,8 @@ static void startDaemons(void)
 	/* fork a process which starts all other daemons */
 	for (id=0; id<PSC_getNrOfNodes(); id++) {
 	    if (!PSnodes_isUp(id)) {
-		PSC_startDaemon(PSnodes_getAddr(id));
+		unsigned int addr = PSnodes_getAddr(id);
+		if (addr != INADDR_ANY)	PSC_startDaemon(addr);
 	    }
 	}
 	exit(0);
@@ -2515,7 +2516,8 @@ void psicontrol(int fd)
 	    if (node1==PSC_getMyID()) {
 		if ((node2 >=0 && node2<PSC_getNrOfNodes())) {
 		    if (!PSnodes_isUp(node2)) {
-			PSC_startDaemon(PSnodes_getAddr(node2));
+			unsigned int addr = PSnodes_getAddr(node2);
+			if (addr != INADDR_ANY)	PSC_startDaemon(addr);
 		    } else {
 			snprintf(errtxt, sizeof(errtxt),
 				 "CONTACTNODE received but node %d is"
@@ -2939,7 +2941,7 @@ void checkFileTable(void)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.90 $";
+    char revision[] = "$Revision: 1.91 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
