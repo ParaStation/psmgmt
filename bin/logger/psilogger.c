@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.5 2001/12/18 12:23:13 eicker Exp $
+ * $Id: psilogger.c,v 1.6 2002/01/02 12:47:59 eicker Exp $
  *
  */
 /**
  * \file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.5 2001/12/18 12:23:13 eicker Exp $ 
+ * $Id: psilogger.c,v 1.6 2002/01/02 12:47:59 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.5 2001/12/18 12:23:13 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.6 2002/01/02 12:47:59 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -32,7 +32,6 @@ static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.5 2001/12/1
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <signal.h>
 
 #include "logmsg.h"
 
@@ -61,29 +60,6 @@ int noclients;
  * or to the connector socket.
  */
 fd_set myfds;
-
-/**
- * \brief Signal handler.
- *
- * Handles catched signals. Up to now, only HUP is handled.
- *
- * \param sig The signal to handle.
- *
- * \return No return value.
- */
-void sighandler(int sig)
-{
-    int i;
-    switch(sig){
-    case SIGHUP:    /* hangup, generated when terminal disconnects */
-	printf("PSIlogger: No of clients:%d open sockets:", noclients);
-	for(i=0; i<FD_SETSIZE; i++)
-	    if(FD_ISSET(i, &myfds))
-		printf(" %d",i);
-	printf("\n");
-    }
-    fflush(stdout);
-}
 
 /**
  * \brief Handles connection requests from new forwarders.
@@ -203,15 +179,15 @@ void loop(int listen)
 {
     int sock;            /* client socket */
     fd_set afds;
-    struct timeval mytv={2,0},atv;
+    struct timeval mytv={2,0}, atv;
     FLBufferMsg_t msg;
     int n;               /* number of bytes received */
     int outfd;
     int timeoutval;
-    int startup=1;
 
-    if(verbose)
+    if (verbose) {
 	fprintf(stderr, "PSIlogger: listening on port %d\n", listen);
+    }
 
     FD_ZERO(&myfds);
     FD_SET(listen, &myfds);
@@ -220,13 +196,13 @@ void loop(int listen)
     timeoutval=0;
 
     /*
-     * Loop until there is no connection left Pay attention to the startup
-     * phase, while no connection exists.
+     * Loop until there is no connection left. Pay attention to the startup
+     * phase, while no connection exists. Thus wait at least 10 * mytv.
      */
-    while(startup || (noclients > 0 && timeoutval < 10)){
+    while ( noclients > 0 || timeoutval < 10 ) {
 	bcopy((char *)&myfds, (char *)&afds, sizeof(afds)); 
 	atv = mytv;
-	if(select(FD_SETSIZE, &afds, NULL,NULL,&atv) < 0){
+	if ( select(FD_SETSIZE, &afds, NULL,NULL,&atv) < 0 ) {
 	    fprintf(stderr, "PSIlogger: error on select(%d): %s\n", errno,
 		    strerror(errno));
 	    CheckFileTable(&myfds);
@@ -235,41 +211,43 @@ void loop(int listen)
 	/*
 	 * check the listen socket for any new connections
 	 */
-	if(FD_ISSET(listen, &afds)){
+	if ( FD_ISSET(listen, &afds) ) {
 	    /* a connection request on my master socket */
-	    if((sock = newrequest(listen)) > 0){
+	    if ( (sock = newrequest(listen)) > 0 ) {
 		FD_SET(sock, &myfds);
-		startup=0;
+		timeoutval = 10;
 		noclients++;
-		if(verbose)
+		if (verbose) {
 		    fprintf(stderr, "PSIlogger: opening %d\n", sock);
+		}
 	    }
 	}
 	/*
 	 * check the rest sockets for any outputs
 	 */
-	for(sock=3; sock<FD_SETSIZE; sock++)
-	    if(FD_ISSET(sock, &afds) /* socket ready */
-	       &&(sock != listen)){   /* not my listen socket */
+	for (sock=3; sock<FD_SETSIZE; sock++) {
+	    if (FD_ISSET(sock, &afds) /* socket ready */
+		&&(sock != listen)) {   /* not my listen socket */
 		n = readlog(sock, &msg);
-		if(verbose)
+		if (verbose) {
 		    fprintf(stderr, "PSIlogger: Got %d bytes on sock %d\n",
-			    n, sock); 
-		if(n==0){
+			    n, sock);
+		}
+		if (n==0) {
 		    /* socket closed */
 		    fprintf(stderr, "PSIlogger: socket %d closed without"
 			    " FINALIZE. This shouldn't happen...\n", sock);
 		    close(sock);
 		    FD_CLR(sock,&myfds);
 		    noclients--;
-		}else
-		    if(n<0)
+		} else {
+		    if (n<0) {
 			/* ignore the error */
 			perror("PSIlogger: read()");
-		    else{
+		    } else {
 			/* Analyze messages */
 			outfd = STDOUT_FILENO;
-			switch(msg.header.type){
+			switch (msg.header.type) {
 			case FINALIZE:
 			    if(verbose)
 				fprintf(stderr,
@@ -297,12 +275,15 @@ void loop(int listen)
 				    "PSIlogger: Unknown message type!\n");
 			}
 		    }
+		}
 	    }
-	if(!startup && noclients==0)
+	}
+	if ( noclients==0 ) {
 	    timeoutval++;
+	}
     }
-    if(getenv("PSI_NOMSGLOGGERDONE")==NULL){
-	fprintf(stderr,"PSIlogger: done\n");
+    if ( getenv("PSI_NOMSGLOGGERDONE")==NULL ) {
+	fprintf(stderr,"\nPSIlogger: done\n");
     }
 
     return;
@@ -311,7 +292,7 @@ void loop(int listen)
 /**
  * \brief The main program
  *
- * Installs signal handler \ref sighandler(), sets global variables \ref
+ * After becoming process group leader, sets global variables \ref
  * verbose, \ref forw_verbose and \ref PrependSource from environment
  * and finally calls \ref loop().
  *
@@ -321,37 +302,44 @@ void loop(int listen)
  * This program expects at least 1 additional argument:
  *  -# The port number it will listen to.
  *
- * \return Always returns 0.
- */
+ * \return Always returns 0.  */
 int main( int argc, char**argv)
 {
     int listen;
 
-    if(argc<2){
+    /* become process group leader */
+    setpgid(0,0);
+
+    if ( argc < 2 ) {
 	fprintf(stderr, "PSIlogger: Sorry, program must be called correctly"
 		" inside an application.\n");
 	exit(1);
     }
     listen = atol(argv[1]);
 
-    signal(SIGHUP,sighandler);	
-
-    if(getenv("PSI_LOGGERDEBUG")!=NULL){
+    if ( getenv("PSI_LOGGERDEBUG") != NULL ) {
 	verbose=1;
+	fprintf(stderr, "PSIlogger: Going to be verbose.\n");
     }
 
-    if(getenv("PSI_FORWARDERDEBUG")!=NULL){
+    if ( getenv("PSI_FORWARDERDEBUG") != NULL ) {
 	forw_verbose=1;
+	if (verbose) {
+	    fprintf(stderr, "PSIlogger: Forwarders will be verbose, too.\n");
+	}
     }
 
-    if(getenv("PSI_SOURCEPRINTF")!=NULL){
+    if ( getenv("PSI_SOURCEPRINTF") != NULL ) {
 	PrependSource = 1;
+	if (verbose) {
+	    fprintf(stderr, "PSIlogger: Will print source-info.\n");
+	}
     }
 
-    /*
-     * call the loop which does all the work
-     */
+    /* call the loop which does all the work */
     loop(listen);
+
+    close(listen);
 
     return 0;
 }
