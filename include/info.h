@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.h,v 1.7 2002/02/11 12:27:26 eicker Exp $
+ * $Id: info.h,v 1.8 2002/02/13 08:32:56 eicker Exp $
  *
  */
 /**
  * @file
  * info: Functions for information retrieving from ParaStation daemon
  *
- * $Id: info.h,v 1.7 2002/02/11 12:27:26 eicker Exp $
+ * $Id: info.h,v 1.8 2002/02/13 08:32:56 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -66,6 +66,16 @@ int INFO_request_countstatus(int nodeno, void* buffer, int size);
  *
  */
 int INFO_request_hoststatus(void* buffer, int size);
+
+/*****************************
+ *
+ * request_hostlist(void *buffer, int size)
+ *
+ * requests a list of all hosts with a myrinetcard
+ * RETURN: filled buffer
+ *
+ */
+int INFO_request_hostlist(void *buffer, int size);
 
 /*****************************
  *

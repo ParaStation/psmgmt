@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.12 2002/02/11 12:27:26 eicker Exp $
+ * $Id: info.c,v 1.13 2002/02/13 08:32:56 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.12 2002/02/11 12:27:26 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.13 2002/02/13 08:32:56 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -91,6 +91,7 @@ static int INFO_receive(INFO_info_t what, void* buffer, int size)
 	case PSP_CD_RDPSTATUSRESPONSE:
 	case PSP_CD_MCASTSTATUSRESPONSE:
 	case PSP_CD_HOSTSTATUSRESPONSE:
+	case PSP_CD_HOSTLISTRESPONSE:
 	case PSP_CD_HOSTRESPONSE:
 	    memcpy(buffer, msg.buf, size);
 	    break;
@@ -224,6 +225,27 @@ int INFO_request_host(unsigned int address)
 
     if (INFO_receive(INFO_GETINFO, &host, sizeof(host))==PSP_CD_HOSTRESPONSE) {
 	return host;
+    }
+
+    return -1;
+}
+
+int INFO_request_hostlist(void *buffer, int size)
+{
+    DDMsg_t msg;
+
+    msg.type = PSP_CD_HOSTLISTREQUEST;
+    msg.dest = PSI_gettid(PSI_myid,0);
+    msg.sender = PSI_mytid;
+    msg.len = sizeof(msg);
+
+    if (ClientMsgSend(&msg)<0) {
+	perror("INFO_request_hostlist: write");
+	exit(-1);
+    }
+
+    if (INFO_receive(INFO_GETINFO, buffer, size)==PSP_CD_HOSTLISTRESPONSE) {
+	return size;
     }
 
     return -1;
