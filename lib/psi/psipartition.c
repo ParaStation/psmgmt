@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psipartition.c,v 1.12 2004/03/10 08:48:01 eicker Exp $
+ * $Id: psipartition.c,v 1.13 2004/09/22 09:08:02 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.12 2004/03/10 08:48:01 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.13 2004/09/22 09:08:02 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -79,6 +79,30 @@ static char errtxt[256];
 #define ENV_NODE_SORT      "PSI_NODES_SORT"
 
 /**
+ * Name of the evironment variable used in order to enable a
+ * partitions PART_OPT_NODEFIRST option.
+ */
+#define ENV_PART_LOOPNODES "PSI_LOOP_NODES_FIRST"
+
+/**
+ * Name of the evironment variable used in order to enable a
+ * partitions PART_OPT_EXCLUSIVE option.
+ */
+#define ENV_PART_EXCLUSIVE "PSI_EXCLUSIVE"
+
+/**
+ * Name of the evironment variable used in order to enable a
+ * partitions PART_OPT_OVERBOOK option.
+ */
+#define ENV_PART_OVERBOOK  "PSI_OVERBOOK"
+
+/**
+ * Name of the evironment variable used in order to enable a
+ * partitions PART_OPT_WAIT option.
+ */
+#define ENV_PART_WAIT      "PSI_WAIT"
+
+/**
  * Name of the environment variable used by LSF in order to keep the
  * hostnames of the nodes reserved for the batch job.
 */
@@ -97,6 +121,7 @@ void PSI_LSF(void)
 	unsetenv(ENV_NODE_NODES);
 	setenv(ENV_NODE_HOSTS, lsf_hosts, 1);
 	unsetenv(ENV_NODE_HOSTFILE);
+	setenv(ENV_PART_LOOPNODES, "1", 1);
     }
 }
 
@@ -120,6 +145,7 @@ void PSI_PBS(void)
 	unsetenv(ENV_NODE_NODES);
 	unsetenv(ENV_NODE_HOSTS);
 	setenv(ENV_NODE_HOSTFILE, pbs_hostfile, 1);
+	setenv(ENV_PART_LOOPNODES, "1", 1);
     }
 }
 
@@ -164,30 +190,6 @@ static PSpart_sort_t getSortMode(void)
 
     return PART_SORT_UNKNOWN;
 }
-
-/**
- * Name of the evironment variable used in order to enable a
- * partitions PART_OPT_NODEFIRST option.
- */
-#define ENV_PART_LOOPNODES "PSI_LOOP_NODES_FIRST"
-
-/**
- * Name of the evironment variable used in order to enable a
- * partitions PART_OPT_EXCLUSIVE option.
- */
-#define ENV_PART_EXCLUSIVE "PSI_EXCLUSIVE"
-
-/**
- * Name of the evironment variable used in order to enable a
- * partitions PART_OPT_OVERBOOK option.
- */
-#define ENV_PART_OVERBOOK  "PSI_OVERBOOK"
-
-/**
- * Name of the evironment variable used in order to enable a
- * partitions PART_OPT_WAIT option.
- */
-#define ENV_PART_WAIT      "PSI_WAIT"
 
 /**
  * @brief Get options.
