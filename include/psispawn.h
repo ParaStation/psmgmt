@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.h,v 1.9 2003/02/21 12:25:06 eicker Exp $
+ * $Id: psispawn.h,v 1.10 2003/02/27 18:30:23 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for spawning of ParaStation tasks.
  *
- * $Id: psispawn.h,v 1.9 2003/02/21 12:25:06 eicker Exp $
+ * $Id: psispawn.h,v 1.10 2003/02/27 18:30:23 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -256,14 +256,18 @@ short PSI_getPartition(unsigned int hwType, int myrank);
  *
  * @param num Number of entries the created file should contain.
  *
- * @param prog @todo
+ * @param prog Name of the executable the pg file is created for.
+ *
+ * @param local Local flag. If different from 0, a pg is created with
+ * all processes sitting on the same node.
+ *
  *
  * @return On success, a pointer to a string containing the name of
  * the file created is returned. Memory for the string is obtained
  * with malloc(3), and can be freed with free(3). If the creation of
  * the file failed, NULL is returned and errno is set appropriately.
  */
-char *PSI_createPGfile(int num, const char *prog);
+char *PSI_createPGfile(int num, const char *prog, int local);
 
 /**
  * @brief Send a signal to a task.
