@@ -39,51 +39,6 @@ void yy_delete_buffer(void *line_state);
 static char psiadmversion[] = "2.9";
 static int  DoRestart = 1;
 
-int PSIADM_Debug(char* protocol,long portno)
-{
-    printf("Not yet implemented!\n");
-/*      int i; */
-/*      struct PSP_PortH_t* port; */
-   
-/*      if(strcasecmp(protocol,"PSI")==0){ */
-/*  	if(portno==-1){ */
-	    /* print a list of all ports */
-/*  	    printf("   no rport rnode count msg\n"); */
-/*  	    for(i=0;i<PSPMAXPORTS;i++){ */
-/*  		port = PSI_shm->ports[i]; */
-/*  		while(port){ */
-/*  		    port = SHMPORT(port); */
-/*  		    printf("%5d %5d %5d %5d 0x%lx\n", port->portno, */
-/*  			   port->PSP_RPORT, port->PSP_RID, port->count, */
-/*  			   (long)port->recv_buf); */
-/*  		    port = port->next; */
-/*  		} */
-/*  	    } */
-/*  	}else{ */
-	    /* print this specific port */
-/*  	    int index; */
-/*  	    index = PSPPORTINDEX(portno); */
-/*  	    for (port = PSI_shm->ports[index]; port; port = port->next){ */
-/*  		port = SHMPORT(port); */
-/*  		if ((port->portno == portno)) */
-/*  		    break; */
-/*  	    } */
-/*  	    if (port){ */
-/*  		PSIADM_Debugport(0,port); */
-/*  	    }else */
-/*  		printf("Port not found\n"); */
-/*  	} */
-/*      }else if(strcasecmp(protocol,"PSR")==0){ */
-/*  	if (PSP_shm->RAWDATAport){ */
-/*  	    port = SHMPORT(PSP_shm->RAWDATAport); */
-/*  	    PSIADM_Debugport(0,port); */
-/*  	}else */
-/*  	    printf("Port not found\n"); */
-/*      }else */
-/*  	printf("Unknown protocol\n"); */
-    return 1;
-}
-
 int PSIADM_LookUpNodeName(char* hostname)
 {
     struct hostent	*hp;	/* host pointer */

@@ -30,7 +30,6 @@ static void CheckUserName(char *name);
 %token ADDOP STATOP RESTARTOP RESETOP TESTOP QUITOP HELPOP NULLOP INFOOP SETOP 
 %token SHUTDOWNOP VERSIONOP KILLOP SHOWOP
 %token VERBOSE NORMAL QUIET RDPDEBUG PSIDDEBUG NOPSIDDEBUG
-%token DEBUGOP
 %%
 
 line:
@@ -58,7 +57,6 @@ commline:
 	| resetline
 	| restartline
 	| shutdownline
-        | debugline
 	| testline
 	| helpline
 	| killline
@@ -78,13 +76,6 @@ killline:
 	  KILLOP 			{ printf("KILL needs task-id as second parameter\n"); }
 	| KILLOP NUMBER			{ PSIADM_KillProc($2); }
 	| KILLOP HEXNUMBER		{ PSIADM_KillProc($2); }
-	;
-
-debugline:
-	  DEBUGOP			{ printf("DEBUG what?\n"); }
-	| DEBUGOP NAME			{ PSIADM_Debug($2,-1); }
-	| DEBUGOP NAME NUMBER  	        { PSIADM_Debug($2,$3); }
-	| DEBUGOP NAME HEXNUMBER        { PSIADM_Debug($2,$3); }
 	;
 
 setline:

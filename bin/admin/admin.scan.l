@@ -45,7 +45,6 @@ normal			{ return NORMAL; }
 exit|quit|e|q		{ return QUITOP; }
 help|h|[?]		{ return HELPOP; }
 version|v		{ return VERSIONOP; }
-debug			{ return DEBUGOP;}
 [-a-zA-Z0-9_.]+		{ strcpy(yylval.name,yytext); return NAME; }
 [\n]			{ return NULLOP; }
 .			{ printf("PSIadmin: unrecognized characters in input: %s \n",yytext); }
