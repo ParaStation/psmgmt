@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidclient.c,v 1.5 2003/10/23 16:27:35 eicker Exp $
+ * $Id: psidclient.c,v 1.6 2003/10/29 17:16:53 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidclient.c,v 1.5 2003/10/23 16:27:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidclient.c,v 1.6 2003/10/29 17:16:53 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -36,10 +36,10 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidclient.c,v 1.5 2003/10/
 #define INITIALCONTACT  0x00000001   /* No message yet (only accept()ed) */
 
 static struct {
-    PStask_ID_t tid; /**< Clients task ID */
-    PStask_t *task;  /**< Clients task structure */
-    long flags;      /**< Special flags. Up to now only INITIALCONTACT */
-    msgbuf_t *msgs;  /**< Chain of undelivered messages */
+    PStask_ID_t tid;     /**< Clients task ID */
+    PStask_t *task;      /**< Clients task structure */
+    unsigned int flags;  /**< Special flags. Up to now only INITIALCONTACT */
+    msgbuf_t *msgs;      /**< Chain of undelivered messages */
 } clients[FD_SETSIZE];
 
 static char errtxt[256]; /**< General string to create error messages */

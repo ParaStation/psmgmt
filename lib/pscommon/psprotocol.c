@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.c,v 1.9 2003/09/12 14:00:20 eicker Exp $
+ * $Id: psprotocol.c,v 1.10 2003/10/29 17:28:52 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psprotocol.c,v 1.9 2003/09/12 14:00:20 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psprotocol.c,v 1.10 2003/10/29 17:28:52 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -23,7 +23,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psprotocol.c,v 1.9 2003/09/
  * Nicer output for errrors and debugging.
  */
 static struct {
-    long id;
+    int id;
     char *message;
 } ctrlmessages[] = {
     { PSP_CD_CLIENTCONNECT    , "PSP_CD_CLIENTCONNECT"    },

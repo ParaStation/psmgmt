@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.c,v 1.15 2003/10/23 16:27:35 eicker Exp $
+ * $Id: pstask.c,v 1.16 2003/10/29 17:28:52 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.15 2003/10/23 16:27:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.16 2003/10/29 17:28:52 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -240,12 +240,11 @@ void PStask_snprintf(char *txt, size_t size, PStask_t * task)
     if (task==NULL)
 	return ;
 
-     snprintf(txt, size, "tid 0x%08lx ptid 0x%08lx uid %d gid %d group %s"
- 	     " rank %d links(0x%08lx,0x%08lx) loggertid %08lx fd %d argc %d ",
- 	     task->tid, task->ptid, task->uid, task->gid,
+    snprintf(txt, size, "tid 0x%08x ptid 0x%08x uid %d gid %d group %s"
+	     " rank %d links(%p,%p) loggertid %08x fd %d argc %d ",
+	     task->tid, task->ptid, task->uid, task->gid,
  	     PStask_printGrp(task->group), task->rank,
- 	     (long)task->next, (long)task->prev,
- 	     task->loggertid, task->fd, task->argc);
+ 	     task->next, task->prev, task->loggertid, task->fd, task->argc);
     if (strlen(txt)+1 == size) return;
 
     snprintf(txt+strlen(txt), size-strlen(txt), "dir=\"%s\",command=\"",

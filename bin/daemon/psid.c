@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.112 2003/10/23 16:20:32 eicker Exp $
+ * $Id: psid.c,v 1.113 2003/10/29 17:23:08 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.112 2003/10/23 16:20:32 eicker Exp $ 
+ * $Id: psid.c,v 1.113 2003/10/29 17:23:08 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.112 2003/10/23 16:20:32 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.113 2003/10/29 17:23:08 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -81,7 +81,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-char psid_cvsid[] = "$Revision: 1.112 $";
+char psid_cvsid[] = "$Revision: 1.113 $";
 
 /** Master socket (type UNIX) for clients to connect */
 static int masterSock;
@@ -394,7 +394,7 @@ void msg_DAEMONRESET(DDBufferMsg_t *msg)
     if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
 	/* reset and change my state to new value */
 	myStatus &= ~(PSID_STATE_DORESET | PSID_STATE_RESET_HW);
-	if (*(long *)msg->buf & PSP_RESET_HW) {
+	if (*(int *)msg->buf & PSP_RESET_HW) {
 	    myStatus |= PSID_STATE_RESET_HW;
 	}
 	/* Resetting my node */
@@ -437,7 +437,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
     tid = PSC_getTID(-1, pid);
 
     snprintf(errtxt, sizeof(errtxt), "connection request from %s"
-	     " at fd %d, group=%s, version=%ld, uid=%d",
+	     " at fd %d, group=%s, version=%d, uid=%d",
 	     PSC_printTID(tid), fd, PStask_printGrp(msg->group),
 	     msg->version, uid);
     PSID_errlog(errtxt, 3);
@@ -599,7 +599,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	outmsg.header.type = PSP_CD_CLIENTREFUSED;
 
 	snprintf(errtxt, sizeof(errtxt), "%s connection refused:"
-		 "group %s task %s version %ld vs. %d uid %d %d gid %d %d"
+		 "group %s task %s version %d vs. %d uid %d %d gid %d %d"
 		 " jobs %d %d",
 		 __func__, PStask_printGrp(msg->group),
 		 PSC_printTID(task->tid), msg->version, PSprotocolVersion,
@@ -1884,7 +1884,7 @@ void RDPCallBack(int msgid, void *buf)
     case RDP_PKT_UNDELIVERABLE:
 	msg = (DDMsg_t*)((RDPDeadbuf*)buf)->buf;
 	snprintf(errtxt, sizeof(errtxt),
-		 "%s(RDP_PKT_UNDELIVERABLE, dest %lx source %lx %s)", __func__,
+		 "%s(RDP_PKT_UNDELIVERABLE, dest %x source %x %s)", __func__,
 		 msg->dest, msg->sender, PSDaemonP_printMsg(msg->type));
 	PSID_errlog(errtxt, 2);
 
@@ -2233,7 +2233,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.112 $";
+    char revision[] = "$Revision: 1.113 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -2496,7 +2496,7 @@ int main(int argc, const char *argv[])
 	free(hostlist);
     }
 
-    snprintf(errtxt, sizeof(errtxt), "SelectTime=%ld sec    DeadInterval=%ld",
+    snprintf(errtxt, sizeof(errtxt), "SelectTime=%d sec    DeadInterval=%d",
 	     config->selectTime, config->deadInterval);
     PSID_errlog(errtxt, 0);
 

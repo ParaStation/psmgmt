@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psdaemonprotocol.c,v 1.3 2003/09/12 13:57:49 eicker Exp $
+ * $Id: psdaemonprotocol.c,v 1.4 2003/10/29 17:24:17 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psdaemonprotocol.c,v 1.3 2003/09/12 13:57:49 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psdaemonprotocol.c,v 1.4 2003/10/29 17:24:17 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -23,7 +23,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psdaemonprotocol.c,v 1.3 20
  * Nicer output for errrors and debugging.
  */
 static struct {
-    long id;
+    int id;
     char *message;
 } ctrlmessages[] = {
     { PSP_DD_DAEMONCONNECT    , "PSP_DD_DAEMONCONNECT"    }, 

@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.6 2003/10/08 15:23:43 eicker Exp $
+ * $Id: config_parsing.c,v 1.7 2003/10/29 17:23:54 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.6 2003/10/08 15:23:43 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.7 2003/10/29 17:23:54 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -256,7 +256,7 @@ static int getSelectTime(char *token)
 
     if (ret) return ret;
 
-    config.selectTime = (long) temp;
+    config.selectTime = temp;
 
     return ret;
 }
@@ -269,7 +269,7 @@ static int getDeadInterval(char *token)
 
     if (ret) return ret;
 
-    config.deadInterval = (long) temp;
+    config.deadInterval = temp;
 
     return ret;
 }

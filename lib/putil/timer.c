@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: timer.c,v 1.9 2002/07/08 14:57:00 eicker Exp $
+ * $Id: timer.c,v 1.10 2003/10/29 17:25:35 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: timer.c,v 1.9 2002/07/08 14:57:00 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: timer.c,v 1.10 2003/10/29 17:25:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -56,9 +56,8 @@ void initTimer(int syslog)
     itv.it_value.tv_usec = itv.it_interval.tv_usec = actPeriod.tv_usec;
     if (setitimer(ITIMER_REAL, &itv, NULL)==-1) {
 	snprintf(errtxt, sizeof(errtxt),
-		 "initTimer: unable to set itimer to %lu.%lu",
-		 (unsigned long) actPeriod.tv_sec,
-		 (unsigned long) actPeriod.tv_usec);
+		 "initTimer: unable to set itimer to %ld.%ld",
+		 actPeriod.tv_sec, actPeriod.tv_usec);
 	errexit(errtxt, errno);
     }
 
@@ -121,9 +120,8 @@ int registerTimer(int fd, struct timeval *timeout,
     /* Test if timeout is appropiate */
     if (timercmp(timeout, &minPeriod, <)) {
 	snprintf(errtxt, sizeof(errtxt),
-		 "registerTimer: timeout = %lu.%lu sec to small",
-		 (unsigned long) timeout->tv_sec,
-		 (unsigned long) timeout->tv_usec);
+		 "registerTimer: timeout = %ld.%ld sec to small",
+		 timeout->tv_sec, timeout->tv_usec);
 	errlog(errtxt, 0);
 	return -1;
     }
@@ -167,9 +165,8 @@ int registerTimer(int fd, struct timeval *timeout,
 	itv.it_value.tv_usec = itv.it_interval.tv_usec = actPeriod.tv_usec;
 	if (setitimer(ITIMER_REAL, &itv, NULL)==-1) {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "registerTimer: unable to set itimer to %lu.%lu",
-		     (unsigned long) actPeriod.tv_sec,
-		     (unsigned long) actPeriod.tv_usec);
+		     "registerTimer: unable to set itimer to %ld.%ld",
+		     actPeriod.tv_sec, actPeriod.tv_usec);
 	    errexit(errtxt, errno);
 	}
     } else if (timercmp(timeout, &actPeriod, <)) {
@@ -198,9 +195,8 @@ int registerTimer(int fd, struct timeval *timeout,
 	itv.it_value.tv_usec = itv.it_interval.tv_usec = actPeriod.tv_usec;
 	if (setitimer(ITIMER_REAL, &itv, NULL)==-1) {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "registerTimer: unable to set itimer to %lu.%lu",
-		     (unsigned long) actPeriod.tv_sec,
-		     (unsigned long) actPeriod.tv_usec);
+		     "registerTimer: unable to set itimer to %ld.%ld",
+		     actPeriod.tv_sec, actPeriod.tv_usec);
 	    errexit(errtxt, errno);
 	}
     } else {
@@ -263,9 +259,8 @@ int removeTimer(int fd)
 	itv.it_value.tv_usec = itv.it_interval.tv_usec = actPeriod.tv_usec;
 	if (setitimer(ITIMER_REAL, &itv, NULL)==-1) {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "removeTimer: unable to set itimer to %lu.%lu",
-		     (unsigned long) actPeriod.tv_sec,
-		     (unsigned long) actPeriod.tv_usec);
+		     "removeTimer: unable to set itimer to %ld.%ld",
+		     actPeriod.tv_sec, actPeriod.tv_usec);
 	    errexit(errtxt, errno);
 	}
 
@@ -321,9 +316,8 @@ int removeTimer(int fd)
 	    itv.it_value.tv_usec = itv.it_interval.tv_usec = actPeriod.tv_usec;
 	    if (setitimer(ITIMER_REAL, &itv, NULL)==-1) {
 		snprintf(errtxt, sizeof(errtxt),
-			 "removeTimer: unable to set itimer to %lu.%lu",
-			 (unsigned long) actPeriod.tv_sec,
-			 (unsigned long) actPeriod.tv_usec);
+			 "removeTimer: unable to set itimer to %ld.%ld",
+			 actPeriod.tv_sec, actPeriod.tv_usec);
 		errexit(errtxt, errno);
 	    }
 	}
