@@ -41,8 +41,8 @@ unsigned int MyId=-1;
 
 int NrOfNodes = -1;
 
-int ConfigSmallPacketSize=1000;
-int ConfigResendTimeout=5000;
+int ConfigSmallPacketSize=-1;
+int ConfigResendTimeout=-1;
 int ConfigRLimitDataSize=-1;
 int ConfigSyslogLevel=10;          /* default max. syslog level */
 int ConfigSyslog=LOG_DAEMON;

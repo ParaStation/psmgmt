@@ -44,15 +44,26 @@ void PSID_ReConfig(int nodeid, int nrofnodes, char *licensekey, char *module,
     card_info.options = NULL;
     card_info.routing_file = routingfile;
 
-    // card_init(&card_info);
+    card_cleanup();
+    card_init(&card_info);
 
     PSI_myid = nodeid;
     PSI_nrofnodes = nrofnodes;
 
-//    PSHALSYS_SetSmallPacketSize(ConfigSmallPacketSize);
-//    PSHALSYS_SetResendTimeout(ConfigResendTimeout);
+    if(ConfigSmallPacketSize != -1){
+	PSHALSYS_SetSmallPacketSize(ConfigSmallPacketSize);
+    }
+
+    if(ConfigResendTimeout != -1){
+	PSHALSYS_SetResendTimeout(ConfigResendTimeout);
+    }
 
     return;
+}
+
+void PSID_CardStop(void)
+{
+    card_cleanup();
 }
 
 /***************************************************************************
@@ -62,11 +73,11 @@ void PSID_ReConfig(int nodeid, int nrofnodes, char *licensekey, char *module,
 int PSID_checklicense(unsigned int myIP)
 {
     /* check the license key at Node 0 */
-    unsigned int IP; 
+/*      unsigned int IP;  */
     long nodes;
     unsigned long end=0;
     unsigned long start=0;
-    long version;
+/*      long version; */
     time_t now;
 
 /*      IpNodesEndFromLicense(ConfigLicensekey, &IP, &nodes, &start, &end, */
