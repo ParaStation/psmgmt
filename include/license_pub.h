@@ -1,7 +1,7 @@
-
 #ifndef _LICENSE_PUB_H_
 #define _LICENSE_PUB_H_
 
+/** @todo Docu and header */
 
 typedef struct pslic_binpub_T{
     UINT32	param[4];
@@ -81,17 +81,3 @@ pslic_bin2ascii(unsigned char *bin,int blen,unsigned char *ascii ){
 
 
 #endif /* _LICENSE_PUB_H_ */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
