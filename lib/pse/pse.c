@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.39 2003/08/04 15:16:09 eicker Exp $
+ * $Id: pse.c,v 1.40 2003/09/12 14:09:07 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.39 2003/08/04 15:16:09 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.40 2003/09/12 14:09:07 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -28,6 +28,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.39 2003/08/04 15:
 
 #include "psi.h"
 #include "info.h"
+#include "psipartition.h"
 #include "psispawn.h"
 #include "psienv.h"
 #include "psilog.h"
@@ -41,7 +42,6 @@ static int worldSize = -1;  /* @todo only used within deprecated functions */
 static int worldRank = -2;
 static int masterNode = -1;
 static int masterPort = -1;
-static long *spawnedProcesses;     /* size: <worldSize>  */
 static long parentTID = -1;
 
 static unsigned int defaultHWType = 0; /* Take any node */
@@ -134,9 +134,21 @@ void PSE_initialize(void)
     }
 }
 
+int PSE_getSize(void)
+{
+    return INFO_request_taskSize(0);
+}
+
 int PSE_getRank(void)
 {
    return worldRank;
+}
+
+int PSE_getPartition(unsigned int num)
+{
+    /* Check for LSF-Parallel */
+    PSI_LSF();
+    return PSI_createPartition(num, defaultHWType);
 }
 
 /* @todo deprecated functions */
@@ -154,7 +166,6 @@ void PSE_setHWType(unsigned int hwType)
     defaultHWType = hwType;
 }
 
-/* return -1, if one or more hwtypes are unknown */
 int PSE_setHWList(char **hwList)
 {
     unsigned int hwType = 0;
@@ -195,6 +206,9 @@ void PSE_spawnMaster(int argc, char *argv[])
     long spawnedProcess = -1;
     int error;
 
+    snprintf(errtxt, sizeof(errtxt), "%s(%s)", __func__, argv[0]);
+    errlog(errtxt, 10);
+
     /* client process? */
     if (PSE_getRank() != -1) {
 	snprintf(errtxt, sizeof(errtxt),
@@ -204,16 +218,10 @@ void PSE_spawnMaster(int argc, char *argv[])
     }
 
     /* Check for LSF-Parallel */
-    PSI_LSF();
-    /* get the partition */
-    PSI_getPartition(defaultHWType, PSE_getRank());
-
-    /* Check for LSF-Parallel */
     PSI_RemoteArgs(argc, argv, &argc, &argv);
 
     /* spawn master process */
-    if (PSI_spawnM(1, NULL, ".", argc, argv, PSC_getMyTID(),
-		   PSE_getRank()+1, &error, &spawnedProcess) < 0 ) {
+    if (PSI_spawn(1, ".", argc, argv, &error, &spawnedProcess) < 0 ) {
 	if (error) {
 	    char *errstr = strerror(error);
 	    snprintf(errtxt, sizeof(errtxt),
@@ -236,20 +244,18 @@ void PSE_spawnMaster(int argc, char *argv[])
 void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
 {
     /* spawning processes */
-    int i;
-    int *errors, ret;
+    int i, ret, *errors;
+    long *spawnedProcesses;
     char envstr[80];
 
+    snprintf(errtxt, sizeof(errtxt), "%s(%d, %d, %d, %s)",
+	     __func__, num, node, port, argv[0]);
+    errlog(errtxt, 10);
 
     /* client process? */
     if (PSE_getRank() == -1) {
 	exitAll("Don't call PSE_spawnTasks() if rank is -1.", 10);
     }
-
-    /* Check for LSF-Parallel */
-    PSI_LSF();
-    /* get the partition */
-    PSI_getPartition(defaultHWType, PSE_getRank());
 
     /* Check for LSF-Parallel */
     PSI_RemoteArgs(argc, argv, &argc, &argv);
@@ -264,10 +270,9 @@ void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
 
     /* init table of spawned processes */
     myWorldSize = num;
-    /* @todo What happens if spawnTasks is called twice -> error */
-    spawnedProcesses = malloc(sizeof(long) * myWorldSize);
+    spawnedProcesses = malloc(sizeof(long) * num);
     if (!spawnedProcesses) {
-	snprintf(errtxt, sizeof(errtxt), "No memory.");
+	snprintf(errtxt, sizeof(errtxt), "%s: No memory.", __func__);
 	exitAll(errtxt, 10);
     }
     for (i=0; i<myWorldSize; i++) {
@@ -281,9 +286,7 @@ void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
     }
 
     /* spawn client processes */
-    ret = PSI_spawnM(myWorldSize, NULL, ".", argc, argv,
- 		     INFO_request_taskinfo(PSC_getMyTID(), INFO_LOGGERTID, 0),
- 		     PSE_getRank()+1, errors, spawnedProcesses);
+    ret = PSI_spawn(myWorldSize, ".", argc, argv, errors, spawnedProcesses);
     if (ret<0) {
 	for (i=0; i<myWorldSize; i++) {
 	    char *errstr = strerror(errors[i]);
@@ -332,6 +335,7 @@ void PSE_spawn(int argc, char *argv[], int *node, int *port, int rank)
 
     switch (PSE_getRank()) {
     case -1:
+	PSE_getPartition(worldSize);
 	PSE_spawnMaster(argc, argv);
 	break;
     case 0:
