@@ -5,13 +5,13 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin_help.c,v 1.8 2002/07/03 20:56:26 eicker Exp $
+ * $Id: psiadmin_help.c,v 1.9 2002/09/18 09:18:25 eicker Exp $
  *
  * \todo More detailed messages for 'status' and 'set'.
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin_help.c,v 1.8 2002/07/03 20:56:26 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin_help.c,v 1.9 2002/09/18 09:18:25 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 static void PrintHelp(void)
@@ -186,6 +186,17 @@ static void PrintStatProcHelp(void)
     printf("====================\n");
     printf("\n");
     printf("SYNTAX:    STATUS PROC [FROM [TO]]\n");
+    NodeInfo();
+    return;
+}
+
+static void PrintStatLoadHelp(void)
+{
+    printf("\n");
+    printf("Status load command:\n");
+    printf("====================\n");
+    printf("\n");
+    printf("SYNTAX:    STATUS LOAD [FROM [TO]]\n");
     NodeInfo();
     return;
 }

@@ -10,7 +10,7 @@
 #define yylex adminlex
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.16 2002/07/25 13:39:57 eicker Exp $";
+static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.17 2002/09/18 09:18:25 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #define NODEERR -2
@@ -204,6 +204,7 @@ helpline:
         | HELPOP STATOP RDP nodes      {PrintStatRDPHelp();}
         | HELPOP STATOP MCAST nodes    {PrintStatMCastHelp();}
         | HELPOP STATOP PROC nodes     {PrintStatProcHelp();}
+        | HELPOP STATOP LOAD nodes     {PrintStatLoadHelp();}
         | HELPOP STATOP ALL nodes      {PrintStatNodeHelp();
                                         PrintStatCountHelp();
                                         PrintStatProcHelp();}
