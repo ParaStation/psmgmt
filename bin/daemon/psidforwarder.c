@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidforwarder.c,v 1.15 2004/01/09 16:01:25 eicker Exp $
+ * $Id: psidforwarder.c,v 1.16 2004/01/28 14:04:20 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.15 2004/01/09 16:01:25 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.16 2004/01/28 14:04:20 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -769,6 +769,7 @@ static int readFromLogger(int stdinport)
 
     ret = recvMsg(&msg, NULL);
     if (ret > 0) {
+	/* @todo Change this to switch() */
 	if ((msg.header.type == PSP_CC_MSG) && (msg.type == STDIN)) {
 	    int len = msg.header.len - PSLog_headerSize;
 	    if (verbose) {
@@ -799,6 +800,7 @@ static int readFromLogger(int stdinport)
 	    /* unexpected message. Ignore. */
 	}
     }
+    /* @todo if (!ret) kill(procgroup); exit() // exit conn to daemon died. */
     return ret;
 }
 
