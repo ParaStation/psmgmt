@@ -16,6 +16,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <signal.h>
 
 #include <psport.h>
@@ -23,6 +24,7 @@
 #include "psi.h"
 #include "info.h"
 #include "psispawn.h"
+#include "logger.h"
 
 #include "pse.h"
 
@@ -197,67 +199,32 @@ void PSEfinalize(void)
 {
 /*      int n; */
 
-    if( s_nPSE_MyWorldRank){
-      /* client process */
+    fflush(stdout);
+    fflush(stderr);
 
-/*        int dummy; */
+    if(s_nPSE_MyWorldRank){
+	/* client process */
 
-      /* send message to master */
-/*        DEBUG1("PSEfinalize() contacting master 0x%x\n", PSEgetcport(0)); */
-/*        if( (n=PSIsendto(PSEmycport, &s_nPSE_MyWorldRank, sizeof(int), */
-/*  		       PSE_InitExit_Tag, PSEgetcport(0))) */
-/*  	  !=sizeof(int) ){ */
-/*  	  EXIT2("Finalize message send failed (n = %d, errno = %d)!\n", */
-/*  		n, errno); */
-/*        } */
+	/* Don't kill parent when we exit */
+	PSI_release(PSI_mytid);
 
-/*        DEBUG2("PSEfinalize() waiting for acknolegde on %d from 0x%x\n", */
-/*  	     PSEmycport, PSEgetcport(0)); */
-      /* wait for reply */
-/*        info = -1; */
-/*        if( (n=PSIreceive(PSEmycport, &dummy, sizeof(int), &type, &info)) */
-/*  	  !=sizeof(int) ){ */
-/*  	  EXIT2("Finalize reply receive failed (n = %d, errno = %d)!\n", */
-/*  		n, errno); */
-/*        } */
+	/* release our forwarder */
+	close(STDERR_FILENO);
+	close(STDOUT_FILENO);
 
-/*        DEBUG0("Received answer.\n"); */
-/*        usleep(s_nPSE_WorldSize*1000); */
-/*    }else{ */
-      /* master process */
+	/* Small delay to give forwarder the chance to clean up */
+	usleep(1000);
 
-/*        int i, rank, num_rcvd = 1; */
+    }else{
+	int status;
+	/* master process */
 
-      /* wait for all clients */
-/*        DEBUG0("PSEfinalize() waiting for clients.\n"); */
-/*        while( num_rcvd<s_nPSE_WorldSize ){ */
-/*  	  if( PSIisalive(s_pSpawnedProcesses[num_rcvd]) ){ */
-/*  	      info = PSEgetcport(num_rcvd); */
-/*  	      if( (n=PSIreceive(PSEmycport, &rank, sizeof(int), &type, &info) */
-/*  		   !=sizeof(int)) ){ */
-/*  		  EXIT2("Finalize message receive failed" */
-/*  			" (n = %d, errno = %d)!\n", n, errno); */
-/*  	      } */
-/*  	      DEBUG3("Received message #%d (from %d, portid 0x%x).\n", */
-/*  		     num_rcvd - 1, rank, info); */
-/*  	  }else{ */
-/*  	      DEBUG1("Skipped client (rank = %d) being not alive.\n", */
-/*  		     num_rcvd); */
-/*  	  } */
-/*  	  num_rcvd++; */
-/*        } */
+	/* release our forwarder and reuse the old fds*/
+	dup2(stdout_fileno_backup, STDOUT_FILENO);
+	dup2(stderr_fileno_backup, STDERR_FILENO);
 
-      /* send ok to all clients */
-/*        DEBUG0("All messages received.\n"); */
-/*        for( i=1; i<s_nPSE_WorldSize; i++ ){ */
-/*  	  DEBUG2("Sending answer to %d, portid 0x%x.\n", i, PSEgetcport(i)); */
-/*  	  if( (n=PSIsendto(PSEmycport, &rank, sizeof(int), */
-/*  			   PSE_InitExit_Tag, PSEgetcport(i))) */
-/*  	      !=sizeof(int) ){ */
-/*  	      EXIT2("Finalize reply send failed (n = %d, errno = %d)!\n", */
-/*  		    n, errno); */
-/*  	  } */
-/*        } */
+	/* Wait for logger */
+	waitpid(logger_pid, &status, 0);
     }
 
     DEBUG0("Quitting program, good bye.\n");
@@ -286,7 +253,7 @@ void PSEkillmachine(void)
 /*  Barry Smith suggests that this indicate who is aborting the program.
     There should probably be a separate argument for whether it is a
     user requested or internal abort.                                      */
-void PSE_Abort(int nCode)
+void PSEabort(int nCode)
 {
     fprintf( stderr, "[%d] Aborting program!\n", s_nPSE_MyWorldRank );
     fflush(stderr);
