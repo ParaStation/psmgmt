@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.22 2002/07/18 11:37:39 eicker Exp $
+ * $Id: info.c,v 1.23 2002/07/26 15:35:20 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.22 2002/07/18 11:37:39 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.23 2002/07/26 15:35:20 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -26,8 +26,9 @@ static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.22 2002/07/18 11
 
 #include "info.h"
 
-/*--------------------------------------------------------------------
- * int INFO_receive()
+/**
+ * @todo Docu
+ * @brief Receive and handle info message.
  *
  * INOUT:
  * long* what : (for taskinfo) in: action to be performed
@@ -51,14 +52,20 @@ static int INFO_receive(INFO_info_t what, void *buffer, size_t size,
 	    DDTaskinfoMsg_t *timsg = (DDTaskinfoMsg_t *)&msg;
 
 	    switch(what){
-	    case INFO_UID:
-		*(long *)buffer = timsg->uid;
+	    case INFO_ISALIVE:
+		*(long *)buffer = 1;
 		break;
 	    case INFO_PTID:
 		*(long *)buffer = timsg->ptid;
 		break;
-	    case INFO_ISALIVE:
-		*(long *)buffer = 1;
+	    case INFO_LOGGERTID:
+		*(long *)buffer = timsg->loggertid;
+		break;
+	    case INFO_UID:
+		*(long *)buffer = timsg->uid;
+		break;
+	    case INFO_RANK:
+		*(long *)buffer = timsg->rank;
 		break;
 	    case INFO_GETINFO:
 	    {
@@ -74,8 +81,11 @@ static int INFO_receive(INFO_info_t what, void *buffer, size_t size,
 		    }
 		    taskinfo->tid = timsg->tid;
 		    taskinfo->ptid = timsg->ptid;
+		    taskinfo->loggertid = timsg->loggertid;
 		    taskinfo->uid = timsg->uid;
 		    taskinfo->group = timsg->group;
+		    taskinfo->rank = timsg->rank;
+		    taskinfo->connected = timsg->connected;
 		}
 		break;
 	    }
@@ -252,22 +262,6 @@ int INFO_request_host(unsigned int address, int verbose)
     return -1;
 }
 
-/**
- * @brief Get a tested and sorted nodelist from the daemon
- *
- * Bla blub @todo Move to info.h
- *
- * @param hwType The kind of communication hardware the requested
- * nodes have to have.
- * @param sort The sorting criterium used to build the list
- * @param nodesLen The number of preset nodes in @a nodes.
- * @param nodes The nodes from which the list should be build. If @a nodes
- * is empty (i.e. @a nodesLen is 0), the list is build from all nodes.
- * Actually @a nodes has to be @a numNodes long to make a correct receive
- * possible.
- * @param numNodes The number of nodes that should be returned in @a nodes.
- *
- */
 int INFO_request_nodelist(NodelistEntry_t *buffer, size_t size, int verbose)
 {
     DDMsg_t msg;
