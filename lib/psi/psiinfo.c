@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiinfo.c,v 1.2 2003/11/28 15:50:50 eicker Exp $
+ * $Id: psiinfo.c,v 1.3 2004/01/15 19:38:25 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiinfo.c,v 1.2 2003/11/28 15:50:50 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiinfo.c,v 1.3 2004/01/15 19:38:25 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -492,6 +492,7 @@ int PSI_infoOption(PSnodes_ID_t node, int num, PSP_Option_t option[],
 	}
 
 	for (i=0; i<msg.count; i++) {
+	    option[i] = msg.opt[i].option;
 	    value[i] = msg.opt[i].value;
 	}
 
