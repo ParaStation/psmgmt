@@ -1,5 +1,5 @@
 Requirements:
-i============
+=============
 
 The documentation is written in DocBook XML V4.2.
 
@@ -28,4 +28,11 @@ ftp://ftp.suse.com:/pub/people/ke/8.0-i386/
 The docbook-xsl-stylesheets package may be found at
 
 http://www.theorie.physik.uni-wuppertal.de/~eicker/docbook-xsl-stylesheets-1.56.1-1.noarch.rpm 
+
+Note:
+=====
+
+The environment variable SGML_CATALOG_FILES has to be set to:
+
+/var/lib/sgml/CATALOG.docbk42:/var/lib/sgml/CATALOG.db42xml:/var/lib/sgml/CATALOG.jade_dsl:/var/lib/sgml/CATALOG.docbkdsl
 
