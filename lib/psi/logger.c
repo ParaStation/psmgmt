@@ -145,7 +145,7 @@ LOGGERredirect_std(unsigned int node, int port, PStask_t* task)
 	 */
 	fflush(stdout);
 	fflush(stderr);
-	if((sock = LOGGERstdconnect(node, port, 1, task))<0)
+	if((sock = LOGGERstdconnect(node, port, STDOUT_FILENO, task))<0)
 	    if(LOGGERstdDevNull(1)<0)
 		return -1;
 
@@ -155,10 +155,8 @@ LOGGERredirect_std(unsigned int node, int port, PStask_t* task)
 	 * - redirect the original stderr to the new socket
 	 */
 	if(task->options & TaskOption_ONESTDOUTERR){
-	    int dup2ret=0;
-	    close(2);   /* close stderr */
-	    dup2ret = fcntl(1, F_DUPFD, 2);
-	}else if((sock = LOGGERstdconnect(node, port, 2, task))<0)
+	    dup2(STDOUT_FILENO, STDERR_FILENO);
+	}else if((sock = LOGGERstdconnect(node, port, STDERR_FILENO, task))<0)
 	    if(LOGGERstdDevNull(2)<0)
 		return -1;
     }else{
@@ -179,8 +177,7 @@ LOGGERredirect_std(unsigned int node, int port, PStask_t* task)
 	    if(LOGGERstdDevNull(1)<0)
 		return -1;
 	}else{
-	    close(1);
-	    dup(fd);
+	    dup2(fd, STDOUT_FILENO);
 	    close(fd);
 	}
 	sprintf(stdname,"/tmp/%s.%d.stderr",task->argv[0],getpid());
@@ -202,8 +199,8 @@ LOGGERredirect_std(unsigned int node, int port, PStask_t* task)
 	    sprintf(PSI_txt,"LOGGERredirect_std: Now using /dev/null");
 	    PSI_logerror(PSI_txt);
 	}
-	close(2);
-	dup(fd);
+	dup2(fd, STDERR_FILENO);
+	close(fd);
     }
     return 0;
 }
