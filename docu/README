@@ -32,3 +32,21 @@ ftp://ftp.suse.com:/pub/people/ke/8.2-i386/
 A minor bug within the 1.60.1 stylesheets is fixed within html.xsl. This
 bug is also fixed in 1.61.1. Thus the fix may be removed from html.xsl
 as soon as this documentations is build with 1.61.1 or higher (SuSE 8.3 ?).
+
+Alternative PDF generation:
+===========================
+
+There is a new way to generate PDFs via the FO stylesheets and FOP. This
+should work with the stuff found on SuSE 9.1 almost out of the box. Only
+two slight changes have to be made:
+
+- The Jimi.jar file has to be added by hand as described in
+  /usr/share/fop/lib/readme. This is needed for including .png files into
+  the PDF.
+
+- Since some stuff from the version 1.66.1 XSL stylesheets are use, these
+  also have to be installed. The RPM can be found on:
+  http://www.theorie.physik.uni-wuppertal.de/~eicker/XSL-RPMs
+
+In order to enable this alternative way you have to change the pdf creation
+lines in Makefile.in.
