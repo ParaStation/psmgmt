@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidclient.c,v 1.1 2003/06/06 14:47:03 eicker Exp $
+ * $Id: psidclient.c,v 1.2 2003/06/27 16:54:51 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidclient.c,v 1.1 2003/06/06 14:47:03 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidclient.c,v 1.2 2003/06/27 16:54:51 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -226,6 +226,7 @@ void closeConnection(int fd)
     }
 
     clients[fd].tid = -1;
+    if (clients[fd].task) clients[fd].task->fd = -1;
     clients[fd].task = NULL;
 
     shutdown(fd, SHUT_RDWR);
