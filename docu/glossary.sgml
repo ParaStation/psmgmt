@@ -1,0 +1,50 @@
+<glossary>
+
+  <glossentry id="MCP">
+    <glossterm>MCP</glossterm>
+    <glosssee otherterm="MCPfull"/>
+  </glossentry>
+
+  <glossentry id="MCPfull">
+    <glossterm>MyriNet Control Program</glossterm>
+    <glossdef>
+      <para>
+	The program controlling the MyriNet card. It is executed by the LanAI
+	processor residing on the MyriNet card and thus creates almost not load
+	on the node's main processor.
+      </para>
+    </glossdef>
+  </glossentry>
+
+  <glossentry id="NIC">
+    <glossterm>NIC</glossterm>
+    <glosssee otherterm="NICfull"/>
+  </glossentry>
+
+  <glossentry id="NICfull">
+    <glossterm>Network Interface Card</glossterm>
+    <glossdef>
+      <para>
+	<!-- @todo -->
+      </para>
+    </glossdef>
+  </glossentry>
+
+</glossary>
+  <!-- Keep this comment at the end of the file
+  Local variables:
+  mode: xml
+  sgml-omittag:nil
+  sgml-shorttag:nil
+  sgml-namecase-general:nil
+  sgml-general-insert-case:lower
+  sgml-minimize-attributes:nil
+  sgml-always-quote-attributes:t
+  sgml-indent-step:2
+  sgml-indent-data:t
+  sgml-parent-document:("main.xml" "book" "book" ("title" "bookinfo"))
+  sgml-exposed-tags:nil
+  sgml-local-catalogs:nil
+  sgml-local-ecat-files:nil
+  End:
+  -->

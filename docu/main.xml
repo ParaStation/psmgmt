@@ -20,6 +20,8 @@
 
 <!ENTITY spawning SYSTEM "spawning.sgml">
 
+<!ENTITY glossary SYSTEM "glossary.sgml">
+
 <!ENTITY boolargs SYSTEM "boolargs.sgml">
 ]>
 <book>
@@ -51,6 +53,7 @@
     &spawning;
   </appendix>
 
+  &glossary;
 </book>
 <!-- Keep this comment at the end of the file
 Local variables:
