@@ -15,13 +15,13 @@ ask=1;while [ "$ask" == 1 ];do     ask=0
 	ver="3.1"
 	features="IP, Ether, Myrinet"
 	fields="$fields ,MCPKey"
-	mcpkeyline="MCPKey   = `echo|pslic_gen -sm`
-"
+	calcmcpkey=1
 	;;
     fe|FE)
 	id="ParaStation FE"
 	ver="3.1"
 	features=""
+	calcmcpkey=0
 	;;
     *)
 	echo Unknown version $ver
@@ -113,7 +113,16 @@ Nodes    = $nodes
 CPUs     = $cpus
 Features = "$features"
 
-$mcpkeyline
+EOF
+
+if [ "$calcmcpkey" == "1" ]; then
+cat >> $filename <<EOF
+MCPKey   = `pslic_gen -sm < $filename`
+
+EOF
+fi
+
+cat >> $filename <<EOF
 Fields   = "$fields"
 
 EOF
