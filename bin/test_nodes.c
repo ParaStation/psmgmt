@@ -4,6 +4,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
@@ -41,8 +42,10 @@ int finish=0;
 void time_handler_old(int signal)
 {
     int j,k;
+#ifndef __DECC
     fprintf(stdout,"\e[H");
     fprintf(stdout,"\e[2J");
+#endif
     for (j=0;j<arg_np;j++){
 	fprintf(stdout,"%3d(node %3d) ",j,mapnode[j]);
 	if (j) for (k=1;k<arg_np;k++){
@@ -147,7 +150,7 @@ void time_handler(int signal)
 
 //    fprintf(stdout,"\e[H");
 //    fprintf(stdout,"\e[2J");
-    fprintf(stdout,"---------------------------------------\n",mapnode[0]);
+    fprintf(stdout,"---------------------------------------\n");
     fprintf(stdout,"Master node %d\n",mapnode[0]);
 
     /* No Answer:*/
@@ -423,7 +426,7 @@ void run(int argc,char **argv,int np)
 	    time_handler(0);
 	}
     }
-    fprintf(out,"All connections ok\n",head.xdata.type);
+    fprintf(out,"All connections ok\n");
     fclose(out);
 
     PSEfinalize();
