@@ -5,20 +5,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psmstart.c,v 1.5 2003/05/28 17:06:46 eicker Exp $
+ * $Id: psmstart.c,v 1.6 2003/06/05 17:23:03 eicker Exp $
  *
  */
 /**
  * @file Simple wrapper to allow non ParaStation aware programs to be
  * distributed in a cluster.
  *
- * $Id: psmstart.c,v 1.5 2003/05/28 17:06:46 eicker Exp $
+ * $Id: psmstart.c,v 1.6 2003/06/05 17:23:03 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c,v 1.5 2003/05/28 17:06:46 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c,v 1.6 2003/06/05 17:23:03 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -28,12 +28,13 @@ static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c,v 1.5 2003/05/28
 
 #ifdef __linux__
 #include <unistd.h>
+#include <limits.h>
 #endif
 
 int main(int argc, char *argv[])
 {
     int rank, i, totlen = 0;
-    char myexec[256], *command;
+    char *command;
 
     if (argc < 2) {
 	fprintf(stderr, "You need to give at least one argument\n");
@@ -50,6 +51,7 @@ int main(int argc, char *argv[])
 	/* I am the logger */
 
 #ifdef __linux__
+	char myexec[PATH_MAX];
 	int length;
 
 	length = readlink("/proc/self/exe", myexec, sizeof(myexec)-1);
