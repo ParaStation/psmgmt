@@ -7,7 +7,7 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.27 2002/08/02 08:15:47 eicker Exp $
+ * $Id: psport.h,v 1.28 2002/08/02 15:38:55 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -113,7 +113,7 @@ typedef struct PSP_Header_T {
 /**
  * Type of the callback to be passed to @ref PSP_IReceive().
  */
-typedef int (*PSP_RecvCallBack_t)
+typedef int (PSP_RecvCallBack_t)
      (PSP_RecvHeader_t *header, unsigned xheaderlen, void *param);
 
 /**
@@ -122,7 +122,7 @@ typedef int (*PSP_RecvCallBack_t)
  *
  * @see PSP_IsendCB() and PSP_IReceiveCB().
  */
-typedef void (*PSP_DoneCallBack_t)
+typedef void (PSP_DoneCallback_t)
      (PSP_RequestH_t req, void *param);
 
 /** Number of receives without recv request */
@@ -293,8 +293,8 @@ typedef struct PSP_RecvFrom_Param_T{
 PSP_RequestH_t PSP_IReceiveCBFrom(PSP_PortH_t porth,
 				  void* buf, unsigned buflen,
 				  PSP_Header_t* header, unsigned xheaderlen,
-				  PSP_RecvCallBack_t cb, void* cb_param,
-				  PSP_DoneCallBack_t dcb, void* dcb_param,
+				  PSP_RecvCallBack_t* cb, void* cb_param,
+				  PSP_DoneCallback_t* dcb, void* dcb_param,
 				  int sender);
 
 /** Any sender */
@@ -347,8 +347,8 @@ static inline
 PSP_RequestH_t PSP_IReceiveCB(PSP_PortH_t porth,
 			      void* buf, unsigned buflen,
 			      PSP_Header_t* header, unsigned xheaderlen,
-			      PSP_RecvCallBack_t cb, void* cb_param,
-			      PSP_DoneCallBack_t dcb, void* dcb_param)
+			      PSP_RecvCallBack_t* cb, void* cb_param,
+			      PSP_DoneCallback_t* dcb, void* dcb_param)
 {
     return PSP_IReceiveCBFrom(porth, buf, buflen, header, xheaderlen,
 			      cb, cb_param, dcb, dcb_param, PSP_AnySender);
@@ -395,11 +395,11 @@ static inline
 PSP_RequestH_t PSP_IReceiveFrom(PSP_PortH_t porth,
 				void* buf, unsigned buflen,
 				PSP_Header_t* header, unsigned xheaderlen,
-				PSP_RecvCallBack_t cb, void* cb_param,
+				PSP_RecvCallBack_t* cb, void* cb_param,
 				int sender)
 {
     return PSP_IReceiveCBFrom(porth, buf, buflen, header, xheaderlen,
-			      cb, cb_param, NULL, NULL, sender);
+			      cb, cb_param, 0, 0, sender);
 }
 
 /**
@@ -446,10 +446,10 @@ static inline
 PSP_RequestH_t PSP_IReceive(PSP_PortH_t porth,
 			    void* buf, unsigned buflen,
 			    PSP_Header_t* header, unsigned xheaderlen,
-			    PSP_RecvCallBack_t cb, void* cb_param)
+			    PSP_RecvCallBack_t* cb, void* cb_param)
 {
     return PSP_IReceiveCBFrom(porth, buf, buflen, header, xheaderlen,
-			      cb, cb_param, NULL, NULL, PSP_AnySender);
+			      cb, cb_param, 0, 0, PSP_AnySender);
 }
 
 /* ----------------------------------------------------------------------
@@ -477,7 +477,7 @@ PSP_RequestH_t PSP_IReceive(PSP_PortH_t porth,
  */
 int PSP_IProbeFrom(PSP_PortH_t porth,
 		   PSP_Header_t* header, unsigned xheaderlen,
-		   PSP_RecvCallBack_t cb, void* cb_param,
+		   PSP_RecvCallBack_t *cb, void* cb_param,
 		   int sender);
 
 /**
@@ -499,7 +499,7 @@ int PSP_IProbeFrom(PSP_PortH_t porth,
 static inline
 int PSP_IProbe(PSP_PortH_t porth,
 	       PSP_Header_t* header, unsigned xheaderlen,
-	       PSP_RecvCallBack_t cb, void* cb_param)
+	       PSP_RecvCallBack_t *cb, void* cb_param)
 {
     return PSP_IProbeFrom(porth, header, xheaderlen, cb, cb_param,
 			  PSP_AnySender);
@@ -529,7 +529,7 @@ int PSP_IProbe(PSP_PortH_t porth,
  */
 int PSP_ProbeFrom(PSP_PortH_t porth,
 		  PSP_Header_t* header, unsigned xheaderlen,
-		  PSP_RecvCallBack_t cb, void* cb_param,
+		  PSP_RecvCallBack_t *cb, void* cb_param,
 		  int sender);
 
 /**
@@ -550,7 +550,7 @@ int PSP_ProbeFrom(PSP_PortH_t porth,
 static inline
 int PSP_Probe(PSP_PortH_t porth,
 	      PSP_Header_t* header, unsigned xheaderlen,
-	      PSP_RecvCallBack_t cb, void* cb_param)
+	      PSP_RecvCallBack_t *cb, void* cb_param)
 {
     return PSP_ProbeFrom(porth, header, xheaderlen, cb, cb_param,
 			 PSP_AnySender);
@@ -604,7 +604,7 @@ PSP_RequestH_t PSP_ISendCB(PSP_PortH_t porth,
 			   void* buf, unsigned buflen,
 			   PSP_Header_t* header, unsigned xheaderlen,
 			   int dest, int destport,
-			   PSP_DoneCallBack_t dcb, void* dcb_param,
+			   PSP_DoneCallback_t *dcb, void* dcb_param,
 			   int flags);
 
 /**
@@ -650,7 +650,7 @@ PSP_RequestH_t PSP_ISend(PSP_PortH_t porth,
 			 int dest, int destport, int flags)
 {
     return PSP_ISendCB(porth, buf, buflen, header, xheaderlen,
-		       dest, destport, NULL, NULL, flags);
+		       dest, destport, 0, 0, flags);
 }
 
 /** Flag this message to be very important. */
