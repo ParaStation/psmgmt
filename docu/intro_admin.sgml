@@ -1,0 +1,39 @@
+<chapter id="intro_admin">
+  &intro_common;
+
+  <section>
+    <title>About this document</title>
+    <para>
+      This manual discusses installation and configuration of &ps;. Furthermore
+      the system management utilities are described.
+    </para>
+    <para>
+    For a detailed discussion of the user utilities and the programming
+      interfaces included in the standard distribution take a look at the
+      <xref linkend="userguide"/> and the <ulink url="../api/index.html">API
+	reference</ulink> respectively.
+    </para>
+    <para>
+      This document describes version 3.2 of the &ps; software for MyriNet and
+      version 1.0 of ParaStation FE.
+    </para>
+  </section>
+</chapter>
+
+  <!-- Keep this comment at the end of the file
+  Local variables:
+  mode: xml
+  sgml-omittag:nil
+  sgml-shorttag:nil
+  sgml-namecase-general:nil
+  sgml-general-insert-case:lower
+  sgml-minimize-attributes:nil
+  sgml-always-quote-attributes:t
+  sgml-indent-step:2
+  sgml-indent-data:t
+  sgml-parent-document:("main.xml" "set" "book" "book" ("title" "bookinfo"))
+  sgml-exposed-tags:nil
+  sgml-local-catalogs:nil
+  sgml-local-ecat-files:nil
+  End:
+  -->

@@ -1,0 +1,44 @@
+<chapter id="intro">
+  &intro_common;
+
+  <section>
+    <title>About this document</title>
+    <para>
+      This manual discusses the user utilities of &ps;. These include an
+      adapted development framework for MPI applications based on <ulink
+	url="www.unix.mcs.anl.gov/mpi/mpich/">MPIch</ulink>. Furthermore &ps;'s
+      process spawning mechanism is described and the potential ways to steer
+      it are presented.
+    </para>
+    <para>
+      For a detailed discussion of the installation and configuration of &ps;
+      and the administrators utilities in the standard distribution take a look
+      at the <xref linkend="adminguide"/>. The &ps; programming
+      interfaces documentation can be found in the <ulink
+	url="../api/index.html">API reference</ulink>..
+    </para>
+
+    <para>
+      This document describes version 3.2 of the &ps; software for MyriNet and
+      version 1.0 of ParaStation FE.
+    </para>
+  </section>
+</chapter>
+
+  <!-- Keep this comment at the end of the file
+  Local variables:
+  mode: xml
+  sgml-omittag:nil
+  sgml-shorttag:nil
+  sgml-namecase-general:nil
+  sgml-general-insert-case:lower
+  sgml-minimize-attributes:nil
+  sgml-always-quote-attributes:t
+  sgml-indent-step:2
+  sgml-indent-data:t
+  sgml-parent-document:("main.xml" "set" "book" "book" ("title" "bookinfo"))
+  sgml-exposed-tags:nil
+  sgml-local-catalogs:nil
+  sgml-local-ecat-files:nil
+  End:
+  -->
