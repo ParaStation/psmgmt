@@ -5,15 +5,16 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp_private.h,v 1.4 2002/01/31 08:50:17 eicker Exp $
+ * $Id: rdp_private.h,v 1.5 2002/02/01 16:47:54 eicker Exp $
  *
  */
 /**
  * \file
- * rdp_private: Reliable Datagram Protocol for ParaStation daemon
- *              Private functions and definitions
+ * Reliable Datagram Protocol for ParaStation daemon
  *
- * $Id: rdp_private.h,v 1.4 2002/01/31 08:50:17 eicker Exp $
+ * Private functions and definitions
+ *
+ * $Id: rdp_private.h,v 1.5 2002/02/01 16:47:54 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -63,17 +64,15 @@ static char errtxt[256];         /**< String to hold error messages. */
  */
 static void (*RDPCallback)(int, void*) = NULL;
 
-/** @todo Create docu */
+/** Possible RDP states of a connection */
 typedef enum {
-    CLOSED=0x1,
-    SYN_SENT,
-    SYN_RECVD,
-    ACTIVE
+    CLOSED=0x1,  /**< connection is down */
+    SYN_SENT,    /**< connection establishing: SYN sent */
+    SYN_RECVD,   /**< connection establishing: SYN received */
+    ACTIVE       /**< connection is up */
 } RDPState;
 
-/**
- * The possible RDP message types.
- */
+/** The possible RDP message types */
 #define RDP_DATA     0x1  /**< regular data message */
 #define RDP_SYN      0x2  /**< synchronozation message */
 #define RDP_ACK      0x3  /**< explicit acknowledgement */
@@ -81,9 +80,7 @@ typedef enum {
 #define RDP_NACK     0x5  /**< negaitve acknowledgement */
 #define RDP_SYNNACK  0x6  /**< NACK to reestablish broken connection */
 
-/**
- * RDP Packet Header
- */
+/** The RDP Packet Header */
 typedef struct {
     short type;           /**< packet type */
     short len;            /**< message length */
@@ -92,23 +89,40 @@ typedef struct {
     int connid;           /**< Connection Identifier */
 } rdphdr;
 
-#define RDP_SMALL_DATA_SIZE 32  /**< @todo */
-#define RDP_MAX_DATA_SIZE 8192  /**< @todo */
+/** Up to this size predefined buffers are use to store the message. */
+#define RDP_SMALL_DATA_SIZE 32
+/** The maximum size of a RDP message. May decrease in future.*/
+#define RDP_MAX_DATA_SIZE 8192
 
-#define MAX_WINDOW_SIZE 64      /**< @todo */
-#define MAX_ACK_PENDING  4      /**< @todo */
+/**
+ * The maximum number of pending messages on a connection. If
+ * @a MAX_WINDOW_SIZE messages are pending on a connection, calls to
+ * Rsendto() will return -1 with errno set to EAGAIN.
+ */
+#define MAX_WINDOW_SIZE 64
+/**
+ * The maximum number of pending ACKs on a connection. If @a MAX_ACK_PENDING
+ * ACKs are pending on a connection, a explicit ACK is send.
+ */
+#define MAX_ACK_PENDING  4
 
-/** Timeout for retransmission in us  (100.000) == 100msec */
+/** Timeout for retransmission = 100msec */
 struct timeval RESEND_TIMEOUT = {0, 100000}; /* sec, usec */
 
 /**
- * The timeout used for RDP. The is a const for now and can only
+ * The timeout used for RDP timer = 1 sec. The is a const for now and can only
  * changed in the sources.
  */
 struct timeval RDPTimeout = {1, 0}; /* sec, usec */
 
 /**
- * @todo
+ * The actual maximum retransmission count. Get/set by
+ * getMaxRetransRDP()/setMaxRetransRDP()
+ */
+static int RDPMaxRetransCount = 10;
+
+/**
+ * @todo This is not correct!! What happens on overflow?
  *
  * RSEQCMP: Compare two sequence numbers
  * result of a - b      relationship in sequence space
@@ -216,71 +230,118 @@ static int lookupIPTable(struct in_addr ipno);
 
 /* ---------------------------------------------------------------------- */
 
-/*
- * RDP Msg buffer (small and large)
+/**
+ * Prototype of a small RDP message.
  */
 typedef struct Smsg_ {
-    rdphdr       header;                    /* msg header */
-    char         data[RDP_SMALL_DATA_SIZE]; /* msg body for small packages */
-    struct Smsg_ *next;                     /* pointer to next Smsg buffer */
+    rdphdr       header;                    /**< Message header */
+    char         data[RDP_SMALL_DATA_SIZE]; /**< Body for small pakets */
+    struct Smsg_ *next;                     /**< Pointer to next Smsg buffer */
 } Smsg;
 
+/**
+ * Prototype of a large (or normal) RDP message.
+ */
 typedef struct {
-    rdphdr header;                          /* msg header */
-    char   data[RDP_MAX_DATA_SIZE];         /* msg body for large packages */
+    rdphdr header;                          /**< Message header */
+    char   data[RDP_MAX_DATA_SIZE];         /**< Body for large pakets */
 } Lmsg;
 
 struct ackent_; /* forward declaration */
 
-/*
- * Control info for each msg buffer
+/**
+ * Control info for each message buffer
  */
 typedef struct msgbuf_ {
-    int            node;                    /* id of connection */
-    struct msgbuf_ *next;                   /* pointer to next buffer */
-    struct ackent_ *ackptr;                 /* pointer to ack buffer */
-    struct timeval tv;                      /* timeout timer */
-    int            retrans;                 /* no of retransmissions */
-    int            len;                     /* len of body */
+    int            node;                    /**< ID of connection */
+    struct msgbuf_ *next;                   /**< Pointer to next buffer */
+    struct ackent_ *ackptr;                 /**< Pointer to ACK buffer */
+    struct timeval tv;                      /**< Timeout timer */
+    int            retrans;                 /**< Number of retransmissions */
+    int            len;                     /**< Length of body */
     union {
-	Smsg *small;                        /* pointer to small msg */
-	Lmsg *large;                        /* pointer to large msg */
+	Smsg *small;                        /**< Pointer to a small msg */
+	Lmsg *large;                        /**< Pointer to a large msg */
     } msg;
 } msgbuf;
 
-static msgbuf *MsgFreeList;  /* list of msg buf's ready to use */
+/**
+ * Pool of message buffers ready to use. Initialized by initMsgList().
+ * To get a buffer from this pool, use getMsg(), to put it back into
+ * it use putMsg().
+ */
+static msgbuf *MsgFreeList;
 
-/*
- * Initialization and Management of msg buffers
+/**
+ * @brief Initialize the message pool.
+ *
+ * Initialize the pool of message buffers @ref MsgFreeList for @a nodes nodes.
+ * For now @ref MAX_WINDOW_SIZE * @a nodes message buffer will be allocated.
+ *
+ * @param nodes The number of nodes the message buffer pool has to serve.
+ *
+ * @return No return value.
  */
 static void initMsgList(int nodes);
 
-/*
- * get msg entry from MsgFreeList
+/**
+ * @brief Get message buffer from pool.
+ *
+ * Get a message buffer from the pool of free ones @ref MsgFreeList.
+ *
+ * @return Pointer to the message buffer taken from the pool.
  */
 static msgbuf *getMsg(void);
 
-/*
- * insert msg entry into MsgFreeList
+/**
+ * @brief Put message buffer back to pool.
+ *
+ * Put a message buffer back to the pool of free ones @ref MsgFreeList.
+ *
+ * @param mp The message buffer to be put back.
+ *
+ * @return No return value.
  */
 static void putMsg(msgbuf *mp);
 
 /* ---------------------------------------------------------------------- */
 
-static Smsg   *SMsgFreeList;  /* list of Smsg buf's ready to use */
+/**
+ * Pool of small messages ready to use. Initialized by initSMsgList().
+ * To get a message from this pool, use getSMsg(), to put it back into
+ * it use putSMsg().
+ */
+static Smsg   *SMsgFreeList;
 
-/*
- * Initialization and Management of msg buffers
+/**
+ * @brief Initialize the message pool.
+ *
+ * Initialize the pool of small messages @ref SMsgFreeList for @a nodes nodes.
+ * For now @ref MAX_WINDOW_SIZE * @a nodes small messages will be allocated.
+ *
+ * @param nodes The number of nodes the small message pool has to serve.
+ *
+ * @return No return value.
  */
 static void initSMsgList(int nodes);
 
-/*
- * get Smsg entry from SMsgFreeList
+/**
+ * @brief Get small message from pool.
+ *
+ * Get a small message from the pool of free ones @ref SMsgFreeList.
+ *
+ * @return Pointer to the small message taken from the pool.
  */
 static Smsg *getSMsg(void);
 
-/*
- * insert Smsg entry into SMsgFreeList
+/**
+ * @brief Put small message back to pool.
+ *
+ * Put a small message back to the pool of free ones @ref SMsgFreeList.
+ *
+ * @param mp The small message to be put back.
+ *
+ * @return No return value.
  */
 static void putSMsg(Smsg *mp);
 
@@ -327,13 +388,7 @@ static void initConntableRDP(int nodes,
 
 /* ---------------------------------------------------------------------- */
 
-/*
- * Initialization and Management of ack list
- */
-
-/**
- * @todo
- */
+/** Double linked list of messages with pending ACK */
 typedef struct ackent_ {
     struct ackent_ *prev;    /**< Pointer to previous msg waiting for an ack */
     struct ackent_ *next;    /**< Pointer to next msg waiting for an ack */
@@ -342,60 +397,116 @@ typedef struct ackent_ {
 
 static ackent *AckListHead;  /**< Head of ACK list */
 static ackent *AckListTail;  /**< Tail of ACK list */
-static ackent *AckFreeList;  /**< List of free ACK buffers */
+static ackent *AckFreeList;  /**< Pool of free ACK buffers */
 
 /**
- * @brief Initialize ACK list.
+ * @brief Initialize the pool of ACK buffers and the ACK list.
  *
- * @todo
+ * Initialize the pool of ACK buffers @ref AckFreeList for @a nodes nodes.
+ * For now @ref MAX_WINDOW_SIZE * @a nodes ACK buffers will be allocated.
+ * Furthermore the ACK list is initialized in an empty state.
+ *
+ * @param nodes The number of nodes the ACK buffer pool has to serve.
+ *
  * @return No return value.
  */
 static void initAckList(int nodes);
 
-/*
- * get ack entry from freelist
+/**
+ * @brief Get ACK buffer from pool.
+ *
+ * Get a ACK buffer from the pool of free ones @ref AckFreeList.
+ *
+ * @return Pointer to the ACK buffer taken from the pool.
  */
 static ackent *getAckEnt(void);
 
-/*
- * insert ack entry into freelist
+/**
+ * @brief Put ACK buffer back to pool.
+ *
+ * Put a ACK buffer back to the pool of free ones @ref AckFreeList.
+ *
+ * @param pp The ACK buffer to be put back.
+ *
+ * @return No return value.
  */
 static void putAckEnt(ackent *ap);
 
-/*
+/**
+ * @brief Enqueue a message to the ACK list.
+ *
+ * @todo
+ * Append the ACK buffer 
  * enqueue msg into list of msg's waiting to be acked
+ * @return Pointer to the ACK buffer taken from the pool.
  */
 static ackent *enqAck(msgbuf *bufptr);
 
-/*
- * renove msg from list of msg's waiting to be acked
+/**
+ * @brief Dequeue ACK buffer.
+ *
+ * remove msg from list of msg's waiting to be acked
+ *
+ * @todo
+ * @return No return value.
  */
 static void deqAck(ackent *ap);
 
 /* ---------------------------------------------------------------------- */
 
-/*
- * send a SYN msg
+/**
+ * @brief Send a SYN message.
+ *
+ * Send a SYN message to node @a node.
+ *
+ * @param node The node number the message is send to.
+ *
+ * @return No return value.
  */
 static void sendSYN(int node);
 
-/*
- * send a explicit ACK msg
+/**
+ * @brief Send a explicit ACK message.
+ *
+ * Send a ACK message to node @a node.
+ *
+ * @param node The node number the message is send to.
+ *
+ * @return No return value.
  */
 static void sendACK(int node);
 
-/*
- * send a SYNACK msg
+/**
+ * @brief Send a SYNACK message.
+ *
+ * Send a SYNACK message to node @a node.
+ *
+ * @param node The node number the message is send to.
+ *
+ * @return No return value.
  */
 static void sendSYNACK(int node);
 
-/*
- * send a SYNNACK msg
+/**
+ * @brief Send a SYNNACK message.
+ *
+ * Send a SYNNACK message to node @a node.
+ *
+ * @param node The node number the message is send to.
+ * @param oldseq The last sequence number we received from this node.
+ *
+ * @return No return value.
  */
 static void sendSYNNACK(int node, int oldseq);
 
-/*
- * send a NACK msg
+/**
+ * @brief Send a NACK message.
+ *
+ * Send a NACK message to node @a node.
+ *
+ * @param node The node number the message is send to.
+ *
+ * @return No return value.
  */
 static void sendNACK(int node);
 
@@ -428,20 +539,39 @@ static unsigned short getServicePort(char *service);
  */
 static int initSockRDP(unsigned short port, int qlen);
 
-/*
+/**
+ * @brief Update state machine for a connection.
+ *
+ * @todo
  * Update state machine for a connection
  */
-static int updateState(rdphdr *hdr, int node);
+static int updateStateRDP(rdphdr *hdr, int node);
 
-/*
- * clear message queue of a connection
- * (upon final timeout or reestablishing the conn)
+/**
+ * @brief Clear message queue of a connection.
+ *
+ * Clear the message queue of the connection to node @a node. This is usually
+ * called upon final timeout.
+ *
+ * @param node The node number of the connection to be cleared.
+ *
+ * @return No return value.
  */
 static void clearMsgQ(int node);
 
-/*
- * clear message queue of a connection
- * (upon final timeout or reestablishing the conn)
+/**
+ * @brief Resequence message queue of a connection.
+ *
+ * Resequence the message queue of the connection to node @a node, i.e. throw
+ * away undeliverable message (and inform calling process via
+ * @ref RDPCallback()) and resequence all other messages.
+ * This is usually called upon reestablishing a disturbed connection.
+ *
+ * @param node The node number of the connection to be cleared.
+ * @param newExpected The next frame expected from @a node.
+ * @param newSend The number of the next paket to send.
+ *
+ * @return The number of resequenced pakets.
  */
 static int resequenceMsgQ(int node, int newExpected, int newSend);
 
@@ -454,31 +584,48 @@ static int resequenceMsgQ(int node, int newExpected, int newSend);
  */
 static void closeConnectionRDP(int node);
 
-#define RDPMAX_RETRANS_COUNT 10 /**< @todo */
-
 /**
  * @brief Timeout handler to be registered in Timer facility.
  *
- * handle msg timouts;
+ * Timeout handler called from Timer facility every time @ref RDPTimeout
+ * expires.
  *
- * @param fd 
+ * @param fd Descriptor referencing the RDP socket.
  *
  * @return No return value.
  */
 static void handleTimeoutRDP(int fd);
 
-/*
+/**
  * complete ack code
+ *
+ * @todo
  */
 static void doACK(rdphdr *hdr, int fromnode);
 
-static void reestablishConnection(rdphdr *hdr, int node);
-
+/**
+ *
+ * @todo
+ */
 static void resendMsgs(int node);
 
+/**
+ *
+ * @todo
+ */
 static void handleControlPacket(rdphdr *hdr, int node);
 
-/*
+/**
+ * @brief Handle RDP message.
+ *
+ * Peek into a RDP message pending on @a fd. If it is a DATA message,
+ * @todo
+ * such that one get's a overview over the state of the cluster.
+ *
+ * @param fd The file-descriptor from which the ping message is read.
+ *
+ * @return On success, 0 is returned, or -1 if an error occurred.
+ *
  * select call which handles RDP packets
  */
 static int handleRDP(int fd);
