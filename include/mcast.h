@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.h,v 1.1 2002/01/28 19:09:17 eicker Exp $
+ * $Id: mcast.h,v 1.2 2002/01/30 10:37:46 eicker Exp $
  *
  */
 /**
  * \file
  * mcast: ParaStation MultiCast facility
  *
- * $Id: mcast.h,v 1.1 2002/01/28 19:09:17 eicker Exp $
+ * $Id: mcast.h,v 1.2 2002/01/30 10:37:46 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
-#ifndef __RDP_H
-#define __RDP_H
+#ifndef __MCAST_H
+#define __MCAST_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,29 +28,26 @@ extern "C" {
 #endif
 #endif
 
+/** @todo Create docu */
 typedef enum {
     DOWN = 0x1,
     UP   = 0x2
 } MCastState;
 
-typedef struct MCastLoad_ {
+/** @todo Create docu */
+typedef struct {
     double load[3];           /* Load parameters of that node */
 } MCastLoad;
 
-typedef struct MCastConInfo_ {
+/** @todo Create docu */
+typedef struct {
     MCastState state;
     MCastLoad  load;
     int        misscounter;
 } MCastConInfo;
 
-typedef enum {
-    T_INFO = 0x01,
-    T_CLOSE,
-    T_LIC,
-    T_KILL
-} MCastMsgType;
-
-typedef struct Mmsg_ {
+/** @todo Create docu */
+typedef struct {
     short    node;     /* Sender ID */
     short    type;
     MCastState state;
@@ -66,17 +63,33 @@ typedef struct Mmsg_ {
 #define LIC_LOST_CONECTION      0x1
 #define LIC_KILL_MSG            0x2
 
-/*
- * Initialize MCast
- * Parameters:  nodes: Nr of Nodes in the Cluster
- *              mgroup: Id of Multicastgroup (0 < id < 255)
- *              usesyslog (1=yes,0=no): Use syslog() to log error/info messages
- *              address of callback function to handle MCast exceptions / infos
- *                 (func == NULL allowed to prevent callback) 
- *                 callback func is called with (type, void *buf)
+
+#define MCASTSERVICE "psmcast"   /** The symbolic name of MCast-service */
+
+static int DEFAULT_MCAST_GROUP = 237;
+                                 /** The default MCast-group number.
+				     Magic number defined by Joe long time ago.
+				     Can be overruled via initMCast(). */
+
+/**
+ * @brief Initialize the MCast module.
+ *
+ * Initializes the MCast machinery for @a nodes nodes.
+ *
+ * @param nodes Number of nodes to handle.
+ * @param mgroup The MCast group to use.
+ * @param usesyslog If true, all error-messages are printed via syslog().
+ * @param hosts An array of size @a nodes containing the IP-addresses of the
+ * participating nodes in network-byteorder.
+ * @param licServer Flag to mark the calling process as a license server.
+ * @param callback Pointer to a callback-function. This function is called if
+ * something exceptional happens. If NULL, no callbacks will be done.
+ *
+ * @return On success, the filedescriptor of the MCast socket is returned.
+ * On error, exit() is called within this function.
  */
 int initMCast(int nodes, int mgroup, int usesyslog,  unsigned int hosts[],
-	      void (*func)(int, void*));
+	      int licServer, void (*callback)(int, void*));
 
 /*
  * Shutdown MCast
@@ -90,9 +103,9 @@ void exitMCast(void);
  *
  * @return The actual debug-level is returned.
  *
- * @see setMCastDebugLevel()
+ * @see setDebugLevelMCast()
  */
-int getMCastDebugLevel(void);
+int getDebugLevelMCast(void);
 
 /**
  * @brief Set the debug-level.
@@ -105,43 +118,69 @@ int getMCastDebugLevel(void);
  *
  * @return No return value.
  *
- * @see getMCastDebugLevel()
+ * @see getDebugLevelMCast()
  */
-void setMCastDebugLevel(int level);
+void setDebugLevelMCast(int level);
 
 /**
- * @brief Get the dead-limit.
+ * @brief Get MCast deadlimit
  *
- * Get the dead-limit of the MCast module, i.e. the number of pings
- * from a node allowed to be absent until the node is declared to be dead.
+ * Get the deadlimit of the MCast module. After @a deadlimit consecutively
+ * missing MCast pings a node is declared to be dead.
  *
- * @return The actual dead-limit.
+ * @return The actual deadlimit is returned.
  *
- * @see setMCastDeadLimit()
+ * @see setDeadLimitMCast()
  */
-int getMCastDeadLimit(void);
+int getDeadLimitMCast(void);
 
 /**
- * @brief Set the dead-limit.
+ * @brief Set MCast deadlimit
  *
- * Set the dead-limit of the MCast module, i.e. the number of pings
- * from a node allowed to be absent until the node is declared to be dead.
+ * Set the deadlimit of the MCast module. After @a deadlimit consecutively
+ * missing MCast pings a node is declared to be dead.
+ *
+ * @param limit The deadlimit to be set.
  *
  * @return No return value.
  *
- * @see getMCastDeadLimit()
+ * @see getDeadLimitMCast()
  */
-void setMCastDeadLimit(int limit);
+void setDeadLimitMCast(int limit);
 
-/*
- * Get Info for node n
+/**
+ * @brief Get connection info.
+ *
+ * Get connection information from the MCast module concerning the node
+ * @a node. The result is returned in a @ref MCastConInfo structure.
+ *
+ * @param node The node, to get MCast connection information about.
+ * @param info The @ref MCastConInfo structure holding the connection info
+ * on return.
+ *
+ * @return No return value.
  */
-void getMCastInfo(int n, MCastConInfo *info);
+void getInfoMCast(int node, MCastConInfo *info);
 
-void getMCastStateInfo(int n, char *s, size_t len);
+/**
+ * @brief Get status info.
+ *
+ * Get status information from the MCast module concerning the node @a node.
+ * The result is returned in @a string and can be directly
+ * put out via printf() and friends.
+ *
+ * @param node The node, to get MCast status information about.
+ * @param string The string to which the status information is written.
+ * @param len The length of @a string.
+ *
+ * @return No return value.
+ *
+ * @see printf(3)
+ */
+void getStateInfoMCast(int n, char *s, size_t len);
 
 #ifdef __cplusplus
 }/* extern "C" */
 #endif
 
-#endif /* __RDP_H */
+#endif /* __MCAST_H */
