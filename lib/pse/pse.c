@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.37 2003/04/10 17:31:24 eicker Exp $
+ * $Id: pse.c,v 1.38 2003/06/20 13:52:20 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.37 2003/04/10 17:31:24 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.38 2003/06/20 13:52:20 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -187,7 +187,7 @@ void PSE_spawnMaster(int argc, char *argv[])
     /* client process? */
     if (PSE_getRank() != -1) {
 	snprintf(errtxt, sizeof(errtxt),
-		 "Don't call PSE_spawnMaster() if rank is not -1 (rank=%d).",
+		 "%s: Don't call if rank is not -1 (rank=%d).", __func__,
 		 PSE_getRank());
 	exitAll(errtxt, 10);
     }
@@ -268,7 +268,7 @@ void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
     }
 
     /* spawn client processes */
-     ret = PSI_spawnM(myWorldSize, NULL, ".", argc, argv,
+    ret = PSI_spawnM(myWorldSize, NULL, ".", argc, argv,
  		     INFO_request_taskinfo(PSC_getMyTID(), INFO_LOGGERTID, 0),
  		     PSE_getRank()+1, errors, spawnedProcesses);
     if (ret<0) {
@@ -305,15 +305,15 @@ int PSE_getMasterPort(void)
 void PSE_spawn(int argc, char *argv[], int *node, int *port, int rank)
 {
     if (rank != PSE_getRank()) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "[%d] PSE_spawn(): rank is %d", PSE_getRank(), rank);
+	snprintf(errtxt, sizeof(errtxt), "[%d] %s: rank is %d",
+		 PSE_getRank(), __func__, rank);
 	exitAll(errtxt, 10);
     }
 
     if (worldSize == -1) {
 	snprintf(errtxt, sizeof(errtxt),
-		 "[%d] PSE_spawn(): Use PSE_init() to set worldSize",
-		 PSE_getRank());
+		 "[%d] %s: Use PSE_init() to set worldSize",
+		 PSE_getRank(), __func__);
 	exitAll(errtxt, 10);
     }
 
@@ -355,8 +355,8 @@ void PSE_finalize(void)
 	/* Don't kill logger on exit */
 	PSI_release(PSC_getMyTID());
     } else {
-	snprintf(errtxt, sizeof(errtxt),
-		 "PSEfinalize(): PSE_getRank() returned %d", PSE_getRank());
+	snprintf(errtxt, sizeof(errtxt), "%s: PSE_getRank() returned %d",
+		 __func__, PSE_getRank());
 	exitAll(errtxt, 10);
     }
 

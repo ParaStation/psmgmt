@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.48 2003/04/10 17:34:18 eicker Exp $
+ * $Id: psi.c,v 1.49 2003/06/20 13:47:47 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.48 2003/04/10 17:34:18 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.49 2003/06/20 13:47:47 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -258,8 +258,8 @@ int PSI_initClient(PStask_group_t taskGroup)
 	PSC_setDebugLevel(loglevel);
     }
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "PSI_initClient(%s)", PStask_printGrp(taskGroup));
+    snprintf(errtxt, sizeof(errtxt), "%s(%s)", __func__,
+	     PStask_printGrp(taskGroup));
     PSI_errlog(errtxt, 10);
 
     if (daemonSock != -1) {
@@ -273,7 +273,7 @@ int PSI_initClient(PStask_group_t taskGroup)
     if (!connectDaemon(taskGroup)) {
 	if (taskGroup!=TG_RESET) {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "PSI_initClient(): cannot contact local daemon.");
+		     "%s: cannot contact local daemon.", __func__);
 	    PSI_errlog(errtxt, 0);
 	}
 	return 0;
