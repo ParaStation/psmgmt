@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidinfo.c,v 1.6 2003/12/19 15:06:07 eicker Exp $
+ * $Id: psidinfo.c,v 1.7 2004/01/27 21:10:15 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidinfo.c,v 1.6 2003/12/19 15:06:07 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidinfo.c,v 1.7 2004/01/27 21:10:15 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -281,16 +281,19 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    if (!requester || requester->protocolVersion < 328) {
 		static NodelistEntry_t *nodelist = NULL;
 		static int nodelistlen = 0;
-		/* @todo Check for message limit */
-		if (nodelistlen < PSC_getNrOfNodes()) {
-		    nodelistlen = PSC_getNrOfNodes();
+		int maxNodes =
+		    (256 < PSC_getNrOfNodes()) ? 256 : PSC_getNrOfNodes();
+		/* Limit these requests to 256 nodes due to message length */
+
+		if (nodelistlen < maxNodes) {
+		    nodelistlen = maxNodes;
 		    nodelist = realloc(nodelist,
 				       nodelistlen * sizeof(*nodelist));
 		}
 
 		hwType = *(unsigned int *) inmsg->buf;
 
-		for (i=0, j=0; i<PSC_getNrOfNodes(); i++) {
+		for (i=0, j=0; i<PSC_getNrOfNodes() && j<maxNodes; i++) {
 		    PSID_NodeStatus_t status = getStatus(i);
 
 		    if ((inmsg->type == PSP_INFO_NODELIST)
@@ -321,7 +324,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		    }
 		}
 
-		if (j<PSC_getNrOfNodes()) {
+		if (j<maxNodes) {
 		    nodelist[j].id = -1;
 		    j++;
 		}
@@ -443,6 +446,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	case PSP_INFO_LIST_LOAD:
 	case PSP_INFO_LIST_ALLJOBS:
 	case PSP_INFO_LIST_NORMJOBS:
+	case PSP_INFO_LIST_ALLOCJOBS:
 	    if ((! config->useMCast) && (PSC_getMyID() != getMasterID())) {
 		/* Handled by master node -> forward */
 		inmsg->header.dest = PSC_getTID(getMasterID(), 0);
@@ -519,6 +523,10 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		    case PSP_INFO_LIST_NORMJOBS:
 			status = getStatus(node);
 			((uint16_t *)msg.buf)[idx] = status.jobs.normal;
+			size = sizeof(uint16_t);
+			break;
+		    case PSP_INFO_LIST_ALLOCJOBS:
+			((uint16_t *)msg.buf)[idx] = getAllocJobs(node);
 			size = sizeof(uint16_t);
 			break;
 		    default:
