@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.51 2003/06/27 16:52:59 eicker Exp $
+ * $Id: psi.c,v 1.52 2003/07/22 18:36:00 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.51 2003/06/27 16:52:59 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.52 2003/07/22 18:36:00 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -90,13 +90,13 @@ static int connectDaemon(PStask_group_t taskGroup)
 
     daemonSock=daemonSocket();
 
-    if (taskGroup == TG_MONITOR && daemonSock==-1) return 0;
+    if (taskGroup != TG_ADMIN && daemonSock==-1) return 0;
 
     while (daemonSock==-1) {
 	/*
 	 * start the local ParaStation daemon via inetd
 	 */
-	if (connectfailes++ < 10) {
+	if (connectfailes++ < 5) {
 	    PSC_startDaemon(INADDR_ANY);
 	    daemonSock=daemonSocket();
 	} else {
@@ -333,7 +333,7 @@ int PSI_initClient(PStask_group_t taskGroup)
 
 int PSI_exitClient(void)
 {
-    snprintf(errtxt, sizeof(errtxt), "PSI_exitClient()");
+    snprintf(errtxt, sizeof(errtxt), "%s()", __func__);
     PSI_errlog(errtxt, 10);
 
     if (daemonSock == -1) {
