@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.27 2003/04/04 09:34:17 eicker Exp $
+ * $Id: psilogger.c,v 1.28 2003/04/10 17:36:19 eicker Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.27 2003/04/04 09:34:17 eicker Exp $
+ * $Id: psilogger.c,v 1.28 2003/04/10 17:36:19 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.27 2003/04/04 09:34:17 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.28 2003/04/10 17:36:19 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -84,6 +84,9 @@ long *clientTID;
 /** The actual size of #clientTID. */
 int maxClients = 64;
 
+/** The socket connecting to the local ParaStation daemon */
+int daemonSock;
+
 /**
  * @brief Send a PSLog message.
  *
@@ -119,7 +122,7 @@ static int sendMsg(long tid, PSLog_msg_t type, char *buf, size_t len)
 
     if (ret < 0) {
 	char *errstr = strerror(errno);
-	fprintf(stderr, "PSIlogger: sendMsg(): error (%d): %s\n",
+	fprintf(stderr, "PSIlogger: %s: error (%d): %s\n", __func__,
 		errno, errstr ? errstr : "UNKNOWN");
     }
 
@@ -153,8 +156,8 @@ static int recvMsg(PSLog_Msg_t *msg)
 
     if (ret < 0) {
 	char *errstr = strerror(errno);
-	fprintf(stderr, "PSIlogger: %s(): error (%d): %s\n",
-		__func__, errno, errstr ? errstr : "UNKNOWN");
+	fprintf(stderr, "PSIlogger: %s: error (%d): %s\n", __func__,
+		errno, errstr ? errstr : "UNKNOWN");
 
 	return ret;
     }
@@ -168,13 +171,12 @@ static int recvMsg(PSLog_Msg_t *msg)
 	while ((i < maxClients) && (clientTID[i] != msg->header.sender)) i++;
 
 	if (i == maxClients) {
-	    fprintf(stderr,
-		    "PSIlogger: %s(): CC_ERROR from unknown task %s.\n",
+	    fprintf(stderr, "PSIlogger: %s: CC_ERROR from unknown task %s.\n",
 		    __func__, PSC_printTID(msg->header.sender));
 	    ret = 0;
 	} else {
 	    fprintf(stderr,
-		    "PSIlogger: %s(): forwarder %s (rank %d) disappeared.\n",
+		    "PSIlogger: %s: forwarder %s (rank %d) disappeared.\n",
 		    __func__, PSC_printTID(msg->header.sender), i);
 
 	    clientTID[i] = -1;
@@ -188,8 +190,8 @@ static int recvMsg(PSLog_Msg_t *msg)
     case PSP_CC_MSG:
 	break;
     default:
-	fprintf(stderr, "PSIlogger: %s(): Unknown message type %s.\n",
-		__func__, PSP_printMsg(msg->header.type));
+	fprintf(stderr, "PSIlogger: %s: Unknown message type %s.\n", __func__,
+		PSP_printMsg(msg->header.type));
 
 	ret = 0;
     }
@@ -197,25 +199,62 @@ static int recvMsg(PSLog_Msg_t *msg)
     return ret;
 }
 
+static int sendDaemonMsg(DDSignalMsg_t *msg)
+{
+    char *buf = (void *)msg;
+    size_t c = msg->header.len;
+    int n;
+
+    do {
+	n = send(daemonSock, buf, c, 0);
+	if (n < 0){
+	    if (errno == EAGAIN){
+		continue;
+	    } else {
+		break;             /* error, return < 0 */
+	    }
+	}
+	c -= n;
+	buf += n;
+    } while (c > 0);
+
+    if (n < 0) {
+	char *errstr = strerror(errno);
+	fprintf(stderr, "PSIlogger: %s: error (%d): %s\n", __func__,
+		errno, errstr ? errstr : "UNKNOWN");
+
+        FD_CLR(daemonSock, &myfds);
+        close(daemonSock);
+
+	daemonSock = -1;
+
+	return n;
+    } else if (!n) {
+	fprintf(stderr, "PSIlogger: %s(): Daemon connection lost\n", __func__);
+
+        FD_CLR(daemonSock, &myfds);
+        close(daemonSock);
+
+	daemonSock = -1;
+
+	return n;
+    }
+
+    if (verbose) {
+        fprintf(stderr, "PSIlogger: %s type %s (len=%d) to %s\n", __func__,
+		PSP_printMsg(msg->header.type), msg->header.len,
+		PSC_printTID(msg->header.dest));
+    }
+
+    return msg->header.len;
+}
+
 /**
  * @brief Handle signals.
  *
- * Handle the signal @a sig send to the psilogger. Up to now, this
- * function knowns about the TERM, TTIN, TSTP and CONT signal. The
- * following measures are taken on the various signals:
- *
- * - SIGTERM: Create some logging messages and ignore the signal.
- *
- * - SIGTTIN: Create logging. Don't know about the meaning of this signal.
- *
- * - SIGTSTP: Ignored up to now. Will send SIGSTOP to all childs then SIGSTOP
- *            to myself.
- *
- * - SIGCONT: Ignored up to now. Will send SIGCONT to all childs.
- *
+ * Handle the signal @a sig sent to the psilogger.
  *
  * @param sig Signal to handle.
- *
  *
  * @return No return value.
  */
@@ -238,50 +277,72 @@ void sighandler(int sig)
 		    fprintf(stderr, "%d (%s) ", i, PSC_printTID(clientTID[i]));
 	    fprintf(stderr, "\b\n");
 	}
+	{
+	    DDSignalMsg_t msg;
+
+	    msg.header.type = PSP_CD_SIGNAL;
+	    msg.header.sender = PSC_getMyTID();
+	    msg.header.dest = PSC_getMyTID();
+	    msg.header.len = sizeof(msg);
+	    msg.signal = sig;
+	    msg.param = getuid();
+	    msg.pervasive = 1;
+
+	    sendDaemonMsg(&msg);
+	}
 	break;
     case SIGINT:
-	/* This is a second path to exit childs */
-	for (i=0; i<maxClients; i++) {
-	    if (clientTID[i] != -1) {
-		if (verbose)
-		    fprintf(stderr, "PSIlogger: killing %s (rank %d)\n",
-			    PSC_printTID(clientTID[i]), i);
-
-		PSLog_write(clientTID[i], EXIT, NULL, 0);
-
-		clientTID[i] = -1;
-		noClients--;
-	    }
+	if (verbose) {
+	    fprintf(stderr, "PSIlogger: Got SIGINT.\n");
 	}
+	{
+	    DDSignalMsg_t msg;
 
-	exit(1);
+	    msg.header.type = PSP_CD_SIGNAL;
+	    msg.header.sender = PSC_getMyTID();
+	    msg.header.dest = PSC_getMyTID();
+	    msg.header.len = sizeof(msg);
+	    msg.signal = sig;
+	    msg.param = getuid();
+	    msg.pervasive = 1;
 
+	    sendDaemonMsg(&msg);
+	}
 	break;
     case SIGTTIN:
 	if (verbose) {
-	    fprintf(stderr, "PSIlogger %d: Got SIGTTIN.\n", getpid());
+	    fprintf(stderr, "PSIlogger: Got SIGTTIN.\n");
 	    // usleep(200000);
 	}
 	break;
+    case SIGHUP:
     case SIGTSTP:
-	if (verbose) {
-	    fprintf(stderr, "PSIlogger %d: Got SIGTSTP.\n", getpid());
-	}
-	kill(getpid(),SIGSTOP);
-	/* @todo:
-	 * Send STOP to childs, then really stop ( kill(getpid(),SIGSTOP); ).
-	 */
-	break;
     case SIGCONT:
+    case SIGQUIT:
+    case SIGWINCH:
+    case SIGUSR1:
+    case SIGUSR2:
 	if (verbose) {
-	    fprintf(stderr, "PSIlogger %d: Got SIGCONT.\n", getpid());
+	    fprintf(stderr, "PSIlogger: Got signal %d.\n", sig);
 	}
-	/* @todo:
-	 * Send CONT to childs.
-	 */
+
+	{
+	    DDSignalMsg_t msg;
+
+	    msg.header.type = PSP_CD_SIGNAL;
+	    msg.header.sender = PSC_getMyTID();
+	    msg.header.dest = PSC_getMyTID();
+	    msg.header.len = sizeof(msg);
+	    msg.signal = (sig==SIGTSTP) ? SIGSTOP : sig;
+	    msg.param = getuid();
+	    msg.pervasive = 1;
+
+	    sendDaemonMsg(&msg);
+	}
+	if (sig == SIGTSTP) raise(SIGSTOP);
 	break;
     default:
-	fprintf(stderr, "PSIlogger %d: Got signal %d.\n", getpid(), sig);
+	fprintf(stderr, "PSIlogger: Got signal %d.\n", sig);
     }
 
     fflush(stdout);
@@ -315,7 +376,7 @@ static int newrequest(PSLog_Msg_t *msg)
 	int i;
 	clientTID = realloc(clientTID, sizeof(*clientTID) * 2 * msg->sender);
 	if (!clientTID) {
-	    fprintf(stderr, "PSIlogger: newrequest(): realloc(%ld) failed.\n",
+	    fprintf(stderr, "PSIlogger: %s: realloc(%ld) failed.\n", __func__,
 		    (long) sizeof(*clientTID) * 2 * msg->sender);
 	    exit(1);
 	}	    
@@ -325,14 +386,12 @@ static int newrequest(PSLog_Msg_t *msg)
 
     if (clientTID[msg->sender] != -1) {
 	if (clientTID[msg->sender] == msg->header.sender) {
-	    fprintf(stderr, "PSIlogger: newrequest():"
-		    " %s (rank %d) already connected.\n",
-		    PSC_printTID(msg->header.sender), msg->sender);
+	    fprintf(stderr, "PSIlogger: %s: %s (rank %d) already connected.\n",
+		    __func__, PSC_printTID(msg->header.sender), msg->sender);
 	} else {
-	    fprintf(stderr, "PSIlogger: newrequest():"
-		    " %s (rank %d) wants to connect as %s.\n",
-		    PSC_printTID(clientTID[msg->sender]), msg->sender,
-		    PSC_printTID(msg->header.sender));
+	    fprintf(stderr, "PSIlogger: %s: %s (rank %d) connects as %s.\n",
+		    __func__, PSC_printTID(clientTID[msg->sender]),
+		    msg->sender, PSC_printTID(msg->header.sender));
 	}
     } else {
 	sendMsg(msg->header.sender, INITIALIZE,
@@ -373,35 +432,31 @@ static void CheckFileTable(fd_set* openfds)
 	    tv.tv_usec=0;
 	    if (select(FD_SETSIZE, &rfds, (fd_set *)0, (fd_set *)0, &tv) < 0) {
 		/* error : check if it is a wrong fd in the table */
+		fprintf(stderr,"%s(%d): ", __func__, fd);
 		switch(errno) {
 		case EBADF :
-		    fprintf(stderr,"CheckFileTable(%d):"
-			    " EBADF -> close socket\n",fd);
+		    fprintf(stderr,"EBADF -> close socket\n");
 		    close(fd);
 		    FD_CLR(fd,openfds);
 		    fd++;
 		    break;
 		case EINTR:
-		    fprintf(stderr,"CheckFileTable(%d):"
-			    " EINTR -> trying again\n",fd);
+		    fprintf(stderr,"EINTR -> trying again\n");
 		    break;
 		case EINVAL:
-		    fprintf(stderr,"CheckFileTable(%d):"
-			    " EINVAL -> close socket\n", fd);
+		    fprintf(stderr,"EINVAL -> close socket\n");
 		    close(fd);
 		    FD_CLR(fd,openfds);
 		    break;
 		case ENOMEM:
-		    fprintf(stderr,"CheckFileTable(%d):"
-			    " ENOMEM -> close socket\n",fd);
+		    fprintf(stderr,"ENOMEM -> close socket\n");
 		    close(fd);
 		    FD_CLR(fd,openfds);
 		    break;
 		default:
 		    errtxt=strerror(errno);
-		    fprintf(stderr, "CheckFileTable(%d):"
-			    " unrecognized error (%d):%s\n", fd, errno,
-			    errtxt?errtxt:"UNKNOWN errno");
+		    fprintf(stderr, "unrecognized error (%d):%s\n",
+			    errno, errtxt?errtxt:"UNKNOWN errno");
 		    fd ++;
 		    break;
 		}
@@ -438,8 +493,8 @@ static void forwardInput(int std_in, long fwTID)
     case -1:
 	if (errno != EIO) {
 	    char *errstr = strerror(errno);
-	    fprintf(stderr, "PSIlogger: read() failed in forwardInput()"
-		    " with errno %d: %s",errno, errstr ? errstr : "UNKNOWN");
+	    fprintf(stderr, "PSIlogger: %s: read() failed with errno %d: %s",
+		    __func__, errno, errstr ? errstr : "UNKNOWN");
 
 	    FD_CLR(std_in, &myfds);
 	    close(std_in);
@@ -468,7 +523,7 @@ static void forwardInput(int std_in, long fwTID)
  *
  * @return No return value.
  */
-static void loop(int daemonSock)
+static void loop(void)
 {
     int sock;            /* client socket */
     fd_set afds;
@@ -519,19 +574,20 @@ static void loop(int daemonSock)
 			forwardInputTID = msg.header.sender;
 			FD_SET(STDIN_FILENO,&myfds);
 			if (verbose) {
-			    fprintf(stderr, "PSIlogger: loop():"
+			    fprintf(stderr, "PSIlogger: %s:"
 				    " forward input to %s (rank %d)\n",
-				    PSC_printTID(forwardInputTID), msg.sender);
+				    __func__, PSC_printTID(forwardInputTID),
+				    msg.sender);
 			}
 		    }
 		}
 	    } else if (msg.sender > maxClients) {
-		fprintf(stderr, "PSIlogger: loop():"
-			" sender %s (rank %d) out of range.\n",
+		fprintf(stderr, "PSIlogger: %s:"
+			" sender %s (rank %d) out of range.\n", __func__,
 			PSC_printTID(msg.header.sender), msg.sender);
 	    } else if (clientTID[msg.sender] != msg.header.sender) {
-		fprintf(stderr, "PSIlogger: loop():"
-			" client %s (rank %d) sends as %s.\n",
+		fprintf(stderr, "PSIlogger: %s:"
+			" client %s (rank %d) sends as %s.\n", __func__,
 			PSC_printTID(clientTID[msg.sender]), msg.sender,
 			PSC_printTID(msg.header.sender));
 	    } else switch(msg.type) {
@@ -634,8 +690,8 @@ static void loop(int daemonSock)
 		break;
 	    }
 	    default:
-		fprintf(stderr, "PSIlogger: loop():"
-			" Unknown message type %d!\n", msg.type);
+		fprintf(stderr, "PSIlogger: %s: Unknown message type %d!\n",
+			__func__, msg.type);
 	    }
 	} else if (FD_ISSET(STDIN_FILENO, &afds) && (forwardInputTID != -1)) {
 	    forwardInput(STDIN_FILENO, forwardInputTID);
@@ -669,8 +725,8 @@ static void loop(int daemonSock)
  * @return Always returns 0.  */
 int main( int argc, char**argv)
 {
-    int daemonSock, i;
     char *envstr, *end;
+    int i;
 
     sigset_t set;
 
@@ -684,7 +740,10 @@ int main( int argc, char**argv)
     signal(SIGTERM, sighandler);
     signal(SIGTSTP, sighandler);
     signal(SIGCONT, sighandler);
-    signal(SIGINT, sighandler);
+    signal(SIGINT,  sighandler);
+    signal(SIGHUP,  sighandler);
+    signal(SIGUSR1, sighandler);
+    signal(SIGUSR2, sighandler);
 
     if (argc < 3) {
 	fprintf(stderr, "PSIlogger: Sorry, program must be called correctly"
@@ -758,7 +817,7 @@ int main( int argc, char**argv)
     for (i=0; i<maxClients; i++) clientTID[i] = -1;
 
     /* call the loop which does all the work */
-    loop(daemonSock);
+    loop();
 
     close(daemonSock);
 
