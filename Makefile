@@ -29,7 +29,7 @@ include $(ROOTDIR)/Makefile.include
 
 ifeq ($(shell cd .;pwd),$(ROOTDIR))
 
-allbutmcp:	dep psm pshal psport pvar arg buildno tools
+allbutmcp:	dep psm pshal psport pvar arg tools buildno
 
 all:	mcpdep mcp allbutmcp buildno
 

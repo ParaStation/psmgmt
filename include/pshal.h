@@ -1,18 +1,16 @@
 /*
  *
- *      @(#)pshal.h    1.00 (Karlsruhe) 08/15/2000
  *
- *      $Id: pshal.h,v 1.12 2001/07/17 14:45:25 hauke Exp $	
+ *      $Id: pshal.h,v 1.13 2001/08/22 11:52:21 hauke Exp $	
  *
- *      written by Joachim Blum
- *                 Jens Hauke
+ *      written by Jens Hauke
  *
  * This the interface definition between the HAL (Hardware Abstraction Layer)
  * of ParaStation and the upper parts of the protocols.
  *
  *  History
  *
- *   000911 Joe Creation
+ *   000911 Joe Creation (Joachim Blum)
  *   001023 Jens Implementation
  */
 #ifndef __pshal_h
@@ -27,31 +25,6 @@ extern "C" {
     
 //#include <machine.h>
 #include <ps_types.h>
-
-/* !!!!!!!!!!!! mit pssemaphore abstimmen: Wo wird SEM_T implementiert? */
-typedef struct{
-#ifdef __alpha
-  unsigned long lock;
-  unsigned long pid;
-//  u_long lock;
-//  u_long pid;
-#else
-  unsigned short lock;
-  unsigned short pid;
-//  u_short lock;
-//  u_short pid;
-#endif
-  /*  mutex_t mutex;*/
-} SEM_T;
-
-struct MCPPortBind_t {
-  char   protocol;
-  char   adressspace;   
-  short  portid;
-  int    retval;
-  void*  data;
-  SEM_T* lock;
-};
 
 #define PSHAL_MSGSIZE    8192
 
@@ -104,11 +77,6 @@ typedef struct PSHALRecvHeader_T {
     INT32		portseqno;	/**< SequenceNo of Port		     */
     long		xheader[0];	/**< begining of extra header */
 } PSHALRecvHeader_t;
-
-
-typedef struct PSHALMCPInfo_T{
-  int trash;
-}PSHALMCPInfo_t;
 
 
 typedef struct PSHALSYSMCPRouting_T{
@@ -329,29 +297,6 @@ void PSHALCopyAndFree(PSHALRecvHeader_t *header,void *srcdata,void *destdata,int
  */
 void PSHALEvaluateNotifications(void);
 
-
-/*------------------------------------------------------------------------------
- * int PSHALSYSSwapoutDataArea()
- */
-/**
- * Unpinns the buffers in the dataarea.
- * @param  dataarea  the dataarea, which holds the pinned buffers 
- * @return    0          on success<br>
- * @return   -ERRNO     on failure
- *
- * This function unpinns all pinned buffers in the dataarea.
- * After that all buffers in the dataarea are regular user buffers,
- * which are no more accessible by DMA. This helps to "swap" out
- * large messages.
- */
-//ToDo: PSDataArea_t undefined void* PSHALSYSSwapoutDataArea(PSDataArea_t* dataarea);
-
-
-
-
-/*------------------------------------------------------------------------------
-  Jens Part
-------------------------------------------------------------------------------*/
 struct PSHALMCPCount_T;
 
 #define PSHAL_INITIAL_RECV_BUFFERS_POSTED	PSM_MAX_HSENDBUFS
@@ -360,10 +305,6 @@ extern unsigned PSHALMaxRecvBuffersPosted; /**< How many RecvBufs should be post
 extern unsigned PSHALMinFreeSendBuffers; /**< Initialized with PSM_MAX_SENDBUFS(for send) */
 #define PSHAL_INITIAL_MAX_PIO_BYTES	250
 extern unsigned PSHALMaxPIOBytes;	/**< How many bytes send with PIO? More bytes with dma*/
-
-extern unsigned PSHAL_SendPIOCount; /**< count packets send via PIO */
-extern unsigned PSHAL_SendDMACount; /**< count packets send via DMA */
-
 
 
 #ifndef __KERNEL__
@@ -718,30 +659,6 @@ int PSHALSYS_SetMCPParam(int Param,int Value);
  */
 int PSHALSYS_GetMCPParam(int Param,unsigned int *Value,char *Name20);
 
-    
-
-char * PSHAL_LookupInstalldir(void);
-void PSHALSYSPrintCount(struct PSHALMCPCount_T* count);
-void PSHALSYSPrintStatus(struct PSHALMCPInfo_T* info);
-int PSHALSYSGetStatus( struct PSHALMCPInfo_T * info, int calctime);
-    
-/*---------------------------------------------------------------------
- * PSHALSYS_AddThread(void);  
- * Increments the number of allowed threads.
- * RETURN: 
- */
-void PSHALSYS_AddThread(void);  
-
-/*---------------------------------------------------------------------
- * PSHALSYS_DelThread(unsigned int pid); 
- * Decrements the number of allowed threads
- * RETURN: 
- */
-void PSHALSYS_DelThread(unsigned int pid); 
-
-
-
-    
     
 #ifdef __cplusplus
 }/* extern "C" */
