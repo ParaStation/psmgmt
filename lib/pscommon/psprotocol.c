@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.c,v 1.3 2002/07/18 12:52:12 eicker Exp $
+ * $Id: psprotocol.c,v 1.4 2002/08/06 08:20:47 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psprotocol.c,v 1.3 2002/07/18 12:52:12 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psprotocol.c,v 1.4 2002/08/06 08:20:47 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -48,10 +48,10 @@ struct PSPctrlmessages_t{
     { PSP_CD_HOSTRESPONSE       ,"PSP_CD_HOSTRESPONSE"       },
     { PSP_CD_NODELISTREQUEST    ,"PSP_CD_NODELISTREQUEST"    },
     { PSP_CD_NODELISTRESPONSE   ,"PSP_CD_NODELISTRESPONSE"   },
-    { PSP_CD_LOADREQUEST        ,"PSP_CD_LOADREQUEST"        },
-    { PSP_CD_LOADRESPONSE       ,"PSP_CD_LOADRESPONSE"       },
-    { PSP_CD_PROCREQUEST        ,"PSP_CD_PROCREQUEST"        },
-    { PSP_CD_PROCRESPONSE       ,"PSP_CD_PROCRESPONSE"       },
+//    { PSP_CD_LOADREQUEST        ,"PSP_CD_LOADREQUEST"        },
+//    { PSP_CD_LOADRESPONSE       ,"PSP_CD_LOADRESPONSE"       },
+//    { PSP_CD_PROCREQUEST        ,"PSP_CD_PROCREQUEST"        },
+//    { PSP_CD_PROCRESPONSE       ,"PSP_CD_PROCRESPONSE"       },
 
     { PSP_CD_HOSTSTATUSREQUEST  ,"PSP_CD_HOSTSTATUSREQUEST"  },
     { PSP_CD_HOSTSTATUSRESPONSE ,"PSP_CD_HOSTSTATUSRESPONSE" },
@@ -78,28 +78,14 @@ struct PSPctrlmessages_t{
     { PSP_DD_STATENOCONNECT     ,"PSP_DD_STATENOCONNECT"     },
 
     { PSP_DD_RESET              ,"PSP_DD_RESET"              },
-    { PSP_DD_RESET_START_REQ    ,"PSP_DD_RESET_START_REQ"    },
-    { PSP_DD_RESET_START_RESP   ,"PSP_DD_RESET_START_RESP"   },
-    { PSP_DD_RESET_DORESET      ,"PSP_DD_RESET_DORESET"      },
-    { PSP_DD_RESET_DONE         ,"PSP_DD_RESET_DONE"         },
-    { PSP_DD_RESET_ABORT        ,"PSP_DD_RESET_ABORT"        },
-    { PSP_DD_RESET_OK           ,"PSP_DD_RESET_OK"           },
 
     { PSP_CD_RESET              ,"PSP_CD_RESET"              },
-    { PSP_CD_RESET_START_REQ    ,"PSP_CD_RESET_START_REQ"    },
-    { PSP_CD_RESET_START_RESP   ,"PSP_CD_RESET_START_RESP"   },
-    { PSP_CD_RESET_DORESET      ,"PSP_CD_RESET_DORESET"      },
-    { PSP_CD_RESET_DONE         ,"PSP_CD_RESET_DONE"         },
-    { PSP_CD_RESET_ABORT        ,"PSP_CD_RESET_ABORT"        },
-    { PSP_CD_RESET_OK           ,"PSP_CD_RESET_OK"           },
 
     { PSP_DD_DAEMONCONNECT      ,"PSP_DD_DAEMONCONNECT"      }, 
     { PSP_DD_DAEMONESTABLISHED  ,"PSP_DD_DAEMONESTABLISHED"  }, 
     { PSP_DD_DAEMONSTOP         ,"PSP_DD_DAEMONSTOP"         }, 
     { PSP_CD_DAEMONSTOP         ,"PSP_CD_DAEMONSTOP"         }, 
 
-    { PSP_DD_NEWPROCESS         ,"PSP_DD_NEWPROCESS"         },
-    { PSP_DD_DELETEPROCESS      ,"PSP_DD_DELETEPROCESS"      }, 
     { PSP_DD_CHILDDEAD          ,"PSP_DD_CHILDDEAD"          },
 
     {0,NULL}

@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.7 2002/07/31 09:02:14 eicker Exp $
+ * $Id: psprotocol.h,v 1.8 2002/08/06 08:21:11 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation client-daemon and daemon-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.7 2002/07/31 09:02:14 eicker Exp $
+ * $Id: psprotocol.h,v 1.8 2002/08/06 08:21:11 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -60,10 +60,10 @@ extern "C" {
 #define PSP_CD_HOSTRESPONSE        0x0019
 #define PSP_CD_NODELISTREQUEST     0x001a
 #define PSP_CD_NODELISTRESPONSE    0x001b
-#define PSP_CD_LOADREQUEST         0x001c  /* Obsolete ? */
-#define PSP_CD_LOADRESPONSE        0x001d  /* Obsolete ? */
-#define PSP_CD_PROCREQUEST         0x001e  /* Obsolete ? */
-#define PSP_CD_PROCRESPONSE        0x001f  /* Obsolete ? */
+//#define PSP_CD_LOADREQUEST         0x001c  /* Obsolete ? */
+//#define PSP_CD_LOADRESPONSE        0x001d  /* Obsolete ? */
+//#define PSP_CD_PROCREQUEST         0x001e  /* Obsolete ? */
+//#define PSP_CD_PROCRESPONSE        0x001f  /* Obsolete ? */
 
 #define PSP_CD_HOSTSTATUSREQUEST   0x0020
 #define PSP_CD_HOSTSTATUSRESPONSE  0x0021
@@ -91,28 +91,14 @@ extern "C" {
 #define PSP_DD_STATENOCONNECT      0x0051
 
 #define PSP_DD_RESET               0x0060
-#define PSP_DD_RESET_START_REQ     0x0061
-#define PSP_DD_RESET_START_RESP    0x0062
-#define PSP_DD_RESET_DORESET       0x0063
-#define PSP_DD_RESET_DONE          0x0064
-#define PSP_DD_RESET_OK            0x0065
-#define PSP_DD_RESET_ABORT         0x0066
 
 #define PSP_CD_RESET               0x0070
-#define PSP_CD_RESET_START_REQ     0x0071
-#define PSP_CD_RESET_START_RESP    0x0072
-#define PSP_CD_RESET_DORESET       0x0073
-#define PSP_CD_RESET_DONE          0x0074
-#define PSP_CD_RESET_OK            0x0075
-#define PSP_CD_RESET_ABORT         0x0076
 
 #define PSP_DD_DAEMONCONNECT       0x0100
 #define PSP_DD_DAEMONESTABLISHED   0x0101
 #define PSP_DD_DAEMONSTOP          0x0102
 #define PSP_CD_DAEMONSTOP          0x0103
 
-#define PSP_DD_NEWPROCESS          0x0110
-#define PSP_DD_DELETEPROCESS       0x0111
 #define PSP_DD_CHILDDEAD           0x0112
 
 /*----------------------------------------------------------------------*/
@@ -162,10 +148,10 @@ typedef struct {
 } DDMsg_t;
 
 /* Load Message */
-typedef struct {
-    DDMsg_t header;        /* header of the message */
-    double load[3];        /* three load values */
-} DDLoadMsg_t;
+//typedef struct {
+//    DDMsg_t header;        /* header of the message */
+//    double load[3];        /* three load values */
+//} DDLoadMsg_t;
 
 /* Error Message */
 typedef struct {
