@@ -1,10 +1,5 @@
 <glossary>
 
-  <glossentry id="ARP">
-    <glossterm>ARP</glossterm>
-    <glosssee otherterm="ARPfull"/>
-  </glossentry>
-
   <glossentry id="ARPfull">
     <glossterm>Address Resolution Protocol</glossterm>
     <glossdef>
@@ -23,6 +18,48 @@
 	address. It is described in the <ulink
 	  url="http://www.faqs.org/rfcs/rfc826.html">RFC 826</ulink>. The ARP
 	is part of the TCP/IP protocol family.
+      </para>
+    </glossdef>
+  </glossentry>
+
+  <glossentry id="AdministrationNetwork">
+    <glossterm>Administration Network</glossterm>
+    <glossdef>
+      <para>
+        The administration network is used for exchanging (meta) data
+        used for administrative tasks between cluster nodes.
+      </para>
+      <para>
+        This network typically carries only a moderate data rate and
+        can be entirely separated from the data network. Almost
+        always, Ethernet (Fast or more and more Gigabit) is used for
+        this purpose. 
+      </para>
+    </glossdef>
+  </glossentry>
+
+  <glossentry id="ARP">
+    <glossterm>ARP</glossterm>
+    <glosssee otherterm="ARPfull"/>
+  </glossentry>
+
+  <glossentry id="DataNetwork">
+    <glossterm>Data Network</glossterm>
+    <glossdef>
+      <para>
+        The data network is used for exchanging data
+        between the compute processes on the cluster nodes. Typically,
+        high bandwidth and low latency is required for this kind of
+        network. 
+      </para>
+      <para>
+        Interconnect types used for this network are Myrinet or
+        Infiniband, and (Gigabit) Ethernet for moderate bandwidth and
+        latency requirements. 
+      </para>
+      <para>
+        Especially for Ethernet based clusters, the administration and
+        data network are often collapsed into a single interconnect.
       </para>
     </glossdef>
   </glossentry>
@@ -56,15 +93,16 @@
   </glossentry>
 
   <glossentry id="forwarder">
-    <glossterm>forwarder</glossterm>
+    <glossterm>Forwarder</glossterm>
     <glosssee otherterm="forwarderfull"/>
   </glossentry>
 
   <glossentry id="logger">
-    <glossterm>logger</glossterm>
+    <glossterm>Logger</glossterm>
     <glosssee otherterm="loggerfull"/>
   </glossentry>
 
+<!-- fg: nomore 
   <glossentry id="MCP">
     <glossterm>MCP</glossterm>
     <glosssee otherterm="MCPfull"/>
@@ -80,10 +118,31 @@
       </para>
     </glossdef>
   </glossentry>
+-->
 
-  <glossentry id="NIC">
-    <glossterm>NIC</glossterm>
-    <glosssee otherterm="NICfull"/>
+  <glossentry id="MasterNode">
+    <glossterm>Master Node</glossterm>
+    <glossdef>
+      <para>
+        Beginning with version 4.1, the evaluation of temporary node
+        lists while spawning new tasks is done only by one particular
+        <citerefentry> 
+          <refentrytitle>psid</refentrytitle>
+          <manvolnum>8</manvolnum> 
+        </citerefentry>
+        within the cluster. The node running this daemon is called
+        <emphasis>master node</emphasis>. 
+      </para>
+      <para>
+        The master node is dynamically selected within the cluster and
+        may change, if the current master node is no longer available.
+        Election is based on the node IDs, refer to
+        <citerefentry> 
+          <refentrytitle>parastation.conf</refentrytitle>
+          <manvolnum>5</manvolnum> 
+        </citerefentry>.
+      </para>
+    </glossdef>
   </glossentry>
 
   <glossentry id="NICfull">
@@ -97,16 +156,24 @@
     </glossdef>
   </glossentry>
 
+  <glossentry id="NIC">
+    <glossterm>NIC</glossterm>
+    <glosssee otherterm="NICfull"/>
+  </glossentry>
+
   <glossentry id="task">
-    <glossterm>parallel task</glossterm>
+    <glossterm>Parallel task</glossterm>
     <glossdef>
       <para>
 	A bunch of <link linkend="process">processes</link> distributed within
 	the cluster forming a parallel application. E.g. a MPI program running
 	on several nodes of a cluster can only act as a whole but consists of
-	individual processes on each node. &ps; knows anout their
-	interrelationship and can handle them as a distributed parallel task
+	individual processes on each node. &ps; knows about their
+	relationship and can handle them as a distributed parallel task
 	running on the cluster.
+      </para>
+      <para>
+        Sometimes also refered as <emphasis>job</emphasis>.
       </para>
     </glossdef>
   </glossentry>
@@ -115,14 +182,16 @@
     <glossterm>&ps; logger</glossterm>
     <glossdef>
       <para>
-	The counterpart to the <xref linkend="forwarderfull"/>. It receives all
-	output collected by the forwarder processes and puts it to the final
-	destination. Furthermore input to the &ps; task is forwarded to a
-	specific process.
+        The counterpart to the <xref linkend="forwarderfull"/>. This
+        process receives all output collected by the forwarder
+        processes and sends it to the final destination, stdout or
+        stderr. Furthermore input to the &ps; task is forwarded to a
+        specific process.
       </para>
       <para>
-	The first process of the task started usually converts to the logger
-	processes after spawning all the other processes of 
+        The first process of the task started usually converts to the
+        logger processes after spawning all the other processes of the
+        parallel task.
       </para>
     </glossdef>
   </glossentry>
@@ -136,19 +205,19 @@
 	to the <xref linkend="loggerfull"/>.
       </para>
       <para>
-	Furthermore the forwareder controls the process and sends information
-	about its exit status when it finishes to the local daemon.
+	Furthermore the forwarder controls the process and sends information
+	about its exit status to the local daemon.
       </para>
     </glossdef>
   </glossentry>
 
   <glossentry id="process">
-    <glossterm>process</glossterm>
+    <glossterm>Process</glossterm>
     <glossdef>
       <para>
 	The atomic part of a <xref linkend="task"/>. A process is at first a
 	standard Unix process. Since &ps; knows about its membership in a
-	parallel task, it can be handled in a peculiar way if a events takes
+	parallel task, it can be handled in a peculiar way if an event takes
 	place on some other node (e.g. another process of the task dies
 	unexpectedly, a signal is send to the task, etc.).
       </para>

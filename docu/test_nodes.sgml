@@ -7,7 +7,7 @@
   <refnamediv>
     <refname>test_nodes</refname>
     <refpurpose>
-      test Myrinet connections within a cluster.
+      test physical connections within a cluster.
     </refpurpose>
   </refnamediv>
 
@@ -23,7 +23,7 @@
   <refsect1>
     <title>Description</title>
     <para>
-      Tests all or some Myrinet connections within a cluster. Therefore the
+      Tests all or some physical (low level) connections within a cluster. Therefore the
       program is started on <replaceable>num</replaceable> nodes. After all
       processes came up correctly, each of them starts to send test packets to
       every other nodes of the cluster. For this purpose the <citerefentry>
@@ -75,7 +75,7 @@
 	  <option>-map</option>
         </term>
 	<listitem>
-	  <para>Don't print complicated messages in case of an error but print
+	  <para>Don't print error messages but rather print
 	    a map with all working connections marked as 1 and all failed
 	    connections as 0.
 	  </para>

@@ -1,52 +1,58 @@
 <chapter id="overview">
-  <title>What is &ps;</title>
+  <title>Overview</title>
   <para>
-    Besides the brief overview on &ps; given within <link linkend="intro">the
-      introduction</link> this chapter will give a more detailed insight
-    concerning the building blocks forming the &ps; system and the main
-    architecure of &ps;.
+    Besides the brief overview on &ps; given within <link
+    linkend="intro">the introduction</link> this chapter will give a
+    more detailed insight concerning the building blocks forming the
+    &ps; system and the main architecure of &ps;.
   </para>
   <para>
-    As already mentioned &ps; consists of two main parts,
+    As already mentioned &ps; consists of the modules
   </para>
   <itemizedlist>
     <listitem>
-      <para>the high performance communication subsystem and</para>
+      <para>high performance communication subsystem and</para>
     </listitem>
     <listitem>
       <para>the cluster management facility.</para>
     </listitem>
   </itemizedlist>
   <para>
-    The first ingredient of &ps; consists mainly of a few libraries and a
-    kernel module. Applications that want to benefit from the &ps;
-    communication system have to be build against these libraries. Furthermore
-    the cluster nodes running this application have to have the kernel module
-    loaded.
+    The communication subsystem of &ps; is composed of a couple of
+    libraries and kernel modules. Applications that want to benefit
+    from the &ps; communication system have to be build against these
+    libraries. Furthermore the cluster nodes running this application
+    have to have the kernel module(s) loaded and the shared versions
+    of the communication libraries loaded, if used.
   </para>
   <para>
-    The management part of &ps; is implemented as a hurd of daemons running on
-    each of the cluster nodes. These daemons constantly gather and interchange
-    information in order to get a unique global view to the cluster.
-    Applications that want to profit from this view to the cluster have to talk
-    to this daemons. This is usually done via an interface implemented in
-    another library. Thus parallel applications have to be linked against this
-    library, too.
+    The management part of &ps; is implemented in a daemon process,
+    running on each of the cluster nodes. These daemons constantly
+    gather and interchange information in order to get a unique global
+    view of the cluster.  Applications that want to profit from this
+    view to the cluster have to talk to this daemons. This is usually
+    done via an interface implemented in another library. Thus
+    parallel applications have to be linked against this library, too.
   </para>
   <para>
-    Both parts of &ps; will be discussed in detail within next sections of this
-    chapter.
+    Both parts of &ps; will be discussed in detail within the next
+    sections of this chapter.
   </para>
   <para>
     In order to preserve the high communication bandwidth of the fast network
-    to the applications, a strict separation between communication and
-    administration traffic is made. Due to this target the Myrinet is only used
-    for the application's communication traffic. The main concept of splitting
-    the two different types of communication is pointed out in <xref
-      linkend="network"/>.
+    to the applications, a strict separation between the application
+    related communication traffic
+    <!-- TODO: fg: application traffic? -->
+    and
+    the network traffic caused by administration tasks is made. 
+    Therefore, the &ps; communication subsystem is only used
+    for the application traffic. The concept of splitting
+    the two different types of communication is shown in <xref
+      linkend="picture_network"/>.
   </para>
 
-  <figure id="network">
+  <figure id="picture_network">
+    <!-- TODO: fg: redo picture!!! -->
     <title>The &ps; network setup.</title>
     <mediaobject>
       <imageobject>
@@ -59,6 +65,7 @@
     </mediaobject>
   </figure>
 
+<!--
   <para>
     By enabling the Myrinet to also handle TCP/IP traffic via a separate
     IP-address bound to the Myrinet-NIC, it is even possible to split this kind
@@ -66,16 +73,27 @@
     the cluster. Yet the decision which network to use on the level of
     different services is possible.
   </para>
+-->
   <para>
-    As also depicted in <xref linkend="network"/> it is possible to have an
-    optional frontend machine not connected by a fast network to the cluster,
-    all the same being fully integrated into the &ps; management system. Thus
-    it is possible to start application from this machine, making it
-    unnecessary for the user to be able to login to every cluster node.
-    Furthermore the front end machine might act as an
-    <filename>home</filename>-directory and compile server for the users.
+    <!-- TODO: fg: redo this paragraph! -->
+    Often both type of communication share the same physical network.
+    Especially for Ethernet based clusters, this is a common
+    architecture. Albeit this may cause performance problems for some
+    parallel applications.
+  </para>
+  <para>
+    As depicted in <xref linkend="picture_network"/> it is possible to have an
+    optional frontend machine not connected by the application network to the
+    cluster, all the same being fully integrated into the &ps;
+    management system. Thus, it is possible to start parallel
+    applications on this machine, making it unnecessary for the user
+    to login or even being able to login to every cluster node.
+    Furthermore, the frontend machine might act as an
+    <filename>home</filename>-directory and compile server for the
+    users.
   </para>
 
+<!--
   <para>
     Most of the statements made within this chapter regarding communication is
     only true for the &ps; 3 version of the software. Due to the fact that
@@ -95,10 +113,105 @@
     versions of &ps;, giving an outstanding potential concerning the simplicity
     and effectivity of both, cluster administration and job management.
   </para>
+-->
 
   <section>
-    <title>The Communication Subsystem</title>
+    <title>The communication subsystem</title>
 
+    <para>
+      The &ps; high speed communication subsystem supports different
+      communication paths and interconnect technologies. Depending on
+      the physically available network(s) and the actual
+      configuration, these interconnects are automatically selected by
+      the communication library.
+    </para>
+    <section>
+      <title>Communication paths</title>
+      <para>
+        &ps4; currently supports a variety communication paths
+        for transfering application data. Not all paths are always
+        available, depending on the physical network(s) and system
+        architecture (uni-processor or SMP) installed and configuration and
+        licensing defined.
+      </para>
+      <para>
+        The following list shows all currently available interconnects
+        <footnote>
+          <para>
+            The next version of &ps; will also support Infiniband.
+          </para>
+        </footnote>
+        and protocols, supported by &ps4;. The list also defines the
+        order used to select a transport by the process management.
+      </para>
+      <variablelist>
+	<varlistentry>
+	  <term>Shared Memory</term>
+	  <listitem>
+	    <para>
+              If two or more processes of a parallel task will run on
+              the same physical node, shared memory will be used for
+              communication between these processes.  This typically
+              happens on SMP nodes, where one process per CPU is
+              spawned.
+	    </para>
+	  </listitem>
+	</varlistentry>
+<!-- TODO: fg: Infiniband 
+	<varlistentry>
+	  <term>Infiniband</term>
+	  <listitem>
+	    <para>
+              TODO.
+	    </para>
+	  </listitem>
+	</varlistentry>
+-->
+	<varlistentry>
+	  <term>Myrinet using GM</term>
+	  <listitem>
+	    <para>
+              <!-- TODO: fg: describe -->
+              This interconnect is only available, if Myrinet and GM
+              is installed on this cluster.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>Ethernet using &ps; protocol p4sock</term>
+	  <listitem>
+	    <para>
+              This is the most effective and therefore prefered
+              protocol for Ethernet based clusters. It is based on the
+              &ps4; specific protocol p4sock.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>Ethernet using TCP</term>
+	  <listitem>
+	    <para>
+              This is the default communication path.
+              In fact, all connections using TCP/IP can be used,
+              independent of the underlying network.
+	    </para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+
+      <para>
+        <!-- TODO: fg: more details -->
+        Independent of the underlying transport networks and 
+        protocols in use, &ps; uses reliable communication.
+      </para>
+      <para>
+        While spawning processes on a cluster, &ps; will decide which
+        interconnect can be used for communication. 
+      </para>
+
+    </section>
+
+<!--
     <para>
       The high speed communication subsystem consists of different
       constituents. Besides own firmware and device drivers running the
@@ -139,10 +252,23 @@
 	network is running in the region of saturation.
       </para>
     </section>
+-->
 
     <section>
       <title>User level communication</title>
 
+      <para>
+        Whenever possible, &ps; uses user level communication to
+        speedup communication. 
+        This concept
+	circumvents the operating system in order to do communication and fades
+	in the communication hardware into the application's address space.
+      </para>
+      <para>
+        However, this is not always possible. &ps4; uses this approach
+        for shared memory and Myrinet based communication.
+      </para>
+<!--
       <figure id="comm_approach">
 	<title>The &ps; approach for communication.</title>
 	<mediaobject>
@@ -179,11 +305,17 @@
 	The concept of user level communication is schematically depicted in
 	<xref linkend="comm_approach"/>.
       </para>
+-->
     </section>
 
     <section>
       <title>Communication interfaces</title>
 
+      <para>
+        &ps4; provides several communication interfaces, suitable for
+        different levels of functionality and environments.
+      </para>
+<!--
       <figure id="comm_interface">
 	<title>The &ps; communication interfaces.</title>
 	<mediaobject>
@@ -210,7 +342,9 @@
 	the various layers of the &ps; communication subsystem. Furthermore an
 	overview of the available interfaces is given.
       </para>
+-->
       <variablelist>
+<!--
 	<varlistentry>
 	  <term><emphasis role="bold">PSHAL</emphasis></term>
 	  <listitem>
@@ -240,6 +374,7 @@
 	    </para>
 	  </listitem>
 	</varlistentry>
+-->
 
 	<varlistentry>
 	  <term><emphasis role="bold">PSPort</emphasis></term>
@@ -274,9 +409,14 @@
 		<para>Control Data possible in every message.</para>
 	      </listitem>
 	    </itemizedlist>
+            <para>
+              The PSPort interface is encapsulated in the library
+              <filename>libpsport.a</filename>. 
+            </para>
 	  </listitem>
 	</varlistentry>
 
+<!--
 	<varlistentry>
 	  <term><emphasis role="bold">Socket</emphasis></term>
 	  <listitem>
@@ -295,6 +435,35 @@
 		<para>Fully transparent towards applications.</para>
 	      </listitem>
 	    </itemizedlist>
+	  </listitem>
+	</varlistentry>
+-->
+
+	<varlistentry>
+	  <term><emphasis role="bold">TCP bypass</emphasis></term>
+	  <listitem>
+            <para>
+              This Linux kernel extension redirects network traffic
+              within a cluster from the
+              TCP layer to the &ps; p4sock protocol layer.
+              Due to the very small overhead of this protocol,
+              this bypass functionality
+              increases performance and lowers latencies seen by the
+              application.
+            </para>
+            <para>
+              The application does not recognize this redirection of
+              network packets and needn't be modified in any way.
+              Also, the user does not have to take any special steps
+              to use this performance feature.
+            </para>
+            <note>
+              <para>
+                This feature of &ps; is still experimental in version
+                4.1.1. For details, please contact
+                <email>support@par-tec.com</email>.
+              </para>
+            </note>
 	  </listitem>
 	</varlistentry>
 
@@ -347,7 +516,8 @@
 	    </para>
 	    <itemizedlist>
 	      <listitem>
-		<para>Enable Remote Method Invocation over Myrinet.</para>
+		<para>Enable Remote Method Invocation over all
+                supported interconnects.</para>
 	      </listitem>
 	      <listitem>
 		<para>Serialization of objects is provided.</para>
@@ -360,7 +530,7 @@
   </section>
 
   <section>
-    <title>The Cluster Management facility</title>
+    <title>The cluster management facility</title>
     <para>
       In addition to the pure communication tasks that build the primary
       requirements of parallel application running on a cluster, further
@@ -372,7 +542,7 @@
     </para>
     <variablelist>
       <varlistentry>
-	<term><emphasis role="bold">Node Management</emphasis></term>
+	<term><emphasis role="bold">Node management</emphasis></term>
 	<listitem>
 	  <para>The management system should automatically detect usable
 	    nodes. The ability to administrate this nodes from a central point
@@ -433,41 +603,41 @@
     </para>
     <itemizedlist>
       <listitem>
-	<para>The recovery and distribution of local informations like the
+	<para>recovery and distribution of local informations like the
 	  local load values, the state of the locally controlled processes or
 	  the condition of local communication interface,
 	</para>
       </listitem>
       <listitem>
-	<para>the status control of the cluster by receiving the information
+	<para>status control of the cluster by receiving the information
 	  from all other daemons,
 	</para>
       </listitem>
       <listitem>
-	<para>the initialization and the status control of the local
+	<para>initialization and the status control of the local
 	  communication layer,
 	</para>
       </listitem>
       <listitem>
-	<para>the startup of local processes on request of local or remote
+	<para>startup of local processes on request of local or remote
 	  processes,
 	</para>
       </listitem>
       <listitem>
-	<para>the control of the locally started processes,
+	<para>control of the locally started processes,
 	</para>
       </listitem>
       <listitem>
-	<para>the transmission of input and output of the locally controlled
+	<para>transmission of input and output of the locally controlled
 	  processes,
 	</para>
       </listitem>
       <listitem>
-	<para>the forwarding of signals to the locally controlled processes and
+	<para>forwarding of signals to the locally controlled processes and
 	</para>
       </listitem>
       <listitem>
-	<para>the provision of an interface to the &ps; cluster management
+	<para>provision of an interface to the &ps; cluster management
 	  environment.
 	</para>
       </listitem>
@@ -478,10 +648,18 @@
       <para>
 	In order to provide a fault tolerant node management, &ps; uses the
 	concept of virtual nodes in contrast to the classical approach of
-	handling statical node list. The main idea of this concept is the fact,
+	handling statical node lists. 
+        The idea behind this concept is not to manage nodes by
+        lists of hostnames provided by the user, but to provide a pool
+        of virtual nodes and request nodes from this list at startup
+        time.
+<!--
+        The main idea of this concept is the fact,
 	that nodes are not managed by their hostnames put into some lists by
-	the users but to have a pool of virtual nodes. These virtual nodes of
-	course represent the physical nodes available. On the other hand users
+	the users but to have a pool of virtual nodes. 
+-->
+        These virtual nodes of
+	course represent the physical nodes available. Users
 	normally do not request for special nodes but for a set of virtual
 	nodes.
       </para>
@@ -495,10 +673,10 @@
 	as long as enough nodes are available.
       </para>
       <para>
-	Albeit the request of special nodes is unnecessary due to the virtual
-	node concept, a defined set of nodes may be requested, too. This
+	Albeit the request of selected nodes is not necessary due to the virtual
+	node concept, it is still possible. This
 	behavior is quite usefull in the case where a virtual partitioning of
-	the cluster steered by an external batch system is wanted.
+	the cluster controlled by an external batch system is desired.
       </para>
       <para>
 	Normally the user will request for any N nodes. &ps; then decides which
@@ -510,6 +688,7 @@
 	Further request for virtual nodes posted by any other user will
 	recognize the processes of this parallel task and take them into
 	account when processes have to be spawned, too.
+        <!-- TODO: fg: describe load balancing -->
       </para>
       <para>
 	The details of process distribution within the startup of parallel
@@ -526,8 +705,8 @@
 	temporarily unavailable.
       </para>
       <para>
-	Nevertheless &ps; offers further mechanisms in order to increase the
-	reliability and stability of the cluster system. E.g. if a node failes
+	In addition, &ps; offers mechanisms in order to increase the
+	reliability and stability of the cluster system. E.g. if a node fails
 	while it is utilized by parallel tasks, this task will be shut down in
 	a controlled manner. Thus the remaining nodes that where used by this
 	task will be cleaned up and released for further jobs.
@@ -545,13 +724,13 @@
       <title>Process management</title>
       <para>
 	The management facility of &ps; offers a complete process management
-	system. Within this complex &ps; recognices and controls dependencies
+	system. &ps; recognices and controls dependencies
 	between processes building a parallel task on various nodes of the
 	cluster.
       </para>
       <para>
-	The process management includes the possibility to create processes on
-	remote nodes, the control of the I/O channels of these remotely started
+	The process management includes creation of processes on
+	remote nodes, control of the I/O channels of these remotely started
 	processes and the management of signals across node boundaries.
       </para>
       <para>
@@ -562,12 +741,12 @@
 	  <refentrytitle>psid</refentrytitle>
 	  <manvolnum>8</manvolnum>
 	</citerefentry> is constantly in a stand-by mode in order to start
-	these processes. Therefore no further login or authentification
+	these processes. No further login or authentification
 	overhead is necessary.
       </para>
       <para>
 	Since &ps; knows about the dependencies between the processes building
-	a parallel task it can take them into account. The processes are no
+	a parallel task it is able to take them into account. The processes are no
 	longer independent but form a task in the same sense as the nodes no
 	longer are independent computers but form the cluster as a unique
 	system. The fact that &ps; handles distributed processes as a unit,
@@ -592,19 +771,20 @@
     </section>
 
     <section>
-      <title>Job control &amp; Error management</title>
+      <title>Job control &amp; error management</title>
       <para>
-	Beside the job control already discussed in the last section, error
+	Beside the job control already discussed in the previous section, error
+        <!-- TODO: fg: bad english -->
 	management plays an important role in order to run a cluster without
 	much administrative engagement on a day to day basis. It is
-	unacceptable to clean up remaining processes of crashed parallel task
+	not acceptable to have to clean up remaining processes of crashed parallel task
 	by hand, to lose output due to erroneous processes or to leave the user
 	without meaningful error messages after a parallel task has failed.
       </para>
       <para>
 	&ps; supports the administrator and the end user within this complex.
 	Since the management facility controls all processes that were notified
-	towards &ps;, it is capable to take action in the case that one of the
+	towards &ps;, it is capable to take actions in the case that one of the
 	processes fails.
       </para>
       <para>
@@ -620,7 +800,7 @@
       <para>
 	Besides the fact that all output that was <quote>on the line</quote>
 	when the failure took place will reach its final destination, the user
-	will get feedback about the kind error that crashed the process. This
+	will get feedback about the kind of error that crashed the process. This
 	feedback is usually of the form <quote>Got
 	  <replaceable>sigxxx</replaceable> on node
 	  <replaceable>nodenum</replaceable></quote>.

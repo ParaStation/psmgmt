@@ -1,4 +1,5 @@
 <refentry id="psiadmin">
+<!-- TODO: fg: freeOnSuspend -->
   <refmeta>
     <refentrytitle>psiadmin</refentrytitle>
     <manvolnum>1</manvolnum>
@@ -40,67 +41,67 @@
     <title>Options</title>
     <variablelist>
       <varlistentry>
-	<term>
-	  <option>-c</option>
-	  <option>, --command=<replaceable>command</replaceable></option>
+        <term>
+          <option>-c</option>
+          <option>, --command=<replaceable>command</replaceable></option>
         </term>
-	<listitem>
-	  <para>Execute the single directive <command>command</command> and
-	    exit.
-	  </para>
-	</listitem>
+        <listitem>
+          <para>Execute the single directive <command>command</command> and
+            exit.
+          </para>
+        </listitem>
       </varlistentry>
       <varlistentry>
-	<term>
-	  <option>-e</option>
-	  <option>, --echo</option>
+        <term>
+          <option>-e</option>
+          <option>, --echo</option>
         </term>
-	<listitem>
-	  <para>Echo each executed directive to stdout.</para>
-	</listitem>
+        <listitem>
+          <para>Echo each executed directive to stdout.</para>
+        </listitem>
       </varlistentry>
       <varlistentry>
-	<term>
-	  <option>-s</option>
-	  <option>, --start-all</option>
+        <term>
+          <option>-s</option>
+          <option>, --start-all</option>
         </term>
-	<listitem>
-	  <para>Try to start all daemons within the cluster. This option is
-	    equivalent to the execution of the <command>add</command> directive
-	    straight after the startup of the administation tool.</para>
-	</listitem>
+        <listitem>
+          <para>Try to start all daemons within the cluster. This option is
+            equivalent to the execution of the <command>add</command> directive
+            straight after the startup of the administation tool.</para>
+        </listitem>
       </varlistentry>
       <varlistentry>
-	<term>
-	  <option>-r</option>
-	  <option>, --reset</option>
+        <term>
+          <option>-r</option>
+          <option>, --reset</option>
         </term>
-	<listitem>
-	  <para>Do a reset of the &ps; system on startup.</para>
-	</listitem>
+        <listitem>
+          <para>Do a reset of the &ps; system on startup.</para>
+        </listitem>
       </varlistentry>
       <varlistentry>
-	<term>
-	  <option>-v</option>
-	  <option>, --version</option>
+        <term>
+          <option>-v</option>
+          <option>, --version</option>
         </term>
-	<listitem>
-	  <para>Output version information and exit.</para>
-	</listitem>
+        <listitem>
+          <para>Output version information and exit.</para>
+        </listitem>
       </varlistentry>
       <varlistentry>
-	<term>
-	  <option>-?</option>
-	  <option>, --help</option>
+        <term>
+          <option>-?</option>
+          <option>, --help</option>
         </term>
-	<listitem>
-	  <para>Show a help message.</para>
-	</listitem>
+        <listitem>
+          <para>Show a help message.</para>
+        </listitem>
       </varlistentry>
       <varlistentry>
-	<term>
-	  <option>--usage</option>
-	</term>
+        <term>
+          <option>--usage</option>
+        </term>
         <listitem>
           <para>Display a brief usage message.</para>
         </listitem>
@@ -141,7 +142,8 @@
     <title>Extended description</title>
     <para>
       If psiadmin is invoked without the <option>-c</option> option and
-      standard output is connected to a terminal, psiadmin will write a prompt
+      standard output is connected to a terminal, psiadmin will
+      repeatedly write a prompt
       to standard output and read a directive from standard input.
     </para>
     <para>
@@ -162,797 +164,824 @@
     <para>
       When the psiadmin is started, it will prompt for directives.
     </para>
+<!-- fg:
     <para>
       Most directive share the options <option><optional>from
-	  <optional>to</optional></optional></option> marking a range of nodes
+          <optional>to</optional></optional></option> marking a range of nodes
       managed by &ps;. If <option>to</option> is missing, only the single node
       <option>from</option> is selected. All nodes are selected, if
       <option>from</option> is missing, too.
     </para>
+-->
     <para>
-      <option>from</option> and <option>to</option> may either be symbolic
-      hostnames or nodenumbers. Nodenumbers can be given in decimal or
-      hexadecimal notation and must be in the range between
-      <constant>0</constant> and <constant>NumberOfNodes-1</constant>.
+      Almost all directives accept an additional parameter
+      <option><optional>nodelist</optional></option> forming a
+      list of nodes to run on.  Multiple <option>nodes</option> can be
+      listed, separated by comma. Ranges of nodes are also possible,
+      expressed by <option>from</option>&dash;<option>to</option>.
     </para>
+    <para>
+      <option>Node</option>, <option>from</option> and
+      <option>to</option> may either be symbolic hostnames or
+      node IDs. The node IDs can be given in decimal or hexadecimal
+      notation and must be in the range between <constant>0</constant>
+      and <constant>NumberOfNodes-1</constant>.
+    </para>
+    <note>
+      <para>
+        Using node names containing "&dash;" will confuse this algorithm
+        and is therefore not recommended.
+      </para>
+    </note>
     
     <variablelist>
 
       <varlistentry>
-	<term>
-	  <cmdsynopsis>
-	    <command>add</command>
-	    <arg>from <arg>to</arg></arg>
-	  </cmdsynopsis>
-	</term>
-	<listitem>
-	  <para>Start the &ps; daemon <xref linkend="psid"/> on the selected
-	    node(s)	    
-	  </para>
-	  <para>
-	    <command>add</command> only tries to start the &ps; daemon on the
-	    selected node(s). If it is not possible to start the daemon, no
-	    error message occurs. The current status of the nodes can be
-	    checked using the directive <command>status</command>.
-	  </para>
-	</listitem>
+        <term>
+          <cmdsynopsis>
+            <command>add</command>
+            <arg>nodelist</arg>
+          </cmdsynopsis>
+        </term>
+        <listitem>
+          <para>Start the &ps; daemon <xref linkend="psid"/> on the selected
+            node(s)            
+          </para>
+          <para>
+            <command>add</command> only tries to start the &ps; daemon on the
+            selected node(s). If it is not possible to start the daemon, no
+            error message occurs. The current status of the nodes can be
+            checked using the directive <command>status</command>.
+          </para>
+        </listitem>
       </varlistentry>
 
       <varlistentry>
-	<term>
-	  <cmdsynopsis>
-	    <command>exit</command>
-	  </cmdsynopsis>
-	</term>
-	<listitem>
-	  <para>Exit the interactive mode of psiadmin. Same as
-	    <command>quit</command>.
-	  </para>
-	</listitem>
+        <term>
+          <cmdsynopsis>
+            <command>exit</command>
+          </cmdsynopsis>
+        </term>
+        <listitem>
+          <para>Exit the interactive mode of psiadmin. Same as
+            <command>quit</command>.
+          </para>
+        </listitem>
       </varlistentry>
 
       <varlistentry>
-	<term>
-	  <cmdsynopsis>
-	    <command>help</command>
-	    <arg><replaceable>directive</replaceable></arg>
-	  </cmdsynopsis>
-	</term>
-	<listitem>
-	  <para>Print a general help message or a help message concerning
-	    <option><replaceable>directive</replaceable></option>.
-	  </para>
-	</listitem>
+        <term>
+          <cmdsynopsis>
+            <command>help</command>
+            <arg><replaceable>directive</replaceable></arg>
+          </cmdsynopsis>
+        </term>
+        <listitem>
+          <para>Print a general help message or a help message concerning
+            <option><replaceable>directive</replaceable></option>.
+          </para>
+        </listitem>
       </varlistentry>
 
       <varlistentry>
-	<term>
-	  <cmdsynopsis>
-	    <command>kill</command>
-	    <arg><replaceable>-sig</replaceable></arg>
-	    <arg choice="plain"><replaceable>tid</replaceable></arg>
-	  </cmdsynopsis>
-	</term>
-	<listitem>
-	  <para>Send the process with the task ID <option>tid</option> the
-	    signal <replaceable>sig</replaceable>.
-	  </para>
-	  <para>
-	    <replaceable>sig</replaceable> has to be a positive number
-	    representing a UNIX signal. For a list of available signals please
-	    consult the <citerefentry>
-	      <refentrytitle>signal</refentrytitle>
-	      <manvolnum>7</manvolnum>
-	    </citerefentry> manual page. If <replaceable>sig</replaceable> is
-	    not given, a SIGTERM signal (i.e. 15) is sent to the corresponding
-	    process.
-	  </para>
-	  <para>
-	    Processes can only be signaled by the user who ownes the process or
-	    by root.
-	  </para>
-	</listitem>
+        <term>
+          <cmdsynopsis>
+            <command>kill</command>
+            <arg><replaceable>-sig</replaceable></arg>
+            <arg choice="plain"><replaceable>tid</replaceable></arg>
+          </cmdsynopsis>
+        </term>
+        <listitem>
+          <para>Send the process with the task ID <option>tid</option> the
+            signal <replaceable>sig</replaceable>.
+          </para>
+          <para>
+            <replaceable>sig</replaceable> has to be a positive number
+            representing a UNIX signal. For a list of available signals please
+            consult the <citerefentry>
+              <refentrytitle>signal</refentrytitle>
+              <manvolnum>7</manvolnum>
+            </citerefentry> manual page. If <replaceable>sig</replaceable> is
+            not given, a SIGTERM signal (i.e. 15) is sent to the corresponding
+            process.
+          </para>
+          <para>
+            Processes can only be signaled by the user who ownes the process or
+            by root.
+          </para>
+        </listitem>
       </varlistentry>
 
       <varlistentry>
-	<term>
-	  <cmdsynopsis>
-	    <command>quit</command>
-	  </cmdsynopsis>
-	</term>
-	<listitem>
-	  <para>Exit the interactive mode of psiadmin. Same as
-	    <command>exit</command>.
-	  </para>
-	</listitem>
+        <term>
+          <cmdsynopsis>
+            <command>quit</command>
+          </cmdsynopsis>
+        </term>
+        <listitem>
+          <para>Exit the interactive mode of psiadmin. Same as
+            <command>exit</command>.
+          </para>
+        </listitem>
       </varlistentry>
 
       <varlistentry>
-	<term>
-	  <cmdsynopsis>
-	    <command>show</command>
-	    <group choice="req">
-	      <arg choice="plain">user</arg>
-	      <arg choice="plain">group</arg>
-	      <arg choice="plain">maxproc</arg>
-	      <arg choice="plain">smallpacketsize</arg>
-	      <arg choice="plain">resendtimeout</arg>
-	      <arg choice="plain">hnpend</arg>
-	      <arg choice="plain">ackpend</arg>
-	      <arg choice="plain">selecttime</arg>
-	      <arg choice="plain">psiddebug</arg>
-	      <arg choice="plain">rdpdebug</arg>
-	      <arg choice="plain">mcastdebug</arg>
-	    </group>
-	    <arg>from <arg>to</arg></arg>
-	  </cmdsynopsis>
-	</term>
-	<listitem>
-	  <para>Show various parameters of the &ps; system.
-	  </para>
-	  <variablelist>
-	    <varlistentry>
-	      <term>
-		<cmdsynopsis>
-		  <command>user</command>
-		  <arg>from <arg>to</arg></arg>
-		</cmdsynopsis>
-	      </term>
-	      <listitem>
-		<para>Show who grants exclusiv access on the selected node(s).
-		</para>
-	      </listitem>
-	    </varlistentry>
+        <term>
+          <cmdsynopsis>
+            <command>show</command>
+            <group choice="req">
+              <arg choice="plain">user</arg>
+              <arg choice="plain">group</arg>
+              <arg choice="plain">maxproc</arg>
+<!-- fg: no more myrinet
+              <arg choice="plain">smallpacketsize</arg>
+              <arg choice="plain">resendtimeout</arg>
+              <arg choice="plain">hnpend</arg>
+              <arg choice="plain">ackpend</arg>
+-->
+              <arg choice="plain">selecttime</arg>
+              <arg choice="plain">psiddebug</arg>
+              <arg choice="plain">rdpdebug</arg>
+              <arg choice="plain">mcastdebug</arg>
+            </group>
+            <arg>nodelist</arg>
+          </cmdsynopsis>
+        </term>
+        <listitem>
+          <para>Show various parameters of the &ps; system.
+          </para>
+          <variablelist>
+            <varlistentry>
+              <term>
+                <cmdsynopsis>
+                  <command>user</command>
+                  <arg>nodelist</arg>
+                </cmdsynopsis>
+              </term>
+              <listitem>
+                <para>Show who grants exclusiv access on the selected node(s).
+                </para>
+              </listitem>
+            </varlistentry>
 
-	    <varlistentry>
-	      <term>
-		<cmdsynopsis>
-		  <command>group</command>
-		  <arg>from <arg>to</arg></arg>
-		</cmdsynopsis>
-	      </term>
-	      <listitem>
-		<para>Show which group grants exclusiv access on the selected
-		  node(s).
-		</para>
-	      </listitem>
-	    </varlistentry>
+            <varlistentry>
+              <term>
+                <cmdsynopsis>
+                  <command>group</command>
+                  <arg>nodelist</arg>
+                </cmdsynopsis>
+              </term>
+              <listitem>
+                <para>Show which group grants exclusiv access on the selected
+                  node(s).
+                </para>
+              </listitem>
+            </varlistentry>
 
-	    <varlistentry>
-	      <term>
-		<cmdsynopsis>
-		  <command>maxproc</command>
-		  <arg>from <arg>to</arg></arg>
-		</cmdsynopsis>
-	      </term>
-	      <listitem>
-		<para>Show the maximum number of &ps; processes on the selected
-		  node(s).
-		</para>
-	      </listitem>
-	    </varlistentry>
+            <varlistentry>
+              <term>
+                <cmdsynopsis>
+                  <command>maxproc</command>
+                  <arg>nodelist</arg>
+                </cmdsynopsis>
+              </term>
+              <listitem>
+                <para>Show the maximum number of &ps; processes on the selected
+                  node(s).
+                </para>
+              </listitem>
+            </varlistentry>
 
-	    <varlistentry>
-	      <term>
-		<cmdsynopsis>
-		  <command>smallpacketsize</command>
-		  <arg>from <arg>to</arg></arg>
-		</cmdsynopsis>
-	      </term>
-	      <listitem>
-		<para>Show the the maximum number of bytes of PIO packets on
-		  the selected node(s).
-		</para>
-		<para>
-		  PIO packets are send directly to the node's memory by the
-		  <xref linkend="MCP"/> and copied by a <citerefentry>
-		    <refentrytitle>memcpy</refentrytitle>
-		    <manvolnum>3</manvolnum>
-		  </citerefentry> into the final destination. Non-PIO packets
-		  are send via <xref linkend="DMA"/> immediately to
-		  their final destination.
-		</para>
-	      </listitem>
-	    </varlistentry>
+<!-- fg: no more myrinet
+            <varlistentry>
+              <term>
+                <cmdsynopsis>
+                  <command>smallpacketsize</command>
+                  <arg>from <arg>to</arg></arg>
+                </cmdsynopsis>
+              </term>
+              <listitem>
+                <para>Show the the maximum number of bytes of PIO packets on
+                  the selected node(s).
+                </para>
+                <para>
+                  PIO packets are send directly to the node's memory by the
+                  <xref linkend="MCP"/> and copied by a <citerefentry>
+                    <refentrytitle>memcpy</refentrytitle>
+                    <manvolnum>3</manvolnum>
+                  </citerefentry> into the final destination. Non-PIO packets
+                  are send via <xref linkend="DMA"/> immediately to
+                  their final destination.
+                </para>
+              </listitem>
+            </varlistentry>
 
-	    <varlistentry>
-	      <term>
-		<cmdsynopsis>
-		  <command>resendtimeout</command>
-		  <arg>from <arg>to</arg></arg>
-		</cmdsynopsis>
-	      </term>
-	      <listitem>
-		<para>Show the retansmission timeout on the selected node(s).
-		  This parameter is in units of microseconds.
-		</para>
-		<para>
-		  If a packet sent by &ps; to another node is not acknowledged
-		  for this period of time, it will be resend to this node.
-		</para>
-	      </listitem>
-	    </varlistentry>
-	    
-	    <varlistentry>
-	      <term>
-		<cmdsynopsis>
-		  <command>hnpend</command>
-		  <arg>from <arg>to</arg></arg>
-		</cmdsynopsis>
-	      </term>
-	      <listitem>
-		<para>Show the number of pending host notify messages on the
-		  selected node(s).
-		</para>
-		<para>
-		  Host notify messages are send by the <xref linkend="MCP"/> to
-		  the kernel to mark send buffers as free. This is done when
-		  data, that was sent successfully via this buffer, was
-		  acknowledged by the destination node.
-		</para>
-		<para>
-		  Usually not every free buffer is communicated, but the <xref
-		    linkend="MCP"/> waits until several buffers are freed and
-		  sends accumulated host notify messages then.
-		</para>
-	      </listitem>
-	    </varlistentry>
+            <varlistentry>
+              <term>
+                <cmdsynopsis>
+                  <command>resendtimeout</command>
+                  <arg>from <arg>to</arg></arg>
+                </cmdsynopsis>
+              </term>
+              <listitem>
+                <para>Show the retansmission timeout on the selected node(s).
+                  This parameter is in units of microseconds.
+                </para>
+                <para>
+                  If a packet sent by &ps; to another node is not acknowledged
+                  for this period of time, it will be resend to this node.
+                </para>
+              </listitem>
+            </varlistentry>
+            
+            <varlistentry>
+              <term>
+                <cmdsynopsis>
+                  <command>hnpend</command>
+                  <arg>from <arg>to</arg></arg>
+                </cmdsynopsis>
+              </term>
+              <listitem>
+                <para>Show the number of pending host notify messages on the
+                  selected node(s).
+                </para>
+                <para>
+                  Host notify messages are send by the <xref linkend="MCP"/> to
+                  the kernel to mark send buffers as free. This is done when
+                  data, that was sent successfully via this buffer, was
+                  acknowledged by the destination node.
+                </para>
+                <para>
+                  Usually not every free buffer is communicated, but the <xref
+                    linkend="MCP"/> waits until several buffers are freed and
+                  sends accumulated host notify messages then.
+                </para>
+              </listitem>
+            </varlistentry>
 
-	    <varlistentry>
-	      <term>
-		<cmdsynopsis>
-		  <command>ackpend</command>
-		  <arg>from <arg>to</arg></arg>
-		</cmdsynopsis>
-	      </term>
-	      <listitem>
-		<para>Show the maximum number of pending acknowledgements on
-		  the selected node(s).
-		</para>
-		<para>
-		  &ps; usually does not send acknowledgements immediately but
-		  waits for some pending ACK messages and send them
-		  accumulated.
-		</para>
-		<para>
-		  If a packet is not acknowledged for some microsecond (the
-		  actual value can be determined using the directive
-		  <command>show <option>resendtimeout</option></command>) it
-		  will be resend by the source node. If a packet is received
-		  twice by the destination node, a immediate ACK message is
-		  sent and therefore correct delivery of packets is ensured.
-		</para>
-	      </listitem>
-	    </varlistentry>
+            <varlistentry>
+              <term>
+                <cmdsynopsis>
+                  <command>ackpend</command>
+                  <arg>from <arg>to</arg></arg>
+                </cmdsynopsis>
+              </term>
+              <listitem>
+                <para>Show the maximum number of pending acknowledgements on
+                  the selected node(s).
+                </para>
+                <para>
+                  &ps; usually does not send acknowledgements immediately but
+                  waits for some pending ACK messages and send them
+                  accumulated.
+                </para>
+                <para>
+                  If a packet is not acknowledged for some microsecond (the
+                  actual value can be determined using the directive
+                  <command>show <option>resendtimeout</option></command>) it
+                  will be resend by the source node. If a packet is received
+                  twice by the destination node, a immediate ACK message is
+                  sent and therefore correct delivery of packets is ensured.
+                </para>
+              </listitem>
+            </varlistentry>
+-->
 
-	    <varlistentry>
-	      <term>
-		<cmdsynopsis>
-		  <command>selecttime</command>
-		  <arg>from <arg>to</arg></arg>
-		</cmdsynopsis>
-	      </term>
-	      <listitem>
-		<para>Show the timeout of the central <citerefentry>
-		    <refentrytitle>select</refentrytitle>
-		    <manvolnum>2</manvolnum>
-		  </citerefentry> of the &ps; daemon <xref linkend="psid"/> on
-		  the selected node(s).
-		</para>
-	      </listitem>
-	    </varlistentry>
+            <varlistentry>
+              <term>
+                <cmdsynopsis>
+                  <command>selecttime</command>
+                  <arg>nodelist</arg>
+                </cmdsynopsis>
+              </term>
+              <listitem>
+                <para>Show the timeout of the central <citerefentry>
+                    <refentrytitle>select</refentrytitle>
+                    <manvolnum>2</manvolnum>
+                  </citerefentry> of the &ps; daemon <xref linkend="psid"/> on
+                  the selected node(s).
+                </para>
+              </listitem>
+            </varlistentry>
 
-	    <varlistentry>
-	      <term>
-		<cmdsynopsis>
-		  <command>psiddebug</command>
-		  <arg>from <arg>to</arg></arg>
-		</cmdsynopsis>
-	      </term>
-	      <listitem>
-		<para>Show the debugging level of the &ps; daemon <xref
-		    linkend="psid"/> on the selected node(s).
-		</para>
-	      </listitem>
-	    </varlistentry>
+            <varlistentry>
+              <term>
+                <cmdsynopsis>
+                  <command>psiddebug</command>
+                  <arg>nodelist</arg>
+                </cmdsynopsis>
+              </term>
+              <listitem>
+                <para>Show the debugging level of the &ps; daemon <xref
+                    linkend="psid"/> on the selected node(s).
+                </para>
+              </listitem>
+            </varlistentry>
 
-	    <varlistentry>
-	      <term>
-		<cmdsynopsis>
-		  <command>rdpdebug</command>
-		  <arg>from <arg>to</arg></arg>
-		</cmdsynopsis>
-	      </term>
-	      <listitem>
-		<para>Show the debugging level of the RDP protocol within the
-		  &ps; daemon <xref linkend="psid"/> on the selected node(s).
-		</para>
-	      </listitem>
-	    </varlistentry>
+            <varlistentry>
+              <term>
+                <cmdsynopsis>
+                  <command>rdpdebug</command>
+                  <arg>nodelist</arg>
+                </cmdsynopsis>
+              </term>
+              <listitem>
+                <para>Show the debugging level of the RDP protocol within the
+                  &ps; daemon <xref linkend="psid"/> on the selected node(s).
+                </para>
+              </listitem>
+            </varlistentry>
 
-	    <varlistentry>
-	      <term>
-		<cmdsynopsis>
-		  <command>mcastdebug</command>
-		  <arg>from <arg>to</arg></arg>
-		</cmdsynopsis>
-	      </term>
-	      <listitem>
-		<para>Show the debugging level of the MCast protocol within the
-		  &ps; daemon <xref linkend="psid"/> on the selected node(s).
-		</para>
-	      </listitem>
-	    </varlistentry>
-	    
-	  </variablelist>
-	</listitem>
+            <varlistentry>
+              <term>
+                <cmdsynopsis>
+                  <command>mcastdebug</command>
+                  <arg>nodelist</arg>
+                </cmdsynopsis>
+              </term>
+              <listitem>
+                <para>Show the debugging level of the MCast protocol within the
+                  &ps; daemon <xref linkend="psid"/> on the selected node(s).
+                </para>
+              </listitem>
+            </varlistentry>
+            
+          </variablelist>
+        </listitem>
       </varlistentry>
 
       <varlistentry>
-	<term>
-	  <cmdsynopsis>
-	    <command>status</command>
-	    <group>
-	      <arg choice="plain">node</arg>
-	      <arg choice="plain">proc</arg>
-	      <arg choice="plain">allproc</arg>
-	      <arg choice="plain">load</arg>
-	      <arg choice="plain">hw</arg>
-	      <arg choice="plain">count</arg>
-	      <arg choice="plain">mcast</arg>
-	      <arg choice="plain">rdp</arg>
-	      <arg choice="plain">all</arg>
-	    </group>
-	    <arg>from <arg>to</arg></arg>
-	  </cmdsynopsis>
-	</term>
-	<listitem>
-	  <para>Report various stati of the selected node(s). Depending on the
-	    given argument, different information can be requested from the
-	    &ps; system. If no argument is given, the <option>node</option>
-	    information is retrieved.
-	  </para>
-	  <variablelist>
-	    <varlistentry>
-	      <term>
-		<cmdsynopsis>
-		  <command>node</command>
-		</cmdsynopsis>
-	      </term>
-	      <listitem>
-		<para>Show the status of the selected node(s). Depending on the
-		  state of the &ps; daemons, the node(s) are marked to be "UP"
-		  or "DOWN".
-		</para>
-	      </listitem>
-	    </varlistentry>
+        <term>
+          <cmdsynopsis>
+            <command>status</command>
+            <group>
+              <arg choice="plain">node</arg>
+              <arg choice="plain">proc</arg>
+              <arg choice="plain">allproc</arg>
+              <arg choice="plain">load</arg>
+              <arg choice="plain">hw</arg>
+              <arg choice="plain">count</arg>
+              <arg choice="plain">mcast</arg>
+              <arg choice="plain">rdp</arg>
+              <arg choice="plain">all</arg>
+            </group>
+            <arg>nodelist</arg>
+          </cmdsynopsis>
+        </term>
+        <listitem>
+          <para>Report various stati of the selected node(s). Depending on the
+            given argument, different information can be requested from the
+            &ps; system. If no argument is given, the <option>node</option>
+            information is retrieved.
+          </para>
+          <variablelist>
+            <varlistentry>
+              <term>
+                <cmdsynopsis>
+                  <command>node</command>
+                </cmdsynopsis>
+              </term>
+              <listitem>
+                <para>Show the status of the selected node(s). Depending on the
+                  state of the &ps; daemons, the node(s) are marked to be "UP"
+                  or "DOWN".
+                </para>
+              </listitem>
+            </varlistentry>
 
-	    <varlistentry>
-	      <term>
-		<cmdsynopsis>
-		  <command>proc</command>
-		</cmdsynopsis>
-	      </term>
-	      <listitem>
-		<para>Show the processes managed by the &ps; system on the
-		  selected node(s).
-		</para>
-		<para>
-		  Only user, logger and admin processes are displayed. If
-		  forwarder processes should also be displayed, use the
-		  <command>status <option>allproc</option></command> directive.
-		</para>
-		<para>
-		  The listed fields have the following meaning:
-		</para>
-		<variablelist>
-		  <varlistentry>
-		    <term>Node</term>
-		    <listitem>
-		      <para>
-			The &ps; ID of the node the process is running on.
-		      </para>
-		    </listitem>
-		  </varlistentry>
-		  <varlistentry>
-		    <term>TaskID</term>
-		    <listitem>
-		      <para>
-			The &ps; task ID of the process, both as decimal and
-			hexadecimal number. The task ID of a process is unique
-			within the cluster and is composed out of the &ps; ID
-			of the node the process is running on and the local
-			process ID of the process, i.e. the result of calling
-			<citerefentry>
-			  <refentrytitle>getpid</refentrytitle>
-			  <manvolnum>2</manvolnum>
-		      </citerefentry>.
-		      </para>
-		    </listitem>
-		  </varlistentry>
-		  <varlistentry>
-		    <term>ParentTaskID</term>
-		    <listitem>
-		      <para>
-			The &ps; task ID of the parent process. The parent
-			process is the one which has spawned the current
-			process. If the process was not spawned by any other
-			controlled by &ps;, i.e. it is the first process
-			started within a parallel task, the parent &ps; task ID
-			is 0.
-		      </para>
-		    </listitem>
-		  </varlistentry>
-		  <varlistentry>
-		    <term>Con</term>
-		    <listitem>
-		      <para>
-			Flag to mark if the process has reconnected to its
-			local &ps; daemon <xref linkend="psid"/>. If a 1 is
-			displayed, the process has connected the daemon,
-			otherwise 0 is reported.
-		      </para>
-		    </listitem>
-		  </varlistentry>
-		  <varlistentry>
-		    <term>UserID</term>
-		    <listitem>
-		      <para>
-			The user ID under which the process runs. This is
-			usually on par with the user ID of the parent process.
-		      </para>
-		      <para>
-			Furthermore administrativ processes, i.e. <xref
-			  linkend="psiadmin"/> processes connected to a local
-			daemon are marked with <quote>(A)</quote> after the
-			user ID.
-		      </para>
-		      <para>
-			Logger processes, i.e. root processes of parallel
-			tasks which converted to a <xref linkend="loggerfull"/>
-			process, are tagged with <quote>(L)</quote> after the
-			user ID.
-		      </para>
-		    </listitem>
-		  </varlistentry>
-		</variablelist>
-	      </listitem>
-	    </varlistentry>
+            <varlistentry>
+              <term>
+                <cmdsynopsis>
+                  <command>proc</command>
+                </cmdsynopsis>
+              </term>
+              <listitem>
+                <para>Show the processes managed by the &ps; system on the
+                  selected node(s).
+                </para>
+                <para>
+                  Only user, logger and admin processes are displayed. If
+                  forwarder processes should also be displayed, use the
+                  <command>status <option>allproc</option></command> directive.
+                </para>
+                <para>
+                  The listed fields have the following meaning:
+                </para>
+                <variablelist>
+                  <varlistentry>
+                    <term>Node</term>
+                    <listitem>
+                      <para>
+                        The &ps; ID of the node the process is running on.
+                      </para>
+                    </listitem>
+                  </varlistentry>
+                  <varlistentry>
+                    <term>TaskID</term>
+                    <listitem>
+                      <para>
+                        The &ps; task ID of the process, both as decimal and
+                        hexadecimal number. The task ID of a process is unique
+                        within the cluster and is composed out of the &ps; ID
+                        of the node the process is running on and the local
+                        process ID of the process, i.e. the result of calling
+                        <citerefentry>
+                          <refentrytitle>getpid</refentrytitle>
+                          <manvolnum>2</manvolnum>
+                      </citerefentry>.
+                      </para>
+                    </listitem>
+                  </varlistentry>
+                  <varlistentry>
+                    <term>ParentTaskID</term>
+                    <listitem>
+                      <para>
+                        The &ps; task ID of the parent process. The parent
+                        process is the one which has spawned the current
+                        process. If the process was not spawned by any other
+                        controlled by &ps;, i.e. it is the first process
+                        started within a parallel task, the parent &ps; task ID
+                        is 0.
+                      </para>
+                    </listitem>
+                  </varlistentry>
+                  <varlistentry>
+                    <term>Con</term>
+                    <listitem>
+                      <para>
+                        Flag to mark if the process has reconnected to its
+                        local &ps; daemon <xref linkend="psid"/>. If a 1 is
+                        displayed, the process has connected the daemon,
+                        otherwise 0 is reported.
+                      </para>
+                    </listitem>
+                  </varlistentry>
+                  <varlistentry>
+                    <term>UserID</term>
+                    <listitem>
+                      <para>
+                        The user ID under which the process runs. This is
+                        usually on par with the user ID of the parent process.
+                      </para>
+                      <para>
+                        Furthermore administrativ processes, i.e. <xref
+                          linkend="psiadmin"/> processes connected to a local
+                        daemon are marked with <quote>(A)</quote> after the
+                        user ID.
+                      </para>
+                      <para>
+                        Logger processes, i.e. root processes of parallel
+                        tasks which converted to a <xref linkend="loggerfull"/>
+                        process, are tagged with <quote>(L)</quote> after the
+                        user ID.
+                      </para>
+                    </listitem>
+                  </varlistentry>
+                </variablelist>
+              </listitem>
+            </varlistentry>
 
-	    <varlistentry>
-	      <term>
-		<cmdsynopsis>
-		  <command>allproc</command>
-		</cmdsynopsis>
-	      </term>
-	      <listitem>
-		<para>Show all processes managed by the &ps; system on the
-		  selected node(s).
-		</para>
-		<para>
-		  All processes managed by &ps; are displayed. If forwarder
-		  processes should not be displayed, use the <command>status
-		    <option>proc</option></command> directive.
-		</para>
-		<para>
-		  The output fields of the process list are described within
-		  the <command>status <option>proc</option></command>
-		  directive. In addition to the process classes described
-		  there, <xref linkend="forwarderfull"/>
-		  processes, i.e. processes spawned by the &ps; daemon <xref
-		    linkend="psid"/> in order to control a spawned process, are
-		  marked by <quote>(F)</quote> after the user ID. Further
-		  helper processes needed in order to spawn non &ps;
-		  applications are marked with <quote>(S)</quote>.
-		</para>
-	      </listitem>
-	    </varlistentry>
+            <varlistentry>
+              <term>
+                <cmdsynopsis>
+                  <command>allproc</command>
+                </cmdsynopsis>
+              </term>
+              <listitem>
+                <para>Show all processes managed by the &ps; system on the
+                  selected node(s).
+                </para>
+                <para>
+                  All processes managed by &ps; are displayed. If forwarder
+                  processes should not be displayed, use the <command>status
+                    <option>proc</option></command> directive.
+                </para>
+                <para>
+                  The output fields of the process list are described within
+                  the <command>status <option>proc</option></command>
+                  directive. In addition to the process classes described
+                  there, <xref linkend="forwarderfull"/>
+                  processes, i.e. processes spawned by the &ps; daemon <xref
+                    linkend="psid"/> in order to control a spawned process, are
+                  marked by <quote>(F)</quote> after the user ID. Further
+                  helper processes needed in order to spawn non &ps;
+                  applications are marked with <quote>(S)</quote>.
+                </para>
+              </listitem>
+            </varlistentry>
 
-	    <varlistentry>
-	      <term>
-		<cmdsynopsis>
-		  <command>load</command>
-		</cmdsynopsis>
-	      </term>
-	      <listitem>
-		<para>Show the load and the number of processes managed by the
-		  &ps; system on the selected node(s).
-		</para>
-		<para>
-		  The three load values displayed are the averages for 1, 5 and
-		  15 minutes respectively. The two numbers of processes are as
-		  follows: The total number of processes contains all processes
-		  managed by the &ps; system, including <xref
-		    linkend="logger"/>, <xref linkend="forwarder"/> and <xref
-		    linkend="psiadmin"/> processes. Furthermore of course the
-		  actual working processes started by the users are included.
-		  The latter ones are the <quote>normal</quote> processes,
-		  additionally displayed in the last column of the output.
-		</para>
-	      </listitem>
-	    </varlistentry>
+            <varlistentry>
+              <term>
+                <cmdsynopsis>
+                  <command>load</command>
+                </cmdsynopsis>
+              </term>
+              <listitem>
+                <para>Show the load and the number of processes managed by the
+                  &ps; system on the selected node(s).
+                </para>
+                <para>
+                  The three load values displayed are the averages for 1, 5 and
+                  15 minutes respectively. The two numbers of processes are as
+                  follows: The total number of processes contains all processes
+                  managed by the &ps; system, including <xref
+                    linkend="logger"/>, <xref linkend="forwarder"/> and <xref
+                    linkend="psiadmin"/> processes. Furthermore of course the
+                  actual working processes started by the users are included.
+                  The latter ones are the <quote>normal</quote> processes,
+                  additionally displayed in the last column of the output.
+                </para>
+              </listitem>
+            </varlistentry>
 
-	    <varlistentry>
-	      <term>
-		<cmdsynopsis>
-		  <command>hw</command>
-		</cmdsynopsis>
-	      </term>
-	      <listitem>
-		<para>Show the hardware setup on the selected node(s).
-		  Displayed are the number of CPUs and the communication
-		  hardware available to the &ps; system.
-		</para>
-	      </listitem>
-	    </varlistentry>
+            <varlistentry>
+              <term>
+                <cmdsynopsis>
+                  <command>hw</command>
+                </cmdsynopsis>
+              </term>
+              <listitem>
+                <para>Show the hardware setup on the selected node(s).
+                  Displayed are the number of CPUs and the communication
+                  hardware available to the &ps; system.
+                </para>
+              </listitem>
+            </varlistentry>
 
-	    <varlistentry>
-	      <term>
-		<cmdsynopsis>
-		  <command>count</command>
-		</cmdsynopsis>
-	      </term>
-	      <!-- @todo Extension for non-Myrinet counters -->
-	      <listitem>
-		<para>Show the status of the Myrinet communication system on
-		  the selected node(s). Various counters of the <xref
-		    linkend="MCP"/> running on the Myrinet card are displayed.
-		</para>
-		<para>
-		  The listed counters have the following meaning:
-		</para>
-		<variablelist>
-		  <varlistentry>
-		    <term>
-		      <command>RECV</command>
-		    </term>
-		    <listitem>
-		      <para>The total number of all received packets.</para>
-		    </listitem>
-		  </varlistentry>
+            <varlistentry>
+              <term>
+                <cmdsynopsis>
+                  <command>count</command>
+                </cmdsynopsis>
+              </term>
+              <!-- @todo Extension for non-Myrinet counters -->
+              <listitem>
+<!-- fg: no more myrinet
+                <para>Show the status of the myrinet communication system on
+                  the selected node(s). Various counters of the <xref
+                    linkend="MCP"/> running on the Myrinet card are displayed.
+                </para>
+-->
+                <para>Show the status of the communication system(s) on
+                  the selected node(s). Various counters are displayed.
+                </para>
+<!-- fg: no more myrinet
+                <para>
+                  The listed counters have the following meaning:
+                </para>
+                <variablelist>
+                  <varlistentry>
+                    <term>
+                      <command>RECV</command>
+                    </term>
+                    <listitem>
+                      <para>The total number of all received packets.</para>
+                    </listitem>
+                  </varlistentry>
 
-		  <varlistentry>
-		    <term>
-		      <command>SEND</command>
-		    </term>
-		    <listitem>
-		      <para>The total number of all sent packets.</para>
-		    </listitem>
-		  </varlistentry>
+                  <varlistentry>
+                    <term>
+                      <command>SEND</command>
+                    </term>
+                    <listitem>
+                      <para>The total number of all sent packets.</para>
+                    </listitem>
+                  </varlistentry>
 
-		  <varlistentry>
-		    <term>
-		      <command>CRC_ERR</command>
-		    </term>
-		    <listitem>
-		      <para>The number of packets received with wrong CRC
-			checksum. These packets were thrown away and a resend
-			was initiated.
-		      </para>
- 		      <para>
-			Higher counts (a few ppm of <command>SEND</command> +
-			<command>RECV</command>) are uncritical.
-		      </para>
-		    </listitem>
-		  </varlistentry>
+                  <varlistentry>
+                    <term>
+                      <command>CRC_ERR</command>
+                    </term>
+                    <listitem>
+                      <para>The number of packets received with wrong CRC
+                        checksum. These packets were thrown away and a resend
+                        was initiated.
+                      </para>
+                       <para>
+                        Higher counts (a few ppm of <command>SEND</command> +
+                        <command>RECV</command>) are uncritical.
+                      </para>
+                    </listitem>
+                  </varlistentry>
 
-		  <varlistentry>
-		    <term>
-		      <command>OVERRUNS</command>
-		    </term>
-		    <listitem>
-		      <para>The number of packets that left the receive buffer
-			misalligned. This is usually due to data loss on the
-			line and thus in coincidence with
-			<command>CRC_ERR</command>.
-		      </para>
-		      <para>
-			This should rarely never happen.
-		      </para>
-		    </listitem>
-		  </varlistentry>
+                  <varlistentry>
+                    <term>
+                      <command>OVERRUNS</command>
+                    </term>
+                    <listitem>
+                      <para>The number of packets that left the receive buffer
+                        misalligned. This is usually due to data loss on the
+                        line and thus in coincidence with
+                        <command>CRC_ERR</command>.
+                      </para>
+                      <para>
+                        This should rarely never happen.
+                      </para>
+                    </listitem>
+                  </varlistentry>
 
-		  <varlistentry>
-		    <term>
-		      <command>DEST_ERR</command>
-		    </term>
-		    <listitem>
-		      <para>The number of packets received with wrong
-			destination ID, i.e. packets that were send to the
-			wrong destination host.
-		      </para>
-		      <para>
-			If these kind of errors occur, usually something is
-			wrong with the routing table.
-		      </para>
-		    </listitem>
-		  </varlistentry>
+                  <varlistentry>
+                    <term>
+                      <command>DEST_ERR</command>
+                    </term>
+                    <listitem>
+                      <para>The number of packets received with wrong
+                        destination ID, i.e. packets that were send to the
+                        wrong destination host.
+                      </para>
+                      <para>
+                        If these kind of errors occur, usually something is
+                        wrong with the routing table.
+                      </para>
+                    </listitem>
+                  </varlistentry>
 
-		  <varlistentry>
-		    <term>
-		      <command>CONNIDERR</command>
-		    </term>
-		    <listitem>
-		      <para>The number of packets received with wrong
-			connection ID. These are usually due to (temporary)
-			hardware problems.
-		      </para>
-		      <para>
-			This should rarely never happen.
-		      </para>
-		    </listitem>
-		  </varlistentry>
+                  <varlistentry>
+                    <term>
+                      <command>CONNIDERR</command>
+                    </term>
+                    <listitem>
+                      <para>The number of packets received with wrong
+                        connection ID. These are usually due to (temporary)
+                        hardware problems.
+                      </para>
+                      <para>
+                        This should rarely never happen.
+                      </para>
+                    </listitem>
+                  </varlistentry>
 
-		  <varlistentry>
-		    <term>
-		      <command>IGNORED</command>
-		    </term>
-		    <listitem>
-		      <para>The number of packets that were ignored, i.e. that
-			were recognized as non &ps; packets and thus thrown
-			away.
-		      </para>
-		    </listitem>
-		  </varlistentry>
+                  <varlistentry>
+                    <term>
+                      <command>IGNORED</command>
+                    </term>
+                    <listitem>
+                      <para>The number of packets that were ignored, i.e. that
+                        were recognized as non &ps; packets and thus thrown
+                        away.
+                      </para>
+                    </listitem>
+                  </varlistentry>
 
-		  <varlistentry>
-		    <term>
-		      <command>SNACK</command>
-		    </term>
-		    <listitem>
-		      <para>The number of sequence NACKs. A sequence NACK is
-			released when an unexpected packet is received. These
-			are most often packets that where on the line while a
-			CNACK_HR or CNACK_MCP was send.
-		      </para>
- 		      <para>
-			Higher counts (a few ppm of <command>SEND</command> +
-			<command>RECV</command>) are uncritical.
-		      </para>
-		    </listitem>
-		  </varlistentry>
+                  <varlistentry>
+                    <term>
+                      <command>SNACK</command>
+                    </term>
+                    <listitem>
+                      <para>The number of sequence NACKs. A sequence NACK is
+                        released when an unexpected packet is received. These
+                        are most often packets that where on the line while a
+                        CNACK_HR or CNACK_MCP was send.
+                      </para>
+                       <para>
+                        Higher counts (a few ppm of <command>SEND</command> +
+                        <command>RECV</command>) are uncritical.
+                      </para>
+                    </listitem>
+                  </varlistentry>
 
-		  <varlistentry>
-		    <term>
-		      <command>CNACK_HR</command>
-		    </term>
-		    <listitem>
-		      <para>The number of Host Receive Capacity NACKs send.
-			These are released when the host is unable to receive
-			further data because no receive buffers are left. This
-			might be due to sends on the source side of the
-			communication while no receive is posted on the
-			destination side.
-		      </para>
- 		      <para>
-			Higher counts (a few ppm of <command>SEND</command> +
-			<command>RECV</command>) are uncritical.
-		      </para>
-		    </listitem>
-		  </varlistentry>
+                  <varlistentry>
+                    <term>
+                      <command>CNACK_HR</command>
+                    </term>
+                    <listitem>
+                      <para>The number of Host Receive Capacity NACKs send.
+                        These are released when the host is unable to receive
+                        further data because no receive buffers are left. This
+                        might be due to sends on the source side of the
+                        communication while no receive is posted on the
+                        destination side.
+                      </para>
+                       <para>
+                        Higher counts (a few ppm of <command>SEND</command> +
+                        <command>RECV</command>) are uncritical.
+                      </para>
+                    </listitem>
+                  </varlistentry>
 
-		  <varlistentry>
-		    <term>
-		      <command>CNACK_MCP</command>
-		    </term>
-		    <listitem>
-		      <para>The number of <xref linkend="MCP"/> Capacity NACKs
-			send. These are released when the <xref linkend="MCP"/>
-			is unable to receive further data because no receive
-			buffers are left. This might be due to sends on the
-			source side of the communication while no receive is
-			posted on the destination side or to a slow PCI bus.
-		      </para>
- 		      <para>
-			Higher counts (a few ppm of <command>SEND</command> +
-			<command>RECV</command>) are uncritical.
-		      </para>
-		    </listitem>
-		  </varlistentry>
+                  <varlistentry>
+                    <term>
+                      <command>CNACK_MCP</command>
+                    </term>
+                    <listitem>
+                      <para>The number of <xref linkend="MCP"/> Capacity NACKs
+                        send. These are released when the <xref linkend="MCP"/>
+                        is unable to receive further data because no receive
+                        buffers are left. This might be due to sends on the
+                        source side of the communication while no receive is
+                        posted on the destination side or to a slow PCI bus.
+                      </para>
+                       <para>
+                        Higher counts (a few ppm of <command>SEND</command> +
+                        <command>RECV</command>) are uncritical.
+                      </para>
+                    </listitem>
+                  </varlistentry>
 
-		  <varlistentry>
-		    <term>
-		      <command>CNACK_RS</command>
-		    </term>
-		    <listitem>
-		      <para>Diagnostic counter for internal use only.</para>
-		    </listitem>
-		  </varlistentry>
+                  <varlistentry>
+                    <term>
+                      <command>CNACK_RS</command>
+                    </term>
+                    <listitem>
+                      <para>Diagnostic counter for internal use only.</para>
+                    </listitem>
+                  </varlistentry>
 
-		  <varlistentry>
-		    <term>
-		      <command>CRESET</command>
-		    </term>
-		    <listitem>
-		      <para>The number of connection resets. A connection reset
-			is triggered when a connection comes back to live after
-			a <command>DLINK</command>.
-		      </para>
-		    </listitem>
-		  </varlistentry>
+                  <varlistentry>
+                    <term>
+                      <command>CRESET</command>
+                    </term>
+                    <listitem>
+                      <para>The number of connection resets. A connection reset
+                        is triggered when a connection comes back to live after
+                        a <command>DLINK</command>.
+                      </para>
+                    </listitem>
+                  </varlistentry>
 
-		  <varlistentry>
-		    <term>
-		      <command>DLINK</command>
-		    </term>
-		    <listitem>
-		      <para>The number of Dead Link recognized. A link is
-			declared dead, if after some timeout no ACK is received
-			from the node on the other side of the link. This is
-			normally due to hardware problems.
-		      </para>
-		      <para>
-			This should rarely never happen.
-		      </para>
-		    </listitem>
-		  </varlistentry>
+                  <varlistentry>
+                    <term>
+                      <command>DLINK</command>
+                    </term>
+                    <listitem>
+                      <para>The number of Dead Link recognized. A link is
+                        declared dead, if after some timeout no ACK is received
+                        from the node on the other side of the link. This is
+                        normally due to hardware problems.
+                      </para>
+                      <para>
+                        This should rarely never happen.
+                      </para>
+                    </listitem>
+                  </varlistentry>
 
-		  <varlistentry>
-		    <term>
-		      <command>USEQ_ERR</command>
-		    </term>
-		    <listitem>
-		      <para>Diagnostic counter for internal use only.</para>
-		    </listitem>
-		  </varlistentry>
+                  <varlistentry>
+                    <term>
+                      <command>USEQ_ERR</command>
+                    </term>
+                    <listitem>
+                      <para>Diagnostic counter for internal use only.</para>
+                    </listitem>
+                  </varlistentry>
 
-		</variablelist>
-	      </listitem>
-	    </varlistentry>
+                </variablelist>
+-->
+              </listitem>
+            </varlistentry>
 
-	    <varlistentry>
-	      <term>
-		<cmdsynopsis>
-		  <command>rdp</command>
-		</cmdsynopsis>
-	      </term>
-	      <listitem>
-		<para>Show the status of the RDP protocol of the &ps; daemon
-		  <xref linkend="psid"/> on the selected node(s).
-		</para>
-	      </listitem>
-	    </varlistentry>
+            <varlistentry>
+              <term>
+                <cmdsynopsis>
+                  <command>rdp</command>
+                </cmdsynopsis>
+              </term>
+              <listitem>
+                <para>Show the status of the RDP protocol of the &ps; daemon
+                  <xref linkend="psid"/> on the selected node(s).
+                </para>
+              </listitem>
+            </varlistentry>
 
-	    <varlistentry>
-	      <term>
-		<cmdsynopsis>
-		  <command>mcast</command>
-		</cmdsynopsis>
-	      </term>
-	      <listitem>
-		<para>Show the status of the MCast facility of the &ps; daemon
-		  <xref linkend="psid"/> on the selected node(s).
-		</para>
-	      </listitem>
-	    </varlistentry>
+            <varlistentry>
+              <term>
+                <cmdsynopsis>
+                  <command>mcast</command>
+                </cmdsynopsis>
+              </term>
+              <listitem>
+                <para>Show the status of the MCast facility of the &ps; daemon
+                  <xref linkend="psid"/> on the selected node(s).
+                </para>
+              </listitem>
+            </varlistentry>
 
-	    <varlistentry>
-	      <term>
-		<cmdsynopsis>
-		  <command>all</command>
-		</cmdsynopsis>
-	      </term>
-	      <listitem>
-		<para>Show the information given by <command>node</command>,
-		  <command>count</command> and <command>proc</command> on the
-		  selected node(s).
-		</para>
-	      </listitem>
-	    </varlistentry>
+            <varlistentry>
+              <term>
+                <cmdsynopsis>
+                  <command>all</command>
+                </cmdsynopsis>
+              </term>
+              <listitem>
+                <para>Show the information given by <command>node</command>,
+                  <command>count</command> and <command>proc</command> on the
+                  selected node(s).
+                </para>
+              </listitem>
+            </varlistentry>
 
-	  </variablelist>
-	</listitem>
+          </variablelist>
+        </listitem>
       </varlistentry>
 
       <varlistentry>
-	<term>
-	  <cmdsynopsis>
-	    <command>version</command>
-	  </cmdsynopsis>
-	</term>
-	<listitem>
-	  <para>Print various version numbers</para>
-	</listitem>
+        <term>
+          <cmdsynopsis>
+            <command>version</command>
+          </cmdsynopsis>
+        </term>
+        <listitem>
+          <para>Print various version numbers</para>
+        </listitem>
       </varlistentry>
 
     </variablelist>
@@ -960,460 +989,464 @@
     <refsect2>
       <title>Privileged directives</title>
       <para>
-	Some directives are only available for privileged users, i.e. only root
-	can execute these directives.
+        Some directives are only available for privileged users, i.e. only root
+        can execute these directives.
       </para>
       <variablelist>
 
-	<varlistentry>
-	  <term>
-	    <cmdsynopsis>
-	      <command>reset</command>
-	      <arg>hw</arg>
-	      <arg>from <arg>to</arg></arg>
-	    </cmdsynopsis>
-	  </term>
-	  <listitem>
-	    <para>Reset the &ps; daemon on all selected node(s). As a
-	      consequence <emphasis role="bold">all</emphasis> processes using
-	      the selected node(s) are <emphasis role="bold">killed</emphasis>!
-	    </para>
-	    <para>
-	      If the option <option>hw</option> is given, additionally the
-	      communication hardware is brought into a known state. Executing
-	      <command>reset <option>hw</option></command> is the same as using
-	      <command>restart</command>.
-	    </para>
-	  </listitem>
-	</varlistentry>
+        <varlistentry>
+          <term>
+            <cmdsynopsis>
+              <command>reset</command>
+              <arg>hw</arg>
+              <arg>nodelist</arg>
+            </cmdsynopsis>
+          </term>
+          <listitem>
+            <para>Reset the &ps; daemon on all selected node(s). As a
+              consequence <emphasis role="bold">all</emphasis> processes using
+              the selected node(s) are <emphasis role="bold">killed</emphasis>!
+            </para>
+            <para>
+              If the option <option>hw</option> is given, additionally the
+              communication hardware is brought into a known state. Executing
+              <command>reset <option>hw</option></command> is the same as using
+              <command>restart</command>.
+            </para>
+          </listitem>
+        </varlistentry>
 
-	<varlistentry>
-	  <term>
-	    <cmdsynopsis>
-	      <command>restart</command>
-	      <arg>from <arg>to</arg></arg>
-	    </cmdsynopsis>
-	  </term>
-	  <listitem>
-	    <para>Restart the &ps; system on all selected node(s). This
-	      includes reinitialization of the communucation hardware. On the
-	      selected node(s) the &ps; daemon processes are forced to
-	      reinitialize the &ps; cluster. As a consequence <emphasis
-		role="bold">all</emphasis> processes using the selected
-	      node(s)s are <emphasis role="bold">killed</emphasis>!
-	    </para>
-	    <para>
-	      This is the same as using <command>reset
-		<option>hw</option></command>.
-	    </para>
-	  </listitem>
-	</varlistentry>
+        <varlistentry>
+          <term>
+            <cmdsynopsis>
+              <command>restart</command>
+              <arg>nodelist</arg>
+            </cmdsynopsis>
+          </term>
+          <listitem>
+            <para>Restart the &ps; system on all selected node(s). This
+              includes reinitialization of the communucation hardware. On the
+              selected node(s) the &ps; daemon processes are forced to
+              reinitialize the &ps; cluster. As a consequence <emphasis
+                role="bold">all</emphasis> processes using the selected
+              node(s)s are <emphasis role="bold">killed</emphasis>!
+            </para>
+            <para>
+              This is the same as using <command>reset
+                <option>hw</option></command>.
+            </para>
+          </listitem>
+        </varlistentry>
 
-	<varlistentry>
-	  <term>
-	    <cmdsynopsis>
-	      <command>set</command>
-	      <group choice="req">
-		<arg>user <group choice="req">
-		    <arg><replaceable>name</replaceable></arg>
-		    <arg>any</arg>
-		  </group></arg>
-		<arg>group <group choice="req">
-		    <arg><replaceable>name</replaceable></arg>
-		    <arg>any</arg>
-		  </group></arg>
-		<arg>maxproc <group choice="req">
-		    <arg choice="plain"><replaceable>num</replaceable></arg>
-		    <arg choice="plain">any</arg>
-		  </group></arg>
-		<arg>smallpacketsize <replaceable>size</replaceable></arg>
-		<arg>resendtimeout <replaceable>time</replaceable></arg>
-		<arg>hnpend <replaceable>val</replaceable></arg>
-		<arg>ackpend <replaceable>val</replaceable></arg>
-		<arg>selecttime <replaceable>time</replaceable></arg>
-		<arg>psiddebug <replaceable>level</replaceable></arg>
-		<arg>rdpdebug <replaceable>level</replaceable></arg>
-		<arg>mcastdebug <replaceable>level</replaceable></arg>
-	      </group>
-	      <arg>from <arg>to</arg></arg>
-	    </cmdsynopsis>
-	  </term>
-	  <listitem>
-	    <para>Modify various parameters of the &ps; system.</para>
-	    <variablelist>
-	      <varlistentry>
-		<term>
-		  <cmdsynopsis>
-		    <command>user</command>
-		    <group choice="req">
-		      <arg><replaceable>name</replaceable></arg>
-		      <arg>any</arg>
-		    </group>
-		    <arg>from <arg>to</arg></arg>
-		  </cmdsynopsis>
-		</term>
-		<listitem>
-		  <para>Grant exclusiv access on the selected node(s) to the
-		    special user <option>name</option> or to any user.
-		  </para>
-		</listitem>
-	      </varlistentry>
+        <varlistentry>
+          <term>
+            <cmdsynopsis>
+              <command>set</command>
+              <group choice="req">
+                <arg>user <group choice="req">
+                    <arg><replaceable>name</replaceable></arg>
+                    <arg>any</arg>
+                  </group></arg>
+                <arg>group <group choice="req">
+                    <arg><replaceable>name</replaceable></arg>
+                    <arg>any</arg>
+                  </group></arg>
+                <arg>maxproc <group choice="req">
+                    <arg choice="plain"><replaceable>num</replaceable></arg>
+                    <arg choice="plain">any</arg>
+                  </group></arg>
+                <arg>smallpacketsize <replaceable>size</replaceable></arg>
+<!-- fg: no more
+                <arg>resendtimeout <replaceable>time</replaceable></arg>
+                <arg>hnpend <replaceable>val</replaceable></arg>
+                <arg>ackpend <replaceable>val</replaceable></arg>
+-->
+                <arg>selecttime <replaceable>time</replaceable></arg>
+                <arg>psiddebug <replaceable>level</replaceable></arg>
+                <arg>rdpdebug <replaceable>level</replaceable></arg>
+                <arg>mcastdebug <replaceable>level</replaceable></arg>
+              </group>
+              <arg>nodelist</arg>
+            </cmdsynopsis>
+          </term>
+          <listitem>
+            <para>Modify various parameters of the &ps; system.</para>
+            <variablelist>
+              <varlistentry>
+                <term>
+                  <cmdsynopsis>
+                    <command>user</command>
+                    <group choice="req">
+                      <arg><replaceable>name</replaceable></arg>
+                      <arg>any</arg>
+                    </group>
+                    <arg>nodelist</arg>
+                  </cmdsynopsis>
+                </term>
+                <listitem>
+                  <para>Grant exclusiv access on the selected node(s) to the
+                    special user <option>name</option> or to any user.
+                  </para>
+                </listitem>
+              </varlistentry>
 
-	      <varlistentry>
-		<term>
-		  <cmdsynopsis>
-		    <command>group</command>
-		    <group choice="req">
-		      <arg><replaceable>name</replaceable></arg>
-		      <arg>any</arg>
-		    </group>
-		    <arg>from <arg>to</arg></arg>
-		  </cmdsynopsis>
-		</term>
-		<listitem>
-		  <para>Grant exclusiv access on the selected node(s) to the
-		    special group <option>name</option> or to any group.
-		  </para>
-		</listitem>
-	      </varlistentry>
+              <varlistentry>
+                <term>
+                  <cmdsynopsis>
+                    <command>group</command>
+                    <group choice="req">
+                      <arg><replaceable>name</replaceable></arg>
+                      <arg>any</arg>
+                    </group>
+                    <arg>nodelist</arg>
+                  </cmdsynopsis>
+                </term>
+                <listitem>
+                  <para>Grant exclusiv access on the selected node(s) to the
+                    special group <option>name</option> or to any group.
+                  </para>
+                </listitem>
+              </varlistentry>
 
-	      <varlistentry>
-		<term>
-		  <cmdsynopsis>
-		    <command>maxproc</command>
-		    <group choice="req">
-		      <arg><replaceable>num</replaceable></arg>
-		      <arg>any</arg>
-		    </group>
-		    <arg>from <arg>to</arg></arg>
-		  </cmdsynopsis>
-		</term>
-		<listitem>
-		  <para>Limit the number of running &ps; processes on the
-		    selected node(s) to <option>num</option> or remove the
-		    limit.
-		  </para>
-		</listitem>
-	      </varlistentry>
+              <varlistentry>
+                <term>
+                  <cmdsynopsis>
+                    <command>maxproc</command>
+                    <group choice="req">
+                      <arg><replaceable>num</replaceable></arg>
+                      <arg>any</arg>
+                    </group>
+                    <arg>nodelist</arg>
+                  </cmdsynopsis>
+                </term>
+                <listitem>
+                  <para>Limit the number of running &ps; processes on the
+                    selected node(s) to <option>num</option> or remove the
+                    limit.
+                  </para>
+                </listitem>
+              </varlistentry>
 
-	      <varlistentry>
-		<term>
-		  <cmdsynopsis>
-		    <command>smallpacketsize</command>
-		    <arg><replaceable>size</replaceable></arg>
-		    <arg>from <arg>to</arg></arg>
-		  </cmdsynopsis>
-		</term>
-		<listitem>
-		  <para>Set the the maximum size of PIO packets to
-		    <option>size</option> bytes on the selected node(s).
-		  </para>
-		  <para>
-		    PIO packets are send directly to the node's memory by the
-		    <xref linkend="MCP"/> and copied by a
-		    <citerefentry>
-		      <refentrytitle>memcpy</refentrytitle>
-		      <manvolnum>3</manvolnum>
-		    </citerefentry> into the final destination. Non-PIO packets
-		    are send via <xref linkend="DMA"/> immediately to their
-		    final destination.
-		  </para>
-		  <para>
-		    This parameter can be set persistently via the
-		    <command>SmallPacketSize</command> option within the &ps;
-		    configuration file <xref linkend="parastation_conf"/>.
-		  </para>
-		</listitem>
-	      </varlistentry>
+<!--
+              <varlistentry>
+                <term>
+                  <cmdsynopsis>
+                    <command>smallpacketsize</command>
+                    <arg><replaceable>size</replaceable></arg>
+                    <arg>from <arg>to</arg></arg>
+                  </cmdsynopsis>
+                </term>
+                <listitem>
+                  <para>Set the the maximum size of PIO packets to
+                    <option>size</option> bytes on the selected node(s).
+                  </para>
+                  <para>
+                    PIO packets are send directly to the node's memory by the
+                    <xref linkend="MCP"/> and copied by a
+                    <citerefentry>
+                      <refentrytitle>memcpy</refentrytitle>
+                      <manvolnum>3</manvolnum>
+                    </citerefentry> into the final destination. Non-PIO packets
+                    are send via <xref linkend="DMA"/> immediately to their
+                    final destination.
+                  </para>
+                  <para>
+                    This parameter can be set persistently via the
+                    <command>SmallPacketSize</command> option within the &ps;
+                    configuration file <xref linkend="parastation_conf"/>.
+                  </para>
+                </listitem>
+              </varlistentry>
 
-	      <varlistentry>
-		<term>
-		  <cmdsynopsis>
-		    <command>resendtimeout</command>
-		    <arg><replaceable>time</replaceable></arg>
-		    <arg>from <arg>to</arg></arg>
-		  </cmdsynopsis>
-		</term>
-		<listitem>
-		  <para>Set the retansmission timeout to <option>time</option>
-		    microseconds on the selected node(s).
-		  </para>
-		  <para>
-		    If a packet sent by &ps; to another node is not
-		    acknowledged for this period of time, it will be resend to
-		    this node.
-		  </para>
-		  <para>
-		    This parameter can be set persistently via the
-		    <command>ResendTimeout</command> option within the &ps;
-		    configuration file <xref linkend="parastation_conf"/>.
-		  </para>
-		  <note>
-		    <para>
-		      In the current version of &ps; this parameter is read
-		      only and cannot be modified.
-		    </para>
-		  </note>
-		</listitem>
-	      </varlistentry>
+              <varlistentry>
+                <term>
+                  <cmdsynopsis>
+                    <command>resendtimeout</command>
+                    <arg><replaceable>time</replaceable></arg>
+                    <arg>from <arg>to</arg></arg>
+                  </cmdsynopsis>
+                </term>
+                <listitem>
+                  <para>Set the retansmission timeout to <option>time</option>
+                    microseconds on the selected node(s).
+                  </para>
+                  <para>
+                    If a packet sent by &ps; to another node is not
+                    acknowledged for this period of time, it will be resend to
+                    this node.
+                  </para>
+                  <para>
+                    This parameter can be set persistently via the
+                    <command>ResendTimeout</command> option within the &ps;
+                    configuration file <xref linkend="parastation_conf"/>.
+                  </para>
+                  <note>
+                    <para>
+                      In the current version of &ps; this parameter is read
+                      only and cannot be modified.
+                    </para>
+                  </note>
+                </listitem>
+              </varlistentry>
 
-	      <varlistentry>
-		<term>
-		  <cmdsynopsis>
-		    <command>hnpend</command>
-		    <arg><replaceable>val</replaceable></arg>
-		    <arg>from <arg>to</arg></arg>
-		  </cmdsynopsis>
-		</term>
-		<listitem>
-		  <para>Set the number of pending host notify messages to
-		    <option>val</option> on the selected node(s).
-		  </para>
-		  <para>
-		    Host notify messages are send by the <xref linkend="MCP"/>
-		    to the kernel to mark send buffers as free. This is done
-		    when data, that was sent successfully via this buffer, was
-		    acknowledged by the destination node.
-		  </para>
-		  <para>
-		    Usually not every freed buffer is communicated, but the
-		    <xref linkend="MCP"/> waits until several buffers are freed
-		    and sends accumulated host notify messages then.
-		    <option>val</option> is the number of accumulated messages
-		    to be sent simultaniously.
-		  </para>
-		  <para>
-		    This parameter can be set persistently via the
-		    <command>HNPend</command> option within the &ps;
-		    configuration file <xref linkend="parastation_conf"/>.
-		  </para>
-		  <note>
-		    <para>
-		      <option>val</option> has to be choosen as 0 &lt;=
-		      <option>val</option> &lt; 3. Small values lead to more
-		      traffic on the PCI bus, but prevent from free send
-		      buffers on the Myrinet card from not being used. Values
-		      larger than 3 have empirically proven to do a disservice.
-		    </para>
-		  </note>
-		</listitem>
-	      </varlistentry>
+              <varlistentry>
+                <term>
+                  <cmdsynopsis>
+                    <command>hnpend</command>
+                    <arg><replaceable>val</replaceable></arg>
+                    <arg>from <arg>to</arg></arg>
+                  </cmdsynopsis>
+                </term>
+                <listitem>
+                  <para>Set the number of pending host notify messages to
+                    <option>val</option> on the selected node(s).
+                  </para>
+                  <para>
+                    Host notify messages are send by the <xref linkend="MCP"/>
+                    to the kernel to mark send buffers as free. This is done
+                    when data, that was sent successfully via this buffer, was
+                    acknowledged by the destination node.
+                  </para>
+                  <para>
+                    Usually not every freed buffer is communicated, but the
+                    <xref linkend="MCP"/> waits until several buffers are freed
+                    and sends accumulated host notify messages then.
+                    <option>val</option> is the number of accumulated messages
+                    to be sent simultaniously.
+                  </para>
+                  <para>
+                    This parameter can be set persistently via the
+                    <command>HNPend</command> option within the &ps;
+                    configuration file <xref linkend="parastation_conf"/>.
+                  </para>
+                  <note>
+                    <para>
+                      <option>val</option> has to be choosen as 0 &lt;=
+                      <option>val</option> &lt; 3. Small values lead to more
+                      traffic on the PCI bus, but prevent from free send
+                      buffers on the Myrinet card from not being used. Values
+                      larger than 3 have empirically proven to do a disservice.
+                    </para>
+                  </note>
+                </listitem>
+              </varlistentry>
 
-	      <varlistentry>
-		<term>
-		  <cmdsynopsis>
-		    <command>ackpend</command>
-		    <arg><replaceable>val</replaceable></arg>
-		    <arg>from <arg>to</arg></arg>
-		  </cmdsynopsis>
-		</term>
-		<listitem>
-		  <para>Set the number of pending acknowledgements to
-		    <option>val</option> on the selected node(s).
-		  </para>
-		  <para>
-		    &ps; usually does not send acknowledgements immediately but
-		    waits for some pending ACK messages and sends them
-		    accumulated.
-		  </para>
-		  <para>
-		    If a packet is not acknowledged for some microseconds (the
-		    actual value can be determined using the directive
-		    <command>show <option>resendtimeout</option></command>) it
-		    will be resend by the source node. If a packet is received
-		    twice by the destination node, a immediate ACK message is
-		    sent and therefore correct delivery of packets is ensured.
-		  </para>
-		  <para>
-		    This parameter can be set persistently via the
-		    <command>ACKPend</command> option within the &ps;
-		    configuration file <xref linkend="parastation_conf"/>.
-		  </para>
-		  <note>
-		    <para>
-		      <option>val</option> has to be choosen as 0 &lt;=
-		      <option>val</option> &lt; 3. Small values lead to more
-		      ACK messages, but prevent from to many resends. Values
-		      larger than 3 have empirically proven to do a disservice.
-		    </para>
-		  </note>
-		</listitem>
-	      </varlistentry>
+              <varlistentry>
+                <term>
+                  <cmdsynopsis>
+                    <command>ackpend</command>
+                    <arg><replaceable>val</replaceable></arg>
+                    <arg>from <arg>to</arg></arg>
+                  </cmdsynopsis>
+                </term>
+                <listitem>
+                  <para>Set the number of pending acknowledgements to
+                    <option>val</option> on the selected node(s).
+                  </para>
+                  <para>
+                    &ps; usually does not send acknowledgements immediately but
+                    waits for some pending ACK messages and sends them
+                    accumulated.
+                  </para>
+                  <para>
+                    If a packet is not acknowledged for some microseconds (the
+                    actual value can be determined using the directive
+                    <command>show <option>resendtimeout</option></command>) it
+                    will be resend by the source node. If a packet is received
+                    twice by the destination node, a immediate ACK message is
+                    sent and therefore correct delivery of packets is ensured.
+                  </para>
+                  <para>
+                    This parameter can be set persistently via the
+                    <command>ACKPend</command> option within the &ps;
+                    configuration file <xref linkend="parastation_conf"/>.
+                  </para>
+                  <note>
+                    <para>
+                      <option>val</option> has to be choosen as 0 &lt;=
+                      <option>val</option> &lt; 3. Small values lead to more
+                      ACK messages, but prevent from to many resends. Values
+                      larger than 3 have empirically proven to do a disservice.
+                    </para>
+                  </note>
+                </listitem>
+              </varlistentry>
+-->
 
-	      <varlistentry>
-		<term>
-		  <cmdsynopsis>
-		    <command>selecttime</command>
-		    <arg><replaceable>time</replaceable></arg>
-		    <arg>from <arg>to</arg></arg>
-		  </cmdsynopsis>
-		</term>
-		<listitem>
-		  <para>Set the timeout of the central <citerefentry>
-		      <refentrytitle>select</refentrytitle>
-		      <manvolnum>2</manvolnum>
-		    </citerefentry> of the &ps; daemon <xref linkend="psid"/>
-		    to <option>time</option> seconds on the selected node(s).
-		  </para>
-		  <para>
-		    This parameter can be set persistently via the
-		    <command>SelectTime</command> option within the &ps;
-		    configuration file <xref linkend="parastation_conf"/>.
-		  </para>
-		</listitem>
-	      </varlistentry>
+              <varlistentry>
+                <term>
+                  <cmdsynopsis>
+                    <command>selecttime</command>
+                    <arg><replaceable>time</replaceable></arg>
+                    <arg>nodelist</arg>
+                  </cmdsynopsis>
+                </term>
+                <listitem>
+                  <para>Set the timeout of the central <citerefentry>
+                      <refentrytitle>select</refentrytitle>
+                      <manvolnum>2</manvolnum>
+                    </citerefentry> of the &ps; daemon <xref linkend="psid"/>
+                    to <option>time</option> seconds on the selected node(s).
+                  </para>
+                  <para>
+                    This parameter can be set persistently via the
+                    <command>SelectTime</command> option within the &ps;
+                    configuration file <xref linkend="parastation_conf"/>.
+                  </para>
+                </listitem>
+              </varlistentry>
 
-	      <varlistentry>
-		<term>
-		  <cmdsynopsis>
-		    <command>psiddebug</command>
-		    <arg><replaceable>level</replaceable></arg>
-		    <arg>from <arg>to</arg></arg>
-		  </cmdsynopsis>
-		</term>
-		<listitem>
-		  <para>Set the debugging level of the &ps; daemon
-		    <xref linkend="psid"/> to <option>level</option> on the
-		    selected node(s).
-		  </para>
-		  <para>
-		    This parameter can be set persistently via the
-		    <command>LogLevel</command> option within the &ps;
-		    configuration file <xref linkend="parastation_conf"/>.
-		  </para>
-		  <note>
-		    <para>
-		      For values of <option>level</option> larger than
-		      <constant>10</constant> the daemon logs a huge amount of
-		      messages in the logging destination, which is usually the
-		      <citerefentry>
-			<refentrytitle>syslog</refentrytitle>
-			<manvolnum>3</manvolnum>
-		      </citerefentry>. Do not use levels different from
-		      <constant>0</constant> for too long!
-		    </para>
-		  </note>
-		</listitem>
-	      </varlistentry>
+              <varlistentry>
+                <term>
+                  <cmdsynopsis>
+                    <command>psiddebug</command>
+                    <arg><replaceable>level</replaceable></arg>
+                    <arg>nodelist</arg>
+                  </cmdsynopsis>
+                </term>
+                <listitem>
+                  <para>Set the debugging level of the &ps; daemon
+                    <xref linkend="psid"/> to <option>level</option> on the
+                    selected node(s).
+                  </para>
+                  <para>
+                    This parameter can be set persistently via the
+                    <command>LogLevel</command> option within the &ps;
+                    configuration file <xref linkend="parastation_conf"/>.
+                  </para>
+                  <note>
+                    <para>
+                      For values of <option>level</option> larger than
+                      <constant>10</constant> the daemon logs a huge amount of
+                      messages in the logging destination, which is usually the
+                      <citerefentry>
+                        <refentrytitle>syslog</refentrytitle>
+                        <manvolnum>3</manvolnum>
+                      </citerefentry>. Do not use levels different from
+                      <constant>0</constant> for too long!
+                    </para>
+                  </note>
+                </listitem>
+              </varlistentry>
 
-	      <varlistentry>
-		<term>
-		  <cmdsynopsis>
-		    <command>rdpdebug</command>
-		    <arg><replaceable>level</replaceable></arg>
-		    <arg>from <arg>to</arg></arg>
-		  </cmdsynopsis>
-		</term>
-		<listitem>
-		  <para>Set the debugging level of the RDP protocol within the
-		    &ps; daemon <xref linkend="psid"/> to
-		    <option>level</option> on the selected node(s).
-		  </para>
-		  <note>
-		    <para>
-		      Unless you want to debug the RDP protocol (i.e. the
-		      secure protocol used by the daemons to talk to each
-		      other) this parameter is not really useful.
-		    </para>
-		  </note>
-		</listitem>
-	      </varlistentry>
+              <varlistentry>
+                <term>
+                  <cmdsynopsis>
+                    <command>rdpdebug</command>
+                    <arg><replaceable>level</replaceable></arg>
+                    <arg>nodelist</arg>
+                  </cmdsynopsis>
+                </term>
+                <listitem>
+                  <para>Set the debugging level of the RDP protocol within the
+                    &ps; daemon <xref linkend="psid"/> to
+                    <option>level</option> on the selected node(s).
+                  </para>
+                  <note>
+                    <para>
+                      Unless you want to debug the RDP protocol (i.e. the
+                      secure protocol used by the daemons to talk to each
+                      other) this parameter is not really useful.
+                    </para>
+                  </note>
+                </listitem>
+              </varlistentry>
 
-	      <varlistentry>
-		<term>
-		  <cmdsynopsis>
-		    <command>mcastdebug</command>
-		    <arg><replaceable>level</replaceable></arg>
-		    <arg>from <arg>to</arg></arg>
-		  </cmdsynopsis>
-		</term>
-		<listitem>
-		  <para>Set the debugging level of the MCast protocol within
-		    the &ps; daemon <xref linkend="psid"/> to
-		    <option>level</option> on the selected node(s).
-		  </para>
-		  <note>
-		    <para>
-		      Unless you want to debug the MCast protocol (i.e. the
-		      protocol used by the daemons to ping alive-messages to
-		      each other) this parameter is not really useful.
-		    </para>
-		  </note>
-		</listitem>
-	      </varlistentry>
+              <varlistentry>
+                <term>
+                  <cmdsynopsis>
+                    <command>mcastdebug</command>
+                    <arg><replaceable>level</replaceable></arg>
+                    <arg>nodelist</arg>
+                  </cmdsynopsis>
+                </term>
+                <listitem>
+                  <para>Set the debugging level of the MCast protocol within
+                    the &ps; daemon <xref linkend="psid"/> to
+                    <option>level</option> on the selected node(s).
+                  </para>
+                  <note>
+                    <para>
+                      Unless you want to debug the MCast protocol (i.e. the
+                      protocol used by the daemons to ping alive-messages to
+                      each other) this parameter is not really useful.
+                    </para>
+                  </note>
+                </listitem>
+              </varlistentry>
 
-	    </variablelist>
-	  </listitem>
-	</varlistentry>
+            </variablelist>
+          </listitem>
+        </varlistentry>
 
-	<varlistentry>
-	  <term>
-	    <cmdsynopsis>
-	      <command>shutdown</command>
-	      <arg>from <arg>to</arg></arg>
-	    </cmdsynopsis>
-	  </term>
-	  <listitem>
-	    <para>Shutdown the &ps; daemon on all selected node(s). As a
-	      consequence <emphasis role="bold">all</emphasis> processes using
-	      the selected node(s) are <emphasis role="bold">killed</emphasis>!
-	    </para>
-	  </listitem>
-	</varlistentry>
+        <varlistentry>
+          <term>
+            <cmdsynopsis>
+              <command>shutdown</command>
+              <arg>nodelist</arg>
+            </cmdsynopsis>
+          </term>
+          <listitem>
+            <para>Shutdown the &ps; daemon on all selected node(s). As a
+              consequence <emphasis role="bold">all</emphasis> processes using
+              the selected node(s) are <emphasis role="bold">killed</emphasis>!
+            </para>
+          </listitem>
+        </varlistentry>
 
-	<varlistentry>
-	  <term>
-	    <cmdsynopsis>
-	      <command>test</command>
-	      <group>
-		<arg>quiet</arg>
-		<arg>normal</arg>
-		<arg>verbose</arg>
-	      </group>
-	    </cmdsynopsis>
-	  </term>
-	  <listitem>
-	    <para>All communications links in a &ps; network are tested.</para>
-	    <variablelist>
-	      <varlistentry>
-		<term>
-		  <cmdsynopsis>
-		    <command>quiet</command>
-		  </cmdsynopsis>
-		</term>
-		<listitem>
-		  <para>Quiet execution. Only a short message is printed if the
-		    test was successful.
-		  </para>
-		</listitem>
-	      </varlistentry>
-	      <varlistentry>
-		<term>
-		  <cmdsynopsis>
-		    <command>normal</command>
-		  </cmdsynopsis>
-		</term>
-		<listitem>
-		  <para>Normal execution with some messages during runtime.
-		    This is the default.
-		  </para>
-		</listitem>
-	      </varlistentry>
-	      <varlistentry>
-		<term>
-		  <cmdsynopsis>
-		    <command>verbose</command>
-		  </cmdsynopsis>
-		</term>
-		<listitem>
-		  <para>Very verbose execution with many message during
-		    runtime.
-		  </para>
-		</listitem>
-	      </varlistentry>
-	    </variablelist>
-	  </listitem>
-	</varlistentry>
+        <varlistentry>
+          <term>
+            <cmdsynopsis>
+              <command>test</command>
+              <group>
+                <arg>quiet</arg>
+                <arg>normal</arg>
+                <arg>verbose</arg>
+              </group>
+            </cmdsynopsis>
+          </term>
+          <listitem>
+            <para>All communications links in a &ps; network are tested.</para>
+            <variablelist>
+              <varlistentry>
+                <term>
+                  <cmdsynopsis>
+                    <command>quiet</command>
+                  </cmdsynopsis>
+                </term>
+                <listitem>
+                  <para>Quiet execution. Only a short message is printed if the
+                    test was successful.
+                  </para>
+                </listitem>
+              </varlistentry>
+              <varlistentry>
+                <term>
+                  <cmdsynopsis>
+                    <command>normal</command>
+                  </cmdsynopsis>
+                </term>
+                <listitem>
+                  <para>Normal execution with some messages during runtime.
+                    This is the default.
+                  </para>
+                </listitem>
+              </varlistentry>
+              <varlistentry>
+                <term>
+                  <cmdsynopsis>
+                    <command>verbose</command>
+                  </cmdsynopsis>
+                </term>
+                <listitem>
+                  <para>Very verbose execution with many message during
+                    runtime.
+                  </para>
+                </listitem>
+              </varlistentry>
+            </variablelist>
+          </listitem>
+        </varlistentry>
       </variablelist>
     </refsect2>
   </refsect1>
@@ -1429,7 +1462,7 @@
     <title>See also</title>
     <para>
       <xref linkend="parastation_conf"/>, <xref linkend="psid"/>, <xref
-	linkend="mlisten"/>, <xref linkend="psld"/>
+        linkend="mlisten"/>, <xref linkend="psld"/>
     </para>
   </refsect1>
 

@@ -1,6 +1,21 @@
+<!--history:
+          The problem 
+  ne: ?? initial version
+  fg: 27.01.04	reworked: no more PSFE, no longer decribing PS3
+		what's missing: concept, picture...
+-->
 <title>Introduction</title>
 <section>
   <title>What is &ps;</title>
+  <para>
+    <!--fg: allgemeiner --> 
+    &ps; is an integrated cluster management and communication solution. 
+    It combines unique features only found in &ps; with
+    techniques, widely used in high performance computing,
+    to deliver an integrated, easy to use and
+    reliable compute cluster environment.
+  </para>
+<!--
   <para>
     &ps; is at first a high speed communication subsystem, which is used to
     cluster standard workstations and PCs. A high speed interconnect enables
@@ -15,28 +30,63 @@
     sockets. In addition common programming environments, such as MPI or Java
     RMI run on top of these interfaces.
   </para>
+-->
 
   <para>
-    At the time three different versions of &ps; exist. Besides the well known
-    &ps3; software using the Myrinet high speed communication interconnect
-    there are two further variants running on top of Ethernet: On the one hand
-    a version called &psfe; running on top of TCP/IP, on the other hand &ps4;
-    which runs an optimized protocol and enables Ethernet to play a role in the
-    market of high throughput, low latency communication. While both versions
-    running on Ethernet eliminate some disadvantages of the MPIch communication
-    implementations doubling the throughput for big packets (i.e. larger than
-    32 kByte), &psfe; obviously cannot give the same performance as &ps4; due
-    to the complete different communication architecture.
+  	The version 4 of &ps; supports different communication technologies as
+		interconnect network.
+    This version also comes with an
+    optimized communication protocol and enables Ethernet to play a new role
+    in the market of high throughput, low latency communication.  Beside the
+    protocol enhancements, &ps4; eliminates some disadvantages of the MPIch
+    communication implementations, thus doubling the throughput for large
+    packets.
   </para>
+<!--
+  <para>
+    At this time two different versions of &ps; are available. Besides the
+    well known &ps3; software only using the Myrinet high speed communication
+    interconnect there is a newer variant of &ps; supporting different network
+    technologies as interconnect network: &ps4; This version comes with an
+    optimized communication protocol and enables Ethernet to play a new role
+    in the market of high throughput, low latency communication.  Beside the
+    protocol enhancements, &ps4; eliminates some disadvantages of the MPIch
+    communication implementations, thus doubling the throughput for large
+    packets.
+  </para>
+  <para>
+    This document describes installation, configuration and administration
+    of &ps4;.  Previous versions of &ps;, especially &ps3; and &psfe;, are
+    not covered by this document. Informations about this outdated versions
+    can be found in previous versions of this document.
+  </para>
+-->
 
+  <para>
+		Like previous versions, &ps4; includes an integrated cluster
+    administration and cluster management environment. Using communicating daemon
+    processes on each cluster node an effective resource management and single
+    point of administration is implemented. This results in a single system
+    image view of the cluster.  
+  </para>
+<!--
   <para>
     All variants of the &ps; software offer an integrated cluster
-    administration and cluster management environment. Using Unix daemon
-    processes an effective resource management and single point of
-    administration is implemented. This results in a single system image view
-    of the cluster to deal with.
+    administration and cluster management environment. Using linked daemon
+    processes on each cluster node an effective resource management and single
+    point of administration is implemented. This results in a single system
+    image view of the cluster.  
   </para>
+-->
 
+  <para>
+    From the users point of view this cluster management leads to an easier and more
+    effective usage of the cluster. Important features like load balancing, job control and
+    input/output management,
+    common in classical supercomputers, but rarely found in compute clusters, 
+		are implemented by &ps; and now also available on clusters.
+  </para>
+<!--
   <para>
     From the users point of view cluster management leads to an easier and more
     effective usage of the cluster. Due to load balancing, job control and
@@ -44,12 +94,13 @@
     clusters lack in comparison to classical supercomputers are now also
     available on clusters.
   </para>
+-->
 </section>
 
 <section>
   <title>The history of &ps;</title>
   <para>
-    The foundations of the &ps; software were laid in 1995, when the &ps;
+    The fundamentials of the &ps; software were laid in 1995, when the &ps;
     communication hardware and software system was presented. It was developed
     at the chair of Professor Tichy at computer science department of Karlsruhe
     University.
@@ -64,19 +115,19 @@
     &ps; became commercial in 1999 when <ulink
       url="http://www.par-tec.com">ParTec AG</ulink> was founded. This spin-off
     from the University of Karlsruhe now owns all rights and patents connected
-    with the &ps; software. ParTec promoted the further development and
+    with the &ps; software. ParTec promotes the further development and
     improvement of the software. This includes the support of a broader basis
     of supported processor types, communication interconnect and operating
     systems.
   </para>
   <para>
-    Version 3 of the &ps; software for Myrinet is a rewrite from scratch now
-    fully in the responsibility of ParTec. Of course all the know-how and
-    experiences gained from the former versions of the software flowed into
-    this version. It was presented in 2001 and was a major breakthrough in
-    respect to throughput, latency and stability of the software. Nevertheless
-    it is enhanced constantly in respect to performance, stability and
-    usability.
+    Version 3 of the &ps; software for Myrinet is a rewrite from
+    scratch now fully in the responsibility of ParTec. All the
+    know-how and experiences achieved from the former versions of the
+    software were incorporated into this version. It was presented in
+    2001 and was a major breakthrough in respect to throughput,
+    latency and stability of the software. Nevertheless it is enhanced
+    constantly in respect to performance, stability and usability.
   </para>
   <para>
     In 2002 the &psfe; software was presented opening the &ps; software

@@ -34,9 +34,34 @@
       The following environment variables are used during startup of parallel
       tasks or while distributing serial jobs throughout a cluster. Depending
       on their value a splitting of the cluster into virtual partitions is done
-      and the load balancing strategy is steered.
+      and the load balancing strategy is controlled.
     </para>
     <variablelist>
+
+      <varlistentry>
+	<term><envar>PSI_EXCLUSIVE</envar></term>
+	<listitem>
+	  <para>
+            Only unused nodes are considered for spawning new
+            processes. In addition, the nodes chosen for the current
+            job will be locked for further jobs, consequently no
+            additional processes will be started on this nodes until
+            the current job terminates.
+	    (<envar>HOME</envar>, <envar>USER</envar>, <envar>SHELL</envar> and
+	    <envar>TERM</envar>) are exported by default.
+	  </para>
+	  <para>
+            This variable does not define, how many processes of a job
+            will be placed per node. See also
+            <envar>PSI_OVERBOOK</envar> and 
+            <command>set maxproc</command> of 
+            <citerefentry>
+              <refentrytitle>psiadmin</refentrytitle>
+              <manvolnum>8</manvolnum> 
+            </citerefentry>.
+	  </para>
+	</listitem>
+      </varlistentry>
 
       <varlistentry>
 	<term><envar>PSI_EXPORTS</envar><replaceable> VAR</replaceable>
@@ -118,8 +143,15 @@
 	<term><envar>PSI_NODES_SORT</envar>
 	  <replaceable> mode</replaceable></term>
 	<listitem>
+<!-- fg:
 	  <para>This variable steers the sorting criterium which is used to
 	    bring the nodes building a partition in an appropriate order. This
+	    order will be used to spawn remote processes. The following values
+	    of <replaceable>mode</replaceable> are recognized:
+	  </para>
+-->
+	  <para>This variable defines the sorting criterium used to
+	    reorder the nodes building a virtual partition. This
 	    order will be used to spawn remote processes. The following values
 	    of <replaceable>mode</replaceable> are recognized:
 	  </para>
@@ -208,6 +240,27 @@
       </varlistentry>
 
       <varlistentry>
+	<term><envar>PSI_OVERBOOK</envar></term>
+	<listitem>
+	  <para>
+            If defined, more processes per node will be placed than
+            CPUs available, if necessary. If undefined, only as many
+            processes will be placed on a node as unused CPUs (=
+            number(CPU) - number(currently running processes)) are available.
+	  </para>
+	  <para>
+            See also
+            <command>set maxproc</command> of 
+            <citerefentry>
+              <refentrytitle>psiadmin</refentrytitle>
+              <manvolnum>8</manvolnum> 
+            </citerefentry>, which takes precedence over
+            <envar>PSI_OVERBOOK</envar>.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
 	<term><envar>PSI_RARG_PRE_{n}</envar></term>
 	<listitem>
 	  <para>Preceding arguments for remote processes. For example: Use
@@ -221,10 +274,11 @@
   </refsect1>
 
   <refsect1>
-    <title>Variables steering the communication layer</title>
+    <title>Variables controlling the communication layer</title>
     <para>
-      This variable controls the network card to use in order to actually do
-      communication operations.
+      This variables controls the network card to use in order to actually do
+      communication operations and protocols and interconnects not to
+      use for data transfers.
     </para>
     <variablelist>
       <varlistentry>
@@ -254,11 +308,46 @@
 	  </para>
 	</listitem>
       </varlistentry>
+
+      <varlistentry>
+	<term><envar>PSP_P4SOCK</envar></term>
+	<listitem>
+	  <para>
+            If set to 0, the &ps4; protocol
+            <emphasis>p4sock</emphasis> will <emphasis
+            role="bold">not</emphasis> be used for application data
+            transfer.
+	  </para>
+	  <para>
+            If undefined or set to a value &ne; 0,
+            <emphasis>p4sock</emphasis> will be used for data
+            transfer, if both nodes are configured to support this
+            protocol.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><envar>PSP_SHAREDMEM</envar></term>
+	<listitem>
+	  <para>
+            If set to 0, shared memory will <emphasis
+            role="bold">not</emphasis> be used for application data
+            transfer.
+	  </para>
+	  <para>
+            If undefined or set to a value &ne; 0, shared memory
+            will be used for data transfer, if both processes are
+            spawned on the same node.
+	  </para>
+	</listitem>
+      </varlistentry>
+
     </variablelist>
   </refsect1>
 
   <refsect1> 
-    <title>Variables steering logger/forwarder</title>
+    <title>Variables controlling the logger/forwarder</title>
     <para>
       In order to modify the behavior of the logger and the forwarders
       controlling the remotely spawned processes, the following environment
@@ -332,7 +421,7 @@
   </refsect1>
 
   <refsect1>
-    <title>Variables steering MPIch</title>
+    <title>Variables controlling MPIch</title>
 
     <para>
       The environment variables within this section might be used less

@@ -1,15 +1,16 @@
 <chapter id="mpi">
   <title>Using MPI</title>
   <para>
-    The aim of this chapter is to explain how to compile and link MPI
+    <!-- The aim of this chapter is to explain how to compile and link MPI -->
+    This chapter explains how to compile and link MPI
     applications using the adapted version of <ulink
       url="http://www.unix.mcs.anl.gov/mpi/mpich">MPIch</ulink> coming with
     &ps;. Within this chapter it is assumed that this version of MPI is
     installed in the default location, i.e.
     <filename>/opt/parastion/mpich</filename>. If this is not the case please
     refer to the section <quote>Installation of MPIch</quote> within the <ulink
-      url="../adminguide/index.html" type="dontshow">&ps; Administrators
-      Guide</ulink> in order to setup things correctly.
+      url="../adminguide/index.html" type="dontshow">&psag; 
+      </ulink> in order to setup things correctly.
   </para>
   <para>
     Furthermore it is assumed that the directory containing all MPIch
@@ -162,7 +163,7 @@
 	<term><envar>MPICH_CCLINKER</envar></term>
 	<listitem>
 	  <para>This will set the actual C++ linker used to link the code. The
-	    default linker used ususally is the GNU C++ compiler <ulink
+	    default linker used usually is the GNU C++ compiler <ulink
 	      url="http://gcc.gnu.org">g++</ulink>.
 	  </para>
 	  <para>

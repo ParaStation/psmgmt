@@ -98,7 +98,7 @@
       <title>The root process</title>
       <para>
 	Both functions this process has to fulfill are handled almost
-	completely within one function calls. Thus nearly functionality is
+	completely within one function call. Thus nearly functionality is
 	hidden from the users point of view.
       </para>
       <para>
@@ -188,7 +188,7 @@
 	After the startup phase all processes of the parallel task will reach a
 	mode of normal operation, which usually will cover the actual
 	application code. Within the application two kinds of exit mechanisms
-	might wanted to be used. On the one hand a error detected within one
+	might wanted to be used. On the one hand an error detected within one
 	process should result in the end of the whole parallel task. This can
 	be reached by using the
 	<citerefentry>
@@ -268,7 +268,7 @@
 	  </citerefentry> and <citerefentry>
 	    <refentrytitle>PSE_getMasterPort</refentrytitle>
 	    <manvolnum>3</manvolnum>
-	  </citerefentry> function calls repsectively as discussed above.
+	  </citerefentry> function calls, respectively, as discussed above.
 	</para>
       </listitem>
       <listitem>

@@ -1,10 +1,9 @@
 <appendix id="quick_install">
   <title>Quick installation guide</title>
   <para>
-    This appendix gives a brief overview of the steps that have to be done in
-    order to install &ps; on your cluster. A detailed description of the
-    necessary steps is contained in <xref linkend="configuration"/> and <xref
-      linkend="installation"/>.
+    This appendix gives a brief overview how to install &ps4; on a
+    cluster.  A detailed description can be found in <xref
+    linkend="configuration"/> and <xref linkend="installation"/>.
   </para>
   <orderedlist>
     <listitem>
@@ -14,12 +13,15 @@
 	  url="http://www.par-tec.com">ParTec homepage</ulink>. You may find
 	various versions of &ps; and related software within the <ulink
 	  url="http://par-tec.com/en/download.php">download
-	  section</ulink>.
+	  section</ulink>. Remember: a license is necessary to run
+          &ps;.
       </para>
-<!--      <para>
+<!--      
+      <para>
 	Depending on the Linux distribution in use the RPMs or the
 	<filename>.tar.gz</filename> files are needed.
-      </para>-->
+      </para>
+-->
     </listitem>
     <listitem>
       <para><emphasis role="bold">Shutdown</emphasis></para>
@@ -27,7 +29,7 @@
 	If this is actually not the first installation but an update of &ps;
 	to a more up to date version first of all shut down the &ps; system.
 	In order to do this startup <filename>psiadmin</filename> and do a
-	<command>shutdown</command>.
+	<constant>shutdown</constant>.
       </para>
     </listitem>
     <listitem id="serverinstall">
@@ -47,26 +49,39 @@
 	you have to execute <filename>PSM_INSTALL</filename> or to repeat step
 	<xref linkend="serverinstall"/> on every node respectively.
       </para>
+      <para>
+        Beginning with version 4.1, the kernel modules will be
+        installed in the
+        directory<filename>/lib/modules/kernel/drivers/net/ps4</filename>.
+        In order to do so, the modules installation utility
+        <filename>psmodules_install</filename> should be used.
+      </para>
     </listitem>
     <listitem>
       <para><emphasis role="bold">Configuration</emphasis></para>
       <para>
-	Next the configuration file <filename>parastation.conf</filename>
-	normally located in <filename>/opt/parastation/config</filename> has to
-	be adapted to your local settings.
+        Next the configuration file
+        <filename>parastation.conf</filename>, normally located in
+        <filename>/opt/parastation/config</filename>, has to be
+        adapted to the local settings. A template file giving lots of
+        hints could be found in
+        <filename>/opt/parastation/config/parastation.conf.tmpl</filename>.
+        The configuration could be verified using
+        <!-- TODO: fg: reference -->
+        <filename>/opt/parastation/bin/test_conf</filename>.
       </para>
       <para>
-	If your installation is a centralized one, this has to be done only on
+	If a centralized installation is used, this has to be done only on
 	the server, otherwise this step has to be repeated on all nodes.
       </para>
     </listitem>
     <listitem>
       <para><emphasis role="bold">Startup &ps;</emphasis></para>
       <para>
-	In order to startup the whole &ps; system run
+	In order to startup the entire &ps; system, run
 	<xref linkend="psiadmin"/> located in
 	<filename>/opt/parastation/bin</filename> and execute
-	<command>add</command> at the prompt. This should bring up the &ps;
+	<constant>add</constant>. This should bring up the &ps;
 	daemon <xref linkend="psid"/> on every node. Alternatively you can
 	start <xref linkend="psiadmin"/> with the <option>-s</option> option
 	which does the add automatically.
@@ -75,10 +90,13 @@
     <listitem>
       <para><emphasis role="bold">Testing</emphasis></para>
       <para>
-	A brief test of the whole communication system can be done using the
-	<filename>test_nodes</filename> program. For a detailed description
-	please refer to <xref linkend="testing"/> or to the relevent manual
-	page <xref linkend="test_nodes"/>.
+        A brief test of the whole communication and management system
+        can be done using the <filename>test_nodes</filename> program.
+        For a detailed description please refer to <xref
+        linkend="testing"/> 
+        <!-- TODO: fg: man page 
+        or to the relevent manual page <xref
+        linkend="test_pse"/> -->.
       </para>
     </listitem>
   </orderedlist>

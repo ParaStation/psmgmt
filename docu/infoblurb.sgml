@@ -18,21 +18,28 @@
 
 <corpname>ParTec AG</corpname>
 
+<authorgroup>
 <author>
   <firstname>Norbert</firstname>
   <surname>Eicker</surname>
   <email>eicker@par-tec.com</email>
 </author>
-    
-<address>
-  http://www.par-tec.com
-  <email>info@par-tec.com</email>
+<author>
+  <firstname>Ferdinand</firstname>
+  <surname>Geier</surname>
+  <email>geier@par-tec.com</email>
+</author>
+</authorgroup>
 
-  ParTec AG
-  <street>Possartstr. 20</street>
-  <city>D-81679 M&uuml;nchen</city>
-  <phone>Fon +49-89-99809-0</phone>
-  <fax>Fax +49-89-99809-555</fax>
+<address>
+ParTec AG
+<street>Possartstr. 20</street>
+<city>D-81679 M&uuml;nchen</city>
+<phone>Phone +49-89-99809-0</phone>
+<fax>Fax +49-89-99809-555</fax>
+
+http://www.par-tec.com
+<email>info@par-tec.com</email>
 </address>
 
 <mediaobject>
@@ -46,7 +53,15 @@
     Please note that you will always find the most up-to-date version of this
     technical documentation on our Web site at <ulink
       url="http://par-tec.com/service.php"
-      type="dontshow">http://par-tec.com/service.php</ulink>.
+      type="dontshow">http://www.par-tec.com/download.php</ulink>.
+  </para>
+  <para>
+  <blockquote>
+    <attribution>Dalai Lama</attribution>
+    <para>
+      Share your knowledge with others. It's a way to achieve immortality.
+    </para>
+  </blockquote>
   </para>
 </abstract>
 

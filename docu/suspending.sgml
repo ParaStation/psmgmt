@@ -1,0 +1,77 @@
+<refentry id="suspending">
+
+  <refentryinfo>
+    <title>ParTec</title>
+    <productname>ParaStation</productname>
+    <date>April 2004</date>
+  </refentryinfo>
+
+  <refmeta>
+    <refentrytitle>suspending tasks</refentrytitle>
+    <manvolnum>7</manvolnum>
+  </refmeta>
+
+  <refnamediv>
+    <refname>suspending tasks</refname>
+    <refpurpose>Suspending tasks within &ps;</refpurpose>
+  </refnamediv>
+
+  <refsect1>
+    <title>Overview</title>
+    <para>
+      There's often the requirement to suspend a parallel task
+      currently running on a cluster, e.g. to interrupt a long running
+      task and to run a short, but high priority job. 
+    </para>
+    <para>
+      Suspending could be implemented by the application itself, often
+      combined with checkpointing and restart. The "suspend" command
+      must be triggered externally, this event will be distributed by
+      the application itself to all involved compute processes. The
+      same is true for the corresponding "resume" command. The
+      interface to trigger a suspend command will be completely
+      application dependent and not standardized.
+    </para>
+    <para>
+      Alternatively, signals could be used to suspend and resume
+      running processes. Due to the nature of distributed parallel
+      tasks, this signals must be redirected to all processes
+      belonging to a parallel job. Signaling to a process could
+      be done using a well-known interface.
+    </para>
+    <para>
+      Therefore, implementing a secure and reliable suspend/resume
+      feature isn't a easy task. &ps4; includes all features to do so.
+    </para>
+  </refsect1>
+
+  <refsect1>
+    <title>Resource management</title>
+    <para>
+      A major problem concerning suspending a task is the problem, how
+      to handle resources currently allocated by the task. In principal,
+      two different strategies are possible:
+    </para>
+    <itemizedlist>
+      <listitem>
+        <para>
+          While suspending a parallel task, resources are
+          deallocated. Consequently, this resources can be reused for
+          new jobs. 
+          This is especially wanted for long running tasks, which
+          will be interrupted to run a short, but important one.
+        </para>
+        <para>
+        </para>
+      
+      </listitem>
+    </itemizedlist>
+  </refsect1>
+
+  <refsect1>
+    <title>Task ordering and execution</title>
+  </refsect1>
+  <!-- fg: welche task wird als naechstes gestartet? Warteschlange
+          voll/leer?
+  -->
+</refentry>

@@ -70,10 +70,13 @@
       Very few parameters have to be declared in any case in order to enable
       &ps; to run on a cluster. These parameters are
       <command>NrOfNodes</command>, <command>HWType</command>,
-      <command>Nodes</command> and <command>LicenseServer</command>. In the
+      <command>Nodes</command> and <command>LicenseServer</command>. 
+<!--
+      In the
       case of a Myrinet cluster the <envar>PS_ROUTEFILE</envar> environment
       parameters within the <command>Hardware
 	<option>myrinet</option></command> declaration also has to be modified.
+-->
     </para>
     <para>
       If parameters are declared more than once, the latest declaration is the
@@ -239,6 +242,7 @@
 	  </para>
 	  <variablelist>
 
+<!-- fg: no more myrinet
 	    <varlistentry>
 	      <term>
 		<cmdsynopsis>
@@ -358,6 +362,7 @@
 		</variablelist>
 	      </listitem>
 	    </varlistentry>
+-->
 
 	    <varlistentry>
 	      <term>
@@ -452,12 +457,15 @@
 	  <cmdsynopsis>
 	    <command>HWType</command>
 	    <group choice="req">
+<!-- fg: no more myrinet
 	      <arg>myrinet</arg>
+-->
 	      <arg>ethernet</arg>
  	      <arg>p4sock</arg>
 	      <arg>none</arg>
 	    </group>
 	  </cmdsynopsis>
+<!-- fg: ???
 	  <cmdsynopsis>
 	    <command>HWType {</command>
 	    <group rep="repeat" choice="req">
@@ -467,6 +475,7 @@
 	    </group>
 	    <command>}</command>
 	  </cmdsynopsis>
+-->
 	</term>
 	<listitem>
 	  <para>Define the default communication hardware available on the
@@ -483,6 +492,7 @@
 	  </para>
 	  <variablelist>
 
+<!--
 	    <varlistentry>
 	      <term>
 		<cmdsynopsis>
@@ -496,6 +506,7 @@
 		</para>
 	      </listitem>
 	    </varlistentry>
+-->
 
 	    <varlistentry>
 	      <term>
@@ -546,7 +557,9 @@
 	  </para>
 	  <para>
 	    It is possible to enable more than one hardware type, either as
-	    default or on a per node basis. Think of a node that has both, a
+	    default or on a per node basis. 
+<!--
+            Think of a node that has both, a
 	    Myrinet and a Fast Ethernet card. Furthermore the cluster contains
 	    nodes that lack Myrinet. Then it might be useful to run jobs only
 	    depending on Ethernet communication even on nodes that have a
@@ -554,6 +567,7 @@
 	    corresponding <command>HWType</command> declaration then reads
 	    <command>HWType {<parameter>myrinet</parameter>
 	      <parameter>ethernet</parameter> }</command>.
+-->
 	  </para>
 	  <para>
 	    The default value of <command>HWType</command> is
@@ -656,8 +670,12 @@
 	    environment mode. This means there are two different notations to
 	    use this parameter. The first one may be used to define a single
 	    node, the second one will allow to register more than one node
-	    within a single command. You can assume the environment form of a
-	    command as a convenience mode that prevents from typing the keyword
+	    within a single command. It is a convenient form
+<!--
+            You can assume the environment form of a
+	    command as a convenience mode 
+-->
+            that prevents from typing the keyword
 	    once per entry again and again.
 	  </para>
 	  <para>
@@ -701,13 +719,14 @@
 	    E.g. the line
 	  </para>
 	  <programlisting>
-	Node node17 16 HWType { ethernet myrinet } starter yes runJobs no
+	Node node17 16 HWType { ethernet p4sock } starter yes runJobs no
 	  </programlisting>
 	  <para>
 	    will define the node <parameter>node17</parameter> to have the &ps;
-	    ID 16. Furthermore it is expected to have Ethernet <emphasis
-	      role="bold">and</emphasis> Myrinet communication interfaces. It
-	    is allow to start parallel tasks from this node but the node itself
+	    ID 16. Furthermore it is expected to have a Ethernet 
+	      communication using both TCP and
+              <emphasis>p4sock</emphasis> protocols. It
+	    is allowed to start parallel tasks from this node but the node itself
 	    will not run any process of any parallel task (except the &ps;
 	    logger processes of the tasks started on this node).
 	  </para>
@@ -1172,6 +1191,50 @@
 	    <envar>PSP_NETWORK</envar> environment variable globally without
 	    the need of every user to adjust this parameter in his own
 	    environment.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>freeOnSuspend</command>
+	    &boolargs;
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>If the argument is one of <parameter>yes</parameter>,
+	    <parameter>true</parameter> or <parameter>1</parameter>,
+            suspending a task by sending the signal
+            <constant>SIGTSTP</constant> to the logger will handle all
+            resource (CPUs) currently claimed by this task as free.
+	  </para>
+	  <para>
+	    If the argument is one of <parameter>no</parameter>,
+	    <parameter>false</parameter> or <parameter>0</parameter>, &ps; will
+            not claim resources as free after sending
+            <constant>SIGTSTP</constant>.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>handleOldBins</command>
+	    &boolargs;
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>If the argument is one of <parameter>yes</parameter>,
+	    <parameter>true</parameter> or <parameter>1</parameter>,
+            compatibility mode for applications linked with
+            &ps; version 4.0 up to 4.0.6 will be enabled.
+	  </para>
+	  <para>
+	    If the argument is one of <parameter>no</parameter>,
+	    <parameter>false</parameter> or <parameter>0</parameter>, &ps; will
+            disable compatibility mode.
 	  </para>
 	</listitem>
       </varlistentry>

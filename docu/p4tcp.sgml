@@ -1,35 +1,34 @@
-<refentry id="test_config">
+<refentry id="p4tcp">
   <refmeta>
-    <refentrytitle>test_config</refentrytitle>
+    <refentrytitle>p4tcp</refentrytitle>
     <manvolnum>8</manvolnum>
   </refmeta>
 
   <refnamediv>
-    <refname>test_config</refname>
+    <refname>p4tcp</refname>
     <refpurpose>
-      verify the &ps4; configuration file.
+      configure the &ps4; TCP bypass.
     </refpurpose>
   </refnamediv>
 
   <refsynopsisdiv>
     <cmdsynopsis>
-      <command>test_config</command>
+      <command>p4tcp</command>
       <arg>-vad? </arg>
       <arg>-v </arg>
       <arg>-a </arg>
       <arg>-d </arg>
       <arg>-? </arg>
-      <arg>-f filename</arg>
+      <arg><replaceable>from</replaceable><arg>
+      <replaceable>to</replaceable></arg></arg>
     </cmdsynopsis>
   </refsynopsisdiv>
 
   <refsect1>
     <title>Description</title>
     <para>
-      <command>test_config</command> reads and analyses the &ps4;
-      configuration file. Any errors or anomalies are reported.
-      Without an argument, the configuration file
-      <filename>/etc/parastation.conf</filename> will be used.
+      <command>p4tcp</command> configures the &ps4; TCP bypass.
+      Without an argument, the current configuration is printed.
     </para>
   </refsect1>
 
@@ -51,21 +50,35 @@
       </varlistentry>
       -->
       <varlistentry>
-	<term> <option>-f filename</option> </term>
+	<term>
+	  <option>-a</option>
+	  <option>, --add</option>
+        </term>
 	<listitem>
-	  <para>Use file <filename>filename</filename>.</para>
+	  <para>Add an address or an address range to the list of
+            redirected addresses. New TCP connections directed to a
+            node within this address range will use the p4sock
+            protocol for data transfer.
+	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
-	<term> <option>-d num</option></term>
+	<term>
+	  <option>-d</option>
+	  <option>, --delete</option>
+        </term>
 	<listitem>
-	  <para>Set debug level to <option>num</option>.</para>
+	  <para>Delete an address or address range from the list of
+            redirected addresses. New TCP connections to this
+            address(es) will no longer use the p4sock protocol.
+	  </para>
 	</listitem>
       </varlistentry>
 
       <varlistentry>
 	<term>
 	  <option>-v</option>
+	  <option>, --version</option>
         </term>
 	<listitem>
 	  <para>Output version information and exit.</para>
@@ -74,12 +87,19 @@
 
       <varlistentry>
 	<term>
-	  <option>-h</option>
 	  <option>-?</option>
-	  <option>, --usage</option>
+	  <option>, --help</option>
         </term>
 	<listitem>
 	  <para>Show a help message.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>--usage</option>
+	</term>
+	<listitem>
+	  <para>Display a brief usage message.</para>
 	</listitem>
       </varlistentry>
     </variablelist>

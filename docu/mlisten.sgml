@@ -41,6 +41,13 @@
       <xref linkend="psld"/>, are displayed as pings of the N+1st machine in a
       cluster of N machines.
     </para>
+    <note>
+      <para>
+        Beginning with version 4.1, &ps; will no longer use multicast
+        messages by default. Thus, no messages will be received and
+        displayed ever!
+      </para>
+    </note>
   </refsect1>
 
   <refsect1>

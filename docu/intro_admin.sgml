@@ -4,19 +4,23 @@
   <section>
     <title>About this document</title>
     <para>
-      This manual discusses installation and configuration of &ps;. Furthermore
-      the system management utilities are described.
+      This manual discusses installation, configuration and administration of
+			&ps4;.
+			Furthermore, all the system management utilities are described.
     </para>
     <para>
-      For a detailed discussion of the user utilities and the programming
-      interfaces included in the standard distribution take a look at the
-      <ulink url="../userguide/index.html" type="dontshow">&ps; Users
-	Guide</ulink> and the <ulink url="../api/index.html"
-	type="dontshow">API reference</ulink> respectively.
+      For a detailed discussion of the user utilities and the
+      programming interfaces included in the standard distribution
+      take a look at the <ulink url="../userguide/index.html"
+      type="dontshow">&psug; </ulink> and the <ulink
+      url="../api/index.html" type="dontshow">API reference</ulink>,
+      respectively.
     </para>
     <para>
-      This document describes version 3.3 of the &ps3; software for Myrinet,
-      version 1.0 of &psfe; and version 4.0 of &ps4;.
+      This document describes version 4.0 of &ps4;.  Previous versions
+      of &ps;, especially &ps3; and &psfe;, are no longer covered by
+      this document. Informations about this outdated versions can be
+      found in previous versions of this document.
     </para>
   </section>
 </chapter>
