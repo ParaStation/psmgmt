@@ -28,7 +28,7 @@
     <title>Description</title>
     <para>
       <command>mpirun</command> is a shell script that attempts to hide the
-      differences in starting parallel jobs for various implementations of the
+      differences of starting parallel jobs for various implementations of the
       MPI messsage passing interface from the user. Within the &ps;
       implementation the startup of parallel jobs is handled as described
       within the <xref linkend="spawning"/> manual page. The spawning mechanism
@@ -41,7 +41,7 @@
     <programlisting>	mpirun -np <replaceable>num</replaceable> <replaceable>prog</replaceable> <optional><replaceable>args</replaceable></optional>
     </programlisting>
     <para>
-      This will startup the parallel program <command>prog</command> on
+      This will start up the parallel program <command>prog</command> on
       <replaceable>num</replaceable> nodes of the cluster.
       <replaceable>args</replaceable> are optional arguments which will be
       passed to each instance of <command>prog</command>.
@@ -56,7 +56,7 @@
 	  <option>-np <replaceable>nodes</replaceable></option>
         </term>
 	<listitem>
-	  <para>Specify the number of processors to run on.</para>
+	  <para>Specify the number of processes to start.</para>
 	</listitem>
       </varlistentry>
       <varlistentry>

@@ -30,7 +30,7 @@
       Depending on its rank, a process will reside on a defined node within the
       pool. Assuming its rank is i, it will reside on node marked as number i
       within the pool. If more tasks are spawned than nodes are contained
-      within pool, the nodes are reused in a round robin fashion.
+      within the pool, the nodes are reused in a round robin fashion.
     </para>
    <para>
       The spawning strategie can be influenced by using various environment
@@ -86,7 +86,7 @@
       </citerefentry>.
     </para>
     <para>
-      Be aware of the fact, that setting any of the environment variables is
+      Be aware of the fact that setting any of the environment variables is
       kind of setting a static nodelist. This means, if any of the nodes within
       the pool is not available, the utilisation of the cluster may be
       suboptimal. On the other hand, this mechanism can be used to implement a

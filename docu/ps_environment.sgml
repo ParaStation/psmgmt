@@ -18,7 +18,8 @@
     </para>
     <para>
       Further variables may be used in order to modify the behavior of the
-      logging facilities used for reliable forwarding of input and output.
+      logging facilities implementing a reliable forwarding of input and
+      output.
     </para>
     <para>
       The last section describes some less frequently used environment
@@ -31,8 +32,8 @@
     <title>Variables managing the program startup</title>
     <para>
       The following environment variables are used during startup of parallel
-      tasks of while submitting serial jobs throughout a cluster. Depending on
-      their value a splitting of the cluster into virtual partitions is done
+      tasks or while distributing serial jobs throughout a cluster. Depending
+      on their value a splitting of the cluster into virtual partitions is done
       and the load balancing strategy is steered.
     </para>
     <variablelist>
@@ -60,24 +61,14 @@
 	<term><envar>PSI_NODES</envar> <replaceable>number</replaceable>
 	  <optional>, <replaceable>number</replaceable></optional>...</term>
 	<listitem>
-	  <para>Defines the nodes used to partition on which new processes
-	    should be spawned on. Depending on the variable
+	  <para>Defines the nodes building th partition used to spawn new
+	    processes to. Depending on the variable
 	    <envar>PSI_NODES_SORT</envar> the ordering may be relevant. If the
-	    number of processes exceed the number of nodes in the partition,
-	    some nodes may get more than one process.
+	    number of processes to spawn exceed the number of nodes in the
+	    partition, some nodes may get more than one process.
 	  </para>
-	</listitem>
-      </varlistentry>
-
-      <varlistentry>
-	<term><envar>PSI_HOSTFILE</envar>
-	  <replaceable>filename</replaceable></term>
-	<listitem>
-	  <para>Set the filename of a file, where hostnames of the nodes are
-	    listed which should be used for spawning. Similar to
-	    <envar>PSI_NODES</envar> but with names instead of logical
-	    ParaStation node numbers. If <envar>PSI_NODES</envar> is set too,
-	    it is dominant over <envar>PSI_HOSTFILE</envar>.
+	  <para>
+	    See also <envar>PSI_HOSTS</envar> and <envar>PSI_HOSTFILE</envar>.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -87,8 +78,30 @@
 	  <optional>, <replaceable>hostname</replaceable></optional>...</term>
 	<listitem>
 	  <para>Space separted list of hostnames on which new processes should
-	    be spawned on. See also <envar>PSI_NODES</envar> and
+	    be spawned on. Similar to <envar>PSI_NODES</envar>, but with
+	    hostnames instead of logical ParaStation node numbers. If
+	    <envar>PSI_NODES</envar> is set too, it is dominant over
+	    <envar>PSI_HOSTS</envar>.
+	  </para>
+	  <para>
+	    See also <envar>PSI_NODES</envar> and <envar>PSI_HOSTFILE</envar>.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><envar>PSI_HOSTFILE</envar>
+	  <replaceable>filename</replaceable></term>
+	<listitem>
+	  <para>The name of a file containing a list of nodes' hostnames which
+	    should be used for spawning. Similar to <envar>PSI_HOSTS</envar>
+	    but the actual information is within the file instead of the
+	    environment variable. If <envar>PSI_NODES</envar> or
+	    <envar>PSI_HOSTS</envar> are set too, they are dominant over
 	    <envar>PSI_HOSTFILE</envar>.
+	  </para>
+	  <para>
+	    See also <envar>PSI_NODES</envar> and <envar>PSI_HOSTFILE</envar>.
 	  </para>
 	  <note>
 	    <para><envar>PSI_NODES</envar>, <envar>PSI_HOSTS</envar> and
@@ -106,9 +119,9 @@
 	  <replaceable>mode</replaceable></term>
 	<listitem>
 	  <para>This variable steers the sorting criterium which is used to
-	    bring the nodes building a partition in an apropriate order to
-	    used. The following values of <replaceable>mode</replaceable> are
-	    recognized:
+	    bring the nodes building a partition in an appropriate order. This
+	    order will be used to spawn remote processes. The following values
+	    of <replaceable>mode</replaceable> are recognized:
 	  </para>
 	  <variablelist>
 	    <varlistentry>
@@ -116,8 +129,8 @@
 	      <listitem>
 		<para>No sorting of nodes before a spawn request. The nodes are
 		  used in round robin fashion as they are set in
-		  <envar>PSI_NODES</envar>, <envar>PSI_HOSTFILE</envar> or
-		  <envar>PSI_HOSTS</envar>.
+		  <envar>PSI_NODES</envar>, <envar>PSI_HOSTS</envar> or
+		  <envar>PSI_HOSTFILE</envar>.
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -174,7 +187,7 @@
 	      <term><envar>PROC</envar></term>
 	      <listitem>
 		<para>The nodes are sorted by the number of running ParaStation
-		  processes before new processes are spawnde. This is the
+		  processes before new processes are spawned. This is the
 		  default behavior.
 		</para>
 	      </listitem>
@@ -200,8 +213,8 @@
     <title>Variables steering logger/forwarder</title>
     <para>
       In order to modify the behavior of the logger and the forwarders
-      controlling the remotely spawned processes the following environment
-      variable can be used.
+      controlling the remotely spawned processes, the following environment
+      variable can be used:
     </para>
     <variablelist>
       <varlistentry>
@@ -251,8 +264,8 @@
 	  <replaceable>rank</replaceable></term>
 	<listitem>
 	  <para>If set, psilogger will forward all input to the process with
-	    rank rank within the process group. The default is to give all
-	    available input to process 0.
+	    the corresponding rank within the process group. The default is to
+	    give all available input to process 0.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -272,7 +285,8 @@
       <varlistentry>
 	<term><envar>MPID_PSP_MAXSMALLMSG</envar></term>
 	<listitem>
-	  <para>Length (in bytes) of the largest message sent w/o rendezvous.
+	  <para>Length (in bytes) of the largest message sent without
+	    rendezvous.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -287,11 +301,11 @@
 	    <varlistentry>
 	      <term><envar>PSID</envar></term>
 	      <listitem>
-		<para>Start remote processes with the ^ps; start
+		<para>Start remote processes with the &ps; start
 		  mechanism.</para>
-		<para>This is the default, i.e. if
-		  <envar>MPID_PSP_START</envar> is not set at all, &ps; is used
-		in order to spawn remote processes.</para>
+		<para>This is the default. If <envar>MPID_PSP_START</envar> is
+		  not set at all, &ps; is used in order to spawn remote
+		  processes.</para>
 	      </listitem>
 	    </varlistentry>
 
@@ -309,7 +323,7 @@
 	    <varlistentry>
 	      <term><envar>NONE</envar></term>
 	      <listitem>
-		<para>Don't start the remote processes. The remote processes
+		<para>Do not start any remote process. The remote processes
 		  must be started manually. A commandline template is printed
 		  to stdout.</para>
 		<para>

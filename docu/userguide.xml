@@ -28,13 +28,13 @@
       <imageobject>
 	<imagedata scale="85" fileref="../images/parastation.png"/>
       </imageobject>
-    </inlinemediaobject>  Users Guide</title>
-  <titleabbrev>&ps;  Users Guide</titleabbrev>
+    </inlinemediaobject>  User's Guide</title>
+  <titleabbrev>&ps;  User's Guide</titleabbrev>
 
   <bookinfo>
     &infoblurb;
 
-    <releaseinfo>Release 0.8</releaseinfo>
+    <releaseinfo>Release 0.9</releaseinfo>
 
     <revhistory>
 <!--       <revision> -->
@@ -42,11 +42,11 @@
 <!-- 	<date>16 Oct 2002</date> -->
 <!-- 	<revremark>First official release</revremark> -->
 <!--       </revision> -->
-<!--       <revision> -->
-<!-- 	<revnumber>0.9</revnumber> -->
-<!-- 	<date>22 Nov 2002</date> -->
-<!-- 	<revremark>Beta release</revremark> -->
-<!--       </revision> -->
+      <revision>
+	<revnumber>0.9</revnumber>
+	<date>27 Nov 2002</date>
+	<revremark>Beta release</revremark>
+      </revision>
       <revision>
 	<revnumber>0.8</revnumber>
 	<date>22 Nov 2002</date>

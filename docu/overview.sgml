@@ -2,12 +2,12 @@
   <title>What is &ps;</title>
   <para>
     Besides the brief overview on &ps; given within <link linkend="intro">the
-      introduction </link> this chapter will give a more detailed insight
+      introduction</link> this chapter will give a more detailed insight
     concerning the building blocks forming the &ps; system and the main
     architecure of &ps;.
   </para>
   <para>
-    As already mentioned &ps; consists of two main part,
+    As already mentioned &ps; consists of two main parts,
   </para>
   <itemizedlist>
     <listitem>
@@ -41,8 +41,8 @@
     In order to preserve the high communication bandwidth of the fast network
     to the applications, a strict separation between communication and
     administration traffic is made. Due to this target the Myrinet is only used
-    for applications communications traffic. The main concept of splitting the
-    two different types of communication is point out in <xref
+    for the application's communication traffic. The main concept of splitting
+    the two different types of communication is pointed out in <xref
       linkend="network"/>.
   </para>
 
@@ -68,7 +68,7 @@
     optional frontend machine not connected by a fast network to the cluster,
     all the same being fully integrated into the &ps; management system. Thus
     it is possible to start application from this machine, making it
-    unnecessary for the user to be able to login on every cluster node.
+    unnecessary for the user to be able to login to every cluster node.
     Furthermore the front end machine might act as an
     <filename>home</filename>-directory and compile server for the users.
   </para>
@@ -89,12 +89,12 @@
   </para>
   <para>
     Furthermore the whole &ps; cluster management facility is along with both
-    version of &ps; giving an outstanding potential concerning the simplicity
+    versions of &ps;, giving an outstanding potential concerning the simplicity
     and effectivity of both, cluster administration and job management.
   </para>
 
   <section>
-    <title>The Communication Subsytem</title>
+    <title>The Communication Subsystem</title>
 
     <para>
       The high speed communication subsystem consists of different
@@ -105,9 +105,9 @@
     <section>
       <title>Firmware</title>
       <para>
-	The &ps; firmware replaces the standard firmware provided by
-	Myricom. This replacement is made possible due to the open architecture
-	of the Myrinet communication hardware.
+	The &ps; firmware replaces the standard firmware coming from Myricom.
+	This replacement is made possible due to the open architecture of the
+	Myrinet communication hardware.
       </para>
       <para>
 	The &ps; firmware implements a secure protocols using a ACK/NACK
@@ -127,7 +127,8 @@
 	amount of overhead by means of the resend of packets can be avoided.
 	The payload data does not have to go through low level protocol layers
 	or the PCI bus again, since the error is detected within the NIC where
-	not yet acknowledged packets will be saved until the ACK is received.
+	not yet acknowledged packets will be saved until the corresponding ACK
+	is received.
       </para>
       <para>
 	Due to close cooperation between sender and receiver within the
@@ -158,9 +159,9 @@
       <para>
 	All available optimized communication interfaces are implemented using
 	this concept<footnote>
-	  <para>This is not true for the TCP/IP over Myrinet interface which
+	  <para>This is not true for the TCP/IP over Myrinet interface, which
 	    resides within the kernel. Therefore the access to the
-	    communication hardware is done within the kernel address space,
+	    communication hardware is done within the kernel's address space,
 	    too.
 	  </para>
 	</footnote>.
@@ -197,15 +198,15 @@
       </para>
       <para>
 	<xref linkend="comm_interface"/> illustrates the basic architecture of
-	the various layers of &ps; communication subsystem. Furthermore an
+	the various layers of the &ps; communication subsystem. Furthermore an
 	overview of the available interfaces is given.
       </para>
       <variablelist>
 	<varlistentry>
 	  <term><emphasis role="bold">PSHAL</emphasis></term>
 	  <listitem>
-	    <para>The <emphasis role="bold">PSHAL</emphasis> is the hardware
-	      abstraction layer of the &ps; communication subsystem. The
+	    <para>The <emphasis role="bold">PSHAL</emphasis> is the Hardware
+	      Abstraction Layer of the &ps; communication subsystem. The
 	      management of send- and receive buffers is done within this part
 	      of the communication interface.
 	    </para>
@@ -217,7 +218,7 @@
 		<para>Packets with up to 8 kByte payload.</para>
 	      </listitem>
 	      <listitem>
-		<para>Up to 256 Byte of control data within packets.</para>
+		<para>Up to 256 Byte of control data within the packets.</para>
 	      </listitem>
 	      <listitem>
 		<para>Zero copy interface.</para>
@@ -225,7 +226,7 @@
 	    </itemizedlist>
 	    <para>
 	      This communication level is usually not used by the end-user. Its
-	      main purpose is to enable user-level programs to access the
+	      main purpose is to enable user-level programs the access to the
 	      communication hardware.
 	    </para>
 	  </listitem>
@@ -249,19 +250,19 @@
 		<para>De-/fragmentation of large messages.</para>
 	      </listitem>
 	      <listitem>
-		<para>Buffering of asynchronous received messages</para>
+		<para>Buffering of asynchronously received messages.</para>
 	      </listitem>
 	      <listitem>
-		<para>Provision of ports</para>
+		<para>Provision of ports.</para>
 	      </listitem>
 	      <listitem>
-		<para>Selective receive</para>
+		<para>Selective receive.</para>
 	      </listitem>
 	      <listitem>
-		<para>Thread save</para>
+		<para>Thread save.</para>
 	      </listitem>
 	      <listitem>
-		<para>Control Data possible in every message</para>
+		<para>Control Data possible in every message.</para>
 	      </listitem>
 	    </itemizedlist>
 	  </listitem>
@@ -313,7 +314,7 @@
 		  MPI-2.</para>
 	      </listitem>
 	      <listitem>
-		<para>Support for MPI-IO to PVFS.</para>
+		<para>Support for MPI-IO to a PVFS parallel filesystem.</para>
 	      </listitem>
 	    </itemizedlist>
 	  </listitem>
@@ -362,7 +363,7 @@
     </para>
     <variablelist>
       <varlistentry>
-	<term>Node Management</term>
+	<term><emphasis role="bold">Node Management</emphasis></term>
 	<listitem>
 	  <para>The management system should automatically detect usable
 	    nodes. The ability to administrate this nodes from a central point
@@ -371,16 +372,16 @@
 	</listitem>
       </varlistentry>
       <varlistentry>
-	<term>Fault tolerance</term>
+	<term><emphasis role="bold">Fault tolerance</emphasis></term>
 	<listitem>
-	  <para>If some nodes are temporarily not available due to hardware
+	  <para>If some nodes are temporarily unavailable due to hardware
 	    failure, maintenance or any other reason, the management system
 	    must not fail. This situation has to be gracefully treated and
-	    normal work with the left nodes has to be provided.</para>
+	    normal work with the remaining nodes has to be provided.</para>
 	</listitem>
       </varlistentry>
       <varlistentry>
-	<term>Process management</term>
+	<term><emphasis role="bold">Process management</emphasis></term>
 	<listitem>
 	  <para>The management system has to provide a transparent mechanism to
 	    start parallel tasks. Load balancing has to be considered within
@@ -390,7 +391,8 @@
 	</listitem>
       </varlistentry>
       <varlistentry>
-	<term>Job control &amp; Error management</term>
+	<term><emphasis role="bold">Job control &amp; Error
+	    management</emphasis></term>
 	<listitem>
 	  <para>If some or all processes forming a parallel task fail
 	    unexpectedly, the management system has to reset left over
@@ -422,9 +424,9 @@
     </para>
     <itemizedlist>
       <listitem>
-	<para>The recovery and distribution of local informations about the
-	  local load values, the state of the locally controlled processes and
-	  the local communication interface,
+	<para>The recovery and distribution of local informations like the
+	  local load values, the state of the locally controlled processes or
+	  the condition of local communication interface,
 	</para>
       </listitem>
       <listitem>
@@ -443,7 +445,7 @@
 	</para>
       </listitem>
       <listitem>
-	<para>the control of the locally started processes
+	<para>the control of the locally started processes,
 	</para>
       </listitem>
       <listitem>
@@ -456,7 +458,8 @@
 	</para>
       </listitem>
       <listitem>
-	<para>the provision of an interface to the &ps; environment.
+	<para>the provision of an interface to the &ps; cluster management
+	  environment.
 	</para>
       </listitem>
     </itemizedlist>
@@ -476,7 +479,7 @@
       <para>
 	The main advantage of this concept becomes clear if one or more nodes
 	are temporarily unavailable or even down. While the concept of static
-	nodelists require the user to change their lists manually, within the
+	nodelists requires the user to change this lists manually, within the
 	setup choosen by &ps; the pool becomes smaller because of the lacking
 	nodes. On the other hand the user does not have to change the syntax or
 	any configuration in order to get a required number of nodes, at least
@@ -516,12 +519,12 @@
       <para>
 	Nevertheless &ps; offers further mechanisms in order to increase the
 	reliability and stability of the cluster system. E.g. if a node failes
-	while it is utilized by parallel tasks this task will be shut down in a
-	controlled manner. Thus the remaining nodes that where used by this
+	while it is utilized by parallel tasks, this task will be shut down in
+	a controlled manner. Thus the remaining nodes that where used by this
 	task will be cleaned up and released for further jobs.
       </para>
       <para>
-	The distributed concept of &ps;'s management facilities make an
+	The distributed concept of &ps;'s management facilities makes the
 	administration of the cluster feasible even if some nodes are
 	down. Furthermore it prevents the emerge of single point of failure
 	that would lead to an unusable cluster due to a local failure on just
@@ -558,7 +561,7 @@
 	a parallel task it can take them into account. The processes are no
 	longer independent but form a task in the same sense as the nodes no
 	longer are independent computers but form the cluster as a unique
-	system. The fact, that &ps; handles distributed processes as a unit,
+	system. The fact that &ps; handles distributed processes as a unit,
 	plays an important rule especially in the context of job control and
 	error management discussed within the next section.
       </para>
@@ -567,7 +570,7 @@
 	forwarded to the intended destination. This is usually the controlling
 	<filename>tty</filename> of the I/O handling process, i.e. the process
 	that was initially started in order to bring up the parallel task, but
-	might also be a normal file the output is turned into. Input directed
+	might also be a normal file the output is redirected to. Input directed
 	to the parallel task is forwarded, too. The default is to send it to
 	the process with rank 0, but it might be addressed to any process of
 	the parallel task.
@@ -593,7 +596,7 @@
 	&ps; supports the administrator and the end user within this complex.
 	Since the management facility controls all running processes that were
 	notified towards &ps; it is capable to take action in the case that one
-	of the processes fail.
+	of the processes fails.
       </para>
       <para>
 	If an unexpected failure of a process is recognized, other processes
@@ -603,7 +606,7 @@
 	only on request.
       </para>
       <para>
-	Furthermore all necessary measure will be taken in order to clean up
+	Furthermore all necessary measures will be taken in order to clean up
 	the resources that were allocated by the crashed process.
       </para>
       <para>
