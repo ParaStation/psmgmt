@@ -115,10 +115,10 @@
     <glossterm>&ps; logger</glossterm>
     <glossdef>
       <para>
-	The counterpart to the <link linkend="forwarderfull">&ps;
-	  forwarder</link>. It receives the all the output collected by the
-	forwarder processes and puts it their destination. Furthermore input to
-	the &ps; task is forwarded to a specific process.
+	The counterpart to the <xref linkend="forwarderfull"/>. It receives all
+	output collected by the forwarder processes and puts it to the final
+	destination. Furthermore input to the &ps; task is forwarded to a
+	specific process.
       </para>
       <para>
 	The first process of the task started usually converts to the logger
@@ -133,7 +133,7 @@
       <para>
 	Collects output written by &ps; controlled processes to
 	<filename>stdout</filename> or <filename>stderr</filename> and sends it
-	to the <link linkend="loggerfull">&ps; logger</link>.
+	to the <xref linkend="loggerfull"/>.
       </para>
       <para>
 	Furthermore the forwareder controls the process and sends information
@@ -146,11 +146,11 @@
     <glossterm>process</glossterm>
     <glossdef>
       <para>
-	The atomic part of a <link linkend="task">parallel task</link>. A
-	process is at first a standard Unix process. Since &ps; knows about its
-	membership in a parallel task, it can be handled in a peculiar way if
-	a events takes place on some other node (e.g. another process of the
-	task dies unexpectedly, a signal is send to the task, etc.).
+	The atomic part of a <xref linkend="task"/>. A process is at first a
+	standard Unix process. Since &ps; knows about its membership in a
+	parallel task, it can be handled in a peculiar way if a events takes
+	place on some other node (e.g. another process of the task dies
+	unexpectedly, a signal is send to the task, etc.).
       </para>
     </glossdef>
   </glossentry>
