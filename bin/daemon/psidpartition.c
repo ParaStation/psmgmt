@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidpartition.c,v 1.1 2003/09/12 15:34:44 eicker Exp $
+ * $Id: psidpartition.c,v 1.2 2003/09/26 14:22:16 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.1 2003/09/12 15:34:44 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.2 2003/09/26 14:22:16 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -42,23 +42,42 @@ static char errtxt[256];
 
 static int masterNode = -1; // @todo Hack 'till real masternode defined */
 
+/**
+ * Structure describing a actual request to create a partition
+ */
 typedef struct request{
-    struct request *next;
-    long tid;
-    unsigned int size;
-    unsigned int hwType;
-    uid_t uid;
-    gid_t gid;
-    PSpart_sort_t sort;
-    PSpart_option_t option;
-    unsigned int priority;
-    int num;
-    int numGot;
-    unsigned short *nodes;
+    struct request *next;    /**< Pointer to the next request */
+    long tid;                /**< TaskID of the requesting process */
+    unsigned int size;       /**< Requested size of the partition */
+    unsigned int hwType;     /**< Hardware type of the requested nodes */
+    uid_t uid;               /**< UID of the requesting process */
+    gid_t gid;               /**< GID of the requesting process */
+    PSpart_sort_t sort;      /**< Sort mode for sorting partition candidates */
+    PSpart_option_t option;  /**< Various options for partition creation */
+    unsigned int priority;   /**< Priority of the parallel task */
+    int num;                 /**< Number of nodes within request */
+    int numGot;              /**< Number of nodes actually received */
+    unsigned short *nodes;   /**< List of candidates to be used for
+				partition creation */
 } request_t;
 
+/**
+ * The head of the actual list of request.
+ */
 static request_t *requests = NULL;
 
+/**
+ * @brief Create a new request.
+ *
+ * Create a new request and initialize its members to reasonable
+ * values. The memory needed in order to store the request is
+ * allocated via malloc. Request might be appended to the list of
+ * request via @ref enqueueRequest() and destroyed via @ref
+ * freeRequest().
+ *
+ * @return On success, a pointer to the newly created request is
+ * returned. Or NULL in case of an error.
+ */
 static request_t *newRequest(void)
 {
     request_t *r = malloc(sizeof(request_t));
@@ -80,6 +99,13 @@ static request_t *newRequest(void)
     return r;
 }
 
+/**
+ * @brief Free request.
+ *
+ * Free the request @a req.
+ *
+ * @param req The request to free().
+ */
 static void freeRequest(request_t *req)
 {
     if (!req) return;
@@ -87,19 +113,43 @@ static void freeRequest(request_t *req)
     free(req);
 }
 
-static void enqueueRequest(request_t *request)
+/**
+ * @brief Enqueue request.
+ *
+ * Enqueue the request @a req to the list of requests. The request
+ * might be found within the list via @ref findRequest() and should be
+ * removed using the @ref dequeueRequest() function.
+ *
+ * @param req The request to be appended to the list.
+ *
+ * @return No return value.
+ *
+ * @see findRequest(), dequeueRequest()
+ */
+static void enqueueRequest(request_t *req)
 {
     request_t *r = requests;
 
     while (r && r->next) r = r->next;
 
     if (r) {
-	r->next = request;
+	r->next = req;
     } else {
-	requests = request;
+	requests = req;
     }
 }
 
+/**
+ * @brief Find a request.
+ *
+ * Find the request send by the task with taskID @a tid from within
+ * the list of requests.
+ *
+ * @param tid The taskID of the task which sent to request to search.
+ *
+ * @return On success, i.e. if a corresponding request was found, a
+ * pointer to this request is returned. Or NULL in case of an error.
+ */
 static request_t *findRequest(long tid)
 {
     request_t *r = requests;
@@ -112,17 +162,16 @@ static request_t *findRequest(long tid)
 /**
  * @brief Dequeue request.
  *
- * Remove the request @a req from the list of requests and free() the
- * allocated memory via freeRequest(). The request has to be created
- * using @ref newRequest() and added to the list of requests via @ref
- * enqueueRequest().
+ * Remove the request @a req from the list of requests. The request
+ * has to be created using @ref newRequest() and added to the list of
+ * requests via @ref enqueueRequest().
  *
- * @param req The request to be removed and free()ed.
+ * @param req The request to be removed from the list.
  *
  * @return If the request was not found within the list, it will be
  * returned. Otherwise NULL will be returned.
  *
- * @see newRequest() addRequest()
+ * @see newRequest() enqueueRequest()
  */
 static request_t *dequeueRequest(request_t *req)
 {
@@ -140,9 +189,38 @@ static request_t *dequeueRequest(request_t *req)
     return req;
 }
 
-static int nodeOK(unsigned short node,
-		  unsigned int hwType, uid_t uid, gid_t gid,
-		  PSpart_option_t option)
+/**
+ * @brief Test a nodes skill.
+ *
+ * Test if the node @a node is suitable in order to act as a candidate
+ * within the creation of a partition which fulfills all criteria of
+ * the request @a req.
+ *
+ * The following criteria are tested:
+ *
+ * - If any special hardware type is requested, test if the node
+ *   supports at lest one of this hardware types.
+ *
+ * - If the node allows to run jobs.
+ *
+ * - If the requesting user is allowed to run jobs on this node.
+ *
+ * - If the group of the requesting user is allowed to run jobs on
+ *   this node.
+ *
+ * - If at least one process slot is available on this node.
+ *
+ * - In case of a EXCLUSIVE or OVERBOOK request, if the node is
+ *   totally free.
+ *
+ * @param node The node to evaluate.
+ *
+ * @param req The request holding all the criteria.
+ *
+ * @return If the node is suitable to fulfill the request @a req, 1 is
+ * returned. Or 0 otherwise.
+ */
+static int nodeOK(unsigned short node, request_t *req)
 {
     MCastConInfo_t info;
 
@@ -162,17 +240,17 @@ static int nodeOK(unsigned short node,
     }
 
     getInfoMCast(node, &info);
-    if ((!hwType || PSnodes_getHWStatus(node) & hwType)
+    if ((!req->hwType || PSnodes_getHWStatus(node) & req->hwType)
 	&& PSnodes_runJobs(node)
 	&& (PSnodes_getUser(node) == PSNODES_ANYUSER
-	    || !uid || PSnodes_getUser(node) == uid)
+	    || !req->uid || PSnodes_getUser(node) == req->uid)
 	&& (PSnodes_getGroup(node) == PSNODES_ANYGROUP
-	    || !gid || PSnodes_getGroup(node) == gid)
+	    || !req->gid || PSnodes_getGroup(node) == req->gid)
 	&& (PSnodes_getProcs(node) == PSNODES_ANYPROC
 	    || (PSnodes_getProcs(node) > info.jobs.normal)
-	    || (option & PART_OPT_OVERBOOK))
-	&& (! (option & PART_OPT_EXCLUSIVE) || !info.jobs.normal)
-	&& (! (option & PART_OPT_OVERBOOK) || !info.jobs.normal)) {
+	    || (req->option & PART_OPT_OVERBOOK))
+	&& (! (req->option & PART_OPT_EXCLUSIVE) || !info.jobs.normal)
+	&& (! (req->option & PART_OPT_OVERBOOK) || !info.jobs.normal)) {
 
 	return 1;
     }
@@ -180,18 +258,34 @@ static int nodeOK(unsigned short node,
     return 0;
 }
 
+/** Entries of the sortable candidate list */
 typedef struct {
-    unsigned short id;
-    int cpus;
-    int jobs;
-    double rating;
+    unsigned short id;  /**< ParaStation ID */
+    int cpus;           /**< Number of cpus */
+    int jobs;           /**< Number of normal jobs running on this node */
+    double rating;      /**< The sorting criterium */
 } sortentry_t;
 
+/** A sortable candidate list */
 typedef struct {
-    unsigned int size;
-    sortentry_t *entry;
+    unsigned int size;  /**< The actual size of the sortlist */
+    sortentry_t *entry; /**< The actual size of the sortlist */
 } sortlist_t;
 
+/**
+ * @brief Create list of candiadates
+ *
+ * Create a list of candidates, i.e. nodes that might be used for the
+ * processes of the task described by @a request. Within this function
+ * @ref nodeOK() is used in order to determine the suitability of a
+ * node.
+ *
+ * @param request This one describes the partition request.
+ *
+ * @return On success, a sortable list of nodes is returned. This list
+ * is prepared to get sorted by sortCandidates(). If an error occured,
+ * NULL is returned and errno is set appropriately.
+ */
 static sortlist_t *getCandidateList(request_t *request)
 {
     static sortlist_t list;
@@ -208,8 +302,7 @@ static sortlist_t *getCandidateList(request_t *request)
     }
 
     for (i=0; i<request->num; i++) {
-	if (nodeOK(request->nodes[i], request->hwType,
-		   request->uid, request->gid, request->option)) {
+	if (nodeOK(request->nodes[i], request)) {
 	    MCastConInfo_t info;
 	    int cpus = PSnodes_getCPUs(i);
 	    list.entry[list.size].id = request->nodes[i];
@@ -249,6 +342,32 @@ static sortlist_t *getCandidateList(request_t *request)
     return &list;
 }
 
+/**
+ * @brief Helper for sorting candidates.
+ *
+ * Helper for sorting candidates. This takes the entries attached to
+ * two different candidates and decides which candidate has a higher
+ * rank.
+ *
+ * The following sorting criterium is implemented:
+ *
+ * - At the first place sort conforming to increasing rating, i.e. the
+ *   node with the smallest rating at first rank.
+ *
+ * - Nodes with identical rating are sorted conforming to number of
+ *   CPUs resulting into nodes with most CPUs at first rank.
+ *
+ * - If both rating and CPUs are identical, sort conforming to
+ *   ParaStation ID.
+ *
+ * @param entry1 Entry of first candidate to compare.
+ *
+ * @param entry2 Entry of second candidate to compare.
+ *
+ * @return If the candidate with attributes @a entry1 has higher rank
+ * than the one with attributes @a entry2, 1 is returned. Or -1
+ * otherwise.
+ */
 static int compareNodes(const void *entry1, const void *entry2)
 {
     sortentry_t *node1 = (sortentry_t *)entry1;
@@ -257,21 +376,277 @@ static int compareNodes(const void *entry1, const void *entry2)
 
     if (node2->rating < node1->rating) ret = 1;
     else if (node2->rating > node1->rating) ret =  -1;
+    else if (node2->cpus > node1->cpus) ret =  1;
+    else if (node2->cpus < node1->cpus) ret =  -1;
     else if (node2->id < node1->id) ret =  1;
     else ret = -1;
 
     return ret;
 }
 
+/**
+ * @brief Sort list of candiadates
+ *
+ * Sort the list of candidates described by @a list. @a list has to be
+ * created using @ref getCandidateList(). Within the process of
+ * sorting @ref comparedNodes() is used in order to decide which
+ * candidate will have a higher priority.
+ *
+ * @param list The list of candidates to sort.
+ *
+ * @return No return value.
+ */
 static void sortCandidates(sortlist_t *list)
 {
     qsort(list->entry, list->size, sizeof(*list->entry), compareNodes);
 }
 
+static void registerCPU(unsigned short id, int exclusive)
+{
+    /* @todo Bind CPU to parallel task's parition */
+}
+
 /**
- * @brief Create partition
+ * @brief Get normal partition.
  *
- * Create partition from @a candidates conforming to @a request.
+ * Get a normal partition, i.e. a partition, where the @ref
+ * PART_OPT_OVERBOOK option is not set. The partition will be created
+ * conforming to the request @a request from the nodes described by
+ * the sorted list @a candidates. The created partition is stored
+ * within @a partition.
+ *
+ * @param request The request describing the partition to create.
+ *
+ * @param candidates The sorted list of candidates used in order to
+ * build the partition
+ *
+ * @param partition Array of ParaStationID to keep the newly formed
+ * partition.
+ *
+ * @return On success, the size of the newly created partition is
+ * returned, which is identical to the requested size given in @a
+ * request->size. If an error occurred, any number smaller than that
+ * might be returned.
+ */
+static unsigned int getNormalPart(request_t *request, sortlist_t *candidates,
+				  unsigned short *partition)
+{
+    unsigned int avail = 0, node = 0, cand;
+    short *candSlots = calloc(sizeof(short), PSC_getNrOfNodes());
+
+    if (!candSlots) {
+	snprintf(errtxt, sizeof(errtxt), "%s: No memory", __func__);
+	PSID_errlog(errtxt, 0);
+	return 0;
+    }
+
+    snprintf(errtxt, sizeof(errtxt), "%s", __func__);
+    PSID_errlog(errtxt, 10);
+
+    /* Determine number of available slots */
+    for (cand = 0; cand < candidates->size; cand++) {
+	sortentry_t *ce = &candidates->entry[cand];
+	unsigned short slots;
+	if (candSlots[ce->id]) continue;
+	if ((PSnodes_getProcs(ce->id) == PSNODES_ANYPROC)
+	    || ce->cpus < PSnodes_getProcs(ce->id)) {
+	    slots = ce->cpus - ce->jobs;
+	} else {
+	    slots = PSnodes_getProcs(ce->id) - ce->jobs;
+	}
+	avail += slots;
+	candSlots[ce->id] = slots;
+    }
+
+    if (avail < request->size) {
+	snprintf(errtxt, sizeof(errtxt), "%s: Not enough slots", __func__);
+	PSID_errlog(errtxt, 0);
+	free(candSlots);
+	return 0;
+    }
+
+    if (request->option & PART_OPT_NODEFIRST) {
+	cand = 0;
+	while (node < request->size) {
+	    unsigned short cid = candidates->entry[cand].id;
+	    if (candSlots[cid]) {
+		partition[node] = cid;
+		registerCPU(cid, request->option & PART_OPT_EXCLUSIVE);
+		candSlots[cid]--;
+		node++;
+	    }
+	    cand = (cand+1) % candidates->size;
+	}
+    } else {
+	for (cand=0; cand < candidates->size && node < request->size; cand++) {
+	    unsigned short cid = candidates->entry[cand].id;
+	    while (candSlots[cid] && node < request->size) {
+		partition[node] = cid;
+		registerCPU(cid, request->option & PART_OPT_EXCLUSIVE);
+		candSlots[cid]--;
+		node++;
+	    }
+	}
+    }
+    free(candSlots);
+    return node;
+}
+
+/**
+ * @brief Get overbooked partition.
+ *
+ * Get a overbooked partition, i.e. a partition, where the @ref
+ * PART_OPT_OVERBOOK option is set. The partition will be created
+ * conforming to the request @a request from the nodes described by
+ * the sorted list @a candidates. The created partition is stored
+ * within @a partition.
+ *
+ * If it turns out, that enough CPUs are available in order to create
+ * a partition without overbooking any of them, @ref getNormalPart()
+ * is called internally.
+ *
+ * @param request The request describing the partition to create.
+ *
+ * @param candidates The sorted list of candidates used in order to
+ * build the partition
+ *
+ * @param partition Array of ParaStationID to keep the newly formed
+ * partition.
+ *
+ * @return On success, the size of the newly created partition is
+ * returned, which is identical to the requested size given in @a
+ * request->size. If an error occurred, any number smaller than that
+ * might be returned.
+ */
+static unsigned int getOverbookPart(request_t *request,	sortlist_t *candidates,
+				    unsigned short *partition)
+{
+    unsigned int avail = 0, availSlots = 0, node = 0, cand;
+    short *candSlots = calloc(sizeof(short), PSC_getNrOfNodes());
+
+    if (!candSlots) {
+	snprintf(errtxt, sizeof(errtxt), "%s: No memory", __func__);
+	PSID_errlog(errtxt, 0);
+	return 0;
+    }
+
+    snprintf(errtxt, sizeof(errtxt), "%s", __func__);
+    PSID_errlog(errtxt, 10);
+
+    /* Determine number of available slots */
+    for (cand = 0; cand < candidates->size && avail < request->size; cand++) {
+	sortentry_t *ce = &candidates->entry[cand];
+	unsigned short slots;
+	if (candSlots[ce->id]) continue;
+	if ((PSnodes_getProcs(ce->id) == PSNODES_ANYPROC)
+	    || ce->cpus < PSnodes_getProcs(ce->id)) {
+	    slots = ce->cpus - ce->jobs;
+	} else {
+	    slots = PSnodes_getProcs(ce->id) - ce->jobs;
+	}
+	avail += slots;
+	if (PSnodes_getProcs(ce->id) == PSNODES_ANYPROC) {
+	    slots = request->size;
+	} else {
+	    slots = PSnodes_getProcs(ce->id);
+	}
+	candSlots[ce->id] = slots;
+	availSlots += slots;
+    }
+
+    if (avail >= request->size) {
+	/* No overbook necessary */
+	free(candSlots);
+	return getNormalPart(request, candidates, partition);
+    }
+
+    if (availSlots < request->size) {
+	snprintf(errtxt, sizeof(errtxt), "%s: Not enough Slots", __func__);
+	PSID_errlog(errtxt, 0);
+	free(candSlots);
+	return 0;
+    }
+
+    if (request->option & PART_OPT_NODEFIRST) {
+	cand = 0;
+	while (node < request->size) {
+	    unsigned short cid = candidates->entry[cand].id;
+	    if (candSlots[cid]) {
+		partition[node] = cid;
+		registerCPU(cid, request->option & PART_OPT_EXCLUSIVE);
+		candSlots[cid]--;
+		node++;
+	    }
+	    cand = (cand+1) % candidates->size;
+	}
+    } else {
+	int i;
+	unsigned int procsPerCPU = 1, neededSlots = request->size;
+
+	for (i = 0; i < PSC_getNrOfNodes(); i++) candSlots[i] = 0;
+
+	while (procsPerCPU > 0) {
+	    unsigned int availCPUs = 0;
+	    for (cand=0; cand<candidates->size; cand++) {
+		sortentry_t *ce = &candidates->entry[cand];
+		unsigned short procs = ce->cpus * procsPerCPU;
+		if (candSlots[ce->id] < procs) {
+		    if (PSnodes_getProcs(ce->id) == PSNODES_ANYPROC) {
+			availCPUs += ce->cpus;
+			neededSlots -= procs - candSlots[ce->id];
+			candSlots[ce->id] = procs;
+		    } else if (procs < PSnodes_getProcs(ce->id)) {
+			unsigned short tmp = PSnodes_getProcs(ce->id) - procs;
+			availCPUs += (tmp > ce->cpus) ? ce->cpus : tmp;
+			neededSlots -= procs - candSlots[ce->id];
+			candSlots[ce->id] = procs;
+		    } else {
+			neededSlots -=
+			    PSnodes_getProcs(ce->id) - candSlots[ce->id];
+			candSlots[ce->id] = PSnodes_getProcs(ce->id);
+		    }
+		}
+	    }
+	    if (!availCPUs || neededSlots < availCPUs) break;
+	    procsPerCPU += neededSlots / availCPUs;
+	}
+
+	/* @todo make this part smarter. Increase nodes with most CPUs first */
+	while (neededSlots > 0) {
+	    for (cand=0; cand<candidates->size && neededSlots; cand++) {
+		unsigned short cid = candidates->entry[cand].id;
+		if (PSnodes_getProcs(cid) == PSNODES_ANYPROC
+		    || candSlots[cid] < PSnodes_getProcs(cid)) {
+		    neededSlots--;
+		    candSlots[cid]++;
+		}
+	    }
+	}
+
+	for (cand=0; cand<candidates->size; cand++) {
+	    unsigned short cid = candidates->entry[cand].id;
+	    while (candSlots[cid]) {
+		partition[node] = cid;
+		registerCPU(cid, request->option & PART_OPT_EXCLUSIVE);
+		candSlots[cid]--;
+		node++;
+	    }
+	}
+    }
+    free(candSlots);
+    return node;
+}
+
+/**
+ * @brief Create partition.
+ *
+ * Create partition from the sorted @a candidates conforming to @a
+ * request.
+ *
+ * @param request The request describing the partition to create.
+ *
+ * @param candidates The sorted list of candidates used in order to
+ * build the partition
  *
  * @return On success, the partition is returned, or NULL, if a
  * problem occurred. This may include less available nodes than
@@ -281,8 +656,7 @@ static unsigned short *createPartition(request_t *request,
 				       sortlist_t *candidates)
 {
     unsigned short *partition;
-    unsigned int node = 0, cand = 0, total = 0;
-    int nodeInRound = 0;
+    unsigned int nodes;
 
     partition = malloc(request->size * sizeof(*partition));
     if (!partition) {
@@ -291,45 +665,13 @@ static unsigned short *createPartition(request_t *request,
 	return NULL;
     }
 
-    /* @todo OVERBOOK does not work! Fix this! */
-    while (node < request->size) {
-	sortentry_t *ce = &candidates->entry[cand];
-	if ((PSnodes_getProcs(ce->id) == PSNODES_ANYPROC
-	     || PSnodes_getProcs(ce->id) > ce->jobs)
-	    && ((ce->cpus > ce->jobs)
-		|| (request->option & PART_OPT_OVERBOOK))) {
-
-	    if (request->option & PART_OPT_NODEFIRST) {
-		/* @todo Think about total for PART_OPT_OVERBOOK */
-		partition[node] = ce->id;
-		total += ce->cpus - ce->jobs;
-		ce->jobs++;
-		node++;
-		if (total >= request->size) {
-		    cand = candidates->size; // continue with special handling
-		}
-	    } else {
-		while (ce->jobs < ce->cpus) {
-		    partition[node] = ce->id;
-		    ce->jobs++;
-		    node++;
-		}
-	    }
-	    nodeInRound = 1;
-	}
-	cand++;
-	if (cand >= candidates->size) {
-	    if (!nodeInRound) {
-		break;
-	    } else {
-		cand = 0;
-		nodeInRound = 0;
-		total = node;
-	    }
-	}
+    if (request->option & PART_OPT_OVERBOOK) {
+	nodes = getOverbookPart(request, candidates, partition);
+    } else {
+	nodes = getNormalPart(request, candidates, partition);
     }
 
-    if (node < request->size) {
+    if (nodes < request->size) {
 	snprintf(errtxt, sizeof(errtxt), "%s: Not enough nodes", __func__);
 	PSID_errlog(errtxt, 0);
 	free(partition);
@@ -340,6 +682,100 @@ static unsigned short *createPartition(request_t *request,
     return partition;
 }
 
+/**
+ * @brief Send partition.
+ *
+ * Send the newly created partition @a part conforming to the request
+ * @a req to the initiating instance. This function is usually called
+ * from within @ref getPartition().
+ *
+ * @param part The newly created partition to be send to the
+ * initiating instance.
+ *
+ * @param req The request describing the parition. This contains all
+ * necessary information in order to contact to initiating instance.
+ *
+ * @return On success, 1 is returned. Or 0 in case of an error.
+ *
+ * @see getPartition()
+ */
+static int sendPartition(unsigned short *part, request_t *req)
+{
+    DDBufferMsg_t msg = (DDBufferMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_DD_PROVIDEPART,
+	    .dest = req->tid,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg.header) },
+	.buf = { 0 }};
+    char *ptr = msg.buf;
+    unsigned int offset = 0;
+
+    *(unsigned int *)ptr = req->size;
+    ptr += sizeof(req->size);
+    msg.header.len += sizeof(req->size);
+
+    *(PSpart_option_t *)ptr = req->option;
+    ptr += sizeof(req->option);
+    msg.header.len += sizeof(req->option);
+
+    if (PSC_getID(msg.header.dest) == PSC_getMyID()) {
+	msg_PROVIDEPART(&msg);
+    } else {
+	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: sendMsg(): errno %d", __func__, errno);
+	    PSID_errlog(errtxt, 0);
+	    return 0;
+	}
+    }
+
+    msg.header.type = PSP_DD_PROVIDEPARTNL;
+    while (offset < req->size) {
+	int chunk = (req->size-offset > GETNODES_CHUNK) ?
+	    GETNODES_CHUNK : req->size-offset;
+	msg.header.len = sizeof(msg.header);
+	ptr = msg.buf;
+
+	*(int *)ptr = chunk;
+	ptr += sizeof(int);
+	msg.header.len += sizeof(int);
+
+	memcpy(ptr, part+offset, chunk * sizeof(*part));
+	msg.header.len += chunk * sizeof(*part);
+	offset += chunk;
+	if (PSC_getID(msg.header.dest) == PSC_getMyID()) {
+	    msg_PROVIDEPARTNL(&msg);
+	} else {
+	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+		snprintf(errtxt, sizeof(errtxt),
+			 "%s: sendMsg(): errno %d", __func__, errno);
+		PSID_errlog(errtxt, 0);
+		return 0;
+	    }
+	}
+    }
+
+    return 1;
+}
+
+/**
+ * @brief Create a partition
+ *
+ * Create a partition conforming to @a request. Thus first of all a
+ * list of candidates is created via @ref getCandidateList(). This
+ * list will be sorted by @ref sortCandidates() if necessary. The
+ * actual creation of the partition is done within @ref
+ * createPartition(). As a last step the newly created partition is
+ * send to the requesting instance via @ref sendPartition().
+ *
+ * @param request The request describing the partition to create.
+ *
+ * @return On success, 1 is returned, or 0 otherwise.
+ *
+ * @see getCandidateList(), sortCandidates(), createPartition(),
+ * sendPartition()
+ */
 static int getPartition(request_t *request)
 {
     int ret=0, i;
@@ -373,30 +809,7 @@ static int getPartition(request_t *request)
 	goto error;
     }
 
-/*     { */
-/* 	unsigned int i; */
-/* 	snprintf(errtxt, sizeof(errtxt), "Candidates are ["); */
-/* 	for (i=0; i<candidates->size; i++) { */
-/* 	    snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt), */
-/* 		     "%d,", candidates->entry[i].id); */
-/* 	} */
-/* 	snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt), "]"); */
-/* 	PSID_errlog(errtxt, 0); */
-/*     } */
-
     if (request->sort != PART_SORT_NONE) sortCandidates(candidates);
-
-/*     { */
-/* 	unsigned int i; */
-/* 	snprintf(errtxt, sizeof(errtxt), "Sorted candidates are ["); */
-/* 	for (i=0; i<candidates->size; i++) { */
-/* 	    snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt), */
-/* 		     "%d,", candidates->entry[i].id); */
-/* 	} */
-/* 	snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt), "]"); */
-/* 	PSID_errlog(errtxt, 0); */
-/*     } */
-
 
     partition = createPartition(request, candidates);
     if (!partition) {
@@ -406,74 +819,7 @@ static int getPartition(request_t *request)
 	goto error;
     }
 
-/*     { */
-/* 	unsigned int i; */
-/* 	snprintf(errtxt, sizeof(errtxt), "Partition is ["); */
-/* 	for (i=0; i<request->size; i++) { */
-/* 	    snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt), */
-/* 		     "%d,", partition[i]); */
-/* 	} */
-/* 	snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt), "]"); */
-/* 	PSID_errlog(errtxt, 0); */
-/*     } */
-
-    {
-	DDBufferMsg_t msg = (DDBufferMsg_t) {
-	    .header = (DDMsg_t) {
-		.type = PSP_DD_PROVIDEPART,
-		.dest = request->tid,
-		.sender = PSC_getMyTID(),
-		.len = sizeof(msg.header) },
-	    .buf = { 0 }};
-	char *ptr = msg.buf;
-	unsigned int offset = 0;
-
-	*(unsigned int *)ptr = request->size;
-	ptr += sizeof(request->size);
-	msg.header.len += sizeof(request->size);
-
-	*(PSpart_option_t *)ptr = request->option;
-	ptr += sizeof(request->option);
-	msg.header.len += sizeof(request->option);
-
-	if (PSC_getID(msg.header.dest) == PSC_getMyID()) {
-	    msg_PROVIDEPART(&msg);
-	} else {
-	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: sendMsg(): errno %d", __func__, errno);
-		PSID_errlog(errtxt, 0);
-		goto error;
-	    }
-	}
-
-	msg.header.type = PSP_DD_PROVIDEPARTNL;
-	while (offset < request->size) {
-	    int chunk = (request->size-offset > GETNODES_CHUNK) ?
-		GETNODES_CHUNK : request->size-offset;
-	    msg.header.len = sizeof(msg.header);
-	    ptr = msg.buf;
-
-	    *(int *)ptr = chunk;
-	    ptr += sizeof(int);
-	    msg.header.len += sizeof(int);
-
-	    memcpy(ptr, partition+offset, chunk * sizeof(*partition));
-	    msg.header.len += chunk * sizeof(*partition);
-	    offset += chunk;
-	    if (PSC_getID(msg.header.dest) == PSC_getMyID()) {
-		msg_PROVIDEPARTNL(&msg);
-	    } else {
-		if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-		    snprintf(errtxt, sizeof(errtxt),
-			     "%s: sendMsg(): errno %d", __func__, errno);
-		    PSID_errlog(errtxt, 0);
-		    goto error;
-		}
-	    }
-	}
-    }
-    ret = 1;
+    ret = sendPartition(partition, request);
 
  error:
     if (candidates && candidates->entry) free(candidates->entry);
@@ -813,7 +1159,6 @@ void msg_GETNODES(DDBufferMsg_t *inmsg)
 	return;
     }
 
-
     if (!task->partitionSize || !task->partition) {
 	snprintf(errtxt, sizeof(errtxt), "%s: No Partition created", __func__);
 	PSID_errlog(errtxt, 0);
@@ -826,8 +1171,7 @@ void msg_GETNODES(DDBufferMsg_t *inmsg)
     snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, num);
     PSID_errlog(errtxt, 10);
 
-    if ((task->nextRank + num <= task->partitionSize) ||
-	(task->options & PART_OPT_OVERBOOK)) {
+    if (task->nextRank + num <= task->partitionSize) {
 	DDBufferMsg_t msg = (DDBufferMsg_t) {
 	    .header = (DDMsg_t) {
 		.type = PSP_CD_NODESRES,
@@ -835,36 +1179,16 @@ void msg_GETNODES(DDBufferMsg_t *inmsg)
 		.sender = PSC_getMyTID(),
 		.len = sizeof(msg.header) },
 	    .buf = { 0 } };
-	unsigned int offset = task->nextRank % task->partitionSize;
-	unsigned int chunk = task->partitionSize - offset;
 	ptr = msg.buf;
 
 	*(int *)ptr = task->nextRank;
 	ptr += sizeof(task->nextRank);
 	msg.header.len += sizeof(task->nextRank);
 
-	memcpy(ptr, task->partition + offset,
-	       chunk * sizeof(*task->partition));
-	ptr += chunk * sizeof(*task->partition);
-	msg.header.len += chunk * sizeof(*task->partition);
-
-	if (chunk < num) {
-	    unsigned int total = chunk;
-	    /* @todo This will become active with OVERBOOK. */
-	    snprintf(errtxt, sizeof(errtxt), "%s: Within if", __func__);
-	    PSID_errlog(errtxt, 0);
-	    while (total < num) {
-		snprintf(errtxt, sizeof(errtxt), "%s: Within loop", __func__);
-		PSID_errlog(errtxt, 0);
-		chunk = (num-total < task->partitionSize)
-		    ? num-total : task->partitionSize;
-		memcpy(ptr, task->partition,
-		       chunk * sizeof(*task->partition));
-		ptr += chunk * sizeof(*task->partition);
-		msg.header.len += chunk * sizeof(*task->partition);
-		total += chunk;
-	    }
-	}
+	memcpy(ptr, task->partition + task->nextRank,
+	       num * sizeof(*task->partition));
+	ptr += num * sizeof(*task->partition);
+	msg.header.len += num * sizeof(*task->partition);
 
 	task->nextRank += num;
 
