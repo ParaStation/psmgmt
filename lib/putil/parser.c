@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: parser.c,v 1.7 2003/08/15 13:34:05 eicker Exp $
+ * $Id: parser.c,v 1.8 2003/10/23 16:25:48 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: parser.c,v 1.7 2003/08/15 13:34:05 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: parser.c,v 1.8 2003/10/23 16:25:48 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -268,10 +268,10 @@ int parser_getComment(char *token)
     return 0;
 }
 
-long int parser_getNumber(char *token)
+long parser_getNumber(char *token)
 {
     char *end;
-    long int num;
+    long num;
 
     num = strtol(token, &end, 0);
     if (*end != '\0') {
