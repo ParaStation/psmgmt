@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.70 2004/04/29 10:59:56 eicker Exp $
+ * $Id$
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.70 2004/04/29 10:59:56 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -111,10 +111,11 @@ void PSID_blockSig(int block, int sig)
 static size_t writeall(int fd, const void *buf, size_t count)
 {
     int len;
+    char *cbuf = (char *)buf;
     size_t c = count;
 
     while (c > 0) {
-        len = write(fd, buf, c);
+        len = write(fd, cbuf, c);
         if (len < 0) {
             if ((errno == EINTR) || (errno == EAGAIN))
                 continue;
@@ -122,7 +123,7 @@ static size_t writeall(int fd, const void *buf, size_t count)
                 return -1;
         }
         c -= len;
-        (char*)buf += len;
+        (char*)cbuf += len;
     }
 
     return count;
@@ -150,10 +151,11 @@ static size_t writeall(int fd, const void *buf, size_t count)
 static size_t readall(int fd, void *buf, size_t count)
 {
     int len;
+    char *cbuf = (char *)buf;
     size_t c = count;
 
     while (c > 0) {
-        len = read(fd, buf, c);
+        len = read(fd, cbuf, c);
 	if (len < 0) {
 	    if ((errno == EINTR) || (errno == EAGAIN))
 		continue;
@@ -163,7 +165,7 @@ static size_t readall(int fd, void *buf, size_t count)
 	    return count-c;
 	}
         c -= len;
-        (char*)buf += len;
+        cbuf += len;
     }
 
     return count;

@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidforwarder.c,v 1.17 2004/01/28 18:01:45 eicker Exp $
+ * $Id$
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.17 2004/01/28 18:01:45 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -737,13 +737,14 @@ static void checkFileTable(fd_set* openfds)
 static int writeall(int fd, void *buf, int count)
 {
     int len;
+    char *cbuf = (char *)buf;
     int c = count;
 
     while (c>0){
-	len = write(fd, buf, c);
+	len = write(fd, cbuf, c);
 	if (len<0) return -1;
 	c -= len;
-	((char*)buf) += len;
+	cbuf += len;
     }
     return count;
 }
