@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.31 2003/03/19 17:37:32 eicker Exp $
+ * $Id: info.c,v 1.32 2003/04/02 13:22:57 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.31 2003/03/19 17:37:32 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.32 2003/04/02 13:22:57 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -519,7 +519,7 @@ int INFO_request_option(unsigned short node, int num, long option[],
 	}
 
 	for (i=0; i<msg.count; i++) {
-	    option[i] = msg.opt[i].value;
+	    value[i] = msg.opt[i].value;
 	}
 
 	return msg.count;
