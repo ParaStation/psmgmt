@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.40 2002/07/18 13:17:25 eicker Exp $
+ * $Id: psidutil.c,v 1.41 2002/07/19 12:56:32 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.40 2002/07/18 13:17:25 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.41 2002/07/19 12:56:32 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -540,7 +540,7 @@ int PSID_taskspawn(PStask_t* task)
 	/*
 	 * execute the image
 	 */
-	if (PSID_execv(task->argv[0],&(task->argv[0]))<0) {
+	if (PSID_execv(task->argv[0], &(task->argv[0]))<0) {
 	    char *errstr = strerror(errno);
 	    snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn() execv: %s",
 		     errstr ? errstr : "UNKNOWN");
