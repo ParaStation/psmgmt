@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.5 2003/10/08 14:44:06 eicker Exp $
+ * $Id: config_parsing.c,v 1.6 2003/10/08 15:23:43 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.5 2003/10/08 14:44:06 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.6 2003/10/08 15:23:43 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -1011,10 +1011,7 @@ config_t *parseConfig(int usesyslog, int loglevel, char *configfile)
     parser_init(usesyslog, NULL);
 
     if (!configfile) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "No configuration file defined", configfile);
-	parser_comment(errtxt, 0);
-
+	parser_comment("No configuration file defined", 0);
 	return NULL;
     }
  
@@ -1040,7 +1037,6 @@ config_t *parseConfig(int usesyslog, int loglevel, char *configfile)
 		 "ERROR: Parsing of configuration file <%s> failed.",
 		 configfile);
 	parser_comment(errtxt, 0);
-
 	return NULL;
     }
 
@@ -1074,7 +1070,6 @@ config_t *parseConfig(int usesyslog, int loglevel, char *configfile)
  	snprintf(errtxt, sizeof(errtxt),
 		 "Unable to locate LicenseFile '%s'", licFile);
 	parser_comment(errtxt, 0);
-
 	return NULL;
     } else {
  	snprintf(errtxt, sizeof(errtxt),
