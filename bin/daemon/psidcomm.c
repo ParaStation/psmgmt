@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidcomm.c,v 1.4 2004/01/22 14:37:58 eicker Exp $
+ * $Id: psidcomm.c,v 1.5 2004/01/22 17:00:44 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidcomm.c,v 1.4 2004/01/22 14:37:58 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidcomm.c,v 1.5 2004/01/22 17:00:44 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -59,19 +59,26 @@ int sendMsg(void *amsg)
 	ret = handleMsg(-1, (DDBufferMsg_t *) msg) - 1;
 	if (ret) errno = EINVAL;
     } else if (PSC_getID(msg->dest)==PSC_getMyID()) { /* my own node */
-	sender="sendClient";
-	ret = sendClient(amsg);
+	if (msg->type < 0x0100) {
+	    sender="sendClient";
+	    ret = sendClient(amsg);
 
-	if (ret==-1 && errno==EWOULDBLOCK) {
-	    int fd = getClientFD(msg->dest);
+	    if (ret==-1 && errno==EWOULDBLOCK) {
+		int fd = getClientFD(msg->dest);
 
-	    if (fd<FD_SETSIZE) {
-		FD_SET(fd, &PSID_writefds);
-	    } else {
-		snprintf(errtxt, sizeof(errtxt), "%s: No fd for task %s found",
-			 __func__, PSC_printTID(msg->dest));
-		PSID_errlog(errtxt, 0);
+		if (fd<FD_SETSIZE) {
+		    FD_SET(fd, &PSID_writefds);
+		} else {
+		    snprintf(errtxt, sizeof(errtxt), "%s: No fd for task %s",
+			     __func__, PSC_printTID(msg->dest));
+		    PSID_errlog(errtxt, 0);
+		}
 	    }
+	} else {
+	    /* Daemon message */
+	    sender="handleMsg";
+	    ret = handleMsg(-1, (DDBufferMsg_t *) msg) - 1;
+	    if (ret) errno = EINVAL;
 	}
     } else if (PSC_getID(msg->dest)<PSC_getNrOfNodes()) {
 	sender="sendRDP";
