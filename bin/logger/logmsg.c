@@ -1,3 +1,16 @@
+/*
+ *               ParaStation3
+ * logmsg.c
+ *
+ * Copyright (C) ParTec AG Karlsruhe
+ * All rights reserved.
+ *
+ * $Id: logmsg.c,v 1.3 2001/12/18 12:23:13 eicker Exp $ 
+ *
+ */
+
+static char vcid[] __attribute__ (( unused )) = "$Id: logmsg.c,v 1.3 2001/12/18 12:23:13 eicker Exp $";
+
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -6,29 +19,42 @@
 
 #include "logmsg.h"
 
-
-void writelog(int sock, enum msg_type type, int node, char *buf, size_t count)
+int writelog(int sock, FLMsg_msg_t type, int node, char *buf, size_t count)
 {
+    /** \todo
+     * This implementation is *not* correct !!
+     * What happens if less then msg.header.len bytes are written ?
+     */
+    int n, sent = 0;
     FLBufferMsg_t msg;
 
     if(sock > 0){
 	msg.header.type = type;
 	msg.header.sender = node;
-	if(count < 0) return;
-	while(count > sizeof(msg.buf)){
-	    bcopy(buf, msg.buf, sizeof(msg.buf));
-	    msg.header.len = sizeof(msg.header) + sizeof(msg.buf);
-	    write(sock, &msg, msg.header.len);
-	    count -= sizeof(msg.buf);
-	    buf += sizeof(msg.buf);
+	if(count < 0) return 0;
+	while(sent < count){
+	    n = (count>sizeof(msg.buf))?sizeof(msg.buf):count;
+	    bcopy(buf, msg.buf, n);
+	    msg.header.len = sizeof(msg.header) + n;
+	    n = write(sock, &msg, msg.header.len);
+	    if (n < 0){
+		if (errno == EAGAIN){
+		    continue;
+		} else {
+		    perror("writelog()");
+		    return(n);             /* error, return < 0 */
+		}
+	    }
+	    sent += n - sizeof(msg.header);
+	    count -= n - sizeof(msg.header);
+	    buf += n - sizeof(msg.header);
 	}
-	bcopy(buf, msg.buf, count);
-	msg.header.len = sizeof(msg.header) + count;
-	write(sock, &msg, msg.header.len);
     }
+
+    return sent;
 }
 
-void printlog(int sock, enum msg_type type, int node, char *buf)
+void printlog(int sock, FLMsg_msg_t type, int node, char *buf)
 {
     writelog(sock, type, node, buf, strlen(buf));
 }
@@ -39,10 +65,25 @@ int readlog(int sock, FLBufferMsg_t *msg)
     char *buf=(char *)msg;
 
     if(sock > 0){
-	n=read(sock, buf, sizeof(FLMsg_t));
-	total=n;
-	if(n<=0) return n;
-	nleft = msg->header.len-n;
+	nleft = sizeof(FLMsg_t);
+	total = 0;
+	while(nleft > 0){      /* Complete message */
+	    n = read(sock, buf, (nleft>SSIZE_MAX)?SSIZE_MAX:nleft);
+	    if (n < 0){
+		if (errno == EAGAIN){
+		    continue;
+		} else {
+		    perror("readlog()");
+		    return(n);             /* error, return < 0 */
+		}
+	    } else if (n == 0) {
+		return n;
+	    }
+	    nleft -= n;
+	    total += n;
+	    buf += n;
+	}
+	nleft = msg->header.len - total;
 	buf += n;
 	while(nleft > 0){      /* Complete message */
 	    n = read(sock, buf, (nleft>SSIZE_MAX)?SSIZE_MAX:nleft);

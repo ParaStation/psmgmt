@@ -1,3 +1,27 @@
+/*
+ *               ParaStation3
+ * psiforwarder.c
+ *
+ * Copyright (C) ParTec AG Karlsruhe
+ * All rights reserved.
+ *
+ * $Id: psiforwarder.c,v 1.4 2001/12/18 12:23:13 eicker Exp $
+ *
+ */
+/**
+ * \file
+ * psiforwarder: Forwarding-daemon for ParaStation I/O forwarding facility
+ *
+ * $Id: psiforwarder.c,v 1.4 2001/12/18 12:23:13 eicker Exp $ 
+ *
+ * \author
+ * Norbert Eicker <eicker@par-tec.com>
+ *
+ */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.4 2001/12/18 12:23:13 eicker Exp $";
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,18 +36,33 @@
 
 #include "logmsg.h"
 
-int verbose;
+/**
+ * Verbosity of Forwarder (1=Yes, 0=No)
+ *
+ * Set by loggerconnect() on behalf of info from logger.
+ */
+int verbose = 0;
+/** Number of connected clients. */
 int noclients;
+/**
+ * Set of fds, the forwarder listens to. Each member is connected to a client.
+ */
 fd_set myfds;
 
+/** The socket connected to the logger. */
 int loggersock=-1;
+/**
+ * The id, as which we will send. Set in main().
+ */
 int id=-1;
 
-/******************************************
- *  closelog()
+/**
+ * \brief Close connection to logger
  *
- * Close connection to logger. Send FINALIZE and wait for EXIT message.
+ * Send a #FINALIZE message to the logger and wait for an #EXIT
+ * message as reply. Finally close the socket to the logger.
  *
+ * \return No return value.
  */
 void closelog(void)
 {
@@ -41,8 +80,14 @@ void closelog(void)
 	close(loggersock);
 }
 
-/******************************************
- *  sighandler(sig)
+/**
+ * \brief Signal handler.
+ *
+ * Handles catched signals. Up to now, only HUP is handled.
+ *
+ * \param sig The signal to handle.
+ *
+ * \return No return value.
  */
 void sighandler(int sig)
 {
@@ -58,17 +103,23 @@ void sighandler(int sig)
     closelog();
 }
 
-/******************************************
- *  loggerconnect(u_int node, int port)
+/**
+ * \brief Connect to the logger
  *
- * Connect the logger listening at 'node' on 'port. Wait for INITIALIZE
- * message and set verbosity-flag correctly.
+ * Connect to the logger listening at \a node on \a port. Wait for
+ * #INITIALIZE message and set #verbose correctly.
  *
+ * \param node The node on which the logger listens.
+ * \param port The port on which the logger listens.
+ *
+ * \return On success, the new fd connected to the logger is returned.
+ * Simultaneously #loggersock is set.
+ * On error, -1 is returned, and errno is set appropriately.
  */
 int loggerconnect(unsigned int node, int port)
 {
     struct sockaddr_in sa;	/* socket address */
-    FLInitMsg_t msg;
+    FLBufferMsg_t msg;
 
     if((loggersock = socket(PF_INET,SOCK_STREAM,0))<0){
 	return(-1);
@@ -83,7 +134,7 @@ int loggerconnect(unsigned int node, int port)
 	return(-1);
     }
 
-    readlog(loggersock, (FLBufferMsg_t *)&msg);
+    readlog(loggersock, &msg);
     if(msg.header.type != INITIALIZE){
 	/* Protocol messed up. Hopefully we can log anyhow. */
 	printlog(loggersock, STDERR, id,
@@ -92,14 +143,20 @@ int loggerconnect(unsigned int node, int port)
 
 	return -1;
     }else{
-	verbose=msg.verbose;
+	
+	verbose = (int) *(msg.buf);
     }
 
     return loggersock;
 }
 
-/******************************************
- *  CheckFileTable()
+/**
+ * \brief Checks file table after select has failed.
+ *
+ * \param openfds Set of file descriptors that have to be checked.
+ *
+ * \return No return value.
+ *
  */
 void CheckFileTable(fd_set* openfds)
 {
@@ -161,11 +218,17 @@ void CheckFileTable(fd_set* openfds)
     }
 }
 
-/*********************************************************************
- * loop(listen)
+/**
+ * \brief The main loop
  *
- * does all the forwarding work. Now all tasks can connect and forward
- * output to the logger.
+ * Does all the forwarding work. A tasks is connected and output forwarded
+ * to the logger. I/O data is expected on stdoutport and stderrport.
+ * Is is send via #STDOUT and #STDERR messages respectively.
+ *
+ * \param stdoutport The port, on which stdout-data is expected.
+ * \param stderrport The port, on which stderr-data is expected.
+ *
+ * \return No return value.
  *
  */
 void loop(int stdoutport, int stderrport)
@@ -176,7 +239,7 @@ void loop(int stdoutport, int stderrport)
     char buf[4000], obuf[120];
     int n;                       /* number of bytes received */
     int timeoutval;
-    enum msg_type type;
+    FLMsg_msg_t type;
 
     if(verbose){
 	snprintf(obuf, sizeof(obuf), "PSIforwarder: stdout=%d stderr=%d\n",
@@ -260,6 +323,23 @@ void loop(int stdoutport, int stderrport)
     return;
 }
 
+/**
+ * \brief The main program
+ *
+ * Connects to logger using loggerconnect() and calls loop().
+ *
+ * \param argc The number of arguments in \a argv.
+ * \param argv Array of character strings containing the arguments.
+ *
+ * This program expects at least 5 additional arguments:
+ *  -# The node on which the logger listens.
+ *  -# The port on which the logger listens.
+ *  -# The #id, as which we will send.
+ *  -# The port number for stdout data.
+ *  -# The port number for stderr data.
+ *
+ * \return Always returns 0.
+ */
 int main( int argc, char**argv)
 {
     unsigned int logger_node;
@@ -267,7 +347,7 @@ int main( int argc, char**argv)
 
     int ret;
 
-    if(argc<4){
+    if(argc<6){
 	exit(1);
     }
     sscanf(argv[1], "%u", &logger_node);

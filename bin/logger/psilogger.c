@@ -1,3 +1,27 @@
+/*
+ *               ParaStation3
+ * psilogger.c
+ *
+ * Copyright (C) ParTec AG Karlsruhe
+ * All rights reserved.
+ *
+ * $Id: psilogger.c,v 1.5 2001/12/18 12:23:13 eicker Exp $
+ *
+ */
+/**
+ * \file
+ * psilogger: Log-daemon for ParaStation I/O forwarding facility
+ *
+ * $Id: psilogger.c,v 1.5 2001/12/18 12:23:13 eicker Exp $ 
+ *
+ * \author
+ * Norbert Eicker <eicker@par-tec.com>
+ *
+ */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.5 2001/12/18 12:23:13 eicker Exp $";
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,14 +36,40 @@
 
 #include "logmsg.h"
 
+/**
+ * Should source and length of each message be displayed ?  (1=Yes, 0=No)
+ *
+ * Set in main() to 1 if environment variable PSI_SOURCEPRINTF is defined.
+ */
 int PrependSource = 0;
+/**
+ * Verbosity of Forwarders (1=Yes, 0=No)
+ *
+ * Set in main() to 1 if environment variable PSI_FORWARDERDEBUG is defined.
+ */
 int forw_verbose = 0;
+/**
+ * Verbosity of Logger (1=Yes, 0=No)
+ *
+ * Set in main() to 1 if environment variable PSI_LOGGERDEBUG is defined.
+ */
 int verbose = 0;
+/** Number of connected forwarders */
 int noclients;
+/**
+ * Set of fds, the logger listens to. Each member is connected to a forwarder
+ * or to the connector socket.
+ */
 fd_set myfds;
 
-/******************************************
- *  sighandler(signal)
+/**
+ * \brief Signal handler.
+ *
+ * Handles catched signals. Up to now, only HUP is handled.
+ *
+ * \param sig The signal to handle.
+ *
+ * \return No return value.
  */
 void sighandler(int sig)
 {
@@ -35,15 +85,16 @@ void sighandler(int sig)
     fflush(stdout);
 }
 
-
-/*********************************************************************
- * newrequest(int listen)
+/**
+ * \brief Handles connection requests from new forwarders.
  *
- * accepts a new connection to a forwarder.
- * The client sends its parameters 
- * and this routine packs them in a client_t struct
- * RETURN the new fd (which is also index in the client array
- *        -1 on error
+ * Accepts a new connection from a forwarder. The new socket is set up
+ * for reuse and a \ref INITIALIZE message is sent to the forwarder.
+ *
+ * \param listen The socket to listen to.
+ *
+ * \return On success, the new fd (which is also index in the client array)
+ * is returned. On error, -1 is returned, and errno is set appropriately.
  */
 int newrequest(int listen)
 {
@@ -52,13 +103,14 @@ int newrequest(int listen)
     int sock, reuse;
 
     salen = sizeof(sa);
-    sock = accept(listen, &sa, &salen);
+    sock = accept(listen, (struct sockaddr *)&sa, &salen);
+    if (sock < 0) return sock;
 
     if(verbose){
 	int cli_port;
 	char *cli_name;
 	cli_name = inet_ntoa(sa.sin_addr);
-        cli_port = ntohs(sa.sin_port);
+	cli_port = ntohs(sa.sin_port);
 	fprintf(stderr, "PSIlogger: new connection from %s (%d)\n",
 		cli_name, cli_port);
     }
@@ -73,8 +125,12 @@ int newrequest(int listen)
     return sock;
 }
 
-/******************************************
- *  CheckFileTable()
+/**
+ * \brief Checks file table after select has failed.
+ *
+ * \param openfds Set of file descriptors that have to be checked.
+ *
+ * \return No return value.
  */
 void CheckFileTable(fd_set* openfds)
 {
@@ -131,20 +187,25 @@ void CheckFileTable(fd_set* openfds)
     }
 }
 
-/*********************************************************************
- * loop(listen)
+
+/**
+ * \brief The main loop
  *
- * does all the logging work. Now all forwarders can connect and log via
- * the logger.
+ * Does all the logging work. All forwarders can connect and log via
+ * the logger. Forwarders send I/O data via \ref STDOUT and \ref STDERR
+ * messages.
  *
+ * \param listen The socket to read from.
+ *
+ * \return No return value.
  */
 void loop(int listen)
 {
-    int sock;      /* client socket */
+    int sock;            /* client socket */
     fd_set afds;
     struct timeval mytv={2,0},atv;
     FLBufferMsg_t msg;
-    int n;                       /* number of bytes received */
+    int n;               /* number of bytes received */
     int outfd;
     int timeoutval;
     int startup=1;
@@ -195,7 +256,7 @@ void loop(int listen)
 		    fprintf(stderr, "PSIlogger: Got %d bytes on sock %d\n",
 			    n, sock); 
 		if(n==0){
-  		    /* socket closed */
+		    /* socket closed */
 		    fprintf(stderr, "PSIlogger: socket %d closed without"
 			    " FINALIZE. This shouldn't happen...\n", sock);
 		    close(sock);
@@ -203,39 +264,39 @@ void loop(int listen)
 		    noclients--;
 		}else
 		    if(n<0)
-		    /* ignore the error */
-		    perror("PSIlogger: read()");
-		else{
-		    /* Analyze messages */
-		    outfd = STDOUT_FILENO;
-		    switch(msg.header.type){
-		    case FINALIZE:
-			if(verbose)
+			/* ignore the error */
+			perror("PSIlogger: read()");
+		    else{
+			/* Analyze messages */
+			outfd = STDOUT_FILENO;
+			switch(msg.header.type){
+			case FINALIZE:
+			    if(verbose)
+				fprintf(stderr,
+					"PSIlogger: closing %d on FINALIZE\n",
+					sock);
+			    writelog(sock, EXIT, 0, NULL, 0);
+			    close(sock);
+			    FD_CLR(sock,&myfds);
+			    noclients--;
+			    break;
+			case STDERR:
+			    outfd = STDERR_FILENO;
+			case STDOUT:
+			    if(PrependSource){
+				char prefix[30];
+				snprintf(prefix, sizeof(prefix), "[%d, %d]:",
+					 msg.header.sender, msg.header.len);
+				write(outfd, prefix, strlen(prefix));
+			    }
+			    write(outfd, msg.buf,
+				  msg.header.len - sizeof(msg.header));
+			    break;
+			default:
 			    fprintf(stderr,
-				   "PSIlogger: closing %d on FINALIZE\n",
-				   sock);
-			writelog(sock, EXIT, 0, NULL, 0);
-			close(sock);
-			FD_CLR(sock,&myfds);
-			noclients--;
-			break;
-		    case STDERR:
-			outfd = STDERR_FILENO;
-		    case STDOUT:
-			if(PrependSource){
-			    char prefix[30];
-			    snprintf(prefix, sizeof(prefix), "[%d, %d]:",
-				     msg.header.sender, msg.header.len);
-			    write(outfd, prefix, strlen(prefix));
+				    "PSIlogger: Unknown message type!\n");
 			}
-			write(outfd, msg.buf,
-			      msg.header.len - sizeof(msg.header));
-			break;
-		    default:
-			fprintf(stderr,
-				"PSIlogger: Unknown message type!\n");
 		    }
-		}
 	    }
 	if(!startup && noclients==0)
 	    timeoutval++;
@@ -247,13 +308,28 @@ void loop(int listen)
     return;
 }
 
+/**
+ * \brief The main program
+ *
+ * Installs signal handler \ref sighandler(), sets global variables \ref
+ * verbose, \ref forw_verbose and \ref PrependSource from environment
+ * and finally calls \ref loop().
+ *
+ * \param argc The number of arguments in \a argv.
+ * \param argv Array of character strings containing the arguments.
+ *
+ * This program expects at least 1 additional argument:
+ *  -# The port number it will listen to.
+ *
+ * \return Always returns 0.
+ */
 int main( int argc, char**argv)
 {
     int listen;
 
     if(argc<2){
 	fprintf(stderr, "PSIlogger: Sorry, program must be called correctly"
-	       " inside an application.\n");
+		" inside an application.\n");
 	exit(1);
     }
     listen = atol(argv[1]);
