@@ -24,11 +24,12 @@
     Taking a brief look at <filename>native.c</filename> it has to be noticed
     that the startup of the application and the necessary communication
     channels is quite complex. In the case of using MPI all this functionality
-    is hidden within the simple function <citerefentry>
+    is hidden within the simple <citerefentry>
       <refentrytitle>MPI_Init</refentrytitle>
       <manvolnum>3</manvolnum>
-    </citerefentry>. Thus the programmer does not have to take care about this
-    which is a further argument towards using MPI.
+    </citerefentry> function. Thus the programmer does not have to take care
+    about the details of the startup process. This is a further argument
+    towards using MPI.
   </para>
   <para>
     As already mentioned the usage of the &ps; API is only discussed briefly. A
@@ -41,15 +42,15 @@
     <para>
       The &ps; management system is used by native application in order to
       startup the processes of the parallel task and to assure the cleaning up
-      of the &ps; daemons in the case of  failure of one or more processes
+      by the &ps; daemons in the case of  failure of one or more processes
       within the task.
     </para>
     <para>
       In order to contact the local &ps; daemon and to initialize the &ps;
-      library utilized to contact the &ps; management facility <citerefentry>
+      library utilized to contact the &ps; management facility, <citerefentry>
 	<refentrytitle>PSE_initialize</refentrytitle>
 	<manvolnum>3</manvolnum>
-      </citerefentry> has to be called. The rank of the actual process is
+      </citerefentry> has to be called. The rank of the actual process then is
       determined using the <citerefentry>
 	<refentrytitle>PSE_getRank</refentrytitle>
 	<manvolnum>3</manvolnum>
@@ -66,8 +67,7 @@
 	  <para>The process is the very first process started within the
 	    parallel task. Thus it is the root of all further processes. When
 	    the startup phase is finished this process will become a &ps;
-	    logger process and handle all the standard I/O of the parallel
-	    task.
+	    logger process and handle the standard I/O of the parallel task.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -97,17 +97,17 @@
     <section>
       <title>The root process</title>
       <para>
-	The two functions this process has to fulfill are handled within two
-	function calls. Almost all functionality is hidden from the users point
-	of view.
+	Both functions this process has to fulfill are handled almost
+	completely within one function calls. Thus nearly functionality is
+	hidden from the users point of view.
       </para>
       <para>
-	First <citerefentry>
+	But first <citerefentry>
 	  <refentrytitle>PSE_setHWType</refentrytitle>
 	  <manvolnum>3</manvolnum>
-	</citerefentry> is called in order to specifiy the type of
+	</citerefentry> has to be called in order to specifiy the type of
 	communication hardware the parallel task should utilize. This is a kind
-	of preconfiguration of the following function calls in order to spawn
+	of preconfiguration of the following function call in order to spawn
 	further processes.
       </para>
       <para>
@@ -124,25 +124,27 @@
     <section>
       <title>The master process</title>
       <para>
-	The first action the master as any other compute process undertakes is
-	to register to its parent process via <citerefentry>
+	The first action the master process, as any other compute process, has
+	to achieve is to register to its parent process via <citerefentry>
 	  <refentrytitle>PSE_registerToParent</refentrytitle>
 	  <manvolnum>3</manvolnum>
 	</citerefentry>. This is done in order to be noticed if the parent
-	process finishes. The usual behavior is to receive a SIGTERM signal in
-	the case that this happens.
+	process exits unexpectedly. The usual behavior is to receive a SIGTERM
+	signal in the case that this happens.
       </para>
       <para>
-	After the process is registered to its parent processes further
-	processes, in this context called client processes, are going to be
-	spawned in order to reach the requested number of processes within the
-	parallel task. This is done by calling the <citerefentry>
+	After it is registered to its parent process further processes, in this
+	context called client processes, are going to be spawned. The target is
+	to obtain the requested number of processes within the parallel task.
+	This is done by calling the <citerefentry>
 	  <refentrytitle>PSE_spawnTasks</refentrytitle>
 	  <manvolnum>3</manvolnum>
-	</citerefentry> function. It has to be remarked that usually
-	information about how to connect the master process has to be provided
-	for the client processes. Thus node and port number of the master
-	process' communication interface can be passed to the <citerefentry>
+	</citerefentry> function. At this point it has to be remarked that
+	usually information has to be passed from the master process to its
+	clients. This is due to enable the clients to connect back to the
+	master in order to establish the connections used for communication.
+	Thus the node and port number of the master process' communication
+	interface has to be passed to the <citerefentry>
 	  <refentrytitle>PSE_spawnTasks</refentrytitle>
 	  <manvolnum>3</manvolnum>
 	</citerefentry> function as well.
@@ -184,15 +186,16 @@
       </para>
       <para>
 	After the startup phase all processes of the parallel task will reach a
-	mode of normal operation which will cover the actual application code.
-	Within the application the kind of exits might be wanted to used. On
-	the one hand a error detected within one process should result in the
-	end of the whole parallel task. This can be reached by using the
+	mode of normal operation, which usually will cover the actual
+	application code. Within the application two kinds of exit mechanisms
+	might wanted to be used. On the one hand a error detected within one
+	process should result in the end of the whole parallel task. This can
+	be reached by using the
 	<citerefentry>
 	  <refentrytitle>PSE_abort</refentrytitle>
 	  <manvolnum>3</manvolnum>
-	</citerefentry> function. On the other hand on of the processes might
-	have finished all his tasks and want to exit without disturbing all the
+	</citerefentry> function. On the other hand one of the processes might
+	have finished all its tasks and want to exit without disturbing the
 	other processes within the parallel task. In order to do so,
 	<citerefentry>
 	  <refentrytitle>PSE_finalize</refentrytitle>
@@ -246,19 +249,20 @@
       </listitem>
       <listitem>
 	<para>The master process, i.e. the process with rank 0, which has
-	  spawned all other processes using the <citerefentry>
+	  spawned all other processes, is going to receive information
+	  concerning the local node ID and port number from the client
+	  processes. Therefore it has passed its own node ID and port number to
+	  the clients through the <citerefentry>
 	    <refentrytitle>PSE_spawnTasks</refentrytitle>
 	    <manvolnum>3</manvolnum>
-	  </citerefentry> function as discussed within the last section,
-	  receives information concerning their local node ID and port number
-	  from the client processes.
+	  </citerefentry> function as discussed within the last section.
 	</para>
       </listitem>
       <listitem>
 	<para>The client processes send the information concerning their local
 	  ports, i.e. port number and node ID, to the master process. Therefore
 	  they have to determine the node ID and port number of the master
-	  process before. This is down by using the <citerefentry>
+	  process before. This is done by using the <citerefentry>
 	    <refentrytitle>PSE_getMasterNode</refentrytitle>
 	    <manvolnum>3</manvolnum>
 	  </citerefentry> and <citerefentry>
@@ -268,13 +272,15 @@
 	</para>
       </listitem>
       <listitem>
-	<para>The master process collects the information of all port numbers
-	  and redistributes it to all processes.</para>
+	<para>When the master process has completed to receive the information
+	  from the client processes it redistributes the collected port and
+	  node numbers to all processes.
+	</para>
       </listitem>
     </orderedlist>
     <para>
       Now each process has informations about the port number of all other
-      processes. These informations can now be used in order to do
+      processes. These informations can then be used in order to do
       communication operations on a point-to-point basis between all the
       processes forming the parallel task.
     </para>
