@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.67 2003/11/26 17:50:55 eicker Exp $
+ * $Id: psidutil.c,v 1.68 2003/12/11 20:28:01 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.67 2003/11/26 17:50:55 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.68 2003/12/11 20:28:01 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -619,13 +619,13 @@ void PSID_readConfigFile(int usesyslog, char *configfile)
 
     /* Parse the configfile */
     config = parseConfig(usesyslog, PSID_getDebugLevel(), configfile);
-
     if (! config) {
 	snprintf(errtxt, sizeof(errtxt), "Parsing of <%s> failed.",
 		 configfile);
 	PSID_errlog(errtxt, 0);
 	exit(1);
     }
+    config->useSyslog = usesyslog;
 
     /* Set correct debugging level if given in config-file */
     if (config->logLevel && !PSID_getDebugLevel()) {
