@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.c,v 1.12 2003/10/23 16:27:35 eicker Exp $
+ * $Id: pscommon.c,v 1.13 2003/10/29 17:28:20 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.12 2003/10/23 16:27:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.13 2003/10/29 17:28:20 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -29,8 +29,8 @@ static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.12 2003/10/2
 
 #include "pscommon.h"
 
-static short PSC_nrOfNodes = -1;
-static short PSC_myID = -1;
+static PSnodes_ID_t PSC_nrOfNodes = -1;
+static PSnodes_ID_t PSC_myID = -1;
 
 static PStask_ID_t PSC_myTID = -1;
 
@@ -73,46 +73,48 @@ void PSC_errexit(char *s, int errorno)
     errexit(s, errorno);
 }
 
-short PSC_getNrOfNodes(void)
+PSnodes_ID_t PSC_getNrOfNodes(void)
 {
     return PSC_nrOfNodes;
 }
 
-void PSC_setNrOfNodes(short numNodes)
+void PSC_setNrOfNodes(PSnodes_ID_t numNodes)
 {
     PSC_nrOfNodes = numNodes;
 }
 
-short PSC_getMyID(void)
+PSnodes_ID_t PSC_getMyID(void)
 {
     return PSC_myID;
 }
 
-void PSC_setMyID(short id)
+void PSC_setMyID(PSnodes_ID_t id)
 {
     PSC_myID = id;
 }
 
-PStask_ID_t PSC_getTID(short node, pid_t pid)
+PStask_ID_t PSC_getTID(PSnodes_ID_t node, pid_t pid)
 {
 #ifndef __osf__
+    /* Linux uses PIDs smaller than 32768, thus 16 bits for pid are enough */
     if (node<0) {
-	return (((PSC_getMyID()&0xFFFF)<<16)|pid);
+	return (((PSC_getMyID()&0xFFFF)<<16)|(pid&0xFFFF));
     } else {
-	return (((node&0xFFFF)<<16)|pid);
+	return (((node&0xFFFF)<<16)|(pid&0xFFFF));
     }
 #else
     /* Maybe we should do this on every architecture ? *JH* */
-    /* Tru64 V5.1 use 19 bit for PID's, we reserve 24 bits */
+    /* But this would limit us to 4096 nodes! *NE* */
+    /* Tru64 V5.1 use 19 bit for PID's, we reserve 20 bits */
     if (node<0) {
-	return (((PSC_getMyID()&0xFFFFL)<<24)|pid);
+	return (((PSC_getMyID()&0xFFFL)<<20)|(pid&0xFFFFFL));
     } else {
-	return (((node&0xFFFFL)<<24)|pid);
+	return (((node&0xFFFL)<<20)|(pid&0xFFFFFL));
     }
 #endif
 }
 
-unsigned short PSC_getID(PStask_ID_t tid)
+PSnodes_ID_t PSC_getID(PStask_ID_t tid)
 {
 #ifndef __osf__
     if (tid>=0) {
@@ -122,9 +124,10 @@ unsigned short PSC_getID(PStask_ID_t tid)
     }
 #else
     /* Maybe we should do this on every architecture ? *JH* */
-    /* Tru64 V5.1 use 19 bit for PID's, we reserve 24 bits */
+    /* But this would limit us to 4096 nodes! *NE* */
+    /* Tru64 V5.1 use 19 bit for PID's, we reserve 20 bits */
     if (tid>=0) {
-	return (tid>>24)&0xFFFFFF;
+	return (tid>>20)&0xFFFL;
     } else {
 	return PSC_getMyID();
     }
@@ -137,8 +140,9 @@ pid_t PSC_getPID(PStask_ID_t tid)
     return (tid & 0xFFFF);
 #else
     /* Maybe we should do this on every architecture ? *JH* */
+    /* But this would limit us to 4096 nodes! *NE* */
     /* Tru64 V5.1 use 19 bit for PID's, we reserve 24 bits */
-    return (tid & 0xFFFFFF);
+    return (tid & 0xFFFFF);
 #endif    
 }
 
@@ -167,8 +171,8 @@ char *PSC_printTID(PStask_ID_t tid)
 {
     static char taskNumString[40];
 
-    snprintf(taskNumString, sizeof(taskNumString), "0x%08lx[%d:%ld]",
-	     tid, (tid==-1) ? -1 : PSC_getID(tid), (long) PSC_getPID(tid));
+    snprintf(taskNumString, sizeof(taskNumString), "0x%08x[%d:%d]",
+	     tid, (tid==-1) ? -1 : PSC_getID(tid), PSC_getPID(tid));
     return taskNumString;
 }
 
