@@ -1,0 +1,48 @@
+<!DOCTYPE t:templates [
+<!ENTITY hsize0 "{$body.font.size}*0.833">
+<!ENTITY hsize1 "{$body.font.size}">
+<!ENTITY hsize2 "{$body.font.size}*1.2">
+<!ENTITY hsize3 "{$body.font.size}*1.44">
+<!ENTITY hsize4 "{$body.font.size}*1.73">
+<!ENTITY hsize5 "{$body.font.size}*2.076">
+<!ENTITY hsize6 "{$body.font.size}*2.488">
+<!ENTITY hsize7 "{$body.font.size}*3">
+<!ENTITY hsize8 "{$body.font.size}*4">
+<!ENTITY hsize0space "7.5pt"> <!-- 0.75 * hsize0 -->
+<!ENTITY hsize1space "9pt"> <!-- 0.75 * hsize1 -->
+<!ENTITY hsize2space "10.8pt"> <!-- 0.75 * hsize2 -->
+<!ENTITY hsize3space "12.96pt"> <!-- 0.75 * hsize3 -->
+<!ENTITY hsize4space "15.552pt"> <!-- 0.75 * hsize4 -->
+<!ENTITY hsize5space "18.6624pt"> <!-- 0.75 * hsize5 -->
+]>
+<t:templates xmlns:t="http://nwalsh.com/docbook/xsl/template/1.0"
+             xmlns:param="http://nwalsh.com/docbook/xsl/template/1.0/param"
+             xmlns:fo="http://www.w3.org/1999/XSL/Format"
+             xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+             base-stylesheet="http://docbook.sourceforge.net/release/xsl/current/fo/docbook.xsl">
+
+<t:titlepage t:element="book" t:wrapper="fo:block"
+             font-family="{$title.fontset}">
+  <t:titlepage-content t:side='recto'>
+    <title font-size="&hsize8;" space-before="2cm" />
+    <releaseinfo font-size="&hsize6;" space-before="2.5cm" />
+    <pubdate font-size="&hsize4;"  space-before="2.5cm" />
+    <mediainfo  space-before="5cm" />
+  </t:titlepage-content>
+
+  <t:titlepage-content t:side='verso'>
+    <titleabbrev font-size="&hsize3;" font-weight="bold"/>
+    <releaseinfo font-size="&hsize2;" />
+    <author/>
+    <copyright font-size="&hsize1;" />
+    <legalnotice font-size="&hsize0;" />
+    <address text-align="start" />
+    <abstract font-size="&hsize1;" />
+    <revhistory font-size="&hsize1;" />
+  </t:titlepage-content>
+
+  <t:titlepage-separator />
+
+</t:titlepage>
+
+</t:templates>

@@ -18,6 +18,28 @@
   <xsl:param name="passivetex.extensions" select="0"/>
   <xsl:param name="tablecolumns.extension" select="'1'"/>
 
+  <xsl:param name="body.font.master">12</xsl:param>
+  <xsl:param name="double.sided" select="1"></xsl:param>
+  <xsl:param name="body.font.family" select="'sans-serif'"></xsl:param>
+  <xsl:param name="draft.mode" select="'no'"></xsl:param>
+  <xsl:param name="generate.toc">book  toc,title</xsl:param>
+  <xsl:param name="make.year.ranges" select="1"></xsl:param>
+
+  <xsl:param name="formal.title.placement">figure after</xsl:param>
+
+  <xsl:attribute-set name="footnote.sep.leader.properties">
+    <xsl:attribute name="color">black</xsl:attribute>
+    <xsl:attribute name="leader-pattern">rule</xsl:attribute>
+    <xsl:attribute name="leader-length">2in</xsl:attribute>
+  </xsl:attribute-set>
+
+  <xsl:param name="header.column.widths" select="'200 1 1'" />
+  <xsl:param name="section.autolabel" select="1" />
+  <xsl:param name="section.label.includes.component.label" select="1" />
+  <xsl:param name="ulink.show" select="0" />
+
+  <xsl:include href="fo-titlepage.xsl"/> 
+
   <!-- ************** Modifications to manpages/synop.xsl *********** -->
   <!-- Display commands in bold style, no newline after command -->
   <xsl:template match="cmdsynopsis/command">
