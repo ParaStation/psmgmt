@@ -479,7 +479,6 @@ typedef struct MCPRecvBuf_T {
     MCP_POINTER(struct MCPRecvBuf_T) Next;
 } MCPRecvBuf_t;
 
-
 
 typedef struct MCP_Context_T {
     /* Control infos for NetDMA (infos to SendBuf) */

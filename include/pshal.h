@@ -2,7 +2,7 @@
  *
  *      @(#)pshal.h    1.00 (Karlsruhe) 08/15/2000
  *
- *      $Id: pshal.h,v 1.1 2001/04/02 09:41:13 hauke Exp $	
+ *      $Id: pshal.h,v 1.2 2001/04/11 15:46:26 hauke Exp $	
  *
  *      written by Joachim Blum
  *                 Jens Hauke
@@ -31,11 +31,15 @@ extern "C" {
 /* !!!!!!!!!!!! mit pssemaphore abstimmen: Wo wird SEM_T implementiert? */
 typedef struct{
 #ifdef __alpha
-  u_long lock;
-  u_long pid;
+  unsigned long lock;
+  unsigned long pid;
+//  u_long lock;
+//  u_long pid;
 #else
-  u_short lock;
-  u_short pid;
+  unsigned short lock;
+  unsigned short pid;
+//  u_short lock;
+//  u_short pid;
 #endif
   /*  mutex_t mutex;*/
 } SEM_T;

@@ -27,7 +27,7 @@ unlock:	unlock.c $(LIB)/libpshal.a
 	gcc $< -I$(INC) -I.. -L$(LIB) -lpshal -o $@
 
 tracemcp:tracemcp.c $(LIB)/libpshal.a $(LIB)/libpvar.a
-	gcc $< -g -I$(INC) -I.. -L$(LIB) -lpvar -lpshal -lbfd -liberty -o $@
+	gcc $< -g -I$(INC) -I.. -L$(LIB) -lpvar -lpshal -o $@
 
 #psroute:psroute.c $(LIB)/libpshal.a $(LIB)/libarg.a
 #	gcc $< -I$(INC) -I.. -L$(LIB) -larg -lpshal -lm -o $@

@@ -8,12 +8,14 @@
  * For basic use:
  *   compile with:  -g -lbfd -liberty 
  *   call PVarInit(argv[0]);   
+ *   for bfd free version see PVarInitH()
  *   pvar(): To print content and structure of variable
  *   pdump(): to print a hexdump
  * Advance:
  *   PVarRegisterPrint()  : Define alternative print functions
  *   PVarUnregisterPrint()
  *   PVarIndent()
+ * 2001-04-11 very dirty! Need an Update !!!                                    
  **********************************************************************/
 
 
@@ -71,6 +73,22 @@ extern void pvar( void * data, char * Descript,char * type_name,
  * filename is the argv[0], if compiled with -g or
  * an objectfile with stab entrys. */
 extern void PVarInit(char* filename);
+
+/* Use this for versions without bfd:
+ * Generate pvar_stabs.h with:
+ *     gcc  source.c -DPVAR_FIRST -o pvar_stabs.o -Wall -g
+ *     stabsextract pvar_stabs.o > pvar_stabs.h
+ *
+ * #ifndef PVAR_FIRST
+ * #include "pvar_stabs.h"
+ * #endif
+ * ...
+ * main()
+ * #ifndef PVAR_FIRST
+ *     PVarInitH(pvar_stabs);
+ * #endif
+ */
+extern void PVarInitH(char* stabs[]);
 
 
 struct stab_print{

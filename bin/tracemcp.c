@@ -40,7 +40,7 @@ int main(int argc, char **argv){
 
 
     if (print_structs){
-	StructsInit( argv[0] );
+	StructsInit();// argv[0] );
 	PVarSwitchEndian = 1;
 	PVarMaxArrayLen  = 10;
 	PVarMaxCharLen   = 63;
