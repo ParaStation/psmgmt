@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.14 2002/10/16 18:07:18 eicker Exp $
+# $Id: Makefile.in,v 1.15 2002/10/17 15:39:25 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -26,7 +26,7 @@
 
 PSM_OSDIR := @PSM_OSDIR@
 
-SUBDIRS := lib kern/mcp $(PSM_OSDIR) bin Documentation dist dist_fe dist_gui
+SUBDIRS := lib kern/mcp $(PSM_OSDIR) bin docu dist dist_fe dist_docu dist_gui
 
 all: psm lib bin
 .PHONY: all psm docu $(SUBDIRS)
@@ -44,7 +44,7 @@ bin:
 	$(MAKE) -C bin bin
 
 docu:
-	$(MAKE) -C Documentation
+	$(MAKE) -C docu
 
 clean:
 	@for i in $(SUBDIRS) ; do \
@@ -55,5 +55,7 @@ dist:
 	$(MAKE) -C dist
 dist_fe:
 	$(MAKE) -C dist_fe
+dist_docu:
+	$(MAKE) -C dist_docu
 dist_gui:
 	$(MAKE) -C dist_gui
