@@ -624,7 +624,7 @@ char * PSI_installdir = NULL;
 char * PSI_LookupInstalldir(void)
 {
     int i=0,found=0;
-    char *name = NULL, logger[] = "/bin/psilogger";
+    char *name = NULL, logger[] = "/bin/psiforwarder";
     struct stat sbuf;
 
     while( (installdir[i].nr != -1) && !found ){
@@ -648,7 +648,7 @@ char * PSI_LookupInstalldir(void)
 
 void PSI_SetInstalldir(char * installdir)
 {
-    char *name, logger[] = "/bin/psilogger";
+    char *name, logger[] = "/bin/psiforwarder";
     static char *instdir=NULL;
     struct stat sbuf;
 
