@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: configure.in,v 1.24 2003/01/20 16:30:40 hauke Exp $
+# $Id: configure.in,v 1.25 2003/02/10 18:34:10 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -157,6 +157,7 @@ AC_CONFIG_FILES([lib/pvar/Makefile])
 AC_CONFIG_FILES([lib/pse/Makefile])
 AC_CONFIG_FILES([lib/psi/Makefile])
 AC_CONFIG_FILES([lib/pscommon/Makefile])
+AC_CONFIG_FILES([lib/pslog/Makefile])
 AC_CONFIG_FILES([lib/putil/Makefile])
 AC_CONFIG_FILES([kern/mcp/Makefile])
 AC_CONFIG_FILES([kern/Makefile.include])
