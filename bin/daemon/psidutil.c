@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.44 2002/07/31 09:07:34 eicker Exp $
+ * $Id: psidutil.c,v 1.45 2002/08/01 16:56:36 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.44 2002/07/31 09:07:34 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.45 2002/08/01 16:56:36 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -82,12 +82,12 @@ void PSID_errexit(char *s, int errorno)
 
 void PSID_blockSig(int block, int sig)
 {
-    sigset_t newset, oldset;
+    sigset_t set;
 
-    sigemptyset(&newset);
-    sigaddset(&newset, sig);
+    sigemptyset(&set);
+    sigaddset(&set, sig);
 
-    if (sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &newset, &oldset)) {
+    if (sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &set, NULL)) {
 	PSID_errlog("blockSig(): sigprocmask()", 0);
     }
 }
