@@ -6,7 +6,7 @@
 #
 # Author: Jens Hauke <hauke@par-tec.com>, Norbert Eicker <eicker@par-tec.com>
 #
-# $Id: parastation,v 1.5 2002/08/06 17:02:00 hauke Exp $
+# $Id: parastation,v 1.6 2002/08/22 16:30:07 hauke Exp $
 #
 
 
@@ -32,7 +32,7 @@ case "$1" in
 	unset modules mod
 
 	if [ $found == 0 ] ; then
-	    insmod "$MODULEFULLNAME"
+	    insmod -f "$MODULEFULLNAME"
             if [ $? -ne 0 ]
             then
                   echo "Failed to configure subsystem: " $MODULEFULLNAME
