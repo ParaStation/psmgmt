@@ -1,0 +1,5 @@
+#!/bin/sh
+
+
+make KDIR=/home/i41pc17/hauke/psmlib/linux-2.2.14.SuSE-alpha $* OSSUF=.SuSE
+
