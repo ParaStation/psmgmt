@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: commands.c,v 1.12 2004/02/06 11:23:23 eicker Exp $
+ * $Id: commands.c,v 1.13 2004/03/09 10:04:50 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.12 2004/02/06 11:23:23 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.13 2004/03/09 10:04:50 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -35,7 +35,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.12 2004/02/
 
 #include "commands.h"
 
-char commandsversion[] = "$Revision: 1.12 $";
+char commandsversion[] = "$Revision: 1.13 $";
 
 /* @todo PSI_sendMsg(): Wrapper, control if sendMsg was successful or exit */
 
@@ -231,6 +231,16 @@ static inline int getPhysCPUs(void)
 static inline int getVirtCPUs(void)
 {
     return getFullList(&vcpuList, PSP_INFO_LIST_VIRTCPUS, sizeof(uint16_t));
+}
+
+
+/** List used for storing of exclusive flag informations. */
+static sizedList_t exclList = { .actSize = 0, .list = NULL };
+
+/** Simple wrapper for retrieval of exclusive flags */
+static inline int getExclusiveFlags(void)
+{
+    return getFullList(&exclList, PSP_INFO_LIST_EXCLUSIVE, sizeof(int8_t));
 }
 
 
@@ -570,6 +580,7 @@ void PSIADM_LoadStat(char *nl)
     PSnodes_ID_t node;
     float *loads;
     uint16_t *taskNumFull, *taskNumNorm, *taskNumAlloc;
+    uint8_t *exclusiveFlag;
 
     if (! getHostStatus()) return;
     if (! getLoads()) return;
@@ -580,16 +591,20 @@ void PSIADM_LoadStat(char *nl)
     taskNumNorm = (uint16_t *) tnnList.list;
     if (! getTaskNum(PSP_INFO_LIST_ALLOCJOBS)) return;
     taskNumAlloc = (uint16_t *) tnaList.list;
+    if (! getExclusiveFlags()) return;
+    exclusiveFlag = (uint8_t *) exclList.list;
+    
 
     printf("Node\t\t Load\t\t     Jobs\n");
-    printf("\t 1 min\t 5 min\t15 min\t tot.\tnorm.\talloc.\n");
+    printf("\t 1 min\t 5 min\t15 min\t tot.\tnorm.\talloc.\texclusive\n");
 
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 	if (hostStatus.list[node]) {
-	    printf("%4d\t%2.4f\t%2.4f\t%2.4f\t%4d\t%4d\t%4d\n", node,
+	    printf("%4d\t%2.4f\t%2.4f\t%2.4f\t%4d\t%4d\t%4d\t%5d\n", node,
 		   loads[3*node+0], loads[3*node+1], loads[3*node+2],
-		   taskNumFull[node], taskNumNorm[node], taskNumAlloc[node]);
+		   taskNumFull[node], taskNumNorm[node], taskNumAlloc[node],
+		   exclusiveFlag[node]);
 	} else {
 	    printf("%4d\t down\n", node);
 	}
