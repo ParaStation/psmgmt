@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: configure.in,v 1.20 2002/10/16 14:13:14 hauke Exp $
+# $Id: configure.in,v 1.21 2002/10/16 17:23:15 hauke Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -70,6 +70,15 @@ AC_ARG_ENABLE([java], [  --enable-java    (default: disabled)] ,
 	JAVA_ENABLED=$enableval
 ],[
 	JAVA_ENABLED="no"
+])
+
+AC_SUBST([TTCP_ENABLED])
+# default is no
+AC_ARG_ENABLE([ttcp], [  --enable-ttcp    (Transparent tcp (default: disabled)] ,
+[
+	TTCP_ENABLED=$enableval
+],[
+	TTCP_ENABLED="no"
 ])
 
 
