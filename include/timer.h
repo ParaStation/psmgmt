@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: timer.h,v 1.4 2002/01/31 08:46:22 eicker Exp $
+ * $Id: timer.h,v 1.5 2002/02/01 16:58:15 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation Timer facility @todo More info on module.
  *
- * $Id: timer.h,v 1.4 2002/01/31 08:46:22 eicker Exp $
+ * $Id: timer.h,v 1.5 2002/02/01 16:58:15 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -142,7 +142,7 @@ int blockTimer(int fd, int block);
  *
  * Waits for a number of file-descriptors to change status. If the status
  * of a registered file-descriptor is affected, the corresponding
- * @ref selectHander is called.
+ * @ref selectHandler is called.
  *
  * @param n The highest-numbered descriptor in the three sets, plus 1.
  * @param readfds The set of descriptors to be watched for data available to

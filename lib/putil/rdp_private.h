@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp_private.h,v 1.5 2002/02/01 16:47:54 eicker Exp $
+ * $Id: rdp_private.h,v 1.6 2002/02/01 16:58:15 eicker Exp $
  *
  */
 /**
@@ -14,7 +14,7 @@
  *
  * Private functions and definitions
  *
- * $Id: rdp_private.h,v 1.5 2002/02/01 16:47:54 eicker Exp $
+ * $Id: rdp_private.h,v 1.6 2002/02/01 16:58:15 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -262,7 +262,7 @@ typedef struct msgbuf_ {
     union {
 	Smsg *small;                        /**< Pointer to a small msg */
 	Lmsg *large;                        /**< Pointer to a large msg */
-    } msg;
+    } msg;                                  /**< @todo */
 } msgbuf;
 
 /**
