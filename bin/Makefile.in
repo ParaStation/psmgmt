@@ -21,7 +21,7 @@ else
 endif
 
 TOOLS:=psconfig pscounter test_nodes psiadmin psid psld parastation
-TOOLS += psilogger psiforwarder mlisten test_config_parsing
+TOOLS += psilogger psiforwarder mlisten test_config_parsing psmstart
 # test_nodes
 
 bin:	$(TOOLS)
@@ -37,6 +37,8 @@ pscounter: pscounter.o -lpshal -lm
 test_nodes: test_nodes.o -lpshal -lpsport -larg -lpse -lpsi -lm -lpthread
 
 test_pse: test_pse.o -lpshal -lpsport -larg -lpse -lpsi -lm -lpthread
+
+psmstart: psmstart.o -lpse -lpsi
 
 mlisten: mlisten.o
 
