@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.h,v 1.9 2002/02/15 19:19:24 eicker Exp $
+ * $Id: info.h,v 1.10 2002/05/10 09:56:26 eicker Exp $
  *
  */
 /**
  * @file
  * info: Functions for information retrieving from ParaStation daemon
  *
- * $Id: info.h,v 1.9 2002/02/15 19:19:24 eicker Exp $
+ * $Id: info.h,v 1.10 2002/05/10 09:56:26 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -38,7 +38,7 @@ extern "C" {
  * RETURN: filled buffer
  *
  */
-int INFO_request_rdpstatus(int nodeno, void* buffer, int size);
+int INFO_request_rdpstatus(int nodeno, void* buffer, int size, int verbose);
 
 /*****************************
  *
@@ -48,14 +48,14 @@ int INFO_request_rdpstatus(int nodeno, void* buffer, int size);
  * RETURN: filled buffer
  *
  */
-int INFO_request_mcaststatus(int nodeno, void* buffer, int size);
+int INFO_request_mcaststatus(int nodeno, void* buffer, int size, int verbose);
 
 /*****************************
  *
  * request_countstatus(int nodeno)
  *
  */
-int INFO_request_countstatus(int nodeno, void* buffer, int size);
+int INFO_request_countstatus(int nodeno, void* buffer, int size, int verbose);
 
 /*****************************
  *
@@ -65,7 +65,7 @@ int INFO_request_countstatus(int nodeno, void* buffer, int size);
  * RETURN: filled buffer
  *
  */
-int INFO_request_hoststatus(void* buffer, int size);
+int INFO_request_hoststatus(void* buffer, int size, int verbose);
 
 /*****************************
  *
@@ -75,7 +75,7 @@ int INFO_request_hoststatus(void* buffer, int size);
  * RETURN: filled buffer
  *
  */
-int INFO_request_hostlist(void *buffer, int size);
+int INFO_request_hostlist(void *buffer, int size, int verbose);
 
 /*****************************
  *
@@ -85,7 +85,7 @@ int INFO_request_hostlist(void *buffer, int size);
  * RETURN: the PS id
  *
  */
-int INFO_request_host(unsigned int addr);
+int INFO_request_host(unsigned int addr, int verbose);
 
 
 typedef struct {
@@ -104,7 +104,8 @@ typedef struct {
  * Gibt Anzahl der tasks zurück.
  *
  */
-int INFO_request_tasklist(int nodeno, INFO_taskinfo_t taskinfo[], int size);
+int INFO_request_tasklist(int nodeno, INFO_taskinfo_t taskinfo[], int size,
+			  int verbose);
 
 
 /**
@@ -125,7 +126,7 @@ typedef enum {
  *  @todo Das stimmt nicht, es gibt verschiedene Aufgaben.
  *  RETURN the uid of the task
  */
-long INFO_request_taskinfo(long tid, INFO_info_t what);
+long INFO_request_taskinfo(long tid, INFO_info_t what, int verbose);
 
 /*----------------------------------------------------------------------*/
 /*
@@ -134,7 +135,7 @@ long INFO_request_taskinfo(long tid, INFO_info_t what);
  *  gets the load of the given node
  *  RETURN the load of the node
  */
-double INFO_request_load(unsigned short node);
+double INFO_request_load(unsigned short node, int verbose);
 
 /*----------------------------------------------------------------------*/
 /*
@@ -143,10 +144,10 @@ double INFO_request_load(unsigned short node);
  *  gets the number of processes on the given node
  *  RETURN the number of processes on the node
  */
-double INFO_request_proc(unsigned short node);
+double INFO_request_proc(unsigned short node, int verbose);
 
 int INFO_request_option(unsigned short node, int num, long option[],
-			long value[]);
+			long value[], int verbose);
 
 #ifdef __cplusplus
 }/* extern "C" */

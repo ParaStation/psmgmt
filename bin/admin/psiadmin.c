@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.31 2002/04/26 12:43:59 eicker Exp $
+ * $Id: psiadmin.c,v 1.32 2002/05/10 09:56:42 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.31 2002/04/26 12:43:59 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.32 2002/05/10 09:56:42 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -43,7 +43,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.31 $";
+static char psiadmversion[] = "$Revision: 1.32 $";
 static int  DoRestart = 1;
 
 int PSIADM_LookUpNodeName(char* hostname)
@@ -56,7 +56,7 @@ int PSIADM_LookUpNodeName(char* hostname)
     }
     memcpy(&sa.sin_addr, hp->h_addr, hp->h_length);
 
-    return INFO_request_host(sa.sin_addr.s_addr);
+    return INFO_request_host(sa.sin_addr.s_addr, 1);
 }
 
 void PSIADM_AddNode(int first, int last)
@@ -69,7 +69,7 @@ void PSIADM_AddNode(int first, int last)
     msg.header.sender = PSI_mytid;
     msg.header.dest = PSI_gettid(PSI_myid,0);
 
-    INFO_request_hoststatus(PSI_hoststatus, PSI_nrofnodes);
+    INFO_request_hoststatus(PSI_hoststatus, PSI_nrofnodes, 1);
 
     first = (first==ALLNODES) ? 0 : first;
     last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
@@ -91,7 +91,7 @@ void PSIADM_NodeStat(int first, int last)
 {
     int i;
 
-    INFO_request_hoststatus(PSI_hoststatus, PSI_nrofnodes);
+    INFO_request_hoststatus(PSI_hoststatus, PSI_nrofnodes, 1);
 
     first = (first==ALLNODES) ? 0 : first;
     last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
@@ -114,7 +114,7 @@ void PSIADM_RDPStat(int first, int last)
     first = (first==ALLNODES) ? 0 : first;
     last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
     for (i = first; i < last; i++) {
-	INFO_request_rdpstatus(i,s,sizeof(s));
+	INFO_request_rdpstatus(i,s,sizeof(s), 1);
 	printf("%s",s);
     }
 
@@ -124,13 +124,13 @@ void PSIADM_RDPStat(int first, int last)
 void PSIADM_MCastStat(int first, int last)
 {
     int i;
-    char s[255];
+    char s[256];
 
     first = (first==ALLNODES) ? 0 : first;
     last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
     for (i = first; i < last; i++) {
-	INFO_request_mcaststatus(i,s,sizeof(s));
-	printf("%s",s);
+	INFO_request_mcaststatus(i, s, sizeof(s), 1);
+	printf("%s", s);
     }
 
     return;
@@ -149,8 +149,9 @@ void PSIADM_CountStat(int first, int last)
     last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
 
     /* Get header info from own daemon */
+    memset(&countstat, 0, sizeof(countstat));
     for (i=0; i<PSI_nrofnodes; i++) {
-	INFO_request_countstatus(i, &countstat, sizeof(countstat));
+	INFO_request_countstatus(i, &countstat, sizeof(countstat), 0);
 	if (countstat.present) break;
     }
     printf("%6s ", "NODE");
@@ -162,7 +163,8 @@ void PSIADM_CountStat(int first, int last)
     for (i = first; i < last; i++) {
 	printf("%6u ", i); fflush(stdout);
 
-	if (INFO_request_countstatus(i, &countstat, sizeof(countstat)) != -1) {
+	if (INFO_request_countstatus(i, &countstat,
+				     sizeof(countstat), 1) != -1) {
 	    if (countstat.present) {
 		for (j=0; j<countstat.ic.n; j++){
 		    char ch[10];
@@ -195,7 +197,7 @@ void PSIADM_ProcStat(int first, int last)
     for (i = first; i < last; i++) {
 	printf("---------------------------------------------------------"
 	       "----\n");
-	num = INFO_request_tasklist(i, taskinfo, sizeof(taskinfo));
+	num = INFO_request_tasklist(i, taskinfo, sizeof(taskinfo), 1);
 	for (j=0; j<MIN(num,NUMTASKS); j++) {
 	    printf("%4d %10ld 0x%010lx %10ld 0x%010lx ",
 		   taskinfo[j].nodeno, taskinfo[j].tid, taskinfo[j].tid,
@@ -222,7 +224,7 @@ void PSIADM_LoadStat(int first, int last)
     last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
     printf("NodeNr Load\n");
     for (i = first; i < last; i++) {
-	load = INFO_request_load(i);
+	load = INFO_request_load(i, 1);
 	printf("%6d %2.4f\n",i,load);
     }
 
@@ -259,7 +261,7 @@ void PSIADM_ShowMaxProc(void)
     int ret;
     long option = PSP_OP_PROCLIMIT, proclimit;
 
-    ret = INFO_request_option(0, 1, &option, &proclimit);
+    ret = INFO_request_option(0, 1, &option, &proclimit, 1);
 
     if (ret==-1) {
 	printf("Can't get max. processes.\n");
@@ -301,7 +303,7 @@ void PSIADM_ShowUser(void)
     int ret;
     long option = PSP_OP_UIDLIMIT, uidlimit;
 
-    ret = INFO_request_option(0, 1, &option, &uidlimit);
+    ret = INFO_request_option(0, 1, &option, &uidlimit, 1);
 
     if (ret==-1) {
 	printf("Can't get user limit.\n");
@@ -383,7 +385,7 @@ void PSIADM_ShowPsidSelectTime(int first, int last)
 
     for (i = first; i < last; i++) {
 	printf("%3d:  ", i);
-	ret = INFO_request_option(i, 1, &option, &selecttime);
+	ret = INFO_request_option(i, 1, &option, &selecttime, 1);
 	if (ret != -1) {
 	    printf("%ld\n", selecttime);
 	}
@@ -433,7 +435,7 @@ void PSIADM_ShowPsidDebug(int first, int last)
 
     for (i = first; i < last; i++) {
 	printf("%3d:  ", i);
-	ret = INFO_request_option(i, 1, &option, &psiddebug);
+	ret = INFO_request_option(i, 1, &option, &psiddebug, 1);
 	if (ret != -1) {
 	    printf("%ld\n", psiddebug);
 	}
@@ -488,7 +490,7 @@ void PSIADM_ShowRDPDebug(int first, int last)
 
     for (i = first; i < last; i++) {
 	printf("%3d:  ", i);
-	ret = INFO_request_option(i, 1, &option, &rdpdebug);
+	ret = INFO_request_option(i, 1, &option, &rdpdebug, 1);
 	if (ret != -1) {
 	    printf("%ld\n", rdpdebug);
 	}
@@ -543,7 +545,7 @@ void PSIADM_ShowRDPPktLoss(int first, int last)
 
     for (i = first; i < last; i++) {
 	printf("%3d:  ", i);
-	ret = INFO_request_option(i, 1, &option, &pktloss);
+	ret = INFO_request_option(i, 1, &option, &pktloss, 1);
 	if (ret != -1) {
 	    printf("%ld\n", pktloss);
 	}
@@ -598,7 +600,7 @@ void PSIADM_ShowRDPMaxRetrans(int first, int last)
 
     for (i = first; i < last; i++) {
 	printf("%3d:  ", i);
-	ret = INFO_request_option(i, 1, &option, &maxretrans);
+	ret = INFO_request_option(i, 1, &option, &maxretrans, 1);
 	if (ret != -1) {
 	    printf("%ld\n", maxretrans);
 	}
@@ -653,7 +655,7 @@ void PSIADM_ShowMCastDebug(int first, int last)
 
     for (i = first; i < last; i++) {
 	printf("%3d:  ", i);
-	ret = INFO_request_option(i, 1, &option, &mcastdebug);
+	ret = INFO_request_option(i, 1, &option, &mcastdebug, 1);
 	if (ret != -1) {
 	    printf("%ld\n", mcastdebug);
 	}
@@ -691,7 +693,7 @@ void PSIADM_ShowConfig(void)
      * prepare the message to send it to the daemon
      */
     num = sizeof(option)/sizeof(*option);
-    if (INFO_request_option(0, num, option, value) != num) {
+    if (INFO_request_option(0, num, option, value, 1) != num) {
 	printf("PANIC: Got less options than requested.\n");
     }
 
@@ -762,7 +764,7 @@ void PSIADM_ShowSmallPacketSize(void)
     int ret;
     long option = PSP_OP_SMALLPACKETSIZE, smallpacksize;
 
-    ret = INFO_request_option(0, 1, &option, &smallpacksize);
+    ret = INFO_request_option(0, 1, &option, &smallpacksize, 1);
 
     if (ret==-1) {
 	printf("Can't get SmallPacketSize.\n");
@@ -802,7 +804,7 @@ void PSIADM_ShowResendTimeout(void)
     int ret;
     long option = PSP_OP_RESENDTIMEOUT, resendtimeout;
 
-    ret = INFO_request_option(0, 1, &option, &resendtimeout);
+    ret = INFO_request_option(0, 1, &option, &resendtimeout, 1);
 
     if (ret==-1) {
 	printf("Can't get ResendTimeout.\n");
@@ -842,7 +844,7 @@ void PSIADM_ShowHNPend(void)
     int ret;
     long option = PSP_OP_HNPEND, hnpend;
 
-    ret = INFO_request_option(0, 1, &option, &hnpend);
+    ret = INFO_request_option(0, 1, &option, &hnpend, 1);
 
     if (ret==-1) {
 	printf("Can't get HNPend.\n");
@@ -882,7 +884,7 @@ void PSIADM_ShowAckPend(void)
     int ret;
     long option = PSP_OP_ACKPEND, ackpend;
 
-    ret = INFO_request_option(0, 1, &option, &ackpend);
+    ret = INFO_request_option(0, 1, &option, &ackpend, 1);
 
     if (ret==-1) {
 	printf("Can't get AckPend.\n");

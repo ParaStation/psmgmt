@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.16 2002/04/26 12:40:34 eicker Exp $
+ * $Id: info.c,v 1.17 2002/05/10 09:55:38 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.16 2002/04/26 12:40:34 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.17 2002/05/10 09:55:38 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -35,7 +35,8 @@ static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.16 2002/04/26 12
  * int size: size of buffer
  * RETURN type of the msg received
  */
-static int INFO_receive(INFO_info_t what, void* buffer, size_t size)
+static int INFO_receive(INFO_info_t what, void* buffer, size_t size,
+			int verbose)
 {
     DDBufferMsg_t msg;
     if (ClientMsgRecv(&msg)<0) {
@@ -66,8 +67,10 @@ static int INFO_receive(INFO_info_t what, void* buffer, size_t size)
 
 		if (taskinfo) {
 		    if (size < sizeof(*taskinfo)) {
-			fprintf(stderr,
-				"INFO_receive: task-buffer to small\n");
+			if (verbose) {
+			    fprintf(stderr,
+				    "INFO_receive: task-buffer to small\n");
+			}
 			break;
 		    }
 		    taskinfo->nodeno = task->nodeno;
@@ -107,7 +110,9 @@ static int INFO_receive(INFO_info_t what, void* buffer, size_t size)
 	    DDOptionMsg_t *omsg = (DDOptionMsg_t *)&msg;
 
 	    if (omsg->count*sizeof(omsg->opt[0].value) > size ) {
-		fprintf(stderr, "INFO_receive: option-buffer to small\n");
+		if (verbose) {
+		    fprintf(stderr, "INFO_receive: option-buffer to small\n");
+		}
 		break;
 	    }
 	    for (i=0; i<omsg->count; i++) {
@@ -117,11 +122,13 @@ static int INFO_receive(INFO_info_t what, void* buffer, size_t size)
 	}
 	case PSP_DD_SYSTEMERROR:
 	{
-	    char* errtxt;
-	    errtxt = strerror(((DDErrorMsg_t*)&msg)->err);
-	    printf("INFO_receive: error in command %s : %s\n", 
-		   PSPctrlmsg(((DDErrorMsg_t*)&msg)->request),
-		   errtxt ? errtxt : "UNKNOWN");
+	    if (verbose) {
+		char* errtxt;
+		errtxt = strerror(((DDErrorMsg_t*)&msg)->err);
+		printf("INFO_receive: error in command %s : %s\n", 
+		       PSPctrlmsg(((DDErrorMsg_t*)&msg)->request),
+		       errtxt ? errtxt : "UNKNOWN");
+	    }
 	    break;
 	}
 	default:
@@ -133,7 +140,7 @@ static int INFO_receive(INFO_info_t what, void* buffer, size_t size)
     return msg.header.type;
 }
 
-int INFO_request_rdpstatus(int nodeno, void* buffer, int size)
+int INFO_request_rdpstatus(int nodeno, void* buffer, int size, int verbose)
 {
     DDBufferMsg_t msg;
 
@@ -149,14 +156,15 @@ int INFO_request_rdpstatus(int nodeno, void* buffer, int size)
 	exit(-1);
     }
 
-    if (INFO_receive(INFO_GETINFO, buffer, size)==PSP_CD_RDPSTATUSRESPONSE) {
+    if (INFO_receive(INFO_GETINFO, buffer, size, verbose)
+	== PSP_CD_RDPSTATUSRESPONSE) {
 	return size;
     }
 
     return -1;
 }
 
-int INFO_request_mcaststatus(int nodeno, void* buffer, int size)
+int INFO_request_mcaststatus(int nodeno, void* buffer, int size, int verbose)
 {
     DDBufferMsg_t msg;
 
@@ -172,14 +180,15 @@ int INFO_request_mcaststatus(int nodeno, void* buffer, int size)
 	exit(-1);
     }
 
-    if (INFO_receive(INFO_GETINFO, buffer, size)==PSP_CD_MCASTSTATUSRESPONSE) {
+    if (INFO_receive(INFO_GETINFO, buffer, size, verbose)
+	== PSP_CD_MCASTSTATUSRESPONSE) {
 	return size;
     }
 
     return -1;
 }
 
-int INFO_request_countstatus(int nodeno, void* buffer, int size)
+int INFO_request_countstatus(int nodeno, void* buffer, int size, int verbose)
 {
     DDMsg_t msg;
 
@@ -193,14 +202,15 @@ int INFO_request_countstatus(int nodeno, void* buffer, int size)
 	exit(-1);
     }
 
-    if (INFO_receive(INFO_GETINFO, buffer, size)==PSP_CD_COUNTSTATUSRESPONSE) {
+    if (INFO_receive(INFO_GETINFO, buffer, size, verbose)
+	== PSP_CD_COUNTSTATUSRESPONSE) {
 	return size;
     }
 
     return -1;
 }
 
-int INFO_request_hoststatus(void* buffer, int size)
+int INFO_request_hoststatus(void* buffer, int size, int verbose)
 {
     DDMsg_t msg;
 
@@ -214,14 +224,15 @@ int INFO_request_hoststatus(void* buffer, int size)
 	exit(-1);
     }
 
-    if (INFO_receive(INFO_GETINFO, buffer, size)==PSP_CD_HOSTSTATUSRESPONSE) {
+    if (INFO_receive(INFO_GETINFO, buffer, size, verbose)
+	== PSP_CD_HOSTSTATUSRESPONSE) {
 	return size;
     }
 
     return -1;
 }
 
-int INFO_request_host(unsigned int address)
+int INFO_request_host(unsigned int address, int verbose)
 {
     DDBufferMsg_t msg;
     int host;
@@ -238,14 +249,15 @@ int INFO_request_host(unsigned int address)
 	exit(-1);
     }
 
-    if (INFO_receive(INFO_GETINFO, &host, sizeof(host))==PSP_CD_HOSTRESPONSE) {
+    if (INFO_receive(INFO_GETINFO, &host, sizeof(host), verbose)
+	== PSP_CD_HOSTRESPONSE) {
 	return host;
     }
 
     return -1;
 }
 
-int INFO_request_hostlist(void *buffer, int size)
+int INFO_request_hostlist(void *buffer, int size, int verbose)
 {
     DDMsg_t msg;
 
@@ -259,14 +271,16 @@ int INFO_request_hostlist(void *buffer, int size)
 	exit(-1);
     }
 
-    if (INFO_receive(INFO_GETINFO, buffer, size)==PSP_CD_HOSTLISTRESPONSE) {
+    if (INFO_receive(INFO_GETINFO, buffer, size, verbose)
+	== PSP_CD_HOSTLISTRESPONSE) {
 	return size;
     }
 
     return -1;
 }
 
-int INFO_request_tasklist(int nodeno, INFO_taskinfo_t taskinfo[], int size)
+int INFO_request_tasklist(int nodeno, INFO_taskinfo_t taskinfo[], int size,
+			  int verbose)
 {
     DDMsg_t msg;
     int msgtype, tasknum, maxtask;
@@ -286,10 +300,10 @@ int INFO_request_tasklist(int nodeno, INFO_taskinfo_t taskinfo[], int size)
     msgtype = PSP_CD_TASKINFO;
     while(msgtype == PSP_CD_TASKINFO){
 	if (tasknum<maxtask) {
-	    msgtype = INFO_receive(INFO_GETINFO,
-				   &taskinfo[tasknum], sizeof(*taskinfo));
+	    msgtype = INFO_receive(INFO_GETINFO, &taskinfo[tasknum],
+				   sizeof(*taskinfo), verbose);
 	} else {
-	    msgtype = INFO_receive(INFO_GETINFO, NULL, 0);
+	    msgtype = INFO_receive(INFO_GETINFO, NULL, 0, verbose);
 	}
 	tasknum++;
     }
@@ -297,7 +311,7 @@ int INFO_request_tasklist(int nodeno, INFO_taskinfo_t taskinfo[], int size)
     return tasknum-1;
 }
 
-long INFO_request_taskinfo(long tid, INFO_info_t what)
+long INFO_request_taskinfo(long tid, INFO_info_t what, int verbose)
 {
     int msgtype;
     DDMsg_t msg;
@@ -316,13 +330,13 @@ long INFO_request_taskinfo(long tid, INFO_info_t what)
     errno = 8888;
     msgtype = PSP_CD_TASKINFO;
     while (msgtype == PSP_CD_TASKINFO) {
-	msgtype = INFO_receive(what, &answer, sizeof(answer));
+	msgtype = INFO_receive(what, &answer, sizeof(answer), verbose);
     }
 
     return answer;
 }
 
-double INFO_request_load(unsigned short node)
+double INFO_request_load(unsigned short node, int verbose)
 {
     int msgtype;
     double answer;
@@ -338,7 +352,7 @@ double INFO_request_load(unsigned short node)
 	exit(-1);
     }
 
-    msgtype = INFO_receive(INFO_GETINFO, &answer, sizeof(answer));
+    msgtype = INFO_receive(INFO_GETINFO, &answer, sizeof(answer), verbose);
 
     if (msgtype == PSP_CD_LOADRES) {
 	return answer;
@@ -347,7 +361,7 @@ double INFO_request_load(unsigned short node)
     }
 }
 
-double INFO_request_proc(unsigned short node)
+double INFO_request_proc(unsigned short node, int verbose)
 {
     int msgtype;
     double answer;
@@ -363,7 +377,7 @@ double INFO_request_proc(unsigned short node)
 	exit(-1);
     }
 
-    msgtype = INFO_receive(INFO_GETINFO, &answer, sizeof(answer));
+    msgtype = INFO_receive(INFO_GETINFO, &answer, sizeof(answer), verbose);
 
     if (msgtype == PSP_CD_PROCRES) {
 	return answer;
@@ -373,7 +387,7 @@ double INFO_request_proc(unsigned short node)
 }
 
 int INFO_request_option(unsigned short node, int num, long option[],
-			 long value[])
+			 long value[], int verbose)
 {
     int msgtype, i;
     DDOptionMsg_t msg;
@@ -398,7 +412,7 @@ int INFO_request_option(unsigned short node, int num, long option[],
 	exit(-1);
     }
 
-    msgtype = INFO_receive(INFO_GETINFO, value, sizeof(*value)*num);
+    msgtype = INFO_receive(INFO_GETINFO, value, sizeof(*value)*num, verbose);
 
     if (msgtype == PSP_DD_SETOPTION) {
 	return num;

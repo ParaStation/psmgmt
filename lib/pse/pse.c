@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.18 2002/03/26 13:53:23 eicker Exp $
+ * $Id: pse.c,v 1.19 2002/05/10 09:54:15 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.18 2002/03/26 13:53:23 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.19 2002/05/10 09:54:15 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -202,7 +202,7 @@ void PSEspawn(int Argc, char** Argv,
 	 * Register myself to the parents task, so I'm notified if the parent
 	 * dies.
 	 */
-	parenttidPSE = INFO_request_taskinfo(PSI_mytid, INFO_PTID);
+	parenttidPSE = INFO_request_taskinfo(PSI_mytid, INFO_PTID, 0);
 	if((parenttidPSE<=0) || (PSI_notifydead(parenttidPSE, SIGTERM)<0))
 	    EXIT3("Parent with tid 0x%lx[%d:%d] is probably no more alive.\n",
 		  parenttidPSE, PSI_getnode(parenttidPSE),
@@ -275,7 +275,7 @@ void PSEspawn(int Argc, char** Argv,
 	 * Register myself to the parents task, so I'm notified if the parent
 	 * dies.
 	 */
-	parenttidPSE = INFO_request_taskinfo(PSI_mytid, INFO_PTID);
+	parenttidPSE = INFO_request_taskinfo(PSI_mytid, INFO_PTID, 0);
 	if ((parenttidPSE<=0) || (PSI_notifydead(parenttidPSE, SIGTERM)<0)) {
 	    EXIT6("Parent with tid 0x%lx[%d:%d] is probably no more alive.\n"
 		  "My tid is 0x%lx[%d:%d].\n",

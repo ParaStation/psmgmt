@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.27 2002/04/22 18:20:15 hauke Exp $
+ * $Id: psi.c,v 1.28 2002/05/10 09:55:38 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.27 2002/04/22 18:20:15 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.28 2002/05/10 09:55:38 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -403,7 +403,7 @@ int PSI_clientinit(unsigned short protocol)
     if (! PSI_hoststatus) {
 	PSI_hoststatus = (char *) malloc(PSI_nrofnodes);
     }
-    INFO_request_hoststatus(PSI_hoststatus, PSI_nrofnodes);
+    INFO_request_hoststatus(PSI_hoststatus, PSI_nrofnodes, 0);
 
     /* check if the environment variable PSI_EXPORTS is set.
      * If it is set, then take the environment variables
