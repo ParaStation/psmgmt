@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.22 2003/10/29 17:35:42 eicker Exp $
+ * $Id: psprotocol.h,v 1.23 2003/10/31 13:18:34 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation client-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.22 2003/10/29 17:35:42 eicker Exp $
+ * $Id: psprotocol.h,v 1.23 2003/10/31 13:18:34 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -34,7 +34,7 @@ extern "C" {
 #endif
 
 /** Unique version number of the high-level protocol */
-#define PSprotocolVersion  327
+#define PSprotocolVersion 328
 
 /** The location of the UNIX socket used to contact the daemon. */
 #define PSmasterSocketName "/var/run/parastation.sock"
@@ -228,7 +228,7 @@ typedef struct {
 typedef struct {
     DDMsg_t header;        /**< header of the message */
     PStask_group_t group;  /**< process group of the task */
-    uint16_t version;      /**< Protocol version spoken by the PS library */
+    uint32_t version;      /**< Protocol version spoken by the PS library */
     PStask_ID_t ppid;      /**< PID of the parent process (for TG_SPAWNER) */
 #ifndef SO_PEERCRED
     pid_t pid;             /**< process id. Not used with UNIX sockets. */
@@ -299,6 +299,21 @@ typedef struct {
     int16_t normalJobs;    /**< number of jobs without logger, admin, etc. */
     int16_t maxJobs;       /**< maximum number of "normal" jobs */
 } NodelistEntry_t;
+
+/**
+ * Type describing the content of PSP_INFO_NODELIST and PSP_INFO_PARTITION
+ * responses for clients prior to PSprotocolVersion 328.
+ */
+typedef struct {
+    int id;                /**< ID of this node */
+    short up;              /**< Flag if node is up */
+    short numCPU;          /**< Number of CPUs in this node */
+    unsigned int hwStatus; /**< HW available on this node */
+    float load[3];         /**< load on this node */
+    short totalJobs;       /**< number of jobs */
+    short normalJobs;      /**< number of jobs without logger, admin, etc.) */
+    short maxJobs;         /**< maximum number of "normal" jobs */
+} NodelistEntryOld_t;
 
 /**
  * @brief Generate a string describing the message type.
