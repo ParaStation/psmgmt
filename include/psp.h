@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psp.h,v 1.12 2002/02/12 15:05:06 eicker Exp $
+ * $Id: psp.h,v 1.13 2002/02/13 08:34:40 eicker Exp $
  *
  */
 /**
@@ -13,7 +13,7 @@
  * psp: The ParaStation Protocol
  *      Used for daemon-daemon and client-daemon communication.
  *
- * $Id: psp.h,v 1.12 2002/02/12 15:05:06 eicker Exp $
+ * $Id: psp.h,v 1.13 2002/02/13 08:34:40 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -29,7 +29,7 @@ extern "C" {
 #endif
 #endif
 
-#define PSPprotocolversion  306
+#define PSPprotocolversion  308
 
 /*------------------------------------------------------------------------- 
 * PSP_ctrl messages through the OS socket of the daemon
@@ -53,10 +53,12 @@ extern "C" {
 
 #define PSP_CD_HOSTREQUEST         0x0018
 #define PSP_CD_HOSTRESPONSE        0x0019
-#define PSP_CD_LOADREQ             0x001a
-#define PSP_CD_LOADRES             0x001b
-#define PSP_CD_PROCREQ             0x001c
-#define PSP_CD_PROCRES             0x001d
+#define PSP_CD_HOSTLISTREQUEST     0x001a
+#define PSP_CD_HOSTLISTRESPONSE    0x001b
+#define PSP_CD_LOADREQ             0x001c
+#define PSP_CD_LOADRES             0x001d
+#define PSP_CD_PROCREQ             0x001e
+#define PSP_CD_PROCRES             0x001f
 
 #define PSP_CD_HOSTSTATUSREQUEST   0x0020
 #define PSP_CD_HOSTSTATUSRESPONSE  0x0021
@@ -168,6 +170,12 @@ typedef struct{
     DDMsg_t header;   /* header of the message */
     long partner;     /* node which should be contacted by header.dest */
 }DDContactMsg_t;
+
+/* Connect Node Message */
+typedef struct{
+    DDMsg_t header;   /* header of the message */
+    int hasCard;      /* Flag to show if nodes has a card */
+}DDConnectMsg_t;
 
 /* untyped Buffer Message */
 typedef struct{
