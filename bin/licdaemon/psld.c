@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.6 2002/01/07 13:54:10 eicker Exp $
+ * $Id: psld.c,v 1.7 2002/01/07 13:56:15 eicker Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Deamon
  *
- * $Id: psld.c,v 1.6 2002/01/07 13:54:10 eicker Exp $ 
+ * $Id: psld.c,v 1.7 2002/01/07 13:56:15 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.6 2002/01/07 13:54:10 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.7 2002/01/07 13:56:15 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -296,8 +296,8 @@ void sighandler(int sig)
  */
 void version(void)
 {
-    char revision[] = "$Revision: 1.6 $";
-    snprintf(errtxt, sizeof(errtxt), "psld %s\b \n", revision+11);
+    char revision[] = "$Revision: 1.7 $";
+    snprintf(errtxt, sizeof(errtxt), "psld %s\b ", revision+11);
     ERR_OUT(errtxt);
 }
 
