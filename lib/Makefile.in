@@ -4,13 +4,13 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.1 2002/10/01 12:42:50 hauke Exp $
+# $Id: Makefile.in,v 1.2 2003/02/10 18:37:27 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
 #############################################################################
 
-LIBS := psport pshal arg pvar pse pscommon psi putil
+LIBS := psport pshal arg pvar pse pscommon psi putil pslog
 ifeq ("@target_os@","linux")
 LIBS += psport4
 endif
