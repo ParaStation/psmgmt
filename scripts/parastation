@@ -1,4 +1,13 @@
 #!/bin/sh
+# 
+# PSM Myrinet Device Driver for Parastation3
+#
+# Script to load/unload the module and configure the interface
+#
+# Author: Jens Hauke <hauke@par-tec.com>, Norbert Eicker <eicker@par-tec.com>
+#
+# $Id: parastation,v 1.5 2002/08/06 17:02:00 hauke Exp $
+#
 
 
 MODULEFULLNAME=$PS_MODULE
