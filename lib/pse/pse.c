@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.36 2003/04/07 18:40:10 eicker Exp $
+ * $Id: pse.c,v 1.37 2003/04/10 17:31:24 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.36 2003/04/07 18:40:10 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.37 2003/04/10 17:31:24 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -20,7 +20,6 @@ static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.36 2003/04/07 18:
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <signal.h>
 
 #include "errlog.h"
 
@@ -63,8 +62,6 @@ static void exitAll(char *reason, int code)
 
     fflush(stderr);
     fflush(stdout);
-
-    signal(SIGTERM, SIG_DFL);
 
     exit(code);
 }
