@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.14 2002/08/06 15:41:25 eicker Exp $
+ * $Id: config_parsing.c,v 1.15 2002/08/07 13:07:58 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.14 2002/08/06 15:41:25 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.15 2002/08/07 13:07:58 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -1008,6 +1008,8 @@ int parseConfig(int usesyslog, int loglevel)
 	Configfile = DEFAULT_CONFIGFILE;
     }
 
+    parser_init(usesyslog, NULL);
+
     if (!(cfd = fopen(Configfile,"r"))) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "Unable to locate configuration file <%s>", Configfile);
@@ -1015,11 +1017,7 @@ int parseConfig(int usesyslog, int loglevel)
 
 	return -1;
     }
-
-    /*
-     * Start the parser
-     */
-    parser_init(usesyslog, cfd);
+    parser_setFile(cfd);
 
     parser_setDebugLevel(loglevel);
 
