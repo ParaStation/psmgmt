@@ -18,7 +18,7 @@ D_CONFIG="${D_CONFIG_D}/default"
 D_RCMD="ssh -x"
 D_MAXRCMD=32
 D_DIFFCMD="diff -q"
-D_AUTOCD="cd ${PWD/${HOME}/~};"
+D_AUTOCD="cd ${PWD/${HOME}/~} &&"
 TMPTEMPLATE="/tmp/pshout.XXXXXX"
 
 ############################
@@ -396,11 +396,11 @@ AUTOCD="${AUTOCD-$D_AUTOCD}"
 
 if [ "${SYNC}" = 1 ]; then
     FILELIST="$COMMAND"
-    COMMAND="tar xvf -";
+    COMMAND="tar xvPf -";
     TARFILE=$(mktemp $TMPTEMPLATE)
     TMPFILES="$TMPFILES $TARFILE"
     echo "Prepare files for distribution:"
-    tar cvf "${TARFILE}" ${FILELIST}
+    tar cvPf "${TARFILE}" ${FILELIST}
     echo "Continue(y/n)?[n]"
     read c
     case "$c" in
