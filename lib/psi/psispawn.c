@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.51 2003/11/26 15:39:53 eicker Exp $
+ * $Id: psispawn.c,v 1.52 2004/01/09 15:12:11 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.51 2003/11/26 15:39:53 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.52 2004/01/09 15:12:11 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -433,14 +433,14 @@ int PSI_spawn(int count, char *workdir, int argc, char **argv,
 
     if (count<=0) return 0;
 
-    nodes = malloc(sizeof(*nodes) * GETNODES_CHUNK);
+    nodes = malloc(sizeof(*nodes) * NODES_CHUNK);
     if (!nodes) {
 	*errors = ENOMEM;
 	return -1;
     }
 
     while (count>0) {
-	int chunk = (count>GETNODES_CHUNK) ? GETNODES_CHUNK : count;
+	int chunk = (count>NODES_CHUNK) ? NODES_CHUNK : count;
 	int rank = PSI_getNodes(chunk, nodes);
 	int i, ret;
 

@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psipartition.c,v 1.8 2003/12/10 13:09:24 eicker Exp $
+ * $Id: psipartition.c,v 1.9 2004/01/09 15:12:11 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.8 2003/12/10 13:09:24 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.9 2004/01/09 15:12:11 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -510,8 +510,8 @@ static nodelist_t *getNodelist(void)
  * msg.
  *
  * In order to send the nodelist, it is split into chunks of @ref
- * GETNODES_CHUNK entries. Each chunk is copied into the message and
- * send separately to the local daemon.
+ * NODES_CHUNK entries. Each chunk is copied into the message and send
+ * separately to the local daemon.
  *
  * This function is typically called from within @ref
  * PSI_createPartition().
@@ -532,8 +532,8 @@ static int sendNodelist(nodelist_t *nodelist, DDBufferMsg_t *msg)
 
     msg->header.type = PSP_CD_CREATEPARTNL;
     while (offset < nodelist->size) {
-	int chunk = (nodelist->size-offset > GETNODES_CHUNK) ?
-	    GETNODES_CHUNK : nodelist->size-offset;
+	int chunk = (nodelist->size-offset > NODES_CHUNK) ?
+	    NODES_CHUNK : nodelist->size-offset;
 	char *ptr = msg->buf;
 	msg->header.len = sizeof(msg->header);
 
@@ -673,10 +673,10 @@ int PSI_getNodes(unsigned int num, PSnodes_ID_t *nodes)
     char *ptr = msg.buf;
     int ret = -1;
 
-    if (num > GETNODES_CHUNK) {
+    if (num > NODES_CHUNK) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "%s: Do not request more than %d nodes.",
-		 __func__, GETNODES_CHUNK);
+		 __func__, NODES_CHUNK);
 	PSI_errlog(errtxt, 0);
 	return -1;
     }
