@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.8 2003/11/26 17:07:23 eicker Exp $
+# $Id: Makefile.in,v 1.9 2004/01/22 15:09:50 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -24,7 +24,7 @@ export LIBVPATH := $(SRCDIR)
 export LIBINC = -I$(TOPSRCDIR)/include
 export LIBDSTDIR = ../..
 # Objects from libpscommon:
-export LIBOBJS += pscommon.o psprotocol.o pstask.o
+export LIBOBJS += pscommon.o psprotocol.o pstask.o pspartition.o
 export LIBVPATH += $(SRCDIR)/../pscommon
 
 ################################
