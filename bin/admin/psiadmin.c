@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.57 2003/04/03 18:04:49 eicker Exp $
+ * $Id: psiadmin.c,v 1.58 2003/04/10 17:38:11 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.57 2003/04/03 18:04:49 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.58 2003/04/10 17:38:11 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -49,7 +49,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.57 $";
+static char psiadmversion[] = "$Revision: 1.58 $";
 static int doRestart = 0;
 
 static char *hoststatus = NULL;
@@ -326,8 +326,8 @@ void PSIADM_SetMaxProc(int count, int first, int last)
      * prepare the message to send it to the daemon
      */
     msg.header.type = PSP_CD_SETOPTION;
-    msg.header.len = sizeof(msg);
     msg.header.sender = PSC_getMyTID();
+    msg.header.len = sizeof(msg);
     msg.count = 1;
     msg.opt[0].option = PSP_OP_PROCLIMIT;
     msg.opt[0].value = count;
@@ -507,7 +507,7 @@ void PSIADM_Version(void)
     printf("\n");
     printf("PSIADMIN:   %s\b \n", psiadmversion+11);
     printf("PSID:       %s\b \n", PSI_getPsidVersion()+11);
-    printf("PSProtocol: %d\n", PSprotocolversion);
+    printf("PSProtocol: %d\n", PSprotocolVersion);
     return;
 }
 
@@ -666,7 +666,7 @@ void PSIADM_TestNetwork(int mode)
     if (dir) {
 	chdir (dir);
     } else {
-	printf("Cant find 'test_nodes'.\n");
+	printf("Cannot find 'test_nodes'.\n");
 	return;
     }
     snprintf(command, sizeof(command),
