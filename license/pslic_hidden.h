@@ -11,7 +11,7 @@
  *        DO NOT DISTRIBUTE THIS FILE !!!
  *
  *
- * $Id: pslic_hidden.h,v 1.4 2002/08/06 08:15:45 eicker Exp $
+ * $Id: pslic_hidden.h,v 1.5 2002/08/26 10:00:01 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -27,8 +27,15 @@
 #include "pslic.h"
 #include "psstrings.h"
 
+#ifndef __osf__
+#define EXTERNINLINE extern inline
+#else
+#define EXTERNINLINE static inline
+#endif
+
+
 /* Caculate the hash from all Fields in HashFields (, seppareted) */
-extern inline char *lic_calchash(env_fields_t *env, const char *HashFields)
+EXTERNINLINE char *lic_calchash(env_fields_t *env, const char *HashFields)
 {
     char *hf;
     char *fn;
@@ -73,7 +80,7 @@ extern inline char *lic_calchash(env_fields_t *env, const char *HashFields)
 }
 
 /* check if the Licensefile is valid */
-extern inline int lic_isvalid(env_fields_t *env)
+EXTERNINLINE int lic_isvalid(env_fields_t *env)
 {
     char *h = env_get(env, LIC_HASH);
     char *f = env_get(env, LIC_FIELDLIST);

@@ -7,7 +7,7 @@
 /**
  * pslic.h: Licensekey handling
  *
- * $Id: pslic.h,v 1.5 2002/08/23 17:47:16 hauke Exp $
+ * $Id: pslic.h,v 1.6 2002/08/26 10:00:01 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -68,10 +68,15 @@ extern char *lic_errstr;
 
 #define LIC_LICENSE	"License"
 
+#ifndef __osf__
+#define EXTERNINLINE extern inline
+#else
+#define EXTERNINLINE static inline
+#endif
 
 
 /* check if the License is expired */
-extern inline int lic_isexpired(env_fields_t *env)
+EXTERNINLINE int lic_isexpired(env_fields_t *env)
 {
     long int from, to, now;
 
@@ -83,7 +88,7 @@ extern inline int lic_isexpired(env_fields_t *env)
 }
 
 /* check for a feature inside a featurelist (case sensitive!) */
-extern inline int lic_hasfeature(env_fields_t *env, char *featurevar, char *feature)
+EXTERNINLINE int lic_hasfeature(env_fields_t *env, char *featurevar, char *feature)
 {
     int ret = 0;
     char *_fl = env_get(env, featurevar);
@@ -103,7 +108,7 @@ extern inline int lic_hasfeature(env_fields_t *env, char *featurevar, char *feat
 }
 
 /* get a nummerical value. return def on error */
-extern inline int lic_numval(env_fields_t *env, char *varname, int def)
+EXTERNINLINE int lic_numval(env_fields_t *env, char *varname, int def)
 {
     char *val = env_get(env, varname);
     char *err;
