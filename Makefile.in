@@ -19,8 +19,8 @@
 #On Problems with .kernelrelease call "make include/linux/version.h" as
 # root inside Kerneldir
 
-
-LIBS := psport pshal arg pvar pse psi putil
+# pscommon has to be build befor psi!!
+LIBS := psport pshal arg pvar pse pscommon psi putil
 ifeq ("@target_os@","linux")
 LIBS += psport4
 endif
