@@ -36,6 +36,7 @@ char *Configfile = NULL;
 char ConfigLicensekey[100];
 char ConfigModule[100];
 char ConfigRoutefile[100];
+char ConfigInstDir[255];
 int MyPsiId=-1;
 unsigned int MyId=-1;
 
@@ -174,10 +175,12 @@ void installhost(char *s,int n)
 int parse_config(int syslogreq)
 {
     char myname[255], *temp, emptyfilename[] = "--------";
+    char ext[] = "/config/psm.config";
     int found;
     FILE *cfd;
     struct stat sbuf;
 
+    strcpy(ConfigInstDir, emptyfilename);
     strcpy(ConfigModule, emptyfilename);
     strcpy(ConfigRoutefile, emptyfilename);
 
@@ -189,13 +192,11 @@ int parse_config(int syslogreq)
     gethostname(myname,255);
     MyId = GetIP(myname);
     if(!Configfile){
-	Configfile = (char *) malloc(80);
-	strcpy(Configfile, PSI_LookupInstalldir());
-	strcat(Configfile, "/config/psm.config");
-    }else{
-	/* bug workaround */
-	malloc(80);
-	PSI_LookupInstalldir();
+	char *tmpnam;
+	tmpnam = PSI_LookupInstalldir();
+	Configfile = (char *) malloc(strlen(tmpnam)+strlen(ext)+1);
+	strcpy(Configfile, tmpnam);
+	strcat(Configfile, ext);
     }
 
     if ( (cfd = fopen(Configfile,"r"))!=0){
@@ -232,6 +233,15 @@ int parse_config(int syslogreq)
 	exit(-1);
     }
 
+    if (strcmp(ConfigInstDir, emptyfilename)){
+	/* ConfigInstDir set. Use this as Instdir */
+	PSI_SetInstalldir(ConfigInstDir);
+	if(strcmp(ConfigInstDir, PSI_LookupInstalldir())){
+	    ERR_OUT("ERROR: InstDir defined but not correct\n");
+	    exit(-1);
+	}
+    }
+
     if (!strcmp(ConfigModule, emptyfilename)){
 	ERR_OUT("ERROR: Module not defined\n");
 	exit(-1);
@@ -242,7 +252,8 @@ int parse_config(int syslogreq)
 	if(stat(ConfigModule, &sbuf) != -1)
 	    found=1;
     }else{
-	temp = (char *) malloc(100);
+	temp = (char *) malloc(strlen(PSI_LookupInstalldir())
+				+ strlen(ConfigModule) + 15);
 	strcpy(temp, PSI_LookupInstalldir());
 	strcat(temp, "/");
 	strcat(temp, ConfigModule);
@@ -274,7 +285,8 @@ int parse_config(int syslogreq)
 	if(stat(ConfigRoutefile, &sbuf) != -1)
 	    found=1;
     }else{
-	temp = (char *) malloc(100);
+	temp = (char *) malloc(strlen(PSI_LookupInstalldir())
+			       + strlen(ConfigRoutefile) + 15);
 	strcpy(temp, PSI_LookupInstalldir());
 	strcat(temp, "/");
 	strcat(temp, ConfigRoutefile);

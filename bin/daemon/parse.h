@@ -17,6 +17,7 @@ extern int NrOfNodes;
 extern long ConfigPsidSelectTime;
 extern long ConfigDeclareDeadInterval;
 
+extern char ConfigInstDir[];
 extern char ConfigLicensekey[];
 extern char ConfigModule[];
 extern char ConfigRoutefile[];

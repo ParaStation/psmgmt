@@ -17,7 +17,7 @@
 %token <string> HOSTNAME 
 %token <string> FILENAME 
 %token <string> KEY
-%token NL COMMENT NROFNODES
+%token NL COMMENT NROFNODES INSTDIR
 %token LICENSEKEY LICENSESERVER ROUTINGFILE MODULE
 %token DECLAREDEAD PSIDSELECTTIME SMALLPACKET RLIMITDATASIZE RESENDTIMEOUT
 %token AT CONFIG MCAST SYSLOGLEVEL SYSLOG
@@ -31,6 +31,8 @@ file:   /* empty */
 
 listline: NL
 	| COMMENT
+	| instdirline COMMENT
+	| instdirline NL
 	| nodesline COMMENT
 	| nodesline NL
 	| hostlist COMMENT
@@ -59,12 +61,16 @@ listline: NL
 	| mcastline NL
 	;
 
+instdirline:
+	INSTDIR HOSTNAME          { strcpy(ConfigInstDir,$2); }
+        | INSTDIR FILENAME        { strcpy(ConfigInstDir,$2); }
+	;
 nodesline: 
 	NROFNODES NUMBER         { setnrofnodes($2); }
 	;
 
 hostlist:
-	HOSTNAME NUMBER              { installhost(getlasthname(),$2); }
+	HOSTNAME NUMBER          { installhost(getlasthname(),$2); }
 	;
 
 psiddeclaredeadintervalline:
