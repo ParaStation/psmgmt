@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.c,v 1.11 2003/11/26 15:07:25 eicker Exp $
+ * $Id: psprotocol.c,v 1.12 2004/01/27 21:07:22 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psprotocol.c,v 1.11 2003/11/26 15:07:25 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psprotocol.c,v 1.12 2004/01/27 21:07:22 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -131,6 +131,7 @@ static struct {
     { PSP_INFO_LIST_NORMJOBS,    "PSP_INFO_LIST_NORMJOBS" },
     { PSP_INFO_LIST_ALLTASKS,    "PSP_INFO_LIST_ALLTASK" },
     { PSP_INFO_LIST_NORMTASKS,   "PSP_INFO_LIST_NORMTASK" },
+    { PSP_INFO_LIST_ALLOCJOBS,   "PSP_INFO_LIST_ALLOCJOBS" },
 
     {0,NULL}
 };
