@@ -1,0 +1,154 @@
+#
+# Configuration file for ParaStation
+# (C) 2002 ParTec AG Karlsruhe
+# All rights reserved.
+#
+# $Id: parastation.conf_tru64,v 1.1 2002/09/19 18:41:20 hauke Exp $
+#
+
+#
+# The parser is *not* case-sensitive on keywords
+#
+
+#
+# Where to find all the ParaStation stuff
+# You have to declare this before:
+#	LicensFile, MyriNetModule, RoutingFile or IPModule
+#
+# InstallDir	/opt/parastation
+
+#
+# Number of connected Stations (including front-end)
+# You have to declare this before any Nodes
+#
+NrOfNodes	9
+
+#
+# Default HW-Type. All nodes have this HW (unless otherwise stated).
+# Possible values are 'ethernet', 'myrinet', 'gigaethernet' and 'none'.
+# This has to be declared before any 'Node
+#
+# You can configure multiple HW with lines like:
+HWType { myrinet ethernet }
+#
+# HWType	none
+
+#
+# Dis/Enable the MyriNet IP-module on all nodes (unless otherwise stated).
+#
+# hasIP	no
+
+#
+# (Dis-)Allow to start parallel jobs from all nodes (unless otherwise stated).
+#
+# starter	yes
+
+#
+# List of all nodes
+#
+Nodes {
+	node-1		0
+	node-2		1
+	node-3		2
+# Don't start parallel jobs from node 3 (on node-4).
+	node-4		3 starter no
+	node-5		4
+# Node 5 (on node-6) also MyriNet and EtherNet communication hardware.
+	node-6		5 hwtype { myrinet ethernet }
+	node-7		6
+	node-8		7
+# Node 8 (on frontend) has no communication-hardware, the IP-Module
+# should not be loaded and starting of parallel jobs is not allowed.
+	frontend	8 HWtype none hasIP no starter no
+}
+
+#
+# The node, where the license-server should run
+#
+LicenseServer	frontend.domain
+#
+# The license-file
+# This may be a absolute or relative path. Relative path are looked up
+# relative to InstallDir/config and InstallDir in this order. Furthermore
+# the directory where the config-file resides (which is /etc by default,
+# but may be overwritten with psid's and psld's -f option) is investigated.
+#
+# LicenseFile   license
+#
+#
+# The License-daemon will shutdown after this amount of MCast pings, if all
+# ParaStation daemons are down.
+#
+# LicenseDeadInterval 30
+
+#
+# The kernel-module for MyriNet-support
+# This may be a absolute or relative path. Relative path are looked up
+# relative to InstallDir/bin/module and InstallDir in this order.
+#
+MyriNetModule	bin/modules/osf5.1/psmx.mod
+
+#
+# The file with the MyriNet routing-table
+# This may be a absolute or relative path. Relative path are looked up
+# relative to InstallDir/config and InstallDir in this order.
+#
+RoutingFile	M3E16.route
+
+#
+# Further parameters for MyriNet communication
+#
+# SmallPacketSize	250
+# ResendTimeout		2048
+# HNPend		2
+# ACKPend		1
+
+#
+# The kernel-module for IP-over-MyriNet-support
+# This may be a absolute or relative path. Relative path are looked up
+# relative to InstallDir/bin/module and InstallDir in this order.
+#
+# IPModule	alpha_Linux_2.4.18/mod_psn.o
+#
+# The prefix of the MyriNet IP-addresses in dot-notation
+# Less than 4 numbers are allowed. The address will be filled up with 0's
+#
+# IPPrefix	192.168.16
+#
+# The length of the valid part of IPprefix in bit
+#
+# IPPrefixLen	20
+
+#
+# Configuration of the ParaStation daemon process (psid)
+#
+#
+# Timeout of the central select() of the daemon
+#
+# SelectTime		2
+#
+#
+# Daemons are declared dead if this amount of MCast pings are missing
+#
+# DeadInterval	10
+#
+# The initial logging level of the daemon
+#
+# LogLevel	0
+#
+# The destination of the logging output of the daemon. Possible values are:
+# LOG_DAEMON, LOG_KERN, LOG_LOCAL[0-7]
+#
+# LogDestination	LOG_DAEMON
+#
+# The MCast-group to use within the MCast facility of the daemon
+#
+# MCastGroup	237
+#
+# The port to use within the MCast facility of the daemon
+#
+# MCastPort	1889
+#
+# The port to use within the RDP facility of the daemon
+#
+# RDPPort	886
