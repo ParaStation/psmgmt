@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.65 2003/10/30 16:30:02 eicker Exp $
+ * $Id: psidutil.c,v 1.66 2003/11/26 17:39:42 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.65 2003/10/30 16:30:02 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.66 2003/11/26 17:39:42 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -24,6 +24,9 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.65 2003/10/3
 #include <sys/wait.h>
 #include <net/if.h>
 #include <signal.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "errlog.h"
 #include "psprotocol.h"
@@ -88,6 +91,23 @@ void PSID_blockSig(int block, int sig)
     }
 }
 
+/**
+ * @brief Write complete buffer.
+ *
+ * Write the complete buffer @a buf of size @a count to the file
+ * descriptor @a fd. Even if one or more trials to write to @a fd
+ * fails due to e.g. timeouts, further writing attempts are made until
+ * either a fatal error occurred or the whole buffer is sent.
+ *
+ * @param fd The file descriptor to send the buffer to.
+ *
+ * @param buf The buffer to send.
+ *
+ * @param count The number of bytes within @a buf to send.
+ *
+ * @return Upon success the number of bytes sent is returned,
+ * i.e. usually this is @a count. Otherwise -1 is returned.
+ */
 static size_t writeall(int fd, const void *buf, size_t count)
 {
     int len;
@@ -108,6 +128,25 @@ static size_t writeall(int fd, const void *buf, size_t count)
     return count;
 }
 
+/**
+ * @brief Read complete buffer.
+ *
+ * Read the complete buffer @a buf of size @a count from the file
+ * descriptor @a fd. Even if one or more trials to read to @a fd fails
+ * due to e.g. timeouts, further reading attempts are made until
+ * either a fatal error occurred, an EOF is received or the whole
+ * buffer is read.
+ *
+ * @param fd The file descriptor to read the buffer from.
+ *
+ * @param buf The buffer to read.
+ *
+ * @param count The maximum number of bytes to read.
+ *
+ * @return Upon success the number of bytes read is returned,
+ * i.e. usually this is @a count if no EOF occurred. Otherwise -1 is
+ * returned.
+ */
 static size_t readall(int fd, void *buf, size_t count)
 {
     int len;
@@ -115,16 +154,14 @@ static size_t readall(int fd, void *buf, size_t count)
 
     while (c > 0) {
         len = read(fd, buf, c);
-        if (len <= 0) {
-            if (len < 0) {
-                if ((errno == EINTR) || (errno == EAGAIN))
-                    continue;
-                else
-		    return -1;
-            } else {
-                return count-c;
-            }
-        }
+	if (len < 0) {
+	    if ((errno == EINTR) || (errno == EAGAIN))
+		continue;
+	    else
+		return -1;
+	} else if (len == 0) {
+	    return count-c;
+	}
         c -= len;
         (char*)buf += len;
     }
@@ -134,6 +171,9 @@ static size_t readall(int fd, void *buf, size_t count)
 
 char scriptOut[1024];
 
+/**
+ * @brief @todo
+ */
 static int callScript(int hw, char *script)
 {
     int controlfds[2], iofds[2];
@@ -498,7 +538,18 @@ PSP_Optval_t PSID_getParam(int hw, PSP_Option_t type)
     }
 }
 
-/* Determine the local node ID */
+/**
+ * @brief Determine local node ID
+ *
+ * Determine the local ParaStation ID. This is done by investigating
+ * the IP address of each local ethernet device and trying to resolve
+ * these to a valid ParaStation ID. Thus the hostnames within the
+ * ParaStation configuration file have to be resolved to correct IP
+ * addresses.
+ *
+ * @return Upon success, i.e. if the local ParaStation ID could be
+ * determined, this ID is returned. Otherwise -1 is returned.
+ */
 static int getOwnID(void)
 {
     struct in_addr *sin_addr;
@@ -592,4 +643,101 @@ void PSID_readConfigFile(int usesyslog, char *configfile)
     PSC_setNrOfNodes(PSnodes_getNum());
     PSC_setMyID(ownID);
     PSC_setDaemonFlag(1); /* To get the correct result from PSC_getMyTID() */
+}
+
+long PSID_getVirtCPUs(void)
+{
+    return sysconf(_SC_NPROCESSORS_CONF);
+}
+
+long PSID_getPhysCPUs(void)
+{
+    int buf[8];
+    char filename[80] = { "/dev/cpu/0/cpuid" };
+    int fd, got, i;
+
+    int intelMagic[3] = { 0x756e6547, 0x6c65746e, 0x49656e69 };
+    long virtCPUs = PSID_getVirtCPUs(), physCPUs = 0;
+    int virtCount, virtMask, APIC_ID;
+
+    snprintf(errtxt, sizeof(errtxt), "%s: %ld virtual CPUs found.",
+	     __func__, virtCPUs);
+    PSID_errlog(errtxt, 5);
+
+    fd = open(filename, 0);
+    if (fd==-1) {
+	if (errno == ENODEV) {
+	    snprintf(errtxt, sizeof(errtxt), "%s: No CPUID support.",
+		     __func__);
+	} else {
+	    char *errstr = strerror(errno);
+	    snprintf(errtxt, sizeof(errtxt), "%s: Unable to open '%s': %s\n",
+		     __func__, filename, errstr ? errstr : "UNKNOWN");
+	}
+#ifdef __i386__
+	PSID_errlog(errtxt, 0);
+#endif
+	return virtCPUs;
+    }
+
+    got = read(fd, buf, sizeof(buf));
+    if (got != sizeof(buf)) {
+	snprintf(errtxt, sizeof(errtxt), "%s: Got only %d/%d bytes.",
+		 __func__, got, sizeof(buf));
+	PSID_errlog(errtxt, 0);
+	return virtCPUs;
+    }
+
+    for (i=0; i<3; i++) {
+	if (buf[i+1] != intelMagic[i]) {
+	    snprintf(errtxt, sizeof(errtxt), "%s: No Intel CPU.", __func__);
+	    PSID_errlog(errtxt, 5);
+	    return virtCPUs;
+	}
+    }
+    snprintf(errtxt, sizeof(errtxt), "%s: Intel CPU.", __func__);
+    PSID_errlog(errtxt, 5);
+
+    if (! (buf[7] & 0x10000000)) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: No Hyper-Threading Technology.", __func__);
+	PSID_errlog(errtxt, 5);
+	return virtCPUs;
+    }
+    snprintf(errtxt, sizeof(errtxt),
+	     "%s: With Hyper-Threading Technology.", __func__);
+    PSID_errlog(errtxt, 5);
+    virtCount =  (buf[5] & 0x00ff0000) >> 16;
+    snprintf(errtxt, sizeof(errtxt),
+	     "%s: CPU supports %d virtual CPUs\n", __func__, virtCount);
+    PSID_errlog(errtxt, 5);
+    virtMask = virtCount-1;
+
+    for (i=0; i<virtCPUs; i++) {
+	snprintf(filename, sizeof(filename), "/dev/cpu/%d/cpuid", i);
+	fd = open(filename, 0);
+	if (fd==-1) {
+	    char *errstr = strerror(errno);
+	    snprintf(errtxt, sizeof(errtxt), "%s: Unable to open '%s': %s\n",
+		     __func__, filename, errstr ? errstr : "UNKNOWN");
+	    PSID_errlog(errtxt, 0);
+	    return virtCPUs;
+	}
+	got = read(fd, buf, sizeof(buf));
+	if (got != sizeof(buf)) {
+	    snprintf(errtxt, sizeof(errtxt), "%s: Got only %d/%d bytes.",
+		     __func__, got, sizeof(buf));
+	    PSID_errlog(errtxt, 0);
+	    return virtCPUs;
+	}
+
+	APIC_ID = (buf[5] & 0xff000000) >> 24;
+	snprintf(errtxt, sizeof(errtxt), "%s: APIC ID %d -> %s CPU", __func__,
+		 APIC_ID, APIC_ID & virtMask ? "virtual" : "physical");
+	PSID_errlog(errtxt, 5);
+
+	if ( ! (APIC_ID & virtMask)) physCPUs++;
+    }
+
+    return physCPUs;
 }

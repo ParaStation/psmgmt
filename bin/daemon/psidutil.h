@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.h,v 1.21 2003/10/30 15:24:22 eicker Exp $
+ * $Id: psidutil.h,v 1.22 2003/11/26 17:39:42 eicker Exp $
  *
  */
 /**
  * \file
  * Utilities for the ParaStation daemon
  *
- * $Id: psidutil.h,v 1.21 2003/10/30 15:24:22 eicker Exp $
+ * $Id: psidutil.h,v 1.22 2003/11/26 17:39:42 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -271,6 +271,33 @@ void PSID_setParam(int hw, PSP_Option_t option, PSP_Optval_t value);
  * out is returned. Otherwise -1 is returned.
  */
 PSP_Optval_t PSID_getParam(int hw, PSP_Option_t option);
+
+/**
+ * @brief Get number of virtual CPUs.
+ *
+ * Determine the number of virtual CPUs. This is done via a call to
+ * sysconfig(_SC_NPROCESSORS_CONF).
+ *
+ * @return On success, the number of virtual processors is
+ * returned. Or -1, if an error occurred.
+ */
+long PSID_getVirtCPUs(void);
+
+/**
+ * @brief Get number of physical CPUs.
+ *
+ * Determine the number of physical CPUs. The number of physical CPUs
+ * might differ from the number of virtual CPUs e.g. on newer Pentium
+ * platforms which support the Hyper-Threading Technology.
+ *
+ * In order to be able to detect the correct number of physical CPUs,
+ * the cpuid support of the Linux kernel is required.
+ *
+ * @return On success, the number of physical CPUs is returned. If an
+ * error occurred, e.g. if the cpuid support of the kernel is not
+ * available, the number of virtual CPUs is returned.
+ */
+long PSID_getPhysCPUs(void);
 
 #ifdef __cplusplus
 }/* extern "C" */
