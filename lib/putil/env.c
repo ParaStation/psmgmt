@@ -7,7 +7,7 @@
 /**
  * env.c: Simple environment handling
  *
- * $Id: env.c,v 1.2 2003/04/03 14:56:40 eicker Exp $
+ * $Id: env.c,v 1.3 2003/07/22 18:37:34 eicker Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -57,7 +57,7 @@ int env_unset(env_fields_t *env, const char *name)
 
     free(env->vars[idx]);
     env->cnt--;
-    env->vars[idx] = env->vars[env->cnt]; /* cnt >= 1 because idx != -1 */
+    env->vars[idx] = env->vars[env->cnt]; /* cnt >= 0 because idx != -1 */
     env->vars[env->cnt] = NULL;
     
     return 0;
