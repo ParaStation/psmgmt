@@ -6,7 +6,7 @@
 
   <refnamediv>
     <refname>psld</refname>
-    <refpurpose>the ParaStation license daemon</refpurpose>
+    <refpurpose>the &ps; license daemon</refpurpose>
   </refnamediv>
 
   <refsynopsisdiv>
@@ -22,17 +22,17 @@
   <refsect1>
     <title>Description</title>
     <para>
-      The ParaStation license daemon sends so called multicast license pings at
-      regular intervals to the ParaStation daemons <xref linkend="psid"/>. If
-      a daemon is not able to receive these ping for too long, it will suspend
-      work and shut down.
+      The &ps; license daemon sends so called multicast license pings at
+      regular intervals to the &ps; daemons <xref linkend="psid"/>. If a daemon
+      is not able to receive these ping for too long, it will suspend work and
+      shut down.
     </para>
     <para>
       In order to test if the license daemon is up, the use of <xref
-	linkend="mlisten"/> is recommended. Assuming the ParaStation cluster
-      contains N nodes, the N+1st spinning bar of <xref linkend="mlisten"/>
-      output denotes, if the license daemon is running, i.e. if everything is
-      set up correctly and the license is valid.
+	linkend="mlisten"/> is recommended. Assuming the &ps; cluster contains
+      N nodes, the N+1st spinning bar of <xref linkend="mlisten"/> output
+      denotes, if the license daemon is running, i.e. if everything is set up
+      correctly and the license is valid.
     </para>
   </refsect1>
   <refsect1>
@@ -76,8 +76,8 @@
         </term>
 	<listitem>
 	  <para>
-	    Choose <replaceable>file</replaceable> to be the ParaStation
-	    configuration file. The default is to use
+	    Choose <replaceable>file</replaceable> to be the &ps; configuration
+	    file. The default is to use
 	    <filename>/etc/parastation.conf</filename>.
 	  </para>
 	</listitem>
