@@ -1,0 +1,136 @@
+
+Installing ParaStation
+======================================================================
+
+0. Notes
+
+   - The steps (2) through (4) must be performed on all nodes of your
+     cluster.
+   - You might want to setup your cluster so that /opt/parastation is
+     mirrored (via NFS) from one node to all other nodes. Then you
+     need to perform the steps (1), (5) and (6) only on this
+     node. Otherwise these steps must be followed on all nodes, too.
+   - You must be superuser (root) when installing ParaStation.
+
+
+1. Extracting the Distribution
+
+  ParaStation is distributed as a gzipped tar file that should be
+  installed in the root (/) directory:
+
+  	cd /
+	gzip -cd psm_xxx.tgz | tar xvf -
+
+
+2. Creating the Device
+
+  If not yet done (from a previous installation), you must create a
+  character device:
+
+	mknod /dev/psm c 40 0
+	chmod 666 /dev/psm
+
+
+3. Services
+
+  The following (7) lines must be appended to /etc/services:
+
+  -------------------- snip --------------------
+  # ParaStation entries
+  psrdp            886/udp       # ParaStation Daemon RDP Port
+  psld             887/tcp       # ParaStation License Daemon Start Port
+  psid             888/tcp       # ParaStation Daemon Start Port
+  psids            889/tcp       # ParaStation Daemon Connection Port
+  psmcast         1889/udp       # ParaStation MCAST Port
+  # end of ParaStation entries 
+  -------------------- snip --------------------
+
+
+4. (X)inetd Configuration
+
+  This part of the installation process differs for the various Linux
+  distributions. If your system has 
+  - a file named /etc/inetd.conf (SuSE based distributions), read
+    section 4.1,
+  - a directory /etc/xinetd.c (RedHat based distributions), read
+    section 4.2.
+
+4.1 Inetd Configuration
+
+  The following lines must be appended to /etc/inetd.conf:
+
+  -------------------- snip --------------------
+  #
+  # ParaStation daemon
+  #
+  psid stream tcp nowait root /opt/parastation/bin/psid
+  #
+  # ParaStation license server
+  #
+  psld stream tcp nowait root /opt/parastation/bin/psld
+  -------------------- snip --------------------
+
+  Now, the inetd daemon must be triggered to reload this file:
+
+	/etc/init.d/inetd reload
+
+
+4.2 Xinetd Configuration
+
+  Create a file named /etc/xinetd.d/parastation with the following
+  contents:
+
+  -------------------- snip --------------------
+  #
+  # ParaStation daemon
+  #
+  service psid
+  {
+        disable         = no
+        socket_type     = stream
+        wait            = no
+        user            = root
+        server          = /opt/parastation/bin/psid
+        server_args     =
+        log_on_failure  += USERID
+  }
+  #
+  # ParaStation license server
+  #
+  service psld
+  {
+        disable         = no
+        socket_type     = stream
+        wait            = no
+        user            = root
+        server          = /opt/parastation/bin/psld
+        server_args     =
+        log_on_failure  += USERID
+  }
+  -------------------- snip --------------------
+
+  Now, the xinetd daemon must be triggered to read this file:
+
+	/etc/init.d/xinetd reload
+
+
+5. ParaStation Configuration
+
+  [If another version of ParaStation was installed before, you may
+  want to make a backup of your old configuration file psm.config in
+  the directory /opt/parastation/config.]
+
+  Now copy the ParaStation configuration template psm.config.template
+  in /opt/parastation/config to psm.config (in the same directory) and
+  edit it following the hints given there.
+
+
+6. Testing
+
+  If everything went fine, you are ready to test ParaStation now. On
+  one of the nodes do
+
+	/opt/parastation/bin/psiadmin -c "s all"
+
+  and repeat this command until all nodes are up.
+
