@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidforwarder.c,v 1.2 2003/02/21 13:21:41 eicker Exp $
+ * $Id: psidforwarder.c,v 1.3 2003/02/21 14:08:58 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.2 2003/02/21 13:21:41 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.3 2003/02/21 14:08:58 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -70,7 +70,7 @@ static int sendMsg(PSLog_msg_t type, char *buf, size_t len)
     int ret = 0;
 
     if (loggerTID < 0) {
-	snprintf(txt, sizeof(txt), "%s():  not connected%s\n", __func__);
+	snprintf(txt, sizeof(txt), "%s():  not connected.\n", __func__);
 	PSID_errlog(txt, 1);
 	return -1;
     }
