@@ -1,0 +1,24 @@
+<group choice="req">
+  <arg>true</arg>
+  <arg>yes</arg>
+  <arg>1</arg>
+  <arg>false</arg>
+  <arg>no</arg>
+  <arg>0</arg>
+</group>
+  <!-- Keep this comment at the end of the file
+  Local variables:
+  mode: xml
+  sgml-omittag:nil
+  sgml-shorttag:nil
+  sgml-namecase-general:nil
+  sgml-general-insert-case:lower
+  sgml-minimize-attributes:nil
+  sgml-always-quote-attributes:t
+  sgml-indent-step:2
+  sgml-indent-data:t
+  sgml-exposed-tags:nil
+  sgml-local-catalogs:nil
+  sgml-local-ecat-files:nil
+  End:
+  -->
