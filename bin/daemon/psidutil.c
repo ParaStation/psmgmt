@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.63 2003/10/08 14:57:39 eicker Exp $
+ * $Id: psidutil.c,v 1.64 2003/10/29 17:20:53 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.63 2003/10/08 14:57:39 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.64 2003/10/29 17:20:53 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -416,7 +416,7 @@ void PSID_getCounter(int hw, char *buf, size_t size, int header)
     }
 }
 
-void PSID_setParam(int hw, long type, long value)
+void PSID_setParam(int hw, PSP_Option_t type, PSP_Optval_t value)
 {
     char *script = NULL, *option = NULL;
 
@@ -438,6 +438,7 @@ void PSID_setParam(int hw, long type, long value)
 	    case PSP_OP_PSM_ACKPEND:
 		option = "-p 5";
 		break;
+	    default:
 	    }
 	}
     }
@@ -445,12 +446,12 @@ void PSID_setParam(int hw, long type, long value)
     if (script && option) {
 	char command[128];
 
-	snprintf(command, sizeof(command), "%s %s %ld", script, option, value);
+	snprintf(command, sizeof(command), "%s %s %d", script, option, value);
 	callScript(hw, command);
     }
 }
 
-long PSID_getParam(int hw, long type)
+PSP_Optval_t PSID_getParam(int hw, PSP_Option_t type)
 {
     char *script = NULL, *option = NULL;
 
@@ -472,13 +473,14 @@ long PSID_getParam(int hw, long type)
 	    case PSP_OP_PSM_ACKPEND:
 		option=" -qp | grep ACKPEND | tr -s ' ' | cut -d ' ' -f4";
 		break;
+	    default:
 	    }
 	}
     }
 
     if (script && option) {
 	char command[128], *end;
-	long val;
+	PSP_Optval_t val;
 
 	snprintf(command, sizeof(command), "%s %s", script, option);
 	callScript(hw, command);
