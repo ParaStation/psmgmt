@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.h,v 1.3 2002/07/11 10:29:24 eicker Exp $
+ * $Id: pstask.h,v 1.4 2002/07/11 16:48:28 eicker Exp $
  *
  */
 /**
  * @file
  * pstask: User-functions for interaction with ParaStation tasks.
  *
- * $Id: pstask.h,v 1.3 2002/07/11 10:29:24 eicker Exp $
+ * $Id: pstask.h,v 1.4 2002/07/11 16:48:28 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -32,14 +32,23 @@ extern "C" {
 
 /** @todo Documentation */
 
-/*----------------------------------------------------------------------
+/**
  * Task Group constants
  */
-#define TG_ANY        0x0001
-#define TG_ADMIN      0x0002
-#define TG_RESET      0x0003
-#define TG_RESETABORT 0x0004
-#define TG_LOGGER     0x0005
+typedef enum {
+    TG_ANY,       /**< A normal task */
+    TG_ADMIN,     /**< Taskgroup for psiadmin (and GUI client) */
+    TG_RESET,     /**< A normal task */
+    TG_LOGGER     /**< A normal task */
+} PStask_group_t;
+
+/**
+ * @brief Get the name of a PStask_group.
+ *
+ * @todo
+ *
+ */
+char *PStask_groupMsg(PStask_group_t tg);
 
 /*----------------------------------------------------------------------
  * Task types
@@ -51,25 +60,25 @@ struct PSsignal_t{
 };
 
 typedef struct PStask_T{
-    struct PStask_T *next;       /* link to the next task */
-    struct PStask_T *prev;       /* link to the previous task */
-    long tid;                    /* task identifier */
-    long ptid;                   /* parent tid */
-    uid_t uid;                   /* user id */
-    gid_t gid;                   /* group id */
-    long  group;                 /* task group number @see TG_* constants */
-    int rank;                    /* rank given for spwaned childs */
-    unsigned int loggernode;     /* the logging peer for any output */
-    int loggerport;              /* the logging peer for any output */
-    short fd;                    /* connection fd of the psid, otherwise -1 */
-    long error;                  /* error number */
-    int confirmed;               /* flag for reconnecting daemons */
-    char *workingdir;            /* working directory */
-    int argc;                    /* number of argv */
-    char **argv;                 /* command line arguments */
-    char **environ;              /* PS Environment, used before spawning */
-    int childsignal;             /* the signal which is sent when a child dies
-				    previor to PULC_clientinit() */
+    struct PStask_T *next;          /**< link to the next task */
+    struct PStask_T *prev;          /**< link to the previous task */
+
+    long tid;                /*C*/  /**< unique task identifier */
+    long ptid;               /*C*/  /**< unique identifier of parent task */
+    uid_t uid;               /*C*/  /**< user id */
+    gid_t gid;               /*C*/  /**< group id */
+    PStask_group_t group;    /*C*/  /**< task group @see PStask_group_t */
+    int rank;                /*C*/  /**< rank of task within task group */
+    unsigned int loggernode; /*C*/  /* the logging peer for any output */
+    int loggerport;          /*C*/  /* the logging peer for any output */
+    short fd;                       /**< connection fd within psid */
+    int confirmed;     /* obsolete */  /* flag for reconnecting daemons */
+    char *workingdir;        /*C*/  /* working directory */
+    int argc;                /*C*/  /**< number of argument, length of argv */
+    char **argv;             /*C*/  /**< command line arguments */
+    char **environ;          /*C*/  /**< PS environment, used for spawning */
+    int childsignal;                /**< the signal sent when a child dies */
+
     struct PSsignal_t *signalsender;   /* List of tasks which sent signals */
     struct PSsignal_t *signalreceiver; /* List of tasks which want to receive
 					  a signals when this task dies */
