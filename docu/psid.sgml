@@ -14,7 +14,8 @@
   <refsynopsisdiv>
     <cmdsynopsis>
       <command>psid</command>
-      <arg>-dv?</arg>
+      <arg>-v?</arg>
+      <arg>-d <replacable>level<replacable></arg>
       <arg>-f <replaceable>configfile</replaceable></arg>
       <arg>-l <replaceable>logfile</replaceable></arg>
       <arg>--usage</arg>
@@ -182,6 +183,10 @@
 	    configuration file. The default is to use
 	    <filename>/etc/parastation.conf</filename>.
 	  </para>
+	  <para>
+            Use <xref linkend="test_config"/> in order to test the
+            syntactical correctnes of the configuration file to use.
+	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -233,7 +238,8 @@
     <title>See also</title>
     <para>
       <xref linkend="parastation_conf"/>, <xref linkend="psiadmin"/>, <xref
-	linkend="mlisten"/>, <xref linkend="psld"/>
+	linkend="mlisten"/>, <xref linkend="psld"/>, <xref
+        linkend="test_config"/>
     </para>
   </refsect1>
 </refentry>
