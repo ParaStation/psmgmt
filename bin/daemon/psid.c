@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.72 2003/02/10 19:06:44 eicker Exp $
+ * $Id: psid.c,v 1.73 2003/02/11 19:30:53 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.72 2003/02/10 19:06:44 eicker Exp $ 
+ * $Id: psid.c,v 1.73 2003/02/11 19:30:53 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.72 2003/02/10 19:06:44 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.73 2003/02/11 19:30:53 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -73,7 +73,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.72 $";
+static char psid_cvsid[] = "$Revision: 1.73 $";
 
 static int PSID_mastersock;
 
@@ -82,7 +82,7 @@ int MAXPROCLimit = -1;   /* not limited to any number of processes */
 
 int myStatus;         /* Another helper status. This is for reset/shutdown */
 
-static char errtxt[256];
+static char errtxt[256]; /**< General string to create error messages */
 
 /*------------------------------
  * CLIENTS
@@ -106,6 +106,7 @@ struct {
 
 /** List of all managed tasks (i.e. tasks that have connected or were
     spawned). */
+/* @todo This one should be moved to psidtask.c */
 PStask_t *managedTasks = NULL;
 
 /*----------------------------------------------------------------------*/
@@ -344,6 +345,10 @@ static int broadcastMsg(void *amsg)
 /************************************************************************/
 /*                       The signaling stuff                            */
 /************************************************************************/
+
+/** @todo The next three might be put into psidsignal.c after
+ *  managedTask is in psidtask.c
+ */
 void sendSignal(long tid, uid_t uid, long senderTid, int signal)
 {
     PStask_t *task = PStasklist_find(managedTasks, tid);
@@ -387,6 +392,7 @@ void sendSignal(long tid, uid_t uid, long senderTid, int signal)
 	    }
 
 	    /* @todo Test if sending of signal was successful */
+	    /* This might be done via a pipe */
 	    /* for now, assume it was successful */
 	    PSID_setSignal(&task->signalSender, senderTid, sig);
 
@@ -889,112 +895,6 @@ void msg_RESET(DDResetMsg_t *msg)
     doReset();
 }
 
-
-void parseArguments(char *buf, size_t size, PStask_t *task)
-{
-    int i;
-    char *pbuf;
-    int len;
-    /* count arguments */
-    task->argc = 0;
-    len = 0;
-    for (;;) {
-	pbuf = &buf[len];
-	if(strlen(pbuf)==0)
-	    break;
-	if((strlen(pbuf)+len) > size)
-	    break;
-	task->argc++;
-	len += strlen(pbuf)+1;
-    }
-    /* NOW: argc == no of arguments */
-    if (task->argc==0)
-	return;
-    task->argv = (char**) malloc((task->argc)*sizeof(char*));
-    len = 0;
-    for (i=0;i<task->argc;i++) {
-	pbuf = &buf[len];
-	task->argv[i] = strdup(pbuf);
-	len += strlen(pbuf)+1;
-    }
-}
-
-/******************************************
- *  getProcessProperties()
- *   a client trys to connect to the daemon.
- *   accept the connection request if enough resources are available
- */
-void getProcessProperties(PStask_t *task)
-{
-#ifdef __osf__
-    char buf[400];
-    int len,i;
-    if (table(TBL_ARGUMENTS, PSC_getPID(task->tid), buf, 1, sizeof(buf))<0) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "getProcessProperties(%s) couldn't get arguments",
-		 PSC_printTID(task->tid));
-	PSID_errlog(errtxt, 4);
-	return;
-    }
-    buf[sizeof(buf)-1] = 0;
-    parseArguments(buf, sizeof(buf), task);
-
-    snprintf(errtxt, sizeof(errtxt),
-	     "getProcessProperties(%s) arg[%d]=%s",
-	     PSC_printTID(task->tid), task->argc, buf);
-    PSID_errlog(errtxt, 4);
-
-#elif defined(__linux__)
-    char filename[50];
-    FILE *file;
-    char buf[400];
-    sprintf(filename, "/proc/%d/cmdline", PSC_getPID(task->tid));
-    if ((file=fopen(filename,"r"))) {
-	int size;
-	size = fread(buf, sizeof(buf), 1, file);
-	parseArguments(buf, sizeof(buf), task);
-	fclose(file);
-    }
-    sprintf(filename, "/proc/%d/status", PSC_getPID(task->tid));
-    if ((file=fopen(filename,"r"))) {
-	char line[200];
-	int uid = -1;
-	while (fgets(line, sizeof(line)-1, file)) {
-	    if (strncmp("Uid:",line,4)==0) {
-		uid = atoi(&line[5]);
-		break;
-	    }
-	}
-	task->uid =uid;
-	    
-//  	char programname[50];
-//  	char programstate[10];
-//  	char statename[20];
-//  	int programpid;
-//  	int programppid;
-//  	int programuid;
-
-//  	fscanf(file,"Name:\t%s\n",programname);
-//  	fscanf(file,"State:\t%s %s\n",programstate,statename);
-//  	fscanf(file,"Pid:\t%d\n",&programpid);
-//  	fscanf(file,"PPid:\t%d\n",&programppid);
-//  	/*       task->ptid = PSC_getTID(-1,programppid);
-//  		 error: task->ptid only meaningfull for paraSTation parents*/
-//  	fscanf(file,"Uid:\t%d",&programuid);
-//  	task->uid = programuid;
-
-	fclose(file);
-    }
-
-    snprintf(errtxt, sizeof(errtxt), "getProcessProperties(%s) arg[%d]=%s",
-	     PSC_printTID(task->tid), task->argc,
-	     task->argv ? (task->argv[0] ? task->argv[0] : "") : "");
-    PSID_errlog(errtxt, 4);
-#else
-#error wrong architecture
-#endif
-}
-
 /******************************************
  *  msg_CLIENTCONNECT()
  *   a client trys to connect to the daemon.
@@ -1061,7 +961,6 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	} else {
 	    task->group = msg->group;
 	}
-	getProcessProperties(task);
 
 	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
 	snprintf(errtxt, sizeof(errtxt),
@@ -2868,23 +2767,25 @@ void RDPCallBack(int msgid, void *buf)
 	    /* sender is a client (somewhere) */
 	    switch (msg->type) {
 	    case PSP_DD_GETOPTION:
+	    case PSP_CD_TASKINFOREQUEST:
 	    case PSP_CD_COUNTSTATUSREQUEST:
 	    case PSP_CD_RDPSTATUSREQUEST:
 	    case PSP_CD_MCASTSTATUSREQUEST:
 	    case PSP_CD_HOSTSTATUSREQUEST:
 	    case PSP_CD_NODELISTREQUEST:
 	    case PSP_CD_HOSTREQUEST:
+	    case PSP_CD_NODEREQUEST:
 /*  	    case PSP_CD_LOADREQUEST: */
 /*  	    case PSP_CD_PROCREQUEST: */
 	    {
 		/* Sender expects an answer */
 		DDErrorMsg_t errmsg;
-		errmsg.header.len = sizeof(errmsg);
-		errmsg.request = msg->type;
-		errmsg.error = EHOSTUNREACH;
 		errmsg.header.type = PSP_DD_SYSTEMERROR;
+		errmsg.header.len = sizeof(errmsg);
 		errmsg.header.dest = msg->sender;
 		errmsg.header.sender = PSC_getMyTID();
+		errmsg.request = msg->type;
+		errmsg.error = EHOSTUNREACH;
 		sendMsg(&errmsg);
 		break;
 	    }
@@ -2901,6 +2802,9 @@ void RDPCallBack(int msgid, void *buf)
 		sendMsg(&answer);
 		break;
 	    }
+	    case PSP_DD_RELEASE:
+	    case PSP_DD_NOTIFYDEAD:
+	    { /* @todo Generate correct RES message */}
 	    default:
 		break;
 	    }
@@ -3140,7 +3044,7 @@ void checkFileTable(void)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.72 $";
+    char revision[] = "$Revision: 1.73 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
