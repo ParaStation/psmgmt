@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.50 2003/03/06 14:15:31 eicker Exp $
+ * $Id: psidutil.c,v 1.51 2003/04/03 15:41:16 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.50 2003/03/06 14:15:31 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.51 2003/04/03 15:41:16 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -21,21 +21,20 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.50 2003/03/0
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
+#include <sys/wait.h>
 #include <net/if.h>
 #include <signal.h>
 
-#include <pshal.h>
-#include <psm_mcpif.h>
-
 #include "errlog.h"
+#include "psprotocol.h"
 
 #include "config_parsing.h"
 #include "psnodes.h"
 
 #include "pscommon.h"
-#include "pshwtypes.h"
+#include "hardware.h"
 
-#include "cardconfig.h"
+#include "pslic.h"
 
 /* magic license check */
 #include "../license/pslic_hidden.h"
@@ -91,119 +90,375 @@ void PSID_blockSig(int block, int sig)
     }
 }
 
-/* (Re)Config and shutdown the Myrinet card */
-static card_init_t card_info;
+char scriptOut[256];
 
-void PSID_startHW(void)
+static int callScript(int hw, char *script)
 {
-    char licdot[10];
-    int ret;
+    int fds[2];
+    int ret, result;
+    pid_t pid;
 
-    PSnodes_setHWStatus(PSC_getMyID(), 0);
+    /* create a control channel in order to observe the script */
+    if (pipe(fds)<0) {
+        char *errstr = strerror(errno);
+        snprintf(scriptOut, sizeof(scriptOut), "%s: pipe(): %s\n",
+                 __func__, errstr ? errstr : "UNKNOWN");
 
-    if (PSnodes_getHWType(PSC_getMyID()) & PSHW_MYRINET) {
-	if (!ConfigMyriModule) {
-	    PSID_errlog("PSID_startHW(): Myrinet module not defined", 0);
-	} else if (!ConfigRoutefile) {
-	    PSID_errlog("PSID_startHW(): Routefile not defined", 0);
+        return -1;
+    }
+
+    if (!(pid=fork())) {
+        /* This part calls the script and returns results to the parent */
+        int systemfds[2], status, i;
+        char *command;
+        char buf[20];
+
+        close(fds[0]);
+
+        /* Put the hardware's environment into the real one */
+	for (i=0; i<HW_getEnvSize(hw); i++) {
+	    putenv(HW_dumpEnv(hw, i));
+	}
+
+        snprintf(buf, sizeof(buf), "%d", PSC_getMyID());
+        setenv("PS_ID", buf, 1);
+
+	if (*script != '/') {
+	    char *dir = PSC_lookupInstalldir();
+
+	    if (!dir) dir = "";
+
+	    command = malloc(strlen(dir) + 1 + strlen(script) + 1);
+
+	    strcpy(command, dir);
+	    strcat(command, "/");
+	    strcat(command, script);
 	} else {
-	    strncpy(licdot, ConfigLicenseKeyMCP ? ConfigLicenseKeyMCP : "none",
-		    sizeof(licdot));
-	    licdot[4] = licdot[5] = licdot[6] = '.';
-	    licdot[7] = 0;
+	    command = strdup(script);
+	}
 
-	    snprintf(errtxt, sizeof(errtxt), "PSID_startHW(): '%s' '%s' '%s'"
-		     " small packets %d, ResendTimeout %d",
-		     licdot, ConfigMyriModule, ConfigRoutefile,
-		     ConfigSmallPacketSize, ConfigRTO);
-	    PSID_errlog(errtxt, 1);
+        /* redirect stdout and stderr */
+        pipe(systemfds);
+        dup2(systemfds[1], STDOUT_FILENO);
+        dup2(systemfds[1], STDERR_FILENO);
+	close(systemfds[1]);
 
-	    card_info.node_id = PSC_getMyID();
-	    card_info.licensekey = ConfigLicenseKeyMCP;
-	    card_info.module = ConfigMyriModule;
-	    card_info.options = NULL;
-	    card_info.routing_file = ConfigRoutefile;
+        ret = system(command);
 
-	    ret = card_init(&card_info);
-	    if (ret) {
+        /* Send results to controlling daemon */
+        if (ret < 0) {
+            write(fds[1], &ret, sizeof(ret));
+
+            snprintf(scriptOut, sizeof(scriptOut),
+		     "%s: system(%s) failed : %s",
+                     __func__, command, strerror(errno));
+            write(fds[1], scriptOut, strlen(scriptOut)+1);
+        } else {
+            int status = WEXITSTATUS(ret);
+
+            write(fds[1], &status, sizeof(status));
+
+	    /* forward the script message */
+	    close(STDOUT_FILENO); /* Squeeze the pipe */
+	    close(STDERR_FILENO);
+	    ret = read(systemfds[0], scriptOut, sizeof(scriptOut));
+
+	    write(fds[1], scriptOut, ret);
+
+	    scriptOut[0] = '\0';
+	    write(fds[1], scriptOut, 1);
+        }
+
+        close(systemfds[0]);
+
+        free(command);
+    
+        exit(0);
+    }
+
+    /* This part receives results from the script */
+
+    /* save errno in case of error */
+    ret = errno;
+
+    close(fds[1]);
+        
+    /* check if fork() was successful */
+    if (pid == -1) {
+        char *errstr = strerror(ret);
+
+        close(fds[0]);
+
+        snprintf(scriptOut, sizeof(scriptOut), "%s: fork(): %s\n",
+                 __func__, errstr ? errstr : "UNKNOWN");
+
+        return -1;
+    }
+
+ restart:
+    ret = read(fds[0], &result, sizeof(result));
+    if (ret < 0) {
+        if (errno == EINTR) {
+            goto restart;
+        }
+    }
+
+    if (!ret) {
+        /*
+         * control channel was closed without telling the result of
+         * the system() call.
+         */
+        snprintf(scriptOut, sizeof(scriptOut), "%s: no answer\n", __func__);
+
+        return -1;
+    } else if (ret<0) {
+        snprintf(scriptOut, sizeof(scriptOut), "%s: read() failed : %s",
+                 __func__, strerror(errno));
+
+        return -1;
+    }
+
+ restart2:
+    ret=read(fds[0], scriptOut, sizeof(scriptOut));
+    if (ret < 0) {
+	if (errno == EINTR) {
+	    goto restart2;
+	}
+    }
+    if (!ret) {
+	/* control channel was closed during message. */
+	snprintf(scriptOut, sizeof(scriptOut),
+		 "%s: pipe closed unexpectedly\n", __func__);
+
+	result = -1;
+    } else if (ret<0) {
+	snprintf(scriptOut, sizeof(scriptOut), "%s: read() failed : %s",
+		 __func__, strerror(errno));
+
+	result = -1;
+    }
+
+    scriptOut[sizeof(scriptOut)-1] = '\0';
+    close(fds[0]);
+
+    return result;
+}
+
+void PSID_startHW(int hw)
+{
+    if (PSnodes_getHWType(PSC_getMyID()) & (1<<hw)) {
+	char *script = HW_getScript(hw, HW_STARTER);
+
+	if (script) {
+	    int res = callScript(hw, script);
+
+	    if (res) {
 		snprintf(errtxt, sizeof(errtxt),
-			 "%s(): card_init() returned %d: %s",
-			 __func__, ret, card_errstr());
+			 "%s(): callScript(%s, %s) returned %d: %s",
+			 __func__, HW_name(hw), script, res, scriptOut);
 		PSID_errlog(errtxt, 0);
 	    } else {
 		unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
-		
-		snprintf(errtxt, sizeof(errtxt), "%s(): cardinit(): success",
-			 __func__);
+
+		snprintf(errtxt, sizeof(errtxt),
+			 "%s(): callScript(%s, %s): success",
+			 __func__, HW_name(hw), script);
 		PSID_errlog(errtxt, 10);
 
-		PSnodes_setHWStatus(PSC_getMyID(), status | PSHW_MYRINET);
+		PSnodes_setHWStatus(PSC_getMyID(), status | (1<<hw));
 
-		if (ConfigSmallPacketSize != -1) {
-		    PSHALSYS_SetSmallPacketSize(ConfigSmallPacketSize);
-		}
+	    }
+	} else {
+	    /* No script, assume HW runs already */
+	    unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
 
-		if (ConfigRTO != -1) {
-		    PSHALSYS_SetMCPParam(MCP_PARAM_RTO, ConfigRTO);
-		}
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s(): %s already up", __func__, HW_name(hw));
+	    PSID_errlog(errtxt, 10);
 
-		if (ConfigHNPend != -1) {
-		    PSHALSYS_SetMCPParam(MCP_PARAM_HNPEND, ConfigHNPend);
-		}
+	    PSnodes_setHWStatus(PSC_getMyID(), status | (1<<hw));
+	}
+    }
+}
 
-		if (ConfigAckPend != -1) {
-		    PSHALSYS_SetMCPParam(MCP_PARAM_ACKPEND, ConfigAckPend);
-		}
+void PSID_startAllHW(void)
+{
+    int hw;
+
+    for (hw=0; hw<HW_num(); hw++) {
+	PSID_startHW(hw);
+    }
+}
+
+void PSID_stopHW(int hw)
+{
+    if (PSnodes_getHWStatus(PSC_getMyID()) & (1<<hw)) {
+	char *script = HW_getScript(hw, HW_STOPPER);
+
+	if (script) {
+	    int res = callScript(hw, script);
+
+	    if (res) {
+		snprintf(errtxt, sizeof(errtxt),
+			 "%s(): callScript(%s, %s) returned %d: %s",
+			 __func__, HW_name(hw), script, res, scriptOut);
+		PSID_errlog(errtxt, 0);
+	    } else {
+		unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
+
+		snprintf(errtxt, sizeof(errtxt),
+			 "%s(): callScript(%s, %s): success",
+			 __func__, HW_name(hw), script);
+		PSID_errlog(errtxt, 10);
+
+		PSnodes_setHWStatus(PSC_getMyID(), status & ~(1<<hw));
+
+	    }
+	} else {
+	    /* No script, assume HW does not run any more */
+	    unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
+
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s(): %s already up", __func__, HW_name(hw));
+	    PSID_errlog(errtxt, 10);
+
+	    PSnodes_setHWStatus(PSC_getMyID(), status & ~(1<<hw));
+	}
+    }
+}
+
+void PSID_stopAllHW(void)
+{
+    int hw;
+
+    for (hw=HW_num()-1; hw>=0; hw--) {
+	PSID_stopHW(hw);
+    }
+}
+
+void PSID_getCounter(int hw, char *buf, size_t size, int header)
+{
+    if (!buf) return;
+
+    if (PSnodes_getHWStatus(PSC_getMyID()) & (1<<hw)) {
+	char *script = HW_getScript(hw, header ? HW_HEADERLINE : HW_COUNTER);
+
+	if (script) {
+	    int res = callScript(hw, script);
+
+	    if (res) {
+		snprintf(errtxt, sizeof(errtxt),
+			 "%s(): callScript(%s, %s) returned %d: %s",
+			 __func__, HW_name(hw), script, res, scriptOut);
+		PSID_errlog(errtxt, 0);
+		strncpy(buf, errtxt, size);
+	    } else {
+		snprintf(errtxt, sizeof(errtxt),
+			 "%s(): callScript(%s, %s): success",
+			 __func__, HW_name(hw), script);
+		PSID_errlog(errtxt, 10);
+
+		strncpy(buf, scriptOut, size);
+	    }
+	} else {
+	    /* No script, cannot get counter */
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s(): no %s-script for %s available",
+		     __func__, header ? "header" : "counter", HW_name(hw));
+	    PSID_errlog(errtxt, 1);
+
+	    strncpy(buf, errtxt, size);
+	}
+    } else {
+	/* No HW, cannot get counter */
+	snprintf(errtxt, sizeof(errtxt), "%s(): no %s hardware available",
+		 __func__, HW_name(hw));
+	PSID_errlog(errtxt, 0);
+
+	strncpy(buf, errtxt, size);
+    }
+}
+
+void PSID_setParam(int hw, long type, long value)
+{
+    char *script = NULL, *option = NULL;
+
+    if (hw == -1) return;
+
+    if (hw == HW_index("myrinet")) {
+	script = HW_getScript(hw, HW_SETUP);
+	if (script) {
+	    switch (type) {
+	    case PSP_OP_PSM_SPS:
+		option = "-p 0";
+		break;
+	    case PSP_OP_PSM_RTO:
+		option = "-p 1";
+		break;
+	    case PSP_OP_PSM_HNPEND:
+		option = "-p 4";
+		break;
+	    case PSP_OP_PSM_ACKPEND:
+		option = "-p 5";
+		break;
 	    }
 	}
     }
 
-    if (PSnodes_getHWType(PSC_getMyID()) & PSHW_ETHERNET) {
-	/* Nothing to do, ethernet will work allways */
-	unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
-	PSnodes_setHWStatus(PSC_getMyID(), status | PSHW_ETHERNET);
-    }
+    if (script && option) {
+	char command[128];
 
-    if (PSnodes_getHWType(PSC_getMyID()) & PSHW_GIGAETHERNET) {
-	PSID_errlog("PSID_startHW(): gigaethernet not implemented yet", 0);
+	snprintf(command, sizeof(command), "%s %s %ld", script, option, value);
+	callScript(hw, command);
     }
-
-    return;
 }
 
-void PSID_stopHW(void)
+long PSID_getParam(int hw, long type)
 {
-    int ret;
+    char *script = NULL, *option = NULL;
 
-    if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
-	ret = card_cleanup(&card_info);
-	if (ret) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "PSID_stopHW(): cardcleanup(): %s", card_errstr());
-	    PSID_errlog(errtxt, 0);
-	} else {
-	    unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
+    if (hw == -1) return -1;
 
-	    PSID_errlog("PSID_stopHW(): cardcleanup(): success", 10);
-
-	    PSnodes_setHWStatus(PSC_getMyID(), status & ~PSHW_MYRINET);
+    if (hw == HW_index("myrinet")) {
+	script = HW_getScript(hw, HW_SETUP);
+	if (script) {
+	    switch (type) {
+	    case PSP_OP_PSM_SPS:
+		option=" -qp | grep SPS | tr -s ' ' | cut -d ' ' -f4";
+		break;
+	    case PSP_OP_PSM_RTO:
+		option=" -qp | grep RTO | tr -s ' ' | cut -d ' ' -f4";
+		break;
+	    case PSP_OP_PSM_HNPEND:
+		option=" -qp | grep HNPEND | tr -s ' ' | cut -d ' ' -f4";
+		break;
+	    case PSP_OP_PSM_ACKPEND:
+		option=" -qp | grep ACKPEND | tr -s ' ' | cut -d ' ' -f4";
+		break;
+	    }
 	}
     }
 
-    if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_ETHERNET) {
-	unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
-	/* Nothing to do, ethernet will work allways */
-	PSnodes_setHWStatus(PSC_getMyID(), status & ~PSHW_ETHERNET);
-    }
+    if (script && option) {
+	char command[128], *end;
+	long val;
 
-    if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_GIGAETHERNET) {
-	PSID_errlog("PSID_stopHW(): gigaethernet not implemented yet", 0);
+	snprintf(command, sizeof(command), "%s %s", script, option);
+	callScript(hw, command);
+
+	val = strtol(scriptOut, &end, 10);
+	while (*end == ' ' || *end == '\t' || *end == '\n') end++;
+	if (*end != '\0') val = -1;
+
+	return val;
+    } else {
+	return -1;
     }
 }
 
 /* Reading and basic handling of the configuration */
 
-void PSID_readConfigFile(int usesyslog)
+void PSID_readConfigFile(int usesyslog, char *configfile)
 {
     struct in_addr *sin_addr;
 
@@ -213,9 +468,9 @@ void PSID_readConfigFile(int usesyslog)
     struct ifreq *ifr;
 
     /* Parse the configfile */
-    if (parseConfig(usesyslog, PSID_getDebugLevel())<0) {
+    if (parseConfig(usesyslog, PSID_getDebugLevel(), configfile)<0) {
 	snprintf(errtxt, sizeof(errtxt), "Parsing of <%s> failed.",
-		 Configfile);
+		 configfile);
 	PSID_errlog(errtxt, 0);
 	exit(1);
     }
@@ -285,31 +540,6 @@ void PSID_readConfigFile(int usesyslog)
     PSC_setNrOfNodes(PSnodes_getNum());
     PSC_setMyID(MyPsiId);
     PSC_setDaemonFlag(1); /* To get the correct result from PSC_getMyTID() */
-
-    /* Check LicServer Setting */
-    if (PSnodes_getAddr(PSNODES_LIC)==INADDR_ANY) {
-	/* No LicServer yet. Set node 0 as default server */
-	unsigned int addr = PSnodes_getAddr(0);
-	PSnodes_register(PSNODES_LIC, addr);
-	snprintf(errtxt, sizeof(errtxt),
-		 "Using %s (ID=0) as Licenseserver",
-		 inet_ntoa(* (struct in_addr *) &addr));
-	PSID_errlog(errtxt, 1);
-    }
-
-    /* Determine the number of CPUs */
-    PSnodes_setCPUs(PSC_getMyID(), sysconf(_SC_NPROCESSORS_CONF));
-
-    PSID_errlog("starting up the card", 1);
-    /*
-     * check if I can reserve the card for me 
-     * if the card is busy, the OS PSHAL_Startup will exit(0);
-     */
-    PSID_errlog("PSID_readConfigFile(): calling PSID_startHW()", 9);
-    PSID_startHW();
-    PSID_errlog("PSID_readConfigFile(): PSID_startHW() ok.", 9);
-
-    PSnodes_bringUp(PSC_getMyID());
 }
 
 int PSID_startLicServer(unsigned int addr)
@@ -317,12 +547,12 @@ int PSID_startLicServer(unsigned int addr)
     int sock;
     struct sockaddr_in sa;
 
-    snprintf(errtxt, sizeof(errtxt), "PSID_startlicenseserver <%s>",
-	     inet_ntoa(* (struct in_addr *) &addr));
+    snprintf(errtxt, sizeof(errtxt), "%s(%s)",
+	     __func__, inet_ntoa(* (struct in_addr *) &addr));
     PSID_errlog(errtxt, 10);
 
     /*
-     * start the PSI Daemon via inetd
+     * start the ParaStation license daemon (psld) via inetd
      */
     sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
@@ -333,9 +563,9 @@ int PSID_startLicServer(unsigned int addr)
     if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0) { 
 	char *errstr = strerror(errno);
 
-	snprintf(errtxt, sizeof(errtxt), "PSID_startlicenseserver():"
-		 " Connect to port %d for start with inetd failed: %s",
-		 ntohs(sa.sin_port), errstr ? errstr : "UNKNOWN");
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: Connect to port %d for start with inetd failed: %s",
+		 __func__, ntohs(sa.sin_port), errstr ? errstr : "UNKNOWN");
 	PSID_errlog(errtxt, 0);
 
 	shutdown(sock, SHUT_RDWR);
