@@ -7,15 +7,17 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: helpmsgs.c,v 1.5 2003/11/26 17:16:53 eicker Exp $
+ * $Id: helpmsgs.c,v 1.6 2004/01/14 17:56:11 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.5 2003/11/26 17:16:53 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.6 2004/01/14 17:56:11 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
+#include <sys/ioctl.h>
 
 typedef struct {
     char *cmd;
@@ -399,12 +401,53 @@ static const char sep[] =   "================================================"
 "============================================================================";
 static const char space[] = "                                                "
 "                                                                            ";
-static const int width = 80; /* @todo Make things work with actual width */
+
+/**
+ * @brief Get screen width.
+ *
+ * Get the screen width of the terminal connected to 
+ * @doctodo
+ *
+ * Get readline's idea of the screen size.  TTY is a file descriptor
+ * open to the terminal.  If IGNORE_ENV is true, we do not pay
+ * attention to the values of $LINES and $COLUMNS.  The tests for
+ * TERM_STRING_BUFFER being non-null serve to check whether or not we
+ * have initialized termcap.
+ *
+ * @return On success, the actual screen size is returned. If the
+ * determination of the current screen size failed, the default width
+ * 80 is passed to the calling function. If the determined width is
+ * too small, the minimal width 60 is returned.
+ */
+int getWidth(void)
+{
+    int width = 0;
+    char *ss;
+#if defined (TIOCGWINSZ)
+    struct winsize window_size;
+
+    if (ioctl (STDOUT_FILENO, TIOCGWINSZ, &window_size) == 0) {
+	width = (int) window_size.ws_col;
+    }
+#endif /* TIOCGWINSZ */
+
+    if (width <= 0) {
+	char *colstr = getenv("COLUMNS");
+	if (colstr) width = atoi(colstr);
+    }
+
+    /* Everything failed. Use standard width */
+    if (width < 1) width = 80;
+    /* Extend to minimum width */
+    if (width <= 60) width = 60;
+
+    return width;
+}
 
 static void printSyntax(syntax_t *syntax)
 {
     const char tag[] = "Syntax: ";
-    int lwidth = width - strlen(tag);
+    int lwidth = getWidth() - strlen(tag);
 
     if (syntax->cmd) {
 	lwidth -= strlen(syntax->cmd);
@@ -419,7 +462,7 @@ static void printSyntax(syntax_t *syntax)
 	    while (*end != ' ') end--;
 	    if (*(end-1) == '|') end --; /* Don't end with '|' */
 	    printf("%.*s\n", (int)(end-pos), pos);
-	    printf("%.*s", width-lwidth, space);
+	    printf("%.*s", getWidth()-lwidth, space);
 	    pos = end;
 	    len = strlen(pos);
 	}
@@ -430,7 +473,7 @@ static void printSyntax(syntax_t *syntax)
 
 static void printDescr(const char *tag, char *descr)
 {
-    int lwidth = width - strlen(tag);
+    int lwidth = getWidth() - strlen(tag);
 
     if (descr) {
 	char *pos = descr;
@@ -441,7 +484,7 @@ static void printDescr(const char *tag, char *descr)
 	    char *end = pos + lwidth - 1;
 	    while (*end != ' ') end--;
 	    printf("%.*s\n", (int)(end-pos), pos);
-	    printf("%.*s", width-lwidth, space);
+	    printf("%.*s", getWidth()-lwidth, space);
 	    pos = end+1;             /* Ignore the separating space */
 	    len = strlen(pos);
 	}
@@ -475,7 +518,7 @@ static void printInfo(info_t *info)
 
 	if (len) {
 	    printf("\n%s\n", info->head);
-	    if (len < width) printf("%.*s\n", len, sep);
+	    if (len < getWidth()) printf("%.*s\n", len, sep);
 	    printf("\n");
 	}
     }
