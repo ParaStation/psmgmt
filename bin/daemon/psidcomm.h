@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidcomm.h,v 1.2 2003/07/04 11:06:19 eicker Exp $
+ * $Id: psidcomm.h,v 1.3 2004/01/09 16:01:06 eicker Exp $
  *
  */
 /**
  * \file
  * Communication multiplexer for the ParaStation daemon
  *
- * $Id: psidcomm.h,v 1.2 2003/07/04 11:06:19 eicker Exp $
+ * $Id: psidcomm.h,v 1.3 2004/01/09 16:01:06 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -114,6 +114,8 @@ int broadcastMsg(void *msg);
  *
  * Handle the PSP_DD_SENDSTOP message @a msg.
  *
+ * @doctodo
+ *
  * @param msg The message to handle.
  *
  * @return No return value.
@@ -124,6 +126,8 @@ void msg_SENDSTOP(DDMsg_t *msg);
  * @brief Handle PSP_DD_SENDCONT message
  *
  * Handle the PSP_DD_SENDCONT message @a msg.
+ *
+ * @doctodo
  *
  * @param msg The message to handle.
  *
