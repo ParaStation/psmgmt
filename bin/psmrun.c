@@ -1,6 +1,6 @@
 
 /*
- * 2001-11-05 ParTec AG , Jens Hauke : Dirty hack to start applications from a frontend machine
+ * 2001-11-05 ParTec AG , Jens Hauke
  */
 
 #include <stdio.h>
