@@ -5,24 +5,23 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.36 2002/07/26 15:31:52 eicker Exp $
+ * $Id: psi.c,v 1.37 2002/07/31 08:48:40 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.36 2002/07/26 15:31:52 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.37 2002/07/31 08:48:40 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
-#include <netdb.h>
-#include <unistd.h>
+#include <sys/un.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
-#include <errno.h>
-#include <string.h>
-#include <stdlib.h>
 #include <sys/stat.h>
 
 #include "pscommon.h"
@@ -43,24 +42,21 @@ static char *psidVersion = NULL;
 
 static char errtxt[256];
 
-int daemonSocket(unsigned int hostaddr)
+int daemonSocket(void)
 {
     int sock;
-    struct sockaddr_in sa;
+    struct sockaddr_un sa;
 
-    snprintf(errtxt, sizeof(errtxt), "daemonSocket(%s)",
-	     inet_ntoa(* (struct in_addr *) &hostaddr));
-    PSI_errlog(errtxt, 10);
+    PSI_errlog("daemonSocket()", 10);
 
-    sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+    sock = socket(PF_UNIX, SOCK_STREAM, 0);
     if (sock <0) {
 	return -1;
     }
 
     memset(&sa, 0, sizeof(sa));
-    sa.sin_family = AF_INET;
-    sa.sin_addr.s_addr = hostaddr;
-    sa.sin_port = htons(PSC_getServicePort("psids", 889));
+    sa.sun_family = AF_UNIX;
+    strncpy(sa.sun_path, PSmasterSocketName, sizeof(sa.sun_path));
 
     if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0) {
 	shutdown(sock,2);
@@ -71,19 +67,20 @@ int daemonSocket(unsigned int hostaddr)
     return sock;
 }
 
-static int connectDaemon(PStask_group_t taskGroup, unsigned int hostaddr)
+static int connectDaemon(PStask_group_t taskGroup)
 {
     DDInitMsg_t msg;
+#ifndef SO_PEERCRED
     pid_t pid;
     uid_t uid;
     gid_t gid;
+#endif
     int connectfailes;
     int retry_count =0;
     int ret;
 
     snprintf(errtxt, sizeof(errtxt),
-	     "connectDaemon(%s, %s)", PStask_printGrp(taskGroup),
-	     inet_ntoa(* (struct in_addr *) &hostaddr));
+	     "connectDaemon(%s)", PStask_printGrp(taskGroup));
     PSI_errlog(errtxt, 10);
 
     /*
@@ -100,12 +97,12 @@ static int connectDaemon(PStask_group_t taskGroup, unsigned int hostaddr)
 	PSI_msock = -1;
     }
 
-    while ((PSI_msock=daemonSocket(hostaddr))==-1) {
+    while ((PSI_msock=daemonSocket())==-1) {
 	/*
-	 * start the PSI Daemon via inetd
+	 * start the local ParaStation daemon via inetd
 	 */
 	if (connectfailes++ < 10) {
-	    PSC_startDaemon(hostaddr);
+	    PSC_startDaemon(INADDR_ANY);
 	} else {
 	    char *errstr = strerror(errno);
 	    snprintf(errtxt, sizeof(errtxt), "connectDaemon():"
@@ -115,20 +112,24 @@ static int connectDaemon(PStask_group_t taskGroup, unsigned int hostaddr)
 	}
     }
 
-    pid = PSC_specialGetPID();
+#ifndef SO_PEERCRED
+    pid = getpid();
     uid = getuid();
     gid = getgid();
+#endif
 
     /* local connect */
     msg.header.type = PSP_CD_CLIENTCONNECT;
 
     msg.header.len = sizeof(msg);
-    msg.header.sender = pid;
+    msg.header.sender = getpid();
     msg.header.dest = 0;
     msg.version = PSprotocolversion;
+#ifndef SO_PEERCRED
     msg.pid = pid;
     msg.uid = uid;
     msg.gid = gid;
+#endif
     msg.group = taskGroup;
 
     if (PSI_sendMsg(&msg)<0) {
@@ -185,12 +186,12 @@ static int connectDaemon(PStask_group_t taskGroup, unsigned int hostaddr)
 	break;
     case PSP_CD_UIDLIMIT :
 	snprintf(errtxt, sizeof(errtxt),"connectDaemon():"
-		 " Node is limited to user id %d.", msg.uid);
+		 " Node is limited to user id %d.", msg.myid);
 	PSI_errlog(errtxt, 0);
 	break;
     case PSP_CD_PROCLIMIT :
 	snprintf(errtxt, sizeof(errtxt),"connectDaemon():"
-		 "Node is limited to %d processes.", msg.uid);
+		 "Node is limited to %d processes.", msg.myid);
 	PSI_errlog(errtxt, 0);
 	break;
     case PSP_CD_OLDVERSION :
@@ -261,7 +262,7 @@ int PSI_initClient(PStask_group_t taskGroup)
     /*
      * connect to local PSI daemon
      */
-    if (!connectDaemon(taskGroup, INADDR_ANY)) {
+    if (!connectDaemon(taskGroup)) {
 	if (taskGroup!=TG_RESET) {
 	    snprintf(errtxt, sizeof(errtxt),
 		     "PSI_initClient(): cannot contact local daemon.");
