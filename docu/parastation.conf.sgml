@@ -303,7 +303,7 @@
 	    <arg>HWtype-entry</arg>
 	    <arg>hasIP-entry</arg>
 	    <arg>starter-entry</arg>
-	    <arg>MyrinetIP<replaceable>ip-addr</replaceable></arg>
+	    <arg>MyrinetIP <replaceable>ip-addr</replaceable></arg>
 	  </cmdsynopsis>
 	  <cmdsynopsis>
 	    <command>Node[s] {</command>
@@ -312,7 +312,7 @@
 	    <arg>HWtype-entry</arg>
 	    <arg>hasIP-entry</arg>
 	    <arg>starter-entry</arg>
-	    <arg>MyrinetIP<replaceable>ip-addr</replaceable></arg>
+	    <arg>MyrinetIP <replaceable>ip-addr</replaceable></arg>
 	    <arg choice="plain">}...</arg>
 	    <command>}</command>
 	  </cmdsynopsis>
