@@ -60,6 +60,12 @@ AC_SUBST([CFLAG_COMPAT])
 AC_SUBST([CPPFLAG_MMD])
 AC_SUBST([DEPEXTENSION])
 AC_SUBST([TRU64FILEADD])
+AC_SUBST([LIBCURSES])
+AC_SUBST([TOP_SRCDIR])
+
+TOP_SRCDIR=`cd \`dirname $0\`;pwd`
+
+
 case $target_os in
 linux)
 	PSM_OSDIR=kern/Linux
@@ -73,6 +79,7 @@ linux)
 	CPPFLAG_MMD=-MMD
 	DEPEXTENSION=.d
 	TRU64FILEADD=
+	LIBCURSES=ncurses
 	;;
 osf5.1)
 	PSM_OSDIR=kern/OSF1
@@ -86,6 +93,7 @@ osf5.1)
 	CPPFLAG_MMD=-MD
 	DEPEXTENSION=.o.d
 	TRU64FILEADD=_tru64
+	LIBCURSES=curses
 #	AC_CONFIG_FILES([kern/OSF1/Makefile])
 	;;
 *)
@@ -106,13 +114,14 @@ DOK
 
 fi
 
-top_srcdir=`path_cleanup $top_srcdir`
 
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([lib/pshal/Makefile])
 AC_CONFIG_FILES([lib/psport/Makefile])
 AC_CONFIG_FILES([lib/arg/Makefile])
 AC_CONFIG_FILES([lib/pvar/Makefile])
+AC_CONFIG_FILES([lib/pse/Makefile])
+AC_CONFIG_FILES([lib/psi/Makefile])
 AC_CONFIG_FILES([kern/mcp/Makefile])
 AC_CONFIG_FILES([kern/Makefile.include])
 AC_CONFIG_FILES([bin/Makefile])
