@@ -18,6 +18,11 @@ make KDIR=/home/phoenix/kernel/i386/linux-2.4.2-SMP.SuSE   KNAME=2.4.2-SMP.SuSE 
 
 make KDIR=/home/phoenix/kernel/i386/linux-2.4.7.SuSE       KNAME=2.4.7.SuSE      psm
 make KDIR=/home/phoenix/kernel/i386/linux-2.4.7-SMP.SuSE   KNAME=2.4.7-SMP.SuSE  psm
+make KDIR=/home/phoenix/kernel/i386/linux-2.4.7-4GB-SMP.SuSE    KNAME=2.4.7-4GB-SMP.SuSE   psm
+make KDIR=/home/phoenix/kernel/i386/linux-2.4.7-64GB-SMP.SuSE   KNAME=2.4.7-64GB-SMP.SuSE  psm
+
+make KDIR=/home/phoenix/kernel/i386/linux-2.4.10.SuSE       KNAME=2.4.10.SuSE      psm
+make KDIR=/home/phoenix/kernel/i386/linux-2.4.10-SMP.SuSE   KNAME=2.4.10-SMP.SuSE  psm
 
 # redhat
 #make KDIR=/home/phoenix/kernel/i386/linux-2.4.2.redhat LINUXVERSION=L24 OSVER=2.4.2-2 OSSUF=.redhat psm
