@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.32 2003/12/16 19:07:00 eicker Exp $
+ * $Id: rdp.c,v 1.33 2004/01/09 15:47:28 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.32 2003/12/16 19:07:00 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.33 2004/01/09 15:47:28 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -22,6 +22,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.32 2003/12/16 19:
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <string.h>
@@ -135,7 +136,7 @@ static int RDPPktLoss = 0;
  * The actual maximum retransmission count. Get/set by
  * getMaxRetransRDP()/setMaxRetransRDP()
  */
-static int RDPMaxRetransCount = 128;
+static int RDPMaxRetransCount = 32;
 
 /**
  * Compare two sequence numbers. The sign of the result represents the
@@ -171,9 +172,10 @@ static int handleErr(void);
 static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
                       struct sockaddr *from, socklen_t *fromlen)
 {
-    int retval;
+    int ret;
  restart:
-    if ((retval=recvfrom(sock, buf, len, flags, from, fromlen)) < 0) {
+    ret = recvfrom(sock, buf, len, flags, from, fromlen);
+    if (ret < 0) {
 	switch (errno) {
 	case EINTR:
 	    errlog("MYrecvfrom was interrupted !", 5);
@@ -181,14 +183,49 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
 	    break;
 	case ECONNREFUSED:
 	case EHOSTUNREACH:
-	    /* Do nothing. Extended error handled in handleRDP() */
+#if defined(__linux__)
+	    snprintf(errtxt, sizeof(errtxt), "%s got: %s",
+		     __func__, strerror(errno));
+	    errlog(errtxt, 1);
+	    /* Handle extended error */
+	    ret = handleErr();
+	    if (ret < 0) return ret;
+	    /* Is there another packet pending ? */
+	select_cont:
+	    {
+		struct timeval tv = {.tv_sec = 0, .tv_usec = 0};
+		fd_set fds;
+
+		FD_ZERO(&fds);
+		FD_SET(sock, &fds);
+
+		ret = select(sock+1, &fds, NULL, NULL, &tv);
+		if (ret == -1) {
+		    if (errno == EINTR) {
+			/* Interrupted syscall, just start again */
+			ret = 0;
+			goto select_cont;
+		    } else {
+			snprintf(errtxt, sizeof(errtxt),
+				 "%s: select returns %d, eno=%d[%s]",
+				 __func__, ret, errno, strerror(errno));
+			errlog(errtxt, 0);
+			break;
+		    }
+		}
+		if (ret) goto restart;
+
+		return 0;
+	    }
+	    break;
+#endif
 	default:
-	    snprintf(errtxt, sizeof(errtxt), "MYrecvfrom returns: %s",
+	    snprintf(errtxt, sizeof(errtxt), "%s returns: %s", __func__,
 		     strerror(errno));
-	    errlog(errtxt, 0);
+	    errlog(errtxt, 1);
 	}
     }
-    return retval;
+    return ret;
 }
 
 
@@ -214,9 +251,10 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
 static int MYsendto(int sock, void *buf, size_t len, int flags,
 		    struct sockaddr *to, socklen_t tolen)
 {
-    int retval;
+    int ret;
  restart:
-    if ((retval=sendto(sock, buf, len, flags, to, tolen)) < 0) {
+    ret = sendto(sock, buf, len, flags, to, tolen);
+    if (ret < 0) {
 	switch (errno) {
 	case EINTR:
 	    errlog("MYsendto was interrupted !", 5);
@@ -225,12 +263,13 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 	case ECONNREFUSED:
 	case EHOSTUNREACH:
 #if defined(__linux__)
-	    snprintf(errtxt, sizeof(errtxt), "MYsendto to %s got: %s",
-		     inet_ntoa(((struct sockaddr_in *)to)->sin_addr),
+	    snprintf(errtxt, sizeof(errtxt), "%s to %s got: %s",
+		     __func__, inet_ntoa(((struct sockaddr_in *)to)->sin_addr),
 		     strerror(errno));
-	    errlog(errtxt, 0);
+	    errlog(errtxt, 1);
 	    /* Handle extended error */
-	    handleErr();
+	    ret = handleErr();
+	    if (ret < 0) return ret;
 	    /* Try to send again */
 	    goto restart;
 	    break;
@@ -242,7 +281,7 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 	    errlog(errtxt, 0);
 	}
     }
-    return retval;
+    return ret;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -1002,7 +1041,7 @@ static void clearMsgQ(int node)
 static void closeConnection(int node)
 {
     snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, node);
-    errlog(errtxt, 0);
+    errlog(errtxt, (conntable[node].state != ACTIVE) ? 1 : 0);
     clearMsgQ(node);
     conntable[node].state = CLOSED;
     conntable[node].ackPending = 0;
@@ -1444,8 +1483,8 @@ static void handleTimeoutRDP(void)
 		resendMsgs(node);
 
 		/*
-		 * If the ap->next was removed due to a closeConnection()
-		 * we now get a valid successor.
+		 * If the ap (and thus ap->next) was removed due to a
+		 * closeConnection(), we now get a valid successor.
 		 */
 		pre = (pre) ? pre->next : AckListHead;
 		if (pre == ap) {
@@ -1708,14 +1747,14 @@ static int handleErr(void)
 	snprintf(errtxt, sizeof(errtxt),
 		 "%s: CONNREFUSED from node %d (%s) port %d", __func__,
 		 node, inet_ntoa(sinp->sin_addr), ntohs(sinp->sin_port));
-	errlog(errtxt, 0);
+	errlog(errtxt, 1);
 	closeConnection(node);
 	break;
     case EHOSTUNREACH:
 	snprintf(errtxt, sizeof(errtxt),
 		 "%s: HOSTUNREACH from node %d (%s) port %d", __func__,
 		 node, inet_ntoa(sinp->sin_addr), ntohs(sinp->sin_port));
-	errlog(errtxt, 0);
+	errlog(errtxt, 1);
 	break;
     default:
 	snprintf(errtxt, sizeof(errtxt),
@@ -1746,30 +1785,20 @@ static int handleRDP(int fd)
     Lmsg msg;
     struct sockaddr_in sin;
     socklen_t slen;
-    int fromnode;
+    int fromnode, ret;
 
     slen = sizeof(sin);
     memset(&sin, 0, slen);
     /* read msg for inspection */
-    if (MYrecvfrom(rdpsock, &msg, sizeof(msg), MSG_PEEK,
-		   (struct sockaddr *)&sin, &slen)<0) {
+    ret = MYrecvfrom(rdpsock, &msg, sizeof(msg), MSG_PEEK,
+		     (struct sockaddr *)&sin, &slen);
+    if (ret < 0) {
 	snprintf(errtxt, sizeof(errtxt), "%s: recvfrom(MSG_PEEK) returns: %s",
 		 __func__, strerror(errno));
 	errlog(errtxt, 0);
 
-#if defined(__linux__)
-	switch (errno) {
-	case ECONNREFUSED:
-	case EHOSTUNREACH:
-	    return handleErr();
-	    break;
-	default:
-#endif
-	    return -1;
-#if defined(__linux__)
-	}
-#endif
-    }
+	return ret;
+    } else if (!ret) return ret;
 
     if (RDPPktLoss) {
 	if (100.0*rand()/(RAND_MAX+1.0) < RDPPktLoss) {
@@ -1777,7 +1806,7 @@ static int handleRDP(int fd)
 	    /* really get the msg */
 	    if (MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
 			   (struct sockaddr *) &sin, &slen)<0) {
-		snprintf(errtxt, sizeof(errtxt), "%s: recvfrom(0) returns: %s",
+		snprintf(errtxt, sizeof(errtxt), "%s: recvfrom() returns: %s",
 			 __func__, strerror(errno));
 		errexit(errtxt, errno);
 	    }
@@ -1795,7 +1824,7 @@ static int handleRDP(int fd)
 	/* really get the msg */
 	if (MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
 		       (struct sockaddr *) &sin, &slen)<0) {
-	    snprintf(errtxt, sizeof(errtxt), "%s: recvfrom(0) returns: %s",
+	    snprintf(errtxt, sizeof(errtxt), "%s: recvfrom() returns: %s",
 		     __func__, strerror(errno));
 	    errexit(errtxt, errno);
 	}
