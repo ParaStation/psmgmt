@@ -17,7 +17,6 @@
 
 <style-sheet>
 
-
 <style-specification id="print" use="docbook">
 <style-specification-body> 
 
@@ -36,7 +35,7 @@
 
 (define %body-start-indent% 
   ;; Default indent of body text
-  1pi)
+  0pt)
 
 ;; use graphics in admonitions, and have their path be "."
 ;; NO: we are not yet ready to use gifs in TeX and so forth
@@ -58,6 +57,7 @@
 (define %section-autolabel% 
   ;; Are sections enumerated?
   #t)
+
 ;; (define %title-font-family% 
 ;;   ;; The font family used in titles
 ;;   "Ariel")
@@ -67,71 +67,94 @@
   ;; "large-type"
   "presbyopic")
 
-(define %generate-part-toc% #t)
+(define bop-footnotes
+  ;; Make "bottom-of-page" footnotes?
+  #t)
+
+(define ($generate-book-lot-list$)
+  ;; Which Lists of Titles should be produced for Books?
+  (list ))
 
 ;; (define %block-start-indent% 10pt)
 
+(define %footer-margin% 
+  ;; Height of footer margin
+  6pi)
+
 (define %graphic-default-extension% "eps")
 
+;;
+;; The next two ones are for removing extra newlines on multiple 'command's in
+;; a 'cmdsynopsis'.
+;;
+(element command ($bold-seq$))
+(element (cmdsynopsis command)
+  (make sequence
+    (if (first-sibling? (current-node))
+        (empty-sosofo)
+        (literal ""))
+    (next-match)
+    (literal " ")))
 
-</style-specification-body>
-</style-specification>
+;;
+;; Print '}...' instead of '...}' closing a 'group rep="repeat"'.
+;;
+(element group
+  (let ((choice  (attribute-string (normalize "choice")))
+        (rep     (attribute-string (normalize "rep")))
+        (sepchar (if (inherited-attribute-string (normalize "sepchar"))
+                     (inherited-attribute-string (normalize "sepchar"))
+                     " ")))
+    (make sequence
+      (if (equal? (absolute-child-number (current-node)) 1)
+          (empty-sosofo)
+          (literal sepchar))
+      (cond
+       ((equal? choice (normalize "plain")) (literal %arg-choice-plain-open-str%))
+       ((equal? choice (normalize "req")) (literal %arg-choice-req-open-str%))
+       ((equal? choice (normalize "opt")) (literal %arg-choice-opt-open-str%))
+       (else (literal %arg-choice-def-open-str%)))
+      (process-children)
+      (cond
+       ((equal? choice (normalize "plain")) (literal %arg-choice-plain-close-str%))
+       ((equal? choice (normalize "req")) (literal %arg-choice-req-close-str%))
+       ((equal? choice (normalize "opt")) (literal %arg-choice-opt-close-str%))
+       (else (literal %arg-choice-def-close-str%)))
+      (cond
+       ((equal? rep (normalize "repeat")) (literal %arg-rep-repeat-str%))
+       ((equal? rep (normalize "norepeat")) (literal %arg-rep-norepeat-str%))
+       (else (literal %arg-rep-def-str%))))))
 
-<!--
-;; ====================
-;; customize the html stylesheet
-;; ====================
--->
-<style-specification id="html" use="docbook">
-<style-specification-body> 
-
-;; this is necessary because right now jadetex does not understand
-;; symbolic entities, whereas things work well with numeric entities.
-(declare-characteristic preserve-sdata?
-          "UNREGISTERED::James Clark//Characteristic::preserve-sdata?"
-          #f)
-
-;; put the legal notice in a separate file
-(define %generate-legalnotice-link%
-  #t)
-
-;; use graphics in admonitions, and have their path be "stylesheet-images"
-;; NO: they do not yet look very good
-(define %admon-graphics-path%
-  "./stylesheet-images/")
-(define %admon-graphics%
-  #f)
-
-;; make funcsynopsis look pretty
-(define %funcsynopsis-decoration%
-  ;; Decorate elements of a FuncSynopsis?
-  #t)
-
-(define %html-ext% ".html")
-(define html-manifest #t)
-(define %body-attr%
-  ;; What attributes should be hung off of BODY?
-  '())
-;;  (list
-;;   (list "BGCOLOR" "#FFFFFF")
-;;   (list "TEXT" "#000000")))
-
-(define %generate-article-toc% 
-  ;; Should a Table of Contents be produced for Articles?
-  ;; If true, a Table of Contents will be generated for each 'Article'.
-  #t)
-
-(define %generate-part-toc% #t)
-
-(define %shade-verbatim%
-  #t)
-
-(define %use-id-as-filename%
-  ;; Use ID attributes as name for component HTML files?
-  #t)
-
-(define %graphic-default-extension% "gif")
-
+;;
+;; Print ']...' instead of '...]' closing a 'arg rep="repeat"'.
+;;
+(element arg
+  (let ((choice  (attribute-string (normalize "choice")))
+        (rep     (attribute-string (normalize "rep")))
+        (sepchar (if (inherited-attribute-string (normalize "sepchar"))
+                     (inherited-attribute-string (normalize "sepchar"))
+                     " ")))
+    (make sequence
+      (if (equal? (absolute-child-number (current-node)) 1)
+          (empty-sosofo)
+          (literal sepchar))
+      (cond
+       ((equal? choice (normalize "plain")) (literal %arg-choice-plain-open-str%
+))
+       ((equal? choice (normalize "req")) (literal %arg-choice-req-open-str%))
+       ((equal? choice (normalize "opt")) (literal %arg-choice-opt-open-str%))
+       (else (literal %arg-choice-def-open-str%)))
+      (process-children)
+      (cond
+       ((equal? choice (normalize "plain")) (literal %arg-choice-plain-close-str
+%))
+       ((equal? choice (normalize "req")) (literal %arg-choice-req-close-str%))
+       ((equal? choice (normalize "opt")) (literal %arg-choice-opt-close-str%))
+       (else (literal %arg-choice-def-close-str%)))
+      (cond
+       ((equal? rep (normalize "repeat")) (literal %arg-rep-repeat-str%))
+       ((equal? rep (normalize "norepeat")) (literal %arg-rep-norepeat-str%))
+       (else (literal %arg-rep-def-str%))))))
 
 </style-specification-body>
 </style-specification>

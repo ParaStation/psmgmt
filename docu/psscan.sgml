@@ -23,15 +23,15 @@
     <title>Description</title>
     <para>
       Scan the MyriNet to get detailed information about the network topology.
-      The result is a map of the MyriNet network, describing the the
-      interconnections of hosts and switches. The output of this command may be
-      piped into <xref
+      The result written to stdout is a map of the MyriNet network, describing
+      the the interconnections of hosts and switches. The output of this
+      command may be piped into <xref
 	linkend="psroute"/> in order to create a routing table.
     </para>
     <para>
       The routing table created by <xref linkend="psroute"/> then is fed by the
       ParaStation daemon <xref linkend="psid"/> into the ParaStation MyriNet
-      module to enable proper routing.
+      module in order to to enable proper routing.
     </para>
   </refsect1>
 
@@ -101,7 +101,7 @@
   sgml-always-quote-attributes:t
   sgml-indent-step:2
   sgml-indent-data:t
-  sgml-parent-document:("main.xml" "book" "reference" "reference" ("title"))
+  sgml-parent-document:("main.xml" "set" "book" "reference" "reference" ("title"))
   sgml-exposed-tags:nil
   sgml-local-catalogs:nil
   sgml-local-ecat-files:nil

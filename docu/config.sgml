@@ -2,16 +2,16 @@
   <title>Configuration</title>
 
   <para>
-    After installing the ParaStation software successfully few modification to
-    the configuration file <filename>parastation.conf</filename> have to be
-    made in order to enable ParaStation on the local cluster.
+    After installing the &ps; software successfully few modification to
+    the configuration file <xref linkend="parastation_conf"/> have to be made
+    in order to enable &ps; on the local cluster.
   </para>
 
   <section id="config_ps">
-    <title>Configuration of the ParaStation system</title>
+    <title>Configuration of the &ps; system</title>
     <para>
       Within this section the basic configuration procedure needed to enable
-      ParaStation is discussed. Primarily the configuration work reduces to the
+      &ps; is discussed. Primarily the configuration work reduces to the
       editing of the configuration file <filename>parastation.conf</filename>,
       which is basically located in <filename>/etc</filename>.
     </para>
@@ -19,22 +19,40 @@
       Usually you will find in <filename>/etc</filename> only a symbolic link
       pointing to
       <filename>/opt/parastation/config/parastation.conf</filename>, which is
-      usually mounted via NFS on the nodes. This allows quite easily a
+      normally mounted via NFS on the nodes. This allows in an easy way the
       centralized storing of the configuration file in order to reduce the
-      effort that has to be made to modify this file.
+      effort that has to be made to modify this file consistently on all nodes.
     </para>
     <para>
       Within this section only the fundamental parameters which are necessary
-      to make ParaStation run on a specific cluster are discussed. A detailed
+      to make &ps; run on a specific cluster are discussed. A detailed
       description of all possible parameters that can be tuned within the
-      configuration file can be found within <xref
-	linkend="parastation_conf"/>.
+      configuration file can be found within the <xref
+	linkend="parastation_conf"/> manual page.
     </para>
     <para>
-      Consider ParaStation to be installed in a centralized fashion to the
+      It is considered that &ps; is installed in a centralized fashion to the
       default location <filename>/opt/parastation</filename> and mounted to
-      this location on the nodes. Then the following steps have to be executed
-      on the NFS server:
+      this location on all the nodes. In case of a distributed installation it
+      has to be guaranteed explicitely that all &ps; daemons <xref
+	linkend="psid"/> see configuration files with consistent content. This
+      may be ensured by editing the <filename>parastation.conf</filename> file
+      on one node and distribute the adapted file in a more or less automatized
+      way towards all the nodes.
+    </para>
+    <para>
+      The distributed configuration files may explicitely replace the symbolic
+      link <filename>/etc/parastation.conf</filename>, which of course is also
+      possible for the centralized installation, although not recommended. Another
+      possibility for the distributed installation to keep the symbolic link
+      and to modify the file the link is pointing to distributedly. Keep in
+      mind that this has to be done on <emphasis role="bold">all</emphasis>
+      nodes.
+    </para>
+    <para>
+      If &ps; is installed in the recommended way (i.e. centralized
+      installation to <filename>/opt/parastation</filename>) only the following
+      steps have to be executed on the NFS server:
     </para>
     <orderedlist>
       <listitem>
@@ -47,16 +65,16 @@
 	</para>
 	<para>
 	  The template file contains all possible parameters understood by the
-	  ParaStation daemon <xref linkend="psid"/>. Most of these parameters
-	  are set to their default value and commented out. Only those that
-	  have to be modified in order to addapt ParaStation to the local
-	  cluster are enabled. Additionally all parameters are accompanied by a
-	  describing comment. A detailed destriction of the parameters can be
-	  found in <xref linkend="parastation_conf"/>.
+	  &ps; daemon <xref linkend="psid"/>. Most of these parameters are set
+	  to their default value and commented out. Only those that have to be
+	  modified in order to addapt &ps; to the local cluster are enabled.
+	  Additionally all parameters are accompanied by a describing comment.
+	  A detailed description of all the parameters can be found in the
+	  <xref linkend="parastation_conf"/> manual page.
 	</para>
 	<para>
-	  The template file is a good basis to create a working configuration
-	  of ParaStation for your cluster.
+	  The template file is a good basis in order to create a working
+	  configuration of &ps; for your cluster.
 	</para>
       </listitem>
       <listitem>
@@ -65,12 +83,12 @@
 	</para>
 	<para>
 	  Adjust the <command>NrOfNodes</command> parameter to the actual value
-	  used in your cluster. Consider that the front end machine as part of
-	  the cluster. For example if your cluster contains 8 nodes with a fast
+	  used in your cluster. Consider that the front end machine is part of
+	  the cluster. E.g. if your cluster contains 8 nodes with a fast
 	  interconnect plus a front end machine then
-	  <command>NrOfNodes</command> has to be set to 9 if a ParaStation
-	  daemon <xref linkend="psid"/> should run on the front end machine in
-	  order to allow the start of parallel jobs from here.
+	  <command>NrOfNodes</command> has to be set to 9 if a &ps; daemon
+	  <xref linkend="psid"/> should run on the front end machine in
+	  order to allow the start of parallel jobs from there.
 	</para>
       </listitem>
       <listitem>
@@ -78,10 +96,10 @@
 	  <emphasis role="bold"><command>HWType</command></emphasis>
 	</para>
 	<para>
-	  In order to tell ParaStation which kind of communication hardware
-	  should be used modify the <command>HWType</command> parameter. In the
-	  case of a Myrinet cluster, i.e. the version of ParaStation used is
-	  ParaStation 3, this has to be set to:
+	  In order to tell &ps; which kind of communication hardware should be
+	  used modify the <command>HWType</command> parameter. In the case of a
+	  Myrinet cluster, i.e. the version of &ps; used is ParaStation 3, this
+	  has to be set to:
 	</para>
 	<programlisting>	HWType myrinet</programlisting>
 	<para>
@@ -97,15 +115,15 @@
 	  <emphasis role="bold"><command>Nodes</command></emphasis>
 	</para>
 	<para>
-	  Furthermore ParaStation has to be told which nodes are contained in
-	  the cluster. The usual way of using the <command>Nodes</command>
+	  Furthermore &ps; has to be told which nodes are contained in the
+	  cluster. The usual way of using the <command>Nodes</command>
 	  parameter is the environment mode, that is allready enabled in the
 	  template file.
 	</para>
 	<para>
 	  For each cluster node defined within the <command>Nodes</command>
-	  environment at least the hostname of the node and the ParaStation ID
-	  of this node have to be given. The general syntax of the
+	  environment at least the hostname of the node and the &ps; ID of this
+	  node have to be given. The general syntax of the
 	  <command>Nodes</command> environment is one entry per line. Each
 	  entry has the form
 	</para>
@@ -113,31 +131,31 @@
 	<para>
 	  This will register the node
 	  <parameter><replaceable>hostname</replaceable></parameter> to the
-	  ParaStation system with the ParaStation ID
-	  <parameter><replaceable>id</replaceable></parameter>. The ParaStation
-	  ID has to be an integer number between 0 and
-	  <command>NrOfNodes</command>-1. 
+	  &ps; system with the &ps; ID
+	  <parameter><replaceable>id</replaceable></parameter>. The &ps; ID has
+	  to be an integer number between 0 and <command>NrOfNodes</command>-1.
 	</para>
 	<para>
-	  For a detailed description of the optional <command>HWType</command>,
-	  <command>hasIP</command> and <command>starter</command> parameters
-	  refer to <xref linkend="parastation_conf"/>.
+	  The optional parameters <command>HWType</command>,
+	  <command>hasIP</command> and <command>starter</command> may be
+	  ignored for now. For a detailed description of these parameters refer
+	  to the <xref linkend="parastation_conf"/> manual page.
 	</para>
 	<para>
-	  Usually the nodes will be enlisted in order of increasing ParaStation
-	  ID, beginning with 0 for the first node. If a front end machine
-	  exists and furthermore should be integrated into the ParaStation
-	  system, it usually acts as the last node of the ParaStation system,
-	  i.e. has the ID <command>NrOfNodes</command>-1.
+	  Usually the nodes will be enlisted ordered by increasing &ps; ID,
+	  beginning with 0 for the first node. If a front end machine exists
+	  and furthermore should be integrated into the &ps; system, it usually
+	  acts as the last node of the &ps; system, i.e. has the &ps; ID
+	  <command>NrOfNodes</command>-1.
 	</para>
 	<para>
 	  The described convention is mainly due to the routing used within
-	  MyriNet clusters. While on ethernet cluster the mapping between
-	  hostnames and ParaStation ID is completely free, there are
+	  MyriNet clusters. While on a ethernet cluster the mapping between
+	  hostnames and &ps; ID is completely unrestricted, there are
 	  constraints concerning this mapping in the MyriNet case. Actually in
-	  order to use standard routing files the ParaStation ID of a specific
-	  node depends on the port of the MyriNet switch it is connected to.
-	  This will be discussed in further detail within the next section.
+	  order to use standard routing files the &ps; ID of a specific node
+	  depends on the port of the MyriNet switch it is connected to. This
+	  will be discussed in further detail within the next section.
 	</para>
       </listitem>
       <listitem>
@@ -145,202 +163,277 @@
 	  <emphasis role="bold"><command>LicenseServer</command></emphasis>
 	</para>
 	<para>
-	  This parameter tells ParaStation on which node the ParaStation
-	  license daemon <xref linkend="psld"/> should be started. Remember
-	  that ParaStation has to be installed on this node.
+	  This parameter tells &ps; on which node the &ps; license daemon <xref
+	    linkend="psld"/> should be started. Remember
+	  that &ps; has to be installed on this node, too.
 	</para>
 	<para>
 	  For clusters with an existing front end machine usually the front end
 	  will run the license daemon. Otherwise the machine which acts as the
-	  node with ParaStation ID 0 will adopt this tasks normally.
+	  node with &ps; ID 0 will normally adopt this tasks.
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  <emphasis role="bold">License key</emphasis>
+	</para>
+	<para>
+	  If not already done, a license key has to be obtained now. It is not
+	  possible to run &ps; without a valid license key. To obtain a license
+	  key please contact <email>license@par-tec.com</email>.
+	</para>
+	<para>
+	  You will get the license file by email. Save the license key to
+	  <filename>/opt/parastation/config/license</filename>. This is the
+	  default location where the &ps; daemon <xref linkend="psid"/> is
+	  expecting the license key. Please consult the manual page of the &ps;
+	  configuration file <xref linkend="parastation_conf"/> on how to
+	  modify this default location.
 	</para>
       </listitem>
     </orderedlist>
     <para>
-      The configuration of a ethernet cluster running ParaStation FE is
-      finished now. On MyriNet clusters furthermore some parameters concerning
-      the MyriNet configuration have to be set up.
+      In the case of a ethernet cluser running ParaStation FE the configuration
+      precedure is finished now and you can proceed with <xref
+	linkend="testing"/>. On MyriNet clusters some further parameters
+      concerning the MyriNet configuration have to be set up. These will be
+      discussed in
+      <xref linkend="myrinet_setup"/> and <xref linkend="ip_over_myrinet"/>.
     </para>
-    <simplesect>
-      <title>Further parameters for Myrinet clusters</title>
-      <para>
-	The following parameters only make sense if a MyriNet cluster is going
-	to be configured.
-      </para>
-      <orderedlist continuation="continues">
-	<listitem>
-	  <para>
-	    <emphasis role="bold"><command>MyriNetModule</command></emphasis>
-	  </para>
-	  <para>
-	    Tell ParaStation where to find the kernel module which will run the
-	    MyriNet card.
-	  </para>
-	  <para>
-	    The parameter set may be a absolute or relative path. Relative
-	    paths are looked up relative to
-	    <filename><replaceable>InstallDir</replaceable>/bin/module</filename> 
-	    and <filename><replaceable>InstallDir</replaceable></filename> in
-	    this order. 
-	  </para>
-	  <para>
-	    <filename><replaceable>InstallDir</replaceable></filename> defaults
-	    to <filename>/opt/parastation</filename> or may be set using the
-	    <command>InstallDir</command> parameter. This is described in
-	    detail within <xref linkend="parastation_conf"/>.
-	  </para>
-	</listitem>
-
-	<listitem>
-	  <para>
-	    <emphasis role="bold"><command>RoutingFile</command></emphasis>
-	  </para>
-	  <para>
-	    MyriNet is a source routed network. This means that each <link
-	      linkend="NIC">NIC</link> has to now which way a data packet it
-	    wants to send has to take through the route in order to arrive at
-	    the correct destination. I.e. each packet must contain the full
-	    routing information. Of course this routing information depends
-	    substantially on the network topology of the cluster. For
-	    flexibilities sake this information is not hardcoded within the
-	    kernel module as it was in ParaStation 2 but will be read during
-	    run time from a extra configuration file.
-	  </para>
-	  <para>
-	    This parameter will tell ParaStation which routing information it
-	    has to use for correct delivery of packets via MyriNet.
-	  </para>
-	  <para>
-	    In principle any topology of the network is supported just by
-	    editing the routing information stored the configuration file. In
-	    fact there are tools within the ParaStation distribution to
-	    construct this files. This will be discussed in detail in <xref
-	      linkend="setup_route"/>.
-	  </para>
-	  <note>
-	    <para>
-	      The discussion of preconfigured routing files reduces to MyriNet
-	      2000 switches. If you use older MyriNet hardware as a fast
-	      interconnect within your cluster, please contact ParTec for
-	      further support on setting up the routing or proceed with <xref
-		linkend="setup_route"/> to create the routing file on your own.
-	    </para>
-	  </note>
-	  <para>
-	    For most of the common network topologies supported by MyriNet
-	    already exists an easy to use routing file. For all these routing
-	    files it is assumed that the nodes are connected to the MyriNet
-	    switch in the following way: Starting with node 0 (i.e. the node
-	    with ParaStation ID 0) at the upper right corner of the switch, the
-	    nodes are connected in ascending order from right to left. If the
-	    top level board of the switch is completely filled, proceed with
-	    the next board again connecting from the right to the left and so
-	    on.
-	  </para>
-	  <para>
-	    If the connection of the nodes to the MyriNet switch uses this
-	    convention, the following standard routing files might be used:
-	  </para>
-	  <variablelist>
-	    <varlistentry>
-	      <term><filename>M3E16.route</filename></term>
-	      <listitem>
-		<para>
-		  Use this routing file if your cluster has a 16 node switch,
-		  i.e. a switch with two line cards.
-		</para>
-	      </listitem>
-	    </varlistentry>
-
-	    <varlistentry>
-	      <term><filename>M3E16reverse.route</filename></term>
-	      <listitem>
-		<para>
-		  This routing file is kind of special. It also supports a 16
-		  node switch, i.e. a switch with two line cards, but with
-		  reverse cabling. This means node 0 is connected in the lower
-		  left edge of the switch. Further nodes are connected left to
-		  right proceeding with the upper line board when the lowest is
-		  full.
-		</para>
-	      </listitem>
-	    </varlistentry>
-
-	    <varlistentry>
-	      <term><filename>M3E32.route</filename></term>
-	      <listitem>
-		<para>
-		  Use this routing file if your cluster has a 32 node switch,
-		  i.e. a switch with four line cards.
-		</para>
-	      </listitem>
-	    </varlistentry>
-
-	    <varlistentry>
-	      <term><filename>M3E64.route</filename></term>
-	      <listitem>
-		<para>
-		  Use this routing file if your cluster has a 64 node switch,
-		  i.e. a switch with eight line cards.
-		</para>
-	      </listitem>
-	    </varlistentry>
-
-	    <varlistentry>
-	      <term><filename>M3E128.route</filename></term>
-	      <listitem>
-		<para>
-		  Use this routing file if your cluster has a 128 node switch,
-		  i.e. a switch with sixteen line cards.
-		</para>
-	      </listitem>
-	    </varlistentry>
-	  </variablelist>
-	  <para>
-	    All these files are located in the directory
-	    <filename>/opt/parastation/config</filename>.
-	  </para>
-	</listitem>
-      </orderedlist> 
-    </simplesect>
   </section>
 
-  <section id="get_license">
-    <title>Obtain a license key</title>
-    <para></para>
+  <section id="myrinet_setup">
+    <title>Further parameters on Myrinet clusters</title>
+    <para>
+      The following parameters only make sense if a MyriNet cluster is going to
+      be configured.
+    </para>
     <orderedlist continuation="continues">
       <listitem>
 	<para>
-	  <emphasis role="bold"><command>LicenseFile</command></emphasis>
+	  <emphasis role="bold"><command>MyriNetModule</command></emphasis>
 	</para>
 	<para>
-	  
+	  Tell &ps; where to find the kernel module which will run the MyriNet
+	  card.
+	</para>
+	<para>
+	  The parameter set may be a absolute or relative path. Relative paths
+	  are looked up relative to
+	  <filename><replaceable>InstallDir</replaceable>/bin/modules</filename>
+	  and <filename><replaceable>InstallDir</replaceable></filename> in
+	  this order. 
+	</para>
+	<para>
+	    <filename><replaceable>InstallDir</replaceable></filename> defaults
+	  to <filename>/opt/parastation</filename> or may be set using the
+	  <command>InstallDir</command> parameter. This is described in detail
+	  within the <xref linkend="parastation_conf"/> manual page.
 	</para>
       </listitem>
-    </orderedlist>
+
+      <listitem>
+	<para>
+	  <emphasis role="bold"><command>RoutingFile</command></emphasis>
+	</para>
+	<para>
+	  MyriNet is a source routed network. This means that each <link
+	    linkend="NIC">NIC</link> has to know which way a data packet it
+	  wants to send has to take through the switches in order to arrive at
+	  the correct destination. I.e. each packet must contain the full
+	  routing information. Of course this routing information depends
+	  substantially on the network topology of the cluster. For
+	  flexibilities sake this information is not hardcoded within the
+	  kernel module as it was in ParaStation2 but will be read during run
+	  time from an extra configuration file.
+	</para>
+	<para>
+	  This parameter will tell &ps; which routing information it has to use
+	  for correct delivery of packets via MyriNet.
+	</para>
+	<para>
+	  In principle any topology of the network is supported just by editing
+	  the routing information stored within the configuration file. In fact
+	  there are tools within the &ps; distribution to construct this files
+	  in an automatized way. This will be discussed in detail in
+	  <xref linkend="setup_route"/>.
+	</para>
+	<note>
+	  <para>
+	      The discussion of preconfigured routing files reduces to MyriNet
+	    2000 switches. If you use older MyriNet hardware as a fast
+	    interconnect within your cluster, please proceed with <xref
+		linkend="setup_route"/> to create the routing file on your own
+	    or contact <ulink url="http://www.par-tec.com">ParTec AG</ulink>
+	    for further support on setting up the routing.
+	  </para>
+	  <para>
+	      Furthermore there are no routing files for clusters with more
+	    than 128 nodes. These have to be created in the way described in
+	      <xref linkend="setup_route"/>, too.
+	  </para>
+	</note>
+	<para>
+	  For most of the common network topologies supported by MyriNet an
+	  easy to use routing file already exists. For all these routing files
+	  it is assumed that the nodes are connected to the MyriNet switch in
+	  the following way: Starting with node 0 (i.e. the node with &ps; ID
+	  0) at the upper right corner of the switch, the nodes are connected
+	  in ascending order of &ps; ID from right to left. If the top level
+	  board of the switch is completely filled, proceed with the next board
+	  again connecting from the right to the left and so on.
+	</para>
+	<para>
+	  If the connection of the nodes to the MyriNet switch uses this
+	  convention, one the following standard routing files can be used:
+	</para>
+	<variablelist>
+	  <varlistentry>
+	    <term><filename>M3E16.route</filename></term>
+	    <listitem>
+	      <para>
+		Use this routing file if your cluster has a 16 node switch,
+		i.e. a switch with two line cards.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
+	    <term><filename>M3E16reverse.route</filename></term>
+	    <listitem>
+	      <para>
+		This routing file is kind of special. It also supports a 16
+		node switch, i.e. a switch with two line cards, but with
+		reverse cabling. This means node 0 is connected in the lower
+		left edge of the switch. Further nodes are connected left to
+		right proceeding with the upper line board when the lowest is
+		full.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
+	    <term><filename>M3E32.route</filename></term>
+	    <listitem>
+	      <para>
+		Use this routing file if your cluster has a 32 node switch,
+		i.e. a switch with four line cards and cabling conventions
+		describe above.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
+	    <term><filename>M3E64.route</filename></term>
+	    <listitem>
+	      <para>
+		This routing file is for clusters with a 64 node switch, i.e. a
+		switch with eight line cards.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+
+	  <varlistentry>
+	    <term><filename>M3E128.route</filename></term>
+	    <listitem>
+	      <para>
+		Use this routing file if your cluster has a 128 node switch,
+		i.e. a switch with sixteen line cards.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	</variablelist>
+	<para>
+	  All these files are located in the directory
+	  <filename>/opt/parastation/config</filename>.
+	</para>
+	<para>
+	  In order to tell &ps; which routing file is the appropriate one the
+	  <command>RoutingFile</command> parameter can be used. This parameter
+	  set may be a absolute or relative path. Relative paths are looked up
+	  relative to
+	  <filename><replaceable>InstallDir</replaceable>/config</filename> and
+	  <filename><replaceable>InstallDir</replaceable></filename> in this
+	  order. 
+	</para>
+	<para>
+	    <filename><replaceable>InstallDir</replaceable></filename> defaults
+	  to <filename>/opt/parastation</filename> or may be set using the
+	  <command>InstallDir</command> parameter. This is described in detail
+	  within <xref linkend="parastation_conf"/>.
+	</para>
+      </listitem>
+    </orderedlist> 
   </section>
 
   <section id="ip_over_myrinet">
     <title>IP over MyriNet</title>
     <para>
       This section describes the necessary configuration in order to obtain a
-      working IP over MyriNet setup. If you are not interested into having such
+      working IP over MyriNet setup. If you are not interested in having such
       type of setup, you can skip this section and proceed with <xref
 	linkend="testing"/>
     </para>
     <para>
       IP over MyriNet is intended mainly for applications using TCP or UDP
-      sockets which are not portable to MPI or the psport interface. Be aware
-      of the fact that IP over MyriNet is not really efficient, since the
-      overhead of the whole TCP/IP stack has to be taken into account.
+      sockets which cannot be modified in order to make use of the more
+      efficient MPI or the PSPort interface. Be aware of the fact that IP over
+      MyriNet is quite unefficient, since the overhead of the whole TCP/IP
+      stack has to be taken into account. On the other hand it is much faster
+      than TCP/IP over fast ethernet anyway.
     </para>
     <para>
-      Hauptidee: PS ID bildet letzte Stellen 
+      To enable IP over MyriNet three different parameters have to be set
+      within the &ps; configuration file <filename>parastation.conf</filename>:
+      <command>IPModule</command>, <command>IPPrefix</command> and
+      <command>IPPrefixLen</command>. The purpose of the two latter ones can be
+      understood after going a little bit into detail.
     </para>
     <para>
-      In order to enable IP over MyriNet on your ParaStation cluster, the
-      following three parameters have to be set within the ParaStation
-      configuration file <filename>/etc/parastation.conf</filename>:
+      As already discussed, since MyriNet is a source routed network, each
+      <link linkend="NIC">NIC</link> has to know which way a data packet is is
+      going to send has to take through the switches in order to arrive at the
+      correct destination. This is also true for IP packets sent over MyriNet.
+    </para>
+    <para>
+      IP packets usually do not contain routing information but only the
+      destination IP address. This address will be resolved to a destination
+      hardware address via an <link linkend="ARP">ARP</link> call. Then the
+      packet will be send to this hardware address. An ethernet switch will
+      deliver the packet to the right line on basis of this hardware address.
+    </para>
+    <para>
+      In principle IP over MyriNet can work the same way. On the other hand
+      every node of a MyriNet cluster running &ps; already has a unique number,
+      the &ps; ID. Obviously this ID does not have the form of an IP address,
+      but it can serve as a basis to create one.
+    </para>
+    <para>
+      The concept used by &ps; is the following: You can define a prefix and
+      its lenght which are identical for all participating nodes. These build
+      the most signigicant bits of the IP address. Then the IP address is
+      filled up with the &ps; ID to create a valid address<footnote>
+	<para>
+	  This is not completely true. Since the IP address with all bits 0 in
+	  the subnet part defined by the netmask has a special meaning, the
+	  &ps; ID cannot be used one to one but an offset of 1 has to be taken
+	  into account.
+	</para>
+      </footnote>.
+    </para>
+    <example>
+      <title></title>
+      <para>
+	Let the prefix be '192.168.16.0' and the prefix length 20 bits, then
+	the MyriNet card in the node with &ps; ID 0 will get IP address
+	192.168.16.1, the one in node 5 will get 192.168.16.6 and so on.
+      </para>
+    </example>
+    <para>
+      Following this short excursion lets discuss the actual parameters. In
+      order to enable IP over MyriNet in your &ps; cluster, the following three
+      parameters have to be set within the &ps; configuration file
+      <filename>/etc/parastation.conf</filename>:
     </para>
     <orderedlist continuation="continues">
       <listitem>
@@ -348,7 +441,21 @@
 	  <emphasis role="bold"><command>IPModule</command></emphasis>
 	</para>
 	<para>
-	  
+	  Tell &ps; where to find the kernel module which enables IP over
+	  MyriNet.
+	</para>
+        <para>
+	  The parameter set may be a absolute or relative path. Relative paths
+	  are looked up relative to
+	  <filename><replaceable>InstallDir</replaceable>/bin/modules</filename>
+	  and <filename><replaceable>InstallDir</replaceable></filename> in
+	  this order. 
+	</para>
+	<para>
+	  <filename><replaceable>InstallDir</replaceable></filename> defaults
+	  to <filename>/opt/parastation</filename> or may be set using the
+	  <command>InstallDir</command> parameter. This is described in detail
+	  within the <xref linkend="parastation_conf"/> manual page.
 	</para>
       </listitem>
 
@@ -357,7 +464,9 @@
 	  <emphasis role="bold"><command>IPPrefix</command></emphasis>
 	</para>
 	<para>
-	  
+	  This parameter tells &ps; which prefix to use in order to create an
+	  IP addresses from the &ps; ID. It is expected to follow the ordinary
+	  dot notation of IP addresses, e.g. <quote>192.168.16.0</quote>.
 	</para>
       </listitem>
 
@@ -366,7 +475,8 @@
 	  <emphasis role="bold"><command>IPPrefixLen</command></emphasis>
 	</para>
 	<para>
-	  
+	  Tell &ps; how many bits of the <command>IPPrefix</command> parameter
+	  to use to create IP addresses. The default value is 20.
 	</para>
       </listitem>
     </orderedlist>
@@ -375,17 +485,78 @@
   <section id="testing">
     <title>Testing the installation</title>
     <para>
-      If everything went fine, you are ready to test ParaStation now. On
-      one of the nodes do 
+      If everything went fine, you are ready to test &ps; now. On one of the
+      nodes do 
     </para>
-    <programlisting>	/opt/parastation/bin/psiadmin -c "s all"</programlisting>
+    <programlisting>	/opt/parastation/bin/psiadmin -c "status"</programlisting>
     <para>
-      and repeat this command until all nodes are up.
+      and repeat this command until all nodes are up. While doing so, you use
+      the first &ps; command: <command>psiadmin</command>. Here it is used in
+      the single command mode requesting the status of all nodes again and
+      again. At the same time within each startup og
+      <command>psiadmin</command> the local &ps; daemon is connected. While
+      being connected the daemon will try to start all other daemons not yet
+      up. The &ps; administration tool is described in detail in the
+      corresponding manual page <xref
+	linkend="psiadmin"/>.
+    </para>
+    <para>
+      Alternatively you can continuously monitor the &ps; daemon using the
+      <command>mlisten</command> tool, which is described the <xref
+	linkend="mlisten"/> manual page. Then use the
+      <command>psiadmin</command> in the interactive mode and use its
+      <command>add</command> command to start all other nodes.
+    </para>
+    <para>
+      If after a minute some nodes are still not up have a look at the nodes
+      <filename>/var/log/messages</filename> file to get a clue what went
+      wrong.
+    </para>
+    <para>
+      When all nodes are up you can start
+    </para>
+    <programlisting>	/opt/parastation/bin/test_nodes -np <replaceable>nodes</replaceable></programlisting>
+    <para>
+      where <replaceable>nodes</replaceable> has to be replaced by the actual
+      number of MyriNet nodes within your cluster. After a while a result like
+    </para>
+    <programlisting>
+---------------------------------------
+Master node 0
+Process 0-31 to 0-31 ( node 0-31 to 0-31 ) OK
+All connections ok
+
+PSIlogger: done
+    </programlisting>
+    <para>
+      should appear. Of course the '31' will be replace by a number depending
+      on the number of nodes you have, i.e. <replaceable>nodes</replaceable>-1.
+    </para>
+    <para>
+      If something went wrong, <command>test_nodes</command> may give
+      continuously results like
+    </para>
+    <programlisting>
+---------------------------------------
+Master node 0
+Process 0-2,4-6 to 0-7 ( node 0-2,4-6 to 0-7 ) OK
+Process 3 to 0-6 ( node 3 to 0-6 ) OK
+Process 7 to 0-2,4-7 ( node 7 to 0-2,4-7 ) OK
+    </programlisting>
+    <para>
+      This indicates that either your routing setup or your MyriNet cabling
+      might be wrong. As a first guess start with testing the cabling. From the
+      output of the above example you can guess that a problem exists on the
+      connection of node 3 to node 7. As a result check this connections.
+    </para>
+    <para>
+      A detailed description of <command>test_nodes</command> can be found
+      within the corresponding manual page <xref linkend="test_nodes"/>.
     </para>
   </section>
 
   <section id="embed">
-    <title>Embed ParaStation</title>
+    <title>Embed &ps;</title>
     <para></para>
 
     <section>
@@ -406,7 +577,9 @@
   <section id="setup_route">
     <title>Setting up routing on customized network topologies</title>
     <para>
-      If your network topology is special and 
+      If your network topology is special and....
+
+      ToDo
     </para>
   </section>
 
@@ -422,7 +595,7 @@
   sgml-always-quote-attributes:t
   sgml-indent-step:2
   sgml-indent-data:t
-  sgml-parent-document:("main.xml" "book" "book" ("title" "bookinfo"))
+  sgml-parent-document:("main.xml" "set" "book" "book" ("title" "bookinfo"))
   sgml-exposed-tags:nil
   sgml-local-catalogs:nil
   sgml-local-ecat-files:nil

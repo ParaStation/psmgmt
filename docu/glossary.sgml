@@ -1,5 +1,35 @@
 <glossary>
 
+  <glossentry id="ARP">
+    <glossterm>ARP</glossterm>
+    <glosssee otherterm="ARPfull"/>
+  </glossentry>
+
+  <glossentry id="ARPfull">
+    <glossterm>Address Resolution Protocol</glossterm>
+    <glossdef>
+      <para>
+	<!-- @todo RFC -->
+	ToDo
+      </para>
+    </glossdef>
+  </glossentry>
+
+  <glossentry id="DMA">
+    <glossterm>DMA</glossterm>
+    <glosssee otherterm="DMAfull"/>
+  </glossentry>
+
+  <glossentry id="DMAfull">
+    <glossterm>Direct Memory Access</glossterm>
+    <glossdef>
+      <para>
+	<!-- @todo -->
+	ToDo
+      </para>
+    </glossdef>
+  </glossentry>
+
   <glossentry id="MCP">
     <glossterm>MCP</glossterm>
     <glosssee otherterm="MCPfull"/>
@@ -10,7 +40,7 @@
     <glossdef>
       <para>
 	The program controlling the MyriNet card. It is executed by the LanAI
-	processor residing on the MyriNet card and thus creates almost not load
+	processor residing on the MyriNet card and thus creates almost no load
 	on the node's main processor.
       </para>
     </glossdef>
@@ -26,6 +56,7 @@
     <glossdef>
       <para>
 	<!-- @todo -->
+	ToDo
       </para>
     </glossdef>
   </glossentry>
@@ -42,7 +73,7 @@
   sgml-always-quote-attributes:t
   sgml-indent-step:2
   sgml-indent-data:t
-  sgml-parent-document:("main.xml" "book" "book" ("title" "bookinfo"))
+  sgml-parent-document:("main.xml" "set" "book" "book" ("title" "bookinfo"))
   sgml-exposed-tags:nil
   sgml-local-catalogs:nil
   sgml-local-ecat-files:nil

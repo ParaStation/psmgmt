@@ -7,11 +7,54 @@ export SGML_CATALOG="/var/lib/sgml/CATALOG.db42xml"
 
 xsltcommand="xsltproc --catalogs --timing --nonet"
 
-do_eval=1
-# do_pdf=1
-do_oldpdf=1
-do_man=1
-do_html=1
+# Always validate
+do_val=1
+
+# ----------------------------------------------------------------------
+# usage
+#
+usage()
+{
+    echo "Usage: ${0##*/} [noval] [pdf] [pdftry] [man] [html]"
+}
+
+
+if [ $# == 0 ]; then
+#    do_pdftry=1
+    do_pdf=1
+    do_man=1
+    do_html=1
+fi
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+    noval)
+	shift
+	do_val=0
+	;;
+    pdf)
+	shift
+	do_pdf=1
+	;;
+    pdftry)
+	shift
+	do_pdftry=1
+	;;
+    man)
+	shift
+	do_man=1
+	;;
+    html)
+	shift
+	do_html=1
+	;;
+    *)
+	error "unknown argument $1"
+	usage
+	exit 1
+	;;
+    esac
+done
 
 make_dir (){
     if [ $# -ne 1 ]; then
@@ -22,23 +65,41 @@ make_dir (){
     dirname=$1
 
     if [ -d $dirname ]; then
-        if [ -d $dirname.junk ]; then
-            rm -rf $dirname.junk
-        fi
-
-        mv -f $dirname $dirname.junk
+	rm -rf $dirname
     fi
 
     mkdir $dirname
 }
 
-if [ $do_eval ]; then
+if [ $do_val ]; then
     echo Validating...
 
     db2x.sh -o -W $filename
 fi
 
-if [ $do_oldpdf ]; then
+if [ $do_html ]; then
+    echo Creating HTML...
+
+    make_dir html
+    cd html
+
+    $xsltcommand ../StyleSheets/html.xsl ../main.xml
+
+    cd ..
+fi
+
+if [ $do_man ]; then
+    echo Creating manuals...
+
+    make_dir man
+    cd man
+
+    $xsltcommand ../StyleSheets/db2man.xsl ../main.xml
+
+    cd ..
+fi
+
+if [ $do_pdf ]; then
     echo Creating PDF...
 
     texfile=$basename.tex
@@ -58,7 +119,7 @@ if [ $do_oldpdf ]; then
     cd ..
 fi
 
-if [ $do_pdf ]; then
+if [ $do_pdftry ]; then
     echo Creating PDF...
 
     fofile=$basename.fo
@@ -67,35 +128,17 @@ if [ $do_pdf ]; then
     $xsltcommand -o $fofile ../StyleSheets/fo.xsl ../main.xml
 
     # this does actually *not* work
-    pdfxmltex $fofile
+#    pdfxmltex $fofile
 
-    cd ..
-fi
-
-if [ $do_man ]; then
-    echo Creating manuals...
-
-    make_dir man
-    cd man
-    
-#    export CLASSPATH=/usr/lib/saxon/saxon.jar
-
-    $xsltcommand ../StyleSheets/db2man.xsl ../main.xml
-#    java com.icl.saxon.StyleSheet ../main.xml ../StyleSheets/db2man.xsl
-    cd ..
-fi
-
-if [ $do_html ]; then
-    echo Creating HTML...
-
-    make_dir html
-    cd html
-#    export CLASSPATH=/usr/lib/saxon/saxon.jar
-
-#    java com.icl.saxon.StyleSheet ../main.xml ../StyleSheets/html.xsl
-    $xsltcommand ../StyleSheets/html.xsl ../main.xml
-#    for i in *.html; do
-#	tidy -m -f /dev/null -asxml $i
-#    done
+    # this "works" (i.e. give much errors and ugly output)
+    CLASSPATH="../fop/build/fop.jar:../fop/lib/batik.jar"
+    CLASSPATH=$CLASSPATH":../fop/lib/xalan-2.3.1.jar"
+    CLASSPATH=$CLASSPATH":../fop/lib/xercesImpl-2.0.1.jar"
+    CLASSPATH=$CLASSPATH":../fop/lib/xml-apis.jar"
+    CLASSPATH=$CLASSPATH":../fop/lib/avalon-framework-cvs-20020315.jar"
+    CLASSPATH=$CLASSPATH":../fop/lib/logkit-1.0.jar:../fop/lib/jimi.jar"
+    export CLASSPATH
+    java org.apache.fop.apps.Fop -c ../fop/conf/userconfig.xml \
+						$fofile -pdf $basename.pdf
     cd ..
 fi

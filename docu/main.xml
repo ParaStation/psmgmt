@@ -1,9 +1,13 @@
 <?xml version="1.0" standalone="no"?>
-<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN"
+<!DOCTYPE set PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN"
                   "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd"[
+<!ENTITY ps "ParaStation">
+
 <!ENTITY docinfo SYSTEM "docinfo.sgml">
 
-<!ENTITY intro SYSTEM "intro.sgml">
+<!ENTITY intro_admin SYSTEM "intro_admin.sgml">
+<!ENTITY intro_user SYSTEM "intro_user.sgml">
+<!ENTITY intro_common SYSTEM "intro.sgml">
 <!ENTITY installation SYSTEM "install.sgml">
 <!ENTITY configuration SYSTEM "config.sgml">
 <!ENTITY environment SYSTEM "environment.sgml">
@@ -14,47 +18,65 @@
 <!ENTITY psiadmin SYSTEM "psiadmin.sgml">
 <!ENTITY psid SYSTEM "psid.sgml">
 <!ENTITY psld SYSTEM "psld.sgml">
-<!ENTITY psmstart SYSTEM "psmstart.sgml">
 <!ENTITY psroute SYSTEM "psroute.sgml">
 <!ENTITY psscan SYSTEM "psscan.sgml">
-
+<!ENTITY testnodes SYSTEM "testnodes.sgml">
+<!ENTITY psmstart SYSTEM "psmstart.sgml">
+<!ENTITY mpirun SYSTEM "mpirun.sgml">
 <!ENTITY spawning SYSTEM "spawning.sgml">
 
 <!ENTITY glossary SYSTEM "glossary.sgml">
 
 <!ENTITY boolargs SYSTEM "boolargs.sgml">
 ]>
-<book>
-  <title>ParaStation Administrators Guide</title>
+<set>
+  <book id="adminguide">
+    <title>&ps; Administrators Guide</title>
 
-  <bookinfo>
-    &docinfo;
-  </bookinfo>
+    <bookinfo>
+      &docinfo;
+    </bookinfo>
 
-  &intro;
-  &installation;
-  &configuration;
-  <!-- &environment;-->
-  <!-- &strategies;-->
+    &intro_admin;
+    &installation;
+    &configuration;
 
-  <reference id="references">
-    <title>Reference Pages</title>
-    &mlisten;
-    &parastationconf;
-    &psiadmin;
-    &psid;
-    &psld;
-    &psmstart;
-    &psroute;
-    &psscan;
-  </reference>
+    <reference id="references_admin">
+      <title>Reference Pages</title>
+      &mlisten;
+      &parastationconf;
+      &psiadmin;
+      &psid;
+      &psld;
+      &psroute;
+      &psscan;
+      &testnodes;
+    </reference>
 
-  <appendix><title>Spawning strategies</title>
-    &spawning;
-  </appendix>
+    &glossary;
+  </book>
+  <book id="userguide">
+    <title>&ps; Users Guide</title>
 
-  &glossary;
-</book>
+    <bookinfo>
+      &docinfo;
+    </bookinfo>
+
+    &intro_user;
+    &environment;
+    &strategies;
+
+    <reference id="references_user">
+      <title>Reference Pages</title>
+      &mpirun;
+      &psmstart;
+    </reference>
+
+    <appendix><title>Spawning strategies</title>
+      &spawning;
+    </appendix>
+  </book>
+</set>
 <!-- Keep this comment at the end of the file
 Local variables:
 mode: xml

@@ -31,8 +31,8 @@
     </para>
     <para>
       Most of the directive listed below can be executed by general users. Only
-      modifying parameters, killing foreign jobs or shutting down single nodes
-      or the whole system require root privilege.
+      modifying parameters, killing foreign jobs and shutting down single nodes
+      or the whole system requires root privilege.
     </para>
   </refsect1>
 
@@ -132,7 +132,7 @@
     <title>Standard Error</title>
     <para>
       The psiadmin command will write a diagnostic message to standard error
-      for each error occurrence.
+      for each error occurred.
     </para>
   </refsect1>
 
@@ -360,7 +360,8 @@
 		    <refentrytitle>memcpy</refentrytitle>
 		    <manvolnum>3</manvolnum>
 		  </citerefentry> into the final destination. Non-PIO packets
-		  are send via DMA immediately to their final destination.
+		  are send via <link linkend="DMA">DMA</link> immediately to
+		  their final destination.
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -516,6 +517,8 @@
 	      <arg choice="plain">node</arg>
 	      <arg choice="plain">proc</arg>
 	      <arg choice="plain">allproc</arg>
+	      <arg choice="plain">load</arg>
+	      <arg choice="plain">hw</arg>
 	      <arg choice="plain">count</arg>
 	      <arg choice="plain">mcast</arg>
 	      <arg choice="plain">rdp</arg>
@@ -581,6 +584,32 @@
 		  All processes managed by ParaStation are displayed. If
 		  forwarder processes should not be displayed, use the
 		  <command>status <option>proc</option></command> directive.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>load</command>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>
+		  ToDo <!-- @todo -->
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>hw</command>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>
+		  ToDo <!-- @todo -->
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -686,8 +715,8 @@
 	  <listitem>
 	    <para>
 	      Reset the ParaStation daemon on all selected node(s). As a
-	      consequence <emphasis>all</emphasis> processes using the selected
-	      node(s) are <emphasis>killed</emphasis>!
+	      consequence <emphasis role="bold">all</emphasis> processes using
+	      the selected node(s) are <emphasis role="bold">killed</emphasis>!
 	    </para>
 	    <para>
 	      If the option <option>hw</option> is given, additionally the
@@ -710,9 +739,9 @@
 	      Restart the ParaStation system on all selected node(s). This
 	      includes reinitialization of the communucation hardware. On the
 	      selected node(s) the ParaStation daemon processes are forced to
-	      reinitialize the ParaStation cluster. As a consequence
-	      <emphasis>all processes</emphasis> using the selected node(s)s
-	      are <emphasis>killed</emphasis>!
+	      reinitialize the ParaStation cluster. As a consequence <emphasis
+		role="bold">all</emphasis> processes using the selected
+	      node(s)s are <emphasis role="bold">killed</emphasis>!
 	    </para>
 	    <para>
 	      This is the same as using <command>reset
@@ -810,7 +839,8 @@
 		      <refentrytitle>memcpy</refentrytitle>
 		      <manvolnum>3</manvolnum>
 		    </citerefentry> into the final destination. Non-PIO packets
-		    are send via DMA immediately to their final destination.
+		    are send via <link linkend="DMA">DMA</link> immediately to
+		    their final destination.
 		  </para>
 		  <para>
 		    This parameter can be set persistently via the
@@ -914,7 +944,7 @@
 		  <para>
 		    ParaStation usually does not send acknowledgements
 		    immediately but waits for some pending ACK messages and
-		    send them accumulated.
+		    sends them accumulated.
 		  </para>
 		  <para>
 		    If a packet is not acknowledged for some microseconds (the
@@ -988,11 +1018,11 @@
 		    <para>
 		      For values of <option>level</option> larger than
 		      <constant>10</constant> the daemon logs a huge amount of
-		      message in the logging destination, which is usually the
+		      messages in the logging destination, which is usually the
 		      <citerefentry>
 			<refentrytitle>syslog</refentrytitle>
 			<manvolnum>3</manvolnum>
-		      </citerefentry>. Don't use levels different from
+		      </citerefentry>. Do not use levels different from
 		      <constant>0</constant> for too long!
 		    </para>
 		  </note>
@@ -1061,8 +1091,8 @@
 	  <listitem>
 	    <para>
 	      Shutdown the ParaStation daemon on all selected node(s). As a
-	      consequence <emphasis>all processes</emphasis> using the selected
-	      node(s) are <emphasis>killed</emphasis>!
+	      consequence <emphasis role="bold">all</emphasis> processes using
+	      the selected node(s) are <emphasis role="bold">killed</emphasis>!
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -1148,7 +1178,7 @@
   sgml-always-quote-attributes:t
   sgml-indent-step:2
   sgml-indent-data:t
-  sgml-parent-document:("main.xml" "book" "reference" "reference" ("title"))
+  sgml-parent-document:("main.xml" "set" "book" "reference" "reference" ("title"))
   sgml-exposed-tags:nil
   sgml-local-catalogs:nil
   sgml-local-ecat-files:nil

@@ -37,7 +37,8 @@
       displayed.
     </para>
     <para>
-      License pings, i.e. multicast pakets sent by ParaStations license daemon
+      License pings, i.e. special multicast pings sent by ParaStations license
+      daemon
       <xref linkend="psld"/>, are displayed as pings of the N+1st machine in a
       cluster of N machines.
     </para>
@@ -168,7 +169,7 @@
   sgml-always-quote-attributes:t
   sgml-indent-step:2
   sgml-indent-data:t
-  sgml-parent-document:("main.xml" "book" "reference" "reference" ("title"))
+  sgml-parent-document:("main.xml" "set" "book" "reference" "reference" ("title"))
   sgml-exposed-tags:nil
   sgml-local-catalogs:nil
   sgml-local-ecat-files:nil

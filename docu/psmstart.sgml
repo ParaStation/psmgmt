@@ -29,8 +29,8 @@
       <command>program</command>.
     </para>
     <para>
-      All output of <command>program</command> will be forwarded completely
-      to the local terminal. All input <command>program</command> is
+      All output produced by <command>program</command> will be forwarded
+      completely to the local terminal. All input <command>program</command> is
       expecting will be redirected from the local terminal. If the remote
       program catches a signal, a message will be printed.
     </para>
@@ -39,12 +39,13 @@
   <refsect1>
     <title>Implementation</title>
     <para>
-      If <command>psmstart</command> is called, <command>program</command>
-      is started remotely using the ParaStation daemon <xref
-	linkend="psid"/>. Within the startup the local process will become a
-      IO handling process forwarding all the input and output
-      data. Suspending the local process or sending a signal to this local
-      process will <emphasis>not</emphasis> affect the remotely started
+      If <command>psmstart</command> is called, <command>program</command> is
+      started remotely using the ParaStation daemon <xref
+	linkend="psid"/>. Within the startup the local process will become a IO
+      handling process - marked as a logger process within <xref
+	linkend="psiadmin"/> - forwarding all the input and output data.
+      Suspending the local process or sending a signal to this local process
+      will <emphasis role="bold">not</emphasis> affect the remotely started
       process.
     </para>
   </refsect1>
@@ -60,14 +61,16 @@
       </listitem>
       <listitem>
 	<para>
-	  Signals sent to the local process will <emphasis>not</emphasis> be
-	  forwarded correctly to the remote process.
+	  Signals sent to the local process will <emphasis
+	    role="bold">not</emphasis> be forwarded correctly to the remote
+	  process.
 	</para> 
       </listitem>
       <listitem>
 	<para>
-	  The return value of <command>program</command> will not be forwarded
-	  correctly to the controlling shell. 
+	  The return value of <command>program</command> will <emphasis
+	    role="bold">not</emphasis> be forwarded correctly to the
+	  controlling shell. 
 	</para>
       </listitem>
     </itemizedlist>
@@ -91,7 +94,7 @@
   sgml-always-quote-attributes:t
   sgml-indent-step:2
   sgml-indent-data:t
-  sgml-parent-document:("main.xml" "book" "reference" "reference" ("title"))
+  sgml-parent-document:("main.xml" "set" "book" "reference" "reference" ("title"))
   sgml-exposed-tags:nil
   sgml-local-catalogs:nil
   sgml-local-ecat-files:nil

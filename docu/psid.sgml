@@ -106,11 +106,11 @@
     </para>
 
     <para>
-      The ParaStation daemon spawns and kills client processes on demand of
-      the parent process. The ParaStation system transfers remote spawning or
+      The ParaStation daemon spawns and kills client processes on demand of a
+      parent process. The ParaStation system transfers remote spawning or
       killing requests to the daemon of the destination node. Then operating
-      system functionality is used to spawn and kill the processes on the
-      local node. The spawned process runs with same user and group id as the
+      system functionality is used to spawn and kill the processes on the local
+      node. The spawned process runs with same user and group id as the
       spawning process. The ParaStation system redirects the output of spawned
       process to the terminal of the parent process.
     </para>
@@ -243,7 +243,7 @@
   sgml-always-quote-attributes:t
   sgml-indent-step:2
   sgml-indent-data:t
-  sgml-parent-document:("main.xml" "book" "reference" "reference" ("title"))
+  sgml-parent-document:("main.xml" "set" "book" "reference" "reference" ("title"))
   sgml-exposed-tags:nil
   sgml-local-catalogs:nil
   sgml-local-ecat-files:nil

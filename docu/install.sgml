@@ -1,10 +1,10 @@
 <chapter id="installation">
   <title>Installation</title>
   <para>
-    Beforehand describing the installation of ParaStation, this chapter
-    discusses the prerequisites to do so. There are specified three
-    different ways to install ParaStation, discriminating against each
-    other in the level of automatization of the installation process.
+    Beforehand describing the installation of &ps;, this chapter discusses the
+    prerequisites to do so. There are specified three different ways to install
+    &ps;, discriminating against each other in the level of automatization of
+    the installation process.
   </para>
   <para>
     Of course, the less automatized the choosen way of installation is, the
@@ -16,8 +16,8 @@
   <section>
     <title>Prerequisites</title>
     <para>
-      To install ParaStation on a cluster of workstation, few prerequisites
-      have to be met.
+      To install &ps; on a cluster of workstation, few prerequisites have to be
+      met.
     </para>
 
     <simplesect>
@@ -31,9 +31,9 @@
       <para>
 	Furthermore of course the nodes need to be interconnected. Usually
 	there is a connection via fast or gigabit ethernet between the nodes.
-	ParaStation needs this ethernet interconnect for management purposes.
-	Furthermore there is the possibility to have an fast interconnect to do
-	high bandwith, low latency communication. At the moment Myrinet is
+	&ps; needs this ethernet interconnect for management purposes. Beyond
+	that the possibility to have a fast interconnect in order to do high
+	bandwith, low latency communication exists. At the moment Myrinet is
 	supported to do this kind of communication. There also exists a version
 	supporting communication via fast ethernet. Naturally this version
 	lacks of really high throughput and low latency due to the limited
@@ -48,15 +48,15 @@
 	met. A Linux kernel supporting multicast on all nodes of the cluster is
 	needed. This is usually no problem if a standard kernel from a common
 	distribution is used. You have to explicitly enable multicast support
-	if you build your own kernel. To learn more about multicast take a look
-	at the <ulink
+	if you build your own kernel. In order to learn more about multicast
+	take a look at the <ulink
 	  url="http://jungla.dit.upm.es/~jmseyas/linux/mcast.howto/multic.html"> 
 	  <citetitle>Multicast over TCP/IP HOWTO</citetitle></ulink>.
       </para>
       <para>
 	Besides the kernel supporting multicast, the hardware has to support
 	multicast, too. Since modern ethernet switches support multicast and
-	the nodes of a cluster of workstation usually live in a private subnet
+	the nodes of a cluster of workstation usually live in a private subnet,
 	there should be no problem about this. In the case of a gateway in
 	between the nodes of a cluster this gateway has to be configured
 	appropriately to allow multicast packets to reach all nodes of the
@@ -66,16 +66,14 @@
 	On nodes with more than one ethernet interface you have to setup a
 	defaultroute for the multicast traffic. This is done by
       </para>
-      <programlisting>
-	route add -net 224.0.0.0 netmask 240.0.0.0 dev <replaceable>ethX</replaceable>
-      </programlisting>
+      <programlisting>	route add -net 224.0.0.0 netmask 240.0.0.0 dev <replaceable>ethX</replaceable></programlisting>
       <para>
 	manually, where <replaceable>ethX</replaceable> has to be replaced by
-	the name of the interface connecting to all other nodes. To enable this
-	route at system startup, a corresponding entry has to be added to
-	<filename>/etc/route.conf</filename> or
-	<filename>/etc/sysconfig/networks/routes</filename> depending on the
-	type of distribution used.
+	the name of the interface connecting to all other nodes. In order to
+	enable this route at system startup, a corresponding entry has to be
+	added to <filename>/etc/route.conf</filename> or
+	<filename>/etc/sysconfig/networks/routes</filename>, depending on the
+	type of Linux distribution in use.
       </para>
       <para>
 	Usually only the front-end machine of a cluster has two ethernet
@@ -89,14 +87,15 @@
       <para>
 	Since kernel modules are needed for the high bandwidth, low latency
 	communication, a kernel version supported by the modules within the
-	ParaStation distribution is needed. These modules support the standard
-	kernels of common distributions, even if you have recompiled theses
-	kernels in a slightly modified way. They are not needed for the
-	communication via fast ethernet.
+	&ps; distribution is needed. These modules support the standard kernels
+	of common distributions, even if you have recompiled theses kernels in
+	a slightly modified way. They are not needed for the communication via
+	fast ethernet.
       </para>
       <para>
-	If there is the need for special version of the modules it is possible
-	to get them on demand. Please contact <email>xxx@par-tec.com</email>.
+	If there is the need for special version of the modules, it is possible
+	to get them on demand. Please contact
+	<email>support@par-tec.com</email>.
       </para>
     </simplesect>
   </section>
@@ -109,9 +108,9 @@
     <itemizedlist>
       <listitem>
 	<para>
-	  whether the ParaStation files should reside physically on one node
-	  and will be mounted on all the other nodes using NFS (this will
-	  called <quote>centralized</quote> installation within this document),
+	  whether the &ps; files should reside physically on one node and will
+	  be mounted on all the other nodes using NFS (this will called
+	  <quote>centralized</quote> installation within this document),
 	</para>
       </listitem>
       <listitem>
@@ -124,24 +123,24 @@
     </itemizedlist>
     <para>
       Both ans&auml;tze have their pros and cons. On the one hand a centralized
-      installation save from inconsistent versions of executables or
+      installation saves from inconsistent versions of executables or
       configuration files within the cluster, but on the other hand it
       introduces a possible single point of failure, the NFS server. This
       disadvantage may be reasonable if a front-end machine acts as a NFS
       server, since all other nodes are unavailable anyhow, if the front-end
       fails. Furthermore the <filename>/home</filename> directory is ususally
-      stored centralized, too. Thus doing so with the ParaStation files
-      (ideally on the same machine) will cause no further harm to the stability
-      and availability of the cluster.
+      stored centralized, too. Thus doing so with the &ps; files (ideally on
+      the same machine) will cause no further harm to the stability and
+      availability of the cluster.
     </para>
     <para>
-      ParaStation supports both methods of installation: It can either be
-      installed on every node (residing per default in
+      &ps; supports both methods of installation: It can either be installed on
+      every node (residing per default in
       <filename>/opt/parastation</filename>) or it may be installed on a front
       end machine and mounted on everey node of the cluster (ideally also to
       <filename>/opt/parastation</filename>). Be aware of the fact that even if
-      ParaStation is installed on a front-end machine, some configuration
-      work on each node has to be done anyway.
+      &ps; is installed on a front-end machine, some configuration work on each
+      node has to be done anyway.
     </para>
     <para>
       Within the discussion of the different installation methods below both
@@ -151,33 +150,34 @@
     <para>
       From the authors point of view the benefits of the centralized
       installation outweigh its disadvantages and furthermore the advantages of
-      the distributed installation. Thus putting ParaStation on a NFS server
-      and mounting the directory on all the nodes is the method of choice.
+      the distributed installation. Thus putting &ps; on a NFS server and
+      mounting the directory on all the nodes is the method of choice.
     </para>
     <note>
       <para>
-      Experience has shown that mounting ParaStation or even
+      Experience has shown that mounting &ps; or even
 	<filename>/home</filename> via NFS using <citerefentry>
 	  <refentrytitle>automount</refentrytitle>
 	  <manvolnum>8</manvolnum>
-      </citerefentry> may cause major problems during startup of ParaStation or
+      </citerefentry> may cause major problems during startup of &ps; or
 	application startup. This is due to the fact that requests to the NFS
 	server might timeout if many clients try to mount directories almost
 	concurrently. On the other hand there is no real need using
       <citerefentry>
 	  <refentrytitle>automount</refentrytitle>
 	  <manvolnum>8</manvolnum>
-      </citerefentry> in this case since the nodes of a cluster usually cannot
+      </citerefentry> in this case, since the nodes of a cluster usually cannot
 	be operated in a usable way without the users'
-	<filename>/home</filename> directories.
+	<filename>/home</filename> directories. Therefor static NFS mounting
+	seems to be reasonable in this case.
       </para>
     </note>
     <section id="dir_struct">
       <title>Directory structure</title>
       <para>
-	The default location to install ParaStation is
+	The default location to install &ps; is
 	<filename>/opt/parastation</filename>. Underneath this directory,
-	several subdirectories are created containing the actual ParaStation
+	several subdirectories are created containing the actual &ps;
 	installation:
       </para>
       <variablelist>
@@ -187,9 +187,8 @@
 	  </term>
 	  <listitem>
 	    <para>
-	      contains all executables building the ParaStation system.
-	      Remember to include this directory into the <envar>PATH</envar>
-	      environment.
+	      contains all executables building the &ps; system. Remember to
+	      include this directory into the <envar>PATH</envar> environment.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -209,9 +208,9 @@
 	      configuration file <filename>parastation.conf</filename> is
 	      physically located here. Through a symbolic link this
 	      configuration file also available in <filename>/etc</filename>,
-	      where it is expected by the ParaStation daemon <xref
-		linkend="psid"/>. This symbolic link will be created during
-	      installation by <command>PSM_INSTALL</command>.
+	      where it is expected by the &ps; daemon <xref
+		linkend="psid"/>. This symbolic link will be created by
+	      <command>PSM_INSTALL</command> during installation.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -221,9 +220,9 @@
 	  </term>
 	  <listitem>
 	    <para>
-	      contains the ParaStation documentation after installing the
+	      contains the &ps; documentation after installing the
 	      corresponding RPM or <filename>.tar.gz</filename> file. The
-	      necessary step are described in <xref linkend="docu_install"/>.
+	      necessary steps are described in <xref linkend="docu_install"/>.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -233,9 +232,9 @@
 	  </term>
 	  <listitem>
 	    <para>
-	      contains the header files needed to build ParaStation
-	      applications. This are primarily needed for building applications
-	      using the low level PSPort or PSHAL libraries.
+	      contains the header files needed in order to build &ps;
+	      applications. These are primarily needed for building
+	      applications using the low level PSPort or PSHAL libraries.
 	    </para>
 	    <para>
 	      These header files are not needed if only self compiled MPI
@@ -249,8 +248,8 @@
 	  </term>
 	  <listitem>
 	    <para>
-	      contains various libraries needed to build ParaStation
-	      applications. This are primarily needed for building MPI
+	      contains various libraries needed in order to build &ps;
+	      applications. These are primarily needed for building MPI
 	      applications or such using the low level PSPort or PSHAL
 	      libraries.
 	    </para>
@@ -262,13 +261,13 @@
 	  </term>
 	  <listitem>
 	    <para>
-	      contains the manual pages describing the ParaStation daemons,
-	      utilities and configuration files after installing the
-	      documentation RPM or <filename>.tar.gz</filename> file. The
-	      necessary step are described in <xref linkend="docu_install"/>.
+	      contains the manual pages describing the &ps; daemons, utilities
+	      and configuration files after installing the documentation RPM or
+	      <filename>.tar.gz</filename> file. The necessary step are
+	      described in <xref linkend="docu_install"/>.
 	    </para>
 	    <para>
-	      In order to enable this pages to the
+	      In order to enable this pages to the user via the
 	      <citerefentry>
 		<refentrytitle>man</refentrytitle>
 		<manvolnum>1</manvolnum>
@@ -296,7 +295,7 @@
 	      contains a adapted version of <ulink
 		url="http://www.unix.mcs.anl.gov/mpi/mpich">MPIch</ulink> after
 	      installing the ParaStation/MPIch RPM or
-	      <filename>.tar.gz</filename> file. The necessary step are
+	      <filename>.tar.gz</filename> file. The necessary steps are
 	      described in <xref linkend="mpich_install"/>.
 	    </para>
 	  </listitem>
@@ -308,15 +307,14 @@
   <section>
     <title>Installation via rpm</title>
     <para>
-      The easiest way to install ParaStation is the installation via RPM. This
-      is the preferred method on all <ulink
-	url="http://www.suse.de">SuSE</ulink> or <ulink
-	url="http://www.redhat.com">RedHat</ulink> based systems.
+      The easiest way to install &ps; is the installation via RPM. This is the
+      preferred method on all <ulink url="http://www.suse.de">SuSE</ulink> or
+      <ulink url="http://www.redhat.com">RedHat</ulink> based systems.
     </para>
     <simplesect>
-      <title>Getting the ParaStation RPM</title>
+      <title>Getting the &ps; RPM file</title>
       <para>
-	A RPM containing ParaStation can be obtained from the <ulink
+	A RPM containing &ps; can be obtained from the <ulink
 	  url="http://www.par-tec.com/downloads/download.html">download
 	  section</ulink> of the <ulink url="http://www.par-tec.com">ParTec
 	  homepage</ulink>. The file of the linux version is usually named
@@ -342,9 +340,7 @@
 	For the distributed installation, after becoming <quote>root</quote>
 	just do a
       </para>
-      <programlisting>
-	rpm -U psm-x.y.z-yyyymmdd.Linux.arch.rpm
-      </programlisting>
+      <programlisting>	rpm -U psm-x.y.z-yyyymmdd.Linux.arch.rpm</programlisting>
       <para>
 	<command>rpm</command> will install all the necessary file to
 	<filename>/opt/parastation</filename> and call the script
@@ -361,24 +357,20 @@
     <simplesect>
       <title>Centralized installation</title>
       <para>
-	To install ParaStation from RPM in a centralized fashion, after
+	In order to install &ps; from RPM in a centralized fashion, after
 	becoming <quote>root</quote> use the command
       </para>
-      <programlisting>
-	rpm -U psm-x.y.z-yyyymmdd.Linux.arch.rpm
-      </programlisting>
+      <programlisting>	rpm -U psm-x.y.z-yyyymmdd.Linux.arch.rpm</programlisting>
       <para>
-	on the NFS server machine to put all the ParaStation files onto
-	disk. Make sure that <filename>/opt/parastation</filename> is exported
-	and the NFS server is running (use <citerefentry>
+	on the NFS server machine to put all the &ps; files onto disk. Make
+	sure that <filename>/opt/parastation</filename> is exported and the NFS
+	server is running (use <citerefentry>
 	  <refentrytitle>showmount</refentrytitle>
 	  <manvolnum>8</manvolnum>
 	</citerefentry> to do so). Then mount the exported directory on all
 	nodes to <filename>/opt/parastation</filename>. Afterwards run
       </para>
-      <programlisting>
-	/opt/parastation/config/PSM_INSTALL -i
-      </programlisting>
+      <programlisting>	/opt/parastation/config/PSM_INSTALL -i</programlisting>
       <para>
 	manually on all the nodes. The modifications done are discussed in
 	<xref linkend="Install_by_hand"/>.
@@ -389,15 +381,14 @@
   <section>
     <title>Installation using <filename>.tar.gz</filename> files</title>
     <para>
-      If the linux distribution in use does not support RPM there is the
-      possibility to install ParaStation from a <filename>.tar.gz</filename>
-      file.
+      If the linux distribution in use does not support RPM, the apropriate way
+      to install &ps; is the one using the <filename>.tar.gz</filename> file.
     </para>
     <simplesect>
-      <title>Getting the ParaStation <filename>.tar.gz</filename></title>
+      <title>Getting the &ps; <filename>.tar.gz</filename> file</title>
       <para>
-	A <filename>.tar.gz</filename> file containing ParaStation can be
-	obtained from the <ulink
+	A <filename>.tar.gz</filename> file containing &ps; can be obtained
+	from the <ulink
 	  url="http://www.par-tec.com/downloads/download.html">download
 	  section</ulink> of the <ulink url="http://www.par-tec.com">ParTec
 	  homepage</ulink>. The file of the linux version is usually named
@@ -423,22 +414,17 @@
 	In the case of a distributed installation become <quote>root</quote>
 	and change to the root directory <filename>/</filename>. Then just do a
       </para>
-      <programlisting>
-	gzip -cd psm-x.y.z-yyyymmdd.Linux.arch.tar.gz | tar xvf -
-      </programlisting>
+      <programlisting>	gzip -cd psm-x.y.z-yyyymmdd.Linux.arch.tar.gz | tar xvf -</programlisting>
       <para>
 	This will install all the necessary file to
 	<filename>/opt/parastation</filename>. Afterwards the script
 	<command>PSM_INSTALL</command> residing in the
 	<filename>config</filename> directory has to be called:
       </para>
-      <programlisting>
-	cd /opt/parastation/config/PSM_INSTALL -i
-      </programlisting>
+      <programlisting>	/opt/parastation/config/PSM_INSTALL -i</programlisting>
       <para>
 	This will modify some configuration files in <filename>/etc</filename>.
-	The modifications done by this script are the same discussed in some
-	detail in <xref
+	The modifications done by this script are discussed in detail in <xref
 	  linkend="Install_by_hand"/>.
       </para>
       <para>
@@ -448,22 +434,19 @@
     <simplesect>
       <title>Centralized installation</title>
       <para>
-	To install ParaStation from a <filename>.tar.gz</filename> file in a
-	centralized fashion become <quote>root</quote> and change to the root
-	directory <filename>/</filename>. Then use the command
+	The installation of &ps; from a <filename>.tar.gz</filename> file in a
+	centralized fashion is done in the following steps: Become
+	<quote>root</quote> and change to the root directory
+	<filename>/</filename>. Then use the command
       </para>
-      <programlisting>
-	gzip -cd psm-x.y.z-yyyymmdd.Linux.arch.tar.gz | tar xvf -
-      </programlisting>
+      <programlisting>	gzip -cd psm-x.y.z-yyyymmdd.Linux.arch.tar.gz | tar xvf -</programlisting>
       <para>
-	on the NFS server machine to put all the ParaStation files onto disk,
-	i.e. to <filename>/opt/parastation</filename>. To enable ParaStation on
-	this machine execute the script <command>PSM_INSTALL</command> residing
-	in ParaStation's <filename>config</filename> directory:
+	on the NFS server machine to put all the &ps; files onto disk, i.e. to
+	<filename>/opt/parastation</filename>. Enabling &ps; on this machine is
+	done by executing the script <command>PSM_INSTALL</command> residing in
+	&ps;'s <filename>config</filename> directory:
       </para>
-      <programlisting>
-	/opt/parastation/config/PSM_INSTALL -i
-      </programlisting>
+      <programlisting>	/opt/parastation/config/PSM_INSTALL -i</programlisting>
       <para>
 	The modifications done by this script will be discussed in <xref
 	  linkend="Install_by_hand"/>.
@@ -476,9 +459,7 @@
 	</citerefentry> to do so). Then mount the exported directory on all
 	nodes to <filename>/opt/parastation</filename> and run
       </para>
-      <programlisting>
-	/opt/parastation/config/PSM_INSTALL -i
-      </programlisting>
+      <programlisting>	/opt/parastation/config/PSM_INSTALL -i</programlisting>
       <para>
 	manually on all nodes.
       </para>
@@ -490,9 +471,9 @@
     <title>Installation by hand</title>
     <para>
       For full controll on the installation process you might not want to run
-      the <command>PSM_INSTALL</command> script but do the modification by
-      hand. Therefor the changes made by this script will be discussed now step
-      by step.
+      the <command>PSM_INSTALL</command> script but do the necessary
+      modifications by hand. Therefor the changes made by this script will be
+      discussed now step by step.
     </para>
     <note>
       <para>
@@ -507,15 +488,13 @@
 	  If not yet done (e.g. from a previous installation), you must create
 	  a character device:
 	</para>
-	<programlisting>
-	mknod /dev/psm c 40 0
-	chmod 666 /dev/psm
-	</programlisting>
+	<programlisting>	mknod /dev/psm c 40 0
+	chmod 666 /dev/psm</programlisting>
 	<note>
 	  <para>
-	    This has only to be done for the MyriNet version of
-	    ParaStation. You can leave out this step within the installation
-	    procedure of ParaStation FE.
+	    This has only to be done for the MyriNet version of &ps;. You can
+	    leave out this step within the installation procedure of
+	    ParaStation FE.
 	  </para>
 	</note>
       </listitem>
@@ -529,10 +508,9 @@
 	# ParaStation entries
 	psld          887/tcp     # ParaStation License Daemon Start Port
 	psid          888/tcp     # ParaStation Daemon Start Port
-	# end of ParaStation entries
-	</programlisting>
+	# end of ParaStation entries</programlisting>
 	<para>
-	  There ports are used to trigger automatice startup of ParaStation's
+	  These ports are used by the automatic startup mechanism of the &ps;
 	  daemon <xref linkend="psid"/> and license daemon <xref
 	    linkend="psld"/> via <citerefentry>
 	    <refentrytitle>inetd</refentrytitle>
@@ -579,8 +557,7 @@
 	#
 	# ParaStation license server
 	#
-	psld stream tcp nowait root /opt/parastation/bin/psld psld
-	    </programlisting>
+	psld stream tcp nowait root /opt/parastation/bin/psld psld</programlisting>
 	    <para>
 	      Now, the <citerefentry>
 		<refentrytitle>inetd</refentrytitle>
@@ -588,9 +565,7 @@
 	      </citerefentry>
 	      must be triggered to reload this file:
 	    </para>
-	    <programlisting>
-	/etc/init.d/inetd reload
-	    </programlisting>
+	    <programlisting>	/etc/init.d/inetd reload</programlisting>
 	  </listitem>
 	  <listitem id="ibh_inetd_rh">
 	    <para><emphasis role="bold">Xinetd Configuration</emphasis></para>
@@ -625,14 +600,11 @@
 	server          = /opt/parastation/bin/psld
 	server_args     =
 	log_on_failure  += USERID
-	}
-	    </programlisting>
+	}</programlisting>
 	    <para>
 	      Now, the xinetd daemon must be triggered to read this file:
 	    </para>
-	    <programlisting>
-	/etc/init.d/xinetd reload
-	    </programlisting>
+	    <programlisting>	/etc/init.d/xinetd reload</programlisting>
 	  </listitem>
 	</orderedlist>
       </listitem>
@@ -641,22 +613,72 @@
 
   <section id="docu_install">
     <title>Installation of the documentation</title>
-    <para>ToDo</para>
+    <para>
+      The &ps; documentation is delivered in three format: A PDF file, a
+      browsable HTML documentation and manual pages for all &ps; programs and
+      configuration files.
+    </para>
+    <para>
+      In order to install the documentation files first of all an up to date
+      version of the documentation has to be retrieved from the <ulink
+	url="http://www.par-tec.com/downloads/download.html">download
+	section</ulink> of the <ulink url="http://www.par-tec.com">ParTec
+	homepage</ulink>. The rpm file is usually named
+      <filename>psm_docu-x.y.z-noarch.rpm</filename>, where
+      <filename>x.y.z</filename> is the &ps; version number. A corresponding
+      <filename>.tar.gz</filename> file may be found at the same location but
+      named <filename>psm_docu-x.y.z.tar.gz</filename>.
+    </para>
+    <para>
+      For the installation of the rpm file, simply execute
+    </para>
+    <programlisting>	rpm -U psm_docu-x.y.z-noarch.rpm</programlisting>
+    <para>
+      Similary for the <filename>.tar.gz</filename> file change to the root
+      directory <filename>/</filename> and execute
+    </para>
+    <programlisting>	gzip -cd psm_docu-x.y.z.tar.gz | tar xvf -</programlisting>
+    <para>
+      All the PDF and HTML files of the documentation will be installed into
+      <filename>/opt/parastation/doc</filename>, the manual pages will reside
+      in <filename>/opt/parastation/man</filename>.
+    </para>
+    <para>
+      The intendet starting point for the HTML documentation is
+      <filename>file:///opt/parastation/doc/index.html</filename>. The PDF
+      documentation is included in a single PDF file called
+      <filename>ParaStation.pdf</filename> which may be found in the
+      <filename>/opt/parastation/doc</filename> directory. The PDF
+      documentation can be viewed using the Acrobat Reader, which can be found
+      on the Adobe homepage.
+    </para>
+    <para>
+      Hardcopies of the &ps; documentation can be obtained from ParTec,
+      although it is much easier for the customer to just print out the PDF
+      file using the Acrobat Reader.
+    </para>
+    <para>
+      In order to enable the manual pages to the users please consult the
+      documentation of the <citerefentry>
+	<refentrytitle>man</refentrytitle>
+	<manvolnum>1</manvolnum>
+      </citerefentry> command and the remark in <xref linkend="dir_struct"/> on
+      how to do this.
+    </para>
   </section>
 
   <section id="mpich_install">
     <title>Installation of MPIch</title>
-    <para>
-      In order to enable MPI over ParaStation on your cluster an adapted
-      version of <ulink
-	url="http://www-unix.mcs.anl.gov/mpi/mpich/">MPIch</ulink> also has to
-      be installed. A corresponding packet can be found within the <ulink
+    <para>In order to enable MPI over &ps; might be enabled on the cluster by
+      installing an adapted version of <ulink
+	url="http://www-unix.mcs.anl.gov/mpi/mpich/">MPIch</ulink>. A
+      corresponding packet can be found within the <ulink
 	url="http://www.par-tec.com/downloads/download.html">download
 	section</ulink> of the <ulink url="http://www.par-tec.com">ParTec
 	homepage</ulink>. The file of the linux version is usually named
       <filename>mpich_a.b.cpsx.y.z_arch.tar.gz</filename>, where
       <filename>a.b.c</filename> is the MPIch version number,
-      <filename>x.y.z</filename> is the ParaStation version number and
+      <filename>x.y.z</filename> is the &ps; version number and
       <filename>arch</filename> is the architecture, i.e. one of
       <filename>i386</filename><!--, <filename>x86-64</filename>,
       <filename>ia64</filename>--> or <filename>alpha</filename>.
@@ -667,11 +689,11 @@
     </para>
     <note>
       <para>
-	The ParaStation version number may differ from the one of the lasted
-	ParaStation release. This is due to the fact that bug fixes within
-	ParaStation that don't break compatibility of linked programs result in
-	a change of the minor version number but don't make it necessary to
-	rebuild the MPIch distribution, since the old one is still compatible.
+	The &ps; version number may differ from the one of the latest &ps;
+	release. This is due to the fact that bug fixes within &ps; that don't
+	break compatibility of linked programs result in a change of the minor
+	version number. Since the old version of MPIch is still compatible, it
+	is not necessary to rebuild the MPIch distribution in this case.
       </para>
     </note>
     <para>
@@ -681,14 +703,13 @@
     </para>
     <programlisting>
 	cd /
-	gzip -cd mpich_a.b.cpsx.y.z_arch.tar.gz | tar xvf -
-    </programlisting>
+	gzip -cd mpich_a.b.cpsx.y.z_arch.tar.gz | tar xvf -</programlisting>
     <para>
-      This will extract the ParaStation MPIch distribution to
+      This will extract the ParaStation/MPIch distribution to
       <filename>/opt/parastation/mpich</filename>. Since all these files are
       only needed for building MPI applications, but not for running them, it
-      is sufficient to do the extraction only on the compile node or front-end
-      machine.
+      is sufficient to do the extraction only on the nodes used for compilation
+      or the front-end machine.
     </para>
     <para>
       In order to enable the MPI commands to the users make sure that
@@ -705,80 +726,15 @@
   </section>
 
   <section>
-    <title>Uninstall</title>
-    <para>
-      In order to uninstall ParaStation there are different ways to do so
-      depending on the choosen way of installation.
-    </para>
-    <simplesect>
-      <title>Centralized installations</title>
-      <para>
-	First of all for any centralized installation you have to run
-      </para>
-      <programlisting>
-	/opt/parastation/config/PSM_INSTALL -u
-      </programlisting>
-      <para>
-	on all nodes that have mounted <filename>/opt/parastation</filename>
-	from the NFS server unless you want to remove the modifications done
-	while installation manually. In that case consult <xref
-	linkend="Install_by_hand"/> to find out which steps have to be made
-	undone.
-      </para>
-      <para>
-      Now it is save to remove all files installed on the the NFS server. If
-	the installation was made via <citerefentry>
-	  <refentrytitle>rpm</refentrytitle>
-	  <manvolnum>1</manvolnum>
-      </citerefentry> the corresponding packet simply has to be remove using
-      </para>
-      <programlisting>
-	rpm -e psm
-      </programlisting>
-      <para>
-	For installations done from the <filename>.tar.gz</filename> first undo
-	all modification to configuration files within
-	<filename>/etc</filename> by running
-      </para>
-      <programlisting>
-	/opt/parastation/config/PSM_INSTALL -u
-      </programlisting>
-      <para>
-	Afterwards /opt/parastation can be removed savely.
-      </para>
-    </simplesect>
-    <simplesect>
-      <title>Distributed installation</title>
-      <para>
-	If the installation was done from the RPM file, simply execute a
-      </para>
-      <programlisting>
-	rpm -e psm
-      </programlisting>
-      <para>
-	on all nodes of the cluster. Otherwise
-      </para>
-      <programlisting>
-	/opt/parastation/config/PSM_INSTALL -u
-      </programlisting>
-      <para>
-	has to be called on every node of the cluster and
-	<filename>/opt/parastation</filename> can be removed afterwards.
-      </para>
-    </simplesect>
-  </section>
-
-  <section>
     <title>Further steps</title>
     <para>
-      With this the basic installation of ParaStation is done. There remain
-      some further step until ParaStation can really be used. These include:
+      With this the basic installation of &ps; is done. There remain some
+      further step until &ps; can really be used. These include:
     </para>
     <itemizedlist>
       <listitem>
 	<para>
-	  <link linkend="config_ps">the configuration of the ParaStation
-	    system</link>
+	  <link linkend="config_ps">the configuration of the &ps; system</link>
 	</para>
       </listitem>
       <listitem>
@@ -794,14 +750,68 @@
       </listitem>
       <listitem>
 	<para>
-	  <link linkend="embed">optionally the embedding of the ParaStation
-	    system into an allready existing batch system.</link>
+	  <link linkend="embed">optionally the embedding of the &ps; system
+	    into an allready existing batch system.</link>
 	</para>
       </listitem>
     </itemizedlist>
     <para>
       These step will be discussed in the next chapter of this document.
     </para>
+  </section>
+
+  <section>
+    <title>Uninstall</title>
+    <para>
+      In order to remove &ps; from the cluster it was installed on there are
+      different ways to do so depending on the choosen way of installation.
+    </para>
+    <simplesect>
+      <title>Centralized installations</title>
+      <para>
+	First of all for any centralized installation you have to run
+      </para>
+      <programlisting>	/opt/parastation/config/PSM_INSTALL -u</programlisting>
+      <para>
+	on all nodes that have mounted <filename>/opt/parastation</filename>
+	from the NFS server unless you want to remove the modifications done
+	while installation manually. In that case consult <xref
+	linkend="Install_by_hand"/> to find out which steps have to be made
+	undone.
+      </para>
+      <para>
+      Now it is save to remove all files installed on the the NFS server. If
+	the installation was made via <citerefentry>
+	  <refentrytitle>rpm</refentrytitle>
+	  <manvolnum>1</manvolnum>
+      </citerefentry> the corresponding packet simply has to be remove using
+      </para>
+      <programlisting>	rpm -e psm</programlisting>
+      <para>
+	For installations done from the <filename>.tar.gz</filename> first undo
+	all modification to configuration files within
+	<filename>/etc</filename> by running
+      </para>
+      <programlisting>	/opt/parastation/config/PSM_INSTALL -u</programlisting>
+      <para>
+	Afterwards /opt/parastation can be removed savely.
+      </para>
+    </simplesect>
+    <simplesect>
+      <title>Distributed installation</title>
+      <para>
+	If the installation was done from the RPM file, simply execute a
+      </para>
+      <programlisting>	rpm -e psm</programlisting>
+      <para>
+	on all nodes of the cluster. Otherwise
+      </para>
+      <programlisting>	/opt/parastation/config/PSM_INSTALL -u</programlisting>
+      <para>
+	has to be called on every node of the cluster and
+	<filename>/opt/parastation</filename> can be removed afterwards.
+      </para>
+    </simplesect>
   </section>
 </chapter>
   <!-- Keep this comment at the end of the file
@@ -815,7 +825,7 @@
   sgml-always-quote-attributes:t
   sgml-indent-step:2
   sgml-indent-data:t
-  sgml-parent-document:("main.xml" "book" "book" ("title" "bookinfo"))
+  sgml-parent-document:("main.xml" "set" "book" "book" ("title" "bookinfo"))
   sgml-exposed-tags:nil
   sgml-local-catalogs:nil
   sgml-local-ecat-files:nil

@@ -24,15 +24,15 @@
     <para>
       The ParaStation license daemon sends so called multicast license pings at
       regular intervals to the ParaStation daemons <xref linkend="psid"/>. If
-      a daemons is not able to receive these ping for too long, it will suspend
+      a daemon is not able to receive these ping for too long, it will suspend
       work and shut down.
     </para>
     <para>
-      To test if the license daemon is up, the use of <xref linkend="mlisten"/>
-      is recommended. Assuming the ParaStation cluster contains N nodes, the
-      N+1st spinning bar of <xref linkend="mlisten"/> output denotes, if the
-      license daemon is running, i.e. if everything is set up correctly and the
-      license is valid.
+      In order to test if the license daemon is up, the use of <xref
+	linkend="mlisten"/> is recommended. Assuming the ParaStation cluster
+      contains N nodes, the N+1st spinning bar of <xref linkend="mlisten"/>
+      output denotes, if the license daemon is running, i.e. if everything is
+      set up correctly and the license is valid.
     </para>
   </refsect1>
   <refsect1>
@@ -49,13 +49,12 @@
 	    <citerefentry>
 	      <refentrytitle>fork</refentrytitle>
 	      <manvolnum>2</manvolnum>
-	    </citerefentry>
-	    is made on startup. Furthermore the output is much more verbose and
-	    not directed to <citerefentry>
+	    </citerefentry> is executed on startup. Furthermore the output is
+	    much more verbose and not directed to <citerefentry>
 	      <refentrytitle>syslog</refentrytitle>
 	      <manvolnum>3</manvolnum>
-	    </citerefentry>
-	    but to stderr. This option implies <option>-v</option>.
+	    </citerefentry> but to stderr. This option implies
+	    <option>-v</option>.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -134,7 +133,7 @@
   sgml-always-quote-attributes:t
   sgml-indent-step:2
   sgml-indent-data:t
-  sgml-parent-document:("main.xml" "book" "reference" "reference" ("title"))
+  sgml-parent-document:("main.xml" "set" "book" "reference" "reference" ("title"))
   sgml-exposed-tags:nil
   sgml-local-catalogs:nil
   sgml-local-ecat-files:nil
