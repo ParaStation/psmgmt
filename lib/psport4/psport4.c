@@ -7,7 +7,7 @@
 /**
  * name: Description
  *
- * $Id: psport4.c,v 1.9 2002/07/18 13:18:32 hauke Exp $
+ * $Id: psport4.c,v 1.10 2003/01/21 14:02:50 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -17,6 +17,9 @@
 /*
  * 2001-07-20: initial implementation <Jens Hauke>
  */
+
+static char vcid[] __attribute__(( unused )) =
+"$Id: psport4.c,v 1.10 2003/01/21 14:02:50 hauke Exp $";
 
 #ifdef XREF
 #include <sys/uio.h>
@@ -1530,6 +1533,7 @@ static
 void init_env( void )
 {
     intgetenv( &env_debug, ENV_DEBUG );
+    DPRINT(1,("# Version(PSFE): %s\n", vcid));
     intgetenv( &env_so_sndbuf, ENV_SO_SNDBUF );
     intgetenv( &env_so_rcvbuf, ENV_SO_RCVBUF );
     intgetenv( &env_tcp_nodelay, ENV_TCP_NODELAY );
