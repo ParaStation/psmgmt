@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.51 2003/04/03 15:41:16 eicker Exp $
+ * $Id: psidutil.c,v 1.52 2003/04/03 18:03:29 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.51 2003/04/03 15:41:16 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.52 2003/04/03 18:03:29 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -90,7 +90,7 @@ void PSID_blockSig(int block, int sig)
     }
 }
 
-char scriptOut[256];
+char scriptOut[1024];
 
 static int callScript(int hw, char *script)
 {
