@@ -1,48 +1,23 @@
 ###################################################### -*- Makefile -*- #####
-#                  ParaStation3
-#        Copyright (c) 2002 ParTec AG Karlsruhe
+#                  ParaStation
+#        Copyright (c) 2002-2003 ParTec AG Karlsruhe
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.18 2003/04/03 13:10:00 hauke Exp $
+# $Id: Makefile.in,v 1.19 2003/07/18 14:11:06 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
+#         Norbert Eicker <eicker@par-tec.de>
 #############################################################################
-#Create Only mcp's:
-#>make mcp
-#Create mcp pshal and kernelmodule:
-#>make all
-#Create pshal and kernelmodule:
-#>make allbutmcp
-#or simple
-#>make
-#
-#On Linux use KDIR to set Kerneldir and optionalOSSUF for extra info like SMP
-#>make KDIR=/usr/src/linux-2.2.16 OSSUF=_SMP
-#
-#On Problems with .kernelrelease call "make include/linux/version.h" as
-# root inside Kerneldir
 
-PSM_OSDIR := @PSM_OSDIR@
-JAVA_ENABLED=@JAVA_ENABLED@
+SUBDIRS := lib bin docu
 
-SUBDIRS := lib kern/mcp $(PSM_OSDIR) bin docu
-
-DISTDIRS := dist dist_fe dist_docu dist_mgmt
-ifeq ($(JAVA_ENABLED),yes)
-DISTDIRS += dist_gui
-endif
+DISTDIRS := dist_fe dist_docu dist_mgmt
 SUBDIRS += $(DISTDIRS)
 
-all: psm lib bin
-.PHONY: all psm docu $(SUBDIRS)
-.PHONY: dist_gui
-
-mcp:
-	$(MAKE) -C kern/mcp
-psm:	mcp
-	$(MAKE) -C $(PSM_OSDIR)
+all: lib bin
+.PHONY: all $(SUBDIRS) clean realclean
 
 lib:
 	$(MAKE) -C lib
@@ -53,11 +28,11 @@ bin:
 docu:
 	$(MAKE) -C docu
 
-clean:
-	@for i in $(SUBDIRS) ; do \
-		$(MAKE) -C $$i clean ;\
-	done
-
 $(DISTDIRS):
 	$(MAKE) -C $@
+
+clean realclean:
+	@for i in $(SUBDIRS) ; do \
+		$(MAKE) -C $$i $@ ;\
+	done
 
