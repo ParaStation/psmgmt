@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.30 2003/07/28 10:18:19 eicker Exp $
+ * $Id: psilogger.c,v 1.31 2003/07/31 11:52:01 eicker Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.30 2003/07/28 10:18:19 eicker Exp $
+ * $Id: psilogger.c,v 1.31 2003/07/31 11:52:01 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.30 2003/07/28 10:18:19 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.31 2003/07/31 11:52:01 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -88,6 +88,24 @@ int maxClients = 64;
 int daemonSock;
 
 /**
+ * @brief Close socket to daemon.
+ *
+ * Close the socket connecting the forwarder with the local daemon.
+ *
+ * @return No return value.
+ */
+void closeDaemonSock(void)
+{
+    int tmp = daemonSock;
+
+    if (daemonSock < 0) return;
+
+    daemonSock=-1;
+    FD_CLR(tmp, &myfds);
+    close(tmp);
+}
+
+/**
  * @brief Send a PSLog message.
  *
  * Send a PSLog message of length @a count referenced by @a buf with
@@ -115,8 +133,12 @@ int daemonSock;
  */
 static int sendMsg(long tid, PSLog_msg_t type, char *buf, size_t len)
 {
-    char txt[128];
     int ret = 0;
+
+    if (daemonSock < 0) {
+	errno = EBADF;
+	return -1;
+    }
 
     ret = PSLog_write(tid, type, buf, len);
 
@@ -147,8 +169,12 @@ static int sendMsg(long tid, PSLog_msg_t type, char *buf, size_t len)
  */
 static int recvMsg(PSLog_Msg_t *msg)
 {
-    char txt[128];
     int ret;
+
+    if (daemonSock < 0) {
+	errno = EBADF;
+	return -1;
+    }
 
     ret = PSLog_read(msg, NULL);
 
@@ -205,6 +231,11 @@ static int sendDaemonMsg(DDSignalMsg_t *msg)
     size_t c = msg->header.len;
     int n;
 
+    if (daemonSock < 0) {
+	errno = EBADF;
+	return -1;
+    }
+
     do {
 	n = send(daemonSock, buf, c, 0);
 	if (n < 0){
@@ -223,19 +254,13 @@ static int sendDaemonMsg(DDSignalMsg_t *msg)
 	fprintf(stderr, "PSIlogger: %s: error (%d): %s\n", __func__,
 		errno, errstr ? errstr : "UNKNOWN");
 
-        FD_CLR(daemonSock, &myfds);
-        close(daemonSock);
-
-	daemonSock = -1;
+        closeDaemonSock();
 
 	return n;
     } else if (!n) {
 	fprintf(stderr, "PSIlogger: %s(): Daemon connection lost\n", __func__);
 
-        FD_CLR(daemonSock, &myfds);
-        close(daemonSock);
-
-	daemonSock = -1;
+        closeDaemonSock();
 
 	return n;
     }
@@ -487,8 +512,6 @@ static void forwardInput(int std_in, long fwTID)
 {
     char buf[1000];
     int len;
-    long arg;
-    static int count=0;
 
     len = read(std_in, buf, sizeof(buf)>SSIZE_MAX ? SSIZE_MAX : sizeof(buf));
     switch (len) {
@@ -527,11 +550,9 @@ static void forwardInput(int std_in, long fwTID)
  */
 static void loop(void)
 {
-    int sock;            /* client socket */
     fd_set afds;
     struct timeval mytv={2,0}, atv;
     PSLog_Msg_t msg;
-    int n;               /* number of bytes received */
     int timeoutval;
     long forwardInputTID = -1; /* client TID which wants stdin */
 
@@ -824,7 +845,7 @@ int main( int argc, char**argv)
     /* call the loop which does all the work */
     loop();
 
-    close(daemonSock);
+    closeDaemonSock();
 
     for (i=3; i<argc; i++) {
 	if (verbose) fprintf(stderr, "Execute '%s'\n", argv[i]);
