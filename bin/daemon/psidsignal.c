@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidsignal.c,v 1.3 2003/03/19 17:12:52 eicker Exp $
+ * $Id: psidsignal.c,v 1.4 2003/04/07 16:30:38 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidsignal.c,v 1.3 2003/03/19 17:12:52 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidsignal.c,v 1.4 2003/04/07 16:30:38 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -20,6 +20,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidsignal.c,v 1.3 2003/03/
 #include <errno.h>
 #include <string.h>
 #include <signal.h>
+#include <time.h>
 #include <sys/types.h>
 
 #include "pscommon.h"
@@ -87,9 +88,9 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
     /* @todo Test if sending of signal was successful */
     /* This might be done via a pipe */
     /* for now, assume it was successful */
-    snprintf(errtxt, sizeof(errtxt),
-	     "PSID_kill() sent signal %d to %d", sig, pid);
-    PSID_errlog(errtxt, 2);
+/*     snprintf(errtxt, sizeof(errtxt), */
+/* 	     "PSID_kill() sent signal %d to %d", sig, pid); */
+/*     PSID_errlog(errtxt, 2); */
 
     return 0;
 }
@@ -108,6 +109,16 @@ void PSID_sendSignal(long tid, uid_t uid, long senderTid, int signal)
 	    PSID_errlog(errtxt, 1);
 	} else if (pid) {
 	    int ret, sig = (signal!=-1) ? signal : task->relativesignal;
+
+	    if (signal == -1 || signal == SIGTERM) {
+		/* Kill using SIGKILL in 2 seconds */
+		if (!task->killat) task->killat = time(NULL) + 10;
+
+		if (task->fd == -1 && pid > 0) {
+		    /* Send signal to the whole process group */
+		    pid = -pid;
+		}
+	    }
 
 	    ret = PSID_kill(pid, sig, uid);
 
