@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.12 2003/05/28 15:40:36 eicker Exp $
+# $Id: Makefile.in,v 1.13 2003/05/28 17:01:03 eicker Exp $
 #
 # @author
 #         Norbert Eicker <eicker@par-tec.de>
@@ -15,8 +15,11 @@ STYLESHEETDIR := @srcdir@/StyleSheets
 
 VPATH += @srcdir@
 
+NSGMLS = onsgmls -s -m /usr/share/sgml/CATALOG.db42xml
+
 XSLT = xsltproc
 XSLTFLAGS = --timing --nonet
+
 CP = cp -p
 
 CLASSPATH:="fop/build/fop.jar:fop/lib/batik.jar:fop/lib/jimi.jar"
@@ -51,7 +54,8 @@ USERDEPS += $(patsubst man1/%.1,%.sgml,$(USERMAN1))
 USERDEPS += $(patsubst man7/%.7,%.sgml,$(USERMAN7))
 
 
-HTMLIMAGES = ParTec.png ParaStation.png approach.png interface.png network.png
+HTMLIMAGES = M3F-SW16M.png ParTec.png ParaStation.png \
+	approach.png interface.png network.png 
 
 
 DOXYSRC = psport4.h pse.h
@@ -80,14 +84,7 @@ dirs: $(DIRS)
 # Validating
 #
 validate: $(patsubst %,%.xml,$(TARGETS))
-	@for doc in $^ ; do \
-	    res=`db2x.sh -o -W $$doc`; \
-	    if [ "$$res" != $$doc' is valid.' ]; then \
-		exit 1; \
-	    else \
-		echo $$res; \
-	    fi \
-	done
+	$(NSGMLS) -B $^
 
 #
 # Rules to create the HTML stuff
