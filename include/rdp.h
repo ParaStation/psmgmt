@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.h,v 1.15 2003/06/06 12:03:10 eicker Exp $
+ * $Id: rdp.h,v 1.16 2004/01/09 15:11:20 eicker Exp $
  *
  */
 /**
  * @file
  * Reliable Datagram Protocol for ParaStation daemon
  *
- * $Id: rdp.h,v 1.15 2003/06/06 12:03:10 eicker Exp $
+ * $Id: rdp.h,v 1.16 2004/01/09 15:11:20 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -127,6 +127,7 @@ int getDebugLevelRDP(void);
  *
  * Set the debug-level of the RDP module. Possible values are:
  *  - 0: Critical errors (usually exit). This is the default.
+ *  - 1: Uncritical errors on connection loss.
  *  - 2: Basic info about initialization.
  *  - 4: More detailed info about initialization, i.e. from initConntableRDP().
  *  - 5: Info about interrupted syscalls.
