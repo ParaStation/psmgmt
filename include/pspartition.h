@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pspartition.h,v 1.4 2004/01/22 14:54:28 eicker Exp $
+ * $Id: pspartition.h,v 1.5 2004/01/28 10:45:09 eicker Exp $
  *
  */
 /**
  * @file
  * Basic enumerations for partition creation and reservation.
  *
- * $Id: pspartition.h,v 1.4 2004/01/22 14:54:28 eicker Exp $
+ * $Id: pspartition.h,v 1.5 2004/01/28 10:45:09 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -65,16 +65,17 @@ typedef enum {
 typedef struct request{
     struct request *next;          /**< Pointer to the next request */
     PStask_ID_t tid;               /**< TaskID of the requesting process */
-    unsigned int size;       /*C*/ /**< Requested size of the partition */
-    unsigned int hwType;     /*C*/ /**< Hardware type of the requested nodes */
+    uint32_t size;           /*C*/ /**< Requested size of the partition */
+    uint32_t hwType;         /*C*/ /**< Hardware type of the requested nodes */
     uid_t uid;               /*C*/ /**< UID of the requesting process */
     gid_t gid;               /*C*/ /**< GID of the requesting process */
     PSpart_sort_t sort;      /*C*/ /**< Sort mode for sorting candidates */
     PSpart_option_t options; /*C*/ /**< Options steering partition creation */
-    unsigned int priority;   /*C*/ /**< Priority of the parallel task */
-    int num;                 /*C*/ /**< Number of nodes within request */
+    uint32_t priority;       /*C*/ /**< Priority of the parallel task */
+    int32_t num;             /*C*/ /**< Number of nodes within request */
     int numGot;                    /**< Number of nodes currently received */
     PSnodes_ID_t *nodes;           /**< List of partition candidates */
+    char deleted;                  /**< Flag to mark request for deletion */
 } PSpart_request_t;
 
 /**
@@ -172,6 +173,23 @@ size_t PSpart_encodeReq(char *buffer, size_t size, PSpart_request_t *request);
  * decode the partition request structure.
  */
 int PSpart_decodeReq(char *buffer, PSpart_request_t *request);
+
+/**
+ * @brief Print a partition request in a string.
+ *
+ * Print the description of the partition request @a request into the
+ * character array @a txt. At most @a size characters will be written
+ * into the character array @a txt.
+ *
+ * @param txt Character array to print the partition request into.
+ *
+ * @param size Size of the character array @a txt.
+ *
+ * @param task Pointer to the partition request to print.
+ *
+ * @return No return value.
+ */
+void PSpart_snprintf(char *txt, size_t size, PSpart_request_t *request);
 
 #ifdef __cplusplus
 }/* extern "C" */
