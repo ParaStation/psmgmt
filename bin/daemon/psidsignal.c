@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidsignal.c,v 1.5 2003/04/10 17:45:35 eicker Exp $
+ * $Id: psidsignal.c,v 1.6 2003/07/04 13:57:40 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidsignal.c,v 1.5 2003/04/10 17:45:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidsignal.c,v 1.6 2003/07/04 13:57:40 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -28,13 +28,11 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidsignal.c,v 1.5 2003/04/
 
 #include "psidtask.h"
 #include "psidutil.h"
+#include "psidcomm.h"
 
 #include "psidsignal.h"
 
 static char errtxt[256];
-
-/** @todo HackHackHack */
-int sendMsg(void *amsg);
 
 int PSID_kill(pid_t pid, int sig, uid_t uid)
 {
