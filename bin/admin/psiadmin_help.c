@@ -5,13 +5,13 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin_help.c,v 1.9 2002/09/18 09:18:25 eicker Exp $
+ * $Id: psiadmin_help.c,v 1.10 2003/03/06 13:29:40 eicker Exp $
  *
  * \todo More detailed messages for 'status' and 'set'.
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin_help.c,v 1.9 2002/09/18 09:18:25 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin_help.c,v 1.10 2003/03/06 13:29:40 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 static void PrintHelp(void)
@@ -273,38 +273,35 @@ static void PrintSetHelp(void)
     printf("Set command (privileged):\n");
     printf("=========================\n");
     printf("\n");
-    printf("SYNTAX:    SET {USER {username|ANY} | MAXPROC {num|ANY}"
-	   " | SMALLPACKETSIZE mask\n");
-    printf("                | RESENDTIMEOUT time | HNPEND val"
-	   " | ACKPEND val\n");
-    printf("                | DEBUGMASK mask}\n");
-    printf("      or   SET {[NO]PSIDDEBUG | RDPDEBUG level"
-	   " | RDPPKTLOSS rate\n");
-    printf("                | RDPMAXRETRANS val | MCASTDEBUG level}"
-	   " [FROM [TO]]\n");
+    printf("SYNTAX:    SET {SMALLPACKETSIZE mask | RESENDTIMEOUT time"
+	   " | HNPEND val\n");
+    printf("                | ACKPEND val}\n");
+    printf("      or   SET {USER {username|ANY} | MAXPROC {num|ANY}"
+	   " | PSIDDEBUG level\n");
+    printf("                | RDPDEBUG level | RDPPKTLOSS rate"
+	   " | RDPMAXRETRANS val\n");
+    printf("                | MCASTDEBUG level} [FROM [TO]]\n");
     NodeInfo();
-    printf("Description: SET USER {username|ANY}  grants access to the"
-	   " cluster to\n");
-    printf("                                      a particular or any"
-	   " user.\n");
-    printf("             SET MAXPROC {num|ANY}    set maximum ParaStation"
-	   " processes per\n");
-    printf("                                      node.\n");
-    printf("             SET SMALLPACKETSIZE size set the maximum size of PIO"
+    printf("Description: SET SMALLPACKETSIZE size set the maximum size of PIO"
 	   " packets\n");
     printf("                                      (in bytes).\n");
     printf("             SET RESENDTIMEOUT time   set retansmission timeout"
 	   " (in us).\n");
     printf("             SET HNPEND val           set HNPend to val.\n");
     printf("             SET ACKPEND val          set AckPend to val.\n");
-    printf("             SET DEBUGMASK mask       set the local debugmask.\n");
     printf("\n");
-    printf("             SET PSIDDEBUG            set psid to verbose mode on"
-	   " the selected\n");
-    printf("                                      nodes.\n");
-    printf("             SET NOPSIDDEBUG          set psid to non-verbose mode"
-	   " on the\n");
-    printf("                                      selected nodes.\n");
+    printf("             SET USER {username|ANY}  grants access to a"
+	   " particular or any\n");
+    printf("                                      user on the selected"
+		  " nodes.\n");
+    printf("             SET MAXPROC {num|ANY}    set maximum number of"
+	   " ParaStation\n");
+    printf("                                      processes on the selected"
+	   " nodes.\n");
+    printf("             SET PSIDDEBUG level      set verbosity level for the"
+	   " ParaStation\n");
+    printf("                                      daemon on the selected"
+	   " nodes.\n");
     printf("             SET RDPDEBUG level       set verbosity level for RDP"
 	   " protocol on\n");
     printf("                                      the selected nodes.\n");
