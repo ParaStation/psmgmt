@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: errlog.h,v 1.6 2002/08/02 10:19:21 eicker Exp $
+ * $Id: errlog.h,v 1.7 2002/08/06 08:21:33 eicker Exp $
  *
  */
 /**
  * \file
  * ParaStation ErrLog facility used within MCast and RDP.
  *
- * $Id: errlog.h,v 1.6 2002/08/02 10:19:21 eicker Exp $
+ * $Id: errlog.h,v 1.7 2002/08/06 08:21:33 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -90,7 +90,7 @@ static void setErrLogLevel(int level)
  *
  * @see setErrLogTag()
  */
-static char * getErrLogTag(void)
+static char *getErrLogTag(void)
 {
     return ErrLogTag;
 }
@@ -164,13 +164,13 @@ static void errlog(char *s, int level)
 
     if (level > levelErrLog) return;
 
-    if (!errtxt) errtxt = malloc(txtlen);
+    if (!errtxt) errtxt = (char *)malloc(txtlen);
 
     /* errtxt large enough ? */
     tmp = (ErrLogTag ? strlen(ErrLogTag) : 0) + 2 + strlen(s) + 2;
     if (txtlen < tmp) {
 	tmp += 100; /* Some extra space */
-	errtxt = realloc(errtxt, tmp);
+	errtxt = (char *)realloc(errtxt, tmp);
 	txtlen = tmp;
     }
 
@@ -211,14 +211,14 @@ static void errexit(char *s, int errorno)
     if (syslogErrLog) {
 	char* errstr = strerror(errorno);
 
-	if (!errtxt) errtxt = malloc(txtlen);
+	if (!errtxt) errtxt = (char *)malloc(txtlen);
 
 	/* errtxt large enough ? */
 	tmp = (ErrLogTag ? strlen(ErrLogTag) : 0) + 8 + strlen(s) + 2
 	    + (errstr ? strlen(errstr) : 0) + 2;
 	if (txtlen < tmp) {
 	    tmp += 100; /* Some extra space */
-	    errtxt = realloc(errtxt, tmp);
+	    errtxt = (char *)realloc(errtxt, tmp);
 	    txtlen = tmp;
 	}
 
