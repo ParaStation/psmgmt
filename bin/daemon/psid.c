@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.57 2002/07/11 11:37:14 eicker Exp $
+ * $Id: psid.c,v 1.58 2002/07/11 17:09:09 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.57 2002/07/11 11:37:14 eicker Exp $ 
+ * $Id: psid.c,v 1.58 2002/07/11 17:09:09 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.57 2002/07/11 11:37:14 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.58 2002/07/11 17:09:09 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -69,7 +69,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.57 $";
+static char psid_cvsid[] = "$Revision: 1.58 $";
 
 static int PSID_mastersock;
 
@@ -619,8 +619,6 @@ void send_TASKLIST(DDMsg_t *inmsg)
 	/*
 	 * send all tasks in the tasklist to the fd
 	 */
-	task->error = 0;
-
 	msg.header.len = sizeof(msg.header);
 	msg.header.len += PStask_encode(msg.buf, task);
 
@@ -669,8 +667,6 @@ void send_PROCESS(long tid, long msgtype, PStask_t *oldtask)
 	/*
 	 * broadcast the creation of a new task
 	 */
-	task->error = 0;
-
 	msg.header.len = sizeof(msg.header);
 	msg.header.len +=  PStask_encode(msg.buf, task);
 	msg.header.type = msgtype;
@@ -687,11 +683,6 @@ void send_PROCESS(long tid, long msgtype, PStask_t *oldtask)
 	}
 
 	broadcastMsg(&msg);
-	if (msgtype==PSP_DD_DELETEPROCESS) {
-	    decJobsMCast(PSC_getMyID(), 1, (task->group==TG_ANY));
-	} else {
-	    incJobsMCast(PSC_getMyID(), 1, (task->group==TG_ANY));
-	}
     } else {
 	snprintf(errtxt, sizeof(errtxt), "send_%sPROCESS(%s): task not found",
 		 (msgtype==PSP_DD_DELETEPROCESS) ? "DELETE" : "NEW",
@@ -701,11 +692,11 @@ void send_PROCESS(long tid, long msgtype, PStask_t *oldtask)
 }
 
 /******************************************
- *  client_task_delete()
+ *  deleteClientTask()
  *   remove the client task struct and clean up its ressources
  *
  */
-void client_task_delete(long tid)
+void deleteClientTask(long tid)
 {
     PStask_t *oldtask;       /* the task struct to be deleted */
 
@@ -716,6 +707,8 @@ void client_task_delete(long tid)
     oldtask = PStasklist_dequeue(&nodes[PSC_getMyID()].tasklist, tid);
     if (oldtask) {
 	send_PROCESS(oldtask->tid, PSP_DD_DELETEPROCESS, oldtask);
+
+	decJobsMCast(PSC_getMyID(), 1, (oldtask->group==TG_ANY));
 	/*
 	 * send all task which want to receive a signal
 	 * the signal they want to receive
@@ -730,7 +723,7 @@ void client_task_delete(long tid)
 	PStask_delete(oldtask);
     } else {
 	snprintf(errtxt, sizeof(errtxt),
-		 "client_task_delete(): task(%s) not in my tasklist",
+		 "deleteClientTask(): task(%s) not in my tasklist",
 		 printTaskNum(tid));
 	PSID_errlog(errtxt, 1);
     }
@@ -773,7 +766,7 @@ void deleteClient(int fd)
 	thisclienttid = clients[fd].tid;
 	closeConnection(fd);
 	if (thisclienttid==-1) return;
-	client_task_delete(thisclienttid);
+	deleteClientTask(thisclienttid);
     }
 }
 
@@ -968,9 +961,9 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t* msg)
     clients[fd].tid = PSC_getTID(-1, msg->header.sender);
 
     snprintf(errtxt, sizeof(errtxt), "connection request from %s"
-	     " at fd %d, group=%ld, version=%ld, uid=%d",
-	     printTaskNum(clients[fd].tid), fd, msg->group, msg->version,
-	     msg->uid);
+	     " at fd %d, group=%s, version=%ld, uid=%d",
+	     printTaskNum(clients[fd].tid), fd, PStask_groupMsg(msg->group),
+	     msg->version, msg->uid);
     PSID_errlog(errtxt, 3);
     /*
      * first check if it is a reconnection
@@ -1036,7 +1029,6 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t* msg)
      * Reject or accept connection
      */
     if (msg->group ==TG_RESET
-	|| msg->group==TG_RESETABORT
 	|| (myStatus & PSID_STATE_NOCONNECT)
 	|| !task
 	|| msg->version!=PSprotocolversion
@@ -1077,8 +1069,8 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t* msg)
 	}
 
 	snprintf(errtxt, sizeof(errtxt), "CLIENTCONNECT connection refused:"
-		 "group %ld task %s version %ld vs. %d uid %d %d jobs %d %d",
-		 msg->group, printTaskNum(task->tid),
+		 "group %s task %s version %ld vs. %d uid %d %d jobs %d %d",
+		 PStask_groupMsg(msg->group), printTaskNum(task->tid),
 		 msg->version, PSprotocolversion,
 		 msg->uid, UIDLimit, info.jobs.normal, MAXPROCLimit);
 	PSID_errlog(errtxt, 1);
@@ -1112,8 +1104,10 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t* msg)
 	outmsg.instdir[sizeof(outmsg.instdir)-1] = '\0';
 	strncpy(outmsg.psidvers, psid_cvsid, sizeof(outmsg.psidvers));
 	outmsg.psidvers[sizeof(outmsg.psidvers)-1] = '\0';
-	if (sendMsg(&outmsg)>0)
+	if (sendMsg(&outmsg)>0) {
+	    incJobsMCast(PSC_getMyID(), 1, (task->group==TG_ANY));
 	    send_PROCESS(clients[fd].tid, PSP_DD_NEWPROCESS, NULL);
+	}
     }
 }
 
@@ -1216,6 +1210,7 @@ void msg_DAEMONCONNECT(DDConnectMsg_t *msg)
 void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 {
     PStask_t *task;
+    DDErrorMsg_t answer;
     int err = 0;
 
     char tasktxt[128];
@@ -1230,6 +1225,9 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	     printTaskNum(msg->header.sender), msg->header.len, tasktxt);
     PSID_errlog(errtxt, 5);
 
+    answer.header.dest = msg->header.sender;
+    answer.header.sender = PSC_getMyTID();
+    answer.header.len = sizeof(answer);
     /*
      * If starting is not allowed on my host, test if someone tries
      * to do so anyhow.
@@ -1237,57 +1235,45 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
     if (!nodes[PSC_getMyID()].starter /* starting not allowed */
 	&& PSC_getID(msg->header.sender)==PSC_getMyID()) { /* from my node */
 
-	task->error = EACCES;
 	snprintf(errtxt, sizeof(errtxt), "SPAWNREQUEST: spawning not allowed");
-
 	PSID_errlog(errtxt, 0);
 
-	msg->header.len =  PStask_encode(msg->buf, task);
-	msg->header.len += sizeof(msg->header);
-	msg->header.type = PSP_DD_SPAWNFAILED;
-	msg->header.dest = msg->header.sender;
-	msg->header.sender = PSC_getMyTID();
+	PStask_delete(task);
 
-	sendMsg(msg);
-    }
+	answer.header.type = PSP_DD_SPAWNFAILED;
+	answer.error = EACCES;
 
-    if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
+	sendMsg(&answer);
+
+    } else if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
 	/*
 	 * this is a request for my node
 	 */
 	/*
-	 * first check if resource for this task is available
-	 * and if ok try to start the task
+	 * try to start the task
 	 */
 	err = PSID_taskspawn(task);
 
-	msg->header.type = (err ? PSP_DD_SPAWNFAILED : PSP_DD_SPAWNSUCCESS);
+	answer.header.type = (err ? PSP_DD_SPAWNFAILED : PSP_DD_SPAWNSUCCESS);
+	answer.error = err;
 
 	if (!err) {
 	    PStasklist_enqueue(&spawned_tasks_waiting_for_connect, task);
+	    answer.header.sender = task->tid;
 	} else {
 	    char *errstr = strerror(err);
 	    snprintf(errtxt, sizeof(errtxt),
 		     "taskspawn returned err=%d: %s", err,
 		     errstr ? errstr : "UNKNOWN");
 	    PSID_errlog(errtxt, 3);
+
+	    PStask_delete(task);
 	}
 
 	/*
 	 * send the existence or failure of the request
 	 */
-	task->error = err;
-
-	msg->header.len = PStask_encode(msg->buf, task);
-	msg->header.len += sizeof(msg->header);
-
-	msg->header.dest = msg->header.sender;
-	msg->header.sender = PSC_getMyTID();
-
-	sendMsg(msg);
-	if (err) {
-	    PStask_delete(task);
-	}
+	sendMsg(&answer);
     } else {
 	/*
 	 * this is a request for a remote site.
@@ -1308,12 +1294,12 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	     * It's not possible to spawn
 	     */
 	    if (PSC_getID(msg->header.dest)>=PSC_getNrOfNodes()) {
-		task->error = EHOSTUNREACH;
+		answer.error = EHOSTUNREACH;
 		snprintf(errtxt, sizeof(errtxt),
 			 "SPAWNREQUEST: node %d does not exist",
 			 PSC_getID(msg->header.dest));
 	    } else {
-		task->error = EHOSTDOWN;
+		answer.error = EHOSTDOWN;
 		snprintf(errtxt, sizeof(errtxt),
 			 "SPAWNREQUEST: node %d is down",
 			 PSC_getID(msg->header.dest));
@@ -1321,13 +1307,9 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 
 	    PSID_errlog(errtxt, 0);
 
-	    msg->header.len =  PStask_encode(msg->buf, task);
-	    msg->header.len += sizeof(msg->header);
-	    msg->header.type = PSP_DD_SPAWNFAILED;
-	    msg->header.dest = msg->header.sender;
-	    msg->header.sender = PSC_getMyTID();
+	    answer.header.type = PSP_DD_SPAWNFAILED;
 
-	    sendMsg(msg);
+	    sendMsg(&answer);
 	}
 
 	PStask_delete(task);
@@ -1634,25 +1616,17 @@ void msg_SPAWNSUCCESS(DDBufferMsg_t *msg)
 /******************************************
  *  msg_SPAWNFAILED()
  */
-void msg_SPAWNFAILED(DDBufferMsg_t *msg)
+void msg_SPAWNFAILED(DDErrorMsg_t *msg)
 {
-    PStask_t* task;
-
-    task = PStask_new();
-
-    PStask_decode(msg->buf, task);
-
     snprintf(errtxt, sizeof(errtxt),
-	     "SPAWNFAILED error = %ld sending msg to parent(%s) on my node",
-	     task->error, printTaskNum(task->ptid));
+	     "SPAWNFAILED error = %d sending msg to parent(%s) on my node",
+	     msg->error, printTaskNum(msg->header.dest));
     PSID_errlog(errtxt, 1);
 
     /*
      * send the initiator a failure msg
      */
     sendMsg(msg);
-
-    PStask_delete(task);
 }
 
 /******************************************
@@ -1764,7 +1738,7 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 		DDErrorMsg_t errmsg;
 		errmsg.header.len = sizeof(errmsg);
 		errmsg.request = inmsg->type;
-		errmsg.err = EHOSTDOWN;
+		errmsg.error = EHOSTDOWN;
 		errmsg.header.type = PSP_DD_SYSTEMERROR;
 		errmsg.header.dest = inmsg->sender;
 		errmsg.header.sender = PSC_getMyTID();
@@ -1775,7 +1749,7 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 	    DDErrorMsg_t errmsg;
 	    errmsg.header.len = sizeof(errmsg);
 	    errmsg.request = inmsg->type;
-	    errmsg.err = EHOSTUNREACH;
+	    errmsg.error = EHOSTUNREACH;
 	    errmsg.header.type = PSP_DD_SYSTEMERROR;
 	    errmsg.header.dest = inmsg->sender;
 	    errmsg.header.sender = PSC_getMyTID();
@@ -2072,7 +2046,7 @@ void msg_GETOPTION(DDOptionMsg_t* msg)
 		DDErrorMsg_t errmsg;
 		errmsg.header.len = sizeof(errmsg);
 		errmsg.request = msg->header.type;
-		errmsg.err = EHOSTDOWN;
+		errmsg.error = EHOSTDOWN;
 		errmsg.header.type = PSP_DD_SYSTEMERROR;
 		errmsg.header.dest = msg->header.sender;
 		errmsg.header.sender = PSC_getMyTID();
@@ -2083,7 +2057,7 @@ void msg_GETOPTION(DDOptionMsg_t* msg)
 	    DDErrorMsg_t errmsg;
 	    errmsg.header.len = sizeof(errmsg);
 	    errmsg.request = msg->header.type;
-	    errmsg.err = EHOSTUNREACH;
+	    errmsg.error = EHOSTUNREACH;
 	    errmsg.header.type = PSP_DD_SYSTEMERROR;
 	    errmsg.header.dest = msg->header.sender;
 	    errmsg.header.sender = PSC_getMyTID();
@@ -2354,7 +2328,7 @@ void msg_LOADREQUEST(DDMsg_t* inmsg)
 	DDErrorMsg_t errmsg;
 	errmsg.header.len = sizeof(errmsg);
 	errmsg.request = inmsg->type;
-	errmsg.err = EHOSTDOWN;
+	errmsg.error = EHOSTDOWN;
 	errmsg.header.len = sizeof(errmsg);
 	errmsg.header.type = PSP_DD_SYSTEMERROR;
 	errmsg.header.dest = inmsg->sender;
@@ -2393,7 +2367,7 @@ void msg_PROCREQUEST(DDMsg_t* inmsg)
 	DDErrorMsg_t errmsg;
 	errmsg.header.len = sizeof(errmsg);
 	errmsg.request = inmsg->type;
-	errmsg.err = EHOSTDOWN;
+	errmsg.error = EHOSTDOWN;
 	errmsg.header.len = sizeof(errmsg);
 	errmsg.header.type = PSP_DD_SYSTEMERROR;
 	errmsg.header.dest = inmsg->sender;
@@ -2612,7 +2586,7 @@ void psicontrol(int fd)
 	    msg_CHILDDEAD((DDMsg_t*)&msg);
 	    break;
 	case PSP_DD_SPAWNFAILED:
-	    msg_SPAWNFAILED(&msg);
+	    msg_SPAWNFAILED((DDErrorMsg_t*)&msg);
 	    break;
 	case PSP_DD_SPAWNFINISH:
 	    msg_SPAWNFINISH((DDMsg_t*)&msg);
@@ -2873,7 +2847,7 @@ void RDPCallBack(int msgid, void* buf)
 		DDErrorMsg_t errmsg;
 		errmsg.header.len = sizeof(errmsg);
 		errmsg.request = msg->type;
-		errmsg.err = EHOSTUNREACH;
+		errmsg.error = EHOSTUNREACH;
 		errmsg.header.type = PSP_DD_SYSTEMERROR;
 		errmsg.header.dest = msg->sender;
 		errmsg.header.sender = PSC_getMyTID();
@@ -2882,22 +2856,15 @@ void RDPCallBack(int msgid, void* buf)
 	    }
 	    case PSP_DD_SPAWNREQUEST:
 	    {
-		DDBufferMsg_t *spawnmsg = (DDBufferMsg_t *)msg;
-		PStask_t *task;
+		DDErrorMsg_t answer;
 
-		task = PStask_new();
-		PStask_decode(spawnmsg->buf, task);
+		answer.header.type = PSP_DD_SPAWNFAILED;
+		answer.header.dest = msg->sender;
+		answer.header.sender = PSC_getMyTID();
+		answer.header.len = sizeof(answer);
+		answer.error = EHOSTDOWN;
 
-		task->error = EHOSTDOWN;
-
-		spawnmsg->header.len =  PStask_encode(spawnmsg->buf, task);
-		spawnmsg->header.len += sizeof(spawnmsg->header);
-		spawnmsg->header.type = PSP_DD_SPAWNFAILED;
-		spawnmsg->header.dest = spawnmsg->header.sender;
-		spawnmsg->header.sender = PSC_getMyTID();
-		sendMsg(msg);
-
-		PStask_delete(task);
+		sendMsg(&answer);
 		break;
 	    }
 	    default:
@@ -3145,7 +3112,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.57 $";
+    char revision[] = "$Revision: 1.58 $";
     snprintf(errtxt, sizeof(errtxt), "psid %s\b ", revision+11);
     PSID_errlog(errtxt, 0);
 }
