@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.27 2003/02/17 10:50:21 eicker Exp $
+ * $Id: info.c,v 1.28 2003/03/06 13:57:10 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.27 2003/02/17 10:50:21 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.28 2003/03/06 13:57:10 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -26,6 +26,8 @@ static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.27 2003/02/17 10
 #include "psilog.h"
 
 #include "info.h"
+
+static char errtxt[128];
 
 /**
  * @todo Docu
@@ -45,7 +47,8 @@ static int INFO_receive(INFO_info_t what, void *buffer, size_t size,
 {
     DDBufferMsg_t msg;
     if (PSI_recvMsg(&msg)<0) {
-	PSI_errexit("INFO_receive(): read", errno);
+	snprintf(errtxt, sizeof(errtxt), "%s: read", __func__);
+	PSI_errexit(errtxt, errno);
     } else {
 	switch (msg.header.type) {
 	case PSP_CD_TASKINFO:
@@ -76,7 +79,7 @@ static int INFO_receive(INFO_info_t what, void *buffer, size_t size,
 		    if (size < sizeof(*taskinfo)) {
 			if (verbose) {
 			    fprintf(stderr,
-				    "INFO_receive: task-buffer to small\n");
+				    "%s: task-buffer to small\n", __func__);
 			}
 			break;
 		    }
@@ -120,7 +123,7 @@ static int INFO_receive(INFO_info_t what, void *buffer, size_t size,
 
 	    if (omsg->count*sizeof(omsg->opt[0].value) > size ) {
 		if (verbose) {
-		    fprintf(stderr, "INFO_receive: option-buffer to small\n");
+		    fprintf(stderr, "%s: option-buffer to small\n", __func__);
 		}
 		break;
 	    }
@@ -134,15 +137,15 @@ static int INFO_receive(INFO_info_t what, void *buffer, size_t size,
 	    if (verbose) {
 		char* errtxt;
 		errtxt = strerror(((DDErrorMsg_t*)&msg)->error);
-		printf("INFO_receive: error in command %s : %s\n", 
-		       PSP_printMsg(((DDErrorMsg_t*)&msg)->request),
+		printf("%s: error in command %s : %s\n",
+		       __func__, PSP_printMsg(((DDErrorMsg_t*)&msg)->request),
 		       errtxt ? errtxt : "UNKNOWN");
 	    }
 	    break;
 	}
 	default:
-	    fprintf(stderr, "INFO_receive: received unexpected msgtype '%s'.",
-		    PSP_printMsg(msg.header.type));
+	    fprintf(stderr, "%s: received unexpected msgtype '%s'.",
+		    __func__, PSP_printMsg(msg.header.type));
 	    }
     }
 
@@ -161,10 +164,11 @@ int INFO_request_rdpstatus(int nodeno, void *buffer, size_t size, int verbose)
     msg.header.len += sizeof(int);
 
     if (PSI_sendMsg(&msg)<0) {
-	PSI_errexit("INFO_request_rdpstatus(): write", errno);
+	snprintf(errtxt, sizeof(errtxt), "%s: write", __func__);
+	PSI_errexit(errtxt, errno);
     }
 
-    if (INFO_receive(INFO_GETINFO, buffer, size, verbose)
+    if (receive(INFO_GETINFO, buffer, size, verbose)
 	== PSP_CD_RDPSTATUSRESPONSE) {
 	return size;
     }
@@ -185,10 +189,11 @@ int INFO_request_mcaststatus(int nodeno,
     msg.header.len += sizeof(int);
 
     if (PSI_sendMsg(&msg)<0) {
-	PSI_errexit("INFO_request_rdpstatus(): write", errno);
+	snprintf(errtxt, sizeof(errtxt), "%s: write", __func__);
+	PSI_errexit(errtxt, errno);
     }
 
-    if (INFO_receive(INFO_GETINFO, buffer, size, verbose)
+    if (receive(INFO_GETINFO, buffer, size, verbose)
 	== PSP_CD_MCASTSTATUSRESPONSE) {
 	return size;
     }
@@ -207,10 +212,11 @@ int INFO_request_countstatus(int nodeno,
     msg.len = sizeof(msg);
 
     if (PSI_sendMsg(&msg)<0) {
-	PSI_errexit("INFO_request_countstatus(): write", errno);
+	snprintf(errtxt, sizeof(errtxt), "%s: write", __func__);
+	PSI_errexit(errtxt, errno);
     }
 
-    if (INFO_receive(INFO_GETINFO, buffer, size, verbose)
+    if (receive(INFO_GETINFO, buffer, size, verbose)
 	== PSP_CD_COUNTSTATUSRESPONSE) {
 	return size;
     }
@@ -228,10 +234,11 @@ int INFO_request_hoststatus(void *buffer, size_t size, int verbose)
     msg.len = sizeof(msg);
 
     if (PSI_sendMsg(&msg)<0) {
-	PSI_errexit("INFO_request_hoststatus(): write", errno);
+	snprintf(errtxt, sizeof(errtxt), "%s: write", __func__);
+	PSI_errexit(errtxt, errno);
     }
 
-    if (INFO_receive(INFO_GETINFO, buffer, size, verbose)
+    if (receive(INFO_GETINFO, buffer, size, verbose)
 	== PSP_CD_HOSTSTATUSRESPONSE) {
 	return size;
     }
@@ -253,10 +260,11 @@ int INFO_request_host(unsigned int address, int verbose)
     msg.header.len += sizeof(address);
 
     if (PSI_sendMsg(&msg)<0) {
-	PSI_errexit("INFO_request_host(): write", errno);
+	snprintf(errtxt, sizeof(errtxt), "%s: write", __func__);
+	PSI_errexit(errtxt, errno);
     }
 
-    if (INFO_receive(INFO_GETINFO, &host, sizeof(host), verbose)
+    if (receive(INFO_GETINFO, &host, sizeof(host), verbose)
 	== PSP_CD_HOSTRESPONSE) {
 	return host;
     }
@@ -278,10 +286,11 @@ unsigned int INFO_request_node(int node, int verbose)
     msg.header.len += sizeof(node);
 
     if (PSI_sendMsg(&msg)<0) {
-	PSI_errexit("INFO_request_node(): write", errno);
+	snprintf(errtxt, sizeof(errtxt), "%s: write", __func__);
+	PSI_errexit(errtxt, errno);
     }
 
-    if (INFO_receive(INFO_GETINFO, &address, sizeof(address), verbose)
+    if (receive(INFO_GETINFO, &address, sizeof(address), verbose)
 	== PSP_CD_NODERESPONSE) {
 	if (address == INADDR_ANY) {
 	    return -1;
@@ -303,10 +312,11 @@ int INFO_request_nodelist(NodelistEntry_t *buffer, size_t size, int verbose)
     msg.len = sizeof(msg);
 
     if (PSI_sendMsg(&msg)<0) {
-	PSI_errexit("INFO_request_hostlist(): write", errno);
+	snprintf(errtxt, sizeof(errtxt), "%s: write", __func__);
+	PSI_errexit(errtxt, errno);
     }
 
-    if (INFO_receive(INFO_GETINFO, buffer, size, verbose)
+    if (receive(INFO_GETINFO, buffer, size, verbose)
 	== PSP_CD_NODELISTRESPONSE) {
 	return size;
     }
@@ -328,17 +338,18 @@ int INFO_request_tasklist(int nodeno, INFO_taskinfo_t taskinfo[], size_t size,
     msg.len = sizeof(msg);
 
     if (PSI_sendMsg(&msg)<0) {
-	PSI_errexit("INFO_request_tasklist(): write", errno);
+	snprintf(errtxt, sizeof(errtxt), "%s: write", __func__);
+	PSI_errexit(errtxt, errno);
     }
 
     maxtask = size/sizeof(*taskinfo);
     tasknum = 0;
     do {
 	if (tasknum<maxtask) {
-	    msgtype = INFO_receive(INFO_GETINFO, &taskinfo[tasknum],
+	    msgtype = receive(INFO_GETINFO, &taskinfo[tasknum],
 				   sizeof(*taskinfo), verbose);
 	} else {
-	    msgtype = INFO_receive(INFO_GETINFO, NULL, 0, verbose);
+	    msgtype = receive(INFO_GETINFO, NULL, 0, verbose);
 	}
 	tasknum++;
     } while (msgtype == PSP_CD_TASKINFO);
@@ -358,12 +369,13 @@ long INFO_request_taskinfo(long tid, INFO_info_t what, int verbose)
     msg.len = sizeof(msg);
 
     if (PSI_sendMsg(&msg)<0) {
-	PSI_errexit("INFO_request_taskinfo(): write", errno);
+	snprintf(errtxt, sizeof(errtxt), "%s: write", __func__);
+	PSI_errexit(errtxt, errno);
     }
 
     errno = 8888;
     do {
-	msgtype = INFO_receive(what, &answer, sizeof(answer), verbose);
+	msgtype = receive(what, &answer, sizeof(answer), verbose);
     } while (msgtype == PSP_CD_TASKINFO);
 
 
@@ -382,10 +394,11 @@ long INFO_request_taskinfo(long tid, INFO_info_t what, int verbose)
 /*      msg.header.len = sizeof(msg.header); */
 
 /*      if (PSI_sendMsg(&msg)<0) { */
-/*  	PSI_errexit("INFO_request_load(): write", errno); */
+/* 	snprintf(errtxt, sizeof(errtxt), "%s: write", __func__); */
+/* 	PSI_errexit(errtxt, errno); */
 /*      } */
 
-/*      msgtype = INFO_receive(INFO_GETINFO, &answer, sizeof(answer), verbose); */
+/*      msgtype = receive(INFO_GETINFO, &answer, sizeof(answer), verbose); */
 
 /*      if (msgtype == PSP_CD_LOADRESPONSE) { */
 /*  	return answer; */
@@ -406,10 +419,11 @@ long INFO_request_taskinfo(long tid, INFO_info_t what, int verbose)
 /*      msg.header.len = sizeof(msg.header); */
 
 /*      if (PSI_sendMsg(&msg)<0) { */
-/*  	PSI_errexit("INFO_request_proc(): write", errno); */
+/* 	snprintf(errtxt, sizeof(errtxt), "%s: write", __func__); */
+/* 	PSI_errexit(errtxt, errno); */
 /*      } */
 
-/*      msgtype = INFO_receive(INFO_GETINFO, &answer, sizeof(answer), verbose); */
+/*      msgtype = receive(INFO_GETINFO, &answer, sizeof(answer), verbose); */
 
 /*      if (msgtype == PSP_CD_PROCRESPONSE) { */
 /*  	return answer; */
@@ -425,7 +439,8 @@ int INFO_request_option(unsigned short node, int num, long option[],
     DDOptionMsg_t msg;
 
     if (num > DDOptionMsgMax) {
-	PSI_errlog("INFO_request_options(): too many options.", 0);
+	snprintf(errtxt, sizeof(errtxt), "%s: too many options", __func__);
+	PSI_errlog(errtxt, 0);
 	return -1;
     }
 
@@ -440,10 +455,11 @@ int INFO_request_option(unsigned short node, int num, long option[],
     msg.count = num;
 
     if (PSI_sendMsg(&msg)<0) {
-	PSI_errexit("INFO_request_option(): write", errno);
+	snprintf(errtxt, sizeof(errtxt), "%s: write", __func__);
+	PSI_errexit(errtxt, errno);
     }
 
-    msgtype = INFO_receive(INFO_GETINFO, value, sizeof(*value)*num, verbose);
+    msgtype = receive(INFO_GETINFO, value, sizeof(*value)*num, verbose);
 
     if (msgtype == PSP_DD_SETOPTION) {
 	return num;
