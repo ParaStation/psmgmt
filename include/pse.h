@@ -1,18 +1,18 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * pse.h
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.h,v 1.16 2003/08/04 15:17:34 eicker Exp $
+ * $Id: pse.h,v 1.17 2003/09/12 13:54:40 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation Programming Environment
  *
- * $Id: pse.h,v 1.16 2003/08/04 15:17:34 eicker Exp $
+ * $Id: pse.h,v 1.17 2003/09/12 13:54:40 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -43,16 +43,35 @@ extern "C" {
 void PSE_initialize(void);
 
 /**
+ * @brief Create a partition.
+ *
+ * Create a partition of size @a num. This is mainly a wrapper around
+ * @ref PSI_createPartition(), where the @a hwType used is set via
+ * the @ref PSE_setHWType() / @ref PSE_setHWList() interface.
+ *
+ * Any process spawned by a process of the parallel task will reside
+ * within the partition bound to this task. Therefore this function
+ * has to be called befor any of @ref PSE_spawnMaster() or @ref
+ * PSE_spawnTasks().
+ *
+ * @param num The number of nodes to be resevered for the partition.
+ *
+ * @return On success, the number of nodes in the partition is
+ * returned or -1 if an error occurred.
+ *
+ * @see PSE_setHWType() PSE_setHWList() PSI_createPartition()
+ * PSE_spawnMaster() PSE_spawnTasks()
+ */
+int PSE_getPartition(unsigned int num);
+
+/**
  * @brief Get the size of the process group.
  *
  * Get the actual size of the process group.
  *
  * @return On success, the actual size of the process group is
  * returned, or -1, if an error occurred.
- *
- * @warning Not implemented, yet.
- * @todo Not implemented, yet.
- * */
+ */
 int PSE_getSize(void);
 
 /**
@@ -72,11 +91,14 @@ int PSE_getSize(void);
  *
  * The rank will never change during a process's lifetime.
  *
+ * As long as processes are spawned via PSE_spawnTasks() which
+ * acutally calls PSI_spawn(), the uniqueness of process ranks is
+ * secured. If processes are spawned via PSI_spawnRank(), the user
+ * itself is responsible for the uniqueness of process ranks within a
+ * parallel task.
+ *
  * @return On success, the actual rank of the process within the group
  * is returned, or -2, if an error occurred.
- *
- * @warning The rank may not be unique by now.
- * @todo Make the rank unique within a process group.
  *
  * @see PSE_getSize(), PSE_spawnMaster(), PSE_spawnTasks()
  * */
@@ -140,19 +162,20 @@ void PSE_registerToParent(void);
 void PSE_setUID(uid_t uid);
 
 /**
- * @brief Set hardware-type for PSE_spawnMaster().
+ * @brief Set hardware-type for PSE_getPartition().
  *
- * Set the hardware-type for @ref PSE_spawnMaster().
+ * Set the hardware-type for @ref PSE_getPartition().
  *
- * If @ref PSE_spawnMaster() is called, the node pool is constituted
- * from nodes which suppport all the hardware requested in @a hwType.
- * Subsequent calls to @ref PSE_spawnTasks() will only spawn within
- * this node pool. For details on the spawning strategy look @ref
+ * If @ref PSE_getPartition() is called, the partition is constituted
+ * from nodes which suppport all the hardware-types requested in @a
+ * hwType. Subsequent calls to @ref PSE_spawnMaster() and @ref
+ * PSE_spawnTasks() will only spawn processes within this
+ * partition. For details on the spawning strategy look @ref
  * spawn_strategy "here".
  *
- * If no call to this function is made before @ref PSE_spawnMaster()
- * is called, the default hardware-type 0 is used. This means, any
- * node is accepted.
+ * If no call to this function or to @ref PSE_HWList() is made before
+ * @ref PSE_getPartition() is called, the default hardware-type 0 is
+ * used. This means, any node is accepted.
  *
  * @param hwType The hardware-type nodes have to support to get a
  * process spawned on. @a hwType is a bitwise or of the hardware-types
@@ -161,11 +184,44 @@ void PSE_setUID(uid_t uid);
  *
  * @return No return value.
  *
- * @see PSE_spawnMaster()
+ * @see PSE_getPartition() PSE_setHWList()
  * */
 void PSE_setHWType(unsigned int hwType);
 
-/* return -1, if one or more hwtypes are unknown */
+
+/**
+ * @brief Set hardware-type for PSE_getPartition().
+ *
+ * Alternative form to set the hardware-type for @ref PSE_getPartition().
+ *
+ * If @ref PSE_getPartition() is called, the partition is constituted
+ * from nodes which suppport all the hardware-types requested in @a
+ * hwList.  Subsequent calls to @ref PSE_spawnMaster() and @ref
+ * PSE_spawnTasks() will only spawn processes within this
+ * partition. For details on the spawning strategy look @ref
+ * spawn_strategy "here".
+ *
+ * If no call to this function or to @ref PSE_setHWType() is made
+ * before @ref PSE_getPartition() is called, the default hardware-type
+ * 0 is used. This means, any node is accepted.
+ *
+ * If one ore more of the hardware-types passed to this function are
+ * unknown, the default hardware-type is set to the remaining ones
+ * anyhow. The occurence of unknown hardware types is displayed by a
+ * return value of -1.
+ *
+ * @param hwList A NULL terminated list of hardware names nodes have
+ * to support to get a process spawned on. These will be resolved
+ * using the parastation.conf configuration file, i.e. each hardware
+ * name has to be defined there. Afterwards a @a hwType variable is
+ * constructed and registered via @ref PSE_setHWType().
+ *
+ * @return If one or more hardware-types are unknown, -1 is
+ * returned. Or 0, if all hardware-types are known. The default
+ * hardware-type is set to the known ones in any case.
+ *
+ * @see PSE_getPartition() PSE_setHWType()
+ */
 int PSE_setHWList(char **hwList);
 
 /**
