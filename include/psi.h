@@ -48,9 +48,6 @@ extern int PSI_masternode;     /* number of my masternode (or -1) */
 extern int PSI_masterport;     /* port of my master process */
 extern int PSI_myrank;         /* rank inside my process-group */
 
-extern char** PSI_environ;     /* Environment for spawned processes */
-extern int    PSI_environc;
-
 extern char *PSI_hoststatus;
 
 extern long PSI_options;
@@ -122,48 +119,6 @@ int PSI_mastersocket(unsigned long hostaddr);
 
 /*----------------------------------------------------------------------*/
 /* 
- * PSI_putenv()
- *  
- *  puts the environment variable to the environemnt, which child processes
- *  will get.
- *  
- * PARAMETERS
- *  string    Points to a name=value string.
- * RETURN  0 on success
- *        -1 on error
- */
-int PSI_putenv(char* string);
-
-/*----------------------------------------------------------------------*/
-/* 
- * PSI_getenv()
- *  
- *  The PSI_getenv() function searches the environment list for a string
- *  of the form name=value, and returns a pointer to a string containing
- *  the corresponding value for name.
- *  
- * PARAMETERS
- *      name      Specifies the name of an environment variable.
- * RETURN  0 on success
- *        -1 on error
- */
-char* PSI_getenv(char* name);
-
-/*----------------------------------------------------------------------*/
-/* 
- * PSI_clearenv()
- *  
- *  The PSI_clearenv() function clears the process PSI_ environment.  No PSI_ environment
- *  variables are defined immediately after a call to clearenv().  
- *  
- * PARAMETERS
- * RETURN  0 on success
-*          -1 on error
- */
-int PSI_clearenv();
-
-/*----------------------------------------------------------------------*/
-/* 
  * PSI_notifydead()
  *  
  *  PSI_notifydead requests the signal sig, when the child with task identifier tid
@@ -177,19 +132,6 @@ int PSI_clearenv();
  */
 int PSI_notifydead(long tid, int sig);
 
-/*----- Working area ---------------------------------------------------*/
-/* 
- * PSI_getload()
- *  
- *  PSI_getload asks the ParaStation system of the load for a given node.
- *  
- * PARAMETERS
- *         nodenr the number of the node to be asked.
- * RETURN  the load of the given node
- *         -1 on error
- */
-double PSI_getload(unsigned short nodenr);
-
 /*----------------------------------------------------------------------*/
 /* 
  * PSI_whodied()
@@ -202,6 +144,19 @@ double PSI_getload(unsigned short nodenr);
  *         -1 on error
  */
 long PSI_whodied(int sig);
+
+/*----- Working area ---------------------------------------------------*/
+/* 
+ * PSI_getload()
+ *  
+ *  PSI_getload asks the ParaStation system of the load for a given node.
+ *  
+ * PARAMETERS
+ *         nodenr the number of the node to be asked.
+ * RETURN  the load of the given node
+ *         -1 on error
+ */
+double PSI_getload(unsigned short nodenr);
 
 char * PSI_LookupInstalldir(void);
 void PSI_SetInstalldir(char *installdir);
