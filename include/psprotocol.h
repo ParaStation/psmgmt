@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.15 2003/04/03 15:26:49 eicker Exp $
+ * $Id: psprotocol.h,v 1.16 2003/04/10 17:25:40 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation client-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.15 2003/04/03 15:26:49 eicker Exp $
+ * $Id: psprotocol.h,v 1.16 2003/04/10 17:25:40 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -32,7 +32,7 @@ extern "C" {
 #endif
 
 /** Unique version number of the high-level protocol */
-#define PSprotocolversion  324
+#define PSprotocolVersion  325
 
 /** The location of the UNIX socket used to contact the daemon. */
 #define PSmasterSocketName "/var/run/parastation.sock"
@@ -244,6 +244,8 @@ typedef struct {
 			      - PSP_CD_WHODIED: unused
 			      - PSP_CD_SIGNAL: uid of the sender.
 			      - PSP_DD_CHILDDEAD: unused. */
+    int pervasive;         /**< flag to send signal to the whole task.
+			      Only used within PSP_CD_SIGNAL messages. */
 } DDSignalMsg_t;
 
 /**
