@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.5 2002/01/07 09:49:25 eicker Exp $
+ * $Id: psld.c,v 1.6 2002/01/07 13:54:10 eicker Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Deamon
  *
- * $Id: psld.c,v 1.5 2002/01/07 09:49:25 eicker Exp $ 
+ * $Id: psld.c,v 1.6 2002/01/07 13:54:10 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.5 2002/01/07 09:49:25 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.6 2002/01/07 13:54:10 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -292,12 +292,21 @@ void sighandler(int sig)
 }
 
 /*
+ * Print version info
+ */
+void version(void)
+{
+    char revision[] = "$Revision: 1.6 $";
+    snprintf(errtxt, sizeof(errtxt), "psld %s\b \n", revision+11);
+    ERR_OUT(errtxt);
+}
+
+/*
  * Print usage message
  */
 void usage(void)
 {
-    snprintf(errtxt, sizeof(errtxt), "usage: psld [-h] [-d] [-D] [-f file]");
-    ERR_OUT(errtxt);
+    ERR_OUT("usage: psld [-h] [-v] [-d] [-D] [-f file]");
 }
 
 /*
@@ -313,19 +322,23 @@ void help(void)
     snprintf(errtxt, sizeof(errtxt), " -f file : use 'file' as config-file"
 	     " (default is psidir/config/psm.config).");
     ERR_OUT(errtxt);
-    snprintf(errtxt, sizeof(errtxt), " -h,      : print this screen.");
+    snprintf(errtxt, sizeof(errtxt),
+	     " -v,      : output version information and exit.\n");
+    ERR_OUT(errtxt);
+    snprintf(errtxt, sizeof(errtxt),
+	     " -h,      : display this help and exit.\n");
     ERR_OUT(errtxt);
 }
 
 int main(int argc, char *argv[])
 {
-    int c, errflg = 0, helpflg = 0, dofork = 1;
+    int c, errflg = 0, helpflg = 0, verflg = 0, dofork = 1;
     int msock;
     int interface;
     struct timeval tv;
 
     optarg = NULL;
-    while ( (c = getopt(argc,argv, "dDhHf:")) != -1 ) {
+    while ( (c = getopt(argc,argv, "dDhHvVf:")) != -1 ) {
 	switch (c) {
 	case 'd':
 	    dofork=0;
@@ -339,6 +352,10 @@ int main(int argc, char *argv[])
 	case 'f' :
 	    Configfile = strdup( optarg );
 	    break;
+        case 'v':
+        case 'V':
+	    verflg = 1;
+            break;
         case 'h':
         case 'H':
             helpflg = 1;
@@ -358,6 +375,12 @@ int main(int argc, char *argv[])
 
     if (helpflg) {
 	help();
+	if (usesyslog) closelog();
+	return 0;
+    }
+
+    if (verflg) {
+	version();
 	if (usesyslog) closelog();
 	return 0;
     }
