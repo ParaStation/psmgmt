@@ -83,7 +83,7 @@ void
 PSI_logerror(char *s)
 {
     if (PSI_isoption(PSP_OSYSLOG)){
-	SYSLOG(6,(LOG_ERR, "PSIlib [%lx]: %s", PSI_mytid,s));
+	SYSLOG(6,(LOG_ERR, "PSIlib [%lx]: %s", PSI_mytid, s));
     }else{
 	if (PSI_isoption(PSP_OTIMESTAMP)){
 	    struct tm*  now;                    /* current time */ 
