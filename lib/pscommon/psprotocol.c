@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.c,v 1.5 2003/02/10 18:26:06 eicker Exp $
+ * $Id: psprotocol.c,v 1.6 2003/03/11 10:14:57 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psprotocol.c,v 1.5 2003/02/10 18:26:06 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psprotocol.c,v 1.6 2003/03/11 10:14:57 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -48,6 +48,10 @@ struct PSPctrlmessages_t{
     { PSP_CD_HOSTRESPONSE       ,"PSP_CD_HOSTRESPONSE"       },
     { PSP_CD_NODELISTREQUEST    ,"PSP_CD_NODELISTREQUEST"    },
     { PSP_CD_NODELISTRESPONSE   ,"PSP_CD_NODELISTRESPONSE"   },
+    { PSP_CD_NODEREQUEST        ,"PSP_CD_NODEREQUEST"        },
+    { PSP_CD_NODERESPONSE       ,"PSP_CD_NODERESPONSE"       },
+    { PSP_CD_PARTITIONREQUEST   ,"PSP_CD_PARTITIONREQUEST"   },
+    { PSP_CD_PARTITIONRESPONSE  ,"PSP_CD_PARTITIONRESPONSE"  },
 //    { PSP_CD_LOADREQUEST        ,"PSP_CD_LOADREQUEST"        },
 //    { PSP_CD_LOADRESPONSE       ,"PSP_CD_LOADRESPONSE"       },
 //    { PSP_CD_PROCREQUEST        ,"PSP_CD_PROCREQUEST"        },
