@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.h,v 1.15 2002/07/11 16:51:21 eicker Exp $
+ * $Id: psi.h,v 1.16 2002/07/18 13:02:50 eicker Exp $
  *
  */
 /**
  * @file
  * psi: User-functions for interaction with the ParaStation system.
  *
- * $Id: psi.h,v 1.15 2002/07/11 16:51:21 eicker Exp $
+ * $Id: psi.h,v 1.16 2002/07/18 13:02:50 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -31,6 +31,15 @@ extern "C" {
 #endif
 #endif
 
+/*
+ * @todo Are there public variables really needed?
+ *
+ * PSI_msock only needed by logger (-> to be removed for new logger)
+ * PSI_loggernode/PSI_loggerport (-> to be removed for new logger)
+ * PSI_myrank -> new call PSI_getRank()
+ * PSI_psidversion -> new call PSI_getDaemonVersion()
+ *
+ */
 extern int PSI_msock;                 /* master socket to connect psid */
 
 extern unsigned int PSI_loggernode;   /* IP number of my loggernode (or 0) */
@@ -48,14 +57,14 @@ extern char *PSI_psidversion;  /** CVS versionstring of psid */
  *
  *
  */
-int PSI_clientinit(PStask_group_t taskGroup);
+int PSI_initClient(PStask_group_t taskGroup);
 
 /***************************************************************************
  *       PSI_clientexit()
  *
  *   reconfigs all variable so that a PSI_clientinit() will be successful
  */
-int PSI_clientexit(void);
+int PSI_exitClient(void);
 
 /**
  * @brief Send a message.
@@ -83,8 +92,6 @@ int PSI_sendMsg(void *msg);
  * error, -1 is returned, and errno is set appropriately.
  */
 int PSI_recvMsg(void *msg);
-
-// int PSI_daemonsocket(unsigned int hostaddr);
 
 /*----------------------------------------------------------------------*/
 /* 
@@ -116,10 +123,6 @@ int PSI_notifydead(long tid, int sig);
  */
 int PSI_release(long tid);
 
-int PSI_send_finish(long parenttid);
-
-int PSI_recv_finish(int num);
-
 /*----------------------------------------------------------------------*/
 /* 
  * PSI_whodied()
@@ -132,6 +135,10 @@ int PSI_recv_finish(int num);
  *         -1 on error
  */
 long PSI_whodied(int sig);
+
+int PSI_sendFinish(long parenttid);
+
+int PSI_recvFinish(int num);
 
 #ifdef __cplusplus
 }/* extern "C" */
