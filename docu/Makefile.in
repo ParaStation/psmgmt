@@ -4,14 +4,14 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.17 2004/01/21 11:24:10 eicker Exp $
+# $Id: Makefile.in,v 1.18 2004/03/09 18:20:03 eicker Exp $
 #
 # @author
 #         Norbert Eicker <eicker@par-tec.de>
 #############################################################################
 
-TOP_SRCDIR := @top_srcdir@
 STYLESHEETDIR := @srcdir@/StyleSheets
+DOXYGEN_ENABLED := @DOXYGEN_ENABLED@
 
 VPATH += @srcdir@
 
@@ -59,10 +59,10 @@ HTMLIMAGES = M3F-SW16M.png ParTec.png ParaStation.png \
 	approach.png interface.png network.png 
 
 
-DOXYSRC = psport4.h pse.h
+DOXYSRC = @top_srcdir@/include/pse.h @PSCOM_DIR@/include/psport4.h
 DOXYDIR = html/api
 DOXYINDEX = $(DOXYDIR)/index.html
-DOXYMANS = $(patsubst %,man/man3/%.3,$(DOXYSRC))
+DOXYMANS = $(patsubst %,man/man3/%.3,$(notdir $(DOXYSRC)))
 
 HTMLDIRS = html/adminguide html/userguide html/images
 MANDIRS = man/man1 man/man3 man/man5 man/man8 man/man7
@@ -181,12 +181,16 @@ pdf/userguide.fo: $(USERDEPS)
 #
 # Doxygen Files
 #
+ifeq ($(DOXYGEN_ENABLED),yes)
 doxygen: $(DOXYINDEX) $(DOXYMANS)
+endif
 
-$(DOXYINDEX) $(DOXYMANS): $(patsubst %,$(TOP_SRCDIR)/include/%,$(DOXYSRC))
+$(DOXYINDEX) $(DOXYMANS): $(DOXYSRC)
 	@ doxx=`which doxygen`x ; \
         if [ `basename "$$doxx"` = doxygenx ]; then \
             doxygen; \
+	else \
+	    echo "No doxygen found"; \
         fi
 
 #
