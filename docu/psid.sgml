@@ -37,14 +37,20 @@
       <citerefentry>
 	<refentrytitle>inetd</refentrytitle>
 	<manvolnum>8</manvolnum>
-      </citerefentry> daemon is starting up psid automatically. The daemon can
-      also be started using the command line. Parameters can be given at the
-      command line or in the inetd configuration file (<citerefentry>
+      </citerefentry> daemon is starting up <command>psid</command>
+      automatically. The daemon can also be started using the command line.
+      Parameters can be given at the command line or in the <citerefentry>
+	<refentrytitle>inetd</refentrytitle>
+	<manvolnum>8</manvolnum>
+      </citerefentry> configuration file (<citerefentry>
 	<refentrytitle>inetd.conf</refentrytitle>
 	<manvolnum>5</manvolnum>
       </citerefentry>). Most of the parameters can also be given in the
-      ParaStation configuration file (<xref linkend="parastation_conf" />). The
-      ParaStation daemon must always run with root privileges.
+      ParaStation configuration file <xref linkend="parastation_conf" />.
+    </para>
+
+    <para>
+      The ParaStation daemon must always run with root privileges.
     </para>
 
     <para>
@@ -84,19 +90,19 @@
     </itemizedlist>
 
     <para>
-      The psid can restrict the access to the communication subsystem to a
-      specific user or a maximum number of processes. This enables the cluster
-      to run in an optimized way, since multiple processes slow down
-      application execution due to scheduling overhead. (See <xref
+      The ParaStation daemon can restrict the access to the communication
+      subsystem to a specific user or a maximum number of processes. This
+      enables the cluster to run in an optimized way, since multiple processes
+      slow down application execution due to scheduling overhead. (See <xref
 	linkend="psiadmin"/>, <command>set user</command> and <command>set
 	maxproc</command> for this features.)
     </para>
 
     <para>
-      All psids are connected to each other. They exchange local information
-      and transmit demands of local processes to the psid of the destination
-      node. With this cooperation, the ParaStation system offers a distributed
-      resource management.
+      All ParaStation daemons are connected to each other. They exchange local
+      information and transmit demands of local processes to the
+      <command>psid</command> of the destination node. With this cooperation,
+      the ParaStation system offers a distributed resource management.
     </para>
 
     <para>
@@ -110,7 +116,7 @@
     </para>
 
     <para>
-      The ParaStation daemon checks periodically if the ParaStation licesense
+      The ParaStation daemon checks periodically if the ParaStation license
       daemon <xref linkend="psld"/> is running. If the license daemon is not
       running for a period of time, the ParaStation daemon shuts down
       operation. If this happens, please check your log file.
