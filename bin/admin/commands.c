@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: commands.c,v 1.1 2003/08/15 13:26:06 eicker Exp $
+ * $Id: commands.c,v 1.2 2003/08/27 12:46:41 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.1 2003/08/15 13:26:06 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.2 2003/08/27 12:46:41 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -45,7 +45,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.1 2003/08/1
 
 #include "commands.h"
 
-char commandsversion[] = "$Revision: 1.1 $";
+char commandsversion[] = "$Revision: 1.2 $";
 
 static int doRestart = 0;
 
@@ -99,9 +99,7 @@ void PSIADM_AddNode(char *nl)
 	    PSI_sendMsg(&msg);
 	}
     }
-
     /* @todo check the success and repeat the startup */
-    return;
 }
 
 void PSIADM_ShutdownNode(char *nl)
@@ -137,8 +135,68 @@ void PSIADM_ShutdownNode(char *nl)
 	msg.dest = PSC_getTID(-1, 0);
 	PSI_sendMsg(&msg);
     }
+}
 
-    return;
+void PSIADM_HWStart(int hw, char *nl)
+{
+    int i, hwnum = INFO_request_hwnum(1);
+    DDBufferMsg_t msg;
+
+    if (geteuid()) {
+	printf("Insufficient priviledge\n");
+	return;
+    }
+
+    if (hw < -1 || hw >= hwnum) return;
+
+    msg.header.type = PSP_CD_HWSTART;
+    msg.header.sender = PSC_getMyTID();
+    msg.header.len = sizeof(msg.header) + sizeof(int);
+    *(int *)msg.buf = hw;
+
+    INFO_request_hoststatus(hoststatus, PSC_getNrOfNodes(), 1);
+
+    for (i = 0; i < PSC_getNrOfNodes(); i++) {
+	if (nl && !nl[i]) continue;
+
+	if (hoststatus[i]) {
+	    msg.header.dest = PSC_getTID(i, 0);
+	    PSI_sendMsg(&msg);
+	} else {
+	    printf("%4d down.\n",i);
+	}
+    }
+}
+
+void PSIADM_HWStop(int hw, char *nl)
+{
+    int i, hwnum = INFO_request_hwnum(1);
+    DDBufferMsg_t msg;
+
+    if (geteuid()) {
+	printf("Insufficient priviledge\n");
+	return;
+    }
+
+    if (hw < -1 || hw >= hwnum) return;
+
+    msg.header.type = PSP_CD_HWSTOP;
+    msg.header.sender = PSC_getMyTID();
+    msg.header.len = sizeof(msg.header) + sizeof(int);
+    *(int *)msg.buf = hw;
+
+    INFO_request_hoststatus(hoststatus, PSC_getNrOfNodes(), 1);
+
+    for (i = 0; i < PSC_getNrOfNodes(); i++) {
+	if (nl && !nl[i]) continue;
+
+	if (hoststatus[i]) {
+	    msg.header.dest = PSC_getTID(i, 0);
+	    PSI_sendMsg(&msg);
+	} else {
+	    printf("%4d down.\n",i);
+	}
+    }
 }
 
 void PSIADM_NodeStat(char *nl)
@@ -156,8 +214,6 @@ void PSIADM_NodeStat(char *nl)
 	    printf("%4d down.\n",i);
 	}
     }
-
-    return;
 }
 
 static char statusline[1024];
@@ -172,8 +228,6 @@ void PSIADM_RDPStat(char *nl)
 	INFO_request_rdpstatus(i, statusline, sizeof(statusline), 1);
 	printf("%s", statusline);
     }
-
-    return;
 }
 
 void PSIADM_MCastStat(char *nl)
@@ -186,8 +240,6 @@ void PSIADM_MCastStat(char *nl)
 	INFO_request_mcaststatus(i, statusline, sizeof(statusline), 1);
 	printf("%s", statusline);
     }
-
-    return;
 }
 
 static int getHeaderLine(int hw)
@@ -214,7 +266,6 @@ static int getHeaderLine(int hw)
 	    }
 	}
     }
-
     return i;
 }
 
@@ -258,8 +309,6 @@ void PSIADM_CountStat(int hw, char *nl)
 	    printf("\n");
 	}
     }
-
-    return;
 }
 
 #define NUMTASKS 20
@@ -304,7 +353,6 @@ void PSIADM_ProcStat(char *nl, int full)
 	    printf("%4d\tdown\n", i);
 	}
     }
-    return;
 }
 
 void PSIADM_LoadStat(char *nl)
@@ -327,8 +375,6 @@ void PSIADM_LoadStat(char *nl)
 	}
 	
     }
-
-    return;
 }
 
 void PSIADM_HWStat(char *nl)
@@ -347,8 +393,6 @@ void PSIADM_HWStat(char *nl)
 	    printf("%4d\t down\n", i);
 	}
     }
-
-    return;
 }
 
 void PSIADM_SetParam(int type, int value, char *nl)
@@ -407,8 +451,6 @@ void PSIADM_SetParam(int type, int value, char *nl)
 	    PSI_sendMsg(&msg);
 	}
     }
-
-    return;
 }
 
 void PSIADM_ShowParam(int type, char *nl)
@@ -460,8 +502,6 @@ void PSIADM_ShowParam(int type, char *nl)
 	    printf("Cannot get\n");
 	}
     }
-
-    return;
 }
 
 void PSIADM_sighandler(int sig)
@@ -489,11 +529,6 @@ void PSIADM_sighandler(int sig)
     }
 }
 
-/*
- *   what : 1=HW
- *   first: first node to be reset
- *   last : last node to be reset
- */
 void PSIADM_Reset(int reset_hw, char *nl)
 {
     DDBufferMsg_t msg;
@@ -535,8 +570,6 @@ void PSIADM_Reset(int reset_hw, char *nl)
 	msg.header.dest = PSC_getTID(-1, 0);
 	PSI_sendMsg(&msg);
     }
-
-    return;
 }
 
 void PSIADM_TestNetwork(int mode)
@@ -555,7 +588,6 @@ void PSIADM_TestNetwork(int mode)
     if (system(command) < 0) {
 	printf("Cant execute %s : %s\n", command, strerror(errno));
     }
-    return;
 }
 
 void PSIADM_KillProc(long tid, int sig)
@@ -567,6 +599,4 @@ void PSIADM_KillProc(long tid, int sig)
     } else {
 	PSI_kill(tid, sig);
     }
-
-    return;
 }
