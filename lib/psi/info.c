@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.17 2002/05/10 09:55:38 eicker Exp $
+ * $Id: info.c,v 1.18 2002/07/03 20:32:44 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.17 2002/05/10 09:55:38 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.18 2002/07/03 20:32:44 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -17,9 +17,12 @@ static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.17 2002/05/10 09
 #include <string.h>
 #include <errno.h>
 
-#include "psp.h"
-#include "psitask.h"
+#include "pscommon.h"
+#include "psprotocol.h"
+#include "pstask.h"
+
 #include "psi.h"
+#include "psilog.h"
 
 #include "info.h"
 
@@ -35,13 +38,12 @@ static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.17 2002/05/10 09
  * int size: size of buffer
  * RETURN type of the msg received
  */
-static int INFO_receive(INFO_info_t what, void* buffer, size_t size,
+static int INFO_receive(INFO_info_t what, void *buffer, size_t size,
 			int verbose)
 {
     DDBufferMsg_t msg;
-    if (ClientMsgRecv(&msg)<0) {
-	perror("INFO_receive: read");
-	exit(-1);
+    if (PSI_recvMsg(&msg)<0) {
+	PSI_errexit("INFO_receive(): read", errno);
     } else {
 	switch (msg.header.type) {
 	case PSP_CD_TASKINFO:
@@ -95,12 +97,12 @@ static int INFO_receive(INFO_info_t what, void* buffer, size_t size,
 	case PSP_CD_RDPSTATUSRESPONSE:
 	case PSP_CD_MCASTSTATUSRESPONSE:
 	case PSP_CD_HOSTSTATUSRESPONSE:
-	case PSP_CD_HOSTLISTRESPONSE:
+	case PSP_CD_NODELISTRESPONSE:
 	case PSP_CD_HOSTRESPONSE:
 	    memcpy(buffer, msg.buf, size);
 	    break;
-	case PSP_CD_LOADRES:
-	case PSP_CD_PROCRES:
+	case PSP_CD_LOADRESPONSE:
+	case PSP_CD_PROCRESPONSE:
 	    /* changed from 5min to 1 min avg load jh 2001-12-21 */
 	    *(double *)buffer = ((DDLoadMsg_t*)&msg)->load[0];
 	    break;
@@ -140,20 +142,19 @@ static int INFO_receive(INFO_info_t what, void* buffer, size_t size,
     return msg.header.type;
 }
 
-int INFO_request_rdpstatus(int nodeno, void* buffer, int size, int verbose)
+int INFO_request_rdpstatus(int nodeno, void* buffer, size_t size, int verbose)
 {
     DDBufferMsg_t msg;
 
     msg.header.type = PSP_CD_RDPSTATUSREQUEST;
-    msg.header.dest = PSI_gettid(PSI_myid,0);
-    msg.header.sender = PSI_mytid;
+    msg.header.dest = PSC_getTID(-1, 0);
+    msg.header.sender = PSC_getMyTID();
     msg.header.len = sizeof(msg.header);
     *(int *)msg.buf = nodeno;
     msg.header.len += sizeof(int);
 
-    if (ClientMsgSend(&msg)<0) {
-	perror("INFO_request_rdpstatus: write");
-	exit(-1);
+    if (PSI_sendMsg(&msg)<0) {
+	PSI_errexit("INFO_request_rdpstatus(): write", errno);
     }
 
     if (INFO_receive(INFO_GETINFO, buffer, size, verbose)
@@ -164,20 +165,20 @@ int INFO_request_rdpstatus(int nodeno, void* buffer, int size, int verbose)
     return -1;
 }
 
-int INFO_request_mcaststatus(int nodeno, void* buffer, int size, int verbose)
+int INFO_request_mcaststatus(int nodeno,
+			     void* buffer, size_t size, int verbose)
 {
     DDBufferMsg_t msg;
 
     msg.header.type = PSP_CD_MCASTSTATUSREQUEST;
-    msg.header.dest = PSI_gettid(PSI_myid,0);
-    msg.header.sender = PSI_mytid;
+    msg.header.dest = PSC_getTID(-1, 0);
+    msg.header.sender = PSC_getMyTID();
     msg.header.len = sizeof(msg.header);
     *(int *)msg.buf = nodeno;
     msg.header.len += sizeof(int);
 
-    if (ClientMsgSend(&msg)<0) {
-	perror("INFO_request_rdpstatus: write");
-	exit(-1);
+    if (PSI_sendMsg(&msg)<0) {
+	PSI_errexit("INFO_request_rdpstatus(): write", errno);
     }
 
     if (INFO_receive(INFO_GETINFO, buffer, size, verbose)
@@ -188,18 +189,18 @@ int INFO_request_mcaststatus(int nodeno, void* buffer, int size, int verbose)
     return -1;
 }
 
-int INFO_request_countstatus(int nodeno, void* buffer, int size, int verbose)
+int INFO_request_countstatus(int nodeno,
+			     void* buffer, size_t size, int verbose)
 {
     DDMsg_t msg;
 
     msg.type = PSP_CD_COUNTSTATUSREQUEST;
-    msg.dest = PSI_gettid(nodeno,0);
-    msg.sender = PSI_mytid;
+    msg.dest = PSC_getTID(nodeno, 0);
+    msg.sender = PSC_getMyTID();
     msg.len = sizeof(msg);
 
-    if (ClientMsgSend(&msg)<0) {
-	perror("INFO_request_countstatus: write");
-	exit(-1);
+    if (PSI_sendMsg(&msg)<0) {
+	PSI_errexit("INFO_request_countstatus(): write", errno);
     }
 
     if (INFO_receive(INFO_GETINFO, buffer, size, verbose)
@@ -210,18 +211,17 @@ int INFO_request_countstatus(int nodeno, void* buffer, int size, int verbose)
     return -1;
 }
 
-int INFO_request_hoststatus(void* buffer, int size, int verbose)
+int INFO_request_hoststatus(void* buffer, size_t size, int verbose)
 {
     DDMsg_t msg;
 
     msg.type = PSP_CD_HOSTSTATUSREQUEST;
-    msg.dest = PSI_gettid(PSI_myid,0);
-    msg.sender = PSI_mytid;
+    msg.dest = PSC_getTID(-1, 0);
+    msg.sender = PSC_getMyTID();
     msg.len = sizeof(msg);
 
-    if (ClientMsgSend(&msg)<0) {
-	perror("INFO_request_hoststatus: write");
-	exit(-1);
+    if (PSI_sendMsg(&msg)<0) {
+	PSI_errexit("INFO_request_hoststatus(): write", errno);
     }
 
     if (INFO_receive(INFO_GETINFO, buffer, size, verbose)
@@ -238,15 +238,15 @@ int INFO_request_host(unsigned int address, int verbose)
     int host;
 
     msg.header.type = PSP_CD_HOSTREQUEST;
-    msg.header.dest = PSI_gettid(PSI_myid,0);
-    msg.header.sender = PSI_mytid;
+    msg.header.dest = PSC_getTID(-1, 0);
+    msg.header.sender = PSC_getMyTID();
     msg.header.len = sizeof(msg.header);
+
     memcpy(msg.buf, &address, sizeof(unsigned int));
     msg.header.len += sizeof(address);
 
-    if (ClientMsgSend(&msg)<0) {
-	perror("INFO_request_host: write");
-	exit(-1);
+    if (PSI_sendMsg(&msg)<0) {
+	PSI_errexit("INFO_request_host(): write", errno);
     }
 
     if (INFO_receive(INFO_GETINFO, &host, sizeof(host), verbose)
@@ -257,22 +257,37 @@ int INFO_request_host(unsigned int address, int verbose)
     return -1;
 }
 
-int INFO_request_hostlist(void *buffer, int size, int verbose)
+/**
+ * @brief Get a tested and sorted nodelist from the daemon
+ *
+ * Bla blub @todo Move to info.h
+ *
+ * @param hwType The kind of communication hardware the requested
+ * nodes have to have.
+ * @param sort The sorting criterium used to build the list
+ * @param nodesLen The number of preset nodes in @a nodes.
+ * @param nodes The nodes from which the list should be build. If @a nodes
+ * is empty (i.e. @a nodesLen is 0), the list is build from all nodes.
+ * Actually @a nodes has to be @a numNodes long to make a correct receive
+ * possible.
+ * @param numNodes The number of nodes that should be returned in @a nodes.
+ *
+ */
+int INFO_request_nodelist(NodelistEntry_t *buffer, size_t size, int verbose)
 {
     DDMsg_t msg;
 
-    msg.type = PSP_CD_HOSTLISTREQUEST;
-    msg.dest = PSI_gettid(PSI_myid,0);
-    msg.sender = PSI_mytid;
+    msg.type = PSP_CD_NODELISTREQUEST;
+    msg.dest = PSC_getTID(-1, 0);
+    msg.sender = PSC_getMyTID();
     msg.len = sizeof(msg);
 
-    if (ClientMsgSend(&msg)<0) {
-	perror("INFO_request_hostlist: write");
-	exit(-1);
+    if (PSI_sendMsg(&msg)<0) {
+	PSI_errexit("INFO_request_hostlist(): write", errno);
     }
 
     if (INFO_receive(INFO_GETINFO, buffer, size, verbose)
-	== PSP_CD_HOSTLISTRESPONSE) {
+	== PSP_CD_NODELISTRESPONSE) {
 	return size;
     }
 
@@ -286,13 +301,12 @@ int INFO_request_tasklist(int nodeno, INFO_taskinfo_t taskinfo[], int size,
     int msgtype, tasknum, maxtask;
 
     msg.type = PSP_CD_TASKLISTREQUEST;
-    msg.dest = PSI_gettid(nodeno,0);
-    msg.sender = PSI_mytid;
+    msg.dest = PSC_getTID(nodeno, 0);
+    msg.sender = PSC_getMyTID();
     msg.len = sizeof(msg);
 
-    if (ClientMsgSend(&msg)<0) {
-	perror("INFO_request_tasklist: write");
-	exit(-1);
+    if (PSI_sendMsg(&msg)<0) {
+	PSI_errexit("INFO_request_tasklist(): write", errno);
     }
 
     maxtask = size/sizeof(*taskinfo);
@@ -319,12 +333,11 @@ long INFO_request_taskinfo(long tid, INFO_info_t what, int verbose)
 
     msg.type = PSP_CD_TASKINFOREQUEST;
     msg.dest = tid;
-    msg.sender = PSI_mytid;
+    msg.sender = PSC_getMyTID();
     msg.len = sizeof(msg);
 
-    if (ClientMsgSend(&msg)<0) {
-	perror("INFO_request_taskinfo: write");
-	exit(-1);
+    if (PSI_sendMsg(&msg)<0) {
+	PSI_errexit("INFO_request_taskinfo(): write", errno);
     }
 
     errno = 8888;
@@ -342,19 +355,18 @@ double INFO_request_load(unsigned short node, int verbose)
     double answer;
     DDBufferMsg_t msg;
 
-    msg.header.type = PSP_CD_LOADREQ;
-    msg.header.sender = PSI_mytid;
-    msg.header.dest = PSI_gettid(node, 0);
+    msg.header.type = PSP_CD_LOADREQUEST;
+    msg.header.dest = PSC_getTID(node, 0);
+    msg.header.sender = PSC_getMyTID();
     msg.header.len = sizeof(msg.header);
 
-    if (ClientMsgSend(&msg)<0) {
-	perror("INFO_request_load: write");
-	exit(-1);
+    if (PSI_sendMsg(&msg)<0) {
+	PSI_errexit("INFO_request_load(): write", errno);
     }
 
     msgtype = INFO_receive(INFO_GETINFO, &answer, sizeof(answer), verbose);
 
-    if (msgtype == PSP_CD_LOADRES) {
+    if (msgtype == PSP_CD_LOADRESPONSE) {
 	return answer;
     } else {
 	return -1.0;
@@ -367,19 +379,18 @@ double INFO_request_proc(unsigned short node, int verbose)
     double answer;
     DDBufferMsg_t msg;
 
-    msg.header.type = PSP_CD_PROCREQ;
-    msg.header.sender = PSI_mytid;
-    msg.header.dest = PSI_gettid(node, 0);
+    msg.header.type = PSP_CD_PROCREQUEST;
+    msg.header.dest = PSC_getTID(node, 0);
+    msg.header.sender = PSC_getMyTID();
     msg.header.len = sizeof(msg.header);
 
-    if (ClientMsgSend(&msg)<0) {
-	perror("INFO_request_proc: write");
-	exit(-1);
+    if (PSI_sendMsg(&msg)<0) {
+	PSI_errexit("INFO_request_proc(): write", errno);
     }
 
     msgtype = INFO_receive(INFO_GETINFO, &answer, sizeof(answer), verbose);
 
-    if (msgtype == PSP_CD_PROCRES) {
+    if (msgtype == PSP_CD_PROCRESPONSE) {
 	return answer;
     } else {
 	return -1.0;
@@ -393,23 +404,22 @@ int INFO_request_option(unsigned short node, int num, long option[],
     DDOptionMsg_t msg;
 
     if (num > DDOptionMsgMax) {
-	fprintf(stderr, "INFO_request_options: too many options.\n");
+	PSI_errlog("INFO_request_options(): too many options.", 0);
 	return -1;
     }
 
     msg.header.type = PSP_DD_GETOPTION;
+    msg.header.dest = PSC_getTID(node, 0);
+    msg.header.sender = PSC_getMyTID();
     msg.header.len = sizeof(msg);
-    msg.header.sender = PSI_mytid;
-    msg.header.dest = PSI_gettid(node, 0);
 
     for (i=0; i<num; i++) {
 	msg.opt[i].option = option[i];
     }
     msg.count = num;
 
-    if (ClientMsgSend(&msg)<0) {
-	perror("INFO_request_option: write");
-	exit(-1);
+    if (PSI_sendMsg(&msg)<0) {
+	PSI_errexit("INFO_request_option(): write", errno);
     }
 
     msgtype = INFO_receive(INFO_GETINFO, value, sizeof(*value)*num, verbose);
