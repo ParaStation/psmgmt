@@ -52,8 +52,8 @@ nodename-4       3
 Licenseserver	nodename
 Licensekey	insert_licensekey_here
 
-Module		alpha_Linux_2.2.19-7.0.8.redhat/psm.o
-Routingfile	switch16.route
+Module		/opt/parastation/bin/modules/alpha_Linux_2.2.19-7.0.8.redhat/psm.o
+Routingfile	/opt/parastation/config/switch16.route
 
 #
 # Configuration of the ParaStation daemon process (psid)
@@ -61,10 +61,10 @@ Routingfile	switch16.route
 
 # smallpacketsize       250
 # resendtimeout         2048
-psidselecttime        20 # every 20 sec selecttimeout
+psidselecttime        10 # every 20 sec selecttimeout
 declaredeadinterval   10 # declare other daemon after 10* psidselectime as dead
 sysloglevel           4  # sensitivity of the syslog
-syslog LOG_LOCAL1        # Don't log as daemon but as local1
+# syslog LOG_LOCAL1        # Don't log as daemon but as local1
 mcast                 238
 
 
