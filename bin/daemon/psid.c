@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.127 2004/01/28 18:00:14 eicker Exp $
+ * $Id: psid.c,v 1.128 2004/01/29 17:29:57 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.127 2004/01/28 18:00:14 eicker Exp $ 
+ * $Id: psid.c,v 1.128 2004/01/29 17:29:57 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.127 2004/01/28 18:00:14 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.128 2004/01/29 17:29:57 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -75,7 +75,7 @@ struct timeval selectTime;
 
 static struct timeval shutdownTimer;
 
-char psid_cvsid[] = "$Revision: 1.127 $";
+char psid_cvsid[] = "$Revision: 1.128 $";
 
 /**
  * Master socket (type UNIX) for clients to connect. Setup within @ref
@@ -784,31 +784,19 @@ static void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	 */
 	sendMsg(&answer);
     } else {
-	/*
-	 * this is a request for a remote site.
-	 */
-	if (PSnodes_isUp(PSC_getID(msg->header.dest))) {
-	    /* the daemon of the requested node is connected to me */
-	    snprintf(errtxt, sizeof(errtxt), "%s: forwarding to node %d",
-		     __func__, PSC_getID(msg->header.dest));
-	    PSID_errlog(errtxt, 1);
+	/* request for a remote site. */
+	if (!PSnodes_isUp(PSC_getID(msg->header.dest))) {
+	    send_DAEMONCONNECT(PSC_getID(msg->header.dest));
+	}
 
-	    sendMsg(msg);
-	} else {
+	snprintf(errtxt, sizeof(errtxt), "%s: forwarding to node %d",
+		 __func__, PSC_getID(msg->header.dest));
+	PSID_errlog(errtxt, 1);
+
+	if (sendMsg(msg) < 0) {
 	    answer.header.type = PSP_CD_SPAWNFAILED;
 	    answer.header.sender = msg->header.dest;
-
-	    if (PSC_getID(msg->header.dest)>=PSC_getNrOfNodes()) {
-		answer.error = EHOSTUNREACH;
-		snprintf(errtxt, sizeof(errtxt), "%s: node %d does not exist",
-			 __func__, PSC_getID(msg->header.dest));
-	    } else {
-		answer.error = EHOSTDOWN;
-		snprintf(errtxt, sizeof(errtxt), "%s: node %d is down",
-			 __func__, PSC_getID(msg->header.dest));
-	    }
-
-	    PSID_errlog(errtxt, 0);
+	    answer.error = errno;
 
 	    sendMsg(&answer);
 	}
@@ -1834,7 +1822,7 @@ static void RDPCallBack(int msgid, void *buf)
 		.header = {
 		    .type = PSP_CD_SPAWNFAILED,
 		    .dest = msg->sender,
-		    .sender = PSC_getMyTID(),
+		    .sender = msg->dest,
 		    .len = sizeof(answer) },
 		.request = msg->type,
 		.error = EHOSTDOWN };
@@ -2211,7 +2199,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.127 $";
+    char revision[] = "$Revision: 1.128 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
