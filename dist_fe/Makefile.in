@@ -8,7 +8,7 @@ TARGET_CPU := @target_cpu@
 #s.o. clean:
 DISTPATH := opt/parastation
 
-INCLUDES += psport4.h pse.h
+INCLUDES += psport4.h pshwtypes.h pse.h
 INCDIR := $(DISTPATH)/include
 
 BINS += psiadmin psid psld
