@@ -5,15 +5,16 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: timer_private.h,v 1.2 2002/01/30 10:45:04 eicker Exp $
+ * $Id: timer_private.h,v 1.3 2002/01/30 18:07:16 eicker Exp $
  *
  */
 /**
  * \file
- * timer_private: ParaStation Timer facility
- *                Private functions and definitions
+ * ParaStation Timer facility.
  *
- * $Id: timer_private.h,v 1.2 2002/01/30 10:45:04 eicker Exp $
+ * Private functions and definitions.
+ *
+ * $Id: timer_private.h,v 1.3 2002/01/30 18:07:16 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -29,8 +30,8 @@ extern "C" {
 #endif
 #endif
 
-/*
- * OSF provides no timeradd/timersub in sys/time.h :-((
+/**
+ * OSF provides no timeradd in sys/time.h
  */
 #ifndef timeradd
 #define timeradd(a, b, result)                                        \
@@ -43,6 +44,9 @@ extern "C" {
     }                                                                 \
   } while (0)
 #endif
+/**
+ * OSF provides no timersub in sys/time.h
+ */
 #ifndef timersub
 #define timersub(a, b, result)                                        \
   do {                                                                \
@@ -55,33 +59,40 @@ extern "C" {
   } while (0)
 #endif
 
-static int initialized = 0;          /** The module's initialization state.
-                                         Set by initTimer(), read by
-					 isInitialziedTimer(). */
+/**
+ * The module's initialization state. Set by initTimer(), read by
+ * isInitializedTimer().
+ */
+static int initialized = 0;
 
+/**
+ * Structure to hold all info about each timer
+ */
 typedef struct timer_t_ {
-    int fd;                          /** The corresponding file-descriptor. */
-    struct timeval timeout;          /** The corresponding timeout. */
-    int calls;                       /** Counter for timeouts. */
-    int period;                      /** When do we have to call the
-					 timeoutHandler()? */
-    void (*timeoutHandler)(int);     /** Handler called, if signal received. */
-    int sigBlocked;                  /** Flag to block this timer.
-					 Set by blockTimer(). */
-    int sigPending;                  /** A blocked signal is pending. */
-    int (*selectHandler)(int);       /** Handler called within Tselect(). */
-    int requested;                   /** Flag used within Tselect(). */
-    struct timer_t_ *next;           /** Pointer to next timer. */
+    int fd;                        /**< The corresponding file-descriptor. */
+    struct timeval timeout;        /**< The corresponding timeout. */
+    int calls;                     /**< Counter for timeouts. */
+    int period;                    /**< When do we have to call the
+				      timeoutHandler()? */
+    void (*timeoutHandler)(int);   /**< Handler called, if signal received. */
+    int sigBlocked;                /**< Flag to block this timer.
+				      Set by blockTimer(). */
+    int sigPending;                /**< A blocked signal is pending. */
+    int (*selectHandler)(int);     /**< Handler called within Tselect(). */
+    int requested;                 /**< Flag used within Tselect(). */
+    struct timer_t_ *next;         /**< Pointer to next timer. */
 } timer_t;
 
-static timer_t *timerList = NULL;    /** List of all registered timers. */
 
+static timer_t *timerList = NULL;  /**< List of all registered timers. */
+
+/** The minimum timer period. */
 static const struct timeval minPeriod = {0,100000};
-                                     /** Minimum timer period. */
-static struct timeval actPeriod = {0,0};
-                                     /** Actual timer period. */
 
-static char errtxt[256];             /** String to hold error messages. */
+/** The actual timer period. */
+static struct timeval actPeriod = {0,0};
+
+static char errtxt[256];           /**< String to hold error messages. */
 
 /**
  * @brief Handles received signals

@@ -5,15 +5,16 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast_private.h,v 1.3 2002/01/30 16:46:04 eicker Exp $
+ * $Id: mcast_private.h,v 1.4 2002/01/30 18:03:08 eicker Exp $
  *
  */
 /**
  * \file
- * mcast_private: ParaStation MultiCast facility
- *                Private functions and definitions
+ * ParaStation MultiCast facility.
  *
- * $Id: mcast_private.h,v 1.3 2002/01/30 16:46:04 eicker Exp $
+ * Private functions and definitions.
+ *
+ * $Id: mcast_private.h,v 1.4 2002/01/30 18:03:08 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -29,8 +30,8 @@ extern "C" {
 #endif
 #endif
 
-/*
- * OSF provides no timeradd in sys/time.h :-((
+/**
+ * OSF provides no timeradd in sys/time.h
  */
 #ifndef timeradd
 #define timeradd(a, b, result)                                        \
@@ -44,37 +45,42 @@ extern "C" {
   } while (0)
 #endif
 
-static int licserver = 0;        /** Flag whether we are LicServer.
-				     Set via initMCast(). */
+static int licserver = 0;        /**< Flag whether we are LicServer.
+				    Set via initMCast(). */
 
-static int mcastsock = -1;       /** The socket used to send and receive MCast
-				     packets. Will be opened in initMCast(). */
+static int mcastsock = -1;       /**< The socket used to send and receive MCast
+				    packets. Will be opened in initMCast(). */
 
-static struct sockaddr_in msin;  /** The corresponding socket-address of the
-				     MCast packets. */
+static struct sockaddr_in msin;  /**< The corresponding socket-address of the
+				    MCast packets. */
 
-static int  nrOfNodes = 0;       /** The size of the cluster.
-				     Set via initMCast(). */
+static int  nrOfNodes = 0;       /**< The size of the cluster.
+				    Set via initMCast(). */
 
-static char errtxt[256];         /** String to hold error messages. */
+static char errtxt[256];         /**< String to hold error messages. */
 
-static int myID;                 /** My node-ID withing the cluster.
-				     Determined in initMCast(). */
+static int myID;                 /**< My node-ID withing the cluster.
+				    Determined in initMCast(). */
 
 static void (*callback)(int, void*) = NULL;
-                /** The callback function. Will be used to send messages to
-		    the calling process. Set via initMCast(). */
+                /**< The callback function. Will be used to send messages to
+		   the calling process. Set via initMCast(). */
 
+/**
+ * The possible MCast message types.
+ */
 typedef enum {
-    T_INFO = 0x01,
-    T_CLOSE,
-    T_LIC,
-    T_KILL
+    T_INFO = 0x01,   /**< Normal info message */
+    T_CLOSE,         /**< Info message from node going down */
+    T_LIC,           /**< Normal info message from license-server */
+    T_KILL           /**< Info message from exiting license-server */
 } MCastMsgType;
 
+/**
+ * The timeout used for MCast ping. The is a const for now and can only
+ * changed in the sources.
+ */
 static struct timeval TIMER_LOOP = {2, 0}; /* sec, usec */
-                /** The timeout used for MCast ping. The is a const for
-		    now and can only changed in the sources. */
 
 /**
  * @brief Recv a message
@@ -121,22 +127,22 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 		    struct sockaddr *to, socklen_t tolen);
 
 
-static int DEADLIMIT = 10;      /** The actual dead-limit. Get/set by
-				     getDeadLimitMCast()/setDeadLimitMCast() */
+static int DEADLIMIT = 10;      /**< The actual dead-limit. Get/set by
+				   getDeadLimitMCast()/setDeadLimitMCast() */
 
-/*
- * connection info for each connection (peer to peer)
+/**
+ * Connection info for each node we expect pings from.
  */
 typedef struct Mconninfo_ {
-    struct timeval lastping; /* timestamp of last received ping msg */
-    int misscounter;         /* nr of pings missing */
-    MCastLoad load;          /* load parameters of node */
-    struct sockaddr_in sin;  /* prebuilt descriptor for sendto */
-    MCastState state;        /* state of connection to host */
+    struct timeval lastping; /**< Timestamp of last received ping */
+    int misscounter;         /**< Number of pings missing */
+    MCastLoad load;          /**< Load parameters of node */
+    struct sockaddr_in sin;  /**< Pre-built descriptor for sendto */
+    MCastState state;        /**< State of the node (determined from pings */
 } Mconninfo;
 
-/*
- * one entry per hosts
+/**
+ * Array to hold all connection info.
  */
 static Mconninfo *conntable = NULL;
 
@@ -188,7 +194,7 @@ static void pingMCast(MCastState state);
 static int handleMCast(int fd);
 
 /**
- *
+ * @todo Insert docu
  */
 static void checkConnections(void);
 
