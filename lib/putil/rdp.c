@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.23 2002/04/26 12:43:59 eicker Exp $
+ * $Id: rdp.c,v 1.24 2002/07/03 20:17:05 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.23 2002/04/26 12:43:59 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.24 2002/07/03 20:17:05 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -247,7 +247,7 @@ static void initConntableRDP(int nodes,
     struct timeval tv;
 
     if (!conntableRDP) {
-	conntableRDP = (Rconninfo *) malloc((nodes + 1) * sizeof(Rconninfo));
+	conntableRDP = (Rconninfo *) malloc(nodes * sizeof(Rconninfo));
     }
     initIPTable();
     gettimeofday(&tv, NULL);
@@ -256,7 +256,7 @@ static void initConntableRDP(int nodes,
 	     "init conntableRDP for %d nodes, win is %d",
 	     nodes, MAX_WINDOW_SIZE);
     errlog(errtxt, 4);
-    for (i=0; i<=nodes; i++) {
+    for (i=0; i<nodes; i++) {
 	memset(&conntableRDP[i].sin, 0, sizeof(struct sockaddr_in));
 	conntableRDP[i].sin.sin_family = AF_INET;
 	conntableRDP[i].sin.sin_addr.s_addr = host[i];
@@ -267,32 +267,22 @@ static void initConntableRDP(int nodes,
 	errlog(errtxt, 4);
 	conntableRDP[i].bufptr = NULL;
 	conntableRDP[i].ConnID_in = -1;
-	if (i<nodes) {
-	    conntableRDP[i].window = MAX_WINDOW_SIZE;
-	    conntableRDP[i].ackPending = 0;
-	    conntableRDP[i].msgPending = 0;
-	    conntableRDP[i].frameToSend = random();
-	    snprintf(errtxt, sizeof(errtxt),
-		     "frameToSend to node %d set to %d", i,
-		     conntableRDP[i].frameToSend);
-	    errlog(errtxt, 4);
-	    conntableRDP[i].ackExpected = conntableRDP[i].frameToSend;
-	    conntableRDP[i].frameExpected = random();
-	    snprintf(errtxt, sizeof(errtxt),
-		     "frameExpected from node %d set to %d", i,
-		     conntableRDP[i].frameExpected);
-	    errlog(errtxt, 4);
-	    conntableRDP[i].ConnID_out = random();;
-	    conntableRDP[i].state = CLOSED;
-	} else {
-	    /* Install LicServer correctly */
-	    conntableRDP[i].window = 0;
-	    conntableRDP[i].frameToSend = 0;
-	    conntableRDP[i].ackExpected = 0;
-	    conntableRDP[i].frameExpected = 0;
-	    conntableRDP[i].ConnID_out = 0;
-	    conntableRDP[i].state = ACTIVE; /* RDP Channel always ACTIVE ?? */
-	}
+	conntableRDP[i].window = MAX_WINDOW_SIZE;
+	conntableRDP[i].ackPending = 0;
+	conntableRDP[i].msgPending = 0;
+	conntableRDP[i].frameToSend = random();
+	snprintf(errtxt, sizeof(errtxt),
+		 "frameToSend to node %d set to %d", i,
+		 conntableRDP[i].frameToSend);
+	errlog(errtxt, 4);
+	conntableRDP[i].ackExpected = conntableRDP[i].frameToSend;
+	conntableRDP[i].frameExpected = random();
+	snprintf(errtxt, sizeof(errtxt),
+		 "frameExpected from node %d set to %d", i,
+		 conntableRDP[i].frameExpected);
+	errlog(errtxt, 4);
+	conntableRDP[i].ConnID_out = random();;
+	conntableRDP[i].state = CLOSED;
     }
     return;
 }
@@ -306,7 +296,7 @@ static void initAckList(int nodes)
     int count;
 
     /*
-     * Max set size is MAX_NR_OF_NODES * MAX_WINDOW_SIZE !!
+     * Max set size is nodes * MAX_WINDOW_SIZE !!
      */
     count = nodes * MAX_WINDOW_SIZE;
     ackbuf = (ackent *)malloc(sizeof(ackent) * count);
@@ -1423,12 +1413,12 @@ void setMaxRetransRDP(int limit)
     if (limit > 0) RDPMaxRetransCount = limit;
 }
 
-int Rsendto(int node, void *buf, int len)
+int Rsendto(int node, void *buf, size_t len)
 {
     msgbuf *mp;
     int retval = 0;
 
-    if (((node < 0) || (node >=  nrOfNodes))) {
+    if (((node < 0) || (node >= nrOfNodes))) {
 	/* illegal node number */
 	snprintf(errtxt, sizeof(errtxt),
 		 "Rsendto(): illegal node number %d", node);
@@ -1448,7 +1438,7 @@ int Rsendto(int node, void *buf, int len)
     if (len>RDP_MAX_DATA_SIZE) {
 	/* msg too large */
 	snprintf(errtxt, sizeof(errtxt),
-		 "Rsendto(): len [%d] > RDP_MAX_DATA_SIZE [%d]", len,
+		 "Rsendto(): len [%ld] > RDP_MAX_DATA_SIZE [%d]", (long) len,
 		 RDP_MAX_DATA_SIZE);
 	errlog(errtxt, 0);
 	errno = EMSGSIZE;
@@ -1522,8 +1512,8 @@ int Rsendto(int node, void *buf, int len)
 	/* connection already established */
 	/* send the data */
 	snprintf(errtxt, sizeof(errtxt),
-		 "sending DATA[len=%d] to node %d (seq=%d, ack=%d)",
-		 len, node, conntableRDP[node].frameToSend,
+		 "sending DATA[len=%ld] to node %d (seq=%d, ack=%d)",
+		 (long) len, node, conntableRDP[node].frameToSend,
 		 conntableRDP[node].frameExpected);
 	errlog(errtxt, 12);
 
@@ -1557,7 +1547,7 @@ int Rsendto(int node, void *buf, int len)
     return (retval - sizeof(rdphdr));
 }
 
-int Rrecvfrom(int *node, void *msg, int len)
+int Rrecvfrom(int *node, void *msg, size_t len)
 {
     struct sockaddr_in sin;
     Lmsg msgbuf;
@@ -1571,7 +1561,7 @@ int Rrecvfrom(int *node, void *msg, int len)
 	errno = EINVAL;
 	return -1;
     }
-    if (((*node < -1) || (*node >=  nrOfNodes))) {
+    if (((*node < -1) || (*node >= nrOfNodes))) {
 	/* illegal node number */
 	snprintf(errtxt, sizeof(errtxt),
 		 "Rrecvfrom(): illegal node number [%d]", *node);
