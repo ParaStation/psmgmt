@@ -5,20 +5,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mpirun_chp4.c,v 1.6 2003/03/07 15:53:22 eicker Exp $
+ * $Id: mpirun_chp4.c,v 1.7 2003/06/16 17:35:22 eicker Exp $
  *
  */
 /**
  * @file Replacement for the standard mpirun command provided by MPIch in order
  * to start MPIch/P4 application within a ParaStation cluster.
  *
- * $Id: mpirun_chp4.c,v 1.6 2003/03/07 15:53:22 eicker Exp $
+ * $Id: mpirun_chp4.c,v 1.7 2003/06/16 17:35:22 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chp4.c,v 1.6 2003/03/07 15:53:22 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chp4.c,v 1.7 2003/06/16 17:35:22 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -39,7 +39,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chp4.c,v 1.6 2003/03
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.6 $";
+    char revision[] = "$Revision: 1.7 $";
     fprintf(stderr, "mpirun_chp4 %s\b \n", revision+11);
 }
 
@@ -421,7 +421,7 @@ int main(int argc, const char *argv[])
 		char *errstr = strerror(error);
 		fprintf(stderr,
 			"Could not spawn master process (%s) error = %s.",
-			argv[0], errstr ? errstr : "UNKNOWN");
+			dup_argv[0], errstr ? errstr : "UNKNOWN");
 		exit(1);
 	    }
 	}
