@@ -1,5 +1,5 @@
 <refentry id="psiadmin">
-<!-- TODO: fg: freeOnSuspend -->
+  <!-- TODO: fg: handleOldBins -->
   <refmeta>
     <refentrytitle>psiadmin</refentrytitle>
     <manvolnum>1</manvolnum>
@@ -142,9 +142,9 @@
     <title>Extended description</title>
     <para>
       If psiadmin is invoked without the <option>-c</option> option and
-      standard output is connected to a terminal, psiadmin will
-      repeatedly write a prompt
-      to standard output and read a directive from standard input.
+      standard output is connected to a terminal, psiadmin will repeatedly
+      write a prompt to standard output and read a directive from standard
+      input.
     </para>
     <para>
       <!-- @todo Directives can be abbreviated to their minimum unambiguous
@@ -164,70 +164,43 @@
     <para>
       When the psiadmin is started, it will prompt for directives.
     </para>
-<!-- fg:
     <para>
-      Most directive share the options <option><optional>from
-          <optional>to</optional></optional></option> marking a range of nodes
-      managed by &ps;. If <option>to</option> is missing, only the single node
-      <option>from</option> is selected. All nodes are selected, if
-      <option>from</option> is missing, too.
-    </para>
--->
-    <para>
-      Almost all directives accept an additional parameter
-      <option><optional>nodelist</optional></option> forming a
-      list of nodes to run on.  Multiple <option>nodes</option> can be
-      listed, separated by comma. Ranges of nodes are also possible,
-      expressed by <option>from</option>&dash;<option>to</option>.
+      Almost all directives accept an optional parameter
+      <replaceable>nodes</replaceable>. This contains either a comma-separated
+      list of node ranges to act on, each of the form
+      <replaceable>from</replaceable><optional>-<replaceable>to</replaceable></optional>. 
+      If the <replaceable>to</replaceable> part is missing, the single node
+      <replaceable>from</replaceable> is represented by this range. In
+      principle <replaceable>nodes</replaceable> might contain an unlimited
+      number of ranges.
     </para>
     <para>
-      <option>Node</option>, <option>from</option> and
-      <option>to</option> may either be symbolic hostnames or
-      node IDs. The node IDs can be given in decimal or hexadecimal
-      notation and must be in the range between <constant>0</constant>
-      and <constant>NumberOfNodes-1</constant>.
+      Otherwise the value of <replaceable>nodes</replaceable> might be
+      <constant>all</constant>. Then all nodes of the &ps; cluster are selected
+      within this directive.
+    </para>
+    <para>
+      If <replaceable>nodes</replaceable> is empty, the node range preselected
+      via the <command>range</command> command is used. The default preselected
+      node range contains all nodes of the ParaStation cluster.
+    </para>
+    <para>
+      The <replaceable>from</replaceable> and <replaceable>to</replaceable>
+      parts of each range are node IDs. They might be given in decimal or
+      hexadecimal notation and must be in the range between
+      <constant>0</constant> and <constant>NumberOfNodes-1</constant>.
+    </para>
+    <para>
+      As an extension <replaceable>nodes</replaceable> might also be a hostname
+      that can be resolved into a valid ParaStation ID.
     </para>
     <note>
-      <para>
-        Using node names containing "&dash;" will confuse this algorithm
-        and is therefore not recommended.
+      <para>Using hostnames containing "-" might confuse this algorithm and is
+	therefore not recommended.
       </para>
     </note>
     
     <variablelist>
-
-      <varlistentry>
-        <term>
-          <cmdsynopsis>
-            <command>add</command>
-            <arg>nodelist</arg>
-          </cmdsynopsis>
-        </term>
-        <listitem>
-          <para>Start the &ps; daemon <xref linkend="psid"/> on the selected
-            node(s)            
-          </para>
-          <para>
-            <command>add</command> only tries to start the &ps; daemon on the
-            selected node(s). If it is not possible to start the daemon, no
-            error message occurs. The current status of the nodes can be
-            checked using the directive <command>status</command>.
-          </para>
-        </listitem>
-      </varlistentry>
-
-      <varlistentry>
-        <term>
-          <cmdsynopsis>
-            <command>exit</command>
-          </cmdsynopsis>
-        </term>
-        <listitem>
-          <para>Exit the interactive mode of psiadmin. Same as
-            <command>quit</command>.
-          </para>
-        </listitem>
-      </varlistentry>
 
       <varlistentry>
         <term>
@@ -237,8 +210,10 @@
           </cmdsynopsis>
         </term>
         <listitem>
-          <para>Print a general help message or a help message concerning
-            <option><replaceable>directive</replaceable></option>.
+          <para>Print a help message concerning
+	    <option><replaceable>directive</replaceable></option>. If
+	    <replaceable>directive</replaceable> is missing, a general help
+	    message is displayed.
           </para>
         </listitem>
       </varlistentry>
@@ -266,23 +241,46 @@
             process.
           </para>
           <para>
-            Processes can only be signaled by the user who ownes the process or
-            by root.
+            Processes can only be signaled by their owner or by root.
           </para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
-        <term>
-          <cmdsynopsis>
-            <command>quit</command>
-          </cmdsynopsis>
-        </term>
-        <listitem>
-          <para>Exit the interactive mode of psiadmin. Same as
-            <command>exit</command>.
-          </para>
-        </listitem>
+	<term>
+	  <cmdsynopsis>
+	    <command>range</command>
+	    <group>
+	      <arg>nodes</arg>
+	      <arg choice="plain">all</arg>
+	    </group>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>Preselect or display the default set of nodes
+	  </para>
+	  <para>
+	    If <replaceable>nodes</replaceable> or <constant>all </constant> is
+	    given, this directive modifies the default set of nodes all
+	    following directives will act on. <replaceable>nodes</replaceable>
+	    is given in the same syntax as within any other directive, i.e. a
+	    comma separated list of node ranges
+	    <replaceable>from</replaceable><option>-<replaceable>to</replaceable></option>,
+	    where a range might be trivial containing only the
+	    <replaceable>from</replaceable> part. In this case all further
+	    directives are called as if the <replaceable>nodes</replaceable>
+	    part or <constant>all</constant> is appended unless a node set is
+	    given explicitely.
+	  </para>
+	  <para>
+	    If neither <replaceable>nodes</replaceable> nor
+	    <constant>all</constant> is given, the current preselected node set
+	    is displayed. Be aware of the fact that this might not be literally
+	    identical to the string givend in a previous call to the
+	    <command>range</command> directive since the program tries to find
+	    a strings as short as possible.
+	  </para>
+	</listitem>
       </varlistentry>
 
       <varlistentry>
@@ -303,8 +301,11 @@
               <arg choice="plain">psiddebug</arg>
               <arg choice="plain">rdpdebug</arg>
               <arg choice="plain">mcastdebug</arg>
+	      <arg choice="plain">master</arg>
+	      <arg choice="plain">freeOnSuspend</arg>
+	      <arg choice="plain">handleOldBins</arg>
             </group>
-            <arg>nodelist</arg>
+            <arg><replaceable>nodes</replaceable></arg>
           </cmdsynopsis>
         </term>
         <listitem>
@@ -315,7 +316,7 @@
               <term>
                 <cmdsynopsis>
                   <command>user</command>
-                  <arg>nodelist</arg>
+                  <arg><replaceable>nodes</replaceable></arg>
                 </cmdsynopsis>
               </term>
               <listitem>
@@ -328,7 +329,7 @@
               <term>
                 <cmdsynopsis>
                   <command>group</command>
-                  <arg>nodelist</arg>
+                  <arg><replaceable>nodes</replaceable></arg>
                 </cmdsynopsis>
               </term>
               <listitem>
@@ -342,7 +343,7 @@
               <term>
                 <cmdsynopsis>
                   <command>maxproc</command>
-                  <arg>nodelist</arg>
+                  <arg><replaceable>nodes</replaceable></arg>
                 </cmdsynopsis>
               </term>
               <listitem>
@@ -451,7 +452,7 @@
               <term>
                 <cmdsynopsis>
                   <command>selecttime</command>
-                  <arg>nodelist</arg>
+                  <arg><replaceable>nodes</replaceable></arg>
                 </cmdsynopsis>
               </term>
               <listitem>
@@ -468,7 +469,7 @@
               <term>
                 <cmdsynopsis>
                   <command>psiddebug</command>
-                  <arg>nodelist</arg>
+                  <arg><replaceable>nodes</replaceable></arg>
                 </cmdsynopsis>
               </term>
               <listitem>
@@ -482,7 +483,7 @@
               <term>
                 <cmdsynopsis>
                   <command>rdpdebug</command>
-                  <arg>nodelist</arg>
+                  <arg><replaceable>nodes</replaceable></arg>
                 </cmdsynopsis>
               </term>
               <listitem>
@@ -496,7 +497,7 @@
               <term>
                 <cmdsynopsis>
                   <command>mcastdebug</command>
-                  <arg>nodelist</arg>
+                  <arg><replaceable>nodes</replaceable></arg>
                 </cmdsynopsis>
               </term>
               <listitem>
@@ -506,6 +507,71 @@
               </listitem>
             </varlistentry>
             
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>master</command>
+		  <arg><replaceable>nodes</replaceable></arg>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>Show the current master on the selected node(s).
+		</para>
+		<para>
+		  The master node's task is the management and allocation of
+		  resources within the cluster. It is elected among the running
+		  nodes during runtime. Thus usually all nodes should give the
+		  same answer to this question. In rare cases - usually during
+		  startup or immediately after a node failure - the nodes might
+		  disagree on the elected master node. This command helps on
+		  identifying this rare cases.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>freeOnSuspend</command>
+		  <arg><replaceable>nodes</replaceable></arg>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>Show the <constant>freeOnSuspend</constant> flag on the
+		  selected nodes.
+		</para>
+		<para>
+		  The <constant>freeOnSuspend</constant> flag steers the
+		  behavior of the resource management concerning suspended
+		  jobs. Basically there are to possible approaches: Either the
+		  resources used by the suspended job are freed for other jobs
+		  (this is done, if the flag is set to 1) or they are kept
+		  occupied in order to preserve them exclusively for the time
+		  the job continues to run (this is the behavior as long as the
+		  flag has the value 0).
+		</para>
+		<para>
+		  Since the master node does all the resource management within
+		  the cluster, only the value on this node actually steers the
+		  behaviour.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>handleOldBins</command>
+		  <arg><replaceable>nodes</replaceable></arg>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>Show the compatibility flag for applications linked
+		  against version 4.0.x of &ps; on the selected nodes.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
           </variablelist>
         </listitem>
       </varlistentry>
@@ -516,16 +582,19 @@
             <command>status</command>
             <group>
               <arg choice="plain">node</arg>
-              <arg choice="plain">proc</arg>
-              <arg choice="plain">allproc</arg>
+              <arg choice="plain">proc <arg>cnt
+		  <replaceable>count</replaceable></arg></arg>
+              <arg choice="plain">allproc <arg>cnt
+		  <replaceable>count</replaceable></arg></arg>
               <arg choice="plain">load</arg>
-              <arg choice="plain">hw</arg>
-              <arg choice="plain">count</arg>
+              <arg choice="plain">hardware</arg>
+              <arg choice="plain">count <arg>hw
+		  <replaceable>hw</replaceable></arg></arg>
               <arg choice="plain">mcast</arg>
               <arg choice="plain">rdp</arg>
               <arg choice="plain">all</arg>
             </group>
-            <arg>nodelist</arg>
+            <arg><replaceable>nodes</replaceable></arg>
           </cmdsynopsis>
         </term>
         <listitem>
@@ -553,6 +622,7 @@
               <term>
                 <cmdsynopsis>
                   <command>proc</command>
+		  <arg>cnt <replaceable>count</replaceable></arg>
                 </cmdsynopsis>
               </term>
               <listitem>
@@ -561,9 +631,16 @@
                 </para>
                 <para>
                   Only user, logger and admin processes are displayed. If
-                  forwarder processes should also be displayed, use the
-                  <command>status <option>allproc</option></command> directive.
+		  forwarder and other special processes should also be
+		  displayed, use the <command>status
+		    <option>allproc</option></command> directive.
                 </para>
+		<para>
+		  Up to <replaceable>count</replaceable> processes per node are
+		  displayed. If more processes are controlled by &ps; on this
+		  node, a short remark will tell the number of undisplayed
+		  processes. The default is to show 10 processes.
+		</para>
                 <para>
                   The listed fields have the following meaning:
                 </para>
@@ -645,17 +722,25 @@
               <term>
                 <cmdsynopsis>
                   <command>allproc</command>
+		  <arg>cnt <replaceable>count</replaceable></arg>
                 </cmdsynopsis>
               </term>
               <listitem>
                 <para>Show all processes managed by the &ps; system on the
-                  selected node(s).
+		  selected node(s).
                 </para>
                 <para>
-                  All processes managed by &ps; are displayed. If forwarder
+                  All processes - including forwarder and other special
+		  processes - managed by &ps; are displayed. If forwarder
                   processes should not be displayed, use the <command>status
                     <option>proc</option></command> directive.
                 </para>
+		<para>
+		  Up to <replaceable>count</replaceable> processes per node are
+		  displayed. If more processes are controlled by &ps; on this
+		  node, a short remark will tell the number of undisplayed
+		  processes. The default is to show 10 processes.
+		</para>
                 <para>
                   The output fields of the process list are described within
                   the <command>status <option>proc</option></command>
@@ -697,13 +782,19 @@
             <varlistentry>
               <term>
                 <cmdsynopsis>
-                  <command>hw</command>
+                  <command>hardware</command>
                 </cmdsynopsis>
               </term>
               <listitem>
                 <para>Show the hardware setup on the selected node(s).
-                  Displayed are the number of CPUs and the communication
-                  hardware available to the &ps; system.
+		</para>
+		<para>
+		  Besides the types of the communication hardware enabled
+		  within the &ps; system on each node also the number of
+		  available CPUs are displayed. The two numbers shown in this
+		  column mark the number of virtual and physical CPUs
+		  respectively. These number might differ due to technologies
+		  like Intel's HyperThreading or multi core CPUs.
                 </para>
               </listitem>
             </varlistentry>
@@ -712,6 +803,7 @@
               <term>
                 <cmdsynopsis>
                   <command>count</command>
+		  <arg>hw <replaceable>hw</replaceable></arg>
                 </cmdsynopsis>
               </term>
               <!-- @todo Extension for non-Myrinet counters -->
@@ -725,6 +817,12 @@
                 <para>Show the status of the communication system(s) on
                   the selected node(s). Various counters are displayed.
                 </para>
+		<para>
+		  If the <option>hw</option> option is given, only the counters
+		  concerning the <replaceable>hw</replaceable> hardware type
+		  are displayed. The default is to display the counters of all
+		  enabled hardware types on this node.
+		</para>
 <!-- fg: no more myrinet
                 <para>
                   The listed counters have the following meaning:
@@ -980,7 +1078,33 @@
           </cmdsynopsis>
         </term>
         <listitem>
-          <para>Print various version numbers</para>
+          <para>Print various version numbers.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>
+          <cmdsynopsis>
+            <command>quit</command>
+          </cmdsynopsis>
+        </term>
+        <listitem>
+          <para>Exit the interactive mode of psiadmin. Same as
+            <command>exit</command>.
+          </para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>
+          <cmdsynopsis>
+            <command>exit</command>
+          </cmdsynopsis>
+        </term>
+        <listitem>
+          <para>Exit the interactive mode of psiadmin. Same as
+            <command>quit</command>.
+          </para>
         </listitem>
       </varlistentry>
 
@@ -994,12 +1118,94 @@
       </para>
       <variablelist>
 
+	<varlistentry>
+	  <term>
+	    <cmdsynopsis>
+	      <command>add</command>
+	      <arg><replaceable>nodes</replaceable></arg>
+	    </cmdsynopsis>
+	  </term>
+	  <listitem>
+	    <para>Start the &ps; daemon <xref linkend="psid"/> on the selected
+	      node(s).
+	    </para>
+	    <para>
+	      <command>add</command> only tries to start the &ps; daemon on the
+	      selected node(s). If it is not possible to start the daemon, no
+	      error message occurs. The current status of the nodes can be
+	      checked using the directive <command>status</command>.
+	    </para>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>
+	    <cmdsynopsis>
+	      <command>hwstart</command>
+	      <arg>hw <group choice="req">
+		  <arg><replaceable>hw</replaceable></arg>
+		  <arg>all</arg>
+		</group>
+	      </arg>
+	      <arg><replaceable>nodes</replaceable></arg>
+	    </cmdsynopsis>
+	  </term>
+	  <listitem>
+	    <para>Start the declared hardware on the selected nodes.
+	    </para>
+	    <para>
+	      Starting a specific hardware will be tried on the selected nodes
+	      regardless, if this hardware is specified for this nodes within
+	      the <filename>parastation.conf</filename> configuration file or
+	      not. On the other hand, if <option>hw all</option> is specified
+	      or the <option>hw</option> option is missing at all, only the
+	      hardware types specified within the configuration file are
+	      started.
+	    </para>
+	    <para>
+	      Starting or stopping a specific communication hardware only
+	      concerns the &ps; part of hardware handling. I.e. stopping
+	      <constant>ethernet</constant> hardware should not touch the
+	      normal IP traffic running over this specific device.
+	    </para>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>
+	    <cmdsynopsis>
+	      <command>hwstop</command>
+	      <arg>hw <group choice="req">
+		  <arg><replaceable>hw</replaceable></arg>
+		  <arg>all</arg>
+		</group>
+	      </arg>
+	      <arg><replaceable>nodes</replaceable></arg>
+	    </cmdsynopsis>
+	  </term>
+	  <listitem>
+	    <para>Stop the declared hardware on the selected nodes.
+	    </para>
+	    <para>
+	      If <option>hw all</option> is specified or the
+	      <option>hw</option> option is missing at all, all running
+	      hardware for this node is stopped.
+	    </para>
+	    <para>
+	      Starting or stopping a specific communication hardware only
+	      concerns the &ps; part of hardware handling. I.e. stopping
+	      <constant>ethernet</constant> hardware should not touch the
+	      normal IP traffic running over this specific device.
+	    </para>
+	  </listitem>
+	</varlistentry>
+
         <varlistentry>
           <term>
             <cmdsynopsis>
               <command>reset</command>
               <arg>hw</arg>
-              <arg>nodelist</arg>
+              <arg><replaceable>nodes</replaceable></arg>
             </cmdsynopsis>
           </term>
           <listitem>
@@ -1020,7 +1226,7 @@
           <term>
             <cmdsynopsis>
               <command>restart</command>
-              <arg>nodelist</arg>
+              <arg><replaceable>nodes</replaceable></arg>
             </cmdsynopsis>
           </term>
           <listitem>
@@ -1055,8 +1261,8 @@
                     <arg choice="plain"><replaceable>num</replaceable></arg>
                     <arg choice="plain">any</arg>
                   </group></arg>
-                <arg>smallpacketsize <replaceable>size</replaceable></arg>
 <!-- fg: no more
+                <arg>smallpacketsize <replaceable>size</replaceable></arg>
                 <arg>resendtimeout <replaceable>time</replaceable></arg>
                 <arg>hnpend <replaceable>val</replaceable></arg>
                 <arg>ackpend <replaceable>val</replaceable></arg>
@@ -1065,8 +1271,16 @@
                 <arg>psiddebug <replaceable>level</replaceable></arg>
                 <arg>rdpdebug <replaceable>level</replaceable></arg>
                 <arg>mcastdebug <replaceable>level</replaceable></arg>
+		<arg>freeOnSuspend <group choice="req">
+		    <arg>0</arg><arg>1</arg>
+		  </group>
+		</arg>
+		<arg>handleOldBins <group choice="req">
+		    <arg>0</arg><arg>1</arg>
+		  </group>
+		</arg>
               </group>
-              <arg>nodelist</arg>
+              <arg><replaceable>nodes</replaceable></arg>
             </cmdsynopsis>
           </term>
           <listitem>
@@ -1080,7 +1294,7 @@
                       <arg><replaceable>name</replaceable></arg>
                       <arg>any</arg>
                     </group>
-                    <arg>nodelist</arg>
+                    <arg><replaceable>nodes</replaceable></arg>
                   </cmdsynopsis>
                 </term>
                 <listitem>
@@ -1098,7 +1312,7 @@
                       <arg><replaceable>name</replaceable></arg>
                       <arg>any</arg>
                     </group>
-                    <arg>nodelist</arg>
+                    <arg><replaceable>nodes</replaceable></arg>
                   </cmdsynopsis>
                 </term>
                 <listitem>
@@ -1116,7 +1330,7 @@
                       <arg><replaceable>num</replaceable></arg>
                       <arg>any</arg>
                     </group>
-                    <arg>nodelist</arg>
+                    <arg><replaceable>nodes</replaceable></arg>
                   </cmdsynopsis>
                 </term>
                 <listitem>
@@ -1278,7 +1492,7 @@
                   <cmdsynopsis>
                     <command>selecttime</command>
                     <arg><replaceable>time</replaceable></arg>
-                    <arg>nodelist</arg>
+                    <arg><replaceable>nodes</replaceable></arg>
                   </cmdsynopsis>
                 </term>
                 <listitem>
@@ -1301,7 +1515,7 @@
                   <cmdsynopsis>
                     <command>psiddebug</command>
                     <arg><replaceable>level</replaceable></arg>
-                    <arg>nodelist</arg>
+                    <arg><replaceable>nodes</replaceable></arg>
                   </cmdsynopsis>
                 </term>
                 <listitem>
@@ -1334,7 +1548,7 @@
                   <cmdsynopsis>
                     <command>rdpdebug</command>
                     <arg><replaceable>level</replaceable></arg>
-                    <arg>nodelist</arg>
+                    <arg><replaceable>nodes</replaceable></arg>
                   </cmdsynopsis>
                 </term>
                 <listitem>
@@ -1357,7 +1571,7 @@
                   <cmdsynopsis>
                     <command>mcastdebug</command>
                     <arg><replaceable>level</replaceable></arg>
-                    <arg>nodelist</arg>
+                    <arg><replaceable>nodes</replaceable></arg>
                   </cmdsynopsis>
                 </term>
                 <listitem>
@@ -1374,6 +1588,59 @@
                   </note>
                 </listitem>
               </varlistentry>
+	      <varlistentry>
+		<term>
+		  <cmdsynopsis>
+		    <command>freeOnSuspend</command>
+		    <group>
+		      <arg>0</arg><arg>1</arg>
+		    </group>
+		    <arg><replaceable>nodes</replaceable></arg>
+		  </cmdsynopsis>
+		</term>
+		<listitem>
+		  <para>Switch the <constant>freeOnSuspend</constant> flag on
+		    or off on the selected nodes.
+		  </para>
+		  <para>
+		    The <constant>freeOnSuspend</constant> flag steers the
+		    behavior of the resource management concerning suspended
+		    jobs. Basically there are to possible approaches: Either
+		    the resources used by the suspended job are freed for other
+		    jobs (this is done, if the flag is set to 1) or they are
+		    kept occupied in order to preserve them exclusively for the
+		    time the job continues to run (this is the behavior as long
+		    as the flag has the value 0).
+		  </para>
+		  <para>
+		    Since the master node does all the resource management
+		    within the cluster, only the value on this node actually
+		    steers the behaviour.
+		  </para>
+                  <para>
+                    This flag can be set persistently via the
+		    <command>freeOnSuspend</command> option within the &ps;
+		    configuration file <xref linkend="parastation_conf"/>.
+                  </para>
+		</listitem>
+	      </varlistentry>
+
+	      <varlistentry>
+		<term>
+		  <cmdsynopsis>
+		    <command>handleOldBins</command>
+		    <group>
+		      <arg>0</arg><arg>1</arg>
+		    </group>
+		    <arg><replaceable>nodes</replaceable></arg>
+		  </cmdsynopsis>
+		</term>
+		<listitem>
+		  <para>Switch the compatibility flag for applications linked
+		    against version 4.0.x of &ps; on or off on the selected
+		    nodes.</para>
+		</listitem>
+	      </varlistentry>
 
             </variablelist>
           </listitem>
@@ -1383,7 +1650,7 @@
           <term>
             <cmdsynopsis>
               <command>shutdown</command>
-              <arg>nodelist</arg>
+              <arg><replaceable>nodes</replaceable></arg>
             </cmdsynopsis>
           </term>
           <listitem>
