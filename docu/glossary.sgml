@@ -41,7 +41,7 @@
 	store it to the final destination manually.
       </para>
       <para>
-	Nowadays devices as Ethernet cards, harddisk controllers, MyriNet cards
+	Nowadays devices as Ethernet cards, harddisk controllers, Myrinet cards
 	etc. are capable to store chunks of data into memory on their
 	own. E.g. a disk controller is told to fetch an amount of memory from a
 	hard disk and to store it to a given address. The rest of the jobs is
@@ -97,14 +97,28 @@
     </glossdef>
   </glossentry>
 
-  <glossentry id="loggerfull">
-    <glossterm>ParaStation logger</glossterm>
+  <glossentry id="task">
+    <glossterm>parallel task</glossterm>
     <glossdef>
       <para>
-	The counterpart to the <link linkend="forwarderfull">ParaStation
+	A bunch of <link linkend="process">processes</link> distributed within
+	the cluster forming a parallel application. E.g. a MPI program running
+	on several nodes of a cluster can only act as a whole but consists of
+	individual processes on each node. &ps; knows anout their
+	interrelationship and can handle them as a distributed parallel task
+	running on the cluster.
+      </para>
+    </glossdef>
+  </glossentry>
+
+  <glossentry id="loggerfull">
+    <glossterm>&ps; logger</glossterm>
+    <glossdef>
+      <para>
+	The counterpart to the <link linkend="forwarderfull">&ps;
 	  forwarder</link>. It receives the all the output collected by the
 	forwarder processes and puts it their destination. Furthermore input to
-	the ParaStation task is forwarded to a specific process.
+	the &ps; task is forwarded to a specific process.
       </para>
       <para>
 	The first process of the task started usually converts to the logger
@@ -114,16 +128,29 @@
   </glossentry>
 
   <glossentry id="forwarderfull">
-    <glossterm>ParaStation forwarder</glossterm>
+    <glossterm>&ps; forwarder</glossterm>
     <glossdef>
       <para>
-	Collects output written by ParaStation controlled processes to
+	Collects output written by &ps; controlled processes to
 	<filename>stdout</filename> or <filename>stderr</filename> and sends it
-	to the <link linkend="loggerfull">ParaStation logger</link>.
+	to the <link linkend="loggerfull">&ps; logger</link>.
       </para>
       <para>
 	Furthermore the forwareder controls the process and sends information
 	about its exit status when it finishes to the local daemon.
+      </para>
+    </glossdef>
+  </glossentry>
+
+  <glossentry id="process">
+    <glossterm>process</glossterm>
+    <glossdef>
+      <para>
+	The atomic part of a <link linkend="task">parallel task</link>. A
+	process is at first a standard Unix process. Since &ps; knows about its
+	membership in a parallel task, it can be handled in a peculiar way if
+	a events takes place on some other node (e.g. another process of the
+	task dies unexpectedly, a signal is send to the task, etc.).
       </para>
     </glossdef>
   </glossentry>
