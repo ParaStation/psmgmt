@@ -1,0 +1,68 @@
+# (C) 2002 ParTec AG Karlsruhe
+# All rights reserved.
+#
+# Author: Norbert Eicker <eicker@par-tec.com>
+#
+# $Id: ReleaseNotes,v 1.1 2003/04/11 09:15:38 eicker Exp $
+
+This is ParaStation3 version 3.3.
+
+Changes from version 3.2:
+
+- New and more flexible syntax within configuration file
+- New daemon-daemon and application-daemon protocol.
+- Better and more robust signal handling.
+- New and more scalable output forwarding facilities.
+
+
+If you upgrade from a version older version of ParaStation3, you have
+to relink *all* your ParaStation aware application in order to enable
+them to talk to the new daemon. This is due to the change in the
+application daemon protocol. Hopefully this will be the last time you
+have to do this.
+
+
+Furthermore the syntax of the configuration file changed
+significantly. The versions 3.3 daemon does not any longer understand
+the old format. Thus you have to adapt your parastation.conf file to
+the new syntax.
+
+A good starting point in order to do this is the old configuration
+file from your version 3.2 installation. It is a good idea to keep a
+copy of your old configuration as a backup.
+
+You have to change the following entries within this file (each change
+this is only necessary, if the corresponding entry within the versions
+3.2 configration file was not commented out):
+
+- Set the InstallDir parameter to the one in the versions 3.2 file.
+
+- Copy the "Hardware myrinet" definition from the new
+  parastation.conf.templ file via cut and paste to your configuration
+  file just after the InstallDir parameter. The definition consist of
+  the actual "Hardware myrinet" line and all the stuff within the
+  curly brackets.
+
+- Within the "Hardware myrinet" definition, adapt the following parameters:
+  - Set PS_ROUTEFILE to the value of the version 3.2 RoutingFile parameter.
+  - Set PS_IPPREFIX to the value of the old IPPrefix parameter.
+  - Set PS_IPPREFIXLEN to the value of the old IPPrefixLen parameter.
+  - Set PS_SPS to the value of the old SmallPacketSize parameter.
+  - Set PS_HNPEND to the value of the old HNPend parameter.
+  - Set PS_ACKPEND to the value of the old ACKPend parameter.
+
+- Set HWType to myrinet (literally).
+
+- Remove the hasIP line (if any)
+
+- Within the Nodes section, remove all hasIP entries.
+
+- Remove the MyrinetModule, RoutingFile, SmallPacketSize,
+  ResendTimeout, HNPend, ACKPend, IPModule, IPPrefix and IPPrefixLen
+  parameters from your configuration.
+
+Now you are done and you can test if the new daemon understands your
+new configuration file. Start 'psiadmin'. It should prompt you soon
+for any commands. If there is still no prompt after some seconds take
+a look at the /var/log/messages file (or whereever your syslogd puts
+its output to) in order to find out what is wrong with your setup.
