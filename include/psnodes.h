@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psnodes.h,v 1.2 2003/03/11 10:16:25 eicker Exp $
+ * $Id: psnodes.h,v 1.3 2003/04/03 14:54:31 eicker Exp $
  *
  */
 /**
@@ -13,7 +13,7 @@
  * Functions for handling the various informations about the nodes
  * with a ParaStation cluster
  *
- * $Id: psnodes.h,v 1.2 2003/03/11 10:16:25 eicker Exp $
+ * $Id: psnodes.h,v 1.3 2003/04/03 14:54:31 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -157,6 +157,31 @@ int PSnodes_setHWType(int id, int hwType);
 int PSnodes_getHWType(int id);
 
 /**
+ * @brief Set the jobs flag of a node.
+ *
+ * Set the jobs flag of the node with ParaStation ID @a id to @a runjobs.
+ *
+ * @param id ParaStation ID of the node to be modified.
+ *
+ * @param runjobs The runjobs flag to be set to this node.
+ *
+ * @return On success, 0 is returned or -1, if an error occured.
+ */
+int PSnodes_setRunJobs(int id, int runjobs);
+
+/**
+ * @brief Get the jobs flag of a node.
+ *
+ * Get the jobs flag of the node with ParaStation ID @a id.
+ *
+ * @param id ParaStation ID of the node to look up.
+ *
+ * @return If the node was found, the jobs flag is returned. Or
+ * -1, if an error occured.
+ */
+int PSnodes_runJobs(int id);
+
+/**
  * @brief Set the starter flag of a node.
  *
  * Set the starter flag of the node with ParaStation ID @a id to @a starter.
@@ -180,31 +205,6 @@ int PSnodes_setIsStarter(int id, int starter);
  * -1, if an error occured.
  */
 int PSnodes_isStarter(int id);
-
-/**
- * @brief Set the hasIP flag of a node.
- *
- * Set the hasIP flag of the node with ParaStation ID @a id to @a hasIP.
- *
- * @param id ParaStation ID of the node to be modified.
- *
- * @param hasIP The hasIP flag to be set to this node.
- *
- * @return On success, 0 is returned or -1, if an error occured.
- */
-int PSnodes_setHasIP(int id, int hasIP);
-
-/**
- * @brief Get the hasIP flag of a node.
- *
- * Get the hasIP flag of the node with ParaStation ID @a id.
- *
- * @param id ParaStation ID of the node to look up.
- *
- * @return If the node was found, the hasIP flag is returned. Or
- * -1, if an error occured.
- */
-int PSnodes_hasIP(int id);
 
 /**
  * @brief Set the extra IP address of a node.

@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psnodes.c,v 1.2 2003/03/07 15:50:08 eicker Exp $
+ * $Id: psnodes.c,v 1.3 2003/04/03 14:54:31 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psnodes.c,v 1.2 2003/03/07 15:50:08 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psnodes.c,v 1.3 2003/04/03 14:54:31 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -43,8 +43,8 @@ struct node_t {
     char isUp;             /**< Actual status of that node */
     unsigned int hwType;   /**< Communication hardware on that node */
     unsigned int hwStatus; /**< Corresponding stati of the hardware */
-    int hasIP;             /**< Flag to mark that node to load the ip-module */
     unsigned int extraIP;  /**< Additional IP address of that node */
+    int jobs;              /**< Flag to mark that node to run jobs */
     int starter;           /**< Flag to allow to start jobs from that node */
     uid_t uid;             /**< User this nodes is reserved to */
     int procs;             /**< Number of processes this node will handle */
@@ -75,8 +75,8 @@ int PSnodes_init(int num)
 	nodes[i].isUp = 0;
         nodes[i].hwType = 0;
         nodes[i].hwStatus = 0;
-	nodes[i].hasIP = 0;
 	nodes[i].extraIP = INADDR_ANY;
+	nodes[i].jobs = 0;
 	nodes[i].starter = 0;
 	nodes[i].uid = -1;
 	nodes[i].procs = -1;
@@ -239,6 +239,26 @@ int PSnodes_getHWType(int id)
     }
 }
 
+int PSnodes_setRunJobs(int id, int runjobs)
+{
+    if (ID_ok(id)) {
+	nodes[id].jobs = runjobs;
+	return 0;
+    } else {
+	return -1;
+    }
+}
+
+
+int PSnodes_runJobs(int id)
+{
+    if (ID_ok(id)) {
+	return nodes[id].jobs;
+    } else {
+	return -1;
+    }
+}
+
 int PSnodes_setIsStarter(int id, int starter)
 {
     if (ID_ok(id)) {
@@ -253,26 +273,6 @@ int PSnodes_isStarter(int id)
 {
     if (ID_ok(id)) {
 	return nodes[id].starter;
-    } else {
-	return -1;
-    }
-}
-
-int PSnodes_setHasIP(int id, int hasIP)
-{
-    if (ID_ok(id)) {
-	nodes[id].hasIP = hasIP;
-	return 0;
-    } else {
-	return -1;
-    }
-}
-
-
-int PSnodes_hasIP(int id)
-{
-    if (ID_ok(id)) {
-	return nodes[id].hasIP;
     } else {
 	return -1;
     }
