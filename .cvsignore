@@ -1,4 +1,4 @@
-Xrefs
-Xrefs_kern
-tmp
-ul_alpha
+Makefile
+config.log
+config.status
+kernellist
