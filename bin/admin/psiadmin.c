@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.37 2002/07/11 15:01:23 hauke Exp $
+ * $Id: psiadmin.c,v 1.38 2002/07/11 17:05:37 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.37 2002/07/11 15:01:23 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.38 2002/07/11 17:05:37 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -44,7 +44,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.37 $";
+static char psiadmversion[] = "$Revision: 1.38 $";
 static int doRestart = 0;
 
 static char *hoststatus;
@@ -235,11 +235,9 @@ void PSIADM_LoadStat(int first, int last)
     static size_t nl_size = 0;
     static NodelistEntry_t *nl = NULL;
 
-    printf("nodelist_size %ld\n", (long int)nl_size);
     if (nl_size != sizeof(NodelistEntry_t) * PSC_getNrOfNodes()) {
 	nl_size = sizeof(NodelistEntry_t) * PSC_getNrOfNodes();
 	nl = (NodelistEntry_t *) realloc(nl, nl_size);
-	printf("nodelist_size changed to %ld\n", (long int)nl_size);
     }
 
     first = (first==ALLNODES) ? 0 : first;
@@ -253,6 +251,38 @@ void PSIADM_LoadStat(int first, int last)
 	    printf("%4d\t%2.4f\t%2.4f\t%2.4f\t%4d\t%4d\n", i,
 		   nl[i].load[0], nl[i].load[1], nl[i].load[2],
 		   nl[i].totalJobs, nl[i].normalJobs);
+	} else {
+	    printf("%4d\t down\n", i);
+	}
+	
+    }
+
+    return;
+}
+
+void PSIADM_HWStat(int first, int last)
+{
+    int i;
+    static size_t nl_size = 0;
+    static NodelistEntry_t *nl = NULL;
+
+    if (nl_size != sizeof(NodelistEntry_t) * PSC_getNrOfNodes()) {
+	nl_size = sizeof(NodelistEntry_t) * PSC_getNrOfNodes();
+	nl = (NodelistEntry_t *) realloc(nl, nl_size);
+    }
+
+    first = (first==ALLNODES) ? 0 : first;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
+
+    INFO_request_nodelist(nl, nl_size, 1);
+    printf("Node\t Available Hardware\n");
+    for (i = first; i < last; i++) {
+	if (nl[i].up) {
+	    printf("%4d\t ", i);
+	    if (nl[i].hwType & PSP_HW_ETHERNET) printf("ethernet ");
+	    if (nl[i].hwType & PSP_HW_MYRINET) printf("myrinet ");
+	    if (nl[i].hwType & PSP_HW_GIGAETHERNET) printf("gigaethernet ");
+	    if (!nl[i].hwType) printf("none");
 	} else {
 	    printf("%4d\t down\n", i);
 	}
@@ -1125,16 +1155,12 @@ int main(int argc, char **argv)
 	    printf("Insufficient priviledge for resetting\n");
 	    exit(-1);
 	}
-	printf("Initiating RESET.\n"); fflush(stdout);
-	PSI_clientinit(TG_RESETABORT);
-	PSI_clientexit();
-	printf("Waiting for reset.\n"); fflush(stdout);
-	sleep(1);
-	printf("Trying to reconnect.\n"); fflush(stdout);
+	printf("Initiating RESET.\n");
 	PSI_clientinit(TG_RESET);
-	printf("Resetting done. Please try to connect regulary\n");
-	fflush(stdout);
-	exit(0);
+	PSI_clientexit();
+	printf("Waiting for reset.\n");
+	sleep(1);
+	printf("Trying to reconnect.\n");
     }
 
     if (!PSI_clientinit(TG_ADMIN)) {
