@@ -122,4 +122,38 @@
     <xsl:apply-templates/>
   </xsl:template>
 
+  <!-- This fixes a bug in 1.60.1 also fixed in 1.61.2 -->
+  <xsl:template match="glossentry/glosssee">
+    <xsl:variable name="otherterm" select="@otherterm"/>
+    <xsl:variable name="targets" select="//node()[@id=$otherterm]"/>
+    <xsl:variable name="target" select="$targets[1]"/>
+
+    <dd>
+      <p>
+	<xsl:call-template name="gentext.template">
+	  <xsl:with-param name="context" select="'glossary'"/>
+	  <xsl:with-param name="name" select="'see'"/>
+	</xsl:call-template>
+	<xsl:choose>
+	  <xsl:when test="$target">
+	    <a href="#{@otherterm}">
+	      <xsl:apply-templates select="$target" mode="xref-to"/>
+	    </a>
+	  </xsl:when>
+	  <xsl:when test="$otherterm != '' and not($target)">
+	    <xsl:message>
+	      <xsl:text>Warning: glosssee @otherterm reference not found: </xsl:text>
+	      <xsl:value-of select="$otherterm"/>
+	    </xsl:message>
+	    <xsl:apply-templates/>
+	  </xsl:when>
+	  <xsl:otherwise>
+	    <xsl:apply-templates/>
+	  </xsl:otherwise>
+	</xsl:choose>
+	<xsl:text>.</xsl:text>
+      </p>
+    </dd>
+  </xsl:template>
+
 </xsl:stylesheet>
