@@ -8,7 +8,7 @@
 #**
 #* PSM_INSTALL: ParaStation De-/Installationscript
 #*
-#* $Id: PSM_INSTALL,v 1.7 2002/07/10 16:41:04 hauke Exp $
+#* $Id: PSM_INSTALL,v 1.8 2002/07/11 16:52:19 hauke Exp $
 #*
 #* @author  
 #*         Eduard Syrchyn <syrchyn@par-tec.de>
@@ -36,9 +36,9 @@ PSMMTH="$PSMDRV.mth"
 
 #/etc/inetd.conf
 INETD_PSIDMASK="^[ 	]*psid[ 	]"
-INETD_PSIDLINE="psid	stream	tcp	nowait	root	$PSMAIN/bin/psid psid -f $PSMAIN/config/psm.config"
+INETD_PSIDLINE="psid	stream	tcp	nowait	root	$PSMAIN/bin/psid psid -f $PSMAIN/config/parastation.conf"
 INETD_PSLDMASK="^[ 	]*psld[ 	]"
-INETD_PSLDLINE="psld	stream	tcp	nowait	root	$PSMAIN/bin/psld psld -f $PSMAIN/config/psm.config"
+INETD_PSLDLINE="psld	stream	tcp	nowait	root	$PSMAIN/bin/psld psld -f $PSMAIN/config/parastation.conf"
 INETD_PID="/var/run/inetd.pid"
 INETD_CNF="$ETC_DIR/inetd.conf"
 INETD_BKP="$INETD_CNF.psm"
@@ -56,7 +56,7 @@ service psid
         wait            = no
         user            = root
         server          = $PSMAIN/bin/psid
-        server_args     = -f $PSMAIN/config/psm.config
+        server_args     = -f $PSMAIN/config/parastation.conf
         log_on_failure  += USERID
 }
 service psld
@@ -66,7 +66,7 @@ service psld
         wait            = no
         user            = root
         server          = $PSMAIN/bin/psld
-        server_args     = -f $PSMAIN/config/psm.config
+        server_args     = -f $PSMAIN/config/parastation.conf
         log_on_failure  += USERID
 }
 "
@@ -89,7 +89,7 @@ SERV_BKP="$SERV_CNF.psm"
 self_post_inst_msg() {
     echo "#################################################################"
     echo "  Please, prepare and mantain the file                           "
-    echo "  $PSCNFDIR/psm.config! (s.o. psm.config.template) "
+    echo "  $PSCNFDIR/parastation.conf! (s.o. parastation.conf.template) "
     echo "#################################################################"
 }
 
