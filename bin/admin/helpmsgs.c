@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: helpmsgs.c,v 1.12 2004/09/22 09:22:59 eicker Exp $
+ * $Id: helpmsgs.c,v 1.13 2004/09/23 13:14:48 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.12 2004/09/22 09:22:59 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.13 2004/09/23 13:14:48 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -56,11 +56,11 @@ static info_t helpInfo = {
     .nodes = 0,
     .descr = NULL,
     .tags = (taggedInfo_t[]) {
-	{ .tag = "add",
-	  .descr = "Start the ParaStation daemon process on some or all nodes."
-	},
+	{ .tag = "help",
+	  .descr = "Give help to distinct directives." },
 	{ .tag = "kill",
-	  .descr = "Terminate a ParaStation process on any node." },
+	  .descr = "Terminate processes controlled by ParaStation on any node."
+	},
 	{ .tag = "range",
 	  .descr = "Set or show the default node-range." },
 	{ .tag = "show",
@@ -69,10 +69,10 @@ static info_t helpInfo = {
 	  .descr = "Status information." },
 	{ .tag = "version",
 	  .descr = "Print version numbers." },
-	{ .tag = "exit",
-	  .descr = "Same as quit." },
 	{ .tag = "quit",
 	  .descr = "Quit PSIadmin." },
+	{ .tag = "exit",
+	  .descr = "Same as quit." },
 	{ NULL, NULL}
     },
     .comment = NULL
@@ -84,6 +84,13 @@ static info_t privilegedInfo = {
     .nodes = 0,
     .descr = NULL,
     .tags = (taggedInfo_t[]) {
+	{ .tag = "add",
+	  .descr = "Start the ParaStation daemon process on some or all nodes."
+	},
+	{ .tag = "hwstart",
+	  .descr = "Enable communication channels." },
+	{ .tag = "hwstop",
+	  .descr = "Disable communication channels." },
 	{ .tag = "reset",
 	  .descr = "Reset the daemons or network." },
 	{ .tag = "restart",
@@ -221,7 +228,7 @@ static info_t setInfo = {
 	" | psiddebug <level> | selecttime <timeout> | rdpdebug <level>"
 	" | rdppktloss <rate> | rdpmaxretrans <val> | mcastdebug <level>"
 	" | {smallpacketsize|sps} <size> | hnpend <val> | ackpend <val>"
-	" | {freeonsuspend|fos} } <nodes>"
+	" | {freeonsuspend|fos} | {handleoldbins|hob} } <nodes>"
     }},
     .nodes = 1,
     .descr = "Set one of various parameters of the ParaStation system:",
