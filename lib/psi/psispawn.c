@@ -203,11 +203,11 @@ int PSI_SortNodesInPartition(short nodes[], int maxnodes)
     }
 
     if (strcasecmp(env_sort,"LOAD")==0) {
-	loadfunc = PSI_getload;
+	loadfunc = INFO_request_load;
     }
 
     if (strcasecmp(env_sort,"PROC")==0) {
-	loadfunc = PSI_getNumberOfProcs;
+	loadfunc = INFO_request_proc;
     }
 
     if (loadfunc) {
