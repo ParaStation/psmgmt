@@ -6,259 +6,340 @@
 
   <refnamediv>
     <refname>ps_environment</refname>
-    <refpurpose>ParaStation environment variables</refpurpose>
+    <refpurpose>&ps; environment variables</refpurpose>
   </refnamediv>
 
   <refsect1>
     <title>Description</title>
     <para>
-      Environment variables
+      The behavior of the &ps; system when starting up parallel tasks or while
+      submitting serial jobs using <xref linkend="psmstart"/> might be affected
+      using different environment variables.
+    </para>
+    <para>
+      Further variables may be used in order to modify the behavior of the
+      logging facilities used for reliable forwarding of input and output.
+    </para>
+    <para>
+      The last section describes some less frequently used environment
+      variables which affect the behavior of the MPIch system implementing the
+      MPI interface on top of &ps;.
+    </para>
+  </refsect1>
+
+  <refsect1>
+    <title>Variables managing the program startup</title>
+    <para>
+      The following environment variables are used during startup of parallel
+      tasks of while submitting serial jobs throughout a cluster. Depending on
+      their value a splitting of the cluster into virtual partitions is done
+      and the load balancing strategy is steered.
+    </para>
+    <variablelist>
+
+      <varlistentry>
+	<term><envar>PSI_EXPORTS</envar> <replaceable>VAR</replaceable>
+	  <optional>, <replaceable>VAR</replaceable></optional>...</term>
+	<listitem>
+	  <para>A list of environment variables which should be exported to
+	    remote processes during spawning. Some environment variables
+	    (<envar>HOME</envar>, <envar>USER</envar>, <envar>SHELL</envar> and
+	    <envar>TERM</envar>) are exported by default.
+	  </para>
+	  <para>
+	    Furthermore <envar>PWD</envar> is set correctly for remote
+	    processes. In addition the environment used for partitioning the
+	    cluster (i.e. <envar>PSI_NODES</envar>, <envar>PSI_HOSTFILE</envar>
+	    or <envar>PSI_HOSTS</envar> and <envar>PSI_NODES_SORT</envar>) is
+	    propagated to remote processes.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><envar>PSI_NODES</envar> <replaceable>number</replaceable>
+	  <optional>, <replaceable>number</replaceable></optional>...</term>
+	<listitem>
+	  <para>Defines the nodes used to partition on which new processes
+	    should be spawned on. Depending on the variable
+	    <envar>PSI_NODES_SORT</envar> the ordering may be relevant. If the
+	    number of processes exceed the number of nodes in the partition,
+	    some nodes may get more than one process.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><envar>PSI_HOSTFILE</envar>
+	  <replaceable>filename</replaceable></term>
+	<listitem>
+	  <para>Set the filename of a file, where hostnames of the nodes are
+	    listed which should be used for spawning. Similar to
+	    <envar>PSI_NODES</envar> but with names instead of logical
+	    ParaStation node numbers. If <envar>PSI_NODES</envar> is set too,
+	    it is dominant over <envar>PSI_HOSTFILE</envar>.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><envar>PSI_HOSTS</envar> <replaceable>hostname</replaceable>
+	  <optional>, <replaceable>hostname</replaceable></optional>...</term>
+	<listitem>
+	  <para>Space separted list of hostnames on which new processes should
+	    be spawned on. See also <envar>PSI_NODES</envar> and
+	    <envar>PSI_HOSTFILE</envar>.
+	  </para>
+	  <note>
+	    <para><envar>PSI_NODES</envar>, <envar>PSI_HOSTS</envar> and
+	      <envar>PSI_HOSTFILE</envar> are evaluated in the given order. If
+	      more than one of the discussed variables is set, only the first
+	      one will be used in order to create the partition. The latter
+	      ones will be silently ignored.
+	    </para>
+	  </note>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><envar>PSI_NODES_SORT</envar>
+	  <replaceable>mode</replaceable></term>
+	<listitem>
+	  <para>This variable steers the sorting criterium which is used to
+	    bring the nodes building a partition in an apropriate order to
+	    used. The following values of <replaceable>mode</replaceable> are
+	    recognized:
+	  </para>
+	  <variablelist>
+	    <varlistentry>
+	      <term><envar>ROUNDROBIN</envar></term>
+	      <listitem>
+		<para>No sorting of nodes before a spawn request. The nodes are
+		  used in round robin fashion as they are set in
+		  <envar>PSI_NODES</envar>, <envar>PSI_HOSTFILE</envar> or
+		  <envar>PSI_HOSTS</envar>.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term><envar>NONE</envar></term>
+	      <listitem>
+		<para>Same as <envar>ROUNDROBIN</envar></para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term><envar>LOAD</envar></term>
+	      <listitem>
+		<para>The nodes are sorted by load before new processes are
+		  spawned. Therefore nodes with the least load are used first.
+		</para>
+		<para>
+		  To be more specific, the load average over the last minute is
+		  used as the sorting criterium, i.e. this option is equivalent
+		  to <envar>LOAD_1</envar>.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term><envar>LOAD_1</envar></term>
+	      <listitem>
+		<para>The nodes are sorted corresponding to the 1 minute load
+		  average.</para>
+		<para>
+		  This option is equivalent to <envar>LOAD</envar>.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term><envar>LOAD_5</envar></term>
+	      <listitem>
+		<para>The nodes are sorted corresponding to the 5 minute load
+		  average.</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term><envar>LOAD_15</envar></term>
+	      <listitem>
+		<para>The nodes are sorted corresponding to the 15 minute load
+		  average.</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term><envar>PROC</envar></term>
+	      <listitem>
+		<para>The nodes are sorted by the number of running ParaStation
+		  processes before new processes are spawnde. This is the
+		  default behavior.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	  </variablelist>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><envar>PSI_RARG_PRE_{n}</envar></term>
+	<listitem>
+	  <para>Preceding arguments for remote processes. For example: Use
+	    <envar>PSI_RARG_PRE_0</envar>=/usr/bin/time to execute:
+	    /usr/bin/time yourApplication yourArgs on the remote nodes.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+    </variablelist>
+  </refsect1>
+
+  <refsect1> 
+    <title>Variables steering logger/forwarder</title>
+    <para>
+      In order to modify the behavior of the logger and the forwarders
+      controlling the remotely spawned processes the following environment
+      variable can be used.
+    </para>
+    <variablelist>
+      <varlistentry>
+	<term><envar>PSI_NOMSGLOGGERDONE</envar></term>
+	<listitem>
+	  <para>If set, psilogger will <emphasis role="bold">not</emphasis>
+	    print out the message <quote>PSIlogger: done</quote> at the end of
+	    a parallel run.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><envar>PSI_LOGGERDEBUG</envar></term>
+	<listitem>
+	  <para>If set, psilogger gives debug output about connecting and
+	    detaching clients as well as received output from the clients.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><envar>PSI_FORWARDERDEBUG</envar></term>
+	<listitem>
+	  <para>If set, debug output of the psiforwarder about connected
+	    programs, received input and received output is printed.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><envar>PSI_SOURCEPRINTF</envar></term>
+	<listitem>
+	  <para>If set, psilogger gives information about the source of the
+	    received output, i.e. it will prepend every output by
+	    <quote>[id]:</quote>, where id is the rank of the printing process
+	    within the process group. Usually the id coincides with the
+	    MPI-rank.  If <envar>PSI_LOGGERDEBUG</envar> is also set, every
+	    output is prepended by <quote>[id, len]</quote>, where id is the
+	    rank again and len is the length of the printed message in bytes. 
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><envar>PSI_INPUTDEST</envar>
+	  <replaceable>rank</replaceable></term>
+	<listitem>
+	  <para>If set, psilogger will forward all input to the process with
+	    rank rank within the process group. The default is to give all
+	    available input to process 0.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+    </variablelist>
+  </refsect1>
+
+  <refsect1>
+    <title>Variables steering MPIch</title>
+
+    <para>
+      The environment variables within this section might be used less
+      frequently. They are mainly listed within this document for completeness.
     </para>
 
-    <table frame='all'>
-      <title>Variables managing the program start</title>
-      <tgroup cols='3' align='left' colsep='1' rowsep='1'>
-	<colspec colname='var'/>
-	<colspec colname='val'/>
-	<colspec colname='desc' colwidth='2*'/>
+    <variablelist>
+      <varlistentry>
+	<term><envar>MPID_PSP_MAXSMALLMSG</envar></term>
+	<listitem>
+	  <para>Length (in bytes) of the largest message sent w/o rendezvous.
+	  </para>
+	</listitem>
+      </varlistentry>
 
-	<thead>
-	  <row>
-	    <entry>Variable</entry>
-	    <entry>possible values</entry>
-	    <entry>Description</entry>
-	  </row>
-	</thead>
+      <varlistentry>
+	<term><envar>MPID_PSP_START</envar></term>
+	<listitem>
+	  <para>Define the method used in order to spawn remote processes. The
+	    possible values are:
+	  </para>
+	  <variablelist>
+	    <varlistentry>
+	      <term><envar>PSID</envar></term>
+	      <listitem>
+		<para>Start remote processes with the ^ps; start
+		  mechanism.</para>
+		<para>This is the default, i.e. if
+		  <envar>MPID_PSP_START</envar> is not set at all, &ps; is used
+		in order to spawn remote processes.</para>
+	      </listitem>
+	    </varlistentry>
 
-	<tbody>
+	    <varlistentry>
+	      <term><envar>SSH</envar></term>
+	      <listitem>
+		<para>Start remote processes with <citerefentry>
+		    <refentrytitle>ssh</refentrytitle>
+		    <manvolnum>1</manvolnum>
+		  </citerefentry>. <envar>MPID_PSP_HOSTS</envar> must be
+		  set.</para>
+	      </listitem>
+	    </varlistentry>
 
-	  <row>
-	    <entry>PSI_EXPORTS</entry>
-	    <entry>VAR[,VAR]</entry>
-	    <entry>
-	      A list of environment variables which should be exported to
-	      remote processes during spawning. Some environment variables
-	      (HOME, USER, SHELL, TERM) are exported as default, furthermore
-	      PWD is set correctly for remote processes. In addition the
-	      environment used for partitioning the cluster (i.e. PSI_NODES,
-	      PSI_HOSTFILE, PSI_HOSTS and PSI_NODES_SORT) is propagated to
-	      remote processes.
-	    </entry>
-	  </row>
+	    <varlistentry>
+	      <term><envar>NONE</envar></term>
+	      <listitem>
+		<para>Don't start the remote processes. The remote processes
+		  must be started manually. A commandline template is printed
+		  to stdout.</para>
+		<para>
+		  This start mode is for debugging purposes only and should not
+		  be used by the end-user.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	  </variablelist>
+	</listitem>
+      </varlistentry>
 
-	  <row>
-	    <entry id="psi_nodes">PSI_NODES</entry>
-	    <entry>number[,number..]</entry>
-	    <entry>
-	      Defines the nodes used to partition on which new processes should
-	      be spawned on. Depending on the variable PSI_NODES_SORT the
-	      ordering may be relevant. If the number of processes exceed the
-	      number of nodes in the partition some nodes may have more than
-	      one process.
-	    </entry>
-	  </row>
-
-	  <row>
-	    <entry>PSI_HOSTFILE</entry>
-	    <entry>filename</entry>
-	    <entry>
-	      Set the filename of a file, where hostnames of the nodes are
-	      listed which should be used for spawning. Similar to PSI_NODES
-	      but with names instead of logical ParaStation node numbers. If
-	      PSI_NODES is set too, it is dominant over PSI_HOSTFILE.
-	    </entry>
-	  </row>
-
-	  <row>
-	    <entry>PSI_HOSTS</entry>
-	    <entry>hostname [hostname..]</entry>
-	    <entry>
-	      Space separted list of hostnames on which new processes should be
-	      spawned on.  s.o. PSI_NODES and PSI_HOSTFILE
-	    </entry>
-	  </row>
-
-	  <row>
-	    <entry morerows='3' valign='middle'>PSI_NODES_SORT</entry>
-	    <entry>ROUNDROBIN</entry>
-	    <entry>
-	      No sorting of nodes before a spawn request. The nodes are used in
-	      round robin fashion as they are set in PSI_NODES, PSI_HOSTFILE or
-	      PSI_HOSTS
-	    </entry>
-	  </row>
-
-	  <row>
-	    <entry>NONE</entry>
-	    <entry>
-	      Like ROUNDROBIN
-	    </entry>
-	  </row>
-
-	  <row>
-	    <entry>LOAD</entry>
-	    <entry>
-	      The nodes are sorted by load before new processes are spawned.
-	      Therefore nodes with the least load are used first.
-	    </entry>
-	  </row>
-	
-	  <row>
-	    <entry>PROC</entry>
-	    <entry>
-	      The nodes are sorted by the number of running ParaStation
-	      processes before new processes are spawnde. This is the default
-	      behavior.
-	    </entry>
-	  </row>
-
-	  <row>
-	    <entry>PSI_RARG_PRE_{n}</entry>
-	    <entry>any</entry>
-	    <entry>
-	      Preceding arguments for remote processes. For example:
-	      PSI_RARG_PRE_0=/usr/bin/time to execute: /usr/bin/time
-	      yourApplication yourArgs on remote.
-	    </entry>
-	  </row>
-	</tbody>
-      </tgroup>
-    </table>
-
-    <table frame='all'>
-      <title>Variables steering logger/forwarder</title>
-      <tgroup cols='3' align='left' colsep='1' rowsep='1'>
-	<colspec colname='var'/>
-	<colspec colname='val'/>
-	<colspec colname='desc' colwidth='2*'/>
-
-	<thead>
-	  <row>
-	    <entry>Variable</entry>
-	    <entry>possible values</entry>
-	    <entry>Description</entry>
-	  </row>
-	</thead>
-
-	<tbody>
-
-	  <row>
-	    <entry>PSI_NOMSGLOGGERDONE</entry>
-	    <entry>any</entry>
-	    <entry>
-	      If set, psilogger will <emphasis>not</emphasis> print out the
-	      message "PSIlogger: done" at the end of a parallel run.
-	    </entry>
-	  </row>
-
-	  <row>
-	    <entry>PSI_LOGGERDEBUG</entry>
-	    <entry>any</entry>
-	    <entry>
-	      If set, psilogger gives debug output about connecting and
-	      detaching clients as well as received output from the clients.
-	    </entry>
-	  </row>
-
-	  <row>
-	    <entry>PSI_FORWARDERDEBUG</entry>
-	    <entry>any</entry>
-	    <entry>
-	      If set, debug output of the psiforwarder about connected
-	      programs, received input and received output is printed.
-	    </entry>
-	  </row>
-
-	  <row>
-	    <entry>PSI_SOURCEPRINTF</entry>
-	    <entry>any</entry>
-	    <entry>
-	      If set, psilogger gives information about the source of the
-	      received output, i.e. it will prepend every output by '[id]:',
-	      where id is the rank of the printing process within the process
-	      group. Usually the id coincides with the MPI-rank.  If
-	      PSI_LOGGERDEBUG is also set, every output is prepended by '[id,
-	      len]', where id is the rank again and len is the length of the
-	      printed message in bytes. 
-	    </entry>
-	  </row>
-
-	  <row>
-	    <entry>PSI_INPUTDEST</entry>
-	    <entry>rank</entry>
-	    <entry>
-	      If set, psilogger will forward all input to the process with rank
-	      rank within the process group. The default is to give all
-	      available input to process 0.
-	    </entry>
-	  </row>
-
-	</tbody>
-      </tgroup>
-    </table>
-
-    <table frame='all'>
-      <title>Variables steering MPIch</title>
-      <tgroup cols='3' align='left' colsep='1' rowsep='1'>
-	<colspec colname='var'/>
-	<colspec colname='val'/>
-	<colspec colname='desc' colwidth='2*'/>
-
-	<thead>
-	  <row>
-	    <entry>Variable</entry>
-	    <entry>possible values</entry>
-	    <entry>Description</entry>
-	  </row>
-	</thead>
-
-	<tbody>
-
-	  <row>
-	    <entry>MPID_PSP_MAXSMALLMSG</entry>
-	    <entry>number</entry>
-	    <entry>
-	      Length (in bytes) of the largest message sent w/o rendezvous.
-	    </entry>
-	  </row>
-
-	  <row>
-	    <entry morerows='2' valign='middle'>MPID_PSP_START</entry>
-	    <entry>SSH</entry>
-	    <entry>
-	      Start remote processes with ssh. MPID_PSP_HOSTS must be set.
-	    </entry>
-	  </row>
-
-	  <row>
-	    <entry>PSID</entry>
-	    <entry>
-	      Start remote processes with the ParaStation start mechanism.
-	    </entry>
-	  </row>
-
-	  <row>
-	    <entry>NONE</entry>
-	    <entry>
-	      Dont start the remote processes. The remote processes must be
-	      started manualy. A commandline template is printed to stdout.
-	    </entry>
-	  </row>
-
-	  <row>
-	    <entry>MPID_PSP_HOSTS</entry>
-	    <entry>hostname[,hostname..]</entry>
-	    <entry>
-	      Comma separated list of hostnames. Used for MPID_PSP_START=SSH
-	      only.
-	    </entry>
-	  </row>
-
-	</tbody>
-      </tgroup>
-
-    </table>
+      <varlistentry>
+	<term><envar>MPID_PSP_HOSTS</envar> <replaceable>hostname</replaceable>
+	  <optional><replaceable>, hostname</replaceable></optional>...</term>
+	<listitem>
+	  <para>Comma separated list of hostnames. Used for
+	    <envar>MPID_PSP_START</envar>=SSH only.</para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
   </refsect1>
+
+  <refsect1>
+    <title>See also</title>
+    <para>
+      <xref linkend="spawning"/>
+    </para>
+  </refsect1>
+
 </refentry>
   <!-- Keep this comment at the end of the file
   Local variables:
@@ -271,7 +352,7 @@
   sgml-always-quote-attributes:t
   sgml-indent-step:2
   sgml-indent-data:t
-  sgml-parent-document:("usergiude.xml" "book" "reference" "reference" ("title"))
+  sgml-parent-document:("userguide.xml" "book" "reference" "reference" ("title"))
   sgml-exposed-tags:nil
   sgml-local-catalogs:nil
   sgml-local-ecat-files:nil
