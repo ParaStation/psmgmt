@@ -80,3 +80,28 @@ CPUs, Features"
 
 Hash     = eec0a6c2-0e99f114
 
+#
+# ParaStation license
+#
+
+ID       = "ParaStation FE"
+Ver      = "1.0"
+Cpr      = "COPYRIGHT (C) 2002 ParTec AG Karlsruhe"
+
+Name     = "Divergenet, Demo License"
+Contact  = ""
+License  = "27345-4125-12"
+LicType  = "commercial"
+
+Date     = "2002-12-17"
+Expire   = "2003-02-15"
+
+Nodes    = 16
+CPUs     = 32
+Features = ""
+
+Fields   = "ID, Ver, Cpr, Name, License, LicType, Date, Expire, Nodes,\
+CPUs, Features"
+
+Hash     = 70ce4522-ce720b8a
+

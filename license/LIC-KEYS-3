@@ -393,3 +393,34 @@ CPUs, Features ,MCPKey"
 
 Hash     = 0d3dd4fe-41368dd8
 
+
+
+
+Moskau ueber Arseny:
+#
+# ParaStation license
+#
+
+ID       = "ParaStation 3"
+Ver      = "3.2"
+Cpr      = "COPYRIGHT (C) 2002 ParTec AG Karlsruhe"
+
+Name     = "Demo"
+Contact  = ""
+License  = "24278-4125-14"
+LicType  = "non-commercial"
+
+Date     = "2002-12-11"
+Expire   = "2003-03-11"
+
+Nodes    = 16
+CPUs     = 32
+Features = "IP, Ether, Myrinet"
+
+MCPKey   = "p+-FZZu2qV9%fzV-7ERyvW"
+
+Fields   = "ID, Ver, Cpr, Name, License, LicType, Date, Expire, Nodes,\
+CPUs, Features ,MCPKey"
+
+Hash     = 16fdd72c-27ffcec6
+
