@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.h,v 1.19 2003/09/12 13:53:36 eicker Exp $
+ * $Id: info.h,v 1.20 2003/10/23 16:27:20 eicker Exp $
  *
  */
 /**
  * @file
  * info: Functions for information retrieving from ParaStation daemon
  *
- * $Id: info.h,v 1.19 2003/09/12 13:53:36 eicker Exp $
+ * $Id: info.h,v 1.20 2003/10/23 16:27:20 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -22,6 +22,7 @@
 #define __INFO_H
 
 #include <sys/types.h>
+#include "pstask.h"
 #include "psprotocol.h"
 
 #ifdef __cplusplus
@@ -121,11 +122,11 @@ int INFO_request_host(unsigned int addr, int verbose);
 unsigned int INFO_request_node(int node, int verbose);
 
 typedef struct {
-    long tid;
-    long ptid;
-    long loggertid;
+    PStask_ID_t tid;
+    PStask_ID_t ptid;
+    PStask_ID_t loggertid;
     uid_t uid;
-    long group;
+    PStask_group_t group;
     int rank;
     int connected;
 } INFO_taskinfo_t;
@@ -174,7 +175,7 @@ typedef enum {
  *  @todo Das stimmt nicht, es gibt verschiedene Aufgaben.
  *  RETURN the uid of the task
  */
-long INFO_request_taskinfo(long tid, INFO_info_t what, int verbose);
+long INFO_request_taskinfo(PStask_ID_t tid, INFO_info_t what, int verbose);
 
 int INFO_request_option(unsigned short node, int num, long option[],
 			long value[], int verbose);

@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.20 2003/10/09 16:39:27 eicker Exp $
+ * $Id: psprotocol.h,v 1.21 2003/10/23 16:27:20 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation client-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.20 2003/10/09 16:39:27 eicker Exp $
+ * $Id: psprotocol.h,v 1.21 2003/10/23 16:27:20 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -183,8 +183,8 @@ typedef enum {
 typedef struct {
     short type;            /**< msg type */
     short len;             /**< total length of the message */
-    long sender;           /**< sender of the message */ 
-    long dest;             /**< final destination of the message */
+    PStask_ID_t sender;    /**< sender of the message */ 
+    PStask_ID_t dest;      /**< final destination of the message */
 } DDMsg_t;
 
 /** Typed message containing the type and nothing else. */
@@ -270,13 +270,13 @@ typedef struct {
  * Types describing the content of PSP_INFO_TASKLIST responses.
  */
 typedef struct {
-    long tid;            /**< tasks unique identifier */
-    long ptid;           /**< unique identifier of tasks parent-task */
-    long loggertid;      /**< unique identifier of tasks logger-task */
-    uid_t uid;           /**< user id of the task */
-    long group;          /**< process group of the task */
-    int rank;            /**< rank of the task within process group */
-    int connected;       /**< flag if task has connected the daemon */
+    PStask_ID_t tid;       /**< tasks unique identifier */
+    PStask_ID_t ptid;      /**< unique identifier of tasks parent-task */
+    PStask_ID_t loggertid; /**< unique identifier of tasks logger-task */
+    uid_t uid;             /**< user id of the task */
+    PStask_group_t group;  /**< task group of the task */
+    int rank;              /**< rank of the task within process group */
+    int connected;         /**< flag if task has connected the daemon */
 } Taskinfo_t;
 
 
