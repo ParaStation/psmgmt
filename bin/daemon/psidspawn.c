@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidspawn.c,v 1.7 2003/02/21 13:09:45 eicker Exp $
+ * $Id: psidspawn.c,v 1.8 2003/03/04 14:09:17 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.7 2003/02/21 13:09:45 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.8 2003/03/04 14:09:17 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -456,7 +456,7 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
     int i, ret;
 
     if (PSID_getDebugLevel() >= 10) {
-	snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn(): task=");
+	snprintf(errtxt, sizeof(errtxt), "%s(): task=", __func__);
 	PStask_snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
 			client);
 	PSID_errlog(errtxt, 10);
@@ -466,8 +466,8 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
     if (pipe(forwarderfds)<0) {
 	char *errstr = strerror(errno);
 
-	snprintf(errtxt, sizeof(errtxt), "PSID_spawnTask(): pipe(): %s\n",
-		 errstr ? errstr : "UNKNOWN");
+	snprintf(errtxt, sizeof(errtxt), "%s(): pipe(): %s\n",
+		 __func__, errstr ? errstr : "UNKNOWN");
 	PSID_errlog(errtxt, 0);
     }
     fcntl(forwarderfds[1], F_SETFD, FD_CLOEXEC);
@@ -476,9 +476,8 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
     if (socketpair(PF_UNIX, SOCK_STREAM, 0, socketfds)<0) {
 	char *errstr = strerror(errno);
 
-	snprintf(errtxt, sizeof(errtxt),
-		 "PSID_spawnTask(): socketpair(): %s\n",
-		 errstr ? errstr : "UNKNOWN");
+	snprintf(errtxt, sizeof(errtxt), "%s(): socketpair(): %s\n",
+		 __func__, errstr ? errstr : "UNKNOWN");
 	PSID_errlog(errtxt, 0);
     }
 
@@ -528,8 +527,8 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
 	close(forwarderfds[0]);
 	close(socketfds[0]);
 
-	snprintf(errtxt, sizeof(errtxt), "PSID_spawnTask(): fork(): %s\n",
-		 errstr ? errstr : "UNKNOWN");
+	snprintf(errtxt, sizeof(errtxt), "%s(): fork(): %s\n",
+		 __func__, errstr ? errstr : "UNKNOWN");
 	PSID_errlog(errtxt, 0);
 
 	return ret;
@@ -540,8 +539,8 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
     /*
      * check for a sign of the forwarder
      */
-    snprintf(errtxt, sizeof(errtxt),
-	     "PSID_spawnTask(): waiting for my child (%d)\n", pid);
+    snprintf(errtxt, sizeof(errtxt), "%s(): waiting for my child (%d)\n",
+	     __func__, pid);
     PSID_errlog(errtxt, 10);
 
     client->tid = 0;
@@ -560,14 +559,16 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
 	     * after telling the client pid.
 	     */
 	    snprintf(errtxt, sizeof(errtxt),
-		     "PSID_spawnTask(): child %s spawned successfully\n",
-		     PSC_printTID(client->tid));
+		     "%s(): child %s spawned successfully\n",
+		     __func__, PSC_printTID(client->tid));
 	    PSID_errlog(errtxt, 10);
 	} else {
 	    /*
 	     * the control channel was closed without telling the client's pid.
 	     */
-	    PSID_errlog("PSID_spawnTask(): haven't got child's pid\n", 0);
+	    snprintf(errtxt, sizeof(errtxt), "%s(): haven't got child's pid\n",
+		     __func__);
+	    PSID_errlog(errtxt, 0);
 
 	    ret = EBADMSG;
 	}
@@ -586,8 +587,9 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
 		/*
 		 * the control channel was closed during message.
 		 */
-		PSID_errlog("PSID_spawnTask(): pipe closed unexpectedly\n",
-			    0);
+		snprintf(errtxt, sizeof(errtxt),
+			 "%s(): pipe closed unexpectedly\n", __func__);
+		PSID_errlog(errtxt, 0);
 
 		ret = EBADMSG;
 	    } else {
@@ -604,9 +606,8 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
 
 	    ret = buf;
 
-	    snprintf(errtxt, sizeof(errtxt),
-		     "PSID_spawnTask(): child exec() failed: %s\n",
-		     errstr ? errstr : "UNKNOWN");
+	    snprintf(errtxt, sizeof(errtxt), "%s(): child exec() failed: %s\n",
+		     __func__, errstr ? errstr : "UNKNOWN");
 	    PSID_errlog(errtxt, 0);
 	    
 	}
