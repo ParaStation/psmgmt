@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.35 2004/01/22 11:20:23 eicker Exp $
+ * $Id: rdp.c,v 1.36 2004/01/22 13:20:33 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.35 2004/01/22 11:20:23 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.36 2004/01/22 13:20:33 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -84,7 +84,7 @@ typedef enum {
     SYN_SENT,    /**< connection establishing: SYN sent */
     SYN_RECVD,   /**< connection establishing: SYN received */
     ACTIVE       /**< connection is up */
-} RDPState;
+} RDPState_t;
 
 /** The possible RDP message types */
 #define RDP_DATA     0x1  /**< regular data message */
@@ -101,7 +101,7 @@ typedef struct {
     int seqno;            /**< Sequence number of packet */
     int ackno;            /**< Sequence number of ack */
     int connid;           /**< Connection Identifier */
-} rdphdr;
+} rdphdr_t;
 
 /** Up to this size predefined buffers are use to store the message. */
 #define RDP_SMALL_DATA_SIZE 32
@@ -315,13 +315,13 @@ typedef struct ipentry_ {
     unsigned int ipnr;      /**< IP number of the node */
     int node;               /**< logical node number */
     struct ipentry_ *next;  /**< pointer to next entry */
-} ipentry;
+} ipentry_t;
 
 /**
  * 256 entries since lookup is based on LAST byte of IP number.
  * Initialized by initIPTable().
  */
-static ipentry iptable[256];
+static ipentry_t iptable[256];
 
 /**
  * @brief Initialize @ref iptable.
@@ -353,14 +353,14 @@ static void initIPTable(void)
  */
 static void insertIPTable(struct in_addr ipno, int node)
 {
-    ipentry *ip;
+    ipentry_t *ip;
     int idx = ntohl(ipno.s_addr) & 0xff;  /* use last byte of IP addr */
 
     if (iptable[idx].ipnr != 0) {
 	/* create new entry */
 	ip = &iptable[idx];
-	while (ip->next != NULL) ip = ip->next; /* search end */
-	ip->next = (ipentry *)malloc(sizeof(ipentry));
+	while (ip->next) ip = ip->next; /* search end */
+	ip->next = malloc(sizeof(ipentry_t));
 	ip = ip->next;
 	ip->next = NULL;
 	ip->ipnr = ipno.s_addr;
@@ -386,7 +386,7 @@ static void insertIPTable(struct in_addr ipno, int node)
  */
 static int lookupIPTable(struct in_addr ipno)
 {
-    ipentry *ip = NULL;
+    ipentry_t *ip = NULL;
     int idx = ntohl(ipno.s_addr) & 0xff;  /* use last byte of IP addr */
 
     ip = &iptable[idx];
@@ -397,7 +397,7 @@ static int lookupIPTable(struct in_addr ipno)
 	    return ip->node;
 	}
 	ip = ip->next;
-    } while (ip != NULL);
+    } while (ip);
 
     return -1;
 }
@@ -408,18 +408,18 @@ static int lookupIPTable(struct in_addr ipno)
  * Prototype of a small RDP message.
  */
 typedef struct Smsg_ {
-    rdphdr       header;                    /**< Message header */
-    char         data[RDP_SMALL_DATA_SIZE]; /**< Body for small pakets */
-    struct Smsg_ *next;                     /**< Pointer to next Smsg buffer */
-} Smsg;
+    rdphdr_t header;                /**< Message header */
+    char data[RDP_SMALL_DATA_SIZE]; /**< Body for small pakets */
+    struct Smsg_ *next;             /**< Pointer to next Smsg buffer */
+} Smsg_t;
 
 /**
  * Prototype of a large (or normal) RDP message.
  */
 typedef struct {
-    rdphdr header;                          /**< Message header */
-    char   data[RDP_MAX_DATA_SIZE];         /**< Body for large pakets */
-} Lmsg;
+    rdphdr_t header;                /**< Message header */
+    char data[RDP_MAX_DATA_SIZE];   /**< Body for large pakets */
+} Lmsg_t;
 
 struct ackent_; /* forward declaration */
 
@@ -427,24 +427,24 @@ struct ackent_; /* forward declaration */
  * Control info for each message buffer
  */
 typedef struct msgbuf_ {
-    int            node;                    /**< ID of connection */
-    struct msgbuf_ *next;                   /**< Pointer to next buffer */
-    struct ackent_ *ackptr;                 /**< Pointer to ACK buffer */
-    struct timeval tv;                      /**< Timeout timer */
-    int            retrans;                 /**< Number of retransmissions */
-    int            len;                     /**< Length of body */
+    int node;                       /**< ID of connection */
+    struct msgbuf_ *next;           /**< Pointer to next buffer */
+    struct ackent_ *ackptr;         /**< Pointer to ACK buffer */
+    struct timeval tv;              /**< Timeout timer */
+    int retrans;                    /**< Number of retransmissions */
+    int len;                        /**< Length of body */
     union {
-	Smsg *small;                        /**< Pointer to a small msg */
-	Lmsg *large;                        /**< Pointer to a large msg */
-    } msg;                                  /**< The actual message */
-} msgbuf;
+	Smsg_t *small;              /**< Pointer to a small msg */
+	Lmsg_t *large;              /**< Pointer to a large msg */
+    } msg;                          /**< The actual message */
+} msgbuf_t;
 
 /**
  * Pool of message buffers ready to use. Initialized by initMsgList().
  * To get a buffer from this pool, use getMsg(), to put it back into
  * it use putMsg().
  */
-static msgbuf *MsgFreeList;
+static msgbuf_t *MsgFreeList;
 
 /**
  * @brief Initialize the message pool.
@@ -459,10 +459,10 @@ static msgbuf *MsgFreeList;
 static void initMsgList(int nodes)
 {
     int i, count;
-    msgbuf *buf;
+    msgbuf_t *buf;
 
     count = nodes * MAX_WINDOW_SIZE;
-    buf = (msgbuf *) malloc(sizeof(msgbuf) * count);
+    buf = malloc(count * sizeof(*buf));
 
     for (i=0; i<count; i++) {
 	buf[i].node = -1;
@@ -474,7 +474,7 @@ static void initMsgList(int nodes)
 	buf[i].len = -1;
 	buf[i].msg.small = NULL;
     }
-    buf[count - 1].next = (msgbuf *)NULL;
+    buf[count - 1].next = NULL;
 
     MsgFreeList = buf;
 
@@ -488,10 +488,10 @@ static void initMsgList(int nodes)
  *
  * @return Pointer to the message buffer taken from the pool.
  */
-static msgbuf *getMsg(void)
+static msgbuf_t *getMsg(void)
 {
-    msgbuf *mp = MsgFreeList;
-    if (mp == NULL) {
+    msgbuf_t *mp = MsgFreeList;
+    if (!mp) {
 	errlog("no more elements in MsgFreeList", 0);
     } else {
 	MsgFreeList = MsgFreeList->next;
@@ -511,7 +511,7 @@ static msgbuf *getMsg(void)
  *
  * @return No return value.
  */
-static void putMsg(msgbuf *mp)
+static void putMsg(msgbuf_t *mp)
 {
     mp->next = MsgFreeList;
     MsgFreeList = mp;
@@ -525,7 +525,7 @@ static void putMsg(msgbuf *mp)
  * To get a message from this pool, use getSMsg(), to put it back into
  * it use putSMsg().
  */
-static Smsg   *SMsgFreeList;
+static Smsg_t *SMsgFreeList;
 
 /**
  * @brief Initialize the message pool.
@@ -540,15 +540,15 @@ static Smsg   *SMsgFreeList;
 static void initSMsgList(int nodes)
 {
     int i, count;
-    Smsg *sbuf;
+    Smsg_t *sbuf;
 
     count = nodes * MAX_WINDOW_SIZE;
-    sbuf = (Smsg *) malloc(sizeof(Smsg) * count);
+    sbuf = malloc(count * sizeof(*sbuf));
 
     for (i=0; i<count; i++) {
 	sbuf[i].next = &sbuf[i+1];
     }
-    sbuf[count - 1].next = (Smsg *)NULL;
+    sbuf[count - 1].next = NULL;
     SMsgFreeList = sbuf;
 
     return;
@@ -561,10 +561,10 @@ static void initSMsgList(int nodes)
  *
  * @return Pointer to the small message taken from the pool.
  */
-static Smsg *getSMsg(void)
+static Smsg_t *getSMsg(void)
 {
-    Smsg *mp = SMsgFreeList;
-    if (mp == NULL) {
+    Smsg_t *mp = SMsgFreeList;
+    if (!mp) {
 	errlog("no more elements in SMsgFreeList", 0);
     } else {
 	SMsgFreeList = SMsgFreeList->next;
@@ -581,7 +581,7 @@ static Smsg *getSMsg(void)
  *
  * @return No return value.
  */
-static void putSMsg(Smsg *mp)
+static void putSMsg(Smsg_t *mp)
 {
     mp->next = SMsgFreeList;
     SMsgFreeList = mp;
@@ -594,7 +594,7 @@ static void putSMsg(Smsg *mp)
  * Connection info for each node expected to receive data from or send data
  * to.
  */
-typedef struct Rconninfo_ {
+typedef struct {
     int window;              /**< Window size */
     int ackPending;          /**< Flag, that a ACK to node is pending */
     int msgPending;          /**< Outstanding msgs during reconnect */
@@ -604,14 +604,14 @@ typedef struct Rconninfo_ {
     int frameExpected;       /**< Expected Seq Nr for msg coming from host */
     int ConnID_in;           /**< Connection ID to recognize node */
     int ConnID_out;          /**< Connection ID to node */
-    RDPState state;          /**< State of connection to host */
-    msgbuf *bufptr;          /**< Pointer to first message buffer */
-} Rconninfo;
+    RDPState_t state;        /**< State of connection to host */
+    msgbuf_t *bufptr;        /**< Pointer to first message buffer */
+} Rconninfo_t;
 
 /**
  * Array to hold all connection info.
  */
-static Rconninfo *conntable = NULL;
+static Rconninfo_t *conntable = NULL;
 
 /**
  * @brief Initialize the @ref conntable.
@@ -632,7 +632,7 @@ static void initConntable(int nodes, unsigned int host[], unsigned short port)
     struct timeval tv;
 
     if (!conntable) {
-	conntable = (Rconninfo *) malloc(nodes * sizeof(Rconninfo));
+	conntable = malloc(nodes * sizeof(*conntable));
     }
     initIPTable();
     gettimeofday(&tv, NULL);
@@ -675,12 +675,12 @@ static void initConntable(int nodes, unsigned int host[], unsigned short port)
 typedef struct ackent_ {
     struct ackent_ *prev;    /**< Pointer to previous msg waiting for an ack */
     struct ackent_ *next;    /**< Pointer to next msg waiting for an ack */
-    msgbuf *bufptr;          /**< Pointer to corresponding msg buffer */
-} ackent;
+    msgbuf_t *bufptr;        /**< Pointer to corresponding msg buffer */
+} ackent_t;
 
-static ackent *AckListHead;  /**< Head of ACK list */
-static ackent *AckListTail;  /**< Tail of ACK list */
-static ackent *AckFreeList;  /**< Pool of free ACK buffers */
+static ackent_t *AckListHead;  /**< Head of ACK list */
+static ackent_t *AckListTail;  /**< Tail of ACK list */
+static ackent_t *AckFreeList;  /**< Pool of free ACK buffers */
 
 /**
  * @brief Initialize the pool of ACK buffers and the ACK list.
@@ -695,7 +695,7 @@ static ackent *AckFreeList;  /**< Pool of free ACK buffers */
  */
 static void initAckList(int nodes)
 {
-    ackent *ackbuf;
+    ackent_t *ackbuf;
     int i;
     int count;
 
@@ -703,7 +703,7 @@ static void initAckList(int nodes)
      * Max set size is nodes * MAX_WINDOW_SIZE !!
      */
     count = nodes * MAX_WINDOW_SIZE;
-    ackbuf = (ackent *)malloc(sizeof(ackent) * count);
+    ackbuf = malloc(count * sizeof(*ackbuf));
     AckListHead = NULL;
     AckListTail = NULL;
     AckFreeList = ackbuf;
@@ -723,10 +723,10 @@ static void initAckList(int nodes)
  *
  * @return Pointer to the ACK buffer taken from the pool.
  */
-static ackent *getAckEnt(void)
+static ackent_t *getAckEnt(void)
 {
-    ackent *ap = AckFreeList;
-    if (ap == NULL) {
+    ackent_t *ap = AckFreeList;
+    if (!ap) {
 	errlog("no more elements in AckFreeList", 0);
     } else {
 	AckFreeList = AckFreeList->next;
@@ -743,7 +743,7 @@ static ackent *getAckEnt(void)
  *
  * @return No return value.
  */
-static void putAckEnt(ackent *ap)
+static void putAckEnt(ackent_t *ap)
 {
     ap->prev = NULL;
     ap->bufptr = NULL;
@@ -764,15 +764,15 @@ static void putAckEnt(ackent *ap)
  *
  * @return Pointer to the ACK buffer taken from the pool.
  */
-static ackent *enqAck(msgbuf *bufptr)
+static ackent_t *enqAck(msgbuf_t *bufptr)
 {
-    ackent *ap;
+    ackent_t *ap;
 
     ap = getAckEnt();
     ap->next = NULL;
     ap->bufptr = bufptr;
 
-    if (AckListHead == NULL) {
+    if (!AckListHead) {
 	AckListTail = ap;
 	AckListHead = ap;
     } else {
@@ -792,7 +792,7 @@ static ackent *enqAck(msgbuf *bufptr)
  *
  * @return No return value.
  */
-static void deqAck(ackent *ap)
+static void deqAck(ackent_t *ap)
 {
     if (ap == AckListHead) {
 	AckListHead = AckListHead->next;
@@ -821,7 +821,7 @@ static void deqAck(ackent *ap)
  */
 static void sendSYN(int node)
 {
-    rdphdr hdr;
+    rdphdr_t hdr;
 
     hdr.type = RDP_SYN;
     hdr.len = 0;
@@ -831,7 +831,7 @@ static void sendSYN(int node)
     snprintf(errtxt, sizeof(errtxt), "%s: to node %d (%s), NFTS=%x", __func__,
 	     node, inet_ntoa(conntable[node].sin.sin_addr), hdr.seqno);
     errlog(errtxt, 8);
-    MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
+    MYsendto(rdpsock, &hdr, sizeof(hdr), 0,
 	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
     return;
 }
@@ -847,7 +847,7 @@ static void sendSYN(int node)
  */
 static void sendACK(int node)
 {
-    rdphdr hdr;
+    rdphdr_t hdr;
 
     hdr.type = RDP_ACK;
     hdr.len = 0;
@@ -857,7 +857,7 @@ static void sendACK(int node)
     snprintf(errtxt, sizeof(errtxt), "%s: to node %d, FE=%x", __func__,
 	     node, hdr.ackno);
     errlog(errtxt, 14);
-    MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
+    MYsendto(rdpsock, &hdr, sizeof(hdr), 0,
 	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
     conntable[node].ackPending = 0;
     return;
@@ -874,7 +874,7 @@ static void sendACK(int node)
  */
 static void sendSYNACK(int node)
 {
-    rdphdr hdr;
+    rdphdr_t hdr;
 
     hdr.type = RDP_SYNACK;
     hdr.len = 0;
@@ -884,7 +884,7 @@ static void sendSYNACK(int node)
     snprintf(errtxt, sizeof(errtxt), "%s: to node %d, NFTS=%x, FE=%x",
 	     __func__, node, hdr.seqno, hdr.ackno);
     errlog(errtxt, 8);
-    MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
+    MYsendto(rdpsock, &hdr, sizeof(hdr), 0,
 	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
     conntable[node].ackPending = 0;
     return;
@@ -902,7 +902,7 @@ static void sendSYNACK(int node)
  */
 static void sendSYNNACK(int node, int oldseq)
 {
-    rdphdr hdr;
+    rdphdr_t hdr;
 
     hdr.type = RDP_SYNNACK;
     hdr.len = 0;
@@ -912,7 +912,7 @@ static void sendSYNNACK(int node, int oldseq)
     snprintf(errtxt, sizeof(errtxt), "%s: to node %d, NFTS=%x, FE=%x",
 	     __func__, node, hdr.seqno, hdr.ackno);
     errlog(errtxt, 8);
-    MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
+    MYsendto(rdpsock, &hdr, sizeof(hdr), 0,
 	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
     conntable[node].ackPending = 0;
     return;
@@ -929,7 +929,7 @@ static void sendSYNNACK(int node, int oldseq)
  */
 static void sendNACK(int node)
 {
-    rdphdr hdr;
+    rdphdr_t hdr;
 
     hdr.type = RDP_NACK;
     hdr.len = 0;
@@ -939,7 +939,7 @@ static void sendNACK(int node)
     snprintf(errtxt, sizeof(errtxt), "%s: to node %d, FE=%x", __func__,
 	     node, hdr.ackno);
     errlog(errtxt, 8);
-    MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
+    MYsendto(rdpsock, &hdr, sizeof(hdr), 0,
 	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
     return;
 }
@@ -1012,8 +1012,8 @@ RDPDeadbuf deadbuf;
  */
 static void clearMsgQ(int node)
 {
-    Rconninfo *cp;
-    msgbuf *mp;
+    Rconninfo_t *cp;
+    msgbuf_t *mp;
     int blocked;
 
     /*
@@ -1031,7 +1031,7 @@ static void clearMsgQ(int node)
 
     /* Now decline all pending messages */
     while (mp) { /* still a message there */
-	msgbuf *next;
+	msgbuf_t *next;
 	if (RDPCallback) { /* give msg back to upper layer */
 	    deadbuf.dst = node;
 	    deadbuf.buf = mp->msg.small->data;
@@ -1097,7 +1097,7 @@ static void closeConnection(int node)
  */
 static void resendMsgs(int node)
 {
-    msgbuf *mp;
+    msgbuf_t *mp;
     struct timeval tv;
 
     mp = conntable[node].bufptr;
@@ -1155,7 +1155,7 @@ static void resendMsgs(int node)
 	    /* update ackinfo */
 	    mp->msg.small->header.ackno = conntable[node].frameExpected-1;
 	    MYsendto(rdpsock, &mp->msg.small->header,
-		     mp->len + sizeof(rdphdr), 0,
+		     mp->len + sizeof(rdphdr_t), 0,
 		     (struct sockaddr *)&conntable[node].sin,
 		     sizeof(struct sockaddr));
 	    mp = mp->next;
@@ -1194,9 +1194,9 @@ static void resendMsgs(int node)
  *
  * @return No return value.
  */
-static void updateState(rdphdr *hdr, int node)
+static void updateState(rdphdr_t *hdr, int node)
 {
-    Rconninfo *cp;
+    Rconninfo_t *cp;
     cp = &conntable[node];
 
     switch (cp->state) {
@@ -1424,8 +1424,8 @@ static void updateState(rdphdr *hdr, int node)
  */
 static int resequenceMsgQ(int node, int newExpected, int newSend)
 {
-    Rconninfo *cp;
-    msgbuf *mp;
+    Rconninfo_t *cp;
+    msgbuf_t *mp;
     int count = 0, callback;
 
     errlog(__func__, 8);
@@ -1496,8 +1496,8 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
  */
 static void handleTimeoutRDP(void)
 {
-    ackent *ap;
-    msgbuf *mp;
+    ackent_t *ap;
+    msgbuf_t *mp;
     int node;
     struct timeval tv;
 
@@ -1520,7 +1520,7 @@ static void handleTimeoutRDP(void)
 		 * ap may become invalid due to closeConnection(),
 		 * therefore we store the predecessor.
 		 */
-		ackent *pre = ap->prev;
+		ackent_t *pre = ap->prev;
 
 		resendMsgs(node);
 
@@ -1565,10 +1565,10 @@ static void handleTimeoutRDP(void)
  *
  * @return No return value.
  */
-static void doACK(rdphdr *hdr, int fromnode)
+static void doACK(rdphdr_t *hdr, int fromnode)
 {
-    Rconninfo *cp;
-    msgbuf *mp;
+    Rconninfo_t *cp;
+    msgbuf_t *mp;
     int callback;
 
     if ((hdr->type == RDP_SYN) || (hdr->type == RDP_SYNACK)) return;
@@ -1666,7 +1666,7 @@ static void doACK(rdphdr *hdr, int fromnode)
  *
  * @return No return value.
  */
-static void handleControlPacket(rdphdr *hdr, int node)
+static void handleControlPacket(rdphdr_t *hdr, int node)
 {
     switch (hdr->type) {
     case RDP_ACK:
@@ -1884,7 +1884,7 @@ static int handleErr(void)
  */
 static int handleRDP(int fd)
 {
-    Lmsg msg;
+    Lmsg_t msg;
     struct sockaddr_in sin;
     socklen_t slen;
     int fromnode, ret;
@@ -1999,16 +1999,16 @@ static int handleRDP(int fd)
 }
 
 /**
- * @brief Create string from @ref RDPState.
+ * @brief Create string from @ref RDPState_t.
  *
- * Create a \\0-terminated string from RDPState @a state.
+ * Create a \\0-terminated string from RDPState_t @a state.
  *
- * @param state The @ref RDPState for which the name is requested.
+ * @param state The @ref RDPState_t for which the name is requested.
  *
  * @return Returns a pointer to a \\0-terminated string containing the
- * symbolic name of the @ref RDPState @a state.
+ * symbolic name of the @ref RDPState_t @a state.
  */
-static char *stateStringRDP(RDPState state)
+static char *stateStringRDP(RDPState_t state)
 {
     switch (state) {
     case CLOSED:
@@ -2107,7 +2107,7 @@ void setMaxRetransRDP(int limit)
 
 int Rsendto(int node, void *buf, size_t len)
 {
-    msgbuf *mp;
+    msgbuf_t *mp;
     int retval = 0, blocked;
 
     if (((node < 0) || (node >= nrOfNodes))) {
@@ -2145,7 +2145,7 @@ int Rsendto(int node, void *buf, size_t len)
     /* setup msg buffer */
     mp = conntable[node].bufptr;
     if (mp) {
-	while (mp->next != NULL) mp = mp->next; /* search tail */
+	while (mp->next) mp = mp->next; /* search tail */
 	mp->next = getMsg();
 	mp = mp->next;
     } else {
@@ -2156,7 +2156,7 @@ int Rsendto(int node, void *buf, size_t len)
     if (len <= RDP_SMALL_DATA_SIZE) {
 	mp->msg.small = getSMsg();
     } else {
-	mp->msg.large = (Lmsg *)malloc(sizeof(Lmsg));
+	mp->msg.large = malloc(sizeof(Lmsg_t));
     }
 
     /* setup Ack buffer */
@@ -2192,7 +2192,7 @@ int Rsendto(int node, void *buf, size_t len)
 	sendSYN(node);
 	conntable[node].msgPending++;
 
-	retval = len + sizeof(rdphdr);
+	retval = len + sizeof(rdphdr_t);
 	break;
     case SYN_RECVD:
 	snprintf(errtxt, sizeof(errtxt), "%s: no connection to %d yet",
@@ -2202,7 +2202,7 @@ int Rsendto(int node, void *buf, size_t len)
 	sendSYNACK(node);
 	conntable[node].msgPending++;
 
-	retval = len + sizeof(rdphdr);
+	retval = len + sizeof(rdphdr_t);
 	break;
     case ACTIVE:
 	/* connection already established */
@@ -2214,7 +2214,7 @@ int Rsendto(int node, void *buf, size_t len)
 	errlog(errtxt, 12);
 
 	retval = MYsendto(rdpsock, &mp->msg.small->header,
-			  len + sizeof(rdphdr), 0,
+			  len + sizeof(rdphdr_t), 0,
 			  (struct sockaddr *)&conntable[node].sin,
 			  sizeof(struct sockaddr));
 
@@ -2239,18 +2239,18 @@ int Rsendto(int node, void *buf, size_t len)
 	return retval;
     }
 
-    return (retval - sizeof(rdphdr));
+    return (retval - sizeof(rdphdr_t));
 }
 
 int Rrecvfrom(int *node, void *msg, size_t len)
 {
     struct sockaddr_in sin;
-    Lmsg msgbuf;
+    Lmsg_t msgbuf;
     socklen_t slen;
     int retval;
     int fromnode;
 
-    if ((node == NULL) || (msg == NULL)) {
+    if (!node || !msg) {
 	/* we definitely need a pointer */
 	snprintf(errtxt, sizeof(errtxt), "%s: got NULL pointer", __func__);
 	errlog(errtxt, 0);
@@ -2347,7 +2347,7 @@ int Rrecvfrom(int *node, void *msg, size_t len)
 	}
 
 	memcpy(msg, msgbuf.data, msgbuf.header.len);    /* copy data part */
-	retval -= sizeof(rdphdr);                       /* adjust retval */
+	retval -= sizeof(rdphdr_t);                     /* adjust retval */
 	*node = fromnode;
     } else {
 	/* WrongSeqNo Received */
