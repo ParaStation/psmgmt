@@ -1,0 +1,24 @@
+# -*- Makefile -*-
+
+CFLAGS += -O2 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
+PSM_OSDIR := @PSM_OSDIR@
+CPPFLAGS += -I@top_srcdir@/include -I@top_srcdir@/$(PSM_OSDIR) @CPPFLAG_MMD@
+
+PSCOMMONOBJS := pscommon.o psprotocol.o pstask.o
+PSCOMMONDEPS := $(PSCOMMONOBJS:.o=@DEPEXTENSION@)
+
+RANLIB := @RANLIB@
+
+VPATH += @srcdir@
+
+all: ../libpscommon.a
+
+../libpscommon.a: $(PSCOMMONOBJS)
+	$(AR) rcv $@ $(PSCOMMONOBJS)
+	$(RANLIB) $@
+
+clean:
+	$(RM) $(PSCOMMONDEPS) $(PSCOMMONOBJS) 
+
+
+-include $(PUTILDEPS)
