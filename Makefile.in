@@ -25,9 +25,10 @@ PSM_OSDIR := @PSM_OSDIR@
 
 LIBDIRS := $(patsubst %,lib/%,$(LIBS))
 
-SUBDIRS := $(LIBDIRS) kern/mcp $(PSM_OSDIR) bin
+SUBDIRS := $(LIBDIRS) kern/mcp $(PSM_OSDIR) bin dist
 
 .PHONY all: psm lib bin
+.PHONY: dist
 
 
 mcp:
@@ -47,7 +48,8 @@ clean:
 		$(MAKE) -C $$i clean ;\
 	done
 
-
+dist:
+	$(MAKE) -C dist
 
 
 
