@@ -424,3 +424,30 @@ CPUs, Features ,MCPKey"
 
 Hash     = 16fdd72c-27ffcec6
 
+#
+# ParaStation license
+#
+
+ID       = "ParaStation 3"
+Ver      = "3.3"
+Cpr      = "COPYRIGHT (C) 2003 ParTec AG Karlsruhe"
+
+Name     = "IWR Uni Heidelberg"
+Contact  = ""
+License  = "1018-4125-13"
+LicType  = "non-commercial"
+
+Date     = "2003-04-07"
+Expire   = "2003-06-06"
+
+Nodes    = 33
+CPUs     = 66
+Features = "IP, Ether, Myrinet"
+
+MCPKey   = "p+-F?MGFyP+%4l4-psP%XW"
+
+Fields   = "ID, Ver, Cpr, Name, License, LicType, Date, Expire, Nodes,\
+CPUs, Features ,MCPKey"
+
+Hash     = 3a6ca016-9c346a6a
+
