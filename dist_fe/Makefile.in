@@ -20,7 +20,8 @@ LIBDIR := $(DISTPATH)/lib
 
 CONFIGDIR := $(DISTPATH)/config
 
-MISC += config/parastation.conf.tmpl INSTALL config/PSM_INSTALL
+MISC += config/parastation.conf.tmpl VERSION INSTALL config/PSM_INSTALL
+.PHONY: VERSION
 
 MISCDIR :=
 
@@ -92,6 +93,8 @@ $(DISTPATH)/config/sysconfigtab: $(TOP_SRCDIR)/kern/OSF1/sysconfigtab
 $(DISTPATH)/config/psm_makedev: $(TOP_SRCDIR)/scripts/psm_makedev
 	cp $< $@
 
+$(DISTPATH)/VERSION:
+	echo "ParaStation FE $(DVER) ($(shell date))" > $@
 
 ######################################################
 # Create tar file
