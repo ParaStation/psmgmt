@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pslog.c,v 1.1 2003/02/10 18:36:47 eicker Exp $
+ * $Id: pslog.c,v 1.2 2003/07/31 11:53:37 eicker Exp $
  *
  */
 
-static char vcid[] __attribute__ (( unused )) = "$Id: pslog.c,v 1.1 2003/02/10 18:36:47 eicker Exp $";
+static char vcid[] __attribute__ (( unused )) = "$Id: pslog.c,v 1.2 2003/07/31 11:53:37 eicker Exp $";
 
 #include <stdio.h>
 #include <unistd.h>
@@ -35,6 +35,11 @@ void PSLog_init(int daemonSocket, int nodeID, int versionID)
     daemonsock = daemonSocket;
     id = nodeID;
     version = versionID;
+}
+
+void PSLog_close(void)
+{
+    daemonsock = -1;
 }
 
 int PSLog_write(long destTID, PSLog_msg_t type, char *buf, size_t count)

@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pslog.h,v 1.1 2003/02/10 18:36:47 eicker Exp $
+ * $Id: pslog.h,v 1.2 2003/07/31 11:53:37 eicker Exp $
  *
  */
 /**
  * @file
  * pslog: Forwarding protocol for ParaStation I/O forwarding facility
  *
- * $Id: pslog.h,v 1.1 2003/02/10 18:36:47 eicker Exp $
+ * $Id: pslog.h,v 1.2 2003/07/31 11:53:37 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -77,6 +77,16 @@ extern const int PSLog_headerSize;
  * @return No return value.
  */
 void PSLog_init(int daemonSocket, int nodeID, int versionID);
+
+/**
+ * @brief End PSLog facility.
+ *
+ * Suspend the PSLog facility from sending or receiving any further
+ * messages.
+ *
+ * @return No return value.
+ */
+void PSLog_close(void);
 
 /**
  * @brief Send a PSLog message.
