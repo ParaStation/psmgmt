@@ -9,7 +9,7 @@
  *   PSP_NETWORK is a space and or , sepparerted list of network IPs
  *   or hostnames inside the networks
  *
- * $Id: getid.c,v 1.2 2003/05/08 15:51:28 hauke Exp $
+ * $Id: getid.c,v 1.3 2003/05/20 10:39:33 eicker Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -32,7 +32,12 @@
 #include <sys/ioctl.h>
 
 static char vcid2[] __attribute__(( unused )) =
-"$Id: getid.c,v 1.2 2003/05/08 15:51:28 hauke Exp $";
+"$Id: getid.c,v 1.3 2003/05/20 10:39:33 eicker Exp $";
+
+#if (defined __GLIBC__ && __GLIBC__ == 2 && \
+     defined __GLIBC_MINOR__ && __GLIBC_MINOR__ < 2)
+typedef uint32_t in_addr_t;
+#endif
 
 #define MIN(a,b)      (((a)<(b))?(a):(b))
 #define MAX(a,b)      (((a)>(b))?(a):(b))
