@@ -5,10 +5,11 @@
     applications using the adapted version of <ulink
       url="http://www.unix.mcs.anl.gov/mpi/mpich">MPIch</ulink> comming with
     ParaStation. Within this chapter is is assumed that this version of MPI is
-    installed in the default location,
-    i.e. <filename>/opt/parastion/mpich</filename>. If this is not the case
-    please refer to <xref linkend="mpich_install"/> in order to setup things
-    correctly.
+    installed in the default location, i.e.
+    <filename>/opt/parastion/mpich</filename>. If this is not the case please
+    refer to the section <quote>Installation of MPIch</quote> within the <ulink
+      url="../adminguide/index.html" type="dontshow">ParaStation Administrators
+      Guide</ulink> in order to setup things correctly.
   </para>
   <para>
     Furthermore it is assumed that the directory containing all MPIch
@@ -323,7 +324,7 @@
   sgml-always-quote-attributes:t
   sgml-indent-step:2
   sgml-indent-data:t
-  sgml-parent-document:("main.xml" "set" "book" "book" ("title" "bookinfo"))
+  sgml-parent-document:("userguide.xml" "book" "book" ("title" "bookinfo"))
   sgml-exposed-tags:nil
   sgml-local-catalogs:nil
   sgml-local-ecat-files:nil

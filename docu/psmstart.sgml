@@ -7,8 +7,7 @@
   <refnamediv>
     <refname>psmstart</refname>
     <refpurpose>
-      start a program on a remote node using the ParaStation daemon <xref
-	linkend="psid"/>
+      start a program on a remote node
     </refpurpose>
   </refnamediv>
 
@@ -24,7 +23,10 @@
     <title>Description</title>
     <para>
       Start <command>program</command> on a remote node using the
-      ParaStation daemon <xref linkend="psid"/>. All arguments given at the
+      ParaStation daemon <citerefentry>
+	<refentrytitle>psid</refentrytitle>
+	<manvolnum>8</manvolnum>
+      </citerefentry>. All arguments given at the
       command line will be passed to the remotely started
       <command>program</command>.
     </para>
@@ -40,13 +42,16 @@
     <title>Implementation</title>
     <para>
       If <command>psmstart</command> is called, <command>program</command> is
-      started remotely using the ParaStation daemon <xref
-	linkend="psid"/>. Within the startup the local process will become a IO
-      handling process - marked as a logger process within <xref
-	linkend="psiadmin"/> - forwarding all the input and output data.
-      Suspending the local process or sending a signal to this local process
-      will <emphasis role="bold">not</emphasis> affect the remotely started
-      process.
+      started remotely using the ParaStation daemon <citerefentry>
+	<refentrytitle>psid</refentrytitle>
+	<manvolnum>8</manvolnum>
+      </citerefentry>. Within the startup the local process will become a IO
+      handling process - marked as a logger process within <citerefentry>
+	<refentrytitle>psiadmin</refentrytitle>
+	<manvolnum>8</manvolnum>
+      </citerefentry> - forwarding all the input and output data. Suspending
+      the local process or sending a signal to this local process will
+      <emphasis role="bold">not</emphasis> affect the remotely started process.
     </para>
   </refsect1>
 
@@ -79,7 +84,13 @@
   <refsect1>
     <title>See also</title>
     <para>
-      <xref linkend="psid"/>, <xref linkend="spawning"/>
+      <citerefentry>
+	<refentrytitle>psid</refentrytitle>
+	<manvolnum>8</manvolnum>
+      </citerefentry>, <citerefentry>
+	<refentrytitle>psiadmin</refentrytitle>
+	<manvolnum>8</manvolnum>
+      </citerefentry>, <xref linkend="spawning"/>
     </para>
   </refsect1>
 </refentry>
@@ -94,7 +105,7 @@
   sgml-always-quote-attributes:t
   sgml-indent-step:2
   sgml-indent-data:t
-  sgml-parent-document:("main.xml" "set" "book" "reference" "reference" ("title"))
+  sgml-parent-document:("userguide.xml" "book" "reference" "reference" ("title"))
   sgml-exposed-tags:nil
   sgml-local-catalogs:nil
   sgml-local-ecat-files:nil
