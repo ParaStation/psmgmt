@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.32 2003/02/13 17:05:05 eicker Exp $
+ * $Id: pse.c,v 1.33 2003/02/27 18:34:41 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.32 2003/02/13 17:05:05 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.33 2003/02/27 18:34:41 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -213,7 +213,7 @@ void PSE_spawnMaster(int argc, char *argv[])
     errlog(errtxt, 10);
 
     /* Switch to psilogger */
-    PSI_execLogger();
+    PSI_execLogger(NULL);
 }
 
 void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
