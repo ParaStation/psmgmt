@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.h,v 1.18 2002/07/26 15:23:01 eicker Exp $
+ * $Id: psi.h,v 1.19 2003/02/07 16:25:04 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with the ParaStation system.
  *
- * $Id: psi.h,v 1.18 2002/07/26 15:23:01 eicker Exp $
+ * $Id: psi.h,v 1.19 2003/02/07 16:25:04 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -30,18 +30,6 @@ extern "C" {
 } /* <- just for emacs indentation */
 #endif
 #endif
-
-/*
- * @todo Are there public variables really needed?
- *
- * PSI_msock only needed by logger (-> to be removed for new logger)
- * PSI_loggernode/PSI_loggerport (-> to be removed for new logger)
- *
- */
-extern int PSI_msock;                 /* master socket to connect psid */
-
-extern unsigned int PSI_loggernode;   /* IP number of my loggernode (or 0) */
-extern int PSI_loggerport;            /* port of my logger process */
 
 /** @todo Documentation */
 
@@ -140,6 +128,17 @@ long PSI_whodied(int sig);
 int PSI_sendFinish(long parenttid);
 
 int PSI_recvFinish(int num);
+
+/**
+ * @brief Transform to psilogger
+ *
+ * Transforms the current process to a psilogger process.
+ *
+ *
+ * @return No return value.
+ */
+void PSI_execLogger(void);
+
 
 #ifdef __cplusplus
 }/* extern "C" */
