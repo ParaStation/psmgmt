@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidinfo.c,v 1.10 2004/02/23 20:45:19 eicker Exp $
+ * $Id: psidinfo.c,v 1.11 2004/03/09 08:41:52 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidinfo.c,v 1.10 2004/02/23 20:45:19 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidinfo.c,v 1.11 2004/03/09 08:41:52 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -448,6 +448,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	case PSP_INFO_LIST_ALLJOBS:
 	case PSP_INFO_LIST_NORMJOBS:
 	case PSP_INFO_LIST_ALLOCJOBS:
+	case PSP_INFO_LIST_EXCLUSIVE:
 	    if ((! config->useMCast) && (PSC_getMyID() != getMasterID())) {
 		/* Handled by master node -> forward */
 		inmsg->header.dest = PSC_getTID(getMasterID(), 0);
@@ -528,8 +529,12 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 			size = sizeof(uint16_t);
 			break;
 		    case PSP_INFO_LIST_ALLOCJOBS:
-			((uint16_t *)msg.buf)[idx] = getAllocJobs(node);
+			((uint16_t *)msg.buf)[idx] = getAssignedJobs(node);
 			size = sizeof(uint16_t);
+			break;
+		    case PSP_INFO_LIST_EXCLUSIVE:
+			((int8_t *)msg.buf)[idx] = getIsExclusive(node);
+			size = sizeof(int8_t);
 			break;
 		    default:
 			msg.type = PSP_INFO_UNKNOWN;
