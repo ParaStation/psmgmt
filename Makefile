@@ -29,11 +29,11 @@ include $(ROOTDIR)/Makefile.include
 
 ifeq ($(shell cd .;pwd),$(ROOTDIR))
 
-allbutmcp:	dep psm libs tools libstrip buildno
+allbutmcp:	dep psm libs tools buildno
 
 all:	mcpdep mcp allbutmcp buildno
 
-libs:	pshal psport pvar arg
+libs:	pshal psport pvar arg libstrip
 
 libstrip: $(LIBARCHIVEDIR)/*
 	mkdir -p $(LIBARCHIVEDIR)_strip
