@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mpirun_chgm.c,v 1.1 2003/06/20 13:58:19 eicker Exp $
+ * $Id: mpirun_chgm.c,v 1.2 2003/06/26 16:39:56 eicker Exp $
  *
  */
 /**
@@ -13,13 +13,13 @@
  * MPIch/GM in order to start such applications within a ParaStation
  * cluster.
  *
- * $Id: mpirun_chgm.c,v 1.1 2003/06/20 13:58:19 eicker Exp $
+ * $Id: mpirun_chgm.c,v 1.2 2003/06/26 16:39:56 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chgm.c,v 1.1 2003/06/20 13:58:19 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chgm.c,v 1.2 2003/06/26 16:39:56 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -49,7 +49,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chgm.c,v 1.1 2003/06
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.1 $";
+    char revision[] = "$Revision: 1.2 $";
     fprintf(stderr, "mpirun_chgm %s\b \n", revision+11);
 }
 
@@ -394,7 +394,22 @@ int main(int argc, const char *argv[])
 	exit(1);
     }
 
-    PSI_getPartition(0 /* HWType none */, -1 /* my rank */);
+    {
+	unsigned int hwType = 0;
+	int idx;
+
+	idx = INFO_request_hwindex("gm", 0);
+	if ((idx >= 0) && (idx < ((int)sizeof(hwType) * 8))) {
+	    hwType = 1 << idx;
+	} else {
+	    fprintf(stderr, "%s: Unknown hardware type 'gm'.\n", argv[0]);
+	    exit(1);
+	}
+
+	if (PSI_getPartition(hwType, -1 /* my rank */) < 0) {
+	    exit(1);
+	}
+    }
 
     propagateEnv("LD_LIBRARY_PATH", 0);
     propagateEnv("DISPLAY", 0);
