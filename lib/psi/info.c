@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.26 2003/02/13 17:04:07 eicker Exp $
+ * $Id: info.c,v 1.27 2003/02/17 10:50:21 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.26 2003/02/13 17:04:07 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.27 2003/02/17 10:50:21 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -318,7 +318,8 @@ int INFO_request_tasklist(int nodeno, INFO_taskinfo_t taskinfo[], size_t size,
 			  int verbose)
 {
     DDMsg_t msg;
-    int msgtype, tasknum;
+    int msgtype;
+    unsigned int tasknum;
     size_t maxtask;
 
     msg.type = PSP_CD_TASKINFOREQUEST;
