@@ -351,6 +351,7 @@ int main( int argc, char**argv)
 
     /*
      * Init clients array. Will be expanded if necessary.
+     */
     maxclients = 16;
     clients = (struct LOGGERclient_t *)
 	malloc(maxclients * sizeof(struct LOGGERclient_t));
