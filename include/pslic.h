@@ -7,7 +7,7 @@
 /**
  * pslic.h: Licensekey handling
  *
- * $Id: pslic.h,v 1.2 2002/07/17 19:37:58 hauke Exp $
+ * $Id: pslic.h,v 1.3 2002/07/24 06:25:42 eicker Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -18,6 +18,8 @@
 #ifndef _PSLIC_H_
 #define _PSLIC_H_
 
+#include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include "psstrings.h"
 
