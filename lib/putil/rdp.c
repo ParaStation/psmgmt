@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.19 2002/02/04 08:31:53 eicker Exp $
+ * $Id: rdp.c,v 1.20 2002/02/15 19:18:22 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.19 2002/02/04 08:31:53 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.20 2002/02/15 19:18:22 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -454,24 +454,6 @@ static void sendNACK(int node)
 }
 
 /* ---------------------------------------------------------------------- */
-
-static unsigned short getServicePort(char *service)
-{
-    struct servent *pse;     /* pointer to service information entry */
-    unsigned short port;
-
-    if ((pse = getservbyname (service, "udp"))) {
-	return pse->s_port;
-    } else if ((port = htons((u_short)atoi(service)))) {
-	return port;
-    } else {
-	snprintf(errtxt, sizeof(errtxt), "can't get %s service entry",
-		 service);
-	errexit(errtxt, errno);
-
-	return 0; /* Dummy return, this is never reached */
-    }
-}
 
 static int initSockRDP(unsigned short port, int qlen)
 {
@@ -1216,6 +1198,23 @@ int handleRDP(int fd)
 #endif
     }
 
+    if (RDPPktLoss) {
+	if (100.0*rand()/(RAND_MAX+1.0) < RDPPktLoss) {
+
+	    /* really get the msg */
+	    if (MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
+			   (struct sockaddr *) &sin, &slen)<0) {
+		snprintf(errtxt, sizeof(errtxt),
+			 "handleRDP(): recvfrom(0) returns -1, errno=%d: %s",
+			 errno, strerror(errno));
+		errexit(errtxt, errno);
+	    }
+
+	    /* Throw it away */
+	    return 0;
+	}
+    }
+
     fromnode = lookupIPTable(sin.sin_addr);     /* lookup node */
 
     if (msg.header.type != RDP_DATA) {
@@ -1279,11 +1278,9 @@ static char *stateStringRDP(RDPState state)
 
 /* ---------------------------------------------------------------------- */
 
-int initRDP(int nodes, int usesyslog, unsigned int hosts[],
-	    void (*callback)(int, void*))
+int initRDP(int nodes, unsigned short portno, int usesyslog,
+	    unsigned int hosts[], void (*callback)(int, void*))
 {
-    unsigned short portno; /* portnumber in network byteorder */
-
     initErrLog("RDP", usesyslog);
 
     if (!isInitializedTimer()) {
@@ -1300,11 +1297,13 @@ int initRDP(int nodes, int usesyslog, unsigned int hosts[],
     initSMsgList(nodes);
     initAckList(nodes);
 
-    portno = getServicePort(RDPSERVICE);
+    if (!portno) {
+	portno = DEFAULT_RDP_PORT;
+    }
 
-    initConntableRDP(nodes, hosts, portno);
+    initConntableRDP(nodes, hosts, htons(portno));
 
-    rdpsock = initSockRDP(portno, 0);
+    rdpsock = initSockRDP(htons(portno), 0);
 
     registerTimer(rdpsock, &RDPTimeout, handleTimeoutRDP, handleRDP);
 
@@ -1325,6 +1324,18 @@ int getDebugLevelRDP(void)
 void setDebugLevelRDP(int level)
 {
     setErrLogLevel(level);
+}
+
+int getPktLossRDP(void)
+{
+    return RDPPktLoss;
+}
+
+void setPktLossRDP(int rate)
+{
+    if (0<=rate && rate<=100) {
+	RDPPktLoss = rate;
+    }
 }
 
 int getMaxRetransRDP(void)

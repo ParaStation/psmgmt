@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.h,v 1.11 2002/02/01 16:37:07 eicker Exp $
+ * $Id: rdp.h,v 1.12 2002/02/15 19:18:22 eicker Exp $
  *
  */
 /**
  * @file
  * Reliable Datagram Protocol for ParaStation daemon
  *
- * $Id: rdp.h,v 1.11 2002/02/01 16:37:07 eicker Exp $
+ * $Id: rdp.h,v 1.12 2002/02/15 19:18:22 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -58,11 +58,19 @@ typedef struct {
 #define RDP_PKT_UNDELIVERABLE	0x3
 
 /**
+ * The default RDP-port number. Magic number defined by Joe long time ago.
+ * Can be overruled via initRDP().
+ */
+#define DEFAULT_RDP_PORT 886
+
+/**
  * @brief Initializes the RDP module.
  *
  * Initializes the RDP machinery for @a nodes nodes.
  *
  * @param nodes Number of nodes to handle.
+ * @param portno The UDP port number in host byteorder to use for sending and
+ * receiving packets. If 0, @ref DEFAULT_RDP_PORT is used.
  * @param usesyslog If true, all error-messages are printed via syslog().
  * @param hosts An array of size @a nodes containing the IP-addresses of the
  * participating nodes in network-byteorder.
@@ -77,8 +85,8 @@ typedef struct {
  * @return On success, the filedescriptor of the RDP socket is returned.
  * On error, exit() is called within this function.
  */
-int initRDP(int nodes, int usesyslog, unsigned int hosts[],
-	    void (*callback)(int, void*));
+int initRDP(int nodes, unsigned short portno, int usesyslog,
+	    unsigned int hosts[], void (*callback)(int, void*));
 
 /**
  * @brief Shutdown the RDP module.
@@ -103,7 +111,7 @@ int getDebugLevelRDP(void);
 /**
  * @brief Set the debug-level.
  *
- * Set the debug-level of the RDP module. Posible values are:
+ * Set the debug-level of the RDP module. Possible values are:
  *  - 0: Critical errors (usually exit).
  *  - 2: Basic info about initialization.
  *  - 4: More detailed info about initialization, i.e. from initConntableRDP().
@@ -114,13 +122,38 @@ int getDebugLevelRDP(void);
  *  -12: Info about sending and receiving of data.
  *  -14: Info about resending and acknowledging.
  *
- * @param level The debug-level to set
+ * @param level The debug-level to set.
  *
  * @return No return value.
  *
  * @see getDebugLevelRDP()
  */
 void setDebugLevelRDP(int level);
+
+/**
+ * @brief Query the packet-loss rate.
+ *
+ * Get the packet-loss rate of the RDP module.
+ *
+ * @return The actual packet-loss rate is returned.
+ *
+ * @see setPktLossRDP()
+ */
+int getPktLossRDP(void);
+
+/**
+ * @brief Set the packet-loss rate.
+ *
+ * Set the packet-loss rate of the RDP module. @a rate percent of the received
+ * packets are thrown away randomly! This is for debugging only.
+ *
+ * @param rate The packet loss rate to set.
+ *
+ * @return No return value.
+ *
+ * @see getPktLossRDP()
+ */
+void setPktLossRDP(int rate);
 
 /**
  * @brief Get RDP maximum retransmission count.

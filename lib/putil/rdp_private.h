@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp_private.h,v 1.7 2002/02/01 17:12:14 eicker Exp $
+ * $Id: rdp_private.h,v 1.8 2002/02/15 19:18:22 eicker Exp $
  *
  */
 /**
@@ -14,7 +14,7 @@
  *
  * Private functions and definitions
  *
- * $Id: rdp_private.h,v 1.7 2002/02/01 17:12:14 eicker Exp $
+ * $Id: rdp_private.h,v 1.8 2002/02/15 19:18:22 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -44,8 +44,6 @@ extern "C" {
     }                                                                 \
   } while (0)
 #endif
-
-#define RDPSERVICE   "psrdp"     /**< The symbolic name of RDP-service */
 
 /**
  * The socket used to send and receive RDP packets. Will be opened in
@@ -115,11 +113,14 @@ struct timeval RESEND_TIMEOUT = {0, 100000}; /* sec, usec */
  */
 struct timeval RDPTimeout = {1, 0}; /* sec, usec */
 
+/** The actual packet-loss rate. Get/set by getPktLossRDP()/setPktLossRDP() */
+static int RDPPktLoss = 0;
+
 /**
  * The actual maximum retransmission count. Get/set by
  * getMaxRetransRDP()/setMaxRetransRDP()
  */
-static int RDPMaxRetransCount = 10;
+static int RDPMaxRetransCount = 20;
 
 /**
  * @todo This is not correct!! What happens on overflow?
@@ -511,20 +512,6 @@ static void sendSYNNACK(int node, int oldseq);
 static void sendNACK(int node);
 
 /* ---------------------------------------------------------------------- */
-
-/**
- * @brief Get port number from service.
- *
- * Lookup the port number corresponding to string @a service.
- *
- * @param service A \\0-terminated string holding a descrition of the service.
- * This can be either a symbolic name to be looked up in the service database
- * or a printed number.
- *
- * @return On success, the corresponding port is returned. On error, exit()
- * is called within this function.
- */
-static unsigned short getServicePort(char *service);
 
 /**
  * @brief Setup a socket for RDP communication.
