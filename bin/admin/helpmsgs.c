@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: helpmsgs.c,v 1.3 2003/10/06 19:08:51 eicker Exp $
+ * $Id: helpmsgs.c,v 1.4 2003/10/29 17:15:27 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.3 2003/10/06 19:08:51 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.4 2003/10/29 17:15:27 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -98,7 +98,7 @@ static info_t nodeInfo = {
 	  " missing, it represents a single node. In principle <nodes> might"
 	  " contain an unlimited number of ranges. If <nodes> is empty, all"
 	  " nodes of the ParaStation cluster are selected. As an extension"
-	  " <nodes> might alse be a hostname that can be resolved into a"
+	  " <nodes> might also be a hostname that can be resolved into a"
 	  " valid ParaStation ID." },
 	{ NULL, NULL }
     },
