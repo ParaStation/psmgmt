@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.16 2002/09/26 15:40:15 eicker Exp $
+ * $Id: config_parsing.c,v 1.17 2002/10/14 15:14:55 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.16 2002/09/26 15:40:15 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.17 2002/10/14 15:14:55 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -666,7 +666,7 @@ static int getRLimitRSS(char *token)
     rlim_t value;
     int ret;
 
-    return getRLimitVal(parser_getString(), &value, "RLimit RSSSize");
+    return getRLimitVal(parser_getString(), &value, "RLimit RSSize");
     if (ret) return ret;
 
     setLimit(RLIMIT_RSS, value*1024);
@@ -683,7 +683,7 @@ static keylist_t rlimitenv_list[] = {
     {"cputime", getRLimitCPU},
     {"datasize", getRLimitData},
     {"stacksize", getRLimitStack},
-    {"rsssize", getRLimitRSS},
+    {"rssize", getRLimitRSS},
     {"}", endRLimitEnv},
     {"#", parser_getComment},
     {NULL, parser_error}
@@ -701,7 +701,7 @@ static keylist_t rlimit_list[] = {
     {"cputime", getRLimitCPU},
     {"datasize", getRLimitData},
     {"stacksize", getRLimitStack},
-    {"rsssize", getRLimitRSS},
+    {"rssize", getRLimitRSS},
     {"#", parser_getComment},
     {NULL, parser_error}
 };
