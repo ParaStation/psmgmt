@@ -146,7 +146,7 @@ PSI_spawnM(int count, short *dstnodes,char *workingdir, int argc, char **argv,
 	}
 
     }else
-	mydstnodes=(short*)dstnodes;
+	mydstnodes = dstnodes;
 
     ret = PSI_dospawn(count, mydstnodes, workingdir, argc, argv,
 		      masternode, masterport, rank, errors, tids);
