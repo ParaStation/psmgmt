@@ -1,17 +1,17 @@
 /*
- *               ParaStation3
- * timer.h
+ *               ParaStation
+ * timer.c
  *
  * ParaStation Timer facility
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: timer.c,v 1.10 2003/10/29 17:25:35 eicker Exp $
+ * $Id: timer.c,v 1.11 2003/12/16 19:13:56 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: timer.c,v 1.10 2003/10/29 17:25:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: timer.c,v 1.11 2003/12/16 19:13:56 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -26,19 +26,114 @@ static char vcid[] __attribute__(( unused )) = "$Id: timer.c,v 1.10 2003/10/29 1
 #include "errlog.h"
 
 #include "timer.h"
-#include "timer_private.h"
 
-int getDebugLevelTimer(void)
+/**
+ * OSF provides no timeradd in sys/time.h
+ */
+#ifndef timeradd
+#define timeradd(a, b, result)                                        \
+  do {                                                                \
+    (result)->tv_sec = (a)->tv_sec + (b)->tv_sec;                     \
+    (result)->tv_usec = (a)->tv_usec + (b)->tv_usec;                  \
+    if ((result)->tv_usec >= 1000000) {                               \
+        ++(result)->tv_sec;                                           \
+        (result)->tv_usec -= 1000000;                                 \
+    }                                                                 \
+  } while (0)
+#endif
+/**
+ * OSF provides no timersub in sys/time.h
+ */
+#ifndef timersub
+#define timersub(a, b, result)                                        \
+  do {                                                                \
+    (result)->tv_sec = (a)->tv_sec - (b)->tv_sec;                     \
+    (result)->tv_usec = (a)->tv_usec - (b)->tv_usec;                  \
+    if ((result)->tv_usec < 0) {                                      \
+      --(result)->tv_sec;                                             \
+      (result)->tv_usec += 1000000;                                   \
+    }                                                                 \
+  } while (0)
+#endif
+
+/**
+ * The unique ID of the next timer to register. Set by @ref
+ * Timer_init() to 0, thus negativ value signal uninitialized module.
+ */
+static int nextID = -1;
+
+/**
+ * Structure to hold all info about each timer
+ */
+typedef struct Timer_t_ {
+    int id;                        /**< The corresponding unique ID. */
+    struct timeval timeout;        /**< The corresponding timeout. */
+    int calls;                     /**< Counter for timeouts. */
+    int period;                    /**< When do we have to call the
+				      timeoutHandler()? */
+    void (*timeoutHandler)(void);  /**< Handler called, if signal received. */
+    int sigBlocked;                /**< Flag to block this timer.
+				      Set by blockTimer(). */
+    int sigPending;                /**< A blocked signal is pending. */
+    struct Timer_t_ *next;         /**< Pointer to next timer. */
+} Timer_t;
+
+/** List of all registered timers. */
+static Timer_t *timerList = NULL;
+
+/** The minimum timer period. */
+static const struct timeval minPeriod = {0,100000};
+
+/** The actual timer period. */
+static struct timeval actPeriod = {0,0};
+
+static char errtxt[256];           /**< String to hold error messages. */
+
+/**
+ * @brief Handles received signals
+ *
+ * Does all the signal-handling work. When a SIGALRM is received, sigHandler()
+ * updates the counter @ref calls for each timer and calls the specific
+ * @ref timeoutHandler(), if necessary.
+ *
+ * @param sig The signal send to the process. Ignored, since only SIGALRM is
+ * handled.
+ *
+ * @return No return value.
+ */
+static void sigHandler(int sig)
+{
+    Timer_t *timer;
+
+    timer = timerList;
+
+    while (timer) {
+	timer->calls = ++timer->calls % timer->period;
+	if (!timer->calls) {
+	    if (timer->sigBlocked) {
+		timer->sigPending = 1;
+	    } else if (timer->timeoutHandler) {
+		timer->sigBlocked = 1;
+		timer->timeoutHandler();
+		timer->sigBlocked = 0;
+	    }
+	}
+	timer = timer->next;
+    }
+
+}
+
+int Timer_getDebugLevel(void)
 {
     return getErrLogLevel();
 }
 
-void setDebugLevelTimer(int level)
+void Timer_setDebugLevel(int level)
 {
     setErrLogLevel(level);
 }
 
-void initTimer(int syslog)
+void Timer_init(int syslog)
 {
     Timer_t *timer;
 
@@ -56,8 +151,8 @@ void initTimer(int syslog)
     itv.it_value.tv_usec = itv.it_interval.tv_usec = actPeriod.tv_usec;
     if (setitimer(ITIMER_REAL, &itv, NULL)==-1) {
 	snprintf(errtxt, sizeof(errtxt),
-		 "initTimer: unable to set itimer to %ld.%ld",
-		 actPeriod.tv_sec, actPeriod.tv_usec);
+		 "%s: unable to set itimer to %ld.%.6ld",
+		 __func__, actPeriod.tv_sec, actPeriod.tv_usec);
 	errexit(errtxt, errno);
     }
 
@@ -66,8 +161,8 @@ void initTimer(int syslog)
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
     if (sigaction(SIGALRM, &sa, 0)==-1) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "initTimer: unable to set sigHandler");
+	snprintf(errtxt, sizeof(errtxt), "%s: unable to set sigHandler",
+		 __func__);
 	errexit(errtxt, errno);
     }
 
@@ -80,12 +175,12 @@ void initTimer(int syslog)
     }
 
     timerList = NULL;
-    initialized = 1;
+    nextID = 0;
 }
 
-int isInitializedTimer(void)
+int Timer_isInitialized(void)
 {
-    return initialized;
+    return (nextID >= 0);
 }
 
 static int timerdiv(struct timeval *tv1, struct timeval *tv2)
@@ -97,45 +192,36 @@ static int timerdiv(struct timeval *tv1, struct timeval *tv2)
     return (int) rint(div);
 }
 
-int registerTimer(int fd, struct timeval *timeout,
-		  void (*timeoutHandler)(int), int (*selectHandler)(int))
+int Timer_register(struct timeval *timeout, void (*timeoutHandler)(void))
 {
     Timer_t *timer;
-    int found = 0;
     sigset_t sigset;
-
-    /* Test if a timer is allready registered on fd */
-    timer = timerList;
-    while (timer) {
-	if (timer->fd==fd) found = 1;
-	timer = timer->next;
-    }
-    if (found) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "registerTimer: found timer for fd=%d.", fd);
-	errlog(errtxt, 0);
-	return -1;
-    }
 
     /* Test if timeout is appropiate */
     if (timercmp(timeout, &minPeriod, <)) {
 	snprintf(errtxt, sizeof(errtxt),
-		 "registerTimer: timeout = %ld.%ld sec to small",
-		 timeout->tv_sec, timeout->tv_usec);
+		 "%s: timeout = %ld.%.6ld sec to small",
+		 __func__, timeout->tv_sec, timeout->tv_usec);
 	errlog(errtxt, 0);
 	return -1;
     }
 
     /* Create new timer */
-    timer = (Timer_t *) malloc(sizeof(Timer_t));
-    timer->fd = fd;
-    memcpy(&timer->timeout, timeout, sizeof(timer->timeout));
-    timer->calls = 0;
-    timer->timeoutHandler = timeoutHandler;
-    timer->sigBlocked = 0;
-    timer->sigPending = 0;
-    timer->selectHandler = selectHandler;
-    timer->next = timerList;
+    timer = malloc(sizeof(Timer_t));
+    if (!timer) {
+	snprintf(errtxt, sizeof(errtxt), "%s: No memory.", __func__);
+	errlog(errtxt, 0);
+	return -1;
+    }
+    *timer = (Timer_t) {
+	.id = nextID,
+	.timeout = *timeout,
+	.calls = 0,
+	.period = 1,
+	.timeoutHandler = timeoutHandler,
+	.sigBlocked = 0,
+	.sigPending = 0,
+	.next = timerList };
 
     /* Block SIGALRM, while we fiddle around with the timers */
     sigemptyset(&sigset);
@@ -156,7 +242,7 @@ int registerTimer(int fd, struct timeval *timeout,
 	sa.sa_flags = 0;
 	if (sigaction(SIGALRM, &sa, 0)==-1) {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "registerTimer: unable to set sigHandler");
+		     "%s: unable to set sigHandler", __func__);
 	    errexit(errtxt, errno);
 	}
 
@@ -165,8 +251,8 @@ int registerTimer(int fd, struct timeval *timeout,
 	itv.it_value.tv_usec = itv.it_interval.tv_usec = actPeriod.tv_usec;
 	if (setitimer(ITIMER_REAL, &itv, NULL)==-1) {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "registerTimer: unable to set itimer to %ld.%ld",
-		     actPeriod.tv_sec, actPeriod.tv_usec);
+		     "%s: unable to set itimer to %ld.%.6ld",
+		     __func__, actPeriod.tv_sec, actPeriod.tv_usec);
 	    errexit(errtxt, errno);
 	}
     } else if (timercmp(timeout, &actPeriod, <)) {
@@ -195,14 +281,15 @@ int registerTimer(int fd, struct timeval *timeout,
 	itv.it_value.tv_usec = itv.it_interval.tv_usec = actPeriod.tv_usec;
 	if (setitimer(ITIMER_REAL, &itv, NULL)==-1) {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "registerTimer: unable to set itimer to %ld.%ld",
-		     actPeriod.tv_sec, actPeriod.tv_usec);
+		     "%s: unable to set itimer to %ld.%.6ld",
+		     __func__, actPeriod.tv_sec, actPeriod.tv_usec);
 	    errexit(errtxt, errno);
 	}
     } else {
 	timer->period = timerdiv(timeout, &actPeriod);
     }
 
+    nextID++;
     timerList = timer;
 
     /* Unblock SIGALRM, again */
@@ -210,10 +297,10 @@ int registerTimer(int fd, struct timeval *timeout,
     sigaddset(&sigset, SIGALRM);
     sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 
-    return 0;
+    return timer->id;
 }
 
-int removeTimer(int fd)
+int Timer_remove(int id)
 {
     Timer_t *timer, *prev = NULL;
     sigset_t sigset;
@@ -221,14 +308,14 @@ int removeTimer(int fd)
     /* Find timer to remove */
     timer = timerList;
     while (timer) {
-	if (timer->fd==fd) break;
+	if (timer->id==id) break;
 	prev = timer;
 	timer = timer->next;
     }
 
     if (!timer) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "removeTimer: no timer found for fd=%d.", fd);
+	snprintf(errtxt, sizeof(errtxt), "%s: no timer found for id=%d.",
+		 __func__, id);
 	errlog(errtxt, 0);
 	return -1;
     }
@@ -259,8 +346,8 @@ int removeTimer(int fd)
 	itv.it_value.tv_usec = itv.it_interval.tv_usec = actPeriod.tv_usec;
 	if (setitimer(ITIMER_REAL, &itv, NULL)==-1) {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "removeTimer: unable to set itimer to %ld.%ld",
-		     actPeriod.tv_sec, actPeriod.tv_usec);
+		     "%s: unable to set itimer to %ld.%.6ld",
+		     __func__, actPeriod.tv_sec, actPeriod.tv_usec);
 	    errexit(errtxt, errno);
 	}
 
@@ -269,8 +356,8 @@ int removeTimer(int fd)
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = 0;
 	if (sigaction(SIGALRM, &sa, 0)==-1) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "removeTimer: unable to set SIG_DFL");
+	    snprintf(errtxt, sizeof(errtxt), "%s: unable to set SIG_DFL",
+		     __func__);
 	    errexit(errtxt, errno);
 	}
 
@@ -316,8 +403,8 @@ int removeTimer(int fd)
 	    itv.it_value.tv_usec = itv.it_interval.tv_usec = actPeriod.tv_usec;
 	    if (setitimer(ITIMER_REAL, &itv, NULL)==-1) {
 		snprintf(errtxt, sizeof(errtxt),
-			 "removeTimer: unable to set itimer to %ld.%ld",
-			 actPeriod.tv_sec, actPeriod.tv_usec);
+			 "%s: unable to set itimer to %ld.%.6ld",
+			 __func__, actPeriod.tv_sec, actPeriod.tv_usec);
 		errexit(errtxt, errno);
 	    }
 	}
@@ -334,29 +421,7 @@ int removeTimer(int fd)
     return 0;
 }
 
-void sigHandler(int sig)
-{
-    Timer_t *timer;
-
-    timer = timerList;
-
-    while (timer) {
-	timer->calls = ++timer->calls % timer->period;
-	if (!timer->calls) {
-	    if (timer->sigBlocked) {
-		timer->sigPending = 1;
-	    } else if (timer->timeoutHandler) {
-		timer->sigBlocked = 1;
-		timer->timeoutHandler(timer->fd);
-		timer->sigBlocked = 0;
-	    }
-	}
-	timer = timer->next;
-    }
-
-}
-
-int blockTimer(int fd, int block)
+int Timer_block(int id, int block)
 {
     Timer_t *timer;
     int wasBlocked;
@@ -364,13 +429,13 @@ int blockTimer(int fd, int block)
     /* Find timer */
     timer = timerList;
     while (timer) {
-	if (timer->fd==fd) break;
+	if (timer->id==id) break;
 	timer = timer->next;
     }
 
     if (!timer) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "blockTimer: no timer for fd = %d found", timer->fd);
+	snprintf(errtxt, sizeof(errtxt), "%s: no timer for id=%d found",
+		 __func__, timer->id);
 	errlog(errtxt, 0);
 	return -1;
     }
@@ -379,133 +444,11 @@ int blockTimer(int fd, int block)
 
     if (!block && timer->sigPending) {
 	if (timer->timeoutHandler) {
-	    timer->timeoutHandler(timer->fd);
+	    timer->timeoutHandler();
 	}
 	timer->sigPending = 0;
     }
     timer->sigBlocked = block;
 
     return wasBlocked;
-}
-
-int Tselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
-	    struct timeval *timeout)
-{
-    int retval;
-    struct timeval start, end, stv;
-    fd_set rfds, wfds, efds;
-    Timer_t *timer;
-
-    if (timeout) {
-	gettimeofday(&start, NULL);                   /* get starttime */
-	timeradd(&start, timeout, &end);              /* add given timeout */
-    }
-
-    timer = timerList;
-    while (timer) {
-	if (readfds) {
-	    timer->requested = FD_ISSET(timer->fd, readfds);
-	} else {
-	    timer->requested = 0;
-	}
-	if (timer->fd >= n) n = timer->fd + 1;
-	timer = timer->next;
-    }
-
-    do {
-
-	if (readfds) {
-	    memcpy(&rfds, readfds, sizeof(fd_set));   /* clone readfds */
-	} else {
-	    FD_ZERO(&rfds);
-	}
-
-	if (writefds) {
-	    memcpy(&wfds, writefds, sizeof(fd_set));  /* clone writefds */
-	} else {
-	    FD_ZERO(&wfds);
-	}
-
-	if (exceptfds) {
-	    memcpy(&efds, exceptfds, sizeof(fd_set)); /* clone exceptfds */
-	} else {
-	    FD_ZERO(&efds);
-	}
-
-	timer = timerList;
-	while (timer) {
-	    FD_SET(timer->fd, &rfds);                 /* activate port */
-	    timer = timer->next;
-	}
-
-	if (timeout) {
-	    timersub(&end, &start, &stv);
-	}
-
-	retval = select(n, &rfds, &wfds, &efds, (timeout)?(&stv):NULL);
-	if (retval == -1) {
-	    if (errno == EINTR) {
-		/* Interrupted syscall, just start again */
-		retval = 0;
-		continue;
-	    } else {
-		snprintf(errtxt, sizeof(errtxt),
-			 "Tselect: select returns %d, eno=%d[%s]",
-			 retval, errno, strerror(errno));
-		errlog(errtxt, 0);
-		break;
-	    }
-	}
-
-	timer = timerList;
-	while (timer) {
-	    if ((retval>0) && FD_ISSET(timer->fd, &rfds)) {
-		/* Got message on fd */
-		if (timer->selectHandler) {
-		    int ret;
-		    switch ((ret=timer->selectHandler(timer->fd))) {
-		    case -1:
-			retval = -1;
-			break;
-		    case 0:
-			retval--;
-			FD_CLR(timer->fd, &rfds);
-			break;
-		    case 1:
-			break;
-		    default:
-			snprintf(errtxt, sizeof(errtxt),
-				 "removeTimer:"
-				 " selectHander for fd=%d returns %d",
-				 timer->fd, ret);
-			errlog(errtxt, 0);
-		    }
-		}
-	    }
-	    timer = timer->next;
-	}
-
-	if (retval) break;
-
-	gettimeofday(&start, NULL);  /* get NEW starttime */
-
-    } while (timeout==NULL || timercmp(&start, &end, <));
-
-    if (readfds) {
-	timer = timerList;
-	while (timer) {
-	    if (!timer->requested && FD_ISSET(timer->fd, readfds)) {
-		FD_CLR(timer->fd, &rfds);
-		retval--;
-	    }
-	    timer = timer->next;
-	}
-    }
-
-    /* copy fds back */
-    if (readfds)   memcpy(readfds, &rfds, sizeof(rfds));
-    if (writefds)  memcpy(writefds, &wfds, sizeof(wfds));
-    if (exceptfds) memcpy(exceptfds, &efds, sizeof(efds));
-
-    return retval;
 }
