@@ -8,7 +8,7 @@
 #**
 #* PSM_INSTALL: ParaStation De-/Installationscript
 #*
-#* $Id: PSM_INSTALL,v 1.13 2002/09/26 15:14:21 eicker Exp $
+#* $Id: PSM_INSTALL,v 1.14 2002/12/06 14:09:28 hauke Exp $
 #*
 #* @author  
 #*         Eduard Syrchyn <syrchyn@par-tec.de>
@@ -309,7 +309,7 @@ do_install() {
 }
 
 do_uninstall() {
-    echo "Unnstall ParaStation"
+    echo "Uninstall ParaStation"
     do_info
     cleanup_services
     if [ -f $INETD_CNF ]
@@ -335,8 +335,8 @@ do_info() {
 
 do_help() {
     echo "Use: $0 [-i|-u|-h]"
-    echo "-i       : installaton"
-    echo "-u       : uninstallaton "
+    echo "-i       : install"
+    echo "-u       : uninstall "
     echo "-h       : this poor help..."
 }
 
