@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psipartition.c,v 1.6 2003/10/30 16:35:29 eicker Exp $
+ * $Id: psipartition.c,v 1.7 2003/11/26 15:15:11 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.6 2003/10/30 16:35:29 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.7 2003/11/26 15:15:11 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -30,7 +30,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.6 2003/1
 
 #include "psi.h"
 #include "psilog.h"
-#include "info.h"
+#include "psiinfo.h"
 
 #include "psipartition.h"
 
@@ -338,6 +338,7 @@ static int nodelistFromHost(char *host, nodelist_t *nodelist)
     struct hostent *hp;
     struct in_addr sin_addr;
     PSnodes_ID_t node;
+    int err;
 
     hp = gethostbyname(host);
     if (!hp) {
@@ -348,9 +349,9 @@ static int nodelistFromHost(char *host, nodelist_t *nodelist)
     }
 
     memcpy(&sin_addr, hp->h_addr_list[0], hp->h_length);
-    node = INFO_request_host(sin_addr.s_addr, 0);
+    err = PSI_infoNodeID(-1, PSP_INFO_HOST, &sin_addr.s_addr, &node, 0);
 
-    if (node < 0) {
+    if (err || node < 0) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "%s: cannot get ParaStation ID for node '%s'.",
 		 __func__, host);
