@@ -56,6 +56,7 @@ char **hosttable = NULL;           /* to store hostnames */
 
 static int usesyslog=0;
 static char errtxt[255];
+
 #define ERR_OUT(msg) if(usesyslog)syslog(LOG_ERR,msg);else fprintf(stderr,msg);
 
 
@@ -63,19 +64,28 @@ unsigned int GetIP(char *s)
 {
     struct hostent *host;
     unsigned int id;
+    char *msg;
 
     if((host = gethostbyname(s))==0){
-	sprintf(errtxt,"FAILURE: Unable to lookup host <%s> ",s);
+	switch (h_errno) {
+	case HOST_NOT_FOUND:
+	    msg = "[HOST_NOT_FOUND]";
+	    break;
+	case NO_ADDRESS:
+	    msg = "[No Internet address found]";
+	    break;
+	case NO_RECOVERY:
+	    msg = "[NO_RECOVERY]";
+	    break;
+	case TRY_AGAIN:
+	    msg = "[TRY_AGAIN]";
+	    break;
+	default:
+	    msg = "[unknown error]";
+	}
+	snprintf(errtxt, sizeof(errtxt),
+		 "FAILURE: Unable to lookup host <%s> %s", s, msg);
 	ERR_OUT(errtxt);
-	if(h_errno == HOST_NOT_FOUND)
-	    fprintf(stderr,"[HOST_NOT_FOUND] ");
-	if(h_errno == NO_ADDRESS)
-	    fprintf(stderr,"[No Internet address found] ");
-	if(h_errno == NO_RECOVERY)
-	    fprintf(stderr,"[NO_RECOVERY] ");
-	if(h_errno == TRY_AGAIN)
-	    fprintf(stderr,"[TRY_AGAIN] ");
-	perror("");
 	exit(-1); 
     }
     bcopy((char *)host->h_addr_list[0], (char*)&id, host->h_length); 
@@ -88,9 +98,9 @@ void setnrofnodes(int n)
     int i;
 
     if (NrOfNodes!=-1){ /* NrOfNodes already defined */
-	sprintf(errtxt,
-		"ERROR(Line %d): You have to define NrOfNodes only once\n",
-		lineno);
+	snprintf(errtxt, sizeof(errtxt),
+		 "ERROR(Line %d): You have to define NrOfNodes only once\n",
+		 lineno);
 	ERR_OUT(errtxt);
 	exit(-1);
     }
@@ -126,15 +136,16 @@ void installhost(char *s,int n)
     localid = GetIP(s);
 
     if (NrOfNodes==-1){ /* NrOfNodes not defined */
-	sprintf(errtxt,
-		"ERROR(Line %d): You have to define NrOfNodes before hosts\n",
-		lineno);
+	snprintf(errtxt, sizeof(errtxt),
+		 "ERROR(Line %d): You have to define NrOfNodes before hosts\n",
+		 lineno);
 	ERR_OUT(errtxt);
 	exit(-1);
     }
     if ((n>NrOfNodes) || (n<0)){ /* PSI-Id out of Range */
-	sprintf(errtxt,"ERROR: PSI-Id <%d> out of range (NrOfNodes=%d)\n",
-		n,NrOfNodes);
+	snprintf(errtxt, sizeof(errtxt),
+		 "ERROR: PSI-Id <%d> out of range (NrOfNodes=%d)\n", n,
+		 NrOfNodes);
 	ERR_OUT(errtxt);
 	exit(-1);
     }
@@ -142,13 +153,15 @@ void installhost(char *s,int n)
     licserver=(n==NrOfNodes);
 
     if (!licserver && lookuphost(s)){ /* duplicated hostname */
-	sprintf(errtxt,"ERROR: duplicated hostname <%s> in config file\n",s);
+	snprintf(errtxt, sizeof(errtxt),
+		 "ERROR: duplicated hostname <%s> in config file\n", s);
 	ERR_OUT(errtxt);
 	exit(-1);
     }
     if (psihosttable[n].found){ /* duplicated PSI-ID */
-	sprintf(errtxt,	"ERROR: duplicated ID <%d> for host <%s>"
-		" and <%s> in config file\n", n, s, psihosttable[n].name);
+	snprintf(errtxt, sizeof(errtxt),
+		 "ERROR: duplicated ID <%d> for host <%s>"
+		 " and <%s> in config file\n", n, s, psihosttable[n].name);
 	ERR_OUT(errtxt);
 	exit(-1);
     }
@@ -162,9 +175,7 @@ void installhost(char *s,int n)
     psihosttable[n].name = hosttable[nodesfound];
     if(!licserver)nodesfound++;
     if (nodesfound > NrOfNodes){ /* more hosts than nodes ??? */
-	sprintf(errtxt,	"ERROR: NrOfNodes doesn't match number"
-		" of hosts in hostlist\n");
-	ERR_OUT(errtxt);
+	ERR_OUT("ERROR: NrOfNodes does not match number of hosts in list\n");
 	exit(-1);
     }
     if (localid==MyId && MyPsiId==-1) MyPsiId=n;
@@ -201,11 +212,12 @@ int parse_config(int syslogreq)
 
     if ( (cfd = fopen(Configfile,"r"))!=0){
 	/* file found */
-	sprintf(errtxt, "Using <%s> as configuration file\n", Configfile);
+	snprintf(errtxt, sizeof(errtxt),
+		 "Using <%s> as configuration file\n", Configfile);
 	ERR_OUT(errtxt);
     }else{
-	sprintf(errtxt, "Unable to locate configuration file [%s]\n",
-		Configfile);
+	snprintf(errtxt, sizeof(errtxt),
+		 "Unable to locate configuration file [%s]\n", Configfile);
 	ERR_OUT(errtxt);
 	return(-1);
     }
@@ -237,7 +249,9 @@ int parse_config(int syslogreq)
 	/* ConfigInstDir set. Use this as Instdir */
 	PSI_SetInstalldir(ConfigInstDir);
 	if(strcmp(ConfigInstDir, PSI_LookupInstalldir())){
-	    ERR_OUT("ERROR: InstDir defined but not correct\n");
+	    ERR_OUT("ERROR: InstDir defined but not correct:");
+	    ERR_OUT(ConfigInstDir);
+	    ERR_OUT(PSI_LookupInstalldir());
 	    exit(-1);
 	}
     }
@@ -316,7 +330,8 @@ int parse_config(int syslogreq)
 	psihosttable[NrOfNodes].found = 1;
 	psihosttable[NrOfNodes].inet = psihosttable[0].inet;
 	psihosttable[NrOfNodes].name = psihosttable[0].name;
-	sprintf(errtxt,"Using %s (ID=%d) as Licenseserver\n",
+	snprintf(errtxt, sizeof(errtxt),
+		"Using %s (ID=%d) as Licenseserver\n",
 		psihosttable[NrOfNodes].name,NrOfNodes);
 	ERR_OUT(errtxt);
     }
