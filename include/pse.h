@@ -127,7 +127,7 @@ void PSEinit(int NP, int Argc, char** Argv,
  */
 void PSEfinalize(void);
 
-void PSE_Abort(int nCode);
+void PSEabort(int nCode);
 
 /***************************************************************************
  * void      PSEkillmachine(void);
