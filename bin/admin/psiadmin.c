@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.19 2002/01/18 15:43:22 eicker Exp $
+ * $Id: psiadmin.c,v 1.20 2002/01/21 10:18:12 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.19 2002/01/18 15:43:22 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.20 2002/01/21 10:18:12 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -40,7 +40,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.19 $";
+static char psiadmversion[] = "$Revision: 1.20 $";
 static int  DoRestart = 1;
 
 int PSIADM_LookUpNodeName(char* hostname)
@@ -120,29 +120,29 @@ void PSIADM_RDPStat(int first, int last)
 
 void PSIADM_CountStat(int first, int last)
 {
-    int node, i;
+    int i, j;
     PSHALInfoCounter_t ic;
 
     first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSI_nrofnodes-1 : last;
+    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
 
-    for (node = first; node <= last; node++) {
-	INFO_request_countstatus(node, &ic, sizeof(ic));
-	if (node==first){
+    for (i = first; i < last; i++) {
+	INFO_request_countstatus(i, &ic, sizeof(ic));
+	if (i==first){
 	    /* first node with header */
 	    printf("%6s ", "NODE");
-	    for (i=0 ; i<ic.n; i++){
-		printf("%8s ",ic.counter[i].name);
+	    for (j=0 ; j<ic.n; j++){
+		printf("%8s ",ic.counter[j].name);
 	    }
 	    printf("\n");
 	}
 
-	printf("%6u ", node);
-	for (i=0; i<ic.n; i++){
+	printf("%6u ", i);
+	for (j=0; j<ic.n; j++){
 	    char ch[10];
 	    /* calc column size from name length */
-	    sprintf(ch,"%%%du ",(int) MAX(strlen(ic.counter[i].name),8));
-	    printf(ch, ic.counter[i].value);
+	    sprintf(ch,"%%%du ",(int) MAX(strlen(ic.counter[j].name),8));
+	    printf(ch, ic.counter[j].value);
 	}
 	printf("\n");
     }
@@ -267,53 +267,64 @@ void PSIADM_SetDebugmask(long newmask)
     return;
 }
 
-void PSIADM_SetPsidDebug(int val, int node)
+void PSIADM_SetPsidDebug(int val, int first, int last)
 {
+    int i;
     DDOptionMsg_t msg;
 
     if (geteuid()) {
 	printf("Sorry, only root access\n");
 	return;
     }
+
+    first = (first==ALLNODES) ? 0 : first;
+    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+
     /*
      * prepare the message to send it to the daemon
      */
     msg.header.type = PSP_DD_SETOPTION;
     msg.header.sender = PSI_mytid;
-    msg.header.dest = PSI_gettid(node,0);
     msg.header.len = sizeof(msg);
     msg.count = 1;
     msg.opt[0].option = PSP_OP_PSIDDEBUG;
     msg.opt[0].value = val;
 
-    ClientMsgSend(&msg);
+    for (i = first; i < last; i++) {
+	msg.header.dest = PSI_gettid(i,0);
+	ClientMsgSend(&msg);
+    }
 
     return;
 }
 
-void PSIADM_SetRdpDebug(int val, int node)
+void PSIADM_SetRdpDebug(int val, int first, int last)
 {
+    int i;
     DDOptionMsg_t msg;
 
     if (geteuid()) {
 	printf("Sorry, only root access\n");
 	return;
     }
+
+    first = (first==ALLNODES) ? 0 : first;
+    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+
     /*
      * prepare the message to send it to the daemon
      */
     msg.header.type = PSP_DD_SETOPTION;
     msg.header.sender = PSI_mytid;
-    if(node==-1)
-	msg.header.dest = -1;
-    else
-	msg.header.dest = PSI_gettid(node,0);
     msg.header.len = sizeof(msg);
-    msg.count =1;
+    msg.count = 1;
     msg.opt[0].option = PSP_OP_RDPDEBUG;
     msg.opt[0].value = val;
 
-    ClientMsgSend(&msg);
+    for (i = first; i < last; i++) {
+	msg.header.dest = PSI_gettid(i, 0);
+	ClientMsgSend(&msg);
+    }
 
     return;
 }
@@ -329,13 +340,11 @@ void PSIADM_Version(void)
     return;
 }
 
-void PSIADM_ShowParameter(void)
+void PSIADM_ShowConfig(void)
 {
     DDOptionMsg_t msg;
     int uidlimit=0, proclimit=0, smallpacksize=0, resendtimeout=0;
     int i,n;
-
-/*   printf("ShowParameter\n"); */
 
     /*
      * prepare the message to send it to the daemon

@@ -16,11 +16,11 @@ void PSIADM_LoadStat(int first, int last);
 void PSIADM_SetMaxProc(int count);
 void PSIADM_SetUser(int uid);
 void PSIADM_SetDebugmask(long newmask);
-void PSIADM_SetPsidDebug(int val, int node);
-void PSIADM_SetRdpDebug(int val, int node);
+void PSIADM_SetPsidDebug(int val, int first, int last);
+void PSIADM_SetRdpDebug(int val, int first, int last);
 
 void PSIADM_Version(void);
-void PSIADM_ShowParameter(void);
+void PSIADM_ShowConfig(void);
 
 void PSIADM_SetHalInterface(int val);
 void PSIADM_SetSmallPacketSize(int smallpacketsize);
