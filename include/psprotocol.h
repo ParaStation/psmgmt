@@ -1,18 +1,18 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * psprotocol.h
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.18 2003/08/27 13:10:46 eicker Exp $
+ * $Id: psprotocol.h,v 1.19 2003/09/12 13:45:34 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation client-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.18 2003/08/27 13:10:46 eicker Exp $
+ * $Id: psprotocol.h,v 1.19 2003/09/12 13:45:34 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -32,7 +32,7 @@ extern "C" {
 #endif
 
 /** Unique version number of the high-level protocol */
-#define PSprotocolVersion  326
+#define PSprotocolVersion  327
 
 /** The location of the UNIX socket used to contact the daemon. */
 #define PSmasterSocketName "/var/run/parastation.sock"
@@ -52,7 +52,7 @@ typedef enum {
     PSP_CONN_ERR_UIDLIMIT,        /**< Node is limited to different user */
     PSP_CONN_ERR_PROCLIMIT,       /**< Number of processes exceeded */
     PSP_CONN_ERR_STATENOCONNECT,  /**< No connections accepted */
-    PSP_CONN_ERR_GIDLIMIT         /**< Node is limited to different group */
+    PSP_CONN_ERR_GIDLIMIT,        /**< Node is limited to different group */
 } PSP_ConnectError_t;
 
 /* We will keep this message types for compatibility with older executables */
@@ -119,7 +119,10 @@ typedef enum {
 
     PSP_INFO_HWNUM,               /**< Number of supported hardware types */
     PSP_INFO_HWINDEX,             /**< Internal index from hardware name */
-    PSP_INFO_HWNAME               /**< Name of hardware from internal index */
+    PSP_INFO_HWNAME,              /**< Name of hardware from internal index */
+
+    PSP_INFO_RANKID,              /**< ParaStation ID from rank */
+    PSP_INFO_TASKSIZE,            /**< Actual task's number of processes */
 } PSP_Info_t;
 
 /** Messages concerning spawning of tasks. */
@@ -144,6 +147,13 @@ typedef enum {
 #define PSP_CD_DAEMONRESET       0x0052  /**< Request to reset daemon */
 #define PSP_CD_HWSTART           0x0053  /**< Request to start comm hardware */
 #define PSP_CD_HWSTOP            0x0054  /**< Request to stop comm hardware */
+
+/** Creation and handling of partitions. */
+#define PSP_CD_CREATEPART        0x0060  /**< Bind a partition to a job */
+#define PSP_CD_CREATEPARTNL      0x0061  /**< Partition request nodelist */
+#define PSP_CD_PARTITIONRES      0x0062  /**< Reply partitions bind */
+#define PSP_CD_GETNODES          0x0063  /**< Request nodes from a partition */
+#define PSP_CD_NODESRES          0x0064  /**< Get nodes from a partition */
 
 /** Client-client messages. These are fully transparent for the daemons. */
 #define PSP_CC_MSG               0x0080  /**< Message between clients. */
