@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.h,v 1.10 2002/07/03 20:04:08 eicker Exp $
+ * $Id: mcast.h,v 1.11 2002/07/05 14:40:24 eicker Exp $
  *
  */
 /**
  * \file
  * ParaStation MultiCast facility
  *
- * $Id: mcast.h,v 1.10 2002/07/03 20:04:08 eicker Exp $
+ * $Id: mcast.h,v 1.11 2002/07/05 14:40:24 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -119,7 +119,8 @@ typedef struct {
  * first @ref nodes entries represent the ordinary nodes, the last entry
  * is the node of the license-daemon.
  *
- * @param licServer Flag to mark the calling process as a license server.
+ * @param id The id of the actual node within the participating
+ * nodes. The license server has to have @a id = @a nodes.
  *
  * @param callback Pointer to a callback-function. This function is called if
  * something exceptional happens. If NULL, no callbacks will be done.
@@ -128,7 +129,7 @@ typedef struct {
  * @return On success, the filedescriptor of the MCast socket is returned.
  * On error, exit() is called within this function.  */
 int initMCast(int nodes, int mcastgroup, unsigned short portno,
-	      int usesyslog,  unsigned int hosts[], int licServer,
+	      int usesyslog,  unsigned int hosts[], int id,
 	      void (*callback)(int, void*));
 
 /**
