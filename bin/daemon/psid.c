@@ -5,22 +5,24 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.99 2003/06/27 16:57:05 eicker Exp $
+ * $Id: psid.c,v 1.100 2003/07/04 14:35:34 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.99 2003/06/27 16:57:05 eicker Exp $ 
+ * $Id: psid.c,v 1.100 2003/07/04 14:35:34 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.99 2003/06/27 16:57:05 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.100 2003/07/04 14:35:34 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
+/* #define DUMP_CORE */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,8 +66,9 @@ static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.99 2003/06/27 16
 #include "psidtask.h"
 #include "psidspawn.h"
 #include "psidsignal.h"
-#include "psidcomm.h"
 #include "psidclient.h"
+#include "psidrdp.h"
+#include "psidcomm.h"
 
 struct timeval maintimer;
 struct timeval selecttimer;
@@ -78,7 +81,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.99 $";
+static char psid_cvsid[] = "$Revision: 1.100 $";
 
 static int PSID_mastersock;
 
@@ -244,6 +247,7 @@ void declareDaemonDead(int id)
     PStask_t *task;
 
     PSnodes_bringDown(id);
+    clearRDPMsgs(id);
 
     /* Send signals to all processes that controlled task on the dead node */
     task=managedTasks;
@@ -564,10 +568,9 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
  *  send_OPTIONS()
  * Transfers the options to an other node
  */
-int send_OPTIONS(int destnode)
+void send_OPTIONS(int destnode)
 {
     DDOptionMsg_t msg;
-    int success;
 
     msg.header.type = PSP_CD_SETOPTION;
     msg.header.sender = PSC_getMyTID();
@@ -575,25 +578,6 @@ int send_OPTIONS(int destnode)
     msg.header.len = sizeof(msg);
 
     msg.count = 0;
-    /*
-    if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
-	msg.opt[(int) msg.count].option = PSP_OP_SMALLPACKETSIZE;
-	msg.opt[(int) msg.count].value = ConfigSmallPacketSize;
-	msg.count++;
-
-	msg.opt[(int) msg.count].option = PSP_OP_RESENDTIMEOUT;
-	msg.opt[(int) msg.count].value = ConfigRTO;
-	msg.count++;
-
-	msg.opt[(int) msg.count].option = PSP_OP_HNPEND;
-	msg.opt[(int) msg.count].value = ConfigHNPend;
-	msg.count++;
-
-	msg.opt[(int) msg.count].option = PSP_OP_ACKPEND;
-	msg.opt[(int) msg.count].value = ConfigAckPend;
-	msg.count++;
-    }
-    */
 
     msg.opt[(int) msg.count].option = PSP_OP_HWSTATUS;
     msg.opt[(int) msg.count].value = PSnodes_getHWStatus(PSC_getMyID());
@@ -603,14 +587,11 @@ int send_OPTIONS(int destnode)
     msg.opt[(int) msg.count].value = PSnodes_getCPUs(PSC_getMyID());
     msg.count++;
 
-    success = sendMsg(&msg);
-    if (success<0) {
+    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "%s: sendMsg(): errno %d", __func__, errno);
 	PSID_errlog(errtxt, 0);
     }
-
-    return success;
 }
 
 /******************************************
@@ -638,7 +619,6 @@ int send_DAEMONCONNECT(int id)
  */
 void msg_DAEMONCONNECT(DDMsg_t *msg)
 {
-    int success;
     int id = PSC_getID(msg->sender);
 
     snprintf(errtxt, sizeof(errtxt),
@@ -664,14 +644,14 @@ void msg_DAEMONCONNECT(DDMsg_t *msg)
     msg->dest = PSC_getTID(id, 0);
     msg->len = sizeof(*msg);
 
-    if ((success = sendMsg(msg))<=0) {
+    if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "sending Daemonestablished errno %d: %s",
 		 errno, strerror(errno));
 	PSID_errlog(errtxt, 2);
+    } else {
+	send_OPTIONS(id);
     }
-
-    if (success>0) send_OPTIONS(id);
 }
 
 /******************************************
@@ -939,9 +919,8 @@ void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	forwarder->released = 1;
     } else {
 	/* Forwarder not found */
-	snprintf(errtxt, sizeof(errtxt),
-		 "CHILDDEAD: forwarder task %s not found",
-		 PSC_printTID(msg->header.sender));
+	snprintf(errtxt, sizeof(errtxt), "%s: forwarder task %s not found",
+		 __func__, PSC_printTID(msg->header.sender));
 	PSID_errlog(errtxt, 0);
     }
 
@@ -950,8 +929,7 @@ void msg_CHILDDEAD(DDErrorMsg_t *msg)
 
     if (!task) {
 	/* task not found */
-	snprintf(errtxt, sizeof(errtxt),
-		 "CHILDDEAD: task task %s not found",
+	snprintf(errtxt, sizeof(errtxt), "%s: task %s not found", __func__,
 		 PSC_printTID(msg->request));
 	/* This is uncritical. Task has been removed by deleteClient() */
 	PSID_errlog(errtxt, 2);
@@ -1065,7 +1043,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    /*
 	     * transfer the request to the remote daemon
 	     */
-	    if (sendMsg(inmsg)<=0) {
+	    if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
 		/* system error */
 		DDErrorMsg_t errmsg;
 		errmsg.header.type = PSP_CD_ERROR;
@@ -1508,7 +1486,7 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 	    /*
 	     * transfer the request to the remote daemon
 	     */
-	    if (sendMsg(msg)<=0) {
+	    if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
 		/* system error */
 		DDErrorMsg_t errmsg;
 		errmsg.header.type = PSP_CD_ERROR;
@@ -2226,13 +2204,14 @@ void psicontrol(int fd)
 	    break;
 	case PSP_CC_MSG:
 	    /* Forward this message. If this fails, send an error message. */
-	    if (sendMsg(&msg) == -1) {
+	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 		long temp = msg.header.dest;
 
 		msg.header.type = PSP_CC_ERROR;
 		msg.header.dest = msg.header.sender;
 		msg.header.sender = temp;
 		msg.header.len = sizeof(msg.header);
+
 		sendMsg(&msg);
 	    }
 	    break;
@@ -2247,6 +2226,12 @@ void psicontrol(int fd)
 	    break;
 	case PSP_DD_CHILDDEAD:
 	    msg_CHILDDEAD((DDErrorMsg_t*)&msg);
+	    break;
+	case PSP_DD_SENDSTOP:
+	    msg_SENDSTOP((DDMsg_t *)&msg);
+	    break;
+	case PSP_DD_SENDCONT:
+	    msg_SENDCONT((DDMsg_t *)&msg);
 	    break;
 	default :
 	    snprintf(errtxt, sizeof(errtxt),
@@ -2410,6 +2395,10 @@ void RDPCallBack(int msgid, void *buf)
 	declareNodeDeadMCast(node);
 
 	break;
+    case RDP_CAN_CONTINUE:
+	node = *(int*)buf;
+	flushRDPMsgs(node);
+	break;
     default:
 	snprintf(errtxt, sizeof(errtxt),
 		 "RDPCallBack(%d,%p). Unhandled message",
@@ -2435,11 +2424,6 @@ void sighandler(int sig)
 	} else {
 	    shutdownNode(1);
 	}
-#if 0
-	signal(SIGSEGV,SIG_DFL);
-	kill(getpid(), SIGSEGV);
-	sleep(1);
-#endif
 	exit(-1);
 	break;
     case SIGTERM:
@@ -2619,7 +2603,7 @@ void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.99 $";
+    char revision[] = "$Revision: 1.100 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -2714,7 +2698,9 @@ int main(int argc, const char *argv[])
     signal(SIGBUS   ,sighandler);
     signal(SIGFPE   ,sighandler);
     signal(SIGUSR1  ,sighandler);
+#ifndef DUMP_CORE
     signal(SIGSEGV  ,sighandler);
+#endif
     signal(SIGUSR2  ,sighandler);
     signal(SIGPIPE  ,sighandler);
     signal(SIGTERM  ,sighandler);
@@ -2866,7 +2852,7 @@ int main(int argc, const char *argv[])
 	PSID_errlog(" (c) ParTec AG (www.par-tec.com)", 0);
     }
 
-#if 0
+#ifdef DUMP_CORE
     {
 	struct rlimit rlimit;
 	int ret=0;
@@ -2924,6 +2910,7 @@ int main(int argc, const char *argv[])
 
     /* Initialize the clients structure */
     initClients();
+    initComm();
 
     snprintf(errtxt, sizeof(errtxt), "Local Service Port (%d) initialized.",
 	     PSID_mastersock);
@@ -2987,15 +2974,16 @@ int main(int argc, const char *argv[])
     while (1) {
 	struct timeval tv;  /* timeval for waiting on select()*/
 	fd_set rfds;        /* read file descriptor set */
+	fd_set wfds;        /* write file descriptor set */
 	int fd;
 
 	timerset(&tv, &selecttimer);
 	PSID_blockSig(0, SIGCHLD); /* Handle deceased child processes */
 	PSID_blockSig(1, SIGCHLD);
 	memcpy(&rfds, &PSID_readfds, sizeof(rfds));
+	memcpy(&wfds, &PSID_writefds, sizeof(wfds));
 
-	if (Tselect(FD_SETSIZE,
-		    &rfds, (fd_set *)NULL, (fd_set *)NULL, &tv) < 0) {
+	if (Tselect(FD_SETSIZE, &rfds, &wfds, (fd_set *)NULL, &tv) < 0) {
 	    char *errstr = strerror(errno);
 	    snprintf(errtxt, sizeof(errtxt),
 		     "Error while Tselect: %s", errstr ? errstr : "UNKNOWN");
@@ -3061,6 +3049,11 @@ int main(int argc, const char *argv[])
 		&& fd != RDPSocket         /* handled below */
 		&& FD_ISSET(fd, &rfds)){
 		psicontrol(fd);
+	    }
+	}
+	for (fd=0; fd<FD_SETSIZE; fd++) {
+	    if (FD_ISSET(fd, &wfds)){
+		if (!flushClientMsgs(fd)) FD_CLR(fd, &PSID_writefds);
 	    }
 	}
 	/*
