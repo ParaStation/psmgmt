@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.c,v 1.14 2003/11/28 15:49:22 eicker Exp $
+ * $Id: pscommon.c,v 1.15 2004/09/15 15:37:28 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.14 2003/11/28 15:49:22 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.15 2004/09/15 15:37:28 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -199,12 +199,16 @@ int PSC_startDaemon(unsigned int hostaddr)
      */
     sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
+    /* @todo Maybe we should fork because of the usleep. Make this void() */
+ again:
     memset(&sa, 0, sizeof(sa));
     sa.sin_family = AF_INET;
     sa.sin_addr.s_addr = hostaddr;
     sa.sin_port = htons(PSC_getServicePort("psid", 888));
     if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0) {
 	char *errstr = strerror(errno);
+
+	if (errno==EINTR) goto again;
 
 	snprintf(errtxt, sizeof(errtxt), "%s: connect() to %s fails: %s",
 		 __func__, inet_ntoa(sa.sin_addr),
