@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: commands.h,v 1.1 2003/08/15 13:26:06 eicker Exp $
+ * $Id: commands.h,v 1.2 2003/08/27 12:45:57 eicker Exp $
  *
  */
 /**
  * \file
  * Commands of the ParaStation adminstration tool
  *
- * $Id: commands.h,v 1.1 2003/08/15 13:26:06 eicker Exp $
+ * $Id: commands.h,v 1.2 2003/08/27 12:45:57 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -40,6 +40,8 @@ int PSIADM_LookUpNodeName(char* hostname);
 
 void PSIADM_AddNode(char *nl);
 void PSIADM_ShutdownNode(char *nl);
+void PSIADM_HWStart(int hw, char *nl);
+void PSIADM_HWStop(int hw, char *nl);
 
 void PSIADM_NodeStat(char *nl);
 void PSIADM_RDPStat(char *nl);
