@@ -10,13 +10,13 @@
     <para>
       For a detailed discussion of the user utilities and the programming
       interfaces included in the standard distribution take a look at the
-      <ulink url="../userguide/index.html" type="dontshow">ParaStation User
+      <ulink url="../userguide/index.html" type="dontshow">&ps; Users
 	Guide</ulink> and the <ulink url="../api/index.html"
 	type="dontshow">API reference</ulink> respectively.
     </para>
     <para>
       This document describes version 3.2 of the &ps; software for Myrinet and
-      version 1.0 of ParaStation FE.
+      version 1.0 of &psfe;.
     </para>
   </section>
 </chapter>
