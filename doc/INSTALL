@@ -1,6 +1,6 @@
 Installing ParaStation
 ======================
-$Id: INSTALL,v 1.5 2002/09/20 15:48:57 hauke Exp $
+$Id: INSTALL,v 1.6 2002/09/23 13:05:30 moschny Exp $
 
 0. Notes
 
@@ -11,7 +11,7 @@ $Id: INSTALL,v 1.5 2002/09/20 15:48:57 hauke Exp $
      need to perform the steps (1), (6) and (7) only on this
      node. Otherwise these steps must be followed on all nodes, too.
    - You must be superuser (root) when installing ParaStation.
-   - The script /opt/parastation/config/PSM_INSTALL perform the
+   - The script /opt/parastation/config/PSM_INSTALL performs the
      steps (2), (3) and (5). 
 
 1. Extracting the Distribution
@@ -48,11 +48,11 @@ $Id: INSTALL,v 1.5 2002/09/20 15:48:57 hauke Exp $
   ParaStation needs Multicast support on all nodes, i.e. the installed
   kernel has to support it. This is usually no problem if a standard
   kernel from a common distribution is used. You have to enable Multicast
-  support if you build you own kernel. To learn more about Multicast take
+  support if you build your own kernel. To learn more about Multicast take
   a look at the 'Multicast over TCP/IP HOWTO' [1].
 
   On nodes with more than one ethernet interface you have to setup a
-  defaultroute for the Multicast traffic. This is done by
+  default route for the Multicast traffic. This is done by
 
 	route add -net 224.0.0.0 netmask 240.0.0.0 dev ethX
 
@@ -152,3 +152,4 @@ $Id: INSTALL,v 1.5 2002/09/20 15:48:57 hauke Exp $
 
 
 [1] http://jungla.dit.upm.es/~jmseyas/linux/mcast.howto/multic.html
+ or http://www.tldp.org/HOWTO/Multicast-HOWTO.html
