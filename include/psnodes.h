@@ -1,11 +1,11 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * psnodes.h
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psnodes.h,v 1.7 2003/10/29 17:34:30 eicker Exp $
+ * $Id: psnodes.h,v 1.8 2003/11/26 17:09:11 eicker Exp $
  *
  */
 /**
@@ -13,7 +13,7 @@
  * Functions for handling the various informations about the nodes
  * with a ParaStation cluster
  *
- * $Id: psnodes.h,v 1.7 2003/10/29 17:34:30 eicker Exp $
+ * $Id: psnodes.h,v 1.8 2003/11/26 17:09:11 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -235,29 +235,56 @@ int PSnodes_setExtraIP(PSnodes_ID_t id, unsigned int addr);
 unsigned int PSnodes_getExtraIP(PSnodes_ID_t id);
 
 /**
- * @brief Set the number of CPUs of a node.
+ * @brief Set the number of physical CPUs of a node.
  *
- * Set the number of CPUs of the node with ParaStation ID @a id to @a numCPU.
+ * Set the number of physical CPUs of the node with ParaStation ID @a
+ * id to @a numCPU.
  *
  * @param id ParaStation ID of the node to be modified.
  *
- * @param numCPU The number of CPUs to be set to this node.
+ * @param numCPU The number of physical CPUs to be set to this node.
  *
  * @return On success, 0 is returned or -1, if an error occured.
  */
-int PSnodes_setCPUs(PSnodes_ID_t id, short numCPU);
+int PSnodes_setPhysCPUs(PSnodes_ID_t id, short numCPU);
 
 /**
- * @brief Get the number of CPUs of a node.
+ * @brief Get the number of physical CPUs of a node.
  *
- * Get the number of CPUs of the node with ParaStation ID @a id.
+ * Get the number of physical CPUs of the node with ParaStation ID @a id.
  *
  * @param id ParaStation ID of the node to look up.
  *
- * @return If the node was found, the number of CPUs is returned. Or
- * -1, if an error occured.
+ * @return If the node was found, the number of physical CPUs is
+ * returned. Or -1, if an error occured.
  */
-short PSnodes_getCPUs(PSnodes_ID_t id);
+short PSnodes_getPhysCPUs(PSnodes_ID_t id);
+
+/**
+ * @brief Set the number of virtual CPUs of a node.
+ *
+ * Set the number of virtual CPUs of the node with ParaStation ID @a
+ * id to @a numCPU.
+ *
+ * @param id ParaStation ID of the node to be modified.
+ *
+ * @param numCPU The number of virtual CPUs to be set to this node.
+ *
+ * @return On success, 0 is returned or -1, if an error occured.
+ */
+int PSnodes_setVirtCPUs(PSnodes_ID_t id, short numCPU);
+
+/**
+ * @brief Get the number of virtual CPUs of a node.
+ *
+ * Get the number of virtual CPUs of the node with ParaStation ID @a id.
+ *
+ * @param id ParaStation ID of the node to look up.
+ *
+ * @return If the node was found, the number of virtual CPUs is
+ * returned. Or -1, if an error occured.
+ */
+short PSnodes_getVirtCPUs(PSnodes_ID_t id);
 
 /**
  * @brief Set the hardware status of a node.
