@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.41 2002/07/23 12:55:14 eicker Exp $
+ * $Id: psiadmin.c,v 1.42 2002/07/23 15:45:44 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.41 2002/07/23 12:55:14 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.42 2002/07/23 15:45:44 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -46,7 +46,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.41 $";
+static char psiadmversion[] = "$Revision: 1.42 $";
 static int doRestart = 0;
 
 static char *hoststatus = NULL;
@@ -149,7 +149,7 @@ void PSIADM_CountStat(int first, int last)
     int i;
     unsigned int j;
     struct {
-	int present;
+	unsigned int hwStatus;
 	PSHALInfoCounter_t ic;
     } countstat;
 
@@ -164,7 +164,7 @@ void PSIADM_CountStat(int first, int last)
     for (i=0; i<PSC_getNrOfNodes(); i++) {
 	if (nodelist[i].hwType & PSHW_MYRINET) {
 	    INFO_request_countstatus(i, &countstat, sizeof(countstat), 0);
-	    if (countstat.present) {
+	    if (countstat.hwStatus & PSHW_MYRINET) {
 		for (j=0 ; j<countstat.ic.n; j++){
 		    printf("%8s ", countstat.ic.counter[j].name);
 		}
@@ -182,7 +182,7 @@ void PSIADM_CountStat(int first, int last)
 		printf("    No card present\n");
 	    } else if (INFO_request_countstatus(i, &countstat,
 						sizeof(countstat), 1) != -1) {
-		if (countstat.present) {
+		if (countstat.hwStatus & PSHW_MYRINET) {
 		    for (j=0; j<countstat.ic.n; j++){
 			char ch[10];
 			/* calc column size from name length */
