@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.h,v 1.1 2002/07/03 20:09:46 eicker Exp $
+ * $Id: pscommon.h,v 1.2 2002/07/18 13:01:57 eicker Exp $
  *
  */
 /**
  * @file
  * pscommon: Functions used in user-programs and daemon.
  *
- * $Id: pscommon.h,v 1.1 2002/07/03 20:09:46 eicker Exp $
+ * $Id: pscommon.h,v 1.2 2002/07/18 13:01:57 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -148,6 +148,11 @@ void PSC_setDaemonFlag(int flag);
  * @see PSC_setDaemonFlag()
  */
 long PSC_getMyTID(void);
+
+/**
+ * @brief @todo
+ */
+char *PSC_printTID(long tid);
 
 /**
  * @brief @todo
