@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.h,v 1.12 2004/09/22 09:13:55 eicker Exp $
+ * $Id$
  *
  */
 /**
  * @file
  * Functions used in user-programs and daemon.
  *
- * $Id: pscommon.h,v 1.12 2004/09/22 09:13:55 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -177,11 +177,9 @@ char *PSC_printTID(PStask_ID_t tid);
  * @param hostaddr The IP address of the node on which to start the
  * daemon.
  *
- * @return On success, i.e. if the remote port could be connected, 1
- * is returned. Or 0, if no (x)inetd(8) was listening on the remote
- * port.
+ * @return No return value.
  */
-int PSC_startDaemon(unsigned int hostaddr);
+void PSC_startDaemon(unsigned int hostaddr);
 
 /**
  * @brief Initialize the PSC logging facility.

@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.c,v 1.17 2004/10/04 16:51:08 eicker Exp $
+ * $Id$
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.17 2004/10/04 16:51:08 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -185,7 +185,7 @@ char *PSC_printTID(PStask_ID_t tid)
     return taskNumString;
 }
 
-int PSC_startDaemon(unsigned int hostaddr)
+void PSC_startDaemon(unsigned int hostaddr)
 {
     int sock;
     struct sockaddr_in sa;
@@ -194,12 +194,28 @@ int PSC_startDaemon(unsigned int hostaddr)
 	     inet_ntoa(* (struct in_addr *) &hostaddr));
     PSC_errlog(errtxt, 10);
 
+    switch (fork()) {
+    case -1:
+    {
+	char *errstr = strerror(errno);
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: unable to fork server process: %s", __func__,
+		 errstr ? errstr : "UNKNOWN");
+	PSC_errlog(errtxt, 0);
+	break;
+    }
+    case 0: /* I'm the child (and running further) */
+	break;
+    default: /* I'm the parent and exiting */
+	return 0;
+	break;
+    }
+
     /*
      * start the PSI Daemon via inetd
      */
     sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-    /* @todo Maybe we should fork because of the usleep. Make this void() */
  again:
     memset(&sa, 0, sizeof(sa));
     sa.sin_family = AF_INET;
@@ -216,12 +232,12 @@ int PSC_startDaemon(unsigned int hostaddr)
 	PSC_errlog(errtxt, 0);
 	shutdown(sock, SHUT_RDWR);
 	close(sock);
-	return 0;
+	exit(0);
     }
     usleep(200000);
     shutdown(sock, SHUT_RDWR);
     close(sock);
-    return 1;
+    exit(0);
 }
 
 static char default_installdir[] = "/opt/parastation";
