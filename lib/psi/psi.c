@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.53 2003/09/12 14:15:51 eicker Exp $
+ * $Id: psi.c,v 1.54 2003/10/09 16:39:27 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.53 2003/09/12 14:15:51 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.54 2003/10/09 16:39:27 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -201,6 +201,11 @@ static int connectDaemon(PStask_group_t taskGroup)
 	    }
 	    snprintf(errtxt, sizeof(errtxt),
 		     "%s:  Daemon does not allow new connections", __func__);
+	    PSI_errlog(errtxt, 0);
+	    break;
+	case PSP_CONN_ERR_LICEND :
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: Daemon's license is expired.", __func__);
 	    PSI_errlog(errtxt, 0);
 	    break;
 	default:

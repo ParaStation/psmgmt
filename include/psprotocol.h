@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.19 2003/09/12 13:45:34 eicker Exp $
+ * $Id: psprotocol.h,v 1.20 2003/10/09 16:39:27 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation client-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.19 2003/09/12 13:45:34 eicker Exp $
+ * $Id: psprotocol.h,v 1.20 2003/10/09 16:39:27 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -53,6 +53,7 @@ typedef enum {
     PSP_CONN_ERR_PROCLIMIT,       /**< Number of processes exceeded */
     PSP_CONN_ERR_STATENOCONNECT,  /**< No connections accepted */
     PSP_CONN_ERR_GIDLIMIT,        /**< Node is limited to different group */
+    PSP_CONN_ERR_LICEND,          /**< Daemon's license is expired */
 } PSP_ConnectError_t;
 
 /* We will keep this message types for compatibility with older executables */
