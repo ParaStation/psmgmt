@@ -137,7 +137,7 @@
       similary large the possibility of detailed calibration of the spawning
       strategy has to be provided by a cluster management system.
 -->
-      The section <xref linkend="spawning"/> will discuss this in detail.
+      The manual page <xref linkend="spawning"/> will discuss this in detail.
     </para>
   </section>
 
@@ -164,7 +164,7 @@
       for users or group of users.
     </para>
     <para>
-      The appendix A, <xref linkend="spawning"/> will discuss all this
+      The manual page <xref linkend="spawning"/> will discuss all this
       parameters in detail.
     </para>
   </section>
