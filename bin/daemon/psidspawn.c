@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidspawn.c,v 1.11 2003/07/31 15:26:33 eicker Exp $
+ * $Id: psidspawn.c,v 1.12 2003/08/04 15:00:09 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.11 2003/07/31 15:26:33 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.12 2003/08/04 15:00:09 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -17,6 +17,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.11 2003/07/
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <pwd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
@@ -84,24 +85,39 @@ int PSID_execClient(PStask_t *task, int controlchannel)
 
     /* change the gid */
     if (setgid(task->gid)<0) {
-	fprintf(stderr, "%s: setgid: %s", __func__, get_strerror(errno));
+	fprintf(stderr, "%s: setgid: %s\n", __func__, get_strerror(errno));
 	write(controlchannel, &errno, sizeof(errno));
 	exit(0);
     }
 
     /* change the uid */
     if (setuid(task->uid)<0) {
-	fprintf(stderr, "%s: setuid: %s", __func__, get_strerror(errno));
+	fprintf(stderr, "%s: setuid: %s\n", __func__, get_strerror(errno));
 	write(controlchannel, &errno, sizeof(errno));
 	exit(0);
     }
 
     /* change to the appropriate directory */
     if (chdir(task->workingdir)<0) {
-	fprintf(stderr, "%s: chdir(%s): %s", __func__,
+	struct passwd *passwd;
+	fprintf(stderr, "%s: chdir(%s): %s\n", __func__,
 		task->workingdir ? task->workingdir : "", get_strerror(errno));
-	write(controlchannel, &errno, sizeof(errno));
-	exit(0);
+	fprintf(stderr, "Will use user's home directory\n");
+
+	passwd = getpwuid(getuid());
+	if (passwd) {
+	    if (chdir(passwd->pw_dir)<0) {
+		fprintf(stderr, "%s: chdir(%s): %s\n", __func__,
+			passwd->pw_dir ? passwd->pw_dir : "",
+			get_strerror(errno));
+		write(controlchannel, &errno, sizeof(errno));
+		exit(0);
+	    }
+	} else {
+	    fprintf(stderr, "Cannot determine home directory\n");
+	    write(controlchannel, &errno, sizeof(errno));
+	    exit(0);
+	}	    
     }
 
     /* set some environment variables */
@@ -116,7 +132,7 @@ int PSID_execClient(PStask_t *task, int controlchannel)
     /* Test if executable is there */
     /* @todo Why we do this? The execv will do the same later. *jh* */
     if (PSID_stat(task->argv[0], &sb) == -1) {
-	fprintf(stderr, "%s: stat(%s): %s", __func__,
+	fprintf(stderr, "%s: stat(%s): %s\n", __func__,
 		task->argv[0] ? task->argv[0] : "", get_strerror(errno));
 	write(controlchannel, &errno, sizeof(errno));
 	exit(0);
@@ -124,7 +140,7 @@ int PSID_execClient(PStask_t *task, int controlchannel)
 
     if (!S_ISREG(sb.st_mode) || !(sb.st_mode & S_IXUSR)) {
 	errno = EACCES;
-	fprintf(stderr, "%s: stat(): %s", __func__,
+	fprintf(stderr, "%s: stat(): %s\n", __func__,
 		(!S_ISREG(sb.st_mode)) ? "S_ISREG error" :
 		(sb.st_mode & S_IXUSR) ? "" : "S_IXUSR error");
 
@@ -348,7 +364,7 @@ int PSID_execForwarder(PStask_t *task, int daemonfd, int controlchannel)
 	PSID_errlog(errtxt, 10);
 
 	/* Tell the parent about the client's pid */
-	buf = 0; /* errno will never be 0, this mark the following pid */
+	buf = 0; /* errno will never be 0, this marks the following pid */
 	write(controlchannel, &buf, sizeof(buf));
 	buf = pid;
 	write(controlchannel, &buf, sizeof(buf));
@@ -361,6 +377,7 @@ int PSID_execForwarder(PStask_t *task, int daemonfd, int controlchannel)
 	PSID_errlog(errtxt, 0);
 
 	/* Tell the parent about this */
+	buf=errno;
 	write(controlchannel, &buf, sizeof(buf));
 	exit(1);
     }
@@ -576,7 +593,7 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
 	     */
 	    ret = buf;
 	    snprintf(errtxt, sizeof(errtxt), "%s: child exec() failed: %s\n",
-		     __func__, get_strerror(errno));
+		     __func__, get_strerror(buf));
 	    PSID_errlog(errtxt, 0);
 	    
 	}
