@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.h,v 1.7 2002/07/26 15:15:47 eicker Exp $
+ * $Id: pstask.h,v 1.8 2002/08/06 08:21:52 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with ParaStation tasks.
  *
- * $Id: pstask.h,v 1.7 2002/07/26 15:15:47 eicker Exp $
+ * $Id: pstask.h,v 1.8 2002/08/06 08:21:52 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -65,7 +65,7 @@ typedef struct PSsig_T{
 } PStask_sig_t;
 
 /** Task structure @todo */
-/* Member marked with C are (un)packed by PStask_encode()/PStask_decode() */
+/* Members marked with C are (un)packed by PStask_encode()/PStask_decode() */
 typedef struct PStask_T{
     struct PStask_T *next;         /**< link to the next task */
     struct PStask_T *prev;         /**< link to the previous task */
@@ -185,7 +185,7 @@ void PStask_snprintf(char *txt, size_t size, PStask_t *task);
  * PStask_encode
  * encodes the task structure into a string, so it can be sent
  */
-int PStask_encode(char *buffer, size_t size, PStask_t *task);
+size_t PStask_encode(char *buffer, size_t size, PStask_t *task);
 
 /**
  * @todo
