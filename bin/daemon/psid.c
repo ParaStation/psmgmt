@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.125 2004/01/22 16:56:21 eicker Exp $
+ * $Id: psid.c,v 1.126 2004/01/28 14:07:04 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.125 2004/01/22 16:56:21 eicker Exp $ 
+ * $Id: psid.c,v 1.126 2004/01/28 14:07:04 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.125 2004/01/22 16:56:21 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.126 2004/01/28 14:07:04 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -75,7 +75,7 @@ struct timeval selectTime;
 
 static struct timeval shutdownTimer;
 
-char psid_cvsid[] = "$Revision: 1.125 $";
+char psid_cvsid[] = "$Revision: 1.126 $";
 
 /**
  * Master socket (type UNIX) for clients to connect. Setup within @ref
@@ -1003,13 +1003,19 @@ static void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
     /* Do not set msg->header.len! Length of DDSignalMsg_t has changed */
 
     if (!tid) {
+	/* Try to set signal send to relatives */
 	task = PStasklist_find(managedTasks, registrarTid);
 	if (task) {
-	    /* @todo more logging */
 	    task->relativesignal = msg->signal;
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: relativesignal for %s set to %d", __func__,
+		     PSC_printTID(registrarTid), msg->signal);
+	    PSID_errlog(errtxt, 1);
 	    msg->param = 0;     /* sucess */
 	} else {
-	    /* @todo more logging */
+	    snprintf(errtxt, sizeof(errtxt), "%s: task %s not found", __func__,
+		     PSC_printTID(registrarTid));
+	    PSID_errlog(errtxt, 0);
 	    msg->param = ESRCH; /* failure */
 	}
     } else {
@@ -1649,6 +1655,21 @@ int handleMsg(int fd, DDBufferMsg_t *msg)
     case PSP_CD_NODESRES:
 	sendMsg(msg);
 	break;
+    case PSP_DD_GETTASKS:
+	msg_GETTASKS(msg);
+	break;
+    case PSP_DD_PROVIDETASK:
+	msg_PROVIDETASK(msg);
+	break;
+    case PSP_DD_PROVIDETASKNL:
+	msg_PROVIDETASKNL(msg);
+	break;
+    case PSP_DD_CANCELPART:
+	msg_CANCELPART(msg);
+	break;
+    case PSP_DD_TASKDEAD:
+	msg_TASKDEAD(msg);
+	break;
     case PSP_DD_LOAD:
 	msg_LOAD(msg);
 	break;
@@ -1779,7 +1800,7 @@ static void RDPCallBack(int msgid, void *buf)
 		 __func__, node);
 	PSID_errlog(errtxt, 2);
 	if (node != PSC_getMyID() && !PSnodes_isUp(node)) {
-	    if (send_DAEMONCONNECT(node)<0) {
+	    if (send_DAEMONCONNECT(node)<0) { // @todo Really necessary ?
 		snprintf(errtxt, sizeof(errtxt),
 			 "%s: send_DAEMONCONNECT(): error %d",
 			 __func__, errno);
@@ -2195,7 +2216,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.125 $";
+    char revision[] = "$Revision: 1.126 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -2571,6 +2592,9 @@ int main(int argc, const char *argv[])
 		break;
 	    }
 	}
+
+	/* Check for partition requests */
+	handlePartRequests();
 
 	/*
 	 * Check for obstinate tasks
