@@ -447,11 +447,11 @@
   </section>
 
   <section>
-    <title>Starting of serial jobs</title>
+    <title>Starting up serial jobs</title>
     <para>
-      It is even possible to start serial jobs that are not &ps; aware
-      somewhere inside the cluster managed by &ps;. Within this scenario &ps;
-      takes care over load balancing between different jobs running in the
+      &ps; is even capable to manage the startup of serial jobs that are not
+      &ps; aware somewhere inside the cluster. Within this scenario &ps; takes
+      care concerning the load balancing between different jobs running in the
       cluster, the remote startup procedure and the redirection of input and
       output data.
     </para>

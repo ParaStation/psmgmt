@@ -44,13 +44,15 @@
       started remotely using the &ps; daemon <citerefentry>
 	<refentrytitle>psid</refentrytitle>
 	<manvolnum>8</manvolnum>
-      </citerefentry>. Within the startup the local process will become a IO
-      handling process - marked as a logger process within <citerefentry>
+      </citerefentry>. Within the startup process the local process will become
+      a I/O handling process - marked as a logger process within
+      <citerefentry>
 	<refentrytitle>psiadmin</refentrytitle>
 	<manvolnum>8</manvolnum>
-      </citerefentry> - forwarding all the input and output data. Suspending
-      the local process or sending a signal to this local process will
-      <emphasis role="bold">not</emphasis> affect the remotely started process.
+      </citerefentry> - forwarding all the input needed and output produced by
+      the remote process respectively. Suspending the local process or sending
+      a signal to this local process will <emphasis role="bold">not</emphasis>
+      affect the remotely started process.
     </para>
   </refsect1>
 
@@ -86,7 +88,8 @@
       </citerefentry>, <citerefentry>
 	<refentrytitle>psiadmin</refentrytitle>
 	<manvolnum>8</manvolnum>
-      </citerefentry>, <xref linkend="spawning"/>
+      </citerefentry>, <xref linkend="environment"/>, <xref
+	linkend="spawning"/>
     </para>
   </refsect1>
 </refentry>
