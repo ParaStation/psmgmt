@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.13 2002/08/06 08:30:50 eicker Exp $
+ * $Id: config_parsing.c,v 1.14 2002/08/06 15:41:25 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.13 2002/08/06 08:30:50 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.14 2002/08/06 15:41:25 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -99,7 +99,7 @@ static int allocHosts(int num)
 
     if (nodes) free(nodes);
 
-    nodes = (node_t *)malloc(sizeof(*nodes) * num);
+    nodes = (struct node_t *)malloc(sizeof(*nodes) * num);
 
     if (!nodes) {
 	snprintf(errtxt, sizeof(errtxt),
