@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: commands.c,v 1.5 2003/11/26 17:22:49 eicker Exp $
+ * $Id: commands.c,v 1.6 2003/11/26 18:45:07 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.5 2003/11/26 17:22:49 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.6 2003/11/26 18:45:07 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -45,7 +45,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.5 2003/11/2
 
 #include "commands.h"
 
-char commandsversion[] = "$Revision: 1.5 $";
+char commandsversion[] = "$Revision: 1.6 $";
 
 static int doRestart = 0;
 
@@ -75,7 +75,7 @@ typedef struct {
  * extension of @a list was possible, 1 is returned. Otherwise 0 is
  * returned.
  */
-static int extendList(sizedList_t *list, size_t size, char *caller)
+static int extendList(sizedList_t *list, size_t size, const char *caller)
 {
     if (list->actSize < size) {
 	char *tmp = list->list;
