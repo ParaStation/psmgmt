@@ -60,6 +60,9 @@ PSI_spawn(short dstnode, char*workingdir, int argc, char**argv,
 	if(PSI_Partition==NULL){
 	    if(PSI_getPartition()>0)
 		PSI_SortNodesInPartition(PSI_Partition, PSI_PartitionSize);
+	}else{
+	    /* sort existing partition jh 2001-12-21 */
+	    PSI_SortNodesInPartition(PSI_Partition, PSI_PartitionSize);
 	}
 	if(PSI_Partition!=NULL){
 	    int count=0;
@@ -120,6 +123,9 @@ PSI_spawnM(int count, short *dstnodes,char *workingdir, int argc, char **argv,
 	if(PSI_Partition==NULL){
 	    if(PSI_getPartition()>0)
 		PSI_SortNodesInPartition(PSI_Partition, PSI_PartitionSize);
+	}else{
+	    /* sort existing partition jh 2001-12-21 */
+	    PSI_SortNodesInPartition(PSI_Partition, PSI_PartitionSize);
 	}
 	if(PSI_Partition!=NULL){
 	    int i;
@@ -237,7 +243,8 @@ int PSI_SortNodesInPartition(short nodes[], int maxnodes)
 	}
 	free(env_entry);
     }else{
-	env_sort = PSI_getenv(ENV_NODE_SELECT);
+	 /* default now LOAD jh 2001-12-21 */
+	env_sort = "LOAD";
     }
     if(env_sort!=NULL)
 	if(strcasecmp(env_sort,"LOAD")==0){
@@ -251,7 +258,7 @@ int PSI_SortNodesInPartition(short nodes[], int maxnodes)
 		node_entry[i].id = nodes[i];
 		/* Get the status. Or rather, set it. */
 		node_entry[i].status = 1;
-		node_entry[i].load = iload = PSI_getload((unsigned short) i);
+		node_entry[i].load = iload = PSI_getload((unsigned short) nodes[i]);
 	    }
 
 	    /* Sort the nodes */
