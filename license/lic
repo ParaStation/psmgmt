@@ -6,16 +6,22 @@ CPUs, Features"
 
 
 ask=1;while [ "$ask" == 1 ];do     ask=0
-    echo "Version? {3,FE}"
+    echo "Version? {3,4,FE}"
     read ver
     
     case "$ver" in
     3)
 	id="ParaStation 3"
-	ver="3.2"
+	ver="3.3"
 	features="IP, Ether, Myrinet"
 	fields="$fields ,MCPKey"
 	calcmcpkey=1
+	;;
+    4)
+	id="ParaStation 4"
+	ver="4.0"
+	features="IP, Ether, P4sock"
+	calcmcpkey=0
 	;;
     fe|FE)
 	id="ParaStation FE"
