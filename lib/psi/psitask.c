@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psitask.c,v 1.5 2002/02/19 09:31:06 eicker Exp $
+ * $Id: psitask.c,v 1.6 2002/06/14 15:25:57 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psitask.c,v 1.5 2002/02/19 09:31:06 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psitask.c,v 1.6 2002/06/14 15:25:57 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -114,31 +114,40 @@ int PStask_delete(PStask_t * task)
     return 1;
 }
 
-void PStask_sprintf(char*txt, PStask_t * task)
+void PStask_snprintf(char *txt, size_t size, PStask_t * task)
 {
     int i;
 
     if (task==NULL)
 	return ;
 
-    sprintf(txt," links(%08lx,%08lx) "
-	    "tid %08lx,ptid %08lx, uid %d loggernode %x loggerport %d node %d"
-	    " group0x%lx rank %x options = %lx error %ld fd %d argc %d ",
-	    (long)task->link, (long)task->rlink, task->tid, task->ptid,
-	    task->uid, task->loggernode, task->loggerport, task->nodeno,
-	    task->group, task->rank, task->options, task->error, task->fd,
-	    task->argc);
-    sprintf(txt+strlen(txt),"dir=\"%s\",command=\"",
-	    (task->workingdir)?task->workingdir:"");
-    for (i=0;i<task->argc;i++) {
-	sprintf(txt+strlen(txt),"%s ",task->argv[i]);
+    snprintf(txt, size, " links(%08lx,%08lx) tid %08lx, ptid %08lx, uid %d"
+	     " loggernode %x loggerport %d node %d"
+	     " group0x%lx rank %x options = %lx error %ld fd %d argc %d ",
+	     (long)task->link, (long)task->rlink, task->tid, task->ptid,
+	     task->uid, task->loggernode, task->loggerport, task->nodeno,
+	     task->group, task->rank, task->options, task->error, task->fd,
+	     task->argc);
+    if (strlen(txt)+1 == size) return;
+
+    snprintf(txt+strlen(txt), size-strlen(txt), "dir=\"%s\",command=\"",
+	     (task->workingdir)?task->workingdir:"");
+    if (strlen(txt)+1 == size) return;
+
+    for (i=0; i<task->argc; i++) {
+	snprintf(txt+strlen(txt), size-strlen(txt), "%s ", task->argv[i]);
+	if (strlen(txt)+1 == size) return;
     }
-    sprintf(txt+strlen(txt),"\" env=");
+
+    snprintf(txt+strlen(txt), size-strlen(txt), "\" env=");
+    if (strlen(txt)+1 == size) return;
 
     if (task->environ) {
 	int i;
 	for (i=0; task->environ[i]; i++) {
-	    sprintf(txt+strlen(txt), "%s ", task->environ[i]);
+	    snprintf(txt+strlen(txt), size-strlen(txt), "%s ",
+		     task->environ[i]);
+	    if (strlen(txt)+1 == size) return;
 	}
     }
 }

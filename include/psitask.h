@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psitask.h,v 1.6 2002/02/19 09:31:06 eicker Exp $
+ * $Id: psitask.h,v 1.7 2002/06/14 15:26:35 eicker Exp $
  *
  */
 /**
  * @file
  * psitask: User-functions for interaction with ParaStation tasks.
  *
- * $Id: psitask.h,v 1.6 2002/02/19 09:31:06 eicker Exp $
+ * $Id: psitask.h,v 1.7 2002/06/14 15:26:35 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -125,7 +125,7 @@ int PStask_delete(PStask_t * task);
 /*
  * prints the task structure in a string
  */
-void PStask_sprintf(char *txt, PStask_t *task);
+void PStask_snprintf(char *txt, size_t size, PStask_t *task);
 
 /*----------------------------------------------------------------------*/
 /*
