@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.43 2002/07/25 13:39:57 eicker Exp $
+ * $Id: psiadmin.c,v 1.44 2002/07/26 15:08:57 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.43 2002/07/25 13:39:57 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.44 2002/07/26 15:08:57 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -47,7 +47,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.43 $";
+static char psiadmversion[] = "$Revision: 1.44 $";
 static int doRestart = 0;
 
 static char *hoststatus = NULL;
@@ -216,18 +216,19 @@ void PSIADM_ProcStat(int first, int last, int full)
     first = (first==ALLNODES) ? 0 : first;
     last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
 
-    printf("%4s %23s %23s %8s\n",
-	   "Node", "TaskId(Dec/Hex)", "ParentTaskId(Dec/Hex)", "UserId");
+    printf("%4s %23s %23s %3s %9s\n", "Node", "TaskId(Dec/Hex)",
+	   "ParentTaskId(Dec/Hex)", "Con", "UserId");
     for (i = first; i < last; i++) {
 	printf("---------------------------------------------------------"
-	       "----\n");
+	       "---------\n");
 	if (hoststatus[i]) {
 	    num = INFO_request_tasklist(i, taskinfo, sizeof(taskinfo), 1);
 	    for (j=0; j<MIN(num,NUMTASKS); j++) {
 		if (taskinfo[j].group==TG_FORWARDER && !full) continue;
-		printf("%4d %10ld 0x%010lx %10ld 0x%010lx %5d %s\n",
+		printf("%4d %10ld 0x%010lx %10ld 0x%010lx %2d  %5d %s\n",
 		       i, taskinfo[j].tid, taskinfo[j].tid,
-		       taskinfo[j].ptid, taskinfo[j].ptid, taskinfo[j].uid,
+		       taskinfo[j].ptid, taskinfo[j].ptid,
+		       taskinfo[j].connected, taskinfo[j].uid,
 		       taskinfo[j].group==TG_ADMIN ? "(A)" :
 		       taskinfo[j].group==TG_LOGGER ? "(L)" :
 		       taskinfo[j].group==TG_FORWARDER ? "(F)" : "");
