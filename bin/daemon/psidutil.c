@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.66 2003/11/26 17:39:42 eicker Exp $
+ * $Id: psidutil.c,v 1.67 2003/11/26 17:50:55 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.66 2003/11/26 17:39:42 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.67 2003/11/26 17:50:55 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -682,8 +682,8 @@ long PSID_getPhysCPUs(void)
 
     got = read(fd, buf, sizeof(buf));
     if (got != sizeof(buf)) {
-	snprintf(errtxt, sizeof(errtxt), "%s: Got only %d/%d bytes.",
-		 __func__, got, sizeof(buf));
+	snprintf(errtxt, sizeof(errtxt), "%s: Got only %d/%ld bytes.",
+		 __func__, got, (long)sizeof(buf));
 	PSID_errlog(errtxt, 0);
 	return virtCPUs;
     }
@@ -725,8 +725,8 @@ long PSID_getPhysCPUs(void)
 	}
 	got = read(fd, buf, sizeof(buf));
 	if (got != sizeof(buf)) {
-	    snprintf(errtxt, sizeof(errtxt), "%s: Got only %d/%d bytes.",
-		     __func__, got, sizeof(buf));
+	    snprintf(errtxt, sizeof(errtxt), "%s: Got only %d/%ld bytes.",
+		     __func__, got, (long)sizeof(buf));
 	    PSID_errlog(errtxt, 0);
 	    return virtCPUs;
 	}
