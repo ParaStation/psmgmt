@@ -86,13 +86,15 @@
 (define (book-titlepage-recto-elements)
   (list (normalize "mediaobject")
 	(normalize "title")
+	(normalize "releaseinfo")
 	(normalize "author")))
 					 
 (define (book-titlepage-verso-elements)
   (list (normalize "title")
 	(normalize "releaseinfo")
 	(normalize "author")
-	(normalize "copyright")))
+	(normalize "copyright")
+	(normalize "revhistory")))
 					 
 ;;
 ;; The next two ones are for removing extra newlines on multiple 'command's in
@@ -264,6 +266,99 @@ note"))))
                         (literal ")"))
                       (empty-sosofo)))
               (empty-sosofo))))))
+
+;;
+;; New styles for the title and the release info on the front page
+;;
+(mode book-titlepage-recto-mode
+  (element releaseinfo
+    (make paragraph
+      use: book-titlepage-recto-style
+      font-size: (HSIZE 4)
+      line-spacing: (* (HSIZE 7) %line-spacing-factor%)
+      space-before: (* (HSIZE 9) %head-before-factor%)
+      quadding: %division-title-quadding%
+      keep-with-next?: #t
+      (with-mode title-mode
+        (process-children-trim))))
+
+  (element title 
+    (make paragraph
+      use: book-titlepage-recto-style
+      font-size: (HSIZE 7)
+      line-spacing: (* (HSIZE 7) %line-spacing-factor%)
+      space-before: (* (HSIZE 7) %head-before-factor%)
+      quadding: %division-title-quadding%
+      keep-with-next?: #t
+      heading-level: (if %generate-heading-level% 1 0)
+      (with-mode title-mode
+        (process-children-trim)))))
+
+;;
+;; New style for the revision history on second page:
+;; - One line per revision
+;; - No author info
+;; - More space between lines
+;;
+(mode book-titlepage-verso-mode
+  (element (revhistory revision)
+    (let ((revnumber (select-elements (descendants (current-node)) 
+                                      (normalize "revnumber")))
+          (revdate   (select-elements (descendants (current-node)) 
+                                      (normalize "date")))
+          (revauthor (select-elements (descendants (current-node))
+                                      (normalize "authorinitials")))
+          (revremark (select-elements (descendants (current-node))
+                                      (normalize "revremark"))))
+      (make sequence
+        (make table-row
+          (make table-cell
+            column-number: 1
+            n-columns-spanned: 1
+            n-rows-spanned: 1
+            start-indent: 0pt
+            (if (not (node-list-empty? revnumber))
+                (make paragraph
+                  use: book-titlepage-verso-style
+                  font-size: %bf-size%
+                  font-weight: 'medium
+                  (literal (gentext-element-name-space (current-node)))
+                  (process-node-list revnumber))
+                (empty-sosofo)))
+          (make table-cell
+            column-number: 2
+            n-columns-spanned: 1
+            n-rows-spanned: 1
+            start-indent: 0pt
+            cell-before-column-margin: (if (equal? (print-backend) 'tex)
+                                           6pt
+                                           0pt)
+            (if (not (node-list-empty? revdate))
+                (make paragraph
+                  use: book-titlepage-verso-style
+                  font-size: %bf-size%
+                  font-weight: 'medium
+                  (process-node-list revdate))
+                (empty-sosofo)))
+          (make table-cell
+            column-number: 3
+            n-columns-spanned: 1
+            n-rows-spanned: 1
+            start-indent: 0pt
+            cell-before-column-margin: (if (equal? (print-backend) 'tex)
+                                           6pt
+                                           0pt)
+	    cell-after-row-margin: (/ (* (HSIZE 1) %head-before-factor%) 3)
+            (if (not (node-list-empty? revremark))
+                (make paragraph
+                  use: book-titlepage-verso-style
+                  font-size: %bf-size%
+                  font-weight: 'medium
+                  space-after: (if (last-sibling?) 
+                                   0pt
+                                   (/ %block-sep% 2))
+                  (process-node-list revremark))
+                (empty-sosofo))))))))
 
 </style-specification-body>
 </style-specification>
