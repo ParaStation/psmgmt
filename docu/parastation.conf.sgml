@@ -1207,7 +1207,7 @@
 	    <parameter>true</parameter> or <parameter>1</parameter>,
             suspending a task by sending the signal
             <constant>SIGTSTP</constant> to the logger will handle all
-            resource (CPUs) currently claimed by this task as free.
+            resources (CPUs) currently claimed by this task as free.
 	  </para>
 	  <para>
 	    If the argument is one of <parameter>no</parameter>,
@@ -1229,7 +1229,9 @@
 	  <para>If the argument is one of <parameter>yes</parameter>,
 	    <parameter>true</parameter> or <parameter>1</parameter>,
             compatibility mode for applications linked with
-            &ps; version 4.0 up to 4.0.6 will be enabled.
+            &ps; version 4.0 up to 4.0.6 will be enabled. Keep in mind that
+	    this behavior might collide with the
+	    <command>freeOnSuspend</command> feature.
 	  </para>
 	  <para>
 	    If the argument is one of <parameter>no</parameter>,
