@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.c,v 1.7 2003/03/19 17:03:49 eicker Exp $
+ * $Id: psprotocol.c,v 1.8 2003/07/04 07:34:19 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psprotocol.c,v 1.7 2003/03/19 17:03:49 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psprotocol.c,v 1.8 2003/07/04 07:34:19 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -55,7 +55,7 @@ static struct {
     { PSP_CC_MSG              , "PSP_CC_MSG"              },
     { PSP_CC_ERROR            , "PSP_CC_ERROR"            },
 
-    { PSP_CD_ERROR            , "PSP_DD_ERROR"            },
+    { PSP_CD_ERROR            , "PSP_CD_ERROR"            },
 
     {0,NULL}
 };
