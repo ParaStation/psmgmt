@@ -2209,7 +2209,7 @@ Derrlog(errtxt,syslogerror,2);
 
 #ifdef __linux
   if(ifname){
-    if (setsockopt(mcastsock, SOL_SOCKET, SO_BINDTODEVICE, ifname, strlen(ifname)) == -1){
+    if (setsockopt(mcastsock, SOL_SOCKET, SO_BINDTODEVICE, ifname, strlen(ifname)+1) == -1){
            sprintf(errtxt,"unable to bind socket to interface %s",ifname);
 	   errexit(errtxt,errno,syslogerror);
   }
