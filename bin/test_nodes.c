@@ -159,7 +159,7 @@ void time_handler(int signal)
 	}
     }
     if (tmpsize){
-	fprintf(stdout,"No answer from process: ");
+	fprintf(stdout,"Wait for answer from process: ");
 	print_list(tmp,tmpsize);
 	fprintf(stdout,"\n");
     }
@@ -381,6 +381,10 @@ void run(int argc,char **argv,int np)
 	    conrecv[head.xdata.from][head.xdata.to]+=1;
 	    break;
 	}
+	case 5:{ /* Recv EXIT from master */
+	    PSEfinalize();
+	    exit(0);
+	}
 	default:{
 	    /* never be here */
 	    fprintf(out,"recv type %d\n",head.xdata.type);
@@ -397,6 +401,20 @@ void run(int argc,char **argv,int np)
 	}
 	
     }
+
+
+    /* Exit all clients: */
+    for (j=0;j<np;j++){
+	if ((mapnode[j]>=0)  ){
+	    head.xdata.type = 5; /* EXIT */
+	    head.xdata.rank = j;
+	    head.xdata.node = mapnode[j];
+	    head.xdata.port = mapport[j];
+	    Req = PSP_ISend(porth,0,0,&head.header,sizeof(struct xdata_T),mapnode[j],mapport[j]);
+	    PSP_Wait(porth,Req);
+	}
+    }
+
     signal(SIGALRM,SIG_IGN);
     if (rank==0){
 	if (arg_map){
@@ -407,6 +425,8 @@ void run(int argc,char **argv,int np)
     }
     fprintf(out,"All connections ok\n",head.xdata.type);
     fclose(out);
+
+    PSEfinalize();
 }
 
 
@@ -442,6 +462,7 @@ int main(int argc, char **argv)
     }
 
     run(argc,argv,arg_np);
+//    PSEfinalize();
     return 0;
 }
 
