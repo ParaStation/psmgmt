@@ -23,7 +23,7 @@ else
 endif
 
 TOOLS:=psconfig pscounter test_nodes psiadmin psid psld parastation
-TOOLS += psilogger mlisten test_config_parsing psmstart
+TOOLS += psilogger mlisten test_config_parsing psmstart mpirun_chp4 psispawn
 TOOLS += psscan psroute
 
 ifneq ("$(TARGET_OS)","osf5.1")
@@ -48,6 +48,10 @@ test_nodes: test_nodes.o -lpshal -lpsport -larg -lpse -lpsi -lm -lpthread
 test_pse: test_pse.o -lpshal -lpsport -larg -lpse -lpsi -lm -lpthread
 
 psmstart: psmstart.o -lpse -lpsi
+
+mpirun_chp4: mpirun_chp4.o -lpse -lpsi -lpopt
+
+psispawn: psispawn.o -lpsi
 
 mlisten: mlisten.o -lpopt
 
