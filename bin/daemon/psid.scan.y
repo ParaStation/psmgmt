@@ -13,7 +13,8 @@
 }
 
 %token <val> NUMBER
-%token <string> NAME 
+%token <string> HOSTNAME 
+%token <string> FILENAME 
 %token <string> KEY
 %token NL COMMENT NROFNODES
 %token LICENSEKEY LICENSESERVER ROUTINGFILE MODULE
@@ -62,7 +63,7 @@ nodesline:
 	;
 
 hostlist:
-	NAME NUMBER              { installhost(getlasthname(),$2); }
+	HOSTNAME NUMBER              { installhost(getlasthname(),$2); }
 	;
 
 psiddeclaredeadintervalline:
@@ -75,15 +76,17 @@ psidselecttimeline:
 
 licenseline:
 	LICENSEKEY KEY           { strcpy(ConfigLicensekey,$2);}
-        | LICENSESERVER NAME     { installhost(getlasthname(),NrOfNodes); }
+        | LICENSESERVER HOSTNAME { installhost(getlasthname(),NrOfNodes); }
 	;
 
 moduleline:
-	MODULE NAME              { strcpy(ConfigModule,$2); }
+	MODULE HOSTNAME          { strcpy(ConfigModule,$2); }
+        | MODULE FILENAME        { strcpy(ConfigModule,$2); }
 	;
 
 routingline:
-	ROUTINGFILE NAME         { strcpy(ConfigRoutefile,$2); }
+	ROUTINGFILE HOSTNAME     { strcpy(ConfigRoutefile,$2); }
+        | ROUTINGFILE FILENAME   { strcpy(ConfigRoutefile,$2); }
 	;
 
 smallpacketline:
