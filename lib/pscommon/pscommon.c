@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.c,v 1.4 2002/07/18 12:31:55 eicker Exp $
+ * $Id: pscommon.c,v 1.5 2002/07/31 08:41:45 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.4 2002/07/18 12:31:55 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.5 2002/07/31 08:41:45 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -93,19 +93,6 @@ void PSC_setMyID(short id)
     PSC_myID = id;
 }
 
-pid_t PSC_specialGetPID(void)
-{
-    char *env_str;
-    /* if we are a child of a psid process (remote process),
-     * we use the pid of our parent. */
-    env_str=getenv("PSI_PID");
-    if (env_str) {
-	return atoi(env_str);
-    } else {
-	return getpid();
-    }
-}
-
 long PSC_getTID(short node, pid_t pid)
 {
 #ifndef __osf__
@@ -169,7 +156,7 @@ long PSC_getMyTID(void)
 	if (daemonFlag) {
 	    PSC_myTID = PSC_getTID(-1, 0);
 	} else {
-	    PSC_myTID = PSC_getTID(-1, PSC_specialGetPID());
+	    PSC_myTID = PSC_getTID(-1, getpid());
 	}
     }
 
