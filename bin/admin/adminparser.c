@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: adminparser.c,v 1.7 2003/11/26 17:21:31 eicker Exp $
+ * $Id: adminparser.c,v 1.8 2004/01/09 15:55:59 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.7 2003/11/26 17:21:31 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.8 2004/01/09 15:55:59 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -37,7 +37,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.7 2003/1
 
 #include "helpmsgs.c"
 
-static char parserversion[] = "$Revision: 1.7 $";
+static char parserversion[] = "$Revision: 1.8 $";
 
 static char *getNodeList(char *nl_descr)
 {
@@ -588,7 +588,7 @@ static int versionCommand(char *token)
     if (parser_getString()) goto error;
     
     printf("PSIADMIN: ParaStation administration tool\n");
-    printf("Copyright (C) 1996-2003 ParTec AG Karlsruhe\n");
+    printf("Copyright (C) 1996-2004 ParTec AG Karlsruhe\n");
     printf("\n");
     printf("PSIADMIN:   %s\b/ %s\b/ %s\b \b\b\n", psiadmversion+11,
 	   commandsversion+11, parserversion+11);
