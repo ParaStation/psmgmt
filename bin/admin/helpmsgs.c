@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: helpmsgs.c,v 1.7 2004/01/15 19:39:11 eicker Exp $
+ * $Id: helpmsgs.c,v 1.8 2004/01/16 14:08:25 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.7 2004/01/15 19:39:11 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.8 2004/01/16 14:08:25 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -19,23 +19,35 @@ static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.7 2004/01/15
 #include <unistd.h>
 #include <sys/ioctl.h>
 
+/**
+ * Structure holding a syntax information. The content is intended to
+ * be put out via @ref printSyntax(). Refer to @ref printSyntax() for
+ * the output format of this kind of information.
+ */
 typedef struct {
-    char *cmd;
-    char *arg;
+    char *cmd;            /**< The command to describe. */
+    char *arg;            /**< The possible arguments to the command. */
 } syntax_t;
 
+/**
+ * Structure holding tagged information. The content is intended to
+ * be put out via @ref printTag(). Refer to @ref printTag() for
+ * the output format of this kind of information.
+ */
 typedef struct {
-    char *tag;
-    char *descr;
+    char *tag;            /**< The tag marking the information. */
+    char *descr;          /**< The actual information. */
 } taggedInfo_t;
 
+/** Structure holding complete information on commands */
 typedef struct {
-    char *head;
-    syntax_t *syntax;
-    int nodes;
-    char *descr;
-    taggedInfo_t *tags;
-    char *comment;
+    char *head;           /**< Optional header. Will get underline */
+    syntax_t *syntax;     /**< Command's syntax. */
+    int nodes;            /**< Flag to mark nodes info to be printed. */
+    char *descr;          /**< General description of the command. */
+    taggedInfo_t *tags;   /**< Further tagged info. Usually describing
+			     further arguments to the command. */
+    char *comment;        /**< Trailing comment. Currently ignored. */
 } info_t;
 
 static info_t helpInfo = {
@@ -165,9 +177,9 @@ static info_t hwstartInfo = {
 };
 
 static info_t hwstopInfo = {
-    .head = "HWStart command:",
+    .head = "HWStop command:",
     .syntax = (syntax_t[]) {{
-	.cmd = "hwstart",
+	.cmd = "hwstop",
 	.arg = "[hw {<hw> | all}] <nodes>"
     }},
     .nodes = 1,
@@ -188,7 +200,7 @@ static info_t setInfo = {
 	" | hnpend <val> | ackpend <val>} <nodes>"
     }},
     .nodes = 1,
-    .descr = "",
+    .descr = "Set one of various parameters of the ParaStation system:",
     .tags = (taggedInfo_t[]) {
 	{ .tag = "set maxproc {<num>|any}",
 	  .descr = "Set the maximum number of ParaStation processes. If the"
@@ -421,7 +433,7 @@ static const char space[] = "                                                "
  * 80 is passed to the calling function. If the determined width is
  * too small, the minimal width 60 is returned.
  */
-int getWidth(void)
+static int getWidth(void)
 {
     int width = 0;
     char *ss;
@@ -446,13 +458,19 @@ int getWidth(void)
     return width;
 }
 
-static void printSyntax(syntax_t *syntax)
+/**
+ * @brief Print syntax information.
+ *
+ * @doctodo
+ *
+ * @return No return value.
+ */
+static void printSyntax(const char *tag, syntax_t *syntax)
 {
-    const char tag[] = "Syntax: ";
     int lwidth = getWidth() - strlen(tag);
 
     if (syntax->cmd) {
-	lwidth -= strlen(syntax->cmd);
+	lwidth -= strlen(syntax->cmd) + 1;
 	printf("%s%s ", tag, syntax->cmd);
     }
     if (syntax->arg) {
@@ -466,6 +484,7 @@ static void printSyntax(syntax_t *syntax)
 	    printf("%.*s\n", (int)(end-pos), pos);
 	    printf("%.*s", getWidth()-lwidth, space);
 	    pos = end;
+	    while (*pos == ' ') pos++; /* skip leading whitespace */
 	    len = strlen(pos);
 	}
 	printf("%.*s\n", lwidth, pos);
@@ -473,6 +492,12 @@ static void printSyntax(syntax_t *syntax)
     return;
 }
 
+/**
+ * @brief
+ * @doctodo
+ *
+ * @return No return value.
+ */
 static void printDescr(const char *tag, char *descr)
 {
     int lwidth = getWidth() - strlen(tag);
@@ -495,6 +520,12 @@ static void printDescr(const char *tag, char *descr)
     return;
 }
 
+/**
+ * @brief
+ * @doctodo
+ *
+ * @return No return value.
+ */
 static void printTags(taggedInfo_t *tags)
 {
     unsigned int t, tagwidth = 0;
@@ -506,15 +537,66 @@ static void printTags(taggedInfo_t *tags)
 	if (strlen(tags[t].tag) > tagwidth) tagwidth = strlen(tags[t].tag);
 
     tag = malloc(tagwidth+4);
-
     for (t=0; tags[t].tag; t++) {
 	sprintf(tag, " %*s  ", tagwidth, tags[t].tag);
 	printDescr(tag, tags[t].descr);
     }
+    free(tag);
 }
 
+/**
+ * @brief Print error.
+ *
+ * Print a syntax error message followed by the correct syntax of the
+ * command detected. The correct syntax is taken from @a info.
+ *
+ * In order to do the actual output printSyntax() might be called. If
+ * no syntax is defined within @a info, a general warning is created.
+ *
+ * @param info Structure holding the information to print out.
+ *
+ * @return No return value.
+ *
+ * @see printSyntax()
+ */
+static void printError(info_t *info)
+{
+    if (!info) {
+	printf("%s: No info given\n", __func__);
+	return;
+    }
+
+    if (info->syntax) {
+	printSyntax("Syntax error: ", info->syntax);
+    } else {
+	printf("%s: No syntax available\n", __func__);
+    }
+
+    return;
+}
+
+/**
+ * @brief Print info.
+ *
+ * Print complete content of the structure @a info holding it. The
+ * output depends on the content of the structure. E.g. if a head is
+ * defined, it will be printed, but it's no error for @a info to hold
+ * no header.
+ *
+ * In order to do the actual output, further functions like @ref
+ * printSyntax(), @ref printInfo(), @ref printDescr() or @ref
+ * printTags() might be called.
+ *
+ * @param info Structure holding the information to print out.
+ *
+ * @return No return value.
+ *
+ * @see printSyntax(), printInfo(), printDescr(), printTags()
+ */
 static void printInfo(info_t *info)
 {
+    if (!info) return;
+
     if (info->head) {
 	int len = strlen(info->head);
 
@@ -526,7 +608,7 @@ static void printInfo(info_t *info)
     }
 
     if (info->syntax) {
-	printSyntax(info->syntax);
+	printSyntax("Syntax: ", info->syntax);
 	printf("\n");
     }
     if (info->nodes) printInfo(&nodeInfo);
