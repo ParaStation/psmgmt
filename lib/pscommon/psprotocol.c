@@ -7,17 +7,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.c,v 1.6 2003/03/11 10:14:57 eicker Exp $
+ * $Id: psprotocol.c,v 1.7 2003/03/19 17:03:49 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psprotocol.c,v 1.6 2003/03/11 10:14:57 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psprotocol.c,v 1.7 2003/03/19 17:03:49 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 #include "psprotocol.h"
 
@@ -25,73 +22,40 @@ static char vcid[] __attribute__(( unused )) = "$Id: psprotocol.c,v 1.6 2003/03/
  * string identification of message IDs.
  * Nicer output for errrors and debugging.
  */
-struct PSPctrlmessages_t{
+static struct {
     long id;
-    char* message;
-} PSPctrlmessages[] = {
-    { PSP_CD_CLIENTCONNECT      ,"PSP_CD_CLIENTCONNECT"      },
-    { PSP_CD_CLIENTESTABLISHED  ,"PSP_CD_CLIENTESTABLISHED"  },
-    { PSP_CD_CLIENTREFUSED      ,"PSP_CD_CLIENTREFUSED"      },
-    { PSP_CD_OLDVERSION         ,"PSP_CD_OLDVERSION"         },
-    { PSP_CD_NOSPACE            ,"PSP_CD_NOSPACE"            }, 
-    { PSP_CD_UIDLIMIT           ,"PSP_CD_UIDLIMIT"           },
-    { PSP_CD_PROCLIMIT          ,"PSP_CD_PROCLIMIT"          }, 
-    { PSP_DD_SETOPTION          ,"PSP_DD_SETOPTION"          }, 
-    { PSP_DD_GETOPTION          ,"PSP_DD_GETOPTION"          }, 
-    { PSP_DD_CONTACTNODE        ,"PSP_DD_CONTACTNODE"        },
-   
-    { PSP_CD_TASKINFOREQUEST    ,"PSP_CD_TASKINFOREQUEST"    },
-    { PSP_CD_TASKINFO           ,"PSP_CD_TASKINFO"           }, 
-    { PSP_CD_TASKINFOEND        ,"PSP_CD_TASKINFOEND"        }, 
+    char *message;
+} ctrlmessages[] = {
+    { PSP_CD_CLIENTCONNECT    , "PSP_CD_CLIENTCONNECT"    },
+    { PSP_CD_CLIENTESTABLISHED, "PSP_CD_CLIENTESTABLISHED"},
+    { PSP_CD_CLIENTREFUSED    , "PSP_CD_CLIENTREFUSED"    },
 
-    { PSP_CD_HOSTREQUEST        ,"PSP_CD_HOSTREQUEST"        },
-    { PSP_CD_HOSTRESPONSE       ,"PSP_CD_HOSTRESPONSE"       },
-    { PSP_CD_NODELISTREQUEST    ,"PSP_CD_NODELISTREQUEST"    },
-    { PSP_CD_NODELISTRESPONSE   ,"PSP_CD_NODELISTRESPONSE"   },
-    { PSP_CD_NODEREQUEST        ,"PSP_CD_NODEREQUEST"        },
-    { PSP_CD_NODERESPONSE       ,"PSP_CD_NODERESPONSE"       },
-    { PSP_CD_PARTITIONREQUEST   ,"PSP_CD_PARTITIONREQUEST"   },
-    { PSP_CD_PARTITIONRESPONSE  ,"PSP_CD_PARTITIONRESPONSE"  },
-//    { PSP_CD_LOADREQUEST        ,"PSP_CD_LOADREQUEST"        },
-//    { PSP_CD_LOADRESPONSE       ,"PSP_CD_LOADRESPONSE"       },
-//    { PSP_CD_PROCREQUEST        ,"PSP_CD_PROCREQUEST"        },
-//    { PSP_CD_PROCRESPONSE       ,"PSP_CD_PROCRESPONSE"       },
+    { PSP_CD_SETOPTION        , "PSP_CD_SETOPTION"        },
+    { PSP_CD_GETOPTION        , "PSP_CD_GETOPTION"        },
 
-    { PSP_CD_HOSTSTATUSREQUEST  ,"PSP_CD_HOSTSTATUSREQUEST"  },
-    { PSP_CD_HOSTSTATUSRESPONSE ,"PSP_CD_HOSTSTATUSRESPONSE" },
-    { PSP_CD_COUNTSTATUSREQUEST ,"PSP_CD_COUNTSTATUSREQUEST" },
-    { PSP_CD_COUNTSTATUSRESPONSE,"PSP_CD_COUNTSTATUSRESPONSE"},
-    { PSP_CD_RDPSTATUSREQUEST   ,"PSP_CD_RDPSTATUSREQUEST"   },  
-    { PSP_CD_RDPSTATUSRESPONSE  ,"PSP_CD_RDPSTATUSRESPONSE"  },  
-    { PSP_CD_MCASTSTATUSREQUEST ,"PSP_CD_MCASTSTATUSREQUEST" },  
-    { PSP_CD_MCASTSTATUSRESPONSE,"PSP_CD_MCASTSTATUSRESPONSE"},  
+    { PSP_CD_INFOREQUEST      , "PSP_CD_INFOREQUEST"      },
+    { PSP_CD_INFORESPONSE     , "PSP_CD_INFORESPONSE"     },
 
-    { PSP_DD_SPAWNREQUEST       ,"PSP_DD_SPAWNREQUEST"       }, 
-    { PSP_DD_SPAWNSUCCESS       ,"PSP_DD_SPAWNSUCCESS"       }, 
-    { PSP_DD_SPAWNFAILED        ,"PSP_DD_SPAWNFAILED"        }, 
-    { PSP_DD_SPAWNFINISH        ,"PSP_DD_SPAWNFINISH"        }, 
-   
-    { PSP_DD_NOTIFYDEAD         ,"PSP_DD_NOTIFYDEAD"         },
-    { PSP_DD_NOTIFYDEADRES      ,"PSP_DD_NOTIFYDEADRES"      },
-    { PSP_DD_RELEASE            ,"PSP_DD_RELEASE"            },
-    { PSP_DD_RELEASERES         ,"PSP_DD_RELEASERES"         },
-    { PSP_DD_SIGNAL             ,"PSP_DD_SIGNAL"             },
-    { PSP_DD_WHODIED            ,"PSP_DD_WHODIED"            },
+    { PSP_CD_SPAWNREQUEST     , "PSP_CD_SPAWNREQUEST"     },
+    { PSP_CD_SPAWNSUCCESS     , "PSP_CD_SPAWNSUCCESS"     },
+    { PSP_CD_SPAWNFAILED      , "PSP_CD_SPAWNFAILED"      },
+    { PSP_CD_SPAWNFINISH      , "PSP_CD_SPAWNFINISH"      },
 
-    { PSP_DD_SYSTEMERROR        ,"PSP_DD_SYSTEMERROR"        }, 
-    { PSP_DD_STATENOCONNECT     ,"PSP_DD_STATENOCONNECT"     },
+    { PSP_CD_NOTIFYDEAD       , "PSP_CD_NOTIFYDEAD"       },
+    { PSP_CD_NOTIFYDEADRES    , "PSP_CD_NOTIFYDEADRES"    },
+    { PSP_CD_RELEASE          , "PSP_CD_RELEASE"          },
+    { PSP_CD_RELEASERES       , "PSP_CD_RELEASERES"       },
+    { PSP_CD_SIGNAL           , "PSP_CD_SIGNAL"           },
+    { PSP_CD_WHODIED          , "PSP_CD_WHODIED"          },
 
-    { PSP_CD_RESET              ,"PSP_CD_RESET"              },
+    { PSP_CD_DAEMONSTART      , "PSP_CD_DAEMONSTART"      },
+    { PSP_CD_DAEMONSTOP       , "PSP_CD_DAEMONSTOP"       },
+    { PSP_CD_DAEMONRESET      , "PSP_CD_DAEMONRESET"      },
 
-    { PSP_CC_MSG                ,"PSP_CC_MSG"                },
-    { PSP_CC_ERROR              ,"PSP_CC_ERROR"              },
+    { PSP_CC_MSG              , "PSP_CC_MSG"              },
+    { PSP_CC_ERROR            , "PSP_CC_ERROR"            },
 
-    { PSP_DD_DAEMONCONNECT      ,"PSP_DD_DAEMONCONNECT"      }, 
-    { PSP_DD_DAEMONESTABLISHED  ,"PSP_DD_DAEMONESTABLISHED"  }, 
-    { PSP_DD_DAEMONSTOP         ,"PSP_DD_DAEMONSTOP"         }, 
-    { PSP_CD_DAEMONSTOP         ,"PSP_CD_DAEMONSTOP"         }, 
-
-    { PSP_DD_CHILDDEAD          ,"PSP_DD_CHILDDEAD"          },
+    { PSP_CD_ERROR            , "PSP_DD_ERROR"            },
 
     {0,NULL}
 };
@@ -101,12 +65,12 @@ char *PSP_printMsg(int msgtype)
     static char txt[30];
     int i = 0;
 
-    while (PSPctrlmessages[i].id && PSPctrlmessages[i].id != msgtype) {
+    while (ctrlmessages[i].id && ctrlmessages[i].id != msgtype) {
 	i++;
     }
 
-    if (PSPctrlmessages[i].id) {
-	return PSPctrlmessages[i].message;
+    if (ctrlmessages[i].id) {
+	return ctrlmessages[i].message;
     } else {
 	snprintf(txt, sizeof(txt), "msgtype 0x%x UNKNOWN", msgtype);
 	return txt;
