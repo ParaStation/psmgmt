@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.52 2003/04/03 18:03:29 eicker Exp $
+ * $Id: psidutil.c,v 1.53 2003/04/03 18:39:33 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.52 2003/04/03 18:03:29 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.53 2003/04/03 18:39:33 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -122,6 +122,8 @@ static int callScript(int hw, char *script)
 
         snprintf(buf, sizeof(buf), "%d", PSC_getMyID());
         setenv("PS_ID", buf, 1);
+
+        setenv("PS_INSTALLDIR", PSC_lookupInstalldir(), 1);
 
 	if (*script != '/') {
 	    char *dir = PSC_lookupInstalldir();
