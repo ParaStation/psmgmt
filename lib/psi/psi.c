@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.56 2003/10/29 17:32:56 eicker Exp $
+ * $Id: psi.c,v 1.57 2003/11/26 15:14:38 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.56 2003/10/29 17:32:56 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.57 2003/11/26 15:14:38 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -17,6 +17,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.56 2003/10/29 17:
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <limits.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
@@ -28,7 +29,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.56 2003/10/29 17:
 
 #include "psilog.h"
 #include "pstask.h"
-#include "info.h"
+#include "psiinfo.h"
 #include "psienv.h"
 
 #include "psi.h"
@@ -37,6 +38,15 @@ int daemonSock = -1;
 
 static char errtxt[256];
 
+/**
+ * @brief Open socket to daemon.
+ *
+ * Open a UNIX sockets and connect it to a corresponding socket of the
+ * local ParaStation daemon.
+ *
+ * @return On success, the newly opened socket is returned. Otherwise
+ * -1 is returned.
+ */
 static int daemonSocket(void)
 {
     int sock;
@@ -62,6 +72,23 @@ static int daemonSocket(void)
     return sock;
 }
 
+/**
+ * @brief Connect ParaStation daemon.
+ *
+ * Connect to the local ParaStation daemon and register as a task of
+ * type @a taskGroup. During registration various compatibility checks
+ * are made in order to secure the correct function of the connection.
+ *
+ * Depending on the @a taskGroup to act as (i.e. if acting as
+ * @ref TG_ADMIN), several attempts are made in order to start the local
+ * daemon if it was impossible to establish a working connection.
+ *
+ * @param taskGroup The task group to act as when talking to the local
+ * daemon.
+ *
+ * @return On success, i.e. if connection and registration to the
+ * local daemon worked, 1 is returned. Otherwise 0 is returned.
+ */
 static int connectDaemon(PStask_group_t taskGroup)
 {
     DDInitMsg_t msg;
@@ -219,15 +246,27 @@ static int connectDaemon(PStask_group_t taskGroup)
     }
     case PSP_CD_CLIENTESTABLISHED:
     {
-	char *instdir;
+	int err, nrOfNodes;
+	char instdir[PATH_MAX];
 
 	PSC_setMyID(answer.type);
 
-	PSC_setNrOfNodes(INFO_request_nrofnodes(0));
+	err = PSI_infoInt(-1, PSP_INFO_NROFNODES, NULL, &nrOfNodes, 0);
+	if (err) {
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s:  Cannot determine # of nodes", __func__);
+	    PSI_errlog(errtxt, 0);
+	    break;
+	} else PSC_setNrOfNodes(nrOfNodes);
 
-	instdir = INFO_request_instdir(0);
-
-	if (instdir) {
+	err = PSI_infoString(-1, PSP_INFO_INSTDIR, NULL,
+			     instdir, sizeof(instdir), 0);
+	if (err) {
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s:  Cannot determine instdir", __func__);
+	    PSI_errlog(errtxt, 0);
+	    break;
+	} else {
 	    PSC_setInstalldir(instdir);
 	    if (strcmp(instdir, PSC_lookupInstalldir())) {
 		snprintf(errtxt, sizeof(errtxt),
@@ -356,7 +395,19 @@ int PSI_exitClient(void)
 
 char *PSI_getPsidVersion(void)
 {
-    return INFO_request_psidver(0);
+    static char vStr[40];
+    int err;
+
+    err = PSI_infoString(-1, PSP_INFO_DAEMONVER, NULL, vStr, sizeof(vStr), 0);
+    if (err) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: Cannot get version string", __func__);
+	PSI_errlog(errtxt, 0);
+
+	return NULL;
+    }
+
+    return vStr;
 }
 
 int PSI_sendMsg(void *amsg)
@@ -378,7 +429,7 @@ int PSI_sendMsg(void *amsg)
 	errstr = strerror(errno);
 
 	snprintf(errtxt, sizeof(errtxt),
-		 "%s(): Lost connection to ParaStation daemon: %s",
+		 "%s: Lost connection to ParaStation daemon: %s",
 		 __func__, errstr ? errstr : "UNKNOWN");
 	PSI_errlog(errtxt, 0);
 
@@ -645,6 +696,31 @@ int PSI_recvFinish(int outstanding)
     return error;
 }
 
+/**
+ * @brief Wrapper to execv()
+ *
+ * Wrapper to execv(). Several attempts are made to call execv() with
+ * identical arguments. If an attempt fails an usleep() is made for
+ * 400 ms before doing the next try.
+ *
+ * This is mainly to enable large clusters having distributed their @c
+ * /home directory via automount()ed NFS to work even if the first
+ * attempt to execv() fails due to NFS timeout.
+ *
+ * @param The pathname of a file which is to be executed.
+ *
+ * @param Array of pointers to null-terminated strings that represent
+ * the argument list available to the new program. The first argument,
+ * by convention, should point to the file name associated with the
+ * file being executed. The array of pointers must be terminated by a
+ * NULL pointer.
+ *
+ * @return If this functions returns, an error will have occurred. The
+ * return value is -1, and the global variable errno will be set to
+ * indicate the error.
+ *
+ * @see execv()
+ */
 static int myexecv( const char *path, char *const argv[])
 {
     int ret;
