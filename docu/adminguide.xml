@@ -6,12 +6,15 @@
 <!ENTITY ps3 "<emphasis>ParaStation3</emphasis>">
 <!ENTITY ps4 "<emphasis>ParaStation4</emphasis>">
 <!ENTITY psfe "<emphasis>ParaStation FE</emphasis>">
+<!ENTITY psug "<emphasis>ParaStation Users Guide</emphasis>">
+<!ENTITY psag "<emphasis>ParaStation Administrators Guide</emphasis>">
 
 <!ENTITY infoblurb SYSTEM "infoblurb.sgml">
 
 <!ENTITY intro_admin SYSTEM "intro_admin.sgml">
 <!ENTITY intro_common SYSTEM "intro.sgml">
 
+<!ENTITY tech_overview SYSTEM "tech_overview.sgml">
 <!ENTITY installation SYSTEM "install.sgml">
 <!ENTITY configuration SYSTEM "config.sgml">
 <!ENTITY pvfs SYSTEM "pvfs.sgml">
@@ -25,13 +28,19 @@
 <!ENTITY psroute SYSTEM "psroute.sgml">
 <!ENTITY psscan SYSTEM "psscan.sgml">
 <!ENTITY testnodes SYSTEM "test_nodes.sgml">
-<!ENTITY test_config SYSTEM "test_config.sgml">
+<!ENTITY p4stat SYSTEM "p4stat.sgml">
+<!ENTITY p4tcp SYSTEM "p4tcp.sgml">
+<!ENTITY testpse SYSTEM "test_pse.sgml">
 
 <!ENTITY quick_install SYSTEM "quick_install.sgml">
 
 <!ENTITY glossary SYSTEM "glossary.sgml">
 
 <!ENTITY boolargs SYSTEM "boolargs.sgml">
+<!ENTITY tech_details SYSTEM "tech_details.sgml">
+<!ENTITY troubleshooting SYSTEM "troubleshooting.sgml">
+<!ENTITY testconfig SYSTEM "test_config.sgml">
+<!-- <!ENTITY ps_environment SYSTEM "ps_environment.sgml"> -->
 
 <!-- <!ENTITY usersguide SYSTEM "userguide.xml" NDATA XML> -->
 ]>
@@ -40,16 +49,21 @@
       <imageobject>
 	<imagedata scale="38" fileref="../images/ParaStation.png"/>
       </imageobject>
-    </inlinemediaobject> Administrator's Guide</title>
-  <titleabbrev>&ps; Administrator's Guide</titleabbrev>
+    </inlinemediaobject> Administrators Guide</title>
+  <titleabbrev>&ps; Administrators Guide (Draft)</titleabbrev>
 
   <bookinfo>
     &infoblurb;
 
-    <releaseinfo>Release 1.1</releaseinfo>
-    <pubdate>Jan 2004</pubdate>
+    <releaseinfo>Release 1.2 (Draft)</releaseinfo>
+    <pubdate>Apr 2004</pubdate>
 
     <revhistory>
+      <revision>
+	<revnumber>1.2 (Draft)</revnumber>
+	<date>15 Apr 2004</date>
+	<revremark>&ps4; up to V4.1. V3 &amp; FE no longer covered</revremark>
+      </revision>
       <revision>
 	<revnumber>1.1</revnumber>
 	<date>20 Jan 2004</date>
@@ -79,15 +93,18 @@
   </bookinfo>
 
   &intro_admin;
+  &tech_overview;
   &installation;
   &configuration;
+  &tech_details;
+  &troubleshooting;
   <!-- &pvfs; -->
 
   <reference id="references_admin">
     <referenceinfo>
-      <title>ParTec</title>
+<!--      <title>ParTec</title>		-->
       <productname>ParaStation</productname>
-      <date>Jan 2004</date>
+      <date>April 2004</date>
     </referenceinfo>
     <title>Reference Pages</title>
     &mlisten;
@@ -96,10 +113,13 @@
     &psiadmin;
     &psid;
     &psld;
-    &psroute;
-    &psscan;
+<!--    &psroute;	-->
+<!--    &psscan;	-->
+    &testconfig;
     &testnodes;
-    &test_config;
+    &testpse;
+    &p4stat;
+    &p4tcp;
   </reference>
 
   &quick_install;

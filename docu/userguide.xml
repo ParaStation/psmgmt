@@ -5,6 +5,8 @@
 <!ENTITY ps3 "<emphasis>ParaStation3</emphasis>">
 <!ENTITY ps4 "<emphasis>ParaStation4</emphasis>">
 <!ENTITY psfe "<emphasis>ParaStation FE</emphasis>">
+<!ENTITY psug "<emphasis>ParaStation Users Guide</emphasis>">
+<!ENTITY psag "<emphasis>ParaStation Administrators Guide</emphasis>">
 
 <!ENTITY infoblurb SYSTEM "infoblurb.sgml">
 
@@ -31,16 +33,21 @@
       <imageobject>
 	<imagedata scale="38" fileref="../images/ParaStation.png"/>
       </imageobject>
-    </inlinemediaobject>  User's Guide</title>
-  <titleabbrev>&ps;  User's Guide</titleabbrev>
+    </inlinemediaobject>  Users Guide</title>
+  <titleabbrev>&ps;  Users Guide</titleabbrev>
 
   <bookinfo>
     &infoblurb;
 
-    <releaseinfo>Release 1.1</releaseinfo>
-    <pubdate>July 2003</pubdate>
+    <releaseinfo>Release 1.2 (Draft)</releaseinfo>
+    <pubdate>April 2004</pubdate>
 
     <revhistory>
+      <revision>
+	<revnumber>1.2 (Draft)</revnumber>
+	<date>15 Apr 2004</date>
+	<revremark>&ps4; up to 4.1. V3 &amp; FE no longer covered</revremark>
+      </revision>
       <revision>
 	<revnumber>1.1</revnumber>
 	<date>1 Jul 2003</date>
@@ -88,9 +95,9 @@
 
   <reference id="references_user">
     <referenceinfo>
-      <title>ParTec</title>
+<!--      <title>ParTec</title>		-->
       <productname>ParaStation</productname>
-      <date>July 2003</date>
+      <date>April 2004</date>
     </referenceinfo>
     <title>Reference Pages</title>
     &mpirun;
@@ -100,7 +107,7 @@
     &environment;
   </reference>
 
-  <appendix><title>Spawning strategies</title>
+  <appendix><title>Process placement strategies</title>
     &spawning;
   </appendix>
 
