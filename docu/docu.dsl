@@ -139,15 +139,13 @@
           (empty-sosofo)
           (literal sepchar))
       (cond
-       ((equal? choice (normalize "plain")) (literal %arg-choice-plain-open-str%
-))
+       ((equal? choice (normalize "plain")) (literal %arg-choice-plain-open-str%))
        ((equal? choice (normalize "req")) (literal %arg-choice-req-open-str%))
        ((equal? choice (normalize "opt")) (literal %arg-choice-opt-open-str%))
        (else (literal %arg-choice-def-open-str%)))
       (process-children)
       (cond
-       ((equal? choice (normalize "plain")) (literal %arg-choice-plain-close-str
-%))
+       ((equal? choice (normalize "plain")) (literal %arg-choice-plain-close-str%))
        ((equal? choice (normalize "req")) (literal %arg-choice-req-close-str%))
        ((equal? choice (normalize "opt")) (literal %arg-choice-opt-close-str%))
        (else (literal %arg-choice-def-close-str%)))
@@ -155,6 +153,60 @@
        ((equal? rep (normalize "repeat")) (literal %arg-rep-repeat-str%))
        ((equal? rep (normalize "norepeat")) (literal %arg-rep-norepeat-str%))
        (else (literal %arg-rep-def-str%))))))
+
+(element (group arg)
+  (let ((choice (attribute-string (normalize "choice")))
+        (rep (attribute-string (normalize "rep"))))
+    (make sequence
+      (if (not (first-sibling? (current-node)))
+          (literal %arg-or-sep%)
+          (empty-sosofo))
+      (process-children))))
+
+
+(element book 
+  (let* ((bookinfo  (select-elements (children (current-node)) 
+                                     (normalize "bookinfo")))
+         (dedication (select-elements (children (current-node)) 
+                                      (normalize "dedication")))
+         (nl        (titlepage-info-elements (current-node) bookinfo)))
+    (make sequence
+      (if %generate-book-titlepage%
+          (make simple-page-sequence
+            page-n-columns: %titlepage-n-columns%
+	    page-number-restart?: #t
+            input-whitespace-treatment: 'collapse
+            use: default-text-style
+            (book-titlepage nl 'recto)
+            (make display-group
+              break-before: 'page
+              (book-titlepage nl 'verso)))
+          (empty-sosofo))
+
+      (if (node-list-empty? dedication)
+          (empty-sosofo)
+          (with-mode dedication-page-mode
+            (process-node-list dedication)))
+
+      (if %generate-book-toc%
+          (make simple-page-sequence
+            page-n-columns: %page-n-columns%
+            page-number-format: ($page-number-format$ (normalize "toc"))
+            use: default-text-style
+            left-header:   ($left-header$ (normalize "toc"))
+            center-header: ($center-header$ (normalize "toc"))
+            right-header:  ($right-header$ (normalize "toc"))
+            left-footer:   ($left-footer$ (normalize "toc"))
+            center-footer: ($center-footer$ (normalize "toc"))
+            right-footer:  ($right-footer$ (normalize "toc"))
+            input-whitespace-treatment: 'collapse
+            (build-toc (current-node)
+                       (toc-depth (current-node))))
+          (empty-sosofo))
+
+      (process-children)
+      (empty-sosofo))))
+
 
 </style-specification-body>
 </style-specification>
