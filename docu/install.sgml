@@ -318,16 +318,20 @@
 	  url="http://www.par-tec.com/downloads/download.html">download
 	  section</ulink> of the <ulink url="http://www.par-tec.com">ParTec
 	  homepage</ulink>. The file of the linux version is usually named
-	<filename>psm-x.y.z-yyyymmdd.Linux.arch.rpm</filename>, where
+	<filename>psm-x.y.z-yyyymmdd.arch.rpm</filename>, where
 	<filename>x.y.z</filename> is the version number,
 	<filename>yyyymmdd</filename> the release date and
 	<filename>arch</filename> is the architecture, i.e. one of
 	<filename>i386</filename><!--, <filename>x86-64</filename>,
-	<filename>ia64</filename>--> or <filename>alpha</filename>.
+	<filename>ia64</filename>-->, <filename>alpha</filename> or
+	<filename>tru64</filename>. The first architectures are assumed to run
+	Linux, while the last one is for HP's Tru64 running on the Alpha
+	processor.
       </para>
       <para>
-	For the Tru64 version naming is roughly the same only replacing
-	<quote>Linux</quote> by <quote>OSF1</quote>.
+	In order to install the ethernet version called ParaStation FE the name
+	of the RPM changes from <filename>psm</filename> to
+	<filename>psfe</filename>.
       </para>
       <para>
 	The detailed naming of the RPM file may vary depending on the actual
@@ -340,7 +344,7 @@
 	For the distributed installation, after becoming <quote>root</quote>
 	just do a
       </para>
-      <programlisting>	rpm -U psm-x.y.z-yyyymmdd.Linux.arch.rpm</programlisting>
+      <programlisting>	rpm -U psm-x.y.z-yyyymmdd.arch.rpm</programlisting>
       <para>
 	<command>rpm</command> will install all the necessary file to
 	<filename>/opt/parastation</filename> and call the script
@@ -360,7 +364,7 @@
 	In order to install &ps; from RPM in a centralized fashion, after
 	becoming <quote>root</quote> use the command
       </para>
-      <programlisting>	rpm -U psm-x.y.z-yyyymmdd.Linux.arch.rpm</programlisting>
+      <programlisting>	rpm -U psm-x.y.z-yyyymmdd.arch.rpm</programlisting>
       <para>
 	on the NFS server machine to put all the &ps; files onto disk. Make
 	sure that <filename>/opt/parastation</filename> is exported and the NFS
@@ -392,16 +396,20 @@
 	  url="http://www.par-tec.com/downloads/download.html">download
 	  section</ulink> of the <ulink url="http://www.par-tec.com">ParTec
 	  homepage</ulink>. The file of the linux version is usually named
-	<filename>psm-x.y.z-yyyymmdd.Linux.arch.tar.gz</filename>, where
+	<filename>psm-x.y.z-yyyymmdd.arch.tar.gz</filename>, where
 	<filename>x.y.z</filename> is the version number,
 	<filename>yyyymmdd</filename> the release date and
 	<filename>arch</filename> is the architecture, i.e. one of
 	<filename>i386</filename><!--, <filename>x86-64</filename>,
-	<filename>ia64</filename>--> or <filename>alpha</filename>.
+	<filename>ia64</filename>-->, <filename>alpha</filename> or
+	<filename>tru64</filename>. The first architectures are assumed to run
+	Linux, while the last one is for HP's Tru64 running on the Alpha
+	processor.
       </para>
       <para>
-	For the Tru64 version naming is pretty much the same only replacing
-	<quote>Linux</quote> by <quote>OSF1</quote>.
+	In order to install the ethernet version called ParaStation FE the name
+	of the <filename>.tar.gz</filename> file changes from
+	<filename>psm</filename> to <filename>psfe</filename>.
       </para>
       <para>
 	The detailed naming of the <filename>.tar.gz</filename> file might vary
@@ -414,7 +422,7 @@
 	In the case of a distributed installation become <quote>root</quote>
 	and change to the root directory <filename>/</filename>. Then just do a
       </para>
-      <programlisting>	gzip -cd psm-x.y.z-yyyymmdd.Linux.arch.tar.gz | tar xvf -</programlisting>
+      <programlisting>	gzip -cd psm-x.y.z-yyyymmdd.arch.tar.gz | tar xvf -</programlisting>
       <para>
 	This will install all the necessary file to
 	<filename>/opt/parastation</filename>. Afterwards the script
@@ -439,7 +447,7 @@
 	<quote>root</quote> and change to the root directory
 	<filename>/</filename>. Then use the command
       </para>
-      <programlisting>	gzip -cd psm-x.y.z-yyyymmdd.Linux.arch.tar.gz | tar xvf -</programlisting>
+      <programlisting>	gzip -cd psm-x.y.z-yyyymmdd.arch.tar.gz | tar xvf -</programlisting>
       <para>
 	on the NFS server machine to put all the &ps; files onto disk, i.e. to
 	<filename>/opt/parastation</filename>. Enabling &ps; on this machine is
@@ -624,20 +632,21 @@
 	url="http://www.par-tec.com/downloads/download.html">download
 	section</ulink> of the <ulink url="http://www.par-tec.com">ParTec
 	homepage</ulink>. The rpm file is usually named
-      <filename>psm_docu-x.y.z-noarch.rpm</filename>, where
-      <filename>x.y.z</filename> is the &ps; version number. A corresponding
+      <filename>ps-doc-x.y.z-yyyymmdd-noarch.rpm</filename>, where
+      <filename>x.y.z</filename> is the &ps; version number and
+      <filename>yyyymmdd</filename> the release date. A corresponding
       <filename>.tar.gz</filename> file may be found at the same location but
-      named <filename>psm_docu-x.y.z.tar.gz</filename>.
+      named <filename>ps-doc-x.y.z-yyyymmdd.tar.gz</filename>.
     </para>
     <para>
       For the installation of the rpm file, simply execute
     </para>
-    <programlisting>	rpm -U psm_docu-x.y.z-noarch.rpm</programlisting>
+    <programlisting>	rpm -U ps-doc-x.y.z-noarch.rpm</programlisting>
     <para>
       Similary for the <filename>.tar.gz</filename> file change to the root
       directory <filename>/</filename> and execute
     </para>
-    <programlisting>	gzip -cd psm_docu-x.y.z.tar.gz | tar xvf -</programlisting>
+    <programlisting>	gzip -cd ps-doc-x.y.z-yyyymmdd.tar.gz | tar xvf -</programlisting>
     <para>
       All the PDF and HTML files of the documentation will be installed into
       <filename>/opt/parastation/doc</filename>, the manual pages will reside
