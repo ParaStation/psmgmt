@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.1 2002/06/13 14:31:56 eicker Exp $
+ * $Id: config_parsing.c,v 1.2 2002/06/13 17:33:14 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.1 2002/06/13 14:31:56 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.2 2002/06/13 17:33:14 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -58,10 +58,10 @@ int ConfigRDPPort = 886;
 int ConfigMCastGroup = 237;
 int ConfigMCastPort = 1889;
 
-int ConfigRLimitCPUTime = -1;
-int ConfigRLimitDataSize = -1;
-int ConfigRLimitStackSize = -1;
-int ConfigRLimitRSSSize = -1;
+rlim_t ConfigRLimitCPUTime = -1;
+rlim_t ConfigRLimitDataSize = -1;
+rlim_t ConfigRLimitStackSize = -1;
+rlim_t ConfigRLimitRSSSize = -1;
 
 int ConfigSyslogLevel = 10;          /* default max. syslog level */
 int ConfigSyslog = LOG_DAEMON;
@@ -201,7 +201,7 @@ int parser_lookupHost(unsigned int ipaddr)
 	    if (parser_getDebugLevel() >= 10) {
 		snprintf(errtxt, sizeof(errtxt),
 			 "PSID_lookupHost(): host <%s> has id=%d.",
-			 inet_ntoa(* (struct in_addr *)ipaddr), host->id);
+			 inet_ntoa(* (struct in_addr *)&ipaddr), host->id);
 		parser_comment(errtxt, 10);
 	    }
 	    return host->id;
@@ -437,20 +437,23 @@ static int getLogDest(char *token)
 
 /* ---------------------- Stuff for rlimit lines ------------------------ */
 
-static int getNumValOrInfty(char *token, int *value, char *valname)
+static int getRLimitVal(char *token, long *value, char *valname)
 {
     char skip_it[] = "rlim_";
+    int intval, ret;
 
     if (strncasecmp(token, skip_it, sizeof(skip_it)) == 0) {
 	token += sizeof(skip_it);
     }
-   
+
     if (strcasecmp(token, "infinity")==0) {
 	*value = RLIM_INFINITY;
     } else if (strcasecmp(token, "unlimited")==0) {
 	*value = RLIM_INFINITY;
     } else {
-	return parser_getNumValue(token, value, valname);
+	ret = parser_getNumValue(token, &intval, valname);
+	*value = intval;
+	return ret;
     }
 
     return 0;
@@ -458,26 +461,26 @@ static int getNumValOrInfty(char *token, int *value, char *valname)
 
 static int getRLimitCPU(char *token)
 {
-    return getNumValOrInfty(parser_getString(),
-			    &ConfigRLimitCPUTime, "RLimit CPUTime");
+    return getRLimitVal(parser_getString(),
+			&ConfigRLimitCPUTime, "RLimit CPUTime");
 }
 
 static int getRLimitData(char *token)
 {
-    return getNumValOrInfty(parser_getString(),
-			    &ConfigRLimitDataSize, "RLimit DataSize");
+    return getRLimitVal(parser_getString(),
+			&ConfigRLimitDataSize, "RLimit DataSize");
 }
 
 static int getRLimitStack(char *token)
 {
-    return getNumValOrInfty(parser_getString(),
-			    &ConfigRLimitStackSize, "RLimit StackSize");
+    return getRLimitVal(parser_getString(),
+			&ConfigRLimitStackSize, "RLimit StackSize");
 }
 
 static int getRLimitRSS(char *token)
 {
-    return getNumValOrInfty(parser_getString(),
-			    &ConfigRLimitRSSSize, "RLimit RSSSize");
+    return getRLimitVal(parser_getString(),
+			&ConfigRLimitRSSSize, "RLimit RSSSize");
 }
 
 #define UP 17 /* Some magic value */

@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.h,v 1.1 2002/06/12 15:30:56 eicker Exp $
+ * $Id: config_parsing.h,v 1.2 2002/06/13 17:32:32 eicker Exp $
  *
  */
 /**
  * \file
  * parse: Parser for ParaStation daemon
  *
- * $Id: config_parsing.h,v 1.1 2002/06/12 15:30:56 eicker Exp $
+ * $Id: config_parsing.h,v 1.2 2002/06/13 17:32:32 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -28,6 +28,7 @@ extern "C" {
 #endif
 #endif
 
+#include <sys/resource.h>
 #include "psitask.h"
 
 typedef enum {none, myrinet, ethernet} HWType;
@@ -74,10 +75,10 @@ extern int ConfigRDPPort;
 extern int ConfigMCastGroup;
 extern int ConfigMCastPort;
 
-extern int ConfigRLimitCPUTime;
-extern int ConfigRLimitDataSize;
-extern int ConfigRLimitStackSize;
-extern int ConfigRLimitRSSSize;
+extern rlim_t ConfigRLimitCPUTime;
+extern rlim_t ConfigRLimitDataSize;
+extern rlim_t ConfigRLimitStackSize;
+extern rlim_t ConfigRLimitRSSSize;
 
 extern int ConfigSyslogLevel;
 extern int ConfigSyslog;
