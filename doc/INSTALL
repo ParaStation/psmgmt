@@ -52,7 +52,7 @@ Installing ParaStation
   distributions. If your system has 
   - a file named /etc/inetd.conf (SuSE based distributions), read
     section 4.1,
-  - a directory /etc/xinetd.c (RedHat based distributions), read
+  - a directory /etc/xinetd.d (RedHat based distributions), read
     section 4.2.
 
 4.1 Inetd Configuration
