@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.16 2002/11/13 16:47:38 hauke Exp $
+# $Id: Makefile.in,v 1.17 2002/11/27 15:57:38 hauke Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -33,7 +33,7 @@ endif
 
 all: psm lib bin
 .PHONY: all psm docu $(SUBDIRS)
-
+.PHONY: dist_gui
 
 mcp:
 	$(MAKE) -C kern/mcp
