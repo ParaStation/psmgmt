@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.37 2003/08/15 13:27:47 eicker Exp $
+# $Id: Makefile.in,v 1.38 2003/09/12 15:48:34 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -66,6 +66,7 @@ psiadmin: -lreadline -lhistory -lpsi -lpopt -l@LIBCURSES@ -lputil
 VPATH += $(SRCDIR)/daemon
 psid: psid.o psidutil.o psidtask.o psidspawn.o psidforwarder.o
 psid: psidsignal.o psidmsgbuf.o psidrdp.o psidclient.o psidcomm.o
+psid: psidinfo.o psidoption.o psidpartition.o
 psid: -lm -lputil -lpscommon -lutil -lpopt -lpslog
 
 #psld
