@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: adminparser.c,v 1.6 2003/10/23 16:18:30 eicker Exp $
+ * $Id: adminparser.c,v 1.7 2003/11/26 17:21:31 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.6 2003/10/23 16:18:30 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.7 2003/11/26 17:21:31 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -27,7 +27,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.6 2003/1
 #include "pstask.h"
 #include "psprotocol.h"
 #include "psi.h"
-#include "info.h"
+#include "psiinfo.h"
 #include "parser.h"
 
 
@@ -37,7 +37,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.6 2003/1
 
 #include "helpmsgs.c"
 
-static char parserversion[] = "$Revision: 1.6 $";
+static char parserversion[] = "$Revision: 1.7 $";
 
 static char *getNodeList(char *nl_descr)
 {
@@ -49,16 +49,17 @@ static char *getNodeList(char *nl_descr)
     if (ret) return ret;
 
     {
-	int node;
+	PSnodes_ID_t node;
 	struct hostent *hp = gethostbyname(nl_descr);
 	struct sockaddr_in sa;
+	int err;
 
 	if (!hp) return NULL;
 
 	memcpy(&sa.sin_addr, *hp->h_addr_list, sizeof(sa.sin_addr));
-	node = INFO_request_host(sa.sin_addr.s_addr, 1);
-
-	if (node==-1){
+	err = PSI_infoNodeID(-1, PSP_INFO_HOST, &sa.sin_addr.s_addr, &node, 1);
+	
+	if (err){
 	    printf("Illegal nodename %s\n", nl_descr);
 	    return NULL;
 	}
@@ -147,8 +148,8 @@ static int hwstartCommand(char *token)
     if (parser_getString()) goto error;
 
     if (hw) {
-	hwIndex = INFO_request_hwindex(hw, 1);
-	if (hwIndex == -1 && strcasecmp(hw, "all")) goto error;
+	int err = PSI_infoInt(-1, PSP_INFO_HWINDEX, hw, &hwIndex, 1);
+	if (err || (hwIndex == -1 && strcasecmp(hw, "all"))) goto error;
     }
     PSIADM_HWStart(hwIndex, nl);
     return 0;
@@ -178,8 +179,8 @@ static int hwstopCommand(char *token)
     if (parser_getString()) goto error;
 
     if (hw) {
-	hwIndex = INFO_request_hwindex(hw, 1);
-	if (hwIndex == -1 && strcasecmp(hw, "all")) goto error;
+	int err = PSI_infoInt(-1, PSP_INFO_HWINDEX, hw, &hwIndex, 1);
+	if (err || (hwIndex == -1 && strcasecmp(hw, "all"))) goto error;
     }
     PSIADM_HWStop(hwIndex, nl);
     return 0;
@@ -242,12 +243,22 @@ static int statCommand(char *token)
     char *what = parser_getString();
     char *nl_descr = parser_getString();
     char *nl = NULL, *hw = NULL;
+    int cnt = 10;
 
     if (what && (!strcasecmp(what, "count")
 		 || !strcasecmp(what, "c"))) {
 
 	if (nl_descr && !strcasecmp(nl_descr, "hw")) {
 	    hw = parser_getString();
+	    nl_descr = parser_getString();
+	}
+    } else if (what && (!strcasecmp(what, "allproc")
+			|| !strcasecmp(what, "ap")
+			|| !strcasecmp(what, "proc")
+			|| !strcasecmp(what, "p"))) {
+	if (nl_descr && !strcasecmp(nl_descr, "cnt")) {
+	    char *tok = parser_getString();
+	    cnt = parser_getNumber(tok);
 	    nl_descr = parser_getString();
 	}
     }
@@ -266,8 +277,8 @@ static int statCommand(char *token)
 	       || !strcasecmp(what, "c")) {
 	int hwIndex = -1;
 	if (hw) {
-	    hwIndex = INFO_request_hwindex(hw, 1);
-	    if (hwIndex == -1) goto error;
+	    int err = PSI_infoInt(-1, PSP_INFO_HWINDEX, hw, &hwIndex, 1);
+	    if (err || hwIndex == -1) goto error;
 	}
 	PSIADM_CountStat(hwIndex, nl);
     } else if (!strcasecmp(what, "rdp")) {
@@ -276,10 +287,10 @@ static int statCommand(char *token)
 	PSIADM_MCastStat(nl);
     } else if (!strcasecmp(what, "proc")
 	       || !strcasecmp(what, "p")) {
-	PSIADM_ProcStat(nl, 0);
+	PSIADM_ProcStat(cnt, 0, nl);
     } else if (!strcasecmp(what, "allproc")
 	       || !strcasecmp(what, "ap")) {
-	PSIADM_ProcStat(nl,1);
+	PSIADM_ProcStat(cnt, 1, nl);
     } else if (!strcasecmp(what, "load")
 	       || !strcasecmp(what, "l")) {
 	PSIADM_LoadStat(nl);
@@ -288,7 +299,7 @@ static int statCommand(char *token)
 	PSIADM_HWStat(nl);
     } else if (!strcasecmp(what, "all")) {
 	PSIADM_NodeStat(nl);
-	PSIADM_ProcStat(nl, 0);
+	PSIADM_ProcStat(cnt, 0, nl);
     } else if (!nl_descr) {
 	/* Maybe this is like 'status a-b' */
 	nl = getNodeList(what);
