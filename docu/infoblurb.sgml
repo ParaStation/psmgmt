@@ -42,7 +42,9 @@
 <abstract>
   <para>
     Please note that you will always find the most up-to-date version of this
-    technical documentation on our Web site at http://www.par-tec.com/support.
+    technical documentation on our Web site at <ulink
+      url="http://www.par-tec.com/support"
+      type="dontshow">http://www.par-tec.com/support</ulink>.
   </para>
 </abstract>
 
