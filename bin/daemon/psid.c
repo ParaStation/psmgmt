@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.83 2003/03/11 10:09:11 eicker Exp $
+ * $Id: psid.c,v 1.84 2003/03/11 18:09:09 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.83 2003/03/11 10:09:11 eicker Exp $ 
+ * $Id: psid.c,v 1.84 2003/03/11 18:09:09 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.83 2003/03/11 10:09:11 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.84 2003/03/11 18:09:09 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -75,7 +75,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.83 $";
+static char psid_cvsid[] = "$Revision: 1.84 $";
 
 static int PSID_mastersock;
 
@@ -859,7 +859,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	outmsg.header.type = PSP_CD_UIDLIMIT;
 	outmsg.myid = PSnodes_getUser(PSC_getMyID());
     } else if (PSnodes_getProcs(PSC_getMyID()) !=  PSNODES_ANYPROC
-	       && info.jobs.normal >= PSnodes_getProcs(PSC_getMyID())) {
+	       && info.jobs.normal > PSnodes_getProcs(PSC_getMyID())) {
 	outmsg.header.type = PSP_CD_PROCLIMIT;
 	outmsg.myid = PSnodes_getProcs(PSC_getMyID());
     } else if (myStatus & PSID_STATE_NOCONNECT) {
@@ -1219,7 +1219,7 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	     * The address is wrong
 	     * or
 	     * The daemon is actual not connected
-	     * It's not possible to spawn
+	     * It's impossible to spawn
 	     */
 	    if (PSC_getID(msg->header.dest)>=PSC_getNrOfNodes()) {
 		answer.error = EHOSTUNREACH;
@@ -1350,6 +1350,12 @@ void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
 
 	/* child will send a signal on exit, thus include into assignedSigs */
 	PSID_setSignal(&task->assignedSigs, tid, -1);
+    } else {
+	/* task not found, it has already died */
+	snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
+		 " already dead");
+	PSID_errlog(errtxt, 0);
+	PSID_sendSignal(tid, 0, ptid, -1);
     }
 
     /* send the initiator the success msg */
@@ -1611,11 +1617,11 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 
 		getInfoMCast(i, &info);
 
-		if (PSnodes_getHWStatus(i) & hwType
+		if ((!hwType || (PSnodes_getHWStatus(i) & hwType) == hwType)
 		    && (PSnodes_getUser(i) == PSNODES_ANYUSER
-		     || PSnodes_getUser(i) == requester->uid)
+			|| PSnodes_getUser(i) == requester->uid)
 		    && (PSnodes_getProcs(i) == PSNODES_ANYPROC
-			|| PSnodes_getProcs(i) < info.jobs.normal)) {
+			|| PSnodes_getProcs(i) > info.jobs.normal)) {
 
 		    nodelist[j].id = i;
 		    nodelist[j].up = PSnodes_isUp(i);
@@ -3045,7 +3051,7 @@ void checkFileTable(void)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.83 $";
+    char revision[] = "$Revision: 1.84 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
