@@ -227,6 +227,9 @@ typedef struct MCP_Route_T {
 #define MCP_NOTIFYK_LICINVAL	0x04000000/*< Notification about wrong Licensekey */
 #define MCP_NOTIFYK_NOP 	0x05000000/*< No Message, Only Intr */
 
+#define MCP_NOTIFYK_CTXRST	0x06000000/*< Notification Context reset */
+#define MCP_NOTIFYK_CTXRST_P(context) (MCP_NOTIFYK_CTXRST|((UINT16)(context)))
+#define MCP_NOTIFYK_CTXRST_G(context,Val) ((context)=(UINT16)(Val));
 
 
 /********************************************************************
