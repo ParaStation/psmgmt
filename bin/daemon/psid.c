@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.41 2002/02/20 15:40:08 eicker Exp $
+ * $Id: psid.c,v 1.42 2002/02/26 12:40:00 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.41 2002/02/20 15:40:08 eicker Exp $ 
+ * $Id: psid.c,v 1.42 2002/02/26 12:40:00 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.41 2002/02/20 15:40:08 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.42 2002/02/26 12:40:00 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -63,7 +63,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.41 $";
+static char psid_cvsid[] = "$Revision: 1.42 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -579,9 +579,6 @@ void declareDaemonDead(int node)
 	PStask_delete(oldtask);
 	oldtask = PStasklist_dequeue(&(daemons[node].tasklist), -1);
     }
-
-    /* Tell MCast */
-    declareNodeDeadMCast(node);
 
     SYSLOG(2,(LOG_ERR, "Lost connection to daemon of node %d (fd:%d)\n",
 	      node, daemons[node].fd));
@@ -2774,7 +2771,7 @@ void MCastCallBack(int msgid, void* buf)
 	PSID_startlicenseserver(hostaddr.s_addr);
 	break;
     case MCAST_LIC_SHUTDOWN:
-	SYSLOG(2,(LOG_ERR, "MCastCallBack(MCAST_LIC_SHUTDOWN). \n"));
+	SYSLOG(2,(LOG_ERR, "MCastCallBack(MCAST_LIC_SHUTDOWN).\n"));
 	shutdownNode(1);
 	break;
     default:
@@ -2865,6 +2862,10 @@ void RDPCallBack(int msgid, void* buf)
 	node = *(int*)buf;
 	SYSLOG(2,(LOG_ERR, "RDPCallBack(RDP_LOST_CONNECTION,%d). \n", node));
 	declareDaemonDead(node);
+
+	/* Tell MCast */
+	declareNodeDeadMCast(node);
+
 	break;
     default:
 	SYSLOG(0,(LOG_ERR,"RDPCallBack(%d,%p). Unhandled message.\n",
@@ -3082,7 +3083,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.41 $";
+    char revision[] = "$Revision: 1.42 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
