@@ -13,13 +13,14 @@
     <para>
       For a detailed discussion of the installation and configuration of &ps;
       and the administrators utilities in the standard distribution take a look
-      at the <xref linkend="adminguide"/>. The &ps; programming
-      interfaces documentation can be found in the <ulink
-	url="../api/index.html">API reference</ulink>..
+      at the <ulink url="../adminguide/index.html" type="dontshow">ParaStation
+	Administrators Guide</ulink>. The &ps; programming interfaces
+      documentation can be found in the <ulink url="../api/index.html"
+	type="dontshow">API reference</ulink>..
     </para>
 
     <para>
-      This document describes version 3.2 of the &ps; software for MyriNet and
+      This document describes version 3.2 of the &ps; software for Myrinet and
       version 1.0 of ParaStation FE.
     </para>
   </section>
@@ -36,7 +37,7 @@
   sgml-always-quote-attributes:t
   sgml-indent-step:2
   sgml-indent-data:t
-  sgml-parent-document:("main.xml" "set" "book" "book" ("title" "bookinfo"))
+  sgml-parent-document:("userguide.xml" "book" "book" ("title" "bookinfo"))
   sgml-exposed-tags:nil
   sgml-local-catalogs:nil
   sgml-local-ecat-files:nil

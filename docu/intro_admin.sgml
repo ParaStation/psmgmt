@@ -8,13 +8,14 @@
       the system management utilities are described.
     </para>
     <para>
-    For a detailed discussion of the user utilities and the programming
+      For a detailed discussion of the user utilities and the programming
       interfaces included in the standard distribution take a look at the
-      <xref linkend="userguide"/> and the <ulink url="../api/index.html">API
-	reference</ulink> respectively.
+      <ulink url="../userguide/index.html" type="dontshow">ParaStation User
+	Guide</ulink> and the <ulink url="../api/index.html"
+	type="dontshow">API reference</ulink> respectively.
     </para>
     <para>
-      This document describes version 3.2 of the &ps; software for MyriNet and
+      This document describes version 3.2 of the &ps; software for Myrinet and
       version 1.0 of ParaStation FE.
     </para>
   </section>
@@ -31,7 +32,7 @@
   sgml-always-quote-attributes:t
   sgml-indent-step:2
   sgml-indent-data:t
-  sgml-parent-document:("main.xml" "set" "book" "book" ("title" "bookinfo"))
+  sgml-parent-document:("adminguide.xml" "book" "book" ("title" "bookinfo"))
   sgml-exposed-tags:nil
   sgml-local-catalogs:nil
   sgml-local-ecat-files:nil
