@@ -1,5 +1,4 @@
 
-
 CFLAGS += -O2 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
 PSM_OSDIR := @PSM_OSDIR@
 CPPFLAGS += -I@top_srcdir@/include -I/usr/local/include -I. @CPPFLAG_MMD@
@@ -22,7 +21,7 @@ else
 endif
 
 TOOLS:=psconfig pscounter test_nodes psiadmin psid psld parastation
-TOOLS += psilogger psiforwarder
+TOOLS += psilogger psiforwarder test_config_parsing
 # test_nodes
 
 bin:	$(TOOLS)
@@ -43,27 +42,22 @@ test_pse: test_pse.o -lpshal -lpsport -larg -lpse -lpsi -lm -lpthread
 # psiadmin
 EXTRACLEAN += lex.admin.c admin.tab.c admin.tab.h
 VPATH += $(SRCDIR)/admin
-psiadmin: psiadmin.o admin.tab.o lex.admin.o -lreadline -lhistory -lpsi -l@LIBCURSES@
-admin.tab.o: CPPFLAGS = $(CPPFLAGS) -I$(SRCDIR)/admin
+psiadmin: psiadmin.o admin.tab.o lex.admin.o
+psiadmin: -lreadline -lhistory -lpsi -l@LIBCURSES@
+admin.tab.o: CPPFLAGS += -I$(SRCDIR)/admin
 admin.tab.o: admin.tab.c
 lex.admin.o: lex.admin.c admin.tab.c admin.tab.h
 
 # psid
-EXTRACLEAN += lex.psid.c psid.tab.c psid.tab.h
-VPATH += $(SRCDIR)/daemon
-VPATH += $(SRCDIR)/cardconfig
-psid: psid.o psidutil.o
-psid: parse.o lex.psid.o psid.tab.o
-psid: cardconfig.o
+VPATH += $(SRCDIR)/daemon $(SRCDIR)/cardconfig
+psid: psid.o psidutil.o config_parsing.o cardconfig.o
 psid: -lpse -lpsi -lm -lpshal -lputil
-psid.tab.o: CPPFLAGS = $(CPPFLAGS) -I$(SRCDIR)/daemon
-psid.tab.o: psid.tab.c
-lex.psid.o: lex.psid.c psid.tab.c psid.tab.h
+
+test_config_parsing: config_parsing.o -lputil -lpsi
 
 #psld
 VPATH += $(SRCDIR)/licdaemon
-psld: psld.o license.o 
-psld: parse.o psid.tab.o lex.psid.o
+psld: psld.o license.o config_parsing.o
 psld: -lpsi -lm -lputil
 
 # logger
