@@ -3,12 +3,13 @@ Requirements:
 
 The documentation is written in DocBook XML V4.2.
 
-Validation and processing the PDF is done with OpenJade using DSSSL
-Stylesheets. Used wrappers around OpenJade and JadeTeX are from
-docbook-toys.
+Validation is done via xmllint which is part of libxml2.
+
+PDFs are created via OpenJade using DSSSL stylesheets and
+JadeTeX. Used wrappers around OpenJade are from docbook-toys.
 
 Processing of man-pages and HTML is done with xsltproc (from libxslt)
-using the XSL Stylesheets.
+using the XSL stylesheets.
 
 The following versions were tested:
 
@@ -16,6 +17,7 @@ openjade 1.3.2
 docbook-dsssl-stylesheets 1.77
 docbook-toys 1.51.0
 libxslt 1.0.26
+libxml2 2.5.3
 docbook-xsl-stylesheets 1.60.1
 
 Remark:
@@ -36,17 +38,33 @@ as soon as this documentations is build with 1.61.1 or higher (SuSE 8.3 ?).
 Alternative PDF generation:
 ===========================
 
-There is a new way to generate PDFs via the FO stylesheets and FOP. This
-should work with the stuff found on SuSE 9.1 almost out of the box. Only
-two slight changes have to be made:
+There is a new way to generate PDFs via the FO part of the XSL
+stylesheets and FOP. Once this way to create PDFs is mature we can
+skip the dependencies towards OpenJade/JadeTeX/DSSSL/db2tex.
+
+In order to enable this alternative way you have to change the pdf
+creation lines in Makefile.in. Don't forget to run configure
+afterwards.
+
+The following versions were tested:
+
+libxslt 1.0.32 (libxslt 1.0.26 from SuSE 8.2 does *not* work!)
+libxml2 2.5.10
+fop 0.20.5
+docbook-xsl-stylesheets 1.66.1
+
+This should work with the stuff found on SuSE 9.0 almost out of the
+box. Only three slight changes have to be made:
+
+- The FOP tool has to be installed. It can be found in 
+  ftp.suse.com/pub/people/ke/9.0-i386
+  This step is not needed on SuSE 9.1 since FOP is included.
 
 - The Jimi.jar file has to be added by hand as described in
-  /usr/share/fop/lib/readme. This is needed for including .png files into
-  the PDF.
+  http://xml.apache.org/fop/graphics.html#jimi.
+  Jimi is needed for including .png files into the PDF.
 
-- Since some stuff from the version 1.66.1 XSL stylesheets are use, these
-  also have to be installed. The RPM can be found on:
+- Since some stuff from the version 1.66.1 XSL stylesheets is used,
+  these also have to be installed. The RPM can be found on:
   http://www.theorie.physik.uni-wuppertal.de/~eicker/XSL-RPMs
 
-In order to enable this alternative way you have to change the pdf creation
-lines in Makefile.in.
