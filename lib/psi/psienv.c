@@ -31,7 +31,7 @@ int    PSI_environc = 0;
  * RETURN  0 on success
 *          -1 on error
  */
-int PSI_clearenv()
+int PSI_clearenv(void)
 {
     int i;
     for(i=0;i<PSI_environc;i++)

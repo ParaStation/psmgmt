@@ -70,7 +70,7 @@ typedef struct PStask_T{
  * Task routines
  */
 PStask_t *
-PStask_new();                               /* returns a new task structure*/
+PStask_new(void);                           /* returns a new task structure*/
 int 
 PStask_init(PStask_t *task);                /* initializes a task structure*/
 int 

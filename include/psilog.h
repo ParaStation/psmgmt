@@ -84,8 +84,8 @@ extern char PSI_txt[];			    /* scratch for error log */
 
 void PSI_logerror(char *s);
 
-void PSI_openlog();
+void PSI_openlog(void);
 
-void PSI_closelog();
+void PSI_closelog(void);
 
 #endif

@@ -21,7 +21,7 @@ extern int    PSI_environc;
  * RETURN  0 on success
 *          -1 on error
  */
-int PSI_clearenv();
+int PSI_clearenv(void);
 
 /*----------------------------------------------------------------------*/
 /* 

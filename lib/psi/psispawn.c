@@ -313,7 +313,7 @@ int PSI_SortNodesInPartition(short nodes[], int maxnodes)
  *
  * RETURN:  the number of nodes in the partition or -1 on error.
  */
-short PSI_getPartition()
+short PSI_getPartition(void)
 {
     char* hostfilename=NULL;
     int maxnodes;

@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.17 2002/01/18 15:59:29 eicker Exp $
+ * $Id: psi.c,v 1.18 2002/01/22 16:12:28 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
@@ -82,7 +82,7 @@ PSI_getnode(long tid)
 * returns the number of nodes
 */
 short
-PSI_getnrofnodes()
+PSI_getnrofnodes(void)
 {
     return PSI_nrofnodes;
 }
