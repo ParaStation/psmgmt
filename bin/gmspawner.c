@@ -5,20 +5,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: gmspawner.c,v 1.3 2003/09/12 14:28:23 eicker Exp $
+ * $Id: gmspawner.c,v 1.4 2003/11/26 17:13:20 eicker Exp $
  *
  */
 /**
  * @file Helper in order to start MPIch/GM applications within a ParaStation
  * cluster.
  *
- * $Id: gmspawner.c,v 1.3 2003/09/12 14:28:23 eicker Exp $
+ * $Id: gmspawner.c,v 1.4 2003/11/26 17:13:20 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: gmspawner.c,v 1.3 2003/09/12 14:28:23 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: gmspawner.c,v 1.4 2003/11/26 17:13:20 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -39,7 +39,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: gmspawner.c,v 1.3 2003/09/1
 #include <popt.h>
 
 #include <psi.h>
-#include <info.h>
+#include <psiinfo.h>
 #include <psispawn.h>
 #include <psienv.h>
 #include <pscommon.h>
@@ -532,7 +532,12 @@ int main(int argc, const char *argv[])
 	exit(10);
     }
 
-    rank = INFO_request_taskinfo(PSC_getMyTID(), INFO_RANK, 0);
+    PSI_infoInt(-1, PSP_INFO_TASKRANK, NULL, &rank, 0);
+    if (rank != np) {
+	fprintf(stderr, "%s: rank(%d) != np(%d).\n", argv[dup_argc], rank, np);
+
+	exit(1);
+    }
 
     /* Propagate some environment variables */
 
@@ -540,12 +545,6 @@ int main(int argc, const char *argv[])
     propagateEnv("USER", 0);
     propagateEnv("SHELL", 0);
     propagateEnv("TERM", 0);
-
-    if (rank != np) {
-	fprintf(stderr, "%s: rank(%d) != np(%d).\n", argv[dup_argc], rank, np);
-
-	exit(1);
-    }
 
     srandom(time(NULL));
     magic = random()%9999999;
@@ -590,11 +589,24 @@ int main(int argc, const char *argv[])
 
 	    {
 		char slavestring[20];
-		short id;
+		PSnodes_ID_t node;
 		struct in_addr ip;
+		int err;
 
-		id = INFO_request_rankID(rank, 1 /* verbose */);
-		ip.s_addr = INFO_request_node(id, 1 /* verbose */);
+		err = PSI_infoNodeID(-1, PSP_INFO_RANKID, &rank, &node, 1);
+		if (err) {
+		    fprintf(stderr, "Could not determine rank %d's node.\n",
+			    rank);
+		    exit(1);
+		}
+		    
+		err = PSI_infoInt(-1, PSP_INFO_NODE, &node, &ip.s_addr, 1);
+		if (err) {
+		    fprintf(stderr,
+			    "Could not determine node %d's IP address.\n",
+			    node);
+		    exit(1);
+		}
 
 		snprintf(slavestring, sizeof(slavestring),
 			 "%s", inet_ntoa(ip));
@@ -607,7 +619,7 @@ int main(int argc, const char *argv[])
 		if (error) {
 		    char *errstr = strerror(error);
 		    fprintf(stderr,
-			    "Could not spawn process %d (%s) error = %s.",
+			    "Could not spawn process %d (%s) error = %s.\n",
 			    rank, dup_argv[0], errstr ? errstr : "UNKNOWN");
 		    exit(1);
 		}
