@@ -310,7 +310,7 @@
 	    </para>
 	    <itemizedlist>
 	      <listitem>
-		<para>Based on MPIch 1.2.4.</para>
+		<para>Based on MPIch 1.2.5.</para>
 	      </listitem>
 	      <listitem>
 		<para>Synchronous and asynchronous communication.</para>

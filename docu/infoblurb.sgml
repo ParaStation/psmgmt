@@ -2,6 +2,7 @@
 <copyright>
   <year>2002</year>
   <year>2003</year>
+  <year>2004</year>
   <holder>ParTec AG</holder>
 </copyright>
 
@@ -36,8 +37,7 @@
 
 <mediaobject>
   <imageobject>
-    <!--<imagedata scale="35" align="center" fileref="../images/ParTec.png"/>-->
-    <imagedata scale="15" align="center" fileref="../images/ParTec_neu.png"/>
+    <imagedata scale="15" align="center" fileref="../images/ParTec.png"/>
   </imageobject>
 </mediaobject>
 
@@ -45,8 +45,8 @@
   <para>
     Please note that you will always find the most up-to-date version of this
     technical documentation on our Web site at <ulink
-      url="http://www.par-tec.com/support"
-      type="dontshow">http://www.par-tec.com/support</ulink>.
+      url="http://par-tec.com/service.php"
+      type="dontshow">http://par-tec.com/service.php</ulink>.
   </para>
 </abstract>
 

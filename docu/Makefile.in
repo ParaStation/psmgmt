@@ -1,10 +1,10 @@
 ###################################################### -*- Makefile -*- #####
-#                  ParaStation3
-#        Copyright (c) 2002-2003 ParTec AG Karlsruhe
+#                  ParaStation
+#        Copyright (c) ParTec AG Karlsruhe
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.16 2003/07/25 16:20:08 eicker Exp $
+# $Id: Makefile.in,v 1.17 2004/01/21 11:24:10 eicker Exp $
 #
 # @author
 #         Norbert Eicker <eicker@par-tec.de>

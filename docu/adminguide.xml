@@ -37,8 +37,7 @@
 <book id="adminguide">
   <title><inlinemediaobject>
       <imageobject>
-	<!--<imagedata scale="25" fileref="../images/ParaStation.png"/>-->
-	<imagedata scale="38" fileref="../images/ParaStation_neu.png"/>
+	<imagedata scale="38" fileref="../images/ParaStation.png"/>
       </imageobject>
     </inlinemediaobject> Administrator's Guide</title>
   <titleabbrev>&ps; Administrator's Guide</titleabbrev>
@@ -47,12 +46,12 @@
     &infoblurb;
 
     <releaseinfo>Release 1.1</releaseinfo>
-    <pubdate>May 2003</pubdate>
+    <pubdate>Jan 2004</pubdate>
 
     <revhistory>
       <revision>
 	<revnumber>1.1</revnumber>
-	<date>28 May 2003</date>
+	<date>20 Jan 2004</date>
 	<revremark>ParaStation4 now covered</revremark>
       </revision>
       <revision>
@@ -87,7 +86,7 @@
     <referenceinfo>
       <title>ParTec</title>
       <productname>ParaStation</productname>
-      <date>May 2003</date>
+      <date>Jan 2004</date>
     </referenceinfo>
     <title>Reference Pages</title>
     &mlisten;

@@ -6,6 +6,7 @@
   <xsl:import href="/usr/share/sgml/docbook/docbook-xsl-stylesheets/html/chunk.xsl"/>
 
   <xsl:param name="shade.verbatim" select="1"/>
+  <xsl:param name="xref.with.number.and.title" select="0"/>
 
   <xsl:param name="generate.toc">
     book      toc,title

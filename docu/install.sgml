@@ -1,22 +1,22 @@
 <chapter id="installation">
   <title>Installation</title>
   <para>
-    This chapter describes the installation of &ps;. Beforehand the
-    prerequisites to use &ps; are discussed. There are three different ways to
-    install &ps;, discriminating against each other in the level of
-    automatization of the installation process.
+    This chapter describes the installation of &ps;. First of all the
+    prerequisites to use &ps; are discussed. Next the three different ways to
+    install &ps; are explained, discriminating against each other in the level
+    of automatization of the installation process.
   </para>
   <para>
     Of course, the less automatized the choosen way of installation is, the
     more possibilities of costumization within the installation process occur.
     On the other hand even the most automatized way of installation, the
-    installation via RPM, should give suitable result in most cases.
+    installation via RPM, will give a suitable result in most cases.
   </para>
 
   <section>
     <title>Prerequisites</title>
     <para>
-      In order to enable a cluster of workstation for the installation of the
+      In order to enable a cluster of workstations for the installation of the
       &ps; communication system, few prerequisites have to be met.
     </para>
 
@@ -24,34 +24,45 @@
       <title>Hardware</title>
       <para>
 	You need a homogenous cluster in the sense of processor architecture,
-	i.e. you can mix Intel IA32 and AMD but not Intel IA32 and Alpha. The
-	supported processor architecures up to now are Intel IA32 (including
-	AMD Athlon) and Alpha.
+	i.e. you can mix Intel IA32 and AMD IA32 but not Intel IA32 and Alpha.
+	The supported processor architecures up to now are Intel IA32
+	(including AMD Athlon), IA64, AMD64 and Alpha. <!-- fg: is Alpha still
+	supported? -->
       </para>
       <para>
 	Furthermore of course the nodes need to be interconnected. In
-	principle, &ps; needs two different kinds of interconnect. On the one
-	hand there is the need for a so called administration network which is
-	used to handle all the administrative tasks that have to be dealed with
-	within a cluster. Besides the conventional sharing of NFS partitions or
-	NIS tables, on a &ps; cluster this also includes the inter-daemon
-	communication used to implement the effective cluster administration
-	and job handling mechanisms. This administration network is usually
-	implemented using a Fast or Gigabit Ethernet network.
-      </para>
-      <para>
-	On the other hand, there is the equally important need for a high speed
-	interconnect in order to do high bandwidth, low latency communication
-	within parallel applications. While historically this kind of
-	communication is usually done via Myrinet, nowadays Gigabit Ethernet is
-	a much cheaper and only slighty slower alternative. Furthermore, with
-	the dawn of Infiniband another alternative is in sight. &ps;
-	supports Myrinet and Ethernet now and will support Infiniband soon.
+	principle, &ps; needs two different kinds of interconnects:
+	<itemizedlist>
+	  <listitem>
+	    <para>First of all a so called administration network which is used
+	      to handle all the administrative tasks that have to be dealed
+	      with within a cluster. Besides the conventional sharing of NFS
+	      partitions or NIS tables, on a &ps; cluster this also includes
+	      the inter-daemon communication used to implement the effective
+	      cluster administration and job handling mechanisms. This
+	      administration network is usually implemented using a Fast or
+	      Gigabit Ethernet network.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>Secondly there is the equally important need for a high speed
+	      interconnect in order to do high bandwidth, low latency
+	      communication within parallel applications. While historically
+	      this kind of communication is usually done via Myrinet, nowadays
+	      Gigabit Ethernet is a much cheaper and only slighty slower
+	      alternative. Furthermore, with the dawn of Infiniband another
+	      alternative is in sight. &ps; now supports Myrinet and Ethernet
+	      (Fast and Gigabit). Support for Infiniband is currently under
+	      development. <!-- @todo: Wird Myrinet wirklich unterstuetzt?
+	      Ueber Version 3?-->
+	    </para>
+	  </listitem>
+	</itemizedlist>
       </para>
       <para>
 	In the special case of an Ethernet communication interconnect it is not
-	necessary to really have to distinct networks but rather possible to
-	use one physical network for both tasks.
+	necessary to really have two distinct networks but is rather possible
+	to use one physical network for both tasks.
       </para>
     </simplesect>
 
@@ -70,29 +81,30 @@
       <para>
 	Besides the kernel supporting multicast, the hardware has to support
 	multicast, too. Since modern Ethernet switches support multicast and
-	the nodes of a cluster of workstation usually live in a private subnet,
-	there should be no problem about this. In the case of a gateway in
-	between the nodes of a cluster this gateway has to be configured
+	the nodes of a cluster of workstation typically live in a private
+	subnet, there should be no problem about this. In the case of a gateway
+	in between the nodes of a cluster this gateway has to be configured
 	appropriately to allow multicast packets to reach all nodes of the
 	cluster from all nodes.
       </para>
+      <note>
+	<para>Using a gateway in order to link parts of a cluster is not a
+	  recommended configuration.
+	</para>
+      </note>
       <para>
-	On nodes with more than one Ethernet interface you have to setup a
-	default route for the multicast traffic. This is done by
+	On nodes with more than one Ethernet interface &ndash; typically
+	frontend or head nodes &ndash; you have to setup a proper route for the
+	multicast traffic. This is done by the command
       </para>
       <programlisting>	route add -net 224.0.0.0 netmask 240.0.0.0 dev <replaceable>ethX</replaceable></programlisting>
       <para>
-	manually, where <replaceable>ethX</replaceable> has to be replaced by
-	the name of the interface connecting to all other nodes. In order to
-	enable this route at system startup, a corresponding entry has to be
-	added to <filename>/etc/route.conf</filename> or
+	where <replaceable>ethX</replaceable> has to be replaced by the actual
+	name of the interface connecting to all other nodes. In order to enable
+	this route at system startup, a corresponding entry has to be added to
+	<filename>/etc/route.conf</filename> or
 	<filename>/etc/sysconfig/networks/routes</filename>, depending on the
 	type of Linux distribution in use.
-      </para>
-      <para>
-	Usually only the front-end machine of a cluster has two Ethernet
-	interfaces in use. Then you have to add the Multicast route to the
-	interface connecting this machine to all other nodes of the cluster.
       </para>
     </simplesect>
 
@@ -107,12 +119,14 @@
 	recompiled these kernels in a slightly modified way.
       </para>
       <para>
-	Since the &psfe; variant of the software does not depend on any kernel
-	module, no special kernel version is needed in this case.
+	If there is no need for optimized communication and thus the software
+	does not depend on any kernel module, no special kernel version is
+	needed in this case. Since the &psfe; variant of the software does not
+	depend on any kernel module, no special kernel version is needed in
+	this case.
       </para>
       <para>
-	If there is the need for special version of the modules, it is possible
-	to get them on demand. In order to request it, please contact
+	If no suitable module is found in the package, please contact
 	<email>support@par-tec.com</email>.
       </para>
     </simplesect>
@@ -233,12 +247,11 @@
 	    <para>
 	      Furthermore within the standard installation the main
 	      configuration file <filename>parastation.conf</filename> is
-	      physically located here. Through a symbolic link this
-	      configuration file is also available in
-	      <filename>/etc</filename>, where it is expected from the &ps;
-	      daemon <xref linkend="psid"/> by default. This symbolic link
-	      will be created by <command>PSM_INSTALL</command> during
-	      installation.
+	      located here. Via a symbolic link this configuration file is also
+	      available in <filename>/etc</filename>, where it is expected from
+	      the &ps; daemon <xref linkend="psid"/> by default. This
+	      symbolic link will be created by <command>PSM_INSTALL</command>
+	      during installation.
 	    </para>
 	    <para>
 	      Depending on the communication part of the &ps; system installed
@@ -329,6 +342,7 @@
 	      described in <xref linkend="mpich_install"/>.
 	    </para>
 	  </listitem>
+	  <!-- fg: mpich-intel, mpich-pgf??? @todo -->
 	</varlistentry>
       </variablelist>
     </section>
@@ -345,15 +359,16 @@
       <title>Getting the &ps; RPM files</title>
       <para>
 	RPMs containing the various versions of the &ps; system can be obtained
-	from the <ulink url="http://www.par-tec.com/en/download.php">download
-	  section</ulink> of the <ulink url="http://www.par-tec.com">ParTec
+	from the <ulink url="http://par-tec.com/en/download.php">download
+	  section</ulink> of the <ulink url="http://par-tec.com">ParTec
 	  homepage</ulink>.
       </para>
       <para>
-	Usually two different files are needed, one containing the management
-	part, another one with communication part of the &ps; system. Of course
-	the communication part to choose will depend on the interconnection
-	hardware in use and the license version purchased.
+	At least two different packages are needed, one containing the
+	management part, the other one providing the communication part of the
+	&ps; system. Beside this core system, packages supplying MPIch for GNU,
+	Intel and Portland Group compilers are available. A package providing
+	the documentation is also obtainable.
       </para>
       <para>
 	The full names of the RPM files follow a simple structure:
@@ -378,24 +393,24 @@
       <para>
 	The name of the RPM containing the communication part depends on the
 	supported communication hardware. For the Myrinet version of &ps; this
-	is <filename>psm</filename>, the communication part of &psfe; is called
-	<filename>psfe</filename> and the corresponding packets of &ps4; holds
-	the name <filename>pscom</filename>. Like in the management RPM all
-	these filenames are followed by an individual version number, the
-	release date and the architecture.
+	is <filename>psm</filename>, the corresponding packets of &ps4; holds
+	the name <filename>pscom</filename>. As explained all filenames are
+	followed by an individual version number, the release date and the
+	architecture.
       </para>
       <para>
-	The versions you find on the <ulink url="http://www.par-tec.com">ParTec
+	The versions you find on the <ulink url="http://par-tec.com">ParTec
 	  homepage</ulink> at a distinct point of time will work together
+	<!-- fg: Uebel Uebel Uebel!!!@todo -->
 	without problem. If you want to update only part of your installation
 	(i.e. only the management part while keeping the communication part
-	untouched) you have to have a look at the corresponding release notes
-	in order to find out if the intended combination actually works.
+	untouched) you have to take a look at the corresponding release notes
+	in order to verify if the intended combination is supported.
       </para>
       <para>
 	The release notes of the different packages will either be found within
 	the <filename>/opt/parastation</filename> directory or on the <ulink
-	  url="http://www.par-tec.com">ParTec homepage</ulink>.
+	  url="http://par-tec.com">ParTec homepage</ulink>.
       </para>
       <para>
 	 Please note that the individual version numbers of the distinct
@@ -470,8 +485,8 @@
       <title>Getting the &ps; <filename>.tar.gz</filename> files</title>
       <para>
 	The <filename>.tar.gz</filename> files containing &ps; can be obtained
-	from the <ulink url="http://www.par-tec.com/en/download.php">download
-	  section</ulink> of the <ulink url="http://www.par-tec.com">ParTec
+	from the <ulink url="http://par-tec.com/en/download.php">download
+	  section</ulink> of the <ulink url="http://par-tec.com">ParTec
 	  homepage</ulink>.
       </para>
       <para>
@@ -482,7 +497,7 @@
 	<filename>.tar.gz</filename> one.
       </para>
       <para>
-	As in the RPM case, here you will also need two different files, one
+	As in the case of RPM, two different packages are required, one
 	containing the management part of the &ps; system and one comprising
 	the communication part. While the management packet holds the unique
 	name <filename>psmgmt</filename>, the name of the communication packet
@@ -493,12 +508,12 @@
       </para>
       <para>
 	Again you can learn more about which versions of the management and
-	communication part will play together by having a brief view on the
+	communication part will work together by having a brief view on the
 	release notes coming with each packet.
       </para>
       <para>
 	As a rule of thumbs the packets that can be fetched from the download
-	section at a distinct time will play together without problem.
+	section at a distinct time will work together without problem.
       </para>
     </simplesect>
     <simplesect>
@@ -523,10 +538,10 @@
 	  linkend="Install_by_hand"/>.
       </para>
       <para>
-	In the next step &ps;'s communication part has to be installed in the
-	same fashion. Assuming the <filename>.tar.gz</filename> file holding
-	your communcation part is name <filename>comm.tar.gz</filename>,
-	execute:
+	In the next step &ps;'s communication part has to be installed the same
+	way. Assuming the <filename>.tar.gz</filename> file holding the needed
+	communcation part is named <filename>comm.tar.gz</filename>, execute
+	the command
       </para>
       <programlisting>	gzip -cd comm.tar.gz | tar xvf -</programlisting>
       <para>
@@ -549,11 +564,11 @@
       <title>Distributed installation</title>
       <para>
 	In the case of a distributed installation become <quote>root</quote>
-	and change to the root directory <filename>/</filename>. Then just do a
+	and change to the root directory <filename>/</filename>. Then just run
       </para>
       <programlisting>	gzip -cd psmgmt-x.y.z-yyyymmdd.arch.tar.gz | tar xvf -</programlisting>
       <para>
-	in order to install &ps;'s management part and a similar line for the
+	in order to install &ps;'s management part and similar for the
 	communication libraries, kernel modules etc. needed for your hardware
 	setup.
       </para>
@@ -581,7 +596,7 @@
     <para>
       For full control on the installation process you might not want to run
       the <command>PSM_INSTALL</command> script but do the necessary
-      modifications by hand. Therefore the changes made by this script will be
+      modifications manually. Therefore the changes made by this script will be
       discussed now step by step.
     </para>
     <note>
@@ -602,7 +617,8 @@
 	<note>
 	  <para>
 	    This has only to be done for the Myrinet version of &ps;. You can
-	    omit this step within the installation procedure of &psfe;.
+	    omit this step within the installation procedure of &psfe; or
+	    &ps4;.
 	  </para>
 	</note>
       </listitem>
@@ -681,8 +697,7 @@
 	    <para><emphasis role="bold">Xinetd Configuration</emphasis></para>
 	    <para>
 	      Create a file named
-	      <filename>/etc/xinetd.d/parastation</filename> with the following
-	      contents:
+	      <filename>/etc/xinetd.d/parastation</filename> containing:
 	    </para>
 	    <programlisting>
 	#
@@ -731,23 +746,23 @@
     <para>
       In order to install the documentation files first of all an up to date
       version of the documentation has to be retrieved. It can be found within
-      the <ulink url="http://www.par-tec.com/en/download.php">download
-	section</ulink> of the <ulink url="http://www.par-tec.com">ParTec
+      the <ulink url="http://par-tec.com/en/download.php">download
+	section</ulink> of the <ulink url="http://par-tec.com">ParTec
 	homepage</ulink>. The names of the rpm of <filename>.tar.gz</filename>
       files follow the conventions of all other files building the &ps;
-      distribution. Here the name part is <filename>ps-doc</filename>and the
+      distribution. Here the name part is <filename>psdoc</filename> and the
       architecure is <filename>noarch</filename>, since this part is platform
       independent.
     </para>
     <para>
       For the installation of the rpm file, simply execute 
     </para>
-    <programlisting>	rpm -U ps-doc-...-noarch.rpm</programlisting>
+    <programlisting>	rpm -U psdoc-...-noarch.rpm</programlisting>
     <para>
       Similary for the <filename>.tar.gz</filename> file change to the root
       directory <filename>/</filename> and execute
     </para>
-    <programlisting>	gzip -cd ps-doc-....tar.gz | tar xvf -</programlisting>
+    <programlisting>	gzip -cd psdoc-....tar.gz | tar xvf -</programlisting>
     <para>
       All the PDF and HTML files of the documentation will be installed into
       <filename>/opt/parastation/doc</filename>, the manual pages will reside
@@ -768,11 +783,13 @@
       retrieved from the <ulink url="http://www.adobe.com">Adobe
 	homepage</ulink>.
     </para>
+    <!--
     <para>
-      Hardcopies of the &ps; documentation can be obtained from ParTec,
-      although it is much easier for the customer to just print out the PDF
-      file using the Acrobat Reader.
+    Hardcopies of the &ps; documentation can be obtained from ParTec,
+    although it is much easier for the customer to just print out the PDF
+    file using the Acrobat Reader.
     </para>
+    -->
     <para>
       In order to enable the manual pages to the users please consult the
       documentation of the <citerefentry>
@@ -792,8 +809,8 @@
       <ulink url="http://www-unix.mcs.anl.gov/mpi/mpich/">MPIch</ulink> is
       necessary. A corresponding rpm of <filename>.tar.gz</filename> packet can
       be found within the <ulink
-	url="http://www.par-tec.com/en/download.php">download section</ulink>
-      of the <ulink url="http://www.par-tec.com">ParTec homepage</ulink>.
+	url="http://par-tec.com/en/download.php">download section</ulink>
+      of the <ulink url="http://par-tec.com">ParTec homepage</ulink>.
     </para>
     <para>
       The names of the correspondings files follow the common naming
@@ -833,8 +850,9 @@
       instead. Both commands will extract the &ps;/MPIch distribution to
       <filename>/opt/parastation/mpich</filename>. Since all these files are
       only needed for building MPI applications, but not for running them, it
-      is sufficient to do this installation only on the nodes used for
-      compilation or the front-end machine.
+      is sufficient to do this installation only on compile nodes
+      or front-end machines.
+      <!-- fg: was ist mit shared libraries??? @todo -->
     </para>
     <para>
       In order to enable the MPI commands to the users make sure that
@@ -847,19 +865,19 @@
 	<manvolnum>1</manvolnum>
       </citerefentry> command and the remark in <xref linkend="dir_struct"/> on
       how to do this.
+<!-- fg: Genauer: die verschiedenen Pfade beschreiben (siehe auch Packages) -->
     </para>
   </section>
 
   <section>
     <title>Further steps</title>
     <para>
-      With this the basic installation of &ps; is done. There remain some
-      further step until &ps; can really be used. These include:
+      The previous chapter described the basic installation of &ps;. 
+      There are still some steps to do, especially:
     </para>
     <itemizedlist>
       <listitem>
-	<para><link linkend="config_ps">the configuration of the &ps;
-	    system</link>
+	<para><link linkend="config_ps">configuration of the &ps; system</link>
 	</para>
       </listitem>
       <listitem>
@@ -868,25 +886,25 @@
 	</para>
       </listitem>
       <listitem>
-	<para><link linkend="testing">testing if everything works well</link>
+	<para><link linkend="testing">testing</link>
 	</para>
       </listitem>
       <listitem>
-	<para><link linkend="embed">optionally the embedding of the &ps; system
-	    into an already existing batch system.</link>
+	<para><link linkend="embed"><emphasis>optionally</emphasis>: embedding
+	    &ps; into an already existing batch system.</link>
 	</para>
       </listitem>
     </itemizedlist>
     <para>
-      These step will be discussed in the next chapter of this document.
+      These steps will be discussed in <xref linkend="configuration"/>.
     </para>
   </section>
 
   <section>
     <title>Uninstall</title>
     <para>
-      In order to remove &ps; from the cluster it was installed on, there are
-      different ways to do so depending on the choosen way of installation.
+      In order to remove &ps; from the cluster it is installed on, there are
+      different ways to do so depending on the chosen way of installation.
     </para>
     <simplesect>
       <title>Centralized installations</title>
@@ -896,28 +914,20 @@
       <programlisting>	/opt/parastation/config/PSM_INSTALL -u</programlisting>
       <para>
 	on all nodes that have mounted <filename>/opt/parastation</filename>
-	from the NFS server unless you want to remove the modifications done
-	while installation manually. In that case consult <xref
-	linkend="Install_by_hand"/> to find out which steps have to be made
-	undone.
+	from the NFS server. If you want to undo the modifications manually,
+	please refer to	<xref linkend="Install_by_hand"/>.
       </para>
       <para>
-      Now it is save to remove all files installed on the the NFS server. If
+	Now it is save to remove all files installed on the the NFS server. If
 	the installation was made via <citerefentry>
 	  <refentrytitle>rpm</refentrytitle>
 	  <manvolnum>1</manvolnum>
-      </citerefentry> the corresponding packets simply have to be remove using
+	</citerefentry> the corresponding packets can be removed using
       </para>
-      <programlisting>	rpm -e psmgmt pscomm psm psfe ps-doc</programlisting>
+      <programlisting>	rpm -e psmgmt pscomm psm psfe psdoc</programlisting>
       <para>
-	For installations done from the <filename>.tar.gz</filename> first undo
-	all modification to configuration files within
-	<filename>/etc</filename> by running
-      </para>
-      <programlisting>	/opt/parastation/config/PSM_INSTALL -u</programlisting>
-      <para>
-	Afterwards /opt/parastation and all its subdirectories can be removed
-	savely.
+	For installations done from the <filename>.tar.gz</filename> simply
+	remove <filename>/opt/parastation</filename> and all subdirectories.
       </para>
     </simplesect>
     <simplesect>
@@ -925,7 +935,7 @@
       <para>
 	If the installation was done from the RPM file, simply execute a
       </para>
-      <programlisting>	rpm -e psmgmt pscomm psm psfe ps-doc</programlisting>
+      <programlisting>	rpm -e psmgmt pscomm psm psfe psdoc</programlisting>
       <para>
 	on all nodes of the cluster. Otherwise
       </para>

@@ -29,8 +29,7 @@
 <book id="userguide">
   <title><inlinemediaobject>
       <imageobject>
-	<!--<imagedata scale="25" fileref="../images/ParaStation.png"/>-->
-	<imagedata scale="38" fileref="../images/ParaStation_neu.png"/>
+	<imagedata scale="38" fileref="../images/ParaStation.png"/>
       </imageobject>
     </inlinemediaobject>  User's Guide</title>
   <titleabbrev>&ps;  User's Guide</titleabbrev>

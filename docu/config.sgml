@@ -2,7 +2,7 @@
   <title>Configuration</title>
 
   <para>
-    After installing the &ps; software successfully few modification to
+    After installing the &ps; software successfully only few modifications to
     the configuration file <xref linkend="parastation_conf"/> have to be made
     in order to enable &ps; on the local cluster.
   </para>
@@ -11,43 +11,48 @@
     <title>Configuration of the &ps; system</title>
     <para>
       Within this section the basic configuration procedure needed to enable
-      &ps; is discussed. Primarily the configuration work reduces to the
+      &ps; will be discussed. 
+      It covers both the configuration of &ps3; using Myrinet and 
+      &ps4; using TCP/IP (ethernet) and the optimized &ps4;-protocol p4sock.
+    </para>
+    <para>
+      Primarily the configuration work reduces to the
       editing of the configuration file <filename>parastation.conf</filename>,
       which is basically located in <filename>/etc</filename>.
     </para>
     <para>
-      Usually you will find in <filename>/etc</filename> only a symbolic link
-      pointing to <filename>parastation.conf</filename> residing in the
-      configuration directory <filename>/opt/parastation/config</filename>,
-      which is normally mounted via NFS on the nodes. This allows in an easy
-      way the centralized storing of the configuration file in order to reduce
-      the effort that has to be made to modify this file consistently on all
-      nodes.
+      Usually you will find <filename>/etc/parastation.conf</filename> to be a
+      symbolic link pointing to <filename>parastation.conf</filename> residing
+      in the configuration directory
+      <filename>/opt/parastation/config</filename>. This directory is usually
+      mounted via NFS on each node. This allows the centralized storage of the
+      configuration file in order to reduce the effort that has to be made to
+      modify this file consistently on all nodes.
     </para>
     <para>
-      Within this section only the fundamental parameters which are necessary
-      to make &ps; run on a specific cluster are discussed. A detailed
-      description of all possible parameters that can be tuned within the
-      configuration file can be found within the <xref
-	linkend="parastation_conf"/> manual page.
+      This section describes all parameters of
+      <filename>/etc/parastation.conf</filename> necessary to customize &ps;
+      for a dedicated cluster environment. A detailed description of all
+      possible configuration parameters in the configuration file can be found
+      within the <xref	linkend="parastation_conf"/> manual page.
     </para>
     <para>
-      It is considered that &ps; is installed in a centralized fashion to the
-      default location <filename>/opt/parastation</filename> and mounted to
-      this location on all the nodes. In case of a distributed installation it
-      has to be guaranteed explicitely that all &ps; daemons <xref
-	linkend="psid"/> see configuration files with consistent content. This
-      may be ensured by editing the <filename>parastation.conf</filename> file
-      on one node and distribute the adapted file in a more or less automatized
-      way towards all the nodes.
+      It is considered that &ps; is installed in a centralized way to the
+      default location <filename>/opt/parastation</filename> and that this
+      directory is mounted to this location on all the nodes. In case of a
+      distributed installation it has to be guaranteed explicitely that all
+      &ps; daemons <xref linkend="psid"/> see configuration files with
+      consistent content. This may be ensured by editing the
+      <filename>parastation.conf</filename> file on one node and copy the
+      adapted file onto all other nodes.
     </para>
     <para>
       The distributed configuration files may explicitely replace the symbolic
       link <filename>/etc/parastation.conf</filename>, which of course is also
       possible for the centralized installation, although not recommended.
-      Another possibility for the distributed installation to keep the symbolic
-      link and to modify the file the link is pointing to distributedly. Keep
-      in mind that this has to be done on <emphasis role="bold">all</emphasis>
+      Another possibility for the distributed installation is to keep the
+      symbolic link and to modify the file the link is pointing to. Keep in
+      mind that this has to be done on <emphasis role="bold">all</emphasis>
       nodes.
     </para>
     <para>
@@ -65,23 +70,23 @@
 	  actual position <filename>parastation.conf</filename>.
 	</para>
 	<para>
-	  The template file contains all possible parameters understood by the
-	  &ps; daemon <xref linkend="psid"/>. Most of these parameters are set
-	  to their default value within lines marked as comments. Only those
-	  that have to be modified in order to adapt &ps; to the local cluster
-	  are enabled. Additionally all parameters are accompanied by a
-	  describing comment. A detailed description of all the parameters can
-	  be found in the <xref linkend="parastation_conf"/> manual page.
+	  The template file contains all possible parameters known by the &ps;
+	  daemon <xref linkend="psid"/>. Most of these parameters are set to
+	  their default value within lines marked as comments. Only those that
+	  have to be modified in order to adapt &ps; to the local environment
+	  are enabled. Additionally all parameters are exemplified using
+	  comments. A more detailed description of all the parameters can be
+	  found in the <xref linkend="parastation_conf"/> manual page.
 	</para>
 	<para>
 	  The template file is a good starting point in order to create a
 	  working configuration of &ps; for your cluster.
 	</para>
 	<para>
-	  Additionally this template file defines all hardware components &ps;
-	  is able to handle. Since the creation of this hardware definitions is
-	  quite difficult for a without deeper insight into the &ps; system,
-	  you should use the template file anyway.
+	  Beside basic information about the cluster, this template file
+	  defines all hardware components &ps; is able to handle. Since this
+	  definitions require a deeper knowledge of &ps;, it is easier to 
+	  copy the template file anyway.
 	</para>
       </listitem>
       <listitem>
@@ -89,16 +94,17 @@
 	      environment</emphasis>
 	</para>
 	<para>
-	  Usually you don't have to do anything within this part, since &ps;
+	  Usually it is not necessary to define this parameter, since &ps;
 	  tries to find the correct module path by itself. This decision is
 	  made based upon information about the kernel currently running on the
 	  machine.
 	</para>
 	<para>
-	  In the rare case that &ps;'s build-in heuristic fails, you might set
-	  the module path by hand. In order to do so find out which modules
-	  underneath the <filename>/opt/parastation/bin/modules</filename>
-	  directory actually run with your kernel in use. Then set the
+	  In the rare case that &ps;'s build-in heuristic fails, you might
+	  explicitly set the module path. In order to do so evaluate which
+	  modules underneath the
+	  <filename>/opt/parastation/bin/modules</filename> directory actually
+	  run with your kernel in use. Then set the
 	  <envar>PS_MODULEPATH</envar> environment within &ps; configuration
 	  file to the corresponding path relative to
 	  <filename>/opt/parastation</filename>.
@@ -109,13 +115,13 @@
 	      nodes</command></emphasis>
 	</para>
 	<para>
-	  Adjust the <command>NrOfNodes</command> parameter to the actual value
-	  used in your cluster. Consider that the front end machine is part of
-	  the cluster. E.g. if your cluster contains 8 nodes with a fast
-	  interconnect plus a front end machine then
+	  Adjust the <command>NrOfNodes</command> parameter to the actual
+	  number of nodes used in your cluster. Consider that the front end
+	  machine is part of the cluster. E.g. if your cluster contains 8 nodes
+	  with a fast interconnect plus a front end machine then
 	  <command>NrOfNodes</command> has to be set to 9 if a &ps; daemon
-	  <xref linkend="psid"/> should run on the front end machine in
-	  order to allow the start of parallel jobs from there.
+	  <xref linkend="psid"/> should run on the front end in order to allow
+	  the start of parallel jobs from this machine.
 	</para>
       </listitem>
       <listitem>
@@ -123,21 +129,22 @@
 	<para>
 	  In order to tell &ps; which kind of communication hardware should be
 	  used modify the <command>HWType</command> parameter. In the case of a
-	  Myrinet cluster, i.e. the version of &ps; used is
-	  <emphasis>ParaStation3</emphasis>, this has to be set to:
+	  Myrinet cluster, i.e. the version of &ps; used is &ps3;, this has to
+	  be set to:
 	</para>
 	<programlisting>	HWType myrinet</programlisting>
 	<para>
-	  If the cluster to be configured uses Ethernet of any flavour and
-	  &psfe; is the software of choice you will want to set this parameter
-	  to:
-	</para>
-	<programlisting>	HWType ethernet</programlisting>
-	<para>
-	  For clusters running &ps4; on any hardware, this parameter has to be
+	  For clusters running &ps4; utilizing the optimized &ps; communication
+	  stack on Ethernet hardware of any flavour this parameter has to be
 	  set to:
 	</para>
 	<programlisting>	HWType p4sock</programlisting>
+	<para>
+	  If the cluster to be configured uses Ethernet without optimized
+	  communication, i.e. running TCP/IP, you will want to set this
+	  parameter to:
+	</para>
+	<programlisting>	HWType ethernet</programlisting>
 	<para>
 	  The values that might be assigned to the <command>HWType</command>
 	  parameter have to be defined within the
@@ -150,17 +157,14 @@
       <listitem>
 	<para><emphasis role="bold"><command>Nodes</command></emphasis></para>
 	<para>
-	  Furthermore &ps; has to be told which nodes are contained in the
+	  Furthermore &ps; has to be told which nodes should be part of the
 	  cluster. The usual way of using the <command>Nodes</command>
 	  parameter is the environment mode, that is already enabled in the
 	  template file.
 	</para>
 	<para>
-	  For each cluster node defined within the <command>Nodes</command>
-	  environment at least the hostname of the node and the &ps; ID of this
-	  node have to be given. The general syntax of the
-	  <command>Nodes</command> environment is one entry per line. Each
-	  entry has the form
+	  The general syntax of the <command>Nodes</command> environment is one
+	  entry per line. Each entry has the form
 	</para>
 	<programlisting>	<replaceable>hostname</replaceable> <replaceable>id</replaceable> <optional><option>HWType</option></optional> <optional><option>runJob</option></optional> <optional><option>starter</option></optional> <optional><option>extraIP</option></optional></programlisting>
 	<para>
@@ -171,10 +175,13 @@
 	  to be an integer number between 0 and <command>NrOfNodes</command>-1.
 	</para>
 	<para>
-	  The optional parameters <command>HWType</command>,
-	  <command>runJobs</command>, <command>starter</command> and
-	  <command>extraIP</command> may be ignored for now. For a detailed
-	  description of these parameters refer to the <xref
+	  For each cluster node defined within the <command>Nodes</command>
+	  environment at least the hostname of the node and the &ps; ID of this
+	  node have to be given. The optional parameters
+	  <command>HWType</command>, <command>runJobs</command>,
+	  <command>starter</command> and <command>extraIP</command> may be
+	  ignored for now. For a detailed description of these parameters refer
+	  to the <xref
 	    linkend="parastation_conf"/> manual page.
 	</para>
 	<para>
@@ -185,12 +192,12 @@
 	  <command>NrOfNodes</command>-1.
 	</para>
 	<para>
-	  The described convention is mainly due to the routing used within
+	  The described convention is enforced by the routing used within
 	  Myrinet clusters. While within an Ethernet cluster the mapping
 	  between hostnames and &ps; ID is completely unrestricted, there are
-	  constraints concerning this mapping in the Myrinet case. Actually in
-	  order to use standard routing files, the &ps; ID of a specific node
-	  depends on the port of the Myrinet switch it is connected to. This
+	  constraints concerning this mapping in the Myrinet case. To
+	  facilitate predefined routing files, the &ps; ID of a node has to
+	  match the port number of the Myrinet switch it is connect to. This
 	  will be discussed in further detail within the next section.
 	</para>
       </listitem>
@@ -198,25 +205,24 @@
 	<para><emphasis role="bold"><command>LicenseServer</command></emphasis>
 	</para>
 	<para>
-	  This parameter tells &ps; on which node the &ps; license daemon <xref
-	    linkend="psld"/> should be started. Remember
-	  that &ps; has to be installed on this node, too.
+	  This parameter defines on which node the &ps; license daemon <xref
+	    linkend="psld"/> should be running. Remember that &ps; has to be
+	  installed on this node, too.
 	</para>
 	<para>
-	  For clusters with an existing front end machine usually the front end
-	  will run the license daemon. Otherwise the machine which acts as the
-	  node with &ps; ID 0 will normally adopt this tasks.
+	  For clusters with a front end machine usually this front end will run
+	  the license daemon. Otherwise the node with &ps; ID 0 will normally
+	  adopt this tasks.
 	</para>
       </listitem>
       <listitem>
 	<para><emphasis role="bold">License key</emphasis></para>
 	<para>
-	  If not already done, a license key has to be obtained now. It is not
-	  possible to run &ps; without a valid license key. To obtain a license
-	  key please contact <email>license@par-tec.com</email>.
+	  A valid license key is required to run &ps;. In order to obtain a
+	  license key please contact <email>license@par-tec.com</email>.
 	</para>
 	<para>
-	  You will get the license file by email. Save the license key to
+	  Usually you will get the license file by email. Save this file to
 	  <filename>/opt/parastation/config/license</filename>. This is the
 	  default location where the &ps; daemon <xref linkend="psid"/> is
 	  expecting the license key. Please consult the manual page of the &ps;
@@ -226,12 +232,12 @@
       </listitem>
     </orderedlist>
     <para>
-      In the case of a Ethernet cluster running &psfe; the configuration
-      procedure is finished now and you can proceed with <xref
-	linkend="testing"/>. On Myrinet clusters some further parameters
-      concerning the Myrinet configuration have to be set up. These will be
-      discussed in
-      <xref linkend="myrinet_setup"/> and <xref linkend="ip_over_myrinet"/>.
+      In the case of an Ethernet cluster running &psfe; or &ps4; the
+      configuration is done now and you can directly proceed with <xref
+	linkend="testing"/>. On Myrinet clusters running &ps3; some further
+      parameters concerning the Myrinet configuration have to be set up before.
+      These will be discussed in <xref linkend="myrinet_setup"/> and <xref
+	linkend="ip_over_myrinet"/>.
     </para>
   </section>
 
@@ -580,14 +586,15 @@
     </para>
     <para>
       Alternatively you can continuously monitor the &ps; daemon using the
-      <command>mlisten</command> tool, which is described the <xref
+      <command>mlisten</command> tool, which is described in the <xref
 	linkend="mlisten"/> manual page. Then use the
       <command>psiadmin</command> in the interactive mode and use its
       <command>add</command> command to start all other nodes.
     </para>
     <para>
-      If after a minute some nodes are still not up have a look at the nodes
-      <filename>/var/log/messages</filename> file to get a clue what went
+      If after a couple of seconds some nodes are still marked as "down", take
+      a look at the <filename>/var/log/messages</filename> file at this node.
+      Look for entries like <quote>psid: ....</quote> to get a clue what went
       wrong.
     </para>
     <para>
