@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.48 2002/04/22 18:15:30 hauke Exp $
+ * $Id: psid.c,v 1.49 2002/04/24 13:19:52 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.48 2002/04/22 18:15:30 hauke Exp $ 
+ * $Id: psid.c,v 1.49 2002/04/24 13:19:52 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.48 2002/04/22 18:15:30 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.49 2002/04/24 13:19:52 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -67,7 +67,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.48 $";
+static char psid_cvsid[] = "$Revision: 1.49 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -3084,7 +3084,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.48 $";
+    char revision[] = "$Revision: 1.49 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -3275,9 +3275,13 @@ int main(int argc, char **argv)
     /*
      * read the config file
      */
-    if (!(i=PSID_readconfigfile())) {
-	SYSLOG(0,(LOG_ERR,"%s: PSI Daemon: No card present: %d\n",argv[0],i));
+    if (PSID_readconfigfile()==-1) {
+	SYSLOG(0,(LOG_ERR, "ParaStation3 Daemon: Node not configured\n"));
+	closelog();
+	exit(1);
     }
+
+    SYSLOG(0, (LOG_ERR, "My IP is %x", ntohl(psihosttable[PSI_myid].inet)));
 
     if (ConfigSyslog!=LOG_DAEMON) {
 	SYSLOG(0, (LOG_ERR, "Changing logging dest from LOG_DAEMON "
@@ -3292,7 +3296,7 @@ int main(int argc, char **argv)
 		   ConfigSyslog==LOG_LOCAL7 ? "LOG_LOCAL7" :
 		   "UNKNOWN"));
 	closelog();
-	openlog("psid",LOG_PID|LOG_CONS,ConfigSyslog);
+	openlog("psid", LOG_PID|LOG_CONS, ConfigSyslog);
 	SYSLOG(0, (LOG_ERR, "Starting ParaStation3 DAEMON Protocol Version %d",
 		   PSPprotocolversion));
 	SYSLOG(0, (LOG_ERR, " (c) ParTec AG (www.par-tec.com)"));
