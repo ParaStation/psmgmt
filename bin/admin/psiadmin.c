@@ -636,7 +636,7 @@ int main(int argc, char **argv)
     if(copt){
 	/* Add trailing newline */
 	len=strlen(copt);
-	line=(char *)malloc(len+1);
+	line=(char *)malloc(len+2);
 	strcpy(line, copt);
 	line[len]='\n';
 	line[len+1]='\0';

@@ -629,7 +629,7 @@ char * PSI_LookupInstalldir(void)
 
     while( (installdir[i].nr != -1) && !found ){
 	if(!name)
-	    name = (char*) malloc(sizeof(installdir[0].name) + strlen(logger));
+	    name = (char*) malloc(sizeof(installdir[0].name) + strlen(logger)+1);
 	strcpy(name, installdir[i].name);
 	strcat(name, logger);
 	if(stat(name, &sbuf) != -1){ /* Installdir found */
