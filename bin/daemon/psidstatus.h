@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidstatus.h,v 1.1 2003/12/19 15:12:08 eicker Exp $
+ * $Id: psidstatus.h,v 1.2 2004/01/09 16:09:05 eicker Exp $
  *
  */
 /**
  * @file
  * Helper functions for master-node detection and status actions.
  *
- * $Id: psidstatus.h,v 1.1 2003/12/19 15:12:08 eicker Exp $
+ * $Id: psidstatus.h,v 1.2 2004/01/09 16:09:05 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -34,14 +34,14 @@ extern "C" {
 
 /** Structure used for returning info on number of jobs. */
 typedef struct {
-    short total;              /**< The total number of jobs */
-    short normal;             /**< Number of "normal" jobs (i.e. without
-				 admin, logger etc.) */
+    short total;         /**< The total number of jobs */
+    short normal;        /**< Number of "normal" jobs (i.e. without
+			    admin, logger etc.) */
 } PSID_Jobs_t;
 
 /** Structure used for returning info on load. */
 typedef struct {
-    double load[3];           /**< The actual load parameters */
+    double load[3];      /**< The actual load parameters */
 } PSID_Load_t;
 
 /** Structure used for returning info on node status. */
@@ -58,8 +58,8 @@ typedef struct {
  * for @a normal and the number of normal jobs, i.e. jobs that are
  * intended for computation and not for administrational tasks.
  *
- * If MCast is used for status update, @ref incJobsMCast is
- * called. Otherwise an extra RDPping() @todo is is triggered.
+ * If MCast is used for status control, @ref incJobsMCast is
+ * called. Otherwise an extra status ping is is triggered.
  *
  * @param total Flag if total count of jobs has to be increased.
  *
@@ -77,8 +77,8 @@ void incJobs(int total, int normal);
  * for @a normal and the number of normal jobs, i.e. jobs that are
  * intended for computation and not for administrational tasks.
  *
- * If MCast is used for status update, @ref incJobsMCast is
- * called. Otherwise an extra RDPping() @todo is is triggered.
+ * If MCast is used for status control, @ref incJobsMCast is
+ * called. Otherwise an extra status ping is is triggered.
  *
  * @param total Flag if total count of jobs has to be increased.
  *
@@ -109,27 +109,89 @@ void decJobs(int total, int normal);
  */
 PSID_NodeStatus_t getStatus(PSnodes_ID_t node);
 
-/** @todo */
-void setMasterID(PSnodes_ID_t id);
+/**
+ * @brief Declare master node.
+ *
+ * Declare the node @a newMaster to be the master of the cluster until
+ * another node is declared to handle this task.
+ *
+ * The actual tasks of the master depend on the method used for status
+ * control. If the MCast facility is used, the master only has to
+ * handle partition requests. Otherwise it also controls, if all nodes
+ * are still alive and if daemons on further nodes were started.
+ *
+ * If the local node is declare to be master, @ref alloceMasterSpace
+ * is called in order to provide the space needed to handle all
+ * necessary tasks.
+ *
+ * @param newMaster ParaStation ID of the new master to declare.
+ *
+ * @return No return value.
+ */
+void declareMaster(PSnodes_ID_t newMaster);
 
-/** @todo */
+/**
+ * @brief Test if master is already known.
+ *
+ * Test if the master node is already known. In case of not using the
+ * MCast facility for status control this might happen during a short
+ * startup phase of the cluster.
+ *
+ * @return If the master is still unknown, 0 is returned. After
+ * determining the master is finished, 1 is returned.
+ */
+int knowMaster(void);
+
+/**
+ * @brief Get master's ParaStation ID.
+ *
+ * Get the unique ParaStation ID of the node actually serving as the
+ * master node. In case of usage of the MCast facility, the master's
+ * only task is the handling of partition requests. Otherwise the
+ * master also controll, if all nodes are still alive and if daemons
+ * on further nodes were started.
+ *
+ * In order to be able to rely on the result of this call, also the
+ * result of @ref knowMaster() has to be taken into account. I.e. only
+ * if that function returns a value different from 0, the return value
+ * of this function is valid.
+ *
+ * @return The ParaStation ID of the actual master is returned. Use to
+ * result of @ref knowMaster in order to decide if the ID is valid.
+ *
+ * @see knowMaster()
+ */
 PSnodes_ID_t getMasterID(void);
 
-/** @todo */
-int amMasterNode(void);
+/**
+ * @brief Release status timer.
+ *
+ * Release the timer used within the status control mechanism. This
+ * should only be done, when status control is no longer needed,
+ * i.e. just befor exit.
+ *
+ * @return No return value.
+ */
+void releaseStatusTimer(void);
 
 /** @brief Declare a node dead.
  *
  * Declare the node with ParaStation ID @a id to be dead. Therefor
- * various internal and externel (e.g. within PSnodes or MCast)
+ * various internal and external (e.g. within PSnodes or MCast)
  * indicators are set appropriately. Furthermore local processes
  * connected with foreign ones on the according node will be signaled.
  *
+ * If @a sendDeadnode is different from 0 and the actual node acts as
+ * master, a PSP_DD_DEAD_NODE message is sent to all node known to be
+ * up in order to inform them about the dead node.
+ *
  * @param id The ParaStation ID of the node declared to be dead.
+ *
+ * @param sendDeadnode Flag triggering PSP_DD_DEAD_NODE messages.
  *
  * @return No return value.
  */
-void declareNodeDead(PSnodes_ID_t id);
+void declareNodeDead(PSnodes_ID_t id, int sendDeadnode);
 
 /** @brief Declare a node alive.
  *
@@ -174,6 +236,8 @@ int send_DAEMONCONNECT(PSnodes_ID_t id);
  *
  * Handle the message @a msg of type PSP_DD_DAEMONCONNECT.
  *
+ * @doctodo
+ *
  * @param msg Pointer to the message to handle.
  *
  * @return No return value.
@@ -185,6 +249,8 @@ void msg_DAEMONCONNECT(DDBufferMsg_t *msg);
  *
  * Handle the message @a msg of type PSP_DD_DAEMONESTABLISHED.
  *
+ * @doctodo
+ *
  * @param msg Pointer to the message to handle.
  *
  * @return No return value.
@@ -192,9 +258,39 @@ void msg_DAEMONCONNECT(DDBufferMsg_t *msg);
 void msg_DAEMONESTABLISHED(DDBufferMsg_t *msg);
 
 /**
+ * @brief Broadcast a PSP_DD_DAEMONSHUTDOWN message.
+ *
+ * Broadcast a PSP_DD_DAEMONSHUTDOWN message to all active nodes. This
+ * message indicates that the sender will go down soon and no longer
+ * handles any communication. Thus this function should only be called
+ * immediately befor exit.
+ *
+ * @return On success, the number of nodes the PSP_DD_DAEMONSHUTDOWN
+ * message is sent to is returned, i.e. the value returned by the @ref
+ * broadcastMsg() call. If an error occured, -1 is returned and errno
+ * is set appropriately.
+ */
+int send_DAEMONSHUTDOWN(void);
+
+/**
+ * @brief Handle a PSP_DD_DAEMONSHUTDOWN message.
+ *
+ * Handle the message @a msg of type PSP_DD_DAEMONSHUTDOWN.
+ *
+ * @doctodo
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+void msg_DAEMONSHUTDOWN(DDMsg_t *msg);
+
+/**
  * @brief Handle a PSP_DD_LOAD message.
  *
  * Handle the message @a msg of type PSP_DD_LOAD.
+ *
+ * @doctodo
  *
  * @param msg Pointer to the message to handle.
  *
@@ -207,33 +303,39 @@ void msg_LOAD(DDBufferMsg_t *msg);
  *
  * Handle the message @a msg of type PSP_DD_MASTER_IS.
  *
- * @param msg Pointer to the message to handle.
- *
- * @return No return value.
- */
-void msg_MASTER_IS(DDBufferMsg_t *msg);
-
-/**
- * @brief Handle a PSP_DD_DEAD_NODE message.
- *
- * Handle the message @a msg of type PSP_DD_DEAD_NODE.
+ * @doctodo
  *
  * @param msg Pointer to the message to handle.
  *
  * @return No return value.
  */
-void msg_DEAD_NODE(DDBufferMsg_t *msg);
+void msg_MASTERIS(DDBufferMsg_t *msg);
 
 /**
  * @brief Handle a PSP_DD_ACTIVE_NODES message.
  *
  * Handle the message @a msg of type PSP_DD_ACTIVE_NODES.
  *
+ * @doctodo
+ *
  * @param msg Pointer to the message to handle.
  *
  * @return No return value.
  */
-void msg_ACTIVE_NODES(DDBufferMsg_t *msg);
+void msg_ACTIVENODES(DDBufferMsg_t *msg);
+
+/**
+ * @brief Handle a PSP_DD_DEAD_NODE message.
+ *
+ * Handle the message @a msg of type PSP_DD_DEAD_NODE.
+ *
+ * @doctodo
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+void msg_DEADNODE(DDBufferMsg_t *msg);
 
 #ifdef __cplusplus
 }/* extern "C" */
