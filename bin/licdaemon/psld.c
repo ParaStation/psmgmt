@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.26 2002/07/17 20:21:07 hauke Exp $
+ * $Id: psld.c,v 1.27 2002/07/23 12:50:31 eicker Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Daemon
  *
- * $Id: psld.c,v 1.26 2002/07/17 20:21:07 hauke Exp $
+ * $Id: psld.c,v 1.27 2002/07/23 12:50:31 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.26 2002/07/17 20:21:07 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.27 2002/07/23 12:50:31 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -52,6 +52,8 @@ static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.26 2002/07/17 20
 
 static int usesyslog = 1;  /* flag if syslog is used */
 static int loglevel = 0;   /* the default logging level */
+
+static int stopDaemon = 0; /* flag to stop the license-daemon */
 
 char DEFAULT_PIDFILE[]="/var/run/psld.pid";
 
@@ -236,12 +238,44 @@ void sighandler(int sig)
     }
 }
 
+/******************************************
+ * MCastCallBack()
+ * this function is called by MCast if
+ * - a new daemon connects
+ * - a daemon is declared as dead
+ * - the license-server is not needed any longer
+ * - the license-server is missing
+ * - the license-server is going down
+ */
+void MCastCallBack(int msgid, void *buf)
+{
+    int node;
+    struct in_addr hostaddr;
+
+    switch(msgid) {
+    case MCAST_NEW_CONNECTION:
+    case MCAST_LOST_CONNECTION:
+    case MCAST_LIC_LOST:
+    case MCAST_LIC_SHUTDOWN:
+	/* Ignore this callback */
+	break;
+    case MCAST_LIC_END:
+	errlog("MCastCallBack(MCAST_LIC_END) License-daemon going down...", 0);
+	stopDaemon = 1;
+	break;
+    default:
+	snprintf(errtxt, sizeof(errtxt),
+		 "MCastCallBack(%d,%p). Unhandled message", msgid, buf);
+	errlog(errtxt, 0);
+    }
+}
+
 /*
  * Print version info
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.26 $";
+    char revision[] = "$Revision: 1.27 $";
     snprintf(errtxt, sizeof(errtxt), "psld %s\b ", revision+11);
     errlog(errtxt, 0);
 }
@@ -388,46 +422,50 @@ int main(int argc, char *argv[])
 	openlog("psld", LOG_PID, ConfigLogDest);
     }
 
-/*      if(check_license(usesyslog)){ */
+    errlog("Starting ParaStation License-Daemon", 0);
+    errlog(" (c) ParTec AG (www.par-tec.com)", 0);
 
-	/*
-	 * Prepare hostlist for initialization of RDP and MCast
-	 */
-	hostlist = malloc((NrOfNodes+1) * sizeof (unsigned int));
-	if (!hostlist) {
-	    errlog("Not enough memory for hostlist\n", 0);
-	    return -1;
-	}
+    /*
+     * Prepare hostlist for initialization of MCast
+     */
+    hostlist = malloc((NrOfNodes+1) * sizeof (unsigned int));
+    if (!hostlist) {
+	errlog("Not enough memory for hostlist\n", 0);
+	return -1;
+    }
 
-	for (i=0; i<NrOfNodes; i++) {
-	    hostlist[i] = nodes[i].addr;
-	}
-	hostlist[NrOfNodes] = licNode.addr;
+    for (i=0; i<NrOfNodes; i++) {
+	hostlist[i] = nodes[i].addr;
+    }
+    hostlist[NrOfNodes] = licNode.addr;
 
-	msock = initMCast(NrOfNodes, ConfigMCastGroup, ConfigMCastPort,
-			  usesyslog, hostlist, NrOfNodes, NULL);
+    msock = initMCast(NrOfNodes, ConfigMCastGroup, ConfigMCastPort,
+		      usesyslog, hostlist, NrOfNodes, MCastCallBack);
 
-	tv.tv_sec = 1;
-	tv.tv_usec = 0;
+    setDeadLimitMCast(ConfigLicDeadInterval);
 
-	while(1){
-	    Tselect(0,NULL,NULL,NULL,&tv);
-	    if (--lc < 0) { /* first check after 10 sec */
-		lc = 3600; /* Next check in 1 h */
-		if (!lok) {
-		peng:
-		    /* Licensefile is corrupted */
-		    errlog("Corrupted license!\n", 0);
-		    /* What to do ??? Kill all psid's ? */
-		    exit(1);
-		}
-		if (--lc2 < 0) { /* second check after 1 h */
-		    if (!lic_isvalid(&ConfigLicEnv)) goto peng;
-		    lc2 = 24; /* and one time every day */
-		}
+    tv.tv_sec = 1;
+    tv.tv_usec = 0;
+
+    while (!stopDaemon) {
+	Tselect(0,NULL,NULL,NULL,&tv);
+	if (--lc < 0) { /* first check after 10 sec */
+	    lc = 3600; /* Next check in 1 h */
+	    if (!lok) {
+	    peng:
+		/* Licensefile is corrupted */
+		errlog("Corrupted license!\n", 0);
+		/* What to do ??? Kill all psid's ? */
+		exit(1);
+	    }
+	    if (--lc2 < 0) { /* second check after 1 h */
+		if (!lic_isvalid(&ConfigLicEnv)) goto peng;
+		lc2 = 24; /* and one time every day */
 	    }
 	}
-/*      } */
+    }
+
+    unlink(PIDFILE);
 
     return 0;
 }
