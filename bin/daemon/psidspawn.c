@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidspawn.c,v 1.1 2002/07/26 15:29:54 eicker Exp $
+ * $Id: psidspawn.c,v 1.2 2002/07/31 09:10:48 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.1 2002/07/26 15:29:54 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.2 2002/07/31 09:10:48 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -20,13 +20,9 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.1 2002/07/2
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
-
-#include <netinet/tcp.h>
-#include <arpa/inet.h>
-#include <sys/stat.h>
 #include <sys/time.h>
 #include <pty.h>
-#include <syslog.h>
+#include <signal.h>
 
 #include "pscommon.h"
 
@@ -58,6 +54,7 @@ int PSID_execv(const char *path, char *const argv[])
 
 int PSID_execClient(PStask_t *task, int controlchannel)
 {
+    /* logging is done via the forwarder thru stderr! */
     struct stat sb;
     char pid_str[20];
     int i;
@@ -66,9 +63,8 @@ int PSID_execClient(PStask_t *task, int controlchannel)
     if (setgid(task->gid)<0) {
 	char *errstr = strerror(errno);
 
-	snprintf(errtxt, sizeof(errtxt), "PSID_execClient(): setgid: %s",
-		 errstr ? errstr : "UNKNOWN");
-	PSID_errlog(errtxt, 0);
+	fprintf(stderr, "PSID_execClient(): setgid: %s",
+		errstr ? errstr : "UNKNOWN");
 
 	write(controlchannel, &errno, sizeof(errno));
 	exit(0);
@@ -78,9 +74,8 @@ int PSID_execClient(PStask_t *task, int controlchannel)
     if (setuid(task->uid)<0) {
 	char *errstr = strerror(errno);
 
-	snprintf(errtxt, sizeof(errtxt), "PSID_execClient() setuid: %s",
-		 errstr ? errstr : "UNKNOWN");
-	PSID_errlog(errtxt, 0);
+	fprintf(stderr, "PSID_execClient() setuid: %s",
+		errstr ? errstr : "UNKNOWN");
 
 	write(controlchannel, &errno, sizeof(errno));
 	exit(0);
@@ -90,10 +85,9 @@ int PSID_execClient(PStask_t *task, int controlchannel)
     if (chdir(task->workingdir)<0) {
 	char *errstr = strerror(errno);
 
-	snprintf(errtxt, sizeof(errtxt), "PSID_execClient(): chdir(%s): %s",
-		 task->workingdir ? task->workingdir : "",
-		 errstr ? errstr : "UNKNOWN");
-	PSID_errlog(errtxt, 0);
+	fprintf(stderr, "PSID_execClient(): chdir(%s): %s",
+		task->workingdir ? task->workingdir : "",
+		errstr ? errstr : "UNKNOWN");
 
 	write(controlchannel, &errno, sizeof(errno));
 	exit(0);
@@ -108,28 +102,23 @@ int PSID_execClient(PStask_t *task, int controlchannel)
 	}
     }
 
-    snprintf(pid_str, sizeof(pid_str), "%d", getpid());
-    setenv("PSI_PID", pid_str, 1);
-
     /* Test if executable is there */
     if (stat(task->argv[0], &sb) == -1) {
 	char *errstr = strerror(errno);
 
-	snprintf(errtxt, sizeof(errtxt), "PSID_execClient(): stat(%s): %s",
-		 task->argv[0] ? task->argv[0] : "",
-		 errstr ? errstr : "UNKNOWN");
-	PSID_errlog(errtxt, 0);
+	fprintf(stderr, "PSID_execClient(): stat(%s): %s",
+		task->argv[0] ? task->argv[0] : "",
+		errstr ? errstr : "UNKNOWN");
 
 	write(controlchannel, &errno, sizeof(errno));
 	exit(0);
     }
 
-    if (((sb.st_mode & S_IFMT) != S_IFREG) || !(sb.st_mode & S_IXUSR)) {
+    if (!S_ISREG(sb.st_mode) || !(sb.st_mode & S_IXUSR)) {
 	errno = EACCES;
-	snprintf(errtxt, sizeof(errtxt), "PSID_execClient(): stat(): %s",
-		 ((sb.st_mode & S_IFMT) != S_IFREG) ? "S_IFREG error" :
-		 (sb.st_mode & S_IEXEC) ? "" : "S_IEXEC error");
-	PSID_errlog(errtxt, 0);
+	fprintf(stderr, "PSID_execClient(): stat(): %s",
+		(!S_ISREG(sb.st_mode)) ? "S_ISREG error" :
+		(sb.st_mode & S_IXUSR) ? "" : "S_IXUSR error");
 
 	write(controlchannel, &errno, sizeof(errno));
 	exit(0);
@@ -139,9 +128,8 @@ int PSID_execClient(PStask_t *task, int controlchannel)
     if (PSID_execv(task->argv[0], &(task->argv[0]))<0) {
 	char *errstr = strerror(errno);
 
-	snprintf(errtxt, sizeof(errtxt), "PSID_execClient() execv: %s",
-		 errstr ? errstr : "UNKNOWN");
-	PSID_errlog(errtxt, 0);
+	fprintf(stderr, "PSID_execClient() execv: %s",
+		errstr ? errstr : "UNKNOWN");
     }
     /* never reached, if execv succesful */
 
@@ -160,6 +148,7 @@ int PSID_execForwarder(PStask_t *task, int controlchannel)
     int ret, buf, i;
     char *argv[9];
 
+    PSID_blockSig(0, SIGCHLD);
     /* create a control channel in order to observe the client */
     if (pipe(clientfds)<0) {
 	char *errstr = strerror(errno);
@@ -288,13 +277,12 @@ int PSID_execForwarder(PStask_t *task, int controlchannel)
         dup2(stdoutfds[1], STDOUT_FILENO);
 	dup2(stderrfds[1], STDERR_FILENO);
 
+	/* From now on, all logging is done via the forwarder thru stderr */
 	if (errno) {
 	    /* at least one dup2() failed */
 	    char *errstr = strerror(errno);
-	    snprintf(errtxt, sizeof(errtxt),
-		     "PSID_execForwarder() dup2(): [%d] %s",
-		     errno, errstr ? errstr : "UNKNOWN");
-	    PSID_errlog(errtxt, 0);
+	    fprintf(stderr, "PSID_execForwarder() dup2(): [%d] %s",
+		    errno, errstr ? errstr : "UNKNOWN");
 
 	    write(clientfds[1], &errno, sizeof(errno));
 	    exit(1);
