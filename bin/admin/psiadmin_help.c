@@ -5,13 +5,13 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin_help.c,v 1.11 2003/03/19 16:54:29 eicker Exp $
+ * $Id: psiadmin_help.c,v 1.12 2003/05/28 17:08:31 eicker Exp $
  *
  * \todo More detailed messages for 'status' and 'set'.
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin_help.c,v 1.11 2003/03/19 16:54:29 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin_help.c,v 1.12 2003/05/28 17:08:31 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 static void PrintHelp(void)
@@ -21,8 +21,8 @@ static void PrintHelp(void)
     printf("======================================\n");
     printf("\n");
     printf("ADD:      Start ParaStation daemon process on one or all nodes\n");
-    printf("CONFIG:   Print current setting of internal parameters\n");
     printf("KILL:     Terminate a ParaStation process on any node\n");
+    printf("SHOW:     Show control parameters\n");
     printf("STATUS:   Status information\n");
     printf("VERSION:  Print version numbers\n");
     printf("QUIT:     Quit PSIadmin\n");
@@ -74,18 +74,18 @@ static void PrintAddHelp(void)
     return;
 }
 
-static void PrintConfigHelp(void)
-{
-    printf("\n");
-    printf("Config command:\n");
-    printf("===============\n");
-    printf("\n");
-    printf("SYNTAX:    CONFIG\n");
-    printf("\n");
-    printf("Description: Print current setting of internal parameters\n");
-    printf("\n");
-    return;
-}
+/* static void PrintConfigHelp(void) */
+/* { */
+/*     printf("\n"); */
+/*     printf("Config command:\n"); */
+/*     printf("===============\n"); */
+/*     printf("\n"); */
+/*     printf("SYNTAX:    CONFIG\n"); */
+/*     printf("\n"); */
+/*     printf("Description: Print current setting of internal parameters\n"); */
+/*     printf("\n"); */
+/*     return; */
+/* } */
 
 static void PrintKillHelp(void)
 {
@@ -99,6 +99,42 @@ static void PrintKillHelp(void)
 	   " The task-id\n");
     printf("             can be obtained from the STATUS PROC command.\n");
     printf("             The default signal sent is SIGTERM.\n");
+    printf("\n");
+    return;
+}
+
+static void PrintShowHelp(void)
+{
+    printf("\n");
+    printf("Show command:\n");
+    printf("=========================\n");
+    printf("\n");
+    printf("SYNTAX:    SHOW {SMALLPACKETSIZE | HNPEND | ACKPEND | USER"
+	   " | MAXPROC\n");
+    printf("                | PSIDDEBUG | RDPDEBUG | RDPPKTLOSS"
+	   " | RDPMAXRETRANS\n");
+    printf("                | MCASTDEBUG} [FROM [TO]]\n");
+    NodeInfo();
+    printf("Description: SHOW SMALLPACKETSIZE  show maximum size [bytes] of"
+	   " PIO packets.\n");
+    printf("             SHOW HNPEND           show HNPend.\n");
+    printf("             SHOW ACKPEND          show AckPend.\n");
+    printf("             SHOW USER             show user access is granted"
+	   " to.\n");
+    printf("             SHOW MAXPROC          show maximum number of"
+	   " ParaStation\n");
+    printf("                                   processes.\n");
+    printf("             SHOW PSIDDEBUG        show daemons verbosity"
+	   " level.\n");
+    printf("             SHOW RDPDEBUG         show RDP protocol's verbosity"
+	   " level.\n");
+    printf("             SHOW RDPPKTLOSS       show RDP protocol's packet-loss"
+	   " rate.\n");
+    printf("             SHOW RDPMAXRETRANS    show RDP protocol's maximum"
+	   " retransmission\n");
+    printf("                                   count\n");
+    printf("             SHOW MCASTDEBUG       show MCast facility's verbosity"
+	   " level.\n");
     printf("\n");
     return;
 }
@@ -271,52 +307,40 @@ static void PrintRestartHelp(void)
 static void PrintSetHelp(void)
 {
     printf("\n");
-    printf("Set command (privileged):\n");
+    printf("Show command:\n");
     printf("=========================\n");
     printf("\n");
-    printf("SYNTAX:    SET {SMALLPACKETSIZE mask | RESENDTIMEOUT time"
-	   " | HNPEND val\n");
-    printf("                | ACKPEND val}\n");
-    printf("      or   SET {USER {username|ANY} | MAXPROC {num|ANY}"
+    printf("SYNTAX:    SET {SMALLPACKETSIZE mask | HNPEND val"
+	   " | ACKPEND val\n");
+    printf("                | USER {username|ANY} | MAXPROC {num|ANY}"
 	   " | PSIDDEBUG level\n");
     printf("                | RDPDEBUG level | RDPPKTLOSS rate"
 	   " | RDPMAXRETRANS val\n");
     printf("                | MCASTDEBUG level} [FROM [TO]]\n");
     NodeInfo();
-    printf("Description: SET SMALLPACKETSIZE size set the maximum size of PIO"
-	   " packets\n");
-    printf("                                      (in bytes).\n");
-    printf("             SET RESENDTIMEOUT time   set retansmission timeout"
-	   " (in us).\n");
+    printf("Description: SET SMALLPACKETSIZE size set the maximum size [bytes]"
+	   " of PIO\n");
+    printf("                                      packets.\n");
     printf("             SET HNPEND val           set HNPend to val.\n");
     printf("             SET ACKPEND val          set AckPend to val.\n");
-    printf("\n");
     printf("             SET USER {username|ANY}  grants access to a"
 	   " particular or any\n");
-    printf("                                      user on the selected"
-		  " nodes.\n");
+    printf("                                      user.\n");
     printf("             SET MAXPROC {num|ANY}    set maximum number of"
 	   " ParaStation\n");
-    printf("                                      processes on the selected"
-	   " nodes.\n");
+    printf("                                      processes.\n");
     printf("             SET PSIDDEBUG level      set verbosity level for the"
 	   " ParaStation\n");
-    printf("                                      daemon on the selected"
-	   " nodes.\n");
-    printf("             SET RDPDEBUG level       set verbosity level for RDP"
-	   " protocol on\n");
-    printf("                                      the selected nodes.\n");
-    printf("             SET RDPPKTLOSS rate      set packet-loss rate for RDP"
-	   " protocol on\n");
-    printf("                                      the selected nodes.\n");
-    printf("             SET RDPMAXRETRANS val    set the maximum"
-	   " retransmission count\n");
-    printf("                                      for RDP protocol on the"
-	   " selected nodes.\n");
-    printf("             SET MCASTDEBUG level     set verbosity level for the"
-	   " MCast\n");
-    printf("                                      facility on the selected"
-	   " nodes.\n");
+    printf("                                      daemon.\n");
+    printf("             SET RDPDEBUG level       set RDP protocol's verbosity"
+	   " level.\n");
+    printf("             SET RDPPKTLOSS rate      set RDP protocol's"
+	   " packet-loss rate.\n");
+    printf("             SET RDPMAXRETRANS val    set RDP protocol's maximum"
+	   " retransmission\n");
+    printf("                                      count.\n");
+    printf("             SET MCASTDEBUG level     set MCast's verbosity"
+	   " level.\n");
     printf("\n");
     printf("For more information type HELP SET <subcommand>\n");
     printf("\n");
