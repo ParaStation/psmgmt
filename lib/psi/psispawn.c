@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.22 2002/07/19 12:50:18 eicker Exp $
+ * $Id: psispawn.c,v 1.23 2002/07/19 13:50:24 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.22 2002/07/19 12:50:18 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.23 2002/07/19 13:50:24 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -592,7 +592,7 @@ short PSI_getPartition(unsigned int hwType, int myRank)
     NodelistEntry_t *nodelist=NULL;
 
     snprintf(errtxt, sizeof(errtxt),
-	     "PSI_getPartition(%x, %d)", hwType, myRank);
+	     "PSI_getPartition([%s], %d)", PSHW_printType(hwType), myRank);
     PSI_errlog(errtxt, 10);
 
     /* Get the selected nodes */
@@ -890,10 +890,19 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
 	    }
 
 	    if (i==count) {
-		snprintf(errtxt, sizeof(errtxt), "PSI_dospawn():"
-			 " got SPAWNSUCCESS/SPAWNFAILED message from"
-			 " unknown node %d.", PSC_getID(answer.header.sender));
-		PSI_errlog(errtxt, 0);
+		if (PSC_getID(answer.header.sender)==PSC_getMyID()
+		    && answer.error==EACCES && count==1) {
+		    /* This might be due to 'starting not allowed' here */
+		    errors[0] = answer.error;
+		    tids[0] = answer.header.sender;
+		    ret++;
+		} else {
+		    snprintf(errtxt, sizeof(errtxt), "PSI_dospawn():"
+			     " got SPAWNSUCCESS/SPAWNFAILED message from"
+			     " unknown node %d.",
+			     PSC_getID(answer.header.sender));
+		    PSI_errlog(errtxt, 0);
+		}
 	    }
 
 	    if (answer.header.type==PSP_DD_SPAWNFAILED) {
