@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.71 2002/12/19 13:26:06 eicker Exp $
+ * $Id: psid.c,v 1.72 2003/02/10 19:06:44 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.71 2002/12/19 13:26:06 eicker Exp $ 
+ * $Id: psid.c,v 1.72 2003/02/10 19:06:44 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.71 2002/12/19 13:26:06 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.72 2003/02/10 19:06:44 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -73,7 +73,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.71 $";
+static char psid_cvsid[] = "$Revision: 1.72 $";
 
 static int PSID_mastersock;
 
@@ -97,7 +97,7 @@ struct {
 		  */
     PStask_t *task;     /* pointer to a task, if the client is
 			   associated with a task.
-			   The right object can be decided by the id:
+			   The right kind can be chosen from the id:
 			   PSC_getPID(id)==0 => daemon
 			   PSC_getPID(id)!=0 => task  */
     long flags;
@@ -127,33 +127,35 @@ int RDPSocket = -1;
 /* needed prototypes                                                    */
 /*----------------------------------------------------------------------*/
 void deleteClient(int fd);
-void closeConnection(int fd);
 int isUpDaemon(int node);
 
-void sendAllSignals(PStask_t *oldtask);
-void sendSignalToParent(long ptid, long tid, uid_t uid);
 
-int TOTALsend(int fd, void *buffer, int msglen)
+/************************************************************************/
+/*                   The communication stuff                            */
+/************************************************************************/
+
+/******************************************
+ * closeConnection()
+ * shutdown the filedescriptor and reinit the
+ * clienttable on that filedescriptor
+ */
+void closeConnection(int fd)
 {
-    int n, i;
-    for (n=0, i=1; (n<msglen) && (i>0);) {
-	i = send(fd, &(((char*)buffer)[n]), msglen-n, 0);
-	if (i<=0) {
-	    if (errno!=EINTR) {
-		char *errstr = strerror(errno);
+    if (fd<0) {
+	snprintf(errtxt, sizeof(errtxt), "closeConnection(%d): fd < 0.", fd);
+	PSID_errlog(errtxt, 0);
 
-		snprintf(errtxt, sizeof(errtxt),
-			 "got error %d on socket %d: %s", errno, fd,
-			 errstr ? errstr : "UNKNOWN");
-		PSID_errlog(errtxt, 0);
-		deleteClient(fd);
-		return i;
-	    }
-	} else
-	    n+=i;
+	return;
     }
-    return n;
+
+    clients[fd].tid = -1;
+    clients[fd].task = NULL;
+
+    shutdown(fd, 2);
+    close(fd);
+    FD_CLR(fd, &openfds);
 }
+
 
 /******************************************
  * int sendMsg(DDMsg_t *msg)
@@ -189,7 +191,25 @@ static int sendMsg(void *amsg)
     }
 
     if (fd <FD_SETSIZE) {
-	return TOTALsend(fd, msg, msg->len);
+	int n, i;
+
+	for (n=0, i=1; (n<msg->len) && (i>0);) {
+	    i = send(fd, &(((char*)msg)[n]), msg->len-n, 0);
+	    if (i<=0) {
+		if (errno!=EINTR) {
+		    char *errstr = strerror(errno);
+
+		    snprintf(errtxt, sizeof(errtxt),
+			     "got error %d on socket %d: %s", errno, fd,
+			     errstr ? errstr : "UNKNOWN");
+		    PSID_errlog(errtxt, 0);
+		    deleteClient(fd);
+		    return i;
+		}
+	    } else
+		n+=i;
+	}
+	return n;
     }
 
     return -1;
@@ -258,6 +278,10 @@ static int recvMsg(int fd, DDMsg_t *msg, size_t size)
 		count+=n;
 	    } else if (n<0 && (errno==EINTR)) {
 		continue;
+	    } else if (n<0 && (errno==ECONNRESET)) {
+		/* socket is closed unexpectedly */
+		n = 0;
+		break;
 	    } else break;
 	} while (msg->len > count);
     }
@@ -265,8 +289,9 @@ static int recvMsg(int fd, DDMsg_t *msg, size_t size)
     if (n==-1) {
 	char *errstr = strerror(errno);
 	snprintf(errtxt, sizeof(errtxt),
-		 "recvMsg(%d): read() failed with errno %d: %s",
-		 fd, errno, errstr ? errstr : "UNKNOWN");
+		 "recvMsg(%d/%s): %d=read() failed with errno %d: %s",
+		 fd, PSC_printTID(clients[fd].tid), count,
+		 errno, errstr ? errstr : "UNKNOWN");
 	PSID_errlog(errtxt, 0);
     } else if (PSID_getDebugLevel() >= 6) {
 	if (n==0) {
@@ -292,7 +317,7 @@ static int recvMsg(int fd, DDMsg_t *msg, size_t size)
 /******************************************
  * int broadcastMsg(DDMsg_t *msg)
  */
-int broadcastMsg(void *amsg)
+static int broadcastMsg(void *amsg)
 {
     DDMsg_t *msg = (DDMsg_t *) amsg;
     int count=1;
@@ -315,6 +340,146 @@ int broadcastMsg(void *amsg)
 
     return count;
 }
+
+/************************************************************************/
+/*                       The signaling stuff                            */
+/************************************************************************/
+void sendSignal(long tid, uid_t uid, long senderTid, int signal)
+{
+    PStask_t *task = PStasklist_find(managedTasks, tid);
+    pid_t pid = PSC_getPID(tid);
+
+    if (!task) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "sendSignal() tried to send sig %d to %s: task not found",
+		 signal, PSC_printTID(tid));
+	PSID_errlog(errtxt, 1);
+    } else if (pid) {
+	/*
+	 * fork to a new process to change the userid
+	 * and get the right errors
+	 */
+	int sig = (signal!=-1) ? signal : task->relativesignal;
+	if (sig) {
+	    if (!fork()) {
+		/*
+		 * I'm the killing process
+		 * my father is just returning
+		 */
+		int error;
+
+		/*
+		 * change the user id to the appropriate user
+		 */
+		if (setuid(uid)<0) {
+		    snprintf(errtxt, sizeof(errtxt),
+			     "sendSignal() setuid(%d)", uid);
+		    PSID_errexit(errtxt, errno);
+		}
+		error = kill(pid, sig);
+		if (error && errno!=ESRCH) {
+		    snprintf(errtxt, sizeof(errtxt),
+			     "sendSignal() kill(%d, %d)", pid, sig);
+		    PSID_errexit(errtxt, errno);
+		}
+
+		exit(0);
+	    }
+
+	    /* @todo Test if sending of signal was successful */
+	    /* for now, assume it was successful */
+	    PSID_setSignal(&task->signalSender, senderTid, sig);
+
+	    snprintf(errtxt, sizeof(errtxt),
+		     "sendSignal() sent signal %d to %s",
+		     sig, PSC_printTID(tid));
+	    PSID_errlog(errtxt, 8);
+	}
+    }
+}
+
+/*----------------------------------------------------------------------------
+ *
+ * Send the signals to all task which have asked for
+ */
+void sendAllSignals(PStask_t *task)
+{
+    int sig=-1;
+    long sigtid;
+
+    while ((sigtid = PSID_getSignal(&task->signalReceiver, &sig))) {
+	if (PSC_getID(sigtid)==PSC_getMyID()) {
+	    /* receiver is on local node, send signal */
+	    sendSignal(sigtid, task->uid, task->tid, sig);
+	} else {
+	    /* receiver is on a remote node, send message */
+	    DDSignalMsg_t msg;
+
+	    msg.header.type = PSP_DD_SIGNAL;
+	    msg.header.sender = task->tid;
+	    msg.header.dest = sigtid;
+	    msg.header.len = sizeof(msg);
+	    msg.signal = sig;
+	    msg.param = task->uid;
+
+	    sendMsg(&msg);
+	}
+
+	snprintf(errtxt, sizeof(errtxt),
+		 "sendAllSignals(%s)", PSC_printTID(task->tid));
+	snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
+		 " sent signal %d to %s", sig, PSC_printTID(sigtid));
+	PSID_errlog(errtxt, 1);
+
+	sig = -1;
+    }
+}
+
+/*----------------------------------------------------------------------------
+ *
+ * Send the signals to parent and childs
+ */
+void sendSignalsToRelatives(PStask_t *task)
+{
+    long sigtid;
+    int sig = -1;
+
+    sigtid = task->ptid;
+
+    if (!sigtid) sigtid = PSID_getSignal(&task->childs, &sig);
+
+    while (sigtid) {
+	if (PSC_getID(sigtid)==PSC_getMyID()) {
+	    /* receiver is on local node, send signal */
+	    sendSignal(sigtid, task->uid, task->tid, -1);
+	} else {
+	    /* receiver is on a remote node, send message */
+	    DDSignalMsg_t msg;
+
+	    msg.header.type = PSP_DD_SIGNAL;
+	    msg.header.dest = sigtid;
+	    msg.header.sender = task->tid;
+	    msg.header.len = sizeof(msg);
+	    msg.signal = -1;
+	    msg.param = task->uid;
+
+	    sendMsg(&msg);
+	}
+
+	snprintf(errtxt, sizeof(errtxt),
+		 "sendSignalsToRelatives(%s)", PSC_printTID(task->tid));
+	snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
+		 " sent signal -1 to %s", PSC_printTID(sigtid));
+	PSID_errlog(errtxt, 8);
+
+	sig = -1;
+
+	sigtid = PSID_getSignal(&task->childs, &sig);
+    }
+}
+
+
+/*****************************************************************************/
 
 /******************************************
  *  isUpDaemon()
@@ -506,82 +671,6 @@ void initDaemon(int id, int hwStatus, short numCPU)
 }
 
 /******************************************
- * closeConnection()
- * shutdown the filedescriptor and reinit the
- * clienttable on that filedescriptor
- */
-void closeConnection(int fd)
-{
-    if (fd<0) {
-	snprintf(errtxt, sizeof(errtxt), "closeConnection(%d): fd < 0.", fd);
-	PSID_errlog(errtxt, 0);
-
-	return;
-    }
-
-    clients[fd].tid = -1;
-    clients[fd].task = NULL;
-
-    shutdown(fd, 2);
-    close(fd);
-    FD_CLR(fd, &openfds);
-}
-
-void sendSignal(long tid, uid_t uid, long senderTid, int signal)
-{
-    PStask_t *task = PStasklist_find(managedTasks, tid);
-    pid_t pid = PSC_getPID(tid);
-
-    if (!task) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "sendSignal() tried to send sig %d to %s: task not found",
-		 signal, PSC_printTID(tid));
-	PSID_errlog(errtxt, 1);
-    } else if (pid) {
-	/*
-	 * fork to a new process to change the userid
-	 * and get the right errors
-	 */
-	int sig = (signal!=-1) ? signal : task->childsignal;
-	if (sig) {
-	    if (!fork()) {
-		/*
-		 * I'm the killing process
-		 * my father is just returning
-		 */
-		int error;
-
-		/*
-		 * change the user id to the appropriate user
-		 */
-		if (setuid(uid)<0) {
-		    snprintf(errtxt, sizeof(errtxt),
-			     "sendSignal() setuid(%d)", uid);
-		    PSID_errexit(errtxt, errno);
-		}
-		error = kill(pid, sig);
-		if (error && errno!=ESRCH) {
-		    snprintf(errtxt, sizeof(errtxt),
-			     "sendSignal() kill(%d, %d)", pid, sig);
-		    PSID_errexit(errtxt, errno);
-		}
-
-		exit(0);
-	    }
-
-	    /* @todo Test if sending of signal was successful */
-	    /* for now, assume it was successful */
-	    PSID_setSignal(&task->signalSender, senderTid, sig);
-
-	    snprintf(errtxt, sizeof(errtxt),
-		     "sendSignal() sent signal %d to %s",
-		     sig, PSC_printTID(tid));
-	    PSID_errlog(errtxt, 8);
-	}
-    }
-}
-
-/******************************************
  * declareDaemonDead()
  * is called when a connection to a daemon is lost
  */
@@ -641,6 +730,61 @@ int send_DAEMONCONNECT(int id)
     return -1;
 }
 
+void cleanupTask(long tid)
+{
+    PStask_t *task, *clone = NULL;
+
+    task = PStasklist_dequeue(&managedTasks, tid);
+    if (task) {
+	/*
+	 * send all task which want to receive a signal
+	 * the signal they want to receive
+	 */
+	sendAllSignals(task);
+
+	if (task->group==TG_FORWARDER && !task->released) {
+	    /*
+	     * Backup task in order to get the child later. The child
+	     * list will be destroyd within sendSignalsToRelatives()
+	     */
+	    clone = PStask_clone(task);
+	}
+
+	/* Check the relatives */
+	if (!task->released) {
+	    sendSignalsToRelatives(task);
+	}
+
+	/* Tell MCast about removing the task */
+	decJobsMCast(PSC_getMyID(), 1, (task->group==TG_ANY));
+
+	if (task->group==TG_FORWARDER && !task->released) {
+	    /* cleanup child */
+	    long childTID;
+	    int sig = -1;
+
+	    childTID = PSID_getSignal(&clone->childs, &sig);
+
+	    snprintf(errtxt, sizeof(errtxt),
+		     "cleanupTask(): forwarder kills child %s",
+		     PSC_printTID(childTID));
+	    PSID_errlog(errtxt, 0);
+
+	    if (childTID) cleanupTask(childTID);
+
+	    PStask_delete(clone);
+	}
+
+	PStask_delete(task);
+
+    } else {
+	snprintf(errtxt, sizeof(errtxt),
+		 "cleanupTask(): task(%s) not in my tasklist",
+		 PSC_printTID(tid));
+	PSID_errlog(errtxt, 0);
+    }
+}
+
 /******************************************
  *  deleteClient(int fd)
  */
@@ -668,36 +812,14 @@ void deleteClient(int fd)
 	     "deleteClient(): closing connection to %s", PSC_printTID(tid));
     PSID_errlog(errtxt, 1);
 
-    task = PStasklist_dequeue(&managedTasks, tid);
-    if (task) {
-	/*
-	 * send all task which want to receive a signal
-	 * the signal they want to receive
-	 */
-	sendAllSignals(task);
-
-	/* Check the parent task */
-	if (task->ptid && !task->released) {
-	    sendSignalToParent(task->ptid, task->tid, task->uid);
-	}
-
-	/* Tell MCast about removing the task */
-	decJobsMCast(PSC_getMyID(), 1, (task->group==TG_ANY));
-
-	PStask_delete(task);
-    } else {
-	snprintf(errtxt, sizeof(errtxt),
-		 "deleteClient(): task(%s) not in my tasklist",
-		 PSC_printTID(tid));
-	PSID_errlog(errtxt, 0);
-    }
+    cleanupTask(tid);
 
     return;
 }
 
 /******************************************
-*  doReset()
-*/
+ *  doReset()
+ */
 static int doReset(void)
 {
     snprintf(errtxt, sizeof(errtxt), "doReset() status %s",
@@ -1026,9 +1148,6 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	outmsg.version = PSprotocolversion;
 	outmsg.nrofnodes = PSC_getNrOfNodes();
 	outmsg.myid = PSC_getMyID();
-	outmsg.loggernode = task->loggernode;
-	outmsg.loggerport = task->loggerport;
-	outmsg.loggertid = task->loggertid;
 	outmsg.group = msg->group;
 	strncpy(outmsg.instdir, PSC_lookupInstalldir(),
 		sizeof(outmsg.instdir));
@@ -1228,15 +1347,44 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	answer.error = err;
 
 	if (!err) {
+	    /*
+	     * Mark the spawned task as the forwarders childs. Thus the task
+	     * will get a signal if the forwarder dies unexpectedly.
+	     */
+	    PSID_setSignal(&forwarder->childs, task->tid, -1);
+	    /* Enqueue the forwarder */
 	    PStasklist_enqueue(&managedTasks, forwarder);
-	    /* Tell MCast about the new task */
+	    /* The forwarder is already connected */
+	    clients[forwarder->fd].tid = forwarder->tid;
+	    clients[forwarder->fd].task = forwarder;
+	    clients[forwarder->fd].flags &= ~INITIALCONTACT;
+	    FD_SET(forwarder->fd, &openfds);
+	    /* Tell MCast about the new forwarder task */
 	    incJobsMCast(PSC_getMyID(), 1, (forwarder->group==TG_ANY));
 
+	    /*
+	     * The task will get a signal from its parent. Thus add ptid
+	     * to assignedSigs
+	     */
+	    PSID_setSignal(&task->assignedSigs, task->ptid, -1);
+	    /* Enqueue the task */
 	    PStasklist_enqueue(&managedTasks, task);
 	    /* Tell MCast about the new task */
 	    incJobsMCast(PSC_getMyID(), 1, (task->group==TG_ANY));
 
 	    answer.header.sender = task->tid;
+
+	    /*
+	     * The answer will be sent directly to the initiator if he is on
+	     * the same node. Thus register directly as his child.
+	     */
+	    if (PSC_getID(task->ptid) == PSC_getMyID()) {
+		PStask_t *parent = PStasklist_find(managedTasks, task->ptid);
+
+		if (parent) {
+		    PSID_setSignal(&parent->childs, task->tid, -1);
+		}
+	    }
 	} else {
 	    char *errstr = strerror(err);
 	    snprintf(errtxt, sizeof(errtxt),
@@ -1298,84 +1446,34 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
     }
 }
 
-/*----------------------------------------------------------------------------
- * void sendAllSignals(PStask_t *task)
- *
- * Send the signals to all task which have asked for
- */
-void sendAllSignals(PStask_t *task)
-{
-    int sig=-1;
-    long sigtid;
-
-    while ((sigtid = PSID_getSignal(&task->signalReceiver, &sig))) {
-	if (PSC_getID(sigtid)==PSC_getMyID()) {
-	    /* receiver is on local node, send signal */
-	    sendSignal(sigtid, task->uid, task->tid, sig);
-	} else {
-	    /* receiver is on a remote node, send message */
-	    DDSignalMsg_t msg;
-
-	    msg.header.type = PSP_DD_SIGNAL;
-	    msg.header.sender = task->tid;
-	    msg.header.dest = sigtid;
-	    msg.header.len = sizeof(msg);
-	    msg.signal = sig;
-	    msg.param = task->uid;
-
-	    sendMsg(&msg);
-	}
-
-	snprintf(errtxt, sizeof(errtxt),
-		 "sendAllSignals(%s)", PSC_printTID(task->tid));
-	snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
-		 " sent signal %d to %s", sig, PSC_printTID(sigtid));
-	PSID_errlog(errtxt, 1);
-
-	sig = -1;
-    }
-}
-
-/*----------------------------------------------------------------------------
- * void sendSignalToParent(long ptid, long tid)
- *
- * Send the signals to the parent if it has asked for
- */
-void sendSignalToParent(long ptid, long tid, uid_t uid)
-{
-    if (PSC_getID(ptid)==PSC_getMyID()) {
-	/* receiver is on local node, send signal */
-	sendSignal(ptid, uid, tid, -1);
-    } else {
-	/* receiver is on a remote node, send message */
-	DDSignalMsg_t msg;
-
-	msg.header.type = PSP_DD_SIGNAL;
-	msg.header.dest = ptid;
-	msg.header.sender = tid;
-	msg.header.len = sizeof(msg);
-	msg.signal = -1;
-	msg.param = uid;
-
-	sendMsg(&msg);
-    }
-
-    snprintf(errtxt, sizeof(errtxt),
-	     "sendSignalToParent(%s)", PSC_printTID(tid));
-    snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
-	     " sent signal -1 to %s", PSC_printTID(ptid));
-    PSID_errlog(errtxt, 1);
-}
-
 /******************************************
  *  msg_CHILDDEAD()
  */
 void msg_CHILDDEAD(DDSignalMsg_t *msg)
 {
-    /*
-     * Check the parent task
-     */
-    sendSignalToParent(msg->header.dest, msg->header.sender, msg->param);
+    PStask_t *task, *forwarder;
+
+    snprintf(errtxt, sizeof(errtxt), "CHILDDEAD for %s from %s.",
+	     PSC_printTID(msg->header.dest), PSC_printTID(msg->header.sender));
+    PSID_errlog(errtxt, 1);
+
+    /* If child not connected, remove the task from the tasklist */
+    task = PStasklist_find(managedTasks, msg->header.dest);
+    if (task && (task->fd == -1)) {
+	cleanupTask(msg->header.dest);
+    }
+
+    /* Release the corresponding forwarder */
+    forwarder = PStasklist_find(managedTasks, msg->header.sender);
+    if (forwarder) {
+	forwarder->released = 1;
+    } else {
+	/* Forwarder not found */
+	snprintf(errtxt, sizeof(errtxt),
+		 "CHILDDEAD: forwarder task %s not found",
+		 PSC_printTID(msg->header.sender));
+	PSID_errlog(errtxt, 0);
+    }
 }
 
 /******************************************
@@ -1393,9 +1491,12 @@ void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
 	     " with parent(%s)", PSC_printTID(ptid));
     PSID_errlog(errtxt, 1);
 
-    /* include into assigned Sigs */
     task = PStasklist_find(managedTasks, ptid);
     if (task) {
+	/* register the child */
+	PSID_setSignal(&task->childs, tid, -1);
+
+	/* child will send a signal on exit, thus include into assignedSigs */
 	PSID_setSignal(&task->assignedSigs, tid, -1);
     }
 
@@ -1586,9 +1687,11 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 	{
 	    int i;
 	    static NodelistEntry_t *nodelist = NULL;
-	    if (!nodelist) {
-		nodelist = (NodelistEntry_t *)malloc(PSC_getNrOfNodes()
-						     * sizeof(*nodelist));
+	    static int nodelistlen = 0;
+	    if (nodelistlen < PSC_getNrOfNodes()) {
+		nodelist = (NodelistEntry_t *)
+		    realloc(nodelist, PSC_getNrOfNodes() * sizeof(*nodelist));
+		nodelistlen = PSC_getNrOfNodes();
 	    }
 	    for (i=0; i<PSC_getNrOfNodes(); i++) {
 		MCastConInfo_t info;
@@ -1901,7 +2004,7 @@ void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 	task = PStasklist_find(managedTasks, registrarTid);
 	if (task) {
 	    /* @todo more logging */
-	    task->childsignal = msg->signal;
+	    task->relativesignal = msg->signal;
 	    answer.param = 0;     /* sucess */
 	} else {
 	    /* @todo more logging */
@@ -2237,17 +2340,16 @@ void msg_RELEASERES(DDSignalMsg_t *msg)
  */
 void msg_SIGNAL(DDSignalMsg_t *msg)
 {
-    long sendertid = msg->header.sender;
     long sigtid = msg->header.dest;
 
     if (sigtid!=-1 && PSC_getID(sigtid)==PSC_getMyID()) {
 	/* receiver is on local node, send signal */
 	snprintf(errtxt, sizeof(errtxt),
-		 "msg_SIGNAL() sening signal %d to %s",
+		 "msg_SIGNAL() sending signal %d to %s",
 		 msg->signal, PSC_printTID(sigtid));
 	PSID_errlog(errtxt, 1);
 
-	sendSignal(sigtid, msg->param, sendertid, msg->signal);
+	sendSignal(sigtid, msg->param, msg->header.sender, msg->signal);
     } else if(msg->header.dest!=-1) {
 	/*
 	 * this is a request for a remote site.
@@ -2517,10 +2619,23 @@ void psicontrol(int fd)
 	case PSP_CD_HOSTSTATUSRESPONSE:
 	case PSP_CD_NODELISTRESPONSE:
 	case PSP_CD_HOSTRESPONSE:
+	case PSP_CC_ERROR:
 	    /*
-	     * request to send the information about a specific info
+	     * we just have to forward this kind of messages
 	     */
 	    sendMsg(&msg);
+	    break;
+	case PSP_CC_MSG:
+	    /* Forward this message. If this fails, send an error message. */
+	    if (sendMsg(&msg) == -1) {
+		long temp = msg.header.dest;
+
+		msg.header.type = PSP_CC_ERROR;
+		msg.header.dest = msg.header.sender;
+		msg.header.sender = temp;
+		msg.header.len = sizeof(msg.header);
+		sendMsg(&msg);
+	    }
 	    break;
 	case PSP_DD_SYSTEMERROR:
 	    /* Ignore */
@@ -2579,11 +2694,12 @@ void psicontrol(int fd)
 	    msg_GETOPTION((DDOptionMsg_t*)&msg);
 	    break;
 	case PSP_CD_RESET:
-	    msg.header.type = PSP_DD_RESET;
-	    broadcastMsg((DDMsg_t*)&msg);
-	    /* fall though to reset yourself */
-	case PSP_DD_RESET:
-	    /* no sychronisation is needed anymore */
+	    if (PSC_getPID(msg.header.sender) &&
+		(PSC_getID(msg.header.sender) == PSC_getMyID())) {
+		/* This message is from one of my clients */
+		msg.header.sender = PSC_getMyTID();
+		broadcastMsg((DDMsg_t*)&msg);
+	    }
 	    msg_RESET((DDResetMsg_t*)&msg);
 	    break;
 	case PSP_DD_NOTIFYDEAD:
@@ -2851,10 +2967,9 @@ void sighandler(int sig)
 
 	while ((pid = waitpid(-1, &estatus, WNOHANG)) > 0){
 	    /*
-	     * I have to clean up when the socket gets closed.
-	     * If the task hasn't connected yet, I have to delete him now.
+	     * Delete the task now. These should mainly be forwarders.
 	     */
-	    PStask_t *diedtask;
+	    PStask_t *task;
 
 	    /* I'll just report it to the logfile */
 	    snprintf(errtxt, sizeof(errtxt),
@@ -2871,50 +2986,22 @@ void sighandler(int sig)
 	    }
 
 	    tid = PSC_getTID(-1, pid);
-	    diedtask = PStasklist_find(managedTasks, tid);
-	    if (!diedtask) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "sighandler() no task with tid %s found",
-			 PSC_printTID(tid));
-		PSID_errlog(errtxt, 1);
+
+	    /* If task not connected, remove from tasklist */
+	    task = PStasklist_find(managedTasks, tid);
+	    if (task && (task->fd == -1)) {
+		cleanupTask(tid);
+	    } else if (task && task->group == TG_FORWARDER) {
+		DDMsg_t msg;
+
+		msg.type = PSP_CC_ERROR;
+		msg.dest = task->loggertid;
+		msg.sender = task->tid;
+		msg.len = sizeof(msg);
+		sendMsg(&msg);
+
+		deleteClient(task->fd);
 	    }
-
-	    /*
-	     * if the task hasn't connected yet, remove it from the tasklist
-	     * and inform the parent, that the task has died.
-	     */
-	    if (diedtask && (diedtask->fd==-1)) {
-		PStasklist_dequeue(&managedTasks, tid);
-
-		/* Tell MCast about removing the task */
-		decJobsMCast(PSC_getMyID(), 1, (diedtask->group==TG_ANY));
-
-		if (diedtask->ptid && diedtask->group != TG_FORWARDER) {
-		    DDSignalMsg_t msg;
-
-		    snprintf(errtxt, sizeof(errtxt),
-			     "Send CHILDDEAD message to %s",
-			     PSC_printTID(diedtask->ptid));
-		    snprintf(errtxt+strlen(errtxt),
-			     sizeof(errtxt)-strlen(errtxt),
-			     " due to unconnected task %s",
-			     PSC_printTID(diedtask->tid));
-		    PSID_errlog(errtxt, 1);
-
-		    /* send the parent a SIGCHILD signal */
-		    msg.header.type = PSP_DD_CHILDDEAD;
-		    msg.header.dest = diedtask->ptid;
-		    msg.header.sender = diedtask->tid;
-		    msg.header.len = sizeof(msg);
-		    msg.param = diedtask->uid;
-		    if (PSC_getID(diedtask->ptid)==PSC_getMyID()) {
-			msg_CHILDDEAD(&msg);
-		    } else {
-			sendMsg(&msg);
-		    }
-		}
-	    }
-	    if (diedtask) PStask_delete(diedtask);
 	}
     }
     /* reset the sighandler */
@@ -3053,7 +3140,7 @@ void checkFileTable(void)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.71 $";
+    char revision[] = "$Revision: 1.72 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
