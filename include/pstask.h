@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.h,v 1.11 2003/03/07 15:48:48 eicker Exp $
+ * $Id: pstask.h,v 1.12 2003/04/07 08:15:09 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with ParaStation tasks.
  *
- * $Id: pstask.h,v 1.11 2003/03/07 15:48:48 eicker Exp $
+ * $Id: pstask.h,v 1.12 2003/04/07 08:15:09 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -24,6 +24,7 @@
 #include <sys/types.h>
 #include <termios.h>
 #include <sys/ioctl.h>
+#include <time.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -93,6 +94,8 @@ typedef struct PStask_T{
 				      send signal to parent on exit */
     int duplicate;                 /**< flag to mark duplicate task, i.e. a
 				      tasks that are fork()ed by a client */
+    time_t killat;                 /**< flag a killed task, i.e. the time when
+				      the task should really go away. */
     PStask_sig_t *childs;          /**< Childs of the task. signal not used */
 
     PStask_sig_t *signalSender;    /**< Tasks which sent signals */
