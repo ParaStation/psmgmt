@@ -6,6 +6,9 @@ BINDIR=$BUILDDIR/opt/parastation
 
 SPECFILE=psmgmt-$DVER.spec
 
+if [ -d .build ]; then
+    rm -rf .build
+fi
 mkdir -p .build
 ln -sf "../opt" ".build/opt"
 if [ -f /usr/bin/rpmbuild ] ; then
