@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.29 2003/02/07 16:18:37 eicker Exp $
+ * $Id: psispawn.c,v 1.30 2003/02/14 15:38:24 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.29 2003/02/07 16:18:37 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.30 2003/02/14 15:38:24 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -26,6 +26,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.29 2003/02/0
 #include <signal.h>
 #include <termios.h>
 #include <sys/ioctl.h>
+#include <arpa/inet.h>
 
 #include "pscommon.h"
 #include "psprotocol.h"
@@ -49,6 +50,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.29 2003/02/0
 #define ENV_NODE_HOSTFILE  "PSI_HOSTFILE"
 #define ENV_NODE_HOSTS_LSF "LSB_HOSTS"
 #define ENV_NODE_SORT      "PSI_NODES_SORT"
+#define ENV_NODE_NUM       "PSI_PROCSPERNODE"
 #define ENV_NODE_RARG      "PSI_RARG_PRE_%d"
 
 short *PSI_Partition = NULL;  /** The partition to use.
@@ -144,6 +146,66 @@ int PSI_spawnM(int count, short *dstnodes, char *workdir,
     if (!dstnodes) free(mydstnodes);
 
     return ret;
+}
+
+/**
+ * @todo docu
+ */
+static char *mygetwd(const char *ext)
+{
+    char *dir;
+
+    if (!ext || (ext[0]!='/')) {
+	char *temp = getenv("PWD");
+
+	if (temp) {
+	    dir = strdup(temp);
+	    if (!dir) {
+		errno = ENOMEM;
+		return NULL;
+	    }
+	} else {
+#if defined __osf__ || defined __linux__
+	    dir = getcwd(NULL, 0);
+#else
+#error wrong OS
+#endif
+	    if (!dir) return NULL;
+	}
+
+	/* Enlarge the string */
+	dir = realloc(dir, strlen(dir) + (ext ? strlen(ext) : 0) + 2);
+	if (!dir) {
+	    errno = ENOMEM;
+	    return NULL;
+	}
+
+	strcat(dir, "/");
+	strcat(dir, ext ? ext : "");
+
+	/* remove automount directory name. */
+	if (strncmp(dir, "/tmp_mnt", strlen("/tmp_mnt"))==0) {
+	    temp = dir;
+	    dir = strdup(&temp[strlen("/tmp_mnt")]);
+	    free(temp);
+	} else if (strncmp(dir, "/export", strlen("/export"))==0) {
+	    temp = dir;
+	    dir = strdup(&temp[strlen("/export")]);
+	    free(temp);
+	}
+	if (!dir) {
+	    errno = ENOMEM;
+	    return NULL;
+	}
+    } else {
+	dir = strdup(ext);
+	if (!dir) {
+	    errno = ENOMEM;
+	    return NULL;
+	}
+    }
+
+    return dir;
 }
 
 /* used for sorting the nodes */
@@ -366,6 +428,62 @@ void PSI_RemoteArgs(int Argc, char **Argv, int *RArgc, char ***RArgv)
 	*RArgv=Argv;
     }
     return;
+}
+
+char *PSI_createPIfile(int num, const char *prog)
+{
+    char *PIfilename, *myprog, filename[20];
+    FILE *PIfile;
+    int i, j=0;
+
+    if (!PSI_Partition) {
+	snprintf(errtxt, sizeof(errtxt), "PSI_createPIfile():"
+		 " you have to call PSI_getPartition() beforehand.");
+	PSI_errlog(errtxt, 0);
+	return NULL;
+    }
+
+    myprog = mygetwd(prog);
+    if (!myprog) return 0;
+
+    snprintf(filename, sizeof(filename), "PI%d", getpid());
+    PIfile = fopen(filename, "w+");
+
+    if (PIfile) {
+	PIfilename = strdup(filename);
+    } else {	
+	/* File open failed, lets try the user's home directory */
+	char *home;
+
+	home = getenv("HOME");
+
+	PIfilename = malloc((strlen(home)+strlen(filename)+2) * sizeof(char));
+	strcpy(PIfilename, home);
+	strcat(PIfilename, "/");
+	strcat(PIfilename, filename);
+
+	PIfile = fopen(PIfilename, "w+");
+
+	/* File open failed finally */
+	if (!PIfile) {
+	    free(PIfilename);
+	    return NULL;
+	}
+    }
+
+    for (i=0; i<num; i++) {
+	struct in_addr hostaddr;
+
+	hostaddr.s_addr = INFO_request_node(PSI_Partition[i], 0);
+
+	fprintf(PIfile, "%s %d %s\n", inet_ntoa(hostaddr), 1, myprog);
+
+	j = (j+1) % PSI_PartitionSize;
+    }
+
+    fclose(PIfile);
+
+    return PIfilename;
 }
 
 static int node_ok(short node, unsigned hwType, NodelistEntry_t *nodelist)
@@ -719,6 +837,36 @@ short PSI_getPartition(unsigned int hwType, int myRank)
 
     if (nodelist) free(nodelist);
 
+    /* Expand Partition if ENV_NODE_NUM is given */
+    if (!priv_str) {
+	char *num_str;
+	int num;
+
+	num_str = getenv(ENV_NODE_NUM);
+
+	if (num_str && ((num = atoi(num_str)) > 1)) {
+	    short *temp;
+	    int temp_size = num * PSI_PartitionSize;
+
+	    temp = (short *) malloc(temp_size * sizeof(short));
+	    if (!temp) {
+		free(PSI_Partition);
+		PSI_Partition = NULL;
+		return -1;
+	    }
+
+	    for (i=0; i<PSI_PartitionSize; i++) {
+		for (j=0; j<num; j++) {
+		    temp[num*i+j] = PSI_Partition[i];
+		}
+	    }
+
+	    free(PSI_Partition);
+	    PSI_Partition = temp;
+	    PSI_PartitionSize = temp_size;
+	}
+    }
+
     /* Set PartitionIndex to the next node */
     PSI_PartitionIndex = (myRank + 1) % PSI_PartitionSize;
 
@@ -757,8 +905,7 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
     int outstanding_answers=0;
     DDBufferMsg_t msg;
     DDErrorMsg_t answer;
-    char myworkingdir[200];
-    char* pmyworkingdir = &myworkingdir[0];
+    char *mywd;
 
     int i;          /* count variable */
     int ret = 0;    /* return value */
@@ -804,31 +951,11 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
     task->group = TG_ANY;
     task->loggertid = loggertid;
 
-    if (!workingdir || (workingdir[0]!='/')) {
-	/*
-	 * get the working directory
-	 */
-	pmyworkingdir = getenv("PWD");
-	if (pmyworkingdir) {
-	    strcpy(myworkingdir, pmyworkingdir);
-	    pmyworkingdir = myworkingdir;
-	} else {
-	    getcwd(myworkingdir, sizeof(myworkingdir));
-	    strcat(myworkingdir, "/");
-	    strcat(myworkingdir, workingdir ? workingdir : ".");
-	    /*
-	     * remove automount directory name.
-	     */
-	    if (strncmp(myworkingdir,"/tmp_mnt",strlen("/tmp_mnt"))==0)
-		pmyworkingdir = &myworkingdir[8];
-	    else if (strncmp(myworkingdir,"/export",strlen("/export"))==0)
-		pmyworkingdir = &myworkingdir[7];
-	    else
-		pmyworkingdir = &myworkingdir[0];
-	}
-    } else
-	strcpy(myworkingdir, workingdir);
-    task->workingdir = strdup(pmyworkingdir);
+    mywd = mygetwd(workingdir);
+
+    if (!mywd) return -1;
+
+    task->workingdir = mywd;
     task->argc = argc;
     task->argv = (char**)malloc(sizeof(char*)*(task->argc+1));
     for (i=0;i<task->argc;i++)
@@ -877,6 +1004,8 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
 			 " PSI_sendMsg() failed: %s",
 			 errstr ? errstr : "UNKNOWN");
 		PSI_errlog(errtxt, 0);
+
+		PStask_delete(task);
 		return -1;
 	    }
 
