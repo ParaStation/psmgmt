@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.35 2002/07/11 11:11:02 eicker Exp $
+ * $Id: psidutil.c,v 1.36 2002/07/11 17:06:31 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.35 2002/07/11 11:11:02 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.36 2002/07/11 17:06:31 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -561,15 +561,14 @@ int PSID_taskspawn(PStask_t* task)
     if (pid == -1) {
 	char *errstr = strerror(errno);
 
+	ret = errno;
+
 	close(fds[0]);
 	close(fds[1]);
 
 	snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn() fork: %s",
 		 errstr ? errstr : "UNKNOWN");
 	PSID_errlog(errtxt, 0);
-
-	task->error = errno;
-	ret = errno;
     } else {
 	/*
 	 * check for a sign of the child
@@ -591,17 +590,14 @@ int PSID_taskspawn(PStask_t* task)
 	    /*
 	     * the control channel was closed in case of a successful execv
 	     */
-	    ret = 0;
-	    task->error = 0;
-
 	    PSID_errlog("child execute was successful", 10);
 	} else {
 	    /*
 	     * the child sent us a sign that the execv wasn't successful
 	     */
-	    char *errstr = strerror(ret=buf);
+	    char *errstr = strerror(buf);
 
-	    task->error = buf;
+	    ret = buf;
 
 	    snprintf(errtxt, sizeof(errtxt), "child execute failed: %s",
 		     errstr ? errstr : "UNKNOWN");
