@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.25 2002/03/26 13:53:49 eicker Exp $
+ * $Id: psi.c,v 1.26 2002/03/27 14:28:10 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.25 2002/03/26 13:53:49 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.26 2002/03/27 14:28:10 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -504,17 +504,17 @@ int PSI_notifydead(long tid, int sig)
     msg.signal = sig;
 
     if (ClientMsgSend(&msg)<0) {
-	fprintf(stderr, "%s: Could not send messge.\n", __func__);
+	fprintf(stderr, "PSI_notifydead: Could not send messge.\n");
 	return -1;
     }
 
     if (ClientMsgRecv(&msg)<0) {
-	fprintf(stderr, "%s: Could not receive messge.\n", __func__);
+	fprintf(stderr, "PSI_notifydead: Could not receive messge.\n");
 	return -1;
     }
 
     if (msg.signal!=0) {
-/*  	fprintf(stderr, "%s: Signal = %d (ESRCH=%d).\n", __func__, */
+/*  	fprintf(stderr, "PSI_notifydead: Signal = %d (ESRCH=%d).\n", */
 /*  		msg.signal, ESRCH); */
 	return -1;
     }
@@ -568,7 +568,7 @@ int PSI_send_finish(long parenttid)
     msg.len = sizeof(msg);
 
     if (ClientMsgSend(&msg)<0) {
-	fprintf(stderr, "%s: Could not send messge.\n", __func__);
+	fprintf(stderr, "PSI_send_finish: Could not send messge.\n");
 	return -1;
     }
 

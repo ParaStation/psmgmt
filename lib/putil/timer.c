@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: timer.c,v 1.7 2002/03/26 13:33:19 eicker Exp $
+ * $Id: timer.c,v 1.8 2002/03/27 14:30:33 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: timer.c,v 1.7 2002/03/26 13:33:19 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: timer.c,v 1.8 2002/03/27 14:30:33 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -56,7 +56,7 @@ void initTimer(int syslog)
     itv.it_value.tv_usec = itv.it_interval.tv_usec = actPeriod.tv_usec;
     if (setitimer(ITIMER_REAL, &itv, NULL)==-1) {
 	snprintf(errtxt, sizeof(errtxt),
-		 "%s: unable to set itimer to %lu.%lu", __func__,
+		 "initTimer: unable to set itimer to %lu.%lu",
 		 (unsigned long) actPeriod.tv_sec,
 		 (unsigned long) actPeriod.tv_usec);
 	errexit(errtxt, errno);
@@ -68,7 +68,7 @@ void initTimer(int syslog)
     sa.sa_flags = 0;
     if (sigaction(SIGALRM, &sa, 0)==-1) {
 	snprintf(errtxt, sizeof(errtxt),
-		 "%s: unable to set sigHandler", __func__);
+		 "initTimer: unable to set sigHandler");
 	errexit(errtxt, errno);
     }
 
@@ -112,16 +112,17 @@ int registerTimer(int fd, struct timeval *timeout,
 	timer = timer->next;
     }
     if (found) {
-	snprintf(errtxt, sizeof(errtxt), "%s: found timer for fd=%d.",
-		 __func__,fd);
+	snprintf(errtxt, sizeof(errtxt),
+		 "registerTimer: found timer for fd=%d.", fd);
 	errlog(errtxt, 0);
 	return -1;
     }
 
     /* Test if timeout is appropiate */
     if (timercmp(timeout, &minPeriod, <)) {
-	snprintf(errtxt, sizeof(errtxt), "%s: timeout = %lu.%lu sec to small",
-		 __func__, (unsigned long) timeout->tv_sec,
+	snprintf(errtxt, sizeof(errtxt),
+		 "registerTimer: timeout = %lu.%lu sec to small",
+		 (unsigned long) timeout->tv_sec,
 		 (unsigned long) timeout->tv_usec);
 	errlog(errtxt, 0);
 	return -1;
@@ -157,7 +158,7 @@ int registerTimer(int fd, struct timeval *timeout,
 	sa.sa_flags = 0;
 	if (sigaction(SIGALRM, &sa, 0)==-1) {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: unable to set sigHandler", __func__);
+		     "registerTimer: unable to set sigHandler");
 	    errexit(errtxt, errno);
 	}
 
@@ -166,7 +167,7 @@ int registerTimer(int fd, struct timeval *timeout,
 	itv.it_value.tv_usec = itv.it_interval.tv_usec = actPeriod.tv_usec;
 	if (setitimer(ITIMER_REAL, &itv, NULL)==-1) {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: unable to set itimer to %lu.%lu", __func__,
+		     "registerTimer: unable to set itimer to %lu.%lu",
 		     (unsigned long) actPeriod.tv_sec,
 		     (unsigned long) actPeriod.tv_usec);
 	    errexit(errtxt, errno);
@@ -197,7 +198,7 @@ int registerTimer(int fd, struct timeval *timeout,
 	itv.it_value.tv_usec = itv.it_interval.tv_usec = actPeriod.tv_usec;
 	if (setitimer(ITIMER_REAL, &itv, NULL)==-1) {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: unable to set itimer to %lu.%lu", __func__,
+		     "registerTimer: unable to set itimer to %lu.%lu",
 		     (unsigned long) actPeriod.tv_sec,
 		     (unsigned long) actPeriod.tv_usec);
 	    errexit(errtxt, errno);
@@ -230,8 +231,8 @@ int removeTimer(int fd)
     }
 
     if (!timer) {
-	snprintf(errtxt, sizeof(errtxt), "%s: no timer found for fd=%d.",
-		 __func__,fd);
+	snprintf(errtxt, sizeof(errtxt),
+		 "removeTimer: no timer found for fd=%d.", fd);
 	errlog(errtxt, 0);
 	return -1;
     }
@@ -262,7 +263,7 @@ int removeTimer(int fd)
 	itv.it_value.tv_usec = itv.it_interval.tv_usec = actPeriod.tv_usec;
 	if (setitimer(ITIMER_REAL, &itv, NULL)==-1) {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: unable to set itimer to %lu.%lu", __func__,
+		     "removeTimer: unable to set itimer to %lu.%lu",
 		     (unsigned long) actPeriod.tv_sec,
 		     (unsigned long) actPeriod.tv_usec);
 	    errexit(errtxt, errno);
@@ -274,7 +275,7 @@ int removeTimer(int fd)
 	sa.sa_flags = 0;
 	if (sigaction(SIGALRM, &sa, 0)==-1) {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: unable to set SIG_DFL", __func__);
+		     "removeTimer: unable to set SIG_DFL");
 	    errexit(errtxt, errno);
 	}
 
@@ -320,7 +321,7 @@ int removeTimer(int fd)
 	    itv.it_value.tv_usec = itv.it_interval.tv_usec = actPeriod.tv_usec;
 	    if (setitimer(ITIMER_REAL, &itv, NULL)==-1) {
 		snprintf(errtxt, sizeof(errtxt),
-			 "%s: unable to set itimer to %lu.%lu", __func__,
+			 "removeTimer: unable to set itimer to %lu.%lu",
 			 (unsigned long) actPeriod.tv_sec,
 			 (unsigned long) actPeriod.tv_usec);
 		errexit(errtxt, errno);
@@ -372,8 +373,8 @@ int blockTimer(int fd, int block)
     }
 
     if (!timer) {
-	snprintf(errtxt, sizeof(errtxt), "%s: no timer for fd = %d found",
-		 __func__, timer->fd);
+	snprintf(errtxt, sizeof(errtxt),
+		 "blockTimer: no timer for fd = %d found", timer->fd);
 	errlog(errtxt, 0);
 	return -1;
     }
@@ -453,8 +454,8 @@ int Tselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 		continue;
 	    } else {
 		snprintf(errtxt, sizeof(errtxt),
-			 "%s: select returns %d, eno=%d[%s]",
-			 __func__, retval, errno, strerror(errno));
+			 "Tselect: select returns %d, eno=%d[%s]",
+			 retval, errno, strerror(errno));
 		errlog(errtxt, 0);
 		break;
 	    }
@@ -478,8 +479,9 @@ int Tselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 			break;
 		    default:
 			snprintf(errtxt, sizeof(errtxt),
-				 "%s: selectHander for fd=%d returns %d",
-				 __func__, timer->fd, ret);
+				 "removeTimer:"
+				 " selectHander for fd=%d returns %d",
+				 timer->fd, ret);
 			errlog(errtxt, 0);
 		    }
 		}
