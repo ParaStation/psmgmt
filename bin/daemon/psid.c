@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.25 2002/01/17 12:53:45 eicker Exp $
+ * $Id: psid.c,v 1.26 2002/01/18 15:42:00 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.25 2002/01/17 12:53:45 eicker Exp $ 
+ * $Id: psid.c,v 1.26 2002/01/18 15:42:00 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.25 2002/01/17 12:53:45 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.26 2002/01/18 15:42:00 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -61,7 +61,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.25 $";
+static char psid_cvsid[] = "$Revision: 1.26 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -587,16 +587,16 @@ void DeclareDaemonDead(int node)
 */
 int send_DAEMONCONNECT(int id)
 {
-  DDMsg_t msg;
+    DDMsg_t msg;
 
-  msg.type = PSP_DD_DAEMONCONNECT;
-  msg.sender = PSI_gettid(PSI_myid,0);
-  msg.dest = PSI_gettid(id,0);
-  msg.len = sizeof(msg);
-  if(sendMsg(&msg)== msg.len)
-    /* successful connection request is sent */
-      return 0;
-  return -1;
+    msg.type = PSP_DD_DAEMONCONNECT;
+    msg.sender = PSI_gettid(PSI_myid,0);
+    msg.dest = PSI_gettid(id,0);
+    msg.len = sizeof(msg);
+    if(sendMsg(&msg)== msg.len)
+	/* successful connection request is sent */
+	return 0;
+    return -1;
 }
 
 /******************************************
@@ -615,17 +615,18 @@ void send_TASKLIST(DDMsg_t *inmsg)
 	return;
 
     if (PSI_isoption(PSP_ODEBUG)){
-	sprintf(PSI_txt,"send_TASKLIST(%lx,%lx)\n",inmsg->sender,inmsg->dest);
+	sprintf(PSI_txt, "send_TASKLIST(%lx,%lx)\n",
+		inmsg->sender, inmsg->dest);
 	SYSLOG(8,(LOG_ERR,PSI_txt));
     }
-    for(task=daemons[node].tasklist; task && (success>0);task=task->link){
+    for(task=daemons[node].tasklist; task && (success>0); task=task->link){
 	/*
 	 * send all tasks in the tasklist to the fd
 	 */
 	task->error = 0;
 	task->nodeno = node;
 
-	msg.header.len = sizeof(DDMsg_t);
+	msg.header.len = sizeof(msg.header);
 	msg.header.len += PStask_encode(msg.buf, task);
 	if (PSI_isoption(PSP_ODEBUG)){
 	    PStask_sprintf(PSI_txt,task);
@@ -1314,12 +1315,12 @@ void msg_SPAWNREQUEST(DDBufferMsg_t* msg)
 }
 
 /******************************************
- *     msg_TASKLISTINFO();
+ *     msg_TASKINFO();
  *
  * receives information about a task and enqueues the this task in the
  * the list of the daemon it is residing on
  */
-void msg_TASKLISTINFO(DDBufferMsg_t* msg)
+void msg_TASKINFO(DDBufferMsg_t* msg)
 {
     PStask_t* task=0;
     PStask_t* task2=0;
@@ -1334,7 +1335,7 @@ void msg_TASKLISTINFO(DDBufferMsg_t* msg)
 	PSI_logerror(PSI_txt);
     }
     /*
-     * if already in the PStask_queu-> remove it
+     * if already in the PStask_queue -> remove it
      */
     if((task2 = PStasklist_dequeue(&daemons[task->nodeno].tasklist,
 				   task->tid))!=0){
@@ -1356,7 +1357,7 @@ void msg_TASKINFOREQUEST(DDMsg_t* inmsg)
     PStask_t* task=0;
     int node = PSI_getnode(inmsg->dest);
 
-    task = PStasklist_find(daemons[node].tasklist,inmsg->dest);
+    task = PStasklist_find(daemons[node].tasklist, inmsg->dest);
     if(task){
 	DDBufferMsg_t outmsg;
 
@@ -1759,40 +1760,34 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 	{
 	    PSHALInfoCounter_t *ic;
 
-	    ic=PSHALSYSGetInfoCounter();
-
-	    memcpy(msg.buf, ic, sizeof(*ic));
 	    msg.header.type = PSP_CD_COUNTSTATUSRESPONSE;
+	    ic=PSHALSYSGetInfoCounter();
+	    memcpy(msg.buf, ic, sizeof(*ic));
 	    msg.header.len += sizeof(*ic);
 	    break;
 	}
 	case PSP_CD_RDPSTATUSREQUEST:
 	{
-	    DDTagedBufferMsg_t *tagedmsg;
 	    int nodeid;
-	    nodeid = ((DDTagedBufferMsg_t*)inmsg)->tag[0];
-	    tagedmsg = (DDTagedBufferMsg_t*)&msg;
-	    getRDPStateInfo(nodeid, tagedmsg->buf);
-	    tagedmsg->tag[0] = nodeid;
+	    nodeid = *(int *)((DDBufferMsg_t*)inmsg)->buf;
 	    msg.header.type = PSP_CD_RDPSTATUSRESPONSE;
-	    msg.header.len = sizeof(msg);
+	    getRDPStateInfo(nodeid, msg.buf, sizeof(msg.buf));
+	    msg.header.len += strlen(msg.buf)+1;
 	    break;
 	}
 	case PSP_CD_HOSTSTATUSREQUEST:
+	    msg.header.type = PSP_CD_HOSTSTATUSRESPONSE;
 	    memcpy(msg.buf, PSID_hoststatus,
 		   sizeof(*PSID_hoststatus) * NrOfNodes);
 	    msg.header.len += sizeof(*PSID_hoststatus) * NrOfNodes;
-	    msg.header.type = PSP_CD_HOSTSTATUSRESPONSE;
 	    break;
 	case PSP_CD_HOSTREQUEST:
 	{
 	    unsigned int *address;
-	    int node;
 	    address = (unsigned int *) ((DDBufferMsg_t*)inmsg)->buf;
-	    node = PSID_host(*address);
-	    memcpy(msg.buf, &node, sizeof(int));
-	    msg.header.len += sizeof(int);
 	    msg.header.type = PSP_CD_HOSTRESPONSE;
+	    *(int *)msg.buf = PSID_host(*address);
+	    msg.header.len += sizeof(int);
 	    break;
 	}
 	default:
@@ -2128,54 +2123,58 @@ void msg_WHODIED(DDSignalMsg_t* msg)
 }
 
 /******************************************
- * request_options()
- * request the options of the remote node
+ * request_tasklist()
+ * request the tasklist of the remote node
  */
-int request_options(int node)
+int request_tasklist(int node)
 {
     int success=0;
-    DDOptionMsg_t optmsg;
     DDMsg_t msg;
 
     msg.dest = PSI_gettid(node,0);;
     msg.sender = PSI_gettid(PSI_myid,0);
     msg.len = sizeof(msg);
-    /*
-     * request the remote tasklist
-     */
     msg.type = PSP_CD_TASKLISTREQUEST;
+
     if ((success = sendMsg(&msg))<=0) {
 	SYSLOG(1,(LOG_ERR,"msg_DAEMONESTABLISHED() "
 		  " PSP_DD_DAEMONESTABLISHED requesting "
 		  "remote tasklist errno %d\n",errno));
     }
 
-    /*
-     * request the remote options
-     */
-    /*
-     * fill out the common option msg fields
-     */
-    optmsg.header.dest = PSI_gettid(node,0);
-    optmsg.header.sender = PSI_gettid(PSI_myid,0);
-    optmsg.header.type = PSP_DD_GETOPTION;
-    optmsg.header.len = sizeof(optmsg);
+    return success>0 ? 0:-1;
+}
 
-    optmsg.count = 0;
+/******************************************
+ * request_options()
+ * request the options of the remote node
+ */
+int request_options(int node)
+{
+    int success=0;
+    DDOptionMsg_t msg;
 
-    optmsg.opt[(int) optmsg.count].option = PSP_OP_SMALLPACKETSIZE;
-    optmsg.count++;
+    msg.header.dest = PSI_gettid(node,0);
+    msg.header.sender = PSI_gettid(PSI_myid,0);
+    msg.header.type = PSP_DD_GETOPTION;
+    msg.header.len = sizeof(msg);
 
-    optmsg.opt[(int) optmsg.count].option = PSP_OP_RESENDTIMEOUT;
-    optmsg.count++;
+    msg.count = 0;
+
+    msg.opt[(int) msg.count].option = PSP_OP_SMALLPACKETSIZE;
+    msg.count++;
+
+    msg.opt[(int) msg.count].option = PSP_OP_RESENDTIMEOUT;
+    msg.count++;
 
     if (success>0) {
-	if ((success = sendMsg(&optmsg))<=0) {
+	if ((success = sendMsg(&msg))<=0) {
 	    SYSLOG(1,(LOG_ERR,"msg_DAEMONESTABLISHED()  GETOPTION  requesting "
 		      "errno %d\n",errno));
 	}
     }
-    return success>0?0:-1;
+
+    return success>0 ? 0:-1;
 }
 
 /******************************************
@@ -2184,7 +2183,7 @@ int request_options(int node)
 void msg_DAEMONESTABLISHED(int fd, DDMsg_t* msg)
 {
     int number= PSI_getnode(msg->sender);
-    if((abs(daemons[number].fd)!=fd)     /* another fd than the local info suggests */
+    if((abs(daemons[number].fd)!=fd)   /* other fd than local info suggests */
        &&(daemons[number].fd!=0)){
 	/* remove the pointer of the client to the daemon */
 	int oldfd;
@@ -2193,8 +2192,12 @@ void msg_DAEMONESTABLISHED(int fd, DDMsg_t* msg)
 		  "valid connection fd %d \n",number,fd,oldfd));
 	DeclareDaemonDead(number);
     }
-    initDaemon(fd,number);
+    initDaemon(fd, number);
 
+    /*
+     * request the remote tasklist
+     */
+    request_tasklist(number);
     /*
      * request the remote options
      */
@@ -2289,7 +2292,7 @@ void psicontrol(int fd )
 	    send_TASKLIST((DDMsg_t*)&msg);
 	    break;
 	case PSP_CD_TASKINFO:
-	    msg_TASKLISTINFO(&msg);
+	    msg_TASKINFO(&msg);
 	    break;
 	case PSP_CD_TASKINFOREQUEST:
 	    msg_TASKINFOREQUEST((DDMsg_t*)&msg);
@@ -2692,7 +2695,7 @@ void CheckFileTable()
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.25 $";
+    char revision[] = "$Revision: 1.26 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
