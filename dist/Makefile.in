@@ -76,12 +76,14 @@ $(DISTNAME).tar.gz: $(patsubst %,$(DISTNAME)/%,$(SOURCE_FILES)) \
 tar: $(DISTNAME).tar.gz
 
 .PHONY: srpm
-srpm: tar
-	rpmbuild --define='_srcrpmdir .' -ts $(DISTNAME).tar.gz
+srpm: $(DISTNAME).src.rpm
+
+$(DISTNAME).src.rpm: $(DISTNAME).tar.gz
+	rpmbuild --define='_srcrpmdir .' -ts $<
 
 .PHONY: rpm
-rpm: tar srpm
-	rpmbuild --clean --define='_rpmdir .' -tb $(DISTNAME).tar.gz
+rpm: $(DISTNAME).tar.gz srpm
+	rpmbuild --clean --define='_rpmdir .' -tb $<
 
 #
 # building stripped libs
