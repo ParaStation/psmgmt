@@ -1,12 +1,19 @@
 /*
- *      @(#)shm.c    1.00 (Karlsruhe) 10/4/95
+ *               ParaStation3
+ * psilog.c
  *
- *      written by Joachim Blum
+ * ParaStation logging facility.
  *
+ * Copyright (C) ParTec AG Karlsruhe
+ * All rights reserved.
  *
- * This is the base module for the ParaStationProtocol.
- * It manages the SHareMemory.
+ * $Id: psilog.c,v 1.3 2002/02/19 09:38:11 eicker Exp $
+ *
  */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+static char vcid[] __attribute__(( unused )) = "$Id: psilog.c,v 1.3 2002/02/19 09:38:11 eicker Exp $";
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
