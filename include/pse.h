@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.h,v 1.15 2003/08/04 15:16:09 eicker Exp $
+ * $Id: pse.h,v 1.16 2003/08/04 15:17:34 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation Programming Environment
  *
- * $Id: pse.h,v 1.15 2003/08/04 15:16:09 eicker Exp $
+ * $Id: pse.h,v 1.16 2003/08/04 15:17:34 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -20,6 +20,8 @@
  */
 #ifndef __PSE_H
 #define __PSE_H
+
+#include <sys/types.h>
 
 #ifdef __cplusplus
 extern "C" {
