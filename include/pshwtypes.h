@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pshwtypes.h,v 1.5 2003/04/03 13:40:06 hauke Exp $
+ * $Id: pshwtypes.h,v 1.6 2003/04/03 14:58:47 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation hardware types.
  *
- * $Id: pshwtypes.h,v 1.5 2003/04/03 13:40:06 hauke Exp $
+ * $Id: pshwtypes.h,v 1.6 2003/04/03 14:58:47 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -27,29 +27,6 @@ extern "C" {
 } /* <- just for emacs indentation */
 #endif
 #endif
-
-/**
- * @brief Ethernet
- *
- * TCP/IP over Ethernet. Used within ParaStation FE.
- * */
-#define PSHW_ETHERNET            0x0001
-
-/**
- * @brief Myrinet
- *
- * RDP (Reliable Data Protocol) over Myrinet. Used within ParaStation
- * 3 and 4.
- * */
-#define PSHW_MYRINET             0x0002
-
-/**
- * @brief Gigabit Ethernet
- *
- * (Reliable Data Protocol) over (GigaBit-)Ethernet. Used within
- * ParaStation 4.
- * */
-#define PSHW_GIGAETHERNET        0x0004
 
 /**
  * @brief Get string describing the hardware-type.
