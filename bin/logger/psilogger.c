@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.31 2003/07/31 11:52:01 eicker Exp $
+ * $Id: psilogger.c,v 1.32 2003/07/31 17:56:06 eicker Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.31 2003/07/31 11:52:01 eicker Exp $
+ * $Id: psilogger.c,v 1.32 2003/07/31 17:56:06 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.31 2003/07/31 11:52:01 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.32 2003/07/31 17:56:06 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -94,7 +94,7 @@ int daemonSock;
  *
  * @return No return value.
  */
-void closeDaemonSock(void)
+static void closeDaemonSock(void)
 {
     int tmp = daemonSock;
 
@@ -102,6 +102,7 @@ void closeDaemonSock(void)
 
     daemonSock=-1;
     FD_CLR(tmp, &myfds);
+    PSLog_close();
     close(tmp);
 }
 
