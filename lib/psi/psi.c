@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.39 2003/02/07 16:10:25 eicker Exp $
+ * $Id: psi.c,v 1.40 2003/02/07 16:12:21 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.39 2003/02/07 16:10:25 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.40 2003/02/07 16:12:21 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -201,8 +201,6 @@ static int connectDaemon(PStask_group_t taskGroup)
     case PSP_CD_CLIENTESTABLISHED :
 	PSC_setNrOfNodes(msg.nrofnodes);
 	PSC_setMyID(msg.myid);
-//	PSI_loggernode = msg.loggernode;
-//	PSI_loggerport = msg.loggerport;
 	PSC_setInstalldir(msg.instdir);
 	if (strcmp(msg.instdir, PSC_lookupInstalldir())) {
 	    snprintf(errtxt, sizeof(errtxt),"connectDaemon():"
