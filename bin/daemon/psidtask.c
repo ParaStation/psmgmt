@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidtask.c,v 1.11 2003/12/19 14:29:49 eicker Exp $
+ * $Id: psidtask.c,v 1.12 2004/01/09 15:59:26 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.11 2003/12/19 14:29:49 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.12 2004/01/09 15:59:26 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -28,7 +28,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.11 2003/12/1
 
 #include "psidtask.h"
 
-static char errtxt[256];
+static char errtxt[256]; /**< General string to create error messages */
 
 PStask_t *managedTasks = NULL;
 

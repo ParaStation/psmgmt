@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.68 2003/12/11 20:28:01 eicker Exp $
+ * $Id: psidutil.c,v 1.69 2004/01/09 15:57:30 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.68 2003/12/11 20:28:01 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.69 2004/01/09 15:57:30 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -39,7 +39,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.68 2003/12/1
 
 #include "psidutil.h"
 
-static char errtxt[256];
+static char errtxt[256]; /**< General string to create error messages */
 
 config_t *config = NULL;
 
@@ -169,10 +169,26 @@ static size_t readall(int fd, void *buf, size_t count)
     return count;
 }
 
-char scriptOut[1024];
+static char scriptOut[1024];  /**< String for output from @ref callScript() */
+
 
 /**
- * @brief @todo
+ * @brief Call a script.
+ *
+ * Call the script named @a script using the environment defined for
+ * the hardware @a hw. In order to do so, a new process is fork(2)ed
+ * which then will run the script using the system(3) call.
+ *
+ * The output of the script will be collected and stored within the
+ * string @ref scriptOut.
+ *
+ * @param hw The hardware whose environment should be used when
+ * calling the script.
+ *
+ * @param script The actual script to call.
+ *
+ * @return If an error occures, -1 is returned. Otherwise the script's
+ * return value is returned, which also might be -1.
  */
 static int callScript(int hw, char *script)
 {
