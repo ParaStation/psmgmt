@@ -1,11 +1,11 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.19 2002/02/21 11:11:34 moschny Exp $
+ * $Id: psport.h,v 1.20 2002/02/21 13:16:13 moschny Exp $
  *
  * @author
  * Jens Hauke <hauke@par-tec.com>,
- * Thomas Moschny <moschny@ira.uka.de>
+ * Thomas Moschny <moschny@ipd.uni-karlsruhe.de>
  *
  * @file
  */
@@ -259,6 +259,11 @@ typedef struct PSP_RecvFrom_Param_T{
  * be specified. Not more than buflen bytes are received from one
  * message.
  *
+ * If the sender of the message to be received (i.e. it's node number)
+ * is already kown, it can be specified in the PSP_IReceiveFrom() or
+ * PSP_IReceiveCBFrom() calls. Fewer messages headers have to be
+ * reviewed by the callback function then.
+ *
  * @param porth handle of the port, from PSP_OpenPort()
  * @param buf address of buffer for message data
  * @param buflen length of message data buffer, in bytes
@@ -334,12 +339,24 @@ PSP_RequestH_t PSP_IReceive(PSP_PortH_t porth,
  * @param xheaderlen length of message extra header buffer, in bytes
  * @param cb callback function
  * @param cb_param this pointer is passed to the callback function
+ * @param sender one can specify the sender (node number) of the
+ * message to be received here if already known, or PSP_AnySender
  * @return Returns true if a matching message is available (already
  * received) and false otherwise.
  */
+int PSP_IProbeFrom(PSP_PortH_t porth,
+		   PSP_Header_t* header, unsigned xheaderlen,
+		   PSP_RecvCallBack_t *cb, void* cb_param,
+		   int sender);
+
+static inline
 int PSP_IProbe(PSP_PortH_t porth,
 	       PSP_Header_t* header, unsigned xheaderlen,
-	       PSP_RecvCallBack_t *cb, void* cb_param);
+	       PSP_RecvCallBack_t *cb, void* cb_param)
+{
+    return PSP_IProbeFrom(porth, header, xheaderlen, cb, cb_param,
+			  PSP_AnySender);
+}
 
 /* ----------------------------------------------------------------------
  * PSP_Probe()
@@ -361,9 +378,19 @@ int PSP_IProbe(PSP_PortH_t porth,
  * @param cb_param this pointer is passed to the callback function
  * @return Returns true.
  */
+int PSP_ProbeFrom(PSP_PortH_t porth,
+		  PSP_Header_t* header, unsigned xheaderlen,
+		  PSP_RecvCallBack_t *cb, void* cb_param,
+		  int sender);
+
+static inline
 int PSP_Probe(PSP_PortH_t porth,
 	      PSP_Header_t* header, unsigned xheaderlen,
-	      PSP_RecvCallBack_t *cb, void* cb_param);
+	      PSP_RecvCallBack_t *cb, void* cb_param)
+{
+    return PSP_ProbeFrom(porth, header, xheaderlen, cb, cb_param,
+			 PSP_AnySender);
+}
 
 /* ----------------------------------------------------------------------
  * PSP_ISend()
@@ -503,6 +530,6 @@ PSP_Status_t PSP_Cancel(PSP_PortH_t porth, PSP_RequestH_t request);
  * Local Variables:
  *   mode: c
  *   c-basic-offset: 4
- *   c-font-lock-extra-types: ( "\\sw+_t" "UINT16" "UINT32" )
+ *   c-font-lock-extra-types: ( "\\sw+_t" "UINT16" "UINT32" "INT16")
  * End:
  */
