@@ -601,6 +601,10 @@ double PSI_getload(u_short nodenr)
 }
 
 /* ToDo Jens: Gehoert hier auch nich hin :-) */
+/* ToDo Norbert: Die Zahl der Prozesse auf node sollte im Daemon bekannt sein,
+                 jedesmal die ganzen Tasks durch die Gegend zu schieben, ist
+                 nicht sonderlich effektiv.
+                         -> Neuer Msg_t, der dies liefert. */
 double PSI_getNumberOfProcs(int node)
 {
     DDBufferMsg_t msg;
@@ -630,7 +634,7 @@ double PSI_getNumberOfProcs(int node)
 	    }else{
 		ret+=0.01;
 	    }
-	    free(task);
+	    PStask_delete(task);
 	}
     }while(msgtype == PSP_CD_TASKINFO);
     return ret;

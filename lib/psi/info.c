@@ -62,7 +62,7 @@ INFO_request_receive(long *what, void* buffer,int size)
 		break;
 	    }
 	    errno = 0;
-	    free(task);
+	    PStask_delete(task);
 	    break;
 	}
 	case PSP_CD_TASKINFOEND:
