@@ -23,7 +23,7 @@ else
 endif
 
 TOOLS:=psconfig pscounter test_nodes psiadmin psid psld parastation
-TOOLS += psilogger psiforwarder mlisten test_config_parsing psmstart
+TOOLS += psilogger mlisten test_config_parsing psmstart
 TOOLS += psscan psroute
 
 ifneq ("$(TARGET_OS)","osf5.1")
@@ -64,8 +64,9 @@ lex.admin.o: lex.admin.c admin.tab.c admin.tab.h
 
 # psid
 VPATH += $(SRCDIR)/daemon $(SRCDIR)/cardconfig
-psid: psid.o psidutil.o psidtask.o psidspawn.o config_parsing.o cardconfig.o
-psid: -lm -lpshal -lputil -lpscommon -lutil -lpopt
+psid: psid.o psidutil.o psidtask.o psidspawn.o psidforwarder.o
+psid: config_parsing.o cardconfig.o
+psid: -lm -lpshal -lputil -lpscommon -lutil -lpopt -lpslog
 
 #psld
 VPATH += $(SRCDIR)/licdaemon
@@ -74,8 +75,7 @@ psld: -lm -lputil -lpscommon -lpopt
 
 # logger
 VPATH += $(SRCDIR)/logger
-psiforwarder: psiforwarder.o logmsg.o -lm
-psilogger: psilogger.o logmsg.o -lm
+psilogger: psilogger.o -lpslog -lpscommon -lm
 
 # psscan and psroute
 VPATH += $(SRCDIR)/mapper
