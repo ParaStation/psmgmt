@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.49 2003/02/13 17:09:33 eicker Exp $
+ * $Id: psiadmin.c,v 1.50 2003/02/21 12:43:30 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.49 2003/02/13 17:09:33 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.50 2003/02/21 12:43:30 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -48,13 +48,16 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.49 $";
+static char psiadmversion[] = "$Revision: 1.50 $";
 static int doRestart = 0;
 
 static char *hoststatus = NULL;
 
 static NodelistEntry_t *nodelist = NULL;
 static size_t nodelistSize = 0;
+
+
+/* @todo PSI_sendMsg(): Wrapper, control if sendMsg was successful or exit */
 
 int PSIADM_LookUpNodeName(char* hostname)
 {
@@ -93,7 +96,7 @@ void PSIADM_AddNode(int first, int last)
 	}
     }
 
-    /* check the success and repeat the startup */
+    /* @ todo check the success and repeat the startup */
     return;
 }
 
@@ -226,6 +229,7 @@ void PSIADM_ProcStat(int first, int last, int full)
 	    num = INFO_request_tasklist(i, taskinfo, sizeof(taskinfo), 1);
 	    for (j=0; j<MIN(num,NUMTASKS); j++) {
 		if (taskinfo[j].group==TG_FORWARDER && !full) continue;
+		if (taskinfo[j].group==TG_SPAWNER && !full) continue;
 		printf("%4d %10ld 0x%010lx %10ld 0x%010lx %2d  %5d %s\n",
 		       i, taskinfo[j].tid, taskinfo[j].tid,
 		       taskinfo[j].ptid, taskinfo[j].ptid,
