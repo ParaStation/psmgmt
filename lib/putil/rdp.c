@@ -5,41 +5,35 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.11 2002/01/21 16:36:10 eicker Exp $
+ * $Id: rdp.c,v 1.12 2002/01/22 16:22:01 eicker Exp $
  *
  */
 /**
  * \file
  * rdp: ParaStation Reliable Datagram Protocol
  *
- * $Id: rdp.c,v 1.11 2002/01/21 16:36:10 eicker Exp $
+ * $Id: rdp.c,v 1.12 2002/01/22 16:22:01 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.11 2002/01/21 16:36:10 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.12 2002/01/22 16:22:01 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <syslog.h>
 #include <unistd.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/resource.h>
-#include <sys/wait.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <sys/uio.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <string.h>
-#include <malloc.h>
-#include <stdlib.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netdb.h>
@@ -86,8 +80,6 @@ static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.11 2002/01/21 16:
 
 #define Dsnprintf snprintf
 #define Derrlog   errlog
-
-#include "../psid/parse.h"
 
 #include "rdp.h"
 #include "rdp_private.h"
@@ -234,6 +226,23 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 }
 
 /*
+ * block the signal sig, returns old state of signal
+ */
+static int blockSig(int block, int sig)
+{
+    sigset_t newset, oldset;
+
+    sigemptyset(&newset);
+    sigaddset(&newset, sig);
+    
+    if (sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &newset, &oldset)) {
+	errlog("blockSig(): sigprocmask() ", syslogerror, 0);
+    }
+
+    return sigismember(&oldset, sig);
+}
+
+/*
  * map service name to port number
  */
 unsigned short getServicePort(char *service)
@@ -300,29 +309,6 @@ static int passivesock(unsigned short port, int qlen)
 #endif
 
     return s;
-}
-
-static void getsinbyname(char *host, unsigned short port,
-			 struct sockaddr_in *sin)
-{
-    struct hostent *phe;        /* pointer to host information entry */
-
-    memset(sin, 0, sizeof(struct sockaddr_in));
-    sin->sin_family = AF_INET;
-    sin->sin_port = port;
-
-    /*
-     * map host name to IP address
-     */
-    if ((phe = gethostbyname(host))) {
-	memcpy(&sin->sin_addr, phe->h_addr, phe->h_length);
-    } else {
-	if ((sin->sin_addr.s_addr = inet_addr(host)) == INADDR_NONE) {
-	    snprintf(errtxt, sizeof(errtxt), "can't get %s host entry", host);
-	    errexit(errtxt, syslogerror, errno);
-	}
-    }
-    return;
 }
 
 /* RSEQCMP: Compare two sequence numbers
@@ -494,7 +480,7 @@ static int lookupIPTable(struct in_addr ipno)
     return -1;
 }
 
-static void initConntable(int nodes, unsigned short port)
+static void initConntable(int nodes, unsigned int host[], unsigned short port)
 {
     int i;
     struct timeval tv;
@@ -510,13 +496,17 @@ static void initConntable(int nodes, unsigned short port)
 	      nodes, MAX_WINDOW_SIZE);
     Derrlog(errtxt, syslogerror, 10);
     for (i=0; i<=nodes; i++) {
-	getsinbyname(psihosttable[i].name, port, &conntable[i].sin);
-	Dsnprintf(errtxt, sizeof(errtxt), "IP-ADDR of %s is %s",
-		  psihosttable[i].name, inet_ntoa(conntable[i].sin.sin_addr));
+	memset(&conntable[i].sin, 0, sizeof(struct sockaddr_in));
+	conntable[i].sin.sin_family = AF_INET;
+	conntable[i].sin.sin_addr.s_addr = host[i];
+	conntable[i].sin.sin_port = port;
+	Dsnprintf(errtxt, sizeof(errtxt), "IP-ADDR of node %d is %s",
+		  i, inet_ntoa(conntable[i].sin.sin_addr));
 	Derrlog(errtxt, syslogerror, 10);
 	conntable[i].bufptr = NULL;
 	conntable[i].ConnID_in = -1;
 	if (i<nodes) {
+	    insertIPTable(conntable[i].sin.sin_addr, i);
 	    conntable[i].lastping.tv_sec = 0;
 	    conntable[i].lastping.tv_usec = 0;
 	    conntable[i].misscounter = 0;
@@ -526,7 +516,6 @@ static void initConntable(int nodes, unsigned short port)
 	    conntable[i].window = MAX_WINDOW_SIZE;
 	    conntable[i].ack_pending = 0;
 	    conntable[i].msg_pending = 0;
-	    insertIPTable(conntable[i].sin.sin_addr, i);
 	    conntable[i].NextFrameToSend = random();
 	    Dsnprintf(errtxt, sizeof(errtxt),
 		      "NextFrameToSend to node %d set to %d", i,
@@ -726,16 +715,17 @@ static void putAckEnt(ackent *ap)
 static ackent *enqAck(msgbuf *bufptr)
 {
     ackent *ap;
+
+    ap = getAckEnt();
+    ap->next = NULL;
+    ap->bufptr = bufptr;
+
     if (AckListHead == NULL) {
-	ap = AckListHead = getAckEnt();
-	AckListHead->next = NULL;
-	AckListHead->bufptr = bufptr;
-	AckListTail = AckListHead;
+	AckListTail = ap;
+	AckListHead = ap;
     } else {
-	ap = AckListTail->next = getAckEnt();
-	AckListTail->next->prev = AckListTail;
-	AckListTail->next->next = NULL;
-	AckListTail->next->bufptr = bufptr;
+	ap->prev = AckListTail;
+	AckListTail->next = ap;
 	AckListTail = AckListTail->next;
     }
     return ap;
@@ -1224,7 +1214,7 @@ static int updateState(rdphdr *hdr, int node)
 }
 
 
-RDP_Deadbuf deadbuf;
+RDPDeadbuf deadbuf;
 
 /*
  * clear message queue of a connection
@@ -1381,7 +1371,7 @@ static void handleTimeout(void)
 		    ap = ap->next;
 		}
 	    } else {
-		break; /* first (all following msg's do not have a timeout */
+		break; /* all following msg's do not have a timeout */
 	    }
 	} else {
 	    ap = ap->next; /* try with next buffer */
@@ -1498,7 +1488,8 @@ static void doACK(rdphdr *hdr, int fromnode)
  *  Return: FD from RDP port
  */
 
-int initRDP(int nodes, int mgroup, int usesyslog, void (*func)(int, void*))
+int initRDP(int nodes, int mgroup, int usesyslog, unsigned int hosts[],
+	    void (*func)(int, void*))
 {
     unsigned short portno; /* in network byteorder */
     struct sigaction sa;
@@ -1518,7 +1509,7 @@ int initRDP(int nodes, int mgroup, int usesyslog, void (*func)(int, void*))
     portno = getServicePort(RDPSERVICE);
     rdpsock = passivesock(portno, 0);
 
-    initConntable(nodes, portno);
+    initConntable(nodes, hosts, portno);
 
     /*
      * setup signal handler
@@ -1788,7 +1779,6 @@ static void resendMsgs(int node)
 		     mp->msg.small->header.seqno, node);
 	    errlog(errtxt, syslogerror, 0);
 	    closeConnection(node);
-	    /* clearMsgQ(node); */
 	    return;
 	}
 	Dsnprintf(errtxt, sizeof(errtxt),
@@ -1859,11 +1849,7 @@ int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 {
     int rdpreq = 0;
     int retval;
-    Lmsg msg;
-    struct sockaddr_in sin;
     struct timeval start, end, stv;
-    socklen_t slen;
-    int fromnode;
     fd_set rfds, wfds, efds;
 
     if (timeout) {
@@ -1906,6 +1892,7 @@ int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	if (timeout) {
 	    timersub(&end, &start, &stv);
 	}
+
 	retval = select(n, &rfds, &wfds, &efds, (timeout)?(&stv):NULL);
 	if (retval == -1) {
 	    if (errno == EINTR) {
@@ -1914,15 +1901,8 @@ int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 		continue;
 	    } else {
 		snprintf(errtxt, sizeof(errtxt),
-			 "select in Rselect returns %d, eno=%d[%s],"
-			 " n=%d, mcastsock=%d, rdpsock=%d", retval,
-			 errno, strerror(errno), n, mcastsock, rdpsock);
-		errlog(errtxt, syslogerror, 0);
-		snprintf(errtxt, sizeof(errtxt),
-			 "start=%ld.%ld end=%ld.%ld stv=%ld.%ld",
-			 start.tv_sec, start.tv_usec,
-			 end.tv_sec, end.tv_usec,
-			 stv.tv_sec, stv.tv_usec);
+			 "select in Rselect returns %d, eno=%d[%s]",
+			 retval, errno, strerror(errno));
 		errlog(errtxt, syslogerror, 0);
 	    }
 	}
@@ -1934,6 +1914,11 @@ int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	}
 
 	if ((retval>0) && FD_ISSET(rdpsock, &rfds)) {    /* Got RDP msg */
+	    Lmsg msg;
+	    struct sockaddr_in sin;
+	    socklen_t slen;
+	    int fromnode;
+
 	    slen = sizeof(sin);
 	    memset(&sin, 0, slen);
 	     /* read msg for inspection */
@@ -2336,7 +2321,7 @@ static void handleMCAST(void)
 /*
  * Run MCAST Protocol WITHOUT RDP (used by license daemon)
  */
-int initRDPMCAST(int nodes, int mgroup, int usesyslog,
+int initRDPMCAST(int nodes, int mgroup, int usesyslog, unsigned int hosts[],
 		 void (*func)(int, void*))
 {
     struct sigaction sa;
@@ -2349,7 +2334,7 @@ int initRDPMCAST(int nodes, int mgroup, int usesyslog,
 
     portno = getServicePort(MCASTSERVICE);
 
-    initConntable(nodes, portno);
+    initConntable(nodes, hosts, portno);
 
     /*
      * setup signal handler
@@ -2372,7 +2357,7 @@ int initRDPMCAST(int nodes, int mgroup, int usesyslog,
 int Mselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	    struct timeval *timeout)
 {
-    int retval = 0;
+    int retval;
     struct timeval start, end, stv;
     fd_set rfds, wfds, efds;
 
@@ -2414,33 +2399,27 @@ int Mselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 		retval = 0;
 		continue;
 	    } else {
-                snprintf(errtxt, sizeof(errtxt),
-                         "select in Mselect returns %d, eno=%d[%s],"
-                         " n=%d, mcastsock=%d", retval, errno, strerror(errno),
-			 n, mcastsock);
-                errlog(errtxt, syslogerror, 0);
-                snprintf(errtxt, sizeof(errtxt),
-                         "start=%ld.%ld end=%ld.%ld stv=%ld.%ld",
-                         start.tv_sec, start.tv_usec,
-                         end.tv_sec, end.tv_usec,
-                         stv.tv_sec, stv.tv_usec);
-                errlog(errtxt, syslogerror, 0);
-            }
-        }
+		snprintf(errtxt, sizeof(errtxt),
+			 "select in Mselect returns %d, eno=%d[%s]",
+			 retval, errno, strerror(errno));
+		errlog(errtxt, syslogerror, 0);
+	    }
+	}
 
 	if ((retval>0) && FD_ISSET(mcastsock, &rfds)) {  /* Got MCAST msg */
 	    handleMCAST();
 	    retval--;
-            FD_CLR(mcastsock, &rfds);
+	    FD_CLR(mcastsock, &rfds);
 	}
 
-        if (retval) break;
+	if (retval) break;
 
-        gettimeofday(&start, NULL);  /* get NEW starttime */
+	gettimeofday(&start, NULL);  /* get NEW starttime */
 
     } while (timeout==NULL || timercmp(&start, &end, <));
 
-    if (readfds)   memcpy(readfds, &rfds, sizeof(rfds));  /* copy fds back */
+    /* copy fds back */
+    if (readfds)   memcpy(readfds, &rfds, sizeof(rfds));
     if (writefds)  memcpy(writefds, &wfds, sizeof(wfds));
     if (exceptfds) memcpy(exceptfds, &efds, sizeof(efds));
 

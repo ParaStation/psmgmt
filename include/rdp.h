@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.h,v 1.4 2002/01/18 12:45:57 eicker Exp $
+ * $Id: rdp.h,v 1.5 2002/01/22 16:22:01 eicker Exp $
  *
  */
 /**
  * \file
  * rdp: Reliable Datagram Protocol for ParaStation daemon
  *
- * $Id: rdp.h,v 1.4 2002/01/18 12:45:57 eicker Exp $
+ * $Id: rdp.h,v 1.5 2002/01/22 16:22:01 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -57,11 +57,11 @@ typedef struct Mmsg_ {
   RDPLoad       load;
 } Mmsg;   
 
-typedef struct RDP_Deadbuf_{
+typedef struct RDPDeadbuf_{
   int dst;
   void *buf;
   int buflen;
-} RDP_Deadbuf;
+} RDPDeadbuf;
 
 
 #define RDP_NEW_CONNECTION	0x1	/* buf == nodeno */
@@ -74,17 +74,42 @@ typedef struct RDP_Deadbuf_{
 #define LIC_LOST_CONECTION	0x1
 #define LIC_KILL_MSG		0x2
 
-/*
- * Initialize RDP
- * Parameters:  1) nodes: Nr of Nodes in the Cluster
- *              2) mgroup: Id of Multicastgroup (0 < id < 255)
- *              3) usesyslog (1=yes,0=no): Use syslog() to log error/info messages
- *              4) address of callback function to handle RDP exceptions / infos
- *                 (func == NULL allowed to prevent callback) 
- *                 callback func is called with (type, void *buf)
+/**
+ * @brief Initializes the RDP and MCast modules.
+ *
+ * Initializes the RDP and MCast machinery for \a nodes nodes.
+ *
+ * @param nodes Number of nodes to handle.
+ * @param mgroup The MultiCast group to use.
+ * @param usesyslog If true, all error-messages are printed via syslog().
+ * @param hosts An array of size \a nodes containing the IP-addresses of the
+ * participating nodes in network-byteorder.
+ * @param func Pointer to a callback-function. This function is called if
+ * something exceptional happens. If NULL, no callbacks will be done.
+ *
+ * @return On success, the filedescriptor of the RDP socket is returned.
+ * On error, exit() is called within this function.
  */
-int initRDP(int nodes, int mgroup, int usesyslog, void (*func)(int, void*));
-int initRDPMCAST(int nodes, int mgroup, int usesyslog,
+int initRDP(int nodes, int mgroup, int usesyslog, unsigned int hosts[],
+	    void (*func)(int, void*));
+
+/**
+ * @brief Initializes the MCast module.
+ *
+ * Initializes the MCast machinery for \a nodes nodes.
+ *
+ * @param nodes Number of nodes to handle.
+ * @param mgroup The MultiCast group to use.
+ * @param usesyslog If true, all error-messages are printed via syslog().
+ * @param hosts An array of size \a nodes containing the IP-addresses of the
+ * participating nodes in network-byteorder.
+ * @param func Pointer to a callback-function. This function is called if
+ * something exceptional happens. If NULL, no callbacks will be done.
+ *
+ * @return On success, the filedescriptor of the MCast socket is returned.
+ * On error, exit() is called within this function.
+ */
+int initRDPMCAST(int nodes, int mgroup, int usesyslog, unsigned int hosts[],
 		 void (*func)(int, void*));
 
 /*
