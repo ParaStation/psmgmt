@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiinfo.c,v 1.3 2004/01/15 19:38:25 eicker Exp $
+ * $Id: psiinfo.c,v 1.4 2004/01/28 10:26:36 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiinfo.c,v 1.3 2004/01/15 19:38:25 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiinfo.c,v 1.4 2004/01/28 10:26:36 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -103,6 +103,7 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
 	case PSP_INFO_LIST_NORMJOBS:
 	case PSP_INFO_LIST_ALLTASKS:
 	case PSP_INFO_LIST_NORMTASKS:
+	case PSP_INFO_LIST_ALLOCJOBS:
 	{
 	    size_t s = msg.header.len - sizeof(msg.header) - sizeof(msg.type);
 	    if (!buf) {
@@ -406,6 +407,7 @@ int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     case PSP_INFO_LIST_NORMJOBS:
     case PSP_INFO_LIST_ALLTASKS:
     case PSP_INFO_LIST_NORMTASKS:
+    case PSP_INFO_LIST_ALLOCJOBS:
 	break;
     default:
 	snprintf(errtxt, sizeof(errtxt),
