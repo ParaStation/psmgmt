@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.61 2003/06/25 16:47:54 eicker Exp $
+ * $Id: psiadmin.c,v 1.62 2003/06/26 17:31:54 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.61 2003/06/25 16:47:54 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.62 2003/06/26 17:31:54 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -50,7 +50,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.61 $";
+static char psiadmversion[] = "$Revision: 1.62 $";
 static int doRestart = 0;
 
 static char *hoststatus = NULL;
@@ -802,7 +802,7 @@ int main(int argc, const char **argv)
 {
     void *line_state = NULL;
     char *copt = NULL, *line = (char *) NULL, line_field[256];
-    int rc, len, echo=0, version=0, reset=0;
+    int rc, len, echo=0, reset=0, start_all=0, version=0;
 
     poptContext optCon;   /* context for parsing command-line options */
 
@@ -813,6 +813,8 @@ int main(int argc, const char **argv)
 	  "echo each executed command to stdout", NULL},
 	{ "reset", 'r', POPT_ARG_NONE, &reset, 0,
 	  "do a reset of the ParaStation daemons on startup", NULL},
+	{ "start-all", 's', POPT_ARG_NONE, &start_all, 0,
+	  "startup all daemons of the cluster, not only the local one", NULL},
   	{ "version", 'v', POPT_ARG_NONE, &version, -1,
 	  "output version information and exit", NULL},
 	POPT_AUTOHELP
@@ -868,6 +870,11 @@ int main(int argc, const char **argv)
     }
 
     signal(SIGTERM,sighandler);
+
+    /*
+     * Start the whole cluster if demanded
+     */
+    if (start_all) PSIADM_AddNode(ALLNODES, ALLNODES);
 
     /*
      * Single command processing
