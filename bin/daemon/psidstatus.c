@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidstatus.c,v 1.8 2004/03/10 08:45:11 eicker Exp $
+ * $Id: psidstatus.c,v 1.9 2004/04/30 14:29:35 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidstatus.c,v 1.8 2004/03/10 08:45:11 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidstatus.c,v 1.9 2004/04/30 14:29:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -49,6 +49,12 @@ static char errtxt[256]; /**< General string to create error messages */
 
 /** The jobs of the local node node */
 static PSID_Jobs_t myJobs = { .normal = 0, .total = 0 };
+
+/** Total number of nodes connected. Needed for license testing */
+static int totalNodes = 0;
+
+/** Total number of physical CPUs connected. Needed for license testing */
+static int totalCPUs = 0;
 
 /**
  * @brief Get load information from kernel.
@@ -94,7 +100,16 @@ typedef struct {
     PSID_Jobs_t jobs;   /**< Number of jobs on the node */  
     PSID_Load_t load;   /**< Load parameters of node */
     short missCounter;  /**< Number of consecutively missing status pings */
+    short wrongClients; /**< Number of consecutively wrong client numbers */
 } ClientStatus_t;
+
+/**
+ * Maximum number of consecutive wrong client numbers within load
+ * messages. If this number of wrong counts is exceeded, a list
+ * containing the actually active clients is send to the corresponding
+ * node via @ref send_ACTIVENODES().
+ */
+static const short MAX_WRONG_CLIENTS = 10;
 
 /**
  * Master's array holding status information of all nodes. Will be
@@ -241,6 +256,10 @@ static void sendRDPPing(void)
     ptr += sizeof(PSID_Load_t);
     msg.header.len += sizeof(PSID_Load_t);
 
+    *(int *)ptr = totalNodes;
+    ptr += sizeof(int);
+    msg.header.len += sizeof(int);
+
     sendMsg(&msg);
     if (getMasterID() == PSC_getMyID()) handleMasterTasks();
 }
@@ -360,12 +379,6 @@ void releaseStatusTimer(void)
     if (knowMaster()) Timer_remove(timerID);
 }
 
-/** Total number of nodes connected. Needed for license testing */
-static int totalNodes = 0;
-
-/** Total number of physical CPUs connected. Needed for license testing */
-static int totalCPUs = 0;
-
 /* Prototype forward declaration. */
 static int send_DEADNODE(PSnodes_ID_t deadnode);
 
@@ -375,8 +388,9 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode)
 
     if (!PSnodes_isUp(id)) return;
 
-    snprintf(errtxt, sizeof(errtxt), "%s: node %d send DEADNODE %d",
-	     __func__, id, sendDeadnode);
+    snprintf(errtxt, sizeof(errtxt),
+	     "%s: node %d goes down. Will %ssend PSP_DD_DEAD_NODE messages",
+	     __func__, id, sendDeadnode ? "" : "not ");
     PSID_errlog(errtxt, 2);
 
     totalCPUs -= PSnodes_getPhysCPUs(id);
@@ -616,25 +630,6 @@ void msg_DAEMONSHUTDOWN(DDMsg_t *msg)
     declareNodeDead(PSC_getID(msg->sender), 0);
 }
 
-void msg_LOAD(DDBufferMsg_t *msg)
-{
-    char *ptr = msg->buf;
-    PSnodes_ID_t client = PSC_getID(msg->header.sender);
-
-    if (PSC_getMyID() != getMasterID()) {
-	send_MASTERIS(PSC_getID(msg->header.sender));
-    } else {
-	clientStat[client].jobs = *(PSID_Jobs_t *)ptr;
-	ptr += sizeof(PSID_Jobs_t);
-
-	clientStat[client].load = *(PSID_Load_t *)ptr;
-	ptr += sizeof(PSID_Load_t);
-
-	gettimeofday(&clientStat[client].lastPing, NULL);
-	clientStat[client].missCounter = 0;
-    }
-}
-
 int send_MASTERIS(PSnodes_ID_t dest)
 {
     DDBufferMsg_t msg = {
@@ -775,4 +770,40 @@ void msg_DEADNODE(DDBufferMsg_t *msg)
     PSID_errlog(errtxt, 10);
 
     send_DAEMONCONNECT(deadNode);
+}
+
+void msg_LOAD(DDBufferMsg_t *msg)
+{
+    char *ptr = msg->buf;
+    PSnodes_ID_t client = PSC_getID(msg->header.sender);
+
+    if (PSC_getMyID() != getMasterID()) {
+	send_MASTERIS(PSC_getID(msg->header.sender));
+    } else {
+	int clientNodes;
+
+	clientStat[client].jobs = *(PSID_Jobs_t *)ptr;
+	ptr += sizeof(PSID_Jobs_t);
+
+	clientStat[client].load = *(PSID_Load_t *)ptr;
+	ptr += sizeof(PSID_Load_t);
+
+	gettimeofday(&clientStat[client].lastPing, NULL);
+	clientStat[client].missCounter = 0;
+
+	clientNodes = *(int *)ptr;
+	ptr += sizeof(int);
+
+	if (clientNodes != totalNodes) {
+	    clientStat[client].wrongClients++;
+
+	    if (clientStat[client].wrongClients > MAX_WRONG_CLIENTS) {
+		/* Too many wrong client counts. Try to fix this */
+		send_ACTIVENODES(client);
+		clientStat[client].wrongClients = 0;
+	    }
+	} else if (clientStat[client].wrongClients) {
+	    clientStat[client].wrongClients = 0;
+	}
+    }
 }
