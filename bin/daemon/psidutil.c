@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.53 2003/04/03 18:39:33 eicker Exp $
+ * $Id: psidutil.c,v 1.54 2003/04/04 10:50:21 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.53 2003/04/03 18:39:33 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.54 2003/04/04 10:50:21 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -90,6 +90,50 @@ void PSID_blockSig(int block, int sig)
     }
 }
 
+static size_t writeall(int fd, const void *buf, size_t count)
+{
+    int len;
+    size_t c = count;
+
+    while (c > 0) {
+        len = write(fd, buf, c);
+        if (len < 0) {
+            if ((errno == EINTR) || (errno == EAGAIN))
+                continue;
+	    else
+                return -1;
+        }
+        c -= len;
+        (char*)buf += len;
+    }
+
+    return count;
+}
+
+static size_t readall(int fd, void *buf, size_t count)
+{
+    int len;
+    size_t c = count;
+
+    while (c > 0) {
+        len = read(fd, buf, c);
+        if (len <= 0) {
+            if (len < 0) {
+                if ((errno == EINTR) || (errno == EAGAIN))
+                    continue;
+                else
+		    return -1;
+            } else {
+                return 0;
+            }
+        }
+        c -= len;
+        (char*)buf += len;
+    }
+
+    return count;
+}
+
 char scriptOut[1024];
 
 static int callScript(int hw, char *script)
@@ -149,26 +193,26 @@ static int callScript(int hw, char *script)
 
         /* Send results to controlling daemon */
         if (ret < 0) {
-            write(fds[1], &ret, sizeof(ret));
+            writeall(fds[1], &ret, sizeof(ret));
 
             snprintf(scriptOut, sizeof(scriptOut),
 		     "%s: system(%s) failed : %s",
                      __func__, command, strerror(errno));
-            write(fds[1], scriptOut, strlen(scriptOut)+1);
+            writeall(fds[1], scriptOut, strlen(scriptOut)+1);
         } else {
             int status = WEXITSTATUS(ret);
 
-            write(fds[1], &status, sizeof(status));
+            writeall(fds[1], &status, sizeof(status));
 
 	    /* forward the script message */
 	    close(STDOUT_FILENO); /* Squeeze the pipe */
 	    close(STDERR_FILENO);
-	    ret = read(systemfds[0], scriptOut, sizeof(scriptOut));
+	    ret = readall(systemfds[0], scriptOut, sizeof(scriptOut)-1);
 
-	    write(fds[1], scriptOut, ret);
+	    writeall(fds[1], scriptOut, ret);
 
 	    scriptOut[0] = '\0';
-	    write(fds[1], scriptOut, 1);
+	    writeall(fds[1], scriptOut, 1);
         }
 
         close(systemfds[0]);
@@ -197,47 +241,27 @@ static int callScript(int hw, char *script)
         return -1;
     }
 
- restart:
-    ret = read(fds[0], &result, sizeof(result));
-    if (ret < 0) {
-        if (errno == EINTR) {
-            goto restart;
-        }
-    }
-
+    ret = readall(fds[0], &result, sizeof(result));
     if (!ret) {
-        /*
-         * control channel was closed without telling the result of
-         * the system() call.
-         */
+        /* control channel closed without telling result of system() call. */
         snprintf(scriptOut, sizeof(scriptOut), "%s: no answer\n", __func__);
-
         return -1;
     } else if (ret<0) {
         snprintf(scriptOut, sizeof(scriptOut), "%s: read() failed : %s",
                  __func__, strerror(errno));
-
         return -1;
     }
 
- restart2:
-    ret=read(fds[0], scriptOut, sizeof(scriptOut));
-    if (ret < 0) {
-	if (errno == EINTR) {
-	    goto restart2;
-	}
-    }
+    ret = readall(fds[0], scriptOut, sizeof(scriptOut));
     if (!ret) {
 	/* control channel was closed during message. */
 	snprintf(scriptOut, sizeof(scriptOut),
 		 "%s: pipe closed unexpectedly\n", __func__);
-
-	result = -1;
+        return -1;
     } else if (ret<0) {
 	snprintf(scriptOut, sizeof(scriptOut), "%s: read() failed : %s",
 		 __func__, strerror(errno));
-
-	result = -1;
+        return -1;
     }
 
     scriptOut[sizeof(scriptOut)-1] = '\0';
