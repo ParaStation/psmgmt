@@ -1,0 +1,10 @@
+2001-02-09  Jens Hauke  <hauke@Phoenix.ira.uka.de>
+
+	* kern/mcp/mcp_recv.c: #301 fix bug in NotifyHostKernel() parameters in
+	NetRecvLargeDataPacket
+
+2001-02-08  Jens Hauke  <hauke@Phoenix.ira.uka.de>
+
+	* kern/mcp/mcp_dma.c: #297 Move DMAChain0 to DMAChain2 and move
+	NotifyHost to the new (now free) chain0
+

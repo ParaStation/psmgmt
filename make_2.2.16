@@ -1,0 +1,4 @@
+#!/bin/sh
+
+
+make KDIR=/usr/src/linux-2.2.16 $*

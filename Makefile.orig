@@ -1,0 +1,96 @@
+OBJ = psm.o psmutil.o
+MOBJ = mcp_init.o mcp_send.o mcp_recv.o mcp_dcs.o mcp_main.o
+HDR = psmconst.h psm.h
+CC = cc
+
+CFLAGS = -g -I/myrinet/include
+
+ALL = libpshal.a mcp psm_mcp.h
+
+all: $(ALL)
+
+libpshal.a: $(OBJ) $(HDR)
+	ar rcv libpshal.a $(OBJ)
+
+clean:
+	rm $(OBJ) $(MOBJ) $(ALL)
+
+
+#############################################################################
+# Definitions for making LANai programs
+MYRI_HOME      = /usr/myrinet
+L3CC           = lanai3-gcc
+L3CFLAGS       = -O2 -Wall -DBIGENDIAN
+L3INC_DIR      = -I$(MYRI_HOME)/include
+L3LIB_DIR      = -L$(MYRI_HOME)/lib/lanai
+L3LIBS	       = -lgcc
+GENDAT         = gendat
+MCP_LIB_FILES  = mcp_init.o mcp_dcs.o mcp_send.o mcp_recv.o mcp_main.o
+MCP_HEADERS    = mcpif.h mcp.h
+
+
+#############################################################################
+# Targets for send and receive versions of the MCP
+mcp: crt0.o $(MCP_LIB_FILES) $(MCP_HEADERS)
+	@echo Making MCP .
+	$(L3CC) -o mcp -nostdlib crt0.o $(L3CFLAGS) $(MCP_LIB_FILES) $(L3LIB_DIR) $(L3LIBS)
+	$(GENDAT) mcp > mcp.dat
+	@echo Finished making MCP.
+	@echo ---------------------------------------------------------------
+
+crt0.o:
+	$(L3CC) -c crt0.s
+
+mcp_init.o: mcp_init.c mcpif.h mcp.h
+	$(L3CC) -c mcp_init.c -o mcp_init.o $(L3CFLAGS) $(INC_DIR)
+
+mcp_main.o: mcp_main.c mcpif.h mcp.h
+	$(L3CC) -c mcp_main.c -o mcp_main.o $(L3CFLAGS) $(INC_DIR)
+
+mcp_dcs.o: mcp_dcs.c mcpif.h mcp.h
+	$(L3CC) -c mcp_dcs.c -o mcp_dcs.o $(L3CFLAGS) $(INC_DIR)
+
+mcp_send.o: mcp_send.c mcpif.h mcp.h
+	$(L3CC) -c mcp_send.c -o mcp_send.o $(L3CFLAGS) $(INC_DIR)
+
+mcp_recv.o: mcp_recv.c mcpif.h mcp.h
+	$(L3CC) -c mcp_recv.c -o mcp_recv.o $(L3CFLAGS) $(INC_DIR)
+
+psm_mcp.h: mcp.dat
+	cat mcp.dat | scripts/convert.pl 4 char > psm_mcp.h
+
+kernmodule: psm_mcp.h psm_mcpif.h
+	cp psm_*.h /usr/src/linux/drivers/net
+	cp /usr/src/linux/drivers/net/psm*.[ch] /psi/src/psmlib/kernel/
+	(cd /usr/src/linux; make modules; make modules_install)
+
+module:
+	cp /psi/src/psmlib/kernel/psm*.[ch] /usr/src/linux/drivers/net/
+	(cd /usr/src/linux; make modules; make modules_install)
+
+v4tar:
+	rm -f psmlib-v4.tar.gz
+	tar cvf psmlib-v4.tar V4 scripts speed test
+	gzip psmlib-v4.tar 
+
+v5tar:
+	rm -f psmlib-v5.tar.gz
+	tar cvf psmlib-v5.tar V5 scripts speed test
+	gzip psmlib-v5.tar 
+
+v6tar:
+	rm -f psmlib-v6.tar.gz
+	tar cvf psmlib-v6.tar V6 scripts speed test kernel
+	gzip psmlib-v6.tar 
+
+v7tar:
+	rm -f psmlib-v7.tar.gz
+	tar cvf psmlib-v7.tar V7 scripts speed test kernel
+	gzip psmlib-v7.tar 
+
+
+%.o: %.c  mcpif.h
+	$(CC) $(CFLAGS) -c $*.c $(INCLUDE) -o $@
+
+#############################################################################
+
