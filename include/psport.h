@@ -1,7 +1,7 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.7 2001/05/28 16:16:14 hauke Exp $
+ * $Id: psport.h,v 1.8 2001/05/28 16:38:33 moschny Exp $
  *
  * @author
  * Jens Hauke <hauke@par-tec.com>,
@@ -69,7 +69,6 @@ typedef enum {
  */
 typedef UINT16 PSP_MessageID_t;
 
-
 /**
  * Receive header.
  */
@@ -82,16 +81,15 @@ typedef struct PSP_RecvHeader_T {
 					header is placed */
 } PSP_RecvHeader_t;
 
-
 /**
  * General header to be used for send or receive requests.
  */
 typedef struct PSP_Header_T {
     int                 state;
     unsigned            xheaderlen;  /**< len of the extra header,
-					  read-only. */
+					read-only. */
     unsigned            datalen;     /**< len of message data,
-					  read-only. */
+					read-only. */
     
     PSHALRecvHeader_t	HALHeader;
     PSP_MessageID_t     MessageID;
@@ -104,7 +102,8 @@ typedef struct PSP_Header_T {
 /**
  * Type of the callback to be passed to PSP_IReceive().
  */
-typedef int (PSP_RecvCallBack_t)(PSP_RecvHeader_t* header, unsigned xheaderlen,void *param);
+typedef int (PSP_RecvCallBack_t)
+     (PSP_RecvHeader_t* header, unsigned xheaderlen, void *param);
 
 /** Number of receives without recv request */
 extern unsigned PSP_GenReqCount;
@@ -357,7 +356,7 @@ PSP_Status_t PSP_Test(PSP_PortH_t porth, PSP_RequestH_t request);
  * @param porth handle of the port, from PSP_OpenPort()
  * @param request handle of the send or receive request
  * @return Returns information about the status of the send/receive
- * operation. Unlike PSP_Test() this call doesn't not return
+ * operation. Unlike PSP_Test() this call doesn't return
  * PSP_NOT_COMPLETE.
  */
 PSP_Status_t PSP_Wait(PSP_PortH_t porth, PSP_RequestH_t request);
@@ -387,3 +386,8 @@ PSP_Status_t PSP_Cancel(PSP_PortH_t porth, PSP_RequestH_t request);
 
 #endif /* _PSPORT_H_ */
 
+/*
+ * Local Variables:
+ *   c-basic-offset: 4
+ *  End:
+ */
