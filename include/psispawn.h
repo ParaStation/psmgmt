@@ -1,18 +1,18 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * psispawn.h
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.h,v 1.14 2003/08/27 13:08:57 eicker Exp $
+ * $Id: psispawn.h,v 1.15 2003/09/12 13:51:27 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for spawning of ParaStation tasks.
  *
- * $Id: psispawn.h,v 1.14 2003/08/27 13:08:57 eicker Exp $
+ * $Id: psispawn.h,v 1.15 2003/09/12 13:51:27 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -31,85 +31,18 @@ extern "C" {
 #endif
 
 /**
- * @brief Spawn one or more tasks within the cluster.
- *
- * Spawn @a count tasks described by the @a argc arguments within @a
- * argv on the nodes with IDs contained in the @a dstnodes array. The
- * present working directory of the spawned tasks will be @a
- * workingdir. The forwarders controlling the spawned tasks will
- * forward all output to the logger described by @a loggertid. The
- * tasks will have the logical ranks @a rank to @a rank + @a
- * count - 1, i.e. this is what is returned by PSE_getRank() within
- * the corresponding tasks.
- *
- * The unique task IDs of the spawned tasks will be returned within
- * the tids array. If an error occurred, @a errors will contain an
- * errno describing the error on the position corresponding to the
- * position of the failed node in the @a dstnodes array.
- *
- * @param count Number of tasks to spawn.
- *
- * @param dstnodes ParaStation IDs of the nodes the tasks should be
- * spawned on. @a dstnodes might be NULL. Then the nodes will be
- * choosen from the current partition according to an internal counter
- * set via PSI_getPartition().
- *
- * @param workingdir Present working directory of the spawned tasks on
- * startup. This might be an absolute or relative path. If @a
- * workingdir is a relative path, the content of the PWD environment
- * variable is prepended. If @a workingdir is NULL, the content of the
- * PWD environment variable is taken.
- *
- * @param argc Number of arguments within @a argv used within the
- * resulting execve() call in order to really spawn the tasks.
- *
- * @param argv Array of argument strings passed to the resulting
- * execve() call in order to finally spawn the task.
- *
- * @param loggertid Unique task ID of the logger program used by the
- * forwarders controlling the spawned tasks to put out the stdout and
- * stderr output.
- *
- * @param rank Rank of the first spawned task within the parallel
- * task. For the tasks spawned subsequently the rank will be increased
- * by 1 each. You can get the rank of a specific task by calling
- * PSE_getRank() from withing the spawned task.
- *
- * @param errors Errorcodes displaying an if an error occurred within
- * PSI_spawnM() while spawning the corresponding task.
- *
- *
- * @return On success, the number of tasks spawned is returned, or -1
- * if an error occurred. Then errors is set appropriately.
- *
- * @see PSI_getPartition() PSE_getRank()
- */
-int PSI_spawnM(int count, short* dstnodes, char *workingdir,
-	       int argc, char **argv,
-	       long loggertid, int rank, int *errors, long *tids);
-
-/**
  * @brief Set UID for spawns
  *
  * Set the UID for subsequently spawned processes to @a uid. This will
- * only affect processes spawned via PSI_spawnM() of PSI_spawn(). Only
- * root (i.e. UID 0) is allowed to change the UID of spawned processes.
+ * only affect processes spawned via PSI_spawn(), PSI_spawnRank() or
+ * PSI_spawnGMSpawner(). Only root (i.e. UID 0) is allowed to change
+ * the UID of spawned processes.
  *
  * @param uid The UID of the processes to spawn.
  *
  * @return No return value.
  */
 void PSI_setUID(uid_t uid);
-
-/**
- * @brief Check the presence of LSF-Parallel.
- *
- * Check for the presence of LSF-Parallel. If LSF-Parallel is present,
- * modify the environment variable PSI_HOSTS.
- *
- * @return No return value.
- */
-void PSI_LSF(void);
 
 /**
  * @brief Prepend PSI_RARG_PRE_%d to the argument vector.
@@ -137,103 +70,145 @@ void PSI_LSF(void);
 void PSI_RemoteArgs(int Argc,char **Argv,int *RArgc,char ***RArgv);
 
 /**
- * @brief Create a partition.
+ * @brief Spawn one or more tasks within the cluster.
  *
- * Create a partition according to various environment variables. Only
- * those nodes are taken into account which have a communication
- * interface of hardware type @a hwType. Furthermore initialize an
- * internal counter, which steers the used nodes within PSI_spawn()
- * and PSI_spawnM() when their dstnode(s) argument is not given.
+ * Spawn @a count tasks described by the @a argc arguments within @a
+ * argv. The nodes and ranks used will be determined via the
+ * PSI_getNodes() function. The present working directory of the
+ * spawned tasks will be @a workingdir.
  *
- * The environment variables taken into account are as follows:
+ * The unique task IDs of the spawned tasks will be returned within
+ * the @a tids array. If an error occurred, @a errors will contain an
+ * errno describing the error on the position corresponding to the
+ * relative rank of the spawned process.
  *
- * - If PSI_NODES is present, use it to get the pool. PSI_NODES has to
- * contain a comma-separated list of node-number, i.e. positiv numbers
- * smaller than @a NrOfNodes from the parastation.conf configuration
- * file.
+ * Befor using this function, PSI_createPartition() has to be called
+ * from within any process of the parallel task (which is naturally
+ * the root process).
  *
- * - Otherwise if PSI_HOSTS is present, use this. PSI_HOSTS has to
- * contain a comma-separated list of hostnames. Each of them has to be
- * present in the parastation.conf configuration file.
+ * @param count Number of tasks to spawn.
  *
- * - If the pool is not build yet, use PSI_HOSTFILE. If PSI_HOSTFILE
- * is set, it has to contain a filename. The according file consists
- * of whitespace separated hostnames. Each of them has to be present
- * in the parastation.conf configuration file.
+ * @param workingdir Present working directory of the spawned tasks on
+ * startup. This might be an absolute or relative path. If @a
+ * workingdir is a relative path, the content of the PWD environment
+ * variable is prepended. If @a workingdir is NULL, the content of the
+ * PWD environment variable is taken.
  *
- * - If none of the three addressed environment variables is present,
- * take all nodes managed by ParaStation to build the pool.
+ * @param argc Number of arguments within @a argv used within the
+ * resulting execve() call in order to really spawn the tasks.
  *
- * To get into the pool, each node is tested, if it is available and if
- * it supports the requested hardware-type @hwType.
+ * @param argv Array of argument strings passed to the resulting
+ * execve() call in order to finally spawn the task.
  *
- * When the pool is build, it may have to be sorted. The sorting is
- * steered via the environment variable PSI_NODES_SORT. Depending on
- * its value, one of the following sorting strategies is deployed to
- * the node pool:
+ * @param errors Errorcodes displaying if an error occurred within
+ * PSI_spawn() while spawning the corresponding task.
  *
- * - PROC: Sort the pool depending on the number of processes managed
- * by ParaStation residing on the nodes. This is also the default if
- * PSI_NODES_SORT is not set.
- *
- * - LOAD or LOAD_1: Sort the pool depending on the load average
- * within the last minute on the nodes.
- *
- * - LOAD_5: Sort the pool depending on the load average within the
- * last 5 minutes on the nodes.
- *
- * - LOAD_15: Sort the pool depending on the load average within the
- * last 15 minutes on the nodes.
- *
- * - PROC+LOAD: Sort the pool depending on the sum of the 1 minute
- * load and the number processes managed by ParaStation residing on
- * that node. This will lead to fair load-balancing even if processes
- * are started without notification to the ParaStation management
- * facility.
- *
- * - NONE or anything else: Don't sort the pool.
- *
- * As a last step the PSI_PROCSPERNODE variable denotes the number of
- * processes started on each node of the nodelist. This has to be a
- * positive number (larger than 0). If a value different from 1 is
- * given, the nodelist is rebuild by replacing each node by the
- * requested number of successive occurrences of this node. I.e. the
- * the nodelist grows to by a factor of the requested value.
- * This might be useful on clusters of SMP machines.
- *
- * The so build nodelist is propagated unmodified to all child
- * processes.
+ * @param tids The task IDs of the spawned processes.
  *
  *
- * @param hwType Type of communication hardware each requested node
- * has to have. This is a 0 bitwise ORed with one or more of the
- * hardware types defined in pshwtypes.h.
+ * @return On success, the number of tasks spawned is returned, or -1
+ * if an error occurred. Then errors is set appropriately.
  *
- * @param myrank Initial value of an internal counter steering the
- * used nodes within PSI_spawn() and PSI_spawnM() when their dstnode(s)
- * argument is not given.
- *
- *
- * @return On success, the number of nodes in the partition is
- * returned or -1 if an error occurred.
+ * @see PSI_createPartition() PSI_getNodes()
  */
-short PSI_getPartition(unsigned int hwType, int myrank);
+int PSI_spawn(int count, char *workingdir, int argc, char **argv,
+	       int *errors, long *tids);
 
-/*
- * @brief Get ParaStation ID from rank.
+/**
+ * @brief Spawn a special task within the cluster.
  *
- * Get the ParaStation ID of the node on which the process with rank
- * @a rank will be started on.
+ * Spawn the task with rank @a rank described by the @a argc arguments
+ * within @a argv. The node used will depend on the rank of the
+ * spawned task determined via the INFO_request_rankID() function. The
+ * present working directory of the spawned tasks will be @a
+ * workingdir.
  *
- * @param rank The rank of the requested process.
+ * The unique task ID of the spawned task will be returned. If an
+ * error occurred, the returned value will be 0 and @a error will
+ * contain an errno describing the error.
  *
- * @return On success, the ParaStation ID of the requested node. Or
- * -1, if an error occured, i.e. PSI_getPartition was not called
- * beforehand.
+ * Befor using this function, PSI_createPartition() has to be called
+ * from within any process of the parallel task (which is naturally
+ * the root process).
  *
- * @see PSI_getPartition() PSE_getRank()
+ * If this function is used in order to spawn processes, the user has
+ * to assure that each rank's process is only spawned once.
+ *
+ * @param rank The rank of the task to spawn.
+ *
+ * @param workingdir Present working directory of the spawned tasks on
+ * startup. This might be an absolute or relative path. If @a
+ * workingdir is a relative path, the content of the PWD environment
+ * variable is prepended. If @a workingdir is NULL, the content of the
+ * PWD environment variable is taken.
+ *
+ * @param argc Number of arguments within @a argv used within the
+ * resulting execve() call in order to really spawn the tasks.
+ *
+ * @param argv Array of argument strings passed to the resulting
+ * execve() call in order to finally spawn the task.
+ *
+ * @param error Errorcode displaying if an error occurred within
+ * PSI_spawnRank() while spawning the task.
+ *
+ *
+ * @return On success, the unique task ID of the spawned process will
+ * be returned, or 0, if an error occurred. Then errors is set
+ * appropriately.
+ *
+ * @see PSI_createPartition() INFO_request_rankID()
  */
-short PSI_getPartitionNode(int rank);
+long PSI_spawnRank(int rank, char *workingdir, int argc, char **argv,
+		   int *error);
+
+/**
+ * @brief Spawn a gmspawner task within the cluster.
+ *
+ * Spawn a gmspawner task described by the @a argc arguments within @a
+ * argv. The rank used will be @a np, i.e. a rank that is in actual
+ * fact unavailable. Thus the node used will be the node the rank 0
+ * process will be spawned to. It is determined via
+ * INFO_request_rankID(). The present working directory of the spawned
+ * tasks will be @a workingdir.
+ *
+ * The unique task ID of the spawned task will be returned. If an
+ * error occurred, the returned value will be 0 and @a error will
+ * contain an errno describing the error.
+ *
+ * Befor using this function, PSI_createPartition() has to be called
+ * from within any process of the parallel task (which is naturally
+ * the root process).
+ *
+ * If this function is used in order to spawn processes, the user has
+ * to assure that each rank's process is only spawned once.
+ *
+ * @param np The total size of the MPIch/gm application and thus the
+ * rank used for the spawned process.
+ *
+ * @param workingdir Present working directory of the spawned tasks on
+ * startup. This might be an absolute or relative path. If @a
+ * workingdir is a relative path, the content of the PWD environment
+ * variable is prepended. If @a workingdir is NULL, the content of the
+ * PWD environment variable is taken.
+ *
+ * @param argc Number of arguments within @a argv used within the
+ * resulting execve() call in order to really spawn the tasks.
+ *
+ * @param argv Array of argument strings passed to the resulting
+ * execve() call in order to finally spawn the task.
+ *
+ * @param error Errorcode displaying if an error occurred within
+ * PSI_spawnRank() while spawning the task.
+ *
+ *
+ * @return On success, the unique task ID of the spawned process will
+ * be returned, or 0, if an error occurred. Then errors is set
+ * appropriately.
+ *
+ * @see PSI_createPartition() INFO_request_rankID()
+ */
+long PSI_spawnGMSpawner(int np, char *workingdir, int argc, char **argv,
+			int *error);
 
 /**
  * @brief Create a pg (process group) file for MPIch/P4
