@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psnodes.c,v 1.6 2003/10/29 17:25:09 eicker Exp $
+ * $Id: psnodes.c,v 1.7 2003/11/24 10:00:15 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psnodes.c,v 1.6 2003/10/29 17:25:09 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psnodes.c,v 1.7 2003/11/24 10:00:15 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -36,10 +36,11 @@ struct host_t {
 static struct host_t *hosts[256];  /* host table */
 
 /* List of all nodes, info about hardware included */
-struct node_t {
+typedef struct {
     unsigned int addr;     /**< IP address of that node */
     int version;           /**< Version of the config info from that node */
-    short numCPU;          /**< Number of CPUs in that node */
+    short physCPU;         /**< Number of physical CPUs in that node */
+    short virtCPU;         /**< Number of virtual CPUs in that node */
     char isUp;             /**< Actual status of that node */
     unsigned int hwType;   /**< Communication hardware on that node */
     unsigned int hwStatus; /**< Corresponding stati of the hardware */
@@ -49,9 +50,9 @@ struct node_t {
     uid_t uid;             /**< User this nodes is reserved to */
     gid_t gid;             /**< Group this nodes is reserved to */
     int procs;             /**< Number of processes this node will handle */
-};
+} node_t;
 
-static struct node_t *nodes = NULL;
+static node_t *nodes = NULL;
 
 int PSnodes_init(PSnodes_ID_t num)
 {
@@ -61,7 +62,7 @@ int PSnodes_init(PSnodes_ID_t num)
 
     numNodes = num;
 
-    nodes = (struct node_t *)malloc(sizeof(*nodes) * numNodes);
+    nodes = malloc(sizeof(*nodes) * numNodes);
 
     if (!nodes) {
 	return -1;
@@ -69,17 +70,20 @@ int PSnodes_init(PSnodes_ID_t num)
 
     /* Clear nodes */
     for (i=0; i<numNodes; i++) {
-        nodes[i].addr = INADDR_ANY;
-	nodes[i].numCPU = 0;
-	nodes[i].isUp = 0;
-        nodes[i].hwType = 0;
-        nodes[i].hwStatus = 0;
-	nodes[i].extraIP = INADDR_ANY;
-	nodes[i].jobs = 0;
-	nodes[i].starter = 0;
-	nodes[i].uid = -1;
-	nodes[i].gid = -1;
-	nodes[i].procs = -1;
+        nodes[i] = (node_t) {
+	    .addr = INADDR_ANY,
+	    .version = 0,
+	    .physCPU = 0,
+	    .virtCPU = 0,
+	    .isUp = 0,
+	    .hwType = 0,
+	    .hwStatus = 0,
+	    .extraIP = INADDR_ANY,
+	    .jobs = 0,
+	    .starter = 0,
+	    .uid = -1,
+	    .gid = -1,
+	    .procs = -1 };
     }
 
     return 0;
@@ -295,20 +299,39 @@ unsigned int PSnodes_getExtraIP(PSnodes_ID_t id)
     }
 }
 
-int PSnodes_setCPUs(PSnodes_ID_t id, short numCPU)
+int PSnodes_setPhysCPUs(PSnodes_ID_t id, short numCPU)
 {
     if (ID_ok(id)) {
-	nodes[id].numCPU = numCPU;
+	nodes[id].physCPU = numCPU;
 	return 0;
     } else {
 	return -1;
     }
 }
 
-short PSnodes_getCPUs(PSnodes_ID_t id)
+short PSnodes_getPhysCPUs(PSnodes_ID_t id)
 {
     if (ID_ok(id)) {
-	return nodes[id].numCPU;
+	return nodes[id].physCPU;
+    } else {
+	return -1;
+    }
+}
+
+int PSnodes_setVirtCPUs(PSnodes_ID_t id, short numCPU)
+{
+    if (ID_ok(id)) {
+	nodes[id].virtCPU = numCPU;
+	return 0;
+    } else {
+	return -1;
+    }
+}
+
+short PSnodes_getVirtCPUs(PSnodes_ID_t id)
+{
+    if (ID_ok(id)) {
+	return nodes[id].virtCPU;
     } else {
 	return -1;
     }
