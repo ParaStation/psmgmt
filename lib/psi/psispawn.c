@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.39 2003/06/02 16:21:14 eicker Exp $
+ * $Id: psispawn.c,v 1.40 2003/06/06 10:57:37 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.39 2003/06/02 16:21:14 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.40 2003/06/06 10:57:37 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -22,7 +22,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.39 2003/06/0
 #include <string.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#include <ctype.h>
+// #include <ctype.h>
 #include <signal.h>
 #include <termios.h>
 #include <sys/ioctl.h>
@@ -347,6 +347,12 @@ static int sortNodes(short nodes[], int numNodes, NodelistEntry_t nodelist[])
     return 0;
 }
 
+/* Workaround to make gcc-2.95 libs work with gcc-3.2 */
+static int myisspace(int c)
+{
+    return c==' ' || c=='\f' || c=='\n' || c=='\r' || c=='\t' || c=='\v';
+}
+
 /* Get white-space seperatet field. Return value must be freed
  * with free(). If next is set, *next return the beginning of the next field */
 char *get_wss_entry(char *str, char **next)
@@ -357,9 +363,9 @@ char *get_wss_entry(char *str, char **next)
 
     if (!str) goto no_str;
 
-    while (isspace(*start)) start++;
+    while (myisspace(*start)) start++;
     end=start;
-    while ((!isspace(*end)) && (*end)) end++;
+    while ((!myisspace(*end)) && (*end)) end++;
 
     if (start != end) {
 	ret = (char*)malloc(end-start + 1);
