@@ -1,7 +1,7 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.16 2001/08/06 09:00:08 moschny Exp $
+ * $Id: psport.h,v 1.17 2001/08/23 12:40:33 hauke Exp $
  *
  * @author
  * Jens Hauke <hauke@par-tec.com>,
@@ -128,11 +128,10 @@ extern unsigned PSP_GenReqUsedCount;
  * No parameters. This function must be called before any other call
  * to the library.
  *
- * @return Returns PSP_OK if the initialization was successful and
- * (maybe) an error code otherwise. Additionally, some diagnostics
- * might have been written to stderr.
+ * @return Returns 0 if the initialization was successful and
+ * an error code otherwise.
  */
-PSP_Err_t PSP_Init(void);
+int PSP_Init(void);
 
 /* ----------------------------------------------------------------------
  * PSP_GetNodeID()

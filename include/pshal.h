@@ -1,7 +1,7 @@
 /*
  *
  *
- *      $Id: pshal.h,v 1.13 2001/08/22 11:52:21 hauke Exp $	
+ *      $Id: pshal.h,v 1.14 2001/08/23 12:40:33 hauke Exp $	
  *
  *      written by Jens Hauke
  *
@@ -345,11 +345,11 @@ extern char * pshal_default_mcp;
 /**
  * Open PSM device.
  * @param	syslogerror	write errors to syslog
- * @return	none
+ * @return	0 on success,ERRNO on error
  *
  * Open PSM device. This function initialize PSHAL and should called first.
  */
-void PSHALStartUp(int syslogerror);
+int PSHALStartUp(int syslogerror);
 
 
 /*------------------------------------------------------------------------------
