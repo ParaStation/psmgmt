@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidclient.c,v 1.6 2003/10/29 17:16:53 eicker Exp $
+ * $Id: psidclient.c,v 1.7 2003/12/09 16:22:57 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidclient.c,v 1.6 2003/10/29 17:16:53 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidclient.c,v 1.7 2003/12/09 16:22:57 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -17,6 +17,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidclient.c,v 1.6 2003/10/
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 
@@ -27,6 +28,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidclient.c,v 1.6 2003/10/
 
 #include "psidutil.h"
 #include "psidtask.h"
+#include "psidtimer.h"
 #include "psidmsgbuf.h"
 #include "psidcomm.h"
 
@@ -42,6 +44,8 @@ static struct {
     msgbuf_t *msgs;      /**< Chain of undelivered messages */
 } clients[FD_SETSIZE];
 
+static struct timeval killClientsTimer;
+
 static char errtxt[256]; /**< General string to create error messages */
 
 void initClients(void)
@@ -54,6 +58,8 @@ void initClients(void)
 	clients[fd].flags = 0;
 	clients[fd].msgs = NULL;
     }
+
+    timerclear(&killClientsTimer);
 }
 
 
@@ -384,4 +390,58 @@ void deleteClient(int fd)
     PStask_cleanup(tid);
 
     return;
+}
+
+int killAllClients(int phase)
+{
+    PStask_t *task;
+
+    if (timercmp(&mainTimer, &killClientsTimer, <)) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s(%d) timer not ready [%ld:%ld] < [%ld:%ld]",
+		 __func__, phase, mainTimer.tv_sec, mainTimer.tv_usec,
+		 killClientsTimer.tv_sec, killClientsTimer.tv_usec);
+	PSID_errlog(errtxt, 8);
+
+	return 0;
+    }
+
+    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, phase);
+    PSID_errlog(errtxt, 1);
+
+    snprintf(errtxt, sizeof(errtxt),
+	     "timers are main[%ld:%ld] and killclients[%ld:%ld]",
+	     mainTimer.tv_sec, mainTimer.tv_usec,
+	     killClientsTimer.tv_sec, killClientsTimer.tv_usec);
+    PSID_errlog(errtxt, 8);
+
+    gettimeofday(&killClientsTimer, NULL);
+    mytimeradd(&killClientsTimer, 0, 200000);
+
+    task=managedTasks;
+    /* loop over all tasks */
+    while (task) {
+	if (task->group != TG_MONITOR
+	    && (phase==1 || phase==3 || task->group!=TG_ADMIN)) {
+	    /* TG_MONITOR never */
+	    /* in phase 1 and 3 all other */
+	    /* in phase 0 and 2 all other not in TG_ADMIN group */
+	    pid_t pid = PSC_getPID(task->tid);
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: sending %s to %s pid %d index[%d]",
+		     __func__, (phase<2) ? "SIGTERM" : "SIGKILL",
+		     PSC_printTID(task->tid), pid, task->fd);
+	    PSID_errlog(errtxt, 4);
+	    if (pid > 0) kill(pid, (phase<2) ? SIGTERM : SIGKILL);
+	}
+	if (phase>2 && task->fd>=0) {
+	    deleteClient(task->fd);
+	}
+	task = task->next;
+    }
+
+    snprintf(errtxt, sizeof(errtxt), "%s(%d) done", __func__, phase);
+    PSID_errlog(errtxt, 4);
+
+    return 1;
 }
