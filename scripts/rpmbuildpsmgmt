@@ -6,11 +6,6 @@ BINDIR=$BUILDDIR/opt/parastation
 
 SPECFILE=psmgmt-$DVER.spec
 
-if [ -d .build ]; then
-    rm -rf .build
-fi
-mkdir -p .build
-ln -sf "../opt" ".build/opt"
 if [ -f /usr/bin/rpmbuild ] ; then
     RPM=/usr/bin/rpmbuild
 else
@@ -27,7 +22,7 @@ Copyright: (c) 2001-2003 ParTec AG
 Group:     System/Development/Libraries
 Packager:  support@par-tec.de
 
-BuildRoot: $BUILDDIR/.build
+BuildRoot: $BUILDDIR/build
  
 %description
 ParaStation Management Layer.
