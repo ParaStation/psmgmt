@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.h,v 1.8 2003/02/14 15:21:39 eicker Exp $
+ * $Id: psispawn.h,v 1.9 2003/02/21 12:25:06 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for spawning of ParaStation tasks.
  *
- * $Id: psispawn.h,v 1.8 2003/02/14 15:21:39 eicker Exp $
+ * $Id: psispawn.h,v 1.9 2003/02/21 12:25:06 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -242,13 +242,13 @@ void PSI_RemoteArgs(int Argc,char **Argv,int *RArgc,char ***RArgv);
 short PSI_getPartition(unsigned int hwType, int myrank);
 
 /**
- * @brief Create a PI file for MPIch/P4
+ * @brief Create a pg (process group) file for MPIch/P4
  *
- * Create a PI file for @a num nodes used by MPIch/P4 in order to
- * startup a parallel task. The file is tried to create in the present
- * working directory. If the user is lacking permission to do so, it
- * is tried to create the file in the user's home directory, i.e. the
- * directory stored within the HOME environment variable.
+ * Create a pg (process group) file for @a num nodes used by MPIch/P4
+ * in order to startup a parallel task. The file is tried to create in
+ * the present working directory. If the user is lacking permission to
+ * do so, it is tried to create the file in the user's home directory,
+ * i.e. the directory stored within the HOME environment variable.
  *
  * The name of the created file consists if the string "PI" followed
  * by the PID of the current process.
@@ -263,7 +263,7 @@ short PSI_getPartition(unsigned int hwType, int myrank);
  * with malloc(3), and can be freed with free(3). If the creation of
  * the file failed, NULL is returned and errno is set appropriately.
  */
-char *PSI_createPIfile(int num, const char *prog);
+char *PSI_createPGfile(int num, const char *prog);
 
 /**
  * @brief Send a signal to a task.
