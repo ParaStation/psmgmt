@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.h,v 1.11 2002/07/05 14:40:24 eicker Exp $
+ * $Id: mcast.h,v 1.12 2002/07/11 09:50:29 eicker Exp $
  *
  */
 /**
  * \file
  * ParaStation MultiCast facility
  *
- * $Id: mcast.h,v 1.11 2002/07/05 14:40:24 eicker Exp $
+ * $Id: mcast.h,v 1.12 2002/07/11 09:50:29 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -39,12 +39,20 @@ typedef struct {
     double load[3];           /**< The actual load parameters */
 } MCastLoad;
 
+/** The jobs of a node */
+typedef struct {
+    short total;              /**< The total number of jobs */
+    short normal;             /**< Number of "normal" jobs (i.e. without
+				   admin, logger etc.) */
+} MCastJobs;
+
 /** The whole MCast info about a node */
 typedef struct {
     MCastState state;    /**< The state info of the node @see MCastState */
     MCastLoad load;      /**< The load info of the node @see MCastLoad */
+    MCastJobs jobs;      /**< The job info of the node @see MCastJobs */
     int misscounter;     /**< The number of missing pings from this node */
-} MCastConInfo;
+} MCastConInfo_t;
 
 /** Structure of a MCast message */
 typedef struct {
@@ -59,6 +67,7 @@ typedef struct {
     short type;          /**< Message type */
     MCastState state;    /**< The state info @see MCastState */
     MCastLoad load;      /**< The load info @see MCastLoad */
+    MCastJobs jobs;      /**< The job info @see MCastJobs */
 } MCastMsg;
 
 /** Tag to @ref MCastCallback: New connection detected */
@@ -213,6 +222,16 @@ int getDeadLimitMCast(void);
 void setDeadLimitMCast(int limit);
 
 /**
+ * @brief Set jobs info.
+ * @todo
+ *
+ * @return No return value
+ */
+void incJobsMCast(int node, int total, int normal);
+
+void decJobsMCast(int node, int total, int normal);
+
+/**
  * @brief Get connection info.
  *
  * Get connection information from the MCast module concerning the node
@@ -227,7 +246,7 @@ void setDeadLimitMCast(int limit);
  *
  * @return No return value.
  */
-void getInfoMCast(int node, MCastConInfo *info);
+void getInfoMCast(int node, MCastConInfo_t *info);
 
 /**
  * @brief Get status info.

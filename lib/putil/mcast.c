@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.c,v 1.10 2002/07/05 14:43:51 eicker Exp $
+ * $Id: mcast.c,v 1.11 2002/07/11 09:51:10 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.10 2002/07/05 14:43:51 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.11 2002/07/11 09:51:10 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -162,6 +162,8 @@ static void initConntableMCast(int nodes,
 	    conntableMCast[i].load.load[0] = 0.0;
 	    conntableMCast[i].load.load[1] = 0.0;
 	    conntableMCast[i].load.load[2] = 0.0;
+	    conntableMCast[i].jobs.total = 0;
+	    conntableMCast[i].jobs.normal = 0;
 	    conntableMCast[i].state = DOWN;
 	} else {
 	    /* Install LicServer correctly */
@@ -431,6 +433,7 @@ static int handleMCast(int fd)
 	    gettimeofday(&conntableMCast[node].lastping, NULL);
 	    conntableMCast[node].misscounter = 0;
 	    conntableMCast[node].load = msg.load;
+	    conntableMCast[node].jobs = msg.jobs;
 	    if (!licServer && conntableMCast[node].state != UP) {
 		/* got PING from unconnected node */
 		conntableMCast[node].state = UP;
@@ -494,8 +497,11 @@ static void pingMCast(MCastState state)
 	     "pingMCast: Current load is [%.2f|%.2f|%.2f]",
 	     msg.load.load[0], msg.load.load[1], msg.load.load[2]);
     errlog(errtxt, 12);
-    conntableMCast[myID].load = msg.load;  /* Delete */
-    gettimeofday(&conntableMCast[myID].lastping, NULL);  /* Delete */
+    msg.jobs = jobsMCast;
+    snprintf(errtxt, sizeof(errtxt),
+	     "pingMCast: Currently %d normal jobs (%d total)",
+	     msg.jobs.normal, msg.jobs.total);
+    errlog(errtxt, 12);
     snprintf(errtxt, sizeof(errtxt),
 	     "Sending MCast ping [%d:%d] to %s", myID, state,
 	     inet_ntoa(msin.sin_addr));
@@ -614,10 +620,39 @@ void setDeadLimitMCast(int limit)
     if (limit > 0) MCastDeadLimit = limit;
 }
 
-void getInfoMCast(int n, MCastConInfo *info)
+void incJobsMCast(int node, int total, int normal)
 {
-    info->load = conntableMCast[n].load;
+    if (0 <= node && node < nrOfNodes) {
+	if (total) conntableMCast[node].jobs.total++;
+	if (normal) conntableMCast[node].jobs.normal++;
+    }
+    if (node == myID) {
+	if (total) jobsMCast.total++;
+	if (normal) jobsMCast.normal++;
+	/* Do an extra ping if a new job appears */
+	pingMCast(UP);
+    }
+}
+
+void decJobsMCast(int node, int total, int normal)
+{
+    if (0 <= node && node < nrOfNodes) {
+	if (total) conntableMCast[node].jobs.total--;
+	if (normal) conntableMCast[node].jobs.normal--;
+    }
+    if (node == myID) {
+	if (total) jobsMCast.total--;
+	if (normal) jobsMCast.normal--;
+	/* Do an extra ping if a new job appears */
+	pingMCast(UP);
+    }
+}
+
+void getInfoMCast(int n, MCastConInfo_t *info)
+{
     info->state = conntableMCast[n].state;
+    info->load = conntableMCast[n].load;
+    info->jobs = conntableMCast[n].jobs;
     info->misscounter = conntableMCast[n].misscounter;
     return;
 }
