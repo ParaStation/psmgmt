@@ -295,7 +295,7 @@ void arg_decode(char *asc,int *eargc,char ***eargv)
 }
 
 int cpid;
-#define DEBUG_OUT
+//#define DEBUG_OUT
 #ifdef DEBUG_OUT
 FILE *out=NULL;
 #endif
@@ -557,7 +557,7 @@ int main(int argc,char **argv)
 	n=0;
 	eeargv[n++]=strdup("ssh");
 	DPRINT("Check tty.");
-	if (isatty(STDOUT_FILENO)){
+	if ((isatty(STDIN_FILENO))&&(isatty(STDOUT_FILENO))){
 	    DPRINT("tty found.\n");
 	    eeargv[n++]=strdup("-t");
 	}else{
