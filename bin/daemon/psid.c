@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.122 2004/01/14 17:56:54 eicker Exp $
+ * $Id: psid.c,v 1.123 2004/01/22 13:30:02 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.122 2004/01/14 17:56:54 eicker Exp $ 
+ * $Id: psid.c,v 1.123 2004/01/22 13:30:02 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.122 2004/01/14 17:56:54 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.123 2004/01/22 13:30:02 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -75,7 +75,7 @@ struct timeval selectTime;
 
 static struct timeval shutdownTimer;
 
-char psid_cvsid[] = "$Revision: 1.122 $";
+char psid_cvsid[] = "$Revision: 1.123 $";
 
 /**
  * Master socket (type UNIX) for clients to connect. Setup within @ref
@@ -1800,70 +1800,67 @@ static void RDPCallBack(int msgid, void *buf)
 		 msg->dest, msg->sender, PSDaemonP_printMsg(msg->type));
 	PSID_errlog(errtxt, 2);
 
-	if (PSC_getPID(msg->sender)) {
-	    /* sender is a client (somewhere) */
-	    switch (msg->type) {
-	    case PSP_CD_GETOPTION:
-	    case PSP_CD_INFOREQUEST:
-	    {
-		/* Sender expects an answer */
-		DDErrorMsg_t errmsg = {
-		    .header = {
-			.type = PSP_CD_ERROR,
-			.dest = msg->sender,
-			.sender = PSC_getMyTID(),
-			.len = sizeof(errmsg) },
-		    .request = msg->type,
-		    .error = EHOSTUNREACH };
-		sendMsg(&errmsg);
-		break;
-	    }
-	    case PSP_CD_SPAWNREQUEST:
-	    {
-		DDErrorMsg_t answer = {
-		    .header = {
-			.type = PSP_CD_SPAWNFAILED,
-			.dest = msg->sender,
-			.sender = PSC_getMyTID(),
-			.len = sizeof(answer) },
-		    .request = msg->type,
-		    .error = EHOSTDOWN };
-		sendMsg(&answer);
-		break;
-	    }
-	    case PSP_CD_RELEASE:
-	    case PSP_CD_NOTIFYDEAD:
-	    {
-		/* Sender expects an answer */
-		DDSignalMsg_t answer = {
-		    .header = {
-			.type = (msg->type==PSP_CD_RELEASE) ?
-			PSP_CD_RELEASERES : PSP_CD_NOTIFYDEADRES,
-			.dest = msg->sender,
-			.sender = PSC_getMyTID(),
-			.len = msg->len },
-		    .signal = ((DDSignalMsg_t *)msg)->signal,
-		    .param = EHOSTUNREACH,
-		    .pervasive = 0 };
-		sendMsg(&answer);
-		break;
-	    }
-	    case PSP_DD_DAEMONCONNECT:
-	    {
-		if (!config->useMCast && !knowMaster()) {
-		    PSnodes_ID_t next = PSC_getID(msg->dest) + 1;
+	switch (msg->type) {
+	case PSP_CD_GETOPTION:
+	case PSP_CD_INFOREQUEST:
+	{
+	    /* Sender expects an answer */
+	    DDErrorMsg_t errmsg = {
+		.header = {
+		    .type = PSP_CD_ERROR,
+		    .dest = msg->sender,
+		    .sender = PSC_getMyTID(),
+		    .len = sizeof(errmsg) },
+		.request = msg->type,
+		.error = EHOSTUNREACH };
+	    sendMsg(&errmsg);
+	    break;
+	}
+	case PSP_CD_SPAWNREQUEST:
+	{
+	    DDErrorMsg_t answer = {
+		.header = {
+		    .type = PSP_CD_SPAWNFAILED,
+		    .dest = msg->sender,
+		    .sender = PSC_getMyTID(),
+		    .len = sizeof(answer) },
+		.request = msg->type,
+		.error = EHOSTDOWN };
+	    sendMsg(&answer);
+	    break;
+	}
+	case PSP_CD_RELEASE:
+	case PSP_CD_NOTIFYDEAD:
+	{
+	    /* Sender expects an answer */
+	    DDSignalMsg_t answer = {
+		.header = {
+		    .type = (msg->type==PSP_CD_RELEASE) ?
+		    PSP_CD_RELEASERES : PSP_CD_NOTIFYDEADRES,
+		    .dest = msg->sender,
+		    .sender = PSC_getMyTID(),
+		    .len = msg->len },
+		.signal = ((DDSignalMsg_t *)msg)->signal,
+		.param = EHOSTUNREACH,
+		.pervasive = 0 };
+	    sendMsg(&answer);
+	    break;
+	}
+	case PSP_DD_DAEMONCONNECT:
+	{
+	    if (!config->useMCast && !knowMaster()) {
+		PSnodes_ID_t next = PSC_getID(msg->dest) + 1;
 
-		    if (next < PSC_getMyID()) {
-			send_DAEMONCONNECT(next);
-		    } else {
-			declareMaster(PSC_getMyID());
-		    }
+		if (next < PSC_getMyID()) {
+		    send_DAEMONCONNECT(next);
+		} else {
+		    declareMaster(PSC_getMyID());
 		}
-		break;
 	    }
-	    default:
-		break;
-	    }
+	    break;
+	}
+	default:
+	    break;
 	}
 	break;
     }
@@ -2202,7 +2199,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.122 $";
+    char revision[] = "$Revision: 1.123 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
