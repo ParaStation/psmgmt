@@ -5,12 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.22 2002/02/18 19:53:14 eicker Exp $
+ * $Id: psi.c,v 1.23 2002/02/19 09:37:19 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.10 2002/01/18 15
-:54:22 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.23 2002/02/19 09:37:19 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -68,7 +67,7 @@ static pid_t PSIgetpid(void)
     /* if we are a child of a psid process (remote process),
      * we use the pid of our parent. */
     env_str=getenv("PSI_PID");
-    if (env_str){
+    if (env_str) {
 	return atoi(env_str);
     }else{
 	return getpid();
@@ -84,10 +83,11 @@ static pid_t PSIgetpid(void)
 */
 unsigned short PSI_getnode(long tid)
 {
-    if(tid>=0)
+    if (tid>=0) {
 	return (tid>>16)&0xFFFF;
-    else
+    } else {
 	return PSI_myid;
+    }
 }
 
 /****************************************
@@ -108,10 +108,11 @@ short PSI_getnrofnodes(void)
 */
 long PSI_gettid(short node, pid_t pid)
 {
-    if(node<0)
+    if (node<0) {
 	return (((PSI_myid&0xFFFF)<<16)|pid);
-    else
+    } else {
 	return (((node&0xFFFF)<<16)|pid);
+    }
 }
 
 long PSI_options=0;
@@ -121,10 +122,12 @@ long PSI_options=0;
  */
 int PSI_setoption(long option, char value)
 {
-    if(value)
+    if (value) {
 	PSI_options = PSI_options | option;
-    else
+    } else {
 	PSI_options = PSI_options & ~option;
+    }
+
     return PSI_options;
 }
 
@@ -139,7 +142,7 @@ int PSI_startdaemon(unsigned int hostaddr)
     struct servent *service;
     struct sockaddr_in sa;
 #if defined(DEBUG)
-    if(PSP_DEBUGADMIN & (PSI_debugmask )){
+    if (PSP_DEBUGADMIN & (PSI_debugmask )) {
 	sprintf(PSI_txt, "PSI_startdaemon(%x)\n", hostaddr);
 	PSI_logerror(PSI_txt);
     }
@@ -149,7 +152,7 @@ int PSI_startdaemon(unsigned int hostaddr)
      */
     sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-    if ((service = getservbyname("psid","tcp")) == NULL){
+    if ((service = getservbyname("psid","tcp")) == NULL) {
 	fprintf(stderr, "can't get \"psid\" service entry\n");
 	shutdown(sock,2);
 	close(sock);
@@ -159,7 +162,7 @@ int PSI_startdaemon(unsigned int hostaddr)
     sa.sin_family = AF_INET;
     sa.sin_addr.s_addr = hostaddr;
     sa.sin_port = service->s_port;
-    if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0){
+    if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0) {
 	perror("PSI daemon connect for start with inetd.");
 	shutdown(sock,2);
 	close(sock);
@@ -181,17 +184,18 @@ int PSI_daemonsocket(unsigned int hostaddr)
     struct sockaddr_in sa;
 
 #if defined(DEBUG)
-    if(PSP_DEBUGSTARTUP & (PSI_debugmask )){
+    if (PSP_DEBUGSTARTUP & (PSI_debugmask )) {
 	sprintf(PSI_txt, "PSI_daemonsocket(%x)\n", hostaddr);
 	PSI_logerror(PSI_txt);
     }
 #endif
 
     sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if(sock <0)
+    if (sock <0) {
 	return -1;
+    }
 
-    if ((service = getservbyname("psids", "tcp")) == NULL){
+    if ((service = getservbyname("psids", "tcp")) == NULL) {
 	fprintf(stderr, "can't get \"psids\" service entry\n");
 	shutdown(sock,2);
 	close(sock);
@@ -202,7 +206,7 @@ int PSI_daemonsocket(unsigned int hostaddr)
     sa.sin_addr.s_addr = hostaddr;
     sa.sin_port = service->s_port;
 
-    if(connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0){
+    if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0) {
 	shutdown(sock,2);
 	close(sock);
 	return -1;
@@ -228,7 +232,7 @@ static int PSI_daemon_connect(unsigned short protocol, unsigned int hostaddr)
     int ret;
 
 #if defined(DEBUG)
-    if(PSP_DEBUGSTARTUP & (PSI_debugmask )){
+    if (PSP_DEBUGSTARTUP & (PSI_debugmask )) {
 	sprintf(PSI_txt,"PSI_daemon_connect(%d)\n",protocol);
 	PSI_logerror(PSI_txt);
     }
@@ -242,11 +246,11 @@ static int PSI_daemon_connect(unsigned short protocol, unsigned int hostaddr)
 
  RETRY_CONNECT:
 
-    while((PSI_msock=PSI_daemonsocket(hostaddr))==-1){
+    while ((PSI_msock=PSI_daemonsocket(hostaddr))==-1) {
 	/*
 	 * start the PSI Daemon via inetd
 	 */
-	if(connectfailes++ < 10){
+	if (connectfailes++ < 10) {
 	    PSI_startdaemon(hostaddr);
 	}else{
 	    perror("PSI daemon connect failed finally");
@@ -269,28 +273,29 @@ static int PSI_daemon_connect(unsigned short protocol, unsigned int hostaddr)
     msg.group = protocol;
 
     ClientMsgSend(&msg);
-    if((ret = ClientMsgReceive(&msg))<=0){
+    if ((ret = ClientMsgRecv(&msg))<=0) {
 	char* errtxt;
 	shutdown(PSI_msock,2);
 	close(PSI_msock);
 	PSI_msock =-1;
 	errtxt=strerror(errno);
-	if(ret==0)
+	if (ret==0) {
 	    fprintf(stderr,"PSI_daemon_connect(): unexpected "
 		    "return message length (%d).\n", ret);
-	else
+	} else {
 	    fprintf(stderr,"PSI_daemon_connect(): error while "
 		    "receiving return message (%d): %s\n",
 		    errno,errtxt?errtxt:"UNKNOWN");
+	}
 	return 0;
     }
-    switch (msg.header.type){
+    switch (msg.header.type) {
     case PSP_DD_STATENOCONNECT  :
 	retry_count++;
 	shutdown(PSI_msock,2);
 	close(PSI_msock);
 	PSI_msock =-1;
-	if(retry_count <10){
+	if (retry_count <10) {
 	    sleep(1);
 	    goto RETRY_CONNECT;
 	}
@@ -302,9 +307,10 @@ static int PSI_daemon_connect(unsigned short protocol, unsigned int hostaddr)
 	shutdown(PSI_msock,2);
 	close(PSI_msock);
 	PSI_msock =-1;
-	if((protocol!=TG_RESET)&&(protocol!=TG_RESETABORT))
+	if ((protocol!=TG_RESET)&&(protocol!=TG_RESETABORT)) {
 	    fprintf(stderr,"PSI_daemon_connect(): "
 		    "local daemon refused connection.\n");
+	}
 	return 0;
 	break;
     case PSP_CD_NOSPACE :
@@ -348,7 +354,7 @@ static int PSI_daemon_connect(unsigned short protocol, unsigned int hostaddr)
 	PSI_loggerport = msg.loggerport;
 	PSI_myrank = msg.rank;
 	PSI_SetInstalldir(msg.instdir);
-	if(strcmp(msg.instdir, PSI_LookupInstalldir())){
+	if (strcmp(msg.instdir, PSI_LookupInstalldir())) {
 	    fprintf(stderr,"PSI_daemon_connect(): "
 		    "Installation directory '%s' not correct.\n", msg.instdir);
 	    return 0;
@@ -386,7 +392,7 @@ int PSI_clientinit(unsigned short protocol)
 #if defined(DEBUG)
     PSI_openlog();
 
-    if(PSP_DEBUGSTARTUP & (PSI_debugmask )){
+    if (PSP_DEBUGSTARTUP & (PSI_debugmask )) {
 	sprintf(PSI_txt,"PSI_clientinit()\n");
 	PSI_logerror(PSI_txt);
     }
@@ -400,40 +406,42 @@ int PSI_clientinit(unsigned short protocol)
     /*
      * connect to local PSI daemon
      */
-    if (!PSI_daemon_connect(protocol, INADDR_ANY)){
-	if((protocol!=TG_RESET)&&(protocol!=TG_RESETABORT))
+    if (!PSI_daemon_connect(protocol, INADDR_ANY)) {
+	if ((protocol!=TG_RESET) && (protocol!=TG_RESETABORT)) {
 	    fprintf(stderr,"PSI_clientinit(): can't contact local daemon.\n");
+	}
 	return 0;
     }
 
     PSI_mypid = PSIgetpid();
     PSI_mytid = PSI_gettid(-1,PSI_mypid);
 
-    if(! PSI_hoststatus)
+    if (! PSI_hoststatus) {
 	PSI_hoststatus = (char *) malloc(PSI_nrofnodes);
+    }
     INFO_request_hoststatus(PSI_hoststatus, PSI_nrofnodes);
 
     /* check if the environment variable PSI_EXPORT is set.
      * If it is set, then take the environment variables
      * mentioned there into the PSI_environment
      */
-    if((envstrvalue=getenv("PSI_EXPORTS"))!=NULL){
+    if ((envstrvalue=getenv("PSI_EXPORTS"))!=NULL) {
 	char* envstr,*newstr;
 	char* envstrstart;
 	envstrstart = strdup(envstrvalue);
-	if(envstrstart){
+	if (envstrstart) {
 	    envstr = envstrstart;
-	    while((newstr = strchr(envstr,','))!=NULL){
+	    while ((newstr = strchr(envstr,','))!=NULL) {
 		newstr[0]=0; /* replace the "," with EOS */
 		newstr++;    /* move to the start of the next string */
-		if((envstrvalue=getenv(envstr))!=NULL){
+		if ((envstrvalue=getenv(envstr))!=NULL) {
 		    char putstring[1000];
 		    sprintf(putstring,"%s=%s",envstr,envstrvalue);
 		    putPSIEnv(putstring);
 		}
 		envstr = newstr;
 	    }
-	    if((envstrvalue=getenv(envstr))!=NULL){
+	    if ((envstrvalue=getenv(envstr))!=NULL) {
 		char putstring[1000];
 		sprintf(putstring,"%s=%s",envstr,envstrvalue);
 		putPSIEnv(putstring);
@@ -453,15 +461,15 @@ int PSI_clientinit(unsigned short protocol)
 int PSI_clientexit(void)
 {
 #if defined(DEBUG)
-    if(PSP_DEBUGSTARTUP & (PSI_debugmask )){
+    if (PSP_DEBUGSTARTUP & (PSI_debugmask )) {
 	sprintf(PSI_txt,"PSI_clientexit()\n");
 	PSI_logerror(PSI_txt);
     }
 #endif
 
-    if (PSI_msock == -1)
+    if (PSI_msock == -1) {
 	return 1;
-
+    }
 
     /*
      * close connection to local PSI daemon
@@ -501,7 +509,7 @@ int PSI_notifydead(long tid, int sig)
 	return -1;
     }
 
-    if (ClientMsgReceive(&msg)<0) {
+    if (ClientMsgRecv(&msg)<0) {
 	fprintf(stderr, "%s: Could not receive messge.\n", __func__);
 	return -1;
     }
@@ -542,9 +550,9 @@ int PSI_release(long tid)
 	return -1;
     }
 
-    if(ClientMsgReceive(&msg)<0) {
+    if (ClientMsgRecv(&msg)<0) {
 	return -1;
-    } else if(msg.signal!=0) {
+    } else if (msg.signal!=0) {
 	return -1;
     }
 
@@ -574,7 +582,7 @@ int PSI_recv_finish(int outstanding_answers)
     int error = 0;
 
     while (outstanding_answers>0) {
-	if (ClientMsgReceive(&msg)<0) {
+	if (ClientMsgRecv(&msg)<0) {
 	    perror("PSI_recv_finish: receiving answer from my daemon");
 	    error = 1;
 	    break;
@@ -616,11 +624,11 @@ long PSI_whodied(int sig)
     msg.header.len = sizeof(msg);
     msg.signal = sig;
 
-    if(ClientMsgSend(&msg)<0){
+    if (ClientMsgSend(&msg)<0) {
 	return -1;
     }
 
-    if(ClientMsgReceive(&msg)<0){
+    if (ClientMsgRecv(&msg)<0) {
 	return(-1);
     }
 
@@ -654,18 +662,20 @@ char * PSI_LookupInstalldir(void)
     char *name = NULL, logger[] = "/bin/psiforwarder";
     struct stat sbuf;
 
-    while( (installdir[i].nr != -1) && !found ){
-	if(!name)
-	    name = (char*) malloc(sizeof(installdir[0].name) + strlen(logger)+1);
+    while ((installdir[i].nr != -1) && !found ) {
+	if (!name) {
+	    name = (char*) malloc(sizeof(installdir[0].name)
+				  + strlen(logger)+1);
+	}
 	strcpy(name, installdir[i].name);
 	strcat(name, logger);
-	if(stat(name, &sbuf) != -1){ /* Installdir found */
+	if (stat(name, &sbuf) != -1) { /* Installdir found */
 	    PSI_installdir = installdir[i].name;
 	    found=1;
 	}
 	i++;
     }
-    if(name){
+    if (name) {
 	free(name);
 	name=NULL;
     }
