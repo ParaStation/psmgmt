@@ -1,33 +1,35 @@
 /*
- * Copyright (c) 1995 Regents of the University of Karlsruhe / Germany.
+ *               ParaStation3
+ * psp.h
+ *
+ * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
+ * $Id: psp.h,v 1.7 2002/01/18 15:53:38 eicker Exp $
  *
- *      @(#)psp.c    1.00 (Karlsruhe) 10/4/95
+ */
+/**
+ * \file
+ * psp: The ParaStation Protocol
+ *      Used for daemon-daemon and client-daemon communication.
  *
- *      ParaStation Protocol
+ * $Id: psp.h,v 1.7 2002/01/18 15:53:38 eicker Exp $
  *
- *      written by Joachim Blum
+ * \author
+ * Norbert Eicker <eicker@par-tec.com>
  *
- *
- * This is the key module for the ParaStationProtocol.
- * It manages the SHareMemory.
  */
 #ifndef __PSP_H
 #define __PSP_H
 
-#define PSPprotocolversion  301
+#ifdef __cplusplus
+extern "C" {
+#if 0
+} /* <- just for emacs indentation */
+#endif
+#endif
+
+#define PSPprotocolversion  302
 
 /*------------------------------------------------------------------------- 
 * PSP_ctrl messages through the OS socket of the daemon
@@ -160,13 +162,6 @@ typedef struct{
     long partner;     /* node which should be contacted by header.dest */
 }DDContactMsg_t;
 
-/* untyped taged Buffer Message */
-typedef struct{
-    DDMsg_t header;   /* header of the message */
-    long tag[10];     /* specifying the buf in more detailed */
-    char buf[7000];   /* buffer for Message */
-}DDTagedBufferMsg_t;
-
 /* untyped Buffer Message */
 typedef struct{
     DDMsg_t header;   /* header of the message */
@@ -219,4 +214,9 @@ int ClientMsgSend(void* amsg);
 *  Receive a msg from the local daemon
 */
 int ClientMsgReceive(void* msg);
-#endif 
+
+#ifdef __cplusplus
+}/* extern "C" */
+#endif
+
+#endif /* __PSP_H */
