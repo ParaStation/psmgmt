@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.36 2003/10/23 16:27:35 eicker Exp $
+ * $Id: info.c,v 1.37 2003/10/29 17:29:58 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.36 2003/10/23 16:27:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.37 2003/10/29 17:29:58 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -33,9 +33,6 @@ static char errtxt[128];
  * @todo Docu
  * @brief Receive and handle info message.
  *
- * INOUT:
- * long* what : (for taskinfo) in: action to be performed
- *                            out: response
  * OUT:
  * void* buffer : buffer where data can be placed
  * IN:
@@ -462,7 +459,6 @@ long INFO_request_taskinfo(PStask_ID_t tid, INFO_info_t what, int verbose)
     DDTypedMsg_t msg;
     INFO_taskinfo_t taskinfo;
     PSP_Info_t type;
-    long answer = 0;
     size_t size = sizeof(taskinfo);
 
     msg.header.type = PSP_CD_INFOREQUEST;
@@ -693,8 +689,8 @@ char *INFO_printHWType(unsigned int hwType)
     return txt;
 }
 
-int INFO_request_option(unsigned short node, int num, long option[],
-			 long value[], int verbose)
+int INFO_request_option(PSnodes_ID_t node, int num, PSP_Option_t option[],
+			PSP_Optval_t value[], int verbose)
 {
     DDOptionMsg_t msg;
     int i;
