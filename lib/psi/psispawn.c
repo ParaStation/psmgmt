@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.15 2002/02/19 09:33:10 eicker Exp $
+ * $Id: psispawn.c,v 1.16 2002/05/10 09:55:59 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.15 2002/02/19 09:33:10 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.16 2002/05/10 09:55:59 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -71,23 +71,23 @@ long PSI_spawn(short dstnode, char*workdir, int argc, char**argv,
 		return -1;
 	    }
 	}
-	if(PSI_Partition!=NULL){
+	if (PSI_Partition!=NULL) {
 	    int count=0;
-	    while(dstnode<0){
+	    while(dstnode<0) {
 		count++;
 		dstnode = PSI_Partition[PSI_PartitionIndex];
 		PSI_PartitionIndex++;
-		if(PSI_PartitionIndex >= PSI_PartitionSize){
+		if (PSI_PartitionIndex >= PSI_PartitionSize) {
 		    PSI_PartitionIndex =0;
 		}
 		if (!PSHOSTACTIVE(dstnode))
 		    dstnode=-1;
-		if(count>PSI_PartitionSize){
+		if (count>PSI_PartitionSize) {
 		    errno = EHOSTUNREACH;
 		    return -1;
 		}
 	    }
-	}else{
+	} else {
 	    errno = EHOSTUNREACH;
 	    return -1;
 	}
@@ -98,7 +98,7 @@ long PSI_spawn(short dstnode, char*workdir, int argc, char**argv,
     ret = PSI_dospawn(1, dstnodes, workdir, argc, argv,
 		      loggernode, loggerport, rank, 0, errors,tids);
     *error = errors[0];
-    if(ret<0)
+    if (ret<0)
 	return ret;
     else
 	return tids[0];
@@ -111,42 +111,42 @@ int PSI_spawnM(int count, short *dstnodes, char *workdir,
 {
     short* mydstnodes=NULL;
     int ret;
-    if(count < 0)
+    if (count < 0)
 	return 0;
-    if(dstnodes==NULL){
+    if (dstnodes==NULL) {
 	if (PSI_Partition==NULL) {
 	    if (PSI_getPartition()<0) {
 		errno = EINVAL;
 		return -1;
 	    }
 	}
-	if(PSI_Partition!=NULL){
+	if (PSI_Partition!=NULL) {
 	    int i;
 	    mydstnodes= (short*) malloc(count*sizeof(short));
 	    PSI_PartitionIndex=rank;
 
-	    for(i=0;i<count;i++){
+	    for (i=0;i<count;i++) {
 		int pcount=0;
 		do{
 		    pcount++;
 		    mydstnodes[i] = PSI_Partition[PSI_PartitionIndex];
 		    PSI_PartitionIndex++;
-		    if(PSI_PartitionIndex >= PSI_PartitionSize){
+		    if (PSI_PartitionIndex >= PSI_PartitionSize) {
 			PSI_PartitionIndex =0;
 		    }
-		    if( pcount > PSI_PartitionSize ){
+		    if ( pcount > PSI_PartitionSize ) {
 			/* couldn't find a node which is active */
 			errno = EHOSTUNREACH;
 			return -1;
 		    }
 		}while(!PSHOSTACTIVE(mydstnodes[i]));
 	    }
-	}else{
+	} else {
 	    errno = EHOSTUNREACH;
 	    return -1;
 	}
 
-    }else
+    } else
 	mydstnodes = dstnodes;
 
     ret = PSI_dospawn(count, mydstnodes, workdir, argc, argv,
@@ -163,7 +163,7 @@ int PSI_spawnM(int count, short *dstnodes, char *workdir,
 
 int PSIisalive(long tid)
 {
-    return INFO_request_taskinfo(tid, INFO_ISALIVE);
+    return INFO_request_taskinfo(tid, INFO_ISALIVE, 0);
 }
 
 /* used for sorting the nodes */
@@ -176,16 +176,16 @@ typedef struct {
 int PSI_CompareNodesInPartionsByLoad(const void *entry1, const void *entry2)
 {
     int ret;
-    if((((sort_block *)entry2)->load < ((sort_block *)entry1)->load))
+    if ((((sort_block *)entry2)->load < ((sort_block *)entry1)->load))
 	ret = 1;
-    else if((((sort_block *)entry2)->load > ((sort_block *)entry1)->load))
+    else if ((((sort_block *)entry2)->load > ((sort_block *)entry1)->load))
 	ret =  -1;
     else if (((sort_block *)entry2)->id < ((sort_block *)entry1)->id)
 	ret =  1;
     else
 	ret = -1;
-    if(((sort_block *)entry2)->status == 0) return 1;
-    if(((sort_block *)entry1)->status == 0) return -1;
+    if (((sort_block *)entry2)->status == 0) return 1;
+    if (((sort_block *)entry1)->status == 0) return -1;
 
     return ret;
 }
@@ -209,7 +209,7 @@ int PSI_SortNodesInPartition(short nodes[], int maxnodes)
     int i;
     sort_block *node_entry;
     char *env_sort, *env_str;
-    double (*loadfunc)(unsigned short) = NULL;
+    double (*loadfunc)(unsigned short, int) = NULL;
 
     /* get the sorting routine from the environment */
     if (!(env_sort = getenv(ENV_NODE_SORT))) {
@@ -233,11 +233,11 @@ int PSI_SortNodesInPartition(short nodes[], int maxnodes)
 	}
 
 	/* Create the structs to sort */
-	for(i=0; i<maxnodes; i++){
+	for (i=0; i<maxnodes; i++) {
 	    node_entry[i].id = nodes[i];
 	    /* Get the status. Or rather, set it. */
 	    node_entry[i].status = 1;
-	    node_entry[i].load = loadfunc((unsigned short) nodes[i]);
+	    node_entry[i].load = loadfunc((unsigned short) nodes[i], 0);
 	}
 
 	/* Sort the nodes */
@@ -245,7 +245,7 @@ int PSI_SortNodesInPartition(short nodes[], int maxnodes)
 	      PSI_CompareNodesInPartionsByLoad);
 
 	/* Transfer the results */
-	for( i=0; i<maxnodes; i++ ){
+	for ( i=0; i<maxnodes; i++ ) {
 	    nodes[i] = node_entry[i].id;
 	}
 	free(node_entry);
@@ -283,7 +283,7 @@ char *get_wss_entry(char *str,char **next)
     while(isspace(*start)) start++;
     end=start;
     while( (!isspace(*end)) && (*end)) end++;
-    if (start != end){
+    if (start != end) {
 	ret=(char*)malloc(end-start +1);
 	strncpy(ret,start,end-start);
 	ret[end-start]=0;
@@ -297,7 +297,7 @@ void PSI_LSF(void)
 {
     char *lsf_hosts=NULL;
     lsf_hosts=getenv(ENV_NODE_HOSTS_LSF);
-    if (lsf_hosts){
+    if (lsf_hosts) {
 /*  	char *p=lsf_hosts; */
 /*  	char *ret,*host,*first; */
 	setenv(ENV_NODE_SORT, "none", 1);
@@ -307,8 +307,8 @@ void PSI_LSF(void)
 /*  	ret=(char*)malloc(strlen(lsf_hosts)+1); */
 /*  	*ret=0; */
 /*  	first=get_wss_entry(p,&p); */
-/*  	if (first){ */
-/*  	    while ((host=get_wss_entry(p,&p))){ */
+/*  	if (first) { */
+/*  	    while ((host=get_wss_entry(p,&p))) { */
 /*  		strcat(ret,host); */
 /*  		strcat(ret," "); */
 /*  		free(host); */
@@ -322,39 +322,40 @@ void PSI_LSF(void)
     }
 }
 
-void PSI_RemoteArgs(int Argc,char **Argv,int *RArgc,char ***RArgv){
+void PSI_RemoteArgs(int Argc,char **Argv,int *RArgc,char ***RArgv)
+{
     int new_argc=0;
     char **new_argv;
     char env_name[ sizeof(ENV_NODE_RARG) + 20];
     int cnt;
     int i;
     cnt=0;
-    for(;;){
+    for (;;) {
 	snprintf(env_name,sizeof(env_name)-1,
 		 ENV_NODE_RARG,cnt);
-	if (getenv(env_name)){
+	if (getenv(env_name)) {
 	    cnt++;
-	}else{
+	} else {
 	    break;
 	}
     }
-    if (cnt){
+    if (cnt) {
 	new_argc=cnt+Argc;
 	new_argv=malloc(sizeof(char *)*(new_argc+1));
 	new_argv[new_argc]=NULL;
 	
-	for(i=0;i<cnt;i++){
+	for (i=0;i<cnt;i++) {
 	    snprintf(env_name,sizeof(env_name)-1,ENV_NODE_RARG,i);
 	    new_argv[i]=getenv(env_name);
 	    /* Propagate the environment */
 	    setPSIEnv(env_name, new_argv[i], 1);
 	}
-	for(i=0;i<Argc;i++){
+	for (i=0;i<Argc;i++) {
 	    new_argv[i+cnt]=Argv[i];
 	}
 	*RArgc=new_argc;
 	*RArgv=new_argv;
-    }else{
+    } else {
 	*RArgc=Argc;
 	*RArgv=Argv;
     }
@@ -393,29 +394,29 @@ short PSI_getPartition(void)
 	char* tmp_node_str, *tmp_node_str_begin, *tmp_node_str_end;
 
 	tmp_node_str = tmp_node_str_begin = strdup(node_str);
-	if(tmp_node_str==NULL)
+	if (tmp_node_str==NULL)
 	    return -1;
 
 	while((tmp_node_str_end = strchr(tmp_node_str,','))!=NULL
-	      && PSI_PartitionSize < 4*maxnodes){
+	      && PSI_PartitionSize < 4*maxnodes) {
 	    /* while there are more node numbers in string */
 	    *tmp_node_str_end = '\0';
-	    if((sscanf(tmp_node_str, "%d", &next_node)>0)
-	       && (next_node < maxnodes)){
+	    if ((sscanf(tmp_node_str, "%d", &next_node)>0)
+	       && (next_node < maxnodes)) {
 		PSI_Partition[PSI_PartitionSize] = next_node;
 		PSI_PartitionSize++;
 	    }
 	    tmp_node_str = tmp_node_str_end+1;
 	}
 	/* Check if the last element is a node_nr */
-	if((sscanf(tmp_node_str, "%d", &next_node)>0)
+	if ((sscanf(tmp_node_str, "%d", &next_node)>0)
 	   && (next_node < maxnodes)
-	   && (PSI_PartitionSize < 4*maxnodes)){
+	   && (PSI_PartitionSize < 4*maxnodes)) {
 	    PSI_Partition[PSI_PartitionSize] = next_node;
 	    PSI_PartitionSize++;
 	}
 	free(tmp_node_str_begin);
-    }else if (hosts_str){
+    } else if (hosts_str) {
 	/* parse hosts_str for nodenames */
 	char *hostname;
 	char *p=hosts_str;
@@ -423,49 +424,49 @@ short PSI_getPartition(void)
 	struct hostent *hp;
 	PSI_PartitionSize = 0;
 	while((hostname=get_wss_entry(p,&p))
-	      && PSI_PartitionSize<4*maxnodes){
+	      && PSI_PartitionSize<4*maxnodes) {
 	    hp = gethostbyname(hostname);
 	    bcopy((char *)hp->h_addr, (char*)&sin_addr, hp->h_length);
 	    if ((PSI_Partition[PSI_PartitionSize] =
-		 INFO_request_host(sin_addr.s_addr)) != -1){
+		 INFO_request_host(sin_addr.s_addr, 0)) != -1) {
 		/* printf("Host #%d '%s' PSID: %d\n",
 		       PSI_PartitionSize,hostname,
 		       PSI_Partition[PSI_PartitionSize]); */
 		PSI_PartitionSize++;
-	    }else{
+	    } else {
 		/* printf("Host #%d '%s' PSID: ???\n",
 		   PSI_PartitionSize,hostname); */
 	    }
 	    free(hostname);
 	}
 	endhostent();
-    }else if(hostfilename){
+    } else if (hostfilename) {
 	/* either in ENV or in PSI_ENV there exists
 	   the name of the hostfile
 	   => open it and read the hostnames
 	*/
 	char hostname[1024];
 	FILE* file;
-	if((file = fopen(hostfilename,"r"))!=NULL){
+	if ((file = fopen(hostfilename,"r"))!=NULL) {
 	    struct in_addr sin_addr;
 	    struct hostent *hp;
 	    PSI_PartitionSize= 0;
 	    while((fscanf(file,"%s",hostname)>0)
-		  && PSI_PartitionSize<4*maxnodes){
-		if(hostname[0] == '#')
+		  && PSI_PartitionSize<4*maxnodes) {
+		if (hostname[0] == '#')
 		    continue;
 		hp = gethostbyname(hostname);
 		memcpy(&sin_addr, hp->h_addr, hp->h_length);
 		if ((PSI_Partition[PSI_PartitionSize] =
-		     INFO_request_host(sin_addr.s_addr)) != -1){
+		     INFO_request_host(sin_addr.s_addr, 0)) != -1) {
 		    PSI_PartitionSize++;
 		}
 	    }
 	    endhostent();
 	    fclose(file);
-	}else
+	} else
 	    return -1;
-    }else{
+    } else {
 	/* No variable found - get list from daemon */
 	struct {
 	    int numNodes;
@@ -473,7 +474,7 @@ short PSI_getPartition(void)
 	} nodeinfo;
 
 	// printf("Get hostlist\n");
-	INFO_request_hostlist(&nodeinfo, sizeof(nodeinfo));
+	INFO_request_hostlist(&nodeinfo, sizeof(nodeinfo), 0);
 	// printf("Got hostlist of size %d\n", nodeinfo.numNodes);
 	// localnode = PSI_getnode(-1);
 	if (!nodeinfo.numNodes) {
@@ -571,7 +572,7 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
     task->workingdir = strdup(pmyworkingdir);
     task->argc = argc;
     task->argv = (char**)malloc(sizeof(char*)*(task->argc+1));
-    for(i=0;i<task->argc;i++)
+    for (i=0;i<task->argc;i++)
 	task->argv[i]=strdup(argv[i]);
     task->argv[task->argc]=0;
 
