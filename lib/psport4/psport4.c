@@ -7,7 +7,7 @@
 /**
  * name: Description
  *
- * $Id: psport4.c,v 1.7 2002/07/17 22:05:31 hauke Exp $
+ * $Id: psport4.c,v 1.8 2002/07/18 11:36:08 eicker Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -1025,15 +1025,15 @@ void ConfigureConnection( int fd )
 	errno = 0;
 	val = env_so_sndbuf;
 	ret = setsockopt( fd, SOL_SOCKET, SO_SNDBUF, &val, sizeof(val));
-	DPRINT( 2, "setsockopt( %d, SOL_SOCKET, SO_SNDBUF, [%d], %d ) = %d : %s",
-		fd, val, sizeof(val), ret, strerror( errno ));
+	DPRINT( 2, "setsockopt( %d, SOL_SOCKET, SO_SNDBUF, [%d], %ld ) = %d : %s",
+		fd, val, (long)sizeof(val), ret, strerror( errno ));
     }
     if ( env_so_rcvbuf ){
 	errno = 0;
 	val = env_so_rcvbuf;
 	ret = setsockopt( fd, SOL_SOCKET, SO_RCVBUF, &val, sizeof(val));
-	DPRINT( 2, "setsockopt( %d, SOL_SOCKET, SO_RCVBUF, [%d], %d ) = %d : %s",
-		fd, val, sizeof(val), ret, strerror( errno ));
+	DPRINT( 2, "setsockopt( %d, SOL_SOCKET, SO_RCVBUF, [%d], %ld ) = %d : %s",
+		fd, val, (long)sizeof(val), ret, strerror( errno ));
     }
     errno = 0;
 
@@ -1574,10 +1574,10 @@ int PSP_Init()
 unsigned int PSP_UsedHW(void)
 {
 /*
-  From psprotocol.h:
-#define PSP_HW_ETHERNET            0x0001
-#define PSP_HW_MYRINET             0x0002
-#define PSP_HW_GIGAETHERNET        0x0004
+  From pshwtypes.h:
+#define PSHW_ETHERNET            0x0001
+#define PSHW_MYRINET             0x0002
+#define PSHW_GIGAETHERNET        0x0004
 */
     return 0x0001;
 }
