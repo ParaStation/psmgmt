@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.8 2002/08/06 08:21:11 eicker Exp $
+ * $Id: psprotocol.h,v 1.9 2003/02/10 18:32:17 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation client-daemon and daemon-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.8 2002/08/06 08:21:11 eicker Exp $
+ * $Id: psprotocol.h,v 1.9 2003/02/10 18:32:17 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -32,7 +32,7 @@ extern "C" {
 #endif
 #endif
 
-#define PSprotocolversion  316
+#define PSprotocolversion  317
 
 #define PSmasterSocketName "/var/run/parastation.sock"
 
@@ -52,14 +52,17 @@ extern "C" {
 #define PSP_DD_GETOPTION           0x0009
 #define PSP_DD_CONTACTNODE         0x000a
 
-#define PSP_CD_TASKINFOREQUEST     0x0010
-#define PSP_CD_TASKINFO            0x0011
-#define PSP_CD_TASKINFOEND         0x0012
+#define PSP_CD_TASKINFOREQUEST     0x0010  /**< Request info about one or more
+					      tasks */
+#define PSP_CD_TASKINFO            0x0011  /**< Reply info about a task */
+#define PSP_CD_TASKINFOEND         0x0012  /**< End of task info replies */
 
-#define PSP_CD_HOSTREQUEST         0x0018
-#define PSP_CD_HOSTRESPONSE        0x0019
-#define PSP_CD_NODELISTREQUEST     0x001a
-#define PSP_CD_NODELISTRESPONSE    0x001b
+#define PSP_CD_HOSTREQUEST         0x0018  /**< Request PS ID from IP */
+#define PSP_CD_HOSTRESPONSE        0x0019  /**< Reply PS ID from IP */
+#define PSP_CD_NODELISTREQUEST     0x001a  /**< Request up to date nodelist */
+#define PSP_CD_NODELISTRESPONSE    0x001b  /**< Reply up to date nodelist */
+#define PSP_CD_NODEREQUEST         0x001c  /**< Request IP from PS ID */
+#define PSP_CD_NODERESPONSE        0x001d  /**< Reply IP from PS ID */
 //#define PSP_CD_LOADREQUEST         0x001c  /* Obsolete ? */
 //#define PSP_CD_LOADRESPONSE        0x001d  /* Obsolete ? */
 //#define PSP_CD_PROCREQUEST         0x001e  /* Obsolete ? */
@@ -74,11 +77,13 @@ extern "C" {
 #define PSP_CD_MCASTSTATUSREQUEST  0x0026
 #define PSP_CD_MCASTSTATUSRESPONSE 0x0027
 
+/* Messages conceerning spawning of tasks */
+
 #define PSP_DD_SPAWNREQUEST        0x0030  /**< Request to spawn a process */
 #define PSP_DD_SPAWNSUCCESS        0x0031  /**< Reply on successful spawn */
 #define PSP_DD_SPAWNFAILED         0x0032  /**< Reply on failed spawn */
 #define PSP_DD_SPAWNFINISH         0x0033  /**< Reply after successfil end of
-                                                spawned process */
+					      spawned process */
 
 #define PSP_DD_NOTIFYDEAD          0x0040
 #define PSP_DD_NOTIFYDEADRES       0x0041
@@ -90,16 +95,23 @@ extern "C" {
 #define PSP_DD_SYSTEMERROR         0x0050
 #define PSP_DD_STATENOCONNECT      0x0051
 
-#define PSP_DD_RESET               0x0060
+#define PSP_CD_RESET               0x0060
 
-#define PSP_CD_RESET               0x0070
+#define PSP_CC_MSG                 0x0080  /**< Messages between clients.
+					      These should be fully transparent
+					      for the daemons. */
+#define PSP_CC_ERROR               0x0081  /**< Error in client communication.
+					      Usually client not found. These
+					      should be fully transparent for
+					      the daemons. */
 
 #define PSP_DD_DAEMONCONNECT       0x0100
 #define PSP_DD_DAEMONESTABLISHED   0x0101
 #define PSP_DD_DAEMONSTOP          0x0102
 #define PSP_CD_DAEMONSTOP          0x0103
 
-#define PSP_DD_CHILDDEAD           0x0112
+#define PSP_DD_CHILDDEAD           0x0112  /**< Tell someone that its child has
+					      finished */
 
 /*----------------------------------------------------------------------*/
 /* global options to be sent in the DD protocol                         */
@@ -203,9 +215,6 @@ typedef struct {
     long version;          /* version of the PS library */
     int nrofnodes;         /* # of nodes */
     int myid;              /**< id of this node or info about failure */
-    unsigned int loggernode;/* @todo Obsolete with new forwarder; loggernode */
-    short loggerport;       /* @todo Obsolete with new forwarder; loggerport */
-    long loggertid;        /* @todo */
 #ifndef SO_PEERCRED
     pid_t pid;             /**< process id. Not used with UNIX sockets. */
     uid_t uid;             /**< user id. Not used with UNIX sockets. */
