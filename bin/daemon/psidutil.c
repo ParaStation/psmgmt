@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.56 2003/04/07 10:00:53 eicker Exp $
+ * $Id: psidutil.c,v 1.57 2003/04/07 16:30:57 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.56 2003/04/07 10:00:53 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.57 2003/04/07 16:30:57 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -304,7 +304,7 @@ void PSID_startHW(int hw)
 	    unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
 
 	    snprintf(errtxt, sizeof(errtxt),
-		     "%s(): %s already up", __func__, HW_name(hw));
+		     "%s(): assume %s already up", __func__, HW_name(hw));
 	    PSID_errlog(errtxt, 10);
 
 	    PSnodes_setHWStatus(PSC_getMyID(), status | (1<<hw));
@@ -350,7 +350,7 @@ void PSID_stopHW(int hw)
 	    unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
 
 	    snprintf(errtxt, sizeof(errtxt),
-		     "%s(): %s assume down", __func__, HW_name(hw));
+		     "%s(): assume %s already down", __func__, HW_name(hw));
 	    PSID_errlog(errtxt, 10);
 
 	    PSnodes_setHWStatus(PSC_getMyID(), status & ~(1<<hw));
