@@ -7,7 +7,7 @@
 /**
  * name: Description
  *
- * $Id: psport4shm.c,v 1.5 2003/04/16 15:56:46 hauke Exp $
+ * $Id: psport4shm.c,v 1.6 2003/05/08 15:51:28 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -19,7 +19,7 @@
  */
 
 static char vcid[] __attribute__(( unused )) =
-"$Id: psport4shm.c,v 1.5 2003/04/16 15:56:46 hauke Exp $";
+"$Id: psport4shm.c,v 1.6 2003/05/08 15:51:28 hauke Exp $";
 
 #ifdef XREF
 #include <sys/uio.h>
@@ -566,7 +566,7 @@ void ufd_del(PSP_Port_t *port, con_t *con)
     }
     return;
  err_intern:
-    DPRINT(0, __FUNCTION__ "() : Internal error!\n");
+    DPRINT(0, "%s() : Internal error!\n", __func__);
     return;
 }
 
@@ -576,7 +576,7 @@ void ufd_write_set(PSP_Port_t *port, con_t *con)
     if (con->u.fd.ufd_idx >= 0) {
 	port->ufds[con->u.fd.ufd_idx].events |= POLLOUT;
     } else {
-	DPRINT(0, __FUNCTION__ "() : Internal error!\n");
+	DPRINT(0, "%s() : Internal error!\n", __func__);
     }
 }
 
@@ -586,7 +586,7 @@ void ufd_write_clr(PSP_Port_t *port, con_t *con)
     if (con->u.fd.ufd_idx >= 0) {
 	port->ufds[con->u.fd.ufd_idx].events &= ~POLLOUT;
     } else {
-	DPRINT(0, __FUNCTION__ "() : Internal error!\n");
+	DPRINT(0, "%s() : Internal error!\n", __func__);
     }
 }
 

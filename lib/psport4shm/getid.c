@@ -9,7 +9,7 @@
  *   PSP_NETWORK is a space and or , sepparerted list of network IPs
  *   or hostnames inside the networks
  *
- * $Id: getid.c,v 1.1 2003/04/16 15:56:46 hauke Exp $
+ * $Id: getid.c,v 1.2 2003/05/08 15:51:28 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -32,7 +32,7 @@
 #include <sys/ioctl.h>
 
 static char vcid2[] __attribute__(( unused )) =
-"$Id: getid.c,v 1.1 2003/04/16 15:56:46 hauke Exp $";
+"$Id: getid.c,v 1.2 2003/05/08 15:51:28 hauke Exp $";
 
 #define MIN(a,b)      (((a)<(b))?(a):(b))
 #define MAX(a,b)      (((a)>(b))?(a):(b))
@@ -78,12 +78,12 @@ in_addr_t psp_getid_byname(void)
     return id;
     /* --- */
  err_gethostname:
-    fprintf(stderr, "%s(): gethostname() failed : %s\n", __FUNCTION__, strerror(errno));
+    fprintf(stderr, "%s(): gethostname() failed : %s\n", __func__, strerror(errno));
     return 0;
     /* --- */
  err_nohostent:
     fprintf(stderr, "%s(): Cant get IP of node %s : %s\n",
-	    __FUNCTION__, myname, strerror(errno));
+	    __func__, myname, strerror(errno));
     return 0;
 }
 
