@@ -1,5 +1,5 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * psdaemonprotocol.c
  *
  * ParaStation daemon-daemon high-level protocol.
@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psdaemonprotocol.c,v 1.5 2003/12/10 16:27:02 eicker Exp $
+ * $Id: psdaemonprotocol.c,v 1.6 2004/01/09 15:13:02 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psdaemonprotocol.c,v 1.5 2003/12/10 16:27:02 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psdaemonprotocol.c,v 1.6 2004/01/09 15:13:02 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -29,6 +29,7 @@ static struct {
     { PSP_DD_DAEMONCONNECT    , "PSP_DD_DAEMONCONNECT"    }, 
     { PSP_DD_DAEMONESTABLISHED, "PSP_DD_DAEMONESTABLISHED"}, 
     { PSP_DD_DAEMONREFUSED    , "PSP_DD_DAEMONREFUSED"    }, 
+    { PSP_DD_DAEMONSHUTDOWN   , "PSP_DD_DAEMONSHUTDOWN"   }, 
 
     { PSP_DD_SENDSTOP         , "PSP_DD_SENDSTOP"         }, 
     { PSP_DD_SENDCONT         , "PSP_DD_SENDCONT"         }, 
