@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.15 2002/01/30 10:42:02 eicker Exp $
+ * $Id: psld.c,v 1.16 2002/02/15 19:35:37 eicker Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Daemon
  *
- * $Id: psld.c,v 1.15 2002/01/30 10:42:02 eicker Exp $
+ * $Id: psld.c,v 1.16 2002/02/15 19:35:37 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.15 2002/01/30 10:42:02 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.16 2002/02/15 19:35:37 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -293,7 +293,7 @@ void sighandler(int sig)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.15 $";
+    char revision[] = "$Revision: 1.16 $";
     snprintf(errtxt, sizeof(errtxt), "psld %s\b ", revision+11);
     errlog(errtxt, 0);
 }
@@ -430,8 +430,8 @@ int main(int argc, char *argv[])
 	    hostlist[i] = psihosttable[i].inet;
 	}
 
-	msock = initMCast(NrOfNodes, ConfigMgroup, usesyslog, hostlist,
-			  1, NULL);
+	msock = initMCast(NrOfNodes, ConfigMCastGroup, ConfigMCastPort,
+			  usesyslog, hostlist, 1, NULL);
 
 	tv.tv_sec = 1;
 	tv.tv_usec = 0;
