@@ -4,35 +4,35 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.20 2003/07/18 16:35:49 eicker Exp $
+# $Id$
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
 #         Norbert Eicker <eicker@par-tec.de>
 #############################################################################
 
-SUBDIRS := lib bin docu
+SUBDIRS := lib bin dist
 
-DISTDIRS := dist_fe dist_docu dist_mgmt
-SUBDIRS += $(DISTDIRS)
-
+.PHONY: all $(SUBDIRS)
 all: lib bin
-.PHONY: all $(SUBDIRS) clean realclean
 
-lib:
-	$(MAKE) -C lib
-
-bin:
-	$(MAKE) -C bin
-
-docu:
-	$(MAKE) -C docu
-
-$(DISTDIRS):
+$(SUBDIRS):
 	$(MAKE) -C $@
 
-clean realclean:
-	@for i in $(SUBDIRS) ; do \
-		$(MAKE) -C $$i $@ ;\
-	done
+.PHONY: install
+install:
+	$(MAKE) -C dist install DISTPATH=$(RPM_BUILD_ROOT)/opt/parastation
 
+.PHONY: rpm srpm
+rpm srpm:
+	$(MAKE) -C dist $@
+
+.PHONY: tar
+tar: dist
+
+.PHONY:clean distclean
+
+clean distclean:
+	@for i in $(SUBDIRS) ; do \
+		$(MAKE) -C $$i $@; \
+	done

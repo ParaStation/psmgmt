@@ -4,16 +4,17 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.7 2004/01/22 15:08:48 eicker Exp $
+# $Id$
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
 #         Norbert Eicker <eicker@par-tec.de>
 #############################################################################
 
-# Use absolute paths !!!
-SRCDIR := $(shell cd @srcdir@;pwd)
-TOPSRCDIR := @TOP_SRCDIR@
+SRCDIR = @abs_srcdir@
+TOPSRCDIR = @abs_top_srcdir@
+
+INSTALL = @INSTALL@
 
 ################################
 
@@ -33,8 +34,8 @@ sharedlib staticlib: sharedlib.dir staticlib.dir
 	$(MAKE) -C $@.dir -f ../../Makefile.$@
 
 sharedlib.dir staticlib.dir:
-	mkdir -p $@
+	$(INSTALL) -d $@
 
-realclean clean: sharedlib.dir staticlib.dir
+clean realclean: sharedlib.dir staticlib.dir
 	$(MAKE) -C sharedlib.dir -f ../../Makefile.sharedlib $@
 	$(MAKE) -C staticlib.dir -f ../../Makefile.staticlib $@

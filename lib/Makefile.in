@@ -4,29 +4,26 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.5 2004/03/09 12:09:08 eicker Exp $
+# $Id$
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
 #         Norbert Eicker <eicker@par-tec.de>
 #############################################################################
 
-LIBS := pse pscommon psi putil pslog
+SUBDIRS := pse pscommon psi putil pslog
 
-all: lib
+.PHONY: all $(SUBDIRS)
 
-.PHONY: $(LIBS) clean realclean
+all: $(SUBDIRS)
 
-
-lib: $(LIBS)
-
-$(LIBS): 
-	$(MAKE) -C $@
+$(SUBDIRS): 
+	$(MAKE) -C $@ all
 
 
-clean realclean:
+.PHONY: clean distclean
+
+clean distclean:
 	@for i in $(LIBS) ; do \
-		$(MAKE) -C $$i $@ ;\
+		$(MAKE) -C $$i $@; \
 	done
-
-

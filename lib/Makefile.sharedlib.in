@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.sharedlib.in,v 1.2 2003/07/18 14:27:52 eicker Exp $
+# $Id$
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -13,7 +13,6 @@
 
 CFLAGS += -O3 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
 CPPFLAGS += $(LIBINC) @CPPFLAG_MMD@
-RANLIB := @RANLIB@
 
 TARGET_OS := @target_os@
 

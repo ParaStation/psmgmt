@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.44 2004/09/22 09:15:31 eicker Exp $
+# $Id$
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -16,9 +16,6 @@ CPPFLAGS += -I@top_srcdir@/include -I. @CPPFLAG_MMD@
 SRCDIR = @srcdir@
 TOP_SRCDIR = @top_srcdir@
 TARGET_OS := @target_os@
-YFLAGS = -d
-LFLAGS = -i
-LEX = flex
 
 VPATH += $(SRCDIR)
 
@@ -86,10 +83,12 @@ parastation: $(TOP_SRCDIR)/scripts/parastation@TRU64FILEADD@
 # WARNING!!! if DEPEXTENSION from configure is empty, make clean remove all files!!
 DEPFILES := $(wildcard *@DEPEXTENSION@) dummy.d
 
+.PHONY: clean distclean
+
 clean:
 	$(RM) $(DEPFILES) $(EXTRACLEAN) *.o
 
-realclean: clean
+distclean: clean
 	$(RM) $(TARGETS)
 
 -include $(DEPFILES)
