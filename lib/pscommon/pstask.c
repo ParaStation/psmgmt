@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.c,v 1.17 2003/11/26 15:09:45 eicker Exp $
+ * $Id: pstask.c,v 1.18 2004/01/22 15:06:26 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.17 2003/11/26 15:09:45 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.18 2004/01/22 15:06:26 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -77,6 +77,7 @@ int PStask_init(PStask_t *task)
 
     task->childs = NULL;
 
+    task->request = NULL;
     task->partitionSize = 0;
     task->options = 0;
     task->partition = NULL;
@@ -223,6 +224,7 @@ PStask_t *PStask_clone(PStask_t *task)
 
     clone->childs = cloneSigList(task->childs);
 
+    clone->request = NULL; /* Do not clone requests */
     clone->partitionSize = task->partitionSize;
     clone->options = task->options;
     clone->partition = malloc(clone->partitionSize * sizeof(short));
