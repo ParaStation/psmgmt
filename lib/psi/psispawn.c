@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.43 2003/07/18 11:08:33 eicker Exp $
+ * $Id: psispawn.c,v 1.44 2003/08/04 15:18:55 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.43 2003/07/18 11:08:33 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.44 2003/08/04 15:18:55 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -1027,6 +1027,15 @@ short PSI_getPartitionNode(int rank)
     return PSI_Partition[rank%PSI_PartitionSize];
 }
 
+static uid_t defaultUID = 0;
+
+void PSI_setUID(uid_t uid)
+{
+    if (!getuid()) {
+	defaultUID = uid;
+    }
+}
+
 static int dospawn(int count, short *dstnodes, char *workingdir,
 		   int argc, char **argv,
 		   long loggertid,
@@ -1059,7 +1068,11 @@ static int dospawn(int count, short *dstnodes, char *workingdir,
     task = PStask_new();
 
     task->ptid = PSC_getMyTID();
-    task->uid = getuid();
+    if (defaultUID) {
+	task->uid = defaultUID;
+    } else {
+	task->uid = getuid();
+    }
     task->gid = getgid();
     task->aretty = 0;
     if (isatty(STDERR_FILENO)) {
@@ -1092,6 +1105,7 @@ static int dospawn(int count, short *dstnodes, char *workingdir,
 	struct stat statbuf;
 
 	if (stat(argv[0], &statbuf)) {
+	    /* @todo realpath() might be a good candidate to replace this */
 #ifdef __linux__
 	    char myexec[PATH_MAX];
 	    int length;
