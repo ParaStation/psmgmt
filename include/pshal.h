@@ -2,7 +2,7 @@
  *
  *      @(#)pshal.h    1.00 (Karlsruhe) 08/15/2000
  *
- *      $Id: pshal.h,v 1.9 2001/06/28 12:24:12 hauke Exp $	
+ *      $Id: pshal.h,v 1.10 2001/07/10 19:56:39 hauke Exp $	
  *
  *      written by Joachim Blum
  *                 Jens Hauke
@@ -375,7 +375,7 @@ extern unsigned PSHAL_SendDMACount; /**< count packets send via DMA */
 #define PSHALCopyH2N(src,dest,size) memcpy (dest,src,size)
 
 /* Copy from Hostmem to PCImem, with save space after dest+size*/    
-#define PSHALCopyH2Nplus(src,dest,size) memcpy (dest,src,ROUND_UP(4,size))
+#define PSHALCopyH2Nplus(src,dest,size) memcpy (dest,src,ROUND_UP(sizeof(int),size))
 
 #else  /* __KERNEL__ */
 /* Copy from Hostmem to Hostmem */
@@ -383,7 +383,7 @@ extern unsigned PSHAL_SendDMACount; /**< count packets send via DMA */
 /* Copy from Hostmem to PCImem */    
 #define PSHALCopyH2N(src,dest,size) memcpy (dest,src,size)
 /* Copy from Hostmem to PCImem, with save space after dest+size*/    
-#define PSHALCopyH2Nplus(src,dest,size) memcpy (dest,src,ROUND_UP(4,size))
+#define PSHALCopyH2Nplus(src,dest,size) memcpy (dest,src,ROUND_UP(sizeof(int),size))
 #endif /* __KERNEL__ */
 
 
