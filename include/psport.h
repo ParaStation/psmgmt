@@ -7,7 +7,7 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.23 2002/05/24 10:22:56 hauke Exp $
+ * $Id: psport.h,v 1.24 2002/06/11 19:27:24 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -303,7 +303,7 @@ PSP_RequestH_t PSP_IReceiveCB(PSP_PortH_t porth,
 			      PSP_DoneCallback_t* dcb, void* dcb_param)
 {
     return PSP_IReceiveCBFrom(porth, buf, buflen, header, xheaderlen,
-			      cb, cb_param, 0, 0, PSP_AnySender);
+			      cb, cb_param, dcb, dcb_param, PSP_AnySender);
 }
 
 static inline
@@ -447,10 +447,10 @@ static inline
 PSP_RequestH_t PSP_ISend(PSP_PortH_t porth,
 			 void* buf, unsigned buflen,
 			 PSP_Header_t* header, unsigned xheaderlen,
-			 int dest, int destport)
+			 int dest, int destport, int flags)
 {
     return PSP_ISendCB(porth, buf, buflen, header, xheaderlen,
-		       dest, destport, 0, 0, 0);
+		       dest, destport, 0, 0, flags);
 }
 
 /** Flag this message to be very important. */
