@@ -167,7 +167,7 @@
 	      </term>
 	      <listitem>
 		<para>
-		  Use classical TCP/IP communication over ethernet via an
+		  Use classical TCP/IP communication over Ethernet via an
 		  optimized MPI implementation.
 		</para>
 		<para>
@@ -200,7 +200,7 @@
 <!-- 	      </term> -->
 <!-- 	      <listitem> -->
 <!-- 		<para> -->
-<!-- 		  Use optimized communication via gigabit ethernet. -->
+<!-- 		  Use optimized communication via gigabit Ethernet. -->
 <!-- 		</para> -->
 <!-- 		<para> -->
 <!-- 		  This is only available within ParaStation 4. -->
@@ -225,9 +225,9 @@
 	  <para>
 	    It is possible to enable more than one hardware type, either as
 	    default or on a per node basis. Think of a node that has both, a
-	    Myrinet and a fast ethernet card. Furthermore the cluster contains
+	    Myrinet and a fast Ethernet card. Furthermore the cluster contains
 	    nodes that lack Myrinet. Then it might be useful to run jobs only
-	    depending on ethernet communication even on nodes that have a
+	    depending on Ethernet communication even on nodes that have a
 	    Myrinet card in order to talk to nodes that don't have one. The
 	    corresponding <command>HWType</command> declaration reads
 	    <command>HWType {<parameter>Myrinet</parameter>
@@ -375,8 +375,8 @@
 	  </programlisting>
 	  <para>
 	    will define the node <parameter>node17</parameter> to have the &ps;
-	    ID 16. Furthermore it is expected to have ethernet <emphasis
-	      role="bold">and</emphasis> myrinet communication interfaces and
+	    ID 16. Furthermore it is expected to have Ethernet <emphasis
+	      role="bold">and</emphasis> Myrinet communication interfaces and
 	    the IP over Myrinet functionality will be activated on this node.
 	    The IP address of the Myrinet card will be the one
 	    <parameter>myri17</parameter> resolves to.
@@ -1054,23 +1054,127 @@
 	</listitem>
       </varlistentry>
 
-      <!--
-      @todo
       <varlistentry>
 	<term>
 	  <cmdsynopsis>
 	    <command>RLimit</command>
+	    <group choice="req">
+	      <arg>CPUTime <replaceable>time</replaceable></arg>
+	      <arg>DataSize <replaceable>size</replaceable></arg>
+	      <arg>StackSize <replaceable>size</replaceable></arg>
+	      <arg>RSSize <replaceable>size</replaceable></arg>
+	    </group>
+	    <sbr/>
+	    <command>RLimit {</command>
+	    <group choice="req" rep="repeat">
+	      <arg>CPUTime <replaceable>time</replaceable></arg>
+	      <arg>DataSize <replaceable>size</replaceable></arg>
+	      <arg>StackSize <replaceable>size</replaceable></arg>
+	      <arg>RSSize <replaceable>size</replaceable></arg>
+	    </group>
+	    <command>}</command>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
 	  <para>
+	    Set various resource limits to the <xref linkend="psid"/> and thus
+	    to all processes started from it.
 	  </para>
+	  <para>
+	    All limits are set using the <citerefentry>
+	      <refentrytitle>setrlimit</refentrytitle>
+	      <manvolnum>2</manvolnum>
+	    </citerefentry> system call. For a detailed description of the
+	    different types of limits please refer to the corresponding manual
+	    page.
+	  </para>
+	  <para>
+	    If no RLimits are set within the ParaStation configuration files,
+	    no changes are made to the systems default value.
+	  </para>
+	  <para>
+	    The following (soft) resource limits may be set:
+	  </para>
+	  <variablelist>
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>CPUTime</command>
+		  <arg choice="req"><replaceable>time</replaceable></arg>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>
+		  Set the maximum CPU time that might be consumed by the daemon
+		  to <parameter><replaceable>time</replaceable></parameter>
+		  seconds.
+		  <parameter><replaceable>time</replaceable></parameter> has to
+		  be an integer number, the string <quote>infinity</quote> or
+		  the string <quote>unlimited</quote>. In the two latter cases
+		  the data size is set to RLIM_INFINITY.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>DataSize</command>
+		  <arg choice="req"><replaceable>size</replaceable></arg>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>
+		  Set the maximum data size to
+		  <parameter><replaceable>size</replaceable></parameter> bytes.
+		  <parameter><replaceable>size</replaceable></parameter> is an
+		  integer number, the string <quote>infinity</quote> or the
+		  string <quote>unlimited</quote>. In the two latter cases the
+		  data size is set to RLIM_INFINITY.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>StackSize</command>
+		  <arg choice="req"><replaceable>size</replaceable></arg>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>
+		  Set the maximum stack size to
+		  <parameter><replaceable>size</replaceable></parameter> bytes.
+		  <parameter><replaceable>size</replaceable></parameter> is an
+		  integer number, the string <quote>infinity</quote> or the
+		  string <quote>unlimited</quote>. In the two latter cases the
+		  stack is set to RLIM_INFINITY.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>RSSize</command>
+		  <arg choice="req"><replaceable>size</replaceable></arg>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>
+		  Set the maximum Resident Set Size (RSS) to
+		  <parameter><replaceable>size</replaceable></parameter> bytes.
+		  <parameter><replaceable>size</replaceable></parameter> is an
+		  integer number, the string <quote>infinity</quote> or the
+		  string <quote>unlimited</quote>. In the two latter cases the
+		  RSS is set to RLIM_INFINITY.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	  </variablelist>
 	</listitem>
       </varlistentry>
-      -->
 
-      <!--
-      @todo
+      <!-- @todo Implement and document this parameter -->
+      <!-- 
       <varlistentry>
 	<term>
 	  <cmdsynopsis>
@@ -1093,13 +1197,10 @@
   <refsect1>
     <title>Errors</title>
     <para>
+      <!-- @todo Implement this parameters -->
       The commands <command>hasIP</command>, <command>IPModule</command>,
-      <command>IPPrefix</command>, <command>IPPrefixLen</command> and
-      <command>Environment</command> are not implemented yet.
-    </para>
-    <para>
-      The commands <command>RLimit</command> and <command>Environment</command>
-      are not documented yet.
+      <command>IPPrefix</command> and <command>IPPrefixLen</command> are not
+      implemented yet.
     </para>
   </refsect1>
 </refentry>
