@@ -613,6 +613,16 @@ if test -n "$ac_init_help"; then
    esac
   cat <<\EOF
 
+Optional Features:
+  --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
+  --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+  --enable-doxygen        (default: auto)
+
+Optional Packages:
+  --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
+  --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+  --with-pscom=dir        home of pscom (includes)
+
 Report bugs to <"eicker@par-tec.com">.
 EOF
 fi
@@ -796,7 +806,7 @@ if test -z "$CONFIG_SITE"; then
 fi
 for ac_site_file in $CONFIG_SITE; do
   if test -r "$ac_site_file"; then
-    { echo "$as_me:799: loading site script $ac_site_file" >&5
+    { echo "$as_me:809: loading site script $ac_site_file" >&5
 echo "$as_me: loading site script $ac_site_file" >&6;}
     cat "$ac_site_file" >&5
     . "$ac_site_file"
@@ -807,7 +817,7 @@ if test -r "$cache_file"; then
   # Some versions of bash will fail to source /dev/null (special
   # files actually), so we avoid doing that.
   if test -f "$cache_file"; then
-    { echo "$as_me:810: loading cache $cache_file" >&5
+    { echo "$as_me:820: loading cache $cache_file" >&5
 echo "$as_me: loading cache $cache_file" >&6;}
     case $cache_file in
       [\\/]* | ?:[\\/]* ) . $cache_file;;
@@ -815,7 +825,7 @@ echo "$as_me: loading cache $cache_file" >&6;}
     esac
   fi
 else
-  { echo "$as_me:818: creating cache $cache_file" >&5
+  { echo "$as_me:828: creating cache $cache_file" >&5
 echo "$as_me: creating cache $cache_file" >&6;}
   >$cache_file
 fi
@@ -831,21 +841,21 @@ for ac_var in `(set) 2>&1 |
   eval ac_new_val="\$ac_env_${ac_var}_value"
   case $ac_old_set,$ac_new_set in
     set,)
-      { echo "$as_me:834: error: \`$ac_var' was set to \`$ac_old_val' in the previous run" >&5
+      { echo "$as_me:844: error: \`$ac_var' was set to \`$ac_old_val' in the previous run" >&5
 echo "$as_me: error: \`$ac_var' was set to \`$ac_old_val' in the previous run" >&2;}
       ac_cache_corrupted=: ;;
     ,set)
-      { echo "$as_me:838: error: \`$ac_var' was not set in the previous run" >&5
+      { echo "$as_me:848: error: \`$ac_var' was not set in the previous run" >&5
 echo "$as_me: error: \`$ac_var' was not set in the previous run" >&2;}
       ac_cache_corrupted=: ;;
     ,);;
     *)
       if test "x$ac_old_val" != "x$ac_new_val"; then
-        { echo "$as_me:844: error: \`$ac_var' has changed since the previous run:" >&5
+        { echo "$as_me:854: error: \`$ac_var' has changed since the previous run:" >&5
 echo "$as_me: error: \`$ac_var' has changed since the previous run:" >&2;}
-        { echo "$as_me:846:   former value:  $ac_old_val" >&5
+        { echo "$as_me:856:   former value:  $ac_old_val" >&5
 echo "$as_me:   former value:  $ac_old_val" >&2;}
-        { echo "$as_me:848:   current value: $ac_new_val" >&5
+        { echo "$as_me:858:   current value: $ac_new_val" >&5
 echo "$as_me:   current value: $ac_new_val" >&2;}
         ac_cache_corrupted=:
       fi;;
@@ -864,9 +874,9 @@ echo "$as_me:   current value: $ac_new_val" >&2;}
   fi
 done
 if $ac_cache_corrupted; then
-  { echo "$as_me:867: error: changes in the environment can compromise the build" >&5
+  { echo "$as_me:877: error: changes in the environment can compromise the build" >&5
 echo "$as_me: error: changes in the environment can compromise the build" >&2;}
-  { { echo "$as_me:869: error: run \`make distclean' and/or \`rm $cache_file' and start over" >&5
+  { { echo "$as_me:879: error: run \`make distclean' and/or \`rm $cache_file' and start over" >&5
 echo "$as_me: error: run \`make distclean' and/or \`rm $cache_file' and start over" >&2;}
    { (exit 1); exit 1; }; }
 fi
@@ -886,10 +896,10 @@ esac
 echo "#! $SHELL" >conftest.sh
 echo  "exit 0"   >>conftest.sh
 chmod +x conftest.sh
-if { (echo "$as_me:889: PATH=\".;.\"; conftest.sh") >&5
+if { (echo "$as_me:899: PATH=\".;.\"; conftest.sh") >&5
   (PATH=".;."; conftest.sh) 2>&5
   ac_status=$?
-  echo "$as_me:892: \$? = $ac_status" >&5
+  echo "$as_me:902: \$? = $ac_status" >&5
   (exit $ac_status); }; then
   ac_path_separator=';'
 else
@@ -915,7 +925,7 @@ for ac_dir in "scripts" $srcdir/"scripts"; do
   fi
 done
 if test -z "$ac_aux_dir"; then
-  { { echo "$as_me:918: error: cannot find install-sh or install.sh in \"scripts\" $srcdir/\"scripts\"" >&5
+  { { echo "$as_me:928: error: cannot find install-sh or install.sh in \"scripts\" $srcdir/\"scripts\"" >&5
 echo "$as_me: error: cannot find install-sh or install.sh in \"scripts\" $srcdir/\"scripts\"" >&2;}
    { (exit 1); exit 1; }; }
 fi
@@ -925,11 +935,11 @@ ac_configure="$SHELL $ac_aux_dir/configure" # This should be Cygnus configure.
 
 # Make sure we can run config.sub.
 $ac_config_sub sun4 >/dev/null 2>&1 ||
-  { { echo "$as_me:928: error: cannot run $ac_config_sub" >&5
+  { { echo "$as_me:938: error: cannot run $ac_config_sub" >&5
 echo "$as_me: error: cannot run $ac_config_sub" >&2;}
    { (exit 1); exit 1; }; }
 
-echo "$as_me:932: checking build system type" >&5
+echo "$as_me:942: checking build system type" >&5
 echo $ECHO_N "checking build system type... $ECHO_C" >&6
 if test "${ac_cv_build+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
@@ -938,16 +948,16 @@ else
 test -z "$ac_cv_build_alias" &&
   ac_cv_build_alias=`$ac_config_guess`
 test -z "$ac_cv_build_alias" &&
-  { { echo "$as_me:941: error: cannot guess build type; you must specify one" >&5
+  { { echo "$as_me:951: error: cannot guess build type; you must specify one" >&5
 echo "$as_me: error: cannot guess build type; you must specify one" >&2;}
    { (exit 1); exit 1; }; }
 ac_cv_build=`$ac_config_sub $ac_cv_build_alias` ||
-  { { echo "$as_me:945: error: $ac_config_sub $ac_cv_build_alias failed." >&5
+  { { echo "$as_me:955: error: $ac_config_sub $ac_cv_build_alias failed." >&5
 echo "$as_me: error: $ac_config_sub $ac_cv_build_alias failed." >&2;}
    { (exit 1); exit 1; }; }
 
 fi
-echo "$as_me:950: result: $ac_cv_build" >&5
+echo "$as_me:960: result: $ac_cv_build" >&5
 echo "${ECHO_T}$ac_cv_build" >&6
 build=$ac_cv_build
 build_cpu=`echo $ac_cv_build | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\1/'`
@@ -957,7 +967,7 @@ build_os=`echo $ac_cv_build | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\3/'`
 test -z "$build_alias" &&
   build_alias=$ac_cv_build
 
-echo "$as_me:960: checking host system type" >&5
+echo "$as_me:970: checking host system type" >&5
 echo $ECHO_N "checking host system type... $ECHO_C" >&6
 if test "${ac_cv_host+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
@@ -966,12 +976,12 @@ else
 test -z "$ac_cv_host_alias" &&
   ac_cv_host_alias=$ac_cv_build_alias
 ac_cv_host=`$ac_config_sub $ac_cv_host_alias` ||
-  { { echo "$as_me:969: error: $ac_config_sub $ac_cv_host_alias failed" >&5
+  { { echo "$as_me:979: error: $ac_config_sub $ac_cv_host_alias failed" >&5
 echo "$as_me: error: $ac_config_sub $ac_cv_host_alias failed" >&2;}
    { (exit 1); exit 1; }; }
 
 fi
-echo "$as_me:974: result: $ac_cv_host" >&5
+echo "$as_me:984: result: $ac_cv_host" >&5
 echo "${ECHO_T}$ac_cv_host" >&6
 host=$ac_cv_host
 host_cpu=`echo $ac_cv_host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\1/'`
@@ -981,7 +991,7 @@ host_os=`echo $ac_cv_host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\3/'`
 test -z "$host_alias" &&
   host_alias=$ac_cv_host
 
-echo "$as_me:984: checking target system type" >&5
+echo "$as_me:994: checking target system type" >&5
 echo $ECHO_N "checking target system type... $ECHO_C" >&6
 if test "${ac_cv_target+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
@@ -990,12 +1000,12 @@ else
 test "x$ac_cv_target_alias" = "x" &&
   ac_cv_target_alias=$ac_cv_host_alias
 ac_cv_target=`$ac_config_sub $ac_cv_target_alias` ||
-  { { echo "$as_me:993: error: $ac_config_sub $ac_cv_target_alias failed" >&5
+  { { echo "$as_me:1003: error: $ac_config_sub $ac_cv_target_alias failed" >&5
 echo "$as_me: error: $ac_config_sub $ac_cv_target_alias failed" >&2;}
    { (exit 1); exit 1; }; }
 
 fi
-echo "$as_me:998: result: $ac_cv_target" >&5
+echo "$as_me:1008: result: $ac_cv_target" >&5
 echo "${ECHO_T}$ac_cv_target" >&6
 target=$ac_cv_target
 target_cpu=`echo $ac_cv_target | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\1/'`
@@ -1014,7 +1024,7 @@ test -z "$target_alias" &&
 if test -n "$ac_tool_prefix"; then
   # Extract the first word of "${ac_tool_prefix}ranlib", so it can be a program name with args.
 set dummy ${ac_tool_prefix}ranlib; ac_word=$2
-echo "$as_me:1017: checking for $ac_word" >&5
+echo "$as_me:1027: checking for $ac_word" >&5
 echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
 if test "${ac_cv_prog_RANLIB+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
@@ -1029,7 +1039,7 @@ for ac_dir in $ac_dummy; do
   test -z "$ac_dir" && ac_dir=.
   $as_executable_p "$ac_dir/$ac_word" || continue
 ac_cv_prog_RANLIB="${ac_tool_prefix}ranlib"
-echo "$as_me:1032: found $ac_dir/$ac_word" >&5
+echo "$as_me:1042: found $ac_dir/$ac_word" >&5
 break
 done
 
@@ -1037,10 +1047,10 @@ fi
 fi
 RANLIB=$ac_cv_prog_RANLIB
 if test -n "$RANLIB"; then
-  echo "$as_me:1040: result: $RANLIB" >&5
+  echo "$as_me:1050: result: $RANLIB" >&5
 echo "${ECHO_T}$RANLIB" >&6
 else
-  echo "$as_me:1043: result: no" >&5
+  echo "$as_me:1053: result: no" >&5
 echo "${ECHO_T}no" >&6
 fi
 
@@ -1049,7 +1059,7 @@ if test -z "$ac_cv_prog_RANLIB"; then
   ac_ct_RANLIB=$RANLIB
   # Extract the first word of "ranlib", so it can be a program name with args.
 set dummy ranlib; ac_word=$2
-echo "$as_me:1052: checking for $ac_word" >&5
+echo "$as_me:1062: checking for $ac_word" >&5
 echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
 if test "${ac_cv_prog_ac_ct_RANLIB+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
@@ -1064,7 +1074,7 @@ for ac_dir in $ac_dummy; do
   test -z "$ac_dir" && ac_dir=.
   $as_executable_p "$ac_dir/$ac_word" || continue
 ac_cv_prog_ac_ct_RANLIB="ranlib"
-echo "$as_me:1067: found $ac_dir/$ac_word" >&5
+echo "$as_me:1077: found $ac_dir/$ac_word" >&5
 break
 done
 
@@ -1073,10 +1083,10 @@ fi
 fi
 ac_ct_RANLIB=$ac_cv_prog_ac_ct_RANLIB
 if test -n "$ac_ct_RANLIB"; then
-  echo "$as_me:1076: result: $ac_ct_RANLIB" >&5
+  echo "$as_me:1086: result: $ac_ct_RANLIB" >&5
 echo "${ECHO_T}$ac_ct_RANLIB" >&6
 else
-  echo "$as_me:1079: result: no" >&5
+  echo "$as_me:1089: result: no" >&5
 echo "${ECHO_T}no" >&6
 fi
 
@@ -1096,6 +1106,42 @@ path_cleanup()
 }
 
 TOP_SRCDIR=`cd \`dirname $0\`;pwd`
+
+# Check whether --with-pscom or --without-pscom was given.
+if test "${with_pscom+set}" = set; then
+  withval="$with_pscom"
+
+        PSCOM_DIR=`path_cleanup $withval`
+
+else
+
+        PSCOM_DIR="/opt/parastation"
+
+fi;
+
+# default is yes, if PSCOM_DIR is valid
+# Check whether --enable-doxygen or --disable-doxygen was given.
+if test "${enable_doxygen+set}" = set; then
+  enableval="$enable_doxygen"
+
+        DOXYGEN_ENABLED=$enableval
+
+else
+
+        echo -n "checking for pscom ($PSCOM_DIR)... "
+        if test -f "$PSCOM_DIR/include/psport4.h" ; then
+                DOXYGEN_ENABLED="yes"
+                echo "found"
+        else
+                DOXYGEN_ENABLED="no"
+                echo
+                echo "###############################################################"
+                echo "WARNING: documentation for PSPort is disabled (missing includes)."
+                echo "try --with-pscom=../p4 ?"
+                echo "###############################################################"
+        fi
+
+fi;
 
 case $target_os in
 linux)
@@ -1258,7 +1304,7 @@ rm -f confdef2opt.sed
 : ${CONFIG_STATUS=./config.status}
 ac_clean_files_save=$ac_clean_files
 ac_clean_files="$ac_clean_files $CONFIG_STATUS"
-{ echo "$as_me:1261: creating $CONFIG_STATUS" >&5
+{ echo "$as_me:1307: creating $CONFIG_STATUS" >&5
 echo "$as_me: creating $CONFIG_STATUS" >&6;}
 cat >$CONFIG_STATUS <<_ACEOF
 #! $SHELL
@@ -1425,7 +1471,7 @@ cat >>$CONFIG_STATUS <<\EOF
     echo "$ac_cs_version"; exit 0 ;;
   --he | --h)
     # Conflict between --help and --header
-    { { echo "$as_me:1428: error: ambiguous option: $1
+    { { echo "$as_me:1474: error: ambiguous option: $1
 Try \`$0 --help' for more information." >&5
 echo "$as_me: error: ambiguous option: $1
 Try \`$0 --help' for more information." >&2;}
@@ -1444,7 +1490,7 @@ Try \`$0 --help' for more information." >&2;}
     ac_need_defaults=false;;
 
   # This is an error.
-  -*) { { echo "$as_me:1447: error: unrecognized option: $1
+  -*) { { echo "$as_me:1493: error: unrecognized option: $1
 Try \`$0 --help' for more information." >&5
 echo "$as_me: error: unrecognized option: $1
 Try \`$0 --help' for more information." >&2;}
@@ -1493,7 +1539,7 @@ do
   "docu/Doxyfile" ) CONFIG_FILES="$CONFIG_FILES docu/Doxyfile" ;;
   "dist_docu/Makefile" ) CONFIG_FILES="$CONFIG_FILES dist_docu/Makefile" ;;
   "dist_mgmt/Makefile" ) CONFIG_FILES="$CONFIG_FILES dist_mgmt/Makefile" ;;
-  *) { { echo "$as_me:1496: error: invalid argument: $ac_config_target" >&5
+  *) { { echo "$as_me:1542: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}
    { (exit 1); exit 1; }; };;
   esac
@@ -1595,6 +1641,8 @@ s,@DEPEXTENSION@,$DEPEXTENSION,;t t
 s,@TRU64FILEADD@,$TRU64FILEADD,;t t
 s,@LIBCURSES@,$LIBCURSES,;t t
 s,@TOP_SRCDIR@,$TOP_SRCDIR,;t t
+s,@PSCOM_DIR@,$PSCOM_DIR,;t t
+s,@DOXYGEN_ENABLED@,$DOXYGEN_ENABLED,;t t
 CEOF
 
 EOF
@@ -1704,7 +1752,7 @@ done; }
   esac
 
   if test x"$ac_file" != x-; then
-    { echo "$as_me:1707: creating $ac_file" >&5
+    { echo "$as_me:1755: creating $ac_file" >&5
 echo "$as_me: creating $ac_file" >&6;}
     rm -f "$ac_file"
   fi
@@ -1722,7 +1770,7 @@ echo "$as_me: creating $ac_file" >&6;}
       -) echo $tmp/stdin ;;
       [\\/$]*)
          # Absolute (can't be DOS-style, as IFS=:)
-         test -f "$f" || { { echo "$as_me:1725: error: cannot find input file: $f" >&5
+         test -f "$f" || { { echo "$as_me:1773: error: cannot find input file: $f" >&5
 echo "$as_me: error: cannot find input file: $f" >&2;}
    { (exit 1); exit 1; }; }
          echo $f;;
@@ -1735,7 +1783,7 @@ echo "$as_me: error: cannot find input file: $f" >&2;}
            echo $srcdir/$f
          else
            # /dev/null tree
-           { { echo "$as_me:1738: error: cannot find input file: $f" >&5
+           { { echo "$as_me:1786: error: cannot find input file: $f" >&5
 echo "$as_me: error: cannot find input file: $f" >&2;}
    { (exit 1); exit 1; }; }
          fi;;

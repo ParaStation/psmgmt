@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: configure.in,v 1.30 2004/03/09 11:52:25 eicker Exp $
+# $Id: configure.in,v 1.31 2004/03/09 18:02:36 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -40,6 +40,33 @@ AC_SUBST([TOP_SRCDIR])
 
 TOP_SRCDIR=`cd \`dirname $0\`;pwd`
 
+AC_SUBST([PSCOM_DIR])
+AC_ARG_WITH([pscom], [  --with-pscom=dir        home of pscom (includes)] ,
+[
+        PSCOM_DIR=`path_cleanup $withval`
+],[
+        PSCOM_DIR="/opt/parastation"
+])
+
+AC_SUBST([DOXYGEN_ENABLED])
+# default is yes, if PSCOM_DIR is valid
+AC_ARG_ENABLE([doxygen], [  --enable-doxygen        (default: auto)] ,
+[
+        DOXYGEN_ENABLED=$enableval
+],[
+        echo -n "checking for pscom ($PSCOM_DIR)... "
+        if test -f "$PSCOM_DIR/include/psport4.h" ; then
+                DOXYGEN_ENABLED="yes"
+                echo "found"
+        else
+                DOXYGEN_ENABLED="no"
+                echo
+                echo "###############################################################"
+                echo "WARNING: documentation for PSPort is disabled (missing includes)."
+                echo "try --with-pscom=../p4 ?"
+                echo "###############################################################"
+        fi
+])
 
 case $target_os in
 linux)
