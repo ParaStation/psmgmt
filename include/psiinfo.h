@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiinfo.h,v 1.2 2004/01/15 19:37:54 eicker Exp $
+ * $Id: psiinfo.h,v 1.3 2004/01/28 10:27:08 eicker Exp $
  *
  */
 /**
@@ -13,7 +13,7 @@
  * psiinfo: Functions for information retrieving from ParaStation
  * daemon
  *
- * $Id: psiinfo.h,v 1.2 2004/01/15 19:37:54 eicker Exp $
+ * $Id: psiinfo.h,v 1.3 2004/01/28 10:27:08 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -283,6 +283,13 @@ int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * information about a single task is returned within a @ref
  * PSP_taskInfo_t structure. Upon return @a buf will hold an array of
  * @ref PSP_taskInfo_t structures. No further parameters needed.
+ *
+ * - PSP_INFO_LIST_ALLOCJOBS requests the total number of allocated
+ * jobs of all nodes within the ParaStation cluster. Allocated jobs
+ * are job slots assigned to a task during a partition
+ * request. I.e. the task is allowed to start this number of jobs on
+ * the according node. A node's allocated number of jobs is provided
+ * as a @c uint16_t. No further parameters needed.
  *
  *
  * @param node The ParaStation ID of the node to ask.
