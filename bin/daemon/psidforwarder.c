@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidforwarder.c,v 1.16 2004/01/28 14:04:20 eicker Exp $
+ * $Id: psidforwarder.c,v 1.17 2004/01/28 18:01:45 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.16 2004/01/28 14:04:20 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.17 2004/01/28 18:01:45 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -44,6 +44,9 @@ PStask_ID_t loggerTID = -1;
 
 /** The rank of the local task */
 int childRank = -1;
+
+/** The PID of the local task */
+pid_t childPID = 0;
 
 /** The socket connecting to the local ParaStation daemon */
 int daemonSock = -1;
@@ -769,38 +772,55 @@ static int readFromLogger(int stdinport)
 
     ret = recvMsg(&msg, NULL);
     if (ret > 0) {
-	/* @todo Change this to switch() */
-	if ((msg.header.type == PSP_CC_MSG) && (msg.type == STDIN)) {
-	    int len = msg.header.len - PSLog_headerSize;
-	    if (verbose) {
+	switch (msg.header.type) {
+	case PSP_CC_MSG:
+	    switch (msg.type) {
+	    case STDIN:
+	    {
+		int len = msg.header.len - PSLog_headerSize;
+		if (verbose) {
+		    snprintf(obuf, sizeof(obuf),
+			     "%s: %d byte received on STDIN\n", __func__, len);
+		    printMsg(STDERR, obuf);
+		}
+		if (len) {
+		    if (stdinport<0) {
+			snprintf(obuf, sizeof(obuf),
+				 "%s: STDIN already closed\n", __func__);
+			printMsg(STDERR, obuf);
+		    } else {
+			writeall(stdinport, msg.buf, len);
+		    }
+		} else {
+		    /* close clients stdin */
+		    shutdown(stdinport, SHUT_WR);
+		    stdinport = -1;
+		}
+		break;
+	    }
+	    case EXIT:
+		/* Logger is going to die */
+		/* Release the daemon */
+		closeDaemonSock();
+
+		exit(0);
+		break;
+	    default:
 		snprintf(obuf, sizeof(obuf),
-			 "PSID_forwarder: receive %d byte for STDIN\n", len);
+			 "%s: Unknown type %d\n", __func__, msg.type);
 		printMsg(STDERR, obuf);
 	    }
-	    if (len) {
-		if (stdinport<0) {
-		    snprintf(obuf, sizeof(obuf),
-			     "PSID_forwarder: STDIN already closed\n");
-		    printMsg(STDERR, obuf);
-		} else {
-		    writeall(stdinport, msg.buf, len);
-		}
-	    } else {
-		/* close clients stdin */
-		shutdown(stdinport, SHUT_WR);
-		stdinport = -1;
-	    }
-	} else 	if ((msg.header.type == PSP_CC_MSG) && (msg.type == EXIT)) {
-	    /* Logger is going to die */
-	    /* Release the daemon */
-	    closeDaemonSock();
-
-	    exit(0);
-	} else {
-	    /* unexpected message. Ignore. */
+	    break;
+	default:
+	    snprintf(obuf, sizeof(obuf), "%s: Unexpected msg type %s\n",
+		     __func__, PSP_printMsg(msg.header.type));
+	    printMsg(STDERR, obuf);
 	}
+    } else if (!ret) {
+	/* The connection to the daemon died. Kill the client the hard way. */
+	kill(-childPID, SIGKILL);
     }
-    /* @todo if (!ret) kill(procgroup); exit() // exit conn to daemon died. */
+	
     return ret;
 }
 
@@ -927,6 +947,7 @@ void PSID_forwarder(PStask_t *task, int daemonfd,
 		    int stdinfd, int stdoutfd, int stderrfd)
 {
     childRank = task->rank;
+    childPID = PSC_getPID(task->tid);
     daemonSock = daemonfd;
     stdinSock = stdinfd;
     stdoutSock = stdoutfd;
