@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidpartition.h,v 1.2 2004/01/09 16:05:36 eicker Exp $
+ * $Id: psidpartition.h,v 1.3 2004/01/28 16:03:28 eicker Exp $
  *
  */
 /**
  * @file
  * Helper functions in order to setup and handle partitions.
  *
- * $Id: psidpartition.h,v 1.2 2004/01/09 16:05:36 eicker Exp $
+ * $Id: psidpartition.h,v 1.3 2004/01/28 16:03:28 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -33,7 +33,13 @@ extern "C" {
  *
  * Handle the message @a inmsg of type PSP_CD_CREATEPART.
  *
- * @doctodo
+ * With this kind of message a client will request for a partition of
+ * nodes. Besides forwarding this kind of message to the master node
+ * as a PSP_DD_GETPART message it will be stored locally in order to
+ * allow resending it, if the master changes.
+ *
+ * Depending on the acutal request, a PSP_CD_CREATEPART message might
+ * be followed by one or more PSP_CD_CREATEPARTNL messages.
  *
  * @param inmsg Pointer to the message to handle.
  *
@@ -46,7 +52,11 @@ void msg_CREATEPART(DDBufferMsg_t *inmsg);
  *
  * Handle the message @a inmsg of type PSP_CD_CREATEPARTNL.
  *
- * @doctodo
+ * This follow up message contains (part of) the nodelist connected to
+ * the partition request in the leading PSP_CD_CREATEPART message.
+ *
+ * Depending on the actual request, a PSP_CD_CREATEPART message might
+ * be followed by further PSP_CD_CREATEPARTNL messages.
  *
  * @param inmsg Pointer to the message to handle.
  *
@@ -55,11 +65,24 @@ void msg_CREATEPART(DDBufferMsg_t *inmsg);
 void msg_CREATEPARTNL(DDBufferMsg_t *inmsg);
 
 /**
- * @brief Handle a PSP_CD_GETPART message.
+ * @brief Handle a PSP_DD_GETPART message.
  *
- * Handle the message @a inmsg of type PSP_CD_GETPART.
+ * Handle the message @a inmsg of type PSP_DD_GETPART.
  *
- * @doctodo
+ * PSP_DD_GETPART messages are the daemon-daemon version of the
+ * original PSP_CD_CREATEPART message of the client sent to its local
+ * daemon.
+ *
+ * Depending on the actual request the master waits for following
+ * PSP_DD_GETPARTNL messages, tries to immediately allocate a
+ * partition or enqueues the request to the queue of pending requests.
+ *
+ * If a partition could be allocated successfully, the actual
+ * partition will be send to the client's local daemon process via
+ * PSP_CD_PROVIDEPART and PSP_CD_PROVIDEPARTNL messages.
+ *
+ * Depending on the actual request, a PSP_DD_GETPART message might
+ * be followed by one or more PSP_DD_GETPARTNL messages.
  *
  * @param inmsg Pointer to the message to handle.
  *
@@ -68,11 +91,24 @@ void msg_CREATEPARTNL(DDBufferMsg_t *inmsg);
 void msg_GETPART(DDBufferMsg_t *inmsg);
 
 /**
- * @brief Handle a PSP_CD_GETPARTNL message.
+ * @brief Handle a PSP_DD_GETPARTNL message.
  *
- * Handle the message @a inmsg of type PSP_CD_GETPARTNL.
+ * Handle the message @a inmsg of type PSP_DD_GETPARTNL.
  *
- * @doctodo
+ * PSP_DD_GETPARTNL messages are the daemon-daemon version of the
+ * original PSP_CD_CREATEPARTNL message of the client sent to its
+ * local daemon.
+ *
+ * Depending on the actual request the master waits for further
+ * PSP_DD_GETPARTNL messages, tries to immediately allocate a
+ * partition or enqueues the request to the queue of pending requests.
+ *
+ * If a partition could be allocated successfully, the actual
+ * partition will be send to the client's local daemon process via
+ * PSP_CD_PROVIDEPART and PSP_CD_PROVIDEPARTNL messages.
+ *
+ * Depending on the actual request, a PSP_DD_GETPARTNL message might
+ * be followed by further PSP_DD_GETPARTNL messages.
  *
  * @param inmsg Pointer to the message to handle.
  *
@@ -81,11 +117,24 @@ void msg_GETPART(DDBufferMsg_t *inmsg);
 void msg_GETPARTNL(DDBufferMsg_t *inmsg);
 
 /**
- * @brief Handle a PSP_CD_PROVIDEPART message.
+ * @brief Handle a PSP_DD_PROVIDEPART message.
  *
- * Handle the message @a inmsg of type PSP_CD_PROVIDEPART.
+ * Handle the message @a inmsg of type PSP_DD_PROVIDEPART.
  *
- * @doctodo
+ * This kind of messages is used by the master process in order to
+ * provide actually allocated partitions to the requesting client's
+ * local daemon process. This message will be followed by one or more
+ * PSP_DD_PROVIDEPARTNL messages containing the partitions actual
+ * nodelist.
+ *
+ * The client's local daemon will store the partition to the
+ * corresponding task structure and wait for following
+ * PSP_DD_PROVIDEPARTNL messages.
+ *
+ * Furthermore this message might contain an error message reporting
+ * the final failure on the attempt to allocate a partition. In this
+ * case a PSP_CD_PARTITIONRES message reporting this error to the
+ * requesting client is generated.
  *
  * @param inmsg Pointer to the message to handle.
  *
@@ -94,11 +143,15 @@ void msg_GETPARTNL(DDBufferMsg_t *inmsg);
 void msg_PROVIDEPART(DDBufferMsg_t *inmsg);
 
 /**
- * @brief Handle a PSP_CD_PROVIDEPARTNL message.
+ * @brief Handle a PSP_DD_PROVIDEPARTNL message.
  *
- * Handle the message @a inmsg of type PSP_CD_PROVIDEPARTNL.
+ * Handle the message @a inmsg of type PSP_DD_PROVIDEPARTNL.
  *
- * @doctodo
+ * Follow up message to a PSP_DD_PROVIDEPART containing the
+ * partition's actual nodes. These nodes will be stored to the
+ * requesting client's task structure. Upon successful receive of the
+ * partitions last node a PSP_CD_PARTITIONRES message is send to the
+ * requesting client.
  *
  * @param inmsg Pointer to the message to handle.
  *
@@ -111,13 +164,233 @@ void msg_PROVIDEPARTNL(DDBufferMsg_t *inmsg);
  *
  * Handle the message @a inmsg of type PSP_CD_GETNODES.
  *
- * @doctodo
+ * This kind of message is used by clients of the local daemon in
+ * order to actually get nodes from the pool of nodes stored within
+ * the partition requested from the master node.
  *
  * @param inmsg Pointer to the message to handle.
  *
  * @return No return value.
  */
 void msg_GETNODES(DDBufferMsg_t *inmsg);
+
+/**
+ * @brief Send a PSP_DD_GETTASKS message.
+ *
+ * Send a PSP_DD_GETTASKS message to the node with ParaStation ID @a
+ * node. This message on the one hand requests a list of all running
+ * tasks on the receiving node, on the other hand a list of all
+ * pending partition request on the receiving node.
+ *
+ * Thus, this message will be answered by one or more
+ * PSP_DD_PROVIDETASK messages and zero or more PSP_DD_GETPART
+ * messages.
+ *
+ * Usually this message is generated by a new master node in order to
+ * get an overview on the cluster status.
+ *
+ * @param node The the node requested to send a list of active tasks
+ * and pending partition requests.
+ *
+ * @return On success, the number of bytes sent within the
+ * PSP_DD_GETTASKS message is returned. If an error occured, -1 is
+ * returned and errno is set appropriately.
+ */
+int send_GETTASKS(PSnodes_ID_t node);
+
+/**
+ * @brief Handle a PSP_DD_GETTASKS message.
+ *
+ * Handle the message @a inmsg of type PSP_DD_GETTASKS.
+ *
+ * Send a list of all running processes partition info and pending
+ * partition requests to the sending node. While for the running
+ * processes PSP_DD_PROVIDETASK and PSP_DD_PROVIDETASKNL messages are
+ * used, the latter reuse the PSP_DD_GETPART and PSP_DD_GETPARTNL
+ * messages used to forward the original client request
+ * messages. Actually for a new master there is no difference if the
+ * message is directly from the requesting client or if it was
+ * buffered within the client's local daemon.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+void msg_GETTASKS(DDBufferMsg_t *inmsg);
+
+/**
+ * @brief Handle a PSP_DD_PROVIDETASK message.
+ *
+ * Handle the message @a inmsg of type PSP_DD_PROVIDETASK.
+ *
+ * This is part of the answer to a PSP_DD_GETTASKS message. For each
+ * running task whose root process is located on the sending node a
+ * PSP_DD_PROVIDETASK message is generated and send to the master
+ * process. It provides all the information necessary for the master
+ * to handle partition requests despite apart from the list of nodes
+ * building the corresponding partition. This message will be followed
+ * by one or more PSP_DD_PROVIDETASKNL messages containing this
+ * nodelist.
+ *
+ * The client's local daemon will store the partition to the
+ * corresponding partition request structure and wait for following
+ * PSP_DD_PROVIDETASKNL messages.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+void msg_PROVIDETASK(DDBufferMsg_t *inmsg);
+
+/**
+ * @brief Handle a PSP_DD_PROVIDETASKNL message.
+ *
+ * Handle the message @a inmsg of type PSP_DD_PROVIDETASKNL.
+ *
+ * Follow up message to a PSP_DD_PROVIDETASK containing the
+ * partition's actual nodes. These nodes will be stored to the
+ * client's partition request structure.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+void msg_PROVIDETASKNL(DDBufferMsg_t *inmsg);
+
+/**
+ * @brief Send a PSP_DD_TASKDEAD message.
+ *
+ * Send a PSP_DD_TASKDEAD message to the current master node.  This
+ * message informs the master node on the exit of the root process
+ * with task ID @a tid and thus allows to free the corresponding
+ * partition.
+ *
+ * @param tid The task ID of the root process that exited.
+ *
+ * @return On success, the number of bytes sent within the
+ * PSP_DD_GETTASKS message is returned. If an error occured, -1 is
+ * returned and errno is set appropriately.
+ */
+int send_TASKDEAD(PStask_ID_t tid);
+
+/**
+ * @brief Handle a PSP_DD_TASKDEAD message.
+ *
+ * Handle the message @a inmsg of type PSP_DD_TASKDEAD.
+ *
+ * A PSP_DD_TASKDEAD message informs the master process upon exit of
+ * the tasks root process. This enables the master to free the
+ * resources allocated by the corresponding task.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+void msg_TASKDEAD(DDBufferMsg_t *inmsg);
+
+/**
+ * @brief Send a PSP_DD_CANCELPART message.
+ *
+ * Send a PSP_DD_CANCELPART message to the current master node.  This
+ * message informs the master node on the exit of the root process
+ * with task ID @a tid and thus allows to cancel the corresponding
+ * partition request.
+ *
+ * @param tid The task ID of the root process that exited.
+ *
+ * @return On success, the number of bytes sent within the
+ * PSP_DD_CANCELPART message is returned. If an error occured, -1 is
+ * returned and errno is set appropriately.
+ */
+int send_CANCELPART(PStask_ID_t tid);
+
+/**
+ * @brief Handle a PSP_CD_CANCELPART message.
+ *
+ * Handle the message @a inmsg of type PSP_CD_CANCELPART.
+ *
+ * A PSP_CD_CANCELPART message informs the master process upon exit of
+ * the tasks root process. This enables the master to remove partition
+ * requests sent from this task from the queue of pending partition
+ * requests.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+void msg_CANCELPART(DDBufferMsg_t *inmsg);
+
+/**
+ * @brief Initialized partition handler.
+ *
+ * Initialize the partition handler machinery. This includes allocating
+ * memory used to store centralized information on the allocated
+ * partitions and pending partition requests.
+ *
+ * Usually this function is called upon detection that the local
+ * daemon has to act as a master within the cluster.
+ *
+ * @return No return value.
+ */
+void initPartHandler(void);
+
+/**
+ * @brief Handle partition requests.
+ *
+ * Actually handle partition requests stored within in the queue of
+ * pending requests. Furthermore the requests queue will be cleaned up
+ * in order to remove requests marked to get deleted from within the
+ * @ref cleanupRequests() function.
+ *
+ * @return No return value.
+ */
+void handlePartRequests(void);
+
+/**
+ * @brief Remove requests.
+ *
+ * Remove all requests originating from node @a node from the queue of
+ * pending processes and from the queue of running processes.
+ *
+ * Within this function, the partition requests are actually not
+ * removed from the queue, but only marked to get deleted within the
+ * next rund of handlePartRequests(). This is necessary to make this
+ * function robust enough the get used from within a RDP callback.
+ *
+ * @param node The node whose request are going to be cleaned up.
+ *
+ * @return No return value.
+ */
+void cleanupRequests(PSnodes_ID_t node);
+
+/**
+ * @brief Shutdown partition handler.
+ *
+ * Shut down the partition handler machinery. This includes
+ * freeing memory used to store centralized information on the
+ * allocated partitions and pending partition requests as allocated
+ * within @ref initPartHandler().
+ *
+ * Usually this function is called upon detection that the local
+ * daemon is freed from the burden of acting as the master within the
+ * cluster.
+ *
+ * @return No return value.
+ */
+void exitPartHandler(void);
+
+/**
+ * @brief Number of allocated jobs
+ *
+ * Return the number of job slots allocated to node @a node.
+ *
+ * @param node The node to request.
+ *
+ * @return On success, the number of jobs slots allocated to the
+ * requested node is returned, or 0, if an error occurred. Be aware of
+ * the fact, that an error cannot be distinguished from an empty node.
+ */
+unsigned short getAllocJobs(PSnodes_ID_t node);
 
 #ifdef __cplusplus
 }/* extern "C" */
