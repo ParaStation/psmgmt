@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.h,v 1.12 2002/08/02 10:58:42 eicker Exp $
+ * $Id: pse.h,v 1.13 2003/04/03 13:33:06 hauke Exp $
  *
  */
 /**
  * @file
  * ParaStation Programming Environment
  *
- * $Id: pse.h,v 1.12 2002/08/02 10:58:42 eicker Exp $
+ * $Id: pse.h,v 1.13 2003/04/03 13:33:06 hauke Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -148,6 +148,9 @@ void PSE_registerToParent(void);
  * @see PSE_spawnMaster()
  * */
 void PSE_setHWType(unsigned int hwType);
+
+/* return -1, if one or more hwtypes are unknown */
+int PSE_setHWList(char **hwList);
 
 /**
  * @page spawn_strategy Spawning strategy

@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.34 2003/04/03 11:06:02 eicker Exp $
+ * $Id: pse.c,v 1.35 2003/04/03 13:33:06 hauke Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.34 2003/04/03 11:06:02 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.35 2003/04/03 13:33:06 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -169,6 +169,27 @@ void PSE_init(int NP, int *rank)
 void PSE_setHWType(unsigned int hwType)
 {
     defaultHWType = hwType;
+}
+
+/* return -1, if one or more hwtypes are unknown */
+int PSE_setHWList(char **hwList)
+{
+    unsigned int hwType = 0;
+    int ret = 0;
+    
+    while (hwList && *hwList) {
+	int idx;
+	idx = INFO_request_hwindex(*hwList, 0);
+	if ((idx >= 0) && (idx < ((int)sizeof(hwType) * 8))) {
+	    hwType |= 1 << idx;
+	} else {
+	    ret = -1;
+	}
+	hwList++;
+    }
+
+    PSE_setHWType(hwType);
+    return ret;
 }
 
 void PSE_registerToParent(void)
