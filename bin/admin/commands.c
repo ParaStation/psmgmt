@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: commands.c,v 1.8 2004/01/15 16:21:40 eicker Exp $
+ * $Id: commands.c,v 1.9 2004/01/15 19:40:04 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.8 2004/01/15 16:21:40 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.9 2004/01/15 19:40:04 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -35,7 +35,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.8 2004/01/1
 
 #include "commands.h"
 
-char commandsversion[] = "$Revision: 1.8 $";
+char commandsversion[] = "$Revision: 1.9 $";
 
 /* @todo PSI_sendMsg(): Wrapper, control if sendMsg was successful or exit */
 
@@ -713,6 +713,9 @@ void PSIADM_ShowParam(PSP_Option_t type, char *nl)
 			    printf("gid %d\n", value);
 			}
 		    }
+		    break;
+		case PSP_OP_UNKNOWN:
+		    printf("unknown option\n");
 		    break;
 		default:
 		    printf("%d\n", value);
