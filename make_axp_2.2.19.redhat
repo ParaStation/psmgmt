@@ -1,4 +1,0 @@
-#!/bin/sh
-
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/axp/linux-2.2.19.redhat $* OSSUF=.redhat OSVER="2.2.19-7.0.8"
-#make KDIR=/home/i41pc17/hauke/psmlib/kernel/axp/linux-2.2.19-SMP.redhat $* OSSUF=.redhat OSVER="2.2.19-7.0.8smp"

@@ -1,4 +1,0 @@
-#!/bin/sh
-
-
-make KDIR=/usr/src/linux-2.2.14.SuSE $* OSSUF=.SuSE
