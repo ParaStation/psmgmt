@@ -642,12 +642,222 @@
 		    linkend="MCP">MCP</link> running on the Myrinet card are
 		  displayed.
 		</para>
-		<!--
 		<para>
-		  For a detailed describtion of the counters refer to the
-		  technical reference.... @todo
+		  The listed counters have the following meaning:
 		</para>
-		-->
+		<variablelist>
+		  <varlistentry>
+		    <term>
+		      <command>RECV</command>
+		    </term>
+		    <listitem>
+		      <para>
+			The total number of all received packets.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+
+		  <varlistentry>
+		    <term>
+		      <command>SEND</command>
+		    </term>
+		    <listitem>
+		      <para>
+			The total number of all sent packets.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+
+		  <varlistentry>
+		    <term>
+		      <command>CRC_ERR</command>
+		    </term>
+		    <listitem>
+		      <para>
+			The number of packets received with wrong CRC checksum.
+			These packets were thrown away and a resend was
+			initiated.
+		      </para>
+ 		      <para>
+			Higher counts (a few ppm of <command>SEND</command> +
+			<command>RECV</command>) are uncritical.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+
+		  <varlistentry>
+		    <term>
+		      <command>OVERRUNS</command>
+		    </term>
+		    <listitem>
+		      <para>
+			The number of packets that left the receive buffer
+			misalligned. This is usually due to data loss on the
+			line and thus in coincidence with
+			<command>CRC_ERR</command>.
+		      </para>
+		      <para>
+			This should rarely never happen.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+
+		  <varlistentry>
+		    <term>
+		      <command>DEST_ERR</command>
+		    </term>
+		    <listitem>
+		      <para>
+			The number of packets received with wrong destination
+			ID, i.e. packets that were send to the wrong
+			destination host.
+		      </para>
+		      <para>
+			If these kind of errors occur, usually something is
+			wrong with the routing table.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+
+		  <varlistentry>
+		    <term>
+		      <command>CONNIDERR</command>
+		    </term>
+		    <listitem>
+		      <para>
+			The number of packets received with wrong connection
+			ID. These are usually due to (temporary) hardware
+			problems.
+		      </para>
+		      <para>
+			This should rarely never happen.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+
+		  <varlistentry>
+		    <term>
+		      <command>IGNORED</command>
+		    </term>
+		    <listitem>
+		      <para>
+			The number of packets that were ignored, i.e. that were
+			recognized as non &ps; packets and thus thrown away.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+
+		  <varlistentry>
+		    <term>
+		      <command>SNACK</command>
+		    </term>
+		    <listitem>
+		      <para>
+			The number of sequence NACKs. A sequence NACK is
+			released when an unexpected packet is received. These
+			are most often packets that where on the line while a
+			CNACK_HR or CNACK_MCP was send.
+		      </para>
+ 		      <para>
+			Higher counts (a few ppm of <command>SEND</command> +
+			<command>RECV</command>) are uncritical.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+
+		  <varlistentry>
+		    <term>
+		      <command>CNACK_HR</command>
+		    </term>
+		    <listitem>
+		      <para>
+			The number of Host Receive Capacity NACKs send. These
+			are released when the host is unable to receive further
+			data because no receive buffers are left. This might be
+			due to sends on the source side of the communication
+			whilst no receive is posted on the destination side.
+		      </para>
+ 		      <para>
+			Higher counts (a few ppm of <command>SEND</command> +
+			<command>RECV</command>) are uncritical.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+
+		  <varlistentry>
+		    <term>
+		      <command>CNACK_MCP</command>
+		    </term>
+		    <listitem>
+		      <para>
+			The number of <link linkend="MCP">MCP</link> Capacity
+			NACKs send. These are released when the <link
+			  linkend="MCP">MCP</link> is unable to receive further
+			data because no receive buffers are left. This might be
+			due to sends on the source side of the communication
+			whilst no receive is posted on the destination side or
+			to a slow PCI bus.
+		      </para>
+ 		      <para>
+			Higher counts (a few ppm of <command>SEND</command> +
+			<command>RECV</command>) are uncritical.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+
+		  <varlistentry>
+		    <term>
+		      <command>CNACK_RS</command>
+		    </term>
+		    <listitem>
+		      <para>
+			Diagnostic counter for internal use only.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+
+		  <varlistentry>
+		    <term>
+		      <command>CRESET</command>
+		    </term>
+		    <listitem>
+		      <para>
+			The number of connection resets. A connection reset is
+			triggered when a connection comes back to live after a
+			<command>DLINK</command>.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+
+		  <varlistentry>
+		    <term>
+		      <command>DLINK</command>
+		    </term>
+		    <listitem>
+		      <para>
+			The number of Dead Link recognized. A link is declared
+			dead, if after some timeout no ACK is received from the
+			node on the other side of the link. This is normally
+			due to hardware problems.
+		      </para>
+		      <para>
+			This should rarely never happen.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+
+		  <varlistentry>
+		    <term>
+		      <command>USEQ_ERR</command>
+		    </term>
+		    <listitem>
+		      <para>
+			Diagnostic counter for internal use only.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+
+		</variablelist>
 	      </listitem>
 	    </varlistentry>
 
