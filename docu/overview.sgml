@@ -34,12 +34,129 @@
     <para>
       In addition to the pure communication tasks that build the primary
       requirements of parallel application running on a cluster, further
-      assistence of the runtime environment is needed in order to startup or
+      assistence of the runtime environment is needed in order to startup and
       control this applications.
     </para>
     <para>
-      ToDo
+      The main requirements demanded from a cluster management framework are:
     </para>
+    <variablelist>
+      <varlistentry>
+	<term>Node Management</term>
+	<listitem>
+	  <para>The management system should automatically detect usable
+	    nodes. The ability to administrate this nodes from a central point
+	    of administration has to be provided.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>Fault tolerance</term>
+	<listitem>
+	  <para>If some nodes are temporarily not available due to hardware
+	    failure, maintenance or any other reason, the management system
+	    must not fail. This situation has to be gracefully treated and
+	    normal work with the left nodes has to be provided.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>Process management</term>
+	<listitem>
+	  <para>The management system has to provide a transparent mechanism to
+	    start parallel tasks. Load balancing has to be considered within
+	    this process. Further requirements to special resources only
+	    provided on some nodes has to be taken into account. The actual
+	    behaviour should be widely configurable.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>Job control &amp; Error management</term>
+	<listitem>
+	  <para>If some or all processes forming a parallel task fail, the
+	    management system has to reset left over processes and clean up the
+	    accessed node in order to keep the cluster in a usable state.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term></term>
+	<listitem>
+	  <para></para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+    <para>
+      &ps; fulfills all this requirements by by providing a framework for
+      cluster-wide job and resource management. The backbone of the &ps;
+      management facility is build by the &ps; daemons <citerefentry>
+	<refentrytitle>psid</refentrytitle>
+	<manvolnum>8</manvolnum>
+      </citerefentry> running on every node of the cluster, communicating
+      underneath each other constantly. Thus the management system is not
+      located on a single node but distributed throughout the whole
+      cluster. This design prevents the creation of single points of failure.
+    </para>
+    <para>
+      The main tasks of the &ps; daemons are:
+    </para>
+    <itemizedlist>
+      <listitem>
+	<para>The recovery and distribution of local informations about the
+	  local load values, the state of the locally controlled processes and
+	  the local communication interface,
+	</para>
+      </listitem>
+      <listitem>
+	<para>the status control of the cluster by receiving the information
+	  from all other daemons,
+	</para>
+      </listitem>
+      <listitem>
+	<para>the initialization of the local communication layer,
+	</para>
+      </listitem>
+      <listitem>
+	<para>the status control of the local communication layer
+	</para>
+      </listitem>
+      <listitem>
+	<para>the startup of local processes on request of local or remote
+	  processes,
+	</para>
+      </listitem>
+      <listitem>
+	<para>the control of started processes
+	</para>
+      </listitem>
+      <listitem>
+	<para>the transmission of input and output of the locally controlled
+	  processes,
+	</para>
+      </listitem>
+      <listitem>
+	<para>the forwarding of signals to the locally controlled processes and
+	</para>
+      </listitem>
+      <listitem>
+	<para>the provision of an interface to the &ps; environment.
+	</para>
+      </listitem>
+    </itemizedlist>
+    <section>
+      <title>Node management</title>
+      <para>
+	In order to provide a fault tolerant node management &ps; uses the
+	concept of virtual nodes in contrast to the classical approach of
+	handling statical node list. This means the user has the option to
+	request for any N nodes, albeit special nodes may be requested, too.
+	&ps; then decides which nodes are available and fit best to the
+	requirements of the user.
+      </para>
+      <para>
+	The detail of process distribution within the startup of parallel tasks
+	will be discussed in detail in <xref linkend="startup"/>
+      </para>
+    </section>
   </section>
 </chapter>
   <!-- Keep this comment at the end of the file
