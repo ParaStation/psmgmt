@@ -600,6 +600,44 @@ double PSI_getload(u_short nodenr)
     return -1;
 }
 
+/* ToDo Jens: Gehoert hier auch nich hin :-) */
+double PSI_getNumberOfProcs(int node)
+{
+    DDBufferMsg_t msg;
+    int msgtype;
+    double ret = 0;
+    msg.header.type = PSP_CD_TASKLISTREQUEST;
+    msg.header.dest = PSI_gettid(node,0);
+    msg.header.sender = PSI_mytid;
+    msg.header.len = sizeof(msg);
+
+    if(ClientMsgSend(&msg)<0){
+	perror("write");
+	exit(-1);
+    }
+    do{
+	if(ClientMsgReceive(&msg)<0){
+	    perror("read");
+	    exit(-1);
+	}
+	msgtype = msg.header.type;
+	if (msgtype == PSP_CD_TASKINFO ){
+	    PStask_t* task;
+	    task = PStask_new();
+	    PStask_decode(msg.buf,task);
+	    if (task->group!=TG_ADMIN){ /* dont count psiadmin */
+		ret+=1.0;
+	    }else{
+		ret+=0.01;
+	    }
+	    free(task);
+	}
+    }while(msgtype == PSP_CD_TASKINFO);
+    return ret;
+}
+
+
+
 struct installdir_{
     int nr;
     char name[80];

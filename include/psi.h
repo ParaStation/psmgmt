@@ -173,6 +173,13 @@ long PSI_whodied(int sig);
  */
 double PSI_getload(unsigned short nodenr);
 
+/*
+ * PSI_getNumberOfProcs(int node)
+ *   Get number of running procs on node node
+ *   Admin procs count as 0.01 procs :-)
+ */
+double PSI_getNumberOfProcs(int node);
+
 char * PSI_LookupInstalldir(void);
 void PSI_SetInstalldir(char *installdir);
 

@@ -189,6 +189,8 @@ typedef struct {
     double load;
 } sort_block;
 
+
+
 /*-----------------------------------------------------------------------------
  * PSI_SortNodesInPartition
  *
@@ -209,8 +211,10 @@ int PSI_CompareNodesInPartionsByLoad(const void *entry1, const void *entry2)
 	ret = 1;
     else if((((sort_block *)entry2)->load > ((sort_block *)entry1)->load))
 	ret =  -1;
+    else if (((sort_block *)entry2)->id < ((sort_block *)entry1)->id)
+	ret =  1;
     else
-	ret =  0;
+	ret = -1;
     if(((sort_block *)entry2)->status == 0) return 1;
     if(((sort_block *)entry1)->status == 0) return -1;
 
@@ -243,10 +247,10 @@ int PSI_SortNodesInPartition(short nodes[], int maxnodes)
 	}
 	free(env_entry);
     }else{
-	 /* default now LOAD jh 2001-12-21 */
-	env_sort = "LOAD";
+	 /* default now PROC jh 2001-12-21 */
+	env_sort = "PROC";
     }
-    if(env_sort!=NULL)
+    if(env_sort!=NULL){
 	if(strcasecmp(env_sort,"LOAD")==0){
 	    if((node_entry =
 		(sort_block *)malloc(maxnodes * sizeof(sort_block))) == NULL){
@@ -271,7 +275,31 @@ int PSI_SortNodesInPartition(short nodes[], int maxnodes)
 	    }
 	    free(node_entry);
 	}
+	if(strcasecmp(env_sort,"PROC")==0){
+	    if((node_entry =
+		(sort_block *)malloc(maxnodes * sizeof(sort_block))) == NULL){
+		return -1;
+	    }
 
+	    /* Create the structs to sort */
+	    for(i=0; i<maxnodes; i++){
+		node_entry[i].id = nodes[i];
+		/* Get the status. Or rather, set it. */
+		node_entry[i].status = 1;
+		node_entry[i].load = PSI_getNumberOfProcs((unsigned short) nodes[i]);
+	    }
+
+	    /* Sort the nodes */
+	    qsort(node_entry, maxnodes, sizeof(sort_block),
+		  PSI_CompareNodesInPartionsByLoad);
+
+	    /* Transfer the results */
+	    for( i=0; i<maxnodes; i++ ){
+		nodes[i] = node_entry[i].id;
+	    }
+	    free(node_entry);
+	}
+    }
     return 0;
 }
 
