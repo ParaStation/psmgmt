@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psipartition.c,v 1.5 2003/10/29 17:31:49 eicker Exp $
+ * $Id: psipartition.c,v 1.6 2003/10/30 16:35:29 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.5 2003/10/29 17:31:49 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.6 2003/10/30 16:35:29 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -660,7 +660,7 @@ int PSI_createPartition(unsigned int size, unsigned int hwType)
     return size;
 }
 
-int PSI_getNodes(unsigned int num, short *nodes)
+int PSI_getNodes(unsigned int num, PSnodes_ID_t *nodes)
 {
     DDBufferMsg_t msg = (DDBufferMsg_t) {
 	.header = (DDMsg_t) {

@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psipartition.h,v 1.2 2003/09/26 14:14:34 eicker Exp $
+ * $Id: psipartition.h,v 1.3 2003/10/30 16:38:45 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for partitions of ParaStation nodes.
  *
- * $Id: psipartition.h,v 1.2 2003/09/26 14:14:34 eicker Exp $
+ * $Id: psipartition.h,v 1.3 2003/10/30 16:38:45 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -21,7 +21,7 @@
 #ifndef __PSIPARTITION_H__
 #define __PSIPARTITION_H__
 
-#include <sys/types.h>
+#include "psnodes.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -163,7 +163,7 @@ int PSI_createPartition(unsigned int num, unsigned int hwType);
  * returned. All following processes will have consecutive ranks. In
  * case of an error -1 is returned.
  */
-int PSI_getNodes(unsigned int num, short *nodes);
+int PSI_getNodes(unsigned int num, PSnodes_ID_t *nodes);
 
 #ifdef __cplusplus
 }/* extern "C" */
