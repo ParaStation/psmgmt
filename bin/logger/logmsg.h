@@ -5,16 +5,16 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: logmsg.h,v 1.3 2002/01/16 17:21:37 eicker Exp $
+ * $Id: logmsg.h,v 1.4 2002/01/23 11:28:42 eicker Exp $
  *
  */
 /**
- * \file
+ * @file
  * logmsg: Forwarding protocol for ParaStation I/O forwarding facility
  *
- * $Id: logmsg.h,v 1.3 2002/01/16 17:21:37 eicker Exp $
+ * $Id: logmsg.h,v 1.4 2002/01/23 11:28:42 eicker Exp $
  *
- * \author
+ * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
@@ -60,8 +60,8 @@ typedef struct FLBufferMsg_T {
 /**
  * @brief Sends message.
  *
- * Sends the message of length \a count referenced by \a buf as \a type to
- * \a sock. Sends as \a node.
+ * Sends the message of length @a count referenced by @a buf as @a type to
+ * @a sock. Sends as @a node.
  *
  * @param sock fd of the socket to write to.
  * @param type Type of the message.
@@ -77,23 +77,23 @@ int writelog(int sock, FLMsg_msg_t type, int node, char *buf, size_t count);
 /**
  * @brief Sends a character string.
  *
- * Sends the strings \a buf points to as \a type to \a sock. Sends
- * as \a node.
+ * Sends the strings @a buf points to as @a type to @a sock. Sends
+ * as @a node.
  *
  * @param sock fd of the socket to write to.
  * @param type Type of the message.
  * @param node Node-ID.
- * @param buf address of \0 terminated character string.
+ * @param buf address of \\0 terminated character string.
  *
  * @return On success, the number of bytes written are returned. On error,
  * -1 is returned, and errno is set appropriately.
  */
-void printlog(int sock, FLMsg_msg_t type, int node, char *buf);
+int printlog(int sock, FLMsg_msg_t type, int node, char *buf);
 
 /**
  * @brief Reads message.
  *
- * Reads the message referenced by \a msg from \a sock.
+ * Reads the message referenced by @a msg from @a sock.
  *
  * @param sock fd of the socket to read from.
  * @param msg address of message-buffer to store to.

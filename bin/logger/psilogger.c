@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.8 2002/01/16 17:57:26 eicker Exp $
+ * $Id: psilogger.c,v 1.9 2002/01/23 11:28:42 eicker Exp $
  *
  */
 /**
- * \file
+ * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.8 2002/01/16 17:57:26 eicker Exp $
+ * $Id: psilogger.c,v 1.9 2002/01/23 11:28:42 eicker Exp $
  *
- * \author
+ * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.8 2002/01/16 17:57:26 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.9 2002/01/23 11:28:42 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -62,14 +62,14 @@ int noclients;
 fd_set myfds;
 
 /**
- * \brief Handles connection requests from new forwarders.
+ * @brief Handles connection requests from new forwarders.
  *
  * Accepts a new connection from a forwarder. The new socket is set up
- * for reuse and a \ref INITIALIZE message is sent to the forwarder.
+ * for reuse and a @ref INITIALIZE message is sent to the forwarder.
  *
- * \param listen The socket to listen to.
+ * @param listen The socket to listen to.
  *
- * \return On success, the new fd (which is also index in the client array)
+ * @return On success, the new fd (which is also index in the client array)
  * is returned. On error, -1 is returned, and errno is set appropriately.
  */
 int newrequest(int listen)
@@ -102,11 +102,11 @@ int newrequest(int listen)
 }
 
 /**
- * \brief Checks file table after select has failed.
+ * @brief Checks file table after select has failed.
  *
- * \param openfds Set of file descriptors that have to be checked.
+ * @param openfds Set of file descriptors that have to be checked.
  *
- * \return No return value.
+ * @return No return value.
  */
 void CheckFileTable(fd_set* openfds)
 {
@@ -165,15 +165,15 @@ void CheckFileTable(fd_set* openfds)
 
 
 /**
- * \brief The main loop
+ * @brief The main loop
  *
  * Does all the logging work. All forwarders can connect and log via
- * the logger. Forwarders send I/O data via \ref STDOUT and \ref STDERR
+ * the logger. Forwarders send I/O data via @ref STDOUT and @ref STDERR
  * messages.
  *
- * \param listen The socket to read from.
+ * @param listen The socket to read from.
  *
- * \return No return value.
+ * @return No return value.
  */
 void loop(int listen)
 {
@@ -290,19 +290,19 @@ void loop(int listen)
 }
 
 /**
- * \brief The main program
+ * @brief The main program
  *
- * After becoming process group leader, sets global variables \ref
- * verbose, \ref forw_verbose and \ref PrependSource from environment
- * and finally calls \ref loop().
+ * After becoming process group leader, sets global variables @ref
+ * verbose, @ref forw_verbose and @ref PrependSource from environment
+ * and finally calls loop().
  *
- * \param argc The number of arguments in \a argv.
- * \param argv Array of character strings containing the arguments.
+ * @param argc The number of arguments in @a argv.
+ * @param argv Array of character strings containing the arguments.
  *
  * This program expects at least 1 additional argument:
  *  -# The port number it will listen to.
  *
- * \return Always returns 0.  */
+ * @return Always returns 0.  */
 int main( int argc, char**argv)
 {
     int listen;

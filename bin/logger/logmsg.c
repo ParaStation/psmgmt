@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: logmsg.c,v 1.6 2002/01/16 17:21:37 eicker Exp $
+ * $Id: logmsg.c,v 1.7 2002/01/23 11:28:42 eicker Exp $
  *
  */
 
-static char vcid[] __attribute__ (( unused )) = "$Id: logmsg.c,v 1.6 2002/01/16 17:21:37 eicker Exp $";
+static char vcid[] __attribute__ (( unused )) = "$Id: logmsg.c,v 1.7 2002/01/23 11:28:42 eicker Exp $";
 
 #include <stdio.h>
 #include <unistd.h>
@@ -21,7 +21,7 @@ static char vcid[] __attribute__ (( unused )) = "$Id: logmsg.c,v 1.6 2002/01/16 
 
 int writelog(int sock, FLMsg_msg_t type, int node, char *buf, size_t count)
 {
-    /** \todo
+    /** @todo
      * This implementation is *not* correct !!
      * What happens if less then msg.header.len bytes are written ?
      */
@@ -54,9 +54,9 @@ int writelog(int sock, FLMsg_msg_t type, int node, char *buf, size_t count)
     return sent;
 }
 
-void printlog(int sock, FLMsg_msg_t type, int node, char *buf)
+int printlog(int sock, FLMsg_msg_t type, int node, char *buf)
 {
-    writelog(sock, type, node, buf, strlen(buf));
+    return writelog(sock, type, node, buf, strlen(buf));
 }
 
 int readlog(int sock, FLBufferMsg_t *msg)

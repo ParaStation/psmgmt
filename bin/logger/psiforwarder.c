@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiforwarder.c,v 1.7 2002/01/16 17:59:19 eicker Exp $
+ * $Id: psiforwarder.c,v 1.8 2002/01/23 11:28:42 eicker Exp $
  *
  */
 /**
- * \file
+ * @file
  * psiforwarder: Forwarding-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psiforwarder.c,v 1.7 2002/01/16 17:59:19 eicker Exp $
+ * $Id: psiforwarder.c,v 1.8 2002/01/23 11:28:42 eicker Exp $
  *
- * \author
+ * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.7 2002/01/16 17:59:19 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.8 2002/01/23 11:28:42 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -55,12 +55,12 @@ int loggersock=-1;
 int id=-1;
 
 /**
- * \brief Close connection to logger
+ * @brief Close connection to logger
  *
  * Send a #FINALIZE message to the logger and wait for an #EXIT
  * message as reply. Finally close the socket to the logger.
  *
- * \return No return value.
+ * @return No return value.
  */
 void closelog(void)
 {
@@ -79,15 +79,15 @@ void closelog(void)
 }
 
 /**
- * \brief Connect to the logger
+ * @brief Connect to the logger
  *
- * Connect to the logger listening at \a node on \a port. Wait for
+ * Connect to the logger listening at @a node on @a port. Wait for
  * #INITIALIZE message and set #verbose correctly.
  *
- * \param node The node on which the logger listens.
- * \param port The port on which the logger listens.
+ * @param node The node on which the logger listens.
+ * @param port The port on which the logger listens.
  *
- * \return On success, the new fd connected to the logger is returned.
+ * @return On success, the new fd connected to the logger is returned.
  * Simultaneously #loggersock is set.
  * On error, -1 is returned, and errno is set appropriately.
  */
@@ -125,11 +125,11 @@ int loggerconnect(unsigned int node, int port)
 }
 
 /**
- * \brief Checks file table after select has failed.
+ * @brief Checks file table after select has failed.
  *
- * \param openfds Set of file descriptors that have to be checked.
+ * @param openfds Set of file descriptors that have to be checked.
  *
- * \return No return value.
+ * @return No return value.
  *
  */
 void CheckFileTable(fd_set* openfds)
@@ -193,16 +193,16 @@ void CheckFileTable(fd_set* openfds)
 }
 
 /**
- * \brief The main loop
+ * @brief The main loop
  *
  * Does all the forwarding work. A tasks is connected and output forwarded
  * to the logger. I/O data is expected on stdoutport and stderrport.
  * Is is send via #STDOUT and #STDERR messages respectively.
  *
- * \param stdoutport The port, on which stdout-data is expected.
- * \param stderrport The port, on which stderr-data is expected.
+ * @param stdoutport The port, on which stdout-data is expected.
+ * @param stderrport The port, on which stderr-data is expected.
  *
- * \return No return value.
+ * @return No return value.
  *
  */
 void loop(int stdoutport, int stderrport)
@@ -298,13 +298,13 @@ void loop(int stdoutport, int stderrport)
 }
 
 /**
- * \brief The main program
+ * @brief The main program
  *
  * After becoming process group leader, connects to logger using
  * loggerconnect() and calls loop().
  *
- * \param argc The number of arguments in \a argv.
- * \param argv Array of character strings containing the arguments.
+ * @param argc The number of arguments in @a argv.
+ * @param argv Array of character strings containing the arguments.
  *
  * This program expects at least 5 additional arguments:
  *  -# The node on which the logger listens.
@@ -313,7 +313,7 @@ void loop(int stdoutport, int stderrport)
  *  -# The port number for stdout data.
  *  -# The port number for stderr data.
  *
- * \return Always returns 0.
+ * @return Always returns 0.
  */
 int main( int argc, char**argv)
 {
