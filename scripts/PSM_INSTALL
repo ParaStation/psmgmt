@@ -8,7 +8,7 @@
 #**
 #* PSM_INSTALL: ParaStation De-/Installationscript
 #*
-#* $Id: PSM_INSTALL,v 1.10 2002/07/31 10:21:30 eicker Exp $
+#* $Id: PSM_INSTALL,v 1.11 2002/08/05 17:36:44 hauke Exp $
 #*
 #* @author  
 #*         Eduard Syrchyn <syrchyn@par-tec.de>
@@ -271,6 +271,15 @@ uninst_driver_osf() {
     fi
 }
 
+create_devicefiles() {
+   mknod /dev/psm c 40 0
+   chmod 666 /dev/psm
+}
+
+cleanup_devicefiles() {
+   rm /dev/psm
+}
+
 do_install() {
     echo "Install ParaStation"
     do_info
@@ -286,7 +295,9 @@ do_install() {
     fi
     if [ "$UNAME" = "OSF1" ]
     then
-	inst_driver_osf
+        inst_driver_osf
+    else
+	create_devicefiles
     fi
 }
 
@@ -305,6 +316,8 @@ do_uninstall() {
     if [ "$UNAME" = "OSF1" ]
     then
 	deinst_driver_osf
+    else
+	cleanup_devicefiles
     fi
 }
 
