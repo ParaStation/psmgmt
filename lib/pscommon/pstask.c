@@ -7,16 +7,18 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.c,v 1.5 2002/07/18 12:51:34 eicker Exp $
+ * $Id: pstask.c,v 1.6 2002/07/26 15:13:25 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.5 2002/07/18 12:51:34 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.6 2002/07/26 15:13:25 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <termios.h>
+#include <sys/ioctl.h>
 
 #include "pscommon.h"
 
@@ -52,11 +54,12 @@ int PStask_init(PStask_t *task)
     task->ptid = 0;
     task->uid = -1;
     task->gid = -1;
+    task->aretty = 0;
     task->group = TG_ANY;
-    task->rank = -1;
     task->loggernode = 0; /* obsolete */
     task->loggerport = 0; /* obsolete */
     task->loggertid = 0;
+    task->rank = -1;
     task->fd = -1;
     task->workingdir = NULL;
     task->argc = 0;
@@ -131,6 +134,78 @@ int PStask_delete(PStask_t * task)
     return 1;
 }
 
+PStask_sig_t *cloneSigList(PStask_sig_t *list)
+{
+    PStask_sig_t *clone = NULL, *signal = NULL;
+
+    while (list) {
+	if (!signal) {
+	    /* First item */
+	    signal = (PStask_sig_t*) malloc(sizeof(PStask_sig_t));
+	    clone = signal;
+	} else {
+	    signal->next = (PStask_sig_t*) malloc(sizeof(PStask_sig_t));
+	    signal = signal->next;
+	}
+
+	signal->tid = list->tid;
+	signal->signal = list->signal;
+	signal->next = NULL;
+
+	list = list->next;
+    }
+
+    return clone;
+}
+
+PStask_t *PStask_clone(PStask_t *task)
+{
+    PStask_t *clone;
+    int i;
+
+    clone = PStask_new();
+
+    /* clone->tid = 0; */
+    clone->ptid = task->ptid;
+    clone->uid = task->uid;
+    clone->gid = task->gid;
+    clone->aretty = task->aretty;
+    clone->termios = task->termios;
+    clone->winsize = task->winsize;
+    clone->group = task->group;
+    clone->loggernode = task->loggernode; /* obsolete */
+    clone->loggerport = task->loggerport; /* obsolete */
+    clone->loggertid = task->loggertid;
+    clone->rank = task->rank;
+    /* clone->fd = -1; */
+    clone->workingdir = (task->workingdir) ? strdup(task->workingdir) : NULL;
+    clone->argc = task->argc;
+    clone->argv = (char**)malloc(sizeof(char*)*(task->argc+1));
+    for (i=0; i<task->argc; i++) clone->argv[i] = strdup(task->argv[i]);
+    clone->argv[clone->argc] = NULL;
+    /* Get number of environment variables */
+    i = 0;
+    if (task->environ) for (i=0; task->environ[i]; i++);
+
+    if (i) clone->environ = (char**)malloc((i+1)*sizeof(char*));
+
+    if (clone->environ) {
+	for (i=0; task->environ[i]; i++) {
+	    clone->environ[i] = strdup(task->environ[i]);
+	}
+	clone->environ[i] = NULL;
+    }
+    clone->childsignal = task->childsignal;
+    clone->pendingReleaseRes = task->pendingReleaseRes;
+    clone->released = task->released;
+
+    clone->signalSender = cloneSigList(task->signalSender);
+    clone->signalReceiver = cloneSigList(task->signalReceiver);
+    clone->assignedSigs = cloneSigList(task->assignedSigs);
+
+    return clone;
+}
+
 void PStask_snprintf(char *txt, size_t size, PStask_t * task)
 {
     int i;
@@ -178,6 +253,9 @@ static struct {
     long ptid;
     uid_t uid;
     gid_t gid;
+    unsigned int aretty;
+    struct termios termios;
+    struct winsize winsize;
     PStask_group_t group;
     int rank;
     unsigned int loggernode; /* obsolete */
@@ -202,6 +280,9 @@ int PStask_encode(char *buffer, size_t size, PStask_t *task)
     tmpTask.ptid = task->ptid;
     tmpTask.uid = task->uid;
     tmpTask.gid = task->gid;
+    tmpTask.aretty = task->aretty;
+    tmpTask.termios = task->termios;
+    tmpTask.winsize = task->winsize;
     tmpTask.group = task->group;
     tmpTask.rank = task->rank;
     tmpTask.loggernode = task->loggernode; /* obsolete */
@@ -221,7 +302,7 @@ int PStask_encode(char *buffer, size_t size, PStask_t *task)
     msglen++; /* zero byte */
 
     for (i=0; i<task->argc; i++) {
-	strcpy(&buffer[msglen],task->argv[i]);
+	strcpy(&buffer[msglen], task->argv[i]);
 	msglen +=strlen(task->argv[i])+1;
     }
 
@@ -262,6 +343,9 @@ int PStask_decode(char *buffer, PStask_t *task)
     task->ptid = tmpTask.ptid;
     task->uid = tmpTask.uid;
     task->gid = tmpTask.gid;
+    task->aretty = tmpTask.aretty;
+    task->termios = tmpTask.termios;
+    task->winsize = tmpTask.winsize;
     task->group = tmpTask.group;
     task->rank = tmpTask.rank;
     task->loggernode = tmpTask.loggernode; /* obsolete */
@@ -280,7 +364,7 @@ int PStask_decode(char *buffer, PStask_t *task)
 	task->argv[i] = strdup(&buffer[msglen]);
 	msglen += strlen(&buffer[msglen])+1;
     }
-    task->argv[task->argc] = 0;
+    task->argv[task->argc] = NULL;
 
     /* Get number of environment variables */
     count = 0;

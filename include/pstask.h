@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.h,v 1.6 2002/07/24 06:24:14 eicker Exp $
+ * $Id: pstask.h,v 1.7 2002/07/26 15:15:47 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with ParaStation tasks.
  *
- * $Id: pstask.h,v 1.6 2002/07/24 06:24:14 eicker Exp $
+ * $Id: pstask.h,v 1.7 2002/07/26 15:15:47 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -22,6 +22,8 @@
 #define __PSTASK_H
 
 #include <sys/types.h>
+#include <termios.h>
+#include <sys/ioctl.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,7 +41,8 @@ typedef enum {
     TG_ANY,       /**< A normal task */
     TG_ADMIN,     /**< Taskgroup for psiadmin (and GUI client) */
     TG_RESET,     /**< A normal task */
-    TG_LOGGER     /**< A normal task */
+    TG_LOGGER,    /**< A special task, the logger */
+    TG_FORWARDER  /**< A special task, the forwarder */
 } PStask_group_t;
 
 /**
@@ -56,8 +59,8 @@ char *PStask_printGrp(PStask_group_t taskgroup);
 
 /** Signal structure @todo */
 typedef struct PSsig_T{
-    long tid;                    /**< unique task identifier */
-    int signal;                  /**< signal to send, or -1 for childsignal */
+    long tid;                 /**< unique task identifier */
+    int signal;               /**< signal to send, or -1 for childsignal */
     struct PSsig_T *next;     /**< link to the next signal */
 } PStask_sig_t;
 
@@ -71,14 +74,17 @@ typedef struct PStask_T{
     long ptid;               /*C*/ /**< unique identifier of parent task */
     uid_t uid;               /*C*/ /**< user id */
     gid_t gid;               /*C*/ /**< group id */
+    unsigned int aretty;     /*C*/ /**< flag stdin, stdout & stderr as tty */
+    struct termios termios;  /*C*/ /**< @todo */
+    struct winsize winsize;  /*C*/ /**< @todo */
     PStask_group_t group;    /*C*/ /**< task group @see PStask_group_t */
-    int rank;                /*C*/ /**< rank of task within task group */
     unsigned int loggernode; /*C*//*obsolete*/ /* the logging peer for any output */
     int loggerport;          /*C*//*obsolete*/ /* the logging peer for any output */
     long loggertid;          /*C*/ /**< unique identifier of the logger */
+    int rank;                /*C*/ /**< rank of task within task group */
     short fd;                      /**< connection fd within psid */
     char *workingdir;        /*C*/ /**< working directory */
-    int argc;                /*C*/ /**< num of arguments, length of @a argv */
+    int argc;                /*C*/ /**< num of args, length of @a argv */
     char **argv;             /*C*/ /**< command line arguments */
     char **environ;          /*C*/ /**< PS environment, used for spawning */
     int childsignal;               /**< the signal sent when a child dies */
@@ -142,6 +148,23 @@ int PStask_reinit(PStask_t *task);
  * @return On success, 1 is returned, or 0 otherwise.
  */
 int PStask_delete(PStask_t *task);
+
+/**
+ * @brief Clone a task structure.
+ *
+ * Clone the task structure @a task. A new task structure is created
+ * via @ref PStask_new() and initialized to be an exact copy of @a
+ * task. The new task structure may be removed with @ref
+ * PStask_delete().
+ *
+ * @param task Pointer to the task structure to be cloned.
+ *
+ * @return On success, a pointer to the new task structure is
+ * returned, or NULL otherwise.
+ *
+ * @see PStask_new(), PStask_delete
+ */
+PStask_t *PStask_clone(PStask_t *task);
 
 /**
  * @brief Print a task structure in a string.
