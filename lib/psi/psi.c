@@ -237,7 +237,7 @@ PSI_daemon_connect(u_short protocol, u_long hostaddr)
 	/*
 	 * start the PSI Daemon via inetd
 	 */
-	if(connectfailes++ <10){
+	if(connectfailes++ < 10){
 	    PSI_startdaemon(hostaddr);
 	}else{
 	    perror("PSI daemon connect failed finally"); 
