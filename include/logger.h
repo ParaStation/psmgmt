@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: logger.h,v 1.7 2002/02/11 12:43:13 eicker Exp $
+ * $Id: logger.h,v 1.8 2002/02/11 12:52:04 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with the ParaStation Logger.
  *
- * $Id: logger.h,v 1.7 2002/02/11 12:43:13 eicker Exp $
+ * $Id: logger.h,v 1.8 2002/02/11 12:52:04 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -68,8 +68,22 @@ void LOGGERspawnforwarder(unsigned int logger_node, int logger_port,
  */
 int LOGGERspawnlogger(void);
 
+/*********************************************************************
+ * int LOGGERopenPort()
+ *
+ * open the logger port.
+ * RETURN the portno of the logger
+ */
 unsigned short LOGGERopenPort(void);
 
+/**
+ * void LOGGERexecLogger()
+ *
+ * spawns a logger.
+ * @return No return value.
+ *
+ * @see LOGGERopenPort()
+ */
 void LOGGERexecLogger(void);
 
 #ifdef __cplusplus
