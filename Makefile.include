@@ -14,49 +14,44 @@ MCPDIR := $(ROOTDIR)/kern/mcp
 TOOLDIR := $(ROOTDIR)/tools
 INCLUDEDIR := $(ROOTDIR)/include
 OSNAME := $(shell uname -s)
+OSARCHITECTUR :=  $(shell uname -m)
 
 ifeq ($(OSNAME),Linux)
   ifeq ($(KDIR),)
-OSVERSION := $(shell uname -r)
 KERNEL_DIR := /usr/src/linux
+    ifeq ($(KNAME),)
+	KERNEL_NAME := $(shell uname -r)
+    else
+        KERNEL_NAME := $(KNAME)
+    endif
   else
 KERNEL_DIR := $(KDIR)
-#OSVERSION := $(shell cat $(KDIR)/.kernelrelease)$(OSSUF)
-    ifeq ($(OSVER),)
-OSVERSION := $(shell cat $(KDIR)/include/linux/version.h|grep UTS_RELEASE|cut -f 3 -d" "|head -1)$(OSSUF)
+    ifeq ($(KNAME),)
+	KERNEL_NAME := $(error "missing (KNAME=) for KDIR=$(KDIR)")
     else
-OSVERSION := $(OSVER)$(OSSUF)
+        KERNEL_NAME := $(KNAME)
     endif
   endif
 else
-OSVERSION := $(shell uname -r)
+
 endif
 
 DEVELOP := $(shell grep -q -e '^\#define *DEVELOP *$\' $(INCLUDEDIR)/ps_develop.h && echo 1 || echo 0)
 #'
+
 ifeq ($(DEVELOP),1)
-DEVSUF:=_devel
+#DEVSUF:=_devel
 endif
 
 
-OSARCHITECTUR :=  $(shell uname -m)
-OSID  := $(OSARCHITECTUR)$(DEVSUF)_$(OSNAME)_$(OSVERSION)
-OSSID := $(OSARCHITECTUR)$(DEVSUF)_$(OSNAME)$(OSSUF)
+OSID  := $(OSARCHITECTUR)_$(OSNAME)
 
-
-MODULEARCHIVEDIR := $(ROOTDIR)/modules/$(OSID)
-LIBARCHIVEDIR := $(ROOTDIR)/lib/$(OSSID)
-TMPOBJDIR := $(ROOTDIR)/tmp
+MODULEARCHIVEDIR := $(ROOTDIR)/modules/$(OSID)_$(KERNEL_NAME)
+LIBARCHIVEDIR := $(ROOTDIR)/lib/$(OSID)
+TMPOBJDIR := $(ROOTDIR)/tmp/$(OSID)
 
 LIB := $(LIBARCHIVEDIR)
 INC := $(INCLUDEDIR)
 GCCINC := -I$(INC) -I$(PSMDIR)/$(OSNAME)
-
-
-
-
-
-
-
 
 

@@ -14,12 +14,12 @@ ifeq ($(shell [ -f .SOURCEDIR ]&&echo 1),1)
 $(ROOTDIR)/Makefile Makefile:
 	@echo Makefile $@ checked
 
-$(OSSID):
-	mkdir -p $(OSSID)
-	ln -s "../Makefile" $(OSSID)/Makefile
+$(OSID):
+	mkdir -p $(OSID)
+	ln -s "../Makefile" $(OSID)/Makefile
 
-%:	$(OSSID)
-	make -C $(OSSID) $@
+%:	$(OSID)
+	make -C $(OSID) $@
 else
 
 tools:	psconfig

@@ -29,7 +29,7 @@ include $(ROOTDIR)/Makefile.include
 
 ifeq ($(shell cd .;pwd),$(ROOTDIR))
 
-allbutmcp:	dep psm pshal psport pvar arg tools buildno
+allbutmcp:	dep psm libs tools buildno
 
 all:	mcpdep mcp allbutmcp buildno
 
@@ -90,14 +90,6 @@ clean:
 	make -C $(PSPORTDIR) $@
 	make -C $(PSPORT2DIR) $@
 	rm -rf tmp/*
-
-TAGS:
-	ctags -e *.[ch] */*.[ch] */*/*.[ch]
-
-
-tags:	TAGS
-
-etags:	TAGS
 
 FORCE:
 
