@@ -17,11 +17,12 @@
     </para>
     <para>
       Usually you will find in <filename>/etc</filename> only a symbolic link
-      pointing to
-      <filename>/opt/parastation/config/parastation.conf</filename>, which is
-      normally mounted via NFS on the nodes. This allows in an easy way the
-      centralized storing of the configuration file in order to reduce the
-      effort that has to be made to modify this file consistently on all nodes.
+      pointing to <filename>parastation.conf</filename> residing in the
+      configuration directory <filename>/opt/parastation/config</filename>,
+      which is normally mounted via NFS on the nodes. This allows in an easy
+      way the centralized storing of the configuration file in order to reduce
+      the effort that has to be made to modify this file consistently on all
+      nodes.
     </para>
     <para>
       Within this section only the fundamental parameters which are necessary
@@ -98,14 +99,14 @@
 	<para>
 	  In order to tell &ps; which kind of communication hardware should be
 	  used modify the <command>HWType</command> parameter. In the case of a
-	  Myrinet cluster, i.e. the version of &ps; used is ParaStation 3, this
-	  has to be set to:
+	  Myrinet cluster, i.e. the version of &ps; used is
+	  <emphasis>ParaStation3</emphasis>, this has to be set to:
 	</para>
 	<programlisting>	HWType myrinet</programlisting>
 	<para>
 	  If the cluster to be configured uses Ethernet of any flavour and
-	  ParaStation FE is the software of choice you will want to set this
-	  parameter to:
+	  &psfe; is the software of choice you will want to set this parameter
+	  to:
 	</para>
 	<programlisting>	HWType ethernet</programlisting>
 	<!-- @todo ParaStation 4 -->
@@ -193,8 +194,8 @@
       </listitem>
     </orderedlist>
     <para>
-      In the case of a Ethernet cluster running ParaStation FE the
-      configuration procedure is finished now and you can proceed with <xref
+      In the case of a Ethernet cluster running &psfe; the configuration
+      procedure is finished now and you can proceed with <xref
 	linkend="testing"/>. On Myrinet clusters some further parameters
       concerning the Myrinet configuration have to be set up. These will be
       discussed in
@@ -230,6 +231,12 @@
 	  <command>InstallDir</command> parameter. This is described in detail
 	  within the <xref linkend="parastation_conf"/> manual page.
 	</para>
+	<note>
+	  <para>
+	    Keep in mind that the kernel module used in order to run the
+	    Myrinet card has to match the kernel version.
+	  </para>
+	</note>
       </listitem>
 
       <listitem>
@@ -270,7 +277,7 @@
 	  <para>
 	      Furthermore there are no routing files for clusters with more
 	    than 128 nodes. These have to be created in the way described in
-	      <xref linkend="setup_route"/>, too.
+	      <xref linkend="setup_route"/>, too, or contact ParTec.
 	  </para>
 	</note>
 	<para>
@@ -283,6 +290,7 @@
 	  board of the switch is completely filled, proceed with the next board
 	  again connecting from the right to the left and so on.
 	</para>
+	<!-- @todo: Insert picture of a Myrinet switch -->
 	<para>
 	  If the connection of the nodes to the Myrinet switch uses this
 	  convention, one the following standard routing files can be used:
@@ -291,8 +299,7 @@
 	  <varlistentry>
 	    <term><filename>M3E16.route</filename></term>
 	    <listitem>
-	      <para>
-		Use this routing file if your cluster has a 16 node switch,
+	      <para>Use this routing file if your cluster has a 16 node switch,
 		i.e. a switch with two line cards.
 	      </para>
 	    </listitem>
@@ -301,8 +308,7 @@
 	  <varlistentry>
 	    <term><filename>M3E16reverse.route</filename></term>
 	    <listitem>
-	      <para>
-		This routing file is kind of special. It also supports a 16
+	      <para>This routing file is kind of special. It also supports a 16
 		node switch, i.e. a switch with two line cards, but with
 		reverse cabling. This means node 0 is connected in the lower
 		left edge of the switch. Further nodes are connected left to
@@ -315,8 +321,7 @@
 	  <varlistentry>
 	    <term><filename>M3E32.route</filename></term>
 	    <listitem>
-	      <para>
-		Use this routing file if your cluster has a 32 node switch,
+	      <para>Use this routing file if your cluster has a 32 node switch,
 		i.e. a switch with four line cards and cabling conventions
 		describe above.
 	      </para>
@@ -326,9 +331,8 @@
 	  <varlistentry>
 	    <term><filename>M3E64.route</filename></term>
 	    <listitem>
-	      <para>
-		This routing file is for clusters with a 64 node switch, i.e. a
-		switch with eight line cards.
+	      <para>This routing file is for clusters with a 64 node switch,
+		i.e. a switch with eight line cards.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -336,9 +340,8 @@
 	  <varlistentry>
 	    <term><filename>M3E128.route</filename></term>
 	    <listitem>
-	      <para>
-		Use this routing file if your cluster has a 128 node switch,
-		i.e. a switch with sixteen line cards.
+	      <para>Use this routing file if your cluster has a 128 node
+		switch, i.e. a switch with sixteen line cards.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -348,10 +351,10 @@
 	  <filename>/opt/parastation/config</filename>.
 	</para>
 	<para>
-	  In order to tell &ps; which routing file is the appropriate one the
-	  <command>RoutingFile</command> parameter can be used. This parameter
-	  set may be a absolute or relative path. Relative paths are looked up
-	  relative to
+	  In order to tell &ps; which routing file is the appropriate one, the
+	  <command>RoutingFile</command> parameter has to be used. This
+	  parameter set may be a absolute or relative path. Relative paths are
+	  looked up relative to
 	  <filename><replaceable>InstallDir</replaceable>/config</filename> and
 	  <filename><replaceable>InstallDir</replaceable></filename> in this
 	  order. 
@@ -380,7 +383,7 @@
       efficient MPI or the PSPort interface. Be aware of the fact that IP over
       Myrinet is quite unefficient, since the overhead of the whole TCP/IP
       stack has to be taken into account. On the other hand it is much faster
-      than TCP/IP over fast Ethernet anyway.
+      than TCP/IP over Fast Ethernet anyway.
     </para>
     <para>
       To enable IP over Myrinet three different parameters might have to be set
@@ -418,7 +421,7 @@
       parameter.
     </para>
     <para>
-      Both ans&auml;tze will be discussed in detail in the next two
+      Both possible ways will be discussed in detail in the next two
       subsections.
     </para>
     <section>
@@ -426,14 +429,15 @@
       <para>
 	The first concept used by &ps; is the following: You can define a
 	prefix and its lenght which are identical for all participating nodes.
-	These build the most signigicant bits of the IP address. Then the IP
-	address is filled up with the &ps; ID to create a valid
+	This prefix defines the most signigicant bits of the IP address. Then
+	the IP address is filled up with the &ps; ID to create a valid
 	address<footnote>
 	  <para>
 	    This is not completely true. Since the IP address with all bits 0
 	    in the subnet part defined by the netmask has a special meaning,
 	    the &ps; ID cannot be used one to one but an offset of 1 has to be
 	    taken into account.
+	    <!-- @todo: What about 256 or more nodes? broadcast address? -->
 	  </para>
 	</footnote>.
       </para>
@@ -508,7 +512,7 @@
 	<command>Nodes</command> parameter has to be used.
       </para>
       <para>
-	This makes the <command>Nodes</command> entries within the ParaStation
+	This makes the <command>Nodes</command> entries within the &ps;
 	configuration file <filename>/etc/parastation.conf</filename> look like
 	as follows:
       </para>
@@ -641,8 +645,8 @@ Process 7 to 0-2,4-7 ( node 7 to 0-2,4-7 ) OK
     <para>
       This section covers the creation of a customized routing file and thus is
       only interesting in the case that the network topology of your cluster is
-      not covered by the standard routing tables within the standard
-      ParaStation distribution. Otherwise you may savely skip this section.
+      not covered by the standard routing tables within the standard &ps;
+      distribution. Otherwise you may savely skip this section.
     </para>
     <para>
       The creation of the routing file is a two step procedure, starting with a
@@ -710,7 +714,7 @@ Process 7 to 0-2,4-7 ( node 7 to 0-2,4-7 ) OK
       <xref linkend="parastation_conf"/>.
     </para>
     <para>
-      Proceed with testing the ParaStation system as discussed in <xref
+      Proceed with testing the &ps; system as discussed in <xref
 	linkend="testing"/>.
     </para>
   </section>
