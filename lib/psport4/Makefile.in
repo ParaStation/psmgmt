@@ -1,29 +1,37 @@
+###################################################### -*- Makefile -*- #####
+#                  ParaStation3
+#        Copyright (c) 2002 ParTec AG Karlsruhe
+#        All rights reserved.
+#############################################################################
+#
+# $Id: Makefile.in,v 1.2 2002/10/01 12:42:51 hauke Exp $
+#
+# @author
+#         Jens Hauke <hauke@par-tec.de>
+#############################################################################
 
-# -*- Makefile -*-
+# Use absolute paths !!!
+SRCDIR := $(shell cd @srcdir@;pwd)
+TOPSRCDIR := @TOP_SRCDIR@
 
+################################
 
-CFLAGS += -O3 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
-CPPFLAGS += -I@top_srcdir@/include @CPPFLAG_MMD@
+export LIBNAME := psport4
+export LIBOBJS := psport4.o
+export LIBVPATH := $(SRCDIR)
+export LIBINC = -I$(TOPSRCDIR)/include
+export LIBDSTDIR = ../..
 
-PSPORT4OBJS := psport4.o 
-PSPORT4DEPS := $(PSPORT4OBJS:.o=@DEPEXTENSION@)
+################################
 
-RANLIB := @RANLIB@
+all lib: sharedlib staticlib
 
-VPATH += @srcdir@
+sharedlib staticlib: sharedlib.dir staticlib.dir
+	$(MAKE) -C $@.dir -f ../../Makefile.$@
 
-all: ../libpsport4.a
+sharedlib.dir staticlib.dir:
+	mkdir -p $@
 
-../libpsport4.a: $(PSPORT4OBJS)
-	$(AR) rcv $@ $(PSPORT4OBJS)
-	$(RANLIB) $@
-
-clean:
-	$(RM) $(PSPORT4DEPS) $(PSPORT4OBJS) 
-
-
--include $(PSPORT4DEPS)
-
-
-
-
+clean: sharedlib.dir staticlib.dir
+	$(MAKE) -C sharedlib.dir -f ../../Makefile.sharedlib clean
+	$(MAKE) -C staticlib.dir -f ../../Makefile.staticlib clean

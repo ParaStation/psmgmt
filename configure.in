@@ -1,3 +1,15 @@
+##################################################### -*- shell-script -*- ##
+#                  ParaStation3
+#        Copyright (c) 2002 ParTec AG Karlsruhe
+#        All rights reserved.
+#############################################################################
+#
+# $Id: configure.in,v 1.19 2002/10/01 12:42:50 hauke Exp $
+#
+# @author
+#         Jens Hauke <hauke@par-tec.de>
+#############################################################################
+
 # Process this file with autoconf to produce a configure script.
 AC_INIT(["psmlib"],[""],["hauke@par-tec.com"])
 AC_CONFIG_SRCDIR([configure.in])
@@ -135,6 +147,9 @@ fi
 
 
 AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([lib/Makefile])
+AC_CONFIG_FILES([lib/Makefile.sharedlib])
+AC_CONFIG_FILES([lib/Makefile.staticlib])
 AC_CONFIG_FILES([lib/pshal/Makefile])
 AC_CONFIG_FILES([lib/psport/Makefile])
 AC_CONFIG_FILES([lib/psport4/Makefile])

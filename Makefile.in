@@ -1,8 +1,13 @@
+###################################################### -*- Makefile -*- #####
+#                  ParaStation3
+#        Copyright (c) 2002 ParTec AG Karlsruhe
+#        All rights reserved.
 #############################################################################
-#      @(#)makefile    2.00 (Karlsruhe) 2000
 #
-#      27.06.2000   Jens Hauke
-#      23.08.2000
+# $Id: Makefile.in,v 1.12 2002/10/01 12:42:50 hauke Exp $
+#
+# @author
+#         Jens Hauke <hauke@par-tec.de>
 #############################################################################
 #Create Only mcp's:
 #>make mcp
@@ -19,17 +24,9 @@
 #On Problems with .kernelrelease call "make include/linux/version.h" as
 # root inside Kerneldir
 
-# pscommon has to be build befor psi!!
-LIBS := psport pshal arg pvar pse pscommon psi putil
-ifeq ("@target_os@","linux")
-LIBS += psport4
-endif
-
 PSM_OSDIR := @PSM_OSDIR@
 
-LIBDIRS := $(patsubst %,lib/%,$(LIBS))
-
-SUBDIRS := $(LIBDIRS) kern/mcp $(PSM_OSDIR) bin dist dist_fe
+SUBDIRS := lib kern/mcp $(PSM_OSDIR) bin dist dist_fe
 
 .PHONY all: psm lib bin
 .PHONY: dist dist_fe
@@ -40,9 +37,8 @@ mcp:
 psm:	mcp
 	$(MAKE) -C $(PSM_OSDIR)
 
-lib: $(LIBS)
-$(LIBS): 
-	$(MAKE) -C lib/$@
+lib:
+	$(MAKE) -C lib
 
 bin:
 	$(MAKE) -C bin bin

@@ -1,0 +1,33 @@
+###################################################### -*- Makefile -*- #####
+#                  ParaStation3
+#        Copyright (c) 2002 ParTec AG Karlsruhe
+#        All rights reserved.
+#############################################################################
+#
+# $Id: Makefile.in,v 1.1 2002/10/01 12:42:50 hauke Exp $
+#
+# @author
+#         Jens Hauke <hauke@par-tec.de>
+#############################################################################
+
+LIBS := psport pshal arg pvar pse pscommon psi putil
+ifeq ("@target_os@","linux")
+LIBS += psport4
+endif
+
+default: lib
+.PHONY: $(LIBS)
+
+
+lib: $(LIBS)
+
+$(LIBS): 
+	$(MAKE) -C $@
+
+
+clean:
+	@for i in $(LIBS) ; do \
+		$(MAKE) -C $$i clean ;\
+	done
+
+

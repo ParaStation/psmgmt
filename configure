@@ -1270,6 +1270,12 @@ fi
 
 ac_config_files="$ac_config_files Makefile"
 
+ac_config_files="$ac_config_files lib/Makefile"
+
+ac_config_files="$ac_config_files lib/Makefile.sharedlib"
+
+ac_config_files="$ac_config_files lib/Makefile.staticlib"
+
 ac_config_files="$ac_config_files lib/pshal/Makefile"
 
 ac_config_files="$ac_config_files lib/psport/Makefile"
@@ -1417,7 +1423,7 @@ rm -f confdef2opt.sed
 : ${CONFIG_STATUS=./config.status}
 ac_clean_files_save=$ac_clean_files
 ac_clean_files="$ac_clean_files $CONFIG_STATUS"
-{ echo "$as_me:1420: creating $CONFIG_STATUS" >&5
+{ echo "$as_me:1426: creating $CONFIG_STATUS" >&5
 echo "$as_me: creating $CONFIG_STATUS" >&6;}
 cat >$CONFIG_STATUS <<_ACEOF
 #! $SHELL
@@ -1584,7 +1590,7 @@ cat >>$CONFIG_STATUS <<\EOF
     echo "$ac_cs_version"; exit 0 ;;
   --he | --h)
     # Conflict between --help and --header
-    { { echo "$as_me:1587: error: ambiguous option: $1
+    { { echo "$as_me:1593: error: ambiguous option: $1
 Try \`$0 --help' for more information." >&5
 echo "$as_me: error: ambiguous option: $1
 Try \`$0 --help' for more information." >&2;}
@@ -1603,7 +1609,7 @@ Try \`$0 --help' for more information." >&2;}
     ac_need_defaults=false;;
 
   # This is an error.
-  -*) { { echo "$as_me:1606: error: unrecognized option: $1
+  -*) { { echo "$as_me:1612: error: unrecognized option: $1
 Try \`$0 --help' for more information." >&5
 echo "$as_me: error: unrecognized option: $1
 Try \`$0 --help' for more information." >&2;}
@@ -1642,6 +1648,9 @@ do
   "kern/Linux/Makefile.second" ) CONFIG_FILES="$CONFIG_FILES kern/Linux/Makefile.second" ;;
   "kern/OSF1/Makefile" ) CONFIG_FILES="$CONFIG_FILES kern/OSF1/Makefile" ;;
   "Makefile" ) CONFIG_FILES="$CONFIG_FILES Makefile" ;;
+  "lib/Makefile" ) CONFIG_FILES="$CONFIG_FILES lib/Makefile" ;;
+  "lib/Makefile.sharedlib" ) CONFIG_FILES="$CONFIG_FILES lib/Makefile.sharedlib" ;;
+  "lib/Makefile.staticlib" ) CONFIG_FILES="$CONFIG_FILES lib/Makefile.staticlib" ;;
   "lib/pshal/Makefile" ) CONFIG_FILES="$CONFIG_FILES lib/pshal/Makefile" ;;
   "lib/psport/Makefile" ) CONFIG_FILES="$CONFIG_FILES lib/psport/Makefile" ;;
   "lib/psport4/Makefile" ) CONFIG_FILES="$CONFIG_FILES lib/psport4/Makefile" ;;
@@ -1661,7 +1670,7 @@ do
   "dist/Makefile" ) CONFIG_FILES="$CONFIG_FILES dist/Makefile" ;;
   "dist/Doxyfile" ) CONFIG_FILES="$CONFIG_FILES dist/Doxyfile" ;;
   "dist_fe/Makefile" ) CONFIG_FILES="$CONFIG_FILES dist_fe/Makefile" ;;
-  *) { { echo "$as_me:1664: error: invalid argument: $ac_config_target" >&5
+  *) { { echo "$as_me:1673: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}
    { (exit 1); exit 1; }; };;
   esac
@@ -1879,7 +1888,7 @@ done; }
   esac
 
   if test x"$ac_file" != x-; then
-    { echo "$as_me:1882: creating $ac_file" >&5
+    { echo "$as_me:1891: creating $ac_file" >&5
 echo "$as_me: creating $ac_file" >&6;}
     rm -f "$ac_file"
   fi
@@ -1897,7 +1906,7 @@ echo "$as_me: creating $ac_file" >&6;}
       -) echo $tmp/stdin ;;
       [\\/$]*)
          # Absolute (can't be DOS-style, as IFS=:)
-         test -f "$f" || { { echo "$as_me:1900: error: cannot find input file: $f" >&5
+         test -f "$f" || { { echo "$as_me:1909: error: cannot find input file: $f" >&5
 echo "$as_me: error: cannot find input file: $f" >&2;}
    { (exit 1); exit 1; }; }
          echo $f;;
@@ -1910,7 +1919,7 @@ echo "$as_me: error: cannot find input file: $f" >&2;}
            echo $srcdir/$f
          else
            # /dev/null tree
-           { { echo "$as_me:1913: error: cannot find input file: $f" >&5
+           { { echo "$as_me:1922: error: cannot find input file: $f" >&5
 echo "$as_me: error: cannot find input file: $f" >&2;}
    { (exit 1); exit 1; }; }
          fi;;

@@ -1,24 +1,39 @@
-# -*- Makefile -*-
+###################################################### -*- Makefile -*- #####
+#                  ParaStation3
+#        Copyright (c) 2002 ParTec AG Karlsruhe
+#        All rights reserved.
+#############################################################################
+#
+# $Id: Makefile.in,v 1.4 2002/10/01 12:42:50 hauke Exp $
+#
+# @author
+#         Jens Hauke <hauke@par-tec.de>
+#############################################################################
 
-CFLAGS += -O2 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
-PSM_OSDIR := @PSM_OSDIR@
-CPPFLAGS += -I@top_srcdir@/include -I@top_srcdir@/$(PSM_OSDIR) @CPPFLAG_MMD@
+# Use absolute paths !!!
+SRCDIR := $(shell cd @srcdir@;pwd)
+TOPSRCDIR := @TOP_SRCDIR@
 
-PSCOMMONOBJS := pscommon.o psprotocol.o pshwtypes.o pstask.o
-PSCOMMONDEPS := $(PSCOMMONOBJS:.o=@DEPEXTENSION@)
+################################
 
-RANLIB := @RANLIB@
+export LIBNAME := pscommon
+# Dont forget to change the objectlist also in libpsi!
+export LIBOBJS := pscommon.o psprotocol.o pshwtypes.o pstask.o
+export LIBVPATH := $(SRCDIR)
+export LIBINC = -I$(TOPSRCDIR)/include
+export LIBDSTDIR = ../..
 
-VPATH += @srcdir@
+################################
 
-all: ../libpscommon.a
+#only static
+all lib: staticlib
 
-../libpscommon.a: $(PSCOMMONOBJS)
-	$(AR) rcv $@ $(PSCOMMONOBJS)
-	$(RANLIB) $@
+sharedlib staticlib: sharedlib.dir staticlib.dir
+	$(MAKE) -C $@.dir -f ../../Makefile.$@
 
-clean:
-	$(RM) $(PSCOMMONDEPS) $(PSCOMMONOBJS) 
+sharedlib.dir staticlib.dir:
+	mkdir -p $@
 
-
--include $(PSCOMMONDEPS)
+clean: sharedlib.dir staticlib.dir
+	$(MAKE) -C sharedlib.dir -f ../../Makefile.sharedlib clean
+	$(MAKE) -C staticlib.dir -f ../../Makefile.staticlib clean

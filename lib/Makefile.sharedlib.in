@@ -1,0 +1,54 @@
+###################################################### -*- Makefile -*- #####
+#                  ParaStation3
+#        Copyright (c) 2002 ParTec AG Karlsruhe
+#        All rights reserved.
+#############################################################################
+#
+# $Id: Makefile.sharedlib.in,v 1.1 2002/10/01 12:42:50 hauke Exp $
+#
+# @author
+#         Jens Hauke <hauke@par-tec.de>
+#############################################################################
+
+CFLAGS += -O3 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
+CPPFLAGS += $(LIBINC) @CPPFLAG_MMD@
+
+TARGET_OS := @target_os@
+
+########################################
+
+# LIBNAME = psport
+# LIBOBJS = psport.o
+# LIBVPATH = @srcdir@
+# LIBINC = -I@top_srcdir@/include
+# LIBDSTDIR = ../..
+_LIBDEPS := $(LIBOBJS:.o=@DEPEXTENSION@)
+
+########################################
+RANLIB := @RANLIB@
+
+VPATH += $(LIBVPATH)
+
+ifneq ("$(TARGET_OS)","osf5.1")
+
+all: $(LIBDSTDIR)/lib$(LIBNAME).so
+
+COMPILE.c-shared = $(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -fPIC -DPIC -c
+%.o: %.c
+	$(COMPILE.c-shared) $(OUTPUT_OPTION) $<
+
+$(LIBDSTDIR)/lib$(LIBNAME).so: $(LIBOBJS)
+	$(LD) -shared $(LIBOBJS) -o $@
+
+clean:
+	$(RM) $(_LIBDEPS) $(LIBOBJS) 
+
+
+-include $(_LIBDEPS)
+
+else
+# No shared libs for tru64. Maybe in the future?
+all:
+	@echo "Warning: No shared lib support fur tru64!"
+clean:
+endif

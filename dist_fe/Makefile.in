@@ -1,3 +1,14 @@
+###################################################### -*- Makefile -*- #####
+#                  ParaStation3
+#        Copyright (c) 2002 ParTec AG Karlsruhe
+#        All rights reserved.
+#############################################################################
+#
+# $Id: Makefile.in,v 1.8 2002/10/01 12:42:50 hauke Exp $
+#
+# @author
+#         Jens Hauke <hauke@par-tec.de>
+#############################################################################
 
 TOP_SRCDIR := @top_srcdir@
 TOP_BUILDDIR := ..
@@ -27,6 +38,9 @@ BINS += java/PSView.jar
 endif
 
 LIBS += libpsport4.a libpsi.a libpse.a
+ifeq ("$(TARGET_OS)","linux")
+LIBS += libpsport4.so libpsi.so libpse.so
+endif
 LIBDIR := $(DISTPATH)/lib
 
 CONFIGDIR := $(DISTPATH)/config
@@ -54,11 +68,12 @@ dirs: $(DIRS)
 #
 # building striped libs
 #
-ifeq ("@target_os@","linux")
+ifeq ("$(TARGET_OS)","linux")
 $(LIBDIR)/%: $(TOP_BUILDDIR)/lib/%
-	strip -g $< -o $@
+	cp $< $@
+	strip -g $<
 endif
-ifeq ("@target_os@","osf5.1")
+ifeq ("$(TARGET_OS)","osf5.1")
 $(LIBDIR)/%: $(TOP_BUILDDIR)/lib/%
 	cp $< $@
 endif
