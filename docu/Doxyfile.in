@@ -288,7 +288,8 @@ WARN_LOGFILE           =
 # directories like "/usr/src/myproject". Separate the files or directories 
 # with spaces.
 
-INPUT                  = @top_srcdir@/include
+INPUT                  = @top_srcdir@/include/pse.h \
+				@PSCOM_DIR@/include/psport4.h
 
 # If the value of the INPUT tag contains directories, you can use the 
 # FILE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp 
@@ -297,7 +298,7 @@ INPUT                  = @top_srcdir@/include
 # *.c *.cc *.cxx *.c++ *.java *.ii *.ixx *.ipp *.i++ *.inl *.h *.hh *.hxx *.hpp 
 # *.h++ *.idl
 
-FILE_PATTERNS          = pse.h psport4.h # pshwtypes.h pshal.h
+FILE_PATTERNS          = 
 
 # The RECURSIVE tag can be used to turn specify whether or not subdirectories 
 # should be searched for input files as well. Possible values are YES and NO. 
