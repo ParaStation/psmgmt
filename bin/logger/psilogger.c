@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.29 2003/06/16 17:33:47 eicker Exp $
+ * $Id: psilogger.c,v 1.30 2003/07/28 10:18:19 eicker Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.29 2003/06/16 17:33:47 eicker Exp $
+ * $Id: psilogger.c,v 1.30 2003/07/28 10:18:19 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.29 2003/06/16 17:33:47 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.30 2003/07/28 10:18:19 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -318,10 +318,10 @@ void sighandler(int sig)
     case SIGHUP:
     case SIGTSTP:
     case SIGCONT:
-    case SIGQUIT:
     case SIGWINCH:
     case SIGUSR1:
     case SIGUSR2:
+    case SIGQUIT:
 	if (verbose) {
 	    fprintf(stderr, "PSIlogger: Got signal %d.\n", sig);
 	}
@@ -739,13 +739,16 @@ int main( int argc, char**argv)
 	perror("PSIlogger: blockSig(): sigprocmask()");
     }
 
-    signal(SIGTERM, sighandler);
-    signal(SIGTSTP, sighandler);
-    signal(SIGCONT, sighandler);
-    signal(SIGINT,  sighandler);
-    signal(SIGHUP,  sighandler);
-    signal(SIGUSR1, sighandler);
-    signal(SIGUSR2, sighandler);
+    signal(SIGTERM,  sighandler);
+    signal(SIGINT,   sighandler);
+//    signal(SIGTTIN,  sighandler);
+    signal(SIGHUP,   sighandler);
+    signal(SIGTSTP,  sighandler);
+    signal(SIGCONT,  sighandler);
+//    signal(SIGWINCH, sighandler);
+    signal(SIGUSR1,  sighandler);
+    signal(SIGUSR2,  sighandler);
+    signal(SIGQUIT,  sighandler);
 
     if (argc < 3) {
 	fprintf(stderr, "PSIlogger: Sorry, program must be called correctly"
