@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.36 2002/07/11 17:06:31 eicker Exp $
+ * $Id: psidutil.c,v 1.37 2002/07/17 18:49:51 hauke Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.36 2002/07/11 17:06:31 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.37 2002/07/17 18:49:51 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -32,8 +32,6 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.36 2002/07/1
 #include <psm_mcpif.h>
 
 #include "errlog.h"
-
-#include "license.h"
 
 #include "pscommon.h"
 #include "psprotocol.h"
