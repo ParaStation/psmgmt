@@ -47,6 +47,11 @@
 <!-- 	<revremark>First beta release</revremark> -->
 <!--       </revision> -->
       <revision>
+	<revnumber>0.3</revnumber>
+	<date>8 Nov 2002</date>
+	<revremark>Internal interim release.</revremark>
+      </revision>
+      <revision>
 	<revnumber>0.2</revnumber>
 	<date>30 Oct 2002</date>
 	<revremark>Internal interim release.</revremark>
