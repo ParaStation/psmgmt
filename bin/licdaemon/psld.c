@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.11 2002/01/16 17:59:19 eicker Exp $
+ * $Id: psld.c,v 1.12 2002/01/17 13:16:04 eicker Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Daemon
  *
- * $Id: psld.c,v 1.11 2002/01/16 17:59:19 eicker Exp $
+ * $Id: psld.c,v 1.12 2002/01/17 13:16:04 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.11 2002/01/16 17:59:19 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.12 2002/01/17 13:16:04 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -81,11 +81,11 @@ int check_machine(int *interface)
     int numreqs = 30;
     struct ifconf ifc;
     struct ifreq *ifr;
-    int n, i,ipfound,netfound;
+    int n, i, ipfound; /*, netfound; */
     int skfd;
     char *ipaddr;
 
-    skfd = socket(PF_INET, SOCK_DGRAM, IPPROTO_TCP);  /* allocate a socket */
+    skfd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);  /* allocate a socket */
     if (skfd<0) {
 	ERR_OUT("Unable to obtain socket");
 	return 1;
@@ -140,19 +140,19 @@ int check_machine(int *interface)
     ERR_OUT(errtxt);
 
     ipfound = 0;
-    netfound = 0;
+/*      netfound = 0; */
     for (i=0; i<if_found; i++) {
-	struct in_addr iaddr1, iaddr2;
+/*  	struct in_addr iaddr1, iaddr2; */
 	if(!ipfound) ipfound = (LicIP == iflist[i].ipaddr);
-	iaddr1.s_addr = iflist[i].ipaddr;
-	iaddr2.s_addr = psihosttable[0].inet;
-	if (!netfound && inet_netof(iaddr1) == inet_netof(iaddr2)){
-	    snprintf(errtxt, sizeof(errtxt),
-		     "Using %s as multicast interface", iflist[i].name);
-	    ERR_OUT(errtxt);
-	    netfound = 1;
-	    *interface = i;
-	}
+/*  	iaddr1.s_addr = iflist[i].ipaddr; */
+/*  	iaddr2.s_addr = psihosttable[0].inet; */
+/*  	if (!netfound && inet_netof(iaddr1) == inet_netof(iaddr2)){ */
+/*  	    snprintf(errtxt, sizeof(errtxt), */
+/*  		     "Using %s as multicast interface", iflist[i].name); */
+/*  	    ERR_OUT(errtxt); */
+/*  	    netfound = 1; */
+/*  	    *interface = i; */
+/*  	} */
     }
 
     gethostname(host,80);
@@ -296,7 +296,7 @@ void sighandler(int sig)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.11 $";
+    char revision[] = "$Revision: 1.12 $";
     snprintf(errtxt, sizeof(errtxt), "psld %s\b ", revision+11);
     ERR_OUT(errtxt);
 }
