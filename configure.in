@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: configure.in,v 1.25 2003/02/10 18:34:10 eicker Exp $
+# $Id: configure.in,v 1.26 2003/04/03 13:10:00 hauke Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -152,6 +152,7 @@ AC_CONFIG_FILES([lib/Makefile.staticlib])
 AC_CONFIG_FILES([lib/pshal/Makefile])
 AC_CONFIG_FILES([lib/psport/Makefile])
 AC_CONFIG_FILES([lib/psport4/Makefile])
+AC_CONFIG_FILES([lib/psport4shm/Makefile])
 AC_CONFIG_FILES([lib/arg/Makefile])
 AC_CONFIG_FILES([lib/pvar/Makefile])
 AC_CONFIG_FILES([lib/pse/Makefile])
@@ -174,6 +175,7 @@ AC_CONFIG_FILES([dist_fe/Makefile])
 AC_CONFIG_FILES([dist_docu/Makefile])
 AC_CONFIG_FILES([dist_gui/Makefile])
 AC_CONFIG_FILES([dist_snmp/Makefile])
+AC_CONFIG_FILES([dist_mgmt/Makefile])
 
 
 

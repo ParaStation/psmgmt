@@ -1,0 +1,39 @@
+#!/bin/sh
+
+DVER=${1-"x.x.x"}
+BUILDDIR=`pwd`
+BINDIR=$BUILDDIR/opt/parastation
+
+SPECFILE=psmgmt-$DVER.spec
+
+cat > $SPECFILE <<EOF
+Summary:   ParaStation Management
+Vendor:    ParTec AG, Karlsruhe, Germany
+Name:      psmgmt
+Version:   $DVER
+Release:   `date +%Y%m%d`
+Copyright: (c) 2001-2003 ParTec AG
+Group:     System/Development/Libraries
+Packager:  support@par-tec.de
+
+BuildRoot: $BUILDDIR
+ 
+%description
+ParaStation Management Layer.
+
+%post
+    /opt/parastation/config/PSM_INSTALL -i
+%preun
+    /opt/parastation/config/PSM_INSTALL -u
+%files
+%attr(-,root,root) /opt/parastation
+EOF
+
+rpm -v -bb $SPECFILE 2>&1 |while read tag val
+do
+    echo $tag $val
+    if [ x$tag = xWrote: ];then
+	echo Moving $val to $BUILDDIR
+	mv $val $BUILDDIR
+    fi
+done

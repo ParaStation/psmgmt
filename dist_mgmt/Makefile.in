@@ -1,0 +1,170 @@
+###################################################### -*- Makefile -*- #####
+#                  ParaStation3
+#        Copyright (c) 2002 ParTec AG Karlsruhe
+#        All rights reserved.
+#############################################################################
+#
+# $Id: Makefile.in,v 1.1 2003/04/03 13:10:00 hauke Exp $
+#
+# @author
+#         Jens Hauke <hauke@par-tec.de>
+#############################################################################
+
+TOP_SRCDIR := @top_srcdir@
+TOP_BUILDDIR := ..
+
+TARGET_OS := @target_os@
+TARGET_CPU := @target_cpu@
+
+
+#s.o. clean:
+DISTPATH := opt/parastation
+
+INCLUDES += pshwtypes.h pse.h
+INCDIR := $(DISTPATH)/include
+
+BINS += psiadmin psid psld
+BINS += psilogger mlisten psmstart mpirun_chp4 psispawn
+BINDIR := $(DISTPATH)/bin
+
+LIBS += libpsi.a libpse.a
+ifeq ("$(TARGET_OS)","linux")
+LIBS += libpsi.so libpse.so
+endif
+LIBDIR := $(DISTPATH)/lib
+
+CONFIGDIR := $(DISTPATH)/config
+
+MISC += config/parastation.conf.tmpl VERSION.psmgmt INSTALL config/PSM_INSTALL
+.PHONY: VERSION
+
+MISCDIR :=
+
+DIRS += $(BINDIR) $(LIBDIR) $(INCDIR) $(MISCDIR) $(CONFIGDIR)
+
+######################################################
+MISCEXP := $(patsubst %,$(DISTPATH)/%, $(MISC))
+
+all: dirs libs bins includes $(MISCEXP) tar rpm
+
+dist:	all
+
+# Creating directories
+$(DIRS):
+	mkdir -p $@
+
+dirs: $(DIRS)
+
+#
+# building stripped libs
+#
+ifeq ("$(TARGET_OS)","linux")
+$(LIBDIR)/%: $(TOP_BUILDDIR)/lib/%
+	cp $< $@
+	strip -g $@
+endif
+ifeq ("$(TARGET_OS)","osf5.1")
+$(LIBDIR)/%: $(TOP_BUILDDIR)/lib/%
+	cp $< $@
+endif
+
+libs: $(LIBDIR) $(patsubst %,$(LIBDIR)/%,$(LIBS))
+
+#
+# building stripped bins
+#
+$(BINDIR)/%: $(TOP_BUILDDIR)/bin/%
+	cp $< $@
+	strip $@
+#	strip $< -o $@
+
+bins: $(BINDIR) $(patsubst %,$(BINDIR)/%,$(BINS))
+
+#
+# copy includes
+#
+$(INCDIR)/%: $(TOP_SRCDIR)/include/%
+	cp $< $@
+
+includes: $(INCDIR) $(patsubst %,$(INCDIR)/%,$(INCLUDES))
+
+#
+# Misc files
+#
+$(DISTPATH)/config/parastation.conf.tmpl: $(TOP_SRCDIR)/doc/parastation.conf
+	cp $< $@
+
+$(DISTPATH)/INSTALL: $(TOP_SRCDIR)/doc/INSTALL
+	cp $< $@
+
+$(DISTPATH)/bin/parastation: $(TOP_SRCDIR)/scripts/parastation@TRU64FILEADD@
+	cp $< $@
+
+$(DISTPATH)/config/PSM_INSTALL: $(TOP_SRCDIR)/scripts/PSM_INSTALL
+	cp $< $@
+
+$(DISTPATH)/config/sysconfigtab: $(TOP_SRCDIR)/kern/OSF1/sysconfigtab
+	cp $< $@
+
+$(DISTPATH)/config/psm_makedev: $(TOP_SRCDIR)/scripts/psm_makedev
+	cp $< $@
+
+$(DISTPATH)/VERSION.psmgmt:
+	echo "ParaStation Management $(DVER) ($(shell date))" > $@
+
+######################################################
+# Create tar file
+
+ifeq ($(DVER),)
+tar rpm:
+	@echo Use DVER=x.x.x to create $@ file.
+else
+
+tarcleanups:
+	@echo "cleanup dirs"
+	find . -name "*~" -exec rm {} \;
+	@echo "change dir attribs"
+	find . -type d -exec chmod 755 {} \;
+	@echo "change -w flag for group and other"
+	chmod -R og-w *
+	@echo "change +r flag for group and other"
+	chmod -R og+r *
+
+TAR = tar
+
+ifeq ("$(TARGET_OS)","linux")
+ifeq ("$(TARGET_CPU)","i686")
+TARCPU  := i386
+endif
+ifeq ("$(TARGET_CPU)","alphaev56")
+TARCPU  := alpha
+endif
+else
+ifeq ("$(TARGET_OS)","osf5.1")
+TARCPU  := tru64
+TAR = gtar
+else
+tar rpm:
+	@echo Unknown target OS $(TARGET_OS).
+endif
+endif
+
+tar:	tarcleanups
+	$(TAR) --owner=0 --group=0 -czf \
+		psmgmt-$(DVER)-`date +%Y%m%d`.$(TARCPU).tar.gz $(DISTPATH)
+
+rpm:	tarcleanups
+	$(TOP_SRCDIR)/scripts/rpmbuildpsmgmt $(DVER)
+
+endif
+DISTCLEAN+= psmgmt*.tar.gz
+DISTCLEAN+= psmgmt*.rpm
+DISTCLEAN+= psmgmt*.spec
+
+
+######################################################
+clean:
+	rm -rf opt/parastation
+
+distclean: clean
+	$(RM) $(DISTCLEAN)

@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.17 2002/11/27 15:57:38 hauke Exp $
+# $Id: Makefile.in,v 1.18 2003/04/03 13:10:00 hauke Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -25,11 +25,15 @@
 # root inside Kerneldir
 
 PSM_OSDIR := @PSM_OSDIR@
+JAVA_ENABLED=@JAVA_ENABLED@
 
-SUBDIRS := lib kern/mcp $(PSM_OSDIR) bin docu dist dist_fe dist_docu
+SUBDIRS := lib kern/mcp $(PSM_OSDIR) bin docu
+
+DISTDIRS := dist dist_fe dist_docu dist_mgmt
 ifeq ($(JAVA_ENABLED),yes)
-SUBDIRS += dist_gui
+DISTDIRS += dist_gui
 endif
+SUBDIRS += $(DISTDIRS)
 
 all: psm lib bin
 .PHONY: all psm docu $(SUBDIRS)
@@ -54,11 +58,6 @@ clean:
 		$(MAKE) -C $$i clean ;\
 	done
 
-dist:
-	$(MAKE) -C dist
-dist_fe:
-	$(MAKE) -C dist_fe
-dist_docu:
-	$(MAKE) -C dist_docu
-dist_gui:
-	$(MAKE) -C dist_gui
+$(DISTDIRS):
+	$(MAKE) -C $@
+
