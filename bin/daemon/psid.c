@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.27 2002/01/21 16:13:12 eicker Exp $
+ * $Id: psid.c,v 1.28 2002/01/22 16:16:40 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.27 2002/01/21 16:13:12 eicker Exp $ 
+ * $Id: psid.c,v 1.28 2002/01/22 16:16:40 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.27 2002/01/21 16:13:12 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.28 2002/01/22 16:16:40 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -48,8 +48,6 @@ static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.27 2002/01/21 16
 #include "psidutil.h"
 #include "psilog.h"
 
-int CalledFromRSelect=0;
-
 struct timeval maintimer;
 struct timeval selecttimer;
 struct timeval shutdowntimer;
@@ -61,7 +59,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.27 $";
+static char psid_cvsid[] = "$Revision: 1.28 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -129,15 +127,14 @@ PStask_t* spawned_tasks_waiting_for_connect;
 
 fd_set openfds;			/* active file descriptor set */
 
-u_long rawdata_is_used=0;
-int NoOfConnectedDaemons=0;
-int RDPSocket=-1;;
+int NoOfConnectedDaemons = 0;
+int RDPSocket = -1;
 
 /*----------------------------------------------------------------------*/
 /* needed prototypes                                                    */
 /*----------------------------------------------------------------------*/
 void deleteClient(int fd);
-void CheckFileTable();
+void CheckFileTable(void);
 void closeConnection(int fd);
 void DeclareDaemonDead(int node);
 void initDaemon(int fd, int id);
@@ -243,7 +240,7 @@ static int recvMsg(int fd, DDMsg_t* msg,int size)
 	    /* if this is the first contact of the client,
 	     * the client may use an incompatible msg format
 	     */
-	    n = count = read(fd,msg,sizeof(DDInitMsg_t));
+	    n = count = read(fd, msg, sizeof(DDInitMsg_t));
 	    if (count!=msg->len) {
 		/* if wrong msg format initiate a disconnect */
 		sprintf(PSI_txt,"%d=recvMsg(fd %d) PANIC received an "
@@ -2231,10 +2228,8 @@ void psicontrol(int fd )
     int msglen;
     char* errstr;
 
-    CalledFromRSelect=1;
     /* read the whole msg */
     msglen = recvMsg(fd, (DDMsg_t*)&msg, sizeof(msg));
-    CalledFromRSelect=0;
 
     if (msglen==0) {
 	/*
@@ -2438,10 +2433,6 @@ void RDPCallBack(int msgid, void* buf)
     struct in_addr hostaddr;
     DDMsg_t* msg;
 
-
-    if(!CalledFromRSelect)
-	SYSLOG(0,(LOG_ERR,"RDPCallBack() PANIC PANIC PANIC PANIC!!!!!!"
-		  " Not called from RSelect!!!!\n"));
     switch(msgid) {
     case RDP_NEW_CONNECTION:
 	node = *(int*)buf;
@@ -2471,7 +2462,7 @@ void RDPCallBack(int msgid, void* buf)
 	DeclareDaemonDead(node);
 	break;
     case RDP_PKT_UNDELIVERABLE:
-	msg = (DDMsg_t*)(((RDP_Deadbuf*)buf)->buf);
+	msg = (DDMsg_t*)(((RDPDeadbuf*)buf)->buf);
 	SYSLOG(2,(LOG_ERR,"RDPCallBack(RDP_PKT_UNDELIVERABLE,"
 		  "dest %lx source %lx %s). \n",
 		  msg->dest, msg->sender, PSPctrlmsg(msg->type)));
@@ -2637,7 +2628,7 @@ void sighandler(int sig)
 /******************************************
 *  CheckFileTable()
 */
-void CheckFileTable()
+void CheckFileTable(void)
 {
     fd_set rfds;
     int fd;
@@ -2698,7 +2689,7 @@ void CheckFileTable()
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.27 $";
+    char revision[] = "$Revision: 1.28 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -2744,6 +2735,8 @@ int main(int argc, char **argv)
 	int DEBUGGING = 0;
 	char* errstr;
 	int dummy_fd;
+
+	unsigned int *hostlist;         /* hostlist for RDP and MCast */
 
 	blockSig(1,SIGCHLD);
 	blockSig(1,SIGALRM);
@@ -2943,16 +2936,33 @@ int main(int argc, char **argv)
 		      "Local Service Port initialized. Using socket %d\n",
 		      PSI_msock));
 
-	    setRDPDebugLevel(1);
+	    /*
+	     * Prepare hostlist for initialization of RDP and MCast
+	     */
+	    hostlist = malloc((PSI_nrofnodes+1) * sizeof (unsigned int));
+	    if (!hostlist) {
+		SYSLOG(0,(LOG_ERR, "Not enough memory for hostlist\n"));
+		exit(1);
+	    }
+
+	    for (i=0; i<=PSI_nrofnodes; i++) {
+		hostlist[i] = psihosttable[i].inet;
+	    }
+
+	    /*
+	     * Initialize RDP and MCast
+	     */
 	    RDPSocket = initRDP(PSI_nrofnodes, ConfigMgroup,
 				1 /* use syslog */,
-				RDPCallBack);
+				hostlist, RDPCallBack);
 	    if (RDPSocket<0) {
 		SYSLOG(0,(LOG_ERR,
 			  "Error while trying initRDP (code %d)\n",errno));
 		exit(1);
 	    }
-	    SYSLOG(0,(LOG_ERR,"RDP initialized. Using socket %d\n",RDPSocket));
+
+	    SYSLOG(0,(LOG_ERR,
+		      "RDP initialized. Using socket %d\n", RDPSocket));
 	    FD_SET(RDPSocket, &openfds);
 
 	    SYSLOG(2,(LOG_ERR,"Contacting other daemons in the cluster\n"));
@@ -2988,7 +2998,6 @@ int main(int argc, char **argv)
 		blockSig(1, SIGCHLD);
 		blockSig(0, SIGALRM);
 		memcpy(&rfds, &openfds, sizeof(rfds));
-		CalledFromRSelect=1;
 
 		if (Rselect(FD_SETSIZE,
 			    &rfds, (fd_set *)NULL, (fd_set *)NULL, &tv) < 0){
@@ -3001,7 +3010,6 @@ int main(int argc, char **argv)
 		    blockSig(1,SIGALRM);
 		    continue;
 		}
-		CalledFromRSelect=0;
 		blockSig(1,SIGALRM);
 
 		gettimeofday(&maintimer,NULL);
@@ -3078,14 +3086,11 @@ int main(int argc, char **argv)
 		    blockSig(0,SIGALRM);
 		    tv.tv_sec = 0;
 		    tv.tv_usec = 0;
-		    CalledFromRSelect=1;
 		    if (Rselect(RDPSocket+1, &rfds, (fd_set *)NULL,
 				(fd_set *)NULL, &tv) < 0)
 			break;
-		    CalledFromRSelect=0;
 		    blockSig(1,SIGALRM);
 		}
-		CalledFromRSelect=0;
 
 		/*
 		 * Check for reset state
