@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.h,v 1.4 2002/07/03 21:14:26 eicker Exp $
+ * $Id: config_parsing.h,v 1.5 2002/07/11 10:44:39 eicker Exp $
  *
  */
 /**
  * \file
  * parse: Parser for the config file of the ParaStation daemon
  *
- * $Id: config_parsing.h,v 1.4 2002/07/03 21:14:26 eicker Exp $
+ * $Id: config_parsing.h,v 1.5 2002/07/11 10:44:39 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -42,9 +42,12 @@ struct host_t{
 
 extern struct host_t *hosts[256];  /* host table */
 
+extern int NrOfNodes;
+
 /* List of all nodes, info about hardware included */
 struct node_t{
     unsigned int addr;     /* IP address of that node */
+    short numCPU;          /* Number of CPUs in that node */
     char isUp;             /* Actual status of that node */
     unsigned int hwType;   /* Communication hardware on that node */
     unsigned int hwStatus; /* Corresponding stati of the hardware */
@@ -57,20 +60,23 @@ extern struct node_t *nodes;
 
 extern struct node_t licNode;
 
-
 extern char *Configfile;
-
-extern int NrOfNodes;
-
 extern char *ConfigInstDir;
-extern char *ConfigLicensekey;
-extern char *ConfigModule;
-extern char *ConfigRoutefile;
 
+extern char *ConfigLicenseKey;
+
+extern char *ConfigMyriModule;
+extern char *ConfigRoutefile;
 extern int ConfigSmallPacketSize;
 extern int ConfigRTO;
 extern int ConfigHNPend;
 extern int ConfigAckPend;
+
+extern char *ConfigIPModule;
+extern char *ConfigIPPrefix;
+extern int ConfigIPPrefixLen;
+
+extern char *ConfigGigaEtherModule;
 
 extern long ConfigSelectTime;
 extern long ConfigDeadInterval;
