@@ -30,6 +30,7 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <time.h>
 
 #include <netdb.h>
 

@@ -6,6 +6,7 @@
 #include <time.h>
 #include <errno.h>
 #include <sys/types.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdlib.h>
