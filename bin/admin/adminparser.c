@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: adminparser.c,v 1.14 2004/03/16 11:09:42 eicker Exp $
+ * $Id: adminparser.c,v 1.15 2004/03/16 16:39:58 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.14 2004/03/16 11:09:42 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.15 2004/03/16 16:39:58 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -37,7 +37,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.14 2004/
 
 #include "helpmsgs.c"
 
-static char parserversion[] = "$Revision: 1.14 $";
+static char parserversion[] = "$Revision: 1.15 $";
 
 static char *getNodeList(char *nl_descr)
 {
@@ -83,7 +83,7 @@ static int addCommand(char *token)
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
 
-	if (!nl) goto error;
+	if (!nl) return -1;
     }
 
     PSIADM_AddNode(nl);
@@ -104,7 +104,7 @@ static int shutdownCommand(char *token)
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
 
-	if (!nl) goto error;
+	if (!nl) return -1;
     }
 
     PSIADM_ShutdownNode(nl);
@@ -143,7 +143,7 @@ static int hwstartCommand(char *token)
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
 
-	if (!nl) goto error;
+	if (!nl) return -1;
     }
 
     if (parser_getString()) goto error;
@@ -174,7 +174,7 @@ static int hwstopCommand(char *token)
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
 
-	if (!nl) goto error;
+	if (!nl) return -1;
     }
 
     if (parser_getString()) goto error;
@@ -201,7 +201,7 @@ static int restartCommand(char *token)
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
 
-	if (!nl) goto error;
+	if (!nl) return -1;
     }
 
     PSIADM_Reset(1, nl);
@@ -228,7 +228,7 @@ static int resetCommand(char *token)
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
 
-	if (!nl) goto error;
+	if (!nl) return -1;
     }
 
     PSIADM_Reset(hw, nl);
@@ -270,7 +270,7 @@ static int statCommand(char *token)
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
 
-	if (!nl) goto error;
+	if (!nl) return -1;
     }
 
     if (parser_getString()) goto error;
@@ -308,7 +308,7 @@ static int statCommand(char *token)
 	/* Maybe this is like 'status a-b' */
 	nl = getNodeList(what);
 
-	if (!nl) goto error;
+	if (!nl) return -1;
 	PSIADM_NodeStat(nl);
     } else goto error;
     return 0;
@@ -368,7 +368,7 @@ static int setCommand(char *token)
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
 
-	if (!nl) goto error;
+	if (!nl) return -1;
     }
 
     if (strcasecmp(what, "maxproc") == 0) {
@@ -444,7 +444,7 @@ static int showCommand(char *token)
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
 
-	if (!nl) goto error;
+	if (!nl) return -1;
     }
 
     if (!strcasecmp(what, "maxproc")) {
