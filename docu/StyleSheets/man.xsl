@@ -135,7 +135,9 @@
 
   <!-- Remove extra newlines -->
   <xsl:template match="para">
-    <xsl:text>.PP&#10;</xsl:text>
+    <xsl:if test="not(ancestor::footnote)">
+      <xsl:text>.PP&#10;</xsl:text>
+    </xsl:if>
     <xsl:for-each select="node()">
       <xsl:choose>
 	<xsl:when test="self::screen|self::programlisting|self::itemizedlist|self::orderedlist|self::variablelist">
@@ -165,7 +167,9 @@
 	</xsl:otherwise>
       </xsl:choose>
     </xsl:for-each>
-    <xsl:text>&#10;</xsl:text>
+    <xsl:if test="not(ancestor::footnote)">
+      <xsl:text>&#10;</xsl:text>
+    </xsl:if>
   </xsl:template>
 
   <!-- Always print ':' , remove extra newline -->
@@ -201,6 +205,12 @@
   <xsl:template match="variablelist|glosslist" mode="list">
     <xsl:apply-templates/>
     <xsl:text>&#10;</xsl:text>
+  </xsl:template>
+
+  <!-- Nicer output for programlistings within lists -->
+  <xsl:template match="programlisting" mode="list">
+    <xsl:apply-templates/>
+    <xsl:text>&#10;&#10;</xsl:text>
   </xsl:template>
 
   <!-- Much simpler term entries within varlist -->
@@ -461,6 +471,13 @@
 	<xsl:apply-templates/>
       </xsl:otherwise>
     </xsl:choose>
+  </xsl:template>
+
+  <!-- Enable printing of footnote content -->
+  <xsl:template match="footnote">
+    <xsl:text>\fB[footnote:\fR </xsl:text>
+      <xsl:apply-templates/>
+    <xsl:text>\fB]\fR</xsl:text>
   </xsl:template>
 
 </xsl:stylesheet>
