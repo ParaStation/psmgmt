@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiinfo.h,v 1.1 2003/11/26 17:11:49 eicker Exp $
+ * $Id: psiinfo.h,v 1.2 2004/01/15 19:37:54 eicker Exp $
  *
  */
 /**
@@ -13,7 +13,7 @@
  * psiinfo: Functions for information retrieving from ParaStation
  * daemon
  *
- * $Id: psiinfo.h,v 1.1 2003/11/26 17:11:49 eicker Exp $
+ * $Id: psiinfo.h,v 1.2 2004/01/15 19:37:54 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -313,6 +313,12 @@ int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * will be returned within the @a value array. Up to @ref
  * DDOptionMsgMax options might be requested within one call to this
  * function.
+ *
+ * Upon return also the options within the array @a option will be
+ * updated to the actual options received. Thus the type of options
+ * returned by the daemon can be controlled. Furthermore unknown
+ * options to the daemon (resulting in a PSP_OP_UNKNOWN returned) can
+ * be controlled.
  *
  * @param node The ParaStation ID of the node to ask.
  *
