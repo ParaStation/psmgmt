@@ -1,15 +1,16 @@
 /*
+ *               ParaStation3
  * parse.c
- */
-
-/* 
- * (C) Thomas M. Warschko, University of Karlsruhe 
  *
- * Version: 1.0		9. Sept. 1995
- * Version: 1.1		21. Sept. 1998
+ * Copyright (C) ParTec AG Karlsruhe
+ * All rights reserved.
  *
- *   95/09/18  joe   Verschieben der extern Deklaration aus dem Main in .o
+ * $Id: parse.c,v 1.8 2002/01/08 23:37:35 eicker Exp $
+ *
  */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+static char vcid[] __attribute__(( unused )) = "$Id: parse.c,v 1.8 2002/01/08 23:37:35 eicker Exp $";
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
 #include <netdb.h>
@@ -118,7 +119,7 @@ void setnrofnodes(int n)
     }
 }
 
-int lookuphost(char *s)
+int lookupHost(char *s)
 {
     register int i;
 
@@ -152,7 +153,7 @@ void installhost(char *s,int n)
 
     licserver=(n==NrOfNodes);
 
-    if (!licserver && lookuphost(s)){ /* duplicated hostname */
+    if (!licserver && lookupHost(s)){ /* duplicated hostname */
 	snprintf(errtxt, sizeof(errtxt),
 		 "ERROR: duplicated hostname <%s> in config file\n", s);
 	ERR_OUT(errtxt);
