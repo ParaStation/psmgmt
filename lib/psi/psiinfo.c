@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiinfo.c,v 1.1 2003/11/26 17:07:23 eicker Exp $
+ * $Id: psiinfo.c,v 1.2 2003/11/28 15:50:50 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiinfo.c,v 1.1 2003/11/26 17:07:23 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiinfo.c,v 1.2 2003/11/28 15:50:50 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -61,9 +61,13 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
     PSP_Info_t ret;
 
     if (PSI_recvMsg(&msg)<0) {
-	snprintf(errtxt, sizeof(errtxt), "%s: read", __func__);
-	PSI_errexit(errtxt, errno);
-    }
+	char *errstr = strerror(errno);
+	snprintf(errtxt, sizeof(errtxt), "%s: PSI_recvMsg: %s", __func__,
+		 errstr);
+	PSI_errlog(errtxt, 0);
+ 	*size = 0;
+	return PSP_INFO_UNKNOWN;
+   }
 
     switch (msg.header.type) {
     case PSP_CD_INFORESPONSE:
@@ -209,8 +213,9 @@ int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     }
 
     if (PSI_sendMsg(&msg)<0) {
-	snprintf(errtxt, sizeof(errtxt), "%s(%s): write", __func__,
-		 PSP_printInfo(what));
+	char *errstr = strerror(errno);
+	snprintf(errtxt, sizeof(errtxt), "%s(%s): PSI_sendMsg: %s", __func__,
+		 PSP_printInfo(what), errstr);
 	PSI_errlog(errtxt, 0);
 	return -1;
     }
@@ -270,8 +275,9 @@ int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     }
 
     if (PSI_sendMsg(&msg)<0) {
-	snprintf(errtxt, sizeof(errtxt), "%s(%s): write", __func__,
-		 PSP_printInfo(what));
+	char *errstr = strerror(errno);
+	snprintf(errtxt, sizeof(errtxt), "%s(%s): PSI_sendMsg: %s", __func__,
+		 PSP_printInfo(what), errstr);
 	PSI_errlog(errtxt, 0);
 	return -1;
     }
@@ -307,8 +313,9 @@ int PSI_infoTaskID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     }
 
     if (PSI_sendMsg(&msg)<0) {
-	snprintf(errtxt, sizeof(errtxt), "%s(%s): write", __func__,
-		 PSP_printInfo(what));
+	char *errstr = strerror(errno);
+	snprintf(errtxt, sizeof(errtxt), "%s(%s): PSI_sendMsg: %s", __func__,
+		 PSP_printInfo(what), errstr);
 	PSI_errlog(errtxt, 0);
 	return -1;
     }
@@ -363,8 +370,9 @@ int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     }
 
     if (PSI_sendMsg(&msg)<0) {
-	snprintf(errtxt, sizeof(errtxt), "%s(%s): write", __func__,
-		 PSP_printInfo(what));
+	char *errstr = strerror(errno);
+	snprintf(errtxt, sizeof(errtxt), "%s(%s): PSI_sendMsg: %s", __func__,
+		 PSP_printInfo(what), errstr);
 	PSI_errlog(errtxt, 0);
 	return -1;
     }
@@ -408,8 +416,9 @@ int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     }
 
     if (PSI_sendMsg(&msg)<0) {
-	snprintf(errtxt, sizeof(errtxt), "%s(%s): write", __func__,
-		 PSP_printInfo(what));
+	char *errstr = strerror(errno);
+	snprintf(errtxt, sizeof(errtxt), "%s(%s): PSI_sendMsg: %s", __func__,
+		 PSP_printInfo(what), errstr);
 	PSI_errlog(errtxt, 0);
 	return -1;
     }
@@ -458,13 +467,19 @@ int PSI_infoOption(PSnodes_ID_t node, int num, PSP_Option_t option[],
     msg.count = num;
 
     if (PSI_sendMsg(&msg)<0) {
-	snprintf(errtxt, sizeof(errtxt), "%s: write", __func__);
-	PSI_errexit(errtxt, errno);
+	char *errstr = strerror(errno);
+	snprintf(errtxt, sizeof(errtxt), "%s: PSI_sendMsg: %s", __func__,
+		 errstr);
+	PSI_errlog(errtxt, 0);
+	return -1;
     }
 
     if (PSI_recvMsg(&msg)<0) {
-	snprintf(errtxt, sizeof(errtxt), "%s: read", __func__);
-	PSI_errexit(errtxt, errno);
+	char *errstr = strerror(errno);
+	snprintf(errtxt, sizeof(errtxt), "%s: PSI_recvMsg: %s", __func__,
+		 errstr);
+	PSI_errlog(errtxt, 0);
+	return -1;
     }
 
     switch (msg.header.type) {
