@@ -1089,8 +1089,8 @@ void msg_CLIENTCONNECT(int fd,DDInitMsg_t* msg)
 	outmsg.header.sender = PSI_gettid(PSI_myid,0);
 	outmsg.header.len = sizeof(outmsg);
 	outmsg.version = PSPprotocolversion;
-	outmsg.nrofnodes = NrOfNodes;
-	outmsg.myid = PSHALSYSGetID();
+	outmsg.nrofnodes = PSI_nrofnodes;
+	outmsg.myid = PSI_myid;
 	outmsg.masternode = task->masternode;
 	outmsg.masterport = task->masterport;
 	outmsg.rank = task->rank;
@@ -2091,12 +2091,10 @@ int request_options(int node)
   optmsg.opt[(int) optmsg.count].option = PSP_OP_RESENDTIMEOUT;
   optmsg.count++;
 
-  optmsg.opt[(int) optmsg.count].option = PSP_OP_CONFIGNO;
-  optmsg.count++;
   if(success>0)
       if((success = MsgSend(&optmsg))<=0)
 	  SYSLOG(1,(LOG_ERR,"msg_DAEMONESTABLISHED()  GETOPTION  requesting "
-		    "remote PSP_OP_CONFIGNO errno %d\n",errno));
+		    "errno %d\n",errno));
   return success>0?0:-1;
 }
 
@@ -2655,6 +2653,13 @@ main(int argc, char **argv)
 	openlog("psid",LOG_PID|LOG_CONS,LOG_DAEMON);
 	PSI_setoption(PSP_OSYSLOG,1);
 	SYSLOG_LEVEL = 9;
+
+	SYSLOG(0,(LOG_ERR, "***************************************"
+		  "********************\n"));
+	SYSLOG(0,(LOG_ERR, "Starting ParaStation DAEMON V%d"
+		  " (c) ParTec AG (www.par-tec.com)\n",
+		  PSPprotocolversion));
+
 	while ((opt = getopt(argc, argv, "dD:hH?")) != -1){
 	    switch (opt){
 	    case 'd' : /* DEBUG print out debug informations */
@@ -2662,7 +2667,7 @@ main(int argc, char **argv)
 		debugmask = 0;
 		break;
 	    case 'D' :
-		DEBUGGING =1;
+		DEBUGGING = 1;
 		sscanf(optarg,"%lx",&debugmask);
 		break;
 	    case 'h' : /* help */
@@ -2737,6 +2742,13 @@ main(int argc, char **argv)
 	close(1);
 	close(2);
 
+	if(DEBUGGING){
+	    PSI_setoption(PSP_ODEBUG, 1);
+	    PSI_debugmask = debugmask;
+	    SYSLOG(0,(LOG_ERR,"Debugging mode with debugmask 0x%lx\n",
+		      debugmask));
+	}
+
 	nfds = getdtablesize();
 
 	/*
@@ -2774,12 +2786,6 @@ main(int argc, char **argv)
 #endif
 	}
 
-	SYSLOG(0,(LOG_ERR, "***************************************"
-		  "********************\n"));
-	SYSLOG(0,(LOG_ERR, "Starting ParaStation DAEMON V%d"
-		  " (c) ParTec AG (www.par-tec.com)\n",
-		  PSPprotocolversion));
-
 	if (listen(PSI_msock, 20) < 0){
 	    SYSLOG(0,(LOG_ERR,
 		      "Error while trying to listen (code %d)\n",errno));
@@ -2787,7 +2793,7 @@ main(int argc, char **argv)
 	}
 
 	/*
-	 * create the shm file and configure it
+	 * read the config file
 	 */
 	if (PSID_readconfigfile()){
 	    if(ConfigSyslog!=LOG_DAEMON){
@@ -2859,13 +2865,6 @@ main(int argc, char **argv)
 	    SYSLOG(0,(LOG_ERR,"RDP initialized. Using socket %d\n",RDPSocket));
 	    FD_SET(RDPSocket, &openfds);
 
-	    if(DEBUGGING){
-		PSI_setoption(PSP_ODEBUG, 1);
-		PSI_debugmask = debugmask;
-		SYSLOG(0,(LOG_ERR,"Debugging mode with debugmask 0x%lx\n",
-			  debugmask));
-	    }
-
 	    SYSLOG(2,(LOG_ERR,"Contacting other daemons in the cluster\n"));
 	    for(i=0;i<PSI_nrofnodes;i++){
 		daemons[i].fd=0;
@@ -2886,6 +2885,8 @@ main(int argc, char **argv)
 	    /*
 	     * check if the Cluster is ready
 	     */
+	    CheckCluster();
+	    StartOtherDaemons();
 	    CheckCluster();
 
 	    /*
@@ -2915,7 +2916,7 @@ main(int argc, char **argv)
 
 		gettimeofday(&maintimer,NULL);
 		/*
-		 * check the master socket for new SHM requests
+		 * check the master socket for new requests
 		 */
 		if (FD_ISSET(PSI_msock, &rfds)){
 		    int ssock;  /* slave server socket */
@@ -3051,7 +3052,7 @@ main(int argc, char **argv)
 	    }
 	}
 	else
-	    SYSLOG(0,(LOG_ERR,"%s: PSI Daemon: shm init failed \n",argv[0]));
+	    SYSLOG(0,(LOG_ERR,"%s: PSI Daemon: init failed \n",argv[0]));
     }
     return 0;
 }

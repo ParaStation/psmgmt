@@ -135,6 +135,8 @@ int PSID_readconfigfile(void)
     SYSLOG(9,(LOG_ERR,"after parseconfig(%s)::(%d,%d,%s)\n",
 	      myname, MyPsiId, NrOfNodes, ConfigRoutefile));
 
+    PSI_nrofnodes = NrOfNodes;
+
     if(PSI_nrofnodes > 4){
 	/*
 	 * Check the license key
@@ -152,7 +154,7 @@ int PSID_readconfigfile(void)
      * else if (PSIconfigvalue !=-1)  use value of ConfigValue
      * else  use value of #define
      */
-	for(i=0; i<PSI_nrofnodes; i++){
+    for(i=0; i<PSI_nrofnodes; i++){
 	if (!(PSID_inserthost(psihosttable[i].inet,i))){
 	    /* error: the host could not be inserted 
 	       in the hostlist */
@@ -516,6 +518,12 @@ int PSID_host(unsigned int addr)
     hostno = addr >> 24;
 #endif
     for (host = PSID_hosts[hostno]; host; host = host->next){
+#if defined(DEBUG)
+	if(PSP_DEBUGHOST & PSI_debugmask ){
+	    sprintf(PSI_txt,"PSID_host(%x): 0x%lx \n", addr, host);
+	    PSI_logerror(PSI_txt);
+	}
+#endif
 	if (host->saddr == addr)
 	    return host->psino ;
     }

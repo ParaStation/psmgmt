@@ -40,5 +40,6 @@ log_local7|Log_Local7|Log_local7|LOG_LOCAL7|local7	{return PSLOG_LOCAL7;}
 at|At|AT|@		{return AT;}
 [\n]			{ lineno++; return NL; }
 [-a-zA-Z0-9_.:;<=?@]+	{ yylval.string=lasthname; install(yytext); return HOSTNAME; }
+[-a-zA-Z0-9_./~]+	{ yylval.string=lasthname; install(yytext); return FILENAME; }
 
 %%

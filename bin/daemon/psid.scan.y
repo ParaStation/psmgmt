@@ -14,6 +14,7 @@
 
 %token <val> NUMBER PORT
 %token <string> HOSTNAME 
+%token <string> FILENAME 
 %token NL COMMENT NROFNODES
 %token LICENSEKEY LICENSESERVER ROUTINGFILE
 %token DECLAREDEAD PSIDSELECTTIME SMALLPACKET RLIMITDATASIZE RESENDTIMEOUT
@@ -76,7 +77,7 @@ licenseline:
 	;
 
 routingline:
-	ROUTINGFILE HOSTNAME     { strcpy(ConfigRoutefile,$2);}
+	ROUTINGFILE FILENAME     { strcpy(ConfigRoutefile,$2); }
 	;
 
 smallpacketline:

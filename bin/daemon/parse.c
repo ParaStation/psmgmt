@@ -219,7 +219,7 @@ int parse_config(int syslogreq)
 	exit(-1);
     }
 
-    if (strcmp(ConfigRoutefile, emptyfilename)){ /* RouteFile not defined */
+    if (!strcmp(ConfigRoutefile, emptyfilename)){ /* RouteFile not defined */
 	ERR_OUT("ERROR: Routefile not defined\n");
 	exit(-1);
     }
