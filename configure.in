@@ -132,6 +132,7 @@ AC_CONFIG_FILES([bin/Makefile])
 AC_CONFIG_FILES([bin/test/Makefile])
 AC_CONFIG_FILES([bin/mapper/Makefile])
 AC_CONFIG_FILES([dist/Makefile])
+AC_CONFIG_FILES([dist_fe/Makefile])
 
 
 
