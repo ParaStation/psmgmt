@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.35 2003/04/03 13:33:06 hauke Exp $
+ * $Id: pse.c,v 1.36 2003/04/07 18:40:10 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.35 2003/04/03 13:33:06 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.36 2003/04/07 18:40:10 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -69,18 +69,6 @@ static void exitAll(char *reason, int code)
     exit(code);
 }
 
-static void flusher(int sig)
-{
-    snprintf(errtxt, sizeof(errtxt), "[%d(%d)] Got sig %d.",
-	     PSE_getRank(), getpid(), sig);
-    errlog(errtxt, 1);
-
-    fflush(stderr);
-    fflush(stdout);
-
-    exit(sig);
-}
-
 void PSE_initialize(void)
 {
     char *env_str;
@@ -108,8 +96,6 @@ void PSE_initialize(void)
     snprintf(errtxt, sizeof(errtxt), "[%d] My TID is %s.",
 	     PSE_getRank(), PSC_printTID(PSC_getMyTID()));
     errlog(errtxt, 10);
-
-    signal(SIGTERM, flusher);
 
     /* Propagate some environment variables */
     if ((env_str = getenv("HOME"))) {
