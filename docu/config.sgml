@@ -150,11 +150,11 @@
 	</para>
 	<para>
 	  The described convention is mainly due to the routing used within
-	  MyriNet clusters. While on a ethernet cluster the mapping between
+	  Myrinet clusters. While on a ethernet cluster the mapping between
 	  hostnames and &ps; ID is completely unrestricted, there are
-	  constraints concerning this mapping in the MyriNet case. Actually in
+	  constraints concerning this mapping in the Myrinet case. Actually in
 	  order to use standard routing files the &ps; ID of a specific node
-	  depends on the port of the MyriNet switch it is connected to. This
+	  depends on the port of the Myrinet switch it is connected to. This
 	  will be discussed in further detail within the next section.
 	</para>
       </listitem>
@@ -195,8 +195,8 @@
     <para>
       In the case of a ethernet cluser running ParaStation FE the configuration
       precedure is finished now and you can proceed with <xref
-	linkend="testing"/>. On MyriNet clusters some further parameters
-      concerning the MyriNet configuration have to be set up. These will be
+	linkend="testing"/>. On Myrinet clusters some further parameters
+      concerning the Myrinet configuration have to be set up. These will be
       discussed in
       <xref linkend="myrinet_setup"/> and <xref linkend="ip_over_myrinet"/>.
     </para>
@@ -205,16 +205,16 @@
   <section id="myrinet_setup">
     <title>Further parameters on Myrinet clusters</title>
     <para>
-      The following parameters only make sense if a MyriNet cluster is going to
+      The following parameters only make sense if a Myrinet cluster is going to
       be configured.
     </para>
     <orderedlist continuation="continues">
       <listitem>
 	<para>
-	  <emphasis role="bold"><command>MyriNetModule</command></emphasis>
+	  <emphasis role="bold"><command>MyrinetModule</command></emphasis>
 	</para>
 	<para>
-	  Tell &ps; where to find the kernel module which will run the MyriNet
+	  Tell &ps; where to find the kernel module which will run the Myrinet
 	  card.
 	</para>
 	<para>
@@ -237,7 +237,7 @@
 	  <emphasis role="bold"><command>RoutingFile</command></emphasis>
 	</para>
 	<para>
-	  MyriNet is a source routed network. This means that each <link
+	  Myrinet is a source routed network. This means that each <link
 	    linkend="NIC">NIC</link> has to know which way a data packet it
 	  wants to send has to take through the switches in order to arrive at
 	  the correct destination. I.e. each packet must contain the full
@@ -249,7 +249,7 @@
 	</para>
 	<para>
 	  This parameter will tell &ps; which routing information it has to use
-	  for correct delivery of packets via MyriNet.
+	  for correct delivery of packets via Myrinet.
 	</para>
 	<para>
 	  In principle any topology of the network is supported just by editing
@@ -260,8 +260,8 @@
 	</para>
 	<note>
 	  <para>
-	      The discussion of preconfigured routing files reduces to MyriNet
-	    2000 switches. If you use older MyriNet hardware as a fast
+	      The discussion of preconfigured routing files reduces to Myrinet
+	    2000 switches. If you use older Myrinet hardware as a fast
 	    interconnect within your cluster, please proceed with <xref
 		linkend="setup_route"/> to create the routing file on your own
 	    or contact <ulink url="http://www.par-tec.com">ParTec AG</ulink>
@@ -274,9 +274,9 @@
 	  </para>
 	</note>
 	<para>
-	  For most of the common network topologies supported by MyriNet an
+	  For most of the common network topologies supported by Myrinet an
 	  easy to use routing file already exists. For all these routing files
-	  it is assumed that the nodes are connected to the MyriNet switch in
+	  it is assumed that the nodes are connected to the Myrinet switch in
 	  the following way: Starting with node 0 (i.e. the node with &ps; ID
 	  0) at the upper right corner of the switch, the nodes are connected
 	  in ascending order of &ps; ID from right to left. If the top level
@@ -284,7 +284,7 @@
 	  again connecting from the right to the left and so on.
 	</para>
 	<para>
-	  If the connection of the nodes to the MyriNet switch uses this
+	  If the connection of the nodes to the Myrinet switch uses this
 	  convention, one the following standard routing files can be used:
 	</para>
 	<variablelist>
@@ -367,33 +367,33 @@
   </section>
 
   <section id="ip_over_myrinet">
-    <title>IP over MyriNet</title>
+    <title>IP over Myrinet</title>
     <para>
       This section describes the necessary configuration in order to obtain a
-      working IP over MyriNet setup. If you are not interested in having such
+      working IP over Myrinet setup. If you are not interested in having such
       type of setup, you can skip this section and proceed with <xref
 	linkend="testing"/>
     </para>
     <para>
-      IP over MyriNet is intended mainly for applications using TCP or UDP
+      IP over Myrinet is intended mainly for applications using TCP or UDP
       sockets which cannot be modified in order to make use of the more
       efficient MPI or the PSPort interface. Be aware of the fact that IP over
-      MyriNet is quite unefficient, since the overhead of the whole TCP/IP
+      Myrinet is quite unefficient, since the overhead of the whole TCP/IP
       stack has to be taken into account. On the other hand it is much faster
       than TCP/IP over fast ethernet anyway.
     </para>
     <para>
-      To enable IP over MyriNet three different parameters might have to be set
+      To enable IP over Myrinet three different parameters might have to be set
       within the &ps; configuration file <filename>parastation.conf</filename>:
       <command>IPModule</command>, <command>IPPrefix</command> and
       <command>IPPrefixLen</command>. The purpose of the two latter ones can be
       understood after going a little bit into detail.
     </para>
     <para>
-      As already discussed, since MyriNet is a source routed network, each
+      As already discussed, since Myrinet is a source routed network, each
       <link linkend="NIC">NIC</link> has to know which way a data packet is is
       going to send has to take through the switches in order to arrive at the
-      correct destination. This is also true for IP packets sent over MyriNet.
+      correct destination. This is also true for IP packets sent over Myrinet.
     </para>
     <para>
       IP packets usually do not contain routing information but only the
@@ -403,18 +403,18 @@
       deliver the packet to the right line on basis of this hardware address.
     </para>
     <para>
-      In principle IP over MyriNet can work the same way. On the other hand
-      every node of a MyriNet cluster running &ps; already has a unique number,
+      In principle IP over Myrinet can work the same way. On the other hand
+      every node of a Myrinet cluster running &ps; already has a unique number,
       the &ps; ID. Obviously this ID does not have the form of an IP address,
       but it can serve as a basis to create one.
     </para>
     <para>
-      Within &ps; exist two distinct ways to assign IP addresses to the MyriNet
+      Within &ps; exist two distinct ways to assign IP addresses to the Myrinet
       cards on the different nodes. The first one is to create a unique IP
       address on basis of the &ps; ID and a prefix that can be parameterized
       within the configuration file. The second one is to explicitely assign an
-      IP address to each MyriNet card. The latter uses the
-      <option>MyriNetIP</option> option of the <command>Nodes</command>
+      IP address to each Myrinet card. The latter uses the
+      <option>MyrinetIP</option> option of the <command>Nodes</command>
       parameter.
     </para>
     <para>
@@ -441,13 +441,13 @@
 	<title></title>
 	<para>
 	  Let the prefix be '192.168.16.0' and the prefix length 20 bits, then
-	  the MyriNet card in the node with &ps; ID 0 will get IP address
+	  the Myrinet card in the node with &ps; ID 0 will get IP address
 	  192.168.16.1, the one in node 5 will get 192.168.16.6 and so on.
 	</para>
       </example>
       <para>
 	Following this short excursion lets discuss the actual parameters. In
-	order to enable IP over MyriNet in your &ps; cluster using the prefix
+	order to enable IP over Myrinet in your &ps; cluster using the prefix
 	style configuration, the following three parameters have to be set
 	within the &ps; configuration file
 	<filename>/etc/parastation.conf</filename>:
@@ -459,7 +459,7 @@
 	  </para>
 	  <para>
 	    Tell &ps; where to find the kernel module which enables IP over
-	    MyriNet.
+	    Myrinet.
 	  </para>
 	  <para>
 	    The parameter set may be a absolute or relative path. Relative
@@ -503,8 +503,8 @@
       <title>Explicit IP addresses</title>
       <para>
 	Within the second concept implemented in &ps; the IP address of each
-	MyriNet card can be choosen independently. In order to use this style
-	MyriNet over IP setup, the <option>MyriNetIP</option> option of the
+	Myrinet card can be choosen independently. In order to use this style
+	Myrinet over IP setup, the <option>MyrinetIP</option> option of the
 	<command>Nodes</command> parameter has to be used.
       </para>
       <para>
@@ -514,8 +514,8 @@
       </para>
       <programlisting>
 	Nodes {
-	   node1 0 MyriNetIP myri1
-	   node2 1 MyriNetIP 192.168.17.5
+	   node1 0 MyrinetIP myri1
+	   node2 1 MyrinetIP 192.168.17.5
 	   frontend 3 hw none
 	}
       </programlisting>
@@ -526,10 +526,10 @@
 	hostnames.
       </para>
       <para>
-	This will setup the MyriNet card on <replaceable>node1</replaceable> to
+	This will setup the Myrinet card on <replaceable>node1</replaceable> to
 	the IP address corresponding to <replaceable>myri1</replaceable> and
 	the one on <replaceable>node2</replaceable> to 192.168.17.5. Here the
-	frontend is supposed to have no MyriNet at all.
+	frontend is supposed to have no Myrinet at all.
       </para>
     </section>
   </section>
@@ -570,7 +570,7 @@
     <programlisting>	/opt/parastation/bin/test_nodes -np <replaceable>nodes</replaceable></programlisting>
     <para>
       where <replaceable>nodes</replaceable> has to be replaced by the actual
-      number of MyriNet nodes within your cluster. After a while a result like
+      number of Myrinet nodes within your cluster. After a while a result like
     </para>
     <programlisting>
 ---------------------------------------
@@ -596,7 +596,7 @@ Process 3 to 0-6 ( node 3 to 0-6 ) OK
 Process 7 to 0-2,4-7 ( node 7 to 0-2,4-7 ) OK
     </programlisting>
     <para>
-      This indicates that either your routing setup or your MyriNet cabling
+      This indicates that either your routing setup or your Myrinet cabling
       might be wrong. As a first guess start with testing the cabling. From the
       output of the above example you can guess that a problem exists on the
       connection of node 3 to node 7. As a result check this connections.
@@ -634,8 +634,8 @@ Process 7 to 0-2,4-7 ( node 7 to 0-2,4-7 ) OK
     <para>
       <anchor id="embed"/>
       If your network topology is special and not covered within the standard
-      routing files or if you are using the old MyriNet hardware (i.e. pre
-      MyriNet 2000 hardware), you might have to create a a custimized routing
+      routing files or if you are using the old Myrinet hardware (i.e. pre
+      Myrinet 2000 hardware), you might have to create a a custimized routing
       file in order to setup &ps; correctly.
     </para>
     <para>
@@ -652,9 +652,9 @@ Process 7 to 0-2,4-7 ( node 7 to 0-2,4-7 ) OK
     </para>
     <para>
       In order to enable the &ps; scanning tool <xref linkend="psscan"/> to
-      uncover the network topology some setup of the MyriNet hardware has to be
+      uncover the network topology some setup of the Myrinet hardware has to be
       done. I.e. the <link linkend="MCP">MCP</link> has to be started on the
-      MyriNet cards. This status can be reached by following the direction of
+      Myrinet cards. This status can be reached by following the direction of
       <xref linkend="config_ps"/> and <xref linkend="myrinet_setup"/>,
       obviously without telling the &ps; daemon the correct routing
       information. Instead just use one of the given routing files, e.g.
@@ -663,18 +663,18 @@ Process 7 to 0-2,4-7 ( node 7 to 0-2,4-7 ) OK
     </para>
     <para>
       Then start up all daemons following the steps in <xref
-	linkend="testing"/>. Of course actual testing of the MyriNet using the
+	linkend="testing"/>. Of course actual testing of the Myrinet using the
       <command>test_nodes</command> program cannot yet be done. It is fully
       sufficient if all &ps; daemons are up (test this using the
       <command>status</command> directive withing the &ps; administration tool
       <xref
-	linkend="psiadmin"/>) and all daemons have found the local MyriNet card
+	linkend="psiadmin"/>) and all daemons have found the local Myrinet card
       and activated (test this within <xref linkend="psiadmin"/> using the
       <command>status <option>hw</option></command> directive).
     </para>
     <para>
       After &ps; is setup to this stage, login to any node connected to
-      the MyriNet and become <quote>root</quote>. Now the &ps; scanning
+      the Myrinet and become <quote>root</quote>. Now the &ps; scanning
       tool <xref linkend="psscan"/> can be started. Redirect its output into a
       file, say <filename>network.psmap</filename>:
     </para>
@@ -727,7 +727,7 @@ Process 7 to 0-2,4-7 ( node 7 to 0-2,4-7 ) OK
   sgml-always-quote-attributes:t
   sgml-indent-step:2
   sgml-indent-data:t
-  sgml-parent-document:("main.xml" "set" "book" "book" ("title" "bookinfo"))
+  sgml-parent-document:("adminguide.xml" "book" "book" ("title" "bookinfo"))
   sgml-exposed-tags:nil
   sgml-local-catalogs:nil
   sgml-local-ecat-files:nil

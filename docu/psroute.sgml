@@ -7,7 +7,7 @@
   <refnamediv>
     <refname>psroute</refname>
     <refpurpose>
-      create a ParaStation routing table.
+      create a &ps; routing table.
     </refpurpose>
   </refnamediv>
 
@@ -26,8 +26,8 @@
 	linkend="psscan"/> and write a routing table to stdout.
     </para>
     <para>
-      The routing table is fed by the ParaStation daemon <xref linkend="psid"/>
-      into the ParaStation MyriNet module in order to enable proper routing.
+      The routing table is fed by the &ps; daemon <xref linkend="psid"/> into
+      the &ps; Myrinet module in order to enable proper routing.
     </para>
   </refsect1>
   <refsect1>
@@ -70,7 +70,7 @@
   sgml-always-quote-attributes:t
   sgml-indent-step:2
   sgml-indent-data:t
-  sgml-parent-document:("main.xml" "set" "book" "reference" "reference" ("title"))
+  sgml-parent-document:("adminguide.xml" "book" "reference" "reference" ("title"))
   sgml-exposed-tags:nil
   sgml-local-catalogs:nil
   sgml-local-ecat-files:nil

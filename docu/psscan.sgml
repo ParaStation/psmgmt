@@ -7,7 +7,7 @@
   <refnamediv>
     <refname>psscan</refname>
     <refpurpose>
-      scan the MyriNet
+      scan the Myrinet
     </refpurpose>
   </refnamediv>
 
@@ -22,16 +22,16 @@
   <refsect1>
     <title>Description</title>
     <para>
-      Scan the MyriNet to get detailed information about the network topology.
-      The result written to stdout is a map of the MyriNet network, describing
+      Scan the Myrinet to get detailed information about the network topology.
+      The result written to stdout is a map of the Myrinet network, describing
       the the interconnections of hosts and switches. The output of this
       command may be piped into <xref linkend="psroute"/> in order to create a
       routing table suitable for the actual network setup.
     </para>
     <para>
       The routing table created by <xref linkend="psroute"/> then is fed by the
-      ParaStation daemon <xref linkend="psid"/> into the ParaStation MyriNet
-      module in order to to enable proper routing.
+      &ps; daemon <xref linkend="psid"/> into the &ps; Myrinet module in order
+      to to enable proper routing.
     </para>
   </refsect1>
 
@@ -107,7 +107,7 @@
   sgml-always-quote-attributes:t
   sgml-indent-step:2
   sgml-indent-data:t
-  sgml-parent-document:("main.xml" "set" "book" "reference" "reference" ("title"))
+  sgml-parent-document:("adminguide.xml" "book" "reference" "reference" ("title"))
   sgml-exposed-tags:nil
   sgml-local-catalogs:nil
   sgml-local-ecat-files:nil

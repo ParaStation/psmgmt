@@ -5,7 +5,7 @@
     &ps; is a high speed communication subsystem, which is used to cluster
     standard workstations and PCs. A high speed interconnect enables you to use
     your cluster as a parallel computer. Communication is done via an
-    additional parallel communication network card, e.g. MyriNet or gigabit
+    additional parallel communication network card, e.g. Myrinet or gigabit
     Ethernet, and does not involve any Operating System communication paths.
   </para>
   
@@ -20,7 +20,7 @@
     Besides another version called  ParaStation FE exists. This variant of &ps;
     uses Ethernet for communication in a only slightly optimized way and thus
     cannot give the high throughput, low latency communication one is used to
-    from the MyriNet version. Nevertheless some disadvantages of the MPIch
+    from the Myrinet version. Nevertheless some disadvantages of the MPIch
     communication implementations are eliminated doubling the throughput for
     big packets (i.e. larger than 32 kByte).
   </para>
@@ -45,14 +45,14 @@
   <title>The history of &ps;</title>
   <para>
     The foundations of the &ps; software were laid in 1995, when the &ps;
-    communication hardware and software system was presented. it was developed
+    communication hardware and software system was presented. It was developed
     at the chair of Professor Tichy at computer science department of Karlsruhe
     University. Thus in the early days the &ps; project was mainly a hardware
     project.
   </para>
   <para>
     This changed when in 1998 ParaStation2 was presented, now a pure software
-    project. The communication platform used then was MyriNet, a gigabit
+    project. The communication platform used then was Myrinet, a gigabit
     interconnect developed  by <ulink url="http://www.myri.com">
       MyriCom</ulink>. The development of ParaStation2 still took place at the
     University of Karlsruhe.
@@ -78,7 +78,7 @@
   sgml-always-quote-attributes:t
   sgml-indent-step:2
   sgml-indent-data:t
-  sgml-parent-document:("main.xml" "set" "book" "chapter" "chapter" ())
+  sgml-parent-document:("adminguide.xml" "book" "chapter" "chapter" ())
   sgml-exposed-tags:nil
   sgml-local-catalogs:nil
   sgml-local-ecat-files:nil

@@ -201,7 +201,7 @@
 	      contains the installation script
 	      <filename>PSM_INSTALL</filename>, the example configuration file
 	      <filename>parastation.conf.tmpl</filename> and some example
-	      routing files for the MyriNet driver.
+	      routing files for the &ps; Myrinet driver.
 	    </para>
 	    <para>
 	      Furthermore within the standard installation the main
@@ -492,7 +492,7 @@
 	chmod 666 /dev/psm</programlisting>
 	<note>
 	  <para>
-	    This has only to be done for the MyriNet version of &ps;. You can
+	    This has only to be done for the Myrinet version of &ps;. You can
 	    leave out this step within the installation procedure of
 	    ParaStation FE.
 	  </para>
@@ -739,7 +739,7 @@
       </listitem>
       <listitem>
 	<para>
-	  <link linkend="setup_route">setting up the routing for MyriNet
+	  <link linkend="setup_route">setting up the routing for Myrinet
 	    communication</link>
 	</para>
       </listitem>
@@ -825,7 +825,7 @@
   sgml-always-quote-attributes:t
   sgml-indent-step:2
   sgml-indent-data:t
-  sgml-parent-document:("main.xml" "set" "book" "book" ("title" "bookinfo"))
+  sgml-parent-document:("adminguide.xml" "book" "book" ("title" "bookinfo"))
   sgml-exposed-tags:nil
   sgml-local-catalogs:nil
   sgml-local-ecat-files:nil

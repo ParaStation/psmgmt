@@ -637,9 +637,9 @@
 	      </term>
 	      <listitem>
 		<para>
-		  Show the status of the MyriNet communication system on the
+		  Show the status of the Myrinet communication system on the
 		  selected node(s). Various counters of the <link
-		    linkend="MCP">MCP</link> running on the MyriNet card are
+		    linkend="MCP">MCP</link> running on the Myrinet card are
 		  displayed.
 		</para>
 		<!--
@@ -936,7 +936,7 @@
 		      <option>val</option> has to be choosen as 0 &lt;=
 		      <option>val</option> &lt; 3. Small values lead to more
 		      traffic on the PCI bus, but prevent from free send
-		      buffers on the MyriNet card from not being used. Values
+		      buffers on the Myrinet card from not being used. Values
 		      larger than 3 have empirically proven to do a disservice.
 		    </para>
 		  </note>
@@ -1200,7 +1200,7 @@
   sgml-always-quote-attributes:t
   sgml-indent-step:2
   sgml-indent-data:t
-  sgml-parent-document:("main.xml" "set" "book" "reference" "reference" ("title"))
+  sgml-parent-document:("adminguide.xml" "book" "reference" "reference" ("title"))
   sgml-exposed-tags:nil
   sgml-local-catalogs:nil
   sgml-local-ecat-files:nil

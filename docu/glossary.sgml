@@ -46,11 +46,11 @@
   </glossentry>
 
   <glossentry id="MCPfull">
-    <glossterm>MyriNet Control Program</glossterm>
+    <glossterm>Myrinet Control Program</glossterm>
     <glossdef>
       <para>
-	The program controlling the MyriNet card. It is executed by the LanAI
-	processor residing on the MyriNet card and thus creates almost no load
+	The program controlling the Myrinet card. It is executed by the LanAI
+	processor residing on the Myrinet card and thus creates almost no load
 	on the node's main processor.
       </para>
     </glossdef>
@@ -108,7 +108,7 @@
   sgml-always-quote-attributes:t
   sgml-indent-step:2
   sgml-indent-data:t
-  sgml-parent-document:("main.xml" "set" "book" "book" ("title" "bookinfo"))
+  sgml-parent-document:("adminguide.xml" "book" "book" ("title" "bookinfo"))
   sgml-exposed-tags:nil
   sgml-local-catalogs:nil
   sgml-local-ecat-files:nil
