@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.56 2003/04/03 15:57:36 eicker Exp $
+ * $Id: psiadmin.c,v 1.57 2003/04/03 18:04:49 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.56 2003/04/03 15:57:36 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.57 2003/04/03 18:04:49 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -49,7 +49,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.56 $";
+static char psiadmversion[] = "$Revision: 1.57 $";
 static int doRestart = 0;
 
 static char *hoststatus = NULL;
@@ -170,11 +170,17 @@ void PSIADM_CountStat(int first, int last)
 					       sizeof(statusline), 1);
 		if (ret) {
 		    char *hwname = INFO_request_hwname(hw, 1);
+		    int last = strlen(statusline)-1;
 
 		    printf("Counter for hardware type '%s':\n\n",
 			   hwname ? hwname : "unknown");
 		    printf("%6s ", "NODE");
-		    printf("%s\n", statusline);
+
+		    if (statusline[(last>0) ? last : 0] == '\n') {
+			printf("%s", statusline);
+		    } else {
+			printf("%s\n", statusline);
+		    }
 		    break;
 		}
 	    }
@@ -182,7 +188,7 @@ void PSIADM_CountStat(int first, int last)
 
 	if (ret) {
 	    for (i=first; i<last; i++) {
-		printf("%4d ", i);
+		printf("%6d ", i);
 
 		if (nodelist[i].up) {
 		    if (! (nodelist[i].hwStatus & 1<<hw)) {
@@ -191,7 +197,8 @@ void PSIADM_CountStat(int first, int last)
 			ret = INFO_request_countstatus(i, hw, &statusline,
 						       sizeof(statusline), 1);
 			if (ret) {
-			    if (statusline[strlen(statusline)] == '\n') {
+			    int last = strlen(statusline)-1;
+			    if (statusline[(last>0) ? last : 0] == '\n') {
 				printf("%s", statusline);
 			    } else {
 				printf("%s\n", statusline);
