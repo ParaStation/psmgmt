@@ -1,0 +1,124 @@
+/*
+ *               ParaStation3
+ * psidtask.h
+ *
+ * Copyright (C) ParTec AG Karlsruhe
+ * All rights reserved.
+ *
+ * $Id: psidtask.h,v 1.1 2002/07/03 20:07:14 eicker Exp $
+ *
+ */
+/**
+ * @file
+ * psidtask: Functions for interaction with ParaStation tasks within the Daemon
+ *
+ * $Id: psidtask.h,v 1.1 2002/07/03 20:07:14 eicker Exp $
+ *
+ * @author
+ * Norbert Eicker <eicker@par-tec.com>
+ *
+ */
+#ifndef __PSIDTASK_H
+#define __PSIDTASK_H
+
+#include "pstask.h"
+
+#ifdef __cplusplus
+extern "C" {
+#if 0
+} /* <- just for emacs indentation */
+#endif
+#endif
+
+/*----------------------------------------------------------------------*/
+/*
+ * PStask_setsignalreceiver
+ *
+ *  adds the receiver TID to the list of tasks which shall receive a
+ *  signal, when this task dies
+ *  RETURN: void
+ */
+void PStask_setsignalreceiver(PStask_t *task, long sender, int signal);
+
+/*----------------------------------------------------------------------*/
+/*
+ * PStask_getsignalreceiver
+ *
+ *  returns the tid of the task,which sent the signal
+ *  removes the signalreceiver from the list
+ *  RETURN: 0 if no such task exists
+ *          >0 : tid of the receiver task
+ */
+long PStask_getsignalreceiver(PStask_t *task, int *signal);
+
+/*----------------------------------------------------------------------*/
+/*
+ * PStask_setsignalsender
+ *
+ *  adds the sender TID to the list of tasks which has send a signal to this
+ *  task due to the death of sender tid
+ *  RETURN: void
+ */
+void PStask_setsignalsender(PStask_t *task, long sender, int signal);
+
+/*----------------------------------------------------------------------*/
+/*
+ * PStask_getsignalsender
+ *
+ *  returns the tid of the task,which sent the signal
+ *  removes the signalsender from the list
+ *  RETURN: 0 if no such task exists
+ *          >0 : tid of the sender task
+ */
+long PStask_getsignalsender(PStask_t *task, int *signal);
+
+
+/*----------------------------------------------------------------------
+ * Tasklist routines
+ */
+
+/*----------------------------------------------------------------------*/
+/*
+ * PStasklist_delete
+ *
+ *  deletes all tasks and the structure itself
+ *  RETURN: 0 on success
+ */
+void PStasklist_delete(PStask_t **list);
+
+/*----------------------------------------------------------------------*/
+/*
+ * PStasklist_enqueue
+ *
+ *  enqueus a task into a tasklist.
+ *  RETURN: 0 on success
+ */
+int PStasklist_enqueue(PStask_t **list, PStask_t *newtask);
+
+/*----------------------------------------------------------------------*/
+/*
+ * PStasklist_dequeue
+ *
+ *  dequeues a task from a tasklist.
+ *  if tid==-1, the first task is dequeued otherwise exactly the
+ *  task with TID==tid is dequeued
+ *  RETURN: the removed task on success
+ *          NULL if not found
+ */
+PStask_t* PStasklist_dequeue(PStask_t **list, long tid);
+
+/*----------------------------------------------------------------------*/
+/*
+ * PStasklist_find
+ *
+ *  finds a task in a tasklist.
+ *  RETURN: the task on success
+ *          NULL if not found
+ */
+PStask_t* PStasklist_find(PStask_t *list, long tid);
+
+#ifdef __cplusplus
+}/* extern "C" */
+#endif
+
+#endif  /* __PSIDTASK_H */
