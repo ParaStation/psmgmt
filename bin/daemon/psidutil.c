@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.31 2002/06/13 15:09:54 eicker Exp $
+ * $Id: psidutil.c,v 1.32 2002/06/14 15:22:25 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.31 2002/06/13 15:09:54 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.32 2002/06/14 15:22:25 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -34,7 +34,6 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.31 2002/06/1
 #include "license.h"
 
 #include "psi.h"
-#include "psilog.h"
 #include "logger.h"
 #include "cardconfig.h"
 #include "config_parsing.h"
@@ -46,9 +45,14 @@ int PSID_CardPresent;
 static char errtxt[256];
 
 /* Wrapper functions for logging */
-void PSID_initLog(int usesyslog, FILE *input)
+void PSID_initLog(int usesyslog, FILE *logfile)
 {
-    initErrLog("PSID", usesyslog);
+    if (!syslog && logfile) {
+	dup2(fileno(logfile), STDERR_FILENO);
+	fclose(logfile);
+    }
+
+    initErrLog("", usesyslog);
 }
 
 int PSID_getDebugLevel(void)
@@ -61,12 +65,12 @@ void PSID_setDebugLevel(int level)
     setErrLogLevel(level);
 }
 
-void PSID_putLog(char *s, int level)
+void PSID_errlog(char *s, int level)
 {
     errlog(s, level);
 }
 
-void PSID_exitLog(char *s, int errorno)
+void PSID_errexit(char *s, int errorno)
 {
     errexit(s, errorno);
 }
@@ -90,9 +94,9 @@ void PSID_ReConfig(int nodeid, int nrofnodes, char *licensekey, char *module,
     licdot[7]=0;
 
     snprintf(errtxt, sizeof(errtxt), "PSID_ReConfig: %d '%s' '%s' '%s'"
-	     " small packets %d, ResendTimeout %d\n", nodeid, licdot, module,
+	     " small packets %d, ResendTimeout %d", nodeid, licdot, module,
 	     routingfile, ConfigSmallPacketSize,ConfigRTO);
-    PSID_putLog(errtxt, 1);
+    PSID_errlog(errtxt, 1);
 
     card_info.node_id = nodeid;
     card_info.licensekey = licensekey;
@@ -104,8 +108,8 @@ void PSID_ReConfig(int nodeid, int nrofnodes, char *licensekey, char *module,
     ret = card_init(&card_info);
     if (ret) {
 	PSID_CardPresent = 0;
-	snprintf(errtxt, sizeof(errtxt), "PSID_ReConfig: %s\n", card_errstr());
-	PSID_putLog(errtxt, 1);
+	snprintf(errtxt, sizeof(errtxt), "PSID_ReConfig: %s", card_errstr());
+	PSID_errlog(errtxt, 0);
 	return;
     }
 
@@ -145,7 +149,6 @@ int PSID_readconfigfile(void)
     struct hostent *mhost;
     char myname[256];
     struct in_addr *sin_addr;
-    char* errstr;
 
     int i;
 
@@ -165,7 +168,7 @@ int PSID_readconfigfile(void)
 	snprintf(errtxt, sizeof(errtxt),
 		 "Using %s (ID=%d) as Licenseserver",
 		 inet_ntoa(* (struct in_addr *) &nodes[0].addr), NrOfNodes);
-	PSID_putLog(errtxt, 10);
+	PSID_errlog(errtxt, 10);
     }
 
     if (PSI_nrofnodes > 4) {
@@ -185,12 +188,8 @@ int PSID_readconfigfile(void)
     endhostent(); 
 
     if (!mhost) {
-	errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt),
-		 "PSID_readconfigfile(): Unable to lookup hostname: [%d] %s",
-		 errno, errstr ? errstr : "UNKNOWN errno");
-	PSID_putLog(errtxt, 0);
-	exit(-1);
+	PSID_errexit("PSID_readconfigfile(): Unable to lookup hostname",
+		     errno);
     }
 
     PSID_CardPresent = 0;
@@ -206,20 +205,20 @@ int PSID_readconfigfile(void)
     }
 
     if (MyPsiId == -1) {
-	SYSLOG(1,(LOG_ERR, "Node not configured\n"));
+	PSID_errlog("Node not configured", 0);
 	return -1;
     }
 
-    SYSLOG(1,(LOG_ERR,"starting up the card\n"));
+    PSID_errlog("starting up the card", 1);
     /*
      * check if I can reserve the card for me 
      * if the card is busy, the OS PSHAL_Startup will exit(0);
      */
-    SYSLOG(9,(LOG_ERR,"PSID_readconfigfile():doing PSID_ReConfing..."));
+    PSID_errlog("PSID_readconfigfile(): calling PSID_ReConfig()", 9);
     // PSHAL_StartUp(1);
     PSID_ReConfig(MyPsiId, NrOfNodes, ConfigLicensekey, ConfigModule,
 		  ConfigRoutefile);
-    SYSLOG(9,(LOG_ERR,"PSID_readconfigfile():PSID_ReConfig ok."));
+    PSID_errlog("PSID_readconfigfile(): PSID_ReConfig ok.", 9);
 
     return PSID_CardPresent;
 }
@@ -229,17 +228,15 @@ int PSID_readconfigfile(void)
  *
  *       starts the licenseserver via the inetd
  */
-int PSID_startlicenseserver(unsigned int hostaddr)
+int PSID_startlicenseserver(unsigned int addr)
 {
     int sock;
     struct sockaddr_in sa;
-#if defined(DEBUG)
-    if (PSP_DEBUGADMIN & (PSI_debugmask)) {
-	snprintf(errtxt, sizeof(errtxt), "PSID_startlicenseserver(%ulx)\n",
-		 ntohl(hostaddr));
-	PSI_logerror(errtxt);
-    }
-#endif
+
+    snprintf(errtxt, sizeof(errtxt), "PSID_startlicenseserver <%s>",
+	     inet_ntoa(* (struct in_addr *) &addr));
+    PSID_errlog(errtxt, 1);
+
     /*
      * start the PSI Daemon via inetd
      */
@@ -247,12 +244,17 @@ int PSID_startlicenseserver(unsigned int hostaddr)
 
     memset(&sa, 0, sizeof(sa)); 
     sa.sin_family = AF_INET; 
-    sa.sin_addr.s_addr = hostaddr;
-    sa.sin_port = htons(PSI_GetServicePort("psld",887));
+    sa.sin_addr.s_addr = addr;
+    sa.sin_port = htons(PSI_GetServicePort("psld", 887));
     if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0) { 
-	perror("PSID_startlicenseserver():"
-	       " Connect to port for start with inetd failed."); 
-	shutdown(sock,2);
+	char *errstr = strerror(errno);
+
+	snprintf(errtxt, sizeof(errtxt), "PSID_startlicenseserver():"
+		 " Connect to port for start with inetd failed: %s",
+		 errstr ? errstr : "UNKNOWN");
+	PSID_errlog(errtxt, 0);
+
+	shutdown(sock, SHUT_RDWR);
 	close(sock);
 	return 0;
     }
@@ -301,28 +303,23 @@ int PSID_taskspawn(PStask_t* task)
     int ret;       /* return value */
     struct stat sb;
 
-#if defined(DEBUG)||defined(PSID)
-    if (PSP_DEBUGTASK & PSI_debugmask) {
-	snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn(task: ");
-	/** \todo this may cause segfaults !! Norbert */
-	PStask_sprintf(errtxt+strlen(errtxt), task);
-	/** \todo this is not correct since sizeof(errtxt)-strlen(errtxt) may be
-	    negative !! Norbert */
-	snprintf(errtxt + strlen(errtxt), sizeof(errtxt)-strlen(errtxt), ")\n");
-	PSI_logerror(PSI_txt);
+    if (PSID_getDebugLevel() >= 10) {
+	snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn() task: ");
+	PStask_snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
+			task);
+	PSID_errlog(errtxt, 10);
     }
-#endif
 
     /*
      * create a control channel
      * for observing the successful exec call
      */
     if (pipe(fds)<0) {
-	char* errstr;
-	errstr = strerror(errno);
-	syslog(LOG_ERR, "PSID_taskspawn(pipe): [#%d] %s ", errno,
-	       errstr ? errstr : "UNKNOWN");
-	perror("pipe");
+	char *errstr = strerror(errno);
+
+	snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn(): pipe: %s ",
+		 errstr ? errstr : "UNKNOWN");
+	PSID_errlog(errtxt, 0);
     }
     fcntl(fds[1],F_SETFD,FD_CLOEXEC);
 
@@ -336,13 +333,13 @@ int PSID_taskspawn(PStask_t* task)
 	 * change the group id to the appropriate group
 	 */
 	if (setgid(task->gid)<0) {
-	    char* errstr;
-	    errstr = strerror(errno);
-
-	    syslog(LOG_ERR, "PSID_taskspawn(setgid): [%d] %s", errno,
-		   errstr ? errstr : "UNKNOWN");
-	    perror("setgid");
+	    char *errstr = strerror(errno);
 	    buf = errno;
+
+	    snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn(): setgid: %s",
+		     errstr ? errstr : "UNKNOWN");
+	    PSID_errlog(errtxt, 0);
+
 	    write(fds[1], &buf, sizeof(buf));
 	    exit(0);
 	}
@@ -351,13 +348,13 @@ int PSID_taskspawn(PStask_t* task)
 	 * change the user id to the appropriate user
 	 */
 	if (setuid(task->uid)<0) {
-	    char* errstr;
-	    errstr = strerror(errno);
-
-	    syslog(LOG_ERR, "PSID_taskspawn(setuid): [%d] %s", errno,
-		   errstr ? errstr : "UNKNOWN");
-	    perror("setuid");
+	    char *errstr = strerror(errno);
 	    buf = errno;
+
+	    snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn() setuid: %s",
+		     errstr ? errstr : "UNKNOWN");
+	    PSID_errlog(errtxt, 0);
+
 	    write(fds[1], &buf, sizeof(buf));
 	    exit(0);
 	}
@@ -366,13 +363,14 @@ int PSID_taskspawn(PStask_t* task)
 	 * change to the appropriate directory
 	 */
 	if (chdir(task->workingdir)<0) {
-	    char* errstr;
-	    errstr = strerror(errno);
-	    syslog(LOG_ERR, "PSID_taskspawn(chdir): %d %s :%s", errno,
-		   errstr ? errstr : "UNKNOWN",
-		   task->workingdir ? task->workingdir : "");
-	    perror("chdir");
+	    char *errstr = strerror(errno);
 	    buf = errno;
+
+	    snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn(): chdir(%s): %s",
+		     task->workingdir ? task->workingdir : "",
+ 		     errstr ? errstr : "UNKNOWN");
+	    PSID_errlog(errtxt, 0);
+
 	    write(fds[1], &buf, sizeof(buf));
 	    exit(0);
 	}
@@ -397,20 +395,28 @@ int PSID_taskspawn(PStask_t* task)
 	     * store client PID in environment
 	     */
 	    char pid_str[20];
-	    snprintf(pid_str,sizeof(pid_str)+1,"%d",getpid());
-	    setenv("PSI_PID",pid_str,1);
+	    snprintf(pid_str, sizeof(pid_str), "%d", getpid());
+	    setenv("PSI_PID", pid_str, 1);
 	}
-	if (stat(task->argv[0], &sb) == -1
-	    || ((sb.st_mode & S_IFMT) != S_IFREG)
-	    || !(sb.st_mode & S_IEXEC)) {
-	    char* errstr;
-	    errstr=strerror(errno);
-	    syslog(LOG_ERR,"PSID_taskspawn(stat): [%d] %s :%s  %s %s",
-		   errno, errstr ? errstr : "UNKNOWN",
-		   task->argv[0] ? task->argv[0] : "",
-		   ((sb.st_mode & S_IFMT) != S_IFREG) ? "S_IFREG error" : "S_IFREG ok",
-		   (sb.st_mode & S_IEXEC) ? "S_IEXEC set" : "S_IEXEC error");
+	if (stat(task->argv[0], &sb) == -1) {
+	    char *errstr = strerror(errno);
 	    buf = errno;
+
+	    snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn(): stat(%s): %s",
+		     task->argv[0] ? task->argv[0] : "",
+		     errstr ? errstr : "UNKNOWN");
+	    PSID_errlog(errtxt, 0);
+
+	    write(fds[1], &buf, sizeof(buf));
+	    exit(0);
+	}
+	if (((sb.st_mode & S_IFMT) != S_IFREG) || !(sb.st_mode & S_IEXEC)) {
+	    buf = 1;
+	    snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn(): stat(): %s",
+		     ((sb.st_mode & S_IFMT) != S_IFREG) ? "S_IFREG error" :
+		     (sb.st_mode & S_IEXEC) ? "" : "S_IEXEC error");
+	    PSID_errlog(errtxt, 0);
+
 	    write(fds[1], &buf, sizeof(buf));
 	    exit(0);
 	}
@@ -437,13 +443,10 @@ int PSID_taskspawn(PStask_t* task)
 	 * execute the image
 	 */
 	if (PSID_execv(task->argv[0],&(task->argv[0]))<0) {
-	    char* errstr;
-	    errstr = strerror(errno);
+	    char *errstr = strerror(errno);
 	    openlog("psid spawned process", LOG_PID|LOG_CONS, LOG_DAEMON);
-	    PSI_setoption(PSP_OSYSLOG, 1);
-	    syslog(LOG_ERR, "PSID_taskspawn(execv): [%d] %s",
-		   errno, errstr ? errstr : "UNKNOWN");
-	    perror("exec");
+	    syslog(LOG_ERR, "PSID_taskspawn() execv: %s",
+		   errstr ? errstr : "UNKNOWN");
 	}
 	/*
 	 * never reached, if execv succesful
@@ -453,7 +456,7 @@ int PSID_taskspawn(PStask_t* task)
 	 * fds[0] would have been closed on successful exec.
 	 */
 	buf = errno;
-	write(fds[1],&buf,sizeof(buf));
+	write(fds[1], &buf, sizeof(buf));
 	exit(0);
     }
     /*
@@ -463,25 +466,24 @@ int PSID_taskspawn(PStask_t* task)
      * check if fork() was successful
      */
     if (pid ==-1) {
-	char *errstr;
-	errstr = strerror(errno);
+	char *errstr = strerror(errno);
 
 	close(fds[0]);
 	close(fds[1]);
-	syslog(LOG_ERR, "PSID_taskspawn(fork): [%d] %s", errno,
-	       errstr ? errstr : "UNKNOWN");
-	perror("fork()");
+
+	snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn() fork: %s",
+		 errstr ? errstr : "UNKNOWN");
+	PSID_errlog(errtxt, 0);
+
 	task->error = -errno;
 	ret = -errno;
     } else {
 	/*
 	 * check for a sign of the child
 	 */
-	if (PSP_DEBUGTASK & PSI_debugmask) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "I'm the parent. I'm waiting for my child (%d)\n", pid);
-	    PSI_logerror(errtxt);
-	}
+	snprintf(errtxt, sizeof(errtxt),
+		 "I'm the parent. I'm waiting for my child (%d)", pid);
+	PSID_errlog(errtxt, 10);
 
 	close(fds[1]);
 
@@ -500,32 +502,20 @@ int PSID_taskspawn(PStask_t* task)
 	    task->error = 0;
 	    task->tid = PSI_gettid(-1,pid);
 	    task->nodeno = PSI_getnode(-1);
-#if defined(DEBUG)||defined(PSID)
-	    if (PSP_DEBUGTASK & PSI_debugmask) {
-		snprintf(errtxt, sizeof(errtxt), "child execute was successful\n");
-		PSI_logerror(errtxt);
-	    }
-#endif
-	} else {
-	    char *errstr;
 
+	    PSID_errlog("child execute was successful", 10);
+	} else {
 	    /*
 	     * the child sent us a sign that the execv wasn't successful
 	     */
-	    ret = buf;
-	    errstr = strerror(ret);
-#if defined(DEBUG)||defined(PSID)
-	    /*	    if (PSP_DEBUGTASK & PSI_debugmask)
-	     */
-	    {
-		snprintf(errtxt, sizeof(errtxt),
-			 "child execute failed error(%d):%s\n", ret,
-			 errstr ? errstr : "UNKNOWN");
-		PSI_logerror(errtxt);
-	    }
-#endif
+	    char *errstr = strerror(ret=buf);
+
+	    snprintf(errtxt, sizeof(errtxt), "child execute failed: %s",
+		     errstr ? errstr : "UNKNOWN");
+	    PSID_errlog(errtxt, 0);
 	}
 	close(fds[0]);
     }
+
     return ret;
 }
