@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.34 2003/03/11 10:12:31 eicker Exp $
+ * $Id: psispawn.c,v 1.35 2003/03/11 18:21:16 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.34 2003/03/11 10:12:31 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.35 2003/03/11 18:21:16 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -72,13 +72,14 @@ long PSI_spawn(short dstnode, char *workdir, int argc, char **argv,
     int ret;
     long tid;
 
-    snprintf(errtxt, sizeof(errtxt), "PSI_spawn()");
+    snprintf(errtxt, sizeof(errtxt), "%s()", __func__);
     PSI_errlog(errtxt, 10);
 
     if (dstnode<0) {
 	if (!PSI_Partition) {
-	    snprintf(errtxt, sizeof(errtxt), "PSI_spawn():"
-		     " you have to call PSI_getPartition() beforehand.");
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: you have to call PSI_getPartition() beforehand.",
+		     __func__);
 	    PSI_errlog(errtxt, 0);
 	    return -1;
 	}
@@ -105,15 +106,16 @@ int PSI_spawnM(int count, short *dstnodes, char *workdir,
     short *mydstnodes=NULL;
     int ret, i;
 
-    snprintf(errtxt, sizeof(errtxt), "PSI_spawnM()");
+    snprintf(errtxt, sizeof(errtxt), "%s()", __func__);
     PSI_errlog(errtxt, 10);
 
     if (count<=0) return 0;
 
     if (!dstnodes) {
 	if (!PSI_Partition) {
-	    snprintf(errtxt, sizeof(errtxt), "PSI_spawnM():"
-		     " you have to call PSI_getPartition() beforehand.");
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: you have to call PSI_getPartition() beforehand.",
+		     __func__);
 	    PSI_errlog(errtxt, 0);
 	    return -1;
 	}
@@ -129,7 +131,7 @@ int PSI_spawnM(int count, short *dstnodes, char *workdir,
 	mydstnodes = dstnodes;
     }
 
-    snprintf(errtxt, sizeof(errtxt), "PSI_spawnM(): will spawn to:");
+    snprintf(errtxt, sizeof(errtxt), "%s: will spawn to:", __func__);
     for (i=0; i<count; i++) {
 	snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
 		 " %2d", mydstnodes[i]);
@@ -280,8 +282,8 @@ static int sortNodes(short nodes[], int numNodes, NodelistEntry_t nodelist[])
 	node_entry = (sort_block *)malloc(numNodes * sizeof(sort_block));
 
 	if (!node_entry) {
-	    snprintf(errtxt, sizeof(errtxt), "sortNodes():"
-		     " not enough memory.");
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: not enough memory.", __func__);
 	    PSI_errlog(errtxt, 0);
 	    return -1;
 	}
@@ -326,8 +328,8 @@ static int sortNodes(short nodes[], int numNodes, NodelistEntry_t nodelist[])
 	    }
 	    break;
 	default:
-	    snprintf(errtxt, sizeof(errtxt), "sortNodes():"
-		     " unknown value for sort = %d.", sort);
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: unknown value for sort = %d.", __func__, sort);
 	    PSI_errlog(errtxt, 0);
 	    return -1;
 	}
@@ -374,7 +376,7 @@ void PSI_LSF(void)
 {
     char *lsf_hosts=NULL;
 
-    snprintf(errtxt, sizeof(errtxt), "PSI_LSF()");
+    snprintf(errtxt, sizeof(errtxt), "%s()", __func__);
     PSI_errlog(errtxt, 10);
 
     lsf_hosts=getenv(ENV_NODE_HOSTS_LSF);
@@ -437,8 +439,9 @@ char *PSI_createPGfile(int num, const char *prog, int local)
     int i, j=0;
 
     if (!PSI_Partition) {
-	snprintf(errtxt, sizeof(errtxt), "%s():"
-		 " you have to call PSI_getPartition() beforehand.", __func__);
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: you have to call PSI_getPartition() beforehand.",
+		 __func__);
 	PSI_errlog(errtxt, 0);
 	return NULL;
     }
@@ -447,7 +450,7 @@ char *PSI_createPGfile(int num, const char *prog, int local)
     if (!myprog) {
 	char *errstr = strerror(errno);
 
-	snprintf(errtxt, sizeof(errtxt), "%s(): mygetwd() failed: %s",
+	snprintf(errtxt, sizeof(errtxt), "%s: mygetwd() failed: %s",
 		 __func__, errstr ? errstr : "UNKNOWN");
 	PSI_errlog(errtxt, 0);
 
@@ -476,7 +479,7 @@ char *PSI_createPGfile(int num, const char *prog, int local)
 	if (!PIfile) {
 	    char *errstr = strerror(errno);
 
-	    snprintf(errtxt, sizeof(errtxt), "%s(): fopen() failed: %s",
+	    snprintf(errtxt, sizeof(errtxt), "%s: fopen() failed: %s",
 		     __func__, errstr ? errstr : "UNKNOWN");
 	    PSI_errlog(errtxt, 0);
 
@@ -502,10 +505,8 @@ char *PSI_createPGfile(int num, const char *prog, int local)
 	char *end;
 
 	priv_str = getPSIEnv(ENV_NODE_PRIV);
-	printf("%p: %s\n", priv_str, priv_str);
 
 	end = strchr(priv_str, ',');
-	printf("%p: %s\n", end, end);
 
 	if (end) {
 	    *end = '\0';
@@ -516,7 +517,7 @@ char *PSI_createPGfile(int num, const char *prog, int local)
     return PIfilename;
 }
 
-static int node_ok(short node, unsigned hwType, NodelistEntry_t *nodelist)
+static int nodeOK(short node, NodelistEntry_t *nodelist)
 {
     if ( node < 0 || node >= PSC_getNrOfNodes()) {
 	snprintf(errtxt, sizeof(errtxt), "%s: node %d out of range.",
@@ -531,8 +532,8 @@ static int node_ok(short node, unsigned hwType, NodelistEntry_t *nodelist)
     }
 
     if (nodelist[node].id == -1) {
-	snprintf(errtxt, sizeof(errtxt), "%s: node %d not in nodelist.",
-		 __func__, node);
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: node %d not in nodelist.", __func__, node);
 	PSI_errlog(errtxt, 8);
 	return 0;
     }
@@ -545,10 +546,10 @@ static int node_ok(short node, unsigned hwType, NodelistEntry_t *nodelist)
 	return 0;
     }
 
-    if (hwType && (hwType & nodelist[node].hwType) != hwType) {
+    if (nodelist[node].maxJobs != -1
+	&& nodelist[node].normalJobs >= nodelist[node].maxJobs) {
 	snprintf(errtxt, sizeof(errtxt),
-		 "%s: node %d lacks requested HW, excluding from partition.",
-		 __func__, node);
+		 "%s: too many jobs on node %d.", __func__, node);
 	PSI_errlog(errtxt, 8);
 	return 0;
     }
@@ -556,8 +557,17 @@ static int node_ok(short node, unsigned hwType, NodelistEntry_t *nodelist)
     return 1;
 }
 
-static int getNodesFromNodeStr(char *node_str,
-			       unsigned int hwType, NodelistEntry_t *nodelist)
+static void addNode(short node, NodelistEntry_t *nodelist)
+{
+    PSI_Partition[PSI_PartitionSize] = node;
+    PSI_PartitionSize++;
+    if (nodelist) {
+	nodelist[node].normalJobs++;
+	nodelist[node].totalJobs++;
+    }
+}
+
+static int getNodesFromNodeStr(char *node_str, NodelistEntry_t *nodelist)
 {
     int next_node;
     char* tmp_node_str, *tmp_node_str_begin, *tmp_node_str_end;
@@ -565,8 +575,9 @@ static int getNodesFromNodeStr(char *node_str,
     tmp_node_str = tmp_node_str_begin = strdup(node_str);
 
     if (! tmp_node_str) {
-	snprintf(errtxt, sizeof(errtxt), "getNodesFromNodeStr():"
-		 " not enough memory to parse '%s'.", ENV_NODE_NODES);
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: not enough memory to parse '%s'.",
+		 __func__, ENV_NODE_NODES);
 	PSI_errlog(errtxt, 0);
 	return 0;
     }
@@ -583,8 +594,8 @@ static int getNodesFromNodeStr(char *node_str,
     /* Allocate PSI_Partition with the correct size */
     PSI_Partition = realloc(PSI_Partition, sizeof(short) * PSI_PartitionSize);
     if (!PSI_Partition) {
-	snprintf(errtxt, sizeof(errtxt), "getNodesFromNodeStr():"
-		 " not enough memory for PSI_Partition.");
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: not enough memory for PSI_Partition.", __func__);
 	PSI_errlog(errtxt, 0);
 	return 0;
     }
@@ -599,13 +610,12 @@ static int getNodesFromNodeStr(char *node_str,
 	*tmp_node_str_end = '\0';
 
 	if (sscanf(tmp_node_str, "%d", &next_node)>0) {
-	    if (node_ok(next_node, hwType, nodelist)) {
-		PSI_Partition[PSI_PartitionSize] = next_node;
-		PSI_PartitionSize++;
+	    if (nodeOK(next_node, nodelist)) {
+		addNode(next_node, nodelist);
 	    }
 	} else {
-	    snprintf(errtxt, sizeof(errtxt), "getNodesFromNodeStr():"
-		     " ID '%s' not correct.", tmp_node_str);
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: ID '%s' not correct.", __func__, tmp_node_str);
 	    PSI_errlog(errtxt, 0);
 	    free(tmp_node_str_begin);
 	    return 0;
@@ -616,13 +626,12 @@ static int getNodesFromNodeStr(char *node_str,
 
     /* Check if the last element is a node_nr */
     if (sscanf(tmp_node_str, "%d", &next_node)>0) {
-	if (node_ok(next_node, hwType, nodelist)) {
-	    PSI_Partition[PSI_PartitionSize] = next_node;
-	    PSI_PartitionSize++;
+	if (nodeOK(next_node, nodelist)) {
+	    addNode(next_node, nodelist);
 	}
     } else {
-	snprintf(errtxt, sizeof(errtxt), "getNodesFromNodeStr():"
-		 " ID '%s' not correct.", tmp_node_str);
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: ID '%s' not correct.", __func__, tmp_node_str);
 	PSI_errlog(errtxt, 0);
 	free(tmp_node_str_begin);
 	return 0;
@@ -632,8 +641,7 @@ static int getNodesFromNodeStr(char *node_str,
     return 1;
 }
 	
-static int getNodesFromHostStr(char *host_str,
-			       unsigned int hwType, NodelistEntry_t *nodelist)
+static int getNodesFromHostStr(char *host_str, NodelistEntry_t *nodelist)
 {
     /* parse host_str for nodenames */
     int next_node;
@@ -651,8 +659,8 @@ static int getNodesFromHostStr(char *host_str,
     /* Allocate PSI_Partition with the correct size */
     PSI_Partition = realloc(PSI_Partition, sizeof(short) * PSI_PartitionSize);
     if (!PSI_Partition) {
-	snprintf(errtxt, sizeof(errtxt), "getNodesFromHostStr():"
-		 " not enough memory for PSI_Partition.");
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: not enough memory for PSI_Partition.", __func__);
 	PSI_errlog(errtxt, 0);
 	return 0;
     }
@@ -668,13 +676,13 @@ static int getNodesFromHostStr(char *host_str,
 	next_node = INFO_request_host(sin_addr.s_addr, 0);
 
 	if (next_node != -1) {
-	    if (node_ok(next_node, hwType, nodelist)) {
-		PSI_Partition[PSI_PartitionSize] = next_node;
-		PSI_PartitionSize++;
+	    if (nodeOK(next_node, nodelist)) {
+		addNode(next_node, nodelist);
 	    }
 	} else {
-	    snprintf(errtxt, sizeof(errtxt), "getNodesFromHostStr():"
-		     " cannot get ParaStation ID for host '%s'.", hostname);
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: cannot get ParaStation ID for host '%s'.",
+		     __func__, hostname);
 	    PSI_errlog(errtxt, 0);
 	    free(hostname);
 	    endhostent();
@@ -687,8 +695,7 @@ static int getNodesFromHostStr(char *host_str,
     return 1;
 }
 
-static int getNodesFromHostFile(char *hostfile_str,
-				unsigned int hwType, NodelistEntry_t *nodelist)
+static int getNodesFromHostFile(char *hostfile_str, NodelistEntry_t *nodelist)
 {
     int next_node;
     char hostname[1024];
@@ -699,8 +706,8 @@ static int getNodesFromHostFile(char *hostfile_str,
     /* Try to open the file */
     file = fopen(hostfile_str, "r");
     if (!file) {
-	snprintf(errtxt, sizeof(errtxt), "getNodesFromHostFile():"
-		 " cannot open file <%s>.", hostfile_str);
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: cannot open file <%s>.", __func__, hostfile_str);
 	PSI_errlog(errtxt, 0);
 	return 0;
     }
@@ -715,8 +722,8 @@ static int getNodesFromHostFile(char *hostfile_str,
     /* Allocate PSI_Partition with the correct size */
     PSI_Partition = realloc(PSI_Partition, sizeof(short) * PSI_PartitionSize);
     if (!PSI_Partition) {
-	snprintf(errtxt, sizeof(errtxt), "getNodesFromHostFile():"
-		 " not enough memory for PSI_Partition.");
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: not enough memory for PSI_Partition.", __func__);
 	PSI_errlog(errtxt, 0);
 	return 0;
     }
@@ -734,13 +741,13 @@ static int getNodesFromHostFile(char *hostfile_str,
 	next_node = INFO_request_host(sin_addr.s_addr, 0);
 
 	if (next_node != -1) {
-	    if (node_ok(next_node, hwType, nodelist)) {
-		PSI_Partition[PSI_PartitionSize] = next_node;
-		PSI_PartitionSize++;
+	    if (nodeOK(next_node, nodelist)) {
+		addNode(next_node, nodelist);
 	    }
 	} else {
-	    snprintf(errtxt, sizeof(errtxt), "getNodesFromHostFile():"
-		     " cannot get ParaStation ID for host '%s'.", hostname);
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: cannot get ParaStation ID for host '%s'.",
+		     __func__, hostname);
 	    PSI_errlog(errtxt, 0);
 	    endhostent();
 	    fclose(file);
@@ -760,8 +767,8 @@ short PSI_getPartition(unsigned int hwType, int myRank)
 
     NodelistEntry_t *nodelist=NULL;
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "PSI_getPartition([%s], %d)", PSHW_printType(hwType), myRank);
+    snprintf(errtxt, sizeof(errtxt), "%s([%s], %d)",
+	     __func__, PSHW_printType(hwType), myRank);
     PSI_errlog(errtxt, 10);
 
     /* Get the selected nodes */
@@ -784,8 +791,8 @@ short PSI_getPartition(unsigned int hwType, int myRank)
 	nodelist = (NodelistEntry_t *)malloc(nodelist_size);
 
 	if (!nodelist) {
-	    snprintf(errtxt, sizeof(errtxt), "PSI_getPartition():"
-		     " not enough memory for nodelist.");
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: not enough memory for nodelist.", __func__);
 	    PSI_errlog(errtxt, 0);
 	    free(PSI_Partition);
 	    PSI_Partition = NULL;
@@ -830,8 +837,8 @@ short PSI_getPartition(unsigned int hwType, int myRank)
 	}
 
 	if (ret==-1) {
-	    snprintf(errtxt, sizeof(errtxt), "PSI_getPartition():"
-		     " error while getting nodelist.");
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: error while getting nodelist.", __func__);
 	    PSI_errlog(errtxt, 0);
 	    free(nodelist);
 	    free(PSI_Partition);
@@ -841,21 +848,21 @@ short PSI_getPartition(unsigned int hwType, int myRank)
     }
 
     if (node_str) {
-	if (!getNodesFromNodeStr(node_str, hwType, nodelist)) {
+	if (!getNodesFromNodeStr(node_str, nodelist)) {
 	    if (nodelist) free(nodelist);
 	    if (PSI_Partition) free(PSI_Partition);
 	    PSI_Partition = NULL;
 	    return -1;
 	}
     } else if (host_str) {
-	if (!getNodesFromHostStr(host_str, hwType, nodelist)) {
+	if (!getNodesFromHostStr(host_str, nodelist)) {
 	    if (nodelist) free(nodelist);
 	    if (PSI_Partition) free(PSI_Partition);
 	    PSI_Partition = NULL;
 	    return -1;
 	}
     } else if (hostfile_str) {
-	if (!getNodesFromHostFile(hostfile_str, hwType, nodelist)) {
+	if (!getNodesFromHostFile(hostfile_str, nodelist)) {
 	    if (nodelist) free(nodelist);
 	    if (PSI_Partition) free(PSI_Partition);
 	    PSI_Partition = NULL;
@@ -867,8 +874,8 @@ short PSI_getPartition(unsigned int hwType, int myRank)
 	PSI_Partition = (short*)realloc(PSI_Partition,
 					sizeof(short)*PSC_getNrOfNodes());
 	if (!PSI_Partition) {
-	    snprintf(errtxt, sizeof(errtxt), "PSI_getPartition():"
-		     " not enough memory for PSI_Partition.");
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: not enough memory for PSI_Partition.", __func__);
 	    PSI_errlog(errtxt, 0);
 	    if (nodelist) free(nodelist);
 	    return -1;
@@ -877,29 +884,28 @@ short PSI_getPartition(unsigned int hwType, int myRank)
 	PSI_PartitionSize = 0;
 
 	for (i=0; i<PSC_getNrOfNodes(); i++) {
-	    if (node_ok(i, hwType, nodelist)) {
-		PSI_Partition[PSI_PartitionSize] = i;
-		PSI_PartitionSize++;
+	    if (nodeOK(i, nodelist)) {
+		addNode(i, nodelist);
 	    }
 	}
+    }
 
-        if (!PSI_PartitionSize) {
-	    snprintf(errtxt, sizeof(errtxt), "PSI_getPartition():"
-		     " cannot get any hosts with correct HW. HW is %s.",
-		     PSHW_printType(hwType));
-	    PSI_errlog(errtxt, 0);
-	    if (nodelist) free(nodelist);
-            free(PSI_Partition);
-	    PSI_Partition = NULL;
-	    return -1;
-        }
+    if (!PSI_PartitionSize) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: cannot get any hosts with correct HW. HW is %s.",
+		 __func__, PSHW_printType(hwType));
+	PSI_errlog(errtxt, 0);
+	if (nodelist) free(nodelist);
+	free(PSI_Partition);
+	PSI_Partition = NULL;
+	return -1;
     }
 
     if (!priv_str) {
 	/* Now sort the nodes as requested */
 	if (sortNodes(PSI_Partition, PSI_PartitionSize, nodelist) == -1) {
-	    snprintf(errtxt, sizeof(errtxt), "PSI_getPartition():"
-		     " sortNodes() failed.");
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: sortNodes() failed.", __func__);
 	    PSI_errlog(errtxt, 0);
 	    if (nodelist) free(nodelist);
 	    free(PSI_Partition);
@@ -917,28 +923,49 @@ short PSI_getPartition(unsigned int hwType, int myRank)
 
 	num_str = getenv(ENV_NODE_NUM);
 
-	/* @todo atoi replace */
-	if (num_str && ((num = atoi(num_str)) > 1)) {
-	    short *temp;
-	    int temp_size = num * PSI_PartitionSize;
-
-	    temp = (short *) malloc(temp_size * sizeof(short));
-	    if (!temp) {
-		free(PSI_Partition);
-		PSI_Partition = NULL;
+	if (num_str) {
+	    char *end;
+	    num = strtol(num_str, &end, 10);
+	    if (*end != '\0') {
+		snprintf(errtxt, sizeof(errtxt),
+			 "%s: %s's value '%s' is invalid.", __func__,
+			 ENV_NODE_NUM, num_str);
+		PSI_errlog(errtxt, 0);
 		return -1;
 	    }
 
-	    for (i=0; i<PSI_PartitionSize; i++) {
-		int j;
-		for (j=0; j<num; j++) {
-		    temp[num*i+j] = PSI_Partition[i];
-		}
-	    }
+	    if (num > 1) {
+		short *oldPart = PSI_Partition;
+		int oldSize = PSI_PartitionSize;
 
-	    free(PSI_Partition);
-	    PSI_Partition = temp;
-	    PSI_PartitionSize = temp_size;
+		PSI_Partition = (short *)malloc(num * oldSize * sizeof(short));
+
+		if (!PSI_Partition) {
+		    snprintf(errtxt, sizeof(errtxt),
+			     "%s: not enough memory for PSI_Partition.",
+			     __func__);
+		    PSI_errlog(errtxt, 0);
+		    if (nodelist) free(nodelist);
+		    free(oldPart);
+		    PSI_Partition = NULL;
+		    return 1;
+		}
+
+		PSI_PartitionSize = 0;
+
+		for (i=0; i<oldSize; i++) {
+		    int j;
+		    /* decrease temporarily to make nodeOK() working */
+		    nodelist[oldPart[i]].normalJobs--;
+		    for (j=0; j<num; j++) {
+			if (nodeOK(oldPart[i], nodelist)) {
+			    addNode(oldPart[i], nodelist);
+			}
+		    }
+		}
+
+		free(oldPart);
+	    }
 	}
     }
 
@@ -950,8 +977,9 @@ short PSI_getPartition(unsigned int hwType, int myRank)
 	/* Create priv_str from PSI_Partition */
 	priv_str = (char *) malloc(PSI_PartitionSize * 5 + 1);
 	if (!priv_str) {
-	    snprintf(errtxt, sizeof(errtxt), "PSI_getPartition():"
-		     " not enough memory to propagate information.");
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: not enough memory to propagate information.",
+		     __func__);
 	    PSI_errlog(errtxt, 0);
 	    free(PSI_Partition);
 	    PSI_Partition = NULL;
@@ -1041,8 +1069,10 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
 
     /* Test if task is small enough */
     if (PStask_encode(msg.buf, sizeof(msg.buf), task) > sizeof(msg.buf)) {
-	PSI_errlog("PSI_dospawn(): size of task too large."
-		   " Too many environment variables?", 0);
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: size of task too large. Too many environment variables?",
+		 __func__);
+	PSI_errlog(errtxt, 0);
 	return -1;
     }
 
@@ -1075,9 +1105,9 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
 
 	    if (PSI_sendMsg(&msg)<0) {
 		char *errstr = strerror(errno);
-		snprintf(errtxt, sizeof(errtxt), "PSI_dospawn():"
-			 " PSI_sendMsg() failed: %s",
-			 errstr ? errstr : "UNKNOWN");
+		snprintf(errtxt, sizeof(errtxt),
+			 "%s: PSI_sendMsg() failed: %s",
+			 __func__, errstr ? errstr : "UNKNOWN");
 		PSI_errlog(errtxt, 0);
 
 		PStask_delete(task);
@@ -1097,9 +1127,9 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
     while (outstanding_answers>0) {
 	if (PSI_recvMsg(&answer)<0) {
 	    char *errstr = strerror(errno);
-	    snprintf(errtxt, sizeof(errtxt), "PSI_dospawn():"
-		     " PSI_recvMsg() failed: %s",
-		     errstr ? errstr : "UNKNOWN");
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: PSI_recvMsg() failed: %s",
+		     __func__, errstr ? errstr : "UNKNOWN");
 	    PSI_errlog(errtxt, 0);
 	    ret = -1;
 	    break;
@@ -1132,10 +1162,9 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
 		    tids[0] = answer.header.sender;
 		    ret++;
 		} else {
-		    snprintf(errtxt, sizeof(errtxt), "PSI_dospawn():"
-			     " got SPAWNSUCCESS/SPAWNFAILED message from"
-			     " unknown node %d.",
-			     PSC_getID(answer.header.sender));
+		    snprintf(errtxt, sizeof(errtxt),
+			     "%s: SPAWNSUCCESS/FAILED from unknown node %d.",
+			     __func__, PSC_getID(answer.header.sender));
 		    PSI_errlog(errtxt, 0);
 		}
 	    }
@@ -1149,7 +1178,7 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
 	    }
 	    break;
 	default:
-	    snprintf(errtxt, sizeof(errtxt), "PSI_dospawn(): UNKNOWN answer");
+	    snprintf(errtxt, sizeof(errtxt), "%s: UNKNOWN answer", __func__);
 	    PSI_errlog(errtxt, 0);
 	    errors[0] = 0;
 	    error = 1;
@@ -1166,7 +1195,7 @@ int PSI_kill(long tid, short signal)
 {
     DDSignalMsg_t  msg;
 
-    snprintf(errtxt, sizeof(errtxt), "PSI_kill(%lx, %d)", tid, signal);
+    snprintf(errtxt, sizeof(errtxt), "%s(%lx, %d)", __func__, tid, signal);
     PSI_errlog(errtxt, 10);
 
     msg.header.len = sizeof(msg);
@@ -1178,9 +1207,9 @@ int PSI_kill(long tid, short signal)
 
     if (PSI_sendMsg(&msg)<0) {
 	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "PSI_kill():"
-		 " PSI_sendMsg() failed: %s",
-		 errstr ? errstr : "UNKNOWN");
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: PSI_sendMsg() failed: %s",
+		 __func__, errstr ? errstr : "UNKNOWN");
 	PSI_errlog(errtxt, 0);
 	return -1;
     }
