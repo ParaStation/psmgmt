@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.30 2002/08/07 11:31:46 eicker Exp $
+ * $Id: psld.c,v 1.31 2002/08/07 13:07:04 eicker Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Daemon
  *
- * $Id: psld.c,v 1.30 2002/08/07 11:31:46 eicker Exp $
+ * $Id: psld.c,v 1.31 2002/08/07 13:07:04 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.30 2002/08/07 11:31:46 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.31 2002/08/07 13:07:04 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -268,9 +268,8 @@ void MCastCallBack(int msgid, void *buf)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.30 $";
-    snprintf(errtxt, sizeof(errtxt), "psld %s\b ", revision+11);
-    errlog(errtxt, 0);
+    char revision[] = "$Revision: 1.31 $";
+    fprintf(stderr, "psld %s\b ", revision+11);
 }
 
 int main(int argc, const char *argv[])

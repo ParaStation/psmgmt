@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.69 2002/08/07 11:38:45 eicker Exp $
+ * $Id: psid.c,v 1.70 2002/08/07 13:06:46 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.69 2002/08/07 11:38:45 eicker Exp $ 
+ * $Id: psid.c,v 1.70 2002/08/07 13:06:46 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.69 2002/08/07 11:38:45 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.70 2002/08/07 13:06:46 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -73,7 +73,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.69 $";
+static char psid_cvsid[] = "$Revision: 1.70 $";
 
 static int PSID_mastersock;
 
@@ -3046,9 +3046,8 @@ void checkFileTable(void)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.69 $";
-    snprintf(errtxt, sizeof(errtxt), "psid %s\b ", revision+11);
-    PSID_errlog(errtxt, 0);
+    char revision[] = "$Revision: 1.70 $";
+    fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
 int main(int argc, const char *argv[])
@@ -3189,10 +3188,8 @@ int main(int argc, const char *argv[])
 
 	dummy_fd=open("/dev/null",O_WRONLY , 0);
 	dup2(dummy_fd, STDIN_FILENO);
-	if (!logfile || fileno(logfile)!=STDOUT_FILENO) {
-	    dup2(dummy_fd, STDOUT_FILENO);
-	}
-	if (!logfile || fileno(logfile)!=STDERR_FILENO) {
+	dup2(dummy_fd, STDOUT_FILENO);
+	if (!logfile) {
 	    dup2(dummy_fd, STDERR_FILENO);
 	}
 	close(dummy_fd);
