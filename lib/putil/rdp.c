@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.33 2004/01/09 15:47:28 eicker Exp $
+ * $Id: rdp.c,v 1.34 2004/01/15 16:34:35 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.33 2004/01/09 15:47:28 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.34 2004/01/15 16:34:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -153,19 +153,31 @@ static int handleErr(void);
 /**
  * @brief Recv a message
  *
- * My version of recvfrom(), which restarts on EINTR.
- * EINTR is mostly caused by the interval timer. Receives a message from
- * @a sock and stores it to @a buf. The sender-address is stored in @a from.
+ * My version of recvfrom(), which restarts on EINTR.  EINTR is mostly
+ * caused by the interval timer. Receives a message from @a sock and
+ * stores it to @a buf. The sender-address is stored in @a from.
+ *
+ * On platforms supporting extended reliable error messages, these
+ * type of messages are handled upon occurence. This may result in a
+ * return value of 0 in the special case, where only such an extended
+ * message is pending without any other "normal" message.
  *
  * @param sock The socket to read from.
+ *
  * @param buf Buffer the message is stored to.
+ *
  * @param len Length of @a buf.
+ *
  * @param flags Flags passed to recvfrom().
+ *
  * @param from The address of the message-sender.
+ *
  * @param fromlen Length of @a from.
  *
- * @return On success, the number of bytes received is returned, or -1 if
- * an error occured.
+ * @return On success, the number of bytes received is returned, or -1
+ * if an error occured. Be aware of return values of 0 triggered by
+ * the special situation, where only a extended error message is
+ * pending on the socket.
  *
  * @see recvfrom(2)
  */
@@ -178,7 +190,8 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
     if (ret < 0) {
 	switch (errno) {
 	case EINTR:
-	    errlog("MYrecvfrom was interrupted !", 5);
+	    snprintf(errtxt, sizeof(errtxt), "%s was interrupted", __func__);
+	    errlog(errtxt, 5);
 	    goto restart;
 	    break;
 	case ECONNREFUSED:
@@ -190,7 +203,7 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
 	    /* Handle extended error */
 	    ret = handleErr();
 	    if (ret < 0) return ret;
-	    /* Is there another packet pending ? */
+	    /* Another packet pending ? */
 	select_cont:
 	    {
 		struct timeval tv = {.tv_sec = 0, .tv_usec = 0};
@@ -200,7 +213,7 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
 		FD_SET(sock, &fds);
 
 		ret = select(sock+1, &fds, NULL, NULL, &tv);
-		if (ret == -1) {
+		if (ret < 0) {
 		    if (errno == EINTR) {
 			/* Interrupted syscall, just start again */
 			ret = 0;
@@ -222,7 +235,7 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
 	default:
 	    snprintf(errtxt, sizeof(errtxt), "%s returns: %s", __func__,
 		     strerror(errno));
-	    errlog(errtxt, 1);
+	    errlog(errtxt, 0);
 	}
     }
     return ret;
@@ -236,11 +249,20 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
  * EINTR is mostly caused by the interval timer. Send a message stored in
  * @a buf via @a sock to address @a to.
  *
+ * On platforms supporting extended reliable error messages, these
+ * type of messages are handled upon occurence. This should not touch
+ * the sending of a message since automatic retries a triggered.
+ *
  * @param sock The socket to send to.
+ *
  * @param buf Buffer the message is stored in.
+ *
  * @param len Length of the message.
+ *
  * @param flags Flags passed to sendto().
+ *
  * @param to The address the message is send to.
+ *
  * @param tolen Length of @a to.
  *
  * @return On success, the number of bytes sent is returned, or -1 if an error
@@ -257,7 +279,8 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
     if (ret < 0) {
 	switch (errno) {
 	case EINTR:
-	    errlog("MYsendto was interrupted !", 5);
+	    snprintf(errtxt, sizeof(errtxt), "%s was interrupted", __func__);
+	    errlog(errtxt, 5);
 	    goto restart;
 	    break;
 	case ECONNREFUSED:
@@ -275,7 +298,7 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 	    break;
 #endif
 	default:
-	    snprintf(errtxt, sizeof(errtxt), "MYsendto to %s returns: %s",
+	    snprintf(errtxt, sizeof(errtxt), "%s to %s returns: %s", __func__,
 		     inet_ntoa(((struct sockaddr_in *)to)->sin_addr),
 		     strerror(errno));
 	    errlog(errtxt, 0);
@@ -733,7 +756,7 @@ static void putAckEnt(ackent *ap)
  * @brief Enqueue a message to the ACK list.
  *
  * Append a message to the list of messages waiting to be
- * ACKed. Therefore an ACK buffer is taken from the pool using
+ * ACKed. Therefor an ACK buffer is taken from the pool using
  * getAckEnt(), configured appropriately and appended to the list of
  * buffer waiting to be ACKed.
  *
@@ -1053,8 +1076,20 @@ static void closeConnection(int node)
 }
 
 /**
+ * @brief Resend pending message.
  *
- * @todo
+ * Resend the first pending message to node @a node. Pending messages
+ * will be resent, if the @ref RESEND_TIMEOUT since the last (re-)send
+ * has elapsed without receiving the corresponding ACK. If more than
+ * @ref RDPMaxRetransCount unsuccessful resends have been made, the
+ * corresponding packet will be discarded and the connection to node
+ * @a node will be declared dead.
+ *
+ * If no pending message to the requested node exists, nothing will be done.
+ *
+ * @param node The node, the pending message should be resent to.
+ *
+ * @return No return value.
  */
 static void resendMsgs(int node)
 {
@@ -1083,7 +1118,7 @@ static void resendMsgs(int node)
 		 "%s: Retransmission count exceeds limit"
 		 " [seqno=%x], closing connection to node %d",
 		 __func__, mp->msg.small->header.seqno, node);
-	errlog(errtxt, 0);
+	errlog(errtxt, (conntable[node].state != ACTIVE) ? 1 : 0);
 	closeConnection(node);
 	return;
     }
@@ -1131,14 +1166,32 @@ static void resendMsgs(int node)
 }
 
 /**
- * @brief Update state machine for a connection.
+ * @brief Update state machine.
  *
- * @todo
- * Update state machine for a connection
+ * Update the state of the connection to node @a node according to the
+ * information in the packet header @a hdr.
+ *
+ * The new state of the connection depends on the old state and the
+ * type of the packet received.
+ *
+ * Basically a connection undergoes one of two standard status
+ * histories: Either CLOSED -> SYN_SENT -> ACTIVE or CLOSED ->
+ * SYN_RECVD -> ACTIVE. But obviously depending on special incidents
+ * further status histories are possible, espacially if unexpected
+ * events happen.
+ *
+ * Furthermore depending on the old state of the connection and the
+ * type of packet received various actions like sending packets to the
+ * communication parnter might be attempted.
+ *
+ * @param hdr Packet header according to which the state is updated.
+ *
+ * @param node The node whose state is updated.
+ *
+ * @return No return value.
  */
-static int updateState(rdphdr *hdr, int node)
+static void updateState(rdphdr *hdr, int node)
 {
-    int retval = 0;
     Rconninfo *cp;
     cp = &conntable[node];
 
@@ -1161,7 +1214,6 @@ static int updateState(rdphdr *hdr, int node)
 		     " FE=%x", node, cp->frameExpected);
 	    errlog(errtxt, 8);
 	    sendSYNACK(node);
-	    retval = RDP_SYNACK;
 	    break;
 	case RDP_DATA:
 	    cp->state = SYN_SENT;
@@ -1170,7 +1222,6 @@ static int updateState(rdphdr *hdr, int node)
 		     " FE=%x", node, cp->frameExpected);
 	    errlog(errtxt, 8);
 	    sendSYNNACK(node, hdr->seqno);
-	    retval = RDP_SYNNACK;
 	    break;
 	default:
 	    cp->state = SYN_SENT;
@@ -1179,7 +1230,6 @@ static int updateState(rdphdr *hdr, int node)
 		     " FE=%x", node, cp->frameExpected);
 	    errlog(errtxt, 8);
 	    sendSYN(node);
-	    retval = RDP_SYN;
 	    break;
 	}
 	break;
@@ -1203,7 +1253,6 @@ static int updateState(rdphdr *hdr, int node)
 		     " FE=%x", node, cp->frameExpected);
 	    errlog(errtxt, 8);
 	    sendSYNACK(node);
-	    retval = RDP_SYNACK;
 	    break;
 	case RDP_SYNACK:
 	    cp->state = ACTIVE;
@@ -1217,10 +1266,8 @@ static int updateState(rdphdr *hdr, int node)
 		resendMsgs(node);
 		cp->frameToSend += cp->msgPending;
 		cp->msgPending = 0;
-		retval = RDP_DATA;
 	    } else {
 		sendACK(node);
-		retval = RDP_ACK;
 	    }
 	    if (RDPCallback) { /* inform daemon */
 		RDPCallback(RDP_NEW_CONNECTION, &node);
@@ -1232,7 +1279,6 @@ static int updateState(rdphdr *hdr, int node)
 		     cp->frameExpected);
 	    errlog(errtxt, 8);
 	    sendSYN(node);
-	    retval = RDP_SYN;
 	    break;
 	}
 	break;
@@ -1263,7 +1309,6 @@ static int updateState(rdphdr *hdr, int node)
 	    }
 	    errlog(errtxt, 8);
 	    sendSYNACK(node);
-	    retval = RDP_SYNACK;
 	    break;
 	case RDP_SYNACK:
 	    cp->frameExpected = hdr->seqno; /* Accept initial seqno */
@@ -1281,10 +1326,8 @@ static int updateState(rdphdr *hdr, int node)
 		resendMsgs(node);
 		cp->frameToSend += cp->msgPending;
 		cp->msgPending = 0;
-		retval = RDP_DATA;
 	    } else {
 		sendACK(node);
-		retval = RDP_ACK;
 	    }
 	    if (RDPCallback) { /* inform daemon */
 		errlog(errtxt, 8);
@@ -1298,7 +1341,6 @@ static int updateState(rdphdr *hdr, int node)
 		     " FE=%x", node, cp->frameExpected);
 	    errlog(errtxt, 8);
 	    sendSYN(node);
-	    retval = RDP_SYN;
 	    break;
 	}
 	break;
@@ -1322,7 +1364,6 @@ static int updateState(rdphdr *hdr, int node)
 			 " SYN_RECVD, FE=%x", node, cp->frameExpected);
 		errlog(errtxt, 8);
 		sendSYNACK(node);
-		retval = RDP_SYNACK;
 		break;
 	    case RDP_SYNACK:
 	        cp->state = SYN_RECVD;
@@ -1333,7 +1374,6 @@ static int updateState(rdphdr *hdr, int node)
 			 " SYN_RECVD, FE=%x", node, cp->frameExpected);
 		errlog(errtxt, 8);
 		sendSYN(node);
-		retval = RDP_SYN;
 		break;
 	    default:
 		break;
@@ -1349,7 +1389,6 @@ static int updateState(rdphdr *hdr, int node)
 			 " SYN_RECVD, FE=%x", node, cp->frameExpected);
 		errlog(errtxt, 8);
 		sendSYNACK(node);
-		retval = RDP_SYNACK;
 		break;
 	    default:
 		break;
@@ -1357,12 +1396,11 @@ static int updateState(rdphdr *hdr, int node)
 	}
 	break;
     default:
-	snprintf(errtxt, sizeof(errtxt),
-		 "invalid state for node %d in updateState()", node);
+	snprintf(errtxt, sizeof(errtxt), "%s: invalid state for node %d",
+		 __func__, node);
 	errlog(errtxt, 0);
 	break;
     }
-    return retval;
 }
 
 
@@ -1504,9 +1542,24 @@ static void handleTimeoutRDP(void)
 }
 
 /**
- * complete ack code
+ * @brief Handle piggyback ACK.
  *
- * @todo
+ * Handle the piggyback acknowledgment information contained in the
+ * header of @a hdr received from node @a fromnode.
+ *
+ * Besides an update of the corresponding counters and flags this also
+ * includes freeing the packets buffers of the messages which ACK was
+ * pending and is now received.
+ *
+ * Furthermore retransmissions on the communication partner node @a
+ * fromnode might be initiated by sending a NACK message.
+ *
+ * @param hdr The packet header with the ACK in
+ *
+ * @param fromnode The node @a hdr was received from and whose ACK
+ * information has to be updated.
+ *
+ * @return No return value.
  */
 static void doACK(rdphdr *hdr, int fromnode)
 {
@@ -1597,8 +1650,17 @@ static void doACK(rdphdr *hdr, int fromnode)
 }
 
 /**
+ * @brief Handle control packets.
  *
- * @todo
+ * Handle the control packet @a hdr received from node @a
+ * node. Control packets within RDP are all packets except the ones of
+ * type RDP_DATA.
+ *
+ * @param hdr The control packet received.
+ *
+ * @param node The node the packet was received from.
+ *
+ * @return No return value.
  */
 static void handleControlPacket(rdphdr *hdr, int node)
 {
@@ -1636,15 +1698,26 @@ static void handleControlPacket(rdphdr *hdr, int node)
 	updateState(hdr, node);
 	break;
     default:
-	errlog("handleControlPacket: deleting unknown msg", 0);
+	snprintf(errtxt, sizeof(errtxt), "%s: deleting unknown msg", __func__);
+	errlog(errtxt, 0);
 	break;
     }
     return;
 }
 
 /**
+ * @brief Handle extended reliable error message.
  *
- * @todo
+ * Handle extended reliable error messages. Thus the message is
+ * received from the corresponding error queue and handled
+ * appropriately. As a result corresponding connections within RDP
+ * might be closed depending on the error message received.
+ *
+ * @return If the error message could be handled, 0 is
+ * returned. Otherwise, i.e. when something went wrong, -1 is
+ * passed to the calling function.
+ *
+ * @see cmsg(3), IP(7)
  */
 static int handleErr(void)
 {
@@ -1741,6 +1814,13 @@ static int handleErr(void)
     }
 
     node = lookupIPTable(sinp->sin_addr);
+    if (node < 0) {
+	snprintf(errtxt, sizeof(errtxt), "%s: unable to resolve %s", __func__,
+		 inet_ntoa(sinp->sin_addr));
+	errlog(errtxt, 0);
+	errno = ELNRNG;
+	return -1;
+    }
 
     switch (handleErrno) {
     case ECONNREFUSED:
@@ -1770,15 +1850,33 @@ static int handleErr(void)
 /**
  * @brief Handle RDP message.
  *
- * Peek into a RDP message pending on @a fd. If it is a DATA message,
- * @todo
- * such that one get's a overview over the state of the cluster.
+ * Peek into a RDP message pending on @a fd. Depening on the type of
+ * the message it is either fully handled within this function or a
+ * return value of 1 signals the calling function, that a RDP_DATA
+ * message is now pending on the RDP socket.
  *
- * @param fd The file-descriptor from which the ping message is read.
+ * Handling of the packet includes -- besides consistency checks --
+ * processing of the acknowledgment information comming within the
+ * packet header.
  *
- * @return On success, 0 is returned, or -1 if an error occurred.
+ * If the @ref RDPPktLoss parameter of the RDP protocol is different
+ * from 0, the artificial packet loss (implemented for debugging
+ * purposes) is also realized within this function. This will result
+ * in randomly lost packets testing the resent capabilities of the
+ * protocol.
  *
- * select call which handles RDP packets
+ * This function is intended to be passed as a handler function to the
+ * selector facility. Thus this function is called every time a
+ * message is pending on the socket used for realizing the RDP
+ * protocol.
+ *
+ * @param fd The file-descriptor on which a RDP message is pending.
+ *
+ * @return If an error occurs, -1 is returned. Otherwise the return
+ * value depends on the type of message pending. If it is a control
+ * message and can thus be handled completely within this function, 0
+ * is passed to the calling function. If a RDP_DATA message containing
+ * payload data was pending, 1 is returned.
  */
 static int handleRDP(int fd)
 {
@@ -1806,9 +1904,14 @@ static int handleRDP(int fd)
 	    /* really get the msg */
 	    if (MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
 			   (struct sockaddr *) &sin, &slen)<0) {
-		snprintf(errtxt, sizeof(errtxt), "%s: recvfrom() returns: %s",
+		snprintf(errtxt, sizeof(errtxt),
+			 "%s/PKTLOSS: recvfrom() returns: %s",
 			 __func__, strerror(errno));
 		errexit(errtxt, errno);
+	    } else if (!ret) {
+		snprintf(errtxt, sizeof(errtxt),
+			 "%s/PKTLOSS: got 0 from recvfrom()", __func__);
+		errlog(errtxt, 0);
 	    }
 
 	    /* Throw it away */
@@ -1817,21 +1920,47 @@ static int handleRDP(int fd)
     }
 
     fromnode = lookupIPTable(sin.sin_addr);     /* lookup node */
+    if (fromnode < 0) {
+	snprintf(errtxt, sizeof(errtxt), "%s: unable to resolve %s", __func__,
+		 inet_ntoa(sin.sin_addr));
+	errlog(errtxt, 0);
+
+	/* really get the msg */
+	if (MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
+		       (struct sockaddr *) &sin, &slen)<0) {
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s/ELNRNG: recvfrom() returns: %s",
+		     __func__, strerror(errno));
+	    errexit(errtxt, errno);
+	} else if (!ret) {
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s/ELNRNG: got 0 from recvfrom()", __func__);
+	    errlog(errtxt, 0);
+	}
+
+	errno = ELNRNG;
+	return -1;
+    }
 
     if (msg.header.type != RDP_DATA) {
 	/* This is a control message */
 
 	/* really get the msg */
-	if (MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
-		       (struct sockaddr *) &sin, &slen)<0) {
-	    snprintf(errtxt, sizeof(errtxt), "%s: recvfrom() returns: %s",
+	ret = MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
+			 (struct sockaddr *) &sin, &slen);
+	if (ret < 0) {
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s/CCTRL: recvfrom() returns: %s",
 		     __func__, strerror(errno));
 	    errexit(errtxt, errno);
+	} else if (!ret) {
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s/CCTRL: got 0 from recvfrom()", __func__);
+	    errlog(errtxt, 0);
+	} else {
+	    /* process it */
+	    handleControlPacket(&msg.header, fromnode);
 	}
-
-	/* process it */
-	handleControlPacket(&msg.header, fromnode);
-
 	return 0;
     }
 
@@ -1839,20 +1968,26 @@ static int handleRDP(int fd)
     if (RSEQCMP(msg.header.seqno, conntable[fromnode].frameExpected)) {
 	/* Wrong seq */
 	slen = sizeof(sin);
-	if (MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
-		       (struct sockaddr *) &sin, &slen)<0) {
+	ret = MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
+			 (struct sockaddr *) &sin, &slen);
+
+	if (ret < 0) {
 	    snprintf(errtxt, sizeof(errtxt), "%s/CDTA: recvfrom() returns: %s",
 		     __func__, strerror(errno));
 	    errexit(errtxt, errno);
+	} else if (!ret) {
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s/CDTA: got 0 from recvfrom()", __func__);
+	    errlog(errtxt, 0);
+	} else {
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: Check DATA from %d (seq=%x, FE=%x)", __func__,
+		     fromnode, msg.header.seqno,
+		     conntable[fromnode].frameExpected);
+	    errlog(errtxt, 6);
+
+	    doACK(&msg.header, fromnode);
 	}
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: Check DATA from %d (seq=%x, FE=%x)",
-		 __func__, fromnode, msg.header.seqno,
-		 conntable[fromnode].frameExpected);
-	errlog(errtxt, 6);
-
-	doACK(&msg.header, fromnode);
-
 	return 0;
     }
 
@@ -2132,12 +2267,24 @@ int Rrecvfrom(int *node, void *msg, size_t len)
 
     slen = sizeof(sin);
     /* get pending msg */
-    if ((retval = MYrecvfrom(rdpsock, &msgbuf, sizeof(msgbuf), 0,
-			      (struct sockaddr *)&sin, &slen)) < 0) {
+    retval = MYrecvfrom(rdpsock, &msgbuf, sizeof(msgbuf), 0,
+			(struct sockaddr *)&sin, &slen);
+
+    if (retval < 0) {
 	errexit("Rrecvfrom(): recvfrom()", errno);
+    } else if (!retval) {
+	errlog(__func__": got 0 from MYrecvfrom()", 0);
+	return 0;
     }
 
     fromnode = lookupIPTable(sin.sin_addr);        /* lookup node */
+    if (fromnode < 0) {
+	snprintf(errtxt, sizeof(errtxt), "%s: unable to resolve %s", __func__,
+		 inet_ntoa(sin.sin_addr));
+	errlog(errtxt, 0);
+	errno = ELNRNG;
+	return -1;
+    }
 
     if (msgbuf.header.type != RDP_DATA) {
 	snprintf(errtxt, sizeof(errtxt), "%s: not RDP_DATA [%d] from node %d",
@@ -2195,6 +2342,11 @@ int Rrecvfrom(int *node, void *msg, size_t len)
 	*node = fromnode;
     } else {
 	/* WrongSeqNo Received */
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: wrong sequence from node %d: FE %x SEQ %x",
+		 __func__, fromnode,
+		 conntable[fromnode].frameExpected, msgbuf.header.seqno);
+	errlog(errtxt, 0);
 	*node = -1;
 	errno = EAGAIN;
 	return -1;
