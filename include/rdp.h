@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.h,v 1.10 2002/01/31 12:00:58 eicker Exp $
+ * $Id: rdp.h,v 1.11 2002/02/01 16:37:07 eicker Exp $
  *
  */
 /**
  * @file
  * Reliable Datagram Protocol for ParaStation daemon
  *
- * $Id: rdp.h,v 1.10 2002/01/31 12:00:58 eicker Exp $
+ * $Id: rdp.h,v 1.11 2002/02/01 16:37:07 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -28,21 +28,32 @@ extern "C" {
 #endif
 #endif
 
-/** @todo Create docu */
+/**
+ * Information container for callback of type @ref RDP_PKT_UNDELIVERABLE.
+ */
 typedef struct {
-    int dst;
-    void *buf;
-    int buflen;
+    int dst;     /**< The destination of the canceled message */
+    void *buf;   /**< The payload of the canceled message */
+    int buflen;  /**< The payload's length */
 } RDPDeadbuf;
 
 
-/** Tag to @ref RDPCallback: New connection detected */
+/**
+ * Tag for RDPCallback(): New connection detected. The second argument
+ * of RDPCallback() will point to a int holding the number of the connecting
+ * node.
+ */
 #define RDP_NEW_CONNECTION	0x1
-/** Tag to @ref RDPCallback: Connection lost */
+/**
+ * Tag for RDPCallback(): Connection lost. The second argument of RDPCallback()
+ * will point to a int holding the number of the lost node.
+ */
 #define RDP_LOST_CONNECTION	0x2
 /**
- * Tag to @ref RDPCallback: Cannot deliver packet. Usually followed by
- * @ref RDP_LOST_CONNECTION.
+ * Tag for RDPCallback(): Cannot deliver packet. The second argument points
+ * to a structure of type @ref RDPDeadbuf holding the information about the
+ * canceled message. A callback of this type is usually followed by one of
+ * type @ref RDP_LOST_CONNECTION.
  */
 #define RDP_PKT_UNDELIVERABLE	0x3
 
@@ -57,6 +68,11 @@ typedef struct {
  * participating nodes in network-byteorder.
  * @param callback Pointer to a callback-function. This function is called if
  * something exceptional happens. If NULL, no callbacks will be done.
+ * The callback function is expected to accept two arguments. The first one,
+ * a int, marks the type of information passed to the calling process.
+ * It will be set to one of @ref RDP_NEW_CONNECTION, @ref RDP_LOST_CONNECTION
+ * or @ref RDP_PKT_UNDELIVERABLE. The second argument points to further
+ * information depending on the type of the callback.
  *
  * @return On success, the filedescriptor of the RDP socket is returned.
  * On error, exit() is called within this function.
@@ -72,6 +88,67 @@ int initRDP(int nodes, int usesyslog, unsigned int hosts[],
  * @return No return value.
  */
 void exitRDP(void);
+
+/**
+ * @brief Query the debug-level.
+ *
+ * Get the debug-level of the RDP module.
+ *
+ * @return The actual debug-level is returned.
+ *
+ * @see setDebugLevelRDP()
+ */
+int getDebugLevelRDP(void);
+
+/**
+ * @brief Set the debug-level.
+ *
+ * Set the debug-level of the RDP module. Posible values are:
+ *  - 0: Critical errors (usually exit).
+ *  - 2: Basic info about initialization.
+ *  - 4: More detailed info about initialization, i.e. from initConntableRDP().
+ *  - 5: Info about interrupted syscalls.
+ *  - 6: Info about dropping and resequencing of messages.
+ *  - 8: Info about control messages and state changes.
+ *  -10: Info about extended reliable error messages on linux.
+ *  -12: Info about sending and receiving of data.
+ *  -14: Info about resending and acknowledging.
+ *
+ * @param level The debug-level to set
+ *
+ * @return No return value.
+ *
+ * @see getDebugLevelRDP()
+ */
+void setDebugLevelRDP(int level);
+
+/**
+ * @brief Get RDP maximum retransmission count.
+ *
+ * Get the maximum retransmission count of the RDP module. After @a count
+ * consecutively failed retries to send a RDP message, the receiving node
+ * is declared to be dead.
+ *
+ * @return The actual maximum retransmission count is returned.
+ *
+ * @see setMaxRetransRDP()
+ */
+int getMaxRetransRDP(void);
+
+/**
+ * @brief Set RDP maximum retransmission count.
+ *
+ * Set the maximum retransmission count of the RDP module. After @a count
+ * consecutively failed retries to send a RDP message, the receiving node
+ * is declared to be dead.
+ *
+ * @param count The maximum retransmission count to be set.
+ *
+ * @return No return value.
+ *
+ * @see getMaxRetransRDP()
+ */
+void setMaxRetransRDP(int count);
 
 /**
  * @brief Send a RDP packet.
@@ -105,32 +182,6 @@ int Rsendto(int node, void *buf, int len);
  * @see recvfrom(2)
  */
 int Rrecvfrom(int *node, void *buf, int len);
-
-/**
- * @brief Query the debug-level.
- *
- * Get the debug-level of the RDP module.
- *
- * @return The actual debug-level is returned.
- *
- * @see setDebugLevelRDP()
- */
-int getDebugLevelRDP(void);
-
-/**
- * @brief Set the debug-level.
- *
- * Set the debug-level of the RDP module. Posible values are:
- *  - 0: Critical errors (usually exit)
- *  - 1: .... @todo More levels to add.
- *
- * @param level The debug-level to set
- *
- * @return No return value.
- *
- * @see getDebugLevelRDP()
- */
-void setDebugLevelRDP(int level);
 
 /**
  * @brief Get status info.
