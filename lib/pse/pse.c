@@ -103,8 +103,6 @@ void PSEinit(int NP, int Argc, char** Argv,
 	*rank = s_nPSE_MyWorldRank = PSI_myrank;
 	*masternode = PSI_masternode;
 	*masterport = PSI_masterport;
-	printf("My rank is %d (masternode=%d, masterport=%d)\n",
-	       *rank, *masternode, *masterport);
 	fflush(stdout);
 
 	/* send a my task identifier to the parent so it will know my
