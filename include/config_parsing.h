@@ -1,18 +1,18 @@
 /*
  *               ParaStation3
- * parse.h
+ * config_parsing.h
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.h,v 1.3 2002/07/03 20:04:08 eicker Exp $
+ * $Id: config_parsing.h,v 1.4 2002/07/03 21:14:26 eicker Exp $
  *
  */
 /**
  * \file
- * parse: Parser for ParaStation daemon
+ * parse: Parser for the config file of the ParaStation daemon
  *
- * $Id: config_parsing.h,v 1.3 2002/07/03 20:04:08 eicker Exp $
+ * $Id: config_parsing.h,v 1.4 2002/07/03 21:14:26 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>

@@ -1,15 +1,15 @@
 /*
  *               ParaStation3
- * parser.c
+ * config_parsing.c
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.4 2002/07/03 21:10:06 eicker Exp $
+ * $Id: config_parsing.c,v 1.5 2002/07/03 21:14:17 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.4 2002/07/03 21:10:06 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.5 2002/07/03 21:14:17 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
