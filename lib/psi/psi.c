@@ -1,17 +1,18 @@
 /*
+ *               ParaStation3
+ * psi.c
  *
- *      @(#)psi.c    1.00 (Karlsruhe) 03/11/97
+ * Copyright (C) ParTec AG Karlsruhe
+ * All rights reserved.
  *
- *      written by Joachim Blum
+ * $Id: psi.c,v 1.17 2002/01/18 15:59:29 eicker Exp $
  *
- *
- * This is the key module for the ParaStationInterface.
- *
- *  History
- *
- *   991227 Joe changed to new Daemon-Daemon protocol
- *   970311 Joe Creation: used psp.h and changed some things
  */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.10 2002/01/18 15
+:54:22 eicker Exp $";
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -51,7 +52,7 @@ enum TaskOptions PSI_mychildoptions = TaskOption_SENDSTDHEADER;
 
 /****************************************
 *  PSI_getpid()
-*  returns the value of the local PID of the OS. The TID of a Task in the 
+*  returns the value of the local PID of the OS. The TID of a Task in the
 *  Cluster is a combination of the Node number and the local pid
 *  on the node.
 */
@@ -63,11 +64,11 @@ PSI_getpid(long tid)
 
 /****************************************
 *  PSI_getnode()
-*  return the value of the node number of a TID. The TID of a Task in the 
+*  return the value of the node number of a TID. The TID of a Task in the
 *  Cluster is a combination of the Node number and the local pid
 *  on the node.
 */
-unsigned short 
+unsigned short
 PSI_getnode(long tid)
 {
     if(tid>=0)
@@ -89,11 +90,11 @@ PSI_getnrofnodes()
 /****************************************
 *  PSI_gettid()
 *  returns the TID. This is necessary to have unique Task Identifiers in
-*  the cluster .The TID of a Task in the Cluster is a combination 
+*  the cluster .The TID of a Task in the Cluster is a combination
 *  of the Node number and the local pid on the node.
 *  If node=-1 the local nodenr is used
 */
-long 
+long
 PSI_gettid(short node, pid_t pid)
 {
     if(node<0)
@@ -121,7 +122,7 @@ int PSI_setoption(long option,char value)
  *
  *       starts the daemon via the inetd
  */
-int 
+int
 PSI_startdaemon(u_long hostaddr)
 {
     int sock;
@@ -138,22 +139,22 @@ PSI_startdaemon(u_long hostaddr)
      */
     sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-    if ((service = getservbyname("psid","tcp")) == NULL){ 
-	fprintf(stderr, "can't get \"psid\" service entry\n"); 
-	shutdown(sock,2);
-	close(sock);
-	return 0; 
-    }
-    memset(&sa, 0, sizeof(sa)); 
-    sa.sin_family = AF_INET; 
-    sa.sin_addr.s_addr = hostaddr;
-    sa.sin_port = service->s_port;
-    if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0){ 
-	perror("PSI daemon connect for start with inetd."); 
+    if ((service = getservbyname("psid","tcp")) == NULL){
+	fprintf(stderr, "can't get \"psid\" service entry\n");
 	shutdown(sock,2);
 	close(sock);
 	return 0;
-    } 
+    }
+    memset(&sa, 0, sizeof(sa));
+    sa.sin_family = AF_INET;
+    sa.sin_addr.s_addr = hostaddr;
+    sa.sin_port = service->s_port;
+    if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0){
+	perror("PSI daemon connect for start with inetd.");
+	shutdown(sock,2);
+	close(sock);
+	return 0;
+    }
     usleep(200000);
     shutdown(sock,2);
     close(sock);
@@ -181,21 +182,21 @@ PSI_daemonsocket(u_long hostaddr)
     if(sock <0)
 	return -1;
 
-    if ((service = getservbyname("psids","tcp")) == NULL){ 
-	fprintf(stderr, "can't get \"psids\" service entry\n"); 
+    if ((service = getservbyname("psids","tcp")) == NULL){
+	fprintf(stderr, "can't get \"psids\" service entry\n");
 	shutdown(sock,2);
 	close(sock);
-	return -1; 
+	return -1;
     }
-    memset(&sa, 0, sizeof(sa)); 
-    sa.sin_family = AF_INET; 
+    memset(&sa, 0, sizeof(sa));
+    sa.sin_family = AF_INET;
     sa.sin_addr.s_addr = hostaddr;
     sa.sin_port = service->s_port;
 
-    if(connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0){ 
+    if(connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0){
 	shutdown(sock,2);
-	close(sock); 
-	return -1; 
+	close(sock);
+	return -1;
     }
 
     return sock;
@@ -208,7 +209,7 @@ PSI_daemonsocket(u_long hostaddr)
  *       This socket is necessary for the daemon to handle this process
  *       RETURN TRUE on success, FALSE otherwise
  */
-static int 
+static int
 PSI_daemon_connect(u_short protocol, u_long hostaddr)
 {
     DDInitMsg_t msg;
@@ -233,15 +234,15 @@ PSI_daemon_connect(u_short protocol, u_long hostaddr)
 
  RETRY_CONNECT:
 
-    while((PSI_msock=PSI_daemonsocket(hostaddr))==-1){ 
+    while((PSI_msock=PSI_daemonsocket(hostaddr))==-1){
 	/*
 	 * start the PSI Daemon via inetd
 	 */
 	if(connectfailes++ < 10){
 	    PSI_startdaemon(hostaddr);
 	}else{
-	    perror("PSI daemon connect failed finally"); 
-	    return 0; 
+	    perror("PSI daemon connect failed finally");
+	    return 0;
 	}
     }
 
@@ -268,7 +269,7 @@ PSI_daemon_connect(u_short protocol, u_long hostaddr)
 	errtxt=strerror(errno);
 	if(ret==0)
 	    fprintf(stderr,"PSI_daemon_connect(): unexpected "
-		    "return message length (%d).\n", ret);	 
+		    "return message length (%d).\n", ret);
 	else
 	    fprintf(stderr,"PSI_daemon_connect(): error while "
 		    "receiving return message (%d): %s\n",
@@ -282,7 +283,7 @@ PSI_daemon_connect(u_short protocol, u_long hostaddr)
 	close(PSI_msock);
 	PSI_msock =-1;
 	if(retry_count <10){
-	    sleep(1);	    
+	    sleep(1);
 	    goto RETRY_CONNECT;
 	}
 	fprintf(stderr,"PSI_daemon_connect(): Daemon is in a state"
@@ -295,7 +296,7 @@ PSI_daemon_connect(u_short protocol, u_long hostaddr)
 	PSI_msock =-1;
 	if((protocol!=TG_RESET)&&(protocol!=TG_RESETABORT))
 	    fprintf(stderr,"PSI_daemon_connect(): "
-		    "local daemon refused connection.\n");	 
+		    "local daemon refused connection.\n");
 	return 0;
 	break;
     case PSP_CD_NOSPACE :
@@ -303,7 +304,7 @@ PSI_daemon_connect(u_short protocol, u_long hostaddr)
 	close(PSI_msock);
 	PSI_msock =-1;
 	fprintf(stderr,"PSI_daemon_connect(): "
-		"local Shared Memory doesn't have space available\n");	 
+		"local Shared Memory doesn't have space available\n");
 	return 0;
 	break;
     case PSP_CD_UIDLIMIT :
@@ -329,7 +330,7 @@ PSI_daemon_connect(u_short protocol, u_long hostaddr)
 	fprintf(stderr,"PSI_daemon_connect(): "
 		"local daemon(version %ld) doesn't support this "
 		"library version (revision %d). Pleases relink the program.\n",
-		msg.version,PSPprotocolversion );	 
+		msg.version,PSPprotocolversion );
 	return 0;
 	break;
     case PSP_CD_CLIENTESTABLISHED :
@@ -406,7 +407,7 @@ PSI_clientinit(u_short protocol)
     INFO_request_hoststatus(PSI_hoststatus, PSI_nrofnodes);
 
     /* check if the environment variable PSI_EXPORT is set.
-     * If it is set, then take the environment variables 
+     * If it is set, then take the environment variables
      * mentioned there into the PSI_environment
      */
     if((envstrvalue=getenv("PSI_EXPORTS"))!=NULL){
@@ -467,12 +468,12 @@ PSI_clientexit(void)
 }
 
 /*----------------------------------------------------------------------*/
-/* 
+/*
  * PSI_notifydead()
- *  
+ *
  *  PSI_notifydead requests the signal sig, when the child with task
  *  identifier tid dies.
- *  
+ *
  * PARAMETERS
  *  tid: the task identifier of the child whose death shall be signaled to you
  *  sig: the signal which should be sent to you when the child dies
@@ -539,12 +540,12 @@ int PSI_release(long tid)
 }
 
 /*----------------------------------------------------------------------*/
-/* 
+/*
  * PSI_whodied()
- *  
- *  PSI_whodied asks the ParaStation system which child's death caused the 
+ *
+ *  PSI_whodied asks the ParaStation system which child's death caused the
  *  last signal to be delivered to you.
- *  
+ *
  * PARAMETERS
  * RETURN  0 on success
  *         -1 on error
@@ -571,11 +572,11 @@ long PSI_whodied(int sig)
 }
 
 /*----------------------------------------------------------------------*/
-/* 
+/*
  * PSI_getload()
- *  
+ *
  *  PSI_getload asks the ParaStation system of the load for a given node.
- *  
+ *
  * PARAMETERS
  *         nodenr the number of the node to be asked.
  * RETURN  the load of the given node
