@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidtask.c,v 1.10 2003/10/23 16:27:35 eicker Exp $
+ * $Id: psidtask.c,v 1.11 2003/12/19 14:29:49 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.10 2003/10/23 16:27:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.11 2003/12/19 14:29:49 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -21,10 +21,10 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.10 2003/10/2
 
 #include "pstask.h"
 #include "pscommon.h"
-#include "mcast.h"
 
 #include "psidutil.h"
 #include "psidsignal.h"
+#include "psidstatus.h"
 
 #include "psidtask.h"
 
@@ -219,9 +219,9 @@ void PStask_cleanup(PStask_ID_t tid)
 	    PSID_sendSignalsToRelatives(task);
 	}
 
-	/* Tell MCast about removing the task */
+	/* Tell status facility about removing the task */
 	if (!task->duplicate) {
-	    decJobsMCast(PSC_getMyID(), 1, (task->group==TG_ANY));
+	    decJobs(1, (task->group==TG_ANY));
 	}
 
 	if (task->group==TG_FORWARDER && !task->released) {
