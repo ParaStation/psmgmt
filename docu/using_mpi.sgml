@@ -324,7 +324,7 @@
     </para>
     <variablelist>
       <varlistentry>
-	<term>MPID_PSP_MAXSMALLMSG</term>
+	<term><envar>MPID_PSP_MAXSMALLMSG</envar></term>
 	<listitem>
 	  <para>The ADI supplied by &ps; which is used within MPIch to actually
 	    send data to a different node uses two distinct protocols depending
