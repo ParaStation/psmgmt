@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.5 2002/10/24 10:40:15 eicker Exp $
+# $Id: Makefile.in,v 1.6 2002/10/31 14:09:57 eicker Exp $
 #
 # @author
 #         Norbert Eicker <eicker@par-tec.de>
@@ -34,7 +34,8 @@ ADMINMAN8 = man8/psid.8 man8/psld.8 man8/psroute.8 man8/psscan.8
 ADMINMANS = $(ADMINMAN1) $(ADMINMAN5) $(ADMINMAN8)
 
 ADMINDEPS = infoblurb.sgml intro.sgml intro_admin.sgml
-ADMINDEPS += install.sgml config.sgml pvfs.sgml glossary.sgml
+ADMINDEPS += install.sgml config.sgml pvfs.sgml quick_install.sgml
+ADMINDEPS += glossary.sgml
 ADMINDEPS += $(patsubst man1/%.1,%.sgml,$(ADMINMAN1))
 ADMINDEPS += $(patsubst man5/%.5,%.sgml,$(ADMINMAN5))
 ADMINDEPS += $(patsubst man8/%.8,%.sgml,$(ADMINMAN8)) boolargs.sgml
@@ -45,7 +46,8 @@ USERMAN7 = man7/ps_environment.7 man7/spawning.7
 USERMANS = $(USERMAN1) $(USERMAN7)
 
 USERDEPS = infoblurb.sgml intro.sgml intro_user.sgml 
-USERDEPS += startup.sgml using_mpi.sgml building.sgml glossary.sgml
+USERDEPS += overview.sgml startup.sgml using_mpi.sgml building.sgml
+USERDEPS += glossary.sgml
 USERDEPS += $(patsubst man1/%.1,%.sgml,$(USERMAN1))
 USERDEPS += $(patsubst man7/%.7,%.sgml,$(USERMAN7))
 
@@ -120,7 +122,17 @@ $(patsubst %,man/%,$(USERMANS)): $(USERDEPS)
 #
 # Rules to create the PDF files
 #
-PDF: validate dirs $(patsubst %,pdf/%.pdf,$(TARGETS))
+PDF: validate dirs $(patsubst %,pdf/%.pdf,$(TARGETS)) # pdf/admin2.pdf
+
+# First create the tex file
+pdf/%.tex: %.xml $(STYLESHEETDIR)/pdf.dsl
+	@db2tex -o -s $(STYLESHEETDIR)/pdf.dsl $<; \
+	mv $(patsubst %.xml,%.tex,$(<)) $@
+
+# First create the tex file
+pdf/admin2.tex: adminguide.xml $(STYLESHEETDIR)/pdf_full.dsl
+	@db2tex -o -s $(STYLESHEETDIR)/pdf_full.dsl $<; \
+	mv $(patsubst %.xml,%.tex,$(<)) $@
 
 # First create the tex file
 pdf/%.tex: %.xml $(STYLESHEETDIR)/pdf.dsl
