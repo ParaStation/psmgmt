@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.h,v 1.13 2002/07/26 15:23:01 eicker Exp $
+ * $Id: info.h,v 1.14 2003/02/13 17:06:30 eicker Exp $
  *
  */
 /**
  * @file
  * info: Functions for information retrieving from ParaStation daemon
  *
- * $Id: info.h,v 1.13 2002/07/26 15:23:01 eicker Exp $
+ * $Id: info.h,v 1.14 2003/02/13 17:06:30 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -110,7 +110,7 @@ typedef struct {
  * Gibt Anzahl der tasks zurück.
  *
  */
-int INFO_request_tasklist(int nodeno, INFO_taskinfo_t taskinfo[], int size,
+int INFO_request_tasklist(int nodeno, INFO_taskinfo_t taskinfo[], size_t size,
 			  int verbose);
 
 
