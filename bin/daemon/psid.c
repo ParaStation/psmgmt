@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.101 2003/07/18 14:43:09 eicker Exp $
+ * $Id: psid.c,v 1.102 2003/07/22 18:31:53 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.101 2003/07/18 14:43:09 eicker Exp $ 
+ * $Id: psid.c,v 1.102 2003/07/22 18:31:53 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.101 2003/07/18 14:43:09 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.102 2003/07/22 18:31:53 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -78,7 +78,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.101 $";
+static char psid_cvsid[] = "$Revision: 1.102 $";
 
 static int PSID_mastersock;
 
@@ -1874,14 +1874,14 @@ void msg_RELEASE(DDSignalMsg_t *msg)
 	    msg->param = 0;
 	}
     } else if (PSC_getID(tid) == PSC_getMyID()) {
-	/* sending task is local */
+	/* receiving task (task to release) is local */
 	msg->header.type = PSP_CD_RELEASERES;
 	msg->header.dest = msg->header.sender;
 	msg->header.sender = tid;
 	// msg->header.len = sizeof(*msg);
 	msg->param = releaseSignal(tid, registrarTid, msg->signal);
     } else {
-	/* sending task is remote, send a message */
+	/* receiving task (task to release) is remote, send a message */
 	snprintf(errtxt, sizeof(errtxt), "%s: forwarding to node %d", __func__,
 		 PSC_getID(tid));
 	PSID_errlog(errtxt, 1);
@@ -2600,7 +2600,7 @@ void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.101 $";
+    char revision[] = "$Revision: 1.102 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
