@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.93 2003/06/18 17:12:05 eicker Exp $
+ * $Id: psid.c,v 1.94 2003/06/18 17:53:46 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.93 2003/06/18 17:12:05 eicker Exp $ 
+ * $Id: psid.c,v 1.94 2003/06/18 17:53:46 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.93 2003/06/18 17:12:05 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.94 2003/06/18 17:53:46 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -78,7 +78,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.93 $";
+static char psid_cvsid[] = "$Revision: 1.94 $";
 
 static int PSID_mastersock;
 
@@ -1594,7 +1594,6 @@ void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
     long tid = msg->header.dest;
 
     PStask_t *task;
-    DDSignalMsg_t answer;
 
     snprintf(errtxt, sizeof(errtxt), "%s: sender=%s", __func__,
 	     PSC_printTID(registrarTid));
@@ -1662,7 +1661,10 @@ void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 		msg->param = ESRCH; /* failure */
 	    }
 	} else {
-	    /* task is on remote node */
+	    /* task is on remote node, undo changes in msg */
+	    msg->header.type = PSP_CD_NOTIFYDEAD;
+	    msg->header.sender = registrarTid;
+	    msg->header.dest = tid;
 	    snprintf(errtxt, sizeof(errtxt), "%s: forwarding to node %d",
 		     __func__, PSC_getID(tid));
 	    PSID_errlog(errtxt, 1);
@@ -1717,7 +1719,7 @@ static int releaseSignal(long tid, long receiverTid, int signal)
 {
     PStask_t *task;
 
-    snprintf(errtxt, sizeof(errtxt), "releaseSignal(): sig %d to %s",
+    snprintf(errtxt, sizeof(errtxt), "%s: sig %d to %s", __func__,
 	     signal, PSC_printTID(receiverTid));
     snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt), " from %s",
 	     PSC_printTID(tid));
@@ -2597,7 +2599,7 @@ void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.93 $";
+    char revision[] = "$Revision: 1.94 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
