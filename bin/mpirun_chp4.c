@@ -5,20 +5,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mpirun_chp4.c,v 1.1 2003/02/14 16:30:37 eicker Exp $
+ * $Id: mpirun_chp4.c,v 1.2 2003/02/17 11:03:48 eicker Exp $
  *
  */
 /**
  * @file Replacement for the standard mpirun command provided by MPIch in order
  * to start MPIch/P4 application within a ParaStation cluster.
  *
- * $Id: mpirun_chp4.c,v 1.1 2003/02/14 16:30:37 eicker Exp $
+ * $Id: mpirun_chp4.c,v 1.2 2003/02/17 11:03:48 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chp4.c,v 1.1 2003/02/14 16:30:37 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chp4.c,v 1.2 2003/02/17 11:03:48 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -31,6 +31,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chp4.c,v 1.1 2003/02
 #include <pse.h>
 #include <psi.h>
 #include <psispawn.h>
+#include <psienv.h>
 #include <pscommon.h>
 
 /*
@@ -38,7 +39,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chp4.c,v 1.1 2003/02
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.1 $";
+    char revision[] = "$Revision: 1.2 $";
     fprintf(stderr, "mpirun_chp4 %s\b \n", revision+11);
 }
 
@@ -208,7 +209,7 @@ int main(int argc, const char *argv[])
     dup_argc = argc - dup_argc + 4;
 
     /* @todo No absolute paths ! */
-    setenv("P4_RSHCOMMAND", "/opt/parastation/bin/psispawner", 1);
+    setPSIEnv("P4_RSHCOMMAND", "/opt/parastation/bin/psispawner", 1);
 
     {
 	/* spawn master process (we are going to be logger) */
