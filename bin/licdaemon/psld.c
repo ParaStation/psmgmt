@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.28 2002/07/31 11:32:22 eicker Exp $
+ * $Id: psld.c,v 1.29 2002/08/07 09:31:28 eicker Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Daemon
  *
- * $Id: psld.c,v 1.28 2002/07/31 11:32:22 eicker Exp $
+ * $Id: psld.c,v 1.29 2002/08/07 09:31:28 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.28 2002/07/31 11:32:22 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.29 2002/08/07 09:31:28 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -38,6 +38,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.28 2002/07/31 11
 #include <fcntl.h>
 #include <signal.h>
 #include <time.h>
+#include <popt.h>
 
 #include <netdb.h>
 
@@ -50,7 +51,6 @@ static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.28 2002/07/31 11
 /* magic license check */
 #include "../license/pslic_hidden.h"
 
-static int usesyslog = 1;  /* flag if syslog is used */
 static int loglevel = 0;   /* the default logging level */
 
 static int stopDaemon = 0; /* flag to stop the license-daemon */
@@ -65,10 +65,6 @@ char *PIDFILE = DEFAULT_PIDFILE;
  */
 
 static char errtxt[255];
-
-void IpNodesEndFromLicense(char* licensekey, unsigned int* IP, long* nodes,
-			   unsigned long* start, unsigned long* end,
-			   long* version);
 
 typedef struct iflist_t{
     char name [20];
@@ -96,7 +92,7 @@ int checkMachine(void)
     }
 
     ifc.ifc_len = sizeof(struct ifreq) * numreqs;
-    ifc.ifc_buf = malloc(ifc.ifc_len);
+    ifc.ifc_buf = (char *)malloc(ifc.ifc_len);
     if (ioctl(skfd, SIOCGIFCONF, &ifc) < 0) {
 	errexit("Unable to obtain network configuration", errno);
     }
@@ -270,110 +266,80 @@ void MCastCallBack(int msgid, void *buf)
 /*
  * Print version info
  */
-static void version(void)
+static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.28 $";
+    char revision[] = "$Revision: 1.29 $";
     snprintf(errtxt, sizeof(errtxt), "psld %s\b ", revision+11);
     errlog(errtxt, 0);
 }
 
-/*
- * Print usage message
- */
-static void usage(void)
+int main(int argc, const char *argv[])
 {
-    errlog("usage: psld [-h] [-v] [-d] [-D] [-f file] [-l file]", 0);
-}
-
-/*
- * Print more detailed help message
- */
-static void help(void)
-{
-    usage();
-    snprintf(errtxt, sizeof(errtxt), " -d      : Enable debugging.");
-    errlog(errtxt, 0);
-    snprintf(errtxt, sizeof(errtxt), " -D      : Enable more debugging.");
-    errlog(errtxt, 0);
-    snprintf(errtxt, sizeof(errtxt), " -f file : use 'file' as config-file"
-	     " (default is psidir/config/psm.config).");
-    errlog(errtxt, 0);
-    snprintf(errtxt, sizeof(errtxt), " -l file : use 'file' as lock-file"
-	     " (default is %s).", PIDFILE);
-    errlog(errtxt, 0);
-    snprintf(errtxt, sizeof(errtxt),
-	     " -v,      : output version information and exit.\n");
-    errlog(errtxt, 0);
-    snprintf(errtxt, sizeof(errtxt),
-	     " -h,      : display this help and exit.\n");
-    errlog(errtxt, 0);
-}
-
-int main(int argc, char *argv[])
-{
-    int c, i, errflg = 0, helpflg = 0, verflg = 0, dofork = 1;
+    int rc, i, verbose = 0, debug = 0, version = 0;
     int msock;
     struct timeval tv;
     int lok;
     int lc = 10;
     int lc2 = 1;
 
+    poptContext optCon;   /* context for parsing command-line options */
+
     unsigned int *hostlist;         /* hostlist for RDP and MCast */
 
-    while ( (c = getopt(argc,argv, "dDhHvVf:l:")) != -1 ) {
-	switch (c) {
-	case 'd':
-	    setErrLogLevel(1);
-	    loglevel = 10;
-	    break;
-	case 'D':
-	    dofork = 0;
-	    usesyslog = 0;
-	    loglevel = 10;
-	    setErrLogLevel(1);
-	    setDebugLevelTimer(10);
-	    setDebugLevelMCast(10);
-	    break;
-	case 'f' :
-	    Configfile = strdup(optarg);
-	    break;
-	case 'l' :
-	    PIDFILE = strdup(optarg);
-	    break;
-        case 'v':
-        case 'V':
-	    verflg = 1;
-            break;
-        case 'h':
-        case 'H':
-            helpflg = 1;
-	    usesyslog = 0;
-            break;
-	default:
-	    errflg = 1;
-	}
+    struct poptOption optionsTable[] = {
+	{ "debug", 'd', POPT_ARG_NONE, &debug, 0, "enble debugging", NULL},
+	{ "verbose", 'v', POPT_ARG_NONE, &verbose, 0, "be more verbose", NULL},
+	{ "configfile", 'f', POPT_ARG_STRING, &Configfile, 0,
+	  "use <file> as config-file (default is /etc/parastation.conf).",
+	  "file"},
+	{ "lockfile", 'l', POPT_ARG_STRING | POPT_ARGFLAG_DOC_HIDDEN,
+	      &PIDFILE, 0, "use <file> as lock-file.", "file"},
+  	{ "version", '\0', POPT_ARG_NONE, &version, 0,
+	  "output version information and exit", NULL},
+	POPT_AUTOHELP
+	{ NULL, '\0', 0, NULL, 0, NULL, NULL}
+    };
+
+    optCon = poptGetContext(NULL, argc, argv, optionsTable, 0);
+    rc = poptGetNextOpt(optCon);
+
+    if (verbose) {
+	loglevel = 10;
+	setErrLogLevel(1);
     }
 
-    if (usesyslog) openlog("psld", LOG_PID, LOG_DAEMON);
-    initErrLog("psld", usesyslog);
-
-    if(errflg){
-	usage();
-	return -1;
+    if (debug) {
+	loglevel = 10;
+	setErrLogLevel(1);
+	setDebugLevelTimer(10);
+	setDebugLevelMCast(10);
     }
 
-    if (helpflg) {
-	help();
+    if (!debug) {
+	openlog("psld", LOG_PID, LOG_DAEMON);
+    }
+    initErrLog("psld", !debug);
+
+    if (version) {
+	printVersion();
 	return 0;
     }
 
-    if (verflg) {
-	version();
-	return 0;
+    if (rc < -1) {
+	/* an error occurred during option processing */
+	poptPrintUsage(optCon, stderr, 0);
+	snprintf(errtxt, sizeof(errtxt), "%s: %s\n",
+		 poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
+		 poptStrerror(rc));
+
+	errlog(errtxt, 0);
+
+	return 1;
     }
 
-    if (dofork) {  /* Start as daemon */
-	switch (c = fork()) {
+
+    if (!debug) {  /* Start as daemon */
+	switch (fork()) {
 	case -1:
 	    errexit("unable to fork server process", errno);
 	    break;
@@ -394,7 +360,7 @@ int main(int argc, char *argv[])
     signal(SIGTERM,sighandler);
     signal(SIGINT,sighandler);
 
-    if (parseConfig(usesyslog, loglevel) < 0) {
+    if (parseConfig(!debug, loglevel) < 0) {
 	return -1;
     }
 
@@ -413,7 +379,7 @@ int main(int argc, char *argv[])
 
     lok = lic_isvalid(&ConfigLicEnv); /* delay exit on failure */
 
-    if (usesyslog) {
+    if (!debug) {
 	closelog();
 	openlog("psld", LOG_PID, ConfigLogDest);
     }
@@ -424,7 +390,7 @@ int main(int argc, char *argv[])
     /*
      * Prepare hostlist for initialization of MCast
      */
-    hostlist = malloc((NrOfNodes+1) * sizeof (unsigned int));
+    hostlist = (unsigned int *)malloc((NrOfNodes+1) * sizeof (unsigned int));
     if (!hostlist) {
 	errlog("Not enough memory for hostlist\n", 0);
 	return -1;
@@ -436,7 +402,7 @@ int main(int argc, char *argv[])
     hostlist[NrOfNodes] = licNode.addr;
 
     msock = initMCast(NrOfNodes, ConfigMCastGroup, ConfigMCastPort,
-		      usesyslog, hostlist, NrOfNodes, MCastCallBack);
+		      !debug, hostlist, NrOfNodes, MCastCallBack);
 
     setDeadLimitMCast(ConfigLicDeadInterval);
 
