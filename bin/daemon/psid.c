@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.77 2003/02/27 18:25:36 eicker Exp $
+ * $Id: psid.c,v 1.78 2003/03/04 15:39:28 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.77 2003/02/27 18:25:36 eicker Exp $ 
+ * $Id: psid.c,v 1.78 2003/03/04 15:39:28 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.77 2003/02/27 18:25:36 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.78 2003/03/04 15:39:28 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -74,7 +74,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.77 $";
+static char psid_cvsid[] = "$Revision: 1.78 $";
 
 static int PSID_mastersock;
 
@@ -789,15 +789,27 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
      * this can happen due to a exec call.
      */
     task = PStasklist_find(managedTasks, clients[fd].tid);
-    if (!task) {
+    if (!task && msg->group != TG_SPAWNER) {
 	long pgtid = PSC_getTID(-1, getpgid(pid));
 
 	task = PStasklist_find(managedTasks, pgtid);
 
 	if (task) {
 	    /* Spawned process has changed pid */
-	    /* This might happen due to a /usr/bin/time in PSI_RARG_PRE_0 */
-	    task->tid = clients[fd].tid;
+	    /* This might happen due to stuff in PSI_RARG_PRE_0 */
+	    PStask_t *child = PStask_clone(task);
+
+	    if (child) {
+		child->tid = clients[fd].tid;
+		PSID_setSignal(&child->assignedSigs, child->ptid, -1);
+		PStasklist_enqueue(&managedTasks, child);
+
+		/* Register new child to its parent */
+		PSID_setSignal(&task->childs, child->tid, -1);
+
+		/* We want to handle the reconnected child now */
+		task = child;
+	    }
 	}
     }
     if (task) {
@@ -3001,7 +3013,7 @@ void checkFileTable(void)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.77 $";
+    char revision[] = "$Revision: 1.78 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
