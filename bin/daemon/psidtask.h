@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidtask.h,v 1.4 2002/07/26 15:26:31 eicker Exp $
+ * $Id: psidtask.h,v 1.5 2002/08/06 08:26:07 eicker Exp $
  *
  */
 /**
  * @file
  * Functions for interaction with ParaStation tasks within the Daemon
  *
- * $Id: psidtask.h,v 1.4 2002/07/26 15:26:31 eicker Exp $
+ * $Id: psidtask.h,v 1.5 2002/08/06 08:26:07 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -30,6 +30,7 @@ extern "C" {
 #endif
 #endif
 
+/** @todo more docu */
 /**
  * PSID_setSignal
  *
@@ -54,49 +55,62 @@ int PSID_removeSignal(PStask_sig_t **siglist, long tid, int signal);
  */
 long PSID_getSignal(PStask_sig_t **siglist, int *signal);
 
-/*----------------------------------------------------------------------
- * Tasklist routines
- */
 
-/*----------------------------------------------------------------------*/
-/*
- * PStasklist_delete
+/* Tasklist routines */
+
+/**
+ * @brief Remove complete tasklist
  *
- *  deletes all tasks and the structure itself
- *  RETURN: 0 on success
- */
+ * Remove the complete tasklist @a list including all tasks contained
+ * within the list.
+ *
+ * @param list The list to remove.
+ *
+ * @return No return value.
+ * */
 void PStasklist_delete(PStask_t **list);
 
-/*----------------------------------------------------------------------*/
-/*
- * PStasklist_enqueue
+/**
+ * @brief Enqueue a task to a tasklist.
  *
- *  enqueus a task into a tasklist.
- *  RETURN: 0 on success
- */
+ * Enqueue the task @a task to the tasklist @a list.
+ *
+ * @param list The list to enqueue the task to.
+ *
+ * @param task The task to enqueue to the list.
+ *
+ * @return On success, 0 is returned or -1 if an error occurred.
+ * */
 int PStasklist_enqueue(PStask_t **list, PStask_t *task);
 
-/*----------------------------------------------------------------------*/
-/*
- * PStasklist_dequeue
+/**
+ * @brief Remove a task from a tasklist.
  *
- *  dequeues a task from a tasklist.
- *  if tid==-1, the first task is dequeued otherwise exactly the
- *  task with TID==tid is dequeued
- *  RETURN: the removed task on success
- *          NULL if not found
- */
-PStask_t* PStasklist_dequeue(PStask_t **list, long tid);
+ * Find and remove the task with the TID @a tid from the tasklist @a
+ * list.  The removed task-structure is returned.
+ *
+ * @param list The tasklist from which to find and remove the task.
+ *
+ * @param tid The TID of the task to find and remove.
+ *
+ * @return On success, a pointer to the removed task is returned, or
+ * NULL if a corresponding task could not be found within @a list.
+ * */
+PStask_t *PStasklist_dequeue(PStask_t **list, long tid);
 
-/*----------------------------------------------------------------------*/
-/*
- * PStasklist_find
+/**
+ * @brief Find a task within a tasklist.
  *
- *  finds a task in a tasklist.
- *  RETURN: the task on success
- *          NULL if not found
- */
-PStask_t* PStasklist_find(PStask_t *list, long tid);
+ * Find the task with TID @a tid within the tasklist @a list.
+ *
+ * @param list The tasklist to find the task in.
+ *
+ * @param tid The TID of the task to find.
+ *
+ * @return On success, a pointer to the found task is returned, or
+ * NULL if no task with TID @a tid was found within @a list.
+ * */
+PStask_t *PStasklist_find(PStask_t *list, long tid);
 
 #ifdef __cplusplus
 }/* extern "C" */
