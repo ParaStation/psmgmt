@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: helpmsgs.c,v 1.6 2004/01/14 17:56:11 eicker Exp $
+ * $Id: helpmsgs.c,v 1.7 2004/01/15 19:39:11 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.6 2004/01/14 17:56:11 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.7 2004/01/15 19:39:11 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -239,8 +239,8 @@ static info_t showInfo = {
     .syntax = (syntax_t[]) {{
 	.cmd = "show",
 	.arg = "{maxproc | user | group | psiddebug | rdpdebug | rdppktloss"
-	" | rdpmaxretrans | mcastdebug | smallpacketsize | resendtimeout"
-	" | hnpend | ackpend} <nodes>"
+	" | rdpmaxretrans | mcastdebug | master | smallpacketsize"
+	" | resendtimeout | hnpend | ackpend} <nodes>"
     }},
     .nodes = 1,
     .descr = "Show various parameters of the ParaStation system:",
@@ -261,6 +261,8 @@ static info_t showInfo = {
 	  .descr = "Show RDP protocol's maximum retransmission count." },
 	{ .tag = "show mcastdebug",
 	  .descr = "Show MCast facility's verbosity level." },
+	{ .tag = "show master",
+	  .descr = "Show master handling all the partition requests." },
 	{ .tag = "show smallpacketsize",
 	  .descr = "Show MCP's maximum size of PIO packets in bytes." },
 	{ .tag = "show resendtimeout",
