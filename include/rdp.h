@@ -1,18 +1,18 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * rdp.h
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.h,v 1.16 2004/01/09 15:11:20 eicker Exp $
+ * $Id: rdp.h,v 1.17 2004/01/14 16:56:20 eicker Exp $
  *
  */
 /**
  * @file
  * Reliable Datagram Protocol for ParaStation daemon
  *
- * $Id: rdp.h,v 1.16 2004/01/09 15:11:20 eicker Exp $
+ * $Id: rdp.h,v 1.17 2004/01/14 16:56:20 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -232,8 +232,10 @@ int Rsendto(int node, void *buf, size_t len);
  * @param len The maximum length of the message, i.e. the size of @a buf.
  *
  *
- * @return On success, the number of bytes received is returned, or -1 if
- * an error occured.
+ * @return On success, the number of bytes received is returned, or -1
+ * if an error occured. At least on Linux extended reliable error
+ * messages are enabled within RDP and thus 0 is a correct return
+ * value without signaling EOF or similar events.
  *
  * @see recvfrom(2)
  */
