@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.13 2002/01/23 11:32:25 eicker Exp $
+ * $Id: rdp.c,v 1.14 2002/01/28 11:13:32 eicker Exp $
  *
  */
 /**
  * \file
  * rdp: ParaStation Reliable Datagram Protocol
  *
- * $Id: rdp.c,v 1.13 2002/01/23 11:32:25 eicker Exp $
+ * $Id: rdp.c,v 1.14 2002/01/28 11:13:32 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.13 2002/01/23 11:32:25 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.14 2002/01/28 11:13:32 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -98,7 +98,7 @@ static int  nr_of_nodes = 0;            /* size of cluster */
 static char errtxt[256];                /* string to hold error messages */
 
 static int myid;
-static int dotimeout=0;
+static int dotimeout = 0;
 
 static struct sockaddr_in msin;
 
@@ -816,7 +816,7 @@ static void checkConnections(void)
 			 i);
 		errlog(errtxt, 0);
 		closeConnection(i);
-		conntable[i].misscounter=0;
+		conntable[i].misscounter = 0;
 	    }
 	}
     }
@@ -859,11 +859,11 @@ static void sendSYN(int node)
 {
     rdphdr hdr;
 
-    hdr.type=RDP_SYN;
-    hdr.len=0;
-    hdr.seqno=conntable[node].NextFrameToSend; /* Tell partner initial seqno */
-    hdr.ackno=0;                               /* nothing to ack yet */
-    hdr.connid=conntable[node].ConnID_out;
+    hdr.type = RDP_SYN;
+    hdr.len = 0;
+    hdr.seqno = conntable[node].NextFrameToSend;  /* Tell initial seqno */
+    hdr.ackno = 0;                                /* nothing to ack yet */
+    hdr.connid = conntable[node].ConnID_out;
     Dsnprintf(errtxt, sizeof(errtxt),
 	      "sending SYN to node %d (%s), NFTS=%d", node,
 	      inet_ntoa(conntable[node].sin.sin_addr), hdr.seqno);
@@ -880,17 +880,17 @@ static void sendACK(int node)
 {
     rdphdr hdr;
 
-    hdr.type=RDP_ACK;
-    hdr.len=0;
-    hdr.seqno=0; /* ACKs do not have a seqno */
-    hdr.ackno=conntable[node].FrameExpected-1; /* ACK one before Expected !! */
-    hdr.connid=conntable[node].ConnID_out;
+    hdr.type = RDP_ACK;
+    hdr.len = 0;
+    hdr.seqno = 0;                                /* ACKs don't have a seqno */
+    hdr.ackno = conntable[node].FrameExpected-1;  /* ACK one before Expected */
+    hdr.connid = conntable[node].ConnID_out;
     Dsnprintf(errtxt, sizeof(errtxt),
 	      "sending ACK to node %d, FE=%d", node, hdr.ackno);
     Derrlog(errtxt, 11);
     MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
 	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
-    conntable[node].ack_pending=0;
+    conntable[node].ack_pending = 0;
     return;
 }
 
@@ -901,18 +901,18 @@ static void sendSYNACK(int node)
 {
     rdphdr hdr;
 
-    hdr.type=RDP_SYNACK;
-    hdr.len=0;
-    hdr.seqno=conntable[node].NextFrameToSend; /* Tell partner initial seqno */
-    hdr.ackno=conntable[node].FrameExpected-1;
-    hdr.connid=conntable[node].ConnID_out;
+    hdr.type = RDP_SYNACK;
+    hdr.len = 0;
+    hdr.seqno = conntable[node].NextFrameToSend;  /* Tell initial seqno */
+    hdr.ackno = conntable[node].FrameExpected-1;  /* ACK one before Expected */
+    hdr.connid = conntable[node].ConnID_out;
     Dsnprintf(errtxt, sizeof(errtxt),
 	      "sending SYNACK to node %d, NFTS=%d, FE=%d",
 	      node, hdr.seqno, hdr.ackno);
     Derrlog(errtxt, 11);
     MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
 	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
-    conntable[node].ack_pending=0;
+    conntable[node].ack_pending = 0;
     return;
 }
 
@@ -923,18 +923,18 @@ static void sendSYNNACK(int node, int oldseq)
 {
     rdphdr hdr;
 
-    hdr.type=RDP_SYNNACK;
-    hdr.len=0;
-    hdr.seqno=conntable[node].NextFrameToSend; /* Tell partner initial seqno */
-    hdr.ackno=oldseq;   /* NACK for old seqno */
-    hdr.connid=conntable[node].ConnID_out;
+    hdr.type = RDP_SYNNACK;
+    hdr.len = 0;
+    hdr.seqno = conntable[node].NextFrameToSend;  /* Tell initial seqno */
+    hdr.ackno = oldseq;                           /* NACK for old seqno */
+    hdr.connid = conntable[node].ConnID_out;
     Dsnprintf(errtxt, sizeof(errtxt),
 	      "sending SYNNACK to node %d, NFTS=%d, FE=%d",
 	      node, hdr.seqno, hdr.ackno);
     Derrlog(errtxt, 11);
     MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
 	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
-    conntable[node].ack_pending=0;
+    conntable[node].ack_pending = 0;
     return;
 }
 
@@ -946,11 +946,11 @@ static void sendNACK(int node)
 {
     rdphdr hdr;
 
-    hdr.type=RDP_NACK;
-    hdr.len=0;
-    hdr.seqno=0; /* NACKs do not have a seqno */
-    hdr.ackno=conntable[node].FrameExpected-1; /* That's the frame I expect */
-    hdr.connid=conntable[node].ConnID_out;
+    hdr.type = RDP_NACK;
+    hdr.len = 0;
+    hdr.seqno = 0;                               /* NACKs don't have a seqno */
+    hdr.ackno = conntable[node].FrameExpected-1; /* The frame I expect */
+    hdr.connid = conntable[node].ConnID_out;
     Dsnprintf(errtxt, sizeof(errtxt), "sending NACK to node %d, FE=%d",
 	      node, hdr.ackno);
     Derrlog(errtxt, 11);
@@ -959,24 +959,12 @@ static void sendNACK(int node)
     return;
 }
 
-int SEQNO_IN_WINFRAME(int exp, int got)
-{
-    /*
-     * Valid Frame is: exp - WINSIZE < got < exp + WINSIZE
-     */
-    if (((exp-MAX_WINDOW_SIZE) < got) && (got < (exp+MAX_WINDOW_SIZE))) {
-	return 1;
-    } else {
-	return 0;
-    }
-}
-
 /*
  * Update state machine for a connection
  */
 static int updateState(rdphdr *hdr, int node)
 {
-    int retval=0;
+    int retval = 0;
     Rconninfo *cp;
     cp = &conntable[node];
 
@@ -1242,13 +1230,13 @@ static void clearMsgQ(int node)
 	} else {
 	    putSMsg(mp->msg.small);             /* back to freelist */
 	}
-	deqAck(mp->ackptr);              /* dequeue ack */
-	cp->bufptr = cp->bufptr->next;   /* remove msgbuf from list */
-	putMsg(mp);                      /* back to freelist */
-	mp = cp->bufptr;                 /* next message */
+	deqAck(mp->ackptr);                     /* dequeue ack */
+	cp->bufptr = cp->bufptr->next;          /* remove msgbuf from list */
+	putMsg(mp);                             /* back to freelist */
+	mp = cp->bufptr;                        /* next message */
     }
-    cp->AckExpected=cp->NextFrameToSend; /* restore initial setting */
-    cp->window=MAX_WINDOW_SIZE;          /* restore window size */
+    cp->AckExpected = cp->NextFrameToSend;      /* restore initial setting */
+    cp->window = MAX_WINDOW_SIZE;               /* restore window size */
   return;
 }
 
@@ -1369,7 +1357,7 @@ static void handleTimeout(void)
 			     mp->len + sizeof(rdphdr), 0,
 			     (struct sockaddr *)&conntable[node].sin,
 			     sizeof(struct sockaddr));
-		    conntable[node].ack_pending=0;
+		    conntable[node].ack_pending = 0;
 		    ap = ap->next;
 		}
 	    } else {
@@ -1388,7 +1376,7 @@ static void handleTimeout(void)
 static void RDPhandler(int sig)
 {
     MCAST_PING(ACTIVE);
-    dotimeout=1;
+    dotimeout = 1;
     /* handleTimeout(); */
     return;
 }
@@ -1727,7 +1715,7 @@ int Rsendto(int node, void *buf, int len)
     mp->msg.small->header.seqno = conntable[node].NextFrameToSend;
     mp->msg.small->header.ackno = conntable[node].FrameExpected-1;
     mp->msg.small->header.connid = conntable[node].ConnID_out;
-    conntable[node].ack_pending=0;
+    conntable[node].ack_pending = 0;
 
     /*
      * copy msg data
@@ -1794,7 +1782,7 @@ static void resendMsgs(int node)
 	MYsendto(rdpsock, &mp->msg.small->header, mp->len + sizeof(rdphdr), 0,
 		 (struct sockaddr *)&conntable[node].sin,
 		 sizeof(struct sockaddr));
-	conntable[node].ack_pending=0;
+	conntable[node].ack_pending = 0;
 	mp = mp->next;
     }
 }
@@ -1864,7 +1852,7 @@ int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	if (dotimeout) {
 	    handleTimeout();
 	    checkConnections();
-	    dotimeout=0;
+	    dotimeout = 0;
 	}
 
 	if (readfds) {
@@ -1938,15 +1926,15 @@ int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 		    struct iovec iov;
 		    char *ubuf;
 
-		    ubuf=(char*)malloc(10000);
-		    errmsg.msg_control=NULL;
-		    errmsg.msg_controllen=0;
-		    errmsg.msg_iovlen=1;
-		    errmsg.msg_iov=&iov;
-		    iov.iov_len=10000;
-		    iov.iov_base=ubuf;
-		    errmsg.msg_name=&sin;
-		    errmsg.msg_namelen=sizeof(struct sockaddr_in);
+		    ubuf = (char*)malloc(10000);
+		    errmsg.msg_control = NULL;
+		    errmsg.msg_controllen = 0;
+		    errmsg.msg_iovlen = 1;
+		    errmsg.msg_iov = &iov;
+		    iov.iov_len = 10000;
+		    iov.iov_base = ubuf;
+		    errmsg.msg_name = &sin;
+		    errmsg.msg_namelen = sizeof(struct sockaddr_in);
 		    if (recvmsg(rdpsock, &errmsg, MSG_ERRQUEUE) == -1) {
 			Dsnprintf(errtxt, sizeof(errtxt),
 				  "Error in recvmsg [%d]: %s", errno,
@@ -2330,7 +2318,7 @@ int initRDPMCAST(int nodes, int mgroup, int usesyslog, unsigned int hosts[],
     syslogerror = usesyslog;
     nr_of_nodes = nodes;
     callback = func;
-    licserver=1;
+    licserver = 1;
 
     portno = getServicePort(MCASTSERVICE);
 
@@ -2463,7 +2451,7 @@ static void MCAST_PING(RDPState state)
 
     msg.node = myid;
     msg.type = (licserver)?T_LIC:T_INFO;
-    if (state==CLOSED) msg.type=T_CLOSE;
+    if (state==CLOSED) msg.type = T_CLOSE;
     msg.state = state;
     msg.load = getLoad();
     Dsnprintf(errtxt, sizeof(errtxt),
