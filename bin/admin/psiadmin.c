@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.46 2002/08/07 09:22:33 eicker Exp $
+ * $Id: psiadmin.c,v 1.47 2002/09/03 08:55:13 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.46 2002/08/07 09:22:33 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.47 2002/09/03 08:55:13 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -48,7 +48,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.46 $";
+static char psiadmversion[] = "$Revision: 1.47 $";
 static int doRestart = 0;
 
 static char *hoststatus = NULL;
@@ -1103,13 +1103,15 @@ int main(int argc, const char **argv)
 {
     void *line_state = NULL;
     char *copt = NULL, *line = (char *) NULL, line_field[256];
-    int rc, len, version=0, reset=0;
+    int rc, len, echo=0, version=0, reset=0;
 
     poptContext optCon;   /* context for parsing command-line options */
 
     struct poptOption optionsTable[] = {
 	{ "command", 'c', POPT_ARG_STRING, &copt, 0,
 	  "execute a single <command> and exit", "command"},
+	{ "echo", 'e', POPT_ARG_NONE, &echo, 0,
+	  "echo each executed command to stdout", NULL},
 	{ "reset", 'r', POPT_ARG_NONE, &reset, 0,
 	  "do a reset of the ParaStation daemons on startup", NULL},
   	{ "version", 'v', POPT_ARG_NONE, &version, -1,
@@ -1206,6 +1208,7 @@ int main(int argc, const char **argv)
 	    if (strlen(line) + 2 > sizeof(line_field)) {
 		printf("Line too long!\n");
 	    } else {
+		if (echo) printf("%s\n", line);
 		strcpy(line_field, line);
 		/* Add some trailing newlines. Needed for NULLOP */
 		len = strlen(line_field);
