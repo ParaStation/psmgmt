@@ -1,18 +1,18 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * pstask.h
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.h,v 1.16 2003/07/22 18:28:47 eicker Exp $
+ * $Id: pstask.h,v 1.17 2003/09/12 13:44:15 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with ParaStation tasks.
  *
- * $Id: pstask.h,v 1.16 2003/07/22 18:28:47 eicker Exp $
+ * $Id: pstask.h,v 1.17 2003/09/12 13:44:15 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -25,6 +25,8 @@
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <time.h>
+
+#include "pspartition.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -95,7 +97,11 @@ typedef struct PStask_T{
     time_t killat;                 /**< flag a killed task, i.e. the time when
 				      the task should really go away. */
     long protocolVersion;          /**< Protocol version the task speaks. */
-    PStask_sig_t *childs;          /**< Childs of the task. signal not used. */
+    PStask_sig_t *childs;          /**< Childs of the task. Signal not used. */
+    unsigned int partitionSize;    /**< Size of the partition. */
+    PSpart_option_t options;       /**< The partition's options. */
+    short *partition;              /**< The actual partition. List of nodes. */
+    int nextRank;                  /**< Next rank to start within the task. */
 
     PStask_sig_t *signalSender;    /**< Tasks which sent signals */
     PStask_sig_t *signalReceiver;  /**< Tasks which want to receive signals */
