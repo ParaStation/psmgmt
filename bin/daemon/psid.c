@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.62 2002/07/26 15:28:59 eicker Exp $
+ * $Id: psid.c,v 1.63 2002/07/31 09:17:41 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.62 2002/07/26 15:28:59 eicker Exp $ 
+ * $Id: psid.c,v 1.63 2002/07/31 09:17:41 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.62 2002/07/26 15:28:59 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.63 2002/07/31 09:17:41 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -30,6 +30,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.62 2002/07/26 15
 #include <sys/stat.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <sys/wait.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -71,7 +72,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.62 $";
+static char psid_cvsid[] = "$Revision: 1.63 $";
 
 static int PSID_mastersock;
 
@@ -160,7 +161,7 @@ static int sendMsg(void *amsg)
 
     if (PSID_getDebugLevel() >= 6) {
 	snprintf(errtxt, sizeof(errtxt),
-		 "sendMsg(type %s (len=%ld) to %s",
+		 "sendMsg(type %s (len=%d) to %s",
 		 PSP_printMsg(msg->type), msg->len, PSC_printTID(msg->dest));
 	PSID_errlog(errtxt, 6);
     }
@@ -174,7 +175,7 @@ static int sendMsg(void *amsg)
 	int ret = Rsendto(PSC_getID(msg->dest), msg, msg->len);
 	if (ret==-1) {
 	    char *errstr = strerror(errno);
-	    snprintf(errtxt, sizeof(errtxt), "sendMsg(type %s (len=%ld) to %s "
+	    snprintf(errtxt, sizeof(errtxt), "sendMsg(type %s (len=%d) to %s "
 		     "error (%d) while Rsendto: %s", PSP_printMsg(msg->type),
 		     msg->len, PSC_printTID(msg->dest),
 		     errno, errstr ? errstr : "UNKNOWN");
@@ -204,7 +205,7 @@ static int recvMsg(int fd, DDMsg_t *msg, size_t size)
 	if (PSID_getDebugLevel() >= 6) {
 	    if (n>0) {
 		snprintf(errtxt, sizeof(errtxt),
-			 "recvMsg(RDPSocket) type %s (len=%ld) from %s",
+			 "recvMsg(RDPSocket) type %s (len=%d) from %s",
 			 PSP_printMsg(msg->type), msg->len,
 			 PSC_printTID(msg->sender));
 		snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
@@ -228,19 +229,25 @@ static int recvMsg(int fd, DDMsg_t *msg, size_t size)
 	     * the client may use an incompatible msg format
 	     */
 	    n = count = read(fd, msg, sizeof(DDInitMsg_t));
-	    if (count!=msg->len) {
-		/* if wrong msg format initiate a disconnect */
+	    if (!count) {
+		/* Socket close before initial message was sent */
 		snprintf(errtxt, sizeof(errtxt),
-			 "%d=recvMsg(fd %d) PANIC received an "
-			 "initial message with incompatible msg type.(%ld)",
-			 n, fd, msg->len);
+			 "recvMsg(%d) socket already closed.", fd);
+		PSID_errlog(errtxt, 1);
+		closeConnection(fd);
+	    } else if (count!=msg->len) {
+		/* if wrong msg format initiate a disconnect */
+		snprintf(errtxt, sizeof(errtxt), "%d=recvMsg(%d):"
+			 " initial message with incompatible type.", n, fd);
 		PSID_errlog(errtxt, 0);
 		count=n=0;
 	    }
 	} else do {
-	    if (count==0) {
+	    if (!count) {
+		/* First chunk of data */
 		n = read(fd, msg, sizeof(*msg));
 	    } else {
+		/* Later on we have msg->len */
 		n = read(fd, &((char*) msg)[count], msg->len-count);
 	    }
 	    if (n>0) {
@@ -261,7 +268,7 @@ static int recvMsg(int fd, DDMsg_t *msg, size_t size)
 	    snprintf(errtxt, sizeof(errtxt), "%d=recvMsg(fd %d)", n, fd);
 	} else {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "%d=recvMsg(fd %d type %s (len=%ld) from %s",
+		     "%d=recvMsg(fd %d type %s (len=%d) from %s",
 		     n, fd, PSP_printMsg(msg->type), msg->len,
 		     PSC_printTID(msg->sender));
 	    snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
@@ -286,7 +293,7 @@ int broadcastMsg(void *amsg)
     int count=1;
     int i;
     if (PSID_getDebugLevel() >= 6) {
-	snprintf(errtxt, sizeof(errtxt), "broadcastMsg(type %s (len=%ld)",
+	snprintf(errtxt, sizeof(errtxt), "broadcastMsg(type %s (len=%d)",
 		 PSP_printMsg(msg->type), msg->len);
 	PSID_errlog(errtxt, 6);
     }
@@ -315,21 +322,6 @@ int isUpDaemon(int id)
     }
 
     return nodes[id].isUp;
-}
-
-/******************************************
- *  blockSig()
- */
-static void blockSig(int block, int sig)
-{
-    sigset_t newset, oldset;
-
-    sigemptyset(&newset);
-    sigaddset(&newset, sig);
-
-    if (sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &newset, &oldset)) {
-	PSID_errlog("blockSig(): sigprocmask()", 0);
-    }
 }
 
 /******************************************
@@ -483,7 +475,8 @@ int shutdownNode(int phase)
     if (phase > 2) {
 	exitMCast();
 	exitRDP();
-	PSID_CardStop();
+	PSID_stopHW();
+	unlink(PSmasterSocketName);
 	PSID_errlog("shutdownNode() good bye", 0);
 	exit(0);
     }
@@ -514,7 +507,12 @@ void initDaemon(int id, int hwStatus, short numCPU)
  */
 void closeConnection(int fd)
 {
-    if (fd<0) fd=-fd;
+    if (fd<0) {
+	snprintf(errtxt, sizeof(errtxt), "closeConnection(%d): fd < 0.", fd);
+	PSID_errlog(errtxt, 0);
+
+	return;
+    }
 
     clients[fd].tid = -1;
     clients[fd].task = NULL;
@@ -646,7 +644,12 @@ void deleteClient(int fd)
     PStask_t *task;       /* the task struct to be deleted */
     long tid;
 
-    if (fd<0) fd=-fd;
+    if (fd<0) {
+	snprintf(errtxt, sizeof(errtxt), "deleteClient(%d): fd < 0.", fd);
+	PSID_errlog(errtxt, 0);
+
+	return;
+    }
 
     snprintf(errtxt, sizeof(errtxt), "deleteClient(%d)", fd);
     PSID_errlog(errtxt, 4);
@@ -718,7 +721,8 @@ static int doReset(void)
     if (myStatus & PSID_STATE_RESET_HW) {
 	PSID_errlog("doReset(): resetting the hardware", 2);
 
-	PSID_ReConfig();
+	PSID_stopHW();
+	PSID_startHW();
     }
     /*
      * change the state
@@ -872,13 +876,30 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
     PStask_t *task;
     PStask_t *tmptask;
     MCastConInfo_t info;
+    pid_t pid;
+    uid_t uid;
+    gid_t gid;
 
-    clients[fd].tid = PSC_getTID(-1, msg->header.sender);
+#ifdef SO_PEERCRED
+    socklen_t size;
+    struct ucred cred;
+
+    size = sizeof(cred);
+    getsockopt(fd, SOL_SOCKET, SO_PEERCRED, (void*) &cred, &size);
+    pid = cred.pid;
+    uid = cred.uid;
+    gid = cred.gid;
+#else
+    pid = PSC_getPID(msg->header.sender);
+    uid = msg->uid;
+    gid = msg->gid;
+#endif
+    clients[fd].tid = PSC_getTID(-1, pid);
 
     snprintf(errtxt, sizeof(errtxt), "connection request from %s"
 	     " at fd %d, group=%s, version=%ld, uid=%d",
 	     PSC_printTID(clients[fd].tid), fd, PStask_printGrp(msg->group),
-	     msg->version, msg->uid);
+	     msg->version, uid);
     PSID_errlog(errtxt, 3);
     /*
      * first check if it is a reconnection
@@ -904,8 +925,8 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	task = PStask_new();
 	task->tid = clients[fd].tid;
 	task->fd = fd;
-	task->uid = msg->uid;
-	task->gid = msg->gid;
+	task->uid = uid;
+	task->gid = gid;
 	/* New connection, this task will become logger */
 	if (msg->group == TG_ANY) {
 	    task->group = TG_LOGGER;
@@ -935,7 +956,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	|| (myStatus & PSID_STATE_NOCONNECT)
 	|| !task
 	|| msg->version!=PSprotocolversion
-	|| (msg->uid && UIDLimit!=-1 && msg->uid!=UIDLimit)
+	|| (uid && UIDLimit!=-1 && (int)uid!=UIDLimit)
 	|| (MAXPROCLimit!=-1 && info.jobs.normal>=MAXPROCLimit)) {
 	DDInitMsg_t outmsg;
 	outmsg.header.len = sizeof(outmsg);
@@ -944,7 +965,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	    outmsg.header.type = PSP_CD_OLDVERSION;
 	} else if (!task) {
 	    outmsg.header.type = PSP_CD_NOSPACE;
-	} else if (msg->uid && UIDLimit!=-1 && msg->uid!=UIDLimit) {
+	} else if (uid && UIDLimit!=-1 && (int)uid!=UIDLimit) {
 	    outmsg.header.type = PSP_CD_UIDLIMIT;
 	} else if (MAXPROCLimit !=-1 && info.jobs.normal>=MAXPROCLimit) {
 	    outmsg.header.type = PSP_CD_PROCLIMIT;
@@ -963,19 +984,17 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	outmsg.version = PSprotocolversion;
 	outmsg.group = msg->group;
 
-	if (msg->uid && UIDLimit!=-1 && msg->uid!=UIDLimit) {
-	    outmsg.reason = UIDLimit;
+	if (uid && UIDLimit!=-1 && (int)uid!=UIDLimit) {
+	    outmsg.myid = UIDLimit;
 	} else if(MAXPROCLimit!=-1 && info.jobs.normal>=MAXPROCLimit) {
-	    outmsg.reason = MAXPROCLimit;
-	} else {
-	    outmsg.reason = 0;
+	    outmsg.myid = MAXPROCLimit;
 	}
 
 	snprintf(errtxt, sizeof(errtxt), "CLIENTCONNECT connection refused:"
 		 "group %s task %s version %ld vs. %d uid %d %d jobs %d %d",
 		 PStask_printGrp(msg->group), PSC_printTID(task->tid),
 		 msg->version, PSprotocolversion,
-		 msg->uid, UIDLimit, info.jobs.normal, MAXPROCLimit);
+		 uid, UIDLimit, info.jobs.normal, MAXPROCLimit);
 	PSID_errlog(errtxt, 1);
 
 	sendMsg(&outmsg);
@@ -983,7 +1002,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	/* clean up */
 	deleteClient(fd);
 
-	if (msg->group==TG_RESET && !msg->uid) {
+	if (msg->group==TG_RESET && !uid) {
 	    myStatus &= ~(PSID_STATE_DORESET | PSID_STATE_RESET_HW);
 	    doReset();
 	}
@@ -1000,6 +1019,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	outmsg.myid = PSC_getMyID();
 	outmsg.loggernode = task->loggernode;
 	outmsg.loggerport = task->loggerport;
+	outmsg.loggertid = task->loggertid;
 	outmsg.group = msg->group;
 	strncpy(outmsg.instdir, PSC_lookupInstalldir(),
 		sizeof(outmsg.instdir));
@@ -1121,7 +1141,7 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 
     PStask_snprintf(tasktxt, sizeof(tasktxt), task);
     snprintf(errtxt, sizeof(errtxt),
-	     "SPAWNREQUEST from %s msglen %ld task %s",
+	     "SPAWNREQUEST from %s msglen %d task %s",
 	     PSC_printTID(msg->header.sender), msg->header.len, tasktxt);
     PSID_errlog(errtxt, 5);
 
@@ -2598,7 +2618,7 @@ void psicontrol(int fd)
 	    break;
 	default :
 	    snprintf(errtxt, sizeof(errtxt),
-		     "psid: Wrong msgtype %ld (%s) on socket %d",
+		     "psid: Wrong msgtype %d (%s) on socket %d",
 		     msg.header.type, PSP_printMsg(msg.header.type), fd);
 	    PSID_errlog(errtxt, 0);
 	}
@@ -3006,7 +3026,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.62 $";
+    char revision[] = "$Revision: 1.63 $";
     snprintf(errtxt, sizeof(errtxt), "psid %s\b ", revision+11);
     PSID_errlog(errtxt, 0);
 }
@@ -3038,7 +3058,8 @@ static void help(void)
 
 int main(int argc, char **argv)
 {
-    struct sockaddr_in sa;
+    struct sockaddr_un sa;
+    struct stat sb;
 
     int fd;             /* master socket and socket to check connections*/
     struct timeval tv;  /* timeval for waiting on select()*/
@@ -3046,7 +3067,7 @@ int main(int argc, char **argv)
     fd_set rfds;        /* read file descriptor set */
     int opt;            /* return value of getopt */
 
-    int debuglevel = 0, usesyslog = 1, i;
+    int debuglevel = 0, usesyslog = 1;
     FILE *logfile = NULL;
 
     if(fork()){
@@ -3054,7 +3075,7 @@ int main(int argc, char **argv)
 	return 0;
     }
 
-    blockSig(1,SIGCHLD);
+    PSID_blockSig(1,SIGCHLD);
 
     while ((opt = getopt(argc, argv, "d:l:f:hHvV")) != -1){
 	switch (opt){
@@ -3175,26 +3196,33 @@ int main(int argc, char **argv)
     /*
      * create the socket to listen to the client
      */
-    PSID_mastersock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+    PSID_mastersock = socket(PF_UNIX, SOCK_STREAM, 0);
 
-    {
-	int reuse = 1;
-	setsockopt(PSID_mastersock,
-		   SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+    memset(&sa, 0, sizeof(sa));
+    sa.sun_family = AF_UNIX;
+    strncpy(sa.sun_path, PSmasterSocketName, sizeof(sa.sun_path));
+
+    /*
+     * Test if socket exists and another daemon is already connected
+     */
+    if (connect(PSID_mastersock, (struct sockaddr *)&sa, sizeof (sa))<0) {
+	if (errno != ECONNREFUSED && errno != ENOENT) {
+	    PSID_errexit("connect (PSID_mastersock)", errno);
+	}
+    } else {
+	snprintf(errtxt, sizeof(errtxt),
+		 "Daemon already running?: %s", strerror(EBUSY));
+	PSID_errlog(errtxt, 1);
+	exit(0);
     }
 
     /*
      * bind the socket to the right address
      */
-    memset(&sa, 0, sizeof(sa));
-    sa.sin_family = AF_INET;
-    sa.sin_addr.s_addr = INADDR_ANY;
-    sa.sin_port = htons(PSC_getServicePort("psids", 889));
     if (bind(PSID_mastersock, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "Daemon already running? port=%d", ntohs(sa.sin_port));
-	PSID_errexit(errtxt, errno);
+	PSID_errexit("Daemon already running?", errno);
     }
+    chmod(sa.sun_path, S_IRWXU | S_IRWXG | S_IRWXO);
 
     snprintf(errtxt, sizeof(errtxt),
 	     "Starting ParaStation3 DAEMON Protocol Version %d",
@@ -3267,9 +3295,9 @@ int main(int argc, char **argv)
 
     initDaemon(PSC_getMyID(), PSID_HWstatus, PSID_numCPU);
 
-    for (i=0; i<FD_SETSIZE; i++) {
-	clients[i].tid = -1;
-	clients[i].task = NULL;
+    for (fd=0; fd<FD_SETSIZE; fd++) {
+	clients[fd].tid = -1;
+	clients[fd].task = NULL;
     }
 
     snprintf(errtxt, sizeof(errtxt),
@@ -3282,7 +3310,7 @@ int main(int argc, char **argv)
      */
     {
 	unsigned int *hostlist;
-	int MCastSock;
+	int MCastSock, i;
 
 	hostlist = malloc((PSC_getNrOfNodes()+1) * sizeof(unsigned int));
 	if (!hostlist) {
@@ -3345,8 +3373,8 @@ int main(int argc, char **argv)
      */
     while (1) {
 	timerset(&tv, &selecttimer);
-	blockSig(0, SIGCHLD); /* Handle deceased child processes */
-	blockSig(1, SIGCHLD);
+	PSID_blockSig(0, SIGCHLD); /* Handle deceased child processes */
+	PSID_blockSig(1, SIGCHLD);
 	memcpy(&rfds, &openfds, sizeof(rfds));
 
 	if (Tselect(FD_SETSIZE,
@@ -3383,9 +3411,7 @@ int main(int argc, char **argv)
 
 		continue;
 	    } else {
-		char keepalive;
-		char linger;
-		char reuse;
+		struct linger linger;
 		socklen_t size;
 
 		clients[ssock].flags = INITIALCONTACT;
@@ -3395,28 +3421,17 @@ int main(int argc, char **argv)
 			 "accepting: new socket(%d)",ssock);
 		PSID_errlog(errtxt, 4);
 
-		size = sizeof(reuse);
-		getsockopt(ssock, SOL_SOCKET, SO_REUSEADDR, &reuse, &size);
-		size = sizeof(keepalive);
-		getsockopt(ssock, SOL_SOCKET, SO_KEEPALIVE, &keepalive, &size);
 		size = sizeof(linger);
 		getsockopt(ssock, SOL_SOCKET, SO_LINGER, &linger, &size);
 
 		snprintf(errtxt, sizeof(errtxt),
-			 "socketoptions was (reuse=%d keepalive=%d linger=%d)"
-			 " setting it to (1, 1, 1)", reuse, keepalive, linger);
+			 "linger was (%d,%d), setting it to (1,1)",
+			 linger.l_onoff, linger.l_linger);
 		PSID_errlog(errtxt, 9);
 
-		size = sizeof(reuse);
-		reuse=1;
-		setsockopt(ssock, SOL_SOCKET, SO_REUSEADDR, &reuse,size);
-
-		size = sizeof(keepalive);
-		keepalive=1;
-		setsockopt(ssock, SOL_SOCKET, SO_KEEPALIVE, &keepalive, size);
-
+		linger.l_onoff=1;
+		linger.l_linger=1;
 		size = sizeof(linger);
-		linger=1;
 		setsockopt(ssock, SOL_SOCKET, SO_LINGER, &linger, size);
 	    }
 	}
