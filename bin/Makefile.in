@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.42 2004/03/09 17:29:36 eicker Exp $
+# $Id: Makefile.in,v 1.43 2004/03/11 18:21:05 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -33,16 +33,18 @@ endif
 
 TOOLS:= psiadmin psid psilogger mlisten
 TOOLS += psmstart mpirun_chp4 psispawn mpirun_chgm gmspawner
-TOOLS += test_pse
+TOOLS += test_pse test_config
 
 TARGETS = $(TOOLS) test_config_parsing
 
 all bin: $(TOOLS)
 
-test_pse psmstart mpirun_chp4 mpirun_chgm mlisten: \
+test_pse psmstart mpirun_chp4 mpirun_chgm mlisten test_config: \
 	LOADLIBES+=-Wl,-Bstatic -lpopt -Wl,-Bdynamic
 
 test_pse: test_pse.o -lpse -lpsi
+
+test_config: -lputil -lpscommon
 
 psmstart: psmstart.o -lpse -lpsi
 
