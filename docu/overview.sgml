@@ -82,7 +82,7 @@
     &psfe; uses the Ethernet via the standard kernel implementation of the
     TCP/IP stack, on the one hand communication is far less performant than in
     the Myrinet case, on the other hand the separation of communication and
-    administration traffice cannot be persevered.
+    administration traffice cannot be retained.
   </para>
   <para>
     Nevertheless the communication interfaces of &ps; 3 are partly provided by
@@ -101,7 +101,7 @@
 
     <para>
       The high speed communication subsystem consists of different
-      constituent. Besides own firmware and device drivers running the
+      constituents. Besides own firmware and device drivers running the
       Myrinet-NIC there exist kernel extensions and high performance libraries
       implementing the different interfaces provided by &ps;
     </para>
@@ -160,7 +160,7 @@
 	Another foundation of the outstanding communication performance of the
 	&ps; software is the use of user level communication. This concept
 	circumvents the operating system in order to do communication and fades
-	the communication hardware into the application's address space.
+	in the communication hardware into the application's address space.
       </para>
       <para>
 	All available optimized communication interfaces are implemented using
@@ -245,7 +245,7 @@
 	  <term><emphasis role="bold">PSPort</emphasis></term>
 	  <listitem>
 	    <para>The <emphasis role="bold">PSPort</emphasis> interface is the
-	      low-level communication interface provided by &ps;. Any
+	      native low-level communication interface provided by &ps;. Any
 	      communication can be done using this interface, although programs
 	      using it will not be portable. Thus it is recommended to use a
 	      standard interface as MPI discussed below.
@@ -512,8 +512,8 @@
 	account when processes have to be spawned, too.
       </para>
       <para>
-	The detail of process distribution within the startup of parallel tasks
-	will be discussed in detail in <xref linkend="startup"/>
+	The details of process distribution within the startup of parallel
+	tasks will be discussed in detail in <xref linkend="startup"/>
       </para>
     </section>
 
@@ -603,16 +603,15 @@
       </para>
       <para>
 	&ps; supports the administrator and the end user within this complex.
-	Since the management facility controls all running processes that were
-	notified towards &ps; it is capable to take action in the case that one
-	of the processes fails.
+	Since the management facility controls all processes that were notified
+	towards &ps;, it is capable to take action in the case that one of the
+	processes fails.
       </para>
       <para>
-	If an unexpected failure of a process is recognized, other processes
-	within the parallel task the crashed process belonged to will be
-	notified. If it is a parent process, this will be done
-	automatically. All other processes including childs will be signaled
-	only on request.
+	If an unexpected failure of a process is recognized, all processes
+	within the corresponding parallel task will be notified. The parent
+	process of the parallel task will be notified in any case, all other
+	processes will be signaled only on request.
       </para>
       <para>
 	Furthermore all necessary measures will be taken in order to clean up
@@ -629,7 +628,7 @@
     </section>
 
     <section>
-      <title>Intregration into existing environments</title>
+      <title>Integration into existing environments</title>
       <para>
 	Beside the inherent management capabilities of &ps; it is prepared for
 	easy interaction with more evolved batch systems as e.g. LSF, OpenPBS

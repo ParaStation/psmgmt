@@ -11,7 +11,7 @@
   
   <para>
     &ps; offers different interfaces to the communication subsystem. Beside the
-    proprietary port interface (aka PSPort), it offers an emulation of Unix
+    proprietary port interface (aka PSPort), it offers an emulation of BSD
     sockets. In addition common programming environments, such as MPI or Java
     RMI run on top of these interfaces.
   </para>

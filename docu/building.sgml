@@ -2,7 +2,7 @@
   <title>Building native &ps; applications</title>
   <para>
     This chapter describes briefly how to write native &ps; applications,
-    i.e. application that make use of the &ps; low level communication
+    i.e. applications that make use of the &ps; low level communication
     libraries and the &ps; management facilities without utilizing the standard
     MPI libraries.
   </para>
