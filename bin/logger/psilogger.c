@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.11 2002/02/08 17:19:30 hauke Exp $
+ * $Id: psilogger.c,v 1.12 2002/02/08 20:32:24 hauke Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.11 2002/02/08 17:19:30 hauke Exp $
+ * $Id: psilogger.c,v 1.12 2002/02/08 20:32:24 hauke Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.11 2002/02/08 17:19:30 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.12 2002/02/08 20:32:24 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* DEBUG_LOGGER allows logger debuging without the daemon
@@ -310,6 +310,11 @@ void loop(int listen)
 			    writelog(sock, EXIT, 0, NULL, 0);
 			    close(sock);
 			    FD_CLR(sock,&myfds);
+			    if (sock == forward_input_sock){
+				/* disable input forwarding */
+				FD_CLR(STDIN_FILENO,&myfds);
+				forward_input_sock = -1;
+			    }
 			    noclients--;
 			    break;
 			case STDERR:
