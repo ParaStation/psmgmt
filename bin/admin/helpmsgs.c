@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: helpmsgs.c,v 1.2 2003/08/27 13:03:44 hauke Exp $
+ * $Id: helpmsgs.c,v 1.3 2003/10/06 19:08:51 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.2 2003/08/27 13:03:44 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.3 2003/10/06 19:08:51 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -142,6 +142,36 @@ static info_t killInfo = {
     .descr = "Send the signal <sig> to the process with the given task ID"
     " <tid>. The task ID of a process might be obtained with the help of the"
     " 'status proc' command. The default signal sent is SIGTERM.",
+    .tags = NULL,
+    .comment = NULL
+};
+
+static info_t hwstartInfo = {
+    .head = "HWStart command:",
+    .syntax = (syntax_t[]) {{
+	.cmd = "hwstart",
+	.arg = "[hw {<hw> | all}] <nodes>"
+    }},
+    .nodes = 1,
+    .descr = "Start the declared hardware on the selected nodes. Starting a"
+    " specific hardware will be tried on the selected nodes regardless if"
+    " this hardware is specified for this nodes within the 'parastation.conf'"
+    " file. On the other hand, if 'hw all' is specified or the 'hw' option is"
+    " missing at all, all the specified hardwaretypes are started.",
+    .tags = NULL,
+    .comment = NULL
+};
+
+static info_t hwstopInfo = {
+    .head = "HWStart command:",
+    .syntax = (syntax_t[]) {{
+	.cmd = "hwstart",
+	.arg = "[hw {<hw> | all}] <nodes>"
+    }},
+    .nodes = 1,
+    .descr = "Stop the declared hardware on the selected nodes. If 'hw all' is"
+    " specified or the 'hw' option is missing at all, all hardware is"
+    " stopped.",
     .tags = NULL,
     .comment = NULL
 };
