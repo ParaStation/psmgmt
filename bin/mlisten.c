@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mlisten.c,v 1.10 2002/04/03 15:34:15 eicker Exp $
+ * $Id: mlisten.c,v 1.11 2002/04/22 18:13:59 hauke Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mlisten.c,v 1.10 2002/04/03 15:34:15 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mlisten.c,v 1.11 2002/04/22 18:13:59 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -61,7 +61,7 @@ void init(int num_nodes)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.10 $";
+    char revision[] = "$Revision: 1.11 $";
     fprintf(stderr, "mlisten %s\b \n", revision+11);
 }
 
@@ -92,7 +92,22 @@ static void help(void)
     fprintf(stderr," -v,      : output version information and exit.\n");
     fprintf(stderr," -h,      : display this help and exit.\n");
 }
-    
+
+#if 0
+/* if libc dont have snprintf */
+#include <stdarg.h>
+#define snprintf lale_snprintf
+static int lale_snprintf( char *dest,size_t cnt,const char *fmt, ...)
+{
+    int ret;
+    va_list arg;
+    va_start( arg, fmt);
+    ret=vsprintf(dest,fmt, arg);
+    va_end( arg );
+    return ret;
+}
+#endif
+
 int main(int argc, char *argv[])
 {
     char *service = MCASTSERVICE;
