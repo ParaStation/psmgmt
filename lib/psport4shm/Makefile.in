@@ -1,13 +1,14 @@
 ###################################################### -*- Makefile -*- #####
-#                  ParaStation3
-#        Copyright (c) 2002 ParTec AG Karlsruhe
+#                  ParaStation
+#        Copyright (c) 2002-2003 ParTec AG Karlsruhe
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.2 2003/04/03 13:35:38 hauke Exp $
+# $Id: Makefile.in,v 1.3 2003/07/18 14:26:45 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
+#         Norbert Eicker <eicker@par-tec.de>
 #############################################################################
 
 # Use absolute paths !!!
@@ -32,6 +33,6 @@ sharedlib staticlib: sharedlib.dir staticlib.dir
 sharedlib.dir staticlib.dir:
 	mkdir -p $@
 
-clean: sharedlib.dir staticlib.dir
-	$(MAKE) -C sharedlib.dir -f ../../Makefile.sharedlib clean
-	$(MAKE) -C staticlib.dir -f ../../Makefile.staticlib clean
+clean realclean: sharedlib.dir staticlib.dir
+	$(MAKE) -C sharedlib.dir -f ../../Makefile.sharedlib $@
+	$(MAKE) -C staticlib.dir -f ../../Makefile.staticlib $@
