@@ -1,101 +1,83 @@
 /*
- * ParaStation mcastlisten
+ *               ParaStation3
+ * mlisten.c
  *
- * (C) 1999 ParTec AG Karlsruhe
- *     written by Dr. Thomas M. Warschko
+ * Copyright (C) ParTec AG Karlsruhe
+ * All rights reserved.
  *
- * 10-12-99 V1.0: initial implementation
- *
- *
- *
- *
+ * $Id: mlisten.c,v 1.4 2002/01/07 09:06:31 eicker Exp $
  *
  */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+static char vcid[] __attribute__(( unused )) = "$Id: mlisten.c,v 1.4 2002/01/07 09:06:31 eicker Exp $";
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
-#include <errno.h>
 #include <syslog.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/time.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/socket.h>
-#include <sys/resource.h>
-#include <sys/wait.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
 #include <arpa/inet.h>
-#include <fcntl.h>
-#include <signal.h>
-
 #include <netinet/in.h>
 #include <netdb.h>
 
-#define NOSOCK	-1	/* invalid socket descriptor */
- 
-#define MCASTSERVICE    "1889"
-#define RDPPROTOCOL    "udp"
-#define MGROUP 237
+#include "rdp.h"
 
-char errtxt[256];
-static struct sockaddr_in msin;
-
-typedef enum {CINVAL=0x0, CLOSED=0x1, SYN_SENT=0x2, SYN_RECVD=0x3, ACTIVE=0x4} RDPState;
-
-typedef struct RDPLoad_ {
-    double	load[3];	/* Load parameters of that node */
-} RDPLoad;
-
-typedef struct RDP_ConInfo_ {
-    RDPState state;
-    RDPLoad load;
-    int	misscounter;
-} RDP_ConInfo;
-
-typedef struct Mmsg_ {
-    short node;           /* Sender ID */
-    short type;
-    RDPState state;
-    RDPLoad load;
-} Mmsg;
-
-
+#define MCASTSERVICE   "psmcast"
+#define DEFAULT_MCAST_GROUP 237
 #define NODES 129
-char wheel[4] = {'|', '/', '-', '\\'};
-unsigned int count[NODES];
-char display[260];
 
-void init(void)
+static char errtxt[256];
+
+char wheel[4] = {'|', '/', '-', '\\'};
+unsigned int *count = NULL;
+char *display = NULL;
+
+/*
+ * Initialize counter and display fields
+ */
+void init(int num_nodes)
 {
     int i;
 
-    for(i=0;i<NODES;i++){
-	count[i]=0;
-	display[i]='.';
+    if (count) free(count);
+    if (display) free(display);
+
+    count = malloc(num_nodes * sizeof(*count));
+    display = malloc((2*num_nodes + 1) * sizeof(*display));
+
+    for (i=0; i<num_nodes; i++) {
+	count[i] = 0;
+	display[i] = '.';
     }
-    for(i=NODES;i<2*NODES;i++){
-	display[i]='\b';
+    for (i=num_nodes; i<2*num_nodes; i++) {
+	display[i] = '\b';
     }
-    display[258]=0;
+    display[2*num_nodes] = 0;
 }
 
+/*
+ * Print usage message
+ */
 void usage(void)
 {
-    fprintf(stderr,"usage: mlisten [-h] [-D] [-m MCAST] [-n NET] [-p PORT]\n");
+    fprintf(stderr, "usage: mlisten [-h] [-D] [-# nodes] [-m MCAST] [-n NET]"
+	    " [-p PORT]\n");
 }
 
-/******************************************
- *  help()
+/*
+ * Print more detailed help message
  */
 void help(void)
 {
     usage();
     fprintf(stderr,"\n");
     fprintf(stderr," -D       : Activate debugging.\n");
+    fprintf(stderr," -# NODES : Expect NODES nodes. Default is %d.\n", NODES);
     fprintf(stderr," -m MCAST : Listen to multicast group MCAST."
-	    " Default is %d.\n", MGROUP);
+	    " Default is %d.\n", DEFAULT_MCAST_GROUP);
     fprintf(stderr," -n NET   : Listen only on network NET."
 	    " Default is INADDR_ANY.\n");
     fprintf(stderr," -p PORT  : Listen on port PORT. Default is %s.\n",
@@ -105,18 +87,17 @@ void help(void)
     
 int main(int argc, char *argv[])
 {
-    char host[80];
-    char *service=MCASTSERVICE;
-    char *protocol=RDPPROTOCOL;
-    char *net=NULL;
-    struct hostent *phe;     /* pointer to host information entry */
-    struct servent *pse;     /* pointer to servive intformation entry */ 
-    u_char loop;
+    char *service = MCASTSERVICE;
+    char *protocol = "udp";
+    int MCAST_GROUP = DEFAULT_MCAST_GROUP;
+    char *net = NULL;
+    int nodes = NODES;
+
+    struct servent *pse;     /* pointer to service information entry */ 
+    unsigned char loop;
     int reuse;
     struct ip_mreq mreq;
     struct sockaddr_in sin;  /* an internet endpoint address */ 
-    struct in_addr in_sin;
-    int MY_MCAST_GROUP = MGROUP;
     int mcastsock;
     fd_set rfds;
     int slen;
@@ -125,8 +106,8 @@ int main(int argc, char *argv[])
     int debug=0;
 
     optarg = NULL;
-    while (((c = getopt(argc,argv, "DhHm:n:p:")) != -1)){
-	switch(c){
+    while (((c = getopt(argc,argv, "DhH#:m:n:p:")) != -1)) {
+	switch (c) {
 	case 'p':
 	    service = optarg; 
 	    printf("using port %s\n",service);
@@ -136,8 +117,12 @@ int main(int argc, char *argv[])
 	    printf("using network %s\n",net);
 	    break;
 	case 'm':
-	    sscanf(optarg, "%d", &MY_MCAST_GROUP);
-	    printf("using mcast %d\n", MY_MCAST_GROUP);
+	    sscanf(optarg, "%d", &MCAST_GROUP);
+	    printf("using mcast %d\n", MCAST_GROUP);
+	    break;
+	case '#':
+	    sscanf(optarg, "%d", &nodes);
+	    printf("using %d nodes\n", nodes);
 	    break;
 	case 'D':
 	    debug=1;
@@ -153,114 +138,119 @@ int main(int argc, char *argv[])
 	}
     }
 
-    bzero( (char *)&sin, sizeof(sin));
-
     /*
-     * allocate a socket
+     * allocate socket
      */
     if ( (mcastsock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0){
-	sprintf(errtxt,"can't create socket (mcast)");
-	perror(errtxt);
+	perror("Can't create socket (mcast)");
+	return -1;
     }
 
-    sin.sin_family = AF_INET;
-
-    mreq.imr_multiaddr.s_addr = htonl(INADDR_UNSPEC_GROUP | MY_MCAST_GROUP);
-    if(net == NULL){
-	mreq.imr_interface.s_addr = INADDR_ANY; 
-	sin.sin_addr.s_addr = INADDR_ANY;
-    }else{
-	mreq.imr_interface.s_addr = inet_addr(net); 
-	sin.sin_addr.s_addr = inet_addr(net);
-    }
     /*
-     * map service name to port number
+     * Join the MCast group
      */
-    if((pse = getservbyname(service, protocol))){
-	sin.sin_port = htons(ntohs((u_short) pse->s_port) );
-    }else{
-	if((sin.sin_port = htons((u_short)atoi(service))) == 0){
-	    sprintf(errtxt,"can't get %s service entry", service);
+    mreq.imr_multiaddr.s_addr = htonl(INADDR_UNSPEC_GROUP | MCAST_GROUP);
+    if (net == NULL) {
+	mreq.imr_interface.s_addr = INADDR_ANY; 
+    } else {
+	if (! inet_aton(net, &mreq.imr_interface)) {
+	    fprintf(stderr, "What means network '%s' ?\n", net);
+	    return -1;
+	}
+    }
+
+    if (setsockopt(mcastsock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq,
+		   sizeof(mreq)) == -1) {
+	snprintf(errtxt, sizeof(errtxt), "unable to join mcast group '%x'",
+		 ntohl(mreq.imr_multiaddr.s_addr));
+	perror(errtxt);
+	return -1;
+    }
+
+    /*
+     * Enable MCast loopback
+     */
+    loop = 1; /* 0 = disable, 1 = enable (default) */
+    if (setsockopt(mcastsock, IPPROTO_IP, IP_MULTICAST_LOOP, &loop,
+		   sizeof(loop)) == -1) {
+	perror("unable to enable mcast loop");
+    }
+
+    /*
+     * Socket's address may be reused
+     */
+    reuse = 1; /* 0 = disable (default), 1 = enable */
+    if (setsockopt(mcastsock, SOL_SOCKET, SO_REUSEADDR, &reuse,
+		   sizeof(reuse)) == -1) {
+	perror("unable to set reuse flag");
+    }
+
+    /*
+     * Bind the socket to MCast group
+     */
+    memset(&sin, 0, sizeof(sin));
+    sin.sin_family = AF_INET;
+    sin.sin_addr.s_addr = mreq.imr_multiaddr.s_addr;
+
+    /* map service name to port number */
+    if ((pse = getservbyname(service, protocol))) {
+	sin.sin_port = pse->s_port;
+    } else {
+	if ((sin.sin_port = htons((u_short)atoi(service))) == 0) {
+	    snprintf(errtxt, sizeof(errtxt),
+		     "can't get %s service entry", service);
 	    perror(errtxt);
 	}
+    }
+
+    /* Do the bind */
+    if (bind(mcastsock, (struct sockaddr *)&sin, sizeof(sin)) < 0) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "can't bind mcast socket mcast addr[%x]",
+		 ntohl(sin.sin_addr.s_addr));
+	perror(errtxt);
+	return -1;
     }
 
     printf("listening on port %d\n",ntohs(sin.sin_port));
 
-    if (setsockopt(mcastsock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq,
-		   sizeof(mreq)) == -1){
-	sprintf(errtxt,"unable to join mcast group");
-	perror(errtxt);
-    }
+    printf("using mcast addr %x\n",ntohl(mreq.imr_multiaddr.s_addr));
 
-    printf("using mcast addr %x\n",mreq.imr_multiaddr.s_addr);
-
-    loop = 1; /* 0 = disable, 1 = enable (default) */
-    if (setsockopt(mcastsock, IPPROTO_IP, IP_MULTICAST_LOOP, &loop,
-		   sizeof(loop)) == -1){
-	sprintf(errtxt,"unable to disable mcast loop");
-	perror(errtxt);
-    }
-
-    reuse = 1; /* 0 = disable (default), 1 = enable */
-    if (setsockopt(mcastsock, SOL_SOCKET, SO_REUSEADDR, &reuse,
-		   sizeof(reuse)) == -1){
-	sprintf(errtxt,"unable to set reuse flag");
-	perror(errtxt);
-    }
-
-    /*
-     * bind the socket
-     */
-    if ( bind(mcastsock, (struct sockaddr *)&sin, sizeof(sin)) < 0){
-	sprintf(errtxt,"can't bind mcast socket mcast addr[%x]",
-		INADDR_UNSPEC_GROUP | MY_MCAST_GROUP);
-	perror(errtxt);
-    }
-
-    msin.sin_family = AF_INET;
-    msin.sin_addr.s_addr = htonl(INADDR_UNSPEC_GROUP | MY_MCAST_GROUP);
-    msin.sin_port = sin.sin_port;
-
-    if(gethostname(host,sizeof(host))<0){
-	sprintf(errtxt,"unable to get hostname");
-	perror(errtxt);
-    }
-
-    /*
-     * map host name to IP address
-     */
-    if((phe = gethostbyname(host))){
-	bcopy(phe->h_addr, (char *)&in_sin.s_addr, phe->h_length);
-    }else{
-	if((in_sin.s_addr = inet_addr(host)) == INADDR_NONE){
-	    sprintf(errtxt,"can't get %s host entry", host);
-	    perror(errtxt);
-	}
-    }
-
-    init();
+    init(nodes);
     printf("%s",display); fflush(stdout);
-    while(1){
+    while (1) {
 	FD_ZERO(&rfds);
-	FD_SET(mcastsock,&rfds);
-	select(mcastsock+1,&rfds,NULL,NULL, NULL);
-	if(FD_ISSET(mcastsock,&rfds)){
+	FD_SET(mcastsock, &rfds);
+	select(mcastsock+1, &rfds, NULL, NULL, NULL);
+	if (FD_ISSET(mcastsock, &rfds)) {
 	    slen = sizeof(sin);
 	    recvfrom(mcastsock, &buf, sizeof(Mmsg), 0,
 		     (struct sockaddr *)&sin, &slen);
-	    count[buf.node]++;
-	    display[buf.node]=(char)wheel[count[buf.node]%4];
-	    if(debug){
+	    if (debug) {
 		printf("receiving MCAST Ping from %x, type=%x state[%x]:%x"
 		       " Load[%.2f|%.2f|%.2f]\n",
-		       sin.sin_addr.s_addr, buf.type,buf.node,buf.state,
+		       sin.sin_addr.s_addr, buf.type, buf.node, buf.state,
 		       buf.load.load[0],buf.load.load[1],buf.load.load[2]);
-	    }else{
+	    } else {
+		if (buf.node >= nodes) {
+		    /* Got ping from node that exceeds num_nodes */
+		    fprintf(stderr, "receiving MCAST Ping from %x, type=%x"
+			    " state[%x]:%x\n",sin.sin_addr.s_addr, buf.type,
+			    buf.node, buf.state);
+		    fprintf(stderr, "buf.node = %d >= nodes = %d\n", buf.node,
+			    nodes);
+		    fprintf(stderr,
+			    "Please use -# option with correct argument.\n");
+		    break;
+		}
+		count[buf.node]++;
+		display[buf.node] = (char)wheel[count[buf.node]%4];
 		printf("%s",display); fflush(stdout);
 	    }
-	}else{
+	} else {
 	    printf("select returned without anything !!\n");
 	}
     }
+
+    return -1;
 }
