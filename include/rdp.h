@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.h,v 1.3 2002/01/16 17:07:30 eicker Exp $
+ * $Id: rdp.h,v 1.4 2002/01/18 12:45:57 eicker Exp $
  *
  */
 /**
  * \file
  * rdp: Reliable Datagram Protocol for ParaStation daemon
  *
- * $Id: rdp.h,v 1.3 2002/01/16 17:07:30 eicker Exp $
+ * $Id: rdp.h,v 1.4 2002/01/18 12:45:57 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -142,7 +142,7 @@ void setRDPDeadLimit(int limit);
  */
 void getRDPInfo(int n, RDP_ConInfo *info);
 
-void getRDPStateInfo(int n, char *s);
+void getRDPStateInfo(int n, char *s, size_t len);
 
 #ifdef __cplusplus
 }/* extern "C" */

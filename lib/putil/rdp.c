@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.9 2002/01/17 13:05:12 eicker Exp $
+ * $Id: rdp.c,v 1.10 2002/01/18 12:45:57 eicker Exp $
  *
  */
 /**
  * \file
  * rdp: ParaStation Reliable Datagram Protocol
  *
- * $Id: rdp.c,v 1.9 2002/01/17 13:05:12 eicker Exp $
+ * $Id: rdp.c,v 1.10 2002/01/18 12:45:57 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.9 2002/01/17 13:05:12 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.10 2002/01/18 12:45:57 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -2535,15 +2535,15 @@ static char *CIstate(RDPState state)
   return "UNKNOWN";
 }
 
-void getRDPStateInfo(int n, char *s)
+void getRDPStateInfo(int node, char *s, size_t len)
 {
-    sprintf(s,"%d [%s]: ID[%x|%x] NFTS=%x AE=%x FE=%x"
-	    " miss=%d ap=%d mp=%d bptr=%p\n",
-            n, CIstate(conntable[n].state),
-	    conntable[n].ConnID_in,        conntable[n].ConnID_out,
-	    conntable[n].NextFrameToSend,  conntable[n].AckExpected,
-	    conntable[n].FrameExpected,    conntable[n].misscounter,
-	    conntable[n].ack_pending,      conntable[n].msg_pending,
-	    conntable[n].bufptr);
+    snprintf(s, len, "%d [%s]: ID[%x|%x] NFTS=%x AE=%x FE=%x"
+	     " miss=%d ap=%d mp=%d bptr=%p\n",
+	     node, CIstate(conntable[node].state),
+	     conntable[node].ConnID_in,       conntable[node].ConnID_out,
+	     conntable[node].NextFrameToSend, conntable[node].AckExpected,
+	     conntable[node].FrameExpected,   conntable[node].misscounter,
+	     conntable[node].ack_pending,     conntable[node].msg_pending,
+	     conntable[node].bufptr);
     return;
 }
