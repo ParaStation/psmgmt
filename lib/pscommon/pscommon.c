@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.c,v 1.8 2003/04/11 13:14:30 eicker Exp $
+ * $Id: pscommon.c,v 1.9 2003/06/05 16:56:53 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.8 2003/04/11 13:14:30 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.9 2003/06/05 16:56:53 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -196,12 +196,12 @@ int PSC_startDaemon(unsigned int hostaddr)
 	snprintf(errtxt, sizeof(errtxt), "%s: connect() fails: %s", __func__,
 		 errstr ? errstr : "UNKNOWN");
 	PSC_errlog(errtxt, 0);
-	shutdown(sock,2);
+	shutdown(sock, SHUT_RDWR);
 	close(sock);
 	return 0;
     }
     usleep(200000);
-    shutdown(sock,2);
+    shutdown(sock, SHUT_RDWR);
     close(sock);
     return 1;
 }
