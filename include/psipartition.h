@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psipartition.h,v 1.3 2003/10/30 16:38:45 eicker Exp $
+ * $Id: psipartition.h,v 1.4 2004/01/28 10:27:44 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for partitions of ParaStation nodes.
  *
- * $Id: psipartition.h,v 1.3 2003/10/30 16:38:45 eicker Exp $
+ * $Id: psipartition.h,v 1.4 2004/01/28 10:27:44 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -127,7 +127,7 @@ void PSI_PBS(void);
  * - PSI_WAIT: If the ressources available at the time the parallel
  * task is started are not sufficient, wait until they are. Usually
  * the task will stop immediately if it cannot get the reqeusted
- * ressources. @todo not yet implemented.
+ * ressources.
  *
  * The so build nodelist is propagated unmodified to all child
  * processes.
