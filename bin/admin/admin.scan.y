@@ -12,7 +12,7 @@
 #define yylex adminlex
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.23 2003/06/25 16:47:17 eicker Exp $";
+static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.24 2003/07/31 17:57:08 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #define NODEERR -2
@@ -385,12 +385,6 @@ static void MyHWStat(int first, int last)
 	PSIADM_HWStat(first, last);
 
     return;
-}
-
-static void MyReset(int what, int first, int last)
-{
-    if ( (first != NODEERR) && (last != NODEERR))
-	PSIADM_Reset(what, first, last);
 }
 
 static void MySetUser(int what, int first, int last)

@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.65 2003/07/18 14:43:42 eicker Exp $
+ * $Id: psiadmin.c,v 1.66 2003/07/31 17:57:08 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.65 2003/07/18 14:43:42 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.66 2003/07/31 17:57:08 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -52,7 +52,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.65 $";
+static char psiadmversion[] = "$Revision: 1.66 $";
 static int doRestart = 0;
 
 static char *hoststatus = NULL;
@@ -156,7 +156,6 @@ void PSIADM_MCastStat(int first, int last)
 void PSIADM_CountStat(int first, int last)
 {
     int i, hw, hwnum;
-    unsigned int j;
 
     INFO_request_nodelist(nodelist, nodelistSize, 1);
 
