@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: adminparser.c,v 1.1 2003/08/15 13:20:54 eicker Exp $
+ * $Id: adminparser.c,v 1.2 2003/08/27 12:48:08 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.1 2003/08/15 13:20:54 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.2 2003/08/27 12:48:08 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -34,7 +34,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.1 2003/0
 
 #include "helpmsgs.c"
 
-static char parserversion[] = "$Revision: 1.1 $";
+static char parserversion[] = "$Revision: 1.2 $";
 
 static char *getNodeList(char *nl_descr)
 {
@@ -126,16 +126,64 @@ static int stopCommand(char *token)
 
 static int hwstartCommand(char *token)
 {
-    /** @todo */
-    printf("Not implemented\n");
+    char *nl_descr = parser_getString();
+    char *nl = NULL, *hw = NULL;
+    int hwIndex = -1;
+
+    if (nl_descr && !strcasecmp(nl_descr, "hw")) {
+	hw = parser_getString();
+	nl_descr = parser_getString();
+    }
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+
+	if (!nl) goto error;
+    }
+
+    if (parser_getString()) goto error;
+
+    if (hw) {
+	hwIndex = INFO_request_hwindex(hw, 1);
+	if (hwIndex == -1 && strcasecmp(hw, "all")) goto error;
+    }
+    PSIADM_HWStart(hwIndex, nl);
     return 0;
+
+ error:
+    printf ("Syntax error: hwstart [hw {<hw> | all}] [<nodes>]\n");
+    return -1;
 }
 
 static int hwstopCommand(char *token)
 {
-    /** @todo */
-    printf("Not implemented\n");
+    char *nl_descr = parser_getString();
+    char *nl = NULL, *hw = NULL;
+    int hwIndex = -1;
+
+    if (nl_descr && !strcasecmp(nl_descr, "hw")) {
+	hw = parser_getString();
+	nl_descr = parser_getString();
+    }
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+
+	if (!nl) goto error;
+    }
+
+    if (parser_getString()) goto error;
+
+    if (hw) {
+	hwIndex = INFO_request_hwindex(hw, 1);
+	if (hwIndex == -1 && strcasecmp(hw, "all")) goto error;
+    }
+    PSIADM_HWStop(hwIndex, nl);
     return 0;
+
+ error:
+    printf ("Syntax error: hwstop [hw {<hw> | all}] [<nodes>]\n");
+    return -1;
 }
 
 static int restartCommand(char *token)
@@ -186,11 +234,6 @@ static int resetCommand(char *token)
     return -1;
 }
 
-static int countStat(void)
-{
-    return 1;
-}
-
 static int statCommand(char *token)
 {
     char *what = parser_getString();
@@ -212,8 +255,9 @@ static int statCommand(char *token)
 	if (!nl) goto error;
     }
 
+    if (parser_getString()) goto error;
+
     if (!what || !strcasecmp(what, "node")) {
-	if (parser_getString()) goto error;
 	PSIADM_NodeStat(nl);
     } else if (!strcasecmp(what, "count")
 	       || !strcasecmp(what, "c")) {
@@ -224,31 +268,30 @@ static int statCommand(char *token)
 	}
 	PSIADM_CountStat(hwIndex, nl);
     } else if (!strcasecmp(what, "rdp")) {
-	if (parser_getString()) goto error;
 	PSIADM_RDPStat(nl);
     } else if (!strcasecmp(what, "mcast")) {
-	if (parser_getString()) goto error;
 	PSIADM_MCastStat(nl);
     } else if (!strcasecmp(what, "proc")
 	       || !strcasecmp(what, "p")) {
-	if (parser_getString()) goto error;
 	PSIADM_ProcStat(nl, 0);
     } else if (!strcasecmp(what, "allproc")
 	       || !strcasecmp(what, "ap")) {
-	if (parser_getString()) goto error;
 	PSIADM_ProcStat(nl,1);
     } else if (!strcasecmp(what, "load")
 	       || !strcasecmp(what, "l")) {
-	if (parser_getString()) goto error;
 	PSIADM_LoadStat(nl);
     } else if (!strcasecmp(what, "hardware")
 	       ||!strcasecmp(what, "hw")) {
-	if (parser_getString()) goto error;
 	PSIADM_HWStat(nl);
     } else if (!strcasecmp(what, "all")) {
-	if (parser_getString()) goto error;
 	PSIADM_NodeStat(nl);
 	PSIADM_ProcStat(nl, 0);
+    } else if (!nl_descr) {
+	/* Maybe this is like 'status a-b' */
+	nl = getNodeList(what);
+
+	if (!nl) goto error;
+	PSIADM_NodeStat(nl);
     } else goto error;
     return 0;
 
@@ -533,7 +576,7 @@ static int versionCommand(char *token)
     printf("PSIADMIN: ParaStation administration tool\n");
     printf("Copyright (C) 1996-2003 ParTec AG Karlsruhe\n");
     printf("\n");
-    printf("PSIADMIN:   %s\b/%s\b/%s\b \n", psiadmversion+11,
+    printf("PSIADMIN:   %s\b/ %s\b/ %s\b \b\b\n", psiadmversion+11,
 	   commandsversion+11, parserversion+11);
     printf("PSID:       %s\b \n", PSI_getPsidVersion()+11);
     printf("PSProtocol: %d\n", PSprotocolVersion);
