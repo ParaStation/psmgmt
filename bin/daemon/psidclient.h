@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidclient.h,v 1.3 2003/10/23 16:27:35 eicker Exp $
+ * $Id: psidclient.h,v 1.4 2003/10/30 16:33:01 eicker Exp $
  *
  */
 /**
  * \file
  * Functions for client handling within the ParaStation daemon
  *
- * $Id: psidclient.h,v 1.3 2003/10/23 16:27:35 eicker Exp $
+ * $Id: psidclient.h,v 1.4 2003/10/30 16:33:01 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -113,7 +113,6 @@ int getClientFD(PStask_ID_t tid);
  * @return No return value.
  *
  * @see isEstablishedClient()
- 
  */
  void setEstablishedClient(int fd);
 
