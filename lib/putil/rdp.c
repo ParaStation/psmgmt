@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.34 2004/01/15 16:34:35 eicker Exp $
+ * $Id: rdp.c,v 1.35 2004/01/22 11:20:23 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.34 2004/01/15 16:34:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.35 2004/01/22 11:20:23 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -1016,16 +1016,22 @@ static void clearMsgQ(int node)
     msgbuf *mp;
     int blocked;
 
-    cp = &conntable[node];
-    mp = cp->bufptr;
-
     /*
      * A blocked timer needs to be restored since clearMsgQ() can be called
      * from within handleTimeoutRDP().
      */
     blocked = Timer_block(timerID, 1);
 
+    cp = &conntable[node];
+    mp = cp->bufptr;                            /* messages to decline */
+
+    cp->bufptr = NULL;
+    cp->ackExpected = cp->frameToSend;          /* restore initial setting */
+    cp->window = MAX_WINDOW_SIZE;               /* restore window size */
+
+    /* Now decline all pending messages */
     while (mp) { /* still a message there */
+	msgbuf *next;
 	if (RDPCallback) { /* give msg back to upper layer */
 	    deadbuf.dst = node;
 	    deadbuf.buf = mp->msg.small->data;
@@ -1041,12 +1047,10 @@ static void clearMsgQ(int node)
 	    putSMsg(mp->msg.small);             /* back to freelist */
 	}
 	deqAck(mp->ackptr);                     /* dequeue ack */
-	cp->bufptr = cp->bufptr->next;          /* remove msgbuf from list */
+	next = mp->next;                        /* remove msgbuf from list */
 	putMsg(mp);                             /* back to freelist */
-	mp = cp->bufptr;                        /* next message */
+	mp = next;                              /* next message */
     }
-    cp->ackExpected = cp->frameToSend;          /* restore initial setting */
-    cp->window = MAX_WINDOW_SIZE;               /* restore window size */
 
     /* Restore blocked timer */
     Timer_block(timerID, blocked);
@@ -1065,10 +1069,10 @@ static void closeConnection(int node)
 {
     snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, node);
     errlog(errtxt, (conntable[node].state != ACTIVE) ? 1 : 0);
-    clearMsgQ(node);
     conntable[node].state = CLOSED;
     conntable[node].ackPending = 0;
     conntable[node].msgPending = 0;
+    clearMsgQ(node);
     if (RDPCallback) {  /* inform daemon */
 	RDPCallback(RDP_LOST_CONNECTION, &node);
     }
@@ -2104,7 +2108,7 @@ void setMaxRetransRDP(int limit)
 int Rsendto(int node, void *buf, size_t len)
 {
     msgbuf *mp;
-    int retval = 0;
+    int retval = 0, blocked;
 
     if (((node < 0) || (node >= nrOfNodes))) {
 	/* illegal node number */
@@ -2132,7 +2136,11 @@ int Rsendto(int node, void *buf, size_t len)
 	return -1;
     }
 
-    Timer_block(timerID, 1);
+    /*
+     * A blocked timer needs to be restored since Rsendto() can be called
+     * from within the callback function.
+     */
+    blocked = Timer_block(timerID, 1);
 
     /* setup msg buffer */
     mp = conntable[node].bufptr;
@@ -2170,7 +2178,8 @@ int Rsendto(int node, void *buf, size_t len)
     /* copy msg data */
     memcpy(mp->msg.small->data, buf, len);
 
-    Timer_block(timerID, 0);
+    /* Restore blocked timer */
+    Timer_block(timerID, blocked);
 
     switch (conntable[node].state) {
     case CLOSED:
