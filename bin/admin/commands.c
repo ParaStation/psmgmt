@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: commands.c,v 1.15 2004/03/11 14:53:56 eicker Exp $
+ * $Id: commands.c,v 1.16 2004/04/16 14:14:27 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.15 2004/03/11 14:53:56 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.16 2004/04/16 14:14:27 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -35,7 +35,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.15 2004/03/
 
 #include "commands.h"
 
-char commandsversion[] = "$Revision: 1.15 $";
+char commandsversion[] = "$Revision: 1.16 $";
 
 /* @todo PSI_sendMsg(): Wrapper, control if sendMsg was successful or exit */
 
@@ -246,6 +246,9 @@ static inline int getExclusiveFlags(void)
 
 /* ---------------------------------------------------------------------- */
 
+/** Delay between starting nodes in msec. @todo Make this configurable. */
+const int delay = 50;
+
 void PSIADM_AddNode(char *nl)
 {
     DDBufferMsg_t msg = {
@@ -273,6 +276,7 @@ void PSIADM_AddNode(char *nl)
 	    printf("starting node %d\n", node);
 	    *(PSnodes_ID_t *)msg.buf = node;
 	    PSI_sendMsg(&msg);
+	    usleep(delay * 1000);
 	}
     }
     /* @todo check the success and repeat the startup */
