@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.h,v 1.8 2002/02/13 08:32:56 eicker Exp $
+ * $Id: info.h,v 1.9 2002/02/15 19:19:24 eicker Exp $
  *
  */
 /**
  * @file
  * info: Functions for information retrieving from ParaStation daemon
  *
- * $Id: info.h,v 1.8 2002/02/13 08:32:56 eicker Exp $
+ * $Id: info.h,v 1.9 2002/02/15 19:19:24 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -145,6 +145,8 @@ double INFO_request_load(unsigned short node);
  */
 double INFO_request_proc(unsigned short node);
 
+int INFO_request_option(unsigned short node, int num, long option[],
+			long value[]);
 
 #ifdef __cplusplus
 }/* extern "C" */

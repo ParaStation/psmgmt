@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.13 2002/02/13 08:32:56 eicker Exp $
+ * $Id: info.c,v 1.14 2002/02/15 19:19:24 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.13 2002/02/13 08:32:56 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.14 2002/02/15 19:19:24 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -66,7 +66,8 @@ static int INFO_receive(INFO_info_t what, void* buffer, int size)
 
 		if (taskinfo) {
 		    if (size < sizeof(*taskinfo)) {
-			fprintf(stderr, "INFO_receive: buffer to small\n");
+			fprintf(stderr,
+				"INFO_receive: task-buffer to small\n");
 			break;
 		    }
 		    taskinfo->nodeno = task->nodeno;
@@ -100,18 +101,32 @@ static int INFO_receive(INFO_info_t what, void* buffer, int size)
 	    /* changed from 5min to 1 min avg load jh 2001-12-21 */
 	    *(double *)buffer = ((DDLoadMsg_t*)&msg)->load[0];
 	    break;
+	case PSP_DD_SETOPTION:
+	{
+	    int i;
+	    DDOptionMsg_t *omsg = (DDOptionMsg_t *)&msg;
+
+	    if (omsg->count*sizeof(omsg->opt[0].value) > size ) {
+		fprintf(stderr, "INFO_receive: option-buffer to small\n");
+		break;
+	    }
+	    for (i=0; i<omsg->count; i++) {
+		((long *)buffer)[i] = omsg->opt[i].value;
+	    }
+	    break;
+	}
 	case PSP_DD_SYSTEMERROR:
 	{
 	    char* errtxt;
 	    errtxt = strerror(((DDErrorMsg_t*)&msg)->err);
-	    fprintf(stderr, "INFO_receive: error in command %s : %s\n", 
-		    PSPctrlmsg(((DDErrorMsg_t*)&msg)->request),
-		    errtxt ? errtxt : "UNKNOWN");
+	    printf("INFO_receive: error in command %s : %s\n", 
+		   PSPctrlmsg(((DDErrorMsg_t*)&msg)->request),
+		   errtxt ? errtxt : "UNKNOWN");
 	    break;
 	}
 	default:
 	    fprintf(stderr, "INFO_receive: received msgtype '%s'."
-		    " Don't know want to do!\n", PSPctrlmsg(msg.header.type));
+		    " Don't know what to do!\n", PSPctrlmsg(msg.header.type));
 	    }
     }
 
@@ -344,7 +359,7 @@ double INFO_request_proc(unsigned short node)
     msg.header.len = sizeof(msg.header);
 
     if (ClientMsgSend(&msg)<0) {
-	perror("INFO_request_load: write");
+	perror("INFO_request_proc: write");
 	exit(-1);
     }
 
@@ -354,5 +369,40 @@ double INFO_request_proc(unsigned short node)
 	return answer;
     } else {
 	return -1.0;
+    }
+}
+
+int INFO_request_option(unsigned short node, int num, long option[],
+			 long value[])
+{
+    int msgtype, i;
+    DDOptionMsg_t msg;
+
+    if (num > DDOptionMsgMax) {
+	fprintf(stderr, "INFO_request_options: too many options.\n");
+	return -1;
+    }
+
+    msg.header.type = PSP_DD_GETOPTION;
+    msg.header.len = sizeof(msg);
+    msg.header.sender = PSI_mytid;
+    msg.header.dest = PSI_gettid(node, 0);
+
+    for (i=0; i<num; i++) {
+	msg.opt[i].option = option[i];
+    }
+    msg.count = num;
+
+    if (ClientMsgSend(&msg)<0) {
+	perror("INFO_request_option: write");
+	exit(-1);
+    }
+
+    msgtype = INFO_receive(INFO_GETINFO, value, sizeof(*value)*num);
+
+    if (msgtype == PSP_DD_SETOPTION) {
+	return num;
+    } else {
+	return -1;
     }
 }
