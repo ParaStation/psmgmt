@@ -7,7 +7,7 @@
 /**
  * name: Description
  *
- * $Id: psport4.c,v 1.1 2002/06/10 12:56:17 hauke Exp $
+ * $Id: psport4.c,v 1.2 2002/06/11 00:16:00 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <signal.h>
+#include <ctype.h>
 
 #include "psport.h"
 
@@ -48,7 +49,7 @@
 #define PSP_VER FE
 //#define PSP_VER 4
 
-#define USE_SIGURGCLONE
+//#define USE_SIGURGCLONE
 //#define USE_SIGURGSOCK
 
 #ifdef USE_SIGURGCLONE
@@ -58,6 +59,9 @@
 #define USE_SIGURG
 #endif
 #endif
+
+
+#define DP_SR(fmt,arg... ) printf( fmt ,##arg)
 
 /* Check Request Usage, PSP_DPRINT_LEVEL should be >= 1 */
 //#define PSP_ENABLE_MAGICREQ
@@ -206,6 +210,12 @@ static PSP_Port_t *Ports;
 static PSP_Request_t *ReqBH = NULL;
 static PSP_Request_t **ReqBHTailP = &ReqBH;
 
+static int GenReqs = 0;
+static int GenReqsUsed = 0;
+static int PostedRecvReqs = 0;
+static int PostedRecvReqsUsed = 0;
+
+
 static
 void PSP_SetReadAhead( int len )
 {
@@ -221,6 +231,32 @@ char *inetstr( int addr )
     sprintf( ret, "%u.%u.%u.%u",
 	     (addr >> 24) & 0xff, (addr >> 16) & 0xff,
 	     (addr >>  8) & 0xff, (addr >>  0) & 0xff);
+    return ret;
+}
+
+static
+char *dumpstr( void *buf, int size )
+{
+    static char *ret=NULL;
+    char *tmp;
+    int s;
+    char *b;
+    if (ret) free(ret);
+    ret = (char *)malloc(size * 5 + 4);
+    tmp = ret;
+    s = size; b = (char *)buf;
+    for (; s ; s--, b++){
+	    tmp += sprintf( tmp, "<%02x>", (unsigned char)*b );
+    }
+#if 0
+    *tmp++ = '\'';
+    s = size; b = (char *)buf;
+    for (; s ; s--, b++){
+	    *tmp++ = isprint( *b ) ? *b: '.';
+    }
+    *tmp++ = '\'';
+#endif
+    *tmp++ = 0;
     return ret;
 }
 
@@ -336,6 +372,7 @@ void AddRecvRequest( PSP_RecvReqList_t *rl, PSP_Request_t *req)
     req->Next = NULL;
     *rl->PostedRecvRequestsTailP = req;
     rl->PostedRecvRequestsTailP = &req->Next;
+    PostedRecvReqs++;
 }
 
 static inline
@@ -348,10 +385,14 @@ PSP_Request_t * GetPostedRequest( PSP_RecvReqList_t *rl, PSP_Header_Net_t *nh,
     prev_p = &rl->PostedRecvRequests;
     req    =  rl->PostedRecvRequests;
 
+    printf("GetPostedRequest\n");
+    
     while (req && ( ! req->cb( nh, from, req->cb_param ))){
+	printf("Check %p failed\n", req);
 	prev_p = &req->Next;
 	req    =  req->Next;
     }
+    printf("%pGetPostedRequest result\n",req);
 
     if (req){
 	// dequeue
@@ -364,6 +405,7 @@ PSP_Request_t * GetPostedRequest( PSP_RecvReqList_t *rl, PSP_Header_Net_t *nh,
 	/* Copy already received data: */
 	AdjustHeader( REQ_TO_HEADER( req ), nh );
 	copy_to_header( REQ_TO_HEADER( req ), nh, nhlen );
+	PostedRecvReqsUsed++;
     }
     return req;
 }
@@ -396,6 +438,10 @@ void DelFirstSendRequest(  PSP_Port_t *port, PSP_Request_t *req)
 	exit(1);
     }
 #endif
+    DP_SR( "SFIN xh: %8d dat: %8d\n",
+	   REQ_TO_HEADER_NET(req)->xheaderlen,
+	   REQ_TO_HEADER_NET(req)->datalen);
+
     if (req->Next == NULL){ // same as: *PostedSendRequestsTailP == req
 	// SendRequestQueue is now empty
 	port->conns[ dest ].PostedSendRequestsTailP =
@@ -471,6 +517,13 @@ static inline
 void FinishRequest( PSP_Port_t *port, PSP_Request_t * req)
 {
     unused_var( port );
+    DP_SR( "%pFINI xh: %8d dat: %8d           %s\n",
+	   req,
+	   REQ_TO_HEADER_NET(req)->xheaderlen,
+	   REQ_TO_HEADER_NET(req)->datalen,
+	   dumpstr(REQ_TO_HEADER_NET(req)->xheader,16)
+	);
+    
     if (req->dcb)
 	AddReqBH(req);
     else{
@@ -546,13 +599,16 @@ PSP_Request_t *GetGeneratedRequestFromHash( PSP_GenRecvReq_t *hash_,
     prev_p = &hash_->GenReqHead;
     req    =  hash_->GenReqHead;
 
+    printf("ENTER "__FUNCTION__" \n");
     while (req &&
 	   ( ! cb(
 	       REQ_TO_HEADER_NET( req ),
 	       REQ_TO_HEADER( req )->addr.from, cb_param ))){
+	printf("%ptest failed "__FUNCTION__" \n",req);
 	prev_p = &req->NextGen;
 	req    =  req->NextGen;
     }
+    printf("%pLEAVE "__FUNCTION__" \n",req);
     
     if (req){
 	// dequeue
@@ -575,6 +631,7 @@ static inline
 PSP_Request_t * GetGeneratedRequest(
     PSP_RecvReqList_t *rl, PSP_RecvCallBack_t *cb, void* cb_param, int from)
 {
+    printf("ENTER "__FUNCTION__ " from %d\n",from);
     if (from != PSP_AnySender){
 	return GetGeneratedRequestFromHash( &rl->GenReqHash[ PSP_MSGQ_HASH( from )],
 					    cb, cb_param );
@@ -668,6 +725,11 @@ PSP_Request_t * GenerateRequest(PSP_RecvReqList_t *rl,
     header = (PSP_Header_t *)PSP_malloc( sizeof( *header ) + packsize );
     req = &header->Req;
 
+    DP_SR( "%pGENE xh: %8d dat: %8d from %d\n",
+	   &header->Req,
+	   nh->xheaderlen, nh->datalen, from
+  	);
+
     /* initialize */
 
     header->Req.Next = NULL;
@@ -703,6 +765,7 @@ PSP_Request_t * GenerateRequest(PSP_RecvReqList_t *rl,
     GenReqEnq( rl , req, from);
     
     req->UseCnt++;
+    GenReqs++;
     return req;
 }
     
@@ -710,6 +773,7 @@ PSP_Request_t * GenerateRequest(PSP_RecvReqList_t *rl,
 static inline
 void FreeGenRequest(PSP_Request_t * req)
 {
+    GenReqsUsed++;
     free( REQ_TO_HEADER( req ));
 }
 
@@ -897,6 +961,8 @@ void ConfigureConnection( int fd )
     val = getpid();
     ret = fcntl( fd, F_SETOWN, val );
     ret = ioctl( fd, SIOCSPGRP, &val );
+#else
+    unused_var( fd );
 #endif
 }
 #endif
@@ -907,13 +973,14 @@ int GetUnusedCon( PSP_Port_t *port )
 {
     int con;
     /* Find a free conn */
-    for( con=0; con < PSP_FE_MAX_CONNS ; con++){
+    for( con=PSP_FE_MAX_CONNS-1; con >=0  ; con--){
 	if ( port->conns[con].con_fd < 0 ){
 	    port->used_cons = PSP_MAX( port->used_cons, con + 1 );
 	    break;
 	}
     }
-    return con < PSP_FE_MAX_CONNS ? con : -1;
+    return con >= 0 ? con : -1;
+//    return con < PSP_FE_MAX_CONNS ? con : -1;
 }
 
 static 
@@ -1005,8 +1072,19 @@ int DoRecvNewMessage( PSP_Port_t *port, int con )
 			       con );
     }
 
-    /* Enq running req */
-    port->conns[ con ].RunningRecvRequest = req;
+    REQ_TO_HEADER( req )->addr.from = con;
+    /*
+      If ReadAheadBuf->datalen equal zero, the request is already
+      finished. This is equivalent to:
+      (iovec[1].iov_len == 0) && (skip == 0))
+    */
+    if ( ReadAheadBuf->datalen ){
+	/* Enq running req */
+	port->conns[ con ].RunningRecvRequest = req;
+    }else{
+	 /* "port->conns[ con ].RunningRecvRequest = 0" already done */
+	FinishRequest( port, req );
+    }
     return 0;
  err_recvall:
     if (errno != EINTR){
@@ -1063,8 +1141,9 @@ void DoRecv( PSP_Port_t *port, int con )
 	}
     }else{
 	/* New message */
-	if ( !DoRecvNewMessage( port, con ))
+	if ( !DoRecvNewMessage( port, con ) && port->conns[con].RunningRecvRequest ){
 	    goto trymore3;
+	}
     }
 
  out:
@@ -1113,7 +1192,7 @@ void DoSend( PSP_Port_t *port, int con )
 }
 
 static inline
-int DoBackgroudWorkWait( PSP_Port_t *port, struct timeval *timeout ) 
+int DoBackgroundWorkWait( PSP_Port_t *port, struct timeval *timeout ) 
 {
     fd_set fds_read;
     fd_set fds_write;
@@ -1157,7 +1236,7 @@ void DoBackgroundWork( PSP_Port_t *port )
     do{
 	to.tv_sec = 0;
 	to.tv_usec = 0;
-	ret = DoBackgroudWorkWait( port, &to );
+	ret = DoBackgroundWorkWait( port, &to );
     }while ( ret );
 }
 
@@ -1166,6 +1245,7 @@ static
 void sigurg( int signal )
 {
     PSP_Port_t *port;
+    unused_var( signal );
     if (!sigurglock){
 	sigurgretry = 0;
 	printf(" +++++++++ SIGURG START+++++++++ \n");
@@ -1183,6 +1263,7 @@ void sigurg( int signal )
 static
 void sigio( int signal )
 {
+    unused_var( signal );
     printf(" +++++++++ SIGIO  IGNORE  ++++++ \n");
 }
 
@@ -1213,7 +1294,7 @@ int PSP_bg_thread(void *arg)
 	    nfds = Ports->nfds;
 	    fds_read = Ports->fds_read;
 	    fds_write = Ports->fds_write;
-	    to.tv_sec = 1;
+	    to.tv_sec = 5;
 	    to.tv_usec = 0;
 	    printf("PSP_bg_thread() sellect  ##########\n");
 	    nfds = select( nfds, &fds_read, &fds_write, NULL, &to );
@@ -1411,6 +1492,11 @@ int PSP_Connect_( PSP_PortH_t porth, struct sockaddr *sa, socklen_t addrlen )
     ConfigureConnection( con_fd );
     port->conns[con].con_fd = con_fd;
     FD_SET2( con_fd, &port->fds_read, &port->nfds );
+
+    printf("CONNECT to %s:%d id %d\n",
+	   inetstr(ntohl( ((struct sockaddr_in*)sa)->sin_addr.s_addr)),
+	   ntohs(((struct sockaddr_in*)sa)->sin_port),
+	   con);
     
     return con;
  err_connect:
@@ -1446,7 +1532,47 @@ int PSP_GetPortNo( PSP_PortH_t porth )
 	return -1;
 }
 
-
+static inline
+PSP_RequestH_t ISendLoopback( PSP_PortH_t porth,
+			      void* buf, unsigned buflen,
+			      PSP_Header_t* header, unsigned xheaderlen )
+{
+    PSP_Port_t *port = (PSP_Port_t *)porth;
+    PSP_Request_t *req;
+    header->Req.state = PSP_MAGICREQ_VALID | PSP_REQ_STATE_SEND |
+	PSP_REQ_STATE_SENDOK| PSP_REQ_STATE_PROCESSED;
+    header->addr.to = PSP_DEST_LOOPBACK;
+    header->xheaderlen = xheaderlen;
+    header->datalen = buflen;
+    
+    /* Search or generate the Request */
+    req = GetPostedRequest( &port->ReqList, PSP_HEADER_NET( header ),
+			    sizeof( PSP_Header_Net_t ) + xheaderlen,
+			    PSP_DEST_LOOPBACK );
+    if (!req){
+	/* receive without posted RecvRequest */
+	req = GenerateRequest( &port->ReqList , PSP_HEADER_NET( header ),
+			       sizeof( PSP_Header_Net_t ) + xheaderlen,
+			       PSP_DEST_LOOPBACK );
+    }
+    
+    REQ_TO_HEADER( req )->addr.from = PSP_DEST_LOOPBACK;
+    
+    /*
+      If datalen equal zero, the request is finished.
+      This is equivalent to:
+      (iovec[1].iov_len == 0) && (skip == 0))
+    */
+    if ( buflen ){
+	/* Copy the data to req */
+	copy_to_header( REQ_TO_HEADER( req ), buf, buflen );
+	/* Now (iovec[1].iov_len == 0) && (skip == 0)) is true */
+    }
+    
+    FinishRequest( port, req );
+    
+    return (PSP_RequestH_t) header;
+}
 
 
 /**********************************************************************/
@@ -1464,6 +1590,19 @@ PSP_RequestH_t PSP_ISend(PSP_PortH_t porth,
     }
 #endif
     unused_var( flags );
+    DP_SR( "SEND xh: %8d dat: %8d to %d            %s\n",
+	   xheaderlen, buflen, dest,
+	   dumpstr(header->xheader,16 )
+  	);
+
+    if ((unsigned int)dest >= PSP_FE_MAX_CONNS){
+	if ( dest == PSP_DEST_LOOPBACK ){
+	    return ISendLoopback( porth, buf, buflen, header, xheaderlen );
+	}else{
+	    goto err_inval;
+	}
+    }
+    
     header->Req.Next = NULL;
     header->Req.state = PSP_MAGICREQ_VALID | PSP_REQ_STATE_SEND | PSP_REQ_STATE_SENDPOSTED;
     header->Req.UseCnt = 0;
@@ -1482,11 +1621,15 @@ PSP_RequestH_t PSP_ISend(PSP_PortH_t porth,
     header->addr.to = dest;
     header->xheaderlen = xheaderlen;
     header->datalen = buflen;
+
+    if (header->Req.iovec[1].iov_len == 0){
+	/* Allow datalen == 0 */
+	header->Req.msgheader.msg_iovlen = 1;
+    }
     
     PSP_LOCK;
 
-    if ( ((unsigned int)dest >= PSP_FE_MAX_CONNS) ||
-	 (port->conns[dest].con_fd < 0)) goto err_notconnected; 
+    if ( port->conns[dest].con_fd < 0 ) goto err_notconnected; 
     
     AddSendRequest( port, &header->Req );
     DoBackgroundWork( port );
@@ -1496,7 +1639,7 @@ PSP_RequestH_t PSP_ISend(PSP_PortH_t porth,
     /* req not valid hereafter ! */
     
     return (PSP_RequestH_t) header;
-
+ err_inval:
  err_notconnected:
     PSP_UNLOCK;
     header->Req.state = PSP_MAGICREQ_VALID |
@@ -1538,6 +1681,11 @@ PSP_RequestH_t PSP_IReceiveCBFrom(PSP_PortH_t porth,
 	PSP_DPRINT(1,"WARNING: PSP_IReceiveCB called with used header\n");
     }
 #endif
+    DP_SR( "%pRECV xh: %8d dat: %8d from %d %s\n",
+	   &header->Req, xheaderlen, buflen, sender,
+	   dumpstr(header->xheader,16)
+  	);
+
     if (! cb )
 	cb = PSP_RecvAny;
 
@@ -1581,10 +1729,17 @@ PSP_RequestH_t PSP_IReceiveCBFrom(PSP_PortH_t porth,
 	header->addr.from = REQ_TO_HEADER( req )->addr.from;
 	header->Req.state = req->state;
 
-	if ( port->conns[ header->addr.from ].RunningRecvRequest == req ){
+	if (( header->addr.from != PSP_DEST_LOOPBACK ) &&
+	    ( port->conns[ header->addr.from ].RunningRecvRequest == req )){
 	    /* Replace the running request */
 	    port->conns[ header->addr.from ].RunningRecvRequest =
 		&header->Req;
+	}else{
+	    /* Finish the request. Clear PSP_REQ_STATE_PROCESSED,
+	       maybe we have to call a done callback before setting
+	       PSP_REQ_STATE_PROCESSED. */
+	    req->state &= ~PSP_REQ_STATE_PROCESSED;
+	    FinishRequest( port, &header->Req );
 	}
 	FreeGenRequest( req );
     }else{
@@ -1594,6 +1749,90 @@ PSP_RequestH_t PSP_IReceiveCBFrom(PSP_PortH_t porth,
     ExecBHandUnlock();
     
     return (PSP_RequestH_t) header;
+}
+
+
+
+
+/**********************************************************************/
+int PSP_IProbeFrom(PSP_PortH_t porth,
+		   PSP_Header_t* header, unsigned xheaderlen,
+		   PSP_RecvCallBack_t *cb, void* cb_param, int sender)
+/**********************************************************************/
+{
+    PSP_Port_t *port = (PSP_Port_t *)porth;
+    PSP_Request_t *req;
+    int ret=0;
+
+#ifdef PSP_ENABLE_MAGICREQ
+    if ((header->state & (PSP_MAGICREQ_MASK | PSP_REQ_STATE_PROCESSED))
+	== PSP_MAGICREQ_VALID){
+	PSP_DPRINT(1,"WARNING: PSP_IReceiveCB called with used header\n");
+    }
+#endif
+
+    if (!cb) cb = PSP_RecvAny;
+    
+    PSP_LOCK;
+    
+    DoBackgroundWork( port ); /* important */
+    req = SearchForGeneratedRequest(&port->ReqList,cb,cb_param,sender);
+    if (req){
+	memcpy( PSP_HEADER_NET( header ),
+		REQ_TO_HEADER_NET( req ),
+		PSP_HEADER_NET_LEN +
+		MIN( xheaderlen, REQ_TO_HEADER( req )->xheaderlen ));
+	header->addr.from = REQ_TO_HEADER( req )->addr.from;
+	ret=1;
+    }
+    
+    ExecBHandUnlock();
+    return ret;
+}
+
+
+
+/**********************************************************************/
+int PSP_ProbeFrom(PSP_PortH_t porth,
+		  PSP_Header_t* header, unsigned xheaderlen,
+		  PSP_RecvCallBack_t *cb, void* cb_param,
+		  int sender)
+/**********************************************************************/
+{
+    PSP_Port_t *port = (PSP_Port_t *)porth;
+
+    while (!PSP_IProbeFrom(porth, header, xheaderlen, cb, cb_param, sender )){
+	PSP_LOCK;
+	DoBackgroundWorkWait( port, NULL );
+	ExecBHandUnlock();
+    }
+    return 1;
+}
+
+
+/**********************************************************************/
+PSP_Status_t PSP_Test(PSP_PortH_t porth, PSP_RequestH_t request)
+/**********************************************************************/
+{
+    PSP_Header_t* header = (PSP_Header_t*)request;
+    PSP_Port_t *port=(PSP_Port_t *)porth;
+#ifdef PSP_ENABLE_MAGICREQ
+    if ((header->state & (PSP_MAGICREQ_MASK))
+	 != PSP_MAGICREQ_VALID){
+	PSP_DPRINT(1,"WARNING: PSP_Test called with uninitialized request\n");
+    }
+#endif
+    PSP_LOCK;
+    DoBackgroundWork( port );
+    ExecBHandUnlock();
+//    PSP_UNLOCK;
+    if (header->Req.state & PSP_REQ_STATE_PROCESSED){
+//	PSP_DPRINT(3,"PSP_Test: PSP_SUCCESS\n");
+	return PSP_SUCCESS;
+    }else{
+//	PSP_DPRINT(3,"PSP_Test: PSP_NOT_COMPLETE\n");
+	return PSP_NOT_COMPLETE;
+    }
 }
 
 
@@ -1615,8 +1854,46 @@ PSP_Status_t PSP_Wait(PSP_PortH_t portH, PSP_RequestH_t request)
     ExecBHandUnlock();
 
     while (! (header->Req.state & PSP_REQ_STATE_PROCESSED)){
+	struct timeval to;
+	to.tv_sec = 2;
+	to.tv_usec = 0;
+
 	PSP_LOCK;
-	DoBackgroudWorkWait( port, NULL );
+	printf("wait enter\n");
+	if (!DoBackgroundWorkWait( port, &to )){
+	    printf("wait leave timeout Gen:%d (%d) Posted: %d(%d)\n",
+		   GenReqs-GenReqsUsed, GenReqs,
+		   PostedRecvReqs-PostedRecvReqsUsed, PostedRecvReqs
+		   );
+	    if (Ports->ReqList.GenReqHashHead &&
+		Ports->ReqList.GenReqHashHead->GenReqHead){
+		printf("Gen: %s\n",
+		       dumpstr( REQ_TO_HEADER_NET(Ports->ReqList.GenReqHashHead->GenReqHead),
+						  16+8));
+	    
+		if (Ports->ReqList.PostedRecvRequests){
+		    printf("PST: %s\n",
+			   dumpstr( REQ_TO_HEADER_NET(Ports->ReqList.PostedRecvRequests),
+				    16+8));
+		    
+		    {
+			/* Check Callback: */
+			
+			printf("CB ret: %d\n",
+			       Ports->ReqList.PostedRecvRequests->cb(
+				   REQ_TO_HEADER_NET( Ports->ReqList.GenReqHashHead->GenReqHead ),
+				   REQ_TO_HEADER(Ports->ReqList.GenReqHashHead->GenReqHead)->
+				   addr.from, Ports->ReqList.PostedRecvRequests->cb_param));
+		    }
+		    
+		    
+		}
+	    }
+	}else{
+	    printf("wait done\n");
+	}
+	/* ToDo:*/
+	//DoBackgroundWork( port );
 	ExecBHandUnlock();
     }
 
@@ -1643,6 +1920,7 @@ PSP_Status_t PSP_Cancel(PSP_PortH_t port, PSP_RequestH_t request)
   Local Variables:
   c-basic-offset: 4
   c-backslash-column: 72
-  compile-command: "gcc psport.c -I../../include -Wall -W -o tmp.o"
+  compile-command: "make"
   End:
 */
+/* old  compile-command: "gcc psport.c -I../../include -Wall -W -o tmp.o" */
