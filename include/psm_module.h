@@ -1,6 +1,6 @@
 
 /*************************************************************fdb*
- * $Id: psm_module.h,v 1.5 2002/04/15 14:30:12 hauke Exp $
+ * $Id: psm_module.h,v 1.6 2002/08/23 17:39:59 hauke Exp $
  * structures and prototypes of psm_module.c
  *
  *************************************************************fde*/
@@ -20,6 +20,7 @@ struct psm_mod_T {
     struct psm_lanaiif	* lanaiif;
     struct psm_mcp	* mcp;
     struct psm_mcpif	* mcpif;
+    int lanai_int_enabled;
 };
 
 struct psm_mmap_result{
