@@ -1,12 +1,16 @@
 /*
- * psiadmin: ParaStation Administration tool
+ *               ParaStation3
+ * psiadmin.c
  *
- * (C) 1995-1999 ParTec AG Karlsruhe
+ * Copyright (C) ParTec AG Karlsruhe
+ * All rights reserved.
  *
- * written by Thomas M. Warschko & Joachim M. Blum
+ * $Id: psiadmin.c,v 1.11 2002/01/07 09:41:54 eicker Exp $
  *
  */
-
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.11 2002/01/07 09:41:54 eicker Exp $";
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -36,7 +40,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "2.9";
+static char psiadmversion[] = "$Revision: 1.11 $";
 static int  DoRestart = 1;
 
 int PSIADM_LookUpNodeName(char* hostname)
@@ -484,8 +488,8 @@ void PSIADM_ShutdownCluster(int first,int last)
     msg.header.len = sizeof(msg);
     msg.header.sender = PSI_mytid;
     msg.header.dest = PSI_gettid(PSI_myid,first);
-    msg.first = first==-1?0:first;
-    msg.last = first==-1?PSI_nrofnodes-1:last;
+    msg.first = (first==-1) ? 0 : first;
+    msg.last = (last==-1) ? PSI_nrofnodes : last;
     msg.action = 0;
 
     ClientMsgSend(&msg);
@@ -498,7 +502,7 @@ void PSIADM_TestNetwork(int mode)
     char** spawnargs;
     long tid;
 
-/*    printf("TestNetwork\n"); */
+    /* printf("TestNetwork\n"); */
     if(geteuid()){
 	printf("Insufficient priviledge\n");
 	return;
