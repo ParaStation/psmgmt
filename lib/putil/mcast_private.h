@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast_private.h,v 1.13 2003/10/08 13:47:25 eicker Exp $
+ * $Id: mcast_private.h,v 1.14 2003/10/23 13:30:57 eicker Exp $
  *
  */
 /**
@@ -14,7 +14,7 @@
  *
  * Private functions and definitions.
  *
- * $Id: mcast_private.h,v 1.13 2003/10/08 13:47:25 eicker Exp $
+ * $Id: mcast_private.h,v 1.14 2003/10/23 13:30:57 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -61,9 +61,14 @@ static char errtxt[256];         /**< String to hold error messages. */
 
 /** My node-ID withing the cluster. Set within initMCast(). */
 static int myID;
-/** My IP address. Set within initMCast(). */
-struct in_addr myIP;
 
+#ifdef __osf__
+/**
+ * My IP address. Set within initMCast(). Only needed for broken MCast
+ * support within TRU64 Unix.
+ */
+unsigned int myIP;
+#endif
 
 /**
  * The callback function. Will be used to send messages to the calling
@@ -195,66 +200,64 @@ static void initIPTable(void);
  * Register another node in @ref iptable.
  *
  *
- * @param ipno The IP number of the node to register.
+ * @param ip_addr The IP address in network byteorder of the node to
+ * register.
  *
  * @param node The corresponding node number.
  *
  *
  * @return No return value.
  */
-static void insertIPTable(struct in_addr ipno, int node);
+static void insertIPTable(unsigned int ip_addr, int node);
 
 /**
  * @brief Get node number from IP number.
  *
- * Get the node number from given IP number for a node registered via
- * insertIPTable().
+ * Get the node number from given IP address in network byteorder for
+ * a node registered via insertIPTable().
  *
- * @param ipno The IP number of the node to find.
+ * @param ip_addr The IP address in network byteorder of the node to
+ * find.
  *
- * @return On success, the node number corresponding to @a ipno is returned,
- * or -1 if the node could not be found in @ref iptable.
+ * @return On success, the node number corresponding to @a ip_addr is
+ * returned, or -1 if the node could not be found in @ref iptable.
  */
-static int lookupIPTable(struct in_addr ipno);
+static int lookupIPTable(unsigned int ip_addr);
 
 /* ---------------------------------------------------------------------- */
 
 /**
  * Connection info for each node pings are expected from.
  */
-typedef struct Mconninfo_ {
+typedef struct {
     struct timeval lastping; /**< Timestamp of last received ping */
     int misscounter;         /**< Number of pings missing */
     MCastLoad load;          /**< Load parameters of node */
     MCastJobs jobs;          /**< Number of jobs on the node */
-    struct sockaddr_in sin;  /**< Pre-built descriptor for sendto */
     MCastState state;        /**< State of the node (determined from pings */
 } Mconninfo;
 
 /**
  * Array to hold all connection info.
  */
-static Mconninfo *conntableMCast = NULL;
+static Mconninfo *conntable = NULL;
 
 /**
- * @brief Initialize the @ref conntableMCast.
+ * @brief Initialize the @ref conntable.
  *
- * Initialize the @ref conntableMCast for @a nodes nodes to receive pings
- * from. The IP numbers of all nodes are stored in @a host.
+ * Initialize the @ref conntable for @a nodes nodes to receive pings
+ * from. The IP addresses in network by order of all nodes are stored
+ * in @a host.
  *
  *
  * @param nodes The number of nodes pings are expected from.
  *
- * @param host The IP number of each node in network-byteorder indexed
- * by node number. The length of @a host must be at least @a
+ * @param host The IP address in network byte order of each node
+ * indexed by node number. The length of @a host must be at least @a
  * nodes.
  *
- * @param port The port pings are expected to be sent from.
- *
- *
  * @return No return value.  */
-static void initConntableMCast(int nodes,
-			       unsigned int host[], unsigned short port);
+static void initConntable(int nodes, unsigned int host[]);
 
 /* ---------------------------------------------------------------------- */
 
