@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: admin.scan.l,v 1.12 2002/07/25 13:39:57 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: admin.scan.l,v 1.13 2003/03/19 16:51:42 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 %}
 
@@ -14,6 +14,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: admin.scan.l,v 1.12 2002/0
 [ \t]+               { BEGIN INITIAL; }
 [0-9]+               { sscanf(yytext,"%d",&yylval.val); return NUMBER; }
 0x[0-9a-fA-F]+       { sscanf(yytext,"%x",&yylval.val); return HEXNUMBER; }
+-[0-9]+              { sscanf(yytext,"%d",&yylval.val); return SIGNAL; }
 
 add                  { return ADDOP; }
 set                  { return SETOP; }
