@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.52 2003/03/05 09:54:11 eicker Exp $
+ * $Id: psiadmin.c,v 1.53 2003/03/06 13:29:21 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.52 2003/03/05 09:54:11 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.53 2003/03/06 13:29:21 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -49,7 +49,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.52 $";
+static char psiadmversion[] = "$Revision: 1.53 $";
 static int doRestart = 0;
 
 static char *hoststatus = NULL;
@@ -410,7 +410,7 @@ void PSIADM_ShowUser(int first, int last)
 		name = strdup(passwd->pw_name);
 	    } else {
 		name = malloc(10*sizeof(char));
-		sprintf(name, "%d", uidlimit);
+		sprintf(name, "%ld", uidlimit);
 	    }
 	    printf("limited to user : %s\n", name);
 	    free(name);

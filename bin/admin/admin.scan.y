@@ -10,7 +10,7 @@
 #define yylex adminlex
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.18 2003/03/05 09:54:11 eicker Exp $";
+static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.19 2003/03/06 13:29:09 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #define NODEERR -2
@@ -119,7 +119,7 @@ setline:
                 {MySetMaxProc($3,FirstNode,LastNode);}
         | SETOP MAXPROC ANY nodes
                 {MySetMaxProc(-1,FirstNode,LastNode);}
-        | SETOP USER nodes             {printf("SET USER needs username\n");}
+        | SETOP USER                   {printf("SET USER needs username\n");}
         | SETOP USER NAME nodes        {MySetUserName($3,FirstNode,LastNode);}
         | SETOP USER NUMBER nodes      {MySetUser($3,FirstNode,LastNode);}
         | SETOP USER ANY nodes         {MySetUser(-1,FirstNode,LastNode);}
