@@ -260,7 +260,7 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>kill</command>
-	    <arg><replaceable>tid</replaceable></arg>
+	    <arg choice="plain"><replaceable>tid</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
@@ -294,16 +294,16 @@
 	  <cmdsynopsis>
 	    <command>show</command>
 	    <group choice="req">
-	      <arg>user</arg>
-	      <arg>maxproc</arg>
-	      <arg>smallpacketsize</arg>
-	      <arg>resendtimeout</arg>
-	      <arg>hnpend</arg>
-	      <arg>ackpend</arg>
-	      <arg>selecttime</arg>
-	      <arg>psiddebug</arg>
-	      <arg>rdpdebug</arg>
-	      <arg>mcastdebug</arg>
+	      <arg choice="plain">user</arg>
+	      <arg choice="plain">maxproc</arg>
+	      <arg choice="plain">smallpacketsize</arg>
+	      <arg choice="plain">resendtimeout</arg>
+	      <arg choice="plain">hnpend</arg>
+	      <arg choice="plain">ackpend</arg>
+	      <arg choice="plain">selecttime</arg>
+	      <arg choice="plain">psiddebug</arg>
+	      <arg choice="plain">rdpdebug</arg>
+	      <arg choice="plain">mcastdebug</arg>
 	    </group>
 	    <arg>from <arg>to</arg></arg>
 	  </cmdsynopsis>
@@ -355,8 +355,8 @@
 		  selected node(s).
 		</para>
 		<para>
-		  PIO packets are send directly to the node's memory by the MCP
-		  and copied by a <citerefentry>
+		  PIO packets are send directly to the node's memory by the
+		  <link linkend="MCP">MCP</link> and copied by a <citerefentry>
 		    <refentrytitle>memcpy</refentrytitle>
 		    <manvolnum>3</manvolnum>
 		  </citerefentry> into the final destination. Non-PIO packets
@@ -398,15 +398,15 @@
 		  selected node(s).
 		</para>
 		<para>
-		  Host notify messages are send by the MCP to the kernel to
-		  mark send buffers as free. This is done when data, that was
-		  sent successfully via this buffer, was acknowledged by the
-		  destination node.
+		  Host notify messages are send by the <link
+		    linkend="MCP">MCP</link> to the kernel to mark send buffers
+		  as free. This is done when data, that was sent successfully
+		  via this buffer, was acknowledged by the destination node.
 		</para>
 		<para>
-		  Usually not every free buffer is communicated, but the MCP
-		  waits until several buffers are freed and sends accumulated
-		  host notify messages then.
+		  Usually not every free buffer is communicated, but the <link
+		    linkend="MCP">MCP</link> waits until several buffers are
+		  freed and sends accumulated host notify messages then.
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -513,13 +513,13 @@
 	  <cmdsynopsis>
 	    <command>status</command>
 	    <group>
-	      <arg>node</arg>
-	      <arg>proc</arg>
-	      <arg>allproc</arg>
-	      <arg>count</arg>
-	      <arg>mcast</arg>
-	      <arg>rdp</arg>
-	      <arg>all</arg>
+	      <arg choice="plain">node</arg>
+	      <arg choice="plain">proc</arg>
+	      <arg choice="plain">allproc</arg>
+	      <arg choice="plain">count</arg>
+	      <arg choice="plain">mcast</arg>
+	      <arg choice="plain">rdp</arg>
+	      <arg choice="plain">all</arg>
 	    </group>
 	    <arg>from <arg>to</arg></arg>
 	  </cmdsynopsis>
@@ -594,8 +594,9 @@
 	      <listitem>
 		<para>
 		  Show the status of the MyriNet communication system on the
-		  selected node(s). Various counters of the MCP running on the
-		  MyriNet card are displayed.
+		  selected node(s). Various counters of the <link
+		    linkend="MCP">MCP</link> running on the MyriNet card are
+		  displayed.
 		</para>
 		<!--
 		<para>
@@ -730,8 +731,8 @@
 		    <arg>any</arg>
 		  </group></arg>
 		<arg>maxproc <group choice="req">
-		    <arg><replaceable>num</replaceable></arg>
-		    <arg>any</arg>
+		    <arg choice="plain"><replaceable>num</replaceable></arg>
+		    <arg choice="plain">any</arg>
 		  </group></arg>
 		<arg>smallpacketsize <replaceable>size</replaceable></arg>
 		<arg>resendtimeout <replaceable>time</replaceable></arg>
@@ -804,7 +805,8 @@
 		  </para>
 		  <para>
 		    PIO packets are send directly to the node's memory by the
-		    MCP and copied by a <citerefentry>
+		    <link linkend="MCP">MCP</link> and copied by a
+		    <citerefentry>
 		      <refentrytitle>memcpy</refentrytitle>
 		      <manvolnum>3</manvolnum>
 		    </citerefentry> into the final destination. Non-PIO packets
@@ -866,16 +868,18 @@
 		    <option>val</option> on the selected node(s).
 		  </para>
 		  <para>
-		    Host notify messages are send by the MCP to the kernel to
-		    mark send buffers as free. This is done when data, that was
-		    sent successfully via this buffer, was acknowledged by the
+		    Host notify messages are send by the <link
+		      linkend="MCP">MCP</link> to the kernel to mark send
+		    buffers as free. This is done when data, that was sent
+		    successfully via this buffer, was acknowledged by the
 		    destination node.
 		  </para>
 		  <para>
-		    Usually not every freed buffer is communicated, but the MCP
-		    waits until several buffers are freed and sends accumulated
-		    host notify messages then. <option>val</option> is the
-		    number of accumulated messages to sent simultaniously.
+		    Usually not every freed buffer is communicated, but the
+		    <link linkend="MCP">MCP</link> waits until several buffers
+		    are freed and sends accumulated host notify messages then.
+		    <option>val</option> is the number of accumulated messages
+		    to sent simultaniously.
 		  </para>
 		  <para>
 		    This parameter can be set persistently via the
