@@ -1,6 +1,9 @@
 %{
 #include "y.tab.h"
 #include <string.h>
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+static char lexid[] __attribute__(( unused )) = "$Id: admin.scan.l,v 1.5 2002/01/08 21:41:26 eicker Exp $";
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 %}
 
 %option reject
@@ -26,15 +29,15 @@ nomaxproc		{ return NOMAXPROC; }
 user			{ return USER; }
 nouser			{ return NOUSER; }
 node			{ return NODE; }
-net			{ return NET; }
-count			{ return COUNT; }
+hardware|hw		{ return HW; }
+count|c|net		{ return COUNT; }
 proc			{ return PROC; }
 load			{ return LOAD; }
 rdp			{ return RDP; }
 rdpdebug		{ return RDPDEBUG; }
 psiddebug		{ return PSIDDEBUG; }
 nopsiddebug		{ return NOPSIDDEBUG; }
-all|a|full|f		{ return ALL; }
+all|a			{ return ALL; }
 restart			{ return RESTARTOP; }
 shutdown		{ return SHUTDOWNOP; }
 reset			{ return RESETOP; }

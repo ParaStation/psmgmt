@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.13 2002/01/07 15:22:56 eicker Exp $
+ * $Id: psiadmin.c,v 1.14 2002/01/08 21:41:26 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.13 2002/01/07 15:22:56 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.14 2002/01/08 21:41:26 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -40,7 +40,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.13 $";
+static char psiadmversion[] = "$Revision: 1.14 $";
 static int  DoRestart = 1;
 
 int PSIADM_LookUpNodeName(char* hostname)
@@ -56,7 +56,7 @@ int PSIADM_LookUpNodeName(char* hostname)
     return INFO_request_host(sa.sin_addr.s_addr);
 }
 
-void PSIADM_AddNode(int node)
+void PSIADM_AddNode(int first, int last)
 {
     int i;
     DDContactMsg_t msg;
@@ -68,22 +68,14 @@ void PSIADM_AddNode(int node)
 
     INFO_request_hoststatus(PSI_hoststatus, PSI_nrofnodes);
 
-    if(node== ALLNODES)
-	for(i=0; i<PSI_nrofnodes; i++){
-	    if(PSI_hoststatus[i]&PSPHOSTUP)
-		printf("%d already up.\n",i);
-	    else{
-		printf("starting node %d\n",i);
-		msg.partner = i;
-		ClientMsgSend(&msg);
-	    }
-	}
-    else{
-	if(PSI_hoststatus[node]&PSPHOSTUP)
-	    printf("%d already up.\n",node);
-	else{
-	    printf("starting node %d\n",node);
-	    msg.partner = node;
+    first = (first==ALLNODES) ? 0 : first;
+    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+    for (i = first; i < last; i++) {
+	if (PSI_hoststatus[i]&PSPHOSTUP) {
+	    printf("%d already up.\n",i);
+	} else {
+	    printf("starting node %d\n",i);
+	    msg.partner = i;
 	    ClientMsgSend(&msg);
 	}
     }
@@ -92,96 +84,80 @@ void PSIADM_AddNode(int node)
     return;
 }
 
-void PSIADM_NodeStat(int node)
+void PSIADM_NodeStat(int first, int last)
 {
     int i;
 
     INFO_request_hoststatus(PSI_hoststatus, PSI_nrofnodes);
 
-/*    printf("NodeStat %d\n",node); */
-    if(node== ALLNODES)
-	for(i=0;i<PSI_nrofnodes;i++){
-	    if(PSI_hoststatus[i]&PSPHOSTUP)
-		printf("%d up.\n",i);
-	    else
-		printf("%d down.\n",i);
+    first = (first==ALLNODES) ? 0 : first;
+    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+    for (i = first; i < last; i++) {
+	if (PSI_hoststatus[i]&PSPHOSTUP) {
+	    printf("%d up.\n",i);
+	} else {
+	    printf("%d down.\n",i);
 	}
-    else if(PSI_hoststatus[node]&PSPHOSTUP)
-	printf("%d up.\n",node);
-    else
-	printf("%d down.\n",node);
+    }
 
     return;
 }
 
-void PSIADM_RDPStat(int node)
+void PSIADM_RDPStat(int first, int last)
 {
     int i;
     char s[255];
-/*    printf("RDPStat %d\n",node); */
 
-    if(node== ALLNODES)
-	for(i=0;i<PSI_nrofnodes;i++){
-	    INFO_request_rdpstatus(i,s,sizeof(s));
-	    printf("%s",s);
-	}
-    else{
-	INFO_request_rdpstatus(node,s,sizeof(s));
+    first = (first==ALLNODES) ? 0 : first;
+    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+    for (i = first; i < last; i++) {
+	INFO_request_rdpstatus(i,s,sizeof(s));
 	printf("%s",s);
     }
 
     return;
 }
 
-void PSIADM_CountStat(int node)
+void PSIADM_CountStat(int first, int last)
 {
     int i;
-/*    printf("CountStat %d\n",node); */
     
-    if(node== ALLNODES){
-	INFO_request_countstatus(0,1); /* node 0 with header */
-	for(i=1;i<PSI_nrofnodes;i++){
-	    INFO_request_countstatus(i,0); /* all other without header */
-	}
-    }else{
-	INFO_request_countstatus(node,1); /* with header */
+    first = (first==ALLNODES) ? 0 : first;
+    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
+    INFO_request_countstatus(first, 1); /* first node with header */
+    for (i = first+1; i < last; i++) {
+	INFO_request_countstatus(i,0);  /* all other without header */
     }
 
     return;
 }
 
 
-void PSIADM_ProcStat(int node)
+void PSIADM_ProcStat(int first, int last)
 {
     int i;
+
+    first = (first==ALLNODES) ? 0 : first;
+    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
     printf("NodeNr TaskId(Dec/Hex)     ParentTaskId(Dec/Hex) UserId\n");
-    if(node== ALLNODES)
-	for(i=0;i<PSI_nrofnodes;i++){
-	    INFO_request_tasklist(i);
-	}
-    else{
-	INFO_request_tasklist(node);
+    for (i = first; i < last; i++) {
+	INFO_request_tasklist(i);
     }
 
     return;
 }
 
-void PSIADM_LoadStat(int node)
+void PSIADM_LoadStat(int first, int last)
 {
     int i;
-/*    printf("LoadStat %d\n",node); */
-
     double load;
 
+    first = (first==ALLNODES) ? 0 : first;
+    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
     printf("NodeNr Load\n");
-    if(node== ALLNODES)
-	for(i=0;i<PSI_nrofnodes;i++){
-	    load = PSI_getload(i);
-	    printf("%6d %2.4f\n",i,load);
-	}
-    else{
-	load = PSI_getload(node);
-	printf("%6d %2.2f\n",node,load);
+    for (i = first; i < last; i++) {
+	load = PSI_getload(i);
+	printf("%6d %2.4f\n",i,load);
     }
 
     return;
@@ -444,11 +420,11 @@ void PSIADM_SetResendTimeout(int time)
  *   first: first node to be reset
  *   last : last node to be reset
  */
-void PSIADM_Reset(int what,int first, int last) 
+void PSIADM_Reset(int reset_hw, int first, int last) 
 {
     DDResetMsg_t msg;
 
-    if(geteuid()){
+    if (geteuid()) {
 	printf("Insufficient priviledge\n");
 	return;
     }
@@ -460,22 +436,22 @@ void PSIADM_Reset(int what,int first, int last)
     msg.header.len = sizeof(msg);
     msg.header.sender = PSI_mytid;
     msg.header.dest = PSI_gettid(PSI_myid,0);
-    msg.first = first;
-    msg.last = last==-1?PSI_nrofnodes-1:last;
+    msg.first = (first==ALLNODES) ? 0 : first;
+    msg.last = (last==ALLNODES) ? PSI_nrofnodes-1 : last;
     msg.action = 0;
-    if(what&1) msg.action |= PSP_RESET_HW;
+    if(reset_hw) msg.action |= PSP_RESET_HW;
 
     ClientMsgSend(&msg);
 
     return;
 }
 
-void PSIADM_ShutdownCluster(int first,int last) 
+void PSIADM_ShutdownCluster(int first, int last) 
 {
     int nrofnodes;
     DDResetMsg_t msg;
 
-    if(geteuid()){
+    if (geteuid()) {
 	printf("Insufficient priviledge\n");
 	return;
     }
@@ -487,9 +463,9 @@ void PSIADM_ShutdownCluster(int first,int last)
     msg.header.type = PSP_CD_DAEMONSTOP;
     msg.header.len = sizeof(msg);
     msg.header.sender = PSI_mytid;
-    msg.header.dest = PSI_gettid(PSI_myid,first);
-    msg.first = (first==-1) ? 0 : first;
-    msg.last = (last==-1) ? PSI_nrofnodes : last;
+    msg.header.dest = PSI_gettid(PSI_myid,0);
+    msg.first = (first==ALLNODES) ? 0 : first;
+    msg.last = (last==ALLNODES) ? PSI_nrofnodes : last;
     msg.action = 0;
 
     ClientMsgSend(&msg);
@@ -656,12 +632,13 @@ int main(int argc, char **argv)
      * Single command processing
      */
     if(copt){
-	/* Add trailing newline */
+	/* Add some trailing newlines. Needed for NULLOP */
 	len=strlen(copt);
-	line=(char *)malloc(len+2);
+	line=(char *)malloc(len+3);
 	strcpy(line, copt);
 	line[len]='\n';
-	line[len+1]='\0';
+	line[len+1]='\n';
+	line[len+2]='\0';
 
 	/* Process it */
 	line_state = yy_scan_string(line);
@@ -687,14 +664,15 @@ int main(int argc, char **argv)
 	    /* If the line has any text in it, save it on the history. */
 	    add_history(line);
 
-	    if(strlen(line) + 2 > sizeof(line_field)){
+	    if(strlen(line) + 3 > sizeof(line_field)){
 		printf("Line too long!\n");
 	    }else{
 		strcpy(line_field, line);
-		/* Add trailing newline */
+		/* Add some trailing newlines. Needed for NULLOP */
 		len=strlen(line_field);
 		line_field[len]='\n';
-		line_field[len+1]='\0';
+		line_field[len+1]='\n';
+		line_field[len+2]='\0';
 		/* Process it */
 		line_state = yy_scan_string(line_field);
 		yyparse();

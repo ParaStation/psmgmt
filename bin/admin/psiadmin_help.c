@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin_help.c,v 1.2 2002/01/07 08:18:00 eicker Exp $
+ * $Id: psiadmin_help.c,v 1.3 2002/01/08 21:41:26 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin_help.c,v 1.2 2002/01/07 08:18:00 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin_help.c,v 1.3 2002/01/08 21:41:26 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 static void PrintHelp(void)
@@ -28,41 +28,14 @@ static void PrintHelp(void)
     if(!getuid()){
 	printf("Privileged commands:\n");
 	printf("====================\n");
-	printf("RESET:    Reset network or message-pool\n");
-	printf("RESTART:  Restart ParaStation cluster\n");
+	printf("RESET:    Reset the daemons or network\n");
+	printf("RESTART:  Restart ParaStation nodes\n");
 	printf("SET:      Alter control parameters\n");
 	printf("SHUTDOWN: Shutdown ParaStation cluster (all processes)\n");
 	printf("TEST:     Test ParaStation network\n");
 	printf("\n");
     }
     printf("For more information type HELP <command>\n");
-    printf("\n");
-    return;
-}
-
-static void ParameterInfo(void)
-{
-    printf("\n");
-    printf("NODENAME:   Symbolic name of a machine in the ParaStation"
-	   " cluster\n");
-    printf("NODENUMBER: Number of a machine in the ParaStation cluster\n");
-    printf("            (0 <= number < %d)\n",PSI_getnrofnodes());
-    printf("\n");
-}
-
-static void PrintAddHelp(void)
-{
-    printf("\n");
-    printf("Add command:\n");
-    printf("============\n");
-    printf("\n");
-    printf("SYNTAX:    ADD\n");
-    printf("PARAMETER: NODENUMBER or NODENAME\n");
-    ParameterInfo();
-    printf("Description: Add starts the ParaStation daemon process (psid) on"
-	   " the given node\n");
-    printf("             Normally this is done automatically when the system"
-	   " comes up.\n");
     printf("\n");
     return;
 }
@@ -112,50 +85,6 @@ static void PrintShowHelp(void)
     return;
 }
 
-static void PrintStatHelp(void)
-{
-    printf("\n");
-    printf("Status command:\n");
-    printf("===============\n");
-    printf("\n");
-    printf("SYNTAX:    STATUS\n");
-    printf("PARAMETER: [NODE] or [COUNT RDP PROC ALL]\n");
-    ParameterInfo();
-    printf("Description: STATUS NODE   shows the active node(s) of a"
-	   " ParaStation cluster.\n");
-    printf("             STATUS COUNT  shows the counters of active node(s) in"
-	   " a\n");
-    printf("                         ParaStation cluster.\n");
-    printf("             STATUS RDP    shows the status of the RDP protocol of"
-	   " active node(s)\n");
-    printf("                         in a ParaStation cluster.\n");
-    printf("             STATUS PROC   shows processes using ParaStation on"
-	   " active node(s)\n");
-    printf("                         in a ParaStation cluster.\n");
-    printf("             STATUS LOAD   shows load using ParaStation on active"
-	   " node(s)\n");
-    printf("                         in a ParaStation cluster.\n");
-    printf("             STATUS ALL    shows all statistics given above of all"
-	   " nodes in a\n");
-    printf("                         ParaStation cluster\n");
-    printf("\n");
-    printf("For more information type HELP STATUS <subcommand>\n");
-    printf("\n");
-    return;
-}
-
-static void PrintStatNodeHelp(void)
-{
-    printf("\n");
-    printf("Status node command:\n");
-    printf("====================\n");
-    printf("\n");
-    printf("SYNTAX:    STATUS [NODE]\n");
-    printf("PARAMETER: NODENUMBER or NODENAME\n");
-    ParameterInfo();
-    return;
-}
-
 static void PrintPsidDebugHelp(void)
 {
     printf("\n");
@@ -189,29 +118,82 @@ static void PrintRdpDebugHelp(void)
     return;
 }
 
+static void NodeInfo(void)
+{
+    printf("\n");
+    printf("[FROM [TO]] selects a range of nodes. If TO is missing,"
+	   " the single\n");
+    printf("            node FROM is selected. If FROM is also missing,"
+	   " all nodes are\n");
+    printf("            selected.\n");
+    printf("            FROM and TO can either be symbolic hostnames or"
+	   " a nodenumber.\n");
+    printf("            Nodenumber can be given decimal or hexadecimal and"
+	   " must be in the\n");
+    printf("            range of (0 <= number < %d)\n\n", PSI_getnrofnodes());
+}
+
+static void PrintAddHelp(void)
+{
+    printf("\n");
+    printf("Add command:\n");
+    printf("============\n");
+    printf("\n");
+    printf("SYNTAX:    ADD [FROM [TO]]\n");
+    NodeInfo();
+    printf("Description: ADD starts the ParaStation daemon process (psid) on"
+	   " the selected node(s)\n");
+    printf("             Normally this is done automatically when the system"
+	   " comes up.\n");
+    printf("\n");
+    return;
+}
+
+static void PrintStatHelp(void)
+{
+    printf("\n");
+    printf("Status command:\n");
+    printf("===============\n");
+    printf("\n");
+    printf("SYNTAX:   STATUS [NODE | COUNT | RDP | PROC | ALL] [FROM [TO]]\n");
+    NodeInfo();
+    printf("Description: STATUS [NODE] shows the active node(s) amongst the"
+	   " selected ones.\n");
+    printf("             STATUS COUNT  shows the counters on the selected"
+	   " node(s).\n");
+    printf("             STATUS RDP    shows the status of the RDP protocol on"
+	   " the selected node(s).\n");
+    printf("             STATUS PROC   shows processes using ParaStation on"
+	   " the selected node(s).\n");
+    printf("             STATUS LOAD   shows load using ParaStation on the"
+	   " selected node(s).\n");
+    printf("             STATUS ALL    shows all statistics given above on the"
+	   " selected node(s).\n");
+    printf("\n");
+    printf("For more information type HELP STATUS <subcommand>\n");
+    printf("\n");
+    return;
+}
+
+static void PrintStatNodeHelp(void)
+{
+    printf("\n");
+    printf("Status node command:\n");
+    printf("====================\n");
+    printf("\n");
+    printf("SYNTAX:    STATUS [FROM [TO]]\n");
+    NodeInfo();
+    return;
+}
+
 static void PrintStatCountHelp(void)
 {
     printf("\n");
     printf("Status count command:\n");
     printf("=====================\n");
     printf("\n");
-    printf("SYNTAX:    STATUS COUNT\n");
-    printf("PARAMETER: NODENUMBER or NODENAME\n");
-    ParameterInfo();
-    return;
-}
-
-static void PrintStatNetHelp(void)
-{
-    printf("\n");
-    printf("Status net command:\n");
-    printf("===================\n");
-    printf("\n");
-    printf("Command is obsolete, use 'status count'\n");
-    printf("\n");
-    printf("SYNTAX:    STATUS NET\n");
-    printf("PARAMETER: NODENUMBER or NODENAME\n");
-    ParameterInfo();
+    printf("SYNTAX:    STATUS COUNT [FROM [TO]]\n");
+    NodeInfo();
     return;
 }
 
@@ -221,9 +203,8 @@ static void PrintStatRDPHelp(void)
     printf("Status RDP command:\n");
     printf("===================\n");
     printf("\n");
-    printf("SYNTAX:    STATUS RDP\n");
-    printf("PARAMETER: NODENUMBER or NODENAME\n");
-    ParameterInfo();
+    printf("SYNTAX:    STATUS RDP [FROM [TO]]\n");
+    NodeInfo();
     return;
 }
 
@@ -233,9 +214,8 @@ static void PrintStatProcHelp(void)
     printf("Status proc command:\n");
     printf("====================\n");
     printf("\n");
-    printf("SYNTAX:    STATUS PROC\n");
-    printf("PARAMETER: NODENUMBER or NODENAME\n");
-    ParameterInfo();
+    printf("SYNTAX:    STATUS PROC [FROM [TO]]\n");
+    NodeInfo();
     return;
 }
 
@@ -245,22 +225,18 @@ static void PrintResetHelp(void)
     printf("Reset command (privileged):\n");
     printf("===========================\n");
     printf("\n");
-    printf("SYNTAX:    RESET [NET] [FROM [TO]]\n");
-    printf("PARAMETER: NET\n");
-    printf("           FROM: a integer number for the first node which should"
-	   " be reseted");
-    printf("           TO  : a integer number for the last node which should"
-	   " be reseted");
-    printf("\n");
-    printf("Description: Resetting the network enforces all ParaStation"); 
-    printf("             (or subrange [FROM,TO]) daemon processes\n");
-    printf("             to put the interface boards in a known state. During"
-	   " a memory\n"); 
-    printf("             reset the message-pool one each node is reorganized."
-	   " As a \n");
-    printf("             consequence ALL processes using the ParaStation"
-	   " cluster\n");
-    printf("             are terminated (killed)!\n");
+    printf("SYNTAX:    RESET [HW] [FROM [TO]]\n");
+    NodeInfo();
+    printf("Description: RESET    Reset the ParaStation daemon on all selected"
+	   " node(s).\n");
+    printf("Description: RESET HW Reset the ParaStation daemon on all selected"
+	   " node(s).\n");
+    printf("                      Furthermore the communication hardware is"
+	   "brought into a");
+    printf("                      known state. Same as RESTART.\n");
+    printf("             As a consequence ALL processes using the selected"
+	   " node(s)s are\n");
+    printf("             terminated (killed)!\n");
     printf("\n");
     return;
 }
@@ -271,13 +247,16 @@ static void PrintRestartHelp(void)
     printf("Restart command (privileged):\n");
     printf("=============================\n");
     printf("\n");
-    printf("SYNTAX: RESTART\n");
+    printf("SYNTAX:    RESTART [FROM [TO]]\n");
     printf("\n");
-    printf("Description: All ParaStation daemon processes are forced to"
-	   " reinitialize\n");
-    printf("             the ParaStation cluster. As a consequence ALL"
-	   " processes using\n");
-    printf("             the ParaStation cluster are terminated (killed)!\n");
+    printf("Description: Restart the ParaStation daemon on all selected"
+	   " node(s).\n");
+    printf("             On the selected nodes the ParaStation daemon"
+	   " processes are\n");
+    printf("             forced to reinitialize the ParaStation cluster.\n");
+    printf("             As a consequence ALL processes using the selected"
+	   " node(s)s are\n");
+    printf("             terminated (killed)!\n");
     printf("\n");
     return;
 }
@@ -288,13 +267,13 @@ static void PrintShutdownHelp(void)
     printf("Shutdown command (privileged):\n");
     printf("=============================\n");
     printf("\n");
-    printf("SYNTAX: SHUTDOWN\n");
-    printf("\n");
-    printf("Description: All ParaStation daemon processes within the"
-	   " ParaStation cluster\n");
-    printf("             are forced to terminate. As a consequence ALL"
-	   " processes using\n");
-    printf("             the ParaStation cluster are terminated (killed)!\n");
+    printf("SYNTAX: SHUTDOWN [FROM [TO]]\n");
+    NodeInfo();
+    printf("Description: Shutdown the ParaStation daemon on all selected"
+	   " node(s).\n");
+    printf("             As a consequence ALL processes using the selected"
+	   " nodes(s) are\n");
+    printf("             terminated (killed)!\n");
     printf("\n");
     return;
 }

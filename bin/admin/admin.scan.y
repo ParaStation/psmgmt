@@ -7,7 +7,13 @@
 #include "psi.h"
 #include "psiadmin.h"
 
-static int NodeNr;
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.6 2002/01/08 21:41:26 eicker Exp $";
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
+#define NODEERR		-2
+
+static int FirstNode, LastNode;
 extern char * yytext;
 
 static int CheckNodeNr(int node);
@@ -24,7 +30,7 @@ static void CheckUserName(char *name);
 
 %token <val> NUMBER HEXNUMBER
 %token <name> NAME
-%token NODE NET COUNT PROC LOAD RDP ALL NOMAXPROC MAXPROC USER NOUSER
+%token NODE HW COUNT PROC LOAD RDP ALL NOMAXPROC MAXPROC USER NOUSER
 %token SMALLPACKETSIZE SELECT SLEEP NO
 %token RESENDTIMEOUT DEBUGMASK
 %token ADDOP STATOP RESTARTOP RESETOP TESTOP QUITOP HELPOP NULLOP INFOOP SETOP 
@@ -65,11 +71,24 @@ commline:
 	| quitline
 	;
 
+nodes:
+	  NULLOP  			{ FirstNode=ALLNODES; LastNode=ALLNODES; }
+        | NUMBER NULLOP                 { FirstNode=LastNode=CheckNodeNr($1); }
+        | HEXNUMBER NULLOP              { FirstNode=LastNode=CheckNodeNr($1); }
+        | NAME NULLOP                   { FirstNode=LastNode=GetNrFromName($1); }
+        | NUMBER NUMBER NULLOP          { FirstNode=CheckNodeNr($1); LastNode=CheckNodeNr($2); }
+        | NUMBER HEXNUMBER NULLOP       { FirstNode=CheckNodeNr($1); LastNode=CheckNodeNr($2); }
+        | NUMBER NAME NULLOP            { FirstNode=CheckNodeNr($1); LastNode=GetNrFromName($2); }
+        | HEXNUMBER NUMBER NULLOP       { FirstNode=CheckNodeNr($1); LastNode=CheckNodeNr($2); }
+        | HEXNUMBER HEXNUMBER NULLOP    { FirstNode=CheckNodeNr($1); LastNode=CheckNodeNr($2); }
+        | HEXNUMBER NAME NULLOP         { FirstNode=CheckNodeNr($1); LastNode=GetNrFromName($2); }
+        | NAME NUMBER NULLOP            { FirstNode=GetNrFromName($1); LastNode=CheckNodeNr($2); }
+        | NAME HEXNUMBER NULLOP         { FirstNode=GetNrFromName($1); LastNode=CheckNodeNr($2); }
+        | NAME NAME NULLOP              { FirstNode=GetNrFromName($1); LastNode=GetNrFromName($2); }
+        ;
+
 addline: 
-	  ADDOP 			{ NodeNr=ALLNODES; MyAdd(ALLNODES); }
-	| ADDOP NUMBER			{ MyAdd(CheckNodeNr($2)); }
-	| ADDOP HEXNUMBER		{ MyAdd(CheckNodeNr($2)); }
-	| ADDOP NAME			{ MyAdd(GetNrFromName($2)); }
+	  ADDOP nodes			{ MyAdd(FirstNode, LastNode); }
 	;
 
 killline: 
@@ -99,56 +118,28 @@ setline:
 	;
 
 statline:
-	  STATOP 			{ NodeNr=ALLNODES; MyNodeStat(NodeNr); }
-	| STATOP ALL  			{ NodeNr=ALLNODES; MyNodeStat(NodeNr);
-					  MyCountStat(NodeNr);
-					  MyProcStat(NodeNr); }
-	| STATOP NODE			{ NodeNr=ALLNODES; MyNodeStat(NodeNr); }
-	| STATOP NUMBER			{ MyNodeStat(CheckNodeNr($2)); }
-	| STATOP HEXNUMBER		{ MyNodeStat(CheckNodeNr($2)); }
-	| STATOP NAME			{ MyNodeStat(GetNrFromName($2)); }
-	| STATOP NODE NUMBER		{ MyNodeStat(CheckNodeNr($3)); }
-	| STATOP NODE HEXNUMBER		{ MyNodeStat(CheckNodeNr($3)); }
-	| STATOP NODE NAME		{ MyNodeStat(GetNrFromName($3)); }
-	| STATOP NET			{ NodeNr=ALLNODES; MyCountStat(NodeNr); }
-	| STATOP NET NUMBER		{ MyCountStat(CheckNodeNr($3)); }
-	| STATOP NET HEXNUMBER		{ MyCountStat(CheckNodeNr($3)); }
-	| STATOP NET NAME		{ MyCountStat(GetNrFromName($3)); }
-	| STATOP COUNT			{ NodeNr=ALLNODES; MyCountStat(NodeNr); }
-	| STATOP COUNT NUMBER		{ MyCountStat(CheckNodeNr($3)); }
-	| STATOP COUNT HEXNUMBER	{ MyCountStat(CheckNodeNr($3)); }
-	| STATOP COUNT NAME		{ MyCountStat(GetNrFromName($3)); }
-	| STATOP PROC			{ NodeNr=ALLNODES; MyProcStat(NodeNr); }
-	| STATOP PROC NUMBER		{ MyProcStat(CheckNodeNr($3)); }
-	| STATOP PROC HEXNUMBER		{ MyProcStat(CheckNodeNr($3)); }
-	| STATOP PROC NAME		{ MyProcStat(GetNrFromName($3)); }
-	| STATOP LOAD			{ NodeNr=ALLNODES; MyLoadStat(NodeNr); }
-	| STATOP LOAD NUMBER		{ MyLoadStat(CheckNodeNr($3)); }
-	| STATOP LOAD HEXNUMBER		{ MyLoadStat(CheckNodeNr($3)); }
-	| STATOP LOAD NAME		{ MyLoadStat(GetNrFromName($3)); }
-	| STATOP RDP			{ NodeNr=ALLNODES; MyRDPStat(NodeNr); }
-	| STATOP RDP NUMBER		{ MyRDPStat(CheckNodeNr($3)); }
-	| STATOP RDP HEXNUMBER		{ MyRDPStat(CheckNodeNr($3)); }
-	| STATOP RDP NAME		{ MyRDPStat(GetNrFromName($3)); }
+	  STATOP ALL nodes		{ MyNodeStat(FirstNode, LastNode);
+					  MyCountStat(FirstNode, LastNode);
+					  MyProcStat(FirstNode, LastNode); }
+	| STATOP nodes			{ MyNodeStat(FirstNode, LastNode); }
+	| STATOP NODE nodes		{ MyNodeStat(FirstNode, LastNode); }
+	| STATOP COUNT nodes		{ MyCountStat(FirstNode, LastNode); }
+	| STATOP PROC nodes		{ MyProcStat(FirstNode, LastNode); }
+	| STATOP LOAD nodes		{ MyLoadStat(FirstNode, LastNode); }
+	| STATOP RDP nodes		{ MyRDPStat(FirstNode, LastNode); }
 	;
 
 resetline:
-	  RESETOP			{ PSIADM_Reset(3,0,-1); }
-	| RESETOP NUMBER		{ PSIADM_Reset(3,$2,$2); }
-	| RESETOP NUMBER NUMBER		{ PSIADM_Reset(3,$2,$3); }
-	| RESETOP NET			{ PSIADM_Reset(1,0,-1); }
-	| RESETOP NET NUMBER		{ PSIADM_Reset(1,$3,$3); }
-	| RESETOP NET NUMBER NUMBER	{ PSIADM_Reset(1,$3,$4); }
+	  RESETOP nodes			{ PSIADM_Reset(0, FirstNode, LastNode); }
+	| RESETOP HW nodes		{ PSIADM_Reset(1, FirstNode, LastNode); }
 	;
 
 restartline:
-	  RESTARTOP			{ PSIADM_Reset(3,0,-1); }
+	  RESTARTOP nodes		{ PSIADM_Reset(1, FirstNode, LastNode); }
 	;
 
 shutdownline:
-	  SHUTDOWNOP			{ PSIADM_ShutdownCluster(-1,-1); }
-	| SHUTDOWNOP NUMBER		{ PSIADM_ShutdownCluster($2,$2); }
-	| SHUTDOWNOP NUMBER NUMBER	{ PSIADM_ShutdownCluster($2,$3); }
+	  SHUTDOWNOP nodes		{ PSIADM_ShutdownCluster(FirstNode, LastNode); }
 	;
 
 showline:
@@ -163,31 +154,24 @@ testline:
 	;
 
 helpline:
-	  HELPOP 			{ PrintHelp(); }
+	  HELPOP nodes			{ PrintHelp(); }
 	| HELPOP HELPOP			{ PrintHelp(); }
-	| HELPOP NAME			{ PrintHelp(); }
-	| HELPOP NUMBER			{ PrintHelp(); }
-	| HELPOP HEXNUMBER		{ PrintHelp(); }
-	| HELPOP INFOOP			{ ParameterInfo(); }
+	| HELPOP INFOOP			{ NodeInfo(); }
 	| HELPOP ADDOP			{ PrintAddHelp(); }
 	| HELPOP ADDOP INFOOP		{ PrintAddHelp(); }
-	| HELPOP STATOP			{ PrintStatHelp(); }
+	| HELPOP STATOP nodes		{ PrintStatHelp(); }
 	| HELPOP STATOP INFOOP		{ PrintStatHelp(); }
-	| HELPOP STATOP NODE		{ PrintStatNodeHelp(); }
-	| HELPOP STATOP	COUNT		{ PrintStatCountHelp(); }
-	| HELPOP STATOP	NET		{ PrintStatNetHelp(); }
-	| HELPOP STATOP RDP		{ PrintStatRDPHelp(); }
-	| HELPOP STATOP PROC		{ PrintStatProcHelp(); }
-	| HELPOP STATOP ALL		{ PrintStatNodeHelp();
+	| HELPOP STATOP NODE nodes	{ PrintStatNodeHelp(); }
+	| HELPOP STATOP	COUNT nodes	{ PrintStatCountHelp(); }
+	| HELPOP STATOP RDP nodes	{ PrintStatRDPHelp(); }
+	| HELPOP STATOP PROC nodes	{ PrintStatProcHelp(); }
+	| HELPOP STATOP ALL nodes	{ PrintStatNodeHelp();
 	                                  PrintStatCountHelp();
                                           PrintStatProcHelp(); }
-	| HELPOP STATOP NUMBER		{ PrintStatHelp(); }
-	| HELPOP STATOP HEXNUMBER	{ PrintStatHelp(); }
-	| HELPOP STATOP NAME		{ PrintStatHelp(); }
-	| HELPOP RESETOP		{ PrintResetHelp(); }
-	| HELPOP RESETOP NET 		{ PrintResetHelp(); }
-	| HELPOP RESTARTOP 		{ PrintRestartHelp(); }
-	| HELPOP SHUTDOWNOP 		{ PrintShutdownHelp(); }
+	| HELPOP RESETOP nodes		{ PrintResetHelp(); }
+	| HELPOP RESETOP HW nodes	{ PrintResetHelp(); }
+	| HELPOP RESTARTOP nodes	{ PrintRestartHelp(); }
+	| HELPOP SHUTDOWNOP nodes	{ PrintShutdownHelp(); }
 	| HELPOP TESTOP 		{ PrintTestHelp(); }
 	| HELPOP TESTOP NORMAL 		{ PrintTestHelp(); }
 	| HELPOP TESTOP QUIET		{ PrintTestHelp(); }
@@ -267,9 +251,56 @@ static int GetNrFromName(char *name)
     return node;
 }
 
-static void MyAdd(int node){if(node!=NODEERR){PSIADM_AddNode(node);}return;}
-static void MyNodeStat(int node){if(node!=NODEERR){PSIADM_NodeStat(node);}return;}
-static void MyCountStat(int node){if(node!=NODEERR){PSIADM_CountStat(node);}return;}
-static void MyProcStat(int node){if(node!=NODEERR){PSIADM_ProcStat(node);}return;}
-static void MyLoadStat(int node){if(node!=NODEERR){PSIADM_LoadStat(node);}return;}
-static void MyRDPStat(int node){if(node!=NODEERR){PSIADM_RDPStat(node);}return;}
+static void MyAdd(int first, int last)
+{
+    if ( (first != NODEERR) && (last != NODEERR))
+	PSIADM_AddNode(first, last);
+
+    return;
+}
+
+static void MyNodeStat(int first, int last)
+{
+    if ( (first != NODEERR) && (last != NODEERR))
+	PSIADM_NodeStat(first, last);
+
+    return;
+}
+
+static void MyCountStat(int first, int last)
+{
+    if ( (first != NODEERR) && (last != NODEERR))
+	PSIADM_CountStat(first, last);
+
+    return;
+}
+
+static void MyProcStat(int first, int last)
+{
+    if ( (first != NODEERR) && (last != NODEERR))
+	PSIADM_ProcStat(first, last);
+
+    return;
+}
+
+static void MyLoadStat(int first, int last)
+{
+    if ( (first != NODEERR) && (last != NODEERR))
+	PSIADM_LoadStat(first, last);
+
+    return;
+}
+
+static void MyRDPStat(int first, int last)
+{
+    if ( (first != NODEERR) && (last != NODEERR))
+	PSIADM_RDPStat(first, last);
+
+    return;
+}
+
+static void MyReset(int what, int first, int last)
+{
+    if ( (first != NODEERR) && (last != NODEERR))
+	PSIADM_Reset(what, first, last);
+}
