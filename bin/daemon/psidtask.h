@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidtask.h,v 1.2 2002/07/18 13:15:41 eicker Exp $
+ * $Id: psidtask.h,v 1.3 2002/07/25 13:49:04 eicker Exp $
  *
  */
 /**
  * @file
- * psidtask: Functions for interaction with ParaStation tasks within the Daemon
+ * Functions for interaction with ParaStation tasks within the Daemon
  *
- * $Id: psidtask.h,v 1.2 2002/07/18 13:15:41 eicker Exp $
+ * $Id: psidtask.h,v 1.3 2002/07/25 13:49:04 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
