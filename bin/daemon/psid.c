@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.82 2003/03/07 16:05:44 eicker Exp $
+ * $Id: psid.c,v 1.83 2003/03/11 10:09:11 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.82 2003/03/07 16:05:44 eicker Exp $ 
+ * $Id: psid.c,v 1.83 2003/03/11 10:09:11 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.82 2003/03/07 16:05:44 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.83 2003/03/11 10:09:11 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -75,7 +75,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.82 $";
+static char psid_cvsid[] = "$Revision: 1.83 $";
 
 static int PSID_mastersock;
 
@@ -710,6 +710,7 @@ pid_t getpgid(pid_t); /* @todo HACK HACK HACK */
 void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 {
     PStask_t *task;
+    DDInitMsg_t outmsg;
     MCastConInfo_t info;
     pid_t pid;
     uid_t uid;
@@ -841,48 +842,41 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
     /*
      * Reject or accept connection
      */
-    if (msg->group == TG_RESET
-	|| (myStatus & PSID_STATE_NOCONNECT)
-	|| !task
-	|| msg->version!=PSprotocolversion
-	|| (uid && PSnodes_getUser(PSC_getMyID()) != (uid_t) -1
-	    && uid != PSnodes_getUser(PSC_getMyID()))
-	|| (PSnodes_getProcs(PSC_getMyID()) != -1
-	    && info.jobs.normal >= PSnodes_getProcs(PSC_getMyID()))) {
-	DDInitMsg_t outmsg;
-	outmsg.header.len = sizeof(outmsg);
-	/* Connection refused answer message */
-	if (msg->version!=PSprotocolversion) {
-	    outmsg.header.type = PSP_CD_OLDVERSION;
-	} else if (!task) {
-	    outmsg.header.type = PSP_CD_NOSPACE;
-	} else if (uid && PSnodes_getUser(PSC_getMyID()) != (uid_t) -1
-		   && uid != PSnodes_getUser(PSC_getMyID())) {
-	    outmsg.header.type = PSP_CD_UIDLIMIT;
-	    outmsg.myid = PSnodes_getUser(PSC_getMyID());
-	} else if (PSnodes_getProcs(PSC_getMyID()) != -1
-		   && info.jobs.normal >= PSnodes_getProcs(PSC_getMyID())) {
-	    outmsg.header.type = PSP_CD_PROCLIMIT;
-	    outmsg.myid = PSnodes_getProcs(PSC_getMyID());
-	} else if (myStatus & PSID_STATE_NOCONNECT) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "CLIENTCONNECT daemon state problems: mystate %x",
-		     myStatus);
-	    PSID_errlog(errtxt, 0);
-	    outmsg.header.type = PSP_DD_STATENOCONNECT;
-	} else {
-	    outmsg.header.type = PSP_CD_CLIENTREFUSED;
-	}
+    outmsg.header.type = PSP_CD_CLIENTESTABLISHED;
+    outmsg.header.dest = clients[fd].tid;
+    outmsg.header.sender = PSC_getMyTID();
+    outmsg.header.len = sizeof(outmsg);
+    outmsg.version = PSprotocolversion;
+    outmsg.group = msg->group;
 
-	outmsg.header.dest = clients[fd].tid;
-	outmsg.header.sender = PSC_getMyTID();
-	outmsg.version = PSprotocolversion;
-	outmsg.group = msg->group;
+    /* Connection refused answer message */
+    if (msg->version != PSprotocolversion) {
+	outmsg.header.type = PSP_CD_OLDVERSION;
+    } else if (!task) {
+	outmsg.header.type = PSP_CD_NOSPACE;
+    } else if (uid && PSnodes_getUser(PSC_getMyID()) != PSNODES_ANYUSER
+	       && uid != PSnodes_getUser(PSC_getMyID())) {
+	outmsg.header.type = PSP_CD_UIDLIMIT;
+	outmsg.myid = PSnodes_getUser(PSC_getMyID());
+    } else if (PSnodes_getProcs(PSC_getMyID()) !=  PSNODES_ANYPROC
+	       && info.jobs.normal >= PSnodes_getProcs(PSC_getMyID())) {
+	outmsg.header.type = PSP_CD_PROCLIMIT;
+	outmsg.myid = PSnodes_getProcs(PSC_getMyID());
+    } else if (myStatus & PSID_STATE_NOCONNECT) {
+	outmsg.header.type = PSP_DD_STATENOCONNECT;
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: daemon state problems: myStatus %x", __func__, myStatus);
+	PSID_errlog(errtxt, 0);
+	outmsg.header.type = PSP_DD_STATENOCONNECT;
+    } else if (msg->group == TG_RESET) {
+	outmsg.header.type = PSP_CD_CLIENTREFUSED;
+    }
 
-	snprintf(errtxt, sizeof(errtxt), "CLIENTCONNECT connection refused:"
+    if (outmsg.header.type != PSP_CD_CLIENTESTABLISHED) {
+	snprintf(errtxt, sizeof(errtxt), "%s connection refused:"
 		 "group %s task %s version %ld vs. %d uid %d %d jobs %d %d",
-		 PStask_printGrp(msg->group), PSC_printTID(task->tid),
-		 msg->version, PSprotocolversion,
+		 __func__, PStask_printGrp(msg->group),
+		 PSC_printTID(task->tid), msg->version, PSprotocolversion,
 		 uid, PSnodes_getUser(PSC_getMyID()),
 		 info.jobs.normal, PSnodes_getProcs(PSC_getMyID()));
 	PSID_errlog(errtxt, 1);
@@ -897,17 +891,11 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	    doReset();
 	}
     } else {
-	DDInitMsg_t outmsg;
 	clients[fd].flags &= ~INITIALCONTACT;
 
-	outmsg.header.type = PSP_CD_CLIENTESTABLISHED;
-	outmsg.header.dest = clients[fd].tid;
-	outmsg.header.sender = PSC_getMyTID();
-	outmsg.header.len = sizeof(outmsg);
-	outmsg.version = PSprotocolversion;
 	outmsg.nrofnodes = PSC_getNrOfNodes();
 	outmsg.myid = PSC_getMyID();
-	outmsg.group = msg->group;
+	/* @todo Put instdir and psidvers in extra INFO requests */
 	strncpy(outmsg.instdir, PSC_lookupInstalldir(),
 		sizeof(outmsg.instdir));
 	outmsg.instdir[sizeof(outmsg.instdir)-1] = '\0';
@@ -1588,6 +1576,68 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 		nodelist[i].normalJobs = info.jobs.normal;
 	    }
 	    msg.header.type = PSP_CD_NODELISTRESPONSE;
+	    memcpy(msg.buf, nodelist, PSC_getNrOfNodes() * sizeof(*nodelist));
+	    msg.header.len += PSC_getNrOfNodes() * sizeof(*nodelist);
+	    break;
+	}
+	case PSP_CD_PARTITIONREQUEST:
+	{
+	    int i, j;
+	    static NodelistEntry_t *nodelist = NULL;
+	    static int nodelistlen = 0;
+	    unsigned int hwType;
+	    PStask_t *requester;
+
+	    requester = PStasklist_find(managedTasks, inmsg->sender);
+
+	    if (nodelistlen < PSC_getNrOfNodes()) {
+		nodelist = (NodelistEntry_t *)
+		    realloc(nodelist, PSC_getNrOfNodes() * sizeof(*nodelist));
+		nodelistlen = PSC_getNrOfNodes();
+	    }
+
+	    if (!requester) {
+		snprintf(errtxt, sizeof(errtxt), "%s: requester %s not found",
+			 __func__, PSC_printTID(inmsg->sender));
+		PSID_errlog(errtxt, 0);
+		err = -1;
+		break;
+	    }
+
+	    hwType = *(unsigned int *)((DDBufferMsg_t*)inmsg)->buf;
+
+	    for (i=0, j=0; i<PSC_getNrOfNodes(); i++) {
+		MCastConInfo_t info;
+
+		getInfoMCast(i, &info);
+
+		if (PSnodes_getHWStatus(i) & hwType
+		    && (PSnodes_getUser(i) == PSNODES_ANYUSER
+		     || PSnodes_getUser(i) == requester->uid)
+		    && (PSnodes_getProcs(i) == PSNODES_ANYPROC
+			|| PSnodes_getProcs(i) < info.jobs.normal)) {
+
+		    nodelist[j].id = i;
+		    nodelist[j].up = PSnodes_isUp(i);
+		    nodelist[j].numCPU = PSnodes_getCPUs(i);
+		    nodelist[j].hwType = PSnodes_getHWStatus(i);
+
+		    nodelist[j].load[0] = info.load.load[0];
+		    nodelist[j].load[1] = info.load.load[1];
+		    nodelist[j].load[2] = info.load.load[2];
+		    nodelist[j].totalJobs = info.jobs.total;
+		    nodelist[j].normalJobs = info.jobs.normal;
+		    nodelist[j].maxJobs = PSnodes_getProcs(i);
+
+		    j++;
+		}
+	    }
+
+	    if (j<PSC_getNrOfNodes()) {
+		nodelist[j].id = -1;
+	    }
+
+	    msg.header.type = PSP_CD_PARTITIONRESPONSE;
 	    memcpy(msg.buf, nodelist, PSC_getNrOfNodes() * sizeof(*nodelist));
 	    msg.header.len += PSC_getNrOfNodes() * sizeof(*nodelist);
 	    break;
@@ -2452,6 +2502,7 @@ void psicontrol(int fd)
 	case PSP_CD_NODELISTREQUEST:
 	case PSP_CD_HOSTREQUEST:
 	case PSP_CD_NODEREQUEST:
+	case PSP_CD_PARTITIONREQUEST:
 	    /*
 	     * request to send the information about a specific info
 	     */
@@ -2466,6 +2517,7 @@ void psicontrol(int fd)
 	case PSP_CD_NODELISTRESPONSE:
 	case PSP_CD_HOSTRESPONSE:
 	case PSP_CD_NODERESPONSE:
+	case PSP_CD_PARTITIONRESPONSE:
 	case PSP_CC_ERROR:
 	    /*
 	     * we just have to forward this kind of messages
@@ -2993,7 +3045,7 @@ void checkFileTable(void)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.82 $";
+    char revision[] = "$Revision: 1.83 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
