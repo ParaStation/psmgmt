@@ -253,6 +253,8 @@ void run(int argc,char **argv,int np)
 
     rank = PSE_getRank();
 
+    PSE_setHWList(PSP_HWList());
+    
     if (rank == -1){
 	/* I am the logger */
 	/* Set default to none: */
@@ -451,8 +453,8 @@ int main(int argc, char **argv)
 		  0) < 0){
         exit(1);
     }
-    pshal_default_mcp=NULL;
-    PSHALStartUp(0);
+//    pshal_default_mcp=NULL;
+//    PSHALStartUp(0);
 
     if (arg_np <= 0) {
 	fprintf(stderr,"missing arg -np\n");
