@@ -1,0 +1,105 @@
+
+Installing ParaStation
+------------------------------
+
+Extract the tar file psm_xxx.tgz
+
+>cd /
+>tar xvfz psm_xxx.tgz
+
+
+Create the parastation device 
+
+>mknod /dev/psm c 40 0
+>chmod 666 /dev/psm
+
+
+Edit the parastation configuration file
+/opt/parastation/config/psm.config:
+
+
+Append parastation services to /etc/services
+
+/etc/services:
+# ParaStation entries
+psrdp            886/udp       # ParaStation Daemon RDP port
+psld             887/tcp       # ParaStation Licensedaemon start port
+psid             888/tcp       # ParaStation Daemon start port
+psids            889/tcp       # ParaStation Daemon-connection port
+psmcast         1889/udp       # ParaStation MCAST port
+# end of ParaStation entries 
+
+
+
+Append parastation daemons to the (x)inetd configuration
+
+
+xinetd (RedHat):
+-----------------
+/etc/xinetd.d/parastation:
+#
+# ParaStation daemon
+#
+service psid
+{
+        disable = no
+        socket_type     = stream
+        wait            = no
+        user            = root
+        server          = /opt/parastation/bin/psid
+        server_args     =
+        log_on_failure  += USERID
+}
+#
+# ParaStation license server
+#
+service psld
+{
+        disable = no
+        socket_type     = stream
+        wait            = no
+        user            = root
+        server          = /opt/parastation/bin/psld
+        server_args     =
+        log_on_failure  += USERID
+}
+
+
+inetd (SuSE):
+------
+/etc/inetd.conf:
+#
+# ParaStation daemon
+#
+psid     stream  tcp     nowait  root   /usr/sbin/tcpd /opt/parastation/bin/psid          psid
+#
+# ParaStation license server
+#
+psld     stream  tcp     nowait  root   /usr/sbin/tcpd /opt/parastation/bin/psld          psld
+
+
+
+
+Reload the inetd.conf
+SuSE: rcinetd reload
+RedHat: /etc/rc.d/init.d/xinetd reload
+
+
+
+
+Testing 
+
+start 
+/opt/parastation/bin/psiadmin -c "s all"
+
+repeat until all nodes are up.
+
+
+
+
+
+
+
+
+
+
