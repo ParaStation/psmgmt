@@ -19,7 +19,7 @@ $(OSSID):
 	ln -s "../Makefile" $(OSSID)/Makefile
 
 %:	$(OSSID)
-	make -C $(OSSID) $(MAKEFLAGS) $@
+	make -C $(OSSID) $@
 else
 
 tools:	psconfig
