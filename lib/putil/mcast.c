@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.c,v 1.9 2002/07/03 20:14:47 eicker Exp $
+ * $Id: mcast.c,v 1.10 2002/07/05 14:43:51 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.9 2002/07/03 20:14:47 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.10 2002/07/05 14:43:51 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -176,8 +176,6 @@ static void initConntableMCast(int nodes,
 static int initSockMCast(int group, unsigned short port)
 {
     int sock;
-    char host[80];
-    struct hostent *phe;        /* pointer to host information entry */
 #ifdef __osf__
     unsigned char loop;
     int reuse;
@@ -186,26 +184,7 @@ static int initSockMCast(int group, unsigned short port)
     int loop, reuse;
 #endif
     struct ip_mreq mreq;
-    /* an internet endpoint address */
-    struct in_addr in_sin;
 
-    if (gethostname(host, sizeof(host))<0) {
-	errexit("unable to get hostname", errno);
-    }
-
-    /*
-     * map host name to IP address
-     */
-    if ((phe = gethostbyname(host))) {
-	memcpy(&in_sin.s_addr, phe->h_addr, phe->h_length);
-    } else if ((in_sin.s_addr = inet_addr(host)) == INADDR_NONE) {
-	snprintf(errtxt, sizeof(errtxt), "can't get %s host entry", host);
-	errexit(errtxt, errno);
-    }
-
-    myID = (licserver) ? nrOfNodes : lookupIPTable(in_sin);
-    memcpy(&myIP, &in_sin, sizeof( myIP ));
-    
     /*
      * Allocate socket
      */
@@ -364,7 +343,7 @@ static void checkConnectionsMCast(void)
 static void handleTimeoutMCast(int fd)
 {
     pingMCast(UP);
-    if (!licserver) {
+    if (!licServer) {
 	checkConnectionsMCast();
     }
 }
@@ -420,12 +399,11 @@ static int handleMCast(int fd)
 	errlog(errtxt, 11);
 
 	if (node != msg.node) { /* Got ping from a different cluster */
-/*
 	    snprintf(errtxt, sizeof(errtxt),
 		     "Getting MCast ping from unknown node [%d %s(%d)]",
 		     msg.node, inet_ntoa(sin.sin_addr), node);
 	    errlog(errtxt, 0);
-*/
+
 	    continue;
 	}
 
@@ -436,7 +414,7 @@ static int handleMCast(int fd)
 		     "Got T_CLOSE MCast ping from %s [%d]",
 		     inet_ntoa(sin.sin_addr), node);
 	    errlog(errtxt, 6);
-	    if (!licserver) closeConnectionMCast(node);
+	    if (!licServer) closeConnectionMCast(node);
 	    break;
 	case T_KILL:
 	    /* Got a KILL msg (from LIC Server) */
@@ -453,7 +431,7 @@ static int handleMCast(int fd)
 	    gettimeofday(&conntableMCast[node].lastping, NULL);
 	    conntableMCast[node].misscounter = 0;
 	    conntableMCast[node].load = msg.load;
-	    if (!licserver && conntableMCast[node].state != UP) {
+	    if (!licServer && conntableMCast[node].state != UP) {
 		/* got PING from unconnected node */
 		conntableMCast[node].state = UP;
 		snprintf(errtxt, sizeof(errtxt),
@@ -505,10 +483,10 @@ static void pingMCast(MCastState state)
     MCastMsg msg;
 
     msg.node = myID;
-    msg.type = (licserver)?T_LIC:T_INFO;
+    msg.type = (licServer) ? T_LIC : T_INFO;
     if (state==DOWN) msg.type=T_CLOSE;
 #ifdef __osf__
-    memcpy( &msg.ip, &myIP, sizeof( msg.ip ));
+    memcpy(&msg.ip, &myIP, sizeof(msg.ip));
 #endif
     msg.state = state;
     msg.load = getLoad();
@@ -548,14 +526,28 @@ static char *stateStringMCast(MCastState state)
 /* ---------------------------------------------------------------------- */
 
 int initMCast(int nodes, int mcastgroup, unsigned short portno, int usesyslog,
-	      unsigned int hosts[], int licServer,
-	      void (*callback)(int, void*))
+	      unsigned int hosts[], int id, void (*callback)(int, void*))
 {
     initErrLog("MCast", usesyslog);
 
+    if (nodes<=0) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "initMCast(): nodes = %d out of range.", nodes);
+	errlog(errtxt, 0);
+	exit(1);
+    }
     nrOfNodes = nodes;
     MCastCallback = callback;
-    licserver = licServer;
+
+    if (id<0 || id>nodes) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "initMCast(): id = %d out of range.", id);
+	errlog(errtxt, 0);
+	exit(1);
+    }
+    myID = id;
+
+    licServer = (myID == nrOfNodes);
 
     snprintf(errtxt, sizeof(errtxt),
 	     "initMCast() for %d nodes, using %d as MCast group on port %d",
@@ -571,6 +563,8 @@ int initMCast(int nodes, int mcastgroup, unsigned short portno, int usesyslog,
     }
 
     initConntableMCast(nrOfNodes, hosts, htons(portno));
+
+    memcpy(&myIP, &conntableMCast[myID].sin.sin_addr, sizeof(myIP));
 
     if (!isInitializedTimer()) {
 	initTimer(usesyslog);
