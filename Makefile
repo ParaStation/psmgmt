@@ -41,46 +41,46 @@ libstrip: $(LIBARCHIVEDIR)/*
 	strip -g $(LIBARCHIVEDIR)_strip/*
 
 mcp:	mcpdep
-	make -C $(MCPDIR) all
+	$(MAKE) -C $(MCPDIR) all
 
 psm:
-	make -C $(PSMDIR) psm
+	$(MAKE) -C $(PSMDIR) psm
 
 #xxx:
 #	echo "${OSVERSION}"
 
 pshal:	FORCE	
-	make -C $(PSHALDIR) pshal
+	$(MAKE) -C $(PSHALDIR) pshal
 
 psport:	FORCE	
-	make -C $(PSPORTDIR) psport
+	$(MAKE) -C $(PSPORTDIR) psport
 
 psport2:	FORCE	
-	make -C $(PSPORT2DIR) psport2
+	$(MAKE) -C $(PSPORT2DIR) psport2
 
 pvar:	FORCE	
-	make -C $(PSHALDIR) pvar
+	$(MAKE) -C $(PSHALDIR) pvar
 
 arg:	FORCE
-	make -C $(PSHALDIR) arg
+	$(MAKE) -C $(PSHALDIR) arg
 
 mcpdep:
-	make -C $(MCPDIR) dep
+	$(MAKE) -C $(MCPDIR) dep
 
 mcpclean:
-	make -C $(MCPDIR) clean
+	$(MAKE) -C $(MCPDIR) clean
 
 tools:	FORCE
-	make -C $(TOOLDIR) tools
+	$(MAKE) -C $(TOOLDIR) tools
 
 toolsstrip:	FORCE
-	make -C $(TOOLDIR) toolsstrip
+	$(MAKE) -C $(TOOLDIR) toolsstrip
 
 dep:
-	make -C $(PSMDIR) $@
-	make -C $(PSHALDIR) $@
-	make -C $(PSPORTDIR) $@
-	make -C $(PSPORT2DIR) $@
+	$(MAKE) -C $(PSMDIR) $@
+	$(MAKE) -C $(PSHALDIR) $@
+	$(MAKE) -C $(PSPORTDIR) $@
+	$(MAKE) -C $(PSPORT2DIR) $@
 
 buildno:
 	@echo "## Build #################################################"
@@ -93,10 +93,10 @@ endif
 	@echo "##########################################################"
 
 clean:
-	make -C $(PSMDIR) $@
-	make -C $(PSHALDIR) $@
-	make -C $(PSPORTDIR) $@
-	make -C $(PSPORT2DIR) $@
+	$(MAKE) -C $(PSMDIR) $@
+	$(MAKE) -C $(PSHALDIR) $@
+	$(MAKE) -C $(PSPORTDIR) $@
+	$(MAKE) -C $(PSPORT2DIR) $@
 	rm -rf tmp/*
 
 FORCE:
