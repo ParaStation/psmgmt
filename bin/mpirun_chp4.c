@@ -5,20 +5,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mpirun_chp4.c,v 1.3 2003/02/21 14:25:22 eicker Exp $
+ * $Id: mpirun_chp4.c,v 1.4 2003/02/27 18:28:19 eicker Exp $
  *
  */
 /**
  * @file Replacement for the standard mpirun command provided by MPIch in order
  * to start MPIch/P4 application within a ParaStation cluster.
  *
- * $Id: mpirun_chp4.c,v 1.3 2003/02/21 14:25:22 eicker Exp $
+ * $Id: mpirun_chp4.c,v 1.4 2003/02/27 18:28:19 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chp4.c,v 1.3 2003/02/21 14:25:22 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chp4.c,v 1.4 2003/02/27 18:28:19 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -39,17 +39,19 @@ static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chp4.c,v 1.3 2003/02
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.3 $";
+    char revision[] = "$Revision: 1.4 $";
     fprintf(stderr, "mpirun_chp4 %s\b \n", revision+11);
 }
 
 #define OTHER_OPTIONS_STR "<command> [options]"
+#define RM_BODY "rm -f "
 
 int main(int argc, const char *argv[])
 {
-    int np, version, verbose;
+    int np, dest, version, verbose, local, source, rusage, keep;
     int rank, i, j, rc;
-    char *PIfile, *pwd;
+    char *nodelist, *hostlist, *hostfile, *sort, *envlist;
+    char *PGfile, *pwd, *envstr;
     int dup_argc;
     char **dup_argv;
 
@@ -63,20 +65,43 @@ int main(int argc, const char *argv[])
     poptContext optCon;   /* context for parsing command-line options */
 
     struct poptOption optionsTable[] = {
-        { "np", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH, &np, 0,
-          "number of processes to start", "num"},
-        { "verbose", 'v', POPT_ARG_NONE, &verbose, 0,
-          "verbose mode", NULL},
-        { "version", 'V', POPT_ARG_NONE, &version, -1,
-          "output version information and exit", NULL},
+        { "np", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
+	  &np, 0, "number of processes to start", "num"},
+        { "nodes", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
+	  &nodelist, 0, "list of nodes to use", "nodelist"},
+        { "hosts", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
+	  &hostlist, 0, "list of hosts to use", "hostlist"},
+        { "hostfile", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
+	  &hostfile, 0, "hostfile to use", "hostfile"},
+        { "sort", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
+	  &sort, 0, "sorting criterium to use", "{proc|load|proc+load|none}"},
+        { "all-local", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH,
+	  &local, 0, "local execution", NULL},
+        { "inputdest", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
+	  &dest, 0, "direction to forward input", "dest"},
+        { "sourceprintf", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH,
+	  &source, 0, "print output-source info", NULL},
+        { "rusage", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH,
+	  &rusage, 0, "print consumed sys/user time", NULL},
+        { "exports", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
+	  &envlist, 0, "environment to export to foreign nodes", "envlist"},
+        { "keep_pg", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH,
+	  &keep, 0, "don't remove process group file upon exit", NULL},
+        { "leave_pg", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH,
+	  &keep, 0, "don't remove process group file upon exit", NULL},
+	{ "verbose", 'v', POPT_ARG_NONE,
+	  &verbose, 0, "verbose mode", NULL},
+        { "version", 'V', POPT_ARG_NONE,
+	  &version, -1, "output version information and exit", NULL},
         POPT_AUTOHELP
         { NULL, '\0', 0, NULL, 0, NULL, NULL}
     };
 
     /* The duplicated argv will contain the apps commandline */
-    poptDupArgv(argc, argv, &dup_argc, &dup_argv);
+    poptDupArgv(argc, argv, &dup_argc, (const char ***)&dup_argv);
 
-    optCon = poptGetContext(NULL, dup_argc, dup_argv, optionsTable, 0);
+    optCon = poptGetContext(NULL, dup_argc, (const char **)dup_argv,
+			    optionsTable, 0);
     poptSetOtherOptionHelp(optCon, OTHER_OPTIONS_STR);
 
     /*
@@ -88,9 +113,9 @@ int main(int argc, const char *argv[])
     while (1) {
 	const char *unknownArg;
 
-	np = -1;
-	version = 0;
-	verbose = 0;
+	np = dest = -1;
+	version = verbose = local = source = rusage = keep = 0;
+	nodelist = hostlist = hostfile = sort = envlist = NULL;
 
 	rc = poptGetNextOpt(optCon);
 
@@ -106,7 +131,8 @@ int main(int argc, const char *argv[])
 		    dup_argc = i;
 		    dup_argv[dup_argc] = NULL;
 		    poptFreeContext(optCon);	
-		    optCon = poptGetContext(NULL, dup_argc, dup_argv,
+		    optCon = poptGetContext(NULL,
+					    dup_argc, (const char **)dup_argv,
 					    optionsTable, 0);
 		    poptSetOtherOptionHelp(optCon, OTHER_OPTIONS_STR);
 		    break;
@@ -128,7 +154,7 @@ int main(int argc, const char *argv[])
         fprintf(stderr, "%s: %s\n",
                 poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
                 poptStrerror(rc));
-        return 1;
+        exit(1);
     }
 
     if (version) {
@@ -139,13 +165,13 @@ int main(int argc, const char *argv[])
     if (np == -1) {
         poptPrintUsage(optCon, stderr, 0);
 	fprintf(stderr, "You have to give at least the -np argument.\n");
-	return 1;
+	exit(1);
     }
 
     if (!argv[dup_argc]) {
         poptPrintUsage(optCon, stderr, 0);
 	fprintf(stderr, "No <command> specified.\n");
-	return 1;
+	exit(1);
     }
 
     free(dup_argv);
@@ -164,15 +190,144 @@ int main(int argc, const char *argv[])
 	printf("\b\n\n");
     }
 
+    /* Setup various environment variables depending on passed arguments */
+    if (dest >= 0) {
+	char val[6];
+
+	snprintf(val, sizeof(val), "%d", dest);
+	setenv("PSI_INPUTDEST", val, 1);
+	if (verbose) {
+	    printf("Send all input to node with rank %d.\n", dest);
+	}
+    }
+
+    if (source) {
+	setenv("PSI_SOURCEPRINTF", "", 1);
+    }
+
+    if (rusage) {
+	setenv("PSI_RUSAGE", "", 1);
+	if (verbose) {
+	    printf("Will print info about consumed sys/user time.\n");
+	}
+    }
+
+    if (envlist) {
+	char *val;
+
+	envstr = getenv("PSI_EXPORTS");
+	if (envstr) {
+	    val = malloc(strlen(envstr) + strlen(envlist) + 2);
+	    sprintf(val, "%s,%s", envstr, envlist);
+	} else {
+	    val = strdup(envlist);
+	}
+	setenv("PSI_EXPORTS", val, 1);
+	free(val);
+	if (verbose) {
+	    printf("Environment variables to be exported: %s\n", val);
+	}
+    }
+
+    envstr = getenv("PSI_NODES");
+    if (!envstr) envstr = getenv("PSI_HOSTS");
+    if (!envstr) envstr = getenv("PSI_HOSTFILE");
+    /* envstr marks if any of PSI_NODES, PSI_HOSTS or PSI_HOSTFILE is set */
+    if (nodelist) {
+	if (hostlist) {
+	    poptPrintUsage(optCon, stderr, 0);
+	    fprintf(stderr, "Do not use -nodes and -hosts simultatniously.\n");
+	    exit(1);
+	}
+	if (hostfile) {
+	    poptPrintUsage(optCon, stderr, 0);
+	    fprintf(stderr,
+		    "Do not use -nodes and -hostfile simultatniously.\n");
+	    exit(1);
+	}
+	if (envstr) {
+	    poptPrintUsage(optCon, stderr, 0);
+	    fprintf(stderr, "Do not use -nodes when any of"
+		    " PSI_NODES, PSI_HOSTS or PSI_HOSTFILE is set.\n");
+	    exit(1);
+	}
+	setenv("PSI_NODES", nodelist, 1);
+	if (verbose) {
+	    printf("PSI_NODES set to '%s'\n", nodelist);
+	}
+    } else if (hostlist) {
+	if (hostfile) {
+	    poptPrintUsage(optCon, stderr, 0);
+	    fprintf(stderr,
+		    "Do not use -hosts and -hostfile simultatniously.\n");
+	    exit(1);
+	}
+	if (envstr) {
+	    poptPrintUsage(optCon, stderr, 0);
+	    fprintf(stderr, "Do not use -hosts when any of"
+		    " PSI_NODES, PSI_HOSTS or PSI_HOSTFILE is set.\n");
+	    exit(1);
+	}
+	setenv("PSI_HOSTS", hostlist, 1);
+	if (verbose) {
+	    printf("PSI_HOSTS set to '%s'\n", hostlist);
+	}
+    } else if (hostfile) {
+	if (envstr) {
+	    poptPrintUsage(optCon, stderr, 0);
+	    fprintf(stderr, "Do not use -hostfile when any of"
+		    " PSI_NODES, PSI_HOSTS or PSI_HOSTFILE is set.\n");
+	    exit(1);
+	}
+	setenv("PSI_HOSTFILE", hostfile, 1);
+	if (verbose) {
+	    printf("PSI_HOSTFILE set to '%s'\n", hostfile);
+	}
+    }
+
+    envstr = getenv("PSI_NODES_SORT");
+    if (sort) {
+	if (envstr) {
+	    poptPrintUsage(optCon, stderr, 0);
+	    fprintf(stderr, "Do not use -sort when PSI_NODES_SORT is set.\n");
+	    exit(1);
+	}
+	if (!strcmp(sort, "proc")) {
+	    setenv("PSI_NODES_SORT", "PROC", 1);
+	    if (verbose) {
+		printf("PSI_NODES_SORT set to 'PROC'\n");
+	    }
+	} else if (!strcmp(sort, "load")) {
+	    setenv("PSI_NODES_SORT", "LOAD_1", 1);
+	    if (verbose) {
+		printf("PSI_NODES_SORT set to 'LOAD'\n");
+	    }
+	} else if (!strcmp(sort, "proc+load")) {
+	    setenv("PSI_NODES_SORT", "PROC+LOAD", 1);
+	    if (verbose) {
+		printf("PSI_NODES_SORT set to 'PROC+LOAD'\n");
+	    }
+	} else if (!strcmp(sort, "none")) {
+	    setenv("PSI_NODES_SORT", "NONE", 1);
+	    if (verbose) {
+		printf("PSI_NODES_SORT set to 'NONE'\n");
+	    }
+	} else {
+	    poptPrintUsage(optCon, stderr, 0);
+	    fprintf(stderr, "Unknown value for -sort option: %s\n", sort);
+	    exit(1);
+	}
+    }
+    
+    /* Don't irritate the user with logger messages */
+    setenv("PSI_NOMSGLOGGERDONE", "", 1);
+
     /*
      * Besides initializing the PSI stuff, this furthermore propagetes
      * some environment variables. Thus use this one instead of
      * PSI_initClient().
      */
     PSE_initialize();
-
-    /* Don't irritate the user with logger messages */
-    setenv("PSI_NOMSGLOGGERDONE", "", 1);
 
     rank = PSE_getRank();
 
@@ -200,9 +355,9 @@ int main(int argc, const char *argv[])
 	}
     }
 
-    PIfile = PSI_createPGfile(np, argv[dup_argc]);
+    PGfile = PSI_createPGfile(np, argv[dup_argc], local);
 
-    if (!PIfile) {
+    if (!PGfile) {
 	fprintf(stderr, "%s: unable to create pg file", argv[dup_argc]);
 	exit(1);
     }
@@ -222,7 +377,7 @@ int main(int argc, const char *argv[])
     }
 
     dup_argv[j++] = "-p4pg";
-    dup_argv[j++] = PIfile;
+    dup_argv[j++] = PGfile;
     dup_argv[j++] = "-p4wd";
     dup_argv[j++] = pwd;
     dup_argv[j++] = NULL;
@@ -236,6 +391,7 @@ int main(int argc, const char *argv[])
 	/* spawn master process (we are going to be logger) */
 	long spawnedProcess = -1;
 	int error;
+	char *rmstring;
 
 	/* spawn master process */
 	if (PSI_spawnM(1, NULL, ".", dup_argc, dup_argv, PSC_getMyTID(),
@@ -250,7 +406,9 @@ int main(int argc, const char *argv[])
 	}
 
 	/* Switch to psilogger */
-	PSI_execLogger();
+	rmstring = malloc(strlen(RM_BODY) + strlen(PGfile) + 1);
+	sprintf(rmstring, "%s%s", RM_BODY, PGfile);
+	PSI_execLogger(keep ? NULL : rmstring);
     }
 
 
