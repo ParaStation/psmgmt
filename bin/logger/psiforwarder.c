@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiforwarder.c,v 1.15 2002/07/26 15:10:37 eicker Exp $
+ * $Id: psiforwarder.c,v 1.16 2002/07/31 11:33:59 eicker Exp $
  *
  */
 /**
  * @file
  * psiforwarder: Forwarding-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psiforwarder.c,v 1.15 2002/07/26 15:10:37 eicker Exp $
+ * $Id: psiforwarder.c,v 1.16 2002/07/31 11:33:59 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.15 2002/07/26 15:10:37 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.16 2002/07/31 11:33:59 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -29,6 +29,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.15 2002/
 #include <errno.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -42,8 +43,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.15 2002/
  * Set by loggerconnect() on behalf of info from logger.
  */
 int verbose = 0;
-/** Number of connected clients. */
-int noclients;
+
 /**
  * Set of fds, the forwarder listens to. Each member is connected to a client.
  */
@@ -125,6 +125,73 @@ int loggerconnect(unsigned int node, int port)
 }
 
 /**
+ *  sighandler(signal)
+ */
+void sighandler(int sig)
+{
+    int i, status;
+    static int firstCall = 1;
+    char txt[80];
+
+    switch (sig) {
+    case SIGTERM:
+	if (firstCall) {
+	    printlog(loggersock, STDERR, id,
+		     "PSIforwarder: Got SIGTERM. Problem with child?\n");
+	    firstCall = 0;
+	}
+	break;
+    case SIGCHLD:
+	if (verbose) {
+	    printlog(loggersock, STDERR, id, "PSIforwarder: Got SIGCHLD.\n");
+	}
+
+	wait(&status);
+
+	if (WIFSIGNALED(status)) {
+	    snprintf(txt, sizeof(txt),
+		     "PSIforwarder: Child with rank %d exited on signal %d.\n",
+		     id, WTERMSIG(status));
+	    printlog(loggersock, STDERR, id, txt);
+	}
+
+	if (WIFEXITED(status)) {
+	    if (WEXITSTATUS(status)) {
+		snprintf(txt, sizeof(txt),
+			 "PSIforwarder: Child with rank %d exited"
+			 " with exit status %d.\n", id, WEXITSTATUS(status));
+		printlog(loggersock, STDERR, id, txt);
+	    } else if (verbose) {
+		snprintf(txt, sizeof(txt),
+			 "PSIforwarder: Child with rank %d exited normally.\n",
+			 id);
+		printlog(loggersock, STDERR, id, txt);
+	    }
+	}
+
+	/* Release logger */
+	closelog();
+
+	exit(0);
+
+	break;
+    }
+
+    if (verbose) {
+	snprintf(txt, sizeof(txt), "PSIforwarder: open sockets left:");
+	for (i=0; i<FD_SETSIZE; i++) {
+	    if (FD_ISSET(i, &myfds)) {
+		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), " %d", i);
+	    }
+	}
+	snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "\n");
+	printlog(loggersock, STDERR, id, txt);
+    }
+
+    signal(sig, sighandler);
+}
+
+/**
  * @brief Checks file table after select has failed.
  *
  * @param openfds Set of file descriptors that have to be checked.
@@ -132,7 +199,7 @@ int loggerconnect(unsigned int node, int port)
  * @return No return value.
  *
  */
-void CheckFileTable(fd_set* openfds)
+void checkFileTable(fd_set* openfds)
 {
     fd_set rfds;
     int fd;
@@ -150,7 +217,7 @@ void CheckFileTable(fd_set* openfds)
 		/* error : check if it is a wrong fd in the table */
 		switch(errno){
 		case EBADF :
-		    snprintf(buf, sizeof(buf), "CheckFileTable(%d): EBADF"
+		    snprintf(buf, sizeof(buf), "checkFileTable(%d): EBADF"
 			     " -> close socket\n", fd);
 		    printlog(loggersock, STDERR, id, buf);
 		    close(fd);
@@ -158,19 +225,19 @@ void CheckFileTable(fd_set* openfds)
 		    fd++;
 		    break;
 		case EINTR:
-		    snprintf(buf, sizeof(buf), "CheckFileTable(%d): EINTR"
+		    snprintf(buf, sizeof(buf), "checkFileTable(%d): EINTR"
 			     " -> trying again\n", fd);
 		    printlog(loggersock, STDERR, id, buf);
 		    break;
 		case EINVAL:
-		    snprintf(buf, sizeof(buf), "CheckFileTable(%d): EINVAL"
+		    snprintf(buf, sizeof(buf), "checkFileTable(%d): EINVAL"
 			     " -> close socket\n", fd);
 		    printlog(loggersock, STDERR, id, buf);
 		    close(fd);
 		    FD_CLR(fd,openfds);
 		    break;
 		case ENOMEM:
-		    snprintf(buf , sizeof(buf), "CheckFileTable(%d): ENOMEM"
+		    snprintf(buf , sizeof(buf), "checkFileTable(%d): ENOMEM"
 			    " -> close socket\n",fd);
 		    printlog(loggersock, STDERR, id, buf);
 		    close(fd);
@@ -178,7 +245,7 @@ void CheckFileTable(fd_set* openfds)
 		    break;
 		default:
 		    errtxt=strerror(errno);
-		    snprintf(buf, sizeof(buf), "CheckFileTable(%d):"
+		    snprintf(buf, sizeof(buf), "checkFileTable(%d):"
 			    " unrecognized error (%d):%s\n", fd, errno,
 			    errtxt?errtxt:"UNKNOWN errno");
 		    printlog(loggersock, STDERR, id, buf);
@@ -264,16 +331,16 @@ void loop(int stdinport, int stdoutport, int stderrport)
     FD_SET(loggersock, &myfds);
 
     /*
-     * Loop until there is no connection left.
+     * Loop forever. We exit on SIGCHLD.
      */
-    while (noclients > 0) {
+    while (1) {
 	memcpy(&afds, &myfds, sizeof(afds));
 	atv = mytv;
 	if (select(FD_SETSIZE, &afds, NULL, NULL, &atv) < 0) {
 	    snprintf(obuf, sizeof(obuf), "PSIforwarder: error on select(%d):"
 		     " %s\n", errno, strerror(errno));
 	    printlog(loggersock, STDERR, id, obuf);
-	    CheckFileTable(&myfds);
+	    checkFileTable(&myfds);
 	    continue;
 	}
 	/*
@@ -319,13 +386,6 @@ void loop(int stdinport, int stdoutport, int stderrport)
 		    }
 		    close(sock);
 		    FD_CLR(sock,&myfds);
-		    noclients--;
-		    if (verbose) {
-			snprintf(obuf, sizeof(obuf),
-				 "PSIforwarder: clients left: %d\n",
-				 noclients);
-			printlog(loggersock, STDERR, id, obuf);
-		    }
 		} else if (n<0) {
 		    /* ignore the error */
 		    snprintf(obuf, sizeof(obuf),
@@ -367,10 +427,8 @@ int main( int argc, char**argv)
     int logger_port, stdinport, stdoutport, stderrport;
     pid_t pid;
 
-    int ret;
-
-    /* become process group leader */
-    setpgid(0,0);
+    /* catch SIGCHLD from client */
+    signal(SIGCHLD, sighandler);
 
     if (argc<6) {
 	exit(1);
@@ -383,20 +441,12 @@ int main( int argc, char**argv)
     sscanf(argv[6], "%d", &stderrport);
     sscanf(argv[7], "%d", &pid);
 
-    if ((ret=loggerconnect(logger_node, logger_port)) < 0) {
+    if (loggerconnect(logger_node, logger_port) < 0) {
 	exit(1);
     }
 
-    /* Two clients allready connected (stdout/stderr) */
-    noclients = 2;
-
     /* call the loop which does all the work */
     loop(stdinport, stdoutport, stderrport);
-
-    if (verbose) {
-	printlog(loggersock, STDERR, id, "PSIforwarder: Closing log\n");
-    }
-    closelog();
 
     return 0;
 }
