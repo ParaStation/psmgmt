@@ -46,7 +46,7 @@ struct timeval killclientstimer;
 struct timeval pingtimer;
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char psid_cvsid[] __attribute__(( unused )) = "$Id: psid.c,v 1.15 2002/01/07 08:30:57 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.16 2002/01/07 09:37:43 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #define timerset(tvp,fvp)        {(tvp)->tv_sec  = (fvp)->tv_sec;\
@@ -54,6 +54,8 @@ static char psid_cvsid[] __attribute__(( unused )) = "$Id: psid.c,v 1.15 2002/01
 #define timerop(tvp,sec,usec,op) {(tvp)->tv_sec  = (tvp)->tv_sec op sec;\
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
+
+static char psid_cvsid[] = "$Revision: 1.16 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
