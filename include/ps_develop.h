@@ -108,7 +108,7 @@
 #define ENABLE_PACKETCOUNTER
 
 /* PSPORT print debuging on ^Z */
-#define ENABLE_REQUESTDUMP
+//#define ENABLE_REQUESTDUMP
 
 #else
 
@@ -118,6 +118,9 @@
 #define ENABLE_DMASEND
 /* Receive data with zero copy */
 #define ENABLE_DMARECV
+
+/* Disable local communication */
+#define DISABLE_LOCAL_COM
 
 #endif
 
