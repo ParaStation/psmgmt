@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.16 2002/02/18 19:56:16 eicker Exp $
+ * $Id: pse.c,v 1.17 2002/03/25 18:10:11 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.16 2002/02/18 19:56:16 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.17 2002/03/25 18:10:11 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -38,7 +38,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.16 2002/02/18 19:
    if set then PSI_TIMEOUT gives the time in mircosecond the master
    should wait until a client connects. For very large programs, it
    my be helpfull to set this value larger than the default value.
-   Try to increase this time if you cat the message:
+   Try to increase this time if you get the message:
    "Message transmission failed due to timeout
    (timeout = XX,connected clients XX)!"
 */
