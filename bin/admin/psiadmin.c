@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.50 2003/02/21 12:43:30 eicker Exp $
+ * $Id: psiadmin.c,v 1.51 2003/03/04 15:37:15 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.50 2003/02/21 12:43:30 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.51 2003/03/04 15:37:15 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -48,7 +48,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.50 $";
+static char psiadmversion[] = "$Revision: 1.51 $";
 static int doRestart = 0;
 
 static char *hoststatus = NULL;
@@ -220,8 +220,8 @@ void PSIADM_ProcStat(int first, int last, int full)
     first = (first==ALLNODES) ? 0 : first;
     last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
 
-    printf("%4s %23s %23s %3s %9s\n", "Node", "TaskId(Dec/Hex)",
-	   "ParentTaskId(Dec/Hex)", "Con", "UserId");
+    printf("%4s %22s %22s %3s %9s\n", "Node", "TaskId",
+	   "ParentTaskId", "Con", "UserId");
     for (i = first; i < last; i++) {
 	printf("---------------------------------------------------------"
 	       "---------\n");
@@ -230,10 +230,11 @@ void PSIADM_ProcStat(int first, int last, int full)
 	    for (j=0; j<MIN(num,NUMTASKS); j++) {
 		if (taskinfo[j].group==TG_FORWARDER && !full) continue;
 		if (taskinfo[j].group==TG_SPAWNER && !full) continue;
-		printf("%4d %10ld 0x%010lx %10ld 0x%010lx %2d  %5d %s\n",
-		       i, taskinfo[j].tid, taskinfo[j].tid,
-		       taskinfo[j].ptid, taskinfo[j].ptid,
-		       taskinfo[j].connected, taskinfo[j].uid,
+		printf("%4d ", i);
+		printf("%22s ", PSC_printTID(taskinfo[j].tid));
+		printf("%22s ", PSC_printTID(taskinfo[j].ptid));
+		printf("%2d  %5d ", taskinfo[j].connected, taskinfo[j].uid);
+		printf("%s\n",
 		       taskinfo[j].group==TG_ADMIN ? "(A)" :
 		       taskinfo[j].group==TG_LOGGER ? "(L)" :
 		       taskinfo[j].group==TG_FORWARDER ? "(F)" :
