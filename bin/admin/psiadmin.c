@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.17 2002/01/16 17:07:30 eicker Exp $
+ * $Id: psiadmin.c,v 1.18 2002/01/17 12:51:59 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.17 2002/01/16 17:07:30 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.18 2002/01/17 12:51:59 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -40,18 +40,18 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.17 $";
+static char psiadmversion[] = "$Revision: 1.18 $";
 static int  DoRestart = 1;
 
 int PSIADM_LookUpNodeName(char* hostname)
 {
-    struct hostent	*hp;	/* host pointer */
-    struct sockaddr_in sa;	/* socket address */ 
+    struct hostent *hp;       /* host pointer */
+    struct sockaddr_in sa;    /* socket address */
 
     if ((hp = gethostbyname(hostname)) == NULL) {
 	return -1;
     }
-    memcpy(&sa.sin_addr, hp->h_addr, hp->h_length); 
+    memcpy(&sa.sin_addr, hp->h_addr, hp->h_length);
 
     return INFO_request_host(sa.sin_addr.s_addr);
 }
@@ -121,7 +121,7 @@ void PSIADM_RDPStat(int first, int last)
 void PSIADM_CountStat(int first, int last)
 {
     int i;
-    
+
     first = (first==ALLNODES) ? 0 : first;
     last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
     INFO_request_countstatus(first, 1); /* first node with header */
@@ -291,7 +291,7 @@ void PSIADM_Version(void)
     return;
 }
 
-void PSIADM_ShowParameter(void) 
+void PSIADM_ShowParameter(void)
 {
     DDOptionMsg_t msg;
     int uidlimit=0, proclimit=0, smallpacksize=0, resendtimeout=0;
@@ -325,7 +325,7 @@ void PSIADM_ShowParameter(void)
 
     if ((n=ClientMsgReceive(&msg)) == 0){
 	/*
-	 * closing connection 
+	 * closing connection
 	 */
 	printf("PANIC: lost connection to my daemon!!");
 	exit(1);
@@ -363,7 +363,7 @@ void PSIADM_ShowParameter(void)
     return;
 }
 
-void PSIADM_SetSmallPacketSize(int smallpacketsize) 
+void PSIADM_SetSmallPacketSize(int smallpacketsize)
 {
     DDOptionMsg_t msg;
 
@@ -389,7 +389,7 @@ void PSIADM_SetSmallPacketSize(int smallpacketsize)
     return;
 }
 
-void PSIADM_SetResendTimeout(int time) 
+void PSIADM_SetResendTimeout(int time)
 {
     DDOptionMsg_t msg;
 
@@ -420,7 +420,7 @@ void PSIADM_SetResendTimeout(int time)
  *   first: first node to be reset
  *   last : last node to be reset
  */
-void PSIADM_Reset(int reset_hw, int first, int last) 
+void PSIADM_Reset(int reset_hw, int first, int last)
 {
     DDResetMsg_t msg;
 
@@ -446,7 +446,7 @@ void PSIADM_Reset(int reset_hw, int first, int last)
     return;
 }
 
-void PSIADM_ShutdownCluster(int first, int last) 
+void PSIADM_ShutdownCluster(int first, int last)
 {
     int nrofnodes;
     DDResetMsg_t msg;
@@ -471,7 +471,7 @@ void PSIADM_ShutdownCluster(int first, int last)
     ClientMsgSend(&msg);
 }
 
-void PSIADM_TestNetwork(int mode) 
+void PSIADM_TestNetwork(int mode)
 {
     int mynode;
     int spawnargc;
@@ -662,7 +662,7 @@ int main(int argc, char **argv)
     using_history();
     add_history("shutdown");
 
-    while (!PARSE_DONE) { 
+    while (!PARSE_DONE) {
 	/* Get a line from the user. */
 	line = readline("PSIadmin>");
 

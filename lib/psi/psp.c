@@ -123,12 +123,14 @@ char*
 PSPctrlmsg(int msgtype)
 {
     int i=0;
-    while((PSPctrlmessages[i].id!=0)             /* end symbol */
-	  &&(PSPctrlmessages[i].id != msgtype))
+    while ((PSPctrlmessages[i].id!=0)            /* end symbol */
+	   &&(PSPctrlmessages[i].id != msgtype)) {
 	i++;
-    if(PSPctrlmessages[i].id!=0)
+    }
+
+    if (PSPctrlmessages[i].id!=0) {
 	return PSPctrlmessages[i].message;
-    else{
+    } else {
 	sprintf(PSPctrlmsgtxt,"msgtype 0x%x UNKNOWN",msgtype);
 	return PSPctrlmsgtxt;
     }
@@ -144,7 +146,7 @@ int ClientMsgSend(void* amsg)
     DDMsg_t* msg = (DDMsg_t*)amsg;
     int ret = 0;
 
-    if((ret = write(PSI_msock,msg,msg->len))==0){
+    if ((ret = write(PSI_msock, msg, msg->len))==0) {
 	perror("PANIC in Send: Lost connection to ParaStation daemon");
 	exit(-1);
     }
