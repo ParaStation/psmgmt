@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psienv.h,v 1.4 2002/04/26 12:39:22 eicker Exp $
+ * $Id: psienv.h,v 1.5 2002/07/03 19:59:06 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with the ParaStation environment.
  *
- * $Id: psienv.h,v 1.4 2002/04/26 12:39:22 eicker Exp $
+ * $Id: psienv.h,v 1.5 2002/07/03 19:59:06 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -48,9 +48,13 @@ void clearPSIEnv(void);
  * @a overwrite is non-zero; if @a overwrite is zero, then the valye of
  * @a name is not changed.
  *
+ *
  * @param name The name of the variable to be set.
+ *
  * @param value The value of the variable to be set.
+ *
  * @param overwrite Flag if overwriting is allowed.
+ *
  *
  * @return On success, 0 is returned, or -1 if an error occured.
  *
@@ -107,8 +111,11 @@ char* getPSIEnv(const char *name);
  * Pack the ParaStation Environment into buffer @a buffer, so it can be sent
  * in a single message.
  *
+ *
  * @param buffer The buffer to pack the ParaStation Environment in.
+ *
  * @param size The size of @a buffer.
+ *
  *
  * @return On success, the number of used bytes in buffer is returned, or -1
  * if an error occurred (i.e. the buffer is to small).

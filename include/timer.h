@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: timer.h,v 1.8 2002/04/30 17:35:58 eicker Exp $
+ * $Id: timer.h,v 1.9 2002/07/03 19:54:38 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation Timer facility @todo More info on module.
  *
- * $Id: timer.h,v 1.8 2002/04/30 17:35:58 eicker Exp $
+ * $Id: timer.h,v 1.9 2002/07/03 19:54:38 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -89,11 +89,15 @@ void setDebugLevelTimer(int level);
  * has elapsed. The @a selecHandler will be called, if data on @a fd is
  * pending during a call to Tselect().
  *
+ *
  * @param fd The file-descriptor, the timer is registered on.
+ *
  * @param timeout The amount of time, after which the @a timeoutHandler is
  * called again.
+ *
  * @param timeoutHandler If @a timeout has elapsed, this function is called.
  * The corresponding file-descriptor @a fd is passed as an argument.
+ *
  * @param selectHandler If data on @a fd is pending during a call to Tselect(),
  * this functions is called. @a fd is passed as an argument, Tselect() expects
  * the return values as follows:
@@ -102,6 +106,7 @@ void setDebugLevelTimer(int level);
  *       its descriptor-set then.
  *  - 1  If there is still pending data on @a fd. This forces Tselect() to
  *       pass @a fd to the caller.
+ *
  *
  * @return On success, 0 is returned. On error, -1 is returned.
  * registerTimer() will fail, if a timer on @a fd is allready registered.
@@ -127,9 +132,12 @@ int removeTimer(int fd);
  * Block or unblock a registered timer. The timer will be identified by its
  * corresponding file-descriptor @a fd.
  *
+ *
  * @param fd The file-descriptor to identify the timer.
+ *
  * @param block On 0, the timer will be unblocked. On other values, it will
  *        be blocked.
+ *
  *
  * @return If the timer was blocked before, 1 will be returned. If the timer
  * was not blocked, 0 will be returned. If an error occurred, -1 will be
@@ -144,15 +152,21 @@ int blockTimer(int fd, int block);
  * of a registered file-descriptor is affected, the corresponding
  * @ref selectHandler() is called.
  *
+ *
  * @param n The highest-numbered descriptor in the three sets, plus 1.
+ *
  * @param readfds The set of descriptors to be watched for data available to
  * read.
+ *
  * @param writefds The set of descriptors to be watched for becoming able
  * to write to.
+ *
  * @param exceptfds The set of descriptors to be watched for exceptions.
+ *
  * @param timeval The upper bound on the amount of time elapsed before
  * Tselect() returns. It may be zero, causing Tselect() to return immediatly.
  * If @a timeout is NULL, Tselect() can block indefinitely.
+ *
  *
  * @return On success, the number of descriptors contained in the
  * descriptor-sets, which may be zero if the @a timeout expires before
