@@ -5,13 +5,13 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin_help.c,v 1.6 2002/02/12 15:06:51 eicker Exp $
+ * $Id: psiadmin_help.c,v 1.7 2002/02/15 19:25:00 eicker Exp $
  *
  * \todo More detailed messages for 'status' and 'set'.
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin_help.c,v 1.6 2002/02/12 15:06:51 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin_help.c,v 1.7 2002/02/15 19:25:00 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 static void PrintHelp(void)
@@ -264,10 +264,13 @@ static void PrintSetHelp(void)
     printf("\n");
     printf("SYNTAX:    SET {USER {username|ANY} | MAXPROC {num|ANY}"
 	   " | SMALLPACKETSIZE mask\n");
-    printf("                | RESENDTIMEOUT time | HNPEND val | ACKPEND val"
-	   " | DEBUGMASK mask}\n");
-    printf("      or   SET {[NO]PSIDDEBUG | RDPDEBUG | MCASTDEBUG} "
-	   "[FROM [TO]]\n");
+    printf("                | RESENDTIMEOUT time | HNPEND val"
+	   " | ACKPEND val\n");
+    printf("                | DEBUGMASK mask}\n");
+    printf("      or   SET {[NO]PSIDDEBUG | RDPDEBUG level"
+	   " | RDPPKTLOSS rate\n");
+    printf("                | RDPMAXRETRANS val | MCASTDEBUG level}"
+	   " [FROM [TO]]\n");
     NodeInfo();
     printf("Description: SET USER {username|ANY}  grants access to the"
 	   " cluster to\n");
@@ -285,18 +288,26 @@ static void PrintSetHelp(void)
     printf("             SET ACKPEND val          set AckPend to val.\n");
     printf("             SET DEBUGMASK mask       set the local debugmask.\n");
     printf("\n");
-    printf("             SET RDPDEBUG level       set verbosity level for RDP"
-	   " protocol on\n");
-    printf("                                      the selected nodes.\n");
-    printf("             SET RDPDEBUG level       set verbosity level for the"
-	   " MCast facility on\n");
-    printf("                                      the selected nodes.\n");
     printf("             SET PSIDDEBUG            set psid to verbose mode on"
 	   " the selected\n");
     printf("                                      nodes.\n");
     printf("             SET NOPSIDDEBUG          set psid to non-verbose mode"
 	   " on the\n");
     printf("                                      selected nodes.\n");
+    printf("             SET RDPDEBUG level       set verbosity level for RDP"
+	   " protocol on\n");
+    printf("                                      the selected nodes.\n");
+    printf("             SET RDPPKTLOSS rate      set packet-loss rate for RDP"
+	   " protocol on\n");
+    printf("                                      the selected nodes.\n");
+    printf("             SET RDPMAXRETRANS val    set the maximum"
+	   " retransmission count\n");
+    printf("                                      for RDP protocol on the"
+	   " selected nodes.\n");
+    printf("             SET MCASTDEBUG level     set verbosity level for the"
+	   " MCast\n");
+    printf("                                      facility on the selected"
+	   " nodes.\n");
     printf("\n");
     printf("For more information type HELP SET <subcommand>\n");
     printf("\n");
@@ -335,6 +346,25 @@ static void PrintRDPDebugHelp(void)
 	   " amount of\n");
     printf("             messages in the syslog.\n");
     printf("             Don't use a high level too long!\n");
+    return;
+}
+
+static void PrintRDPPktLossHelp(void)
+{
+    printf("\n");
+    printf("Setting Paket-Loss of RDP protocol:\n");
+    printf("=======================================\n");
+    printf("\n");
+    printf("SYNTAX:    SET RDPPKTLOSS rate [FROM [TO]]\n");
+    NodeInfo();
+    printf("Description: Sets paket loss of the RDP protocol to <rate> on the"
+	   " selected\n");
+    printf("             nodes.\n");
+    printf("             <rate> is in percent and therefor in between 0 and"
+	   " 100.\n");
+    printf("             This options is for debugging purposes only and may"
+	   " break\n");
+    printf("             connections between daemons!\n");
     return;
 }
 
