@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.50 2003/06/25 16:34:00 eicker Exp $
+ * $Id: psi.c,v 1.51 2003/06/27 16:52:59 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.50 2003/06/25 16:34:00 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.51 2003/06/27 16:52:59 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -88,12 +88,17 @@ static int connectDaemon(PStask_group_t taskGroup)
 	daemonSock = -1;
     }
 
-    while ((daemonSock=daemonSocket())==-1) {
+    daemonSock=daemonSocket();
+
+    if (taskGroup == TG_MONITOR && daemonSock==-1) return 0;
+
+    while (daemonSock==-1) {
 	/*
 	 * start the local ParaStation daemon via inetd
 	 */
 	if (connectfailes++ < 10) {
 	    PSC_startDaemon(INADDR_ANY);
+	    daemonSock=daemonSocket();
 	} else {
 	    char *errstr = strerror(errno);
 	    snprintf(errtxt, sizeof(errtxt),
@@ -280,7 +285,11 @@ int PSI_initClient(PStask_group_t taskGroup)
 	if (taskGroup!=TG_RESET) {
 	    snprintf(errtxt, sizeof(errtxt),
 		     "%s: cannot contact local daemon.", __func__);
-	    PSI_errlog(errtxt, 0);
+	    if (taskGroup == TG_MONITOR) {
+		PSI_errlog(errtxt, 1);
+	    } else {
+		PSI_errlog(errtxt, 0);
+	    }
 	}
 	return 0;
     }
