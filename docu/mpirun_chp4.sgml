@@ -1,0 +1,243 @@
+<refentry id="mpirun_chp4">
+  <refmeta>
+    <refentrytitle>mpirun_chp4</refentrytitle>
+    <manvolnum>1</manvolnum>
+  </refmeta>
+
+  <refnamediv>
+    <refname>mpirun_chp4</refname>
+    <refpurpose>
+      run a MPIch/P4 MPI program on a &ps; cluster
+    </refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <cmdsynopsis>
+      <command>mpirun_chp4</command>
+      <arg>-?Vv</arg>
+      <arg choice="req">-np <replaceable>nodes</replaceable></arg>
+      <arg>-nodes <replaceable>nodelist</replaceable></arg>
+      <arg>-hosts <replaceable>hostlist</replaceable></arg>
+      <arg>-hostfile <replaceable>hostfile</replaceable></arg>
+      <arg>-sort </arg>
+      <arg>-all-local</arg>
+      <arg>-inputdest <replaceable>dest</replaceable></arg>
+      <arg>-sourceprintf</arg>
+      <arg>-rusage</arg>
+      <arg>-exports <replaceable>envlist</replaceable></arg>
+      <arg>-keep_pg</arg>
+      <arg>-leave_pg</arg>
+      <arg>--usage</arg>
+      <arg choice="plain">program</arg>
+      <arg rep="repeat">arg</arg>
+    </cmdsynopsis>
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>Description</title>
+    <para>
+      <command>mpirun_chp4</command> is a program that enables MPIch/P4
+      programs to run on a &ps; cluster under control of the &ps; management
+      facility. Within &ps; the startup of parallel jobs is handled as
+      described within the <xref linkend="spawning"/> manual page. The spawning
+      mechanism is either steered by environment variables which are described
+      in detail within <xref linkend="environment"/> or via the options to the
+      <command>mpirun_chp4</command> command. In fact these do nothing but
+      setting the corresponding environment variables.
+    </para>
+    <para>
+      <command>mpirun_chp4</command> typically works like this
+    </para>
+    <programlisting>	mpirun_chp4 -np <replaceable>num</replaceable> <replaceable>prog</replaceable> <optional><replaceable>args</replaceable></optional>
+	  </programlisting>
+    <para>
+      This will startup the parallel MPIch/P4 program <command>prog</command>
+      on <replaceable>num</replaceable> nodes of the cluster.
+      <replaceable>args</replaceable> are optional argument which will be
+      passed to each instance of <command>prog</command>.
+    </para>
+  </refsect1>
+
+  <refsect1>
+    <title>Options</title>
+    <variablelist>
+      <varlistentry>
+	<term>
+	  <option>-np <replaceable>nodes</replaceable></option>
+        </term>
+	<listitem>
+	  <para>Specify the number of processors to run on.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-nodes <replaceable>nodelist</replaceable></option>
+	</term>
+	<listitem>
+	  <para></para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-hosts <replaceable>hostlist</replaceable></option>
+	</term>
+	<listitem>
+	  <para></para>
+	</listitem>
+      </varlistentry>
+       <varlistentry>
+	<term>
+	  <option>-hostfile <replaceable>hostfile</replaceable></option>
+	</term>
+	<listitem>
+	  <para></para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-sort <replaceable>mode</replaceable></option>
+	</term>
+	<listitem>
+	  <para></para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-exports <replaceable>envlist</replaceable></option>
+	</term>
+	<listitem>
+	  <para></para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-inputdest <replaceable>dest</replaceable></option>
+	</term>
+	<listitem>
+	  <para></para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-rusage</option>
+	</term>
+	<listitem>
+	  <para></para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-sourceprintf</option>
+	</term>
+	<listitem>
+	  <para></para>
+	</listitem>
+      </varlistentry>
+     <varlistentry>
+        <term>
+          <option>-all-local</option>
+        </term>
+        <listitem>
+          <para>Run all processes on the master node.</para>
+	  <para>
+	    Keep in mind that the masternode ist not necessarily the local
+	    machine but depending on the &ps; configuration and the options and
+	    environment variables given my be any machine within the &ps;
+	    cluster. Nevertheless all processes building the parallel MPIch/P4
+	    task will run on the same node of the &ps; cluster.
+	  </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>
+          <option>-keep_pg</option>
+          <option>, -leave_pg</option>
+        </term>
+        <listitem>
+          <para>
+	    Don't remove the process group file which steers the startup of the
+	    parallel MPIch/P4 task.
+          </para>
+          <para>
+	    This file will be constructed on the fly during startup by the
+	    <command>mpirun_chp4</command> program. The content of this file
+	    will depend on the configuration of the &ps; cluster, the options
+	    given to the <command>mpirun_chp4</command> and the environment
+	    variables set.
+	  </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>
+          <option>-V</option>
+          <option>, --version</option>
+        </term>
+        <listitem>
+          <para>Output version information and exit.</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>
+          <option>-v</option>
+          <option>, --verbose</option>
+        </term>
+        <listitem>
+          <para>Verbose execution with many message during startup of the
+	    parallel task.</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>
+          <option>-?</option>
+          <option>, --help</option>
+        </term>
+        <listitem>
+          <para>Show a help message.</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>
+          <option>--usage</option>
+        </term>
+        <listitem>
+          <para>Display a brief usage message.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+  </refsect1>
+
+  <refsect1>
+    <title>Errors</title>
+    <para>
+      <!-- @todo Implement this parameters -->
+      The options <option>-all-local</option> and <option>-nolocal</option> are
+      not implemented yet.
+    </para>
+  </refsect1>
+
+  <refsect1>
+    <title>See also</title>
+    <para>
+      <xref linkend="psmstart"/>, <xref linkend="environment"/>, <xref
+	linkend="spawning"/>
+    </para>
+  </refsect1>
+
+</refentry>
+  <!-- Keep this comment at the end of the file
+  Local variables:
+  mode: xml
+  sgml-omittag:nil
+  sgml-shorttag:nil
+  sgml-namecase-general:nil
+  sgml-general-insert-case:lower
+  sgml-minimize-attributes:nil
+  sgml-always-quote-attributes:t
+  sgml-indent-step:2
+  sgml-indent-data:t
+  sgml-parent-document:("userguide.xml" "book" "reference" "reference" ("title"))
+  sgml-exposed-tags:nil
+  sgml-local-catalogs:nil
+  sgml-local-ecat-files:nil
+  End:
+  -->
