@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.28 2003/04/10 17:36:19 eicker Exp $
+ * $Id: psilogger.c,v 1.29 2003/06/16 17:33:47 eicker Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.28 2003/04/10 17:36:19 eicker Exp $
+ * $Id: psilogger.c,v 1.29 2003/06/16 17:33:47 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.28 2003/04/10 17:36:19 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.29 2003/06/16 17:33:47 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -389,9 +389,11 @@ static int newrequest(PSLog_Msg_t *msg)
 	    fprintf(stderr, "PSIlogger: %s: %s (rank %d) already connected.\n",
 		    __func__, PSC_printTID(msg->header.sender), msg->sender);
 	} else {
-	    fprintf(stderr, "PSIlogger: %s: %s (rank %d) connects as %s.\n",
+	    fprintf(stderr, "PSIlogger: %s: %s (rank %d)",
 		    __func__, PSC_printTID(clientTID[msg->sender]),
-		    msg->sender, PSC_printTID(msg->header.sender));
+		    msg->sender);
+	    fprintf(stderr, " connects as %s.\n",
+		    PSC_printTID(msg->header.sender));
 	}
     } else {
 	sendMsg(msg->header.sender, INITIALIZE,
