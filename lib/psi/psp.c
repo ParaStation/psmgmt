@@ -1,28 +1,18 @@
 /*
- * Copyright (c) 1995 Regents of the University of Karlsruhe / Germany.
+ *               ParaStation3
+ * psitask.c
+ *
+ * ParaStation client-daemon and daemon-daemon high-level protocol.
+ *
+ * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
+ * $Id: psp.c,v 1.11 2002/02/19 09:35:08 eicker Exp $
  *
- *      @(#)psp.c    1.00 (Karlsruhe) 10/4/95
- *
- *      written by Joachim Blum
- *
- *
- * This is the key module for the ParaStationProtocol.
- * It manages the receipt of messages and give them to the appropriate 
- * input- routines of the protocol.
  */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+static char vcid[] __attribute__(( unused )) = "$Id: psp.c,v 1.11 2002/02/19 09:35:08 eicker Exp $";
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -144,45 +134,38 @@ char* PSPctrlmsg(int msgtype)
     }
 }
 
-/******************************************
- * int ClientMsgSend(void* amsg)
- * send a message to the destination.  This is done by sending it
- * to the local daemon. 
- */
 int ClientMsgSend(void* amsg)
 {
     DDMsg_t* msg = (DDMsg_t*)amsg;
     int ret = 0;
 
     if ((ret = write(PSI_msock, msg, msg->len))==0) {
-	perror("PANIC in Send: Lost connection to ParaStation daemon");
+	perror("ClientMsgSend: Lost connection to ParaStation daemon");
 	exit(-1);
     }
     return ret;
 }
 
-/******************************************
-*  ClientMsgReceive()
-*  Receive a msg from the local daemon
-*/
-int ClientMsgReceive(void * amsg)
+int ClientMsgRecv(void * amsg)
 {
     DDMsg_t* msg = (DDMsg_t*)amsg;
     int n;
     int count =0;
-    do{
-	if(count==0)
-	    n = read(PSI_msock,msg,sizeof(*msg));
-	else
-	    n = read(PSI_msock,&((char*)msg)[count], msg->len-count);
-	if(n>0)count+=n;
-	if(n==0){
-	    perror("PANIC in Recv: Lost connection to ParaStation daemon");
+    do {
+	if (count==0) {
+	    n = read(PSI_msock, msg, sizeof(*msg));
+	} else {
+	    n = read(PSI_msock, &((char*)msg)[count], msg->len-count);
+	}
+	if (n>0) count+=n;
+	if (n==0) {
+	    perror("ClientMsgRecv: Lost connection to ParaStation daemon");
 	    exit(-1);
 	}
-    }while((msg->len >count) && n>0);
-    if(count==msg->len)
+    } while ((msg->len > count) && n > 0);
+    if (count==msg->len){
 	return msg->len;
-    else
+    } else {
 	return n;
+    }
 }
