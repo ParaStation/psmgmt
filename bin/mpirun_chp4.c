@@ -5,20 +5,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mpirun_chp4.c,v 1.2 2003/02/17 11:03:48 eicker Exp $
+ * $Id: mpirun_chp4.c,v 1.3 2003/02/21 14:25:22 eicker Exp $
  *
  */
 /**
  * @file Replacement for the standard mpirun command provided by MPIch in order
  * to start MPIch/P4 application within a ParaStation cluster.
  *
- * $Id: mpirun_chp4.c,v 1.2 2003/02/17 11:03:48 eicker Exp $
+ * $Id: mpirun_chp4.c,v 1.3 2003/02/21 14:25:22 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chp4.c,v 1.2 2003/02/17 11:03:48 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chp4.c,v 1.3 2003/02/21 14:25:22 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -39,7 +39,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chp4.c,v 1.2 2003/02
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.2 $";
+    char revision[] = "$Revision: 1.3 $";
     fprintf(stderr, "mpirun_chp4 %s\b \n", revision+11);
 }
 
@@ -47,11 +47,11 @@ static void printVersion(void)
 
 int main(int argc, const char *argv[])
 {
-    int np, version;
+    int np, version, verbose;
     int rank, i, j, rc;
     char *PIfile, *pwd;
     int dup_argc;
-    const char **dup_argv;
+    char **dup_argv;
 
     /*
      * We can't use popt for argument parsing here. popt is not
@@ -65,7 +65,9 @@ int main(int argc, const char *argv[])
     struct poptOption optionsTable[] = {
         { "np", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH, &np, 0,
           "number of processes to start", "num"},
-        { "version", 'v', POPT_ARG_NONE, &version, -1,
+        { "verbose", 'v', POPT_ARG_NONE, &verbose, 0,
+          "verbose mode", NULL},
+        { "version", 'V', POPT_ARG_NONE, &version, -1,
           "output version information and exit", NULL},
         POPT_AUTOHELP
         { NULL, '\0', 0, NULL, 0, NULL, NULL}
@@ -88,6 +90,8 @@ int main(int argc, const char *argv[])
 
 	np = -1;
 	version = 0;
+	verbose = 0;
+
 	rc = poptGetNextOpt(optCon);
 
 	if ((unknownArg=poptGetArg(optCon))) {
@@ -146,19 +150,19 @@ int main(int argc, const char *argv[])
 
     free(dup_argv);
 
-    printf("The 'mpirun' command-line is:\n");
-    for (i=0; i<dup_argc; i++) {
-	printf("%s ", argv[i]);
-    }
-    printf("\b\n");
-	
-    printf("The applications command-line is:\n");
-    for (i=dup_argc; i<argc; i++) {
-	printf("%s ", argv[i]);
-    }
-    printf("\b\n");
+    if (verbose) {
+	printf("The 'mpirun' command-line is:\n");
+	for (i=0; i<dup_argc; i++) {
+	    printf("%s ", argv[i]);
+	}
+	printf("\b\n\n");
 
-    printf("np = %d\n", np);
+	printf("The applications command-line is:\n");
+	for (i=dup_argc; i<argc; i++) {
+	    printf("%s ", argv[i]);
+	}
+	printf("\b\n\n");
+    }
 
     /*
      * Besides initializing the PSI stuff, this furthermore propagetes
@@ -179,11 +183,6 @@ int main(int argc, const char *argv[])
     }
 
     PSI_getPartition(0 /* HWType none */, -1 /* my rank */);
-    printf("got PSI_Partition\n");
-
-    printf("create PIfile(%d, %s)\n", np, argv[dup_argc]);
-    PIfile = PSI_createPIfile(np, argv[dup_argc]);
-    printf("PIfile created\n");
 
     pwd = getenv("PWD");
     if (!pwd) {
@@ -192,14 +191,36 @@ int main(int argc, const char *argv[])
 #else
 #error wrong OS
 #endif
-	if (!pwd) exit(1);
+	if (!pwd) {
+	    fprintf(stderr,
+		    "%s: unable to determine the current working directory\n",
+		    argv[dup_argc]);
+
+	    exit(1);
+	}
+    }
+
+    PIfile = PSI_createPGfile(np, argv[dup_argc]);
+
+    if (!PIfile) {
+	fprintf(stderr, "%s: unable to create pg file", argv[dup_argc]);
+	exit(1);
     }
 
     /* Copy and expand the apps commandline */
     dup_argv = malloc((argc - dup_argc + 4 + 1) * sizeof(char *));
+    if (!dup_argv) {
+	fprintf(stderr, "%s: no memory", argv[dup_argc]);
+	exit(1);
+    }
     for (i=dup_argc, j=0; i<argc; i++, j++) {
 	dup_argv[j] = strdup(argv[i]);
+	if (!dup_argv[j]) {
+	    fprintf(stderr, "%s: no memory", argv[dup_argc]);
+	    exit(1);
+	}
     }
+
     dup_argv[j++] = "-p4pg";
     dup_argv[j++] = PIfile;
     dup_argv[j++] = "-p4wd";
@@ -209,7 +230,7 @@ int main(int argc, const char *argv[])
     dup_argc = argc - dup_argc + 4;
 
     /* @todo No absolute paths ! */
-    setPSIEnv("P4_RSHCOMMAND", "/opt/parastation/bin/psispawner", 1);
+    setPSIEnv("P4_RSHCOMMAND", "/opt/parastation/bin/psispawn", 1);
 
     {
 	/* spawn master process (we are going to be logger) */
