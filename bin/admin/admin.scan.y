@@ -110,7 +110,7 @@ setline:
 statline:
 	  STATOP 			{ NodeNr=ALLNODES; MyNodeStat(NodeNr); }
 	| STATOP ALL  			{ NodeNr=ALLNODES; MyNodeStat(NodeNr);
-					  MyNetStat(NodeNr);
+					  MyCountStat(NodeNr);
 					  MyProcStat(NodeNr); }
 	| STATOP NODE			{ NodeNr=ALLNODES; MyNodeStat(NodeNr); }
 	| STATOP NUMBER			{ MyNodeStat(CheckNodeNr($2)); }
@@ -119,10 +119,10 @@ statline:
 	| STATOP NODE NUMBER		{ MyNodeStat(CheckNodeNr($3)); }
 	| STATOP NODE HEXNUMBER		{ MyNodeStat(CheckNodeNr($3)); }
 	| STATOP NODE NAME		{ MyNodeStat(GetNrFromName($3)); }
-	| STATOP NET			{ NodeNr=ALLNODES; MyNetStat(NodeNr); }
-	| STATOP NET NUMBER		{ MyNetStat(CheckNodeNr($3)); }
-	| STATOP NET HEXNUMBER		{ MyNetStat(CheckNodeNr($3)); }
-	| STATOP NET NAME		{ MyNetStat(GetNrFromName($3)); }
+	| STATOP NET			{ NodeNr=ALLNODES; MyCountStat(NodeNr); }
+	| STATOP NET NUMBER		{ MyCountStat(CheckNodeNr($3)); }
+	| STATOP NET HEXNUMBER		{ MyCountStat(CheckNodeNr($3)); }
+	| STATOP NET NAME		{ MyCountStat(GetNrFromName($3)); }
 	| STATOP COUNT			{ NodeNr=ALLNODES; MyCountStat(NodeNr); }
 	| STATOP COUNT NUMBER		{ MyCountStat(CheckNodeNr($3)); }
 	| STATOP COUNT HEXNUMBER	{ MyCountStat(CheckNodeNr($3)); }
@@ -183,11 +183,12 @@ helpline:
 	| HELPOP STATOP			{ PrintStatHelp(); }
 	| HELPOP STATOP INFOOP		{ PrintStatHelp(); }
 	| HELPOP STATOP NODE		{ PrintStatNodeHelp(); }
+	| HELPOP STATOP	COUNT		{ PrintStatCountHelp(); }
 	| HELPOP STATOP	NET		{ PrintStatNetHelp(); }
 	| HELPOP STATOP RDP		{ PrintStatRDPHelp(); }
 	| HELPOP STATOP PROC		{ PrintStatProcHelp(); }
 	| HELPOP STATOP ALL		{ PrintStatNodeHelp();
-	                                  PrintStatNetHelp();
+	                                  PrintStatCountHelp();
                                           PrintStatProcHelp(); }
 	| HELPOP STATOP NUMBER		{ PrintStatHelp(); }
 	| HELPOP STATOP HEXNUMBER	{ PrintStatHelp(); }
@@ -336,14 +337,16 @@ static void PrintStatHelp(void)
     printf("===============\n");
     printf("\n");
     printf("SYNTAX:    STATUS\n");
-    printf("PARAMETER: [NODE] or [NET RDP PROC ALL]\n");
+    printf("PARAMETER: [NODE] or [COUNT RDP PROC ALL]\n");
     ParameterInfo();
     printf("Description: STATUS NODE   shows the active node(s) of a ParaStation cluster.\n");
-    printf("             STATUS NET    shows the network status of active node(s) in a\n");
+    printf("             STATUS COUNT  shows the counters of active node(s) in a\n");
     printf("                         ParaStation cluster.\n");
     printf("             STATUS RDP    shows the status of the RDP protocol of active node(s)\n");
     printf("                         in a ParaStation cluster.\n");
     printf("             STATUS PROC   shows processes using ParaStation on active node(s)\n");
+    printf("                         in a ParaStation cluster.\n");
+    printf("             STATUS LOAD   shows load using ParaStation on active node(s)\n");
     printf("                         in a ParaStation cluster.\n");
     printf("             STATUS ALL    shows all statistics given above of all nodes in a\n");
     printf("                         ParaStation cluster\n");
@@ -401,11 +404,25 @@ static void PrintRdpDebugHelp(void)
     return;
 }
 
+static void PrintStatCountHelp(void)
+{
+    printf("\n");
+    printf("Status count command:\n");
+    printf("=====================\n");
+    printf("\n");
+    printf("SYNTAX:    STATUS COUNT\n");
+    printf("PARAMETER: NODENUMBER or NODENAME\n");
+    ParameterInfo();
+    return;
+}
+
 static void PrintStatNetHelp(void)
 {
     printf("\n");
     printf("Status net command:\n");
     printf("===================\n");
+    printf("\n");
+    printf("Command is obsolete, use 'status count'\n");
     printf("\n");
     printf("SYNTAX:    STATUS NET\n");
     printf("PARAMETER: NODENUMBER or NODENAME\n");
@@ -595,7 +612,6 @@ static int GetNrFromName(char *name)
 
 static void MyAdd(int node){if(node!=NODEERR){PSIADM_AddNode(node);}return;}
 static void MyNodeStat(int node){if(node!=NODEERR){PSIADM_NodeStat(node);}return;}
-static void MyNetStat(int node){if(node!=NODEERR){PSIADM_NetStat(node);}return;}
 static void MyCountStat(int node){if(node!=NODEERR){PSIADM_CountStat(node);}return;}
 static void MyProcStat(int node){if(node!=NODEERR){PSIADM_ProcStat(node);}return;}
 static void MyLoadStat(int node){if(node!=NODEERR){PSIADM_LoadStat(node);}return;}

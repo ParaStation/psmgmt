@@ -39,44 +39,9 @@ void yy_delete_buffer(void *line_state);
 static char psiadmversion[] = "2.9";
 static int  DoRestart = 1;
 
-int PSIADM_Debugport(int indent, PSP_PortH_t port)
-{
-    /* TODO Norbert */
-    /* Was soll diese Routine machen? Macht es Sinn, Ports zu debuggen ? */
-
-/*      struct PSP_frag_t* frag;  */
-/*      char sindent[100]; */
-/*      int i; */
-/*      for(i=0;i<indent;i++) sindent[i]=' '; */
-/*      sindent[indent]='\0'; */
-/*      printf("%sno   rport rnode  count msg\n",sindent); */
-/*      printf("%s%5d %5d %5d %5d 0x%lx\n", */
-/*  	   sindent,port->portno,port->PSP_RPORT,port->PSP_RID,port->count, */
-/*  	   (long)port->recv_buf); */
-/*      frag = port->recv_buf; */
-/*      printf("%s type       info         len\n",sindent); */
-/*      while(frag){ */
-/*  	int len=0; */
-/*  	int count = 1; */
-/*  	struct PSP_frag_t* nextmsg;  */
-/*  	frag = SHMFRAG(frag); */
-/*  	printf("%s%5ld %10ld[0x%08lx] ", */
-/*  	       sindent,frag->m_type,frag->m_info,frag->m_info); */
-/*  	len = frag->m_len; */
-/*  	nextmsg = frag->m_acct; */
-/*  	while(frag->m_next){ */
-/*  	    frag = SHMFRAG(frag->m_next); */
-/*  	    len += frag->m_len; */
-/*  	    count++; */
-/*  	} */
-/*  	frag = nextmsg; */
-/*  	printf("%s%d in %d frags\n",sindent,len,count); */
-/*      } */
-    return 0;
-}
-
 int PSIADM_Debug(char* protocol,long portno)
 {
+    printf("Not yet implemented!\n");
 /*      int i; */
 /*      struct PSP_PortH_t* port; */
    
@@ -190,22 +155,6 @@ void PSIADM_NodeStat(int node)
     return;
 }
 
-void PSIADM_NetStat(int node)
-{
-    int i;
-/*    printf("NetStat %d\n",node); */
-
-    if(node== ALLNODES)
-	for(i=0;i<PSI_nrofnodes;i++){
-	    INFO_request_psistatus(i);
-	}
-    else{
-	INFO_request_psistatus(node);
-    }
-
-    return;
-}
-
 void PSIADM_RDPStat(int node)
 {
     int i;
@@ -229,13 +178,14 @@ void PSIADM_CountStat(int node)
 {
     int i;
 /*    printf("CountStat %d\n",node); */
-
-    if(node== ALLNODES)
-	for(i=0;i<PSI_nrofnodes;i++){
-	    INFO_request_countstatus(i);
+    
+    if(node== ALLNODES){
+	INFO_request_countstatus(0,1); /* node 0 with header */
+	for(i=1;i<PSI_nrofnodes;i++){
+	    INFO_request_countstatus(i,0); /* all other without header */
 	}
-    else{
-	INFO_request_countstatus(node);
+    }else{
+	INFO_request_countstatus(node,1); /* with header */
     }
 
     return;
@@ -465,7 +415,7 @@ void PSIADM_ShowParameter(void)
 	}
     }
     printf("SmallPacketSize is %d\n",smallpacksize);
-    printf("Retransmission Timeout is %d [us]\n",resendtimeout);
+    printf("ResendTimeout is %d [us]\n",resendtimeout);
     if(uidlimit==-1)
 	printf("max. processes: NONE\n");
     else
@@ -681,7 +631,7 @@ void help(void)
 int main(int argc, char **argv)
 {
     void *line_state = NULL;
-    char *copt = NULL, *line = (char *) NULL;
+    char *copt = NULL, *line = (char *) NULL, line_field[256];
     int opt, len, reset=0;
 
     while ((opt = getopt(argc, argv, "c:rh")) != -1){
@@ -750,6 +700,8 @@ int main(int argc, char **argv)
     /*
      * Interactive mode
      */
+    using_history();
+
     while(!PARSE_DONE){ 
 	/* Get a line from the user. */
 	line = readline ("PSIadmin>");
@@ -757,17 +709,21 @@ int main(int argc, char **argv)
 	if (line && *line){
 	    /* If the line has any text in it, save it on the history. */
 	    add_history (line);
-	    /* Add trailing newline */
-	    len=strlen(line);
-	    line = realloc(line, len+1);
-	    line[len]='\n';
-	    line[len+1]='\0';
-	    /* Process it */
-	    line_state = yy_scan_string(line);
-	    yyparse();
-	    yy_delete_buffer(line_state);
-	}
 
+	    if(strlen(line) + 2 > sizeof(line_field)){
+		printf("Line too long!\n");
+	    }else{
+		strcpy(line_field, line);
+		/* Add trailing newline */
+		len=strlen(line_field);
+		line_field[len]='\n';
+		line_field[len+1]='\0';
+		/* Process it */
+		line_state = yy_scan_string(line_field);
+		yyparse();
+		yy_delete_buffer(line_state);
+	    }
+	}
 	free(line);
     };
 

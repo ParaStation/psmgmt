@@ -10,7 +10,6 @@ int PSIADM_LookUpNodeName(char* hostname);
 void PSIADM_AddNode(int node);
 
 void PSIADM_NodeStat(int node);
-void PSIADM_NetStat(int node);
 void PSIADM_RDPStat(int node);
 void PSIADM_CountStat(int node);
 void PSIADM_ProcStat(int node);
