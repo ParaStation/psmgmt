@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidrdp.c,v 1.1 2003/07/04 09:49:51 eicker Exp $
+ * $Id: psidrdp.c,v 1.2 2003/07/04 14:38:25 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidrdp.c,v 1.1 2003/07/04 09:49:51 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidrdp.c,v 1.2 2003/07/04 14:38:25 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -139,6 +139,7 @@ int sendRDP(DDMsg_t *msg)
 
     if (node_bufs[node] || (ret==-1 && errno==EAGAIN)) {
 	if (!storeMsgRDP(node, msg)) errno = EWOULDBLOCK;
+	return -1;
     }
 
     return ret;
