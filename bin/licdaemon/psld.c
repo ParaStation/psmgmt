@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.20 2002/06/13 12:45:07 eicker Exp $
+ * $Id: psld.c,v 1.21 2002/07/03 20:49:30 eicker Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Daemon
  *
- * $Id: psld.c,v 1.20 2002/06/13 12:45:07 eicker Exp $
+ * $Id: psld.c,v 1.21 2002/07/03 20:49:30 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.20 2002/06/13 12:45:07 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.21 2002/07/03 20:49:30 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -48,6 +48,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.20 2002/06/13 12
 #include "config_parsing.h"
 
 static int usesyslog = 1;  /* flag if syslog is used */
+static int loglevel = 0;   /* the default logging level */
 
 char DEFAULT_PIDFILE[]="/var/run/psld.pid";
 
@@ -97,10 +98,10 @@ int check_machine(int *interface)
 
     ifr = ifc.ifc_req;
     for (n = 0, i=0; n < ifc.ifc_len; n += sizeof(struct ifreq)) {
-	if ((ifr->ifr_dstaddr.sa_family == AF_INET)
+	if ((ifr->ifr_addr.sa_family == AF_INET)
 #ifdef __osf__
 	    /* Tru64 return AF_UNSPEC for all interfaces */
-	    ||(ifr->ifr_dstaddr.sa_family == AF_UNSPEC)
+	    ||(ifr->ifr_addr.sa_family == AF_UNSPEC)
 #endif
 	    ) {
 	    strcpy(iflist[i].name, ifr->ifr_name);
@@ -135,7 +136,7 @@ int check_machine(int *interface)
 
     close(skfd);
 
-    LicIP = nodes[NrOfNodes].addr;
+    LicIP = licNode.addr;
     snprintf(errtxt, sizeof(errtxt), "LicIP is %s [%d interfaces]",
 	     inet_ntoa(*(struct in_addr *) &LicIP), if_found);
     errlog(errtxt, 1);
@@ -160,7 +161,7 @@ int check_machine(int *interface)
     if (!ipfound) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "Machine %s not configured as LicenseServer [Server is %s]",
-		 host, inet_ntoa(* (struct in_addr *) &nodes[NrOfNodes].addr));
+		 host, inet_ntoa(* (struct in_addr *) &licNode.addr));
 	errexit(errtxt, ECONNREFUSED);
     }
 
@@ -220,7 +221,7 @@ int check_license(void)
     if (!ipfound) {
 	snprintf(errtxt, sizeof(errtxt),
 		"LicenseKey does not match current LicenseServer [%s:%s]",
-		 host, inet_ntoa(* (struct in_addr *) &nodes[NrOfNodes].addr));
+		 host, inet_ntoa(* (struct in_addr *) &licNode.addr));
 	errlog(errtxt, 0);
 	return 0;
     }
@@ -298,7 +299,7 @@ void sighandler(int sig)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.20 $";
+    char revision[] = "$Revision: 1.21 $";
     snprintf(errtxt, sizeof(errtxt), "psld %s\b ", revision+11);
     errlog(errtxt, 0);
 }
@@ -348,10 +349,12 @@ int main(int argc, char *argv[])
 	switch (c) {
 	case 'd':
 	    setErrLogLevel(1);
+	    loglevel = 10;
 	    break;
 	case 'D':
 	    dofork = 0;
 	    usesyslog = 0;
+	    loglevel = 10;
 	    setErrLogLevel(1);
 	    setDebugLevelTimer(10);
 	    setDebugLevelMCast(10);
@@ -416,29 +419,26 @@ int main(int argc, char *argv[])
     signal(SIGTERM,sighandler);
     signal(SIGINT,sighandler);
 
-    if (parseConfig(usesyslog) < 0) {
+    if (parseConfig(usesyslog, loglevel) < 0) {
 	return -1;
     }
 
-    if (nodes[NrOfNodes].addr == INADDR_ANY) { /* Check LicServer Setting */
+    if (licNode.addr == INADDR_ANY) { /* Check LicServer Setting */
 	/*
 	 * Set node 0 as default server
 	 */
-	nodes[NrOfNodes].addr = nodes[0].addr;
-	nodes[NrOfNodes].hwtype = nodes[0].hwtype;
-	nodes[NrOfNodes].ip = nodes[0].ip;
-	nodes[NrOfNodes].starter = nodes[0].starter;
+	licNode.addr = nodes[0].addr;
 	snprintf(errtxt, sizeof(errtxt),
-		 "Using %s (ID=%d) as Licenseserver",
-		 inet_ntoa(*(struct in_addr *) &nodes[0].addr), NrOfNodes);
-	errlog(errtxt, 10);
+		 "Using %s (ID=0) as Licenseserver",
+		 inet_ntoa(* (struct in_addr *) &licNode.addr));
+	errlog(errtxt, 1);
     }
 
     check_machine(&interface);
 
     if (usesyslog) {
 	closelog();
-	openlog("psld", LOG_PID, ConfigSyslog);
+	openlog("psld", LOG_PID, ConfigLogDest);
     }
 
 /*      if(check_license(usesyslog)){ */
@@ -452,9 +452,10 @@ int main(int argc, char *argv[])
 	    return -1;
 	}
 
-	for (i=0; i<=NrOfNodes; i++) {
+	for (i=0; i<NrOfNodes; i++) {
 	    hostlist[i] = nodes[i].addr;
 	}
+	hostlist[NrOfNodes] = licNode.addr;
 
 	msock = initMCast(NrOfNodes, ConfigMCastGroup, ConfigMCastPort,
 			  usesyslog, hostlist, 1, NULL);
