@@ -19,8 +19,8 @@
 #define _DEVELOP_H_
 
 
-/* More debug output */
-#define DEVELOP
+/* More debug output (increased default print level)*/
+//#define DEVELOP
 
 /* Old Buildin debug Dispatchtable: Now use getinfo*/
 //#define DEBUGDT
