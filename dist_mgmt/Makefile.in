@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.6 2003/07/18 14:16:32 eicker Exp $
+# $Id: Makefile.in,v 1.7 2003/07/25 13:15:55 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -35,19 +35,22 @@ LIBS += libpsi.so libpse.so
 endif
 LIBDIR := $(DISTDIR)/lib
 
+SCRIPTS += ps_gmcounters
+SCRIPTDIR := $(DISTDIR)/scripts
+
 CONFIGDIR := $(DISTDIR)/config
 
 MISC += config/parastation.conf.tmpl VERSION.psmgmt INSTALL config/PSM_INSTALL
-MISC += ChangeLog.psmgmt
+MISC += config/ps_gm ChangeLog.psmgmt
 
 MISCDIR :=
 
-DIRS += $(BINDIR) $(LIBDIR) $(INCDIR) $(MISCDIR) $(CONFIGDIR)
+DIRS += $(BINDIR) $(LIBDIR) $(INCDIR) $(SCRIPTDIR) $(CONFIGDIR) $(MISCDIR)
 
 ######################################################
 MISCEXP := $(patsubst %,$(DISTDIR)/%, $(MISC))
 
-all: dirs libs bins includes $(MISCEXP) tar rpm
+all: dirs libs bins includes scripts $(MISCEXP) tar rpm
 
 dist:	all
 
@@ -91,6 +94,14 @@ $(INCDIR)/%: $(TOP_SRCDIR)/include/%
 includes: $(INCDIR) $(patsubst %,$(INCDIR)/%,$(INCLUDES))
 
 #
+# copy scripts
+#
+$(SCRIPTDIR)/%: $(TOP_SRCDIR)/scripts/%
+	cp $< $@
+
+scripts: $(SCRIPTDIR) $(patsubst %,$(SCRIPTDIR)/%,$(SCRIPTS))
+
+#
 # Misc files
 #
 $(DISTDIR)/config/parastation.conf.tmpl: $(TOP_SRCDIR)/doc/parastation.conf
@@ -99,10 +110,7 @@ $(DISTDIR)/config/parastation.conf.tmpl: $(TOP_SRCDIR)/doc/parastation.conf
 $(DISTDIR)/INSTALL: $(TOP_SRCDIR)/doc/INSTALL
 	cp $< $@
 
-$(DISTDIR)/config/ps_myrinet: $(TOP_SRCDIR)/scripts/ps_myrinet
-	cp $< $@
-
-$(DISTDIR)/config/ps_ethernet: $(TOP_SRCDIR)/scripts/ps_ethernet
+$(DISTDIR)/config/ps_gm: $(TOP_SRCDIR)/scripts/ps_gm
 	cp $< $@
 
 $(DISTDIR)/config/findmodule: $(TOP_SRCDIR)/scripts/findmodule
@@ -111,9 +119,11 @@ $(DISTDIR)/config/findmodule: $(TOP_SRCDIR)/scripts/findmodule
 $(DISTDIR)/config/PSM_INSTALL: $(TOP_SRCDIR)/scripts/PSM_INSTALL@TRU64FILEADD@
 	cp $< $@
 
+# TRU64 file
 $(DISTDIR)/config/sysconfigtab: $(TOP_SRCDIR)/kern/OSF1/sysconfigtab
 	cp $< $@
 
+# TRU64 file
 $(DISTDIR)/config/psm_makedev: $(TOP_SRCDIR)/scripts/psm_makedev
 	cp $< $@
 

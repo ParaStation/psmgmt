@@ -1,3 +1,10 @@
+Changes since psmgmt-4.0.3:
+===========================
+
+2003-07-25  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extension: Enable basic GM support.
+
 2003-07-11  Norbert Eicker  <eicker@par-tec.com>
 
 	* Bugfix: Catch error within daemon if to many files are open.
