@@ -2,7 +2,7 @@
 # find rootdir:
 ROOTDIR := $(shell until [ -f .ROOTDIR ];do cd ..;done;pwd)
 
-include $(ROOTDIR)/Makefile
+include $(ROOTDIR)/Makefile.include
 VPATH+=$(shell until [ -f .SOURCEDIR ];do cd ..;done;pwd)
 
 #

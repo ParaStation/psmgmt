@@ -21,45 +21,11 @@
 
 
 
-
-.EXPORT_ALL_VARIABLES:
-
-
 ROOTDIR := $(shell until [ -f .ROOTDIR ];do cd ..;done;pwd)
-#$(shell if [ "$$PWD" != "" ]; then echo $$PWD; else pwd; fi)
-PSMDIR := $(ROOTDIR)/kern
-ZLIBDIR := $(ROOTDIR)/zlib
-PSHALDIR := $(ROOTDIR)/pshal
-PSPORTDIR := $(ROOTDIR)/psport
-MCPDIR := $(ROOTDIR)/kern/mcp
-INCLUDEDIR := $(ROOTDIR)/include
-OSNAME := $(shell uname -s)
 
-ifeq ($(OSNAME),Linux)
-  ifeq ($(KDIR),)
-OSVERSION := $(shell uname -r)
-KERNEL_DIR := /usr/src/linux
-  else
-KERNEL_DIR := $(KDIR)
-#OSVERSION := $(shell cat $(KDIR)/.kernelrelease)$(OSSUF)
-OSVERSION := $(shell cat $(KDIR)/include/linux/version.h|grep UTS_RELEASE|cut -f 3 -d" ")$(OSSUF)
-  endif
-else
-OSVERSION := $(shell uname -r)
-endif
-
-OSARCHITECTUR :=  $(shell uname -m)
-OSID  := $(OSARCHITECTUR)_$(OSNAME)_$(OSVERSION)
-OSSID := $(OSARCHITECTUR)_$(OSNAME)$(OSSUF)
+include $(ROOTDIR)/Makefile.include
 
 
-MODULEARCHIVEDIR := $(ROOTDIR)/modules/$(OSID)
-LIBARCHIVEDIR := $(ROOTDIR)/lib/$(OSSID)
-TMPOBJDIR := $(ROOTDIR)/tmp
-
-LIB := $(LIBARCHIVEDIR)
-INC := $(INCLUDEDIR)
-GCCINC := -I$(INC) -I$(PSMDIR)/$(OSNAME)
 
 ifeq ($(shell cd .;pwd),$(ROOTDIR))
 
