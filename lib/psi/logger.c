@@ -93,9 +93,10 @@ void LOGGERspawnforwarder(unsigned int logger_node, int logger_port)
 	 */
 	close(stdoutfds[0]);
 	close(stderrfds[0]);
+
         errtxt = strerror(errno);
-        syslog(LOG_ERR, "LOGGERspawnforwarder(execv): [%d] %s", errno,
-               errtxt?errtxt:"UNKNOWN");
+        syslog(LOG_ERR, "LOGGERspawnforwarder(execv): %s [%d] %s", argv[0],
+	       errno, errtxt?errtxt:"UNKNOWN");
         perror("fork()");
 	exit(1);
     }
@@ -121,7 +122,7 @@ void LOGGERspawnforwarder(unsigned int logger_node, int logger_port)
 	errtxt = strerror(errno);
         syslog(LOG_ERR, "LOGGERspawnforwarder(fork): [%d] %s", errno,
                errtxt?errtxt:"UNKNOWN");
-        perror("fork()");
+        perror("execv()");
 	exit(1);
     }
 
@@ -191,11 +192,12 @@ int LOGGERspawnlogger(void)
 	 */
 	int i;
 	char* argv[3];
+	char *errtxt;
 	/*
 	 * close all open filedesciptor except my std* and the LOGGERSOCK
 	 */
-	for(i=3; i<FD_SETSIZE; i++)
-	    if(i != listenport)
+	for(i=1; i<FD_SETSIZE; i++)
+	    if(i != listenport && i != STDOUT_FILENO && i != STDERR_FILENO)
 		close(i);
 
 	argv[0] = (char*)malloc(strlen(PSI_LookupInstalldir()) + 20);
@@ -209,6 +211,12 @@ int LOGGERspawnlogger(void)
 	/* usually never reached, but if execv fails try to do the logging 
 	   inside this program
 	*/
+	close(listenport);
+
+	errtxt = strerror(errno);
+	syslog(LOG_ERR, "LOGGERspawnlogger(execv): %s [%d] %s", argv[0],
+	       errno, errtxt?errtxt:"UNKNOWN");
+	perror("execv()");
 	exit(1);
     }
     /*
