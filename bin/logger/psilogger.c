@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.36 2004/01/28 17:56:20 eicker Exp $
+ * $Id: psilogger.c,v 1.37 2004/06/14 17:09:34 eicker Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.36 2004/01/28 17:56:20 eicker Exp $
+ * $Id: psilogger.c,v 1.37 2004/06/14 17:09:34 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.36 2004/01/28 17:56:20 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.37 2004/06/14 17:09:34 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -87,6 +87,12 @@ int maxClients = 64;
 
 /** The socket connecting to the local ParaStation daemon */
 int daemonSock;
+
+/** The value which will be returned when the logger stops execution */
+int retVal = 0;
+
+/** Flag marking a client got signaled */
+int signaled = 0;
 
 /**
  * @brief Close socket to daemon.
@@ -686,6 +692,7 @@ static void loop(void)
 		    fprintf(stderr, "PSIlogger: "
 			    "Child with rank %d exited on signal %d.\n",
 			    msg.sender, WTERMSIG(status));
+		    signaled = 1;
 		}
 
 		if (WIFEXITED(status)) {
@@ -693,6 +700,7 @@ static void loop(void)
 			fprintf(stderr, "PSIlogger: "
 				"Child with rank %d exited with status %d.\n",
 				msg.sender, WEXITSTATUS(status));
+			if (!retVal) retVal = WEXITSTATUS(status);
 		    } else if (verbose) {
 			fprintf(stderr, "PSIlogger: "
 				"Child with rank %d exited normally.\n",
@@ -868,5 +876,5 @@ int main( int argc, char**argv)
 	system(argv[i]);
     }
 
-    return 0;
+    return retVal ? retVal : (signaled ? -1 : 0);
 }
