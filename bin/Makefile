@@ -11,8 +11,6 @@ VPATH+=$(shell until [ -f .SOURCEDIR ];do cd ..;done;pwd)
 ifeq ($(shell [ -f .SOURCEDIR ]&&echo 1),1)
 .EXPORT_ALL_VARIABLES:
 
-tools:	psconfig
-
 $(ROOTDIR)/Makefile Makefile:
 	@echo Makefile $@ checked
 
@@ -23,6 +21,8 @@ $(OSSID):
 %:	$(OSSID)
 	make -C $(OSSID) $(MAKEFLAGS) $@
 else
+
+tools:	psconfig
 
 unlock:	unlock.c $(LIB)/libpshal.a
 	gcc $< -I$(INC) -I.. -L$(LIB) -lpshal -o $@
