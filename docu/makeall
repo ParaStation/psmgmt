@@ -3,8 +3,13 @@
 filename=main.xml
 basename=${filename%\.*}
 
+export SGML_CATALOG="/var/lib/sgml/CATALOG.db42xml"
+
+xsltcommand="xsltproc --catalogs --timing --nonet"
+
 do_eval=1
-do_pdf=1
+# do_pdf=1
+do_oldpdf=1
 do_man=1
 do_html=1
 
@@ -33,7 +38,7 @@ if [ $do_eval ]; then
     db2x.sh -o -W $filename
 fi
 
-if [ $do_pdf ]; then
+if [ $do_oldpdf ]; then
     echo Creating PDF...
 
     texfile=$basename.tex
@@ -53,15 +58,30 @@ if [ $do_pdf ]; then
     cd ..
 fi
 
+if [ $do_pdf ]; then
+    echo Creating PDF...
+
+    fofile=$basename.fo
+    make_dir pdf
+    cd pdf
+    $xsltcommand -o $fofile ../StyleSheets/fo.xsl ../main.xml
+
+    # this does actually *not* work
+    pdfxmltex $fofile
+
+    cd ..
+fi
+
 if [ $do_man ]; then
     echo Creating manuals...
 
     make_dir man
     cd man
     
-    export CLASSPATH=/usr/lib/saxon/saxon.jar
+#    export CLASSPATH=/usr/lib/saxon/saxon.jar
 
-    java com.icl.saxon.StyleSheet ../main.xml /usr/share/sgml/docbook/docbook-xsl-stylesheets-1.53.0/manpages/db2man.xsl
+    $xsltcommand ../StyleSheets/db2man.xsl ../main.xml
+#    java com.icl.saxon.StyleSheet ../main.xml ../StyleSheets/db2man.xsl
     cd ..
 fi
 
@@ -70,11 +90,12 @@ if [ $do_html ]; then
 
     make_dir html
     cd html
-    export CLASSPATH=/usr/lib/saxon/saxon.jar
+#    export CLASSPATH=/usr/lib/saxon/saxon.jar
 
-    java com.icl.saxon.StyleSheet ../main.xml /usr/share/sgml/docbook/docbook-xsl-stylesheets-1.53.0/html/chunk.xsl
-#     for i in *.html; do
-# 	tidy -m -f /dev/null -asxml $i
-#     done
+#    java com.icl.saxon.StyleSheet ../main.xml ../StyleSheets/html.xsl
+    $xsltcommand ../StyleSheets/html.xsl ../main.xml
+#    for i in *.html; do
+#	tidy -m -f /dev/null -asxml $i
+#    done
     cd ..
 fi
