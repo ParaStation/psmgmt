@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidpartition.c,v 1.15 2004/02/23 18:34:29 eicker Exp $
+ * $Id: psidpartition.c,v 1.16 2004/03/09 10:02:15 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.15 2004/02/23 18:34:29 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.16 2004/03/09 10:02:15 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -162,7 +162,8 @@ static void clearQueue(PSpart_request_t **queue)
 
 /** Structure use to hold node stati needed to handle partition requests */
 typedef struct {
-    short procs;          /**< Number of processes assinged to this node */
+    short assignedProcs;  /**< Number of processes assinged to this node */
+    char exclusive;       /**< Flag marking node to be used exclusivly */
     char taskReqPending;  /**< Number of pending PSP_DD_GETTASKS messages */
 } nodeStat_t;
 
@@ -197,7 +198,8 @@ void initPartHandler(void)
 
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	nodeStat[node] = (nodeStat_t) {
-	    .procs = 0,
+	    .assignedProcs = 0,
+	    .exclusive = 0,
 	    .taskReqPending = 0 };
 	if (PSnodes_isUp(node)) {
 	    if (send_GETTASKS(node)<0) {
@@ -247,11 +249,8 @@ static void registerReq(PSpart_request_t *req)
     }
     for (i=0; i<req->size; i++) {
 	PSnodes_ID_t node = req->nodes[i];
-	if (req->options & PART_OPT_EXCLUSIVE) {
-	    nodeStat[node].procs = PSnodes_getVirtCPUs(node);
-	} else {
-	    nodeStat[node].procs++;
-	}
+	nodeStat[node].assignedProcs++;
+	if (req->options & PART_OPT_EXCLUSIVE) nodeStat[node].exclusive = 1;
     }
 }
 
@@ -282,11 +281,9 @@ static void deregisterReq(PSpart_request_t *req)
     }
     for (i=0; i<req->size; i++) {
 	PSnodes_ID_t node = req->nodes[i];
-	if (req->options & PART_OPT_EXCLUSIVE) {
-	    nodeStat[node].procs = 0;
-	} else {
-	    nodeStat[node].procs--;
-	}
+	nodeStat[node].assignedProcs--;
+	if ((req->options & PART_OPT_EXCLUSIVE)
+	    && !nodeStat[node].assignedProcs) nodeStat[node].exclusive = 0; 
     }
     doHandle = 1; /* Trigger handler in next round */
 }
@@ -468,7 +465,7 @@ void msg_CANCELPART(DDBufferMsg_t *inmsg)
     PSpart_delReq(req);
 }
 
-unsigned short getAllocJobs(PSnodes_ID_t node)
+unsigned short getAssignedJobs(PSnodes_ID_t node)
 {
     if (!nodeStat) {
 	snprintf(errtxt, sizeof(errtxt), "%s: not master", __func__);
@@ -476,8 +473,20 @@ unsigned short getAllocJobs(PSnodes_ID_t node)
 	return 0;
     }
 
-    return nodeStat[node].procs;
+    return nodeStat[node].assignedProcs;
 }
+
+int getIsExclusive(PSnodes_ID_t node)
+{
+    if (!nodeStat) {
+	snprintf(errtxt, sizeof(errtxt), "%s: not master", __func__);
+	PSID_errlog(errtxt, 0);
+	return 0;
+    }
+
+    return nodeStat[node].exclusive;
+}
+
 /* ---------------------------------------------------------------------- */
 
 /**
@@ -510,18 +519,8 @@ unsigned short getAllocJobs(PSnodes_ID_t node)
  * @return If the node is suitable to fulfill the request @a req, 1 is
  * returned. Or 0 otherwise.
  */
-static int nodeOK(PSnodes_ID_t node, PSpart_request_t *req)
+static int nodeOK(PSnodes_ID_t node, PSpart_request_t *req, int procs)
 {
-    int procs;
-
-    if (!nodeStat) {
-	snprintf(errtxt, sizeof(errtxt), "%s: not master.", __func__);
-	PSID_errlog(errtxt, 0);
-	return 0;
-    }
-
-    procs = nodeStat[node].procs;
-
     if (node >= PSC_getNrOfNodes()) {
 	snprintf(errtxt, sizeof(errtxt), "%s: node %d out of range.",
 		 __func__, node);
@@ -539,6 +538,7 @@ static int nodeOK(PSnodes_ID_t node, PSpart_request_t *req)
 
     if ((!req->hwType || PSnodes_getHWStatus(node) & req->hwType)
 	&& PSnodes_runJobs(node)
+	&& !getIsExclusive(node)
 	&& (PSnodes_getUser(node) == PSNODES_ANYUSER
 	    || !req->uid || PSnodes_getUser(node) == req->uid)
 	&& (PSnodes_getGroup(node) == PSNODES_ANYGROUP
@@ -602,17 +602,26 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
     for (i=0; i<request->num; i++) {
 	PSnodes_ID_t node = request->nodes[i];
 	int cpus = PSnodes_getVirtCPUs(node);
+	int procs = nodeStat[node].assignedProcs;
+	PSID_NodeStatus_t status = getStatus(node);
 
-	if (PSnodes_isUp(node)) totCPUs += cpus;
+	if (status.jobs.normal > procs) procs = status.jobs.normal;
 
-	if (nodeOK(request->nodes[i], request)) {
-	    PSID_NodeStatus_t status = getStatus(node);
+	if (PSnodes_isUp(node)) {
+	    if (PSnodes_getProcs(node) == PSNODES_ANYPROC) {
+		totCPUs += cpus;
+	    } else {
+		totCPUs += PSnodes_getProcs(node);
+	    }
+	}
+
+	if (nodeOK(request->nodes[i], request, procs)) {
 	    list.entry[list.size].id = node;
 	    list.entry[list.size].cpus = cpus;
-	    list.entry[list.size].jobs = nodeStat[node].procs;
+	    list.entry[list.size].jobs = procs;
 	    switch (request->sort) {
 	    case PART_SORT_PROC:
-		list.entry[list.size].rating = nodeStat[node].procs/cpus;
+		list.entry[list.size].rating = (double)procs/cpus;
 		break;
 	    case PART_SORT_LOAD_1:
 		list.entry[list.size].rating = status.load.load[0]/cpus;
@@ -625,7 +634,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 		break;
 	    case PART_SORT_PROCLOAD:
 		list.entry[list.size].rating =
-		    (nodeStat[node].procs + status.load.load[0])/cpus;
+		    (procs + status.load.load[0])/cpus;
 		break;
 	    case PART_SORT_NONE:
 		break;
@@ -797,6 +806,89 @@ static unsigned int getNormalPart(PSpart_request_t *request,
 }
 
 /**
+ * @brief Distribute job slots.
+ *
+ * Create a list of slots @a candSlots of size @a neededSlots from the
+ * sorted list of candidates @a candidates.
+ *
+ * The distribution strategy's target is to put the processes on the
+ * nodes in a way that the processors load is almost equal on each
+ * node. Furthermore the node's maxproc limits are respected.
+ *
+ * @param neededSlots The number of processes to distribute on the CPUs
+ *
+ * @param candidates The sorted list of candidates used in order to
+ * build the partition
+ *
+ * @param candSlots The process distribution to create. This has to be
+ * a array of size @ref PSC_getNrOfNodes() initialized with all
+ * 0. Upon return it will contain the number of processes allocated to
+ * each node indexed by the node's ParaStation ID.
+ *
+ * @return No return value.
+ */
+static void distributeSlots(unsigned int neededSlots, sortlist_t *candidates,
+			     short *candSlots)
+{
+    int i, maxCPUs = 0;
+    unsigned int procsPerCPU = 1, cand;
+
+    for (i = 0; i < PSC_getNrOfNodes(); i++) candSlots[i] = 0;
+
+    while (procsPerCPU > 0) {
+	unsigned int availCPUs = 0;
+	for (cand=0; cand<candidates->size; cand++) {
+	    sortentry_t *ce = &candidates->entry[cand];
+	    unsigned short procs = ce->cpus * procsPerCPU;
+	    if (candSlots[ce->id] < procs) {
+		if (PSnodes_getProcs(ce->id) == PSNODES_ANYPROC) {
+		    availCPUs += ce->cpus;
+		    neededSlots -= procs - candSlots[ce->id];
+		    candSlots[ce->id] = procs;
+		} else if (procs < PSnodes_getProcs(ce->id)) {
+		    unsigned short tmp = PSnodes_getProcs(ce->id) - procs;
+		    availCPUs += (tmp > ce->cpus) ? ce->cpus : tmp;
+		    neededSlots -= procs - candSlots[ce->id];
+		    candSlots[ce->id] = procs;
+		} else {
+		    neededSlots -=
+			PSnodes_getProcs(ce->id) - candSlots[ce->id];
+		    candSlots[ce->id] = PSnodes_getProcs(ce->id);
+		}
+	    }
+	}
+	if (!availCPUs || neededSlots < availCPUs) break;
+	procsPerCPU += neededSlots / availCPUs;
+    }
+    if (neededSlots) {
+	/* Determine maximum number of CPUs on available nodes */
+	short *lateProcs = calloc(sizeof(short), PSC_getNrOfNodes());
+	short round = 1;
+	for (cand=0; cand<candidates->size; cand++) {
+	    sortentry_t *ce = &candidates->entry[cand];
+	    if (PSnodes_getProcs(ce->id) == PSNODES_ANYPROC
+		|| candSlots[ce->id] < PSnodes_getProcs(ce->id)) {
+		if (ce->cpus > maxCPUs) maxCPUs = ce->cpus;
+	    }
+	}
+	/* Now increase jobs on nodes in a (hopefully) smart way */
+	while (neededSlots > 0) {
+	    for (cand=0; cand<candidates->size && neededSlots; cand++) {
+		sortentry_t *ce = &candidates->entry[cand];
+		if ((PSnodes_getProcs(ce->id) == PSNODES_ANYPROC
+		     || candSlots[ce->id] < PSnodes_getProcs(ce->id))
+		    && ((lateProcs[ce->id]+1)*maxCPUs <= round*ce->cpus)) {
+		    neededSlots--;
+		    candSlots[ce->id]++;
+		    lateProcs[ce->id]++;
+		}
+	    }
+	    round++;
+	}
+    }
+}
+
+/**
  * @brief Get overbooked partition.
  *
  * Get a overbooked partition, i.e. a partition, where the @ref
@@ -869,64 +961,7 @@ static unsigned int getOverbookPart(PSpart_request_t *request,
 	free(candSlots);
 	return getNormalPart(request, candidates, partition);
     } else {
-	/* Determine the number of processes on every node */
-	int i, maxCPUs = 0;
-	unsigned int procsPerCPU = 1, neededSlots = request->size;
-
-	for (i = 0; i < PSC_getNrOfNodes(); i++) candSlots[i] = 0;
-
-	while (procsPerCPU > 0) {
-	    unsigned int availCPUs = 0;
-	    for (cand=0; cand<candidates->size; cand++) {
-		sortentry_t *ce = &candidates->entry[cand];
-		unsigned short procs = ce->cpus * procsPerCPU;
-		if (candSlots[ce->id] < procs) {
-		    if (PSnodes_getProcs(ce->id) == PSNODES_ANYPROC) {
-			availCPUs += ce->cpus;
-			neededSlots -= procs - candSlots[ce->id];
-			candSlots[ce->id] = procs;
-		    } else if (procs < PSnodes_getProcs(ce->id)) {
-			unsigned short tmp = PSnodes_getProcs(ce->id) - procs;
-			availCPUs += (tmp > ce->cpus) ? ce->cpus : tmp;
-			neededSlots -= procs - candSlots[ce->id];
-			candSlots[ce->id] = procs;
-		    } else {
-			neededSlots -=
-			    PSnodes_getProcs(ce->id) - candSlots[ce->id];
-			candSlots[ce->id] = PSnodes_getProcs(ce->id);
-		    }
-		}
-	    }
-	    if (!availCPUs || neededSlots < availCPUs) break;
-	    procsPerCPU += neededSlots / availCPUs;
-	}
-	if (neededSlots) {
-	    /* Determine maximum number of CPUs on available nodes */
-	    short *lateProcs = calloc(sizeof(short), PSC_getNrOfNodes());
-	    short round = 1;
-	    for (cand=0; cand<candidates->size; cand++) {
-		sortentry_t *ce = &candidates->entry[cand];
-		if (PSnodes_getProcs(ce->id) == PSNODES_ANYPROC
-		    || candSlots[ce->id] < PSnodes_getProcs(ce->id)) {
-		    if (ce->cpus > maxCPUs) maxCPUs = ce->cpus;
-		}
-	    }
-	    /* Now increase jobs on nodes in a (hopefully) smart way */
-	    while (neededSlots > 0) {
-		for (cand=0; cand<candidates->size && neededSlots; cand++) {
-		    sortentry_t *ce = &candidates->entry[cand];
-		    if ((PSnodes_getProcs(ce->id) == PSNODES_ANYPROC
-			 || candSlots[ce->id] < PSnodes_getProcs(ce->id))
-			&& ((lateProcs[ce->id]+1)*maxCPUs <= round*ce->cpus)) {
-			/* @todo Think about this !! */
-			neededSlots--;
-			candSlots[ce->id]++;
-			lateProcs[ce->id]++;
-		    }
-		}
-		round++;
-	    }
-	}
+	distributeSlots(request->size, candidates, candSlots);
     }
 
     if (request->options & PART_OPT_NODEFIRST) {
@@ -941,49 +976,6 @@ static unsigned int getOverbookPart(PSpart_request_t *request,
 	    cand = (cand+1) % candidates->size;
 	}
     } else {
-	int i;
-	unsigned int procsPerCPU = 1, neededSlots = request->size;
-
-	for (i = 0; i < PSC_getNrOfNodes(); i++) candSlots[i] = 0;
-
-	while (procsPerCPU > 0) {
-	    unsigned int availCPUs = 0;
-	    for (cand=0; cand<candidates->size; cand++) {
-		sortentry_t *ce = &candidates->entry[cand];
-		unsigned short procs = ce->cpus * procsPerCPU;
-		if (candSlots[ce->id] < procs) {
-		    if (PSnodes_getProcs(ce->id) == PSNODES_ANYPROC) {
-			availCPUs += ce->cpus;
-			neededSlots -= procs - candSlots[ce->id];
-			candSlots[ce->id] = procs;
-		    } else if (procs < PSnodes_getProcs(ce->id)) {
-			unsigned short tmp = PSnodes_getProcs(ce->id) - procs;
-			availCPUs += (tmp > ce->cpus) ? ce->cpus : tmp;
-			neededSlots -= procs - candSlots[ce->id];
-			candSlots[ce->id] = procs;
-		    } else {
-			neededSlots -=
-			    PSnodes_getProcs(ce->id) - candSlots[ce->id];
-			candSlots[ce->id] = PSnodes_getProcs(ce->id);
-		    }
-		}
-	    }
-	    if (!availCPUs || neededSlots < availCPUs) break;
-	    procsPerCPU += neededSlots / availCPUs;
-	}
-
-	/* @todo make this part smarter. Increase nodes with most CPUs first */
-	while (neededSlots > 0) {
-	    for (cand=0; cand<candidates->size && neededSlots; cand++) {
-		PSnodes_ID_t cid = candidates->entry[cand].id;
-		if (PSnodes_getProcs(cid) == PSNODES_ANYPROC
-		    || candSlots[cid] < PSnodes_getProcs(cid)) {
-		    neededSlots--;
-		    candSlots[cid]++;
-		}
-	    }
-	}
-
 	for (cand=0; cand<candidates->size; cand++) {
 	    PSnodes_ID_t cid = candidates->entry[cand].id;
 	    while (candSlots[cid]) {
