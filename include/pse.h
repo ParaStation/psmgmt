@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.h,v 1.9 2002/07/18 13:05:23 eicker Exp $
+ * $Id: pse.h,v 1.10 2002/08/01 16:47:07 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation Programming Environment
  *
- * $Id: pse.h,v 1.9 2002/07/18 13:05:23 eicker Exp $
+ * $Id: pse.h,v 1.10 2002/08/01 16:47:07 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -23,10 +23,6 @@
 
 #include <pshwtypes.h>
 
-/* time limit within which parent process must receive the global
-   portid of each spawned child process                           */
-#define PSE_TIME_OUT         2000000
-
 #ifdef __cplusplus
 extern "C" {
 #if 0
@@ -34,64 +30,355 @@ extern "C" {
 #endif
 #endif
 
-/** @todo Documentation */
-
-/***************************************************************************
- * void      PSEinit(int NP, int Argc, char** Argv);
- *  
- *  PSEinit spawns and initializes a task group.
- *  All tasks in a PSE program has to call PSEinit at the beginning.
- *  If the calling task has no ParaStation parent task, the task declares
- *  itself as the master of a new task group and spawns NP-1 other tasks with
- *  Argv. The other tasks are spawned on the other nodes with the specified
- *  strategy (see below). Inside a task group, the system can apply specific
- *  scheduling strategies. 
- *  After PSEinit, other PSE functions can be used.
- *  To finialize the task group call PSEfinalize or PSEkillmachine.
+/**
+ * @brief Initialize PSE.
  *
- *  Spawn strategy:
- *    The environment variable PSI_NODES (if set) declares the possible 
- *      nodes to be used for spawning. If it is not set, all ParaStation 
- *      nodes are used. (e.g. setenv PSI_NODES 4,6,3 )
- *    The environment variable PSI_NODES_SORT declares the strategy how
- *      the available nodes should be sorted before spawning. After sorting
- *      the nodes, new task are spawned in a round robin fashion in this
- *      sorted node list. (e.g. setenv PSI_NODES_SORT LOAD )
- *      Possible values are: 
- *      LOAD : nodes are sorted by their actual load
- *      NONE : no sorting is done.
- *    
- *  
- * PARAMETERS
- *         nRank: the rank of the task of which the task identifier 
- *                should be returned
- * RETURN  >0 task identifier
- *         -1 if  rank is invalid
- * SEE     
- *         PSEfinalize, PSEkillmachine, PSIspawn, PSEgetmyrank
- */
+ * Initialize PSE, the ParaStation Programming Environment. You have
+ * to call this function before using any other function contained in
+ * PSE. Otherwise the behavior of any other PSE function is
+ * undetermined.
+ *
+ * @return No return value.
+ * */
+void PSE_initialize(void);
+
+/**
+ * @brief Get the size of the process group.
+ *
+ * Get the actual size of the process group.
+ *
+ * @warning Not implemented, yet.
+ * @todo Not implemented, yet.
+ *
+ * @return On success, the actual size of the process group is
+ * returned, or -1, if an error occurred.
+ * */
+int PSE_getSize(void);
+
+/**
+ * @brief Get the rank of the process.
+ *
+ * Get the rank of the actual process within the process group. The
+ * rank of a process is positiv number smaller than the result of @ref
+ * PSE_getSize() \b or \b -1. The rank is unique within the process
+ * group.
+ *
+ * Different from MPI, in PSE the rank may be -1. It is assumed, that
+ * the process with rank = -1 calls @ref PSE_spawnMaster() to spawn a
+ * process with rank = 0 and become logger. The so spawned process
+ * with rank = 0 is the master process in the sense of MPI and can
+ * spawn further tasks using @ref PSE_spawnTasks(). Calls to @ref
+ * PSE_spawnTasks() from within the process with rank = -1 will fail.
+ *
+ * The rank will never change during a process's lifetime.
+ *
+ * @warning The rank may not be unique by now.
+ * @todo Make the rank unique within a process group.
+ *
+ * @return On success, the actual rank of the process within the group
+ * is returned, or -2, if an error occurred.
+ *
+ * @see PSE_getSize(), PSE_spawnMaster(), PSE_spawnTasks()
+ * */
+int PSE_getRank(void);
+
+/**
+ * @brief Deprecated form of PSE_initialize().
+ *
+ * @warning Deprecated form of @ref PSE_initialize(). Don't use this.
+ *
+ * @deprecated Better use @ref PSE_initialize() to initialize and @ref
+ * PSE_getRank() to get the actual rank.
+ *
+ * Initializes PSE, the ParaStation Programming Environment. You have
+ * to call this function before using any other function contained in
+ * PSE. Otherwise the behavior of any other PSE function is
+ * undetermined. You have to use this function instead of @ref
+ * PSE_initialize() if you want to call the deprecated @ref
+ * PSE_spawn().
+ *
+ * PSE is initialized and the aspired size of the process group is set
+ * to @a NP. A sequent call of @ref PSE_spawn() with argument @a rank
+ * = 0 will spawn @a NP-1 tasks.
+ *
+ * @param NP The aspired size of the process group.
+ *
+ * @param rank On return, @rank contains the actual rank of the process.
+ *
+ * @see PSE_initialize(), PSE_getRank(), PSE_spawn()
+ * */
 void PSE_init(int NP, int *rank);
 
 /**
- * @brief Set hwType for spawn
+ * @brief Register to the parents task.
  *
- * @param hwType
- */
+ * Register the actual process to the parents task, so it's notified
+ * thru a SIGTERM when the parent dies.
+ *
+ * If the registration to the parent fails, it is assumed that the
+ * parent already has died. An error message is generated and the
+ * process exits.
+ *
+ * @return No return value.
+ * */
+void PSE_registerToParent(void);
+
+/**
+ * @brief Set hardware-type for PSE_spawnMaster().
+ *
+ * Set the hardware-type for @ref PSE_spawnMaster().
+ *
+ * If @ref PSE_spawnMaster() is called, the node pool is constituted
+ * from nodes which suppport all the hardware requested in @a hwType.
+ * Subsequent calls to @ref PSE_spawnTasks() will only spawn within
+ * this node pool. For details on the spawning strategy, look at @ref
+ * PSE_spawnMaster().
+ *
+ * If no call to this function is made before @ref PSE_spawnMaster()
+ * is called, the default hardware-type, PSHW_MYRINET, is used.
+ *
+ * @param hwType The hardware-type nodes have to support to get a
+ * process spawned on. @a hwType is a bitwise or of the hardware-types
+ * defined in @ref pshwtypes.h, which are PSHW_ETHERNET, PSHW_MYRINET
+ * and PSHW_GIGAETHERNET at the moment or 0. If @a hwType is 0, any
+ * node is taken to spawn tasks on.
+ *
+ * @return No return value.
+ *
+ * @see PSE_spawnMaster()
+ * */
 void PSE_setHWType(unsigned int hwType);
 
 /**
- * @brief PSEspawn
+ * @brief Spawn the master process.
  *
- * @todo
+ * Spawns the master process and become logger. A process with rank =
+ * 0 is spawned and the actual process will exec(2) to the
+ * psilogger. It will serve the spawned process and all subsequently
+ * spawned processes as an I/O daemon.
  *
- * @param
- * @param
- * @param
+ * @warning Calls to this function from within processes where @ref
+ * PSE_getRank() returns a value different from -1 will fail.
  *
- * @return
- */
-void PSE_spawn(int Argc, char** Argv,
-	      int *masternode, int *masterport, int rank);
+ * If an error occures, an error message is generated and the process
+ * exits.
+ *
+ * @param argc The size of @a argv. This is usually equal to the argc
+ * argument to main() of the actual process.
+ *
+ * @param argv The argument vector of the task to spawn. This is
+ * usually equal to the argv argument to main() of the actual process.
+ *
+ * \par Spawning strategie
+ *
+ * To spawn the master process and subsequent tasks, a node pool is
+ * constituted by @a PSE_spawnMaster. The nodes within the pool are
+ * ordered depending on the requested ordering strategy and propagated
+ * to spawned tasks. Any further spawning of tasks will leave the pool
+ * and its ordering unchanged.
+ *
+ * Depending on its rank, a process will reside on a defined node
+ * within the pool. Assume for example its rank is @a i, it will
+ * reside on the @a i-1 st node of the pool. If more tasks are spawned
+ * than the the pool contains nodes, the nodes are reused in a round
+ * robin fashion.
+ *
+ * The spawning strategie can be influenced by using various
+ * environment variables. These will steer on the one hand which nodes
+ * will build the pool of nodes and on the other hand the ordering of
+ * the nodes within this pool.
+ *
+ * Let's start with the ones that choose the nodes that form the
+ * pool. There are three enviroment variable that control the pool,
+ * PSI_NODES, PSI_HOSTS and PSI_HOSTFILE. The pool is build using the
+ * following strategy
+ *
+ * - If PSI_NODES is present, use it to get the pool. PSI_NODES has to
+ * contain a comma-separated list of node-number, i.e. positiv numbers
+ * smaller than @a NrOfNodes from the parastation.conf configuration
+ * file.
+ *
+ * - Otherwise if PSI_HOSTS is present, use this. PSI_HOSTS has to
+ * contain a comma-separated list of hostnames. Each of them has to be
+ * present in the parastation.conf configuration file.
+ *
+ * - If the pool is not build yet, use PSI_HOSTFILE. If PSI_HOSTFILE
+ * is set, it has to contain a filename. The according file consists
+ * of whitespace separated hostnames. Each of them has to be present
+ * in the parastation.conf configuration file.
+ *
+ * - If none of the three addressed environment variables is present,
+ * take all nodes managed by ParaStation to build the pool.
+ *
+ * To get into the pool, any node is tested if it is available and if
+ * it supports the requested hardware-type set by @ref
+ * PSE_setHWType().
+ *
+ * Be aware of the fact, that setting any of the environment variables
+ * is kind of setting a static nodelist. This means, if any of the
+ * nodes within the pool is not available, the utilisation of the
+ * cluster may be suboptimal. On the other hand, this mechanism can be
+ * used to implement a dynamical partitioning of the cluster. To
+ * realize a more evolved distribution strategy, the initialization of
+ * the environment variables may be done using an external batch
+ * system like LSF, PBSpro or OpenPBS,
+ *
+ * When the pool is build, it may have to be sorted. The sorting is
+ * steered using the environment variable PSI_NODES_SORT. Depending on
+ * its value, one of the following sorting strategies is deployed to
+ * the node pool:
+ *
+ * - PROC: Sort the pool depending on the number of processes managed
+ * by ParaStation residing on the nodes. This is also the default if
+ * PSI_NODES_SORT is not set.
+ *
+ * - LOAD or LOAD_1: Sort the pool depending on the load average
+ * within the last minute on the nodes.
+ *
+ * - LOAD_5: Sort the pool depending on the load average within the
+ * last 5 minutes on the nodes.
+ *
+ * - LOAD_15: Sort the pool depending on the load average within the
+ * last 15 minutes on the nodes.
+ *
+ * - NONE or anything else: Don't sort the pool.
+ *
+ * @ return No return value. Actually, @a PSE_spawnMaster() never
+ * returns.
+ *
+ * @see PSE_getRank(), PSE_setHWType(), exec(2)
+ * */
+void PSE_spawnMaster(int argc, char *argv[]);
+
+
+/**
+ * @brief Spawn one or more tasks.
+ *
+ * Spawns @a num tasks. @a node and @a port are passed to the spawned
+ * tasks. They can be determined there using @ref PSE_getMasterNode()
+ * and @ref PSE_getMasterPort(). They may be used there to reconnect
+ * to the spawning process.
+ *
+ * For spawning, the node pool constituted within @ref
+ * PSE_spawnMaster() is used. Subsequent calls to @a PSE_spawnTasks()
+ * will only spawn within this node pool. For details on the spawning
+ * strategy, look at @ref PSE_spawnMaster().
+ *
+ * @warning Calls to this function from within processes where @ref
+ * PSE_getRank() returns -1 will fail.
+ *
+ * If an error occures, an error message is generated and the process
+ * exits.
+ *
+ * @param num The number of tasks to spawn.
+ *
+ * @param node The node number to pass to spawned processes. Usually
+ * this is the node ID returned by the PSPort library using @ref
+ * PSP_GetNodeID().
+ *
+ * @param port The port number to pass to spawned processes. Usually
+ * this is the port number returned by the PSPort library using @ref
+ * PSP_GetPortNo().
+ *
+ * @param argc The size of @a argv. This is usually equal to the argc
+ * argument to main() of the actual process.
+ *
+ * @param argv The argument vector of the task to spawn. This is
+ * usually equal to the argv argument to main() of the actual process.
+ *
+ * @return No return value.
+ *
+ * @see PSE_spawnMaster(), PSE_getMasterNode(), PSE_getMasterPort(),
+ * PSP_GetNodeID(), PSP_GetPortNo()
+ * */
+void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[]);
+
+/**
+ * @brief Get the node ID of the master process.
+ *
+ * Get the ID of the node, where the master process resides. It is
+ * passed from the spawning process as the @a node parameter to
+ * PSE_spawnTasks() to spawned tasks. This is ususally the node ID
+ * returned by the PSPort library using @ref PSP_GetNodeID().
+ *
+ * @return The node ID passed from the parent task as the @a node
+ * parameter to @ref PSE_spawnTasks().
+ *
+ * @see PSE_spawnTasks(), PSP_GetNodeID()
+ * */
+int PSE_getMasterNode();
+
+/**
+ * @brief Get the port number of the master process.
+ *
+ * Get the port number of the master process. It is passed from the
+ * spawning process as the @a port parameter to PSE_spawnTasks() to
+ * spawned tasks. This is ususally the port number returned by the PSPort
+ * library using @ref PSP_GetPortNo().
+ *
+ * @return The port number passed from the parent task as the @a port
+ * parameter to @ref PSE_spawnTasks().
+ *
+ * @see PSE_spawnTasks(), PSP_GetPortNo()
+ * */
+int PSE_getMasterPort();
+
+/**
+ * @brief Deprecated form of PSE_spawnMaster() and PSE_spawnTasks()
+ *
+ * @warning Deprecated form of @ref PSE_spawnMaster() and @ref
+ * PSE_spawnTasks(). Don't use this.
+ *
+ * @deprecated Better use @ref PSE_spawnMaster() to spawn the master
+ * task, @ref PSE_spawnTasks() to spawn further task, @ref
+ * PSE_registerToParent() to register to the parents task and @ref
+ * PSE_getMasterNode() and @ref PSE_getMasterPort() to get the
+ * required info.
+ *
+ * Spawns the master process if @a rank is -1, spawns further tasks if
+ * @a rank is 0 and gets info about @a node and @a port if @a rank >
+ * 0.
+ *
+ * If @a rank is 0 tasks are spawned until the total number of tasks
+ * including the master process (i.e. @a rank = 0) but excluding the
+ * logger process (i.e. @a rank = -1) is equal to the parameter @a NP of
+ * @ref PSE_init().
+
+ * After @a PSE_spawn() has returned, a task group consisting of @a NP
+ * processes plus a logger process will exist. Furthermore all
+ * processes have the same info about @a node and @a port.
+ *
+ * If an error occures, an error message is generated and the process
+ * exits.
+ *
+ * You have to use the deprecated @ref PSE_init() instead of @ref
+ * PSE_initialize() if you want to use this function.
+ *
+ * @param argc The size of @a argv. This is usually equal to the argc
+ * argument to main() of the actual process.
+ *
+ * @param argv The argument vector of the task to spawn. This is
+ * usually equal to the argv argument to main() of the actual process.
+ *
+ * @param node If @a rank = 0, the node number to pass to spawned
+ * processes. Usually this is the node ID returned by the PSPort
+ * library using @ref PSP_GetNodeID(). If @a rank > 0, on return the @a
+ * node passed by the spawning process.
+ *
+ * @param port If @a rank = 0, the port number to pass to spawned
+ * processes. Usually this is the port number returned by the PSPort
+ * library using @ref PSP_GetPortNo(). If @a rank > 0, on return the @a
+ * port passed by the spawning process.
+ *
+ * @param rank The rank of the calling process. This has to be the
+ * result of @ref PSE_getRank().
+ *
+ * @return No return value.
+ *
+ * @see PSE_spawnMaster(), PSE_spawnTasks(), PSE_getMasterNode(),
+ * PSE_getMasterPort(), PSE_init()
+ * */
+void PSE_spawn(int argc, char *argv[], int *node, int *port, int rank);
 
 /**
  * @brief Finish the actual process.
@@ -101,42 +388,25 @@ void PSE_spawn(int Argc, char** Argv,
  *
  * @return No return value.
  *
- * @see PSEabort()
- */
+ * @see PSE_abort()
+ * */
 void PSE_finalize(void);
 
 /**
  * @brief Finish the actual process and shut down the whole process group.
  *
  * Finish the actual process and shut down all other processes within
- * the process group. @a nCode is returned to the calling process,
- * which is usually the daemon (or the forwarder in ParaStation4 @todo).
+ * the process group. @a code is returned to the calling process,
+ * which is usually the forwarder.
  *
- * @return No return value.
+ * @param code The exit code
  *
- * @see PSEabort()
- */
-void PSE_abort(int nCode);
-
-/**
- * @brief Get the rank of the process.
+ * @return No return value. PSE_abort() usually never returns, since
+ * exit() is called.
  *
- * @todo
- *
- * @return On success, the actual rank of the process within the group
- * is returned, or -1, if an error occurred.
- */
-int PSE_getRank(void);
-
-/**
- * @brief Get the size of the process group.
- *
- * @todo
- *
- * @return On success, the actual size of the process group is
- * returned, or -1, if an error occurred.
- */
-int PSE_getSize(void);
+ * @see PSE_finalize(), exit(2)
+ * */
+void PSE_abort(int code);
 
 /* For compatibility with old versions, to be removed soon */
 #define PSEinit      PSE_init
