@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.17 2002/01/31 12:14:01 eicker Exp $
+ * $Id: rdp.c,v 1.18 2002/02/01 16:47:22 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.17 2002/01/31 12:14:01 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.18 2002/02/01 16:47:22 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -50,7 +50,7 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
  restart:
     if ((retval=recvfrom(sock, buf, len, flags, from, fromlen)) < 0) {
 	if (errno == EINTR) {
-	    errlog("MYrecvfrom was interrupted !", 2);
+	    errlog("MYrecvfrom was interrupted !", 5);
 	    goto restart;
 	}
 	snprintf(errtxt, sizeof(errtxt), "MYrecvfrom returns: %s",
@@ -67,7 +67,7 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
  restart:
     if ((retval=sendto(sock, buf, len, flags, to, tolen)) < 0) {
 	if (errno == EINTR) {
-	    errlog("MYsendto was interrupted !", 2);
+	    errlog("MYsendto was interrupted !", 5);
 	    goto restart;
 	}
 	snprintf(errtxt, sizeof(errtxt), "MYsendto returns: %s",
@@ -232,7 +232,7 @@ static void initConntableRDP(int nodes,
     snprintf(errtxt, sizeof(errtxt),
 	     "init conntableRDP for %d nodes, win is %d",
 	     nodes, MAX_WINDOW_SIZE);
-    errlog(errtxt, 10);
+    errlog(errtxt, 4);
     for (i=0; i<=nodes; i++) {
 	memset(&conntableRDP[i].sin, 0, sizeof(struct sockaddr_in));
 	conntableRDP[i].sin.sin_family = AF_INET;
@@ -241,7 +241,7 @@ static void initConntableRDP(int nodes,
 	insertIPTable(conntableRDP[i].sin.sin_addr, i);
 	snprintf(errtxt, sizeof(errtxt), "IP-ADDR of node %d is %s",
 		 i, inet_ntoa(conntableRDP[i].sin.sin_addr));
-	errlog(errtxt, 10);
+	errlog(errtxt, 4);
 	conntableRDP[i].bufptr = NULL;
 	conntableRDP[i].ConnID_in = -1;
 	if (i<nodes) {
@@ -252,13 +252,13 @@ static void initConntableRDP(int nodes,
 	    snprintf(errtxt, sizeof(errtxt),
 		     "frameToSend to node %d set to %d", i,
 		     conntableRDP[i].frameToSend);
-	    errlog(errtxt, 10);
+	    errlog(errtxt, 4);
 	    conntableRDP[i].ackExpected = conntableRDP[i].frameToSend;
 	    conntableRDP[i].frameExpected = random();
 	    snprintf(errtxt, sizeof(errtxt),
 		     "frameExpected from node %d set to %d", i,
 		     conntableRDP[i].frameExpected);
-	    errlog(errtxt, 10);
+	    errlog(errtxt, 4);
 	    conntableRDP[i].ConnID_out = random();;
 	    conntableRDP[i].state = CLOSED;
 	} else {
@@ -368,7 +368,7 @@ static void sendSYN(int node)
     snprintf(errtxt, sizeof(errtxt),
 	     "sending SYN to node %d (%s), NFTS=%d", node,
 	     inet_ntoa(conntableRDP[node].sin.sin_addr), hdr.seqno);
-    errlog(errtxt, 11);
+    errlog(errtxt, 8);
     MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
 	     (struct sockaddr *)&conntableRDP[node].sin,
 	     sizeof(struct sockaddr));
@@ -386,7 +386,7 @@ static void sendACK(int node)
     hdr.connid = conntableRDP[node].ConnID_out;
     snprintf(errtxt, sizeof(errtxt),
 	     "sending ACK to node %d, FE=%d", node, hdr.ackno);
-    errlog(errtxt, 11);
+    errlog(errtxt, 14);
     MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
 	     (struct sockaddr *)&conntableRDP[node].sin,
 	     sizeof(struct sockaddr));
@@ -406,7 +406,7 @@ static void sendSYNACK(int node)
     snprintf(errtxt, sizeof(errtxt),
 	     "sending SYNACK to node %d, NFTS=%d, FE=%d",
 	     node, hdr.seqno, hdr.ackno);
-    errlog(errtxt, 11);
+    errlog(errtxt, 8);
     MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
 	     (struct sockaddr *)&conntableRDP[node].sin,
 	     sizeof(struct sockaddr));
@@ -426,7 +426,7 @@ static void sendSYNNACK(int node, int oldseq)
     snprintf(errtxt, sizeof(errtxt),
 	     "sending SYNNACK to node %d, NFTS=%d, FE=%d",
 	     node, hdr.seqno, hdr.ackno);
-    errlog(errtxt, 11);
+    errlog(errtxt, 8);
     MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
 	     (struct sockaddr *)&conntableRDP[node].sin,
 	     sizeof(struct sockaddr));
@@ -446,7 +446,7 @@ static void sendNACK(int node)
     hdr.connid = conntableRDP[node].ConnID_out;
     snprintf(errtxt, sizeof(errtxt), "sending NACK to node %d, FE=%d",
 	     node, hdr.ackno);
-    errlog(errtxt, 11);
+    errlog(errtxt, 8);
     MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
 	     (struct sockaddr *)&conntableRDP[node].sin,
 	     sizeof(struct sockaddr));
@@ -513,7 +513,7 @@ static int initSockRDP(unsigned short port, int qlen)
     return s;
 }
 
-static int updateState(rdphdr *hdr, int node)
+static int updateStateRDP(rdphdr *hdr, int node)
 {
     int retval = 0;
     Rconninfo *cp;
@@ -536,7 +536,7 @@ static int updateState(rdphdr *hdr, int node)
 	    snprintf(errtxt, sizeof(errtxt),
 		     "Changing State for node %d from CLOSED to SYN_RECVD,"
 		     " FrameEx=%d", node, cp->frameExpected);
-	    errlog(errtxt, 12);
+	    errlog(errtxt, 8);
 	    sendSYNACK(node);
 	    retval = RDP_SYNACK;
 	    break;
@@ -545,7 +545,7 @@ static int updateState(rdphdr *hdr, int node)
 	    snprintf(errtxt, sizeof(errtxt),
 		     "Changing State for node %d from CLOSED to SYN_SENT,"
 		     " FrameEx=%d", node, cp->frameExpected);
-	    errlog(errtxt, 12);
+	    errlog(errtxt, 8);
 	    sendSYNNACK(node, hdr->seqno);
 	    retval = RDP_SYNNACK;
 	    break;
@@ -554,7 +554,7 @@ static int updateState(rdphdr *hdr, int node)
 	    snprintf(errtxt, sizeof(errtxt),
 		     "Changing State for node %d from CLOSED to SYN_SENT,"
 		     " FrameEX=%d", node, cp->frameExpected);
-	    errlog(errtxt, 12);
+	    errlog(errtxt, 8);
 	    sendSYN(node);
 	    retval = RDP_SYN;
 	    break;
@@ -578,9 +578,9 @@ static int updateState(rdphdr *hdr, int node)
 	    snprintf(errtxt, sizeof(errtxt),
 		     "Changing State for node %d from SYN_SENT to SYN_RECVD,"
 		     " FrameEx=%d", node, cp->frameExpected);
-	    errlog(errtxt, 12);
-	    sendACK(node);
-	    retval = RDP_ACK;
+	    errlog(errtxt, 8);
+	    sendSYNACK(node);
+	    retval = RDP_SYNACK;
 	    break;
 	case RDP_SYNACK:
 	    cp->state = ACTIVE;
@@ -589,9 +589,16 @@ static int updateState(rdphdr *hdr, int node)
 	    snprintf(errtxt, sizeof(errtxt),
 		     "Changing State for node %d from SYN_SENT to ACTIVE,"
 		     " FrameEx=%d", node, cp->frameExpected);
-	    errlog(errtxt, 12);
-	    sendACK(node);
-	    retval = RDP_ACK;
+	    errlog(errtxt, 8);
+	    if (cp->msgPending){
+		resendMsgs(node);
+		cp->frameToSend += cp->msgPending;
+		cp->msgPending = 0;
+		retval = RDP_DATA;
+	    } else {
+		sendACK(node);
+		retval = RDP_ACK;
+	    }
 	    if (RDPCallback != NULL) { /* inform daemon */
 		RDPCallback(RDP_NEW_CONNECTION, &node);
 	    }
@@ -600,7 +607,7 @@ static int updateState(rdphdr *hdr, int node)
 	    snprintf(errtxt, sizeof(errtxt),
 		     "Staying in SYN_SENT for node %d,  FrameEx=%d", node,
 		     cp->frameExpected);
-	    errlog(errtxt, 12);
+	    errlog(errtxt, 8);
 	    sendSYN(node);
 	    retval = RDP_SYN;
 	    break;
@@ -620,8 +627,8 @@ static int updateState(rdphdr *hdr, int node)
 	 */
 	switch (hdr->type) {
 	case RDP_SYN:
+	    cp->frameExpected = hdr->seqno;     /* Accept initial seqno */
 	    if (hdr->connid != cp->ConnID_in) { /* NEW CONNECTION */
-		cp->frameExpected = hdr->seqno; /* Accept initial seqno */
 		cp->ConnID_in = hdr->connid;    /* Accept connection ID */
 		snprintf(errtxt, sizeof(errtxt),
 			 "New Connection in SYN_RECVD for node %d,"
@@ -631,59 +638,44 @@ static int updateState(rdphdr *hdr, int node)
 			 "Staying in SYN_RECVD for node %d, FrameEx=%d",
 			 node, cp->frameExpected);
 	    }
-	    errlog(errtxt, 12);
+	    errlog(errtxt, 8);
 	    sendSYNACK(node);
 	    retval = RDP_SYNACK;
 	    break;
 	case RDP_SYNACK:
+	    cp->frameExpected = hdr->seqno; /* Accept initial seqno */
 	    if (hdr->connid != cp->ConnID_in) { /* New connection */
-		cp->frameExpected = hdr->seqno; /* Accept initial seqno */
 		cp->ConnID_in = hdr->connid;    /* Accept connection ID */
-		sendSYNACK(node);
 	    }
+	case RDP_ACK:
+	case RDP_DATA:
 	    cp->state = ACTIVE;
 	    snprintf(errtxt, sizeof(errtxt),
 		     "Changing State for node %d from SYN_RECVD to ACTIVE,"
 		     " FrameEx=%d", node, cp->frameExpected);
-	    errlog(errtxt, 12);
+	    errlog(errtxt, 8);
+	    if (cp->msgPending) {
+		resendMsgs(node);
+		cp->frameToSend += cp->msgPending;
+		cp->msgPending = 0;
+		retval = RDP_DATA;
+	    } else {
+		sendACK(node);
+		retval = RDP_ACK;
+	    }
+	    if (RDPCallback != NULL) { /* inform daemon */
+		errlog(errtxt, 8);
+		RDPCallback(RDP_NEW_CONNECTION, &node);
+	    }
 	    break;
-	case RDP_NACK:
+	default:
 	    cp->state = SYN_SENT;
 	    snprintf(errtxt, sizeof(errtxt),
 		     "Changing State for node %d from SYN_RECVD to SYN_SENT,"
 		     " FrameEx=%d", node, cp->frameExpected);
-	    errlog(errtxt, 12);
+	    errlog(errtxt, 8);
 	    sendSYN(node);
 	    retval = RDP_SYN;
-	    break;
-	case RDP_ACK:
-	    cp->state = ACTIVE;
-	    snprintf(errtxt, sizeof(errtxt),
-		     "Changing State for node %d from SYN_RECVD to ACTIVE,"
-		     " FrameEx=%d", node, cp->frameExpected);
-	    errlog(errtxt, 12);
-	    if (cp->msgPending != 0) {
-		resendMsgs(node);
-		cp->frameToSend += cp->msgPending;
-		cp->msgPending = 0;
-	    }
-	    if (RDPCallback != NULL) { /* inform daemon */
-		errlog(errtxt, 12);
-		RDPCallback(RDP_NEW_CONNECTION, &node);
-	    }
-	    retval = RDP_ACK;
-	    break;
-	case RDP_DATA:
-	    cp->state = ACTIVE;
-	    sendNACK(node);
-	    snprintf(errtxt, sizeof(errtxt),
-		     "Changing State for node %d from SYN_RECVD to ACTIVE,"
-		     " FrameEx=%d", node, cp->frameExpected);
-	    errlog(errtxt, 12);
-	    if (RDPCallback != NULL) { /* inform daemon */
-		RDPCallback(RDP_NEW_CONNECTION, &node);
-	    }
-	    retval = RDP_NACK;
 	    break;
 	}
 	break;
@@ -694,7 +686,8 @@ static int updateState(rdphdr *hdr, int node)
 		     " seqno=%d in ACTIVE State [%d:%d]", node,
 		     cp->frameExpected, hdr->seqno, hdr->connid,
 		     cp->ConnID_in);
-	    errlog(errtxt, 12);
+	    errlog(errtxt, 8);
+	    clearMsgQ(node);
 	    switch (hdr->type) {
 	    case RDP_SYN:
 	    case RDP_SYNNACK:
@@ -704,7 +697,7 @@ static int updateState(rdphdr *hdr, int node)
 		snprintf(errtxt, sizeof(errtxt),
 			 "Changing State for node %d from ACTIVE to"
 			 " SYN_RECVD, FrameEx=%d", node, cp->frameExpected);
-		errlog(errtxt, 12);
+		errlog(errtxt, 8);
 		sendSYNACK(node);
 		retval = RDP_SYNACK;
 		break;
@@ -715,7 +708,7 @@ static int updateState(rdphdr *hdr, int node)
 		snprintf(errtxt, sizeof(errtxt),
 			 "Changing State for node %d from ACTIVE to"
 			 " SYN_RECVD, FrameEx=%d", node, cp->frameExpected);
-		errlog(errtxt, 12);
+		errlog(errtxt, 8);
 		sendSYN(node);
 		retval = RDP_SYN;
 		break;
@@ -725,7 +718,15 @@ static int updateState(rdphdr *hdr, int node)
 	} else { /* SYN Packet on OLD Connection (probably lost answers) */
 	    switch (hdr->type) {
 	    case RDP_SYN:
+		clearMsgQ(node);
+	        cp->state = SYN_RECVD;
+		cp->frameExpected = hdr->seqno; /* Accept new seqno */
+		snprintf(errtxt, sizeof(errtxt),
+			 "Changing State for node %d from ACTIVE to"
+			 " SYN_RECVD, FrameEx=%d", node, cp->frameExpected);
+		errlog(errtxt, 8);
 		sendSYNACK(node);
+		retval = RDP_SYNACK;
 		break;
 	    default:
 		break;
@@ -734,7 +735,7 @@ static int updateState(rdphdr *hdr, int node)
 	break;
     default:
 	snprintf(errtxt, sizeof(errtxt),
-		 "invalid state for node %d in updateState", node);
+		 "invalid state for node %d in updateStateRDP()", node);
 	errlog(errtxt, 0);
 	break;
     }
@@ -769,7 +770,7 @@ static void clearMsgQ(int node)
 	snprintf(errtxt, sizeof(errtxt),
 		 "Dropping msg %d to node %d", mp->msg.small->header.seqno,
 		 node);
-	errlog(errtxt, 2);
+	errlog(errtxt, 6);
 	if (mp->len > RDP_SMALL_DATA_SIZE) {    /* release msg frame */
 	    free(mp->msg.large);                /* free memory */
 	} else {
@@ -795,11 +796,13 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
     msgbuf *mp;
     int count = 0;
 
+    errlog("Resequencing MsgQ", 8);
+
     cp = &conntableRDP[node];
     mp = cp->bufptr;
 
-    cp->frameExpected = newExpected; //new_sno    /* Accept initial seqno */
-    cp->frameToSend = newSend;   //old_sno
+    cp->frameExpected = newExpected;     /* Accept initial seqno */
+    cp->frameToSend = newSend;
     cp->ackExpected = newSend;
 
     blockTimer(rdpsock, 1);
@@ -816,7 +819,7 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
 	    snprintf(errtxt, sizeof(errtxt),
 		     "Dropping msg %d to node %d",
 		     mp->msg.small->header.seqno, node);
-	    errlog(errtxt, 2);
+	    errlog(errtxt, 6);
 	    /* release msg frame */
 	    if (mp->len > RDP_SMALL_DATA_SIZE) {
 		free(mp->msg.large);       /* free memory */
@@ -833,7 +836,7 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
 	    snprintf(errtxt, sizeof(errtxt),
 		     "Changing SeqNo from %d to %d",
 		     mp->msg.small->header.seqno, newSend + count);
-	    errlog(errtxt, 2);
+	    errlog(errtxt, 8);
 	    mp->msg.small->header.seqno = newSend + count;
 	    mp = mp->next;                 /* next message */
 	    count++;
@@ -875,7 +878,7 @@ static void handleTimeoutRDP(int fd)
 	    /* handle only first outstanding buffer */
 	    gettimeofday(&tv, NULL);
 	    if (timercmp(&mp->tv, &tv, <)) { /* msg has a timeout */
-		if (mp->retrans > RDPMAX_RETRANS_COUNT) {
+		if (mp->retrans > RDPMaxRetransCount) {
 		    snprintf(errtxt, sizeof(errtxt),
 			     "Retransmission count exceeds limit [seqno=%d],"
 			     " closing connection to node %d",
@@ -891,19 +894,42 @@ static void handleTimeoutRDP(int fd)
 		    snprintf(errtxt, sizeof(errtxt),
 			     "resending msg %d to node %d",
 			     mp->msg.small->header.seqno, mp->node);
-		    errlog(errtxt, 8);
+		    errlog(errtxt, 14);
 		    mp->tv = tv;
 		    mp->retrans++;
 		    timeradd(&mp->tv, &RESEND_TIMEOUT, &mp->tv);
-		    /* update ackinfo */
-		    mp->msg.small->header.ackno =
-			conntableRDP[node].frameExpected-1;
-		    MYsendto(rdpsock, &mp->msg.small->header,
-			     mp->len + sizeof(rdphdr), 0,
-			     (struct sockaddr *)&conntableRDP[node].sin,
-			     sizeof(struct sockaddr));
-		    conntableRDP[node].ackPending = 0;
-		    ap = ap->next;
+
+		    switch (conntableRDP[node].state) {
+		    case CLOSED:
+			errlog("handleTimeoutRDP(): connection is CLOSED"
+			       " this shouldn't happen.", 0);
+			break;
+		    case SYN_SENT:
+			errlog("handleTimeoutRDP(): send SYN again", 8);
+			sendSYN(node);
+			break;
+		    case SYN_RECVD:
+			errlog("handleTimeoutRDP(): send SYNACK again", 8);
+			sendSYNACK(node);
+			break;
+		    case ACTIVE:
+			/* connection established */
+			/* update ackinfo */
+			mp->msg.small->header.ackno =
+			    conntableRDP[node].frameExpected-1;
+			MYsendto(rdpsock, &mp->msg.small->header,
+				 mp->len + sizeof(rdphdr), 0,
+				 (struct sockaddr *)&conntableRDP[node].sin,
+				 sizeof(struct sockaddr));
+			conntableRDP[node].ackPending = 0;
+			ap = ap->next;
+		    default:
+			snprintf(errtxt, sizeof(errtxt),
+				 "handleTimeoutRDP(): unknown state %d"
+				 " for node %d",
+				 conntableRDP[node].state, node);
+			errlog(errtxt, 0);
+		    }
 		}
 	    } else {
 		break; /* all following msg's do not have a timeout */
@@ -927,15 +953,15 @@ static void doACK(rdphdr *hdr, int fromnode)
     mp = cp->bufptr;
 
     snprintf(errtxt, sizeof(errtxt),
-	     "Processing ACK from node %d [Type=%d, Sno=%d, Exp=%d, got=%d]",
+	     "Processing ACK from node %d [Type=%d, seq=%d, exp=%d, got=%d]",
 	     fromnode, hdr->type, hdr->seqno, cp->ackExpected, hdr->ackno);
-    errlog(errtxt, 3);
+    errlog(errtxt, 14);
 
     if (hdr->connid != cp->ConnID_in) { /* New Connection */
 	snprintf(errtxt, sizeof(errtxt),
 		 " Unable to process ACK's for new connections %x vs. %x",
 		 hdr->connid, cp->ConnID_in);
-	errlog(errtxt, 3);
+	errlog(errtxt, 0);
 	return;
     }
 
@@ -944,13 +970,13 @@ static void doACK(rdphdr *hdr, int fromnode)
 	    sendACK(fromnode); /* (re)send ack to avoid further timeouts */
 	    snprintf(errtxt, sizeof(errtxt), "(Re)sending ACK to node %d",
 		     fromnode);
-	    errlog(errtxt, 3);
+	    errlog(errtxt, 14);
 	}
 	if (RSEQCMP(hdr->seqno, cp->frameExpected) > 0) { /* Missing Data */
 	    sendNACK(fromnode); /* send nack to inform sender */
 	    snprintf(errtxt, sizeof(errtxt), "Sending NACK to node %d",
 		     fromnode);
-	    errlog(errtxt, 3);
+	    errlog(errtxt, 14);
 	}
     }
 
@@ -959,7 +985,7 @@ static void doACK(rdphdr *hdr, int fromnode)
     while (mp) {
 	snprintf(errtxt, sizeof(errtxt), "Comparing seqno %d with %d",
 		 mp->msg.small->header.seqno, hdr->ackno);
-	errlog(errtxt, 4);
+	errlog(errtxt, 14);
 	if (RSEQCMP(mp->msg.small->header.seqno, hdr->ackno) <= 0) {
 	    /* ACK this buffer */
 	    if (mp->msg.small->header.seqno != cp->ackExpected) {
@@ -974,7 +1000,7 @@ static void doACK(rdphdr *hdr, int fromnode)
 	    snprintf(errtxt, sizeof(errtxt),
 		     "Releasing buffer seqno=%d to node=%d",
 		     mp->msg.small->header.seqno, fromnode);
-	    errlog(errtxt, 3);
+	    errlog(errtxt, 14);
 	    if (mp->len > RDP_SMALL_DATA_SIZE) {
 		free(mp->msg.large);       /* free memory */
 	    } else {
@@ -996,24 +1022,6 @@ static void doACK(rdphdr *hdr, int fromnode)
     return;
 }
 
-static void reestablishConnection(rdphdr *hdr, int node)
-{
-    snprintf(errtxt, sizeof(errtxt),
-	     "Going to reestablish connection to node %d", node);
-    errlog(errtxt, 7);
-    if (hdr->type == RDP_SYNNACK) {
-	errlog("Resequencing MSG-Q", 7);
-	conntableRDP[node].msgPending =
-	    resequenceMsgQ(node, hdr->seqno, hdr->ackno);
-    } else {
-	errlog("Clearing MSG-Q", 7);
-	clearMsgQ(node); /* clear outgoing MSG-Q */
-    }
-    updateState(hdr, node);
-
-    return;
-}
-
 static void resendMsgs(int node)
 {
     Rconninfo *cp;
@@ -1026,7 +1034,7 @@ static void resendMsgs(int node)
     while (mp) {
 	gettimeofday(&tv, NULL);
 	timeradd(&mp->tv, &RESEND_TIMEOUT, &mp->tv);
-	if (mp->retrans > RDPMAX_RETRANS_COUNT) {
+	if (mp->retrans > RDPMaxRetransCount) {
 	    snprintf(errtxt, sizeof(errtxt),
 		     "resendMsgs() Retransmission count exceeds limit"
 		     " [seqno=%d], closing connection to node %d",
@@ -1038,7 +1046,7 @@ static void resendMsgs(int node)
 	snprintf(errtxt, sizeof(errtxt),
 		 "resending msg %d to node %d", mp->msg.small->header.seqno,
 		 mp->node);
-	errlog(errtxt, 8);
+	errlog(errtxt, 14);
 	mp->tv = tv;
 	mp->retrans++;
 	/* update ackinfo */
@@ -1055,40 +1063,39 @@ static void handleControlPacket(rdphdr *hdr, int node)
 {
     switch (hdr->type) {
     case RDP_ACK:
-	snprintf(errtxt, sizeof(errtxt), "receiving ACK from node %d", node);
-	errlog(errtxt, 11);
+	snprintf(errtxt, sizeof(errtxt), "got ACK from node %d", node);
+	errlog(errtxt, 14);
 	if (conntableRDP[node].state != ACTIVE) {
-	    updateState(hdr, node);
+	    updateStateRDP(hdr, node);
 	} else {
 	    doACK(hdr, node);
 	}
 	break;
     case RDP_NACK:
-	snprintf(errtxt, sizeof(errtxt), "receiving NACK from node %d", node);
-	errlog(errtxt, 11);
+	snprintf(errtxt, sizeof(errtxt), "got NACK from node %d", node);
+	errlog(errtxt, 8);
 	doACK(hdr, node);
 	resendMsgs(node);
 	break;
     case RDP_SYN:
-	snprintf(errtxt, sizeof(errtxt), "receiving SYN from node %d", node);
-	errlog(errtxt, 11);
-	updateState(hdr, node);
-	/* reestablishConnection(hdr, node); */
+	snprintf(errtxt, sizeof(errtxt), "got SYN from node %d", node);
+	errlog(errtxt, 8);
+	updateStateRDP(hdr, node);
 	break;
     case RDP_SYNACK:
-	snprintf(errtxt, sizeof(errtxt),
-		 "receiving SYNACK from node %d", node);
-	errlog(errtxt, 11);
-	updateState(hdr, node);
+	snprintf(errtxt, sizeof(errtxt), "got SYNACK from node %d", node);
+	errlog(errtxt, 8);
+	updateStateRDP(hdr, node);
 	break;
     case RDP_SYNNACK:
-	snprintf(errtxt, sizeof(errtxt),
-		 "receiving SYNNACK from node %d", node);
-	errlog(errtxt, 11);
-	reestablishConnection(hdr, node);
+	snprintf(errtxt, sizeof(errtxt), "got SYNNACK from node %d", node);
+	errlog(errtxt, 8);
+	conntableRDP[node].msgPending =
+	    resequenceMsgQ(node, hdr->seqno, hdr->ackno);
+	updateStateRDP(hdr, node);
 	break;
     default:
-	errlog("RDPHandler got unknown msg-type on RDP port, deleting msg", 0);
+	errlog("handleControlPacket(): deleting unknown msg", 0);
 	break;
     }
     return;
@@ -1152,7 +1159,7 @@ int handleRDP(int fd)
 		     errmsg.msg_flags & MSG_OOB ? "MSG_OOB ":"",
 		     errmsg.msg_flags & MSG_ERRQUEUE ? "MSG_ERRQUEUE ":"",
 		     errmsg.msg_flags & MSG_DONTWAIT ? "MSG_DONTWAIT ":"");
-	     errlog(errtxt, 5);
+	     errlog(errtxt, 10);
 
 	     cmsg = CMSG_FIRSTHDR(&errmsg);
 	     if (!cmsg) {
@@ -1166,7 +1173,7 @@ int handleRDP(int fd)
 		      " cmsg_type = %d (IP_RECVERR = %d)",
 		      cmsg->cmsg_len, cmsg->cmsg_level, SOL_IP,
 		      cmsg->cmsg_type, IP_RECVERR);
-	     errlog(errtxt, 5);
+	     errlog(errtxt, 10);
 
 	     if (! cmsg->cmsg_len) {
 		 errlog("handleRDP(): cmsg->cmsg_len = 0, local error?", 0);
@@ -1207,8 +1214,12 @@ int handleRDP(int fd)
 	}
 #endif
     }
+
     fromnode = lookupIPTable(sin.sin_addr);     /* lookup node */
+
     if (msg.header.type != RDP_DATA) {
+	/* This is a control message */
+
 	/* really get the msg */
 	if (MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
 		       (struct sockaddr *) &sin, &slen)<0) {
@@ -1217,6 +1228,8 @@ int handleRDP(int fd)
 		     errno, strerror(errno));
 	    errexit(errtxt, errno);
 	}
+
+	/* process it */
 	handleControlPacket(&msg.header, fromnode);
 
 	return 0;
@@ -1232,7 +1245,7 @@ int handleRDP(int fd)
 	snprintf(errtxt, sizeof(errtxt),
 		 "handleRDP(): Check DATA from %d (seq=%d, ack=%d)", fromnode,
 		 msg.header.seqno, msg.header.ackno);
-	errlog(errtxt, 4);
+	errlog(errtxt, 6);
 
 	doACK(&msg.header, fromnode);
 
@@ -1264,34 +1277,6 @@ static char *stateStringRDP(RDPState state)
 }
 
 /* ---------------------------------------------------------------------- */
-/*
- * DEBUGLEVEL:
- *  0: Critical Errors (usually exit)
- *  1: tmp output
- *  2: Important Iinfo
- *  3: Ack processing & Buff mgmt (light)
- *  4: Ack processing & Buff mgmt (full)
- *  5: Ping missing (5 ping)
- *  6: select Info
- *  7: Reestablish Connection
- *  8: Resend Info
- *  9: Ping missing (single ping)
- * 10: INIT Messages
- * 11: Connection Stuff (SYN msgs etc)
- * 12: State Infos
- * 13: MCAST pings
- *
- */
-
-int getDebugLevelRDP(void)
-{
-    return getErrLogLevel();
-}
-
-void setDebugLevelRDP(int level)
-{
-    setErrLogLevel(level);
-}
 
 int initRDP(int nodes, int usesyslog, unsigned int hosts[],
 	    void (*callback)(int, void*))
@@ -1308,7 +1293,7 @@ int initRDP(int nodes, int usesyslog, unsigned int hosts[],
     nrOfNodes = nodes;
 
     snprintf(errtxt, sizeof(errtxt), "initRDP for %d nodes", nrOfNodes);
-    errlog(errtxt, 10);
+    errlog(errtxt, 2);
 
     initMsgList(nodes);
     initSMsgList(nodes);
@@ -1331,49 +1316,61 @@ void exitRDP(void)
     close(rdpsock);                /* close RDP socket */
 }
 
+int getDebugLevelRDP(void)
+{
+    return getErrLogLevel();
+}
+
+void setDebugLevelRDP(int level)
+{
+    setErrLogLevel(level);
+}
+
+int getMaxRetransRDP(void)
+{
+    return RDPMaxRetransCount;
+}
+
+void setMaxRetransRDP(int limit)
+{
+    if (limit > 0) RDPMaxRetransCount = limit;
+}
+
 int Rsendto(int node, void *buf, int len)
 {
     msgbuf *mp;
-    int retval;
+    int retval = 0;
 
     if (((node < 0) || (node >=  nrOfNodes))) {
 	/* illegal node number */
 	snprintf(errtxt, sizeof(errtxt),
-		 "Rsendto: illegal node number [%d]", node);
+		 "Rsendto(): illegal node number %d", node);
 	errlog(errtxt, 0);
 	errno = EINVAL;
 	return -1;
     }
 
-    if (conntableRDP[node].window == 0) { /* transmission window full */
+    if (conntableRDP[node].window == 0) {
+	/* transmission window full */
 	snprintf(errtxt, sizeof(errtxt),
-		 "Rsendto: transmission window to node [%d] full", node);
+		 "Rsendto(): transmission window to node %d full", node);
 	errlog(errtxt, 0);
 	errno = EAGAIN;
 	return -1;
     }
-    if (len>RDP_MAX_DATA_SIZE) { /* msg too large */
+    if (len>RDP_MAX_DATA_SIZE) {
+	/* msg too large */
 	snprintf(errtxt, sizeof(errtxt),
-		 "Rsendto: len [%d] > RDP_MAX_DATA_SIZE [%d]", len,
+		 "Rsendto(): len [%d] > RDP_MAX_DATA_SIZE [%d]", len,
 		 RDP_MAX_DATA_SIZE);
 	errlog(errtxt, 0);
 	errno = EMSGSIZE;
 	return -1;
     }
-    if (conntableRDP[node].state != ACTIVE) { /* connection not established */
-	snprintf(errtxt, sizeof(errtxt),
-		 "Rsendto: connection to node [%d] not established", node);
-	errlog(errtxt, 0);
-	sendSYN(node); /* Setup Connection */
-	errno = EAGAIN;
-	return -1;
-    }
 
     blockTimer(rdpsock, 1);
 
-    /*
-     * setup msg buffer
-     */
+    /* setup msg buffer */
     mp = conntableRDP[node].bufptr;
     if (mp) {
 	while (mp->next != NULL) mp = mp->next; /* search tail */
@@ -1390,46 +1387,78 @@ int Rsendto(int node, void *buf, int len)
 	mp->msg.large = (Lmsg *)malloc(sizeof(Lmsg));
     }
 
+    /* setup Ack buffer */
     mp->node = node;
     mp->ackptr = enqAck(mp);
     gettimeofday(&mp->tv, NULL);
     timeradd(&mp->tv, &RESEND_TIMEOUT, &mp->tv);
     mp->len = len;
 
-    /*
-     * setup msg header
-     */
+    /* setup msg header */
     mp->msg.small->header.type = RDP_DATA;
     mp->msg.small->header.len = len;
-    mp->msg.small->header.seqno = conntableRDP[node].frameToSend;
+    mp->msg.small->header.seqno =
+	conntableRDP[node].frameToSend + conntableRDP[node].msgPending;
     mp->msg.small->header.ackno = conntableRDP[node].frameExpected-1;
     mp->msg.small->header.connid = conntableRDP[node].ConnID_out;
     conntableRDP[node].ackPending = 0;
 
-    blockTimer(rdpsock, 0);
-
-    /*
-     * copy msg data
-     */
+    /* copy msg data */
     memcpy(mp->msg.small->data, buf, len);
 
-    /*
-     * finally send the data
-     */
-    snprintf(errtxt, sizeof(errtxt),
-	     "sending DATA[len=%d] to node %d (seq=%d, ack=%d)", len, node,
-	     conntableRDP[node].frameToSend, conntableRDP[node].frameExpected);
-    errlog(errtxt, 8);
+    blockTimer(rdpsock, 0);
 
-    retval = MYsendto(rdpsock, &mp->msg.small->header, len + sizeof(rdphdr), 0,
-		      (struct sockaddr *)&conntableRDP[node].sin,
-		      sizeof(struct sockaddr));
+    switch (conntableRDP[node].state) {
+    case CLOSED:
+	conntableRDP[node].state = SYN_SENT;
+    case SYN_SENT:
+	snprintf(errtxt, sizeof(errtxt),
+		 "Rsendto(): connection to node %d not established", node);
+	errlog(errtxt, 8);
+
+	sendSYN(node);
+	conntableRDP[node].msgPending++;
+
+	retval = len + sizeof(rdphdr);
+	break;
+    case SYN_RECVD:
+	snprintf(errtxt, sizeof(errtxt),
+		 "Rsendto(): connection to node %d not established", node);
+	errlog(errtxt, 8);
+
+	sendSYNACK(node);
+	conntableRDP[node].msgPending++;
+
+	retval = len + sizeof(rdphdr);
+	break;
+    case ACTIVE:
+	/* connection already established */
+	/* send the data */
+	snprintf(errtxt, sizeof(errtxt),
+		 "sending DATA[len=%d] to node %d (seq=%d, ack=%d)",
+		 len, node, conntableRDP[node].frameToSend,
+		 conntableRDP[node].frameExpected);
+	errlog(errtxt, 12);
+
+	retval = MYsendto(rdpsock, &mp->msg.small->header,
+			  len + sizeof(rdphdr), 0,
+			  (struct sockaddr *)&conntableRDP[node].sin,
+			  sizeof(struct sockaddr));
+
+	conntableRDP[node].frameToSend++;
+
+	break;
+    default:
+	snprintf(errtxt, sizeof(errtxt),
+		 "Rsendto(): unknown state %d for node %d",
+		 conntableRDP[node].state, node);
+	errlog(errtxt, 0);
+    }
 
     /*
      * update counter
      */
     conntableRDP[node].window--;
-    conntableRDP[node].frameToSend++;
 
     if (retval==-1) {
 	snprintf(errtxt, sizeof(errtxt),
@@ -1451,14 +1480,14 @@ int Rrecvfrom(int *node, void *msg, int len)
 
     if ((node == NULL) || (msg == NULL)) {
 	/* we definitely need a pointer */
-	errlog("Rrecvfrom: got NULL pointer", 0);
+	errlog("Rrecvfrom(): got NULL pointer", 0);
 	errno = EINVAL;
 	return -1;
     }
     if (((*node < -1) || (*node >=  nrOfNodes))) {
 	/* illegal node number */
 	snprintf(errtxt, sizeof(errtxt),
-		 "Rrecvfrom: illegal node number [%d]", *node);
+		 "Rrecvfrom(): illegal node number [%d]", *node);
 	errlog(errtxt, 0);
 	errno = EINVAL;
 	return -1;
@@ -1466,8 +1495,8 @@ int Rrecvfrom(int *node, void *msg, int len)
     if ((*node != -1) && (conntableRDP[*node].state != ACTIVE)) {
 	/* connection not established */
 	snprintf(errtxt, sizeof(errtxt),
-		 "Receiving from node %d which is NOT ACTIVE", *node);
-	errlog(errtxt, 11);
+		 "Rrecvfrom(): node %d NOT ACTIVE", *node);
+	errlog(errtxt, 0);
 	errno = EAGAIN;
 	return -1;
     }
@@ -1476,22 +1505,16 @@ int Rrecvfrom(int *node, void *msg, int len)
     /* get pending msg */
     if ((retval = MYrecvfrom(rdpsock, &msgbuf, sizeof(msgbuf), 0,
 			      (struct sockaddr *)&sin, &slen)) < 0) {
-	errexit("Rrecvfrom: recvfrom()", errno);
+	errexit("Rrecvfrom(): recvfrom()", errno);
     }
+
     fromnode = lookupIPTable(sin.sin_addr);        /* lookup node */
 
-    if (conntableRDP[fromnode].state != ACTIVE) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "receiving from node %d, connection not ACTIVE [%s]",
-		 fromnode, stateStringRDP(conntableRDP[fromnode].state));
-	errlog(errtxt, 7);
-	reestablishConnection(&msgbuf.header, fromnode);
-	*node = -1;
-	errno = EAGAIN;
-	return -1;
-    }
-
     if (msgbuf.header.type != RDP_DATA) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "Rrecvfrom(): type not RDP_DATA [%d] from node %d",
+		 fromnode, msgbuf.header.type);
+	errlog(errtxt, 0);
 	handleControlPacket(&msgbuf.header, fromnode);
 	*node = -1;
 	errno = EAGAIN;
@@ -1499,9 +1522,29 @@ int Rrecvfrom(int *node, void *msg, int len)
     }
 
     snprintf(errtxt, sizeof(errtxt),
-	     "Got DATA from %d (seq=%d, ack=%d)", fromnode,
+	     "Rrecvfrom(): got DATA from %d (seq=%d, ack=%d)", fromnode,
 	     msgbuf.header.seqno, msgbuf.header.ackno);
-    errlog(errtxt, 9);
+    errlog(errtxt, 12);
+
+    switch (conntableRDP[fromnode].state) {
+    case CLOSED:
+    case SYN_SENT:
+	updateStateRDP(&msgbuf.header, fromnode);
+	*node = -1;
+	errno = EAGAIN;
+	return -1;
+	break;
+    case SYN_RECVD:
+	updateStateRDP(&msgbuf.header, fromnode);
+	break;
+    case ACTIVE:
+	break;
+    default:
+	snprintf(errtxt, sizeof(errtxt),
+		 "Rrecvfrom(): unknown state %d for node %d",
+		 conntableRDP[fromnode].state, fromnode);
+	errlog(errtxt, 0);
+    }
 
     doACK(&msgbuf.header, fromnode);
     if (conntableRDP[fromnode].frameExpected == msgbuf.header.seqno) {
@@ -1510,11 +1553,18 @@ int Rrecvfrom(int *node, void *msg, int len)
 	snprintf(errtxt, sizeof(errtxt),
 		 "INC FE for node %d to %d", fromnode,
 		 conntableRDP[fromnode].frameExpected);
-	errlog(errtxt, 4);
+	errlog(errtxt, 12);
 	conntableRDP[fromnode].ackPending++;
 	if (conntableRDP[fromnode].ackPending >= MAX_ACK_PENDING) {
 	    sendACK(fromnode);
 	}
+
+	if (len<msgbuf.header.len){
+	    /* buffer to small */
+	    errno = EMSGSIZE;
+	    return -1;
+	}
+
 	memcpy(msg, msgbuf.data, msgbuf.header.len);    /* copy data part */
 	retval -= sizeof(rdphdr);                       /* adjust retval */
 	*node = fromnode;
@@ -1524,6 +1574,7 @@ int Rrecvfrom(int *node, void *msg, int len)
 	errno = EAGAIN;
 	return -1;
     }
+
     return retval;
 }
 
