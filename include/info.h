@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.h,v 1.17 2003/03/19 17:08:00 eicker Exp $
+ * $Id: info.h,v 1.18 2003/04/03 15:22:49 eicker Exp $
  *
  */
 /**
  * @file
  * info: Functions for information retrieving from ParaStation daemon
  *
- * $Id: info.h,v 1.17 2003/03/19 17:08:00 eicker Exp $
+ * $Id: info.h,v 1.18 2003/04/03 15:22:49 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -59,7 +59,10 @@ int INFO_request_mcaststatus(int nodeno,
  * request_countstatus(int nodeno)
  *
  */
-int INFO_request_countstatus(int nodeno,
+int INFO_request_countheader(int nodeno, int hwindex,
+			     void* buffer, size_t size, int verbose);
+
+int INFO_request_countstatus(int nodeno, int hwindex,
 			     void* buffer, size_t size, int verbose);
 
 /*****************************
@@ -139,6 +142,14 @@ int INFO_request_nrofnodes(int verbose);
 char *INFO_request_instdir(int verbose);
 
 char *INFO_request_psidver(int verbose);
+
+int INFO_request_hwnum(int verbose);
+
+int INFO_request_hwindex(char *type, int verbose);
+
+char *INFO_request_hwname(int index, int verbose);
+
+char *INFO_printHWType(unsigned int hwType);
 
 /**
  * Type of taskinfo request
