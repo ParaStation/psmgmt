@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.h,v 1.8 2002/07/23 12:45:06 eicker Exp $
+ * $Id: config_parsing.h,v 1.9 2002/07/24 06:25:05 eicker Exp $
  *
  */
 /**
  * \file
- * parse: Parser for the config file of the ParaStation daemon
+ * Parser for the config file of the ParaStation daemon
  *
- * $Id: config_parsing.h,v 1.8 2002/07/23 12:45:06 eicker Exp $
+ * $Id: config_parsing.h,v 1.9 2002/07/24 06:25:05 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>

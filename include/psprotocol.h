@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.4 2002/07/18 12:58:27 eicker Exp $
+ * $Id: psprotocol.h,v 1.5 2002/07/24 06:24:14 eicker Exp $
  *
  */
 /**
  * @file
- * psprotocol: ParaStation client-daemon and daemon-daemon high-level protocol.
+ * ParaStation client-daemon and daemon-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.4 2002/07/18 12:58:27 eicker Exp $
+ * $Id: psprotocol.h,v 1.5 2002/07/24 06:24:14 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>

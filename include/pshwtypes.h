@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pshwtypes.h,v 1.1 2002/07/18 12:56:49 eicker Exp $
+ * $Id: pshwtypes.h,v 1.2 2002/07/24 06:24:41 eicker Exp $
  *
  */
 /**
  * @file
- * pshwtypes: ParaStation hardware types.
+ * ParaStation hardware types.
  *
- * $Id: pshwtypes.h,v 1.1 2002/07/18 12:56:49 eicker Exp $
+ * $Id: pshwtypes.h,v 1.2 2002/07/24 06:24:41 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>

@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.h,v 1.5 2002/07/18 13:09:09 eicker Exp $
+ * $Id: pstask.h,v 1.6 2002/07/24 06:24:14 eicker Exp $
  *
  */
 /**
  * @file
- * pstask: User-functions for interaction with ParaStation tasks.
+ * User-functions for interaction with ParaStation tasks.
  *
- * $Id: pstask.h,v 1.5 2002/07/18 13:09:09 eicker Exp $
+ * $Id: pstask.h,v 1.6 2002/07/24 06:24:14 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>

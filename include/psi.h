@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.h,v 1.16 2002/07/18 13:02:50 eicker Exp $
+ * $Id: psi.h,v 1.17 2002/07/24 06:24:41 eicker Exp $
  *
  */
 /**
  * @file
- * psi: User-functions for interaction with the ParaStation system.
+ * User-functions for interaction with the ParaStation system.
  *
- * $Id: psi.h,v 1.16 2002/07/18 13:02:50 eicker Exp $
+ * $Id: psi.h,v 1.17 2002/07/24 06:24:41 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -53,7 +53,6 @@ extern char *PSI_psidversion;  /** CVS versionstring of psid */
 
 /**
  * @brief @todo Docu
- * @todo rename to PSI_initClient()
  *
  *
  */
@@ -68,7 +67,6 @@ int PSI_exitClient(void);
 
 /**
  * @brief Send a message.
- * @todo rename to PSI_exitClient()
  *
  * Send the message @a amsg to the destination defined therein. This
  * is done by sending it to the local ParaStation daemon.

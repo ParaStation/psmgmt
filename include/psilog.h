@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilog.h,v 1.4 2002/07/03 20:00:33 eicker Exp $
+ * $Id: psilog.h,v 1.5 2002/07/24 06:24:14 eicker Exp $
  *
  */
 /**
  * @file
- * psilog: Logging facility for the ParaStation user library.
+ * Logging facility for the ParaStation user library.
  *
- * $Id: psilog.h,v 1.4 2002/07/03 20:00:33 eicker Exp $
+ * $Id: psilog.h,v 1.5 2002/07/24 06:24:14 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -35,7 +35,7 @@
  *
  * @return No return value.
  *
- * If @usesyslog is not 0, syslog() will be used for any
+ * If @usesyslog is different from 0, syslog() will be used for any
  * output. Otherwise if @a logfile is set, this file will be used or
  * stderr, if @a logfile is NULL.
  *

@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.h,v 1.2 2002/07/18 13:01:57 eicker Exp $
+ * $Id: pscommon.h,v 1.3 2002/07/24 06:24:41 eicker Exp $
  *
  */
 /**
  * @file
- * pscommon: Functions used in user-programs and daemon.
+ * Functions used in user-programs and daemon.
  *
- * $Id: pscommon.h,v 1.2 2002/07/18 13:01:57 eicker Exp $
+ * $Id: pscommon.h,v 1.3 2002/07/24 06:24:41 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -173,7 +173,7 @@ int PSC_startDaemon(unsigned int hostaddr);
  *
  * @return No return value.
  *
- * If @usesyslog is not 0, syslog() will be used for any
+ * If @usesyslog is different from 0, syslog() will be used for any
  * output. Otherwise if @a logfile is set, this file will be used or
  * stderr, if @a logfile is NULL.
  *
