@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.h,v 1.10 2002/08/01 16:47:07 eicker Exp $
+ * $Id: pse.h,v 1.11 2002/08/01 18:38:51 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation Programming Environment
  *
- * $Id: pse.h,v 1.10 2002/08/01 16:47:07 eicker Exp $
+ * $Id: pse.h,v 1.11 2002/08/01 18:38:51 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -47,11 +47,11 @@ void PSE_initialize(void);
  *
  * Get the actual size of the process group.
  *
- * @warning Not implemented, yet.
- * @todo Not implemented, yet.
- *
  * @return On success, the actual size of the process group is
  * returned, or -1, if an error occurred.
+ *
+ * @warning Not implemented, yet.
+ * @todo Not implemented, yet.
  * */
 int PSE_getSize(void);
 
@@ -72,11 +72,11 @@ int PSE_getSize(void);
  *
  * The rank will never change during a process's lifetime.
  *
- * @warning The rank may not be unique by now.
- * @todo Make the rank unique within a process group.
- *
  * @return On success, the actual rank of the process within the group
  * is returned, or -2, if an error occurred.
+ *
+ * @warning The rank may not be unique by now.
+ * @todo Make the rank unique within a process group.
  *
  * @see PSE_getSize(), PSE_spawnMaster(), PSE_spawnTasks()
  * */
@@ -84,11 +84,6 @@ int PSE_getRank(void);
 
 /**
  * @brief Deprecated form of PSE_initialize().
- *
- * @warning Deprecated form of @ref PSE_initialize(). Don't use this.
- *
- * @deprecated Better use @ref PSE_initialize() to initialize and @ref
- * PSE_getRank() to get the actual rank.
  *
  * Initializes PSE, the ParaStation Programming Environment. You have
  * to call this function before using any other function contained in
@@ -104,6 +99,11 @@ int PSE_getRank(void);
  * @param NP The aspired size of the process group.
  *
  * @param rank On return, @rank contains the actual rank of the process.
+ *
+ * @warning Deprecated form of @ref PSE_initialize(). Don't use this.
+ *
+ * @deprecated Better use @ref PSE_initialize() to initialize and @ref
+ * PSE_getRank() to get the actual rank.
  *
  * @see PSE_initialize(), PSE_getRank(), PSE_spawn()
  * */
@@ -131,17 +131,17 @@ void PSE_registerToParent(void);
  * If @ref PSE_spawnMaster() is called, the node pool is constituted
  * from nodes which suppport all the hardware requested in @a hwType.
  * Subsequent calls to @ref PSE_spawnTasks() will only spawn within
- * this node pool. For details on the spawning strategy, look at @ref
- * PSE_spawnMaster().
+ * this node pool. For details on the spawning strategy, look @ref
+ * spawn_strategy "here".
  *
  * If no call to this function is made before @ref PSE_spawnMaster()
- * is called, the default hardware-type, PSHW_MYRINET, is used.
+ * is called, the default hardware-type, @ref PSHW_MYRINET, is used.
  *
  * @param hwType The hardware-type nodes have to support to get a
  * process spawned on. @a hwType is a bitwise or of the hardware-types
- * defined in @ref pshwtypes.h, which are PSHW_ETHERNET, PSHW_MYRINET
- * and PSHW_GIGAETHERNET at the moment or 0. If @a hwType is 0, any
- * node is taken to spawn tasks on.
+ * defined in @ref pshwtypes.h, which are @ref PSHW_ETHERNET, @ref
+ * PSHW_MYRINET and @ref PSHW_GIGAETHERNET at the moment or 0. If @a
+ * hwType is 0, any node is taken to spawn tasks on.
  *
  * @return No return value.
  *
@@ -150,36 +150,17 @@ void PSE_registerToParent(void);
 void PSE_setHWType(unsigned int hwType);
 
 /**
- * @brief Spawn the master process.
- *
- * Spawns the master process and become logger. A process with rank =
- * 0 is spawned and the actual process will exec(2) to the
- * psilogger. It will serve the spawned process and all subsequently
- * spawned processes as an I/O daemon.
- *
- * @warning Calls to this function from within processes where @ref
- * PSE_getRank() returns a value different from -1 will fail.
- *
- * If an error occures, an error message is generated and the process
- * exits.
- *
- * @param argc The size of @a argv. This is usually equal to the argc
- * argument to main() of the actual process.
- *
- * @param argv The argument vector of the task to spawn. This is
- * usually equal to the argv argument to main() of the actual process.
- *
- * \par Spawning strategie
+ * @page spawn_strategy Spawning strategy
  *
  * To spawn the master process and subsequent tasks, a node pool is
- * constituted by @a PSE_spawnMaster. The nodes within the pool are
+ * constituted by @ref PSE_spawnMaster(). The nodes within the pool are
  * ordered depending on the requested ordering strategy and propagated
  * to spawned tasks. Any further spawning of tasks will leave the pool
  * and its ordering unchanged.
  *
  * Depending on its rank, a process will reside on a defined node
  * within the pool. Assume for example its rank is @a i, it will
- * reside on the @a i-1 st node of the pool. If more tasks are spawned
+ * reside on node number @a i of the pool. If more tasks are spawned
  * than the the pool contains nodes, the nodes are reused in a round
  * robin fashion.
  *
@@ -242,9 +223,32 @@ void PSE_setHWType(unsigned int hwType);
  * last 15 minutes on the nodes.
  *
  * - NONE or anything else: Don't sort the pool.
+ * */
+
+/**
+ * @brief Spawn the master process.
  *
- * @ return No return value. Actually, @a PSE_spawnMaster() never
+ * Spawns the master process and become logger. A process with rank =
+ * 0 is spawned and the actual process will exec(2) to the
+ * psilogger. It will serve the spawned process and all subsequently
+ * spawned processes as an I/O daemon.
+ *
+ * Read more about spawning strategies @ref spawn_strategy "here".
+ *
+ * If an error occures, an error message is generated and the process
+ * exits.
+ *
+ * @param argc The size of @a argv. This is usually equal to the argc
+ * argument to main() of the actual process.
+ *
+ * @param argv The argument vector of the task to spawn. This is
+ * usually equal to the argv argument to main() of the actual process.
+ *
+ * @return No return value. Actually, @a PSE_spawnMaster() never
  * returns.
+ *
+ * @warning Calls to this function from within processes where @ref
+ * PSE_getRank() returns a value different from -1 will fail.
  *
  * @see PSE_getRank(), PSE_setHWType(), exec(2)
  * */
@@ -262,10 +266,7 @@ void PSE_spawnMaster(int argc, char *argv[]);
  * For spawning, the node pool constituted within @ref
  * PSE_spawnMaster() is used. Subsequent calls to @a PSE_spawnTasks()
  * will only spawn within this node pool. For details on the spawning
- * strategy, look at @ref PSE_spawnMaster().
- *
- * @warning Calls to this function from within processes where @ref
- * PSE_getRank() returns -1 will fail.
+ * strategy, look @ref spawn_strategy "here".
  *
  * If an error occures, an error message is generated and the process
  * exits.
@@ -287,6 +288,9 @@ void PSE_spawnMaster(int argc, char *argv[]);
  * usually equal to the argv argument to main() of the actual process.
  *
  * @return No return value.
+ *
+ * @warning Calls to this function from within processes where @ref
+ * PSE_getRank() returns -1 will fail.
  *
  * @see PSE_spawnMaster(), PSE_getMasterNode(), PSE_getMasterPort(),
  * PSP_GetNodeID(), PSP_GetPortNo()
@@ -325,15 +329,6 @@ int PSE_getMasterPort();
 
 /**
  * @brief Deprecated form of PSE_spawnMaster() and PSE_spawnTasks()
- *
- * @warning Deprecated form of @ref PSE_spawnMaster() and @ref
- * PSE_spawnTasks(). Don't use this.
- *
- * @deprecated Better use @ref PSE_spawnMaster() to spawn the master
- * task, @ref PSE_spawnTasks() to spawn further task, @ref
- * PSE_registerToParent() to register to the parents task and @ref
- * PSE_getMasterNode() and @ref PSE_getMasterPort() to get the
- * required info.
  *
  * Spawns the master process if @a rank is -1, spawns further tasks if
  * @a rank is 0 and gets info about @a node and @a port if @a rank >
@@ -375,6 +370,15 @@ int PSE_getMasterPort();
  *
  * @return No return value.
  *
+ * @warning Deprecated form of @ref PSE_spawnMaster() and @ref
+ * PSE_spawnTasks(). Don't use this.
+ *
+ * @deprecated Better use @ref PSE_spawnMaster() to spawn the master
+ * task, @ref PSE_spawnTasks() to spawn further task, @ref
+ * PSE_registerToParent() to register to the parents task and @ref
+ * PSE_getMasterNode() and @ref PSE_getMasterPort() to get the
+ * required info.
+ *
  * @see PSE_spawnMaster(), PSE_spawnTasks(), PSE_getMasterNode(),
  * PSE_getMasterPort(), PSE_init()
  * */
@@ -409,11 +413,17 @@ void PSE_finalize(void);
 void PSE_abort(int code);
 
 /* For compatibility with old versions, to be removed soon */
+/** Compatibility define @deprecated To be removed soon*/
 #define PSEinit      PSE_init
+/** Compatibility define @deprecated To be removed soon*/
 #define PSEspawn     PSE_spawn
+/** Compatibility define @deprecated To be removed soon*/
 #define PSEfinalize  PSE_finalize
+/** Compatibility define @deprecated To be removed soon*/
 #define PSEabort     PSE_abort
+/** Compatibility define @deprecated To be removed soon*/
 #define PSEgetmyrank PSE_getRank
+/** Compatibility define @deprecated To be removed soon*/
 #define PSEgetsize   PSE_getSize
 
 #ifdef __cplusplus
