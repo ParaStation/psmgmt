@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidstatus.c,v 1.3 2004/01/22 14:41:17 eicker Exp $
+ * $Id: psidstatus.c,v 1.4 2004/01/28 14:20:07 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidstatus.c,v 1.3 2004/01/22 14:41:17 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidstatus.c,v 1.4 2004/01/28 14:20:07 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -41,6 +41,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidstatus.c,v 1.3 2004/01/
 #include "psidcomm.h"
 #include "psidrdp.h"
 #include "psidtimer.h"
+#include "psidpartition.h"
 
 #include "psidstatus.h"
 
@@ -140,6 +141,7 @@ static void freeMasterSpace(void)
 	free(clientStat);
 	clientStat = NULL;
     }
+    exitPartHandler();
 }
 
 /**
@@ -330,16 +332,15 @@ void declareMaster(PSnodes_ID_t newMaster)
 
     if (config->useMCast) {
 	timerID = 0;
-	return;
-    }
-
-    if (!knowMaster()) {
+    } else if (!knowMaster()) {
 	if (!Timer_isInitialized()) {
 	    Timer_init(config->useSyslog);
 	}
 	timerID = Timer_register(&StatusTimeout, sendRDPPing); 
 	sendRDPPing();
     }
+
+    if (newMaster == PSC_getMyID()) initPartHandler();
 }
 
 int knowMaster(void)
@@ -428,11 +429,13 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode)
 	PSID_errlog(errtxt, 2);
 
 	declareMaster(node);
+    } else if (PSC_getMyID() == getMasterID()) {
+	cleanupRequests(id);
     }
 
     if (config->useMCast) return;
 
-    if (knowMaster() && getMasterID() == PSC_getMyID() && sendDeadnode) {
+    if (getMasterID() == PSC_getMyID() && sendDeadnode) {
 	send_DEADNODE(id);
     }
 }
@@ -441,7 +444,6 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode)
 int shutdownNode(int phase);
 
 /* Prototype forward declaration */
-static int send_MASTERIS(PSnodes_ID_t dest);
 static int send_ACTIVENODES(PSnodes_ID_t dest);
 
 void declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs)
@@ -490,18 +492,31 @@ void declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs)
 	}
     }
 
-    if ((!knowMaster() && id != PSC_getMyID()) || id < getMasterID()) {
+    if (!knowMaster()) {
+	if (id < PSC_getMyID()) {
+	    snprintf(errtxt, sizeof(errtxt), "%s: master %d", __func__, id);
+	    PSID_errlog(errtxt, 2);
+	    declareMaster(id);
+	} else if (id > PSC_getMyID()) {
+	    PSnodes_ID_t mID = PSC_getMyID();
+	    snprintf(errtxt, sizeof(errtxt), "%s: master %d", __func__, mID);
+	    PSID_errlog(errtxt, 2);
+	    declareMaster(mID);
+	}
+    } else if (id < getMasterID()) {
 	/* New node will be master */
-	PSnodes_ID_t oldMaster = knowMaster() ? getMasterID() : PSC_getMyID();
+	PSnodes_ID_t oldMaster = getMasterID();
 
 	snprintf(errtxt, sizeof(errtxt), "%s: new master %d", __func__, id);
 	PSID_errlog(errtxt, 2);
 
 	declareMaster(id);
 
-	if (config->useMCast) return;
+	if (!config->useMCast) send_MASTERIS(oldMaster);
+    }
 
-	if (oldMaster != PSC_getMyID()) send_MASTERIS(oldMaster);
+    if (getMasterID() == PSC_getMyID() && !wasUp) {
+	send_GETTASKS(id);
     }
 
     if (config->useMCast) return;
@@ -620,18 +635,7 @@ void msg_LOAD(DDBufferMsg_t *msg)
     }
 }
 
-/**
- * @brief Send a PSP_DD_MASTER_IS message.
- *
- * Send a PSP_DD_MASTER_IS message to node @a dest.
- *
- * @param dest ParaStation ID of the node to send the message to.
- *
- * @return On success, the number of bytes sent within the
- * PSP_DD_MASTER_IS message is returned. If an error occured, -1 is
- * returned and errno is set appropriately.
- */
-static int send_MASTERIS(PSnodes_ID_t dest)
+int send_MASTERIS(PSnodes_ID_t dest)
 {
     DDBufferMsg_t msg = {
 	.header = {
