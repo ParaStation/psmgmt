@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidpartition.c,v 1.18 2004/03/11 14:26:30 eicker Exp $
+ * $Id: psidpartition.c,v 1.19 2004/03/11 14:53:56 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.18 2004/03/11 14:26:30 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.19 2004/03/11 14:53:56 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -726,7 +726,9 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 	int procs = nodeStat[node].assignedProcs;
 	PSID_NodeStatus_t status = getStatus(node);
 
-	if (status.jobs.normal > procs) procs = status.jobs.normal;
+	if (config->handleOldBins) {
+	    if (status.jobs.normal > procs) procs = status.jobs.normal;
+	}
 
 	if (PSnodes_isUp(node)) {
 	    if (PSnodes_getProcs(node) == PSNODES_ANYPROC) {

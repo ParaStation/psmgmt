@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.30 2004/03/11 14:13:59 eicker Exp $
+ * $Id: psprotocol.h,v 1.31 2004/03/11 14:53:56 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation client-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.30 2004/03/11 14:13:59 eicker Exp $
+ * $Id: psprotocol.h,v 1.31 2004/03/11 14:53:56 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -93,6 +93,7 @@ typedef enum {
     PSP_OP_PSM_ACKPEND,           /**< */
 
     PSP_OP_FREEONSUSP = 0x0038,   /**< Free suspended job's resources? */
+    PSP_OP_HANDLEOLD,             /**< Notice old binaries? */
 } PSP_Option_t;
 
 /** Messages used for information retrieval */

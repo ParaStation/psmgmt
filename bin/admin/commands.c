@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: commands.c,v 1.14 2004/03/11 14:29:19 eicker Exp $
+ * $Id: commands.c,v 1.15 2004/03/11 14:53:56 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.14 2004/03/11 14:29:19 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.15 2004/03/11 14:53:56 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -35,7 +35,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.14 2004/03/
 
 #include "commands.h"
 
-char commandsversion[] = "$Revision: 1.14 $";
+char commandsversion[] = "$Revision: 1.15 $";
 
 /* @todo PSI_sendMsg(): Wrapper, control if sendMsg was successful or exit */
 
@@ -682,6 +682,7 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
 	}
 	break;
     case PSP_OP_FREEONSUSP:
+    case PSP_OP_HANDLEOLD:
 	break;
     default:
 	printf("Cannot handle option type %d.\n", type);

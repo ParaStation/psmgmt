@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: adminparser.c,v 1.12 2004/03/11 14:29:19 eicker Exp $
+ * $Id: adminparser.c,v 1.13 2004/03/11 14:53:56 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.12 2004/03/11 14:29:19 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.13 2004/03/11 14:53:56 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -37,7 +37,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.12 2004/
 
 #include "helpmsgs.c"
 
-static char parserversion[] = "$Revision: 1.12 $";
+static char parserversion[] = "$Revision: 1.13 $";
 
 static char *getNodeList(char *nl_descr)
 {
@@ -411,6 +411,10 @@ static int setCommand(char *token)
 	    option = PSP_OP_FREEONSUSP;
 	} else if (strcasecmp(what, "fos") == 0) {
 	    option = PSP_OP_FREEONSUSP;
+	} else if (strcasecmp(what, "handleoldbins") == 0) {
+	    option = PSP_OP_HANDLEOLD;
+	} else if (strcasecmp(what, "hob") == 0) {
+	    option = PSP_OP_HANDLEOLD;
 	} else goto error;
 
 	val = parser_getNumber(value);
@@ -478,6 +482,10 @@ static int showCommand(char *token)
 	option = PSP_OP_FREEONSUSP;
     } else if (!strcasecmp(what, "fos")) {
 	option = PSP_OP_FREEONSUSP;
+    } else if (strcasecmp(what, "handleoldbins") == 0) {
+	option = PSP_OP_HANDLEOLD;
+    } else if (strcasecmp(what, "hob") == 0) {
+	option = PSP_OP_HANDLEOLD;
     } else goto error;
 
     PSIADM_ShowParam(option, nl);

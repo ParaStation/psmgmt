@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.h,v 1.19 2004/03/11 14:10:25 eicker Exp $
+ * $Id: config_parsing.h,v 1.20 2004/03/11 14:53:56 eicker Exp $
  *
  */
 /**
  * \file
  * Parser for the config file of the ParaStation daemon
  *
- * $Id: config_parsing.h,v 1.19 2004/03/11 14:10:25 eicker Exp $
+ * $Id: config_parsing.h,v 1.20 2004/03/11 14:53:56 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -62,6 +62,8 @@ typedef struct {
 			    commandline. */
     int freeOnSuspend;   /**< Flag if a job's resources are freed on
 			    suspend. */
+    int handleOldBins;   /**< Flag if resources occupied by old binaries
+			    (prior 4.1.0 should be recognized. */
 } config_t;
 
 /**

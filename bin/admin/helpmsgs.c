@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: helpmsgs.c,v 1.10 2004/03/11 14:27:58 eicker Exp $
+ * $Id: helpmsgs.c,v 1.11 2004/03/11 14:53:56 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.10 2004/03/11 14:27:58 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.11 2004/03/11 14:53:56 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -246,6 +246,11 @@ static info_t setInfo = {
 	  .descr = "Set flag marking if resources of suspended jobs are freed"
 	  " temporarily to <val>. Relevant values are 0 or different from 0."
 	  " Only the value on the master node really steers the behaviour!" },
+	{ .tag = "set {handleoldbins|hob} <val>",
+	  .descr = "Set flag marking if old binaries resources are handled"
+	  " correctly to <val>. Relevant values are 0 or different from 0."
+	  " Unfortunately this will break 'freeOnSuspend'. Only the value on"
+	  " the master node really steers the behaviour!" },
 	{ NULL, NULL }
     },
     .comment = "For more information reffer to 'help set <subcommand>'"
@@ -257,7 +262,8 @@ static info_t showInfo = {
 	.cmd = "show",
 	.arg = "{maxproc | user | group | psiddebug | rdpdebug | rdppktloss"
 	" | rdpmaxretrans | mcastdebug | master | {smallpacketsize|sps}"
-	" | resendtimeout | hnpend | ackpend | {freeonsuspend|fos}} <nodes>"
+	" | resendtimeout | hnpend | ackpend | {freeonsuspend|fos}"
+	" | {handleoldbins|hob}} <nodes>"
     }},
     .nodes = 1,
     .descr = "Show various parameters of the ParaStation system:",
@@ -280,7 +286,7 @@ static info_t showInfo = {
 	  .descr = "Show MCast facility's verbosity level." },
 	{ .tag = "show master",
 	  .descr = "Show master handling all the partition requests." },
-	{ .tag = "show smallpacketsize",
+	{ .tag = "show {smallpacketsize|sps}",
 	  .descr = "Show MCP's maximum size of PIO packets in bytes." },
 	{ .tag = "show resendtimeout",
 	  .descr = "Show MCP's resend timeout in microseconds." },
@@ -288,10 +294,14 @@ static info_t showInfo = {
 	  .descr = "Show MCP's HNPend parameter." },
 	{ .tag = "show ackpend",
 	  .descr = "Show MCP's AckPend parameter." },
-	{ .tag = "set {freeonsuspend|fos} <val>",
+	{ .tag = "show {freeonsuspend|fos}",
 	  .descr = "Show flag marking if resources of suspended jobs are freed"
 	  " temporarily. Only the value on the master node really steers the"
 	  " behaviour!" },
+	{ .tag = "show {handleoldbins|hob}",
+	  .descr = "Show flag marking if old binaries resources are handled"
+	  " correctly. Unfortunately this will break 'freeOnSuspend'. Only"
+	  " the value on the master node really steers the behaviour!" },
 	{ NULL, NULL }
     },
     .comment = NULL

@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidoption.c,v 1.8 2004/03/11 14:13:59 eicker Exp $
+ * $Id: psidoption.c,v 1.9 2004/03/11 14:53:56 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidoption.c,v 1.8 2004/03/11 14:13:59 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidoption.c,v 1.9 2004/03/11 14:53:56 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -201,6 +201,9 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 	    case PSP_OP_FREEONSUSP:
 		config->freeOnSuspend = msg->opt[i].value;
 		break;
+	    case PSP_OP_HANDLEOLD:
+		config->handleOldBins = msg->opt[i].value;
+		break;
 	    default:
 		snprintf(errtxt, sizeof(errtxt), "%s: unknown option %d",
 			 __func__, msg->opt[i].option);
@@ -306,6 +309,9 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_FREEONSUSP:
 		msg->opt[i].value = config->freeOnSuspend;
+		break;
+	    case PSP_OP_HANDLEOLD:
+		msg->opt[i].value = config->handleOldBins;
 		break;
 	    default:
 		snprintf(errtxt, sizeof(errtxt), "%s: unknown option %d",

@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.14 2004/03/11 14:11:20 eicker Exp $
+ * $Id: config_parsing.c,v 1.15 2004/03/11 14:53:56 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.14 2004/03/11 14:11:20 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.15 2004/03/11 14:53:56 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -52,6 +52,7 @@ static config_t config = (config_t) {
     .logDest = LOG_DAEMON,
     .useSyslog = 1,
     .freeOnSuspend = 0,
+    .handleOldBins = 0,
 };
 
 #define ENV_END 17 /* Some magic value */
@@ -1002,6 +1003,13 @@ static int getFreeOnSusp(char *token)
     return 0;
 }
     
+static int getHandleOldBins(char *token)
+{
+    config.handleOldBins = 1;
+    parser_comment("Recognize old binaries within resource management", 0);
+    return 0;
+}
+    
 /* ---------------------------------------------------------------------- */
 
 static keylist_t config_list[] = {
@@ -1031,6 +1039,7 @@ static keylist_t config_list[] = {
     {"environment", getEnv},
     {"env", getEnv},
     {"freeOnSuspend", getFreeOnSusp},
+    {"handleOldBins", getHandleOldBins},
     {NULL, parser_error}
 };
 
