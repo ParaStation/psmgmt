@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidsignal.c,v 1.4 2003/04/07 16:30:38 eicker Exp $
+ * $Id: psidsignal.c,v 1.5 2003/04/10 17:45:35 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidsignal.c,v 1.4 2003/04/07 16:30:38 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidsignal.c,v 1.5 2003/04/10 17:45:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -95,28 +95,51 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
     return 0;
 }
 
-void PSID_sendSignal(long tid, uid_t uid, long senderTid, int signal)
+void PSID_sendSignal(long tid, uid_t uid, long senderTid, int signal,
+		     int pervasive)
 {
     if (PSC_getID(tid)==PSC_getMyID()) {
 	/* receiver is on local node, send signal */
-	PStask_t *task = PStasklist_find(managedTasks, tid);
+	PStask_t *dest = PStasklist_find(managedTasks, tid);
 	pid_t pid = PSC_getPID(tid);
 
-	if (!task) {
+	/* receiver is on local node, send signal */
+	snprintf(errtxt, sizeof(errtxt), "%s: sending signal %d to %s",
+		 __func__, signal, PSC_printTID(tid));
+	PSID_errlog(errtxt, 2);
+
+	if (!dest) {
 	    snprintf(errtxt, sizeof(errtxt),
 		     "%s: tried to send sig %d to %s: task not found",
 		     __func__, signal, PSC_printTID(tid));
 	    PSID_errlog(errtxt, 1);
-	} else if (pid) {
-	    int ret, sig = (signal!=-1) ? signal : task->relativesignal;
+	} else if (!pid) {
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: Do not send signal to daemon", __func__);
+	    PSID_errlog(errtxt, 0);
+	} else if (pervasive) {
+	    PStask_t *clone = PStask_clone(dest);
+	    long childTID;
+	    int sig = -1;
 
-	    if (signal == -1 || signal == SIGTERM) {
-		/* Kill using SIGKILL in 2 seconds */
-		if (!task->killat) task->killat = time(NULL) + 10;
+	    while ((childTID = PSID_getSignal(&clone->childs, &sig))) {
+		PSID_sendSignal(childTID, uid, senderTid, signal, 1);
+		sig = -1;
+	    }
 
-		if (task->fd == -1 && pid > 0) {
-		    /* Send signal to the whole process group */
-		    pid = -pid;
+	    /* Don't send back to the original sender */
+	    if (senderTid != tid) {
+		PSID_sendSignal(tid, uid, senderTid, signal, 0);
+	    }
+	    PStask_delete(clone);
+	} else {
+	    int ret, sig = (signal!=-1) ? signal : dest->relativesignal;
+
+	    if (signal == -1) {
+		/* Kill using SIGKILL in 10 seconds */
+		if (!dest->killat) {
+		    dest->killat = time(NULL) + 10;
+		    if (dest->group == TG_LOGGER) dest->killat++;
 		}
 	    }
 
@@ -125,7 +148,7 @@ void PSID_sendSignal(long tid, uid_t uid, long senderTid, int signal)
 	    if (ret) {
 		char *errstr = strerror(errno);
 		snprintf(errtxt, sizeof(errtxt),
-			 "%s: tried to send sig %d to %s: error (%d): %s",
+			 "%s: tried to send signal %d to %s: error (%d): %s",
 			 __func__, sig, PSC_printTID(tid),
 			 errno, errstr ? errstr : "UNKNOWN");
 		PSID_errlog(errtxt, 0);
@@ -135,7 +158,7 @@ void PSID_sendSignal(long tid, uid_t uid, long senderTid, int signal)
 			 __func__, sig, PSC_printTID(tid));
 		PSID_errlog(errtxt, 1);
 
-		PSID_setSignal(&task->signalSender, senderTid, sig);
+		PSID_setSignal(&dest->signalSender, senderTid, sig);
 	    }
 	}
     } else {
@@ -148,6 +171,7 @@ void PSID_sendSignal(long tid, uid_t uid, long senderTid, int signal)
 	msg.header.len = sizeof(msg);
 	msg.signal = signal;
 	msg.param = uid;
+	msg.pervasive = pervasive;
 
 	sendMsg(&msg);
 
@@ -164,7 +188,7 @@ void PSID_sendAllSignals(PStask_t *task)
     long sigtid;
 
     while ((sigtid = PSID_getSignal(&task->signalReceiver, &sig))) {
-	PSID_sendSignal(sigtid, task->uid, task->tid, sig);
+	PSID_sendSignal(sigtid, task->uid, task->tid, sig, 0);
 
 	snprintf(errtxt, sizeof(errtxt),
 		 "%s(%s)", __func__, PSC_printTID(task->tid));
@@ -186,7 +210,7 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
     if (!sigtid) sigtid = PSID_getSignal(&task->childs, &sig);
 
     while (sigtid) {
-	PSID_sendSignal(sigtid, task->uid, task->tid, -1);
+	PSID_sendSignal(sigtid, task->uid, task->tid, -1, 0);
 
 	snprintf(errtxt, sizeof(errtxt),
 		 "%s(%s)", __func__, PSC_printTID(task->tid));

@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidsignal.h,v 1.1 2003/02/21 13:25:59 eicker Exp $
+ * $Id: psidsignal.h,v 1.2 2003/04/10 17:44:51 eicker Exp $
  *
  */
 /**
  * @file
  * Functions for sending signals to ParaStation tasks within the Daemon
  *
- * $Id: psidsignal.h,v 1.1 2003/02/21 13:25:59 eicker Exp $
+ * $Id: psidsignal.h,v 1.2 2003/04/10 17:44:51 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -70,7 +70,8 @@ int PSID_kill(pid_t pid, int sig, uid_t uid);
 /**
  * PSID_sendSignal
  */
-void PSID_sendSignal(long tid, uid_t uid, long senderTid, int signal);
+void PSID_sendSignal(long tid, uid_t uid, long senderTid, int signal,
+		     int pervasive);
 
 /**
  * Send the signals to all task which have asked for
