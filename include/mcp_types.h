@@ -159,26 +159,26 @@ typedef struct MCP_Route_T {
  ********************************************************************/
 
 #define NR_OF_PROTOCOLS 8
-#define MCP_NULL        0x0210
-#define MCP_ACK         0x0211
-#define MCP_CAP_NACK    0x0212
-#define MCP_SEQ_NACK    0x0213
+#define MCP_NULL        0x0230
+#define MCP_ACK         0x0231
+#define MCP_CAP_NACK    0x0232
+#define MCP_SEQ_NACK    0x0233
 
-#define MCP_SYN         0x0214
-#define MCP_SYNACK      0x0215
-#define MCP_SYNNACK     0x0216
+#define MCP_SYN         0x0234
+#define MCP_SYNACK      0x0235
+#define MCP_SYNNACK     0x0236
 //#define PSHAL_SYN_MASK  0x0214
 #define isSYNPkt(t)     (((t)&(~0x3))==MCP_SYN)
 // Error : #define isSYNPkt(t)     ((t)&PSHAL_SYN_MASK)
 
-#define PSHAL_PTYPE_MASK        0x0220
-#define PSHAL_RAWDATA   0x0220
-#define PSHAL_UDP       0x0221
-#define PSHAL_TCP       0x0222
-#define PSHAL_PORT      0x0223
-#define PSHAL_AM        0x0224
+#define PSHAL_PTYPE_MASK        0x0240
+#define PSHAL_RAWDATA   0x0240
+#define PSHAL_UDP       0x0241
+#define PSHAL_TCP       0x0242
+#define PSHAL_PORT      0x0243
+#define PSHAL_AM        0x0244
 //#ifdef ENABLE_DEBUG_MSG	
-#define PSHAL_DEBUGMSG  0x0225
+#define PSHAL_DEBUGMSG  0x0245
 //#endif
 
 #define isDataPkt(t)    (((t)&(~0x07))==PSHAL_PTYPE_MASK)

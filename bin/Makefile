@@ -34,6 +34,7 @@ tracemcp:tracemcp.c $(LIB)/libpshal.a $(LIB)/libpvar.a
 
 psconfig:psconfig.c $(LIB)/libpshal.a $(LIB)/libarg.a
 	gcc $< -I$(INC) -I.. -L$(LIB) -larg -lpshal -lm -o $@
+	chmod og+rx $@
 
 psroute:psroute.c $(LIB)/libpshal.a $(LIB)/libarg.a
 	gcc $< -I$(INC) -I.. -L$(LIB) -larg -lpshal -lm -o $@

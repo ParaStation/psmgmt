@@ -31,6 +31,7 @@ static int arg_queryparam=-1;
 static int arg_param=-1;
 static int arg_param_value=-1;
 static char *arg_lickey=0;
+static char *arg_routingtable=0;
 
 void do_setlickey()
 {
@@ -39,9 +40,47 @@ void do_setlickey()
 
 void do_setid()
 {
+    FILE *rt;
     if ( PSHALSYSSetID(arg_id) != 0 ){
 	printf("SetID failed\n");
+	exit(1);
     }
+    if (arg_routingtable){
+	char line[1000];
+	rt=fopen(arg_routingtable,"r");
+	if (!rt){
+	    perror("open routingtable");
+	    exit(1);
+	}
+	if (!fgets(line,sizeof(line),rt)){
+	    perror("read routingtable");
+	    exit(1);
+	}
+	if (strcmp(line,"routing table\n")){
+	    printf("error in routing table [%s]%s\n",arg_routingtable,line);
+	    exit(1);
+	}
+	while (fgets(line,sizeof(line),rt)){
+	    int cnt;
+	    PSHALSYSRouting_t r;
+	    int R[8];
+	    int src,dest;
+	    int i;
+	    cnt=sscanf(line,"%d %d %d %d %d %d %d %d %d %d",
+		       &src,&dest,
+		       &R[0],&R[1],&R[2],&R[3],
+		       &R[4],&R[5],&R[6],&R[7]);
+	    if ((cnt >=3)&&(src==arg_id)){
+		r.dstnode=dest;
+		r.RLen=cnt-2;
+		for (i=0;i<r.RLen;i++){
+		    r.Route[i] = R[i];
+		}
+		PSHALSYSSetRoutes(1,&r);
+	    }
+	}
+    }
+    
 }
 
 void do_setroute()
@@ -108,7 +147,7 @@ int main(int argc, char **argv)
 		  "", "Usage: %s [options]", argv[0],
 		  "", "This program set routes",
 		  "-key %S",&arg_lickey,"Set license key",
-		  "-id %d",&arg_id,"Node ID",
+		  "-id %d[%S]",&arg_id,&arg_routingtable,"Node ID [routingtable]",
 		  "-r %d %d[%d[%d[%d[%d[%d[%d[%d]]]]]]]",
 		  &arg_routenode,
 		  &arg_route[0],&arg_route[1],&arg_route[2],&arg_route[3],
