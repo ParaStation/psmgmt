@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.64 2003/07/04 07:47:31 eicker Exp $
+ * $Id: psiadmin.c,v 1.65 2003/07/18 14:43:42 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.64 2003/07/04 07:47:31 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.65 2003/07/18 14:43:42 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -28,7 +28,9 @@ static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.64 2003/07/0
 #include <readline/history.h>
 #include <popt.h>
 
-#include <psport.h>
+#ifndef MIN
+#define MIN(a,b)      (((a)<(b))?(a):(b))
+#endif
 
 #include "pscommon.h"
 #include "psprotocol.h"
@@ -50,7 +52,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.64 $";
+static char psiadmversion[] = "$Revision: 1.65 $";
 static int doRestart = 0;
 
 static char *hoststatus = NULL;
