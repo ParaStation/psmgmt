@@ -4,6 +4,7 @@ CFLAGS += -O2 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
 PSM_OSDIR := @PSM_OSDIR@
 CPPFLAGS += -I@top_srcdir@/include -I/usr/local/include -I. @CPPFLAG_MMD@
 SRCDIR = @srcdir@
+TOP_SRCDIR = @top_srcdir@
 YFLAGS = -d
 LFLAGS = -i
 LEX = flex
@@ -15,7 +16,7 @@ LIBDIR := ../lib
 
 .LIBPATTERNS += $(LIBDIR)/lib%.a
 
-TOOLS:=psconfig pscounter psiadmin psid psld
+TOOLS:=psconfig pscounter psiadmin psid psld parastation
 # test_nodes
 
 bin:	$(TOOLS)
@@ -63,6 +64,11 @@ psld: psld.o license.o
 psld: parse.o psid.tab.o lex.psid.o
 psld: timer.o mcast.o
 psld: -lpsi -lm
+
+
+
+parastation: $(TOP_SRCDIR)/scripts/parastation@TRU64FILEADD@
+	cp $< $@
 
 # lex and yacc
 #: %.tab.c %.scan.y
