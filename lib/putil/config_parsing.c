@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.1 2003/03/06 14:04:40 eicker Exp $
+ * $Id: config_parsing.c,v 1.2 2003/04/03 15:10:24 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.1 2003/03/06 14:04:40 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.2 2003/04/03 15:10:24 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -31,46 +31,14 @@ static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.1 2003
 #include "psnodes.h"
 
 #include "pscommon.h"
-#include "pshwtypes.h"
-
-// #include "psidutil.h"
+#include "hardware.h"
 
 #include "config_parsing.h"
 #include "pslic.h"
 
-int nodesfound = 0;
-
-/* struct node_t licNode = { */
-/*     .addr = INADDR_ANY, */
-/*     .numCPU = 1, */
-/*     .isUp = 0, */
-/*     .hwType = 0, */
-/*     .hwStatus = 0, */
-/*     .hasIP = 0, */
-/*     .myriIP = 0, */
-/*     .starter = 0 */
-/* }; */
-
-char *Configfile = NULL;
 char *ConfigInstDir = NULL;
 
-char *ConfigLicenseFile = NULL;
-env_fields_t ConfigLicEnv = { .vars = NULL, .cnt = 0, .size = 0 };
-
-char *ConfigLicenseKeyMCP = NULL;
-char *ConfigMyriModule = NULL;
-char *ConfigRoutefile = NULL;
-
-int ConfigSmallPacketSize = -1;
-int ConfigRTO = -1;
-int ConfigHNPend = -1;
-int ConfigAckPend = -1;
-
-char *ConfigIPModule = NULL;
-char *ConfigIPPrefix = NULL;
-int ConfigIPPrefixLen = 20;
-
-char *ConfigGigaEtherModule = NULL;
+env_fields_t ConfigLicEnv;
 
 long ConfigSelectTime = 2;
 long ConfigDeadInterval = 10;
@@ -82,17 +50,20 @@ int ConfigMCastPort = 1889;
 int ConfigLogLevel = 0;          /* default logging level */
 int ConfigLogDest = LOG_DAEMON;
 
-char *LicFile = NULL;
-
 int MyPsiId = -1;
+
+static int nodesfound = 0;
+
+static char *absLicFile = NULL;
+static char *licFile = NULL;
 
 static char errtxt[256];
 
 /*----------------------------------------------------------------------*/
 /* Helper function to insert a node */
 
-static int installHost(unsigned int ipaddr, int id,
-		       int hwtype, int ip, unsigned int myriIP, int starter)
+static int installHost(unsigned int ipaddr, int id, int hwtype, 
+		       unsigned int extraIP, int jobs, int starter)
 {
     unsigned int hostno;
     struct host_t *host;
@@ -144,21 +115,21 @@ static int installHost(unsigned int ipaddr, int id,
 	return -1;
     }
 
-    if (PSnodes_setHasIP(id, ip)) {
+    if (PSnodes_setExtraIP(id, extraIP)) {
 	snprintf(errtxt, sizeof(errtxt),
-		 "PSnodes_setHasIP(%d, %d) failed", id, ip);
+		 "PSnodes_setExtraIP(%d, %d) failed", id, extraIP);
 	parser_comment(errtxt, 0);
 	return -1;
     }
 
-    if (PSnodes_setExtraIP(id, myriIP)) {
+    if (PSnodes_setRunJobs(id, jobs)) {
 	snprintf(errtxt, sizeof(errtxt),
-		 "PSnodes_setExtraIP(%d, %d) failed", id, myriIP);
+		 "PSnodes_setRunJobs(%d, %d) failed", id, jobs);
 	parser_comment(errtxt, 0);
 	return -1;
     }
 
-    if (PSnodes_setIsStarter(id, hwtype)) {
+    if (PSnodes_setIsStarter(id, starter)) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "PSnodes_setIsStarter(%d, %d) failed", id, starter);
 	parser_comment(errtxt, 0);
@@ -246,128 +217,6 @@ static int getNumNodes(char *token)
     return ret;
 }
 
-static int getMyriModuleName(char *token)
-{
-    char *modname, *file;
-
-    modname = parser_getString();
-    file = parser_getFilename(modname, PSC_lookupInstalldir(), "/bin/modules");
-
-    if (!file) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "cannot find Myrinet module '%s'", modname);
-	parser_comment(errtxt, 0);
-
-	return -1;
-    }
-
-    if (ConfigMyriModule) free(ConfigMyriModule);
-
-    ConfigMyriModule = strdup(file);
-
-    return 0;
-}
-
-static int getIPModuleName(char *token)
-{
-    char *modname, *file;
-
-    modname = parser_getString();
-    file = parser_getFilename(modname, PSC_lookupInstalldir(), "/bin/modules");
-
-    if (!file) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "cannot find IP module '%s'", modname);
-	parser_comment(errtxt, 0);
-
-	return -1;
-    }
-
-    if (ConfigIPModule) free(ConfigIPModule);
-
-    ConfigIPModule = strdup(file);
-
-    /* Set IPPrefix to default value */
-    if (!ConfigIPPrefix) {
-	ConfigIPPrefix = strdup("192.168.16");
-    }
-
-    return 0;
-}
-
-static int getIPPrefix(char *token)
-{
-    char *prefix;
-
-    prefix = parser_getString();
-
-    /* @todo Testing if prefix is valid */
-
-    if (ConfigIPPrefix) free(ConfigIPPrefix);
-
-    ConfigIPPrefix = strdup(prefix);
-
-    return 0;
-}
-
-static int getIPPrefixLen(char *token)
-{
-    int ret;
-
-    ret = parser_getNumValue(parser_getString(),
-			     &ConfigIPPrefixLen, "IP-prefix length");
-
-    if (ret) return ret;
-
-    /* @todo Testing if ConfigIPPrefixLen is valid */
-
-    return 0;
-}
-
-static int getGigaEtherModuleName(char *token)
-{
-    char *modname, *file;
-
-    modname = parser_getString();
-    file = parser_getFilename(modname, PSC_lookupInstalldir(), "/bin/modules");
-
-    if (!file) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "cannot find Gigabit-Ethernet module '%s'", modname);
-	parser_comment(errtxt, 0);
-
-	return -1;
-    }
-
-    if (ConfigGigaEtherModule) free(ConfigGigaEtherModule);
-
-    ConfigGigaEtherModule = strdup(file);
-
-    return 0;
-}
-
-static int getRouteFile(char *token)
-{
-    char *routefile, *file;
-
-    routefile = parser_getString();
-    file= parser_getFilename(routefile, PSC_lookupInstalldir(), "/config");
-
-    if (!file) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "cannot find routefile '%s'", routefile);
-	parser_comment(errtxt, 0);
-
-	return -1;
-    }
-
-    if (ConfigRoutefile) free(ConfigRoutefile);
-
-    ConfigRoutefile = strdup(file);
-
-    return 0;
-}
-
 static int getLicServer(char *token)
 {
     char *hname;
@@ -405,37 +254,15 @@ static int getLicFile(char *token)
     char *licfile = parser_getString();
 
     /*
-     * Don't use ConfigLicenseFile here. It will be assigned later.
+     * Don't use absLicFile here. It will be assigned later.
      * This is due to the fact that you don't have to give the
      * LicenseFile entry inevitably.
      */
-    if (LicFile) free(LicFile);
+    if (licFile) free(licFile);
 
-    LicFile = strdup(licfile);
+    licFile = strdup(licfile);
 
     return 0;
-}
-
-static int getSmallPktSize(char *token)
-{
-    return parser_getNumValue(parser_getString(),
-			      &ConfigSmallPacketSize, "small packet size");
-}
-
-static int getResendTimeout(char *token)
-{
-    return parser_getNumValue(parser_getString(),
-			      &ConfigRTO, "resend timeout");
-}
-
-static int getHNPend(char *token)
-{
-    return parser_getNumValue(parser_getString(), &ConfigHNPend, "HNPend");
-}
-
-static int getAckPend(char *token)
-{
-    return parser_getNumValue(parser_getString(), &ConfigAckPend, "AckPend");
 }
 
 static int getMCastGroup(char *token)
@@ -685,26 +512,17 @@ static int getHWnone(char *token)
     return 0;
 }
 
-static int getHWethernet(char *token)
+static int getHWent(char *token)
 {
-    node_hwtype |= PSHW_ETHERNET;
+    int idx = HW_index(token);
+
+    if (idx < 0) return parser_error(token);
+
+    node_hwtype |= 1<<idx;
 
     return 0;
 }
 
-static int getHWmyrinet(char *token)
-{
-    node_hwtype |= PSHW_MYRINET;
-
-    return 0;
-}
-
-static int getHWgigaethernet(char *token)
-{
-    node_hwtype |= PSHW_GIGAETHERNET;
-
-    return 0;
-}
 
 static int endHWEnv(char *token)
 {
@@ -712,11 +530,9 @@ static int endHWEnv(char *token)
 }
 
 static keylist_t hwenv_list[] = {
-    {"ethernet", getHWethernet},
-    {"myrinet", getHWmyrinet},
-    {"gigaethernet", getHWgigaethernet},
+    {"none", getHWnone},
     {"}", endHWEnv},
-    {NULL, parser_error}
+    {NULL, getHWent}
 };
 
 static parser_t hwenv_parser = {" \t\n", hwenv_list};
@@ -729,10 +545,7 @@ static int getHWEnv(char *token)
 static keylist_t hw_list[] = {
     {"{", getHWEnv},
     {"none", getHWnone},
-    {"ethernet", getHWethernet},
-    {"myrinet", getHWmyrinet},
-    {"gigaethernet", getHWgigaethernet},
-    {NULL, parser_error}
+    {NULL, getHWent}
 };
 
 static parser_t hw_parser = {" \t\n", hw_list};
@@ -760,8 +573,8 @@ static int getHWLine(char *token)
 
     hwtype = node_hwtype;
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "Default HWType is now '%s'", PSHW_printType(hwtype));
+    snprintf(errtxt, sizeof(errtxt), "Default HWType is now '%s'",
+	     HW_printType(hwtype));
     parser_comment(errtxt, 8);
 
     return ret;
@@ -789,35 +602,35 @@ static int getCSLine(char *token)
     return ret;
 }
 
-static int hasIP = 0, node_hasIP;
+static int runjobs = 1, node_runjobs;
 
-static int getHasIP(char *token)
+static int getRJ(char *token)
 {
-    return parser_getBool(parser_getString(), &node_hasIP, "hasIP");
+    return parser_getBool(parser_getString(), &node_runjobs, "node_runjobs");
 }
 
-static int getHasIPLine(char *token)
+static int getRJLine(char *token)
 {
     int ret;
 
-    ret = getHasIP(token);
+    ret = getRJ(token);
 
-    hasIP = node_hasIP;
+    runjobs = node_runjobs;
 
-    snprintf(errtxt, sizeof(errtxt), "Default for 'HasIP' is now '%s'",
-	     hasIP ? "TRUE" : "FALSE");
+    snprintf(errtxt, sizeof(errtxt), "Default for 'RunJobs' is now '%s'",
+	     runjobs ? "TRUE" : "FALSE");
     parser_comment(errtxt, 8);
 
     return ret;
 }
 
-static unsigned int node_myriIP;
+static unsigned int node_extraIP;
 
-static int getMyriIP(char *token)
+static int getExtraIP(char *token)
 {
-    node_myriIP = parser_getHostname(parser_getString());
+    node_extraIP = parser_getHostname(parser_getString());
 
-    if (!node_myriIP) return -1;
+    if (!node_extraIP) return -1;
 
     return 0;
 }
@@ -826,9 +639,9 @@ static int getMyriIP(char *token)
 
 static keylist_t nodeline_list[] = {
     {"hwtype", getHW},
+    {"runjobs", getRJ},
     {"starter", getCS},
-    {"hasip", getHasIP},
-    {"myrinetip", getMyriIP},
+    {"extraip", getExtraIP},
     {NULL, parser_error}
 };
 
@@ -841,9 +654,9 @@ static int getNodeLine(char *token)
     char *hostname;
 
     node_hwtype = hwtype;
+    node_runjobs = runjobs;
     node_canstart = canstart;
-    node_hasIP = hasIP;
-    node_myriIP = 0;
+    node_extraIP = 0;
 
     ipaddr = parser_getHostname(token);
 
@@ -863,20 +676,20 @@ static int getNodeLine(char *token)
 
     if (parser_getDebugLevel()>=6) {
 	snprintf(errtxt, sizeof(errtxt), "Register '%s' as %d with"
-		 " HW '%s' IP%s supported, starting%s allowed.",
-		 hostname, nodenum, PSHW_printType(node_hwtype),
-		 node_hasIP ? "" : " not", node_canstart ? "" : " not");
+		 " HW '%s', jobs%s allowed, starting%s allowed.",
+		 hostname, nodenum, HW_printType(node_hwtype),
+		 node_runjobs ? "" : " not", node_canstart ? "" : " not");
 	parser_comment(errtxt, 6);
-	if (node_hasIP && node_myriIP) {
+	if (node_extraIP) {
 	    snprintf(errtxt, sizeof(errtxt), " Myrinet IP will be <%s>.",
-		     inet_ntoa(* (struct in_addr *) &node_myriIP));
+		     inet_ntoa(* (struct in_addr *) &node_extraIP));
 	    parser_comment(errtxt, 6);
 	}
 	parser_comment("\n", 6);
     }
 
-    ret = installHost(ipaddr, nodenum,
-		      node_hwtype, node_hasIP, node_myriIP, node_canstart);
+    ret = installHost(ipaddr, nodenum, node_hwtype, node_extraIP,
+		      node_runjobs, node_canstart);
 
     return ret;
 }
@@ -922,25 +735,14 @@ static int getNodes(char *token)
 
 /* ---------------------------------------------------------------------- */
 
-static int getEnvLine(char *token)
+char *getQuotedString(char *line)
 {
-    char *line, *end;
-    char *name, *value = NULL;
-
-    if (token) {
-	name = strdup(token);
-    } else {
-	snprintf(errtxt, sizeof(errtxt), "syntax error\n");
-	parser_comment(errtxt,0);
-	return -1;
-    }
-
-    line = parser_getLine();
+    char *end, *value = NULL;
 
     if (!line) {
-	snprintf(errtxt, sizeof(errtxt), "premature end of line\n");
+	snprintf(errtxt, sizeof(errtxt), "empty line\n");
 	parser_comment(errtxt,0);
-	return -1;
+	return NULL;
     }
 
     /* Remove leading whitespace */
@@ -971,16 +773,49 @@ static int getEnvLine(char *token)
     }
 
     if (!value) {
-	snprintf(errtxt, sizeof(errtxt), "no value for %s\n", name);
+	snprintf(errtxt, sizeof(errtxt), "no string found within %s\n", line);
 	parser_comment(errtxt,0);
-	return -1;
+	return NULL;
     }
 
-    /* Remove trailing whitespace */
+    /* Skip trailing whitespace */
     while (*end==' ' || *end=='\t') end++;
     if (*end) {
 	snprintf(errtxt, sizeof(errtxt), "found trailing garbage '%s' %d\n",
 		 end, *end);
+	parser_comment(errtxt,0);
+	return NULL;
+    }
+
+    return value;
+
+}
+/* ---------------------------------------------------------------------- */
+
+static int getEnvLine(char *token)
+{
+    char *name, *line, *value;
+
+    if (token) {
+	name = strdup(token);
+    } else {
+	snprintf(errtxt, sizeof(errtxt), "syntax error\n");
+	parser_comment(errtxt,0);
+	return -1;
+    }
+
+    line = parser_getLine();
+
+    if (!line) {
+	snprintf(errtxt, sizeof(errtxt), "premature end of line\n");
+	parser_comment(errtxt,0);
+	return -1;
+    }
+
+    value = getQuotedString(line);
+
+    if (!value) {
+	snprintf(errtxt, sizeof(errtxt), "no value for %s\n", name);
 	parser_comment(errtxt,0);
 	return -1;
     }
@@ -1034,25 +869,157 @@ static int getEnv(char *token)
 
 /* ---------------------------------------------------------------------- */
 
+static int actHW = -1;
+
+static int getHardwareScript(char *token)
+{
+    char *name, *line, *value;
+
+    if (strcasecmp(token, "startscript")==0) {
+	name = HW_STARTER;
+    } else if (strcasecmp(token, "stopscript")==0) {
+	name = HW_STOPPER;
+    } else if (strcasecmp(token, "setupscript")==0) {
+	name = HW_SETUP;
+    } else if (strcasecmp(token, "headerscript")==0) {
+	name = HW_HEADERLINE;
+    } else if (strcasecmp(token, "statusscript")==0) {
+	name = HW_COUNTER;
+    } else {
+	snprintf(errtxt, sizeof(errtxt), "unknown script type '%s'\n", token);
+	parser_comment(errtxt,0);
+	return -1;
+    }
+
+    line = parser_getLine();
+
+    if (!line) {
+	snprintf(errtxt, sizeof(errtxt), "premature end of line\n");
+	parser_comment(errtxt,0);
+	return -1;
+    }
+
+    value = getQuotedString(line);
+
+    if (!value) {
+	snprintf(errtxt, sizeof(errtxt), "no value for %s\n", name);
+	parser_comment(errtxt,0);
+	return -1;
+    }
+
+    /* store environment */
+    HW_setScript(actHW, name, value);
+
+    snprintf(errtxt, sizeof(errtxt),
+	     "Got hardware script: %s='%s'\n", name , value);
+    parser_comment(errtxt,10);
+
+    return 0;
+}
+
+static int getHardwareEnvLine(char *token)
+{
+    char *line, *end;
+    char *name, *value = NULL;
+
+    if (token) {
+	name = strdup(token);
+    } else {
+	snprintf(errtxt, sizeof(errtxt), "syntax error\n");
+	parser_comment(errtxt,0);
+	return -1;
+    }
+
+    line = parser_getLine();
+
+    if (!line) {
+	snprintf(errtxt, sizeof(errtxt), "premature end of line\n");
+	parser_comment(errtxt,0);
+	return -1;
+    }
+
+    value = getQuotedString(line);
+
+    if (!value) {
+	snprintf(errtxt, sizeof(errtxt), "no value for %s\n", name);
+	parser_comment(errtxt,0);
+	return -1;
+    }
+
+    /* store environment */
+    HW_setEnv(actHW, name, value);
+
+    snprintf(errtxt, sizeof(errtxt),
+	     "Got hardware environment: %s='%s'\n", name , value);
+    parser_comment(errtxt,10);
+
+    return 0;
+}
+
+static int endHardwareEnv(char *token)
+{
+    actHW = -1;
+    return UP;
+}
+
+static keylist_t hardwareenv_list[] = {
+    {"}", endHardwareEnv},
+    {"startscript", getHardwareScript},
+    {"stopscript", getHardwareScript},
+    {"setupscript", getHardwareScript},
+    {"headerscript", getHardwareScript},
+    {"statusscript", getHardwareScript},
+    {NULL, getHardwareEnvLine}
+};
+
+static parser_t hardwareenv_parser = {" \t\n", hardwareenv_list};
+
+static int getHardwareEnv(char *token)
+{
+    return parser_parseOn(parser_getString(), &hardwareenv_parser);
+}
+
+static int getHardware(char *token)
+{
+    char *name, *brace;
+    int ret;
+
+    name = parser_getString();
+
+    actHW = HW_index(name);
+
+    if (actHW == -1) {
+	actHW = HW_add(name);
+
+	snprintf(errtxt, sizeof(errtxt),
+		 "New hardware '%s' registered as %d\n", name, actHW);
+	parser_comment(errtxt,10);
+    }
+
+    brace = parser_getString();
+    if (strcmp(brace, "{")) return -1;
+
+    ret = parser_parseOn(parser_getString(), &hardwareenv_parser);
+
+    if (ret == UP) {
+	return 0;
+    }
+
+    return ret;
+}
+
+/* ---------------------------------------------------------------------- */
+
 static keylist_t config_list[] = {
     {"installationdir", getInstDir},
     {"installdir", getInstDir},
-    {"myrinetmodule", getMyriModuleName},
-    {"smallpacketsize", getSmallPktSize},
-    {"resendtimeout", getResendTimeout},
-    {"hnpend", getHNPend},
-    {"ackpend", getAckPend},
-    {"ipmodule", getIPModuleName},
-    {"ipprefix", getIPPrefix},
-    {"ipprefixlen", getIPPrefixLen},
-    {"gigaethermodule", getGigaEtherModuleName},
-    {"routingfile", getRouteFile},
+    {"hardware", getHardware},
     {"nrofnodes", getNumNodes},
+    {"hwtype", getHWLine},
+    {"runjobs", getRJLine},
+    {"starter", getCSLine},
     {"node", getNodes},
     {"nodes", getNodes},
-    {"hwtype", getHWLine},
-    {"starter", getCSLine},
-    {"hasip", getHasIPLine},
     {"licenseserver", getLicServer},
     {"licserver", getLicServer},
     {"licensefile", getLicFile},
@@ -1078,7 +1045,7 @@ static parser_t config_parser = {" \t\n", config_list};
 #define DEFAULT_CONFIGFILE "/etc/parastation.conf"
 #define DEFAULT_LICFILE "license"
 
-int parseConfig(int usesyslog, int loglevel)
+int parseConfig(int usesyslog, int loglevel, char *configfile)
 {
     int ret;
     FILE *cfd;
@@ -1086,15 +1053,15 @@ int parseConfig(int usesyslog, int loglevel)
     /*
      * Set MyId to my own ID (needed for installhost())
      */
-    if (!Configfile) {
-	Configfile = DEFAULT_CONFIGFILE;
+    if (!configfile) {
+	configfile = DEFAULT_CONFIGFILE;
     }
 
     parser_init(usesyslog, NULL);
 
-    if (!(cfd = fopen(Configfile,"r"))) {
+    if (!(cfd = fopen(configfile,"r"))) {
 	snprintf(errtxt, sizeof(errtxt),
-		 "Unable to locate configuration file <%s>", Configfile);
+		 "Unable to locate configuration file <%s>", configfile);
 	parser_comment(errtxt, 0);
 
 	return -1;
@@ -1104,7 +1071,7 @@ int parseConfig(int usesyslog, int loglevel)
     parser_setDebugLevel(loglevel);
 
     snprintf(errtxt, sizeof(errtxt),
-	     "Using <%s> as configuration file", Configfile);
+	     "Using <%s> as configuration file", configfile);
     parser_comment(errtxt, 1);
 
     ret = parser_parseFile(&config_parser);
@@ -1112,7 +1079,7 @@ int parseConfig(int usesyslog, int loglevel)
     if (ret) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "ERROR: Parsing of configuration file <%s> failed.",
-		 Configfile);
+		 configfile);
 	parser_comment(errtxt, 0);
 
 	return -1;
@@ -1131,41 +1098,54 @@ int parseConfig(int usesyslog, int loglevel)
     /*
      * Test if the Licensefile exists
      */
-    if (!LicFile) {
-	LicFile = strdup(DEFAULT_LICFILE);
+    if (!licFile) {
+	licFile = strdup(DEFAULT_LICFILE);
     }
 
-    ConfigLicenseFile = parser_getFilename(LicFile, PSC_lookupInstalldir(),
-					   "/config");
+    absLicFile = parser_getFilename(licFile, PSC_lookupInstalldir(),
+				    "/config");
 
-    if (!ConfigLicenseFile) {
-	char *tmp = strdup(Configfile);
-	ConfigLicenseFile = parser_getFilename(LicFile, dirname(tmp), NULL);
+    if (!absLicFile) {
+	char *tmp = strdup(configfile);
+	absLicFile = parser_getFilename(licFile, dirname(tmp), NULL);
 	free(tmp);
     }
 	
-    if (!ConfigLicenseFile) {
+    if (!absLicFile) {
  	snprintf(errtxt, sizeof(errtxt),
-		 "Unable to locate LicenseFile '%s'", LicFile);
+		 "Unable to locate LicenseFile '%s'", licFile);
 	parser_comment(errtxt, 0);
 
 	return -1;
     } else {
  	snprintf(errtxt, sizeof(errtxt),
-		 "Using <%s> as license file", ConfigLicenseFile);
+		 "Using <%s> as license file", absLicFile);
 	parser_comment(errtxt, 1);
     }
 
     /*
      * Read the Licensefile 
      */
-    if (lic_fromfile(&ConfigLicEnv, ConfigLicenseFile) < 0) {
+    env_init(&ConfigLicEnv);
+    if (lic_fromfile(&ConfigLicEnv, absLicFile) < 0) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "ERROR: %s.", lic_errstr ? lic_errstr : "in licensefile");
 	parser_comment(errtxt, 0);
 	return -1;
     }
-    ConfigLicenseKeyMCP = env_get(&ConfigLicEnv, LIC_MCPKEY);
+
+    {
+	/* Put the MCP license key into the right environment */
+	char *LicKeyMCP = env_get(&ConfigLicEnv, LIC_MCPKEY);
+
+	if (LicKeyMCP) {
+	    int hw = HW_index("myrinet");
+
+	    if (hw >= 0) {
+		HW_setEnv(hw, "PS_LIC", LicKeyMCP);
+	    }
+	}
+    }
 
     /*
      * Sanity Checks
