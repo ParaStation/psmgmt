@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.9 2003/10/13 17:19:47 hauke Exp $
+# $Id: Makefile.in,v 1.10 2003/11/10 17:53:44 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -26,7 +26,7 @@ INCLUDES += pshwtypes.h pse.h
 INCDIR := $(DISTDIR)/include
 
 BINS += psiadmin psid psilogger mlisten
-BINS += psmstart mpirun_chp4 psispawn mpirun_chgm gmspawner
+BINS += psmstart mpirun_chp4 psispawn mpirun_chgm gmspawner test_pse
 BINDIR := $(DISTDIR)/bin
 
 LIBS += libpsi.a libpse.a
