@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidpartition.c,v 1.17 2004/03/10 08:46:15 eicker Exp $
+ * $Id: psidpartition.c,v 1.18 2004/03/11 14:26:30 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.17 2004/03/10 08:46:15 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.18 2004/03/11 14:26:30 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -44,6 +44,9 @@ static PSpart_request_t *pendReq = NULL;
 
 /** The head of the actual list of running request. Only on master nodes. */
 static PSpart_request_t *runReq = NULL;
+
+/** The head of the actual list of suspended request. Only on master nodes. */
+static PSpart_request_t *suspReq = NULL;
 
 /**
  * @brief Enqueue request.
@@ -218,6 +221,7 @@ void exitPartHandler(void)
     /* @todo Maybe we have to act asynchronously here, too */
     clearQueue(&pendReq);
     clearQueue(&runReq);
+    clearQueue(&suspReq);
     if (nodeStat) free(nodeStat);
     nodeStat = NULL;
 }
@@ -320,6 +324,50 @@ static void jobFinished(PSpart_request_t *req)
     return;
 }
 
+static void jobSuspended(PSpart_request_t *req)
+{
+    if (!req) return;
+
+    snprintf(errtxt, sizeof(errtxt), "%s: tid %s",
+	     __func__, PSC_printTID(req->tid));
+    PSID_errlog(errtxt, 2);
+
+    if (!dequeueRequest(&runReq, req)) {
+	snprintf(errtxt, sizeof(errtxt), "%s: Unable to dequeue request %s",
+		 __func__, PSC_printTID(req->tid));
+	PSID_errlog(errtxt, 0);
+    }
+    if (config->freeOnSuspend) {
+	deregisterReq(req);
+	req->freed = 1;
+    }
+    enqueueRequest(&suspReq, req);
+
+    return;
+}
+
+static void jobResumed(PSpart_request_t *req)
+{
+    if (!req) return;
+
+    snprintf(errtxt, sizeof(errtxt), "%s: tid %s",
+	     __func__, PSC_printTID(req->tid));
+    PSID_errlog(errtxt, 2);
+
+    if (!dequeueRequest(&suspReq, req)) {
+	snprintf(errtxt, sizeof(errtxt), "%s: Unable to dequeue request %s",
+		 __func__, PSC_printTID(req->tid));
+	PSID_errlog(errtxt, 0);
+    }
+    if (req->freed) {
+	registerReq(req);
+	req->freed = 0;
+    }
+    enqueueRequest(&runReq, req);
+
+    return;
+}
+
 void cleanupRequests(PSnodes_ID_t node)
 {
     /*
@@ -405,9 +453,9 @@ int send_TASKDEAD(PStask_ID_t tid)
     return sendMsg(&msg);
 }
 
-void msg_TASKDEAD(DDBufferMsg_t *inmsg)
+void msg_TASKDEAD(DDMsg_t *msg)
 {
-    PSpart_request_t *req = findRequest(runReq, inmsg->header.sender);
+    PSpart_request_t *req = findRequest(runReq, msg->sender);
 
     if (!nodeStat) {
 	snprintf(errtxt, sizeof(errtxt), "%s: not master", __func__);
@@ -417,12 +465,84 @@ void msg_TASKDEAD(DDBufferMsg_t *inmsg)
 
     if (!req) {
 	snprintf(errtxt, sizeof(errtxt), "%s: request %s not found",
-		 __func__, PSC_printTID(inmsg->header.sender));
+		 __func__, PSC_printTID(msg->sender));
 	PSID_errlog(errtxt, 0);
 	return;
     }
 
     jobFinished(req);
+}
+
+int send_TASKSUSPEND(PStask_ID_t tid)
+{
+    DDMsg_t msg = {
+	.type = PSP_DD_TASKSUSPEND,
+	.sender = tid,
+	.dest = PSC_getTID(getMasterID(), 0),
+	.len = sizeof(msg) };
+
+    if (!knowMaster()) {
+	errno = EHOSTDOWN;
+	return -1;
+    }
+
+    return sendMsg(&msg);
+}
+
+void msg_TASKSUSPEND(DDMsg_t *msg)
+{
+    PSpart_request_t *req = findRequest(runReq, msg->sender);
+
+    if (!nodeStat) {
+	snprintf(errtxt, sizeof(errtxt), "%s: not master", __func__);
+	PSID_errlog(errtxt, 0);
+	return;
+    }
+
+    if (!req) {
+	snprintf(errtxt, sizeof(errtxt), "%s: request %s not found",
+		 __func__, PSC_printTID(msg->sender));
+	PSID_errlog(errtxt, 0);
+	return;
+    }
+
+    jobSuspended(req);
+}
+
+int send_TASKRESUME(PStask_ID_t tid)
+{
+    DDMsg_t msg = {
+	.type = PSP_DD_TASKRESUME,
+	.sender = tid,
+	.dest = PSC_getTID(getMasterID(), 0),
+	.len = sizeof(msg) };
+
+    if (!knowMaster()) {
+	errno = EHOSTDOWN;
+	return -1;
+    }
+
+    return sendMsg(&msg);
+}
+
+void msg_TASKRESUME(DDMsg_t *msg)
+{
+    PSpart_request_t *req = findRequest(suspReq, msg->sender);
+
+    if (!nodeStat) {
+	snprintf(errtxt, sizeof(errtxt), "%s: not master", __func__);
+	PSID_errlog(errtxt, 0);
+	return;
+    }
+
+    if (!req) {
+	snprintf(errtxt, sizeof(errtxt), "%s: request %s not found",
+		 __func__, PSC_printTID(msg->sender));
+	PSID_errlog(errtxt, 0);
+	return;
+    }
+
+    jobResumed(req);
 }
 
 int send_CANCELPART(PStask_ID_t tid)
@@ -1793,6 +1913,10 @@ void msg_GETTASKS(DDBufferMsg_t *inmsg)
 	    ptr += sizeof(task->partitionSize);
 	    msg.header.len += sizeof(task->partitionSize);
 
+	    *(uint8_t *)ptr = task->suspended;
+	    ptr += sizeof(uint8_t);
+	    msg.header.len += sizeof(uint8_t);
+
 	    sendMsg(&msg);
 
 	    msg.header.type = PSP_DD_PROVIDETASKNL;
@@ -1842,6 +1966,9 @@ void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
     request->size = *(uint32_t *)ptr;
     ptr += sizeof(uint32_t);
 
+    request->suspended = *(uint8_t *)ptr;
+    ptr += sizeof(uint8_t);
+
     if (request->size) {
 	request->nodes = malloc(request->size * sizeof(*request->nodes));
 	if (!request->nodes) {
@@ -1884,7 +2011,16 @@ void msg_PROVIDETASKNL(DDBufferMsg_t *inmsg)
 	    PSpart_delReq(req);
 	    return;
 	}
-	registerReq(req);
-	enqueueRequest(&runReq, req);
+	if (req->suspended) {
+	    if (config->freeOnSuspend) {
+		req->freed = 1;
+	    } else {
+		registerReq(req);
+	    }
+	    enqueueRequest(&suspReq, req);
+	} else {
+	    registerReq(req);
+	    enqueueRequest(&runReq, req);
+	}
     }
 }
