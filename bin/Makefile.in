@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.39 2003/10/08 15:17:15 eicker Exp $
+# $Id: Makefile.in,v 1.40 2003/11/10 15:55:49 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -33,13 +33,11 @@ endif
 
 TOOLS:= psiadmin psid psilogger mlisten
 TOOLS += psmstart mpirun_chp4 psispawn mpirun_chgm gmspawner
-# TOOLS += test_nodes
+TOOLS += test_pse
 
-TARGETS = $(TOOLS) test_pse test_config_parsing
+TARGETS = $(TOOLS) test_config_parsing
 
 all bin: $(TOOLS)
-
-test_nodes: test_nodes.o -lpshal -lpsport -lpopt -lpse -lpsi -lm -lpthread
 
 test_pse: test_pse.o -lpopt -lpse -lpsi
 
