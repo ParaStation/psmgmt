@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.h,v 1.22 2004/01/28 10:46:05 eicker Exp $
+ * $Id: pstask.h,v 1.23 2004/03/11 14:20:06 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with ParaStation tasks.
  *
- * $Id: pstask.h,v 1.22 2004/01/28 10:46:05 eicker Exp $
+ * $Id: pstask.h,v 1.23 2004/03/11 14:20:06 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -96,10 +96,11 @@ typedef struct PStask_T{
     int relativesignal;            /**< the signal sent when a relative (i.e.
 				      parent or child) dies */
     int pendingReleaseRes;         /**< num of pending RELEASERES messages */
-    int released;                  /**< flag to mark released task, i.e. don't
+    char released;                 /**< flag to mark released task, i.e. don't
 				      send signal to parent on exit */
-    int duplicate;                 /**< flag to mark duplicate task, i.e. a
+    char duplicate;                /**< flag to mark duplicate task, i.e. a
 				      tasks that are fork()ed by a client */
+    char suspended;                /**< flag to mark suspended tasks. */
     time_t killat;                 /**< flag a killed task, i.e. the time when
 				      the task should really go away. */
     uint16_t protocolVersion;      /**< Protocol version the task speaks. */

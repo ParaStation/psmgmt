@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.c,v 1.19 2004/01/28 10:41:23 eicker Exp $
+ * $Id: pstask.c,v 1.20 2004/03/11 14:20:06 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.19 2004/01/28 10:41:23 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.20 2004/03/11 14:20:06 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -72,6 +72,7 @@ int PStask_init(PStask_t *task)
     task->pendingReleaseRes = 0;
     task->released = 0;
     task->duplicate = 0;
+    task->suspended = 0;
     task->killat = 0;
     task->protocolVersion = -1;
 
@@ -220,6 +221,7 @@ PStask_t *PStask_clone(PStask_t *task)
     clone->pendingReleaseRes = task->pendingReleaseRes;
     clone->released = task->released;
     clone->duplicate = task->duplicate;
+    clone->suspended = task->suspended;
     clone->killat = task->killat;
     clone->protocolVersion = task->protocolVersion;
 
