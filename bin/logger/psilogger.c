@@ -1,25 +1,25 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * psilogger.c
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.34 2003/10/23 16:27:35 eicker Exp $
+ * $Id: psilogger.c,v 1.35 2003/11/26 14:56:53 eicker Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.34 2003/10/23 16:27:35 eicker Exp $
+ * $Id: psilogger.c,v 1.35 2003/11/26 14:56:53 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.34 2003/10/23 16:27:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.35 2003/11/26 14:56:53 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -735,17 +735,27 @@ static void loop(void)
 /**
  * @brief The main program
  *
- * @todo Correct documentation
- *
- * After becoming process group leader, sets global variables @ref
- * verbose, @ref forw_verbose and @ref PrependSource from environment
- * and finally calls loop().
+ * After registering several signals gets global variables @ref
+ * daemonSock and local ParaStation ID from arguments. Furthermore the
+ * global variables @ref verbose, @ref forw_verbose, @ref
+ * PrependSource @ref InputDest and * @ref usage are set from
+ * environment. After setting up logging finally @ref loop() is
+ * called. Upon return from this central loop, all further arguments
+ * to the two allready evaluated above are executed via system()
+ * calls.
  *
  * @param argc The number of arguments in @a argv.
+ *
  * @param argv Array of character strings containing the arguments.
  *
- * This program expects at least 1 additional argument:
- *  -# The port number it will listen to.
+ * This program expects at least 2 additional argument:
+ *
+ * -# The file descriptor number of the socket connected to the local
+ * ParaStation daemon.
+ *
+ * -# The local ParaStation ID.
+ *
+ * All further arguments will be executed via system() calls.
  *
  * @return Always returns 0.  */
 int main( int argc, char**argv)
