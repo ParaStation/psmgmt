@@ -20,7 +20,7 @@
 # root inside Kerneldir
 
 
-LIBS := psport pshal arg pvar
+LIBS := psport pshal arg pvar pse psi
 PSM_OSDIR := @PSM_OSDIR@
 
 LIBDIRS := $(patsubst %,lib/%,$(LIBS))
