@@ -50,8 +50,11 @@
     <title>The &ps; network setup.</title>
     <mediaobject>
       <imageobject>
-	<imagedata scale="45" align="center"
-	  fileref="../images/network.png"/>
+	<imagedata width="80%" fileref="../images/network.png"/>
+      </imageobject>
+      <imageobject>
+	<imagedata scale="66" align="center"
+	  fileref="../images/network.pdf"/>
       </imageobject>
     </mediaobject>
   </figure>
@@ -144,8 +147,11 @@
 	<title>The &ps; approach for communication.</title>
 	<mediaobject>
 	  <imageobject>
-	    <imagedata scale="30" align="center"
-	      fileref="../images/approach.png"/>
+	    <imagedata width="80%" fileref="../images/approach.png"/>
+	  </imageobject>
+	  <imageobject>
+	    <imagedata scale="66" align="center"
+	      fileref="../images/approach.pdf"/>
 	  </imageobject>
 	</mediaobject>
       </figure>
@@ -182,8 +188,11 @@
 	<title>The &ps; communication interfaces.</title>
 	<mediaobject>
 	  <imageobject>
-	    <imagedata scale="40" align="center"
-	    fileref="../images/interfc.png"/>
+	    <imagedata width="80%" fileref="../images/interface.png"/>
+	  </imageobject>
+	  <imageobject>
+	    <imagedata scale="66" align="center"
+	      fileref="../images/interface.pdf"/>
 	  </imageobject>
 	</mediaobject>
       </figure>
