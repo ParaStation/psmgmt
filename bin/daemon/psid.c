@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.39 2002/02/18 20:05:07 eicker Exp $
+ * $Id: psid.c,v 1.40 2002/02/20 13:31:27 hauke Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.39 2002/02/18 20:05:07 eicker Exp $ 
+ * $Id: psid.c,v 1.40 2002/02/20 13:31:27 hauke Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.39 2002/02/18 20:05:07 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.40 2002/02/20 13:31:27 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -63,7 +63,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.39 $";
+static char psid_cvsid[] = "$Revision: 1.40 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -3082,7 +3082,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.39 $";
+    char revision[] = "$Revision: 1.40 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -3239,6 +3239,10 @@ int main(int argc, char **argv)
 	SYSLOG(0,(LOG_ERR, "can't get \"psids\" service entry\n"));
 	exit(1);
     }
+    {
+	int reuse = 1;
+	setsockopt(PSI_msock,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(reuse));
+    }
 
     /*
      * bind the socket to the right address
@@ -3259,10 +3263,6 @@ int main(int argc, char **argv)
 	exit(1);
     }
 
-    {
-	int reuse = 1;
-	setsockopt(PSI_msock,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(reuse));
-    }
 
     SYSLOG(0, (LOG_ERR, "Starting ParaStation3 DAEMON Protocol Version %d",
 	       PSPprotocolversion));
