@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psipartition.c,v 1.9 2004/01/09 15:12:11 eicker Exp $
+ * $Id: psipartition.c,v 1.10 2004/01/22 17:17:59 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.9 2004/01/09 15:12:11 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.10 2004/01/22 17:17:59 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -248,6 +248,14 @@ static int addNode(PSnodes_ID_t node, nodelist_t *nl)
     nl->size++;
 
     return 1;
+}
+
+static void freeNodelist(nodelist_t *nl)
+{
+    if (!nl) return;
+
+    if (nl->nodes) free(nl->nodes);
+    free(nl);
 }
 
 /**
@@ -562,39 +570,25 @@ int PSI_createPartition(unsigned int size, unsigned int hwType)
 	    .sender = PSC_getMyTID(),
 	    .len = sizeof(msg.header)},
 	.buf = {0}};
-    PSpart_sort_t sort = getSortMode();
-    PSpart_option_t options = getPartitionOptions();
-    unsigned int priority = 0; /* Not used */
+    PSpart_request_t *request = PSpart_newReq();
     nodelist_t *nodelist;
-    char *ptr = msg.buf;
+    size_t len;
 
     snprintf(errtxt, sizeof(errtxt), "%s", __func__);
     PSI_errlog(errtxt, 10);
 
-    *(unsigned int *)ptr = size;
-    ptr += sizeof(size);
-    msg.header.len += sizeof(size);
+    request->size = size;
+    request->hwType = hwType;
+    request->sort = getSortMode();
+    request->options = getPartitionOptions();
+    request->priority = 0; /* Not used */
 
-    *(unsigned int *)ptr = hwType;
-    ptr += sizeof(hwType);
-    msg.header.len += sizeof(hwType);
-
-    if (sort == PART_SORT_UNKNOWN) return -1;
-    *(PSpart_sort_t *)ptr = sort;
-    ptr += sizeof(sort);
-    msg.header.len += sizeof(sort);
-
-    *(PSpart_option_t *)ptr = options;
-    ptr += sizeof(options);
-    msg.header.len += sizeof(options);
-
-    *(unsigned int *)ptr = priority;
-    ptr += sizeof(priority);
-    msg.header.len += sizeof(priority);
+    if (request->sort == PART_SORT_UNKNOWN) return -1;
 
     snprintf(errtxt, sizeof(errtxt),
 	     "%s: size %d hwType %x sort %x options %x priority %d",
-	     __func__, size, hwType, sort, options, priority);
+	     __func__, request->size, request->hwType, request->sort,
+	     request->options, request->priority);
     PSI_errlog(errtxt, 10);
 
     nodelist = getNodelist();
@@ -603,18 +597,25 @@ int PSI_createPartition(unsigned int size, unsigned int hwType)
 	    free(nodelist);
 	    return -1;
 	}
-	*(int *)ptr = nodelist->size;
-	ptr += sizeof(nodelist->size);
-	msg.header.len += sizeof(nodelist->size);
+	request->num = nodelist->size;
     } else {
-	*(int *)ptr = 0;
-	ptr += sizeof(int);
-	msg.header.len += sizeof(int);
+	request->num = 0;
     }
+
+    len = PSpart_encodeReq(msg.buf, sizeof(msg.buf), request);
+    PSpart_delReq(request);
+    if (len > sizeof(msg.buf)) {
+	snprintf(errtxt, sizeof(errtxt), "%s: PSpart_encodeReq", __func__);
+	PSI_errlog(errtxt, 0);
+	freeNodelist(nodelist);
+	return -1;
+    }
+    msg.header.len += len;
 
     if (PSI_sendMsg(&msg)<0) {
 	snprintf(errtxt, sizeof(errtxt), "%s: write", __func__);
 	PSI_errlog(errtxt, 0);
+	freeNodelist(nodelist);
 	return -1;
     }
 
@@ -622,6 +623,7 @@ int PSI_createPartition(unsigned int size, unsigned int hwType)
 	int ret = sendNodelist(nodelist, &msg);
 	if (ret) return ret;
     }
+    freeNodelist(nodelist);
 
     if (PSI_recvMsg(&msg)<0) {
 	snprintf(errtxt, sizeof(errtxt), "%s: recv", __func__);
@@ -631,9 +633,8 @@ int PSI_createPartition(unsigned int size, unsigned int hwType)
 
     switch (msg.header.type) {
     case PSP_CD_PARTITIONRES:
-	ptr = msg.buf;
-	if (*(int *)ptr) {
-	    char *errstr = strerror(*(int *)ptr);
+	if (*(int *)msg.buf) {
+	    char *errstr = strerror(*(int *)msg.buf);
 	    snprintf(errtxt, sizeof(errtxt), "%s: %s",
 		     __func__, errstr ? errstr : "UNKNOWN");
 	    PSI_errlog(errtxt, 0);
