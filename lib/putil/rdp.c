@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.12 2002/01/22 16:22:01 eicker Exp $
+ * $Id: rdp.c,v 1.13 2002/01/23 11:32:25 eicker Exp $
  *
  */
 /**
  * \file
  * rdp: ParaStation Reliable Datagram Protocol
  *
- * $Id: rdp.c,v 1.12 2002/01/22 16:22:01 eicker Exp $
+ * $Id: rdp.c,v 1.13 2002/01/23 11:32:25 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.12 2002/01/22 16:22:01 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.13 2002/01/23 11:32:25 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -30,7 +30,6 @@ static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.12 2002/01/22 16:
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/resource.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <string.h>
@@ -152,13 +151,13 @@ void setRDPLogMsg(int n)
     logmsg = n;
 }
 
-static void errlog(char * s, int syslogerr, int level)
+static void errlog(char * s, int level)
 {
     static char errtxt[320];
 
     if (level > DEBUGLEVEL) return;
 
-    if (syslogerr) {
+    if (syslogerror) {
 	snprintf(errtxt, sizeof(errtxt), "%s: %s\n", LOGMSG[logmsg], s);
 	syslog(LOG_ERR, errtxt);
     } else {
@@ -168,11 +167,11 @@ static void errlog(char * s, int syslogerr, int level)
     return;
 }
 
-static void errexit(char * s, int syslogerr, int eno)
+static void errexit(char * s, int eno)
 {
     static char errtxt[320];
 
-    if (syslogerr) {
+    if (syslogerror) {
 	snprintf(errtxt, sizeof(errtxt), "%s ERROR: %s: %s\n",
 		 LOGMSG[logmsg], s, strerror(eno));
 	syslog(LOG_ERR, errtxt);
@@ -194,12 +193,12 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
  restart:
     if ((retval=recvfrom(sock, buf, len, flags, from, fromlen)) < 0) {
 	if (errno == EINTR) {
-	    errlog("MYrecvfrom was interrupted !", syslogerror, 2);
+	    errlog("MYrecvfrom was interrupted !", 2);
 	    goto restart;
 	}
 	snprintf(errtxt, sizeof(errtxt), "MYrecvfrom returns: %s",
 		 strerror(errno));
-	errlog(errtxt, syslogerror, 0);
+	errlog(errtxt, 0);
     }
     return retval;
 }
@@ -215,12 +214,12 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
  restart:
     if ((retval=sendto(sock, buf, len, flags, to, tolen)) < 0) {
 	if (errno == EINTR) {
-	    errlog("MYsendto was interrupted !", syslogerror, 2);
+	    errlog("MYsendto was interrupted !", 2);
 	    goto restart;
 	}
 	snprintf(errtxt, sizeof(errtxt), "MYsendto returns: %s",
 		 strerror(errno));
-	errlog(errtxt, syslogerror, 0);
+	errlog(errtxt, 0);
     }
     return retval;
 }
@@ -236,7 +235,7 @@ static int blockSig(int block, int sig)
     sigaddset(&newset, sig);
     
     if (sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &newset, &oldset)) {
-	errlog("blockSig(): sigprocmask() ", syslogerror, 0);
+	errlog("blockSig(): sigprocmask() ", 0);
     }
 
     return sigismember(&oldset, sig);
@@ -257,7 +256,7 @@ unsigned short getServicePort(char *service)
     } else {
 	snprintf(errtxt, sizeof(errtxt), "can't get %s service entry",
 		 service);
-	errexit(errtxt, syslogerror, errno);
+	errexit(errtxt, errno);
 
 	return 0; /* Dummy return, this is never reached */
     }
@@ -278,7 +277,7 @@ static int passivesock(unsigned short port, int qlen)
      * allocate a socket
      */
     if ((s = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
-	errexit("can't create socket", syslogerror, errno);
+	errexit("can't create socket", errno);
     }
 
     /*
@@ -287,7 +286,7 @@ static int passivesock(unsigned short port, int qlen)
     if (bind(s, (struct sockaddr *)&sin, sizeof(sin)) < 0) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "can't bind to port %d.", ntohs(port));
-	errexit(errtxt, syslogerror, errno);
+	errexit(errtxt, errno);
     }
 
     /*
@@ -298,13 +297,13 @@ static int passivesock(unsigned short port, int qlen)
 #if defined(__linux__LATER)
     val = 1;
     if (setsockopt(s, SOL_IP, IP_RECVERR, &val, sizeof(int)) < 0) {
-	errexit("can't set socketoption IP_RECVERR", syslogerror, errno);
+	errexit("can't set socketoption IP_RECVERR", errno);
     }
 #endif
 #if defined (__linux)
 /*      val = 1; */
 /*      if (setsockopt(s, SOL_SOCKET, SO_BSDCOMPAT, &val, sizeof(int)) < 0) { */
-/*  	errexit("can't set socketoption SO_BSDCOMPAT", syslogerror, errno); */
+/*  	errexit("can't set socketoption SO_BSDCOMPAT", errno); */
 /*      } */
 #endif
 
@@ -494,19 +493,19 @@ static void initConntable(int nodes, unsigned int host[], unsigned short port)
     Dsnprintf(errtxt, sizeof(errtxt),
 	      "init conntable for %d nodes, win is %d",
 	      nodes, MAX_WINDOW_SIZE);
-    Derrlog(errtxt, syslogerror, 10);
+    Derrlog(errtxt, 10);
     for (i=0; i<=nodes; i++) {
 	memset(&conntable[i].sin, 0, sizeof(struct sockaddr_in));
 	conntable[i].sin.sin_family = AF_INET;
 	conntable[i].sin.sin_addr.s_addr = host[i];
 	conntable[i].sin.sin_port = port;
+	insertIPTable(conntable[i].sin.sin_addr, i);
 	Dsnprintf(errtxt, sizeof(errtxt), "IP-ADDR of node %d is %s",
 		  i, inet_ntoa(conntable[i].sin.sin_addr));
-	Derrlog(errtxt, syslogerror, 10);
+	Derrlog(errtxt, 10);
 	conntable[i].bufptr = NULL;
 	conntable[i].ConnID_in = -1;
 	if (i<nodes) {
-	    insertIPTable(conntable[i].sin.sin_addr, i);
 	    conntable[i].lastping.tv_sec = 0;
 	    conntable[i].lastping.tv_usec = 0;
 	    conntable[i].misscounter = 0;
@@ -520,13 +519,13 @@ static void initConntable(int nodes, unsigned int host[], unsigned short port)
 	    Dsnprintf(errtxt, sizeof(errtxt),
 		      "NextFrameToSend to node %d set to %d", i,
 		      conntable[i].NextFrameToSend);
-	    Derrlog(errtxt, syslogerror, 10);
+	    Derrlog(errtxt, 10);
 	    conntable[i].AckExpected = conntable[i].NextFrameToSend;
 	    conntable[i].FrameExpected = random();
 	    Dsnprintf(errtxt, sizeof(errtxt),
 		      "FrameExpected from node %d set to %d", i,
 		      conntable[i].FrameExpected);
-	    Derrlog(errtxt, syslogerror, 10);
+	    Derrlog(errtxt, 10);
 	    conntable[i].ConnID_out = random();;
 	    conntable[i].state = CLOSED;
 	} else {
@@ -579,7 +578,7 @@ static msgbuf *getMsg(void)
 {
     msgbuf *mp = MsgFreeList;
     if (mp == NULL) {
-	errlog("no more elements in MsgFreeList", syslogerror, 0);
+	errlog("no more elements in MsgFreeList", 0);
     } else {
 	MsgFreeList = MsgFreeList->next;
 	mp->node = -1;
@@ -627,7 +626,7 @@ static Smsg *getSMsg(void)
 {
     Smsg *mp = SMsgFreeList;
     if (mp == NULL) {
-	errlog("no more elements in SMsgFreeList", syslogerror, 0);
+	errlog("no more elements in SMsgFreeList", 0);
     } else {
 	SMsgFreeList = SMsgFreeList->next;
     }
@@ -690,7 +689,7 @@ static ackent *getAckEnt(void)
 {
     ackent *ap = AckFreeList;
     if (ap == NULL) {
-	errlog("no more elements in AckFreeList", syslogerror, 0);
+	errlog("no more elements in AckFreeList", 0);
     } else {
 	AckFreeList = AckFreeList->next;
     }
@@ -736,12 +735,12 @@ static ackent *enqAck(msgbuf *bufptr)
  */
 static void deqAck(ackent *ap)
 {
-    if (AckListHead == ap) {
+    if (ap == AckListHead) {
 	AckListHead = AckListHead->next;
     } else {
-      ap->prev->next = ap->next;
+	ap->prev->next = ap->next;
     }
-    if (AckListTail == ap) {
+    if (ap == AckListTail) {
 	AckListTail = AckListTail->prev;
     } else {
 	ap->next->prev = ap->prev;
@@ -761,7 +760,7 @@ static void RDPtimer(struct timeval *tv)
     itv.it_value.tv_sec = itv.it_interval.tv_sec = tv->tv_sec;
     itv.it_value.tv_usec = itv.it_interval.tv_usec = tv->tv_usec;
     if (setitimer(ITIMER_REAL, &itv, NULL)==-1) {
-	errexit("unable to set itimer", syslogerror, errno);
+	errexit("unable to set itimer", errno);
     }
 
     return;
@@ -806,16 +805,16 @@ static void checkConnections(void)
 		conntable[i].misscounter++;
 		conntable[i].lastping = tv1;
 		if ((conntable[i].misscounter%5)==0) {
-		    Derrlog(errtxt, syslogerror, 5);
+		    Derrlog(errtxt, 5);
 		} else {
-		    Derrlog(errtxt, syslogerror, 9);
+		    Derrlog(errtxt, 9);
 		}
 	    }
 	    if (!licserver && conntable[i].misscounter > DEAD_LIMIT) {
 		snprintf(errtxt, sizeof(errtxt),
 			 "misscount exceeded, closing connection to node %d",
 			 i);
-		errlog(errtxt, syslogerror, 0);
+		errlog(errtxt, 0);
 		closeConnection(i);
 		conntable[i].misscounter=0;
 	    }
@@ -830,18 +829,17 @@ static void checkConnections(void)
 		 inet_ntoa(conntable[nr_of_nodes].sin.sin_addr),
 		 conntable[nr_of_nodes].misscounter);
 	if (conntable[nr_of_nodes].misscounter > DEAD_LIMIT) {
-	    errlog(errtxt, syslogerror, 0);
+	    errlog(errtxt, 0);
 	    if (callback != NULL) { /* inform daemon */
 		info = conntable[nr_of_nodes].sin.sin_addr.s_addr;
 		callback(RDP_LIC_LOST, &info);
 	    }
 	} else {
-	    Derrlog(errtxt, syslogerror, 9);
+	    Derrlog(errtxt, 9);
 	}
     }
     if (conntable[nr_of_nodes].misscounter > (100 * DEAD_LIMIT) ) {
-	errlog("Lost connection to License Server, shutting down operation",
-	       syslogerror, 0);
+	errlog("Lost connection to LicServer, shutting down operation", 0);
 	if (callback != NULL) { /* inform daemon */
 	    info = LIC_LOST_CONECTION;
 	    conntable[nr_of_nodes].misscounter = 0;
@@ -869,7 +867,7 @@ static void sendSYN(int node)
     Dsnprintf(errtxt, sizeof(errtxt),
 	      "sending SYN to node %d (%s), NFTS=%d", node,
 	      inet_ntoa(conntable[node].sin.sin_addr), hdr.seqno);
-    Derrlog(errtxt, syslogerror, 11);
+    Derrlog(errtxt, 11);
     MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
 	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
     return;
@@ -889,7 +887,7 @@ static void sendACK(int node)
     hdr.connid=conntable[node].ConnID_out;
     Dsnprintf(errtxt, sizeof(errtxt),
 	      "sending ACK to node %d, FE=%d", node, hdr.ackno);
-    Derrlog(errtxt, syslogerror, 11);
+    Derrlog(errtxt, 11);
     MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
 	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
     conntable[node].ack_pending=0;
@@ -911,7 +909,7 @@ static void sendSYNACK(int node)
     Dsnprintf(errtxt, sizeof(errtxt),
 	      "sending SYNACK to node %d, NFTS=%d, FE=%d",
 	      node, hdr.seqno, hdr.ackno);
-    Derrlog(errtxt, syslogerror, 11);
+    Derrlog(errtxt, 11);
     MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
 	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
     conntable[node].ack_pending=0;
@@ -933,7 +931,7 @@ static void sendSYNNACK(int node, int oldseq)
     Dsnprintf(errtxt, sizeof(errtxt),
 	      "sending SYNNACK to node %d, NFTS=%d, FE=%d",
 	      node, hdr.seqno, hdr.ackno);
-    Derrlog(errtxt, syslogerror, 11);
+    Derrlog(errtxt, 11);
     MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
 	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
     conntable[node].ack_pending=0;
@@ -955,7 +953,7 @@ static void sendNACK(int node)
     hdr.connid=conntable[node].ConnID_out;
     Dsnprintf(errtxt, sizeof(errtxt), "sending NACK to node %d, FE=%d",
 	      node, hdr.ackno);
-    Derrlog(errtxt, syslogerror, 11);
+    Derrlog(errtxt, 11);
     MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
 	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
     return;
@@ -998,7 +996,7 @@ static int updateState(rdphdr *hdr, int node)
 	    Dsnprintf(errtxt, sizeof(errtxt),
 		      "Changing State for node %d from CLOSED to SYN_RECVD,"
 		      " FrameEx=%d", node, cp->FrameExpected);
-	    Derrlog(errtxt, syslogerror, 12);
+	    Derrlog(errtxt, 12);
 	    sendSYNACK(node);
 	    retval = RDP_SYNACK;
 	    break;
@@ -1007,7 +1005,7 @@ static int updateState(rdphdr *hdr, int node)
 	    Dsnprintf(errtxt, sizeof(errtxt),
 		      "Changing State for node %d from CLOSED to SYN_SENT,"
 		      " FrameEx=%d", node, cp->FrameExpected);
-	    Derrlog(errtxt, syslogerror, 12);
+	    Derrlog(errtxt, 12);
 	    sendSYNNACK(node, hdr->seqno);
 	    retval = RDP_SYNNACK;
 	    break;
@@ -1016,7 +1014,7 @@ static int updateState(rdphdr *hdr, int node)
 	    Dsnprintf(errtxt, sizeof(errtxt),
 		      "Changing State for node %d from CLOSED to SYN_SENT,"
 		      " FrameEX=%d", node, cp->FrameExpected);
-	    Derrlog(errtxt, syslogerror, 12);
+	    Derrlog(errtxt, 12);
 	    sendSYN(node);
 	    retval = RDP_SYN;
 	    break;
@@ -1040,7 +1038,7 @@ static int updateState(rdphdr *hdr, int node)
 	    Dsnprintf(errtxt, sizeof(errtxt),
 		      "Changing State for node %d from SYN_SENT to SYN_RECVD,"
 		      " FrameEx=%d", node, cp->FrameExpected);
-	    Derrlog(errtxt, syslogerror, 12);
+	    Derrlog(errtxt, 12);
 	    sendACK(node);
 	    retval = RDP_ACK;
 	    break;
@@ -1051,7 +1049,7 @@ static int updateState(rdphdr *hdr, int node)
 	    Dsnprintf(errtxt, sizeof(errtxt),
 		      "Changing State for node %d from SYN_SENT to ACTIVE,"
 		      " FrameEx=%d", node, cp->FrameExpected);
-	    Derrlog(errtxt, syslogerror, 12);
+	    Derrlog(errtxt, 12);
 	    sendACK(node);
 	    retval = RDP_ACK;
 	    if (callback != NULL) { /* inform daemon */
@@ -1062,7 +1060,7 @@ static int updateState(rdphdr *hdr, int node)
 	    Dsnprintf(errtxt, sizeof(errtxt),
 		      "Staying in SYN_SENT for node %d,  FrameEx=%d", node,
 		      cp->FrameExpected);
-	    Derrlog(errtxt, syslogerror, 12);
+	    Derrlog(errtxt, 12);
 	    sendSYN(node);
 	    retval = RDP_SYN;
 	    break;
@@ -1088,12 +1086,12 @@ static int updateState(rdphdr *hdr, int node)
 		Dsnprintf(errtxt, sizeof(errtxt),
 			  "New Connection in SYN_RECVD for node %d,"
 			  " FrameEx=%d", node, cp->FrameExpected);
-		Derrlog(errtxt, syslogerror, 12);
+		Derrlog(errtxt, 12);
 	    }
 	    Dsnprintf(errtxt, sizeof(errtxt),
 		      "Staying in SYN_RECVD for node %d, FrameEx=%d",
 		      node, cp->FrameExpected);
-	    Derrlog(errtxt, syslogerror, 12);
+	    Derrlog(errtxt, 12);
 	    sendSYNACK(node);
 	    retval = RDP_SYNACK;
 	    break;
@@ -1107,14 +1105,14 @@ static int updateState(rdphdr *hdr, int node)
 	    Dsnprintf(errtxt, sizeof(errtxt),
 		      "Changing State for node %d from SYN_RECVD to ACTIVE,"
 		      " FrameEx=%d", node, cp->FrameExpected);
-	    Derrlog(errtxt, syslogerror, 12);
+	    Derrlog(errtxt, 12);
 	    break;
 	case RDP_NACK:
 	    cp->state = SYN_SENT;
 	    Dsnprintf(errtxt, sizeof(errtxt),
 		      "Changing State for node %d from SYN_RECVD to SYN_SENT,"
 		      " FrameEx=%d", node, cp->FrameExpected);
-	    Derrlog(errtxt, syslogerror, 12);
+	    Derrlog(errtxt, 12);
 	    sendSYN(node);
 	    retval = RDP_SYN;
 	    break;
@@ -1123,14 +1121,14 @@ static int updateState(rdphdr *hdr, int node)
 	    Dsnprintf(errtxt, sizeof(errtxt),
 		      "Changing State for node %d from SYN_RECVD to ACTIVE,"
 		      " FrameEx=%d", node, cp->FrameExpected);
-	    Derrlog(errtxt, syslogerror, 12);
+	    Derrlog(errtxt, 12);
 	    if (cp->msg_pending != 0) {
 		resendMsgs(node);
 		cp->NextFrameToSend += cp->msg_pending;
 		cp->msg_pending = 0;
 	    }
 	    if (callback != NULL) { /* inform daemon */
-		Derrlog(errtxt, syslogerror, 12);
+		Derrlog(errtxt, 12);
 		callback(RDP_NEW_CONNECTION, &node);
 	    }
 	    retval = RDP_ACK;
@@ -1141,7 +1139,7 @@ static int updateState(rdphdr *hdr, int node)
 	    Dsnprintf(errtxt, sizeof(errtxt),
 		      "Changing State for node %d from SYN_RECVD to ACTIVE,"
 		      " FrameEx=%d", node, cp->FrameExpected);
-	    Derrlog(errtxt, syslogerror, 12);
+	    Derrlog(errtxt, 12);
 	    if (callback != NULL) { /* inform daemon */
 		callback(RDP_NEW_CONNECTION, &node);
 	    }
@@ -1156,7 +1154,7 @@ static int updateState(rdphdr *hdr, int node)
 		      " seqno=%d in ACTIVE State [%d:%d]", node,
 		      cp->FrameExpected, hdr->seqno, hdr->connid,
 		      cp->ConnID_in);
-	    Derrlog(errtxt, syslogerror, 12);
+	    Derrlog(errtxt, 12);
 	    switch (hdr->type) {
 	    case RDP_SYN:
 	        cp->state = SYN_RECVD;
@@ -1165,7 +1163,7 @@ static int updateState(rdphdr *hdr, int node)
 		Dsnprintf(errtxt, sizeof(errtxt),
 			  "Changing State for node %d from ACTIVE to"
 			  " SYN_RECVD, FrameEx=%d", node, cp->FrameExpected);
-		Derrlog(errtxt, syslogerror, 12);
+		Derrlog(errtxt, 12);
 		sendSYNACK(node);
 		retval = RDP_SYNACK;
 		break;
@@ -1176,7 +1174,7 @@ static int updateState(rdphdr *hdr, int node)
 		Dsnprintf(errtxt, sizeof(errtxt),
 			  "Changing State for node %d from ACTIVE to"
 			  " SYN_RECVD, FrameEx=%d", node, cp->FrameExpected);
-		Derrlog(errtxt, syslogerror, 12);
+		Derrlog(errtxt, 12);
 		sendSYN(node);
 		retval = RDP_SYN;
 		break;
@@ -1187,7 +1185,7 @@ static int updateState(rdphdr *hdr, int node)
 		Dsnprintf(errtxt, sizeof(errtxt),
 			  "Changing State for node %d from ACTIVE to"
 			  " SYN_RECVD, FrameEx=%d", node, cp->FrameExpected);
-		Derrlog(errtxt, syslogerror, 12);
+		Derrlog(errtxt, 12);
 		sendSYNACK(node);
 		retval = RDP_SYNACK;
 		break;
@@ -1207,7 +1205,7 @@ static int updateState(rdphdr *hdr, int node)
     default:
 	snprintf(errtxt, sizeof(errtxt),
 		 "invalid state for node %d in updateState", node);
-	errlog(errtxt, syslogerror, 0);
+	errlog(errtxt, 0);
 	break;
     }
     return retval;
@@ -1238,7 +1236,7 @@ static void clearMsgQ(int node)
 	Dsnprintf(errtxt, sizeof(errtxt),
 		  "Dropping msg %d to node %d", mp->msg.small->header.seqno,
 		  node);
-	Derrlog(errtxt, syslogerror, 2);
+	Derrlog(errtxt, 2);
 	if (mp->len > RDP_SMALL_DATA_SIZE) {    /* release msg frame */
 	    free(mp->msg.large);                /* free memory */
 	} else {
@@ -1282,7 +1280,7 @@ static int resequenceMsgQ(int node, int new_sno, int old_sno)
 	    Dsnprintf(errtxt, sizeof(errtxt),
 		      "Dropping msg %d to node %d",
 		      mp->msg.small->header.seqno, node);
-	    Derrlog(errtxt, syslogerror, 2);
+	    Derrlog(errtxt, 2);
 	    /* release msg frame */
 	    if (mp->len > RDP_SMALL_DATA_SIZE) {
 		free(mp->msg.large);       /* free memory */
@@ -1300,7 +1298,7 @@ static int resequenceMsgQ(int node, int new_sno, int old_sno)
 		      "Changing SeqNo from %d to %d",
 		      mp->msg.small->header.seqno,
 		      old_sno + count);
-	    Derrlog(errtxt, syslogerror, 2);
+	    Derrlog(errtxt, 2);
 	    mp->msg.small->header.seqno = old_sno + count;
 	    mp = mp->next;                 /* next message */
 	    count++;
@@ -1312,7 +1310,7 @@ static int resequenceMsgQ(int node, int new_sno, int old_sno)
 static void closeConnection(int node)
 {
     snprintf(errtxt, sizeof(errtxt), "Closing connection to node %d", node);
-    errlog(errtxt, syslogerror, 0);
+    errlog(errtxt, 0);
     clearMsgQ(node);
     conntable[node].state = CLOSED;
     conntable[node].ack_pending = 0;
@@ -1349,14 +1347,18 @@ static void handleTimeout(void)
 			     "Retransmission count exceeds limit [seqno=%d],"
 			     " closing connection to node %d",
 			     mp->msg.small->header.seqno, node);
-		    errlog(errtxt, syslogerror, 0);
+		    errlog(errtxt, 0);
+		    ap = ap->prev;
 		    closeConnection(node);
-		    ap = AckListHead;
+		    if (ap)
+			ap = ap->next;
+		    else
+			ap = AckListHead;
 		} else {
 		    Dsnprintf(errtxt, sizeof(errtxt),
 			      "resending msg %d to node %d",
 			      mp->msg.small->header.seqno, mp->node);
-		    Derrlog(errtxt, syslogerror, 8);
+		    Derrlog(errtxt, 8);
 		    mp->tv = tv;
 		    mp->retrans++;
 		    timeradd(&mp->tv, &RESEND_TIMEOUT, &mp->tv);
@@ -1415,13 +1417,13 @@ static void doACK(rdphdr *hdr, int fromnode)
     Dsnprintf(errtxt, sizeof(errtxt),
 	      "Processing ACK from node %d [Type=%d, Sno=%d, Exp=%d, got=%d]",
 	      fromnode, hdr->type, hdr->seqno, cp->AckExpected, hdr->ackno);
-    Derrlog(errtxt, syslogerror, 3);
+    Derrlog(errtxt, 3);
 
     if (hdr->connid != cp->ConnID_in) { /* New Connection */
 	Dsnprintf(errtxt, sizeof(errtxt),
 		  " Unable to process ACK's for new connections %x vs. %x",
 		  hdr->connid, cp->ConnID_in);
-	Derrlog(errtxt, syslogerror, 3);
+	Derrlog(errtxt, 3);
 	return;
     }
 
@@ -1430,20 +1432,20 @@ static void doACK(rdphdr *hdr, int fromnode)
 	    sendACK(fromnode); /* (re)send ack to avoid further timeouts */
 	    Dsnprintf(errtxt, sizeof(errtxt), "(Re)sending ACK to node %d",
 		      fromnode);
-	    Derrlog(errtxt, syslogerror, 3);
+	    Derrlog(errtxt, 3);
 	}
 	if (RSEQCMP(hdr->seqno, cp->FrameExpected) > 0) { /* Missing Data */
 	    sendNACK(fromnode); /* send nack to inform sender */
 	    Dsnprintf(errtxt, sizeof(errtxt), "Sending NACK to node %d",
 		      fromnode);
-	    Derrlog(errtxt, syslogerror, 3);
+	    Derrlog(errtxt, 3);
 	}
     }
 
     while (mp) {
 	Dsnprintf(errtxt, sizeof(errtxt), "Comparing seqno %d with %d",
 		  mp->msg.small->header.seqno, hdr->ackno);
-	Derrlog(errtxt, syslogerror, 4);
+	Derrlog(errtxt, 4);
 	if (RSEQCMP(mp->msg.small->header.seqno, hdr->ackno) <= 0) {
 	    /* ACK this buffer */
 	    if (mp->msg.small->header.seqno != cp->AckExpected) {
@@ -1452,13 +1454,13 @@ static void doACK(rdphdr *hdr, int fromnode)
 			 " Ackexpected=%d fromnode %d",
 			 mp->msg.small->header.seqno, cp->AckExpected,
 			 fromnode);
-		errlog(errtxt, syslogerror, 0);
+		errlog(errtxt, 0);
 	    }
 	    /* release msg frame */
 	    Dsnprintf(errtxt, sizeof(errtxt),
 		      "Releasing buffer seqno=%d to node=%d",
 		      mp->msg.small->header.seqno, fromnode);
-	    Derrlog(errtxt, syslogerror, 3);
+	    Derrlog(errtxt, 3);
 	    if (mp->len > RDP_SMALL_DATA_SIZE) {
 		free(mp->msg.large);       /* free memory */
 	    } else {
@@ -1500,7 +1502,7 @@ int initRDP(int nodes, int mgroup, int usesyslog, unsigned int hosts[],
 
     Dsnprintf(errtxt, sizeof(errtxt),
 	      "INIT for %d nodes, using %d as mcast", nodes, mgroup);
-    Derrlog(errtxt, syslogerror, 10);
+    Derrlog(errtxt, 10);
 
     initMsgList(nodes);
     initSMsgList(nodes);
@@ -1518,7 +1520,7 @@ int initRDP(int nodes, int mgroup, int usesyslog, unsigned int hosts[],
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
     if (sigaction(SIGALRM, &sa, 0)==-1) {
-	errexit("unable set sighandler", syslogerror, errno);
+	errexit("unable set sighandler", errno);
     }
 
     portno = getServicePort(MCASTSERVICE);
@@ -1570,13 +1572,13 @@ static int wait_for_answer(int node, int id)
 	case EBADF:
 	case EINVAL:
 	case ENOMEM:
-	    errexit("error in select", syslogerror, errno);
+	    errexit("error in select", errno);
 	    break;
 	case EINTR:
-	    errlog("error in select (EINTR)", syslogerror, 0);
+	    errlog("error in select (EINTR)", 0);
 	    break;
 	default:
-	    errlog("unknown error in select", syslogerror, 0);
+	    errlog("unknown error in select", 0);
 	    break;
 	}
     }
@@ -1621,7 +1623,7 @@ static int openConnection(int node)
 	    snprintf(errtxt, sizeof(errtxt),
 		     "error calling recvfrom in openConnection: %s",
 		     strerror(errno));
-	    errlog(errtxt, syslogerror, 0);
+	    errlog(errtxt, 0);
 	    return -1;
 	}
 	proto = updateState(&msg.header, node);
@@ -1633,13 +1635,13 @@ static void reestablishConnection(rdphdr *hdr, int node)
 {
     Dsnprintf(errtxt, sizeof(errtxt),
 	      "Going to reestablish connection to node %d", node);
-    Derrlog(errtxt, syslogerror, 7);
+    Derrlog(errtxt, 7);
     if (hdr->type == RDP_SYNNACK) {
-	Derrlog("Resequencing MSG-Q", syslogerror, 7);
+	Derrlog("Resequencing MSG-Q", 7);
 	conntable[node].msg_pending =
 	    resequenceMsgQ(node, hdr->seqno, hdr->ackno);
     } else {
-	Derrlog("Clearing MSG-Q", syslogerror, 7);
+	Derrlog("Clearing MSG-Q", 7);
 	clearMsgQ(node); /* clear outgoing MSG-Q */
     }
     updateState(hdr, node);
@@ -1659,7 +1661,7 @@ int Rsendto(int node, void *buf, int len)
 	/* illegal node number */
 	snprintf(errtxt, sizeof(errtxt),
 		 "Rsendto: illegal node number [%d]", node);
-	errlog(errtxt, syslogerror, 0);
+	errlog(errtxt, 0);
 	errno = EINVAL;
 	return -1;
     }
@@ -1667,7 +1669,7 @@ int Rsendto(int node, void *buf, int len)
     if (conntable[node].window == 0) { /* transmission window full */
 	snprintf(errtxt, sizeof(errtxt),
 		 "Rsendto: transmission window to node [%d] full", node);
-	errlog(errtxt, syslogerror, 0);
+	errlog(errtxt, 0);
 	errno = EAGAIN;
 	return -1;
     }
@@ -1675,14 +1677,14 @@ int Rsendto(int node, void *buf, int len)
 	snprintf(errtxt, sizeof(errtxt),
 		 "Rsendto: len [%d] > RDP_MAX_DATA_SIZE [%d]", len,
 		 RDP_MAX_DATA_SIZE);
-	errlog(errtxt, syslogerror, 0);
+	errlog(errtxt, 0);
 	errno = EMSGSIZE;
 	return -1;
     }
     if (conntable[node].state != ACTIVE) { /* connection not established */
 	snprintf(errtxt, sizeof(errtxt),
 		 "Rsendto: connection to node [%d] not established", node);
-	errlog(errtxt, syslogerror, 0);
+	errlog(errtxt, 0);
 	sendSYN(node); /* Setup Connection */
 	errno = EAGAIN;
 	return -1;
@@ -1738,7 +1740,7 @@ int Rsendto(int node, void *buf, int len)
     Dsnprintf(errtxt, sizeof(errtxt),
 	      "sending DATA[len=%d] to node %d (seq=%d, ack=%d)", len, node,
 	      conntable[node].NextFrameToSend, conntable[node].FrameExpected);
-    Derrlog(errtxt, syslogerror, 8);
+    Derrlog(errtxt, 8);
 
     retval = MYsendto(rdpsock, &mp->msg.small->header, len + sizeof(rdphdr), 0,
 		      (struct sockaddr *)&conntable[node].sin,
@@ -1753,7 +1755,7 @@ int Rsendto(int node, void *buf, int len)
     if (retval==-1) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "sendto returns %d [%s]", retval, strerror(errno));
-	errlog(errtxt, syslogerror, 0);
+	errlog(errtxt, 0);
 	return retval;
     }
 
@@ -1777,14 +1779,14 @@ static void resendMsgs(int node)
 		     "resendMsgs() Retransmission count exceeds limit"
 		     " [seqno=%d], closing connection to node %d",
 		     mp->msg.small->header.seqno, node);
-	    errlog(errtxt, syslogerror, 0);
+	    errlog(errtxt, 0);
 	    closeConnection(node);
 	    return;
 	}
 	Dsnprintf(errtxt, sizeof(errtxt),
 		  "resending msg %d to node %d", mp->msg.small->header.seqno,
 		  mp->node);
-	Derrlog(errtxt, syslogerror, 8);
+	Derrlog(errtxt, 8);
 	mp->tv = tv;
 	mp->retrans++;
 	/* update ackinfo */
@@ -1802,7 +1804,7 @@ static void handleControlPacket(rdphdr *hdr, int node)
     switch (hdr->type) {
     case RDP_ACK:
 	Dsnprintf(errtxt, sizeof(errtxt), "receiving ACK from node %d", node);
-	Derrlog(errtxt, syslogerror, 11);
+	Derrlog(errtxt, 11);
 	if (conntable[node].state != ACTIVE) {
 	    updateState(hdr, node);
 	} else {
@@ -1811,31 +1813,30 @@ static void handleControlPacket(rdphdr *hdr, int node)
 	break;
     case RDP_NACK:
 	Dsnprintf(errtxt, sizeof(errtxt), "receiving NACK from node %d", node);
-	Derrlog(errtxt, syslogerror, 11);
+	Derrlog(errtxt, 11);
 	doACK(hdr, node);
 	resendMsgs(node);
 	break;
     case RDP_SYN:
 	Dsnprintf(errtxt, sizeof(errtxt), "receiving SYN from node %d", node);
-	Derrlog(errtxt, syslogerror, 11);
+	Derrlog(errtxt, 11);
 	updateState(hdr, node);
 	/* reestablishConnection(hdr, node); */
 	break;
     case RDP_SYNACK:
 	Dsnprintf(errtxt, sizeof(errtxt), "receiving SYNACK from node %d",
 		  node);
-	Derrlog(errtxt, syslogerror, 11);
+	Derrlog(errtxt, 11);
 	updateState(hdr, node);
 	break;
     case RDP_SYNNACK:
 	Dsnprintf(errtxt, sizeof(errtxt), "receiving SYNNACK from node %d",
 		  node);
-	Derrlog(errtxt, syslogerror, 11);
+	Derrlog(errtxt, 11);
 	reestablishConnection(hdr, node);
 	break;
     default:
-	errlog("RDPHandler got unknown msg-type on RDP port, deleting msg",
-	       syslogerror, 0);
+	errlog("RDPHandler got unknown msg-type on RDP port, deleting msg", 0);
 	break;
     }
     return;
@@ -1903,7 +1904,7 @@ int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 		snprintf(errtxt, sizeof(errtxt),
 			 "select in Rselect returns %d, eno=%d[%s]",
 			 retval, errno, strerror(errno));
-		errlog(errtxt, syslogerror, 0);
+		errlog(errtxt, 0);
 	    }
 	}
 
@@ -1927,7 +1928,7 @@ int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 		snprintf(errtxt, sizeof(errtxt),
 			 "Rselect: recvfrom(MSG_PEEK) returns -1, errno=%d %s",
 			 errno, strerror(errno));
-		errlog(errtxt, syslogerror, 0);
+		errlog(errtxt, 0);
 
 #if defined(__linux__LATER)
 		if (errno == ECONNREFUSED) {
@@ -1950,14 +1951,14 @@ int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 			Dsnprintf(errtxt, sizeof(errtxt),
 				  "Error in recvmsg [%d]: %s", errno,
 				  strerror(errno));
-			Derrlog(errtxt, syslogerror, 1);
+			Derrlog(errtxt, 1);
 		    } else {
 			sinp = (struct sockaddr_in *)errmsg.msg_name;
 			Dsnprintf(errtxt, sizeof(errtxt),
 				  "CONNREFUSED from %s port %d",
 				  inet_ntoa(sinp->sin_addr),
 				  ntohs(sinp->sin_port));
-			Derrlog(errtxt, syslogerror, 1);
+			Derrlog(errtxt, 1);
 		    }
 		    free(ubuf);
 		}
@@ -1974,7 +1975,7 @@ int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 		    snprintf(errtxt, sizeof(errtxt),
 			     "Rselect: recvfrom(0) returns -1, errno=%d: %s",
 			     errno, strerror(errno));
-		    errexit(errtxt, syslogerror, errno);
+		    errexit(errtxt, errno);
 		}
 		handleControlPacket(&msg.header, fromnode);
 		retval--;
@@ -1990,7 +1991,7 @@ int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 		    Dsnprintf(errtxt, sizeof(errtxt),
 			      "Check DATA from %d (seq=%d, ack=%d)", fromnode,
 			      msg.header.seqno, msg.header.ackno);
-		    Derrlog(errtxt, syslogerror, 4);
+		    Derrlog(errtxt, 4);
 
 		    doACK(&msg.header, fromnode);
 		    retval--;
@@ -2031,7 +2032,7 @@ int Rrecvfrom(int *node, void *msg, int len)
 
     if ((node == NULL) || (msg == NULL)) {
 	/* we definitely need a pointer */
-	errlog("Rrecvfrom: got NULL pointer", syslogerror, 0);
+	errlog("Rrecvfrom: got NULL pointer", 0);
 	errno = EINVAL;
 	return -1;
     }
@@ -2039,7 +2040,7 @@ int Rrecvfrom(int *node, void *msg, int len)
 	/* illegal node number */
 	snprintf(errtxt, sizeof(errtxt),
 		 "Rrecvfrom: illegal node number [%d]", *node);
-	errlog(errtxt, syslogerror, 0);
+	errlog(errtxt, 0);
 	errno = EINVAL;
 	return -1;
     }
@@ -2047,7 +2048,7 @@ int Rrecvfrom(int *node, void *msg, int len)
 	/* connection not established */
 	Dsnprintf(errtxt, sizeof(errtxt),
 		  "Receiving from node %d which is NOT ACTIVE", *node);
-	Derrlog(errtxt, syslogerror, 11);
+	Derrlog(errtxt, 11);
 	sendSYN(*node); /* Setup Connection */
 	errno = EAGAIN;
 	return -1;
@@ -2062,7 +2063,7 @@ int Rrecvfrom(int *node, void *msg, int len)
     /* get pending msg */
     if ((retval = MYrecvfrom(rdpsock, &msgbuf, sizeof(Lmsg), 0,
 			      (struct sockaddr *)&sin, &slen)) < 0) {
-	errexit("Rrecvfrom: recvfrom()", syslogerror, errno);
+	errexit("Rrecvfrom: recvfrom()", errno);
     }
     fromnode = lookupIPTable(sin.sin_addr);        /* lookup node */
 
@@ -2070,7 +2071,7 @@ int Rrecvfrom(int *node, void *msg, int len)
 	Dsnprintf(errtxt, sizeof(errtxt),
 		  "receiving from node %d connection not ACTIVE [%s]",
 		  fromnode, CIstate(conntable[fromnode].state));
-	Derrlog(errtxt, syslogerror, 7);
+	Derrlog(errtxt, 7);
 	reestablishConnection(&msgbuf.header, fromnode);
 	*node = -1;
 	errno = EAGAIN;
@@ -2087,7 +2088,7 @@ int Rrecvfrom(int *node, void *msg, int len)
     Dsnprintf(errtxt, sizeof(errtxt),
 	      "Got DATA from %d (seq=%d, ack=%d)", fromnode,
 	      msgbuf.header.seqno, msgbuf.header.ackno);
-    Derrlog(errtxt, syslogerror, 9);
+    Derrlog(errtxt, 9);
 
     doACK(&msgbuf.header, fromnode);
     if (conntable[fromnode].FrameExpected == msgbuf.header.seqno) {
@@ -2096,7 +2097,7 @@ int Rrecvfrom(int *node, void *msg, int len)
 	Dsnprintf(errtxt, sizeof(errtxt),
 		  "INC FE for node %d to %d", fromnode,
 		  conntable[fromnode].FrameExpected);
-	Derrlog(errtxt, syslogerror, 4);
+	Derrlog(errtxt, 4);
 	conntable[fromnode].ack_pending++;
 	if (conntable[fromnode].ack_pending >= MAX_ACK_PENDING) {
 	    sendACK(fromnode);
@@ -2129,7 +2130,7 @@ static void initMCAST(int group, unsigned short port)
     if (!group) group = DEFAULT_MCAST_GROUP;
 
     if (gethostname(host, sizeof(host))<0) {
-	errexit("unable to get hostname", syslogerror, errno);
+	errexit("unable to get hostname", errno);
     }
 
     /*
@@ -2140,7 +2141,7 @@ static void initMCAST(int group, unsigned short port)
     } else {
 	if ((in_sin.s_addr = inet_addr(host)) == INADDR_NONE) {
 	    snprintf(errtxt, sizeof(errtxt), "can't get %s host entry", host);
-	    errexit(errtxt, syslogerror, errno);
+	    errexit(errtxt, errno);
 	}
     }
 
@@ -2150,7 +2151,7 @@ static void initMCAST(int group, unsigned short port)
      * Allocate socket
      */
     if ((mcastsock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
-	errexit("can't create socket (mcast)", syslogerror, errno);
+	errexit("can't create socket (mcast)", errno);
     }
 
     /*
@@ -2163,7 +2164,7 @@ static void initMCAST(int group, unsigned short port)
 		   sizeof(mreq)) == -1) {
 	snprintf(errtxt, sizeof(errtxt), "unable to join mcast group %s",
 		 inet_ntoa(mreq.imr_multiaddr));
-	errexit(errtxt, syslogerror, errno);
+	errexit(errtxt, errno);
     }
 
     /*
@@ -2172,7 +2173,7 @@ static void initMCAST(int group, unsigned short port)
     loop = 1; /* 0 = disable, 1 = enable (default) */
     if (setsockopt(mcastsock, IPPROTO_IP, IP_MULTICAST_LOOP, &loop,
                    sizeof(loop)) == -1){
-	errexit("unable to enable mcast loopback", syslogerror, errno);
+	errexit("unable to enable mcast loopback", errno);
     }
 
     /*
@@ -2181,21 +2182,21 @@ static void initMCAST(int group, unsigned short port)
     reuse = 1; /* 0 = disable (default), 1 = enable */
     if (setsockopt(mcastsock, SOL_SOCKET, SO_REUSEADDR, &reuse,
 		   sizeof(reuse)) == -1){
-        errexit("unable to set reuse flag", syslogerror, errno);
+        errexit("unable to set reuse flag", errno);
     }
 
 #if defined(__osf__)
     reuse = 1; /* 0 = disable (default), 1 = enable */
     if (setsockopt(mcastsock, SOL_SOCKET, SO_REUSEPORT, &reuse,
 		   sizeof(reuse)) == -1) {
-	errexit("unable to set reuse flag", syslogerror, errno);
+	errexit("unable to set reuse flag", errno);
     }
 #endif
 
     Dsnprintf(errtxt, sizeof(errtxt),
 	      "I'm node %d, using saddr %s",
 	      myid, inet_ntoa(mreq.imr_interface));
-    Derrlog(errtxt, syslogerror, 2);
+    Derrlog(errtxt, 2);
 
     /*
      * Bind the socket to MCast group
@@ -2210,13 +2211,13 @@ static void initMCAST(int group, unsigned short port)
         snprintf(errtxt, sizeof(errtxt),
                  "can't bind mcast socket to mcast addr %s",
                  inet_ntoa(msin.sin_addr));
-	errexit(errtxt, syslogerror, errno);
+	errexit(errtxt, errno);
     }
 
     Dsnprintf(errtxt, sizeof(errtxt),
 	      "I'm node %d, using addr %s port: %d", myid,
 	      inet_ntoa(msin.sin_addr), ntohs(msin.sin_port));
-    Derrlog(errtxt, syslogerror, 9);
+    Derrlog(errtxt, 9);
 
     RDPtimer(&TIMER_LOOP);
     return;
@@ -2243,7 +2244,7 @@ static void handleMCAST(void)
 	    } else {
 		snprintf(errtxt, sizeof(errtxt),
 			 "handleMCAST: select returns: %s", strerror(errno));
-		errlog(errtxt, syslogerror, 0);
+		errlog(errtxt, 0);
 		break;
 	    }
 	}
@@ -2256,7 +2257,7 @@ static void handleMCAST(void)
 	    snprintf(errtxt, sizeof(errtxt),
 		     "handleMCAST: recvfrom returns[%d]: %s",
 		     errno, strerror(errno));
-	    errlog(errtxt, syslogerror, 0);
+	    errlog(errtxt, 0);
 	    break;
 	}
 
@@ -2268,13 +2269,13 @@ static void handleMCAST(void)
 		  "... receiving MCAST Ping from %s%s [%d/%d], state: %s",
 		  (node == nr_of_nodes) ? "LIC " : "",
 		  inet_ntoa(sin.sin_addr), node, msg.node, CIstate(msg.state));
-	Derrlog(errtxt, syslogerror, 13);
+	Derrlog(errtxt, 13);
 
 	if (node != msg.node) { /* Got ping from a different cluster */
 	    snprintf(errtxt, sizeof(errtxt),
 		     "Getting MCASTs from unknown node [%d %s(%d)]",
 		     msg.node, inet_ntoa(sin.sin_addr), node);
-	    errlog(errtxt, syslogerror, 0);
+	    errlog(errtxt, 0);
 	    continue;
 	}
 
@@ -2284,13 +2285,12 @@ static void handleMCAST(void)
 	    Dsnprintf(errtxt, sizeof(errtxt),
 		      "Got CLOSE MCAST Ping from %s [%d]",
 		      inet_ntoa(sin.sin_addr), node);
-	    Derrlog(errtxt, syslogerror, 2);
+	    Derrlog(errtxt, 2);
 	    if (!licserver) closeConnection(node);
 	    break;
 	case T_KILL:
 	    /* Got a KILL msg (from LIC Server) */
-	    errlog("License Server told me to shut down operation !",
-		   syslogerror, 0);
+	    errlog("License Server told me to shut down operation !", 0);
 	    if (callback != NULL) { /* inform daemon */
 		info = LIC_KILL_MSG;
 		callback(RDP_LIC_SHUTDOWN, &info);
@@ -2308,7 +2308,7 @@ static void handleMCAST(void)
 		Dsnprintf(errtxt, sizeof(errtxt),
 			  "Got MCAST Ping from %s [%d] which is NOT ACTIVE",
 			  inet_ntoa(sin.sin_addr), node);
-		Derrlog(errtxt, syslogerror, 2);
+		Derrlog(errtxt, 2);
 		sendSYN(node);      /* Setup connection */
 	    }
 	}
@@ -2343,7 +2343,7 @@ int initRDPMCAST(int nodes, int mgroup, int usesyslog, unsigned int hosts[],
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
     if (sigaction(SIGALRM, &sa, 0)==-1) {
-	errexit("unable set sighandler", syslogerror, errno);
+	errexit("unable set sighandler", errno);
     }
 
     initMCAST(mgroup, portno);
@@ -2402,7 +2402,7 @@ int Mselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 		snprintf(errtxt, sizeof(errtxt),
 			 "select in Mselect returns %d, eno=%d[%s]",
 			 retval, errno, strerror(errno));
-		errlog(errtxt, syslogerror, 0);
+		errlog(errtxt, 0);
 	    }
 	}
 
@@ -2469,18 +2469,18 @@ static void MCAST_PING(RDPState state)
     Dsnprintf(errtxt, sizeof(errtxt),
 	      "MCAST_PING: Current load is [%.2f|%.2f|%.2f]",
 	      msg.load.load[0], msg.load.load[1], msg.load.load[2]);
-    Derrlog(errtxt, syslogerror, 13);
+    Derrlog(errtxt, 13);
     conntable[myid].load = msg.load;  /* Delete */
     gettimeofday(&conntable[myid].lastping, NULL);  /* Delete */
     Dsnprintf(errtxt, sizeof(errtxt),
 	      "Sending MCAST[%d:%d] to %s", myid, state,
 	      inet_ntoa(msin.sin_addr));
-    Derrlog(errtxt, syslogerror, 13);
+    Derrlog(errtxt, 13);
     if (MYsendto(mcastsock, &msg, sizeof(Mmsg), 0,
 		 (struct sockaddr *)&msin, sizeof(struct sockaddr))==-1) {
 	Dsnprintf(errtxt, sizeof(errtxt),
 		  "MCAST sendto returns[%d]: %s", errno, strerror(errno));
-	Derrlog(errtxt, syslogerror, 9);
+	Derrlog(errtxt, 9);
     }
 
     return;
