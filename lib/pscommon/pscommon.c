@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.c,v 1.6 2003/03/06 13:57:42 eicker Exp $
+ * $Id: pscommon.c,v 1.7 2003/03/19 17:01:45 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.6 2003/03/06 13:57:42 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.7 2003/03/19 17:01:45 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -222,7 +222,7 @@ char *PSC_lookupInstalldir(void)
 
 	if (stat(name, &fstat)==0 && S_ISREG(fstat.st_mode)) {
 	    /* InstallDir found */
-	    installdir = default_installdir;
+	    installdir = strdup(default_installdir);
 	}
 	free(name);
     }
@@ -236,7 +236,6 @@ char *PSC_lookupInstalldir(void)
 void PSC_setInstalldir(char *dir)
 {
     char *name, logger[] = "/bin/psilogger";
-    static char *instdir=NULL;
     struct stat fstat;
 
     name = (char*) malloc(strlen(dir) + strlen(logger) + 1);
@@ -244,25 +243,24 @@ void PSC_setInstalldir(char *dir)
     strcat(name,logger);
     if (stat(name, &fstat)) {
 	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "PSC_setInstalldir():"
-		 " '%s': %s.", name, errstr ? errstr : "UNKNOWN");
+	snprintf(errtxt, sizeof(errtxt), "%s: '%s': %s.",
+		 __func__, name, errstr ? errstr : "UNKNOWN");
 	PSC_errlog(errtxt, 0);
 	free(name);
 	return;
     }
 
     if (!S_ISREG(fstat.st_mode)) {
-	snprintf(errtxt, sizeof(errtxt), "PSC_setInstalldir():"
-		 " '%s' not a regular file.", name);
+	snprintf(errtxt, sizeof(errtxt), "%s: '%s' not a regular file.",
+		 __func__, name);
 	PSC_errlog(errtxt, 0);
 	free(name);
 
 	return;
     }
 	    
-    if (instdir) free(instdir);
-    instdir = strdup(dir);
-    installdir = instdir;
+    if (installdir) free(installdir);
+    installdir = strdup(dir);
     free(name);
 
     return;
