@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.17 2002/10/14 15:14:55 eicker Exp $
+ * $Id: config_parsing.c,v 1.18 2002/11/22 16:08:41 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.17 2002/10/14 15:14:55 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.18 2002/11/22 16:08:41 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -301,7 +301,7 @@ static int getMyriModuleName(char *token)
 
     if (!file) {
 	snprintf(errtxt, sizeof(errtxt),
-		 "cannot find MyriNet module '%s'", modname);
+		 "cannot find Myrinet module '%s'", modname);
 	parser_comment(errtxt, 0);
 
 	return -1;
@@ -918,7 +918,7 @@ static int getNodeLine(char *token)
 		 node_hasIP ? "" : " not", node_canstart ? "" : " not");
 	parser_comment(errtxt, 6);
 	if (node_hasIP && node_myriIP) {
-	    snprintf(errtxt, sizeof(errtxt), " MyriNet IP will be <%s>.",
+	    snprintf(errtxt, sizeof(errtxt), " Myrinet IP will be <%s>.",
 		     inet_ntoa(* (struct in_addr *) &node_myriIP));
 	    parser_comment(errtxt, 6);
 	}

@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.47 2002/08/07 11:33:23 eicker Exp $
+ * $Id: psidutil.c,v 1.48 2002/11/22 16:08:41 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.47 2002/08/07 11:33:23 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.48 2002/11/22 16:08:41 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -92,7 +92,7 @@ void PSID_blockSig(int block, int sig)
     }
 }
 
-/* (Re)Config and shutdown the MyriNet card */
+/* (Re)Config and shutdown the Myrinet card */
 static card_init_t card_info;
 
 void PSID_startHW(void)
@@ -103,7 +103,7 @@ void PSID_startHW(void)
 
     if (nodes[PSC_getMyID()].hwType & PSHW_MYRINET) {
 	if (!ConfigMyriModule) {
-	    PSID_errlog("PSID_startHW(): MyriNet module not defined", 0);
+	    PSID_errlog("PSID_startHW(): Myrinet module not defined", 0);
 	} else if (!ConfigRoutefile) {
 	    PSID_errlog("PSID_startHW(): Routefile not defined", 0);
 	} else {
