@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: parser.c,v 1.6 2003/02/25 12:07:08 eicker Exp $
+ * $Id: parser.c,v 1.7 2003/08/15 13:34:05 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: parser.c,v 1.6 2003/02/25 12:07:08 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: parser.c,v 1.7 2003/08/15 13:34:05 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -31,6 +31,8 @@ static char vcid[] __attribute__(( unused )) = "$Id: parser.c,v 1.6 2003/02/25 1
 #include "parser.h"
 
 static FILE *parsefile;
+
+static char *strtok_work;
 
 static int parseline;
 
@@ -76,48 +78,7 @@ static char *nextline(void)
 	return NULL;
     }
 
-    /* Remove comments */
-    hash = strchr(line, '#');
-    start = line;
-    while (hash) {
-	/* This is a candidate. It might be quoted! */
-	for (l=start; l<hash; l++) {
-	    switch (*l) {
-	    case '\'':
-		if (!dquote) quote = !quote;
-		break;
-	    case '"':
-		if (!quote) dquote = !dquote;
-		break;
-	    }
-	}
-	if (quote || dquote) {
-	    /* Find next candidate */
-	    start = hash+1;
-	    hash = strchr(start, '#');
-	} else {
-	    break;
-	}
-    }
-
-    if (hash) {
-	char *txt = hash+1;
-
-	/* Remove leading whitespace */
-	while (*txt==' ' || *txt=='\t') txt++;
-
-	if (*txt == '\n') {
-	    snprintf(errtxt, sizeof(errtxt), "Remove empty comment");
-	} else {
-	    if (txt[strlen(txt)-1] == '\n') txt[strlen(txt)-1] = '\0';
-	    snprintf(errtxt, sizeof(errtxt), "Remove comment: '%s'", txt);
-	}
-
-	parser_comment(errtxt, 12);
-
-	hash[0] = '\n';
-	hash[1] = '\0';
-    }
+    parser_removeComment(line);
 
     return line;
 }
@@ -146,6 +107,55 @@ void parser_setFile(FILE *input)
     parsefile = input;
 
     parseline = 0;
+}
+
+void parser_removeComment(char *line)
+{
+    char *hash, *start = line;
+    int quote=0, dquote=0;
+
+    while ((hash = strchr(start, '#'))) {
+	/* This is a candidate. It might be quoted! */
+	char *l;
+	for (l=start; l<hash; l++) {
+	    switch (*l) {
+	    case '\'':
+		if (!dquote) quote = !quote;
+		break;
+	    case '"':
+		if (!quote) dquote = !dquote;
+		break;
+	    }
+	}
+	if (quote || dquote) {
+	    /* Find next candidate */
+	    start = hash+1;
+	    continue;
+	} else {
+	    break;
+	}
+    }
+
+    if (hash) {
+	if (parser_getDebugLevel() >= 12) {
+	    char *txt = hash+1;
+
+	    /* Remove leading whitespace */
+	    while (*txt==' ' || *txt=='\t') txt++;
+
+	    if (*txt == '\n') {
+		snprintf(errtxt, sizeof(errtxt), "Remove empty comment");
+	    } else {
+		if (txt[strlen(txt)-1] == '\n') txt[strlen(txt)-1] = '\0';
+		snprintf(errtxt, sizeof(errtxt), "Remove comment: '%s'", txt);
+	    }
+
+	    parser_comment(errtxt, 12);
+	}
+
+	hash[0] = '\n';
+	hash[1] = '\0';
+    }
 }
 
 int parser_parseToken(char *token, parser_t *parser)
@@ -177,49 +187,42 @@ int parser_parseToken(char *token, parser_t *parser)
 
 char *parser_registerString(char *string, parser_t *parser)
 {
-    return strtok(string, parser->delim);
+    return strtok_r(string, parser->delim, &strtok_work);
 }
 
 int parser_parseString(char *token, parser_t *parser)
 {
     int ret;
 
-    do {
-	if (!token) break; /* end of string */
-
+    while (token) {
 	ret = parser_parseToken(token, parser);
 	if (ret) return ret;
 
-	token = strtok(NULL, parser->delim); /* next token */
-    } while(1);
+	token = strtok_r(NULL, parser->delim, &strtok_work); /* next token */
+    }
 
     return 0;
 }
 
 int parser_parseFile(parser_t *parser)
 {
-    char *line, *token;
+    char *line = nextline(), *token;
     int ret;
 
-    do {
-	line = nextline();
+    while (line) {
+	if (!strlen(line)) return 0; /* EOF reached */
 
-	if (!line) {
-	    return -1;
-	}
-
-	if (!strlen(line)) break; /* EOF reached */
-
-	/* Put line into strtok() */
+	/* Put line into strtok_r() */
 	token = parser_registerString(line, parser);
 
 	/* Do the parsing */
 	ret = parser_parseString(token, parser);
 	if (ret) return ret;
 
-    } while(1);
+	line = nextline();
+    }
 
-    return 0;
+    return -1;
 }
 
 int parser_error(char *token)
@@ -241,12 +244,12 @@ void parser_comment(char *comment, int level)
 
 char *parser_getString(void)
 {
-    return strtok(NULL, " \t\n");
+    return strtok_r(NULL, " \t\n", &strtok_work);
 }
 
 char *parser_getLine(void)
 {
-    return strtok(NULL, "\n");
+    return strtok_r(NULL, "\n", &strtok_work);
 }
 
 int parser_getComment(char *token)
