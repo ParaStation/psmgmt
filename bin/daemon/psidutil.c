@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.57 2003/04/07 16:30:57 eicker Exp $
+ * $Id: psidutil.c,v 1.58 2003/06/02 15:50:43 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.57 2003/04/07 16:30:57 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.58 2003/06/02 15:50:43 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -138,7 +138,7 @@ char scriptOut[1024];
 
 static int callScript(int hw, char *script)
 {
-    int fds[2];
+    int controlfds[2], iofds[2];
     int ret, result;
     pid_t pid;
 
@@ -149,7 +149,16 @@ static int callScript(int hw, char *script)
     }
 
     /* create a control channel in order to observe the script */
-    if (pipe(fds)<0) {
+    if (pipe(controlfds)<0) {
+        char *errstr = strerror(errno);
+        snprintf(scriptOut, sizeof(scriptOut), "%s: pipe(): %s\n",
+                 __func__, errstr ? errstr : "UNKNOWN");
+
+        return -1;
+    }
+
+    /* create a io channel in order to get script's output */
+    if (pipe(iofds)<0) {
         char *errstr = strerror(errno);
         snprintf(scriptOut, sizeof(scriptOut), "%s: pipe(): %s\n",
                  __func__, errstr ? errstr : "UNKNOWN");
@@ -159,11 +168,12 @@ static int callScript(int hw, char *script)
 
     if (!(pid=fork())) {
         /* This part calls the script and returns results to the parent */
-        int systemfds[2], status, i;
+        int i;
         char *command;
         char buf[20];
 
-        close(fds[0]);
+        close(controlfds[0]);
+        close(iofds[0]);
 
         /* Put the hardware's environment into the real one */
 	for (i=0; i<HW_getEnvSize(hw); i++) {
@@ -191,38 +201,21 @@ static int callScript(int hw, char *script)
 	}
 
         /* redirect stdout and stderr */
-        pipe(systemfds);
-        dup2(systemfds[1], STDOUT_FILENO);
-        dup2(systemfds[1], STDERR_FILENO);
-	close(systemfds[1]);
+        dup2(iofds[1], STDOUT_FILENO);
+        dup2(iofds[1], STDERR_FILENO);
+	close(iofds[1]);
 
         ret = system(command);
 
         /* Send results to controlling daemon */
         if (ret < 0) {
-            writeall(fds[1], &ret, sizeof(ret));
-
-            snprintf(scriptOut, sizeof(scriptOut),
-		     "%s: system(%s) failed : %s",
-                     __func__, command, strerror(errno));
-            writeall(fds[1], scriptOut, strlen(scriptOut)+1);
+            fprintf(stderr, "%s: system(%s) failed : %s",
+		    __func__, command, strerror(errno));
         } else {
-            int status = WEXITSTATUS(ret);
-
-            writeall(fds[1], &status, sizeof(status));
-
-	    /* forward the script message */
-	    close(STDOUT_FILENO); /* Squeeze the pipe */
-	    close(STDERR_FILENO);
-	    ret = readall(systemfds[0], scriptOut, sizeof(scriptOut)-1);
-
-	    writeall(fds[1], scriptOut, ret);
-
-	    scriptOut[0] = '\0';
-	    writeall(fds[1], scriptOut, 1);
+            ret = WEXITSTATUS(ret);
         }
+	writeall(controlfds[1], &ret, sizeof(ret));
 
-        close(systemfds[0]);
         free(command);
         exit(0);
     }
@@ -232,13 +225,15 @@ static int callScript(int hw, char *script)
     /* save errno in case of error */
     ret = errno;
 
-    close(fds[1]);
+    close(controlfds[1]);
+    close(iofds[1]);
         
     /* check if fork() was successful */
     if (pid == -1) {
         char *errstr = strerror(ret);
 
-        close(fds[0]);
+        close(controlfds[0]);
+        close(iofds[0]);
 
         snprintf(scriptOut, sizeof(scriptOut), "%s: fork(): %s\n",
                  __func__, errstr ? errstr : "UNKNOWN");
@@ -246,31 +241,32 @@ static int callScript(int hw, char *script)
         return -1;
     }
 
-    ret = readall(fds[0], &result, sizeof(result));
+    ret = readall(iofds[0], scriptOut, sizeof(scriptOut));
+    /* Discard further output */
+    close(iofds[0]);
+
+    if (ret == sizeof(scriptOut)) {
+	strcpy(&scriptOut[sizeof(scriptOut)-4], "...");
+    } else if (ret<0) {
+        snprintf(scriptOut, sizeof(scriptOut),
+		 "%s: read(iofd) failed : %s", __func__, strerror(errno));
+        return -1;
+    } else {
+	scriptOut[ret]='\0';
+    }
+
+    ret = readall(controlfds[0], &result, sizeof(result));
+    close(controlfds[0]);
+
     if (!ret) {
         /* control channel closed without telling result of system() call. */
         snprintf(scriptOut, sizeof(scriptOut), "%s: no answer\n", __func__);
         return -1;
     } else if (ret<0) {
-        snprintf(scriptOut, sizeof(scriptOut), "%s: read() failed : %s",
-                 __func__, strerror(errno));
+        snprintf(scriptOut, sizeof(scriptOut),
+		 "%s: read(controlfd) failed : %s", __func__, strerror(errno));
         return -1;
     }
-
-    ret = readall(fds[0], scriptOut, sizeof(scriptOut));
-    if (!ret) {
-	/* control channel was closed during message. */
-	snprintf(scriptOut, sizeof(scriptOut),
-		 "%s: pipe closed unexpectedly\n", __func__);
-        return -1;
-    } else if (ret<0) {
-	snprintf(scriptOut, sizeof(scriptOut), "%s: read() failed : %s",
-		 __func__, strerror(errno));
-        return -1;
-    }
-
-    scriptOut[sizeof(scriptOut)-1] = '\0';
-    close(fds[0]);
 
     return result;
 }
