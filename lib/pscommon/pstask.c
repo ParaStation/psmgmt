@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.c,v 1.18 2004/01/22 15:06:26 eicker Exp $
+ * $Id: pstask.c,v 1.19 2004/01/28 10:41:23 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.18 2004/01/22 15:06:26 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.19 2004/01/28 10:41:23 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -120,6 +120,7 @@ int PStask_reinit(PStask_t *task)
 	free(thissignal);
     }
 
+    if (task->request) PSpart_delReq(task->request);
     if (task->partition) free(task->partition);
 
     while (task->signalSender) {
