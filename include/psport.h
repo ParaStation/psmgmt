@@ -1,7 +1,7 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.9 2001/06/07 13:00:03 moschny Exp $
+ * $Id: psport.h,v 1.10 2001/06/25 11:16:18 moschny Exp $
  *
  * @author
  * Jens Hauke <hauke@par-tec.com>,
@@ -104,6 +104,13 @@ typedef struct PSP_Header_T {
  */
 typedef int (PSP_RecvCallBack_t)
      (PSP_RecvHeader_t* header, unsigned xheaderlen, void *param);
+
+/**
+ * Type of the callback that is executed upon finishing PSP_ISend() or
+ * PSP_IReceive().
+ */
+typedef void (PSP_DoneCallback_t)
+     (PSP_RequestH_t req, void *param);
 
 /** Number of receives without recv request */
 extern unsigned PSP_GenReqCount;
@@ -264,10 +271,14 @@ typedef struct PSP_RecvFrom_Param_T{
  * @return Returns a handle for the request or NULL if there is an
  * error. The handle can be passed to PSP_Test() and PSP_Wait().
  */
-PSP_RequestH_t PSP_IReceive(PSP_PortH_t porth,
-			    void* buf, unsigned buflen,
-			    PSP_Header_t* header, unsigned xheaderlen,
-			    PSP_RecvCallBack_t* cb, void* cb_param);
+PSP_RequestH_t PSP_IReceiveCB(PSP_PortH_t porth,
+			      void* buf, unsigned buflen,
+			      PSP_Header_t* header, unsigned xheaderlen,
+			      PSP_RecvCallBack_t* cb, void* cb_param,
+			      PSP_DoneCallback_t* dcb, void* dcb_param);
+
+#define PSP_IReceive(porth, buf, buflen, header, xheaderlen, cb, cb_param) \
+  PSP_IReceiveCB(porth, buf, buflen, header, xheaderlen, cb, cb_param, 0, 0)
 
 /* ----------------------------------------------------------------------
  * PSP_ISend()
@@ -303,10 +314,15 @@ PSP_RequestH_t PSP_IReceive(PSP_PortH_t porth,
  * user-provided memory for the header data is valid and not altered
  * (e.g. reused for another send or receive request.)
  */
-PSP_RequestH_t PSP_ISend(PSP_PortH_t porth,
-			 void* buf, unsigned buflen,
-			 PSP_Header_t* header, unsigned xheaderlen,
-			 int dest, int destport);
+
+PSP_RequestH_t PSP_ISendCB(PSP_PortH_t porth,
+			   void* buf, unsigned buflen,
+			   PSP_Header_t* header, unsigned xheaderlen,
+			   int dest, int destport,
+			   PSP_DoneCallback_t *dcb, void* dcb_param);
+
+#define PSP_ISend(porth, buf, buflen, header, xheaderlen, dest, destport) \
+  PSP_ISendCB(porth, buf, buflen, header, xheaderlen, dest, destport, 0, 0)
 
 /* ----------------------------------------------------------------------
  * PSP_Test()
