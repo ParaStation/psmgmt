@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.53 2002/07/03 21:10:06 eicker Exp $
+ * $Id: psid.c,v 1.54 2002/07/05 14:45:48 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.53 2002/07/03 21:10:06 eicker Exp $ 
+ * $Id: psid.c,v 1.54 2002/07/05 14:45:48 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.53 2002/07/03 21:10:06 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.54 2002/07/05 14:45:48 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -69,7 +69,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.53 $";
+static char psid_cvsid[] = "$Revision: 1.54 $";
 
 static int PSID_mastersock;
 
@@ -3178,7 +3178,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.53 $";
+    char revision[] = "$Revision: 1.54 $";
     snprintf(errtxt, sizeof(errtxt), "psid %s\b ", revision+11);
     PSID_errlog(errtxt, 0);
 }
@@ -3474,7 +3474,7 @@ int main(int argc, char **argv)
 	MCastSock = initMCast(PSC_getNrOfNodes(),
 			      ConfigMCastGroup, ConfigMCastPort,
 			      usesyslog, hostlist,
-			      0 /* not licServer */, MCastCallBack);
+			      PSC_getMyID(), MCastCallBack);
 	if (MCastSock<0) {
 	    PSID_errexit("Error while trying initMCast()", errno);
 	}
