@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.h,v 1.6 2002/07/11 16:52:53 eicker Exp $
+ * $Id: psispawn.h,v 1.7 2003/02/07 16:20:24 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for spawning of ParaStation tasks.
  *
- * $Id: psispawn.h,v 1.6 2002/07/11 16:52:53 eicker Exp $
+ * $Id: psispawn.h,v 1.7 2003/02/07 16:20:24 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -41,8 +41,11 @@ extern "C" {
  *  RETURN -1 on failure
  *         TID of the new process on success
  */
+/* long PSI_spawn(short dstnode, char *workingdir, int argc, char **argv, */
+/* 	       unsigned int loggernode, unsigned short loggerport, */
+/* 	       int rank, int *error); */
 long PSI_spawn(short dstnode, char *workingdir, int argc, char **argv,
-	       unsigned int loggernode, unsigned short loggerport,
+	       long loggertid,
 	       int rank, int *error);
 
 /*----------------------------------------------------------------------*/
@@ -59,9 +62,13 @@ long PSI_spawn(short dstnode, char *workingdir, int argc, char **argv,
  *  RETURN -1 on failure
  *         >0 nr of processes on success
  */
+/* int PSI_spawnM(int count, short* dstnodes, char *workingdir, */
+/* 	       int argc, char **argv, */
+/* 	       unsigned int loggernode, unsigned short loggerport, */
+/* 	       int rank, int *errors, long *tids); */
 int PSI_spawnM(int count, short* dstnodes, char *workingdir,
 	       int argc, char **argv,
-	       unsigned int loggernode, unsigned short loggerport,
+	       long loggertid,
 	       int rank, int *errors, long *tids);
 
 /*------------------------------------------------------------
