@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidclient.h,v 1.4 2003/10/30 16:33:01 eicker Exp $
+ * $Id: psidclient.h,v 1.5 2003/12/09 16:20:20 eicker Exp $
  *
  */
 /**
  * \file
  * Functions for client handling within the ParaStation daemon
  *
- * $Id: psidclient.h,v 1.4 2003/10/30 16:33:01 eicker Exp $
+ * $Id: psidclient.h,v 1.5 2003/12/09 16:20:20 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -220,6 +220,28 @@ void closeConnection(int fd);
  */
 void deleteClient(int fd);
 
+/**
+ * @brief Kill all clients
+ *
+ * Kill all clients depending on the @a phase of shutting down the
+ * daemon. The following phases are known:
+ *
+ *  - phase 0: send SIGTERM signal to clients not in group TG_ADMIN
+ *
+ * - phase 1: send SIGTERM signal to all remaining clieant. Hopefully
+ * all end until phase 2 reached
+ *
+ * - phase 2: send SIGKILL signal to clients not in group TG_ADMIN
+ *
+ * - phase 3: send SIGKILL signal and clean up all open connections.
+ *
+ * @param phase The shutdown phase of the daemon.
+ *
+ * @return If this function is called to frequently, i.e. if the last
+ * call was less than 200 msec in the past, 0 is returned. Otherwise 1
+ * is given back.
+ */
+int killAllClients(int phase);
 
 #ifdef __cplusplus
 }/* extern "C" */
