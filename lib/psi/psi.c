@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.57 2003/11/26 15:14:38 eicker Exp $
+ * $Id: psi.c,v 1.58 2003/11/28 15:50:20 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.57 2003/11/26 15:14:38 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.58 2003/11/28 15:50:20 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -34,7 +34,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.57 2003/11/26 15:
 
 #include "psi.h"
 
-int daemonSock = -1;
+static int daemonSock = -1;
 
 static char errtxt[256];
 
