@@ -593,7 +593,7 @@ double PSI_getload(u_short nodenr)
     }
 
     if(msg.header.type == PSP_CD_LOADRES){
-	return ((DDLoadMsg_t*)&msg)->load[1];
+	return ((DDLoadMsg_t*)&msg)->load[0]; /* changed from 5min to 1 min avg load jh 2001-12-21 */
     }else if(msg.header.type == PSP_CD_LOADRES){
 	errno =  ((DDErrorMsg_t*)&msg)->err;
     }
