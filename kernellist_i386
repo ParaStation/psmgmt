@@ -37,6 +37,7 @@
 2.4.7-10smp.redhat	/home/phoenix/kernel/i386/linux-2.4.7-10smp.redhat
 2.4.18-3smp.redhat      /home/phoenix/kernel/i386/linux-2.4.18-3SMP.redhat
 2.4.18-3-4GB-smp.redhat      /home/phoenix/kernel/i386/linux-2.4.18-3-4GB-SMP.redhat
+2.4.18-14-64GB-smp.redhat    /home/phoenix/kernel/i386/linux-2.4.18-14-64GB-SMP.redhat
 
 #vanilla
 2.4.2			/home/phoenix/kernel/i386/linux-2.4.2
