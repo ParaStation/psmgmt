@@ -33,7 +33,7 @@ void PSID_ReConfig(int nodeid, int nrofnodes, char *licensekey, char *module,
 {
     card_init_t card_info;
 
-    SYSLOG(1,(LOG_ERR, "PSHAL_ReConfig: %d '%s' '%s' '%s'"
+    SYSLOG(1,(LOG_ERR, "PSID_ReConfig: %d '%s' '%s' '%s'"
 	      " small packets %d, ResendTimeout %d\n",
 	      nodeid, licensekey, module, routingfile,
 	      ConfigSmallPacketSize,ConfigResendTimeout));
@@ -208,7 +208,7 @@ PSID_startlicenseserver(u_long hostaddr)
     struct sockaddr_in sa;
 #if defined(DEBUG)
     if(PSP_DEBUGADMIN & (PSI_debugmask )){
-	sprintf(PSI_txt,"PSI_startlicenseserver(%lx)\n", hostaddr);
+	sprintf(PSI_txt,"PSID_startlicenseserver(%lx)\n", hostaddr);
 	PSI_logerror(PSI_txt);
     }
 #endif
@@ -218,8 +218,8 @@ PSID_startlicenseserver(u_long hostaddr)
     sock = socket(AF_INET,SOCK_STREAM,0);
 
     if ((service = getservbyname("psld","tcp")) == NULL){ 
-	sprintf(PSI_txt,
-		"StartlicenseServer(): can't get \"psld\" service entry\n"); 
+	sprintf(PSI_txt, "PSID_startlicenseserver():"
+		" can't get \"psld\" service entry\n"); 
 	fprintf(stderr, PSI_txt);
 	PSI_logerror(PSI_txt);
 	shutdown(sock,2);
@@ -231,7 +231,8 @@ PSID_startlicenseserver(u_long hostaddr)
     sa.sin_addr.s_addr = hostaddr;
     sa.sin_port = service->s_port;
     if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0){ 
-	perror("StartlicenseServer(): Connect to port for start with inetd failed."); 
+	perror("PSID_startlicenseserver():"
+	       " Connect to port for start with inetd failed."); 
 	shutdown(sock,2);
 	close(sock);
 	return 0;
@@ -261,7 +262,7 @@ int PSID_taskspawn(PStask_t* task)
 
 #if defined(DEBUG)||defined(PSID)
     if(PSP_DEBUGTASK & PSI_debugmask){
-	sprintf(PSI_txt,"PStask_spawn(task: ");
+	sprintf(PSI_txt,"PSID_taskspawn(task: ");
 	PStask_sprintf(PSI_txt+strlen(PSI_txt),task);
 	sprintf(PSI_txt+strlen(PSI_txt),")\n");
 	PSI_logerror(PSI_txt);
@@ -275,7 +276,7 @@ int PSID_taskspawn(PStask_t* task)
     if(pipe(fds)<0){
 	char* errtxt;
 	errtxt=strerror(errno);
-	syslog(LOG_ERR, "PStask_spawn(pipe): [#%d] %s ", errno,
+	syslog(LOG_ERR, "PSID_taskspawn(pipe): [#%d] %s ", errno,
 	       errtxt?errtxt:"UNKNOWN");
 	perror("pipe");
     }
@@ -294,7 +295,7 @@ int PSID_taskspawn(PStask_t* task)
 	    char* errtxt;
 	    errtxt=strerror(errno);
 
-	    syslog(LOG_ERR, "PStask_spawn(setgid): [%d] %s", errno,
+	    syslog(LOG_ERR, "PSID_taskspawn(setgid): [%d] %s", errno,
 		   errtxt?errtxt:"UNKNOWN");
 	    perror("setgid");
 	    buf = errno;
@@ -309,7 +310,7 @@ int PSID_taskspawn(PStask_t* task)
 	    char* errtxt;
 	    errtxt=strerror(errno);
 
-	    syslog(LOG_ERR, "PStask_spawn(setuid): [%d] %s", errno,
+	    syslog(LOG_ERR, "PSID_taskspawn(setuid): [%d] %s", errno,
 		   errtxt?errtxt:"UNKNOWN");
 	    perror("setuid");
 	    buf = errno;
@@ -323,7 +324,7 @@ int PSID_taskspawn(PStask_t* task)
 	if(chdir(task->workingdir)<0){
 	    char* errtxt;
 	    errtxt=strerror(errno);
-	    syslog(LOG_ERR, "PStask_spawn(chdir): %d %s :%s", errno,
+	    syslog(LOG_ERR, "PSID_taskspawn(chdir): %d %s :%s", errno,
 		   errtxt?errtxt:"UNKNOWN",
 		   task->workingdir?task->workingdir:"");
 	    perror("chdir");
@@ -348,7 +349,7 @@ int PSID_taskspawn(PStask_t* task)
 	    || !(sb.st_mode & S_IEXEC)){
 	    char* errtxt;
 	    errtxt=strerror(errno);
-	    syslog(LOG_ERR,"PStask_spawn(stat): [%d] %s :%s  %s %s",
+	    syslog(LOG_ERR,"PSID_taskspawn(stat): [%d] %s :%s  %s %s",
 		   errno, errtxt?errtxt:"UNKNOWN",
 		   task->argv[0]?task->argv[0]:"",
 		   ((sb.st_mode & S_IFMT) != S_IFREG)?"S_IFREG error":"S_IFREG ok",
@@ -380,7 +381,7 @@ int PSID_taskspawn(PStask_t* task)
 	    errtxt=strerror(errno);
 	    openlog("psid spawned process",LOG_PID|LOG_CONS,LOG_DAEMON);
 	    PSI_setoption(PSP_OSYSLOG,1);
-	    syslog(LOG_ERR,"PStask_spawn(execv): [%d] %s",
+	    syslog(LOG_ERR,"PSID_taskspawn(execv): [%d] %s",
 		   errno,errtxt?errtxt:"UNKNOWN");
 	    perror("exec");
 	}
@@ -407,7 +408,7 @@ int PSID_taskspawn(PStask_t* task)
 
 	close(fds[0]);
 	close(fds[1]);
-	syslog(LOG_ERR, "PStask_spawn(fork): [%d] %s", errno,
+	syslog(LOG_ERR, "PSID_taskspawn(fork): [%d] %s", errno,
 	       errtxt?errtxt:"UNKNOWN");
 	perror("fork()");
 	task->error = -errno;
