@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidspawn.c,v 1.13 2003/10/08 14:52:15 eicker Exp $
+ * $Id: psidspawn.c,v 1.14 2003/10/30 16:31:06 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.13 2003/10/08 14:52:15 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.14 2003/10/30 16:31:06 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -129,7 +129,6 @@ int PSID_execClient(PStask_t *task, int controlchannel)
     }
 
     /* Test if executable is there */
-    /* @todo Why we do this? The execv will do the same later. *jh* */
     if (PSID_stat(task->argv[0], &sb) == -1) {
 	fprintf(stderr, "%s: stat(%s): %s\n", __func__,
 		task->argv[0] ? task->argv[0] : "", get_strerror(errno));
