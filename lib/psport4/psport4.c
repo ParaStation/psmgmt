@@ -7,7 +7,7 @@
 /**
  * name: Description
  *
- * $Id: psport4.c,v 1.8 2002/07/18 11:36:08 eicker Exp $
+ * $Id: psport4.c,v 1.9 2002/07/18 13:18:32 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -1782,6 +1782,8 @@ PSP_RequestH_t ISendLoopback( PSP_PortH_t porth,
     header->xheaderlen = xheaderlen;
     header->datalen = buflen;
     
+    PSP_LOCK;
+
     /* Search or generate the Request */
     req = GetPostedRequest( &port->ReqList, PSP_HEADER_NET( header ),
 			    sizeof( PSP_Header_Net_t ) + xheaderlen,
@@ -1807,7 +1809,9 @@ PSP_RequestH_t ISendLoopback( PSP_PortH_t porth,
     }
     
     FinishRequest( port, req );
-    
+
+    ExecBHandUnlock();
+
     return (PSP_RequestH_t) header;
 }
 
@@ -1879,8 +1883,8 @@ PSP_RequestH_t PSP_ISend(PSP_PortH_t porth,
     return (PSP_RequestH_t) header;
  err_notconnected:
     errno = ECONNREFUSED;
- err_inval:
     PSP_UNLOCK;
+ err_inval:
     DPRINT( 1, "SEND to conn %d failed : %s", dest, strerror(errno));
     header->Req.state = PSP_MAGICREQ_VALID |
 	PSP_REQ_STATE_SENDNOTCON | PSP_REQ_STATE_PROCESSED;
