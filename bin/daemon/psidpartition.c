@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidpartition.c,v 1.4 2003/10/23 16:27:35 eicker Exp $
+ * $Id: psidpartition.c,v 1.5 2003/10/29 17:19:18 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.4 2003/10/23 16:27:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.5 2003/10/29 17:19:18 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -57,7 +57,7 @@ typedef struct request{
     unsigned int priority;   /**< Priority of the parallel task */
     int num;                 /**< Number of nodes within request */
     int numGot;              /**< Number of nodes actually received */
-    unsigned short *nodes;   /**< List of candidates to be used for
+    PSnodes_ID_t *nodes;     /**< List of candidates to be used for
 				partition creation */
 } request_t;
 
@@ -833,7 +833,7 @@ static int getPartition(request_t *request)
 void msg_CREATEPART(DDBufferMsg_t *inmsg)
 {
     PStask_t *task = PStasklist_find(managedTasks, inmsg->header.sender);
-    char *ptr = (char *)inmsg + inmsg->header.len;
+    char *ptr = (char *)inmsg + inmsg->header.len; /* append data */
 
     if (!task || (task && task->ptid)) {
 	snprintf(errtxt, sizeof(errtxt), "%s: task %s not root process.",
@@ -995,8 +995,8 @@ void msg_GETPARTNL(DDBufferMsg_t *inmsg)
 	goto error;
     }
 
-    chunk = *(int *)ptr;
-    ptr += sizeof(int);
+    chunk = *(int16_t *)ptr;
+    ptr += sizeof(int16_t);
 
     memcpy(request->nodes + request->numGot, ptr,
 	   chunk * sizeof(*request->nodes));
@@ -1162,6 +1162,13 @@ void msg_GETNODES(DDBufferMsg_t *inmsg)
 
     if (!task->partitionSize || !task->partition) {
 	snprintf(errtxt, sizeof(errtxt), "%s: No Partition created", __func__);
+	PSID_errlog(errtxt, 0);
+	goto error;
+    }
+
+    if (task->nextRank < 0) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: Partition's creation not yet finished", __func__);
 	PSID_errlog(errtxt, 0);
 	goto error;
     }
