@@ -1,15 +1,15 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * psidforwarder.c
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidforwarder.c,v 1.14 2003/10/30 16:34:31 eicker Exp $
+ * $Id: psidforwarder.c,v 1.15 2004/01/09 16:01:25 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.14 2003/10/30 16:34:31 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.15 2004/01/09 16:01:25 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -433,7 +433,7 @@ static void releaseLogger(int status)
  * set approriately. If the last round timed out, -1 is returned and
  * errno is set to ETIME.
  */
-size_t collectRead(int sock, char *buf, size_t count, size_t *total)
+static size_t collectRead(int sock, char *buf, size_t count, size_t *total)
 {
     char txt[128];
     int n;
