@@ -1,3 +1,10 @@
+Changes since psmgmt-4.0.2:
+===========================
+
+2003-07-03  Jens Hauke  <hauke@par-tec.com>
+
+	* Release: psmgmt-4.0.3 released.
+
 2003-06-26  Norbert Eicker  <eicker@par-tec.com>
 
 	* Extensions: Use mpirun_chgm to start MPIch/GM apps within ParaStation
@@ -8,8 +15,6 @@
 	Starts all daemons within the cluster.
 
 2003-06-25  Norbert Eicker  <eicker@par-tec.com>
-
-	* Bugfix: Root can start on any node now.
 
 	* Bugfix: Distribute correct info on restricting node to special user.
 
