@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: helpmsgs.c,v 1.11 2004/03/11 14:53:56 eicker Exp $
+ * $Id: helpmsgs.c,v 1.12 2004/09/22 09:22:59 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.11 2004/03/11 14:53:56 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.12 2004/09/22 09:22:59 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -61,6 +61,8 @@ static info_t helpInfo = {
 	},
 	{ .tag = "kill",
 	  .descr = "Terminate a ParaStation process on any node." },
+	{ .tag = "range",
+	  .descr = "Set or show the default node-range." },
 	{ .tag = "show",
 	  .descr = "Show control parameters." },
 	{ .tag = "status",
@@ -105,17 +107,38 @@ static info_t nodeInfo = {
     .descr = NULL,
     .tags = (taggedInfo_t[]) {
 	{ .tag = "<nodes> ",
-	  .descr = "selects one or more ranges of nodes. <nodes> is of the"
-	  " form s1[-e1]{,si[-ei]}*, where the s and e are positiv numbers"
-	  " representing ParaStation IDs. Each comma-separated part of"
-	  " <nodes> denotes a range of nodes. If a range's '-e' part is"
+	  .descr = "selects one or more ranges of nodes. <nodes> is either of"
+	  " the form s1[-e1]{,si[-ei]}*, where the s and e are positiv numbers"
+	  " representing ParaStation IDs, or 'all'. Each comma-separated part"
+	  " of <nodes> denotes a range of nodes. If a range's '-e' part is"
 	  " missing, it represents a single node. In principle <nodes> might"
-	  " contain an unlimited number of ranges. If <nodes> is empty, all"
-	  " nodes of the ParaStation cluster are selected. As an extension"
-	  " <nodes> might also be a hostname that can be resolved into a"
-	  " valid ParaStation ID." },
+	  " contain an unlimited number of ranges. If <nodes> value is 'all',"
+	  " all nodes of the ParaStation cluster are selected. If <nodes> is"
+	  " empty, the node range preselected via the 'range' command is used."
+	  " The default preselected node range contains all nodes of the"
+	  " ParaStation cluster. As an extension <nodes> might also be a"
+	  " hostname that can be resolved into a valid ParaStation ID." },
 	{ NULL, NULL }
     },
+    .comment = NULL
+};
+
+static info_t rangeInfo = {
+    .head = "Range command:",
+    .syntax = (syntax_t[]) {{
+	.cmd = "r[ange]",
+	.arg = "[<nodes> | all]"
+    }},
+    .nodes = 0,
+    .descr = "Preselect or display the default range of nodes used within"
+    " the commands of the ParaStation admin. If <nodes> is given, the default"
+    " range of nodes is set. Otherwise the actual default range of nodes is"
+    " displayed. <nodes> is of the form s1[-e1]{,si[-ei]}*, where the s and e"
+    " are positiv numbers representing ParaStation IDs. Each comma-separated"
+    " part of <nodes> denotes a range of nodes. If a range's '-e' part is"
+    " missing, it represents a single node. In principle <nodes> might contain"
+    " an unlimited number of ranges.",
+    .tags = NULL,
     .comment = NULL
 };
 
@@ -195,8 +218,8 @@ static info_t setInfo = {
     .syntax = (syntax_t[]) {{
 	.cmd = "set",
 	.arg = "{maxproc {<num>|any} | user {<user>|any} | group {<group>|any}"
-	" | psiddebug <level> | rdpdebug <level> | rdppktloss <rate> "
-	" | rdpmaxretrans <val> | mcastdebug <level>"
+	" | psiddebug <level> | selecttime <timeout> | rdpdebug <level>"
+	" | rdppktloss <rate> | rdpmaxretrans <val> | mcastdebug <level>"
 	" | {smallpacketsize|sps} <size> | hnpend <val> | ackpend <val>"
 	" | {freeonsuspend|fos} } <nodes>"
     }},
@@ -218,6 +241,9 @@ static info_t setInfo = {
 	  " Depending on <level> the daemon might log a huge amount of"
 	  " messages to the syslog. Thus do not use large values for <level>"
 	  " for a long time." },
+	{ .tag = "set selecttime <timeout>",
+	  .descr = "Set the ParaStation daemon's select timeout to <timeout>"
+	  " on the selected nodes." },
 	{ .tag = "set rdpdebug <level>",
 	  .descr = "Set RDP protocol's debugging level to <level> on the"
 	  " seleceted nodes."
@@ -260,10 +286,10 @@ static info_t showInfo = {
     .head = "Show command:",
     .syntax = (syntax_t[]) {{
 	.cmd = "show",
-	.arg = "{maxproc | user | group | psiddebug | rdpdebug | rdppktloss"
-	" | rdpmaxretrans | mcastdebug | master | {smallpacketsize|sps}"
-	" | resendtimeout | hnpend | ackpend | {freeonsuspend|fos}"
-	" | {handleoldbins|hob}} <nodes>"
+	.arg = "{maxproc | user | group | psiddebug | selecttime | rdpdebug"
+	" | rdppktloss | rdpmaxretrans | mcastdebug | master"
+	" | {smallpacketsize|sps} | {resendtimeout|rto} | hnpend | ackpend"
+	" | {freeonsuspend|fos} | {handleoldbins|hob}} <nodes>"
     }},
     .nodes = 1,
     .descr = "Show various parameters of the ParaStation system:",
@@ -276,6 +302,8 @@ static info_t showInfo = {
 	  .descr = "Show group access is granted to." },
 	{ .tag = "show psiddebug",
 	  .descr = "Show daemons verbosity level." },
+	{ .tag = "show selecttime",
+	  .descr = "Show daemons select timeout." },
 	{ .tag = "show rdpdebug",
 	  .descr = "Show RDP protocol's verbosity level." },
 	{ .tag = "show rdppktloss",

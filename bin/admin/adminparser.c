@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: adminparser.c,v 1.15 2004/03/16 16:39:58 eicker Exp $
+ * $Id: adminparser.c,v 1.16 2004/09/22 09:22:59 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.15 2004/03/16 16:39:58 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.16 2004/09/22 09:22:59 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -37,16 +37,35 @@ static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.15 2004/
 
 #include "helpmsgs.c"
 
-static char parserversion[] = "$Revision: 1.15 $";
+static char parserversion[] = "$Revision: 1.16 $";
+
+static char *defaultNL = NULL;
+
+static int setupDefaultNL(void)
+{
+    defaultNL = malloc(PSC_getNrOfNodes());
+    if (!defaultNL) return 0;
+
+    memset(defaultNL, 1, PSC_getNrOfNodes());
+    return 1;
+}
 
 static char *getNodeList(char *nl_descr)
 {
     static char *nl = NULL;
-    char *tmp = strdup(nl_descr);
-    char *ret = PSC_parseNodelist(tmp);
 
-    free(tmp);
-    if (ret) return ret;
+    if (!strcasecmp(nl_descr, "all")) {
+	nl = realloc(nl, PSC_getNrOfNodes());
+	memset(nl, 1, PSC_getNrOfNodes());
+
+	return nl;
+    } else {
+        char *tmp = strdup(nl_descr);
+	char *ret = PSC_parseNodelist(tmp);
+
+	free(tmp);
+	if (ret) return ret;
+    }
 
     {
 	PSnodes_ID_t node;
@@ -76,7 +95,7 @@ static char *getNodeList(char *nl_descr)
 static int addCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = NULL;
+    char *nl = defaultNL;
 
     if (parser_getString()) goto error;
 
@@ -97,7 +116,7 @@ static int addCommand(char *token)
 static int shutdownCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = NULL;
+    char *nl = defaultNL;
 
     if (parser_getString()) goto error;
 
@@ -132,7 +151,7 @@ static int stopCommand(char *token)
 static int hwstartCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = NULL, *hw = NULL;
+    char *nl = defaultNL, *hw = NULL;
     int hwIndex = -1;
 
     if (nl_descr && !strcasecmp(nl_descr, "hw")) {
@@ -163,7 +182,7 @@ static int hwstartCommand(char *token)
 static int hwstopCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = NULL, *hw = NULL;
+    char *nl = defaultNL, *hw = NULL;
     int hwIndex = -1;
 
     if (nl_descr && !strcasecmp(nl_descr, "hw")) {
@@ -194,7 +213,7 @@ static int hwstopCommand(char *token)
 static int restartCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = NULL;
+    char *nl = defaultNL;
 
     if (parser_getString()) goto error;
 
@@ -212,10 +231,34 @@ static int restartCommand(char *token)
     return -1;
 }
 
+static int rangeCommand(char *token)
+{
+    char *nl_descr = parser_getString();
+
+    if (parser_getString()) goto error;
+
+    if (nl_descr) {
+	char *nl = getNodeList(nl_descr);
+	if (!nl) return -1;
+
+	memcpy(defaultNL, nl, PSC_getNrOfNodes());
+    } else {
+	printf(" ");
+	PSC_printNodelist(defaultNL);
+	printf("\n");
+    }
+
+    return 0;
+
+ error:
+    printError(&rangeInfo);
+    return -1;
+}
+
 static int resetCommand(char *token)
 {
     char *nl_descr = parser_getString();
-    char *nl = NULL;
+    char *nl = defaultNL;
     int hw = 0;
 
     if (nl_descr && !strcasecmp(nl_descr, "hw")) {
@@ -243,7 +286,7 @@ static int statCommand(char *token)
 {
     char *what = parser_getString();
     char *nl_descr = parser_getString();
-    char *nl = NULL, *hw = NULL;
+    char *nl = defaultNL, *hw = NULL;
     int cnt = 10;
 
     if (what && (!strcasecmp(what, "count")
@@ -359,7 +402,7 @@ static int setCommand(char *token)
     char *what = parser_getString();
     char *value = parser_getString();
     char *nl_descr = parser_getString();
-    char *nl = NULL;
+    char *nl = defaultNL;
     PSP_Option_t option = 0;
     long val;
 
@@ -436,7 +479,7 @@ static int showCommand(char *token)
 {
     char *what = parser_getString();
     char *nl_descr = parser_getString();
-    char *nl = NULL;
+    char *nl = defaultNL;
     PSP_Option_t option = 0;
 
     if (parser_getString() || !what) goto error;
@@ -565,6 +608,9 @@ static int helpCommand(char *token)
 		   || !strcasecmp(option, "stat")
 		   || !strcasecmp(option, "s")) {
 	    printInfo(&statInfo);
+	} else if (!strcasecmp(option, "range")
+		   || !strcasecmp(option, "r")) {
+	    printInfo(&rangeInfo);
 	} else if (!strcasecmp(option, "reset")) {
 	    printInfo(&resetInfo);
 	} else if (!strcasecmp(option, "restart")) {
@@ -650,6 +696,8 @@ static keylist_t commandList[] = {
     {"stop", stopCommand},
     {"hwstart", hwstartCommand},
     {"hwstop", hwstopCommand},
+    {"r", rangeCommand},
+    {"range", rangeCommand},
     {"restart", restartCommand},
     {"reset", resetCommand},
     {"status", statCommand},
@@ -704,6 +752,7 @@ int parseLine(char *line)
     if (firstCall) {
 	parser_init(0, NULL);
 	parser_setDebugLevel(0);
+	setupDefaultNL();
 	firstCall = 0;
     }
 
