@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiforwarder.c,v 1.6 2002/01/07 08:48:37 eicker Exp $
+ * $Id: psiforwarder.c,v 1.7 2002/01/16 17:59:19 eicker Exp $
  *
  */
 /**
  * \file
  * psiforwarder: Forwarding-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psiforwarder.c,v 1.6 2002/01/07 08:48:37 eicker Exp $ 
+ * $Id: psiforwarder.c,v 1.7 2002/01/16 17:59:19 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.6 2002/01/07 08:48:37 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.7 2002/01/16 17:59:19 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -96,12 +96,12 @@ int loggerconnect(unsigned int node, int port)
     struct sockaddr_in sa;	/* socket address */
     FLBufferMsg_t msg;
 
-    if((loggersock = socket(PF_INET,SOCK_STREAM,0))<0){
+    if((loggersock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP))<0){
 	return(-1);
     }
 
-    memset(&sa, 0, sizeof(sa)); 
-    sa.sin_family = PF_INET; 
+    memset(&sa, 0, sizeof(sa));
+    sa.sin_family = AF_INET;
     sa.sin_addr.s_addr = node;
     sa.sin_port = htons(port);
 
@@ -146,7 +146,7 @@ void CheckFileTable(fd_set* openfds)
 
 	    tv.tv_sec=0;
 	    tv.tv_usec=0;
-	    if (select(FD_SETSIZE, &rfds, NULL, NULL, &tv) < 0){ 
+	    if (select(FD_SETSIZE, &rfds, NULL, NULL, &tv) < 0){
 		/* error : check if it is a wrong fd in the table */
 		switch(errno){
 		case EBADF :
@@ -228,7 +228,7 @@ void loop(int stdoutport, int stderrport)
      * Loop until there is no connection left.
      */
     while (noclients > 0) {
-	memcpy(&afds, &myfds, sizeof(afds)); 
+	memcpy(&afds, &myfds, sizeof(afds));
 	atv = mytv;
 	if(select(FD_SETSIZE, &afds, NULL, NULL, &atv) < 0){
 	    snprintf(obuf, sizeof(obuf), "PSIforwarder: error on select(%d):"
@@ -334,12 +334,11 @@ int main( int argc, char**argv)
     sscanf(argv[4], "%d", &stdoutport);
     sscanf(argv[5], "%d", &stderrport);
 
-    
     if((ret=loggerconnect(logger_node, logger_port)) < 0){
 	exit(1);
     }
 
-    /* Two clients allready connected (stdout/stderr) */      
+    /* Two clients allready connected (stdout/stderr) */
     noclients = 2;
 
     /* call the loop which does all the work */

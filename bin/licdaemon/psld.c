@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.10 2002/01/09 14:59:27 eicker Exp $
+ * $Id: psld.c,v 1.11 2002/01/16 17:59:19 eicker Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Daemon
  *
- * $Id: psld.c,v 1.10 2002/01/09 14:59:27 eicker Exp $ 
+ * $Id: psld.c,v 1.11 2002/01/16 17:59:19 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.10 2002/01/09 14:59:27 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.11 2002/01/16 17:59:19 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -47,7 +47,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.10 2002/01/09 14
 static int usesyslog = 1;  /* flag if syslog is used */
 
 /*
- * The following procedures are usually defined in config/routing.c but 
+ * The following procedures are usually defined in config/routing.c but
  * NOT needed by the license server (thus overwritten by dummies)
  */
 
@@ -85,7 +85,7 @@ int check_machine(int *interface)
     int skfd;
     char *ipaddr;
 
-    skfd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);  /* allocate a socket */
+    skfd = socket(PF_INET, SOCK_DGRAM, IPPROTO_TCP);  /* allocate a socket */
     if (skfd<0) {
 	ERR_OUT("Unable to obtain socket");
 	return 1;
@@ -100,7 +100,7 @@ int check_machine(int *interface)
 
     ifr = ifc.ifc_req;
     for (n = 0, i=0; n < ifc.ifc_len; n += sizeof(struct ifreq)) {
-	if (ifr->ifr_dstaddr.sa_family == PF_INET) {
+	if (ifr->ifr_dstaddr.sa_family == AF_INET) {
 	    strcpy(iflist[i].name, ifr->ifr_name);
 	    iflist[i].ipaddr =
 		((struct sockaddr_in *)&ifr->ifr_addr)->sin_addr.s_addr;
@@ -158,7 +158,7 @@ int check_machine(int *interface)
     gethostname(host,80);
     if (!ipfound) {
 	snprintf(errtxt, sizeof(errtxt),
-		"Machine %s not configured as LicenseServer [Server is %s]", 
+		"Machine %s not configured as LicenseServer [Server is %s]",
 		host, psihosttable[NrOfNodes].name);
 	ERR_OUT(errtxt);
 	return 1;
@@ -175,7 +175,7 @@ int check_license(void)
     unsigned long start=0;
     unsigned long end=0;
     long version;
-    unsigned long now;  
+    unsigned long now;
     int ipfound,i;
 
     IpNodesEndFromLicense(ConfigLicensekey, &IP, &nodes, &start, &end,
@@ -219,7 +219,7 @@ int check_license(void)
     gethostname(host,80);
     if (!ipfound) {
 	snprintf(errtxt, sizeof(errtxt),
-		"LicenseKey does not match current LicenseServer [%s:%s]", 
+		"LicenseKey does not match current LicenseServer [%s:%s]",
 		host, psihosttable[NrOfNodes].name);
 	ERR_OUT(errtxt);
 	return 1;
@@ -296,7 +296,7 @@ void sighandler(int sig)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.10 $";
+    char revision[] = "$Revision: 1.11 $";
     snprintf(errtxt, sizeof(errtxt), "psld %s\b ", revision+11);
     ERR_OUT(errtxt);
 }
@@ -386,7 +386,7 @@ int main(int argc, char *argv[])
 
     if (dofork) {  /* Start as daemon */
 	switch (c = fork()) {
-	case -1: 
+	case -1:
 	    ERR_OUT("unable to fork server process\n");
 	    return(-1);
 	    break;
@@ -422,7 +422,7 @@ int main(int argc, char *argv[])
 	openlog("psld", LOG_PID, ConfigSyslog);
     }
 
-//    if(check_license(usesyslog)){
+/*      if(check_license(usesyslog)){ */
 
         setRDPLogMsg(1);
 	msock = initRDPMCAST(NrOfNodes, ConfigMgroup, usesyslog, NULL);
@@ -433,7 +433,7 @@ int main(int argc, char *argv[])
 	while(1){
 	    Mselect(0,NULL,NULL,NULL,&tv);
 	}
-//  }
+/*      } */
 
     return 0;
 }
