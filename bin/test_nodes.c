@@ -246,7 +246,6 @@ void run(int argc,char **argv,int np)
     int mapport[np];
     int rank;
     int i,j,k,end;
-    char filename[100];
     FILE *out;
     struct itimerval timer;
 
@@ -298,6 +297,7 @@ void run(int argc,char **argv,int np)
     }
     
     if (rank>0){
+//	char filename[100];
 //	sprintf(filename,"out.%d",rank);
 //	out=fopen(filename,"w");
 	out = stdout;
@@ -438,13 +438,6 @@ void run(int argc,char **argv,int np)
 
 int main(int argc, char **argv)
 {
-    struct psm_mcpif_mmap_struct * ms;
-    int pshal_fd=0;
-    int res;
-    int i;
-    int size;
-    char mes[64];
-
     signal(SIGINT , cleanup);
     //printf(__DATE__" "__TIME__"\n");
 
@@ -481,29 +474,3 @@ int main(int argc, char **argv)
 /*
 ssh io "cdl psm;cd tools;make test_nodes";cdl psm;scp -C tools/alpha_Linux/test_nodes alice:
 */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

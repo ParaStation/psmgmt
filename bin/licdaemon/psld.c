@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.27 2002/07/23 12:50:31 eicker Exp $
+ * $Id: psld.c,v 1.28 2002/07/31 11:32:22 eicker Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Daemon
  *
- * $Id: psld.c,v 1.27 2002/07/23 12:50:31 eicker Exp $
+ * $Id: psld.c,v 1.28 2002/07/31 11:32:22 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.27 2002/07/23 12:50:31 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.28 2002/07/31 11:32:22 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -79,7 +79,7 @@ typedef struct iflist_t{
 static iflist_t iflist[20];
 static int if_found=0;
 
-int check_machine(int *interface)
+int checkMachine(void)
 {
     char host[80];
     unsigned int LicIP;
@@ -173,7 +173,7 @@ int check_machine(int *interface)
     return 0;
 }
 
-int check_lock(void)
+int checkLock(void)
 {
     FILE *f;
     int fd;
@@ -249,9 +249,6 @@ void sighandler(int sig)
  */
 void MCastCallBack(int msgid, void *buf)
 {
-    int node;
-    struct in_addr hostaddr;
-
     switch(msgid) {
     case MCAST_NEW_CONNECTION:
     case MCAST_LOST_CONNECTION:
@@ -275,7 +272,7 @@ void MCastCallBack(int msgid, void *buf)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.27 $";
+    char revision[] = "$Revision: 1.28 $";
     snprintf(errtxt, sizeof(errtxt), "psld %s\b ", revision+11);
     errlog(errtxt, 0);
 }
@@ -316,7 +313,6 @@ int main(int argc, char *argv[])
 {
     int c, i, errflg = 0, helpflg = 0, verflg = 0, dofork = 1;
     int msock;
-    int interface;
     struct timeval tv;
     int lok;
     int lc = 10;
@@ -389,7 +385,7 @@ int main(int argc, char *argv[])
 	}
     }
 
-    if (!check_lock()) {
+    if (!checkLock()) {
 	errlog("PSLD already running\n", 1);
 	return -1;
     }
@@ -413,7 +409,7 @@ int main(int argc, char *argv[])
 	errlog(errtxt, 1);
     }
 
-    check_machine(&interface);
+    checkMachine();
 
     lok = lic_isvalid(&ConfigLicEnv); /* delay exit on failure */
 
