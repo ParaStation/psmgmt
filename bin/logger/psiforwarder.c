@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiforwarder.c,v 1.9 2002/02/08 17:19:30 hauke Exp $
+ * $Id: psiforwarder.c,v 1.10 2002/02/08 20:31:56 hauke Exp $
  *
  */
 /**
  * @file
  * psiforwarder: Forwarding-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psiforwarder.c,v 1.9 2002/02/08 17:19:30 hauke Exp $
+ * $Id: psiforwarder.c,v 1.10 2002/02/08 20:31:56 hauke Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.9 2002/02/08 17:19:30 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.10 2002/02/08 20:31:56 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -322,9 +322,11 @@ void loop(int stdoutport, int stderrport)
 		    }
 		}else if(n<0){
 		    /* ignore the error */
-		    snprintf(obuf, sizeof(obuf),
-			     "PSIforwarder: read():%s\n", strerror(errno));
-		    printlog(loggersock, STDERR, id, obuf);
+		    /*
+		      snprintf(obuf, sizeof(obuf),
+		      "PSIforwarder: read():%s\n", strerror(errno));
+		      printlog(loggersock, STDERR, id, obuf);
+		    */
 		}else{
 		    /* forward it to logger */
 		    writelog(loggersock, type, id, buf, n);
