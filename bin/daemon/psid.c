@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.86 2003/03/19 17:38:43 eicker Exp $
+ * $Id: psid.c,v 1.87 2003/03/19 18:10:33 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.86 2003/03/19 17:38:43 eicker Exp $ 
+ * $Id: psid.c,v 1.87 2003/03/19 18:10:33 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.86 2003/03/19 17:38:43 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.87 2003/03/19 18:10:33 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -75,7 +75,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.86 $";
+static char psid_cvsid[] = "$Revision: 1.87 $";
 
 static int PSID_mastersock;
 
@@ -134,7 +134,7 @@ void deleteClient(int fd);
 void closeConnection(int fd)
 {
     if (fd<0) {
-	snprintf(errtxt, sizeof(errtxt), "closeConnection(%d): fd < 0.", fd);
+	snprintf(errtxt, sizeof(errtxt), "%s(%d): fd < 0.", __func__, fd);
 	PSID_errlog(errtxt, 0);
 
 	return;
@@ -256,7 +256,6 @@ static int recvMsg(int fd, DDMsg_t *msg, size_t size)
 		snprintf(errtxt, sizeof(errtxt),
 			 "%s(%d) socket already closed.", __func__, fd);
 		PSID_errlog(errtxt, 1);
-		closeConnection(fd);
 	    } else if (count!=msg->len) {
 		/* if wrong msg format initiate a disconnect */
 		snprintf(errtxt, sizeof(errtxt),
@@ -306,7 +305,7 @@ static int recvMsg(int fd, DDMsg_t *msg, size_t size)
 	PSID_errlog(errtxt, 10);
     }
 
-    if (count==msg->len) {
+    if (count && count==msg->len) {
 	return msg->len;
     } else {
 	return n;
@@ -845,6 +844,8 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 
     /* Connection refused answer message */
     if (msg->version != PSprotocolversion) {
+	/* @todo also handle the old protocol correctly, i.e. send
+	 * PSP_OLDVERSION message */
 	outmsg.type = PSP_CONN_ERR_OLDVERSION;
     } else if (!task) {
 	outmsg.type = PSP_CONN_ERR_NOSPACE;
@@ -2908,7 +2909,7 @@ void checkFileTable(void)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.86 $";
+    char revision[] = "$Revision: 1.87 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
