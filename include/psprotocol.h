@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.28 2004/01/27 21:07:22 eicker Exp $
+ * $Id: psprotocol.h,v 1.29 2004/03/09 08:39:13 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation client-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.28 2004/01/27 21:07:22 eicker Exp $
+ * $Id: psprotocol.h,v 1.29 2004/03/09 08:39:13 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -143,6 +143,7 @@ typedef enum {
     PSP_INFO_LIST_ALLTASKS,       /**< List of tasks (all tasks) */
     PSP_INFO_LIST_NORMTASKS,      /**< List of tasks (normal tasks tasks) */
     PSP_INFO_LIST_ALLOCJOBS,      /**< List of allocated job slots */
+    PSP_INFO_LIST_EXCLUSIVE,      /**< List of flags of exclusive allocation */
 } PSP_Info_t;
 
 /** Messages concerning spawning of tasks. */
