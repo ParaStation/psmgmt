@@ -60,6 +60,8 @@ int PSID_readconfigfile(void);
  */
 int PSID_startlicenseserver(u_long hostaddr);
 
+int PSID_execv( const char *path, char *const argv[]);
+
 int PSID_taskspawn(PStask_t *task);     /* spawns a process with the
 					   definitions in task on the
 					   local node */

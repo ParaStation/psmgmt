@@ -24,6 +24,21 @@ pid_t logger_pid=0;
 int stdout_fileno_backup=-1;
 int stderr_fileno_backup=-1;
 
+static
+int LOGGERexecv( const char *path, char *const argv[])
+{
+    int ret;
+    int cnt;
+
+    /* Try 5 times with delay 400ms = 2 sec overall */
+    for (cnt=0;cnt<5;cnt++){
+	ret = execv(path,argv);
+	usleep(1000 * 400);
+    }
+    return ret;
+}
+
+
 /*********************************************************************
  * void LOGGERspawnforwarder()
  *
@@ -86,7 +101,7 @@ void LOGGERspawnforwarder(unsigned int logger_node, int logger_port)
 	sprintf(argv[5],"%d", stderrfds[0]);
 	argv[6] = NULL;
 
-	execv(argv[0], argv);
+	LOGGERexecv(argv[0], argv);
 
 	/*
 	 * usually never reached, but if execv fails stop the whole porgram
@@ -206,7 +221,7 @@ int LOGGERspawnlogger(void)
 	sprintf(argv[1],"%d", listenport);
 	argv[2] = NULL;
 
-	execv(argv[0], argv);
+	LOGGERexecv(argv[0], argv);
 
 	/* usually never reached, but if execv fails try to do the logging 
 	   inside this program

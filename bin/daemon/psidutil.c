@@ -242,6 +242,28 @@ PSID_startlicenseserver(u_long hostaddr)
     return 1;
 }
 
+
+
+/*----------------------------------------------------------------------*/
+/*
+ * PSID_execv
+ *
+ *  frontend to syscall execv. Retry exec on failure after a short delay 
+ *  RETURN: like the syscall execv
+ */
+int PSID_execv( const char *path, char *const argv[])
+{
+    int ret;
+    int cnt;
+
+    /* Try 5 times with delay 400ms = 2 sec overall */
+    for (cnt=0;cnt<5;cnt++){
+	ret = execv(path,argv);
+	usleep(1000 * 400);
+    }
+    return ret;
+}
+
 /*----------------------------------------------------------------------*/
 /*
  * PStask_spawn
@@ -379,7 +401,7 @@ int PSID_taskspawn(PStask_t* task)
 	/*
 	 * execute the image
 	 */
-	if (execv(task->argv[0],&(task->argv[0]))<0){
+	if (PSID_execv(task->argv[0],&(task->argv[0]))<0){
 	    char* errtxt;
 	    errtxt=strerror(errno);
 	    openlog("psid spawned process",LOG_PID|LOG_CONS,LOG_DAEMON);
