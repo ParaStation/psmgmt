@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.24 2002/08/02 15:31:23 eicker Exp $
+ * $Id: info.c,v 1.25 2002/08/06 08:18:02 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.24 2002/08/02 15:31:23 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.25 2002/08/06 08:18:02 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -106,11 +106,11 @@ static int INFO_receive(INFO_info_t what, void *buffer, size_t size,
 	case PSP_CD_HOSTRESPONSE:
 	    memcpy(buffer, msg.buf, size);
 	    break;
-	case PSP_CD_LOADRESPONSE:
-	case PSP_CD_PROCRESPONSE:
+/*  	case PSP_CD_LOADRESPONSE: */
+/*  	case PSP_CD_PROCRESPONSE: */
 	    /* changed from 5min to 1 min avg load jh 2001-12-21 */
-	    *(double *)buffer = ((DDLoadMsg_t*)&msg)->load[0];
-	    break;
+/*  	    *(double *)buffer = ((DDLoadMsg_t*)&msg)->load[0]; */
+/*  	    break; */
 	case PSP_DD_SETOPTION:
 	{
 	    int i;
@@ -337,53 +337,53 @@ long INFO_request_taskinfo(long tid, INFO_info_t what, int verbose)
     return answer;
 }
 
-double INFO_request_load(unsigned short node, int verbose)
-{
-    int msgtype;
-    double answer;
-    DDBufferMsg_t msg;
+/*  double INFO_request_load(unsigned short node, int verbose) */
+/*  { */
+/*      int msgtype; */
+/*      double answer; */
+/*      DDBufferMsg_t msg; */
 
-    msg.header.type = PSP_CD_LOADREQUEST;
-    msg.header.dest = PSC_getTID(node, 0);
-    msg.header.sender = PSC_getMyTID();
-    msg.header.len = sizeof(msg.header);
+/*      msg.header.type = PSP_CD_LOADREQUEST; */
+/*      msg.header.dest = PSC_getTID(node, 0); */
+/*      msg.header.sender = PSC_getMyTID(); */
+/*      msg.header.len = sizeof(msg.header); */
 
-    if (PSI_sendMsg(&msg)<0) {
-	PSI_errexit("INFO_request_load(): write", errno);
-    }
+/*      if (PSI_sendMsg(&msg)<0) { */
+/*  	PSI_errexit("INFO_request_load(): write", errno); */
+/*      } */
 
-    msgtype = INFO_receive(INFO_GETINFO, &answer, sizeof(answer), verbose);
+/*      msgtype = INFO_receive(INFO_GETINFO, &answer, sizeof(answer), verbose); */
 
-    if (msgtype == PSP_CD_LOADRESPONSE) {
-	return answer;
-    } else {
-	return -1.0;
-    }
-}
+/*      if (msgtype == PSP_CD_LOADRESPONSE) { */
+/*  	return answer; */
+/*      } else { */
+/*  	return -1.0; */
+/*      } */
+/*  } */
 
-double INFO_request_proc(unsigned short node, int verbose)
-{
-    int msgtype;
-    double answer;
-    DDBufferMsg_t msg;
+/*  double INFO_request_proc(unsigned short node, int verbose) */
+/*  { */
+/*      int msgtype; */
+/*      double answer; */
+/*      DDBufferMsg_t msg; */
 
-    msg.header.type = PSP_CD_PROCREQUEST;
-    msg.header.dest = PSC_getTID(node, 0);
-    msg.header.sender = PSC_getMyTID();
-    msg.header.len = sizeof(msg.header);
+/*      msg.header.type = PSP_CD_PROCREQUEST; */
+/*      msg.header.dest = PSC_getTID(node, 0); */
+/*      msg.header.sender = PSC_getMyTID(); */
+/*      msg.header.len = sizeof(msg.header); */
 
-    if (PSI_sendMsg(&msg)<0) {
-	PSI_errexit("INFO_request_proc(): write", errno);
-    }
+/*      if (PSI_sendMsg(&msg)<0) { */
+/*  	PSI_errexit("INFO_request_proc(): write", errno); */
+/*      } */
 
-    msgtype = INFO_receive(INFO_GETINFO, &answer, sizeof(answer), verbose);
+/*      msgtype = INFO_receive(INFO_GETINFO, &answer, sizeof(answer), verbose); */
 
-    if (msgtype == PSP_CD_PROCRESPONSE) {
-	return answer;
-    } else {
-	return -1.0;
-    }
-}
+/*      if (msgtype == PSP_CD_PROCRESPONSE) { */
+/*  	return answer; */
+/*      } else { */
+/*  	return -1.0; */
+/*      } */
+/*  } */
 
 int INFO_request_option(unsigned short node, int num, long option[],
 			 long value[], int verbose)
