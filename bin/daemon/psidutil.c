@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.61 2003/07/04 13:29:07 eicker Exp $
+ * $Id: psidutil.c,v 1.62 2003/08/27 12:58:39 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.61 2003/07/04 13:29:07 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.62 2003/08/27 12:58:39 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -280,93 +280,99 @@ static int callScript(int hw, char *script)
 
 void PSID_startHW(int hw)
 {
-    if (PSnodes_getHWType(PSC_getMyID()) & (1<<hw)) {
-	char *script = HW_getScript(hw, HW_STARTER);
+    char *script = HW_getScript(hw, HW_STARTER);
 
-	if (script) {
-	    int res = callScript(hw, script);
+    if (hw<0 || hw>HW_num()) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: hw = %d out of range", __func__, hw);
+	PSID_errlog(errtxt, 0);
+	return;
+    }
 
-	    if (res) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s(): callScript(%s, %s) returned %d: %s",
-			 __func__, HW_name(hw), script, res, scriptOut);
-		PSID_errlog(errtxt, 0);
-	    } else {
-		unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
+    if (script) {
+	int res = callScript(hw, script);
 
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s(): callScript(%s, %s): success",
-			 __func__, HW_name(hw), script);
-		PSID_errlog(errtxt, 10);
-
-		PSnodes_setHWStatus(PSC_getMyID(), status | (1<<hw));
-
-	    }
+	if (res) {
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: callScript(%s, %s) returned %d: %s",
+		     __func__, HW_name(hw), script, res, scriptOut);
+	    PSID_errlog(errtxt, 0);
 	} else {
-	    /* No script, assume HW runs already */
 	    unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
 
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s(): assume %s already up", __func__, HW_name(hw));
+	    snprintf(errtxt, sizeof(errtxt), "%s: callScript(%s, %s): success",
+		     __func__, HW_name(hw), script);
 	    PSID_errlog(errtxt, 10);
 
 	    PSnodes_setHWStatus(PSC_getMyID(), status | (1<<hw));
+
 	}
+    } else {
+	/* No script, assume HW runs already */
+	unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
+
+	snprintf(errtxt, sizeof(errtxt), "%s: assume %s already up",
+		 __func__, HW_name(hw));
+	PSID_errlog(errtxt, 10);
+
+	PSnodes_setHWStatus(PSC_getMyID(), status | (1<<hw));
     }
 }
 
 void PSID_startAllHW(void)
 {
     int hw;
-
     for (hw=0; hw<HW_num(); hw++) {
-	PSID_startHW(hw);
+	if (PSnodes_getHWType(PSC_getMyID()) & (1<<hw)) PSID_startHW(hw);
     }
 }
 
 void PSID_stopHW(int hw)
 {
-    if (PSnodes_getHWStatus(PSC_getMyID()) & (1<<hw)) {
-	char *script = HW_getScript(hw, HW_STOPPER);
+    char *script = HW_getScript(hw, HW_STOPPER);
 
-	if (script) {
-	    int res = callScript(hw, script);
+    if (hw<0 || hw>HW_num()) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: hw = %d out of range", __func__, hw);
+	PSID_errlog(errtxt, 0);
+	return;
+    }
 
-	    if (res) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s(): callScript(%s, %s) returned %d: %s",
-			 __func__, HW_name(hw), script, res, scriptOut);
-		PSID_errlog(errtxt, 0);
-	    } else {
-		unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
+    if (script) {
+	int res = callScript(hw, script);
 
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s(): callScript(%s, %s): success",
-			 __func__, HW_name(hw), script);
-		PSID_errlog(errtxt, 10);
-
-		PSnodes_setHWStatus(PSC_getMyID(), status & ~(1<<hw));
-
-	    }
+	if (res) {
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: callScript(%s, %s) returned %d: %s",
+		     __func__, HW_name(hw), script, res, scriptOut);
+	    PSID_errlog(errtxt, 0);
 	} else {
-	    /* No script, assume HW does not run any more */
 	    unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
 
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s(): assume %s already down", __func__, HW_name(hw));
+	    snprintf(errtxt, sizeof(errtxt), "%s: callScript(%s, %s): success",
+		     __func__, HW_name(hw), script);
 	    PSID_errlog(errtxt, 10);
 
 	    PSnodes_setHWStatus(PSC_getMyID(), status & ~(1<<hw));
+
 	}
+    } else {
+	/* No script, assume HW does not run any more */
+	unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
+
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: assume %s already down", __func__, HW_name(hw));
+	PSID_errlog(errtxt, 10);
+
+	PSnodes_setHWStatus(PSC_getMyID(), status & ~(1<<hw));
     }
 }
 
 void PSID_stopAllHW(void)
 {
     int hw;
-
     for (hw=HW_num()-1; hw>=0; hw--) {
-	PSID_stopHW(hw);
+	if (PSnodes_getHWStatus(PSC_getMyID()) & (1<<hw)) PSID_stopHW(hw);
     }
 }
 
