@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.h,v 1.7 2002/01/30 16:43:21 eicker Exp $
+ * $Id: rdp.h,v 1.8 2002/01/30 18:25:57 eicker Exp $
  *
  */
 /**
  * @file
- * rdp: Reliable Datagram Protocol for ParaStation daemon
+ * Reliable Datagram Protocol for ParaStation daemon
  *
- * $Id: rdp.h,v 1.7 2002/01/30 16:43:21 eicker Exp $
+ * $Id: rdp.h,v 1.8 2002/01/30 18:25:57 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -36,9 +36,9 @@ typedef struct {
 } RDPDeadbuf;
 
 
-#define RDP_NEW_CONNECTION	0x1	/* buf == nodeno */
-#define RDP_LOST_CONNECTION	0x2	/* buf == nodeno */
-#define RDP_PKT_UNDELIVERABLE	0x3	/* buf == (dst,*buf,buflen) */
+#define RDP_NEW_CONNECTION	0x1	/**< @todo Create docu */
+#define RDP_LOST_CONNECTION	0x2	/**< @todo Create docu */
+#define RDP_PKT_UNDELIVERABLE	0x3	/**< @todo Create docu */
 
 /**
  * @brief Initializes the RDP module.
@@ -58,26 +58,47 @@ typedef struct {
 int initRDP(int nodes, int usesyslog, unsigned int hosts[],
 	    void (*func)(int, void*));
 
-/*
- * Shutdown RDP
+/**
+ * @brief Shutdown the RDP module.
+ *
+ * Shutdown the whole RDP machinery.
+ *
+ * @return No return value.
  */
 void exitRDP(void);
 
 /**
  * @brief Send a RDP packet.
  *
- * Sent a msg[buf:len] to node <node> reliable
+ * Send a RDP packet of length @a len in @a buf to node @a node.
+ *
+ * @param node The node to send the message to.
+ * @param buf Buffer containing the actual message.
+ * @param len The length of the message.
+ *
+ * @return On success, the number of bytes sent is returned, or -1 if an error
+ * occured.
+ *
+ * @see sendto(2)
  */
 int Rsendto(int node, void *buf, int len);
 
 /**
  * @brief Receive a RDP packet.
- * Parameters:	node: source node of msg (O)
- *              msg:  pointer to msg buffer (O)
- *              len:  max lenght of buffer (I)
- * Retval:	lenght of received msg (or -1 on error, errno is set)
+ *
+ * Receive a RDP packet of maximal length @a len. The message is stored in
+ * @a buf, the node it was received from in @a node.
+ *
+ * @param node Source node of the message.
+ * @param buf Buffer to store the message in.
+ * @param len The maximum length of the message, i.e. the size of @a buf.
+ *
+ * @return On success, the number of bytes received is returned, or -1 if
+ * an error occured.
+ *
+ * @see recvfrom(2)
  */
-int Rrecvfrom(int *node, void *msg, int len);
+int Rrecvfrom(int *node, void *buf, int len);
 
 /**
  * @brief Query the debug-level.

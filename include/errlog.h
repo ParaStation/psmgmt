@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: errlog.h,v 1.1 2002/01/28 19:09:17 eicker Exp $
+ * $Id: errlog.h,v 1.2 2002/01/30 18:25:57 eicker Exp $
  *
  */
 /**
  * \file
- * errlog: ParaStation ErrLog facility used within MCast and RDP.
+ * ParaStation ErrLog facility used within MCast and RDP.
  *
- * $Id: errlog.h,v 1.1 2002/01/28 19:09:17 eicker Exp $
+ * $Id: errlog.h,v 1.2 2002/01/30 18:25:57 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -28,16 +28,20 @@ extern "C" {
 #endif
 #endif
 
-static int syslogErrLog = 1;     /** Flag whether to use syslog.
-                                     Set via initErrLog(). */
+/** Flag whether to use syslog. Set via initErrLog(). */
+static int syslogErrLog = 1;
 
-static int levelErrLog = 0;      /** Actual log-level for logging.
-                                     Set/get thru setErrLogLevel()/
-                                     getErrLogLevel(). */
+/**
+ * Actual log-level for logging. Set/get thru
+ * setErrLogLevel()/getErrLogLevel().
+ */
+static int levelErrLog = 0;
 
-static char *ErrLogTag = NULL;   /** Actual tag prepended each log-message.
-				     Set/get thru setErrLogTag()/
-				     getErrLogTag() or initErrLog(). */
+/**
+ * Actual tag prepended each log-message. Set/get thru
+ * setErrLogTag()/getErrLogTag() or initErrLog().
+ */
+static char *ErrLogTag = NULL;
 
 /**
  * @brief Query the log-level.

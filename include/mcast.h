@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.h,v 1.2 2002/01/30 10:37:46 eicker Exp $
+ * $Id: mcast.h,v 1.3 2002/01/30 18:25:57 eicker Exp $
  *
  */
 /**
  * \file
- * mcast: ParaStation MultiCast facility
+ * ParaStation MultiCast facility
  *
- * $Id: mcast.h,v 1.2 2002/01/30 10:37:46 eicker Exp $
+ * $Id: mcast.h,v 1.3 2002/01/30 18:25:57 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -36,7 +36,7 @@ typedef enum {
 
 /** @todo Create docu */
 typedef struct {
-    double load[3];           /* Load parameters of that node */
+    double load[3];           /**< The actual load parameters */
 } MCastLoad;
 
 /** @todo Create docu */
@@ -48,10 +48,10 @@ typedef struct {
 
 /** @todo Create docu */
 typedef struct {
-    short    node;     /* Sender ID */
-    short    type;
-    MCastState state;
-    MCastLoad  load;
+    short    node;            /**< Sender ID */
+    short    type;            /**< Message type */
+    MCastState state;         /**< @todo */
+    MCastLoad  load;          /**< @todo */
 } MCastMsg;
 
 #define MCAST_NEW_CONNECTION    0x80   /* buf == nodeno */
@@ -64,12 +64,13 @@ typedef struct {
 #define LIC_KILL_MSG            0x2
 
 
-#define MCASTSERVICE "psmcast"   /** The symbolic name of MCast-service */
+#define MCASTSERVICE "psmcast"   /**< The symbolic name of MCast-service */
 
+/**
+ * The default MCast-group number. Magic number defined by Joe long time ago.
+ * Can be overruled via initMCast().
+ */
 static int DEFAULT_MCAST_GROUP = 237;
-                                 /** The default MCast-group number.
-				     Magic number defined by Joe long time ago.
-				     Can be overruled via initMCast(). */
 
 /**
  * @brief Initialize the MCast module.
@@ -91,8 +92,12 @@ static int DEFAULT_MCAST_GROUP = 237;
 int initMCast(int nodes, int mgroup, int usesyslog,  unsigned int hosts[],
 	      int licServer, void (*callback)(int, void*));
 
-/*
- * Shutdown MCast
+/**
+ * @brief Shutdown the MCast module.
+ *
+ * Shutdown the whole MCast machinery.
+ *
+ * @return No return value.
  */
 void exitMCast(void);
 
