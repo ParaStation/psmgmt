@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.21 2002/07/11 10:26:39 eicker Exp $
+ * $Id: pse.c,v 1.22 2002/07/11 16:59:31 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.21 2002/07/11 10:26:39 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.22 2002/07/11 16:59:31 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -173,7 +173,7 @@ void PSEspawn(int Argc, char** Argv,
 	/* spawn master process */
 	if (PSI_spawnM(1, NULL, ".", Argc, Argv,
 		       sin_addr.s_addr, LOGGERopenPort(),
-		       rank+1, 0, &error, &s_pSpawnedProcess) < 0 ) {
+		       rank+1, &error, &s_pSpawnedProcess) < 0 ) {
 	    if (error) {
 		char *errstr = strerror(error);
 		snprintf(errtxt, sizeof(errtxt),
@@ -232,7 +232,7 @@ void PSEspawn(int Argc, char** Argv,
 	errors = malloc(worldSizePSE*sizeof(int));
 	ret = PSI_spawnM(worldSizePSE-1, NULL, ".", Argc, Argv,
 			 PSI_loggernode, PSI_loggerport,
-			 rank+1, 0, &errors[1], &s_pSpawnedProcesses[1]);
+			 rank+1, &errors[1], &s_pSpawnedProcesses[1]);
 	if (ret<0) {
 	    int proc;
 	    for (proc=1; proc<worldSizePSE; proc++) {
