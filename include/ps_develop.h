@@ -93,7 +93,7 @@
 //#define ENABLE_JM
 
 /* Enable remote kernel debuging */
-#define ENABLE_DEBUG_MSG	
+//#define ENABLE_DEBUG_MSG	
 
 
 /* Send data with zero copy */
@@ -111,6 +111,8 @@
 //#define ENABLE_REQUESTDUMP
 
 #define PSM_PRINT_MAP_LEVEL_OFF 15
+
+//#define ENABLE_ACK_RING
 
 #else
 
