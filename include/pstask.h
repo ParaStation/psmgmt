@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.h,v 1.12 2003/04/07 08:15:09 eicker Exp $
+ * $Id: pstask.h,v 1.13 2003/04/10 17:24:30 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with ParaStation tasks.
  *
- * $Id: pstask.h,v 1.12 2003/04/07 08:15:09 eicker Exp $
+ * $Id: pstask.h,v 1.13 2003/04/10 17:24:30 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -96,7 +96,8 @@ typedef struct PStask_T{
 				      tasks that are fork()ed by a client */
     time_t killat;                 /**< flag a killed task, i.e. the time when
 				      the task should really go away. */
-    PStask_sig_t *childs;          /**< Childs of the task. signal not used */
+    long protocolVersion;          /**< Protocol version the task speaks. */
+    PStask_sig_t *childs;          /**< Childs of the task. signal not used. */
 
     PStask_sig_t *signalSender;    /**< Tasks which sent signals */
     PStask_sig_t *signalReceiver;  /**< Tasks which want to receive signals */
