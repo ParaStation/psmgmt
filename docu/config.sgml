@@ -1,11 +1,43 @@
 <chapter id="configuration">
   <title>Configuration</title>
+
   <!-- Beschreibung der Konfigurationsdatei:
 
-  - Alle Tags
-  - Ansätze und Strategien??
+  * Alle Tags
+  * Ansaetze und Strategien??
 
-  M&ouml;glichst so, dass auch eine man-page davon erstellt werden kann.
+  Moeglichst so, dass auch eine man-page davon erstellt werden kann.
+
+
+      <listitem id="ibh_config">
+	<para><emphasis>ParaStation Configuration</emphasis></para>
+	<para>
+	  If another version of ParaStation was installed before, you may want
+	  to make a backup of your old configuration file
+	  <filename>/etc/parastation.conf</filename>.
+	</para>
+	<para>
+	  Now copy the ParaStation configuration template
+	  <filename>parastation.conf.tmpl</filename> in
+	  <filename>/opt/parastation/config</filename> to
+	  <filename>/etc/parastation.conf</filename> and edit it following the
+	  hints given there and in <xref linkend="configuration"/>. 
+	</para>
+      </listitem>
+      <listitem id="ibh_testing">
+	<para><emphasis>Testing</emphasis></para>
+	<para>
+	  If everything went fine, you are ready to test ParaStation now. On
+	  one of the nodes do 
+	</para>
+	<programlisting>
+	/opt/parastation/bin/psiadmin -c "s all"
+	</programlisting>
+	<para>
+	  and repeat this command until all nodes are up.
+	</para>
+      </listitem>
+
   -->
   <!-- one of (calloutlist glosslist itemizedlist orderedlist segmentedlist simplelist variablelist caution important note tip warning literallayout programlisting programlistingco screen screenco screenshot synopsis cmdsynopsis funcsynopsis classsynopsis fieldsynopsis constructorsynopsis destructorsynopsis methodsynopsis formalpara para simpara address blockquote graphic graphicco mediaobject mediaobjectco informalequation informalexample informalfigure informaltable equation example figure table msgset procedure sidebar qandaset anchor bridgehead remark highlights abstract authorblurb epigraph indexterm beginpage section simplesect refentry sect1) -->
   <para></para>

@@ -58,25 +58,23 @@ if [ $do_man ]; then
 
     make_dir man
     cd man
-    docbook2manxml --header-3="`date "+%d %B %Y"`" --header-5="ParaStation" \
-		--noxref-on-link ../$filename > $basename.mxml || \
-    docbook2manxml --header-3="`date "+%d %B %Y"`" --header-5="ParaStation" \
-		--noxref-on-link ../$filename > $basename.mxml
-    db2x_manxml $basename.mxml
+    
+    export CLASSPATH=/usr/lib/saxon/saxon.jar
+
+    java com.icl.saxon.StyleSheet ../main.xml /usr/share/sgml/docbook/docbook-xsl-stylesheets-1.53.0/manpages/db2man.xsl
     cd ..
 fi
 
 if [ $do_html ]; then
     echo Creating HTML...
 
-    db2html -o -s docu.dsl $filename
-
     make_dir html
-    rmdir html
-    mv $basename html
     cd html
-    for i in *.html; do
-	tidy -m -f /dev/null -asxml $i
-    done
+    export CLASSPATH=/usr/lib/saxon/saxon.jar
+
+    java com.icl.saxon.StyleSheet ../main.xml /usr/share/sgml/docbook/docbook-xsl-stylesheets-1.53.0/html/chunk.xsl
+#     for i in *.html; do
+# 	tidy -m -f /dev/null -asxml $i
+#     done
     cd ..
 fi

@@ -42,8 +42,9 @@
     <variablelist>
       <varlistentry>
 	<term>
-	  <option>-d</option>,
-	  <option>--debug</option></term>
+	  <option>-d</option>
+	  <option>, --debug</option>
+        </term>
 	<listitem>
 	  <para>
 	    Activate the debugging mode.
@@ -52,9 +53,9 @@
       </varlistentry>
       <varlistentry>
 	<term>
-	  <option>-m</option>,
-	  <option>--mcast=<replaceable>MCAST</replaceable></option>
-	</term>
+	  <option>-m</option>
+	  <option>, --mcast=<replaceable>MCAST</replaceable></option>
+        </term>
 	<listitem>
 	  <para>
 	    Listen to multicast group <replaceable>MCAST</replaceable>. Set
@@ -66,9 +67,9 @@
       </varlistentry>
       <varlistentry>
 	<term>
-	  <option>-p</option>,
-	  <option>--port=<replaceable>PORT</replaceable></option>
-	</term>
+	  <option>-p</option>
+	  <option>, --port=<replaceable>PORT</replaceable></option>
+        </term>
 	<listitem>
 	  <para>
 	    Listen to UDP port <replaceable>PORT</replaceable>.  Set
@@ -80,9 +81,9 @@
       </varlistentry>
       <varlistentry>
 	<term>
-	  <option>-n</option>,
-	  <option>--network=<replaceable>IP</replaceable></option>
-	</term> 
+	  <option>-n</option>
+	  <option>, --network=<replaceable>IP</replaceable></option>
+        </term> 
 	<listitem>
 	  <para>
 	    Listen on the interface with address
@@ -93,9 +94,9 @@
       </varlistentry>
       <varlistentry>
 	<term>
-	  <option>-#</option>,
-	  <option>--nodes=<replaceable>NODES</replaceable></option>
-	</term>
+	  <option>-#</option>
+	  <option>, --nodes=<replaceable>NODES</replaceable></option>
+        </term>
 	<listitem>
 	  <para>
 	    Display information for <replaceable>NODES</replaceable> nodes
@@ -106,9 +107,9 @@
       </varlistentry>
       <varlistentry>
 	<term>
-	  <option>-v</option>,
-	  <option>--version</option>
-	</term>
+	  <option>-v</option>
+	  <option>, --version</option>
+        </term>
 	<listitem>
 	  <para>
 	    Output version information and exit.
@@ -117,9 +118,9 @@
       </varlistentry>
       <varlistentry>
 	<term>
-	  <option>-?</option>,
-	  <option>--help</option>
-	</term>
+	  <option>-?</option>
+	  <option>, --help</option>
+        </term>
 	<listitem>
 	  <para>
 	    Show a help message.
@@ -127,7 +128,9 @@
 	</listitem>
       </varlistentry>
       <varlistentry>
-	<term><option>--usage</option></term>
+	<term>
+	  <option>--usage</option>
+	</term>
 	<listitem>
 	  <para>
 	    Display a brief usage message.

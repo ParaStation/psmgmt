@@ -2,17 +2,17 @@
   <title>Preface</title>
   <para>
     ParaStation is a high speed communication subsystem, which is used to
-    cluster standard workstations and PCs. This high speed interconnect
-    enables you to use your cluster as a parallel computer. Communication is
-    done via an additional parallel communication network card and does not
-    involve any Operating System communication paths.
+    cluster standard workstations and PCs. A high speed interconnect enables
+    you to use your cluster as a parallel computer. Communication is done via
+    an additional parallel communication network card, e.g. MyriNet or Gigabit
+    Ethernet, and does not involve any Operating System communication paths.
   </para>
   
   <para>
-    ParaStation offers different interfaces to the communication
-    subsystem. Beside the proprietary interface of Ports, it offers an
-    emulation of the Unix sockets. In addition common programming
-    environments, such as MPI run on top of these interfaces.
+    ParaStation offers different interfaces to the communication subsystem.
+    Beside the proprietary interface of Ports, it offers an emulation of the
+    Unix sockets. In addition common programming environments, such as MPI or
+    Java RMI run on top of these interfaces.
   </para>
 
   <para>

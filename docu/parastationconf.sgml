@@ -1,4 +1,5 @@
 <refentry id="parastation_conf">
+
   <refmeta>
     <refentrytitle>parastation.conf</refentrytitle>
     <manvolnum>5</manvolnum>
@@ -11,7 +12,709 @@
 
   <refsect1><title>Description</title>
     <para>
-      blablabla.
+      Upon execution, the ParaStation daemon <xref linkend="psid"/> and the
+      ParaStation license daemon <xref linkend="psld"/> read their
+      configuration information from a configuration file which, by default, is
+      <filename>/etc/parastation.conf</filename>. There are various parameter
+      that can be modified persistently within this configuration file.
+    </para>
+    <para>
+      The main syntax of the configuration file is one parameter per line. Due
+      to ease of use there are some parameters, e.g. <command>nodes</command>,
+      that are implemented in a environment mode. This means that more than one
+      parameter may be set within one command. Environment mode parameters may
+      last more than one line.
+    </para>
+    <para>
+      Comments are denoted by a "#" at the beginning of a line or a "#"
+      followed by an withspace character (i.e. space or tab) somewhere in the
+      middle of a line. Comments end at the end of a line.
+    </para>
+    <para>
+      The parser used to analyze <filename>parastation.conf</filename> is
+      <emphasis>not</emphasis> case sensitive. This means, that all keywords
+      within the configuration file may be written in any combination of upper-
+      and lowercase characters. Within this document a mixed upper-/lowercase
+      notation is used to provide more readable keywords. The same notation is
+      used in the configuration file template
+      <filename>parastation.conf.tmpl</filename> contained in the distributed
+      ParaStation system.
+    </para>
+  </refsect1>
+
+  <refsect1>
+    <title>Parameters</title>
+    <para>
+      The different parameters are discussed in the order they should appear in
+      within the configuration file. Dependencies between parameters are marked
+      explicitely.
+    </para>
+    <para>
+      Some parameters may be modified using different keywords, e.g. both
+      <command>InstallDir</command> and <command>InstallationDir</command>
+      modify the directory where the ParaStation daemon <xref
+	linkend="psid"/> expects the ParaStation system installed. In case of
+      different keywords modifying the same resource, all keywords are
+      mentioned in front of the parameter's discussion.
+    </para>
+    <para>
+      Very few parameters have to be declared in any case to enable ParaStation
+      to run on a cluster. These parameters are <command>NrOfNodes</command>,
+      <command>Nodes</command> and <command>LicenseServer</command>. In the
+      case of a MyriNet cluster <command>MyriNetModule</command> and
+      <command>Routingfile</command> have also to be declared.
+    </para>
+
+    <variablelist>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>InstallDir</command>
+	    <arg><replaceable>inst-dir</replaceable></arg>
+	    <command>, InstallationDir</command>
+	    <arg><replaceable>inst-dir</replaceable></arg>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	    Tell the ParaStation daemon where to find all the ParaStation
+	    stuff. The default is <filename>/opt/parastation</filename>.
+	  </para>
+	  <note>
+	    <para>
+	      The installation directory has to be declare before any of
+	      <command>LicenseFile</command>, <command>MyriNetModule</command>,
+	      <command>RoutingFile</command> or <command>IPModule</command> is
+	      used.
+	    </para>
+	  </note>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>NrOfNodes</command>
+	    <arg><replaceable>num</replaceable></arg>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	    Define the number of connected nodes including the frontend node.
+	    Nodes will be numbered 0 &hellip;
+	    <parameter><replaceable>num</replaceable></parameter>-1.
+	  </para>
+	  <note>
+	    <para>
+	      The number of connected nodes has to be declared before any
+	      <command>Nodes</command>.
+	    </para>
+	  </note>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>HWType</command>
+	    <group choice="req">
+	      <arg>EtherNet</arg>
+	      <arg>MyriNet</arg>
+<!-- 	      <arg>GigaEtherNet</arg> -->
+	      <arg>None</arg>
+	    </group>
+	    <command>, HWType {</command>
+	    <group rep="repeat">
+	      <arg>EtherNet</arg>
+	      <arg>MyriNet</arg>
+<!-- 	      <arg>GigaEtherNet</arg> -->
+	      <arg>None</arg>
+	    </group>
+	    <command>}</command>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	    Define the default communication hardware available on the nodes of
+	    the ParaStation cluster. This may be overruled by an explicit
+	    <parameter>HWType</parameter> option in a <command>Node</command>
+	    statement.
+	  </para>
+	  <para>
+	    Available hardware types are:
+	  </para>
+	  <variablelist>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>EtherNet</command>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>
+		  Use classical TCP/IP communication over ethernet via an
+		  optimized MPI implementation.
+		</para>
+		<para>
+		  This is only available in ParaStation FE.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>MyriNet</command>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>
+		  Use optimized communication over MyriNet.
+		</para>
+		<para>
+		  This is only available within ParaStation 3.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+<!-- 	    <varlistentry> -->
+<!-- 	      <term> -->
+<!-- 		<cmdsynopsis> -->
+<!-- 		  <command>GigaEtherNet</command> -->
+<!-- 		</cmdsynopsis> -->
+<!-- 	      </term> -->
+<!-- 	      <listitem> -->
+<!-- 		<para> -->
+<!-- 		  Use optimized communication via gigabit ethernet. -->
+<!-- 		</para> -->
+<!-- 		<para> -->
+<!-- 		  This is only available within ParaStation 4. -->
+<!-- 		</para> -->
+<!-- 	      </listitem> -->
+<!-- 	    </varlistentry> -->
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>None</command>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>
+		  No communication hardware at all.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	  </variablelist>
+	  <para>
+	    The default value for <command>HWType</command> is
+	    <command>None</command>.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>hasIP</command>
+	    &boolargs;
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	    If the argument is on of <parameter>yes</parameter>,
+	    <parameter>true</parameter> or <parameter>1</parameter> all nodes
+	    declared within a <command>Node</command> statement will load the
+	    ParaStation IP module to enable TCP/IP over MyriNet, unless
+	    otherwise stated within the <command>Node</command> statement.
+	  </para>
+	  <para>
+	    If the argument is on of <parameter>no</parameter>,
+	    <parameter>false</parameter> or <parameter>0</parameter> TCP/IP
+	    over MyriNet will not be enabled, unless otherwise stated.
+	  </para>
+	  <para>
+	    The default is to not enable TCP/IP over MyriNet.
+	  </para>
+	  <note>
+	    <para>This parameter is only useful when configuring a MyriNet
+	      cluster.
+	    </para>
+	  </note>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>starter</command>
+	    &boolargs;
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	    If the argument is on of <parameter>yes</parameter>,
+	    <parameter>true</parameter> or <parameter>1</parameter> all nodes
+	    declared within a <command>Node</command> statement will allow to
+	    start parallel jobs, unless otherwise stated.
+	  </para>
+	  <para>
+	    The default is to allow starting parallel jobs from all nodes.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>Node</command>
+	    <command>, Nodes</command>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>LicenseServer</command>
+	    <arg><replaceable>hostname</replaceable></arg>
+	    <command>, LicServer</command>
+	    <arg><replaceable>hostname</replaceable></arg>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	    Tell ParaStation to use
+	    <parameter><replaceable>hostname</replaceable></parameter> as the
+	    maschine where the ParaStation license daemon <xref
+	      linkend="psld"/> should run.
+	  </para>
+	  <para>
+	    ParaStation will try to start the license server on this machine if
+	    the license ping is missing for too long. Therefor, the
+	    <citerefentry>
+	      <refentrytitle>inetd</refentrytitle>
+	      <manvolnum>8</manvolnum>
+	    </citerefentry> has to be set up correctly on this node to enable
+	    autostarting the <xref linkend="psld"/>.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>LicenseFile</command>
+	    <arg><replaceable>lic-file</replaceable></arg>
+	    <command>, LicFile</command>
+	    <arg><replaceable>lic-file</replaceable></arg>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	    Tell the ParaStation daemon <xref linkend="psid"/> and the license
+	    daemon <xref linkend="psld"/> to use
+	    <parameter><replaceable>lic-file</replaceable></parameter> as the
+	    license file.
+	  </para>
+	  <para>
+	    Be aware of the fact that both, <xref linkend="psid"/> and <xref
+	      linkend="psld"/>, need a correct license file.
+	  </para>
+	  <para>
+	    <parameter><replaceable>lic-file</replaceable></parameter> may be a
+	    absolute or relative path. Relative paths are looked up relative to
+	    <filename><replaceable>InstallDir</replaceable>/config</filename>
+	    and <filename><replaceable>InstallDir</replaceable></filename> in
+	    this order. Furthermore the directory where the config-file resides
+	    (which is <filename>/etc</filename> by default, but may be
+	    overwritten with
+	    <xref linkend="psid"/>'s and <xref linkend="psld"/>'s
+	    <option>-f</option>  option) is investigated.
+	  </para>
+	  <para>
+	    The default is <filename>license</filename>.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>LicenseDeadInterval</command>
+	    <arg><replaceable>num</replaceable></arg>
+	    <command>, LicDeadInterval</command>
+	    <arg><replaceable>num</replaceable></arg>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	    The ParaStation license daemon <xref linkend="psld"/> will shut
+	    down operation after
+	    <parameter><replaceable>num</replaceable></parameter> MCast
+	    periods, if no MCast ping was received from any configured
+	    ParaStation daemon.
+	  </para>
+	  <para>
+	    The default value is 30.
+	  </para>
+	  <para>
+	    For now, the MCast period is set to two second, i.e. every daemon
+	    send a MCast ping every two seconds. This results into shutting
+	    down the license daemon 1 minute after shutting down the last
+	    ParaStation daemon withing the cluster.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>MyriNetModule</command>
+	    <arg><replaceable>mod-file</replaceable></arg>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	  </para>
+	  <note>
+	    <para>
+	      This parameter is only useful when configuring a MyriNet cluster.
+	    </para>
+	  </note>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>RoutingFile</command>
+	    <arg><replaceable>route-file</replaceable></arg>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	  </para>
+	  <note>
+	    <para>
+	      This parameter is only useful when configuring a MyriNet cluster.
+	    </para>
+	  </note>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>SmallPacketSize</command>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	  </para>
+	  <note>
+	    <para>
+	      This parameter is only useful when configuring a MyriNet cluster.
+	    </para>
+	  </note>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>ResendTimeout</command>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	  </para>
+	  <note>
+	    <para>
+	      This parameter is only useful when configuring a MyriNet cluster.
+	    </para>
+	  </note>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>HNPend</command>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	  </para>
+	  <note>
+	    <para>
+	      This parameter is only useful when configuring a MyriNet cluster.
+	    </para>
+	  </note>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>ACKPend</command>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	  </para>
+	  <note>
+	    <para>
+	      This parameter is only useful when configuring a MyriNet cluster.
+	    </para>
+	  </note>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>IPModule</command>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	  </para>
+	  <note>
+	    <para>
+	      This parameter is only useful when configuring a MyriNet cluster.
+	    </para>
+	  </note>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>IPPrefix</command>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	  </para>
+	  <note>
+	    <para>
+	      This parameter is only useful when configuring a MyriNet cluster.
+	    </para>
+	  </note>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>IPPrefixLen</command>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	  </para>
+	  <note>
+	    <para>
+	      This parameter is only useful when configuring a MyriNet cluster.
+	    </para>
+	  </note>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>SelectTime</command>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>DeadInterval</command>
+	    <arg><replaceable>num</replaceable></arg>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	    The ParaStation daemon <xref linkend="psid"/> will declare other
+	    daemons as dead after
+	    <parameter><replaceable>num</replaceable></parameter> consecutively
+	    missing MCast pings.
+	  </para>
+	  <para>
+	    After declaring a node as dead, all processes residing on this node
+	    are also declared dead. This results in sending signals to all
+	    processes on the local node that have requested for.
+	  </para>
+	  <para>
+	    The default value is 10.
+	  </para>
+	  <para>
+	    For now, the MCast period is set to two second, i.e. every daemon
+	    send a MCast ping every two seconds. This results in declaring a
+	    daemon as dead after 20 seconds for the default value.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>LogLevel</command>
+	    <arg><replaceable>num</replaceable></arg>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	    Sets the debugging level of the ParaStation daemon
+	    <xref linkend="psid"/> to <option>num</option>.
+	  </para>
+	  <note>
+	    <para>
+	      For values of <option>level</option> larger than
+	      <constant>10</constant> the daemon logs a huge amount of message
+	      in the logging destination, which is usually the
+	      <citerefentry>
+		<refentrytitle>syslog</refentrytitle>
+		<manvolnum>3</manvolnum>
+	      </citerefentry>. Don't use this levels differeent from
+	      <constant>0</constant> for too long!
+	    </para>
+	  </note>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>LogDest</command>
+	    <command>, LogDestination</command>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>MCastGroup</command>
+	    <arg><replaceable>group-num</replaceable></arg>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	    Tell <xref linkend="psid"/> and <xref linkend="psld"/> to use
+	    multicast group port
+	    <parameter><replaceable>group-num</replaceable></parameter> for
+	    MCast communication to other daemons.
+	  </para>
+	  <para>
+	    The default port to use is <constant>237</constant>
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>MCastPort</command>
+	    <arg><replaceable>port-num</replaceable></arg>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	    Tell <xref linkend="psid"/> and <xref linkend="psld"/> to use UDP
+	    port <parameter><replaceable>port-num</replaceable></parameter> for
+	    MCast communication to other daemons.
+	  </para>
+	  <para>
+	    The default port to use is <constant>1889</constant>
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>RDPPort</command>
+	    <arg><replaceable>port-num</replaceable></arg>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	    Tell <xref linkend="psid"/> to use UDP port
+	    <parameter><replaceable>port-num</replaceable></parameter> for RDP
+	    communication to other daemons.
+	  </para>
+	  <para>
+	    The default port to use is <constant>886</constant>
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>RLimit</command>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>Environment</command>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <note>
+	    <para>
+	      NOT YET IMPLEMENTED !
+	    </para>
+	  </note>
+	</listitem>
+      </varlistentry>
+
+    </variablelist>
+  </refsect1>
+
+  <refsect1>
+    <title>Errors</title>
+    <para>
+      The commands <command>hasIP</command>, <command>IPModule</command>,
+      <command>IPPrefix</command>, <command>IPPrefixLen</command> and
+      <command>Environment</command> are not implemented yet.
+    </para>
+    <para>
+      The commands <command>Nodes</command>, <command>MyriNetModule</command>,
+      <command>RoutingFile</command>,  <command>SmallPacketSize</command>,
+      <command>ResendTimeout</command>,  <command>HNPend</command>,
+      <command>ACKPend</command>, <command>IPModule</command>,
+      <command>IPPrefix</command>, <command>IPPrefixLen</command>,
+      <command>SelectTime</command>, <command>LogDest</command>,
+      <command>RLimit</command> and <command>Environment</command> are not
+      documented yet.
     </para>
   </refsect1>
 </refentry>

@@ -129,8 +129,8 @@
       <varlistentry>
 	<term>
 	  <option>-d</option>
-	  <option>--debug=<replaceable>level</replaceable></option>
-	</term>
+	  <option>, --debug=<replaceable>level</replaceable></option>
+        </term>
 	<listitem>
 	  <para>
             Activate the debugging mode and the the debugging level to
@@ -161,9 +161,9 @@
       </varlistentry>
       <varlistentry>
 	<term>
-	  <option>-f</option>,
-	  <option>--configfile=<replaceable>file</replaceable></option>
-	</term>
+	  <option>-f</option>
+	  <option>, --configfile=<replaceable>file</replaceable></option>
+        </term>
 	<listitem>
 	  <para>
 	    Choose <replaceable>file</replaceable> to be the ParaStation
@@ -174,9 +174,9 @@
       </varlistentry>
       <varlistentry>
 	<term>
-	  <option>-l</option>,
-	  <option>--logfile=<replaceable>file</replaceable></option>
-	</term>
+	  <option>-l</option>
+	  <option>, --logfile=<replaceable>file</replaceable></option>
+        </term>
 	<listitem>
 	  <para>
 	    Choose <replaceable>file</replaceable> to be the destination for
@@ -191,29 +191,31 @@
 	</listitem>
       </varlistentry>
       <varlistentry>
-        <term>
-	  <option>-v</option>,
-          <option>--version</option>
+	<term>
+	  <option>-v</option>
+	  <option>, --version</option>
         </term>
-        <listitem>
-          <para>
-            Output version information and exit.
-          </para>
-        </listitem>
+	<listitem>
+	  <para>
+	    Output version information and exit.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-?</option>
+	  <option>, --help</option>
+        </term>
+	<listitem>
+	  <para>
+	    Show a help message.
+	  </para>
+	</listitem>
       </varlistentry>
       <varlistentry>
         <term>
-          <option>-?</option>,
-          <option>--help</option>
-        </term>
-        <listitem>
-          <para>
-            Show a help message.
-          </para>
-        </listitem>
-      </varlistentry>
-      <varlistentry>
-        <term><option>--usage</option></term>
+	  <option>--usage</option>
+	</term>
         <listitem>
           <para>
             Display a brief usage message.

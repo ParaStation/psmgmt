@@ -16,12 +16,15 @@
 <!ENTITY psid SYSTEM "psid.sgml">
 <!ENTITY psld SYSTEM "psld.sgml">
 <!ENTITY psmstart SYSTEM "psmstart.sgml">
+<!ENTITY psroute SYSTEM "psroute.sgml">
+<!ENTITY psscan SYSTEM "psscan.sgml">
 
 <!ENTITY spawning SYSTEM "spawning.sgml">
+
+<!ENTITY boolargs SYSTEM "boolargs.sgml">
 ]>
 <book>
-  <title>ParaStation Documentation</title>
-  <titleabbrev>Docu</titleabbrev>
+  <title>ParaStation Administrators Guide</title>
 
   <bookinfo>
     &docinfo;
@@ -42,6 +45,8 @@
     &psid;
     &psld;
     &psmstart;
+    &psroute;
+    &psscan;
   </reference>
 
   <appendix><title>Spawning strategies</title>

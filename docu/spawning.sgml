@@ -9,7 +9,8 @@
     <refpurpose>spawning strategies within ParaStation</refpurpose>
   </refnamediv>
 
-  <refsect1><title>Description</title>
+  <refsect1>
+    <title>Description</title>
     <para>
       blablabla.
     </para>

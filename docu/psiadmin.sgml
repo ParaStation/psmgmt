@@ -18,7 +18,8 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1><title>Description</title>
+  <refsect1>
+    <title>Description</title>
     <para>
       The psiadmin command provides an administrator interface to the
       ParaStation system.
@@ -41,8 +42,8 @@
       <varlistentry>
 	<term>
 	  <option>-c</option>
-	  <option>--command=<replaceable>command</replaceable></option>
-	</term>
+	  <option>, --command=<replaceable>command</replaceable></option>
+        </term>
 	<listitem>
 	  <para>
 	    Execute the single directive <command>command</command> and exit.
@@ -52,8 +53,8 @@
       <varlistentry>
 	<term>
 	  <option>-e</option>
-	  <option>--echo</option>
-	</term>
+	  <option>, --echo</option>
+        </term>
 	<listitem>
 	  <para>
 	    Echo each executed command to stdout.
@@ -63,8 +64,8 @@
       <varlistentry>
 	<term>
 	  <option>-r</option>
-	  <option>--reset</option>
-	</term>
+	  <option>, --reset</option>
+        </term>
 	<listitem>
 	  <para>
 	    Do a reset of the ParaStation system on startup.
@@ -72,29 +73,31 @@
 	</listitem>
       </varlistentry>
       <varlistentry>
-        <term>
-          <option>-v</option>,
-          <option>--version</option>
+	<term>
+	  <option>-v</option>
+	  <option>, --version</option>
         </term>
-        <listitem>
-          <para>
-            Output version information and exit.
-          </para>
-        </listitem>
+	<listitem>
+	  <para>
+	    Output version information and exit.
+	  </para>
+	</listitem>
       </varlistentry>
       <varlistentry>
-        <term>
-          <option>-?</option>,
-          <option>--help</option>
+	<term>
+	  <option>-?</option>
+	  <option>, --help</option>
         </term>
-        <listitem>
-          <para>
-            Show a help message.
-          </para>
-        </listitem>
+	<listitem>
+	  <para>
+	    Show a help message.
+	  </para>
+	</listitem>
       </varlistentry>
       <varlistentry>
-        <term><option>--usage</option></term>
+	<term>
+	  <option>--usage</option>
+	</term>
         <listitem>
           <para>
             Display a brief usage message.
@@ -254,7 +257,8 @@
       </varlistentry>
 
       <varlistentry>
-	<term><cmdsynopsis>
+	<term>
+	  <cmdsynopsis>
 	    <command>kill</command>
 	    <arg><replaceable>tid</replaceable></arg>
 	  </cmdsynopsis>
@@ -296,9 +300,7 @@
 	      <arg>resendtimeout</arg>
 	      <arg>hnpend</arg>
 	      <arg>ackpend</arg>
-
 	      <arg>selecttime</arg>
-
 	      <arg>psiddebug</arg>
 	      <arg>rdpdebug</arg>
 	      <arg>mcastdebug</arg>
@@ -531,7 +533,11 @@
 	  </para>
 	  <variablelist>
 	    <varlistentry>
-	      <term><cmdsynopsis><command>node</command></cmdsynopsis></term>
+	      <term>
+		<cmdsynopsis>
+		  <command>node</command>
+		</cmdsynopsis>
+	      </term>
 	      <listitem>
 		<para>
 		  Show the status of the selected node(s). Depending on the
@@ -542,7 +548,11 @@
 	    </varlistentry>
 
 	    <varlistentry>
-	      <term><cmdsynopsis><command>proc</command></cmdsynopsis></term>
+	      <term>
+		<cmdsynopsis>
+		  <command>proc</command>
+		</cmdsynopsis>
+	      </term>
 	      <listitem>
 		<para>
 		  Show the processes managed by ParaStations system on the
@@ -557,7 +567,11 @@
 	    </varlistentry>
 
 	    <varlistentry>
-	      <term><cmdsynopsis><command>count</command></cmdsynopsis></term>
+	      <term>
+		<cmdsynopsis>
+		  <command>count</command>
+		</cmdsynopsis>
+	      </term>
 	      <listitem>
 		<para>
 		  Show the status of the MyriNet communication system on the
@@ -575,7 +589,9 @@
 
 	    <varlistentry>
 	      <term>
-		<cmdsynopsis><command>allproc</command></cmdsynopsis>
+		<cmdsynopsis>
+		  <command>allproc</command>
+		</cmdsynopsis>
 	      </term>
 	      <listitem>
 		<para>
@@ -591,7 +607,11 @@
 	    </varlistentry>
 
 	    <varlistentry>
-	      <term><cmdsynopsis><command>rdp</command></cmdsynopsis></term>
+	      <term>
+		<cmdsynopsis>
+		  <command>rdp</command>
+		</cmdsynopsis>
+	      </term>
 	      <listitem>
 		<para>
 		  Show the status of the RDP protocol of the ParaStation daemon
@@ -601,7 +621,11 @@
 	    </varlistentry>
 
 	    <varlistentry>
-	      <term><cmdsynopsis><command>mcast</command></cmdsynopsis></term>
+	      <term>
+		<cmdsynopsis>
+		  <command>mcast</command>
+		</cmdsynopsis>
+	      </term>
 	      <listitem>
 		<para>
 		  Show the status of the MCast facility of the ParaStation
@@ -611,7 +635,11 @@
 	    </varlistentry>
 
 	    <varlistentry>
-	      <term><cmdsynopsis><command>all</command></cmdsynopsis></term>
+	      <term>
+		<cmdsynopsis>
+		  <command>all</command>
+		</cmdsynopsis>
+	      </term>
 	      <listitem>
 		<para>
 		  Show the information given by <command>node</command>,
@@ -705,14 +733,11 @@
 		    <arg><replaceable>num</replaceable></arg>
 		    <arg>any</arg>
 		  </group></arg>
-
 		<arg>smallpacketsize <replaceable>size</replaceable></arg>
 		<arg>resendtimeout <replaceable>time</replaceable></arg>
 		<arg>hnpend <replaceable>val</replaceable></arg>
 		<arg>ackpend <replaceable>val</replaceable></arg>
-
 		<arg>selecttime <replaceable>time</replaceable></arg>
-
 		<arg>psiddebug <replaceable>level</replaceable></arg>
 		<arg>rdpdebug <replaceable>level</replaceable></arg>
 		<arg>mcastdebug <replaceable>level</replaceable></arg>
@@ -787,7 +812,7 @@
 		  </para>
 		  <para>
 		    This parameter can be set persistently via the
-		    <command>SmallPacketsize</command> option within the
+		    <command>SmallPacketSize</command> option within the
 		    ParaStation configuration file <xref
 		      linkend="parastation_conf"/>.
 		  </para>
@@ -820,7 +845,7 @@
 		  </para>
 		  <note>
 		    <para>
-		      In the actual verion of ParaStation this parameter is
+		      In the actual version of ParaStation this parameter is
 		      read only and cannot be modified.
 		    </para>
 		  </note>
@@ -1054,7 +1079,9 @@
 	    <variablelist>
 	      <varlistentry>
 		<term>
-		  <cmdsynopsis><command>quiet</command></cmdsynopsis>
+		  <cmdsynopsis>
+		    <command>quiet</command>
+		  </cmdsynopsis>
 		</term>
 		<listitem>
 		  <para>
@@ -1065,7 +1092,9 @@
 	      </varlistentry>
 	      <varlistentry>
 		<term>
-		  <cmdsynopsis><command>normal</command></cmdsynopsis>
+		  <cmdsynopsis>
+		    <command>normal</command>
+		  </cmdsynopsis>
 		</term>
 		<listitem>
 		  <para>
@@ -1076,7 +1105,9 @@
 	      </varlistentry>
 	      <varlistentry>
 		<term>
-		  <cmdsynopsis><command>verbose</command></cmdsynopsis>
+		  <cmdsynopsis>
+		    <command>verbose</command>
+		  </cmdsynopsis>
 		</term>
 		<listitem>
 		  <para>

@@ -39,12 +39,13 @@
     <title>Options</title>
     <variablelist>
       <varlistentry>
-        <term>
-          <option>-d</option>,
-          <option>--debug</option></term>
-        <listitem>
-          <para>
-            Activate the debugging mode. If debugging is enabled, no
+	<term>
+	  <option>-d</option>
+	  <option>, --debug</option>
+        </term>
+	<listitem>
+	  <para>
+	    Activate the debugging mode. If debugging is enabled, no
 	    <citerefentry>
 	      <refentrytitle>fork</refentrytitle>
 	      <manvolnum>2</manvolnum>
@@ -55,14 +56,14 @@
 	      <manvolnum>3</manvolnum>
 	    </citerefentry>
 	    but to stderr. This option implies <option>-v</option>.
-          </para>
-        </listitem>
+	  </para>
+	</listitem>
       </varlistentry>
       <varlistentry>
 	<term>
-	  <option>-v</option>,
-	  <option>--verbose</option>
-	</term>
+	  <option>-v</option>
+	  <option>, --verbose</option>
+        </term>
 	<listitem>
 	  <para>
 	    Do more verbose logging.
@@ -71,9 +72,9 @@
       </varlistentry>
       <varlistentry>
 	<term>
-	  <option>-f</option>,
-	  <option>--configfile=<replaceable>file</replaceable></option>
-	</term>
+	  <option>-f</option>
+	  <option>, --configfile=<replaceable>file</replaceable></option>
+        </term>
 	<listitem>
 	  <para>
 	    Choose <replaceable>file</replaceable> to be the ParaStation
@@ -83,33 +84,35 @@
 	</listitem>
       </varlistentry>
       <varlistentry>
-        <term>
-          <option>--version</option>
-        </term>
-        <listitem>
-          <para>
-            Output version information and exit.
-          </para>
-        </listitem>
+	<term>
+	  <option>--version</option>
+	</term>
+	<listitem>
+	  <para>
+	    Output version information and exit.
+	  </para>
+	</listitem>
       </varlistentry>
       <varlistentry>
-        <term>
-          <option>-?</option>,
-          <option>--help</option>
+	<term>
+	  <option>-?</option>
+	  <option>, --help</option>
         </term>
-        <listitem>
-          <para>
-            Show a help message.
-          </para>
-        </listitem>
+	<listitem>
+	  <para>
+	    Show a help message.
+	  </para>
+	</listitem>
       </varlistentry>
       <varlistentry>
-        <term><option>--usage</option></term>
-        <listitem>
-          <para>
-            Display a brief usage message.
-          </para>
-        </listitem>
+	<term>
+	  <option>--usage</option>
+	</term>
+	<listitem>
+	  <para>
+	    Display a brief usage message.
+	  </para>
+	</listitem>
       </varlistentry>
     </variablelist>
   </refsect1>
