@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.h,v 1.21 2003/10/29 17:33:46 eicker Exp $
+ * $Id: info.h,v 1.22 2003/10/30 16:39:20 eicker Exp $
  *
  */
 /**
  * @file
  * info: Functions for information retrieving from ParaStation daemon
  *
- * $Id: info.h,v 1.21 2003/10/29 17:33:46 eicker Exp $
+ * $Id: info.h,v 1.22 2003/10/30 16:39:20 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -43,7 +43,8 @@ extern "C" {
  * RETURN: filled buffer
  *
  */
-int INFO_request_rdpstatus(int nodeno, void* buffer, size_t size, int verbose);
+int INFO_request_rdpstatus(PSnodes_ID_t node,
+			   void* buf, size_t size, int verbose);
 
 /*****************************
  *
@@ -53,19 +54,19 @@ int INFO_request_rdpstatus(int nodeno, void* buffer, size_t size, int verbose);
  * RETURN: filled buffer
  *
  */
-int INFO_request_mcaststatus(int nodeno,
-			     void* buffer, size_t size, int verbose);
+int INFO_request_mcaststatus(PSnodes_ID_t node,
+			     void* buf, size_t size, int verbose);
 
 /*****************************
  *
  * request_countstatus(int nodeno)
  *
  */
-int INFO_request_countheader(int nodeno, int hwindex,
-			     void* buffer, size_t size, int verbose);
+int INFO_request_countheader(PSnodes_ID_t node, int hwindex,
+			     void* buf, size_t size, int verbose);
 
-int INFO_request_countstatus(int nodeno, int hwindex,
-			     void* buffer, size_t size, int verbose);
+int INFO_request_countstatus(PSnodes_ID_t node, int hwindex,
+			     void* buf, size_t size, int verbose);
 
 /*****************************
  *
@@ -75,7 +76,7 @@ int INFO_request_countstatus(int nodeno, int hwindex,
  * RETURN: filled buffer
  *
  */
-int INFO_request_hoststatus(void* buffer, size_t size, int verbose);
+int INFO_request_hoststatus(void* buf, size_t size, int verbose);
 
 /*****************************
  *
@@ -85,7 +86,7 @@ int INFO_request_hoststatus(void* buffer, size_t size, int verbose);
  * RETURN: filled buffer
  *
  */
-int INFO_request_nodelist(NodelistEntry_t *buffer, size_t size, int verbose);
+int INFO_request_nodelist(NodelistEntry_t *buf, size_t size, int verbose);
 
 /*****************************
  *
@@ -96,9 +97,9 @@ int INFO_request_nodelist(NodelistEntry_t *buffer, size_t size, int verbose);
  *
  */
 int INFO_request_partition(unsigned int hwtype,
-			   NodelistEntry_t *buffer, size_t size, int verbose);
+			   NodelistEntry_t *buf, size_t size, int verbose);
 
-int INFO_request_rankID(unsigned int rank, int verbose);
+PSnodes_ID_t INFO_request_rankID(unsigned int rank, int verbose);
 
 int INFO_request_taskSize(int verbose);
 
@@ -110,7 +111,7 @@ int INFO_request_taskSize(int verbose);
  * RETURN: the PS id
  *
  */
-int INFO_request_host(unsigned int addr, int verbose);
+PSnodes_ID_t INFO_request_host(unsigned int addr, int verbose);
 
 /*****************************
  *
@@ -120,7 +121,7 @@ int INFO_request_host(unsigned int addr, int verbose);
  * RETURN: the IP-address
  *
  */
-unsigned int INFO_request_node(int node, int verbose);
+unsigned int INFO_request_node(PSnodes_ID_t node, int verbose);
 
 typedef struct {
     PStask_ID_t tid;
@@ -140,8 +141,8 @@ typedef struct {
  * Gibt Anzahl der tasks zurück.
  *
  */
-int INFO_request_tasklist(int nodeno, INFO_taskinfo_t taskinfo[], size_t size,
-			  int verbose);
+int INFO_request_tasklist(PSnodes_ID_t node,
+			  INFO_taskinfo_t taskinfo[], size_t size,int verbose);
 
 int INFO_request_nrofnodes(int verbose);
 
