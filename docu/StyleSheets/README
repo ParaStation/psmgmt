@@ -1,9 +1,0 @@
-Any update to fo-titlepage.xml has to be followed by the call:
-
-xsltproc --timing --nonet -o fo-titlepage.xsl \
-    http://docbook.sourceforge.net/release/xsl/current/template/titlepage.xsl \
-    fo-titlepage.xml
-
-in order to deploy the changes.
-
-Don't forget to also check-in fo-titlepage.xsl!
