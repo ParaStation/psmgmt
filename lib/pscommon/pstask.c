@@ -7,17 +7,18 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.c,v 1.8 2002/08/06 08:20:14 eicker Exp $
+ * $Id: pstask.c,v 1.9 2003/02/10 18:23:32 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.8 2002/08/06 08:20:14 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.9 2003/02/10 18:23:32 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <termios.h>
+#include <signal.h>
 #include <sys/ioctl.h>
 
 #include "pscommon.h"
@@ -56,8 +57,6 @@ int PStask_init(PStask_t *task)
     task->gid = -1;
     task->aretty = 0;
     task->group = TG_ANY;
-    task->loggernode = 0; /* obsolete */
-    task->loggerport = 0; /* obsolete */
     task->loggertid = 0;
     task->rank = -1;
     task->fd = -1;
@@ -65,9 +64,11 @@ int PStask_init(PStask_t *task)
     task->argc = 0;
     task->argv = NULL;
     task->environ = NULL;
-    task->childsignal = -1;
+    task->relativesignal = SIGTERM;
     task->pendingReleaseRes = 0;
     task->released = 0;
+
+    task->childs = NULL;
 
     task->signalSender = NULL;
     task->signalReceiver = NULL;
@@ -98,6 +99,12 @@ int PStask_reinit(PStask_t *task)
 	}
 	free(task->environ);
 	task->environ = NULL;
+    }
+
+    while (task->childs) {
+	PStask_sig_t *thissignal = task->childs;
+	task->childs = thissignal->next;
+	free(thissignal);
     }
 
     while (task->signalSender) {
@@ -173,8 +180,6 @@ PStask_t *PStask_clone(PStask_t *task)
     clone->termios = task->termios;
     clone->winsize = task->winsize;
     clone->group = task->group;
-    clone->loggernode = task->loggernode; /* obsolete */
-    clone->loggerport = task->loggerport; /* obsolete */
     clone->loggertid = task->loggertid;
     clone->rank = task->rank;
     /* clone->fd = -1; */
@@ -195,9 +200,11 @@ PStask_t *PStask_clone(PStask_t *task)
 	}
 	clone->environ[i] = NULL;
     }
-    clone->childsignal = task->childsignal;
+    clone->relativesignal = task->relativesignal;
     clone->pendingReleaseRes = task->pendingReleaseRes;
     clone->released = task->released;
+
+    clone->childs = cloneSigList(task->childs);
 
     clone->signalSender = cloneSigList(task->signalSender);
     clone->signalReceiver = cloneSigList(task->signalReceiver);
@@ -213,17 +220,12 @@ void PStask_snprintf(char *txt, size_t size, PStask_t * task)
     if (task==NULL)
 	return ;
 
-/*      snprintf(txt, size, "tid 0x%08lx ptid 0x%08lx uid %d gid %d group %s" */
-/*  	     " rank %d links(0x%08lx,0x%08lx) loggertid %08lx fd %d argc %d ", */
-/*  	     task->tid, task->ptid, task->uid, task->gid, */
-/*  	     PStask_printGrp(task->group), task->rank, */
-/*  	     (long)task->next, (long)task->prev, */
-/*  	     task->loggertid, task->fd, task->argc); */
-    snprintf(txt, size, " links(0x%08lx,0x%08lx) tid 0x%08lx, ptid 0x%08lx, uid %d"
-	     " loggernode 0x%08x loggerport %d group %s rank %d fd %d argc %d ",
-	     (long)task->next, (long)task->prev, task->tid, task->ptid,
-	     task->uid, task->loggernode, task->loggerport,
-	     PStask_printGrp(task->group), task->rank, task->fd, task->argc);
+     snprintf(txt, size, "tid 0x%08lx ptid 0x%08lx uid %d gid %d group %s"
+ 	     " rank %d links(0x%08lx,0x%08lx) loggertid %08lx fd %d argc %d ",
+ 	     task->tid, task->ptid, task->uid, task->gid,
+ 	     PStask_printGrp(task->group), task->rank,
+ 	     (long)task->next, (long)task->prev,
+ 	     task->loggertid, task->fd, task->argc);
     if (strlen(txt)+1 == size) return;
 
     snprintf(txt+strlen(txt), size-strlen(txt), "dir=\"%s\",command=\"",
@@ -258,8 +260,6 @@ static struct {
     struct winsize winsize;
     PStask_group_t group;
     int rank;
-    unsigned int loggernode; /* obsolete */
-    int loggerport;          /* obsolete */
     long loggertid;
     int argc;
 } tmpTask;
@@ -285,8 +285,6 @@ size_t PStask_encode(char *buffer, size_t size, PStask_t *task)
     tmpTask.winsize = task->winsize;
     tmpTask.group = task->group;
     tmpTask.rank = task->rank;
-    tmpTask.loggernode = task->loggernode; /* obsolete */
-    tmpTask.loggerport = task->loggerport; /* obsolete */
     tmpTask.loggertid = task->loggertid;
     tmpTask.argc = task->argc;
 
@@ -365,8 +363,6 @@ int PStask_decode(char *buffer, PStask_t *task)
     task->winsize = tmpTask.winsize;
     task->group = tmpTask.group;
     task->rank = tmpTask.rank;
-    task->loggernode = tmpTask.loggernode; /* obsolete */
-    task->loggerport = tmpTask.loggerport; /* obsolete */
     task->loggertid = tmpTask.loggertid;
     task->argc = tmpTask.argc;
 
