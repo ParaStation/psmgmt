@@ -30,9 +30,9 @@
       &ps; daemon <xref linkend="psid"/>.
     </para>
     <para>
-      Most of the directive listed below can be executed by general users. Only
-      modifying parameters, killing foreign jobs and shutting down single nodes
-      or the whole system requires root privilege.
+      Most of the directives listed below can be executed by general users.
+      Only modifying parameters, killing foreign jobs and shutting down single
+      nodes or the whole system requires root privilege.
     </para>
   </refsect1>
 
@@ -411,7 +411,7 @@
 		  <command>show <option>resendtimeout</option></command>) it
 		  will be resend by the source node. If a packet is received
 		  twice by the destination node, a immediate ACK message is
-		  sent and therefor correct delivery of packets is ensured.
+		  sent and therefore correct delivery of packets is ensured.
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -442,7 +442,7 @@
 	      </term>
 	      <listitem>
 		<para>Show the debugging level of the &ps; daemon <xref
-		    linkend="psid"/> on the seleceted node(s).
+		    linkend="psid"/> on the selected node(s).
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -456,7 +456,7 @@
 	      </term>
 	      <listitem>
 		<para>Show the debugging level of the RDP protocol within the
-		  &ps; daemon <xref linkend="psid"/> on the seleceted node(s).
+		  &ps; daemon <xref linkend="psid"/> on the selected node(s).
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -470,7 +470,7 @@
 	      </term>
 	      <listitem>
 		<para>Show the debugging level of the MCast protocol within the
-		  &ps; daemon <xref linkend="psid"/> on the seleceted node(s).
+		  &ps; daemon <xref linkend="psid"/> on the selected node(s).
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -533,6 +533,80 @@
 		  forwarder processes should also be displayed, use the
 		  <command>status <option>allproc</option></command> directive.
 		</para>
+		<para>
+		  The listed fields have the following meaning:
+		</para>
+		<variablelist>
+		  <varlistentry>
+		    <term>Node</term>
+		    <listitem>
+		      <para>
+			The &ps; ID of the node the process is running on.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+		  <varlistentry>
+		    <term>TaskID</term>
+		    <listitem>
+		      <para>
+			The &ps; task ID of the process, both as decimal and
+			hexadecimal number. The task ID of a process is unique
+			within the cluster and is composed out of the &ps; ID
+			of the node the process is running on and the local
+			process ID of the process, i.e. the result of calling
+			<citerefentry>
+			  <refentrytitle>getpid</refentrytitle>
+			  <manvolnum>2</manvolnum>
+		      </citerefentry>.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+		  <varlistentry>
+		    <term>ParentTaskID</term>
+		    <listitem>
+		      <para>
+			The &ps; task ID of the parent process. The parent
+			process is the one which has spawned the current
+			process. If the process was not spawned by any other
+			controlled by &ps;, i.e. it is the first process
+			started within a parallel task, the parent &ps; task ID
+			is 0.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+		  <varlistentry>
+		    <term>Con</term>
+		    <listitem>
+		      <para>
+			Flag to mark if the process has reconnected to its
+			local &ps; daemon <xref linkend="psid"/>. If a 1 is
+			displayed, the process has connected the daemon,
+			otherwise 0 is reported.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+		  <varlistentry>
+		    <term>UserID</term>
+		    <listitem>
+		      <para>
+			The user ID under which the process runs. This is
+			usually on par with the user ID of the parent process.
+		      </para>
+		      <para>
+			Furthermore administrativ processes, i.e. <xref
+			  linkend="psiadmin"/> processes connected to a local
+			daemon are marked by <quote>(A)</quote> after the
+			user ID.
+		      </para>
+		      <para>
+			Logger processes, i.e. root processes of a parallel
+			task which converted to a <link
+			  linkend="loggerfull">&ps; logger</link> process are
+			tagged by <quote>(L)</quote> after the user ID.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+		</variablelist>
 	      </listitem>
 	    </varlistentry>
 
@@ -550,6 +624,15 @@
 		  All processes managed by &ps; are displayed. If forwarder
 		  processes should not be displayed, use the <command>status
 		    <option>proc</option></command> directive.
+		</para>
+		<para>
+		  The output fields of the process list are described within
+		  the <command>status <option>proc</option></command>
+		  directive. In addition to the process classes described
+		  there, <link linkend="forwarder">&ps; forwarder</link>
+		  processes, i.e. processes spawned by the &ps; daemon <xref
+		    linkend="psid"/> in order to control a spawned process, are
+		  marked by <quote>(F)</quote> after the user ID.
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -728,7 +811,7 @@
 			These are released when the host is unable to receive
 			further data because no receive buffers are left. This
 			might be due to sends on the source side of the
-			communication whilst no receive is posted on the
+			communication while no receive is posted on the
 			destination side.
 		      </para>
  		      <para>
@@ -748,7 +831,7 @@
 			  linkend="MCP">MCP</link> is unable to receive further
 			data because no receive buffers are left. This might be
 			due to sends on the source side of the communication
-			whilst no receive is posted on the destination side or
+			while no receive is posted on the destination side or
 			to a slow PCI bus.
 		      </para>
  		      <para>
@@ -1067,7 +1150,7 @@
 		    <link linkend="MCP">MCP</link> waits until several buffers
 		    are freed and sends accumulated host notify messages then.
 		    <option>val</option> is the number of accumulated messages
-		    to sent simultaniously.
+		    to be sent simultaniously.
 		  </para>
 		  <para>
 		    This parameter can be set persistently via the
@@ -1109,7 +1192,7 @@
 		    <command>show <option>resendtimeout</option></command>) it
 		    will be resend by the source node. If a packet is received
 		    twice by the destination node, a immediate ACK message is
-		    sent and therefor correct delivery of packets is ensured.
+		    sent and therefore correct delivery of packets is ensured.
 		  </para>
 		  <para>
 		    This parameter can be set persistently via the
@@ -1161,7 +1244,7 @@
 		<listitem>
 		  <para>Set the debugging level of the &ps; daemon
 		    <xref linkend="psid"/> to <option>level</option> on the
-		    seleceted node(s).
+		    selected node(s).
 		  </para>
 		  <para>
 		    This parameter can be set persistently via the
@@ -1194,7 +1277,7 @@
 		<listitem>
 		  <para>Set the debugging level of the RDP protocol within the
 		    &ps; daemon <xref linkend="psid"/> to
-		    <option>level</option> on the seleceted node(s).
+		    <option>level</option> on the selected node(s).
 		  </para>
 		  <note>
 		    <para>
@@ -1217,7 +1300,7 @@
 		<listitem>
 		  <para>Set the debugging level of the MCast protocol within
 		    the &ps; daemon <xref linkend="psid"/> to
-		    <option>level</option> on the seleceted node(s).
+		    <option>level</option> on the selected node(s).
 		  </para>
 		  <note>
 		    <para>
