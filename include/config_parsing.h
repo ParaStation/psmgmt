@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.h,v 1.6 2002/07/17 19:37:58 hauke Exp $
+ * $Id: config_parsing.h,v 1.7 2002/07/18 13:01:31 eicker Exp $
  *
  */
 /**
  * \file
  * parse: Parser for the config file of the ParaStation daemon
  *
- * $Id: config_parsing.h,v 1.6 2002/07/17 19:37:58 hauke Exp $
+ * $Id: config_parsing.h,v 1.7 2002/07/18 13:01:31 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -33,7 +33,7 @@ extern "C" {
 
 /** @todo Documentation */
 
-/* Hashed host table needed for reverse lookup (ip-addr given, determine id) */
+/** Hashed host table for reverse lookup (ip-addr given, determine id) */
 struct host_t{
     unsigned int addr;
     int id;
@@ -46,14 +46,13 @@ extern int NrOfNodes;
 
 /* List of all nodes, info about hardware included */
 struct node_t{
-    unsigned int addr;     /* IP address of that node */
-    short numCPU;          /* Number of CPUs in that node */
-    char isUp;             /* Actual status of that node */
-    unsigned int hwType;   /* Communication hardware on that node */
-    unsigned int hwStatus; /* Corresponding stati of the hardware */
-    int hasIP;             /* Flag to mark that node to load the ip-module */
-    int starter;           /* Flag to allow to start jobs from that node */
-    PStask_t* tasklist;    /* tasklist of that node */
+    unsigned int addr;     /**< IP address of that node */
+    short numCPU;          /**< Number of CPUs in that node */
+    char isUp;             /**< Actual status of that node */
+    unsigned int hwType;   /**< Communication hardware on that node */
+    unsigned int hwStatus; /**< Corresponding stati of the hardware */
+    int hasIP;             /**< Flag to mark that node to load the ip-module */
+    int starter;           /**< Flag to allow to start jobs from that node */
 };
 
 extern struct node_t *nodes;
