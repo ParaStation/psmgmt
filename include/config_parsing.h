@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.h,v 1.7 2002/07/18 13:01:31 eicker Exp $
+ * $Id: config_parsing.h,v 1.8 2002/07/23 12:45:06 eicker Exp $
  *
  */
 /**
  * \file
  * parse: Parser for the config file of the ParaStation daemon
  *
- * $Id: config_parsing.h,v 1.7 2002/07/18 13:01:31 eicker Exp $
+ * $Id: config_parsing.h,v 1.8 2002/07/23 12:45:06 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -79,6 +79,7 @@ extern char *ConfigGigaEtherModule;
 
 extern long ConfigSelectTime;
 extern long ConfigDeadInterval;
+extern long ConfigLicDeadInterval;
 extern int ConfigRDPPort;
 extern int ConfigMCastGroup;
 extern int ConfigMCastPort;

@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.10 2002/07/19 13:18:18 eicker Exp $
+ * $Id: config_parsing.c,v 1.11 2002/07/23 12:45:25 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.10 2002/07/19 13:18:18 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.11 2002/07/23 12:45:25 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -77,6 +77,7 @@ char *ConfigGigaEtherModule = NULL;
 
 long ConfigSelectTime = 2;
 long ConfigDeadInterval = 10;
+long ConfigLicDeadInterval = 30;
 int ConfigRDPPort = 886;
 int ConfigMCastGroup = 237;
 int ConfigMCastPort = 1889;
@@ -529,6 +530,20 @@ static int getDeadInterval(char *token)
     return ret;
 }
 
+static int getLicDeadInterval(char *token)
+{
+    int temp, ret;
+
+    ret = parser_getNumValue(parser_getString(), &temp,
+			     "license-server dead interval");
+
+    if (ret) return ret;
+
+    ConfigLicDeadInterval = (long) temp;
+
+    return ret;
+}
+
 static int getLogLevel(char *token)
 {
     return parser_getNumValue(parser_getString(),
@@ -929,6 +944,8 @@ static keylist_t config_list[] = {
     {"licserver", getLicServer},
     {"licensefile", getLicFile},
     {"licfile", getLicFile},
+    {"licensedeadinterval", getLicDeadInterval},
+    {"licdeadinterval", getLicDeadInterval},
     {"mcastgroup", getMCastGroup},
     {"mcastport", getMCastPort},
     {"rdpport", getRDPPort},
