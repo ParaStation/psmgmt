@@ -63,10 +63,11 @@ linux)
 		MCPBINHEADERDIR=`path_cleanup $srcdir`/kern/mcp/build
 	fi;
 	;;
-tru64)
+osf5.1)
 	if test "$MCPBINHEADERDIRauto" = "yes"; then
 		MCPBINHEADERDIR=`path_cleanup $srcdir`/kern/mcp/build_nozc
 	fi;
+#	AC_CONFIG_FILES([kern/OSF1/Makefile])
 	;;
 *)
 	echo "Unkown os ($target_os)"
@@ -99,3 +100,11 @@ AC_CONFIG_FILES([tools/Makefile])
 
 
 AC_OUTPUT
+
+
+#
+# Local Variables:
+#  compile-command: "autoconf"
+# End:
+#
+#
