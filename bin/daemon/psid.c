@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.92 2003/06/06 15:01:51 eicker Exp $
+ * $Id: psid.c,v 1.93 2003/06/18 17:12:05 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.92 2003/06/06 15:01:51 eicker Exp $ 
+ * $Id: psid.c,v 1.93 2003/06/18 17:12:05 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.92 2003/06/06 15:01:51 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.93 2003/06/18 17:12:05 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -78,7 +78,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.92 $";
+static char psid_cvsid[] = "$Revision: 1.93 $";
 
 static int PSID_mastersock;
 
@@ -1998,8 +1998,10 @@ void msg_SIGNAL(DDSignalMsg_t *msg)
 		}
 		PStask_delete(clone);
 	    } else {
-		snprintf(errtxt, sizeof(errtxt), "%s: sender %s not found",
+		snprintf(errtxt, sizeof(errtxt), "%s: sender %s:",
 			 __func__, PSC_printTID(msg->header.sender));
+		snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
+			 " dest %s not found", PSC_printTID(msg->header.dest));
 		PSID_errlog(errtxt, 0);
 	    }
 	} else {
@@ -2595,7 +2597,7 @@ void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.92 $";
+    char revision[] = "$Revision: 1.93 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
