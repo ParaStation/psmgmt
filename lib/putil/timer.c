@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: timer.c,v 1.4 2002/01/31 12:14:01 eicker Exp $
+ * $Id: timer.c,v 1.5 2002/02/08 17:22:59 hauke Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: timer.c,v 1.4 2002/01/31 12:14:01 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: timer.c,v 1.5 2002/02/08 17:22:59 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -40,7 +40,7 @@ void setDebugLevelTimer(int level)
 
 void initTimer(int syslog)
 {
-    timer_t *timer;
+    priv_timer_t *timer;
 
     struct itimerval itv;
     struct sigaction sa;
@@ -75,7 +75,7 @@ void initTimer(int syslog)
     /* Free all old timers, if any */
     timer = timerList;
     while (timer) {
-	timer_t *t = timer;
+	priv_timer_t *t = timer;
 	timer = timer->next;
 	free(t);
     }
@@ -101,7 +101,7 @@ static int timerdiv(struct timeval *tv1, struct timeval *tv2)
 int registerTimer(int fd, struct timeval *timeout,
 		  void (*timeoutHandler)(int), int (*selectHandler)(int))
 {
-    timer_t *timer;
+    priv_timer_t *timer;
     int found = 0;
     sigset_t sigset;
 
@@ -128,7 +128,7 @@ int registerTimer(int fd, struct timeval *timeout,
     }
 
     /* Create new timer */
-    timer = (timer_t *) malloc(sizeof(timer_t));
+    timer = (priv_timer_t *) malloc(sizeof(priv_timer_t));
     timer->fd = fd;
     memcpy(&timer->timeout, timeout, sizeof(timer->timeout));
     timer->calls = 0;
@@ -174,7 +174,7 @@ int registerTimer(int fd, struct timeval *timeout,
     } else if (timercmp(timeout, &actPeriod, <)) {
 	/* change actPeriod */
 	struct itimerval itv;
-	timer_t *t;
+	priv_timer_t *t;
 	
 	memcpy(&actPeriod, timeout, sizeof(actPeriod));
 
@@ -218,7 +218,7 @@ int registerTimer(int fd, struct timeval *timeout,
 
 int removeTimer(int fd)
 {
-    timer_t *timer, *prev = NULL;
+    priv_timer_t *timer, *prev = NULL;
     sigset_t sigset;
 
     /* Find timer to remove */
@@ -280,7 +280,7 @@ int removeTimer(int fd)
 
     } else if (timercmp(&timer->timeout, &actPeriod, ==)) {
 	/* timer with actPeriod removed, search and set new one */
-	timer_t *t;
+	priv_timer_t *t;
 	struct timeval oldActPeriod;
 
 	memcpy(&oldActPeriod, &actPeriod, sizeof(oldActPeriod));
@@ -341,7 +341,7 @@ int removeTimer(int fd)
 
 void sigHandler(int sig)
 {
-    timer_t *timer;
+    priv_timer_t *timer;
 
     timer = timerList;
 
@@ -361,7 +361,7 @@ void sigHandler(int sig)
 
 int blockTimer(int fd, int block)
 {
-    timer_t *timer;
+    priv_timer_t *timer;
     int wasBlocked;
 
     /* Find timer */
@@ -397,7 +397,7 @@ int Tselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
     int retval;
     struct timeval start, end, stv;
     fd_set rfds, wfds, efds;
-    timer_t *timer;
+    priv_timer_t *timer;
 
     if (timeout) {
 	gettimeofday(&start, NULL);                   /* get starttime */
