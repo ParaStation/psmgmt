@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.23 2002/02/19 09:37:19 eicker Exp $
+ * $Id: psi.c,v 1.24 2002/03/25 18:11:42 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.23 2002/02/19 09:37:19 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.24 2002/03/25 18:11:42 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -421,13 +421,18 @@ int PSI_clientinit(unsigned short protocol)
     }
     INFO_request_hoststatus(PSI_hoststatus, PSI_nrofnodes);
 
-    /* check if the environment variable PSI_EXPORT is set.
+    /* check if the environment variable PSI_EXPORTS is set.
      * If it is set, then take the environment variables
      * mentioned there into the PSI_environment
      */
     if ((envstrvalue=getenv("PSI_EXPORTS"))!=NULL) {
-	char* envstr,*newstr;
-	char* envstrstart;
+	char *envstr, *newstr;
+	char *envstrstart;
+
+	/* Propagate PSI_EXPORTS */
+	setPSIEnv("PSI_EXPORTS", envstrvalue, 1);
+
+	/* Now handle PSI_EXPORTS */
 	envstrstart = strdup(envstrvalue);
 	if (envstrstart) {
 	    envstr = envstrstart;
@@ -435,16 +440,12 @@ int PSI_clientinit(unsigned short protocol)
 		newstr[0]=0; /* replace the "," with EOS */
 		newstr++;    /* move to the start of the next string */
 		if ((envstrvalue=getenv(envstr))!=NULL) {
-		    char putstring[1000];
-		    sprintf(putstring,"%s=%s",envstr,envstrvalue);
-		    putPSIEnv(putstring);
+		    setPSIEnv(envstr, envstrvalue, 1);
 		}
 		envstr = newstr;
 	    }
 	    if ((envstrvalue=getenv(envstr))!=NULL) {
-		char putstring[1000];
-		sprintf(putstring,"%s=%s",envstr,envstrvalue);
-		putPSIEnv(putstring);
+		setPSIEnv(envstr, envstrvalue, 1);
 	    }
 	    free(envstrstart);
 	}
