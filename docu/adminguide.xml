@@ -39,23 +39,28 @@
   <bookinfo>
     &infoblurb;
 
-    <releaseinfo>Release 1.0.2</releaseinfo>
+    <releaseinfo>Release 0.99.2</releaseinfo>
 
     <revhistory>
       <revision>
-	<revnumber>1.0.2</revnumber>
+	<revnumber>1.0</revnumber>
+	<date>??????</date> <!-- <date>20 Nov 2002</date> -->
+	<revremark>First official release</revremark>
+      </revision>
+      <revision>
+	<revnumber>0.99.2</revnumber>
 	<date>8 Nov 2002</date>
 	<revremark>Minor changes.</revremark>
       </revision>
       <revision>
-	<revnumber>1.0.1</revnumber>
+	<revnumber>0.99.1</revnumber>
 	<date>30 Oct 2002</date>
 	<revremark>New PDF and man layout. Minor changes.</revremark>
       </revision>
       <revision>
-	<revnumber>1.0</revnumber>
+	<revnumber>0.99</revnumber>
 	<date>16 Oct 2002</date>
-	<revremark>First official release</revremark>
+	<revremark>First release candidate</revremark>
       </revision>
       <revision>
 	<revnumber>0.9</revnumber>
