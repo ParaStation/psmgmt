@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.22 2002/02/08 17:19:30 hauke Exp $
+ * $Id: psidutil.c,v 1.23 2002/02/11 12:54:02 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.22 2002/02/08 17:19:30 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.23 2002/02/11 12:54:02 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -421,7 +421,8 @@ int PSID_taskspawn(PStask_t* task)
 	/*
 	 * Start the forwarder and redirect stdout/stderr
 	 */
-	LOGGERspawnforwarder(task->loggernode, task->loggerport, task->rank, task->rank == 0);
+	LOGGERspawnforwarder(task->loggernode, task->loggerport, task->rank,
+			     task->rank == 0);
 
 	/* we don't need them any more */
 	close(stdin_fileno_backup);
