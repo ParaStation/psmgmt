@@ -3,7 +3,7 @@ Variable	possible values
 --------------	----------------
 PSI_EXPORTS	VAR[,VAR]
 	List of environment variables which should be exported to 
-	remote processes during spawning
+	remote processes during spawning.
 
 PSI_NODES_SORT	ROUNDROBIN
 	No sorting of nodes before a spawn request. The nodes are used
@@ -42,6 +42,7 @@ PSI_RARG_PRE_{n}
 	PSI_RARG_PRE_0=/usr/bin/time to execute:
 	/usr/bin/time yourApplication yourArgs
 	on remote.
+
 PSI_NOMSGLOGGERDONE	any
 	Do not print out the message "PSPLogger done" at the end of a
 	parallel run.
@@ -52,7 +53,7 @@ MPICH:
 Variable	possible values
 --------------	----------------
 MPID_PSP_MAXSMALLMSG	number
-	Number of bytes, where the rendezvous protocol starts.
+	Length (in bytes) of the largest message sent w/o rendezvous.
 
 MPID_PSP_START	SSH
 	Start remote processes with ssh. MPID_PSP_HOSTS must be set.
@@ -60,9 +61,10 @@ MPID_PSP_START	SSH
 	Start remote processes with the ParaStation start mechanism.
 		NONE
 	Dont start the remote processes. The remote processes must be
-	started manualy.
+	started manualy. A commandline template is printed to stdout.
+
 MPID_PSP_HOSTS	hostname[,hostname..]
-	Comma separted list of hostnames. Used for MPID_PSP_START=SSH
+	Comma separated list of hostnames. Used for MPID_PSP_START=SSH
 	only.
 
 
