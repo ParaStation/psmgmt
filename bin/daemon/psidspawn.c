@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidspawn.c,v 1.5 2003/02/10 18:50:50 eicker Exp $
+ * $Id: psidspawn.c,v 1.6 2003/02/11 19:31:36 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.5 2003/02/10 18:50:50 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.6 2003/02/11 19:31:36 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -120,7 +120,7 @@ int PSID_execClient(PStask_t *task, int controlchannel)
     }
 
     /* Test if executable is there */
-    /* Why we do this? The execv will do the same later. *jh* */
+    /* @todo Why we do this? The execv will do the same later. *jh* */
     if (PSID_stat(task->argv[0], &sb) == -1) {
 	char *errstr = strerror(errno);
 
@@ -164,7 +164,6 @@ int PSID_execForwarder(PStask_t *task, int daemonfd, int controlchannel)
     pid_t pid;
     int clientfds[2], stdinfds[2], stdoutfds[2], stderrfds[2];
     int ret, buf, i;
-    char *argv[9];
 
     /* Block until the forwarder has handled all output */
     PSID_blockSig(1, SIGCHLD);
