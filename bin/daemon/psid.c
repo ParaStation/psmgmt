@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.50 2002/04/26 13:06:33 eicker Exp $
+ * $Id: psid.c,v 1.51 2002/06/13 15:09:54 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.50 2002/04/26 13:06:33 eicker Exp $ 
+ * $Id: psid.c,v 1.51 2002/06/13 15:09:54 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.50 2002/04/26 13:06:33 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.51 2002/06/13 15:09:54 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -50,7 +50,6 @@ static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.50 2002/04/26 13
 #include "mcast.h"
 #include "rdp.h"
 
-#include "parse.h"
 #include "psp.h"
 #include "psi.h"
 #include "psidutil.h"
@@ -67,7 +66,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.50 $";
+static char psid_cvsid[] = "$Revision: 1.51 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -78,37 +77,21 @@ int myStatus;         /* Another helper status. This is for reset/shutdown */
  * CLIENTS
  */
 /* possible values of clients.flags */
-#define INITIALCONTACT  0x00000001    /* just after accept. No message received so far */
+#define INITIALCONTACT  0x00000001   /* No message yet (only accept()ed) */
 
 struct client_t{
     long tid;    /* task id of the client process;
 		  *  this is a combination of nodeno and OS pid
 		  *  partner daemons are connected with pid==0
 		  */
-    union{
-	PStask_t* task;     /* pointer to a task, if the client is
-			       associated with a task.
-			       The right object can be decided by the id:
-			       PSI_getpid(id)==0 => daemon
-			       PSI_getpid(id)!=0 => task  */
-	struct daemon_t* daemon; /* pointer to a daemon, if the client is
-				    associated with a daemon */
-    }ob;
+    PStask_t* task;     /* pointer to a task, if the client is
+			   associated with a task.
+			   The right object can be decided by the id:
+			   PSI_getpid(id)==0 => daemon
+			   PSI_getpid(id)!=0 => task  */
     long flags;
 };
 struct client_t clients[FD_SETSIZE];
-
-/*------------------------------
- * DAEMONS
- */
-struct daemon_t{
-    unsigned short node;   /* node number of the daemon */
-    int fd;                /* file descr. to the daemon */
-    PStask_t* tasklist;    /* tasklist of that node */
-    int hasCard;           /* Flag to show if card is present */
-};
-
-struct daemon_t *daemons = NULL;
 
 /*-----------------------------
  * tasklist of tasks which
@@ -140,7 +123,7 @@ void deleteClient(int fd);
 void checkFileTable(void);
 void closeConnection(int fd);
 void declareDaemonDead(int node);
-void initDaemon(int fd, int id, int hasCard);
+void initDaemon(int id, int hasCard);
 int DaemonIsUp(int node);
 int send_DAEMONCONNECT(int id);
 
@@ -322,13 +305,13 @@ int broadcastMsg(void* amsg)
  *  DaemonIsUp()
  * returns if a daemon is up
  */
-int DaemonIsUp(int node)
+int DaemonIsUp(int id)
 {
-    if (node<0 || node>=PSI_nrofnodes) {
+    if ((id<0) || (id>=PSI_nrofnodes)) {
 	return 0;
     }
 
-    return PSID_hoststatus[node] & PSPHOSTUP;
+    return nodes[id].status & PSPHOSTUP;
 }
 
 /******************************************
@@ -374,15 +357,13 @@ static void checkCluster(void)
  */
 static void startDaemons(void)
 {
-    int i;
-    unsigned int addr;
+    int id;
 
-    if(fork()==0) {
+    if (fork()==0) {
 	/* fork a process which starts all other daemons */
-	for (i=0; i<PSI_nrofnodes; i++) {
-	    if (!DaemonIsUp(i)) {
-		addr = PSID_hostaddress(i);
-		PSI_startdaemon(addr);
+	for (id=0; id<PSI_nrofnodes; id++) {
+	    if (!DaemonIsUp(id)) {
+		PSI_startdaemon(nodes[id].addr);
 	    }
 	}
 	exit(0);
@@ -403,7 +384,7 @@ int killClients(int phase)
     int i;
     int pid;
 
-    if (timercmp(&maintimer,&killclientstimer,<)) {
+    if (timercmp(&maintimer, &killclientstimer, <)) {
 	if (PSI_isoption(PSP_ODEBUG)) {
 	    sprintf(PSI_txt,
 		    "killClients(PHASE %d) timer not ready [%d:%d] < [%d:%d]\n",
@@ -425,7 +406,7 @@ int killClients(int phase)
 	    /* if a client process send SIGTERM */
 	    if ((clients[i].tid != -1)
 		&& (PSI_getnode(clients[i].tid)==PSI_myid) /* client proc */
-		&& ((phase>0) || (clients[i].ob.task->group!=TG_ADMIN))) {
+		&& ((phase>0) || (clients[i].task->group!=TG_ADMIN))) {
 		/* in phase 1-3 all */
 		/* in phase 0 only process not in TG_ADMIN group */
 		pid = PSI_getpid(clients[i].tid);
@@ -524,23 +505,20 @@ int shutdownNode(int phase)
  *  initDaemon()
  * Initializes a daemon structure
  */
-void initDaemon(int fd, int id, int hasCard)
+void initDaemon(int id, int cardType)
 {
     PStask_t *task;
 
-    daemons[id].fd = fd;
-    daemons[id].node = id;
-
     /* Mark all tasks in the tasklist as to be confirmed */
-    for (task=daemons[id].tasklist; task; task=task->link) {
+    for (task=nodes[id].tasklist; task; task=task->link) {
 	task->confirmed = 0;
     }
 
-    if (hasCard >= 0) {
-	daemons[id].hasCard = hasCard;
+    if (cardType >= 0) {
+	nodes[id].hwtype = cardType;
     }
 
-    PSID_hoststatus[id] |= PSPHOSTUP;
+    nodes[id].status |= PSPHOSTUP;
 }
 
 /******************************************
@@ -550,12 +528,11 @@ void initDaemon(int fd, int id, int hasCard)
  */
 void closeConnection(int fd)
 {
-    if(fd<0)fd=-fd;
-
-    clients[fd].ob.daemon = NULL;
+    if (fd<0) fd=-fd;
 
     clients[fd].tid = -1;
-    clients[fd].ob.task = NULL;
+    clients[fd].task = NULL;
+
     shutdown(fd, 2);
     close(fd);
     FD_CLR(fd, &openfds);
@@ -564,15 +541,14 @@ void closeConnection(int fd)
  * declareDaemonDead()
  * is called when a connection to a daemon is lost
  */
-void declareDaemonDead(int node)
+void declareDaemonDead(int id)
 {
     PStask_t* oldtask;
 
-    daemons[node].fd = 0;
-    PSID_hoststatus[node] &= ~PSPHOSTUP;
+    nodes[id].status &= ~PSPHOSTUP;
 
     /* Delete all tasks */
-    oldtask = PStasklist_dequeue(&(daemons[node].tasklist), -1);
+    oldtask = PStasklist_dequeue(&(nodes[id].tasklist), -1);
 
     while(oldtask) {
 	SYSLOG(9,(LOG_ERR, "Cleaning task TID%lx\n", oldtask->tid));
@@ -581,11 +557,10 @@ void declareDaemonDead(int node)
 	TaskDeleteSendSignalsToParent(oldtask->tid,oldtask->ptid,
 				      oldtask->childsignal);
 	PStask_delete(oldtask);
-	oldtask = PStasklist_dequeue(&(daemons[node].tasklist), -1);
+	oldtask = PStasklist_dequeue(&(nodes[id].tasklist), -1);
     }
 
-    SYSLOG(2,(LOG_ERR, "Lost connection to daemon of node %d (fd:%d)\n",
-	      node, daemons[node].fd));
+    SYSLOG(2,(LOG_ERR, "Lost connection to daemon of node %d\n", id));
 }
 
 /******************************************
@@ -616,9 +591,9 @@ void send_TASKLIST(DDMsg_t *inmsg)
     PStask_t* task;
     DDBufferMsg_t msg;
     int success=1;
-    int node = PSI_getnode(inmsg->dest);
+    int id = PSI_getnode(inmsg->dest);
 
-    if ((node<0) && (node >= PSI_nrofnodes)) {
+    if ((id<0) || (id>=PSI_nrofnodes)) {
 	return;
     }
 
@@ -627,12 +602,12 @@ void send_TASKLIST(DDMsg_t *inmsg)
 		inmsg->sender, inmsg->dest);
 	SYSLOG(8,(LOG_ERR,PSI_txt));
     }
-    for (task=daemons[node].tasklist; task && (success>0); task=task->link) {
+    for (task=nodes[id].tasklist; task && (success>0); task=task->link) {
 	/*
 	 * send all tasks in the tasklist to the fd
 	 */
 	task->error = 0;
-	task->nodeno = node;
+	task->nodeno = id;
 
 	msg.header.len = sizeof(msg.header);
 	msg.header.len += PStask_encode(msg.buf, task);
@@ -676,7 +651,7 @@ void send_PROCESS(long tid, long msgtype, PStask_t* oldtask)
     if(oldtask)
 	task = oldtask;
     else
-	task = PStasklist_find(daemons[PSI_myid].tasklist,tid);
+	task = PStasklist_find(nodes[PSI_myid].tasklist,tid);
     if(task){
 	/*
 	 * broadcast the creation of a new task
@@ -730,7 +705,7 @@ void client_task_delete(long thisclienttid)
 		  thisclienttid==-1?-1:PSI_getnode(thisclienttid),
 		  (long) PSI_getpid(thisclienttid)));
 
-    oldtask = PStasklist_dequeue(&daemons[PSI_myid].tasklist, thisclienttid);
+    oldtask = PStasklist_dequeue(&nodes[PSI_myid].tasklist, thisclienttid);
     if(oldtask){
 	send_PROCESS(oldtask->tid, PSP_DD_DELETEPROCESS, oldtask);
 	/*
@@ -769,12 +744,12 @@ void deleteClient(int fd)
 	SYSLOG(4,(LOG_ERR,PSI_txt));
     }
     if(PSI_getnode(clients[fd].tid) != PSI_myid){
-	int node = PSI_getnode(clients[fd].tid);
-	if(node>=0 && node < PSI_nrofnodes){
+	int id = PSI_getnode(clients[fd].tid);
+	if((id>=0) && (id<PSI_nrofnodes)){
 	    /*
 	     * It's another daemon.
 	     */
-	    declareDaemonDead(node);
+	    declareDaemonDead(id);
 
 	    checkCluster();
 	    killClients(0); /* killing all clients with group != TG_ADMIN */
@@ -910,36 +885,36 @@ void GetProcessProperties(PStask_t* task)
 #ifdef __osf__
     char buf[400];
     int len,i;
-    if(table(TBL_ARGUMENTS,PSI_getpid(task->tid),buf,1,sizeof(buf))<0){
-	SYSLOG(4,(LOG_ERR,"GetProcessProperties(%x[%d,%d])"
+    if (table(TBL_ARGUMENTS, PSI_getpid(task->tid), buf, 1, sizeof(buf))<0) {
+	SYSLOG(4,(LOG_ERR, "GetProcessProperties(%x[%d,%d])"
 		  " couldn't get arguments",
-		  task->tid,PSI_getnode(task->tid),PSI_getpid(task->tid)));
+		  task->tid, PSI_getnode(task->tid), PSI_getpid(task->tid)));
 	return;
     }
-    buf[sizeof(buf)-1]=0;
+    buf[sizeof(buf)-1] = 0;
     parseArguments(buf, sizeof(buf), task);
 
-    SYSLOG(4,(LOG_ERR,"GetProcessProperties(%x[%d,%d]) arg[%d]=%s",
-	      task->tid,PSI_getnode(task->tid),PSI_getpid(task->tid),
-	      task->argc,buf));
+    SYSLOG(4,(LOG_ERR, "GetProcessProperties(%x[%d,%d]) arg[%d]=%s",
+	      task->tid, PSI_getnode(task->tid), PSI_getpid(task->tid),
+	      task->argc, buf));
 
 #elif defined(__linux__)
     char filename[50];
     FILE* file;
     char buf[400];
     sprintf(filename, "/proc/%d/cmdline", PSI_getpid(task->tid));
-    if((file=fopen(filename,"r"))!=NULL){
+    if ((file=fopen(filename,"r"))) {
 	int size;
-	size = fread(buf,sizeof(buf),1,file);
+	size = fread(buf, sizeof(buf), 1, file);
 	parseArguments(buf, sizeof(buf), task);
 	fclose(file);
     }
-    sprintf(filename,"/proc/%d/status",PSI_getpid(task->tid));
-    if((file=fopen(filename,"r"))!=NULL){
+    sprintf(filename, "/proc/%d/status", PSI_getpid(task->tid));
+    if ((file=fopen(filename,"r"))) {
 	char line[200];
-	int uid=-1;
-	while (fgets(line,sizeof(line)-1,file)){
-	    if (strncmp("Uid:",line,4)==0){
+	int uid = -1;
+	while (fgets(line, sizeof(line)-1, file)) {
+	    if (strncmp("Uid:",line,4)==0) {
 		uid = atoi(&line[5]);
 		break;
 	    }
@@ -983,7 +958,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t* msg)
     int NumberProcs;
     PStask_t* tmptask;
 
-    clients[fd].tid = PSI_gettid(-1,msg->header.sender);
+    clients[fd].tid = PSI_gettid(-1, msg->header.sender);
 
     /*    if(PSI_isoption(PSP_ODEBUG))*/
     SYSLOG(3,(LOG_ERR,"connection request from T%lx[%d:%ld] at fd %d, "
@@ -995,20 +970,20 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t* msg)
      * first check if it is a reconnection
      * this can happen due to a exec call.
      */
-    task = PStasklist_find(daemons[PSI_myid].tasklist,clients[fd].tid);
+    task = PStasklist_find(nodes[PSI_myid].tasklist,clients[fd].tid);
     if(task==0){
 	/*
 	 * Task not found, maybe it's in spawned_tasks_waiting_for_connect
 	 */
 	task = PStasklist_dequeue(&spawned_tasks_waiting_for_connect,
 				  clients[fd].tid);
-	if(task){
+	if (task) {
 	    task->link = NULL;
 	    task->rlink = NULL;
-	    PStasklist_enqueue(&daemons[PSI_myid].tasklist,task);
+	    PStasklist_enqueue(&nodes[PSI_myid].tasklist,task);
 	}
     }
-    if(task){
+    if (task) {
 	/* reconnection */
 	/* use the old task struct and close the old fd */
 	/* use old PCB and close all sockets with FD_CLOEXEC flag set.*/
@@ -1021,9 +996,9 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t* msg)
 	if(task->fd > 0){
 	    closeConnection(task->fd);
 	}
-	clients[fd].ob.task = task;
+	clients[fd].task = task;
 	task->fd = fd;
-    }else{
+    } else {
 	task = PStask_new();
 	task->tid = clients[fd].tid;
 	task->fd = fd;
@@ -1039,14 +1014,14 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t* msg)
 	PStask_sprintf(PSI_txt, task);
 	SYSLOG(9,(LOG_ERR,"Connection request from: %s",PSI_txt));
 
-	PStasklist_enqueue(&daemons[PSI_myid].tasklist, task);
-	clients[fd].ob.task = task;
+	PStasklist_enqueue(&nodes[PSI_myid].tasklist, task);
+	clients[fd].task = task;
     }
 
     /*
      * Calculate the number of processes
      */
-    for(NumberProcs=0,tmptask=daemons[PSI_myid].tasklist;
+    for(NumberProcs=0,tmptask=nodes[PSI_myid].tasklist;
 	(tmptask!=NULL) && (NumberProcs<1000); /* just to prepend an endless loop*/
 	tmptask=tmptask->link,NumberProcs++);
 
@@ -1131,8 +1106,8 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t* msg)
 	outmsg.instdir[sizeof(outmsg.instdir)-1] = '\0';
 	strncpy(outmsg.psidvers, psid_cvsid, sizeof(outmsg.psidvers));
 	outmsg.psidvers[sizeof(outmsg.psidvers)-1] = '\0';
-	if(sendMsg(&outmsg)>0)
-	    send_PROCESS(clients[fd].tid,PSP_DD_NEWPROCESS,NULL);
+	if (sendMsg(&outmsg)>0)
+	    send_PROCESS(clients[fd].tid, PSP_DD_NEWPROCESS, NULL);
     }
 }
 
@@ -1183,14 +1158,13 @@ int send_OPTIONS(int destnode)
 /******************************************
  *  msg_DAEMONCONNECT()
  */
-void msg_DAEMONCONNECT(int fd, DDConnectMsg_t *msg)
+void msg_DAEMONCONNECT(DDConnectMsg_t *msg)
 {
     int success;
-    int node = PSI_getnode(msg->header.sender);
+    int id = PSI_getnode(msg->header.sender);
 
     if (PSI_isoption(PSP_ODEBUG)){
-	sprintf(PSI_txt,"msg_DAEMONCONNECT (%d,%p) daemons[%d].fd=%d\n",
-		fd, msg, node, daemons[node].fd);
+	sprintf(PSI_txt,"msg_DAEMONCONNECT (%p) daemons[%d]\n",	msg, id);
 	PSI_logerror(PSI_txt);
     }
     /*
@@ -1198,17 +1172,17 @@ void msg_DAEMONCONNECT(int fd, DDConnectMsg_t *msg)
      * so no difficult initialization is needed
      */
 
-    SYSLOG(2,(LOG_ERR,"New connection to daemon on node %d (fd:%d, cp:%d)\n",
-	      node, fd, msg->hasCard));
+    SYSLOG(2,(LOG_ERR,"New connection to daemon on node %d (cp:%d)\n",
+	      id, msg->hasCard));
 
     /*
      * accept this request and send an ESTABLISH msg back to the requester
      */
-    initDaemon(fd, node, msg->hasCard);
+    initDaemon(id, msg->hasCard);
 
     msg->header.type = PSP_DD_DAEMONESTABLISHED;
     msg->header.sender = PSI_gettid(PSI_myid, 0);
-    msg->header.dest = PSI_gettid(node, 0);
+    msg->header.dest = PSI_gettid(id, 0);
     msg->header.len = sizeof(*msg);
     msg->hasCard = PSID_CardPresent;
     if((success = sendMsg(msg))<=0)
@@ -1216,7 +1190,7 @@ void msg_DAEMONCONNECT(int fd, DDConnectMsg_t *msg)
 		  errno, strerror(errno)));
 
     if(success>0)
-	success = send_OPTIONS(node);
+	success = send_OPTIONS(id);
 
     /*
      * checking if the whole cluster is up
@@ -1354,13 +1328,13 @@ void msg_TASKINFO(DDBufferMsg_t* msg)
     /*
      * if already in the PStask_queue -> remove it
      */
-    if((task2 = PStasklist_dequeue(&daemons[task->nodeno].tasklist,
+    if((task2 = PStasklist_dequeue(&nodes[task->nodeno].tasklist,
 				   task->tid))!=0){
 	/* found and already dequeued.
 	 * delete it */
 	PStask_delete(task2);
     }
-    PStasklist_enqueue(&daemons[task->nodeno].tasklist,task);
+    PStasklist_enqueue(&nodes[task->nodeno].tasklist,task);
 }
 
 /******************************************
@@ -1372,12 +1346,12 @@ void msg_TASKINFO(DDBufferMsg_t* msg)
 void msg_TASKINFOEND(DDMsg_t* msg)
 {
     PStask_t *task, *prev_task = NULL, *oldtask;
-    int node = PSI_getnode(msg->dest);
+    int id = PSI_getnode(msg->dest);
 
     /* Mark all tasks in the tasklist as to be confirmed */
-    for (task=daemons[node].tasklist; task; task=task->link) {
+    for (task=nodes[id].tasklist; task; task=task->link) {
 	if (!task->confirmed) {
-	    oldtask = PStasklist_dequeue(&daemons[node].tasklist, task->tid);
+	    oldtask = PStasklist_dequeue(&nodes[id].tasklist, task->tid);
 	    /* Send signals */
 	    TaskDeleteSendSignals(oldtask);
 	    /* Delete task */
@@ -1386,7 +1360,7 @@ void msg_TASKINFOEND(DDMsg_t* msg)
 	    if (prev_task) {
 		task = prev_task;
 	    } else {
-		task = daemons[node].tasklist;
+		task = nodes[id].tasklist;
 	    }
 	}
     }
@@ -1401,9 +1375,9 @@ void msg_TASKINFOEND(DDMsg_t* msg)
 void msg_TASKINFOREQUEST(DDMsg_t* inmsg)
 {
     PStask_t* task=0;
-    int node = PSI_getnode(inmsg->dest);
+    int id = PSI_getnode(inmsg->dest);
 
-    task = PStasklist_find(daemons[node].tasklist, inmsg->dest);
+    task = PStasklist_find(nodes[id].tasklist, inmsg->dest);
     if(task){
 	DDBufferMsg_t outmsg;
 
@@ -1450,7 +1424,7 @@ void msg_NEWPROCESS(DDBufferMsg_t* msg)
     }
 
     if((oldtask
-	= PStasklist_dequeue(&daemons[task->nodeno].tasklist,task->tid))!=0){
+	= PStasklist_dequeue(&nodes[task->nodeno].tasklist,task->tid))!=0){
 	long sigtid;
 	int sig=-1;
 	sprintf(PSI_txt,
@@ -1467,7 +1441,7 @@ void msg_NEWPROCESS(DDBufferMsg_t* msg)
 	}
 	PStask_delete(oldtask);
     }
-    PStasklist_enqueue(&daemons[task->nodeno].tasklist,task);
+    PStasklist_enqueue(&nodes[task->nodeno].tasklist,task);
 }
 
 /*----------------------------------------------------------------------------
@@ -1489,7 +1463,7 @@ void TaskDeleteSendSignals(PStask_t* oldtask)
 	 */
 	int pid = PSI_getpid(sigtid);
 	if((pid) && ((receivertask
-		      = PStasklist_find(daemons[PSI_myid].tasklist,sigtid))
+		      = PStasklist_find(nodes[PSI_myid].tasklist,sigtid))
 		     != NULL)){
 	    kill(pid,sig);
 	    PStask_setsignalsender(receivertask,oldtask->tid,sig);
@@ -1515,7 +1489,7 @@ void TaskDeleteSendSignalsToParent(long tid, long ptid, int signal)
     int mysignal;
 
     if((ptid !=-1) && (PSI_getnode(ptid)==PSI_myid)){
-	receivertask = PStasklist_find(daemons[PSI_myid].tasklist, ptid);
+	receivertask = PStasklist_find(nodes[PSI_myid].tasklist, ptid);
 	if(receivertask){
 	    int pid;
 	    pid = PSI_getpid(ptid);
@@ -1559,7 +1533,7 @@ void msg_DELETEPROCESS(DDBufferMsg_t* msg)
 	PSI_logerror(PSI_txt);
     }
     if((oldtask
-	= PStasklist_dequeue(&daemons[task->nodeno].tasklist,task->tid))!=0){
+	= PStasklist_dequeue(&nodes[task->nodeno].tasklist,task->tid))!=0){
 	TaskDeleteSendSignals(oldtask);
 	PStask_delete(oldtask);
     }else if (PSI_isoption(PSP_ODEBUG)){
@@ -1581,7 +1555,7 @@ void msg_DELETEPROCESS(DDBufferMsg_t* msg)
 void msg_CHILDDEAD(DDMsg_t* msg)
 {
     PStask_t* task;
-    int node;
+    int id = PSI_getnode(msg->sender);
 
     /*
      * Check the parent task
@@ -1591,11 +1565,9 @@ void msg_CHILDDEAD(DDMsg_t* msg)
     /*
      * Check if we have a task stored due to a SPAWNSUCCESS
      */
-    node = PSI_getnode(msg->sender);
 
-    if((node>=0)&&(node<PSI_nrofnodes) &&
-       ((task
-	 = PStasklist_dequeue(&daemons[node].tasklist,msg->sender))!=NULL)){
+    if ((id>=0) && (id<PSI_nrofnodes) &&
+	((task = PStasklist_dequeue(&nodes[id].tasklist,msg->sender))!=NULL)) {
 	PStask_delete(task);
     }
 }
@@ -1637,7 +1609,7 @@ msg_SPAWNSUCCESS(DDBufferMsg_t *msg)
 	sendMsg(msg);
 
 	if((oldtask
-	    = PStasklist_dequeue(&daemons[task->nodeno].tasklist,task->tid))
+	    = PStasklist_dequeue(&nodes[task->nodeno].tasklist,task->tid))
 	   !=0){
 	    if(oldtask->tid == task->tid){
 		long sigtid;
@@ -1653,7 +1625,7 @@ msg_SPAWNSUCCESS(DDBufferMsg_t *msg)
 	   register himself before it does spawning. So parents have to
 	   use this feature.
 	*/
-	PStasklist_enqueue(&daemons[task->nodeno].tasklist,task);
+	PStasklist_enqueue(&nodes[task->nodeno].tasklist,task);
     }else
 	PStask_delete(task);
 }
@@ -1728,7 +1700,7 @@ msg_TASKKILL(DDSignalMsg_t* msg)
 	 * and get the right errors
 	 */
 	if((receivertask
-	    = PStasklist_find(daemons[PSI_myid].tasklist,msg->header.dest)))
+	    = PStasklist_find(nodes[PSI_myid].tasklist,msg->header.dest)))
 	    /* it's one of my processes */
 	    if(fork()==0){
 		/*
@@ -1780,18 +1752,18 @@ msg_TASKKILL(DDSignalMsg_t* msg)
  */
 void msg_INFOREQUEST(DDMsg_t *inmsg)
 {
-    int nodeno;
-    nodeno = PSI_getnode(inmsg->dest);
+    int id = PSI_getnode(inmsg->dest);
+
     if (PSI_isoption(PSP_ODEBUG)){
 	sprintf(PSI_txt,"INFOREQUEST from node %d for requester %lx[%d,%d]\n",
-		nodeno, inmsg->sender,
+		id, inmsg->sender,
 		inmsg->sender==-1 ? -1 : PSI_getnode(inmsg->sender),
 		PSI_getpid(inmsg->sender));
 	PSI_logerror(PSI_txt);
     }
-    if (nodeno!=PSI_myid) {
+    if (id!=PSI_myid) {
 	/* a request for a remote daemon */
-	if (DaemonIsUp(nodeno)) {
+	if (DaemonIsUp(id)) {
 	    /*
 	     * transfer the request to the remote daemon
 	     */
@@ -1863,17 +1835,21 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 	    break;
 	}
 	case PSP_CD_HOSTSTATUSREQUEST:
+	{
+	    int i;
 	    msg.header.type = PSP_CD_HOSTSTATUSRESPONSE;
-	    memcpy(msg.buf, PSID_hoststatus,
-		   sizeof(*PSID_hoststatus) * NrOfNodes);
-	    msg.header.len += sizeof(*PSID_hoststatus) * NrOfNodes;
+	    for (i=0; i<NrOfNodes; i++) {
+		msg.buf[i] = nodes[i].status;
+	    }
+	    msg.header.len += sizeof(nodes[0].status) * NrOfNodes;
 	    break;
+	}
 	case PSP_CD_HOSTREQUEST:
 	{
 	    unsigned int *address;
 	    address = (unsigned int *) ((DDBufferMsg_t*)inmsg)->buf;
 	    msg.header.type = PSP_CD_HOSTRESPONSE;
-	    *(int *)msg.buf = PSID_host(*address);
+	    *(int *)msg.buf = parser_lookupHost(*address);
 	    msg.header.len += sizeof(int);
 	    break;
 	}
@@ -1886,7 +1862,8 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 	    }
 	    j=0;
 	    for (i=0; i<PSI_nrofnodes; i++) {
-		if (DaemonIsUp(i) && daemons[i].hasCard) {
+		if (DaemonIsUp(i)
+		    && nodes[i].hwtype != none && nodes[i].starter) {
 		    nodelist[j] = (short) i;
 		    j++;
 		}
@@ -2020,18 +1997,18 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
  */
 void msg_GETOPTION(DDOptionMsg_t* msg)
 {
-    int nodeno;
-    nodeno = PSI_getnode(msg->header.dest);
+    int id = PSI_getnode(msg->header.dest);
+
     if (PSI_isoption(PSP_ODEBUG)){
 	sprintf(PSI_txt,"GETOPTION from node %d for requester %lx[%d,%d]\n",
-		nodeno, msg->header.sender,
+		id, msg->header.sender,
 		msg->header.sender==-1 ? -1 : PSI_getnode(msg->header.sender),
 		PSI_getpid(msg->header.sender));
 	PSI_logerror(PSI_txt);
     }
-    if (nodeno!=PSI_myid) {
+    if (id!=PSI_myid) {
 	/* a request for a remote daemon */
-	if (DaemonIsUp(nodeno)) {
+	if (DaemonIsUp(id)) {
 	    /*
 	     * transfer the request to the remote daemon
 	     */
@@ -2148,7 +2125,6 @@ void msg_GETOPTION(DDOptionMsg_t* msg)
  */
 void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 {
-    int node;
     PStask_t* task;
 
     if (PSI_isoption(PSP_ODEBUG)) {
@@ -2158,7 +2134,7 @@ void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
     }
 
     if (msg->header.dest==0) {
-	task = PStasklist_find(daemons[PSI_myid].tasklist,
+	task = PStasklist_find(nodes[PSI_myid].tasklist,
 			       msg->header.sender);
 	if (task) {
 	    task->childsignal = msg->signal;
@@ -2173,9 +2149,9 @@ void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 	msg->header.len = sizeof(*msg);
 	sendMsg(msg);
     } else {
-	node = PSI_getnode(msg->header.dest);
+	int id = PSI_getnode(msg->header.dest);
 
-	if ((0>node)||(node>=PSI_nrofnodes)) {
+	if ((id<0) || (id>=PSI_nrofnodes)) {
 	    msg->header.type = PSP_DD_NOTIFYDEADRES;
 	    msg->header.dest = msg->header.sender;
 	    msg->header.sender = PSI_gettid(PSI_myid,0);
@@ -2185,7 +2161,7 @@ void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 	    return;
 	}
 
-	task = PStasklist_find(daemons[node].tasklist,msg->header.dest);
+	task = PStasklist_find(nodes[id].tasklist, msg->header.dest);
 
 	if (task) {
 	    sprintf(PSI_txt,"msg_NOTIFYDEAD() "
@@ -2221,8 +2197,8 @@ void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
  */
 void msg_RELEASE(DDSignalMsg_t *msg)
 {
-    int node;
     PStask_t* task;
+    int id = PSI_getnode(msg->header.dest);
 
     if (PSI_isoption(PSP_ODEBUG)) {
 	sprintf(PSI_txt,"msg_RELEASE(sender = 0x%lx tid= 0x%lx)\n",
@@ -2230,9 +2206,7 @@ void msg_RELEASE(DDSignalMsg_t *msg)
 	PSI_logerror(PSI_txt);
     }
 
-    node = PSI_getnode(msg->header.dest);
-
-    if (node != PSI_myid) {
+    if (id != PSI_myid) {
 	sprintf(PSI_txt,"msg_RELEASE(sender= 0x%lx tid 0x%lx) "
 		"FATAL error: only local release!!\n",
 		msg->header.sender, msg->header.dest);
@@ -2260,7 +2234,7 @@ void msg_RELEASE(DDSignalMsg_t *msg)
 	sendMsg(msg);
     }
 
-    task = PStasklist_find(daemons[PSI_myid].tasklist,msg->header.sender);
+    task = PStasklist_find(nodes[PSI_myid].tasklist, msg->header.sender);
 
     if (task) {
 	sprintf(PSI_txt,"msg_RELEASE() release (0x%lx)\n",
@@ -2294,16 +2268,15 @@ void msg_RELEASE(DDSignalMsg_t *msg)
  */
 void msg_LOADREQ(DDMsg_t* inmsg)
 {
-    int nodenr;
+    int id = PSI_getnode(inmsg->dest);
+
     if (PSI_isoption(PSP_ODEBUG)){
-	sprintf(PSI_txt,"LOADREQ(node %d) from = 0x%lx \n",
-		PSI_getnode(inmsg->dest), inmsg->sender);
+	sprintf(PSI_txt,"LOADREQ(node %d) from = 0x%lx \n", id, inmsg->sender);
 	PSI_logerror(PSI_txt);
     }
 
-    nodenr = PSI_getnode(inmsg->dest);
-    if ((nodenr<0) || (nodenr>=PSI_nrofnodes)
-	|| (PSID_hoststatus[nodenr] & PSPHOSTUP) == 0) {
+    if ((id<0) || (id>=PSI_nrofnodes)
+	|| (nodes[id].status & PSPHOSTUP) == 0) {
 	DDErrorMsg_t errmsg;
 	errmsg.header.len = sizeof(errmsg);
 	errmsg.request = inmsg->type;
@@ -2322,7 +2295,7 @@ void msg_LOADREQ(DDMsg_t* inmsg)
 	msg.header.dest = inmsg->sender;
 	msg.header.sender = PSI_gettid(PSI_myid,0);
 
-	getInfoMCast(nodenr, &info);
+	getInfoMCast(id, &info);
 	msg.load[0] = info.load.load[0];
 	msg.load[1] = info.load.load[1];
 	msg.load[2] = info.load.load[2];
@@ -2336,18 +2309,15 @@ void msg_LOADREQ(DDMsg_t* inmsg)
  */
 void msg_PROCREQ(DDMsg_t* inmsg)
 {
-    int node;
+    int id = PSI_getnode(inmsg->dest);
 
     if (PSI_isoption(PSP_ODEBUG)){
-	sprintf(PSI_txt,"PROCREQ(node %d) from = 0x%lx \n",
-		PSI_getnode(inmsg->dest), inmsg->sender);
+	sprintf(PSI_txt,"PROCREQ(node %d) from = 0x%lx \n", id, inmsg->sender);
 	PSI_logerror(PSI_txt);
     }
 
-    node = PSI_getnode(inmsg->dest);
-
-    if ((node<0) || (node>=PSI_nrofnodes)
-	|| !(PSID_hoststatus[node] & PSPHOSTUP)) {
+    if ((id<0) || (id>=PSI_nrofnodes)
+	|| !(nodes[id].status & PSPHOSTUP)) {
 	DDErrorMsg_t errmsg;
 	errmsg.header.len = sizeof(errmsg);
 	errmsg.request = inmsg->type;
@@ -2362,7 +2332,7 @@ void msg_PROCREQ(DDMsg_t* inmsg)
 	PStask_t* task;
 	DDLoadMsg_t msg;
 	double procs = 0.0;
-	for (task=daemons[node].tasklist; task; task=task->link) {
+	for (task=nodes[id].tasklist; task; task=task->link) {
 	    if (task->group==TG_ANY) { /* dont count special task */
 		procs += 1.0;
 	    } else {
@@ -2395,7 +2365,7 @@ void msg_WHODIED(DDSignalMsg_t* msg)
 	PSI_logerror(PSI_txt);
     }
 
-    task = PStasklist_find(daemons[PSI_myid].tasklist, msg->header.sender);
+    task = PStasklist_find(nodes[PSI_myid].tasklist, msg->header.sender);
     if (task) {
 	long tid;
 	tid =  PStask_getsignalsender(task,&msg->signal);
@@ -2475,20 +2445,12 @@ int request_options(int node)
 /******************************************
  *  msg_DAEMONESTABLISHED()
  */
-void msg_DAEMONESTABLISHED(int fd, DDConnectMsg_t* msg)
+void msg_DAEMONESTABLISHED(DDConnectMsg_t* msg)
 {
     DDMsg_t taskmsg;
     int node = PSI_getnode(msg->header.sender);
-    if ((abs(daemons[node].fd)!=fd)   /* other fd than local info suggests */
-	&&(daemons[node].fd!=0)) {
-	/* remove the pointer of the client to the daemon */
-	int oldfd;
-	oldfd = abs(daemons[node].fd);
-	SYSLOG(2,(LOG_ERR,"got DAEMONESTABLISH(%d)on fd %d but had old "
-		  "valid connection fd %d \n", node, fd, oldfd));
-	declareDaemonDead(node);
-    }
-    initDaemon(fd, node, msg->hasCard);
+
+    initDaemon(node, msg->hasCard);
 
     /*
      * request the remote tasklist
@@ -2517,7 +2479,7 @@ void msg_DAEMONESTABLISHED(int fd, DDConnectMsg_t* msg)
 /******************************************
  *  psicontrol(int fd)
  */
-void psicontrol(int fd )
+void psicontrol(int fd)
 {
     DDBufferMsg_t msg;
 
@@ -2552,7 +2514,7 @@ void psicontrol(int fd )
 	    msg_CLIENTCONNECT(fd, (DDInitMsg_t *)&msg);
 	    break;
 	case PSP_DD_DAEMONCONNECT:
-	    msg_DAEMONCONNECT(fd, (DDConnectMsg_t *)&msg);
+	    msg_DAEMONCONNECT((DDConnectMsg_t *)&msg);
 	    break;
 	case PSP_CD_DAEMONSTOP:
 	    msg.header.type = PSP_DD_DAEMONSTOP;
@@ -2562,7 +2524,7 @@ void psicontrol(int fd )
 	    msg_DAEMONSTOP((DDResetMsg_t *)&msg);
 	    break;
 	case PSP_DD_DAEMONESTABLISHED:
-	    msg_DAEMONESTABLISHED(fd, (DDConnectMsg_t *)&msg);
+	    msg_DAEMONESTABLISHED((DDConnectMsg_t *)&msg);
 	    break;
 	case PSP_DD_SPAWNREQUEST :
 	    msg_SPAWNREQUEST(&msg);
@@ -2635,36 +2597,34 @@ void psicontrol(int fd )
 	    /*
 	     * contact the other node if no connection already exist
 	     */
-	    if (PSI_isoption(PSP_ODEBUG)){
+	    if (PSI_isoption(PSP_ODEBUG)) {
 		sprintf(PSI_txt,
 			"CONTACTNODE  received ( node1= %d node2 = %d)\n",
 			node1, node2);
 		PSI_logerror(PSI_txt);
 	    }
-	    if(node1==PSI_myid){
-		if ((node2 >=0 && node2<PSI_nrofnodes)){
-		    if((PSID_hoststatus[node2] & PSPHOSTUP) == 0){
-			unsigned long addr;
-			addr = PSID_hostaddress(node2);
-			PSI_startdaemon(addr);
+	    if (node1==PSI_myid) {
+		if ((node2 >=0 && node2<PSI_nrofnodes)) {
+		    if ((nodes[node2].status & PSPHOSTUP) == 0) {
+			PSI_startdaemon(nodes[node2].addr);
 			if (send_DAEMONCONNECT(node2)<0) {
 			    SYSLOG(2, (LOG_ERR, "CONTACTNODE:"
 				       " send_DAEMONCONNECT() returned with"
 				       " error %d\n",
 				       errno));
 			}
-		    }else{
+		    } else {
 			sprintf(PSI_txt,"CONTACTNODE  received but node2 is "
 				"already up ( node1= %d node2 = %d)\n",
 				node1,node2);
 			PSI_logerror(PSI_txt);
 		    }
 		}
-	    }else{
-		if (DaemonIsUp(node1)){
+	    } else {
+		if (DaemonIsUp(node1)) {
 		    /* forward message */
 		    sendMsg(&msg);
-		}else{
+		} else {
 		    sprintf(PSI_txt,"CONTACTNODE  received but node2 could "
 			    "not send request ( node1= %d node2 = %d)\n",
 			    node1,node2);
@@ -2754,7 +2714,7 @@ void MCastCallBack(int msgid, void* buf)
 	SYSLOG(2, (LOG_ERR,
 		   "MCastCallBack(MCAST_NEW_CONNECTION,%d). \n", node));
 	if (node!=PSI_myid && !DaemonIsUp(node)) {
-	    initDaemon(0, node, -1);
+	    initDaemon(node, -1);
 	    if (send_DAEMONCONNECT(node)<0) {
 		SYSLOG(2, (LOG_ERR, "MCastCallBack() send_DAEMONCONNECT() "
 			   "returned with error %d\n",
@@ -2807,7 +2767,7 @@ void RDPCallBack(int msgid, void* buf)
 	node = *(int*)buf;
 	SYSLOG(2,(LOG_ERR, "RDPCallBack(RDP_NEW_CONNECTION,%d). \n", node));
 	if (node != PSI_myid && !DaemonIsUp(node)) {
-	    initDaemon(0, node, -1);
+	    initDaemon(node, -1);
 	    if(send_DAEMONCONNECT(node)<0)
 		SYSLOG(2,(LOG_ERR,"RDPCallBack() send_DAEMONCONNECT() "
 			  "returned with error %d\n",
@@ -3087,7 +3047,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.50 $";
+    char revision[] = "$Revision: 1.51 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -3284,7 +3244,7 @@ int main(int argc, char **argv)
 	exit(1);
     }
 
-    SYSLOG(0, (LOG_ERR, "My IP is %x", ntohl(psihosttable[PSI_myid].inet)));
+    SYSLOG(0, (LOG_ERR, "My IP is %x", ntohl(nodes[PSI_myid].addr)));
 
     if (ConfigSyslog!=LOG_DAEMON) {
 	SYSLOG(0, (LOG_ERR, "Changing logging dest from LOG_DAEMON "
@@ -3324,24 +3284,15 @@ int main(int argc, char **argv)
 
     timerclear(&shutdowntimer);
     timerclear(&killclientstimer);
-    selecttimer.tv_sec = ConfigPsidSelectTime==-1 ? 2 : ConfigPsidSelectTime;
+    selecttimer.tv_sec = ConfigSelectTime==-1 ? 2 : ConfigSelectTime;
     selecttimer.tv_usec = 0;
     gettimeofday(&maintimer,NULL);
 
-    daemons = malloc(PSI_nrofnodes * sizeof(*daemons));
-
-    for (i=0; i<PSI_nrofnodes; i++) {
-	daemons[i].fd = 0;
-	daemons[i].node = 0;
-	daemons[i].tasklist = NULL;
-	daemons[i].hasCard = 0;
-	PSID_hoststatus[i] &= ~PSPHOSTUP;
-    }
-    initDaemon(0, PSI_myid, PSID_CardPresent);
+    initDaemon(PSI_myid, PSID_CardPresent);
 
     for (i=0; i<FD_SETSIZE; i++) {
-	clients[i].tid =-1;
-	clients[i].ob.daemon = NULL;
+	clients[i].tid = -1;
+	clients[i].task = NULL;
     }
 
     SYSLOG(0,(LOG_ERR, "Local Service Port initialized. Using socket %d\n",
@@ -3361,7 +3312,7 @@ int main(int argc, char **argv)
 	}
 
 	for (i=0; i<=PSI_nrofnodes; i++) {
-	    hostlist[i] = psihosttable[i].inet;
+	    hostlist[i] = nodes[i].addr;
 	}
 
 	/*
@@ -3392,11 +3343,9 @@ int main(int argc, char **argv)
     }
 
     SYSLOG(1,(LOG_ERR, "SelectTimer=%ld sec DeclareDeadInterval=%ld\n",
-	      ConfigPsidSelectTime, ConfigDeclareDeadInterval));
+	      ConfigSelectTime, ConfigDeadInterval));
 
     spawned_tasks_waiting_for_connect = 0;
-
-    PSID_hoststatus[PSI_myid] |= PSPHOSTUP;
 
     /*
      * check if the Cluster is ready

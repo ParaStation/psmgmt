@@ -5,46 +5,71 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.30 2002/04/26 13:06:33 eicker Exp $
+ * $Id: psidutil.c,v 1.31 2002/06/13 15:09:54 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.30 2002/04/26 13:06:33 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.31 2002/06/13 15:09:54 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
-#include <netdb.h>
-#include <netinet/in.h>
 #include <string.h>
-#include <time.h>
 #include <errno.h>
+#include <time.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <fcntl.h>
-#include <stdlib.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include <pshal.h>
 #include <psm_mcpif.h>
+
+#include "errlog.h"
 
 #include "license.h"
 
 #include "psi.h"
 #include "psilog.h"
-#include "parse.h"
 #include "logger.h"
 #include "cardconfig.h"
+#include "config_parsing.h"
 
 #include "psidutil.h"
 
 int PSID_CardPresent;
 
-struct PSID_host_t *PSID_hosts[256];
-unsigned int *PSID_hostaddresses = NULL;
-char *PSID_hoststatus = NULL;
-
 static char errtxt[256];
+
+/* Wrapper functions for logging */
+void PSID_initLog(int usesyslog, FILE *input)
+{
+    initErrLog("PSID", usesyslog);
+}
+
+int PSID_getDebugLevel(void)
+{
+    return getErrLogLevel();
+}
+
+void PSID_setDebugLevel(int level)
+{
+    setErrLogLevel(level);
+}
+
+void PSID_putLog(char *s, int level)
+{
+    errlog(s, level);
+}
+
+void PSID_exitLog(char *s, int errorno)
+{
+    errexit(s, errorno);
+}
 
 void PSID_ReConfig(int nodeid, int nrofnodes, char *licensekey, char *module,
 		   char *routingfile)
@@ -63,11 +88,11 @@ void PSID_ReConfig(int nodeid, int nrofnodes, char *licensekey, char *module,
     strncpy(licdot,licensekey?licensekey:"none",sizeof(licdot));
     licdot[4]=licdot[5]=licdot[6]='.';
     licdot[7]=0;
-    
-    SYSLOG(1,(LOG_ERR, "PSID_ReConfig: %d '%s' '%s' '%s'"
-	      " small packets %d, ResendTimeout %d\n",
-	      nodeid, licdot, module, routingfile,
-	      ConfigSmallPacketSize,ConfigRTO));
+
+    snprintf(errtxt, sizeof(errtxt), "PSID_ReConfig: %d '%s' '%s' '%s'"
+	     " small packets %d, ResendTimeout %d\n", nodeid, licdot, module,
+	     routingfile, ConfigSmallPacketSize,ConfigRTO);
+    PSID_putLog(errtxt, 1);
 
     card_info.node_id = nodeid;
     card_info.licensekey = licensekey;
@@ -79,7 +104,8 @@ void PSID_ReConfig(int nodeid, int nrofnodes, char *licensekey, char *module,
     ret = card_init(&card_info);
     if (ret) {
 	PSID_CardPresent = 0;
-	SYSLOG(1,(LOG_INFO,"PSID_ReConfig: %s\n",card_errstr()));
+	snprintf(errtxt, sizeof(errtxt), "PSID_ReConfig: %s\n", card_errstr());
+	PSID_putLog(errtxt, 1);
 	return;
     }
 
@@ -110,49 +136,6 @@ void PSID_CardStop(void)
 }
 
 /***************************************************************************
- *      PSID_checklicense()
- *
- */
-int PSID_checklicense(unsigned int myIP)
-{
-    /* check the license key at Node 0 */
-/*      unsigned int IP;  */
-    long nodes = 50000;
-    time_t end = 0;
-    time_t start = 0;
-    time_t now;
-/*      long version; */
-
-/*      IpNodesEndFromLicense(ConfigLicensekey, &IP, &nodes, &start, &end, */
-/*  			  &version); */
-
-    now = time(NULL);
-    if (now<start) {
-	/* It seams that somebody trys to cheat */
-	SYSLOG(0,(LOG_ERR,"PSID_checklicense(): Your clock is running wrong"));
-	exit(-1);
-    }
-    if (start+end==0) {
-	SYSLOG(0,(LOG_ERR,"PSID_checklicense(): Licensekey invalid."));
-	exit(-1);
-    }
-    if (end<now) {
-	/* License is no more valid */
-	SYSLOG(0,(LOG_ERR,"PSID_checklicense(): License is out of date."
-		  "(end %lx now %lx) ", end, now));
-	exit(-1);
-    }
-    SYSLOG(9,(LOG_ERR,"nodes %ld PSI_nrofnodes %d", nodes, PSI_nrofnodes));
-    if ((nodes < PSI_nrofnodes) || (PSI_nrofnodes<0)) {
-	/* License is no more valid */
-	SYSLOG(0,(LOG_ERR,"License is not valid for this number of nodes."));
-	exit(-1);
-    }
-
-    return 1;
-}
-
-/***************************************************************************
  *	PSID_readconfigfile()
  *
  */
@@ -171,33 +154,26 @@ int PSID_readconfigfile(void)
 
     PSI_nrofnodes = NrOfNodes;
 
+    if (nodes[NrOfNodes].addr == INADDR_ANY) { /* Check LicServer Setting */
+	/*
+	 * Set node 0 as default server
+	 */
+	nodes[NrOfNodes].addr = nodes[0].addr;
+	nodes[NrOfNodes].hwtype = nodes[0].hwtype;
+	nodes[NrOfNodes].ip = nodes[0].ip;
+	nodes[NrOfNodes].starter = nodes[0].starter;
+	snprintf(errtxt, sizeof(errtxt),
+		 "Using %s (ID=%d) as Licenseserver",
+		 inet_ntoa(* (struct in_addr *) &nodes[0].addr), NrOfNodes);
+	PSID_putLog(errtxt, 10);
+    }
+
     if (PSI_nrofnodes > 4) {
 	/*
 	 * Check the license key
 	 * Clusters smaller than 4 nodes are free
 	 */
 	// PSID_checklicense(sin_addr.s_addr);
-    }
-
-    PSID_hoststatus = (char *) malloc(NrOfNodes * sizeof(char));
-    PSID_hostaddresses =
-	(unsigned int *) malloc(NrOfNodes * sizeof(*PSID_hostaddresses));
-    /*
-     * check the PSID specific entries in the configfile
-     * if (parameters !=-1)  use value of parameter
-     * else if (PSIconfigvalue !=-1)  use value of ConfigValue
-     * else  use value of #define
-     */
-    for (i=0; i<PSI_nrofnodes; i++) {
-	if (!PSID_inserthost(psihosttable[i].inet,i)) {
-	    /* error: the host could not be inserted 
-	       in the hostlist */
-	    snprintf(errtxt, sizeof(errtxt),
-		    "PSID_readconfigfile: host (address[%x],id[%d])"
-		    " could not be inserted in the hostlist.\n",
-		    psihosttable[i].inet, i);
-	    PSI_logerror(errtxt);
-	}
     }
 
     /* Find out if our node is configured */
@@ -209,11 +185,11 @@ int PSID_readconfigfile(void)
     endhostent(); 
 
     if (!mhost) {
-	perror("Unable to lookup hostname");
-	errstr=strerror(errno);
-	SYSLOG(0,(LOG_ERR,
-		  "PSID_readconfigfile():Unable to lookup hostname: [%d] %s",
-		  errno, errstr ? errstr : "UNKNOWN errno"));
+	errstr = strerror(errno);
+	snprintf(errtxt, sizeof(errtxt),
+		 "PSID_readconfigfile(): Unable to lookup hostname: [%d] %s",
+		 errno, errstr ? errstr : "UNKNOWN errno");
+	PSID_putLog(errtxt, 0);
 	exit(-1);
     }
 
@@ -222,14 +198,14 @@ int PSID_readconfigfile(void)
     /* Any IP-address configured ? */
     while (*mhost->h_addr_list) {
 	sin_addr = (struct in_addr *) *mhost->h_addr_list;
-	if (PSID_host(sin_addr->s_addr)==MyPsiId) {
+	if ((MyPsiId=parser_lookupHost(sin_addr->s_addr))!=-1) {
 	    /* node is configured */
-	    PSID_CardPresent = 1;
+	    break;
 	}
 	mhost->h_addr_list++;
     }
 
-    if (!PSID_CardPresent) {
+    if (MyPsiId == -1) {
 	SYSLOG(1,(LOG_ERR, "Node not configured\n"));
 	return -1;
     }
@@ -552,86 +528,4 @@ int PSID_taskspawn(PStask_t* task)
 	close(fds[0]);
     }
     return ret;
-}
-
-int PSID_inserthost(unsigned int addr, unsigned short psino)
-{
-    unsigned int hostno;
-    struct PSID_host_t *host;
-
-    hostno = ntohl(addr) & 0xff;
-
-    for (host = PSID_hosts[hostno]; host; host = host->next) {
-	if (host->saddr == addr) {
-	    host->psino = psino;
-	    return 1;
-	}
-    }
-    if ((host = (struct PSID_host_t*) malloc(sizeof(struct PSID_host_t)))) {
-	host->saddr = addr;
-	host->psino = psino;
-	host->next = PSID_hosts[hostno];
-	PSID_hosts[hostno] = host;
-	PSID_hostaddresses[psino] = addr;
-#ifdef DEBUG
-	if ((PSP_DEBUGADMIN|PSP_DEBUGSTARTUP) & PSI_debugmask) {
-	    snprintf(errtxt, sizeof(errtxt), "PSID_inserthost(): the host (address[%x],"
-		    "cardid[%d]) is inserted in the hostlist.\n", addr, psino);
-	    PSI_logerror(errtxt);
-	}
-#endif
-	return 1;
-    }
-
-    return 0;
-}
-
-/***************************************************************************
- *      PSID_host()
- *
- *      RETURN  psi node number of the host with INET id addr, 
- *              -1 if addr is not registered.
- */
-int PSID_host(unsigned int addr)
-{
-    unsigned int hostno;
-    struct PSID_host_t *host;
-#if defined(DEBUG)
-    if (PSP_DEBUGHOST & PSI_debugmask ) {
-	snprintf(errtxt, sizeof(errtxt), "PSID_host(%x) \n", addr);
-	PSI_logerror(errtxt);
-    }
-#endif
-    /* loopback address */
-    if ((ntohl(addr) >> 24 ) == 0x7F)
-	return PSI_myid;
-
-    /* other addresses */
-    hostno = ntohl(addr) & 0xFF;
-    for (host = PSID_hosts[hostno]; host; host = host->next) {
-	if (host->saddr == addr)
-	    return host->psino ;
-    }
-
-    return -1;
-}
-
-/***************************************************************************
- *      PSID_hostaddress()
- *
- *      LIMIT   the id must be valid.
- *      RETURN  the INET id addr for the host with psi node no id, 
- *              -1 if addr is not registered.
- */
-unsigned int PSID_hostaddress(unsigned short id)
-{
-#if defined(DEBUG)
-    if (PSP_DEBUGHOST & PSI_debugmask) {
-	snprintf(errtxt, sizeof(errtxt), "PSID_hostaddress(%d) = %x\n",
-		 id, (int) PSID_hostaddresses[id]);
-	PSI_logerror(errtxt);
-    }
-#endif
-
-    return PSID_hostaddresses[id];
 }

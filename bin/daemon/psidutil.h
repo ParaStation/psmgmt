@@ -1,54 +1,45 @@
 /*
- * Copyright (c) 1995 Regents of the University of Karlsruhe / Germany.
+ *               ParaStation3
+ * psidutil.h
+ *
+ * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
+ * $Id: psidutil.h,v 1.7 2002/06/13 15:09:54 eicker Exp $
  *
- *      @(#)shmd.h    1.00 (Karlsruhe) 9/2/96
- *
- *      written by Joachim Blum
- *
- * This is the header file of the extesions for the daemon of the 
- * base module for the ParaStationProtocol.
- * It manages the SHareMemory.
  */
-#ifndef _psidutil_h_
-#define _psidutil_h_
+/**
+ * \file
+ * psidutil: Utilities for ParaStation daemon
+ *
+ * $Id: psidutil.h,v 1.7 2002/06/13 15:09:54 eicker Exp $
+ *
+ * \author
+ * Norbert Eicker <eicker@par-tec.com>
+ *
+ */
+#ifndef __PSIDUTIL_H
+#define __PSIDUTIL_H
+
+#ifdef __cplusplus
+extern "C" {
+#if 0
+} /* <- just for emacs indentation */
+#endif
+#endif
 
 #include "psitask.h"
+#include "config_parsing.h"
 
-struct PSID_host_t{
-    unsigned int saddr;
-    unsigned int psino;
-    struct PSID_host_t* next;
-};
+extern int PSID_CardPresent ;    /* indicates if the card is present */
 
-int PSID_CardPresent ;    /* indicates if the card is present */
-
-extern struct PSID_host_t *PSID_hosts[256];  /* host table */
-extern unsigned int *PSID_hostaddresses;     /* fast access to IN adresses */
-extern char *PSID_hoststatus;     /* state of specific hosts: PSPHOSTUP|.. */
 
 void PSID_ReConfig(int nodenr, int nrofnodes, char *license, char *module,
 		   char *configfile);
 
 void PSID_CardStop(void);
 
-int PSID_host(unsigned int addr);
-
-unsigned int PSID_hostaddress(unsigned short id);
-
-int PSID_inserthost(unsigned int addr, unsigned short psino);
+/* Performs reverse lookup (ip-addr given, determine id) */
 
 int PSID_readconfigfile(void);
 
@@ -64,4 +55,8 @@ int PSID_execv( const char *path, char *const argv[]);
 int PSID_taskspawn(PStask_t *task);     /* spawns a process with the
 					   definitions in task on the
 					   local node */
-#endif /*  _psidutil_h_ */
+#ifdef __cplusplus
+}/* extern "C" */
+#endif
+
+#endif /* __PSIDUTIL_H */
