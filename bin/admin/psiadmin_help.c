@@ -5,13 +5,13 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin_help.c,v 1.12 2003/05/28 17:08:31 eicker Exp $
+ * $Id: psiadmin_help.c,v 1.13 2003/06/25 16:48:13 eicker Exp $
  *
  * \todo More detailed messages for 'status' and 'set'.
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin_help.c,v 1.12 2003/05/28 17:08:31 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin_help.c,v 1.13 2003/06/25 16:48:13 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 static void PrintHelp(void)
@@ -110,8 +110,8 @@ static void PrintShowHelp(void)
     printf("=========================\n");
     printf("\n");
     printf("SYNTAX:    SHOW {SMALLPACKETSIZE | HNPEND | ACKPEND | USER"
-	   " | MAXPROC\n");
-    printf("                | PSIDDEBUG | RDPDEBUG | RDPPKTLOSS"
+	   " | GROUP\n");
+    printf("                | MAXPROC | PSIDDEBUG | RDPDEBUG | RDPPKTLOSS"
 	   " | RDPMAXRETRANS\n");
     printf("                | MCASTDEBUG} [FROM [TO]]\n");
     NodeInfo();
@@ -120,6 +120,8 @@ static void PrintShowHelp(void)
     printf("             SHOW HNPEND           show HNPend.\n");
     printf("             SHOW ACKPEND          show AckPend.\n");
     printf("             SHOW USER             show user access is granted"
+	   " to.\n");
+    printf("             SHOW GROUP            show group access is granted"
 	   " to.\n");
     printf("             SHOW MAXPROC          show maximum number of"
 	   " ParaStation\n");
@@ -312,11 +314,12 @@ static void PrintSetHelp(void)
     printf("\n");
     printf("SYNTAX:    SET {SMALLPACKETSIZE mask | HNPEND val"
 	   " | ACKPEND val\n");
-    printf("                | USER {username|ANY} | MAXPROC {num|ANY}"
-	   " | PSIDDEBUG level\n");
-    printf("                | RDPDEBUG level | RDPPKTLOSS rate"
-	   " | RDPMAXRETRANS val\n");
-    printf("                | MCASTDEBUG level} [FROM [TO]]\n");
+    printf("               | USER {username|ANY} | GROUP {groupname|ANY}"
+	   " | MAXPROC {num|ANY}\n");
+    printf("               | PSIDDEBUG level | RDPDEBUG level"
+	   " | RDPPKTLOSS rate\n");
+    printf("               | RDPMAXRETRANS val| MCASTDEBUG level}"
+	   " [FROM [TO]]\n");
     NodeInfo();
     printf("Description: SET SMALLPACKETSIZE size set the maximum size [bytes]"
 	   " of PIO\n");
@@ -326,6 +329,9 @@ static void PrintSetHelp(void)
     printf("             SET USER {username|ANY}  grants access to a"
 	   " particular or any\n");
     printf("                                      user.\n");
+    printf("             SET GROUP {groupname|ANY}  grants access to a"
+	   " particular or any\n");
+    printf("                                      group.\n");
     printf("             SET MAXPROC {num|ANY}    set maximum number of"
 	   " ParaStation\n");
     printf("                                      processes.\n");
