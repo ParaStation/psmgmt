@@ -5,20 +5,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psmstart.c,v 1.2 2002/08/07 08:17:33 eicker Exp $
+ * $Id: psmstart.c,v 1.3 2002/08/16 15:42:05 eicker Exp $
  *
  */
 /**
  * @file Simple wrapper to allow non ParaStation aware programs to be
  * distributed in a cluster.
  *
- * $Id: psmstart.c,v 1.2 2002/08/07 08:17:33 eicker Exp $
+ * $Id: psmstart.c,v 1.3 2002/08/16 15:42:05 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c,v 1.2 2002/08/07 08:17:33 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c,v 1.3 2002/08/16 15:42:05 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -32,7 +32,8 @@ int main(int argc, char *argv[])
     char *command;
 
     if (argc < 2) {
-	printf("You need to give at least on argument");
+	fprintf(stderr, "You need to give at least on argument\n");
+	exit(1);
     }
 
     setenv("PSI_NOMSGLOGGERDONE", "", 1);
