@@ -137,7 +137,7 @@ int DaemonIsUp(int node);
 int send_DAEMONCONNECT(int id);
 
 void TaskDeleteSendSignals(PStask_t* oldtask);
-void TaskDeleteSendSignalsToParent(long tid,long ptid);
+void TaskDeleteSendSignalsToParent(long tid,long ptid,int sig);
 
 int
 TOTALsend(int fd,void* buffer,int msglen)
@@ -558,7 +558,8 @@ void DeclareDaemonDead(int node)
 	SYSLOG(9,(LOG_ERR,"Cleaning task TID%lx\n",oldtask->tid));
 
 	TaskDeleteSendSignals(oldtask);
-	TaskDeleteSendSignalsToParent(oldtask->tid,oldtask->ptid);
+	TaskDeleteSendSignalsToParent(oldtask->tid,oldtask->ptid,
+				      oldtask->childsignal);
 	PStask_delete(oldtask);
 	oldtask = PStasklist_dequeue(&(daemons[node].tasklist), -1);
     }
@@ -718,7 +719,8 @@ void client_task_delete(long thisclienttid)
 	/*
 	 * Check the parent task
 	 */
-	TaskDeleteSendSignalsToParent(oldtask->tid,oldtask->ptid);
+	TaskDeleteSendSignalsToParent(oldtask->tid,oldtask->ptid,
+				      oldtask->childsignal);
 
 	PStask_delete(oldtask);
     }else{
@@ -1437,22 +1439,24 @@ void TaskDeleteSendSignals(PStask_t* oldtask)
  *
  * Send the signals to the parent if it has asked for
  */
-void TaskDeleteSendSignalsToParent(long tid,long ptid)
+void TaskDeleteSendSignalsToParent(long tid, long ptid, int signal)
 {
     PStask_t* receivertask;
+    int mysignal;
+
     if((ptid !=-1) && (PSI_getnode(ptid)==PSI_myid)){
 	receivertask = PStasklist_find(daemons[PSI_myid].tasklist,ptid);
 	if(receivertask){
 	    int pid;
 	    pid = PSI_getpid(ptid);
-	    sprintf(PSI_txt,"TaskDeleteSendSignalsToParent(ptid = 0x%lx(pid=%d)"
-		    " tid= 0x%lx ) signal %d \n",
-		    ptid,pid,tid,receivertask->childsignal);
-	    SYSLOG(4,(LOG_ERR,PSI_txt));
-	    if((receivertask->childsignal)&&(pid>0)){
-		kill(pid,receivertask->childsignal);
-		PStask_setsignalsender(receivertask,tid,
-				       receivertask->childsignal);
+	    mysignal=(signal!=-1)?signal:receivertask->childsignal;
+	    if((mysignal)&&(pid>0)){
+		sprintf(PSI_txt,"TaskDeleteSendSignalsToParent"
+			"(ptid = 0x%lx(pid=%d) tid= 0x%lx ) signal %d \n",
+			ptid,pid,tid,mysignal);
+		SYSLOG(4,(LOG_ERR,PSI_txt));
+		kill(pid,mysignal);
+		PStask_setsignalsender(receivertask,tid,mysignal);
 	    }
 	}
     }
@@ -1491,7 +1495,7 @@ void msg_DELETEPROCESS(DDBufferMsg_t* msg)
      * Check the parent task
      */
 
-    TaskDeleteSendSignalsToParent(task->tid,task->ptid);
+    TaskDeleteSendSignalsToParent(task->tid,task->ptid,task->childsignal);
 
     PStask_delete(task);
 }
@@ -1506,7 +1510,7 @@ void msg_CHILDDEAD(DDMsg_t* msg)
     /*
      * Check the parent task
      */
-    TaskDeleteSendSignalsToParent(msg->sender,msg->dest);
+    TaskDeleteSendSignalsToParent(msg->sender,msg->dest,-1);
 
     /*
      * Check if we have a task stored due to a SPAWNSUCCESS
@@ -1953,6 +1957,80 @@ msg_NOTIFYDEAD(DDSignalMsg_t *msg)
     }
 }
 
+/******************************************
+ *  msg_RELEASE()
+ */
+void
+msg_RELEASE(DDSignalMsg_t *msg)
+{
+    int node;
+    PStask_t* task;
+
+    if (PSI_isoption(PSP_ODEBUG)){
+	sprintf(PSI_txt,"msg_RELEASE(sender = 0x%lx tid= 0x%lx)\n",
+		msg->header.sender, msg->header.dest);
+	PSI_logerror(PSI_txt);
+    }
+
+    node = PSI_getnode(msg->header.dest);
+
+    if(node != PSI_myid){
+	sprintf(PSI_txt,"msg_RELEASE(sender= 0x%lx tid 0x%lx) "
+		"FATAL error: only local release!!\n",
+		msg->header.sender, msg->header.dest);
+	PSI_logerror(PSI_txt);
+	msg->signal = ESRCH; /* failure */
+
+	msg->header.type = PSP_DD_RELEASERES;
+	msg->header.dest = msg->header.sender;
+	msg->header.sender = PSI_gettid(PSI_myid,0);
+	msg->header.len = sizeof(*msg);
+	MsgSend(msg);
+    }
+
+    if(msg->header.sender != msg->header.dest){
+	sprintf(PSI_txt,"msg_RELEASE(sender= 0x%lx tid 0x%lx) "
+		"FATAL error: don't release foreign task!!\n",
+		msg->header.sender, msg->header.dest);
+	PSI_logerror(PSI_txt);
+	msg->signal = ESRCH; /* failure */
+
+	msg->header.type = PSP_DD_RELEASERES;
+	msg->header.dest = msg->header.sender;
+	msg->header.sender = PSI_gettid(PSI_myid,0);
+	msg->header.len = sizeof(*msg);
+	MsgSend(msg);
+    }
+
+    task = PStasklist_find(daemons[PSI_myid].tasklist,msg->header.sender);
+
+    if(task){
+	sprintf(PSI_txt,"msg_RELEASE() release (0x%lx)\n",
+		msg->header.sender);
+	PSI_logerror(PSI_txt);
+	task->childsignal = 0;
+
+	msg->signal = 0; /* sucess */
+	msg->header.type = PSP_DD_RELEASERES;
+	msg->header.dest = msg->header.sender;
+	msg->header.sender = PSI_gettid(PSI_myid,0);
+	msg->header.len = sizeof(*msg);
+	MsgSend(msg);
+    }else{
+	sprintf(PSI_txt,"msg_RELEASE(sender= 0x%lx tid 0x%lx) "
+		"FATAL error: no task!!\n",
+		msg->header.sender, msg->header.dest);
+	PSI_logerror(PSI_txt);
+	msg->signal = ESRCH; /* failure */
+
+	msg->header.type = PSP_DD_RELEASERES;
+	msg->header.dest = msg->header.sender;
+	msg->header.sender = PSI_gettid(PSI_myid,0);
+	msg->header.len = sizeof(*msg);
+	MsgSend(msg);
+    }
+}
+
 /**********************************************************
  *  msg_LOADREQ()
  */
@@ -2285,6 +2363,12 @@ void psicontrol(int fd )
 	     * To notify the process send the signal sig
 	     */
 	    msg_NOTIFYDEAD((DDSignalMsg_t*)&msg);
+	    break;
+	case PSP_DD_RELEASE:
+	    /*
+	     * release this child (don't kill parent when this process dies)
+	     */
+	    msg_RELEASE((DDSignalMsg_t*)&msg);
 	    break;
 	case PSP_DD_WHODIED:
 	    /*
