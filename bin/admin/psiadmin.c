@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.15 2002/01/08 23:39:16 eicker Exp $
+ * $Id: psiadmin.c,v 1.16 2002/01/09 20:01:45 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.15 2002/01/08 23:39:16 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.16 2002/01/09 20:01:45 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -40,7 +40,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.15 $";
+static char psiadmversion[] = "$Revision: 1.16 $";
 static int  DoRestart = 1;
 
 int PSIADM_LookUpNodeName(char* hostname)
@@ -48,10 +48,10 @@ int PSIADM_LookUpNodeName(char* hostname)
     struct hostent	*hp;	/* host pointer */
     struct sockaddr_in sa;	/* socket address */ 
 
-    if ((hp = gethostbyname(hostname)) == NULL){
+    if ((hp = gethostbyname(hostname)) == NULL) {
 	return -1;
     }
-    bcopy((char *)hp->h_addr, (char *)&sa.sin_addr, hp->h_length); 
+    memcpy(&sa.sin_addr, hp->h_addr, hp->h_length); 
 
     return INFO_request_host(sa.sin_addr.s_addr);
 }
@@ -488,21 +488,29 @@ void PSIADM_TestNetwork(int mode)
     spawnargs = (char**) malloc(spawnargc*sizeof(char*));
 
     spawnargs[0]="psiconntest";
-    switch(mode){
-    case 0: spawnargs[1]="-q";break;
-    case 1: spawnargs[1]="-o";break;
-    case 2: spawnargs[1]="-v";break;
-    default: spawnargs[1]="-o";break;
+    switch (mode) {
+    case 0:
+	spawnargs[1]="-q";
+	break;
+    case 1:
+	spawnargs[1]="-o";
+	break;
+    case 2:
+	spawnargs[1]="-v";
+	break;
+    default:
+	spawnargs[1]="-o";
     }
     tid = PSI_spawn(mynode, PSI_LookupInstalldir(),
 		    spawnargc,spawnargs,-1,-1,0,&errno);
-    if(tid<0){
+    if(tid<0) {
 	char *txt=NULL;
 	txt=strerror(errno);
 	printf("Couln't spawn the test task. Error <%d>: %s\n",
 	       errno,txt!=NULL?txt:"UNKNOWN");
-    }else
+    } else {
 	printf("Spawning test task successfull.\n");
+    }
 
     free(spawnargs);
     return;
@@ -524,7 +532,7 @@ void sighandler(int sig)
 {
     switch(sig){
     case SIGTERM:
-	if(DoRestart==0){
+	if (DoRestart==0) {
 	    fprintf(stderr, "\nPSIadmin: Got SIGTERM .... exiting"
 		    " ...This seem to be OK. \nBye..\n");
 	    exit(0);
@@ -534,8 +542,7 @@ void sighandler(int sig)
 	PSI_clientexit();
 	sleep(2);
 	fprintf(stderr,"PSIadmin: Restarting...\n");
-	if(!PSI_clientinit(TG_ADMIN))
-      	{
+	if (!PSI_clientinit(TG_ADMIN)) {
 	    fprintf(stderr,"can't contact my own daemon.\n");
 	    exit(-1);
         }
@@ -580,8 +587,8 @@ int main(int argc, char **argv)
     char *copt = NULL, *line = (char *) NULL, line_field[256];
     int opt, len, reset=0;
 
-    while ((opt = getopt(argc, argv, "hHvVc:r")) != -1){
-	switch(opt){
+    while ((opt = getopt(argc, argv, "hHvVc:r")) != -1) {
+	switch (opt) {
 	case 'c':
 	    copt = optarg;
 	    break;
@@ -604,24 +611,24 @@ int main(int argc, char **argv)
 	}
     }
 
-    if(reset){
-	if(geteuid()){
+    if (reset) {
+	if (geteuid()) {
 	    printf("Insufficient priviledge for resetting\n");
 	    exit(-1);
 	}
-	printf("Initiating RESET.\n");fflush(stdout);
+	printf("Initiating RESET.\n"); fflush(stdout);
 	PSI_clientinit(TG_RESETABORT);
 	PSI_clientexit();
-	printf("Waiting for reset.\n");fflush(stdout);
+	printf("Waiting for reset.\n"); fflush(stdout);
 	sleep(1);
-	printf("Trying to reconnect.\n");fflush(stdout);
+	printf("Trying to reconnect.\n"); fflush(stdout);
 	PSI_clientinit(TG_RESET);
 	printf("Resetting done. Please try to connect regulary\n");
 	fflush(stdout);
 	exit(0);
     }
 
-    if(!PSI_clientinit(TG_ADMIN)){
+    if (!PSI_clientinit(TG_ADMIN)) {
 	fprintf(stderr,"can't contact my own daemon.\n");
 	exit(-1);
     }
@@ -631,14 +638,13 @@ int main(int argc, char **argv)
     /*
      * Single command processing
      */
-    if(copt){
+    if (copt) {
 	/* Add some trailing newlines. Needed for NULLOP */
-	len=strlen(copt);
-	line=(char *)malloc(len+3);
+	len = strlen(copt);
+	line = (char *)malloc(len+2);
 	strcpy(line, copt);
-	line[len]='\n';
-	line[len+1]='\n';
-	line[len+2]='\0';
+	line[len]   = '\n';
+	line[len+1] = '\0';
 
 	/* Process it */
 	line_state = yy_scan_string(line);
@@ -656,23 +662,22 @@ int main(int argc, char **argv)
     using_history();
     add_history("shutdown");
 
-    while(!PARSE_DONE){ 
+    while (!PARSE_DONE) { 
 	/* Get a line from the user. */
 	line = readline("PSIadmin>");
 
-	if (line && *line){
+	if (line && *line) {
 	    /* If the line has any text in it, save it on the history. */
 	    add_history(line);
 
-	    if(strlen(line) + 3 > sizeof(line_field)){
+	    if (strlen(line) + 2 > sizeof(line_field)) {
 		printf("Line too long!\n");
-	    }else{
+	    } else {
 		strcpy(line_field, line);
 		/* Add some trailing newlines. Needed for NULLOP */
-		len=strlen(line_field);
-		line_field[len]='\n';
-		line_field[len+1]='\n';
-		line_field[len+2]='\0';
+		len = strlen(line_field);
+		line_field[len]   = '\n';
+		line_field[len+1] = '\0';
 		/* Process it */
 		line_state = yy_scan_string(line_field);
 		yyparse();
@@ -680,7 +685,7 @@ int main(int argc, char **argv)
 	    }
 	}
 	free(line);
-    };
+    }
 
     printf("PSIadmin: Goodbye\n");
 

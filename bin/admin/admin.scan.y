@@ -8,7 +8,7 @@
 #include "psiadmin.h"
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.6 2002/01/08 21:41:26 eicker Exp $";
+static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.7 2002/01/09 20:01:45 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #define NODEERR		-2
@@ -16,8 +16,8 @@ static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.6 2002/0
 static int FirstNode, LastNode;
 extern char * yytext;
 
-static int CheckNodeNr(int node);
-static int GetNrFromName(char *name);
+static int CheckNr(int node);
+static int CheckName(char *name);
 static void CheckUserName(char *name);
 
 %}
@@ -72,19 +72,19 @@ commline:
 	;
 
 nodes:
-	  NULLOP  			{ FirstNode=ALLNODES; LastNode=ALLNODES; }
-        | NUMBER NULLOP                 { FirstNode=LastNode=CheckNodeNr($1); }
-        | HEXNUMBER NULLOP              { FirstNode=LastNode=CheckNodeNr($1); }
-        | NAME NULLOP                   { FirstNode=LastNode=GetNrFromName($1); }
-        | NUMBER NUMBER NULLOP          { FirstNode=CheckNodeNr($1); LastNode=CheckNodeNr($2); }
-        | NUMBER HEXNUMBER NULLOP       { FirstNode=CheckNodeNr($1); LastNode=CheckNodeNr($2); }
-        | NUMBER NAME NULLOP            { FirstNode=CheckNodeNr($1); LastNode=GetNrFromName($2); }
-        | HEXNUMBER NUMBER NULLOP       { FirstNode=CheckNodeNr($1); LastNode=CheckNodeNr($2); }
-        | HEXNUMBER HEXNUMBER NULLOP    { FirstNode=CheckNodeNr($1); LastNode=CheckNodeNr($2); }
-        | HEXNUMBER NAME NULLOP         { FirstNode=CheckNodeNr($1); LastNode=GetNrFromName($2); }
-        | NAME NUMBER NULLOP            { FirstNode=GetNrFromName($1); LastNode=CheckNodeNr($2); }
-        | NAME HEXNUMBER NULLOP         { FirstNode=GetNrFromName($1); LastNode=CheckNodeNr($2); }
-        | NAME NAME NULLOP              { FirstNode=GetNrFromName($1); LastNode=GetNrFromName($2); }
+                              {FirstNode=ALLNODES;LastNode=ALLNODES;}
+        | NUMBER              {FirstNode=LastNode=CheckNr($1);}
+        | HEXNUMBER           {FirstNode=LastNode=CheckNr($1);}
+        | NAME                {FirstNode=LastNode=CheckName($1);}
+        | NUMBER NUMBER       {FirstNode=CheckNr($1);LastNode=CheckNr($2);}
+        | NUMBER HEXNUMBER    {FirstNode=CheckNr($1);LastNode=CheckNr($2);}
+        | NUMBER NAME         {FirstNode=CheckNr($1);LastNode=CheckName($2);}
+        | HEXNUMBER NUMBER    {FirstNode=CheckNr($1);LastNode=CheckNr($2);}
+        | HEXNUMBER HEXNUMBER {FirstNode=CheckNr($1);LastNode=CheckNr($2);}
+        | HEXNUMBER NAME      {FirstNode=CheckNr($1);LastNode=CheckName($2);}
+        | NAME NUMBER         {FirstNode=CheckName($1);LastNode=CheckNr($2);}
+        | NAME HEXNUMBER      {FirstNode=CheckName($1);LastNode=CheckNr($2);}
+        | NAME NAME           {FirstNode=CheckName($1);LastNode=CheckName($2);}
         ;
 
 addline: 
@@ -228,7 +228,7 @@ static void CheckUserName(char *name)
     return;
 }
 
-static int CheckNodeNr(int node)
+static int CheckNr(int node)
 {
     register int NrOfNodes = PSI_getnrofnodes();
 
@@ -239,7 +239,7 @@ static int CheckNodeNr(int node)
     return node;
 }
 
-static int GetNrFromName(char *name)
+static int CheckName(char *name)
 {
     register int node = PSIADM_LookUpNodeName(name); 
 
