@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.33 2003/04/03 15:21:37 eicker Exp $
+ * $Id: info.c,v 1.34 2003/06/05 16:56:22 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.33 2003/04/03 15:21:37 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.34 2003/06/05 16:56:22 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -568,7 +568,7 @@ int INFO_request_hwindex(char *hwType, int verbose)
     msg.header.len += sizeof(msg.type);
     strncpy(msg.buf, hwType, sizeof(msg.buf));
     msg.buf[sizeof(msg.buf)-1] = '\0';
-    msg.header.len += strlen(msg.buf);
+    msg.header.len += strlen(msg.buf)+1;
 
     if (PSI_sendMsg(&msg)<0) {
 	snprintf(errtxt, sizeof(errtxt), "%s: write", __func__);
