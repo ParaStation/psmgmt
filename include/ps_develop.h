@@ -109,8 +109,6 @@
   #define PSM_PRINT_LEVEL_DEV 1
 #endif
 
-
-
 //#define _P PSM_PRINT(0,("PSM: %s:%d\n",__FILE__,__LINE__))
 
 #endif
