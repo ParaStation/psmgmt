@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.31 2002/02/01 16:39:12 eicker Exp $
+ * $Id: psid.c,v 1.32 2002/02/04 18:26:55 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.31 2002/02/01 16:39:12 eicker Exp $ 
+ * $Id: psid.c,v 1.32 2002/02/04 18:26:55 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.31 2002/02/01 16:39:12 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.32 2002/02/04 18:26:55 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -62,7 +62,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.31 $";
+static char psid_cvsid[] = "$Revision: 1.32 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -1015,6 +1015,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t* msg)
 	PStasklist_enqueue(&daemons[PSI_myid].tasklist, task);
 	clients[fd].ob.task = task;
     }
+
     /*
      * Calculate the number of processes
      */
@@ -1223,6 +1224,7 @@ void msg_SPAWNREQUEST(DDBufferMsg_t* msg)
 	 * and if ok try to start the task
 	 */
 	err= PSID_taskspawn(task);
+
 	if (PSI_isoption(PSP_ODEBUG)){
 	    if(err==0)
 		sprintf(PSI_txt,
@@ -1236,7 +1238,11 @@ void msg_SPAWNREQUEST(DDBufferMsg_t* msg)
 
 	if(err==0){
 	    PStasklist_enqueue(&spawned_tasks_waiting_for_connect,task);
+	} else {
+	    SYSLOG(3,(LOG_ERR,"taskspawn returned err=%d [%s]\n", err,
+		      strerror(err)));
 	}
+
 	/*
 	 * send the existence or failure of the request
 	 */
@@ -2743,7 +2749,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.31 $";
+    char revision[] = "$Revision: 1.32 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
