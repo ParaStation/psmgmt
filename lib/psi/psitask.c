@@ -35,8 +35,6 @@ int PStask_init(PStask_t *task)
     task->gid = -1;
     task->nodeno = -1;
     task->group = TG_ANY;
-    task->masternode = -1;
-    task->masterport = -1;
     task->rank = -1;
     task->options = TaskOption_SENDSTDHEADER;
     task->loggernode = 0;
@@ -46,9 +44,8 @@ int PStask_init(PStask_t *task)
     task->workingdir = NULL;
     task->argc = 0;
     task->argv = NULL;
-    task->environc = 0;
     task->environ = NULL;
-    task->childsignal = 0;
+    task->childsignal = -1;
     task->signalsender = NULL;
     task->signalreceiver = NULL;
     /* CAUTION: each pointer must be set to NULL in PStask_encode
@@ -71,21 +68,27 @@ PStask_reinit(PStask_t *task)
 
     if (task->workingdir)
 	free(task->workingdir);
+
     for(i=0;i<task->argc;i++)
 	if (task->argv[i])
 	    free(task->argv[i]);
     if(task->argv)free(task->argv);
 
-    for(i=0;i<task->environc;i++)
-	if (task->environ[i])
+    if (task->environ) {
+	int i;
+	for (i=0; task->environ[i]; i++) {
 	    free(task->environ[i]);
-    if(task->environ)free(task->environ);
+	}
+	free(task->environ);
+	task->environ = NULL;
+    }
 
     while(task->signalsender){
 	struct PSsignal_t* thissignal = task->signalsender;
 	task->signalsender = thissignal->next;
 	free(thissignal);
     }
+
     while(task->signalreceiver){
 	struct PSsignal_t* thissignal = task->signalreceiver;
 	task->signalreceiver = thissignal->next;
@@ -124,21 +127,23 @@ PStask_sprintf(char*txt, PStask_t * task)
 
     sprintf(txt," links(%08lx,%08lx) "
 	    "tid %08lx,ptid %08lx, uid %d loggernode %x loggerport %d node %d"
-	    " group0x%lx masternode %x masterport %x rank %x options = %lx"
-	    " error %ld fd %d argc %d ",
+	    " group0x%lx rank %x options = %lx error %ld fd %d argc %d ",
 	    (long)task->link, (long)task->rlink, task->tid, task->ptid,
 	    task->uid, task->loggernode, task->loggerport, task->nodeno,
-	    task->group, task->masternode, task->masterport, task->rank,
-	    task->options, task->error, task->fd,task->argc);
+	    task->group, task->rank, task->options, task->error, task->fd,
+	    task->argc);
     sprintf(txt+strlen(txt),"dir=\"%s\",command=\"",
 	    (task->workingdir)?task->workingdir:"");
     for(i=0;i<task->argc;i++)
 	sprintf(txt+strlen(txt),"%s ",task->argv[i]);
     sprintf(txt+strlen(txt),"\" env=");
 
-    for(i=0;i<task->environc;i++)
-	sprintf(txt+strlen(txt),"%s ",
-		task->environ[i]?task->environ[i]:"NULL");
+    if (task->environ) {
+	int i;
+	for (i=0; task->environ[i]; i++) {
+	    sprintf(txt+strlen(txt), "%s ", task->environ[i]);
+	}
+    }
 }
 
 /*----------------------------------------------------------------------*/
@@ -167,26 +172,29 @@ int PStask_encode(char* buffer, PStask_t * task)
     ((PStask_t*)buffer)->signalsender = NULL;
     ((PStask_t*)buffer)->signalreceiver = NULL;
 
-    if(task->workingdir){
+    if (task->workingdir) {
 	strcpy(&buffer[msglen],task->workingdir);
 	msglen += strlen(task->workingdir);
-    }
-    else
+    } else {
 	buffer[msglen]=0;
+    }
     msglen++; /* zero byte */
 
-    for(i=0;i<task->argc;i++){
+    for (i=0; i<task->argc; i++) {
 	strcpy(&buffer[msglen],task->argv[i]);
 	msglen +=strlen(task->argv[i])+1;
     }
-    for(i=0;i<task->environc;i++){
-	if(task->environ[i]){
-	    strcpy(&buffer[msglen],task->environ[i]);
-	    msglen +=strlen(task->environ[i]);
-	}else
-	    buffer[msglen]=0;
-	msglen++; /* zero byte */
+
+    if (task->environ) {
+	int i;
+	for (i=0; task->environ[i]; i++) {
+	    strcpy(&buffer[msglen], task->environ[i]);
+	    msglen += strlen(task->environ[i])+1;
+	}
     }
+    /* append zero byte */
+    buffer[msglen] = 0;
+    msglen++;
 
     return msglen;
 }
@@ -200,9 +208,7 @@ int PStask_encode(char* buffer, PStask_t * task)
  */
 int PStask_decode(char* buffer, PStask_t * task)
 {
-    int msglen;
-    int len;
-    int i;
+    int msglen, len, count, i;
 
 #if defined(DEBUG)||defined(PSID)
     if(PSP_DEBUGTASK & PSI_debugmask){
@@ -223,37 +229,43 @@ int PStask_decode(char* buffer, PStask_t * task)
 
     len = strlen(&buffer[msglen]);
 
-    if(len){
-	task->workingdir = (char*)malloc(len+1);
-	strcpy(task->workingdir,&buffer[msglen]);
-    }else
+    if (len) {
+	task->workingdir = strdup(&buffer[msglen]);
+    } else {
 	task->workingdir = NULL;
-    msglen += len;
-    msglen++; /* zero byte */
+    }
+    msglen += len+1;
 
+    /* Get the arguments */
     task->argv = (char**)malloc(sizeof(char*)*(task->argc+1));
-    for(i=0;i<task->argc;i++){
-	len = strlen(&buffer[msglen]);
-	task->argv[i] = (char*)malloc(len+1);
-	if(task->argv[i])
-	    strcpy(task->argv[i],&buffer[msglen]);
-	msglen+=len+1;
+    for(i=0; i<task->argc; i++){
+	task->argv[i] = strdup(&buffer[msglen]);
+	msglen += strlen(&buffer[msglen])+1;
     }
     task->argv[task->argc] = 0;
 
-    if(task->environc)
-	task->environ = (char**)malloc(sizeof(char*)*(task->environc));
-    else
+    /* Get number of environment variables */
+    count = 0;
+    len = msglen;
+    while (strlen(&buffer[len])) {
+	count ++;
+	len += strlen(&buffer[len])+1;
+    }
+
+    if (count) {
+	task->environ = (char**)malloc((count+1)*sizeof(char*));
+    } else {
 	task->environ = NULL;
-    for(i=0;i<task->environc;i++){
-	len = strlen(&buffer[msglen]);
-	if(len)
-	    task->environ[i] = (char*)malloc(len+1);
-	else
-	    task->environ[i] = NULL;
-	if(task->environ[i])
-	    strcpy(task->environ[i],&buffer[msglen]);
-	msglen+=len+1;
+    }
+    if (task->environ) {
+	i = 0;
+	while (strlen(&buffer[msglen])) {
+	    task->environ[i] = strdup(&buffer[msglen]);
+	    msglen += strlen(&buffer[msglen])+1;
+	    i++;
+	}
+	task->environ[i] = NULL;
+	msglen++;
     }
 
 #if defined(DEBUG)||defined(PSID)

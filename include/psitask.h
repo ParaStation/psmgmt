@@ -46,8 +46,6 @@ typedef struct PStask_T{
     gid_t gid;                   /* group id */
     short nodeno;                /* node number of the executing node */
     long  group;                 /* task group number see TG_* constants */
-    int masternode;              /* parent's node given for spwaned childs */
-    int masterport;              /* parent's port given for spwaned childs */
     int rank;                    /* rank given for spwaned childs */
     unsigned int loggernode;     /* the logging peer for any output */
     int loggerport;              /* the logging peer for any output */
@@ -56,9 +54,8 @@ typedef struct PStask_T{
     long options;                /* options of this task */
     char* workingdir;            /* working directory */
     int argc;                    /* number of argv */
-    char**argv;                  /* command line arguments */
-    int environc;                /* number of environment variables */
-    char**environ;               /* PULC Envvironment, used before spawning */
+    char **argv;                 /* command line arguments */
+    char **environ;              /* PS Environment, used before spawning */
     int childsignal;             /* the signal which is sent when a child dies
 				    previor to PULC_clientinit() */
     struct PSsignal_t* signalsender;   /* List of tasks which sent signals */
