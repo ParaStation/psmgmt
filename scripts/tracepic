@@ -1,0 +1,18 @@
+#!/bin/sh
+
+echo "$0 tracemcpOutputFile [ c ]"
+
+tmp=_tmp$$.ps
+if [ "$2" == "c" ] ;then
+  while [ "`$0.awk $1|dot -Tps -o $tmp &&gv $tmp`" = "" ]
+   do
+      echo "^C to stop"
+   done
+    rm $tmp
+  echo Bye
+else
+     $0.awk $1|dot -Tps -o $tmp|gv $tmp
+fi  
+
+
+

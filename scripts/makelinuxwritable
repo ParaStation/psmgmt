@@ -1,0 +1,6 @@
+#!/bin/sh
+
+
+touch /usr/src/linux/.kernelrelease.new
+sleep 1
+touch /usr/src/linux/.kernelrelease

@@ -1,0 +1,27 @@
+digraph ssh { 
+
+node[ shape=record fontsize=10 ]
+edge[ shape=record fontsize=10 ]
+knote0 [label="k0"]
+knote1 [label="<0>0|<1>1|<2>2"]
+knote2 [label="k2"]
+knote3 [label="k3"]
+knote4 [label="k4"]
+
+knote0->knote1:0[label="#47*0.712766us\n2,14,20,27,38,44..."]
+knote1:1->knote2[label="#14*0.5us\n3,28,58,94,119,144..."]
+knote1:2->knote2[label="#32*29.75us\n15,21,39,45,51,75..."]
+knote2->knote3[label="#16*0.9375us\n4,29,59,62,95,120..."]
+knote3->knote4[label="#16*1.90625us\n5,30,60,63,96,121..."]
+knote4->knote2[label="#2*208us\n61,367"]
+knote4->knote2[label="#14*38.5714us\n6,31,64,97,122,147..."]
+}
+
+
+
+
+
+
+
+
+

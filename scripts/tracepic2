@@ -1,0 +1,20 @@
+#!/bin/sh
+
+echo "$0 tracemcpOutputFile [ c ]"
+
+tmp=_tmp$$.ps
+while [ "1" == "1" ]
+ do
+    $0.awk $1 |tee ${tmp}.dot|
+    dot -Tps -o $tmp
+    gv $tmp
+
+    if [ "$2" != "c" ] ;then
+      rm $tmp
+      exit 
+    fi
+    echo "^C to stop"
+ done
+
+
+

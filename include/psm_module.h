@@ -1,0 +1,100 @@
+
+/*************************************************************fdb*
+ * $Id: psm_module.h,v 1.1 2001/04/02 09:41:13 hauke Exp $
+ * structures and prototypes of psm_module.c
+ *
+ *************************************************************fde*/
+
+#ifndef _PSM_MODULE_H_
+#define _PSM_MODULE_H_
+
+#include "psm_osif.h"
+#include "psm_const.h"
+
+typedef unsigned long psm_context_t;
+
+
+struct psm_mod {
+    struct psm_pci_dev	* pci_dev;
+    struct psm_lanai	* lanai;
+    struct psm_lanaiif	* lanaiif;
+    struct psm_mcp	* mcp;
+    struct psm_mcpif	* mcpif;
+};
+
+struct psm_mmap_result{
+    int ulen;           /* used length */
+    unsigned long kaddr; /*  phys address for offset*/
+    enum { mmap_pci , mmap_dma } type;
+    enum { mmapf_write = 1,
+	   mmapf_read  = 2 } allowed_flags;
+    char * region_name; /* name for mapped region */
+};
+    
+
+
+struct psm_mcpif {
+    int (*ioctl) ( int kern,psm_context_t, unsigned int cmd, unsigned long arg);
+    int (*mmap)  ( psm_context_t context,int offset,int len,
+		   struct psm_mmap_result * result );
+    void (*irq)  ( unsigned int irq,void * ptr);
+    int (*open)  ( psm_context_t );
+    int (*close) ( psm_context_t );
+    int (*init)  ( struct psm_mod * psm_mod ,unsigned long param );
+    int (*cleanup) ( void );
+};
+
+
+extern int psm_node_id;
+
+
+int psm_ioctl(int kern,psm_context_t context, unsigned int cmd, unsigned long arg);
+int psm_open( psm_context_t * context );
+int psm_close( psm_context_t context );
+extern int psm_mmap( psm_context_t context,int offset,int len,struct psm_mmap_result * result );
+
+
+
+void psm_cleanup(void);
+int psm_init(void);
+
+
+extern inline int psm_copy_from_user_or_kernel(int kern,void *to, const void *from,
+				 unsigned long n )
+{
+    if (!kern)
+	return copy_from_user(to,from,n);
+    else{
+	memcpy(to,from,n);
+	return 0;
+    }
+}
+
+extern inline int psm_copy_to_user_or_kernel(int kern,void*to, const void *from,
+			       unsigned long n )
+{
+    if (!kern)
+	return copy_to_user(to,from,n);
+    else{
+	memcpy(to,from,n);
+	return 0;
+    }
+}
+       
+
+
+
+#endif /* _PSM_MODULE_H_ */
+
+
+
+
+
+
+
+
+
+
+
+
+
