@@ -21,7 +21,7 @@ else
 endif
 
 TOOLS:=psconfig pscounter test_nodes psiadmin psid psld parastation
-TOOLS += psilogger psiforwarder test_config_parsing
+TOOLS += psilogger psiforwarder mlisten test_config_parsing
 # test_nodes
 
 bin:	$(TOOLS)
@@ -50,20 +50,21 @@ lex.admin.o: lex.admin.c admin.tab.c admin.tab.h
 
 # psid
 VPATH += $(SRCDIR)/daemon $(SRCDIR)/cardconfig
-psid: psid.o psidutil.o config_parsing.o cardconfig.o
-psid: -lpse -lpsi -lm -lpshal -lputil
+psid: psid.o psidutil.o psidtask.o config_parsing.o cardconfig.o
+psid: -lm -lpshal -lputil -lpscommon -lpsi
+# -lpsi only needed for forwarder! To be removed soon.
 
-test_config_parsing: config_parsing.o -lputil -lpsi
+test_config_parsing: config_parsing.o -lputil -lpscommon
 
 #psld
 VPATH += $(SRCDIR)/licdaemon
 psld: psld.o license.o config_parsing.o
-psld: -lpsi -lm -lputil
+psld: -lm -lputil -lpscommon
 
 # logger
 VPATH += $(SRCDIR)/logger
-psiforwarder: psiforwarder.o logmsg.o -lpsi -lm
-psilogger: psilogger.o logmsg.o -lpsi -lm
+psiforwarder: psiforwarder.o logmsg.o -lm
+psilogger: psilogger.o logmsg.o -lm
 
 
 
