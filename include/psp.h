@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psp.h,v 1.13 2002/02/13 08:34:40 eicker Exp $
+ * $Id: psp.h,v 1.14 2002/02/15 19:21:46 eicker Exp $
  *
  */
 /**
@@ -13,7 +13,7 @@
  * psp: The ParaStation Protocol
  *      Used for daemon-daemon and client-daemon communication.
  *
- * $Id: psp.h,v 1.13 2002/02/13 08:34:40 eicker Exp $
+ * $Id: psp.h,v 1.14 2002/02/15 19:21:46 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -29,7 +29,7 @@ extern "C" {
 #endif
 #endif
 
-#define PSPprotocolversion  308
+#define PSPprotocolversion  309
 
 /*------------------------------------------------------------------------- 
 * PSP_ctrl messages through the OS socket of the daemon
@@ -111,15 +111,21 @@ extern "C" {
 /*----------------------------------------------------------------------*/
 /* global options to be sent in the DD protocol                         */
 /*----------------------------------------------------------------------*/
-#define PSP_OP_PROCLIMIT           0x0001
-#define PSP_OP_UIDLIMIT            0x0002
-#define PSP_OP_PSIDDEBUG           0x0004
-#define PSP_OP_SMALLPACKETSIZE     0x0008
-#define PSP_OP_RESENDTIMEOUT       0x0010
-#define PSP_OP_HNPEND              0x0020
-#define PSP_OP_ACKPEND             0x0040
-#define PSP_OP_RDPDEBUG            0x0080
-#define PSP_OP_MCASTDEBUG          0x0100
+#define PSP_OP_SMALLPACKETSIZE     0x0001
+#define PSP_OP_RESENDTIMEOUT       0x0002
+#define PSP_OP_HNPEND              0x0003
+#define PSP_OP_ACKPEND             0x0004
+
+#define PSP_OP_PSIDDEBUG           0x0010
+#define PSP_OP_PSIDSELECTTIME      0x0011
+#define PSP_OP_PROCLIMIT           0x0012
+#define PSP_OP_UIDLIMIT            0x0013
+
+#define PSP_OP_RDPDEBUG            0x0020
+#define PSP_OP_RDPPKTLOSS          0x0021
+#define PSP_OP_RDPMAXRETRANS       0x0022
+
+#define PSP_OP_MCASTDEBUG          0x0028
 
 /*----------------------------------------------------------------------*/
 /* global reset actions to be sent in the DD/CD protocol                */
@@ -200,6 +206,8 @@ typedef struct{
     char psidvers[80];/** CVS version-string of the ParaStation daemon */
 }DDInitMsg_t;
 
+#define DDOptionMsgMax 16
+
 /* Options Message */
 typedef struct{
     DDMsg_t header;   /* header of the message */
@@ -207,7 +215,7 @@ typedef struct{
     struct{
 	long option;  /* option to be set/requested */
 	long value;   /* value of option to be set */
-    }opt[10];
+    }opt[DDOptionMsgMax];
 }DDOptionMsg_t;
 
 /* Signal Message */
