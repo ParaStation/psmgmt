@@ -18,8 +18,6 @@ void PSIADM_SetMaxProc(int count);
 void PSIADM_ShowMaxProc(void);
 void PSIADM_SetUser(int uid);
 void PSIADM_ShowUser(void);
-void PSIADM_SetDebugmask(long newmask);
-void PSIADM_ShowDebugmask(void);
 void PSIADM_SetPsidDebug(int val, int first, int last);
 void PSIADM_ShowPsidDebug(int first, int last);
 void PSIADM_SetPsidSelectTime(int val, int first, int last);

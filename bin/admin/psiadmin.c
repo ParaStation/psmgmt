@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.33 2002/07/03 20:59:03 eicker Exp $
+ * $Id: psiadmin.c,v 1.34 2002/07/03 21:08:19 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.33 2002/07/03 20:59:03 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.34 2002/07/03 21:08:19 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -44,7 +44,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.33 $";
+static char psiadmversion[] = "$Revision: 1.34 $";
 static int  DoRestart = 1;
 
 static char *hoststatus;
@@ -316,31 +316,6 @@ void PSIADM_ShowUser(void)
 	printf("limited to user : %ld\n", uidlimit);
     }
 
-    return;
-}
-
-void PSIADM_SetDebugmask(long newmask)
-{
-    // printf("debugmask was %lx\n",PSI_debugmask);
-
-    if(geteuid()){
-	printf("Sorry, only root access\n");
-	return;
-    }
-    printf("NOT IMPLEMENTED YET!!\n");
-    return;
-
-    /* @todo TODO Norbert: Neue debugmask an daemon senden! Neue Nachricht!! */
-    /* @todo Norbert: DebugLevel für Daemon setzen, Neue Nachtricht
-       (wie MCast, RDP, ...) */
-    // PSI_debugmask = newmask;
-    // printf("debugmask is now %lx\n", PSI_debugmask);
-    return;
-}
-
-void PSIADM_ShowDebugmask(void)
-{
-    printf("NOT IMPLEMENTED YET!!\n");
     return;
 }
 
