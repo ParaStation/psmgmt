@@ -140,10 +140,10 @@ int main(int argc, char **argv)
 
     if (arg_parse(argc, argv,
 		  "", "Usage: %s [options]", argv[0],
-		  "", "This program set routes",
+		  "", "This program sets routes.",
 		  "-key %S",&arg_lickey,"Set license key",
-		  "-id %d[%S]",&arg_id,&arg_routingtable,"Node ID [routingtable]",
-		  "-r %d %d[%d[%d[%d[%d[%d[%d[%d]]]]]]]",
+		  "-id %d [%S]",&arg_id,&arg_routingtable,"Node ID [routingtable]",
+		  "-r %d %d [%d [%d [%d [%d [%d [%d [%d]]]]]]]",
 		  &arg_routenode,
 		  &arg_route[0],&arg_route[1],&arg_route[2],&arg_route[3],
 		  &arg_route[4],&arg_route[5],&arg_route[6],&arg_route[7],
@@ -171,5 +171,6 @@ int main(int argc, char **argv)
 /*
  * Local Variables:
  *  compile-command: "make psconfig"
- *
+ *  c-basic-offset: 4
+ * End:
  */
