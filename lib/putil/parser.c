@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: parser.c,v 1.5 2002/08/07 13:08:54 eicker Exp $
+ * $Id: parser.c,v 1.6 2003/02/25 12:07:08 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: parser.c,v 1.5 2002/08/07 13:08:54 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: parser.c,v 1.6 2003/02/25 12:07:08 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -38,14 +38,23 @@ static char errtxt[256];
 
 static char *nextline(void)
 {
-    static char line[256];
+    static char line[512];
+    char *hash, *start, *l;
+    int length=0;
+    int quote=0, dquote=0;
 
+ continuation:
     parseline++;
 
-    if (!fgets(line, sizeof(line), parsefile)) {
+    if (!fgets(line+length, sizeof(line)-length, parsefile)) {
 	parser_comment("Got EOF", 5);
 	line[0] = '\0';
 	return line;
+    }
+    length = strlen(line);
+    if (length > 1 && line[length-2] == '\\' && line[length-1] == '\n') {
+	length -= 2;
+	goto continuation;
     }
 
     if (parser_getDebugLevel() >= 12) {
@@ -63,8 +72,51 @@ static char *nextline(void)
     }
 
     if (strlen(line) == (sizeof(line) - 1)) {
-	parser_comment("Line too long: '%s'\n", 0);
+	parser_comment("Line too long\n", 0);
 	return NULL;
+    }
+
+    /* Remove comments */
+    hash = strchr(line, '#');
+    start = line;
+    while (hash) {
+	/* This is a candidate. It might be quoted! */
+	for (l=start; l<hash; l++) {
+	    switch (*l) {
+	    case '\'':
+		if (!dquote) quote = !quote;
+		break;
+	    case '"':
+		if (!quote) dquote = !dquote;
+		break;
+	    }
+	}
+	if (quote || dquote) {
+	    /* Find next candidate */
+	    start = hash+1;
+	    hash = strchr(start, '#');
+	} else {
+	    break;
+	}
+    }
+
+    if (hash) {
+	char *txt = hash+1;
+
+	/* Remove leading whitespace */
+	while (*txt==' ' || *txt=='\t') txt++;
+
+	if (*txt == '\n') {
+	    snprintf(errtxt, sizeof(errtxt), "Remove empty comment");
+	} else {
+	    if (txt[strlen(txt)-1] == '\n') txt[strlen(txt)-1] = '\0';
+	    snprintf(errtxt, sizeof(errtxt), "Remove comment: '%s'", txt);
+	}
+
+	parser_comment(errtxt, 12);
+
+	hash[0] = '\n';
+	hash[1] = '\0';
     }
 
     return line;
@@ -144,13 +196,6 @@ int parser_parseString(char *token, parser_t *parser)
     return 0;
 }
 
-/* This parser serves for parsing comment lines */
-static keylist_t dummy_list[] = {
-    {NULL, parser_error}
-};
-
-static parser_t dummy_parser = {"\n", dummy_list};
-
 int parser_parseFile(parser_t *parser)
 {
     char *line, *token;
@@ -164,28 +209,6 @@ int parser_parseFile(parser_t *parser)
 	}
 
 	if (!strlen(line)) break; /* EOF reached */
-
-	/*
-	 * Special handling for first character is '#': comment
-	 * This is due to allow comments without whitespace after '#'
-	 */
-	if (line[0]=='#') {
-	    line++;
-	    /* Remove leading whitespace */
-	    while (*line==' ' || *line=='\t') line++;
-
-	    token = parser_registerString(line, &dummy_parser);
-
-	    if (token) {
-		snprintf(errtxt, sizeof(errtxt), "Got comment '%s'", token);
-	    } else {
-		snprintf(errtxt, sizeof(errtxt), "Got empty comment");
-	    }
-
-	    parser_comment(errtxt, 12);
-
-	    continue;
-	}
 
 	/* Put line into strtok() */
 	token = parser_registerString(line, parser);
