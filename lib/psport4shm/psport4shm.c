@@ -7,7 +7,7 @@
 /**
  * name: Description
  *
- * $Id: psport4shm.c,v 1.3 2003/04/03 13:40:07 hauke Exp $
+ * $Id: psport4shm.c,v 1.4 2003/04/07 16:48:42 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -19,7 +19,7 @@
  */
 
 static char vcid[] __attribute__(( unused )) =
-"$Id: psport4shm.c,v 1.3 2003/04/03 13:40:07 hauke Exp $";
+"$Id: psport4shm.c,v 1.4 2003/04/07 16:48:42 hauke Exp $";
 
 #ifdef XREF
 #include <sys/uio.h>
@@ -2391,6 +2391,31 @@ int PSP_ClosePort(PSP_PortH_t porth)
     return 0;
 }
 
+static
+int mtry_connect(int sockfd, const struct sockaddr *serv_addr,
+		 socklen_t addrlen)
+{
+/* In the case the backlog (listen) is smaller than the number of
+   processes, the connect could fail with ECONNREFUSED even though
+   there is a linstening socket. mtry_connect() retry four times
+   the connect after one second delay.
+*/
+    int i;
+    int ret = 0;
+    struct sockaddr_in *sa = (struct sockaddr_in*)serv_addr;
+    for (i = 0; i < 4; i++) {
+	ret = connect(sockfd, serv_addr, addrlen);
+	if (ret >= 0) break;
+	if (errno != ECONNREFUSED) break;
+	sleep(1);
+	DPRINT(2, "Retry %d CONNECT to %s:%d",
+	       i + 1,
+	       inetstr(ntohl(sa->sin_addr.s_addr)),
+	       ntohs(sa->sin_port));
+    }
+    return ret;
+}
+
 
 int PSP_Connect_(PSP_PortH_t porth, struct sockaddr *sa, socklen_t addrlen)
 {
@@ -2411,7 +2436,7 @@ int PSP_Connect_(PSP_PortH_t porth, struct sockaddr *sa, socklen_t addrlen)
     if (con_fd < 0) goto err_socket;
 
     /* Connect */
-    if (connect(con_fd, sa, addrlen) < 0) goto err_connect;
+    if (mtry_connect(con_fd, sa, addrlen) < 0) goto err_connect;
 
     ConfigureConnection(port, con, con_fd);
 
