@@ -170,7 +170,7 @@ extern void * shared_mem_start;
   * 0 0 0 4KB = 512 entries      0
   */
 
-#define FIFO_QUEUE_SIZE_SELECTION  0   /* 4 kByte */
+#define FIFO_QUEUE_SIZE_SELECTION  2   /* 16 kByte = 2048 entries */
 
 #ifdef USEFIFOCNT
 #define FIFO_CONTROLREG_BITS   ( FIFO_QUEUE_SIZE_SELECTION	\
