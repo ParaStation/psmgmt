@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.h,v 1.21 2004/01/22 14:57:42 eicker Exp $
+ * $Id: pstask.h,v 1.22 2004/01/28 10:46:05 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with ParaStation tasks.
  *
- * $Id: pstask.h,v 1.21 2004/01/22 14:57:42 eicker Exp $
+ * $Id: pstask.h,v 1.22 2004/01/28 10:46:05 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -105,7 +105,7 @@ typedef struct PStask_T{
     uint16_t protocolVersion;      /**< Protocol version the task speaks. */
     PStask_sig_t *childs;          /**< Childs of the task. Signal not used. */
     PSpart_request_t *request;     /**< Pointer to temp. partition request */
-    unsigned int partitionSize;    /**< Size of the partition. */
+    uint32_t partitionSize;        /**< Size of the partition. */
     PSpart_option_t options;       /**< The partition's options. */
     PSnodes_ID_t *partition;       /**< The actual partition. List of nodes. */
     int nextRank;                  /**< Next rank to start within the task. */
@@ -188,14 +188,17 @@ PStask_t *PStask_clone(PStask_t *task);
  * @brief Print a task structure in a string.
  *
  * Print the description of the task structure @a task into the
- * character array @a txt.
+ * character array @a txt. At most @a size characters will be written
+ * into the character array @a txt.
  *
- * @param txt Character array to print task description into.
+ * @param txt Character array to print the task description into.
+ *
  * @param size Size of the character array @a txt.
+ *
  * @param task Pointer to the task structure to print.
  *
  * @return No return value.
- * */
+ */
 void PStask_snprintf(char *txt, size_t size, PStask_t *task);
 
 /**
