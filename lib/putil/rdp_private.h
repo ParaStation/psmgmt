@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp_private.h,v 1.14 2003/07/11 13:42:27 eicker Exp $
+ * $Id: rdp_private.h,v 1.15 2003/07/11 14:05:27 eicker Exp $
  *
  */
 /**
@@ -14,7 +14,7 @@
  *
  * Private functions and definitions
  *
- * $Id: rdp_private.h,v 1.14 2003/07/11 13:42:27 eicker Exp $
+ * $Id: rdp_private.h,v 1.15 2003/07/11 14:05:27 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -120,7 +120,7 @@ static int RDPPktLoss = 0;
  * The actual maximum retransmission count. Get/set by
  * getMaxRetransRDP()/setMaxRetransRDP()
  */
-static int RDPMaxRetransCount = 20;
+static int RDPMaxRetransCount = 128;
 
 /**
  * @todo This is not correct!! What happens on overflow?
