@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.2 2003/02/10 18:37:27 eicker Exp $
+# $Id: Makefile.in,v 1.3 2003/04/03 13:35:38 hauke Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -12,7 +12,8 @@
 
 LIBS := psport pshal arg pvar pse pscommon psi putil pslog
 ifeq ("@target_os@","linux")
-LIBS += psport4
+# LIBS += psport4 old fe version without sharedmem
+LIBS += psport4shm
 endif
 
 default: lib

@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.1 2003/02/25 11:16:38 hauke Exp $
+# $Id: Makefile.in,v 1.2 2003/04/03 13:35:38 hauke Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -16,7 +16,7 @@ TOPSRCDIR := @TOP_SRCDIR@
 
 ################################
 
-export LIBNAME := psport4shm
+export LIBNAME := psport4
 export LIBOBJS := psport4shm.o
 export LIBVPATH := $(SRCDIR)
 export LIBINC = -I$(TOPSRCDIR)/include
