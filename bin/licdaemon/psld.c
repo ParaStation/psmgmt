@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.31 2002/08/07 13:07:04 eicker Exp $
+ * $Id: psld.c,v 1.32 2003/03/06 14:25:37 eicker Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Daemon
  *
- * $Id: psld.c,v 1.31 2002/08/07 13:07:04 eicker Exp $
+ * $Id: psld.c,v 1.32 2003/03/06 14:25:37 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.31 2002/08/07 13:07:04 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.32 2003/03/06 14:25:37 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -45,7 +45,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.31 2002/08/07 13
 #include "errlog.h"
 #include "timer.h"
 #include "mcast.h"
-
+#include "psnodes.h"
 #include "config_parsing.h"
 
 /* magic license check */
@@ -137,7 +137,7 @@ int checkMachine(void)
 
     close(skfd);
 
-    LicIP = licNode.addr;
+    LicIP = PSnodes_getAddr(PSNODES_LIC);
     snprintf(errtxt, sizeof(errtxt), "LicIP is %s [%d interfaces]",
 	     inet_ntoa(*(struct in_addr *) &LicIP), if_found);
     errlog(errtxt, 1);
@@ -160,9 +160,10 @@ int checkMachine(void)
 
     gethostname(host, sizeof(host));
     if (!ipfound) {
+	unsigned int addr = PSnodes_getAddr(PSNODES_LIC);
 	snprintf(errtxt, sizeof(errtxt),
 		 "Machine %s not configured as LicenseServer [Server is %s]",
-		 host, inet_ntoa(* (struct in_addr *) &licNode.addr));
+		 host, inet_ntoa(* (struct in_addr *) &addr));
 	errexit(errtxt, ECONNREFUSED);
     }
 
@@ -268,7 +269,7 @@ void MCastCallBack(int msgid, void *buf)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.31 $";
+    char revision[] = "$Revision: 1.32 $";
     fprintf(stderr, "psld %s\b ", revision+11);
 }
 
@@ -366,14 +367,14 @@ int main(int argc, const char *argv[])
 	return -1;
     }
 
-    if (licNode.addr == INADDR_ANY) { /* Check LicServer Setting */
-	/*
-	 * Set node 0 as default server
-	 */
-	licNode.addr = nodes[0].addr;
+    /* Check LicServer Setting */
+    if (PSnodes_getAddr(PSNODES_LIC) == INADDR_ANY) {
+	/* No LicServer yet. Set node 0 as default server */
+	unsigned int addr = PSnodes_getAddr(0);
+	PSnodes_register(PSNODES_LIC, addr);
 	snprintf(errtxt, sizeof(errtxt),
 		 "Using %s (ID=0) as Licenseserver",
-		 inet_ntoa(* (struct in_addr *) &licNode.addr));
+		 inet_ntoa(* (struct in_addr *) &addr));
 	errlog(errtxt, 1);
     }
 
@@ -392,19 +393,20 @@ int main(int argc, const char *argv[])
     /*
      * Prepare hostlist for initialization of MCast
      */
-    hostlist = (unsigned int *)malloc((NrOfNodes+1) * sizeof (unsigned int));
+    hostlist = (unsigned int *)malloc((PSnodes_getNum()+1)
+				      * sizeof (unsigned int));
     if (!hostlist) {
 	errlog("Not enough memory for hostlist\n", 0);
 	return -1;
     }
 
-    for (i=0; i<NrOfNodes; i++) {
-	hostlist[i] = nodes[i].addr;
+    for (i=0; i<PSnodes_getNum(); i++) {
+	hostlist[i] = PSnodes_getAddr(i);
     }
-    hostlist[NrOfNodes] = licNode.addr;
+    hostlist[PSnodes_getNum()] = PSnodes_getAddr(PSNODES_LIC);
 
-    msock = initMCast(NrOfNodes, ConfigMCastGroup, ConfigMCastPort,
-		      !debug, hostlist, NrOfNodes, MCastCallBack);
+    msock = initMCast(PSnodes_getNum(), ConfigMCastGroup, ConfigMCastPort,
+		      !debug, hostlist, PSnodes_getNum(), MCastCallBack);
 
     setDeadLimitMCast(ConfigLicDeadInterval);
 
