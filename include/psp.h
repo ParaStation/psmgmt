@@ -27,7 +27,7 @@
 #ifndef __PSP_H
 #define __PSP_H
 
-#define PSPprotocolversion  299
+#define PSPprotocolversion  300
 
 /*------------------------------------------------------------------------- 
 * PSP_ctrl messages through the OS socket of the daemon
@@ -186,6 +186,7 @@ typedef struct{
     int rank;         /* rank of client passed by spawn */
     int uid;          /* user id */
     int pid;          /* process id */
+    char psidvers[80];/* CVS version-string of the ParaStation daemon */
 }DDInitMsg_t;
 
 /* Options Message */

@@ -48,6 +48,8 @@ extern int PSI_masternode;     /* number of my masternode (or -1) */
 extern int PSI_masterport;     /* port of my master process */
 extern int PSI_myrank;         /* rank inside my process-group */
 
+extern char *PSI_psidversion;  /** CVS versionstring of psid */
+
 extern char *PSI_hoststatus;
 
 extern long PSI_options;

@@ -303,11 +303,11 @@ void PSIADM_SetRdpDebug(int val, int node)
 void PSIADM_Version(void)
 {
     printf("PSIADMIN: ParaStation administration tool\n");
-    printf("Copyright (C) 1996-2001 ParTec AG Karlsruhe\n");
+    printf("Copyright (C) 1996-2002 ParTec AG Karlsruhe\n");
     printf("\n");
-    printf("PSIADMIN: version %s\n",psiadmversion);
-/*   printf("PSID:     version %s\n","????"); */
-    printf("PSILIB:   version %d\n",PSPprotocolversion);
+    printf("PSIADMIN: version %s\n", psiadmversion);
+    printf("PSID:     version %s\n", PSI_psidversion);
+    printf("PSILIB:   version %d\n", PSPprotocolversion);
     return;
 }
 

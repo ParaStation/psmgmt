@@ -43,6 +43,8 @@ int PSI_masternode = -1;
 int PSI_masterport = -1;
 int PSI_myrank;
 
+char *PSI_psidversion = NULL;
+
 char *PSI_hoststatus = NULL;
 
 enum TaskOptions PSI_mychildoptions = TaskOption_SENDSTDHEADER;
@@ -336,13 +338,18 @@ PSI_daemon_connect(u_short protocol, u_long hostaddr)
 	PSI_myrank = msg.rank;
 	PSI_masternode = msg.masternode;
 	PSI_masterport = msg.masterport;
+	if ( ! PSI_psidversion ) {
+	    PSI_psidversion = malloc(sizeof(msg.psidvers));
+	}
+	strncpy(PSI_psidversion, msg.psidvers, sizeof(msg.psidvers));
+	PSI_psidversion[sizeof(msg.psidvers)-1] = '\0';
 	return 1;
 	break;
     default :
 	shutdown(PSI_msock,2);
 	close(PSI_msock);
 	PSI_msock =-1;
-	fprintf(stderr,"PSI_daemonconnect(): "
+	fprintf(stderr,"PSI_daemon_connect(): "
 		"unexpected return code %s .\n",PSPctrlmsg(msg.header.type));
 	return 0;
 	break;
