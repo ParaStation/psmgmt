@@ -297,7 +297,7 @@ for ((i = 0; i < ${#NODES[*]} ; i++)); do
     OUTFILE=$(mktemp $TMPTEMPLATE)
     OUTPUTS=(${OUTPUTS[*]} ${OUTFILE})
     TMPFILES="$TMPFILES $OUTFILE"
-    $RCMD $host $COMMAND > $OUTFILE 2>&1 &
+    $RCMD "$host" "$COMMAND" > $OUTFILE 2>&1 &
     PIDS=(${PIDS[*]} $!)
     if [ "$VERBOSE" = 1 ];then
 	echo "$RCMD $host $COMMAND"
