@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.24 2002/07/03 20:17:05 eicker Exp $
+ * $Id: rdp.c,v 1.25 2002/07/08 14:58:14 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.24 2002/07/03 20:17:05 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.25 2002/07/08 14:58:14 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -870,6 +870,12 @@ static void handleTimeoutRDP(int fd)
 
     while (ap) {
 	mp = ap->bufptr;
+	if (!mp) {
+	    snprintf(errtxt, sizeof(errtxt),
+		     "handleTimeoutRDP(): mp is NULL for ap = %p", ap);
+	    errlog(errtxt, 0);
+	    break;
+	}
 	node = mp->node;
 	if (mp == conntableRDP[node].bufptr) {
 	    /* handle only first outstanding buffer */
@@ -896,6 +902,11 @@ static void handleTimeoutRDP(int fd)
 		    mp->retrans++;
 		    timeradd(&mp->tv, &RESEND_TIMEOUT, &mp->tv);
 
+		    /*
+		     * ap may become invalid during sending, therefor
+		     * we store the predecessor.
+		     */
+		    ap = ap->prev;
 		    switch (conntableRDP[node].state) {
 		    case CLOSED:
 			errlog("handleTimeoutRDP(): connection is CLOSED.", 0);
@@ -918,7 +929,6 @@ static void handleTimeoutRDP(int fd)
 				 (struct sockaddr *)&conntableRDP[node].sin,
 				 sizeof(struct sockaddr));
 			conntableRDP[node].ackPending = 0;
-			ap = ap->next;
 			break;
 		    default:
 			snprintf(errtxt, sizeof(errtxt),
@@ -927,6 +937,16 @@ static void handleTimeoutRDP(int fd)
 				 conntableRDP[node].state, node);
 			errlog(errtxt, 0);
 		    }
+		    /*
+		     * If the ap->next was removed during the send we
+		     * now get a valid successor. If it was not
+		     * removed, just handle the same ap again (the tv
+		     * element will keep us from doing to much).
+		     */
+		    if (ap)
+			ap = ap->next;
+		    else
+			ap = AckListHead;
 		}
 	    } else {
 		break; /* all following msg's do not have a timeout */
