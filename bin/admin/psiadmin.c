@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.34 2002/07/03 21:08:19 eicker Exp $
+ * $Id: psiadmin.c,v 1.35 2002/07/08 16:18:16 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.34 2002/07/03 21:08:19 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.35 2002/07/08 16:18:16 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -44,7 +44,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.34 $";
+static char psiadmversion[] = "$Revision: 1.35 $";
 static int  DoRestart = 1;
 
 static char *hoststatus;
@@ -203,7 +203,8 @@ void PSIADM_ProcStat(int first, int last)
 	num = INFO_request_tasklist(i, taskinfo, sizeof(taskinfo), 1);
 	for (j=0; j<MIN(num,NUMTASKS); j++) {
 	    printf("%4d %10ld 0x%010lx %10ld 0x%010lx ",
-		   taskinfo[j].nodeno, taskinfo[j].tid, taskinfo[j].tid,
+		   PSC_getID(taskinfo[j].tid),
+		   taskinfo[j].tid, taskinfo[j].tid,
 		   taskinfo[j].ptid, taskinfo[j].ptid);
 	    printf("%5d%s\n", taskinfo[j].uid,
 		   taskinfo[j].group==TG_ADMIN ? "(A)" :

@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.h,v 1.1 2002/07/03 20:05:57 eicker Exp $
+ * $Id: pstask.h,v 1.2 2002/07/08 16:14:06 eicker Exp $
  *
  */
 /**
  * @file
  * pstask: User-functions for interaction with ParaStation tasks.
  *
- * $Id: pstask.h,v 1.1 2002/07/03 20:05:57 eicker Exp $
+ * $Id: pstask.h,v 1.2 2002/07/08 16:14:06 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -57,8 +57,7 @@ typedef struct PStask_T{
     long ptid;                   /* parent tid */
     uid_t uid;                   /* user id */
     gid_t gid;                   /* group id */
-    short nodeno;                /* node number of the executing node */
-    long  group;                 /* task group number see TG_* constants */
+    long  group;                 /* task group number @see TG_* constants */
     int rank;                    /* rank given for spwaned childs */
     unsigned int loggernode;     /* the logging peer for any output */
     int loggerport;              /* the logging peer for any output */

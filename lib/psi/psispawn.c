@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.17 2002/07/03 20:36:13 eicker Exp $
+ * $Id: psispawn.c,v 1.18 2002/07/08 16:17:41 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.17 2002/07/03 20:36:13 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.18 2002/07/08 16:17:41 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -816,10 +816,6 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
 	    tids[i] = -1;
 	} else {
 	    /*
-	     * set the correct destination node
-	     */
-	    task->nodeno = dstnodes[i];
-	    /*
 	     * set the correct rank
 	     */
 	    task->rank = rank++;
@@ -832,7 +828,6 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
 	     * put the length of the whole msg to the head of the msg
 	     * and return this value
 	     */
-
 	    msg.header.type = PSP_DD_SPAWNREQUEST;
 	    msg.header.len += sizeof(msg.header);;
 	    msg.header.sender = PSC_getMyTID();
@@ -873,7 +868,7 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
 	     * find the right task request
 	     */
 	    for (i=0; i<count; i++) {
-		if ((dstnodes[i]==task->nodeno) && (tids[i]==0)) {
+		if ((dstnodes[i]==PSC_getID(task->tid)) && (tids[i]==0)) {
 		    errors[i] = task->error;
 		    tids[i] = task->tid;
 		    ret++;
@@ -884,13 +879,13 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
 	    if (i==count) {
 		snprintf(errtxt, sizeof(errtxt), "PSI_dospawn():"
 			 " got SPAWNSUCCESS/SPAWNFAILED message from"
-			 " unknown node %d.", task->nodeno);
+			 " unknown node %d.", PSC_getID(task->tid));
 		PSI_errlog(errtxt, 0);
 	    }
 
 	    if (msg.header.type==PSP_DD_SPAWNFAILED) {
 		snprintf(errtxt, sizeof(errtxt), "PSI_dospawn():"
-			 " spawn to node %d failed.", task->nodeno);
+			 " spawn to node %d failed.", PSC_getID(task->tid));
 		PSI_errlog(errtxt, 0);
 		error = 1;
 	    }

@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.h,v 1.11 2002/07/03 20:04:08 eicker Exp $
+ * $Id: info.h,v 1.12 2002/07/08 16:13:56 eicker Exp $
  *
  */
 /**
  * @file
  * info: Functions for information retrieving from ParaStation daemon
  *
- * $Id: info.h,v 1.11 2002/07/03 20:04:08 eicker Exp $
+ * $Id: info.h,v 1.12 2002/07/08 16:13:56 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -76,7 +76,7 @@ int INFO_request_hoststatus(void* buffer, size_t size, int verbose);
  *
  * request_hostlist(void *buffer, int size)
  *
- * requests a list of all hosts with a defined HWstatus
+ * requests a list of all nodes
  * RETURN: filled buffer
  *
  */
@@ -93,7 +93,6 @@ int INFO_request_nodelist(NodelistEntry_t *buffer, size_t size, int verbose);
 int INFO_request_host(unsigned int addr, int verbose);
 
 typedef struct {
-    short nodeno;
     long tid;
     long ptid;
     uid_t uid;

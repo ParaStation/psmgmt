@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.18 2002/07/03 20:32:44 eicker Exp $
+ * $Id: info.c,v 1.19 2002/07/08 16:15:38 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.18 2002/07/03 20:32:44 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.19 2002/07/08 16:15:38 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -75,7 +75,6 @@ static int INFO_receive(INFO_info_t what, void *buffer, size_t size,
 			}
 			break;
 		    }
-		    taskinfo->nodeno = task->nodeno;
 		    taskinfo->tid = task->tid;
 		    taskinfo->ptid = task->ptid;
 		    taskinfo->uid = task->uid;
