@@ -23,7 +23,7 @@ void PSIADM_SetParam(int type, int value, int first, int last);
 void PSIADM_ShowParam(int type, int first, int last);
 
 void PSIADM_Version(void);
-void PSIADM_ShowConfig(void);
+/* void PSIADM_ShowConfig(void); */
 
 void PSIADM_Reset(int reset_hw, int first, int last);
 void PSIADM_ShutdownCluster(int first, int last);

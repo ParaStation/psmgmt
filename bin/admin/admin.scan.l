@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: admin.scan.l,v 1.14 2003/04/03 15:51:00 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: admin.scan.l,v 1.15 2003/05/28 17:10:19 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 %}
 
@@ -20,7 +20,6 @@ add                  { return ADDOP; }
 set                  { return SETOP; }
 show                 { return SHOWOP; }
 status|stat|s        { return STATOP; }
-config|conf          { return CONFIGOP; }
 kill                 { return KILLOP; }
 restart              { return RESTARTOP; }
 shutdown             { return SHUTDOWNOP; }
