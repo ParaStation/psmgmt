@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidstatus.c,v 1.2 2004/01/09 16:13:12 eicker Exp $
+ * $Id: psidstatus.c,v 1.3 2004/01/22 14:41:17 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidstatus.c,v 1.2 2004/01/09 16:13:12 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidstatus.c,v 1.3 2004/01/22 14:41:17 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -93,7 +93,6 @@ typedef struct {
     PSID_Jobs_t jobs;   /**< Number of jobs on the node */  
     PSID_Load_t load;   /**< Load parameters of node */
     short missCounter;  /**< Number of consecutively missing status pings */
-    short placedJobs;   /**< @todo Move to psidpartition.c */
 } ClientStatus_t;
 
 /**
@@ -122,7 +121,6 @@ static void allocMasterSpace(void)
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	gettimeofday(&clientStat[node].lastPing, NULL);
 	clientStat[node].missCounter = 0;
-	clientStat[node].placedJobs = 0;
     }
 }
 
@@ -240,12 +238,8 @@ static void sendRDPPing(void)
     ptr += sizeof(PSID_Load_t);
     msg.header.len += sizeof(PSID_Load_t);
 
-    if (getMasterID() == PSC_getMyID()) {
-	msg_LOAD(&msg);
-	handleMasterTasks();
-    } else {
-	sendMsg(&msg);
-    }
+    sendMsg(&msg);
+    if (getMasterID() == PSC_getMyID()) handleMasterTasks();
 }
 
 void incJobs(int total, int normal)
