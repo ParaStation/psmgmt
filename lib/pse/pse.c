@@ -122,38 +122,26 @@ void PSEinit(int NP, int Argc, char** Argv,
 	int num_processes;   /* number of valid table entries      */
 
 	*rank = s_nPSE_MyWorldRank = 0;
-//	printf("My rank is %d (masternode=%d, masterport=%d)\n",
-//	       *rank, *masternode, *masterport);
-//	fflush(stdout);
 
 	/* get the partition */
 	maxnodes_partition = PSI_getPartition();
-//	printf("maxnodes_partition = %d\n", maxnodes_partition);
 
 	/* init table of spawned processes */
 	if( !(s_pSpawnedProcesses=malloc(sizeof(long) * s_nPSE_WorldSize))){
 	    EXIT("No memory!%s\n", "");
 	}
-//	printf("s_pSpawnedProcesses = %p\n", s_pSpawnedProcesses);
 	for( i=0; i<s_nPSE_WorldSize; i++ ){
 	    s_pSpawnedProcesses[i] = -1;
 	}
-//	printf("s_pSpawnedProcesses = %p\n", s_pSpawnedProcesses);
 	s_pSpawnedProcesses[0] = PSI_mytid;
-//	printf("s_pSpawnedProcesses = %p\n", s_pSpawnedProcesses);
-//	printf("s_pSpawnedProcesses[0] = %ld (%lx)\n",
-//	       s_pSpawnedProcesses[0], s_pSpawnedProcesses[0]);
-//	printf("mypid=%d\n", getpid());
 
-	// PSI_notifydead(0,SIGTERM);
+	PSI_notifydead(0,SIGTERM);
 
 	/* spawn client processes */
 	errors = malloc(s_nPSE_WorldSize*sizeof(int));
-//	printf("errors = %p\n", errors);
 	if( PSI_spawnM(s_nPSE_WorldSize-1, NULL, ".", Argc, Argv,
 		       *masternode, *masterport, *rank, &errors[1],
 		       &s_pSpawnedProcesses[1]) < 0 ) {
-//	    printf("After PSI_spawnM()\n");
 	    for(num_processes=1; num_processes < s_nPSE_WorldSize;
 		num_processes++){
 		if(errors[num_processes]!=0)
@@ -163,9 +151,7 @@ void PSEinit(int NP, int Argc, char** Argv,
 			  sys_errlist[errors[num_processes]]:"UNKNOWN ERROR");
 	    }
 	}
-//	printf("After PSI_spawnM() 2\n");
 	free(errors);
-//	printf("After free(errors)\n");
 
 	DEBUG0("Spawned all processes.\n");
 
