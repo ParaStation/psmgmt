@@ -109,7 +109,7 @@ Cpr      = "COPYRIGHT (C) 2003 ParTec AG Karlsruhe"
 
 Name     = "$name"
 Contact  = "$contact"
-License  = `echo|pslic_gen -sl`
+License  = `echo|./pslic_gen -sl`
 LicType  = "$lictype"
 
 Date     = "`date -I`"
@@ -123,7 +123,7 @@ EOF
 
 if [ "$calcmcpkey" == "1" ]; then
 cat >> $filename <<EOF
-MCPKey   = `pslic_gen -sm < $filename`
+MCPKey   = `./pslic_gen -sm < $filename`
 
 EOF
 fi
@@ -134,12 +134,12 @@ Fields   = "$fields"
 EOF
 
 cat >>$filename <<EOF
-Hash     = `pslic_gen -sa < $filename`
+Hash     = `./pslic_gen -sa < $filename`
 
 EOF
 
 #cat $filename
 echo "Wrote licensefile <$filename>"
-pslic_gen -c < $filename
+./pslic_gen -c < $filename
 
 
