@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.95 2003/06/20 13:54:42 eicker Exp $
+ * $Id: psid.c,v 1.96 2003/06/25 16:45:59 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.95 2003/06/20 13:54:42 eicker Exp $ 
+ * $Id: psid.c,v 1.96 2003/06/25 16:45:59 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.95 2003/06/20 13:54:42 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.96 2003/06/25 16:45:59 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -78,7 +78,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.95 $";
+static char psid_cvsid[] = "$Revision: 1.96 $";
 
 static int PSID_mastersock;
 
@@ -531,6 +531,11 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	outmsg.type = PSP_CONN_ERR_UIDLIMIT;
 	*(uid_t *)outmsg.buf = PSnodes_getUser(PSC_getMyID());
 	outmsg.header.len += sizeof(uid_t);
+    } else if (gid && PSnodes_getGroup(PSC_getMyID()) != PSNODES_ANYGROUP
+	       && gid != PSnodes_getGroup(PSC_getMyID())) {
+	outmsg.type = PSP_CONN_ERR_GIDLIMIT;
+	*(gid_t *)outmsg.buf = PSnodes_getGroup(PSC_getMyID());
+	outmsg.header.len += sizeof(gid_t);
     } else if (PSnodes_getProcs(PSC_getMyID()) !=  PSNODES_ANYPROC
 	       && info.jobs.normal > PSnodes_getProcs(PSC_getMyID())) {
 	outmsg.type = PSP_CONN_ERR_PROCLIMIT;
@@ -547,10 +552,12 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	outmsg.header.type = PSP_CD_CLIENTREFUSED;
 
 	snprintf(errtxt, sizeof(errtxt), "%s connection refused:"
-		 "group %s task %s version %ld vs. %d uid %d %d jobs %d %d",
+		 "group %s task %s version %ld vs. %d uid %d %d gid %d %d"
+		 " jobs %d %d",
 		 __func__, PStask_printGrp(msg->group),
 		 PSC_printTID(task->tid), msg->version, PSprotocolVersion,
 		 uid, PSnodes_getUser(PSC_getMyID()),
+		 gid, PSnodes_getGroup(PSC_getMyID()),
 		 info.jobs.normal, PSnodes_getProcs(PSC_getMyID()));
 	PSID_errlog(errtxt, 1);
 
@@ -1273,9 +1280,13 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 
 		if ((!hwType || PSnodes_getHWStatus(i) & hwType)
 		    && (PSnodes_getUser(i) == PSNODES_ANYUSER
-			|| PSnodes_getUser(i) == requester->uid)
+			|| PSnodes_getUser(i) == requester->uid
+			|| !requester->uid)
 		    && (PSnodes_getProcs(i) == PSNODES_ANYPROC
 			|| PSnodes_getProcs(i) > info.jobs.normal)
+		    && (PSnodes_getGroup(i) == PSNODES_ANYGROUP
+			|| PSnodes_getGroup(i) == requester->gid
+			|| !requester->gid)
 		    && PSnodes_runJobs(i)) {
 
 		    nodelist[j].id = i;
@@ -1424,7 +1435,27 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 		    /* Info all nodes about my UIDLIMIT */
 		    broadcastMsg(&info);
 		} else {
-		    PSnodes_setProcs(PSC_getID(msg->header.sender),
+		    PSnodes_setUser(PSC_getID(msg->header.sender),
+				    msg->opt[i].value);
+		}
+		break;
+	    case PSP_OP_GIDLIMIT:
+		if (PSC_getPID(msg->header.sender)) {
+		    DDOptionMsg_t info;
+		    PSnodes_setGroup(PSC_getMyID(), msg->opt[i].value);
+
+		    info.header.type = PSP_CD_SETOPTION;
+		    info.header.sender = PSC_getMyTID();
+		    info.header.len = sizeof(info);
+
+		    info.count = 1;
+		    info.opt[0].option = msg->opt[i].option;
+		    info.opt[0].value = msg->opt[i].value;
+
+		    /* Info all nodes about my GIDLIMIT */
+		    broadcastMsg(&info);
+		} else {
+		    PSnodes_setGroup(PSC_getID(msg->header.sender),
 				     msg->opt[i].value);
 		}
 		break;
@@ -1558,6 +1589,9 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_UIDLIMIT:
 		msg->opt[i].value = PSnodes_getUser(PSC_getMyID());
+		break;
+	    case PSP_OP_GIDLIMIT:
+		msg->opt[i].value = PSnodes_getGroup(PSC_getMyID());
 		break;
 	    case PSP_OP_RDPDEBUG:
 		msg->opt[i].value = getDebugLevelRDP();
@@ -2605,7 +2639,7 @@ void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.95 $";
+    char revision[] = "$Revision: 1.96 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
