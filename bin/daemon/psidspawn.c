@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidspawn.c,v 1.9 2003/04/07 11:10:27 eicker Exp $
+ * $Id: psidspawn.c,v 1.10 2003/07/11 14:08:49 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.9 2003/04/07 11:10:27 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.10 2003/07/11 14:08:49 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -441,6 +441,7 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
 	snprintf(errtxt, sizeof(errtxt), "%s: pipe(): %s\n",
 		 __func__, get_strerror(errno));
 	PSID_errlog(errtxt, 0);
+	return errno;
     }
     fcntl(forwarderfds[1], F_SETFD, FD_CLOEXEC);
 
@@ -449,6 +450,9 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
 	snprintf(errtxt, sizeof(errtxt), "%s: socketpair(): %s\n",
 		 __func__, get_strerror(errno));
 	PSID_errlog(errtxt, 0);
+	close(forwarderfds[0]);
+	close(forwarderfds[1]);
+	return errno;
     }
 
     if (!lic_isvalid(&ConfigLicEnv)) {
