@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.115 2003/10/31 13:20:23 eicker Exp $
+ * $Id: psid.c,v 1.116 2003/10/31 13:22:48 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.115 2003/10/31 13:20:23 eicker Exp $ 
+ * $Id: psid.c,v 1.116 2003/10/31 13:22:48 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.115 2003/10/31 13:20:23 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.116 2003/10/31 13:22:48 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -81,7 +81,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-char psid_cvsid[] = "$Revision: 1.115 $";
+char psid_cvsid[] = "$Revision: 1.116 $";
 
 /** Master socket (type UNIX) for clients to connect */
 static int masterSock;
@@ -1548,7 +1548,7 @@ void msg_SIGNAL(DDSignalMsg_t *msg)
 	    newMsg.header.len = sizeof(newMsg);
 	    newMsg.signal = msg->signal;
 	    newMsg.param = msg->param;
-	    newMsg.pervasive = (int *)&msg->pervasive;
+	    newMsg.pervasive = *(int *)&msg->pervasive;
 
 	    msg = &newMsg;
 	}
@@ -2248,7 +2248,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.115 $";
+    char revision[] = "$Revision: 1.116 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
