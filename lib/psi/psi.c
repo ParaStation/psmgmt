@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.55 2003/10/23 16:27:35 eicker Exp $
+ * $Id: psi.c,v 1.56 2003/10/29 17:32:56 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.55 2003/10/23 16:27:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.56 2003/10/29 17:32:56 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -459,7 +459,8 @@ int PSI_notifydead(PStask_ID_t tid, int sig)
     DDSignalMsg_t msg;
     int ret;
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%lx, %d)", __func__, tid, sig);
+    snprintf(errtxt, sizeof(errtxt), "%s(%s, %d)", __func__,
+	     PSC_printTID(tid), sig);
     PSI_errlog(errtxt, 10);
 
     msg.header.type = PSP_CD_NOTIFYDEAD;
@@ -510,7 +511,7 @@ int PSI_release(PStask_ID_t tid)
     DDSignalMsg_t msg;
     int ret;
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%lx)", __func__, tid);
+    snprintf(errtxt, sizeof(errtxt), "%s(%s)", __func__, PSC_printTID(tid));
     PSI_errlog(errtxt, 10);
 
     msg.header.type = PSP_CD_RELEASE;
@@ -592,7 +593,8 @@ int PSI_sendFinish(PStask_ID_t parenttid)
 {
     DDMsg_t msg;
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%lx)", __func__, parenttid);
+    snprintf(errtxt, sizeof(errtxt), "%s(%s)", __func__,
+	     PSC_printTID(parenttid));
     PSI_errlog(errtxt, 10);
 
     msg.type = PSP_CD_SPAWNFINISH;
