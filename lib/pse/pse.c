@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.15 2002/02/12 15:05:46 eicker Exp $
+ * $Id: pse.c,v 1.16 2002/02/18 19:56:16 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.15 2002/02/12 15:05:46 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.16 2002/02/18 19:56:16 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -47,6 +47,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.15 2002/02/12 15:
 static int   worldSizePSE = -1;
 static int   worldRankPSE = -1;
 static long* s_pSpawnedProcesses;     /* size: <worldSizePSE>  */
+static long  parenttidPSE = -1;
 
 void  PSE_SYexitall(char* pszReason, int nCode);
 
@@ -187,7 +188,6 @@ void PSEspawn(int Argc, char** Argv,
     } else if (rank == 0) {
 	/* master process */
 
-	long parenttid;
 	int *errors;
 	char envstr[80];
 	int num_processes;   /* number of valid table entries      */
@@ -202,11 +202,11 @@ void PSEspawn(int Argc, char** Argv,
 	 * Register myself to the parents task, so I'm notified if the parent
 	 * dies.
 	 */
-	parenttid = INFO_request_taskinfo(PSI_mytid,INFO_PTID);
-	if((parenttid<=0) || (PSI_notifydead(parenttid, SIGTERM)<0))
-	    EXIT3("Parent with tid 0x%lx[%d:%d] is probably no more alive."
-		  " This shouldn't happen. I'm exiting.\n",
-		  parenttid, PSI_getnode(parenttid), PSI_getpid(parenttid));
+	parenttidPSE = INFO_request_taskinfo(PSI_mytid, INFO_PTID);
+	if((parenttidPSE<=0) || (PSI_notifydead(parenttidPSE, SIGTERM)<0))
+	    EXIT3("Parent with tid 0x%lx[%d:%d] is probably no more alive.\n",
+		  parenttidPSE, PSI_getnode(parenttidPSE),
+		  PSI_getpid(parenttidPSE));
 
 	snprintf(envstr, sizeof(envstr), "PSI_MASTERNODE=%d", *masternode);
 	putPSIEnv(envstr);
@@ -224,17 +224,29 @@ void PSEspawn(int Argc, char** Argv,
 
 	/* spawn client processes */
 	errors = malloc(worldSizePSE*sizeof(int));
+/*  	if (PSI_spawnM(worldSizePSE-1, NULL, ".", Argc, Argv, */
+/*  		       PSI_loggernode, PSI_loggerport, */
+/*  		       rank+1, parenttid, */
+/*  		       &errors[1], &s_pSpawnedProcesses[1]) < 0 ) { */
 	if (PSI_spawnM(worldSizePSE-1, NULL, ".", Argc, Argv,
 		       PSI_loggernode, PSI_loggerport,
-		       rank+1, parenttid,
+		       rank+1, 0,
 		       &errors[1], &s_pSpawnedProcesses[1]) < 0 ) {
-	    for(num_processes=1; num_processes < worldSizePSE;
-		num_processes++){
-		if(errors[num_processes]!=0)
-		    EXIT2("Could not spawn process (%s) error = %s !\n",
-			  Argv[0],
-			  (errors[num_processes]<sys_nerr) ?
-			  strerror(errors[num_processes]):"UNKNOWN ERROR");
+	    for (num_processes=1; num_processes < worldSizePSE;
+		 num_processes++) {
+		fprintf(stderr, "Could (not) spawn process (%s)"
+			", error = %s\n",
+			Argv[0],
+			(errors[num_processes]<sys_nerr) ?
+			strerror(errors[num_processes]):"UNKNOWN ERROR");
+		if (errors[num_processes]) {
+		    fprintf(stderr, "Could not spawn process %d"
+			    ", error = %s\n",
+			    num_processes,
+			    (errors[num_processes]<sys_nerr) ?
+			    strerror(errors[num_processes]):"UNKNOWN ERROR");
+		    exit(-1);
+		}
 	    }
 	}
 	free(errors);
@@ -244,7 +256,6 @@ void PSEspawn(int Argc, char** Argv,
     } else {
 	/* client process */
 
-	long parenttid;
 	char *env_str;
 
 	/* Get masternode/masterport from environment */
@@ -264,11 +275,14 @@ void PSEspawn(int Argc, char** Argv,
 	 * Register myself to the parents task, so I'm notified if the parent
 	 * dies.
 	 */
-	parenttid = INFO_request_taskinfo(PSI_mytid, INFO_PTID);
-	if((parenttid<=0) || (PSI_notifydead(parenttid, SIGTERM)<0))
-	    EXIT3("Parent with tid 0x%lx[%d:%d] is probably no more alive."
-		  " This shouldn't happen. I'm exiting.\n",
-		  parenttid, PSI_getnode(parenttid), PSI_getpid(parenttid));
+	parenttidPSE = INFO_request_taskinfo(PSI_mytid, INFO_PTID);
+	if ((parenttidPSE<=0) || (PSI_notifydead(parenttidPSE, SIGTERM)<0)) {
+	    EXIT6("Parent with tid 0x%lx[%d:%d] is probably no more alive.\n"
+		  "My tid is 0x%lx[%d:%d].\n",
+		  parenttidPSE, PSI_getnode(parenttidPSE),
+		  PSI_getpid(parenttidPSE),
+		  PSI_mytid, PSI_getnode(PSI_mytid), PSI_getpid(PSI_mytid));
+	}
     }
 
 }
@@ -314,40 +328,45 @@ void PSEfinalize(void)
 {
 /*      int n; */
 
-    fflush(stdout);
-    fflush(stderr);
-
-    /* Don't kill parent when we exit */
-    PSI_release(PSI_mytid);
+    if (PSEgetmyrank()>0) {
+	/* Don't kill parent when we exit */
+	if (PSI_send_finish(parenttidPSE)) {
+	    EXIT3("Failed to send SPAWNFINISH to parent with"
+		  " tid 0x%lx[%d:%d].\n",
+		  parenttidPSE, PSI_getnode(parenttidPSE),
+		  PSI_getpid(parenttidPSE));
+	}
+	PSI_release(PSI_mytid);
+    } else if (PSEgetmyrank()==0) {
+	if (PSI_recv_finish(PSEgetsize()-1)) {
+	    EXIT("%sFailed to receive SPAWNFINISH from chields.\n", "");
+	}
+	PSI_release(PSI_mytid);
+    } else {
+    }
 
     DEBUG0("Quitting program, good bye.\n");
+
+    fflush(stdout);
+    fflush(stderr);
 
     /* release our forwarder */
     close(STDERR_FILENO);
     close(STDOUT_FILENO);
     close(STDIN_FILENO);
-
 }
 
 /***************************************************************************
  * void      PSEkillmachine(void);
  *
  *  PSEkillmachine kills all other tasks in the own task group.
+ *  Nothing to do here, since all cleanup is done by the daemon.
  *
  * PARAMETERS
  * RETURN
  */
 void PSEkillmachine(void)
-{
-    int i;
-
-    for(i=0; i<worldSizePSE; i++){
-	if (i!=worldRankPSE) {
-	    PSI_kill(s_pSpawnedProcesses[i], SIGTERM);
-	    DEBUG2("Killing rank %d, pid 0x%x\n", i, s_pSpawnedProcesses[i]);
-	}
-    }
-}
+{}
 
 /*  Barry Smith suggests that this indicate who is aborting the program.
     There should probably be a separate argument for whether it is a
@@ -364,7 +383,7 @@ void PSEabort(int nCode)
 void PSE_SYexitall(char* pszReason, int nCode)
 {
     fprintf(stderr,
-	    "[%d]: Killing all(%d) processes", worldRankPSE, worldSizePSE);
+	    "[%d]: Killing all (%d) processes", worldRankPSE, worldSizePSE);
     if (pszReason) {
 	fprintf(stderr, ", reason: %s\n", pszReason);
     } else {
@@ -372,5 +391,11 @@ void PSE_SYexitall(char* pszReason, int nCode)
     }
 
     PSEkillmachine();
+
+    fflush(stderr);
+    fflush(stdout);
+
+    signal(SIGTERM, SIG_DFL);
+
     exit(nCode);
 }
