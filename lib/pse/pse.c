@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.40 2003/09/12 14:09:07 eicker Exp $
+ * $Id: pse.c,v 1.41 2003/09/12 15:16:48 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.40 2003/09/12 14:09:07 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.41 2003/09/12 15:16:48 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -335,7 +335,7 @@ void PSE_spawn(int argc, char *argv[], int *node, int *port, int rank)
 
     switch (PSE_getRank()) {
     case -1:
-	PSE_getPartition(worldSize);
+	if (PSE_getPartition(worldSize)!=worldSize) exit(1);
 	PSE_spawnMaster(argc, argv);
 	break;
     case 0:
