@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.43 2003/02/27 18:33:02 eicker Exp $
+ * $Id: psi.c,v 1.44 2003/03/04 15:34:13 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.43 2003/02/27 18:33:02 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.44 2003/03/04 15:34:13 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -121,7 +121,7 @@ static int connectDaemon(PStask_group_t taskGroup)
     msg.header.dest = 0;
     msg.version = PSprotocolversion;
     if (taskGroup == TG_SPAWNER) {
-	msg.ppid = getppid();
+	msg.ppid = getpgrp();
     }
 #ifndef SO_PEERCRED
     msg.pid = pid;
