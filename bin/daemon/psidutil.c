@@ -18,6 +18,7 @@
 #include "psilog.h"
 #include "parse.h"
 #include "logger.h"
+#include "cardconfig.h"
 
 #include "psidutil.h"
 
@@ -27,28 +28,25 @@ struct PSID_host_t *PSID_hosts[256];
 unsigned long *PSID_hostaddresses = NULL;
 char *PSID_hoststatus = NULL;
 
-void PSID_initCluster(int nodenr, int nrofnodes, int syslog)
-{}
-
-void PSID_resetMCP(int syslog)
-{}
-
-void PSID_setupRouting(char *routingfile)
-{}
-
-void PSID_ReConfig(int nodenr,int nrofnodes, char *routingfile)
+void PSID_ReConfig(int nodeid, int nrofnodes, char *licensekey, char *module,
+		   char *routingfile)
 {
-    SYSLOG(1,(LOG_ERR, "PSHAL_ReConfig(%d,%d,%c)"
+    card_init_t card_info;
+
+    SYSLOG(1,(LOG_ERR, "PSHAL_ReConfig: %d '%s' '%s' '%s'"
 	      " small packets %d, ResendTimeout %d\n",
-	      nodenr, nrofnodes, routingfile,
+	      nodeid, licensekey, module, routingfile,
 	      ConfigSmallPacketSize,ConfigResendTimeout));
-    PSID_initCluster(nodenr,nrofnodes,1); 
-    PSID_resetMCP(1); 
 
-    PSID_setupRouting(routingfile);
-    PSID_initCluster(nodenr,nrofnodes,1);
+    card_info.node_id = nodeid;
+    card_info.licensekey = licensekey;
+    card_info.module = module;
+    card_info.options = NULL;
+    card_info.routing_file = routingfile;
 
-    PSI_myid = nodenr;
+    // card_init(&card_info);
+
+    PSI_myid = nodeid;
     PSI_nrofnodes = nrofnodes;
 
 //    PSHALSYS_SetSmallPacketSize(ConfigSmallPacketSize);
@@ -179,7 +177,8 @@ int PSID_readconfigfile(void)
      */
     SYSLOG(9,(LOG_ERR,"PSID_readconfigfile():doing PSID_ReConfing..."));
     // PSHAL_StartUp(1);
-    PSID_ReConfig(MyPsiId, NrOfNodes, ConfigRoutefile);
+    PSID_ReConfig(MyPsiId, NrOfNodes, ConfigLicensekey, ConfigModule,
+		  ConfigRoutefile);
     SYSLOG(9,(LOG_ERR,"PSID_readconfigfile():PSID_ReConfig ok."));
 
     return PSID_CardPresent;
@@ -518,12 +517,6 @@ int PSID_host(unsigned int addr)
     hostno = addr >> 24;
 #endif
     for (host = PSID_hosts[hostno]; host; host = host->next){
-#if defined(DEBUG)
-	if(PSP_DEBUGHOST & PSI_debugmask ){
-	    sprintf(PSI_txt,"PSID_host(%x): 0x%lx \n", addr, host);
-	    PSI_logerror(PSI_txt);
-	}
-#endif
 	if (host->saddr == addr)
 	    return host->psino ;
     }

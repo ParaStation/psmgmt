@@ -40,13 +40,8 @@ extern struct PSID_host_t *PSID_hosts[256];  /* host table */
 extern unsigned long *PSID_hostaddresses;    /* fast access to IN adresses */
 extern char *PSID_hoststatus;     /* state of specific hosts: PSPHOSTUP|.. */
 
-void PSID_initCluster(int nodenr, int nrOfnodes, int syslog);
-
-void PSID_resetMCP(int syslog);
-
-void PSID_setupRouting(char *routingfile);
-
-void PSID_ReConfig(int nodenr, int nrofnodes, char *configfile);
+void PSID_ReConfig(int nodenr, int nrofnodes, char *license, char *module,
+		   char *configfile);
 
 int PSID_host(unsigned int addr);
 
