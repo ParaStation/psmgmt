@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidoption.c,v 1.3 2003/10/29 17:21:53 eicker Exp $
+ * $Id: psidoption.c,v 1.4 2003/11/26 17:40:27 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidoption.c,v 1.3 2003/10/29 17:21:53 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidoption.c,v 1.4 2003/11/26 17:40:27 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -159,10 +159,6 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 	    case PSP_OP_HWSTATUS:
 		PSnodes_setHWStatus(PSC_getID(msg->header.sender),
 				    msg->opt[i].value);
-		break;
-	    case PSP_OP_CPUS:
-		PSnodes_setCPUs(PSC_getID(msg->header.sender),
-				msg->opt[i].value);
 		break;
 	    case PSP_OP_PSIDDEBUG:
 		PSID_setDebugLevel(msg->opt[i].value);
