@@ -15,7 +15,7 @@
     <cmdsynopsis>
       <command>psid</command>
       <arg>-v?</arg>
-      <arg>-d <replacable>level<replacable></arg>
+      <arg>-d <replaceable>level</replaceable></arg>
       <arg>-f <replaceable>configfile</replaceable></arg>
       <arg>-l <replaceable>logfile</replaceable></arg>
       <arg>--usage</arg>
