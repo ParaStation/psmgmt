@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidpartition.c,v 1.6 2003/11/11 21:46:19 eicker Exp $
+ * $Id: psidpartition.c,v 1.7 2003/11/26 17:41:05 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.6 2003/11/11 21:46:19 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.7 2003/11/26 17:41:05 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -249,7 +249,7 @@ static int nodeOK(unsigned short node, request_t *req)
 	&& (PSnodes_getProcs(node) == PSNODES_ANYPROC
 	    || (PSnodes_getProcs(node) > info.jobs.normal)
 	    || (req->option & PART_OPT_OVERBOOK))
-	&& (PSnodes_getCPUs(node))
+	&& (PSnodes_getVirtCPUs(node))
 	&& (! (req->option & PART_OPT_EXCLUSIVE) || !info.jobs.normal)
 	&& (! (req->option & PART_OPT_OVERBOOK) || !info.jobs.normal)) {
 
@@ -305,7 +305,7 @@ static sortlist_t *getCandidateList(request_t *request)
     for (i=0; i<request->num; i++) {
 	if (nodeOK(request->nodes[i], request)) {
 	    MCastConInfo_t info;
-	    int cpus = PSnodes_getCPUs(i);
+	    int cpus = PSnodes_getVirtCPUs(i);
 	    list.entry[list.size].id = request->nodes[i];
 	    getInfoMCast(i, &info);
 	    list.entry[list.size].cpus = cpus;
