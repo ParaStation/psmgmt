@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidpartition.h,v 1.4 2004/03/09 08:47:12 eicker Exp $
+ * $Id: psidpartition.h,v 1.5 2004/03/11 14:25:49 eicker Exp $
  *
  */
 /**
  * @file
  * Helper functions in order to setup and handle partitions.
  *
- * $Id: psidpartition.h,v 1.4 2004/03/09 08:47:12 eicker Exp $
+ * $Id: psidpartition.h,v 1.5 2004/03/11 14:25:49 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -268,7 +268,7 @@ void msg_PROVIDETASKNL(DDBufferMsg_t *inmsg);
  * @param tid The task ID of the root process that exited.
  *
  * @return On success, the number of bytes sent within the
- * PSP_DD_GETTASKS message is returned. If an error occured, -1 is
+ * PSP_DD_TASKDEAD message is returned. If an error occured, -1 is
  * returned and errno is set appropriately.
  */
 int send_TASKDEAD(PStask_ID_t tid);
@@ -276,7 +276,7 @@ int send_TASKDEAD(PStask_ID_t tid);
 /**
  * @brief Handle a PSP_DD_TASKDEAD message.
  *
- * Handle the message @a inmsg of type PSP_DD_TASKDEAD.
+ * Handle the message @a msg of type PSP_DD_TASKDEAD.
  *
  * A PSP_DD_TASKDEAD message informs the master process upon exit of
  * the tasks root process. This enables the master to free the
@@ -286,7 +286,85 @@ int send_TASKDEAD(PStask_ID_t tid);
  *
  * @return No return value.
  */
-void msg_TASKDEAD(DDBufferMsg_t *inmsg);
+void msg_TASKDEAD(DDMsg_t *msg);
+
+/**
+ * @brief Send a PSP_DD_TASKSUSPEND message.
+ *
+ * Send a PSP_DD_TASKSUSPEND message to the current master node. This
+ * message informs the master node on the suspension of the root
+ * process with task ID @a tid and thus probably allows to temporarily
+ * free the corresponding partition.
+ *
+ * @param tid The task ID of the root process that was suspended.
+ *
+ * @return On success, the number of bytes sent within the
+ * PSP_DD_TASKSUSPEND message is returned. If an error occured, -1 is
+ * returned and errno is set appropriately.
+ */
+int send_TASKSUSPEND(PStask_ID_t tid);
+
+/**
+ * @brief Handle a PSP_DD_TASKSUSPEND message.
+ *
+ * Handle the message @a msg of type PSP_DD_TASKSUSPEND.
+ *
+ * A PSP_DD_TASKSUSPEND message informs the master process upon
+ * suspension of the tasks root process. This enables the master to
+ * temporarily free the resources allocated by the corresponding task
+ * if requested.
+ *
+ * If the resources of a task are actually freed upon suspension is
+ * steered by the @ref freeOnSuspend member of the @ref config
+ * structure. This can be modified on the one hand by the
+ * 'freeOnSuspend' keyword within the daemon's configuration file or
+ * on the other hand during run-time by the 'set freeOnSuspend'
+ * directive of the ParaStation administration tool psiadmin.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+void msg_TASKSUSPEND(DDMsg_t *msg);
+
+/**
+ * @brief Send a PSP_DD_TASKRESUME message.
+ *
+ * Send a PSP_DD_TASKRESUME message to the current master node. This
+ * message informs the master node on the continuation of the root
+ * process with task ID @a tid and thus probably to realloc the
+ * corresponding temporarily freed partition.
+ *
+ * @param tid The task ID of the root process that continues to run.
+ *
+ * @return On success, the number of bytes sent within the
+ * PSP_DD_TASKRESUME message is returned. If an error occured, -1 is
+ * returned and errno is set appropriately.
+ */
+int send_TASKRESUME(PStask_ID_t tid);
+
+/**
+ * @brief Handle a PSP_DD_TASKRESUME message.
+ *
+ * Handle the message @a msg of type PSP_DD_TASKRESUME.
+ *
+ * A PSP_DD_TASKRESUME message informs the master process upon
+ * continuation of the suspended tasks root process. This enables the
+ * master to realloc the temporarily freed resources allocated by the
+ * corresponding task during startup.
+ *
+ * If the resources of a task were actually freed upon suspension is
+ * steered by the @ref freeOnSuspend member of the @ref config
+ * structure. This can be modified on the one hand by the
+ * 'freeOnSuspend' keyword within the daemon's configuration file or
+ * on the other hand during run-time by the 'set freeOnSuspend'
+ * directive of the ParaStation administration tool psiadmin.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+void msg_TASKRESUME(DDMsg_t *msg);
 
 /**
  * @brief Send a PSP_DD_CANCELPART message.
