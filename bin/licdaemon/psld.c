@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.13 2002/01/22 16:18:09 eicker Exp $
+ * $Id: psld.c,v 1.14 2002/01/28 19:10:48 eicker Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Daemon
  *
- * $Id: psld.c,v 1.13 2002/01/22 16:18:09 eicker Exp $
+ * $Id: psld.c,v 1.14 2002/01/28 19:10:48 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.13 2002/01/22 16:18:09 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.14 2002/01/28 19:10:48 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -41,7 +41,9 @@ static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.13 2002/01/22 16
 
 #include <netdb.h>
 
-#include "rdp.h"
+#include <timer.h>
+#include <mcast.h>
+
 #include "../psid/parse.h"
 
 static int usesyslog = 1;  /* flag if syslog is used */
@@ -262,7 +264,8 @@ int check_lock(void)
 		return 0; /* psld already running */
 	    }
 	} else {
-	    ERR_OUT("process still running");
+	    snprintf(errtxt, sizeof(errtxt), "process %d still running", fpid);
+	    ERR_OUT(errtxt);
 	    return 0; /* psld already running */
 	}
     }
@@ -296,7 +299,7 @@ void sighandler(int sig)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.13 $";
+    char revision[] = "$Revision: 1.14 $";
     snprintf(errtxt, sizeof(errtxt), "psld %s\b ", revision+11);
     ERR_OUT(errtxt);
 }
@@ -346,7 +349,8 @@ int main(int argc, char *argv[])
 	    usesyslog=0;
 	    break;
 	case 'D':
-	    setRDPDebugLevel(10);
+	    setTimerDebugLevel(10);
+	    setMCastDebugLevel(10);
 	    dofork=0;
 	    usesyslog=0;
 	    break;
@@ -440,14 +444,14 @@ int main(int argc, char *argv[])
 	    hostlist[i] = psihosttable[i].inet;
 	}
 
-	msock = initRDPMCAST(NrOfNodes, ConfigMgroup, usesyslog, hostlist,
-			     NULL);
+	msock = initMCast(NrOfNodes, ConfigMgroup, usesyslog, hostlist,
+			  NULL);
 
 	tv.tv_sec = 1;
 	tv.tv_usec = 0;
 
 	while(1){
-	    Mselect(0,NULL,NULL,NULL,&tv);
+	    Tselect(0,NULL,NULL,NULL,&tv);
 	}
 /*      } */
 
