@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: logger.c,v 1.17 2002/02/08 17:19:29 hauke Exp $
+ * $Id: logger.c,v 1.18 2002/02/11 12:51:33 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: logger.c,v 1.17 2002/02/08 17:19:29 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: logger.c,v 1.18 2002/02/11 12:51:33 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -42,8 +42,7 @@ int stdin_fileno_backup=-1;
 int stdout_fileno_backup=-1;
 int stderr_fileno_backup=-1;
 
-static
-int LOGGERexecv( const char *path, char *const argv[])
+static int LOGGERexecv( const char *path, char *const argv[])
 {
     int ret;
     int cnt;
@@ -56,17 +55,8 @@ int LOGGERexecv( const char *path, char *const argv[])
     return ret;
 }
 
-
-/*********************************************************************
- * void LOGGERspawnforwarder()
- *
- * spawns a forwarder connected with 2 pipes and redirects stdout and
- * stderr to this pipes. stdout and stderr are backed up for later reuse
- * if (tty) create an pty for stdin stdout and stderr.
- *
- * RETURN nothing
- */
-void LOGGERspawnforwarder(unsigned int logger_node, int logger_port,int rank,int tty)
+void LOGGERspawnforwarder(unsigned int logger_node, int logger_port,
+			  int rank, int tty)
 {
     int pid;
     int stdoutfds[2], stderrfds[2];
@@ -83,7 +73,7 @@ void LOGGERspawnforwarder(unsigned int logger_node, int logger_port,int rank,int
 	 * (like the sshd). I dont want openpty inside the psi-library
 	 * because the need of -lutil  *jh*
 	 */
-	if (openpty (&stdoutfds[0],&stdoutfds[1],NULL,NULL,NULL)){
+	if (openpty(&stdoutfds[0],&stdoutfds[1],NULL,NULL,NULL)) {
 	    errtxt = strerror(errno);
 	    syslog(LOG_ERR, "LOGGERspawnforwarder(openpty()): [%d] %s", errno,
 		   errtxt?errtxt:"UNKNOWN");
@@ -96,15 +86,15 @@ void LOGGERspawnforwarder(unsigned int logger_node, int logger_port,int rank,int
 #endif
     }
     if (!tty){
-	if(socketpair(PF_UNIX,SOCK_STREAM,0,stdoutfds)){
+	if (socketpair(PF_UNIX,SOCK_STREAM,0,stdoutfds)) {
 	    errtxt = strerror(errno);
-	    syslog(LOG_ERR, "LOGGERspawnforwarder(pipe(stdout)): [%d] %s", errno,
-		   errtxt?errtxt:"UNKNOWN");
+	    syslog(LOG_ERR, "LOGGERspawnforwarder(pipe(stdout)): [%d] %s",
+		   errno, errtxt?errtxt:"UNKNOWN");
 	    perror("pipe(stdout)");
 	    exit(1);
 	}
     }
-    if(socketpair(PF_UNIX,SOCK_STREAM,0,stderrfds)){;
+    if (socketpair(PF_UNIX,SOCK_STREAM,0,stderrfds)) {
         errtxt = strerror(errno);
         syslog(LOG_ERR, "LOGGERspawnforwarder(pipe(stderr)): [%d] %s", errno,
                errtxt?errtxt:"UNKNOWN");
@@ -201,12 +191,6 @@ void LOGGERspawnforwarder(unsigned int logger_node, int logger_port,int rank,int
 
 static int listenport = -1;
 
-/*********************************************************************
- * int LOGGERspawnlogger()
- *
- * spawns a logger.
- * RETURN the portno of the logger
- */
 int LOGGERspawnlogger(void)
 {
     unsigned short portno;
@@ -236,12 +220,6 @@ int LOGGERspawnlogger(void)
     return portno;
 }
 
-/*********************************************************************
- * int LOGGERopenPort()
- *
- * open the logger port.
- * RETURN the portno of the logger
- */
 unsigned short LOGGERopenPort(void)
 {
     unsigned short defaultPortNo = 20000;
@@ -277,16 +255,6 @@ unsigned short LOGGERopenPort(void)
     return ntohs(sa.sin_port);
 }
 
-/**
- * void LOGGERexecLogger()
- *
- * @param portno The previously opened port the logger should listen on.
- *
- * spawns a logger.
- * @return No return value.
- *
- * @see LOGGERopenPort()
- */
 void LOGGERexecLogger(void)
 {
     int i;
