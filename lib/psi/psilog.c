@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilog.c,v 1.4 2002/03/26 13:51:40 eicker Exp $
+ * $Id: psilog.c,v 1.5 2002/07/03 20:34:19 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilog.c,v 1.4 2002/03/26 13:51:40 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilog.c,v 1.5 2002/07/03 20:34:19 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -19,41 +19,43 @@ static char vcid[] __attribute__(( unused )) = "$Id: psilog.c,v 1.4 2002/03/26 1
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "psi.h"
+#include "errlog.h"
 
 #include "psilog.h"
 
-int SYSLOG_LEVEL=1;
-
-unsigned long PSI_debugmask = 0;  /* debugmask for the local process. */
-
-char PSI_txt[1024];            /* scratch for error log */
-
-/***************************************************************************
- *      PSI_logerror()
- *
- *      Log a PSILib error message.  Prepends a string identifying the task.
- */
-void
-PSI_logerror(char *s)
+/* Wrapper functions for logging */
+void PSI_initLog(int usesyslog, FILE *logfile)
 {
-    if (PSI_isoption(PSP_OSYSLOG)){
-	SYSLOG(6,(LOG_ERR, "PSIlib [%lx]: %s", PSI_mytid, s));
-    }else{
-	if (PSI_isoption(PSP_OTIMESTAMP)){
-	    struct tm*  now;       /* current time */ 
-	    struct timeval tv;
-	    time_t t_now;
+    if (!usesyslog && logfile) {
+	int fno = fileno(logfile);
 
-	    t_now = time(&t_now);
-	    gettimeofday(&tv,0);
-	    now = localtime(&t_now);
-
-	    fprintf(stderr,"PSPlib [%lx][%2d:%02d:%02d:%03d]: %s", 
-		    PSI_mytid, now->tm_hour, now->tm_min, now->tm_sec,
-		    (int)tv.tv_usec/1000,s);
-	}else{
-	    fprintf(stderr, "PSIlib [%lx]: %s", PSI_mytid, s);
+	if (fno!=STDERR_FILENO) {
+	    dup2(fno, STDERR_FILENO);
+	    if (fno!=STDOUT_FILENO) {
+		fclose(logfile);
+	    }
 	}
     }
+
+    initErrLog("PSI", usesyslog);
+}
+
+int PSI_getDebugLevel(void)
+{
+    return getErrLogLevel();
+}
+
+void PSI_setDebugLevel(int level)
+{
+    setErrLogLevel(level);
+}
+
+void PSI_errlog(char *s, int level)
+{
+    errlog(s, level);
+}
+
+void PSI_errexit(char *s, int errorno)
+{
+    errexit(s, errorno);
 }
