@@ -2,6 +2,8 @@
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN"
                   "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd"[
 <!ENTITY ps "<emphasis>ParaStation</emphasis>">
+<!ENTITY ps3 "<emphasis>ParaStation3</emphasis>">
+<!ENTITY ps4 "<emphasis>ParaStation4</emphasis>">
 <!ENTITY psfe "<emphasis>ParaStation FE</emphasis>">
 
 <!ENTITY infoblurb SYSTEM "infoblurb.sgml">
