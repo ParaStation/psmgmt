@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiforwarder.c,v 1.10 2002/02/08 20:31:56 hauke Exp $
+ * $Id: psiforwarder.c,v 1.11 2002/02/08 21:05:34 hauke Exp $
  *
  */
 /**
  * @file
  * psiforwarder: Forwarding-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psiforwarder.c,v 1.10 2002/02/08 20:31:56 hauke Exp $
+ * $Id: psiforwarder.c,v 1.11 2002/02/08 21:05:34 hauke Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.10 2002/02/08 20:31:56 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.11 2002/02/08 21:05:34 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -211,8 +211,10 @@ void read_from_logger(int logfd, int stdinport)
 {
     FLBufferMsg_t msg;
     char obuf[120];
+    int ret;
 
-    if (readlog(logfd, &msg) > 0){
+    ret = readlog(logfd, &msg);
+    if ( ret > 0){
 	if (msg.header.type == STDIN){
 	    if (verbose){
 		snprintf(obuf, sizeof(obuf),
@@ -225,6 +227,7 @@ void read_from_logger(int logfd, int stdinport)
 	    /* unexpected message. Ignore. */
 	}
     }
+    return ret;
 }
 
 /**
@@ -284,7 +287,10 @@ void loop(int stdoutport, int stderrport)
 		    type=STDERR;
 		}else if(sock==loggersock){
 		    /* Read new input */
-		    read_from_logger(loggersock,stdoutport);
+		    if (read_from_logger(loggersock,stdoutport) <= 0){
+			/* connection to logger broken */
+			exit(1);
+		    }
 		    continue;
 		}else{
 		    snprintf(obuf, sizeof(obuf),
