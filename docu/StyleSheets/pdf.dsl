@@ -362,6 +362,8 @@ note"))))
                   (process-node-list revremark))
                 (empty-sosofo))))))))
 
+(element referenceinfo ( literal "" ))
+
 </style-specification-body>
 </style-specification>
 
