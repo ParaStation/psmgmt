@@ -20,7 +20,6 @@ INSTALL = @INSTALL@
 
 export LIBNAME := psi
 export LIBOBJS := psi.o psilog.o psienv.o psispawn.o psipartition.o psiinfo.o
-export LIBOBJS += info.o
 export LIBVPATH := $(SRCDIR)
 export LIBINC = -I$(TOPSRCDIR)/include
 export LIBDSTDIR = ../..
