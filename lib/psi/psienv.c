@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psienv.c,v 1.5 2002/04/26 12:39:22 eicker Exp $
+ * $Id: psienv.c,v 1.6 2003/07/22 18:37:02 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psienv.c,v 1.5 2002/04/26 12:39:22 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psienv.c,v 1.6 2003/07/22 18:37:02 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -224,16 +224,27 @@ char ** dumpPSIEnv(void)
 
     env_copy = (char **) malloc((count+1)*sizeof(char*));
 
-    for (i=0; i<sizeOfEnv; i++) {
+    for (i=0; i<sizeOfEnv && j<=count; i++) {
 	if (environment[i]) {
 	    env_copy[j] = strdup(environment[i]);
 	    if (!env_copy[j]) {
+		int k;
+		for (k=0; k<j; k++) free(env_copy[k]);
+		free(env_copy);
+
 		return NULL;
 	    }
 	    j++;
 	}
     }
-    if (j>count) return NULL;
+
+    if (j > count) {
+	/* Cleanup */
+	for (i=0; i<count+1; i++) free(env_copy[j]);
+	free(env_copy);
+
+	return NULL;
+    }
 
     env_copy[j] = NULL;
 
