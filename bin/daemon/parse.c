@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: parse.c,v 1.12 2002/02/12 15:09:06 eicker Exp $
+ * $Id: parse.c,v 1.13 2002/02/12 19:06:59 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: parse.c,v 1.12 2002/02/12 15:09:06 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: parse.c,v 1.13 2002/02/12 19:06:59 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -134,7 +134,7 @@ int lookupHost(char *s)
     return 0;
 }
 
-void installHost(char *s,int n)
+void installHost(char *s, int n)
 {
     int localid;
     int licserver;
