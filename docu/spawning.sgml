@@ -1,4 +1,10 @@
 <refentry id="spawning">
+  <refentryinfo>
+    <title>ParTec</title>
+    <productname>ParaStation</productname>
+    <date>October 2002</date>
+  </refentryinfo>
+
   <refmeta>
     <refentrytitle>spawning</refentrytitle>
     <manvolnum>7</manvolnum>
@@ -6,15 +12,147 @@
 
   <refnamediv>
     <refname>spawning</refname>
-    <refpurpose>spawning strategies within ParaStation</refpurpose>
+    <refpurpose>spawning strategies within &ps;</refpurpose>
   </refnamediv>
 
   <refsect1>
     <title>Description</title>
     <para>
-      blablabla.
+      In order to spawn the master process and subsequent tasks, a node pool is
+      constituted by <citerefentry>
+	<refentrytitle>PSE_spawnMaster</refentrytitle>
+	<manvolnum>3</manvolnum>
+      </citerefentry>. The nodes within the pool are ordered depending on the
+      requested ordering strategy and propagated to spawned tasks. Any further
+      spawning of tasks will leave the pool and its ordering unchanged.
+    </para>
+    <para>
+      Depending on its rank, a process will reside on a defined node within the
+      pool. Assuming its rank is i, it will reside on node marked as number i
+      within the pool. If more tasks are spawned than nodes are contained
+      within pool, the nodes are reused in a round robin fashion.
+    </para>
+   <para>
+      The spawning strategie can be influenced by using various environment
+      variables. These will steer on the one hand which nodes will build the
+      pool of nodes and on the other hand the ordering of the nodes within this
+      pool.
+    </para>
+    <para>
+      Let's start with the ones that choose the nodes that form the pool. There
+      are three enviroment variable that control the pool,
+      <envar>PSI_NODES</envar>, <envar>PSI_HOSTS</envar> and
+      <envar>PSI_HOSTFILE</envar>. The pool is build using the following
+      strategy:
+    </para>
+    <itemizedlist>
+      <listitem>
+	<para>If <envar>PSI_NODES</envar> is present, use it to get the pool.
+	  <envar>PSI_NODES</envar> has to contain a comma-separated list of
+	  node-number, i.e. positiv numbers smaller than the parameter
+	  <parameter>NrOfNodes</parameter> defined within the
+	  <filename>parastation.conf</filename> configuration file.
+	</para>
+      </listitem>
+
+      <listitem>
+	<para>Otherwise if <envar>PSI_HOSTS</envar> is present, use this.
+	  <envar>PSI_HOSTS</envar> has to contain a comma-separated list of
+	  hostnames. Each of them has to be present in the
+	  <filename>parastation.conf</filename> configuration file.
+	</para>
+      </listitem>
+
+      <listitem>
+	<para>If the pool is not build yet, use <envar>PSI_HOSTFILE</envar>. If
+	  <envar>PSI_HOSTFILE</envar> is set, it has to contain a filename. The
+	  according file consists of whitespace separated hostnames. Each of
+	  them has to be present in the <filename>parastation.conf</filename>
+	  configuration file.
+	</para>
+      </listitem>
+
+      <listitem>
+	<para>If none of the three addressed environment variables is present,
+	  take all nodes managed by &ps; to build the pool.
+	</para>
+      </listitem>
+    </itemizedlist>
+    <para>
+      In order to get into the pool, any node is tested if it is available and
+      if it supports the requested hardware-type set by <citerefentry>
+	<refentrytitle>PSE_setHWType</refentrytitle>
+	<manvolnum>3</manvolnum>
+      </citerefentry>.
+    </para>
+    <para>
+      Be aware of the fact, that setting any of the environment variables is
+      kind of setting a static nodelist. This means, if any of the nodes within
+      the pool is not available, the utilisation of the cluster may be
+      suboptimal. On the other hand, this mechanism can be used to implement a
+      dynamical partitioning of the cluster. To realize a more evolved
+      distribution strategy, the initialization of the environment variables
+      may be done using an external batch system like LSF, PBSpro or OpenPBS,
+    </para>
+    <para>
+      When the pool is build, it may have to be sorted. The sorting is steered
+      using the environment variable <envar>PSI_NODES_SORT</envar>. Depending
+      on its value, one of the following sorting strategies is deployed to the
+      node pool:
+    </para>
+    <variablelist>
+      <varlistentry>
+	<term><envar>PROC</envar></term>
+	<listitem>
+	  <para>Sort the pool depending on the number of processes managed by
+	    ParaStation residing on the nodes. This is also the default if
+	    <envar>PSI_NODES_SORT</envar> is not set.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><envar>LOAD</envar> or <envar>LOAD_1</envar></term>
+	<listitem>
+	  <para>Sort the pool depending on the load average within the last
+	    minute on the nodes.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><envar>LOAD_5</envar></term>
+	<listitem>
+	  <para>Sort the pool depending on the load average within the last 5
+	    minutes on the nodes.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><envar>LOAD_15</envar></term>
+	<listitem>
+	  <para>Sort the pool depending on the load average within the last 15
+	    minutes on the nodes.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><envar>NONE</envar> or anything else</term>
+	<listitem>
+	  <para>Don't sort the pool.</para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+  </refsect1>
+
+  <refsect1>
+    <title>See also</title>
+    <para>
+      <xref linkend="environment"/>
     </para>
   </refsect1>
+
 </refentry>
   <!-- Keep this comment at the end of the file
   Local variables:
