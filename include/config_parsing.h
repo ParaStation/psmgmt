@@ -1,18 +1,18 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * config_parsing.h
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.h,v 1.17 2003/12/10 16:14:31 eicker Exp $
+ * $Id: config_parsing.h,v 1.18 2003/12/11 20:26:05 eicker Exp $
  *
  */
 /**
  * \file
  * Parser for the config file of the ParaStation daemon
  *
- * $Id: config_parsing.h,v 1.17 2003/12/10 16:14:31 eicker Exp $
+ * $Id: config_parsing.h,v 1.18 2003/12/11 20:26:05 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -57,6 +57,9 @@ typedef struct {
     int logDest;         /**< The destination of all information to put out.
 			    Result of 'LogDestination'. Default is
 			    LOG_DAEMON. */
+    int useSyslog;       /**< Flag if syslog(3) is used for output or
+			    other destinations are defined on the
+			    commandline. */
 } config_t;
 
 /**

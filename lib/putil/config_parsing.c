@@ -1,15 +1,15 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * config_parsing.c
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.9 2003/12/10 16:15:32 eicker Exp $
+ * $Id: config_parsing.c,v 1.10 2003/12/11 20:26:28 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.9 2003/12/10 16:15:32 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.10 2003/12/11 20:26:28 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -50,6 +50,7 @@ static config_t config = (config_t) {
     .MCastPort = 1889,
     .logLevel = 0,
     .logDest = LOG_DAEMON,
+    .useSyslog = 1,
 };
 
 #define ENV_END 17 /* Some magic value */
