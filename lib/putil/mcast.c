@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.c,v 1.4 2002/01/31 12:14:01 eicker Exp $
+ * $Id: mcast.c,v 1.5 2002/02/01 16:39:26 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.4 2002/01/31 12:14:01 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.5 2002/02/01 16:39:26 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -597,6 +597,7 @@ void setDebugLevelMCast(int level)
 {
     setErrLogLevel(level);
 }
+
 int getDeadLimitMCast(void)
 {
     return MCastDeadLimit;
