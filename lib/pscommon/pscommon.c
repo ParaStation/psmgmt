@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.c,v 1.10 2003/08/15 13:31:30 eicker Exp $
+ * $Id: pscommon.c,v 1.11 2003/10/20 18:56:02 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.10 2003/08/15 13:31:30 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.11 2003/10/20 18:56:02 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -193,7 +193,8 @@ int PSC_startDaemon(unsigned int hostaddr)
     if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0) {
 	char *errstr = strerror(errno);
 
-	snprintf(errtxt, sizeof(errtxt), "%s: connect() fails: %s", __func__,
+	snprintf(errtxt, sizeof(errtxt), "%s: connect() to %s fails: %s",
+		 __func__, inet_ntoa(sa.sin_addr),
 		 errstr ? errstr : "UNKNOWN");
 	PSC_errlog(errtxt, 0);
 	shutdown(sock, SHUT_RDWR);
