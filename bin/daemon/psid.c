@@ -919,21 +919,31 @@ void GetProcessProperties(PStask_t* task)
     }
     sprintf(filename,"/proc/%d/status",PSI_getpid(task->tid));
     if((file=fopen(filename,"r"))!=NULL){
-	char programname[50];
-	char programstate[10];
-	char statename[20];
-	int programpid;
-	int programppid;
-	int programuid;
+	char line[200];
+	int uid=-1;
+	while (fgets(line,sizeof(line)-1,file)){
+	    if (strncmp("Uid:",line,4)==0){
+		uid = atoi(&line[5]);
+		break;
+	    }
+	}
+	task->uid =uid;
+	    
+//  	char programname[50];
+//  	char programstate[10];
+//  	char statename[20];
+//  	int programpid;
+//  	int programppid;
+//  	int programuid;
 
-	fscanf(file,"Name:\t%s\n",programname);
-	fscanf(file,"State:\t%s %s\n",programstate,statename);
-	fscanf(file,"Pid:\t%d\n",&programpid);
-	fscanf(file,"PPid:\t%d\n",&programppid);
-	/*       task->ptid = PSI_gettid(-1,programppid);
-		 error: task->ptid only meaningfull for paraSTation parents*/
-	fscanf(file,"Uid:\t%d",&programuid);
-	task->uid = programuid;
+//  	fscanf(file,"Name:\t%s\n",programname);
+//  	fscanf(file,"State:\t%s %s\n",programstate,statename);
+//  	fscanf(file,"Pid:\t%d\n",&programpid);
+//  	fscanf(file,"PPid:\t%d\n",&programppid);
+//  	/*       task->ptid = PSI_gettid(-1,programppid);
+//  		 error: task->ptid only meaningfull for paraSTation parents*/
+//  	fscanf(file,"Uid:\t%d",&programuid);
+//  	task->uid = programuid;
 
 	fclose(file);
     }
