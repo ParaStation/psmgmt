@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: commands.h,v 1.4 2003/10/29 17:13:36 eicker Exp $
+ * $Id: commands.h,v 1.5 2003/10/30 16:29:03 eicker Exp $
  *
  */
 /**
  * \file
  * Commands of the ParaStation adminstration tool
  *
- * $Id: commands.h,v 1.4 2003/10/29 17:13:36 eicker Exp $
+ * $Id: commands.h,v 1.5 2003/10/30 16:29:03 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -29,6 +29,8 @@ extern "C" {
 } /* <- just for emacs indentation */
 #endif
 #endif
+
+/** @todo Add docu */
 
 extern char commandsversion[];
 
