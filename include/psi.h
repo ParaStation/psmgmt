@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.h,v 1.7 2002/01/23 11:25:12 eicker Exp $
+ * $Id: psi.h,v 1.8 2002/02/08 10:50:45 eicker Exp $
  *
  */
 /**
  * @file
  * psi: User-functions for interaction with the ParaStation system.
  *
- * $Id: psi.h,v 1.7 2002/01/23 11:25:12 eicker Exp $
+ * $Id: psi.h,v 1.8 2002/02/08 10:50:45 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -32,18 +32,19 @@ extern "C" {
 #endif
 #endif
 
-extern int PSI_msock;          /* master socket for connection to PSI daemon */
-extern int PSI_mygroup;        /* the group id of the process */
+extern int PSI_msock;                 /* master socket to connect psid */
+extern int PSI_mygroup;               /* the group id of the process */
 
-extern short PSI_nrofnodes;    /* total number of nodes */
-extern unsigned short PSI_myid;/* my node number */
+extern short PSI_nrofnodes;           /* total number of nodes */
+extern unsigned short PSI_myid;       /* my node number */
 
-extern long PSI_mytid;         /* The Task ID */
-extern int PSI_mypid;          /* The Process ID */
+extern long PSI_mytid;                /* The Task ID */
+extern int PSI_mypid;                 /* The Process ID */
 
-extern int PSI_masternode;     /* number of my masternode (or -1) */
-extern int PSI_masterport;     /* port of my master process */
-extern int PSI_myrank;         /* rank inside my process-group */
+extern unsigned int PSI_loggernode;   /* IP number of my loggernode (or 0) */
+extern int PSI_loggerport;            /* port of my logger process */
+
+extern int PSI_myrank;                /* rank inside my process-group */
 
 extern char *PSI_psidversion;  /** CVS versionstring of psid */
 
@@ -170,14 +171,14 @@ long PSI_whodied(int sig);
  * RETURN  the load of the given node
  *         -1 on error
  */
-double PSI_getload(unsigned short nodenr);
+double PSI_getload(unsigned short node);
 
 /*
  * PSI_getNumberOfProcs(int node)
  *   Get number of running procs on node node
  *   Admin procs count as 0.01 procs :-)
  */
-double PSI_getNumberOfProcs(int node);
+double PSI_getNumberOfProcs(unsigned short node);
 
 char * PSI_LookupInstalldir(void);
 void PSI_SetInstalldir(char *installdir);

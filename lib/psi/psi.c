@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.19 2002/01/29 14:56:04 hauke Exp $
+ * $Id: psi.c,v 1.20 2002/02/08 10:50:45 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
@@ -40,8 +40,9 @@ unsigned short PSI_myid = -1;
 long PSI_mytid = -1;
 int PSI_mypid = -1;
 
-int PSI_masternode = -1;
-int PSI_masterport = -1;
+unsigned int PSI_loggernode;   /* IP number of my loggernode (or 0) */
+int PSI_loggerport;            /* port of my logger process */
+
 int PSI_myrank;
 
 char *PSI_psidversion = NULL;
@@ -351,9 +352,9 @@ PSI_daemon_connect(u_short protocol, u_long hostaddr)
     case PSP_CD_CLIENTESTABLISHED :
 	PSI_nrofnodes = msg.nrofnodes;
 	PSI_myid = msg.myid;
+	PSI_loggernode = msg.loggernode;
+	PSI_loggerport = msg.loggerport;
 	PSI_myrank = msg.rank;
-	PSI_masternode = msg.masternode;
-	PSI_masterport = msg.masterport;
 	PSI_SetInstalldir(msg.instdir);
 	if(strcmp(msg.instdir, PSI_LookupInstalldir())){
 	    fprintf(stderr,"PSI_daemon_connect(): "
@@ -437,14 +438,14 @@ PSI_clientinit(u_short protocol)
 		if((envstrvalue=getenv(envstr))!=NULL){
 		    char putstring[1000];
 		    sprintf(putstring,"%s=%s",envstr,envstrvalue);
-		    PSI_putenv(putstring);
+		    putPSIEnv(putstring);
 		}
 		envstr = newstr;
 	    }
 	    if((envstrvalue=getenv(envstr))!=NULL){
 		char putstring[1000];
 		sprintf(putstring,"%s=%s",envstr,envstrvalue);
-		PSI_putenv(putstring);
+		putPSIEnv(putstring);
 	    }
 	    free(envstrstart);
 	}
@@ -598,13 +599,13 @@ long PSI_whodied(int sig)
  *         -1 on error
  */
 /* ToDo Norbert:  Gehoert eigentlich nach info.[ch] -> INFO_request_load */
-double PSI_getload(u_short nodenr)
+double PSI_getload(unsigned short node)
 {
     DDBufferMsg_t msg;
 
     msg.header.type = PSP_CD_LOADREQ;
     msg.header.sender = PSI_mytid;
-    msg.header.dest = PSI_gettid(nodenr,0);
+    msg.header.dest = PSI_gettid(node, 0);
     msg.header.len = sizeof(msg.header);
 
     if(ClientMsgSend(&msg)<0){
@@ -628,7 +629,7 @@ double PSI_getload(u_short nodenr)
                  jedesmal die ganzen Tasks durch die Gegend zu schieben, ist
                  nicht sonderlich effektiv.
                          -> Neuer Msg_t, der dies liefert. */
-double PSI_getNumberOfProcs(int node)
+double PSI_getNumberOfProcs(unsigned short node)
 {
     DDBufferMsg_t msg;
     int msgtype;
