@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.53 2003/03/06 13:29:21 eicker Exp $
+ * $Id: psiadmin.c,v 1.54 2003/03/19 16:56:19 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.53 2003/03/06 13:29:21 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.54 2003/03/19 16:56:19 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -49,7 +49,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.53 $";
+static char psiadmversion[] = "$Revision: 1.54 $";
 static int doRestart = 0;
 
 static char *hoststatus = NULL;
@@ -76,12 +76,12 @@ int PSIADM_LookUpNodeName(char* hostname)
 void PSIADM_AddNode(int first, int last)
 {
     int i;
-    DDContactMsg_t msg;
+    DDBufferMsg_t msg;
 
-    msg.header.type = PSP_DD_CONTACTNODE;
-    msg.header.len = sizeof(msg);
+    msg.header.type = PSP_CD_DAEMONSTART;
     msg.header.sender = PSC_getMyTID();
     msg.header.dest = PSC_getTID(-1, 0);
+    msg.header.len = sizeof(msg.header) + sizeof(long);
 
     INFO_request_hoststatus(hoststatus, PSC_getNrOfNodes(), 1);
 
@@ -92,12 +92,12 @@ void PSIADM_AddNode(int first, int last)
 	    printf("%d already up.\n",i);
 	} else {
 	    printf("starting node %d\n",i);
-	    msg.partner = i;
+	    *(long *)msg.buf = i;
 	    PSI_sendMsg(&msg);
 	}
     }
 
-    /* @ todo check the success and repeat the startup */
+    /* @todo check the success and repeat the startup */
     return;
 }
 
@@ -315,7 +315,7 @@ void PSIADM_SetMaxProc(int count, int first, int last)
     /*
      * prepare the message to send it to the daemon
      */
-    msg.header.type = PSP_DD_SETOPTION;
+    msg.header.type = PSP_CD_SETOPTION;
     msg.header.len = sizeof(msg);
     msg.header.sender = PSC_getMyTID();
     msg.count = 1;
@@ -370,7 +370,7 @@ void PSIADM_SetUser(int uid, int first, int last)
     /*
      * prepare the message to send it to the daemon
      */
-    msg.header.type = PSP_DD_SETOPTION;
+    msg.header.type = PSP_CD_SETOPTION;
     msg.header.sender = PSC_getMyTID();
     msg.header.len = sizeof(msg);
     msg.count = 1;
@@ -441,7 +441,7 @@ void PSIADM_SetPsidSelectTime(int val, int first, int last)
     /*
      * prepare the message to send it to the daemon
      */
-    msg.header.type = PSP_DD_SETOPTION;
+    msg.header.type = PSP_CD_SETOPTION;
     msg.header.sender = PSC_getMyTID();
     msg.header.len = sizeof(msg);
     msg.count = 1;
@@ -491,7 +491,7 @@ void PSIADM_SetPsidDebug(int val, int first, int last)
     /*
      * prepare the message to send it to the daemon
      */
-    msg.header.type = PSP_DD_SETOPTION;
+    msg.header.type = PSP_CD_SETOPTION;
     msg.header.sender = PSC_getMyTID();
     msg.header.len = sizeof(msg);
     msg.count = 1;
@@ -546,7 +546,7 @@ void PSIADM_SetRDPDebug(int val, int first, int last)
     /*
      * prepare the message to send it to the daemon
      */
-    msg.header.type = PSP_DD_SETOPTION;
+    msg.header.type = PSP_CD_SETOPTION;
     msg.header.sender = PSC_getMyTID();
     msg.header.len = sizeof(msg);
     msg.count = 1;
@@ -601,7 +601,7 @@ void PSIADM_SetRDPPktLoss(int val, int first, int last)
     /*
      * prepare the message to send it to the daemon
      */
-    msg.header.type = PSP_DD_SETOPTION;
+    msg.header.type = PSP_CD_SETOPTION;
     msg.header.sender = PSC_getMyTID();
     msg.header.len = sizeof(msg);
     msg.count = 1;
@@ -656,7 +656,7 @@ void PSIADM_SetRDPMaxRetrans(int val, int first, int last)
     /*
      * prepare the message to send it to the daemon
      */
-    msg.header.type = PSP_DD_SETOPTION;
+    msg.header.type = PSP_CD_SETOPTION;
     msg.header.sender = PSC_getMyTID();
     msg.header.len = sizeof(msg);
     msg.count = 1;
@@ -711,7 +711,7 @@ void PSIADM_SetMCastDebug(int val, int first, int last)
     /*
      * prepare the message to send it to the daemon
      */
-    msg.header.type = PSP_DD_SETOPTION;
+    msg.header.type = PSP_CD_SETOPTION;
     msg.header.sender = PSC_getMyTID();
     msg.header.len = sizeof(msg);
     msg.count = 1;
@@ -761,10 +761,10 @@ void PSIADM_ShowConfig(void)
     long option[] = {
 	PSP_OP_UIDLIMIT,
 	PSP_OP_PROCLIMIT,
-	PSP_OP_SMALLPACKETSIZE,
-	PSP_OP_RESENDTIMEOUT,
-	PSP_OP_HNPEND,
-	PSP_OP_ACKPEND};
+	PSP_OP_PSM_SMALLPACKETSIZE,
+	PSP_OP_PSM_RESENDTIMEOUT,
+	PSP_OP_PSM_HNPEND,
+	PSP_OP_PSM_ACKPEND};
     long value[DDOptionMsgMax];
     int uidlimit=0, proclimit=0, smallpacksize=0, resendtimeout=0, hnpend=0;
     int ackpend=0;
@@ -786,16 +786,16 @@ void PSIADM_ShowConfig(void)
 	case PSP_OP_PROCLIMIT:
 	    proclimit = value[i];
 	    break;
-	case PSP_OP_SMALLPACKETSIZE:
+	case PSP_OP_PSM_SMALLPACKETSIZE:
 	    smallpacksize = value[i];
 	    break;
-	case PSP_OP_RESENDTIMEOUT:
+	case PSP_OP_PSM_RESENDTIMEOUT:
 	    resendtimeout = value[i];
 	    break;
-	case PSP_OP_HNPEND:
+	case PSP_OP_PSM_HNPEND:
 	    hnpend = value[i];
 	    break;
-	case PSP_OP_ACKPEND:
+	case PSP_OP_PSM_ACKPEND:
 	    ackpend = value[i];
 	    break;
 	}
@@ -828,12 +828,12 @@ void PSIADM_SetSmallPacketSize(int smallpacketsize)
     /*
      * prepare the message to send it to the daemon
      */
-    msg.header.type = PSP_DD_SETOPTION;
+    msg.header.type = PSP_CD_SETOPTION;
     msg.header.len = sizeof(msg);
     msg.header.sender = PSC_getMyTID();
     msg.header.dest = -1 /* broadcast */;
     msg.count =1;
-    msg.opt[0].option = PSP_OP_SMALLPACKETSIZE;
+    msg.opt[0].option = PSP_OP_PSM_SMALLPACKETSIZE;
     msg.opt[0].value = smallpacketsize;
     PSI_sendMsg(&msg);
 
@@ -843,7 +843,7 @@ void PSIADM_SetSmallPacketSize(int smallpacketsize)
 void PSIADM_ShowSmallPacketSize(void)
 {
     int ret;
-    long option = PSP_OP_SMALLPACKETSIZE, smallpacksize;
+    long option = PSP_OP_PSM_SMALLPACKETSIZE, smallpacksize;
 
     ret = INFO_request_option(0, 1, &option, &smallpacksize, 1);
 
@@ -868,12 +868,12 @@ void PSIADM_SetResendTimeout(int time)
     /*
      * prepare the message to send it to the daemon
      */
-    msg.header.type = PSP_DD_SETOPTION;
+    msg.header.type = PSP_CD_SETOPTION;
     msg.header.len = sizeof(msg);
     msg.header.sender = PSC_getMyTID();
     msg.header.dest = -1 /* broadcast */;
     msg.count =1;
-    msg.opt[0].option = PSP_OP_RESENDTIMEOUT;
+    msg.opt[0].option = PSP_OP_PSM_RESENDTIMEOUT;
     msg.opt[0].value = time;
     PSI_sendMsg(&msg);
 
@@ -883,7 +883,7 @@ void PSIADM_SetResendTimeout(int time)
 void PSIADM_ShowResendTimeout(void)
 {
     int ret;
-    long option = PSP_OP_RESENDTIMEOUT, resendtimeout;
+    long option = PSP_OP_PSM_RESENDTIMEOUT, resendtimeout;
 
     ret = INFO_request_option(0, 1, &option, &resendtimeout, 1);
 
@@ -908,12 +908,12 @@ void PSIADM_SetHNPend(int val)
     /*
      * prepare the message to send it to the daemon
      */
-    msg.header.type = PSP_DD_SETOPTION;
+    msg.header.type = PSP_CD_SETOPTION;
     msg.header.len = sizeof(msg);
     msg.header.sender = PSC_getMyTID();
     msg.header.dest = -1 /* broadcast */;
     msg.count =1;
-    msg.opt[0].option = PSP_OP_HNPEND;
+    msg.opt[0].option = PSP_OP_PSM_HNPEND;
     msg.opt[0].value = val;
     PSI_sendMsg(&msg);
 
@@ -923,7 +923,7 @@ void PSIADM_SetHNPend(int val)
 void PSIADM_ShowHNPend(void)
 {
     int ret;
-    long option = PSP_OP_HNPEND, hnpend;
+    long option = PSP_OP_PSM_HNPEND, hnpend;
 
     ret = INFO_request_option(0, 1, &option, &hnpend, 1);
 
@@ -948,12 +948,12 @@ void PSIADM_SetAckPend(int val)
     /*
      * prepare the message to send it to the daemon
      */
-    msg.header.type = PSP_DD_SETOPTION;
+    msg.header.type = PSP_CD_SETOPTION;
     msg.header.len = sizeof(msg);
     msg.header.sender = PSC_getMyTID();
     msg.header.dest = -1 /* broadcast */;
     msg.count =1;
-    msg.opt[0].option = PSP_OP_ACKPEND;
+    msg.opt[0].option = PSP_OP_PSM_ACKPEND;
     msg.opt[0].value = val;
     PSI_sendMsg(&msg);
 
@@ -963,7 +963,7 @@ void PSIADM_SetAckPend(int val)
 void PSIADM_ShowAckPend(void)
 {
     int ret;
-    long option = PSP_OP_ACKPEND, ackpend;
+    long option = PSP_OP_PSM_ACKPEND, ackpend;
 
     ret = INFO_request_option(0, 1, &option, &ackpend, 1);
 
@@ -983,7 +983,9 @@ void PSIADM_ShowAckPend(void)
  */
 void PSIADM_Reset(int reset_hw, int first, int last)
 {
-    DDResetMsg_t msg;
+    DDBufferMsg_t msg;
+    long *action = (long *)msg.buf;
+    int i, send_local = 0;
 
     if (geteuid()) {
 	printf("Insufficient priviledge\n");
@@ -993,45 +995,72 @@ void PSIADM_Reset(int reset_hw, int first, int last)
     /*
      * prepare the message to send it to the daemon
      */
-    /*  msg.header.type = PSP_CD_RESET_START_REQ;*/
-    msg.header.type = PSP_CD_RESET;
-    msg.header.len = sizeof(msg);
+    msg.header.type = PSP_CD_DAEMONRESET;
     msg.header.sender = PSC_getMyTID();
-    msg.header.dest = PSC_getTID(-1, 0);
-    msg.first = (first==ALLNODES) ? 0 : first;
-    msg.last = (last==ALLNODES) ? PSC_getNrOfNodes()-1 : last;
-    msg.action = 0;
+    msg.header.len = sizeof(msg.header) + sizeof(*action);
+
+    *action = 0;
     if (reset_hw) {
-	msg.action |= PSP_RESET_HW;
+	*action |= PSP_RESET_HW;
 	doRestart = 1;
     }
 
-    PSI_sendMsg(&msg);
+    first = (first==ALLNODES) ? 0 : first;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
+    for (i = first; i < last; i++) {
+	if (hoststatus[i]) {
+	    if (i == PSC_getMyID()) {
+		send_local = 1;
+	    } else {
+		msg.header.dest = PSC_getTID(i, 0);
+		PSI_sendMsg(&msg);
+	    }
+	}
+    }
+
+    if (send_local) {
+	msg.header.dest = PSC_getTID(-1, 0);
+	PSI_sendMsg(&msg);
+    }
 
     return;
 }
 
 void PSIADM_ShutdownCluster(int first, int last)
 {
-    int nrofnodes;
-    DDResetMsg_t msg;
+    DDMsg_t msg;
+    int i, send_local = 0;
 
     if (geteuid()) {
 	printf("Insufficient priviledge\n");
 	return;
     }
 
-    nrofnodes = PSC_getNrOfNodes();
+    msg.type = PSP_CD_DAEMONSTOP;
+    msg.sender = PSC_getMyTID();
+    msg.len = sizeof(msg);
 
-    msg.header.type = PSP_CD_DAEMONSTOP;
-    msg.header.len = sizeof(msg);
-    msg.header.sender = PSC_getMyTID();
-    msg.header.dest = PSC_getTID(-1, 0);
-    msg.first = (first==ALLNODES) ? 0 : first;
-    msg.last = (last==ALLNODES) ? PSC_getNrOfNodes() : last;
-    msg.action = 0;
+    INFO_request_hoststatus(hoststatus, PSC_getNrOfNodes(), 1);
 
-    PSI_sendMsg(&msg);
+    first = (first==ALLNODES) ? 0 : first;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
+    for (i = first; i < last; i++) {
+	if (hoststatus[i]) {
+	    if (i == PSC_getMyID()) {
+		send_local = 1;
+	    } else {
+		msg.dest = PSC_getTID(i, 0);
+		PSI_sendMsg(&msg);
+	    }
+	}
+    }
+
+    if (send_local) {
+	msg.dest = PSC_getTID(-1, 0);
+	PSI_sendMsg(&msg);
+    }
+
+    return;
 }
 
 void PSIADM_TestNetwork(int mode)
@@ -1097,9 +1126,16 @@ void PSIADM_TestNetwork(int mode)
 #endif
 }
 
-void PSIADM_KillProc(int id)
+void PSIADM_KillProc(long tid, int sig)
 {
-    PSI_kill(id, SIGTERM);
+    if (sig == -1) sig = SIGTERM;
+
+    if (sig < 0) {
+	fprintf(stderr, "Unknown signal %d.\n", sig);
+    } else {
+	PSI_kill(tid, sig);
+    }
+
     return;
 }
 
