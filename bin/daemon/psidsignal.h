@@ -1,18 +1,18 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * psidsignal.h
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidsignal.h,v 1.4 2003/10/23 16:27:35 eicker Exp $
+ * $Id: psidsignal.h,v 1.5 2004/01/09 16:11:42 eicker Exp $
  *
  */
 /**
  * @file
  * Functions for sending signals to ParaStation tasks within the Daemon
  *
- * $Id: psidsignal.h,v 1.4 2003/10/23 16:27:35 eicker Exp $
+ * $Id: psidsignal.h,v 1.5 2004/01/09 16:11:42 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
