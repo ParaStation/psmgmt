@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.106 2003/09/12 16:21:30 eicker Exp $
+ * $Id: psid.c,v 1.107 2003/10/08 15:15:42 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.106 2003/09/12 16:21:30 eicker Exp $ 
+ * $Id: psid.c,v 1.107 2003/10/08 15:15:42 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.106 2003/09/12 16:21:30 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.107 2003/10/08 15:15:42 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -81,9 +81,12 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-char psid_cvsid[] = "$Revision: 1.106 $";
+char psid_cvsid[] = "$Revision: 1.107 $";
 
 static int PSID_mastersock;
+
+static int totalNodes = 0;
+static int totalCPUs = 0;
 
 int myStatus;         /* Another helper status. This is for reset/shutdown */
 
@@ -239,14 +242,20 @@ int shutdownNode(int phase)
 }
 
 /******************************************
- * declareDaemonDead()
+ * declareNodeDead()
  * is called when a connection to a daemon is lost
  */
-void declareDaemonDead(int id)
+static void declareNodeDead(int id)
 {
     PStask_t *task;
 
+    if (PSnodes_isUp(id)) {
+	totalCPUs -= PSnodes_getCPUs(id);
+	totalNodes--;
+    }
     PSnodes_bringDown(id);
+    PSnodes_setCPUs(id, 0);
+    
     clearRDPMsgs(id);
 
     /* Send signals to all processes that controlled task on the dead node */
@@ -277,6 +286,56 @@ void declareDaemonDead(int id)
     snprintf(errtxt, sizeof(errtxt),
 	     "Lost connection to daemon of node %d", id);
     PSID_errlog(errtxt, 2);
+}
+
+static void declareNodeAlive(int id, int cpus)
+{
+    snprintf(errtxt, sizeof(errtxt), "%s: node %d", __func__, id);
+    PSID_errlog(errtxt, 2);
+
+    if (id<0 || id>=PSC_getNrOfNodes()) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: id %d out of range", __func__, id);
+	PSID_errlog(errtxt, 0);
+	return;
+    }
+
+    if (PSnodes_isUp(id)) {
+	totalCPUs += cpus - PSnodes_getCPUs(id);
+    } else {
+	totalNodes++;
+	totalCPUs += cpus;
+    }
+    PSnodes_bringUp(id);
+    PSnodes_setCPUs(id, cpus);
+
+    /* Test the license */
+    if (totalNodes > lic_numval(&config->licEnv, LIC_NODES, 0)) {
+	if (id < PSC_getMyID()) {
+	    snprintf(errtxt, sizeof(errtxt), "%s: too many nodes.", __func__);
+	    PSID_errlog(errtxt, 0);
+	    shutdownNode(1);
+	    return;
+	} else {
+	    declareNodeDead(id);
+	}
+    }
+    if (totalCPUs > lic_numval(&config->licEnv, LIC_CPUs, 0)) {
+	if (id < PSC_getMyID()) {
+	    snprintf(errtxt, sizeof(errtxt), "%s: too many CPUs.", __func__);
+	    PSID_errlog(errtxt, 0);
+	    shutdownNode(1);
+	    return;
+	} else {
+	    declareNodeDead(id);
+	}
+    }
+    if (lic_isexpired(&config->licEnv)) {
+	snprintf(errtxt, sizeof(errtxt), "%s: License expired.", __func__);
+	PSID_errlog(errtxt, 0);
+	shutdownNode(1);
+	return;
+    }
 }
 
 /******************************************
@@ -571,55 +630,42 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 */
 int send_DAEMONCONNECT(int id)
 {
-    DDMsg_t msg;
+    DDTypedMsg_t msg = (DDTypedMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_DD_DAEMONCONNECT,
+	    .sender = PSC_getMyTID(),
+	    .dest = PSC_getTID(id, 0),
+	    .len = sizeof(msg) },
+	.type = PSnodes_getCPUs(PSC_getMyID()) };
 
-    msg.type = PSP_DD_DAEMONCONNECT;
-    msg.sender = PSC_getMyTID();
-    msg.dest = PSC_getTID(id, 0);
-    msg.len = sizeof(msg);
-
-    if (sendMsg(&msg)==msg.len) {
-	/* successful connection request is sent */
-	return 0;
-    }
-
-    return -1;
+    return sendMsg(&msg);
 }
 
 /******************************************
  *  msg_DAEMONCONNECT()
  */
-void msg_DAEMONCONNECT(DDMsg_t *msg)
+void msg_DAEMONCONNECT(DDTypedMsg_t *msg)
 {
-    int id = PSC_getID(msg->sender);
+    int id = PSC_getID(msg->header.sender);
+    int cpus = msg->type;
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "msg_DAEMONCONNECT (%p) daemons[%d]", msg, id);
+    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, id);
     PSID_errlog(errtxt, 1);
-
-    /*
-     * with RDP all Daemons are sending messages through one socket
-     * so no difficult initialization is needed
-     */
-
-    snprintf(errtxt, sizeof(errtxt),
-	     "New connection to daemon on node %d", id);
-    PSID_errlog(errtxt, 2);
 
     /*
      * accept this request and send an ESTABLISH msg back to the requester
      */
-    PSnodes_bringUp(id);
+    declareNodeAlive(id, cpus);
 
-    msg->type = PSP_DD_DAEMONESTABLISHED;
-    msg->sender = PSC_getMyTID();
-    msg->dest = PSC_getTID(id, 0);
-    msg->len = sizeof(*msg);
+    msg->header.type = PSP_DD_DAEMONESTABLISHED;
+    msg->header.sender = PSC_getMyTID();
+    msg->header.dest = PSC_getTID(id, 0);
+    msg->header.len = sizeof(*msg);
+    msg->type = PSnodes_getCPUs(PSC_getMyID());
 
     if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "sending Daemonestablished errno %d: %s",
-		 errno, strerror(errno));
+	snprintf(errtxt, sizeof(errtxt), "%s: sendMsg() errno %d: %s",
+		 __func__, errno, strerror(errno));
 	PSID_errlog(errtxt, 2);
     } else {
 	send_OPTIONS(id);
@@ -629,11 +675,15 @@ void msg_DAEMONCONNECT(DDMsg_t *msg)
 /******************************************
  *  msg_DAEMONESTABLISHED()
  */
-void msg_DAEMONESTABLISHED(DDMsg_t *msg)
+void msg_DAEMONESTABLISHED(DDTypedMsg_t *msg)
 {
-    int id = PSC_getID(msg->sender);
+    int id = PSC_getID(msg->header.sender);
+    int cpus = msg->type;
 
-    PSnodes_bringUp(id);
+    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, id);
+    PSID_errlog(errtxt, 1);
+
+    declareNodeAlive(id, cpus);
 
     /* Send some info about me to the other node */
     send_OPTIONS(id);
@@ -1221,20 +1271,33 @@ void msg_NOTIFYDEADRES(DDSignalMsg_t *msg)
 }
 
 /**
- * @brief Remove signal from task
+ * @brief Remove signal from task.
  *
- * @todo
+ * Remove the signal @a sig which should be sent to the task with
+ * unique task ID @a receiverTid from the one with unique task ID @a
+ * tid.
+ *
+ * Each signal can be identified uniquely via giving the unique task
+ * IDs of the sending and receiving process plus the signal to send.
+ *
+ * @param tid The task ID of the task which should send the signal in
+ * case of an exit.
+ *
+ * @param receiverTid The task ID of the task which should have
+ * received the signal to remove.
+ *
+ * @param sig The signal to be removed.
  *
  * @return On success, 0 is returned or an @a errno on error.
  *
  * @see errno(3)
  */
-static int releaseSignal(long tid, long receiverTid, int signal)
+static int releaseSignal(long tid, long receiverTid, int sig)
 {
     PStask_t *task;
 
     snprintf(errtxt, sizeof(errtxt), "%s: sig %d to %s", __func__,
-	     signal, PSC_printTID(receiverTid));
+	     sig, PSC_printTID(receiverTid));
     snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt), " from %s",
 	     PSC_printTID(tid));
 
@@ -1253,11 +1316,11 @@ static int releaseSignal(long tid, long receiverTid, int signal)
     PSID_errlog(errtxt, 1);
 
     /* Remove signal from list */
-    if (signal==-1) {
+    if (sig==-1) {
 	/* Release a child */
-	PSID_removeSignal(&task->assignedSigs, receiverTid, signal);
+	PSID_removeSignal(&task->assignedSigs, receiverTid, sig);
     } else {
-	PSID_removeSignal(&task->signalReceiver, receiverTid, signal);
+	PSID_removeSignal(&task->signalReceiver, receiverTid, sig);
     }
 
     return 0;
@@ -1691,10 +1754,10 @@ void psicontrol(int fd)
 	    /* Ignore */
 	    break;
 	case PSP_DD_DAEMONCONNECT:
-	    msg_DAEMONCONNECT((DDMsg_t *)&msg);
+	    msg_DAEMONCONNECT((DDTypedMsg_t *)&msg);
 	    break;
 	case PSP_DD_DAEMONESTABLISHED:
-	    msg_DAEMONESTABLISHED((DDMsg_t *)&msg);
+	    msg_DAEMONESTABLISHED((DDTypedMsg_t *)&msg);
 	    break;
 	case PSP_DD_CHILDDEAD:
 	    msg_CHILDDEAD((DDErrorMsg_t*)&msg);
@@ -1762,7 +1825,6 @@ void MCastCallBack(int msgid, void *buf)
 		 __func__, node);
 	PSID_errlog(errtxt, 1);
 	if (node!=PSC_getMyID() && !PSnodes_isUp(node)) {
-	    PSnodes_bringUp(node);  /* @todo needed ? */
 	    if (send_DAEMONCONNECT(node)<0) {
 		snprintf(errtxt, sizeof(errtxt),
 			 "%s: send_DAEMONCONNECT() returned with error %d",
@@ -1776,30 +1838,12 @@ void MCastCallBack(int msgid, void *buf)
 	snprintf(errtxt, sizeof(errtxt), "%s(MCAST_LOST_CONNECTION,%d)",
 		 __func__, node);
 	PSID_errlog(errtxt, 2);
-	declareDaemonDead(node);
+	declareNodeDead(node);
 	/*
 	 * Send CONNECT msg via RDP. This should timeout and tell RDP that
 	 * the connection is down.
 	 */
 	send_DAEMONCONNECT(node);
-	break;
-    case MCAST_LIC_END:
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s(MCAST_LIC_END) Don't know what to do", __func__);
-	PSID_errlog(errtxt, 0);
-	break;
-    case MCAST_LIC_LOST:
-	hostaddr.s_addr = *(unsigned int *)buf;
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s(MCAST_LIC_LOST) Start Lic-Server on host %s",
-		 __func__, inet_ntoa(hostaddr));
-	PSID_errlog(errtxt, 2);
-	PSID_startLicServer(hostaddr.s_addr);
-	break;
-    case MCAST_LIC_SHUTDOWN:
-	snprintf(errtxt, sizeof(errtxt), "%s(MCAST_LIC_SHUTDOWN)", __func__);
-	PSID_errlog(errtxt, 0);
-	shutdownNode(1);
 	break;
     default:
 	snprintf(errtxt, sizeof(errtxt), "%s(%d,%p). Unhandled message",
@@ -1827,7 +1871,6 @@ void RDPCallBack(int msgid, void *buf)
 		 __func__, node);
 	PSID_errlog(errtxt, 2);
 	if (node != PSC_getMyID() && !PSnodes_isUp(node)) {
-	    PSnodes_bringUp(node);  /* @todo needed ? */
 	    if (send_DAEMONCONNECT(node)<0) {
 		snprintf(errtxt, sizeof(errtxt),
 			 "%s: send_DAEMONCONNECT(): error %d",
@@ -1888,7 +1931,7 @@ void RDPCallBack(int msgid, void *buf)
 		 __func__, node);
 	PSID_errlog(errtxt, 2);
 
-	declareDaemonDead(node);
+	declareNodeDead(node);
 
 	/* Tell MCast */
 	declareNodeDeadMCast(node);
@@ -2188,7 +2231,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.106 $";
+    char revision[] = "$Revision: 1.107 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -2197,7 +2240,7 @@ int main(int argc, const char *argv[])
     poptContext optCon;   /* context for parsing command-line options */
 
     int rc, version = 0, debuglevel = 0;
-    char *logdest = NULL, *configfile = NULL;
+    char *logdest = NULL, *configfile = "/etc/parastation.conf";
     FILE *logfile = NULL;
 
     struct poptOption optionsTable[] = {
@@ -2327,23 +2370,23 @@ int main(int argc, const char *argv[])
 	PSID_errlog(errtxt, 1);
     }
 
-    if (!logfile && ConfigLogDest!=LOG_DAEMON) {
+    if (!logfile && config->logDest!=LOG_DAEMON) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "Changing logging dest from LOG_DAEMON to %s",
-		 ConfigLogDest==LOG_KERN ? "LOG_KERN":
-		 ConfigLogDest==LOG_LOCAL0 ? "LOG_LOCAL0" :
-		 ConfigLogDest==LOG_LOCAL1 ? "LOG_LOCAL1" :
-		 ConfigLogDest==LOG_LOCAL2 ? "LOG_LOCAL2" :
-		 ConfigLogDest==LOG_LOCAL3 ? "LOG_LOCAL3" :
-		 ConfigLogDest==LOG_LOCAL4 ? "LOG_LOCAL4" :
-		 ConfigLogDest==LOG_LOCAL5 ? "LOG_LOCAL5" :
-		 ConfigLogDest==LOG_LOCAL6 ? "LOG_LOCAL6" :
-		 ConfigLogDest==LOG_LOCAL7 ? "LOG_LOCAL7" :
+		 config->logDest==LOG_KERN ? "LOG_KERN":
+		 config->logDest==LOG_LOCAL0 ? "LOG_LOCAL0" :
+		 config->logDest==LOG_LOCAL1 ? "LOG_LOCAL1" :
+		 config->logDest==LOG_LOCAL2 ? "LOG_LOCAL2" :
+		 config->logDest==LOG_LOCAL3 ? "LOG_LOCAL3" :
+		 config->logDest==LOG_LOCAL4 ? "LOG_LOCAL4" :
+		 config->logDest==LOG_LOCAL5 ? "LOG_LOCAL5" :
+		 config->logDest==LOG_LOCAL6 ? "LOG_LOCAL6" :
+		 config->logDest==LOG_LOCAL7 ? "LOG_LOCAL7" :
 		 "UNKNOWN");
 	PSID_errlog(errtxt, 0);
 	closelog();
 
-	openlog("psid", LOG_PID|LOG_CONS, ConfigLogDest);
+	openlog("psid", LOG_PID|LOG_CONS, config->logDest);
 	PSID_errlog("Starting ParaStation DAEMON", 0);
 	snprintf(errtxt, sizeof(errtxt), "Protocol Version %d",
 		 PSprotocolVersion);
@@ -2377,19 +2420,9 @@ int main(int argc, const char *argv[])
     }
 #endif
 
-    /* Check LicServer Setting */
-    if (PSnodes_getAddr(PSNODES_LIC)==INADDR_ANY) {
-	/* No LicServer yet. Set node 0 as default server */
-	unsigned int addr = PSnodes_getAddr(0);
-	PSnodes_register(PSNODES_LIC, addr);
-	snprintf(errtxt, sizeof(errtxt),
-		 "Using %s (ID=0) as Licenseserver",
-		 inet_ntoa(* (struct in_addr *) &addr));
-	PSID_errlog(errtxt, 1);
-    }
-
     /* Determine the number of CPUs */
     PSnodes_setCPUs(PSC_getMyID(), sysconf(_SC_NPROCESSORS_CONF));
+    totalCPUs += PSnodes_getCPUs(PSC_getMyID());
 
     /* Start up all the hardware */
     snprintf(errtxt, sizeof(errtxt), "%s: starting up the hardware", __func__);
@@ -2399,11 +2432,12 @@ int main(int argc, const char *argv[])
     PSID_startAllHW();
 
     PSnodes_bringUp(PSC_getMyID());
+    totalNodes++;
 
     /* Initialize timers */
     timerclear(&shutdowntimer);
     timerclear(&killclientstimer);
-    selecttimer.tv_sec = ConfigSelectTime;
+    selecttimer.tv_sec = config->selectTime;
     selecttimer.tv_usec = 0;
     gettimeofday(&maintimer, NULL);
 
@@ -2422,8 +2456,7 @@ int main(int argc, const char *argv[])
 	unsigned int *hostlist;
 	int MCastSock, i;
 
-	hostlist = (unsigned int *)malloc((PSC_getNrOfNodes()+1)
-					  * sizeof(unsigned int));
+	hostlist = malloc(PSC_getNrOfNodes() * sizeof(unsigned int));
 	if (!hostlist) {
 	    snprintf(errtxt, sizeof(errtxt), "Not enough memory for hostlist");
 	    PSID_errlog(errtxt, 0);
@@ -2433,21 +2466,20 @@ int main(int argc, const char *argv[])
 	for (i=0; i<PSC_getNrOfNodes(); i++) {
 	    hostlist[i] = PSnodes_getAddr(i);
 	}
-	hostlist[PSC_getNrOfNodes()] = PSnodes_getAddr(PSNODES_LIC);
 
 	/*
 	 * Initialize MCast and RDP
 	 */
 	MCastSock = initMCast(PSC_getNrOfNodes(),
-			      ConfigMCastGroup, ConfigMCastPort,
+			      config->MCastGroup, config->MCastPort,
 			      !logfile, hostlist,
 			      PSC_getMyID(), MCastCallBack);
 	if (MCastSock<0) {
 	    PSID_errexit("Error while trying initMCast()", errno);
 	}
-	setDeadLimitMCast(ConfigDeadInterval);
+	setDeadLimitMCast(config->deadInterval);
 
-	RDPSocket = initRDP(PSC_getNrOfNodes(), ConfigRDPPort,
+	RDPSocket = initRDP(PSC_getNrOfNodes(), config->RDPPort,
 			    !logfile, hostlist, RDPCallBack);
 	if (RDPSocket<0) {
 	    PSID_errexit("Error while trying initRDP()", errno);
@@ -2462,9 +2494,8 @@ int main(int argc, const char *argv[])
 	free(hostlist);
     }
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "SelectTime=%ld sec    DeadInterval=%ld",
-	      ConfigSelectTime, ConfigDeadInterval);
+    snprintf(errtxt, sizeof(errtxt), "SelectTime=%ld sec    DeadInterval=%ld",
+	     config->selectTime, config->deadInterval);
     PSID_errlog(errtxt, 0);
 
     /*
@@ -2572,7 +2603,7 @@ int main(int argc, const char *argv[])
 	}
 
 	/*
-	 * Check if we have any obstinate tasks
+	 * Check for obstinate tasks
 	 */
 	{
 	    PStask_t *task = managedTasks;
