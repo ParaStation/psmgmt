@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.44 2002/03/05 13:31:12 eicker Exp $
+ * $Id: psid.c,v 1.45 2002/03/05 13:31:54 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.44 2002/03/05 13:31:12 eicker Exp $ 
+ * $Id: psid.c,v 1.45 2002/03/05 13:31:54 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.44 2002/03/05 13:31:12 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.45 2002/03/05 13:31:54 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -63,7 +63,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.44 $";
+static char psid_cvsid[] = "$Revision: 1.45 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -3083,7 +3083,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.44 $";
+    char revision[] = "$Revision: 1.45 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -3333,7 +3333,7 @@ int main(int argc, char **argv)
 	daemons[i].hasCard = 0;
 	PSID_hoststatus[i] &= ~PSPHOSTUP;
     }
-    initDaemon(0, (PSI_myid, PSID_CardPresent);
+    initDaemon(0, PSI_myid, PSID_CardPresent);
 
     for (i=0; i<FD_SETSIZE; i++) {
 	clients[i].tid =-1;
