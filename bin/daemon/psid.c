@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.68 2002/08/07 07:26:11 eicker Exp $
+ * $Id: psid.c,v 1.69 2002/08/07 11:38:45 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.68 2002/08/07 07:26:11 eicker Exp $ 
+ * $Id: psid.c,v 1.69 2002/08/07 11:38:45 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.68 2002/08/07 07:26:11 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.69 2002/08/07 11:38:45 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -39,6 +39,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.68 2002/08/07 07
 #include <syslog.h>
 #include <fcntl.h>
 #include <arpa/inet.h>
+#include <popt.h>
 
 #ifdef __osf__
 #include <sys/table.h>
@@ -72,7 +73,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.68 $";
+static char psid_cvsid[] = "$Revision: 1.69 $";
 
 static int PSID_mastersock;
 
@@ -3043,98 +3044,99 @@ void checkFileTable(void)
 /*
  * Print version info
  */
-static void version(void)
+static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.68 $";
+    char revision[] = "$Revision: 1.69 $";
     snprintf(errtxt, sizeof(errtxt), "psid %s\b ", revision+11);
     PSID_errlog(errtxt, 0);
 }
 
-/*
- * Print usage message
- */
-static void usage(void)
+int main(int argc, const char *argv[])
 {
-    PSID_errlog("usage: psid [-h] [-v] [-d level] [-l file] [-D MASK]"
-		" [-f file]", 0);
-}
-
-/*
- * Print more detailed help message
- */
-static void help(void)
-{
-    usage();
-    PSID_errlog(" -d level : Activate debugging with level 'level'.", 0);
-    PSID_errlog(" -l file  : Use 'file' for logging"
-		" (default is to use syslog(3))."
-		" File may be 'stderr' or 'stdout'.", 0);
-    PSID_errlog(" -f file  : use 'file' as config-file"
-		" (default is /etc/parastation.conf).", 0);
-    PSID_errlog(" -v,      : output version information and exit.", 0);
-    PSID_errlog(" -h,      : display this help and exit.", 0);
-}
-
-int main(int argc, char **argv)
-{
-    struct sockaddr_un sa;
-
-    int fd;             /* master socket and socket to check connections*/
     struct timeval tv;  /* timeval for waiting on select()*/
-
+    struct sockaddr_un sa;
     fd_set rfds;        /* read file descriptor set */
-    int opt;            /* return value of getopt */
+    int fd;
 
-    int debuglevel = 0, usesyslog = 1;
+    poptContext optCon;   /* context for parsing command-line options */
+
+    int rc, version = 0, debuglevel = 0;
+    char *logdest = NULL;
     FILE *logfile = NULL;
 
-    if(fork()){
-	/* Parent process */
+    struct poptOption optionsTable[] = {
+        { "debug", 'd', POPT_ARG_INT, &debuglevel, 0,
+	  "enble debugging with level <level>", "level"},
+        { "configfile", 'f', POPT_ARG_STRING, &Configfile, 0,
+          "use <file> as config-file (default is /etc/parastation.conf)",
+          "file"},
+	{ "logfile", 'l', POPT_ARG_STRING, &logdest, 0,
+	  "use <file> for logging (default is syslog(3))."
+	  " <file> may be 'stderr' or 'stdout'", "file"},
+        { "version", 'v', POPT_ARG_NONE, &version, 0,
+          "output version information and exit", NULL},
+        POPT_AUTOHELP
+        { NULL, '\0', 0, NULL, 0, NULL, NULL}
+    };
+
+    optCon = poptGetContext(NULL, argc, argv, optionsTable, 0);
+    rc = poptGetNextOpt(optCon);
+
+    if (version) {
+	printVersion();
 	return 0;
     }
 
-    PSID_blockSig(1,SIGCHLD);
-
-    while ((opt = getopt(argc, argv, "d:l:f:hHvV")) != -1){
-	switch (opt){
-	case 'd' :
-	    sscanf(optarg, "%d", &debuglevel);
-	    break;
-	case 'l' :
-	    usesyslog = 0;
-	    if (strcasecmp(optarg, "stderr")==0) {
-		logfile = stderr;
-	    } else if (strcasecmp(optarg, "stdout")==0) {
-		logfile = stdout;
-	    } else {
-		logfile = fopen(optarg, "w");
+    if (logdest) {
+	if (strcasecmp(logdest, "stderr")==0) {
+	    logfile = stderr;
+	} else if (strcasecmp(logdest, "stdout")==0) {
+	    logfile = stdout;
+	} else {
+	    logfile = fopen(logdest, "w");
+	    if (!logfile) {
+		char *errstr = strerror(errno);
+		snprintf(errtxt, sizeof(errtxt),
+			 "Cannot open logfile '%s': %s\n", logdest,
+			 errstr ? errstr : "UNKNOWN");
 	    }
-	    break;
-	case 'f' :
-	    Configfile = strdup(optarg);
-	    break;
-	case 'v' :
-	case 'V' :
-	    PSID_initLog(0, logfile);
-	    version();
-	    return 0;
-	    break;
-	case 'h' :
-	case 'H' :
-	    PSID_initLog(0, logfile);
-	    help();
-	    return 0;
-	    break;
-	default :
-	    PSID_initLog(0, logfile);
-	    snprintf(errtxt, sizeof(errtxt),
-		     "usage: %s [-h] [-v] [-d level] [-l file] [-f file]",
-		     argv[0]);
-	    PSID_errlog(errtxt, 0);
-	    usage();
-	    return -1;
 	}
     }
+
+    if (!logfile) {
+	openlog("psid",LOG_PID|LOG_CONS,LOG_DAEMON);
+    }
+    PSID_initLog(logfile ? 0 : 1, logfile);
+    PSC_initLog(logfile ? 0 : 1, logfile);
+
+    if (rc < -1) {
+        /* an error occurred during option processing */
+        poptPrintUsage(optCon, stderr, 0);
+        snprintf(errtxt, sizeof(errtxt), "%s: %s",
+                 poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
+                 poptStrerror(rc));
+
+        if (!logfile) fprintf(stderr, "%s\n", errtxt);
+        PSID_errlog(errtxt, 0);
+
+        return 1;
+    }
+
+    if (!debuglevel || (logfile!=stderr && logfile!=stdout)) {
+	/* Start as daemon */
+        switch (fork()) {
+        case -1:
+            PSID_errexit("unable to fork server process", errno);
+            break;
+        case 0: /* I'm the child (and running further) */
+            break;
+        default: /* I'm the parent and exiting */
+            return 0;
+            break;
+        }
+    }
+
+    PSID_blockSig(1,SIGCHLD);
 
     signal(SIGINT   ,sighandler);
     signal(SIGQUIT  ,sighandler);
@@ -3180,28 +3182,21 @@ int main(int argc, char **argv)
 
     /*
      * Disable stdin,stdout,stderr and install dummy replacement
-     * Take care if stdout/stderr should be used for logging
+     * Take care if stdout/stderr is used for logging
      */
     {
 	int dummy_fd;
 
 	dummy_fd=open("/dev/null",O_WRONLY , 0);
 	dup2(dummy_fd, STDIN_FILENO);
-	if (usesyslog || fileno(logfile)!=STDOUT_FILENO) {
+	if (!logfile || fileno(logfile)!=STDOUT_FILENO) {
 	    dup2(dummy_fd, STDOUT_FILENO);
 	}
-	if (usesyslog || fileno(logfile)!=STDERR_FILENO) {
+	if (!logfile || fileno(logfile)!=STDERR_FILENO) {
 	    dup2(dummy_fd, STDERR_FILENO);
 	}
 	close(dummy_fd);
     }
-
-    if (usesyslog) {
-	openlog("psid",LOG_PID|LOG_CONS,LOG_DAEMON);
-    }
-
-    PSID_initLog(usesyslog, logfile);
-    PSC_initLog(usesyslog, logfile);
 
     if (debuglevel>0) {
 	PSID_setDebugLevel(debuglevel);
@@ -3256,7 +3251,7 @@ int main(int argc, char **argv)
     /*
      * read the config file
      */
-    PSID_readConfigFile(usesyslog);
+    PSID_readConfigFile(!logfile);
 
     snprintf(errtxt, sizeof(errtxt), "My ID is %d", PSC_getMyID());
     PSID_errlog(errtxt, 1);
@@ -3265,7 +3260,7 @@ int main(int argc, char **argv)
 	     inet_ntoa(*(struct in_addr *) &nodes[PSC_getMyID()].addr));
     PSID_errlog(errtxt, 1);
 
-    if (usesyslog && ConfigLogDest!=LOG_DAEMON) {
+    if (!logfile && ConfigLogDest!=LOG_DAEMON) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "Changing logging dest from LOG_DAEMON to %s",
 		 ConfigLogDest==LOG_KERN ? "LOG_KERN":
@@ -3338,7 +3333,7 @@ int main(int argc, char **argv)
 	 */
 	MCastSock = initMCast(PSC_getNrOfNodes(),
 			      ConfigMCastGroup, ConfigMCastPort,
-			      usesyslog, hostlist,
+			      !logfile, hostlist,
 			      PSC_getMyID(), MCastCallBack);
 	if (MCastSock<0) {
 	    PSID_errexit("Error while trying initMCast()", errno);
@@ -3346,7 +3341,7 @@ int main(int argc, char **argv)
 	setDeadLimitMCast(ConfigDeadInterval);
 
 	RDPSocket = initRDP(PSC_getNrOfNodes(), ConfigRDPPort,
-			    usesyslog, hostlist, RDPCallBack);
+			    !logfile, hostlist, RDPCallBack);
 	if (RDPSocket<0) {
 	    PSID_errexit("Error while trying initRDP()", errno);
 	}
