@@ -4,18 +4,18 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile,v 1.1 2002/11/26 13:19:32 eicker Exp $
+# $Id: Makefile,v 1.2 2002/11/27 09:06:24 eicker Exp $
 #
 # @author
 #         Norbert Eicker <eicker@par-tec.de>
 #############################################################################
 
 PSDIR = /opt/parastation
-PSDIR = /home/eicker/Work/p3/build/dist/opt/parastation
 
-CFLAGS = -Wall -g -I$(PSDIR)/include
+CPPFLAGS = -I$(PSDIR)/include
+CFLAGS = -Wall -g
 LDFLAGS = -L$(PSDIR)/lib
-LOADLIBES = -lpshal -lpsport -lpsi -lpse -lpthread
+LOADLIBES = -lpse -lpsi -lpsport -lpshal -lpthread
 
 TARGETS= native
 
