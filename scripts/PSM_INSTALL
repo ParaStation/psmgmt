@@ -155,9 +155,30 @@ self_change_inetd_conf() {
 	fi    
         if [ $VSTATE = 0 ]
 	then
-    	    mv $INETD_CNF $INETD_OLD
-	    cp $INETD_TRG $INETD_CNF
-	    chmod 755 $INETD_CNF
+	    if [ $1 -eq 1 ]
+	    then 
+	    # if installation...
+	        cat $INETD_CNF | grep -e "$INETD_PSIDMASK" -e "$INETD_PSLDMASK"
+		if [ $? -eq 0 ]
+		then	    
+		# there is some entries in $INETD_CNF
+		    #rm $INETD_OLD
+		    echo "!"
+		    echo "! There was already some PS entries in $INETD_CNF"  
+		    echo "! The recommended configuration is in file $INETD_TRG"
+		    echo "!"		
+    		else 
+		#there was no entries in $INETD_CNF 
+		    mv $INETD_CNF $INETD_OLD
+    		    mv $INETD_TRG $INETD_CNF
+		    chmod 755 $INETD_CNF		    
+		fi
+	    else	
+	    #if deinstallation...
+    		mv $INETD_CNF $INETD_OLD
+    		cp $INETD_TRG $INETD_CNF
+		chmod 755 $INETD_CNF	    
+	    fi	    
 	fi	
 	echo "Updating of $INETD_CNF completed, result = $VSTATE"
     else
@@ -190,9 +211,30 @@ self_change_service_conf() {
 	fi    
         if [ $VSTATE = 0 ]
 	then
-    	    mv $SERV_CNF $SERV_OLD
-	    cp $SERV_TRG $SERV_CNF
-	    chmod 755 $SERV_CNF
+	    if [ $1 -eq 1 ]
+	    then
+	    #if installation
+    		cat $SERV_CNF | grep -e "$SERV_PSRDPMASK" -e "$SERV_PSLDMASK" -e "$SERV_PSIDMASK" -e "$SERV_PSIDSMASK" -e "$SERV_PSMCASTMASK"
+		if [ $? -eq 0 ]
+		then
+		# there is some entries in $INETD_CNF
+		    #rm $SERV_OLD
+		    echo "!"
+		    echo "! There was already some PS entries in $SERV_CNF"  
+		    echo "! The recommended configuration is in file $SERV_TRG"
+		    echo "!"		
+    		else 
+		#there was no entries in $INETD_CNF 
+    		    mv $SERV_CNF $SERV_OLD
+		    mv $SERV_TRG $SERV_CNF
+		    chmod 755 $SERV_CNF		
+		fi		
+	    else
+	    #if deinstallation
+    		mv $SERV_CNF $SERV_OLD
+		cp $SERV_TRG $SERV_CNF
+		chmod 755 $SERV_CNF
+	    fi
 	fi	
 	echo "Updating of $SERV_CNF completed, result = $VSTATE"
     else
