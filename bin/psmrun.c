@@ -10,6 +10,10 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <signal.h>
+#include <sys/wait.h>
+#include <sys/time.h>
+
 
 #include <pse.h>
 //#include <psi.h>
@@ -21,7 +25,12 @@ char * PSI_LookupInstalldir(void);
 
 int debug=0;
 
-#define DPRINT(fmt,rest...) do{if (debug) fprintf(stderr,fmt ,##rest);}while(0);
+#define DPRINT(fmt,rest...) do{			\
+    if (debug){					\
+	fprintf(stderr,fmt ,##rest);		\
+    }						\
+}while(0);
+
 extern char **environ;
 
 
@@ -200,6 +209,200 @@ void PrintFreeNode(int argc,char **argv)
     PSEfinalize();
 }
 
+
+#define psps_alen2blen(alen) (((alen) / 2))
+#define psps_blen2alen(blen)    ((blen) * 2)
+
+
+
+static inline void
+psps_ascii2bin(unsigned char *ascii,int alen,unsigned char *bin ){
+    while (alen--){
+	*bin= (((*ascii)-'a')<<4) +  (((*(ascii+1))-'a'));
+	bin++;
+	ascii+=2;
+    };
+}
+
+static inline void
+psps_bin2ascii(unsigned char *bin,int blen,unsigned char *ascii ){
+    while (blen--){
+	*ascii=     'a' + ((*bin) >>  4);
+	*(ascii+1)= 'a' + ((*bin) & 0xf);
+	bin++;
+	ascii+=2;
+    }
+}
+
+
+
+static
+char *arg_encode(int argc,char **argv)
+{
+    int len;
+    int i;
+    char *bin;
+    char *asc;
+    char *a;
+    len=1;
+    for (i=0;i<argc;i++){
+	len=len+strlen(argv[i])+1;
+    }
+
+    bin=malloc(len);
+    asc=malloc(psps_blen2alen(len))+1;
+
+    a=bin;
+    DPRINT("Encode: ");
+    for (i=0;i<argc;i++){
+	memcpy(a,argv[i],strlen(argv[i])+1);
+	a+=strlen(argv[i])+1;
+	DPRINT("%s ",argv[i]);
+    }
+    *a++=0;
+    psps_bin2ascii(bin,len,asc);
+    asc[ psps_blen2alen(len)]=0;
+    DPRINT("\n-> %s\n",asc);
+    free(bin);
+    return asc;
+}
+
+static
+void arg_decode(char *asc,int *eargc,char ***eargv)
+{
+    char *bin;
+    char *a;
+    int i;
+    DPRINT("asc: %s\n",asc);
+    bin = malloc(psps_alen2blen(strlen(asc)));
+    psps_ascii2bin(asc,strlen(asc),bin);
+    a=bin;
+    *eargc=0;
+    while (*a++){
+	(*eargc)++;
+	while (*a++){};
+    }
+    *eargv=(char **)malloc(sizeof(char **)* (*eargc + 1));
+    DPRINT("argc: %d\n",*eargc);
+    a=bin;
+    i=0;
+    while (*a++){
+	(*eargv)[i++] = a-1;
+	while (*a++){};
+    }
+    (*eargv)[i++]=0;
+
+}
+
+int cpid;
+#define DEBUG_OUT
+#ifdef DEBUG_OUT
+FILE *out=NULL;
+#endif
+
+void sig_child(int sig)
+{
+    int status;
+#ifdef DEBUG_OUT
+    if (out){
+	fprintf(out,"Recv Signal %d\n",sig);
+	fflush(out);
+    }
+#endif
+    wait(&status);
+#ifdef DEBUG_OUT
+    if (out){
+	fprintf(out,"exit with %d\n",WEXITSTATUS(status));
+	fflush(out);
+    }
+#endif
+    exit(WEXITSTATUS(status));
+}
+
+void start_client(int argc,char **argv)
+{
+    int eargc;
+    char **eargv;
+    int i;
+
+    DPRINT("cd %s\n",argv[0]);
+    if (chdir( argv[0] ))
+	perror("chdir");
+    /*parastation expect correct PWD */
+    setenv("PWD",argv[0],1);
+    arg_decode( argv[1],&eargc,&eargv );
+
+    DPRINT("Call:\n");
+    for(i=0;eargv[i];i++){
+	DPRINT("%s ",eargv[i]);
+    }
+    DPRINT("\n");
+
+    if (! isatty(STDERR_FILENO)){
+	signal(SIGCHLD,sig_child);
+	cpid = fork();
+    }else{
+	/* with tty, we dont need a monitor thread */
+	cpid=0;
+    }
+    if (!cpid){
+	/* working thread */
+	execvp(eargv[0],eargv);
+	
+	fprintf(stderr,"Call:\n");
+	for(i=0;eargv[i];i++){
+	    fprintf(stderr,"%s ",eargv[i]);
+	}
+	fprintf(stderr,"\nfailed!\n");
+	exit(1);
+    }else{
+	/* monitor thread */
+	char buf[1];
+	int rs;
+	int status;
+#ifdef DEBUG_OUT
+	out=fopen("/home/hauke/out","w");
+	if (!out){
+	    perror("open out");
+	}
+	fprintf(out,"wait for read\n");
+	fflush(out);
+#endif
+#if 0 /* wont work */
+	do{
+	    /* timed flush of stdout */
+	    int ret;
+	    struct timeval to;
+	    fd_set fds_read;
+	    to.tv_sec=3;
+	    to.tv_usec=0;
+	    FD_ZERO( &fds_read);
+	    FD_SET(STDERR_FILENO,&fds_read);
+	    ret=select(STDERR_FILENO+1,&fds_read,NULL,NULL,&to);
+	    printf("select ret=%d read=%d \n",
+		    ret,
+		   FD_ISSET(STDERR_FILENO,&fds_read));
+	    fflush(stdout);
+	    if (FD_ISSET(STDERR_FILENO,&fds_read))
+		break;
+	}while(1);
+#endif 
+	rs=read(STDERR_FILENO,buf,sizeof(buf));
+#ifdef DEBUG_OUT
+	fprintf(out,"read %d byte : %d kill in 10 sec\n",rs,buf[0]);
+	fflush(out);
+	sleep(10);
+#endif
+	kill(cpid,SIGTERM);
+	wait(&status);
+#ifdef DEBUG_OUT
+	fprintf(out,"kill %d\n",cpid);
+	fflush(out);
+#endif
+	exit(WEXITSTATUS(status));
+    }
+}
+
 int main(int argc,char **argv)
 {
     char *ConfigFile;
@@ -222,30 +425,34 @@ int main(int argc,char **argv)
 	exit(1);
     }
     
-    if ((argc == 2)&& (!strcmp(argv[1],"--startnode"))){
-	{ /* Check Executable location */
-	    FILE *tf;
-	    tf = fopen(argv[0],"r");
-	    if (tf){
-		DPRINT("%s ok.\n",argv[0]);
-		fclose(tf);
-		/* all ok */
-	    }else{
-		char *buf=malloc(2000);/*Arggg!*/
-		int ret;
-		DPRINT("Read /proc/self/exe ");
-		ret = readlink("/proc/self/exe",buf,2000 );
-		if (ret >0){
-		    buf[ret]=0;
-		    argv[0]=buf;
-		}
-		DPRINT("-> using %s\n",argv[0]);
+    { /* Check Executable location */
+	FILE *tf;
+	tf = fopen(argv[0],"r");
+	if (tf && (argv[0][0] == '/')){
+	    DPRINT("%s ok.\n",argv[0]);
+	    fclose(tf);
+	    /* all ok */
+	}else{
+	    char *buf=malloc(2000);/*Arggg!*/
+	    int ret;
+	    DPRINT("Read /proc/self/exe ");
+	    ret = readlink("/proc/self/exe",buf,2000 );
+	    if (ret >0){
+		buf[ret]=0;
+		argv[0]=buf;
 	    }
-
+	    DPRINT("-> using %s\n",argv[0]);
 	}
-
 	
+    }
+
+    if ((argc == 2)&& (!strcmp(argv[1],"--startnode"))){
 	PrintFreeNode(argc,argv);
+	exit(0);
+    }
+
+    if ((argc >= 2)&& (!strcmp(argv[1],"--start"))){
+	start_client(argc-2,&argv[2]);
 	exit(0);
     }
 
@@ -272,6 +479,9 @@ int main(int argc,char **argv)
 
     pipe(MonitorPipe);
 
+    /*
+     * search free node
+     */
     if (!fork()){
 	char *eargv[5];
 
@@ -290,6 +500,9 @@ int main(int argc,char **argv)
     }
     close(MonitorPipe[1]); // Close the writing end to detect broken pipe
 
+    /*
+     * read magic
+     */
     {
 	int ret;
 	char magic[1000]="";
@@ -334,20 +547,30 @@ int main(int argc,char **argv)
     }
     
     {
+	/*
+	 * Start the program
+	 */
 	char **eeargv;
 	int i;
 	int n;
-	eeargv=(char**)malloc(sizeof(char **)*(argc-1+3+10));
+	eeargv=(char**)malloc(sizeof(char **)*(8));
 	n=0;
 	eeargv[n++]=strdup("ssh");
-	eeargv[n++]=strdup(StartNode);
-	eeargv[n++]=FullPath(argv[1]);
-	for (i=2;i<argc;i++){
-	    eeargv[n++]=strdup(argv[i]);
+	DPRINT("Check tty.");
+	if (isatty(STDOUT_FILENO)){
+	    DPRINT("tty found.\n");
+	    eeargv[n++]=strdup("-t");
+	}else{
+	    DPRINT("No tty found.\n");
 	}
+	eeargv[n++]=strdup(StartNode);
+	eeargv[n++]=strdup(argv[0]);
+	eeargv[n++]=strdup("--start");
+	eeargv[n++]=FullCwd();
+	eeargv[n++]=arg_encode(argc - 1,&argv[1]);
 	eeargv[n++]=0;
 
-	for(i=0;i<n-1;i++){
+	for(i=0;eeargv[i];i++){
 	    DPRINT("%s ",eeargv[i]);
 	}
 	DPRINT("\n");
@@ -355,7 +578,7 @@ int main(int argc,char **argv)
 	execvp("ssh",eeargv);
 
 	fprintf(stderr,"Call:\n");
-	for(i=0;i<n;i++){
+	for(i=0;eeargv[i];i++){
 	    fprintf(stderr,"%s ",eeargv[i]);
 	}
 	fprintf(stderr,"\nfailed!\n");
