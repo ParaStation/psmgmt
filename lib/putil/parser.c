@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: parser.c,v 1.2 2002/06/12 15:15:20 eicker Exp $
+ * $Id: parser.c,v 1.3 2002/07/03 20:19:49 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: parser.c,v 1.2 2002/06/12 15:15:20 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: parser.c,v 1.3 2002/07/03 20:19:49 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -43,7 +43,7 @@ static char *nextline(void)
     parseline++;
 
     if (!fgets(line, sizeof(line), parsefile)) {
-	errlog("Got EOF", 5);
+	parser_comment("Got EOF", 5);
 	line[0] = '\0';
 	return line;
     }
@@ -59,11 +59,11 @@ static char *nextline(void)
 	    errtxt[errlen++] = '\'';
 	    errtxt[errlen++] = '\0';
 	}
-	errlog(errtxt, 12);
+	parser_comment(errtxt, 14);
     }
 
     if (strlen(line) == (sizeof(line) - 1)) {
-	errlog("Line too long: '%s'\n", 0);
+	parser_comment("Line too long: '%s'\n", 0);
 	return NULL;
     }
 
@@ -89,34 +89,15 @@ void parser_setDebugLevel(int level)
     setErrLogLevel(level);
 }
 
-int parser_parseString(char *string, parser_t *parser)
+int parser_parseString(char *token, parser_t *parser)
 {
-    char *token;
-    unsigned int i;
     int ret;
-
-    token = strtok(string, parser->delim);
 
     do {
 	if (!token) break; /* end of string */
 
-	for (i=0; parser->keylist[i].key; i++) {
-	    if (strcasecmp(token, parser->keylist[i].key)==0) {
-		if (parser->keylist[i].action) {
-		    ret = parser->keylist[i].action(token);
-		    if (ret) return ret;
-		}
-		break;
-	    }
-	}
-
-	/* Default action */
-	if (!parser->keylist[i].key) {
-	    if (parser->keylist[i].action) {
-		ret = parser->keylist[i].action(token);
-		if (ret) return ret;
-	    }
-	}
+	ret = parser_parseToken(token, parser);
+	if (ret) return ret;
 
 	token = strtok(NULL, parser->delim); /* next token */
     } while(1);
@@ -124,9 +105,41 @@ int parser_parseString(char *string, parser_t *parser)
     return 0;
 }
 
+int parser_parseToken(char *token, parser_t *parser)
+{
+    unsigned int i;
+    int ret;
+
+    if (!token) return 0; /* end of string */
+    // fprintf(stderr, "Token: %s\n", token);
+
+    for (i=0; parser->keylist[i].key; i++) {
+	if (strcasecmp(token, parser->keylist[i].key)==0) {
+	    if (parser->keylist[i].action) {
+		return parser->keylist[i].action(token);
+	    }
+	    break;
+	}
+    }
+
+    /* Default action */
+    if (!parser->keylist[i].key) {
+	if (parser->keylist[i].action) {
+	    return parser->keylist[i].action(token);
+	}
+    }
+
+    return 0;
+}
+
+char *parser_registerString(char *string, parser_t *parser)
+{
+    return strtok(string, parser->delim);
+}
+
 int parser_parseFile(parser_t *parser)
 {
-    char *line;
+    char *line, *token;
     int ret;
 
     do {
@@ -138,7 +151,11 @@ int parser_parseFile(parser_t *parser)
 
 	if (!strlen(line)) break; /* EOF reached */
 
-	ret = parser_parseString(line, parser);
+	/* Put line into strtok() */
+	token = parser_registerString(line, parser);
+
+	/* Do the parsing */
+	ret = parser_parseString(token, parser);
 	if (ret) return ret;
 
     } while(1);
@@ -149,7 +166,7 @@ int parser_parseFile(parser_t *parser)
 int parser_error(char *token)
 {
     snprintf(errtxt, sizeof(errtxt),
-	     "Error in line %d at '%s'", parseline, token);
+	     "in line %d: Syntax error at '%s'", parseline, token);
     errlog(errtxt, 0);
 
     return -1;
@@ -157,6 +174,7 @@ int parser_error(char *token)
 
 void parser_comment(char *comment, int level)
 {
+    char errtxt[320];
     snprintf(errtxt, sizeof(errtxt), "in line %d: %s", parseline, comment);
 
     errlog(errtxt, level);
@@ -182,7 +200,7 @@ int parser_getComment(char *token)
 	snprintf(errtxt, sizeof(errtxt), "Got empty comment");
     }
 
-    errlog(errtxt, 12);
+    parser_comment(errtxt, 12);
 
 
     return 0;
@@ -225,7 +243,7 @@ char *parser_getFilename(char *token, char *prefix, char *extradir)
 
 	    snprintf(errtxt, sizeof(errtxt),
 		     "parser_getFilename(): file '%s' not found", absname);
-	    errlog(errtxt, 10);
+	    parser_comment(errtxt, 10);
 	}
 
 	strcpy(absname, prefix);
@@ -239,7 +257,7 @@ char *parser_getFilename(char *token, char *prefix, char *extradir)
 
     snprintf(errtxt, sizeof(errtxt),
 	     "parser_getFilename(): file '%s' not found", absname);
-    errlog(errtxt, 10);
+    parser_comment(errtxt, 10);
 
     free(absname);
     absname = NULL;
@@ -260,14 +278,14 @@ unsigned int parser_getHostname(char *token)
 
     if (!hostinfo) {
 	snprintf(errtxt, sizeof(errtxt), "%s: %s", hname, hstrerror(h_errno));
-	errlog(errtxt, 0);
+	parser_comment(errtxt, 0);
 
 	return 0;
     }
 
     if (hostinfo->h_length != sizeof(in_addr.s_addr)) {
 	snprintf(errtxt, sizeof(errtxt), "%s: Wrong size of address", hname);
-	errlog(errtxt, 0);
+	parser_comment(errtxt, 0);
 
 	h_errno = NO_ADDRESS;
 
@@ -278,7 +296,7 @@ unsigned int parser_getHostname(char *token)
 
     snprintf(errtxt, sizeof(errtxt), "Found host '%s' to have address %s",
 	     hname, inet_ntoa(in_addr));
-    errlog(errtxt, 8);
+    parser_comment(errtxt, 10);
     
     return in_addr.s_addr;
 }
@@ -292,13 +310,13 @@ int parser_getNumValue(char *token, int *value, char *valname)
     if (num < 0) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "'%s' is not a valid number for '%s'", token, valname);
-	errlog(errtxt, 0);
+	parser_comment(errtxt, 0);
 
 	return -1;
     }
 
     snprintf(errtxt, sizeof(errtxt), "Got '%d' for '%s'", num, valname);
-    errlog(errtxt, 8);
+    parser_comment(errtxt, 8);
 
     *value = num;
 
@@ -324,7 +342,7 @@ int parser_getBool(char *token, int *value, char *valname)
 	    snprintf(errtxt, sizeof(errtxt),
 		     "'%s' is not a valid boolean value for '%s'",
 		     token, valname);
-	    errlog(errtxt, 0);
+	    parser_comment(errtxt, 0);
 
 	    return -1;
 	}
@@ -334,16 +352,16 @@ int parser_getBool(char *token, int *value, char *valname)
 
     snprintf(errtxt, sizeof(errtxt), "Got '%s' for boolean value '%s'",
 	     *value ? "TRUE" : "FALSE", valname);
-    errlog(errtxt, 8);
+    parser_comment(errtxt, 8);
 
     return 0;
 }
 
-int parser_parseOn(char *line, parser_t *parser)
+int parser_parseOn(char *token, parser_t *parser)
 {
     int ret;
 
-    ret = parser_parseString(line, parser);
+    ret = parser_parseString(token, parser);
 
     if (!ret) {
 	ret = parser_parseFile(parser);
