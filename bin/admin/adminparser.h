@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: adminparser.h,v 1.1 2003/08/15 13:20:54 eicker Exp $
+ * $Id: adminparser.h,v 1.2 2003/09/12 14:24:49 eicker Exp $
  *
  */
 /**
  * \file
  * ParaStation admin command line parser functions
  *
- * $Id: adminparser.h,v 1.1 2003/08/15 13:20:54 eicker Exp $
+ * $Id: adminparser.h,v 1.2 2003/09/12 14:24:49 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -28,13 +28,16 @@ extern "C" {
 #endif
 #endif
 
-/** @todo Add docu */
-#define quitMagic 17
-
 /**
  * @brief Parse admins input line.
  *
- * @todo Add docu
+ * Parse a single line conforming to the syntax of psiadmin an execute
+ * to corresponding commands.
+ *
+ * @param line The line to handle, i.e. to parse and execute.
+ *
+ * @return If the 'exit' or 'quit' command was reached, 1 is returned
+ * or 0 otherwise.
  */
 int parseLine(char *line);
 
