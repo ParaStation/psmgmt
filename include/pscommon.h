@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.h,v 1.4 2002/07/31 08:49:04 eicker Exp $
+ * $Id: pscommon.h,v 1.5 2003/03/06 13:58:05 eicker Exp $
  *
  */
 /**
  * @file
  * Functions used in user-programs and daemon.
  *
- * $Id: pscommon.h,v 1.4 2002/07/31 08:49:04 eicker Exp $
+ * $Id: pscommon.h,v 1.5 2003/03/06 13:58:05 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -21,6 +21,7 @@
 #ifndef __PSCOMMON_H
 #define __PSCOMMON_H
 
+#include <stdio.h>
 #include <sys/types.h>
 
 #ifdef __cplusplus
@@ -255,7 +256,7 @@ void PSC_setInstalldir(char *installdir);
 /**
  * @brief @todo
  */
-int PSC_getServicePort( char *name , int def);
+int PSC_getServicePort(char *name , int def);
 
 #ifdef __cplusplus
 }/* extern "C" */

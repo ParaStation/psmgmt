@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.c,v 1.5 2002/07/31 08:41:45 eicker Exp $
+ * $Id: pscommon.c,v 1.6 2003/03/06 13:57:42 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.5 2002/07/31 08:41:45 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.6 2003/03/06 13:57:42 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -189,7 +189,7 @@ int PSC_startDaemon(unsigned int hostaddr)
     memset(&sa, 0, sizeof(sa));
     sa.sin_family = AF_INET;
     sa.sin_addr.s_addr = hostaddr;
-    sa.sin_port =  htons(PSC_getServicePort("psid", 888));
+    sa.sin_port = htons(PSC_getServicePort("psid", 888));
     if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0) {
 	char *errstr = strerror(errno);
 
@@ -273,7 +273,7 @@ int PSC_getServicePort(char *name , int def)
 {
     struct servent *service;
 
-    service = getservbyname(name,"tcp");
+    service = getservbyname(name, "tcp");
     if (!service) {
 	snprintf(errtxt, sizeof(errtxt), "PSC_getServicePort():"
 		 " can't get '%s' service entry, using port %d.",
