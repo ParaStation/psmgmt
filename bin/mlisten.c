@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mlisten.c,v 1.11 2002/04/22 18:13:59 hauke Exp $
+ * $Id: mlisten.c,v 1.12 2002/04/23 16:09:49 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mlisten.c,v 1.11 2002/04/22 18:13:59 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mlisten.c,v 1.12 2002/04/23 16:09:49 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -17,7 +17,6 @@ static char vcid[] __attribute__(( unused )) = "$Id: mlisten.c,v 1.11 2002/04/22
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -61,7 +60,7 @@ void init(int num_nodes)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.11 $";
+    char revision[] = "$Revision: 1.12 $";
     fprintf(stderr, "mlisten %s\b \n", revision+11);
 }
 
@@ -87,8 +86,8 @@ static void help(void)
 	    " Default is %d.\n", DEFAULT_MCAST_GROUP);
     fprintf(stderr," -n NET   : Listen only on network NET."
 	    " Default is INADDR_ANY.\n");
-    fprintf(stderr," -p PORT  : Listen on port PORT. Default is %s.\n",
-	    MCASTSERVICE);
+    fprintf(stderr," -p PORT  : Listen on port PORT. Default is %d.\n",
+	    DEFAULT_MCAST_PORT);
     fprintf(stderr," -v,      : output version information and exit.\n");
     fprintf(stderr," -h,      : display this help and exit.\n");
 }
@@ -110,13 +109,11 @@ static int lale_snprintf( char *dest,size_t cnt,const char *fmt, ...)
 
 int main(int argc, char *argv[])
 {
-    char *service = MCASTSERVICE;
-    char *protocol = "udp";
     int MCAST_GROUP = DEFAULT_MCAST_GROUP;
+    unsigned short MCAST_PORT = DEFAULT_MCAST_PORT;
     char *net = NULL;
     int nodes = NODES;
 
-    struct servent *pse;     /* pointer to service information entry */ 
     int reuse;
     struct ip_mreq mreq;
     struct sockaddr_in sin;  /* an internet endpoint address */ 
@@ -130,8 +127,8 @@ int main(int argc, char *argv[])
     while (((c = getopt(argc,argv, "DhvVH#:m:n:p:")) != -1)) {
 	switch (c) {
 	case 'p':
-	    service = optarg; 
-	    printf("using port %s\n",service);
+	    sscanf(optarg, "%hu", &MCAST_PORT);
+	    printf("using port %hu\n", MCAST_PORT);
 	    break;
 	case 'n':
 	    net = optarg; 
@@ -208,17 +205,7 @@ int main(int argc, char *argv[])
     memset(&sin, 0, sizeof(sin));
     sin.sin_family = AF_INET;
     sin.sin_addr.s_addr = mreq.imr_multiaddr.s_addr;
-
-    /* map service name to port number */
-    if ((pse = getservbyname(service, protocol))) {
-	sin.sin_port = pse->s_port;
-    } else {
-	if ((sin.sin_port = htons((u_short)atoi(service))) == 0) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "can't get %s service entry", service);
-	    perror(errtxt);
-	}
-    }
+    sin.sin_port = htons(MCAST_PORT);
 
     /* Do the bind */
     if (bind(mcastsock, (struct sockaddr *)&sin, sizeof(sin)) < 0) {
