@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.h,v 1.10 2002/02/18 19:53:14 eicker Exp $
+ * $Id: psi.h,v 1.11 2002/04/03 15:35:21 eicker Exp $
  *
  */
 /**
  * @file
  * psi: User-functions for interaction with the ParaStation system.
  *
- * $Id: psi.h,v 1.10 2002/02/18 19:53:14 eicker Exp $
+ * $Id: psi.h,v 1.11 2002/04/03 15:35:21 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -56,8 +56,6 @@ extern long PSI_options;
 int PSI_setoption(long option,char value);
 
 extern enum TaskOptions PSI_mychildoptions;
-
-extern char * PSI_installdir;
 
 /***************************************************************************
  *       PSI_clientinit()
