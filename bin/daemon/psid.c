@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.100 2003/07/04 14:35:34 eicker Exp $
+ * $Id: psid.c,v 1.101 2003/07/18 14:43:09 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.100 2003/07/04 14:35:34 eicker Exp $ 
+ * $Id: psid.c,v 1.101 2003/07/18 14:43:09 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.100 2003/07/04 14:35:34 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.101 2003/07/18 14:43:09 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -47,9 +47,6 @@ static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.100 2003/07/04 1
 #ifdef __osf__
 #include <sys/table.h>
 #endif
-
-#include <pshal.h>
-#include <psm_mcpif.h>
 
 #include "timer.h"
 #include "mcast.h"
@@ -81,7 +78,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.100 $";
+static char psid_cvsid[] = "$Revision: 1.101 $";
 
 static int PSID_mastersock;
 
@@ -2603,7 +2600,7 @@ void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.100 $";
+    char revision[] = "$Revision: 1.101 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
