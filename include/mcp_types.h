@@ -18,8 +18,8 @@
 
 
 #define MCP_VERSION	0x100
-#include "lanai_def.h"
 #include "ps_types.h"
+#include "lanai_def.h"
 
 /********************************************************************
  *  ParaStation3 Packet Format
@@ -311,6 +311,33 @@ typedef struct MCPNetRecvHeader_T {
     /* (UINT32)(seqno,ackno) = PortSeqNo on Receive */
     /* *(UINT8*)(&connid) = Last Databyte for DataPick */
 } MCPNetRecvHeader_t;
+
+/*
+ * Definition of Routing Messages
+ */
+
+#define MCPRoutingMagic (('r' << 24) | ('o' << 16) | ('u' << 8) | ('t'))
+
+typedef struct MCPRawMessageHead_T{
+    UINT8	align;		/* route alignement */
+    UINT8	route[7];	/* route */
+}MCPRawMessageHead_t;
+
+typedef struct MCPReflectedRoutingMessage_T{
+    UINT32	magic;		/* MCPRoutingMagic */
+    UINT16	hostid;		/* parastation id in network byte order */
+}MCPReflectedRoutingMessage_t;
+
+typedef struct MCPReceivedRoutingMessage_T{
+    UINT8	zero;		/* zero routing ( 0x80 ) */
+    UINT8	backroute[7];	/* backroute padded with 0 */
+    MCPReflectedRoutingMessage_t reflect;
+}MCPReceivedRoutingMessage_t;
+
+typedef struct MCPSentRoutingMessage_T{
+    MCPRawMessageHead_t		route;
+    MCPReceivedRoutingMessage_t recv;
+}MCPSentRoutingMessage_t;
 
 
 //  typedef struct MCPHostRecvHeader_T {

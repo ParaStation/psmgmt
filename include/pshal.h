@@ -1,7 +1,7 @@
 /*
  *
  *
- *      $Id: pshal.h,v 1.17 2001/10/05 17:45:54 hauke Exp $	
+ *      $Id: pshal.h,v 1.18 2002/03/25 14:55:07 hauke Exp $	
  *
  *      written by Jens Hauke
  *
@@ -191,6 +191,10 @@ int PSHALMsgSend(PSHALSendHeader_t* header,void*data,int *ack);
  */
 int PSHALMsgSendPinned(PSHALSendHeader_t* header,int bufno);
 
+/*
+ * Undocumented function
+ */
+int PSHALMsgSendRaw(void *data,int len);
 
 /*------------------------------------------------------------------------------
  * int PSHALMsgAvailable()
