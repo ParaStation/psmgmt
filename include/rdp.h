@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.h,v 1.8 2002/01/30 18:25:57 eicker Exp $
+ * $Id: rdp.h,v 1.9 2002/01/30 22:26:28 eicker Exp $
  *
  */
 /**
  * @file
  * Reliable Datagram Protocol for ParaStation daemon
  *
- * $Id: rdp.h,v 1.8 2002/01/30 18:25:57 eicker Exp $
+ * $Id: rdp.h,v 1.9 2002/01/30 22:26:28 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -49,14 +49,14 @@ typedef struct {
  * @param usesyslog If true, all error-messages are printed via syslog().
  * @param hosts An array of size @a nodes containing the IP-addresses of the
  * participating nodes in network-byteorder.
- * @param func Pointer to a callback-function. This function is called if
+ * @param callback Pointer to a callback-function. This function is called if
  * something exceptional happens. If NULL, no callbacks will be done.
  *
  * @return On success, the filedescriptor of the RDP socket is returned.
  * On error, exit() is called within this function.
  */
 int initRDP(int nodes, int usesyslog, unsigned int hosts[],
-	    void (*func)(int, void*));
+	    void (*callback)(int, void*));
 
 /**
  * @brief Shutdown the RDP module.

@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: timer.h,v 1.2 2002/01/30 10:45:04 eicker Exp $
+ * $Id: timer.h,v 1.3 2002/01/30 22:26:03 eicker Exp $
  *
  */
 /**
  * @file
- * timer: ParaStation Timer facility @todo More info on module.
+ * ParaStation Timer facility @todo More info on module.
  *
- * $Id: timer.h,v 1.2 2002/01/30 10:45:04 eicker Exp $
+ * $Id: timer.h,v 1.3 2002/01/30 22:26:03 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
