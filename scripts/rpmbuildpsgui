@@ -8,10 +8,10 @@ SPECFILE=psgui-$DVER.spec
 
 cat > $SPECFILE <<EOF
 Summary:   ParaStation Cluster Communication and Management
-Vendor:    ParTec AG,Karlsruhe,Germany
+Vendor:    ParTec AG, Karlsruhe, Germany
 Name:      psgui
 Version:   $DVER
-Release:   `date +%Y%m%d`.`uname`
+Release:   `date +%Y%m%d`
 Copyright: (c) 2001-2002 ParTec AG
 Group:     System
 Packager:  support@par-tec.de
