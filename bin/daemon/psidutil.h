@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.h,v 1.9 2002/07/03 21:10:06 eicker Exp $
+ * $Id: psidutil.h,v 1.10 2002/07/11 11:08:07 eicker Exp $
  *
  */
 /**
  * \file
  * psidutil: Utilities for ParaStation daemon
  *
- * $Id: psidutil.h,v 1.9 2002/07/03 21:10:06 eicker Exp $
+ * $Id: psidutil.h,v 1.10 2002/07/11 11:08:07 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -30,7 +30,8 @@ extern "C" {
 
 #include "pstask.h"
 
-extern int PSID_HWstatus ;    /* indicates if the card is present */
+extern int PSID_HWstatus;    /* indicates which HW is present */
+extern short PSID_numCPU;    /* actual number of CPUs */
 
 void PSID_initLog(int usesyslog, FILE *logfile);
 
@@ -43,7 +44,7 @@ void PSID_errlog(char *s, int level);
 void PSID_errexit(char *s, int errorno);
 
 
-void PSID_ReConfig(char *license, char *module, char *configfile);
+void PSID_ReConfig(void);
 
 void PSID_CardStop(void);
 

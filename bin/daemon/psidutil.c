@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.34 2002/07/08 16:21:53 eicker Exp $
+ * $Id: psidutil.c,v 1.35 2002/07/11 11:11:02 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.34 2002/07/08 16:21:53 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.35 2002/07/11 11:11:02 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -44,6 +44,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.34 2002/07/0
 #include "psidutil.h"
 
 int PSID_HWstatus;
+short PSID_numCPU;
 
 static char errtxt[256];
 
@@ -84,7 +85,7 @@ void PSID_errexit(char *s, int errorno)
 
 static card_init_t card_info;
 
-void PSID_ReConfig(char *licensekey, char *module, char *routingfile)
+void PSID_ReConfig(void)
 {
     int ret;
     char licdot[10];
@@ -92,54 +93,62 @@ void PSID_ReConfig(char *licensekey, char *module, char *routingfile)
     PSID_HWstatus = 0;
 
     if (nodes[PSC_getMyID()].hwType & PSP_HW_MYRINET) {
-	strncpy(licdot, licensekey ? licensekey : "none", sizeof(licdot));
-	licdot[4] = licdot[5] = licdot[6] = '.';
-	licdot[7] = 0;
-
-	snprintf(errtxt, sizeof(errtxt), "PSID_ReConfig: '%s' '%s' '%s'"
-		 " small packets %d, ResendTimeout %d", licdot, module,
-		 routingfile, ConfigSmallPacketSize, ConfigRTO);
-	PSID_errlog(errtxt, 1);
-
-	card_info.node_id = PSC_getMyID();
-	card_info.licensekey = licensekey;
-	card_info.module = module;
-	card_info.options = NULL;
-	card_info.routing_file = routingfile;
-
-	ret = card_cleanup(&card_info);
-	if (ret) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "PSID_ReConfig: cardcleanup(): %s", card_errstr());
-	    PSID_errlog(errtxt, 0);
+	if (!ConfigMyriModule) {
+	    PSID_errlog("ERROR: MyriNet module not defined", 0);
+	} else if (!ConfigRoutefile) {
+	    PSID_errlog("ERROR: Routefile not defined", 0);
 	} else {
-	    PSID_errlog("PSID_ReConfig: cardcleanup(): success", 10);
-	}
+	    strncpy(licdot, ConfigLicenseKey ? ConfigLicenseKey : "none",
+		    sizeof(licdot));
+	    licdot[4] = licdot[5] = licdot[6] = '.';
+	    licdot[7] = 0;
 
-	ret = card_init(&card_info);
-	if (ret) {
-	    snprintf(errtxt, sizeof(errtxt), "PSID_ReConfig: %s",
-		     card_errstr());
-	    PSID_errlog(errtxt, 0);
-	} else {
-	    PSID_errlog("PSID_ReConfig: cardinit(): success", 10);
+	    snprintf(errtxt, sizeof(errtxt), "PSID_ReConfig: '%s' '%s' '%s'"
+		     " small packets %d, ResendTimeout %d",
+		     licdot, ConfigMyriModule, ConfigRoutefile,
+		     ConfigSmallPacketSize, ConfigRTO);
+	    PSID_errlog(errtxt, 1);
 
-	    PSID_HWstatus |= PSP_HW_MYRINET;
+	    card_info.node_id = PSC_getMyID();
+	    card_info.licensekey = ConfigLicenseKey;
+	    card_info.module = ConfigMyriModule;
+	    card_info.options = NULL;
+	    card_info.routing_file = ConfigRoutefile;
 
-	    if (ConfigSmallPacketSize != -1) {
-		PSHALSYS_SetSmallPacketSize(ConfigSmallPacketSize);
+	    ret = card_cleanup(&card_info);
+	    if (ret) {
+		snprintf(errtxt, sizeof(errtxt),
+			 "PSID_ReConfig: cardcleanup(): %s", card_errstr());
+		PSID_errlog(errtxt, 0);
+	    } else {
+		PSID_errlog("PSID_ReConfig: cardcleanup(): success", 10);
 	    }
 
-	    if (ConfigRTO != -1) {
-		PSHALSYS_SetMCPParam(MCP_PARAM_RTO, ConfigRTO);
-	    }
+	    ret = card_init(&card_info);
+	    if (ret) {
+		snprintf(errtxt, sizeof(errtxt), "PSID_ReConfig: %s",
+			 card_errstr());
+		PSID_errlog(errtxt, 0);
+	    } else {
+		PSID_errlog("PSID_ReConfig: cardinit(): success", 10);
 
-	    if (ConfigHNPend != -1) {
-		PSHALSYS_SetMCPParam(MCP_PARAM_HNPEND, ConfigHNPend);
-	    }
+		PSID_HWstatus |= PSP_HW_MYRINET;
 
-	    if (ConfigAckPend != -1) {
-		PSHALSYS_SetMCPParam(MCP_PARAM_ACKPEND, ConfigAckPend);
+		if (ConfigSmallPacketSize != -1) {
+		    PSHALSYS_SetSmallPacketSize(ConfigSmallPacketSize);
+		}
+
+		if (ConfigRTO != -1) {
+		    PSHALSYS_SetMCPParam(MCP_PARAM_RTO, ConfigRTO);
+		}
+
+		if (ConfigHNPend != -1) {
+		    PSHALSYS_SetMCPParam(MCP_PARAM_HNPEND, ConfigHNPend);
+		}
+
+		if (ConfigAckPend != -1) {
+		    PSHALSYS_SetMCPParam(MCP_PARAM_ACKPEND, ConfigAckPend);
+		}
 	    }
 	}
     }
@@ -285,6 +294,10 @@ void PSID_readconfigfile(int usesyslog)
 	PSID_errlog(errtxt, 1);
     }
 
+    /* Determine the number of CPUs */
+    /* @todo Implement!! */
+    PSID_numCPU = 1;
+
     if (PSC_getNrOfNodes() > 4) {
 	/*
 	 * Check the license key
@@ -299,8 +312,7 @@ void PSID_readconfigfile(int usesyslog)
      * if the card is busy, the OS PSHAL_Startup will exit(0);
      */
     PSID_errlog("PSID_readconfigfile(): calling PSID_ReConfig()", 9);
-    // PSHAL_StartUp(1);
-    PSID_ReConfig(ConfigLicensekey, ConfigModule, ConfigRoutefile);
+    PSID_ReConfig();
     PSID_errlog("PSID_readconfigfile(): PSID_ReConfig ok.", 9);
 }
 
