@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidinfo.c,v 1.8 2004/01/28 14:03:06 eicker Exp $
+ * $Id: psidinfo.c,v 1.9 2004/02/23 18:34:29 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidinfo.c,v 1.8 2004/01/28 14:03:06 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidinfo.c,v 1.9 2004/02/23 18:34:29 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -483,6 +483,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 			msg.buf[node] = PSnodes_isUp(node);
 		    }
 		    msg.header.len += sizeof(*msg.buf) * PSC_getNrOfNodes();
+		    break;
 		default:
 		    msg.type = PSP_INFO_UNKNOWN;
 		}

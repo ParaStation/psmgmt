@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidpartition.c,v 1.14 2004/02/11 14:23:32 eicker Exp $
+ * $Id: psidpartition.c,v 1.15 2004/02/23 18:34:29 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.14 2004/02/11 14:23:32 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.15 2004/02/23 18:34:29 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -641,7 +641,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 	}
     }
 
-    if (totCPUs < request->size) {
+    if (totCPUs < request->size && !(request->options & PART_OPT_OVERBOOK)) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "%s: Unable to ever get sufficient resources", __func__);
 	PSID_errlog(errtxt, 0);
@@ -859,17 +859,74 @@ static unsigned int getOverbookPart(PSpart_request_t *request,
 	availSlots += slots;
     }
 
-    if (avail >= request->size) {
-	/* No overbook necessary */
-	free(candSlots);
-	return getNormalPart(request, candidates, partition);
-    }
-
     if (availSlots < request->size) {
 	snprintf(errtxt, sizeof(errtxt), "%s: Not enough Slots", __func__);
 	PSID_errlog(errtxt, 1);
 	free(candSlots);
 	return 0;
+    } else if (avail >= request->size) {
+	/* No overbook necessary */
+	free(candSlots);
+	return getNormalPart(request, candidates, partition);
+    } else {
+	/* Determine the number of processes on every node */
+	int i, maxCPUs = 0;
+	unsigned int procsPerCPU = 1, neededSlots = request->size;
+
+	for (i = 0; i < PSC_getNrOfNodes(); i++) candSlots[i] = 0;
+
+	while (procsPerCPU > 0) {
+	    unsigned int availCPUs = 0;
+	    for (cand=0; cand<candidates->size; cand++) {
+		sortentry_t *ce = &candidates->entry[cand];
+		unsigned short procs = ce->cpus * procsPerCPU;
+		if (candSlots[ce->id] < procs) {
+		    if (PSnodes_getProcs(ce->id) == PSNODES_ANYPROC) {
+			availCPUs += ce->cpus;
+			neededSlots -= procs - candSlots[ce->id];
+			candSlots[ce->id] = procs;
+		    } else if (procs < PSnodes_getProcs(ce->id)) {
+			unsigned short tmp = PSnodes_getProcs(ce->id) - procs;
+			availCPUs += (tmp > ce->cpus) ? ce->cpus : tmp;
+			neededSlots -= procs - candSlots[ce->id];
+			candSlots[ce->id] = procs;
+		    } else {
+			neededSlots -=
+			    PSnodes_getProcs(ce->id) - candSlots[ce->id];
+			candSlots[ce->id] = PSnodes_getProcs(ce->id);
+		    }
+		}
+	    }
+	    if (!availCPUs || neededSlots < availCPUs) break;
+	    procsPerCPU += neededSlots / availCPUs;
+	}
+	if (neededSlots) {
+	    /* Determine maximum number of CPUs on available nodes */
+	    short *lateProcs = calloc(sizeof(short), PSC_getNrOfNodes());
+	    short round = 1;
+	    for (cand=0; cand<candidates->size; cand++) {
+		sortentry_t *ce = &candidates->entry[cand];
+		if (PSnodes_getProcs(ce->id) == PSNODES_ANYPROC
+		    || candSlots[ce->id] < PSnodes_getProcs(ce->id)) {
+		    if (ce->cpus > maxCPUs) maxCPUs = ce->cpus;
+		}
+	    }
+	    /* Now increase jobs on nodes in a (hopefully) smart way */
+	    while (neededSlots > 0) {
+		for (cand=0; cand<candidates->size && neededSlots; cand++) {
+		    sortentry_t *ce = &candidates->entry[cand];
+		    if ((PSnodes_getProcs(ce->id) == PSNODES_ANYPROC
+			 || candSlots[ce->id] < PSnodes_getProcs(ce->id))
+			&& ((lateProcs[ce->id]+1)*maxCPUs <= round*ce->cpus)) {
+			/* @todo Think about this !! */
+			neededSlots--;
+			candSlots[ce->id]++;
+			lateProcs[ce->id]++;
+		    }
+		}
+		round++;
+	    }
+	}
     }
 
     if (request->options & PART_OPT_NODEFIRST) {
