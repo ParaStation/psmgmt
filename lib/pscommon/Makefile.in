@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.4 2002/10/01 12:42:50 hauke Exp $
+# $Id: Makefile.in,v 1.5 2003/04/03 15:01:52 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -18,7 +18,7 @@ TOPSRCDIR := @TOP_SRCDIR@
 
 export LIBNAME := pscommon
 # Dont forget to change the objectlist also in libpsi!
-export LIBOBJS := pscommon.o psprotocol.o pshwtypes.o pstask.o
+export LIBOBJS := pscommon.o psprotocol.o pstask.o
 export LIBVPATH := $(SRCDIR)
 export LIBINC = -I$(TOPSRCDIR)/include
 export LIBDSTDIR = ../..
