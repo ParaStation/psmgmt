@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.26 2002/02/12 19:07:35 eicker Exp $
+ * $Id: psiadmin.c,v 1.27 2002/02/13 08:35:40 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.26 2002/02/12 19:07:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.27 2002/02/13 08:35:40 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -40,7 +40,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.26 $";
+static char psiadmversion[] = "$Revision: 1.27 $";
 static int  DoRestart = 1;
 
 int PSIADM_LookUpNodeName(char* hostname)
@@ -169,7 +169,7 @@ void PSIADM_CountStat(int first, int last)
 		}
 		printf("\n");
 	    } else {
-		printf("No card present\n");
+		printf("    No card present\n");
 	    }
 	}
     }
