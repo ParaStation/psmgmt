@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.47 2003/04/07 18:40:28 eicker Exp $
+ * $Id: psi.c,v 1.48 2003/04/10 17:34:18 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.47 2003/04/07 18:40:28 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.48 2003/04/10 17:34:18 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -106,11 +106,10 @@ static int connectDaemon(PStask_group_t taskGroup)
 
     /* local connect */
     msg.header.type = PSP_CD_CLIENTCONNECT;
-
-    msg.header.len = sizeof(msg);
     msg.header.sender = getpid();
     msg.header.dest = 0;
-    msg.version = PSprotocolversion;
+    msg.header.len = sizeof(msg);
+    msg.version = PSprotocolVersion;
     if (taskGroup == TG_SPAWNER) {
 	msg.ppid = getpgrp();
     }
@@ -163,7 +162,7 @@ static int connectDaemon(PStask_group_t taskGroup)
 	    snprintf(errtxt, sizeof(errtxt),
 		     "%s: Daemon (%d) does not support library version (%d)."
 		     " Pleases relink program.",
-		     __func__, *(int *) answer.buf, PSprotocolversion );
+		     __func__, *(int *) answer.buf, PSprotocolVersion );
 	    PSI_errlog(errtxt, 0);
 	    break;
 	case PSP_CONN_ERR_NOSPACE:
