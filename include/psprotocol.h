@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.10 2003/02/13 17:08:47 eicker Exp $
+ * $Id: psprotocol.h,v 1.11 2003/02/21 12:27:16 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation client-daemon and daemon-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.10 2003/02/13 17:08:47 eicker Exp $
+ * $Id: psprotocol.h,v 1.11 2003/02/21 12:27:16 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -270,7 +270,7 @@ typedef struct {
 			      - PSP_DD_RELEASERES: resulting error
 			      - PSP_DD_WHODIED: unused
 			      - PSP_DD_SIGNAL: uid of the sender.
-			      - PSP_DD_CHILDDEAD: uid of the sender. */
+			      - PSP_DD_CHILDDEAD: unused. */
 } DDSignalMsg_t;
 
 /* Taskinfo Message */
