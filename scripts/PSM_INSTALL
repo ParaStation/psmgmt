@@ -506,21 +506,21 @@ do_what() {
 #	echo "VINT = $VINT"
         if [ $VUNINST -eq 1 ]
         then
-            echo "Uninstallation driver....................[YES]"
+            echo "Uninstalling driver......................[YES]"
 	else
-	    echo "Uninstallation driver....................[NO]"
+	    echo "Uninstalling driver......................[NO]"
         fi
         if [ $VCHK -eq 1 ]
         then
-            echo "Checking the possibility of installation [YES]"
+            echo "Installation possible?...................[YES]"
 	else
-	    echo "Checking the possibility of installation [NO]"
+	    echo "Installation possible?...................[NO]"
         fi
         if [ $VINST -eq 1 ]
         then
-	    echo "Installation driver......................[YES]"
+	    echo "Installing driver........................[YES]"
 	else
-	    echo "Installation driver......................[NO]"
+	    echo "Installing driver........................[NO]"
         fi
         if [ $VINETD -eq 1 ]
         then
