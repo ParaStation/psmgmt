@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.55 2003/04/02 13:35:21 eicker Exp $
+ * $Id: psiadmin.c,v 1.56 2003/04/03 15:57:36 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.55 2003/04/02 13:35:21 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.56 2003/04/03 15:57:36 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -49,7 +49,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.55 $";
+static char psiadmversion[] = "$Revision: 1.56 $";
 static int doRestart = 0;
 
 static char *hoststatus = NULL;
@@ -120,16 +120,17 @@ void PSIADM_NodeStat(int first, int last)
     return;
 }
 
+static char statusline[1024];
+
 void PSIADM_RDPStat(int first, int last)
 {
     int i;
-    char s[255];
 
     first = (first==ALLNODES) ? 0 : first;
     last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
     for (i = first; i < last; i++) {
-	INFO_request_rdpstatus(i,s,sizeof(s), 1);
-	printf("%s",s);
+	INFO_request_rdpstatus(i, statusline, sizeof(statusline), 1);
+	printf("%s", statusline);
     }
 
     return;
@@ -138,13 +139,12 @@ void PSIADM_RDPStat(int first, int last)
 void PSIADM_MCastStat(int first, int last)
 {
     int i;
-    char s[256];
 
     first = (first==ALLNODES) ? 0 : first;
     last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
     for (i = first; i < last; i++) {
-	INFO_request_mcaststatus(i, s, sizeof(s), 1);
-	printf("%s", s);
+	INFO_request_mcaststatus(i, statusline, sizeof(statusline), 1);
+	printf("%s", statusline);
     }
 
     return;
@@ -152,58 +152,60 @@ void PSIADM_MCastStat(int first, int last)
 
 void PSIADM_CountStat(int first, int last)
 {
-    int i;
+    int i, hw, hwnum;
     unsigned int j;
-    struct {
-	unsigned int hwStatus;
-	PSHALInfoCounter_t ic;
-    } countstat;
 
     INFO_request_nodelist(nodelist, nodelistSize, 1);
 
     first = (first==ALLNODES) ? 0 : first;
     last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
 
-    printf("%6s ", "NODE");
-    /* Get header info from daemon with MyriNet */
-    memset(&countstat, 0, sizeof(countstat));
-    for (i=0; i<PSC_getNrOfNodes(); i++) {
-	if (nodelist[i].hwType & PSHW_MYRINET) {
-	    INFO_request_countstatus(i, &countstat, sizeof(countstat), 0);
-	    if (countstat.hwStatus & PSHW_MYRINET) {
-		for (j=0 ; j<countstat.ic.n; j++){
-		    printf("%8s ", countstat.ic.counter[j].name);
+    hwnum = INFO_request_hwnum(1);
+
+    for (hw=0; hw<hwnum; hw++) {
+	int ret = 0;
+	for (i=first; i<last; i++) {
+	    if (nodelist[i].up && nodelist[i].hwStatus & 1<<hw) {
+		ret = INFO_request_countheader(i, hw, &statusline,
+					       sizeof(statusline), 1);
+		if (ret) {
+		    char *hwname = INFO_request_hwname(hw, 1);
+
+		    printf("Counter for hardware type '%s':\n\n",
+			   hwname ? hwname : "unknown");
+		    printf("%6s ", "NODE");
+		    printf("%s\n", statusline);
+		    break;
 		}
-		break;
 	    }
 	}
-    }
-    printf("\n");
 
-    for (i = first; i < last; i++) {
-	printf("%4d ", i);
+	if (ret) {
+	    for (i=first; i<last; i++) {
+		printf("%4d ", i);
 
-	if (nodelist[i].up) {
-	    if (! (nodelist[i].hwType & PSHW_MYRINET)) {
-		printf("    No card present\n");
-	    } else if (INFO_request_countstatus(i, &countstat,
-						sizeof(countstat), 1) != -1) {
-		if (countstat.hwStatus & PSHW_MYRINET) {
-		    for (j=0; j<countstat.ic.n; j++){
-			char ch[10];
-			/* calc column size from name length */
-			sprintf(ch, "%%%du ", (int) MAX(strlen(
-			    countstat.ic.counter[j].name),8));
-			printf(ch, countstat.ic.counter[j].value);
+		if (nodelist[i].up) {
+		    if (! (nodelist[i].hwStatus & 1<<hw)) {
+			printf("    No card present\n");
+		    } else {
+			ret = INFO_request_countstatus(i, hw, &statusline,
+						       sizeof(statusline), 1);
+			if (ret) {
+			    if (statusline[strlen(statusline)] == '\n') {
+				printf("%s", statusline);
+			    } else {
+				printf("%s\n", statusline);
+			    }
+			} else {
+			    printf("    Counter unavailable\n");
+			}
 		    }
-		    printf("\n");
 		} else {
-		    printf("    No card present\n");
+		    printf("\tdown\n");
 		}
 	    }
-	} else {
-	    printf("\tdown\n");
 	}
+	printf("\n");
     }
 
     return;
@@ -289,7 +291,8 @@ void PSIADM_HWStat(int first, int last)
     for (i = first; i < last; i++) {
 	if (nodelist[i].up) {
 	    printf("%4d\t %d\t %s\n",
-		   i, nodelist[i].numCPU, PSHW_printType(nodelist[i].hwType));
+		   i, nodelist[i].numCPU,
+		   INFO_printHWType(nodelist[i].hwStatus));
 	} else {
 	    printf("%4d\t down\n", i);
 	}
@@ -420,71 +423,34 @@ void PSIADM_ShowUser(int first, int last)
     return;
 }
 
-void PSIADM_SetPsidSelectTime(int val, int first, int last)
+void PSIADM_SetParam(int type, int value, int first, int last)
 {
     int i;
     DDOptionMsg_t msg;
 
-    if (geteuid()) {
-	printf("Sorry, only root access\n");
+    if(geteuid()){
+	printf("Insufficient priviledge\n");
 	return;
     }
 
-    first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
-
-    if (val<1) {
-	printf(" value must be > 0.\n");
-	return;
-    }
-
-    /*
-     * prepare the message to send it to the daemon
-     */
-    msg.header.type = PSP_CD_SETOPTION;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.len = sizeof(msg);
-    msg.count = 1;
-    msg.opt[0].option = PSP_OP_PSIDSELECTTIME;
-    msg.opt[0].value = val;
-
-    for (i = first; i < last; i++) {
-	msg.header.dest = PSC_getTID(i, 0);
-	PSI_sendMsg(&msg);
-    }
-
-    return;
-}
-
-void PSIADM_ShowPsidSelectTime(int first, int last)
-{
-    int i, ret;
-    long option = PSP_OP_PSIDSELECTTIME, selecttime;
-
-    first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
-
-    for (i = first; i < last; i++) {
-	printf("%3d:  ", i);
-	ret = INFO_request_option(i, 1, &option, &selecttime, 1);
-	if (ret != -1) {
-	    printf("%ld\n", selecttime);
+    switch (type) {
+    case PSP_OP_PSIDSELECTTIME:
+    case PSP_OP_PSIDDEBUG:
+    case PSP_OP_RDPDEBUG:
+    case PSP_OP_RDPMAXRETRANS:
+    case PSP_OP_MCASTDEBUG:
+	if (value<0) {
+	    printf(" value must be >= 0.\n");
+	    return;
+	}
+	break;
+    case PSP_OP_RDPPKTLOSS:
+	if (value<0 || value>100) {
+	    printf(" value must be 0 <= val <=100.\n");
+	    return;
 	}
     }
 
-    return;
-}
-
-void PSIADM_SetPsidDebug(int val, int first, int last)
-{
-    int i;
-    DDOptionMsg_t msg;
-
-    if (geteuid()) {
-	printf("Sorry, only root access\n");
-	return;
-    }
-
     first = (first==ALLNODES) ? 0 : first;
     last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
 
@@ -495,8 +461,8 @@ void PSIADM_SetPsidDebug(int val, int first, int last)
     msg.header.sender = PSC_getMyTID();
     msg.header.len = sizeof(msg);
     msg.count = 1;
-    msg.opt[0].option = PSP_OP_PSIDDEBUG;
-    msg.opt[0].value = val;
+    msg.opt[0].option = type;
+    msg.opt[0].value = value;
 
     for (i = first; i < last; i++) {
 	msg.header.dest = PSC_getTID(i, 0);
@@ -506,239 +472,21 @@ void PSIADM_SetPsidDebug(int val, int first, int last)
     return;
 }
 
-void PSIADM_ShowPsidDebug(int first, int last)
+void PSIADM_ShowParam(int type, int first, int last)
 {
     int i, ret;
-    long option = PSP_OP_PSIDDEBUG, psiddebug;
+    long option = type, value;
 
     first = (first==ALLNODES) ? 0 : first;
     last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
 
     for (i = first; i < last; i++) {
 	printf("%3d:  ", i);
-	ret = INFO_request_option(i, 1, &option, &psiddebug, 1);
+	ret = INFO_request_option(i, 1, &option, &value, 1);
 	if (ret != -1) {
-	    printf("%ld\n", psiddebug);
-	}
-    }
-
-    return;
-}
-
-void PSIADM_SetRDPDebug(int val, int first, int last)
-{
-    int i;
-    DDOptionMsg_t msg;
-
-    if (geteuid()) {
-	printf("Sorry, only root access\n");
-	return;
-    }
-
-    first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
-
-    if (val<0) {
-	printf(" value must be >= 0.\n");
-	return;
-    }
-
-    /*
-     * prepare the message to send it to the daemon
-     */
-    msg.header.type = PSP_CD_SETOPTION;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.len = sizeof(msg);
-    msg.count = 1;
-    msg.opt[0].option = PSP_OP_RDPDEBUG;
-    msg.opt[0].value = val;
-
-    for (i = first; i < last; i++) {
-	msg.header.dest = PSC_getTID(i, 0);
-	PSI_sendMsg(&msg);
-    }
-
-    return;
-}
-
-void PSIADM_ShowRDPDebug(int first, int last)
-{
-    int i, ret;
-    long option = PSP_OP_RDPDEBUG, rdpdebug;
-
-    first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
-
-    for (i = first; i < last; i++) {
-	printf("%3d:  ", i);
-	ret = INFO_request_option(i, 1, &option, &rdpdebug, 1);
-	if (ret != -1) {
-	    printf("%ld\n", rdpdebug);
-	}
-    }
-
-    return;
-}
-
-void PSIADM_SetRDPPktLoss(int val, int first, int last)
-{
-    int i;
-    DDOptionMsg_t msg;
-
-    if (geteuid()) {
-	printf("Sorry, only root access\n");
-	return;
-    }
-
-    first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
-
-    if (val<0 || val>100) {
-	printf(" value must be 0 <= val <=100.\n");
-	return;
-    }
-
-    /*
-     * prepare the message to send it to the daemon
-     */
-    msg.header.type = PSP_CD_SETOPTION;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.len = sizeof(msg);
-    msg.count = 1;
-    msg.opt[0].option = PSP_OP_RDPPKTLOSS;
-    msg.opt[0].value = val;
-
-    for (i = first; i < last; i++) {
-	msg.header.dest = PSC_getTID(i, 0);
-	PSI_sendMsg(&msg);
-    }
-
-    return;
-}
-
-void PSIADM_ShowRDPPktLoss(int first, int last)
-{
-    int i, ret;
-    long option = PSP_OP_RDPPKTLOSS, pktloss;
-
-    first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
-
-    for (i = first; i < last; i++) {
-	printf("%3d:  ", i);
-	ret = INFO_request_option(i, 1, &option, &pktloss, 1);
-	if (ret != -1) {
-	    printf("%ld\n", pktloss);
-	}
-    }
-
-    return;
-}
-
-void PSIADM_SetRDPMaxRetrans(int val, int first, int last)
-{
-    int i;
-    DDOptionMsg_t msg;
-
-    if (geteuid()) {
-	printf("Sorry, only root access\n");
-	return;
-    }
-
-    if (val<0) {
-	printf(" value must be >= 0.\n");
-	return;
-    }
-
-    first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
-
-    /*
-     * prepare the message to send it to the daemon
-     */
-    msg.header.type = PSP_CD_SETOPTION;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.len = sizeof(msg);
-    msg.count = 1;
-    msg.opt[0].option = PSP_OP_RDPMAXRETRANS;
-    msg.opt[0].value = val;
-
-    for (i = first; i < last; i++) {
-	msg.header.dest = PSC_getTID(i, 0);
-	PSI_sendMsg(&msg);
-    }
-
-    return;
-}
-
-void PSIADM_ShowRDPMaxRetrans(int first, int last)
-{
-    int i, ret;
-    long option = PSP_OP_RDPMAXRETRANS, maxretrans;
-
-    first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
-
-    for (i = first; i < last; i++) {
-	printf("%3d:  ", i);
-	ret = INFO_request_option(i, 1, &option, &maxretrans, 1);
-	if (ret != -1) {
-	    printf("%ld\n", maxretrans);
-	}
-    }
-
-    return;
-}
-
-void PSIADM_SetMCastDebug(int val, int first, int last)
-{
-    int i;
-    DDOptionMsg_t msg;
-
-    if (geteuid()) {
-	printf("Sorry, only root access\n");
-	return;
-    }
-
-    first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
-
-    if (val<0) {
-	printf(" value must be >= 0.\n");
-	return;
-    }
-
-    /*
-     * prepare the message to send it to the daemon
-     */
-    msg.header.type = PSP_CD_SETOPTION;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.len = sizeof(msg);
-    msg.count = 1;
-    msg.opt[0].option = PSP_OP_MCASTDEBUG;
-    msg.opt[0].value = val;
-
-    for (i = first; i < last; i++) {
-	msg.header.dest = PSC_getTID(i, 0);
-	PSI_sendMsg(&msg);
-    }
-
-    return;
-}
-
-void PSIADM_ShowMCastDebug(int first, int last)
-{
-    int i, ret;
-    long option = PSP_OP_MCASTDEBUG, mcastdebug;
-
-    first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
-
-    for (i = first; i < last; i++) {
-	printf("%3d:  ", i);
-	ret = INFO_request_option(i, 1, &option, &mcastdebug, 1);
-	if (ret != -1) {
-	    printf("%ld\n", mcastdebug);
+	    printf("%ld\n", value);
+	} else {
+	    printf("Cannot get\n");
 	}
     }
 
@@ -761,8 +509,8 @@ void PSIADM_ShowConfig(void)
     long option[] = {
 	PSP_OP_UIDLIMIT,
 	PSP_OP_PROCLIMIT,
-	PSP_OP_PSM_SMALLPACKETSIZE,
-	PSP_OP_PSM_RESENDTIMEOUT,
+	PSP_OP_PSM_SPS,
+	PSP_OP_PSM_RTO,
 	PSP_OP_PSM_HNPEND,
 	PSP_OP_PSM_ACKPEND};
     long value[DDOptionMsgMax];
@@ -786,10 +534,10 @@ void PSIADM_ShowConfig(void)
 	case PSP_OP_PROCLIMIT:
 	    proclimit = value[i];
 	    break;
-	case PSP_OP_PSM_SMALLPACKETSIZE:
+	case PSP_OP_PSM_SPS:
 	    smallpacksize = value[i];
 	    break;
-	case PSP_OP_PSM_RESENDTIMEOUT:
+	case PSP_OP_PSM_RTO:
 	    resendtimeout = value[i];
 	    break;
 	case PSP_OP_PSM_HNPEND:
@@ -812,166 +560,6 @@ void PSIADM_ShowConfig(void)
 	printf("limited to user : NONE\n");
     else
 	printf("limited to user : %d\n", uidlimit);
-
-    return;
-}
-
-void PSIADM_SetSmallPacketSize(int smallpacketsize)
-{
-    DDOptionMsg_t msg;
-
-    if(geteuid()){
-	printf("Insufficient priviledge\n");
-	return;
-    }
-
-    /*
-     * prepare the message to send it to the daemon
-     */
-    msg.header.type = PSP_CD_SETOPTION;
-    msg.header.len = sizeof(msg);
-    msg.header.sender = PSC_getMyTID();
-    msg.header.dest = -1 /* broadcast */;
-    msg.count =1;
-    msg.opt[0].option = PSP_OP_PSM_SMALLPACKETSIZE;
-    msg.opt[0].value = smallpacketsize;
-    PSI_sendMsg(&msg);
-
-    return;
-}
-
-void PSIADM_ShowSmallPacketSize(void)
-{
-    int ret;
-    long option = PSP_OP_PSM_SMALLPACKETSIZE, smallpacksize;
-
-    ret = INFO_request_option(0, 1, &option, &smallpacksize, 1);
-
-    if (ret==-1) {
-	printf("Can't get SmallPacketSize.\n");
-    } else {
-	printf("SmallPacketSize is %ld\n", smallpacksize);
-    }
-
-    return;
-}
-
-void PSIADM_SetResendTimeout(int time)
-{
-    DDOptionMsg_t msg;
-
-    if(geteuid()){
-	printf("Insufficient priviledge\n");
-	return;
-    }
-
-    /*
-     * prepare the message to send it to the daemon
-     */
-    msg.header.type = PSP_CD_SETOPTION;
-    msg.header.len = sizeof(msg);
-    msg.header.sender = PSC_getMyTID();
-    msg.header.dest = -1 /* broadcast */;
-    msg.count =1;
-    msg.opt[0].option = PSP_OP_PSM_RESENDTIMEOUT;
-    msg.opt[0].value = time;
-    PSI_sendMsg(&msg);
-
-    return;
-}
-
-void PSIADM_ShowResendTimeout(void)
-{
-    int ret;
-    long option = PSP_OP_PSM_RESENDTIMEOUT, resendtimeout;
-
-    ret = INFO_request_option(0, 1, &option, &resendtimeout, 1);
-
-    if (ret==-1) {
-	printf("Can't get ResendTimeout.\n");
-    } else {
-	printf("ResendTimeout is %ld\n", resendtimeout);
-    }
-
-    return;
-}
-
-void PSIADM_SetHNPend(int val)
-{
-    DDOptionMsg_t msg;
-
-    if(geteuid()){
-	printf("Insufficient priviledge\n");
-	return;
-    }
-
-    /*
-     * prepare the message to send it to the daemon
-     */
-    msg.header.type = PSP_CD_SETOPTION;
-    msg.header.len = sizeof(msg);
-    msg.header.sender = PSC_getMyTID();
-    msg.header.dest = -1 /* broadcast */;
-    msg.count =1;
-    msg.opt[0].option = PSP_OP_PSM_HNPEND;
-    msg.opt[0].value = val;
-    PSI_sendMsg(&msg);
-
-    return;
-}
-
-void PSIADM_ShowHNPend(void)
-{
-    int ret;
-    long option = PSP_OP_PSM_HNPEND, hnpend;
-
-    ret = INFO_request_option(0, 1, &option, &hnpend, 1);
-
-    if (ret==-1) {
-	printf("Can't get HNPend.\n");
-    } else {
-	printf("HNPend is %ld\n", hnpend);
-    }
-
-    return;
-}
-
-void PSIADM_SetAckPend(int val)
-{
-    DDOptionMsg_t msg;
-
-    if(geteuid()){
-	printf("Insufficient priviledge\n");
-	return;
-    }
-
-    /*
-     * prepare the message to send it to the daemon
-     */
-    msg.header.type = PSP_CD_SETOPTION;
-    msg.header.len = sizeof(msg);
-    msg.header.sender = PSC_getMyTID();
-    msg.header.dest = -1 /* broadcast */;
-    msg.count =1;
-    msg.opt[0].option = PSP_OP_PSM_ACKPEND;
-    msg.opt[0].value = val;
-    PSI_sendMsg(&msg);
-
-    return;
-}
-
-void PSIADM_ShowAckPend(void)
-{
-    int ret;
-    long option = PSP_OP_PSM_ACKPEND, ackpend;
-
-    ret = INFO_request_option(0, 1, &option, &ackpend, 1);
-
-    if (ret==-1) {
-	printf("Can't get AckPend.\n");
-    } else {
-	printf("AckPend is %ld\n", ackpend);
-    }
 
     return;
 }
