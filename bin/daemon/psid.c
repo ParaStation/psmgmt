@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.59 2002/07/18 14:21:03 eicker Exp $
+ * $Id: psid.c,v 1.60 2002/07/19 12:57:33 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.59 2002/07/18 14:21:03 eicker Exp $ 
+ * $Id: psid.c,v 1.60 2002/07/19 12:57:33 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.59 2002/07/18 14:21:03 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.60 2002/07/19 12:57:33 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -70,7 +70,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.59 $";
+static char psid_cvsid[] = "$Revision: 1.60 $";
 
 static int PSID_mastersock;
 
@@ -2785,8 +2785,8 @@ void sighandler(int sig)
 	    PStask_t *diedtask = NULL;
 
 	    snprintf(errtxt, sizeof(errtxt),
-		     "Received SIGCHLD for pid %d with exit status %d",
-		     pid, estatus);
+		     "Received SIGCHLD for pid %d (0x%06x) with status %d",
+		     pid, pid, estatus);
 	    if (estatus) {
 		PSID_errlog(errtxt, 0);
 	    } else {
@@ -2803,6 +2803,15 @@ void sighandler(int sig)
 	     */
 	    if (diedtask && diedtask->ptid) {
 		DDSignalMsg_t msg;
+
+		snprintf(errtxt, sizeof(errtxt),
+			 "Send CHILDDEAD message to %s",
+			 PSC_printTID(diedtask->ptid));
+		snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
+			 " due to unconnected task %s",
+			 PSC_printTID(diedtask->tid));
+		PSID_errlog(errtxt, 1);
+
 		msg.header.type = PSP_DD_CHILDDEAD;
 		msg.header.dest = diedtask->ptid;
 		msg.header.sender = diedtask->tid;
@@ -2955,7 +2964,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.59 $";
+    char revision[] = "$Revision: 1.60 $";
     snprintf(errtxt, sizeof(errtxt), "psid %s\b ", revision+11);
     PSID_errlog(errtxt, 0);
 }
