@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidpartition.c,v 1.19 2004/03/11 14:53:56 eicker Exp $
+ * $Id: psidpartition.c,v 1.20 2004/03/11 15:06:56 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.19 2004/03/11 14:53:56 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.20 2004/03/11 15:06:56 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -884,7 +884,7 @@ static unsigned int getNormalPart(PSpart_request_t *request,
     /* Determine number of available slots */
     for (cand = 0; cand < candidates->size; cand++) {
 	sortentry_t *ce = &candidates->entry[cand];
-	unsigned short slots;
+	short slots;
 	if (candSlots[ce->id]) continue;
 	if ((PSnodes_getProcs(ce->id) == PSNODES_ANYPROC)
 	    || ce->cpus < PSnodes_getProcs(ce->id)) {
@@ -892,6 +892,7 @@ static unsigned int getNormalPart(PSpart_request_t *request,
 	} else {
 	    slots = PSnodes_getProcs(ce->id) - ce->jobs;
 	}
+	slots = (slots < 0) ? 0 : slots;
 	avail += slots;
 	candSlots[ce->id] = slots;
     }
@@ -1056,7 +1057,7 @@ static unsigned int getOverbookPart(PSpart_request_t *request,
     /* Determine number of available slots */
     for (cand = 0; cand < candidates->size && avail < request->size; cand++) {
 	sortentry_t *ce = &candidates->entry[cand];
-	unsigned short slots;
+	short slots;
 	if (candSlots[ce->id]) continue;
 	if ((PSnodes_getProcs(ce->id) == PSNODES_ANYPROC)
 	    || ce->cpus < PSnodes_getProcs(ce->id)) {
@@ -1064,6 +1065,7 @@ static unsigned int getOverbookPart(PSpart_request_t *request,
 	} else {
 	    slots = PSnodes_getProcs(ce->id) - ce->jobs;
 	}
+	slots = (slots < 0) ? 0 : slots;
 	avail += slots;
 	if (PSnodes_getProcs(ce->id) == PSNODES_ANYPROC) {
 	    slots = request->size;
