@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: commands.h,v 1.5 2003/10/30 16:29:03 eicker Exp $
+ * $Id: commands.h,v 1.6 2003/11/26 17:19:17 eicker Exp $
  *
  */
 /**
  * \file
  * Commands of the ParaStation adminstration tool
  *
- * $Id: commands.h,v 1.5 2003/10/30 16:29:03 eicker Exp $
+ * $Id: commands.h,v 1.6 2003/11/26 17:19:17 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -22,6 +22,7 @@
 #define __COMMANDS_H
 
 #include "pstask.h"
+#include "psprotocol.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,7 +35,6 @@ extern "C" {
 
 extern char commandsversion[];
 
-void PSIADM_Init(void);
 void PSIADM_sighandler(int signal);
 
 void PSIADM_AddNode(char *nl);
@@ -46,27 +46,16 @@ void PSIADM_NodeStat(char *nl);
 void PSIADM_RDPStat(char *nl);
 void PSIADM_MCastStat(char *nl);
 void PSIADM_CountStat(int hw, char *nl);
-void PSIADM_ProcStat(char *nl, int full);
+void PSIADM_ProcStat(int count, int full, char *nl);
 void PSIADM_LoadStat(char *nl);
 void PSIADM_HWStat(char *nl);
 
-void PSIADM_SetMaxProc(int count, char *nl);
-void PSIADM_ShowMaxProc(char *nl);
-void PSIADM_SetUser(int uid, char *nl);
-void PSIADM_ShowUser(char *nl);
-void PSIADM_SetGroup(int gid, char *nl);
-void PSIADM_ShowGroup(char *nl);
-
-void PSIADM_SetParam(int type, int value, char *nl);
-void PSIADM_ShowParam(int type, char *nl);
-
-void PSIADM_Version(void);
+void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl);
+void PSIADM_ShowParam(PSP_Option_t type, char *nl);
 
 void PSIADM_Reset(int reset_hw, char *nl);
 void PSIADM_TestNetwork(int mode);
 void PSIADM_KillProc(PStask_ID_t tid, int sig);
-
-void PSIADM_Exit(void);
 
 #ifdef __cplusplus
 }/* extern "C" */
