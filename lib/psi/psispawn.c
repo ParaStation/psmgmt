@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.36 2003/03/19 17:21:55 eicker Exp $
+ * $Id: psispawn.c,v 1.37 2003/04/03 15:14:45 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.36 2003/03/19 17:21:55 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.37 2003/04/03 15:14:45 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -768,7 +768,7 @@ short PSI_getPartition(unsigned int hwType, int myRank)
     NodelistEntry_t *nodelist=NULL;
 
     snprintf(errtxt, sizeof(errtxt), "%s([%s], %d)",
-	     __func__, PSHW_printType(hwType), myRank);
+	     __func__, INFO_printHWType(hwType), myRank);
     PSI_errlog(errtxt, 10);
 
     /* Get the selected nodes */
@@ -893,7 +893,7 @@ short PSI_getPartition(unsigned int hwType, int myRank)
     if (!PSI_PartitionSize) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "%s: cannot get any hosts with correct HW. HW is %s.",
-		 __func__, PSHW_printType(hwType));
+		 __func__, INFO_printHWType(hwType));
 	PSI_errlog(errtxt, 0);
 	if (nodelist) free(nodelist);
 	free(PSI_Partition);
