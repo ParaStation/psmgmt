@@ -593,6 +593,7 @@ typedef struct MCP_TIMEOUTQ_T {
 typedef struct MCPDMAControlBlock_T {
     DMA_CONTROL_BLOCK		ALIGN8( dma );
     MCP_POINTER( UINT32 )	notify;
+    UINT32			_align8_;
 } MCPDMAControlBlock_t;
 
 
