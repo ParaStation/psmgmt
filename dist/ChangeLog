@@ -1,3 +1,71 @@
+Version psmgmt-4.1.4:
+=====================
+
+Update ChangeLog. Prepare for release 4.1.4
+
+------------------------------------------------------------------------
+r3515 | eicker | 2005-01-27 10:00:12 +0100 (Thu, 27 Jan 2005) | 2 lines
+
+Rebuild srpm only, if necessary
+
+------------------------------------------------------------------------
+r3514 | eicker | 2005-01-26 18:07:44 +0100 (Wed, 26 Jan 2005) | 3 lines
+
+fork() before connecting other nodes xinetd. This should improve the
+responsiveness of the daemon significantly.
+
+------------------------------------------------------------------------
+r3513 | eicker | 2005-01-26 17:20:51 +0100 (Wed, 26 Jan 2005) | 2 lines
+
+Remove some warning from C compiler
+
+------------------------------------------------------------------------
+r3512 | eicker | 2005-01-26 17:12:53 +0100 (Wed, 26 Jan 2005) | 1 line
+
+First try for the new build system
+
+------------------------------------------------------------------------
+r3486 | eicker | 2004-12-22 16:23:42 +0100 (Wed, 22 Dec 2004) | 5 lines
+
+Bugfix: Handle the case where not stdin is available und daemonSock's fd
+is 0. This will lead the daemon to not exit graceful. In combination
+with psid not killing the logger due to another bug the logger will
+never exit.
+
+------------------------------------------------------------------------
+r3485 | eicker | 2004-12-22 16:17:59 +0100 (Wed, 22 Dec 2004) | 5 lines
+
+Don't send SIGKILL to logger's process group but to the process itself.
+This is no problem since the logger will never fork, anyhow, and much
+more secure since the logger might share a process group with other
+processes.
+
+------------------------------------------------------------------------
+r3430 | eicker | 2004-10-21 09:47:55 +0200 (Thu, 21 Oct 2004) | 2 lines
+
+Example for native communication with PSPort4. We have to review this!
+
+------------------------------------------------------------------------
+r3427 | eicker | 2004-10-20 15:45:36 +0200 (Wed, 20 Oct 2004) | 2 lines
+
+Update copyright message.
+
+------------------------------------------------------------------------
+r3418 | hauke | 2004-10-18 14:48:27 +0200 (Mon, 18 Oct 2004) | 2 lines
+
+More debug output for failing exec() calls.
+
+------------------------------------------------------------------------
+r3410 | eicker | 2004-10-13 14:51:59 +0200 (Wed, 13 Oct 2004) | 2 lines
+
+Remove obsolete myrinet entry in HWType.
+
+------------------------------------------------------------------------
+r3390 | eicker | 2004-10-04 18:51:08 +0200 (Mon, 04 Oct 2004) | 3 lines
+
+Fix one possible segfault.
+Remove some 64bit warnings.
+
 Version psmgmt-4.1.3:
 =====================
 
