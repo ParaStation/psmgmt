@@ -1,55 +1,142 @@
 /*
- * Copyright (c) 2001 ParTec AG
+ *               ParaStation3
+ * psienv.h
+ *
+ * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
+ *
+ * $Id: psienv.h,v 1.3 2002/02/08 10:30:07 eicker Exp $
+ *
+ */
+/**
+ * @file
+ * User-functions for interaction with the ParaStation environment.
+ *
+ * $Id: psienv.h,v 1.3 2002/02/08 10:30:07 eicker Exp $
+ *
+ * @author
+ * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef __PSIENV_H
 #define __PSIENV_H
 
-extern char** PSI_environ;     /* Environment for spawned processes */
-extern int    PSI_environc;
+#ifdef __cplusplus
+extern "C" {
+#if 0
+} /* <- just for emacs indentation */
+#endif
+#endif
 
-/*----------------------------------------------------------------------*/
-/* 
- * PSI_clearenv()
- *  
- *  The PSI_clearenv() function clears the process PSI_ environment.
- *  No PSI_environment variables are defined immediately after a call
- *  to PSI_clearenv().  
- *  
- * PARAMETERS
- * RETURN  0 on success
-*          -1 on error
+/**
+ * @brief Initialize the ParaStation Environment.
+ *
+ * Initialize the ParaStation Environment, i.e. clear all variables.
+ *
+ * @return No return value.
  */
-int PSI_clearenv(void);
+void clearPSIEnv(void);
 
-/*----------------------------------------------------------------------*/
-/* 
- * PSI_putenv(char *string)
- *  
- *  Puts the environment variable to the environemnt, which child processes
- *  will get.
- *  
- * PARAMETERS
- *  string    Points to a name=value string.
- * RETURN  0 on success
- *        -1 on error
+/**
+ * @brief Change or add a ParaStation Environment variable.
+ *
+ * Adds the variable @a name to the ParaStation Environment with the value
+ * @a value, if @a name does not already exist. If @a name does exist in the
+ * ParaStation Environment, then its value is changed to @a value if
+ * @a overwrite is non-zero; if @a overwrite is zero, then the valye of
+ * @a name is not changed.
+ *
+ * @param name The name of the variable to be set.
+ * @param value The value of the variable to be set.
+ * @param overwrite Flag if overwriting is allowed.
+ *
+ * @return On success, 0 is returned, or -1 if an error occured.
+ *
+ * @see getPSIEnv()
  */
-int PSI_putenv(char *string);
+int setPSIEnv(const char *name, const char *value, int overwrite);
 
-/*----------------------------------------------------------------------*/
-/* 
- * PSI_getenv(char *name)
- *  
- *  The PSI_getenv() function searches the environment list for a string
- *  of the form name=value, and returns a pointer to a string containing
- *  the corresponding value for name.
- *  
- * PARAMETERS
- *      name      Specifies the name of an environment variable.
- * RETURN  0 on success
- *        -1 on error
+/**
+ * @brief Delete a ParaStation Environment variable.
+ *
+ * Deletes the variable @a name from the ParaStation Environment.
+ *
+ * @param name The name of the variable to be removed.
+ *
+ * @return No return value.
  */
-char* PSI_getenv(char *name);
+void unsetPSIEnv(const char *name);
 
-#endif 
+/**
+ * @brief Change or add a ParaStation Environment variable.
+ *
+ * Adds or changes the value of ParaStation Environment variables. The
+ * argument @a string is of the form 'name=value'. If name does not already
+ * exist in the ParaStation Environment, then @a string is added. If name
+ * does exist, then the value of name in the ParaStation Environment is
+ * changed to value.
+ *
+ * @param string A character string of the form 'name=value'.
+ *
+ * @return On success, 0 is returned, or -1 if an error occured.
+ *
+ * @see getPSIEnv()
+ */
+int putPSIEnv(const char *string);
+
+/**
+ * @brief Lookup the variable @a name in the ParaStation Environment.
+ *
+ * Find the variable @a name within the ParaStation Environment and return
+ * the corresponding value, set by PSI_setenv("name=value").
+ *
+ * @param name The name of the environment variable to be looked up.
+ *
+ * @return On success, a pointer to the corresponding value is returned, or
+ * NULL if an error occured.
+ *
+ * @see setPSIEnv()
+ */
+char* getPSIEnv(const char *name);
+
+/**
+ * @brief Pack the ParaStation Environment.
+ *
+ * Pack the ParaStation Environment into buffer @a buffer, so it can be sent
+ * in a single message.
+ *
+ * @param buffer The buffer to pack the ParaStation Environment in.
+ * @param size The size of @a buffer.
+ *
+ * @return On success, the number of used bytes in buffer is returned, or -1
+ * if an error occurred (i.e. the buffer is to small).
+ */
+int packPSIEnv(char *buffer, int size);
+
+/**
+ * @brief Get the number variables in the ParaStation Environment.
+ *
+ * Get the number variables in the ParaStation Environment.
+ *
+ * @return On success, the number of variables in the ParaStation Environment
+ * is returned, or -1 if an error occurred.
+ */
+int numPSIEnv(void);
+
+/**
+ * @brief Get a packed copy of the ParaStation Environment.
+ *
+ * Get a packed copy of the actual ParaStation Environment.
+ *
+ * @todo More info.
+ *
+ * @return On success, the number of used bytes in buffer is returned, or -1
+ * if an error occurred (i.e. the buffer is to small).
+ */
+char ** dumpPSIEnv(void);
+
+#ifdef __cplusplus
+}/* extern "C" */
+#endif
+
+#endif /* __PSIENV_H */
