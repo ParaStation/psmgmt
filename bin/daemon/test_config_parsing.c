@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: test_config_parsing.c,v 1.1 2002/06/13 14:31:56 eicker Exp $
+ * $Id: test_config_parsing.c,v 1.2 2002/07/03 21:08:56 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: test_config_parsing.c,v 1.1 2002/06/13 14:31:56 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: test_config_parsing.c,v 1.2 2002/07/03 21:08:56 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
 	Configfile = "psm.config";
     }
 
-    ret = parseConfig(0);
+    ret = parseConfig(0, 10);
 
     if (ret) {
 	printf("ERROR: parseConfig returned %d\n", ret);
