@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.26 2002/07/19 12:52:57 eicker Exp $
+ * $Id: pse.c,v 1.27 2002/07/23 12:38:11 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.26 2002/07/19 12:52:57 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.27 2002/07/23 12:38:11 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -57,8 +57,6 @@ static int  worldRank = -1;
 static long *spawnedProcesses;     /* size: <worldSize>  */
 static long parentTID = -1;
 
-static int loglevel = 0;
-
 static unsigned int defaultHWType = PSHW_MYRINET;
 
 static void exitAll(char *reason, int code)
@@ -99,15 +97,16 @@ void PSE_init(int NP, int *rank)
 {
     char *env_str;
 
+    initErrLog("PSE", 0 /* Don't use syslog */);
+
     env_str = getenv("PSI_DEBUGLEVEL");
     if (env_str) {
-	loglevel = atoi(env_str);
-	/* Propagate to client */
-	setPSIEnv("PSI_DEBUGLEVEL", env_str, 1);
-    }
+	int loglevel = atoi(env_str);
 
-    initErrLog("PSE", 0 /* Don't use syslog */);
-    setErrLogLevel(loglevel);
+	/* Propagate to client done within libpsi */
+
+	setErrLogLevel(loglevel);
+    }
 
     if (NP<=0) {
 	snprintf(errtxt, sizeof(errtxt),
@@ -125,11 +124,6 @@ void PSE_init(int NP, int *rank)
 	snprintf(errtxt, sizeof(errtxt), "Initialization of PSI failed.");
 	printf("%s\n", errtxt);
 	exitAll(errtxt, 10);
-    }
-
-    if (loglevel) {
-	PSI_setDebugLevel(loglevel);
-	PSC_setDebugLevel(loglevel);
     }
 
     *rank = worldRank = PSI_myrank;
