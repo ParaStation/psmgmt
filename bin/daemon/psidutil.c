@@ -24,7 +24,7 @@
 #include "psidutil.h"
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.12 2002/01/07 09:38:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.13 2002/01/07 09:39:50 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 int PSID_CardPresent;
@@ -545,7 +545,7 @@ int PSID_host(unsigned int addr)
     struct PSID_host_t *host;
 #if defined(DEBUG)
     if(PSP_DEBUGHOST & PSI_debugmask ){
-	snprintf(errtxt,"PSID_host(%x) \n", addr);
+	snprintf(errtxt, sizeof(errtxt), "PSID_host(%x) \n", addr);
 	PSI_logerror(errtxt);
     }
 #endif
