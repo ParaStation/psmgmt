@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: commands.c,v 1.9 2004/01/15 19:40:04 eicker Exp $
+ * $Id: commands.c,v 1.10 2004/01/16 09:37:09 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.9 2004/01/15 19:40:04 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.10 2004/01/16 09:37:09 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -35,7 +35,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.9 2004/01/1
 
 #include "commands.h"
 
-char commandsversion[] = "$Revision: 1.9 $";
+char commandsversion[] = "$Revision: 1.10 $";
 
 /* @todo PSI_sendMsg(): Wrapper, control if sendMsg was successful or exit */
 
@@ -681,9 +681,10 @@ void PSIADM_ShowParam(PSP_Option_t type, char *nl)
 
 	printf("%3d:  ", node);
 	if (hostStatus.list[node]) {
-	    ret = PSI_infoOption(node, 1, &type, &value, 1);
+	    PSP_Option_t t = type;
+	    ret = PSI_infoOption(node, 1, &t, &value, 1);
 	    if (ret != -1) {
-		switch (type) {
+		switch (t) {
 		case PSP_OP_PROCLIMIT:
 		    if (value==-1)
 			printf("ANY\n");
