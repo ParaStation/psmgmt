@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <ctype.h>
+#include <signal.h>
 
 #include "psp.h"
 #include "psitask.h"
@@ -38,42 +39,28 @@ int PSI_SortNodesInPartition(short nodes[], int maxnodes);
 #define PSHOSTACTIVE(nodeno) (nodeno>=0 && nodeno<PSI_nrofnodes && \
                               (PSI_hoststatus[nodeno] & PSPHOSTUP))
 
-/*----------------------------------------------------------------------*/
-/*
- * PSIspawn()
- *
- *  creates a new process on ParaStation node DSTNODE.
- *  The WORKINGDIR can either be absolute or realativ to the actual
- *  working directory of the spawning process.
- *  ARGC is the number of arguments and ARGV are the arguments as known
- *  from main(argc,argv)
- *  ERROR returns an errorcode if the spawning failed.
- *  RETURN -1 on failure
- *         TID of the new process on success
- */
-long
-PSI_spawn(short dstnode, char*workingdir, int argc, char**argv,
-	 int masternode, int masterport, int rank, int *error)
+long PSI_spawn(short dstnode, char*workdir, int argc, char**argv,
+	       unsigned int loggernode, unsigned short loggerport,
+	       int rank, int *error)
 {
     int ret;
     short dstnodes[1];
     int errors[1];
     long tids[1];
 
-    if(dstnode<0){
-	if(PSI_Partition==NULL){
-	    if(PSI_getPartition()>0)
-		PSI_SortNodesInPartition(PSI_Partition, PSI_PartitionSize);
-	}else{
-	    /* sort existing partition jh 2001-12-21 */
-	    PSI_SortNodesInPartition(PSI_Partition, PSI_PartitionSize);
+    if (dstnode<0) {
+	if (PSI_Partition==NULL) {
+	    if (PSI_getPartition()<0) {
+		errno = EINVAL;
+		return -1;
+	    }
 	}
 	if(PSI_Partition!=NULL){
 	    int count=0;
 	    while(dstnode<0){
 		count++;
 		dstnode = PSI_Partition[PSI_PartitionIndex];
-		PSI_PartitionIndex ++;
+		PSI_PartitionIndex++;
 		if(PSI_PartitionIndex >= PSI_PartitionSize){
 		    PSI_PartitionIndex =0;
 		}
@@ -92,8 +79,8 @@ PSI_spawn(short dstnode, char*workingdir, int argc, char**argv,
     errors[0]=0;
     dstnodes[0]=dstnode;
 
-    ret = PSI_dospawn(1, dstnodes, workingdir, argc, argv,
-		      masternode, masterport, rank, errors,tids);
+    ret = PSI_dospawn(1, dstnodes, workdir, argc, argv,
+		      loggernode, loggerport, rank, 0, errors,tids);
     *error = errors[0];
     if(ret<0)
 	return ret;
@@ -101,46 +88,33 @@ PSI_spawn(short dstnode, char*workingdir, int argc, char**argv,
 	return tids[0];
 }
 
-/*----------------------------------------------------------------------*/
-/*
- * PSIspawnM()
- *
- *  creates count new processes on ParaStation node DSTNODES[].
- *  The WORKINGDIR can either be absolute or realativ to the actual
- *  working directory of the spawning process.
- *  ARGC is the number of arguments and ARGV are the arguments as known
- *  from main(argc,argv)
- *  ERROR[] returns an errorcode if the spawning failed.
- *  TIDS[]  returns the tids of the new processes on success
- *  RETURN -1 on failure
- *         >0 nr of processes on success
- */
-int
-PSI_spawnM(int count, short *dstnodes,char *workingdir, int argc, char **argv,
-	   int masternode, int masterport, int rank, int *errors, long *tids)
+int PSI_spawnM(int count, short *dstnodes, char *workdir,
+	       int argc, char **argv,
+	       unsigned int loggernode, unsigned short loggerport,
+	       int rank, long parenttid, int *errors, long *tids)
 {
     short* mydstnodes=NULL;
     int ret;
     if(count < 0)
 	return 0;
     if(dstnodes==NULL){
-	if(PSI_Partition==NULL){
-	    if(PSI_getPartition()>0)
-		PSI_SortNodesInPartition(PSI_Partition, PSI_PartitionSize);
-	}else{
-	    /* sort existing partition jh 2001-12-21 */
-	    PSI_SortNodesInPartition(PSI_Partition, PSI_PartitionSize);
+	if (PSI_Partition==NULL) {
+	    if (PSI_getPartition()<0) {
+		errno = EINVAL;
+		return -1;
+	    }
 	}
 	if(PSI_Partition!=NULL){
 	    int i;
 	    mydstnodes= (short*) malloc(count*sizeof(short));
+	    PSI_PartitionIndex=rank;
 
 	    for(i=0;i<count;i++){
 		int pcount=0;
 		do{
 		    pcount++;
 		    mydstnodes[i] = PSI_Partition[PSI_PartitionIndex];
-		    PSI_PartitionIndex ++;
+		    PSI_PartitionIndex++;
 		    if(PSI_PartitionIndex >= PSI_PartitionSize){
 			PSI_PartitionIndex =0;
 		    }
@@ -159,8 +133,8 @@ PSI_spawnM(int count, short *dstnodes,char *workingdir, int argc, char **argv,
     }else
 	mydstnodes = dstnodes;
 
-    ret = PSI_dospawn(count, mydstnodes, workingdir, argc, argv,
-		      masternode, masterport, rank, errors, tids);
+    ret = PSI_dospawn(count, mydstnodes, workdir, argc, argv,
+		      loggernode, loggerport, rank, parenttid, errors, tids);
 
     /*
      * if I allocated mydstnodes myself
@@ -172,15 +146,6 @@ PSI_spawnM(int count, short *dstnodes,char *workingdir, int argc, char **argv,
     return ret;
 }
 
-/*----------------------------------------------------------------------*/
-/*
- * PSIisalive(PSTID tid)
- *
- *  checks if a task is still running
- *
- *  RETURN 0 if the task is not alive
- *         1 if the task is alive
- */
 int PSIisalive(long tid)
 {
     return INFO_request_taskinfo(tid, INFO_ISALIVE);
@@ -193,21 +158,6 @@ typedef struct {
     double load;
 } sort_block;
 
-
-
-/*-----------------------------------------------------------------------------
- * PSI_SortNodesInPartition
- *
- * Sort the nodes in the array depending on
- * - their load if PSI_NODES_SORT is load or empty
- * - nothing otherwise
- * (and if they are alive).
- * Parameter: nodes    : an array of nodenumbers.
- *            maxnodes : number of nodes to be sorted, starting with nodes[0]
- * Returns:   0 if OK
- *           -1 on error
- */
-/* Help function for sorting the nodes with qsort */
 int PSI_CompareNodesInPartionsByLoad(const void *entry1, const void *entry2)
 {
     int ret;
@@ -225,88 +175,87 @@ int PSI_CompareNodesInPartionsByLoad(const void *entry1, const void *entry2)
     return ret;
 }
 
+/*-----------------------------------------------------------------------------
+ * PSI_SortNodesInPartition
+ *
+ * Sort the nodes in the array depending on
+ * - their load if PSI_NODES_SORT is load or empty
+ * - nothing otherwise
+ * (and if they are alive).
+ * Parameter: nodes    : an array of nodenumbers.
+ *            maxnodes : number of nodes to be sorted, starting with nodes[0]
+ * Returns:   0 if OK
+ *           -1 on error
+ */
+/* Help function for sorting the nodes with qsort */
+
 int PSI_SortNodesInPartition(short nodes[], int maxnodes)
 {
     int i;
-    double iload;
     sort_block *node_entry;
-    char* env_sort;
+    char *env_sort, *env_str;
+    double (*loadfunc)(unsigned short) = NULL;
 
     /* get the sorting routine from the environment */
-    env_sort = getenv(ENV_NODE_SORT);
-    if(env_sort!=NULL){
-	char* env_entry;
-	/* Set the environment variable */
-	/* allocate enough space for the env variable */
-	if((env_entry = malloc(strlen(ENV_NODE_SORT)+2+strlen(env_sort)))
-	   ==NULL )
-	    return -1;           /* Failed duplication */
-	strcpy(env_entry,ENV_NODE_SORT);
-	strcat(env_entry, "=");
-	strcat(env_entry, env_sort);
-
-	if(PSI_putenv(env_entry) == -1){
-	    free(env_entry);
-	    return -1;
-	}
-	free(env_entry);
-    }else{
-	 /* default now PROC jh 2001-12-21 */
+    if (!(env_sort = getenv(ENV_NODE_SORT))) {
+	/* default now PROC jh 2001-12-21 */
 	env_sort = "PROC";
     }
-    if(env_sort!=NULL){
-	if(strcasecmp(env_sort,"LOAD")==0){
-	    if((node_entry =
-		(sort_block *)malloc(maxnodes * sizeof(sort_block))) == NULL){
-		return -1;
-	    }
 
-	    /* Create the structs to sort */
-	    for(i=0; i<maxnodes; i++){
-		node_entry[i].id = nodes[i];
-		/* Get the status. Or rather, set it. */
-		node_entry[i].status = 1;
-		node_entry[i].load = iload = PSI_getload((unsigned short) nodes[i]);
-	    }
-
-	    /* Sort the nodes */
-	    qsort(node_entry, maxnodes, sizeof(sort_block),
-		  PSI_CompareNodesInPartionsByLoad);
-
-	    /* Transfer the results */
-	    for( i=0; i<maxnodes; i++ ){
-		nodes[i] = node_entry[i].id;
-	    }
-	    free(node_entry);
-	}
-	if(strcasecmp(env_sort,"PROC")==0){
-	    if((node_entry =
-		(sort_block *)malloc(maxnodes * sizeof(sort_block))) == NULL){
-		return -1;
-	    }
-
-	    /* Create the structs to sort */
-	    for(i=0; i<maxnodes; i++){
-		node_entry[i].id = nodes[i];
-		/* Get the status. Or rather, set it. */
-		node_entry[i].status = 1;
-		node_entry[i].load = PSI_getNumberOfProcs((unsigned short) nodes[i]);
-	    }
-
-	    /* Sort the nodes */
-	    qsort(node_entry, maxnodes, sizeof(sort_block),
-		  PSI_CompareNodesInPartionsByLoad);
-
-	    /* Transfer the results */
-	    for( i=0; i<maxnodes; i++ ){
-		nodes[i] = node_entry[i].id;
-	    }
-	    free(node_entry);
-	}
+    if (strcasecmp(env_sort,"LOAD")==0) {
+	loadfunc = PSI_getload;
     }
+
+    if (strcasecmp(env_sort,"PROC")==0) {
+	loadfunc = PSI_getNumberOfProcs;
+    }
+
+    if (loadfunc) {
+	node_entry = (sort_block *)malloc(maxnodes * sizeof(sort_block));
+
+	if (!node_entry) {
+	    return -1;
+	}
+
+	/* Create the structs to sort */
+	for(i=0; i<maxnodes; i++){
+	    node_entry[i].id = nodes[i];
+	    /* Get the status. Or rather, set it. */
+	    node_entry[i].status = 1;
+	    node_entry[i].load = loadfunc((unsigned short) nodes[i]);
+	}
+
+	/* Sort the nodes */
+	qsort(node_entry, maxnodes, sizeof(sort_block),
+	      PSI_CompareNodesInPartionsByLoad);
+
+	/* Transfer the results */
+	for( i=0; i<maxnodes; i++ ){
+	    nodes[i] = node_entry[i].id;
+	}
+	free(node_entry);
+    }
+
+    /* Propagate nodes to clients */
+    env_str = (char *) malloc(maxnodes * 5 + 1);
+    if (env_str) {
+	for (i=0; i<maxnodes; i++) {
+	    sprintf(&env_str[5*i], "%4d,", nodes[i]);
+	}
+	env_str[5*maxnodes-1] = 0;
+
+	setPSIEnv(ENV_NODE_SELECT, env_str, 1);
+	setPSIEnv(ENV_NODE_SORT, "none", 1);
+	/* Only sort once */
+	setenv(ENV_NODE_SORT, "none", 1);
+
+	free(env_str);
+    } else {
+	return -1;
+    }
+
     return 0;
 }
-
 
 /* Get white-space seperatet field. Return value must be freed
  * with free(). If next is set, *next return the beginning of the next field */
@@ -334,26 +283,27 @@ void PSI_LSF(void)
     char *lsf_hosts=NULL;
     lsf_hosts=getenv(ENV_NODE_HOSTS_LSF);
     if (lsf_hosts){
-	char *p=lsf_hosts;
-	char *ret,*host,*first;
-	setenv(ENV_NODE_SORT,"none",1);
+/*  	char *p=lsf_hosts; */
+/*  	char *ret,*host,*first; */
+	setenv(ENV_NODE_SORT, "none", 1);
 	unsetenv(ENV_NODE_HOSTFILENAME);
 	unsetenv(ENV_NODE_SELECT);
 	/* Move first hostname to the end of the list */
-	ret=(char*)malloc(strlen(lsf_hosts)+1);
-	*ret=0;
-	first=get_wss_entry(p,&p);
-	if (first){
-	    while ((host=get_wss_entry(p,&p))){
-		strcat(ret,host);
-		strcat(ret," ");
-		free(host);
-	    }
-	    strcat(ret,first);
-	    free(first);
-	}
-	setenv(ENV_NODE_HOSTS,ret,1);
-	free(ret);
+/*  	ret=(char*)malloc(strlen(lsf_hosts)+1); */
+/*  	*ret=0; */
+/*  	first=get_wss_entry(p,&p); */
+/*  	if (first){ */
+/*  	    while ((host=get_wss_entry(p,&p))){ */
+/*  		strcat(ret,host); */
+/*  		strcat(ret," "); */
+/*  		free(host); */
+/*  	    } */
+/*  	    strcat(ret,first); */
+/*  	    free(first); */
+/*  	} */
+/*  	setenv(ENV_NODE_HOSTS,ret,1); */
+/*  	free(ret); */
+	setenv(ENV_NODE_HOSTS, lsf_hosts, 1);
     }
 }
 
@@ -381,6 +331,8 @@ void PSI_RemoteArgs(int Argc,char **Argv,int *RArgc,char ***RArgv){
 	for(i=0;i<cnt;i++){
 	    snprintf(env_name,sizeof(env_name)-1,ENV_NODE_RARG,i);
 	    new_argv[i]=getenv(env_name);
+	    /* Propagate the environment */
+	    setPSIEnv(env_name, new_argv[i], 1);
 	}
 	for(i=0;i<Argc;i++){
 	    new_argv[i+cnt]=Argv[i];
@@ -394,54 +346,26 @@ void PSI_RemoteArgs(int Argc,char **Argv,int *RArgc,char ***RArgv){
     return;
 }
 
-/*------------------------------------------------------------
- * PSIGetPartition()
- *
- * Set the available node numbers in an array.
- * and sorts this array due to the enrivonment variable
- * If no partition is given, the whole cluster is used
- * If no sorting algorithm is given the parition is used unsorted
- *
- * RETURN:  the number of nodes in the partition or -1 on error.
- */
 short PSI_getPartition(void)
 {
-    char* hostfilename=NULL;
     int maxnodes;
+    char* hostfilename=NULL;
     char *node_str=NULL;
     char *hosts_str=NULL;
 
     maxnodes = PSI_getnrofnodes();
 
     /* Get the selected nodes */
-    if( (node_str = getenv(ENV_NODE_SELECT)) != NULL ){
-	char* env_entry;
-	/* Set the environment variable */
-	/* allocate enough space for the env variable */
-	if((env_entry =
-	    malloc(strlen(ENV_NODE_SELECT)+2+strlen(node_str)))==NULL)
-	    return -1;           /* Failed duplication */
-	strcpy(env_entry,ENV_NODE_SELECT);
-	strcat(env_entry, "=");
-	strcat(env_entry, node_str);
-
-	if( PSI_putenv(env_entry) == -1){
-	    free(env_entry);
-	    return -1;
+    if (! (node_str = getenv(ENV_NODE_SELECT))) {
+	if (! (hosts_str = getenv(ENV_NODE_HOSTS))) {
+	    hostfilename = getenv(ENV_NODE_HOSTFILENAME);
 	}
-	free(env_entry);
-    }else if((node_str = PSI_getenv(ENV_NODE_SELECT))==NULL){
-	/* no PSI_NODES in ENV or PSI_ENV
-	   => check PSI_HOSTFILE */
-	hostfilename = getenv(ENV_NODE_HOSTFILENAME);
-	if(hostfilename==NULL)
-	    hostfilename = PSI_getenv(ENV_NODE_HOSTFILENAME);
     }
 
-    hosts_str=getenv(ENV_NODE_HOSTS);
-    
-    if(PSI_Partition)
+    if (PSI_Partition) {
 	free(PSI_Partition);
+    }
+
     /*
      * allocate 4 times the maximum clustersize. This enables to add one
      * node several times. So you can tell the system to use one node more
@@ -449,7 +373,7 @@ short PSI_getPartition(void)
     PSI_Partition = (short*)malloc(sizeof(short)*4*maxnodes);
     PSI_PartitionSize = 0;
 
-    if( node_str != NULL ){
+    if (node_str) {
 	int next_node;
 	char* tmp_node_str, *tmp_node_str_begin, *tmp_node_str_end;
 
@@ -482,7 +406,7 @@ short PSI_getPartition(void)
 	char *p=hosts_str;
 	struct in_addr sin_addr;
 	struct hostent *hp;
-	PSI_PartitionSize= 0;
+	PSI_PartitionSize = 0;
 	while((hostname=get_wss_entry(p,&p))
 	      && PSI_PartitionSize<4*maxnodes){
 	    hp = gethostbyname(hostname);
@@ -531,45 +455,29 @@ short PSI_getPartition(void)
 	int localnode;
 	localnode = PSI_getnode(-1);
 	PSI_PartitionSize = 0;
-	for( PSI_PartitionSize=0; PSI_PartitionSize<maxnodes;
-	     PSI_PartitionSize++ ){
+	for (PSI_PartitionSize=0; PSI_PartitionSize<maxnodes;
+	     PSI_PartitionSize++) {
 	    PSI_Partition[PSI_PartitionSize] =
-		(PSI_PartitionSize+localnode+1)%maxnodes;
+		(PSI_PartitionSize+localnode)%maxnodes;
 	}
     }
 
-    return PSI_PartitionSize;
+    if (PSI_SortNodesInPartition(PSI_Partition, PSI_PartitionSize) == -1) {
+	return -1;
+    } else {
+	return PSI_PartitionSize;
+    }
 }
 
-
-
-/*----------------------------------------------------------------------*/
-/*
- * PSI_dospawn()
- *
- *  creates COUNT new processes on ParaStation node DSTNODE[].
- *  The WORKINGDIR can either be absolute or realativ to the actual
- *  working directory of the spawning process.
- *  ARGC is the number of arguments and ARGV are the arguments as known
- *  from main(argc,argv)
- *  ERROR[] returns an errorcode if the spawning failed.
- *  TIDS[] returns an tids if the spawning is successful.
- *  RETURN -1 on failure
- *         nr of processes spawned on success
- */
-int
-PSI_dospawn(int count, short *dstnodes, char *workingdir,
-	     int argc, char **argv, int masternode, int masterport,
-	     int firstrank, int *errors, long *tids)
+int PSI_dospawn(int count, short *dstnodes, char *workingdir,
+		int argc, char **argv,
+		unsigned int loggernode, unsigned short loggerport,
+		int rank, long parenttid, int *errors, long *tids)
 {
     int outstanding_answers=0;
     DDBufferMsg_t msg;
     char myworkingdir[200];
     char* pmyworkingdir = &myworkingdir[0];
-
-    char hostname[256];
-    struct in_addr sin_addr;
-    struct hostent *hp;
 
     int i;          /* count variable */
     int ret=0;      /* return value */
@@ -579,10 +487,17 @@ PSI_dospawn(int count, short *dstnodes, char *workingdir,
     if(PSP_DEBUGTASK & PSI_debugmask){
 	sprintf(PSI_txt,"PSI_spawn(%d,%lx,\"%s\",%d,\"%s\", %x, %x, %x)\n",
 		count, (long)dstnodes, workingdir?workingdir:"NULL",
-		argc, argc?argv[0]:"NULL", masternode, masterport, firstrank);
+		argc, argc?argv[0]:"NULL", loggernode, loggerport, rank);
 	PSI_logerror(PSI_txt);
     }
 #endif
+
+    /*
+     * Get a SIGTERM if a child dies. May be overwritten by explicit
+     * PSI_notifydead() calls.
+     */
+    PSI_notifydead(0, SIGTERM);
+
     /*
      * Send the request to my own daemon
      *----------------------------------
@@ -597,24 +512,18 @@ PSI_dospawn(int count, short *dstnodes, char *workingdir,
      * Init the Task structure
      */
     task = PStask_new();
-    task->ptid = PSI_gettid(-1,getpid());
+    if (parenttid) {
+	task->ptid = parenttid;
+    } else {
+	task->ptid = PSI_gettid(-1,getpid());
+    }
+    // task->ptid = PSI_gettid(-1,getpid());
     task->uid = getuid();
     task->gid = getgid();
     task->group = TG_ANY;
-    task->masternode = masternode;
-    task->masterport = masterport;
     task->options = PSI_mychildoptions;
-
-    gethostname(hostname, sizeof(hostname));
-    hp = gethostbyname(hostname);
-    memcpy(&sin_addr, hp->h_addr, hp->h_length);
-    task->loggernode = sin_addr.s_addr;
-    task->loggerport = LOGGERspawnlogger();
-
-    /*
-     * psilogger is started. Now start forwarder and redirect output.
-     */
-    LOGGERspawnforwarder(task->loggernode, task->loggerport);
+    task->loggernode = loggernode;
+    task->loggerport = loggerport;
 
     if ((workingdir==NULL)||(workingdir[0]!='/')){
 	/*
@@ -647,12 +556,7 @@ PSI_dospawn(int count, short *dstnodes, char *workingdir,
 	task->argv[i]=strdup(argv[i]);
     task->argv[task->argc]=0;
 
-    task->environc = PSI_environc;
-    if(PSI_environc){
-	task->environ = (char**)malloc(sizeof(char*)*(task->environc));
-	for(i=0;i<task->environc;i++)
-	    task->environ[i] = PSI_environ[i] ? strdup(PSI_environ[i]):NULL;
-    }
+    task->environ = dumpPSIEnv();
 
     outstanding_answers=0;
     for(i=0;i<count;i++){
@@ -670,7 +574,7 @@ PSI_dospawn(int count, short *dstnodes, char *workingdir,
 	    /*
 	     * set the correct rank
 	     */
-	    task->rank = ++firstrank;
+	    task->rank = rank++;
 
 	    /* pack the task information in the msg */
 	    msg.header.len = PStask_encode(msg.buf, task);
@@ -776,19 +680,7 @@ PSI_dospawn(int count, short *dstnodes, char *workingdir,
     return ret;
 }
 
-/*----------------------------------------------------------------------*/
-/*
- * PSI_kill()
- *
- *  kill a task on any node of the cluster.
- *  TID is the task identifier of the task, which shall receive the signal
- *  SIGNAL is the signal to be sent to the task
- *
- *  RETURN -1 on failure
- *         0 on sucess
- */
-int
-PSI_kill(long tid,short signal)
+int PSI_kill(long tid,short signal)
 {
     DDSignalMsg_t  msg;
 

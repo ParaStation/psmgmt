@@ -1,5 +1,32 @@
+/*
+ *               ParaStation3
+ * psispawn.h
+ *
+ * Copyright (C) ParTec AG Karlsruhe
+ * All rights reserved.
+ *
+ * $Id: psispawn.h,v 1.4 2002/02/08 10:55:26 eicker Exp $
+ *
+ */
+/**
+ * @file
+ * User-functions for spawning of ParaStation tasks.
+ *
+ * $Id: psispawn.h,v 1.4 2002/02/08 10:55:26 eicker Exp $
+ *
+ * @author
+ * Norbert Eicker <eicker@par-tec.com>
+ *
+ */
 #ifndef __PSISPAWN_H__
 #define __PSISPAWN_H__
+
+#ifdef __cplusplus
+extern "C" {
+#if 0
+} /* <- just for emacs indentation */
+#endif
+#endif
 
 /*----------------------------------------------------------------------*/
 /*
@@ -15,7 +42,8 @@
  *         TID of the new process on success
  */
 long PSI_spawn(short dstnode, char *workingdir, int argc, char **argv,
-	       int masternode, int masterport, int rank, int *error);
+	       unsigned int loggernode, unsigned short loggerport,
+	       int rank, int *error);
 
 /*----------------------------------------------------------------------*/
 /*
@@ -31,9 +59,10 @@ long PSI_spawn(short dstnode, char *workingdir, int argc, char **argv,
  *  RETURN -1 on failure
  *         >0 nr of processes on success
  */
-int PSI_spawnM(int count, short* dstnodes, char *workingdir, int argc,
-	       char **argv, int masternode, int masterport, int rank,
-	       int *errors, long *tids);
+int PSI_spawnM(int count, short* dstnodes, char *workingdir,
+	       int argc, char **argv,
+	       unsigned int loggernode, unsigned short loggerport,
+	       int rank, long parenttid, int *errors, long *tids);
 
 /*----------------------------------------------------------------------*/
 /*
@@ -86,9 +115,10 @@ short PSI_getPartition(void);
  *  RETURN -1 on failure
  *         nr of processes spawned on success
  */
-int PSI_dospawn(int count, short *dstnodes, char *workingdir, int argc,
-		char **argv, int masternode, int masterport, int firstrank,
-		int *errors, long* tids);
+int PSI_dospawn(int count, short *dstnodes, char *workingdir,
+		int argc, char **argv,
+		unsigned int loggernode, unsigned short loggerport,
+		int firstrank, long parenttid, int *errors, long* tids);
 
 /*
  * PSI_kill()
@@ -96,7 +126,14 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir, int argc,
  *  kill a task on any node of the cluster.
  *  TID is the task identifier of the task, which shall receive the signal
  *  SIGNAL is the signal to be sent to the task
+ *
+ *  RETURN -1 on failure
+ *         0 on sucess
  */
 int PSI_kill(long tid, short signal);
 
+#ifdef __cplusplus
+}/* extern "C" */
 #endif
+
+#endif /* __PSISPAWN_H */
