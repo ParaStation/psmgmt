@@ -1,0 +1,30 @@
+#!/bin/sh
+
+
+MODULENAME=psmx
+PSCONFIG=`dirname $0`/psconfig
+
+
+case "$1" in
+    start)
+	sysconfig -s "$MODULENAME" | grep -q unloaded || $0 stop
+
+	sysconfig -c "$MODULENAME" || exit 1
+	
+	$PSCONFIG -key "$PS_LIC" || exit 2
+	$PSCONFIG -id "$PS_ID" "$PS_ROUTEFILE" || exit 3
+	
+	;;
+
+    stop)
+	sysconfig -u "$MODULENAME"
+	;;
+
+
+    *)
+	echo "Usage: $0 {start|stop}"
+	exit 1
+	;;
+esac
+
+
