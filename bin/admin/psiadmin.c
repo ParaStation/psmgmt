@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.40 2002/07/18 13:10:43 eicker Exp $
+ * $Id: psiadmin.c,v 1.41 2002/07/23 12:55:14 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.40 2002/07/18 13:10:43 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.41 2002/07/23 12:55:14 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -46,10 +46,13 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.40 $";
+static char psiadmversion[] = "$Revision: 1.41 $";
 static int doRestart = 0;
 
-static char *hoststatus;
+static char *hoststatus = NULL;
+
+static NodelistEntry_t *nodelist = NULL;
+static size_t nodelistSize = 0;
 
 int PSIADM_LookUpNodeName(char* hostname)
 {
@@ -150,29 +153,35 @@ void PSIADM_CountStat(int first, int last)
 	PSHALInfoCounter_t ic;
     } countstat;
 
-    INFO_request_hoststatus(hoststatus, PSC_getNrOfNodes(), 1);
+    INFO_request_nodelist(nodelist, nodelistSize, 1);
 
     first = (first==ALLNODES) ? 0 : first;
     last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
 
-    /* Get header info from own daemon */
+    printf("%6s ", "NODE");
+    /* Get header info from daemon with MyriNet */
     memset(&countstat, 0, sizeof(countstat));
     for (i=0; i<PSC_getNrOfNodes(); i++) {
-	INFO_request_countstatus(i, &countstat, sizeof(countstat), 0);
-	if (countstat.present) break;
-    }
-    printf("%6s ", "NODE");
-    for (j=0 ; j<countstat.ic.n; j++){
-	printf("%8s ", countstat.ic.counter[j].name);
+	if (nodelist[i].hwType & PSHW_MYRINET) {
+	    INFO_request_countstatus(i, &countstat, sizeof(countstat), 0);
+	    if (countstat.present) {
+		for (j=0 ; j<countstat.ic.n; j++){
+		    printf("%8s ", countstat.ic.counter[j].name);
+		}
+		break;
+	    }
+	}
     }
     printf("\n");
 
     for (i = first; i < last; i++) {
 	printf("%4d ", i);
 
-	if (hoststatus[i]) {
-	    if (INFO_request_countstatus(i, &countstat,
-					 sizeof(countstat), 1) != -1) {
+	if (nodelist[i].up) {
+	    if (! (nodelist[i].hwType & PSHW_MYRINET)) {
+		printf("    No card present\n");
+	    } else if (INFO_request_countstatus(i, &countstat,
+						sizeof(countstat), 1) != -1) {
 		if (countstat.present) {
 		    for (j=0; j<countstat.ic.n; j++){
 			char ch[10];
@@ -234,25 +243,19 @@ void PSIADM_ProcStat(int first, int last)
 void PSIADM_LoadStat(int first, int last)
 {
     int i;
-    static size_t nl_size = 0;
-    static NodelistEntry_t *nl = NULL;
-
-    if (nl_size != sizeof(NodelistEntry_t) * PSC_getNrOfNodes()) {
-	nl_size = sizeof(NodelistEntry_t) * PSC_getNrOfNodes();
-	nl = (NodelistEntry_t *) realloc(nl, nl_size);
-    }
 
     first = (first==ALLNODES) ? 0 : first;
     last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
 
-    INFO_request_nodelist(nl, nl_size, 1);
+    INFO_request_nodelist(nodelist, nodelistSize, 1);
     printf("Node\t\t Load\t\t     Jobs\n");
     printf("\t 1 min\t 5 min\t15 min\t tot.\tnorm.\n");
     for (i = first; i < last; i++) {
-	if (nl[i].up) {
+	if (nodelist[i].up) {
 	    printf("%4d\t%2.4f\t%2.4f\t%2.4f\t%4d\t%4d\n", i,
-		   nl[i].load[0], nl[i].load[1], nl[i].load[2],
-		   nl[i].totalJobs, nl[i].normalJobs);
+		   nodelist[i].load[0], nodelist[i].load[1],
+		   nodelist[i].load[2],
+		   nodelist[i].totalJobs, nodelist[i].normalJobs);
 	} else {
 	    printf("%4d\t down\n", i);
 	}
@@ -265,22 +268,16 @@ void PSIADM_LoadStat(int first, int last)
 void PSIADM_HWStat(int first, int last)
 {
     int i;
-    static size_t nl_size = 0;
-    static NodelistEntry_t *nl = NULL;
-
-    if (nl_size != sizeof(NodelistEntry_t) * PSC_getNrOfNodes()) {
-	nl_size = sizeof(NodelistEntry_t) * PSC_getNrOfNodes();
-	nl = (NodelistEntry_t *) realloc(nl, nl_size);
-    }
 
     first = (first==ALLNODES) ? 0 : first;
     last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
 
-    INFO_request_nodelist(nl, nl_size, 1);
-    printf("Node\t Available Hardware\n");
+    INFO_request_nodelist(nodelist, nodelistSize, 1);
+    printf("Node\t CPUs\t Available Hardware\n");
     for (i = first; i < last; i++) {
-	if (nl[i].up) {
-	    printf("%4d\t %s\n", i, PSHW_printType(nl[i].hwType));
+	if (nodelist[i].up) {
+	    printf("%4d\t %d\t %s\n",
+		   i, nodelist[i].numCPU, PSHW_printType(nodelist[i].hwType));
 	} else {
 	    printf("%4d\t down\n", i);
 	}
@@ -1169,6 +1166,13 @@ int main(int argc, char **argv)
     hoststatus = malloc(sizeof(char) * PSC_getNrOfNodes());
     if (!hoststatus) {
 	printf("node memory\n");
+	exit(1);
+    }
+
+    nodelistSize = sizeof(NodelistEntry_t) * PSC_getNrOfNodes();
+    nodelist = (NodelistEntry_t *) malloc(nodelistSize);
+    if (!nodelist) {
+	printf("nodelist memory\n");
 	exit(1);
     }
 
