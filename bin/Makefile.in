@@ -22,7 +22,6 @@ endif
 
 TOOLS:=psconfig pscounter test_nodes psiadmin psid psld parastation
 TOOLS += psilogger psiforwarder mlisten test_config_parsing psmstart
-# test_nodes
 
 bin:	$(TOOLS)
 
@@ -40,7 +39,7 @@ test_pse: test_pse.o -lpshal -lpsport -larg -lpse -lpsi -lm -lpthread
 
 psmstart: psmstart.o -lpse -lpsi
 
-mlisten: mlisten.o
+mlisten: mlisten.o -lpopt
 
 test_config_parsing: config_parsing.o -lputil -lpscommon
 
@@ -48,7 +47,7 @@ test_config_parsing: config_parsing.o -lputil -lpscommon
 EXTRACLEAN += lex.admin.c admin.tab.c admin.tab.h
 VPATH += $(SRCDIR)/admin
 psiadmin: psiadmin.o admin.tab.o lex.admin.o
-psiadmin: -lreadline -lhistory -lpsi -l@LIBCURSES@
+psiadmin: -lreadline -lhistory -lpsi -lpopt -l@LIBCURSES@
 admin.tab.o: CPPFLAGS += -I$(SRCDIR)/admin
 admin.tab.o: admin.tab.c
 lex.admin.o: lex.admin.c admin.tab.c admin.tab.h
@@ -56,12 +55,12 @@ lex.admin.o: lex.admin.c admin.tab.c admin.tab.h
 # psid
 VPATH += $(SRCDIR)/daemon $(SRCDIR)/cardconfig
 psid: psid.o psidutil.o psidtask.o psidspawn.o config_parsing.o cardconfig.o
-psid: -lm -lpshal -lputil -lpscommon -lutil
+psid: -lm -lpshal -lputil -lpscommon -lutil -lpopt
 
 #psld
 VPATH += $(SRCDIR)/licdaemon
 psld: psld.o config_parsing.o
-psld: -lm -lputil -lpscommon
+psld: -lm -lputil -lpscommon -lpopt
 
 # logger
 VPATH += $(SRCDIR)/logger
