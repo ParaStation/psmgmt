@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.h,v 1.7 2002/04/23 15:55:20 eicker Exp $
+ * $Id: mcast.h,v 1.8 2002/04/30 17:35:58 eicker Exp $
  *
  */
 /**
  * \file
  * ParaStation MultiCast facility
  *
- * $Id: mcast.h,v 1.7 2002/04/23 15:55:20 eicker Exp $
+ * $Id: mcast.h,v 1.8 2002/04/30 17:35:58 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -149,7 +149,7 @@ int getDebugLevelMCast(void);
  * @brief Set the debug-level.
  *
  * Set the debug-level of the MCast module. Possible values are:
- *  - 0: Critical errors (usually exit).
+ *  - 0: Critical errors (usually exit). This is the default.
  *  - 2: Basic info about initialization.
  *  - 4: More detailed info about initialization, i.e. from
  *       initConntableMCast().
