@@ -15,7 +15,7 @@
     <cmdsynopsis>
       <command>mpirun_chp4</command>
       <arg>-?Vv</arg>
-      <arg choice="req">-np <replaceable>nodes</replaceable></arg>
+      <arg choice="plain">-np <replaceable>nodes</replaceable></arg>
       <group>
 	<arg>-nodes <replaceable>nodelist</replaceable></arg>
 	<arg>-hosts <replaceable>hostlist</replaceable></arg>
@@ -44,7 +44,7 @@
   <refsect1>
     <title>Description</title>
     <para>
-      <command>mpirun_chp4</command> is a tool which enables MPIch/P4 programs
+      <command>mpirun_chp4</command> is a tool that enables MPIch/P4 programs
       to run on a &ps; cluster under control of the &ps; management facility.
       Within &ps; the startup of parallel jobs is handled as described within
       the <xref linkend="spawning"/> manual page. The spawning mechanism is
