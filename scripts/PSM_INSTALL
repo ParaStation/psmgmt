@@ -8,7 +8,7 @@
 #**
 #* PSM_INSTALL: ParaStation De-/Installationscript
 #*
-#* $Id: PSM_INSTALL,v 1.12 2002/09/26 15:12:47 eicker Exp $
+#* $Id: PSM_INSTALL,v 1.13 2002/09/26 15:14:21 eicker Exp $
 #*
 #* @author  
 #*         Eduard Syrchyn <syrchyn@par-tec.de>
@@ -56,7 +56,6 @@ service psid
         wait            = no
         user            = root
         server          = $PSMAIN/bin/psid
-        server_args     = -f $PSMAIN/config/parastation.conf
         log_on_failure  += USERID
 }
 service psld
@@ -66,7 +65,6 @@ service psld
         wait            = no
         user            = root
         server          = $PSMAIN/bin/psld
-        server_args     = -f $PSMAIN/config/parastation.conf
         log_on_failure  += USERID
 }
 "
