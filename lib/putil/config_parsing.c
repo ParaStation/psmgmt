@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.2 2003/04/03 15:10:24 eicker Exp $
+ * $Id: config_parsing.c,v 1.3 2003/04/04 09:52:54 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.2 2003/04/03 15:10:24 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.3 2003/04/04 09:52:54 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -908,6 +908,11 @@ static int getHardwareScript(char *token)
     }
 
     /* store environment */
+    if (HW_getScript(actHW, name)) {
+	snprintf(errtxt, sizeof(errtxt),
+	     "Redefineing hardware script: %s\n", name);
+	parser_comment(errtxt,0);
+    }
     HW_setScript(actHW, name, value);
 
     snprintf(errtxt, sizeof(errtxt),
@@ -947,6 +952,11 @@ static int getHardwareEnvLine(char *token)
     }
 
     /* store environment */
+    if (HW_getEnv(actHW, name)) {
+	snprintf(errtxt, sizeof(errtxt),
+	     "Redefineing hardware environment: %s\n", name);
+	parser_comment(errtxt,0);
+    }
     HW_setEnv(actHW, name, value);
 
     snprintf(errtxt, sizeof(errtxt),
