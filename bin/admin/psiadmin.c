@@ -404,7 +404,7 @@ void PSIADM_Version(void)
 void PSIADM_ShowParameter(void) 
 {
     DDOptionMsg_t msg;
-    int uidlimit=0, proclimit=0, confno=0, smallpacksize=0, resendtimeout=0;
+    int uidlimit=0, proclimit=0, smallpacksize=0, resendtimeout=0;
     int i,n;
 
 /*   printf("ShowParameter\n"); */
@@ -418,52 +418,47 @@ void PSIADM_ShowParameter(void)
     msg.header.dest = PSI_gettid(PSI_myid,0);
     msg.opt[0].value = 0;
 
-    msg.count =1;
-    msg.opt[0].option = PSP_OP_UIDLIMIT;
+    msg.count = 0;
+    msg.opt[(int) msg.count].option = PSP_OP_UIDLIMIT;
+    msg.count++;
+
+    msg.opt[(int) msg.count].option = PSP_OP_PROCLIMIT;
+    msg.count++;
+
+    msg.opt[(int) msg.count].option = PSP_OP_SMALLPACKETSIZE;
+    msg.count++;
+
+    msg.opt[(int) msg.count].option = PSP_OP_RESENDTIMEOUT;
+    msg.count++;
+
     ClientMsgSend(&msg);
 
-    msg.opt[0].option = PSP_OP_PROCLIMIT;
-    ClientMsgSend(&msg);
-
-    msg.opt[0].option = PSP_OP_CONFIGNO;
-    ClientMsgSend(&msg);
-
-    msg.opt[0].option = PSP_OP_SMALLPACKETSIZE;
-    ClientMsgSend(&msg);
-
-    msg.opt[0].option = PSP_OP_RESENDTIMEOUT;
-    ClientMsgSend(&msg);
-
-    for(i=0; i<6; i++){
-	if ((n=ClientMsgReceive(&msg)) == 0){
-	    /*
-	     * closing connection 
-	     */
-	    printf("PANIC: lost connection to my daemon!!");
-	    exit(1);
-	}else if(n<0)
-	    perror("PANIC: error while receiving answer from my daemon.\n");
-	else{
-	    switch(msg.opt[0].option){
+    if ((n=ClientMsgReceive(&msg)) == 0){
+	/*
+	 * closing connection 
+	 */
+	printf("PANIC: lost connection to my daemon!!");
+	exit(1);
+    }else if(n<0)
+	perror("PANIC: error while receiving answer from my daemon.\n");
+    else{
+	for(i=0; i<msg.count; i++){
+	    switch(msg.opt[i].option){
 	    case PSP_OP_UIDLIMIT :
-		uidlimit = msg.opt[0].value;
+		uidlimit = msg.opt[i].value;
 		break;
 	    case PSP_OP_PROCLIMIT :
-		proclimit = msg.opt[0].value;
-		break;
-	    case PSP_OP_CONFIGNO :
-		confno = msg.opt[0].value;
+		proclimit = msg.opt[i].value;
 		break;
 	    case PSP_OP_SMALLPACKETSIZE :
-		smallpacksize = msg.opt[0].value;
+		smallpacksize = msg.opt[i].value;
 		break;
 	    case PSP_OP_RESENDTIMEOUT :
-		resendtimeout = msg.opt[0].value;
+		resendtimeout = msg.opt[i].value;
 		break;
 	    }
 	}
     }
-    printf("Using Configuration %d\n",confno);
     printf("SmallPacketSize is %d\n",smallpacksize);
     printf("Retransmission Timeout is %d [us]\n",resendtimeout);
     if(uidlimit==-1)
@@ -525,32 +520,6 @@ void PSIADM_SetResendTimeout(int time)
     msg.count =1;
     msg.opt[0].option = PSP_OP_RESENDTIMEOUT;
     msg.opt[0].value = time;
-    ClientMsgSend(&msg);
-
-    return;
-}
-
-void PSIADM_SetConfigNo(int no) 
-{
-    DDOptionMsg_t msg;
-
-/*   printf("SetConfigNo to %d\n",no); */
-    if(geteuid()){
-	printf("Insufficient priviledge\n");
-	return;
-    }
-
-    /*
-     * prepare the message to send it to the daemon
-     */
-    msg.header.type = PSP_DD_SETOPTION;
-    msg.header.len = sizeof(msg);
-    msg.header.sender = PSI_mytid;
-    /*msg.header.dest = PSI_gettid(PSI_myid,0);*/
-    msg.header.dest = -1 /* broadcast */;
-    msg.count =1;
-    msg.opt[0].option = PSP_OP_CONFIGNO;
-    msg.opt[0].value = no;
     ClientMsgSend(&msg);
 
     return;
@@ -707,7 +676,7 @@ int main(int ac, char **av)
 	if (!PSI_daemon_connect(protocol,remotehostaddr)){
 	    if((protocol!=TG_RESET)&&(protocol!=TG_RESETABORT))
 		fprintf(stderr,
-			"PULC_clientinit(): can't contact local daemon.\n");
+			"PSI_clientinit(): can't contact local daemon.\n");
 	    return 0;
 	}
 #endif

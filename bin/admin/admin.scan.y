@@ -89,7 +89,6 @@ debugline:
 
 setline:
 	  SETOP				{ printf("SET what?\n"); }
-	| SETOP SHOWOP  NUMBER		{ PSIADM_SetConfigNo($3); }
 	| SETOP MAXPROC			{ printf("SET MAXPROC needs number of processes\n"); }
 	| SETOP MAXPROC NUMBER  	{ PSIADM_SetMaxProc($3); }
 	| SETOP MAXPROC HEXNUMBER	{ PSIADM_SetMaxProc($3); }
