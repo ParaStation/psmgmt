@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast_private.h,v 1.1 2002/01/28 19:09:17 eicker Exp $
+ * $Id: mcast_private.h,v 1.2 2002/01/30 10:39:35 eicker Exp $
  *
  */
 /**
@@ -13,7 +13,7 @@
  * mcast_private: ParaStation MultiCast facility
  *                Private functions and definitions
  *
- * $Id: mcast_private.h,v 1.1 2002/01/28 19:09:17 eicker Exp $
+ * $Id: mcast_private.h,v 1.2 2002/01/30 10:39:35 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -43,30 +43,12 @@ extern "C" {
     }                                                                 \
   } while (0)
 #endif
-#ifndef timersub
-#define timersub(a, b, result)                                        \
-  do {                                                                \
-    (result)->tv_sec = (a)->tv_sec - (b)->tv_sec;                     \
-    (result)->tv_usec = (a)->tv_usec - (b)->tv_usec;                  \
-    if ((result)->tv_usec < 0) {                                      \
-      --(result)->tv_sec;                                             \
-      (result)->tv_usec += 1000000;                                   \
-    }                                                                 \
-  } while (0)
-#endif
-
-#define MCASTSERVICE "psmcast"   /** The symbolic name of MCast-service */
-
-static int DEFAULT_MCAST_GROUP = 237;
-                /** The default MCast-group number.
-		    Magic number defined by Joe long time ago.
-		    Can be overruled via initMCast(). */
 
 static int licserver = 0;        /** Flag whether we are LicServer.
 				     Set via initMCast(). */
 
 static int mcastsock = -1;       /** The socket used to send and receive MCast
-				     packets. Will be opened in initMCast */
+				     packets. Will be opened in initMCast(). */
 
 static struct sockaddr_in msin;  /** The corresponding socket-address of the
 				     MCast packets. */
@@ -82,6 +64,17 @@ static int myID;                 /** My node-ID withing the cluster.
 static void (*callback)(int, void*) = NULL;
                 /** The callback function. Will be used to send messages to
 		    the calling process. Set via initMCast(). */
+
+typedef enum {
+    T_INFO = 0x01,
+    T_CLOSE,
+    T_LIC,
+    T_KILL
+} MCastMsgType;
+
+static struct timeval TIMER_LOOP = {2, 0}; /* sec, usec */
+                /** The timeout used for MCast ping. The is a const for
+		    now and can only changed in the sources. */
 
 /**
  * @brief Recv a message
@@ -128,34 +121,8 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 		    struct sockaddr *to, socklen_t tolen);
 
 
-static struct timeval TIMER_LOOP = {2, 0}; /* sec, usec */
-                /** The timeout used for MCast ping. The is a const for
-		    now and can only changed in the sources. */
-
 static int DEADLIMIT = 10;      /** The actual dead-limit. Get/set by
-				     getMCastDeadLimit()/setMCastDeadLimit() */
-
-/**
- * @brief Get MCast deadlimit
- *
- * Get the deadlimit of the MCast module. After @a deadlimit consecutively
- * missing MCast pings a node is declared to be dead.
- *
- * @return The actual deadlimit is returned.
- */
-int getMCastDeadLimit(void);
-
-/**
- * @brief Set MCast deadlimit
- *
- * Set the deadlimit of the MCast module. After @a deadlimit consecutively
- * missing MCast pings a node is declared to be dead.
- *
- * @param limit The deadlimit to be set.
- *
- * @return No return value.
- */
-void setMCastDeadLimit(int limit);
+				     getDeadLimitMCast()/setDeadLimitMCast() */
 
 /*
  * connection info for each connection (peer to peer)
@@ -195,7 +162,7 @@ typedef struct ipentry_ {
  * @return -1 is returned if an error occurs; otherwise the return value
  * is a descriptor referencing the socket.
  */
-static int initMCastSock(int group, unsigned short port);
+static int initSockMCast(int group, unsigned short port);
 
 /**
  * @brief Send MCast ping.
@@ -235,7 +202,7 @@ static void checkConnections(void);
 static void closeConnection(int node);
 
 
-static char *MCastStateString(MCastState state);
+static char *stateStringMCast(MCastState state);
 
 #ifdef __cplusplus
 }/* extern "C" */
