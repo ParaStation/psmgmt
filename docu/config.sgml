@@ -1,61 +1,415 @@
 <chapter id="configuration">
   <title>Configuration</title>
 
-  <!-- Beschreibung der Konfigurationsdatei:
+  <para>
+    After installing the ParaStation software successfully few modification to
+    the configuration file <filename>parastation.conf</filename> have to be
+    made in order to enable ParaStation on the local cluster.
+  </para>
 
-  * Alle Tags
-  * Ansaetze und Strategien??
-
-  Moeglichst so, dass auch eine man-page davon erstellt werden kann.
-
-
-      <listitem id="ibh_config">
-	<para><emphasis>ParaStation Configuration</emphasis></para>
-	<para>
-	  If another version of ParaStation was installed before, you may want
-	  to make a backup of your old configuration file
-	  <filename>/etc/parastation.conf</filename>.
-	</para>
-	<para>
-	  Now copy the ParaStation configuration template
-	  <filename>parastation.conf.tmpl</filename> in
-	  <filename>/opt/parastation/config</filename> to
-	  <filename>/etc/parastation.conf</filename> and edit it following the
-	  hints given there and in <xref linkend="configuration"/>. 
-	</para>
-      </listitem>
-      <listitem id="ibh_testing">
-	<para><emphasis>Testing</emphasis></para>
-	<para>
-	  If everything went fine, you are ready to test ParaStation now. On
-	  one of the nodes do 
-	</para>
-	<programlisting>
-	/opt/parastation/bin/psiadmin -c "s all"
-	</programlisting>
-	<para>
-	  and repeat this command until all nodes are up.
-	</para>
-      </listitem>
-
-  -->
-  <para></para>
   <section id="config_ps">
     <title>Configuration of the ParaStation system</title>
-    <para></para>
+    <para>
+      Within this section the basic configuration procedure needed to enable
+      ParaStation is discussed. Primarily the configuration work reduces to the
+      editing of the configuration file <filename>parastation.conf</filename>,
+      which is basically located in <filename>/etc</filename>.
+    </para>
+    <para>
+      Usually you will find in <filename>/etc</filename> only a symbolic link
+      pointing to
+      <filename>/opt/parastation/config/parastation.conf</filename>, which is
+      usually mounted via NFS on the nodes. This allows quite easily a
+      centralized storing of the configuration file in order to reduce the
+      effort that has to be made to modify this file.
+    </para>
+    <para>
+      Within this section only the fundamental parameters which are necessary
+      to make ParaStation run on a specific cluster are discussed. A detailed
+      description of all possible parameters that can be tuned within the
+      configuration file can be found within <xref
+	linkend="parastation_conf"/>.
+    </para>
+    <para>
+      Consider ParaStation to be installed in a centralized fashion to the
+      default location <filename>/opt/parastation</filename> and mounted to
+      this location on the nodes. Then the following steps have to be executed
+      on the NFS server:
+    </para>
+    <orderedlist>
+      <listitem>
+	<para><emphasis role="bold">Copy template</emphasis></para>
+	<para>
+	  Change to the configuration directory
+	  <filename>/opt/parastation/config</filename> and copy the template
+	  configuration file <filename>parastation.conf.tmpl</filename> to the
+	  actual position <filename>parastation.conf</filename>.
+	</para>
+	<para>
+	  The template file contains all possible parameters understood by the
+	  ParaStation daemon <xref linkend="psid"/>. Most of these parameters
+	  are set to their default value and commented out. Only those that
+	  have to be modified in order to addapt ParaStation to the local
+	  cluster are enabled. Additionally all parameters are accompanied by a
+	  describing comment. A detailed destriction of the parameters can be
+	  found in <xref linkend="parastation_conf"/>.
+	</para>
+	<para>
+	  The template file is a good basis to create a working configuration
+	  of ParaStation for your cluster.
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  <emphasis role="bold"><command>Number of nodes</command></emphasis>
+	</para>
+	<para>
+	  Adjust the <command>NrOfNodes</command> parameter to the actual value
+	  used in your cluster. Consider that the front end machine as part of
+	  the cluster. For example if your cluster contains 8 nodes with a fast
+	  interconnect plus a front end machine then
+	  <command>NrOfNodes</command> has to be set to 9 if a ParaStation
+	  daemon <xref linkend="psid"/> should run on the front end machine in
+	  order to allow the start of parallel jobs from here.
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  <emphasis role="bold"><command>HWType</command></emphasis>
+	</para>
+	<para>
+	  In order to tell ParaStation which kind of communication hardware
+	  should be used modify the <command>HWType</command> parameter. In the
+	  case of a Myrinet cluster, i.e. the version of ParaStation used is
+	  ParaStation 3, this has to be set to:
+	</para>
+	<programlisting>	HWType myrinet</programlisting>
+	<para>
+	  If the cluster to be configured uses Ethernet of any flavour and
+	  ParaStation FE is the software of choice you will want to set this
+	  parameter to:
+	</para>
+	<programlisting>	HWType ethernet</programlisting>
+	<!-- @todo ParaStation 4 -->
+      </listitem>
+      <listitem>
+	<para>
+	  <emphasis role="bold"><command>Nodes</command></emphasis>
+	</para>
+	<para>
+	  Furthermore ParaStation has to be told which nodes are contained in
+	  the cluster. The usual way of using the <command>Nodes</command>
+	  parameter is the environment mode, that is allready enabled in the
+	  template file.
+	</para>
+	<para>
+	  For each cluster node defined within the <command>Nodes</command>
+	  environment at least the hostname of the node and the ParaStation ID
+	  of this node have to be given. The general syntax of the
+	  <command>Nodes</command> environment is one entry per line. Each
+	  entry has the form
+	</para>
+	<programlisting>	<replaceable>hostname</replaceable> <replaceable>id</replaceable> <optional><option>HWType-entry</option></optional> <optional><option>hasIP-entry</option></optional> <optional><option>starter-entry</option></optional></programlisting>
+	<para>
+	  This will register the node
+	  <parameter><replaceable>hostname</replaceable></parameter> to the
+	  ParaStation system with the ParaStation ID
+	  <parameter><replaceable>id</replaceable></parameter>. The ParaStation
+	  ID has to be an integer number between 0 and
+	  <command>NrOfNodes</command>-1. 
+	</para>
+	<para>
+	  For a detailed description of the optional <command>HWType</command>,
+	  <command>hasIP</command> and <command>starter</command> parameters
+	  refer to <xref linkend="parastation_conf"/>.
+	</para>
+	<para>
+	  Usually the nodes will be enlisted in order of increasing ParaStation
+	  ID, beginning with 0 for the first node. If a front end machine
+	  exists and furthermore should be integrated into the ParaStation
+	  system, it usually acts as the last node of the ParaStation system,
+	  i.e. has the ID <command>NrOfNodes</command>-1.
+	</para>
+	<para>
+	  The described convention is mainly due to the routing used within
+	  MyriNet clusters. While on ethernet cluster the mapping between
+	  hostnames and ParaStation ID is completely free, there are
+	  constraints concerning this mapping in the MyriNet case. Actually in
+	  order to use standard routing files the ParaStation ID of a specific
+	  node depends on the port of the MyriNet switch it is connected to.
+	  This will be discussed in further detail within the next section.
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  <emphasis role="bold"><command>LicenseServer</command></emphasis>
+	</para>
+	<para>
+	  This parameter tells ParaStation on which node the ParaStation
+	  license daemon <xref linkend="psld"/> should be started. Remember
+	  that ParaStation has to be installed on this node.
+	</para>
+	<para>
+	  For clusters with an existing front end machine usually the front end
+	  will run the license daemon. Otherwise the machine which acts as the
+	  node with ParaStation ID 0 will adopt this tasks normally.
+	</para>
+      </listitem>
+    </orderedlist>
+    <para>
+      The configuration of a ethernet cluster running ParaStation FE is
+      finished now. On MyriNet clusters furthermore some parameters concerning
+      the MyriNet configuration have to be set up.
+    </para>
+    <simplesect>
+      <title>Further parameters for Myrinet clusters</title>
+      <para>
+	The following parameters only make sense if a MyriNet cluster is going
+	to be configured.
+      </para>
+      <orderedlist continuation="continues">
+	<listitem>
+	  <para>
+	    <emphasis role="bold"><command>MyriNetModule</command></emphasis>
+	  </para>
+	  <para>
+	    Tell ParaStation where to find the kernel module which will run the
+	    MyriNet card.
+	  </para>
+	  <para>
+	    The parameter set may be a absolute or relative path. Relative
+	    paths are looked up relative to
+	    <filename><replaceable>InstallDir</replaceable>/bin/module</filename> 
+	    and <filename><replaceable>InstallDir</replaceable></filename> in
+	    this order. 
+	  </para>
+	  <para>
+	    <filename><replaceable>InstallDir</replaceable></filename> defaults
+	    to <filename>/opt/parastation</filename> or may be set using the
+	    <command>InstallDir</command> parameter. This is described in
+	    detail within <xref linkend="parastation_conf"/>.
+	  </para>
+	</listitem>
+
+	<listitem>
+	  <para>
+	    <emphasis role="bold"><command>RoutingFile</command></emphasis>
+	  </para>
+	  <para>
+	    MyriNet is a source routed network. This means that each <link
+	      linkend="NIC">NIC</link> has to now which way a data packet it
+	    wants to send has to take through the route in order to arrive at
+	    the correct destination. I.e. each packet must contain the full
+	    routing information. Of course this routing information depends
+	    substantially on the network topology of the cluster. For
+	    flexibilities sake this information is not hardcoded within the
+	    kernel module as it was in ParaStation 2 but will be read during
+	    run time from a extra configuration file.
+	  </para>
+	  <para>
+	    This parameter will tell ParaStation which routing information it
+	    has to use for correct delivery of packets via MyriNet.
+	  </para>
+	  <para>
+	    In principle any topology of the network is supported just by
+	    editing the routing information stored the configuration file. In
+	    fact there are tools within the ParaStation distribution to
+	    construct this files. This will be discussed in detail in <xref
+	      linkend="setup_route"/>.
+	  </para>
+	  <note>
+	    <para>
+	      The discussion of preconfigured routing files reduces to MyriNet
+	      2000 switches. If you use older MyriNet hardware as a fast
+	      interconnect within your cluster, please contact ParTec for
+	      further support on setting up the routing or proceed with <xref
+		linkend="setup_route"/> to create the routing file on your own.
+	    </para>
+	  </note>
+	  <para>
+	    For most of the common network topologies supported by MyriNet
+	    already exists an easy to use routing file. For all these routing
+	    files it is assumed that the nodes are connected to the MyriNet
+	    switch in the following way: Starting with node 0 (i.e. the node
+	    with ParaStation ID 0) at the upper right corner of the switch, the
+	    nodes are connected in ascending order from right to left. If the
+	    top level board of the switch is completely filled, proceed with
+	    the next board again connecting from the right to the left and so
+	    on.
+	  </para>
+	  <para>
+	    If the connection of the nodes to the MyriNet switch uses this
+	    convention, the following standard routing files might be used:
+	  </para>
+	  <variablelist>
+	    <varlistentry>
+	      <term><filename>M3E16.route</filename></term>
+	      <listitem>
+		<para>
+		  Use this routing file if your cluster has a 16 node switch,
+		  i.e. a switch with two line cards.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term><filename>M3E16reverse.route</filename></term>
+	      <listitem>
+		<para>
+		  This routing file is kind of special. It also supports a 16
+		  node switch, i.e. a switch with two line cards, but with
+		  reverse cabling. This means node 0 is connected in the lower
+		  left edge of the switch. Further nodes are connected left to
+		  right proceeding with the upper line board when the lowest is
+		  full.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term><filename>M3E32.route</filename></term>
+	      <listitem>
+		<para>
+		  Use this routing file if your cluster has a 32 node switch,
+		  i.e. a switch with four line cards.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term><filename>M3E64.route</filename></term>
+	      <listitem>
+		<para>
+		  Use this routing file if your cluster has a 64 node switch,
+		  i.e. a switch with eight line cards.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term><filename>M3E128.route</filename></term>
+	      <listitem>
+		<para>
+		  Use this routing file if your cluster has a 128 node switch,
+		  i.e. a switch with sixteen line cards.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	  </variablelist>
+	  <para>
+	    All these files are located in the directory
+	    <filename>/opt/parastation/config</filename>.
+	  </para>
+	</listitem>
+      </orderedlist> 
+    </simplesect>
   </section>
-  <section id="setup_route">
-    <title>Setting up routing</title>
+
+  <section id="get_license">
+    <title>Obtain a license key</title>
     <para></para>
+    <orderedlist continuation="continues">
+      <listitem>
+	<para>
+	  <emphasis role="bold"><command>LicenseFile</command></emphasis>
+	</para>
+	<para>
+	  
+	</para>
+      </listitem>
+    </orderedlist>
   </section>
+
+  <section id="ip_over_myrinet">
+    <title>IP over MyriNet</title>
+    <para>
+      This section describes the necessary configuration in order to obtain a
+      working IP over MyriNet setup. If you are not interested into having such
+      type of setup, you can skip this section and proceed with <xref
+	linkend="testing"/>
+    </para>
+    <para>
+      IP over MyriNet is intended mainly for applications using TCP or UDP
+      sockets which are not portable to MPI or the psport interface. Be aware
+      of the fact that IP over MyriNet is not really efficient, since the
+      overhead of the whole TCP/IP stack has to be taken into account.
+    </para>
+    <para>
+      Hauptidee: PS ID bildet letzte Stellen 
+    </para>
+    <para>
+      In order to enable IP over MyriNet on your ParaStation cluster, the
+      following three parameters have to be set within the ParaStation
+      configuration file <filename>/etc/parastation.conf</filename>:
+    </para>
+    <orderedlist continuation="continues">
+      <listitem>
+	<para>
+	  <emphasis role="bold"><command>IPModule</command></emphasis>
+	</para>
+	<para>
+	  
+	</para>
+      </listitem>
+
+      <listitem>
+	<para>
+	  <emphasis role="bold"><command>IPPrefix</command></emphasis>
+	</para>
+	<para>
+	  
+	</para>
+      </listitem>
+
+      <listitem>
+	<para>
+	  <emphasis role="bold"><command>IPPrefixLen</command></emphasis>
+	</para>
+	<para>
+	  
+	</para>
+      </listitem>
+    </orderedlist>
+  </section>
+
   <section id="testing">
     <title>Testing the installation</title>
-    <para></para>
+    <para>
+      If everything went fine, you are ready to test ParaStation now. On
+      one of the nodes do 
+    </para>
+    <programlisting>	/opt/parastation/bin/psiadmin -c "s all"</programlisting>
+    <para>
+      and repeat this command until all nodes are up.
+    </para>
   </section>
+
   <section id="embed">
     <title>Embed ParaStation</title>
     <para></para>
+
+    <section>
+      <title>Integration with OpenPBS</title>
+      <para>
+	ToDo
+      </para>
+    </section>
+
+    <section>
+      <title>Integration with LSF</title>
+      <para>
+	ToDo
+      </para>
+    </section>
   </section>
+
+  <section id="setup_route">
+    <title>Setting up routing on customized network topologies</title>
+    <para>
+      If your network topology is special and 
+    </para>
+  </section>
+
 </chapter>
   <!-- Keep this comment at the end of the file
   Local variables:
