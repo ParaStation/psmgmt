@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidoption.h,v 1.2 2003/12/10 16:40:57 eicker Exp $
+ * $Id: psidoption.h,v 1.3 2004/01/09 16:03:15 eicker Exp $
  *
  */
 /**
  * @file
  * Handle option requests to the ParaStation daemon.
  *
- * $Id: psidoption.h,v 1.2 2003/12/10 16:40:57 eicker Exp $
+ * $Id: psidoption.h,v 1.3 2004/01/09 16:03:15 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -48,6 +48,8 @@ void send_OPTIONS(PSnodes_ID_t destnode);
  *
  * Handle the message @a inmsg of type PSP_CD_SETOPTION.
  *
+ * @doctodo
+ *
  * @param inmsg Pointer to the message to handle.
  *
  * @return No return value.
@@ -58,6 +60,8 @@ void msg_SETOPTION(DDOptionMsg_t *msg);
  * @brief Handle a PSP_CD_GETOPTION message.
  *
  * Handle the message @a inmsg of type PSP_CD_GETOPTION.
+ *
+ * @doctodo
  *
  * @param inmsg Pointer to the message to handle.
  *
