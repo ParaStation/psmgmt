@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.2 2003/04/04 13:51:02 hauke Exp $
+# $Id: Makefile.in,v 1.3 2003/06/27 11:23:34 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -23,7 +23,7 @@ INCLUDES += pshwtypes.h pse.h
 INCDIR := $(DISTPATH)/include
 
 BINS += psiadmin psid psld
-BINS += psilogger mlisten psmstart mpirun_chp4 psispawn
+BINS += psilogger mlisten psmstart mpirun_chp4 mpirun_chgm psispawn
 BINDIR := $(DISTPATH)/bin
 
 LIBS += libpsi.a libpse.a
@@ -35,6 +35,7 @@ LIBDIR := $(DISTPATH)/lib
 CONFIGDIR := $(DISTPATH)/config
 
 MISC += config/parastation.conf.tmpl VERSION.psmgmt INSTALL config/PSM_INSTALL
+MISC += ChangeLog.psmgmt
 .PHONY: VERSION
 
 MISCDIR :=
@@ -116,6 +117,9 @@ $(DISTPATH)/config/psm_makedev: $(TOP_SRCDIR)/scripts/psm_makedev
 
 $(DISTPATH)/VERSION.psmgmt:
 	echo "ParaStation Management $(DVER) ($(shell date))" > $@
+
+$(DISTPATH)/ChangeLog.psmgmt: $(TOP_SRCDIR)/dist_mgmt/ChangeLog
+	cp $< $@
 
 ######################################################
 # Create tar file
