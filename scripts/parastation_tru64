@@ -7,10 +7,15 @@ PSCONFIG=`dirname $0`/psconfig
 
 case "$1" in
     start)
-	sysconfig -s "$MODULENAME" | grep -q unloaded || $0 stop
-
-	sysconfig -c "$MODULENAME" || exit 1
-	
+	CONFIGURED=`sysconfig -s $MODULENAME | grep -w configured`
+        if [ "$CONFIGURED" = "" ] ; then
+	    sysconfig -c "$MODULENAME"
+            if [ $? -ne 0 ]
+            then
+                  echo "Failed to configure subsystem: " $MODULENAME
+		  exit 1
+            fi
+        fi
 	$PSCONFIG -key "$PS_LIC" || exit 2
 	$PSCONFIG -id "$PS_ID" "$PS_ROUTEFILE" || exit 3
 	
