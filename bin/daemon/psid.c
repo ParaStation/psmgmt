@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.74 2003/02/13 17:10:17 eicker Exp $
+ * $Id: psid.c,v 1.75 2003/02/14 16:29:46 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.74 2003/02/13 17:10:17 eicker Exp $ 
+ * $Id: psid.c,v 1.75 2003/02/14 16:29:46 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.74 2003/02/13 17:10:17 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.75 2003/02/14 16:29:46 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -73,7 +73,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.74 $";
+static char psid_cvsid[] = "$Revision: 1.75 $";
 
 static int PSID_mastersock;
 
@@ -1592,7 +1592,7 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 
 	    node = (int *) ((DDBufferMsg_t*)inmsg)->buf;
 	    msg.header.type = PSP_CD_NODERESPONSE;
-	    if ((*node > 0) && (*node < PSC_getNrOfNodes())) {
+	    if ((*node >= 0) && (*node < PSC_getNrOfNodes())) {
 		*(unsigned int *)msg.buf = nodes[*node].addr;
 	    } else {
 		*(unsigned int *)msg.buf = INADDR_ANY;
@@ -2523,6 +2523,7 @@ void psicontrol(int fd)
 	case PSP_CD_HOSTSTATUSREQUEST:
 	case PSP_CD_NODELISTREQUEST:
 	case PSP_CD_HOSTREQUEST:
+	case PSP_CD_NODEREQUEST:
 	    /*
 	     * request to send the information about a specific info
 	     */
@@ -2536,6 +2537,7 @@ void psicontrol(int fd)
 	case PSP_CD_HOSTSTATUSRESPONSE:
 	case PSP_CD_NODELISTRESPONSE:
 	case PSP_CD_HOSTRESPONSE:
+	case PSP_CD_NODERESPONSE:
 	case PSP_CC_ERROR:
 	    /*
 	     * we just have to forward this kind of messages
@@ -3062,7 +3064,7 @@ void checkFileTable(void)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.74 $";
+    char revision[] = "$Revision: 1.75 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
