@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.5 2002/07/03 21:14:17 eicker Exp $
+ * $Id: config_parsing.c,v 1.6 2002/07/11 11:23:39 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.5 2002/07/03 21:14:17 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.6 2002/07/11 11:23:39 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -39,9 +39,12 @@ int nodesfound = 0;
 
 struct host_t *hosts[256];
 
+int NrOfNodes = -1;
+
 struct node_t *nodes = NULL;
 struct node_t licNode = {
     INADDR_ANY, /* addr */
+    1,          /* numCPU */
     0,          /* isUp */
     0,          /* hwtype */
     0,          /* hwStatus */
@@ -51,22 +54,25 @@ struct node_t licNode = {
 };
 
 char *Configfile = NULL;
-
-char *ConfigLicensekey = NULL;
-char *ConfigModule = NULL;
-char *ConfigRoutefile = NULL;
 char *ConfigInstDir = NULL;
-int MyPsiId = -1;
 
-int NrOfNodes = -1;
+char *ConfigLicenseKey = NULL;
+char *ConfigMyriModule = NULL;
+char *ConfigRoutefile = NULL;
 
 int ConfigSmallPacketSize = -1;
 int ConfigRTO = -1;
 int ConfigHNPend = -1;
 int ConfigAckPend = -1;
 
-long ConfigSelectTime = -1;
-long ConfigDeadInterval = -1;
+char *ConfigIPModule = NULL;
+char *ConfigIPPrefix = NULL;
+int ConfigIPPrefixLen = 20;
+
+char *ConfigGigaEtherModule = NULL;
+
+long ConfigSelectTime = 2;
+long ConfigDeadInterval = 10;
 int ConfigRDPPort = 886;
 int ConfigMCastGroup = 237;
 int ConfigMCastPort = 1889;
@@ -78,6 +84,8 @@ rlim_t ConfigRLimitRSSSize = -1;
 
 int ConfigLogLevel = 0;          /* default logging level */
 int ConfigLogDest = LOG_DAEMON;
+
+int MyPsiId = -1;
 
 static char errtxt[256];
 
@@ -104,6 +112,7 @@ static int allocHosts(int num)
     /* Clear nodes */
     for (i=0; i<num; i++) {
         nodes[i].addr = INADDR_ANY;
+	nodes[i].numCPU = 0;
 	nodes[i].isUp = 0;
         nodes[i].hwType = 0;
         nodes[i].hwStatus = 0;
@@ -281,7 +290,7 @@ static int getNumNodes(char *token)
     return allocHosts(NrOfNodes);
 }
 
-static int getModuleName(char *token)
+static int getMyriModuleName(char *token)
 {
     char *modname, *file;
 
@@ -289,15 +298,89 @@ static int getModuleName(char *token)
     file = parser_getFilename(modname, PSC_lookupInstalldir(), "/bin/modules");
 
     if (!file) {
-	snprintf(errtxt, sizeof(errtxt), "cannot find module '%s'", modname);
+	snprintf(errtxt, sizeof(errtxt),
+		 "cannot find MyriNet module '%s'", modname);
 	parser_comment(errtxt, 0);
 
 	return -1;
     }
 
-    if (ConfigModule) free(ConfigModule);
+    if (ConfigMyriModule) free(ConfigMyriModule);
 
-    ConfigModule = strdup(file);
+    ConfigMyriModule = strdup(file);
+
+    return 0;
+}
+
+static int getIPModuleName(char *token)
+{
+    char *modname, *file;
+
+    modname = parser_getString();
+    file = parser_getFilename(modname, PSC_lookupInstalldir(), "/bin/modules");
+
+    if (!file) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "cannot find IP module '%s'", modname);
+	parser_comment(errtxt, 0);
+
+	return -1;
+    }
+
+    if (ConfigIPModule) free(ConfigIPModule);
+
+    ConfigIPModule = strdup(file);
+
+    return 0;
+}
+
+static int getIPPrefix(char *token)
+{
+    char *prefix;
+
+    prefix = parser_getString();
+
+    /* @todo Testing if prefix is valid */
+
+    if (ConfigIPPrefix) free(ConfigIPPrefix);
+
+    ConfigIPPrefix = strdup(prefix);
+
+    return 0;
+}
+
+static int getIPPrefixLen(char *token)
+{
+    int ret;
+
+    ret = parser_getNumValue(parser_getString(),
+			     &ConfigIPPrefixLen, "IP-prefix length");
+
+    if (ret) return ret;
+
+    /* @todo Testing if ConfigIPPrefixLen is valid */
+
+    return 0;
+}
+
+static int getGigaEtherModuleName(char *token)
+{
+    char *modname, *file;
+
+    modname = parser_getString();
+    file = parser_getFilename(modname, PSC_lookupInstalldir(), "/bin/modules");
+
+    if (!file) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "cannot find Gigabit-Ethernet module '%s'", modname);
+	parser_comment(errtxt, 0);
+
+	return -1;
+    }
+
+    if (ConfigGigaEtherModule) free(ConfigGigaEtherModule);
+
+    ConfigGigaEtherModule = strdup(file);
 
     return 0;
 }
@@ -359,9 +442,9 @@ static int getLicKey(char *token)
 {
     char *lickey = parser_getString();
 
-    if (ConfigLicensekey) free(ConfigLicensekey);
+    if (ConfigLicenseKey) free(ConfigLicenseKey);
 
-    ConfigLicensekey = strdup(lickey);
+    ConfigLicenseKey = strdup(lickey);
 
     return 0;
 }
@@ -819,7 +902,15 @@ static int getNodes(char *token)
 static keylist_t config_list[] = {
     {"installationdir", getInstDir},
     {"installdir", getInstDir},
-    {"module", getModuleName},
+    {"myrinetmodule", getMyriModuleName},
+    {"smallpacketsize", getSmallPktSize},
+    {"resendtimeout", getResendTimeout},
+    {"hnpend", getHNPend},
+    {"ackpend", getAckPend},
+    {"ipmodule", getIPModuleName},
+    {"ipprefix", getIPPrefix},
+    {"ipprefixlen", getIPPrefixLen},
+    {"gigaethermodule", getGigaEtherModuleName},
     {"routingfile", getRouteFile},
     {"nrofnodes", getNumNodes},
     {"node", getNodes},
@@ -831,10 +922,6 @@ static keylist_t config_list[] = {
     {"licserver", getLicServer},
     {"licensekey", getLicKey},
     {"lickey", getLicKey},
-    {"smallpacketsize", getSmallPktSize},
-    {"resendtimeout", getResendTimeout},
-    {"hnpend", getHNPend},
-    {"ackpend", getAckPend},
     {"mcastgroup", getMCastGroup},
     {"mcastport", getMCastPort},
     {"rdpport", getRDPPort},
@@ -905,16 +992,6 @@ int parseConfig(int usesyslog, int loglevel)
 
     if (NrOfNodes>nodesfound) { /* hosts missing in hostlist */
 	parser_comment("WARNING: # hosts in hostlist less than NrOfNodes", 0);
-    }
-
-    if (!ConfigModule) {
-	parser_comment("ERROR: Module not defined", 0);
-	return -1;
-    }
-
-    if (!ConfigRoutefile) {
-	parser_comment("ERROR: Routefile not defined", 0);
-	return -1;
     }
 
     return 0;
