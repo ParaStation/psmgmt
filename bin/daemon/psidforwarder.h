@@ -1,18 +1,18 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * psidforwarder.h
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidforwarder.h,v 1.2 2003/10/30 16:32:31 eicker Exp $
+ * $Id: psidforwarder.h,v 1.3 2004/01/09 16:01:45 eicker Exp $
  *
  */
 /**
  * \file
  * Handling of all input/output forwarding between logger and client.
  *
- * $Id: psidforwarder.h,v 1.2 2003/10/30 16:32:31 eicker Exp $
+ * $Id: psidforwarder.h,v 1.3 2004/01/09 16:01:45 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
