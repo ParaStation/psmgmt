@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.h,v 1.7 2002/06/13 15:09:54 eicker Exp $
+ * $Id: psidutil.h,v 1.8 2002/06/14 15:21:21 eicker Exp $
  *
  */
 /**
  * \file
  * psidutil: Utilities for ParaStation daemon
  *
- * $Id: psidutil.h,v 1.7 2002/06/13 15:09:54 eicker Exp $
+ * $Id: psidutil.h,v 1.8 2002/06/14 15:21:21 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -32,6 +32,16 @@ extern "C" {
 #include "config_parsing.h"
 
 extern int PSID_CardPresent ;    /* indicates if the card is present */
+
+void PSID_initLog(int usesyslog, FILE *logfile);
+
+int PSID_getDebugLevel(void);
+
+void PSID_setDebugLevel(int level);
+
+void PSID_errlog(char *s, int level);
+
+void PSID_errexit(char *s, int errorno);
 
 
 void PSID_ReConfig(int nodenr, int nrofnodes, char *license, char *module,
