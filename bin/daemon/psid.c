@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.87 2003/03/19 18:10:33 eicker Exp $
+ * $Id: psid.c,v 1.88 2003/04/03 15:47:25 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.87 2003/03/19 18:10:33 eicker Exp $ 
+ * $Id: psid.c,v 1.88 2003/04/03 15:47:25 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.87 2003/03/19 18:10:33 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.88 2003/04/03 15:47:25 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -56,7 +56,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.87 2003/03/19 18
 
 #include "pscommon.h"
 #include "psdaemonprotocol.h"
-#include "pshwtypes.h"
+#include "hardware.h"
 #include "pstask.h"
 
 #include "psidutil.h"
@@ -75,7 +75,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.87 $";
+static char psid_cvsid[] = "$Revision: 1.88 $";
 
 static int PSID_mastersock;
 
@@ -493,7 +493,7 @@ int shutdownNode(int phase)
     if (phase > 2) {
 	exitMCast();
 	exitRDP();
-	PSID_stopHW();
+	PSID_stopAllHW();
 	unlink(PSmasterSocketName);
 	PSID_errlog("shutdownNode() good bye", 0);
 	exit(0);
@@ -661,8 +661,8 @@ static int doReset(void)
     if (myStatus & PSID_STATE_RESET_HW) {
 	PSID_errlog("doReset(): resetting the hardware", 2);
 
-	PSID_stopHW();
-	PSID_startHW();
+	PSID_stopAllHW();
+	PSID_startAllHW();
     }
     /*
      * change the state
@@ -1385,6 +1385,7 @@ void msg_SPAWNFINISH(DDMsg_t *msg)
 void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 {
     int id = PSC_getID(inmsg->header.dest);
+    int header = 0;
 
     snprintf(errtxt, sizeof(errtxt), "%s: type %d for %d from requester %s",
 	     __func__, inmsg->type, id, PSC_printTID(inmsg->header.sender));
@@ -1474,22 +1475,19 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    msg.type = PSP_INFO_TASKEND;
 	    break;
 	}
+	case PSP_INFO_COUNTHEADER:
+	    header = 1;
 	case PSP_INFO_COUNTSTATUS:
 	{
-	    PSHALInfoCounter_t *ic;
-	    unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
+	    int hw = *(int *) inmsg->buf;
 
-	    memcpy(msg.buf, &status, sizeof(status));
-	    msg.header.len += sizeof(status);
-
-	    if (status & PSHW_MYRINET) {
-		ic = PSHALSYSGetInfoCounter();
-		if (ic) {
-		    memcpy(msg.buf+sizeof(status), ic, sizeof(*ic));
-		    msg.header.len += sizeof(*ic);
-		}
+	    *msg.buf = '\0';
+	    if (PSnodes_getHWStatus(PSC_getMyID()) & (1<<hw)) {
+		PSID_getCounter(hw, msg.buf, sizeof(msg.buf), header);
+	    } else {
+		snprintf(msg.buf, sizeof(msg.buf), "Not available");
 	    }
-
+	    msg.header.len += strlen(msg.buf) + 1;
 	    break;
 	}
 	case PSP_INFO_RDPSTATUS:
@@ -1548,7 +1546,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 
 		nodelist[i].up = PSnodes_isUp(i);
 		nodelist[i].numCPU = PSnodes_getCPUs(i);
-		nodelist[i].hwType = PSnodes_getHWStatus(i);
+		nodelist[i].hwStatus = PSnodes_getHWStatus(i);
 
 		getInfoMCast(i, &info);
 		nodelist[i].load[0] = info.load.load[0];
@@ -1592,16 +1590,17 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 
 		getInfoMCast(i, &info);
 
-		if ((!hwType || (PSnodes_getHWStatus(i) & hwType) == hwType)
+		if ((!hwType || PSnodes_getHWStatus(i) & hwType)
 		    && (PSnodes_getUser(i) == PSNODES_ANYUSER
 			|| PSnodes_getUser(i) == requester->uid)
 		    && (PSnodes_getProcs(i) == PSNODES_ANYPROC
-			|| PSnodes_getProcs(i) > info.jobs.normal)) {
+			|| PSnodes_getProcs(i) > info.jobs.normal)
+		    && PSnodes_runJobs(i)) {
 
 		    nodelist[j].id = i;
 		    nodelist[j].up = PSnodes_isUp(i);
 		    nodelist[j].numCPU = PSnodes_getCPUs(i);
-		    nodelist[j].hwType = PSnodes_getHWStatus(i);
+		    nodelist[j].hwStatus = PSnodes_getHWStatus(i);
 
 		    nodelist[j].load[0] = info.load.load[0];
 		    nodelist[j].load[1] = info.load.load[1];
@@ -1623,25 +1622,42 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    break;
 	}
 	case PSP_INFO_INSTDIR:
-	{
 	    strncpy(msg.buf, PSC_lookupInstalldir(), sizeof(msg.buf));
 	    msg.buf[sizeof(msg.buf)-1] = '\0';
 	    msg.header.len += strlen(msg.buf)+1;
 	    break;
-	}
 	case PSP_INFO_DAEMONVER:
-	{
 	    strncpy(msg.buf, psid_cvsid, sizeof(msg.buf));
 	    msg.buf[sizeof(msg.buf)-1] = '\0';
 	    msg.header.len += strlen(msg.buf)+1;
 	    break;
-	}
 	case PSP_INFO_NROFNODES:
-	{
 	    *(int *)msg.buf = PSC_getNrOfNodes();
 	    msg.header.len += sizeof(int);
 	    break;
+	case PSP_INFO_HWNUM:
+	    *(int *)msg.buf = HW_num();
+	    msg.header.len += sizeof(int);
+	    break;
+	case PSP_INFO_HWNAME:
+	{
+	    int *index = (int *) inmsg->buf;
+	    char *name;
+
+	    name = HW_name(*index);
+
+	    if (name) {
+		strncpy(msg.buf, name, sizeof(msg.buf));
+		msg.buf[sizeof(msg.buf)-1] = '\0';
+
+		msg.header.len += strlen(msg.buf) + 1;
+	    }
+	    break;
 	}
+	case PSP_INFO_HWINDEX:
+	    *(int *)msg.buf = HW_index(inmsg->buf);
+	    msg.header.len += sizeof(int);
+	    break;
 	default:
 	    msg.type = PSP_INFO_UNKNOWN;
 	}
@@ -1669,38 +1685,23 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 	    PSID_errlog(errtxt, 3);
 
 	    switch (msg->opt[i].option) {
-	    case PSP_OP_PSM_SMALLPACKETSIZE:
-		if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
-		    if (ConfigSmallPacketSize != msg->opt[i].value) {
-			ConfigSmallPacketSize = msg->opt[i].value;
-			PSHALSYS_SetSmallPacketSize(ConfigSmallPacketSize);
-		    }
-		}
-		break;
-	    case PSP_OP_PSM_RESENDTIMEOUT:
-		if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
-		    if (ConfigRTO != msg->opt[i].value) {
-			ConfigRTO = msg->opt[i].value;
-			PSHALSYS_SetMCPParam(MCP_PARAM_RTO, ConfigRTO);
-		    }
-		}
-		break;
+	    case PSP_OP_PSM_SPS:
+	    case PSP_OP_PSM_RTO:
 	    case PSP_OP_PSM_HNPEND:
-		if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
-		    if (ConfigHNPend != msg->opt[i].value) {
-			ConfigHNPend = msg->opt[i].value;
-			PSHALSYS_SetMCPParam(MCP_PARAM_HNPEND, ConfigHNPend);
-		    }
-		}
-		break;
 	    case PSP_OP_PSM_ACKPEND:
-		if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
-		    if (ConfigAckPend != msg->opt[i].value) {
-			ConfigAckPend = msg->opt[i].value;
-			PSHALSYS_SetMCPParam(MCP_PARAM_ACKPEND, ConfigAckPend);
-		    }
+	    {
+		static int MYRINETindex = -1;
+
+		if (MYRINETindex == -1) {
+		    MYRINETindex = HW_index("myrinet");
+		}
+
+		if (MYRINETindex != -1) {
+		    PSID_setParam(MYRINETindex,
+				  msg->opt[i].option, msg->opt[i].value);
 		}
 		break;
+	    }
 	    case PSP_OP_PSIDSELECTTIME:
 		if (msg->opt[i].value > 0) {
 		    selecttimer.tv_sec = msg->opt[i].value;
@@ -1846,34 +1847,25 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 	    PSID_errlog(errtxt, 3);
 
 	    switch (msg->opt[i].option) {
-	    case PSP_OP_PSM_SMALLPACKETSIZE:
-		if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
-		    msg->opt[i].value = ConfigSmallPacketSize;
-		} else {
-		    msg->opt[i].value = -1;
-		}
-		break;
-	    case PSP_OP_PSM_RESENDTIMEOUT:
-		if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
-		    msg->opt[i].value = ConfigRTO;
-		} else {
-		    msg->opt[i].value = -1;
-		}
-		break;
+	    case PSP_OP_PSM_SPS:
+	    case PSP_OP_PSM_RTO:
 	    case PSP_OP_PSM_HNPEND:
-		if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
-		    msg->opt[i].value = ConfigHNPend;
-		} else {
-		    msg->opt[i].value = -1;
-		}
-		break;
 	    case PSP_OP_PSM_ACKPEND:
-		if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
-		    msg->opt[i].value = ConfigAckPend;
+	    {
+		static int MYRINETindex = -1;
+
+		if (MYRINETindex == -1) {
+		    MYRINETindex = HW_index("myrinet");
+		}
+
+		if (MYRINETindex != -1) {
+		    msg->opt[i].value = PSID_getParam(MYRINETindex,
+						      msg->opt[i].option);
 		} else {
 		    msg->opt[i].value = -1;
 		}
 		break;
+	    }
 	    case PSP_OP_PSIDDEBUG:
 		msg->opt[i].value = PSID_getDebugLevel();
 		break;
@@ -2909,7 +2901,7 @@ void checkFileTable(void)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.87 $";
+    char revision[] = "$Revision: 1.88 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -2923,13 +2915,13 @@ int main(int argc, const char *argv[])
     poptContext optCon;   /* context for parsing command-line options */
 
     int rc, version = 0, debuglevel = 0;
-    char *logdest = NULL;
+    char *logdest = NULL, *configfile = NULL;
     FILE *logfile = NULL;
 
     struct poptOption optionsTable[] = {
         { "debug", 'd', POPT_ARG_INT, &debuglevel, 0,
 	  "enble debugging with level <level>", "level"},
-        { "configfile", 'f', POPT_ARG_STRING, &Configfile, 0,
+        { "configfile", 'f', POPT_ARG_STRING, &configfile, 0,
           "use <file> as config-file (default is /etc/parastation.conf)",
           "file"},
 	{ "logfile", 'l', POPT_ARG_STRING, &logdest, 0,
@@ -3111,7 +3103,7 @@ int main(int argc, const char *argv[])
     /*
      * read the config file
      */
-    PSID_readConfigFile(!logfile);
+    PSID_readConfigFile(!logfile, configfile);
 
     {
 	unsigned int addr;
@@ -3151,6 +3143,30 @@ int main(int argc, const char *argv[])
 	PSID_errlog(errtxt, 0);
     }
 
+    /* Check LicServer Setting */
+    if (PSnodes_getAddr(PSNODES_LIC)==INADDR_ANY) {
+	/* No LicServer yet. Set node 0 as default server */
+	unsigned int addr = PSnodes_getAddr(0);
+	PSnodes_register(PSNODES_LIC, addr);
+	snprintf(errtxt, sizeof(errtxt),
+		 "Using %s (ID=0) as Licenseserver",
+		 inet_ntoa(* (struct in_addr *) &addr));
+	PSID_errlog(errtxt, 1);
+    }
+
+    /* Determine the number of CPUs */
+    PSnodes_setCPUs(PSC_getMyID(), sysconf(_SC_NPROCESSORS_CONF));
+
+    /* Start up all the hardware */
+    snprintf(errtxt, sizeof(errtxt), "%s: starting up the hardware", __func__);
+    PSID_errlog(errtxt, 1);
+
+    PSnodes_setHWStatus(PSC_getMyID(), 0);
+    PSID_startAllHW();
+
+    PSnodes_bringUp(PSC_getMyID());
+
+    /* Init fd set */
     FD_ZERO(&openfds);
     FD_SET(PSID_mastersock, &openfds);
 
