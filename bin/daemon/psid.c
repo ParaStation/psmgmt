@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.108 2003/10/08 16:31:57 eicker Exp $
+ * $Id: psid.c,v 1.109 2003/10/09 16:41:01 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.108 2003/10/08 16:31:57 eicker Exp $ 
+ * $Id: psid.c,v 1.109 2003/10/09 16:41:01 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.108 2003/10/08 16:31:57 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.109 2003/10/09 16:41:01 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -81,7 +81,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-char psid_cvsid[] = "$Revision: 1.108 $";
+char psid_cvsid[] = "$Revision: 1.109 $";
 
 static int PSID_mastersock;
 
@@ -332,12 +332,6 @@ static void declareNodeAlive(int id, int cpus)
 	}
     }
 #endif
-    if (lic_isexpired(&config->licEnv)) {
-	snprintf(errtxt, sizeof(errtxt), "%s: License expired.", __func__);
-	PSID_errlog(errtxt, 0);
-	shutdownNode(1);
-	return;
-    }
 }
 
 /******************************************
@@ -571,6 +565,8 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	/* @todo also handle the old protocol correctly, i.e. send
 	 * PSP_OLDVERSION message */
 	outmsg.type = PSP_CONN_ERR_OLDVERSION;
+    } else if (lic_isexpired(&config->licEnv)) {
+	outmsg.type = PSP_CONN_ERR_LICEND;
     } else if (!task) {
 	outmsg.type = PSP_CONN_ERR_NOSPACE;
     } else if (uid && PSnodes_getUser(PSC_getMyID()) != PSNODES_ANYUSER
@@ -2233,7 +2229,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.108 $";
+    char revision[] = "$Revision: 1.109 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
