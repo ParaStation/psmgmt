@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast_private.h,v 1.7 2002/05/22 18:43:50 hauke Exp $
+ * $Id: mcast_private.h,v 1.8 2002/07/03 20:15:41 eicker Exp $
  *
  */
 /**
@@ -14,7 +14,7 @@
  *
  * Private functions and definitions.
  *
- * $Id: mcast_private.h,v 1.7 2002/05/22 18:43:50 hauke Exp $
+ * $Id: mcast_private.h,v 1.8 2002/07/03 20:15:41 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -104,12 +104,19 @@ static int MCastDeadLimit = 10;
  * EINTR is mostly caused by the interval timer. Receives a message from
  * @a sock and stores it to @a buf. The sender-address is stored in @a from.
  *
+ *
  * @param sock The socket to read from.
+ *
  * @param buf Buffer the message is stored to.
+ *
  * @param len Length of @a buf.
+ *
  * @param flags Flags passed to recvfrom().
+ *
  * @param from The address of the message-sender.
+ *
  * @param fromlen Length of @a from.
+ *
  *
  * @return On success, the number of bytes received is returned, or -1 if
  * an error occured.
@@ -126,12 +133,19 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
  * EINTR is mostly caused by the interval timer. Send a message stored in
  * @a buf via @a sock to address @a to.
  *
+ *
  * @param sock The socket to send to.
+ *
  * @param buf Buffer the message is stored in.
+ *
  * @param len Length of the message.
+ *
  * @param flags Flags passed to sendto().
+ *
  * @param to The address the message is send to.
+ *
  * @param tolen Length of @a to.
+ *
  *
  * @return On success, the number of bytes sent is returned, or -1 if an error
  * occured.
@@ -172,8 +186,11 @@ static void initIPTable(void);
  *
  * Register another node in @ref iptable.
  *
+ *
  * @param ipno The IP number of the node to register.
+ *
  * @param node The corresponding node number.
+ *
  *
  * @return No return value.
  */
@@ -213,16 +230,22 @@ static Mconninfo *conntableMCast = NULL;
 /**
  * @brief Initialize the @ref conntableMCast.
  *
- * Initialize the @ref conntableMCast for @a nodes nodes to receive pings
+ * Initialize the @ref conntableMCast for @a nodes+1 nodes to receive pings
  * from. The IP numbers of all nodes are stored in @a host.
  *
- * @param nodes The number of nodes pings are expected from.
- * @param host The IP number of each node indexed by node number. The length
- * of @a host must be at least @a nodes.
+ *
+ * @param nodes The number of nodes pings are expected from (minus the
+ * node of the license-daemon).
+ *
+ * @param host The IP number of each node in network-byteorder indexed
+ * by node number. The length of @a host must be at least @a
+ * nodes+1. The first @ref nodes entries represent the ordinary
+ * nodes, the last entry is the node of the license-daemon.
+ *
  * @param port The port pings are expected to be sent from.
  *
- * @return No return value.
- */
+ *
+ * @return No return value.  */
 static void initConntableMCast(int nodes,
 			       unsigned int host[], unsigned short port);
 
@@ -233,9 +256,12 @@ static void initConntableMCast(int nodes,
  *
  * Sets up a socket used for all MCast communications.
  *
+ *
  * @param group The MCast group to join. If @group is 0, the @ref
  * DEFAULT_MCAST_GROUP is joined.
+ *
  * @param port The UDP port to use.
+ *
  *
  * @return -1 is returned if an error occurs; otherwise the return value
  * is a descriptor referencing the socket.
