@@ -80,16 +80,6 @@
 extern "C" {
 #endif
 
-typedef struct PSE_Identity {
-    int node;                  /**< PSHAL node id */
-    int port;                  /**< PSPORT port number */
-} PSE_Identity_t;
-
-typedef struct PSE_Info {
-    PSE_Identity_t myid;       /**< map[mygrank] for faster access */
-    int mygrank;               /**< MPI global rank */
-} PSE_Info_t;
-
 /***************************************************************************
  * void      PSEinit(int NP, int Argc, char** Argv);
  *  
@@ -124,7 +114,8 @@ typedef struct PSE_Info {
  * SEE     
  *         PSEfinalize, PSEkillmachine, PSIspawn, PSEgetmyrank
  */
-void PSEinit(int NP, int Argc, char** Argv);
+void PSEinit(int NP, int Argc, char** Argv,
+	     int *masternode, int *masterport, int *rank);
 
 /***************************************************************************
  * void      PSEfinalize(void);
@@ -169,42 +160,6 @@ int PSEgetmyrank(void);
  *         -1 not in a task group
  */
 int PSEgetsize(void);
-
-/***************************************************************************
- * int       PSEgetnodeno();
- *
- *  PSEgetnodeno  returns the number of the current node
- *
- * PARAMETERS
- * RETURN  node number
- */
-int PSEgetnodeno(void);
-
-/***************************************************************************
- * int       PSEgetportno();
- *
- *  PSEgetportno  returns the number of the current port
- *
- * PARAMETERS
- * RETURN  port number
- */
-int PSEgetportno(void);
-
-/***************************************************************************
- * PSPORT_t  PSEgetport(int nRank);
- *  
- *  PSEgetport  returns the global port identifier for a specific rank. 
- *  With this port identifier PSI functions such as PSIsend() can be called.
- *  
- * PARAMETERS
- *         nRank: the rank of the task of which the task identifier 
- *                should be returned
- * RETURN  >0 port identifier
- *         -1 if  rank is invalid
- */
-PSP_PortH_t PSEgetport(void);
-
-PSE_Identity_t * PSEgetmap(void);
 
 #ifdef __cplusplus
 }/* extern "C" */

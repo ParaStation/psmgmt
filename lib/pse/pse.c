@@ -37,13 +37,8 @@
 */
 #define ENV_PSE_TIMEOUT   "PSI_TIMEOUT"
 
-PSP_PortH_t PSEmyport;
-PSE_Identity_t *mymap;
-
 static int   s_nPSE_WorldSize = -1;
 static int   s_nPSE_MyWorldRank = -1;
-static int   s_nPSE_NodeNo = -1;
-static int   s_nPSE_PortNo = -1;
 static long* s_pSpawnedProcesses;     /* size: <s_nPSE_WorldSize>  */
 
 void  PSE_SYexitall(char* pszReason, int nCode);
@@ -85,12 +80,11 @@ void  PSE_SYexitall(char* pszReason, int nCode);
  * SEE
  *         PSEfinalize, PSEkillmachine, PSIspawn, PSEgetmyrank
  */
-void PSEinit(int NP, int Argc, char** Argv)
+void PSEinit(int NP, int Argc, char** Argv,
+	     int *masternode, int *masterport, int *rank)
 {
     int         i;
     int         maxnodes_partition;  /* total number of nodes          */
-
-    PSE_Info_t myinfo;
 
     if( (s_nPSE_WorldSize = NP)<=0 ){
 	EXIT("Illegal number of processes: %d\n", s_nPSE_WorldSize);
@@ -101,127 +95,67 @@ void PSEinit(int NP, int Argc, char** Argv)
     if( !PSI_clientinit(0) ){
 	EXIT("Initialization of PSI failed!%s\n", "");
     }
-    s_nPSE_MyWorldRank = PSI_myrank;
-    printf("My rank is %d\n", PSI_myrank);
-    fflush(stdout);
-
-    /* init the PSPort library */
-    if(PSP_Init() != PSP_OK){
-	EXIT("Initialization of PSP failed!%s\n", "");
-    }
-
-    /* open port */
-    if (!(PSEmyport = PSP_OpenPort(PSP_ANYPORT))){
-	EXIT("PSP_OpenPort() failed!%s\n", "");
-    }
-
-    s_nPSE_PortNo = PSP_GetPortNo(PSEmyport);
-    if (s_nPSE_PortNo < 0 ){
-	EXIT("PSP_GetPortNo() failed!%s\n", "");
-    }
-
-    /* get node id */
-    if (( s_nPSE_NodeNo = PSP_GetNodeID())< 0){
-	EXIT("PSP_GetNodeID() failed!%s\n", "");
-    }
-    DEBUG((stderr,"nodeno = %d, portno = %d\n",s_nPSE_NodeNo,s_nPSE_PortNo););
-
-    myinfo.myid.node = s_nPSE_NodeNo;
-    myinfo.myid.port = s_nPSE_PortNo;
-    myinfo.mygrank = s_nPSE_MyWorldRank;
-
-    /* now we know how many entries will be in the map */
-    if ((mymap = malloc(sizeof(PSE_Identity_t) * s_nPSE_WorldSize))==NULL){
-	EXIT("Could not allocate mem for map.%s\n", "");
-    }
-
-    /* get the partition */
-    maxnodes_partition = PSI_getPartition();
-
-    if( !(s_pSpawnedProcesses=malloc(sizeof(long) * s_nPSE_WorldSize))){
-	EXIT("No memory!%s\n", "");
-    }
-
-    mymap[0].node = PSI_masternode;
-    mymap[0].port = PSI_masterport;
-
-    DEBUG0("Starting tables transmission.\n");
 
     /* client process? */
     if( PSI_masterport > -1 ) {
-	PSP_Header_t header;
-	PSP_RequestH_t req;
-	PSP_RecvFrom_Param_t recvparam = {PSI_masternode, PSI_masterport};
+	long parenttid;
+
+	*rank = s_nPSE_MyWorldRank = PSI_myrank;
+	*masternode = PSI_masternode;
+	*masterport = PSI_masterport;
+	printf("My rank is %d (masternode=%d, masterport=%d)\n",
+	       *rank, *masternode, *masterport);
+	fflush(stdout);
 
 	/* send a my task identifier to the parent so it will know my
 	 * global portid too */
-	long parenttid;
 	parenttid = INFO_request_taskinfo(PSI_mytid,INFO_PTID);
 	if((parenttid<=0) || (PSI_notifydead(parenttid,SIGTERM)<0))
 	    EXIT3("Parent with tid 0x%lx[%d,%d] is probably no more alive."
 		  " This shouldn't happen. I'm exiting.\n",
 		  parenttid, PSI_masternode, PSI_masterport);
 
-	DEBUG((stderr,"Sending nodeno (%d) and portno (%d) to (%d,%d).\n",
-	       s_nPSE_NodeNo, s_nPSE_PortNo, PSI_masternode, PSI_masterport););
-
-	/* step 1: send my identity to the master */
-	/* we send Info, that contains mygrank and myid */
-	req = PSP_ISend(PSEmyport, &myinfo, sizeof(PSE_Info_t),
-			&header, 0, PSI_masternode, PSI_masterport);
-	if(PSP_Wait(PSEmyport, req) != PSP_SUCCESS){
-	    EXIT("Info transmission failed!%s\n", "");
-	} else {
-	    DEBUG0("Sent nodeno and portno.\n");
-	}
-
-	DEBUG((stderr, "[%d]: expecting msg on port %d from 0x%x [%d,%d]).\n",
-	       s_nPSE_MyWorldRank, s_nPSE_PortNo, parenttid, PSI_masternode,
-	       PSI_masterport);
-	      fflush(stderr););
-
-	/* step 2: receive whole map from server */
-	req = PSP_IReceive(PSEmyport, mymap,
-			   sizeof(PSE_Identity_t)*s_nPSE_WorldSize,
-			   &header, 0, PSP_RecvFrom, &recvparam);
-	if(PSP_Wait(PSEmyport, req) != PSP_SUCCESS){
-	    EXIT("map transmission failed!%s\n", "");
-	}
-
-	/*
-	  fprintf(stderr,"got map from server\n");
-	  for (i=0; i<MPID_PSP_Info.worldsize; i++)
-	  fprintf(stderr,"MAP rank %d: node %d, port %d\n",
-	  i,MPID_PSP_Info.map[i].node,MPID_PSP_Info.map[i].port);
-	*/
-
     } else {
 	/* parent process */
 
-	int       *errors, loop_nr;
-	u_long    et = 0;          /* elapsed time                       */
-	long      child_tid;       /* TID of a spawned process           */
-	int       num_processes;   /* number of valid table entries      */
-	int PSE_Timeout;           /* Timeout in microseconds            */
-	char* env_timeout;         /* environment variable for the timeout */
+	int *errors;
+	int num_processes;   /* number of valid table entries      */
 
-	s_nPSE_MyWorldRank = 0;
+	*rank = s_nPSE_MyWorldRank = 0;
+	printf("My rank is %d (masternode=%d, masterport=%d)\n",
+	       *rank, *masternode, *masterport);
+	fflush(stdout);
+
+	/* get the partition */
+	maxnodes_partition = PSI_getPartition();
+	printf("maxnodes_partition = %d\n", maxnodes_partition);
 
 	/* init table of spawned processes */
+	if( !(s_pSpawnedProcesses=malloc(sizeof(long) * s_nPSE_WorldSize))){
+	    EXIT("No memory!%s\n", "");
+	}
+	printf("s_pSpawnedProcesses = %p\n", s_pSpawnedProcesses);
 	for( i=0; i<s_nPSE_WorldSize; i++ ){
 	    s_pSpawnedProcesses[i] = -1;
 	}
+	printf("s_pSpawnedProcesses = %p\n", s_pSpawnedProcesses);
 	s_pSpawnedProcesses[0] = PSI_mytid;
+	printf("s_pSpawnedProcesses = %p\n", s_pSpawnedProcesses);
+	printf("s_pSpawnedProcesses[0] = %ld (%lx)\n",
+	       s_pSpawnedProcesses[0], s_pSpawnedProcesses[0]);
+	printf("mypid=%d\n", getpid());
 
-	PSI_notifydead(0,SIGTERM);
+	// PSI_notifydead(0,SIGTERM);
 
 	/* spawn client processes */
 	errors = malloc(s_nPSE_WorldSize*sizeof(int));
+	printf("errors = %p\n", errors);
 	if( PSI_spawnM(s_nPSE_WorldSize-1, NULL, ".", Argc, Argv,
-		       s_nPSE_NodeNo, s_nPSE_PortNo, 0, &errors[1],
+		       *masternode, *masterport, *rank, &errors[1],
 		       &s_pSpawnedProcesses[1]) < 0 ) {
-	    for(num_processes=1, loop_nr=1; num_processes < s_nPSE_WorldSize;
-		num_processes++, loop_nr++){
+	    printf("After PSI_spawnM()\n");
+	    for(num_processes=1; num_processes < s_nPSE_WorldSize;
+		num_processes++){
 		if(errors[num_processes]!=0)
 		    EXIT2("Could not spawn process (%s) error = %s !\n",
 			  Argv[0],
@@ -229,108 +163,13 @@ void PSEinit(int NP, int Argc, char** Argv)
 			  sys_errlist[errors[num_processes]]:"UNKNOWN ERROR");
 	    }
 	}
+	printf("After PSI_spawnM() 2\n");
 	free(errors);
+	printf("After free(errors)\n");
 
-	env_timeout = getenv(ENV_PSE_TIMEOUT);
-	if(env_timeout!=NULL)
-	    PSE_Timeout = atoi(env_timeout);
-	else
-	    PSE_Timeout = PSE_TIME_OUT;
-
-	for(i=1; i<s_nPSE_WorldSize; i++){
-	    PSE_Info_t clientinfo;
-	    int clientrank;
-	    PSP_Header_t header;
-	    PSP_RequestH_t req;
-
-	    /* try to receive the TID of each spawned client process unless
-	       PSE_TIME_OUT is exceeded, trying it at least one time       */
-	    DEBUG((stderr, "[%d]: trying to receive info on port %d.\n",
-		   s_nPSE_MyWorldRank, s_nPSE_PortNo);
-		  fflush(stderr););
-
-	    req = PSP_IReceive(PSEmyport, &clientinfo, sizeof(PSE_Info_t),
-			       &header, 0, PSP_RecvAny, 0);
-	    if(PSP_Wait(PSEmyport, req) != PSP_SUCCESS){
-		EXIT("info transmission failed!%s\n", "");
-	    }
-
-	    clientrank = clientinfo.mygrank;
-	    mymap[clientrank].node = clientinfo.myid.node;
-	    mymap[clientrank].port = clientinfo.myid.port;
-
-	    /*
-	      fprintf(stderr,"got info from client %d. node: %d, port %d\n",
-	      clientrank,
-	      clientinfo.myid.node,
-	      clientinfo.myid.port
-	      );
-	    */
-	}
-	DEBUG0("Got all messages\n");
-
-	/* step 2: scatter map to slaves */
-	for (i=1; i<s_nPSE_WorldSize; i++){
-	    PSP_Header_t header;
-	    PSP_RequestH_t req;
-	    int dest = mymap[i].node;
-	    int destport = mymap[i].port;
-
-	    req = PSP_ISend(PSEmyport, mymap,
-			    sizeof(PSE_Identity_t)*s_nPSE_WorldSize,
-			    &header, 0, dest, destport);
-	    PSP_Wait(PSEmyport, req);
-	}
-
-	/*
-	  if(PSIselect(PSEmycport, &type, &info)==1) {
-	  if((n=PSIreceive(PSEmycport, &info_exchange,
-	  sizeof(info_exchange),
-	  &type, &info))!= sizeof(info_exchange)){
-	  EXIT2("Message transmission failed"
-	  " (n = %d, errno = %d)!\n", n, errno);
-	  }
-	  DEBUG3("Received message from portid 0x%x  (%d,%d)\n",
-	  info, PSIgetnodebyport(info),
-	  PSIgetlocalportno(info));
-	  child_tid = info_exchange.tid;
-	  PSE_AddRankPort(PSE_GetRankOfProcess(child_tid),
-	  info_exchange.dataport, info);
-	  }else{
-	  usleep(PSE_TIME_SLEEP);
-	  DEBUG0("*");
-	  et += PSE_TIME_SLEEP;
-	  }
-	  }while( n==-1 && et<PSE_Timeout );
-	  
-	  if( n==-1 ){
-	  EXIT2("Message transmission failed due to timeout "
-	  "(timeout = %d,connected clients %d)!\n",
-	  PSE_Timeout,i);
-	  }
-	  } */
-	DEBUG0("Sent all messages\n");
+	DEBUG0("Spawned all processes.\n");
 
     }
-
-    DEBUG0("Tables transmission finished, initialization succesful.\n");
-}
-
-/***************************************************************************
- * PSPORT_t  PSEgetport(int nRank);
- *
- *  PSEgetport  returns the global port identifier for a specific rank.
- *  With this port identifier PSI functions such as PSIsend() can be called.
- *
- * PARAMETERS
- *         nRank: the rank of the task of which the task identifier
- *                should be returned
- * RETURN  >0 port identifier
- *         -1 if  rank is invalid
- */
-PSP_PortH_t PSEgetport(void)
-{
-    return PSEmyport;
 }
 
 /***************************************************************************
@@ -363,37 +202,6 @@ int PSEgetsize(void)
 }
 
 /***************************************************************************
- * int       PSEgetnodeno();
- *
- *  PSEgetnodeno  returns the number of the current node
- *
- * PARAMETERS
- * RETURN  node number
- */
-int PSEgetnodeno(void)
-{
-   return s_nPSE_NodeNo;
-}
-
-/***************************************************************************
- * int       PSEgetportno();
- *
- *  PSEgetportno  returns the number of the current port
- *
- * PARAMETERS
- * RETURN  port number
- */
-int PSEgetportno(void)
-{
-   return s_nPSE_PortNo;
-}
-
-PSE_Identity_t * PSEgetmap(void)
-{
-    return mymap;
-}
-
-/***************************************************************************
  * void      PSEfinalize(void);
  *
  *  PSEfinalize waits until all task in the task group have called PSEfinalize
@@ -403,7 +211,7 @@ PSE_Identity_t * PSEgetmap(void)
  */
 void PSEfinalize(void)
 {
-    int n;
+/*      int n; */
 
     if( s_nPSE_MyWorldRank){
       /* client process */
