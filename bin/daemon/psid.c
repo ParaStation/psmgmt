@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.65 2002/07/31 17:09:01 eicker Exp $
+ * $Id: psid.c,v 1.66 2002/08/01 16:57:32 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.65 2002/07/31 17:09:01 eicker Exp $ 
+ * $Id: psid.c,v 1.66 2002/08/01 16:57:32 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.65 2002/07/31 17:09:01 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.66 2002/08/01 16:57:32 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -72,7 +72,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.65 $";
+static char psid_cvsid[] = "$Revision: 1.66 $";
 
 static int PSID_mastersock;
 
@@ -263,8 +263,9 @@ static int recvMsg(int fd, DDMsg_t *msg, size_t size)
 
     if (n==-1) {
 	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "recvMsg(%d): read: %s",
-		 fd, errstr ? errstr : "UNKNOWN");
+	snprintf(errtxt, sizeof(errtxt),
+		 "recvMsg(%d): read() failed with errno %d: %s",
+		 fd, errno, errstr ? errstr : "UNKNOWN");
 	PSID_errlog(errtxt, 0);
     } else if (PSID_getDebugLevel() >= 6) {
 	if (n==0) {
@@ -534,7 +535,7 @@ void sendSignal(long tid, uid_t uid, long senderTid, int signal)
 	snprintf(errtxt, sizeof(errtxt),
 		 "sendSignal() tried to send sig %d to %s: task not found",
 		 signal, PSC_printTID(tid));
-	PSID_errlog(errtxt, 0);
+	PSID_errlog(errtxt, 1);
     } else if (pid) {
 	/*
 	 * fork to a new process to change the userid
@@ -558,7 +559,7 @@ void sendSignal(long tid, uid_t uid, long senderTid, int signal)
 		    PSID_errexit(errtxt, errno);
 		}
 		error = kill(pid, sig);
-		if (error) {
+		if (error && errno!=ESRCH) {
 		    snprintf(errtxt, sizeof(errtxt),
 			     "sendSignal() kill(%d, %d)", pid, sig);
 		    PSID_errexit(errtxt, errno);
@@ -2838,8 +2839,12 @@ void sighandler(int sig)
 	    /* I'll just report it to the logfile */
 	    snprintf(errtxt, sizeof(errtxt),
 		     "Received SIGCHLD for pid %d (0x%06x) with status %d",
-		     pid, pid, estatus);
-	    if (estatus) {
+		     pid, pid, WEXITSTATUS(estatus));
+	    if (WIFSIGNALED(estatus)) {
+		snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
+			 " after signal %d", WTERMSIG(estatus));
+	    }
+	    if (WEXITSTATUS(estatus) || WIFSIGNALED(estatus)) {
 		PSID_errlog(errtxt, 0);
 	    } else {
 		PSID_errlog(errtxt, 1);
@@ -3025,7 +3030,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.65 $";
+    char revision[] = "$Revision: 1.66 $";
     snprintf(errtxt, sizeof(errtxt), "psid %s\b ", revision+11);
     PSID_errlog(errtxt, 0);
 }
