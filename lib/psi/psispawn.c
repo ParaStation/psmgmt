@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.23 2002/07/19 13:50:24 eicker Exp $
+ * $Id: psispawn.c,v 1.24 2002/07/26 15:33:16 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.23 2002/07/19 13:50:24 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.24 2002/07/26 15:33:16 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -24,6 +24,8 @@ static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.23 2002/07/1
 #include <netdb.h>
 #include <ctype.h>
 #include <signal.h>
+#include <termios.h>
+#include <sys/ioctl.h>
 
 #include "pscommon.h"
 #include "psprotocol.h"
@@ -750,6 +752,7 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
     int i;          /* count variable */
     int ret = 0;    /* return value */
     int error = 0;  /* error flag */
+    int fd = 0;
     PStask_t* task; /* structure to store the information of the new process */
 
     /*
@@ -776,9 +779,27 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
     task->ptid = PSC_getMyTID();
     task->uid = getuid();
     task->gid = getgid();
+    task->aretty = 0;
+    if (isatty(STDERR_FILENO)) {
+	task->aretty |= (1 << STDERR_FILENO);
+	fd = STDERR_FILENO;
+    }
+    if (isatty(STDOUT_FILENO)) {
+	task->aretty |= (1 << STDOUT_FILENO);
+	fd = STDOUT_FILENO;
+    }
+    if (isatty(STDIN_FILENO)) {
+	task->aretty |= (1 << STDIN_FILENO);
+	fd = STDIN_FILENO;
+    }
+    if (task->aretty) {
+	tcgetattr(fd, &task->termios);
+	ioctl(fd, TIOCGWINSZ, &task->winsize);
+    }
     task->group = TG_ANY;
     task->loggernode = loggernode;
     task->loggerport = loggerport;
+    task->loggertid = 0;
 
     if (!workingdir || (workingdir[0]!='/')) {
 	/*
