@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.h,v 1.18 2003/04/03 15:22:49 eicker Exp $
+ * $Id: info.h,v 1.19 2003/09/12 13:53:36 eicker Exp $
  *
  */
 /**
  * @file
  * info: Functions for information retrieving from ParaStation daemon
  *
- * $Id: info.h,v 1.18 2003/04/03 15:22:49 eicker Exp $
+ * $Id: info.h,v 1.19 2003/09/12 13:53:36 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -96,6 +96,10 @@ int INFO_request_nodelist(NodelistEntry_t *buffer, size_t size, int verbose);
 int INFO_request_partition(unsigned int hwtype,
 			   NodelistEntry_t *buffer, size_t size, int verbose);
 
+int INFO_request_rankID(unsigned int rank, int verbose);
+
+int INFO_request_taskSize(int verbose);
+
 /*****************************
  *
  * request_host(unsigned int address)
@@ -171,26 +175,6 @@ typedef enum {
  *  RETURN the uid of the task
  */
 long INFO_request_taskinfo(long tid, INFO_info_t what, int verbose);
-
-/**
- * @todo May be obsolete
- *
- * INFO_request_load(node)
- *
- *  gets the load of the given node
- *  RETURN the load of the node
- */
-// double INFO_request_load(unsigned short node, int verbose);
-
-/**
- * @todo May be obsolete
- *
- * INFO_request_proc(node)
- *
- *  gets the number of processes on the given node
- *  RETURN the number of processes on the node
- */
-// double INFO_request_proc(unsigned short node, int verbose);
 
 int INFO_request_option(unsigned short node, int num, long option[],
 			long value[], int verbose);
