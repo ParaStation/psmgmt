@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.113 2003/10/29 17:23:08 eicker Exp $
+ * $Id: psid.c,v 1.114 2003/10/31 12:13:39 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.113 2003/10/29 17:23:08 eicker Exp $ 
+ * $Id: psid.c,v 1.114 2003/10/31 12:13:39 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.113 2003/10/29 17:23:08 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.114 2003/10/31 12:13:39 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -81,7 +81,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-char psid_cvsid[] = "$Revision: 1.113 $";
+char psid_cvsid[] = "$Revision: 1.114 $";
 
 /** Master socket (type UNIX) for clients to connect */
 static int masterSock;
@@ -820,8 +820,7 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
     PStask_decode(msg->buf, task);
 
     PStask_snprintf(tasktxt, sizeof(tasktxt), task);
-    snprintf(errtxt, sizeof(errtxt),
-	     "SPAWNREQUEST from %s msglen %d task %s",
+    snprintf(errtxt, sizeof(errtxt), "%s: from %s msglen %d task %s", __func__,
 	     PSC_printTID(msg->header.sender), msg->header.len, tasktxt);
     PSID_errlog(errtxt, 5);
 
@@ -835,14 +834,18 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	PStask_t *ptask;
 
 	if (!PSnodes_isStarter(PSC_getMyID())) {
-	     /* starting not allowed */
-	    PSID_errlog("SPAWNREQUEST: spawning not allowed", 0);
+	    /* starting not allowed */
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: spawning not allowed", __func__);
+	    PSID_errlog(errtxt, 0);
 	    answer.error = EACCES;
 	}
 
 	if (msg->header.sender!=task->ptid) {
 	    /* Sender has to be parent */
-	    PSID_errlog("SPAWNREQUEST: spawner tries to cheat", 0);
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: spawner tries to cheat", __func__);
+	    PSID_errlog(errtxt, 0);
 	    answer.error = EACCES;
 	}
 
@@ -850,13 +853,17 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 
 	if (!ptask) {
 	    /* Parent not found */
-	    PSID_errlog("SPAWNREQUEST: parent task not found", 0);
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: parent task not found", __func__);
+	    PSID_errlog(errtxt, 0);
 	    answer.error = EACCES;
 	}
 
 	if (ptask->uid && task->uid!=ptask->uid) {
 	    /* Spawn tries to change uid */
-	    PSID_errlog("SPAWNREQUEST: tries to setuid()", 0);
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: tries to setuid()", __func__);
+	    PSID_errlog(errtxt, 0);
 	    snprintf(errtxt, sizeof(errtxt),
 		     "task->uid = %d  ptask->uid = %d", task->uid, ptask->uid);
 	    PSID_errlog(errtxt, 0);
@@ -865,7 +872,9 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 
 	if (ptask->gid && task->gid!=ptask->gid) {
 	    /* Spawn tries to change gid */
-	    PSID_errlog("SPAWNREQUEST: tries to setgid()", 0);
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: tries to setgid()", __func__);
+	    PSID_errlog(errtxt, 0);
 	    snprintf(errtxt, sizeof(errtxt),
 		     "task->gid = %d  ptask->gid = %d", task->gid, ptask->gid);
 	    PSID_errlog(errtxt, 0);
@@ -939,9 +948,8 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	    }
 	} else {
 	    char *errstr = strerror(err);
-	    snprintf(errtxt, sizeof(errtxt),
-		     "taskspawn returned err=%d: %s", err,
-		     errstr ? errstr : "UNKNOWN");
+	    snprintf(errtxt, sizeof(errtxt), "taskspawn returned err=%d: %s",
+		     err, errstr ? errstr : "UNKNOWN");
 	    PSID_errlog(errtxt, 3);
 
 	    PStask_delete(forwarder);
@@ -958,9 +966,8 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	 */
 	if (PSnodes_isUp(PSC_getID(msg->header.dest))) {
 	    /* the daemon of the requested node is connected to me */
-	    snprintf(errtxt, sizeof(errtxt),
-		     "sending spawnrequest to node %d",
-		     PSC_getID(msg->header.dest));
+	    snprintf(errtxt, sizeof(errtxt), "%s: forwarding to node %d",
+		     __func__, PSC_getID(msg->header.dest));
 	    PSID_errlog(errtxt, 1);
 
 	    sendMsg(msg);
@@ -969,27 +976,20 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	    incJobsMCast(PSC_getID(msg->header.dest), 1, 1);
 
 	} else {
-	    /*
-	     * The address is wrong
-	     * or
-	     * The daemon is actual not connected
-	     * It's impossible to spawn
-	     */
+	    answer.header.type = PSP_CD_SPAWNFAILED;
+	    answer.header.sender = msg->header.dest;
+
 	    if (PSC_getID(msg->header.dest)>=PSC_getNrOfNodes()) {
 		answer.error = EHOSTUNREACH;
-		snprintf(errtxt, sizeof(errtxt),
-			 "SPAWNREQUEST: node %d does not exist",
-			 PSC_getID(msg->header.dest));
+		snprintf(errtxt, sizeof(errtxt), "%s: node %d does not exist",
+			 __func__, PSC_getID(msg->header.dest));
 	    } else {
 		answer.error = EHOSTDOWN;
-		snprintf(errtxt, sizeof(errtxt),
-			 "SPAWNREQUEST: node %d is down",
-			 PSC_getID(msg->header.dest));
+		snprintf(errtxt, sizeof(errtxt), "%s: node %d is down",
+			 __func__, PSC_getID(msg->header.dest));
 	    }
 
 	    PSID_errlog(errtxt, 0);
-
-	    answer.header.type = PSP_CD_SPAWNFAILED;
 
 	    sendMsg(&answer);
 	}
@@ -1005,7 +1005,7 @@ void msg_CHILDDEAD(DDErrorMsg_t *msg)
 {
     PStask_t *task, *forwarder;
 
-    snprintf(errtxt, sizeof(errtxt), "CHILDDEAD from %s",
+    snprintf(errtxt, sizeof(errtxt), "%s: from %s", __func__,
 	     PSC_printTID(msg->header.sender));
     snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
 	     " to %s", PSC_printTID(msg->header.dest));
@@ -1098,8 +1098,7 @@ void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
     PStask_ID_t ptid = msg->header.dest;
     PStask_t *task;
 
-    snprintf(errtxt, sizeof(errtxt), "SPAWNSUCCESS (%s)",
-	     PSC_printTID(tid));
+    snprintf(errtxt, sizeof(errtxt), "%s(%s)", __func__, PSC_printTID(tid));
     snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
 	     " with parent(%s)", PSC_printTID(ptid));
     PSID_errlog(errtxt, 1);
@@ -2233,7 +2232,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.113 $";
+    char revision[] = "$Revision: 1.114 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
