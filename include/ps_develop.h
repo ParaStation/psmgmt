@@ -81,6 +81,10 @@
 //#define DEBUG_PSHAL
 
 
+/* Enable remote kernel debuging */
+#define ENABLE_DEBUG_MSG	
+
+
 /* Send data with zero copy */
 #define ENABLE_DMASEND
 /* Receive data with zero copy */

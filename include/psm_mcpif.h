@@ -81,6 +81,8 @@ typedef void  psm_ext_irq_func( unsigned int irq,void * ptr);
 int psm_register_external_irq( psm_ext_irq_func *handler);
 void psm_unregister_external_irq( psm_ext_irq_func *handler);
 
+void psm_mcpif_print(char *str);
+#define MCPIF_PRINT(fmt,rest...) {char b[256];sprintf(b,fmt,##rest);psm_mcpif_print(b);}
 
 
 #if ( MAX_HOST_PAGESIZE < PAGE_SIZE )

@@ -415,6 +415,11 @@ typedef struct MCPmem_T {
     UINT32			Date;
     MCPTimer_t			Timer[8];
     MCP_Counter_t		Counter;
+    struct {
+	UINT32			eal;
+	UINT32			eah;
+	UINT32			len;
+    }				DebMsg;
     TRACEVARS
     UINT32			MagicEnd;
 } MCPmem_t; 

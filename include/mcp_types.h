@@ -177,6 +177,9 @@ typedef struct MCP_Route_T {
 #define PSHAL_TCP       0x0222
 #define PSHAL_PORT      0x0223
 #define PSHAL_AM        0x0224
+//#ifdef ENABLE_DEBUG_MSG	
+#define PSHAL_DEBUGMSG  0x0225
+//#endif
 
 #define isDataPkt(t)    (((t)&(~0x07))==PSHAL_PTYPE_MASK)
 //#define getProtNr(t)    ((t)&0xff)
