@@ -97,7 +97,7 @@
 #define MCP_MAX_MCP_PARAMS	8
 
 #define MCP_PARAM_SPS		0	/* Small packet size */
-#define MCP_PARAM_SPS_INIT	50	/* 50 bytes are short */
+#define MCP_PARAM_SPS_INIT	7500	/* 50 bytes are short */
 #define MCP_PARAM_SPS_USAGE	1
 
 #define MCP_PARAM_RTO		1	/* Retransmission timeout */
