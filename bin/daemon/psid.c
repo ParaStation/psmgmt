@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.119 2003/12/19 15:19:54 eicker Exp $
+ * $Id: psid.c,v 1.120 2003/12/22 21:00:42 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.119 2003/12/19 15:19:54 eicker Exp $ 
+ * $Id: psid.c,v 1.120 2003/12/22 21:00:42 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.119 2003/12/19 15:19:54 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.120 2003/12/22 21:00:42 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -75,7 +75,7 @@ struct timeval selectTime;
 
 static struct timeval shutdownTimer;
 
-char psid_cvsid[] = "$Revision: 1.119 $";
+char psid_cvsid[] = "$Revision: 1.120 $";
 
 /** Master socket (type UNIX) for clients to connect */
 static int masterSock;
@@ -467,10 +467,12 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
     outmsg.type = PSP_CONN_ERR_NONE;
 
     /* Connection refused answer message */
-    if (msg->version < 324) {
+    if (msg->version < 324 || msg->version > PSprotocolVersion) {
 	/* @todo also handle the old protocol correctly, i.e. send
 	 * PSP_OLDVERSION message */
-	outmsg.type = PSP_CONN_ERR_OLDVERSION;
+	outmsg.type = PSP_CONN_ERR_VERSION;
+	*(uint32_t *)outmsg.buf = PSprotocolVersion;
+	outmsg.header.len += sizeof(uint32_t);
     } else if (lic_isexpired(&config->licEnv)) {
 	outmsg.type = PSP_CONN_ERR_LICEND;
     } else if (!task) {
@@ -2036,7 +2038,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.119 $";
+    char revision[] = "$Revision: 1.120 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
