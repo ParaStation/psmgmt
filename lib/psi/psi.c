@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.46 2003/03/19 17:26:06 eicker Exp $
+ * $Id: psi.c,v 1.47 2003/04/07 18:40:28 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.46 2003/03/19 17:26:06 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.47 2003/04/07 18:40:28 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -573,7 +573,7 @@ int PSI_sendFinish(long parenttid)
 {
     DDMsg_t msg;
 
-    snprintf(errtxt, sizeof(errtxt), "PSI_send_finish(%lx)", parenttid);
+    snprintf(errtxt, sizeof(errtxt), "%s(%lx)", __func__, parenttid);
     PSI_errlog(errtxt, 10);
 
     msg.type = PSP_CD_SPAWNFINISH;
@@ -583,8 +583,8 @@ int PSI_sendFinish(long parenttid)
 
     if (PSI_sendMsg(&msg)<0) {
 	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "PSI_send_finish():"
-		 "PSI_sendMsg() failed: %s", errstr ? errstr : "UNKNOWN");
+	snprintf(errtxt, sizeof(errtxt), "%s: PSI_sendMsg() failed: %s",
+		 __func__, errstr ? errstr : "UNKNOWN");
 	PSI_errlog(errtxt, 0);
 	return -1;
     }
