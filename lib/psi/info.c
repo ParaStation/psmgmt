@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.19 2002/07/08 16:15:38 eicker Exp $
+ * $Id: info.c,v 1.20 2002/07/11 10:32:56 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.19 2002/07/08 16:15:38 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.20 2002/07/11 10:32:56 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -48,17 +48,14 @@ static int INFO_receive(INFO_info_t what, void *buffer, size_t size,
 	switch (msg.header.type) {
 	case PSP_CD_TASKINFO:
 	{
-	    PStask_t* task;
+	    DDTaskinfoMsg_t *timsg = (DDTaskinfoMsg_t *)&msg;
 
-	    task = PStask_new();
-
-	    PStask_decode(msg.buf, task);
 	    switch(what){
 	    case INFO_UID:
-		memcpy(buffer, &task->uid, size);
+		*(long *)buffer = timsg->uid;
 		break;
 	    case INFO_PTID:
-		memcpy(buffer, &task->ptid, size);
+		*(long *)buffer = timsg->ptid;
 		break;
 	    case INFO_ISALIVE:
 		*(long *)buffer = 1;
@@ -75,10 +72,10 @@ static int INFO_receive(INFO_info_t what, void *buffer, size_t size,
 			}
 			break;
 		    }
-		    taskinfo->tid = task->tid;
-		    taskinfo->ptid = task->ptid;
-		    taskinfo->uid = task->uid;
-		    taskinfo->group = task->group;
+		    taskinfo->tid = timsg->tid;
+		    taskinfo->ptid = timsg->ptid;
+		    taskinfo->uid = timsg->uid;
+		    taskinfo->group = timsg->group;
 		}
 		break;
 	    }
@@ -87,7 +84,6 @@ static int INFO_receive(INFO_info_t what, void *buffer, size_t size,
 		break;
 	    }
 	    errno = 0;
-	    PStask_delete(task);
 	    break;
 	}
 	case PSP_CD_TASKINFOEND:
@@ -299,8 +295,8 @@ int INFO_request_tasklist(int nodeno, INFO_taskinfo_t taskinfo[], int size,
     DDMsg_t msg;
     int msgtype, tasknum, maxtask;
 
-    msg.type = PSP_CD_TASKLISTREQUEST;
-    msg.dest = PSC_getTID(nodeno, 0);
+    msg.type = PSP_CD_TASKINFOREQUEST;
+    msg.dest = PSC_getTID(nodeno, 0); /* Get info on all task on this node */
     msg.sender = PSC_getMyTID();
     msg.len = sizeof(msg);
 
@@ -310,8 +306,7 @@ int INFO_request_tasklist(int nodeno, INFO_taskinfo_t taskinfo[], int size,
 
     maxtask = size/sizeof(*taskinfo);
     tasknum = 0;
-    msgtype = PSP_CD_TASKINFO;
-    while(msgtype == PSP_CD_TASKINFO){
+    do {
 	if (tasknum<maxtask) {
 	    msgtype = INFO_receive(INFO_GETINFO, &taskinfo[tasknum],
 				   sizeof(*taskinfo), verbose);
@@ -319,7 +314,7 @@ int INFO_request_tasklist(int nodeno, INFO_taskinfo_t taskinfo[], int size,
 	    msgtype = INFO_receive(INFO_GETINFO, NULL, 0, verbose);
 	}
 	tasknum++;
-    }
+    } while (msgtype == PSP_CD_TASKINFO);
 
     return tasknum-1;
 }
@@ -328,7 +323,7 @@ long INFO_request_taskinfo(long tid, INFO_info_t what, int verbose)
 {
     int msgtype;
     DDMsg_t msg;
-    long answer;
+    long answer = 0;
 
     msg.type = PSP_CD_TASKINFOREQUEST;
     msg.dest = tid;
@@ -340,10 +335,10 @@ long INFO_request_taskinfo(long tid, INFO_info_t what, int verbose)
     }
 
     errno = 8888;
-    msgtype = PSP_CD_TASKINFO;
-    while (msgtype == PSP_CD_TASKINFO) {
+    do {
 	msgtype = INFO_receive(what, &answer, sizeof(answer), verbose);
-    }
+    } while (msgtype == PSP_CD_TASKINFO);
+
 
     return answer;
 }
