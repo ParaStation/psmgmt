@@ -8,7 +8,7 @@ SPECFILE=psfe-$DVER.spec
 
 cat > $SPECFILE <<EOF
 Summary:   ParaStation FE Cluster Communication and Management
-Vendor:    ParTec AG,Karlsruhe,Germany
+Vendor:    ParTec AG, Munich, Germany
 Name:      psfe
 Version:   $DVER
 Release:   `date +%Y%m%d`.`uname`
@@ -26,7 +26,13 @@ ParaStation FE Cluster Communication and Management. TCP/IP Version.
 %preun
     /opt/parastation/config/PSM_INSTALL -u
 %files
-%attr(-,root,root) /opt/parastation
+%dir %attr(-,root,root) /opt/parastation
+%attr(-,root,root) /opt/parastation/INSTALL
+%attr(-,root,root) /opt/parastation/VERSION
+%attr(-,root,root) /opt/parastation/bin
+%attr(-,root,root) /opt/parastation/config
+%attr(-,root,root) /opt/parastation/include
+%attr(-,root,root) /opt/parastation/lib
 EOF
 
 
