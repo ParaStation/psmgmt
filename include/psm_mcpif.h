@@ -38,6 +38,7 @@ typedef struct Context_Host_Info {
     struct MCPHostSendBuf_T	*host_send_bufs[ PSM_MAX_HSENDBUFS ]; /* kernel virt.ram.addr*/
     struct MCPSendBuf_T		*mcp_send_bufs;        /* kernel virt.addr*/
     struct PSMHostNotify_T	*host_notify;
+    int		psm_contextNo;
 } Context_Host_Info;
 
 struct psm_mcpif_mmap_struct {

@@ -237,6 +237,10 @@ typedef struct MCP_Route_T {
 #define MCP_NOTIFYK_CTXRST_P(context) (MCP_NOTIFYK_CTXRST|((UINT16)(context)))
 #define MCP_NOTIFYK_CTXRST_G(context,Val) ((context)=(UINT16)(Val));
 
+#define MCP_NOTIFYK_LOWMCPRECV	0x07000000/*< Notification about low mcp ressource */
+#define MCP_NOTIFYK_LOWMCPRECV_P(McpCtx) (MCP_NOTIFYK_LOWMCPRECV|(McpCtx&0xffff))
+#define MCP_NOTIFYK_LOWMCPRECV_G(McpCtx,Val) (McpCtx)=(UINT16)(Val);
+
 
 /********************************************************************
  * ParaStation3 Seqence Numbers

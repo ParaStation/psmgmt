@@ -84,6 +84,11 @@
 /* Debug pshal */
 //#define DEBUG_PSHAL
 
+/* Enable sis MCP */
+#define ENABLE_SIS
+
+/* Enable sis MCP */
+#define ENABLE_JM
 
 /* Enable remote kernel debuging */
 #define ENABLE_DEBUG_MSG	
