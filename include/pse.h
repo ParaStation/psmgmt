@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.h,v 1.14 2003/04/03 15:26:00 eicker Exp $
+ * $Id: pse.h,v 1.15 2003/08/04 15:16:09 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation Programming Environment
  *
- * $Id: pse.h,v 1.14 2003/04/03 15:26:00 eicker Exp $
+ * $Id: pse.h,v 1.15 2003/08/04 15:16:09 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -120,6 +120,22 @@ void PSE_init(int NP, int *rank);
  * @return No return value.
  * */
 void PSE_registerToParent(void);
+
+/**
+ * @brief Set UID for spawns
+ *
+ * Set the UID for subsequently spawned processes to @a uid. This will
+ * only affect processes spawned via PSI_spawnMaster() or
+ * PSE_spawnTasks(). Furthermore the UID of the logger process which
+ * will be created from within PSE_spawnMaster() will change to @a
+ * uid. Only root (i.e. UID 0) is allowed to change the UID of spawned
+ * processes.
+ *
+ * @param uid The UID of the processes to spawn.
+ *
+ * @return No return value.
+ */
+void PSE_setUID(uid_t uid);
 
 /**
  * @brief Set hardware-type for PSE_spawnMaster().

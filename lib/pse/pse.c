@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.38 2003/06/20 13:52:20 eicker Exp $
+ * $Id: pse.c,v 1.39 2003/08/04 15:16:09 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.38 2003/06/20 13:52:20 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.39 2003/08/04 15:16:09 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -178,6 +178,17 @@ int PSE_setHWList(char **hwList)
 void PSE_registerToParent(void)
 {}
 
+static uid_t defaultUID = 0;
+
+void PSE_setUID(uid_t uid)
+{
+    if (!getuid()) {
+	defaultUID = uid;
+    }
+
+    PSI_setUID(uid);
+}
+
 void PSE_spawnMaster(int argc, char *argv[])
 {
     /* spawn master process (we are going to be logger) */
@@ -215,6 +226,8 @@ void PSE_spawnMaster(int argc, char *argv[])
     snprintf(errtxt, sizeof(errtxt),
 	     "[%d] Spawned master process.", PSE_getRank());
     errlog(errtxt, 10);
+
+    if (defaultUID) setuid(defaultUID);
 
     /* Switch to psilogger */
     PSI_execLogger(NULL);
