@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.64 2002/07/31 11:31:00 eicker Exp $
+ * $Id: psid.c,v 1.65 2002/07/31 17:09:01 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.64 2002/07/31 11:31:00 eicker Exp $ 
+ * $Id: psid.c,v 1.65 2002/07/31 17:09:01 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.64 2002/07/31 11:31:00 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.65 2002/07/31 17:09:01 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -72,7 +72,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.64 $";
+static char psid_cvsid[] = "$Revision: 1.65 $";
 
 static int PSID_mastersock;
 
@@ -139,8 +139,11 @@ int TOTALsend(int fd, void *buffer, int msglen)
 	i = send(fd, &(((char*)buffer)[n]), msglen-n, 0);
 	if (i<=0) {
 	    if (errno!=EINTR) {
+		char *errstr = strerror(errno);
+
 		snprintf(errtxt, sizeof(errtxt),
-			 "got error %d on socket %d", errno, fd);
+			 "got error %d on socket %d: %s", errno, fd,
+			 errstr ? errstr : "UNKNOWN");
 		PSID_errlog(errtxt, 0);
 		deleteClient(fd);
 		return i;
@@ -3022,7 +3025,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.64 $";
+    char revision[] = "$Revision: 1.65 $";
     snprintf(errtxt, sizeof(errtxt), "psid %s\b ", revision+11);
     PSID_errlog(errtxt, 0);
 }
