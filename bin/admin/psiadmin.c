@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.11 2002/01/07 09:41:54 eicker Exp $
+ * $Id: psiadmin.c,v 1.12 2002/01/07 13:46:16 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.11 2002/01/07 09:41:54 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.12 2002/01/07 13:46:16 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -40,7 +40,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.11 $";
+static char psiadmversion[] = "$Revision: 1.12 $";
 static int  DoRestart = 1;
 
 int PSIADM_LookUpNodeName(char* hostname)
@@ -309,8 +309,8 @@ void PSIADM_Version(void)
     printf("PSIADMIN: ParaStation administration tool\n");
     printf("Copyright (C) 1996-2002 ParTec AG Karlsruhe\n");
     printf("\n");
-    printf("PSIADMIN: version %s\n", psiadmversion);
-    printf("PSID:     version %s\n", PSI_psidversion);
+    printf("PSIADMIN: %s\b \n", psiadmversion+11);
+    printf("PSID:     %s\b \n", PSI_psidversion+11);
     printf("PSILIB:   version %d\n", PSPprotocolversion);
     return;
 }
@@ -569,13 +569,24 @@ void sighandler(int sig)
     }
 }
 
-void usage(void)
+/*
+ * Print version info
+ */
+void version(void)
 {
-    fprintf(stderr,"usage: psiadmin [-h] [-r] [-c command]\n");
+    fprintf(stderr, "psiadmin %s\b \n", psiadmversion+11);
 }
 
-/******************************************
- *  help()
+/*
+ * Print usage message
+ */
+void usage(void)
+{
+    fprintf(stderr,"usage: psiadmin [-h] [-v] [-c command] [-r]\n");
+}
+
+/*
+ * Print more detailed help message
  */
 void help(void)
 {
@@ -583,7 +594,8 @@ void help(void)
     fprintf(stderr,"\n");
     fprintf(stderr," -r         : Do reset on startup (only as root).\n");
     fprintf(stderr," -c command : Execute a single command and exit.\n");
-    fprintf(stderr," -h         : print this screen and exit.\n");
+    fprintf(stderr," -v,      : output version information and exit.\n");
+    fprintf(stderr," -h,      : display this help and exit.\n");
 }
 
 int main(int argc, char **argv)
@@ -592,7 +604,7 @@ int main(int argc, char **argv)
     char *copt = NULL, *line = (char *) NULL, line_field[256];
     int opt, len, reset=0;
 
-    while ((opt = getopt(argc, argv, "c:rh")) != -1){
+    while ((opt = getopt(argc, argv, "hHvVc:r")) != -1){
 	switch(opt){
 	case 'c':
 	    copt = optarg;
@@ -601,7 +613,13 @@ int main(int argc, char **argv)
 	    reset=1;
 	    break;
 	case 'h':
+	case 'H':
 	    help();
+	    return 0;
+	    break;
+	case 'v':
+	case 'V':
+	    version();
 	    return 0;
 	    break;
 	default:
