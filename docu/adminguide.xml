@@ -1,7 +1,8 @@
 <?xml version="1.0" standalone="no"?>
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN"
                   "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd"[
-<!ENTITY ps "ParaStation">
+<!ENTITY ps "<emphasis>ParaStation</emphasis>">
+<!ENTITY psfe "<emphasis>ParaStation FE</emphasis>">
 
 <!ENTITY infoblurb SYSTEM "infoblurb.sgml">
 
@@ -21,19 +22,31 @@
 <!ENTITY psscan SYSTEM "psscan.sgml">
 <!ENTITY testnodes SYSTEM "test_nodes.sgml">
 
+<!ENTITY quick_install SYSTEM "quick_install.sgml">
+
 <!ENTITY glossary SYSTEM "glossary.sgml">
 
 <!ENTITY boolargs SYSTEM "boolargs.sgml">
 ]>
 <book id="adminguide">
-  <title>&ps; Administrators Guide</title>
+  <title><inlinemediaobject>
+      <imageobject>
+	<imagedata scale="85" fileref="../images/parastation.png"/>
+      </imageobject>
+    </inlinemediaobject> Administrators Guide</title>
+  <titleabbrev>&ps; Administrators Guide</titleabbrev>
 
   <bookinfo>
     &infoblurb;
 
-    <releaseinfo>Release 1.0</releaseinfo>
+    <releaseinfo>Release 1.0.1</releaseinfo>
 
     <revhistory>
+      <revision>
+	<revnumber>1.0.1</revnumber>
+	<date>30 Oct 2002</date>
+	<revremark>New PDF and man layout. Minor changes.</revremark>
+      </revision>
       <revision>
 	<revnumber>1.0</revnumber>
 	<date>16 Oct 2002</date>
@@ -58,6 +71,11 @@
   <!-- &pvfs; -->
 
   <reference id="references_admin">
+    <referenceinfo>
+      <title>ParTec</title>
+      <productname>ParaStation</productname>
+      <date>October 2002</date>
+    </referenceinfo>
     <title>Reference Pages</title>
     &mlisten;
     &parastationconf;
@@ -68,6 +86,8 @@
     &psscan;
     &testnodes;
   </reference>
+
+  &quick_install;
 
   &glossary;
 </book>
