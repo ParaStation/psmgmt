@@ -4,12 +4,12 @@ DVER=${1-"x.x.x"}
 BUILDDIR=`pwd`
 BINDIR=$BUILDDIR/opt/parastation
 
-SPECFILE=psgui-$DVER.spec
+SPECFILE=ps-gui-$DVER.spec
 
 cat > $SPECFILE <<EOF
 Summary:   ParaStation Cluster Communication and Management
 Vendor:    ParTec AG, Karlsruhe, Germany
-Name:      psgui
+Name:      ps-gui
 Version:   $DVER
 Release:   `date +%Y%m%d`
 Copyright: (c) 2001-2002 ParTec AG
