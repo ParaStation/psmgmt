@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp_private.h,v 1.1 2002/01/15 11:44:14 eicker Exp $ 
+ * $Id: rdp_private.h,v 1.2 2002/01/15 11:45:32 eicker Exp $
  *
  */
 /**
@@ -13,7 +13,7 @@
  * rdp_private: Reliable Datagram Protocol for ParaStation daemon
  *              Private functions and definitions
  *
- * $Id: rdp_private.h,v 1.1 2002/01/15 11:44:14 eicker Exp $ 
+ * $Id: rdp_private.h,v 1.2 2002/01/15 11:45:32 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
