@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.18 2002/07/08 16:17:41 eicker Exp $
+ * $Id: psispawn.c,v 1.19 2002/07/11 10:31:11 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.18 2002/07/08 16:17:41 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.19 2002/07/11 10:31:11 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -224,22 +224,26 @@ static int sortNodes(short nodes[], int numNodes, NodelistEntry_t nodelist[])
 	switch (sort) {
 	case load_1:
 	    for (i=0; i<numNodes; i++) {
-		node_entry[i].rating = nodelist[nodes[i]].load[0];
+		node_entry[i].rating =
+		    nodelist[nodes[i]].load[0] - nodelist[nodes[i]].numCPU;
 	    }
 	    break;
 	case load_5:
 	    for (i=0; i<numNodes; i++) {
-		node_entry[i].rating = nodelist[nodes[i]].load[1];
+		node_entry[i].rating =
+		    nodelist[nodes[i]].load[1] - nodelist[nodes[i]].numCPU;
 	    }
 	    break;
 	case load_15:
 	    for (i=0; i<numNodes; i++) {
-		node_entry[i].rating = nodelist[nodes[i]].load[2];
+		node_entry[i].rating =
+		    nodelist[nodes[i]].load[2] - nodelist[nodes[i]].numCPU;
 	    }
 	    break;
 	case proc:
 	    for (i=0; i<numNodes; i++) {
-		node_entry[i].rating = nodelist[nodes[i]].numJobs;
+		node_entry[i].rating =
+		    nodelist[nodes[i]].normalJobs - nodelist[nodes[i]].numCPU;
 	    }
 	    break;
 	default:
