@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.30 2002/06/13 09:51:18 eicker Exp $
+ * $Id: psi.c,v 1.31 2002/07/03 20:37:39 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.30 2002/06/13 09:51:18 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.31 2002/07/03 20:37:39 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -19,26 +19,22 @@ static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.30 2002/06/13 09:
 #include <netdb.h>
 #include <unistd.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 
+#include "pscommon.h"
+
 #include "psilog.h"
-#include "psitask.h"
-#include "psp.h"
+#include "pstask.h"
 #include "info.h"
 #include "psienv.h"
 
 #include "psi.h"
 
-int PSI_msock =-1;
-
-short PSI_nrofnodes = -1;
-unsigned short PSI_myid = -1;
-
-long PSI_mytid = -1;
-int PSI_mypid = -1;
+int PSI_msock = -1;
 
 unsigned int PSI_loggernode;   /* IP number of my loggernode (or 0) */
 int PSI_loggerport;            /* port of my logger process */
@@ -47,167 +43,16 @@ int PSI_myrank;
 
 char *PSI_psidversion = NULL;
 
-char *PSI_hoststatus = NULL;
+static char errtxt[256];
 
-enum TaskOptions PSI_mychildoptions = TaskOption_SENDSTDHEADER;
-
-/****************************************
- *  PSI_getpid()
- *  returns the value of the local PID of the OS. The TID of a Task in the
- *  Cluster is a combination of the Node number and the local pid
- *  on the node.
- */
-pid_t PSI_getpid(long tid)
-{
-#ifndef __osf__
-    return (tid & 0xFFFF);
-#else
-    /* Maybe we should do this on every architecture ? *JH* */
-    /* Tru64 V5.1 use 19 bit for PID's, we reserve 24 bits */
-    return (tid & 0xFFFFFF);
-#endif    
-}
-
-static pid_t PSIgetpid(void)
-{
-    char *env_str;
-    /* if we are a child of a psid process (remote process),
-     * we use the pid of our parent. */
-    env_str=getenv("PSI_PID");
-    if (env_str) {
-	return atoi(env_str);
-    }else{
-	return getpid();
-    }
-}
-
-
-/****************************************
- *  PSI_getnode()
- *  return the value of the node number of a TID. The TID of a Task in the
- *  Cluster is a combination of the Node number and the local pid
- *  on the node.
- */
-unsigned short PSI_getnode(long tid)
-{
-#ifndef __osf__
-    if (tid>=0) {
-	return (tid>>16)&0xFFFF;
-    } else {
-	return PSI_myid;
-    }
-#else
-    /* Maybe we should do this on every architecture ? *JH* */
-    /* Tru64 V5.1 use 19 bit for PID's, we reserve 24 bits */
-    if (tid>=0) {
-	return (tid>>24)&0xFFFFFF;
-    } else {
-	return PSI_myid;
-    }
-#endif
-}
-
-/****************************************
- *  PSI_getnrofnodes()
- * returns the number of nodes
- */
-short PSI_getnrofnodes(void)
-{
-    return PSI_nrofnodes;
-}
-
-/****************************************
- *  PSI_gettid()
- *  returns the TID. This is necessary to have unique Task Identifiers in
- *  the cluster .The TID of a Task in the Cluster is a combination
- *  of the Node number and the local pid on the node.
- *  If node=-1 the local nodenr is used
- */
-long PSI_gettid(short node, pid_t pid)
-{
-#ifndef __osf__
-    if (node<0) {
-	return (((PSI_myid&0xFFFF)<<16)|pid);
-    } else {
-	return (((node&0xFFFF)<<16)|pid);
-    }
-#else
-    /* Maybe we should do this on every architecture ? *JH* */
-    /* Tru64 V5.1 use 19 bit for PID's, we reserve 24 bits */
-    if (node<0) {
-	return (((PSI_myid&0xFFFFL)<<24)|pid);
-    } else {
-	return (((node&0xFFFFL)<<24)|pid);
-    }
-#endif
-}
-
-long PSI_options=0;
-
-/***************************************************************************
- *      PSI_setoption()
- */
-int PSI_setoption(long option, char value)
-{
-    if (value) {
-	PSI_options = PSI_options | option;
-    } else {
-	PSI_options = PSI_options & ~option;
-    }
-
-    return PSI_options;
-}
-
-/***************************************************************************
- *       PSI_startdaemon()
- *
- *       starts the daemon via the inetd
- */
-int PSI_startdaemon(unsigned int hostaddr)
-{
-    int sock;
-    struct sockaddr_in sa;
-#if defined(DEBUG)
-    if (PSP_DEBUGADMIN & (PSI_debugmask )) {
-	sprintf(PSI_txt, "PSI_startdaemon(%x)\n", hostaddr);
-	PSI_logerror(PSI_txt);
-    }
-#endif
-    /*
-     * start the PSI Daemon via inetd
-     */
-    sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-    memset(&sa, 0, sizeof(sa));
-    sa.sin_family = AF_INET;
-    sa.sin_addr.s_addr = hostaddr;
-    sa.sin_port =  htons(PSI_GetServicePort("psid",888));
-    if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0) {
-	perror("PSI daemon connect for start with inetd.");
-	shutdown(sock,2);
-	close(sock);
-	return 0;
-    }
-    usleep(200000);
-    shutdown(sock,2);
-    close(sock);
-    return 1;
-}
-
-/***************************************************************************
- *       PSI_daemonsocket()
- */
 int PSI_daemonsocket(unsigned int hostaddr)
 {
     int sock;
     struct sockaddr_in sa;
 
-#if defined(DEBUG)
-    if (PSP_DEBUGSTARTUP & (PSI_debugmask )) {
-	sprintf(PSI_txt, "PSI_daemonsocket(%x)\n", hostaddr);
-	PSI_logerror(PSI_txt);
-    }
-#endif
+    snprintf(errtxt, sizeof(errtxt), "PSI_daemonsocket(%s)",
+	     inet_ntoa(* (struct in_addr *) &hostaddr));
+    PSI_errlog(errtxt, 10);
 
     sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sock <0) {
@@ -217,7 +62,7 @@ int PSI_daemonsocket(unsigned int hostaddr)
     memset(&sa, 0, sizeof(sa));
     sa.sin_family = AF_INET;
     sa.sin_addr.s_addr = hostaddr;
-    sa.sin_port = htons(PSI_GetServicePort("psids",889));
+    sa.sin_port = htons(PSC_getServicePort("psids", 889));
 
     if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0) {
 	shutdown(sock,2);
@@ -228,14 +73,7 @@ int PSI_daemonsocket(unsigned int hostaddr)
     return sock;
 }
 
-/***************************************************************************
- *       PSI_daemon_connect()
- *
- *       opens a socket which is the connection to the PSI daemon.
- *       This socket is necessary for the daemon to handle this process
- *       RETURN TRUE on success, FALSE otherwise
- */
-static int PSI_daemon_connect(unsigned short protocol, unsigned int hostaddr)
+static int PSI_daemon_connect(unsigned short taskGroup, unsigned int hostaddr)
 {
     DDInitMsg_t msg;
     int pid;
@@ -244,34 +82,40 @@ static int PSI_daemon_connect(unsigned short protocol, unsigned int hostaddr)
     int retry_count =0;
     int ret;
 
-#if defined(DEBUG)
-    if (PSP_DEBUGSTARTUP & (PSI_debugmask )) {
-	sprintf(PSI_txt,"PSI_daemon_connect(%d)\n",protocol);
-	PSI_logerror(PSI_txt);
-    }
-#endif
+    snprintf(errtxt, sizeof(errtxt), "PSI_daemon_connect(%d, %s)",
+	     taskGroup, inet_ntoa(* (struct in_addr *) &hostaddr));
+    PSI_errlog(errtxt, 10);
 
-   /*
-    * connect to the PSI Daemon service port
-    */
+    /*
+     * connect to the PSI Daemon service port
+     */
     connectfailes = 0;
     retry_count = 0;
 
  RETRY_CONNECT:
+
+    if (PSI_msock!=-1) {
+	shutdown(PSI_msock, 2);
+	close(PSI_msock);
+	PSI_msock = -1;
+    }
 
     while ((PSI_msock=PSI_daemonsocket(hostaddr))==-1) {
 	/*
 	 * start the PSI Daemon via inetd
 	 */
 	if (connectfailes++ < 10) {
-	    PSI_startdaemon(hostaddr);
-	}else{
-	    perror("PSI daemon connect failed finally");
+	    PSC_startDaemon(hostaddr);
+	} else {
+	    char *errstr = strerror(errno);
+	    snprintf(errtxt, sizeof(errtxt), "PSI_daemon_connect():"
+		 " failed finally: %s", errstr ? errstr : "UNKNOWN");
+	    PSI_errlog(errtxt, 0);
 	    return 0;
 	}
     }
-    
-    pid = PSIgetpid();
+
+    pid = PSC_specialGetPID();
     uid = getuid();
 
     /* local connect */
@@ -280,99 +124,95 @@ static int PSI_daemon_connect(unsigned short protocol, unsigned int hostaddr)
     msg.header.len = sizeof(msg);
     msg.header.sender = pid;
     msg.header.dest = 0;
-    msg.version = PSPprotocolversion;
+    msg.version = PSprotocolversion;
     msg.pid = pid;
     msg.uid = uid;
-    msg.group = protocol;
+    msg.group = taskGroup;
 
-    ClientMsgSend(&msg);
-    if ((ret = ClientMsgRecv(&msg))<=0) {
-	char* errtxt;
-	shutdown(PSI_msock,2);
-	close(PSI_msock);
-	PSI_msock =-1;
-	errtxt=strerror(errno);
-	if (ret==0) {
-	    fprintf(stderr,"PSI_daemon_connect(): unexpected "
-		    "return message length (%d).\n", ret);
-	} else {
-	    fprintf(stderr,"PSI_daemon_connect(): error while "
-		    "receiving return message (%d): %s\n",
-		    errno,errtxt?errtxt:"UNKNOWN");
-	}
+    if (PSI_sendMsg(&msg)<0) {
+	char *errstr = strerror(errno);
+	snprintf(errtxt, sizeof(errtxt), "PSI_daemon_connect():"
+		 "PSI_sendMsg() failed: %s", errstr ? errstr : "UNKNOWN");
+	PSI_errlog(errtxt, 0);
 	return 0;
     }
+
+    ret = PSI_recvMsg(&msg);
+    if (ret<=0) {
+	if (!ret) {
+	    snprintf(errtxt, sizeof(errtxt), "PSI_daemon_connect():"
+		     " unexpected message length 0.");
+	    PSI_errlog(errtxt, 0);
+	} else {
+	    char* errstr = strerror(errno);
+	    snprintf(errtxt, sizeof(errtxt), "PSI_daemon_connect():"
+		     " PSI_recvMsg() failed: %s",
+		     errstr ? errstr : "UNKNOWN");
+	    PSI_errlog(errtxt, 0);
+	}
+
+	shutdown(PSI_msock, 2);
+	close(PSI_msock);
+	PSI_msock = -1;
+
+	return 0;
+    }
+
     switch (msg.header.type) {
     case PSP_DD_STATENOCONNECT  :
 	retry_count++;
-	shutdown(PSI_msock,2);
-	close(PSI_msock);
-	PSI_msock =-1;
 	if (retry_count <10) {
 	    sleep(1);
 	    goto RETRY_CONNECT;
 	}
-	fprintf(stderr,"PSI_daemon_connect(): Daemon is in a state"
-		" where he doesn't allow new connections.\n");
-	return 0;
+	snprintf(errtxt, sizeof(errtxt),"PSI_daemon_connect():"
+		 " Daemon is in a state were new connections are not allowed");
+	PSI_errlog(errtxt, 0);
 	break;
     case PSP_CD_CLIENTREFUSED :
-	shutdown(PSI_msock,2);
-	close(PSI_msock);
-	PSI_msock =-1;
-	if ((protocol!=TG_RESET)&&(protocol!=TG_RESETABORT)) {
-	    fprintf(stderr,"PSI_daemon_connect(): "
-		    "local daemon refused connection.\n");
+	if (taskGroup!=TG_RESET && taskGroup!=TG_RESETABORT) {
+	    snprintf(errtxt, sizeof(errtxt),"PSI_daemon_connect():"
+		     " Daemon refused connection.");
+	    PSI_errlog(errtxt, 0);
 	}
-	return 0;
 	break;
     case PSP_CD_NOSPACE :
-	shutdown(PSI_msock,2);
-	close(PSI_msock);
-	PSI_msock =-1;
-	fprintf(stderr,"PSI_daemon_connect(): "
-		"local Shared Memory doesn't have space available\n");
-	return 0;
+	snprintf(errtxt, sizeof(errtxt),"PSI_daemon_connect():"
+		 " Daemon has no space available.");
+	PSI_errlog(errtxt, 0);
 	break;
     case PSP_CD_UIDLIMIT :
-	shutdown(PSI_msock,2);
-	close(PSI_msock);
-	PSI_msock =-1;
-	fprintf(stderr,"PSI_daemon_connect(): "
-		"Library is limited to user id %d.\n",msg.uid);
-	return 0;
+	snprintf(errtxt, sizeof(errtxt),"PSI_daemon_connect():"
+		 " Node is limited to user id %d.", msg.uid);
+	PSI_errlog(errtxt, 0);
 	break;
     case PSP_CD_PROCLIMIT :
-	shutdown(PSI_msock,2);
-	close(PSI_msock);
-	PSI_msock =-1;
-	fprintf(stderr,"PSI_daemon_connect(): "
-		"Library is limited to %d processes.\n",msg.uid);
-	return 0;
+	snprintf(errtxt, sizeof(errtxt),"PSI_daemon_connect():"
+		 "Node is limited to %d processes.", msg.uid);
+	PSI_errlog(errtxt, 0);
 	break;
     case PSP_CD_OLDVERSION :
-	shutdown(PSI_msock,2);
-	close(PSI_msock);
-	PSI_msock =-1;
-	fprintf(stderr,"PSI_daemon_connect(): "
-		"local daemon(version %ld) doesn't support this "
-		"library version (revision %d). Pleases relink the program.\n",
-		msg.version,PSPprotocolversion );
-	return 0;
+	snprintf(errtxt, sizeof(errtxt),"PSI_daemon_connect():"
+		 " Daemon (ver. %ld) does not support this library (ver. %d)."
+		 " Pleases relink program.",
+		 msg.version, PSprotocolversion );
+	PSI_errlog(errtxt, 0);
 	break;
     case PSP_CD_CLIENTESTABLISHED :
-	PSI_nrofnodes = msg.nrofnodes;
-	PSI_myid = msg.myid;
+	PSC_setNrOfNodes(msg.nrofnodes);
+	PSC_setMyID(msg.myid);
 	PSI_loggernode = msg.loggernode;
 	PSI_loggerport = msg.loggerport;
 	PSI_myrank = msg.rank;
-	PSI_SetInstalldir(msg.instdir);
-	if (strcmp(msg.instdir, PSI_LookupInstalldir())) {
-	    fprintf(stderr,"PSI_daemon_connect(): "
-		    "Installation directory '%s' not correct.\n", msg.instdir);
-	    return 0;
+	PSC_setInstalldir(msg.instdir);
+	if (strcmp(msg.instdir, PSC_lookupInstalldir())) {
+	    snprintf(errtxt, sizeof(errtxt),"PSI_daemon_connect():"
+		     "Installation directory '%s' not correct.", msg.instdir);
+	    PSI_errlog(errtxt, 0);
+	    break;
 	}
-	if ( ! PSI_psidversion ) {
+	/* @todo failed malloc abfangen */
+	if (!PSI_psidversion) {
 	    PSI_psidversion = malloc(sizeof(msg.psidvers));
 	}
 	strncpy(PSI_psidversion, msg.psidvers, sizeof(msg.psidvers));
@@ -380,34 +220,28 @@ static int PSI_daemon_connect(unsigned short protocol, unsigned int hostaddr)
 	return 1;
 	break;
     default :
-	shutdown(PSI_msock,2);
-	close(PSI_msock);
-	PSI_msock =-1;
-	fprintf(stderr,"PSI_daemon_connect(): "
-		"unexpected return code %s .\n",PSPctrlmsg(msg.header.type));
-	return 0;
-	break;
+	snprintf(errtxt, sizeof(errtxt),"PSI_daemon_connect():"
+		 "unexpected return code %s .", PSPctrlmsg(msg.header.type));
+	PSI_errlog(errtxt, 0);
+ 	break;
     }
+
+    shutdown(PSI_msock, SHUT_RDWR);
+    close(PSI_msock);
+    PSI_msock = -1;
 
     return 0;
 }
 
-/***************************************************************************
- *       PSI_clientinit()
- *
- *       MUST be call by every client process. It does all the necessary
- *       work to connect to the daemon and setup the necessary environment.
- */
-int PSI_clientinit(unsigned short protocol)
+int PSI_clientinit(unsigned short taskGroup)
 {
     char* envstrvalue;
 
-#if defined(DEBUG)
-    if (PSP_DEBUGSTARTUP & (PSI_debugmask )) {
-	sprintf(PSI_txt,"PSI_clientinit()\n");
-	PSI_logerror(PSI_txt);
-    }
-#endif
+    PSI_initLog(0 /* don't use syslog */, NULL /* No special logfile */);
+    PSC_initLog(0 /* don't use syslog */, NULL /* No special logfile */);
+
+    snprintf(errtxt, sizeof(errtxt), "PSI_clientinit(%d)", taskGroup);
+    PSI_errlog(errtxt, 10);
 
     if (PSI_msock != -1) {
 	/* Allready connected */
@@ -417,20 +251,14 @@ int PSI_clientinit(unsigned short protocol)
     /*
      * connect to local PSI daemon
      */
-    if (!PSI_daemon_connect(protocol, INADDR_ANY)) {
-	if ((protocol!=TG_RESET) && (protocol!=TG_RESETABORT)) {
-	    fprintf(stderr,"PSI_clientinit(): can't contact local daemon.\n");
+    if (!PSI_daemon_connect(taskGroup, INADDR_ANY)) {
+	if (taskGroup!=TG_RESET && taskGroup!=TG_RESETABORT) {
+	    snprintf(errtxt, sizeof(errtxt),
+		     "PSI_clientinit(): cannot contact local daemon.");
+	    PSI_errlog(errtxt, 0);
 	}
 	return 0;
     }
-
-    PSI_mypid = PSIgetpid();
-    PSI_mytid = PSI_gettid(-1,PSI_mypid);
-
-    if (! PSI_hoststatus) {
-	PSI_hoststatus = (char *) malloc(PSI_nrofnodes);
-    }
-    INFO_request_hoststatus(PSI_hoststatus, PSI_nrofnodes, 0);
 
     /* check if the environment variable PSI_EXPORTS is set.
      * If it is set, then take the environment variables
@@ -465,19 +293,10 @@ int PSI_clientinit(unsigned short protocol)
     return 1;
 }
 
-/***************************************************************************
- *       PSI_clientexit()
- *
- *   reconfigs all variable so that a PSI_clientinit() will be successful
- */
 int PSI_clientexit(void)
 {
-#if defined(DEBUG)
-    if (PSP_DEBUGSTARTUP & (PSI_debugmask )) {
-	sprintf(PSI_txt,"PSI_clientexit()\n");
-	PSI_logerror(PSI_txt);
-    }
-#endif
+    snprintf(errtxt, sizeof(errtxt), "PSI_clientexit()");
+    PSI_errlog(errtxt, 10);
 
     if (PSI_msock == -1) {
 	return 1;
@@ -486,85 +305,124 @@ int PSI_clientexit(void)
     /*
      * close connection to local PSI daemon
      */
-/*   shutdown(PSI_msock,2);*/
+    shutdown(PSI_msock, 2);
     close(PSI_msock);
     PSI_msock = -1;
 
     return 1;
 }
 
-/*----------------------------------------------------------------------*/
-/*
- * PSI_notifydead()
- *
- *  PSI_notifydead requests the signal sig, when the child with task
- *  identifier tid dies.
- *
- * PARAMETERS
- *  tid: the task identifier of the child whose death shall be signaled to you
- *  sig: the signal which should be sent to you when the child dies
- * RETURN  0 on success
- *         -1 on error
- */
+int PSI_sendMsg(void *amsg)
+{
+    DDMsg_t *msg = (DDMsg_t *)amsg;
+    int ret = 0;
+
+    ret = write(PSI_msock, msg, msg->len);
+
+    if (!ret) {
+	snprintf(errtxt, sizeof(errtxt), "PSI_sendMsg():"
+		 " Lost connection to ParaStation daemon");
+	PSI_errexit(errtxt, errno);
+    }
+
+    return ret;
+}
+
+int PSI_recvMsg(void *amsg)
+{
+    DDMsg_t *msg = (DDMsg_t *)amsg;
+    int n;
+    int count = 0;
+
+    do {
+	if (!count) {
+	    n = read(PSI_msock, msg, sizeof(*msg));
+	} else {
+	    n = read(PSI_msock, &((char*)msg)[count], msg->len-count);
+	}
+	if (n>0) count+=n;
+	if (!n) {
+	    snprintf(errtxt, sizeof(errtxt), "PSI_recvMsg():"
+		     " Lost connection to ParaStation daemon");
+	    PSI_errexit(errtxt, errno);
+	}
+    } while (msg->len>count && n>0);
+
+    if (count==msg->len) {
+	return msg->len;
+    } else {
+	return n;
+    }
+}
+
+
 int PSI_notifydead(long tid, int sig)
 {
     DDSignalMsg_t msg;
 
+    snprintf(errtxt, sizeof(errtxt), "PSI_notifydead(%lx, %d)", tid, sig);
+    PSI_errlog(errtxt, 10);
+
     msg.header.type = PSP_DD_NOTIFYDEAD;
-    msg.header.sender = PSI_mytid;
+    msg.header.sender = PSC_getMyTID();
     msg.header.dest = tid;
     msg.header.len = sizeof(msg);
     msg.signal = sig;
 
-    if (ClientMsgSend(&msg)<0) {
-	fprintf(stderr, "PSI_notifydead: Could not send messge.\n");
+    if (PSI_sendMsg(&msg)<0) {
+	char *errstr = strerror(errno);
+	snprintf(errtxt, sizeof(errtxt), "PSI_notifydead():"
+		 "PSI_sendMsg() failed: %s", errstr ? errstr : "UNKNOWN");
+	PSI_errlog(errtxt, 0);
 	return -1;
     }
 
-    if (ClientMsgRecv(&msg)<0) {
-	fprintf(stderr, "PSI_notifydead: Could not receive messge.\n");
+    if (PSI_recvMsg(&msg)<0) {
+	char *errstr = strerror(errno);
+	snprintf(errtxt, sizeof(errtxt), "PSI_notifydead():"
+		 "PSI_recvMsg() failed: %s", errstr ? errstr : "UNKNOWN");
+	PSI_errlog(errtxt, 0);
 	return -1;
     }
 
-    if (msg.signal!=0) {
-/*  	fprintf(stderr, "PSI_notifydead: Signal = %d (ESRCH=%d).\n", */
-/*  		msg.signal, ESRCH); */
+    if (msg.signal) {
+	snprintf(errtxt, sizeof(errtxt), "PSI_notifydead():"
+		 " Signal = %d (ESRCH=%d).", msg.signal, ESRCH);
+	PSI_errlog(errtxt, 1);
 	return -1;
     }
 
     return 0;
 }
 
-/*----------------------------------------------------------------------*/
-/*
- * PSI_release()
- *
- *  PSI_release() helps parent to survive if task is exiting. Quite usefull
- *       this in PSE_finalize().
- *
- * PARAMETERS
- *  tid: the task identifier of the task that should *not* kill the parent
- *
- * RETURN  0 on success
- *         -1 on error
- */
 int PSI_release(long tid)
 {
     DDSignalMsg_t msg;
 
+    snprintf(errtxt, sizeof(errtxt), "PSI_release(%lx)", tid);
+    PSI_errlog(errtxt, 10);
+
     msg.header.type = PSP_DD_RELEASE;
-    msg.header.sender = PSI_mytid;
+    msg.header.sender = PSC_getMyTID();
     msg.header.dest = tid;
     msg.header.len = sizeof(msg);
     msg.signal = -1;
 
-    if (ClientMsgSend(&msg)<0) {
+    if (PSI_sendMsg(&msg)<0) {
+	char *errstr = strerror(errno);
+	snprintf(errtxt, sizeof(errtxt), "PSI_release():"
+		 "PSI_sendMsg() failed: %s", errstr ? errstr : "UNKNOWN");
+	PSI_errlog(errtxt, 0);
 	return -1;
     }
 
-    if (ClientMsgRecv(&msg)<0) {
+    if (PSI_recvMsg(&msg)<0) {
+	char* errstr = strerror(errno);
+	snprintf(errtxt, sizeof(errtxt), "PSI_release():"
+		 " PSI_recvMsg() failed: %s", errstr ? errstr : "UNKNOWN");
+	PSI_errlog(errtxt, 0);
 	return -1;
-    } else if (msg.signal!=0) {
+    } else if (msg.signal) {
 	return -1;
     }
 
@@ -575,27 +433,40 @@ int PSI_send_finish(long parenttid)
 {
     DDMsg_t msg;
 
+    snprintf(errtxt, sizeof(errtxt), "PSI_send_finish(%lx)", parenttid);
+    PSI_errlog(errtxt, 10);
+
     msg.type = PSP_DD_SPAWNFINISH;
-    msg.sender = PSI_mytid;
+    msg.sender = PSC_getMyTID();
     msg.dest = parenttid;
     msg.len = sizeof(msg);
 
-    if (ClientMsgSend(&msg)<0) {
-	fprintf(stderr, "PSI_send_finish: Could not send messge.\n");
+    if (PSI_sendMsg(&msg)<0) {
+	char *errstr = strerror(errno);
+	snprintf(errtxt, sizeof(errtxt), "PSI_send_finish():"
+		 "PSI_sendMsg() failed: %s", errstr ? errstr : "UNKNOWN");
+	PSI_errlog(errtxt, 0);
 	return -1;
     }
 
     return 0;
 }
 
-int PSI_recv_finish(int outstanding_answers)
+int PSI_recv_finish(int outstanding)
 {
     DDMsg_t msg;
     int error = 0;
 
-    while (outstanding_answers>0) {
-	if (ClientMsgRecv(&msg)<0) {
-	    perror("PSI_recv_finish: receiving answer from my daemon");
+    snprintf(errtxt, sizeof(errtxt), "PSI_recv_finish(%d)", outstanding);
+    PSI_errlog(errtxt, 10);
+
+    while (outstanding>0) {
+	if (PSI_recvMsg(&msg)<0) {
+	    char *errstr = strerror(errno);
+	    snprintf(errtxt, sizeof(errtxt), "PSI_recv_finish():"
+		     " PSI_recvMsg() failed: %s",
+		     errstr ? errstr : "UNKNOWN");
+	    PSI_errlog(errtxt, 0);
 	    error = 1;
 	    break;
 	}
@@ -603,113 +474,46 @@ int PSI_recv_finish(int outstanding_answers)
 	case PSP_DD_SPAWNFINISH:
 	    break;
 	default:
-	    sprintf(PSI_txt,"response == UNKNOWN answer\n");
-	    PSI_logerror(PSI_txt);
+	    snprintf(errtxt, sizeof(errtxt), "PSI_recv_finish():"
+		     " UNKNOWN answer");
+	    PSI_errlog(errtxt, 0);
 	    error = 1;
 	    break;
 	}
-	outstanding_answers--;
+	outstanding--;
     }
 
     return error;
 }
 
-
-/*----------------------------------------------------------------------*/
-/*
- * PSI_whodied()
- *
- *  PSI_whodied asks the ParaStation system which child's death caused the
- *  last signal to be delivered to you.
- *
- * PARAMETERS
- * RETURN  0 on success
- *         -1 on error
- */
 long PSI_whodied(int sig)
 {
     DDSignalMsg_t msg;
 
+    snprintf(errtxt, sizeof(errtxt), "PSI_whodied(%d)", sig);
+    PSI_errlog(errtxt, 10);
+
     msg.header.type = PSP_DD_WHODIED;
-    msg.header.sender = PSI_mytid;
+    msg.header.sender = PSC_getMyTID();
     msg.header.dest = 0;
     msg.header.len = sizeof(msg);
     msg.signal = sig;
 
-    if (ClientMsgSend(&msg)<0) {
+    if (PSI_sendMsg(&msg)<0) {
+	char *errstr = strerror(errno);
+	snprintf(errtxt, sizeof(errtxt), "PSI_whodied():"
+		 "PSI_sendMsg() failed: %s", errstr ? errstr : "UNKNOWN");
+	PSI_errlog(errtxt, 0);
 	return -1;
     }
 
-    if (ClientMsgRecv(&msg)<0) {
+    if (PSI_recvMsg(&msg)<0) {
+	char *errstr = strerror(errno);
+	snprintf(errtxt, sizeof(errtxt), "PSI_whodied():"
+		 "PSI_recvMsg() failed: %s", errstr ? errstr : "UNKNOWN");
+	PSI_errlog(errtxt, 0);
 	return(-1);
     }
 
     return msg.header.sender;
-}
-
-char default_installdir[] = "/opt/parastation";
-
-static char *PSI_installdir = NULL;
-
-char *PSI_LookupInstalldir(void)
-{
-    char *name = NULL, logger[] = "/bin/psilogger";
-    struct stat fstat;
-
-    if (!PSI_installdir) {
-	name = (char*) malloc(strlen(default_installdir) + strlen(logger) + 1);
-	strcpy(name, default_installdir);
-	strcat(name, logger);
-
-	if (stat(name, &fstat)==0 && S_ISREG(fstat.st_mode)) {
-	    /* InstallDir found */
-	    PSI_installdir = default_installdir;
-	}
-	free(name);
-    }
-
-    if (PSI_installdir)
-	return PSI_installdir;
-    else
-	return "";
-}
-
-void PSI_SetInstalldir(char *installdir)
-{
-    char *name, logger[] = "/bin/psilogger";
-    static char *instdir=NULL;
-    struct stat fstat;
-
-    name = (char*) malloc(strlen(installdir) + strlen(logger) + 1);
-    strcpy(name,installdir);
-    strcat(name,logger);
-    if (stat(name, &fstat)) {
-	perror(name);
-	free(name);
-	return;
-    }
-
-    if (!S_ISREG(fstat.st_mode)) {
-	fprintf(stderr, "%s: not a regular file\n", name);
-	free(name);
-	return;
-    }
-	    
-    if (instdir) free(instdir);
-    instdir = strdup(installdir);
-    PSI_installdir = instdir;
-    free(name);
-}
-
-
-int PSI_GetServicePort( char *name , int def)
-{
-    struct servent *service;
-
-    if ((service = getservbyname(name,"tcp")) == NULL){
-	SYSLOG(0,(LOG_WARNING, "can't get \"%s\" service entry. Now using port %d.\n",name,def));
-	return def;
-    }else{
-	return ntohs(service->s_port);
-    }
 }
