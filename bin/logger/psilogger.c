@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.15 2002/02/18 19:48:26 eicker Exp $
+ * $Id: psilogger.c,v 1.16 2002/02/26 13:18:10 eicker Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.15 2002/02/18 19:48:26 eicker Exp $
+ * $Id: psilogger.c,v 1.16 2002/02/26 13:18:10 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.15 2002/02/18 19:48:26 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.16 2002/02/26 13:18:10 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* DEBUG_LOGGER allows logger debuging without the daemon
@@ -78,14 +78,21 @@ int msock;
 void sighandler(int sig)
 {
     int i;
+    static int firstCall = 1;
+
     switch(sig){
     case SIGTERM:
+	if (firstCall) {
+	    fprintf(stderr, "PSIlogger: Got SIGTERM. Problem with client?\n");
+	    firstCall = 0;
+	}
 	if (verbose) {
-	    printf("PSIlogger: No of clients: %d open sockets:", noclients);
+	    fprintf(stderr,
+		    "PSIlogger: No of clients: %d open sockets:", noclients);
 	    for(i=0; i<FD_SETSIZE; i++)
 		if(FD_ISSET(i, &myfds))
-		    printf(" %d",i);
-	    printf("\n");
+		    fprintf(stderr, " %d", i);
+	    fprintf(stderr, "\n");
 	}
 	if (msock!=-1) {
 	    close(msock);
@@ -93,6 +100,7 @@ void sighandler(int sig)
 	}
     }
     fflush(stdout);
+    fflush(stderr);
 
     signal(sig, sighandler);
 }
@@ -292,7 +300,7 @@ void loop(int listen)
 		if (n==0) {
 		    /* socket closed */
 		    fprintf(stderr, "PSIlogger: socket %d closed without"
-			    " FINALIZE. This shouldn't happen...\n", sock);
+			    " FINALIZE.\n", sock);
 		    close(sock);
 		    FD_CLR(sock,&myfds);
 		    noclients--;
