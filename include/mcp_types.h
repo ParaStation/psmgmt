@@ -220,7 +220,7 @@ typedef struct MCP_Route_T {
 
 
 #define MCP_NOTIFYK_LOWRECV	0x03000000/*< Notification about low ressource on port */
-#define MCP_NOTIFYK_LOWRECV_P(PrNo,PoNo) (MCP_NOTIFYK_RECV|(PoNo&0xffff)|((((PrNo) - PSHAL_RAWDATA)&0xff)<<16))
+#define MCP_NOTIFYK_LOWRECV_P(PrNo,PoNo) (MCP_NOTIFYK_LOWRECV|(PoNo&0xffff)|((((PrNo) - PSHAL_RAWDATA)&0xff)<<16))
 #define MCP_NOTIFYK_LOWRECV_G(PrNo,PoNo,Val) (PoNo)=(UINT16)(Val);(PrNo)= (((Val) >> 16)& 0xff) + PSHAL_RAWDATA;
 
 
@@ -514,6 +514,8 @@ typedef struct MCP_Context_T {
     MCP_POINTER(MCPSendBuf_t) SendBuf;
     /* Permissions for this context (eg set routingtable) */
     UINT32		Permissions;
+    /* Last Intr RTC to for irq flooding prevention */
+    UINT32		LastIRQTime;
 } MCP_Context_t;
 
 

@@ -2,7 +2,7 @@
  *
  *      @(#)pshal.h    1.00 (Karlsruhe) 08/15/2000
  *
- *      $Id: pshal.h,v 1.4 2001/05/18 14:32:13 hauke Exp $	
+ *      $Id: pshal.h,v 1.5 2001/05/30 09:58:33 hauke Exp $	
  *
  *      written by Joachim Blum
  *                 Jens Hauke
@@ -446,6 +446,23 @@ int PSHALPortDelete( int ProtocolNo,int Port );
  */
 int PSHALPortSleep( int ProtocolNo,int Port, int SeqNo );
 
+
+/*------------------------------------------------------------------------------
+ * void PSHALSleepForEvent();
+ */
+/**
+ * Sleep until Event from MCP arrives (eg. Low ressources)
+ * Intend for background process
+ */
+void PSHALSleepForEvent(void);
+
+/*------------------------------------------------------------------------------
+ * void PSHALSendEvent();
+ */
+/**
+ * Send Event to the process who called SleepForEvent()
+ */
+void PSHALSendEvent(void);
 
 /*------------------------------------------------------------------------------
  * int PSHALSYSSetID(int ID)
