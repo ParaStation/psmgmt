@@ -15,7 +15,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 
-#include "psp.h"
+#include "psprotocol.h"
 
 /* ACHTUNG: ROTATE ist auf INTEGER ausgelegt !! (keine LONG) */
 #define   ROTATE(a,n) ( (((unsigned int)a)<<(n)) | (((unsigned int)a)>>(32-(n))) )
@@ -204,7 +204,7 @@ void makeLicenseRequest( char* licenserequest)
     memcpy(&IP, hp->h_addr, hp->h_length);
     Code6Bit(&licenserequest[0],IP,6); /* Code the IP */
     Code6Bit(&licenserequest[6],nodes,6); /* Code the number of nodes */
-    Code6Bit(&licenserequest[12],PSPprotocolversion,6); /* Code the actual protocolnumber */
+    Code6Bit(&licenserequest[12],PSprotocolversion,6); /* Code the actual protocolnumber */
     licenserequest[18]=0;
     printf("OK, we are half done. \n"
 	   "Please send an email to licenserequest@par-tec.com to request a license key.\n"
