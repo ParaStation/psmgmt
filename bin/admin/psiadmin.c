@@ -661,13 +661,48 @@ void sighandler(int sig)
     }
 }
 
-int main(int ac, char **av)
+void usage(void)
+{
+    fprintf(stderr,"usage: psiadmin [-h] [-r] [-c command]\n");
+}
+
+/******************************************
+ *  help()
+ */
+void help(void)
+{
+    usage();
+    fprintf(stderr,"\n");
+    fprintf(stderr," -r         : Do reset on startup (only as root).\n");
+    fprintf(stderr," -c command : Execute a single command and exit.\n");
+    fprintf(stderr," -h         : print this screen and exit.\n");
+}
+
+int main(int argc, char **argv)
 {
     void *line_state = NULL;
-    char *line = (char *) NULL;
-    int len;
+    char *copt = NULL, *line = (char *) NULL;
+    int opt, len, reset=0;
 
-    if((ac>1)&&(strcasecmp(av[1],"-reset")==0)){
+    while ((opt = getopt(argc, argv, "c:rh")) != -1){
+	switch(opt){
+	case 'c':
+	    copt = optarg;
+	    break;
+	case 'r':
+	    reset=1;
+	    break;
+	case 'h':
+	    help();
+	    return 0;
+	    break;
+	default:
+	    usage();
+	    return -1;
+	}
+    }
+
+    if(reset){
 	if(geteuid()){
 	    printf("Insufficient priviledge for resetting\n");
 	    exit(-1);
@@ -691,6 +726,30 @@ int main(int ac, char **av)
 
     signal(SIGTERM,sighandler);
 
+    /*
+     * Single command processing
+     */
+    if(copt){
+	/* Add trailing newline */
+	len=strlen(copt);
+	line=(char *)malloc(len+1);
+	strcpy(line, copt);
+	line[len]='\n';
+	line[len+1]='\0';
+
+	/* Process it */
+	line_state = yy_scan_string(line);
+	yyparse();
+	yy_delete_buffer(line_state);
+
+	free(line);
+
+	return 0;
+    }
+
+    /*
+     * Interactive mode
+     */
     while(!PARSE_DONE){ 
 	/* Get a line from the user. */
 	line = readline ("PSIadmin>");
