@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.14 2003/03/19 17:05:07 eicker Exp $
+ * $Id: psprotocol.h,v 1.15 2003/04/03 15:26:49 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation client-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.14 2003/03/19 17:05:07 eicker Exp $
+ * $Id: psprotocol.h,v 1.15 2003/04/03 15:26:49 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -32,7 +32,7 @@ extern "C" {
 #endif
 
 /** Unique version number of the high-level protocol */
-#define PSprotocolversion  323
+#define PSprotocolversion  324
 
 /** The location of the UNIX socket used to contact the daemon. */
 #define PSmasterSocketName "/var/run/parastation.sock"
@@ -79,10 +79,10 @@ typedef enum {
 
     PSP_OP_MCASTDEBUG = 0x0028,   /**< MCast's debug level */
 
-    PSP_OP_PSM_HNPEND = 0x0030,   /**< */
-    PSP_OP_PSM_ACKPEND,           /**< */
-    PSP_OP_PSM_SMALLPACKETSIZE,   /**< */
-    PSP_OP_PSM_RESENDTIMEOUT      /**< */
+    PSP_OP_PSM_SPS = 0x0030,      /**< */
+    PSP_OP_PSM_RTO,               /**< */
+    PSP_OP_PSM_HNPEND,            /**< */
+    PSP_OP_PSM_ACKPEND            /**< */
 } PSP_Option_t;
 
 /** Messages used for information retrieval */
@@ -109,9 +109,15 @@ typedef enum {
     PSP_INFO_TASKEND,             /**< end of task info replies */
 
     PSP_INFO_HOSTSTATUS,          /**< Complete status of all cluster nodes */
-    PSP_INFO_COUNTSTATUS,         /**< Communication counters */
     PSP_INFO_RDPSTATUS,           /**< Status of the RDP */
-    PSP_INFO_MCASTSTATUS          /**< Status of the MCast */
+    PSP_INFO_MCASTSTATUS,         /**< Status of the MCast */
+
+    PSP_INFO_COUNTHEADER,         /**< Header for communication counters */
+    PSP_INFO_COUNTSTATUS,         /**< Communication counters */
+
+    PSP_INFO_HWNUM,               /**< Number of supported hardware types */
+    PSP_INFO_HWINDEX,             /**< Internal index from hardware name */
+    PSP_INFO_HWNAME               /**< Name of hardware from internal index */
 } PSP_Info_t;
 
 /** Messages concerning spawning of tasks. */
@@ -262,7 +268,7 @@ typedef struct {
     int id;              /**< ID of this node */
     short up;            /**< Flag if node is up */
     short numCPU;        /**< Number of CPUs in this node */
-    unsigned int hwType; /**< HW available on this node */
+    unsigned int hwStatus; /**< HW available on this node */
     float load[3];       /**< load on this node */
     short totalJobs;     /**< number of jobs */
     short normalJobs;    /**< number of "normal" jobs (no logger, admin,...) */
