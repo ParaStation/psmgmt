@@ -51,27 +51,27 @@ int main(int argc, char **argv)
 	}
 	if (loop==0){
 	    /* Print Header */
-	    for (i=0;i<ic->n;i++){
+	    for (i=0;i<(int)ic->n;i++){
 		printf("%8s ",ic->counter[i].name);
 	    }
 	    printf("\n");
 	}
 	if (!time){
 	    /* Print Values */
-	    for (i=0;i<ic->n;i++){
+	    for (i=0;i<(int)ic->n;i++){
 		char ch[10];
 		/* calc column size from name length */
-		sprintf(ch,"%%%du ",MAX(strlen(ic->counter[i].name),8));
+		sprintf(ch,"%%%du ",MAX((int)strlen(ic->counter[i].name),8));
 		printf(ch,ic->counter[i].value);
 	    }
 	    printf("\n");
 	}else{
 	    if (loop>0){
 		/* Print Delta Values */
-		for (i=0;i<ic->n;i++){
+		for (i=0;i<(int)ic->n;i++){
 		    char ch[10];
 		    /* calc column size from name length */
-		    sprintf(ch,"%%%du ",MAX(strlen(ic->counter[i].name),8));
+		    sprintf(ch,"%%%du ",MAX((int)strlen(ic->counter[i].name),8));
 		    printf(ch,ic->counter[i].value-ic2.counter[i].value);
 		}
 		printf("\n");
