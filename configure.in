@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: configure.in,v 1.21 2002/10/16 17:23:15 hauke Exp $
+# $Id: configure.in,v 1.22 2002/10/16 18:04:18 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -165,8 +165,9 @@ AC_CONFIG_FILES([bin/test/Makefile])
 AC_CONFIG_FILES([bin/mapper/Makefile])
 AC_CONFIG_FILES([bin/mon/Makefile])
 AC_CONFIG_FILES([bin/java/psview/Makefile])
+AC_CONFIG_FILES([Documentation/Makefile])
+AC_CONFIG_FILES([Documentation/Doxyfile])
 AC_CONFIG_FILES([dist/Makefile])
-AC_CONFIG_FILES([dist/Doxyfile])
 AC_CONFIG_FILES([dist_fe/Makefile])
 AC_CONFIG_FILES([dist_gui/Makefile])
 
