@@ -12,7 +12,7 @@ ask=1;while [ "$ask" == 1 ];do     ask=0
     case "$ver" in
     3)
 	id="ParaStation 3"
-	ver="3.1"
+	ver="3.2"
 	features="IP, Ether, Myrinet"
 	fields="$fields ,MCPKey"
 	calcmcpkey=1
