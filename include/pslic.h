@@ -7,7 +7,7 @@
 /**
  * pslic.h: Licensekey handling
  *
- * $Id: pslic.h,v 1.3 2002/07/24 06:25:42 eicker Exp $
+ * $Id: pslic.h,v 1.4 2002/08/06 14:53:33 eicker Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -17,6 +17,13 @@
 
 #ifndef _PSLIC_H_
 #define _PSLIC_H_
+
+#ifdef __cplusplus
+extern "C" {
+#if 0
+} /* <- just for emacs indentation */
+#endif
+#endif
 
 #include <stdlib.h>
 #include <string.h>
@@ -104,5 +111,9 @@ extern inline int lic_numval(env_fields_t *env, char *varname, int def)
     ret = strtol(val ? val : "x", &err, 10);
     return (*err) ? def : ret;
 }
+
+#ifdef __cplusplus
+}/* extern "C" */
+#endif
 
 #endif /* _PSLIC_H_ */
