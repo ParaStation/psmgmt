@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.13 2002/02/11 14:10:12 eicker Exp $
+ * $Id: psilogger.c,v 1.14 2002/02/15 19:09:37 eicker Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.13 2002/02/11 14:10:12 eicker Exp $
+ * $Id: psilogger.c,v 1.14 2002/02/15 19:09:37 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.13 2002/02/11 14:10:12 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.14 2002/02/15 19:09:37 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* DEBUG_LOGGER allows logger debuging without the daemon
@@ -204,9 +204,12 @@ void forward_input(int std_in, int fwclient)
     char buf[1000];
     int len;
 
-    len = read(std_in, buf, sizeof(buf));
+    len = read(std_in, buf, sizeof(buf)>SSIZE_MAX ? SSIZE_MAX : sizeof(buf));
     if (len > 0){
 	writelog(fwclient,STDIN, -1, buf, len);
+    } else {
+	close(std_in);
+	FD_CLR(std_in, &myfds);
     }
 }
 
