@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.2 2002/10/16 18:01:08 eicker Exp $
+# $Id: Makefile.in,v 1.3 2002/10/17 16:24:47 eicker Exp $
 #
 # @author
 #         Norbert Eicker <eicker@par-tec.de>
@@ -92,9 +92,9 @@ html/%/index.html: %.xml $(STYLESHEETDIR)/html.xsl
 	@export SGML_CATALOG=$(SGML_CATALOG); \
 	$(XSLT) $(XSLTFLAGS) -o $(@D)/ $(STYLESHEETDIR)/html.xsl $<
 
-adminguide/index.html: $(ADMINDEPS)
+html/adminguide/index.html: $(ADMINDEPS)
 
-userguide/index.html: $(USERDEPS)
+html/userguide/index.html: $(USERDEPS)
 
 #
 # Rules to create manual pages
