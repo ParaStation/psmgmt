@@ -358,7 +358,7 @@ int main(int argc, char *argv[])
     int interface;
     struct timeval tv;
 
-#define DARGS "Dd"
+#define DARGS "Ddf:"
 
     optarg = NULL;
     while (!errflg && ((c = getopt(argc,argv, DARGS)) != -1)){
@@ -373,6 +373,9 @@ int main(int argc, char *argv[])
 	    dofork=0;
 	    usesyslog=0;
 	    break;
+	case 'f' :
+	    Configfile = strdup( optarg );
+	    break;
 	default:
 	    errflg++;
 	    break;
@@ -382,7 +385,7 @@ int main(int argc, char *argv[])
     openlog("psld",LOG_PID,LOG_DAEMON);
 
     if(errflg){
-	sprintf(errtxt,"usage: %s [-Dd] \n",argv[0]);
+	sprintf(errtxt,"usage: %s [-Dd] [-f configfile]\n",argv[0]);
 	ERR_OUT(errtxt);
 	exit(-1);
     }

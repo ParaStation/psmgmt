@@ -2641,8 +2641,7 @@ main(int argc, char **argv)
 		sscanf(optarg,"%lx",&debugmask);
 		break;
 	    case 'f' :
-		Configfile = (char *) malloc(strlen(optarg));
-		strcpy(Configfile, optarg);
+		Configfile = strdup( optarg );
 		break;
 	    case 'h' : /* help */
 	    case 'H' :
@@ -2759,8 +2758,8 @@ main(int argc, char **argv)
 #endif
 	}
 
-	SYSLOG(0,(LOG_ERR, "***************************************"
-		  "********************\n"));
+//	SYSLOG(0,(LOG_ERR, "***************************************"
+//		  "********************\n"));
 	SYSLOG(0,(LOG_ERR, "Starting ParaStation DAEMON V%d"
 		  " (c) ParTec AG (www.par-tec.com)\n",
 		  PSPprotocolversion));
@@ -2789,10 +2788,10 @@ main(int argc, char **argv)
 			  "UNKNOWN"));
 		closelog();
 		openlog("psid",LOG_PID|LOG_CONS,ConfigSyslog);
-		SYSLOG(0,(LOG_ERR, "************************************"
-			  "***********************\n"));
-		SYSLOG(0,(LOG_ERR, "Starting ParaStation DAEMON"
-			  " (c) ParTec AG (www.par-tec.com)\n"));
+//		SYSLOG(0,(LOG_ERR, "************************************"
+//			  "***********************\n"));
+//		SYSLOG(0,(LOG_ERR, "Starting ParaStation DAEMON"
+//			  " (c) ParTec AG (www.par-tec.com)\n"));
 	    }
 	    SYSLOG(0,(LOG_ERR,"  Protocol Version %d\n",
 		      PSPprotocolversion ));
