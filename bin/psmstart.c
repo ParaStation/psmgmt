@@ -5,20 +5,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psmstart.c,v 1.10 2003/09/12 14:34:55 eicker Exp $
+ * $Id: psmstart.c,v 1.11 2003/12/04 17:19:36 eicker Exp $
  *
  */
 /**
  * @file Simple wrapper to allow non ParaStation aware programs to be
  * distributed in a cluster.
  *
- * $Id: psmstart.c,v 1.10 2003/09/12 14:34:55 eicker Exp $
+ * $Id: psmstart.c,v 1.11 2003/12/04 17:19:36 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c,v 1.10 2003/09/12 14:34:55 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c,v 1.11 2003/12/04 17:19:36 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -36,7 +36,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c,v 1.10 2003/09/1
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.10 $";
+    char revision[] = "$Revision: 1.11 $";
     fprintf(stderr, "psmstart %s\b \n", revision+11);
 }
 
@@ -262,8 +262,6 @@ int main(int argc, const char *argv[])
 	exit(1);
     }
 
-    free(dup_argv);
-
     PSE_initialize();
 
     rank = PSE_getRank();
@@ -323,6 +321,10 @@ int main(int argc, const char *argv[])
 	handleNodes(&optCon, verbose, nodelist, hostlist, hostfile);
 
 	handleSort(&optCon, verbose, sort);
+
+	/* optCon no longer needed. Do not free() dup_argv before! */
+	optCon = NULL;
+	free(dup_argv);
 
 	if (login) {
 
