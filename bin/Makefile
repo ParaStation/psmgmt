@@ -34,7 +34,11 @@ tracemcp:tracemcp.c $(LIB)/libpshal.a $(LIB)/libpvar.a
 #	gcc $< -I$(INC) -I.. -L$(LIB) -larg -lpshal -lm -o $@
 
 psconfig:psconfig.c $(LIB)/libpshal.a $(LIB)/libarg.a
-	gcc $< -I$(INC) -I.. -L$(LIB) -larg -lpshal -lm -o $@
+	gcc $< -s -I$(INC) -I.. -L$(LIB) -larg -lpshal -lm -o $@
+	chmod og+rx $@
+
+test_nodes:test_nodes.c $(LIB)/libpshal.a $(LIB)/libarg.a
+	gcc $< -s -I$(INC) -I.. -L$(LIB) -larg -lpshal -lpsport -lpse -lpsi -lpthread -lm -o $@
 	chmod og+rx $@
 
 psroute:psroute.c $(LIB)/libpshal.a $(LIB)/libarg.a
