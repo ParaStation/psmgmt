@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: adminparser.c,v 1.13 2004/03/11 14:53:56 eicker Exp $
+ * $Id: adminparser.c,v 1.14 2004/03/16 11:09:42 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.13 2004/03/11 14:53:56 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.14 2004/03/16 11:09:42 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -37,7 +37,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.13 2004/
 
 #include "helpmsgs.c"
 
-static char parserversion[] = "$Revision: 1.13 $";
+static char parserversion[] = "$Revision: 1.14 $";
 
 static char *getNodeList(char *nl_descr)
 {
@@ -54,15 +54,12 @@ static char *getNodeList(char *nl_descr)
 	struct sockaddr_in sa;
 	int err;
 
-	if (!hp) return NULL;
+	if (!hp) goto error;
 
 	memcpy(&sa.sin_addr, *hp->h_addr_list, sizeof(sa.sin_addr));
 	err = PSI_infoNodeID(-1, PSP_INFO_HOST, &sa.sin_addr.s_addr, &node, 1);
 	
-	if (err){
-	    printf("Illegal nodename %s\n", nl_descr);
-	    return NULL;
-	}
+	if (err || node==-1) goto error;
 
 	nl = realloc(nl, PSC_getNrOfNodes());
 	memset(nl, 0, PSC_getNrOfNodes());
@@ -70,6 +67,10 @@ static char *getNodeList(char *nl_descr)
 	nl[node] = 1;
 	return nl;
     }
+
+ error:
+    printf("Illegal nodename '%s'\n", nl_descr);
+    return NULL;
 }
 
 static int addCommand(char *token)
