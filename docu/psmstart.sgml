@@ -61,16 +61,6 @@
     <title>Limitations</title>
     <itemizedlist>
       <listitem>
-	<para>The suspension of remotely started processes is not possible.
-	</para> 
-      </listitem>
-      <listitem>
-	<para>Signals sent to the local process will <emphasis
-	    role="bold">not</emphasis> be forwarded correctly to the remote
-	  process.
-	</para> 
-      </listitem>
-      <listitem>
 	<para>The return value of <command>program</command> will <emphasis
 	    role="bold">not</emphasis> be forwarded correctly to the
 	  controlling shell. 
