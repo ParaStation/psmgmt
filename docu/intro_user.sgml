@@ -4,16 +4,16 @@
   <section>
     <title>About this document</title>
     <para>
-      This manual discusses the user utilities of &ps;. These include an
-      adapted development framework for MPI applications based on <ulink
-	url="www.unix.mcs.anl.gov/mpi/mpich/">MPIch</ulink>. Furthermore &ps;'s
-      process spawning mechanism is described and the potential ways to steer
-      it are presented.
+      This manual discusses the user interface and the related utilities of
+      &ps;. These include an adapted development framework for MPI applications
+      based on <ulink url="www.unix.mcs.anl.gov/mpi/mpich/">MPIch</ulink>.
+      Furthermore &ps;'s process spawning mechanism is described and the
+      potential ways to steer it are presented.
     </para>
     <para>
       For a detailed discussion of the installation and configuration of &ps;
       and the administrators utilities in the standard distribution take a look
-      at the <ulink url="../adminguide/index.html" type="dontshow">ParaStation
+      at the <ulink url="../adminguide/index.html" type="dontshow">&ps;
 	Administrators Guide</ulink>. The &ps; programming interfaces
       documentation can be found in the <ulink url="../api/index.html"
 	type="dontshow">API reference</ulink>..
@@ -21,7 +21,7 @@
 
     <para>
       This document describes version 3.2 of the &ps; software for Myrinet and
-      version 1.0 of ParaStation FE.
+      version 1.0 of &psfe;.
     </para>
   </section>
 </chapter>
