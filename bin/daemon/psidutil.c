@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.38 2002/07/17 19:37:58 hauke Exp $
+ * $Id: psidutil.c,v 1.39 2002/07/17 20:21:07 hauke Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.38 2002/07/17 19:37:58 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.39 2002/07/17 20:21:07 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -40,6 +40,9 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.38 2002/07/1
 #include "config_parsing.h"
 
 #include "psidutil.h"
+
+/* magic license check */
+#include "../license/pslic_hidden.h"
 
 int PSID_HWstatus;
 short PSID_numCPU;
@@ -415,6 +418,11 @@ int PSID_taskspawn(PStask_t* task)
     }
     fcntl(fds[1],F_SETFD,FD_CLOEXEC);
 
+    if (!lic_isvalid(&ConfigLicEnv)) {
+    	PSID_errlog("Corrupted license!", 0);
+	exit(1);
+    }
+    
     /*
      * fork the new process
      */

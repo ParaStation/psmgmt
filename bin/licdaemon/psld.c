@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.25 2002/07/17 19:37:58 hauke Exp $
+ * $Id: psld.c,v 1.26 2002/07/17 20:21:07 hauke Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Daemon
  *
- * $Id: psld.c,v 1.25 2002/07/17 19:37:58 hauke Exp $
+ * $Id: psld.c,v 1.26 2002/07/17 20:21:07 hauke Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.25 2002/07/17 19:37:58 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.26 2002/07/17 20:21:07 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -241,7 +241,7 @@ void sighandler(int sig)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.25 $";
+    char revision[] = "$Revision: 1.26 $";
     snprintf(errtxt, sizeof(errtxt), "psld %s\b ", revision+11);
     errlog(errtxt, 0);
 }
@@ -417,8 +417,8 @@ int main(int argc, char *argv[])
 		if (!lok) {
 		peng:
 		    /* Licensefile is corrupted */
-		    errlog("Illegal license!\n", 0);
-		    /* What to do ??? */
+		    errlog("Corrupted license!\n", 0);
+		    /* What to do ??? Kill all psid's ? */
 		    exit(1);
 		}
 		if (--lc2 < 0) { /* second check after 1 h */
