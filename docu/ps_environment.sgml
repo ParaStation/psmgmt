@@ -39,7 +39,7 @@
     <variablelist>
 
       <varlistentry>
-	<term><envar>PSI_EXPORTS</envar> <replaceable>VAR</replaceable>
+	<term><envar>PSI_EXPORTS</envar><replaceable> VAR</replaceable>
 	  <optional>, <replaceable>VAR</replaceable></optional>...</term>
 	<listitem>
 	  <para>A list of environment variables which should be exported to
@@ -58,7 +58,7 @@
       </varlistentry>
 
       <varlistentry>
-	<term><envar>PSI_NODES</envar> <replaceable>number</replaceable>
+	<term><envar>PSI_NODES</envar><replaceable> number</replaceable>
 	  <optional>, <replaceable>number</replaceable></optional>...</term>
 	<listitem>
 	  <para>Defines the nodes building the partition used to spawn new
@@ -74,7 +74,7 @@
       </varlistentry>
 
       <varlistentry>
-	<term><envar>PSI_HOSTS</envar> <replaceable>hostname</replaceable>
+	<term><envar>PSI_HOSTS</envar><replaceable> hostname</replaceable>
 	  <optional> <replaceable>hostname</replaceable></optional>...</term>
 	<listitem>
 	  <para>Space separted list of hostnames on which new processes should
@@ -91,7 +91,7 @@
 
       <varlistentry>
 	<term><envar>PSI_HOSTFILE</envar>
-	  <replaceable>filename</replaceable></term>
+	  <replaceable> filename</replaceable></term>
 	<listitem>
 	  <para>The name of a file containing a list of nodes' hostnames which
 	    should be used for spawning. Similar to <envar>PSI_HOSTS</envar>
@@ -116,7 +116,7 @@
 
       <varlistentry>
 	<term><envar>PSI_NODES_SORT</envar>
-	  <replaceable>mode</replaceable></term>
+	  <replaceable> mode</replaceable></term>
 	<listitem>
 	  <para>This variable steers the sorting criterium which is used to
 	    bring the nodes building a partition in an appropriate order. This
@@ -228,7 +228,7 @@
     </para>
     <variablelist>
       <varlistentry>
-	<term><envar>PSP_NETWORK</envar> <replaceable>network</replaceable>
+	<term><envar>PSP_NETWORK</envar><replaceable> network</replaceable>
 	  <optional>, <replaceable>network</replaceable></optional>
 	</term>
 	<listitem>
@@ -267,7 +267,7 @@
     <variablelist>
       <varlistentry>
 	<term><envar>PSI_INPUTDEST</envar>
-	  <replaceable>rank</replaceable></term>
+	  <replaceable> rank</replaceable></term>
 	<listitem>
 	  <para>If set, psilogger will forward all input to the process with
 	    the corresponding rank within the process group. The default is to
@@ -395,8 +395,8 @@
       </varlistentry>
 
       <varlistentry>
-	<term><envar>MPID_PSP_HOSTS</envar> <replaceable>hostname</replaceable>
-	  <optional><replaceable>, hostname</replaceable></optional>...</term>
+	<term><envar>MPID_PSP_HOSTS</envar><replaceable> hostname</replaceable>
+	  <optional>, <replaceable>hostname</replaceable></optional>...</term>
 	<listitem>
 	  <para>Comma separated list of hostnames. Used for
 	    <envar>MPID_PSP_START=<replaceable>SSH</replaceable></envar>
