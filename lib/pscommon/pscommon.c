@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.c,v 1.16 2004/09/22 09:13:55 eicker Exp $
+ * $Id: pscommon.c,v 1.17 2004/10/04 16:51:08 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.16 2004/09/22 09:13:55 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.17 2004/10/04 16:51:08 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -356,25 +356,25 @@ char *PSC_parseNodelist(char *descr)
 
 void PSC_printNodelist(char *nl)
 {
-    size_t pos=0, numNodes = (size_t)PSC_getNrOfNodes();
+    PSnodes_ID_t pos=0, numNodes = PSC_getNrOfNodes();
     int first=1;
 
-    while (!nl[pos] && pos < numNodes) pos++;
-    if (pos == numNodes) {
+    while (nl && !nl[pos] && pos < numNodes) pos++;
+    if (!nl || pos == numNodes) {
 	printf("<empty>");
 	return;
     }
 
     while (pos < numNodes) {
-	size_t start=pos, end;
+	PSnodes_ID_t start=pos, end;
 
 	while (nl[pos] && pos < numNodes) pos++;
 	end = pos - 1;
 
 	if (start==end) {
-	    printf("%s%d", first ? "" : ",", start);
+	    printf("%s%ld", first ? "" : ",", (long)start);
 	} else {
-	    printf("%s%d-%d", first ? "" : ",", start, end);
+	    printf("%s%ld-%ld", first ? "" : ",", (long)start, (long)end);
 	}
 	first = 0;
 
