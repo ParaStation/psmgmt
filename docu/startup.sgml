@@ -38,7 +38,7 @@
       Starting a parallel task consisting of N processes running on the same
       number of nodes then is as simple as executing:
     </para>
-    <programlisting>	./prog -np N <option><replaceable>args</replaceable></option></programlisting>
+    <programlisting>	./prog -np N <optional><replaceable>args</replaceable></optional></programlisting>
     <para>
       Here <replaceable>args</replaceable> are one or more further argument
       that will be passed to each instance of <filename>prog</filename> within
@@ -460,7 +460,7 @@
       somewhere within the cluster conforming to the choosen spawning strategy
       set up as discussed in the previous section, you simply have to execute
     </para>
-    <programlisting>	psmstart exec <option><replaceable>args</replaceable></option></programlisting>
+    <programlisting>	psmstart exec <optional><replaceable>args</replaceable></optional></programlisting>
     <para>
       where <replaceable>args</replaceable> are the arguments that shall be
       passed to <filename>exec</filename>.
@@ -503,6 +503,66 @@
       </listitem>
     </itemizedlist>
   </section>
+
+  <!--
+  <section>
+    <title>Starting up MPIch P4 applications</title>
+    <para>
+      In rare cases one might want to run parallel applications provided by
+      independent software vendors which are not &ps; aware but rely on the
+      <ulink url="http://www-unix.mcs.anl.gov/mpi/mpich/">MPIch/P4</ulink>
+      implementation of the MPI message passing interface. These kind of
+      application can also be started up and controlled by the &ps; management
+      faciclity.
+    </para>
+    <para>
+      In order to do so the usual <xref linkend="mpirun"/> command used to
+      start MPI applications simply has to be replace by the special
+      <xref linkend="mpirun_p4"/> coming within the &ps; software distribution.
+      Usually it can be found within the
+      <filename>/opt/parastation/bin</filename> directory<footnote>
+	<para>Make sure that <filename>/opt/parastation/bin</filename> is
+	  included in the <envar>PATH</envar> environment variable in the case
+	  that <xref linkend="mpirun_p4"/> should be used.
+	</para>
+      </footnote>. To start the MPIch/P4 application <command>prog</command> on
+      N nodes using the &ps; administration facility
+    </para>
+    <programlisting>	mpirun_p4 -np N prog <optional><replaceable>args</replaceable></optional>
+    </programlisting>
+    <para>
+      has to be executed. All what has been said about process distribution,
+      virtual partitioning, node sorting and environment distribution within
+      this chapter remains valid when starting up MPIch/P4 programs using the
+      <xref linkend="mpirun_p4"/> command.
+    </para>
+    <para>
+      At this point it has to be emphasized that all communications launched by
+      the MPIch/P4 application make no use of the optimized &ps; communication
+      interfaces but run over TCP/IP, which usually utilizes the slow
+      Ethernet. This might be no problem, if communication is not performance
+      critical within the parallel application. Furthermore if &psfe; is used,
+      the difference between the &ps; communication performance and the one of
+      MPIch/P4 is still significant (up to a factor of 2) but might be
+      acceptable. But at least when &ps; over Myrinet is used the contrast
+      to communication utilizing MPIch/P4 is unacceptable<footnote>
+	<para>This might be cured partly by making use of the TCP/IP over
+	  Myrinet feature provided by &ps;.</para>
+      </footnote>. Thus a recompilation and relinking of the application should
+      be taken into account in any case where it is possible.
+    </para>
+    <para>
+      To recapitulate one can say that the <xref linkend="mpirun_p4"/> command
+      enables closed source MPIch/P4 applications to the &ps; management system
+      and thus helps to administrate and manage the cluster even if the
+      applications are not &ps; aware. Nevertheless this option is only
+      suboptimal since any communication done by the application makes no use
+      of &ps;'s optimized high performance communication subsystem but utilizes
+      the ordinary P4 interface.
+    </para>
+  </section>
+  -->
+
 </chapter>
   <!-- Keep this comment at the end of the file
   Local variables:
