@@ -7,25 +7,49 @@
   <refnamediv>
     <refname>psroute</refname>
     <refpurpose>
-      the ParaStation daemon. The organizer of the ParaStation software
-      architecture.
+      create a ParaStation routing table.
     </refpurpose>
   </refnamediv>
 
   <refsynopsisdiv>
     <cmdsynopsis>
-      <command>psid</command>
-      <arg>-v?</arg>
-      <arg>-f configfile</arg>
-      <arg>-l logfile</arg>
-      <arg>--usage</arg>
+      <command>psroute</command>
+      <arg>-d debugfile</arg>
+      <arg choice="plain">mapfile</arg>
     </cmdsynopsis>
   </refsynopsisdiv>
 
   <refsect1>
     <title>Description</title>
     <para>
-      bla
+      Take the <filename>mapfile</filename> which is created by <xref
+	linkend="psscan"/> and write a routing table to stdout.
+    </para>
+    <para>
+      The routing table is fed by the ParaStation daemon <xref linkend="psid"/>
+      into the ParaStation MyriNet module to enable proper routing.
+    </para>
+  </refsect1>
+  <refsect1>
+    <title>Options</title>
+    <variablelist>
+      <varlistentry>
+	<term>
+	  <option>-d <replaceable>debugfile</replaceable></option>
+	</term>
+	<listitem>
+	  <para>
+	    Enable debugging and write output to
+	    <filename>debugfile</filename>.
+	  </para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+  </refsect1>
+  <refsect1>
+    <title>See also</title>
+    <para>
+      <xref linkend="psscan"/>, <xref linkend="psid"/>
     </para>
   </refsect1>
 </refentry>

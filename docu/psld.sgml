@@ -28,7 +28,7 @@
       work and shut down.
     </para>
     <para>
-      To test if the license daemon is up, running of <xref linkend="mlisten"/>
+      To test if the license daemon is up, the use of <xref linkend="mlisten"/>
       is recommended. Assuming the ParaStation cluster contains N nodes, the
       N+1st spinning bar of <xref linkend="mlisten"/> output denotes, if the
       license daemon is running, i.e. if everything is set up correctly and the

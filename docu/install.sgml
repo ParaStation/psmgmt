@@ -30,25 +30,25 @@
       </para>
       <para>
 	Furthermore of course the nodes need to be interconnected. Usually
-	there is a connection via fast ethernet between the nodes. ParaStation
-	needs this fast ethernet interconnect for management
-	purposes. Furthermore there is the possibility to have an fast
-	interconnect to do high bandwith, low latency communication. At the
-	moment Myrinet is supported to do this kind of communication. There
-	also exists a version supporting communication via fast
-	ethernet. Naturally this version lacks of really high throughput and
-	low latency due to the limited capabilities of the hardware.
+	there is a connection via fast or gigabit ethernet between the nodes.
+	ParaStation needs this ethernet interconnect for management purposes.
+	Furthermore there is the possibility to have an fast interconnect to do
+	high bandwith, low latency communication. At the moment Myrinet is
+	supported to do this kind of communication. There also exists a version
+	supporting communication via fast ethernet. Naturally this version
+	lacks of really high throughput and low latency due to the limited
+	capabilities of the hardware.
       </para>
     </simplesect>
 
     <simplesect>
       <title>Multicast</title>
       <para>
-	From the software side of view only few prerequisites have to be met.
-	You need a Linux kernel supporting multicast on all nodes of the
-	cluster. This is usually no problem if a standard kernel from a common
+	From the software side of view only very few prerequisites have to be
+	met. A Linux kernel supporting multicast on all nodes of the cluster is
+	needed. This is usually no problem if a standard kernel from a common
 	distribution is used. You have to explicitly enable multicast support
-	if you build you own kernel. To learn more about multicast take a look
+	if you build your own kernel. To learn more about multicast take a look
 	at the <ulink
 	  url="http://jungla.dit.upm.es/~jmseyas/linux/mcast.howto/multic.html"> 
 	  <citetitle>Multicast over TCP/IP HOWTO</citetitle></ulink>.
@@ -72,8 +72,8 @@
       <para>
 	manually, where <replaceable>ethX</replaceable> has to be replaced by
 	the name of the interface connecting to all other nodes. To enable this
-	route at system-start, a corresponding entry has to be added to
-	<filename>route.conf</filename> or
+	route at system startup, a corresponding entry has to be added to
+	<filename>/etc/route.conf</filename> or
 	<filename>/etc/sysconfig/networks/routes</filename> depending on the
 	type of distribution used.
       </para>
@@ -85,18 +85,25 @@
     </simplesect>
 
     <simplesect>
+      <title>Channel bonding</title>
+      <para>
+	Info from Jens.
+      </para>
+    </simplesect>
+
+    <simplesect>
       <title>Kernel version</title>
       <para>
-	Furthermore, since kernel modules are needed for the high bandwidth,
-	low latency communication, you need a kernel version supported by the
-	distributed modules. These modules support the standard kernels of
-	common distributions, even if you have recompiled theses kernels in a
-	slightly modified way. These modules are not needed for the
+	Since kernel modules are needed for the high bandwidth, low latency
+	communication, a kernel version supported by the modules within the
+	ParaStation distribution is needed. These modules support the standard
+	kernels of common distributions, even if you have recompiled theses
+	kernels in a slightly modified way. They are not needed for the
 	communication via fast ethernet.
       </para>
       <para>
 	If there is the need for special version of the modules it is possible
-	to get them on demand.
+	to get them on demand. Please contact <email>xxx@par-tec.com</email>.
       </para>
     </simplesect>
   </section>
@@ -110,13 +117,15 @@
       <listitem>
 	<para>
 	  whether the ParaStation files should reside physically on one node
-	  and will be mounted on all the other nodes using NFS,
+	  and will be mounted on all the other nodes using NFS (this will
+	  called <quote>centralized</quote> installation within this document),
 	</para>
       </listitem>
       <listitem>
 	<para>
 	  or whether they should be stored identically in a distributed fashion
-	  on every node.
+	  on every node (which will be called <quote>distributed</quote>
+	  installation).
 	</para>
       </listitem>
     </itemizedlist>
@@ -125,9 +134,9 @@
       installation save from inconsistent versions of executables or
       configuration files within the cluster, but on the other hand it
       introduces a possible single point of failure, the NFS server. This
-      disadvantage may be reasonable if a frontend machine acts as a NFS
-      server, since all other nodes are unavailable anyhow, if the frontend
-      fails. Furthermore, the <filename>/home</filename> directory is ususally
+      disadvantage may be reasonable if a front-end machine acts as a NFS
+      server, since all other nodes are unavailable anyhow, if the front-end
+      fails. Furthermore the <filename>/home</filename> directory is ususally
       stored centralized, too. Thus doing so with the ParaStation files
       (ideally on the same machine) will cause no further harm to the stability
       and availability of the cluster.
@@ -138,7 +147,7 @@
       <filename>/opt/parastation</filename>) or it may be installed on a front
       end machine and mounted on everey node of the cluster (ideally also to
       <filename>/opt/parastation</filename>). Be aware of the fact that even if
-      ParaStation is installed on the front end machine, some configuration
+      ParaStation is installed on a front-end machine, some configuration
       work on each node has to be done anyway.
     </para>
     <para>
@@ -166,11 +175,11 @@
 	  <refentrytitle>automount</refentrytitle>
 	  <manvolnum>8</manvolnum>
       </citerefentry> in this case since the nodes of a cluster usually cannot
-	be operated in a usable way without the user's
+	be operated in a usable way without the users'
 	<filename>/home</filename> directories.
       </para>
     </note>
-    <section>
+    <section id="dir_struct">
       <title>Directory structure</title>
       <para>
 	The default location to install ParaStation is
@@ -203,10 +212,13 @@
 	      routing files for the MyriNet driver.
 	    </para>
 	    <para>
-	      Furthermore within the standard installation the configuration
-	      file <filename>parastation.conf</filename> is physically located
-	      here but through a symbolic link also available in
-	      <filename>/etc</filename>.
+	      Furthermore within the standard installation the main
+	      configuration file <filename>parastation.conf</filename> is
+	      physically located here. Through a symbolic link this
+	      configuration file also available in <filename>/etc</filename>,
+	      where it is expected by the ParaStation daemon <xref
+		linkend="psid"/>. This symbolic link will be created during
+	      installation by <command>PSM_INSTALL</command>.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -217,7 +229,8 @@
 	  <listitem>
 	    <para>
 	      contains the ParaStation documentation after installing the
-	      corresponding RPM or <filename>.tar.gz</filename> file.
+	      corresponding RPM or <filename>.tar.gz</filename> file. The
+	      necessary step are described in <xref linkend="docu_install"/>.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -231,6 +244,10 @@
 	      applications. This are primarily needed for building applications
 	      using the low level PSPort or PSHAL libraries.
 	    </para>
+	    <para>
+	      These header files are not needed if only self compiled MPI
+	      application or precompiled third party applications are used.
+	    </para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
@@ -243,6 +260,51 @@
 	      applications. This are primarily needed for building MPI
 	      applications or such using the low level PSPort or PSHAL
 	      libraries.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>
+	    <filename>man</filename>
+	  </term>
+	  <listitem>
+	    <para>
+	      contains the manual pages describing the ParaStation daemons,
+	      utilities and configuration files after installing the
+	      documentation RPM or <filename>.tar.gz</filename> file. The
+	      necessary step are described in <xref linkend="docu_install"/>.
+	    </para>
+	    <para>
+	      In order to enable this pages to the
+	      <citerefentry>
+		<refentrytitle>man</refentrytitle>
+		<manvolnum>1</manvolnum>
+	    </citerefentry> command please consult the corresponding
+	      documentation how to do this<footnote>
+		<para>
+		  Usually this is either done by modifying the
+		  <envar>MANPATH</envar> environment variable or by editing the
+		  <citerefentry>
+		    <refentrytitle>manpath</refentrytitle>
+		    <manvolnum>1</manvolnum>
+		  </citerefentry> configuration file, which is
+		  <filename>/etc/manpath.config</filename> by default.
+		</para>
+	      </footnote>.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>
+	    <filename>mpich</filename>
+	  </term>
+	  <listitem>
+	    <para>
+	      contains a adapted version of <ulink
+		url="http://www.unix.mcs.anl.gov/mpi/mpich">MPIch</ulink> after
+	      installing the ParaStation/MPIch RPM or
+	      <filename>.tar.gz</filename> file. The necessary step are
+	      described in <xref linkend="mpich_install"/>.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -273,7 +335,7 @@
 	<filename>ia64</filename>--> or <filename>alpha</filename>.
       </para>
       <para>
-	For the Tru64 version naming is pretty much the same only replacing
+	For the Tru64 version naming is roughly the same only replacing
 	<quote>Linux</quote> by <quote>OSF1</quote>.
       </para>
       <para>
@@ -296,7 +358,7 @@
 	<command>PSM_INSTALL</command> residing in the
 	<filename>config</filename> directory, which will modify some
 	configuration files in <filename>/etc</filename>. The modifications
-	done by this script are the same discussed in some detail in <xref
+	done by this script are discussed in some detail in <xref
 	  linkend="Install_by_hand"/>.
       </para>
       <para>
@@ -314,7 +376,7 @@
       </programlisting>
       <para>
 	on the NFS server machine to put all the ParaStation files onto
-	disc. Make sure that <filename>/opt/parastation</filename> is exported
+	disk. Make sure that <filename>/opt/parastation</filename> is exported
 	and the NFS server is running (use <citerefentry>
 	  <refentrytitle>showmount</refentrytitle>
 	  <manvolnum>8</manvolnum>
@@ -322,11 +384,11 @@
 	nodes to <filename>/opt/parastation</filename>. Afterwards run
       </para>
       <programlisting>
-	/opt/parastation/config/PSM_INSTALL
+	/opt/parastation/config/PSM_INSTALL -i
       </programlisting>
       <para>
-	manually on all nodes. The modifications done are discussed in some
-	detail in <xref linkend="Install_by_hand"/>.
+	manually on all the nodes. The modifications done are discussed in
+	<xref linkend="Install_by_hand"/>.
       </para>
     </simplesect>
   </section>
@@ -378,7 +440,7 @@
 	<filename>config</filename> directory has to be called:
       </para>
       <programlisting>
-	cd /opt/parastation/config/PSM_INSTALL
+	cd /opt/parastation/config/PSM_INSTALL -i
       </programlisting>
       <para>
 	This will modify some configuration files in <filename>/etc</filename>.
@@ -394,20 +456,20 @@
       <title>Centralized installation</title>
       <para>
 	To install ParaStation from a <filename>.tar.gz</filename> file in a
-	centralized fashion become root and change to the root directory
-	<filename>/</filename>. Then use the command
+	centralized fashion become <quote>root</quote> and change to the root
+	directory <filename>/</filename>. Then use the command
       </para>
       <programlisting>
 	gzip -cd psm-x.y.z-yyyymmdd.Linux.arch.tar.gz | tar xvf -
       </programlisting>
       <para>
-	on the NFS server machine to put all the ParaStation files onto disc,
+	on the NFS server machine to put all the ParaStation files onto disk,
 	i.e. to <filename>/opt/parastation</filename>. To enable ParaStation on
 	this machine execute the script <command>PSM_INSTALL</command> residing
 	in ParaStation's <filename>config</filename> directory:
       </para>
       <programlisting>
-	/opt/parastation/config/PSM_INSTALL
+	/opt/parastation/config/PSM_INSTALL -i
       </programlisting>
       <para>
 	The modifications done by this script will be discussed in <xref
@@ -422,7 +484,7 @@
 	nodes to <filename>/opt/parastation</filename> and run
       </para>
       <programlisting>
-	/opt/parastation/config/PSM_INSTALL
+	/opt/parastation/config/PSM_INSTALL -i
       </programlisting>
       <para>
 	manually on all nodes.
@@ -435,7 +497,7 @@
     <title>Installation by hand</title>
     <para>
       For full controll on the installation process you might not want to run
-      the <command>PSM_INSTALL</command> script, but do the modification by
+      the <command>PSM_INSTALL</command> script but do the modification by
       hand. Therefor the changes made by this script will be discussed now step
       by step.
     </para>
@@ -459,7 +521,8 @@
 	<note>
 	  <para>
 	    This has only to be done for the MyriNet version of
-	    ParaStation. You can leave out this step in ParaStation FE.
+	    ParaStation. You can leave out this step within the installation
+	    procedure of ParaStation FE.
 	  </para>
 	</note>
       </listitem>
@@ -475,33 +538,16 @@
 	psid          888/tcp     # ParaStation Daemon Start Port
 	# end of ParaStation entries
 	</programlisting>
-      </listitem>
-      <listitem>
-	<para><emphasis>Multicast setup</emphasis></para>
 	<para>
-	  ParaStation needs multicast support on all nodes, i.e. the installed
-	  kernel has to support it. This is usually no problem if a standard
-	  kernel from a common distribution is used. You have to enable
-	  multicast support explicitely if you want build your own kernel. To
-	  learn more about multicast take a look at the <ulink
-	    url="http://jungla.dit.upm.es/~jmseyas/linux/mcast.howto/multic.html"> 
-	    <citetitle>Multicast over TCP/IP HOWTO</citetitle></ulink>.
-	</para>
-	<para>
-	  On nodes with more than one ethernet interface you have to setup a
-	  defaultroute for the multicast traffic. This is done by
-	</para>
-	<programlisting>
-	route add -net 224.0.0.0 netmask 240.0.0.0 dev ethX
-	</programlisting>
-	<para>
-	  where <filename>ethX</filename> has to be replaced by the name of the
-	  interface connecting to all other nodes.
-	</para>
-	<para>
-	  Usually only the front-end machine has two ethernet interfaces in
-	  use. Then you have to add the multicast route to the interface
-	  connecting the front-end with all the nodes.
+	  There ports are used to trigger automatice startup of ParaStation's
+	  daemon <xref linkend="psid"/> and license daemon <xref
+	    linkend="psld"/> via <citerefentry>
+	    <refentrytitle>inetd</refentrytitle>
+	    <manvolnum>8</manvolnum>
+	  </citerefentry> or <citerefentry>
+	    <refentrytitle>xinetd</refentrytitle>
+	    <manvolnum>8</manvolnum>
+	  </citerefentry>.
 	</para>
       </listitem>
       <listitem id="ibh_inetd">
@@ -599,13 +645,20 @@
       </listitem>
     </orderedlist>
   </section>
-  <section>
+
+  <section id="docu_install">
+    <title>Installation of the documentation</title>
+    <para>ToDo</para>
+  </section>
+
+  <section id="mpich_install">
     <title>Installation of MPIch</title>
     <para>
-      To enable MPI over ParaStation on your cluster an adapted version of
-      <ulink url="http://www-unix.mcs.anl.gov/mpi/mpich/">MPIch</ulink> also
-      has to be installed. The corresponding packet may also be found within
-      the <ulink url="http://www.par-tec.com/downloads/download.html">download
+      In order to enable MPI over ParaStation on your cluster an adapted
+      version of <ulink
+	url="http://www-unix.mcs.anl.gov/mpi/mpich/">MPIch</ulink> also has to
+      be installed. A corresponding packet can be found within the <ulink
+	url="http://www.par-tec.com/downloads/download.html">download
 	section</ulink> of the <ulink url="http://www.par-tec.com">ParTec
 	homepage</ulink>. The file of the linux version is usually named
       <filename>mpich_a.b.cpsx.y.z_arch.tar.gz</filename>, where
@@ -641,11 +694,11 @@
       This will extract the ParaStation MPIch distribution to
       <filename>/opt/parastation/mpich</filename>. Since all these files are
       only needed for building MPI applications, but not for running them, it
-      is sufficient to do the extraction only on the compile node or frontend
+      is sufficient to do the extraction only on the compile node or front-end
       machine.
     </para>
     <para>
-      To enable the MPI commands to the users make sure that
+      In order to enable the MPI commands to the users make sure that
       <filename>/opt/parastation/mpich/bin</filename> is included into the
       system wide <envar>PATH</envar> environment variable. Furthermore you
       might want to enable the MPI man pages. These reside in
@@ -653,16 +706,8 @@
       documentation of the <citerefentry>
 	<refentrytitle>man</refentrytitle>
 	<manvolnum>1</manvolnum>
-      </citerefentry> command on how to do this<footnote>
-	<para>
-	  Usually this is either done by modifying the <envar>MANPATH</envar>
-	  environment variable or by editing the <citerefentry>
-	    <refentrytitle>manpath</refentrytitle>
-	    <manvolnum>1</manvolnum>
-	  </citerefentry> configuration file, which is
-	  <filename>/etc/manpath.config</filename> by default.
-	</para>
-      </footnote>.
+      </citerefentry> command and the remark in <xref linkend="dir_struct"/> on
+      how to do this.
     </para>
   </section>
   <section>
@@ -674,18 +719,25 @@
     <itemizedlist>
       <listitem>
 	<para>
-	  the configuration of the ParaStation system
+	  <link linkend="config_ps">the configuration of the ParaStation
+	    system</link>
 	</para>
       </listitem>
       <listitem>
 	<para>
-	  testing if everything works well
+	  <link linkend="setup_route">setting up the routing for MyriNet
+	    communication</link>
 	</para>
       </listitem>
       <listitem>
 	<para>
-	  optionally the embedding of the ParaStation system into an allready
-	  existing batch system.
+	  <link linkend="testing">testing if everything works well</link>
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  <link linkend="embed">optionally the embedding of the ParaStation
+	    system into an allready existing batch system.</link>
 	</para>
       </listitem>
     </itemizedlist>

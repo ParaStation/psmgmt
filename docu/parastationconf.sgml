@@ -21,9 +21,9 @@
     <para>
       The main syntax of the configuration file is one parameter per line. Due
       to ease of use there are some parameters, e.g. <command>nodes</command>,
-      that are implemented in a environment mode. This means that more than one
-      parameter may be set within one command. Environment mode parameters may
-      last more than one line.
+      that are implemented in an environment mode. This mode enables to set
+      more than one parameter within a command. Environment mode parameters may
+      last longer than one line.
     </para>
     <para>
       Comments are denoted by a "#" at the beginning of a line or a "#"
@@ -38,7 +38,8 @@
       notation is used to provide more readable keywords. The same notation is
       used in the configuration file template
       <filename>parastation.conf.tmpl</filename> contained in the distributed
-      ParaStation system.
+      ParaStation system. The template file can be found in
+      <filename>/opt/parastation/config</filename>.
     </para>
   </refsect1>
 
@@ -46,8 +47,8 @@
     <title>Parameters</title>
     <para>
       The different parameters are discussed in the order they should appear in
-      within the configuration file. Dependencies between parameters are marked
-      explicitely.
+      within the configuration file. Dependencies between parameters --
+      resulting in a defined order of parameters --  are marked explicitely.
     </para>
     <para>
       Some parameters may be modified using different keywords, e.g. both
@@ -64,9 +65,12 @@
       case of a MyriNet cluster <command>MyriNetModule</command> and
       <command>Routingfile</command> have also to be declared.
     </para>
-
+    <para>
+      If parameters are declared more than once, the latest declaration is the
+      one to use. Do not make use of this behavior as a feature since it may
+      create great pitfalls.
+    </para>
     <variablelist>
-
       <varlistentry>
 	<term>
 	  <cmdsynopsis>
@@ -78,8 +82,9 @@
 	</term>
 	<listitem>
 	  <para>
-	    Tell the ParaStation daemon where to find all the ParaStation
-	    stuff. The default is <filename>/opt/parastation</filename>.
+	    Tell the ParaStation daemon to find all the ParaStation stuff in
+	    <filename><replaceable>inst-dir</replaceable></filename>. The
+	    default is <filename>/opt/parastation</filename>.
 	  </para>
 	  <note>
 	    <para>
@@ -106,6 +111,11 @@
 	    <parameter><replaceable>num</replaceable></parameter>-1.
 	  </para>
 	  <note>
+	    <para>
+	      There is no default value for <command>NrOfNodes</command>.
+	      <command>NrOfNodes</command> has to be declare within the
+	      configuration file in any case.
+	    </para>
 	    <para>
 	      The number of connected nodes has to be declared before any
 	      <command>Nodes</command>.
@@ -138,7 +148,7 @@
 	  <para>
 	    Define the default communication hardware available on the nodes of
 	    the ParaStation cluster. This may be overruled by an explicit
-	    <parameter>HWType</parameter> option in a <command>Node</command>
+	    <option>HWType</option> option in a <command>Node</command>
 	    statement.
 	  </para>
 	  <para>
@@ -158,7 +168,7 @@
 		  optimized MPI implementation.
 		</para>
 		<para>
-		  This is only available in ParaStation FE.
+		  This is only available within ParaStation FE.
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -210,8 +220,19 @@
 
 	  </variablelist>
 	  <para>
-	    The default value for <command>HWType</command> is
-	    <command>None</command>.
+	    It is possible to enable more than one hardware type, either as
+	    default or on a per node basis. Think of a node that has both, a
+	    MyriNet and a fast ethernet card. Furthermore the cluster contains
+	    nodes that lack MyriNet. Then it might be useful to run jobs only
+	    depending on ethernet communication even on nodes that have a
+	    MyriNet card in order to talk to nodes that don't have one. The
+	    corresponding <command>HWType</command> declaration read
+	    <command>HWType { <parameter>MyriNet</parameter>
+	      <parameter>EtherNet</parameter></command>.
+	  </para>
+	  <para>
+	    The default value of <command>HWType</command> is
+	    <parameter>None</parameter>.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -225,14 +246,14 @@
 	</term>
 	<listitem>
 	  <para>
-	    If the argument is on of <parameter>yes</parameter>,
+	    If the argument is one of <parameter>yes</parameter>,
 	    <parameter>true</parameter> or <parameter>1</parameter> all nodes
 	    declared within a <command>Node</command> statement will load the
 	    ParaStation IP module to enable TCP/IP over MyriNet, unless
-	    otherwise stated within the <command>Node</command> statement.
+	    otherwise stated within a <command>Node</command> statement.
 	  </para>
 	  <para>
-	    If the argument is on of <parameter>no</parameter>,
+	    If the argument is one of <parameter>no</parameter>,
 	    <parameter>false</parameter> or <parameter>0</parameter> TCP/IP
 	    over MyriNet will not be enabled, unless otherwise stated.
 	  </para>
@@ -256,10 +277,15 @@
 	</term>
 	<listitem>
 	  <para>
-	    If the argument is on of <parameter>yes</parameter>,
+	    If the argument is one of <parameter>yes</parameter>,
 	    <parameter>true</parameter> or <parameter>1</parameter> all nodes
 	    declared within a <command>Node</command> statement will allow to
 	    start parallel jobs, unless otherwise stated.
+	  </para>
+	  <para>
+	    If the argument is one of <parameter>no</parameter>,
+	    <parameter>false</parameter> or <parameter>0</parameter> starting
+	    is not allowed, unless otherwise stated.
 	  </para>
 	  <para>
 	    The default is to allow starting parallel jobs from all nodes.
@@ -270,12 +296,14 @@
       <varlistentry>
 	<term>
 	  <cmdsynopsis>
-	    <command>Node</command>
+	    <command>Node {</command>
 	    <command>, Nodes</command>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
 	  <para>
+	    This is the first example of a parameter that supports the
+	    environment mode.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -293,7 +321,7 @@
 	  <para>
 	    Tell ParaStation to use
 	    <parameter><replaceable>hostname</replaceable></parameter> as the
-	    maschine where the ParaStation license daemon <xref
+	    machine where the ParaStation license daemon <xref
 	      linkend="psld"/> should run.
 	  </para>
 	  <para>
@@ -321,7 +349,7 @@
 	  <para>
 	    Tell the ParaStation daemon <xref linkend="psid"/> and the license
 	    daemon <xref linkend="psld"/> to use
-	    <parameter><replaceable>lic-file</replaceable></parameter> as the
+	    <filename><replaceable>lic-file</replaceable></filename> as the
 	    license file.
 	  </para>
 	  <para>
@@ -329,7 +357,7 @@
 	      linkend="psld"/>, need a correct license file.
 	  </para>
 	  <para>
-	    <parameter><replaceable>lic-file</replaceable></parameter> may be a
+	    <filename><replaceable>lic-file</replaceable></filename> may be a
 	    absolute or relative path. Relative paths are looked up relative to
 	    <filename><replaceable>InstallDir</replaceable>/config</filename>
 	    and <filename><replaceable>InstallDir</replaceable></filename> in
@@ -342,6 +370,13 @@
 	  <para>
 	    The default is <filename>license</filename>.
 	  </para>
+	  <note>
+	    <para>
+	      If <filename><replaceable>lic-file</replaceable></filename> is
+	      a relative path, <command>InstallDir</command> has to be declared
+	      beforehand, unless it is the default.
+	    </para>
+	  </note>
 	</listitem>
       </varlistentry>
 
@@ -358,18 +393,18 @@
 	  <para>
 	    The ParaStation license daemon <xref linkend="psld"/> will shut
 	    down operation after
-	    <parameter><replaceable>num</replaceable></parameter> MCast
-	    periods, if no MCast ping was received from any configured
+	    <parameter><replaceable>num</replaceable></parameter> multicast
+	    periods, if no multicast ping was received from any configured
 	    ParaStation daemon.
 	  </para>
 	  <para>
 	    The default value is 30.
 	  </para>
 	  <para>
-	    For now, the MCast period is set to two second, i.e. every daemon
-	    send a MCast ping every two seconds. This results into shutting
-	    down the license daemon 1 minute after shutting down the last
-	    ParaStation daemon withing the cluster.
+	    For now, the multicast period is set to two second, i.e. every
+	    daemon sends a multicast ping every two seconds. This results into
+	    shutting down the license daemon 1 minute after the last
+	    ParaStation daemon withing the cluster has finished execution.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -383,10 +418,30 @@
 	</term>
 	<listitem>
 	  <para>
+	    Tell the ParaStation daemon <xref linkend="psid"/> to use
+	    <filename><replaceable>mod-file</replaceable></filename> as the
+	    MyriNet kernel module.
+	  </para>
+	  <para>
+	    <filename><replaceable>mod-file</replaceable></filename> may be a
+	    absolute or relative path. Relative paths are looked up relative to
+	    <filename><replaceable>InstallDir</replaceable>/bin/module</filename> 
+	    and <filename><replaceable>InstallDir</replaceable></filename> in
+	    this order.
 	  </para>
 	  <note>
 	    <para>
 	      This parameter is only useful when configuring a MyriNet cluster.
+	    </para>
+	    <para>
+	      There is no default value for <command>MyriNetModule</command>.
+	      <command>MyriNetModule</command> has to be declare within the
+	      configuration file in any case for a MyriNet cluster.
+	    </para>
+	    <para>
+	      If <filename><replaceable>mod-file</replaceable></filename> is
+	      a relative path, <command>InstallDir</command> has to be declared
+	      beforehand, unless it is the default.
 	    </para>
 	  </note>
 	</listitem>
@@ -401,10 +456,31 @@
 	</term>
 	<listitem>
 	  <para>
+	    Tell the ParaStation daemon <xref linkend="psid"/> to use
+	    <filename><replaceable>route-file</replaceable></filename> as the
+	    MyriNet routing file.
+	  </para>
+	  <para>
+	    <filename><replaceable>route-file</replaceable></filename> may be
+	    a absolute or relative path. Relative paths are looked up relative
+	    to
+	    <filename><replaceable>InstallDir</replaceable>/config</filename> 
+	    and <filename><replaceable>InstallDir</replaceable></filename> in
+	    this order.
 	  </para>
 	  <note>
 	    <para>
 	      This parameter is only useful when configuring a MyriNet cluster.
+	    </para>
+	    <para>
+	      There is no default value for <command>RoutingFile</command>.
+	      <command>RoutingFile</command> has to be declare within the
+	      configuration file in any case for a MyriNet cluster.
+	    </para>
+	    <para>
+	      If <filename><replaceable>route-file</replaceable></filename>
+	      is a relative path, <command>InstallDir</command> has to be
+	      declared beforehand, unless it is the default.
 	    </para>
 	  </note>
 	</listitem>
@@ -414,14 +490,34 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>SmallPacketSize</command>
+	    <arg><replaceable>size</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
 	  <para>
+	    Set the the maximum size of PIO packets to
+	    <parameter><replaceable>size</replaceable></parameter> bytes.
+	  </para>
+	  <para>
+	    PIO packets are send directly to the node's memory by the MCP and
+	    copied by a <citerefentry>
+	      <refentrytitle>memcpy</refentrytitle>
+	      <manvolnum>3</manvolnum>
+		    </citerefentry> into the final destination. Non-PIO packets
+	    are send via DMA immediately to their final destination.
+	  </para>
+	  <para>
+	    The default value is 250 byte.
 	  </para>
 	  <note>
 	    <para>
 	      This parameter is only useful when configuring a MyriNet cluster.
+	    </para>
+	    <para>
+	      This parameter can be set during runtime via the <command>set
+		<option>smallpacketsize</option></command> directive within the
+	      ParaStation administration and management tool <xref
+		linkend="psiadmin"/>.
 	    </para>
 	  </note>
 	</listitem>
@@ -431,14 +527,29 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>ResendTimeout</command>
+	    <arg><replaceable>time</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
 	  <para>
+	    Set the retansmission timeout to
+	    <parameter><replaceable>time</replaceable></parameter>
+	    microseconds.
+	  </para>
+	  <para>
+	    If a packet sent by ParaStation to another node is not acknowledged
+	    for this period of time, it will be resend to this node.
+	  </para>
+	  <para>
+	    The default value is 2048 microseconds.
 	  </para>
 	  <note>
 	    <para>
 	      This parameter is only useful when configuring a MyriNet cluster.
+	    </para>
+	    <para>
+	      In the current version of ParaStation this parameter is fixed and
+	      cannot be modified.
 	    </para>
 	  </note>
 	</listitem>
@@ -448,14 +559,45 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>HNPend</command>
+	    <arg><replaceable>val</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
 	  <para>
+	    Set the number of pending host notify messages to
+	    <parameter><replaceable>val</replaceable></parameter>.
+	  </para>
+	  <para>
+	    Host notify messages are send by the MCP to the kernel to mark send
+	    buffers as free. This is done when data, that was sent successfully
+	    via this buffer, was acknowledged by the destination node.
+	  </para>
+	  <para>
+	    Usually not every freed buffer is communicated, but the MCP waits
+	    until several buffers are freed and sends accumulated host notify
+	    messages then.
+	    <parameter><replaceable>val</replaceable></parameter> is the number
+	    of accumulated messages to sent simultaniously.
+	  </para>
+	  <para>
+	    The default value is 2.
 	  </para>
 	  <note>
 	    <para>
 	      This parameter is only useful when configuring a MyriNet cluster.
+	    </para>
+	    <para>
+	      <option>val</option> has to be choosen as 0 &lt;=
+	      <option>val</option> &lt; 3. Small values lead to more traffic on
+	      the PCI bus, but prevent free send buffers on the MyriNet card
+	      from not being used. Values larger than 3 have empirically proven
+	      to do a disservice.
+	    </para>
+	    <para>
+	      This parameter can be set during runtime via the <command>set
+		<option>hnpend</option></command> directive within the
+	      ParaStation administration and management tool <xref
+		linkend="psiadmin"/>.
 	    </para>
 	  </note>
 	</listitem>
@@ -465,14 +607,44 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>ACKPend</command>
+	    <arg><replaceable>val</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
 	  <para>
+	    Set the number of pending acknowledgements to
+	    <parameter><replaceable>val</replaceable></parameter>.
+	  </para>
+	  <para>
+	    ParaStation usually does not send acknowledgements immediately but
+	    waits for some pending ACK messages and send them accumulated.
+	  </para>
+	  <para>
+	    If a packet is not acknowledged for some microseconds (the actual
+	    value can be set using the parameter
+	    <command>ResendTimeout</command>) it will be resend by the source
+	    node. If a packet is received twice by the destination node, a
+	    immediate ACK message is sent and therefor correct delivery of
+	    packets is ensured.
+	  </para>
+	  <para>
+	    The default value is 1.
 	  </para>
 	  <note>
 	    <para>
 	      This parameter is only useful when configuring a MyriNet cluster.
+	    </para>
+	    <para>
+	      <option>val</option> has to be choosen as 0 &lt;=
+	      <option>val</option> &lt; 3. Small values lead to more ACK
+	      messages, but prevent from to many resends. Values larger than 3
+	      have empirically proven to do a disservice.
+	    </para>
+	    <para>
+	      This parameter can be set during runtime via the <command>set
+		<option>ackpend</option></command> directive within the
+	      ParaStation administration and management tool <xref
+		linkend="psiadmin"/>.
 	    </para>
 	  </note>
 	</listitem>
@@ -533,11 +705,28 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>SelectTime</command>
+	    <arg><replaceable>time</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
 	  <para>
+	    Set the timeout of the central <citerefentry>
+	      <refentrytitle>select</refentrytitle>
+	      <manvolnum>2</manvolnum>
+	    </citerefentry> of the ParaStation daemon <xref linkend="psid"/> to
+	    <parameter><replaceable>time</replaceable></parameter> seconds.
 	  </para>
+	  <para>
+	    The default value is 2 seconds.
+	  </para>
+	  <note>
+	    <para>
+	      This parameter can be set during runtime via the <command>set
+		<option>selecttime</option></command> directive within the
+	      ParaStation administration and management tool <xref
+		linkend="psiadmin"/>.
+	    </para>
+	  </note>
 	</listitem>
       </varlistentry>
 
@@ -553,20 +742,21 @@
 	    The ParaStation daemon <xref linkend="psid"/> will declare other
 	    daemons as dead after
 	    <parameter><replaceable>num</replaceable></parameter> consecutively
-	    missing MCast pings.
+	    missing multicast pings.
 	  </para>
 	  <para>
 	    After declaring a node as dead, all processes residing on this node
 	    are also declared dead. This results in sending signals to all
-	    processes on the local node that have requested for.
+	    processes on the local node that have requested to get informed
+	    about the death of one of these processes.
 	  </para>
 	  <para>
 	    The default value is 10.
 	  </para>
 	  <para>
-	    For now, the MCast period is set to two second, i.e. every daemon
-	    send a MCast ping every two seconds. This results in declaring a
-	    daemon as dead after 20 seconds for the default value.
+	    For now, the multicast period is set to two second, i.e. every
+	    daemon send a multicast ping every two seconds. This results in
+	    declaring a daemon as dead after 20 seconds for the default value.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -580,7 +770,7 @@
 	</term>
 	<listitem>
 	  <para>
-	    Sets the debugging level of the ParaStation daemon
+	    Set the debugging level of the ParaStation daemon
 	    <xref linkend="psid"/> to <option>num</option>.
 	  </para>
 	  <note>
@@ -591,8 +781,14 @@
 	      <citerefentry>
 		<refentrytitle>syslog</refentrytitle>
 		<manvolnum>3</manvolnum>
-	      </citerefentry>. Don't use this levels differeent from
+	      </citerefentry>. Don't use this levels different from
 	      <constant>0</constant> for too long!
+	    </para>
+	    <para>
+	      This parameter can be set during runtime via the <command>set
+		<option>psiddebug</option></command> directive within the
+	      ParaStation administration and management tool <xref
+		linkend="psiadmin"/>.
 	    </para>
 	  </note>
 	</listitem>
@@ -623,7 +819,7 @@
 	    Tell <xref linkend="psid"/> and <xref linkend="psld"/> to use
 	    multicast group port
 	    <parameter><replaceable>group-num</replaceable></parameter> for
-	    MCast communication to other daemons.
+	    multicast communication to other daemons.
 	  </para>
 	  <para>
 	    The default port to use is <constant>237</constant>
@@ -642,7 +838,7 @@
 	  <para>
 	    Tell <xref linkend="psid"/> and <xref linkend="psld"/> to use UDP
 	    port <parameter><replaceable>port-num</replaceable></parameter> for
-	    MCast communication to other daemons.
+	    multicast communication to other daemons.
 	  </para>
 	  <para>
 	    The default port to use is <constant>1889</constant>

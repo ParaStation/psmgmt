@@ -7,17 +7,14 @@
   <refnamediv>
     <refname>psscan</refname>
     <refpurpose>
-      the ParaStation daemon. The organizer of the ParaStation software
-      architecture.
+      scan the MyriNet
     </refpurpose>
   </refnamediv>
 
   <refsynopsisdiv>
     <cmdsynopsis>
-      <command>psid</command>
-      <arg>-v?</arg>
-      <arg>-f configfile</arg>
-      <arg>-l logfile</arg>
+      <command>psscan</command>
+      <arg>-dv?</arg>
       <arg>--usage</arg>
     </cmdsynopsis>
   </refsynopsisdiv>
@@ -25,7 +22,71 @@
   <refsect1>
     <title>Description</title>
     <para>
-      bla
+      Scan the MyriNet to get detailed information about the network topology.
+      The result is a map of the MyriNet network, describing the the
+      interconnections of hosts and switches. The output of this command may be
+      piped into <xref
+	linkend="psroute"/> in order to create a routing table.
+    </para>
+    <para>
+      The routing table created by <xref linkend="psroute"/> then is fed by the
+      ParaStation daemon <xref linkend="psid"/> into the ParaStation MyriNet
+      module to enable proper routing.
+    </para>
+  </refsect1>
+
+  <refsect1>
+    <title>Options</title>
+    <variablelist>
+      <varlistentry>
+	<term>
+	  <option>-d</option>
+	  <option>, --debug</option>
+	</term>
+	<listitem>
+          <para>
+            Activate the debugging mode.
+          </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>
+          <option>-v</option>
+          <option>, --verbose</option>
+        </term>
+        <listitem>
+          <para>
+            Do more verbose logging.
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>
+          <option>-?</option>
+          <option>, --help</option>
+        </term>
+        <listitem>
+          <para>
+            Show a help message.
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>
+          <option>--usage</option>
+        </term>
+        <listitem>
+          <para>
+            Display a brief usage message.
+          </para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+  </refsect1>
+  <refsect1>
+    <title>See also</title>
+    <para>
+      <xref linkend="psroute"/>, <xref linkend="psid"/>
     </para>
   </refsect1>
 </refentry>

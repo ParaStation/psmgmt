@@ -21,7 +21,7 @@
   <refsect1>
     <title>Description</title>
     <para>
-      The psiadmin command provides an administrator interface to the
+      The psiadmin command provides an administrators interface to the
       ParaStation system.
     </para>
     <para>
@@ -30,7 +30,7 @@
       ParaStation daemon <xref linkend="psid"/>.
     </para>
     <para>
-      Most of the commands listed below can be executed by general users. Only
+      Most of the directive listed below can be executed by general users. Only
       modifying parameters, killing foreign jobs or shutting down single nodes
       or the whole system require root privilege.
     </para>
@@ -57,7 +57,7 @@
         </term>
 	<listitem>
 	  <para>
-	    Echo each executed command to stdout.
+	    Echo each executed directive to stdout.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -144,25 +144,25 @@
       to standard output and read a directive from standard input.
     </para>
     <para>
-      <!-- @todo Commands can be abbreviated to their minimum unambiguous form.
-      A command is terminated by a new line character or a semicolon, ";",
-      character. Multiple commands may be entered on a single line. A command
-      may extend across lines by escaping the new line character with a
-      back-slash "\". -->
+      <!-- @todo Directives can be abbreviated to their minimum unambiguous
+      form. A directive is terminated by a new line character or a semicolon,
+      ";", character. Multiple directives may be entered on a single line. A
+      directive may extend across lines by escaping the new line character with
+      a back-slash "\". -->
     </para>
     <para>
-      Comments begin with the # character and continue to end of the line.
-      Comments and blank lines are ignored by psiadmin.
+      <!-- @todo Comments begin with the # character and continue to end of the
+      line. Comments and blank lines are ignored by psiadmin. -->
     </para>
   </refsect1>
        
   <refsect1>
-    <title>Interactive commands</title>
+    <title>Interactive directives</title>
     <para>
-      When the psiadmin is started, it will prompt for commands.
+      When the psiadmin is started, it will prompt for directives.
     </para>
     <para>
-      Most command share the options <option><optional>from
+      Most directive share the options <option><optional>from
 	  <optional>to</optional></optional></option> marking a range of nodes
       managed by ParaStation. If <option>to</option> is missing, only the
       single node <option>from</option> is selected. All nodes are selected, if
@@ -170,9 +170,9 @@
     </para>
     <para>
       <option>from</option> and <option>to</option> may either be symbolic
-      hostnames or nodenumbers. Nodenumbers can be given decimal or hexadecimal
-      and must be in the range between <constant>0</constant> and
-      <constant>NumberOfNodes-1</constant>.
+      hostnames or nodenumbers. Nodenumbers can be given in decimal or
+      hexadecimal notation and must be in the range between
+      <constant>0</constant> and <constant>NumberOfNodes-1</constant>.
     </para>
     
     <variablelist>
@@ -190,14 +190,14 @@
             node(s)	    
 	  </para>
 	  <para>
-	    Usually this is done automatically when the system comes up,
-	    i.e. when the ParaStation administration and management tool is
-	    started for the first time.
+	    Usually this is done automatically when the system comes up, i.e.
+	    when the ParaStation administration and management tool <xref
+	      linkend="psiadmin"/> is started for the first time.
 	  </para>
 	  <para>
 	    <command>add</command> only tries to start the ParaStation daemon
 	    on the selected node(s). If it is not possible to start the daemon,
-	    no error message occurs. The actual status of the nodes can be
+	    no error message occurs. The current status of the nodes can be
 	    checked using the directive <command>status</command>.
 	  </para>
 	</listitem>
@@ -217,11 +217,11 @@
 	  </para>
 	  <para>
 	    All the displayed parameters can also be obtained via the
-	    <command>show</command> command. For a detailed describtion of
-	    these parameters see this command.
+	    <command>show</command> directive. For a detailed describtion of
+	    these parameters see this directive.
 	  </para>
 	  <para>
-	    This command is only supported for compatibility and will be
+	    This directive is only supported for compatibility and will be
 	    removed in future versions.
 	  </para>
 	</listitem>
@@ -245,13 +245,13 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>help</command>
-	    <arg><replaceable>command</replaceable></arg>
+	    <arg><replaceable>directive</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
 	  <para>
 	    Print a general help message or a help message concerning
-	    <option><replaceable>command</replaceable></option>.
+	    <option><replaceable>directive</replaceable></option>.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -430,7 +430,7 @@
 		</para>
 		<para>
 		  If a packet is not acknowledged for some microsecond (the
-		  actual value can be determined using the command
+		  actual value can be determined using the directive
 		  <command>show <option>resendtimeout</option></command>) it
 		  will be resend by the source node. If a packet is received
 		  twice by the destination node, a immediate ACK message is
@@ -466,7 +466,7 @@
 	      </term>
 	      <listitem>
 		<para>
-		  Shows the debugging level of the ParaStation daemon
+		  Show the debugging level of the ParaStation daemon
 		  <xref linkend="psid"/> on the seleceted node(s).
 		</para>
 	      </listitem>
@@ -481,7 +481,7 @@
 	      </term>
 	      <listitem>
 		<para>
-		  Shows the debugging level of the RDP protocol within the
+		  Show the debugging level of the RDP protocol within the
 		  ParaStation daemon <xref linkend="psid"/> on the seleceted
 		  node(s).
 		</para>
@@ -497,7 +497,7 @@
 	      </term>
 	      <listitem>
 		<para>
-		  Shows the debugging level of the MCast protocol within the
+		  Show the debugging level of the MCast protocol within the
 		  ParaStation daemon <xref linkend="psid"/> on the seleceted
 		  node(s).
 		</para>
@@ -555,13 +555,32 @@
 	      </term>
 	      <listitem>
 		<para>
-		  Show the processes managed by ParaStations system on the
+		  Show the processes managed by the ParaStation system on the
 		  selected node(s).
 		</para>
 		<para>
 		  Only user, logger and admin processes are displayed. If
 		  forwarder processes should also be displayed, use the
-		  <command>status <option>allproc</option></command> command.
+		  <command>status <option>allproc</option></command> directive.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>allproc</command>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>
+		  Show all processes managed by ParaStations system on the
+		  selected node(s).
+		</para>
+		<para>
+		  All processes managed by ParaStation are displayed. If
+		  forwarder processes should not be displayed, use the
+		  <command>status <option>proc</option></command> directive.
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -584,25 +603,6 @@
 		  technical reference.... @todo
 		</para>
 		-->
-	      </listitem>
-	    </varlistentry>
-
-	    <varlistentry>
-	      <term>
-		<cmdsynopsis>
-		  <command>allproc</command>
-		</cmdsynopsis>
-	      </term>
-	      <listitem>
-		<para>
-		  Show all processes managed by ParaStations system on the
-		  selected node(s).
-		</para>
-		<para>
-		  All processes managed by ParaStation are displayed. If
-		  forwarder processes should not be displayed, use the
-		  <command>status <option>proc</option></command> command.
-		</para>
 	      </listitem>
 	    </varlistentry>
 
@@ -660,17 +660,17 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>Prints various version numbers</para>
+	  <para>Print various version numbers</para>
 	</listitem>
       </varlistentry>
 
     </variablelist>
 
     <refsect2>
-      <title>Privileged commands</title>
+      <title>Privileged directives</title>
       <para>
-	Some commands are only available for privileged users, i.e. only root
-	can execute these commands.
+	Some directives are only available for privileged users, i.e. only root
+	can execute these directives.
       </para>
       <variablelist>
 
@@ -845,7 +845,7 @@
 		  </para>
 		  <note>
 		    <para>
-		      In the actual version of ParaStation this parameter is
+		      In the current version of ParaStation this parameter is
 		      read only and cannot be modified.
 		    </para>
 		  </note>
@@ -884,10 +884,11 @@
 		  </para>
 		  <note>
 		    <para>
-		      <option>val</option> has to be choosen as 0 &lt;
+		      <option>val</option> has to be choosen as 0 &lt;=
 		      <option>val</option> &lt; 3. Small values lead to more
 		      traffic on the PCI bus, but prevent from free send
-		      buffers on the MyriNet card from not being used.
+		      buffers on the MyriNet card from not being used. Values
+		      larger than 3 have empirically proven to do a disservice.
 		    </para>
 		  </note>
 		</listitem>
@@ -912,8 +913,8 @@
 		    send them accumulated.
 		  </para>
 		  <para>
-		    If a packet is not acknowledged for some microsecond (the
-		    actual value can be determined using the command
+		    If a packet is not acknowledged for some microseconds (the
+		    actual value can be determined using the directive
 		    <command>show <option>resendtimeout</option></command>) it
 		    will be resend by the source node. If a packet is received
 		    twice by the destination node, a immediate ACK message is
@@ -926,9 +927,10 @@
 		  </para>
 		  <note>
 		    <para>
-		      <option>val</option> has to be choosen as 0 &lt;
+		      <option>val</option> has to be choosen as 0 &lt;=
 		      <option>val</option> &lt; 3. Small values lead to more
-		      ACK messages, but prevent from to many resends.
+		      ACK messages, but prevent from to many resends. Values
+		      larger than 3 have empirically proven to do a disservice.
 		    </para>
 		  </note>
 		</listitem>
@@ -969,7 +971,7 @@
 		</term>
 		<listitem>
 		  <para>
-		    Sets the debugging level of the ParaStation daemon
+		    Set the debugging level of the ParaStation daemon
 		    <xref linkend="psid"/> to <option>level</option> on the
 		    seleceted node(s).
 		  </para>
@@ -986,7 +988,7 @@
 		      <citerefentry>
 			<refentrytitle>syslog</refentrytitle>
 			<manvolnum>3</manvolnum>
-		      </citerefentry>. Don't use this levels differeent from
+		      </citerefentry>. Don't use levels different from
 		      <constant>0</constant> for too long!
 		    </para>
 		  </note>
@@ -1003,7 +1005,7 @@
 		</term>
 		<listitem>
 		  <para>
-		    Sets the debugging level of the RDP protocol within the
+		    Set the debugging level of the RDP protocol within the
 		    ParaStation daemon <xref linkend="psid"/> to
 		    <option>level</option> on the seleceted node(s).
 		  </para>
@@ -1027,7 +1029,7 @@
 		</term>
 		<listitem>
 		  <para>
-		    Sets the debugging level of the MCast protocol within the
+		    Set the debugging level of the MCast protocol within the
 		    ParaStation daemon <xref linkend="psid"/> to
 		    <option>level</option> on the seleceted node(s).
 		  </para>

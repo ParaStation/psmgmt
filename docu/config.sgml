@@ -39,8 +39,23 @@
       </listitem>
 
   -->
-  <!-- one of (calloutlist glosslist itemizedlist orderedlist segmentedlist simplelist variablelist caution important note tip warning literallayout programlisting programlistingco screen screenco screenshot synopsis cmdsynopsis funcsynopsis classsynopsis fieldsynopsis constructorsynopsis destructorsynopsis methodsynopsis formalpara para simpara address blockquote graphic graphicco mediaobject mediaobjectco informalequation informalexample informalfigure informaltable equation example figure table msgset procedure sidebar qandaset anchor bridgehead remark highlights abstract authorblurb epigraph indexterm beginpage section simplesect refentry sect1) -->
   <para></para>
+  <section id="config_ps">
+    <title>Configuration of the ParaStation system</title>
+    <para></para>
+  </section>
+  <section id="setup_route">
+    <title>Setting up routing</title>
+    <para></para>
+  </section>
+  <section id="testing">
+    <title>Testing the installation</title>
+    <para></para>
+  </section>
+  <section id="embed">
+    <title>Embed ParaStation</title>
+    <para></para>
+  </section>
 </chapter>
   <!-- Keep this comment at the end of the file
   Local variables:

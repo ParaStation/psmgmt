@@ -42,10 +42,10 @@
       Parameters can be given at the command line or in the <citerefentry>
 	<refentrytitle>inetd</refentrytitle>
 	<manvolnum>8</manvolnum>
-      </citerefentry> configuration file (<citerefentry>
+      </citerefentry> configuration file <citerefentry>
 	<refentrytitle>inetd.conf</refentrytitle>
 	<manvolnum>5</manvolnum>
-      </citerefentry>). Most of the parameters can also be given in the
+      </citerefentry>. Most of the parameters can also be given in the
       ParaStation configuration file <xref linkend="parastation_conf" />.
     </para>
 
@@ -133,7 +133,7 @@
         </term>
 	<listitem>
 	  <para>
-            Activate the debugging mode and the the debugging level to
+            Activate the debugging mode and set the debugging level to
 	    <replaceable>level</replaceable>. If debugging is enabled, i.e. if
 	    <replaceable>level</replaceable> is larger than 0, no
 	    <citerefentry>

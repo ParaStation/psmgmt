@@ -7,7 +7,8 @@
   <refnamediv>
     <refname>mlisten</refname>
     <refpurpose>
-      display multicast pings from ParaStation daemon <xref linkend="psid"/>
+      display multicast pings from the ParaStation daemons <xref
+	linkend="psid"/> and <xref linkend="psld"/>
     </refpurpose>
   </refnamediv>
 
@@ -28,12 +29,17 @@
     <para>
       Display the multicast pings the ParaStation daemon <xref linkend="psid"/>
       and the ParaStation license daemon <xref linkend="psld"/> are emitting
-      continuously. The pings are displayed by spinning bars.
+      continuously. These pings are displayed by spinning bars.
     </para>
     <para>
       Each ping received from node N lets the Nth bar spin arround one more
       step. For each node never received a multicast ping from a '.' is
       displayed.
+    </para>
+    <para>
+      License pings, i.e. multicast pakets sent by ParaStations license daemon
+      <xref linkend="psld"/>, are displayed as pings of the N+1st machine in a
+      cluster of N machines.
     </para>
   </refsect1>
 
@@ -47,7 +53,9 @@
         </term>
 	<listitem>
 	  <para>
-	    Activate the debugging mode.
+	    Activate the debugging mode. This will disable the spinning
+	    bars. Instead a detailed message about each received multicast ping
+	    is displayed.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -86,9 +94,10 @@
         </term> 
 	<listitem>
 	  <para>
-	    Listen on the interface with address
+	    Listen on the network interface with address
 	    <replaceable>IP</replaceable>. The default is to listen on any
-	    interface.
+	    interface. <replaceable>IP</replaceable> is the IP address of the
+	    network interface in dot notation.
 	  </para>
 	</listitem>
       </varlistentry>
