@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast_private.h,v 1.11 2002/07/23 12:36:11 eicker Exp $
+ * $Id: mcast_private.h,v 1.12 2002/08/06 14:51:48 eicker Exp $
  *
  */
 /**
@@ -14,7 +14,7 @@
  *
  * Private functions and definitions.
  *
- * $Id: mcast_private.h,v 1.11 2002/07/23 12:36:11 eicker Exp $
+ * $Id: mcast_private.h,v 1.12 2002/08/06 14:51:48 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -81,6 +81,18 @@ typedef enum {
     T_LIC,           /**< Normal info message from license-server */
     T_KILL           /**< Info message from exiting license-server */
 } MCastMsgType;
+
+/**
+ * The default MCast-group number. Magic number defined by Joe long time ago.
+ * Can be overruled via initMCast().
+ */
+#define DEFAULT_MCAST_GROUP 237
+
+/**
+ * The default MCast-port number. Magic number defined by Joe long time ago.
+ * Can be overruled via initMCast().
+ */
+#define DEFAULT_MCAST_PORT 1889
 
 /**
  * The timeout used for MCast ping. The is a const for now and can only

@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.h,v 1.13 2002/07/23 12:43:33 eicker Exp $
+ * $Id: mcast.h,v 1.14 2002/08/06 14:51:48 eicker Exp $
  *
  */
 /**
  * \file
  * ParaStation MultiCast facility
  *
- * $Id: mcast.h,v 1.13 2002/07/23 12:43:33 eicker Exp $
+ * $Id: mcast.h,v 1.14 2002/08/06 14:51:48 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -95,18 +95,6 @@ typedef struct {
  */
 #define LIC_KILL_MSG          0x2
 
-
-/**
- * The default MCast-group number. Magic number defined by Joe long time ago.
- * Can be overruled via initMCast().
- */
-#define DEFAULT_MCAST_GROUP 237
-
-/**
- * The default MCast-port number. Magic number defined by Joe long time ago.
- * Can be overruled via initMCast().
- */
-#define DEFAULT_MCAST_PORT 1889
 
 /**
  * @brief Initialize the MCast module.
