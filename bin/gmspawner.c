@@ -5,20 +5,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: gmspawner.c,v 1.1 2003/06/20 13:59:49 eicker Exp $
+ * $Id: gmspawner.c,v 1.2 2003/06/27 11:02:03 eicker Exp $
  *
  */
 /**
  * @file Helper in order to start MPIch/GM applications within a ParaStation
  * cluster.
  *
- * $Id: gmspawner.c,v 1.1 2003/06/20 13:59:49 eicker Exp $
+ * $Id: gmspawner.c,v 1.2 2003/06/27 11:02:03 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: gmspawner.c,v 1.1 2003/06/20 13:59:49 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: gmspawner.c,v 1.2 2003/06/27 11:02:03 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -449,7 +449,8 @@ int main(int argc, const char *argv[])
 
 	np = -1;
 	verbose = 0;
-	waittime = killtime = 0;
+	waittime = 0;
+	killtime = -1;
 
 	rc = poptGetNextOpt(optCon);
 
@@ -630,10 +631,15 @@ int main(int argc, const char *argv[])
 	    fprintf(stderr, "got strange message type %s\n",
 		    PSP_printMsg(msg.header.type));
 	} else {
-	    if (firstClient && killtime) {
+	    if (firstClient && killtime!=-1) {
 		// printf("Alarm set to %d\n", killtime);
-		alarm(killtime);
-		firstClient=0;
+		if (killtime) {
+		    alarm(killtime);
+		    firstClient=0;
+		} else {
+		    /* Stop immediately */
+		    exit(0);
+		}
 	    }
 	    np--;
 	    // printf("%d clients left\n", np);

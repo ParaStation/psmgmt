@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mpirun_chgm.c,v 1.2 2003/06/26 16:39:56 eicker Exp $
+ * $Id: mpirun_chgm.c,v 1.3 2003/06/27 11:02:03 eicker Exp $
  *
  */
 /**
@@ -13,13 +13,13 @@
  * MPIch/GM in order to start such applications within a ParaStation
  * cluster.
  *
- * $Id: mpirun_chgm.c,v 1.2 2003/06/26 16:39:56 eicker Exp $
+ * $Id: mpirun_chgm.c,v 1.3 2003/06/27 11:02:03 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chgm.c,v 1.2 2003/06/26 16:39:56 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chgm.c,v 1.3 2003/06/27 11:02:03 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -49,7 +49,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chgm.c,v 1.2 2003/06
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.2 $";
+    char revision[] = "$Revision: 1.3 $";
     fprintf(stderr, "mpirun_chgm %s\b \n", revision+11);
 }
 
@@ -164,7 +164,8 @@ int main(int argc, const char *argv[])
 	np = dest = -1;
 	version = verbose = local = source = rusage = 0;
 	nodelist = hostlist = hostfile = sort = envlist = NULL;
-	gm_shmem = gm_eager = gm_wait = gm_kill = 0;
+	gm_shmem = gm_eager = gm_wait = 0;
+	gm_kill = -1;
 	gm_recv = "polling";
 
 	rc = poptGetNextOpt(optCon);
@@ -455,7 +456,7 @@ int main(int argc, const char *argv[])
 	}
     }
 
-    if (gm_kill) {
+    if (gm_kill!=-1) {
 	dup_argv[++arg] = malloc(32);
 	if (!dup_argv[arg]) {
 	    fprintf(stderr, "%s: no memory", argv[0]);
