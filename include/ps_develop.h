@@ -93,7 +93,7 @@
 #define ENABLE_JM
 
 /* Enable remote kernel debuging */
-//#define ENABLE_DEBUG_MSG	
+#define ENABLE_DEBUG_MSG	
 
 
 /* Send data with zero copy */
@@ -110,6 +110,8 @@
 /* PSPORT print debuging on ^Z */
 #define ENABLE_REQUESTDUMP
 
+#define PSM_PRINT_MAP_LEVEL_OFF 15
+
 #else
 
 /* switches for production */
@@ -122,10 +124,11 @@
 /* Disable local communication */
 #define DISABLE_LOCAL_COM
 
+#define PSM_PRINT_MAP_LEVEL_OFF 30
+
 #endif
 
 
-#define PSM_PRINT_MAP_LEVEL_OFF 1000
 #define ASMC(str) asm volatile ("!*************************\n\t!* " str "\n\t!*************************\n\t")
 #define _STRINGIFY(param) #param
 #define INT2STR(param) _STRINGIFY(param)
@@ -143,6 +146,9 @@
 //#define _P PSM_PRINT(0,("PSM: %s:%d\n",__FILE__,__LINE__))
 
 #endif
+
+
+
 
 
 
