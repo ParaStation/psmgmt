@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.10 2002/01/18 12:45:57 eicker Exp $
+ * $Id: rdp.c,v 1.11 2002/01/21 16:36:10 eicker Exp $
  *
  */
 /**
  * \file
  * rdp: ParaStation Reliable Datagram Protocol
  *
- * $Id: rdp.c,v 1.10 2002/01/18 12:45:57 eicker Exp $
+ * $Id: rdp.c,v 1.11 2002/01/21 16:36:10 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.10 2002/01/18 12:45:57 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.11 2002/01/21 16:36:10 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -141,7 +141,7 @@ int getRDPDebugLevel(void)
 
 void setRDPDebugLevel(int level)
 {
-    if ( (level>=0) || (level<16) ) {
+    if ((level>=0) || (level<16)) {
 	DEBUGLEVEL = level;
     }
 
@@ -160,7 +160,7 @@ void setRDPLogMsg(int n)
     logmsg = n;
 }
 
-static void errlog (char * s, int syslogerr, int level)
+static void errlog(char * s, int syslogerr, int level)
 {
     static char errtxt[320];
 
@@ -176,14 +176,14 @@ static void errlog (char * s, int syslogerr, int level)
     return;
 }
 
-static void errexit (char * s, int syslogerr, int eno)
+static void errexit(char * s, int syslogerr, int eno)
 {
     static char errtxt[320];
 
     if (syslogerr) {
 	snprintf(errtxt, sizeof(errtxt), "%s ERROR: %s: %s\n",
 		 LOGMSG[logmsg], s, strerror(eno));
-	syslog(LOG_ERR,errtxt);
+	syslog(LOG_ERR, errtxt);
     } else {
 	perror(s);
     }
@@ -200,7 +200,7 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
 {
     int retval;
  restart:
-    if ( (retval=recvfrom(sock, buf, len, flags, from, fromlen)) < 0) {
+    if ((retval=recvfrom(sock, buf, len, flags, from, fromlen)) < 0) {
 	if (errno == EINTR) {
 	    errlog("MYrecvfrom was interrupted !", syslogerror, 2);
 	    goto restart;
@@ -221,7 +221,7 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 {
     int retval;
  restart:
-    if ( (retval=sendto(sock, buf, len, flags, to, tolen)) < 0) {
+    if ((retval=sendto(sock, buf, len, flags, to, tolen)) < 0) {
 	if (errno == EINTR) {
 	    errlog("MYsendto was interrupted !", syslogerror, 2);
 	    goto restart;
@@ -241,9 +241,9 @@ unsigned short getServicePort(char *service)
     struct servent *pse;     /* pointer to service information entry */
     unsigned short port;
 
-    if ( (pse = getservbyname (service, "udp")) ) {
+    if ((pse = getservbyname (service, "udp"))) {
 	return pse->s_port;
-    } else if ( (port = htons((u_short)atoi(service))) ) {
+    } else if ((port = htons((u_short)atoi(service)))) {
 	return port;
     } else {
 	snprintf(errtxt, sizeof(errtxt), "can't get %s service entry",
@@ -255,7 +255,7 @@ unsigned short getServicePort(char *service)
 }
 
 
-static int passivesock (unsigned short port, int qlen)
+static int passivesock(unsigned short port, int qlen)
 {
     struct sockaddr_in sin;  /* an internet endpoint address */
     int s;                   /* socket descriptor */
@@ -268,14 +268,14 @@ static int passivesock (unsigned short port, int qlen)
     /*
      * allocate a socket
      */
-    if ( (s = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
+    if ((s = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
 	errexit("can't create socket", syslogerror, errno);
     }
 
     /*
      * bind the socket
      */
-    if ( bind(s, (struct sockaddr *)&sin, sizeof(sin)) < 0) {
+    if (bind(s, (struct sockaddr *)&sin, sizeof(sin)) < 0) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "can't bind to port %d.", ntohs(port));
 	errexit(errtxt, syslogerror, errno);
@@ -288,13 +288,13 @@ static int passivesock (unsigned short port, int qlen)
      */
 #if defined(__linux__LATER)
     val = 1;
-    if ( setsockopt(s, SOL_IP, IP_RECVERR, &val, sizeof(int)) < 0) {
+    if (setsockopt(s, SOL_IP, IP_RECVERR, &val, sizeof(int)) < 0) {
 	errexit("can't set socketoption IP_RECVERR", syslogerror, errno);
     }
 #endif
 #if defined (__linux)
 /*      val = 1; */
-/*      if ( setsockopt(s, SOL_SOCKET, SO_BSDCOMPAT, &val, sizeof(int)) < 0) { */
+/*      if (setsockopt(s, SOL_SOCKET, SO_BSDCOMPAT, &val, sizeof(int)) < 0) { */
 /*  	errexit("can't set socketoption SO_BSDCOMPAT", syslogerror, errno); */
 /*      } */
 #endif
@@ -314,10 +314,10 @@ static void getsinbyname(char *host, unsigned short port,
     /*
      * map host name to IP address
      */
-    if ( (phe = gethostbyname(host)) ) {
+    if ((phe = gethostbyname(host))) {
 	memcpy(&sin->sin_addr, phe->h_addr, phe->h_length);
     } else {
-	if ( (sin->sin_addr.s_addr = inet_addr(host)) == INADDR_NONE) {
+	if ((sin->sin_addr.s_addr = inet_addr(host)) == INADDR_NONE) {
 	    snprintf(errtxt, sizeof(errtxt), "can't get %s host entry", host);
 	    errexit(errtxt, syslogerror, errno);
 	}
@@ -391,9 +391,10 @@ typedef struct msgbuf_ {
 
 #define MAX_WINDOW_SIZE 64
 #define MAX_ACK_PENDING  4
-struct timeval RESEND_TIMEOUT = {0,100000}; /* sec, usec */
-/*  timeout for retransmission in us  (100.000) == 100ms */
-#define TIMER_LOOP 2 /* frequency of interval timer in s (used as ping freq) */
+struct timeval RESEND_TIMEOUT = {0, 100000}; /* sec, usec */
+/*  timeout for retransmission in us  (100.000) == 100msec */
+struct timeval TIMER_LOOP = {2, 0}; /* sec, usec */
+/*  timeout for timer in s == 2 sec */
 
 /*
  * connection info for each connection (peer to peer)
@@ -456,8 +457,8 @@ static void insertIPTable(struct in_addr ipno, int node)
     ipentry *ip;
     int idx = ntohl(ipno.s_addr) & 0xff;  /* use last byte of IP addr */
 
-    if ( iptable[idx].ipnr != 0 ) { /* create new entry */
-	/* printf("Node %d goes to table %d [NEW ENTRY]",node,idx); */
+    if (iptable[idx].ipnr != 0) { /* create new entry */
+	/* printf("Node %d goes to table %d [NEW ENTRY]", node, idx); */
 	ip = &iptable[idx];
 	while (ip->next != NULL) ip = ip->next; /* search end */
 	ip->next = (ipentry *)malloc(sizeof(ipentry));
@@ -466,7 +467,7 @@ static void insertIPTable(struct in_addr ipno, int node)
 	ip->ipnr = ipno.s_addr;
 	ip->node = node;
     } else { /* base entry is free, so use it */
-	/* printf("Node %d goes to table %d",node,idx); */
+	/* printf("Node %d goes to table %d", node, idx); */
 	iptable[idx].ipnr = ipno.s_addr;
 	iptable[idx].node = node;
     }
@@ -508,7 +509,7 @@ static void initConntable(int nodes, unsigned short port)
 	      "init conntable for %d nodes, win is %d",
 	      nodes, MAX_WINDOW_SIZE);
     Derrlog(errtxt, syslogerror, 10);
-    for(i=0; i<=nodes; i++) {
+    for (i=0; i<=nodes; i++) {
 	getsinbyname(psihosttable[i].name, port, &conntable[i].sin);
 	Dsnprintf(errtxt, sizeof(errtxt), "IP-ADDR of %s is %s",
 		  psihosttable[i].name, inet_ntoa(conntable[i].sin.sin_addr));
@@ -559,7 +560,7 @@ static msgbuf *MsgFreeList;  /* list of msg buf's ready to use */
  */
 static void initMsgList(int nodes)
 {
-    int i,count;
+    int i, count;
     msgbuf *buf;
 
     count = nodes * MAX_WINDOW_SIZE;
@@ -615,7 +616,7 @@ static Smsg   *SMsgFreeList;  /* list of Smsg buf's ready to use */
  */
 static void initSMsgList(int nodes)
 {
-    int i,count;
+    int i, count;
     Smsg *sbuf;
 
     count = nodes * MAX_WINDOW_SIZE;
@@ -684,7 +685,7 @@ static void initAckList(int nodes)
     AckListHead = (ackent *) NULL;
     AckListTail = (ackent *) NULL;
     AckFreeList = ackbuf;
-    for(i=0;i<count; i++) {
+    for (i=0; i<count; i++) {
 	ackbuf[i].prev = (ackent *)NULL;
 	ackbuf[i].next = &ackbuf[i+1];
 	ackbuf[i].bufptr = (msgbuf *)NULL;
@@ -761,17 +762,15 @@ static void deqAck(ackent *ap)
 
 /*
  * Setup interval timer to generate SIGALRM each sec.usec seconds
- * RDPtimer(0,0) stops the timer
+ * RDPtimer(0, 0) stops the timer
  */
-static void RDPtimer(int sec, int usec)
+static void RDPtimer(struct timeval *tv)
 {
     struct itimerval itv;
 
-    itv.it_interval.tv_sec = sec;
-    itv.it_interval.tv_usec = usec;
-    itv.it_value.tv_sec = sec;
-    itv.it_value.tv_usec = usec;
-    if (setitimer(ITIMER_REAL,&itv,NULL)==-1) {
+    itv.it_value.tv_sec = itv.it_interval.tv_sec = tv->tv_sec;
+    itv.it_value.tv_usec = itv.it_interval.tv_usec = tv->tv_usec;
+    if (setitimer(ITIMER_REAL, &itv, NULL)==-1) {
 	errexit("unable to set itimer", syslogerror, errno);
     }
 
@@ -799,23 +798,21 @@ void setRDPDeadLimit(int limit)
 /*
  * Check for broken connections
  */
-static void checkConnection(void)
+static void checkConnections(void)
 {
-    int i,info;
+    int i, info;
     struct timeval tv1, tv2;
 
-    gettimeofday(&tv2,NULL);
-    for(i=0;i<nr_of_nodes;i++) {
+    gettimeofday(&tv2, NULL);
+    for (i=0; i<nr_of_nodes; i++) {
 	if (licserver || conntable[i].state != CLOSED) {
-	    tv1.tv_sec=TIMER_LOOP+1;
-	    tv1.tv_usec=0;
-	    timeradd(&tv1,&conntable[i].lastping,&tv1);
-	    if (timercmp(&tv1,&tv2,<)) { /* no ping seen in the last 'round' */
+	    timeradd(&conntable[i].lastping, &TIMER_LOOP, &tv1);
+	    if (timercmp(&tv1, &tv2, <)) { /* no ping in the last 'round' */
 		Dsnprintf(errtxt, sizeof(errtxt),
 			  "Ping from node %d missing [%d] "
-			 "(now=%lx, last=%lx, new=%lx)",i,
-			 conntable[i].misscounter, tv2.tv_sec,
-			 conntable[i].lastping.tv_sec, tv1.tv_sec);
+			  "(now=%lx, last=%lx, new=%lx)", i,
+			  conntable[i].misscounter, tv2.tv_sec,
+			  conntable[i].lastping.tv_sec, tv1.tv_sec);
 		conntable[i].misscounter++;
 		conntable[i].lastping = tv1;
 		if ((conntable[i].misscounter%5)==0) {
@@ -834,17 +831,15 @@ static void checkConnection(void)
 	    }
 	}
     }
-    tv1.tv_sec=TIMER_LOOP+1;
-    tv1.tv_usec=0;
-    timeradd(&tv1,&conntable[nr_of_nodes].lastping,&tv1);
-    if (timercmp(&tv1,&tv2,<)) { /* no ping seen in the last 'round' */
+    timeradd(&conntable[nr_of_nodes].lastping, &TIMER_LOOP, &tv1);
+    if (timercmp(&tv1, &tv2, <)) { /* no ping in the last 'round' */
 	conntable[nr_of_nodes].misscounter++;
 	conntable[nr_of_nodes].lastping = tv1;
 	snprintf(errtxt, sizeof(errtxt),
 		 "Ping from LicServer %s missing [%d]",
 		 inet_ntoa(conntable[nr_of_nodes].sin.sin_addr),
 		 conntable[nr_of_nodes].misscounter);
-	if (conntable[nr_of_nodes].misscounter%10 == 0) { /* TOMHACK: %100 */
+	if (conntable[nr_of_nodes].misscounter > DEAD_LIMIT) {
 	    errlog(errtxt, syslogerror, 0);
 	    if (callback != NULL) { /* inform daemon */
 		info = conntable[nr_of_nodes].sin.sin_addr.s_addr;
@@ -859,8 +854,8 @@ static void checkConnection(void)
 	       syslogerror, 0);
 	if (callback != NULL) { /* inform daemon */
 	    info = LIC_LOST_CONECTION;
-	    conntable[nr_of_nodes].misscounter = 0; /* HACK HACK HACK : TOM */
-	    /* callback(RDP_LIC_SHUTDOWN, &info); */
+	    conntable[nr_of_nodes].misscounter = 0;
+	    callback(RDP_LIC_SHUTDOWN, &info);
 	} else {
 	    exitRDP();
 	    exit(-1);
@@ -981,7 +976,7 @@ int SEQNO_IN_WINFRAME(int exp, int got)
     /*
      * Valid Frame is: exp - WINSIZE < got < exp + WINSIZE
      */
-    if ( ((exp-MAX_WINDOW_SIZE) < got) && (got < (exp+MAX_WINDOW_SIZE)) ) {
+    if (((exp-MAX_WINDOW_SIZE) < got) && (got < (exp+MAX_WINDOW_SIZE))) {
 	return 1;
     } else {
 	return 0;
@@ -1023,7 +1018,7 @@ static int updateState(rdphdr *hdr, int node)
 		      "Changing State for node %d from CLOSED to SYN_SENT,"
 		      " FrameEx=%d", node, cp->FrameExpected);
 	    Derrlog(errtxt, syslogerror, 12);
-	    sendSYNNACK(node,hdr->seqno);
+	    sendSYNNACK(node, hdr->seqno);
 	    retval = RDP_SYNNACK;
 	    break;
 	default:
@@ -1248,7 +1243,6 @@ static void clearMsgQ(int node)
 	    deadbuf.dst = node;
 	    deadbuf.buf = mp->msg.small->data;
 	    deadbuf.buflen = mp->len;
-	    syslog(LOG_ERR,"clearMsgQ(%d)",node);
 	    callback(RDP_PKT_UNDELIVERABLE, &deadbuf);
 	}
 	Dsnprintf(errtxt, sizeof(errtxt),
@@ -1287,14 +1281,12 @@ static int resequenceMsgQ(int node, int new_sno, int old_sno)
     cp->NextFrameToSend = old_sno;
     cp->AckExpected = old_sno;
     while (mp) { /* still a message there */
-	if (RSEQCMP(mp->msg.small->header.seqno,old_sno) < 0) {
+	if (RSEQCMP(mp->msg.small->header.seqno, old_sno) < 0) {
 	    /* current msg precedes NACKed msg */
 	    if (callback != NULL) { /* give msg back to upper layer */
 		deadbuf.dst = node;
 		deadbuf.buf = mp->msg.small->data;
 		deadbuf.buflen = mp->len;
-		syslog(LOG_ERR,"resequenceMsgQ(%d,%d,%d)", node, new_sno,
-		       old_sno);
 		callback(RDP_PKT_UNDELIVERABLE, &deadbuf);
 	    }
 	    Dsnprintf(errtxt, sizeof(errtxt),
@@ -1360,8 +1352,8 @@ static void handleTimeout(void)
 	node = mp->node;
 	if (mp == conntable[node].bufptr) {
 	    /* handle only first outstanding buffer */
-	    gettimeofday(&tv,NULL);
-	    if (timercmp(&mp->tv,&tv,<)) { /* msg has a timeout */
+	    gettimeofday(&tv, NULL);
+	    if (timercmp(&mp->tv, &tv, <)) { /* msg has a timeout */
 		if (mp->retrans > RDPMAX_RETRANS_COUNT) {
 		    snprintf(errtxt, sizeof(errtxt),
 			     "Retransmission count exceeds limit [seqno=%d],"
@@ -1377,7 +1369,7 @@ static void handleTimeout(void)
 		    Derrlog(errtxt, syslogerror, 8);
 		    mp->tv = tv;
 		    mp->retrans++;
-		    timeradd(&mp->tv,&RESEND_TIMEOUT,&mp->tv);
+		    timeradd(&mp->tv, &RESEND_TIMEOUT, &mp->tv);
 		    /* update ackinfo */
 		    mp->msg.small->header.ackno =
 			conntable[node].FrameExpected-1;
@@ -1412,7 +1404,7 @@ static void RDPhandler(int sig)
 static void RDPMCASThandler(int sig)
 {
     MCAST_PING(ACTIVE);
-    checkConnection();
+    checkConnections();
     return;
 }
 
@@ -1424,7 +1416,7 @@ static void doACK(rdphdr *hdr, int fromnode)
     Rconninfo *cp;
     msgbuf *mp;
 
-    if ( (hdr->type == RDP_SYN) || (hdr->type == RDP_SYNACK) ) return;
+    if ((hdr->type == RDP_SYN) || (hdr->type == RDP_SYNACK)) return;
     /* these packets are used for initialization only */
 
     cp = &conntable[fromnode];
@@ -1435,7 +1427,7 @@ static void doACK(rdphdr *hdr, int fromnode)
 	      fromnode, hdr->type, hdr->seqno, cp->AckExpected, hdr->ackno);
     Derrlog(errtxt, syslogerror, 3);
 
-    if ( hdr->connid != cp->ConnID_in) { /* New Connection */
+    if (hdr->connid != cp->ConnID_in) { /* New Connection */
 	Dsnprintf(errtxt, sizeof(errtxt),
 		  " Unable to process ACK's for new connections %x vs. %x",
 		  hdr->connid, cp->ConnID_in);
@@ -1444,13 +1436,13 @@ static void doACK(rdphdr *hdr, int fromnode)
     }
 
     if (hdr->type == RDP_DATA) {
-	if (RSEQCMP(hdr->seqno,cp->FrameExpected) < 0) { /* Duplicated MSG */
+	if (RSEQCMP(hdr->seqno, cp->FrameExpected) < 0) { /* Duplicated MSG */
 	    sendACK(fromnode); /* (re)send ack to avoid further timeouts */
 	    Dsnprintf(errtxt, sizeof(errtxt), "(Re)sending ACK to node %d",
 		      fromnode);
 	    Derrlog(errtxt, syslogerror, 3);
 	}
-	if (RSEQCMP(hdr->seqno,cp->FrameExpected) > 0) { /* Missing Data */
+	if (RSEQCMP(hdr->seqno, cp->FrameExpected) > 0) { /* Missing Data */
 	    sendNACK(fromnode); /* send nack to inform sender */
 	    Dsnprintf(errtxt, sizeof(errtxt), "Sending NACK to node %d",
 		      fromnode);
@@ -1460,9 +1452,9 @@ static void doACK(rdphdr *hdr, int fromnode)
 
     while (mp) {
 	Dsnprintf(errtxt, sizeof(errtxt), "Comparing seqno %d with %d",
-		  mp->msg.small->header.seqno,hdr->ackno);
+		  mp->msg.small->header.seqno, hdr->ackno);
 	Derrlog(errtxt, syslogerror, 4);
-	if (RSEQCMP(mp->msg.small->header.seqno,hdr->ackno) <= 0) {
+	if (RSEQCMP(mp->msg.small->header.seqno, hdr->ackno) <= 0) {
 	    /* ACK this buffer */
 	    if (mp->msg.small->header.seqno != cp->AckExpected) {
 		snprintf(errtxt, sizeof(errtxt),
@@ -1534,7 +1526,7 @@ int initRDP(int nodes, int mgroup, int usesyslog, void (*func)(int, void*))
     sa.sa_handler = RDPhandler;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
-    if (sigaction(SIGALRM,&sa,0)==-1) {
+    if (sigaction(SIGALRM, &sa, 0)==-1) {
 	errexit("unable set sighandler", syslogerror, errno);
     }
 
@@ -1546,8 +1538,9 @@ int initRDP(int nodes, int mgroup, int usesyslog, void (*func)(int, void*))
 
 void exitRDP(void)
 {
+    struct timeval tv = {0, 0};
     MCAST_PING(CLOSED);            /* send shutdown msg */
-    RDPtimer(0,0);                 /* stop interval timer */
+    RDPtimer(&tv);                 /* stop interval timer */
     close(rdpsock);                /* close RDP socket */
     close(mcastsock);              /* close Multicast socket */
     return;
@@ -1577,11 +1570,11 @@ static int wait_for_answer(int node, int id)
 
  WAIT_LOOP:
     FD_ZERO(&rfds);
-    FD_SET(rdpsock,&rfds);
+    FD_SET(rdpsock, &rfds);
     tv.tv_sec = 1;
     tv.tv_usec = 0;
 
-    if ( (retval=select(rdpsock+1,&rfds,NULL,NULL,&tv)) == -1) {
+    if ((retval=select(rdpsock+1, &rfds, NULL, NULL, &tv)) == -1) {
 	switch (errno) {
 	case EBADF:
 	case EINVAL:
@@ -1629,7 +1622,7 @@ static int openConnection(int node)
     }
     conntable[node].state = SYN_SENT;
     while (conntable[node].state != ACTIVE) {
-	if (wait_for_answer(node,proto)) return -1; /* No Answer */
+	if (wait_for_answer(node, proto)) return -1; /* No Answer */
 	alen = sizeof(fsin);
 	/* ACHTUNG: DAMIT werfen wir DATENpakete weg !! */
 	if (MYrecvfrom(rdpsock, (char *)&msg, sizeof(Smsg), 0,
@@ -1653,7 +1646,7 @@ static void reestablishConnection(rdphdr *hdr, int node)
     if (hdr->type == RDP_SYNNACK) {
 	Derrlog("Resequencing MSG-Q", syslogerror, 7);
 	conntable[node].msg_pending =
-	    resequenceMsgQ(node,hdr->seqno,hdr->ackno);
+	    resequenceMsgQ(node, hdr->seqno, hdr->ackno);
     } else {
 	Derrlog("Clearing MSG-Q", syslogerror, 7);
 	clearMsgQ(node); /* clear outgoing MSG-Q */
@@ -1671,7 +1664,7 @@ int Rsendto(int node, void *buf, int len)
     msgbuf *mp;
     int retval;
 
-    if ( ((node < 0) || (node >=  nr_of_nodes)) ) {
+    if (((node < 0) || (node >=  nr_of_nodes))) {
 	/* illegal node number */
 	snprintf(errtxt, sizeof(errtxt),
 		 "Rsendto: illegal node number [%d]", node);
@@ -1729,8 +1722,8 @@ int Rsendto(int node, void *buf, int len)
     }
     mp->node = node;
     mp->ackptr = enqAck(mp);
-    gettimeofday(&mp->tv,NULL);
-    timeradd(&mp->tv,&RESEND_TIMEOUT,&mp->tv);
+    gettimeofday(&mp->tv, NULL);
+    timeradd(&mp->tv, &RESEND_TIMEOUT, &mp->tv);
     mp->len = len;
 
     /*
@@ -1752,7 +1745,7 @@ int Rsendto(int node, void *buf, int len)
      * finally send the data
      */
     Dsnprintf(errtxt, sizeof(errtxt),
-	      "sending DATA[len=%d] to node %d (seq=%d,ack=%d)", len, node,
+	      "sending DATA[len=%d] to node %d (seq=%d, ack=%d)", len, node,
 	      conntable[node].NextFrameToSend, conntable[node].FrameExpected);
     Derrlog(errtxt, syslogerror, 8);
 
@@ -1786,8 +1779,8 @@ static void resendMsgs(int node)
     mp = cp->bufptr;
 
     while (mp) {
-	gettimeofday(&tv,NULL);
-	timeradd(&mp->tv,&RESEND_TIMEOUT,&mp->tv);
+	gettimeofday(&tv, NULL);
+	timeradd(&mp->tv, &RESEND_TIMEOUT, &mp->tv);
 	if (mp->retrans > RDPMAX_RETRANS_COUNT) {
 	    snprintf(errtxt, sizeof(errtxt),
 		     "resendMsgs() Retransmission count exceeds limit"
@@ -1868,7 +1861,7 @@ int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
     int retval;
     Lmsg msg;
     struct sockaddr_in sin;
-    struct timeval start,end,stv;
+    struct timeval start, end, stv;
     socklen_t slen;
     int fromnode;
     fd_set rfds, wfds, efds;
@@ -1883,7 +1876,7 @@ int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
     do {
 	if (dotimeout) {
 	    handleTimeout();
-	    checkConnection();
+	    checkConnections();
 	    dotimeout=0;
 	}
 
@@ -1905,9 +1898,9 @@ int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	    FD_ZERO(&efds);
 	}
 
-	FD_SET(rdpsock,&rfds);                        /* activate rdp port */
+	FD_SET(rdpsock, &rfds);                       /* activate rdp port */
 	if (rdpsock >= n) n = rdpsock+1;
-	FD_SET(mcastsock,&rfds);                      /* activate MCAST port */
+	FD_SET(mcastsock, &rfds);                     /* activate MCAST port */
 	if (mcastsock >= n) n = mcastsock+1;
 
 	if (timeout) {
@@ -1952,7 +1945,7 @@ int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 		errlog(errtxt, syslogerror, 0);
 
 #if defined(__linux__LATER)
-		if ( errno == ECONNREFUSED ) {
+		if (errno == ECONNREFUSED) {
 		    struct msghdr errmsg;
 		    struct sockaddr_in sin;
 		    struct sockaddr_in * sinp;
@@ -1968,7 +1961,7 @@ int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 		    iov.iov_base=ubuf;
 		    errmsg.msg_name=&sin;
 		    errmsg.msg_namelen=sizeof(struct sockaddr_in);
-		    if (recvmsg(rdpsock,&errmsg,MSG_ERRQUEUE) == -1) {
+		    if (recvmsg(rdpsock, &errmsg, MSG_ERRQUEUE) == -1) {
 			Dsnprintf(errtxt, sizeof(errtxt),
 				  "Error in recvmsg [%d]: %s", errno,
 				  strerror(errno));
@@ -2023,9 +2016,9 @@ int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 
 	if (retval) break;
 
-	gettimeofday(&start,NULL);  /* get NEW starttime */
+	gettimeofday(&start, NULL);  /* get NEW starttime */
 
-    } while (timeout==NULL || timercmp(&start,&end,<));
+    } while (timeout==NULL || timercmp(&start, &end, <));
 
     if (!rdpreq && FD_ISSET(rdpsock, &rfds)) {
 	FD_CLR(rdpsock, &rfds);
@@ -2051,13 +2044,13 @@ int Rrecvfrom(int *node, void *msg, int len)
     int retval;
     int fromnode;
 
-    if ( (node == NULL) || (msg == NULL) ) {
+    if ((node == NULL) || (msg == NULL)) {
 	/* we definitely need a pointer */
 	errlog("Rrecvfrom: got NULL pointer", syslogerror, 0);
 	errno = EINVAL;
 	return -1;
     }
-    if ( ((*node < -1) || (*node >=  nr_of_nodes)) ) {
+    if (((*node < -1) || (*node >=  nr_of_nodes))) {
 	/* illegal node number */
 	snprintf(errtxt, sizeof(errtxt),
 		 "Rrecvfrom: illegal node number [%d]", *node);
@@ -2065,7 +2058,7 @@ int Rrecvfrom(int *node, void *msg, int len)
 	errno = EINVAL;
 	return -1;
     }
-    if ( (*node != -1) && (conntable[*node].state != ACTIVE)) {
+    if ((*node != -1) && (conntable[*node].state != ACTIVE)) {
 	/* connection not established */
 	Dsnprintf(errtxt, sizeof(errtxt),
 		  "Receiving from node %d which is NOT ACTIVE", *node);
@@ -2082,8 +2075,8 @@ int Rrecvfrom(int *node, void *msg, int len)
 
     slen = sizeof(sin);
     /* get pending msg */
-    if ( (retval = MYrecvfrom(rdpsock, &msgbuf, sizeof(Lmsg), 0,
-			      (struct sockaddr *)&sin, &slen)) <0 ) {
+    if ((retval = MYrecvfrom(rdpsock, &msgbuf, sizeof(Lmsg), 0,
+			      (struct sockaddr *)&sin, &slen)) < 0) {
 	errexit("Rrecvfrom: recvfrom()", syslogerror, errno);
     }
     fromnode = lookupIPTable(sin.sin_addr);        /* lookup node */
@@ -2150,7 +2143,7 @@ static void initMCAST(int group, unsigned short port)
 
     if (!group) group = DEFAULT_MCAST_GROUP;
 
-    if (gethostname(host,sizeof(host))<0) {
+    if (gethostname(host, sizeof(host))<0) {
 	errexit("unable to get hostname", syslogerror, errno);
     }
 
@@ -2160,7 +2153,7 @@ static void initMCAST(int group, unsigned short port)
     if ((phe = gethostbyname(host))) {
 	memcpy(&in_sin.s_addr, phe->h_addr, phe->h_length);
     } else {
-	if ( (in_sin.s_addr = inet_addr(host)) == INADDR_NONE) {
+	if ((in_sin.s_addr = inet_addr(host)) == INADDR_NONE) {
 	    snprintf(errtxt, sizeof(errtxt), "can't get %s host entry", host);
 	    errexit(errtxt, syslogerror, errno);
 	}
@@ -2240,7 +2233,7 @@ static void initMCAST(int group, unsigned short port)
 	      inet_ntoa(msin.sin_addr), ntohs(msin.sin_port));
     Derrlog(errtxt, syslogerror, 9);
 
-    RDPtimer(TIMER_LOOP,0);
+    RDPtimer(&TIMER_LOOP);
     return;
 }
 
@@ -2255,11 +2248,11 @@ static void handleMCAST(void)
 
     while (1) {
 	FD_ZERO(&rdfs);
-	FD_SET(mcastsock,&rdfs);
+	FD_SET(mcastsock, &rdfs);
 	tv.tv_sec = 0;
 	tv.tv_usec = 0;
 
-	if ( (retval=select(mcastsock+1, &rdfs, NULL, NULL, &tv)) == -1) {
+	if ((retval = select(mcastsock+1, &rdfs, NULL, NULL, &tv)) == -1) {
 	    if (errno == EINTR) {
 		continue;
 	    } else {
@@ -2364,7 +2357,7 @@ int initRDPMCAST(int nodes, int mgroup, int usesyslog,
     sa.sa_handler = RDPMCASThandler;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
-    if (sigaction(SIGALRM,&sa,0)==-1) {
+    if (sigaction(SIGALRM, &sa, 0)==-1) {
 	errexit("unable set sighandler", syslogerror, errno);
     }
 
@@ -2379,70 +2372,78 @@ int initRDPMCAST(int nodes, int mgroup, int usesyslog,
 int Mselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	    struct timeval *timeout)
 {
-    int rdpreq = 0;
     int retval = 0;
-    struct timeval start,end,stv;
-    int nn=0;
-    fd_set rfds,wfds,efds;
+    struct timeval start, end, stv;
+    fd_set rfds, wfds, efds;
 
-    if (timeout != NULL) {
-	gettimeofday(&start,NULL);              /* get starttime */
-	timeradd(&start,timeout,&end);          /* add timeout as given */
+    if (timeout) {
+	gettimeofday(&start, NULL);                   /* get starttime */
+	timeradd(&start, timeout, &end);              /* add given timeout */
     }
 
- restart:
-    if (readfds) {
-	memcpy(&rfds, readfds, sizeof(fd_set));   /* clone readfds */
-	rdpreq = FD_ISSET(rdpsock,readfds);       /* was rdp requested ? */
-    } else {
-	FD_ZERO(&rfds);
-    }
-    if (writefds) {
-	memcpy(&wfds, writefds, sizeof(fd_set));  /* clone writefds */
-    } else {
-	FD_ZERO(&wfds);
-    }
-    if (exceptfds) {
-	memcpy(&efds, exceptfds, sizeof(fd_set)); /* clone exceptfds */
-    } else {
-	FD_ZERO(&efds);
-    }
-    FD_SET(mcastsock,&rfds);                      /* activate MCAST port */
-    if (mcastsock>n) nn = mcastsock+1;
-
-    while (1) {
-	timersub(&end,&start,&stv);
-	retval = select(nn, &rfds, writefds, exceptfds, (timeout)?(&stv):NULL);
-	if ((retval == -1) && (errno == EINTR)) {
-	    gettimeofday(&start,NULL);            /* get NEW starttime */
-	    if (timercmp(&end,&start,<) && timeout) {
- 		/* select time has expired */
-		return 0; /* simple timout, pass it upwards */
-	    }
+    do {
+	if (readfds) {
+	    memcpy(&rfds, readfds, sizeof(fd_set));   /* clone readfds */
 	} else {
-	    break;
+	    FD_ZERO(&rfds);
 	}
-    }
 
-    if ((retval>0) && FD_ISSET(mcastsock,&rfds)) { /* MCAST msg available */
-	handleMCAST();
-	retval--;
-	gettimeofday(&start,NULL);     /* get NEW starttime */
-	if ((retval==0) && (timeout==NULL || timercmp(&start,&end,<))) {
-	    /* select time has not expired yet */
-	    goto restart;
+	if (writefds) {
+	    memcpy(&wfds, writefds, sizeof(fd_set));  /* clone writefds */
+	} else {
+	    FD_ZERO(&wfds);
 	}
-	FD_CLR(mcastsock,&rfds);
-    }
+
+	if (exceptfds) {
+	    memcpy(&efds, exceptfds, sizeof(fd_set)); /* clone exceptfds */
+	} else {
+	    FD_ZERO(&efds);
+	}
+
+	FD_SET(mcastsock, &rfds);                     /* activate MCAST port */
+	if (mcastsock >= n) n = mcastsock+1;
+
+	if (timeout) {
+	    timersub(&end, &start, &stv);
+	}
+
+	retval = select(n, &rfds, &wfds, &efds, (timeout)?(&stv):NULL);
+	if (retval == -1) {
+	    if (errno == EINTR) {
+		/* Interrupted syscall, just start again */
+		retval = 0;
+		continue;
+	    } else {
+                snprintf(errtxt, sizeof(errtxt),
+                         "select in Mselect returns %d, eno=%d[%s],"
+                         " n=%d, mcastsock=%d", retval, errno, strerror(errno),
+			 n, mcastsock);
+                errlog(errtxt, syslogerror, 0);
+                snprintf(errtxt, sizeof(errtxt),
+                         "start=%ld.%ld end=%ld.%ld stv=%ld.%ld",
+                         start.tv_sec, start.tv_usec,
+                         end.tv_sec, end.tv_usec,
+                         stv.tv_sec, stv.tv_usec);
+                errlog(errtxt, syslogerror, 0);
+            }
+        }
+
+	if ((retval>0) && FD_ISSET(mcastsock, &rfds)) {  /* Got MCAST msg */
+	    handleMCAST();
+	    retval--;
+            FD_CLR(mcastsock, &rfds);
+	}
+
+        if (retval) break;
+
+        gettimeofday(&start, NULL);  /* get NEW starttime */
+
+    } while (timeout==NULL || timercmp(&start, &end, <));
 
     if (readfds)   memcpy(readfds, &rfds, sizeof(rfds));  /* copy fds back */
     if (writefds)  memcpy(writefds, &wfds, sizeof(wfds));
     if (exceptfds) memcpy(exceptfds, &efds, sizeof(efds));
-    if (retval < -1) {
-	errlog("PANIC: STRANGE THINGS HAPPEN (negative retval in Mselect)",
-	       syslogerror, 0);
-	return (-1);
-    }
+
     return retval;
 }
 
@@ -2491,7 +2492,7 @@ static void MCAST_PING(RDPState state)
 	      msg.load.load[0], msg.load.load[1], msg.load.load[2]);
     Derrlog(errtxt, syslogerror, 13);
     conntable[myid].load = msg.load;  /* Delete */
-    gettimeofday(&conntable[myid].lastping,NULL);  /* Delete */
+    gettimeofday(&conntable[myid].lastping, NULL);  /* Delete */
     Dsnprintf(errtxt, sizeof(errtxt),
 	      "Sending MCAST[%d:%d] to %s", myid, state,
 	      inet_ntoa(msin.sin_addr));
