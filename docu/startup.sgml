@@ -7,7 +7,7 @@
   </para>
   <para>
     &ps;'s management and task handling facilities are intended to solve the
-    problems arising with this requirement. On the one hand they implement a
+    problems arising with this requirements. On the one hand they implement a
     fast and robust startup mechanism for parallel tasks. On the other hand the
     &ps; daemons running on each node of the cluster control the various
     remotely started <link linkend="process">processes</link> forming the
@@ -20,7 +20,7 @@
     framework as described in <xref linkend="mpi"/>, have been provided by an
     independent software vendor or can be a native &ps; application only making
     use of the low-level communication and management functions as described in
-    <xref linkend="native_apps"/>. Anyhow it has to make use of the &ps;
+    <xref linkend="native_apps"/>. Anyhow, it has to make use of the &ps;
     management library as described in the <ulink url="../api/index.html"
       type="dontshow">API reference</ulink>.
   </para>
@@ -40,8 +40,9 @@
     </para>
     <programlisting>	./prog -np N <option><replaceable>args</replaceable></option></programlisting>
     <para>
-      Here <replaceable>args</replaceable> are the argument that will be passed
-      to each instance of <filename>prog</filename> within the cluster.
+      Here <replaceable>args</replaceable> are one or more further argument
+      that will be passed to each instance of <filename>prog</filename> within
+      the cluster.
     </para>
     <para>
       Given the default settings of &ps; the N instances of
@@ -57,13 +58,13 @@
     </para>
     <para>
       First of all the locally started process (i.e. the process actually
-      created when <filename>./prog</filename> is started) connects the local
+      created when <filename>./prog</filename> is executed) connects the local
       &ps; daemon <citerefentry>
 	<refentrytitle>psid</refentrytitle>
 	<manvolnum>8</manvolnum>
       </citerefentry>, registers there and request for a list of available
       nodes supporting certain features. This list of nodes then is evaluated
-      and sorted according to the requirements discussed in <xref
+      and sorted according to the requirements that will be discussed in <xref
 	linkend="spawn_strategy"/> and <xref linkend="environment"/>. From
       this, now sorted, list of nodes the process will pick one after the other
       in a round robin scheme and request the &ps; daemon on that node to start
@@ -94,13 +95,13 @@
   <section id="spawn_strategy">
     <title>Spawning strategies</title>
     <para>
-      Depending on the field of application and the usage policy of the cluster
-      the favored strategy of how to spawn process within the cluster might
-      vary significantly. On the one hand one might want to make the whole
-      cluster available to a every possible user accepting the consequence to
-      <quote>overload</quote> one or more nodes, i.e. to run more processes
+      Depending on the field of application and the local usage policy of the
+      cluster the favored strategy of how to spawn process within the cluster
+      might vary significantly. On the one hand one might want to make the
+      whole cluster available to every possible user accepting the consequence
+      to <quote>overload</quote> one or more nodes, i.e. to run more processes
       than available CPUs on a special node. On the other hand one might want
-      to virtually split the machine into partitions that are made available to
+      to virtually split the cluster into partitions that are made available to
       a user exclusively<footnote>
 	<para>
 	  One has to take into account that splitting the cluster into
@@ -128,15 +129,16 @@
     <section>
       <title>Partitioning</title>
       <para>
-	In order to partition the cluster different ways are available to do
-	so:
+	In order to partition the cluster, &ps; offers different ways to do so:
       </para>
       <itemizedlist>
 	<listitem>
-	  <para>You can choose the nodes forming the partition by the &ps; ID
-	    of the nodes. In order to do so the environment variable
-	    <envar>PSI_NODES</envar> has to be set to a comma separated list of
-	    IDs. E.g. a value of
+	  <para>Nodes forming the partition can be choosen by their &ps; IDs.
+	    In order to do so the environment variable <envar>PSI_NODES</envar>
+	    has to be set to a comma separated list of IDs.
+	  </para>
+	  <para>
+	    E.g. a value of
 	  </para>
 	  <programlisting>
 	    0, 1, 3, 17, 18
@@ -148,10 +150,10 @@
 	</listitem>
 	
 	<listitem>
-	  <para>You also can choose the nodes by their hostnames, i.e. either
-	    by their symbolic ones or by their IP address. A space separated
-	    list of such hostnames can be provided via the
-	    <envar>PSI_HOSTS</envar> environment variable.
+	  <para>Nodes may also be choosen by their hostnames, i.e. either by
+	    their symbolic names or by their IP address. A space separated list
+	    of such hostnames can be provided via the <envar>PSI_HOSTS</envar>
+	    environment variable.
 	  </para>
 	  <para>
 	  Be aware of the fact that all the symbolic hostnames have to be
@@ -159,16 +161,16 @@
 	      <refentrytitle>resolver</refentrytitle>
 	      <manvolnum>3</manvolnum>
 	  </citerefentry> has to be able to convert a symbolic name to its
-	    corresponding IP address. The possibility to do so usually can be
-	    tested using the <filename>nslookup</filename>,
+	    corresponding IP address. The testing of the resolvability of
+	    hostnames can be done using the <filename>nslookup</filename>,
 	    <filename>dig</filename> or <filename>host</filename> command.
 	  </para>
 	</listitem>
 	
 	<listitem>
 	  <para>A further possibility to choose nodes by their hostnames is to
-	    provide a file containing a list of hostnames (or IP addresse). In
-	    order to make this file public towards &ps; the environment
+	    provide a file containing a list of hostnames or IP addresse. In
+	    order to make this file public towards &ps;, the environment
 	    variable <envar>PSI_HOSTFILE</envar> has to be set to the name of
 	    this file.
 	  </para>
@@ -181,35 +183,41 @@
       </itemizedlist>
 
       <para>
-	If a any node(s) listed in one of the environment variables or the
+	If any node(s) listed in one of the environment variables or the
 	hostfile is down during startup of the parallel task, it will be
-	silently ignored and the partition is downsized by that node(s). This
-	may cause that some nodes will get more than one process to run which
-	can lead to a significant increase of runtime (i.e. wallclock time)
-	used by the parallel task.
+	silently ignored and the partition is downsized by that number of
+	node(s). This may cause that some nodes will get more than one process
+	to run which can lead to a significant increase of runtime (i.e.
+	wallclock time) used by the parallel task.
       </para>
       <para>
 	If none of the above environment variables is set, the
 	<quote>partition</quote> to be used by the parallel task consists out
 	of the whole cluster.
       </para>
+      <para>
+	If more than one of the discussed environment variables is set, only
+	the first one in the order <envar>PSI_NODES</envar>,
+	<envar>PSI_HOSTS</envar> and <envar>PSI_HOSTFILE</envar> will be
+	regarded, all others will be silently ignored.
+      </para>
     </section>
     <section>
       <title>Sorting</title>
       <para>
-	After assigning a partition the parallel task should use one might want
-	to modify the criterium used to bring the nodes into an appropriate
-	order. This is really important if no partitioning at all is used,
-	since otherwise all parallel tasks will use only the first few nodes of
-	the cluster (i.e. the nodes with the smallest &ps; IDs) leaving the big
-	rest of the cluster unused<footnote>
+	After assigning a partition the parallel task should use, one might
+	want to choose a sorting criterium in order to bring the nodes into an
+	appropriate order. This is really important if no partitioning at all
+	is used, since otherwise all parallel tasks will utilize only the first
+	few nodes of the cluster (i.e. the nodes with the smallest &ps; IDs)
+	leaving the big rest of the cluster unused<footnote>
 	  <para>This is not completely true since the default is to sort the
 	    nodes according to the number of processes controlled by &ps;
 	    running on them.
 	  </para>
 	</footnote>. But sorting might also be a good idea if partitioning is
-	used depening on the actual usage of the cluster and the kind of
-	application to run.
+	used depening on the actual usage strategy of the cluster and the kind
+	of application to run.
       </para>
       <para>
 	The sorting criterium is choosen by the value of the environment
@@ -222,11 +230,11 @@
 	      <para>
 		In fact not the pure number of processes is used but the number
 		of processes divided by the number of CPUs on that node. This
-		will lead to a better load balancing in a heterogenous cluster.
+		will lead to a better load balancing in heterogenous clusters.
 		Within a homogenous cluster of course the division by the
 		(constant) number of CPUs will make no difference.
 	      </para>
-	    </footnote>. When sorting is finished the node with the fewest
+	    </footnote>. When sorting is finished, the node with the least
 	    processes is at the first position on the list of nodes, and so on.
 	    Nodes with the same number of processes are sorted according to
 	    their &ps; ID.
@@ -246,9 +254,9 @@
 	    5 minute average and <envar>LOAD_15</envar> means to use the 15
 	    minute average<footnote>
 	      <para>
-		As for the <envar>PROC</envar> case in fact not the pure load
-		is used but the load divided by the number of CPUs on that node
-		on order to reach better load balancing on heterogenous
+		As for the <envar>PROC</envar> case, in fact not the pure load
+		is used, but the load divided by the number of CPUs on that
+		node in order to reach better load balancing on heterogenous
 		clusters.
 	      </para>
 	    </footnote>.
@@ -261,7 +269,7 @@
 
 	<listitem>
 	  <para>If the value is <envar>NONE</envar> or
-	    <envar>ROUNDROBIN</envar> no sorting at all is appied to the list
+	    <envar>ROUNDROBIN</envar> no sorting at all is applied to the list
 	    of nodes, i.e. the nodes are used in the order they appear in one
 	    of the environment variables mentioned in the last section. If none
 	    of these variables is set, the nodes or used in their natural
@@ -271,38 +279,171 @@
       </itemizedlist>
 
       <para>
-	Having sorted the nodes within the partition to use the nodes will be
+	Having sorted the nodes within the partition to use, the nodes will be
 	taken one after the other in order to start processes appendant to the
-	parallel task. If more processes than nodes available within the
-	partition are started, the nodes are <quote>reused</quote> in a round
+	parallel task. If more processes are started than nodes are available
+	within the partition, the nodes are <quote>reused</quote> in a round
 	robin fashion. I.e. if the partition consists of N nodes, the first N
 	processes will be started on the nodes in the sorting order. The next
 	(N+1st) process will be started on the first node again, and so on.
       </para>
       <para>
 	If <emphasis>ParaStation3</emphasis> is used, up to 4 processes might
-	be started on a node. Other versions of &ps; don't have any limits
-	concerning the number of processes that can access the &ps;
-	communication interface.
+	be started on a node. This is due to a limitation on accessing the
+	communication interface within <emphasis>ParaStation3</emphasis>. Other
+	versions of &ps; don't have any limits concerning the number of
+	processes that can access the &ps; communication interface.
       </para>
     </section>
 
   </section>
 
-  <section>
-    <title>Spawning the environment</title>
-    <para>
-      
-    </para>
-  </section>
-
   <section id="io_redirect">
     <title>Redirecting input and output</title>
     <para>
-      The redirection of input and output is done without further user
-      interaction automatically. 
+      The redirection of input and output is done without any further user
+      interaction automatically. The technology behind this mechanism works as
+      follows:
     </para>
-    <para>ToDo</para>
+    <itemizedlist>
+      <listitem>
+	<para>The originally started process, i.e. the root of the parallel
+	  task, converts to a so called <link linkend="loggerfull">&ps;
+	    logger</link> process after spawning all child processes. It
+	  receives output from the spawned processes (or more precisely from
+	  the controlling <link linkend="forwarder">forwarder</link> process)
+	  and dispense it to its final destination. This might be the (virtual)
+	  terminal from which the root process was started or the file to which
+	  the output of the root process is redirected.
+	</para>
+      </listitem>
+      <listitem>
+	<para>The child processes is started by the &ps; daemon <citerefentry>
+	    <refentrytitle>psid</refentrytitle>
+	    <manvolnum>8</manvolnum>
+	  </citerefentry> on request of the root process of the parallel task
+	  via a so called <link linkend="forwarderfull">&ps; forwarder</link>
+	  process. The task of this process is to control the spawned child
+	  process and to fetch all output produced. This output than is
+	  forwarded to the <link linkend="logger">logger</link> process which
+	  will send it to its final destination.
+	</para>
+      </listitem>
+    </itemizedlist>
+    <para>
+      Input data is handled in a quite similar way. The <link
+	linkend="loggerfull">&ps; logger</link> process reads the input from
+      the (virtual) terminal or the file to which the input is redirected and
+      sends it to a forwarder. The default is to send it to the forwarder of
+      the process with rank 0. This behaviour might be modified as discussed
+      below.
+    </para>
+    <para>
+      The redirection of input and output can be configured via various
+      environment variables:
+    </para>
+    <variablelist>
+      <varlistentry>
+	<term>PSI_INPUTDEST <replaceable>rank</replaceable></term>
+	<listitem>
+	  <para>Forward all input to the process with rank
+	    <replaceable>rank</replaceable>.
+	  </para>
+	  <para>
+	    The rank of a process is unique with a parallel task. The rank of a
+	    process can determined via the <citerefentry>
+	      <refentrytitle>PSE_getRank</refentrytitle>
+	      <manvolnum>3</manvolnum>
+	    </citerefentry> library function. The rank of a process is
+	    identical to the MPI rank within the
+	    <option>MPI_COMM_WORLD</option> context which can be identified
+	    using the <citerefentry>
+	      <refentrytitle>MPI_Comm_rank</refentrytitle>
+	      <manvolnum>3</manvolnum>
+	    </citerefentry> library call.
+	  </para>
+	  <para>
+	    The default is to forward all input to the process with rank 0.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>PSI_SOURCEPRINTF</term>
+	<listitem>
+	  <para>If this environment variable is set, to each fraction of output
+	    a tag providing the rank of the process producing it is prepended.
+	    If the <link linkend="loggerfull">&ps; logger</link> is put into
+	    the verbose mode using the <envar>PSI_LOGGERDEBUG</envar>
+	    environment variable, also the length of the output fraction to
+	    print is displayed.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>PSI_NOMSGLOGGERDONE</term>
+	<listitem>
+	  <para>Set this environment variable in order to suppress the
+	    <quote>PSIlogger: done</quote> messsage that is produced by the
+	    <link linkend="loggerfull">&ps; logger</link> process after
+	    finishing its task. This is usually the case when all <link
+	      linkend="forwarderfull">&ps; forwarders</link> have closed their
+	    connection to the logger.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>PSI_LOGGERDEBUG</term>
+	<listitem>
+	  <para>Put the <link linkend="loggerfull">&ps; logger</link> process
+	    into verbose mode. This will produce messages about connecting and
+	    detaching forwarders, received output, sended input and received
+	    signals.
+	  </para>
+	  <para>
+	    The main purpose of this mode is to debug the <link
+	      linkend="loggerfull">&ps; logger</link> code. It might be less
+	    usefull for the normal enduser.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>PSI_FORWARDERDEBUG</term>
+	<listitem>
+	  <para>Put the <link linkend="forwarderfull">&ps; forwarder</link>
+	    process into verbose mode. Within this mode information about
+	    received input, output and signals will be displayed.
+	  </para>
+	  <para>
+	    The main purpose of this mode is to debug the <link
+	      linkend="forwarderfull">&ps; forwarder</link> code. It might be
+	    less usefull for the normal enduser.
+	  </para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+  </section>
+
+  <section>
+    <title>Spawning the environment</title>
+    <para>
+      Beside the possibility to redirect I/O of remotely spawned processes one
+      might also be able to affect the environment of these processes. With
+      &ps; it is possible to do so by setting the environment variable
+      <envar>PSI_EXPORTS</envar> to an appropriate value.
+    </para>
+    <para>
+      <envar>PSI_EXPORTS</envar> should contain a comma separated list of
+      names of environment variables. Then all processes spawned using &ps;
+      will get an environment containing the listed environment variables set
+      to the actual value within the context of the spawning process.
+    </para>
+    <para>
+      Per default the environment variables <envar>HOME</envar>,
+      <envar>USER</envar>, <envar>SHELL</envar> and <envar>TERM</envar> will be
+      spawned. The spawning of these environment variables will always be done,
+      i.e. it is not possible to suppress this action independently of the
+      value of <envar>PSI_EXPORTS</envar>.
+    </para>
   </section>
 
   <section>
