@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.h,v 1.19 2003/10/08 14:56:37 eicker Exp $
+ * $Id: psidutil.h,v 1.20 2003/10/29 17:20:21 eicker Exp $
  *
  */
 /**
  * \file
  * Utilities for the ParaStation daemon
  *
- * $Id: psidutil.h,v 1.19 2003/10/08 14:56:37 eicker Exp $
+ * $Id: psidutil.h,v 1.20 2003/10/29 17:20:21 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -22,6 +22,8 @@
 #define __PSIDUTIL_H
 
 #include <stdio.h>
+
+#include "psprotocol.h"
 #include "config_parsing.h"
 
 #ifdef __cplusplus
@@ -214,12 +216,12 @@ void PSID_getCounter(int hw, char *buf, size_t size, int header);
 /**
  * @todo
  */
-void PSID_setParam(int hw, long option, long value);
+void PSID_setParam(int hw, PSP_Option_t option, PSP_Optval_t value);
 
 /**
  * @todo
  */
-long PSID_getParam(int hw, long option);
+PSP_Optval_t PSID_getParam(int hw, PSP_Option_t option);
 
 #ifdef __cplusplus
 }/* extern "C" */

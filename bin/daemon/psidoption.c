@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidoption.c,v 1.2 2003/10/08 14:49:32 eicker Exp $
+ * $Id: psidoption.c,v 1.3 2003/10/29 17:21:53 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidoption.c,v 1.2 2003/10/08 14:49:32 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidoption.c,v 1.3 2003/10/29 17:21:53 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -69,7 +69,7 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
     if (msg->header.dest == PSC_getMyTID()) {
 	/* Message is for me */
 	for (i=0; i<msg->count; i++) {
-	    snprintf(errtxt, sizeof(errtxt), "%s: option %ld value 0x%lx",
+	    snprintf(errtxt, sizeof(errtxt), "%s: option %d value 0x%x",
 		     __func__, msg->opt[i].option, msg->opt[i].value);
 	    PSID_errlog(errtxt, 3);
 
@@ -170,7 +170,7 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 
 		if (msg->opt[i].value) {
 		    snprintf(errtxt, sizeof(errtxt),
-			     "Debugging mode with debuglevel %ld enabled",
+			     "Debugging mode with debuglevel %d enabled",
 			     msg->opt[i].value);
 		} else {
 		    snprintf(errtxt, sizeof(errtxt),
@@ -191,7 +191,7 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 		setDebugLevelMCast(msg->opt[i].value);
 		break;
 	    default:
-		snprintf(errtxt, sizeof(errtxt), "%s: unknown option %ld",
+		snprintf(errtxt, sizeof(errtxt), "%s: unknown option %d",
 			 __func__, msg->opt[i].option);
 		PSID_errlog(errtxt, 0);
 	    }
@@ -239,7 +239,7 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
     } else {
 	int i;
 	for (i=0; i<msg->count; i++) {
-	    snprintf(errtxt, sizeof(errtxt), "%s option: %ld",
+	    snprintf(errtxt, sizeof(errtxt), "%s option: %d",
 		     __func__, msg->opt[i].option);
 	    PSID_errlog(errtxt, 3);
 
@@ -291,7 +291,7 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		msg->opt[i].value = getDebugLevelMCast();
 		break;
 	    default:
-		snprintf(errtxt, sizeof(errtxt), "%s: unknown option %ld",
+		snprintf(errtxt, sizeof(errtxt), "%s: unknown option %d",
 			 __func__, msg->opt[i].option);
 		PSID_errlog(errtxt, 0);
 		return;
