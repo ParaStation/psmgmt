@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.20 2002/02/15 19:18:22 eicker Exp $
+ * $Id: rdp.c,v 1.21 2002/02/26 12:50:17 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.20 2002/02/15 19:18:22 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.21 2002/02/26 12:50:17 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -49,13 +49,20 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
     int retval;
  restart:
     if ((retval=recvfrom(sock, buf, len, flags, from, fromlen)) < 0) {
-	if (errno == EINTR) {
+	switch (errno) {
+	case EINTR:
 	    errlog("MYrecvfrom was interrupted !", 5);
 	    goto restart;
+	    break;
+	case ECONNREFUSED:
+	case EHOSTUNREACH:
+	    /* Do nothing */
+	    break;
+	default:
+	    snprintf(errtxt, sizeof(errtxt), "MYrecvfrom returns: %s",
+		     strerror(errno));
+	    errlog(errtxt, 0);
 	}
-	snprintf(errtxt, sizeof(errtxt), "MYrecvfrom returns: %s",
-		 strerror(errno));
-	errlog(errtxt, 0);
     }
     return retval;
 }
@@ -287,15 +294,15 @@ static void initAckList(int nodes)
      */
     count = nodes * MAX_WINDOW_SIZE;
     ackbuf = (ackent *)malloc(sizeof(ackent) * count);
-    AckListHead = (ackent *) NULL;
-    AckListTail = (ackent *) NULL;
+    AckListHead = NULL;
+    AckListTail = NULL;
     AckFreeList = ackbuf;
     for (i=0; i<count; i++) {
-	ackbuf[i].prev = (ackent *)NULL;
+	ackbuf[i].prev = NULL;
 	ackbuf[i].next = &ackbuf[i+1];
-	ackbuf[i].bufptr = (msgbuf *)NULL;
+	ackbuf[i].bufptr = NULL;
     }
-    ackbuf[count - 1].next = (ackent *)NULL;
+    ackbuf[count - 1].next = NULL;
     return;
 }
 
@@ -459,7 +466,6 @@ static int initSockRDP(unsigned short port, int qlen)
 {
     struct sockaddr_in sin;  /* an internet endpoint address */
     int s;                   /* socket descriptor */
-    int val;
 
     memset(&sin, 0, sizeof(sin));
     sin.sin_family = AF_INET;
@@ -486,9 +492,11 @@ static int initSockRDP(unsigned short port, int qlen)
     /*
      * enable RECV Error Queue
      */
-    val = 1;
-    if (setsockopt(s, SOL_IP, IP_RECVERR, &val, sizeof(int)) < 0) {
-	errexit("can't set socketoption IP_RECVERR", errno);
+    {
+	int val = 1;
+	if (setsockopt(s, SOL_IP, IP_RECVERR, &val, sizeof(int)) < 0) {
+	    errexit("can't set socketoption IP_RECVERR", errno);
+	}
     }
 #endif
 
@@ -750,7 +758,8 @@ static void clearMsgQ(int node)
 	    RDPCallback(RDP_PKT_UNDELIVERABLE, &deadbuf);
 	}
 	snprintf(errtxt, sizeof(errtxt),
-		 "Dropping msg %d to node %d", mp->msg.small->header.seqno,
+		 "clearMsgQ(): Dropping msg %d to node %d",
+		 mp->msg.small->header.seqno,
 		 node);
 	errlog(errtxt, 6);
 	if (mp->len > RDP_SMALL_DATA_SIZE) {    /* release msg frame */
@@ -799,7 +808,7 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
 		RDPCallback(RDP_PKT_UNDELIVERABLE, &deadbuf);
 	    }
 	    snprintf(errtxt, sizeof(errtxt),
-		     "Dropping msg %d to node %d",
+		     "resequenceMsgQ(): Dropping msg %d to node %d",
 		     mp->msg.small->header.seqno, node);
 	    errlog(errtxt, 6);
 	    /* release msg frame */
@@ -883,8 +892,7 @@ static void handleTimeoutRDP(int fd)
 
 		    switch (conntableRDP[node].state) {
 		    case CLOSED:
-			errlog("handleTimeoutRDP(): connection is CLOSED"
-			       " this shouldn't happen.", 0);
+			errlog("handleTimeoutRDP(): connection is CLOSED.", 0);
 			break;
 		    case SYN_SENT:
 			errlog("handleTimeoutRDP(): send SYN again", 8);
@@ -1097,7 +1105,10 @@ int handleRDP(int fd)
     if (MYrecvfrom(rdpsock, &msg, sizeof(msg), MSG_PEEK,
 		   (struct sockaddr *)&sin, &slen)<0) {
 #if defined(__linux__)
-	if (errno == ECONNREFUSED) {
+	switch (errno) {
+	case ECONNREFUSED:
+	case EHOSTUNREACH:
+	{
 	    struct msghdr errmsg;
 	    struct sockaddr_in sin;
 	    struct sockaddr_in * sinp;
@@ -1105,14 +1116,14 @@ int handleRDP(int fd)
 	    struct cmsghdr *cmsg;
 	    struct sock_extended_err *extErr;
 	    int node;
-	    char ubuf[256];
+	    char cbuf[256];
 
 	    errmsg.msg_name = &sin;
 	    errmsg.msg_namelen = sizeof(sin);
 	    errmsg.msg_iov = &iov;
 	    errmsg.msg_iovlen = 1;
-	    errmsg.msg_control = &ubuf;
-	    errmsg.msg_controllen = sizeof(ubuf);
+	    errmsg.msg_control = &cbuf;
+	    errmsg.msg_controllen = sizeof(cbuf);
 	    iov.iov_base = NULL;
 	    iov.iov_len = 0;
 	    if (recvmsg(rdpsock, &errmsg, MSG_ERRQUEUE) == -1) {
@@ -1133,6 +1144,14 @@ int handleRDP(int fd)
 		errlog("handleRDP(): cmsg truncated.", 0);
 		return -1;
 	    }
+
+	    snprintf(errtxt, sizeof(errtxt),
+		     "handleRDP(): errmsg: msg_name->sinaddr = %s,"
+		     " msg_namelen = %d, msg_iovlen = %ld,"
+		     " msg_controllen = %ld", inet_ntoa(sin.sin_addr),
+		     errmsg.msg_namelen, errmsg.msg_iovlen,
+		     errmsg.msg_controllen);
+	    errlog(errtxt, 10);
 
 	    snprintf(errtxt, sizeof(errtxt),
 		     "handleRDP(): errmsg.msg_flags: < %s%s%s%s%s%s>",
@@ -1169,6 +1188,16 @@ int handleRDP(int fd)
 		 return -1;
 	     }
 
+	     snprintf(errtxt, sizeof(errtxt),
+		      "handleRDP(): sock_extended_err: ee_errno = %u,"
+		      " ee_origin = %hhu, ee_type = %hhu,"
+		      " ee_code = %hhu, ee_pad = %hhu,"
+		      " ee_info = %u, ee_data = %u",
+		      extErr->ee_errno, extErr->ee_origin,  extErr->ee_type,
+		      extErr->ee_code,  extErr->ee_pad,  extErr->ee_info,
+		       extErr->ee_data);
+	     errlog(errtxt, 10);
+
 	     sinp = (struct sockaddr_in *)SO_EE_OFFENDER(extErr);
 	     if (sinp->sin_family == AF_UNSPEC) {
 		 errlog("handleRDP(): address unknown", 0);
@@ -1176,16 +1205,37 @@ int handleRDP(int fd)
 	     }
 
 	     node = lookupIPTable(sinp->sin_addr);
-	     snprintf(errtxt, sizeof(errtxt),
-		      "handleRDP(): CONNREFUSED from node %d (%s) port %d",
-		      node, inet_ntoa(sinp->sin_addr), ntohs(sinp->sin_port));
-	     errlog(errtxt, 0);
 
-	     closeConnectionRDP(node);
+	     switch (errno) {
+	     case ECONNREFUSED:
+		 snprintf(errtxt, sizeof(errtxt),
+			  "handleRDP(): CONNREFUSED from node %d (%s) port %d",
+			  node, inet_ntoa(sinp->sin_addr),
+			  ntohs(sinp->sin_port));
+		 errlog(errtxt, 0);
+
+		 closeConnectionRDP(node);
+
+		 break;
+	     case EHOSTUNREACH:
+		 snprintf(errtxt, sizeof(errtxt),
+			  "handleRDP(): HOSTUNREACH from node %d (%s) port %d",
+			  node, inet_ntoa(sinp->sin_addr),
+			  ntohs(sinp->sin_port));
+		 errlog(errtxt, 10);
+		 break;
+	     default:
+		 snprintf(errtxt, sizeof(errtxt),
+			  "handleRDP(): UNKNOWN from node %d (%s) port %d",
+			  node, inet_ntoa(sinp->sin_addr),
+			  ntohs(sinp->sin_port));
+		 errlog(errtxt, 0);
+	     }
 
 	     return 0;
 
-	} else {
+	}
+	default:
 #endif
 	    snprintf(errtxt, sizeof(errtxt),
 		     "handleRDP(): recvfrom(MSG_PEEK) returns -1, errno=%d %s",
@@ -1239,12 +1289,16 @@ int handleRDP(int fd)
     if (RSEQCMP(msg.header.seqno, conntableRDP[fromnode].frameExpected)) {
 	/* Wrong seq */
 	slen = sizeof(sin);
-	MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
-		   (struct sockaddr *)&sin, &slen);
-
+	if (MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
+		       (struct sockaddr *) &sin, &slen)<0) {
+	    snprintf(errtxt, sizeof(errtxt),
+		     "handleRDP()/CDTA: recvfrom(0) returns -1, errno=%d: %s",
+		     errno, strerror(errno));
+	    errexit(errtxt, errno);
+	}
 	snprintf(errtxt, sizeof(errtxt),
-		 "handleRDP(): Check DATA from %d (seq=%d, ack=%d)", fromnode,
-		 msg.header.seqno, msg.header.ackno);
+		 "handleRDP(): Check DATA from %d (seq=%d, xpct=%d)", fromnode,
+		 msg.header.seqno, conntableRDP[fromnode].frameExpected);
 	errlog(errtxt, 6);
 
 	doACK(&msg.header, fromnode);
