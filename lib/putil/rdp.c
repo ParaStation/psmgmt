@@ -2,24 +2,16 @@
  *               ParaStation3
  * rdp.c
  *
+ * ParaStation Reliable Datagram Protocol
+ *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.16 2002/01/31 12:06:12 eicker Exp $
- *
- */
-/**
- * \file
- * rdp: ParaStation Reliable Datagram Protocol
- *
- * $Id: rdp.c,v 1.16 2002/01/31 12:06:12 eicker Exp $
- *
- * \author
- * Norbert Eicker <eicker@par-tec.com>
+ * $Id: rdp.c,v 1.17 2002/01/31 12:14:01 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.16 2002/01/31 12:06:12 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.17 2002/01/31 12:14:01 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -37,6 +29,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.16 2002/01/31 12:
 #include <netinet/in.h>
 #include <netdb.h>
 
+/* Extra includes for extended reliable error message passing */
 #if defined(__linux__)
 #include <asm/types.h>
 #include <linux/errqueue.h>

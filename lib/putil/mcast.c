@@ -2,24 +2,16 @@
  *               ParaStation3
  * mcast.c
  *
+ * ParaStation MultiCast facility
+ *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.c,v 1.3 2002/01/31 08:50:04 eicker Exp $
- *
- */
-/**
- * \file
- * mcast: ParaStation MultiCast facility
- *
- * $Id: mcast.c,v 1.3 2002/01/31 08:50:04 eicker Exp $
- *
- * \author
- * Norbert Eicker <eicker@par-tec.com>
+ * $Id: mcast.c,v 1.4 2002/01/31 12:14:01 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.3 2002/01/31 08:50:04 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.4 2002/01/31 12:14:01 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -36,9 +28,8 @@ static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.3 2002/01/31 08
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netdb.h>
-/*
- * Extra includes for load-determination
- */
+
+/* Extra includes for load-determination */
 #if defined(__linux__)
 #include <sys/sysinfo.h>
 #elif defined(__osf__)
@@ -100,9 +91,6 @@ static void initIPTable(void)
     return;
 }
 
-/*
- * create new entry in iptable
- */
 static void insertIPTable(struct in_addr ipno, int node)
 {
     ipentry *ip;
@@ -125,9 +113,6 @@ static void insertIPTable(struct in_addr ipno, int node)
     return;
 }
 
-/*
- * get node_nr from ip_nr
- */
 static int lookupIPTable(struct in_addr ipno)
 {
     ipentry *ip = NULL;

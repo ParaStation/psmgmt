@@ -2,24 +2,16 @@
  *               ParaStation3
  * timer.h
  *
+ * ParaStation Timer facility
+ *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: timer.c,v 1.3 2002/01/30 22:45:33 eicker Exp $
- *
- */
-/**
- * \file
- * timer: ParaStation Timer facility
- *
- * $Id: timer.c,v 1.3 2002/01/30 22:45:33 eicker Exp $
- *
- * \author
- * Norbert Eicker <eicker@par-tec.com>
+ * $Id: timer.c,v 1.4 2002/01/31 12:14:01 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: timer.c,v 1.3 2002/01/30 22:45:33 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: timer.c,v 1.4 2002/01/31 12:14:01 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
