@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.78 2003/03/04 15:39:28 eicker Exp $
+ * $Id: psid.c,v 1.79 2003/03/05 09:30:06 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.78 2003/03/04 15:39:28 eicker Exp $ 
+ * $Id: psid.c,v 1.79 2003/03/05 09:30:06 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.78 2003/03/04 15:39:28 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.79 2003/03/05 09:30:06 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -74,7 +74,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.78 $";
+static char psid_cvsid[] = "$Revision: 1.79 $";
 
 static int PSID_mastersock;
 
@@ -1648,10 +1648,14 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 		}
 	    break;
 	case PSP_OP_PROCLIMIT:
-	    MAXPROCLimit = msg->opt[i].value;
+	    if (msg->header.dest == PSC_getMyTID()         /* for me */
+		|| msg->header.dest == -1)                 /* for any */
+		MAXPROCLimit = msg->opt[i].value;
 	    break;
 	case PSP_OP_UIDLIMIT:
-	    UIDLimit = msg->opt[i].value;
+	    if (msg->header.dest == PSC_getMyTID()         /* for me */
+		|| msg->header.dest == -1)                 /* for any */
+		UIDLimit = msg->opt[i].value;
 	    break;
 	case PSP_OP_PSIDDEBUG:
 	    if (msg->header.dest == PSC_getMyTID()         /* for me */
@@ -3013,7 +3017,7 @@ void checkFileTable(void)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.78 $";
+    char revision[] = "$Revision: 1.79 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
