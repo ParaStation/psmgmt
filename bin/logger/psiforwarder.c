@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiforwarder.c,v 1.16 2002/07/31 11:33:59 eicker Exp $
+ * $Id: psiforwarder.c,v 1.17 2002/08/06 08:23:41 eicker Exp $
  *
  */
 /**
  * @file
  * psiforwarder: Forwarding-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psiforwarder.c,v 1.16 2002/07/31 11:33:59 eicker Exp $
+ * $Id: psiforwarder.c,v 1.17 2002/08/06 08:23:41 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.16 2002/07/31 11:33:59 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.17 2002/08/06 08:23:41 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -29,6 +29,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.16 2002/
 #include <errno.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/resource.h>
 #include <sys/wait.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -130,7 +131,10 @@ int loggerconnect(unsigned int node, int port)
 void sighandler(int sig)
 {
     int i, status;
+    struct rusage rusage;
+    pid_t pid;
     static int firstCall = 1;
+
     char txt[80];
 
     switch (sig) {
@@ -146,7 +150,7 @@ void sighandler(int sig)
 	    printlog(loggersock, STDERR, id, "PSIforwarder: Got SIGCHLD.\n");
 	}
 
-	wait(&status);
+	pid = wait3(&status, 0, &rusage);
 
 	if (WIFSIGNALED(status)) {
 	    snprintf(txt, sizeof(txt),
@@ -168,6 +172,11 @@ void sighandler(int sig)
 		printlog(loggersock, STDERR, id, txt);
 	    }
 	}
+	snprintf(txt, sizeof(txt), "PSIforwarder:"
+		 " Child with pid %d used %.6f/%.6f sec (user/sys)\n", pid,
+		 rusage.ru_utime.tv_sec + rusage.ru_utime.tv_usec * 1.0e-6,
+		 rusage.ru_stime.tv_sec + rusage.ru_stime.tv_usec * 1.0e-6);
+	// printlog(loggersock, STDERR, id, txt);
 
 	/* Release logger */
 	closelog();
