@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidcomm.h,v 1.1 2003/06/06 13:44:59 eicker Exp $
+ * $Id: psidcomm.h,v 1.2 2003/07/04 11:06:19 eicker Exp $
  *
  */
 /**
  * \file
  * Communication multiplexer for the ParaStation daemon
  *
- * $Id: psidcomm.h,v 1.1 2003/06/06 13:44:59 eicker Exp $
+ * $Id: psidcomm.h,v 1.2 2003/07/04 11:06:19 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -32,9 +32,6 @@ extern "C" {
 #endif
 #endif
 
-/** The socket used for all RDP communication */
-extern int RDPSocket;
-
 /** file descriptor set actively used for reading */
 extern fd_set PSID_readfds;
 
@@ -42,12 +39,23 @@ extern fd_set PSID_readfds;
 extern fd_set PSID_writefds;
 
 /**
+ * @brief Initialize communication stuff
+ *
+ * Initialize the flow control helper framework. This includes
+ * creating an initial message buffer pool and setting up some RDP
+ * environment.
+ *
+ * @return No return value.
+ */
+void initComm(void);
+
+/**
  * @brief Send a message
  *
  * Send the message @a msg to the destination defined within the
  * message. If the destination is a client on the same node,
  * sendClient() will be used to deliver the message. Otherwise
- * Rsendto() is used in order to send the message to the daemon of the
+ * sendRDP() is used in order to send the message to the daemon of the
  * remote node.
  *
  * @param msg Message to be sent. The format of the message has to
@@ -57,7 +65,7 @@ extern fd_set PSID_writefds;
  * @return On success, the number of bytes sent is returned. If an error
  * occured, -1 is returned and errno is set appropriately.
  *
- * @see Rsendto(), sendClient()
+ * @see sendRDP(), sendClient()
  */
 int sendMsg(void *msg);
 
@@ -65,10 +73,10 @@ int sendMsg(void *msg);
  * @brief Receive a message
  *
  * Receive a message from file descriptor @a fd and store it to @a
- * msg. At most @a size bytes are read from @a fd and strored to @a
+ * msg. At most @a size bytes are read from @a fd and stored to @a
  * msg.
  *
- * If @a fd is the @ref RDPSocket, Rrecvfrom() will be used to actually
+ * If @a fd is the @ref RDPSocket, recvRDP() will be used to actually
  * get the message, otherwise recvClient() is used.
  *
  *
@@ -82,7 +90,7 @@ int sendMsg(void *msg);
  * @return On success, the number of bytes received is returned, or -1 if
  * an error occured. In the latter case errno will be set appropiately.
  *
- * @see Rrecvfrom(), recvClient()
+ * @see recvRDP(), recvClient()
  */
 int recvMsg(int fd, DDMsg_t *msg, size_t size);
 
@@ -100,6 +108,28 @@ int recvMsg(int fd, DDMsg_t *msg, size_t size);
  * @see sendMsg()
  */
 int broadcastMsg(void *msg);
+
+/**
+ * @brief Handle PSP_DD_SENDSTOP message
+ *
+ * Handle the PSP_DD_SENDSTOP message @a msg.
+ *
+ * @param msg The message to handle.
+ *
+ * @return No return value.
+ */
+void msg_SENDSTOP(DDMsg_t *msg);
+
+/**
+ * @brief Handle PSP_DD_SENDCONT message
+ *
+ * Handle the PSP_DD_SENDCONT message @a msg.
+ *
+ * @param msg The message to handle.
+ *
+ * @return No return value.
+ */
+void msg_SENDCONT(DDMsg_t *msg);
 
 #ifdef __cplusplus
 }/* extern "C" */
