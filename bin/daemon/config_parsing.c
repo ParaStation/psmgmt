@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.2 2002/06/13 17:33:14 eicker Exp $
+ * $Id: config_parsing.c,v 1.3 2002/06/14 15:20:46 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.2 2002/06/13 17:33:14 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.3 2002/06/14 15:20:46 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -63,7 +63,7 @@ rlim_t ConfigRLimitDataSize = -1;
 rlim_t ConfigRLimitStackSize = -1;
 rlim_t ConfigRLimitRSSSize = -1;
 
-int ConfigSyslogLevel = 10;          /* default max. syslog level */
+int ConfigSyslogLevel = 0;          /* default min. syslog level */
 int ConfigSyslog = LOG_DAEMON;
 
 static char errtxt[256];
