@@ -1,0 +1,31 @@
+#!/bin/sh
+# 
+# Script to get some ethernet statistics
+#
+# Author: Jens Hauke <hauke@par-tec.com>
+#
+# $Id: ps_ethernet,v 1.1 2003/04/04 10:59:24 hauke Exp $
+#
+
+case "$1" in
+    start)
+	;;
+    stop)
+	;;
+    statusheader)
+	# No Header
+	/bin/echo -n ' '
+	;;
+
+    status)
+	echo
+	ifconfig | grep -e "Link " -e "packets"
+	;;
+
+    *)
+	echo "Usage: $0 {start|stop|statusheader|status}"
+	exit 1
+	;;
+esac
+
+
