@@ -106,6 +106,7 @@ DOK
 
 fi
 
+top_srcdir=`path_cleanup $top_srcdir`
 
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([lib/pshal/Makefile])
