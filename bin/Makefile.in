@@ -1,7 +1,7 @@
 
 CFLAGS += -O2 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
 PSM_OSDIR := @PSM_OSDIR@
-CPPFLAGS += -I@top_srcdir@/include -I/usr/local/include -I. @CPPFLAG_MMD@
+CPPFLAGS += -I@top_srcdir@/include -I. @CPPFLAG_MMD@
 SRCDIR = @srcdir@
 TOP_SRCDIR = @top_srcdir@
 TARGET_OS := @target_os@
