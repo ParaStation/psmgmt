@@ -338,6 +338,12 @@ PSI_daemon_connect(u_short protocol, u_long hostaddr)
 	PSI_myrank = msg.rank;
 	PSI_masternode = msg.masternode;
 	PSI_masterport = msg.masterport;
+	PSI_SetInstalldir(msg.instdir);
+	if(strcmp(msg.instdir, PSI_LookupInstalldir())){
+	    fprintf(stderr,"PSI_daemon_connect(): "
+		    "Installation directory '%s' not correct.\n", msg.instdir);
+	    return 0;
+	}
 	if ( ! PSI_psidversion ) {
 	    PSI_psidversion = malloc(sizeof(msg.psidvers));
 	}
@@ -362,7 +368,7 @@ PSI_daemon_connect(u_short protocol, u_long hostaddr)
  *       PSI_clientinit()
  *
  *       MUST be call by every client process. It does all the necessary
- *       work to initialize the shm.
+ *       work to connect to the daemon and setup the necessary environment.
  */
 int
 PSI_clientinit(u_short protocol)
@@ -378,8 +384,10 @@ PSI_clientinit(u_short protocol)
     }
 #endif
 
-    if (PSI_msock != -1)
+    if (PSI_msock != -1) {
+	/* Allready connected */
 	return 1;
+    }
 
     /*
      * connect to local PSI daemon
@@ -668,11 +676,11 @@ struct installdir_{
     { -1, "" },
 };
 
-char * PSI_installdir = NULL;
+static char * PSI_installdir = NULL;
 
 char * PSI_LookupInstalldir(void)
 {
-    int i=0,found=0;
+    int i=0, found=(PSI_installdir != NULL);
     char *name = NULL, logger[] = "/bin/psiforwarder";
     struct stat sbuf;
 
@@ -704,12 +712,11 @@ void PSI_SetInstalldir(char * installdir)
     name = (char*) malloc(strlen(installdir) + strlen(logger) + 1);
     strcpy(name,installdir);
     strcat(name,logger);
-    if(stat(name, &sbuf) != -1){ /* Installdir valid */
-	if(instdir)
-	    free(instdir);
+    if ( stat(name, &sbuf) == 0 ) { /* Installdir valid */
+	if (instdir) free(instdir);
 	instdir = (char*) malloc(strlen(installdir) + 1);
 	strcpy(instdir, installdir);
-	PSI_installdir=instdir;
+	PSI_installdir = instdir;
     }
     free(name);
 }
