@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.25 2002/08/01 16:52:27 eicker Exp $
+ * $Id: psispawn.c,v 1.26 2002/08/06 08:19:06 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.25 2002/08/01 16:52:27 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.26 2002/08/06 08:19:06 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -833,6 +833,13 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
     task->argv[task->argc]=0;
 
     task->environ = dumpPSIEnv();
+
+    /* Test if task is small enough */
+    if (PStask_encode(msg.buf, sizeof(msg.buf), task) > sizeof(msg.buf)) {
+	PSI_errlog("PSI_dospawn(): size of task too large."
+		   " Too many environment variables?", 0);
+	return -1;
+    }
 
     outstanding_answers=0;
     for (i=0; i<count; i++) {
