@@ -87,10 +87,10 @@
 //#define DEBUG_PSHAL
 
 /* Enable sis MCP */
-#define ENABLE_SIS
+//#define ENABLE_SIS
 
 /* Enable sis MCP */
-#define ENABLE_JM
+//#define ENABLE_JM
 
 /* Enable remote kernel debuging */
 #define ENABLE_DEBUG_MSG	
@@ -105,10 +105,10 @@
 #define DISABLE_LOCAL_COM
 
 /* Enable Packetcounter in PSHAL */
-#define ENABLE_PACKETCOUNTER
+//#define ENABLE_PACKETCOUNTER
 
 /* PSPORT print debuging on ^Z */
-#define ENABLE_REQUESTDUMP
+//#define ENABLE_REQUESTDUMP
 
 #define PSM_PRINT_MAP_LEVEL_OFF 15
 
@@ -129,7 +129,7 @@
 #endif
 
 
-#define ASMC(str) asm volatile ("!*************************\n\t!* " str "\n\t!*************************\n\t")
+#define PS_ASMC(str) asm volatile ("/*************************\n\t * " str "\n\t *************************/\n\t")
 #define _STRINGIFY(param) #param
 #define INT2STR(param) _STRINGIFY(param)
 #define LINEID __FILE__ ":" INT2STR(__LINE__) ":" __FUNCTION__ "()"
