@@ -37,7 +37,8 @@
 <book id="adminguide">
   <title><inlinemediaobject>
       <imageobject>
-	<imagedata scale="25" fileref="../images/ParaStation.png"/>
+	<!--<imagedata scale="25" fileref="../images/ParaStation.png"/>-->
+	<imagedata scale="38" fileref="../images/ParaStation_neu.png"/>
       </imageobject>
     </inlinemediaobject> Administrator's Guide</title>
   <titleabbrev>&ps; Administrator's Guide</titleabbrev>

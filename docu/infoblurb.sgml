@@ -36,7 +36,8 @@
 
 <mediaobject>
   <imageobject>
-    <imagedata scale="35" align="center" fileref="../images/ParTec.png"/>
+    <!--<imagedata scale="35" align="center" fileref="../images/ParTec.png"/>-->
+    <imagedata scale="15" align="center" fileref="../images/ParTec_neu.png"/>
   </imageobject>
 </mediaobject>
 
