@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.h,v 1.13 2003/08/04 15:18:38 eicker Exp $
+ * $Id: psispawn.h,v 1.14 2003/08/27 13:08:57 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for spawning of ParaStation tasks.
  *
- * $Id: psispawn.h,v 1.13 2003/08/04 15:18:38 eicker Exp $
+ * $Id: psispawn.h,v 1.14 2003/08/27 13:08:57 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -29,59 +29,6 @@ extern "C" {
 } /* <- just for emacs indentation */
 #endif
 #endif
-
-/**
- * @brief Spawn one task on a cluster node.
- *
- * Spawn the task described by the @a argc arguments within @a argv on
- * the node with ID @a dstnode. The present working directory of the
- * task spawned will be @a workingdir. The forwarder controlling the
- * spawned task will forward all output to the logger described by @a
- * loggertid. The task will have the logical rank @a rank, i.e. this
- * is what is returned by PSE_getRank() within this task.
- *
- * The unique task ID of the spawned task will be returned or -1 if an
- * error occured. Then @a error will contain an errno describing this
- * error.
- *
- * @param dstnode ParaStation ID of the node the task should be
- * spawned on. @a dstnode might be -1. Then the node will be choosen
- * from the current partition according to an internal counter set via
- * PSI_getPartition().
- *
- * @param workingdir Present working directory of the spawned task on
- * startup. This might be an absolute or relative path. If @a
- * workingdir is a relative path, the content of the PWD environment
- * variable is prepended. If @a workingdir is NULL, the content of the
- * PWD environment variable is taken.
- *
- * @param argc Number of arguments in @a argv used within the
- * resulting execve() call in order to really spawn the task.
- *
- * @param argv Array of argument strings passed to the resulting
- * execve() call in order to finally spawn the task.
- *
- * @param loggertid Unique task ID of the logger program used by the
- * forwarder controlling the spawned task to put out the stdout and
- * stderr output.
- *
- * @param rank Rank of the spawned task within the parallel task. You
- * can get the rank of a specific task by calling PSE_getRank() from
- * withing the spawned task.
- *
- * @param error Errorcode displaying if an error occurred within
- * PSI_spawn().
- *
- *
- * @return On success, the unique task ID of the spawned task is
- * returned, or -1 if an error occurred. Then error is set
- * appropriately.
- *
- * @see PSI_getPartition()
- */
-long PSI_spawn(short dstnode, char *workingdir, int argc, char **argv,
-	       long loggertid,
-	       int rank, int *error);
 
 /**
  * @brief Spawn one or more tasks within the cluster.
@@ -139,8 +86,7 @@ long PSI_spawn(short dstnode, char *workingdir, int argc, char **argv,
  */
 int PSI_spawnM(int count, short* dstnodes, char *workingdir,
 	       int argc, char **argv,
-	       long loggertid,
-	       int rank, int *errors, long *tids);
+	       long loggertid, int rank, int *errors, long *tids);
 
 /**
  * @brief Set UID for spawns
