@@ -61,9 +61,10 @@
     <para>
       Very few parameters have to be declared in any case to enable ParaStation
       to run on a cluster. These parameters are <command>NrOfNodes</command>,
-      <command>Nodes</command> and <command>LicenseServer</command>. In the
-      case of a MyriNet cluster <command>MyriNetModule</command> and
-      <command>Routingfile</command> have also to be declared.
+      <command>HWType</command>, <command>Nodes</command> and
+      <command>LicenseServer</command>. In the case of a MyriNet cluster
+      <command>MyriNetModule</command> and <command>Routingfile</command> have
+      also to be declared.
     </para>
     <para>
       If parameters are declared more than once, the latest declaration is the
@@ -75,9 +76,9 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>InstallDir</command>
-	    <arg><replaceable>inst-dir</replaceable></arg>
+	    <arg choice="plain"><replaceable>inst-dir</replaceable></arg>
 	    <command>, InstallationDir</command>
-	    <arg><replaceable>inst-dir</replaceable></arg>
+	    <arg choice="plain"><replaceable>inst-dir</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
@@ -101,7 +102,7 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>NrOfNodes</command>
-	    <arg><replaceable>num</replaceable></arg>
+	    <arg choice="plain"><replaceable>num</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
@@ -129,17 +130,17 @@
 	  <cmdsynopsis>
 	    <command>HWType</command>
 	    <group choice="req">
-	      <arg>EtherNet</arg>
-	      <arg>MyriNet</arg>
-<!-- 	      <arg>GigaEtherNet</arg> -->
-	      <arg>None</arg>
+	      <arg choice="plain">EtherNet</arg>
+	      <arg choice="plain">MyriNet</arg>
+<!-- 	      <arg choice="plain">GigaEtherNet</arg> -->
+	      <arg choice="plain">None</arg>
 	    </group>
 	    <command>, HWType {</command>
-	    <group rep="repeat">
-	      <arg>EtherNet</arg>
-	      <arg>MyriNet</arg>
-<!-- 	      <arg>GigaEtherNet</arg> -->
-	      <arg>None</arg>
+	    <group rep="repeat" choice="req">
+	      <arg choice="plain">EtherNet</arg>
+	      <arg choice="plain">MyriNet</arg>
+<!-- 	      <arg choice="plain">GigaEtherNet</arg> -->
+	      <arg choice="plain">None</arg>
 	    </group>
 	    <command>}</command>
 	  </cmdsynopsis>
@@ -227,8 +228,8 @@
 	    depending on ethernet communication even on nodes that have a
 	    MyriNet card in order to talk to nodes that don't have one. The
 	    corresponding <command>HWType</command> declaration read
-	    <command>HWType { <parameter>MyriNet</parameter>
-	      <parameter>EtherNet</parameter></command>.
+	    <command>HWType {<parameter>MyriNet</parameter>
+	      <parameter>EtherNet</parameter> }</command>.
 	  </para>
 	  <para>
 	    The default value of <command>HWType</command> is
@@ -258,7 +259,7 @@
 	    over MyriNet will not be enabled, unless otherwise stated.
 	  </para>
 	  <para>
-	    The default is to not enable TCP/IP over MyriNet.
+	    The default is to disable TCP/IP over MyriNet.
 	  </para>
 	  <note>
 	    <para>This parameter is only useful when configuring a MyriNet
@@ -296,14 +297,51 @@
       <varlistentry>
 	<term>
 	  <cmdsynopsis>
-	    <command>Node {</command>
-	    <command>, Nodes</command>
+	    <command>Node[s]</command>
+	    <arg choice="plain"><replaceable>hostname</replaceable></arg>
+	    <arg choice="plain"><replaceable>id</replaceable></arg>
+	    <arg>HWtype-entry</arg>
+	    <arg>hasIP-entry</arg>
+	    <arg>starter-entry</arg>
+	    
+	    <command>, Node[s] {</command>
+	    <arg choice="plain">{<replaceable>hostname</replaceable></arg>
+	    <arg choice="plain"><replaceable>id</replaceable></arg>
+	    <arg choice="opt">HWtype-entry</arg>
+	    <arg>hasIP-entry</arg>
+	    <arg>starter-entry</arg>
+	    <arg choice="plain">}...</arg>
+	    <command>}</command>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
 	  <para>
+	    Define one or more nodes to be part of the ParaStation cluster.
+	  </para>
+	  <para>
 	    This is the first example of a parameter that supports the
-	    environment mode.
+	    environment mode. This means there are two different notations to
+	    use this parameter. The first one may be used to define a single
+	    node, the second one will allow to register more than one node
+	    within a single command. You can assume the environment form of a
+	    command as a convenience mode that prevents from typing the keyword
+	    once per entry again and again.
+	  </para>
+	  <para>
+	    Each entry has to have at least to items, the
+	    <parameter><replaceable>hostname</replaceable></parameter> and the
+	    <parameter><replaceable>id</replaceable></parameter>. This will
+	    tell the ParaStation system that the node called
+	    <parameter><replaceable>hostname</replaceable></parameter> will act
+	    as the physical node with ParaStation ID
+	    <parameter><replaceable>id</replaceable></parameter>.
+	  </para>
+	  <para>
+	    Further entry may overrule the default values of the hardware type
+	    on the node, the existence of the IP over Myrinet feature and the
+	    ability to start parallel jobs from this node. These entry have the
+	    same syntax as the stand alone commands to set the corresponding
+	    default value.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -312,9 +350,9 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>LicenseServer</command>
-	    <arg><replaceable>hostname</replaceable></arg>
+	    <arg choice="plain"><replaceable>hostname</replaceable></arg>
 	    <command>, LicServer</command>
-	    <arg><replaceable>hostname</replaceable></arg>
+	    <arg choice="plain"><replaceable>hostname</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
@@ -340,9 +378,9 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>LicenseFile</command>
-	    <arg><replaceable>lic-file</replaceable></arg>
+	    <arg choice="plain"><replaceable>lic-file</replaceable></arg>
 	    <command>, LicFile</command>
-	    <arg><replaceable>lic-file</replaceable></arg>
+	    <arg choice="plain"><replaceable>lic-file</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
@@ -384,9 +422,9 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>LicenseDeadInterval</command>
-	    <arg><replaceable>num</replaceable></arg>
+	    <arg choice="plain"><replaceable>num</replaceable></arg>
 	    <command>, LicDeadInterval</command>
-	    <arg><replaceable>num</replaceable></arg>
+	    <arg choice="plain"><replaceable>num</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
@@ -413,7 +451,7 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>MyriNetModule</command>
-	    <arg><replaceable>mod-file</replaceable></arg>
+	    <arg choice="plain"><replaceable>mod-file</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
@@ -451,7 +489,7 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>RoutingFile</command>
-	    <arg><replaceable>route-file</replaceable></arg>
+	    <arg choice="plain"><replaceable>route-file</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
@@ -490,7 +528,7 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>SmallPacketSize</command>
-	    <arg><replaceable>size</replaceable></arg>
+	    <arg choice="plain"><replaceable>size</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
@@ -499,8 +537,8 @@
 	    <parameter><replaceable>size</replaceable></parameter> bytes.
 	  </para>
 	  <para>
-	    PIO packets are send directly to the node's memory by the MCP and
-	    copied by a <citerefentry>
+	    PIO packets are send directly to the node's memory by the <link
+	      linkend="MCP">MCP</link> and copied by a <citerefentry>
 	      <refentrytitle>memcpy</refentrytitle>
 	      <manvolnum>3</manvolnum>
 		    </citerefentry> into the final destination. Non-PIO packets
@@ -527,7 +565,7 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>ResendTimeout</command>
-	    <arg><replaceable>time</replaceable></arg>
+	    <arg choice="plain"><replaceable>time</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
@@ -559,7 +597,7 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>HNPend</command>
-	    <arg><replaceable>val</replaceable></arg>
+	    <arg choice="plain"><replaceable>val</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
@@ -568,14 +606,15 @@
 	    <parameter><replaceable>val</replaceable></parameter>.
 	  </para>
 	  <para>
-	    Host notify messages are send by the MCP to the kernel to mark send
-	    buffers as free. This is done when data, that was sent successfully
-	    via this buffer, was acknowledged by the destination node.
+	    Host notify messages are send by the <link linkend="MCP">MCP</link>
+	    to the kernel to mark send buffers as free. This is done when data,
+	    that was sent successfully via this buffer, was acknowledged by the
+	    destination node.
 	  </para>
 	  <para>
-	    Usually not every freed buffer is communicated, but the MCP waits
-	    until several buffers are freed and sends accumulated host notify
-	    messages then.
+	    Usually not every freed buffer is communicated, but the <link
+	      linkend="MCP">MCP</link> waits until several buffers are freed
+	    and sends accumulated host notify messages then.
 	    <parameter><replaceable>val</replaceable></parameter> is the number
 	    of accumulated messages to sent simultaniously.
 	  </para>
@@ -607,7 +646,7 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>ACKPend</command>
-	    <arg><replaceable>val</replaceable></arg>
+	    <arg choice="plain"><replaceable>val</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
@@ -688,6 +727,7 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>IPPrefixLen</command>
+	    <arg choice="plain"><replaceable>len</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
@@ -705,7 +745,7 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>SelectTime</command>
-	    <arg><replaceable>time</replaceable></arg>
+	    <arg choice="plain"><replaceable>time</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
@@ -734,7 +774,7 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>DeadInterval</command>
-	    <arg><replaceable>num</replaceable></arg>
+	    <arg choice="plain"><replaceable>num</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
@@ -765,7 +805,7 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>LogLevel</command>
-	    <arg><replaceable>num</replaceable></arg>
+	    <arg choice="plain"><replaceable>num</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
@@ -811,7 +851,7 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>MCastGroup</command>
-	    <arg><replaceable>group-num</replaceable></arg>
+	    <arg choice="plain"><replaceable>group-num</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
@@ -831,7 +871,7 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>MCastPort</command>
-	    <arg><replaceable>port-num</replaceable></arg>
+	    <arg choice="plain"><replaceable>port-num</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
@@ -850,7 +890,7 @@
 	<term>
 	  <cmdsynopsis>
 	    <command>RDPPort</command>
-	    <arg><replaceable>port-num</replaceable></arg>
+	    <arg choice="plain"><replaceable>port-num</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
@@ -903,14 +943,10 @@
       <command>Environment</command> are not implemented yet.
     </para>
     <para>
-      The commands <command>Nodes</command>, <command>MyriNetModule</command>,
-      <command>RoutingFile</command>,  <command>SmallPacketSize</command>,
-      <command>ResendTimeout</command>,  <command>HNPend</command>,
-      <command>ACKPend</command>, <command>IPModule</command>,
+      The commands <command>IPModule</command>,
       <command>IPPrefix</command>, <command>IPPrefixLen</command>,
-      <command>SelectTime</command>, <command>LogDest</command>,
-      <command>RLimit</command> and <command>Environment</command> are not
-      documented yet.
+      <command>LogDest</command>, <command>RLimit</command> and
+      <command>Environment</command> are not documented yet.
     </para>
   </refsect1>
 </refentry>
