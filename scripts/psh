@@ -140,7 +140,7 @@ function cleanup
 #
 function namemerge()
 {
-    echo $*|awk '
+    echo "$*"|awk '
 BEGIN{ RS=" " }
 function nprint(key1,key2)
 {
@@ -220,7 +220,7 @@ END{
 
 function nameexpand()
 {
-    echo $*| awk '
+    echo "$*"| awk '
 BEGIN{ RS=" " }
 
 function expand(name,pat)
@@ -433,7 +433,7 @@ for ((i = 0; i < ${#NODES[*]} ; i++)); do
 		fi
 	    fi
 	done
-	echo === $(namemerge $hosts)
+	echo "=== $(namemerge $hosts)"
 	cat ${OUTPUTS[$i]}
     fi
 done
