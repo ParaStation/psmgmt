@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psipartition.c,v 1.10 2004/01/22 17:17:59 eicker Exp $
+ * $Id: psipartition.c,v 1.11 2004/01/28 10:29:47 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.10 2004/01/22 17:17:59 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.11 2004/01/28 10:29:47 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -202,7 +202,8 @@ static PSpart_option_t getPartitionOptions(void)
 
     if (getenv(ENV_PART_LOOPNODES)) options |= PART_OPT_NODEFIRST;
     if (getenv(ENV_PART_EXCLUSIVE)) options |= PART_OPT_EXCLUSIVE;
-    if (getenv(ENV_PART_OVERBOOK)) options |= PART_OPT_OVERBOOK;
+    if (getenv(ENV_PART_OVERBOOK)) options |= (PART_OPT_OVERBOOK
+					       | PART_OPT_EXCLUSIVE);
     if (getenv(ENV_PART_WAIT)) options |= PART_OPT_WAIT;
 
     return options;
@@ -576,6 +577,13 @@ int PSI_createPartition(unsigned int size, unsigned int hwType)
 
     snprintf(errtxt, sizeof(errtxt), "%s", __func__);
     PSI_errlog(errtxt, 10);
+
+    if (size <= 0) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: size %d to small", __func__, size);
+	PSI_errlog(errtxt, 0);
+	return -1;
+    }
 
     request->size = size;
     request->hwType = hwType;
