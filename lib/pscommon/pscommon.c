@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.c,v 1.9 2003/06/05 16:56:53 eicker Exp $
+ * $Id: pscommon.c,v 1.10 2003/08/15 13:31:30 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.9 2003/06/05 16:56:53 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.10 2003/08/15 13:31:30 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -281,4 +281,57 @@ int PSC_getServicePort(char *name , int def)
     } else {
 	return ntohs(service->s_port);
     }
+}
+
+static int parseRange(char *list, char *range)
+{
+    long first, last, i;
+    char *start = strsep(&range, "-"), *end;
+
+    first = strtol(start, &end, 0);
+    if (*end != '\0') return 0;
+    if (first < 0 || first >= PSC_getNrOfNodes()) {
+	snprintf(errtxt, sizeof(errtxt), "node %ld out of range.", first);
+	PSC_errlog(errtxt, 0);
+	return 0;
+    }
+
+    if (range) {
+	last = strtol(range, &end, 0);
+	if (*end != '\0') return 0;
+	if (last < 0 || last >= PSC_getNrOfNodes()) {
+	    snprintf(errtxt, sizeof(errtxt), "node %ld out of range.", last);
+	    PSC_errlog(errtxt, 0);
+	    return 0;
+	}
+    } else {
+	last = first;
+    }
+
+    for (i=first; i<=last; i++) list[i] = 1;
+    return 1;
+}
+
+char *PSC_parseNodelist(char *descr)
+{
+    static char *nl = NULL;
+    char *range;
+    char *work;
+
+    nl = realloc(nl, sizeof(char) * PSC_getNrOfNodes());
+    if (!nl) {
+	snprintf(errtxt, sizeof(errtxt), "%s: no memory.", __func__);
+	PSC_errlog(errtxt, 0);
+	return NULL;
+    }
+    memset(nl, 0, sizeof(char) * PSC_getNrOfNodes());
+
+    range = strtok_r(descr, ",", &work);
+
+    while (range) {
+	if (!parseRange(nl, range)) return NULL;
+	range = strtok_r(NULL, ",", &work);
+    }
+
+    return nl;
 }

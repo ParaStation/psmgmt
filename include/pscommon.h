@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.h,v 1.6 2003/07/22 18:29:58 eicker Exp $
+ * $Id: pscommon.h,v 1.7 2003/08/15 13:31:14 eicker Exp $
  *
  */
 /**
  * @file
  * Functions used in user-programs and daemon.
  *
- * $Id: pscommon.h,v 1.6 2003/07/22 18:29:58 eicker Exp $
+ * $Id: pscommon.h,v 1.7 2003/08/15 13:31:14 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -282,6 +282,29 @@ void PSC_setInstalldir(char *installdir);
  * @brief @todo
  */
 int PSC_getServicePort(char *name , int def);
+
+/**
+ * @brief Get nodelist from string.
+ *
+ * Parse the string @a descr describing a nodelist and create and
+ * return the corresponding nodelist. The resulting nodelist is a char
+ * array of size PSC_getNrOfNodes(), each char describing if the
+ * corresponding nodes was found within @a descr. The char set to 1
+ * means the nodes is described, the char is set to 0 otherwise.
+ *
+ * The nodelist is returned returned in a statically allocated buffer,
+ * which subsequent calls will overwrite.
+ *
+ * @param descr The string desribing a list of nodes. The string is of
+ * the form n[-m]{,o[-p]}*, where n, m, o and p are numbers. Each
+ * numer might be in decimal, octal or hexadecimal notation. Oktal
+ * notation is marked by a leading 0, hexadecimal notation by a
+ * leading 0x.
+ *
+ * @return On success, a char array as described above is returned. Or
+ * NULL, if an (parsing-) error occured.
+ */
+char *PSC_parseNodelist(char *descr);
 
 #ifdef __cplusplus
 }/* extern "C" */
