@@ -7,14 +7,15 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidsignal.c,v 1.2 2003/03/11 18:12:13 eicker Exp $
+ * $Id: psidsignal.c,v 1.3 2003/03/19 17:12:52 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidsignal.c,v 1.2 2003/03/11 18:12:13 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidsignal.c,v 1.3 2003/03/19 17:12:52 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
@@ -130,7 +131,7 @@ void PSID_sendSignal(long tid, uid_t uid, long senderTid, int signal)
 	/* receiver is on a remote node, send message */
 	DDSignalMsg_t msg;
 
-	msg.header.type = PSP_DD_SIGNAL;
+	msg.header.type = PSP_CD_SIGNAL;
 	msg.header.sender = senderTid;
 	msg.header.dest = tid;
 	msg.header.len = sizeof(msg);
