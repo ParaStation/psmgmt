@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: errlog.h,v 1.5 2002/07/03 20:04:08 eicker Exp $
+ * $Id: errlog.h,v 1.6 2002/08/02 10:19:21 eicker Exp $
  *
  */
 /**
  * \file
  * ParaStation ErrLog facility used within MCast and RDP.
  *
- * $Id: errlog.h,v 1.5 2002/07/03 20:04:08 eicker Exp $
+ * $Id: errlog.h,v 1.6 2002/08/02 10:19:21 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -158,11 +158,23 @@ static void initErrLog(char *tag, int syslog)
  */
 static void errlog(char *s, int level)
 {
-    static char errtxt[320];
+    static char *errtxt = NULL;
+    static int txtlen = 320;
+    int tmp;
 
     if (level > levelErrLog) return;
 
-    snprintf(errtxt, sizeof(errtxt), "%s: %s\n", ErrLogTag ? ErrLogTag:"", s);
+    if (!errtxt) errtxt = malloc(txtlen);
+
+    /* errtxt large enough ? */
+    tmp = (ErrLogTag ? strlen(ErrLogTag) : 0) + 2 + strlen(s) + 2;
+    if (txtlen < tmp) {
+	tmp += 100; /* Some extra space */
+	errtxt = realloc(errtxt, tmp);
+	txtlen = tmp;
+    }
+
+    sprintf(errtxt, "%s: %s\n", ErrLogTag ? ErrLogTag:"", s);
     if (syslogErrLog) {
         syslog(LOG_ERR, errtxt);
     } else {
@@ -192,12 +204,26 @@ static void errlog(char *s, int level)
  */
 static void errexit(char *s, int errorno)
 {
-    static char errtxt[320];
+    static char *errtxt = NULL;
+    static int txtlen = 320;
+    int tmp;
 
     if (syslogErrLog) {
 	char* errstr = strerror(errorno);
-	snprintf(errtxt, sizeof(errtxt), "%s ERROR: %s: %s\n",
-		 ErrLogTag ? ErrLogTag:"", s, errstr ? errstr : "UNKNOWN");
+
+	if (!errtxt) errtxt = malloc(txtlen);
+
+	/* errtxt large enough ? */
+	tmp = (ErrLogTag ? strlen(ErrLogTag) : 0) + 8 + strlen(s) + 2
+	    + (errstr ? strlen(errstr) : 0) + 2;
+	if (txtlen < tmp) {
+	    tmp += 100; /* Some extra space */
+	    errtxt = realloc(errtxt, tmp);
+	    txtlen = tmp;
+	}
+
+	sprintf(errtxt, "%s ERROR: %s: %s\n",
+		ErrLogTag ? ErrLogTag:"", s, errstr ? errstr : "UNKNOWN");
         syslog(LOG_ERR, errtxt);
     } else {
         perror(s);
