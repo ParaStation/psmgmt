@@ -4,13 +4,13 @@
 #include <unistd.h>
 #include <sys/types.h>
 
-#include "psi.h"
+#include "pscommon.h"
 #include "psiadmin.h"
 
 #define yylex adminlex
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.13 2002/04/22 22:50:52 hauke Exp $";
+static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.14 2002/07/03 21:07:04 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #define NODEERR -2
@@ -36,8 +36,8 @@ static void CheckUserName(char *name);
 %token ADDOP SETOP SHOWOP STATOP KILLOP CONFIGOP RESTARTOP SHUTDOWNOP RESETOP
 %token TESTOP QUITOP HELPOP VERSIONOP NULLOP
 
-%token SMALLPACKETSIZE RESENDTIMEOUT HNPEND ACKPEND SELECTTIME DEBUGMASK
-%token RDPDEBUG RDPPKTLOSS RDPMAXRETRANS MCASTDEBUG PSIDDEBUG NOPSIDDEBUG
+%token SMALLPACKETSIZE RESENDTIMEOUT HNPEND ACKPEND SELECTTIME
+%token RDPDEBUG RDPPKTLOSS RDPMAXRETRANS MCASTDEBUG PSIDDEBUG
 
 %token MAXPROC USER ANY
 
@@ -119,17 +119,14 @@ setline:
         | SETOP USER                   {printf("SET USER needs username\n");}
         | SETOP USER NAME              {CheckUserName($3);}
         | SETOP USER ANY               {PSIADM_SetUser(-1);}
-        | SETOP DEBUGMASK NUMBER       {PSIADM_SetDebugmask($3);}
-        | SETOP DEBUGMASK HEXNUMBER    {PSIADM_SetDebugmask($3);}
         | SETOP RESENDTIMEOUT NUMBER   {PSIADM_SetResendTimeout($3);}
         | SETOP SMALLPACKETSIZE NUMBER {PSIADM_SetSmallPacketSize($3);}
         | SETOP HNPEND NUMBER          {PSIADM_SetHNPend($3);}
         | SETOP ACKPEND NUMBER         {PSIADM_SetAckPend($3);}
-        | SETOP PSIDDEBUG nodes        {MySetPsidDebug(1,FirstNode,LastNode);}
-        | SETOP NOPSIDDEBUG nodes
-                {MySetPsidDebug(0,FirstNode,LastNode);}
         | SETOP SELECTTIME NUMBER nodes
                 {MySetPsidSelectTime($3,FirstNode,LastNode);}
+        | SETOP PSIDDEBUG NUMBER nodes
+                {MySetPsidDebug($3,FirstNode,LastNode);}
         | SETOP RDPDEBUG NUMBER nodes
                 {MySetRDPDebug($3,FirstNode,LastNode);}
         | SETOP RDPPKTLOSS NUMBER nodes
@@ -144,7 +141,6 @@ showline:
           SHOWOP                    {printf("SHOW what?\n");}
         | SHOWOP MAXPROC            {PSIADM_ShowMaxProc();}
         | SHOWOP USER               {PSIADM_ShowUser();}
-        | SHOWOP DEBUGMASK          {PSIADM_ShowDebugmask();}
         | SHOWOP RESENDTIMEOUT      {PSIADM_ShowResendTimeout();}
         | SHOWOP SMALLPACKETSIZE    {PSIADM_ShowSmallPacketSize();}
         | SHOWOP HNPEND             {PSIADM_ShowHNPend();}
@@ -228,9 +224,7 @@ helpline:
         | HELPOP SETOP USER            {PrintSetHelp();}
         | HELPOP SETOP SMALLPACKETSIZE {PrintSetHelp();}
         | HELPOP SETOP RESENDTIMEOUT   {PrintSetHelp();}
-        | HELPOP SETOP DEBUGMASK       {PrintSetHelp();}
         | HELPOP SETOP PSIDDEBUG       {PrintPsidDebugHelp();}
-        | HELPOP SETOP NOPSIDDEBUG     {PrintPsidDebugHelp();}
         | HELPOP SETOP RDPDEBUG        {PrintRDPDebugHelp();}
         | HELPOP SETOP RDPPKTLOSS      {PrintRDPPktLossHelp();}
         | HELPOP SETOP MCASTDEBUG      {PrintMCastDebugHelp();}
@@ -278,7 +272,7 @@ static void CheckUserName(char *name)
 
 static int CheckNr(int node)
 {
-    register int NrOfNodes = PSI_getnrofnodes();
+    register int NrOfNodes = PSC_getNrOfNodes();
 
     if ((node<0) || (node>NrOfNodes-1)){
 	printf("PSIadmin: Illegal nodenumber %d\n",node);
