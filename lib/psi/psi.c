@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.33 2002/07/18 12:05:34 eicker Exp $
+ * $Id: psi.c,v 1.34 2002/07/18 12:52:55 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.33 2002/07/18 12:05:34 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.34 2002/07/18 12:52:55 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -83,7 +83,7 @@ static int connectDaemon(PStask_group_t taskGroup, unsigned int hostaddr)
     int ret;
 
     snprintf(errtxt, sizeof(errtxt),
-	     "connectDaemon(%s, %s)", PStask_groupMsg(taskGroup),
+	     "connectDaemon(%s, %s)", PStask_printGrp(taskGroup),
 	     inet_ntoa(* (struct in_addr *) &hostaddr));
     PSI_errlog(errtxt, 10);
 
@@ -242,7 +242,7 @@ int PSI_initClient(PStask_group_t taskGroup)
     PSC_initLog(0 /* don't use syslog */, NULL /* No special logfile */);
 
     snprintf(errtxt, sizeof(errtxt),
-	     "PSI_initClient(%s)", PStask_groupMsg(taskGroup));
+	     "PSI_initClient(%s)", PStask_printGrp(taskGroup));
     PSI_errlog(errtxt, 10);
 
     if (PSI_msock != -1) {
