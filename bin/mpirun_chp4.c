@@ -5,20 +5,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mpirun_chp4.c,v 1.5 2003/03/04 15:36:18 eicker Exp $
+ * $Id: mpirun_chp4.c,v 1.6 2003/03/07 15:53:22 eicker Exp $
  *
  */
 /**
  * @file Replacement for the standard mpirun command provided by MPIch in order
  * to start MPIch/P4 application within a ParaStation cluster.
  *
- * $Id: mpirun_chp4.c,v 1.5 2003/03/04 15:36:18 eicker Exp $
+ * $Id: mpirun_chp4.c,v 1.6 2003/03/07 15:53:22 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chp4.c,v 1.5 2003/03/04 15:36:18 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chp4.c,v 1.6 2003/03/07 15:53:22 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -39,7 +39,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chp4.c,v 1.5 2003/03
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.5 $";
+    char revision[] = "$Revision: 1.6 $";
     fprintf(stderr, "mpirun_chp4 %s\b \n", revision+11);
 }
 
@@ -368,8 +368,17 @@ int main(int argc, const char *argv[])
 	fprintf(stderr, "%s: no memory", argv[dup_argc]);
 	exit(1);
     }
+
     for (i=dup_argc, j=0; i<argc; i++, j++) {
-	dup_argv[j] = strdup(argv[i]);
+	if (!j && argv[i][0] != '/' && argv[i][0] != '.') {
+	    dup_argv[j] = malloc(sizeof(char) * strlen(argv[i]) + 3);
+	    if (dup_argv[j]) {
+		sprintf(dup_argv[j], "./%s", argv[i]);
+	    }
+	} else {
+	    dup_argv[j] = strdup(argv[i]);
+	}
+
 	if (!dup_argv[j]) {
 	    fprintf(stderr, "%s: no memory", argv[dup_argc]);
 	    exit(1);
@@ -384,8 +393,18 @@ int main(int argc, const char *argv[])
 
     dup_argc = argc - dup_argc + 4;
 
-    /* @todo No absolute paths ! */
-    setPSIEnv("P4_RSHCOMMAND", "/opt/parastation/bin/psispawn", 1);
+#define SPAWNER "bin/psispawn"
+
+    {
+	char *spawner = malloc(strlen(PSC_lookupInstalldir())
+			       + strlen(SPAWNER) + 2);
+
+	sprintf(spawner, "%s/%s", PSC_lookupInstalldir(), SPAWNER);
+
+	setPSIEnv("P4_RSHCOMMAND", spawner, 1);
+
+	free(spawner);
+    }
 
     {
 	/* spawn master process (we are going to be logger) */
