@@ -2,16 +2,20 @@
 
 CFLAGS += -O2 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
 PSM_OSDIR := @PSM_OSDIR@
-CPPFLAGS += -I@top_srcdir@/include @CPPFLAG_MMD@
+CPPFLAGS += -I@top_srcdir@/include -I/usr/local/include -I. @CPPFLAG_MMD@
+SRCDIR = @srcdir@
+YFLAGS = -d
+LFLAGS = -i
+LEX = flex
 
 
-VPATH += @srcdir@
+VPATH += $(SRCDIR)
 
 LIBDIR := ../lib
 
 .LIBPATTERNS += $(LIBDIR)/lib%.a
 
-TOOLS:=psconfig pscounter
+TOOLS:=psconfig pscounter psiadmin psid psld
 # test_nodes
 
 bin:	$(TOOLS)
@@ -29,11 +33,55 @@ test_nodes: test_nodes.o -lpshal -lpsport -larg -lpse -lpsi -lm -pthread
 
 test_pse: test_pse.o -lpshal -lpsport -larg -lpse -lpsi -lm -lpthread
 
+
+# psiadmin
+EXTRACLEAN += lex.admin.c admin.tab.c admin.tab.h
+VPATH += $(SRCDIR)/admin
+psiadmin: psiadmin.o admin.tab.o lex.admin.o -lreadline -lhistory -lpsi -l@LIBCURSES@
+admin.tab.o: CPPFLAGS = $(CPPFLAGS) -I$(SRCDIR)/admin
+admin.tab.o: admin.tab.c
+lex.admin.o: lex.admin.c admin.tab.c admin.tab.h
+
+# psid
+EXTRACLEAN += lex.psid.c psid.tab.c psid.tab.h
+VPATH += $(SRCDIR)/daemon
+VPATH += $(SRCDIR)/rdp
+VPATH += $(SRCDIR)/cardconfig
+psid: psid.o psidutil.o
+psid: parse.o lex.psid.o psid.tab.o
+psid: timer.o mcast.o rdp.o
+psid: cardconfig.o
+psid: -lpse -lpsi -lm -lpshal 
+psid.tab.o: CPPFLAGS = $(CPPFLAGS) -I$(SRCDIR)/daemon
+psid.tab.o: psid.tab.c
+lex.psid.o: lex.psid.c psid.tab.c psid.tab.h
+
+#psld
+VPATH += $(SRCDIR)/licdaemon
+VPATH += $(SRCDIR)/rdp
+psld: psld.o license.o 
+psld: parse.o psid.tab.o lex.psid.o
+psld: timer.o mcast.o
+psld: -lpsi -lm
+
+# lex and yacc
+#: %.tab.c %.scan.y
+
+%.tab.c %.tab.h: %.scan.y
+	$(YACC) $(YFLAGS) -b $* $^
+
+# %.tab.h
+lex.%.c: %.scan.l %.tab.h
+	$(LEX) $(LFLAGS) -P$* $<
+
+
+
+
 # WARNING!!! if DEPEXTENSION from configure is empty, make clean remove all files!!
 DEPFILES := $(wildcard *@DEPEXTENSION@) dummy.d
 
 clean:
-	$(RM) $(DEPFILES) *.o
+	$(RM) $(DEPFILES) $(EXTRACLEAN) *.o
 
 
 
