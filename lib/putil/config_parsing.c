@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.7 2003/10/29 17:23:54 eicker Exp $
+ * $Id: config_parsing.c,v 1.8 2003/10/30 16:38:06 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.7 2003/10/29 17:23:54 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.8 2003/10/30 16:38:06 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -50,6 +50,8 @@ static config_t config = (config_t) {
     .logLevel = 0,
     .logDest = LOG_DAEMON,
 };
+
+#define ENV_END 17 /* Some magic value */
 
 static int nodesfound = 0;
 
@@ -410,7 +412,7 @@ static int getRLimitRSS(char *token)
 
 static int endRLimitEnv(char *token)
 {
-    return UP;
+    return ENV_END;
 }
 
 static keylist_t rlimitenv_list[] = {
@@ -446,7 +448,7 @@ static int getRLimit(char *token)
 
     ret = parser_parseString(parser_getString(), &rlimit_parser);
 
-    if (ret == UP) {
+    if (ret == ENV_END) {
 	return 0;
     }
 
@@ -478,7 +480,7 @@ static int getHWent(char *token)
 
 static int endHWEnv(char *token)
 {
-    return UP;
+    return ENV_END;
 }
 
 static keylist_t hwenv_list[] = {
@@ -510,7 +512,7 @@ static int getHW(char *token)
 
     ret = parser_parseToken(parser_getString(), &hw_parser);
 
-    if (ret == UP) {
+    if (ret == ENV_END) {
 	return 0;
     }
 
@@ -648,7 +650,7 @@ static int getNodeLine(char *token)
 
 static int endNodeEnv(char *token)
 {
-    return UP;
+    return ENV_END;
 }
 
 static keylist_t nodeenv_list[] = {
@@ -678,7 +680,7 @@ static int getNodes(char *token)
 
     ret = parser_parseString(parser_getString(), &node_parser);
 
-    if (ret == UP) {
+    if (ret == ENV_END) {
 	return 0;
     }
 
@@ -784,7 +786,7 @@ static int getEnvLine(char *token)
 
 static int endEnvEnv(char *token)
 {
-    return UP;
+    return ENV_END;
 }
 
 static keylist_t envenv_list[] = {
@@ -812,7 +814,7 @@ static int getEnv(char *token)
 
     ret = parser_parseString(parser_getString(), &env_parser);
 
-    if (ret == UP) {
+    if (ret == ENV_END) {
 	return 0;
     }
 
@@ -921,7 +923,7 @@ static int getHardwareEnvLine(char *token)
 static int endHardwareEnv(char *token)
 {
     actHW = -1;
-    return UP;
+    return ENV_END;
 }
 
 static keylist_t hardwareenv_list[] = {
@@ -963,7 +965,7 @@ static int getHardware(char *token)
 
     ret = parser_parseOn(parser_getString(), &hardwareenv_parser);
 
-    if (ret == UP) {
+    if (ret == ENV_END) {
 	return 0;
     }
 
