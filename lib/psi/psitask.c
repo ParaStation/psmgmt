@@ -41,6 +41,7 @@ int PStask_init(PStask_t *task)
     task->loggerport = 0;
     task->fd = -1;
     task->error = 0;
+    task->confirmed = 1;
     task->workingdir = NULL;
     task->argc = 0;
     task->argv = NULL;
@@ -58,8 +59,7 @@ int PStask_init(PStask_t *task)
  * reinitializes a task structure
  * it was previously used and the allocated strings shall be removed
  */
-int
-PStask_reinit(PStask_t *task)
+int PStask_reinit(PStask_t *task)
 {
     int i;
 
@@ -102,8 +102,7 @@ PStask_reinit(PStask_t *task)
 /*
  * deletes a task structure and all strings associated with it
  */
-int
-PStask_delete(PStask_t * task)
+int PStask_delete(PStask_t * task)
 {
     if (task==0)
 	return 0;
@@ -117,8 +116,7 @@ PStask_delete(PStask_t * task)
 /*
  * prints the task structure in a string
  */
-void
-PStask_sprintf(char*txt, PStask_t * task)
+void PStask_sprintf(char*txt, PStask_t * task)
 {
     int i;
 
@@ -432,8 +430,7 @@ long PStask_getsignalsender(PStask_t* task, int *signal)
  *  deletes all tasks and the structure itself
  *  RETURN: 0 on success
  */
-void
-PStasklist_delete(PStask_t** list)
+void PStasklist_delete(PStask_t** list)
 {
     PStask_t* task;
 #ifdef DEBUG
@@ -457,8 +454,7 @@ PStasklist_delete(PStask_t** list)
  *  enqueus a task into a tasklist.
  *  RETURN: 0 on success
  */
-int
-PStasklist_enqueue(PStask_t** list, PStask_t* newtask)
+int PStasklist_enqueue(PStask_t** list, PStask_t* newtask)
 {
 #ifdef DEBUG
     if(PSP_DEBUGTASK & PSI_debugmask){
@@ -488,8 +484,7 @@ PStasklist_enqueue(PStask_t** list, PStask_t* newtask)
  *  RETURN: the removed task on success
  *          NULL if not found
  */
-PStask_t*
-PStasklist_dequeue(PStask_t** list, long tid)
+PStask_t* PStasklist_dequeue(PStask_t** list, long tid)
 {
     PStask_t* task=0;
     PStask_t* prevtask=0;
@@ -504,19 +499,21 @@ PStasklist_dequeue(PStask_t** list, long tid)
     task=(*list);
 
     if(tid!=-1)
-	while((task)&&(task->tid != tid)){
+	while ((task)&&(task->tid != tid)) {
 	    prevtask = task;
-	    task= task->link;
+	    task = task->link;
 	}
-    if(task){
-	if(prevtask)
+    if(task) {
+	if (prevtask) {
 	    /* found in the middle of the list */
 	    prevtask->link=task->link;
-	else
+	} else {
 	    /* the task was the head of the list */
 	    *list = task->link;
-	if(task->link)
+	}
+	if (task->link) {
 	    task->link->rlink = task->rlink;
+	}
     }
     return task;
 }
@@ -528,8 +525,7 @@ PStasklist_dequeue(PStask_t** list, long tid)
  *  RETURN: the task on success
  *          NULL if not found
  */
-PStask_t*
-PStasklist_find(PStask_t* list, long tid)
+PStask_t* PStasklist_find(PStask_t* list, long tid)
 {
     PStask_t* task;
 
@@ -556,8 +552,7 @@ PStasklist_find(PStask_t* list, long tid)
  *  prints all task of the tasklist
  *  RETURN: void
  */
-void
-PStasklist_sprintf(char*txt, PStask_t* list)
+void PStasklist_sprintf(char*txt, PStask_t* list)
 {
     PStask_t* task;
 

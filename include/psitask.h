@@ -51,7 +51,8 @@ typedef struct PStask_T{
     unsigned int loggernode;     /* the logging peer for any output */
     int loggerport;              /* the logging peer for any output */
     short fd;                    /* connection fd of the psid, otherwise -1 */
-    long error;                  /* error number */    
+    long error;                  /* error number */
+    int confirmed;               /* flag for reconnecting daemons */
     long options;                /* options of this task */
     char* workingdir;            /* working directory */
     int argc;                    /* number of argv */
