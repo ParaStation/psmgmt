@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.h,v 1.18 2003/12/11 20:26:05 eicker Exp $
+ * $Id: config_parsing.h,v 1.19 2004/03/11 14:10:25 eicker Exp $
  *
  */
 /**
  * \file
  * Parser for the config file of the ParaStation daemon
  *
- * $Id: config_parsing.h,v 1.18 2003/12/11 20:26:05 eicker Exp $
+ * $Id: config_parsing.h,v 1.19 2004/03/11 14:10:25 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -60,6 +60,8 @@ typedef struct {
     int useSyslog;       /**< Flag if syslog(3) is used for output or
 			    other destinations are defined on the
 			    commandline. */
+    int freeOnSuspend;   /**< Flag if a job's resources are freed on
+			    suspend. */
 } config_t;
 
 /**
