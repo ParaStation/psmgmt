@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.14 2002/01/08 21:41:26 eicker Exp $
+ * $Id: psiadmin.c,v 1.15 2002/01/08 23:39:16 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.14 2002/01/08 21:41:26 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.15 2002/01/08 23:39:16 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -40,7 +40,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.14 $";
+static char psiadmversion[] = "$Revision: 1.15 $";
 static int  DoRestart = 1;
 
 int PSIADM_LookUpNodeName(char* hostname)
@@ -287,7 +287,7 @@ void PSIADM_Version(void)
     printf("\n");
     printf("PSIADMIN: %s\b \n", psiadmversion+11);
     printf("PSID:     %s\b \n", PSI_psidversion+11);
-    printf("PSILIB:   version %d\n", PSPprotocolversion);
+    printf("PSILIB:   %d\n", PSPprotocolversion);
     return;
 }
 
