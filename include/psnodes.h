@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psnodes.h,v 1.6 2003/10/08 13:44:47 eicker Exp $
+ * $Id: psnodes.h,v 1.7 2003/10/29 17:34:30 eicker Exp $
  *
  */
 /**
@@ -13,7 +13,7 @@
  * Functions for handling the various informations about the nodes
  * with a ParaStation cluster
  *
- * $Id: psnodes.h,v 1.6 2003/10/08 13:44:47 eicker Exp $
+ * $Id: psnodes.h,v 1.7 2003/10/29 17:34:30 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -31,6 +31,9 @@ extern "C" {
 #endif
 #endif
 
+/** Type to store unique node IDs in. This enables us to have 32168 nodes. */
+typedef int16_t PSnodes_ID_t;
+
 /**
  * @brief Initialize the PSnodes module.
  *
@@ -42,7 +45,7 @@ extern "C" {
  *
  * @return On success, 0 is returned or -1, if an error occured.
  */
-int PSnodes_init(int numNodes);
+int PSnodes_init(PSnodes_ID_t numNodes);
 
 /**
  * @brief Get the number of nodes.
@@ -52,7 +55,7 @@ int PSnodes_init(int numNodes);
  *
  * @return The actual number of nodes.
  */
-int PSnodes_getNum(void);
+PSnodes_ID_t PSnodes_getNum(void);
 
 /**
  * @brief Register a new node.
@@ -67,7 +70,7 @@ int PSnodes_getNum(void);
  *
  * @return On success, 0 is returned or -1, if an error occured.
  */
-int PSnodes_register(int id, unsigned int IPaddr);
+int PSnodes_register(PSnodes_ID_t id, unsigned int IPaddr);
 
 
 /**
@@ -81,7 +84,7 @@ int PSnodes_register(int id, unsigned int IPaddr);
  * @return If the node was found, the ParaStation ID is returned. Or
  * -1, if an error occured.
  */
-int PSnodes_lookupHost(unsigned int IPaddr);
+PSnodes_ID_t PSnodes_lookupHost(unsigned int IPaddr);
 
 /**
  * @brief Get the IP address of a node.
@@ -94,7 +97,7 @@ int PSnodes_lookupHost(unsigned int IPaddr);
  * @return If the node was found, the IP address is returned. Or
  * INADDR_ANY, if an error occured.
  */
-unsigned int PSnodes_getAddr(int id);
+unsigned int PSnodes_getAddr(PSnodes_ID_t id);
 
 /**
  * @brief Declare a node to be up.
@@ -105,7 +108,7 @@ unsigned int PSnodes_getAddr(int id);
  *
  * @return On success, 0 is returned or -1, if an error occured.
  */
-int PSnodes_bringUp(int id);
+int PSnodes_bringUp(PSnodes_ID_t id);
 
 /**
  * @brief Declare a node to be down.
@@ -116,7 +119,7 @@ int PSnodes_bringUp(int id);
  *
  * @return On success, 0 is returned or -1, if an error occured.
  */
-int PSnodes_bringDown(int id);
+int PSnodes_bringDown(PSnodes_ID_t id);
 
 /**
  * @brief Test if a node is up.
@@ -128,7 +131,7 @@ int PSnodes_bringDown(int id);
  * @return If the node is up, 1 is returned. 0 is returned, if an
  * error occured or the node is down.
  */
-int PSnodes_isUp(int id);
+int PSnodes_isUp(PSnodes_ID_t id);
 
 
 /**
@@ -142,7 +145,7 @@ int PSnodes_isUp(int id);
  *
  * @return On success, 0 is returned or -1, if an error occured.
  */
-int PSnodes_setHWType(int id, int hwType);
+int PSnodes_setHWType(PSnodes_ID_t id, int hwType);
 
 /**
  * @brief Get the hardware type of a node.
@@ -154,7 +157,7 @@ int PSnodes_setHWType(int id, int hwType);
  * @return If the node was found, the hardware type is returned. Or
  * -1, if an error occured.
  */
-int PSnodes_getHWType(int id);
+int PSnodes_getHWType(PSnodes_ID_t id);
 
 /**
  * @brief Set the jobs flag of a node.
@@ -167,7 +170,7 @@ int PSnodes_getHWType(int id);
  *
  * @return On success, 0 is returned or -1, if an error occured.
  */
-int PSnodes_setRunJobs(int id, int runjobs);
+int PSnodes_setRunJobs(PSnodes_ID_t id, int runjobs);
 
 /**
  * @brief Get the jobs flag of a node.
@@ -179,7 +182,7 @@ int PSnodes_setRunJobs(int id, int runjobs);
  * @return If the node was found, the jobs flag is returned. Or
  * -1, if an error occured.
  */
-int PSnodes_runJobs(int id);
+int PSnodes_runJobs(PSnodes_ID_t id);
 
 /**
  * @brief Set the starter flag of a node.
@@ -192,7 +195,7 @@ int PSnodes_runJobs(int id);
  *
  * @return On success, 0 is returned or -1, if an error occured.
  */
-int PSnodes_setIsStarter(int id, int starter);
+int PSnodes_setIsStarter(PSnodes_ID_t id, int starter);
 
 /**
  * @brief Get the starter flag of a node.
@@ -204,7 +207,7 @@ int PSnodes_setIsStarter(int id, int starter);
  * @return If the node was found, the starter flag is returned. Or
  * -1, if an error occured.
  */
-int PSnodes_isStarter(int id);
+int PSnodes_isStarter(PSnodes_ID_t id);
 
 /**
  * @brief Set the extra IP address of a node.
@@ -217,7 +220,7 @@ int PSnodes_isStarter(int id);
  *
  * @return On success, 0 is returned or -1, if an error occured.
  */
-int PSnodes_setExtraIP(int id, unsigned int addr);
+int PSnodes_setExtraIP(PSnodes_ID_t id, unsigned int addr);
 
 /**
  * @brief Get the extra IP address of a node.
@@ -229,7 +232,7 @@ int PSnodes_setExtraIP(int id, unsigned int addr);
  * @return If the node was found, the extra IP address is returned. Or
  * INADDR_ANY, if an error occured or the extra IP address was not set.
  */
-unsigned int PSnodes_getExtraIP(int id);
+unsigned int PSnodes_getExtraIP(PSnodes_ID_t id);
 
 /**
  * @brief Set the number of CPUs of a node.
@@ -242,7 +245,7 @@ unsigned int PSnodes_getExtraIP(int id);
  *
  * @return On success, 0 is returned or -1, if an error occured.
  */
-int PSnodes_setCPUs(int id, short numCPU);
+int PSnodes_setCPUs(PSnodes_ID_t id, short numCPU);
 
 /**
  * @brief Get the number of CPUs of a node.
@@ -254,7 +257,7 @@ int PSnodes_setCPUs(int id, short numCPU);
  * @return If the node was found, the number of CPUs is returned. Or
  * -1, if an error occured.
  */
-short PSnodes_getCPUs(int id);
+short PSnodes_getCPUs(PSnodes_ID_t id);
 
 /**
  * @brief Set the hardware status of a node.
@@ -268,7 +271,7 @@ short PSnodes_getCPUs(int id);
  *
  * @return On success, 0 is returned or -1, if an error occured.
  */
-int PSnodes_setHWStatus(int id, int hwStatus);
+int PSnodes_setHWStatus(PSnodes_ID_t id, int hwStatus);
 
 /**
  * @brief Get the hardware status of a node.
@@ -280,7 +283,7 @@ int PSnodes_setHWStatus(int id, int hwStatus);
  * @return If the node was found, the hardware status is returned. Or
  * -1, if an error occured.
  */
-int PSnodes_getHWStatus(int id);
+int PSnodes_getHWStatus(PSnodes_ID_t id);
 
 
 /** Pseudo user ID to allow any user to run on a specific node */
@@ -297,7 +300,7 @@ int PSnodes_getHWStatus(int id);
  *
  * @return On success, 0 is returned or -1, if an error occured.
  */
-int PSnodes_setUser(int id, uid_t uid);
+int PSnodes_setUser(PSnodes_ID_t id, uid_t uid);
 
 /**
  * @brief Get the exclusive user of a node.
@@ -309,7 +312,7 @@ int PSnodes_setUser(int id, uid_t uid);
  * @return If the node was found, the exclusive user is returned. Or
  * -1, if an error occured.
  */
-uid_t PSnodes_getUser(int id);
+uid_t PSnodes_getUser(PSnodes_ID_t id);
 
 
 /** Pseudo user ID to allow any group to run on a specific node */
@@ -326,7 +329,7 @@ uid_t PSnodes_getUser(int id);
  *
  * @return On success, 0 is returned or -1, if an error occured.
  */
-int PSnodes_setGroup(int id, uid_t uid);
+int PSnodes_setGroup(PSnodes_ID_t id, uid_t uid);
 
 /**
  * @brief Get the exclusive group of a node.
@@ -338,7 +341,7 @@ int PSnodes_setGroup(int id, uid_t uid);
  * @return If the node was found, the exclusive group is returned. Or
  * -1, if an error occured.
  */
-uid_t PSnodes_getGroup(int id);
+uid_t PSnodes_getGroup(PSnodes_ID_t id);
 
 
 /** Pseudo number of processes to allow any job to run on a specific node */
@@ -356,7 +359,7 @@ uid_t PSnodes_getGroup(int id);
  *
  * @return On success, 0 is returned or -1, if an error occured.
  */
-int PSnodes_setProcs(int id, int procs);
+int PSnodes_setProcs(PSnodes_ID_t id, int procs);
 
 /**
  * @brief Get the maximum number of processes of a node.
@@ -369,7 +372,7 @@ int PSnodes_setProcs(int id, int procs);
  * @return If the node was found, the maximum number of processes is
  * returned. Or -1, if an error occured.
  */
-int PSnodes_getProcs(int id);
+int PSnodes_getProcs(PSnodes_ID_t id);
 
 #ifdef __cplusplus
 }/* extern "C" */

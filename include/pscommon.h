@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.h,v 1.9 2003/10/23 16:27:35 eicker Exp $
+ * $Id: pscommon.h,v 1.10 2003/10/29 17:34:04 eicker Exp $
  *
  */
 /**
  * @file
  * Functions used in user-programs and daemon.
  *
- * $Id: pscommon.h,v 1.9 2003/10/23 16:27:35 eicker Exp $
+ * $Id: pscommon.h,v 1.10 2003/10/29 17:34:04 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 
+#include "psnodes.h"
 #include "pstask.h"
 
 #ifdef __cplusplus
@@ -41,7 +42,7 @@ extern "C" {
  * @return The number of nodes is returned, or -1, if the cluster is
  * not already initialized.
  */
-short PSC_getNrOfNodes(void);
+PSnodes_ID_t PSC_getNrOfNodes(void);
 
 /**
  * @brief Sets the number of nodes of the cluster.
@@ -52,7 +53,7 @@ short PSC_getNrOfNodes(void);
  *
  * @return No return value.
  */
-void PSC_setNrOfNodes(short numNodes);
+void PSC_setNrOfNodes(PSnodes_ID_t numNodes);
 
 /**
  * @brief Determines the local ID within the cluster.
@@ -62,7 +63,7 @@ void PSC_setNrOfNodes(short numNodes);
  * @return The local ID of the node is returned, or -1, if the cluster is
  * not already initialized.
  */
-short PSC_getMyID(void);
+PSnodes_ID_t PSC_getMyID(void);
 
 /**
  * @brief Sets the local ID within the cluster.
@@ -75,7 +76,7 @@ short PSC_getMyID(void);
  *
  * @return No return value.
  */
-void PSC_setMyID(short id);
+void PSC_setMyID(PSnodes_ID_t id);
 
 /**
  * @brief Computes a task ID from process ID and node number.
@@ -93,7 +94,7 @@ void PSC_setMyID(short id);
  *
  * @return The unique task ID is returned.
  */
-PStask_ID_t PSC_getTID(short node, pid_t pid);
+PStask_ID_t PSC_getTID(PSnodes_ID_t node, pid_t pid);
 
 /**
  * @brief Computes the node number from a task ID.
@@ -105,7 +106,7 @@ PStask_ID_t PSC_getTID(short node, pid_t pid);
  *
  * @return The node number on which the process resides is returned.
  */
-unsigned short PSC_getID(PStask_ID_t tid);
+PSnodes_ID_t PSC_getID(PStask_ID_t tid);
 
 /**
  * @brief Computes the process ID from a task ID.

@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.h,v 1.20 2003/10/23 16:27:20 eicker Exp $
+ * $Id: info.h,v 1.21 2003/10/29 17:33:46 eicker Exp $
  *
  */
 /**
  * @file
  * info: Functions for information retrieving from ParaStation daemon
  *
- * $Id: info.h,v 1.20 2003/10/23 16:27:20 eicker Exp $
+ * $Id: info.h,v 1.21 2003/10/29 17:33:46 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -22,6 +22,7 @@
 #define __INFO_H
 
 #include <sys/types.h>
+#include "psnodes.h"
 #include "pstask.h"
 #include "psprotocol.h"
 
@@ -177,8 +178,8 @@ typedef enum {
  */
 long INFO_request_taskinfo(PStask_ID_t tid, INFO_info_t what, int verbose);
 
-int INFO_request_option(unsigned short node, int num, long option[],
-			long value[], int verbose);
+int INFO_request_option(PSnodes_ID_t node, int num, PSP_Option_t option[],
+			PSP_Optval_t value[], int verbose);
 
 #ifdef __cplusplus
 }/* extern "C" */
