@@ -15,6 +15,8 @@ make KDIR=/home/phoenix/kernel/axp/linux-2.2.16-SMP.SuSE   KNAME=2.2.16-SMP.SuSE
 make KDIR=/home/phoenix/kernel/axp/linux-2.2.19.SuSE       KNAME=2.2.19.SuSE         psm
 make KDIR=/home/phoenix/kernel/axp/linux-2.2.19-SMP.SuSE   KNAME=2.2.19-SMP.SuSE     psm
 
+make KDIR=/home/phoenix/kernel/axp/linux-2.2.19pc.SuSE     KNAME=2.2.19pc.SuSE       psm
+
 #redhat
 make KDIR=/home/phoenix/kernel/axp/linux-2.2.19.redhat     KNAME=2.2.19-7.0.8.redhat psm
 make KDIR=/home/phoenix/kernel/axp/linux-2.2.19-SMP.redhat KNAME=2.2.19-7.0.8smp.redhat psm
