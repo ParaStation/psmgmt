@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast_private.h,v 1.6 2002/02/15 19:15:58 eicker Exp $
+ * $Id: mcast_private.h,v 1.7 2002/05/22 18:43:50 hauke Exp $
  *
  */
 /**
@@ -14,7 +14,7 @@
  *
  * Private functions and definitions.
  *
- * $Id: mcast_private.h,v 1.6 2002/02/15 19:15:58 eicker Exp $
+ * $Id: mcast_private.h,v 1.7 2002/05/22 18:43:50 hauke Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -64,6 +64,9 @@ static char errtxt[256];         /**< String to hold error messages. */
 
 /** My node-ID withing the cluster. Determined in initMCast(). */
 static int myID;
+/** My IP */
+struct in_addr myIP;
+
 
 /**
  * The callback function. Will be used to send messages to the calling

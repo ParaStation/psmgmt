@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.c,v 1.7 2002/04/22 18:17:20 hauke Exp $
+ * $Id: mcast.c,v 1.8 2002/05/22 18:43:50 hauke Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.7 2002/04/22 18:17:20 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.8 2002/05/22 18:43:50 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -204,7 +204,8 @@ static int initSockMCast(int group, unsigned short port)
     }
 
     myID = (licserver) ? nrOfNodes : lookupIPTable(in_sin);
-
+    memcpy(&myIP, &in_sin, sizeof( myIP ));
+    
     /*
      * Allocate socket
      */
@@ -401,7 +402,10 @@ static int handleMCast(int fd)
 	    errlog("in handleMCast()", 0);
 	    break;
 	}
-
+#ifdef __osf__
+	/* Workaround for tru64. s.o. comment in struct MCastMsg */
+	memcpy(&sin.sin_addr, &msg.ip, sizeof(sin.sin_addr));
+#endif
 	node = lookupIPTable(sin.sin_addr);
 	if (msg.node == nrOfNodes) {
 	    node = nrOfNodes;
@@ -501,6 +505,9 @@ static void pingMCast(MCastState state)
     msg.node = myID;
     msg.type = (licserver)?T_LIC:T_INFO;
     if (state==DOWN) msg.type=T_CLOSE;
+#ifdef __osf__
+    memcpy( &msg.ip, &myIP, sizeof( msg.ip ));
+#endif
     msg.state = state;
     msg.load = getLoad();
     snprintf(errtxt, sizeof(errtxt),

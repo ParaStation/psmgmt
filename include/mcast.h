@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.h,v 1.8 2002/04/30 17:35:58 eicker Exp $
+ * $Id: mcast.h,v 1.9 2002/05/22 18:43:50 hauke Exp $
  *
  */
 /**
  * \file
  * ParaStation MultiCast facility
  *
- * $Id: mcast.h,v 1.8 2002/04/30 17:35:58 eicker Exp $
+ * $Id: mcast.h,v 1.9 2002/05/22 18:43:50 hauke Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -48,6 +48,13 @@ typedef struct {
 
 /** Structure of a MCast message */
 typedef struct {
+#ifdef __osf__
+    /* If we use the same mcastsocket for sending and receiving,
+       tru64 uses the multicast address as source address in the IP
+       packet -> The receiver cant detect the sender of the message,
+       which is needed in handleMCast() for error checking. */
+    struct in_addr ip;	 /**< Sender IP */
+#endif
     short node;          /**< Sender ID */
     short type;          /**< Message type */
     MCastState state;    /**< The state info @see MCastState */
