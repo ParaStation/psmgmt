@@ -16,8 +16,8 @@
  */
 
 #define DMA_NEXTMASK	0xfffffff8
-#define DMA_H2N		DMA_E2L /* host to lanai 1 */
-#define DMA_N2H		DMA_L2E /* lanai to host 0 */
+#define DMA_H2N		1 /*DMA_E2L * host to lanai 1 */
+#define DMA_N2H		0 /*DMA_L2E * lanai to host 0 */
 
 typedef struct _DMA_CONTROL_BLOCK {
   volatile UINT32 next_with_flags; /* Pointer to next control block */
