@@ -1,7 +1,7 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.3 2001/05/10 12:06:34 moschny Exp $
+ * $Id: psport.h,v 1.4 2001/05/21 08:28:07 hauke Exp $
  *
  * @author
  * Jens Hauke <hauke@par-tec.com>,
@@ -128,6 +128,22 @@ extern unsigned PSP_GenReqUsedCount;
  * might have been written to stderr.
  */
 PSP_Err_t PSP_Init(void);
+
+
+/* ----------------------------------------------------------------------
+ * PSP_GetNodeID()
+ * ----------------------------------------------------------------------
+ */
+/**
+ * Get the ID of this node.
+ * @return	NodeID	on success
+ * @return	-1	on error
+ *
+ * Get the ParaStation ID of this node.
+ */
+int PSP_GetNodeID(void);
+
+
 
 /* ----------------------------------------------------------------------
  * PSP_OpenPort()
