@@ -5,33 +5,38 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidcomm.c,v 1.1 2003/06/06 13:44:59 eicker Exp $
+ * $Id: psidcomm.c,v 1.2 2003/07/04 11:09:01 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidcomm.c,v 1.1 2003/06/06 13:44:59 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidcomm.c,v 1.2 2003/07/04 11:09:01 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
 
-#include "rdp.h"
 #include "pscommon.h"
 #include "psnodes.h"
 #include "psdaemonprotocol.h"
 
 #include "psidutil.h"
+#include "psidmsgbuf.h"
 #include "psidclient.h"
+#include "psidrdp.h"
 
 #include "psidcomm.h"
-
-int RDPSocket = -1;
 
 fd_set PSID_readfds;
 fd_set PSID_writefds;
 
 static char errtxt[256]; /**< General string to create error messages */
+
+void initComm(void)
+{
+    initMsgList();
+    initRDPMsgs();
+}
 
 int sendMsg(void *amsg)
 {
@@ -49,9 +54,21 @@ int sendMsg(void *amsg)
     if (PSC_getID(msg->dest)==PSC_getMyID()) { /* my own node */
 	sender="sendClient";
 	ret = sendClient(amsg);
+
+	if (ret==-1 && errno==EWOULDBLOCK) {
+	    int fd = getClientFD(msg->dest);
+
+	    if (fd<FD_SETSIZE) {
+		FD_SET(fd, &PSID_writefds);
+	    } else {
+		snprintf(errtxt, sizeof(errtxt), "%s: No fd for task %s found",
+			 __func__, PSC_printTID(msg->dest));
+		PSID_errlog(errtxt, 0);
+	    }
+	}
     } else if (PSC_getID(msg->dest)<PSC_getNrOfNodes()) {
-	sender="Rsendto";
-	ret = Rsendto(PSC_getID(msg->dest), msg, msg->len);
+	sender="sendRDP";
+	ret = sendRDP(msg);
     } else {
 	snprintf(errtxt, sizeof(errtxt),
 		 "%s(type %s (len=%d) to %s error: dest not found",
@@ -70,8 +87,25 @@ int sendMsg(void *amsg)
 		 __func__, PSDaemonP_printMsg(msg->type), msg->len,
 		 PSC_printTID(msg->dest),
 		 errno, sender, errstr ? errstr : "UNKNOWN");
-	    PSID_errlog(errtxt, 0);
+	PSID_errlog(errtxt, (errno==EWOULDBLOCK) ? 1 : 0);
+
+	if (errno==EWOULDBLOCK && PSC_getPID(msg->sender)) {
+	    DDMsg_t stopmsg = { .type = PSP_DD_SENDSTOP,
+				.len = sizeof(DDMsg_t),
+				.sender = msg->dest,
+				.dest = msg->sender };
+
+	    snprintf(errtxt, sizeof(errtxt), "%s: SENDSTOP for %s triggered",
+		     __func__, PSC_printTID(stopmsg.dest));
+	    PSID_errlog(errtxt, 2);
+
+	    if (PSC_getID(stopmsg.dest) == PSC_getMyID()) {
+		msg_SENDSTOP(&stopmsg);
+	    } else {
+		sendMsg(&stopmsg);
+	    }
 	}
+    }
     return ret;
 }
 
@@ -81,13 +115,12 @@ int recvMsg(int fd, DDMsg_t *msg, size_t size)
     int count = 0;
 
     if (fd == RDPSocket) {
-	int fromnode = -1;
-	ret = Rrecvfrom(&fromnode, msg, size);
+	ret = recvRDP(msg, size);
 
 	if (ret<0) {
 	    char *errstr = strerror(errno);
 	    snprintf(errtxt, sizeof(errtxt),
-		     "%s(RDPSocket): Rrecvfrom() failed (%d): %s",
+		     "%s(RDPSocket): recvRDP() failed (%d): %s",
 		     __func__, errno, errstr ? errstr : "UNKNOWN");
 	    PSID_errlog(errtxt, 0);
 	} else if (ret && ret != msg->len) {
@@ -163,4 +196,46 @@ int broadcastMsg(void *amsg)
     }
 
     return count;
+}
+
+void msg_SENDSTOP(DDMsg_t *msg)
+{
+    int fd = getClientFD(msg->dest);
+
+    snprintf(errtxt, sizeof(errtxt), "%s: from %s", __func__,
+	     PSC_printTID(msg->sender));
+    PSID_errlog(errtxt, 10);
+
+    if (fd<FD_SETSIZE) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: client %s at %d removed from PSID_readfds", __func__,
+		 PSC_printTID(msg->dest), fd);
+	PSID_errlog(errtxt, 10);
+	FD_CLR(fd, &PSID_readfds);
+    } else {
+	snprintf(errtxt, sizeof(errtxt), "%s: No fd for task %s found",
+		 __func__, PSC_printTID(msg->dest));
+	PSID_errlog(errtxt, 1);
+    }
+}
+
+void msg_SENDCONT(DDMsg_t *msg)
+{
+    int fd = getClientFD(msg->dest);
+
+    snprintf(errtxt, sizeof(errtxt), "%s: from %s", __func__,
+	     PSC_printTID(msg->sender));
+    PSID_errlog(errtxt, 10);
+
+    if (fd<FD_SETSIZE) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: client %s at %d readded to PSID_readfds", __func__,
+		 PSC_printTID(msg->dest), fd);
+	PSID_errlog(errtxt, 10);
+	FD_SET(fd, &PSID_readfds);
+    } else {
+	snprintf(errtxt, sizeof(errtxt), "%s: No fd for task %s found",
+		 __func__, PSC_printTID(msg->dest));
+	PSID_errlog(errtxt, 1);
+    }
 }
