@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 
@@ -54,13 +55,14 @@ INFO_request_receive(long *what, void* buffer,int size)
 		if((short)task->uid==-1)
 		    printf("   NONE\n");
 		else
-		    printf("   %d\n",task->uid);
+		    printf("   %5d%s\n",task->uid,task->group==TG_ADMIN?"(A)":"");
 		break;
 	    default:
 		*what = -1;
 		break;
 	    }
 	    errno = 0;
+	    free(task);
 	    break;
 	}
 	case PSP_CD_TASKINFOEND:
