@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.4 2002/10/17 17:13:44 eicker Exp $
+# $Id: Makefile.in,v 1.5 2002/10/24 10:40:15 eicker Exp $
 #
 # @author
 #         Norbert Eicker <eicker@par-tec.de>
@@ -26,7 +26,7 @@ CLASSPATH:=$(CLASSPATH)":fop/lib/xml-apis.jar:fop/lib/logkit-1.0.jar"
 CLASSPATH:=$(CLASSPATH)":fop/lib/avalon-framework-cvs-20020315.jar"
 
 
-TARGETS = adminguide # userguide
+TARGETS = adminguide userguide
 
 ADMINMAN1 = man1/mlisten.1 man1/psiadmin.1 man1/test_nodes.1
 ADMINMAN5 = man5/parastation.conf.5
@@ -105,15 +105,15 @@ html/userguide/index.html: $(USERDEPS)
 #
 man: validate dirs $(patsubst %,man/%,$(ADMINMANS)) $(patsubst %,man/%,$(USERMANS))
 
-$(patsubst %,man/%,$(ADMINMANS)): adminguide.xml $(STYLESHEETDIR)/db2man.xsl
+$(patsubst %,man/%,$(ADMINMANS)): adminguide.xml $(STYLESHEETDIR)/man.xsl
 	@export SGML_CATALOG=$(SGML_CATALOG); \
-	$(XSLT) $(XSLTFLAGS) -o man/ $(STYLESHEETDIR)/db2man.xsl $<
+	$(XSLT) $(XSLTFLAGS) -o man/ $(STYLESHEETDIR)/man.xsl $<
 
 $(patsubst %,man/%,$(ADMINMANS)): $(ADMINDEPS)
 
-$(patsubst %,man/%,$(USERMANS)): userguide.xml $(STYLESHEETDIR)/db2man.xsl
+$(patsubst %,man/%,$(USERMANS)): userguide.xml $(STYLESHEETDIR)/man.xsl
 	@export SGML_CATALOG=$(SGML_CATALOG); \
-	$(XSLT) $(XSLTFLAGS) -o man/ $(STYLESHEETDIR)/db2man.xsl $<;
+	$(XSLT) $(XSLTFLAGS) -o man/ $(STYLESHEETDIR)/man.xsl $<;
 
 $(patsubst %,man/%,$(USERMANS)): $(USERDEPS)
 
@@ -123,8 +123,8 @@ $(patsubst %,man/%,$(USERMANS)): $(USERDEPS)
 PDF: validate dirs $(patsubst %,pdf/%.pdf,$(TARGETS))
 
 # First create the tex file
-pdf/%.tex: %.xml $(STYLESHEETDIR)/docu.dsl
-	@db2tex -o -s $(STYLESHEETDIR)/docu.dsl $<; \
+pdf/%.tex: %.xml $(STYLESHEETDIR)/pdf.dsl
+	@db2tex -o -s $(STYLESHEETDIR)/pdf.dsl $<; \
 	mv $(patsubst %.xml,%.tex,$(<)) $@
 
 # Create pdf from tex
@@ -161,8 +161,12 @@ pdf/%.fo: %.xml $(STYLESHEETDIR)/fo.xsl
 # This is done using fop (which works, but gives ugly output)
 # pdf/%.pdf: pdf/%.fo \
 	@ CLASSPATH=$(CLASSPATH); \
+	ln -s @srcdir@/images .; \
+	ln -s @srcdir@/fop .; \
 	export CLASSPATH; \
-	java org.apache.fop.apps.Fop -c fop/conf/userconfig.xml $< -pdf $@
+	java org.apache.fop.apps.Fop -c fop/conf/userconfig.xml $< -pdf $@; \
+	rm -f images; \
+	rm -f fop
 
 
 pdf/adminguide.fo: $(ADMINDEPS)
