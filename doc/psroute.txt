@@ -1,0 +1,141 @@
+
+###################
+# IT IS DRAFT !!! #
+###################
+
+1. Using and target of using of a psroute program.
+2. The specification of input and output information.
+2.1 The format of input file for a psroute.
+2.2 The format of output file for a psroute.
+
+1. Using and target of using of a psroute program.
+
+The main target of development and using of psroute is making more easer a process of
+creating and optimization the network host-to-host routes.
+
+Usage of psroute
+
+psroute { intputfilename.psmap } { -d { debugfilename } }
+
+Input:
+    inputfilename : Optional. If it is not defined the stdin will be a input stream. For more inforamtion see 2.1.
+    -d : Optinal. Switch on the debug output.
+    debugfilename : Optinal. The target file for a debug output. If it is not defined, the debug output will be 
+	produced into /tmp/psroute.deb
+    
+Output:
+    For more informaion see 2.2.
+             
+2. The specification of input and output information.
+
+2.1 The format of input file for a psroute.
+
+The input file for a psroute is a set of nodes descritptions. 
+According to rules the node can be a host or a switch. 
+The description of a next node starts when a description of a current node is finished.
+It means there is no special delimiters between descriptions of a different nodes.
+Just actual connections are described. It means if you have unused ports of switches or
+unconnected hosts you can not describe these subjects in file.
+
+This is a description of a host:
+
+[host_name]
+ID XXX
+PORT 0 switch_name switch_port_number
+
+And more detail:
+
+[host_name] - this is symbolic name of a host
+ID XXX - this a description of a host's identifier. This identifier must be uniquel and this is a
+Parastation number. XXX means any integer number (usually positive)
+
+Port description.
+
+The port description is :
+
+PORT port_number remote_node_name remote_node_port_number
+
+Any host has just one port (with number 0). Any host is usually connected to switch. And switch_port_number is 
+a positive number of a port of switch to which one is this host connected.
+According this the description of port for a host looks like: 
+
+PORT 0 switch_name switch_port
+
+Example: let's try to describe host with name "host1" and Parastation number 0, which is connected to 
+port 1 of a switch "sw12".
+
+[host1]
+ID 0
+PORT 0 sw12 1
+
+By the way the correspondent port's description of a sw12 will look like
+[sw12]
+...
+PORT 1 host1 0                               
+...
+
+This is a description of a switch:
+
+[switch_name]
+PORT port_number_one remote_node_name remote_node_port_number
+PORT port_number_two remote_node_name remote_node_port_number
+...
+
+Switch doesn't have any ID. Switch can have more than one port and more than one connection. 
+And, of course, switch can be linked to host or other switch. If remote_node is a host, the 
+remote_port_number must be 0!
+
+Example: let's try to describe switch sw12, which is connected on port 0 to host2, on port 1 to host1 
+and on port 5 to port 2 of a switch sw11
+
+[sw12]
+PORT 0 host2 0
+PORT 1 host1 0
+PORT 5 sw11 2
+ 
+2.2 The format of output file for a psroute.
+
+The output stream of a psroute is stdout. Of course you can redirect it. 
+The first line of output data must be:
+routing table
+
+All other lines are a sequence of numbers and look like:
+
+0 5 5 ...
+| | |    |
+| | +----+------  the route from sorce host to target host
+| +-------------- target host ID
++---------------- source host ID
+
+Every number in route description corresponds to a single switch and equal difference between output switch
+port number and input switch port number.
+
+Example1 : Let's : the ID of host1 is 0, the ID of host2 is 1.
+
+           +-------+     
+           |  sw1  |
+           |       |
+ host1 --->|5     7|---> host2
+           |       |
+
+The correspondent line in route file will look like:
+0 1 2
+, because 7 - 5 = 2.
+and, of course
+1 0 -2
+0 0 0
+1 1 0
+
+
+Example1 : Let's : the ID of host1 is 0, the ID of host2 is 1.
+
+           +-------+    +-------+  
+           |  sw1  |    |  sw2  |
+           |       |    |       |
+ host1 --->|5     7|--->|6     3|---> host2
+           |       |    |       |
+	   
+And we will have the lines:
+0 1 2 -3
+1 0 3 -2 	   
+
