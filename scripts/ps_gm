@@ -1,0 +1,57 @@
+#!/bin/sh
+# 
+# GM Myrinet Device Driver for Parastation
+#
+# Script to load/unload the module and configure the interface
+#
+# Author: Jens Hauke <hauke@par-tec.com>, Norbert Eicker <eicker@par-tec.com>
+#
+# $Id: ps_gm,v 1.1 2003/06/20 14:24:52 eicker Exp $
+#
+
+#checks
+test ${PS_ID?"missing env PS_ID"}
+
+#defaults
+PS_INSTALLDIR=${PS_INSTALLDIR-"/opt/parastation"}
+PS_IPENABLED=${PS_IPENABLED-"0"}
+PS_IPPREFIX=${PS_IPPREFIX-"192.168.48"}
+PS_IPPREFIXLEN=${PS_IPPREFIXLEN-"20"}
+
+GM_INSTALLDIR=${GM_INSTALLDIR-"/opt/gm"}
+GMCOUNTER=${GM_INSTALLDIR}/
+case "$1" in
+    start)
+	/etc/init.d/gm start
+
+	# if [ "$PS_IPENABLED" = "1" ]; then
+	#     /sbin/ifconfig myri0 up
+	# fi
+	
+	;;
+
+    stop)
+	# if [ "$PS_IPENABLED" = "1" ]; then
+	#     /sbin/ifconfig myri0 down
+	# fi
+	/etc/init.d/gm stop
+	;;
+
+    statusheader)
+	echo
+	# ${GMCOUNTER} | head -1
+	;;
+
+    status)
+	echo
+	#${GMCOUNTER} | tail -1
+	;;
+
+    *)
+	echo "Usage: $0 {start|stop|statusheader|status}"
+	exit 1
+	;;
+esac
+
+
+exit 0
