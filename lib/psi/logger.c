@@ -1,3 +1,19 @@
+/*
+ *               ParaStation3
+ * logger.c
+ *
+ * ParaStation I/O facility
+ *
+ * Copyright (C) ParTec AG Karlsruhe
+ * All rights reserved.
+ *
+ * $Id: logger.c,v 1.16 2002/02/08 10:35:39 eicker Exp $
+ *
+ */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+static char vcid[] __attribute__(( unused )) = "$Id: logger.c,v 1.16 2002/02/08 10:35:39 eicker Exp $";
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>

@@ -1,16 +1,19 @@
 /*
+ *               ParaStation3
+ * psienv.c
  *
- *      @(#)psi.c    1.00 (Karlsruhe) 03/11/97
+ * ParaStation Environment
  *
- *      written by Joachim Blum
+ * Copyright (C) ParTec AG Karlsruhe
+ * All rights reserved.
  *
+ * $Id: psienv.c,v 1.4 2002/02/08 10:36:28 eicker Exp $
  *
- *
- *  History
- *
- *   991227 Joe changed to new Daemon-Daemon protocol
- *   970311 Joe Creation: used psp.h and changed some things
  */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+static char vcid[] __attribute__(( unused )) = "$Id: psienv.c,v 1.4 2002/02/08 10:36:28 eicker Exp $";
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
