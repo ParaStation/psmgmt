@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.c,v 1.14 2003/07/11 13:06:29 eicker Exp $
+ * $Id: mcast.c,v 1.15 2003/10/08 13:49:33 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.14 2003/07/11 13:06:29 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.15 2003/10/08 13:49:33 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -138,21 +138,18 @@ static int lookupIPTable(struct in_addr ipno)
 
 /* ---------------------------------------------------------------------- */
 
-static void initConntableMCast(int nodes,
-			       unsigned int host[], unsigned short port)
+static void initConntable(int nodes, unsigned int host[], unsigned short port)
 {
     int i;
     struct timeval tv;
 
-    if (!conntableMCast) {
-	conntableMCast = (Mconninfo *) malloc((nodes + 1) * sizeof(Mconninfo));
-    }
+    if (!conntableMCast) conntableMCast = malloc(nodes * sizeof(Mconninfo));
     initIPTable();
     gettimeofday(&tv, NULL);
     srandom(tv.tv_sec+tv.tv_usec);
-    snprintf(errtxt, sizeof(errtxt), "init conntable for %d nodes", nodes);
+    snprintf(errtxt, sizeof(errtxt), "%s: %d nodes", __func__, nodes);
     errlog(errtxt, 4);
-    for (i=0; i<=nodes; i++) {
+    for (i=0; i<nodes; i++) {
 	memset(&conntableMCast[i].sin, 0, sizeof(struct sockaddr_in));
 	conntableMCast[i].sin.sin_family = AF_INET;
 	conntableMCast[i].sin.sin_addr.s_addr = host[i];
@@ -162,19 +159,14 @@ static void initConntableMCast(int nodes,
 		 i, inet_ntoa(conntableMCast[i].sin.sin_addr));
 	errlog(errtxt, 4);
 	conntableMCast[i].misscounter = 0;
-	if (i<nodes) {
-	    conntableMCast[i].lastping.tv_sec = 0;
-	    conntableMCast[i].lastping.tv_usec = 0;
-	    conntableMCast[i].load.load[0] = 0.0;
-	    conntableMCast[i].load.load[1] = 0.0;
-	    conntableMCast[i].load.load[2] = 0.0;
-	    conntableMCast[i].jobs.total = 0;
-	    conntableMCast[i].jobs.normal = 0;
-	    conntableMCast[i].state = DOWN;
-	} else {
-	    /* Install LicServer correctly */
-	    conntableMCast[i].state = UP;   /* LicServer active at startup */
-	}
+	conntableMCast[i].lastping.tv_sec = 0;
+	conntableMCast[i].lastping.tv_usec = 0;
+	conntableMCast[i].load.load[0] = 0.0;
+	conntableMCast[i].load.load[1] = 0.0;
+	conntableMCast[i].load.load[2] = 0.0;
+	conntableMCast[i].jobs.total = 0;
+	conntableMCast[i].jobs.normal = 0;
+	conntableMCast[i].state = DOWN;
     }
     return;
 }
@@ -271,7 +263,7 @@ static int initSockMCast(int group, unsigned short port)
 static void closeConnectionMCast(int node)
 {
     snprintf(errtxt, sizeof(errtxt), "Closing connection to node %d", node);
-    errlog(errtxt, licServer);
+    errlog(errtxt, 0);
     conntableMCast[node].state = DOWN;
     if (MCastCallback) {  /* inform daemon */
 	MCastCallback(MCAST_LOST_CONNECTION, &node);
@@ -314,56 +306,6 @@ static void checkConnectionsMCast(void)
 	}
     }
 
-    /* On License-server check if all psid's are down long enough */
-    if (licServer) {
-	static int allDown = 0;
-
-	if (nrDownNodes==nrOfNodes) {
-	    allDown++;
-	} else {
-	    allDown = 0;
-	}
-
-	if (allDown > MCastDeadLimit) {
-	    if (MCastCallback) { /* inform daemon */
-		MCastCallback(MCAST_LIC_END, NULL);
-	    }
-	}
-    }
-
-    /* Check pings from LicServer */
-    timeradd(&conntableMCast[nrOfNodes].lastping, &MCastTimeout, &tv1);
-    if (timercmp(&tv1, &tv2, <)) { /* no ping in the last 'round' */
-	conntableMCast[nrOfNodes].misscounter++;
-	conntableMCast[nrOfNodes].lastping = tv1;
-	snprintf(errtxt, sizeof(errtxt),
-		 "Ping from LicServer %s missing [%d]",
-		 inet_ntoa(conntableMCast[nrOfNodes].sin.sin_addr),
-		 conntableMCast[nrOfNodes].misscounter);
-	if (conntableMCast[nrOfNodes].misscounter > MCastDeadLimit) {
-	    errlog(errtxt, 0);
-	    if (MCastCallback) { /* inform daemon */
-		unsigned int info;
-
-		info = conntableMCast[nrOfNodes].sin.sin_addr.s_addr;
-		MCastCallback(MCAST_LIC_LOST, &info);
-	    }
-	} else {
-	    errlog(errtxt, 10);
-	}
-    }
-
-    /* Ping from LicServer missing for to long -> shutdown */
-    if (conntableMCast[nrOfNodes].misscounter > MCastLicShutdownLimit) {
-	errlog("Lost connection to LicServer, shutting down operation", 0);
-	if (MCastCallback) { /* inform daemon */
-	    int info = LIC_LOST_CONECTION;
-	    MCastCallback(MCAST_LIC_SHUTDOWN, &info);
-	} else {
-	    exitMCast();
-	    exit(-1);
-	}
-    }
     return;
 }
 
@@ -393,9 +335,8 @@ static int handleMCast(int fd)
 	    if (errno == EINTR) {
 		continue;
 	    } else {
-		snprintf(errtxt, sizeof(errtxt),
-			 "handleMCast: select returns [%d]: %s",
-			 errno, strerror(errno));
+		snprintf(errtxt, sizeof(errtxt), "%s: select returns [%d]: %s",
+			 __func__, errno, strerror(errno));
 		errlog(errtxt, 0);
 		break;
 	    }
@@ -414,12 +355,8 @@ static int handleMCast(int fd)
 	memcpy(&sin.sin_addr, &msg.ip, sizeof(sin.sin_addr));
 #endif
 	node = lookupIPTable(sin.sin_addr);
-	if (msg.node == nrOfNodes) {
-	    node = nrOfNodes;
-	}
 	snprintf(errtxt, sizeof(errtxt),
-		 "... receiving MCast ping from %s%s [%d/%d], state: %s",
-		 (node == nrOfNodes) ? "LIC " : "",
+		 "... receiving MCast ping from %s [%d/%d], state: %s",
 		 inet_ntoa(sin.sin_addr), node, msg.node,
 		 stateStringMCast(msg.state));
 	errlog(errtxt, 11);
@@ -441,17 +378,6 @@ static int handleMCast(int fd)
 		     inet_ntoa(sin.sin_addr), node);
 	    errlog(errtxt, 6);
 	    closeConnectionMCast(node);
-	    break;
-	case T_KILL:
-	    /* Got a KILL msg (from LIC Server) */
-	    errlog("License Server told me to shut down operation !", 0);
-	    if (MCastCallback) { /* inform daemon */
-		int info = LIC_KILL_MSG;
-		MCastCallback(MCAST_LIC_SHUTDOWN, &info);
-	    } else {
-		exitMCast();
-		exit(-1);
-	    }
 	    break;
 	default:
 	    gettimeofday(&conntableMCast[node].lastping, NULL);
@@ -510,7 +436,7 @@ static void pingMCast(MCastState state)
     MCastMsg msg;
 
     msg.node = myID;
-    msg.type = (licServer) ? T_LIC : T_INFO;
+    msg.type = T_INFO;
     if (state==DOWN) msg.type=T_CLOSE;
 #ifdef __osf__
     memcpy(&msg.ip, &myIP, sizeof(msg.ip));
@@ -569,15 +495,13 @@ int initMCast(int nodes, int mcastgroup, unsigned short portno, int usesyslog,
     nrOfNodes = nodes;
     MCastCallback = callback;
 
-    if (id<0 || id>nodes) {
+    if (id<0 || id>=nodes) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "initMCast(): id = %d out of range.", id);
 	errlog(errtxt, 0);
 	exit(1);
     }
     myID = id;
-
-    licServer = (myID == nrOfNodes);
 
     snprintf(errtxt, sizeof(errtxt),
 	     "initMCast() for %d nodes, using %d as MCast group on port %d",
@@ -592,7 +516,7 @@ int initMCast(int nodes, int mcastgroup, unsigned short portno, int usesyslog,
 	portno = DEFAULT_MCAST_PORT;
     }
 
-    initConntableMCast(nrOfNodes, hosts, htons(portno));
+    initConntable(nrOfNodes, hosts, htons(portno));
 
     memcpy(&myIP, &conntableMCast[myID].sin.sin_addr, sizeof(myIP));
 
