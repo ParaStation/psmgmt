@@ -12,7 +12,7 @@
   <refsynopsisdiv>
     <cmdsynopsis>
       <command>psiadmin</command>
-      <arg>-erv?</arg>
+      <arg>-ersv?</arg>
       <arg>-c <replaceable>command</replaceable></arg>
       <arg>--usage</arg>
     </cmdsynopsis>
@@ -57,6 +57,17 @@
         </term>
 	<listitem>
 	  <para>Echo each executed directive to stdout.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-s</option>
+	  <option>, --start-all</option>
+        </term>
+	<listitem>
+	  <para>Try to start all daemons within the cluster. This option is
+	    equivalent to the execution of the <command>add</command> directive
+	    straight after the startup of the administation tool.</para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -179,11 +190,6 @@
 	    node(s)	    
 	  </para>
 	  <para>
-	    Usually this is done automatically when the system comes up, i.e.
-	    when the &ps; administration and management tool <xref
-	      linkend="psiadmin"/> is started for the first time.
-	  </para>
-	  <para>
 	    <command>add</command> only tries to start the &ps; daemon on the
 	    selected node(s). If it is not possible to start the daemon, no
 	    error message occurs. The current status of the nodes can be
@@ -191,31 +197,6 @@
 	  </para>
 	</listitem>
       </varlistentry>
-
-<!--
-      <varlistentry>
-	<term>
-	  <cmdsynopsis>
-	    <command>config</command>
-	    <arg>from <arg>to</arg></arg>
-	  </cmdsynopsis>
-	</term>
-	<listitem>
-	  <para>Print current settings of internal parameters on the selected
-	    nodes.
-	  </para>
-	  <para>
-	    All the displayed parameters can also be obtained via the
-	    <command>show</command> directive. For a detailed describtion of
-	    these parameters see this directive.
-	  </para>
-	  <para>
-	    This directive is only supported for compatibility and will be
-	    removed in future versions.
-	  </para>
-	</listitem>
-      </varlistentry>
--->
 
       <varlistentry>
 	<term>
