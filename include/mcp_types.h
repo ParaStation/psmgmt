@@ -208,6 +208,9 @@ typedef struct MCP_Route_T {
 /* Result of PortBind */
 #define MCP_NOTIFY_PortBind	0x00090000 /* 0:0k 1:no more ports 2:port busy */
 
+/* H2NDMA finished (zero copy dma only) */
+#define MCP_NOTIFY_H2NDMASEND_FIN	0x000A0000 /* lower word: MCPSendBuffer */
+
 /********************************************************************
  * ParaStation3 Host Notifications (Kernel)
  ********************************************************************/

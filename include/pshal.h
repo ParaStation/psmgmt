@@ -2,7 +2,7 @@
  *
  *      @(#)pshal.h    1.00 (Karlsruhe) 08/15/2000
  *
- *      $Id: pshal.h,v 1.7 2001/06/15 15:20:36 hauke Exp $	
+ *      $Id: pshal.h,v 1.8 2001/06/26 20:53:03 hauke Exp $	
  *
  *      written by Joachim Blum
  *                 Jens Hauke
@@ -161,7 +161,8 @@ int PSHALFifoFree(PSHALSendHeader_t* header);
  *        header : dstport,srcport, headerlen,datalen,protocolno,msgtag
  * @param
  *        data   : pointer to the data.
- *
+ * @param
+ *	  ack    : pointer to ack variable. 
  *
  * @return  < 0 on error<br>
  * @return  >= 0 on success (1 = Send via PIO, 0=Send via DMA)
@@ -178,8 +179,12 @@ int PSHALFifoFree(PSHALSendHeader_t* header);
  * SEGFAULT are possible if invalid parameters are given.
  * To be thread save the PSHAL_SendLock must be held, otherwise
  * the internal datastructures can be corrupt.
+ * if ack is NULL, PSHALMsgSend send always blocking. Increment ack
+ * by one for non-blocking send and decrement by one, if non-blocking
+ * send is finished. 
+ * 
  */
-int PSHALMsgSend(PSHALSendHeader_t* header,void*data);
+int PSHALMsgSend(PSHALSendHeader_t* header,void*data,int *ack);
 
 /*------------------------------------------------------------------------------
  * int PSHALMsgSendPinned()
