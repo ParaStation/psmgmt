@@ -25,6 +25,7 @@
 <!ENTITY psroute SYSTEM "psroute.sgml">
 <!ENTITY psscan SYSTEM "psscan.sgml">
 <!ENTITY testnodes SYSTEM "test_nodes.sgml">
+<!ENTITY test_config SYSTEM "test_config.sgml">
 
 <!ENTITY quick_install SYSTEM "quick_install.sgml">
 
@@ -98,6 +99,7 @@
     &psroute;
     &psscan;
     &testnodes;
+    &test_config;
   </reference>
 
   &quick_install;

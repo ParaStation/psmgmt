@@ -1,0 +1,112 @@
+<refentry id="test_config">
+  <refmeta>
+    <refentrytitle>test_config</refentrytitle>
+    <manvolnum>1</manvolnum>
+  </refmeta>
+
+  <refnamediv>
+    <refname>test_config</refname>
+    <refpurpose>
+      test the configuration file on syntax errors.
+    </refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <cmdsynopsis>
+      <command>test_config</command>
+      <arg>-v?</arg>
+      <arg>-d <replacable>level<replacable></arg>
+      <arg>-f <replaceable>configfile</replaceable></arg>
+      <arg>--usage</arg>
+    </cmdsynopsis>
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>Description</title>
+    <para>
+      Todo todo todo todo todo todo todo.
+    </para>
+    <para>
+      Todo todo todo todo todo todo todo.
+    </para>
+  </refsect1>
+
+  <refsect1>
+    <title>Options</title>
+    <variablelist>
+      <varlistentry>
+	<term>
+	  <option>-d</option>
+	  <option>, --debug=<replaceable>level</replaceable></option>
+        </term>
+	<listitem>
+	  <para>Activate the debugging mode and set the debug level to
+	    <replaceable>level</replaceable>.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-f</option>
+	  <option>, --file=<replaceable>file</replaceable></option>
+        </term>
+	<listitem>
+	  <para>Choose <replaceable>file</replaceable> to be the &ps;
+	    configuration file to parse. The default is to use
+	    <filename>/etc/parastation.conf</filename>.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-v</option>
+	  <option>, --version</option>
+        </term>
+	<listitem>
+	  <para>Output version information and exit.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-?</option>
+	  <option>, --help</option>
+        </term>
+	<listitem>
+	  <para>Show a help message.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>
+	  <option>--usage</option>
+	</term>
+        <listitem>
+          <para>Display a brief usage message.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+  </refsect1>
+
+  <refsect1>
+    <title>See also</title>
+    <para>
+      <xref linkend="parastation_conf"/>, <xref linkend="psid"/>
+    </para>
+  </refsect1>
+</refentry>
+  <!-- Keep this comment at the end of the file
+  Local variables:
+  mode: xml
+  sgml-omittag:nil
+  sgml-shorttag:nil
+  sgml-namecase-general:nil
+  sgml-general-insert-case:lower
+  sgml-minimize-attributes:nil
+  sgml-always-quote-attributes:t
+  sgml-indent-step:2
+  sgml-indent-data:t
+  sgml-parent-document:("adminguide.xml" "book" "reference" "reference" ("title"))
+  sgml-exposed-tags:nil
+  sgml-local-catalogs:nil
+  sgml-local-ecat-files:nil
+  End:
+  -->

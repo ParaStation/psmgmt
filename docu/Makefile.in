@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.18 2004/03/09 18:20:03 eicker Exp $
+# $Id: Makefile.in,v 1.19 2004/03/11 18:23:55 eicker Exp $
 #
 # @author
 #         Norbert Eicker <eicker@par-tec.de>
@@ -31,7 +31,7 @@ CLASSPATH:=$(CLASSPATH)":fop/lib/avalon-framework-cvs-20020315.jar"
 
 TARGETS = adminguide userguide
 
-ADMINMAN1 = man1/mlisten.1 man1/psiadmin.1 man1/test_nodes.1
+ADMINMAN1 = man1/mlisten.1 man1/psiadmin.1 man1/test_nodes.1 man1/test_config.1
 ADMINMAN5 = man5/parastation.conf.5
 ADMINMAN8 = man8/psid.8 man8/psld.8 man8/psroute.8 man8/psscan.8
 ADMINMANS = $(ADMINMAN1) $(ADMINMAN5) $(ADMINMAN8)
