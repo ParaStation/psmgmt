@@ -7,17 +7,19 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psipartition.c,v 1.11 2004/01/28 10:29:47 eicker Exp $
+ * $Id: psipartition.c,v 1.12 2004/03/10 08:48:01 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.11 2004/01/28 10:29:47 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.12 2004/03/10 08:48:01 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
+#include <time.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -562,6 +564,17 @@ static int sendNodelist(nodelist_t *nodelist, DDBufferMsg_t *msg)
     return 0;
 }
 
+static int alarmCalled = 0;
+static void alarmHandler(int sig)
+{
+    time_t now = time(NULL);
+    char *timeStr = ctime(&now);
+    alarmCalled = 1;
+    timeStr[strlen(timeStr)-1] = '\0';
+    snprintf(errtxt, sizeof(errtxt), "%s -- Waiting for ressources", timeStr);
+    PSI_errlog(errtxt, 0);
+}
+
 int PSI_createPartition(unsigned int size, unsigned int hwType)
 {
     DDBufferMsg_t msg = (DDBufferMsg_t) {
@@ -633,11 +646,14 @@ int PSI_createPartition(unsigned int size, unsigned int hwType)
     }
     freeNodelist(nodelist);
 
+    signal(SIGALRM, alarmHandler);
+    alarm(2);
     if (PSI_recvMsg(&msg)<0) {
 	snprintf(errtxt, sizeof(errtxt), "%s: recv", __func__);
 	PSI_errlog(errtxt, 0);
 	return -1;
     }
+    alarm(0);
 
     switch (msg.header.type) {
     case PSP_CD_PARTITIONRES:
@@ -665,6 +681,14 @@ int PSI_createPartition(unsigned int size, unsigned int hwType)
 		 __func__, PSP_printMsg(msg.header.type));
 	PSI_errlog(errtxt, 0);
 	return -1;
+    }
+
+    if (alarmCalled) {
+	time_t now = time(NULL);
+	char *timeStr = ctime(&now);
+	timeStr[strlen(timeStr)-1] = '\0';
+	snprintf(errtxt, sizeof(errtxt), "%s -- Starting now...", timeStr);
+	PSI_errlog(errtxt, 0);
     }
 
     return size;
