@@ -5,20 +5,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mpirun_chp4.c,v 1.7 2003/06/16 17:35:22 eicker Exp $
+ * $Id: mpirun_chp4.c,v 1.8 2003/09/12 14:32:19 eicker Exp $
  *
  */
 /**
  * @file Replacement for the standard mpirun command provided by MPIch in order
  * to start MPIch/P4 application within a ParaStation cluster.
  *
- * $Id: mpirun_chp4.c,v 1.7 2003/06/16 17:35:22 eicker Exp $
+ * $Id: mpirun_chp4.c,v 1.8 2003/09/12 14:32:19 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chp4.c,v 1.7 2003/06/16 17:35:22 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chp4.c,v 1.8 2003/09/12 14:32:19 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -30,6 +30,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chp4.c,v 1.7 2003/06
 
 #include <pse.h>
 #include <psi.h>
+#include <psipartition.h>
 #include <psispawn.h>
 #include <psienv.h>
 #include <pscommon.h>
@@ -39,7 +40,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chp4.c,v 1.7 2003/06
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.7 $";
+    char revision[] = "$Revision: 1.8 $";
     fprintf(stderr, "mpirun_chp4 %s\b \n", revision+11);
 }
 
@@ -337,7 +338,7 @@ int main(int argc, const char *argv[])
 	exit(1);
     }
 
-    PSI_getPartition(0 /* HWType none */, -1 /* my rank */);
+    PSI_createPartition(np, 0 /* HWType none */);
 
     pwd = getenv("PWD");
     if (!pwd) {
@@ -358,14 +359,14 @@ int main(int argc, const char *argv[])
     PGfile = PSI_createPGfile(np, argv[dup_argc], local);
 
     if (!PGfile) {
-	fprintf(stderr, "%s: unable to create pg file", argv[dup_argc]);
+	fprintf(stderr, "%s: unable to create pg file\n", argv[dup_argc]);
 	exit(1);
     }
 
     /* Copy and expand the apps commandline */
     dup_argv = malloc((argc - dup_argc + 4 + 1) * sizeof(char *));
     if (!dup_argv) {
-	fprintf(stderr, "%s: no memory", argv[dup_argc]);
+	fprintf(stderr, "%s: no memory\n", argv[dup_argc]);
 	exit(1);
     }
 
@@ -380,7 +381,7 @@ int main(int argc, const char *argv[])
 	}
 
 	if (!dup_argv[j]) {
-	    fprintf(stderr, "%s: no memory", argv[dup_argc]);
+	    fprintf(stderr, "%s: no memory\n", argv[dup_argc]);
 	    exit(1);
 	}
     }
@@ -415,12 +416,11 @@ int main(int argc, const char *argv[])
 	PSI_RemoteArgs(dup_argc, dup_argv, &dup_argc, &dup_argv);
 
 	/* spawn master process */
-	if (PSI_spawnM(1, NULL, ".", dup_argc, dup_argv, PSC_getMyTID(),
-		       0, &error, &spawnedProcess) < 0 ) {
+	if (PSI_spawn(1, ".", dup_argc, dup_argv, &error, &spawnedProcess)<0) {
 	    if (error) {
 		char *errstr = strerror(error);
 		fprintf(stderr,
-			"Could not spawn master process (%s) error = %s.",
+			"Could not spawn master process (%s) error = %s.\n",
 			dup_argv[0], errstr ? errstr : "UNKNOWN");
 		exit(1);
 	    }

@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mpirun_chgm.c,v 1.3 2003/06/27 11:02:03 eicker Exp $
+ * $Id: mpirun_chgm.c,v 1.4 2003/09/12 14:29:29 eicker Exp $
  *
  */
 /**
@@ -13,13 +13,13 @@
  * MPIch/GM in order to start such applications within a ParaStation
  * cluster.
  *
- * $Id: mpirun_chgm.c,v 1.3 2003/06/27 11:02:03 eicker Exp $
+ * $Id: mpirun_chgm.c,v 1.4 2003/09/12 14:29:29 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chgm.c,v 1.3 2003/06/27 11:02:03 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chgm.c,v 1.4 2003/09/12 14:29:29 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -40,6 +40,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chgm.c,v 1.3 2003/06
 #include <pse.h>
 #include <psi.h>
 #include <info.h>
+#include <psipartition.h>
 #include <psispawn.h>
 #include <psienv.h>
 #include <pscommon.h>
@@ -49,7 +50,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chgm.c,v 1.3 2003/06
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.3 $";
+    char revision[] = "$Revision: 1.4 $";
     fprintf(stderr, "mpirun_chgm %s\b \n", revision+11);
 }
 
@@ -407,7 +408,7 @@ int main(int argc, const char *argv[])
 	    exit(1);
 	}
 
-	if (PSI_getPartition(hwType, -1 /* my rank */) < 0) {
+	if (PSI_createPartition(np, hwType) < 0) {
 	    exit(1);
 	}
     }
@@ -459,7 +460,7 @@ int main(int argc, const char *argv[])
     if (gm_kill!=-1) {
 	dup_argv[++arg] = malloc(32);
 	if (!dup_argv[arg]) {
-	    fprintf(stderr, "%s: no memory", argv[0]);
+	    fprintf(stderr, "%s: no memory\n", argv[0]);
 	    exit(1);
 	} else {
 	    snprintf(dup_argv[arg], 32, "--kill=%d", gm_kill);
@@ -475,7 +476,7 @@ int main(int argc, const char *argv[])
     if (argv[dup_argc][0] != '/' && argv[dup_argc][0] != '.') {
 	dup_argv[++arg] = malloc(sizeof(char) * strlen(argv[dup_argc]) + 3);
 	if (!dup_argv[arg]) {
-	    fprintf(stderr, "%s: no memory", argv[0]);
+	    fprintf(stderr, "%s: no memory\n", argv[0]);
 	    exit(1);
 	} else {
 	    sprintf(dup_argv[arg], "./%s", argv[dup_argc]);
@@ -483,7 +484,7 @@ int main(int argc, const char *argv[])
     } else {
 	dup_argv[++arg] = strdup(argv[dup_argc]);
 	if (!dup_argv[arg]) {
-	    fprintf(stderr, "%s: no memory", argv[0]);
+	    fprintf(stderr, "%s: no memory\n", argv[0]);
 	    exit(1);
 	}
     }
@@ -494,7 +495,7 @@ int main(int argc, const char *argv[])
 	dup_argv[arg] = strdup(argv[i]);
 
 	if (!dup_argv[arg]) {
-	    fprintf(stderr, "%s: no memory", argv[0]);
+	    fprintf(stderr, "%s: no memory\n", argv[0]);
 	    exit(1);
 	}
     }
@@ -503,19 +504,16 @@ int main(int argc, const char *argv[])
 
     {
 	/* spawn master processes (we are going to be logger) */
-	long spawnedProcess = -1;
-	short node = PSI_getPartitionNode(0);
 	int error;
 
 	PSI_RemoteArgs(dup_argc, dup_argv, &dup_argc, &dup_argv);
 
 	/* spawn the process */
-	if (PSI_spawnM(1, &node, ".", dup_argc, dup_argv, PSC_getMyTID(),
-		       np, &error, &spawnedProcess) < 0 ) {
+	if (!PSI_spawnGMSpawner(np, ".", dup_argc, dup_argv, &error)) {
 	    if (error) {
 		char *errstr = strerror(error);
 		fprintf(stderr,
-			"Could not spawn spawner process (%s) error = %s.",
+			"Could not spawn spawner process (%s) error = %s.\n",
 			dup_argv[0], errstr ? errstr : "UNKNOWN");
 		exit(1);
 	    }
