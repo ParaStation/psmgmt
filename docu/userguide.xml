@@ -16,7 +16,7 @@
 
 <!ENTITY psmstart SYSTEM "psmstart.sgml">
 <!ENTITY mpirun SYSTEM "mpirun.sgml">
-<!ENTITY mpirun_p4 SYSTEM "mpirun_p4.sgml">
+<!ENTITY mpirun_p4 SYSTEM "mpirun_chp4.sgml">
 <!ENTITY environment SYSTEM "ps_environment.sgml">
 
 <!ENTITY spawning SYSTEM "spawning.sgml">
@@ -34,10 +34,15 @@
   <bookinfo>
     &infoblurb;
 
-    <releaseinfo>Release 1.0</releaseinfo>
-    <pubdate>December 2002</pubdate>
+    <releaseinfo>Release 1.1</releaseinfo>
+    <pubdate>March 2003</pubdate>
 
     <revhistory>
+      <revision>
+	<revnumber>1.1</revnumber>
+	<date>xx Mar 2003</date>
+	<revremark>mpirun_chp4 added</revremark>
+      </revision>
       <revision>
 	<revnumber>1.0</revnumber>
 	<date>10 Dec 2002</date>
@@ -82,11 +87,11 @@
     <referenceinfo>
       <title>ParTec</title>
       <productname>ParaStation</productname>
-      <date>December 2002</date>
+      <date>March 2003</date>
     </referenceinfo>
     <title>Reference Pages</title>
     &mpirun;
-    <!-- &mpirun_p4; -->
+    &mpirun_p4;
     &psmstart;
     &environment;
   </reference>
