@@ -32,9 +32,27 @@
     </author>
     <mediaobject>
       <imageobject>
-	<imagedata fileref="../images/parastation.png"/>
+	<imagedata scale="35" align="center"
+	  fileref="../images/ParTecLogo.png"/>
       </imageobject>
     </mediaobject>
+    <revhistory>
+<!--       <revision> -->
+<!-- 	<revnumber>1.0</revnumber> -->
+<!-- 	<date>16 Oct 2002</date> -->
+<!-- 	<revremark>First official release</revremark> -->
+<!--       </revision> -->
+<!--       <revision> -->
+<!-- 	<revnumber>0.9</revnumber> -->
+<!-- 	<date>11 Oct 2002</date> -->
+<!-- 	<revremark>First beta release</revremark> -->
+<!--       </revision> -->
+      <revision>
+	<revnumber>0.1</revnumber>
+	<date>26 Sep 2002</date>
+	<revremark>Initial revision</revremark>
+      </revision>
+    </revhistory>
   </bookinfo>
 
   &intro_user;
