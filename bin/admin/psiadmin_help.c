@@ -5,13 +5,13 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin_help.c,v 1.7 2002/02/15 19:25:00 eicker Exp $
+ * $Id: psiadmin_help.c,v 1.8 2002/07/03 20:56:26 eicker Exp $
  *
  * \todo More detailed messages for 'status' and 'set'.
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin_help.c,v 1.7 2002/02/15 19:25:00 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin_help.c,v 1.8 2002/07/03 20:56:26 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 static void PrintHelp(void)
@@ -54,7 +54,7 @@ static void NodeInfo(void)
 	   " a nodenumber.\n");
     printf("            Nodenumber can be given decimal or hexadecimal and"
 	   " must be in the\n");
-    printf("            range of (0 <= number < %d)\n\n", PSI_getnrofnodes());
+    printf("            range of (0 <= number < %d)\n\n", PSC_getNrOfNodes());
 }
 
 static void PrintAddHelp(void)
