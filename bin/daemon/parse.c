@@ -188,12 +188,16 @@ int parse_config(int syslogreq)
      */
     gethostname(myname,255);
     MyId = GetIP(myname);
-
     if(!Configfile){
 	Configfile = (char *) malloc(80);
 	strcpy(Configfile, PSI_LookupInstalldir());
 	strcat(Configfile, "/config/psm.config");
+    }else{
+	/* bug workaround */
+	malloc(80);
+	PSI_LookupInstalldir();
     }
+
     if ( (cfd = fopen(Configfile,"r"))!=0){
 	/* file found */
 	sprintf(errtxt, "Using <%s> as configuration file\n", Configfile);
