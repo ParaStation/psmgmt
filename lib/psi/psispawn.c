@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.32 2003/02/21 12:26:23 eicker Exp $
+ * $Id: psispawn.c,v 1.33 2003/02/27 18:31:45 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.32 2003/02/21 12:26:23 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.33 2003/02/27 18:31:45 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -430,7 +430,7 @@ void PSI_RemoteArgs(int Argc, char **Argv, int *RArgc, char ***RArgv)
     return;
 }
 
-char *PSI_createPGfile(int num, const char *prog)
+char *PSI_createPGfile(int num, const char *prog, int local)
 {
     char *PIfilename, *myprog, filename[20];
     FILE *PIfile;
@@ -447,7 +447,7 @@ char *PSI_createPGfile(int num, const char *prog)
     if (!myprog) {
 	char *errstr = strerror(errno);
 
-	snprintf(errtxt, sizeof(errtxt), "%s(): mygetwd() failed: %s"
+	snprintf(errtxt, sizeof(errtxt), "%s(): mygetwd() failed: %s",
 		 __func__, errstr ? errstr : "UNKNOWN");
 	PSI_errlog(errtxt, 0);
 
@@ -476,7 +476,7 @@ char *PSI_createPGfile(int num, const char *prog)
 	if (!PIfile) {
 	    char *errstr = strerror(errno);
 
-	    snprintf(errtxt, sizeof(errtxt), "%s(): fopen() failed finally: %s"
+	    snprintf(errtxt, sizeof(errtxt), "%s(): fopen() failed: %s",
 		     __func__, errstr ? errstr : "UNKNOWN");
 	    PSI_errlog(errtxt, 0);
 
@@ -488,15 +488,30 @@ char *PSI_createPGfile(int num, const char *prog)
     for (i=0; i<num; i++) {
 	struct in_addr hostaddr;
 
-	hostaddr.s_addr = INFO_request_node(PSI_Partition[j], 0);
+	hostaddr.s_addr = INFO_request_node(PSI_Partition[local ? 0 : j], 0);
 
 	fprintf(PIfile, "%s %d %s\n", inet_ntoa(hostaddr), (i != 0), myprog);
 	
 
 	j = (j+1) % PSI_PartitionSize;
     }
-
     fclose(PIfile);
+
+    if (local) {
+	char *priv_str;
+	char *end;
+
+	priv_str = getPSIEnv(ENV_NODE_PRIV);
+	printf("%p: %s\n", priv_str, priv_str);
+
+	end = strchr(priv_str, ',');
+	printf("%p: %s\n", end, end);
+
+	if (end) {
+	    *end = '\0';
+	    setPSIEnv(ENV_NODE_PRIV, priv_str, 1);
+	}
+    }
 
     return PIfilename;
 }
@@ -859,6 +874,7 @@ short PSI_getPartition(unsigned int hwType, int myRank)
 
 	num_str = getenv(ENV_NODE_NUM);
 
+	/* @todo atoi replace */
 	if (num_str && ((num = atoi(num_str)) > 1)) {
 	    short *temp;
 	    int temp_size = num * PSI_PartitionSize;
