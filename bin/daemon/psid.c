@@ -2622,6 +2622,7 @@ main(int argc, char **argv)
 	int DEBUGGING = 0;
  	long check_reset_status = 0;
 	char* errtxt;
+	int dummy_fd;
 
 	BlockSig(1,SIGCHLD);
 	BlockSig(1,SIGALRM);
@@ -2708,11 +2709,13 @@ main(int argc, char **argv)
 	signal(SIGCHLD  ,sighandler);
 	signal(SIGTERM  ,sighandler);
 	/*
-	 * Disable stdin,stdout,stderr
+	 * Disable stdin,stdout,stderr and install dummy replacement
 	 */
-	close(0);
-	close(1);
-	close(2);
+	dummy_fd=open("/dev/null",O_WRONLY ,0);
+	dup2(dummy_fd, STDIN_FILENO);
+	dup2(dummy_fd, STDOUT_FILENO);
+	dup2(dummy_fd, STDERR_FILENO);
+	close(dummy_fd);
 
 	if(DEBUGGING){
 	    PSI_setoption(PSP_ODEBUG, 1);
