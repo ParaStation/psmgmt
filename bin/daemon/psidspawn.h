@@ -1,18 +1,18 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * psidspawn.h
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidspawn.h,v 1.2 2002/11/13 16:48:29 hauke Exp $
+ * $Id: psidspawn.h,v 1.3 2003/10/08 14:51:21 eicker Exp $
  *
  */
 /**
  * \file
  * Spawning of client processes and forwarding for the ParaStation daemon
  *
- * $Id: psidspawn.h,v 1.2 2002/11/13 16:48:29 hauke Exp $
+ * $Id: psidspawn.h,v 1.3 2003/10/08 14:51:21 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
