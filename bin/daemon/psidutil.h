@@ -58,7 +58,7 @@ int PSID_readconfigfile(void);
  *
  *       starts the licenser daemon via the inetd
  */
-int PSID_startlicenseserver(u_long hostaddr);
+int PSID_startlicenseserver(unsigned int hostaddr);
 
 int PSID_execv( const char *path, char *const argv[]);
 

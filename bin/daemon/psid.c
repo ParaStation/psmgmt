@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.19 2002/01/09 14:59:27 eicker Exp $
+ * $Id: psid.c,v 1.20 2002/01/09 19:59:35 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.19 2002/01/09 14:59:27 eicker Exp $ 
+ * $Id: psid.c,v 1.20 2002/01/09 19:59:35 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.19 2002/01/09 14:59:27 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.20 2002/01/09 19:59:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -37,6 +37,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.19 2002/01/09 14
 #include <signal.h>
 #include <syslog.h>
 #include <fcntl.h>
+#include <arpa/inet.h>
 
 #include <pshal.h>
 
@@ -60,7 +61,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.19 $";
+static char psid_cvsid[] = "$Revision: 1.20 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -2425,7 +2426,7 @@ void psicontrol(int fd )
 void RDPCallBack(int msgid, void* buf)
 {
     int node;
-    u_long hostaddr;
+    struct in_addr hostaddr;
     DDMsg_t* msg;
 
 
@@ -2445,13 +2446,11 @@ void RDPCallBack(int msgid, void* buf)
 	}
 	break;
     case RDP_LIC_LOST:
-	hostaddr = *(u_long*)buf;
-	SYSLOG(2,(LOG_ERR,"RDPCallBack(RDP_LIC_LOST). "
-		  "Starting License Server on host 0x%lx[%d.%d.%d.%d]\n",
-		  hostaddr,(htonl(hostaddr)&0xFF000000)>>24,
-		  (htonl(hostaddr)&0xFF0000)>>16,
-		  (htonl(hostaddr)&0xFF00)>>8,(htonl(hostaddr)&0xFF)));
-	PSID_startlicenseserver(hostaddr);
+	hostaddr.s_addr = *(unsigned int *)buf;
+  	SYSLOG(2,(LOG_ERR,"RDPCallBack(RDP_LIC_LOST). "
+		  "Starting License Server on host %s\n",
+		  inet_ntoa(hostaddr)));
+	PSID_startlicenseserver(hostaddr.s_addr);
 	break;
     case RDP_LIC_SHUTDOWN:
 	SYSLOG(2,(LOG_ERR,"RDPCallBack(RDP_LIC_SHUTDOWN). \n"));
@@ -2691,7 +2690,7 @@ void CheckFileTable()
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.19 $";
+    char revision[] = "$Revision: 1.20 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 

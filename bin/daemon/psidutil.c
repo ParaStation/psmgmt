@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.14 2002/01/08 23:36:41 eicker Exp $
+ * $Id: psidutil.c,v 1.15 2002/01/09 19:59:35 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.14 2002/01/08 23:36:41 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.15 2002/01/09 19:59:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -215,15 +215,15 @@ int PSID_readconfigfile(void)
  *
  *       starts the licenseserver via the inetd
  */
-int 
-PSID_startlicenseserver(u_long hostaddr)
+int PSID_startlicenseserver(unsigned int hostaddr)
 {
     int sock;
     struct servent *service;
     struct sockaddr_in sa;
 #if defined(DEBUG)
     if(PSP_DEBUGADMIN & (PSI_debugmask )){
-	snprintf(errtxt, sizeof(errtxt), "PSID_startlicenseserver(%lx)\n", hostaddr);
+	snprintf(errtxt, sizeof(errtxt), "PSID_startlicenseserver(%ulx)\n",
+		 ntohl(hostaddr));
 	PSI_logerror(errtxt);
     }
 #endif
