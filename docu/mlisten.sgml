@@ -1,0 +1,164 @@
+<refentry id="mlisten">
+  <refmeta>
+    <refentrytitle>mlisten</refentrytitle>
+    <manvolnum>1</manvolnum>
+  </refmeta>
+
+  <refnamediv>
+    <refname>mlisten</refname>
+    <refpurpose>
+      display multicast pings from ParaStation daemon <xref linkend="psid"/>
+    </refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <cmdsynopsis>
+      <command>mlisten</command>
+      <arg>-dv?</arg>
+      <arg>-m MCAST</arg>
+      <arg>-p PORT</arg>
+      <arg>-n IP</arg>
+      <arg>-# NODES</arg>
+      <arg>--usage</arg>
+    </cmdsynopsis>
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>Description</title>
+    <para>
+      Display the multicast pings the ParaStation daemon <xref linkend="psid"/>
+      and the ParaStation license daemon <xref linkend="psld"/> are emitting
+      continuously. The pings are displayed by spinning bars.
+    </para>
+    <para>
+      Each ping received from node N lets the Nth bar spin arround one more
+      step. For each node never received a multicast ping from a '.' is
+      displayed.
+    </para>
+  </refsect1>
+
+  <refsect1>
+    <title>Options</title>
+    <variablelist>
+      <varlistentry>
+	<term>
+	  <option>-d</option>,
+	  <option>--debug</option></term>
+	<listitem>
+	  <para>
+	    Activate the debugging mode.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-m</option>,
+	  <option>--mcast=<replaceable>MCAST</replaceable></option>
+	</term>
+	<listitem>
+	  <para>
+	    Listen to multicast group <replaceable>MCAST</replaceable>. Set
+	    this to the value of <option>MCastGroup</option> in the ParaStation
+	    configuration file <xref linkend="parastation_conf"/>. The default
+	    is 237, which is also the default within <xref linkend="psid"/>. 
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-p</option>,
+	  <option>--port=<replaceable>PORT</replaceable></option>
+	</term>
+	<listitem>
+	  <para>
+	    Listen to UDP port <replaceable>PORT</replaceable>.  Set
+	    this to the value of <option>MCastPort</option> in the ParaStation
+	    configuration file <xref linkend="parastation_conf"/>. The default
+	    is 1889, which is also the default within <xref linkend="psid"/>.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-n</option>,
+	  <option>--network=<replaceable>IP</replaceable></option>
+	</term> 
+	<listitem>
+	  <para>
+	    Listen on the interface with address
+	    <replaceable>IP</replaceable>. The default is to listen on any
+	    interface.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-#</option>,
+	  <option>--nodes=<replaceable>NODES</replaceable></option>
+	</term>
+	<listitem>
+	  <para>
+	    Display information for <replaceable>NODES</replaceable> nodes
+	    (including <xref linkend="psld"/>). The default is 129, i.e. 128
+	    nodes plus the license daemon <xref linkend="psld"/>.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-v</option>,
+	  <option>--version</option>
+	</term>
+	<listitem>
+	  <para>
+	    Output version information and exit.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-?</option>,
+	  <option>--help</option>
+	</term>
+	<listitem>
+	  <para>
+	    Show a help message.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><option>--usage</option></term>
+	<listitem>
+	  <para>
+	    Display a brief usage message.
+	  </para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+  </refsect1>
+
+  <refsect1>
+    <title>See also</title>
+    <para>
+      <xref linkend="psid"/>, <xref linkend="psld"/>, <xref
+	linkend="parastation_conf"/>
+    </para>
+  </refsect1>
+</refentry>
+  <!-- Keep this comment at the end of the file
+  Local variables:
+  mode: xml
+  sgml-omittag:nil
+  sgml-shorttag:nil
+  sgml-namecase-general:nil
+  sgml-general-insert-case:lower
+  sgml-minimize-attributes:nil
+  sgml-always-quote-attributes:t
+  sgml-indent-step:2
+  sgml-indent-data:t
+  sgml-parent-document:("main.xml" "book" "reference" "reference" ("title"))
+  sgml-exposed-tags:nil
+  sgml-local-catalogs:nil
+  sgml-local-ecat-files:nil
+  End:
+  -->

@@ -1,0 +1,26 @@
+Requirements:
+i============
+
+The documentation is written in DocBook XML V4.2.
+
+Validation and processing is done with OpenJade using DSSSL Stylesheets.
+Used wrappers around OpenJade and JadeTeX are:
+* docbook-toys
+* docbook2X
+
+The following versions were tested:
+
+openjade 1.3.1
+docbook-dsssl-stylesheets 1.77
+docbook-toys 0.61.0
+docbook2X 0.70
+
+Remark:
+=======
+
+These version are mostly *not* included in SuSE 8.0.
+Most of the packets where taken from
+ftp://ftp.suse.com:/pub/people/ke/8.0-i386/
+
+The docbook2x paket from SuSE is totally broken! I had to build my
+own rpm. You can find it in Wuppertal under ~eicker/scr/OwnRPMS.

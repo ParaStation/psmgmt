@@ -1,0 +1,336 @@
+<chapter id="installation">
+  <title>Installation</title>
+  <para>
+    Beforehand describing the installation of ParaStation, this chapter
+    discusses the prerequisites to do so. There are specified three
+    different ways to install ParaStation, discrimination against each
+    other in the level of automatization of the installation process.
+  </para>
+  <para>
+    Of course, the less automatized the choosen way of installation is,
+    the more possibilities of costumization within the installation
+    process occur. On the other hand even the most automatized way of
+    installation, the installation via rpm-files, should give suitable
+    result in most cases.
+  </para>
+
+  <section><title>Prerequisites</title>
+    <para>
+      To install ParaStation on a cluster of workstation, few prerequisites
+      have to be met.
+    </para>
+
+    <simplesect><title>Hardware</title>
+      <para>
+	You need a homogenous cluster in the sense of processor architecture,
+	i.e. you can mix Intel IA32 and AMD but not Intel IA32 and Alpha. The
+	supported processor architecures up to now are Intel IA32 (including
+	AMD Athlon) and Alpha.
+      </para>
+      <para>
+	Furthermore of course the nodes need to be interconnected. Usually
+	there is a connection via fast ethernet between the nodes. ParaStation
+	needs this fast ethernet interconnect for management
+	purposes. Furthermore there is the possibility to have an fast
+	interconnect to do high bandwith, low latency communication. At the
+	moment Myrinet is supported to do this kind of communication. There
+	also exists a version supporting communication via fast
+	ethernet. Naturally this version lacks of really high throughput and
+	low latency due to the limited capabilities of the hardware.
+      </para>
+    </simplesect>
+
+    <simplesect><title>Multicast</title>
+      <para>
+	From the software side of view only few prerequisites have to be
+	met. You need a Linux kernel supporting multicast on all nodes of the
+	cluster. This is usually no problem if a standard kernel from a common
+	distribution is used. You have to explicitly enable multicast support
+	if you build you own kernel. To learn more about Multicast take a look
+	at the 'Multicast over TCP/IP HOWTO' [1].
+      </para>
+      <para>
+	Besides the kernel supporting multicast, the hardware has to support
+	multicast, too. Since modern ethernet switches support
+	multicast and the nodes of a cluster of workstation usually live in a
+	private subnet the should be no problem about this. In the case of a
+	gateway in between nodes of cluster these gateway has to be configured
+	appropiatly to allow multicast packets to reach all nodes of the
+	cluster from all nodes.
+      </para>
+      <para>
+	On nodes with more than one ethernet interface you have to setup a
+	defaultroute for the multicast traffic. This is done by
+
+	route add -net 224.0.0.0 netmask 240.0.0.0 dev ethX
+
+	manually, where ethX has to be replaced by the name of the interface
+	connecting to all other nodes. To enable this route at system-start,
+	a corresponding entry has to be added to route.conf.
+      </para>
+      <para>
+	Usually only the front-end machine of a cluster has two ethernet
+	interfaces in use.  Then you have to add the Multicast route to the
+	interface connecting the front-end with all the other nodes of the
+	cluster.
+      </para>
+    </simplesect>
+
+    <simplesect><title>Kernel version</title>
+      <para>
+	Furthermore, since kernel modules are needed for the high bandwidth,
+	low latency communication, you need a kernel version supported by the
+	distributed modules. These modules support the standard kernels of
+	common distributions, even if you have recompiled theses kernels in a
+	slightly modified way. These modules are not needed for the
+	communication via fast ethernet.
+      </para>
+      <para>
+	If there is the need for special version of the modules it is possible
+	to get them on demand.
+      </para>
+    </simplesect>
+  </section>
+
+  <section><title>Installation via rpm</title>
+    <para>bla</para>
+  </section>
+
+  <section><title>Installation using the INSTALL script</title>
+    <para>
+      In section <xref linkend="Install_by_hand"/>, we will discuss...
+	See <command moreinfo="refentry">mlisten</command> for info.
+    </para>
+  </section>
+
+  <section id="Install_by_hand"><title>Installation by hand</title>
+    <para>Some notes on the installation by hand:</para>
+    <itemizedlist>
+      <listitem>
+	<para>
+	  The steps <xref linkend="ibh_create_dev"/> through <xref
+	    linkend="ibh_inetd"/> must be performed on all nodes of your
+	  cluster.
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  You might want to setup your cluster such that
+	  <filename>/opt/parastation</filename> is mirrored (via NFS) from one
+	  node to all other nodes. Then you need to perform the steps <xref
+	    linkend="ibh_extract"/>, <xref linkend="ibh_config"/> and <xref
+	    linkend="ibh_testing"/> only on this node. Otherwise these
+	  steps must be followed on all nodes, too. 
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  You must be superuser (root) when installing ParaStation.
+	</para>
+      </listitem>
+    </itemizedlist>
+
+    <orderedlist>
+      <listitem id="ibh_extract">
+	<para><emphasis>Extraction the Distribution</emphasis></para>
+
+	<para>
+	  ParaStation is distributed as a gzipped tar file that should be
+	  installed in the root (<filename>/</filename>) directory:
+	</para>
+	<programlisting>
+	cd /
+	gzip -cd psm_xxx.tgz | tar xvf -
+	</programlisting>
+      </listitem>
+      <listitem id="ibh_create_dev">
+	<para><emphasis>Creating the Device</emphasis></para>
+	<para>
+	  If not yet done (from a previous installation), you must create a
+	  character device:
+	</para>
+	<programlisting>
+	mknod /dev/psm c 40 0
+	chmod 666 /dev/psm
+	</programlisting>
+      </listitem>
+      <listitem id="ibh_services">
+	<para><emphasis>Services</emphasis></para>
+	<para>
+	  The following lines must be appended to
+	  <filename>/etc/services</filename>:
+	</para>
+	<programlisting>
+	# ParaStation entries
+	psld          887/tcp     # ParaStation License Daemon Start Port
+	psid          888/tcp     # ParaStation Daemon Start Port
+	# end of ParaStation entries
+	</programlisting>
+      </listitem>
+      <listitem>
+	<para><emphasis>Multicast setup</emphasis></para>
+	<para>
+	  ParaStation needs Multicast support on all nodes, i.e. the installed
+	  kernel has to support it. This is usually no problem if a standard
+	  kernel from a common distribution is used. You have to enable
+	  Multicast support if you build you own kernel. To learn more about
+	  Multicast take a look at the 'Multicast over TCP/IP HOWTO' [1].
+	</para>
+	<para>
+	  On nodes with more than one ethernet interface you have to setup a
+	  defaultroute for the Multicast traffic. This is done by
+	</para>
+	<programlisting>
+	route add -net 224.0.0.0 netmask 240.0.0.0 dev ethX
+	</programlisting>
+	<para>
+	  where <filename>ethX</filename> has to be replaced by the name of the
+	  interface connecting to all other nodes.
+	</para>
+	<para>
+	  Usually only the front-end machine has two ethernet interfaces in
+	  use. Then you have to add the Multicast route to the interface
+	  connecting the front-end with all the nodes.
+	</para>
+      </listitem>
+      <listitem id="ibh_inetd">
+	<para><emphasis>(X)inetd Configuration</emphasis></para>
+	<para>
+	  This part of the installation process differs for the various Linux
+	  distributions. If your system has
+	  <itemizedlist>
+	    <listitem>
+	      <para>
+		a file named <filename>/etc/inetd.conf</filename> (e.g. a SuSE
+		distributions), read section <xref
+		  linkend="ibh_inetd_suse"/>,
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		a directory <filename>/etc/xinetd.d</filename> (e.g. a RedHat
+		distributions), read section <xref linkend="ibh_inetd_rh"/>.
+	      </para>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+	<orderedlist numeration="arabic" inheritnum="inherit">
+	  <listitem id="ibh_inetd_suse">
+	    <para><emphasis>Inetd Configuration</emphasis></para>
+	    <para>
+	      The following lines must be appended to
+	      <filename>/etc/inetd.conf</filename>:
+	    </para>
+	    <programlisting>
+	#
+	# ParaStation daemon
+	#
+	psid stream tcp nowait root /opt/parastation/bin/psid
+	#
+	# ParaStation license server
+	#
+	psld stream tcp nowait root /opt/parastation/bin/psld
+	    </programlisting>
+	    <para>
+	      Now, the <citerefentry>
+		<refentrytitle>inetd</refentrytitle>
+		<manvolnum>8</manvolnum>
+	      </citerefentry>
+	      must be triggered to reload this file:
+	    </para>
+	    <programlisting>
+	/etc/init.d/inetd reload
+	    </programlisting>
+	  </listitem>
+	  <listitem id="ibh_inetd_rh">
+	    <para><emphasis>Xinetd Configuration</emphasis></para>
+	    <para>
+	      Create a file named
+	      <filename>/etc/xinetd.d/parastation</filename> with the following
+	      contents:
+	    </para>
+	    <programlisting>
+	#
+	# ParaStation daemon
+	#
+	service psid
+	{
+	disable         = no
+	socket_type     = stream
+	wait            = no
+	user            = root
+	server          = /opt/parastation/bin/psid
+	server_args     =
+	log_on_failure  += USERID
+	}
+	#
+	# ParaStation license server
+	#
+	service psld
+	{
+	disable         = no
+	socket_type     = stream
+	wait            = no
+	user            = root
+	server          = /opt/parastation/bin/psld
+	server_args     =
+	log_on_failure  += USERID
+	}
+	    </programlisting>
+	    <para>
+	      Now, the xinetd daemon must be triggered to read this file:
+	    </para>
+	    <programlisting>
+	/etc/init.d/xinetd reload
+	    </programlisting>
+	  </listitem>
+	</orderedlist>
+      </listitem>
+      <listitem id="ibh_config">
+	<para><emphasis>ParaStation Configuration</emphasis></para>
+	<para>
+	  If another version of ParaStation was installed before, you may want
+	  to make a backup of your old configuration file
+	  <filename>/etc/parastation.conf</filename>.
+	</para>
+	<para>
+	  Now copy the ParaStation configuration template
+	  <filename>parastation.conf.tmpl</filename> in
+	  <filename>/opt/parastation/config</filename> to
+	  <filename>/etc/parastation.conf</filename> and edit it following the
+	  hints given there and in <xref linkend="configuration"/>. 
+	</para>
+      </listitem>
+      <listitem id="ibh_testing">
+	<para><emphasis>Testing</emphasis></para>
+	<para>
+	  If everything went fine, you are ready to test ParaStation now. On
+	  one of the nodes do 
+	</para>
+	<programlisting>
+	/opt/parastation/bin/psiadmin -c "s all"
+	</programlisting>
+	<para>
+	  and repeat this command until all nodes are up.
+	</para>
+      </listitem>
+    </orderedlist>
+  </section>
+</chapter>
+  <!-- Keep this comment at the end of the file
+  Local variables:
+  mode: xml
+  sgml-omittag:nil
+  sgml-shorttag:nil
+  sgml-namecase-general:nil
+  sgml-general-insert-case:lower
+  sgml-minimize-attributes:nil
+  sgml-always-quote-attributes:t
+  sgml-indent-step:2
+  sgml-indent-data:t
+  sgml-parent-document:("main.xml" "book" "book" ("title" "bookinfo"))
+  sgml-exposed-tags:nil
+  sgml-local-catalogs:nil
+  sgml-local-ecat-files:nil
+  End:
+  -->

@@ -1,0 +1,139 @@
+<refentry id="psld">
+  <refmeta>
+    <refentrytitle>psld</refentrytitle>
+    <manvolnum>8</manvolnum>
+  </refmeta>
+
+  <refnamediv>
+    <refname>psld</refname>
+    <refpurpose>the ParaStation license daemon</refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <cmdsynopsis>
+      <command>psld</command>
+      <arg>-v?</arg>
+      <arg>-f configfile</arg>
+      <arg>--version</arg>
+      <arg>--usage</arg>
+    </cmdsynopsis>
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>Description</title>
+    <para>
+      The ParaStation license daemon sends so called multicast license pings at
+      regular intervals to the ParaStation daemons <xref linkend="psid"/>. If
+      a daemons is not able to receive these ping for too long, it will suspend
+      work and shut down.
+    </para>
+    <para>
+      To test if the license daemon is up, running of <xref linkend="mlisten"/>
+      is recommended. Assuming the ParaStation cluster contains N nodes, the
+      N+1st spinning bar of <xref linkend="mlisten"/> output denotes, if the
+      license daemon is running, i.e. if everything is set up correctly and the
+      license is valid.
+    </para>
+  </refsect1>
+  <refsect1>
+    <title>Options</title>
+    <variablelist>
+      <varlistentry>
+        <term>
+          <option>-d</option>,
+          <option>--debug</option></term>
+        <listitem>
+          <para>
+            Activate the debugging mode. If debugging is enabled, no
+	    <citerefentry>
+	      <refentrytitle>fork</refentrytitle>
+	      <manvolnum>2</manvolnum>
+	    </citerefentry>
+	    is made on startup. Furthermore the output is much more verbose and
+	    not directed to <citerefentry>
+	      <refentrytitle>syslog</refentrytitle>
+	      <manvolnum>3</manvolnum>
+	    </citerefentry>
+	    but to stderr. This option implies <option>-v</option>.
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-v</option>,
+	  <option>--verbose</option>
+	</term>
+	<listitem>
+	  <para>
+	    Do more verbose logging.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-f</option>,
+	  <option>--configfile=<replaceable>file</replaceable></option>
+	</term>
+	<listitem>
+	  <para>
+	    Choose <replaceable>file</replaceable> to be the ParaStation
+	    configuration file. The default is to use
+	    <filename>/etc/parastation.conf</filename>.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>
+          <option>--version</option>
+        </term>
+        <listitem>
+          <para>
+            Output version information and exit.
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>
+          <option>-?</option>,
+          <option>--help</option>
+        </term>
+        <listitem>
+          <para>
+            Show a help message.
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><option>--usage</option></term>
+        <listitem>
+          <para>
+            Display a brief usage message.
+          </para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+  </refsect1>
+  <refsect1>
+    <title>See also</title>
+    <para>
+      <xref linkend="psid"/>, <xref linkend="mlisten"/>
+    </para>
+  </refsect1>
+</refentry>
+  <!-- Keep this comment at the end of the file
+  Local variables:
+  mode: xml
+  sgml-omittag:nil
+  sgml-shorttag:nil
+  sgml-namecase-general:nil
+  sgml-general-insert-case:lower
+  sgml-minimize-attributes:nil
+  sgml-always-quote-attributes:t
+  sgml-indent-step:2
+  sgml-indent-data:t
+  sgml-parent-document:("main.xml" "book" "reference" "reference" ("title"))
+  sgml-exposed-tags:nil
+  sgml-local-catalogs:nil
+  sgml-local-ecat-files:nil
+  End:
+  -->

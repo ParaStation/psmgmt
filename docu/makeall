@@ -1,0 +1,50 @@
+#!/bin/bash
+
+
+db2x.sh -o -W main.xml
+
+docbook2manxml --header-3="`date "+%d %B %Y"`" --header-5="ParaStation" \
+		--noxref-on-link main.xml > main.mxml || \
+    docbook2manxml --header-3="`date "+%d %B %Y"`" --header-5="ParaStation" \
+		--noxref-on-link main.xml > main.mxml
+    db2x_manxml main.mxml
+
+db2pdf -o -s docu.dsl main.xml
+
+exit 0
+
+manlist="mlisten psid psld psiadmin psmstart"
+otherlist="main"
+list="$otherlist $manlist"
+
+if [ $# -ge 1 ]; then
+    list=$@
+    manlist=$@
+else
+    list="$otherlist $manlist"
+fi
+
+for i in $list; do
+    db2x.sh -o -W $i.xml
+done
+
+# db2html -o --nochunks main.xml > main.html
+for i in $list; do
+    db2html -o --nochunks $i.xml > $i.html
+    tidy -m -f /dev/null -asxml $i.html
+    rm -rf $i
+done
+
+#for i in $list; do
+#    db2pdf -o -s docu.dsl $i.xml
+#done
+
+# Does not work
+# for i in mlisten psid psld psiadmin psmstart; do
+for i in $manlist; do
+    docbook2manxml --header-3="`date "+%d %B %Y"`" --header-5="ParaStation" \
+		--noxref-on-link $i.xml > $i.mxml || \
+    docbook2manxml --header-3="`date "+%d %B %Y"`" --header-5="ParaStation" \
+		--noxref-on-link $i.xml > $i.mxml
+    db2x_manxml $i.mxml
+done

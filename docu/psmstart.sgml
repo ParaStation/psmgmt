@@ -1,0 +1,99 @@
+<refentry id="psmstart">
+  <refmeta>
+    <refentrytitle>psmstart</refentrytitle>
+    <manvolnum>1</manvolnum>
+  </refmeta>
+
+  <refnamediv>
+    <refname>psmstart</refname>
+    <refpurpose>
+      start a program on a remote node using the ParaStation daemon <xref
+	linkend="psid"/>
+    </refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <cmdsynopsis>
+      <command>psmstart</command>
+      <arg choice="plain">program</arg>
+      <arg rep="repeat">arg</arg>
+    </cmdsynopsis>
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>Description</title>
+    <para>
+      Start <command>program</command> on a remote node using the
+      ParaStation daemon <xref linkend="psid"/>. All arguments given at the
+      command line will be passed to the remotely started
+      <command>program</command>.
+    </para>
+    <para>
+      All output of <command>program</command> will be forwarded completely
+      to the local terminal. All input <command>program</command> is
+      expecting will be redirected from the local terminal. If the remote
+      program catches a signal, a message will be printed.
+    </para>
+  </refsect1>
+
+  <refsect1>
+    <title>Implementation</title>
+    <para>
+      If <command>psmstart</command> is called, <command>program</command>
+      is started remotely using the ParaStation daemon <xref
+	linkend="psid"/>. Within the startup the local process will become a
+      IO handling process forwarding all the input and output
+      data. Suspending the local process or sending a signal to this local
+      process will <emphasis>not</emphasis> affect the remotely started
+      process.
+    </para>
+  </refsect1>
+
+
+  <refsect1>
+    <title>Limitations</title>
+    <itemizedlist>
+      <listitem>
+	<para>
+	  The suspending of remotely started processes is not possible.
+	</para> 
+      </listitem>
+      <listitem>
+	<para>
+	  Signals sent to the local process will <emphasis>not</emphasis> be
+	  forwarded correctly to the remote process.
+	</para> 
+      </listitem>
+      <listitem>
+	<para>
+	  The return value of <command>program</command> will not be forwarded
+	  correctly to the controlling shell. 
+	</para>
+      </listitem>
+    </itemizedlist>
+  </refsect1>
+
+  <refsect1>
+    <title>See also</title>
+    <para>
+      <xref linkend="psid"/>, <xref linkend="spawning"/>
+    </para>
+  </refsect1>
+</refentry>
+  <!-- Keep this comment at the end of the file
+  Local variables:
+  mode: xml
+  sgml-omittag:nil
+  sgml-shorttag:nil
+  sgml-namecase-general:nil
+  sgml-general-insert-case:lower
+  sgml-minimize-attributes:nil
+  sgml-always-quote-attributes:t
+  sgml-indent-step:2
+  sgml-indent-data:t
+  sgml-parent-document:("main.xml" "book" "reference" "reference" ("title"))
+  sgml-exposed-tags:nil
+  sgml-local-catalogs:nil
+  sgml-local-ecat-files:nil
+  End:
+  -->
