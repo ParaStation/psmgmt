@@ -326,7 +326,7 @@ void run(int argc,char **argv,int np)
     head.xdata.rank=rank;
     head.xdata.node=PSP_GetNodeID();
     head.xdata.port=PSP_GetPortNo(porth);
-    Req = PSP_ISend(porth,0,0,&head.header,sizeof(struct xdata_T),mapnode[0],mapport[0]);
+    Req = PSP_ISend(porth,0,0,&head.header,sizeof(struct xdata_T),mapnode[0],mapport[0],0);
     PSP_Wait(porth,Req);
     
     end = (np) + (np+2)*(np)*arg_cnt;
@@ -345,7 +345,7 @@ void run(int argc,char **argv,int np)
 	    for (j=0;j<np;j++){
 		if ((mapnode[j]>=0) && (j != r) ){
 		    for (k=0;k<arg_cnt;k++){
-			Req = PSP_ISend(porth,0,0,&head.header,sizeof(struct xdata_T),mapnode[j],mapport[j]);
+			Req = PSP_ISend(porth,0,0,&head.header,sizeof(struct xdata_T),mapnode[j],mapport[j],0);
 			PSP_Wait(porth,Req);
 		    }
 		}
@@ -356,7 +356,7 @@ void run(int argc,char **argv,int np)
 		    head.xdata.node = mapnode[j];
 		    head.xdata.port = mapport[j];
 		    for (k=0;k<arg_cnt;k++){
-			Req = PSP_ISend(porth,0,0,&head.header,sizeof(struct xdata_T),mapnode[r],mapport[r]);
+			Req = PSP_ISend(porth,0,0,&head.header,sizeof(struct xdata_T),mapnode[r],mapport[r],0);
 			PSP_Wait(porth,Req);
 		    }
 		}
@@ -370,13 +370,13 @@ void run(int argc,char **argv,int np)
 	    head.xdata.type=3;
 	    head.xdata.from=rank;
 	    head.xdata.to  =r;
-	    Req = PSP_ISend(porth,0,0,&head.header,sizeof(struct xdata_T),mapnode[r],mapport[r]);
+	    Req = PSP_ISend(porth,0,0,&head.header,sizeof(struct xdata_T),mapnode[r],mapport[r],0);
 	    PSP_Wait(porth,Req);
 	    break;
 	}
 	case 3:{
 	    head.xdata.type=4;
-	    Req = PSP_ISend(porth,0,0,&head.header,sizeof(struct xdata_T),mapnode[0],mapport[0]);
+	    Req = PSP_ISend(porth,0,0,&head.header,sizeof(struct xdata_T),mapnode[0],mapport[0],0);
 	    PSP_Wait(porth,Req);
 	    break;
 	}
@@ -413,7 +413,7 @@ void run(int argc,char **argv,int np)
 	    head.xdata.rank = j;
 	    head.xdata.node = mapnode[j];
 	    head.xdata.port = mapport[j];
-	    Req = PSP_ISend(porth,0,0,&head.header,sizeof(struct xdata_T),mapnode[j],mapport[j]);
+	    Req = PSP_ISend(porth,0,0,&head.header,sizeof(struct xdata_T),mapnode[j],mapport[j],0);
 	    PSP_Wait(porth,Req);
 	}
     }
