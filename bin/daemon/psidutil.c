@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.39 2002/07/17 20:21:07 hauke Exp $
+ * $Id: psidutil.c,v 1.40 2002/07/18 13:17:25 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.39 2002/07/17 20:21:07 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.40 2002/07/18 13:17:25 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -34,7 +34,8 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.39 2002/07/1
 #include "errlog.h"
 
 #include "pscommon.h"
-#include "psprotocol.h"
+#include "pshwtypes.h"
+
 #include "logger.h"
 #include "cardconfig.h"
 #include "config_parsing.h"
@@ -93,7 +94,7 @@ void PSID_ReConfig(void)
 
     PSID_HWstatus = 0;
 
-    if (nodes[PSC_getMyID()].hwType & PSP_HW_MYRINET) {
+    if (nodes[PSC_getMyID()].hwType & PSHW_MYRINET) {
 	if (!ConfigMyriModule) {
 	    PSID_errlog("ERROR: MyriNet module not defined", 0);
 	} else if (!ConfigRoutefile) {
@@ -133,7 +134,7 @@ void PSID_ReConfig(void)
 	    } else {
 		PSID_errlog("PSID_ReConfig: cardinit(): success", 10);
 
-		PSID_HWstatus |= PSP_HW_MYRINET;
+		PSID_HWstatus |= PSHW_MYRINET;
 
 		if (ConfigSmallPacketSize != -1) {
 		    PSHALSYS_SetSmallPacketSize(ConfigSmallPacketSize);
@@ -154,12 +155,12 @@ void PSID_ReConfig(void)
 	}
     }
 
-    if (nodes[PSC_getMyID()].hwType & PSP_HW_ETHERNET) {
+    if (nodes[PSC_getMyID()].hwType & PSHW_ETHERNET) {
 	/* Nothing to do, ethernet will work allways */
-	PSID_HWstatus |= PSP_HW_ETHERNET;
+	PSID_HWstatus |= PSHW_ETHERNET;
     }
 
-    if (nodes[PSC_getMyID()].hwType & PSP_HW_GIGAETHERNET) {
+    if (nodes[PSC_getMyID()].hwType & PSHW_GIGAETHERNET) {
 	PSID_errlog("'gigaethernet not implemented yet", 0);
     }
 
@@ -170,7 +171,7 @@ void PSID_CardStop(void)
 {
     int ret;
 
-    if (PSID_HWstatus & PSP_HW_MYRINET) {
+    if (PSID_HWstatus & PSHW_MYRINET) {
 	ret = card_cleanup(&card_info);
 	if (ret) {
 	    snprintf(errtxt, sizeof(errtxt),
@@ -179,16 +180,16 @@ void PSID_CardStop(void)
 	} else {
 	    PSID_errlog("PSID_CardStop(): cardcleanup(): success", 10);
 
-	    PSID_HWstatus &= ~PSP_HW_MYRINET;
+	    PSID_HWstatus &= ~PSHW_MYRINET;
 	}
     }
 
-    if (PSID_HWstatus & PSP_HW_ETHERNET) {
+    if (PSID_HWstatus & PSHW_ETHERNET) {
 	/* Nothing to do, ethernet will work allways */
-	PSID_HWstatus &= ~PSP_HW_ETHERNET;
+	PSID_HWstatus &= ~PSHW_ETHERNET;
     }
 
-    if (PSID_HWstatus & PSP_HW_GIGAETHERNET) {
+    if (PSID_HWstatus & PSHW_GIGAETHERNET) {
 	PSID_errlog("'gigaethernet not implemented yet", 0);
     }
 }
