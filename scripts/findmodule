@@ -5,7 +5,7 @@
 #
 # Author: Jens Hauke <hauke@par-tec.com>
 #
-# $Id: findmodule,v 1.1 2003/04/04 10:59:24 hauke Exp $
+# $Id: findmodule,v 1.2 2003/04/15 08:19:50 hauke Exp $
 #
 
 MODULEDIR=${1-"."}
@@ -32,12 +32,12 @@ fi
 
 function config_smp()
 {
-    grep -q smp_num_cpus\$  /proc/ksyms
+    grep -q smp_num_cpus /proc/ksyms
 }
 
 function config_highmem()
 {
-    grep -q kmap_high\$ /proc/ksyms
+    grep -q kmap_high /proc/ksyms
 }
 
 function config_pae()
