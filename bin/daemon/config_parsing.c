@@ -5,16 +5,17 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.3 2002/06/14 15:20:46 eicker Exp $
+ * $Id: config_parsing.c,v 1.4 2002/07/03 21:10:06 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.3 2002/06/14 15:20:46 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.4 2002/07/03 21:10:06 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -25,8 +26,11 @@ static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.3 2002
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "psi.h"
 #include "parser.h"
+
+#include "pscommon.h"
+#include "psprotocol.h"
+
 #include "psidutil.h"
 
 #include "config_parsing.h"
@@ -36,6 +40,15 @@ int nodesfound = 0;
 struct host_t *hosts[256];
 
 struct node_t *nodes = NULL;
+struct node_t licNode = {
+    INADDR_ANY, /* addr */
+    0,          /* isUp */
+    0,          /* hwtype */
+    0,          /* hwStatus */
+    0,          /* hasIP */
+    0,          /* starter */
+    NULL,       /* tasklist */
+};
 
 char *Configfile = NULL;
 
@@ -63,12 +76,10 @@ rlim_t ConfigRLimitDataSize = -1;
 rlim_t ConfigRLimitStackSize = -1;
 rlim_t ConfigRLimitRSSSize = -1;
 
-int ConfigSyslogLevel = 0;          /* default min. syslog level */
-int ConfigSyslog = LOG_DAEMON;
+int ConfigLogLevel = 0;          /* default logging level */
+int ConfigLogDest = LOG_DAEMON;
 
 static char errtxt[256];
-
-static int usesyslog = 0;
 
 /*----------------------------------------------------------------------*/
 /* Helper function to manage nodes and hosts list */
@@ -78,23 +89,25 @@ static int allocHosts(int num)
 
     if (nodes) free(nodes); /* @todo nodes allready allocated. Error? */
 
-    nodes = malloc(sizeof(*nodes) * (num+1));
+    nodes = malloc(sizeof(*nodes) * num);
 
     if (!nodes) {
-	snprintf(errtxt, sizeof(errtxt), "Cannot allocate memory for %d nodes",
-		 num + 1);
+	snprintf(errtxt, sizeof(errtxt),
+		 "Cannot allocate memory for %d nodes", num);
 	parser_comment(errtxt, 0);
 	return -1;
     }
 
-    snprintf(errtxt, sizeof(errtxt), "Allocate memory for %d nodes", num + 1);
+    snprintf(errtxt, sizeof(errtxt), "Allocate memory for %d nodes", num);
     parser_comment(errtxt, 10);
 
-    for (i=0; i<=NrOfNodes; i++) {
+    /* Clear nodes */
+    for (i=0; i<num; i++) {
         nodes[i].addr = INADDR_ANY;
-	nodes[i].status = 0;
-        nodes[i].hwtype = none;
-	nodes[i].ip = 0;
+	nodes[i].isUp = 0;
+        nodes[i].hwType = 0;
+        nodes[i].hwStatus = 0;
+	nodes[i].hasIP = 0;
 	nodes[i].starter = 0;
         nodes[i].tasklist = NULL;
     }
@@ -103,9 +116,8 @@ static int allocHosts(int num)
 }
 
 static int installHost(unsigned int ipaddr, int id,
-		       HWType hwtype, int ip, int starter)
+		       int hwtype, int ip, int starter)
 {
-    int licserver;
     unsigned int hostno;
     struct host_t *host;
 
@@ -121,9 +133,7 @@ static int installHost(unsigned int ipaddr, int id,
 	return -1;
     }
 
-    licserver=(id==NrOfNodes);
-
-    if (!licserver && parser_lookupHost(ipaddr)){ /* duplicated host */
+    if (parser_lookupHost(ipaddr)!=-1) { /* duplicated host */
 	snprintf(errtxt, sizeof(errtxt),
 		 "duplicated host <%s> in config file",
 		 inet_ntoa(* (struct in_addr *) &ipaddr));
@@ -142,11 +152,11 @@ static int installHost(unsigned int ipaddr, int id,
 
     /* install hostname */
     nodes[id].addr = ipaddr;
-    nodes[id].hwtype = hwtype;
-    nodes[id].ip = ip;
+    nodes[id].hwType = hwtype;
+    nodes[id].hasIP = ip;
     nodes[id].starter = starter;
 
-    if (!licserver) nodesfound++;
+    nodesfound++;
 
     if (nodesfound > NrOfNodes) { /* more hosts than nodes ??? */
 	snprintf(errtxt, sizeof(errtxt),
@@ -159,7 +169,8 @@ static int installHost(unsigned int ipaddr, int id,
     hostno = ntohl(ipaddr) & 0xff;
 
     for (host = hosts[hostno]; host; host = host->next) {
-	if (host->addr == ipaddr) { /* host already configured ?? */
+	if (host->addr == ipaddr) {
+	    /* host already configured ?? */
 	    snprintf(errtxt, sizeof(errtxt),
 		     "Host <%s> already configured (id=%d)",
 		     inet_ntoa(* (struct in_addr *) &ipaddr), host->id);
@@ -168,7 +179,8 @@ static int installHost(unsigned int ipaddr, int id,
 	}
     }
 
-    if (!(host = (struct host_t*) malloc(sizeof(struct host_t)))) {
+    host = (struct host_t*) malloc(sizeof(struct host_t));
+    if (!host) {
 	return -1;
     }
 
@@ -176,7 +188,6 @@ static int installHost(unsigned int ipaddr, int id,
     host->id = id;
     host->next = hosts[hostno];
     hosts[hostno] = host;
-
     snprintf(errtxt, sizeof(errtxt), "installHost():"
 	     " host <%s> is inserted in the hostlist with id=%d.",
 	     inet_ntoa(* (struct in_addr *) &ipaddr), id);
@@ -192,7 +203,8 @@ int parser_lookupHost(unsigned int ipaddr)
 
     /* loopback address */
     if ((ntohl(ipaddr) >> 24 ) == 0x7F)
-	return PSI_myid;
+	return PSC_getMyID(); /* @todo Ist das sinnvoll ? */
+                   /* Macht es ueberhaupt Sinn localhost zu benutzen ? */
 
     /* other addresses */
     hostno = ntohl(ipaddr) & 0xFF;
@@ -200,7 +212,7 @@ int parser_lookupHost(unsigned int ipaddr)
 	if (host->addr == ipaddr) {
 	    if (parser_getDebugLevel() >= 10) {
 		snprintf(errtxt, sizeof(errtxt),
-			 "PSID_lookupHost(): host <%s> has id=%d.",
+			 "parser_lookupHost(): host <%s> has id=%d.",
 			 inet_ntoa(* (struct in_addr *)&ipaddr), host->id);
 		parser_comment(errtxt, 10);
 	    }
@@ -224,18 +236,25 @@ static int getInstDir(char *token)
     dname = parser_getString();
     /* test if dir is a valid directory */
     if (stat(dname, &fstat)) {
-	perror(dname);
+	snprintf(errtxt, sizeof(errtxt), "%s: %s", dname, strerror(errno));
+	parser_comment(errtxt, 0);
+
 	return -1;
     }
 
     if (!S_ISDIR(fstat.st_mode)) {
-	printf("'%s' is not a directory", dname);
+	snprintf(errtxt, sizeof(errtxt), "'%s' is not a directory", dname);
+	parser_comment(errtxt, 0);
+
 	return -1;
     }
 
-    PSI_SetInstalldir(dname);
-    if (strcmp(dname, PSI_LookupInstalldir())) {
-	fprintf(stderr, "'%s' seems to be a invalid installdir\n", dname);
+    PSC_setInstalldir(dname);
+    if (strcmp(dname, PSC_lookupInstalldir())) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "'%s' seems to be no valid installdir", dname);
+	parser_comment(errtxt, 0);
+
 	return -1;
     }
 
@@ -244,7 +263,7 @@ static int getInstDir(char *token)
 
 static int getNumNodes(char *token)
 {
-    int i, ret;
+    int ret;
 
     if (NrOfNodes != -1) {
 	/* NrOfNodes already defined */
@@ -264,13 +283,15 @@ static int getNumNodes(char *token)
 
 static int getModuleName(char *token)
 {
-    char *file;
+    char *modname, *file;
 
-    file = parser_getFilename(parser_getString(), PSI_LookupInstalldir(),
-			      "/bin/module");
+    modname = parser_getString();
+    file = parser_getFilename(modname, PSC_lookupInstalldir(), "/bin/modules");
 
     if (!file) {
-	printf("Invalid module name\n");
+	snprintf(errtxt, sizeof(errtxt), "cannot find module '%s'", modname);
+	parser_comment(errtxt, 0);
+
 	return -1;
     }
 
@@ -283,11 +304,16 @@ static int getModuleName(char *token)
 
 static int getRouteFile(char *token)
 {
-    char *file = parser_getFilename(parser_getString(), PSI_LookupInstalldir(),
-				   "/config");
+    char *routefile, *file;
+
+    routefile = parser_getString();
+    file= parser_getFilename(routefile, PSC_lookupInstalldir(), "/config");
 
     if (!file) {
-	printf("Invalid routefile\n");
+	snprintf(errtxt, sizeof(errtxt),
+		 "cannot find routefile '%s'", routefile);
+	parser_comment(errtxt, 0);
+
 	return -1;
     }
 
@@ -306,18 +332,25 @@ static int getLicServer(char *token)
     hname = parser_getString();
 
     if (!hname) {
-	printf("Invalid license server\n");
-	return -1;
+	return parser_error(token);
     }
 
     ipaddr = parser_getHostname(hname);
     
     if (!ipaddr) {
-	printf("Invalid license server\n");
+	snprintf(errtxt, sizeof(errtxt), "license server '%s' invalid", hname);
+	parser_comment(errtxt, 0);
+
 	return -1;
     }
 
-    installHost(ipaddr, NrOfNodes, none, 0, 0);
+    if (licNode.addr != INADDR_ANY) { /* duplicated LicServer */
+	parser_comment("license server defined twice in config file", 0);
+	return -1;
+    }
+
+    /* install hostname */
+    licNode.addr = ipaddr;
 
     return 0;
 }
@@ -374,24 +407,34 @@ static int getRDPPort(char *token)
 
 static int getSelectTime(char *token)
 {
-    int temp;
+    int temp, ret;
 
-    return parser_getNumValue(parser_getString(), &temp, "select time");
+    ret = parser_getNumValue(parser_getString(), &temp, "select time");
+
+    if (ret) return ret;
+
     ConfigSelectTime = (long) temp;
+
+    return ret;
 }
 
 static int getDeadInterval(char *token)
 {
-    int temp;
+    int temp, ret;
 
-    return parser_getNumValue(parser_getString(), &temp, "dead interval");
+    ret = parser_getNumValue(parser_getString(), &temp, "dead interval");
+
+    if (ret) return ret;
+
     ConfigDeadInterval = (long) temp;
+
+    return ret;
 }
 
 static int getLogLevel(char *token)
 {
     return parser_getNumValue(parser_getString(),
-			      &ConfigSyslogLevel, "loglevel");
+			      &ConfigLogLevel, "loglevel");
 }
 
 static int getLogDest(char *token)
@@ -407,29 +450,29 @@ static int getLogDest(char *token)
     }
 
     if (strcasecmp(token, "daemon")==0) {
-	ConfigSyslog = LOG_DAEMON;
+	ConfigLogDest = LOG_DAEMON;
     } else if (strcasecmp(token, "kernel")==0) {
-	ConfigSyslog = LOG_KERN;
+	ConfigLogDest = LOG_KERN;
     } else if (strcasecmp(token, "kern")==0) {
-	ConfigSyslog = LOG_KERN;
+	ConfigLogDest = LOG_KERN;
     } else if (strcasecmp(token, "local0")==0) {
-	ConfigSyslog = LOG_LOCAL0;
+	ConfigLogDest = LOG_LOCAL0;
     } else if (strcasecmp(token, "local1")==0) {
-	ConfigSyslog = LOG_LOCAL1;
+	ConfigLogDest = LOG_LOCAL1;
     } else if (strcasecmp(token, "local2")==0) {
-	ConfigSyslog = LOG_LOCAL2;
+	ConfigLogDest = LOG_LOCAL2;
     } else if (strcasecmp(token, "local3")==0) {
-	ConfigSyslog = LOG_LOCAL3;
+	ConfigLogDest = LOG_LOCAL3;
     } else if (strcasecmp(token, "local4")==0) {
-	ConfigSyslog = LOG_LOCAL4;
+	ConfigLogDest = LOG_LOCAL4;
     } else if (strcasecmp(token, "local5")==0) {
-	ConfigSyslog = LOG_LOCAL5;
+	ConfigLogDest = LOG_LOCAL5;
     } else if (strcasecmp(token, "local6")==0) {
-	ConfigSyslog = LOG_LOCAL6;
+	ConfigLogDest = LOG_LOCAL6;
     } else if (strcasecmp(token, "local7")==0) {
-	ConfigSyslog = LOG_LOCAL7;
+	ConfigLogDest = LOG_LOCAL7;
     } else {
-	return parser_getNumValue(token, &ConfigSyslog, "log destination");
+	return parser_getNumValue(token, &ConfigLogDest, "log destination");
     }
 
     return 0;
@@ -446,10 +489,11 @@ static int getRLimitVal(char *token, long *value, char *valname)
 	token += sizeof(skip_it);
     }
 
-    if (strcasecmp(token, "infinity")==0) {
+    if (strcasecmp(token,"infinity")==0 || strcasecmp(token, "unlimited")==0) {
 	*value = RLIM_INFINITY;
-    } else if (strcasecmp(token, "unlimited")==0) {
-	*value = RLIM_INFINITY;
+	snprintf(errtxt, sizeof(errtxt),
+		 "Got 'RLIM_INFINITY' for '%s'", valname);
+	parser_comment(errtxt, 8);
     } else {
 	ret = parser_getNumValue(token, &intval, valname);
 	*value = intval;
@@ -483,8 +527,6 @@ static int getRLimitRSS(char *token)
 			&ConfigRLimitRSSSize, "RLimit RSSSize");
 }
 
-#define UP 17 /* Some magic value */
-
 static int endRLimitEnv(char *token)
 {
     return UP;
@@ -504,7 +546,7 @@ static parser_t rlimitenv_parser = {" \t\n", rlimitenv_list};
 
 static int getRLimitEnv(char *token)
 {
-    return parser_parseOn(parser_getLine(), &rlimitenv_parser);
+    return parser_parseOn(parser_getString(), &rlimitenv_parser);
 }
 
 static keylist_t rlimit_list[] = {
@@ -523,7 +565,7 @@ static int getRLimit(char *token)
 {
     int ret;
 
-    ret = parser_parseString(parser_getLine(), &rlimit_parser);
+    ret = parser_parseString(parser_getString(), &rlimit_parser);
 
     if (ret == UP) {
 	return 0;
@@ -534,59 +576,158 @@ static int getRLimit(char *token)
 
 /* ---------------------------------------------------------------------- */
 
-static HWType hwtype = none, node_hwtype;
+static int hwtype = 0, node_hwtype;
 
-static int getHW(char *token, HWType *hwtype)
+static int getHWnone(char *token)
 {
-    if (strcasecmp(token, "ethernet")==0) {
-	*hwtype = ethernet;
-    } else if (strcasecmp(token, "myrinet")==0) {
-	*hwtype = myrinet;
-    } else if (strcasecmp(token, "none")==0) {
-	*hwtype = none;
-    } else {
-	*hwtype = none;
-
-	snprintf(errtxt, sizeof(errtxt), "'%s' is not a valid HWType", token);
-	printf("%s\n", errtxt);
-
-	return -1;
-    }
+    node_hwtype = 0;
 
     return 0;
+}
+
+static int getHWethernet(char *token)
+{
+    node_hwtype |= PSP_HW_ETHERNET;
+
+    return 0;
+}
+
+static int getHWmyrinet(char *token)
+{
+    node_hwtype |= PSP_HW_MYRINET;
+
+    return 0;
+}
+
+static int getHWgigaethernet(char *token)
+{
+    node_hwtype |= PSP_HW_GIGAETHERNET;
+
+    return 0;
+}
+
+static int endHWEnv(char *token)
+{
+    return UP;
+}
+
+static keylist_t hwenv_list[] = {
+    {"ethernet", getHWethernet},
+    {"myrinet", getHWmyrinet},
+    {"gigaethernet", getHWgigaethernet},
+    {"}", endHWEnv},
+    {"#", parser_getComment},
+    {NULL, parser_error}
+};
+
+static parser_t hwenv_parser = {" \t\n", hwenv_list};
+
+static int getHWEnv(char *token)
+{
+    return parser_parseOn(parser_getString(), &hwenv_parser);
+}
+
+static keylist_t hw_list[] = {
+    {"{", getHWEnv},
+    {"none", getHWnone},
+    {"ethernet", getHWethernet},
+    {"myrinet", getHWmyrinet},
+    {"gigaethernet", getHWgigaethernet},
+    {"#", parser_getComment},
+    {NULL, parser_error}
+};
+
+static parser_t hw_parser = {" \t\n", hw_list};
+
+static int getHW(char *token)
+{
+    int ret;
+
+    node_hwtype = 0;
+
+    ret = parser_parseToken(parser_getString(), &hw_parser);
+
+    if (ret == UP) {
+	return 0;
+    }
+
+    return ret;
 }
 
 static int getHWLine(char *token)
 {
     int ret;
 
-    ret = getHW(parser_getString(), &hwtype);
+    ret = getHW(token);
 
-    snprintf(errtxt, sizeof(errtxt), "Default HWType is now '%s'",
-	     (hwtype==myrinet) ? "myrinet" :
-	     (hwtype==ethernet) ? "ethernetnet" :
-	     (hwtype==none) ? "none" : "UNKNOWN");
-    printf("%s\n", errtxt);
+    hwtype = node_hwtype;
+
+    snprintf(errtxt, sizeof(errtxt), "Default HWType is now '%s%s%s%s'",
+	     (hwtype & PSP_HW_ETHERNET) ? "ethernet," : "",
+	     (hwtype & PSP_HW_MYRINET) ? "myrinet," : "",
+	     (hwtype & PSP_HW_GIGAETHERNET) ? "gigaethernet," : "",
+	     (hwtype == 0) ? "none" : "\b");
+    parser_comment(errtxt, 8);
 
     return ret;
 }
 
-static int canstart = 0, node_canstart;
+static int canstart = 1, node_canstart;
+
+static int getCS(char *token)
+{
+    return parser_getBool(parser_getString(), &node_canstart, "node_canstart");
+}
 
 static int getCSLine(char *token)
 {
-    return parser_getBool(parser_getString(), &canstart, "starter");
+    int ret;
+
+    ret = getCS(token);
+
+    canstart = node_canstart;
+
+    snprintf(errtxt, sizeof(errtxt), "Default for 'CanStart' is now '%s'",
+	     canstart ? "TRUE" : "FALSE");
+    parser_comment(errtxt, 8);
+
+    return ret;
 }
 
 static int hasIP = 0, node_hasIP;
 
+static int getHasIP(char *token)
+{
+    return parser_getBool(parser_getString(), &node_hasIP, "hasIP");
+}
+
 static int getHasIPLine(char *token)
 {
-    return parser_getBool(parser_getString(), &hasIP, "hasIP");
+    int ret;
+
+    ret = getHasIP(token);
+
+    hasIP = node_hasIP;
+
+    snprintf(errtxt, sizeof(errtxt), "Default for 'HasIP' is now '%s'",
+	     hasIP ? "TRUE" : "FALSE");
+    parser_comment(errtxt, 8);
+
+    return ret;
 }
 
 
 /* ---------------------------------------------------------------------- */
+
+static keylist_t nodeline_list[] = {
+    {"hwtype", getHW},
+    {"starter", getCS},
+    {"hasip", getHasIP},
+    {"#", parser_getComment},
+    {NULL, parser_error}
+};
+
+static parser_t nodeline_parser = {" \t\n", nodeline_list};
 
 static int getNodeLine(char *token)
 {
@@ -610,33 +751,21 @@ static int getNodeLine(char *token)
 
     if (ret) return ret;
 
-    token = parser_getString();
+    ret = parser_parseString(parser_getString(), &nodeline_parser);
 
-    while (token) {
-	if (strcasecmp(token, "hwtype")==0) {
-	    ret = getHW(parser_getString(), &node_hwtype);
-	} else if (strcasecmp(token, "starter")==0) {
-	    ret = parser_getBool(parser_getString(),
-				 &node_canstart, "starter");
-	} else if (strcasecmp(token, "hasip")==0) {
-	    ret = parser_getBool(parser_getString(), &node_hasIP, "hasIP");
-	} else {
-	    parser_error(token);
-	}
+    if (ret) return ret;
 
-	token = parser_getString(); /* next token */
-    }
-
-    if (parser_getDebugLevel()>=10) {
-	snprintf(errtxt, sizeof(errtxt), "Register '%s' as %d with HW '%s'"
-		 " IP%s supported, starting%s allowed.\n",
+    if (parser_getDebugLevel()>=6) {
+	snprintf(errtxt, sizeof(errtxt), "Register '%s' as %d with"
+		 " HW '%s%s%s%s' IP%s supported, starting%s allowed.\n",
 		 hostname, nodenum,
-		 (node_hwtype==myrinet) ? "myrinet" :
-		 (node_hwtype==ethernet) ? "ethernetnet" :
-		 (node_hwtype==none) ? "none" : "UNKNOWN",
+		 (node_hwtype & PSP_HW_ETHERNET) ? "ethernet," : "",
+		 (node_hwtype & PSP_HW_MYRINET) ? "myrinet," : "",
+		 (node_hwtype & PSP_HW_GIGAETHERNET) ? "gigaethernetnet," : "",
+		 (node_hwtype == 0) ? "none" : "\b",
 		 node_hasIP ? "" : " not",
 		 node_canstart ? "" : " not");
-	parser_comment(errtxt, 10);
+	parser_comment(errtxt, 6);
     }
 
     installHost(ipaddr, nodenum, node_hwtype, node_hasIP, node_canstart);
@@ -659,7 +788,7 @@ static parser_t nodeenv_parser = {" \t\n", nodeenv_list};
 
 static int getNodeEnv(char *token)
 {
-    return parser_parseOn(parser_getLine(), &nodeenv_parser);
+    return parser_parseOn(parser_getString(), &nodeenv_parser);
 }
 
 
@@ -676,7 +805,7 @@ static int getNodes(char *token)
 {
     int ret;
 
-    ret = parser_parseString(parser_getLine(), &node_parser);
+    ret = parser_parseString(parser_getString(), &node_parser);
 
     if (ret == UP) {
 	return 0;
@@ -721,25 +850,16 @@ static keylist_t config_list[] = {
 
 static parser_t config_parser = {" \t\n", config_list};
 
-int parseConfig(int syslogreq)
+int parseConfig(int usesyslog, int loglevel)
 {
-    char myname[255], *temp;
-    int found, ret;
+    int ret;
     FILE *cfd;
-    struct stat sbuf;
-
-    usesyslog=syslogreq;
 
     /*
      * Set MyId to my own ID (needed for installhost())
      */
     if (!Configfile) {
-	char ext[] = "/etc/parastation.conf";
-	char *tmpnam;
-	tmpnam = PSI_LookupInstalldir();
-	Configfile = (char *) malloc(strlen(tmpnam)+strlen(ext)+1);
-	strcpy(Configfile, tmpnam);
-	strcat(Configfile, ext);
+	Configfile = "/etc/parastation.conf";
     }
 
     if ((cfd = fopen(Configfile,"r"))) {
@@ -760,12 +880,16 @@ int parseConfig(int syslogreq)
      */
     parser_init(usesyslog, cfd);
 
-    parser_setDebugLevel(10);
+    parser_setDebugLevel(loglevel);
 
     ret = parser_parseFile(&config_parser);
 
     if (ret) {
-	parser_comment("ERROR: Syntax error in configuration file.", 0);
+	snprintf(errtxt, sizeof(errtxt),
+		 "ERROR: Parsing of configuration file <%s> failed.",
+		 Configfile);
+	parser_comment(errtxt, 0);
+
 	return -1;
     }
 

@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.h,v 1.8 2002/06/14 15:21:21 eicker Exp $
+ * $Id: psidutil.h,v 1.9 2002/07/03 21:10:06 eicker Exp $
  *
  */
 /**
  * \file
  * psidutil: Utilities for ParaStation daemon
  *
- * $Id: psidutil.h,v 1.8 2002/06/14 15:21:21 eicker Exp $
+ * $Id: psidutil.h,v 1.9 2002/07/03 21:10:06 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -28,10 +28,9 @@ extern "C" {
 #endif
 #endif
 
-#include "psitask.h"
-#include "config_parsing.h"
+#include "pstask.h"
 
-extern int PSID_CardPresent ;    /* indicates if the card is present */
+extern int PSID_HWstatus ;    /* indicates if the card is present */
 
 void PSID_initLog(int usesyslog, FILE *logfile);
 
@@ -44,14 +43,13 @@ void PSID_errlog(char *s, int level);
 void PSID_errexit(char *s, int errorno);
 
 
-void PSID_ReConfig(int nodenr, int nrofnodes, char *license, char *module,
-		   char *configfile);
+void PSID_ReConfig(char *license, char *module, char *configfile);
 
 void PSID_CardStop(void);
 
 /* Performs reverse lookup (ip-addr given, determine id) */
 
-int PSID_readconfigfile(void);
+void PSID_readconfigfile(int usesyslog);
 
 /***************************************************************************
  *       PSI_startlicenseserver()

@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.32 2002/06/14 15:22:25 eicker Exp $
+ * $Id: psidutil.c,v 1.33 2002/07/03 21:10:06 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.32 2002/06/14 15:22:25 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.33 2002/07/03 21:10:06 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -25,6 +25,8 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.32 2002/06/1
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
 
 #include <pshal.h>
 #include <psm_mcpif.h>
@@ -33,26 +35,31 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.32 2002/06/1
 
 #include "license.h"
 
-#include "psi.h"
+#include "pscommon.h"
+#include "psprotocol.h"
 #include "logger.h"
 #include "cardconfig.h"
 #include "config_parsing.h"
 
 #include "psidutil.h"
 
-int PSID_CardPresent;
+int PSID_HWstatus;
 
 static char errtxt[256];
 
 /* Wrapper functions for logging */
 void PSID_initLog(int usesyslog, FILE *logfile)
 {
-    if (!syslog && logfile) {
-	dup2(fileno(logfile), STDERR_FILENO);
-	fclose(logfile);
+    if (!usesyslog && logfile) {
+	int fno = fileno(logfile);
+
+	if (fno!=STDERR_FILENO) {
+	    dup2(fno, STDERR_FILENO);
+	    fclose(logfile);
+	}
     }
 
-    initErrLog("", usesyslog);
+    initErrLog("PSID", usesyslog);
 }
 
 int PSID_getDebugLevel(void)
@@ -75,58 +82,75 @@ void PSID_errexit(char *s, int errorno)
     errexit(s, errorno);
 }
 
-void PSID_ReConfig(int nodeid, int nrofnodes, char *licensekey, char *module,
-		   char *routingfile)
+static card_init_t card_info;
+
+void PSID_ReConfig(char *licensekey, char *module, char *routingfile)
 {
     int ret;
-    card_init_t card_info;
     char licdot[10];
-    
-    PSI_myid = nodeid;
-    PSI_nrofnodes = nrofnodes;
 
-    if (! PSID_CardPresent) {
-	return;
+    PSID_HWstatus = 0;
+
+    if (nodes[PSC_getMyID()].hwType & PSP_HW_MYRINET) {
+	strncpy(licdot, licensekey ? licensekey : "none", sizeof(licdot));
+	licdot[4] = licdot[5] = licdot[6] = '.';
+	licdot[7] = 0;
+
+	snprintf(errtxt, sizeof(errtxt), "PSID_ReConfig: '%s' '%s' '%s'"
+		 " small packets %d, ResendTimeout %d", licdot, module,
+		 routingfile, ConfigSmallPacketSize, ConfigRTO);
+	PSID_errlog(errtxt, 1);
+
+	card_info.node_id = PSC_getMyID();
+	card_info.licensekey = licensekey;
+	card_info.module = module;
+	card_info.options = NULL;
+	card_info.routing_file = routingfile;
+
+	ret = card_cleanup(&card_info);
+	if (ret) {
+	    snprintf(errtxt, sizeof(errtxt),
+		     "PSID_ReConfig: cardcleanup(): %s", card_errstr());
+	    PSID_errlog(errtxt, 0);
+	} else {
+	    PSID_errlog("PSID_ReConfig: cardcleanup(): success", 10);
+	}
+
+	ret = card_init(&card_info);
+	if (ret) {
+	    snprintf(errtxt, sizeof(errtxt), "PSID_ReConfig: %s",
+		     card_errstr());
+	    PSID_errlog(errtxt, 0);
+	} else {
+	    PSID_errlog("PSID_ReConfig: cardinit(): success", 10);
+
+	    PSID_HWstatus |= PSP_HW_MYRINET;
+
+	    if (ConfigSmallPacketSize != -1) {
+		PSHALSYS_SetSmallPacketSize(ConfigSmallPacketSize);
+	    }
+
+	    if (ConfigRTO != -1) {
+		PSHALSYS_SetMCPParam(MCP_PARAM_RTO, ConfigRTO);
+	    }
+
+	    if (ConfigHNPend != -1) {
+		PSHALSYS_SetMCPParam(MCP_PARAM_HNPEND, ConfigHNPend);
+	    }
+
+	    if (ConfigAckPend != -1) {
+		PSHALSYS_SetMCPParam(MCP_PARAM_ACKPEND, ConfigAckPend);
+	    }
+	}
     }
 
-    strncpy(licdot,licensekey?licensekey:"none",sizeof(licdot));
-    licdot[4]=licdot[5]=licdot[6]='.';
-    licdot[7]=0;
-
-    snprintf(errtxt, sizeof(errtxt), "PSID_ReConfig: %d '%s' '%s' '%s'"
-	     " small packets %d, ResendTimeout %d", nodeid, licdot, module,
-	     routingfile, ConfigSmallPacketSize,ConfigRTO);
-    PSID_errlog(errtxt, 1);
-
-    card_info.node_id = nodeid;
-    card_info.licensekey = licensekey;
-    card_info.module = module;
-    card_info.options = NULL;
-    card_info.routing_file = routingfile;
-
-    card_cleanup();
-    ret = card_init(&card_info);
-    if (ret) {
-	PSID_CardPresent = 0;
-	snprintf(errtxt, sizeof(errtxt), "PSID_ReConfig: %s", card_errstr());
-	PSID_errlog(errtxt, 0);
-	return;
+    if (nodes[PSC_getMyID()].hwType & PSP_HW_ETHERNET) {
+	/* Nothing to do, ethernet will work allways */
+	PSID_HWstatus |= PSP_HW_ETHERNET;
     }
 
-    if (ConfigSmallPacketSize != -1) {
-	PSHALSYS_SetSmallPacketSize(ConfigSmallPacketSize);
-    }
-
-    if (ConfigRTO != -1) {
-	PSHALSYS_SetMCPParam(MCP_PARAM_RTO, ConfigRTO);
-    }
-
-    if (ConfigHNPend != -1) {
-	PSHALSYS_SetMCPParam(MCP_PARAM_HNPEND, ConfigHNPend);
-    }
-
-    if (ConfigAckPend != -1) {
-	PSHALSYS_SetMCPParam(MCP_PARAM_ACKPEND, ConfigAckPend);
+    if (nodes[PSC_getMyID()].hwType & PSP_HW_GIGAETHERNET) {
+	PSID_errlog("'gigaethernet not implemented yet", 0);
     }
 
     return;
@@ -134,8 +158,28 @@ void PSID_ReConfig(int nodeid, int nrofnodes, char *licensekey, char *module,
 
 void PSID_CardStop(void)
 {
-    if (PSID_CardPresent) {
-	card_cleanup();
+    int ret;
+
+    if (PSID_HWstatus & PSP_HW_MYRINET) {
+	ret = card_cleanup(&card_info);
+	if (ret) {
+	    snprintf(errtxt, sizeof(errtxt),
+		     "PSID_CardStop(): cardcleanup(): %s", card_errstr());
+	    PSID_errlog(errtxt, 0);
+	} else {
+	    PSID_errlog("PSID_CardStop(): cardcleanup(): success", 10);
+
+	    PSID_HWstatus &= ~PSP_HW_MYRINET;
+	}
+    }
+
+    if (PSID_HWstatus & PSP_HW_ETHERNET) {
+	/* Nothing to do, ethernet will work allways */
+	PSID_HWstatus &= ~PSP_HW_ETHERNET;
+    }
+
+    if (PSID_HWstatus & PSP_HW_GIGAETHERNET) {
+	PSID_errlog("'gigaethernet not implemented yet", 0);
     }
 }
 
@@ -144,69 +188,109 @@ void PSID_CardStop(void)
  *
  */
 
-int PSID_readconfigfile(void)
+void PSID_readconfigfile(int usesyslog)
 {
     struct hostent *mhost;
     char myname[256];
     struct in_addr *sin_addr;
 
-    int i;
+    int numNICs = 2;
+    int skfd, n;
+    struct ifconf ifc;
+    struct ifreq *ifr;
 
-    if (parseConfig(1)<0)
-	return -1;
+    /* Parse the configfile */
+    if (parseConfig(usesyslog, PSID_getDebugLevel())<0) {
+	snprintf(errtxt, sizeof(errtxt), "Parsing of <%s> failed.",
+		 Configfile);
+	PSID_errlog(errtxt, 0);
+	exit(1);
+    }
 
-    PSI_nrofnodes = NrOfNodes;
+    /* Set correct debugging level if given in config-file */
+    if (ConfigLogLevel && !PSID_getDebugLevel()) {
+	PSID_setDebugLevel(ConfigLogLevel);
+	PSC_setDebugLevel(ConfigLogLevel);
+    }
 
-    if (nodes[NrOfNodes].addr == INADDR_ANY) { /* Check LicServer Setting */
+    /* Try to find out if node is configured */
+    /* Get any socket */
+    skfd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (skfd<0) {
+	PSID_errexit("Unable to obtain socket", errno);
+    }
+    PSID_errlog("Get list of NICs", 10);
+    /* Get list of NICs */
+    ifc.ifc_buf = NULL;
+    do {
+	numNICs *= 2; /* double the number of expected NICs */
+	ifc.ifc_len = numNICs * sizeof(struct ifreq);
+	ifc.ifc_buf = realloc(ifc.ifc_buf, ifc.ifc_len);
+	if (!ifc.ifc_buf) {
+	    PSID_errlog("realloc failed", 0);
+	    exit(1);
+	}
+
+	if (ioctl(skfd, SIOCGIFCONF, &ifc) < 0) {
+	    PSID_errexit("Unable to obtain network configuration", errno);
+	}
+    } while (ifc.ifc_len == numNICs * (int)sizeof(struct ifreq));
+    /* Test the IP-addresses assigned to this NICs */
+    ifr = ifc.ifc_req;
+    for (n = 0; n < ifc.ifc_len; n += sizeof(struct ifreq)) {
+	if ((ifr->ifr_addr.sa_family == AF_INET)
+#ifdef __osf__
+	    /* Tru64 return AF_UNSPEC for all interfaces */
+	    ||(ifr->ifr_addr.sa_family == AF_UNSPEC)
+#endif
+	    ) {
+
+	    sin_addr = &((struct sockaddr_in *)&ifr->ifr_addr)->sin_addr;
+
+	    snprintf(errtxt, sizeof(errtxt),
+		     "Testing address %s", inet_ntoa(*sin_addr));
+	    PSID_errlog(errtxt, 10);
+	    if ((MyPsiId=parser_lookupHost(sin_addr->s_addr))!=-1) {
+		/* node is configured */
+		snprintf(errtxt, sizeof(errtxt),
+			 "Node found to have ID %d", MyPsiId);
+		PSID_errlog(errtxt, 10);
+		break;
+	    }
+	}
+	ifr++;
+    }
+    /* Clean up */
+    free(ifc.ifc_buf);
+    close(skfd);
+
+    if (MyPsiId == -1) {
+	snprintf(errtxt, sizeof(errtxt), "Node '%s' not configured", myname);
+	PSID_errlog(errtxt, 0);
+	exit(1);
+    }
+
+    PSC_setNrOfNodes(NrOfNodes);
+    PSC_setMyID(MyPsiId);
+    PSC_setDaemonFlag(1); /* To get the correct result from PSC_getMyTID() */
+
+    if (licNode.addr == INADDR_ANY) { /* Check LicServer Setting */
 	/*
 	 * Set node 0 as default server
 	 */
-	nodes[NrOfNodes].addr = nodes[0].addr;
-	nodes[NrOfNodes].hwtype = nodes[0].hwtype;
-	nodes[NrOfNodes].ip = nodes[0].ip;
-	nodes[NrOfNodes].starter = nodes[0].starter;
+	licNode.addr = nodes[0].addr;
 	snprintf(errtxt, sizeof(errtxt),
-		 "Using %s (ID=%d) as Licenseserver",
-		 inet_ntoa(* (struct in_addr *) &nodes[0].addr), NrOfNodes);
-	PSID_errlog(errtxt, 10);
+		 "Using %s (ID=0) as Licenseserver",
+		 inet_ntoa(* (struct in_addr *) &licNode.addr));
+	PSID_errlog(errtxt, 1);
     }
 
-    if (PSI_nrofnodes > 4) {
+    if (PSC_getNrOfNodes() > 4) {
 	/*
 	 * Check the license key
 	 * Clusters smaller than 4 nodes are free
 	 */
 	// PSID_checklicense(sin_addr.s_addr);
-    }
-
-    /* Find out if our node is configured */
-    /* Lookup hostname */
-    gethostname(myname, sizeof(myname));
-
-    /* Get list of IP-addresses */
-    mhost = gethostbyname(myname);
-    endhostent(); 
-
-    if (!mhost) {
-	PSID_errexit("PSID_readconfigfile(): Unable to lookup hostname",
-		     errno);
-    }
-
-    PSID_CardPresent = 0;
-
-    /* Any IP-address configured ? */
-    while (*mhost->h_addr_list) {
-	sin_addr = (struct in_addr *) *mhost->h_addr_list;
-	if ((MyPsiId=parser_lookupHost(sin_addr->s_addr))!=-1) {
-	    /* node is configured */
-	    break;
-	}
-	mhost->h_addr_list++;
-    }
-
-    if (MyPsiId == -1) {
-	PSID_errlog("Node not configured", 0);
-	return -1;
     }
 
     PSID_errlog("starting up the card", 1);
@@ -216,11 +300,8 @@ int PSID_readconfigfile(void)
      */
     PSID_errlog("PSID_readconfigfile(): calling PSID_ReConfig()", 9);
     // PSHAL_StartUp(1);
-    PSID_ReConfig(MyPsiId, NrOfNodes, ConfigLicensekey, ConfigModule,
-		  ConfigRoutefile);
+    PSID_ReConfig(ConfigLicensekey, ConfigModule, ConfigRoutefile);
     PSID_errlog("PSID_readconfigfile(): PSID_ReConfig ok.", 9);
-
-    return PSID_CardPresent;
 }
 
 /***************************************************************************
@@ -235,7 +316,7 @@ int PSID_startlicenseserver(unsigned int addr)
 
     snprintf(errtxt, sizeof(errtxt), "PSID_startlicenseserver <%s>",
 	     inet_ntoa(* (struct in_addr *) &addr));
-    PSID_errlog(errtxt, 1);
+    PSID_errlog(errtxt, 10);
 
     /*
      * start the PSI Daemon via inetd
@@ -245,20 +326,20 @@ int PSID_startlicenseserver(unsigned int addr)
     memset(&sa, 0, sizeof(sa)); 
     sa.sin_family = AF_INET; 
     sa.sin_addr.s_addr = addr;
-    sa.sin_port = htons(PSI_GetServicePort("psld", 887));
+    sa.sin_port = htons(PSC_getServicePort("psld", 887));
     if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0) { 
 	char *errstr = strerror(errno);
 
 	snprintf(errtxt, sizeof(errtxt), "PSID_startlicenseserver():"
-		 " Connect to port for start with inetd failed: %s",
-		 errstr ? errstr : "UNKNOWN");
+		 " Connect to port %d for start with inetd failed: %s",
+		 ntohs(sa.sin_port), errstr ? errstr : "UNKNOWN");
 	PSID_errlog(errtxt, 0);
 
 	shutdown(sock, SHUT_RDWR);
 	close(sock);
 	return 0;
     }
-    shutdown(sock,2);
+    shutdown(sock, SHUT_RDWR);
     close(sock);
     return 1;
 }
@@ -278,10 +359,11 @@ int PSID_execv( const char *path, char *const argv[])
     int cnt;
 
     /* Try 5 times with delay 400ms = 2 sec overall */
-    for (cnt=0;cnt<5;cnt++) {
-	ret = execv(path,argv);
+    for (cnt=0; cnt<5; cnt++) {
+	ret = execv(path, argv);
 	usleep(1000 * 400);
     }
+
     return ret;
 }
 
@@ -374,6 +456,7 @@ int PSID_taskspawn(PStask_t* task)
 	    write(fds[1], &buf, sizeof(buf));
 	    exit(0);
 	}
+
 	/*
 	 * set the environment variable
 	 */
@@ -410,6 +493,7 @@ int PSID_taskspawn(PStask_t* task)
 	    write(fds[1], &buf, sizeof(buf));
 	    exit(0);
 	}
+
 	if (((sb.st_mode & S_IFMT) != S_IFREG) || !(sb.st_mode & S_IEXEC)) {
 	    buf = 1;
 	    snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn(): stat(): %s",
@@ -434,19 +518,14 @@ int PSID_taskspawn(PStask_t* task)
 	LOGGERspawnforwarder(task->loggernode, task->loggerport, task->rank,
 			     task->rank == 0);
 
-	/* we don't need them any more */
-	close(stdin_fileno_backup);
-	close(stdout_fileno_backup);
-	close(stderr_fileno_backup);
-
 	/*
 	 * execute the image
 	 */
 	if (PSID_execv(task->argv[0],&(task->argv[0]))<0) {
 	    char *errstr = strerror(errno);
-	    openlog("psid spawned process", LOG_PID|LOG_CONS, LOG_DAEMON);
-	    syslog(LOG_ERR, "PSID_taskspawn() execv: %s",
-		   errstr ? errstr : "UNKNOWN");
+	    snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn() execv: %s",
+		     errstr ? errstr : "UNKNOWN");
+	    PSID_errlog(errtxt, 0);
 	}
 	/*
 	 * never reached, if execv succesful
@@ -500,8 +579,8 @@ int PSID_taskspawn(PStask_t* task)
 	     */
 	    ret = 0;
 	    task->error = 0;
-	    task->tid = PSI_gettid(-1,pid);
-	    task->nodeno = PSI_getnode(-1);
+	    task->tid = PSC_getTID(-1,pid);
+	    task->nodeno = PSC_getID(-1);
 
 	    PSID_errlog("child execute was successful", 10);
 	} else {
