@@ -1,360 +1,239 @@
 #!/bin/sh 
+#***********************************************************
+#*                  ParaStation
+#*
+#*       Copyright (c) 2002 ParTec AG Karlsruhe
+#*       All rights reserved.
+#***********************************************************/
+#**
+#* PSM_INSTALL: ParaStation De-/Installationscript
+#*
+#* $Id: PSM_INSTALL,v 1.5 2002/07/10 15:36:00 hauke Exp $
+#*
+#* @author  
+#*         Eduard Syrchyn <syrchyn@par-tec.de>
+#*         Jens Hauke <hauke@par-tec.de>
+#*
 
+
+#Global variables
+UNAME=`uname`
+ETC_DIR="/etc"
+
+_tmp=`dirname $0`
+SELFPATH=`cd $_tmp;pwd`
+
+PSCNFDIR=$SELFPATH
+PSMAIN=`cd $PSCNFDIR/..;pwd`
+
+#Linux only
+
+#OSF only
+PSKERNOSF="$PSMAIN/bin/modules/osf5.1"
+PSDRV="psmx"
+PSMMOD="$PSMDRV.mod"
+PSMMTH="$PSMDRV.mth"
+
+#/etc/inetd.conf
 INETD_PSIDMASK="^[ 	]*psid[ 	]"
-#INETD_PSIDMASK="^psid"
-INETD_PSIDLINE="psid	stream	tcp	nowait	root	/opt/parastation/bin/psid"
-#INETD_PSLDMASK="^psld"
+INETD_PSIDLINE="psid	stream	tcp	nowait	root	$PSMAIN/bin/psid -f $PSMAIN/config/psm.config"
 INETD_PSLDMASK="^[ 	]*psld[ 	]"
-INETD_PSLDLINE="psld	stream	tcp	nowait	root	/opt/parastation/bin/psld"
+INETD_PSLDLINE="psld	stream	tcp	nowait	root	$PSMAIN/bin/psld -f $PSMAIN/config/psm.config"
+INETD_PID="/var/run/inetd.pid"
+INETD_CNF="$ETC_DIR/inetd.conf"
+INETD_BKP="$INETD_CNF.psm"
 
+#/etc/xinetd.d
+XINETD_DIR="$ETC_DIR/xinetd.d"
+XINETD_PARA="\
+#
+# parastation
+#
+service psid
+{
+        disable = no
+        socket_type     = stream
+        wait            = no
+        user            = root
+        server          = $PSMAIN/bin/psid
+        server_args     = -f $PSMAIN/config/psm.config
+        log_on_failure  += USERID
+}
+service psld
+{
+        disable = no
+        socket_type     = stream
+        wait            = no
+        user            = root
+        server          = $PSMAIN/bin/psld
+        server_args     = -f $PSMAIN/config/psm.config
+        log_on_failure  += USERID
+}
+"
+XINETD_PSM="$ETC_DIR/xinetd.d/parastation"
+
+#/etc/services
 SERV_PSRDPMASK="^[ 	]*psrdp[ 	]"
-#SERV_PSRDPMASK="^psrdp"
 SERV_PSRDPLINE="psrdp            886/udp       # ParaStation Daemon RDP Port"
 SERV_PSLDMASK="^[ 	]*psld[ 	]"
-#SERV_PSLDMASK="^psld"
 SERV_PSLDLINE="psld             887/tcp       # ParaStation License Daemon Start Port"
 SERV_PSIDMASK="^[ 	]*psid[ 	]"
-#SERV_PSIDMASK="^psid"
 SERV_PSIDLINE="psid             888/tcp       # ParaStation Daemon Start Port"
 SERV_PSIDSMASK="^[ 	]*psids[ 	]"
-#SERV_PSIDSMASK="^psids"
 SERV_PSIDSLINE="psids            889/tcp       # ParaStation Daemon Connection Port"
 SERV_PSMCASTMASK="^[ 	]*psmcast[ 	]"
-#SERV_PSMCASTMASK="^psmcast"
 SERV_PSMCASTLINE="psmcast         1889/udp       # ParaStation MCAST Port"
+SERV_CNF="$ETC_DIR/services"
+SERV_BKP="$SERV_CNF.psm"
 
 self_post_inst_msg() {
     echo "#################################################################"
     echo "  Please, prepare and mantain the file                           "
-    echo "  /opt/parastation/config/psm.config! (s.o. psm.config.template) "
+    echo "  $PSCNFDIR/psm.config! (s.o. psm.config.template) "
     echo "#################################################################"
 }
 
-
-# XINETD 
-self_clear_xinetd_conf() {
-    if [ -f $INETD_CNF ]
+symlink() {
+    ln -s -f $1 $2
+    if [ $? -gt 0 ]
     then
-	rm -f $INETD_CNF
+	echo "WARNING:  cannot create the symbolic link $1 -> $2!"
     fi
 }
 
-self_update_xinetd_conf() {    
-    self_clear_xinetd_conf
-    echo "Updating of $INETD_CNF..."
-    ln -sf $INETD_PCH $INETD_CNF
-    $VSTATE=$?
-    echo "Updating of $INETD_CNF completed, result = $VSTATE"
-    chmod 755 $INETD_PCH
+backup() {
+    src=$1
+    bak=$2
+    if [ ! -f $bak ]
+    then
+	cp $src $bak
+	if [ $? -gt 0 ]
+	then
+	    echo "Create backupfile $bak faild. Abort!"
+	    exit 1
+	fi
+    fi
 }
 
-check_xinetd_conf() {
-# Is patch file accessible?
-    if [ -r $INETD_PCH ]
+# Remove backup, if backup equals orginal
+unbackup() {
+    src=$1
+    bak=$2
+    if [ -f $bak ]
     then
-	echo "Patch file $INETD_PCH is accessible, OK!"
-    else
-	RESCHK=0
-	echo "Patch file $INETD_PCH is NOT accessible!"
-    fi    
-# Is source directory accessible?
-    if [ -d $INETD_DIR ]
-    then
-	echo "The source directory $INETD_DIR is accessible, OK!"
-    else
-	RESCHK=0
-	echo "The source directory $INETD_DIR is NOT accessible!"
-    fi        
+	diff $src $bak
+	if [ $? -eq 0 ]
+	then
+	    rm $bak
+	fi
+    fi
 }
 
-# INETD
-self_check_conf() {
-# Is perl assessible?
-#    if [ -x /usr/bin/perl ]
-#    then
-#	echo "Perl is accessible, OK!"
-#    else
-#	RESCHK=0
-#	echo "Perl is NOT accessible!"	
-#    fi	
-# Is script accessible?
-#    if [ -x $1 ]
-#    then
-#	echo "Script $1 is accessible, OK!"
-#    else
-#	RESCHK=0
-#	echo "Script $1 is NOT accessible!"
-#    fi    
-# Is patch file accessible?
-#    if [ -r $2 ]
-#    then
-#	echo "Patch file $2 is accessible, OK!"
-#    else
-#	RESCHK=0
-#	echo "Patch file $2 is NOT accessible!"
-#    fi    
-# Is source file accessible?
-    if [ -w $3 ]
-    then
-	echo "The source file $3 is accessible, OK!"
-    else
-	RESCHK=0
-	echo "The source file $3 is NOT accessible!"
-    fi    
-} 
+patch_conf() {
+    conf="$1"
+    mask="$2"
+    line="$3"
 
-check_inetd_conf() {
-    self_check_conf $CNF_PRG $INETD_PCH $INETD_CNF 
+    oldline=`grep "$mask" $conf`
+    if [ $? -eq 0 ]
+    then
+	if [ "$oldline"x != "$line"x ]
+	then
+	    echo "Line        $oldline"
+	    echo "should be   $line"
+	else
+	    echo "Unchanged   $line"
+	fi
+	return 0
+    fi
+	    echo "Append      $line"
+    echo "$line" >> $conf
 }
 
-check_serv_conf() {
-    self_check_conf $CNF_PRG $SERV_PCH $SERV_CNF 
+unpatch_conf() {
+    conf="$1"
+    mask="$2"
+    line="$3"
+
+    oldline=`grep "$mask" $conf`
+    if [ $? -eq 0 ]
+    then
+	if [ "$oldline"x != "$line"x ]
+	then
+	    echo "Unchanged   $oldline"
+	else
+	    echo "Remove      $line"
+	    ed $conf >&/dev/null <<EOF
+,g@^$line\$@d
+w
+q
+EOF
+	fi
+	return 0
+    fi
+	    echo "Cant find   $line"
 }
 
 reload_inetd() {        
     if [ -f $INETD_PID ]    
     then
+	echo "Reload inetd."
  	sss=`cat $INETD_PID`
-#	echo ">$sss<"
-#	echo "kill -s HUP $sss"
 	kill -s HUP $sss    
     else 
-	echo #######################################################
-	echo # Reload or start the inetd (/usr/bin/inetd) daemon ! #
-	echo #######################################################
+	echo "#######################################################"
+	echo "# Reload or start the inetd (/usr/bin/inetd) daemon ! #"
+	echo "#######################################################"
     fi
 }
 
-#
-# self_change_inetd_conf $1 - 1 - appenf lines
-#                             X - just delete....
-#
-
-self_change_inetd_conf() {
-    if [ -f $INETD_TRG ]
-    then
-	rm -f $INETD_TRG
-    fi
-    if [ -f $INETD_OLD ]
-    then
-	rm -f $INETD_OLD
-    fi
-    if [ -f $INETD_CNF ] 
-    then		
-	echo "Updating of $INETD_CNF..."
-#	SOMECMD="cat $INETD_CNF | grep -v -e \"$INETD_PSIDMASK\" -e \"$INETD_PSLDMASK\" > $INETD_TRG"
-#	echo "$SOMECMD"
-#	VSTATE=`"$SOMECMD"`
-	cat $INETD_CNF | grep -v -e "$INETD_PSIDMASK" -e "$INETD_PSLDMASK" > $INETD_TRG
-	VSTATE=$?
-	if [ $1 -eq 1 ]
-	then
-	    # now append...
-	    echo "$INETD_PSIDLINE" >> $INETD_TRG
-	    echo "$INETD_PSLDLINE" >> $INETD_TRG
-	fi    
-        if [ $VSTATE = 0 ]
-	then
-	    if [ $1 -eq 1 ]
-	    then 
-	    # if installation...
-	        cat $INETD_CNF | grep -e "$INETD_PSIDMASK" -e "$INETD_PSLDMASK"
-		if [ $? -eq 0 ]
-		then	    
-		# there is some entries in $INETD_CNF
-		    #rm $INETD_OLD
-		    echo "!"
-		    echo "! There was already some PS entries in $INETD_CNF"  
-		    echo "! The recommended configuration is in file $INETD_TRG"
-		    echo "!"		
-    		else 
-		#there was no entries in $INETD_CNF 
-		    mv $INETD_CNF $INETD_OLD
-    		    mv $INETD_TRG $INETD_CNF
-		    chmod 755 $INETD_CNF		    
-		fi
-	    else	
-	    #if deinstallation...
-    		mv $INETD_CNF $INETD_OLD
-    		cp $INETD_TRG $INETD_CNF
-		chmod 755 $INETD_CNF	    
-	    fi	    
-	fi	
-	echo "Updating of $INETD_CNF completed, result = $VSTATE"
-    else
-	echo "The configuration file of inetd deamon <$INETD_CNF> is not found!"
-    fi    
-} 
-
-self_change_service_conf() {
-    if [ -f $SERV_TRG ]
-    then
-	rm -f $SERV_TRG
-    fi
-    if [ -f $SERV_OLD ]
-    then
-	rm -f $SERV_OLD
-    fi
-    if [ -f $SERV_CNF ] 
-    then		
-	echo "Updating of $SERV_CNF..."
-	cat $SERV_CNF | grep -v -e "$SERV_PSRDPMASK" -e "$SERV_PSLDMASK" -e "$SERV_PSIDMASK" -e "$SERV_PSIDSMASK" -e "$SERV_PSMCASTMASK" > $SERV_TRG
-	VSTATE=$?
-	if [ $1 -eq 1 ]
-	then
-	    # now append...	    
-	    echo "$SERV_PSRDPLINE" >> $SERV_TRG
-	    echo "$SERV_PSLDLINE" >> $SERV_TRG
-	    echo "$SERV_PSIDLINE" >> $SERV_TRG
-	    echo "$SERV_PSIDSLINE" >> $SERV_TRG
-	    echo "$SERV_PSMCASTLINE" >> $SERV_TRG
-	fi    
-        if [ $VSTATE = 0 ]
-	then
-	    if [ $1 -eq 1 ]
-	    then
-	    #if installation
-    		cat $SERV_CNF | grep -e "$SERV_PSRDPMASK" -e "$SERV_PSLDMASK" -e "$SERV_PSIDMASK" -e "$SERV_PSIDSMASK" -e "$SERV_PSMCASTMASK"
-		if [ $? -eq 0 ]
-		then
-		# there is some entries in $INETD_CNF
-		    #rm $SERV_OLD
-		    echo "!"
-		    echo "! There was already some PS entries in $SERV_CNF"  
-		    echo "! The recommended configuration is in file $SERV_TRG"
-		    echo "!"		
-    		else 
-		#there was no entries in $INETD_CNF 
-    		    mv $SERV_CNF $SERV_OLD
-		    mv $SERV_TRG $SERV_CNF
-		    chmod 755 $SERV_CNF		
-		fi		
-	    else
-	    #if deinstallation
-    		mv $SERV_CNF $SERV_OLD
-		cp $SERV_TRG $SERV_CNF
-		chmod 755 $SERV_CNF
-	    fi
-	fi	
-	echo "Updating of $SERV_CNF completed, result = $VSTATE"
-    else
-	echo "The configuration file of inetd deamon <$SERV_CNF> is not found!"
-    fi    
-} 
-
-#
-# self_change_conf $what $script $patch $backup $conf(src) $new(trg) $old
-#                  $1    $2      $3     $4      $5         $6        $7
-#
-#self_change_conf() {
-#    if [ -f $6 ]
-#    then
-#	rm -f $6
-#    fi
-#    if [ -f $7 ]
-#    then
-#	rm -f $7
-#    fi
-#    if [ -f $5 ] 
-#    then		
-#	echo "Updating of $5..."
-#	perl $2 $1 $3 $4 <$5 >$6
-#	VSTATE=$?
-#	echo "Updating of $5 completed, result = $VSTATE"
-#    else
-#	echo "The configuration file of inetd deamon <$INETD_CNF> is not found!"
-#    fi    
-#    if [ $VSTATE = 0 ]
-#    then
-#        mv $5 $7
-#	cp $6 $5
-#	chmod 755 $5
-#    fi
-#}
-
-self_update_inetd_conf() {
-    self_change_inetd_conf 1
-#   self_change_conf $what $script $patch $backup $conf(src) $new(trg) $old
-#                    $1    $2      $3     $4      $5         $6        $7
-#    self_change_conf "a" $CNF_PRG $INETD_PCH $INETD_BKP $INETD_CNF $INETD_TRG $INETD_OLD
+patch_services() {
+    backup $SERV_CNF $SERV_BKP
+    echo "Update $SERV_CNF."
+    patch_conf "$SERV_CNF" "$SERV_PSRDPMASK" "$SERV_PSRDPLINE"
+    patch_conf "$SERV_CNF" "$SERV_PSLDMASK" "$SERV_PSLDLINE"
+    patch_conf "$SERV_CNF" "$SERV_PSIDMASK" "$SERV_PSIDLINE"
+    patch_conf "$SERV_CNF" "$SERV_PSIDSMASK" "$SERV_PSIDSLINE"
+    patch_conf "$SERV_CNF" "$SERV_PSMCASTMASK" "$SERV_PSMCASTLINE"
+    echo "Update $SERV_CNF done."
 }
 
-self_update_services_conf() {
-    self_change_service_conf 1
-#   self_change_conf $what $script $patch $backup $conf(src) $new(trg) $old
-#                    $1    $2      $3     $4      $5         $6        $7
-#    self_change_conf "a" $CNF_PRG $SERV_PCH $SERV_BKP $SERV_CNF $SERV_TRG $SERV_OLD
-}
-
-update_inetd() {
-    self_update_services_conf
-    if [ $VINETD -gt 2 ]    
-    then
-	self_update_xinetd_conf
-    else
-        self_update_inetd_conf
-    fi
+patch_inetd() {
+    backup $INETD_CNF $INETD_BKP
+    echo "Update $INETD_CNF."
+    patch_conf "$INETD_CNF" "$INETD_PSIDMASK" "$INETD_PSIDLINE"
+    patch_conf "$INETD_CNF" "$INETD_PSLDMASK" "$INETD_PSLDLINE"
+    echo "Update $INETD_CNF done."
     reload_inetd
 }
 
-self_clear_inetd_conf() {
-    self_change_inetd_conf 0
-#   self_change_conf $what $script $patch $backup $conf(src) $new(trg) $old
-#                    $1    $2      $3     $4      $5         $6        $7
-#    self_change_conf "c" $CNF_PRG $INETD_PCH $INETD_BKP $INETD_CNF $INETD_TRG $INETD_OLD
+patch_xinetd() {
+    echo "Update $XINETD_DIR."
+    echo "$XINETD_PARA" > $XINETD_PSM
+    echo "Update $XINETD_DIR done."
 }
 
-self_clear_services_conf() {
-    self_change_service_conf 0
-#   self_change_conf $what $script $patch $backup $conf(src) $new(trg) $old
-#                    $1    $2      $3     $4      $5         $6        $7
-#    self_change_conf "c" $CNF_PRG $SERV_PCH $SERV_BKP $SERV_CNF $SERV_TRG $SERV_OLD
+cleanup_services() {
+    unpatch_conf "$SERV_CNF" "$SERV_PSRDPMASK" "$SERV_PSRDPLINE"
+    unpatch_conf "$SERV_CNF" "$SERV_PSLDMASK" "$SERV_PSLDLINE"
+    unpatch_conf "$SERV_CNF" "$SERV_PSIDMASK" "$SERV_PSIDLINE"
+    unpatch_conf "$SERV_CNF" "$SERV_PSIDSMASK" "$SERV_PSIDSLINE"
+    unpatch_conf "$SERV_CNF" "$SERV_PSMCASTMASK" "$SERV_PSMCASTLINE"
+    unbackup $SERV_CNF $SERV_BKP
 }
 
-clear_inetd() {
-    self_clear_services_conf
-    if [ $VINETD -gt 2 ]
-    then
-	self_clear_xinetd_conf
-    else	
-	self_clear_inetd_conf
-    fi
-    reload_inetd
+cleanup_inetd() {
+    unpatch_conf "$INETD_CNF" "$INETD_PSIDMASK" "$INETD_PSIDLINE"
+    unpatch_conf "$INETD_CNF" "$INETD_PSLDMASK" "$INETD_PSLDLINE"
+    unbackup $INETD_CNF $INETD_BKP
 }
 
-assign_inetd() {
-    if [ -f /etc/init.d/inetd ]
+cleanup_xinetd() {
+    if [ -f $XINETD_PSM ]
     then
-	INITD_BIN="/etc/init.d/inetd"
-    elif [ -f /etc/init.d/xinetd ]
-    then
-	VINETD=`expr $VINETD+2`
-	INITD_BIN="/etc/init.d/xinetd"
-    elif [ -f /sbin/init.d/inetd ]
-    then
-	INITD_BIN="/sbin/init.d/inetd"
-    else
-	INITD_BIN="none"
-    fi
-    if [ $VINETD -gt 2 ]
-    then
-	# XINITD
-	INETD_DIR="/etc/xinetd.d"
-	INETD_CNF="$INIT_DIR/parastation"
-	INETD_PCH="$PSMAINCNF/parastation.xinetd"
-	INETD_PID="/var/run/xinetd.pid"
-    else
-	# INITD
-	INETD_DIR="none"
-	INETD_CNF="/etc/inetd.conf"
-	INETD_PCH="$PSMAINCNF/inetd_patch"
-        INETD_PID="/var/run/inetd.pid"
-        INETD_BKP="$INETD_CNF.rpmbackup"
-        INETD_TRG="$INETD_CNF.rpmnew"
-        INETD_OLD="$INETD_CNF.rpmsave"
+	rm $XINETD_PSM
     fi
 }
-
 
 self_check_root() {
     WHO=`whoami`
@@ -362,154 +241,93 @@ self_check_root() {
     then
 	echo "User is <root>, OK!"	
     else
-	RESCHK=0
-	echo "The user must be <root>, but you are <$WHO>!  Installation is impossible!"
+	echo "You should be <root>, but you are <$WHO>!"
     fi
 }
 
-self_check_driver() {
-    if [ $REQKRN -gt 0 ]
+
+inst_driver_osf() {
+    if [ -d $PSKERNOSF ]
     then
+        echo "Copying psmx.mod to /sys/BINARY and linking to /usr/sys/BINARY"
+	rm -f /var/subsys/$PSMMOD
+	rm -f /var/subsys/$PSMMTH
     
-        if [ -f $PSMMODFUL ]
-	then 
-	    echo "$PSMMODFUL found!"
-        else
-    	    RESCHK=0
-	    echo "$PSMMODFUL NOT found! Installation is impossible!"
-	fi
-        if [ -f $PSMMODCNFFUL ]
-	then 
-    	    echo "$PSMMODCNFFUL found!"
-	else
-	    RESCHK=0
-    	    echo "$PSMMODCNFFUL NOT found! Installation is impossible!"
-	fi
-	
-    fi
-}
-
-do_check() {
-    RESCHK=1
-    self_check_root
-    if [ $VINST -gt 0 ]
-    then
-	self_check_driver
-    fi
-    if [ $VINETD -gt 0 ]
-    then
-	check_serv_conf
-#	echo "\$VINETD=$VINETD"
-	if [ $VINETD -gt 2 ]
+	/sbin/sysconfigdb -a -f $PSMMODCNFFUL $PSMDRV
+	VSTATE=$?
+	if [ $VSTATE -gt 0 ]
 	then
-	    check_xinetd_conf
-	else
-	    check_inetd_conf
+	    echo "ERROR: cannot install the parameters of $PSMDRV kernel module,"
+	    echo "check the path sysconfigtab ($PSMMODCNFFUL)!"
 	fi
-    fi    
+    
+	symlink $PSMMODBIN /var/subsys/$PSMMOD
+	symlink /subsys/device.mth /var/subsys/$PSMMTH
+	/sbin/sync
+    fi
 }
 
-uninst_driver() {
-
-    if [ $REQKRN -gt 0 ]
+uninst_driver_osf() {
+    if [ -d $PSKERNOSF ]
     then
-
-        echo "Removing a psmx module from sysconfigtab if it exists"
-	/sbin/sysconfigdb -d $PSMDRV >& /dev/null
-	/sbin/sync
-
 	echo "Unloading the driver if it is loaded"
 	/sbin/sysconfig -u $PSMDRV >& /dev/null
 	/sbin/sync
-    
-	rm -f /var/subsys/$PSMMOD
-	rm -f /var/subsys/$PSMMTH
-	
-    fi
-    
-#    /sbin/init.d/autosysconfig delete $PSMDRV >& /dev/null
-#    /sbin/sync
-    
-}
-
-inst_driver() {
-
-    if [ $REQKRN -gt 0 ]
-    then
-	echo "Copying psmx.mod to /sys/BINARY and linking to /usr/sys/BINARY"
-	#rm -f /usr/sys/BINARY/$PSMMOD
-	#rm -f /sys/BINARY/$PSMMOD
-	rm -f /var/subsys/$PSMMOD
-	rm -f /var/subsys/$PSMMTH
-
-        #just link (normally $PSMMODBIN="/sys/BINARY/$PSMMOD", but now see Global variables
-        #cp -p sbin/psmx.mod /sys/BINARY/psmx.mod
-        #ln -s /sys/BINARY/$PSMMOD $PSMMODFUL
-        #ln -s $PSMMODBIN /usr/sys/BINARY/$PSMMOD
-        #echo ">$PSMMODBIN<"
-        #echo "ln -s -f $PSMMODBIN /var/subsys/$PSMMOD"
-    
-    #    /sbin/sysconfigdb -a -f $PSMMODCNFFUL $PSMDRV
-    #    ln -s -f $PSMMODBIN /var/subsys/$PSMMOD
-    #    ln -s -f /subsys/device.mth /var/subsys/$PSMMTH
-
-        if [ $VSTATE = 0 ]
-        then
-    	    /sbin/sysconfigdb -a -f $PSMMODCNFFUL $PSMDRV
-	    VSTATE=$?
-    	    if [ $VSTATE -gt 0 ]
-	    then
-		echo "ERROR: cannot install the parameters of $PSMDRV kernel module, check the path sysconfigtab ($PSMMODCNFFUL)!"
-		if [ $VINT -lt 1 ]
-		then
-		    exit
-		fi
-	    fi
-	fi
-    
-        if [ $VSTATE = 0 ]
-	then    
-	    ln -s -f $PSMMODBIN /var/subsys/$PSMMOD
-    	    VSTATE=$?
-    	    if [ $VSTATE -gt 0 ]
-    	    then
-		echo "ERROR: cannot create the symbolic link $PSMMODBIN --> /var/subsys/$PSMMOD!"
-    		if [ $VINT -lt 1 ]
-		then
-	    	    exit
-		fi
-    	    fi    
-	fi
-    
-	if [ $VSTATE = 0 ]
-	then    
-	    ln -s -f /subsys/device.mth /var/subsys/$PSMMTH
-	    VSTATE=$?
-    	    if [ $VSTATE -gt 0 ]
-    	    then
-		echo "ERROR: cannot create the symbolic link /subsys/device.mth --> /var/subsys/$PSMMTH!"
-		if [ $VINT -lt 1 ]
-		then
-	    	    exit
-		fi
-    	    fi        
-	fi
-    
+	echo "Removing a psmx module from sysconfigtab if it exists"
+	/sbin/sysconfigdb -d $PSMDRV >& /dev/null
 	/sbin/sync
-	#/sbin/init.d/autosysconfig add $PSMDRV
-	/sbin/sync	
-    fi
     
+	rm -f /var/subsys/$PSMMOD
+	rm -f /var/subsys/$PSMMTH
+    fi
 }
 
-upload_driver() {
+do_install() {
+    echo "Install ParaStation"
+    do_info
 
-    if [ $REQKRN -gt 0 ]
+    patch_services
+    if [ -f $INETD_CNF ]
     then
-	echo "Installing the module using sysconfig -c"
-	/sbin/sysconfig -c $PSMDRV
-	/sbin/sync    
+	patch_inetd
     fi
+    if [ -d $XINETD_DIR ]
+    then
+	patch_xinetd
+    fi
+    if [ "$UNAME" = "OSF1" ]
+    then
+	inst_driver_osf
+    fi
+}
+
+do_uninstall() {
+    echo "Unnstall ParaStation"
+    do_info
+    cleanup_services
+    if [ -f $INETD_CNF ]
+    then
+	cleanup_inetd
+    fi
+    if [ -d $XINETD_DIR ]
+    then
+	cleanup_xinetd
+    fi
+    if [ "$UNAME" = "OSF1" ]
+    then
+	deinst_driver_osf
+    fi
+}
+
+do_info() {
+    echo "Using ParaStation root: $PSMAIN"
+}
+
+do_help() {
+    echo "Use: $0 [-i|-u|-h]"
+    echo "-i       : installaton"
+    echo "-u       : uninstallaton "
+    echo "-h       : this poor help..."
 }
 
 #If sysconfig fails, try this and watch the console
@@ -518,373 +336,35 @@ upload_driver() {
 #To unload the driver
 #/sbin/sysconfig -u $PSMDRV
 
-#if (! -f /sbin/init.d/psm_set_permissions ) then
-#	echo "Installing psm_set_permissions startup script in /sbin/rc3.d"
-#	cp psm_set_permissions /sbin/init.d/psm_set_permissions
-#	chmod 700 /sbin/init.d/psm_set_permissions
-#	( cd /sbin/rc3.d; ln -s ../init.d/psm_set_permissions S99psm_set_permissions)
-#else
-#    echo ""
-#    echo "An existing psm_set_permissions startup script was found. If you have"
-#    echo "not made local customizations to this script and wish to use the"
-#    echo "latest version of the script, please manually remove"
-#    echo "/sbin/init.d/psm_set_permissions and /sbin/rc3.d/S99psm_set_permissions"
-#    echo "and re-run this installation script."
-#    echo ""
-#endif
-
-#if ( -f /sbin/rc3.d/S99psm_set_permissions ) then
-#    /sbin/rc3.d/S99psm_set_permissions start
-#endif
-
-do_what() {
-    echo "Source path for module is $PSMDIR"
-    echo "Source path for sysconfigtab is $PSMCNFDIR"
-#    echo "VINT = $VINT"
-    if [ $VINT -eq 1 ]
-    then 
-	echo "Start interaictive mode..."
-    else 
-#	echo "VINT = $VINT"
-        if [ $VUNINST -eq 1 ]
-        then
-            echo "Uninstalling driver......................[YES]"
-	else
-	    echo "Uninstalling driver......................[NO]"
-        fi
-        if [ $VCHK -eq 1 ]
-        then
-            echo "Installation possible?...................[YES]"
-	else
-	    echo "Installation possible?...................[NO]"
-        fi
-        if [ $VINST -eq 1 ]
-        then
-	    echo "Installing driver........................[YES]"
-	else
-	    echo "Installing driver........................[NO]"
-        fi
-        if [ $VINETD -eq 1 ]
-        then
-	    echo "Updating configuration of inetd..........[CHANGING]"
-	elif [ $VINETD -eq 2 ]
-	then
-	    echo "Updating configuration of inetd..........[CLEARING]"
-        elif [ $VINETD -eq 3 ]
-        then
-	    echo "Updating configuration of xinetd.........[CHANGING]"
-	elif [ $VINETD -eq 4 ]
-	then
-	    echo "Updating configuration of xinetd.........[CLEARING]"
-	else
-	    echo "Updating configuration of inetd..........[NO CHANGES]"	    
-        fi		
-    fi    
-}
-
-do_interactive() { 
-
-    while [ $COUNT -ne 0 ]
-    do 
-	echo " "
-        echo "Install the PSMX driver now?"
-        echo "0) Exit script without any changes"
-        echo "1) Install the driver now"
-        echo "2) Uninstall driver (driver has been unloaded and unconfigured)"
-        echo "3) Just checking of the installation is possible"    
-        echo "4) Uploading PSMX driver"
-	echo "5) Update inetd configuration"
-	echo "6) Clear the PSMX part in inetd configuration"
-    
-        read COUNT
-    
-        if [ $COUNT -eq 0 ]
-        then
-            break
-        elif [ $COUNT -lt 0 ]
-        then
-    	    echo "Choice '$COUNT' not understood, please type '0', '1', '2', '3', '4', '5'  or '6'"
-        elif [ $COUNT -gt 6 ]
-        then
-            echo "Choice '$COUNT' not understood, please type '0', '1', '2', '3', '4', '5' or '6'"
-        elif [ $COUNT = 1 ] 
-        then
-	    uninst_driver
-            inst_driver
-        elif [ $COUNT = 2 ] 
-        then
-            uninst_driver
-        elif [ $COUNT = 3 ] 
-        then
-	    VINT=0
-	    RESCHK=1
-	    do_what
-            do_check
-	    echo "do_check finished!"
-	    if [ $RESCHK -gt 0 ]
-	    then
-		echo "The installation is possible..."
-	    else
-		echo "The installation is IMPOSSIBLE!"
-	    fi
-	    echo "Exit..."
-	    VINT=1
-        elif [ $COUNT = 4 ] 
-        then
-	    upload_driver
-        elif [ $COUNT = 5 ] 
-        then
-	    VINST=0
-	    VINETD=1
-	    RESCHK=1
-            do_check
-	    if [ $RESCHK -gt 0 ]
-	    then
-		update_inetd
-	    else
-		echo "The installation is IMPOSSIBLE!"
-	    fi		    
-        elif [ $COUNT = 6 ] 
-        then
-	    VINST=0
-	    VINETD=2
-	    RESCHK=1
-            do_check
-	    if [ $RESCHK -gt 0 ]
-	    then
-		clear_inetd
-	    else
-		echo "The uninstallation is IMPOSSIBLE!"
-	    fi		    		    
-        fi             
-    done
-    
-}
-
-
-#do_analyze() {
-#    
-#    echo "$0 $1 $@"
-#
-#}
-
-do_help() {
-    echo "-h       : this poor help..."
-    echo "-d       : interactive mode"
-    echo "-i       : installaton (default mode)"
-    echo "-u       : uninstallaton "
-    echo "-v       : verify mode"            
-    echo "-p <path>: set Parastation kernel module (PSMX) directory"                
-    echo "-c <path>: set Parastation kernel module configuration (sysconfigtab) directory"                    
-    echo "-a       : preparing the inetd configuration"
-    echo "-b       : cleaning the inetd configuration"            
-    echo "-m <path>: set Parastation main directory (usually /opt/parastation)"                            
-    echo "The deafult action is print of help message !"
-}
-
-
 #to delete the entry
 #/sbin/sysconfigdb -d $PSMDRV
 
-assign_reqkern() {
-    OS=`uname`
-    if [ "$OS" = "Linux" ]
-    then
-	REQKRN=0
-    elif [ "$OS" = "OSF1" ]
-    then
-	REQKRN=1
-    else
-	REQKRN=0    	
-	echo ###########################
-	echo # ATTENTION! Unknown OS ! #
-	echo ###########################
-    fi
-}
-
-#Global variables
-REQKRN=0
-PSMAIN="/opt/parastation"
-PSMDIR="/opt/parastation/bin/modules/osf5.1"
-PSMCNFDIR="/opt/parastation/config"
-#PSMDIR="/home/syrchyn/p3.build/kern/OSF1"
-#PSMCNFDIR="/home/syrchyn/p3/kern/OSF1"
-PSMDRV="psmx"
-PSMMODCNF="sysconfigtab"
-
-PSMMOD="$PSMDRV.mod"
-PSMMTH="$PSMDRV.mth"
-
-COUNT=1
-RESCHK=0
-ARGC=1
-ARGV=""
-VINST=0
-VCHK=0
-VUNINST=0
-VEXIT=0
-VINT=0
-VINETD=0
-VSTATE=0
-
-MSG_POSTINST=1
-
-assign_reqkern
-
-echo "(Un)Installing psmx driver."
-
-if [ $# -gt 0 ] 
+if [ "$UNAME" = "Linux" ]
 then
-    echo "Analyzing..."
-    while [ $ARGC -le $# ] 
-    do
-	ARGV='$'"${ARGC}"	
-	eval ARGV=$ARGV
-	ARGC=`expr $ARGC + 1`
-	case $ARGV in
-	"-i")
-	    VINETD=1
-	    VUNINST=1
-	    VCHK=1
-	    VINST=1    
-	    MSG_POSTINST=1
-	    ;;	
-	"-v")
-	    VCHK=1
-	    ;;
-	"-u")
-	    VCHK=1
-	    VUNINST=1
-	    VINETD=2
-	    ;;
-	"-d")
-	    VINT=1
-	    ;;
-	"-a")
-	    VCHK=1
-	    VINETD=1
-	    ;;
-	"-b")
-	    VCHK=1
-	    VINETD=2
-	    ;;
-	"-m")
-	    ARGV='$'"${ARGC}"	
-	    eval ARGV=$ARGV
-#	    echo 'ARGV='$ARGV
-	    eval PSMAIN=$ARGV
-#	    echo 'PSMDIR='"$PSMDIR"
-	    ARGC=`expr $ARGC + 1`	    
-	    ;;	
-	"-p")
-	    ARGV='$'"${ARGC}"	
-	    eval ARGV=$ARGV
-#	    echo 'ARGV='$ARGV
-	    eval PSMDIR=$ARGV
-#	    echo 'PSMDIR='"$PSMDIR"
-	    ARGC=`expr $ARGC + 1`	    
-	    ;;
-	"-c")
-	    ARGV='$'"${ARGC}"	
-	    eval ARGV=$ARGV
-#	    echo 'ARGV='$ARGV
-	    eval PSMCNFDIR=$ARGV
-#	    echo 'PSMDIR='"$PSMDIR"
-	    ARGC=`expr $ARGC + 1`	    
-	    ;;	    	    
-	"-h")
-	    do_help	
-	    exit
-	    ;;
-	esac
-    done    
+    echo
+elif [ "$UNAME" = "OSF1" ]
+then
+    echo
 else
-    echo "No parameters, default action is help message!"    
-    do_help
-    exit
+    echo "###################################"
+    echo "# ATTENTION! Unknown OS ($UNAME)! #"
+    echo "###################################"
 fi
 
-do_what
+self_check_root
 
-PSMMODDIR="$PSMDIR"
-PSMMODFUL="$PSMMODDIR/$PSMMOD"
-PSMMODBIN="$PSMMODFUL"
-PSMMODCNFFUL="$PSMCNFDIR/$PSMMODCNF"
-PSMMODBIN=$PSMMODFUL
-
-PSMAINCNF="$PSMAIN/config"
-#PSMAINPRG"$PSMMAIN/srcipt"
-PSMAINPRG="$PSMAIN/config"
-
-#for interactive mode all is possible"
-if [ $VINT = 1 ]
-then
-    VINST=1
-    VUNINST=1
-    VINETD=1
-    VCHK=1
-fi
-
-CNF_PRG="$PSMAINPRG/i.pl"
-INETD_BIN=""
-INETD_PID=""
-INETD_DIR=""
-INETD_CNF=""
-INETD_PCH=""
-INETD_BKP=""
-INETD_TRG=""
-INETD_OLD=""
-
-SERV_CNF="/etc/services"
-SERV_PCH="$PSMAINCNF/serv_patch"
-SERV_BKP="$SERV_CNF.rpmbackup"
-SERV_TRG="$SERV_CNF.rpmnew"
-SERV_OLD="$SERV_CNF.rpmsave"
-
-if [ $VINETD -gt 0 ]
-then
-    assign_inetd
-fi
-
-if [ $VINT = 1 ]
-then
-    do_interactive
-else     
-    if [ $VCHK = 1 ]
-    then
-        do_check
-	if [ $RESCHK -lt 1 ]
-	then
-	    echo "The correct (un)installation is impossible, abnormal exit!"
-	    exit
-	fi
-    fi
-    if [ $VUNINST = 1 ]
-    then
-        uninst_driver
-    fi
-    if [ $VINST = 1 ]
-    then
-        inst_driver
-    fi
-    if [ $VINETD = 1 ]
-    then
-        update_inetd
-    elif [ $VINETD = 2 ]
-    then
-	clear_inetd    
-    elif [ $VINETD = 3 ]
-    then
-        update_inetd
-    elif [ $VINETD = 4 ]
-    then
-	clear_inetd
-    fi    
-    if [ $VINST = 1 ]
-    then
-	if [ $MSG_POSTINST = 1 ]
-	then
-	    self_post_inst_msg
-	fi
-    fi
-fi
+case "$1" in
+    -i)
+	do_install
+	self_post_inst_msg
+	;;
+    -u)
+	do_uninstall
+	;;
+    -h)
+	do_help
+	;;
+    *)
+	do_help
+	exit 1
+esac
