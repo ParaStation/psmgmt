@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.24 2002/01/16 17:56:42 eicker Exp $
+ * $Id: psid.c,v 1.25 2002/01/17 12:53:45 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.24 2002/01/16 17:56:42 eicker Exp $ 
+ * $Id: psid.c,v 1.25 2002/01/17 12:53:45 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.24 2002/01/16 17:56:42 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.25 2002/01/17 12:53:45 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -61,7 +61,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.24 $";
+static char psid_cvsid[] = "$Revision: 1.25 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -193,9 +193,9 @@ static int sendMsg(void* amsg)
 	    sprintf(PSI_txt,
 		    "sendMsg(type %s (len=%ld) to task 0x%lx[%d,%d] "
 		    "return %d ERROR %d\n",
-		    PSPctrlmsg(msg->type),msg->len,msg->dest,
-		    msg->dest==-1?-1:PSI_getnode(msg->dest),
-		    PSI_getpid(msg->dest),ret,errno);
+		    PSPctrlmsg(msg->type), msg->len, msg->dest,
+		    msg->dest==-1 ? -1 : PSI_getnode(msg->dest),
+		    PSI_getpid(msg->dest), ret, errno);
 	    SYSLOG(1,(LOG_ERR,PSI_txt));
 	}
 	return ret;
@@ -251,16 +251,16 @@ static int recvMsg(int fd, DDMsg_t* msg,int size)
 	    }
 	} else do {
 	    if (count==0) {
-		n = read(fd,msg,sizeof(*msg));
+		n = read(fd, msg, sizeof(*msg));
 	    } else {
-		n = read(fd,&((char*)msg)[count], msg->len-count);
+		n = read(fd, &((char*) msg)[count], msg->len-count);
 	    }
 	    if (n>0) {
 		count+=n;
 	    } else if (n<0 && (errno==EINTR)) {
 		continue;
 	    } else break;
-	} while((msg->len >count));
+	} while (msg->len > count);
     }
 
     if (n==-1) {
@@ -1712,18 +1712,18 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
     nodeno = PSI_getnode(inmsg->dest);
     if (PSI_isoption(PSP_ODEBUG)){
 	sprintf(PSI_txt,"INFOREQUEST from node %d for requester %lx[%d,%d]\n",
-		nodeno,inmsg->sender,
-		inmsg->sender==-1?-1:PSI_getnode(inmsg->sender),
+		nodeno, inmsg->sender,
+		inmsg->sender==-1 ? -1 : PSI_getnode(inmsg->sender),
 		PSI_getpid(inmsg->sender));
 	PSI_logerror(PSI_txt);
     }
-    if(nodeno!=PSI_myid){
+    if (nodeno!=PSI_myid) {
 	/* a request for a remote daemon */
-	if(DaemonIsUp(nodeno)){
+	if (DaemonIsUp(nodeno)) {
 	    /*
 	     * transfer the request to the remote daemon
 	     */
-	    if(sendMsg(inmsg)<=0){
+	    if (sendMsg(inmsg)<=0) {
 		/* system error */
 		DDErrorMsg_t errmsg;
 		errmsg.header.len = sizeof(errmsg);
@@ -1734,7 +1734,7 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 		errmsg.header.sender = PSI_gettid(PSI_myid,0);
 		sendMsg(&errmsg);
 	    }
-	}else{
+	} else {
 	    /* node ist unreachable */
 	    DDErrorMsg_t errmsg;
 	    errmsg.header.len = sizeof(errmsg);
@@ -1745,7 +1745,7 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 	    errmsg.header.sender = PSI_gettid(PSI_myid,0);
 	    sendMsg(&errmsg);
 	}
-    }else{
+    } else {
 	/* a request for my own Information*/
 	DDBufferMsg_t msg;
 	int err=0;
@@ -1768,7 +1768,7 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 	}
 	case PSP_CD_RDPSTATUSREQUEST:
 	{
-	    DDTagedBufferMsg_t* tagedmsg;
+	    DDTagedBufferMsg_t *tagedmsg;
 	    int nodeid;
 	    nodeid = ((DDTagedBufferMsg_t*)inmsg)->tag[0];
 	    tagedmsg = (DDTagedBufferMsg_t*)&msg;
@@ -1779,8 +1779,9 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 	    break;
 	}
 	case PSP_CD_HOSTSTATUSREQUEST:
-	    memcpy(msg.buf, PSID_hoststatus, NrOfNodes);
-	    msg.header.len += NrOfNodes;
+	    memcpy(msg.buf, PSID_hoststatus,
+		   sizeof(*PSID_hoststatus) * NrOfNodes);
+	    msg.header.len += sizeof(*PSID_hoststatus) * NrOfNodes;
 	    msg.header.type = PSP_CD_HOSTSTATUSRESPONSE;
 	    break;
 	case PSP_CD_HOSTREQUEST:
@@ -2691,7 +2692,7 @@ void CheckFileTable()
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.24 $";
+    char revision[] = "$Revision: 1.25 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
