@@ -1,0 +1,44 @@
+#!/bin/sh
+
+#ToDo!!!
+
+filename=testlic
+
+cat > $filename <<EOF
+#
+# ParaStation license
+#
+
+ID       = "ParaStation"
+Ver      = "3.1"
+Cpr      = "COPYRIGHT (C) 2002 ParTec AG Karlsruhe"
+
+Name     = "Uni-Karlsruhe IPD"
+Contact  = "xyz@blup.de"
+License  = `echo|pslic_gen -sl`
+LicType  = "non-commercial"
+
+Date     = "2002-07-16"
+Expire   = "never"
+
+Nodes    = 32
+CPUs     = 64
+Features = "IP, Ether, Myrinet"
+
+MCPKey   = `echo|pslic_gen -sm`
+
+Fields   = "ID, Ver, Cpr, Name, License, LicType, Date, Expire, Nodes,\\
+CPUs, Features, MCPKey"
+
+EOF
+
+cat >>$filename <<EOF
+Hash     = `pslic_gen -sa < $filename`
+
+EOF
+
+#cat $filename
+echo Wrote $filename
+pslic_gen -c < $filename
+
+

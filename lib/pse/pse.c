@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.22 2002/07/11 16:59:31 eicker Exp $
+ * $Id: pse.c,v 1.23 2002/07/16 19:25:13 hauke Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.22 2002/07/11 16:59:31 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.23 2002/07/16 19:25:13 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -151,7 +151,7 @@ void PSEspawn(int Argc, char** Argv,
     /* Check for LSF-Parallel */
     PSI_LSF();
     /* get the partition */
-    PSI_getPartition(PSP_HW_MYRINET, rank);
+    PSI_getPartition(PSP_HW_ETHERNET, rank);
 
     /* client process? */
     if (rank == -1) {

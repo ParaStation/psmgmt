@@ -4,7 +4,7 @@ CFLAGS += -O2 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
 PSM_OSDIR := @PSM_OSDIR@
 CPPFLAGS += -I@top_srcdir@/include -I@top_srcdir@/$(PSM_OSDIR) @CPPFLAG_MMD@
 
-PUTILOBJS := mcast.o rdp.o timer.o parser.o
+PUTILOBJS := mcast.o rdp.o timer.o parser.o pslic.o psstrings.o
 PUTILDEPS := $(PUTILOBJS:.o=@DEPEXTENSION@)
 
 RANLIB := @RANLIB@
