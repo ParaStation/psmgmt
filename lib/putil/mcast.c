@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.c,v 1.19 2003/12/16 19:08:59 eicker Exp $
+ * $Id: mcast.c,v 1.20 2004/01/09 15:55:07 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.19 2003/12/16 19:08:59 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.20 2004/01/09 15:55:07 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -359,12 +359,9 @@ static Mconninfo_t *conntable = NULL;
 static void initConntable(int nodes, unsigned int host[])
 {
     int i;
-    struct timeval tv;
 
     if (!conntable) conntable = malloc(nodes * sizeof(Mconninfo_t));
     initIPTable();
-    gettimeofday(&tv, NULL);
-    srandom(tv.tv_sec+tv.tv_usec);
     snprintf(errtxt, sizeof(errtxt), "%s: %d nodes", __func__, nodes);
     errlog(errtxt, 4);
     for (i=0; i<nodes; i++) {
@@ -373,8 +370,7 @@ static void initConntable(int nodes, unsigned int host[])
 		 i, inet_ntoa(* (struct in_addr *) &host[i]));
 	errlog(errtxt, 4);
 	conntable[i].misscounter = 0;
-	conntable[i].lastping.tv_sec = 0;
-	conntable[i].lastping.tv_usec = 0;
+	conntable[i].lastping = (struct timeval) { .tv_sec = 0, .tv_usec = 0};
 	conntable[i].load.load[0] = 0.0;
 	conntable[i].load.load[1] = 0.0;
 	conntable[i].load.load[2] = 0.0;
@@ -518,9 +514,9 @@ static void closeConnectionMCast(int node)
  *
  * @return No return value.
  */
-static void checkConnectionsMCast(void)
+static void checkConnections(void)
 {
-    int i, nrDownNodes = 0;
+    int i;
     struct timeval tv1, tv2;
 
     gettimeofday(&tv2, NULL);
@@ -534,7 +530,6 @@ static void checkConnectionsMCast(void)
 			 conntable[i].misscounter, tv2.tv_sec,
 			 conntable[i].lastping.tv_sec, tv1.tv_sec);
 		conntable[i].misscounter++;
-		conntable[i].lastping = tv1;
 		if ((conntable[i].misscounter%5)==0) {
 		    errlog(errtxt, 8);
 		} else {
@@ -548,8 +543,6 @@ static void checkConnectionsMCast(void)
 		errlog(errtxt, 0);
 		closeConnectionMCast(i);
 	    }
-	} else {
-	    nrDownNodes++;
 	}
     }
 
@@ -648,7 +641,7 @@ static void handleTimeoutMCast(void)
 {
     pingMCast(UP);
 
-    checkConnectionsMCast();
+    checkConnections();
 }
 
 /**
