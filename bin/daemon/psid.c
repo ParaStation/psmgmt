@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.88 2003/04/03 15:47:25 eicker Exp $
+ * $Id: psid.c,v 1.89 2003/04/07 16:27:36 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.88 2003/04/03 15:47:25 eicker Exp $ 
+ * $Id: psid.c,v 1.89 2003/04/07 16:27:36 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.88 2003/04/03 15:47:25 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.89 2003/04/07 16:27:36 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -39,6 +39,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.88 2003/04/03 15
 #include <syslog.h>
 #include <fcntl.h>
 #include <arpa/inet.h>
+#include <time.h>
 #include <popt.h>
 
 #ifdef __osf__
@@ -75,7 +76,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.88 $";
+static char psid_cvsid[] = "$Revision: 1.89 $";
 
 static int PSID_mastersock;
 
@@ -378,15 +379,15 @@ int killClients(int phase)
 
     if (timercmp(&maintimer, &killclientstimer, <)) {
 	snprintf(errtxt, sizeof(errtxt),
-		 "killClients(PHASE %d) timer not ready [%ld:%ld] < [%ld:%ld]",
-		 phase, maintimer.tv_sec, maintimer.tv_usec,
+		 "%s(%d) timer not ready [%ld:%ld] < [%ld:%ld]",
+		 __func__, phase, maintimer.tv_sec, maintimer.tv_usec,
 		 killclientstimer.tv_sec, killclientstimer.tv_usec);
 	PSID_errlog(errtxt, 8);
 
 	return 0;
     }
 
-    snprintf(errtxt, sizeof(errtxt), "killClients(PHASE %d)", phase);
+    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, phase);
     PSID_errlog(errtxt, 1);
 
     snprintf(errtxt, sizeof(errtxt),
@@ -408,8 +409,8 @@ int killClients(int phase)
 		/* in phase 0 and 2 only process not in TG_ADMIN group */
 		pid = PSC_getPID(clients[i].tid);
 		snprintf(errtxt, sizeof(errtxt),
-			 "killClients(): sending %s to %s pid %d index[%d]",
-			 (phase<2) ? "SIGTERM" : "SIGKILL",
+			 "%s: sending %s to %s pid %d index[%d]",
+			 __func__, (phase<2) ? "SIGTERM" : "SIGKILL",
 			 PSC_printTID(clients[i].tid), pid, i);
 		PSID_errlog(errtxt, 4);
 		if (pid > 0)
@@ -421,7 +422,7 @@ int killClients(int phase)
 	}
     }
 
-    snprintf(errtxt, sizeof(errtxt), "killClients(PHASE %d) done", phase);
+    snprintf(errtxt, sizeof(errtxt), "%s(%d) done", __func__, phase);
     PSID_errlog(errtxt, 4);
 
     return 1;
@@ -545,6 +546,9 @@ void cleanupTask(long tid)
 {
     PStask_t *task, *clone = NULL;
 
+    snprintf(errtxt, sizeof(errtxt), "%s(%s)", __func__, PSC_printTID(tid));
+    PSID_errlog(errtxt, 10);
+
     task = PStasklist_dequeue(&managedTasks, tid);
     if (task) {
 	/*
@@ -578,11 +582,19 @@ void cleanupTask(long tid)
 
 	    childTID = PSID_getSignal(&clone->childs, &sig);
 
-	    snprintf(errtxt, sizeof(errtxt), "%s: forwarder kills child %s",
-		     __func__, PSC_printTID(childTID));
-	    PSID_errlog(errtxt, 0);
+	    if (childTID) {
+		PStask_t *child = PStasklist_find(managedTasks, childTID);
 
-	    if (childTID) cleanupTask(childTID);
+		if (child && child->fd == -1) {
+		    snprintf(errtxt, sizeof(errtxt),
+			     "%s: forwarder kills child %s",
+			     __func__, PSC_printTID(child->tid));
+		    PSID_errlog(errtxt, 0);
+
+		    PSID_kill(-PSC_getPID(child->tid), SIGKILL, child->uid);
+		    cleanupTask(child->tid);
+		}
+	    }
 
 	    PStask_delete(clone);
 	}
@@ -590,7 +602,7 @@ void cleanupTask(long tid)
 	PStask_delete(task);
 
     } else {
-	snprintf(errtxt, sizeof(errtxt), "%s(): task(%s) not in my tasklist",
+	snprintf(errtxt, sizeof(errtxt), "%s: task(%s) not in my tasklist",
 		 __func__, PSC_printTID(tid));
 	PSID_errlog(errtxt, 0);
     }
@@ -601,7 +613,7 @@ void cleanupTask(long tid)
  */
 void deleteClient(int fd)
 {
-    PStask_t *task;       /* the task struct to be deleted */
+    PStask_t *task;
     long tid;
 
     if (fd<0) {
@@ -618,6 +630,18 @@ void deleteClient(int fd)
     closeConnection(fd);
 
     if (tid==-1) return;
+
+    /* Tell logger about unreleased forwarders */
+    task = PStasklist_find(managedTasks, tid);
+    if (task && task->group == TG_FORWARDER && !task->released) {
+	DDMsg_t msg;
+
+	msg.type = PSP_CC_ERROR;
+	msg.dest = task->loggertid;
+	msg.sender = task->tid;
+	msg.len = sizeof(msg);
+	sendMsg(&msg);
+    }
 
     snprintf(errtxt, sizeof(errtxt), "%s(): closing connection to %s",
 	     __func__, PSC_printTID(tid));
@@ -1295,13 +1319,13 @@ void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	}
 
 	/*
-	 * Send a SIGTERM to the process group in order to stop fork()ed childs
+	 * Send a SIGKILL to the process group in order to stop fork()ed childs
 	 *
 	 * Don't send to logger. These might share their process group
 	 * with other processes. Furthermore logger never fork().
 	 */
 	if (task->group != TG_LOGGER) {
-	    PSID_kill(-PSC_getPID(task->tid), SIGTERM, task->uid);
+	    PSID_kill(-PSC_getPID(task->tid), SIGKILL, task->uid);
 	}
 
 	/* Send a message to the parent (a TG_SPAWNER might wait for it) */
@@ -2360,21 +2384,20 @@ void psicontrol(int fd)
 	 * closing connection
 	 */
 	if (fd == RDPSocket) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "psicontrol(): msglen 0 on RDPsocket");
+	    snprintf(errtxt, sizeof(errtxt), "%s: msglen 0 on RDPsocket",
+		     __func__);
 	    PSID_errlog(errtxt, 0);
 	} else {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "psicontrol(%d): closing connection", fd);
+	    snprintf(errtxt, sizeof(errtxt), "%s(%d): closing connection",
+		     __func__, fd);
 	    PSID_errlog(errtxt, 4);
 	    deleteClient(fd);
 	}
     } else if (msglen==-1) {
 	if ((fd != RDPSocket) || (errno != EAGAIN)) {
 	    char *errstr = strerror(errno);
-	    snprintf(errtxt, sizeof(errtxt),
-		     "psicontrol(%d): error(%d) while read: %s",
-		     fd, errno, errstr ? errstr : "UNKNOWN");
+	    snprintf(errtxt, sizeof(errtxt), "%s(%d): error %d in read: %s",
+		     __func__, fd, errno, errstr ? errstr : "UNKNOWN");
 	    PSID_errlog(errtxt, 4);
 	}
     } else {
@@ -2749,20 +2772,7 @@ void sighandler(int sig)
 
 	    /* If task not connected, remove from tasklist */
 	    task = PStasklist_find(managedTasks, tid);
-	    if (task && (task->fd == -1)) {
-		cleanupTask(tid);
-	    } else if (task
-		       && task->group == TG_FORWARDER && !task->released) {
-		DDMsg_t msg;
-
-		msg.type = PSP_CC_ERROR;
-		msg.dest = task->loggertid;
-		msg.sender = task->tid;
-		msg.len = sizeof(msg);
-		sendMsg(&msg);
-
-		deleteClient(task->fd);
-	    }
+	    if (task && (task->fd == -1)) cleanupTask(tid);
 	}
     }
     /* reset the sighandler */
@@ -2901,7 +2911,7 @@ void checkFileTable(void)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.88 $";
+    char revision[] = "$Revision: 1.89 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -3342,6 +3352,22 @@ int main(int argc, const char *argv[])
 	    if (Tselect(RDPSocket+1,
 			&rfds, (fd_set *)NULL, (fd_set *)NULL, &tv) < 0) {
 		break;
+	    }
+	}
+
+	/*
+	 * Check if we have any obstinate tasks
+	 */
+	{
+	    PStask_t *task = managedTasks;
+	    time_t now = time(NULL);
+
+	    while (task) {
+		if (task->killat && now > task->killat) {
+		    /* Send the signal to the whole process group */
+		    PSID_kill(-PSC_getPID(task->tid), SIGKILL, task->uid);
+		}
+		task = task->next;
 	    }
 	}
 
