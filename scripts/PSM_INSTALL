@@ -8,7 +8,7 @@
 #**
 #* PSM_INSTALL: ParaStation De-/Installationscript
 #*
-#* $Id: PSM_INSTALL,v 1.8 2002/07/11 16:52:19 hauke Exp $
+#* $Id: PSM_INSTALL,v 1.9 2002/07/23 12:41:08 eicker Exp $
 #*
 #* @author  
 #*         Eduard Syrchyn <syrchyn@par-tec.de>
@@ -73,16 +73,12 @@ service psld
 XINETD_PSM="$ETC_DIR/xinetd.d/parastation"
 
 #/etc/services
-SERV_PSRDPMASK="^[ 	]*psrdp[ 	]"
-SERV_PSRDPLINE="psrdp            886/udp       # ParaStation Daemon RDP Port"
 SERV_PSLDMASK="^[ 	]*psld[ 	]"
 SERV_PSLDLINE="psld             887/tcp       # ParaStation License Daemon Start Port"
 SERV_PSIDMASK="^[ 	]*psid[ 	]"
 SERV_PSIDLINE="psid             888/tcp       # ParaStation Daemon Start Port"
 SERV_PSIDSMASK="^[ 	]*psids[ 	]"
 SERV_PSIDSLINE="psids            889/tcp       # ParaStation Daemon Connection Port"
-SERV_PSMCASTMASK="^[ 	]*psmcast[ 	]"
-SERV_PSMCASTLINE="psmcast         1889/udp       # ParaStation MCAST Port"
 SERV_CNF="$ETC_DIR/services"
 SERV_BKP="$SERV_CNF.psm"
 
@@ -190,11 +186,9 @@ reload_inetd() {
 patch_services() {
     backup $SERV_CNF $SERV_BKP
     echo "Update $SERV_CNF."
-    patch_conf "$SERV_CNF" "$SERV_PSRDPMASK" "$SERV_PSRDPLINE"
     patch_conf "$SERV_CNF" "$SERV_PSLDMASK" "$SERV_PSLDLINE"
     patch_conf "$SERV_CNF" "$SERV_PSIDMASK" "$SERV_PSIDLINE"
     patch_conf "$SERV_CNF" "$SERV_PSIDSMASK" "$SERV_PSIDSLINE"
-    patch_conf "$SERV_CNF" "$SERV_PSMCASTMASK" "$SERV_PSMCASTLINE"
     echo "Update $SERV_CNF done."
 }
 
@@ -214,11 +208,9 @@ patch_xinetd() {
 }
 
 cleanup_services() {
-    unpatch_conf "$SERV_CNF" "$SERV_PSRDPMASK" "$SERV_PSRDPLINE"
     unpatch_conf "$SERV_CNF" "$SERV_PSLDMASK" "$SERV_PSLDLINE"
     unpatch_conf "$SERV_CNF" "$SERV_PSIDMASK" "$SERV_PSIDLINE"
     unpatch_conf "$SERV_CNF" "$SERV_PSIDSMASK" "$SERV_PSIDSLINE"
-    unpatch_conf "$SERV_CNF" "$SERV_PSMCASTMASK" "$SERV_PSMCASTLINE"
     unbackup $SERV_CNF $SERV_BKP
 }
 
