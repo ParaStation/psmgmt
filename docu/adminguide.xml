@@ -2,6 +2,9 @@
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN"
                   "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd"[
 <!ENTITY ps "<emphasis>ParaStation</emphasis>">
+<!ENTITY ps2 "<emphasis>ParaStation2</emphasis>">
+<!ENTITY ps3 "<emphasis>ParaStation3</emphasis>">
+<!ENTITY ps4 "<emphasis>ParaStation4</emphasis>">
 <!ENTITY psfe "<emphasis>ParaStation FE</emphasis>">
 
 <!ENTITY infoblurb SYSTEM "infoblurb.sgml">
@@ -14,6 +17,7 @@
 <!ENTITY pvfs SYSTEM "pvfs.sgml">
 
 <!ENTITY mlisten SYSTEM "mlisten.sgml">
+<!ENTITY p4stat SYSTEM "p4stat.sgml">
 <!ENTITY parastationconf SYSTEM "parastation.conf.sgml">
 <!ENTITY psiadmin SYSTEM "psiadmin.sgml">
 <!ENTITY psid SYSTEM "psid.sgml">
@@ -27,6 +31,8 @@
 <!ENTITY glossary SYSTEM "glossary.sgml">
 
 <!ENTITY boolargs SYSTEM "boolargs.sgml">
+
+<!-- <!ENTITY usersguide SYSTEM "userguide.xml" NDATA XML> -->
 ]>
 <book id="adminguide">
   <title><inlinemediaobject>
@@ -39,10 +45,15 @@
   <bookinfo>
     &infoblurb;
 
-    <releaseinfo>Release 1.0</releaseinfo>
-    <pubdate>December 2002</pubdate>
+    <releaseinfo>Release 1.1</releaseinfo>
+    <pubdate>May 2003</pubdate>
 
     <revhistory>
+      <revision>
+	<revnumber>1.1</revnumber>
+	<date>28 May 2003</date>
+	<revremark>ParaStation4 now covered</revremark>
+      </revision>
       <revision>
 	<revnumber>1.0</revnumber>
 	<date>10 Dec 2002</date>
@@ -75,11 +86,12 @@
     <referenceinfo>
       <title>ParTec</title>
       <productname>ParaStation</productname>
-      <date>December 2002</date>
+      <date>May 2003</date>
     </referenceinfo>
     <title>Reference Pages</title>
     &mlisten;
     &parastationconf;
+    <!-- &p4stat; -->
     &psiadmin;
     &psid;
     &psld;
