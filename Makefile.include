@@ -1,3 +1,4 @@
+# -*- Makefile -*-
 
 .EXPORT_ALL_VARIABLES:
 
