@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidstatus.c,v 1.5 2004/01/28 17:58:00 eicker Exp $
+ * $Id: psidstatus.c,v 1.6 2004/01/29 17:25:19 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidstatus.c,v 1.5 2004/01/28 17:58:00 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidstatus.c,v 1.6 2004/01/29 17:25:19 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -507,14 +507,12 @@ void declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs)
 	if (!config->useMCast) send_MASTERIS(oldMaster);
     }
 
-    if (getMasterID() == PSC_getMyID() && !wasUp) {
-	send_GETTASKS(id);
+    if (!config->useMCast && getMasterID() == PSC_getMyID() && !wasUp) {
+	send_ACTIVENODES(id);
     }
 
-    if (config->useMCast) return;
-
     if (getMasterID() == PSC_getMyID() && !wasUp) {
-	send_ACTIVENODES(id);
+	send_GETTASKS(id);
     }
 }
 
