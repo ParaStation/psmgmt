@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidpartition.h,v 1.3 2004/01/28 16:03:28 eicker Exp $
+ * $Id: psidpartition.h,v 1.4 2004/03/09 08:47:12 eicker Exp $
  *
  */
 /**
  * @file
  * Helper functions in order to setup and handle partitions.
  *
- * $Id: psidpartition.h,v 1.3 2004/01/28 16:03:28 eicker Exp $
+ * $Id: psidpartition.h,v 1.4 2004/03/09 08:47:12 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -380,17 +380,32 @@ void cleanupRequests(PSnodes_ID_t node);
 void exitPartHandler(void);
 
 /**
- * @brief Number of allocated jobs
+ * @brief Number of assigned jobs.
  *
- * Return the number of job slots allocated to node @a node.
+ * Return the number of job slots assigned to node @a node.
  *
  * @param node The node to request.
  *
- * @return On success, the number of jobs slots allocated to the
+ * @return On success, the number of jobs slots assigned to the
  * requested node is returned, or 0, if an error occurred. Be aware of
  * the fact, that an error cannot be distinguished from an empty node.
  */
-unsigned short getAllocJobs(PSnodes_ID_t node);
+unsigned short getAssignedJobs(PSnodes_ID_t node);
+
+/**
+ * @brief The nodes exclusive flag.
+ *
+ * Return the flag marking node @a node to be used by its current job
+ * exclusively.
+ *
+ * @param node The node to request.
+ *
+ * @return On success, the nodes exclusive flag is returned, i.e. the
+ * flag marking the node to be used by its current job exclusively. Or
+ * 0, if an error occurred. Be aware of the fact, that an error cannot
+ * be distinguished from a node not used exclusively.
+ */
+int getIsExclusive(PSnodes_ID_t node);
 
 #ifdef __cplusplus
 }/* extern "C" */
