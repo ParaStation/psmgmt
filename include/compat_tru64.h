@@ -6,6 +6,7 @@
 
 #define __attribute__( name )
 
+#ifndef __KERNEL__
 #define _DEC_XPG
 /*typedef unsigned long   socklen_t;*/
 
@@ -13,6 +14,8 @@
 /* Only defined if _BSD is defined */
 extern int      setenv   (const char *, const char *, int);
 extern void     unsetenv (const char *);
+
+#endif
 
 #define NO_MACRODOTDOT
 
