@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.60 2003/06/20 13:53:13 eicker Exp $
+ * $Id: psiadmin.c,v 1.61 2003/06/25 16:47:54 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.60 2003/06/20 13:53:13 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.61 2003/06/25 16:47:54 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -22,6 +22,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.60 2003/06/2
 #include <netdb.h>
 #include <signal.h>
 #include <pwd.h>
+#include <grp.h>
 #include <termios.h>
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -49,7 +50,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.60 $";
+static char psiadmversion[] = "$Revision: 1.61 $";
 static int doRestart = 0;
 
 static char *hoststatus = NULL;
@@ -424,7 +425,73 @@ void PSIADM_ShowUser(int first, int last)
 		name = malloc(10*sizeof(char));
 		sprintf(name, "%ld", uidlimit);
 	    }
-	    printf("limited to user : %s\n", name);
+	    printf("limited to user: %s\n", name);
+	    free(name);
+	}
+    }
+
+    return;
+}
+
+void PSIADM_SetGroup(int gid, int first, int last)
+{
+    int i;
+    DDOptionMsg_t msg;
+
+    if(geteuid()){
+	printf("Sorry, only root access\n");
+	return;
+    }
+
+    first = (first==ALLNODES) ? 0 : first;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
+
+    /*
+     * prepare the message to send it to the daemon
+     */
+    msg.header.type = PSP_CD_SETOPTION;
+    msg.header.sender = PSC_getMyTID();
+    msg.header.len = sizeof(msg);
+    msg.count = 1;
+    msg.opt[0].option = PSP_OP_GIDLIMIT;
+    msg.opt[0].value = gid;
+
+    for (i = first; i < last; i++) {
+	msg.header.dest = PSC_getTID(i, 0);
+	PSI_sendMsg(&msg);
+    }
+
+    return;
+}
+
+void PSIADM_ShowGroup(int first, int last)
+{
+    int i, ret;
+    long option = PSP_OP_GIDLIMIT, gidlimit;
+
+    first = (first==ALLNODES) ? 0 : first;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
+
+    for (i = first; i < last; i++) {
+	printf("%3d:  ", i);
+	ret = INFO_request_option(i, 1, &option, &gidlimit, 1);
+
+	if (ret==-1) {
+	    printf("Can't get group limit.\n");
+	} else if (gidlimit==-1) {
+	    printf("limited to group: ANY\n");
+	} else {
+	    char *name;
+	    struct group *group;
+
+	    group = getgrgid(gidlimit);
+	    if (group) {
+		name = strdup(group->gr_name);
+	    } else {
+		name = malloc(10*sizeof(char));
+		sprintf(name, "%ld", gidlimit);
+	    }
+	    printf("limited to group: %s\n", name);
 	    free(name);
 	}
     }

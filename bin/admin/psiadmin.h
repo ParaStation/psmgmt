@@ -19,6 +19,8 @@ void PSIADM_SetMaxProc(int count, int first, int last);
 void PSIADM_ShowMaxProc(int first, int last);
 void PSIADM_SetUser(int uid, int first, int last);
 void PSIADM_ShowUser(int first, int last);
+void PSIADM_SetGroup(int gid, int first, int last);
+void PSIADM_ShowGroup(int first, int last);
 void PSIADM_SetParam(int type, int value, int first, int last);
 void PSIADM_ShowParam(int type, int first, int last);
 

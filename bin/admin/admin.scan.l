@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: admin.scan.l,v 1.15 2003/05/28 17:10:19 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: admin.scan.l,v 1.16 2003/06/25 16:47:17 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 %}
 
@@ -44,6 +44,7 @@ selecttime           { return SELECTTIME; }
 
 maxproc              { return MAXPROC; }
 user                 { return USER; }
+group                { return GROUP; }
 any                  { return ANY; }
 
 node                 { return NODE; }

@@ -1,6 +1,7 @@
 %{
 #include <stdio.h>
 #include <pwd.h>
+#include <grp.h>
 #include <unistd.h>
 #include <sys/types.h>
 
@@ -11,7 +12,7 @@
 #define yylex adminlex
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.22 2003/05/28 17:11:13 eicker Exp $";
+static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.23 2003/06/25 16:47:17 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #define NODEERR -2
@@ -21,7 +22,6 @@ extern char * yytext;
 
 static int CheckNr(int node);
 static int CheckName(char *name);
-static void CheckUserName(char *name);
 
 %}
 
@@ -40,7 +40,7 @@ static void CheckUserName(char *name);
 %token PSM_SPS PSM_RTO PSM_HNPEND PSM_ACKPEND SELECTTIME
 %token RDPDEBUG RDPPKTLOSS RDPMAXRETRANS MCASTDEBUG PSIDDEBUG
 
-%token MAXPROC USER ANY
+%token MAXPROC USER GROUP ANY
 
 %token NODE COUNT RDP MCAST PROC LOAD ALLPROC ALL
 
@@ -126,6 +126,10 @@ setline:
         | SETOP USER NAME nodes        {MySetUserName($3,FirstNode,LastNode);}
         | SETOP USER NUMBER nodes      {MySetUser($3,FirstNode,LastNode);}
         | SETOP USER ANY nodes         {MySetUser(-1,FirstNode,LastNode);}
+        | SETOP GROUP                  {printf("SET GROUP needs groupname\n");}
+        | SETOP GROUP NAME nodes       {MySetGroupName($3,FirstNode,LastNode);}
+        | SETOP GROUP NUMBER nodes     {MySetGroup($3,FirstNode,LastNode);}
+        | SETOP GROUP ANY nodes        {MySetGroup(-1,FirstNode,LastNode);}
         | SETOP SELECTTIME NUMBER nodes
                 {MySetParam(PSP_OP_PSIDSELECTTIME,$3,FirstNode,LastNode);}
         | SETOP PSIDDEBUG NUMBER nodes
@@ -152,6 +156,7 @@ showline:
           SHOWOP                    {printf("SHOW what?\n");}
         | SHOWOP MAXPROC nodes      {MyShowMaxProc(FirstNode,LastNode);}
         | SHOWOP USER nodes         {MyShowUser(FirstNode,LastNode);}
+        | SHOWOP GROUP nodes        {MyShowGroup(FirstNode,LastNode);}
         | SHOWOP PSIDDEBUG nodes
                  {MyShowParam(PSP_OP_PSIDDEBUG,FirstNode,LastNode);}
         | SHOWOP SELECTTIME nodes
@@ -243,6 +248,7 @@ helpline:
         | HELPOP SETOP                 {PrintSetHelp();}
         | HELPOP SETOP MAXPROC         {PrintSetHelp();}
         | HELPOP SETOP USER            {PrintSetHelp();}
+        | HELPOP SETOP GROUP           {PrintSetHelp();}
         | HELPOP SETOP PSM_SPS         {PrintSetHelp();}
         | HELPOP SETOP PSM_RTO         {PrintSetHelp();}
         | HELPOP SETOP PSM_HNPEND      {PrintSetHelp();}
@@ -255,6 +261,7 @@ helpline:
         | HELPOP SHOWOP                {PrintShowHelp();}
         | HELPOP SHOWOP MAXPROC        {PrintShowHelp();}
         | HELPOP SHOWOP USER           {PrintShowHelp();}
+        | HELPOP SHOWOP GROUP          {PrintShowHelp();}
         | HELPOP SHOWOP PSM_SPS        {PrintShowHelp();}
         | HELPOP SHOWOP PSM_RTO        {PrintShowHelp();}
         | HELPOP SHOWOP PSM_HNPEND     {PrintShowHelp();}
@@ -397,7 +404,7 @@ static void MySetUserName(char *name, int first, int last)
     struct passwd *passwd;
 
     if ((passwd = getpwnam(name))==NULL){
-	printf("PSIamnin: Unknown user %s\n",name);
+	printf("PSIamnin: Unknown user %s\n", name);
 	return;
     };
     MySetUser(passwd->pw_uid, first, last);
@@ -407,6 +414,29 @@ static void MyShowUser(int first, int last)
 {
     if ( (first != NODEERR) && (last != NODEERR))
 	PSIADM_ShowUser(first, last);
+}
+
+static void MySetGroup(int what, int first, int last)
+{
+    if ( (first != NODEERR) && (last != NODEERR))
+	PSIADM_SetGroup(what, first, last);
+}
+
+static void MySetGroupName(char *name, int first, int last)
+{
+    struct group *group;
+
+    if ((group = getgrnam(name))==NULL){
+	printf("PSIamnin: Unknown group %s\n", name);
+	return;
+    };
+    MySetGroup(group->gr_gid, first, last);
+}
+
+static void MyShowGroup(int first, int last)
+{
+    if ( (first != NODEERR) && (last != NODEERR))
+	PSIADM_ShowGroup(first, last);
 }
 
 static void MySetMaxProc(int what, int first, int last)
