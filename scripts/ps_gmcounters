@@ -1,0 +1,42 @@
+#!/bin/bash
+# 
+# GM Myrinet Device Driver for Parastation
+#
+# Script to get specific gm counters
+#
+# Author: Norbert Eicker <eicker@par-tec.com>
+#
+# $Id: ps_gmcounters,v 1.1 2003/07/25 13:13:54 eicker Exp $
+#
+
+GM_INSTALLDIR=${GM_INSTALLDIR-"/opt/gm"}
+GMCOUNTERS=${GM_INSTALLDIR}/bin/gm_counters
+
+if [ $# -ge 1 ]; then
+    if [ $1 = "-header" ]; then
+	for head in RECV SEND CRC ROUTE DROP NACK RESEND SHORT ; do
+	    printf "%8s" $head
+	done
+	echo
+
+	exit 0
+    fi
+fi
+
+while read name value ; do
+    case $name in
+	netsend_cnt \
+	|netrecv_cnt \
+	|badcrc_cnt \
+	|badroute_cnt \
+	|drop_cnt \
+	|nack_cnt \
+	|resend_cnt \
+	|short_packet_cnt)
+		printf "%8d" $value
+		;;
+    esac
+done < <( $GMCOUNTERS )
+echo
+
+exit 0
