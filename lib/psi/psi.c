@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.37 2002/07/31 08:48:40 eicker Exp $
+ * $Id: psi.c,v 1.38 2002/07/31 09:02:56 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.37 2002/07/31 08:48:40 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.38 2002/07/31 09:02:56 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -346,7 +346,7 @@ int PSI_sendMsg(void *amsg)
     }
 
     snprintf(errtxt, sizeof(errtxt),
-	     "PSI_sendMsg() type %s (len=%ld) to %s",
+	     "PSI_sendMsg() type %s (len=%d) to %s",
 	     PSP_printMsg(msg->type), msg->len, PSC_printTID(msg->dest));
     PSI_errlog(errtxt, 12);
 
@@ -379,7 +379,7 @@ int PSI_recvMsg(void *amsg)
     } while (msg->len>count && n>0);
 
     snprintf(errtxt, sizeof(errtxt),
-	     "PSI_recvMsg() type %s (len=%ld) from %s",
+	     "PSI_recvMsg() type %s (len=%d) from %s",
 	     PSP_printMsg(msg->type), msg->len, PSC_printTID(msg->sender));
     PSI_errlog(errtxt, 12);
 
