@@ -249,21 +249,22 @@ void run(int argc,char **argv,int np)
     FILE *out;
     struct itimerval timer;
 
-    PSE_init(np,&rank);
-    
+    PSE_initialize();
+
+    rank = PSE_getRank();
+
     if (rank == -1){
 	/* I am the logger */
 	/* Set default to none: */
 	setenv("PSI_NODES_SORT","NONE",0);
-	PSE_spawn(argc, argv, &mapnode[0], &mapport[0],rank);
+	PSE_spawnMaster(argc, argv);
 	/* Never be here ! */
 	exit(1);
     }
-    
-	
-//    PSE_init(np,argc,argv,&mapnode[0],&mapport[0],&rank);
-    /* Initialize Myrinet */
 
+    PSE_registerToParent();
+
+    /* Initialize Myrinet */
     if (PSP_Init()){
 	perror("PSP_Init() failed!");
 	exit(-1);
@@ -290,10 +291,11 @@ void run(int argc,char **argv,int np)
 
     if (rank==0){
 	/* Master node: Set parameter from rank 0 */
-	PSE_spawn(argc, argv, &mapnode[0], &mapport[0],rank);
+	PSE_spawnTasks(np-1, mapnode[0], mapport[0], argc, argv);
     }else{
 	/* Client node: Get parameter from rank 0 */
-	PSE_spawn(argc, argv, &mapnode[0], &mapport[0],rank);
+	mapnode[0] = PSE_getMasterNode();
+	mapport[0] = PSE_getMasterPort();
     }
     
     if (rank>0){
