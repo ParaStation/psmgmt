@@ -13,7 +13,7 @@
     <cmdsynopsis>
       <command>psiadmin</command>
       <arg>-erv?</arg>
-      <arg>-c command</arg>
+      <arg>-c <replaceable>command</replaceable></arg>
       <arg>--usage</arg>
     </cmdsynopsis>
   </refsynopsisdiv>

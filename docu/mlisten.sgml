@@ -16,10 +16,10 @@
     <cmdsynopsis>
       <command>mlisten</command>
       <arg>-dv?</arg>
-      <arg>-m MCAST</arg>
-      <arg>-p PORT</arg>
-      <arg>-n IP</arg>
-      <arg>-# NODES</arg>
+      <arg>-m <replaceable>MCAST</replaceable></arg>
+      <arg>-p <replaceable>PORT</replaceable></arg>
+      <arg>-n <replaceable>IP</replaceable></arg>
+      <arg>-# <replaceable>NODES</replaceable></arg>
       <arg>--usage</arg>
     </cmdsynopsis>
   </refsynopsisdiv>

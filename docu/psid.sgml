@@ -15,8 +15,8 @@
     <cmdsynopsis>
       <command>psid</command>
       <arg>-dv?</arg>
-      <arg>-f configfile</arg>
-      <arg>-l logfile</arg>
+      <arg>-f <replaceable>configfile</replaceable></arg>
+      <arg>-l <replaceable>logfile</replaceable></arg>
       <arg>--usage</arg>
     </cmdsynopsis>
   </refsynopsisdiv>

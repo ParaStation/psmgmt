@@ -13,7 +13,7 @@
     <cmdsynopsis>
       <command>psld</command>
       <arg>-v?</arg>
-      <arg>-f configfile</arg>
+      <arg>-f <replaceable>configfile</replaceable></arg>
       <arg>--version</arg>
       <arg>--usage</arg>
     </cmdsynopsis>

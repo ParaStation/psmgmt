@@ -14,7 +14,7 @@
   <refsynopsisdiv>
     <cmdsynopsis>
       <command>psroute</command>
-      <arg>-d debugfile</arg>
+      <arg>-d <replaceable>debugfile</replaceable></arg>
       <arg choice="plain">map-file</arg>
     </cmdsynopsis>
   </refsynopsisdiv>

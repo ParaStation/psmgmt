@@ -14,8 +14,8 @@
   <refsynopsisdiv>
     <cmdsynopsis>
       <command>test_nodes</command>
-      <arg>-np num</arg>
-      <arg>-cnt count</arg>
+      <arg>-np <replaceable>num</replaceable></arg>
+      <arg>-cnt <replaceable>count</replaceable></arg>
       <arg>-map</arg>
     </cmdsynopsis>
   </refsynopsisdiv>
