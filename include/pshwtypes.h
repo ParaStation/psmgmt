@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pshwtypes.h,v 1.7 2003/04/11 10:27:04 eicker Exp $
+ * $Id: pshwtypes.h,v 1.8 2003/07/25 13:21:41 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation hardware types.
  *
- * $Id: pshwtypes.h,v 1.7 2003/04/11 10:27:04 eicker Exp $
+ * $Id: pshwtypes.h,v 1.8 2003/07/25 13:21:41 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -33,6 +33,7 @@ extern "C" {
 #define PSHW_NAME_INFINIBAND	"infiniband"
 #define PSHW_NAME_STARFABRIC	"starfabric"
 #define PSHW_NAME_P4SOCK	"p4sock"
+#define PSHW_NAME_GM		"gm"
 
 
 #ifdef __cplusplus
