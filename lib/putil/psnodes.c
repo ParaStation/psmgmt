@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psnodes.c,v 1.7 2003/11/24 10:00:15 eicker Exp $
+ * $Id: psnodes.c,v 1.8 2003/12/10 16:12:24 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psnodes.c,v 1.7 2003/11/24 10:00:15 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psnodes.c,v 1.8 2003/12/10 16:12:24 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -45,11 +45,11 @@ typedef struct {
     unsigned int hwType;   /**< Communication hardware on that node */
     unsigned int hwStatus; /**< Corresponding stati of the hardware */
     unsigned int extraIP;  /**< Additional IP address of that node */
-    int jobs;              /**< Flag to mark that node to run jobs */
-    int starter;           /**< Flag to allow to start jobs from that node */
+    char runJobs;          /**< Flag to mark that node to run jobs */
+    char isStarter;        /**< Flag to allow to start jobs from that node */
     uid_t uid;             /**< User this nodes is reserved to */
     gid_t gid;             /**< Group this nodes is reserved to */
-    int procs;             /**< Number of processes this node will handle */
+    int maxProcs;          /**< Number of processes this node will handle */
 } node_t;
 
 static node_t *nodes = NULL;
@@ -79,11 +79,11 @@ int PSnodes_init(PSnodes_ID_t num)
 	    .hwType = 0,
 	    .hwStatus = 0,
 	    .extraIP = INADDR_ANY,
-	    .jobs = 0,
-	    .starter = 0,
+	    .runJobs = 0,
+	    .isStarter = 0,
 	    .uid = -1,
 	    .gid = -1,
-	    .procs = -1 };
+	    .maxProcs = -1 };
     }
 
     return 0;
@@ -244,7 +244,7 @@ int PSnodes_getHWType(PSnodes_ID_t id)
 int PSnodes_setRunJobs(PSnodes_ID_t id, int runjobs)
 {
     if (ID_ok(id)) {
-	nodes[id].jobs = runjobs;
+	nodes[id].runJobs = runjobs;
 	return 0;
     } else {
 	return -1;
@@ -255,7 +255,7 @@ int PSnodes_setRunJobs(PSnodes_ID_t id, int runjobs)
 int PSnodes_runJobs(PSnodes_ID_t id)
 {
     if (ID_ok(id)) {
-	return nodes[id].jobs;
+	return nodes[id].runJobs;
     } else {
 	return -1;
     }
@@ -264,7 +264,7 @@ int PSnodes_runJobs(PSnodes_ID_t id)
 int PSnodes_setIsStarter(PSnodes_ID_t id, int starter)
 {
     if (ID_ok(id)) {
-	nodes[id].starter = starter;
+	nodes[id].isStarter = starter;
 	return 0;
     } else {
 	return -1;
@@ -274,7 +274,7 @@ int PSnodes_setIsStarter(PSnodes_ID_t id, int starter)
 int PSnodes_isStarter(PSnodes_ID_t id)
 {
     if (ID_ok(id)) {
-	return nodes[id].starter;
+	return nodes[id].isStarter;
     } else {
 	return -1;
     }
@@ -397,7 +397,7 @@ gid_t PSnodes_getGroup(PSnodes_ID_t id)
 int PSnodes_setProcs(PSnodes_ID_t id, int procs)
 {
     if (ID_ok(id)) {
-	nodes[id].procs = procs;
+	nodes[id].maxProcs = procs;
 	return 0;
     } else {
 	return -1;
@@ -407,7 +407,7 @@ int PSnodes_setProcs(PSnodes_ID_t id, int procs)
 int PSnodes_getProcs(PSnodes_ID_t id)
 {
     if (ID_ok(id)) {
-	return nodes[id].procs;
+	return nodes[id].maxProcs;
     } else {
 	return -1;
     }
