@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.20 2002/07/11 16:59:03 eicker Exp $
+ * $Id: psispawn.c,v 1.21 2002/07/18 11:40:30 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.20 2002/07/11 16:59:03 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.21 2002/07/18 11:40:30 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -826,7 +826,7 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
 	    task->rank = rank++;
 
 	    /* pack the task information in the msg */
-	    msg.header.len = PStask_encode(msg.buf, task);
+	    msg.header.len = PStask_encode(msg.buf, sizeof(msg.buf), task);
 
 	    /*
 	     * put the type of the msg in the head
@@ -924,11 +924,11 @@ int PSI_kill(long tid, short signal)
     PSI_errlog(errtxt, 10);
 
     msg.header.len = sizeof(msg);
-    msg.header.type = PSP_DD_TASKKILL;
+    msg.header.type = PSP_DD_SIGNAL;
     msg.header.sender = PSC_getMyTID();
     msg.header.dest = tid;
-    msg.senderuid = getuid();
     msg.signal = signal;
+    msg.param = getuid();
 
     if (PSI_sendMsg(&msg)<0) {
 	char *errstr = strerror(errno);
