@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.126 2004/01/28 14:07:04 eicker Exp $
+ * $Id: psid.c,v 1.127 2004/01/28 18:00:14 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.126 2004/01/28 14:07:04 eicker Exp $ 
+ * $Id: psid.c,v 1.127 2004/01/28 18:00:14 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.126 2004/01/28 14:07:04 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.127 2004/01/28 18:00:14 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -75,7 +75,7 @@ struct timeval selectTime;
 
 static struct timeval shutdownTimer;
 
-char psid_cvsid[] = "$Revision: 1.126 $";
+char psid_cvsid[] = "$Revision: 1.127 $";
 
 /**
  * Master socket (type UNIX) for clients to connect. Setup within @ref
@@ -794,11 +794,6 @@ static void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	    PSID_errlog(errtxt, 1);
 
 	    sendMsg(msg);
-
-	    /* Tell MCast about the new task (until the real ping comes in) */
-	    if (config->useMCast) {
-		incJobsMCast(PSC_getID(msg->header.dest), 1, 1);
-	    }
 	} else {
 	    answer.header.type = PSP_CD_SPAWNFAILED;
 	    answer.header.sender = msg->header.dest;
@@ -2216,7 +2211,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.126 $";
+    char revision[] = "$Revision: 1.127 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 

@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidstatus.c,v 1.4 2004/01/28 14:20:07 eicker Exp $
+ * $Id: psidstatus.c,v 1.5 2004/01/28 17:58:00 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidstatus.c,v 1.4 2004/01/28 14:20:07 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidstatus.c,v 1.5 2004/01/28 17:58:00 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -252,11 +252,7 @@ void incJobs(int total, int normal)
     if (total) myJobs.total++;
     if (normal) myJobs.normal++;
 
-    if (config->useMCast) {
-	incJobsMCast(PSC_getMyID(), total, normal);
-    } else {
-	if (knowMaster()) sendRDPPing();
-    }
+    if (config->useMCast) incJobsMCast(PSC_getMyID(), total, normal);
 }
 
 void decJobs(int total, int normal)
@@ -267,11 +263,7 @@ void decJobs(int total, int normal)
     if (total) myJobs.total--;
     if (normal) myJobs.normal--;
 
-    if (config->useMCast) {
-	decJobsMCast(PSC_getMyID(), total, normal);
-    } else {
-	if (knowMaster()) sendRDPPing();
-    }
+    if (config->useMCast) decJobsMCast(PSC_getMyID(), total, normal);
 }
 
 PSID_NodeStatus_t getStatus(PSnodes_ID_t node)
