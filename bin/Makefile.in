@@ -51,24 +51,20 @@ lex.admin.o: lex.admin.c admin.tab.c admin.tab.h
 # psid
 EXTRACLEAN += lex.psid.c psid.tab.c psid.tab.h
 VPATH += $(SRCDIR)/daemon
-VPATH += $(SRCDIR)/rdp
 VPATH += $(SRCDIR)/cardconfig
 psid: psid.o psidutil.o
 psid: parse.o lex.psid.o psid.tab.o
-psid: timer.o mcast.o rdp.o
 psid: cardconfig.o
-psid: -lpse -lpsi -lm -lpshal 
+psid: -lpse -lpsi -lm -lpshal -lputil
 psid.tab.o: CPPFLAGS = $(CPPFLAGS) -I$(SRCDIR)/daemon
 psid.tab.o: psid.tab.c
 lex.psid.o: lex.psid.c psid.tab.c psid.tab.h
 
 #psld
 VPATH += $(SRCDIR)/licdaemon
-VPATH += $(SRCDIR)/rdp
 psld: psld.o license.o 
 psld: parse.o psid.tab.o lex.psid.o
-psld: timer.o mcast.o
-psld: -lpsi -lm
+psld: -lpsi -lm -lputil
 
 # logger
 VPATH += $(SRCDIR)/logger
