@@ -43,6 +43,8 @@ extern char *PSID_hoststatus;     /* state of specific hosts: PSPHOSTUP|.. */
 void PSID_ReConfig(int nodenr, int nrofnodes, char *license, char *module,
 		   char *configfile);
 
+void PSID_CardStop(void);
+
 int PSID_host(unsigned int addr);
 
 unsigned long PSID_hostaddress(unsigned short id);
