@@ -60,13 +60,16 @@
     <title>Starting MPI applications</title>
     <para>
       In order to start a MPI application build as described in the last
-      section, <command>mpirun</command> has to be used. If you want to start
-      the executable <filename>prog</filename> on 8 nodes,
+      section, <xref linkend="mpirun"/> has to be used. E.g. if you want to
+      start the executable <filename>prog</filename> on 8 nodes,
     </para>
-    <programlisting>	mpirun -np 8 prog</programlisting>
+    <programlisting>	mpirun -np 8 prog <optional><replaceable>args</replaceable></optional></programlisting>
     <para>
-      has to be executed. Of course further options to
-      <filename>prog</filename> may be appended to this line.
+      has to be executed. Here <replaceable>args</replaceable> or one or more
+      arguments passed to each instance of the executable
+      <filename>prog</filename>. A detailed description of this command and its
+      further options can be found within the corresponding manual page <xref
+	linkend="mpirun"/>.
     </para>
     <para>
       All what has been said about spawning and input/output redirection in
