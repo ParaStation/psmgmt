@@ -66,7 +66,7 @@ instdirline:
         | INSTDIR FILENAME        { strcpy(ConfigInstDir,$2); }
 	;
 nodesline: 
-	NROFNODES NUMBER         { setnrofnodes($2); }
+	NROFNODES NUMBER         { setNrOfNodes($2); }
 	;
 
 hostlist:

@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.17 2002/01/16 17:50:07 eicker Exp $
+ * $Id: psidutil.c,v 1.18 2002/01/22 16:17:27 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.17 2002/01/16 17:50:07 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.18 2002/01/22 16:17:27 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -155,12 +155,12 @@ int PSID_readconfigfile(void)
     memcpy(&sin_addr, mhost->h_addr, mhost->h_length); 
     endhostent(); 
 
-    if(parse_config(1)<0)
+    if (parseConfig(1)<0)
 	return -1;
 
     PSI_nrofnodes = NrOfNodes;
 
-    if(PSI_nrofnodes > 4){
+    if (PSI_nrofnodes > 4) {
 	/*
 	 * Check the license key
 	 * Clusters smaller than 4 nodes are free
