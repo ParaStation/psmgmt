@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.h,v 1.7 2003/08/15 13:31:14 eicker Exp $
+ * $Id: pscommon.h,v 1.8 2003/09/26 14:12:01 eicker Exp $
  *
  */
 /**
  * @file
  * Functions used in user-programs and daemon.
  *
- * $Id: pscommon.h,v 1.7 2003/08/15 13:31:14 eicker Exp $
+ * $Id: pscommon.h,v 1.8 2003/09/26 14:12:01 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -269,17 +269,57 @@ void PSC_errlog(char *s, int level);
 void PSC_errexit(char *s, int errorno);
 
 /**
- * @brief @todo
+ * @brief Get the ParaStation installation directory.
+ *
+ * Get the ParaStation installation directory, i.e. the directory
+ * containing all the ParaStation stuff. This function might try to
+ * lookup the installation directory by itself -- in which case it
+ * tests '/opt/parastation' -- or it might get a hint via @ref
+ * PSC_setInstalldir().
+ *
+ * In any case it tries to find the 'bin/psilogger' which is used as a
+ * landmark in order to identify the actual presence of ParaStation
+ * within this directory.
+ *
+ * On success, i.e. if ParaStation was found, the ParaStation
+ * installation directory is returned. Otherwise an empty string is
+ * returned.
  */
 char *PSC_lookupInstalldir(void);
 
 /**
- * @brief @todo
+ * @brief Set the ParaStation installation directory.
+ *
+ * Set the ParaStation installation directory to @a installdir. This
+ * gives a hint towards @ref PSC_lookupInstalldir() in order to find
+ * the installation directory.
+ *
+ * In order to test, if @a installdir is actually the ParaStation
+ * installation directory, i.e. if ParaStation is present within this
+ * directory, this function tries to find the 'bin/psilogger'
+ * executable.
+ *
+ * @param installdir The installation directory to register.
+ *
+ * @return No return value.
  */
 void PSC_setInstalldir(char *installdir);
 
 /**
- * @brief @todo
+ * @brief Get a port entry
+ *
+ * Get the TCP port number associated with the service entry @a name
+ * via the getservbyname() call. If @a name could not be resolved, is
+ * @a def as the default port number.
+ *
+ * @param name The name of the service entry to lookup.
+ *
+ * @param def The default value to return, if the lookup fails.
+ *
+ * @return On success, i.e. if the service entry @name could be
+ * resolved, the corresponding port number is returned. Otherwise @a
+ * def is returned. If the resolved port number is identical to @a
+ * def, the failure of the lookup is indiscernible.
  */
 int PSC_getServicePort(char *name , int def);
 
