@@ -4,10 +4,10 @@
     Besides the brief overview on &ps; given within <link
     linkend="intro">the introduction</link> this chapter will give a
     more detailed insight concerning the building blocks forming the
-    &ps; system and the main architecure of &ps;.
+    &ps; system and the main architecure of &ps4;.
   </para>
   <para>
-    As already mentioned &ps; consists of the modules
+    As already mentioned &ps4; consists of the modules
   </para>
   <itemizedlist>
     <listitem>
@@ -21,13 +21,14 @@
     The communication subsystem of &ps; is composed of a couple of
     libraries and kernel modules. Applications that want to benefit
     from the &ps; communication system have to be build against these
-    libraries. Furthermore the cluster nodes running this application
+    libraries, except when the TCP bypass is used. 
+    Furthermore the cluster nodes running this application
     have to have the kernel module(s) loaded and the shared versions
     of the communication libraries loaded, if used.
   </para>
   <para>
     The management part of &ps; is implemented in a daemon process,
-    running on each of the cluster nodes. These daemons constantly
+    running on each of the cluster nodes. All these daemons constantly
     gather and interchange information in order to get a unique global
     view of the cluster.  Applications that want to profit from this
     view to the cluster have to talk to this daemons. This is usually
@@ -65,15 +66,6 @@
     </mediaobject>
   </figure>
 
-<!--
-  <para>
-    By enabling the Myrinet to also handle TCP/IP traffic via a separate
-    IP-address bound to the Myrinet-NIC, it is even possible to split this kind
-    of communication load between the two distinct networks available within
-    the cluster. Yet the decision which network to use on the level of
-    different services is possible.
-  </para>
--->
   <para>
     <!-- TODO: fg: redo this paragraph! -->
     Often both type of communication share the same physical network.
@@ -93,28 +85,6 @@
     users.
   </para>
 
-<!--
-  <para>
-    Most of the statements made within this chapter regarding communication is
-    only true for the &ps; 3 version of the software. Due to the fact that
-    &psfe; uses the Ethernet via the standard kernel implementation of the
-    TCP/IP stack, on the one hand communication is far less performant than in
-    the Myrinet case, on the other hand the separation of communication and
-    administration traffice cannot be retained.
-  </para>
-  <para>
-    Nevertheless the communication interfaces of &ps; 3 are partly provided by
-    &psfe;, too. Most notably an improved MPI implementation and the PSPort
-    interface are still part of the distribution. This enables the user to
-    benefit from the advanced communication capabilities provided by &ps;.
-  </para>
-  <para>
-    Furthermore the whole &ps; cluster management facility is along with both
-    versions of &ps;, giving an outstanding potential concerning the simplicity
-    and effectivity of both, cluster administration and job management.
-  </para>
--->
-
   <section>
     <title>The communication subsystem</title>
 
@@ -128,19 +98,21 @@
     <section>
       <title>Communication paths</title>
       <para>
-        &ps4; currently supports a variety communication paths
-        for transfering application data. Not all paths are always
+        &ps4; currently supports a variety of communication paths
+        to transfer application data. Not all paths are always
         available, depending on the physical network(s) and system
         architecture (uni-processor or SMP) installed and configuration and
         licensing defined.
       </para>
       <para>
         The following list shows all currently available interconnects
+<!--
         <footnote>
           <para>
             The next version of &ps; will also support Infiniband.
           </para>
         </footnote>
+-->
         and protocols, supported by &ps4;. The list also defines the
         order used to select a transport by the process management.
       </para>
@@ -157,16 +129,15 @@
 	    </para>
 	  </listitem>
 	</varlistentry>
-<!-- TODO: fg: Infiniband 
 	<varlistentry>
 	  <term>Infiniband</term>
 	  <listitem>
 	    <para>
-              TODO.
+              If Infiniband is available on this cluster, &ps; will
+              make use of the vapi driver.
 	    </para>
 	  </listitem>
 	</varlistentry>
--->
 	<varlistentry>
 	  <term>Myrinet using GM</term>
 	  <listitem>
@@ -181,7 +152,7 @@
 	  <term>Ethernet using &ps; protocol p4sock</term>
 	  <listitem>
 	    <para>
-              This is the most effective and therefore prefered
+              This is the most effective and therefore preferred
               protocol for Ethernet based clusters. It is based on the
               &ps4; specific protocol p4sock.
 	    </para>
@@ -211,49 +182,6 @@
 
     </section>
 
-<!--
-    <para>
-      The high speed communication subsystem consists of different
-      constituents. Besides own firmware and device drivers running the
-      Myrinet-NIC there exist kernel extensions and high performance libraries
-      implementing the different interfaces provided by &ps;
-    </para>
-    <section>
-      <title>Firmware</title>
-      <para>
-	The &ps; firmware replaces the standard firmware coming from Myricom.
-	This replacement is made possible due to the open architecture of the
-	Myrinet communication hardware.
-      </para>
-      <para>
-	The &ps; firmware implements a secure protocols using a ACK/NACK
-	scheme. Therefore a custom Reliable Data Protocol (RDP) is used. It
-	creates point to point connections identified by unique connection IDs
-	negotiated during connection startup. Within the connection each
-	packet has a serial number ensuring that no packet will be lost.
-      </para>
-      <para>
-	Furthermore each packet contains a checksum. This checksum guarantees
-	that corrupted packets will be recognized and dumped. Due to the serial
-	number dumped or lost packets will be noticed and a resend is initiated
-	automatically.
-      </para>
-      <para>
-	Since the reliable protocol is implemented within the firmware, a huge
-	amount of overhead by means of the resend of packets can be avoided.
-	The payload data does not have to go through low level protocol layers
-	or the PCI bus again, since the error is detected within the NIC where
-	not yet acknowledged packets will be saved until the corresponding ACK
-	is received.
-      </para>
-      <para>
-	Due to close cooperation between sender and receiver within the
-	hardware layer extraordinary performances can be reached even if the
-	network is running in the region of saturation.
-      </para>
-    </section>
--->
-
     <section>
       <title>User level communication</title>
 
@@ -266,46 +194,8 @@
       </para>
       <para>
         However, this is not always possible. &ps4; uses this approach
-        for shared memory and Myrinet based communication.
+        for shared memory, Infiniband and Myrinet based communication.
       </para>
-<!--
-      <figure id="comm_approach">
-	<title>The &ps; approach for communication.</title>
-	<mediaobject>
-	  <imageobject>
-	    <imagedata width="80%" fileref="../images/approach.png"/>
-	  </imageobject>
-	  <imageobject>
-	    <imagedata scale="66" align="center"
-	      fileref="../images/approach.pdf"/>
-	  </imageobject>
-	</mediaobject>
-      </figure>
-
-      <para>
-	Another foundation of the outstanding communication performance of the
-	&ps; software is the use of user level communication. This concept
-	circumvents the operating system in order to do communication and fades
-	in the communication hardware into the application's address space.
-      </para>
-      <para>
-	All available optimized communication interfaces are implemented using
-	this concept<footnote>
-	  <para>This is not true for the TCP/IP over Myrinet interface, which
-	    resides within the kernel. Therefore the access to the
-	    communication hardware is done within the kernel's address space,
-	    too.
-	  </para>
-	</footnote>.
-	Therefore the administrative overhead induced by the communincation can
-	be reduced significantly. This results in small latencies and large
-	throughput.
-      </para>
-      <para>
-	The concept of user level communication is schematically depicted in
-	<xref linkend="comm_approach"/>.
-      </para>
--->
     </section>
 
     <section>
@@ -315,67 +205,7 @@
         &ps4; provides several communication interfaces, suitable for
         different levels of functionality and environments.
       </para>
-<!--
-      <figure id="comm_interface">
-	<title>The &ps; communication interfaces.</title>
-	<mediaobject>
-	  <imageobject>
-	    <imagedata width="80%" fileref="../images/interface.png"/>
-	  </imageobject>
-	  <imageobject>
-	    <imagedata scale="66" align="center"
-	      fileref="../images/interface.pdf"/>
-	  </imageobject>
-	</mediaobject>
-      </figure>
-
-      <para>
-	As already mentioned &ps; provides several communication
-	interfaces. These allow the use of high performance communication in
-	almost every application. Depending on the application one might choose
-	to use one of the low level interfaces, the MPI interface or the TCP/IP
-	interface. All the interfaces will be briefly discussed within this
-	section.
-      </para>
-      <para>
-	<xref linkend="comm_interface"/> illustrates the basic architecture of
-	the various layers of the &ps; communication subsystem. Furthermore an
-	overview of the available interfaces is given.
-      </para>
--->
       <variablelist>
-<!--
-	<varlistentry>
-	  <term><emphasis role="bold">PSHAL</emphasis></term>
-	  <listitem>
-	    <para>The <emphasis role="bold">PSHAL</emphasis> is the Hardware
-	      Abstraction Layer of the &ps; communication subsystem. The
-	      management of send- and receive buffers is done within this part
-	      of the communication interface.
-	    </para>
-	    <para>
-	      Its highlights are:
-	    </para>
-	    <itemizedlist>
-	      <listitem>
-		<para>Packets with up to 8 kByte payload.</para>
-	      </listitem>
-	      <listitem>
-		<para>Up to 256 Byte of control data within the packets.</para>
-	      </listitem>
-	      <listitem>
-		<para>Zero copy interface.</para>
-	      </listitem>
-	    </itemizedlist>
-	    <para>
-	      This communication level is usually not used by the end-user. Its
-	      main purpose is to enable user-level programs the access to the
-	      communication hardware.
-	    </para>
-	  </listitem>
-	</varlistentry>
--->
-
 	<varlistentry>
 	  <term><emphasis role="bold">PSPort</emphasis></term>
 	  <listitem>
@@ -416,29 +246,6 @@
 	  </listitem>
 	</varlistentry>
 
-<!--
-	<varlistentry>
-	  <term><emphasis role="bold">Socket</emphasis></term>
-	  <listitem>
-	    <para>This is a emulation layer used to enable TCP/IP over Myrinet.
-	      It uses the kernel's IP stack in order to provide full compliance
-	      with according RFCs describing the TCP/IP protocol.
-	    </para>
-	    <para>
-	      Features:
-	    </para>
-	    <itemizedlist>
-	      <listitem>
-		<para>Supports TCP, UDP, ICMP, ....</para>
-	      </listitem>
-	      <listitem>
-		<para>Fully transparent towards applications.</para>
-	      </listitem>
-	    </itemizedlist>
-	  </listitem>
-	</varlistentry>
--->
-
 	<varlistentry>
 	  <term><emphasis role="bold">TCP bypass</emphasis></term>
 	  <listitem>
@@ -461,7 +268,7 @@
               <para>
                 This feature of &ps; is still experimental in version
                 4.1.1. For details, please contact
-                <email>support@par-tec.com</email>.
+                <email>support@cluster-competence-center.com</email>.
               </para>
             </note>
 	  </listitem>
@@ -507,8 +314,8 @@
 	    <para>
 	      This interface is mainly a research project and thus not included
 	      within the standard distribution. The corresponding parts of &ps;
-	      may be obained by request from ParTec. Please contact
-	      <email>support@par-tec.com</email>.
+	      may be obtained by request from Cluster Competence Center. Please contact
+	      <email>support@cluster-competence-center.com</email>.
 	    </para>
 	    <para>
 	      The main features of the <emphasis role="bold">RMI</emphasis>
@@ -534,7 +341,7 @@
     <para>
       In addition to the pure communication tasks that build the primary
       requirements of parallel application running on a cluster, further
-      assistence of the runtime environment is needed in order to startup and
+      assistance of the runtime environment is needed in order to startup and
       control these applications.
     </para>
     <para>
@@ -566,7 +373,7 @@
 	    start parallel tasks. Load balancing has to be considered within
 	    this process. Further requirements to special resources only
 	    provided by some nodes have to be taken into account. The actual
-	    behaviour should be widely configurable.</para>
+	    behavior should be widely configurable.</para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -675,7 +482,7 @@
       <para>
 	Albeit the request of selected nodes is not necessary due to the virtual
 	node concept, it is still possible. This
-	behavior is quite usefull in the case where a virtual partitioning of
+	behavior is quite useful in the case where a virtual partitioning of
 	the cluster controlled by an external batch system is desired.
       </para>
       <para>
@@ -724,7 +531,7 @@
       <title>Process management</title>
       <para>
 	The management facility of &ps; offers a complete process management
-	system. &ps; recognices and controls dependencies
+	system. &ps; recognizes and controls dependencies
 	between processes building a parallel task on various nodes of the
 	cluster.
       </para>
@@ -812,7 +619,7 @@
       <para>
 	Beside the inherent management capabilities of &ps; it is prepared for
 	easy interaction with more evolved batch systems as e.g. LSF, OpenPBS
-	or PBSpro. This enables a &ps; cluster to get embedded into an existing
+	or PBS PRO. This enables a &ps; cluster to get embedded into an existing
 	environment or even to build a node within a Grid.
       </para>
       <para>

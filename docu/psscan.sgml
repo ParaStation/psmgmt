@@ -88,7 +88,7 @@
       In fact the map files contains much more (redundant) information. It list
       detailed descriptions of all nodes within the network. Each
       node-description embodies a list of all ports on this special network
-      nodes. Adjoined to every listed node is the remonte node and port it is
+      nodes. Adjoined to every listed node is the remote node and port it is
       connected to.
     </para>
     <para>

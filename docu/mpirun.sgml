@@ -82,7 +82,7 @@
 	  <para>The option <option>-dbg</option> may be used to select a
 	    debugger.  For example, <option>-dbg=gdb</option> invokes the
 	    <filename>mpirun_dbg.gdb</filename> script located in the
-	    <filename>/opt/parastion/mpich/bin</filename> directory. This
+	    <filename>/opt/parastation/mpich/bin</filename> directory. This
 	    script captures the correct arguments, invokes the gdb debugger,
 	    and starts the first process under gdb where possible.
 	  </para>
@@ -97,7 +97,7 @@
 	    <option>-dbg=mydebug</option>. All you need to do is write a script
 	    file, <filename>mpirun_dbg.mydebug</filename>, which follows the
 	    format of the included debugger scripts, and place it in the
-	    <filename>/opt/parastion/mpich/bin</filename> directory.
+	    <filename>/opt/parastation/mpich/bin</filename> directory.
 	  </para>
 	</listitem>
       </varlistentry>

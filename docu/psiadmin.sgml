@@ -68,7 +68,7 @@
         <listitem>
           <para>Try to start all daemons within the cluster. This option is
             equivalent to the execution of the <command>add</command> directive
-            straight after the startup of the administation tool.</para>
+            straight after the startup of the administration tool.</para>
         </listitem>
       </varlistentry>
       <varlistentry>
@@ -320,7 +320,7 @@
                 </cmdsynopsis>
               </term>
               <listitem>
-                <para>Show who grants exclusiv access on the selected node(s).
+                <para>Show who grants exclusive access on the selected node(s).
                 </para>
               </listitem>
             </varlistentry>
@@ -333,7 +333,7 @@
                 </cmdsynopsis>
               </term>
               <listitem>
-                <para>Show which group grants exclusiv access on the selected
+                <para>Show which group grants exclusive access on the selected
                   node(s).
                 </para>
               </listitem>
@@ -385,7 +385,7 @@
                 </cmdsynopsis>
               </term>
               <listitem>
-                <para>Show the retansmission timeout on the selected node(s).
+                <para>Show the retransmission timeout on the selected node(s).
                   This parameter is in units of microseconds.
                 </para>
                 <para>
@@ -553,7 +553,7 @@
 		<para>
 		  Since the master node does all the resource management within
 		  the cluster, only the value on this node actually steers the
-		  behaviour.
+		  behavior.
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -598,7 +598,7 @@
           </cmdsynopsis>
         </term>
         <listitem>
-          <para>Report various stati of the selected node(s). Depending on the
+          <para>Report various states of the selected node(s). Depending on the
             given argument, different information can be requested from the
             &ps; system. If no argument is given, the <option>node</option>
             information is retrieved.
@@ -638,7 +638,7 @@
 		<para>
 		  Up to <replaceable>count</replaceable> processes per node are
 		  displayed. If more processes are controlled by &ps; on this
-		  node, a short remark will tell the number of undisplayed
+		  node, a short remark will tell the number of not displayed
 		  processes. The default is to show 10 processes.
 		</para>
                 <para>
@@ -701,7 +701,7 @@
                         usually on par with the user ID of the parent process.
                       </para>
                       <para>
-                        Furthermore administrativ processes, i.e. <xref
+                        Furthermore administrative processes, i.e. <xref
                           linkend="psiadmin"/> processes connected to a local
                         daemon are marked with <quote>(A)</quote> after the
                         user ID.
@@ -738,7 +738,7 @@
 		<para>
 		  Up to <replaceable>count</replaceable> processes per node are
 		  displayed. If more processes are controlled by &ps; on this
-		  node, a short remark will tell the number of undisplayed
+		  node, a short remark will tell the number of not displayed
 		  processes. The default is to show 10 processes.
 		</para>
                 <para>
@@ -868,7 +868,7 @@
                     </term>
                     <listitem>
                       <para>The number of packets that left the receive buffer
-                        misalligned. This is usually due to data loss on the
+                        misaligned. This is usually due to data loss on the
                         line and thus in coincidence with
                         <command>CRC_ERR</command>.
                       </para>
@@ -1231,7 +1231,7 @@
           </term>
           <listitem>
             <para>Restart the &ps; system on all selected node(s). This
-              includes reinitialization of the communucation hardware. On the
+              includes re-initialization of the communication hardware. On the
               selected node(s) the &ps; daemon processes are forced to
               reinitialize the &ps; cluster. As a consequence <emphasis
                 role="bold">all</emphasis> processes using the selected
@@ -1298,7 +1298,7 @@
                   </cmdsynopsis>
                 </term>
                 <listitem>
-                  <para>Grant exclusiv access on the selected node(s) to the
+                  <para>Grant exclusive access on the selected node(s) to the
                     special user <option>name</option> or to any user.
                   </para>
                 </listitem>
@@ -1316,7 +1316,7 @@
                   </cmdsynopsis>
                 </term>
                 <listitem>
-                  <para>Grant exclusiv access on the selected node(s) to the
+                  <para>Grant exclusive access on the selected node(s) to the
                     special group <option>name</option> or to any group.
                   </para>
                 </listitem>
@@ -1381,7 +1381,7 @@
                   </cmdsynopsis>
                 </term>
                 <listitem>
-                  <para>Set the retansmission timeout to <option>time</option>
+                  <para>Set the retransmission timeout to <option>time</option>
                     microseconds on the selected node(s).
                   </para>
                   <para>
@@ -1426,7 +1426,7 @@
                     <xref linkend="MCP"/> waits until several buffers are freed
                     and sends accumulated host notify messages then.
                     <option>val</option> is the number of accumulated messages
-                    to be sent simultaniously.
+                    to be sent simultaneously.
                   </para>
                   <para>
                     This parameter can be set persistently via the
@@ -1609,13 +1609,13 @@
 		    the resources used by the suspended job are freed for other
 		    jobs (this is done, if the flag is set to 1) or they are
 		    kept occupied in order to preserve them exclusively for the
-		    time the job continues to run (this is the behavior as long
-		    as the flag has the value 0).
+		    time the job continues to run (this is the
+                    behavior as long as the flag has the value 0).
 		  </para>
 		  <para>
 		    Since the master node does all the resource management
 		    within the cluster, only the value on this node actually
-		    steers the behaviour.
+		    steers the behavior.
 		  </para>
                   <para>
                     This flag can be set persistently via the

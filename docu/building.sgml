@@ -105,9 +105,9 @@
 	But first <citerefentry>
 	  <refentrytitle>PSE_setHWType</refentrytitle>
 	  <manvolnum>3</manvolnum>
-	</citerefentry> has to be called in order to specifiy the type of
+	</citerefentry> has to be called in order to specify the type of
 	communication hardware the parallel task should utilize. This is a kind
-	of preconfiguration of the following function call in order to spawn
+	of pre-configuration of the following function call in order to spawn
 	further processes.
       </para>
       <para>

@@ -14,7 +14,7 @@
       </para>
       <para>
 	The Address Resolution Protocol (ARP) is used by the sending host in
-	order to resolv the Ethernet address of the target host from its IP
+	order to resolve the Ethernet address of the target host from its IP
 	address. It is described in the <ulink
 	  url="http://www.faqs.org/rfcs/rfc826.html">RFC 826</ulink>. The ARP
 	is part of the TCP/IP protocol family.
@@ -173,7 +173,7 @@
 	running on the cluster.
       </para>
       <para>
-        Sometimes also refered as <emphasis>job</emphasis>.
+        Sometimes also referred as <emphasis>job</emphasis>.
       </para>
     </glossdef>
   </glossentry>

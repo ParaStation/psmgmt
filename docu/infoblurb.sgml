@@ -3,20 +3,21 @@
   <year>2002</year>
   <year>2003</year>
   <year>2004</year>
-  <holder>ParTec AG</holder>
+  <holder>Cluster Competence Center GmbH</holder>
 </copyright>
 
 <legalnotice>
   <para>
-    All rights reserved. <emphasis>ParTec</emphasis> and &ps; are registered
-    trademarks of ParTec AG. The <emphasis>ParTec</emphasis> logo and the &ps;
-    logo are trademarks of ParTec AG. Linux is a registered trademark of Linus
-    Torvalds. All other marks and names mentioned herein may be trademarks of
-    their respective companies.
+    All rights reserved. <emphasis>ParTec</emphasis> and &ps; are
+    registered trademarks of Cluster Competence Center GmbH. The
+    <emphasis>ParTec</emphasis> logo and the &ps; logo are trademarks
+    of Cluster Competence Center GmbH. Linux is a registered trademark
+    of Linus Torvalds. All other marks and names mentioned herein may
+    be trademarks of their respective companies.
   </para>
 </legalnotice>
 
-<corpname>ParTec AG</corpname>
+<corpname>Cluster Competence Center GmbH</corpname>
 
 <authorgroup>
 <author>
@@ -32,19 +33,19 @@
 </authorgroup>
 
 <address>
-ParTec AG
+Cluster Competence Center GmbH
 <street>Possartstr. 20</street>
 <city>D-81679 M&uuml;nchen</city>
 <phone>Phone +49-89-99809-0</phone>
 <fax>Fax +49-89-99809-555</fax>
 
-http://www.par-tec.com
-<email>info@par-tec.com</email>
+http://www.cluster-compentence-center.com
+<email>info@cluster-compentence-center.com</email>
 </address>
 
 <mediaobject>
   <imageobject>
-    <imagedata scale="15" align="center" fileref="../images/ParTec.png"/>
+    <imagedata scale="75" align="center" fileref="../images/CCC-Logo-5new.png"/>
   </imageobject>
 </mediaobject>
 
@@ -52,8 +53,8 @@ http://www.par-tec.com
   <para>
     Please note that you will always find the most up-to-date version of this
     technical documentation on our Web site at <ulink
-      url="http://par-tec.com/service.php"
-      type="dontshow">http://www.par-tec.com/download.php</ulink>.
+      url="http://cluster-competence-center.com/support.php"
+      type="dontshow">http://www.cluster-competence-center.com/support.php</ulink>.
   </para>
   <para>
   <blockquote>

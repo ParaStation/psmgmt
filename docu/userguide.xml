@@ -33,8 +33,10 @@
       <imageobject>
 	<imagedata scale="38" fileref="../images/ParaStation.png"/>
       </imageobject>
-    </inlinemediaobject>  Users Guide</title>
+    </inlinemediaobject> Users Guide
+  </title>
   <titleabbrev>&ps;  Users Guide</titleabbrev>
+
 
   <bookinfo>
     &infoblurb;
@@ -95,7 +97,7 @@
 
   <reference id="references_user">
     <referenceinfo>
-<!--      <title>ParTec</title>		-->
+<!--      <title>Cluster Competence Center</title>		-->
       <productname>ParaStation</productname>
       <date>April 2004</date>
     </referenceinfo>

@@ -7,16 +7,31 @@
       url="http://www.unix.mcs.anl.gov/mpi/mpich">MPIch</ulink> coming with
     &ps;. Within this chapter it is assumed that this version of MPI is
     installed in the default location, i.e.
-    <filename>/opt/parastion/mpich</filename>. If this is not the case please
+    <filename>/opt/parastation/mpich</filename>. If this is not the case please
     refer to the section <quote>Installation of MPIch</quote> within the <ulink
-      url="../adminguide/index.html" type="dontshow">&psag; 
-      </ulink> in order to setup things correctly.
+    url="../adminguide/index.html" type="dontshow">&psag; 
+    </ulink> in order to setup things correctly.
   </para>
   <para>
     Furthermore it is assumed that the directory containing all MPIch
     executables, which is <filename>/opt/parastation/mpich/bin</filename> by
     default, is contained in the users <envar>PATH</envar> environment
     variable.
+  </para>
+  <para>
+<!--    MOD:  -->
+    There are different versions of the &ps; MPI environment available,
+    depending on the hardware architecture and supported compilers. 
+    For IA32, versions for
+    GNU, Intel and Portland Group compilers are available. Likewise, for
+    AMD64 (AMD Opteron) versions for the GCC and Pathscale EKO
+    compiler suite are available.
+    The
+    libraries support all available languages and language options for
+    the selected compiler, eg. Fortran, Fortran90, C or C++.  The
+    different versions of the MPI library can be installed in
+    parallel, thus it is possible to compile and run applications
+    using different compilers at the same node.
   </para>
   <para>
     This chapter is not intended to be a tutorial on how to use the MPI message
@@ -28,6 +43,11 @@
   </para>
   <section>
     <title>Building MPI applications</title>
+<!--
+    <para>
+      MOD: TODO: mention Pathscale EKO compiler suite
+    </para>
+-->
     <para>
       Within this section it is assumed to have a working C source code stored
       in <filename>prog.c</filename>, which uses MPI to send messages between
@@ -95,7 +115,7 @@
       manual pages coming with MPIch. The only exception is
       <envar>MPID_PSP_MAXSMALLMSG</envar>. This will steer the communication
       layer used by &ps;, which is not part of the standard MPIch
-      distribution but an extension provided by ParTec.
+      distribution but an extension provided by Cluster Competence Center.
     </para>
     <para>
       The <command>mpicc</command> wrapper script, calling the actual C
@@ -137,7 +157,8 @@
       </varlistentry>
     </variablelist>
     <para>
-      The same mechanism works for the C++ compiler used by the correspondig
+      The same mechanism works for the C++ compiler used by the
+      corresponding
       <command>mpiCC</command> wrapper script:
     </para>
     <variablelist>
@@ -189,9 +210,12 @@
 	    An alternative version of the wrapper script called
 	    <command>mpif77-ifc</command> will make use of the <ulink
 	      url="http://www.intel.com/software/products/compilers/flin/">ifc</ulink> 
-	    Fortran compiler provided by Intel. On the Alpha platform the
+	    Fortran compiler provided by Intel. 
+<!--
+            On the Alpha platform the
 	    Compaq Fortran compiler <ulink
 	      url="http://www.compaq.com/fortran/linux/">fort</ulink> is used.
+-->
 	    Use this variable to overwrite the default setting.
 	  </para>
 	  <para>
@@ -211,10 +235,13 @@
 	    Fortran 77 compiler <ulink url="http://gcc.gnu.org">g77</ulink> or
 	    the Intel compiler <ulink
 	      url="http://www.intel.com/software/products/compilers/flin/">ifc</ulink> 
-	    within the alternative <command>mpif77-ifc</command> script. On the
+	    within the alternative <command>mpif77-ifc</command> script. 
+<!--
+            On the
 	    Alpha platform the Compaq <ulink
 	      url="http://www.compaq.com/fortran/linux/">fort</ulink> Fortran
 	    compiler is used by default.
+-->
 	  </para>
 	  <para>
 	    In order to use a linker different from the default, it has to be
@@ -248,8 +275,10 @@
 	    the code. The default compiler on the Intel and AMD platform is the
 	    Intel Fortran 90 compiler <ulink
 	      url="http://www.intel.com/software/products/compilers/flin/">ifc</ulink>. 
+<!--
 	    On the Alpha platform the Compaq Fortran compiler <ulink
 	      url="http://www.compaq.com/fortran/linux/">fort</ulink> is used.
+-->
 	    This variable can be used to overwrite the default setting.
 	  </para>
 	  <para>
@@ -266,10 +295,13 @@
 	  <para>This will set the actual linker used to link Fortran 90 code.
 	    On Intel and AMD the Intel Fortran compiler <ulink
 	      url="http://www.intel.com/software/products/compilers/flin/">ifc</ulink> 
-	    is used as the default linker. On Alpha platforms the Compaq
+	    is used as the default linker. 
+<!--
+            On Alpha platforms the Compaq
 	    Fortran compiler <ulink
 	      url="http://www.compaq.com/fortran/linux/">fort</ulink> is
 	    utilized in order to link.
+-->
 	  </para>
 	  <para>
 	    In order to use a linker different from the default, it has to be

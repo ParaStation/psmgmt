@@ -21,6 +21,12 @@
 
   <refsect1>
     <title>Description</title>
+    <note>
+      <para>
+<!--        MOD:  -->
+        This program is no longer required for &ps; version 4.1.
+      </para>
+    </note>
     <para>
       The &ps; license daemon sends so called multicast license pings at
       regular intervals to the &ps; daemons <xref linkend="psid"/>. If a daemon

@@ -3,6 +3,8 @@
   ne: ?? initial version
   fg: 27.01.04	reworked: no more PSFE, no longer decribing PS3
 		what's missing: concept, picture...
+  fg: 04.10.04  ParTec -> Cluster Competence Center GmbH
+                links to par-tec.com replaced (or removed)
 -->
 <title>Introduction</title>
 <section>
@@ -100,7 +102,7 @@
 <section>
   <title>The history of &ps;</title>
   <para>
-    The fundamentials of the &ps; software were laid in 1995, when the &ps;
+    The fundamentals of the &ps; software were laid in 1995, when the &ps;
     communication hardware and software system was presented. It was developed
     at the chair of Professor Tichy at computer science department of Karlsruhe
     University.
@@ -112,8 +114,8 @@
     development of &ps;2 still took place at the University of Karlsruhe.
   </para>
   <para>
-    &ps; became commercial in 1999 when <ulink
-      url="http://www.par-tec.com">ParTec AG</ulink> was founded. This spin-off
+    &ps; became commercial in 1999 when 
+    ParTec AG was founded. This spin-off
     from the University of Karlsruhe now owns all rights and patents connected
     with the &ps; software. ParTec promotes the further development and
     improvement of the software. This includes the support of a broader basis
@@ -144,6 +146,20 @@
     platform independent. With this version of the software even Gigabit
     Ethernet became a serious alternative as a cluster interconnect due to the
     throughput and latency that could be achieved.
+  </para>
+  <para>
+    <!-- fg: TODO: ok? -->
+    In the middle of 2004, all rights on &ps; where transfered from
+    ParTec AG to the Cluster Competence Center
+    GmbH. This new company takes a much more service-oriented approach
+    to the customer.
+    The main goal is to deliver integrated and complete software
+    stacks for LINUX-based compute clusters by selecting
+    state-of-the-art software components and driving software
+    development efforts in areas where real added value can be
+    provided. 
+    The Cluster Competence Center GmbH continues to develop and support the &ps;
+    product as an important part of it's portfolio.
   </para>
 </section>
 

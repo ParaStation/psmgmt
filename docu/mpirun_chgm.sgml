@@ -92,7 +92,7 @@
 	  </para>
 	  <para>
 	    <replaceable>nodelist</replaceable> is a single character string
-	    containig a comma separated list of &ps; IDs. Depending on the
+	    containing a comma separated list of &ps; IDs. Depending on the
 	    existence of the environment variable <envar>PSI_NODES_SORT</envar>
 	    and the presence of the <option>-sort</option> option, the order of
 	    the nodes within <replaceable>nodelist</replaceable> might be
@@ -170,7 +170,7 @@
 	  <option>-sort <replaceable>mode</replaceable></option>
 	</term>
 	<listitem>
-	  <para>Steer the sorting criterium which is used in order to bring the
+	  <para>Steer the sorting criterion which is used in order to bring the
 	    nodes within a partition in an appropriate order. This order will
 	    be used to spawn remote processes. The following values of
 	    <replaceable>mode</replaceable> are recognized:
@@ -193,7 +193,7 @@
                 </para>
                 <para>
                   To be more specific, the load average over the last minute is
-		  used as the sorting criterium.
+		  used as the sorting criterion.
                 </para>
 	      </listitem>
 	    </varlistentry>
@@ -234,7 +234,7 @@
         <listitem>
           <para>Run all processes on the master node.</para>
 	  <para>
-	    Keep in mind that the masternode ist not necessarily the local
+	    Keep in mind that the masternode is not necessarily the local
 	    machine but, depending on the &ps; configuration and the options
 	    and environment variables given, may be any machine within the &ps;
 	    cluster. Nevertheless all processes building the parallel MPIch/GM
@@ -383,7 +383,7 @@
 	  <option>--gm-eager=<replaceable>size</replaceable></option>
 	</term>
 	<listitem>
-	  <para>Specifies the Eager/Rendez-vous protocol threshold size.</para>
+	  <para>Specifies the eager/rendezvous protocol threshold size.</para>
 	  <para>
 	    As within any state of the art communication library MPIch/GM
 	    implements two different protocols used depending on the message

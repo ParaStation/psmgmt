@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.20 2004/09/21 18:02:16 eicker Exp $
+# $Id: Makefile.in,v 1.21 2004/10/13 14:00:57 geier Exp $
 #
 # @author
 #         Norbert Eicker <eicker@par-tec.de>
@@ -38,7 +38,8 @@ ADMINMANS = $(ADMINMAN1) $(ADMINMAN5) $(ADMINMAN8)
 
 ADMINDEPS = infoblurb.sgml intro.sgml intro_admin.sgml
 ADMINDEPS += install.sgml config.sgml pvfs.sgml quick_install.sgml
-ADMINDEPS += glossary.sgml
+ADMINDEPS += glossary.sgml tech_overview.sgml tech_details.sgml 
+ADMINDEPS += troubleshooting.sgml
 ADMINDEPS += $(patsubst man1/%.1,%.sgml,$(ADMINMAN1))
 ADMINDEPS += $(patsubst man5/%.5,%.sgml,$(ADMINMAN5))
 ADMINDEPS += $(patsubst man8/%.8,%.sgml,$(ADMINMAN8)) boolargs.sgml

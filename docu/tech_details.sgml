@@ -7,45 +7,111 @@
   </para>
 
   <section id="techdetails_psportlib">
+<!--    MOD:  -->
     <title>&ps4; <filename>psport4</filename> communication library</title>
     <para>
-      TODO.
+      The &ps; communication library <filename>libpsport4</filename>
+      offers secure and reliable end-to-end connections. Based on a
+      port concept, it hides the actual transport and communication
+      characteristics to the application and higher level libraries.
+    </para>
+    <para>
+      The <filename>psport4</filename> library supports a wide range
+      of interconnects and protocols for data transfers:
+    </para>
+    <itemizedlist>
+      <listitem>
+        <para>
+          <filename>TCP:</filename> uses standard TCP/IP sockets to
+          transfer data.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          <filename>P4sock:</filename> uses an optimized network
+          protocol for Ethernet (see below).
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          <filename>Infiniband:</filename> based on a vapi kernel
+          layer, typically provided by the hardware vendor, the psport4
+          library uses RDMA over Infiniband to actually transfer data.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          <filename>Myrinet:</filename> using the GM kernel level
+          module, the psport4 library is able to use Myrinet for
+          transfer data.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          <filename>Shared Memory:</filename> for communication within
+          a SMP node, the psport library uses shared memory.
+        </para>
+      </listitem>
+    </itemizedlist>
+    <para>
+      The interconnect and protocol used between two distinct
+      processes is choosen while opening the connection between those
+      processes. Depending on available hardware, configuration (see
+      <xref linkend="config_ps"/>) and current environment variables
+      (see <xref linkend="techdetails_compath"/>), the library
+      automatically selects the fastest available communication
+      method.
+    </para>
+    <para>
+      The library routines for sending and receiving data handle
+      arbitrary large buffers.  If necessary, the buffers will be
+      fragmented and reassembled to meet the underlying transport
+      requirements.
     </para>
   </section>
 
   <section id="techdetails_p4sock">
     <title>&ps4; protocol <emphasis>p4sock</emphasis></title>
     <para>
-      &ps4; provides its own kernel level communication protocol,
-      called <emphasis>p4sock</emphasis>.  This protcol is designed
-      for extremly fast and reliable communication within a closed and
-      homogeneous compute cluster environment. Currently, all kinds of
-      Ethernet based interconnects are supported.
+      &ps4; provides its own communication protocol for Ethernet,
+      called <emphasis>p4sock</emphasis>.  This protocol is designed
+      for extremely fast and reliable communication within a closed and
+      homogeneous compute cluster environment. 
+<!--
       <footnote>
         <para>
           Support for more interconnects is currently under
-          development, especially InfiniBand.
+          development, especially Infiniband.
         </para>
       </footnote>
+-->
     </para>
+    <para>
+<!--      MOD:  -->
+      The protocol implements a reliable, connection-oriented
+      communication layer, especially designed for very low overhead.
+      Therefore, it delivers very low latencies.
+    </para>
+<!--
     <para>
       This protocol is only one communication path, supported by the
       &ps4; port library <emphasis>psport4.</emphasis> For more
       details refer to <xref linkend="techdetails_psportlib"/>.
     </para>
+-->
     <para>
       The <emphasis>p4sock</emphasis> protocol is encapsulated within
       the kernel module <emphasis>p4sock.o</emphasis>. This module is
-      loaded whenever the &ps4; daemon <xref linkend="psid"/> starts
+      loaded on system startup or whenever the &ps4; daemon <xref linkend="psid"/> starts
       up and the <emphasis>p4sock</emphasis> protocol is enabled
       within the configuration file <xref linkend="parastation_conf"/>.
     </para>
     <para>
-      The <emphasis>p4sock.o</emphasis> module inserts a number of new
+      The <emphasis>p4sock.o</emphasis> module inserts a number of 
       entries within the <filename>/proc</filename> filesystem.  All
       &ps4; entries are located within the subdirectory
       <filename>/proc/sys/ps4</filename>. Three different
-      subdirectories listed below are available.
+      subdirectories, listed below, are available.
     </para>
     <para>
       To read a value, eg. just type
@@ -61,13 +127,116 @@
     </para>
 
     <section>
-      <title>directory <filename>/proc/sys/ps4/state</filename></title>
+<!--    MOD:  -->
+      <title>Directory <filename> /proc/sys/ps4/state</filename></title>
       <para>
         Within this <filename>state</filename> directory, various
         entries showing protocol counters are accessible. All this
-        entries are read only!
+        entries, except <filename>polling</filename>, are read only!
       </para>
       <para>
+        <itemizedlist>
+          <listitem>
+            <para>
+              <filename>HZ:</filename> reads the number of timer
+              interrupts per second for this kernel ("jiffies").
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              <filename>connections:</filename> reads the current number of open
+              connections.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              <filename>polling:</filename> returns the current value
+              for the polling flag: 0 = never poll, 1 = poll if
+              otherwise idle (number of runable processes &lt; number
+              of CPUs), 2 = always poll. Writing this value will
+              immediately change the polling strategy.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              <filename>recv_net_ack:</filename> number of received
+              ACKs.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              <filename>recv_net_ctrl:</filename> number of received
+              control packets (ACK, NACK, SYN, SYNACK, ...).
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              <filename>recv_net_data:</filename> number of received
+              data packets.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              <filename>recv_net_nack:</filename> number of received
+              NACKs. 
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              <filename>recv_user:</filename> number of packets
+              delivered to application buffers.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              <filename>send_net_ack:</filename> number of sent ACKs.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              <filename>send_net_ctrl:</filename> number of sent
+              control packets.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              <filename>send_net_data:</filename> number of sent data
+              packets.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              <filename>send_net_nack:</filename> number of sent
+              NACKs.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              <filename>send_user:</filename> number of packets sent
+              by the application.
+            </para>
+          </listitem>
+
+          <listitem>
+            <para>
+              <filename>sockets:</filename> number of open sockets
+              connecting to the &ps4; protocol module.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              <filename>timer_ack:</filename> number of expired
+              delayed ACK timers.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              <filename>timer_resend:</filename> number of expired
+              resend timers. 
+            </para>
+          </listitem>
+        </itemizedlist>
+<!--
         <itemizedlist>
           <listitem>
             <para>
@@ -143,16 +312,17 @@
             </para>
           </listitem>
         </itemizedlist>
+-->
       </para>
     </section>
 
     <section>
-      <title>directory <filename>/proc/sys/ps4/ether</filename></title>
+      <title>Directory <filename>/proc/sys/ps4/ether</filename></title>
       <para>
-        Within this directory, all Ethernet related counters and
-        values for the &ps4; <emphasis>p4sock</emphasis> protocol are
-        grouped. All this entries can be read and written, the
-        new values will be used immediately.
+        Within this directory, all Ethernet related parameters for the
+        &ps4; <emphasis>p4sock</emphasis> protocol are grouped. All
+        this entries can be read and written, newly written values will be
+        used immediately.
       </para>
       <para>
         <itemizedlist>
@@ -168,6 +338,11 @@
                   there are kernel versions available, eg. for newer
                   SuSE Linux versions, which include patches to change
                   this to a much higher value! 
+                </para>
+                <para>
+                  The resolution of the timer interrupt can be
+                  evaluated by reading
+                  <filename>/proc/sys/ps4/state/HZ</filename>.
                 </para>
                 </footnote>
               for ACK messages. If no message is sent within this time
@@ -195,7 +370,7 @@
             <para>
               <filename>MaxMTU:</filename> maximum packet size used
               for network packets. For sending packets, the minimum of
-              <filename>MaxMTU</filename> und service specific MTU
+              <filename>MaxMTU</filename> and service specific MTU
               will be used.
             </para>
           </listitem>
@@ -229,7 +404,7 @@
     </section>
 
     <section>
-      <title>directory <filename>/proc/sys/ps4/local</filename></title>
+      <title>Directory <filename>/proc/sys/ps4/local</filename></title>
       <para>
         Currently, there are no entries defined for this directory.
       </para>
@@ -425,7 +600,7 @@
     <para>
       Beginning with version 4.1, &ps4; offers a feature called "TCP
       bypass", enabling applications based on TCP to use the efficient
-      <emphasis>p4sock</emphasis> protcol.  The data will be
+      <emphasis>p4sock</emphasis> protocol.  The data will be
       redirected within the kernel to the
       <emphasis>p4sock</emphasis>
       protocol. No modifications to the application are necessary!
@@ -446,8 +621,8 @@
     <note>
       <para>
       Daemons opening TCP sockets and listening for connections, eg.
-      <command>inetd</command>, must be restartet after loading the
-      TCP bypass module.
+      <command>inetd</command>, must be restarted after loading and
+      configuring the TCP bypass module.
       </para>
     </note>
     <para>
@@ -498,28 +673,39 @@
           </para>
         </listitem>
       </varlistentry>
-<!-- TODO: fg: GM
+      <varlistentry>
+        <term>
+          <envar>PSP_MVAPI</envar>
+        </term>
+        <listitem>
+          <para>
+<!--            MOD:  -->
+            Don't use Infiniband vapi for communication.
+          </para>
+        </listitem>
+      </varlistentry>
       <varlistentry>
         <term>
           <envar>PSP_GM</envar>
         </term>
         <listitem>
           <para>
+<!--            MOD:  -->
             Don't use GM (Myrinet) for communication.
           </para>
         </listitem>
       </varlistentry>
--->
     </variablelist>
     <para>
       To disable the particular transport, the corresponding variable
       must be set to 0, to enable a transport, the variable must be
-      set to 1.
+      set to 1 or the variable must not be defined.
     </para>
     <para>
+<!--      MOD:  -->
       It is not possible to dynamically disable TCP as a
       communication path. TCP, if configured, is always used as a
-      "last resort" for communication.
+      last resort for communication.
     </para>
   </section>
   <!-- ============== Authentification ============== -->
@@ -555,7 +741,7 @@
       processes will have identical user and group IDs on all nodes.
     </para>
     <para>
-      A homogeneous user ID space is streched across the entire
+      A homogeneous user ID space is stretched across the entire
       cluster. 
     </para>
   </section>
@@ -599,15 +785,32 @@
   <!-- ============== nodes and cpus ============== -->
   <section id="techdetails_nodescpus">
     <title>Nodes and CPUs</title>
-      <!-- TODO: fg: describe more precisely -->
-      <para>
-        Also &ps; by default tries to use a dedicated CPU per compute
-        process, there is currently no way to bind a process to a
-        particular CPU within Linux. Therefore, there is no guarantee,
-        that each process will use its own CPU. But due to the nature
-        of parallel tasks, the operating system scheduler will
-        typically distribute each process to its own CPU.
-      </para>
+    <!-- TODO: fg: describe more precisely -->
+    <para>
+<!--      MOD:  -->
+      Though &ps; by default tries to use a dedicated CPU per compute
+      process, there is currently no way to bind a process to a
+      particular CPU. Therefore, there is no guarantee,
+      that each process will use its own CPU. But due to the nature
+      of parallel tasks, the operating system scheduler will
+      typically distribute each process to its own CPU.
+    </para>
+    <para>
+      Care must be taken if the hardware is able to simulate virtual
+      CPUs, eg. Intel Xeon CPUs using Hyperthreading. This is
+      currently not detected by &ps; and may lead to "overbook" the
+      number of physical CPUs with processes. Use
+    </para>
+    <programlisting>  psiadmin -c "s hw"</programlisting>
+    <para>
+      to show the number of available (logical) CPUs per node.
+    </para>
+    <para>
+<!--      MOD:  -->
+      Please note, it's possible to spawn more processes than CPUs
+      are available on a node ("overbooking"). See &psug; for
+      details.
+    </para>
   </section>
   <!-- ============== AFS ============== -->
   <section id="techdetails_AFS">
@@ -622,8 +825,9 @@
     </para>
     <programlisting> . gettoken</programlisting>
     <para>
-      will create an environment variable AFS_TOKEN containing an
-      encoded token. This variable must be added to the list of
+      will create an environment variable
+      <filename>AFS_TOKEN</filename> containing an encoded access
+      token for AFS. This variable must be added to the list of
       exported variables
     </para>
     <programlisting>  PSI_EXPORTS="AFS_TOKEN,$PSI_EXPORTS"</programlisting>
@@ -634,14 +838,14 @@
     <para>
       must be set. This will call the script
       <filename>env2tok</filename> before running the actual program
-      on each node. <filename>env2tok</filename> itself will decode
+      on each node. <filename>Env2tok</filename> itself will decode
       the token and will setup the AFS environment.
     </para>
     <note>
       <para>
         The commands <filename>SetToken</filename> and
-        <filename>GetToken</filename> must be available on each node,
-        which are part of the AFS package. Also, the commands
+        <filename>GetToken</filename>, which are part of the AFS
+        package, must be available on each node.  Also, the commands
         <filename>uuencode</filename> and
         <filename>uudecode</filename> must be installed.
       </para>
@@ -670,7 +874,7 @@
     <para>
       &ps; can be easily integrated with batch queuing  and scheduling
       systems.  In this case, the queuing system will decide, where
-      (and when) to run a parallel task, &ps; will then start, monitor
+      (and when) to run a parallel task. &ps; will then start, monitor
       and terminate the task. In case of higher priorized jobs, the
       batch system may also suspend a task using the &ps; signal
       forwarding.
@@ -702,19 +906,18 @@
     </para>
 
     <section id="config_integrationPBSPro">
-      <title>Integration with PBS&nbsp;Pro</title>
+      <title>Integration with PBS&nbsp;PRO</title>
       <para>
-        Parallel jobs started by PBS&nbsp;Pro using the &ps;
+        Parallel jobs started by PBS&nbsp;PRO using the &ps;
         <filename>mpirun</filename> command
         will be automatically recognized. Due to the environment
-        variable <envar>PBS_NODEFILE</envar>, defined by PBS&nbsp;Pro, &ps;
+        variable <envar>PBS_NODEFILE</envar>, defined by PBS&nbsp;PRO, &ps;
         will automatically setup the <envar>PSI_HOSTFILE</envar> to
-        <envar>PBS_NODEFILE</envar> and will also setup
-        <envar>PSI_NODES_SORT</envar> no "none".
+        <envar>PBS_NODEFILE</envar>.
       </para>
       <para>
         Therefore, &ps; will use the (unsorted) hostfile supplied by
-        PBS&nbsp;Pro to startup the parallel task.
+        PBS&nbsp;PRO to startup the parallel task.
       </para>
     </section>
     <section id="config_integrationOpenPBS">
@@ -726,14 +929,17 @@
     <section id="config_integrationLSF">
       <title>Integration with LSF</title>
       <para>
-        As described in the section <xref
+        Similar to <xref
         linkend="config_integrationPBSPro"/>, &ps; will also recognize
         the variable <envar>LSB_HOSTS</envar>, provided by LSF.
         This variable holds a list of nodes for the parallel task. It
         is copied to the &ps; variable <envar>PSI_HOSTS</envar>,
-        consequently it will be used for starting up the task. In
+        consequently it will be used for starting up the task. 
+<!--
+        In
         addition, the variable <envar>PSI_NODES_SORT</envar> will be
-        set to "none", thus no sorting to this list will occure.
+        set to "none", thus no sorting to this list will occur.
+-->
       </para>
     </section>
   </section>
@@ -741,29 +947,40 @@
   <!-- ============== spare nodes ============== -->
   <section id="techdetails_spareNodes">
     <title>Integrating spare nodes</title>
-      <!-- TODO: fg: describe more precisely -->
+    <!-- TODO: fg: describe more precisely -->
+    <!-- TODO: fg: does not apply if a node list is provided! -->
+    <para>
+      &ps; is able and will in fact automatically use stand by or
+      spare nodes, provided that this nodes are installed and
+      connected to the cluster. 
+      This kind of nodes can be added to the cluster
+      like any regular compute node. &ps; will use this nodes like
+      any other node. Consequently, this node type will be not only
+      used in "hot standby", in fact it is a real part of the
+      cluster. 
+    </para>
+    <para>
+      In case one of the nodes fails, this node will be ignored for
+      future tasks without administrator intervention due to the
+      load balancing and node monitoring facilities of &ps;. 
+    </para>
+    <para>
+      As a consequence, spare nodes will not only increase the
+      overall availablity, but can also be used to increase the
+      compute power of the entire cluster.
+<!--
+      <emphasis>Run with (100+x)% compute
+      power and in case of a failure, still 100% are left.</emphasis>
+-->
+    </para>
+    <note>
       <para>
-        &ps; is able and will in fact automatically use stand by or
-        spare nodes, provided that this nodes are installed and
-        connected to the cluster. 
-        This kind of nodes can be added to the cluster
-        like any regular compute node. &ps; will use this nodes like
-        any other node. Consequently, this node type will be not only
-        used in "hot standby", in fact it is a real part of the
-        cluster. 
+<!--        MOD:  -->
+        If a batch system is used which controls the placement of
+        processes by itself, this automatic usage of spare nodes will
+        not take place unless enforced by the batch system.
       </para>
-      <para>
-        In case one of the nodes fails, this node will be ignored for
-        future tasks without administrator intervention due to the
-        load balancing and node monitoring facilites of &ps;. 
-      </para>
-      <para>
-        As a consequence, spare nodes will not only increase the
-        overall availablity, but can also be used to increase the
-        compute power of the entire cluster.
-        <emphasis>Run with (100+x)% compute
-        power and in case of a failure, still 100% are left.</emphasis>
-      </para>
+    </note>
   </section>
 </chapter>
 

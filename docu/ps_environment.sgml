@@ -102,7 +102,7 @@
 	<term><envar>PSI_HOSTS</envar><replaceable> hostname</replaceable>
 	  <optional> <replaceable>hostname</replaceable></optional>...</term>
 	<listitem>
-	  <para>Space separted list of hostnames on which new processes should
+	  <para>Space separated list of hostnames on which new processes should
 	    be spawned on. Similar to <envar>PSI_NODES</envar>, but with
 	    hostnames instead of logical ParaStation node numbers. If
 	    <envar>PSI_NODES</envar> is set too, it is dominant over
@@ -144,13 +144,13 @@
 	  <replaceable> mode</replaceable></term>
 	<listitem>
 <!-- fg:
-	  <para>This variable steers the sorting criterium which is used to
+	  <para>This variable steers the sorting criterion which is used to
 	    bring the nodes building a partition in an appropriate order. This
 	    order will be used to spawn remote processes. The following values
 	    of <replaceable>mode</replaceable> are recognized:
 	  </para>
 -->
-	  <para>This variable defines the sorting criterium used to
+	  <para>This variable defines the sorting criterion used to
 	    reorder the nodes building a virtual partition. This
 	    order will be used to spawn remote processes. The following values
 	    of <replaceable>mode</replaceable> are recognized:
@@ -182,7 +182,7 @@
 		</para>
 		<para>
 		  To be more specific, the load average over the last minute is
-		  used as the sorting criterium, i.e. this option is equivalent
+		  used as the sorting criterion, i.e. this option is equivalent
 		  to <envar>LOAD_1</envar>.
 		</para>
 	      </listitem>

@@ -9,12 +9,13 @@
     <listitem>
       <para><emphasis role="bold">Get the files</emphasis></para>
       <para>
-	Get the required files from the <ulink
-	  url="http://www.par-tec.com">ParTec homepage</ulink>. You may find
-	various versions of &ps; and related software within the <ulink
-	  url="http://par-tec.com/en/download.php">download
-	  section</ulink>. Remember: a license is necessary to run
-          &ps;.
+        Get the required files from the <ulink
+        url="http://www.parastation.com">&ps;
+        homepage</ulink>. You may find various
+        <!-- fg: TODO -->
+        versions of &ps; and related software within the <ulink
+        url="http://www.parastation.com/download.php">download
+        section</ulink>. Remember: a license is necessary to run &ps;.
       </para>
 <!--      
       <para>

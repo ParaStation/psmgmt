@@ -50,15 +50,20 @@
 	<imagedata scale="38" fileref="../images/ParaStation.png"/>
       </imageobject>
     </inlinemediaobject> Administrators Guide</title>
-  <titleabbrev>&ps; Administrators Guide (Draft)</titleabbrev>
+  <titleabbrev>&ps; Administrators Guide</titleabbrev>
 
   <bookinfo>
     &infoblurb;
 
-    <releaseinfo>Release 1.2 (Draft)</releaseinfo>
-    <pubdate>Apr 2004</pubdate>
+    <releaseinfo>Release 1.3</releaseinfo>
+    <pubdate>Oct 2004</pubdate>
 
     <revhistory>
+      <revision>
+	<revnumber>1.3</revnumber>
+	<date>15 Oct 2004</date>
+	<revremark>&ps4; V4.1.4</revremark>
+      </revision>
       <revision>
 	<revnumber>1.2 (Draft)</revnumber>
 	<date>15 Apr 2004</date>
@@ -107,6 +112,15 @@
       <date>April 2004</date>
     </referenceinfo>
     <title>Reference Pages</title>
+    <partintro>
+      <abstract>
+        <para>
+          Within this appendix, all reference pages related to &ps;
+          administration tasks are listed. For pages describing user
+          related commands and information, refer to the &psug;.
+        </para>
+      </abstract>
+    </partintro>
     &mlisten;
     &parastationconf;
     <!-- &p4stat; -->

@@ -2,15 +2,15 @@
   <title>Strategy for spawning processes within &ps;</title>
 
   <para>
-    The spawing of processes for a parallel task within &ps; can be
+    The spawning of processes for a parallel task within &ps; can be
     biased by various environment variables. Setting this variables is
-    optional, if not set, the default behaviour will make sure, that
+    optional, if not set, the default behavior will make sure, that
     the usability of the cluster will not be jeopardized.
   </para>
   <para>
     As long as overbooking of CPUs is not explicitely required, the
     algorithm will ensure, that only one process per CPU is spawned.
-    This behaviour ensures that parallel applications will influence
+    This behavior ensures that parallel applications will influence
     each other as minimal as possible.
   </para>
   <para>
@@ -90,10 +90,10 @@
     </variablelist>
 
     <para>
-      A particular node can be listet several times. Depending on
+      A particular node can be listed several times. Depending on
       further environment variables, especially
       <envar>PSI_NODES_SORT</envar>, this node will be used more than
-      once. This behaviour is important for nodes housing more than
+      once. This behavior is important for nodes housing more than
       one CPU.
     </para>
     <para>
@@ -206,7 +206,7 @@
           PSI_OVERBOOK
 	</para>
 	<para>
-          Normaly, only as much processes can be run on a node as many
+          Normally, only as much processes can be run on a node as many
           CPUs are available. If this environment variable is set,
           this limitation is no longer considered and any number of
           processes can be run on this node.
@@ -219,7 +219,7 @@
     </itemizedlist>
     <para>
       For both variables, it is sufficient to be defined. The actual
-      value will not be recorgnized.
+      value will not be recognized.
     </para>
   </section>
 
@@ -317,7 +317,7 @@
       </listitem>
     </itemizedlist>
     <para>
-      These criterias will enforce an explicit order of the temporary
+      These criteria will enforce an explicit order of the temporary
       node list for all possible states of the particular nodes.
     </para>
   </section>
@@ -326,7 +326,7 @@
     <title>Process placement</title>
     <para>
       The real distribution of the processes on the nodes defined by
-      the temporary node list ist controlled by two more environment
+      the temporary node list is controlled by two more environment
       variables: <envar>PSI_OVERBOOK</envar> and
       <envar>PSI_LOOP_NODES_FIRST</envar>. Depending whether this
       variables are defined, the processes of a parallel task will be
@@ -344,7 +344,7 @@
           happen as long as all processes are placed or the list is
           exhausted. If all nodes in the list are done and there are
           still processes to place, the startup of the parallel task
-          will be cancelled.
+          will be canceled.
 	</para>
       </listitem>
       <listitem>
@@ -360,7 +360,7 @@
           processes left. If there are no more nodes
           available where the number of processes is less than the
           number of CPUs, the startup of the parallel task will be
-          cancelled.
+          canceled.
 	</para>
       </listitem>
       <listitem>
@@ -370,7 +370,7 @@
 	<para>
           If there are at least as many "unused" CPUs on all the nodes
           of the temporary node list as processes to start, the
-          behaviour is identical to the action if this variable is not
+          behavior is identical to the action if this variable is not
           defined.
 	</para>
         <para>
@@ -382,7 +382,7 @@
           defined by the administrator, e.g. <command>set
           maxproc</command> will be enforced. If not all processes can
           be placed on a node, the startup of the parallel task will
-          be cancelled.
+          be canceled.
         </para>
       </listitem>
       <listitem>
@@ -391,8 +391,8 @@
           <envar>PSI_OVERBOOK</envar> are defined:
 	</para>
 	<para>
-          If there are enough "unused" CPUs available, the behaviour
-          for this combination is identical to the behaviour
+          If there are enough "unused" CPUs available, the behavior
+          for this combination is identical to the behavior
           describe previously for "<envar>PSI_LOOP_NODES_FIRST</envar>
           is defined". Otherwise the placement is done in a manner
           that the processes are evenly distributed on all nodes in
@@ -400,13 +400,13 @@
           cyclic traversed and each time a process is placed on the
           node. All defined limits will be obeyed. If it's not
           possible to place all processes, the startup of the parallel
-          task will be cancelled.
+          task will be canceled.
 	</para>
       </listitem>
     </itemizedlist>
     <para>
       The environment variable <envar>PSI_WAIT</envar> controls the
-      behaviour, if the starup of the task was previously cancelled
+      behavior, if the startup of the task was previously canceled
       due to node constrains. If not defined, an error will be
       reported and the process terminates.
     </para>

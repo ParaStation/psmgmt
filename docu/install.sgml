@@ -4,6 +4,8 @@
   fg: 18.03.04  reworked, new "techn. overview"
 
   fg: TODO: Installation of PS specific network drivers
+  fg: 04.10.04  ParTec -> Cluster Competence Center GmbH
+    www.par-tec.com -> www.parastation.com
 -->
 
 <chapter id="installation">
@@ -15,9 +17,9 @@
     of automatization of the installation process.
   </para>
   <para>
-    Of course, the less automatized the chosen way of installation is, the
-    more possibilities of costumization within the installation process occur.
-    On the other hand even the most automatized way of installation, the
+    Of course, the less automated the chosen way of installation is, the
+    more possibilities of customization within the installation process occur.
+    On the other hand even the most automated way of installation, the
     installation via RPM, will give a suitable result in most cases.
   </para>
   <para>
@@ -40,15 +42,14 @@
         to now are Intel IA32 (including AMD Athlon), IA64, and AMD64. 
         <footnote>
         <para>
-          Beginning with release 4.0.6 of &ps;, it is possible to
+          With &ps; version 4.1, it is possible to
           spawn a &ps; cluster across multiple processor architectures.
           The daemons are able to communicate to each other, but
           this is currently not a supported configuration. For
-          more details, please contact <email>support@par-tec.com</email>.
+          more details, please contact <email>support@cluster-competence-center.com</email>.
           <!-- fg: Infiniband??? -->
         </para>
         </footnote>
-	<!-- fg: is Alpha still supported? -->
       </para>
       <para>
 	Furthermore the nodes need to be interconnected. In
@@ -74,31 +75,47 @@
 	      communication within parallel applications. While historically
 	      this kind of communication is usually done using specialized
 	      highspeed networks like Myrinet, nowadays Gigabit Ethernet is a
-	      much cheaper and only slighty slower alternative. 
+	      much cheaper and only slightly slower alternative. 
               <!-- Furthermore,
 	      with the dawn of Infiniband another alternative is in
               sight.-->
-	      &ps4; currently supports Myrinet, Ethernet (Fast and
-              Gigabit) and shared memory.
-	      Support for Infiniband is currently under development. 
-	      <!-- fg: Wird Myrinet wirklich unterstuetzt? Ueber Version 3?-->
+<!--	      MOD:  -->
+              &ps4; currently supports Ethernet (Fast and
+              Gigabit), Myrinet, Infiniband and shared memory.
 	    </para>
 	  </listitem>
 	</itemizedlist>
       </para>
       <para>
-	In the case of an Ethernet communication interconnect it is not
-	necessary to really have two distinct networks. It is possible
+        Whenever IP connections over the fast interconnect are
+        available, it is not required to really have two distinct
+        networks. Instead it is possible to use one physical network
+        for both tasks. IP connections are usually configured by
+        default in the case of Ethernet. For Myrinet and Infiniband,
+        particular measures have to be taken in order to enable IP
+        over this interconnect.
+<!--
+	MOD: In the case of Ethernet is used as communication
+        interconnect or IP over Myrinet or Infiniband is available, it is not
+	required to really have two distinct networks. It is possible
 	to use one physical network for both tasks.
+-->
       </para>
     </simplesect>
 
     <simplesect>
       <title>Multicast</title>
       <para>
-	<!-- From the software side of view only very few prerequisites have to be
-	met. -->
-        For &ps; version up to 4.0.6, the &ps; daemons exchange status
+<!--        MOD:  -->
+        Beginning with version 4.1 of &ps;, status
+        information and license pings exchanged between the <xref
+        linkend="psid"/> daemons will use the &ps; RDP protocol 
+        by default. Therefore, multicast functionality is no longer required.
+        It is still possible to use multicasts, if requested.
+      </para>
+      <!-- fg: TODO: delete this section with the next release -->
+      <para>
+        For &ps; versions up to 4.0.6, the &ps; daemons exchange status
         and license informations using multicast messages. Thus, a
         Linux kernel supporting multicast on all nodes of the cluster
         is required. This is usually no problem, since all standard
@@ -130,7 +147,7 @@
 <!--        <footnode>  -->
 	  <footnote> 
           <para>
-          This is often found on Redhat based installations,
+          This is often found on Red Hat based installations,
           where the default route typically points to
           <emphasis>localhost</emphasis>.
           </para>
@@ -147,14 +164,6 @@
 	<filename>/etc/route.conf</filename> or
 	<filename>/etc/sysconfig/networks/routes</filename>, depending on the
 	type of Linux distribution in use.
-      </para>
-      <para>
-        Beginning with version 4.1 of &ps;, the exchange of status
-        information and license pings between the <xref
-        linkend="psid"/> daemons will no longer use multicast messages
-        by default. So multicast functionality is no longer required,
-        e.g. setting up dedicated multicast routes. It is still
-        possible to use multicasts, if requested.
       </para>
     </simplesect>
 
@@ -183,25 +192,17 @@
         </para>
       </note>
       <para>
-	If there is no need for an optimized communication,
-        no &ps; modules are required and thus &ps; does not depend on
+<!--	MOD:  -->
+        If there is no need for an optimized communication,
+        no &ps; or 3rd-party modules are required and thus &ps; does not depend on
         any kernel version.
-<!-- and thus the software
-	does not depend on any kernel module, no special kernel version is
-	needed in this case.  
--->
         &ps4; can be configured to use TCP/IP for data
 	communication, which is supported by every kernel. 
-<!--
-	Since the &psfe; variant of the software does not
-	depend on any kernel module, no special kernel version is needed in
-	this case.
--->
       </para>
       <para>
-        If no suitable modules are found within the
+        If no suitable pre-compiled modules are found within the
         <emphasis>pscom</emphasis> package, please contact
-        <email>support@par-tec.com</email>.
+        <email>support@cluster-competence-center.com</email>.
       </para>
     </simplesect>
   </section>
@@ -237,7 +238,7 @@
       server, since all other nodes are unavailable anyhow, if the
       frontend
       fails. Furthermore the <filename>/home</filename> directory is usually
-      stored central fileserver, too. Thus doing so with the &ps4; files
+      stored on a central fileserver, too. Thus doing so with the &ps4; files
       (ideally on the same machine) will cause no further harm to the
       stability and availability of the cluster.
     </para>
@@ -259,7 +260,7 @@
       The benefits of the centralized
       installation outweigh the disadvantages and furthermore the advantages of
       the distributed installation. Thus putting &ps4; on a NFS server and
-      mounting the directory on all the nodes is the method of choice.
+      mounting the directory on all the nodes is the preferred choice.
     </para>
     <note>
       <para>
@@ -296,7 +297,7 @@
 	    <para>
 	      contains all executables and scripts forming the &ps; system.
               This directory could be included into the
-              <envar>PATH</envar> for easy access to the &ps;
+              <envar>PATH</envar> environment variable for easy access to the &ps;
               administration tools.
 	    </para>
 	  </listitem>
@@ -306,17 +307,19 @@
 	    <filename>bin/modules</filename>
 	  </term>
 	  <listitem>
-	    <para>up to version 4.0.6, this directory 
+            <para>
+<!--              MOD:  -->
+              With version 4.1 of &ps;, all &ps4; specific modules are
+              installed within the <filename>/lib/modules/&lt;kernel
+              release&gt;/kernel/drivers/net/ps4</filename> directory.
+              The directory <filename>bin/modules</filename> should remain empty.
+            </para>
+	    <para>Up to version 4.0.6, this directory 
               contains various subdirectories with the kernel modules
               needed for the high throughput, low latency communication. Each
 	      subdirectory holds modules for a specific kernel that is
 	      supported by the standard distribution.
 	    </para>
-            <para>
-              Beginning with version 4.1, all &ps4; modules are
-              installed within the <filename>/lib/modules/&gt;kernel
-              release&lt;/net/ps4</filename> directory.
-            </para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
@@ -341,7 +344,7 @@
 	      Depending on the communication part of the &ps; system installed
 	      more scripts and configuration files may be found within this
 	      directory. 
-<!-- fg: no myrinet
+<!-- fg: no Myrinet
               E.g. if the Myrinet communication system is
 	      installed, some example routing files for the &ps; Myrinet
 	      driver and the setup script <command>ps_myrinet</command> are
@@ -441,15 +444,15 @@
     <para>
       The easiest way to install &ps4; is the installation via RPM. This is the
       preferred method on all <ulink url="http://www.suse.de">SuSE</ulink> or
-      <ulink url="http://www.redhat.com">RedHat</ulink> based systems.
+      <ulink url="http://www.redhat.com">Red Hat</ulink> based systems.
     </para>
     <simplesect id="Get_RPMs">
       <title>Getting the &ps4; RPM files</title>
       <para>
 	RPMs containing the various versions of the &ps4; system can be
 	obtained from the <ulink
-	url="http://par-tec.com/en/download.php">download section</ulink> of
-	the <ulink url="http://par-tec.com">ParTec homepage</ulink>.
+	url="http://www.parastation.com/download.php">download section</ulink> of
+        the &ps; homepage.
       </para>
       <para>
 	At least two packages are needed, one containing the
@@ -468,7 +471,7 @@
 	number, <filename>yyyymmdd</filename> the release date and
 	<filename>arch</filename> is the architecture, i.e. one of
 	<filename>i386</filename>, <filename>ia64</filename>,
-	<filename>x86-64</filename> <!--, <filename>alpha</filename> --> or
+	<filename>x86-64</filename> or
 	<filename>noarch</filename>. The latter is used e.g. for the
 	documentation packet.
       </para>
@@ -479,24 +482,14 @@
 	communication platform.
       </para>
       <para>
-<!--fg:
-	The name of the RPM containing the communication part depends on the
-	supported communication hardware. For the Myrinet version of &ps; this
-	is <filename>psm</filename>, the corresponding packets of &ps4; holds
-	the name <filename>pscom</filename>. As explained all filenames are
-	followed by an individual version number, the release date and the
-	architecture.
--->
 	The communication libraries and modules for &ps4; come with the
 	<filename>pscom</filename> packet. As explained all filenames are
 	followed by an individual version number, the release date and the
 	architecture.
       </para>
       <para>
-	The versions on the <ulink url="http://par-tec.com">ParTec
-<!--fg: Uebel Uebel Uebel!!!@todo
-	homepage</ulink> at a distinct point of time will work together
--->
+        The versions available on the <ulink
+        url="http://www.parastation.com">&ps;
 	homepage</ulink> at a time are tested to work properly
         together. It's recommended to install always
 	the corresponding packet versions.
@@ -509,7 +502,7 @@
       <para>
 	The release notes of the different packages will either be found within
 	the <filename>/opt/parastation</filename> directory or on the <ulink
-	url="http://par-tec.com">ParTec homepage</ulink>.
+        url="http://www.parastation.com">&ps; homepage</ulink>.
       </para>
       <para>
 	Please note that the individual version numbers of the distinct
@@ -517,16 +510,11 @@
 	match. 
       </para>
     </simplesect>
-    <simplesect>
+    <simplesect id="install_central">
       <title>Centralized installation</title>
       <para>
         The centralized installation has to be performed with
         administrator privileges.
-<!--
-	For the centralized installation, become <quote>root</quote> on the
-	machines choosen to be the fileserver, i.e. usually on the front-end
-	machine.
--->
       </para>
       <para>
 	The management part and the choosen communication part of
@@ -550,19 +538,36 @@
       </para>
       <programlisting>	/opt/parastation/config/psmodules_install</programlisting>
       <para>
+        Precompiled kernel modules are copied to the proper
+        directories, eg.
+        <filename>/lib/modules/2.4.21-207-smp/kernel/drivers/net/ps4</filename>.
+        The module dependencies are rebuild using the
+        <command>depmod</command> command.
+      </para>
+      <para>
+<!--        MOD:  -->
+        If no proper modules are available, you can download the
+        source code for the kernel modules from the &ps; <ulink
+	url="http://www.parastation.com/download.php">download
+        section</ulink>. Un-<command>tar</command> the package and do
+        a <command>make</command> and <command>make install</command>: 
+      </para>
+      <programlisting>  # cd /tmp
+  # tar -xf ps4_modules.tar.gz
+  # cd ps4
+  # make
+  # make install </programlisting>
+      <para>
+        This will compile the kernel modules and copy it to
+        <filename>/lib/modules/&lt;kernel
+        release&gt;/kernel/drivers/net/ps4</filename>.
+      </para>
+      <para>
         Next it has to be verified that
         <filename>/opt/parastation</filename> is exported to all
         cluster nodes. All nodes have to mount this exported directory
         to <filename>/opt/parastation</filename>. The installation
         scripts 
-<!--
-	Then make sure that <filename>/opt/parastation</filename> is exported
-	and the NFS server is running (use <citerefentry>
-	  <refentrytitle>showmount</refentrytitle>
-	  <manvolnum>8</manvolnum>
-	</citerefentry> to do so). Mount the exported directory on all nodes to
-	<filename>/opt/parastation</filename>. Afterwards run
--->
       </para>
       <programlisting>	/opt/parastation/config/PSM_INSTALL -i</programlisting>
       <para>
@@ -570,7 +575,15 @@
       </para>
       <programlisting> /opt/parastation/config/psmodules_install</programlisting>
       <para>
-	(for version 4.1 and up) must be run on every node of the cluster.
+	must be run on every node of the cluster.
+      </para>
+      <para>
+        If you compiled the kernel modules as described, the easiest
+        way is to mount the source directory on each node an do a 
+      </para>
+      <programlisting>  # make install </programlisting>
+      <para>
+        on each node.
       </para>
     </simplesect>
     <simplesect> 
@@ -590,15 +603,6 @@
           This command must be run on each cluster node!
         </para>
       </note>
-<!--
-      <para>
-	In order to install &ps4; using RPMs in a distributed manner, you have to
-	install the (two) RPMs on all the nodes of the cluster. Therefore become
-	<quote>root</quote> and use the command <command>rpm -U</command> to
-	actually install the RPMs. These two step have to be executed on any
-	node of the cluster including the front-end machine.
-      </para>
--->
       <para>
 	Since the <command>PSM_INSTALL</command> is called within the post
 	install script of the RPMs, it is not necessary to run it explicitely.
@@ -606,11 +610,15 @@
       </para>
       <programlisting> /opt/parastation/config/psmodules_install</programlisting>
       <para>
-        for version 4.1 and up must be run on each node to install the
+        must be run on each node to install the
         proper kernel modules.
 	The modifications made by this scripts to some of the files located in
 	the <filename>/etc</filename> directory are discussed in <xref
 	  linkend="Install_by_hand"/>.
+      </para>
+      <para>
+        Alternatively, the kernel modules can be compiled and
+        installed as described in <xref linkend="install_central"/>.
       </para>
     </simplesect>
   </section>
@@ -626,8 +634,9 @@
       <para>
 	The <filename>.tar.gz</filename> files containing &ps4; can also be
 	obtained from the <ulink
-	url="http://par-tec.com/en/download.php">download section</ulink> of
-	the <ulink url="http://par-tec.com">ParTec homepage</ulink>.
+	url="http://www.parastation.com/download.php">download section</ulink> of
+        the <ulink url="http://www.parastation.com">&ps;
+        homepage</ulink>.
       </para>
       <para>
 	The names of the <filename>.tar.gz</filename> files containing the
@@ -641,18 +650,10 @@
 	one containing the management part of the &ps4; system
 	(<filename>psmgmt</filename>) and one comprising the communication
 	part (<filename>pscom</filename>). 
-<!--fg:
-	While the management packet holds the unique
-	name <filename>psmgmt</filename>, the name of the communication packet
-	depends on the communication hardware in use. It is either
-	<filename>psm</filename> for the Myrinet hardware,
-	<filename>psfe</filename> for the &psfe; software or
-	<filename>pscom</filename> for &ps4;.
--->
       </para>
       <para>
         The release notes will show which versions of the
-        management und communication packages will fit. 
+        management and communication packages fit together. 
 	In general, packages that can be fetched from the download
 	section at a time will work together without problem.
       </para>
@@ -678,7 +679,6 @@
       </para>
       <programlisting> /opt/parastation/config/psmodules_install</programlisting>
       <para>
-	(vor version 4.1 and up)
         must be run on the file server, if this node should also be
         part of the cluster, e.g. if this node is also a frontend
         node.
@@ -696,7 +696,7 @@
       </para>
       <programlisting> /opt/parastation/config/psmodules_install</programlisting>
       <para>
-	(vor version 4.1 and up) must be run on each node.
+	must be run on each node.
       </para>
 
 <!--
@@ -711,7 +711,7 @@
         gzip -cd psmgmt-x.y.z-yyyymmdd.arch.tar.gz | tar xvf -
       </programlisting>
       <para>
-	in order to put all the files of &ps4; managment system onto disk, i.e.
+	in order to put all the files of &ps4; management system onto disk, i.e.
 	to <filename>/opt/parastation</filename>. Enabling the &ps4; management
 	facility on this machine is done by executing the script
 	<command>PSM_INSTALL</command> residing in &ps4;'s
@@ -768,7 +768,6 @@
       </para>
       <programlisting> /opt/parastation/config/psmodules_install</programlisting>
       <para>
-	(vor version 4.1 and up) 
         must be run on all nodes of the cluster.
       </para>
       <para>
@@ -848,7 +847,6 @@
 	</para>
 	<programlisting>
   # ParaStation entries
-  psld    887/tcp     # ParaStation License Daemon Start Port 
   psid    888/tcp     # ParaStation Daemon Start Port
   # end of ParaStation entries
         </programlisting>
@@ -878,7 +876,7 @@
 	    </listitem>
 	    <listitem>
 	      <para>a directory <filename>/etc/xinetd.d</filename> (e.g. a
-		RedHat distribution or a SuSE 8.2 or higher), read section
+		Red Hat distribution or a SuSE 8.2 or higher), read section
 		<xref linkend="ibh_inetd_rh"/>.
 	      </para>
 	    </listitem>
@@ -896,10 +894,6 @@
   # ParaStation daemon
   #
   psid stream tcp nowait root /opt/parastation/bin/psid psid
-  #
-  # ParaStation license server
-  #
-  psld stream tcp nowait root /opt/parastation/bin/psld psld
 	    </programlisting>
 	    <para>
 	      Now, the <citerefentry>
@@ -933,19 +927,6 @@
     server_args     =
     log_on_failure += USERID
   }
-  #
-  # ParaStation license server
-  #
-  service psld
-  {
-    disable         = no
-    socket_type     = stream
-    wait            = no
-    user            = root
-    server          = /opt/parastation/bin/psld
-    server_args     =
-    log_on_failure += USERID
-  }
 	    </programlisting>
             <note>
               <para>
@@ -967,30 +948,34 @@
     <title>Installation of the documentation</title>
     <para>
       The &ps4; documentation is delivered in three formats: As PDF files, a
-      browsable HTML documentation and manual pages for all &ps4; programs and
+      browseable HTML documentation and manual pages for all &ps4; programs and
       configuration files.
     </para>
     <para>
       In order to install the documentation files an up to date
       version of the documentation has to be retrieved. It can be found within
-      the <ulink url="http://par-tec.com/en/download.php">download
-	section</ulink> of the <ulink url="http://par-tec.com">ParTec
-	homepage</ulink>. The names of the <filename>rpm</filename>
-        or <filename>.tar.gz</filename>
-      files follow the conventions of all other files building the &ps4;
-      distribution. The packages is called <filename>psdoc</filename> and the
-      architecture is <filename>noarch</filename>, since this part is platform
-      independent.
+      <!-- fg: TODO -->
+      the <ulink
+      url="http://www.parastation.com/download.php">download
+      section</ulink> of the <ulink
+      url="http://www.parastation.com">&ps;
+      homepage</ulink>. The names of the
+      <filename>rpm</filename> or <filename>.tar.gz</filename> files
+      follow the conventions of all other files building the &ps4;
+      distribution. The packages is called <filename>psdoc</filename>
+      and the architecture is <filename>noarch</filename>, since this
+      part is platform independent.
     </para>
     <para>
       For the installation of the rpm file, simply execute 
     </para>
     <programlisting>  rpm -U psdoc-...-noarch.rpm</programlisting>
     <para>
-      Similary for the <filename>.tar.gz</filename> file change to the root
+      Similarly for the <filename>.tar.gz</filename> file change to the root
       directory <filename>/</filename> and execute
     </para>
-    <programlisting>  gzip -cd psdoc-....tar.gz | tar xvf -</programlisting>
+    <programlisting>  cd /
+  gzip -cd psdoc-....tar.gz | tar xvf -</programlisting>
     <para>
       All the PDF and HTML files of the documentation will be installed into
       <filename>/opt/parastation/doc</filename>, the manual pages will reside
@@ -1036,9 +1021,10 @@
       <ulink url="http://www-unix.mcs.anl.gov/mpi/mpich/">MPIch</ulink> is
       necessary. A corresponding <filename>rpm</filename> or 
       <filename>.tar.gz</filename> packet can
+      <!-- fg: TODO -->
       be found within the <ulink
-	url="http://par-tec.com/en/download.php">download section</ulink>
-      of the <ulink url="http://par-tec.com">ParTec homepage</ulink>.
+      url="http://www.parastation.com/download.php">download section</ulink>
+      of the <ulink url="http://www.parastation.com">&ps; homepage</ulink>.
     </para>
     <para>
       The names of the correspondings files follow the common naming
@@ -1046,10 +1032,6 @@
       discussed above is 
       <filename>mpich</filename> for &ps4;.
     </para>
-<!--
-      <footnote>
-      fg: warum footnote??
--->
     <para>
       There exist further versions of the MPIch packet that are build
       with different compilers like the PGI or Intel compilers on the
@@ -1058,14 +1040,11 @@
       corresponding compilers to be installed. Keep in mind that the
       use of this compilers might require further licenses.
     </para>
-<!--
-      </footnote>
--->
     <note>
       <para>
 	The version number of the MPIch packet denotes the version of the MPIch
 	source code used in order to create the libraries. The versions of the
-        distict &ps4; packages can be determined from the
+        particular &ps4; packages can be determined from the
 <!--
 	&ps4; software a distinct packet plays with can be determined from the
 -->

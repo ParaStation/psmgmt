@@ -53,7 +53,7 @@
       Be aware of the fact that <xref linkend="psiadmin"/> usually only starts
       the local daemon. All other daemons managing the nodes configured to
       belong to the cluster may be started using the <command>add</command>
-      directive from withing the &ps; administation tool <xref
+      directive from within the &ps; administration tool <xref
 	linkend="psiadmin"/>.
     </para>
 

@@ -240,6 +240,15 @@
 	    the environment variables the scripts understand are briefly
 	    discussed within the following lines.
 	  </para>
+          <note>
+            <para>
+<!--              MOD:  -->
+              Shared memory will be used as hardware type for
+              communication within a SMP node. As there are no options
+              for this kind of hardware, no dedicated section is
+              provided.
+            </para>
+          </note>
 	  <variablelist>
 
 <!-- fg: no more myrinet
@@ -403,7 +412,7 @@
 		    <term><envar>PS_MODULE</envar></term>
 		    <listitem>
 		      <para>The name of the kernel module to use in order to
-			implement the &ps; protocol running on the ethernet
+			implement the &ps; protocol running on the Ethernet
 			hardware. The default is <filename>p4sock.o</filename>.
 		      </para>
 		    </listitem>
@@ -646,7 +655,7 @@
 	    <command>Node[s]</command>
 	    <arg choice="plain"><replaceable>hostname</replaceable></arg>
 	    <arg choice="plain"><replaceable>id</replaceable></arg>
-	    <arg>HWtype-entry</arg>
+	    <arg>HWType-entry</arg>
 	    <arg>starter-entry</arg>
 	    <arg>runJobs-entry</arg>
 	    <!--<arg>extraIP <replaceable>ip-addr</replaceable></arg>-->
@@ -655,7 +664,7 @@
 	    <command>Node[s] {</command>
 	    <arg choice="plain">{<replaceable>hostname</replaceable></arg>
 	    <arg choice="plain"><replaceable>id</replaceable></arg>
-	    <arg>HWtype-entry</arg>
+	    <arg>HWType-entry</arg>
 	    <arg>starter-entry</arg>
 	    <arg>runJobs-entry</arg>
 	    <!--<arg>extraIP <replaceable>ip-addr</replaceable></arg>-->
@@ -695,7 +704,7 @@
 	    <command>NrOfNodes</command>-1.
 	  </para>
 	  <para>
-	    Further optional items as <option>HWtype-entry</option>,
+	    Further optional items as <option>HWType-entry</option>,
 	    <option>starter-entry</option> or <option>runJobs-entry</option>
 	    may overrule the default values of the hardware type on the node,
 	    the ability to start parallel jobs from this node or the
@@ -733,7 +742,7 @@
 	  <!--
 	  <note>
 	    <para>
-	      The optional <command>extraIP</command> item is only usefull
+	      The optional <command>extraIP</command> item is only useful
 	      when configuring a Myrinet cluster where IP over Myrinet is
 	      enabled.
 	    </para>
@@ -759,6 +768,10 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
+          <para>
+            Silently ignored by this version of &ps;.
+          </para>
+<!--
 	  <para>Tell &ps; to use
 	    <parameter><replaceable>hostname</replaceable></parameter> as the
 	    machine where the &ps; license daemon <xref linkend="psld"/> should
@@ -770,8 +783,9 @@
 	      <refentrytitle>inetd</refentrytitle>
 	      <manvolnum>8</manvolnum>
 	    </citerefentry> has to be set up correctly on this node in order to
-	    to enable autostarting the <xref linkend="psld"/>.
+	    to enable the automatic startup of the <xref linkend="psld"/>.
 	  </para>
+-->
 	</listitem>
       </varlistentry>
 
@@ -975,7 +989,7 @@
 	    to one of the mentioned values.
 	  </para>
 	  <para>
-	    The defaul value is <command>LOG_DAEMON</command>.
+	    The default value is <command>LOG_DAEMON</command>.
 	  </para>
 	</listitem>
       </varlistentry>

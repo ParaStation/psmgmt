@@ -83,6 +83,25 @@
       processes forming the task within the cluster.
     </para>
     <para>
+      For &ps; version 4.1 and up, the locally started process (which
+      is the process actually created when
+      <filename>/some/path/to/program</filename> is executed) connects
+      to the local &ps; daemon 
+      <citerefentry>
+        <refentrytitle>psid</refentrytitle> 
+        <manvolnum>8</manvolnum>
+      </citerefentry>, issuing a spawn request. This request, 
+      including the number of processes and other necessary information,
+      is forwarded to the <emphasis>master
+      node</emphasis>, which will provide a temporary node list.
+      The local process will actually startup the remote processes
+      using the psid on the particular node and will afterwards
+      convert to an I/O handling process, the so called <xref
+      linkend="loggerfull"/> process.
+      The I/O handling mechanisms will be discussed in detail in <xref
+	linkend="io_redirect"/>
+    </para>
+    <para>
       For &ps; versions up to 4.0.6,
       the locally started process (which is the process actually
       created when <filename>/some/path/to/program</filename> is executed)
@@ -102,26 +121,10 @@
       <quote>working</quote> processes of the parallel task will be spawned
       ones. As a last step the first locally started process will convert to an
       I/O handling process, the so called <xref linkend="loggerfull"/> process.
+<!--
       The I/O handling mechanisms will be discussed in detail in <xref
 	linkend="io_redirect"/>
-    </para>
-    <para>
-      For &ps; version 4.1 and up, the locally started process (which
-      is the process actually created when
-      <filename>/some/path/to/program</filename> is executed) connects
-      to the local &ps; daemon 
-      <citerefentry>
-        <refentrytitle>psid</refentrytitle> 
-        <manvolnum>8</manvolnum>
-      </citerefentry>, issuing a spawn request. This request, 
-      including the number of processes and other necessary information,
-      is forwarded to the <emphasis>master
-      node</emphasis>, which will provide a temporary node list.
-      The local process will actually startup the remote processes
-      using the psid on the particular node and will afterwards
-      convert to an I/O handling process, the so called <xref
-      linkend="loggerfull"/> process.
-      <!-- TODO: fg: ok??? -->
+-->
     </para>
 
     <para>
@@ -148,12 +151,12 @@
     <para>
       The placement of processes for a parallel task within &ps; can be
       biased by various environment variables. Setting this variables is
-      optional, if not set, the default behaviour will make sure, that
+      optional, if not set, the default behavior will make sure, that
       the usability of the cluster will not be jeopardized.
     </para>
     <para>
       The user can predefine lists of nodes, can request exclusive
-      use or overbooking of nodes, may change sorting criterias for
+      use or overbooking of nodes, may change sorting criteria for
       node lists, or even may control process neighborhood on SMP
       nodes. Consequently, it is possible to precisely adjust the process
       distribution within the cluster to algorithms implemented and
@@ -210,7 +213,7 @@
       (virtual) terminal or the file from which the input is
       redirected and sends it to a forwarder. The default action is to
       send it to the forwarder of the process with rank 0. This
-      behaviour might be modified as discussed below.
+      behavior might be modified as discussed below.
     </para>
     <para>
       The redirection of input and output can be configured by a
@@ -224,7 +227,7 @@
 	    <replaceable>rank</replaceable> defined by this variable.
 	  </para>
 	  <para>
-	    The rank of a process is unique withiin a parallel task. The rank of a
+	    The rank of a process is unique within a parallel task. The rank of a
 	    process can be determined via the <citerefentry>
 	      <refentrytitle>PSE_getRank</refentrytitle>
 	      <manvolnum>3</manvolnum>
@@ -325,7 +328,7 @@
     </para>
 -->
     <para>
-      Another important task while spawing parallel applications in a
+      Another important task while spawning parallel applications in a
       cluster is to setup a proper environment for the newly created
       processes on each node. 
     </para>
@@ -368,7 +371,7 @@
     <note>
       <para>
         Beside these variables, additional variables might be
-        inherantly set for remote processes by the 
+        inherently set for remote processes by the 
         <citerefentry>
           <refentrytitle>inetd</refentrytitle> <manvolnum>8</manvolnum>
         </citerefentry>

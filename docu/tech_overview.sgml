@@ -22,7 +22,8 @@
         <para>
           Install and configure local communication devices and
           protocols, eg. load the <emphasis>p4sock</emphasis> kernel
-          module and set up proper routing informations.
+          module and set up proper routing informations, if not
+          already done at system startup.
         </para>
       </listitem>
       <listitem>
@@ -44,7 +45,7 @@
       </listitem>
       <listitem>
         <para>
-          Monitor availability of other cluster nodes, send <quote>i'm
+          Monitor availability of other cluster nodes, send <quote>I'm
           alive</quote> messages.
         </para>
       </listitem>
@@ -64,10 +65,10 @@
       application processes, system load and others to all other nodes
       within the cluster.  So each daemon is able to monitor each other
       node, and in case of absent alive messages, it will initiate
-      proper actions, eg.  terminate a parallel tast or mark this node as "no
+      proper actions, eg.  terminate a parallel task or mark this node as "no
       longer available". Also, if a previously unavailable node is now
       responding, it will be marked as "available" and will be used for
-      upcoming parallel tast. No intervention of the system
+      upcoming parallel task. No intervention of the system
       administrator is required.
     </para>
   </section>
@@ -75,10 +76,7 @@
   <section>
     <title>License daemon</title>
     <para>
-      Up to version 4.0.6, a &ps; license daemon  has to run on one of
-      the cluster nodes, typically the front-end node.  This daemon will
-      validate the installed license, and will send
-      the license information periodically to all cluster nodes.
+<!--      MOD:  -->
       Beginning with version 4.1 of &ps4;, checking license information
       is done by the 
       <citerefentry>
@@ -86,14 +84,14 @@
         <manvolnum>8</manvolnum>
       </citerefentry>. Licenses are
       validated by expiration time, number of nodes and number of CPUs.
+      A dedicated license daemon is no longer required.
     </para>
-<!--
-    <sidebar><title>Please note:</title>
-      <para>
-        Changed with Version 4.1.
-      </para>
-    </sidebar>
--->
+    <para>
+      Up to version 4.0.6, a &ps; license daemon  has to run on one of
+      the cluster nodes, typically the front-end node.  This daemon will
+      validate the installed license, and will send
+      the license information periodically to all cluster nodes.
+    </para>
   </section>
 
   <section>
@@ -111,24 +109,32 @@
       &ps4; comes with it's own version of MPI, based on MPIch. This MPI
       library provides standard MPIch compatible MPI functions. For
       communication purposes, it supports a couple of communication
-      pathes in parallel, eg. &ps4; protocol
-      <emphasis>p4sock</emphasis>, TCP, Shared Memory and Myrinet (GM)
+      paths in parallel, eg. &ps4; protocol
+      <emphasis>p4sock</emphasis>, TCP, Shared Memory, Infiniband and
+      Myrinet (GM).
+<!--
       <footnote>
         <para>
           Installation and configuration of &ps; over GM is not
           covered within this document. Please contact
-          <email>support@par-tec.com</email> for more informations.
+          <email>support@cluster-competence-center.com</email> for more informations.
         </para>
-      </footnote>.
-      Thus, &ps4; is able to spawn parallel parallel tasks across nodes
+      </footnote>
+-->
+      Thus, &ps4; is able to spawn parallel tasks across nodes
       connected by different communication networks. &ps; will also make
       use of redundant interconnects, if a failure is encountered during
       startup of a parallel task.
     </para>
     <para>
+<!--      MOD:  -->
       There are different versions of the &ps; MPI library available,
-      depending on the hardware architecture. For IA32, versions for
-      GNU, Intel and Portland Group compilers are available. The
+      depending on the hardware architecture and compiler in use. 
+      For IA32, versions for
+      GNU, Intel and Portland Group compilers are available. For
+      AMD64 (AMD Opteron) versions for the GCC and Pathscale EKO
+      compiler suite are available.
+      The
       libraries support all available languages and language options for
       the selected compiler, eg. Fortran, Fortran90, C or C++.  The
       different versions of the MPI library can be installed in
@@ -143,7 +149,7 @@
     <title>Kernel modules</title>
     <para>
       Beside libraries enabling efficient communication and task
-      management, &ps4; also provides a couple of kernel modules:
+      management, &ps4; also provides a set of kernel modules:
     </para>
     <itemizedlist>
       <listitem>
@@ -170,20 +176,25 @@
         </para>
         <para>
           No modifications of the application, even no relinking is
-          necessary to use this feature.
+          necessary to use this feature. To gain best performance,
+          relinking with the MPI library provided by &ps; is
+          recommended.
         </para>
+<!--
         <note>
           <para>
-            This feature of &ps; is still experimental in version 4.1.1.
+            This feature of &ps; is still experimental in version 4.1.4.
             For details, please contact
-            <email>support@par-tec.com</email>.
+            <email>support@cluster-competence-center.com</email>.
+            MOD: TODO: ok???
           </para>
         </note>
+-->
       </listitem>
     </itemizedlist>
     <para>
       To enable the maximum performance on Gigabit Ethernet, &ps4; comes
-      with his own set of network drivers. This drivers are based on
+      with its own set of network drivers. This drivers are based on
       standard device drivers for the corresponding NICs and especially
       tuned for best performance within a cluster environment. They will
       also support all standard communication and protocols. To enable
@@ -192,9 +203,10 @@
       kernel.
     </para>
     <para>
-      &ps; currently comes with drivers for the Intel (e1000) and
+      &ps; currently comes with drivers for Intel (e1000) and
       Broadcom (bcm5700) network interface controllers.
-      <!-- fg: TODO: glue module!!! -->
+      Dedicated helper modules (glue modules) for  these drivers
+      decrease the latency even more.
     </para>
     <para>
       &ps; is also able to use all standard Ethernet network drivers

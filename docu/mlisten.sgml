@@ -26,6 +26,13 @@
 
   <refsect1>
     <title>Description</title>
+    <note>
+      <para>
+        Beginning with version 4.1, &ps; will no longer use multicast
+        messages by default. Thus, no messages will be received and
+        displayed ever using the default configuration!
+      </para>
+    </note>
     <para>
       Display the multicast pings the &ps; daemon <xref linkend="psid"/> and
       the &ps; license daemon <xref linkend="psld"/> are emitting continuously.
@@ -41,13 +48,6 @@
       <xref linkend="psld"/>, are displayed as pings of the N+1st machine in a
       cluster of N machines.
     </para>
-    <note>
-      <para>
-        Beginning with version 4.1, &ps; will no longer use multicast
-        messages by default. Thus, no messages will be received and
-        displayed ever!
-      </para>
-    </note>
   </refsect1>
 
   <refsect1>

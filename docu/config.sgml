@@ -13,7 +13,7 @@
       Within this section the basic configuration procedure to enable
       &ps; will be described. 
       It covers the configuration of <!--&ps3; using Myrinet and -->
-      &ps4; using TCP/IP (ethernet) and the optimized &ps4; protocol
+      &ps4; using TCP/IP (Ethernet) and the optimized &ps4; protocol
       <emphasis>p4sock</emphasis>.
     </para>
     <para>
@@ -97,6 +97,15 @@
           environment</emphasis>
         </para>
         <para>
+<!--          MOD:  -->
+          For &ps; version 4.1 and higher, the modules are loaded
+          using the standard Linux modules environment, see
+          <citerefentry> <refentrytitle>modprobe</refentrytitle>
+          <manvolnum>8</manvolnum> </citerefentry>. The
+          <envar>PS_MODULEPATH</envar> variable is therefore silently
+          ignored with version 4.1 and higher.
+        </para>
+        <para>
           For &ps; version up to 4.0.6, it is usually
           not necessary to define this parameter, since &ps;
           tries to find the correct module path by itself. This decision is
@@ -104,32 +113,14 @@
           machine.
         </para>
         <para>
-<!--
-    In the rare case that &ps;'s build-in heuristic fails, you might
-    explicitly set the module path. In order to do so evaluate which
-    modules underneath the
-    <filename>/opt/parastation/bin/modules</filename> directory actually
-    run with your kernel in use. Then set the
-    <envar>PS_MODULEPATH</envar> environment within &ps; configuration
-    file to the corresponding path relative to
-    <filename>/opt/parastation</filename>.
--->
           In the rare case that &ps;'s build-in heuristic fails, the module
           path hat to be set explicitly. The administrator has to determine,
           which module version provided within
           <filename>/opt/parastation/bin/modules</filename> is suitable. The
           <envar>PS_MODULEPATH</envar> environment variable has to be set to
-          the directory using relative or absolut path names.  In the second
-          case, the path name has to be relativ to the
+          the directory using relative or absolute path names.  In the second
+          case, the path name has to be relative to the
           <filename>/opt/parastation</filename> directory.
-        </para>
-        <para>
-          Beginning with &ps; version 4.1, the modules are loaded
-          using the standard Linux modules environment, see
-          <citerefentry> <refentrytitle>modprobe</refentrytitle>
-          <manvolnum>8</manvolnum> </citerefentry>. The
-          <envar>PS_MODULEPATH</envar> variable is therefore silently
-          ignored with version 4.1.
         </para>
       </listitem>
 
@@ -138,15 +129,6 @@
           nodes</command></emphasis>
         </para>
         <para>
-<!--
-    Adjust the <command>NrOfNodes</command> parameter to the actual
-    number of nodes used in your cluster. Consider that the front end
-    machine is part of the cluster. E.g. if your cluster contains 8 nodes
-    with a fast interconnect plus a front end machine then
-    <command>NrOfNodes</command> has to be set to 9 if a &ps; daemon
-    <xref linkend="psid"/> should run on the front end in order to allow
-    the start of parallel jobs from this machine.
--->
           The parameter <command>NrOfNodes</command> has to be set to the
           actual number of nodes within the cluster. Front end nodes have to
           be considered as part of the cluster. E.g. if the cluster contains 8
@@ -159,23 +141,14 @@
       <listitem>
         <para><emphasis role="bold"><command>HWType</command></emphasis></para>
         <para>
-<!--
-    In order to tell &ps; which kind of communication hardware should be
-    used modify the <command>HWType</command> parameter. In the case of a
-    Myrinet cluster, i.e. the version of &ps; used is &ps3;, this has to
-    be set to:
--->
           In order to tell &ps; which general kind of communication hardware should be
           used, the <command>HWType</command> parameter has to be set. This
-          could be changed on a per node basis within the nodes section.
-          <!-- TODO: fg: reference -->
+          could be changed on a per node basis within the nodes section
+          (see below).
         </para>
-<!--
-  <programlisting>  HWType myrinet</programlisting>
--->
         <para>
           For clusters running &ps4; utilizing the optimized &ps; communication
-          stack on Ethernet hardware of any flavour this parameter has to be
+          stack on Ethernet hardware of any flavor this parameter has to be
           set to:
         </para>
         <programlisting>  HWType p4sock</programlisting>
@@ -192,6 +165,19 @@
           brief look at the various <command>Hardware</command> sections of
           this file in order to find out which hardware types are actually
           defined.
+        </para>
+        <para>
+          Other possible types are: 
+        </para>
+        <programlisting>  HWType ib</programlisting>
+        <para>
+<!--          MOD:  -->
+          for Infiniband and
+        </para>
+        <programlisting>  HWType gm</programlisting>
+        <para>
+<!--          MOD:  -->
+          for Myrinet using GM.
         </para>
         <note>
           <para>
@@ -242,20 +228,17 @@
         <para>
           Within an Ethernet cluster the mapping
           between hostnames and &ps; ID is completely unrestricted. 
-<!--
-    The described convention is enforced by the routing used within
-    Myrinet clusters. 
-    there are
-    constraints concerning this mapping in the Myrinet case. To
-    facilitate predefined routing files, the &ps; ID of a node has to
-    match the port number of the Myrinet switch it is connect to. This
-    will be discussed in further detail within the next section.
--->
+          <!-- fg: TODO: what about Myrinet, IB ??? -->
         </para>
       </listitem>
 
       <listitem>
         <para><emphasis role="bold"><command>LicenseServer</command></emphasis>
+        </para>
+        <para>
+<!--          MOD:  -->
+          For version 4.1 and up, the license server is obsolete and
+          this entry is silently ignored.
         </para>
         <para>
           For versions up to 4.0.6, this parameter defines on which
@@ -268,17 +251,13 @@
           the license daemon. Otherwise the node with &ps; ID 0 will normally
           adopt this tasks.
         </para>
-        <para>
-          For version 4.1 and up, the license server is obsolet and
-          this entry is silently ignored.
-        </para>
       </listitem>
 
       <listitem>
         <para><emphasis role="bold">License key</emphasis></para>
         <para>
           A valid license key is required to run &ps;. In order to obtain a
-          license key please contact <email>license@par-tec.com</email>.
+          license key please contact <email>license@cluster-competence-center.com</email>.
         </para>
         <para>
           Usually the license file will be sent by email. This file should
@@ -292,36 +271,68 @@
       </listitem>
     </orderedlist>
     <para>
-<!--
-      In the case of an Ethernet cluster running &psfe; or &ps4; the
-      configuration is done now and you can directly proceed with <xref
-  linkend="testing"/>. On Myrinet clusters running &ps3; some further
-      parameters concerning the Myrinet configuration have to be set up before.
-      These will be discussed in <xref linkend="myrinet_setup"/> and <xref
-  linkend="ip_over_myrinet"/>.
--->
-      After finishing these steps, the configuration of &ps; is done. 
+<!--      MOD:  -->
+      In order to verify the configuration, the command
+    </para>
+    <programlisting>  /opt/parastation/bin/test_config</programlisting>
+    <para>
+      could be run. This command will analyze the configuration file
+      and report any configuration failures.  After finishing these
+      steps, the configuration of &ps; is done. 
     </para>
   </section>
 
 <!-- fg: Beschreibung Myrinet setup komplett geloescht -->
 
+  <section id="Enable_optimized_network_drivers">
+<!--    MOD:  -->
+    <title>Enable optimized network drivers</title>
+    <para>
+      As explained in the previous chapter, &ps4; comes with its own
+      versions of adapted network drivers for the Intel (e1000) and
+      Broadcom (bcm5700) NICs. 
+      If the optimized &ps; protocol <command>p4sock</command> is used
+      to transfer application data across Ethernet, this adapted
+      drivers should be used.
+      To enable this drivers, the easiest way
+      is to rename the original modules and recreate the module dependencies:
+    </para>
+    <programlisting>  cd /lib/modules/$(uname -r)/kernel/drivers/net
+  mv e1000/e1000.o e1000/e1000-orig.o
+  mv bcm/bcm5700.o bcm/bcm5700-orig.o
+  depmod -a</programlisting>
+    <para>
+      If your system uses the e1000 driver, a subsequent
+      <command>modinfo</command>
+      command should report that the new &ps; version of the driver
+      will be used:
+    </para>
+    <programlisting>  # modinfo e1000
+  filename: /lib/modules/2.4.21-198-smp/kernel/drivers/net/ps4/e1000.o
+  description: "Intel(R) PRO/1000 Network Driver"
+  author:      "Intel Corporation, &lt;linux.nics@intel.com&gt;"
+  ...</programlisting>
+    <para>
+      The "filename" entry reports that the &ps; version of the driver
+      will be used.  The same should apply for the
+      <command>bcm5700</command> network driver.
+    </para>
+    <para>
+      To reload the new version of the network drivers, it is
+      necessary to reboot the system.
+    </para>
+  </section>
+
   <section id="testing">
     <title>Testing the installation</title>
+<!-- fg: TODO: load modules using rcparastation? -->
     <para>
-<!--
-      If everything went fine, you are ready to test &ps; now. On one of the
-      nodes do 
--->
       After installing and configuring &ps; on each node of the cluster,
-      the &ps; daemons can be startet up. These daemons will setup all
+      the &ps; daemons can be started up. These daemons will setup all
       necessary communication relations and thus will form the virtual
       cluster consisting of the available nodes.
     </para>
     <para>
-<!--
-      This is done using the
--->
       The daemons are started using the
       <command>psiadmin</command> command. This command will establish
       a connection to the local <command>psid</command>. If this daemon 
@@ -350,8 +361,10 @@
       </para>
     <programlisting>  <prompt>psiadmin> </prompt><userinput>status hw</userinput></programlisting>
     <para>
-      The command should report <parameter>p4sock</parameter> or
-      <parameter>ethernet</parameter> (= TCP), if configured.
+<!--      MOD:  -->
+      The command should report for all nodes all hardware types
+      configured, eg. <parameter>p4sock</parameter>,
+      <parameter>ethernet</parameter>.
     </para>
 
 
@@ -361,31 +374,15 @@
     <programlisting>  /opt/parastation/bin/psiadmin -s -c "status"</programlisting>
     <para>
       The command should be repeated until all nodes are up. 
-<!--
-      While doing so, the 
-      first &ps; command is used: <command>psiadmin</command>. Here it is used in
-      the single command mode requesting the status of all nodes again and
-      again. At the same time within each startup of
-      <command>psiadmin</command> the local &ps; daemon is connected. While
-      being connected, the daemon will try to start all other daemons not yet
-      up due to the <option>-s</option> option. 
--->
       The &ps; administration tool is
       described in detail in the corresponding manual page <xref
-  linkend="psiadmin"/>.
-    </para>
-    <para>
-      In addition it is possible to continuously monitor the &ps; daemon communication using the
-      <command>mlisten</command> tool, which is described in the <xref
-  linkend="mlisten"/> manual page.
-      As with version 4.1, &ps; no longer uses multicast communication
-      by default, so this tool will only show any traffic if multicast
-      is enabled.
+      linkend="psiadmin"/>.
     </para>
     <para>
       If after a couple of seconds some nodes are still marked as "down", the file
       <filename>/var/log/messages</filename> at this node should be inspected.
-      Entries like <quote>psid: ....</quote> at the end of the file will report problems or errors.
+      Entries like <quote>psid: ....</quote> at the end of the file
+      may report problems or errors.
     </para>
     <para>
       When all nodes are up the communication can be tested using
@@ -414,205 +411,15 @@
   Process 0-2,4-6 to 0-7 ( node 0-2,4-6 to 0-7 ) OK
   Process 3 to 0-6 ( node 3 to 0-6 ) OK
   Process 7 to 0-2,4-7 ( node 7 to 0-2,4-7 ) OK </programlisting>
-<!--
-    <para>
-fg: TODO: was koennte der Fehler sein?
-      This indicates that either your routing setup or your Myrinet cabling
-      might be wrong. As a first guess start with testing the cabling. From the
-      output of the above example you can guess that a problem exists on the
-      connection of node 3 to node 7. As a result check this connections.
-    </para>
--->
     <para>
       A detailed description of <command>test_nodes</command> can be found
       within the corresponding manual page <xref linkend="test_nodes"/>.
     </para>
-<!--
-    fg: test_pse is old (and somehow obsolet), so don't mention it!
-    <para>
-      Beginning with version 4.1 of &ps;, a new test command
-      <command>test_pse</command> is available. 
-    </para>
-    <programlisting>
-  $ export PSI_LOOP_NODES_FIRST=1
-  $ ./test_pse -np 4
-  node: 0 port: 0 rank: 0 host:pan
-  node: 0 port: 0 rank: 1 host:pan-1
-  node: 0 port: 0 rank: 2 host:pan-2
-  node: 0 port: 0 rank: 3 host:pan-3
-    </programlisting>
-    <para>
-      See also <xref linkend="test_pse"/> and <citerefentry>
-      <refentrytitle>ps_environment</refentrytitle>
-      <manvolnum>5</manvolnum> </citerefentry>.
-    </para>
--->
   </section>
 
 <!-- fg: section embed moved to techdetails -->
-<!--
-  <section id="embed">
-    <title>Integrating external queuing systems</title>
-    <para>
-      &ps; can be easily integrated with batch queuing  and scheduling
-      systems.  In this case, the queuing system will decide, where
-      (and when) to run a parallel task, &ps; will then start, monitor
-      and terminate the task. In case of higher priorized jobs, the
-      batch system may also suspend a task using the &ps; signal
-      forwarding.
-    </para>
-    <para>
-      Integration is done by setting up &ps; environment variables,
-      like <envar>PSI_HOSTFILE</envar>. 
-      &ps; itself need not be modified in any way.
-      It is not necessary to use a
-      remote shell (<filename>rsh</filename>) to start
-      <filename>mpirun</filename> on the first node of the selected
-      partition. The batch system should only run the command on the
-      same node where the batch system is running, &ps; will start all
-      necessary processes on the remote nodes. For details about
-      spawning processes refer to &psug;.
-    </para>
-    <note>
-      <para>
-        If an external queuing system is used, the environment
-        variable <envar>PSI_NODES_SORT</envar> should be set to
-        "none", thus no sorting of any predefined node list will be
-        done by &ps;.
-      </para>
-    </note>
-    <para>
-      Beginning with version 4.1, &ps; includes its own queuing
-      facility. For more details, refer to <xref
-      linkend="techdetails_queuing"/> and &psug;.
-    </para>
 
-    <section id="config_integrationPBS">
-      <title>Integration with PBS-PRO</title>
-      <para>
-        Parallel jobs started by PBS-PRO using the &ps;
-        <filename>mpirun</filename> command
-        will be automatically recognized. Due to the environment
-        variable <envar>PBS_NODEFILE</envar>, defined by PBS-PRO, &ps;
-        will automatically setup the <envar>PSI_HOSTFILE</envar> to
-        <envar>PBS_NODEFILE</envar> and will also setup
-        <envar>PSI_NODES_SORT</envar> no "none".
-      </para>
-      <para>
-        Therefore, &ps; will use the (unsorted) hostfile supplied by
-        PBS-PRO to startup the parallel task.
-      </para>
-    </section>
-
-    <section id="config_integrationOpenPBS">
-      <title>Integration with OpenPBS</title>
-      <para>
-        See previous section <xref linkend="config_integrationPBS"/>.
-      </para>
-    </section>
-
-    <section id="config_integrationLSF">
-      <title>Integration with LSF</title>
-      <para>
-        As described in the section <xref
-        linkend="config_integrationPBS"/>, &ps; will also recognize
-        the variable <envar>LSB_HOSTS</envar>, provided by LSF and
-        holding a list of nodes for the parallel task. This variable
-        is copied to the &ps; variable <envar>PSI_HOSTS</envar>,
-        consequently it will be used for starting up the task. In
-        addition, the variable <envar>PSI_NODES_SORT</envar> will be
-        set to "none", thus no sorting to this list will occure.
-      </para>
-    </section>
-  </section>
--->
-
-<!-- fg: no more myrinet
-  <section id="setup_route">
-    <title>Setting up routing on customized network topologies</title>
-    <para>
-      <anchor id="embed"/> 
-      If your network topology is special and not covered within the standard
-      routing files or if you are using the old Myrinet hardware (i.e. pre
-      Myrinet 2000 hardware), you might have to create a customized routing
-      file in order to setup &ps; correctly.
-    </para>
-    <para>
-      This section covers the creation of a customized routing file and thus is
-      only interesting in the case that the network topology of your cluster is
-      not covered by the standard routing tables within the standard &ps;
-      distribution. Otherwise you may savely skip this section.
-    </para>
-    <para>
-      The creation of the routing file is a two step procedure, starting with a
-      scan of your network to create a file containing the topology information
-      of the network and continuing with the creation of the actual routing
-      information.
-    </para>
-    <para>
-      In order to enable the &ps; scanning tool <xref linkend="psscan"/> to
-      uncover the network topology some setup of the Myrinet hardware has to be
-      done. I.e. the <xref linkend="MCP"/> has to be started on the Myrinet
-      cards. This status can be reached by following the direction of
-      <xref linkend="config_ps"/> and <xref linkend="myrinet_setup"/>,
-      obviously without telling the &ps; daemon the correct routing
-      information. Instead just use one of the given routing files, e.g.
-      <filename>M3E16.route</filename> for the <envar>PS_ROUTEFILE</envar>
-      environment parameter.
-    </para>
-    <para>
-      Then start up all daemons following the steps in <xref
-  linkend="testing"/>. Of course actual testing of the Myrinet using the
-      <command>test_nodes</command> program cannot be done yet. It is
-      sufficient if all &ps; daemons are up (test this using the
-      <command>status</command> directive withing the &ps; administration tool
-      <xref linkend="psiadmin"/>) and all daemons have found the local Myrinet
-      card and activated (test this within <xref linkend="psiadmin"/> using the
-      <command>status <option>hw</option></command> directive).
-    </para>
-    <para>
-      After &ps; is setup to this stage, login to any node connected to
-      the Myrinet and become <quote>root</quote>. Now the &ps; scanning
-      tool <xref linkend="psscan"/> can be started. Redirect its output into a
-      file, say <filename>network.psmap</filename>:
-    </para>
-    <programlisting>	/opt/parastation/bin/psscan &gt; network.psmap</programlisting>
-    <para>
-      A detailed description of the scanning tool and the format of the
-      topology information produced can be found within the corresponding
-      manual page <xref linkend="psscan"/>.
-    </para>
-    <para>
-      In a second step the topology information has to be transformed into a
-      routing table that can be handled by the <xref linkend="MCP"/>. This is
-      the purpose of the <xref linkend="psroute"/> tool. Considering
-      the topology information in the file <filename>network.psmap</filename>,
-      it is invoked by:
-    </para>
-    <programlisting>	/opt/parastation/bin/psroute &lt; network.psmap &gt; network.route</programlisting>
-    <para>
-      The new routing table, hand-crafted to your actual network setup will, be
-      written to standard out and thus be saved to
-      <filename>network.route</filename> by the above command invocation. The
-      format of the routing table information with the routing file is
-      discussed in detail within the manual page <xref linkend="psroute"/>.
-    </para>
-    <para>
-      Now you have to stop the &ps; system using the
-      <command>shutdown</command> directive of the &ps; administration tool
-      <xref linkend="psiadmin"/>. Afterwards you can copy the routing file to
-      the <filename>config</filename> directory within the &ps; tree
-      <filename>/opt/parastation</filename> and promote this information to the
-      &ps; daemon <xref linkend="psid"/> using the <envar>PS_ROUTEFILE</envar>
-      environment parameter within the configuration file
-      <xref linkend="parastation_conf"/>.
-    </para>
-    <para>
-      Proceed with testing the &ps; system as discussed in <xref
-  linkend="testing"/>.
-    </para>
-  </section>
-fg: end no more myrinet-->
+<!-- fg: no more (native) myrinet -->
 
 </chapter>
   <!-- Keep this comment at the end of the file
