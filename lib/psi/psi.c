@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.45 2003/03/11 18:16:16 eicker Exp $
+ * $Id: psi.c,v 1.46 2003/03/19 17:26:06 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.45 2003/03/11 18:16:16 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.46 2003/03/19 17:26:06 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -34,8 +34,6 @@ static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.45 2003/03/11 18:
 #include "psi.h"
 
 int daemonSock = -1;
-
-static char *psidVersion = NULL;
 
 static char errtxt[256];
 
@@ -67,11 +65,8 @@ static int daemonSocket(void)
 static int connectDaemon(PStask_group_t taskGroup)
 {
     DDInitMsg_t msg;
-#ifndef SO_PEERCRED
-    pid_t pid;
-    uid_t uid;
-    gid_t gid;
-#endif
+    DDTypedBufferMsg_t answer;
+
     int connectfailes;
     int retry_count =0;
     int ret;
@@ -109,12 +104,6 @@ static int connectDaemon(PStask_group_t taskGroup)
 	}
     }
 
-#ifndef SO_PEERCRED
-    pid = getpid();
-    uid = getuid();
-    gid = getgid();
-#endif
-
     /* local connect */
     msg.header.type = PSP_CD_CLIENTCONNECT;
 
@@ -126,9 +115,9 @@ static int connectDaemon(PStask_group_t taskGroup)
 	msg.ppid = getpgrp();
     }
 #ifndef SO_PEERCRED
-    msg.pid = pid;
-    msg.uid = uid;
-    msg.gid = gid;
+    msg.pid = getpid();
+    msg.uid = getuid();
+    msg.gid = getgid();
 #endif
     msg.group = taskGroup;
 
@@ -141,7 +130,7 @@ static int connectDaemon(PStask_group_t taskGroup)
 	return 0;
     }
 
-    ret = PSI_recvMsg(&msg);
+    ret = PSI_recvMsg(&answer);
     if (ret<=0) {
 	if (!ret) {
 	    snprintf(errtxt, sizeof(errtxt),
@@ -158,66 +147,89 @@ static int connectDaemon(PStask_group_t taskGroup)
 	return 0;
     }
 
-    switch (msg.header.type) {
-    case PSP_DD_STATENOCONNECT  :
-	retry_count++;
-	if (retry_count <10) {
-	    sleep(1);
-	    goto RETRY_CONNECT;
-	}
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s:  Daemon state does not allow new connections", __func__);
-	PSI_errlog(errtxt, 0);
-	break;
-    case PSP_CD_CLIENTREFUSED :
-	if (taskGroup!=TG_RESET) {
+    switch (answer.header.type) {
+    case PSP_CD_CLIENTREFUSED:
+    {
+	PSP_ConnectError_t type = answer.type;
+	switch (type) {
+	case PSP_CONN_ERR_NONE:
+	    if (taskGroup!=TG_RESET) {
+		snprintf(errtxt, sizeof(errtxt),
+			 "%s: Daemon refused connection.", __func__);
+		PSI_errlog(errtxt, 0);
+	    }
+	    break;
+	case PSP_CONN_ERR_OLDVERSION :
 	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: Daemon refused connection.", __func__);
+		     "%s: Daemon (%d) does not support library version (%d)."
+		     " Pleases relink program.",
+		     __func__, *(int *) answer.buf, PSprotocolversion );
 	    PSI_errlog(errtxt, 0);
-	}
-	break;
-    case PSP_CD_NOSPACE :
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: Daemon has no space available.", __func__);
-	PSI_errlog(errtxt, 0);
-	break;
-    case PSP_CD_UIDLIMIT :
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: Node is limited to user id %d.", __func__, msg.myid);
-	PSI_errlog(errtxt, 0);
-	break;
-    case PSP_CD_PROCLIMIT :
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: Node is limited to %d processes.", __func__, msg.myid);
-	PSI_errlog(errtxt, 0);
-	break;
-    case PSP_CD_OLDVERSION :
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: Daemon (%ld) does not support this library version(%d)."
-		 " Pleases relink program.",
-		 __func__, msg.version, PSprotocolversion );
-	PSI_errlog(errtxt, 0);
-	break;
-    case PSP_CD_CLIENTESTABLISHED :
-	PSC_setNrOfNodes(msg.nrofnodes);
-	PSC_setMyID(msg.myid);
-	PSC_setInstalldir(msg.instdir);
-	if (strcmp(msg.instdir, PSC_lookupInstalldir())) {
+	    break;
+	case PSP_CONN_ERR_NOSPACE:
 	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: Installation directory '%s' not correct.",
-		     __func__, msg.instdir);
+		     "%s: Daemon has no space available.", __func__);
+	    PSI_errlog(errtxt, 0);
+	    break;
+	case PSP_CONN_ERR_UIDLIMIT :
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: Node is limited to user id %d.",
+		     __func__, (int) *(uid_t *) answer.buf);
+	    PSI_errlog(errtxt, 0);
+	    break;
+	case PSP_CONN_ERR_PROCLIMIT :
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: Node is limited to %d processes.",
+		     __func__, *(int *) answer.buf);
+	    PSI_errlog(errtxt, 0);
+	    break;
+	case PSP_CONN_ERR_STATENOCONNECT:
+	    retry_count++;
+	    if (retry_count < 10) {
+		sleep(1);
+		goto RETRY_CONNECT;
+	    }
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s:  Daemon does not allow new connections", __func__);
+	    PSI_errlog(errtxt, 0);
+	    break;
+	default:
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s:  Daemon refused connection with unknown error type",
+		     __func__);
 	    PSI_errlog(errtxt, 0);
 	    break;
 	}
-	if (psidVersion) free(psidVersion);
-	psidVersion = strdup(msg.psidvers);
+	break;
+    }
+    case PSP_CD_CLIENTESTABLISHED:
+    {
+	char *instdir;
+
+	PSC_setMyID(answer.type);
+
+	PSC_setNrOfNodes(INFO_request_nrofnodes(0));
+
+	instdir = INFO_request_instdir(0);
+
+	if (instdir) {
+	    PSC_setInstalldir(instdir);
+	    if (strcmp(instdir, PSC_lookupInstalldir())) {
+		snprintf(errtxt, sizeof(errtxt),
+			 "%s: Installation directory '%s' not correct.",
+			 __func__, instdir);
+		PSI_errlog(errtxt, 0);
+		break;
+	    }
+	}
 
 	return 1;
 	break;
+    }
     default :
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: unexpected return code %s .",
-		 __func__, PSP_printMsg(msg.header.type));
+	snprintf(errtxt, sizeof(errtxt), "%s: unexpected return code %d (%s).",
+		 __func__, answer.header.type,
+		 PSP_printMsg(answer.header.type));
 	PSI_errlog(errtxt, 0);
  	break;
     }
@@ -325,7 +337,7 @@ int PSI_exitClient(void)
 
 char *PSI_getPsidVersion(void)
 {
-    return psidVersion;
+    return INFO_request_psidver(0);
 }
 
 int PSI_sendMsg(void *amsg)
@@ -426,11 +438,12 @@ int PSI_recvMsg(void *amsg)
 int PSI_notifydead(long tid, int sig)
 {
     DDSignalMsg_t msg;
+    int ret;
 
-    snprintf(errtxt, sizeof(errtxt), "PSI_notifydead(%lx, %d)", tid, sig);
+    snprintf(errtxt, sizeof(errtxt), "%s(%lx, %d)", __func__, tid, sig);
     PSI_errlog(errtxt, 10);
 
-    msg.header.type = PSP_DD_NOTIFYDEAD;
+    msg.header.type = PSP_CD_NOTIFYDEAD;
     msg.header.sender = PSC_getMyTID();
     msg.header.dest = tid;
     msg.header.len = sizeof(msg);
@@ -438,24 +451,35 @@ int PSI_notifydead(long tid, int sig)
 
     if (PSI_sendMsg(&msg)<0) {
 	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "PSI_notifydead():"
-		 "PSI_sendMsg() failed: %s", errstr ? errstr : "UNKNOWN");
+	snprintf(errtxt, sizeof(errtxt), "%s: PSI_sendMsg() failed: %s",
+		 __func__, errstr ? errstr : "UNKNOWN");
 	PSI_errlog(errtxt, 0);
 	return -1;
     }
 
-    if (PSI_recvMsg(&msg)<0) {
-	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "PSI_notifydead():"
-		 "PSI_recvMsg() failed: %s", errstr ? errstr : "UNKNOWN");
+    ret = PSI_recvMsg(&msg);
+    if (ret<0) {
+	char* errstr = strerror(errno);
+	snprintf(errtxt, sizeof(errtxt), "%s: PSI_recvMsg() failed: %s",
+		 __func__, errstr ? errstr : "UNKNOWN");
+	PSI_errlog(errtxt, 0);
+	return -1;
+    } else if (!ret) {
+	snprintf(errtxt, sizeof(errtxt), "%s: PSI_recvMsg() returned 0",
+		 __func__);
 	PSI_errlog(errtxt, 0);
 	return -1;
     }
 
-    if (msg.param) {
-	snprintf(errtxt, sizeof(errtxt), "PSI_notifydead():"
-		 " error = %d (ESRCH=%d).", msg.param, ESRCH);
-	PSI_errlog(errtxt, 1);
+    if (msg.header.type != PSP_CD_NOTIFYDEADRES) {
+	snprintf(errtxt, sizeof(errtxt), "%s: wrong message type %d (%s).",
+		 __func__, msg.header.type, PSP_printMsg(msg.header.type));
+	PSI_errlog(errtxt, 0);
+	return -1;
+    } else if (msg.param) {
+	snprintf(errtxt, sizeof(errtxt), "%s: error = %d",
+		 __func__, msg.param);
+	PSI_errlog(errtxt, 0);
 	return -1;
     }
 
@@ -470,7 +494,7 @@ int PSI_release(long tid)
     snprintf(errtxt, sizeof(errtxt), "%s(%lx)", __func__, tid);
     PSI_errlog(errtxt, 10);
 
-    msg.header.type = PSP_DD_RELEASE;
+    msg.header.type = PSP_CD_RELEASE;
     msg.header.sender = PSC_getMyTID();
     msg.header.dest = tid;
     msg.header.len = sizeof(msg);
@@ -478,7 +502,7 @@ int PSI_release(long tid)
 
     if (PSI_sendMsg(&msg)<0) {
 	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "%s(): PSI_sendMsg() failed: %s",
+	snprintf(errtxt, sizeof(errtxt), "%s: PSI_sendMsg() failed: %s",
 		 __func__, errstr ? errstr : "UNKNOWN");
 	PSI_errlog(errtxt, 0);
 	return -1;
@@ -487,27 +511,25 @@ int PSI_release(long tid)
     ret = PSI_recvMsg(&msg);
     if (ret<0) {
 	char* errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "PSI_release():"
-		 " PSI_recvMsg() failed: %s", errstr ? errstr : "UNKNOWN");
+	snprintf(errtxt, sizeof(errtxt), "%s: PSI_recvMsg() failed: %s",
+		 __func__, errstr ? errstr : "UNKNOWN");
+	PSI_errlog(errtxt, 0);
+	return -1;
+    } else if (!ret) {
+	snprintf(errtxt, sizeof(errtxt), "%s: PSI_recvMsg() returned 0",
+		 __func__);
 	PSI_errlog(errtxt, 0);
 	return -1;
     }
 
-    if (ret==0) {
-	snprintf(errtxt, sizeof(errtxt), "PSI_release():"
-		 " PSI_recvMsg() returned 0");
-	PSI_errlog(errtxt, 0);
-	return -1;
-    }
-
-    if (msg.header.type != PSP_DD_RELEASERES) {
-	snprintf(errtxt, sizeof(errtxt), "PSI_release():"
-		 " wrong message type %d.", msg.header.type);
+    if (msg.header.type != PSP_CD_RELEASERES) {
+	snprintf(errtxt, sizeof(errtxt), "%s: wrong message type %d (%s).",
+		 __func__, msg.header.type, PSP_printMsg(msg.header.type));
 	PSI_errlog(errtxt, 0);
 	return -1;
     } else if (msg.param) {
-	snprintf(errtxt, sizeof(errtxt), "PSI_release():"
-		 " error = %d (ESRCH=%d).", msg.param, ESRCH);
+	snprintf(errtxt, sizeof(errtxt), "%s: error = %d",
+		 __func__, msg.param);
 	PSI_errlog(errtxt, 0);
 	return -1;
     }
@@ -522,7 +544,7 @@ long PSI_whodied(int sig)
     snprintf(errtxt, sizeof(errtxt), "PSI_whodied(%d)", sig);
     PSI_errlog(errtxt, 10);
 
-    msg.header.type = PSP_DD_WHODIED;
+    msg.header.type = PSP_CD_WHODIED;
     msg.header.sender = PSC_getMyTID();
     msg.header.dest = 0;
     msg.header.len = sizeof(msg);
@@ -554,7 +576,7 @@ int PSI_sendFinish(long parenttid)
     snprintf(errtxt, sizeof(errtxt), "PSI_send_finish(%lx)", parenttid);
     PSI_errlog(errtxt, 10);
 
-    msg.type = PSP_DD_SPAWNFINISH;
+    msg.type = PSP_CD_SPAWNFINISH;
     msg.sender = PSC_getMyTID();
     msg.dest = parenttid;
     msg.len = sizeof(msg);
@@ -588,7 +610,7 @@ int PSI_recvFinish(int outstanding)
 	    break;
 	}
 	switch (msg.type) {
-	case PSP_DD_SPAWNFINISH:
+	case PSP_CD_SPAWNFINISH:
 	    break;
 	default:
 	    snprintf(errtxt, sizeof(errtxt), "%s(): UNKNOWN answer", __func__);
