@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidpartition.c,v 1.16 2004/03/09 10:02:15 eicker Exp $
+ * $Id: psidpartition.c,v 1.17 2004/03/10 08:46:15 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.16 2004/03/09 10:02:15 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.17 2004/03/10 08:46:15 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -282,6 +282,7 @@ static void deregisterReq(PSpart_request_t *req)
     for (i=0; i<req->size; i++) {
 	PSnodes_ID_t node = req->nodes[i];
 	nodeStat[node].assignedProcs--;
+	decJobsHint(node);
 	if ((req->options & PART_OPT_EXCLUSIVE)
 	    && !nodeStat[node].assignedProcs) nodeStat[node].exclusive = 0; 
     }
@@ -1200,7 +1201,7 @@ static int getPartition(PSpart_request_t *request)
 
     if (!candidates->size) {
 	snprintf(errtxt, sizeof(errtxt), "%s: No candidates", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_errlog(errtxt, 1);
 	errno = EAGAIN;
 	goto error;
     }
@@ -1210,7 +1211,7 @@ static int getPartition(PSpart_request_t *request)
     partition = createPartition(request, candidates);
     if (!partition) {
 	snprintf(errtxt, sizeof(errtxt), "%s: No partition", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_errlog(errtxt, 1);
 	errno = EAGAIN;
 	goto error;
     }
