@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.12 2003/03/07 16:06:45 eicker Exp $
+ * $Id: psprotocol.h,v 1.13 2003/03/11 10:26:11 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation client-daemon and daemon-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.12 2003/03/07 16:06:45 eicker Exp $
+ * $Id: psprotocol.h,v 1.13 2003/03/11 10:26:11 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -32,7 +32,7 @@ extern "C" {
 #endif
 #endif
 
-#define PSprotocolversion  319
+#define PSprotocolversion  320
 
 #define PSmasterSocketName "/var/run/parastation.sock"
 
@@ -79,6 +79,8 @@ typedef enum {
 #define PSP_CD_NODELISTRESPONSE    0x001b  /**< Reply up to date nodelist */
 #define PSP_CD_NODEREQUEST         0x001c  /**< Request IP from PS ID */
 #define PSP_CD_NODERESPONSE        0x001d  /**< Reply IP from PS ID */
+#define PSP_CD_PARTITIONREQUEST    0x001e  /**< Request incomplete nodelist */
+#define PSP_CD_PARTITIONRESPONSE   0x001f  /**< Reply incomplete nodelist */
 //#define PSP_CD_LOADREQUEST         0x001c  /* Obsolete ? */
 //#define PSP_CD_LOADRESPONSE        0x001d  /* Obsolete ? */
 //#define PSP_CD_PROCREQUEST         0x001e  /* Obsolete ? */
@@ -282,14 +284,16 @@ typedef struct {
 } DDTaskinfoMsg_t;
 
 
-/* Array of this struct is returned to NODELIST_REQUEST */
+/* Array of this struct is returned to PARTITION/NODELIST_REQUEST */
 typedef struct {
-    short up;            /**< Flag if nodes is up */
+    int id;              /**< ID of this node */
+    short up;            /**< Flag if node is up */
     short numCPU;        /**< Number of CPUs in this node */
     unsigned int hwType; /**< HW available on this node */
     float load[3];       /**< load on this node */
     short totalJobs;     /**< number of jobs */
     short normalJobs;    /**< number of "normal" jobs (no logger, admin,...) */
+    short maxJobs;       /**< maximum number of "normal" jobs */
 } NodelistEntry_t;
 
 #ifdef __cplusplus
