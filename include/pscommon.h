@@ -1,18 +1,18 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * pscommon.h
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.h,v 1.10 2003/10/29 17:34:04 eicker Exp $
+ * $Id: pscommon.h,v 1.11 2004/01/15 16:07:12 eicker Exp $
  *
  */
 /**
  * @file
  * Functions used in user-programs and daemon.
  *
- * $Id: pscommon.h,v 1.10 2003/10/29 17:34:04 eicker Exp $
+ * $Id: pscommon.h,v 1.11 2004/01/15 16:07:12 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -154,7 +154,7 @@ PStask_ID_t PSC_getMyTID(void);
  * Get a string describing the task ID @a tid. The returned pointer
  * leads to a static character array that contains the
  * description. Sequent calls to @ref PSC_printTID() will change the
- * content of this array. Therefor the result is not what you expect
+ * content of this array. Therefore the result is not what you expect
  * if more then one call of this function is made within a single
  * argument-list of printf(3) and friends.
  *

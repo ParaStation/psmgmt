@@ -5,14 +5,14 @@
  * Copyright (C) 2003 ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: hardware.h,v 1.2 2003/07/22 18:27:00 eicker Exp $
+ * $Id: hardware.h,v 1.3 2004/01/15 16:06:51 eicker Exp $
  *
  */
 /**
  * @file
  * Hardware handling
  *
- * $Id: hardware.h,v 1.2 2003/07/22 18:27:00 eicker Exp $
+ * $Id: hardware.h,v 1.3 2004/01/15 16:06:51 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -204,7 +204,7 @@ char *HW_dumpEnv(const int idx, const int num);
  * Get a string describing the hardware-type @a hwType. The returned
  * pointer leads to a static character array that contains the
  * description. Sequent calls to @ref HW_printType() will change the
- * content of this array. Therefor the result is not what you expect
+ * content of this array. Therefore the result is not what you expect
  * if more then one call of this function is made within a single
  * argument-list of printf(3) and friends.
  *
