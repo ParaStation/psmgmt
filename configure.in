@@ -89,13 +89,13 @@ fi
 
 
 AC_CONFIG_FILES([Makefile])
-AC_CONFIG_FILES([libs/pshal/Makefile])
-AC_CONFIG_FILES([libs/psport/Makefile])
-AC_CONFIG_FILES([libs/arg/Makefile])
-AC_CONFIG_FILES([libs/pvar/Makefile])
+AC_CONFIG_FILES([lib/pshal/Makefile])
+AC_CONFIG_FILES([lib/psport/Makefile])
+AC_CONFIG_FILES([lib/arg/Makefile])
+AC_CONFIG_FILES([lib/pvar/Makefile])
 AC_CONFIG_FILES([kern/mcp/Makefile])
 AC_CONFIG_FILES([kern/Makefile.include])
-AC_CONFIG_FILES([tools/Makefile])
+AC_CONFIG_FILES([bin/Makefile])
 
 
 

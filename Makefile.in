@@ -23,11 +23,11 @@
 LIBS := psport pshal arg pvar
 PSM_OSDIR := @PSM_OSDIR@
 
-LIBDIRS := $(patsubst %,libs/%,$(LIBS))
+LIBDIRS := $(patsubst %,lib/%,$(LIBS))
 
-SUBDIRS := $(LIBDIRS) kern/mcp $(PSM_OSDIR) tools
+SUBDIRS := $(LIBDIRS) kern/mcp $(PSM_OSDIR) bin
 
-.PHONY all: mcp psm libs tools
+.PHONY all: mcp psm lib bin
 
 
 mcp:
@@ -35,12 +35,12 @@ mcp:
 psm:
 	$(MAKE) -C $(PSM_OSDIR)
 
-libs: $(LIBS)
+lib: $(LIBS)
 $(LIBS): 
-	$(MAKE) -C libs/$@
+	$(MAKE) -C lib/$@
 
-tools:
-	$(MAKE) -C tools tools
+bin:
+	$(MAKE) -C bin bin
 
 clean:
 	@for i in $(SUBDIRS) ; do \

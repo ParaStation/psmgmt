@@ -1184,19 +1184,19 @@ fi
 
 ac_config_files="$ac_config_files Makefile"
 
-ac_config_files="$ac_config_files libs/pshal/Makefile"
+ac_config_files="$ac_config_files lib/pshal/Makefile"
 
-ac_config_files="$ac_config_files libs/psport/Makefile"
+ac_config_files="$ac_config_files lib/psport/Makefile"
 
-ac_config_files="$ac_config_files libs/arg/Makefile"
+ac_config_files="$ac_config_files lib/arg/Makefile"
 
-ac_config_files="$ac_config_files libs/pvar/Makefile"
+ac_config_files="$ac_config_files lib/pvar/Makefile"
 
 ac_config_files="$ac_config_files kern/mcp/Makefile"
 
 ac_config_files="$ac_config_files kern/Makefile.include"
 
-ac_config_files="$ac_config_files tools/Makefile"
+ac_config_files="$ac_config_files bin/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -1531,13 +1531,13 @@ do
   "kern/Linux/Makefile" ) CONFIG_FILES="$CONFIG_FILES kern/Linux/Makefile" ;;
   "kern/Linux/Makefile.second" ) CONFIG_FILES="$CONFIG_FILES kern/Linux/Makefile.second" ;;
   "Makefile" ) CONFIG_FILES="$CONFIG_FILES Makefile" ;;
-  "libs/pshal/Makefile" ) CONFIG_FILES="$CONFIG_FILES libs/pshal/Makefile" ;;
-  "libs/psport/Makefile" ) CONFIG_FILES="$CONFIG_FILES libs/psport/Makefile" ;;
-  "libs/arg/Makefile" ) CONFIG_FILES="$CONFIG_FILES libs/arg/Makefile" ;;
-  "libs/pvar/Makefile" ) CONFIG_FILES="$CONFIG_FILES libs/pvar/Makefile" ;;
+  "lib/pshal/Makefile" ) CONFIG_FILES="$CONFIG_FILES lib/pshal/Makefile" ;;
+  "lib/psport/Makefile" ) CONFIG_FILES="$CONFIG_FILES lib/psport/Makefile" ;;
+  "lib/arg/Makefile" ) CONFIG_FILES="$CONFIG_FILES lib/arg/Makefile" ;;
+  "lib/pvar/Makefile" ) CONFIG_FILES="$CONFIG_FILES lib/pvar/Makefile" ;;
   "kern/mcp/Makefile" ) CONFIG_FILES="$CONFIG_FILES kern/mcp/Makefile" ;;
   "kern/Makefile.include" ) CONFIG_FILES="$CONFIG_FILES kern/Makefile.include" ;;
-  "tools/Makefile" ) CONFIG_FILES="$CONFIG_FILES tools/Makefile" ;;
+  "bin/Makefile" ) CONFIG_FILES="$CONFIG_FILES bin/Makefile" ;;
   *) { { echo "$as_me:1541: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}
    { (exit 1); exit 1; }; };;

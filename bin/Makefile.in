@@ -7,50 +7,27 @@ CPPFLAGS += -I@top_srcdir@/include -MMD
 
 VPATH += @srcdir@
 
-LIBDIR := ../libs
+LIBDIR := ../lib
+
+.LIBPATTERNS += $(LIBDIR)/lib%.a
 
 TOOLS:=psconfig pscounter
 # test_nodes
 
-tools:	$(TOOLS)
+bin:	$(TOOLS)
 
 
-unlock: unlock.o
-unlock: $(LIBDIR)/pshal/libpshal.a
+unlock: unlock.o -lpshal
 
-tracemcp: tracemcp.o
-tracemcp: $(LIBDIR)/pvar/libpvar.a
-tracemcp: $(LIBDIR)/pvshal/libpshal.a
+tracemcp: tracemcp.o -lpvar -lpshal
 
+psconfig: psconfig.o -lpshal -larg -lm
 
+pscounter: pscounter.o -lpshal -lm
 
-psconfig: psconfig.o
-psconfig: $(LIBDIR)/pshal/libpshal.a
-psconfig: $(LIBDIR)/arg/libarg.a
-psconfig: -lm
+test_nodes: test_nodes.o -lpshal -lpsport -larg -lpse -lpsi -lm -pthread
 
-pscounter: pscounter.o
-pscounter: $(LIBDIR)/pshal/libpshal.a
-pscounter: -lm
-
-test_nodes: test_nodes.o 
-test_nodes: $(LIBDIR)/pshal/libpshal.a 
-test_nodes: $(LIBDIR)/psport/libpsport.a
-test_nodes: $(LIBDIR)/arg/libarg.a
-test_nodes: $(LIBDIR)/pse/libpse.a
-test_nodes: $(LIBDIR)/psi/libpsi.a
-test_nodes: -lm
-test_nodes: -lpthread
-
-
-test_pse: test_pse.o
-test_pse: $(LIBDIR)/arg/libarg.a
-test_pse: $(LIBDIR)/pshal/libpshal.a 
-test_pse: $(LIBDIR)/psport/libpsport.a
-test_pse: $(LIBDIR)/pse/libpse.a
-test_pse: $(LIBDIR)/psi/libpsi.a
-test_pse: -lpthread
-test_pse: -lm
+test_pse: test_pse.o -lpshal -lpsport -larg -lpse -lpsi -lm -lpthread
 
 DEPFILES := $(wildcard *.d) dummy.d
 
