@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.25 2003/03/11 18:14:41 eicker Exp $
+ * $Id: psilogger.c,v 1.26 2003/03/19 17:11:39 eicker Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.25 2003/03/11 18:14:41 eicker Exp $
+ * $Id: psilogger.c,v 1.26 2003/03/19 17:11:39 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.25 2003/03/11 18:14:41 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.26 2003/03/19 17:11:39 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -29,6 +29,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.25 2003/03/
 #include <errno.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/socket.h>
 #include <sys/resource.h>
 #include <sys/wait.h>
 #include <signal.h>
@@ -266,6 +267,7 @@ void sighandler(int sig)
 	if (verbose) {
 	    fprintf(stderr, "PSIlogger %d: Got SIGTSTP.\n", getpid());
 	}
+	kill(getpid(),SIGSTOP);
 	/* @todo:
 	 * Send STOP to childs, then really stop ( kill(getpid(),SIGSTOP); ).
 	 */
