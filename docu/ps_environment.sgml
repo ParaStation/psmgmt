@@ -184,9 +184,20 @@
 	    </varlistentry>
 
 	    <varlistentry>
+	      <term><envar>PROC+LOAD</envar></term>
+	      <listitem>
+		<para>The nodes are sorted corresponding to the sum of the 1
+		  minute load and the number of running &ps; processes. This
+		  will lead to fair load-balancing even if processes are
+		  started without notification to the &ps; management facility.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
 	      <term><envar>PROC</envar></term>
 	      <listitem>
-		<para>The nodes are sorted by the number of running ParaStation
+		<para>The nodes are sorted by the number of running &ps;
 		  processes before new processes are spawned. This is the
 		  default behavior.
 		</para>

@@ -269,6 +269,21 @@
 	</listitem>
 
 	<listitem>
+	  <para>If it is set to <envar>PROC+LOAD</envar> the sum of the 1
+	    minute load average and the number of processes controlled by &ps;
+	    is used<footnote>
+	      <para>Here again not the pure value is used but the sum divided
+		by the number of CPUs on that node.
+	      </para>
+	    </footnote>.
+	  </para>
+	  <para>
+	    When sorting is finished the first position of the nodelist is
+	    taken by the node with the smallest value for the sum.
+	  </para>
+	</listitem>
+
+	<listitem>
 	  <para>If the value is <envar>NONE</envar> or
 	    <envar>ROUNDROBIN</envar> no sorting at all is applied to the list
 	    of nodes, i.e. the nodes are used in the order they appear in one

@@ -137,6 +137,23 @@
 	  </para>
 	</listitem>
       </varlistentry>
+
+      <varlistentry>
+	<term><envar>PROC+LOAD</envar></term>
+	<listitem>
+	  <para>Sort the pool depending on the sum of the load average within
+	    the last minute and the number of processes managed by &ps;. This
+	    is especially usefull if you are running &ps; in an environment
+	    where jobs are started on some nodes without contacting the &ps;
+	    daemon <citerefentry>
+	      <refentrytitle>psid</refentrytitle>
+	      <manvolnum>8</manvolnum>
+	    </citerefentry> on the one hand and (serial) jobs shall be
+	    distributed by &ps; on the other hand.
+	  </para>
+	</listitem>
+      </varlistentry>
+
       <varlistentry>
 	<term><envar>NONE</envar> or anything else</term>
 	<listitem>
