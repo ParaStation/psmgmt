@@ -1,0 +1,37 @@
+#!/bin/sh
+
+
+MODULEFULLNAME=$PS_MODULE
+MODULENAME=`basename $MODULEFULLNAME .o`
+PSCONFIG=`dirname $0`/psconfig
+
+
+case "$1" in
+    start)
+	lsmod | grep $MODULENAME
+	CONFIGURED=$?
+        if [ $CONFIGURED != 1 ] ; then
+	    insmod "$MODULEFULLNAME"
+            if [ $? -ne 0 ]
+            then
+                  echo "Failed to configure subsystem: " $MODULEFULLNAME
+		  exit 1
+            fi
+        fi
+	$PSCONFIG -key "$PS_LIC" || exit 2
+	$PSCONFIG -id "$PS_ID" "$PS_ROUTEFILE" || exit 3
+	
+	;;
+
+    stop)
+	rmmod -u "$MODULENAME"
+	;;
+
+
+    *)
+	echo "Usage: $0 {start|stop}"
+	exit 1
+	;;
+esac
+
+
