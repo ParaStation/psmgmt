@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.89 2003/04/07 16:27:36 eicker Exp $
+ * $Id: psid.c,v 1.90 2003/04/10 17:42:28 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.89 2003/04/07 16:27:36 eicker Exp $ 
+ * $Id: psid.c,v 1.90 2003/04/10 17:42:28 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.89 2003/04/07 16:27:36 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.90 2003/04/10 17:42:28 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -76,7 +76,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.89 $";
+static char psid_cvsid[] = "$Revision: 1.90 $";
 
 static int PSID_mastersock;
 
@@ -91,16 +91,9 @@ static char errtxt[256]; /**< General string to create error messages */
 #define INITIALCONTACT  0x00000001   /* No message yet (only accept()ed) */
 
 struct {
-    long tid;    /* task id of the client process;
-		  *  this is a combination of nodeno and OS pid
-		  *  partner daemons are connected with pid==0
-		  */
-    PStask_t *task;     /* pointer to a task, if the client is
-			   associated with a task.
-			   The right kind can be chosen from the id:
-			   PSC_getPID(id)==0 => daemon
-			   PSC_getPID(id)!=0 => task  */
-    long flags;
+    long tid;       /**< Clients task ID */
+    PStask_t *task; /**< Clients task structure */
+    long flags;     /**< Special flags. Up to now only INITIALCONTACT */
 } clients[FD_SETSIZE];
 
 /*----------------------------------------------------------------------*/
@@ -444,15 +437,14 @@ int shutdownNode(int phase)
 
     if (timercmp(&maintimer, &shutdowntimer, <)) {
 	snprintf(errtxt, sizeof(errtxt),
-		 "shutdownNode(PHASE %d):"
-		 " timer not ready [%ld:%ld] < [%ld:%ld]",
+		 "%s(%d): timer not ready [%ld:%ld] < [%ld:%ld]", __func__,
 		 phase, maintimer.tv_sec, maintimer.tv_usec,
 		 shutdowntimer.tv_sec, shutdowntimer.tv_usec);
 	PSID_errlog(errtxt, 10);
 	return 0;
     }
 
-    snprintf(errtxt, sizeof(errtxt), "shutdownNode(PHASE %d)", phase);
+    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, phase);
     PSID_errlog(errtxt, 0);
 
     snprintf(errtxt, sizeof(errtxt),
@@ -496,7 +488,8 @@ int shutdownNode(int phase)
 	exitRDP();
 	PSID_stopAllHW();
 	unlink(PSmasterSocketName);
-	PSID_errlog("shutdownNode() good bye", 0);
+	snprintf(errtxt, sizeof(errtxt), "%s() good bye", __func__);
+	PSID_errlog(errtxt, 0);
 	exit(0);
     }
     return 1;
@@ -525,7 +518,7 @@ void declareDaemonDead(int id)
 		int signal = sig->signal;
 
 		/* Send the signal */
-		PSID_sendSignal(task->tid, task->uid, senderTid, signal);
+		PSID_sendSignal(task->tid, task->uid, senderTid, signal, 0);
 
 		sig = sig->next;
 		/* Remove signal from list */
@@ -835,7 +828,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 		task->ptid = ptid;
 	    } else {
 		/* no parent !? kill the task */
-		PSID_sendSignal(task->tid, task->uid, PSC_getMyTID(), SIGTERM);
+		PSID_sendSignal(task->tid, task->uid, PSC_getMyTID(), -1, 0);
 	    }
 	}
 
@@ -867,7 +860,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
     outmsg.type = PSP_CONN_ERR_NONE;
 
     /* Connection refused answer message */
-    if (msg->version != PSprotocolversion) {
+    if (msg->version < 324) {
 	/* @todo also handle the old protocol correctly, i.e. send
 	 * PSP_OLDVERSION message */
 	outmsg.type = PSP_CONN_ERR_OLDVERSION;
@@ -896,7 +889,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	snprintf(errtxt, sizeof(errtxt), "%s connection refused:"
 		 "group %s task %s version %ld vs. %d uid %d %d jobs %d %d",
 		 __func__, PStask_printGrp(msg->group),
-		 PSC_printTID(task->tid), msg->version, PSprotocolversion,
+		 PSC_printTID(task->tid), msg->version, PSprotocolVersion,
 		 uid, PSnodes_getUser(PSC_getMyID()),
 		 info.jobs.normal, PSnodes_getProcs(PSC_getMyID()));
 	PSID_errlog(errtxt, 1);
@@ -912,6 +905,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	}
     } else {
 	clients[fd].flags &= ~INITIALCONTACT;
+	task->protocolVersion = msg->version;
 
 	outmsg.type = PSC_getMyID();
 
@@ -1146,6 +1140,7 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	 */
 	forwarder = PStask_clone(task);
 	forwarder->group = TG_FORWARDER;
+	forwarder->protocolVersion = PSprotocolVersion;
 	/*
 	 * try to start the task
 	 */
@@ -1367,7 +1362,7 @@ void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
 	snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
 		 " already dead");
 	PSID_errlog(errtxt, 0);
-	PSID_sendSignal(tid, 0, ptid, -1);
+	PSID_sendSignal(tid, 0, ptid, -1, 0);
     }
 
     /* send the initiator the success msg */
@@ -1945,41 +1940,40 @@ void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
     PStask_t *task;
     DDSignalMsg_t answer;
 
-    snprintf(errtxt, sizeof(errtxt), "msg_NOTIFYDEAD() sender=%s",
+    snprintf(errtxt, sizeof(errtxt), "%s: sender=%s", __func__,
 	     PSC_printTID(registrarTid));
     snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
 	     " tid=%s sig=%d", PSC_printTID(tid), msg->signal);
     PSID_errlog(errtxt, 1);
 
-    answer.header.type = PSP_CD_NOTIFYDEADRES;
-    answer.header.dest = registrarTid;
-    answer.header.sender = tid;
-    answer.header.len = sizeof(answer);
-    answer.signal = msg->signal;
+    msg->header.type = PSP_CD_NOTIFYDEADRES;
+    msg->header.dest = registrarTid;
+    msg->header.sender = tid;
+    // msg->header.len = sizeof(*msg);
+    // msg->signal = msg->signal;
 
     if (!tid) {
 	task = PStasklist_find(managedTasks, registrarTid);
 	if (task) {
 	    /* @todo more logging */
 	    task->relativesignal = msg->signal;
-	    answer.param = 0;     /* sucess */
+	    msg->param = 0;     /* sucess */
 	} else {
 	    /* @todo more logging */
-	    answer.param = ESRCH; /* failure */
+	    msg->param = ESRCH; /* failure */
 	}
     } else {
 	int id = PSC_getID(tid);
 
 	if (id<0 || id>=PSC_getNrOfNodes()) {
-	    answer.param = EHOSTUNREACH; /* failure */
+	    msg->param = EHOSTUNREACH; /* failure */
 	} else if (id==PSC_getMyID()) {
 	    /* task is on my node */
 	    task = PStasklist_find(managedTasks, tid);
 
 	    if (task) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "msg_NOTIFYDEAD() set signalReceiver (%s",
-			 PSC_printTID(tid));
+		snprintf(errtxt, sizeof(errtxt), "%s: set signalReceiver (%s",
+			 __func__, PSC_printTID(tid));
 		snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
 			 ", %s, %d)", PSC_printTID(registrarTid), msg->signal);
 		PSID_errlog(errtxt, 1);
@@ -1987,7 +1981,7 @@ void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 		PSID_setSignal(&task->signalReceiver,
 			       registrarTid, msg->signal);
 
-		answer.param = 0; /* sucess */
+		msg->param = 0; /* sucess */
 
 		if (PSC_getID(registrarTid)==PSC_getMyID()) {
 		    /* registrar is on my node */
@@ -1996,34 +1990,30 @@ void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 			PSID_setSignal(&task->assignedSigs, tid, msg->signal);
 		    } else {
 			snprintf(errtxt, sizeof(errtxt),
-				 "msg_NOTIFYDEAD() registrar %s not found",
+				 "%s: registrar %s not found", __func__,
 				 PSC_printTID(registrarTid));
 			PSID_errlog(errtxt, 0);
 		    }
 		}
 	    } else {
-		snprintf(errtxt, sizeof(errtxt), "msg_NOTIFYDEAD() sender=%s",
+		snprintf(errtxt, sizeof(errtxt), "%s: sender=%s", __func__,
 			 PSC_printTID(registrarTid));
 		snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
 			 " tid=%s sig=%d: no task",
 			 PSC_printTID(tid), msg->signal);
 		PSID_errlog(errtxt, 0);
 
-		answer.param = ESRCH; /* failure */
+		msg->param = ESRCH; /* failure */
 	    }
 	} else {
 	    /* task is on remote node */
-	    snprintf(errtxt, sizeof(errtxt),
-		     "msg_NOTIFYDEAD() forwarding to node %d", PSC_getID(tid));
+	    snprintf(errtxt, sizeof(errtxt), "%s: forwarding to node %d",
+		     __func__, PSC_getID(tid));
 	    PSID_errlog(errtxt, 1);
-
-	    sendMsg(msg);
-
-	    return;
 	}
     }
 
-    sendMsg(&answer);
+    sendMsg(msg);
 }
 
 /******************************************
@@ -2036,7 +2026,7 @@ void msg_NOTIFYDEADRES(DDSignalMsg_t *msg)
 
     if (msg->param) {
 	snprintf(errtxt, sizeof(errtxt),
-		 "NOTIFYDEADRES error = %d sending msg to local parent %s",
+		 "%s: error = %d sending msg to local parent %s", __func__,
 		 msg->param, PSC_printTID(registrarTid));
 	PSID_errlog(errtxt, 0);
     } else {
@@ -2044,9 +2034,8 @@ void msg_NOTIFYDEADRES(DDSignalMsg_t *msg)
 	/* include into assigned Sigs */
 	PStask_t *task;
 
-	snprintf(errtxt, sizeof(errtxt),
-		 "NOTIFYDEADRES sending msg to local parent %s",
-		 PSC_printTID(registrarTid));
+	snprintf(errtxt, sizeof(errtxt), "%s: sending msg to local parent %s",
+		 __func__, PSC_printTID(registrarTid));
 	PSID_errlog(errtxt, 1);
 
 	task = PStasklist_find(managedTasks, registrarTid);
@@ -2121,8 +2110,8 @@ static int releaseTask(DDSignalMsg_t *msg)
     if (task) {
 	PStask_sig_t *sig;
 
-	snprintf(errtxt, sizeof(errtxt),
-		 "releaseTask(%s): release", PSC_printTID(tid));
+	snprintf(errtxt, sizeof(errtxt), "%s(%s): release", __func__,
+		 PSC_printTID(tid));
 	PSID_errlog(errtxt, 1);
 
 	task->released = 1;
@@ -2135,13 +2124,12 @@ static int releaseTask(DDSignalMsg_t *msg)
 		if (ret) return ret;
 	    } else {
 		/* parent task is remote, send a message */
-		snprintf(errtxt, sizeof(errtxt),
-			 "releaseTask(): notify parent %s",
-			 PSC_printTID(task->ptid));
+		snprintf(errtxt, sizeof(errtxt), "%s: notify parent %s",
+			 __func__, PSC_printTID(task->ptid));
 		PSID_errlog(errtxt, 1);
 
 		msg->header.dest = task->ptid;
-		msg->header.len = sizeof(*msg);
+		// msg->header.len = sizeof(*msg);
 		msg->signal = -1;
 
 		sendMsg(msg);
@@ -2162,13 +2150,12 @@ static int releaseTask(DDSignalMsg_t *msg)
 		if (ret) return ret;
 	    } else {
 		/* controlled task is remote, send a message */
-		snprintf(errtxt, sizeof(errtxt),
-			 "releaseTask(): notify sender %s",
-			 PSC_printTID(senderTid));
+		snprintf(errtxt, sizeof(errtxt), "%s: notify sender %s",
+			 __func__, PSC_printTID(senderTid));
 		PSID_errlog(errtxt, 1);
 
 		msg->header.dest = senderTid;
-		msg->header.len = sizeof(*msg);
+		// msg->header.len = sizeof(*msg);
 		msg->signal = signal;
 
 		sendMsg(msg);
@@ -2181,8 +2168,8 @@ static int releaseTask(DDSignalMsg_t *msg)
 	    PSID_removeSignal(&task->assignedSigs, senderTid, signal);
 	}
     } else {
-	snprintf(errtxt, sizeof(errtxt),
-		 "releaseTask(%s): no task", PSC_printTID(tid));
+	snprintf(errtxt, sizeof(errtxt), "%s(%s): no task", __func__,
+		 PSC_printTID(tid));
 	PSID_errlog(errtxt, 0);
 
 	return ESRCH;
@@ -2199,7 +2186,7 @@ void msg_RELEASE(DDSignalMsg_t *msg)
     long registrarTid = msg->header.sender;
     long tid = msg->header.dest;
 
-    snprintf(errtxt, sizeof(errtxt), "msg_RELEASE(%s)", PSC_printTID(tid));
+    snprintf(errtxt, sizeof(errtxt), "%s(%s)", __func__, PSC_printTID(tid));
     PSID_errlog(errtxt, 1);
 
     if (registrarTid==tid) {
@@ -2212,7 +2199,7 @@ void msg_RELEASE(DDSignalMsg_t *msg)
 	msg->header.type = PSP_CD_RELEASERES;
 	msg->header.dest = msg->header.sender;
 	msg->header.sender = tid;
-	msg->header.len = sizeof(*msg);
+	// msg->header.len = sizeof(*msg);
 	msg->param = ret;
 
 	if (msg->param) sendMsg(msg);
@@ -2220,7 +2207,7 @@ void msg_RELEASE(DDSignalMsg_t *msg)
 	task = PStasklist_find(managedTasks, tid);
 
 	if (!task) {
-	    snprintf(errtxt, sizeof(errtxt), "msg_RELEASE(): no task");
+	    snprintf(errtxt, sizeof(errtxt), "%s: no task", __func__);
 	    PSID_errlog(errtxt, 0);
 
 	    msg->param = ESRCH;
@@ -2238,12 +2225,12 @@ void msg_RELEASE(DDSignalMsg_t *msg)
 	msg->header.type = PSP_CD_RELEASERES;
 	msg->header.dest = msg->header.sender;
 	msg->header.sender = tid;
-	msg->header.len = sizeof(*msg);
+	// msg->header.len = sizeof(*msg);
 	msg->param = releaseSignal(tid, registrarTid, msg->signal);
     } else {
 	/* sending task is remote, send a message */
-	snprintf(errtxt, sizeof(errtxt),
-		 "msg_RELEASE() forwarding to node %d", PSC_getID(tid));
+	snprintf(errtxt, sizeof(errtxt), "%s: forwarding to node %d", __func__,
+		 PSC_getID(tid));
 	PSID_errlog(errtxt, 1);
     }
 
@@ -2259,7 +2246,7 @@ void msg_RELEASERES(DDSignalMsg_t *msg)
     PStask_t *task;
 
     if (PSID_getDebugLevel() >= 10) {
-	snprintf(errtxt, sizeof(errtxt), "msg_RELEASERES(%s)",
+	snprintf(errtxt, sizeof(errtxt), "%s(%s)", __func__,
 		 PSC_printTID(msg->header.sender));
 	PSID_errlog(errtxt, 10);
     }
@@ -2267,8 +2254,8 @@ void msg_RELEASERES(DDSignalMsg_t *msg)
     task = PStasklist_find(managedTasks, tid);
 
     if (!task) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "msg_RELEASERES(%s): no task", PSC_printTID(tid));
+	snprintf(errtxt, sizeof(errtxt), "%s(%s): no task", __func__,
+		 PSC_printTID(tid));
 	PSID_errlog(errtxt, 0);
 
 	return;
@@ -2276,20 +2263,20 @@ void msg_RELEASERES(DDSignalMsg_t *msg)
 
     task->pendingReleaseRes--;
     if (task->pendingReleaseRes) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "msg_RELEASERES(%s) sig %d: still %d msgs pending",
-		 PSC_printTID(tid), msg->signal, task->pendingReleaseRes);
+	snprintf(errtxt, sizeof(errtxt), "%s(%s) sig %d: still %d pending",
+		 __func__, PSC_printTID(tid), msg->signal,
+		 task->pendingReleaseRes);
 	PSID_errlog(errtxt, 4);
 
 	return;
     } else if (msg->param) {
 	snprintf(errtxt, sizeof(errtxt),
-		 "RELEASERES() sig %d: error = %d sending to local parent %s",
+		 "%s: sig %d: error = %d sending to local parent %s", __func__,
 		 msg->signal, msg->param, PSC_printTID(tid));
 	PSID_errlog(errtxt, 0);
     } else {
 	snprintf(errtxt, sizeof(errtxt),
-		 "RELEASERES() sig %d: sending msg to local parent %s",
+		 "%s: sig %d: sending msg to local parent %s", __func__,
 		 msg->signal, PSC_printTID(tid));
 	PSID_errlog(errtxt, 1);
     }
@@ -2303,33 +2290,76 @@ void msg_RELEASERES(DDSignalMsg_t *msg)
  */
 void msg_SIGNAL(DDSignalMsg_t *msg)
 {
-    long sigtid = msg->header.dest;
+    if (msg->header.dest == -1) {
+	snprintf(errtxt, sizeof(errtxt), "%s: no broadcast", __func__);
+	PSID_errlog(errtxt, 0);
+	return;
+    }
 
-    if (sigtid!=-1 && PSC_getID(sigtid)==PSC_getMyID()) {
+    if (PSC_getPID(msg->header.sender)) {
+	PStask_t *sender = PStasklist_find(managedTasks, msg->header.sender);
+	if (sender && sender->protocolVersion < 325
+	    && sender->group != TG_LOGGER) {
+
+	    /* Client uses old protocol. Map to new one. */
+	    static DDSignalMsg_t newMsg;
+
+	    newMsg.header.type = msg->header.type;
+	    newMsg.header.sender = msg->header.sender;
+	    newMsg.header.dest = msg->header.dest;
+	    newMsg.header.len = sizeof(newMsg);
+	    newMsg.signal = msg->signal;
+	    newMsg.param = msg->param;
+	    newMsg.pervasive = 0;
+
+	    msg = &newMsg;
+	}
+    }
+
+    if (PSC_getID(msg->header.dest)==PSC_getMyID()) {
 	/* receiver is on local node, send signal */
-	snprintf(errtxt, sizeof(errtxt),
-		 "msg_SIGNAL() sending signal %d to %s",
-		 msg->signal, PSC_printTID(sigtid));
+	snprintf(errtxt, sizeof(errtxt), "%s: sending signal %d to %s",
+		 __func__, msg->signal, PSC_printTID(msg->header.dest));
 	PSID_errlog(errtxt, 1);
 
-	PSID_sendSignal(sigtid, msg->param, msg->header.sender, msg->signal);
-    } else if(msg->header.dest!=-1) {
-	/*
-	 * this is a request for a remote site.
-	 * find the right fd to send to request
-	 */
-	snprintf(errtxt, sizeof(errtxt),
-		 "msg_SIGNAL() sending to node %d", PSC_getID(sigtid));
-	PSID_errlog(errtxt, 1);
+	if (msg->pervasive) {
+	    PStask_t *dest = PStasklist_find(managedTasks, msg->header.dest);
+	    if (dest) {
+		PStask_t *clone = PStask_clone(dest);
+		long childTID;
+		int sig = -1;
 
-	sendMsg(msg);
+		while ((childTID = PSID_getSignal(&clone->childs, &sig))) {
+		    PSID_sendSignal(childTID, msg->param, msg->header.sender,
+				    msg->signal, 1);
+		    sig = -1;
+		}
+
+		/* Don't send back to the original sender */
+		if (msg->header.sender != msg->header.dest) {
+		    PSID_sendSignal(msg->header.dest, msg->param,
+				    msg->header.sender, msg->signal, 0);
+		}
+		PStask_delete(clone);
+	    } else {
+		snprintf(errtxt, sizeof(errtxt), "%s: sender %s not found",
+			 __func__, PSC_printTID(msg->header.sender));
+		PSID_errlog(errtxt, 0);
+	    }
+	} else {
+	    PSID_sendSignal(msg->header.dest, msg->param, msg->header.sender,
+			    msg->signal, msg->pervasive);
+	}
     } else {
 	/*
 	 * this is a request for a remote site.
 	 * find the right fd to send to request
 	 */
-	snprintf(errtxt, sizeof(errtxt), "msg_SIGNAL() broadcast not allowed");
-	PSID_errlog(errtxt, 0);
+	snprintf(errtxt, sizeof(errtxt), "%s: sending to node %d", __func__,
+		 PSC_getID(msg->header.dest));
+	PSID_errlog(errtxt, 1);
+
+	sendMsg(msg);
     }
 }
 
@@ -2340,7 +2370,7 @@ void msg_WHODIED(DDSignalMsg_t *msg)
 {
     PStask_t *task;
 
-    snprintf(errtxt, sizeof(errtxt), "WHODIED() who=%s sig=%d",
+    snprintf(errtxt, sizeof(errtxt), "%s: who=%s sig=%d", __func__,
 	     PSC_printTID(msg->header.sender), msg->signal);
     PSID_errlog(errtxt, 1);
 
@@ -2349,22 +2379,20 @@ void msg_WHODIED(DDSignalMsg_t *msg)
 	long tid;
 	tid = PSID_getSignal(&task->signalSender, &msg->signal);
 
-	snprintf(errtxt, sizeof(errtxt), "WHODIED() tid=%s sig=%d)",
+	snprintf(errtxt, sizeof(errtxt), "%s: tid=%s sig=%d)", __func__,
 		 PSC_printTID(tid), msg->signal);
 	PSID_errlog(errtxt, 1);
 
 	msg->header.dest = msg->header.sender;
 	msg->header.sender = tid;
-	msg->header.len = sizeof(*msg);
-
-	sendMsg(msg);
+	// msg->header.len = sizeof(*msg);
     } else {
 	msg->header.dest = msg->header.sender;
 	msg->header.sender = -1;
-	msg->header.len = sizeof(*msg);
-
-	sendMsg(msg);
+	// msg->header.len = sizeof(*msg);
     }
+
+    sendMsg(msg);
 }
 
 /******************************************
@@ -2911,7 +2939,7 @@ void checkFileTable(void)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.89 $";
+    char revision[] = "$Revision: 1.90 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -3102,7 +3130,7 @@ int main(int argc, const char *argv[])
 
     snprintf(errtxt, sizeof(errtxt),
 	     "Starting ParaStation3 DAEMON Protocol Version %d",
-	     PSprotocolversion);
+	     PSprotocolVersion);
     PSID_errlog(errtxt, 0);
     PSID_errlog(" (c) ParTec AG (www.par-tec.com)", 0);
 
@@ -3146,7 +3174,7 @@ int main(int argc, const char *argv[])
 	openlog("psid", LOG_PID|LOG_CONS, ConfigLogDest);
 	snprintf(errtxt, sizeof(errtxt),
 		 "Starting ParaStation3 DAEMON Protocol Version %d",
-		 PSprotocolversion);
+		 PSprotocolVersion);
 	PSID_errlog(errtxt, 0);
 	snprintf(errtxt, sizeof(errtxt),
 		 " (c) ParTec AG (www.par-tec.com)");
