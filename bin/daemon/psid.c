@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.46 2002/03/27 14:28:51 eicker Exp $
+ * $Id: psid.c,v 1.47 2002/04/03 15:32:26 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.46 2002/03/27 14:28:51 eicker Exp $ 
+ * $Id: psid.c,v 1.47 2002/04/03 15:32:26 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.46 2002/03/27 14:28:51 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.47 2002/04/03 15:32:26 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -67,7 +67,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.46 $";
+static char psid_cvsid[] = "$Revision: 1.47 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -3083,7 +3083,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.46 $";
+    char revision[] = "$Revision: 1.47 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -3429,7 +3429,7 @@ int main(int argc, char **argv)
 	 */
 	if (FD_ISSET(PSI_msock, &rfds)){
 	    int ssock;  /* slave server socket */
-	    int flen = sizeof(sa);
+	    socklen_t flen = sizeof(sa);
 
 	    if(PSI_isoption(PSP_ODEBUG))
 		SYSLOG(4,(LOG_ERR,"accepting new connection\n"));
