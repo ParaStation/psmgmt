@@ -6,7 +6,10 @@
 
   <refnamediv>
     <refname>psid</refname>
-    <refpurpose>the ParaStation daemon</refpurpose>
+    <refpurpose>
+      the ParaStation daemon. The organizer of the ParaStation software
+      architecture.
+    </refpurpose>
   </refnamediv>
 
   <refsynopsisdiv>
@@ -22,7 +25,95 @@
   <refsect1>
     <title>Description</title>
     <para>
-      bla
+      The ParaStation daemon is implemented as a Unix daemon process and
+      supervises allocated resources, cleans up after application shutdowns,
+      and controls access to common resources. Thus, it takes care of tasks
+      which are usually managed by the operating system.
+    </para>
+
+    <para>
+      The daemon is usually started by executing <xref linkend="psiadmin"/>. If
+      it is not running at the time a ParaStation process is starting, the
+      <citerefentry>
+	<refentrytitle>inetd</refentrytitle>
+	<manvolnum>8</manvolnum>
+      </citerefentry> daemon is starting up psid automatically. The daemon can
+      also be started using the command line. Parameters can be given at the
+      command line or in the inetd configuration file (<citerefentry>
+	<refentrytitle>inetd.conf</refentrytitle>
+	<manvolnum>5</manvolnum>
+      </citerefentry>). Most of the parameters can also be given in the
+      ParaStation configuration file (<xref linkend="parastation_conf" />). The
+      ParaStation daemon must always run with root privileges.
+    </para>
+
+    <para>
+      Before a process can communicate with the ParaStation system, the process
+      has to register with the daemon. Access may be granted or denied. The
+      daemon can deny the access due to several reasons:
+    </para>
+    <itemizedlist>
+      <listitem>
+	<para>
+	  the ParaStation system library of the process and the ParaStation
+	  daemon are incompatible.
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  the daemon is in a state where it does not accept new connections.
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  insufficient resources.
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  the user is temporally not allowed to access ParaStation (see <xref
+	    linkend="psiadmin"/>).
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  the number of processes exceed the maximum set by <xref
+	    linkend="psiadmin"/>.
+	</para>
+      </listitem>
+    </itemizedlist>
+
+    <para>
+      The psid can restrict the access to the communication subsystem to a
+      specific user or a maximum number of processes. This enables the cluster
+      to run in an optimized way, since multiple processes slow down
+      application execution due to scheduling overhead. (See <xref
+	linkend="psiadmin"/>, <command>set user</command> and <command>set
+	maxproc</command> for this features.)
+    </para>
+
+    <para>
+      All psids are connected to each other. They exchange local information
+      and transmit demands of local processes to the psid of the destination
+      node. With this cooperation, the ParaStation system offers a distributed
+      resource management.
+    </para>
+
+    <para>
+      The ParaStation daemon spawns and kills client processes on demand of
+      the parent process. The ParaStation system transfers remote spawning or
+      killing requests to the daemon of the destination node. Then operating
+      system functionality is used to spawn and kill the processes on the
+      local node. The spawned process runs with same user and group id as the
+      spawning process. The ParaStation system redirects the output of spawned
+      process to the terminal of the parent process.
+    </para>
+
+    <para>
+      The ParaStation daemon checks periodically if the ParaStation licesense
+      daemon <xref linkend="psld"/> is running. If the license daemon is not
+      running for a period of time, the ParaStation daemon shuts down
+      operation. If this happens, please check your log file.
     </para>
   </refsect1>
 

@@ -6,7 +6,7 @@
 
   <refnamediv>
     <refname>psiadmin</refname>
-    <refpurpose>bla blub</refpurpose>
+    <refpurpose>the ParaStation administration and management tool</refpurpose>
   </refnamediv>
 
   <refsynopsisdiv>
@@ -22,6 +22,142 @@
     <para>
       blablabla.
     </para>
+  </refsect1>
+
+  <refsect1>
+    <title>Options</title>
+    <variablelist>
+      <varlistentry>
+	<term>
+	  <option>-c</option>
+	  <option>--command=<replaceable>command</replaceable></option>
+	</term>
+	<listitem>
+	  <para>
+	    Execute the single interactive command <command>command</command>
+	    and exit.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-r</option>
+	  <option>--reset</option>
+	</term>
+	<listitem>
+	  <para>
+	    Do a reset of the ParaStation system on startup.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>
+          <option>-v</option>,
+          <option>--version</option>
+        </term>
+        <listitem>
+          <para>
+            Output version information and exit.
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>
+          <option>-?</option>,
+          <option>--help</option>
+        </term>
+        <listitem>
+          <para>
+            Show a help message.
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><option>--usage</option></term>
+        <listitem>
+          <para>
+            Display a brief usage message.
+          </para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+  </refsect1>
+
+  <refsect1>
+    <title>Interactive commands</title>
+    <para>
+      When the psiadmin is started, it will prompt for commands.
+    </para>
+    <para>
+      Most command share the options <option><optional>from
+	  <optional>to</optional></optional></option> marking a range of nodes
+      managed by ParaStation. If <option>to</option> is missing, only the
+      single node <option>from</option> is selected. All nodes are selected, if
+      <option>from</option> is missing, too.
+    </para>
+    <para>
+      <option>from</option> and <option>to</option> may either be symbolic
+      hostnames or nodenumbers. Nodenumbers can be given decimal or hexadecimal
+      and must be in the range of (0 &le; number &lt; NumberOfNodes).
+    </para>
+    
+    <variablelist>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>status</command>
+	    <group>
+	      <arg>node</arg>
+	      <arg>count</arg>
+	      <arg>rdp</arg>
+	      <arg>mcast</arg>
+	      <arg>proc</arg>
+	      <arg>allproc</arg>
+	      <arg>all</arg>
+	    </group>
+	    <arg>from <arg>to</arg></arg>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>bla</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>version</command>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>Prints various version numbers</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>reset</command>
+	    <arg>hw</arg>
+	    <arg>from <arg>to</arg></arg>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	    Reset the ParaStation daemon on all selected node(s). As a
+	    consequence <emphasis>all</emphasis> processes using the selected
+	    node(s) are terminated (killed)!
+	  </para>
+	  <para>
+	    Furthermore the communication hardware is brought into a known
+	    state, if the option <option>hw</option> is given.
+	    <command>reset<option>hw</option></command> is the same as
+	    <command>restart</command>.
+	  </para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
   </refsect1>
 </refentry>
   <!-- Keep this comment at the end of the file
