@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidspawn.c,v 1.17 2004/01/28 14:04:59 eicker Exp $
+ * $Id: psidspawn.c,v 1.18 2004/01/28 17:59:43 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.17 2004/01/28 14:04:59 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.18 2004/01/28 17:59:43 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -219,8 +219,60 @@ static int execClient(PStask_t *task, int controlchannel)
 }
 
 /**
- * @brief @todo
- * Split into smaller parts, e.g. first, then part reuse, resetSigHandler().
+ * @brief Reset signal handlers.
+ *
+ * Reset all the signal handlers.
+ *
+ * @return No return value.
+ */
+static void resetSignals(void)
+{
+    signal(SIGINT   ,SIG_DFL);
+    signal(SIGQUIT  ,SIG_DFL);
+    signal(SIGILL   ,SIG_DFL);
+    signal(SIGTRAP  ,SIG_DFL);
+    signal(SIGABRT  ,SIG_DFL);
+    signal(SIGIOT   ,SIG_DFL);
+    signal(SIGBUS   ,SIG_DFL);
+    signal(SIGFPE   ,SIG_DFL);
+    signal(SIGUSR1  ,SIG_DFL);
+    signal(SIGSEGV  ,SIG_DFL);
+    signal(SIGUSR2  ,SIG_DFL);
+    signal(SIGPIPE  ,SIG_DFL);
+    signal(SIGTERM  ,SIG_DFL);
+    signal(SIGCHLD  ,SIG_DFL);
+    signal(SIGCONT  ,SIG_DFL);
+    signal(SIGTSTP  ,SIG_DFL);
+    signal(SIGTTIN  ,SIG_DFL);
+    signal(SIGTTOU  ,SIG_DFL);
+    signal(SIGURG   ,SIG_DFL);
+    signal(SIGXCPU  ,SIG_DFL);
+    signal(SIGXFSZ  ,SIG_DFL);
+    signal(SIGVTALRM,SIG_DFL);
+    signal(SIGPROF  ,SIG_DFL);
+    signal(SIGWINCH ,SIG_DFL);
+    signal(SIGIO    ,SIG_DFL);
+#ifdef __osf__
+    /* OSF on Alphas */
+    signal(SIGSYS   ,SIG_DFL);
+    signal(SIGINFO  ,SIG_DFL);
+    signal(SIGIOINT ,SIG_DFL);
+    signal(SIGAIO   ,SIG_DFL);
+    signal(SIGPTY   ,SIG_DFL);
+#elif defined(__alpha)
+    /* Linux on Alpha*/
+    signal( SIGSYS  ,SIG_DFL);
+    signal( SIGINFO ,SIG_DFL);
+#endif
+#if !defined(__osf__) && !defined(__alpha)
+    signal(SIGSTKFLT,SIG_DFL);
+#endif
+}
+
+/**
+ * @brief @doctodo
+ *
+ * @todo Split into smaller parts, e.g. first, then part reuse.
  */
 static int execForwarder(PStask_t *task, int daemonfd, int controlchannel)
 {
@@ -445,47 +497,10 @@ static int execForwarder(PStask_t *task, int daemonfd, int controlchannel)
 
     closelog();
 
-    /* reset all the signal handlers */
-    signal(SIGINT   ,SIG_DFL);
-    signal(SIGQUIT  ,SIG_DFL);
-    signal(SIGILL   ,SIG_DFL);
-    signal(SIGTRAP  ,SIG_DFL);
-    signal(SIGABRT  ,SIG_DFL);
-    signal(SIGIOT   ,SIG_DFL);
-    signal(SIGBUS   ,SIG_DFL);
-    signal(SIGFPE   ,SIG_DFL);
-    signal(SIGUSR1  ,SIG_DFL);
-    signal(SIGSEGV  ,SIG_DFL);
-    signal(SIGUSR2  ,SIG_DFL);
-    signal(SIGPIPE  ,SIG_DFL);
-    signal(SIGTERM  ,SIG_DFL);
-    signal(SIGCHLD  ,SIG_DFL);
-    signal(SIGCONT  ,SIG_DFL);
-    signal(SIGTSTP  ,SIG_DFL);
-    signal(SIGTTIN  ,SIG_DFL);
-    signal(SIGTTOU  ,SIG_DFL);
-    signal(SIGURG   ,SIG_DFL);
-    signal(SIGXCPU  ,SIG_DFL);
-    signal(SIGXFSZ  ,SIG_DFL);
-    signal(SIGVTALRM,SIG_DFL);
-    signal(SIGPROF  ,SIG_DFL);
-    signal(SIGWINCH ,SIG_DFL);
-    signal(SIGIO    ,SIG_DFL);
-#ifdef __osf__
-    /* OSF on Alphas */
-    signal(SIGSYS   ,SIG_DFL);
-    signal(SIGINFO  ,SIG_DFL);
-    signal(SIGIOINT ,SIG_DFL);
-    signal(SIGAIO   ,SIG_DFL);
-    signal(SIGPTY   ,SIG_DFL);
-#elif defined(__alpha)
-    /* Linux on Alpha*/
-    signal( SIGSYS  ,SIG_DFL);
-    signal( SIGINFO ,SIG_DFL);
-#endif
-#if !defined(__osf__) && !defined(__alpha)
-    signal(SIGSTKFLT,SIG_DFL);
-#endif
+    resetSignals();
+
+    /* Pass the client's PID to the forwarder. */
+    task->tid = PSC_getTID(-1, pid);
 
     /* Rename the syslog tag */
     openlog("psidforwarder", LOG_PID|LOG_CONS, config->logDest);
