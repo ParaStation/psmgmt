@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.h,v 1.9 2003/02/10 18:24:33 eicker Exp $
+ * $Id: pstask.h,v 1.10 2003/02/13 17:05:56 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with ParaStation tasks.
  *
- * $Id: pstask.h,v 1.9 2003/02/10 18:24:33 eicker Exp $
+ * $Id: pstask.h,v 1.10 2003/02/13 17:05:56 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -42,7 +42,8 @@ typedef enum {
     TG_ADMIN,     /**< Taskgroup for psiadmin (and GUI client) */
     TG_RESET,     /**< A normal task */
     TG_LOGGER,    /**< A special task, the logger */
-    TG_FORWARDER  /**< A special task, the forwarder */
+    TG_FORWARDER, /**< A special task, the forwarder */
+    TG_SPAWNER    /**< A special task, the spawner (helper to spawn p4 jobs) */
 } PStask_group_t;
 
 /**
