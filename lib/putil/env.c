@@ -7,7 +7,7 @@
 /**
  * env.c: Simple environment handling
  *
- * $Id: env.c,v 1.1 2003/03/24 17:52:18 eicker Exp $
+ * $Id: env.c,v 1.2 2003/04/03 14:56:40 eicker Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -20,6 +20,16 @@
 #include <string.h>
 
 #include "env.h"
+
+void env_init(env_fields_t *env)
+{
+    memset(env, 0, sizeof(*env));
+}
+
+int env_size(env_fields_t *env)
+{
+    return env->cnt;
+}
 
 int env_index(env_fields_t *env, const char *name)
 {
@@ -87,11 +97,13 @@ char *env_get(env_fields_t *env, const char *name)
     int idx;
 
     idx = env_index(env, name);
-    if (idx < 0) return 0;
+    if (idx < 0) return NULL;
     return strchr(env->vars[idx],'=') + 1;
 }
 
-void env_init(env_fields_t *env)
+char *env_dump(env_fields_t *env, int idx)
 {
-    memset(env, 0, sizeof(*env));
+    if (idx < 0 || idx >= env->cnt) return NULL;
+
+    return env->vars[idx];
 }

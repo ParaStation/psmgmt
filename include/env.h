@@ -7,7 +7,7 @@
 /**
  * env.c: Simple environment handling
  *
- * $Id: env.h,v 1.1 2003/03/24 17:51:37 eicker Exp $
+ * $Id: env.h,v 1.2 2003/04/03 14:56:40 eicker Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -31,11 +31,13 @@ typedef struct env_fields_s{
     int size;
 }env_fields_t;
 
+void env_init(env_fields_t *env);
+int env_size(env_fields_t *env);
 int env_index(env_fields_t *env, const char *name);
 int env_unset(env_fields_t *env, const char *name);
 int env_set(env_fields_t *env, const char *name, const char *val);
 char *env_get(env_fields_t *env, const char *name);
-void env_init(env_fields_t *env);
+char *env_dump(env_fields_t *env, int idx);
 
 #ifdef __cplusplus
 }/* extern "C" */
