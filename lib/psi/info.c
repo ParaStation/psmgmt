@@ -5,17 +5,18 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.25 2002/08/06 08:18:02 eicker Exp $
+ * $Id: info.c,v 1.26 2003/02/13 17:04:07 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.25 2002/08/06 08:18:02 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.26 2003/02/13 17:04:07 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <netinet/in.h>
 
 #include "pscommon.h"
 #include "psprotocol.h"
@@ -104,6 +105,7 @@ static int INFO_receive(INFO_info_t what, void *buffer, size_t size,
 	case PSP_CD_HOSTSTATUSRESPONSE:
 	case PSP_CD_NODELISTRESPONSE:
 	case PSP_CD_HOSTRESPONSE:
+	case PSP_CD_NODERESPONSE:
 	    memcpy(buffer, msg.buf, size);
 	    break;
 /*  	case PSP_CD_LOADRESPONSE: */
@@ -247,7 +249,7 @@ int INFO_request_host(unsigned int address, int verbose)
     msg.header.sender = PSC_getMyTID();
     msg.header.len = sizeof(msg.header);
 
-    memcpy(msg.buf, &address, sizeof(unsigned int));
+    memcpy(msg.buf, &address, sizeof(address));
     msg.header.len += sizeof(address);
 
     if (PSI_sendMsg(&msg)<0) {
@@ -257,6 +259,35 @@ int INFO_request_host(unsigned int address, int verbose)
     if (INFO_receive(INFO_GETINFO, &host, sizeof(host), verbose)
 	== PSP_CD_HOSTRESPONSE) {
 	return host;
+    }
+
+    return -1;
+}
+
+unsigned int INFO_request_node(int node, int verbose)
+{
+    DDBufferMsg_t msg;
+    unsigned int address;
+
+    msg.header.type = PSP_CD_NODEREQUEST;
+    msg.header.dest = PSC_getTID(-1, 0);
+    msg.header.sender = PSC_getMyTID();
+    msg.header.len = sizeof(msg.header);
+
+    memcpy(msg.buf, &node, sizeof(node));
+    msg.header.len += sizeof(node);
+
+    if (PSI_sendMsg(&msg)<0) {
+	PSI_errexit("INFO_request_node(): write", errno);
+    }
+
+    if (INFO_receive(INFO_GETINFO, &address, sizeof(address), verbose)
+	== PSP_CD_NODERESPONSE) {
+	if (address == INADDR_ANY) {
+	    return -1;
+	} else {
+	    return address;
+	}
     }
 
     return -1;
@@ -283,11 +314,12 @@ int INFO_request_nodelist(NodelistEntry_t *buffer, size_t size, int verbose)
     return -1;
 }
 
-int INFO_request_tasklist(int nodeno, INFO_taskinfo_t taskinfo[], int size,
+int INFO_request_tasklist(int nodeno, INFO_taskinfo_t taskinfo[], size_t size,
 			  int verbose)
 {
     DDMsg_t msg;
-    int msgtype, tasknum, maxtask;
+    int msgtype, tasknum;
+    size_t maxtask;
 
     msg.type = PSP_CD_TASKINFOREQUEST;
     msg.dest = PSC_getTID(nodeno, 0); /* Get info on all task on this node */
