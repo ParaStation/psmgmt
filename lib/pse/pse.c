@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.30 2002/08/01 16:50:19 eicker Exp $
+ * $Id: pse.c,v 1.31 2003/02/07 15:59:59 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.30 2002/08/01 16:50:19 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.31 2003/02/07 15:59:59 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -33,7 +33,6 @@ static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.30 2002/08/01 16:
 #include "psi.h"
 #include "info.h"
 #include "psispawn.h"
-#include "logger.h"
 #include "psienv.h"
 #include "psilog.h"
 
@@ -176,14 +175,7 @@ void PSE_setHWType(unsigned int hwType)
 }
 
 void PSE_registerToParent(void)
-{
-    if (parentTID<=0 || PSI_notifydead(parentTID, SIGTERM)<0) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "Parent %s is probably no more alive.",
-		 PSC_printTID(parentTID));
-	exitAll(errtxt, 10);
-    }
-}
+{}
 
 void PSE_spawnMaster(int argc, char *argv[])
 {
@@ -216,11 +208,8 @@ void PSE_spawnMaster(int argc, char *argv[])
     memcpy(&sin_addr, hp->h_addr, hp->h_length);
 
     /* spawn master process */
-    if (PSI_spawnM(1, NULL, ".", argc, argv,
-		   sin_addr.s_addr, LOGGERopenPort(),
+    if (PSI_spawnM(1, NULL, ".", argc, argv, PSC_getMyTID(),
 		   PSE_getRank()+1, &error, &spawnedProcess) < 0 ) {
-/*  	if (PSI_spawnM(1, NULL, ".", argc, argv, PSC_getMyTID(), */
-/*  		       PSE_getRank()+1, &error, &spawnedProcess) < 0 ) { */
 	if (error) {
 	    char *errstr = strerror(error);
 	    snprintf(errtxt, sizeof(errtxt),
@@ -235,7 +224,7 @@ void PSE_spawnMaster(int argc, char *argv[])
     errlog(errtxt, 10);
 
     /* Switch to psilogger */
-    LOGGERexecLogger();
+    PSI_execLogger();
 }
 
 void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
@@ -285,12 +274,9 @@ void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
     }
 
     /* spawn client processes */
-    ret = PSI_spawnM(myWorldSize, NULL, ".", argc, argv,
-		     PSI_loggernode, PSI_loggerport,
-		     PSE_getRank()+1, errors, spawnedProcesses);
-/*      ret = PSI_spawnM(myWorldSize, NULL, ".", argc, argv, */
-/*  		     INFO_request_taskinfo(PSC_getMyTID(), INFO_LOGGERTID, 0), */
-/*  		     PSE_getRank()+1, errors, spawnedProcesses); */
+     ret = PSI_spawnM(myWorldSize, NULL, ".", argc, argv,
+ 		     INFO_request_taskinfo(PSC_getMyTID(), INFO_LOGGERTID, 0),
+ 		     PSE_getRank()+1, errors, spawnedProcesses);
     if (ret<0) {
 	for (i=0; i<myWorldSize; i++) {
 	    char *errstr = strerror(errors[i]);
