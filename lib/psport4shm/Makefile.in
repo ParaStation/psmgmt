@@ -1,0 +1,37 @@
+###################################################### -*- Makefile -*- #####
+#                  ParaStation3
+#        Copyright (c) 2002 ParTec AG Karlsruhe
+#        All rights reserved.
+#############################################################################
+#
+# $Id: Makefile.in,v 1.1 2003/02/25 11:16:38 hauke Exp $
+#
+# @author
+#         Jens Hauke <hauke@par-tec.de>
+#############################################################################
+
+# Use absolute paths !!!
+SRCDIR := $(shell cd @srcdir@;pwd)
+TOPSRCDIR := @TOP_SRCDIR@
+
+################################
+
+export LIBNAME := psport4shm
+export LIBOBJS := psport4shm.o
+export LIBVPATH := $(SRCDIR)
+export LIBINC = -I$(TOPSRCDIR)/include
+export LIBDSTDIR = ../..
+
+################################
+
+all lib: sharedlib staticlib
+
+sharedlib staticlib: sharedlib.dir staticlib.dir
+	$(MAKE) -C $@.dir -f ../../Makefile.$@
+
+sharedlib.dir staticlib.dir:
+	mkdir -p $@
+
+clean: sharedlib.dir staticlib.dir
+	$(MAKE) -C sharedlib.dir -f ../../Makefile.sharedlib clean
+	$(MAKE) -C staticlib.dir -f ../../Makefile.staticlib clean
