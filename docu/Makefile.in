@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.11 2003/05/28 12:30:34 eicker Exp $
+# $Id: Makefile.in,v 1.12 2003/05/28 15:40:36 eicker Exp $
 #
 # @author
 #         Norbert Eicker <eicker@par-tec.de>
@@ -54,12 +54,13 @@ USERDEPS += $(patsubst man7/%.7,%.sgml,$(USERMAN7))
 HTMLIMAGES = ParTec.png ParaStation.png approach.png interface.png network.png
 
 
-DOXYSRC = psport.h pshwtypes.h pse.h
+DOXYSRC = psport4.h pse.h
 DOXYDIR = html/api
 DOXYINDEX = $(DOXYDIR)/index.html
+DOXYMANS = $(patsubst %,man/man3/%.3,$(DOXYSRC))
 
 HTMLDIRS = html/adminguide html/userguide html/images
-MANDIRS = man/man1 man/man5 man/man8 man/man7
+MANDIRS = man/man1 man/man3 man/man5 man/man8 man/man7
 
 DIRS = $(HTMLDIRS) $(MANDIRS) $(DOXYDIR) pdf
 
@@ -180,9 +181,9 @@ pdf/userguide.fo: $(USERDEPS)
 #
 # Doxygen Files
 #
-doxygen: $(DOXYINDEX)
+doxygen: $(DOXYINDEX) $(DOXYMANS)
 
-$(DOXYINDEX): $(patsubst %,$(TOP_SRCDIR)/include/%,$(DOXYSRC))
+$(DOXYINDEX) $(DOXYMANS): $(patsubst %,$(TOP_SRCDIR)/include/%,$(DOXYSRC))
 	@ doxx=`which doxygen`x ; \
         if [ `basename "$$doxx"` = doxygenx ]; then \
             doxygen; \
