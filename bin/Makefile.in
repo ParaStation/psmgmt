@@ -43,9 +43,9 @@ psconfig: psconfig.o -lpshal -larg -lm
 
 pscounter: pscounter.o -lpshal -lm
 
-test_nodes: test_nodes.o -lpshal -lpsport -larg -lpse -lpsi -lm -lpthread
+test_nodes: test_nodes.o -lpshal -lpsport -lpopt -lpse -lpsi -lm -lpthread
 
-test_pse: test_pse.o -lpshal -lpsport -larg -lpse -lpsi -lm -lpthread
+test_pse: test_pse.o -lpopt -lpse -lpsi
 
 psmstart: psmstart.o -lpse -lpsi
 
