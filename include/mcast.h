@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.h,v 1.12 2002/07/11 09:50:29 eicker Exp $
+ * $Id: mcast.h,v 1.13 2002/07/23 12:43:33 eicker Exp $
  *
  */
 /**
  * \file
  * ParaStation MultiCast facility
  *
- * $Id: mcast.h,v 1.12 2002/07/11 09:50:29 eicker Exp $
+ * $Id: mcast.h,v 1.13 2002/07/23 12:43:33 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -74,6 +74,8 @@ typedef struct {
 #define MCAST_NEW_CONNECTION  0x80
 /** Tag to @ref MCastCallback: Connection lost */
 #define MCAST_LOST_CONNECTION 0x81
+/** Tag to @ref MCastCallback: License-daemon not needed any longer */
+#define MCAST_LIC_END         0x82
 /** Tag to @ref MCastCallback: Connection to license server lost */
 #define MCAST_LIC_LOST        0x88
 /**

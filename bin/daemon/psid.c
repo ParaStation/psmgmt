@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.60 2002/07/19 12:57:33 eicker Exp $
+ * $Id: psid.c,v 1.61 2002/07/23 12:46:40 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.60 2002/07/19 12:57:33 eicker Exp $ 
+ * $Id: psid.c,v 1.61 2002/07/23 12:46:40 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.60 2002/07/19 12:57:33 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.61 2002/07/23 12:46:40 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -70,7 +70,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.60 $";
+static char psid_cvsid[] = "$Revision: 1.61 $";
 
 static int PSID_mastersock;
 
@@ -2581,6 +2581,7 @@ void psicontrol(int fd)
  * this function is called by MCast if
  * - a new daemon connects
  * - a daemon is declared as dead
+ * - the license-server is not needed any longer
  * - the license-server is missing
  * - the license-server is going down
  */
@@ -2616,6 +2617,11 @@ void MCastCallBack(int msgid, void *buf)
 	 * the connection is down.
 	 */
 	send_DAEMONCONNECT(node);
+	break;
+    case MCAST_LIC_END:
+	snprintf(errtxt, sizeof(errtxt),
+		 "MCastCallBack(MCAST_LIC_END) Don't know what to do");
+	PSID_errlog(errtxt, 0);
 	break;
     case MCAST_LIC_LOST:
 	hostaddr.s_addr = *(unsigned int *)buf;
@@ -2964,7 +2970,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.60 $";
+    char revision[] = "$Revision: 1.61 $";
     snprintf(errtxt, sizeof(errtxt), "psid %s\b ", revision+11);
     PSID_errlog(errtxt, 0);
 }
