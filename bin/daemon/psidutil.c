@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.26 2002/02/15 19:35:25 eicker Exp $
+ * $Id: psidutil.c,v 1.27 2002/04/22 18:16:36 hauke Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.26 2002/02/15 19:35:25 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.27 2002/04/22 18:16:36 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -51,7 +51,8 @@ void PSID_ReConfig(int nodeid, int nrofnodes, char *licensekey, char *module,
 {
     int ret;
     card_init_t card_info;
-
+    char licdot[10];
+    
     PSI_myid = nodeid;
     PSI_nrofnodes = nrofnodes;
 
@@ -59,9 +60,13 @@ void PSID_ReConfig(int nodeid, int nrofnodes, char *licensekey, char *module,
 	return;
     }
 
+    strncpy(licdot,licensekey?licensekey:"none",sizeof(licdot));
+    licdot[4]=licdot[5]=licdot[6]='.';
+    licdot[7]=0;
+    
     SYSLOG(1,(LOG_ERR, "PSID_ReConfig: %d '%s' '%s' '%s'"
 	      " small packets %d, ResendTimeout %d\n",
-	      nodeid, licensekey, module, routingfile,
+	      nodeid, licdot, module, routingfile,
 	      ConfigSmallPacketSize,ConfigRTO));
 
     card_info.node_id = nodeid;
@@ -70,10 +75,10 @@ void PSID_ReConfig(int nodeid, int nrofnodes, char *licensekey, char *module,
     card_info.options = NULL;
     card_info.routing_file = routingfile;
 
-    card_cleanup();
     ret = card_init(&card_info);
     if (ret) {
-	PSID_CardPresent = 0;	
+	PSID_CardPresent = 0;
+	SYSLOG(1,(LOG_INFO,"PSID_ReConfig: %s\n",card_errstr()));
 	return;
     }
 
@@ -111,7 +116,7 @@ int PSID_checklicense(unsigned int myIP)
 {
     /* check the license key at Node 0 */
 /*      unsigned int IP;  */
-    long nodes;
+    long nodes=50000;
     unsigned long end=0;
     unsigned long start=0;
 /*      long version; */
@@ -238,7 +243,6 @@ int PSID_readconfigfile(void)
 int PSID_startlicenseserver(unsigned int hostaddr)
 {
     int sock;
-    struct servent *service;
     struct sockaddr_in sa;
 #if defined(DEBUG)
     if(PSP_DEBUGADMIN & (PSI_debugmask )){
@@ -252,19 +256,10 @@ int PSID_startlicenseserver(unsigned int hostaddr)
      */
     sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-    if ((service = getservbyname("psld","tcp")) == NULL){ 
-	snprintf(errtxt, sizeof(errtxt), "PSID_startlicenseserver():"
-		 " can't get \"psld\" service entry\n"); 
-	fprintf(stderr, errtxt);
-	PSI_logerror(errtxt);
-	shutdown(sock,2);
-	close(sock);
-	return 0; 
-    }
     memset(&sa, 0, sizeof(sa)); 
     sa.sin_family = AF_INET; 
     sa.sin_addr.s_addr = hostaddr;
-    sa.sin_port = service->s_port;
+    sa.sin_port =  htons(PSI_GetServicePort("psld",887));
     if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0){ 
 	perror("PSID_startlicenseserver():"
 	       " Connect to port for start with inetd failed."); 
