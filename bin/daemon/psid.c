@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.96 2003/06/25 16:45:59 eicker Exp $
+ * $Id: psid.c,v 1.97 2003/06/26 10:10:46 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.96 2003/06/25 16:45:59 eicker Exp $ 
+ * $Id: psid.c,v 1.97 2003/06/26 10:10:46 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.96 2003/06/25 16:45:59 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.97 2003/06/26 10:10:46 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -78,7 +78,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.96 $";
+static char psid_cvsid[] = "$Revision: 1.97 $";
 
 static int PSID_mastersock;
 
@@ -456,7 +456,13 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	task->fd = fd;
 
 	/* This is needed for gmspawner */
-	if (msg->group == TG_GMSPAWNER) task->group = msg->group;
+	if (msg->group == TG_GMSPAWNER) {
+	    task->group = msg->group;
+
+	    /* Fix MCast info about the spawner task */
+	    decJobsMCast(PSC_getMyID(), 1, 1);
+	    incJobsMCast(PSC_getMyID(), 1, 0);
+	}
     } else {
 	char tasktxt[128];
 	task = PStask_new();
@@ -2639,7 +2645,7 @@ void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.96 $";
+    char revision[] = "$Revision: 1.97 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
