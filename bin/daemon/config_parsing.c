@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.18 2002/11/22 16:08:41 eicker Exp $
+ * $Id: config_parsing.c,v 1.19 2003/02/25 12:15:23 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.18 2002/11/22 16:08:41 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.19 2003/02/25 12:15:23 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -45,21 +45,21 @@ int NrOfNodes = -1;
 
 struct node_t *nodes = NULL;
 struct node_t licNode = {
-    INADDR_ANY, /* addr */
-    1,          /* numCPU */
-    0,          /* isUp */
-    0,          /* hwtype */
-    0,          /* hwStatus */
-    0,          /* hasIP */
-    0,          /* myriIP */
-    0           /* starter */
+    .addr = INADDR_ANY,
+    .numCPU = 1,
+    .isUp = 0,
+    .hwType = 0,
+    .hwStatus = 0,
+    .hasIP = 0,
+    .myriIP = 0,
+    .starter = 0
 };
 
 char *Configfile = NULL;
 char *ConfigInstDir = NULL;
 
 char *ConfigLicenseFile = NULL;
-env_fields_t ConfigLicEnv = { NULL, 0, 0 };
+env_fields_t ConfigLicEnv = { .vars = NULL, .cnt = 0, .size = 0 };
 
 char *ConfigLicenseKeyMCP = NULL;
 char *ConfigMyriModule = NULL;
@@ -94,6 +94,8 @@ static char errtxt[256];
 
 /*----------------------------------------------------------------------*/
 /* Helper function to manage nodes and hosts list */
+
+/** @todo These should not be here. Put them into psidnodes.c */
 static int allocHosts(int num)
 {
     int i;
@@ -685,7 +687,6 @@ static keylist_t rlimitenv_list[] = {
     {"stacksize", getRLimitStack},
     {"rssize", getRLimitRSS},
     {"}", endRLimitEnv},
-    {"#", parser_getComment},
     {NULL, parser_error}
 };
 
@@ -702,7 +703,6 @@ static keylist_t rlimit_list[] = {
     {"datasize", getRLimitData},
     {"stacksize", getRLimitStack},
     {"rssize", getRLimitRSS},
-    {"#", parser_getComment},
     {NULL, parser_error}
 };
 
@@ -763,7 +763,6 @@ static keylist_t hwenv_list[] = {
     {"myrinet", getHWmyrinet},
     {"gigaethernet", getHWgigaethernet},
     {"}", endHWEnv},
-    {"#", parser_getComment},
     {NULL, parser_error}
 };
 
@@ -780,7 +779,6 @@ static keylist_t hw_list[] = {
     {"ethernet", getHWethernet},
     {"myrinet", getHWmyrinet},
     {"gigaethernet", getHWgigaethernet},
-    {"#", parser_getComment},
     {NULL, parser_error}
 };
 
@@ -878,7 +876,6 @@ static keylist_t nodeline_list[] = {
     {"starter", getCS},
     {"hasip", getHasIP},
     {"myrinetip", getMyriIP},
-    {"#", parser_getComment},
     {NULL, parser_error}
 };
 
@@ -938,7 +935,6 @@ static int endNodeEnv(char *token)
 
 static keylist_t nodeenv_list[] = {
     {"}", endNodeEnv},
-    {"#", parser_getComment},
     {NULL, getNodeLine}
 };
 
@@ -952,7 +948,6 @@ static int getNodeEnv(char *token)
 
 static keylist_t node_list[] = {
     {"{", getNodeEnv},
-    {"#", parser_getComment},
     {NULL, getNodeLine}
 };
 
@@ -964,6 +959,118 @@ static int getNodes(char *token)
     int ret;
 
     ret = parser_parseString(parser_getString(), &node_parser);
+
+    if (ret == UP) {
+	return 0;
+    }
+
+    return ret;
+}
+
+/* ---------------------------------------------------------------------- */
+
+static int getEnvLine(char *token)
+{
+    char *line, *end;
+    char *name, *value = NULL;
+
+    if (token) {
+	name = strdup(token);
+    } else {
+	snprintf(errtxt, sizeof(errtxt), "syntax error\n");
+	parser_comment(errtxt,0);
+	return -1;
+    }
+
+    line = parser_getLine();
+
+    if (!line) {
+	snprintf(errtxt, sizeof(errtxt), "premature end of line\n");
+	parser_comment(errtxt,0);
+	return -1;
+    }
+
+    /* Remove leading whitespace */
+    while (*line==' ' || *line=='\t') line++;
+
+    if (*line == '"' || *line == '\'') {
+	/* value is protected by quotes or double quotes */
+	char quote = *line;
+
+	end = strchr(line+1, quote);
+
+	if (end) {
+	    *end = '\0';
+	    value = strdup(line+1);
+	    end++;
+	}
+    } else {
+	/* search for end of string */
+	end = line;
+	while (*end!=' ' && *end!='\t' && *end!='\0') end++;
+
+	if (end != line) {
+	    char bak = *end;
+	    *end = '\0';
+	    value = strdup(line);
+	    *end = bak;
+	}
+    }
+
+    if (!value) {
+	snprintf(errtxt, sizeof(errtxt), "no value for %s\n", name);
+	parser_comment(errtxt,0);
+	return -1;
+    }
+
+    /* Remove trailing whitespace */
+    while (*end==' ' || *end=='\t') end++;
+    if (*end) {
+	snprintf(errtxt, sizeof(errtxt), "found trailing garbage '%s' %d\n",
+		 end, *end);
+	parser_comment(errtxt,0);
+	return -1;
+    }
+
+    /* store environment */
+    setenv(name, value, 1);
+
+    snprintf(errtxt, sizeof(errtxt),
+	     "Got environment: %s='%s'\n", name , value);
+    parser_comment(errtxt,10);
+
+    return 0;
+}
+
+static int endEnvEnv(char *token)
+{
+    return UP;
+}
+
+static keylist_t envenv_list[] = {
+    {"}", endEnvEnv},
+    {NULL, getEnvLine}
+};
+
+static parser_t envenv_parser = {" \t\n", envenv_list};
+
+static int getEnvEnv(char *token)
+{
+    return parser_parseOn(parser_getString(), &envenv_parser);
+}
+
+static keylist_t env_list[] = {
+    {"{", getEnvEnv},
+    {NULL, getEnvLine}
+};
+
+static parser_t env_parser = {" \t\n", env_list};
+
+static int getEnv(char *token)
+{
+    int ret;
+
+    ret = parser_parseString(parser_getString(), &env_parser);
 
     if (ret == UP) {
 	return 0;
@@ -1008,7 +1115,8 @@ static keylist_t config_list[] = {
     {"loglevel", getLogLevel},
     {"logdestination", getLogDest},
     {"logdest", getLogDest},
-    {"#", parser_getComment},
+    {"environment", getEnv},
+    {"env", getEnv},
     {NULL, parser_error}
 };
 
