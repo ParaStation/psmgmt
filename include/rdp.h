@@ -1,16 +1,39 @@
 /*
- * ParaStation Reliable Datagram Protocol
+ *               ParaStation3
+ * rdp.h
  *
- * file: rdp.h
+ * Copyright (C) ParTec AG Karlsruhe
+ * All rights reserved.
  *
- * (C) 1999 ParTec AG Karlsruhe
- *     written by Dr. Thomas M. Warschko
- *
- * Dec-99 V1.0: initial implementation
+ * $Id: rdp.h,v 1.2 2002/01/09 14:59:27 eicker Exp $ 
  *
  */
+/**
+ * \file
+ * rdp: Reliable Datagram Protocol for ParaStation daemon
+ *
+ * $Id: rdp.h,v 1.2 2002/01/09 14:59:27 eicker Exp $ 
+ *
+ * \author
+ * Norbert Eicker <eicker@par-tec.com>
+ *
+ */
+#ifndef __RDP_H
+#define __RDP_H
 
-typedef enum {CINVAL=0x0, CLOSED=0x1, SYN_SENT=0x2, SYN_RECVD=0x3, ACTIVE=0x4} RDPState;
+#ifdef __cplusplus
+extern "C" {
+#if 0
+} // <- just for emacs indentation
+#endif
+#endif
+
+typedef enum {
+    CLOSED=0x1,
+    SYN_SENT=0x2,
+    SYN_RECVD=0x3,
+    ACTIVE=0x4
+} RDPState;
 
 typedef struct RDPLoad_ {
   double	load[3];	/* Load parameters of that node */
@@ -41,28 +64,6 @@ typedef struct RDP_Deadbuf_{
 } RDP_Deadbuf;
 
 
-/*
- * Get Info for node n
- */
-void RDP_GetInfo(int n, RDP_ConInfo *info);
-
-/*
- * Set/Get Dead Limit (-1 == Get, else Set)
- */
-int RDP_DeadLimit(int limit);
-
-/*
- * Initialize RDP
- * Parameters:  1) nodes: Nr of Nodes in the Cluster
- *              2) mgroup: Id of Multicastgroup (0 < id < 255)
- *              3) usesyslog (1=yes,0=no): Use syslog() to log error/info messages
- *              4) address of callback function to handle RDP exceptions / infos
- *                 (func == NULL allowed to prevent callback) 
- *                 callback func is called with (type, void *buf)
- */
-int RDPinit(int nodes, int mgroup, int usesyslog, void (*func)(int, void*));
-int RDPMCASTinit(int nodes, int mgroup, char *ifname, int interface, int usesyslog, void (*func)(int, void*));
-
 #define RDP_NEW_CONNECTION	0x1	/* buf == nodeno */
 #define RDP_LOST_CONNECTION	0x2	/* buf == nodeno */
 #define RDP_PKT_UNDELIVERABLE	0x3	/* buf == (dst,*buf,buflen) */
@@ -73,11 +74,23 @@ int RDPMCASTinit(int nodes, int mgroup, char *ifname, int interface, int usesysl
 #define LIC_LOST_CONECTION	0x1
 #define LIC_KILL_MSG		0x2
 
+/*
+ * Initialize RDP
+ * Parameters:  1) nodes: Nr of Nodes in the Cluster
+ *              2) mgroup: Id of Multicastgroup (0 < id < 255)
+ *              3) usesyslog (1=yes,0=no): Use syslog() to log error/info messages
+ *              4) address of callback function to handle RDP exceptions / infos
+ *                 (func == NULL allowed to prevent callback) 
+ *                 callback func is called with (type, void *buf)
+ */
+int initRDP(int nodes, int mgroup, int usesyslog, void (*func)(int, void*));
+int initRDPMCAST(int nodes, int mgroup, int usesyslog,
+		 void (*func)(int, void*));
 
 /*
  * Shutdown RDP
  */
-void RDPexit(void);
+void exitRDP(void);
 
 /*
  * Sent a msg[buf:len] to node <node> reliable
@@ -100,19 +113,39 @@ int Mselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds, stru
 int Rrecvfrom(int *node, void *msg, int len);
 
 /*
- * Get (local) Load values
+ * Get DebugLevel
  */
-RDPLoad RDPGetMyLoad(void);
+int getRDPDebugLevel(void);
 
 /*
  * Set DebugLevel
  */
-int RDP_SetDBGLevel(int level);
+void setRDPDebugLevel(int level);
 
 /*
  * Set Log Msg
  */
-void RDP_SetLogMsg(int level);
+void setRDPLogMsg(int level);
 
-void RDP_StateInfo(int n, char *s);
+/*
+ * Get Dead Limit
+ */
+int getRDPDeadLimit(void);
 
+/*
+ * Set Dead Limit
+ */
+void setRDPDeadLimit(int limit);
+
+/*
+ * Get Info for node n
+ */
+void getRDPInfo(int n, RDP_ConInfo *info);
+
+void getRDPStateInfo(int n, char *s);
+
+#ifdef __cplusplus
+}/* extern "C" */
+#endif
+
+#endif /* __RDP_H */

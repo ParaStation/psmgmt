@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.18 2002/01/08 23:37:35 eicker Exp $
+ * $Id: psid.c,v 1.19 2002/01/09 14:59:27 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.18 2002/01/08 23:37:35 eicker Exp $ 
+ * $Id: psid.c,v 1.19 2002/01/09 14:59:27 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.18 2002/01/08 23:37:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.19 2002/01/09 14:59:27 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -60,7 +60,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.18 $";
+static char psid_cvsid[] = "$Revision: 1.19 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -323,7 +323,7 @@ int DaemonIsUp(int node)
     if(node<0 || node >=PSI_nrofnodes)
 	return 0;
 
-    RDP_GetInfo(node,&info);
+    getRDPInfo(node,&info);
     daemons[node].load.load[0] = info.load.load[0];
     daemons[node].load.load[1] = info.load.load[1];
     daemons[node].load.load[2] = info.load.load[2];
@@ -508,7 +508,7 @@ int shutdownNode(int phase)
 	    }
     }
     if(phase >2) {
-	RDPexit();
+	exitRDP();
 	PSID_CardStop();
 	SYSLOG(0,(LOG_ERR,"shutdownNode() good bye\n"));
 	exit(1);
@@ -1769,7 +1769,7 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 	    int nodeid;
 	    nodeid = ((DDTagedBufferMsg_t*)inmsg)->tag[0];
 	    tagedmsg = (DDTagedBufferMsg_t*)&msg;
-	    RDP_StateInfo(nodeid,tagedmsg->buf);
+	    getRDPStateInfo(nodeid, tagedmsg->buf);
 	    tagedmsg->tag[0] = nodeid;
 	    msg.header.type = PSP_CD_RDPSTATUSRESPONSE;
 	    msg.header.len = sizeof(msg);
@@ -1839,7 +1839,7 @@ msg_SETOPTION(DDOptionMsg_t *msg)
 	case PSP_OP_RDPDEBUG:
 	    if((msg->header.dest == PSI_gettid(PSI_myid,0)) /* for me */
 	       || (msg->header.dest == -1))                    /* for any */
-		RDP_SetDBGLevel(msg->opt[i].value);
+		setRDPDebugLevel(msg->opt[i].value);
 	    break;
 	default:
 	    sprintf(PSI_txt,"SETOPTION()option: unknown option %ld \n",
@@ -1884,7 +1884,7 @@ msg_GETOPTION(DDOptionMsg_t* msg)
 	    msg->opt[i].value = UIDLimit;
 	    break;
 	case PSP_OP_RDPDEBUG:
-	    msg->opt[i].value = RDP_SetDBGLevel(-1);
+	    msg->opt[i].value = getRDPDebugLevel();
 	    break;
 	default:
 	    sprintf(PSI_txt,"GETOPTION(): unknown option %ld \n",
@@ -2691,7 +2691,7 @@ void CheckFileTable()
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.18 $";
+    char revision[] = "$Revision: 1.19 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -2939,13 +2939,13 @@ int main(int argc, char **argv)
 		      "Local Service Port initialized. Using socket %d\n",
 		      PSI_msock));
 
-	    RDP_SetDBGLevel(1);
-	    RDPSocket = RDPinit(PSI_nrofnodes, ConfigMgroup,
+	    setRDPDebugLevel(1);
+	    RDPSocket = initRDP(PSI_nrofnodes, ConfigMgroup,
 				1 /* use syslog */,
 				RDPCallBack);
-	    if(RDPSocket<0){
+	    if (RDPSocket<0) {
 		SYSLOG(0,(LOG_ERR,
-			  "Error while trying init RDP (code %d)\n",errno));
+			  "Error while trying initRDP (code %d)\n",errno));
 		exit(1);
 	    }
 	    SYSLOG(0,(LOG_ERR,"RDP initialized. Using socket %d\n",RDPSocket));

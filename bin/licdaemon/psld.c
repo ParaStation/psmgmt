@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.9 2002/01/08 23:38:58 eicker Exp $
+ * $Id: psld.c,v 1.10 2002/01/09 14:59:27 eicker Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Daemon
  *
- * $Id: psld.c,v 1.9 2002/01/08 23:38:58 eicker Exp $ 
+ * $Id: psld.c,v 1.10 2002/01/09 14:59:27 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.9 2002/01/08 23:38:58 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.10 2002/01/09 14:59:27 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -296,7 +296,7 @@ void sighandler(int sig)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.9 $";
+    char revision[] = "$Revision: 1.10 $";
     snprintf(errtxt, sizeof(errtxt), "psld %s\b ", revision+11);
     ERR_OUT(errtxt);
 }
@@ -344,7 +344,7 @@ int main(int argc, char *argv[])
 	    usesyslog=0;
 	    break;
 	case 'D':
-	    RDP_SetDBGLevel(10);
+	    setRDPDebugLevel(10);
 	    dofork=0;
 	    usesyslog=0;
 	    break;
@@ -424,9 +424,8 @@ int main(int argc, char *argv[])
 
 //    if(check_license(usesyslog)){
 
-        RDP_SetLogMsg(1);
-	msock = RDPMCASTinit(NrOfNodes, ConfigMgroup, iflist[interface].name,
-			     iflist[interface].ipaddr, usesyslog, NULL);
+        setRDPLogMsg(1);
+	msock = initRDPMCAST(NrOfNodes, ConfigMgroup, usesyslog, NULL);
 
 	tv.tv_sec = 1;
 	tv.tv_usec = 0;
