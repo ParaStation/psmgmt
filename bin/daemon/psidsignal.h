@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidsignal.h,v 1.2 2003/04/10 17:44:51 eicker Exp $
+ * $Id: psidsignal.h,v 1.3 2003/07/04 13:58:26 eicker Exp $
  *
  */
 /**
  * @file
  * Functions for sending signals to ParaStation tasks within the Daemon
  *
- * $Id: psidsignal.h,v 1.2 2003/04/10 17:44:51 eicker Exp $
+ * $Id: psidsignal.h,v 1.3 2003/07/04 13:58:26 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -31,8 +31,6 @@ extern "C" {
 } /* <- just for emacs indentation */
 #endif
 #endif
-
-/** @todo more docu */
 
 /**
  * @brief Send signal to process.
@@ -68,18 +66,73 @@ extern "C" {
 int PSID_kill(pid_t pid, int sig, uid_t uid);
 
 /**
- * PSID_sendSignal
+ * @brief Send signal to task.
+ *
+ * Send the signal @a sig to the task with unique ID @a tid. The
+ * signal will be send as user @a uid. The sender of the signal, which
+ * might be determined from the process using the PSI_whodied()
+ * function, has the unique ID @a senderTid.
+ *
+ * If @a pervasive is different from 0, i.e. if it's logical true, the
+ * signal @a sig will also be send to all children of task @a tid,
+ * including their children and so on.
+ *
+ * In contrast to PSID_kill(), the actual process to be signaled might
+ * live on a remote node.
+ *
+ * @param tid The unique ID of the task to be signaled.
+ *
+ * @param uid The user ID of the user that (virtually) sends the
+ * signal.
+ * 
+ * @param senderTid The unique ID of the task that (virtually) sends
+ * the signal.
+ * 
+ * @param sig The signal to send.
+ * 
+ * @param pervasive Flag the signal to be pervasive. If different from
+ * 0, all children of @a tid will be signaled, too. Otherwise, only @a
+ * tid will be signaled.
+ *
+ * @return No return value.
  */
-void PSID_sendSignal(long tid, uid_t uid, long senderTid, int signal,
+void PSID_sendSignal(long tid, uid_t uid, long senderTid, int sig,
 		     int pervasive);
 
 /**
- * Send the signals to all task which have asked for
+ * @brief Send signals to all tasks which have asked for.
+ *
+ * Send signals to all tasks which have registered to get this signal
+ * on exit of the task @a task. I.e. this function is usually called
+ * after the process described by @a task has exited.
+ *
+ * The task that want to receive signals are determined from the @a
+ * signalReceiver signal list member of @a task. This signal list will
+ * be destroyed during execution of this function.
+ *
+ * @param task The task structure describing the task to be handled.
+ *
+ * @return No return value.
  */
 void PSID_sendAllSignals(PStask_t *task);
 
 /**
- * Send the signals to parent and childs
+ * @brief Send signals to parent and childs.
+ *
+ * Send signals to parent process and all child processes of the task
+ * described by @a task. If a parent process is existing, the signal
+ * -1 will be sent to it (This will be replaced by SIGTERM as
+ * default). Furthermore all children will be signaled with the same
+ * signal.
+ *
+ * The parent task is determined via the @a ptid member of @a task,
+ * the children will be taken from the @a childs signal list within @a
+ * task. This signal list will be destroyed during execution of this
+ * function.
+ *
+ * @param task The task structure describing the task to be handled.
+ *
+ * @return No return value.
  */
 void PSID_sendSignalsToRelatives(PStask_t *task);
 
