@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.41 2003/06/11 18:00:35 eicker Exp $
+ * $Id: psispawn.c,v 1.42 2003/07/11 13:07:30 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.41 2003/06/11 18:00:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.42 2003/07/11 13:07:30 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -81,6 +81,7 @@ long PSI_spawn(short dstnode, char *workdir, int argc, char **argv,
 		     "%s: you have to call PSI_getPartition() beforehand.",
 		     __func__);
 	    PSI_errlog(errtxt, 0);
+	    *error = ENXIO;
 	    return -1;
 	}
 
@@ -117,6 +118,7 @@ int PSI_spawnM(int count, short *dstnodes, char *workdir,
 		     "%s: you have to call PSI_getPartition() beforehand.",
 		     __func__);
 	    PSI_errlog(errtxt, 0);
+	    *errors = ENXIO;
 	    return -1;
 	}
 
@@ -1195,15 +1197,16 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
 	    }
 
 	    if (answer.header.type==PSP_CD_SPAWNFAILED) {
-		snprintf(errtxt, sizeof(errtxt), "PSI_dospawn():"
-			 " spawn to node %d failed.",
+		snprintf(errtxt, sizeof(errtxt),
+			 "%s: spawn to node %d failed.", __func__,
 			 PSC_getID(answer.header.sender));
 		PSI_errlog(errtxt, 0);
 		error = 1;
 	    }
 	    break;
 	default:
-	    snprintf(errtxt, sizeof(errtxt), "%s: UNKNOWN answer", __func__);
+	    snprintf(errtxt, sizeof(errtxt), "%s: UNKNOWN answer (%s)",
+		     __func__, PSP_printMsg(answer.header.type));
 	    PSI_errlog(errtxt, 0);
 	    errors[0] = 0;
 	    error = 1;
