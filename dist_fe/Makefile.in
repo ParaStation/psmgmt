@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.10 2002/10/16 17:58:20 eicker Exp $
+# $Id: Makefile.in,v 1.11 2002/10/17 15:42:00 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -41,9 +41,6 @@ MISC += config/parastation.conf.tmpl VERSION INSTALL config/PSM_INSTALL
 MISCDIR :=
 
 DIRS += $(BINDIR) $(LIBDIR) $(INCDIR) $(MISCDIR) $(CONFIGDIR)
-
-TARFILES = $(DISTPATH)/INSTALL $(DISTPATH)/VERSION $(DISTPATH)/bin $(DISTPATH)/config
-TARFILES += $(DISTPATH)/include $(DISTPATH)/lib
 
 ######################################################
 MISCEXP := $(patsubst %,$(DISTPATH)/%, $(MISC))
@@ -133,6 +130,8 @@ tarcleanups:
 	@echo "change +r flag for group and other"
 	chmod -R og+r *
 
+TAR = tar
+
 ifeq ("$(TARGET_OS)","linux")
 ifeq ("$(TARGET_CPU)","i686")
 TARCPU  := i386
@@ -140,25 +139,25 @@ endif
 ifeq ("$(TARGET_CPU)","alphaev56")
 TARCPU  := alpha
 endif
-
-tar:	tarcleanups
-	tar --owner=0 --group=0 -czf psfe_$(TARCPU)-$(DVER).tgz $(TARFILES)
-
-endif
+else
 ifeq ("$(TARGET_OS)","osf5.1")
 TARCPU  := tru64
+TAR = gtar
+else
+tar rpm:
+	@echo Unknown target OS $(TARGET_OS).
+endif
+endif
 
 tar:	tarcleanups
-	gtar --owner=0 --group=0 -czf psfe_$(TARCPU)-$(DVER).tar.gz $(TARFILES)
-
-endif
+	$(TAR) --owner=0 --group=0 -czf \
+		psfe-$(DVER)-`date +%Y%m%d`.$(TARCPU).tar.gz $(DISTPATH)
 
 rpm:	tarcleanups
 	$(TOP_SRCDIR)/scripts/rpmbuildpsfe $(DVER)
 
 endif
 DISTCLEAN+= psfe*.tar.gz
-DISTCLEAN+= psfe*.tgz
 DISTCLEAN+= psfe*.rpm
 DISTCLEAN+= psfe*.spec
 
