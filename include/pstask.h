@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.h,v 1.10 2003/02/13 17:05:56 eicker Exp $
+ * $Id: pstask.h,v 1.11 2003/03/07 15:48:48 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with ParaStation tasks.
  *
- * $Id: pstask.h,v 1.10 2003/02/13 17:05:56 eicker Exp $
+ * $Id: pstask.h,v 1.11 2003/03/07 15:48:48 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -91,6 +91,8 @@ typedef struct PStask_T{
     int pendingReleaseRes;         /**< num of pending RELEASERES messages */
     int released;                  /**< flag to mark released task, i.e. don't
 				      send signal to parent on exit */
+    int duplicate;                 /**< flag to mark duplicate task, i.e. a
+				      tasks that are fork()ed by a client */
     PStask_sig_t *childs;          /**< Childs of the task. signal not used */
 
     PStask_sig_t *signalSender;    /**< Tasks which sent signals */
