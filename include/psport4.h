@@ -7,7 +7,7 @@
 /**
  * PSPort: Communication Library for Parastation , third edition
  *
- * $Id: psport4.h,v 1.3 2002/06/11 17:58:45 hauke Exp $
+ * $Id: psport4.h,v 1.4 2002/06/12 14:19:02 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -16,8 +16,8 @@
  * @file
  ***********************************************************/
 
-#ifndef _PSPORT_H_
-#define _PSPORT_H_
+#ifndef _PSPORT4_H_
+#define _PSPORT4_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,11 +25,11 @@ extern "C" {
 } // <- just for emacs indentation
 #endif
 #endif
-#ifdef XREF
+
 #include <stdint.h>
-#endif
+#include <sys/socket.h>
 #include <sys/uio.h>
-#include "p4io.h"
+
 /**
  * Handle to identify an open port.
  */
@@ -552,25 +552,12 @@ PSP_Status_t PSP_Wait(PSP_PortH_t porth, PSP_RequestH_t request);
  */
 PSP_Status_t PSP_Cancel(PSP_PortH_t porth, PSP_RequestH_t request);
 
-/**********************************************************************/
-
-
-
-/* Undocumented service functions */
-#define PSP_MCP_NAME "jm"
-
-int PSPSYS_GetRTC(void);
-int PSPSYS_GetISR(void);
-char * PSPSYSMCPName(void);
-void PSPSYS_PrintState(void);
-
-
 
 #ifdef __cplusplus
 }/* extern "C" */
 #endif
 
-#endif /* _PSPORT_H_ */
+#endif /* _PSPORT4_H_ */
 
 /*
  * Local Variables:

@@ -7,7 +7,7 @@
 /**
  * name: Description
  *
- * $Id: psport4.c,v 1.3 2002/06/11 17:57:42 hauke Exp $
+ * $Id: psport4.c,v 1.4 2002/06/12 14:19:02 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -31,7 +31,7 @@
 #include <signal.h>
 #include <ctype.h>
 
-#include "psport.h"
+#include "psport4.h"
 
 #include <sys/time.h>
 #include <unistd.h>
@@ -203,7 +203,9 @@ typedef struct PSP_RecvReqList_T{
 typedef struct PSP_Port_s{
     struct PSP_Port_s	*NextPort;
     union{
+#if PSP_VER == 4
 	p4_addr_t	portid;
+#endif
 	struct{
 	    uint32_t	magic;
 	    uint32_t	portno;
@@ -1184,7 +1186,7 @@ void DoRecv( PSP_Port_t *port, int con )
 	    /* skip the last bytes from the message (user buffer was to small)*/
 	    ret = recv( port->conns[con].con_fd,
 			trash,
-			MIN( port->conns[con].RunningRecvRequest->skip, TRASHSIZE ),
+			PSP_MIN( port->conns[con].RunningRecvRequest->skip, TRASHSIZE ),
 			MSG_NOSIGNAL | MSG_DONTWAIT );
 	    if ( ret < 0 ) goto err_recv; 
 	    if ( ret == 0 ) goto out;
@@ -1889,7 +1891,7 @@ int PSP_IProbeFrom(PSP_PortH_t porth,
 	memcpy( PSP_HEADER_NET( header ),
 		REQ_TO_HEADER_NET( req ),
 		PSP_HEADER_NET_LEN +
-		MIN( xheaderlen, REQ_TO_HEADER( req )->xheaderlen ));
+		PSP_MIN( xheaderlen, REQ_TO_HEADER( req )->xheaderlen ));
 	header->addr.from = REQ_TO_HEADER( req )->addr.from;
 	ret=1;
     }

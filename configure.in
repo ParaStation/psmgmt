@@ -71,6 +71,7 @@ linux)
 	PSM_OSDIR=kern/Linux
 	AC_CONFIG_FILES([kern/Linux/Makefile])
 	AC_CONFIG_FILES([kern/Linux/Makefile.second])
+	
 	if test "$MCPBINHEADERDIRauto" = "yes"; then
 		MCPBINHEADERDIR=`path_cleanup $srcdir`/kern/mcp/build
 	fi;
@@ -118,6 +119,7 @@ fi
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([lib/pshal/Makefile])
 AC_CONFIG_FILES([lib/psport/Makefile])
+AC_CONFIG_FILES([lib/psport4/Makefile])
 AC_CONFIG_FILES([lib/arg/Makefile])
 AC_CONFIG_FILES([lib/pvar/Makefile])
 AC_CONFIG_FILES([lib/pse/Makefile])

@@ -21,6 +21,10 @@
 
 
 LIBS := psport pshal arg pvar pse psi putil
+ifeq ("@target_os@","linux")
+LIBS += psport4
+endif
+
 PSM_OSDIR := @PSM_OSDIR@
 
 LIBDIRS := $(patsubst %,lib/%,$(LIBS))
