@@ -1,6 +1,17 @@
+###################################################### -*- Makefile -*- #####
+#                  ParaStation
+#        Copyright (c) 2002-2003 ParTec AG Karlsruhe
+#        All rights reserved.
+#############################################################################
+#
+# $Id: Makefile.in,v 1.35 2003/07/18 14:03:35 eicker Exp $
+#
+# @author
+#         Jens Hauke <hauke@par-tec.de>
+#         Norbert Eicker <eicker@par-tec.de>
+#############################################################################
 
 CFLAGS += -O2 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
-PSM_OSDIR := @PSM_OSDIR@
 CPPFLAGS += -I@top_srcdir@/include -I. @CPPFLAG_MMD@
 SRCDIR = @srcdir@
 TOP_SRCDIR = @top_srcdir@
@@ -8,8 +19,6 @@ TARGET_OS := @target_os@
 YFLAGS = -d
 LFLAGS = -i
 LEX = flex
-# "yes" or "no" allowed ("configure --enable-java" or "configure --disable-java") 
-JAVA_ENABLED=@JAVA_ENABLED@
 
 VPATH += $(SRCDIR)
 
@@ -22,26 +31,13 @@ else
 .LIBPATTERNS:=  /usr/shlib/lib%.so $(.LIBPATTERNS) $(LIBDIR)/lib%.a
 endif
 
-TOOLS:=psconfig pscounter test_nodes psiadmin psid psld psilogger
-TOOLS += mlisten psmstart mpirun_chp4 psispawn mpirun_chgm gmspawner
-TOOLS += psscan psroute
+TOOLS:= psiadmin psid psld psilogger mlisten
+TOOLS += psmstart mpirun_chp4 psispawn mpirun_chgm gmspawner
+# TOOLS += test_nodes
 
-ifneq ("$(TARGET_OS)","osf5.1")
-TOOLS += psmon
-endif
-ifeq ($(JAVA_ENABLED),yes)
-TOOLS += psview
-endif
+TARGETS = $(TOOLS) test_pse test_config_parsing
 
-bin:	$(TOOLS)
-
-unlock: unlock.o -lpshal
-
-tracemcp: tracemcp.o -lpvar -lpshal
-
-psconfig: psconfig.o -lpshal -larg -lm
-
-pscounter: pscounter.o -lpshal -lm
+all bin: $(TOOLS)
 
 test_nodes: test_nodes.o -lpshal -lpsport -lpopt -lpse -lpsi -lm -lpthread
 
@@ -85,22 +81,6 @@ psld: -lm -lputil -lpscommon -lpopt
 VPATH += $(SRCDIR)/logger
 psilogger: psilogger.o -lpslog -lpscommon -lm
 
-# psscan and psroute
-VPATH += $(SRCDIR)/mapper
-psroute: genid.o route.o simul.o psroute.o -lpshal -lm -lpopt
-psscan: genid.o route.o psscan.o -lpshal -lm -lpopt
-
-# psmon
-VPATH += $(SRCDIR)/mon
-psmon: psmon.o sock_ext.o edsdict.o edserr.o -lpsi -lpthread -lpopt -lcrypt
-#lst.o hosts_dict.o
-
-#psview
-psview:
-	$(MAKE) -C java/psview
-
-
-
 parastation: $(TOP_SRCDIR)/scripts/parastation@TRU64FILEADD@
 	cp $< $@
 
@@ -123,5 +103,7 @@ DEPFILES := $(wildcard *@DEPEXTENSION@) dummy.d
 clean:
 	$(RM) $(DEPFILES) $(EXTRACLEAN) *.o
 
+realclean: clean
+	$(RM) $(TARGETS)
 
 -include $(DEPFILES)
