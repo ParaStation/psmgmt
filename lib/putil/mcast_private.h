@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast_private.h,v 1.2 2002/01/30 10:39:35 eicker Exp $
+ * $Id: mcast_private.h,v 1.3 2002/01/30 16:46:04 eicker Exp $
  *
  */
 /**
@@ -13,7 +13,7 @@
  * mcast_private: ParaStation MultiCast facility
  *                Private functions and definitions
  *
- * $Id: mcast_private.h,v 1.2 2002/01/30 10:39:35 eicker Exp $
+ * $Id: mcast_private.h,v 1.3 2002/01/30 16:46:04 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -201,7 +201,16 @@ static void checkConnections(void);
  */
 static void closeConnection(int node);
 
-
+/**
+ * @brief Create string from @ref MCastState.
+ *
+ * Create a \\0-terminated string from MCastState @a state.
+ *
+ * @param state The @ref MCastState for which the name is requested.
+ *
+ * @return Returns a pointer to a \\0-terminated string containing the
+ * symbolic name of the @ref MCastState @a state.
+ */
 static char *stateStringMCast(MCastState state);
 
 #ifdef __cplusplus
@@ -209,3 +218,4 @@ static char *stateStringMCast(MCastState state);
 #endif
 
 #endif /* __MCAST_PRIVATE_H */
+
