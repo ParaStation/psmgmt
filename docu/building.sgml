@@ -1,8 +1,44 @@
 <chapter id="native_apps">
   <title>Building native &ps; applications</title>
   <para>
-    ToDo
+    This chapter describes briefly how to write native &ps; applications,
+    i.e. application that make use of the &ps; low level communication
+    libraries and the &ps; management facilities without utilizing the standard
+    MPI libraries.
   </para>
+  <para>
+    In general it is not necessary to write native &ps; applications. Since the
+    communication performance improvement from circumventing the high level MPI
+    library is negligible, in almost any scenario the utilization of MPI is the
+    recommended way. Additionally MPI guarantees the portability of the
+    programs to be developed.
+  </para>
+  <para>
+    Nevertheless the source code of a simple application comes with the
+    standard &ps; software distribution and may be found in the
+    <filename>/opt/parastation/doc/examples</filename> directory. The file
+    is named <filename>native.c</filename>.
+  </para>
+  <para>
+    As already mentioned the usage of the &ps; API is only discussed briefly. A
+    detailed description may be found in the <ulink url="../api/index.html"
+      type="dontshow">API reference</ulink>.
+  </para>
+  <section>
+    <title>Using the management facility</title>
+    <para>
+      Todo.
+    </para>
+  </section>
+  <section>
+    <title>Using the PSPort interface</title>
+    <para>
+      In order to actually utilize low level &ps; communication interfaces the
+      PSPort library has to be used. The PSPort library supplies fast and
+      reliable point to point connections to the user. To make use of these
+      connections, first of all a ...
+    </para>
+  </section>
 </chapter>
   <!-- Keep this comment at the end of the file
   Local variables:
