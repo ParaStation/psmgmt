@@ -1,24 +1,20 @@
 ###################################################### -*- Makefile -*- #####
-#                  ParaStation3
-#        Copyright (c) 2002 ParTec AG Karlsruhe
+#                  ParaStation
+#        Copyright (c) 2002-2003 ParTec AG Karlsruhe
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.staticlib.in,v 1.1 2002/10/01 12:42:50 hauke Exp $
+# $Id: Makefile.staticlib.in,v 1.2 2003/07/18 14:27:52 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
+#         Norbert Eicker <eicker@par-tec.de>
 #############################################################################
 
 CFLAGS += -O3 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
 CPPFLAGS += $(LIBINC) @CPPFLAG_MMD@
 RANLIB := @RANLIB@
 
-# LIBNAME = psport
-# LIBOBJS = psport.o
-# LIBVPATH = @srcdir@
-# LIBINC = -I@top_srcdir@/include
-# LIBDSTDIR = ../..
 _LIBDEPS := $(LIBOBJS:.o=@DEPEXTENSION@)
 
 VPATH += $(LIBVPATH)
@@ -31,6 +27,9 @@ $(LIBDSTDIR)/lib$(LIBNAME).a: $(LIBOBJS)
 
 clean:
 	$(RM) $(_LIBDEPS) $(LIBOBJS) 
+
+realclean: clean
+	$(RM) $(LIBDSTDIR)/lib$(LIBNAME).a
 
 
 -include $(_LIBDEPS)
