@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pspartition.h,v 1.1 2003/09/12 13:43:12 eicker Exp $
+ * $Id: pspartition.h,v 1.2 2003/09/26 14:12:43 eicker Exp $
  *
  */
 /**
  * @file
  * Basic enumerations for partition creation and reservation.
  *
- * $Id: pspartition.h,v 1.1 2003/09/12 13:43:12 eicker Exp $
+ * $Id: pspartition.h,v 1.2 2003/09/26 14:12:43 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -43,11 +43,11 @@ typedef enum {
 typedef enum {
     PART_OPT_NODEFIRST = 0x0001, /**< Place consecutive processes on different
 				    nodes, if possible. Usually consecutive
-				    processes are place on the same node. */
+				    processes are placed on the same node. */
     PART_OPT_EXCLUSIVE = 0x0002, /**< Only get exclusive nodes. I.e. no further
 				    processes are allowed on that node. */
-    PART_OPT_OVERBOOK = 0x0004,  /**< Allow more than one process per node.
-				    This involves @ref PART_OPT_EXCLUSIVE
+    PART_OPT_OVERBOOK = 0x0004,  /**< Allow more than one process per
+				    node. This induces @ref PART_OPT_EXCLUSIVE
 				    implicitely. */
     PART_OPT_WAIT = 0x0008,      /**< If not enough nodes are available, wait
 				    for them (batch mode). */
