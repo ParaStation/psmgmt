@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast_private.h,v 1.5 2002/01/31 08:50:17 eicker Exp $
+ * $Id: mcast_private.h,v 1.6 2002/02/15 19:15:58 eicker Exp $
  *
  */
 /**
@@ -14,7 +14,7 @@
  *
  * Private functions and definitions.
  *
- * $Id: mcast_private.h,v 1.5 2002/01/31 08:50:17 eicker Exp $
+ * $Id: mcast_private.h,v 1.6 2002/02/15 19:15:58 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -224,20 +224,6 @@ static void initConntableMCast(int nodes,
 			       unsigned int host[], unsigned short port);
 
 /* ---------------------------------------------------------------------- */
-
-/**
- * @brief Get port number from service.
- *
- * Lookup the port number corresponding to string @a service.
- *
- * @param service A \\0-terminated string holding a descrition of the service.
- * This can be either a symbolic name to be looked up in the service database
- * or a printed number.
- *
- * @return On success, the corresponding port is returned. On error, exit()
- * is called within this function.
- */
-static unsigned short getServicePort(char *service);
 
 /**
  * @brief Setup a socket for MCast communication.

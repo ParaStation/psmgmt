@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.h,v 1.5 2002/01/31 12:00:58 eicker Exp $
+ * $Id: mcast.h,v 1.6 2002/02/15 19:15:58 eicker Exp $
  *
  */
 /**
  * \file
  * ParaStation MultiCast facility
  *
- * $Id: mcast.h,v 1.5 2002/01/31 12:00:58 eicker Exp $
+ * $Id: mcast.h,v 1.6 2002/02/15 19:15:58 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -87,12 +87,21 @@ typedef struct {
 #define DEFAULT_MCAST_GROUP 237
 
 /**
+ * The default MCast-port number. Magic number defined by Joe long time ago.
+ * Can be overruled via initMCast().
+ */
+#define DEFAULT_MCAST_PORT 1889
+
+/**
  * @brief Initialize the MCast module.
  *
  * Initializes the MCast machinery for @a nodes nodes.
  *
  * @param nodes Number of nodes to handle.
- * @param mgroup The MCast group to use.
+ * @param mcastgroup The MCast group to use. If 0, @ref DEFAULT_MCAST_GROUP is
+ * used.
+ * @param portno The UDP port number in host byteorder to use for sending and
+ * receiving packets. If 0, @ref DEFAULT_MCAST_PORT is used.
  * @param usesyslog If true, all error-messages are printed via syslog().
  * @param hosts An array of size @a nodes containing the IP-addresses of the
  * participating nodes in network-byteorder.
@@ -103,8 +112,9 @@ typedef struct {
  * @return On success, the filedescriptor of the MCast socket is returned.
  * On error, exit() is called within this function.
  */
-int initMCast(int nodes, int mgroup, int usesyslog,  unsigned int hosts[],
-	      int licServer, void (*callback)(int, void*));
+int initMCast(int nodes, int mcastgroup, unsigned short portno,
+	      int usesyslog,  unsigned int hosts[], int licServer,
+	      void (*callback)(int, void*));
 
 /**
  * @brief Shutdown the MCast module.
@@ -114,6 +124,17 @@ int initMCast(int nodes, int mgroup, int usesyslog,  unsigned int hosts[],
  * @return No return value.
  */
 void exitMCast(void);
+
+/**
+ * @brief Tell MCast about a dead node.
+ *
+ * Tell MCast, that node @a node is dead.
+ *
+ * @param node The node to be declared dead.
+ *
+ * @return No return value.
+ */
+void declareNodeDeadMCast(int node);
 
 /**
  * @brief Query the debug-level.
@@ -129,7 +150,7 @@ int getDebugLevelMCast(void);
 /**
  * @brief Set the debug-level.
  *
- * Set the debug-level of the MCast module. Posible values are:
+ * Set the debug-level of the MCast module. Possible values are:
  *  - 0: Critical errors (usually exit).
  *  - 2: Basic info about initialization.
  *  - 4: More detailed info about initialization, i.e. from
@@ -141,7 +162,7 @@ int getDebugLevelMCast(void);
  *  -11: Info about every received ping.
  *  -12: Info about every sent ping.
  *
- * @param level The debug-level to set
+ * @param level The debug-level to set.
  *
  * @return No return value.
  *

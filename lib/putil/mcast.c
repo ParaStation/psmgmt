@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.c,v 1.5 2002/02/01 16:39:26 eicker Exp $
+ * $Id: mcast.c,v 1.6 2002/02/15 19:15:58 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.5 2002/02/01 16:39:26 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.6 2002/02/15 19:15:58 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -173,24 +173,6 @@ static void initConntableMCast(int nodes,
 
 /* ---------------------------------------------------------------------- */
 
-static unsigned short getServicePort(char *service)
-{
-    struct servent *pse;     /* pointer to service information entry */
-    unsigned short port;
-
-    if ((pse = getservbyname (service, "udp"))) {
-	return pse->s_port;
-    } else if ((port = htons((u_short)atoi(service)))) {
-	return port;
-    } else {
-	snprintf(errtxt, sizeof(errtxt), "can't get %s service entry",
-		 service);
-	errexit(errtxt, errno);
-
-	return 0; /* Dummy return, this is never reached */
-    }
-}
-
 static int initSockMCast(int group, unsigned short port)
 {
     int sock;
@@ -200,8 +182,6 @@ static int initSockMCast(int group, unsigned short port)
     struct ip_mreq mreq;
     /* an internet endpoint address */
     struct in_addr in_sin;
-
-    if (!group) group = DEFAULT_MCAST_GROUP;
 
     if (gethostname(host, sizeof(host))<0) {
 	errexit("unable to get hostname", errno);
@@ -550,11 +530,10 @@ static char *stateStringMCast(MCastState state)
 
 /* ---------------------------------------------------------------------- */
 
-int initMCast(int nodes, int mgroup, int usesyslog, unsigned int hosts[],
-	      int licServer, void (*callback)(int, void*))
+int initMCast(int nodes, int mcastgroup, unsigned short portno, int usesyslog,
+	      unsigned int hosts[], int licServer,
+	      void (*callback)(int, void*))
 {
-    unsigned short portno;
-
     initErrLog("MCast", usesyslog);
 
     nrOfNodes = nodes;
@@ -562,19 +541,25 @@ int initMCast(int nodes, int mgroup, int usesyslog, unsigned int hosts[],
     licserver = licServer;
 
     snprintf(errtxt, sizeof(errtxt),
-	     "initMCast() for %d nodes, using %d as MCast group",
-	     nrOfNodes, mgroup);
+	     "initMCast() for %d nodes, using %d as MCast group on port %d",
+	     nrOfNodes, mcastgroup, portno);
     errlog(errtxt, 2);
 
-    portno = getServicePort(MCASTSERVICE);
+    if (!mcastgroup) {
+	mcastgroup = DEFAULT_MCAST_GROUP;
+    }
 
-    initConntableMCast(nodes, hosts, portno);
+    if (!portno) {
+	portno = DEFAULT_MCAST_PORT;
+    }
+
+    initConntableMCast(nodes, hosts, htons(portno));
 
     if (!isInitializedTimer()) {
 	initTimer(usesyslog);
     }
 
-    mcastsock = initSockMCast(mgroup, portno);
+    mcastsock = initSockMCast(mcastgroup, htons(portno));
 
     registerTimer(mcastsock, &MCastTimeout, handleTimeoutMCast, handleMCast); 
 
@@ -586,6 +571,16 @@ void exitMCast(void)
     pingMCast(DOWN);               /* send shutdown msg */
     removeTimer(mcastsock);        /* stop interval timer */
     close(mcastsock);              /* close Multicast socket */
+}
+
+void declareNodeDeadMCast(int node)
+{
+    if (0 <= node && node < nrOfNodes) {
+	snprintf(errtxt, sizeof(errtxt), "Connection to node %d declared dead",
+		 node);
+	errlog(errtxt, 0);
+	conntableMCast[node].state = DOWN;
+    }
 }
 
 int getDebugLevelMCast(void)
