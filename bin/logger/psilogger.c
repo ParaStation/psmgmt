@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.9 2002/01/23 11:28:42 eicker Exp $
+ * $Id: psilogger.c,v 1.10 2002/02/08 11:00:01 eicker Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.9 2002/01/23 11:28:42 eicker Exp $
+ * $Id: psilogger.c,v 1.10 2002/02/08 11:00:01 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.9 2002/01/23 11:28:42 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.10 2002/02/08 11:00:01 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -32,6 +32,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.9 2002/01/2
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <signal.h>
 
 #include "logmsg.h"
 
@@ -60,6 +61,33 @@ int noclients;
  * or to the connector socket.
  */
 fd_set myfds;
+
+int msock;
+
+/**
+ *  sighandler(signal)
+ */
+void sighandler(int sig)
+{
+    int i;
+    switch(sig){
+    case SIGTERM:
+	if (verbose) {
+	    printf("PSIlogger: No of clients: %d open sockets:", noclients);
+	    for(i=0; i<FD_SETSIZE; i++)
+		if(FD_ISSET(i, &myfds))
+		    printf(" %d",i);
+	    printf("\n");
+	}
+	if (msock!=-1) {
+	    close(msock);
+	    msock = -1;
+	}
+    }
+    fflush(stdout);
+
+    signal(sig, sighandler);
+}
 
 /**
  * @brief Handles connection requests from new forwarders.
@@ -203,6 +231,10 @@ void loop(int listen)
 	memcpy(&afds, &myfds, sizeof(afds));
 	atv = mytv;
 	if ( select(FD_SETSIZE, &afds, NULL,NULL,&atv) < 0 ) {
+	    if (errno == EINTR) {
+                /* Interrupted syscall, just start again */
+                continue;
+	    }
 	    fprintf(stderr, "PSIlogger: error on select(%d): %s\n", errno,
 		    strerror(errno));
 	    CheckFileTable(&myfds);
@@ -308,14 +340,17 @@ int main( int argc, char**argv)
     int listen;
 
     /* become process group leader */
-    setpgid(0,0);
+    // setpgid(0,0);
+    // signal(SIGHUP,sighandler);
+    signal(SIGTERM,sighandler);
 
-    if ( argc < 2 ) {
+    if ( argc < 3 ) {
 	fprintf(stderr, "PSIlogger: Sorry, program must be called correctly"
 		" inside an application.\n");
 	exit(1);
     }
     listen = atol(argv[1]);
+    msock = atol(argv[2]);
 
     if ( getenv("PSI_LOGGERDEBUG") != NULL ) {
 	verbose=1;
@@ -340,6 +375,9 @@ int main( int argc, char**argv)
     loop(listen);
 
     close(listen);
+    if (msock!=-1) {
+	close(msock);
+    }
 
     return 0;
 }
