@@ -32,19 +32,20 @@ void cleanup(int signal)
 static int arg_np=-1;
 static int arg_port=PSP_ANYPORT;
 static int arg_cnt=1;
+static int arg_map=0;
 int conrecv[maxnp][maxnp];
 int mapnode[maxnp];
 
 int finish=0;
 
-void time_handler(int signal)
+void time_handler_old(int signal)
 {
     int j,k;
     fprintf(stdout,"\e[H");
     fprintf(stdout,"\e[2J");
-    for (j=1;j<arg_np;j++){
+    for (j=0;j<arg_np;j++){
 	fprintf(stdout,"%3d(node %3d) ",j,mapnode[j]);
-	for (k=1;k<arg_np;k++){
+	if (j) for (k=1;k<arg_np;k++){
 	    fprintf(stdout,"%1d ",conrecv[j][k]);
 	}
 	fprintf(stdout,"\n");
@@ -52,6 +53,176 @@ void time_handler(int signal)
 //	fprintf(out,"cnt:  %d/%d\n",i,
 //		end);
     fflush(stdout);
+}
+
+#include <stdlib.h>
+
+
+void print_list(int *ilist,int size)
+{
+    int i;
+    int first,last;
+//    qsort(ilist,size,sizeof(int *));
+    if (!size){
+	fprintf(stdout,"none");
+	return;
+    }
+    first=0;
+    last=0;
+    for (i=1;i<size;i++){
+	if (ilist[i] == ilist[i-1] + 1){
+	    last = i;
+	}else{
+	    last=i-1;
+	    if (first==last){
+		fprintf(stdout,"%d,",ilist[first]);
+	    }else{
+		fprintf(stdout,"%d-%d,",ilist[first],ilist[last]);
+	    }
+	    first=i;
+	    last=i;
+	}
+    }
+    if (first==last){
+	fprintf(stdout,"%d",ilist[first]);
+    }else{
+	fprintf(stdout,"%d-%d",ilist[first],ilist[last]);
+    }
+}
+
+int print_list_compare(const void *a, const void *b)
+{
+    int va = *(int*)a;
+    int vb = *(int*)b;
+    if (va > vb)
+	return 1;
+    else
+	return -1;
+}
+
+void print_list_sort(int *ilist,int size)
+{
+    int *silist = malloc(size * sizeof(int));
+    int sisize = 0;
+    int i;
+    if (!size) return;
+    qsort(ilist,size,sizeof(int*),print_list_compare);
+    silist[sisize++] = ilist[ 0 ];
+    for (i=1;i<size;i++){
+	if (silist[sisize-1] != ilist[i]){
+	    silist[sisize++] = ilist[ i ];
+	}
+    }
+    print_list(silist,sisize);
+}
+
+int answer_equal(int i,int j)
+{
+    int k;
+    for (k=1;k<arg_np;k++){
+	
+	if (((conrecv[i][k] > 0) ^
+	     (conrecv[j][k] > 0)))
+	    return 0;
+    }
+    return 1;
+}
+
+void time_handler(int signal)
+{
+    int i,j,k;
+    int *checked=(int *)malloc(sizeof(int)*arg_np);
+    int tmpsize;
+    int *tmp=(int *)malloc(sizeof(int)*arg_np);
+    int *tmphost=(int *)malloc(sizeof(int)*arg_np);
+    int tmpsize2;
+    int *tmp2=(int *)malloc(sizeof(int)*arg_np);
+    int *tmphost2=(int *)malloc(sizeof(int)*arg_np);
+    
+    memset(checked,0,arg_np*sizeof(int));
+    memset(tmp,0,arg_np*sizeof(int));
+    memset(tmphost,0,arg_np*sizeof(int));
+    memset(tmp2,0,arg_np*sizeof(int));
+    memset(tmphost2,0,arg_np*sizeof(int));
+
+//    fprintf(stdout,"\e[H");
+//    fprintf(stdout,"\e[2J");
+    fprintf(stdout,"---------------------------------------\n",mapnode[0]);
+    fprintf(stdout,"Master node %d\n",mapnode[0]);
+
+    /* No Answer:*/
+    tmpsize=0;
+    for (j=1;j<arg_np;j++){
+	if (mapnode[j] < 0){
+	    checked[j]=1;
+	    tmp[tmpsize++]=j;
+	}
+    }
+    if (tmpsize){
+	fprintf(stdout,"No answer from process: ");
+	print_list(tmp,tmpsize);
+	fprintf(stdout,"\n");
+    }
+
+    /* Answer: */
+    for (j=0;j<arg_np;j++){
+	tmpsize=0;
+	if (checked[j]) continue;
+	checked[j]=1;
+	tmphost[tmpsize]=mapnode[j];
+	tmp[tmpsize++]=j;
+
+	/* Find equal lines */
+	for (i=j+1;i<arg_np;i++){
+	    if (!checked[i] && answer_equal(j,i)){
+		tmphost[tmpsize]=mapnode[i];
+		tmp[tmpsize++]=i;
+		checked[i]=1;
+	    }
+	}
+
+	/* to */
+	tmpsize2=0;
+	tmphost2[tmpsize2]=mapnode[0];
+	tmp2[tmpsize2++]=0;
+	for (i=1;i<arg_np;i++){
+	    if (conrecv[j][i]>0){
+		tmphost2[tmpsize2]=mapnode[i];
+		tmp2[tmpsize2++]=i;
+	    }
+	}
+
+	fprintf(stdout,"Process ");
+	print_list(tmp,tmpsize);
+	if (tmpsize2){
+	    fprintf(stdout," to ");
+	    print_list(tmp2,tmpsize2);
+	    fprintf(stdout," ( node ");
+	    print_list_sort(tmphost,tmpsize);
+	    fprintf(stdout," to ");
+	    print_list_sort(tmphost2,tmpsize2);
+	    fprintf(stdout," ) OK\n");
+	}else{
+	    fprintf(stdout," waiting ( node ");
+	    print_list_sort(tmphost,tmpsize);
+	    fprintf(stdout,")\n");
+	}
+//	fprintf(stdout,"%3d(node %3d) ",j,mapnode[j]);
+    }
+
+
+
+//        for (j=0;j<arg_np;j++){
+//    	fprintf(stdout,"%3d(node %3d) ",j,mapnode[j]);
+//    	 for (k=0;k<arg_np;k++){
+//    	    fprintf(stdout,"%1d ",conrecv[j][k]);
+//    	}
+//    	fprintf(stdout,"\n");
+//        }
+
+    fflush(stdout);
+    free(checked);
+    free(tmp);
 }
 
 void run(int argc,char **argv,int np)
@@ -67,6 +238,7 @@ void run(int argc,char **argv,int np)
 	}xdata;
     }head;
     PSP_PortH_t porth;
+//    PSP_PortH_t rawporth;
     PSP_RequestH_t Req;
     int mapport[np];
     int rank;
@@ -74,15 +246,35 @@ void run(int argc,char **argv,int np)
     char filename[100];
     FILE *out;
     struct itimerval timer;
+
+    PSEinit(np,&rank);
+    
+    if (rank == -1){
+	/* I am the logger */
+	/* Set default to none: */
+	setenv("PSI_NODES_SORT","NONE",0);
+	PSEspawn(argc, argv, &mapnode[0], &mapport[0],rank);
+	/* Never be here ! */
+	exit(1);
+    }
+    
+	
+//    PSEinit(np,argc,argv,&mapnode[0],&mapport[0],&rank);
+    /* Initialize Myrinet */
+
     if (PSP_Init()){
 	perror("PSP_Init() failed!");
 	exit(-1);
     }
-    printf("Port Bind ");fflush(stdout);
     if (!(porth = PSP_OpenPort(arg_port))){
 	perror("Cant bind port!");
 	exit(-1);
     }
+//      if (!(rawporth = PSP_OpenPort(arg_port))){
+//  	fprintf(stderr,"rank %d ",rank);
+//  	perror("Cant bind raw port!");
+//      }
+
     for (i=0;i<np;i++){
 	mapnode[i]=-1;
 	mapport[i]=-1;
@@ -91,12 +283,17 @@ void run(int argc,char **argv,int np)
 	}
     }
     
-    mapport[0] = PSP_GetPortNo(porth);
-    mapnode[0] = PSP_GetNodeID();
-    rank =0;
-    
-    PSEinit(np,argc,argv,&mapnode[0],&mapport[0],&rank);
+    mapport[rank] = PSP_GetPortNo(porth);
+    mapnode[rank] = PSP_GetNodeID();
 
+    if (rank==0){
+	/* Master node: Set parameter from rank 0 */
+	PSEspawn(argc, argv, &mapnode[0], &mapport[0],rank);
+    }else{
+	/* Client node: Get parameter from rank 0 */
+	PSEspawn(argc, argv, &mapnode[0], &mapport[0],rank);
+    }
+    
     if (rank>0){
 //	sprintf(filename,"out.%d",rank);
 //	out=fopen(filename,"w");
@@ -104,20 +301,22 @@ void run(int argc,char **argv,int np)
     }else{
 	out=stdout;
 	timer.it_interval.tv_sec=0;
-	timer.it_interval.tv_usec=500*1000;
+	timer.it_interval.tv_usec=1500*1000;
 	timer.it_value.tv_sec=0;
-	timer.it_value.tv_usec=500*1000;
-	signal(SIGALRM,time_handler);
+	timer.it_value.tv_usec=1500*1000;
+	if (arg_map){
+	    signal(SIGALRM,time_handler_old);
+	}else{
+	    signal(SIGALRM,time_handler);
+	}
 //	alarm(1);
 	setitimer(ITIMER_REAL,&timer,0);
 //	sleep(1);
     }
-    mapnode[rank] = PSP_GetNodeID();
-    mapport[rank] = PSP_GetPortNo(porth);
 
-    fprintf(out,"master %d:%d my rank:%d\n",mapnode[0],mapport[0],rank);
-    fflush(out);
-    fprintf(out,"\e[2J");
+//    fprintf(out,"master %d:%d my rank:%d\n",mapnode[0],mapport[0],rank);
+//    fflush(out);
+//    fprintf(out,"\e[2J");
 
     /* Send info to master */
     head.xdata.type=1;
@@ -188,8 +387,8 @@ void run(int argc,char **argv,int np)
 	}
 	}
 	finish=1;
-	for (j=1;j<arg_np;j++){
-	    for (k=1;k<arg_np;k++){
+	for (j=0;j<arg_np;j++){
+	    for (k=0;k<arg_np;k++){
 		if (conrecv[j][k] <arg_cnt){
 		    finish=0;
 		    break;
@@ -199,7 +398,13 @@ void run(int argc,char **argv,int np)
 	
     }
     signal(SIGALRM,SIG_IGN);
-    time_handler(0);
+    if (rank==0){
+	if (arg_map){
+	    time_handler_old(0);
+	}else{
+	    time_handler(0);
+	}
+    }
     fprintf(out,"All connections ok\n",head.xdata.type);
     fclose(out);
 }
@@ -224,6 +429,7 @@ int main(int argc, char **argv)
 		  "", "Usage: %s [options]", argv[0],
 		  "-np %d",&arg_np," ",
 		  "-cnt %d",&arg_cnt," ",
+		  "-map",ARG_FLAG(&arg_map)," print map",
 		  0) < 0){
         exit(1);
     }
