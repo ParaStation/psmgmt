@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidoption.h,v 1.3 2004/01/09 16:03:15 eicker Exp $
+ * $Id: psidoption.h,v 1.4 2004/01/28 14:01:05 eicker Exp $
  *
  */
 /**
  * @file
  * Handle option requests to the ParaStation daemon.
  *
- * $Id: psidoption.h,v 1.3 2004/01/09 16:03:15 eicker Exp $
+ * $Id: psidoption.h,v 1.4 2004/01/28 14:01:05 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -48,7 +48,13 @@ void send_OPTIONS(PSnodes_ID_t destnode);
  *
  * Handle the message @a inmsg of type PSP_CD_SETOPTION.
  *
- * @doctodo
+ * If the final destination of @a msg is the local daemon, the options
+ * provided within this message are set to the corresponding
+ * values. Otherwise this message es forwarded, either to the
+ * corresponding local or remote client process or a remote daemon.
+ *
+ * PSP_CD_SETOPTION messages to client processes are usually responses
+ * to PSP_CD_GETOPTION request of this processes.
  *
  * @param inmsg Pointer to the message to handle.
  *
@@ -61,7 +67,10 @@ void msg_SETOPTION(DDOptionMsg_t *msg);
  *
  * Handle the message @a inmsg of type PSP_CD_GETOPTION.
  *
- * @doctodo
+ * If the final destination of @a msg is the local daemon, the
+ * requested options within this message are determined and send
+ * within a PSP_CD_SETOPTION to the requestor. Otherwise this message
+ * es forwarded to the corresponding remote daemon.
  *
  * @param inmsg Pointer to the message to handle.
  *

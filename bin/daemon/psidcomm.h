@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidcomm.h,v 1.3 2004/01/09 16:01:06 eicker Exp $
+ * $Id: psidcomm.h,v 1.4 2004/01/28 14:00:30 eicker Exp $
  *
  */
 /**
  * \file
  * Communication multiplexer for the ParaStation daemon
  *
- * $Id: psidcomm.h,v 1.3 2004/01/09 16:01:06 eicker Exp $
+ * $Id: psidcomm.h,v 1.4 2004/01/28 14:00:30 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -114,7 +114,10 @@ int broadcastMsg(void *msg);
  *
  * Handle the PSP_DD_SENDSTOP message @a msg.
  *
- * @doctodo
+ * Stop receiving messages from the messages destination process. This
+ * is used in order to implement a flow control on the communication
+ * path between client processes or a client process and a remote
+ * daemon process.
  *
  * @param msg The message to handle.
  *
@@ -127,7 +130,10 @@ void msg_SENDSTOP(DDMsg_t *msg);
  *
  * Handle the PSP_DD_SENDCONT message @a msg.
  *
- * @doctodo
+ * Continue receiving messages from the messages destination
+ * process. This is used in order to implement a flow control on the
+ * communication path between client processes or a client process and
+ * a remote daemon process.
  *
  * @param msg The message to handle.
  *
