@@ -86,8 +86,7 @@
 (define (book-titlepage-recto-elements)
   (list (normalize "mediaobject")
 	(normalize "title")
-	(normalize "releaseinfo")
-	(normalize "author")))
+	(normalize "releaseinfo")))
 					 
 (define (book-titlepage-verso-elements)
   (list (normalize "title")
