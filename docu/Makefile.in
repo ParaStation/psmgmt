@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.15 2003/07/18 14:24:31 eicker Exp $
+# $Id: Makefile.in,v 1.16 2003/07/25 16:20:08 eicker Exp $
 #
 # @author
 #         Norbert Eicker <eicker@par-tec.de>
@@ -15,7 +15,8 @@ STYLESHEETDIR := @srcdir@/StyleSheets
 
 VPATH += @srcdir@
 
-NSGMLS = onsgmls -s -m /usr/share/sgml/CATALOG.db42xml
+XMLLINT = xmllint
+XMLLINTFLAGS = --valid --noout
 
 XSLT = xsltproc
 XSLTFLAGS = --timing --nonet
@@ -84,7 +85,7 @@ dirs: $(DIRS)
 # Validating
 #
 validate: $(patsubst %,%.xml,$(TARGETS))
-	$(NSGMLS) -B $^
+	$(XMLLINT) $(XMLLINTFLAGS) $^
 
 #
 # Rules to create the HTML stuff
@@ -154,14 +155,16 @@ pdf/userguide.tex: $(USERDEPS)
 pdf/%.fo: %.xml $(STYLESHEETDIR)/fo.xsl
 	$(XSLT) $(XSLTFLAGS) -o $@ $(STYLESHEETDIR)/fo.xsl $<
 
-# This one uses pdfxmltex (which actually does not work)
-# pdf/%.pdf: pdf/%.fo \
-	@cd $(@D); \
+# This one uses pdfxmltex (which does almost work with passivetex 1.24)
+# pdf/%.pdf: pdf/%.fo
+	@ln -s @srcdir@/images .; \
+	cd $(@D); \
 	pdfxmltex $(<F); \
-	cd ..
+	cd ..; \
+	rm -f images
 
 # This is done using fop (which works, but gives ugly output)
-# pdf/%.pdf: pdf/%.fo \
+# pdf/%.pdf: pdf/%.fo
 	@ CLASSPATH=$(CLASSPATH); \
 	ln -s @srcdir@/images .; \
 	ln -s @srcdir@/fop .; \
