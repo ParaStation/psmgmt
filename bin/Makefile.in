@@ -55,7 +55,7 @@ psispawn: psispawn.o -lpsi
 
 mlisten: mlisten.o -lpopt
 
-test_config_parsing: config_parsing.o -lputil -lpscommon
+test_config_parsing: -lputil -lpscommon
 
 # psiadmin
 EXTRACLEAN += lex.admin.c admin.tab.c admin.tab.h
@@ -69,12 +69,12 @@ lex.admin.o: lex.admin.c admin.tab.c admin.tab.h
 # psid
 VPATH += $(SRCDIR)/daemon $(SRCDIR)/cardconfig
 psid: psid.o psidutil.o psidtask.o psidspawn.o psidforwarder.o
-psid: psidsignal.o config_parsing.o cardconfig.o
+psid: psidsignal.o cardconfig.o
 psid: -lm -lpshal -lputil -lpscommon -lutil -lpopt -lpslog
 
 #psld
 VPATH += $(SRCDIR)/licdaemon
-psld: psld.o config_parsing.o
+psld: psld.o
 psld: -lm -lputil -lpscommon -lpopt
 
 # logger
