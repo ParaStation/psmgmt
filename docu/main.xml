@@ -6,12 +6,9 @@
 <!ENTITY docinfo SYSTEM "docinfo.sgml">
 
 <!ENTITY intro_admin SYSTEM "intro_admin.sgml">
-<!ENTITY intro_user SYSTEM "intro_user.sgml">
 <!ENTITY intro_common SYSTEM "intro.sgml">
 <!ENTITY installation SYSTEM "install.sgml">
 <!ENTITY configuration SYSTEM "config.sgml">
-<!ENTITY environment SYSTEM "environment.sgml">
-<!ENTITY strategies SYSTEM "strategies.sgml">
 
 <!ENTITY mlisten SYSTEM "mlisten.sgml">
 <!ENTITY parastationconf SYSTEM "parastationconf.sgml">
@@ -21,11 +18,19 @@
 <!ENTITY psroute SYSTEM "psroute.sgml">
 <!ENTITY psscan SYSTEM "psscan.sgml">
 <!ENTITY testnodes SYSTEM "testnodes.sgml">
-<!ENTITY psmstart SYSTEM "psmstart.sgml">
-<!ENTITY mpirun SYSTEM "mpirun.sgml">
-<!ENTITY spawning SYSTEM "spawning.sgml">
 
 <!ENTITY glossary SYSTEM "glossary.sgml">
+
+<!ENTITY intro_user SYSTEM "intro_user.sgml">
+<!ENTITY startup SYSTEM "startup.sgml">
+<!ENTITY using_mpi SYSTEM "using_mpi.sgml">
+<!ENTITY building SYSTEM "building.sgml">
+
+<!ENTITY psmstart SYSTEM "psmstart.sgml">
+<!ENTITY mpirun SYSTEM "mpirun.sgml">
+<!ENTITY environment SYSTEM "environment.sgml">
+
+<!ENTITY spawning SYSTEM "spawning.sgml">
 
 <!ENTITY boolargs SYSTEM "boolargs.sgml">
 ]>
@@ -63,13 +68,15 @@
     </bookinfo>
 
     &intro_user;
-    &environment;
-    &strategies;
+    &startup;
+    &using_mpi;
+    &building;
 
     <reference id="references_user">
       <title>Reference Pages</title>
       &mpirun;
       &psmstart;
+      &environment;
     </reference>
 
     <appendix><title>Spawning strategies</title>
