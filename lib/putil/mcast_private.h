@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast_private.h,v 1.10 2002/07/11 09:51:46 eicker Exp $
+ * $Id: mcast_private.h,v 1.11 2002/07/23 12:36:11 eicker Exp $
  *
  */
 /**
@@ -14,7 +14,7 @@
  *
  * Private functions and definitions.
  *
- * $Id: mcast_private.h,v 1.10 2002/07/11 09:51:46 eicker Exp $
+ * $Id: mcast_private.h,v 1.11 2002/07/23 12:36:11 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -92,6 +92,12 @@ static struct timeval MCastTimeout = {2, 0}; /* sec, usec */
  * The actual dead-limit. Get/set by getDeadLimitMCast()/setDeadLimitMCast().
  */
 static int MCastDeadLimit = 10;
+
+/**
+ * The license dead-limit. If this amount of pings from the
+ * license-daemon are missing, MCast shuts down via callback or exit().
+ */
+static const int MCastLicShutdownLimit = 30;
 
 /** The jobs on my local node. */
 static MCastJobs jobsMCast = {0, 0};
