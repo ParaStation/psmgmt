@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.17 2002/04/22 18:17:00 hauke Exp $
+ * $Id: psld.c,v 1.18 2002/04/22 22:51:58 hauke Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Daemon
  *
- * $Id: psld.c,v 1.17 2002/04/22 18:17:00 hauke Exp $
+ * $Id: psld.c,v 1.18 2002/04/22 22:51:58 hauke Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.17 2002/04/22 18:17:00 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.18 2002/04/22 22:51:58 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -45,7 +45,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.17 2002/04/22 18
 #include "timer.h"
 #include "mcast.h"
 
-#include "../psid/parse.h"
+#include "../daemon/parse.h"
 
 static int usesyslog = 1;  /* flag if syslog is used */
 
@@ -298,7 +298,7 @@ void sighandler(int sig)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.17 $";
+    char revision[] = "$Revision: 1.18 $";
     snprintf(errtxt, sizeof(errtxt), "psld %s\b ", revision+11);
     errlog(errtxt, 0);
 }
