@@ -116,9 +116,8 @@ void do_query_param()
 void do_set_param()
 {
     if (PSHALSYS_SetMCPParam( arg_param , arg_param_value)){
-	fprintf(stderr,"Set MCP parameter %d failed!\n");
+	fprintf(stderr,"Set MCP parameter %d failed!\n", arg_param);
     }else{
-	int i=0;
 	UINT32 val;
 	char name20[20];
 	PSHALSYS_GetMCPParam(arg_param,&val,name20);
@@ -132,14 +131,6 @@ void do_set_param()
 
 int main(int argc, char **argv)
 {
-    struct psm_mcpif_mmap_struct * ms;
-    int pshal_fd=0;
-    int res;
-    int i;
-    int size;
-    char mes[64];
-    char buf[ 1*1024*1024 ];
-
     signal(SIGINT , cleanup);
     //printf(__DATE__" "__TIME__"\n");
 

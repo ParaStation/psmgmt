@@ -1119,6 +1119,7 @@ if test "${with_lanaitools+set}" = set; then
   withval="$with_lanaitools"
 
 		MYRI_HOME=`path_cleanup ${withval}`;
+		echo " $MYRI_HOME"
 
 else
 
@@ -1126,17 +1127,12 @@ else
 #			MYRI_HOME=`which lanai-gcc`
 			MYRI_HOME=`dirname $MYRI_HOME`/..
 			MYRI_HOME=`path_cleanup $MYRI_HOME`
+			echo " $MYRI_HOME"
 		else
-			cat <<DOK
-
-Cant find the LANai-tools!
-please configure with --with-mcpbinheader or --with-lanaitools
-DOK
-			exit 1
+			MCPBINHEADERDIRauto=yes
 		fi
 
 fi;
-	echo " $MYRI_HOME"
 
 fi;
 
@@ -1151,6 +1147,39 @@ else
 	KERNELLIST=`path_cleanup kernellist`
 
 fi;
+
+case $target_os in
+linux)
+	PSM_OSDIR=kern/Linux
+	ac_config_files="$ac_config_files kern/Linux/Makefile"
+
+	ac_config_files="$ac_config_files kern/Linux/Makefile.second"
+
+	if test "$MCPBINHEADERDIRauto" = "yes"; then
+		MCPBINHEADERDIR=`path_cleanup $srcdir`/kern/mcp/build
+	fi;
+	;;
+tru64)
+	if test "$MCPBINHEADERDIRauto" = "yes"; then
+		MCPBINHEADERDIR=`path_cleanup $srcdir`/kern/mcp/build_nozc
+	fi;
+	;;
+*)
+	echo "Unkown os ($target_os)"
+	exit 1
+	;;
+esac
+
+if test "$MCPBINHEADERDIRauto" = "yes"; then
+	cat <<DOK
+
+WARNING!
+Cant find the LANai-tools (use --with-lanaitools= ?)!
+Now using precompiled MCPs ( like --with-mcpbinheader=$MCPBINHEADERDIR )
+
+DOK
+
+fi
 
 ac_config_files="$ac_config_files Makefile"
 
@@ -1167,20 +1196,6 @@ ac_config_files="$ac_config_files kern/mcp/Makefile"
 ac_config_files="$ac_config_files kern/Makefile.include"
 
 ac_config_files="$ac_config_files tools/Makefile"
-
-case $target_os in
-linux)
-	PSM_OSDIR=kern/Linux
-	ac_config_files="$ac_config_files kern/Linux/Makefile"
-
-	ac_config_files="$ac_config_files kern/Linux/Makefile.second"
-
-	;;
-*)
-	echo "Unkown os ($target_os)"
-	exit 1
-	;;
-esac
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -1291,7 +1306,7 @@ rm -f confdef2opt.sed
 : ${CONFIG_STATUS=./config.status}
 ac_clean_files_save=$ac_clean_files
 ac_clean_files="$ac_clean_files $CONFIG_STATUS"
-{ echo "$as_me:1294: creating $CONFIG_STATUS" >&5
+{ echo "$as_me:1309: creating $CONFIG_STATUS" >&5
 echo "$as_me: creating $CONFIG_STATUS" >&6;}
 cat >$CONFIG_STATUS <<_ACEOF
 #! $SHELL
@@ -1458,7 +1473,7 @@ cat >>$CONFIG_STATUS <<\EOF
     echo "$ac_cs_version"; exit 0 ;;
   --he | --h)
     # Conflict between --help and --header
-    { { echo "$as_me:1461: error: ambiguous option: $1
+    { { echo "$as_me:1476: error: ambiguous option: $1
 Try \`$0 --help' for more information." >&5
 echo "$as_me: error: ambiguous option: $1
 Try \`$0 --help' for more information." >&2;}
@@ -1477,7 +1492,7 @@ Try \`$0 --help' for more information." >&2;}
     ac_need_defaults=false;;
 
   # This is an error.
-  -*) { { echo "$as_me:1480: error: unrecognized option: $1
+  -*) { { echo "$as_me:1495: error: unrecognized option: $1
 Try \`$0 --help' for more information." >&5
 echo "$as_me: error: unrecognized option: $1
 Try \`$0 --help' for more information." >&2;}
@@ -1512,6 +1527,8 @@ for ac_config_target in $ac_config_targets
 do
   case "$ac_config_target" in
   # Handling of arguments.
+  "kern/Linux/Makefile" ) CONFIG_FILES="$CONFIG_FILES kern/Linux/Makefile" ;;
+  "kern/Linux/Makefile.second" ) CONFIG_FILES="$CONFIG_FILES kern/Linux/Makefile.second" ;;
   "Makefile" ) CONFIG_FILES="$CONFIG_FILES Makefile" ;;
   "libs/pshal/Makefile" ) CONFIG_FILES="$CONFIG_FILES libs/pshal/Makefile" ;;
   "libs/psport/Makefile" ) CONFIG_FILES="$CONFIG_FILES libs/psport/Makefile" ;;
@@ -1520,9 +1537,7 @@ do
   "kern/mcp/Makefile" ) CONFIG_FILES="$CONFIG_FILES kern/mcp/Makefile" ;;
   "kern/Makefile.include" ) CONFIG_FILES="$CONFIG_FILES kern/Makefile.include" ;;
   "tools/Makefile" ) CONFIG_FILES="$CONFIG_FILES tools/Makefile" ;;
-  "kern/Linux/Makefile" ) CONFIG_FILES="$CONFIG_FILES kern/Linux/Makefile" ;;
-  "kern/Linux/Makefile.second" ) CONFIG_FILES="$CONFIG_FILES kern/Linux/Makefile.second" ;;
-  *) { { echo "$as_me:1525: error: invalid argument: $ac_config_target" >&5
+  *) { { echo "$as_me:1540: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}
    { (exit 1); exit 1; }; };;
   esac
@@ -1729,7 +1744,7 @@ done; }
   esac
 
   if test x"$ac_file" != x-; then
-    { echo "$as_me:1732: creating $ac_file" >&5
+    { echo "$as_me:1747: creating $ac_file" >&5
 echo "$as_me: creating $ac_file" >&6;}
     rm -f "$ac_file"
   fi
@@ -1747,7 +1762,7 @@ echo "$as_me: creating $ac_file" >&6;}
       -) echo $tmp/stdin ;;
       [\\/$]*)
          # Absolute (can't be DOS-style, as IFS=:)
-         test -f "$f" || { { echo "$as_me:1750: error: cannot find input file: $f" >&5
+         test -f "$f" || { { echo "$as_me:1765: error: cannot find input file: $f" >&5
 echo "$as_me: error: cannot find input file: $f" >&2;}
    { (exit 1); exit 1; }; }
          echo $f;;
@@ -1760,7 +1775,7 @@ echo "$as_me: error: cannot find input file: $f" >&2;}
            echo $srcdir/$f
          else
            # /dev/null tree
-           { { echo "$as_me:1763: error: cannot find input file: $f" >&5
+           { { echo "$as_me:1778: error: cannot find input file: $f" >&5
 echo "$as_me: error: cannot find input file: $f" >&2;}
    { (exit 1); exit 1; }; }
          fi;;

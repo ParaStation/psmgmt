@@ -52,11 +52,12 @@ test_pse: $(LIBDIR)/psi/libpsi.a
 test_pse: -lpthread
 test_pse: -lm
 
+DEPFILES := $(wildcard *.d) dummy.d
+
 clean:
-	$(RM) $(TOOLS)
+	$(RM) $(DEPFILES) *.o
 
 
-DEPFILES := $(wildcard *.d)
 
 -include $(DEPFILES)
 
