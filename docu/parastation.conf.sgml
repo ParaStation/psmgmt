@@ -1175,6 +1175,13 @@
       implemented yet.
     </para>
   </refsect1>
+
+  <refsect1>
+    <title>See also</title>
+    <para>
+      <xref linkend="psid"/>, <xref linkend="psld"/>
+    </para>
+  </refsect1>
 </refentry>
   <!-- Keep this comment at the end of the file
   Local variables:
