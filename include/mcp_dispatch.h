@@ -65,18 +65,44 @@ extern struct dispatch_table dt;
 
 /* Default C dispatch */
 #ifndef DISPATCH
-#define DISPATCH_(fromev,state) do {					\
-  UINT32 _offset;							\
-  void *_handler;							\
-  _offset = dt.event[-(state)];						\
-  DISPTIMER((fromev));							\
-  _handler = *(void **)((char *) dt.event_func + _offset);		\
-/*  TRACEONE("DISPATCH",(_handler));*/					\
-  goto *_handler;							\
+#define DISPATCH_(fromev,state) do {				\
+  UINT32 _offset;						\
+  void *_handler;						\
+  _offset = dt.event[-(state)];					\
+  DISPTIMER((fromev));						\
+  _handler = *(void **)((char *) dt.event_func + _offset);	\
+/*  TRACEONE("DISPATCH",(_handler));*/				\
+  goto *_handler;						\
 } while (0)
 #endif
 
-#define DISPATCH(fromev) DISPATCH_((fromev), (ISR & IMR)| mcp_mem.State  )
+
+#ifdef ENABLE_DISPATCH_BT
+static int _dp_bt_pos=0;
+static char _dp_bt_tr[16];
+
+#define DISPATCH_BT(fromev)				\
+   _dp_bt_tr[(_dp_bt_pos++)%16] = (fromev);
+#define DISPATCH_BT_TO_CT				\
+   {							\
+       int i;						\
+       for(i=0;i<8;i++)					\
+	   mcp_mem.c[i]=_dp_bt_tr[(_dp_bt_pos+i)%16];	\
+       for(i=0;i<8;i++)					\
+	   mcp_mem.t[i]=_dp_bt_tr[(_dp_bt_pos+i+8)%16];	\
+   }
+
+#else
+#define DISPATCH_BT(fromev)
+#define DISPATCH_BT_TO_CT
+#endif
+
+
+
+#define DISPATCH(fromev)				\
+  DISPATCH_BT(fromev)					\
+  ASMC("DISPATCH END " #fromev);			\
+  DISPATCH_((fromev), (ISR & IMR)| mcp_mem.State  )
 
 
 /* Register Event (bind eventnr to eventlabel) */
