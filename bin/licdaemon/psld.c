@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.18 2002/04/22 22:51:58 hauke Exp $
+ * $Id: psld.c,v 1.19 2002/04/24 13:28:38 eicker Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Daemon
  *
- * $Id: psld.c,v 1.18 2002/04/22 22:51:58 hauke Exp $
+ * $Id: psld.c,v 1.19 2002/04/24 13:28:38 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.18 2002/04/22 22:51:58 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.19 2002/04/24 13:28:38 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -48,6 +48,10 @@ static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.18 2002/04/22 22
 #include "../daemon/parse.h"
 
 static int usesyslog = 1;  /* flag if syslog is used */
+
+char DEFAULT_PIDFILE[]="/var/run/psld.pid";
+
+char *PIDFILE = DEFAULT_PIDFILE;
 
 /*
  * The following procedures are usually defined in config/routing.c but
@@ -95,7 +99,7 @@ int check_machine(int *interface)
     if (ioctl(skfd, SIOCGIFCONF, &ifc) < 0) {
 	errexit("Unable to obtain network configuration", errno);
     }
-    
+
     ifr = ifc.ifc_req;
     for (n = 0, i=0; n < ifc.ifc_len; n += sizeof(struct ifreq)) {
 	if ((ifr->ifr_dstaddr.sa_family == AF_INET)
@@ -229,13 +233,14 @@ int check_license(void)
     return 1;
 }
 
-#define PIDFILE "/var/run/ps3ld.pid"
-
 int check_lock(void)
 {
     FILE *f;
     int fd;
     int fpid=-1,mypid=-1;
+
+    snprintf(errtxt, sizeof(errtxt), "Using <%s> as lock file", PIDFILE);
+    errlog(errtxt, 0);
 
     mypid=getpid();
     if (!(f=fopen(PIDFILE,"r"))) {
@@ -298,7 +303,7 @@ void sighandler(int sig)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.18 $";
+    char revision[] = "$Revision: 1.19 $";
     snprintf(errtxt, sizeof(errtxt), "psld %s\b ", revision+11);
     errlog(errtxt, 0);
 }
@@ -308,7 +313,7 @@ static void version(void)
  */
 static void usage(void)
 {
-    errlog("usage: psld [-h] [-v] [-d] [-D] [-f file]", 0);
+    errlog("usage: psld [-h] [-v] [-d] [-D] [-f file] [-l file]", 0);
 }
 
 /*
@@ -323,6 +328,9 @@ static void help(void)
     errlog(errtxt, 0);
     snprintf(errtxt, sizeof(errtxt), " -f file : use 'file' as config-file"
 	     " (default is psidir/config/psm.config).");
+    errlog(errtxt, 0);
+    snprintf(errtxt, sizeof(errtxt), " -l file : use 'file' as lock-file"
+	     " (default is %s).", PIDFILE);
     errlog(errtxt, 0);
     snprintf(errtxt, sizeof(errtxt),
 	     " -v,      : output version information and exit.\n");
@@ -341,20 +349,23 @@ int main(int argc, char *argv[])
 
     unsigned int *hostlist;         /* hostlist for RDP and MCast */
 
-    while ( (c = getopt(argc,argv, "dDhHvVf:")) != -1 ) {
+    while ( (c = getopt(argc,argv, "dDhHvVf:l:")) != -1 ) {
 	switch (c) {
 	case 'd':
 	    setErrLogLevel(1);
 	    break;
 	case 'D':
-	    dofork=0;
-	    usesyslog=0;
+	    dofork = 0;
+	    usesyslog = 0;
 	    setErrLogLevel(1);
 	    setDebugLevelTimer(10);
 	    setDebugLevelMCast(10);
 	    break;
 	case 'f' :
-	    Configfile = strdup( optarg );
+	    Configfile = strdup(optarg);
+	    break;
+	case 'l' :
+	    PIDFILE = strdup(optarg);
 	    break;
         case 'v':
         case 'V':
@@ -363,6 +374,7 @@ int main(int argc, char *argv[])
         case 'h':
         case 'H':
             helpflg = 1;
+	    usesyslog = 0;
             break;
 	default:
 	    errflg = 1;
