@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.117 2003/11/26 17:37:13 eicker Exp $
+ * $Id: psid.c,v 1.118 2003/12/09 16:59:38 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.117 2003/11/26 17:37:13 eicker Exp $ 
+ * $Id: psid.c,v 1.118 2003/12/09 16:59:38 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.117 2003/11/26 17:37:13 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.118 2003/12/09 16:59:38 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -28,7 +28,6 @@ static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.117 2003/11/26 1
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
-#include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
@@ -61,6 +60,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.117 2003/11/26 1
 
 #include "psidutil.h"
 #include "psidtask.h"
+#include "psidtimer.h"
 #include "psidspawn.h"
 #include "psidsignal.h"
 #include "psidclient.h"
@@ -70,18 +70,12 @@ static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.117 2003/11/26 1
 #include "psidoption.h"
 #include "psidpartition.h"
 
-struct timeval maintimer;
-struct timeval selecttimer;
-struct timeval shutdowntimer;
-struct timeval killclientstimer;
+struct timeval mainTimer;
+struct timeval selectTime;
 
-#define timerset(tvp,fvp)        {(tvp)->tv_sec  = (fvp)->tv_sec;\
-                                  (tvp)->tv_usec = (fvp)->tv_usec;}
-#define timerop(tvp,sec,usec,op) {(tvp)->tv_sec  = (tvp)->tv_sec op sec;\
-                                  (tvp)->tv_usec = (tvp)->tv_usec op usec;}
-#define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
+static struct timeval shutdownTimer;
 
-char psid_cvsid[] = "$Revision: 1.117 $";
+char psid_cvsid[] = "$Revision: 1.118 $";
 
 /** Master socket (type UNIX) for clients to connect */
 static int masterSock;
@@ -107,68 +101,6 @@ static char errtxt[256]; /**< General string to create error messages */
 #define PSID_STATE_NOCONNECT (PSID_STATE_DORESET \
 			      | PSID_STATE_SHUTDOWN | PSID_STATE_SHUTDOWN2)
 
-/******************************************
- *  killClients()
- *
- * killing client processes:
- *  - phase 0: send SIGTERM signal to processes not in group TG_ADMIN
- *  - phase 1: send SIGTERM signal. Hopefully all end until phase 2 reached
- *  - phase 2: send SIGKILL signal to processes not in group TG_ADMIN
- *  - phase 3: send SIGKILL signal and clean up all open connections.
- */
-int killClients(int phase)
-{
-    PStask_t *task;
-
-    if (timercmp(&maintimer, &killclientstimer, <)) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s(%d) timer not ready [%ld:%ld] < [%ld:%ld]",
-		 __func__, phase, maintimer.tv_sec, maintimer.tv_usec,
-		 killclientstimer.tv_sec, killclientstimer.tv_usec);
-	PSID_errlog(errtxt, 8);
-
-	return 0;
-    }
-
-    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, phase);
-    PSID_errlog(errtxt, 1);
-
-    snprintf(errtxt, sizeof(errtxt),
-	     "timers are main[%ld:%ld] and killclients[%ld:%ld]",
-	     maintimer.tv_sec, maintimer.tv_usec,
-	     killclientstimer.tv_sec, killclientstimer.tv_usec);
-    PSID_errlog(errtxt, 8);
-
-    gettimeofday(&killclientstimer, NULL);
-    mytimeradd(&killclientstimer, 0, 200000);
-
-    task=managedTasks;
-    /* loop over all tasks */
-    while (task) {
-	if (task->group != TG_MONITOR
-	    && (phase==1 || phase==3 || task->group!=TG_ADMIN)) {
-	    /* TG_MONITOR never */
-	    /* in phase 1 and 3 all other */
-	    /* in phase 0 and 2 all other not in TG_ADMIN group */
-	    pid_t pid = PSC_getPID(task->tid);
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: sending %s to %s pid %d index[%d]",
-		     __func__, (phase<2) ? "SIGTERM" : "SIGKILL",
-		     PSC_printTID(task->tid), pid, task->fd);
-	    PSID_errlog(errtxt, 4);
-	    if (pid > 0) kill(pid, (phase<2) ? SIGTERM : SIGKILL);
-	}
-	if (phase>2 && task->fd>=0) {
-	    deleteClient(task->fd);
-	}
-	task = task->next;
-    }
-
-    snprintf(errtxt, sizeof(errtxt), "%s(%d) done", __func__, phase);
-    PSID_errlog(errtxt, 4);
-
-    return 1;
-}
 
 /******************************************
  *  shutdownNode()
@@ -184,11 +116,11 @@ int shutdownNode(int phase)
 {
     int i;
 
-    if (timercmp(&maintimer, &shutdowntimer, <)) {
+    if (timercmp(&mainTimer, &shutdownTimer, <)) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "%s(%d): timer not ready [%ld:%ld] < [%ld:%ld]", __func__,
-		 phase, maintimer.tv_sec, maintimer.tv_usec,
-		 shutdowntimer.tv_sec, shutdowntimer.tv_usec);
+		 phase, mainTimer.tv_sec, mainTimer.tv_usec,
+		 shutdownTimer.tv_sec, shutdownTimer.tv_usec);
 	PSID_errlog(errtxt, 10);
 	return 0;
     }
@@ -198,12 +130,12 @@ int shutdownNode(int phase)
 
     snprintf(errtxt, sizeof(errtxt),
 	     "timers are main[%ld:%ld] and shutdown[%ld:%ld]",
-	     maintimer.tv_sec, maintimer.tv_usec,
-	     shutdowntimer.tv_sec, shutdowntimer.tv_usec);
+	     mainTimer.tv_sec, mainTimer.tv_usec,
+	     shutdownTimer.tv_sec, shutdownTimer.tv_usec);
     PSID_errlog(errtxt, 8);
 
-    gettimeofday(&shutdowntimer, NULL);
-    mytimeradd(&shutdowntimer, 1, 0);
+    gettimeofday(&shutdownTimer, NULL);
+    mytimeradd(&shutdownTimer, 1, 0);
 
     myStatus |= PSID_STATE_SHUTDOWN;
 
@@ -221,7 +153,7 @@ int shutdownNode(int phase)
     /*
      * kill all clients
      */
-    killClients(phase);
+    killAllClients(phase);
 
     if (phase > 1) {
 	/*
@@ -354,11 +286,11 @@ static int doReset(void)
      *   After that They are no more existent
      */
     if (myStatus & PSID_STATE_DORESET) {
-	if (! killClients(2)) {
+	if (! killAllClients(2)) {
 	    return 0; /* kill client with error: try again. */
 	}
     } else {
-	killClients((myStatus & PSID_STATE_RESET_HW) ? 1 : 0);
+	killAllClients((myStatus & PSID_STATE_RESET_HW) ? 1 : 0);
 	myStatus |= PSID_STATE_DORESET;
 	usleep(200000); /* sleep for a while to let the clients react */
 	return 0;
@@ -2261,7 +2193,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.117 $";
+    char revision[] = "$Revision: 1.118 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -2461,11 +2393,10 @@ int main(int argc, const char *argv[])
     declareNodeAlive(PSC_getMyID(), PSID_getPhysCPUs(), PSID_getVirtCPUs());
 
     /* Initialize timers */
-    timerclear(&shutdowntimer);
-    timerclear(&killclientstimer);
-    selecttimer.tv_sec = config->selectTime;
-    selecttimer.tv_usec = 0;
-    gettimeofday(&maintimer, NULL);
+    timerclear(&shutdownTimer);
+    selectTime.tv_sec = config->selectTime;
+    selectTime.tv_usec = 0;
+    gettimeofday(&mainTimer, NULL);
 
     /* Initialize the clients structure */
     initClients();
@@ -2533,7 +2464,7 @@ int main(int argc, const char *argv[])
 	fd_set wfds;        /* write file descriptor set */
 	int fd;
 
-	timerset(&tv, &selecttimer);
+	timerset(&tv, &selectTime);
 	PSID_blockSig(0, SIGCHLD); /* Handle deceased child processes */
 	PSID_blockSig(1, SIGCHLD);
 	memcpy(&rfds, &PSID_readfds, sizeof(rfds));
@@ -2554,7 +2485,7 @@ int main(int argc, const char *argv[])
 	    continue;
 	}
 
-	gettimeofday(&maintimer, NULL);
+	gettimeofday(&mainTimer, NULL);
 	/*
 	 * check the master socket for new requests
 	 */
