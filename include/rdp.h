@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.h,v 1.14 2002/07/03 19:56:53 eicker Exp $
+ * $Id: rdp.h,v 1.15 2003/06/06 12:03:10 eicker Exp $
  *
  */
 /**
  * @file
  * Reliable Datagram Protocol for ParaStation daemon
  *
- * $Id: rdp.h,v 1.14 2002/07/03 19:56:53 eicker Exp $
+ * $Id: rdp.h,v 1.15 2003/06/06 12:03:10 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -42,13 +42,13 @@ typedef struct {
 
 /**
  * Tag for RDPCallback(): New connection detected. The second argument
- * of RDPCallback() will point to a int holding the number of the connecting
+ * of RDPCallback() will point to an int holding the number of the connecting
  * node.
  */
 #define RDP_NEW_CONNECTION	0x1
 /**
  * Tag for RDPCallback(): Connection lost. The second argument of RDPCallback()
- * will point to a int holding the number of the lost node.
+ * will point to an int holding the number of the lost node.
  */
 #define RDP_LOST_CONNECTION	0x2
 /**
@@ -58,6 +58,12 @@ typedef struct {
  * type @ref RDP_LOST_CONNECTION.
  */
 #define RDP_PKT_UNDELIVERABLE	0x3
+/**
+ * Tag for RDPCallback(): Free space in window available again. The second
+ * argument of RDPCallback() will point to an int holding the ID of the
+ * node which is reachable again.
+ */
+#define RDP_CAN_CONTINUE	0x4
 
 /**
  * The default RDP-port number. Magic number defined by Joe long time ago.
