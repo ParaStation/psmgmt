@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: selector.c,v 1.2 2004/01/09 15:22:28 eicker Exp $
+ * $Id: selector.c,v 1.3 2004/01/15 16:28:40 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: selector.c,v 1.2 2004/01/09 15:22:28 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: selector.c,v 1.3 2004/01/15 16:28:40 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -236,7 +236,8 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	if (retval == -1) {
 	    if (errno == EINTR) {
 		/* Interrupted syscall, just start again */
-		retval = 0;
+		const struct timeval delta = { .tv_sec = 0, .tv_usec = 10 };
+		timersub(&end, &delta, &start);       /* assure next round */
 		continue;
 	    } else {
 		snprintf(errtxt, sizeof(errtxt),
@@ -248,27 +249,25 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	}
 
 	selector = selectorList;
-	while (selector) {
-	    if ((retval>0) && FD_ISSET(selector->fd, &rfds)) {
-		/* Got message on fd */
-		if (selector->selectHandler) {
-		    int ret;
-		    switch ((ret=selector->selectHandler(selector->fd))) {
-		    case -1:
-			retval = -1;
-			break;
-		    case 0:
-			retval--;
-			FD_CLR(selector->fd, &rfds);
-			break;
-		    case 1:
-			break;
-		    default:
-			snprintf(errtxt, sizeof(errtxt),
-				 "%s: selectHander for fd=%d returns %d",
-				 __func__, selector->fd, ret);
-			errlog(errtxt, 0);
-		    }
+	while (selector && (retval>0)) {
+	    if (FD_ISSET(selector->fd, &rfds) && selector->selectHandler) {
+		/* Got message on handled fd */
+		int ret = selector->selectHandler(selector->fd);
+		switch (ret) {
+		case -1:
+		    retval = -1;
+		    break;
+		case 0:
+		    retval--;
+		    FD_CLR(selector->fd, &rfds);
+		    break;
+		case 1:
+		    break;
+		default:
+		    snprintf(errtxt, sizeof(errtxt),
+			     "%s: selectHander for fd=%d returns %d",
+			     __func__, selector->fd, ret);
+		    errlog(errtxt, 0);
 		}
 	    }
 	    selector = selector->next;
@@ -282,7 +281,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 
     if (readfds) {
 	selector = selectorList;
-	while (selector) {
+	while (selector && (retval>0)) {
 	    if (!selector->requested && FD_ISSET(selector->fd, readfds)) {
 		FD_CLR(selector->fd, &rfds);
 		retval--;
