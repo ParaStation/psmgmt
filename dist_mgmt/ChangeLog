@@ -1,6 +1,27 @@
 Changes since psmgmt-4.0.3:
 ===========================
 
+2003-08-27  Jens Hauke  <hauke@par-tec.com>
+
+	* Extension: Minor fixes for IA64 support.
+
+2003-08-27  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extension: New commands hwstart/hwstop within psiadmin.
+
+2003-08-15  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extension: Complete rewrite of psiadmin. Significant syntax
+	change.
+	* Bugfix: Switch from strtok() to strtok_r(). Not really a bug but
+	will prevent from future problems.
+
+2003-08-04  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extension: New options to psmstart. These include -l, -h and -n.
+	* Extension: Do not fail to spawn if chdir() to workdir is
+	impossible. Try user's home instead.
+
 2003-07-31  Norbert Eicker  <eicker@par-tec.com>
 
 	* Bugfix: Close of client's stdin from forwarder.
