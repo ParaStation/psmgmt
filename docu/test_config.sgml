@@ -15,7 +15,7 @@
     <cmdsynopsis>
       <command>test_config</command>
       <arg>-v?</arg>
-      <arg>-d <replacable>level<replacable></arg>
+      <arg>-d <replaceable>level</replaceable></arg>
       <arg>-f <replaceable>configfile</replaceable></arg>
       <arg>--usage</arg>
     </cmdsynopsis>
@@ -24,10 +24,20 @@
   <refsect1>
     <title>Description</title>
     <para>
-      Todo todo todo todo todo todo todo.
+      This simple utility might be used in order to test the syntaxtical
+      correctness of a &ps; configuration file.
     </para>
     <para>
-      Todo todo todo todo todo todo todo.
+      Since looking up error messages of the &ps; daemon <xref linkend="psid"/>
+      from the <citerefentry>
+	<refentrytitle>syslog</refentrytitle>
+	<manvolnum>3</manvolnum>
+      </citerefentry> is usually not very convenient, the same error messages
+      also might be produced by this tool but simply send to the stderr.
+    </para>
+    <para>
+      The correct syntax of the &ps; configuration file might be looked up in
+      the corresponding manual page <xref linkend="parastation_conf"/>.
     </para>
   </refsect1>
 
