@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.15 2002/01/31 08:50:17 eicker Exp $
+ * $Id: rdp.c,v 1.16 2002/01/31 12:06:12 eicker Exp $
  *
  */
 /**
  * \file
  * rdp: ParaStation Reliable Datagram Protocol
  *
- * $Id: rdp.c,v 1.15 2002/01/31 08:50:17 eicker Exp $
+ * $Id: rdp.c,v 1.16 2002/01/31 12:06:12 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.15 2002/01/31 08:50:17 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.16 2002/01/31 12:06:12 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -37,9 +37,10 @@ static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.15 2002/01/31 08:
 #include <netinet/in.h>
 #include <netdb.h>
 
-#if defined(__linux__LATER)
+#if defined(__linux__)
 #include <asm/types.h>
 #include <linux/errqueue.h>
+#include <sys/uio.h>
 #endif
 
 #include "errlog.h"
@@ -483,6 +484,7 @@ static int initSockRDP(unsigned short port, int qlen)
 {
     struct sockaddr_in sin;  /* an internet endpoint address */
     int s;                   /* socket descriptor */
+    int val;
 
     memset(&sin, 0, sizeof(sin));
     sin.sin_family = AF_INET;
@@ -505,12 +507,10 @@ static int initSockRDP(unsigned short port, int qlen)
 	errexit(errtxt, errno);
     }
 
+#if defined(__linux__)
     /*
      * enable RECV Error Queue
-     * NOT YET !!!
-     * enabling IP_RECVERR results in additional error packets !!
      */
-#if defined(__linux__LATER)
     val = 1;
     if (setsockopt(s, SOL_IP, IP_RECVERR, &val, sizeof(int)) < 0) {
 	errexit("can't set socketoption IP_RECVERR", errno);
@@ -1113,44 +1113,106 @@ int handleRDP(int fd)
     /* read msg for inspection */
     if (MYrecvfrom(rdpsock, &msg, sizeof(msg), MSG_PEEK,
 		   (struct sockaddr *)&sin, &slen)<0) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "Rselect: recvfrom(MSG_PEEK) returns -1, errno=%d %s",
-		 errno, strerror(errno));
-	errlog(errtxt, 0);
-
-#if defined(__linux__LATER)
+#if defined(__linux__)
 	if (errno == ECONNREFUSED) {
 	    struct msghdr errmsg;
 	    struct sockaddr_in sin;
 	    struct sockaddr_in * sinp;
 	    struct iovec iov;
-	    char *ubuf;
+	    struct cmsghdr *cmsg;
+	    struct sock_extended_err *extErr;
+	    int node;
+	    char ubuf[256];
 
-	    ubuf = (char*)malloc(10000);
-	    errmsg.msg_control = NULL;
-	    errmsg.msg_controllen = 0;
-	    errmsg.msg_iovlen = 1;
-	    errmsg.msg_iov = &iov;
-	    iov.iov_len = 10000;
-	    iov.iov_base = ubuf;
 	    errmsg.msg_name = &sin;
-	    errmsg.msg_namelen = sizeof(struct sockaddr_in);
+	    errmsg.msg_namelen = sizeof(sin);
+	    errmsg.msg_iov = &iov;
+	    errmsg.msg_iovlen = 1;
+	    errmsg.msg_control = &ubuf;
+	    errmsg.msg_controllen = sizeof(ubuf);
+	    iov.iov_base = NULL;
+	    iov.iov_len = 0;
 	    if (recvmsg(rdpsock, &errmsg, MSG_ERRQUEUE) == -1) {
 		snprintf(errtxt, sizeof(errtxt),
-			 "Error in recvmsg [%d]: %s", errno, strerror(errno));
-		errlog(errtxt, 1);
-	    } else {
-		sinp = (struct sockaddr_in *)errmsg.msg_name;
-		snprintf(errtxt, sizeof(errtxt),
-			 "CONNREFUSED from %s port %d",
-			 inet_ntoa(sinp->sin_addr), ntohs(sinp->sin_port));
-		errlog(errtxt, 1);
+			 "handleRDP(): Error in recvmsg [%d]: %s",
+			 errno, strerror(errno));
+		errlog(errtxt, 0);
+		return -1;
 	    }
-	    free(ubuf);
+
+	    if (! (errmsg.msg_flags & MSG_ERRQUEUE)) {
+		errlog("handleRDP():"
+		       " MSG_ERRQUEUE requested but not returned", 0);
+		return -1;
+	    }
+
+	    if (errmsg.msg_flags & MSG_CTRUNC) {
+		errlog("handleRDP(): cmsg truncated.", 0);
+		return -1;
+	    }
+
+	    snprintf(errtxt, sizeof(errtxt),
+		     "handleRDP(): errmsg.msg_flags: < %s%s%s%s%s%s>",
+		     errmsg.msg_flags & MSG_EOR ? "MSG_EOR ":"",
+		     errmsg.msg_flags & MSG_TRUNC ? "MSG_TRUNC ":"",
+		     errmsg.msg_flags & MSG_CTRUNC ? "MSG_CTRUNC ":"",
+		     errmsg.msg_flags & MSG_OOB ? "MSG_OOB ":"",
+		     errmsg.msg_flags & MSG_ERRQUEUE ? "MSG_ERRQUEUE ":"",
+		     errmsg.msg_flags & MSG_DONTWAIT ? "MSG_DONTWAIT ":"");
+	     errlog(errtxt, 5);
+
+	     cmsg = CMSG_FIRSTHDR(&errmsg);
+	     if (!cmsg) {
+		 errlog("handleRDP(): cmsg is NULL", 0);
+		 return -1;
+	     }
+
+	     snprintf(errtxt, sizeof(errtxt),
+		      "handleRDP(): cmsg: cmsg_len = %ld,"
+		      " cmsg_level = %d (SOL_IP=%d),"
+		      " cmsg_type = %d (IP_RECVERR = %d)",
+		      cmsg->cmsg_len, cmsg->cmsg_level, SOL_IP,
+		      cmsg->cmsg_type, IP_RECVERR);
+	     errlog(errtxt, 5);
+
+	     if (! cmsg->cmsg_len) {
+		 errlog("handleRDP(): cmsg->cmsg_len = 0, local error?", 0);
+		 return -1;
+	     }
+
+	     extErr = (struct sock_extended_err *)CMSG_DATA(cmsg);
+	     if (!cmsg) {
+		 errlog("handleRDP(): extErr is NULL", 0);
+		 return -1;
+	     }
+
+	     sinp = (struct sockaddr_in *)SO_EE_OFFENDER(extErr);
+	     if (sinp->sin_family == AF_UNSPEC) {
+		 errlog("handleRDP(): address unknown", 0);
+		 return -1;
+	     }
+
+	     node = lookupIPTable(sinp->sin_addr);
+	     snprintf(errtxt, sizeof(errtxt),
+		      "handleRDP(): CONNREFUSED from node %d (%s) port %d",
+		      node, inet_ntoa(sinp->sin_addr), ntohs(sinp->sin_port));
+	     errlog(errtxt, 0);
+
+	     closeConnectionRDP(node);
+
+	     return 0;
+
+	} else {
+#endif
+	    snprintf(errtxt, sizeof(errtxt),
+		     "handleRDP(): recvfrom(MSG_PEEK) returns -1, errno=%d %s",
+		     errno, strerror(errno));
+	    errlog(errtxt, 0);
+
+	    return -1;
+#if defined(__linux__)
 	}
 #endif
-	/* errno = EBADMSG; */
-	return -1;
     }
     fromnode = lookupIPTable(sin.sin_addr);     /* lookup node */
     if (msg.header.type != RDP_DATA) {
@@ -1158,7 +1220,7 @@ int handleRDP(int fd)
 	if (MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
 		       (struct sockaddr *) &sin, &slen)<0) {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "Rselect: recvfrom(0) returns -1, errno=%d: %s",
+		     "handleRDP(): recvfrom(0) returns -1, errno=%d: %s",
 		     errno, strerror(errno));
 	    errexit(errtxt, errno);
 	}
@@ -1175,7 +1237,7 @@ int handleRDP(int fd)
 		   (struct sockaddr *)&sin, &slen);
 
 	snprintf(errtxt, sizeof(errtxt),
-		 "Check DATA from %d (seq=%d, ack=%d)", fromnode,
+		 "handleRDP(): Check DATA from %d (seq=%d, ack=%d)", fromnode,
 		 msg.header.seqno, msg.header.ackno);
 	errlog(errtxt, 4);
 
