@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidforwarder.c,v 1.6 2003/03/11 18:13:26 eicker Exp $
+ * $Id: psidforwarder.c,v 1.7 2003/03/19 17:14:07 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.6 2003/03/11 18:13:26 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.7 2003/03/19 17:14:07 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -19,13 +19,14 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.6 2003/
 #include <errno.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/socket.h>
 #include <sys/resource.h>
 #include <sys/wait.h>
 #include <signal.h>
 
 #include "psidutil.h"
 #include "pscommon.h"
-#include "psprotocol.h"
+#include "psdaemonprotocol.h"
 #include "pslog.h"
 
 #include "psidforwarder.h"
@@ -145,7 +146,7 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 	break;
     default:
 	snprintf(txt, sizeof(txt), "%s(): Unknown message type %s.\n",
-		 __func__, PSP_printMsg(msg->type));
+		 __func__, PSDaemonP_printMsg(msg->type));
 	PSID_errlog(txt, 0);
 
 	ret = 0;
@@ -205,8 +206,8 @@ static int sendDaemonMsg(DDErrorMsg_t *msg)
 
     if (verbose) {
         snprintf(txt, sizeof(txt), "%s() type %s (len=%d) to %s\n",
-                 __func__, PSP_printMsg(msg->header.type), msg->header.len,
-		 PSC_printTID(msg->header.dest));
+                 __func__, PSDaemonP_printMsg(msg->header.type),
+		 msg->header.len, PSC_printTID(msg->header.dest));
         printMsg(STDERR, txt);
     }
 
