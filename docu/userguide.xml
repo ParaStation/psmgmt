@@ -26,7 +26,7 @@
 <book id="userguide">
   <title><inlinemediaobject>
       <imageobject>
-	<imagedata scale="85" fileref="../images/parastation.png"/>
+	<imagedata scale="25" fileref="../images/ParaStation.png"/>
       </imageobject>
     </inlinemediaobject>  User's Guide</title>
   <titleabbrev>&ps;  User's Guide</titleabbrev>
@@ -34,7 +34,8 @@
   <bookinfo>
     &infoblurb;
 
-    <releaseinfo>Release 0.9</releaseinfo>
+    <releaseinfo>Release 0.9.1</releaseinfo>
+    <pubdate>November 2002</pubdate>
 
     <revhistory>
 <!--       <revision> -->
@@ -42,6 +43,11 @@
 <!-- 	<date>16 Oct 2002</date> -->
 <!-- 	<revremark>First official release</revremark> -->
 <!--       </revision> -->
+      <revision>
+	<revnumber>0.9.1</revnumber>
+	<date>28 Nov 2002</date>
+	<revremark>New Titlepage. Minor changes.</revremark>
+      </revision>
       <revision>
 	<revnumber>0.9</revnumber>
 	<date>27 Nov 2002</date>
