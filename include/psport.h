@@ -1,7 +1,7 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.2 2001/05/08 16:12:10 hauke Exp $
+ * $Id: psport.h,v 1.3 2001/05/10 12:06:34 moschny Exp $
  *
  * @author
  * Jens Hauke <hauke@par-tec.com>,
@@ -14,7 +14,14 @@
 
 #include "pshal.h"
 
+/**
+ * Handle to identify an open port.
+ */
 typedef struct PSP_PortH * PSP_PortH_t;
+
+/**
+ * Handle for a send or receive request. See PSP_ISend().
+ */
 typedef struct PSP_RequestH * PSP_RequestH_t;
 
 /**
@@ -39,7 +46,6 @@ typedef enum {
  * trying to send or receive something, whereas the latter stands for
  * the more abstract operation itself. The request is always
  * completed, but the operation may fail.
- * 
  */
 typedef enum {
   PSP_NOT_COMPLETE = 0,      /**< request is pending */
@@ -49,52 +55,62 @@ typedef enum {
 				receive operation was canceled) */
 } PSP_Status_t;
 
-
-
-//  typedef struct PSP_MessageID_T{
-//      UINT16	MessageNo;
-//  }PSP_MessageID_t;
+/**
+ * All fragments of one message carry the same MessageID. Normally the
+ * user need not care about message id's, because fragments are
+ * assembled by the library.
+ */
 typedef UINT16 PSP_MessageID_t;
 
+/**
+ * Receive header.
+ */
+typedef struct PSP_RecvHeader_T {
+  PSHALRecvHeader_t     HALHeader;
+  PSP_MessageID_t       MessageID;
+  UINT32                FragOffset;
+  UINT32                MessageSize;
+  char                  xheader[0];  /**< from here on, the extra
+					header is placed */
+} PSP_RecvHeader_t;
 
-typedef struct PSP_RecvHeader_T{
-    PSHALRecvHeader_t	HALHeader;
-    PSP_MessageID_t	MessageID;
-    UINT32		FragOffset;
-    UINT32		MessageSize;
-    char		xheader[0];
-}PSP_RecvHeader_t;
+/**
+ * Send header.
+ */
+typedef struct PSP_SendHeader_T {
+  PSHALSendHeader_t     HALHeader;
+  PSP_MessageID_t       MessageID;   /* leave MessageID direct after
+					HALHeader !! */
+  UINT32                FragOffset;
+  UINT32                MessageSize;
+  char                  xheader[0];  /**< from here on, user can put
+					his extra header data */
+} PSP_SendHeader_t;
 
-typedef struct PSP_SendHeader_T{
-    PSHALSendHeader_t	HALHeader;
-    PSP_MessageID_t	MessageID; // leave MessageID direct after HALHeader !!
-    UINT32		FragOffset;
-    UINT32		MessageSize;
-    char		xheader[0];
-}PSP_SendHeader_t;
+/**
+ * General header to be used for send or receive requests.
+ */
+typedef struct PSP_Header_T {
+  int                   state;
+  unsigned              xheaderlen;  /**< len of the extra header,
+					read-only. */
+  unsigned              datalen;     /**< len of message data,
+					read-only. */
+  union {
+    PSP_RecvHeader_t	recv_header;
+    PSP_SendHeader_t	send_header;
+  } header;
+} PSP_Header_t;
 
+/**
+ * Type of the callback to be passed to PSP_IReceive().
+ */
+typedef int (PSP_RecvCallBack_t)(PSP_RecvHeader_t* header, unsigned xheaderlen,void *param);
 
-typedef int (*PSP_RecvCallBack_t)(PSP_RecvHeader_t* header, unsigned xheaderlen,void *param);
-
-typedef struct PSP_Header_T{
-    int		state;
-
-    unsigned	xheaderlen; /* len of the xheader */
-    unsigned	datalen;
-
-    union {
-	PSP_RecvHeader_t	recv_header;
-	PSP_SendHeader_t	send_header;
-    }header;
-    
-}PSP_Header_t;
-
-
-
-extern unsigned PSP_GenReqCount;     /* count receives without recv request */
-extern unsigned PSP_GenReqUsedCount; /* count use of generated requests */
-
-
+/** Number of receives without recv request */
+extern unsigned PSP_GenReqCount;
+/** Number of uses of generated requests */
+extern unsigned PSP_GenReqUsedCount;
 
 /* ----------------------------------------------------------------------
  * PSP_Init()
@@ -177,38 +193,25 @@ int PSP_GetPortNo(PSP_PortH_t porth);
  */
 PSP_Err_t PSP_ClosePort(PSP_PortH_t porth);
 
-
-
 /* ----------------------------------------------------------------------
- * PSP_RecvFrom()
+ * PSP_RecvFrom(), PSP_RecvAny()
  * ----------------------------------------------------------------------
  */
+
 /**
- * @brief call-back function for PSP_IReceive()
+ * Already existing call-back functions for PSP_IReceive().
  *
  */
-int PSP_RecvAny(PSP_RecvHeader_t* header, unsigned xheaderlen,void *param);
-
+PSP_RecvCallBack_t PSP_RecvAny;  /**< Receive from any sender */
+PSP_RecvCallBack_t PSP_RecvFrom; /**< Receive from a certain sender */
 
 /**
- *  Parameter for PSP_RecvFrom()
+ *  Parameter for PSP_RecvFrom().
  */
 typedef struct PSP_RecvFrom_Param_T{
-    INT16	srcnode;
-    INT16	srcport;
-}PSP_RecvFrom_Param_t;
-
-/* ----------------------------------------------------------------------
- * PSP_RecvFrom()
- * ----------------------------------------------------------------------
- */
-/**
- * @brief call-back function for PSP_IReceive() 
- *
- */
-int PSP_RecvFrom(PSP_RecvHeader_t* header, unsigned xheaderlen,void *param);
-
-    
+  INT16 srcnode;
+  INT16 srcport;
+} PSP_RecvFrom_Param_t;
 
 /* ----------------------------------------------------------------------
  * PSP_IReceive()
@@ -243,15 +246,15 @@ int PSP_RecvFrom(PSP_RecvHeader_t* header, unsigned xheaderlen,void *param);
  * @param header address of buffer for header data
  * @param xheaderlen length of message extra header buffer, in bytes
  * @param cb call-back function that will be used to determine whether
- * a certain message is to be received by this receive-request.
+ * a certain message is to be received by this receive-request
  * @param cp_param this pointer is passed to the call-back function
  * @return Returns a handle for the request or NULL if there is an
  * error. The handle can be passed to PSP_Test() and PSP_Wait().
  */
 PSP_RequestH_t PSP_IReceive(PSP_PortH_t porth,
-			   void* buf, unsigned buflen,
-			   PSP_Header_t* header, unsigned xheaderlen,
-			   PSP_RecvCallBack_t cb, void* cb_param);
+			    void* buf, unsigned buflen,
+			    PSP_Header_t* header, unsigned xheaderlen,
+			    PSP_RecvCallBack_t* cb, void* cb_param);
 
 /* ----------------------------------------------------------------------
  * PSP_ISend()
@@ -365,5 +368,3 @@ PSP_Status_t PSP_Wait(PSP_PortH_t porth, PSP_RequestH_t request);
 PSP_Status_t PSP_Cancel(PSP_PortH_t porth, PSP_RequestH_t request);
 
 #endif /* _PSPORT_H_ */
-
-
