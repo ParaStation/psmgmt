@@ -5,12 +5,12 @@
 #include <math.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <stdint.h>
 
 #include <popt.h>
 
 /* MCP Key: */
 #include <netinet/in.h>
-#include "ps_types.h"
 #include "license_priv.h"
 
 /* Daemon Hash */
@@ -25,6 +25,7 @@
 
 #include "pslic.c"
 #include "psstrings.c"
+#include "env.c"
 
 int arg_verbose = 0;
 int arg_createhash = 0;
