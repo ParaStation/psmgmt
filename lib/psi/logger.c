@@ -2,6 +2,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <string.h>
 #include <unistd.h>
@@ -50,7 +51,7 @@ LOGGERstdconnect(unsigned int node, int port, int MyOut, PStask_t* task)
     struct sockaddr_in sa;	/* socket address */ 
     struct LOGGERclient_t mystruct;
 
-    FILE *tmpout;
+    int delay;
 
     if((sock = socket(PF_INET,SOCK_STREAM,0))<0){
 	perror("PSPlogger: can't create socket:");
@@ -60,6 +61,9 @@ LOGGERstdconnect(unsigned int node, int port, int MyOut, PStask_t* task)
 #endif
 	return(-1);
     }
+
+    delay = 1;
+    setsockopt(sock, SOL_TCP, TCP_NODELAY, (void *) &delay, sizeof(delay));
 
     bzero((char *)&sa, sizeof(sa)); 
     sa.sin_family = PF_INET; 
@@ -363,7 +367,7 @@ LOGGERnewrequest(int LOGGERlisten, int verbose)
 {
     struct sockaddr_in sa; /* socket address */ 
     int salen;
-    int sock;
+    int sock, reuse;
 
 #ifdef DEBUG
     if(0){
@@ -374,6 +378,7 @@ LOGGERnewrequest(int LOGGERlisten, int verbose)
 
     salen = sizeof(sa);
     sock = accept(LOGGERlisten, &sa,&salen);
+
     if(verbose){
 	int cli_port;
 	char *cli_name;
@@ -381,6 +386,10 @@ LOGGERnewrequest(int LOGGERlisten, int verbose)
         cli_port = ntohs(sa.sin_port);
 	printf("PSPlogger: new connection from %s (%d)\n", cli_name, cli_port);
     }
+
+    reuse = 1;
+    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+
     if(read(sock,&LOGGERclients[sock],sizeof(struct LOGGERclient_t))>0){
 #ifdef DEBUG
 	sprintf(PSI_txt,"PSPlogger: %ld is logging his %s\n",
@@ -514,10 +523,9 @@ LOGGERloop(int LOGGERlisten,int LOGGERparent)
 	bcopy((char *)&LOGGERmyfds, (char *)&afds, sizeof(afds)); 
 	atv = mytv;
 	if(select(FD_SETSIZE,&afds,NULL,NULL,&atv)<0){
-	    sprintf(PSI_txt,"PSPlogger:error on select(%d)\n",errno);
+	    sprintf(PSI_txt,"PSPlogger:error on select(%d): %s\n",errno,
+		    sys_errlist[errno]);
 	    PSI_logerror(PSI_txt);
-	    if(verbose)
-		printf("PSPlogger:error on select(%d)\n",errno);
 	    LOGGER_CheckFileTable(&LOGGERmyfds);
 	    continue;
 	}
