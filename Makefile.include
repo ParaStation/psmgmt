@@ -19,7 +19,11 @@ KERNEL_DIR := /usr/src/linux
   else
 KERNEL_DIR := $(KDIR)
 #OSVERSION := $(shell cat $(KDIR)/.kernelrelease)$(OSSUF)
-OSVERSION := $(shell cat $(KDIR)/include/linux/version.h|grep UTS_RELEASE|cut -f 3 -d" ")$(OSSUF)
+    ifeq ($(OSVER),)
+OSVERSION := $(shell cat $(KDIR)/include/linux/version.h|grep UTS_RELEASE|cut -f 3 -d" "|head -1)$(OSSUF)
+    else
+OSVERSION := $(OSVER)$(OSSUF)
+    endif
   endif
 else
 OSVERSION := $(shell uname -r)
