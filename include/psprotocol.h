@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.23 2003/10/31 13:18:34 eicker Exp $
+ * $Id: psprotocol.h,v 1.24 2003/11/26 15:05:57 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation client-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.23 2003/10/31 13:18:34 eicker Exp $
+ * $Id: psprotocol.h,v 1.24 2003/11/26 15:05:57 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -34,7 +34,7 @@ extern "C" {
 #endif
 
 /** Unique version number of the high-level protocol */
-#define PSprotocolVersion 328
+#define PSprotocolVersion 329
 
 /** The location of the UNIX socket used to contact the daemon. */
 #define PSmasterSocketName "/var/run/parastation.sock"
@@ -58,7 +58,7 @@ typedef enum {
     PSP_CONN_ERR_LICEND,          /**< Daemon's license is expired */
 } PSP_ConnectError_t;
 
-/* We will keep this message types for compatibility with older executables */
+/* We will keep this message type for compatibility with older executables */
 // #define PSP_CD_OLDVERSION          0x0004
 
 /** Messages used for setting and getting option values */
@@ -71,8 +71,8 @@ typedef enum {
  */
 typedef enum {
     PSP_OP_HWSTATUS = 0x0001,     /**< Hardware status */
-    PSP_OP_CPUS,                  /**< Number of CPUs */
-    PSP_OP_PROCLIMIT,             /**< Maximum number of processes */
+    /* PSP_OP_CPUS,*/ /* unused *//**< Number of CPUs */
+    PSP_OP_PROCLIMIT = 0x0003,    /**< Maximum number of processes */
     PSP_OP_UIDLIMIT,              /**< uid the node is restricted to */
     PSP_OP_PSIDDEBUG,             /**< psid's debug level */
     PSP_OP_PSIDSELECTTIME,        /**< Time (sec) in psid's select() */
@@ -107,13 +107,13 @@ typedef enum {
 
     PSP_INFO_HOST,                /**< ParaStation ID from IP */
     PSP_INFO_NODE,                /**< IP from ParaStation ID */
-    PSP_INFO_NODELIST,            /**< Up to date nodelist */
-    PSP_INFO_PARTITION,           /**< Nodelist according certain limits */
+    PSP_INFO_NODELIST,            /**< Up to date nodelist @deprecated */
+    PSP_INFO_PARTITION,           /**< Nodelist according limits @deprecated */
 
-    PSP_INFO_TASK,                /**< info about one tasks */
-    PSP_INFO_TASKEND,             /**< end of task info replies */
+    PSP_INFO_LIST_TASKS,          /**< info about tasks @deprecated */
+    PSP_INFO_LIST_END = 0x0009,   /**< end of list info replies */
 
-    PSP_INFO_HOSTSTATUS,          /**< Complete status of all cluster nodes */
+    PSP_INFO_LIST_HOSTSTATUS,     /**< Complete status of all cluster nodes */
     PSP_INFO_RDPSTATUS,           /**< Status of the RDP */
     PSP_INFO_MCASTSTATUS,         /**< Status of the MCast */
 
@@ -126,6 +126,19 @@ typedef enum {
 
     PSP_INFO_RANKID,              /**< ParaStation ID from rank */
     PSP_INFO_TASKSIZE,            /**< Actual task's number of processes */
+    PSP_INFO_TASKRANK,            /**< Local processes rank within task */
+
+    PSP_INFO_PARENTTID,           /**< Parent's task ID */
+    PSP_INFO_LOGGERTID,           /**< Logger's task ID */
+
+    PSP_INFO_LIST_VIRTCPUS,       /**< List of virtual CPU numbers */
+    PSP_INFO_LIST_PHYSCPUS,       /**< List of physical CPU numbers */
+    PSP_INFO_LIST_HWSTATUS,       /**< List of hardware stati */
+    PSP_INFO_LIST_LOAD,           /**< List of load average values */
+    PSP_INFO_LIST_ALLJOBS,        /**< List of job numbers (all jobs) */
+    PSP_INFO_LIST_NORMJOBS,       /**< List of job numbers (normal jobs) */
+    PSP_INFO_LIST_ALLTASKS,       /**< List of tasks (all tasks) */
+    PSP_INFO_LIST_NORMTASKS,      /**< List of tasks (normal tasks tasks) */
 } PSP_Info_t;
 
 /** Messages concerning spawning of tasks. */
@@ -272,7 +285,7 @@ typedef struct {
 } DDSignalMsg_t;
 
 /**
- * Types describing the content of PSP_INFO_TASKLIST responses.
+ * Types describing the content of PSP_INFO_LIST_TASKS responses.
  */
 typedef struct {
     PStask_ID_t tid;       /**< tasks unique identifier */
@@ -282,27 +295,13 @@ typedef struct {
     PStask_group_t group;  /**< task group of the task */
     int32_t rank;          /**< rank of the task within process group */
     int32_t connected;     /**< flag if task has connected the daemon */
-} Taskinfo_t;
+} PSP_taskInfo_t;
 
-
-/**
- * Type describing the content of PSP_INFO_NODELIST and
- * PSP_INFO_PARTITION responses.
- */
-typedef struct {
-    PSnodes_ID_t id;       /**< ID of this node */
-    char up;               /**< Flag if node is up */
-    int16_t numCPU;        /**< Number of CPUs in this node */
-    unsigned int hwStatus; /**< HW available on this node */
-    float load[3];         /**< load on this node */
-    int16_t totalJobs;     /**< number of jobs */
-    int16_t normalJobs;    /**< number of jobs without logger, admin, etc. */
-    int16_t maxJobs;       /**< maximum number of "normal" jobs */
-} NodelistEntry_t;
 
 /**
  * Type describing the content of PSP_INFO_NODELIST and PSP_INFO_PARTITION
- * responses for clients prior to PSprotocolVersion 328.
+ * responses for clients prior to PSprotocolVersion 328. Later client
+ * should not send requests of this type.
  */
 typedef struct {
     int id;                /**< ID of this node */
@@ -313,7 +312,7 @@ typedef struct {
     short totalJobs;       /**< number of jobs */
     short normalJobs;      /**< number of jobs without logger, admin, etc.) */
     short maxJobs;         /**< maximum number of "normal" jobs */
-} NodelistEntryOld_t;
+} NodelistEntry_t;
 
 /**
  * @brief Generate a string describing the message type.
@@ -329,6 +328,21 @@ typedef struct {
  * containing @a msgtype if the type is unknown.
  */
 char *PSP_printMsg(int msgtype);
+
+/**
+ * @brief Generate a string describing the info type.
+ *
+ * Generate a character string describing the info type @a
+ * infotype. The info type has to contain one of the PSP_INFO_ info
+ * type constants.
+ *
+ * @param infotype Info type the name should be generated for.
+ *
+ * @return A pointer to the '\0' terminated character string
+ * containing the name of the info type or a special message
+ * containing @a infotype if the type is unknown.
+ */
+char *PSP_printInfo(PSP_Info_t infotype);
 
 
 #ifdef __cplusplus
