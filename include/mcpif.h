@@ -320,7 +320,9 @@ typedef struct MCP_Counter_T{
     UINT32	CNACK_HostRecv;	// CNACK because no HostRecvBufs
     UINT32	CNACK_MCPRecv;	// CNACK because no MCPRecvBufs
     UINT32	CNACK_Resend;	// Resend counter for CNACKs
-    UINT32	FatalErr;       // Count CDEAD s 
+    UINT32	ConnReset;      // Count Connection Resets 
+    UINT32	DeadLink;       // Count Timeouts from dead links
+    UINT32	UnrecSeqErr;    // Count Unrecoverble Sequence Error 
 } MCP_Counter_t;
 
 
