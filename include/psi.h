@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.h,v 1.9 2002/02/11 12:32:04 eicker Exp $
+ * $Id: psi.h,v 1.10 2002/02/18 19:53:14 eicker Exp $
  *
  */
 /**
  * @file
  * psi: User-functions for interaction with the ParaStation system.
  *
- * $Id: psi.h,v 1.9 2002/02/11 12:32:04 eicker Exp $
+ * $Id: psi.h,v 1.10 2002/02/18 19:53:14 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -146,6 +146,10 @@ int PSI_notifydead(long tid, int sig);
  *         -1 on error
  */
 int PSI_release(long tid);
+
+int PSI_send_finish(long parenttid);
+
+int PSI_recv_finish(int num);
 
 /*----------------------------------------------------------------------*/
 /* 

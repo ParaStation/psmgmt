@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.21 2002/02/11 12:32:04 eicker Exp $
+ * $Id: psi.c,v 1.22 2002/02/18 19:53:14 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
@@ -497,12 +497,18 @@ int PSI_notifydead(long tid, int sig)
     msg.signal = sig;
 
     if (ClientMsgSend(&msg)<0) {
+	fprintf(stderr, "%s: Could not send messge.\n", __func__);
 	return -1;
     }
 
     if (ClientMsgReceive(&msg)<0) {
+	fprintf(stderr, "%s: Could not receive messge.\n", __func__);
 	return -1;
-    } else if(msg.signal!=0) {
+    }
+
+    if (msg.signal!=0) {
+/*  	fprintf(stderr, "%s: Signal = %d (ESRCH=%d).\n", __func__, */
+/*  		msg.signal, ESRCH); */
 	return -1;
     }
 
@@ -544,6 +550,50 @@ int PSI_release(long tid)
 
     return 0;
 }
+
+int PSI_send_finish(long parenttid)
+{
+    DDMsg_t msg;
+
+    msg.type = PSP_DD_SPAWNFINISH;
+    msg.sender = PSI_mytid;
+    msg.dest = parenttid;
+    msg.len = sizeof(msg);
+
+    if (ClientMsgSend(&msg)<0) {
+	fprintf(stderr, "%s: Could not send messge.\n", __func__);
+	return -1;
+    }
+
+    return 0;
+}
+
+int PSI_recv_finish(int outstanding_answers)
+{
+    DDMsg_t msg;
+    int error = 0;
+
+    while (outstanding_answers>0) {
+	if (ClientMsgReceive(&msg)<0) {
+	    perror("PSI_recv_finish: receiving answer from my daemon");
+	    error = 1;
+	    break;
+	}
+	switch (msg.type) {
+	case PSP_DD_SPAWNFINISH:
+	    break;
+	default:
+	    sprintf(PSI_txt,"response == UNKNOWN answer\n");
+	    PSI_logerror(PSI_txt);
+	    error = 1;
+	    break;
+	}
+	outstanding_answers--;
+    }
+
+    return error;
+}
+
 
 /*----------------------------------------------------------------------*/
 /*
