@@ -8,7 +8,7 @@
 #**
 #* PSM_INSTALL: ParaStation De-/Installationscript
 #*
-#* $Id: PSM_INSTALL,v 1.6 2002/07/10 16:19:05 hauke Exp $
+#* $Id: PSM_INSTALL,v 1.7 2002/07/10 16:41:04 hauke Exp $
 #*
 #* @author  
 #*         Eduard Syrchyn <syrchyn@par-tec.de>
@@ -226,6 +226,7 @@ cleanup_inetd() {
     unpatch_conf "$INETD_CNF" "$INETD_PSIDMASK" "$INETD_PSIDLINE"
     unpatch_conf "$INETD_CNF" "$INETD_PSLDMASK" "$INETD_PSLDLINE"
     unbackup $INETD_CNF $INETD_BKP
+    reload_inetd
 }
 
 cleanup_xinetd() {
