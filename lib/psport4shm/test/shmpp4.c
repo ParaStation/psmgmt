@@ -20,7 +20,7 @@
 #include <unistd.h>
 
 
-//#define sched_yield() do { ;} while(0)
+#define sched_yield() do { ;} while(0)
 
 #define SCALL(func) do {				\
     if ((func) < 0) {					\
@@ -118,7 +118,7 @@ int main(int argc, char **argv)
 
 /*
  * Local Variables:
- *  compile-command: "gcc shmpp4.c -g -Wall -W -Wno-unused -o shmpp4 && shmpp4"
+ *  compile-command: "gcc shmpp4.c -g -Wall -W -Wno-unused -o shmpp4 -O3 && shmpp4"
  * End:
  *
  */
