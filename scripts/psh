@@ -1,0 +1,337 @@
+#!/bin/bash
+#
+#       Copyright (c) 2003 ParTec AG Karlsruhe
+#       All rights reserved.
+# @author
+#       Jens Hauke <hauke@par-tec.de>
+#
+# (Friday noon vision of a parallel shell :-)
+#
+# The configfile could look like this:
+#${HOME}/.psh.d/default:
+#-n carla1
+#-n carla2
+#-n carla3
+#-n carla4
+#-max 16
+
+D_CONFIG_D="${HOME}/.psh.d"
+D_CONFIG="${D_CONFIG_D}/default"
+D_RCMD="ssh -x"
+D_MAXRCMD=32
+D_DIFFCMD="diff -q"
+TMPTEMPLATE="/tmp/pshout.XXXXXX"
+
+############################
+# Use psmstart if available
+
+PARASTATIONSTART="/opt/parastation/bin/psmstart"
+if [ -x "${PARASTATIONSTART}" ] ; then
+    D_RCMD="psstart";
+fi
+
+function psstart()
+{
+    # psmstart is not compatible to rsh or ssh :-(
+    export PSI_HOSTS=$1
+    shift
+    # sleep 1: hack around a bug
+    "${PARASTATIONSTART}" "$* ; sleep 1"
+}
+###################
+
+function help
+{
+cat <<EOF
+Usage: psh [OPTION]... command
+
+Options:
+   -g|-group {group}      : Use group defined in $D_CONFIG_D 
+                            (default "default")
+   -c|-configfile {cfile} : Set configuration file 
+                            (default "$D_CONFIG").
+   -n|-node {nodename}    : Append one {nodename} to nodelist.
+   -rcmd {rcmd}           : set remote shell (default "$D_RCMD").
+   -max {nmax}            : dont start more than {nmax} remote shells
+                            at the same time (default $D_MAXRCMD).
+   -diff {cmd}            : Program which compares the outputs 
+                            (default "$D_DIFFCMD")
+   -v|-verbose            : Be verbose
+   -h|-help               : help
+EOF
+}
+
+
+function parse()
+{
+#    echo Parse "$*"
+    case "$1" in
+	-g|-group)
+	    CONFIG="${CONFIG_D}/$2"
+	    nopts=2
+	    ;;
+	-c|-configfile) 
+	    CONFIG="$2"
+	    nopts=2
+	    ;;
+	-n|-node)
+	    NODES=(${NODES[*]} "$2")
+	    nopts=2
+	    ;;
+	-rcmd)
+	    RCMD=${RCMD-"$2"}
+	    nopts=2
+	    ;;
+	-max)
+	    MAXRCMD=${MAXRCMD-"$2"}
+	    nopts=2
+	    ;;
+	-diff)
+	    DIFFCMD=${DIFFCMD-"$2"}
+	    nopts=2
+	    ;;
+#	-x)
+#            nodes=$NODES;
+#	    NODES=""
+#	    nopts=2
+#	    ;;
+	-v|-verbose)
+	    VERBOSE=1
+	    nopts=1
+	    ;;
+	-h|-help)
+	    help
+	    exit 1
+	    ;;
+	-*)
+	    echo "$optsource : unknown option $1."
+	    help
+	    exit 1;
+	    ;;
+	*)
+	    nopts=0;
+    esac
+}
+
+function cleanup
+{
+#    echo Cleanup called
+    if [ x"$TMPFILES" != x ]; then
+	rm $TMPFILES
+    fi
+}
+
+#
+# merge hostnames (e.g. host001 host002 to host[001-002])
+#
+function namemerge()
+{
+    echo $*|awk '
+BEGIN{ RS=" " }
+function nprint(key1,key2)
+{
+   result="";
+   elements=0;
+   delete f;
+   for (j = 0; j < hostmcnt[key1,key2]; j++) {
+       f[hostmno[key1,key2,j] + 0]= hostmno[key1,key2,j];
+   }
+
+   while (1) {
+       min = 999999;
+       for ( j in f ) {
+           if (j + 0 < min) min = j + 0; # force min to be nummeric!
+       }
+       if ( min == 999999 ) break;
+       j=min;
+       from=f[j];
+       until=f[j];
+       delete f[j];
+       while ((j + 1) in f) {
+           j++;
+           until=f[j];
+           delete f[j];
+       }
+
+       if (elements++) result=result",";
+       if (from + 0 == until + 0) {
+           result=result from;
+       } else if (from + 1 == until + 0) {
+           result=result from "," until;
+           elements++;
+       } else {
+           result=result from "-" until;
+           elements++;
+       }
+   } 
+   if (elements == 1) {
+       return result;
+   } else {
+       return "[" result "]";
+   }
+}
+
+
+{
+   hostname=$1;
+
+   match(hostname, "([^0-9]*)([0-9]*)(.*)", s);
+#   print $1," 1:"s[0]" 2:"s[1]" 3:"s[2]" 4:"s[3];
+   # ToDo search rightmost match of digit, not leftmost
+   bname=s[1] s[2]+0 s[3]
+#   print "Bname: "bname
+   if (!bnames[bname]) {
+       bnames[bname]=1;
+       hostm1[s[1],s[3]] = s[1];
+       hostm3[s[1],s[3]] = s[3];
+       cnt=hostmcnt[s[1],s[3]] * 1;
+       hostmno[s[1],s[3],cnt] = s[2];
+       hostmcnt[s[1],s[3]]++;
+   } else {
+       doubles=doubles", "hostname;
+   }
+}
+
+END{
+   _first=1;
+   for (i in hostm1) {
+       if (_first == 0) printf ", ";
+       _first=0;
+       printf "%s", hostm1[i] nprint(hostm1[i], hostm3[i]) hostm3[i];
+   }
+   print doubles;
+}
+'
+}
+
+#
+# Just fetch SIGINT
+#
+function killcurrent
+{
+    echo kill $WAITFOR
+}
+
+#
+# Wait until the next process ends and collect the exit code.
+#
+function ecollect
+{
+    ii=${#EXITCODES[*]}
+    WAITFOR=${PIDS[$ii]}
+    if [ "$VERBOSE" = 1 ];then
+	echo "Wait for ${NODES[${#EXITCODES[*]}]} (pid ${PIDS[$ii]})"
+    fi
+    wait ${PIDS[$ii]}
+    ec="$?"
+    if [ "$ec" != "0" ]; then
+	echo "Exit $ec" >> ${OUTPUTS[$ii]}
+    fi
+    EXITCODES=(${EXITCODES[*]} "$ec")
+}
+
+trap cleanup EXIT
+
+CONFIG="$D_CONFIG"
+CONFIG_D="$D_CONFIG_D"
+
+#
+# Parse commandline
+#
+optsource="Commandline"
+nopts=1
+while [ $nopts != 0 ] ; do
+    parse "$@"
+    shift $nopts
+done
+
+#
+# Read configuration
+#
+if [ -f "${CONFIG}" ]; then
+    line=1
+    while read command opts; do
+	line=$(( $line + 1 ))
+	optsource="$CONFIG:$line"
+	parse $command "$opts"
+    done < "${CONFIG}"
+fi
+
+COMMAND="$*"
+
+if [ x"$COMMAND" = x ];then
+    echo "Error: Missing command"
+    help
+    exit 1
+fi
+
+if [ "${#NODES[*]}" = 0 ];then
+    echo "Error: No nodes"
+    help
+    exit 1
+fi
+
+
+RCMD="${RCMD-$D_RCMD}"
+MAXRCMD="${MAXRCMD-$D_MAXRCMD}"
+DIFFCMD="${DIFFCMD-$D_DIFFCMD}"
+
+
+if [ "$VERBOSE" = 1 ];then
+cat <<EOF
+NODES   ${NODES[*]}
+NODESSHORT $(namemerge ${NODES[*]})
+RCMD    $RCMD
+COMMAND $COMMAND
+EOF
+fi
+
+trap killcurrent SIGINT
+
+
+#
+# Start remote jobs
+#
+for ((i = 0; i < ${#NODES[*]} ; i++)); do
+    host=${NODES[$i]}
+    OUTFILE=$(mktemp $TMPTEMPLATE)
+    OUTPUTS=(${OUTPUTS[*]} ${OUTFILE})
+    TMPFILES="$TMPFILES $OUTFILE"
+    $RCMD $host $COMMAND > $OUTFILE 2>&1 &
+    PIDS=(${PIDS[*]} $!)
+    if [ "$VERBOSE" = 1 ];then
+	echo "$RCMD $host $COMMAND"
+    fi
+    if [ $(($i + 1)) -ge "$MAXRCMD" ]; then
+	ecollect
+    fi
+done
+
+#
+# Wait for finish
+#
+for ((i = ${#EXITCODES[*]}; i < ${#NODES[*]} ; i++)); do
+    ecollect
+done
+
+#
+# Merge outputs
+#
+for ((i = 0; i < ${#NODES[*]} ; i++)); do
+    hosts=${NODES[$i]}
+    if [ "${DISPLAYED[$i]}" != "1" ]; then
+	# search for equal outputs
+	for ((ii = $i + 1; ii < ${#NODES[*]} ; ii++)); do
+	    if [ "${DISPLAYED[$ii]}" != "1" ]; then
+      #	    echo Compare ${OUTPUTS[$i]} ${OUTPUTS[$ii]}
+		if ${DIFFCMD} ${OUTPUTS[$i]} ${OUTPUTS[$ii]} > /dev/null; then
+		    hosts="$hosts ${NODES[$ii]}"
+		    DISPLAYED[$ii]="1";
+		fi
+	    fi
+	done
+	echo === $(namemerge $hosts)
+	cat ${OUTPUTS[$i]}
+    fi
+done
+
