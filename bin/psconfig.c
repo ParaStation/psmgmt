@@ -160,6 +160,7 @@ int main(int argc, char **argv)
 		  0) < 0){
         exit(1);
     }
+    pshal_default_mcp=NULL;
     PSHALStartUp(0);
 
     if (arg_lickey != 0) do_setlickey();
