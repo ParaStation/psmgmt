@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.94 2003/06/18 17:53:46 eicker Exp $
+ * $Id: psid.c,v 1.95 2003/06/20 13:54:42 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.94 2003/06/18 17:53:46 eicker Exp $ 
+ * $Id: psid.c,v 1.95 2003/06/20 13:54:42 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.94 2003/06/18 17:53:46 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.95 2003/06/20 13:54:42 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -78,7 +78,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.94 $";
+static char psid_cvsid[] = "$Revision: 1.95 $";
 
 static int PSID_mastersock;
 
@@ -454,6 +454,9 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	    closeConnection(task->fd);
 	}
 	task->fd = fd;
+
+	/* This is needed for gmspawner */
+	if (msg->group == TG_GMSPAWNER) task->group = msg->group;
     } else {
 	char tasktxt[128];
 	task = PStask_new();
@@ -925,12 +928,15 @@ void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	    /* dest is on my node */
 	    task = PStasklist_find(managedTasks, msg->header.dest);
 
-	    /* Don't do anything if task not found or not TG_SPAWNER */
-	    if (!task || task->group != TG_SPAWNER) return;
+	    /* Don't do anything if task not found or not TG_(GM)SPAWNER */
+	    if (!task) return;
+
+	    if (task->group != TG_SPAWNER && task->group != TG_GMSPAWNER )
+		return;
 
 	    /* Not for me, thus forward it. But first take a peek */
 	    if (WIFEXITED(msg->error) && !WIFSIGNALED(msg->error)) {
-		task->released = 1;
+		if (task->group == TG_SPAWNER) task->released = 1;
 	    }
 	    /* Don't send a DD message to a client */
 	    msg->header.type = PSP_CD_SPAWNFINISH;
@@ -979,7 +985,7 @@ void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	    PSID_kill(-PSC_getPID(task->tid), SIGKILL, task->uid);
 	}
 
-	/* Send a message to the parent (a TG_SPAWNER might wait for it) */
+	/* Send a message to the parent (a TG_(GM)SPAWNER might wait for it) */
 	msg->header.dest = task->ptid;
 	msg->header.sender = PSC_getMyTID();
 	msg_CHILDDEAD(msg);
@@ -2599,7 +2605,7 @@ void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.94 $";
+    char revision[] = "$Revision: 1.95 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
