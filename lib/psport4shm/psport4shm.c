@@ -7,7 +7,7 @@
 /**
  * name: Description
  *
- * $Id: psport4shm.c,v 1.6 2003/05/08 15:51:28 hauke Exp $
+ * $Id: psport4shm.c,v 1.7 2003/05/20 10:42:21 eicker Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -19,7 +19,7 @@
  */
 
 static char vcid[] __attribute__(( unused )) =
-"$Id: psport4shm.c,v 1.6 2003/05/08 15:51:28 hauke Exp $";
+"$Id: psport4shm.c,v 1.7 2003/05/20 10:42:21 eicker Exp $";
 
 #ifdef XREF
 #include <sys/uio.h>
@@ -1111,7 +1111,7 @@ int shm_initrecv(shm_info_t *shm)
     if (shmid == -1) goto err;
     
     buf = shmat(shmid, 0, 0 /*SHM_RDONLY*/);
-    if (((int)buf == -1) || !buf) goto err_shmat;
+    if (((long)buf == -1) || !buf) goto err_shmat;
 
     shmctl(shmid, IPC_RMID, NULL); /* remove shmid after usage */
 
@@ -1132,7 +1132,7 @@ int shm_initsend(shm_info_t *shm, int rem_shmid)
 {
     void *buf;
     buf = shmat(rem_shmid, 0, 0);
-    if (((int)buf == -1) || !buf) goto err_shmat;
+    if (((long)buf == -1) || !buf) goto err_shmat;
 
     shm->remote_id = rem_shmid;
     shm->remote_com = buf;
