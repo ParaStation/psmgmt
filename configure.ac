@@ -19,7 +19,7 @@ AC_SUBST([TRU64FILEADD])
 AC_SUBST([LIBCURSES])
 
 case $target_os in
-linux)
+linux|linux-gnu)
 	CFLAG_WALL="-W -Wall -Wno-unused"
 	CFLAG_G=-g
 	CFLAG_COMPAT=
