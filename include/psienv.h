@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psienv.h,v 1.5 2002/07/03 19:59:06 eicker Exp $
+ * $Id: psienv.h,v 1.6 2003/07/22 18:30:33 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with the ParaStation environment.
  *
- * $Id: psienv.h,v 1.5 2002/07/03 19:59:06 eicker Exp $
+ * $Id: psienv.h,v 1.6 2003/07/22 18:30:33 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -135,12 +135,19 @@ int numPSIEnv(void);
 /**
  * @brief Get a packed copy of the ParaStation Environment.
  *
- * Get a packed copy of the actual ParaStation Environment.
+ * Get a packed copy of the actual ParaStation Environment. This will
+ * contain all environment variables and its values.
  *
- * @todo More info.
+ * The packed is allocated by malloc() and might be free()ed part by
+ * part. As a first step an index of pointers to char with size
+ * numPSIEnv() is allocated, then all environment variables and their
+ * values are strdup()ed to this structure. Thus firstly each element
+ * of the index has to be free()ed before the index itself is
+ * free()ed.
  *
- * @return On success, the number of used bytes in buffer is returned, or -1
- * if an error occurred (i.e. the buffer is to small).
+ * @return A compressed form of the ParaStation environment is
+ * returned. If something went wrong within the creation of the
+ * compressed copy, NULL is returned.
  */
 char ** dumpPSIEnv(void);
 

@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.h,v 1.11 2003/06/11 18:00:35 eicker Exp $
+ * $Id: psispawn.h,v 1.12 2003/07/22 18:31:01 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for spawning of ParaStation tasks.
  *
- * $Id: psispawn.h,v 1.11 2003/06/11 18:00:35 eicker Exp $
+ * $Id: psispawn.h,v 1.12 2003/07/22 18:31:01 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -143,18 +143,35 @@ int PSI_spawnM(int count, short* dstnodes, char *workingdir,
 /**
  * @brief Check the presence of LSF-Parallel.
  *
- * Check for the presence of LSF-Parallel. And if present, modify
- * the environment variable PSI_HOSTS.
+ * Check for the presence of LSF-Parallel. If LSF-Parallel is present,
+ * modify the environment variable PSI_HOSTS.
  *
  * @return No return value.
  */
 void PSI_LSF(void);
 
-/*------------------------------------------------------------
- * @todo
- * PSI_RemoteArgs(int Argc,char **Argv,int &RArgc,char ***RArgv)
+/**
+ * @brief Prepend PSI_RARG_PRE_%d to the argument vector.
  *
- * Modify Args of remote tasks.
+ * Prepend the content of the PSI_RARG_PRE_%d environment variables to
+ * the argument vector @a Argv and store it to the remote argument
+ * vector @a RArgv.
+ *
+ * If none of the PSI_RARG_PRE_%d environment variables is set, @a
+ * Argv is not modified at all and simply stored to @a RArgv. The
+ * PSI_RARG_PRE_%d have to have number continuous numbers starting
+ * from 0. The first missing number will stop the execution of the
+ * variables.
+ *
+ * @param Argc The size of the original argument vector
+ *
+ * @param Argv The original argument vector.
+ *
+ * @param RArgc The size of the resulting remote argument vector.
+ *
+ * @param RArgv The resulting remote argument vector.
+ *
+ * @return No return value.
  */
 void PSI_RemoteArgs(int Argc,char **Argv,int *RArgc,char ***RArgv);
 

@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.h,v 1.5 2003/03/06 13:58:05 eicker Exp $
+ * $Id: pscommon.h,v 1.6 2003/07/22 18:29:58 eicker Exp $
  *
  */
 /**
  * @file
  * Functions used in user-programs and daemon.
  *
- * $Id: pscommon.h,v 1.5 2003/03/06 13:58:05 eicker Exp $
+ * $Id: pscommon.h,v 1.6 2003/07/22 18:29:58 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -146,12 +146,37 @@ void PSC_setDaemonFlag(int flag);
 long PSC_getMyTID(void);
 
 /**
- * @brief @todo
+ * @brief Get string describing the task ID.
+ *
+ * Get a string describing the task ID @a tid. The returned pointer
+ * leads to a static character array that contains the
+ * description. Sequent calls to @ref PSC_printTID() will change the
+ * content of this array. Therefor the result is not what you expect
+ * if more then one call of this function is made within a single
+ * argument-list of printf(3) and friends.
+ *
+ * @param tid The task ID to describe.
+ *
+ * @return A pointer to a static character array containing task ID's
+ * description. Do not try to free(2) this array.
  */
 char *PSC_printTID(long tid);
 
 /**
- * @brief @todo
+ * @brief Start a ParaStation daemon.
+ *
+ * Try to start the ParaStation daemon on the host with IP address @a
+ * hostaddr. The IP address has to be given in network byteorder.
+ *
+ * The (x)inetd(8) has to be configured appropriately and must run on
+ * the destination node.
+ *
+ * @param hostaddr The IP address of the node on which to start the
+ * daemon.
+ *
+ * @return On success, i.e. if the remote port could be connected, 1
+ * is returned. Or 0, if no (x)inetd(8) was listening on the remote
+ * port.
  */
 int PSC_startDaemon(unsigned int hostaddr);
 

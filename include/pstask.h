@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.h,v 1.15 2003/06/27 16:52:25 eicker Exp $
+ * $Id: pstask.h,v 1.16 2003/07/22 18:28:47 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with ParaStation tasks.
  *
- * $Id: pstask.h,v 1.15 2003/06/27 16:52:25 eicker Exp $
+ * $Id: pstask.h,v 1.16 2003/07/22 18:28:47 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -33,11 +33,7 @@ extern "C" {
 #endif
 #endif
 
-/** @todo Documentation */
-
-/**
- * Task Group constants
- */
+/** Task Group constants */
 typedef enum {
     TG_ANY,       /**< A normal task */
     TG_ADMIN,     /**< Taskgroup for psiadmin (and GUI client) */
@@ -61,14 +57,14 @@ typedef enum {
 char *PStask_printGrp(PStask_group_t taskgroup);
 
 
-/** Signal structure @todo */
+/** Signal structure */
 typedef struct PSsig_T{
     long tid;                 /**< unique task identifier */
     int signal;               /**< signal to send, or -1 for childsignal */
     struct PSsig_T *next;     /**< link to the next signal */
 } PStask_sig_t;
 
-/** Task structure @todo */
+/** Task structure */
 /* Members marked with C are (un)packed by PStask_encode()/PStask_decode() */
 typedef struct PStask_T{
     struct PStask_T *next;         /**< link to the next task */
@@ -79,8 +75,8 @@ typedef struct PStask_T{
     uid_t uid;               /*C*/ /**< user id */
     gid_t gid;               /*C*/ /**< group id */
     unsigned int aretty;     /*C*/ /**< flag stdin, stdout & stderr as tty */
-    struct termios termios;  /*C*/ /**< @todo */
-    struct winsize winsize;  /*C*/ /**< @todo */
+    struct termios termios;  /*C*/ /**< parameters of the controlling tty */
+    struct winsize winsize;  /*C*/ /**< window size of the controlling tty */
     PStask_group_t group;    /*C*/ /**< task group @see PStask_group_t */
     long loggertid;          /*C*/ /**< unique identifier of the logger */
     int rank;                /*C*/ /**< rank of task within task group */
@@ -190,19 +186,39 @@ PStask_t *PStask_clone(PStask_t *task);
 void PStask_snprintf(char *txt, size_t size, PStask_t *task);
 
 /**
- * @todo
- * PStask_encode
- * encodes the task structure into a string, so it can be sent
+ * @brief Encode a task structure.
+ *
+ * Encode the task structure @a task into the the buffer @a buffer of
+ * size @a size. This enables the task to be sent to a remote node
+ * where it can be decoded using the PStask_decode() function.
+ *
+ * @param buffer The buffer used to encode the task structure.
+ *
+ * @param size The size of the buffer.
+ *
+ * @param The task structure to encode.
+ *
+ * @return On success, the number of bytes written to the buffer are
+ * returned. If the return value is larger than @a size, the buffer is
+ * to small in order to encode the whole task.
+ *
+ * @see PStask_decode()
  */
 size_t PStask_encode(char *buffer, size_t size, PStask_t *task);
 
 /**
- * @todo
- * PStask_decode
- * decodes the task structure from a string, maybe it was sent
+ * @brief Decode a task structure.
  *
- * IN: buffer beginning with the data,
- * OUT: an initilized task structure
+ * Decode a task structure encoded by PStask_encode() and stored
+ * within @a buffer and write it to the task structure @a task is
+ * pointing to.
+ *
+ * @param buffer The buffer the encoded task strucure is stored in.
+ *
+ * @param task The task structure to write to.
+ *
+ * @return The number of chars within @a buffer used in order to
+ * decode the task structure.
  */
 int PStask_decode(char *buffer, PStask_t *task);
 

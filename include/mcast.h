@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.h,v 1.15 2002/08/26 09:03:36 eicker Exp $
+ * $Id: mcast.h,v 1.16 2003/07/22 18:29:10 eicker Exp $
  *
  */
 /**
  * \file
  * ParaStation MultiCast facility
  *
- * $Id: mcast.h,v 1.15 2002/08/26 09:03:36 eicker Exp $
+ * $Id: mcast.h,v 1.16 2003/07/22 18:29:10 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -216,13 +216,49 @@ int getDeadLimitMCast(void);
 void setDeadLimitMCast(int limit);
 
 /**
- * @brief Set jobs info.
- * @todo
+ * @brief Set job info.
+ *
+ * Set the information on running jobs on node @a node. If @a total is
+ * different from 0, the absolute number of jobs is increased by
+ * one. The same hold for @a normal and the number of normal jobs,
+ * i.e. jobs that are intended for computation and not for
+ * administrational tasks.
+ *
+ * If the number of jobs on the local node is modified, an extra MCast
+ * ping is triggered.
+ *
+ * @param node The ParaStation ID of the node which job numbers are
+ * modified.
+ *
+ * @param total Flag if total count of jobs has to be increased.
+ *
+ * @param normal Flag if count of normal jobs has to be increased.
  *
  * @return No return value
  */
 void incJobsMCast(int node, int total, int normal);
 
+/**
+ * @brief Set job info.
+ *
+ * Set the information on running jobs on node @a node. If @a total is
+ * different from 0, the absolute number of jobs is decreased by
+ * one. The same hold for @a normal and the number of normal jobs,
+ * i.e. jobs that are intended for computation and not for
+ * administrational tasks.
+ *
+ * If the number of jobs on the local node is modified, an extra MCast
+ * ping is triggered.
+ *
+ * @param node The ParaStation ID of the node which job numbers are
+ * modified.
+ *
+ * @param total Flag if total count of jobs has to be decreased.
+ *
+ * @param normal Flag if count of normal jobs has to be decreased.
+ *
+ * @return No return value
+ */
 void decJobsMCast(int node, int total, int normal);
 
 /**

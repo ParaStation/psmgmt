@@ -1,18 +1,20 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * timer.h
  *
- * Copyright (C) ParTec AG Karlsruhe
+ * Copyright (C) 2002-2003 ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: timer.h,v 1.9 2002/07/03 19:54:38 eicker Exp $
+ * $Id: timer.h,v 1.10 2003/07/22 18:27:55 eicker Exp $
  *
  */
 /**
  * @file
- * ParaStation Timer facility @todo More info on module.
+ * ParaStation Timer facility. This is a simple timer multiplexer for
+ * applications that need to use independent timers in a transparent
+ * way. Within ParaStation this is used by the MCast and RDP modules.
  *
- * $Id: timer.h,v 1.9 2002/07/03 19:54:38 eicker Exp $
+ * $Id: timer.h,v 1.10 2003/07/22 18:27:55 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
