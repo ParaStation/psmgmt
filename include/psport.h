@@ -1,7 +1,7 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.6 2001/05/23 07:55:50 hauke Exp $
+ * $Id: psport.h,v 1.7 2001/05/28 16:16:14 hauke Exp $
  *
  * @author
  * Jens Hauke <hauke@par-tec.com>,
@@ -69,44 +69,36 @@ typedef enum {
  */
 typedef UINT16 PSP_MessageID_t;
 
+
 /**
  * Receive header.
  */
 typedef struct PSP_RecvHeader_T {
-  PSHALRecvHeader_t     HALHeader;
-  PSP_MessageID_t       MessageID;
-  UINT32                FragOffset;
-  UINT32                MessageSize;
-  char                  xheader[0];  /**< from here on, the extra
+    PSHALRecvHeader_t	HALHeader;
+    PSP_MessageID_t	MessageID;
+    UINT32		FragOffset;
+    UINT32		MessageSize;
+    char		xheader[0];  /**< from here on, the extra
 					header is placed */
 } PSP_RecvHeader_t;
 
-/**
- * Send header.
- */
-typedef struct PSP_SendHeader_T {
-  PSHALSendHeader_t     HALHeader;
-  PSP_MessageID_t       MessageID;   /* leave MessageID direct after
-					HALHeader !! */
-  UINT32                FragOffset;
-  UINT32                MessageSize;
-  char                  xheader[0];  /**< from here on, user can put
-					his extra header data */
-} PSP_SendHeader_t;
 
 /**
  * General header to be used for send or receive requests.
  */
 typedef struct PSP_Header_T {
-  int                   state;
-  unsigned              xheaderlen;  /**< len of the extra header,
-					read-only. */
-  unsigned              datalen;     /**< len of message data,
-					read-only. */
-  union {
-    PSP_RecvHeader_t	recv_header;
-    PSP_SendHeader_t	send_header;
-  } header;
+    int                 state;
+    unsigned            xheaderlen;  /**< len of the extra header,
+					  read-only. */
+    unsigned            datalen;     /**< len of message data,
+					  read-only. */
+    
+    PSHALRecvHeader_t	HALHeader;
+    PSP_MessageID_t     MessageID;
+    UINT32              FragOffset;
+    UINT32              MessageSize;
+    char                xheader[0];  /**< from here on, the extra
+					header is placed */
 } PSP_Header_t;
 
 /**
