@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidpartition.c,v 1.7 2003/11/26 17:41:05 eicker Exp $
+ * $Id: psidpartition.c,v 1.8 2003/12/10 16:48:42 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.7 2003/11/26 17:41:05 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.8 2003/12/10 16:48:42 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -305,9 +305,10 @@ static sortlist_t *getCandidateList(request_t *request)
     for (i=0; i<request->num; i++) {
 	if (nodeOK(request->nodes[i], request)) {
 	    MCastConInfo_t info;
-	    int cpus = PSnodes_getVirtCPUs(i);
-	    list.entry[list.size].id = request->nodes[i];
-	    getInfoMCast(i, &info);
+	    PSnodes_ID_t node = request->nodes[i];
+	    int cpus = PSnodes_getVirtCPUs(node);
+	    list.entry[list.size].id = node;
+	    getInfoMCast(node, &info);
 	    list.entry[list.size].cpus = cpus;
 	    list.entry[list.size].jobs = info.jobs.normal;
 	    switch (request->sort) {
