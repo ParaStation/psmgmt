@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.24 2002/07/26 15:33:16 eicker Exp $
+ * $Id: psispawn.c,v 1.25 2002/08/01 16:52:27 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.24 2002/07/26 15:33:16 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.25 2002/08/01 16:52:27 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -378,7 +378,7 @@ static int node_ok(short node, unsigned hwType, NodelistEntry_t *nodelist)
 	return 0;
     }
 
-    if ((hwType & nodelist[node].hwType) != hwType) {
+    if (hwType && (hwType & nodelist[node].hwType) != hwType) {
 	snprintf(errtxt, sizeof(errtxt), "node_ok():"
 		 " node %d lacks requested HW, excluding from partition.",
 		 node);
