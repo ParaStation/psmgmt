@@ -32,6 +32,7 @@ void run(int argc, char *argv[], int np)
 	/* I am the logger */
 	/* Set default to none: */
 	setenv("PSI_NODES_SORT","NONE",0);
+	PSE_getPartition(np);
 	PSE_spawnMaster(argc, argv);
 	/* Never be here ! */
 	exit(1);
@@ -50,7 +51,7 @@ void run(int argc, char *argv[], int np)
     gethostname(name,sizeof(name)-1);
 
     printf("node: %d port: %d rank: %d host:%s\n",mapnode,mapport,rank,name);
-    sleep(120);
+    sleep(3);
 
     PSE_finalize();
 }
