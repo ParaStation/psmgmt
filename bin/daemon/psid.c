@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.121 2004/01/09 16:19:46 eicker Exp $
+ * $Id: psid.c,v 1.122 2004/01/14 17:56:54 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.121 2004/01/09 16:19:46 eicker Exp $ 
+ * $Id: psid.c,v 1.122 2004/01/14 17:56:54 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.121 2004/01/09 16:19:46 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.122 2004/01/14 17:56:54 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -75,7 +75,7 @@ struct timeval selectTime;
 
 static struct timeval shutdownTimer;
 
-char psid_cvsid[] = "$Revision: 1.121 $";
+char psid_cvsid[] = "$Revision: 1.122 $";
 
 /**
  * Master socket (type UNIX) for clients to connect. Setup within @ref
@@ -2202,7 +2202,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.121 $";
+    char revision[] = "$Revision: 1.122 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -2571,6 +2571,10 @@ int main(int argc, const char *argv[])
 	    tv.tv_usec = 0;
 	    if (Sselect(RDPSocket+1,
 			&rfds, (fd_set *)NULL, (fd_set *)NULL, &tv) < 0) {
+		char *errstr = strerror(errno);
+		snprintf(errtxt, sizeof(errtxt),
+			 "Error in Sselect: %s", errstr ? errstr : "UNKNOWN");
+		PSID_errlog(errtxt, 0);
 		break;
 	    }
 	}
