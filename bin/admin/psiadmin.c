@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.24 2002/02/11 12:36:57 eicker Exp $
+ * $Id: psiadmin.c,v 1.25 2002/02/12 15:06:51 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.24 2002/02/11 12:36:57 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.25 2002/02/12 15:06:51 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -40,7 +40,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.24 $";
+static char psiadmversion[] = "$Revision: 1.25 $";
 static int  DoRestart = 1;
 
 int PSIADM_LookUpNodeName(char* hostname)
@@ -391,7 +391,8 @@ void PSIADM_Version(void)
 void PSIADM_ShowConfig(void)
 {
     DDOptionMsg_t msg;
-    int uidlimit=0, proclimit=0, smallpacksize=0, resendtimeout=0;
+    int uidlimit=0, proclimit=0;
+    int smallpacksize=0, resendtimeout=0, hnpend=0, ackpend=0;
     int i,n;
 
     /*
@@ -416,6 +417,12 @@ void PSIADM_ShowConfig(void)
     msg.opt[(int) msg.count].option = PSP_OP_RESENDTIMEOUT;
     msg.count++;
 
+    msg.opt[(int) msg.count].option = PSP_OP_HNPEND;
+    msg.count++;
+
+    msg.opt[(int) msg.count].option = PSP_OP_ACKPEND;
+    msg.count++;
+
     ClientMsgSend(&msg);
 
     if ((n=ClientMsgReceive(&msg)) == 0){
@@ -429,23 +436,31 @@ void PSIADM_ShowConfig(void)
     else{
 	for(i=0; i<msg.count; i++){
 	    switch(msg.opt[i].option){
-	    case PSP_OP_UIDLIMIT :
+	    case PSP_OP_UIDLIMIT:
 		uidlimit = msg.opt[i].value;
 		break;
-	    case PSP_OP_PROCLIMIT :
+	    case PSP_OP_PROCLIMIT:
 		proclimit = msg.opt[i].value;
 		break;
-	    case PSP_OP_SMALLPACKETSIZE :
+	    case PSP_OP_SMALLPACKETSIZE:
 		smallpacksize = msg.opt[i].value;
 		break;
-	    case PSP_OP_RESENDTIMEOUT :
+	    case PSP_OP_RESENDTIMEOUT:
 		resendtimeout = msg.opt[i].value;
+		break;
+	    case PSP_OP_HNPEND:
+		hnpend = msg.opt[i].value;
+		break;
+	    case PSP_OP_ACKPEND:
+		ackpend = msg.opt[i].value;
 		break;
 	    }
 	}
     }
-    printf("SmallPacketSize is %d\n",smallpacksize);
-    printf("ResendTimeout is %d [us]\n",resendtimeout);
+    printf("SmallPacketSize is %d\n", smallpacksize);
+    printf("ResendTimeout is %d [us]\n", resendtimeout);
+    printf("HNPend is %d\n", hnpend);
+    printf("AckPend is %d\n", ackpend);
     if(uidlimit==-1)
 	printf("max. processes: NONE\n");
     else
@@ -462,7 +477,6 @@ void PSIADM_SetSmallPacketSize(int smallpacketsize)
 {
     DDOptionMsg_t msg;
 
-/*   printf("SetSmallPacketSize to %d us\n",smallpacketsize); */
     if(geteuid()){
 	printf("Insufficient priviledge\n");
 	return;
@@ -474,7 +488,6 @@ void PSIADM_SetSmallPacketSize(int smallpacketsize)
     msg.header.type = PSP_DD_SETOPTION;
     msg.header.len = sizeof(msg);
     msg.header.sender = PSI_mytid;
-    /*msg.header.dest = PSI_gettid(PSI_myid,0);*/
     msg.header.dest = -1 /* broadcast */;
     msg.count =1;
     msg.opt[0].option = PSP_OP_SMALLPACKETSIZE;
@@ -488,7 +501,6 @@ void PSIADM_SetResendTimeout(int time)
 {
     DDOptionMsg_t msg;
 
-/*   printf("SetResendTimeout to %d [us]\n",time); */
     if(geteuid()){
 	printf("Insufficient priviledge\n");
 	return;
@@ -500,11 +512,58 @@ void PSIADM_SetResendTimeout(int time)
     msg.header.type = PSP_DD_SETOPTION;
     msg.header.len = sizeof(msg);
     msg.header.sender = PSI_mytid;
-    /*msg.header.dest = PSI_gettid(PSI_myid,0);*/
     msg.header.dest = -1 /* broadcast */;
     msg.count =1;
     msg.opt[0].option = PSP_OP_RESENDTIMEOUT;
     msg.opt[0].value = time;
+    ClientMsgSend(&msg);
+
+    return;
+}
+
+void PSIADM_SetHNPend(int val)
+{
+    DDOptionMsg_t msg;
+
+    if(geteuid()){
+	printf("Insufficient priviledge\n");
+	return;
+    }
+
+    /*
+     * prepare the message to send it to the daemon
+     */
+    msg.header.type = PSP_DD_SETOPTION;
+    msg.header.len = sizeof(msg);
+    msg.header.sender = PSI_mytid;
+    msg.header.dest = -1 /* broadcast */;
+    msg.count =1;
+    msg.opt[0].option = PSP_OP_HNPEND;
+    msg.opt[0].value = val;
+    ClientMsgSend(&msg);
+
+    return;
+}
+
+void PSIADM_SetAckPend(int val)
+{
+    DDOptionMsg_t msg;
+
+    if(geteuid()){
+	printf("Insufficient priviledge\n");
+	return;
+    }
+
+    /*
+     * prepare the message to send it to the daemon
+     */
+    msg.header.type = PSP_DD_SETOPTION;
+    msg.header.len = sizeof(msg);
+    msg.header.sender = PSI_mytid;
+    msg.header.dest = -1 /* broadcast */;
+    msg.count =1;
+    msg.opt[0].option = PSP_OP_ACKPEND;
+    msg.opt[0].value = val;
     ClientMsgSend(&msg);
 
     return;

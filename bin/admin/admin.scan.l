@@ -2,7 +2,7 @@
 #include "y.tab.h"
 #include <string.h>
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: admin.scan.l,v 1.7 2002/01/30 10:14:48 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: admin.scan.l,v 1.8 2002/02/12 15:06:51 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 %}
 
@@ -29,6 +29,9 @@ version|v            { return VERSIONOP; }
 
 smallpacketsize      { return SMALLPACKETSIZE; }
 resendtimeout        { return RESENDTIMEOUT; }
+hnpend               { return HNPEND; }
+ackpend              { return ACKPEND; }
+
 debugmask            { return DEBUGMASK; }
 rdpdebug             { return RDPDEBUG; }
 mcastdebug           { return MCASTDEBUG; }

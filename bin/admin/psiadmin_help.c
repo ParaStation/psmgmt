@@ -5,13 +5,13 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin_help.c,v 1.5 2002/01/30 10:14:48 eicker Exp $
+ * $Id: psiadmin_help.c,v 1.6 2002/02/12 15:06:51 eicker Exp $
  *
  * \todo More detailed messages for 'status' and 'set'.
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin_help.c,v 1.5 2002/01/30 10:14:48 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin_help.c,v 1.6 2002/02/12 15:06:51 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 static void PrintHelp(void)
@@ -264,7 +264,8 @@ static void PrintSetHelp(void)
     printf("\n");
     printf("SYNTAX:    SET {USER {username|ANY} | MAXPROC {num|ANY}"
 	   " | SMALLPACKETSIZE mask\n");
-    printf("                | RESENDTIMEOUT | DEBUGMASK}\n");
+    printf("                | RESENDTIMEOUT time | HNPEND val | ACKPEND val"
+	   " | DEBUGMASK mask}\n");
     printf("      or   SET {[NO]PSIDDEBUG | RDPDEBUG | MCASTDEBUG} "
 	   "[FROM [TO]]\n");
     NodeInfo();
@@ -280,6 +281,8 @@ static void PrintSetHelp(void)
     printf("                                      (in bytes).\n");
     printf("             SET RESENDTIMEOUT time   set retansmission timeout"
 	   " (in us).\n");
+    printf("             SET HNPEND val           set HNPend to val.\n");
+    printf("             SET ACKPEND val          set AckPend to val.\n");
     printf("             SET DEBUGMASK mask       set the local debugmask.\n");
     printf("\n");
     printf("             SET RDPDEBUG level       set verbosity level for RDP"

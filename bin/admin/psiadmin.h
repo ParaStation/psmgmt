@@ -24,10 +24,10 @@ void PSIADM_SetMCastDebug(int val, int first, int last);
 void PSIADM_Version(void);
 void PSIADM_ShowConfig(void);
 
-void PSIADM_SetHalInterface(int val);
 void PSIADM_SetSmallPacketSize(int smallpacketsize);
 void PSIADM_SetResendTimeout(int time);
-void PSIADM_SetConfigNo(int no);
+void PSIADM_SetHNPend(int val);
+void PSIADM_SetAckPend(int val);
 
 void PSIADM_Reset(int reset_hw, int first, int last);
 void PSIADM_ShutdownCluster(int first, int last);

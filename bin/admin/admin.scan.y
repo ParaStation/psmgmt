@@ -8,7 +8,7 @@
 #include "psiadmin.h"
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.10 2002/01/30 10:14:48 eicker Exp $";
+static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.11 2002/02/12 15:06:51 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #define NODEERR -2
@@ -121,6 +121,8 @@ setline:
         | SETOP DEBUGMASK HEXNUMBER    {PSIADM_SetDebugmask($3);}
         | SETOP RESENDTIMEOUT NUMBER   {PSIADM_SetResendTimeout($3);}
         | SETOP SMALLPACKETSIZE NUMBER {PSIADM_SetSmallPacketSize($3);}
+        | SETOP HNPEND NUMBER          {PSIADM_SetHNPend($3);}
+        | SETOP ACKPEND NUMBER         {PSIADM_SetAckPend($3);}
         | SETOP PSIDDEBUG nodes        {MySetPsidDebug(1,FirstNode,LastNode);}
         | SETOP NOPSIDDEBUG nodes
                 {MySetPsidDebug(0,FirstNode,LastNode);}
