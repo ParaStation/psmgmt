@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.129 2004/03/11 14:21:40 eicker Exp $
+ * $Id$
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.129 2004/03/11 14:21:40 eicker Exp $ 
+ * $Id$ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.129 2004/03/11 14:21:40 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -2466,8 +2466,13 @@ int main(int argc, const char *argv[])
 
 	    while (task) {
 		if (task->killat && now > task->killat) {
-		    /* Send the signal to the whole process group */
-		    PSID_kill(-PSC_getPID(task->tid), SIGKILL, task->uid);
+		    if (task->group != TG_LOGGER) {
+			/* Send the signal to the whole process group */
+			PSID_kill(-PSC_getPID(task->tid), SIGKILL, task->uid);
+		    } else {
+			/* Unless it's a logger, which will never fork() */
+			PSID_kill(PSC_getPID(task->tid), SIGKILL, task->uid);
+		    }
 		}
 		task = task->next;
 	    }
