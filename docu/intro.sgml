@@ -16,6 +16,17 @@
   </para>
 
   <para>
+    Besides another version called  ParaStation FE exists. This variant of
+    ParaStation uses Ethernet for communication in a only slightly optimized
+    way and thus cannot give the high throughput, low latency communication one
+    is used to from the MyriNet version. Nevertheless some disadvantages of the
+    MPIch communication implementations are eliminated doubling the throughput
+    for big packets (i.e. larger than 32 kByte). On the other hand all
+    advantages conceerning cluster administration and cluster management are
+    included in this version.
+  </para>
+
+  <para>
     This manual discusses installation and configuration of
     ParaStation. Furthermore the system management utilities are described.
   </para>
@@ -24,6 +35,11 @@
     For a detailed discussion of the user utilities and the programming
     interfaces included in the standard distribution take a look at the
     ParaStation Users Guide.
+  </para>
+
+  <para>
+    This document describes version 3.2 of the ParaStation software for MyriNet
+    and version 1.0 of ParaStation FE.
   </para>
 </chapter>
   <!-- Keep this comment at the end of the file
