@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.45 2002/08/01 16:56:36 eicker Exp $
+ * $Id: psidutil.c,v 1.46 2002/08/06 08:24:19 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.45 2002/08/01 16:56:36 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.46 2002/08/06 08:24:19 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -228,7 +228,7 @@ void PSID_readConfigFile(int usesyslog)
     do {
 	numNICs *= 2; /* double the number of expected NICs */
 	ifc.ifc_len = numNICs * sizeof(struct ifreq);
-	ifc.ifc_buf = realloc(ifc.ifc_buf, ifc.ifc_len);
+	ifc.ifc_buf = (char *)realloc(ifc.ifc_buf, ifc.ifc_len);
 	if (!ifc.ifc_buf) {
 	    PSID_errlog("realloc failed", 0);
 	    exit(1);
@@ -288,8 +288,7 @@ void PSID_readConfigFile(int usesyslog)
     }
 
     /* Determine the number of CPUs */
-    /* @todo Implement!! */
-    PSID_numCPU = 1;
+    PSID_numCPU = sysconf(_SC_NPROCESSORS_CONF);
 
     PSID_errlog("starting up the card", 1);
     /*
