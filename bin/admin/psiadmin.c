@@ -17,6 +17,8 @@
 #include <signal.h>
 #include <errno.h>
 #include <unistd.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 #include <psport.h>
 
@@ -29,8 +31,11 @@
 #include "psiadmin.h"
 
 static int PARSE_DONE = 0;
-extern FILE *yyin;
-extern void yyparse();
+
+void *yy_scan_string(char *line);
+void yyparse(void);
+void yy_delete_buffer(void *line_state);
+
 static char psiadmversion[] = "2.9";
 static int  DoRestart = 1;
 
@@ -393,7 +398,7 @@ void PSIADM_SetRdpDebug(int val, int node)
 void PSIADM_Version(void)
 {
     printf("PSIADMIN: ParaStation administration tool\n");
-    printf("Copyright (C) 1996-1999 ParTec AG Karlsruhe\n");
+    printf("Copyright (C) 1996-2001 ParTec AG Karlsruhe\n");
     printf("\n");
     printf("PSIADMIN: version %s\n",psiadmversion);
 /*   printf("PSID:     version %s\n","????"); */
@@ -658,56 +663,56 @@ void sighandler(int sig)
 
 int main(int ac, char **av)
 {
-    char* remotehostname=NULL;
-    yyin = stdin;
-    if(remotehostname){
-#ifdef NOT_YET
-	struct hostent *hp;
-	long remotehostaddr;
-	if ((hp = gethostbyname(remotehostname)) == NULL) { 
-	    fprintf(stderr, "can't get \"%s\" host entry\n", remotehostname); 
-	    exit(1); 
-	}
-	bcopy((char *)hp->h_addr, (char *)&remotehostaddr, hp->h_length); 
+    void *line_state = NULL;
+    char *line = (char *) NULL;
+    int len;
 
-	/*
-	 * connect to local PSI daemon
-	 */
-	if (!PSI_daemon_connect(protocol,remotehostaddr)){
-	    if((protocol!=TG_RESET)&&(protocol!=TG_RESETABORT))
-		fprintf(stderr,
-			"PSI_clientinit(): can't contact local daemon.\n");
-	    return 0;
-	}
-#endif
-    }else{
-	if((ac>1)&&(strcasecmp(av[1],"-reset")==0)){
-	    if(geteuid()){
-		printf("Insufficient priviledge for resetting\n");
-		exit(-1);
-	    }
-	    printf("Initiating RESET.\n");fflush(stdout);
-	    PSI_clientinit(TG_RESETABORT);
-	    PSI_clientexit();
-	    printf("Waiting for reset.\n");fflush(stdout);
-	    sleep(1);
-	    printf("Trying to reconnect.\n");fflush(stdout);
-	    PSI_clientinit(TG_RESET);
-	    printf("Resetting done. Please try to connect regulary\n");
-	    fflush(stdout);
-	    exit(0);
-	}
-
-	if(!PSI_clientinit(TG_ADMIN)){
-	    fprintf(stderr,"can't contact my own daemon.\n");
+    if((ac>1)&&(strcasecmp(av[1],"-reset")==0)){
+	if(geteuid()){
+	    printf("Insufficient priviledge for resetting\n");
 	    exit(-1);
 	}
+	printf("Initiating RESET.\n");fflush(stdout);
+	PSI_clientinit(TG_RESETABORT);
+	PSI_clientexit();
+	printf("Waiting for reset.\n");fflush(stdout);
+	sleep(1);
+	printf("Trying to reconnect.\n");fflush(stdout);
+	PSI_clientinit(TG_RESET);
+	printf("Resetting done. Please try to connect regulary\n");
+	fflush(stdout);
+	exit(0);
     }
+
+    if(!PSI_clientinit(TG_ADMIN)){
+	fprintf(stderr,"can't contact my own daemon.\n");
+	exit(-1);
+    }
+
     signal(SIGTERM,sighandler);
+
     while(!PARSE_DONE){ 
-	printf("PSIadmin>");
-	yyparse();
+	/* Get a line from the user. */
+	line = readline ("PSIadmin>");
+
+	if (line && *line){
+	    /* If the line has any text in it, save it on the history. */
+	    add_history (line);
+	    /* Add trailing newline */
+	    len=strlen(line);
+	    line = realloc(line, len+1);
+	    line[len]='\n';
+	    line[len+1]='\0';
+	    /* Process it */
+	    line_state = yy_scan_string(line);
+	    yyparse();
+	    yy_delete_buffer(line_state);
+	}
+
+	free(line);
     };
+
     printf("PSIadmin: Goodbye\n");
+
     return 0;
 }
