@@ -5,19 +5,17 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.8 2002/01/17 12:45:44 eicker Exp $
+ * $Id: info.c,v 1.9 2002/01/18 15:43:22 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.8 2002/01/17 12:45:44 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.9 2002/01/18 15:43:22 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-
-#include <pshal.h>
 
 #include "psp.h"
 #include "psitask.h"
@@ -26,7 +24,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.8 2002/01/17 12:
 #include "info.h"
 
 /*--------------------------------------------------------------------
- * int INFO_request_receive()
+ * int INFO_receive()
  *
  * INOUT:
  * long* what : (for taskinfo) in: action to be performed
@@ -37,42 +35,61 @@ static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.8 2002/01/17 12:
  * int size: size of buffer
  * RETURN type of the msg received
  */
-int
-INFO_request_receive(long *what, void* buffer,int size)
+
+static int INFO_receive(INFO_info_t what, void* buffer, int size)
 {
     DDBufferMsg_t msg;
-    if(ClientMsgReceive(&msg)<0){
-	perror("read");
+    if (ClientMsgReceive(&msg)<0) {
+	perror("INFO_receive: read");
 	exit(-1);
-    }else{
-	switch(msg.header.type){
+    } else {
+	switch (msg.header.type) {
 	case PSP_CD_TASKINFO:
 	{
 	    PStask_t* task;
+
 	    task = PStask_new();
 
-	    PStask_decode(msg.buf,task);
-	    switch(*what){
+	    PStask_decode(msg.buf, task);
+	    switch(what){
 	    case INFO_UID:
-		*what = task->uid;
+		memcpy(buffer, &task->uid, size);
 		break;
 	    case INFO_PTID:
-		*what = task->ptid;
+		memcpy(buffer, &task->ptid, size);
 		break;
 	    case INFO_ISALIVE:
-		*what = 1;
+		*(long *)buffer = 1;
 		break;
+	    case INFO_GETINFO:
+	    {
+		INFO_taskinfo_t *taskinfo = (INFO_taskinfo_t *) buffer;
+
+		if (taskinfo) {
+		    if (size < sizeof(*taskinfo)) {
+			fprintf(stderr, "INFO_receive: buffer to small\n");
+			break;
+		    }
+		    taskinfo->nodeno = task->nodeno;
+		    taskinfo->tid = task->tid;
+		    taskinfo->ptid = task->ptid;
+		    taskinfo->uid = task->uid;
+		    taskinfo->group = task->group;
+		}
+		break;
+	    }
 	    case INFO_PRINTINFO:
 		printf("%6d %8ld 0x%08lx %8ld 0x%08lx",
-		       task->nodeno,task->tid,task->tid,task->ptid,
+		       task->nodeno, task->tid, task->tid, task->ptid,
 		       task->ptid);
 		if((short)task->uid==-1)
 		    printf("   NONE\n");
 		else
-		    printf("   %5d%s\n",task->uid,task->group==TG_ADMIN?"(A)":"");
+		    printf("   %5d%s\n", task->uid,
+			   task->group==TG_ADMIN ? "(A)" : "");
 		break;
 	    default:
-		*what = -1;
+		*(long *)buffer = -1;
 		break;
 	    }
 	    errno = 0;
@@ -82,54 +99,26 @@ INFO_request_receive(long *what, void* buffer,int size)
 	case PSP_CD_TASKINFOEND:
 	    break;
 	case PSP_CD_COUNTSTATUSRESPONSE:
-	{
-	    PSHALInfoCounter_t *ic;
-	    int i;
-
-	    ic = (PSHALInfoCounter_t *) msg.buf;
-
-	    /* Print Header if requested */
-	    if(*what){
-		printf("%8s ", "NODE");
-		for (i=0;i<ic->n;i++){
-		    printf("%8s ",ic->counter[i].name);
-		}
-		printf("\n");
-	    }
-
-	    printf("%8u ", PSI_getnode(msg.header.sender));
-	    for (i=0;i<ic->n;i++){
-		char ch[10];
-		/* calc column size from name length */
-		sprintf(ch,"%%%du ",(int) MAX(strlen(ic->counter[i].name),8));
-		printf(ch,ic->counter[i].value);
-	    }
-	    printf("\n");
-	    break;
-	}
 	case PSP_CD_RDPSTATUSRESPONSE:
-	    memcpy(buffer, ((DDTagedBufferMsg_t*)&msg)->buf, size);
-	    break;
 	case PSP_CD_HOSTSTATUSRESPONSE:
-	    memcpy(buffer, ((DDBufferMsg_t*)&msg)->buf, size);
-	    break;
 	case PSP_CD_HOSTRESPONSE:
-	    *what = *(int *)((DDBufferMsg_t*) &msg)->buf;
+	    memcpy(buffer, msg.buf, size);
 	    break;
 	case PSP_DD_SYSTEMERROR:
 	{
 	    char* errtxt;
-	    errtxt=strerror(((DDErrorMsg_t*)&msg)->err);
-	    printf("ParaStation system error in command %s : %s\n", 
-		   PSPctrlmsg(((DDErrorMsg_t*)&msg)->request),
-		   errtxt?errtxt:"UNKNOWN");
+	    errtxt = strerror(((DDErrorMsg_t*)&msg)->err);
+	    fprintf(stderr, "INFO_receive: error in command %s : %s\n", 
+		    PSPctrlmsg(((DDErrorMsg_t*)&msg)->request),
+		    errtxt ? errtxt : "UNKNOWN");
 	    break;
 	}
 	default:
-	    printf("received msgtype %lx. Don't know want to do!?!?\n",
-		   msg.header.type);
-	}
+	    fprintf(stderr, "INFO_receive: received msgtype '%s'."
+		    " Don't know want to do!\n", PSPctrlmsg(msg.header.type));
+	    }
     }
+
     return msg.header.type;
 }
 
@@ -143,25 +132,51 @@ INFO_request_receive(long *what, void* buffer,int size)
  */
 int INFO_request_rdpstatus(int nodeno, void* buffer, int size)
 {
-    DDTagedBufferMsg_t msg;
-    long what=0;
+    DDBufferMsg_t msg;
 
     msg.header.type = PSP_CD_RDPSTATUSREQUEST;
     msg.header.dest = PSI_gettid(PSI_myid,0);
     msg.header.sender = PSI_mytid;
     msg.header.len = sizeof(msg.header);
-    msg.tag[0] = nodeno;
-    msg.header.len += sizeof(msg.tag);
+    *(int *)msg.buf = nodeno;
+    msg.header.len += sizeof(int);
 
-    if(ClientMsgSend(&msg)<0){
-	perror("write");
+    if (ClientMsgSend(&msg)<0) {
+	perror("INFO_request_rdpstatus: write");
 	exit(-1);
     }
 
-    if(INFO_request_receive(&what,buffer,size)== PSP_CD_RDPSTATUSRESPONSE)
+    if (INFO_receive(INFO_GETINFO, buffer, size)==PSP_CD_RDPSTATUSRESPONSE) {
 	return size;
-    else
-	return -1;
+    }
+
+    return -1;
+}
+
+/*****************************
+ *
+ * request_countstatus(int nodeno)
+ *
+ */
+int INFO_request_countstatus(int nodeno, void* buffer, int size)
+{
+    DDMsg_t msg;
+
+    msg.type = PSP_CD_COUNTSTATUSREQUEST;
+    msg.dest = PSI_gettid(nodeno,0);
+    msg.sender = PSI_mytid;
+    msg.len = sizeof(msg);
+
+    if (ClientMsgSend(&msg)<0) {
+	perror("INFO_request_countstatus: write");
+	exit(-1);
+    }
+
+    if (INFO_receive(INFO_GETINFO, buffer, size)==PSP_CD_COUNTSTATUSRESPONSE) {
+	return size;
+    }
+
+    return -1;
 }
 
 /*****************************
@@ -175,22 +190,22 @@ int INFO_request_rdpstatus(int nodeno, void* buffer, int size)
 int INFO_request_hoststatus(void* buffer, int size)
 {
     DDMsg_t msg;
-    long what=0;
 
     msg.type = PSP_CD_HOSTSTATUSREQUEST;
     msg.dest = PSI_gettid(PSI_myid,0);
     msg.sender = PSI_mytid;
     msg.len = sizeof(msg);
 
-    if(ClientMsgSend(&msg)<0){
-	perror("write");
+    if (ClientMsgSend(&msg)<0) {
+	perror("INFO_request_hoststatus: write");
 	exit(-1);
     }
 
-    if(INFO_request_receive(&what,buffer,size)== PSP_CD_HOSTSTATUSRESPONSE)
+    if (INFO_receive(INFO_GETINFO, buffer, size)==PSP_CD_HOSTSTATUSRESPONSE) {
 	return size;
-    else
-	return -1;
+    }
+
+    return -1;
 }
 
 /*****************************
@@ -204,7 +219,7 @@ int INFO_request_hoststatus(void* buffer, int size)
 int INFO_request_host(unsigned int address)
 {
     DDBufferMsg_t msg;
-    long what=0;
+    int host;
 
     msg.header.type = PSP_CD_HOSTREQUEST;
     msg.header.dest = PSI_gettid(PSI_myid,0);
@@ -213,72 +228,55 @@ int INFO_request_host(unsigned int address)
     memcpy(msg.buf, &address, sizeof(unsigned int));
     msg.header.len += sizeof(address);
 
-    if(ClientMsgSend(&msg)<0){
-	perror("write");
+    if (ClientMsgSend(&msg)<0) {
+	perror("INFO_request_host: write");
 	exit(-1);
     }
 
-    if(INFO_request_receive(&what, NULL, 0)== PSP_CD_HOSTRESPONSE)
-	return what;
-    else
-	return -1;
+    if (INFO_receive(INFO_GETINFO, &host, sizeof(host))==PSP_CD_HOSTRESPONSE) {
+	return host;
+    }
+
+    return -1;
 }
 
 /*****************************
  *
  * request_countstatus(int nodeno)
+ * size in byte!
+ * Liest solange nach taskinfo, bis array voll, zählt dann aber weiter.
+ * Gibt Anzahl der tasks zurück.
  *
  */
-int INFO_request_countstatus(int nodeno, int header)
+int INFO_request_tasklist(int nodeno, INFO_taskinfo_t taskinfo[], int size)
 {
     DDMsg_t msg;
-    long what=header;
-
-    msg.type = PSP_CD_COUNTSTATUSREQUEST;
-    msg.dest = PSI_gettid(nodeno,0);
-    msg.sender = PSI_mytid;
-    msg.len = sizeof(msg);
-
-    if(ClientMsgSend(&msg)<0){
-	perror("write");
-	exit(-1);
-    }
-
-    INFO_request_receive(&what, NULL, 0);
-    return 0;
-}
-
-/*****************************
- *
- * request_countstatus(int nodeno)
- *
- */
-int
-INFO_request_tasklist(int nodeno)
-{
-    DDMsg_t msg;
-    int msgtype;
-    long what;
+    int msgtype, tasknum, maxtask;
 
     msg.type = PSP_CD_TASKLISTREQUEST;
     msg.dest = PSI_gettid(nodeno,0);
     msg.sender = PSI_mytid;
     msg.len = sizeof(msg);
 
-    if(ClientMsgSend(&msg)<0){
-	perror("write");
+    if (ClientMsgSend(&msg)<0) {
+	perror("INFO_request_tasklist: write");
 	exit(-1);
     }
 
-    printf("----node %2d----------------------------------------------\n",
-	   nodeno);
-    msgtype= PSP_CD_TASKINFO;
+    maxtask = size/sizeof(*taskinfo);
+    tasknum = 0;
+    msgtype = PSP_CD_TASKINFO;
     while(msgtype == PSP_CD_TASKINFO){
-	what = INFO_PRINTINFO;
-	msgtype = INFO_request_receive(&what,NULL,0);
+	if (tasknum<maxtask) {
+	    msgtype = INFO_receive(INFO_GETINFO,
+				   &taskinfo[tasknum], sizeof(*taskinfo));
+	} else {
+	    msgtype = INFO_receive(INFO_GETINFO, NULL, 0);
+	}
+	tasknum++;
     }
 
-    return 0;
+    return tasknum-1;
 }
 
 /*----------------------------------------------------------------------*/
@@ -286,28 +284,30 @@ INFO_request_tasklist(int nodeno)
  * INFO_request_taskinfo(PSTID tid,what)
  *
  *  gets the user id of the given task identifier tid
- *
+ *  \todo Das stimmt nicht, es gibt verschiedene Aufgaben.
  *  RETURN the uid of the task
  */
-long INFO_request_taskinfo(long tid,long what)
+long INFO_request_taskinfo(long tid, INFO_info_t what)
 {
     int msgtype;
     DDMsg_t msg;
+    long answer;
 
     msg.type = PSP_CD_TASKINFOREQUEST;
     msg.dest = tid;
     msg.sender = PSI_mytid;
     msg.len = sizeof(msg);
 
-    if(ClientMsgSend(&msg)<0){
-	perror("write");
+    if  (ClientMsgSend(&msg)<0) {
+	perror("INFO_request_taskinfo: write");
 	exit(-1);
     }
 
     errno = 8888;
-    msgtype= PSP_CD_TASKINFO;
-    while(msgtype == PSP_CD_TASKINFO){
-	msgtype = INFO_request_receive(&what,NULL,0);
+    msgtype = PSP_CD_TASKINFO;
+    while (msgtype == PSP_CD_TASKINFO) {
+	msgtype = INFO_receive(what, &answer, sizeof(answer));
     }
-    return what;
+
+    return answer;
 }

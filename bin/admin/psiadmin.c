@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.18 2002/01/17 12:51:59 eicker Exp $
+ * $Id: psiadmin.c,v 1.19 2002/01/18 15:43:22 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.18 2002/01/17 12:51:59 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.19 2002/01/18 15:43:22 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -40,7 +40,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.18 $";
+static char psiadmversion[] = "$Revision: 1.19 $";
 static int  DoRestart = 1;
 
 int PSIADM_LookUpNodeName(char* hostname)
@@ -120,28 +120,66 @@ void PSIADM_RDPStat(int first, int last)
 
 void PSIADM_CountStat(int first, int last)
 {
-    int i;
+    int node, i;
+    PSHALInfoCounter_t ic;
 
     first = (first==ALLNODES) ? 0 : first;
-    last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
-    INFO_request_countstatus(first, 1); /* first node with header */
-    for (i = first+1; i < last; i++) {
-	INFO_request_countstatus(i,0);  /* all other without header */
+    last  = (last==ALLNODES) ? PSI_nrofnodes-1 : last;
+
+    for (node = first; node <= last; node++) {
+	INFO_request_countstatus(node, &ic, sizeof(ic));
+	if (node==first){
+	    /* first node with header */
+	    printf("%6s ", "NODE");
+	    for (i=0 ; i<ic.n; i++){
+		printf("%8s ",ic.counter[i].name);
+	    }
+	    printf("\n");
+	}
+
+	printf("%6u ", node);
+	for (i=0; i<ic.n; i++){
+	    char ch[10];
+	    /* calc column size from name length */
+	    sprintf(ch,"%%%du ",(int) MAX(strlen(ic.counter[i].name),8));
+	    printf(ch, ic.counter[i].value);
+	}
+	printf("\n");
     }
 
     return;
 }
 
+#define NUMTASKS 20
 
 void PSIADM_ProcStat(int first, int last)
 {
-    int i;
+    INFO_taskinfo_t taskinfo[NUMTASKS];
+    int i, j, num;
 
     first = (first==ALLNODES) ? 0 : first;
     last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
-    printf("NodeNr TaskId(Dec/Hex)     ParentTaskId(Dec/Hex) UserId\n");
+    printf("%4s %23s %23s %8s\n",
+	   "Node", "TaskId(Dec/Hex)", "ParentTaskId(Dec/Hex)", "UserId");
     for (i = first; i < last; i++) {
-	INFO_request_tasklist(i);
+	printf("---------------------------------------------------------"
+	       "----\n");
+	num = INFO_request_tasklist(i, taskinfo, sizeof(taskinfo));
+	for (j=0; j<MIN(num,NUMTASKS); j++) {
+	    printf("%4d %10ld 0x%010lx %10ld 0x%010lx ",
+		   taskinfo[j].nodeno, taskinfo[j].tid, taskinfo[j].tid,
+		   taskinfo[j].ptid, taskinfo[j].ptid);
+	    if (taskinfo[j].uid==-1) {
+		printf("%8s\n", "NONE");
+	    } else {
+		printf("%5d%s\n", taskinfo[j].uid,
+		       taskinfo[j].group==TG_ADMIN ? "(A)" : "");
+	    }
+	}
+
+	if (num>NUMTASKS) {
+	    printf(" + %d more tasks\n", num-NUMTASKS);
+	}
     }
 
     return;
