@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidclient.h,v 1.1 2003/06/06 14:47:03 eicker Exp $
+ * $Id: psidclient.h,v 1.2 2003/07/04 10:59:03 eicker Exp $
  *
  */
 /**
  * \file
  * Functions for client handling within the ParaStation daemon
  *
- * $Id: psidclient.h,v 1.1 2003/06/06 14:47:03 eicker Exp $
+ * $Id: psidclient.h,v 1.2 2003/07/04 10:59:03 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -88,6 +88,19 @@ long getClientTID(int fd);
 PStask_t *getClientTask(int fd);
 
 /**
+ * @brief Get a clients file descriptor
+ *
+ * Get the file descriptor connecting the client with unique task ID
+ * @a tid to the daemon.
+ *
+ * @param tid The unique task ID of the client.
+ *
+ * @return On success, the file descriptor is returned. If no valid
+ * file descriptor is found, FD_SETSIZE is returned.
+ */
+int getClientFD(long tid);
+
+/**
  * @brief Establish client's connection.
  *
  * Declare the client's connection via file descriptor @a fd to be
@@ -108,8 +121,8 @@ PStask_t *getClientTask(int fd);
  * @brief Test if client's connection is established.
  *
  * Test if the client's connection via file descriptor @a fd is
- * already established, i.e. the setEstablished client was called for
- * this @a fd.
+ * already established, i.e. the setEstablished functionn was called
+ * for this @a fd.
  *
  * @param fd The file descriptor the client is connected through.
  *
@@ -121,11 +134,33 @@ PStask_t *getClientTask(int fd);
 int isEstablishedClient(int fd);
 
 /**
+ * @brief Flush messages to client.
+ *
+ * Try to send all messages to the client connected via file
+ * descriptor @a fd that could not be delivered in prior calls to
+ * sendClient() or flushClientMsgs().
+ *
+ * @param fd The file descriptor the messages to send are associated with.
+ *
+ * @return If all pending message were delivered, 0 is returned. Or
+ * -1, if a problem occured.
+ *
+ * @see sendClient()
+ */
+int flushClientMsgs(int fd);
+
+/**
  * @brief Send message to client.
  *
  * Send the message @a msg to the client described within this
- * message. The message is sent in an non-blocking fashion, thus don
- * not rely on that the send will be successful.
+ * message. The message is sent in an non-blocking fashion, thus do
+ * not rely on that the send will be successful immediately.
+ *
+ * If the message could not be delivered, it will be stored internally
+ * and @a errno will be set to EWOULDBLOCK. Further calls to
+ * sendClient() resulting in the same file descriptor or to
+ * flushClientMsgs() using this file descriptor will try to deliver this
+ * packet.
  *
  * @param msg The message to be send.
  *
@@ -133,22 +168,25 @@ int isEstablishedClient(int fd);
  * the message, is returned. Otherwise -1 is returned and errno is set
  * appropriately.
  *
- * @see errno(3)
+ * @see flushClientMsgs(), errno(3)
  */
-int sendClient(void *msg);
+int sendClient(DDMsg_t *msg);
 
 /**
  * @brief Receive message from client.
  *
- * Send the message @a msg to the client described within this
- * message. The message is sent in an non-blocking fashion, thus don
- * not rely on that the send will be successful.
+ * Receive a message from the client connected to file descriptor @a
+ * fd and store it to @a msg. At most @a size bytes are read from the
+ * file descriptor and stored to @a msg.
  *
- * @param msg The message to be send.
+ * @param fd The file descriptor to receive from.
  *
- * @return On success, the number of bytes sent, i.e. the length of
- * the message, is returned. Otherwise -1 is returned and errno is set
- * appropriately.
+ * @param msg Buffer to store the message in.
+ *
+ * @param size The maximum length of the message, i.e. the size of @a msg.
+ *
+ * @return On success, the number of bytes received is returned, or -1 if
+ * an error occured. In the latter case errno will be set appropiately.
  *
  * @see errno(3)
  */
