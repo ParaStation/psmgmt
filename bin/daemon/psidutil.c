@@ -1,15 +1,15 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * psidutil.c
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.62 2003/08/27 12:58:39 eicker Exp $
+ * $Id: psidutil.c,v 1.63 2003/10/08 14:57:39 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.62 2003/08/27 12:58:39 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.63 2003/10/08 14:57:39 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -34,14 +34,11 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.62 2003/08/2
 #include "pscommon.h"
 #include "hardware.h"
 
-#include "pslic.h"
-
-/* magic license check */
-#include "../license/pslic_hidden.h"
-
 #include "psidutil.h"
 
 static char errtxt[256];
+
+config_t *config = NULL;
 
 /* Wrapper functions for logging */
 void PSID_initLog(int usesyslog, FILE *logfile)
@@ -565,7 +562,9 @@ void PSID_readConfigFile(int usesyslog, char *configfile)
     int ownID;
 
     /* Parse the configfile */
-    if (parseConfig(usesyslog, PSID_getDebugLevel(), configfile)<0) {
+    config = parseConfig(usesyslog, PSID_getDebugLevel(), configfile);
+
+    if (! config) {
 	snprintf(errtxt, sizeof(errtxt), "Parsing of <%s> failed.",
 		 configfile);
 	PSID_errlog(errtxt, 0);
@@ -573,9 +572,9 @@ void PSID_readConfigFile(int usesyslog, char *configfile)
     }
 
     /* Set correct debugging level if given in config-file */
-    if (ConfigLogLevel && !PSID_getDebugLevel()) {
-	PSID_setDebugLevel(ConfigLogLevel);
-	PSC_setDebugLevel(ConfigLogLevel);
+    if (config->logLevel && !PSID_getDebugLevel()) {
+	PSID_setDebugLevel(config->logLevel);
+	PSC_setDebugLevel(config->logLevel);
     }
 
     /* Try to find out if node is configured */
@@ -588,39 +587,4 @@ void PSID_readConfigFile(int usesyslog, char *configfile)
     PSC_setNrOfNodes(PSnodes_getNum());
     PSC_setMyID(ownID);
     PSC_setDaemonFlag(1); /* To get the correct result from PSC_getMyTID() */
-}
-
-int PSID_startLicServer(unsigned int addr)
-{
-    int sock;
-    struct sockaddr_in sa;
-
-    snprintf(errtxt, sizeof(errtxt), "%s(%s)",
-	     __func__, inet_ntoa(* (struct in_addr *) &addr));
-    PSID_errlog(errtxt, 10);
-
-    /*
-     * start the ParaStation license daemon (psld) via inetd
-     */
-    sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-    memset(&sa, 0, sizeof(sa)); 
-    sa.sin_family = AF_INET; 
-    sa.sin_addr.s_addr = addr;
-    sa.sin_port = htons(PSC_getServicePort("psld", 887));
-    if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0) { 
-	char *errstr = strerror(errno);
-
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: Connect to port %d for start with inetd failed: %s",
-		 __func__, ntohs(sa.sin_port), errstr ? errstr : "UNKNOWN");
-	PSID_errlog(errtxt, 0);
-
-	shutdown(sock, SHUT_RDWR);
-	close(sock);
-	return 0;
-    }
-    shutdown(sock, SHUT_RDWR);
-    close(sock);
-    return 1;
 }
