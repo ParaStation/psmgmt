@@ -51,6 +51,24 @@ AC_ARG_WITH([kernellist], [  --with-kernellist=file    file with kernelnames and
 ],[
 	KERNELLIST=`path_cleanup kernellist`
 ])
+AC_SUBST([JAVA_ENABLED])
+# default is no
+AC_ARG_ENABLE([java], [  --enable-java    (default: disabled)] ,
+[
+	JAVA_ENABLED=$enableval
+],[
+	JAVA_ENABLED="no"
+])
+
+AC_SUBST([PSMON_ENABLED])
+# default is no
+AC_ARG_ENABLE([psmon], [  --enable-psmon    (default: disabled)] ,
+[
+	PSMON_ENABLED=$enableval
+],[
+	PSMON_ENABLED="no"
+])
+
 
 
 AC_SUBST([PSM_OSDIR])

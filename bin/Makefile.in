@@ -7,7 +7,9 @@ TOP_SRCDIR = @top_srcdir@
 YFLAGS = -d
 LFLAGS = -i
 LEX = flex
-
+# "yes" or "no" allowed ("configure --enable-java" or "configure --disable-java") 
+JAVA_ENABLED=@JAVA_ENABLED@
+PSMON_ENABLED=@PSMON_ENABLED@
 
 VPATH += $(SRCDIR)
 
@@ -23,6 +25,15 @@ endif
 TOOLS:=psconfig pscounter test_nodes psiadmin psid psld parastation
 TOOLS += psilogger psiforwarder mlisten test_config_parsing psmstart
 TOOLS += psscan psroute
+
+ifeq ($(PSMON_ENABLED),yes)
+TOOLS += psmon
+endif
+
+ifeq ($(JAVA_ENABLED),yes)
+TOOLS += psview
+endif
+
 bin:	$(TOOLS)
 
 unlock: unlock.o -lpshal
@@ -71,6 +82,15 @@ psilogger: psilogger.o logmsg.o -lm
 VPATH += $(SRCDIR)/mapper
 psroute: genid.o route.o simul.o psroute.o -lpshal -lm -lpopt
 psscan: genid.o route.o psscan.o -lpshal -lm -lpopt
+
+# psmon
+VPATH += $(SRCDIR)/mon
+psmon: psmon.o sock_ext.o edsdict.o edserr.o -lpsi -lpthread -lpopt
+
+#psview
+psview:
+	$(MAKE) -C java/psview
+
 
 
 parastation: $(TOP_SRCDIR)/scripts/parastation@TRU64FILEADD@

@@ -5,6 +5,10 @@ TOP_BUILDDIR := ..
 TARGET_OS := @target_os@
 TARGET_CPU := @target_cpu@
 
+# "yes" or "no" allowed ("configure --enable-java" or "configure --disable-java") 
+JAVA_ENABLED=@JAVA_ENABLED@
+PSMON_ENABLED=@PSMON_ENABLED@
+
 #s.o. clean:
 DISTPATH := opt/parastation
 
@@ -13,7 +17,14 @@ INCDIR := $(DISTPATH)/include
 
 BINS += psiadmin psid psld
 BINS += psiforwarder psilogger mlisten psmstart
+ifeq ($(PSMON_ENABLED),yes)
+BINS += psmon
+endif
 BINDIR := $(DISTPATH)/bin
+
+ifeq ($(JAVA_ENABLED),yes)
+BINS += java/PSView.jar
+endif
 
 LIBS += libpsport4.a libpsi.a libpse.a
 LIBDIR := $(DISTPATH)/lib
@@ -63,6 +74,11 @@ $(BINDIR)/%: $(TOP_BUILDDIR)/bin/%
 #	strip $< -o $@
 
 bins: $(BINDIR) $(patsubst %,$(BINDIR)/%,$(BINS))
+
+# From java build tree
+$(BINDIR)/java/PSView.jar: $(TOP_BUILDDIR)/bin/java/psview/PSView.jar
+	mkdir -p `dirname $@`
+	cp $< $@
 
 #
 # copy includes
