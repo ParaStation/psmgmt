@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.8 2003/10/30 16:38:06 eicker Exp $
+ * $Id: config_parsing.c,v 1.9 2003/12/10 16:15:32 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.8 2003/10/30 16:38:06 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.9 2003/12/10 16:15:32 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -45,6 +45,7 @@ static config_t config = (config_t) {
     .selectTime = 2,
     .deadInterval = 10,
     .RDPPort = 886,
+    .useMCast = 1,
     .MCastGroup = 237,
     .MCastPort = 1889,
     .logLevel = 0,
@@ -230,6 +231,13 @@ static int getLicFile(char *token)
 
     licFile = strdup(licfile);
 
+    return 0;
+}
+
+static int getMCastUse(char *token)
+{
+    config.useMCast = 0;
+    parser_comment("Will not use MCast. Enable alternative status control", 8);
     return 0;
 }
 
@@ -986,6 +994,7 @@ static keylist_t config_list[] = {
     {"nodes", getNodes},
     {"licensefile", getLicFile},
     {"licfile", getLicFile},
+    {"nomcast", getMCastUse},
     {"mcastgroup", getMCastGroup},
     {"mcastport", getMCastPort},
     {"rdpport", getRDPPort},
