@@ -121,6 +121,7 @@
 #define MCP_PARAM_ACKPEND_INIT	1	/* 0 = ACK every packed */
 #define MCP_PARAM_ACKPEND_USAGE	0	/* 0 kostet fast nix */
 
+#define MCP_PARAM_LOCAL		0x100	/* Add this to MCP_PARAM_xxx for context local params */
 
 /* Dont try to understand :-) */
 #define _MCPP(name)	__MCPP(MCP_PARAM_##name##_USAGE,name)
@@ -522,6 +523,10 @@ typedef struct MCP_Context_T {
       
     /* Info for DMA Buffers on host */
     MCP_HostBufInfo_t	HostBufInfo[PSM_MAX_HSENDBUFS];
+    /* see: NetRecvDataPacket(). Initialized with MCPP(SPS) on MCPContextReset()*/
+    UINT16		param_sps;
+    /* see: NotifyHost_FreeBuf(). Initialized with MCPP(HNPEND) on MCPContextReset()*/
+    UINT16		param_hnpend;
     /* List of registerd recv.buffers. < 0 no buffer,else hostSendBufNo*/
     struct{
 	INT16		Buf[PSM_MAX_REGRECVBUFS];
