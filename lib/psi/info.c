@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.23 2002/07/26 15:35:20 eicker Exp $
+ * $Id: info.c,v 1.24 2002/08/02 15:31:23 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.23 2002/07/26 15:35:20 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.24 2002/08/02 15:31:23 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -147,7 +147,7 @@ static int INFO_receive(INFO_info_t what, void *buffer, size_t size,
     return msg.header.type;
 }
 
-int INFO_request_rdpstatus(int nodeno, void* buffer, size_t size, int verbose)
+int INFO_request_rdpstatus(int nodeno, void *buffer, size_t size, int verbose)
 {
     DDBufferMsg_t msg;
 
@@ -171,7 +171,7 @@ int INFO_request_rdpstatus(int nodeno, void* buffer, size_t size, int verbose)
 }
 
 int INFO_request_mcaststatus(int nodeno,
-			     void* buffer, size_t size, int verbose)
+			     void *buffer, size_t size, int verbose)
 {
     DDBufferMsg_t msg;
 
@@ -195,7 +195,7 @@ int INFO_request_mcaststatus(int nodeno,
 }
 
 int INFO_request_countstatus(int nodeno,
-			     void* buffer, size_t size, int verbose)
+			     void *buffer, size_t size, int verbose)
 {
     DDMsg_t msg;
 
@@ -216,7 +216,7 @@ int INFO_request_countstatus(int nodeno,
     return -1;
 }
 
-int INFO_request_hoststatus(void* buffer, size_t size, int verbose)
+int INFO_request_hoststatus(void *buffer, size_t size, int verbose)
 {
     DDMsg_t msg;
 
