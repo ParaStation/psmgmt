@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.37 2002/02/13 08:37:15 eicker Exp $
+ * $Id: psid.c,v 1.38 2002/02/15 19:35:25 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.37 2002/02/13 08:37:15 eicker Exp $ 
+ * $Id: psid.c,v 1.38 2002/02/15 19:35:25 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.37 2002/02/13 08:37:15 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.38 2002/02/15 19:35:25 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -63,7 +63,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.37 $";
+static char psid_cvsid[] = "$Revision: 1.38 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -98,10 +98,10 @@ struct client_t clients[FD_SETSIZE];
  * DAEMONS
  */
 struct daemon_t{
-    u_short node;            /* node number of the daemon */
-    int     fd;              /* file descr. to the daemon */
-    PStask_t* tasklist;      /* tasklist of that node */
-    int     hasCard;         /* Flag to show if card is present */
+    unsigned short node;   /* node number of the daemon */
+    int fd;                /* file descr. to the daemon */
+    PStask_t* tasklist;    /* tasklist of that node */
+    int hasCard;           /* Flag to show if card is present */
 };
 
 struct daemon_t *daemons = NULL;
@@ -371,7 +371,7 @@ static void checkCluster(void)
 static void startDaemons(void)
 {
     int i;
-    u_long addr;
+    unsigned int addr;
 
     if(fork()==0) {
 	/* fork a process which starts all other daemons */
@@ -560,6 +560,7 @@ void declareDaemonDead(int node)
     daemons[node].fd = 0;
     PSID_hoststatus[node] &= ~PSPHOSTUP;
 
+    /* Delete all tasks */
     oldtask = PStasklist_dequeue(&(daemons[node].tasklist), -1);
 
     while(oldtask) {
@@ -571,7 +572,10 @@ void declareDaemonDead(int node)
 	PStask_delete(oldtask);
 	oldtask = PStasklist_dequeue(&(daemons[node].tasklist), -1);
     }
-    /*  PStasklist_delete(&(daemons[node].tasklist));*/
+
+    /* Tell MCast */
+    declareNodeDeadMCast(node);
+
     SYSLOG(2,(LOG_ERR, "Lost connection to daemon of node %d (fd:%d)\n",
 	      node, daemons[node].fd));
 }
@@ -1826,7 +1830,7 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 	    }
 	    j=0;
 	    for (i=0; i<PSI_nrofnodes; i++) {
-		if (daemons[i].hasCard) {
+		if (DaemonIsUp && daemons[i].hasCard) {
 		    nodelist[j] = (short) i;
 		    j++;
 		}
@@ -1852,7 +1856,7 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 void msg_SETOPTION(DDOptionMsg_t *msg)
 {
     int i, val;
-    for (i=0;i<msg->count;i++) {
+    for (i=0; i<msg->count; i++) {
 	if (PSI_isoption(PSP_ODEBUG)) {
 	    sprintf(PSI_txt,"SETOPTION()option: %ld value 0x%lx \n",
 		    msg->opt[i].option,msg->opt[i].value);
@@ -1897,21 +1901,38 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 		}
 	    }
 	    break;
+	case PSP_OP_PSIDDEBUG:
+	    if((msg->header.dest == PSI_gettid(PSI_myid,0)) /* for me */
+	       || (msg->header.dest == -1))                    /* for any */
+		PSI_setoption(PSP_ODEBUG,msg->opt[i].value);
+	    break;
+	case PSP_OP_PSIDSELECTTIME:
+	    if((msg->header.dest == PSI_gettid(PSI_myid,0)) /* for me */
+	       || (msg->header.dest == -1))                    /* for any */
+		if (msg->opt[i].value > 0) {
+		    selecttimer.tv_sec = msg->opt[i].value;
+		}
+	    break;
 	case PSP_OP_PROCLIMIT:
 	    MAXPROCLimit = msg->opt[i].value;
 	    break;
 	case PSP_OP_UIDLIMIT:
 	    UIDLimit = msg->opt[i].value;
 	    break;
-	case PSP_OP_PSIDDEBUG:
-	    if((msg->header.dest == PSI_gettid(PSI_myid,0)) /* for me */
-	       || (msg->header.dest == -1))                    /* for any */
-		PSI_setoption(PSP_ODEBUG,msg->opt[i].value);
-	    break;
 	case PSP_OP_RDPDEBUG:
 	    if((msg->header.dest == PSI_gettid(PSI_myid,0)) /* for me */
 	       || (msg->header.dest == -1))                    /* for any */
 		setDebugLevelRDP(msg->opt[i].value);
+	    break;
+	case PSP_OP_RDPPKTLOSS:
+	    if((msg->header.dest == PSI_gettid(PSI_myid,0)) /* for me */
+	       || (msg->header.dest == -1))                    /* for any */
+		setPktLossRDP(msg->opt[i].value);
+	    break;
+	case PSP_OP_RDPMAXRETRANS:
+	    if((msg->header.dest == PSI_gettid(PSI_myid,0)) /* for me */
+	       || (msg->header.dest == -1))                    /* for any */
+		setMaxRetransRDP(msg->opt[i].value);
 	    break;
 	case PSP_OP_MCASTDEBUG:
 	    if((msg->header.dest == PSI_gettid(PSI_myid,0)) /* for me */
@@ -1939,76 +1960,126 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
  */
 void msg_GETOPTION(DDOptionMsg_t* msg)
 {
-    int i, val;
-    for (i=0;i<msg->count;i++) {
-	if (PSI_isoption(PSP_ODEBUG)) {
-	    sprintf(PSI_txt,"GETOPTION() sender %lx option: %ld \n",
-		    msg->header.sender, msg->opt[i].option);
-	    SYSLOG(3,(LOG_ERR,PSI_txt));
-	}
-	switch (msg->opt[i].option) {
-	case PSP_OP_SMALLPACKETSIZE:
-	    if (PSID_CardPresent) {
-		msg->opt[i].value = PSHALSYS_GetSmallPacketSize();
-	    } else {
-		msg->opt[i].value = -1;
-	    }
-	    break;
-	case PSP_OP_RESENDTIMEOUT:
-	    if (PSID_CardPresent) {
-		if (PSHALSYS_GetMCPParam(MCP_PARAM_RTO, &val, NULL))
-		    break;
-		msg->opt[i].value = val;
-	    } else {
-		msg->opt[i].value = -1;
-	    }
-	    break;
-	case PSP_OP_HNPEND:
-	    if (PSID_CardPresent) {
-		if (PSHALSYS_GetMCPParam(MCP_PARAM_HNPEND, &val, NULL))
-		    break;
-		msg->opt[i].value = val;
-	    } else {
-		msg->opt[i].value = -1;
-	    }
-	    break;
-	case PSP_OP_ACKPEND:
-	    if (PSID_CardPresent) {
-		if (PSHALSYS_GetMCPParam(MCP_PARAM_ACKPEND, &val, NULL))
-		    break;
-		msg->opt[i].value = val;
-	    } else {
-		msg->opt[i].value = -1;
-	    }
-	    break;
-	case PSP_OP_PROCLIMIT:
-	    msg->opt[i].value = MAXPROCLimit;
-	    break;
-	case PSP_OP_UIDLIMIT:
-	    msg->opt[i].value = UIDLimit;
-	    break;
-	case PSP_OP_RDPDEBUG:
-	    msg->opt[i].value = getDebugLevelRDP();
-	    break;
-	case PSP_OP_MCASTDEBUG:
-	    msg->opt[i].value = getDebugLevelMCast();
-	    break;
-	default:
-	    sprintf(PSI_txt,"GETOPTION(): unknown option %ld \n",
-		    msg->opt[i].option);
-	    PSI_logerror(PSI_txt);
-	    SYSLOG(1,(LOG_ERR,PSI_txt));
-	    return;
-	}
+    int nodeno;
+    nodeno = PSI_getnode(msg->header.dest);
+    if (PSI_isoption(PSP_ODEBUG)){
+	sprintf(PSI_txt,"GETOPTION from node %d for requester %lx[%d,%d]\n",
+		nodeno, msg->header.sender,
+		msg->header.sender==-1 ? -1 : PSI_getnode(msg->header.sender),
+		PSI_getpid(msg->header.sender));
+	PSI_logerror(PSI_txt);
     }
-    /*
-     * prepare the message to route it to the receiver
-     */
-    msg->header.len = sizeof(*msg);
-    msg->header.type = PSP_DD_SETOPTION;
-    msg->header.dest = msg->header.sender;
-    msg->header.sender = PSI_gettid(PSI_myid,0);
-    sendMsg(msg);
+    if (nodeno!=PSI_myid) {
+	/* a request for a remote daemon */
+	if (DaemonIsUp(nodeno)) {
+	    /*
+	     * transfer the request to the remote daemon
+	     */
+	    if (sendMsg(msg)<=0) {
+		/* system error */
+		DDErrorMsg_t errmsg;
+		errmsg.header.len = sizeof(errmsg);
+		errmsg.request = msg->header.type;
+		errmsg.err = EHOSTDOWN;
+		errmsg.header.type = PSP_DD_SYSTEMERROR;
+		errmsg.header.dest = msg->header.sender;
+		errmsg.header.sender = PSI_gettid(PSI_myid,0);
+		sendMsg(&errmsg);
+	    }
+	} else {
+	    /* node ist unreachable */
+	    DDErrorMsg_t errmsg;
+	    errmsg.header.len = sizeof(errmsg);
+	    errmsg.request = msg->header.type;
+	    errmsg.err = EHOSTUNREACH;
+	    errmsg.header.type = PSP_DD_SYSTEMERROR;
+	    errmsg.header.dest = msg->header.sender;
+	    errmsg.header.sender = PSI_gettid(PSI_myid,0);
+	    sendMsg(&errmsg);
+	}
+    } else {
+	int i, val;
+	for (i=0; i<msg->count; i++) {
+	    if (PSI_isoption(PSP_ODEBUG)) {
+		sprintf(PSI_txt,"GETOPTION() sender %lx option: %ld \n",
+			msg->header.sender, msg->opt[i].option);
+		SYSLOG(3,(LOG_ERR,PSI_txt));
+	    }
+	    switch (msg->opt[i].option) {
+	    case PSP_OP_SMALLPACKETSIZE:
+		if (PSID_CardPresent) {
+		    msg->opt[i].value = PSHALSYS_GetSmallPacketSize();
+		} else {
+		    msg->opt[i].value = -1;
+		}
+		break;
+	    case PSP_OP_RESENDTIMEOUT:
+		if (PSID_CardPresent) {
+		    if (PSHALSYS_GetMCPParam(MCP_PARAM_RTO, &val, NULL))
+			break;
+		    msg->opt[i].value = val;
+		} else {
+		    msg->opt[i].value = -1;
+		}
+		break;
+	    case PSP_OP_HNPEND:
+		if (PSID_CardPresent) {
+		    if (PSHALSYS_GetMCPParam(MCP_PARAM_HNPEND, &val, NULL))
+			break;
+		    msg->opt[i].value = val;
+		} else {
+		    msg->opt[i].value = -1;
+		}
+		break;
+	    case PSP_OP_ACKPEND:
+		if (PSID_CardPresent) {
+		    if (PSHALSYS_GetMCPParam(MCP_PARAM_ACKPEND, &val, NULL))
+			break;
+		    msg->opt[i].value = val;
+		} else {
+		    msg->opt[i].value = -1;
+		}
+		break;
+	    case PSP_OP_PSIDDEBUG:
+		msg->opt[i].value = PSI_isoption(PSP_ODEBUG) ? 1:0;
+		msg->opt[i].value = 17;
+	    case PSP_OP_PSIDSELECTTIME:
+		msg->opt[i].value = selecttimer.tv_sec;
+	    case PSP_OP_PROCLIMIT:
+		msg->opt[i].value = MAXPROCLimit;
+		break;
+	    case PSP_OP_UIDLIMIT:
+		msg->opt[i].value = UIDLimit;
+		break;
+	    case PSP_OP_RDPDEBUG:
+		msg->opt[i].value = getDebugLevelRDP();
+		break;
+	    case PSP_OP_RDPPKTLOSS:
+		msg->opt[i].value = getPktLossRDP();
+		break;
+	    case PSP_OP_RDPMAXRETRANS:
+		msg->opt[i].value = getMaxRetransRDP();
+		break;
+	    case PSP_OP_MCASTDEBUG:
+		msg->opt[i].value = getDebugLevelMCast();
+		break;
+	    default:
+		sprintf(PSI_txt,"GETOPTION(): unknown option %ld \n",
+			msg->opt[i].option);
+		PSI_logerror(PSI_txt);
+		SYSLOG(1,(LOG_ERR,PSI_txt));
+		return;
+	    }
+	}
+	/*
+	 * prepare the message to route it to the receiver
+	 */
+	msg->header.len = sizeof(*msg);
+	msg->header.type = PSP_DD_SETOPTION;
+	msg->header.dest = msg->header.sender;
+	msg->header.sender = PSI_gettid(PSI_myid,0);
+	sendMsg(msg);
+    }
 }
 
 /******************************************
@@ -2512,6 +2583,12 @@ void psicontrol(int fd )
 			unsigned long addr;
 			addr = PSID_hostaddress(node2);
 			PSI_startdaemon(addr);
+			if (send_DAEMONCONNECT(node2)<0) {
+			    SYSLOG(2, (LOG_ERR, "CONTACTNODE:"
+				       " send_DAEMONCONNECT() returned with"
+				       " error %d\n",
+				       errno));
+			}
 		    }else{
 			sprintf(PSI_txt,"CONTACTNODE  received but node2 is "
 				"already up ( node1= %d node2 = %d)\n",
@@ -2665,30 +2742,46 @@ void RDPCallBack(int msgid, void* buf)
     case RDP_NEW_CONNECTION:
 	node = *(int*)buf;
 	SYSLOG(2,(LOG_ERR, "RDPCallBack(RDP_NEW_CONNECTION,%d). \n", node));
-/*  	if(node != PSI_myid) { */
-/*  	    initDaemon(0,node); */
-/*  	    if(send_DAEMONCONNECT(node)<0) */
-/*  		SYSLOG(2,(LOG_ERR,"RDPCallBack() send_DAEMONCONNECT() " */
-/*  			  "returned with error %d\n", */
-/*  			  errno)); */
-/*  	} */
+	if(node != PSI_myid && !DaemonIsUp(node)) {
+	    initDaemon(0, node, -1);
+	    if(send_DAEMONCONNECT(node)<0)
+		SYSLOG(2,(LOG_ERR,"RDPCallBack() send_DAEMONCONNECT() "
+			  "returned with error %d\n",
+			  errno));
+	}
 	break;
     case RDP_PKT_UNDELIVERABLE:
 	msg = (DDMsg_t*)((RDPDeadbuf*)buf)->buf;
 	SYSLOG(2,(LOG_ERR,"RDPCallBack(RDP_PKT_UNDELIVERABLE,"
 		  "dest %lx source %lx %s). \n",
 		  msg->dest, msg->sender, PSPctrlmsg(msg->type)));
-	if(PSI_getpid(msg->sender))
-	{
+	if (PSI_getpid(msg->sender)) {
 	    /* sender is a client (somewhere) */
-	    DDErrorMsg_t errmsg;
-	    errmsg.header.len = sizeof(errmsg);
-	    errmsg.request = msg->type;
-	    errmsg.err = EHOSTUNREACH;
-	    errmsg.header.type = PSP_DD_SYSTEMERROR;
-	    errmsg.header.dest = msg->sender;
-	    errmsg.header.sender = PSI_gettid(PSI_myid,0);
-	    sendMsg(&errmsg);
+	    switch (msg->type) {
+	    case PSP_DD_GETOPTION:
+	    case PSP_CD_COUNTSTATUSREQUEST:
+	    case PSP_CD_RDPSTATUSREQUEST:
+	    case PSP_CD_MCASTSTATUSREQUEST:
+	    case PSP_CD_HOSTSTATUSREQUEST:
+	    case PSP_CD_HOSTLISTREQUEST:
+	    case PSP_CD_HOSTREQUEST:
+	    case PSP_CD_LOADREQ:
+	    case PSP_CD_PROCREQ:
+	    {
+		/* Sender expects an answer */
+		DDErrorMsg_t errmsg;
+		errmsg.header.len = sizeof(errmsg);
+		errmsg.request = msg->type;
+		errmsg.err = EHOSTUNREACH;
+		errmsg.header.type = PSP_DD_SYSTEMERROR;
+		errmsg.header.dest = msg->sender;
+		errmsg.header.sender = PSI_gettid(PSI_myid,0);
+		sendMsg(&errmsg);
+		break;
+	    }
+	    default:
+		break;
+	    }
 	}
 	break;
     case RDP_LOST_CONNECTION:
@@ -2912,7 +3005,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.37 $";
+    char revision[] = "$Revision: 1.38 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -3191,14 +3284,15 @@ int main(int argc, char **argv)
 	/*
 	 * Initialize MCast and RDP
 	 */
-	MCastSock = initMCast(PSI_nrofnodes, ConfigMgroup, 1 /* use syslog */,
-			      hostlist, 0 /* not licServer */, MCastCallBack);
+	MCastSock = initMCast(PSI_nrofnodes, ConfigMCastGroup, ConfigMCastPort,
+			      1 /* use syslog */, hostlist,
+			      0 /* not licServer */, MCastCallBack);
 	if (MCastSock<0) {
 	    SYSLOG(0,(LOG_ERR,
 		      "Error while trying initMCast (code %d)\n",errno));
 	    exit(1);
 	}
-	RDPSocket = initRDP(PSI_nrofnodes, 1 /* use syslog */,
+	RDPSocket = initRDP(PSI_nrofnodes, ConfigRDPPort, 1 /* use syslog */,
 			    hostlist, RDPCallBack);
 	if (RDPSocket<0) {
 	    SYSLOG(0,(LOG_ERR,

@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: parse.h,v 1.6 2002/02/12 15:09:06 eicker Exp $
+ * $Id: parse.h,v 1.7 2002/02/15 19:35:25 eicker Exp $
  *
  */
 /**
  * \file
  * parse: Parser for ParaStation daemon
  *
- * $Id: parse.h,v 1.6 2002/02/12 15:09:06 eicker Exp $
+ * $Id: parse.h,v 1.7 2002/02/15 19:35:25 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -54,7 +54,9 @@ extern int ConfigAckPend;
 
 extern long ConfigPsidSelectTime;
 extern long ConfigDeclareDeadInterval;
-extern int ConfigMgroup;
+extern int ConfigRDPPort;
+extern int ConfigMCastGroup;
+extern int ConfigMCastPort;
 extern int ConfigRLimitDataSize;
 
 extern int ConfigSyslogLevel;

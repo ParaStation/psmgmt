@@ -6,7 +6,7 @@ extern unsigned char lasthname[];
 void install(char *s);
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: psid.scan.l,v 1.6 2002/02/12 15:09:06 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: psid.scan.l,v 1.7 2002/02/15 19:35:25 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 %}
 
@@ -34,7 +34,9 @@ resendtimeout		{ return RESENDTIMEOUT; }
 hnpend			{ return HNPEND; }
 ackpend			{ return ACKPEND; }
 
-mcast			{ return MCAST; }
+mcastgroup|mcast        { return MCASTGROUP; }
+mcastport               { return MCASTPORT; }
+rdpport                 { return RDPPORT; }
 psidselecttime		{ return PSIDSELECTTIME; }
 declaredeadinterval	{ return DECLAREDEAD; }
 

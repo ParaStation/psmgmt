@@ -7,7 +7,7 @@
 #include "parse.h"
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char yaccid[] __attribute__(( unused )) = "$Id: psid.scan.y,v 1.8 2002/02/12 15:09:06 eicker Exp $";
+static char yaccid[] __attribute__(( unused )) = "$Id: psid.scan.y,v 1.9 2002/02/15 19:35:25 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
  %}
@@ -33,7 +33,7 @@ static char yaccid[] __attribute__(( unused )) = "$Id: psid.scan.y,v 1.8 2002/02
 
 %token SMALLPACKET RESENDTIMEOUT HNPEND ACKPEND
 
-%token MCAST PSIDSELECTTIME DECLAREDEAD
+%token MCASTGROUP MCASTPORT RDPPORT PSIDSELECTTIME DECLAREDEAD
 %token RLIMITDATASIZE
 
 %token SYSLOGLEVEL SYSLOG
@@ -66,7 +66,9 @@ commline: instdirline
         | rlimitdatasizeline
         | sysloglevelline
         | syslogline
-        | mcastline
+        | mcastportline
+        | mcastgroupline
+        | rdpportline
         ;
 
 instdirline:
@@ -106,27 +108,27 @@ routingline:
         ;
 
 smallpacketline:
-        SMALLPACKET NUMBER       { ConfigSmallPacketSize=$2; }
+        SMALLPACKET NUMBER       { ConfigSmallPacketSize = $2; }
         ;
 
 resendtimeoutline:
-        RESENDTIMEOUT NUMBER     { ConfigRTO=$2; }
+        RESENDTIMEOUT NUMBER     { ConfigRTO = $2; }
         ;
 
 hnpendline:
-        HNPEND NUMBER            { ConfigHNPend=$2; }
+        HNPEND NUMBER            { ConfigHNPend = $2; }
         ;
 
 ackpendline:
-        ACKPEND NUMBER           { ConfigAckPend=$2; }
+        ACKPEND NUMBER           { ConfigAckPend = $2; }
         ;
 
 rlimitdatasizeline:
-        RLIMITDATASIZE NUMBER    { ConfigRLimitDataSize=$2; }
+        RLIMITDATASIZE NUMBER    { ConfigRLimitDataSize = $2; }
         ;
 
 sysloglevelline:
-        SYSLOGLEVEL NUMBER       { ConfigSyslogLevel=$2; }
+        SYSLOGLEVEL NUMBER       { ConfigSyslogLevel = $2; }
         ;
 
 syslogline:
@@ -143,9 +145,18 @@ syslogline:
         | SYSLOG PSLOG_LOCAL7    { ConfigSyslog=LOG_LOCAL7; }
         ;
 
-mcastline: 
-        MCAST NUMBER             { ConfigMgroup = $2; }
+rdpportline:
+        RDPPORT NUMBER           { ConfigRDPPort = $2; }
         ;
+
+mcastgroupline: 
+        MCASTGROUP NUMBER        { ConfigMCastGroup = $2; }
+        ;
+
+mcastportline:
+        MCASTPORT NUMBER         { ConfigMCastPort = $2; }
+        ;
+
 %%
 
 int lineno=0;

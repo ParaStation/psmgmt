@@ -25,19 +25,18 @@
 #ifndef _psidutil_h_
 #define _psidutil_h_
 
-#include <sys/types.h>
 #include "psitask.h"
 
 struct PSID_host_t{
-    u_int saddr;
-    u_int psino;
+    unsigned int saddr;
+    unsigned int psino;
     struct PSID_host_t* next;
 };
 
 int PSID_CardPresent ;    /* indicates if the card is present */
 
 extern struct PSID_host_t *PSID_hosts[256];  /* host table */
-extern unsigned long *PSID_hostaddresses;    /* fast access to IN adresses */
+extern unsigned int *PSID_hostaddresses;     /* fast access to IN adresses */
 extern char *PSID_hoststatus;     /* state of specific hosts: PSPHOSTUP|.. */
 
 void PSID_ReConfig(int nodenr, int nrofnodes, char *license, char *module,
@@ -47,7 +46,7 @@ void PSID_CardStop(void);
 
 int PSID_host(unsigned int addr);
 
-unsigned long PSID_hostaddress(unsigned short id);
+unsigned int PSID_hostaddress(unsigned short id);
 
 int PSID_inserthost(unsigned int addr, unsigned short psino);
 

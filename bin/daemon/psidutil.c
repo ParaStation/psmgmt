@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.25 2002/02/12 19:09:09 eicker Exp $
+ * $Id: psidutil.c,v 1.26 2002/02/15 19:35:25 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.25 2002/02/12 19:09:09 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.26 2002/02/15 19:35:25 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -41,7 +41,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.25 2002/02/1
 int PSID_CardPresent;
 
 struct PSID_host_t *PSID_hosts[256];
-unsigned long *PSID_hostaddresses = NULL;
+unsigned int *PSID_hostaddresses = NULL;
 char *PSID_hoststatus = NULL;
 
 static char errtxt[256];
@@ -189,8 +189,8 @@ int PSID_readconfigfile(void)
     }
 
     PSID_hoststatus = (char *) malloc(NrOfNodes * sizeof(char));
-    PSID_hostaddresses = (unsigned long *) malloc(NrOfNodes
-						  * sizeof(unsigned long));
+    PSID_hostaddresses =
+	(unsigned int *) malloc(NrOfNodes * sizeof(*PSID_hostaddresses));
     /*
      * check the PSID specific entries in the configfile
      * if (parameters !=-1)  use value of parameter
@@ -615,7 +615,7 @@ int PSID_host(unsigned int addr)
  *      RETURN  the INET id addr for the host with psi node no id, 
  *              -1 if addr is not registered.
  */
-unsigned long PSID_hostaddress(unsigned short id)
+unsigned int PSID_hostaddress(unsigned short id)
 {
 #if defined(DEBUG)
     if(PSP_DEBUGHOST & PSI_debugmask){

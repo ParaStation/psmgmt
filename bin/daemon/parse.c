@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: parse.c,v 1.13 2002/02/12 19:06:59 eicker Exp $
+ * $Id: parse.c,v 1.14 2002/02/15 19:35:25 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: parse.c,v 1.13 2002/02/12 19:06:59 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: parse.c,v 1.14 2002/02/15 19:35:25 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -52,7 +52,9 @@ int ConfigAckPend = -1;
 int ConfigRLimitDataSize = -1;
 int ConfigSyslogLevel = 10;          /* default max. syslog level */
 int ConfigSyslog = LOG_DAEMON;
-int ConfigMgroup = 237;
+int ConfigRDPPort = 886;
+int ConfigMCastGroup = 237;
+int ConfigMCastPort = 1889;
 long ConfigPsidSelectTime = -1;
 long ConfigDeclareDeadInterval = -1;
 
