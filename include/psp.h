@@ -67,8 +67,10 @@
 
 #define PSP_DD_TASKKILL            0x0040
 #define PSP_DD_NOTIFYDEAD          0x0041
-#define PSP_DD_WHODIED             0x0042
-#define PSP_DD_NOTIFYDEADRES       0x0043
+#define PSP_DD_RELEASE             0x0042
+#define PSP_DD_WHODIED             0x0043
+#define PSP_DD_NOTIFYDEADRES       0x0044
+#define PSP_DD_RELEASERES          0x0045
 
 #define PSP_DD_SYSTEMERROR         0x0050
 #define PSP_DD_STATENOCONNECT      0x0051
