@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.11 2002/07/23 12:45:25 eicker Exp $
+ * $Id: config_parsing.c,v 1.12 2002/07/25 13:52:57 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.11 2002/07/23 12:45:25 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.12 2002/07/25 13:52:57 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -141,7 +141,7 @@ static int installHost(unsigned int ipaddr, int id,
 	return -1;
     }
 
-    if ((id<0) || (id>NrOfNodes)) { /* id out of Range */
+    if ((id<0) || (id>=NrOfNodes)) { /* id out of Range */
 	snprintf(errtxt, sizeof(errtxt),
 		 "node ID <%d> out of range (NrOfNodes = %d)", id, NrOfNodes);
 	parser_comment(errtxt, 0);
@@ -873,9 +873,9 @@ static int getNodeLine(char *token)
 	parser_comment(errtxt, 6);
     }
 
-    installHost(ipaddr, nodenum, node_hwtype, node_hasIP, node_canstart);
+    ret = installHost(ipaddr, nodenum, node_hwtype, node_hasIP, node_canstart);
 
-    return 0;
+    return ret;
 }
 
 static int endNodeEnv(char *token)
