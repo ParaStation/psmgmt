@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.h,v 1.3 2002/01/30 18:25:57 eicker Exp $
+ * $Id: mcast.h,v 1.4 2002/01/31 08:46:46 eicker Exp $
  *
  */
 /**
  * \file
  * ParaStation MultiCast facility
  *
- * $Id: mcast.h,v 1.3 2002/01/30 18:25:57 eicker Exp $
+ * $Id: mcast.h,v 1.4 2002/01/31 08:46:46 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -28,40 +28,54 @@ extern "C" {
 #endif
 #endif
 
-/** @todo Create docu */
+/** Possible MCast states of a node */
 typedef enum {
-    DOWN = 0x1,
-    UP   = 0x2
+    DOWN = 0x1,  /**< node is down */
+    UP   = 0x2   /**< node is up */
 } MCastState;
 
-/** @todo Create docu */
+/** The load info of a node */
 typedef struct {
     double load[3];           /**< The actual load parameters */
 } MCastLoad;
 
-/** @todo Create docu */
+/** The whole MCast info about a node */
 typedef struct {
-    MCastState state;
-    MCastLoad  load;
-    int        misscounter;
+    MCastState state;    /**< The state info of the node @see MCastState */
+    MCastLoad load;      /**< The load info of the node @see MCastLoad */
+    int misscounter;     /**< The number of missing pings from this node */
 } MCastConInfo;
 
-/** @todo Create docu */
+/** Structure of a MCast message */
 typedef struct {
-    short    node;            /**< Sender ID */
-    short    type;            /**< Message type */
-    MCastState state;         /**< @todo */
-    MCastLoad  load;          /**< @todo */
+    short node;          /**< Sender ID */
+    short type;          /**< Message type */
+    MCastState state;    /**< The state info @see MCastState */
+    MCastLoad load;      /**< The load info @see MCastLoad */
 } MCastMsg;
 
-#define MCAST_NEW_CONNECTION    0x80   /* buf == nodeno */
-#define MCAST_LOST_CONNECTION   0x81   /* buf == nodeno */
+/** Tag to @ref MCastCallback: New connection detected */
+#define MCAST_NEW_CONNECTION  0x80
+/** Tag to @ref MCastCallback: Connection lost */
+#define MCAST_LOST_CONNECTION 0x81
+/** Tag to @ref MCastCallback: Connection to license server lost */
+#define MCAST_LIC_LOST        0x88
+/**
+ * Tag to @ref MCastCallback: Connection to license server lost for too long
+ * or explicit shutdown.
+ */
+#define MCAST_LIC_SHUTDOWN    0x89
 
-#define MCAST_LIC_LOST          0x88   /* buf == sinaddr */ 
-#define MCAST_LIC_SHUTDOWN      0x89   /* buf == reason */ 
-
-#define LIC_LOST_CONECTION      0x1
-#define LIC_KILL_MSG            0x2
+/**
+ * Tag for @ref MCAST_LIC_SHUTDOWN message to @ref MCastCallback: Connection
+ * to license server lost for too long.
+ */
+#define LIC_LOST_CONECTION    0x1
+/**
+ * Tag for @ref MCAST_LIC_SHUTDOWN message to @ref MCastCallback: Got explicit
+ * shutdown from license server.
+ */
+#define LIC_KILL_MSG          0x2
 
 
 #define MCASTSERVICE "psmcast"   /**< The symbolic name of MCast-service */
@@ -116,8 +130,16 @@ int getDebugLevelMCast(void);
  * @brief Set the debug-level.
  *
  * Set the debug-level of the MCast module. Posible values are:
- *  - 0: Critical errors (usually exit)
- *  - 1: .... @todo More levels to add.
+ *  - 0: Critical errors (usually exit).
+ *  - 2: Basic info about initialization.
+ *  - 4: More detailed info about initialization, i.e. from
+ *       initConntableMCast().
+ *  - 5: Info about interrupted syscalls.
+ *  - 6: Info about @ref T_CLOSE and new pings.
+ *  - 8: Info about every 5th missing ping.
+ *  -10: Info about every missing ping.
+ *  -11: Info about every received ping.
+ *  -12: Info about every sent ping.
  *
  * @param level The debug-level to set
  *

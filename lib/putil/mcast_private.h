@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast_private.h,v 1.4 2002/01/30 18:03:08 eicker Exp $
+ * $Id: mcast_private.h,v 1.5 2002/01/31 08:50:17 eicker Exp $
  *
  */
 /**
@@ -14,7 +14,7 @@
  *
  * Private functions and definitions.
  *
- * $Id: mcast_private.h,v 1.4 2002/01/30 18:03:08 eicker Exp $
+ * $Id: mcast_private.h,v 1.5 2002/01/31 08:50:17 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -45,26 +45,31 @@ extern "C" {
   } while (0)
 #endif
 
-static int licserver = 0;        /**< Flag whether we are LicServer.
-				    Set via initMCast(). */
+/** Flag whether we are LicServer. Set via initMCast(). */
+static int licserver = 0;
 
-static int mcastsock = -1;       /**< The socket used to send and receive MCast
-				    packets. Will be opened in initMCast(). */
+/**
+ * The socket used to send and receive MCast packets. Will be opened in
+ * initMCast().
+ */
+static int mcastsock = -1;
 
-static struct sockaddr_in msin;  /**< The corresponding socket-address of the
-				    MCast packets. */
+/** The corresponding socket-address of the MCast packets. */
+static struct sockaddr_in msin;
 
-static int  nrOfNodes = 0;       /**< The size of the cluster.
-				    Set via initMCast(). */
+/** The size of the cluster. Set via initMCast(). */
+static int  nrOfNodes = 0;
 
 static char errtxt[256];         /**< String to hold error messages. */
 
-static int myID;                 /**< My node-ID withing the cluster.
-				    Determined in initMCast(). */
+/** My node-ID withing the cluster. Determined in initMCast(). */
+static int myID;
 
-static void (*callback)(int, void*) = NULL;
-                /**< The callback function. Will be used to send messages to
-		   the calling process. Set via initMCast(). */
+/**
+ * The callback function. Will be used to send messages to the calling
+ * process. Set via initMCast().
+ */
+static void (*MCastCallback)(int, void*) = NULL;
 
 /**
  * The possible MCast message types.
@@ -80,7 +85,14 @@ typedef enum {
  * The timeout used for MCast ping. The is a const for now and can only
  * changed in the sources.
  */
-static struct timeval TIMER_LOOP = {2, 0}; /* sec, usec */
+static struct timeval MCastTimeout = {2, 0}; /* sec, usec */
+
+/**
+ * The actual dead-limit. Get/set by getDeadLimitMCast()/setDeadLimitMCast()
+ */
+static int MCastDeadLimit = 10;
+
+/* ---------------------------------------------------------------------- */
 
 /**
  * @brief Recv a message
@@ -118,20 +130,69 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
  * @param to The address the message is send to.
  * @param tolen Length of @a to.
  *
- * @return On success, the number of bytes received is returned, or -1 if
- * an error occured.
+ * @return On success, the number of bytes sent is returned, or -1 if an error
+ * occured.
  *
  * @see sendto(2)
  */
 static int MYsendto(int sock, void *buf, size_t len, int flags,
 		    struct sockaddr *to, socklen_t tolen);
 
-
-static int DEADLIMIT = 10;      /**< The actual dead-limit. Get/set by
-				   getDeadLimitMCast()/setDeadLimitMCast() */
+/* ---------------------------------------------------------------------- */
 
 /**
- * Connection info for each node we expect pings from.
+ * One entry for each node we want to connect with
+ */
+typedef struct ipentry_ {
+    unsigned int ipnr;      /**< IP number of the node */
+    int node;               /**< logical node number */
+    struct ipentry_ *next;  /**< pointer to next entry */
+} ipentry;
+
+/**
+ * 256 entries since lookup is based on LAST byte of IP number.
+ * Initialized by initIPTable().
+ */
+static ipentry iptable[256];
+
+/**
+ * @brief Initialize @ref iptable.
+ *
+ * Initializes @ref iptable. List is empty after this call.
+ *
+ * @return No return value.
+ */
+static void initIPTable(void);
+
+/**
+ * @brief Create new entry in @ref iptable.
+ *
+ * Register another node in @ref iptable.
+ *
+ * @param ipno The IP number of the node to register.
+ * @param node The corresponding node number.
+ *
+ * @return No return value.
+ */
+static void insertIPTable(struct in_addr ipno, int node);
+
+/**
+ * @brief Get node number from IP number.
+ *
+ * Get the node number from given IP number for a node registered via
+ * insertIPTable().
+ *
+ * @param ipno The IP number of the node to find.
+ *
+ * @return On success, the node number corresponding to @a ipno is returned,
+ * or -1 if the node could not be found in @ref iptable.
+ */
+static int lookupIPTable(struct in_addr ipno);
+
+/* ---------------------------------------------------------------------- */
+
+/**
+ * Connection info for each node pings are expected from.
  */
 typedef struct Mconninfo_ {
     struct timeval lastping; /**< Timestamp of last received ping */
@@ -144,17 +205,39 @@ typedef struct Mconninfo_ {
 /**
  * Array to hold all connection info.
  */
-static Mconninfo *conntable = NULL;
+static Mconninfo *conntableMCast = NULL;
 
-/*
- * ipentry & iptabel is used to lookup node_nr if ip_nr is given
+/**
+ * @brief Initialize the @ref conntableMCast.
+ *
+ * Initialize the @ref conntableMCast for @a nodes nodes to receive pings
+ * from. The IP numbers of all nodes are stored in @a host.
+ *
+ * @param nodes The number of nodes pings are expected from.
+ * @param host The IP number of each node indexed by node number. The length
+ * of @a host must be at least @a nodes.
+ * @param port The port pings are expected to be sent from.
+ *
+ * @return No return value.
  */
-typedef struct ipentry_ {
-    unsigned int ipnr;      /* ip nr of host */
-    int node;               /* logical node number */
-    struct ipentry_ *next;  /* pointer to next entry */
-} ipentry;
+static void initConntableMCast(int nodes,
+			       unsigned int host[], unsigned short port);
 
+/* ---------------------------------------------------------------------- */
+
+/**
+ * @brief Get port number from service.
+ *
+ * Lookup the port number corresponding to string @a service.
+ *
+ * @param service A \\0-terminated string holding a descrition of the service.
+ * This can be either a symbolic name to be looked up in the service database
+ * or a printed number.
+ *
+ * @return On success, the corresponding port is returned. On error, exit()
+ * is called within this function.
+ */
+static unsigned short getServicePort(char *service);
 
 /**
  * @brief Setup a socket for MCast communication.
@@ -171,15 +254,38 @@ typedef struct ipentry_ {
 static int initSockMCast(int group, unsigned short port);
 
 /**
- * @brief Send MCast ping.
+ * @brief Close a connection.
  *
- * Send a MCast ping message to the MCast group.
- *
- * @param state The actual state of the sending node.
+ * Close the MCast connection to node @a node, i.e. don't expect further
+ * pings from this node, and inform the calling program.
  *
  * @return No return value.
  */
-static void pingMCast(MCastState state);
+static void closeConnectionMCast(int node);
+
+/**
+ * @brief Check all connections.
+ *
+ * Check all connections to other nodes, i.e. test if there are any missing
+ * MCast pings. If more than @ref MCastDeadLimit consecutive pings from one
+ * node are missing, the calling process is informed via the @ref MCastCallback
+ * function.
+ *
+ * @return No return value.
+ */
+static void checkConnectionsMCast(void);
+
+/**
+ * @brief Timeout handler to be registered in Timer facility.
+ *
+ * Timeout handler called from Timer facility every time @ref MCastTimeout
+ * expires.
+ *
+ * @param fd Descriptor referencing the MCast socket.
+ *
+ * @return No return value.
+ */
+static void handleTimeoutMCast(int fd);
 
 /**
  * @brief Handle MCast ping.
@@ -194,18 +300,25 @@ static void pingMCast(MCastState state);
 static int handleMCast(int fd);
 
 /**
- * @todo Insert docu
+ * @brief Get load information from kernel.
+ *
+ * Get load information from the kernel. The implementation is platform
+ * specific, since POSIX has no mechanism to retrieve this info.
+ *
+ * @return A @ref MCastLoad structure containing the load info.
  */
-static void checkConnections(void);
+static MCastLoad getLoad(void);
 
 /**
- * @brief Close a connection.
+ * @brief Send MCast ping.
  *
- * Close the connection to node @a node and inform the calling program.
+ * Send a MCast ping message to the MCast group.
+ *
+ * @param state The actual state of the sending node.
  *
  * @return No return value.
  */
-static void closeConnection(int node);
+static void pingMCast(MCastState state);
 
 /**
  * @brief Create string from @ref MCastState.
