@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp_private.h,v 1.9 2002/03/08 14:17:23 eicker Exp $
+ * $Id: rdp_private.h,v 1.10 2002/07/03 20:20:18 eicker Exp $
  *
  */
 /**
@@ -14,7 +14,7 @@
  *
  * Private functions and definitions
  *
- * $Id: rdp_private.h,v 1.9 2002/03/08 14:17:23 eicker Exp $
+ * $Id: rdp_private.h,v 1.10 2002/07/03 20:20:18 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -81,7 +81,7 @@ typedef enum {
 /** The RDP Packet Header */
 typedef struct {
     short type;           /**< packet type */
-    short len;            /**< message length */
+    unsigned short len;   /**< message length */
     int seqno;            /**< Sequence number of packet */
     int ackno;            /**< Sequence number of ack */
     int connid;           /**< Connection Identifier */
