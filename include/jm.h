@@ -15,6 +15,7 @@
 #define JM_MEM_BASE SHARED_MEM_BASE
 
 
+
 #define jm_DMA_SIZE	64
 
 #define jm_MTU	(8192 + 256 )
@@ -27,6 +28,7 @@
 //#define jm_N2H_CMDQ_SIZE	8
 
 #define jm_LANaiBufs_COUNT	100
+#define jm_LANaiCtrlBufs_COUNT	100
 #define jm_NNodes		4096
 #define jm_NContext		128
 
@@ -40,9 +42,19 @@
 #define jm_H2NCmd_MASK		0xff000000
 #define jm_H2NCmd_Shift			24
 
-#define jm_H2NCmd_Hello		0x01000000 /* Hello. Lower bits param */
-#define jm_H2NCmd_Send		0x02000000 /* Send. Lower bits:address to LANaiBuf */
-#define jm_H2NCmd_Recv		0x03000000 /* Recv. Lower bits:address to LANaiBuf */
+#define jm_H2NCmd_Param1	0x01000000 /* Save Lower bits */
+
+#define jm_H2NCmd_Hello		0x02000000 /* Hello. Lower bits param */
+/* Send buffer, ack to host after transmit */
+#define jm_H2NCmd_SendAck	0x03000000 /* Send. Lower bits:address to LANaiBuf */
+/* Send buffer, no ack to host allowed */
+#define jm_H2NCmd_SendNoAck	0x04000000 /* Send. Lower bits:address to LANaiBuf */
+#define jm_H2NCmd_AckFree	0x05000000 /* convert SendNoAck to SendAck */
+
+#define jm_H2NCmd_Recv		0x06000000 /* Recv. Lower bits:address to LANaiBuf */
+
+#define jm_H2NCmd_HALUNEXPECT	0x07000000 /* Send jm_HALACKT_UNEXPECT to dest. param,seqno in Param1*/
+#define jm_H2NCmd_HALNEWCON	0x08000000 /* Send jm_HALACKT_NEWCON   to dest. param */
 
 
 
@@ -57,7 +69,13 @@
 
 #define jm_N2HCmd_RecvFail	0x05000000 /* Recv Fail. Lower bits:address to LANaiBuf */
 
+#define jm_N2HCmd_RandomReject	0x06000000 /* no doc */
 
+#define jm_HALACKT_ACK		0
+#define jm_HALACKT_UNEXPECT	1
+#define jm_HALACKT_NEWCON	3
+#define jm_HALACKT_ALREADYSEEN	4
+#define jm_HALACKT_SYNACK	5
 
 
 
@@ -72,9 +90,33 @@ typedef struct jm_NetRawHeader_T{
 }jm_NetRawHeader_t;
 
 typedef struct jm_NetData_T{
-    UINT8	d[jm_MTU];
+    INT16		type;
+    UINT16		flags;	
+    UINT8		data[jm_MTU];
 }jm_NetData_t;
 
+typedef struct psjm_halackheader_T{
+    INT16		type;		/* == jm_PackType_HalAck */
+    UINT16		acktype;	
+    UINT16		srcnode;
+    UINT16		ackseqno;
+}psjm_halackheader_t;
+
+typedef struct psjm_halheader_T{
+    INT16		type;		/* == jm_PackType_HalData */
+    UINT16		datalen;	/* Length of Packet */
+    INT16		src;		/* Source */
+    INT16		srcport;	/* Source Port No. */
+
+    INT16		dest;		/* Destination */
+    INT16		destport;	/* Destination Port No. */
+    UINT8		xhlen;		/* len of extra header */
+    /* rdp part */
+    UINT8		flags;		/* RDP Flags*/
+
+    UINT16		seqno;
+//    UINT32		_reserve_;
+}psjm_halheader_t;
 
 typedef struct jm_NetSendParam_T{
     MCP_POINTER(void)	smp;
@@ -87,7 +129,7 @@ typedef struct jm_NetRecvParam_T{
     UINT32	eah;
     UINT32	eal;
     UINT32	len;
-    UINT32	_align8_;
+    UINT32	bufferid;
 }jm_NetRecvParam_t;
 
 typedef struct jm_DMAMarker_T{
@@ -96,31 +138,22 @@ typedef struct jm_DMAMarker_T{
 }jm_DMAMarker_t;
 
 
-typedef struct psjm_halheader_T{
-    INT16		type;			/* packet Type */
-    UINT16		datalen;		/* Length of Packet */
-    INT16		src;			/* Source */
-    INT16		srcport;		/* Source Port No. */
-
-    INT16		dest;			/* Destination */
-    INT16		destport;		/* Destination Port No. */
-    UINT16		xhlen;			/* len of extra header */
-    INT16		flags;			/* Flags (Retransmission) */
-}psjm_halheader_t;
-
-
-
-
 #define jm_LANaiBuf_State_FREE		0x00000000
-#define jm_LANaiBuf_State_SENDQ		0x00000001
-#define jm_LANaiBuf_State_SENDING	0x00000002
-#define jm_LANaiBuf_State_RECVQ		0x00000004
-#define jm_LANaiBuf_State_RECEIVIG	0x00000008
+#define jm_LANaiBuf_State_SENDQ		0x00000001	/* buffer enqueued */
+#define jm_LANaiBuf_State_SENDING	0x00000002	/* buffer in transmit */
+#define jm_LANaiBuf_State_SENDACK	0x00000004	/* want ack to host after transmit */
+#define jm_LANaiBuf_State_SENDNOACK	0x00000008	/* no ack to host after transmit */
+#define jm_LANaiBuf_State_SENDCTRLENQ	0x00000010	/* want ctrl buf enqueue after transmit */
+#define jm_LANaiBuf_State_RECVQ		0x00000100
+#define jm_LANaiBuf_State_RECEIVIG	0x00000200
 
+#define jm_Conn_FLAG_SYN	0x01
 
 #define jm_PackType_ErrBit		0x8000
-#define jm_PackType_RawData		0x0240
-#define jm_PackType_HalData		0x0241
+//#define jm_PackType_RawData		0x0250 /* unused */
+#define jm_PackType_HalData		0x0251
+#define jm_PackType_HalAck		0X0252
+#define jm_PackType_HalOOData		0x0253 /* used between host and net for out of order packs */
 
 #define jm_DMAMarker_Type_Mask		0xffff0000
 #define jm_DMAMarker_Type_Shift		16
@@ -139,7 +172,6 @@ typedef struct psjm_halheader_T{
 #define jm_DMAMarker_lastbyte_Shift	16
 
 
-
 typedef struct jm_LANaiBuf_T{
     MCP_POINTER(struct jm_LANaiBuf_T)
 	ALIGN8(Next);
@@ -147,13 +179,18 @@ typedef struct jm_LANaiBuf_T{
     jm_NetRecvParam_t	NetRecvParam;
     jm_NetSendParam_t	NetSendParam;
     jm_NetRouting_t	Route;
-    jm_NetRawHeader_t	Header;
-    jm_NetData_t	Data;
+    union{
+	jm_NetRawHeader_t	RawHeader;
+	jm_NetData_t		Data;
+	psjm_halackheader_t	HALack;
+	psjm_halheader_t	HALHeader;
+    }u;
     jm_DMAMarker_t	_space1a_; /* used for crc32 or marker after data */
     UINT32		_space1b_; /* |room for rent :-) | crc8 and unused */
     UINT32		_space2a_; /* and additional double word  */ 
     UINT32		_space2b_; /* to prevent set buf_int_bit  */
 }jm_LANaiBuf_t;
+
 
 typedef struct jm_DMACtrlBlock_T{
     volatile UINT32	next_with_flags; /* Pointer to next control block */
@@ -180,6 +217,14 @@ typedef struct jm_counter_T{
     UINT32	Send;
 }jm_counter_t;
 
+
+typedef struct jm_conn_info_T{
+    jm_NetRouting_t	route;
+    UINT8		align;
+    UINT8		recvok;
+    UINT16		recvseqno;
+}jm_conn_info_t;
+
 typedef struct jm_mem_T{
     UINT32			MagicStart;
     UINT32			_Align1_;
@@ -200,7 +245,7 @@ typedef struct jm_mem_T{
     UINT32			LANaiBufs_Count;
 
     UINT32			H2NCmdQ[jm_H2N_CMDQ_SIZE];
-    UINT32			*H2NCmdQPos;
+    MCP_POINTER(UINT32)		H2NCmdQPos;
     struct{
 	UINT32			Pos;
 	UINT32			eah;
@@ -209,6 +254,11 @@ typedef struct jm_mem_T{
     }				N2HCmdQ;
     
     MCP_POINTER(void)		end_of_shared_mem;
+
+    MCP_POINTER(jm_LANaiBuf_t)	LANaiCtrlBufPool;
+    UINT32			NodeId;
+    UINT32			RecvIntr; /* boolean */
+    jm_conn_info_t		ci[jm_NNodes];
 
     /* Some debugging vars */
     MCP_POINTER(struct dispatch_table)

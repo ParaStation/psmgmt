@@ -56,8 +56,9 @@ typedef struct psjm_halrecv_T{
 #define PSJM_HALSEND		_IOWR(PSHAL_GROUP,506,psjm_halsend_t)
 #define PSJM_HALRECV		_IOWR(PSHAL_GROUP,507,psjm_halrecv_t)
 #define PSJM_HALRECV_POLL	_IOWR(PSHAL_GROUP,508,psjm_halrecv_t)
-#define PSJM_NOP_COPY		_IOWR(PSHAL_GROUP,509,psjm_halrecv_t)
-#define PSJM_HALRECV_DATA	_IOWR(PSHAL_GROUP,510,void *)
+#define PSJM_HALRECV_BLOCK	_IOWR(PSHAL_GROUP,509,psjm_halrecv_t)
+#define PSJM_NOP_COPY		_IOWR(PSHAL_GROUP,510,psjm_halrecv_t)
+#define PSJM_HALRECV_DATA	_IOWR(PSHAL_GROUP,511,void *)
 #define PSJM_GET_NODEID		PSHAL_MCP_GETID
 #define PSJM_SET_NODEID		PSHAL_MCP_SETID
 #define PSJM_SETLIC		PSHAL_MCP_SETLIC
