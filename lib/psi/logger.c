@@ -36,12 +36,25 @@ void LOGGERspawnforwarder(unsigned int logger_node, int logger_port)
 {
     int pid;
     int stdoutfds[2], stderrfds[2];
+    char *errtxt;
 
     /* 
      * create two pipes for the forwarder to listen to. 
      */
-    pipe(stdoutfds);
-    pipe(stderrfds);
+    if(pipe(stdoutfds)){
+        errtxt = strerror(errno);
+        syslog(LOG_ERR, "LOGGERspawnforwarder(pipe(stdout)): [%d] %s", errno,
+               errtxt?errtxt:"UNKNOWN");
+        perror("pipe(stdout)");
+	exit(1);
+    }
+    if(pipe(stderrfds)){;
+        errtxt = strerror(errno);
+        syslog(LOG_ERR, "LOGGERspawnforwarder(pipe(stderr)): [%d] %s", errno,
+               errtxt?errtxt:"UNKNOWN");
+        perror("pipe(stderr)");
+	exit(1);
+    }
 
     /* 
      * fork to forwarder
@@ -52,7 +65,6 @@ void LOGGERspawnforwarder(unsigned int logger_node, int logger_port)
 	 */
 	int i;
 	char* argv[7];
-        char *errtxt;
 	/*
 	 * close all open filedesciptor except my pipes for reading
 	 */
