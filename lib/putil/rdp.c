@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.38 2004/09/15 15:38:21 eicker Exp $
+ * $Id: rdp.c,v 1.39 2004/09/22 09:14:49 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.38 2004/09/15 15:38:21 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.39 2004/09/22 09:14:49 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -1142,7 +1142,7 @@ static void resendMsgs(int node)
 	break;
     case SYN_RECVD:
 	snprintf(errtxt, sizeof(errtxt), "%s: send SYNACK again", __func__);
-	errlog(errtxt, 0);
+	errlog(errtxt, 8);
 	sendSYNACK(node);
 	break;
     case ACTIVE:
