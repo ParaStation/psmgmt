@@ -105,8 +105,8 @@
 #define MCP_PARAM_RTO_USAGE	1	/* 1->0 ca. 0.2 us */
 
 #define MCP_PARAM_MRC		2	/* No of unsuccessful retransm. until link named dead */
-#define MCP_PARAM_MRC_INIT	(5000)	/*  5 sec :MRC * RTO = time to dead */
-#define MCP_PARAM_MRC_USAGE	1
+#define MCP_PARAM_MRC_INIT	(50000)	/* 50 sec :MRC * RTO = time to dead */
+#define MCP_PARAM_MRC_USAGE	0
 
 #define MCP_PARAM_CTO		3	/* Capacity timeout */
 #define MCP_PARAM_CTO_INIT	(4096)	/*  Capacity timeout */
