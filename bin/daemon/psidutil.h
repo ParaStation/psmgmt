@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.h,v 1.12 2002/07/26 15:25:26 eicker Exp $
+ * $Id: psidutil.h,v 1.13 2002/07/31 09:07:07 eicker Exp $
  *
  */
 /**
  * \file
  * Utilities for the ParaStation daemon
  *
- * $Id: psidutil.h,v 1.12 2002/07/26 15:25:26 eicker Exp $
+ * $Id: psidutil.h,v 1.13 2002/07/31 09:07:07 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -134,9 +134,14 @@ void PSID_errexit(char *s, int errorno);
 void PSID_readConfigFile(int usesyslog);
 
 /**
- * @brief (Re)initialize the communication hardware.
+ * @todo
+ */
+void PSID_blockSig(int block, int sig);
+
+/**
+ * @brief Initialize the communication hardware.
  *
- * (Re)initialize the configured communication hardware. Various
+ * Initialize the configured communication hardware. Various
  * parameters have to be set before. This is usually done by reading
  * and parsing the configuration file within @ref
  * PSID_readConfigFile(). For further details take a look on the
@@ -146,7 +151,7 @@ void PSID_readConfigFile(int usesyslog);
  *
  * @see PSID_readConfigFile()
  */
-void PSID_ReConfig(void);
+void PSID_startHW(void);
 
 /**
  * @brief Stop the communication hardware.
@@ -155,7 +160,7 @@ void PSID_ReConfig(void);
  *
  * @return No return value.
  */
-void PSID_CardStop(void);
+void PSID_stopHW(void);
 
 /**
  * @brief Start the license-server.

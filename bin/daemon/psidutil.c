@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.43 2002/07/26 15:25:26 eicker Exp $
+ * $Id: psidutil.c,v 1.44 2002/07/31 09:07:34 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.43 2002/07/26 15:25:26 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.44 2002/07/31 09:07:34 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -22,6 +22,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.43 2002/07/2
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
+#include <signal.h>
 
 #include <pshal.h>
 #include <psm_mcpif.h>
@@ -79,28 +80,39 @@ void PSID_errexit(char *s, int errorno)
     errexit(s, errorno);
 }
 
+void PSID_blockSig(int block, int sig)
+{
+    sigset_t newset, oldset;
+
+    sigemptyset(&newset);
+    sigaddset(&newset, sig);
+
+    if (sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &newset, &oldset)) {
+	PSID_errlog("blockSig(): sigprocmask()", 0);
+    }
+}
+
 /* (Re)Config and shutdown the MyriNet card */
 static card_init_t card_info;
 
-void PSID_ReConfig(void)
+void PSID_startHW(void)
 {
-    int ret;
     char licdot[10];
 
     PSID_HWstatus = 0;
 
     if (nodes[PSC_getMyID()].hwType & PSHW_MYRINET) {
 	if (!ConfigMyriModule) {
-	    PSID_errlog("ERROR: MyriNet module not defined", 0);
+	    PSID_errlog("PSID_startHW(): MyriNet module not defined", 0);
 	} else if (!ConfigRoutefile) {
-	    PSID_errlog("ERROR: Routefile not defined", 0);
+	    PSID_errlog("PSID_startHW(): Routefile not defined", 0);
 	} else {
 	    strncpy(licdot, ConfigLicenseKeyMCP ? ConfigLicenseKeyMCP : "none",
 		    sizeof(licdot));
 	    licdot[4] = licdot[5] = licdot[6] = '.';
 	    licdot[7] = 0;
 
-	    snprintf(errtxt, sizeof(errtxt), "PSID_ReConfig: '%s' '%s' '%s'"
+	    snprintf(errtxt, sizeof(errtxt), "PSID_startHW(): '%s' '%s' '%s'"
 		     " small packets %d, ResendTimeout %d",
 		     licdot, ConfigMyriModule, ConfigRoutefile,
 		     ConfigSmallPacketSize, ConfigRTO);
@@ -112,22 +124,12 @@ void PSID_ReConfig(void)
 	    card_info.options = NULL;
 	    card_info.routing_file = ConfigRoutefile;
 
-	    ret = card_cleanup(&card_info);
-	    if (ret) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "PSID_ReConfig: cardcleanup(): %s", card_errstr());
-		PSID_errlog(errtxt, 0);
-	    } else {
-		PSID_errlog("PSID_ReConfig: cardcleanup(): success", 10);
-	    }
-
-	    ret = card_init(&card_info);
-	    if (ret) {
-		snprintf(errtxt, sizeof(errtxt), "PSID_ReConfig: %s",
+	    if (card_init(&card_info)) {
+		snprintf(errtxt, sizeof(errtxt), "PSID_startHW(): %s",
 			 card_errstr());
 		PSID_errlog(errtxt, 0);
 	    } else {
-		PSID_errlog("PSID_ReConfig: cardinit(): success", 10);
+		PSID_errlog("PSID_startHW(): cardinit(): success", 10);
 
 		PSID_HWstatus |= PSHW_MYRINET;
 
@@ -156,13 +158,13 @@ void PSID_ReConfig(void)
     }
 
     if (nodes[PSC_getMyID()].hwType & PSHW_GIGAETHERNET) {
-	PSID_errlog("'gigaethernet not implemented yet", 0);
+	PSID_errlog("PSID_startHW(): gigaethernet not implemented yet", 0);
     }
 
     return;
 }
 
-void PSID_CardStop(void)
+void PSID_stopHW(void)
 {
     int ret;
 
@@ -170,10 +172,10 @@ void PSID_CardStop(void)
 	ret = card_cleanup(&card_info);
 	if (ret) {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "PSID_CardStop(): cardcleanup(): %s", card_errstr());
+		     "PSID_stopHW(): cardcleanup(): %s", card_errstr());
 	    PSID_errlog(errtxt, 0);
 	} else {
-	    PSID_errlog("PSID_CardStop(): cardcleanup(): success", 10);
+	    PSID_errlog("PSID_stopHW(): cardcleanup(): success", 10);
 
 	    PSID_HWstatus &= ~PSHW_MYRINET;
 	}
@@ -185,7 +187,7 @@ void PSID_CardStop(void)
     }
 
     if (PSID_HWstatus & PSHW_GIGAETHERNET) {
-	PSID_errlog("'gigaethernet not implemented yet", 0);
+	PSID_errlog("PSID_stopHW(): gigaethernet not implemented yet", 0);
     }
 }
 
@@ -294,9 +296,9 @@ void PSID_readConfigFile(int usesyslog)
      * check if I can reserve the card for me 
      * if the card is busy, the OS PSHAL_Startup will exit(0);
      */
-    PSID_errlog("PSID_readconfigfile(): calling PSID_ReConfig()", 9);
-    PSID_ReConfig();
-    PSID_errlog("PSID_readconfigfile(): PSID_ReConfig ok.", 9);
+    PSID_errlog("PSID_readConfigFile(): calling PSID_startHW()", 9);
+    PSID_startHW();
+    PSID_errlog("PSID_readConfigFile(): PSID_startHW() ok.", 9);
 }
 
 int PSID_startLicServer(unsigned int addr)
