@@ -1,50 +1,82 @@
 #!/bin/bash
 
+filename=main.xml
+basename=${filename%\.*}
 
-db2x.sh -o -W main.xml
+do_eval=1
+do_pdf=1
+do_man=1
+do_html=1
 
-docbook2manxml --header-3="`date "+%d %B %Y"`" --header-5="ParaStation" \
-		--noxref-on-link main.xml > main.mxml || \
-    docbook2manxml --header-3="`date "+%d %B %Y"`" --header-5="ParaStation" \
-		--noxref-on-link main.xml > main.mxml
-    db2x_manxml main.mxml
+make_dir (){
+    if [ $# -ne 1 ]; then
+	echo You have to give a directory name.
+	exit 1
+    fi
 
-db2pdf -o -s docu.dsl main.xml
+    dirname=$1
 
-exit 0
+    if [ -d $dirname ]; then
+        if [ -d $dirname.junk ]; then
+            rm -rf $dirname.junk
+        fi
 
-manlist="mlisten psid psld psiadmin psmstart"
-otherlist="main"
-list="$otherlist $manlist"
+        mv -f $dirname $dirname.junk
+    fi
 
-if [ $# -ge 1 ]; then
-    list=$@
-    manlist=$@
-else
-    list="$otherlist $manlist"
+    mkdir $dirname
+}
+
+if [ $do_eval ]; then
+    echo Validating...
+
+    db2x.sh -o -W $filename
 fi
 
-for i in $list; do
-    db2x.sh -o -W $i.xml
-done
+if [ $do_pdf ]; then
+    echo Creating PDF...
 
-# db2html -o --nochunks main.xml > main.html
-for i in $list; do
-    db2html -o --nochunks $i.xml > $i.html
-    tidy -m -f /dev/null -asxml $i.html
-    rm -rf $i
-done
+    texfile=$basename.tex
+    make_dir pdf
+    cd pdf
+    db2tex -o -s ../docu.dsl ../$filename
+    mv ../$texfile .
 
-#for i in $list; do
-#    db2pdf -o -s docu.dsl $i.xml
-#done
+    pdfjadetex "$texfile"
 
-# Does not work
-# for i in mlisten psid psld psiadmin psmstart; do
-for i in $manlist; do
+    # if there are unresolved references, re-run pdfjadetex, twice
+    if egrep '^LaTeX Warning: There were undefined references.$' $basename.log >/dev/null 2>&1
+	then
+	    pdfjadetex "$texfile"
+	    pdfjadetex "$texfile"
+    fi
+    cd ..
+fi
+
+if [ $do_man ]; then
+    echo Creating manuals...
+
+    make_dir man
+    cd man
     docbook2manxml --header-3="`date "+%d %B %Y"`" --header-5="ParaStation" \
-		--noxref-on-link $i.xml > $i.mxml || \
+		--noxref-on-link ../$filename > $basename.mxml || \
     docbook2manxml --header-3="`date "+%d %B %Y"`" --header-5="ParaStation" \
-		--noxref-on-link $i.xml > $i.mxml
-    db2x_manxml $i.mxml
-done
+		--noxref-on-link ../$filename > $basename.mxml
+    db2x_manxml $basename.mxml
+    cd ..
+fi
+
+if [ $do_html ]; then
+    echo Creating HTML...
+
+    db2html -o -s docu.dsl $filename
+
+    make_dir html
+    rmdir html
+    mv $basename html
+    cd html
+    for i in *.html; do
+	tidy -m -f /dev/null -asxml $i
+    done
+    cd ..
+fi
