@@ -5,20 +5,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.6 2003/07/31 17:56:40 eicker Exp $
+ * $Id: psispawn.c,v 1.7 2003/09/12 14:34:14 eicker Exp $
  *
  */
 /**
  * @file Simple wrapper to allow MPIch/P4 programs to run under the
  * control of ParaStation.
  *
- * $Id: psispawn.c,v 1.6 2003/07/31 17:56:40 eicker Exp $
+ * $Id: psispawn.c,v 1.7 2003/09/12 14:34:14 eicker Exp $
  *
  * @author Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.6 2003/07/31 17:56:40 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.7 2003/09/12 14:34:14 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -34,6 +34,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.6 2003/07/31
 #include "pshwtypes.h"
 #include "psi.h"
 #include "psienv.h"
+#include "psipartition.h"
 #include "psispawn.h"
 #include "info.h"
 
@@ -44,7 +45,7 @@ void usage(char *progname)
 
 int main(int argc, char *argv[])
 {
-    int worldRank, i;
+    int rank = -1, i;
 
     char *host;
 
@@ -81,15 +82,15 @@ int main(int argc, char *argv[])
 	}
     }
 
-    worldRank = -1; // get rank from command line.
+    // get rank from command line.
     for (i=0; i<argc; i++) {
 	if (strstr(argv[i], "-p4rmrank") && i<argc-1) {
-	    worldRank = atoi(argv[i+1]);
+	    rank = atoi(argv[i+1]);
 	    break;
 	}
     }
 
-    if (worldRank == -1) {
+    if (rank == -1) {
 	fprintf(stderr, "Could not determine the rank.\n");
 	exit(1);
     }
@@ -126,28 +127,15 @@ int main(int argc, char *argv[])
 
     /* spawning the process */
     {
-	int error, ret, dup_argc;
-	long spawnedProcess = -1;
-	long loggerTID;
+	int error, dup_argc;
+	long spawnedProcess;
 	char **dup_argv;
-
-	/* get the partition with hardware type none */
-	PSI_getPartition(0, worldRank-1);
-
-	/* Get my logger */
-	loggerTID = INFO_request_taskinfo(PSC_getTID(-1, getpgrp()),
-					  INFO_LOGGERTID, 0);
-	if (!loggerTID) {
-	    fprintf(stderr, "Unable to determine logger.\n");
-	    exit(1);
-	}
 
 	PSI_RemoteArgs(argc-5, &argv[5], &dup_argc, &dup_argv);
 
 	/* spawn client processes */
-	ret = PSI_spawnM(1, NULL, ".", dup_argc, dup_argv, loggerTID,
-			 worldRank, &error, &spawnedProcess);
-	if (ret<0) {
+	spawnedProcess = PSI_spawnRank(rank, ".", dup_argc, dup_argv, &error);
+	if (!spawnedProcess) {
 	    char *errstr = strerror(error);
 
 	    fprintf(stderr, "Could%s spawn '%s' process %d%s%s.",
@@ -166,7 +154,7 @@ int main(int argc, char *argv[])
 	ret = PSI_recvMsg(&msg);
 	if (msg.header.type != PSP_CD_SPAWNFINISH || ret != sizeof(msg)) {
 	    fprintf(stderr, "[%d] got strange message type %s\n",
-		    worldRank, PSP_printMsg(msg.header.type));
+		    rank, PSP_printMsg(msg.header.type));
 	} else {
 	    /* I'm done */
 	    break;
