@@ -70,8 +70,6 @@ int main(int argc, char **argv)
 }
 
 
-
-
 /*
  * Local Variables:
  *  compile-command: "make test_pse"
@@ -81,29 +79,3 @@ int main(int argc, char **argv)
 /*
 ssh io "cdl psm;cd tools;make test_nodes";cdl psm;scp -C tools/alpha_Linux/test_nodes alice:
 */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
