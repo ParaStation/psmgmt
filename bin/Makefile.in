@@ -53,9 +53,8 @@ lex.admin.o: lex.admin.c admin.tab.c admin.tab.h
 
 # psid
 VPATH += $(SRCDIR)/daemon $(SRCDIR)/cardconfig
-psid: psid.o psidutil.o psidtask.o config_parsing.o cardconfig.o
-psid: -lm -lpshal -lputil -lpscommon -lpsi
-# -lpsi only needed for forwarder! To be removed soon.
+psid: psid.o psidutil.o psidtask.o psidspawn.o config_parsing.o cardconfig.o
+psid: -lm -lpshal -lputil -lpscommon -lutil
 
 #psld
 VPATH += $(SRCDIR)/licdaemon
