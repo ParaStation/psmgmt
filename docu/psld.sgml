@@ -44,8 +44,7 @@
 	  <option>, --debug</option>
         </term>
 	<listitem>
-	  <para>
-	    Activate the debugging mode. If debugging is enabled, no
+	  <para>Activate the debugging mode. If debugging is enabled, no
 	    <citerefentry>
 	      <refentrytitle>fork</refentrytitle>
 	      <manvolnum>2</manvolnum>
@@ -64,9 +63,7 @@
 	  <option>, --verbose</option>
         </term>
 	<listitem>
-	  <para>
-	    Do more verbose logging.
-	  </para>
+	  <para>Do more verbose logging.</para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -75,9 +72,8 @@
 	  <option>, --configfile=<replaceable>file</replaceable></option>
         </term>
 	<listitem>
-	  <para>
-	    Choose <replaceable>file</replaceable> to be the &ps; configuration
-	    file. The default is to use
+	  <para>Choose <replaceable>file</replaceable> to be the &ps;
+	    configuration file. The default is to use
 	    <filename>/etc/parastation.conf</filename>.
 	  </para>
 	</listitem>
@@ -87,9 +83,7 @@
 	  <option>--version</option>
 	</term>
 	<listitem>
-	  <para>
-	    Output version information and exit.
-	  </para>
+	  <para>Output version information and exit.</para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -98,9 +92,7 @@
 	  <option>, --help</option>
         </term>
 	<listitem>
-	  <para>
-	    Show a help message.
-	  </para>
+	  <para>Show a help message.</para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -108,9 +100,7 @@
 	  <option>--usage</option>
 	</term>
 	<listitem>
-	  <para>
-	    Display a brief usage message.
-	  </para>
+	  <para>Display a brief usage message.</para>
 	</listitem>
       </varlistentry>
     </variablelist>

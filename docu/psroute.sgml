@@ -42,8 +42,7 @@
 	  <option>-d <replaceable>debugfile</replaceable></option>
 	</term>
 	<listitem>
-	  <para>
-	    Enable debugging and write output to
+	  <para>Enable debugging and write output to
 	    <filename>debugfile</filename>.
 	  </para>
 	</listitem>

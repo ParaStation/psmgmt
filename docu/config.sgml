@@ -79,8 +79,8 @@
 	</para>
       </listitem>
       <listitem>
-	<para>
-	  <emphasis role="bold"><command>Number of nodes</command></emphasis>
+	<para><emphasis role="bold"><command>Number of
+	      nodes</command></emphasis>
 	</para>
 	<para>
 	  Adjust the <command>NrOfNodes</command> parameter to the actual value
@@ -93,9 +93,7 @@
 	</para>
       </listitem>
       <listitem>
-	<para>
-	  <emphasis role="bold"><command>HWType</command></emphasis>
-	</para>
+	<para><emphasis role="bold"><command>HWType</command></emphasis></para>
 	<para>
 	  In order to tell &ps; which kind of communication hardware should be
 	  used modify the <command>HWType</command> parameter. In the case of a
@@ -112,9 +110,7 @@
 	<!-- @todo ParaStation 4 -->
       </listitem>
       <listitem>
-	<para>
-	  <emphasis role="bold"><command>Nodes</command></emphasis>
-	</para>
+	<para><emphasis role="bold"><command>Nodes</command></emphasis></para>
 	<para>
 	  Furthermore &ps; has to be told which nodes are contained in the
 	  cluster. The usual way of using the <command>Nodes</command>
@@ -160,8 +156,7 @@
 	</para>
       </listitem>
       <listitem>
-	<para>
-	  <emphasis role="bold"><command>LicenseServer</command></emphasis>
+	<para><emphasis role="bold"><command>LicenseServer</command></emphasis>
 	</para>
 	<para>
 	  This parameter tells &ps; on which node the &ps; license daemon <xref
@@ -175,9 +170,7 @@
 	</para>
       </listitem>
       <listitem>
-	<para>
-	  <emphasis role="bold">License key</emphasis>
-	</para>
+	<para><emphasis role="bold">License key</emphasis></para>
 	<para>
 	  If not already done, a license key has to be obtained now. It is not
 	  possible to run &ps; without a valid license key. To obtain a license
@@ -211,8 +204,7 @@
     </para>
     <orderedlist continuation="continues">
       <listitem>
-	<para>
-	  <emphasis role="bold"><command>MyrinetModule</command></emphasis>
+	<para><emphasis role="bold"><command>MyrinetModule</command></emphasis>
 	</para>
 	<para>
 	  Tell &ps; where to find the kernel module which will run the Myrinet
@@ -240,8 +232,7 @@
       </listitem>
 
       <listitem>
-	<para>
-	  <emphasis role="bold"><command>RoutingFile</command></emphasis>
+	<para><emphasis role="bold"><command>RoutingFile</command></emphasis>
 	</para>
 	<para>
 	  Myrinet is a source routed network. This means that each <link
@@ -458,8 +449,7 @@
       </para>
       <orderedlist continuation="continues">
 	<listitem>
-	  <para>
-	    <emphasis role="bold"><command>IPModule</command></emphasis>
+	  <para><emphasis role="bold"><command>IPModule</command></emphasis>
 	  </para>
 	  <para>
 	    Tell &ps; where to find the kernel module which enables IP over
@@ -481,8 +471,7 @@
 	</listitem>
 
 	<listitem>
-	  <para>
-	    <emphasis role="bold"><command>IPPrefix</command></emphasis>
+	  <para><emphasis role="bold"><command>IPPrefix</command></emphasis>
 	  </para>
 	  <para>
 	    This parameter tells &ps; which prefix to use in order to create an
@@ -493,8 +482,7 @@
 	</listitem>
 
 	<listitem>
-	  <para>
-	    <emphasis role="bold"><command>IPPrefixLen</command></emphasis>
+	  <para><emphasis role="bold"><command>IPPrefixLen</command></emphasis>
 	  </para>
 	  <para>
 	    Tell &ps; how many bits of the <command>IPPrefix</command>

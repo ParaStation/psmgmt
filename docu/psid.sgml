@@ -127,15 +127,13 @@
 	  <option>, --debug=<replaceable>level</replaceable></option>
         </term>
 	<listitem>
-	  <para>
-            Activate the debugging mode and set the debugging level to
+	  <para>Activate the debugging mode and set the debugging level to
 	    <replaceable>level</replaceable>. If debugging is enabled, i.e. if
 	    <replaceable>level</replaceable> is larger than 0, no
 	    <citerefentry>
 	      <refentrytitle>fork</refentrytitle>
 	      <manvolnum>2</manvolnum>
-	    </citerefentry>
-	    is made on startup.
+	    </citerefentry> is made on startup.
 	  </para>
 	  <para>
 	    The debugging level of the daemon can also be modified during
@@ -160,9 +158,8 @@
 	  <option>, --configfile=<replaceable>file</replaceable></option>
         </term>
 	<listitem>
-	  <para>
-	    Choose <replaceable>file</replaceable> to be the &ps; configuration
-	    file. The default is to use
+	  <para>Choose <replaceable>file</replaceable> to be the &ps;
+	    configuration file. The default is to use
 	    <filename>/etc/parastation.conf</filename>.
 	  </para>
 	</listitem>
@@ -173,15 +170,13 @@
 	  <option>, --logfile=<replaceable>file</replaceable></option>
         </term>
 	<listitem>
-	  <para>
-	    Choose <replaceable>file</replaceable> to be the destination for
-	    logging output. <replaceable>file</replaceable> may be a ordinary
-	    file or 'stdin' of 'stdout'. The default is to use
+	  <para>Choose <replaceable>file</replaceable> to be the destination
+	    for logging output. <replaceable>file</replaceable> may be a
+	    ordinary file or 'stdin' of 'stdout'. The default is to use
 	    <citerefentry>
 	      <refentrytitle>syslog</refentrytitle>
 	      <manvolnum>3</manvolnum>
-	    </citerefentry>
-	    for any logging output.
+	    </citerefentry> for any logging output.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -191,9 +186,7 @@
 	  <option>, --version</option>
         </term>
 	<listitem>
-	  <para>
-	    Output version information and exit.
-	  </para>
+	  <para>Output version information and exit.</para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -202,9 +195,7 @@
 	  <option>, --help</option>
         </term>
 	<listitem>
-	  <para>
-	    Show a help message.
-	  </para>
+	  <para>Show a help message.</para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -212,9 +203,7 @@
 	  <option>--usage</option>
 	</term>
         <listitem>
-          <para>
-            Display a brief usage message.
-          </para>
+          <para>Display a brief usage message.</para>
         </listitem>
       </varlistentry>
     </variablelist>

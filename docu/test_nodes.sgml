@@ -55,8 +55,7 @@
 	  <option>-np <replaceable>num</replaceable></option>
         </term>
 	<listitem>
-	  <para>
-	    Run the testing program on <replaceable>num</replaceable>
+	  <para>Run the testing program on <replaceable>num</replaceable>
 	    nodes.
 	  </para>
 	</listitem>
@@ -66,9 +65,8 @@
 	  <option>-cnt <replaceable>num</replaceable></option>
         </term>
 	<listitem>
-	  <para>
-	    Send <replaceable>num</replaceable> test packets at once instead of
-	    only one.
+	  <para>Send <replaceable>num</replaceable> test packets at once
+	    instead of only one.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -77,9 +75,8 @@
 	  <option>-map</option>
         </term>
 	<listitem>
-	  <para>
-	    Don't print complicated messages in case of an error but print a
-	    map with all working connections marked as 1 and all failed
+	  <para>Don't print complicated messages in case of an error but print
+	    a map with all working connections marked as 1 and all failed
 	    connections as 0.
 	  </para>
 	</listitem>

@@ -45,8 +45,8 @@
 	  <option>, --command=<replaceable>command</replaceable></option>
         </term>
 	<listitem>
-	  <para>
-	    Execute the single directive <command>command</command> and exit.
+	  <para>Execute the single directive <command>command</command> and
+	    exit.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -56,9 +56,7 @@
 	  <option>, --echo</option>
         </term>
 	<listitem>
-	  <para>
-	    Echo each executed directive to stdout.
-	  </para>
+	  <para>Echo each executed directive to stdout.</para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -67,9 +65,7 @@
 	  <option>, --reset</option>
         </term>
 	<listitem>
-	  <para>
-	    Do a reset of the &ps; system on startup.
-	  </para>
+	  <para>Do a reset of the &ps; system on startup.</para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -78,9 +74,7 @@
 	  <option>, --version</option>
         </term>
 	<listitem>
-	  <para>
-	    Output version information and exit.
-	  </para>
+	  <para>Output version information and exit.</para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -89,9 +83,7 @@
 	  <option>, --help</option>
         </term>
 	<listitem>
-	  <para>
-	    Show a help message.
-	  </para>
+	  <para>Show a help message.</para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -99,9 +91,7 @@
 	  <option>--usage</option>
 	</term>
         <listitem>
-          <para>
-            Display a brief usage message.
-          </para>
+          <para>Display a brief usage message.</para>
         </listitem>
       </varlistentry>
     </variablelist>
