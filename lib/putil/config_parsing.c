@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.12 2004/01/28 17:54:31 eicker Exp $
+ * $Id: config_parsing.c,v 1.13 2004/03/08 19:24:35 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.12 2004/01/28 17:54:31 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.13 2004/03/08 19:24:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -217,6 +217,17 @@ static int getNumNodes(char *token)
     }
 
     return ret;
+}
+
+static int getLicServer(char *token)
+{
+    char *hname;
+    unsigned int ipaddr;
+
+    hname = parser_getString();
+    parser_comment("definition of license server is obsolete", 0);
+
+    return 0;
 }
 
 static int getLicFile(char *token)
@@ -993,6 +1004,8 @@ static keylist_t config_list[] = {
     {"starter", getCSLine},
     {"node", getNodes},
     {"nodes", getNodes},
+    {"licenseserver", getLicServer},
+    {"licserver", getLicServer},
     {"licensefile", getLicFile},
     {"licfile", getLicFile},
     {"usemcast", getMCastUse},
