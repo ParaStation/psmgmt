@@ -383,7 +383,7 @@
       than TCP/IP over fast ethernet anyway.
     </para>
     <para>
-      To enable IP over MyriNet three different parameters have to be set
+      To enable IP over MyriNet three different parameters might have to be set
       within the &ps; configuration file <filename>parastation.conf</filename>:
       <command>IPModule</command>, <command>IPPrefix</command> and
       <command>IPPrefixLen</command>. The purpose of the two latter ones can be
@@ -409,77 +409,129 @@
       but it can serve as a basis to create one.
     </para>
     <para>
-      The concept used by &ps; is the following: You can define a prefix and
-      its lenght which are identical for all participating nodes. These build
-      the most signigicant bits of the IP address. Then the IP address is
-      filled up with the &ps; ID to create a valid address<footnote>
-	<para>
-	  This is not completely true. Since the IP address with all bits 0 in
-	  the subnet part defined by the netmask has a special meaning, the
-	  &ps; ID cannot be used one to one but an offset of 1 has to be taken
-	  into account.
-	</para>
-      </footnote>.
+      Within &ps; exist two distinct ways to assign IP addresses to the MyriNet
+      cards on the different nodes. The first one is to create a unique IP
+      address on basis of the &ps; ID and a prefix that can be parameterized
+      within the configuration file. The second one is to explicitely assign an
+      IP address to each MyriNet card. The latter uses the
+      <option>MyriNetIP</option> option of the <command>Nodes</command>
+      parameter.
     </para>
-    <example>
-      <title></title>
-      <para>
-	Let the prefix be '192.168.16.0' and the prefix length 20 bits, then
-	the MyriNet card in the node with &ps; ID 0 will get IP address
-	192.168.16.1, the one in node 5 will get 192.168.16.6 and so on.
-      </para>
-    </example>
     <para>
-      Following this short excursion lets discuss the actual parameters. In
-      order to enable IP over MyriNet in your &ps; cluster, the following three
-      parameters have to be set within the &ps; configuration file
-      <filename>/etc/parastation.conf</filename>:
+      Both ans&auml;tze will be discussed in detail in the next two
+      subsections.
     </para>
-    <orderedlist continuation="continues">
-      <listitem>
+    <section>
+      <title>IP address from prefix</title>
+      <para>
+	The first concept used by &ps; is the following: You can define a
+	prefix and its lenght which are identical for all participating nodes.
+	These build the most signigicant bits of the IP address. Then the IP
+	address is filled up with the &ps; ID to create a valid
+	address<footnote>
+	  <para>
+	    This is not completely true. Since the IP address with all bits 0
+	    in the subnet part defined by the netmask has a special meaning,
+	    the &ps; ID cannot be used one to one but an offset of 1 has to be
+	    taken into account.
+	  </para>
+	</footnote>.
+      </para>
+      <example>
+	<title></title>
 	<para>
-	  <emphasis role="bold"><command>IPModule</command></emphasis>
+	  Let the prefix be '192.168.16.0' and the prefix length 20 bits, then
+	  the MyriNet card in the node with &ps; ID 0 will get IP address
+	  192.168.16.1, the one in node 5 will get 192.168.16.6 and so on.
 	</para>
-	<para>
-	  Tell &ps; where to find the kernel module which enables IP over
-	  MyriNet.
-	</para>
-        <para>
-	  The parameter set may be a absolute or relative path. Relative paths
-	  are looked up relative to
-	  <filename><replaceable>InstallDir</replaceable>/bin/modules</filename>
-	  and <filename><replaceable>InstallDir</replaceable></filename> in
-	  this order. 
-	</para>
-	<para>
+      </example>
+      <para>
+	Following this short excursion lets discuss the actual parameters. In
+	order to enable IP over MyriNet in your &ps; cluster using the prefix
+	style configuration, the following three parameters have to be set
+	within the &ps; configuration file
+	<filename>/etc/parastation.conf</filename>:
+      </para>
+      <orderedlist continuation="continues">
+	<listitem>
+	  <para>
+	    <emphasis role="bold"><command>IPModule</command></emphasis>
+	  </para>
+	  <para>
+	    Tell &ps; where to find the kernel module which enables IP over
+	    MyriNet.
+	  </para>
+	  <para>
+	    The parameter set may be a absolute or relative path. Relative
+	    paths are looked up relative to
+	    <filename><replaceable>InstallDir</replaceable>/bin/modules</filename> 
+	    and <filename><replaceable>InstallDir</replaceable></filename> in
+	    this order. 
+	  </para>
+	  <para>
 	  <filename><replaceable>InstallDir</replaceable></filename> defaults
-	  to <filename>/opt/parastation</filename> or may be set using the
-	  <command>InstallDir</command> parameter. This is described in detail
-	  within the <xref linkend="parastation_conf"/> manual page.
-	</para>
-      </listitem>
+	    to <filename>/opt/parastation</filename> or may be set using the
+	    <command>InstallDir</command> parameter. This is described in
+	    detail within the <xref linkend="parastation_conf"/> manual page.
+	  </para>
+	</listitem>
 
-      <listitem>
-	<para>
-	  <emphasis role="bold"><command>IPPrefix</command></emphasis>
-	</para>
-	<para>
-	  This parameter tells &ps; which prefix to use in order to create an
-	  IP addresses from the &ps; ID. It is expected to follow the ordinary
-	  dot notation of IP addresses, e.g. <quote>192.168.16.0</quote>.
-	</para>
-      </listitem>
+	<listitem>
+	  <para>
+	    <emphasis role="bold"><command>IPPrefix</command></emphasis>
+	  </para>
+	  <para>
+	    This parameter tells &ps; which prefix to use in order to create an
+	    IP addresses from the &ps; ID. It is expected to follow the
+	    ordinary dot notation of IP addresses, e.g.
+	    <quote>192.168.16.0</quote>.
+	  </para>
+	</listitem>
 
-      <listitem>
-	<para>
-	  <emphasis role="bold"><command>IPPrefixLen</command></emphasis>
-	</para>
-	<para>
-	  Tell &ps; how many bits of the <command>IPPrefix</command> parameter
-	  to use to create IP addresses. The default value is 20.
-	</para>
-      </listitem>
-    </orderedlist>
+	<listitem>
+	  <para>
+	    <emphasis role="bold"><command>IPPrefixLen</command></emphasis>
+	  </para>
+	  <para>
+	    Tell &ps; how many bits of the <command>IPPrefix</command>
+	    parameter to use to create IP addresses. The default value is 20.
+	  </para>
+	</listitem>
+      </orderedlist>
+    </section>
+    <section>
+      <title>Explicit IP addresses</title>
+      <para>
+	Within the second concept implemented in &ps; the IP address of each
+	MyriNet card can be choosen independently. In order to use this style
+	MyriNet over IP setup, the <option>MyriNetIP</option> option of the
+	<command>Nodes</command> parameter has to be used.
+      </para>
+      <para>
+	This makes the <command>Nodes</command> entries within the ParaStation
+	configuration file <filename>/etc/parastation.conf</filename> look like
+	as follows:
+      </para>
+      <programlisting>
+	Nodes {
+	   node1 0 MyriNetIP myri1
+	   node2 1 MyriNetIP 192.168.17.5
+	   frontend 3 hw none
+	}
+      </programlisting>
+      <para>
+	In order to make this setup work, <replaceable>node1</replaceable>,
+	<replaceable>node2</replaceable>, <replaceable>myri1</replaceable> and
+	<replaceable>frontend</replaceable> of course have to be resolvable
+	hostnames.
+      </para>
+      <para>
+	This will setup the MyriNet card on <replaceable>node1</replaceable> to
+	the IP address corresponding to <replaceable>myri1</replaceable> and
+	the one on <replaceable>node2</replaceable> to 192.168.17.5. Here the
+	frontend is supposed to have no MyriNet at all.
+      </para>
+    </section>
   </section>
 
   <section id="testing">
@@ -555,6 +607,8 @@ Process 7 to 0-2,4-7 ( node 7 to 0-2,4-7 ) OK
     </para>
   </section>
 
+
+  <!--
   <section id="embed">
     <title>Embed &ps;</title>
     <para></para>
@@ -573,13 +627,91 @@ Process 7 to 0-2,4-7 ( node 7 to 0-2,4-7 ) OK
       </para>
     </section>
   </section>
+  -->
 
   <section id="setup_route">
     <title>Setting up routing on customized network topologies</title>
     <para>
-      If your network topology is special and....
-
-      ToDo
+      <anchor id="embed"/>
+      If your network topology is special and not covered within the standard
+      routing files or if you are using the old MyriNet hardware (i.e. pre
+      MyriNet 2000 hardware), you might have to create a a custimized routing
+      file in order to setup &ps; correctly.
+    </para>
+    <para>
+      This section covers the creation of a customized routing file and thus is
+      only interesting in the case that the network topology of your cluster is
+      not covered by the standard routing tables within the standard
+      ParaStation distribution. Otherwise you may savely skip this section.
+    </para>
+    <para>
+      The creation of the routing file is a two step procedure, starting with a
+      scan of your network to create a file containing the topology information
+      of the network and continuing with the creation of the actual routing
+      information.
+    </para>
+    <para>
+      In order to enable the &ps; scanning tool <xref linkend="psscan"/> to
+      uncover the network topology some setup of the MyriNet hardware has to be
+      done. I.e. the <link linkend="MCP">MCP</link> has to be started on the
+      MyriNet cards. This status can be reached by following the direction of
+      <xref linkend="config_ps"/> and <xref linkend="myrinet_setup"/>,
+      obviously without telling the &ps; daemon the correct routing
+      information. Instead just use one of the given routing files, e.g.
+      <filename>M3E16.route</filename> for the <command>RoutingFile</command>
+      parameter.
+    </para>
+    <para>
+      Then start up all daemons following the steps in <xref
+	linkend="testing"/>. Of course actual testing of the MyriNet using the
+      <command>test_nodes</command> program cannot yet be done. It is fully
+      sufficient if all &ps; daemons are up (test this using the
+      <command>status</command> directive withing the &ps; administration tool
+      <xref
+	linkend="psiadmin"/>) and all daemons have found the local MyriNet card
+      and activated (test this within <xref linkend="psiadmin"/> using the
+      <command>status <option>hw</option></command> directive).
+    </para>
+    <para>
+      After &ps; is setup to this stage, login to any node connected to
+      the MyriNet and become <quote>root</quote>. Now the &ps; scanning
+      tool <xref linkend="psscan"/> can be started. Redirect its output into a
+      file, say <filename>network.psmap</filename>:
+    </para>
+    <programlisting>	/opt/parastation/bin/psscan &gt; network.psmap</programlisting>
+    <para>
+      A detailed description of the scanning tool and the format of the
+      topology information produced can be found within the corresponding
+      manual page <xref linkend="psscan"/>.
+    </para>
+    <para>
+      In a second step the topology information has to be transformed into a
+      routing table that can be handled by the <link linkend="MCP">MCP</link>.
+      This is the purpose of the <xref linkend="psroute"/> tool. Considering
+      the topology information in the file <filename>network.psmap</filename>,
+      it is invoked by:
+    </para>
+    <programlisting>	/opt/parastation/bin/psroute &lt; network.psmap &gt; network.route</programlisting>
+    <para>
+      The new routing table, hand-crafted to your actual network setup will, be
+      written to standard out and thus be saved to
+      <filename>network.route</filename> by the above command invocation. The
+      format of the routing table information with the routing file is
+      discussed in detail within the manual page <xref linkend="psroute"/>.
+    </para>
+    <para>
+      Now you have to stop the &ps; system using the
+      <command>shutdown</command> directive of the &ps; administration tool
+      <xref linkend="psiadmin"/>. Afterwards you can copy the routing file to
+      the <filename>config</filename> directory within the &ps; tree
+      <filename>/opt/parastation</filename> and promote this information to the
+      &ps; daemon <xref linkend="psid"/> using the
+      <command>RoutingFile</command> parameter within the configuration file
+      <xref linkend="parastation_conf"/>.
+    </para>
+    <para>
+      Proceed with testing the ParaStation system as discussed in <xref
+	linkend="testing"/>.
     </para>
   </section>
 
