@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.54 2003/04/04 10:50:21 eicker Exp $
+ * $Id: psidutil.c,v 1.55 2003/04/04 12:58:13 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.54 2003/04/04 10:50:21 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.55 2003/04/04 12:58:13 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -124,7 +124,7 @@ static size_t readall(int fd, void *buf, size_t count)
                 else
 		    return -1;
             } else {
-                return 0;
+                return count-c;
             }
         }
         c -= len;
@@ -141,6 +141,12 @@ static int callScript(int hw, char *script)
     int fds[2];
     int ret, result;
     pid_t pid;
+
+    /* Don't SEGFAULT */
+    if (!script) {
+        snprintf(scriptOut, sizeof(scriptOut), "%s: script=NULL\n", __func__);
+        return -1;
+    }
 
     /* create a control channel in order to observe the script */
     if (pipe(fds)<0) {
@@ -169,6 +175,7 @@ static int callScript(int hw, char *script)
 
         setenv("PS_INSTALLDIR", PSC_lookupInstalldir(), 1);
 
+	while (*script==' ' || *script=='\t') script++;
 	if (*script != '/') {
 	    char *dir = PSC_lookupInstalldir();
 
@@ -216,9 +223,7 @@ static int callScript(int hw, char *script)
         }
 
         close(systemfds[0]);
-
         free(command);
-    
         exit(0);
     }
 
