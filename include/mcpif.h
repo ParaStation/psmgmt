@@ -358,7 +358,9 @@ typedef struct MCPmem_T {
     UINT32                      State;
     INT32                       myid;	   /* HOST-ID (0 to nr_of_nodes) */
 //    INT32			nr_of_nodes;	   /* Nr of nodes in Cluster */
-    INT16			ConnID_out;	/* My Connection ID to that node */
+//    INT16			ConnID_out;	/* My Connection ID to that node */
+// ConnID_out is replaced by _fill2_ and a connection specific ci->ConnID_out    
+    INT16			_fill2_;
     INT16			_fill1_;
     MCP_ConnInfo_t		ci[MAX_NR_OF_NODES];
     INT32			HasSwitch;

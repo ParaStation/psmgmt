@@ -450,7 +450,7 @@ typedef struct MCP_CtrlPacket_T {
     /* dont change without change MCP_CtrlPacketQEntry_T !!*/
     UINT32		Type; /* 0 for normal CtrlPacks */
     MCP_POINTER(struct MCP_CtrlPacket_T)   Next;
-
+    UINT32		_fill_;	/* Header must be 8 byte aligned */
     UINT32		Align; /* Route Alignement */
     MCPNetSendHeader_t	Header;
 } MCP_CtrlPacket_t;
@@ -463,7 +463,7 @@ typedef struct MCP_CtrlPacketQ_T {
 
 
 
-enum MCP_SendBufState {CFREE=0x0, CH2NDMA=0x01, CSENDING=0x02,CACKEXP=0x03 };
+enum MCP_SendBufState {CFREE=0x0, CH2NDMA=0x01, CSENDING=0x02,CACKEXP=0x03,CSENDRUN=0x04};
 
 
 typedef struct MCP_SendCtrl_T {
@@ -561,7 +561,8 @@ typedef struct MCP_SENDQ_T {
 }MCP_SENDQ_t;
 
 typedef struct MCP_SENDRING_T {
-    MCP_POINTER(struct MCP_ConnInfo_T) Head;	/* Head of SendRing */ 
+    MCP_POINTER(struct MCP_ConnInfo_T) Head;	/* Head of SendRing */
+    MCP_POINTER(struct MCP_SendCtrl_T) InTransaction; /* actual NetSendDMA*/
 }MCP_SENDRING_t;
 
 typedef struct MCP_TimeoutEntry_T {
@@ -743,6 +744,41 @@ extern inline void DEQ_SENDRING(MCP_SENDRING_t * sendring,MCP_ConnInfo_t * conni
     }
     conninfop->Next_srq = 0;
 }
+
+#if 1
+/* new send version */
+/* ToDo: add a new state for sendbuffers */
+extern inline void CHECK_SENDRING_INTRANSIT(MCP_SENDRING_t * sendring){
+    if (sendring->InTransaction && (ISR & SEND_INT_BIT)){
+	sendring->InTransaction->State=CACKEXP;
+	sendring->InTransaction = NULL; 
+    }
+}
+
+extern inline void ADD_SENDRING_INTRANSIT(MCP_SENDRING_t * sendring,struct MCP_SendCtrl_T *ctrlp){
+    if (sendring->InTransaction){
+	sendring->InTransaction->State=CACKEXP;
+    }
+    sendring->InTransaction=ctrlp;
+    ctrlp->State=CSENDRUN;
+}
+
+extern inline void CLR_SENDRING_INTRANSIT(MCP_SENDRING_t * sendring){
+    if (sendring->InTransaction){
+	sendring->InTransaction->State=CACKEXP;
+    }
+    sendring->InTransaction=NULL;
+}
+
+#else
+/* old non working version */
+extern inline void CHECK_SENDRING_INTRANSIT(MCP_SENDRING_t * sendring){
+}
+
+extern inline void ADD_SENDRING_INTRANSIT(MCP_SENDRING_t * sendring,struct MCP_SendCtrl_T *ctrlp){
+    ctrlp->State=CACKEXP;
+}
+#endif
 
 #define ENQ_CTRLPACKET( CtrlP )				\
         if (mcp_mem.CtrlPacketQ.Head){			\

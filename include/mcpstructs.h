@@ -16,6 +16,22 @@
 //      }
 //  }
 
+typedef struct head_alpha_T{
+    PSHALRecvHeader_t   HALHeader;
+    /* Port Header */
+    UINT16		MessageID;   /* 12 0*/
+    UINT32              FragOffset;  /* 16 4*/
+    UINT32              MessageSize; /* 20 8*/
+    /* MPI Header */
+    INT8		type;        /* 24 */
+    INT8 _fill1_;
+    INT16		tag;         /* 26 */
+    INT16		context_id;  /* 28 */
+    INT16		src_lrank;   /* 30 */
+    UINT16		uniq;        /* 32 */
+    INT16 _fill2_;
+    INT32		length;      /* 36 */
+}head_alpha_t;
 
 #ifndef MCPSTRUCTS_FIRST_RUN
 
