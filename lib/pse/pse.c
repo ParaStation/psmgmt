@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.14 2002/02/11 12:06:34 eicker Exp $
+ * $Id: pse.c,v 1.15 2002/02/12 15:05:46 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.14 2002/02/11 12:06:34 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.15 2002/02/12 15:05:46 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -98,6 +98,8 @@ static void flusher(int sig)
  */
 void PSEinit(int NP, int *rank)
 {
+    char *env_str;
+
     if ((worldSizePSE = NP) <= 0) {
 	EXIT("Illegal number of processes: %d\n", worldSizePSE);
     }
@@ -113,6 +115,20 @@ void PSEinit(int NP, int *rank)
     fflush(stdout);
 
     signal(SIGTERM, flusher);
+
+    /* Propagate some environment variables */
+    if ((env_str = getenv("HOME"))) {
+	setPSIEnv("HOME", env_str, 1);
+    }
+    if ((env_str = getenv("USER"))) {
+	setPSIEnv("USER", env_str, 1);
+    }
+    if ((env_str = getenv("SHELL"))) {
+	setPSIEnv("SHELL", env_str, 1);
+    }
+    if ((env_str = getenv("TERM"))) {
+	setPSIEnv("TERM", env_str, 1);
+    }
 }
 
 /**
