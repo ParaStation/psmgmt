@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidtask.h,v 1.7 2003/06/06 14:50:24 eicker Exp $
+ * $Id: psidtask.h,v 1.8 2003/07/04 09:10:15 eicker Exp $
  *
  */
 /**
  * @file
  * Functions for interaction with ParaStation tasks within the Daemon
  *
- * $Id: psidtask.h,v 1.7 2003/06/06 14:50:24 eicker Exp $
+ * $Id: psidtask.h,v 1.8 2003/07/04 09:10:15 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -30,33 +30,66 @@ extern "C" {
 #endif
 #endif
 
-/** @todo more docu */
+/** @defgroup signalstuff Signal handling functions */
+/*\@{*/
 /**
- * PSID_setSignal
+ * @brief Register signal.
  *
- *  adds the receiver TID to the list of tasks which shall receive a
- *  signal, when this task dies
- *  RETURN: void
+ * Register the signal @a signal associated with the task @a tid into
+ * another tasks signal list @a siglist. The actual meaning of the
+ * registered signal depends on the signal list it is stored to.
+ *
+ * @param siglist The signal list the signal is stored to.
+ *
+ * @param tid The unique task ID the signal is associated with
+ *
+ * @param signal The signal to register.
+ *
+ * @return No return value.
  */
 void PSID_setSignal(PStask_sig_t **siglist, long tid, int signal);
 
 /**
- * @todo
+ * @brief Unregister signal.
+ *
+ * Unregister the signal @a signal associated with the task @a tid from
+ * another tasks signal list @a siglist.
+ *
+ * @param siglist The signal list the signal was stored to.
+ *
+ * @param tid The unique task ID the signal is associated with.
+ *
+ * @param signal The signal to unregister.
+ *
+ * @return On success, i.e. if the corresponding signal was found
+ * within the signal list, 1 is returned, otherwise 0 is given back.
  */
 int PSID_removeSignal(PStask_sig_t **siglist, long tid, int signal);
 
 /**
- * PStask_getsignalreceiver
+ * @brief Get a signal from signal list.
  *
- *  returns the tid of the task,which sent the signal
- *  removes the signalreceiver from the list
- *  RETURN: 0 if no such task exists
- *          >0 : tid of the receiver task
+ * Get the first occurrence of the signal @a signal from the signal
+ * list @a signlist and return the associated unique task ID. If @a
+ * signal is -1, any signal will be returned and signal will be set
+ * appropriately.
+ *
+ * If a appropriate signal was found within the signal list @a
+ * siglist, the returned signal will be removed from the signal list.
+ *
+ * @param siglist The signal list to search for the signal.
+ *
+ * @param signal The signal to search for. If this is -1, any signal
+ * will be returned.
+ *
+ * @return If a signal was found, the unique task ID of the associated
+ * task will be returned. Or 0, if no task was found.
  */
 long PSID_getSignal(PStask_sig_t **siglist, int *signal);
+/*\@}*/
 
-
-/* Tasklist routines */
+/** @defgroup taskliststuff Tasklist routines */
+/*\@{*/
 
 /** List of all managed tasks (i.e. tasks that have connected or were
     spawned). Further tasklists might be defined. */
@@ -115,9 +148,27 @@ PStask_t *PStasklist_dequeue(PStask_t **list, long tid);
  * NULL if no task with TID @a tid was found within @a list.
  * */
 PStask_t *PStasklist_find(PStask_t *list, long tid);
+/*\@}*/
 
 /**
- * @todo Write docu
+ * @brief Cleanup task.
+ *
+ * Cleanup the whole task @a tid. This includes various step:
+ *
+ * - First of all the task will be dequeued from @ref managedTasks
+ * tasklist.
+ *
+ * - If the task was found, all signal requested explicitely by other
+ * tasks will be send, then all relatives will be signaled.
+ *
+ * - The MCast facility will be informed on removing the task.
+ *
+ * - If the task is of type TG_FORWARDER and not released, the
+ * controlled child will be killed.
+ *
+ * @param tid The unique task ID of the task to be removed.
+ *
+ * @return No return value.
  */
 void PStask_cleanup(long tid);
 
