@@ -104,12 +104,9 @@
     &mpirun_gm;
     &mpirun_p4;
     &psmstart;
+    &spawning;
     &environment;
   </reference>
-
-  <appendix><title>Process placement strategies</title>
-    &spawning;
-  </appendix>
 
   &glossary;
 </book>
