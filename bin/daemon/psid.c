@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.123 2004/01/22 13:30:02 eicker Exp $
+ * $Id: psid.c,v 1.124 2004/01/22 14:36:07 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.123 2004/01/22 13:30:02 eicker Exp $ 
+ * $Id: psid.c,v 1.124 2004/01/22 14:36:07 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.123 2004/01/22 13:30:02 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.124 2004/01/22 14:36:07 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -75,7 +75,7 @@ struct timeval selectTime;
 
 static struct timeval shutdownTimer;
 
-char psid_cvsid[] = "$Revision: 1.123 $";
+char psid_cvsid[] = "$Revision: 1.124 $";
 
 /**
  * Master socket (type UNIX) for clients to connect. Setup within @ref
@@ -1513,6 +1513,163 @@ static void msg_WHODIED(DDSignalMsg_t *msg)
     sendMsg(msg);
 }
 
+/**
+ * @brief Central protocol switch.
+ *
+ * @doctodo
+ *
+ * @param msg The message to handle.
+ *
+ * @return On success, i.e. if it was possible to handle the message,
+ * 1 is returned, or 0 otherwise.
+ */
+int handleMsg(int fd, DDBufferMsg_t *msg)
+{
+    switch (msg->header.type) {
+    case PSP_CD_CLIENTCONNECT :
+	msg_CLIENTCONNECT(fd, (DDInitMsg_t *)msg);
+	break;
+    case PSP_CD_SETOPTION:
+	msg_SETOPTION((DDOptionMsg_t*)msg);
+	break;
+    case PSP_CD_GETOPTION:
+	msg_GETOPTION((DDOptionMsg_t*)msg);
+	break;
+    case PSP_CD_INFOREQUEST:
+	msg_INFOREQUEST((DDTypedBufferMsg_t*)msg);
+	break;
+    case PSP_CD_INFORESPONSE:
+    case PSP_CC_ERROR:
+	sendMsg(msg);	/* just forward this kind of messages */
+	break;
+    case PSP_CD_SPAWNREQUEST :
+	msg_SPAWNREQUEST(msg);
+	break;
+    case PSP_CD_SPAWNSUCCESS :
+	msg_SPAWNSUCCESS((DDErrorMsg_t*)msg);
+	break;
+    case PSP_CD_SPAWNFAILED:
+	msg_SPAWNFAILED((DDErrorMsg_t*)msg);
+	break;
+    case PSP_CD_SPAWNFINISH:
+	msg_SPAWNFINISH((DDMsg_t*)msg);
+	break;
+    case PSP_CD_NOTIFYDEAD:
+	msg_NOTIFYDEAD((DDSignalMsg_t*)msg);
+	break;
+    case PSP_CD_NOTIFYDEADRES:
+	msg_NOTIFYDEADRES((DDSignalMsg_t*)msg);
+	break;
+    case PSP_CD_RELEASE:
+	msg_RELEASE((DDSignalMsg_t*)msg);
+	break;
+    case PSP_CD_RELEASERES:
+	msg_RELEASERES((DDSignalMsg_t*)msg);
+	break;
+    case PSP_CD_SIGNAL:
+	msg_SIGNAL((DDSignalMsg_t*)msg);
+	break;
+    case PSP_CD_WHODIED:
+	msg_WHODIED((DDSignalMsg_t*)msg);
+	break;
+    case PSP_CD_DAEMONSTART:
+	msg_DAEMONSTART(msg);
+	break;
+    case PSP_CD_DAEMONSTOP:
+	msg_DAEMONSTOP((DDMsg_t *)msg);
+	break;
+    case PSP_CD_DAEMONRESET:
+	msg_DAEMONRESET(msg);
+	break;
+    case PSP_CD_HWSTART:
+	msg_HWSTART(msg);
+	break;
+    case PSP_CD_HWSTOP:
+	msg_HWSTOP(msg);
+	break;
+    case PSP_CC_MSG:
+	/* Forward this message. If this fails, send an error message. */
+	if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
+	    PStask_ID_t temp = msg->header.dest;
+
+	    msg->header.type = PSP_CC_ERROR;
+	    msg->header.dest = msg->header.sender;
+	    msg->header.sender = temp;
+	    msg->header.len = sizeof(msg->header);
+
+	    sendMsg(msg);
+	}
+	break;
+    case PSP_CD_ERROR:
+	/* Ignore */
+	break;
+    case PSP_DD_DAEMONCONNECT:
+	msg_DAEMONCONNECT(msg);
+	break;
+    case PSP_DD_DAEMONESTABLISHED:
+	msg_DAEMONESTABLISHED(msg);
+	break;
+    case PSP_DD_DAEMONSHUTDOWN:
+	msg_DAEMONSHUTDOWN((DDMsg_t *)msg);
+	break;
+    case PSP_DD_CHILDDEAD:
+	msg_CHILDDEAD((DDErrorMsg_t*)msg);
+	break;
+    case PSP_DD_SENDSTOP:
+	msg_SENDSTOP((DDMsg_t *)msg);
+	break;
+    case PSP_DD_SENDCONT:
+	msg_SENDCONT((DDMsg_t *)msg);
+	break;
+    case PSP_CD_CREATEPART:
+	msg_CREATEPART(msg);
+	break;
+    case PSP_CD_CREATEPARTNL:
+	msg_CREATEPARTNL(msg);
+	break;
+    case PSP_CD_PARTITIONRES:
+	sendMsg(msg);
+	break;
+    case PSP_DD_GETPART:
+	msg_GETPART(msg);
+	break;
+    case PSP_DD_GETPARTNL:
+	msg_GETPARTNL(msg);
+	break;
+    case PSP_DD_PROVIDEPART:
+	msg_PROVIDEPART(msg);
+	break;
+    case PSP_DD_PROVIDEPARTNL:
+	msg_PROVIDEPARTNL(msg);
+	break;
+    case PSP_CD_GETNODES:
+	msg_GETNODES(msg);
+	break;
+    case PSP_CD_NODESRES:
+	sendMsg(msg);
+	break;
+    case PSP_DD_LOAD:
+	msg_LOAD(msg);
+	break;
+    case PSP_DD_MASTER_IS:
+	msg_MASTERIS(msg);
+	break;
+    case PSP_DD_ACTIVE_NODES:
+	msg_ACTIVENODES(msg);
+	break;
+    case PSP_DD_DEAD_NODE:
+	msg_DEADNODE(msg);
+	break;
+    default :
+	snprintf(errtxt, sizeof(errtxt), "%s: Wrong msgtype %d (%s) from %d",
+		 __func__, msg->header.type,
+		 PSDaemonP_printMsg(msg->header.type), fd);
+	PSID_errlog(errtxt, 0);
+	return 0;
+    }
+    return 1;
+}
+
 /******************************************
  *  psicontrol(int fd)
  */
@@ -1547,172 +1704,10 @@ static void psicontrol(int fd)
 		     __func__, fd, errno, errstr ? errstr : "UNKNOWN");
 	    PSID_errlog(errtxt, 4);
 	}
-    } else {
-	switch (msg.header.type) {
-	case PSP_CD_CLIENTCONNECT :
-	    msg_CLIENTCONNECT(fd, (DDInitMsg_t *)&msg);
-	    break;
-	case PSP_CD_SETOPTION:
-	    msg_SETOPTION((DDOptionMsg_t*)&msg);
-	    break;
-	case PSP_CD_GETOPTION:
-	    msg_GETOPTION((DDOptionMsg_t*)&msg);
-	    break;
-	case PSP_CD_INFOREQUEST:
-	    /* request to send the information about a specific info */
-	    msg_INFOREQUEST((DDTypedBufferMsg_t*)&msg);
-	    break;
-	case PSP_CD_INFORESPONSE:
-	case PSP_CC_ERROR:
-	    /* we just have to forward this kind of messages */
-	    sendMsg(&msg);
-	    break;
-	case PSP_CD_SPAWNREQUEST :
-	    msg_SPAWNREQUEST(&msg);
-	    break;
-	case PSP_CD_SPAWNSUCCESS :
-	    msg_SPAWNSUCCESS((DDErrorMsg_t*)&msg);
-	    break;
-	case PSP_CD_SPAWNFAILED:
-	    msg_SPAWNFAILED((DDErrorMsg_t*)&msg);
-	    break;
-	case PSP_CD_SPAWNFINISH:
-	    msg_SPAWNFINISH((DDMsg_t*)&msg);
-	    break;
-	case PSP_CD_NOTIFYDEAD:
-	    /*
-	     * notify this process when the process with tid dies
-	     * To notify the process send the signal sig
-	     */
-	    msg_NOTIFYDEAD((DDSignalMsg_t*)&msg);
-	    break;
-	case PSP_CD_NOTIFYDEADRES:
-	    /*
-	     * result of a NOTIFYDEAD message
-	     */
-	    msg_NOTIFYDEADRES((DDSignalMsg_t*)&msg);
-	    break;
-	case PSP_CD_RELEASE:
-	    /*
-	     * release this child (don't kill parent when this process dies)
-	     */
-	    msg_RELEASE((DDSignalMsg_t*)&msg);
-	    break;
-	case PSP_CD_RELEASERES:
-	    /*
-	     * result of a RELEASE message
-	     */
-	    msg_RELEASERES((DDSignalMsg_t*)&msg);
-	    break;
-	case PSP_CD_SIGNAL:
-	    /*
-	     * send a signal to a remote task
-	     */
-	    msg_SIGNAL((DDSignalMsg_t*)&msg);
-	    break;
-	case PSP_CD_WHODIED:
-	    /*
-	     * notify this process when the process with tid dies
-	     * To notify the process send the signal sig
-	     */
-	    msg_WHODIED((DDSignalMsg_t*)&msg);
-	    break;
-	case PSP_CD_DAEMONSTART:
-	    /* Start remote daemon */
-	    msg_DAEMONSTART(&msg);
-	    break;
-	case PSP_CD_DAEMONSTOP:
-	    /* Stop local or remote daemon */
-	    msg_DAEMONSTOP((DDMsg_t *)&msg);
-	    break;
-	case PSP_CD_DAEMONRESET:
-	    msg_DAEMONRESET(&msg);
-	    break;
-	case PSP_CD_HWSTART:
-	    msg_HWSTART(&msg);
-	    break;
-	case PSP_CD_HWSTOP:
-	    msg_HWSTOP(&msg);
-	    break;
-	case PSP_CC_MSG:
-	    /* Forward this message. If this fails, send an error message. */
-	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-		PStask_ID_t temp = msg.header.dest;
-
-		msg.header.type = PSP_CC_ERROR;
-		msg.header.dest = msg.header.sender;
-		msg.header.sender = temp;
-		msg.header.len = sizeof(msg.header);
-
-		sendMsg(&msg);
-	    }
-	    break;
-	case PSP_CD_ERROR:
-	    /* Ignore */
-	    break;
-	case PSP_DD_DAEMONCONNECT:
-	    msg_DAEMONCONNECT(&msg);
-	    break;
-	case PSP_DD_DAEMONESTABLISHED:
-	    msg_DAEMONESTABLISHED(&msg);
-	    break;
-	case PSP_DD_DAEMONSHUTDOWN:
-	    msg_DAEMONSHUTDOWN((DDMsg_t *)&msg);
-	    break;
-	case PSP_DD_CHILDDEAD:
-	    msg_CHILDDEAD((DDErrorMsg_t*)&msg);
-	    break;
-	case PSP_DD_SENDSTOP:
-	    msg_SENDSTOP((DDMsg_t *)&msg);
-	    break;
-	case PSP_DD_SENDCONT:
-	    msg_SENDCONT((DDMsg_t *)&msg);
-	    break;
-	case PSP_CD_CREATEPART:
-	    msg_CREATEPART(&msg);
-	    break;
-	case PSP_CD_CREATEPARTNL:
-	    msg_CREATEPARTNL(&msg);
-	    break;
-	case PSP_CD_PARTITIONRES:
-	    sendMsg(&msg);
-	    break;
-	case PSP_DD_GETPART:
-	    msg_GETPART(&msg);
-	    break;
-	case PSP_DD_GETPARTNL:
-	    msg_GETPARTNL(&msg);
-	    break;
-	case PSP_DD_PROVIDEPART:
-	    msg_PROVIDEPART(&msg);
-	    break;
-	case PSP_DD_PROVIDEPARTNL:
-	    msg_PROVIDEPARTNL(&msg);
-	    break;
-	case PSP_CD_GETNODES:
-	    msg_GETNODES(&msg);
-	    break;
-	case PSP_CD_NODESRES:
-	    sendMsg(&msg);
-	    break;
-	case PSP_DD_LOAD:
-	    msg_LOAD(&msg);
-	    break;
-	case PSP_DD_MASTER_IS:
-	    msg_MASTERIS(&msg);
-	    break;
-	case PSP_DD_ACTIVE_NODES:
-	    msg_ACTIVENODES(&msg);
-	    break;
-	case PSP_DD_DEAD_NODE:
-	    msg_DEADNODE(&msg);
-	    break;
-	default :
-	    snprintf(errtxt, sizeof(errtxt),
-		     "psid: Wrong msgtype %d (%s) on socket %d",
-		     msg.header.type, PSDaemonP_printMsg(msg.header.type), fd);
-	    PSID_errlog(errtxt, 0);
-	}
+    } else if (!handleMsg(fd, &msg)) {
+	snprintf(errtxt, sizeof(errtxt), "%s: Problem on socket %d",
+		 __func__, fd);
+	PSID_errlog(errtxt, 0);
     }
 }
 
@@ -2199,7 +2194,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.123 $";
+    char revision[] = "$Revision: 1.124 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
