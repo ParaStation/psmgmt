@@ -2,10 +2,10 @@
 <section>
   <title>What is &ps;</title>
   <para>
-    &ps; is a high speed communication subsystem, which is used to cluster
-    standard workstations and PCs. A high speed interconnect enables you to use
-    your cluster as a parallel computer. Communication is done via an
-    additional parallel communication network card, e.g. Myrinet or gigabit
+    &ps; is at first a high speed communication subsystem, which is used to
+    cluster standard workstations and PCs. A high speed interconnect enables
+    you to use your cluster as a parallel computer. Communication is done via
+    an additional parallel communication network card, e.g. Myrinet or gigabit
     Ethernet, and does not involve any Operating System communication paths.
   </para>
   
@@ -17,23 +17,23 @@
   </para>
 
   <para>
-    Besides another version called  ParaStation FE exists. This variant of &ps;
-    uses Ethernet for communication in a only slightly optimized way and thus
-    cannot give the high throughput, low latency communication one is used to
-    from the Myrinet version. Nevertheless some disadvantages of the MPIch
-    communication implementations are eliminated doubling the throughput for
-    big packets (i.e. larger than 32 kByte).
+    Furthermore another version called &psfe; exists. This variant of &ps; uses
+    Ethernet for communication in a only slightly optimized way and thus cannot
+    give the high throughput, low latency communication one is used to from the
+    Myrinet version. Nevertheless some disadvantages of the MPIch communication
+    implementations are eliminated doubling the throughput for big packets
+    (i.e. larger than 32 kByte).
   </para>
 
   <para>
-    On the other hand &ps; offers an integrated cluster administration and
-    cluster management environment. Using Unix daemon processes an effective
-    resource management and single point of administration is implemented. This
-    results in a single system image view of the cluster to deal with.
+    In addition &ps; offers an integrated cluster administration and cluster
+    management environment. Using Unix daemon processes an effective resource
+    management and single point of administration is implemented. This results
+    in a single system image view of the cluster to deal with.
   </para>
 
   <para>
-    From the user point of view cluster management leads to an easier and more
+    From the users point of view cluster management leads to an easier and more
     effective usage of the cluster. Due to load balancing, job control and
     input/output management implemented by &ps;, almost all features nowaday
     clusters lack in comparison to classical supercomputers are now also
