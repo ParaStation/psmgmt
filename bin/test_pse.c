@@ -32,7 +32,7 @@ void run(int argc, char *argv[], int np)
 	/* I am the logger */
 	/* Set default to none: */
 	setenv("PSI_NODES_SORT","NONE",0);
-	PSE_getPartition(np);
+	if (PSE_getPartition(np)<0) exit(1);
 	PSE_spawnMaster(argc, argv);
 	/* Never be here ! */
 	exit(1);
