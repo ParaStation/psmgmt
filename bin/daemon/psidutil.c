@@ -1,3 +1,17 @@
+/*
+ *               ParaStation3
+ * psidutil.c
+ *
+ * Copyright (C) ParTec AG Karlsruhe
+ * All rights reserved.
+ *
+ * $Id: psidutil.c,v 1.14 2002/01/08 23:36:41 eicker Exp $
+ *
+ */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.14 2002/01/08 23:36:41 eicker Exp $";
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
 #include <stdio.h>
 #include <unistd.h>
 #include <netdb.h>
@@ -22,10 +36,6 @@
 #include "cardconfig.h"
 
 #include "psidutil.h"
-
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.13 2002/01/07 09:39:50 eicker Exp $";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 int PSID_CardPresent;
 
@@ -147,9 +157,6 @@ int PSID_readconfigfile(void)
 
     if(parse_config(1)<0)
 	return -1;
-
-    SYSLOG(9,(LOG_ERR,"after parseconfig(%s)::(%d,%d,%s)\n",
-	      myname, MyPsiId, NrOfNodes, ConfigRoutefile));
 
     PSI_nrofnodes = NrOfNodes;
 
