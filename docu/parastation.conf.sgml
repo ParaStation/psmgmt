@@ -7,14 +7,15 @@
 
   <refnamediv>
     <refname>parastation.conf</refname>
-    <refpurpose>the ParaStation configuration file</refpurpose>
+    <refname>psm.config</refname>
+    <refpurpose>the &ps; configuration file</refpurpose>
   </refnamediv>
 
   <refsect1><title>Description</title>
     <para>
-      Upon execution, the ParaStation daemon <xref linkend="psid"/> and the
-      ParaStation license daemon <xref linkend="psld"/> read their
-      configuration information from a configuration file which, by default, is
+      Upon execution, the &ps; daemon <xref linkend="psid"/> and the &ps;
+      license daemon <xref linkend="psld"/> read their configuration
+      information from a configuration file which, by default, is
       <filename>/etc/parastation.conf</filename>. There are various parameter
       that can be modified persistently within this configuration file.
     </para>
@@ -39,7 +40,7 @@
       upper-/lowercase notation is used to provide more readable keywords. The
       same notation is used in the configuration file template
       <filename>parastation.conf.tmpl</filename> contained in the distributed
-      ParaStation system. The template file can be found in
+      &ps; system. The template file can be found in
       <filename>/opt/parastation/config</filename>.
     </para>
   </refsect1>
@@ -54,14 +55,14 @@
     <para>
       Some parameters may be modified using different keywords, e.g. both
       <command>InstallDir</command> and <command>InstallationDir</command>
-      modify the directory where the ParaStation daemon <xref
-	linkend="psid"/> expects the ParaStation system installed. In case of
-      different keywords modifying the same resource, all keywords are
-      mentioned in front of the parameter's discussion.
+      modify the directory where the &ps; daemon <xref linkend="psid"/> expects
+      the &ps; system installed. In case of different keywords modifying the
+      same resource, all keywords are mentioned in front of the parameter's
+      discussion.
     </para>
     <para>
       Very few parameters have to be declared in any case in order to enable
-      ParaStation to run on a cluster. These parameters are
+      &ps; to run on a cluster. These parameters are
       <command>NrOfNodes</command>, <command>HWType</command>,
       <command>Nodes</command> and <command>LicenseServer</command>. In the
       case of a Myrinet cluster <command>MyrinetModule</command> and
@@ -83,8 +84,7 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Tell the ParaStation daemon to find all the ParaStation stuff in
+	  <para>Tell the &ps; daemon to find all the &ps; stuff in
 	    <filename><replaceable>inst-dir</replaceable></filename>. The
 	    default is <filename>/opt/parastation</filename>.
 	  </para>
@@ -107,9 +107,8 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Define the number of connected nodes including the frontend node.
-	    The nodes will be numbered 0 &hellip;
+	  <para>Define the number of connected nodes including the frontend
+	    node. The nodes will be numbered 0 &hellip;
 	    <parameter><replaceable>num</replaceable></parameter>-1.
 	  </para>
 	  <note>
@@ -136,7 +135,8 @@
 <!-- 	      <arg>GigaEthernet</arg> -->
 	      <arg>None</arg>
 	    </group>
-	    <sbr/>
+	  </cmdsynopsis>
+	  <cmdsynopsis>
 	    <command>HWType {</command>
 	    <group rep="repeat" choice="req">
 	      <arg>Ethernet</arg>
@@ -148,9 +148,8 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Define the default communication hardware available on the nodes of
-	    the ParaStation cluster. This may be overruled by an explicit
+	  <para>Define the default communication hardware available on the
+	    nodes of the &ps; cluster. This may be overruled by an explicit
 	    <option>HWType</option> option in a <command>Node</command>
 	    statement.
 	  </para>
@@ -166,12 +165,11 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  Use classical TCP/IP communication over Ethernet via an
+		<para>Use classical TCP/IP communication over Ethernet via an
 		  optimized MPI implementation.
 		</para>
 		<para>
-		  This is only available within ParaStation FE.
+		  This is only available within &psfe;.
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -183,11 +181,9 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
+		<para>Use optimized communication over Myrinet.</para>
 		<para>
-		  Use optimized communication over Myrinet.
-		</para>
-		<para>
-		  This is only available within ParaStation 3.
+		  This is only available within &ps; 3.
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -199,11 +195,9 @@
 <!-- 		</cmdsynopsis> -->
 <!-- 	      </term> -->
 <!-- 	      <listitem> -->
+<!-- 		<para>Use optimized communication via Gigabit Ethernet.</para> -->
 <!-- 		<para> -->
-<!-- 		  Use optimized communication via gigabit Ethernet. -->
-<!-- 		</para> -->
-<!-- 		<para> -->
-<!-- 		  This is only available within ParaStation 4. -->
+<!-- 		  This is only available within &ps; 4. -->
 <!-- 		</para> -->
 <!-- 	      </listitem> -->
 <!-- 	    </varlistentry> -->
@@ -215,9 +209,7 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  No communication hardware at all.
-		</para>
+		<para>No communication hardware at all.</para>
 	      </listitem>
 	    </varlistentry>
 
@@ -225,7 +217,7 @@
 	  <para>
 	    It is possible to enable more than one hardware type, either as
 	    default or on a per node basis. Think of a node that has both, a
-	    Myrinet and a fast Ethernet card. Furthermore the cluster contains
+	    Myrinet and a Fast Ethernet card. Furthermore the cluster contains
 	    nodes that lack Myrinet. Then it might be useful to run jobs only
 	    depending on Ethernet communication even on nodes that have a
 	    Myrinet card in order to talk to nodes that don't have one. The
@@ -248,13 +240,11 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    If the argument is one of <parameter>yes</parameter>,
+	  <para>If the argument is one of <parameter>yes</parameter>,
 	    <parameter>true</parameter> or <parameter>1</parameter> all nodes
 	    declared within a <command>Node</command> statement will load the
-	    ParaStation IP module in order to enable TCP/IP over Myrinet,
-	    unless otherwise stated within the <command>Node</command>
-	    statement.
+	    &ps; IP module in order to enable TCP/IP over Myrinet, unless
+	    otherwise stated within the <command>Node</command> statement.
 	  </para>
 	  <para>
 	    If the argument is one of <parameter>no</parameter>,
@@ -280,8 +270,7 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    If the argument is one of <parameter>yes</parameter>,
+	  <para>If the argument is one of <parameter>yes</parameter>,
 	    <parameter>true</parameter> or <parameter>1</parameter> all nodes
 	    declared within a <command>Node</command> statement will allow to
 	    start parallel jobs, unless otherwise stated.
@@ -307,7 +296,8 @@
 	    <arg>hasIP-entry</arg>
 	    <arg>starter-entry</arg>
 	    <arg>MyrinetIP<replaceable>ip-addr</replaceable></arg>
-	    <sbr/>
+	  </cmdsynopsis>
+	  <cmdsynopsis>
 	    <command>Node[s] {</command>
 	    <arg choice="plain">{<replaceable>hostname</replaceable></arg>
 	    <arg choice="plain"><replaceable>id</replaceable></arg>
@@ -320,9 +310,7 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Define one or more nodes to be part of the ParaStation cluster.
-	  </para>
+	  <para>Define one or more nodes to be part of the &ps; cluster.</para>
 	  <para>
 	    This is the first example of a parameter that supports the
 	    environment mode. This means there are two different notations to
@@ -336,9 +324,9 @@
 	    Each entry has to have at least to items, the
 	    <parameter><replaceable>hostname</replaceable></parameter> and the
 	    <parameter><replaceable>id</replaceable></parameter>. This will
-	    tell the ParaStation system that the node called
+	    tell the &ps; system that the node called
 	    <parameter><replaceable>hostname</replaceable></parameter> will act
-	    as the physical node with ParaStation ID
+	    as the physical node with &ps; ID
 	    <parameter><replaceable>id</replaceable></parameter>.
 	  </para>
 	  <para>
@@ -364,8 +352,8 @@
 	    <parameter><replaceable>ip-addr</replaceable></parameter> is either
 	    a resolvable hostname or an IP address in dot notation (e.g.
 	    192.168.1.17). For a detailed description on how this works refer
-	    to <xref linkend="ip_over_myrinet"/> of the <xref
-	      linkend="adminguide"/>.
+	    to <xref linkend="ip_over_myrinet"/> of the <emphasis
+	      role="bold">&ps; Administrators Guide</emphasis>.
 	  </para>
 	  <para>
 	    E.g. the line
@@ -389,9 +377,8 @@
 	    </para>
 	    <para>
 	      It is also possible to assign IP addresses to Myrinet cards on
-	      the different nodes in a general manner based on the ParaStation
-	      IDs. Use the <command>IPPrefix</command> parameter for this
-	      feature.
+	      the different nodes in a general manner based on the &ps; IDs.
+	      Use the <command>IPPrefix</command> parameter for this feature.
 	    </para>
 	  </note>
 	</listitem>
@@ -407,16 +394,14 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Tell ParaStation to use
+	  <para>Tell &ps; to use
 	    <parameter><replaceable>hostname</replaceable></parameter> as the
-	    machine where the ParaStation license daemon <xref
-	      linkend="psld"/> should run.
+	    machine where the &ps; license daemon <xref linkend="psld"/> should
+	    run.
 	  </para>
 	  <para>
-	    ParaStation will try to start the license server on this machine if
-	    the license ping is missing for too long. Therefor, the
-	    <citerefentry>
+	    &ps; will try to start the license server on this machine if the
+	    license ping is missing for too long. Therefor, the <citerefentry>
 	      <refentrytitle>inetd</refentrytitle>
 	      <manvolnum>8</manvolnum>
 	    </citerefentry> has to be set up correctly on this node in order to
@@ -435,8 +420,7 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Tell the ParaStation daemon <xref linkend="psid"/> and the license
+	  <para>Tell the &ps; daemon <xref linkend="psid"/> and the license
 	    daemon <xref linkend="psld"/> to use
 	    <filename><replaceable>lic-file</replaceable></filename> as the
 	    license file.
@@ -479,12 +463,11 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    The ParaStation license daemon <xref linkend="psld"/> will shut
-	    down operation after
+	  <para>The &ps; license daemon <xref linkend="psld"/> will shut down
+	    operation after
 	    <parameter><replaceable>num</replaceable></parameter> multicast
-	    periods, if no multicast ping was received from any configured
-	    ParaStation daemon.
+	    periods, if no multicast ping was received from any configured &ps;
+	    daemon.
 	  </para>
 	  <para>
 	    The default value is 30.
@@ -492,8 +475,8 @@
 	  <para>
 	    For now, the multicast period is set to two second, i.e. every
 	    daemon sends a multicast ping every two seconds. This results into
-	    shutting down the license daemon 1 minute after the last
-	    ParaStation daemon within the cluster has finished execution.
+	    shutting down the license daemon 1 minute after the last &ps;
+	    daemon within the cluster has finished execution.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -506,8 +489,7 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Tell the ParaStation daemon <xref linkend="psid"/> to use
+	  <para>Tell the &ps; daemon <xref linkend="psid"/> to use
 	    <filename><replaceable>mod-file</replaceable></filename> as the
 	    Myrinet kernel module.
 	  </para>
@@ -544,8 +526,7 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Tell the ParaStation daemon <xref linkend="psid"/> to use
+	  <para>Tell the &ps; daemon <xref linkend="psid"/> to use
 	    <filename><replaceable>route-file</replaceable></filename> as the
 	    Myrinet routing file.
 	  </para>
@@ -583,8 +564,7 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Set the the maximum size of PIO packets to
+	  <para>Set the the maximum size of PIO packets to
 	    <parameter><replaceable>size</replaceable></parameter> bytes.
 	  </para>
 	  <para>
@@ -606,7 +586,7 @@
 	    <para>
 	      This parameter can be set during runtime via the <command>set
 		<option>smallpacketsize</option></command> directive within the
-	      ParaStation administration and management tool <xref
+	      &ps; administration and management tool <xref
 		linkend="psiadmin"/>.
 	    </para>
 	  </note>
@@ -621,14 +601,13 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Set the retansmission timeout to
+	  <para>Set the retansmission timeout to
 	    <parameter><replaceable>time</replaceable></parameter>
 	    microseconds.
 	  </para>
 	  <para>
-	    If a packet sent by ParaStation to another node is not acknowledged
-	    for this period of time, it will be resend to this node.
+	    If a packet sent by &ps; to another node is not acknowledged for
+	    this period of time, it will be resend to this node.
 	  </para>
 	  <para>
 	    The default value is 2048 microseconds.
@@ -638,8 +617,8 @@
 	      This parameter is only useful when configuring a Myrinet cluster.
 	    </para>
 	    <para>
-	      In the current version of ParaStation this parameter is fixed and
-	      cannot be modified.
+	      In the current version of &ps; this parameter is fixed and cannot
+	      be modified.
 	    </para>
 	  </note>
 	</listitem>
@@ -653,8 +632,7 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Set the number of pending host notify messages to
+	  <para>Set the number of pending host notify messages to
 	    <parameter><replaceable>val</replaceable></parameter>.
 	  </para>
 	  <para>
@@ -686,9 +664,8 @@
 	    </para>
 	    <para>
 	      This parameter can be set during runtime via the <command>set
-		<option>hnpend</option></command> directive within the
-	      ParaStation administration and management tool <xref
-		linkend="psiadmin"/>.
+		<option>hnpend</option></command> directive within the &ps;
+	      administration and management tool <xref linkend="psiadmin"/>.
 	    </para>
 	  </note>
 	</listitem>
@@ -702,13 +679,12 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Set the number of pending acknowledgements to
+	  <para>Set the number of pending acknowledgements to
 	    <parameter><replaceable>val</replaceable></parameter>.
 	  </para>
 	  <para>
-	    ParaStation usually does not send acknowledgements immediately but
-	    waits for some pending ACK messages and sends them accumulated.
+	    &ps; usually does not send acknowledgements immediately but waits
+	    for some pending ACK messages and sends them accumulated.
 	  </para>
 	  <para>
 	    If a packet is not acknowledged for some microseconds (the actual
@@ -733,9 +709,8 @@
 	    </para>
 	    <para>
 	      This parameter can be set during runtime via the <command>set
-		<option>ackpend</option></command> directive within the
-	      ParaStation administration and management tool <xref
-		linkend="psiadmin"/>.
+		<option>ackpend</option></command> directive within the &ps;
+	      administration and management tool <xref linkend="psiadmin"/>.
 	    </para>
 	  </note>
 	</listitem>
@@ -749,10 +724,9 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Tell the ParaStation daemon <xref linkend="psid"/> to use
-	    <filename><replaceable>mod-file</replaceable></filename> as the
-	    IP over Myrinet kernel module.
+	  <para>Tell the &ps; daemon <xref linkend="psid"/> to use
+	    <filename><replaceable>mod-file</replaceable></filename> as the IP
+	    over Myrinet kernel module.
 	  </para>
 	  <para>
 	    <filename><replaceable>mod-file</replaceable></filename> may be a
@@ -762,13 +736,13 @@
 	    this order.
 	  </para>
 	  <para>
-	    If IPModule is not given within the configuration file, the
-	    ParaStation daemon <xref linkend="psid"/> will try to find the
-	    kernel module anyhow. The place to look at is
+	    If IPModule is not given within the configuration file, the &ps;
+	    daemon <xref linkend="psid"/> will try to find the kernel module
+	    anyhow. The place to look at is
 	    <filename><replaceable>InstallDir</replaceable>/bin/modules/<replaceable>arch</replaceable>_Linux_<replaceable>version</replaceable></filename>, 
 	    where <parameter><replaceable>arch</replaceable></parameter> is the
-	    hardware architecture (usually one of 'i386' and 'alpha')
-	    and <parameter><replaceable>version</replaceable></parameter> the
+	    hardware architecture (usually one of 'i386' and 'alpha') and
+	    <parameter><replaceable>version</replaceable></parameter> the
 	    kernel version in use.
 	  </para>
 	  <note>
@@ -792,10 +766,11 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Tell ParaStation the prefix to build IP addresses from ParaStation
-	    IDs. For a detailed description on how this works refer to <xref
-	      linkend="ip_over_myrinet"/> of the <xref linkend="adminguide"/>.
+	  <para>Tell &ps; the prefix to build IP addresses from &ps; IDs. For a
+	    detailed description on how this works refer to
+	    <xref
+	      linkend="ip_over_myrinet"/> of the <emphasis role="bold">&ps;
+	      Administrators Guide</emphasis>.
 	  </para>
 	  <para>
 	    <replaceable>prefix</replaceable> is expected to be in the ordinary
@@ -838,10 +813,9 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Tell ParaStation the number of valid bits within the prefix used to
-	    build IP addresses from ParaStation IDs. The prefix may be defined
-	    using the <command>IPPrefix</command> parameter.
+	  <para>Tell &ps; the number of valid bits within the prefix used to
+	    build IP addresses from &ps; IDs. The prefix may be defined using
+	    the <command>IPPrefix</command> parameter.
 	  </para>
 	  <para>
 	    <replaceable>len</replaceable> is measured in bits.
@@ -865,11 +839,10 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Set the timeout of the central <citerefentry>
+	  <para>Set the timeout of the central <citerefentry>
 	      <refentrytitle>select</refentrytitle>
 	      <manvolnum>2</manvolnum>
-	    </citerefentry> of the ParaStation daemon <xref linkend="psid"/> to
+	    </citerefentry> of the &ps; daemon <xref linkend="psid"/> to
 	    <parameter><replaceable>time</replaceable></parameter> seconds.
 	  </para>
 	  <para>
@@ -878,9 +851,8 @@
 	  <note>
 	    <para>
 	      This parameter can be set during runtime via the <command>set
-		<option>selecttime</option></command> directive within the
-	      ParaStation administration and management tool <xref
-		linkend="psiadmin"/>.
+		<option>selecttime</option></command> directive within the &ps;
+	      administration and management tool <xref linkend="psiadmin"/>.
 	    </para>
 	  </note>
 	</listitem>
@@ -894,8 +866,7 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    The ParaStation daemon <xref linkend="psid"/> will declare other
+	  <para>The &ps; daemon <xref linkend="psid"/> will declare other
 	    daemons as dead after
 	    <parameter><replaceable>num</replaceable></parameter> consecutively
 	    missing multicast pings.
@@ -925,9 +896,8 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Set the debugging level of the ParaStation daemon
-	    <xref linkend="psid"/> to <option>num</option>.
+	  <para>Set the debugging level of the &ps; daemon <xref
+	      linkend="psid"/> to <option>num</option>.
 	  </para>
 	  <note>
 	    <para>
@@ -941,9 +911,8 @@
 	    </para>
 	    <para>
 	      This parameter can be set during runtime via the <command>set
-		<option>psiddebug</option></command> directive within the
-	      ParaStation administration and management tool <xref
-		linkend="psiadmin"/>.
+		<option>psiddebug</option></command> directive within the &ps;
+	      administration and management tool <xref linkend="psiadmin"/>.
 	    </para>
 	  </note>
 	</listitem>
@@ -958,7 +927,8 @@
 	      <arg>LOG_KERN</arg>
 	      <arg>LOG_LOCAL[0-7]</arg>
 	    </group>
-	    <sbr/>
+	  </cmdsynopsis>
+	  <cmdsynopsis>
 	    <command>LogDestination</command>
 	    <group choice="req">
 	      <arg>LOG_DAEMON</arg>
@@ -968,8 +938,7 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Set the logging output's destination for the ParaStation daemon
+	  <para>Set the logging output's destination for the &ps; daemon
 	    <xref linkend="psid"/>. Usually the daemon prints logging output
 	    using the <citerefentry>
 	      <refentrytitle>syslog</refentrytitle>
@@ -978,8 +947,8 @@
 	    requested via <xref linkend="psid"/>'s <option>-l</option> option.
 	  </para>
 	  <para>
-	    In order to collect all the ParaStation specific log messages into
-	    a special file, the <replaceable>facility</replaceable> argument of
+	    In order to collect all the &ps; specific log messages into a
+	    special file, the <replaceable>facility</replaceable> argument of
 	    the <citerefentry>
 	      <refentrytitle>openlog</refentrytitle>
 	      <manvolnum>3</manvolnum>
@@ -1004,9 +973,8 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Tell <xref linkend="psid"/> and <xref linkend="psld"/> to use the
-	    multicast group
+	  <para>Tell <xref linkend="psid"/> and <xref linkend="psld"/> to use
+	    the multicast group
 	    <parameter><replaceable>group-num</replaceable></parameter> for
 	    multicast communication to other daemons.
 	  </para>
@@ -1024,10 +992,10 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Tell <xref linkend="psid"/> and <xref linkend="psld"/> to use the
-	    UDP port <parameter><replaceable>port-num</replaceable></parameter>
-	    for multicast communication to other daemons.
+	  <para>Tell <xref linkend="psid"/> and <xref linkend="psld"/> to use
+	    the UDP port
+	    <parameter><replaceable>port-num</replaceable></parameter> for
+	    multicast communication to other daemons.
 	  </para>
 	  <para>
 	    The default port to use is <constant>1889</constant>
@@ -1043,8 +1011,7 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Tell <xref linkend="psid"/> to use the UDP port
+	  <para>Tell <xref linkend="psid"/> to use the UDP port
 	    <parameter><replaceable>port-num</replaceable></parameter> for RDP
 	    communication to other daemons.
 	  </para>
@@ -1064,7 +1031,8 @@
 	      <arg>StackSize <replaceable>size</replaceable></arg>
 	      <arg>RSSize <replaceable>size</replaceable></arg>
 	    </group>
-	    <sbr/>
+	  </cmdsynopsis>
+	  <cmdsynopsis>
 	    <command>RLimit {</command>
 	    <group choice="req" rep="repeat">
 	      <arg>CPUTime <replaceable>time</replaceable></arg>
@@ -1076,9 +1044,8 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Set various resource limits to the <xref linkend="psid"/> and thus
-	    to all processes started from it.
+	  <para>Set various resource limits to the <xref linkend="psid"/> and
+	    thus to all processes started from it.
 	  </para>
 	  <para>
 	    All limits are set using the <citerefentry>
@@ -1089,8 +1056,8 @@
 	    page.
 	  </para>
 	  <para>
-	    If no RLimits are set within the ParaStation configuration files,
-	    no changes are made to the systems default value.
+	    If no RLimits are set within the &ps; configuration files, no
+	    changes are made to the systems default value.
 	  </para>
 	  <para>
 	    The following (soft) resource limits may be set:
@@ -1104,9 +1071,9 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  Set the maximum CPU time that might be consumed by the daemon
-		  to <parameter><replaceable>time</replaceable></parameter>
+		<para>Set the maximum CPU time that might be consumed by the
+		  daemon to
+		  <parameter><replaceable>time</replaceable></parameter>
 		  seconds.
 		  <parameter><replaceable>time</replaceable></parameter> has to
 		  be an integer number, the string <quote>infinity</quote> or
@@ -1123,8 +1090,7 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  Set the maximum data size to
+		<para>Set the maximum data size to
 		  <parameter><replaceable>size</replaceable></parameter> bytes.
 		  <parameter><replaceable>size</replaceable></parameter> is an
 		  integer number, the string <quote>infinity</quote> or the
@@ -1141,8 +1107,7 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  Set the maximum stack size to
+		<para>Set the maximum stack size to
 		  <parameter><replaceable>size</replaceable></parameter> bytes.
 		  <parameter><replaceable>size</replaceable></parameter> is an
 		  integer number, the string <quote>infinity</quote> or the
@@ -1159,8 +1124,7 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  Set the maximum Resident Set Size (RSS) to
+		<para>Set the maximum Resident Set Size (RSS) to
 		  <parameter><replaceable>size</replaceable></parameter> bytes.
 		  <parameter><replaceable>size</replaceable></parameter> is an
 		  integer number, the string <quote>infinity</quote> or the
