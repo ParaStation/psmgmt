@@ -324,6 +324,9 @@ note"))))
 ;; Ignore referenceinfo entries
 (element referenceinfo (empty-sosofo))
 
+;; Ignore refentryinfo entries
+(element refentryinfo (empty-sosofo))
+
 (define (titlepage-info-elements node info #!optional (intro (empty-node-list)))
   ;; Returns a node-list of the elements that might appear on a title
   ;; page.  This node-list is constructed as follows:
