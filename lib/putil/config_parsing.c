@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.10 2003/12/11 20:26:28 eicker Exp $
+ * $Id: config_parsing.c,v 1.11 2004/01/09 15:48:24 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.10 2003/12/11 20:26:28 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.11 2004/01/09 15:48:24 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -238,7 +238,7 @@ static int getLicFile(char *token)
 static int getMCastUse(char *token)
 {
     config.useMCast = 0;
-    parser_comment("Will not use MCast. Enable alternative status control", 8);
+    parser_comment("Will not use MCast. Enable alternative status control", 0);
     return 0;
 }
 
