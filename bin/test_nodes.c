@@ -250,19 +250,19 @@ void run(int argc,char **argv,int np)
     FILE *out;
     struct itimerval timer;
 
-    PSEinit(np,&rank);
+    PSE_init(np,&rank);
     
     if (rank == -1){
 	/* I am the logger */
 	/* Set default to none: */
 	setenv("PSI_NODES_SORT","NONE",0);
-	PSEspawn(argc, argv, &mapnode[0], &mapport[0],rank);
+	PSE_spawn(argc, argv, &mapnode[0], &mapport[0],rank);
 	/* Never be here ! */
 	exit(1);
     }
     
 	
-//    PSEinit(np,argc,argv,&mapnode[0],&mapport[0],&rank);
+//    PSE_init(np,argc,argv,&mapnode[0],&mapport[0],&rank);
     /* Initialize Myrinet */
 
     if (PSP_Init()){
@@ -291,10 +291,10 @@ void run(int argc,char **argv,int np)
 
     if (rank==0){
 	/* Master node: Set parameter from rank 0 */
-	PSEspawn(argc, argv, &mapnode[0], &mapport[0],rank);
+	PSE_spawn(argc, argv, &mapnode[0], &mapport[0],rank);
     }else{
 	/* Client node: Get parameter from rank 0 */
-	PSEspawn(argc, argv, &mapnode[0], &mapport[0],rank);
+	PSE_spawn(argc, argv, &mapnode[0], &mapport[0],rank);
     }
     
     if (rank>0){
@@ -385,7 +385,7 @@ void run(int argc,char **argv,int np)
 	    break;
 	}
 	case 5:{ /* Recv EXIT from master */
-	    PSEfinalize();
+	    PSE_finalize();
 	    exit(0);
 	}
 	default:{
@@ -429,7 +429,7 @@ void run(int argc,char **argv,int np)
     fprintf(out,"All connections ok\n");
     fclose(out);
 
-    PSEfinalize();
+    PSE_finalize();
 }
 
 
@@ -465,7 +465,7 @@ int main(int argc, char **argv)
     }
 
     run(argc,argv,arg_np);
-//    PSEfinalize();
+//    PSE_finalize();
     return 0;
 }
 
