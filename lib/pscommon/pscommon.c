@@ -205,8 +205,8 @@ void PSC_startDaemon(unsigned int hostaddr)
     }
     case 0: /* I'm the child (and running further) */
 	break;
-    default: /* I'm the parent and exiting */
-	return 0;
+    default: /* I'm the parent (and returning) */
+	return;
 	break;
     }
 
