@@ -1,5 +1,5 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * psidtask.c
  *
  * ParaStation tasks and helper functions.
@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidtask.c,v 1.8 2003/06/06 14:50:24 eicker Exp $
+ * $Id: psidtask.c,v 1.9 2003/09/12 14:43:20 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.8 2003/06/06 14:50:24 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.9 2003/09/12 14:43:20 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>

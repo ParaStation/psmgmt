@@ -1,18 +1,18 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * psidtask.h
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidtask.h,v 1.8 2003/07/04 09:10:15 eicker Exp $
+ * $Id: psidtask.h,v 1.9 2003/09/12 14:43:20 eicker Exp $
  *
  */
 /**
  * @file
  * Functions for interaction with ParaStation tasks within the Daemon
  *
- * $Id: psidtask.h,v 1.8 2003/07/04 09:10:15 eicker Exp $
+ * $Id: psidtask.h,v 1.9 2003/09/12 14:43:20 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
