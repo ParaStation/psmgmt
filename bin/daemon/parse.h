@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: parse.h,v 1.4 2002/01/16 17:17:07 eicker Exp $
+ * $Id: parse.h,v 1.5 2002/01/22 16:14:48 eicker Exp $
  *
  */
 /**
  * \file
  * parse: Parser for ParaStation daemon
  *
- * $Id: parse.h,v 1.4 2002/01/16 17:17:07 eicker Exp $
+ * $Id: parse.h,v 1.5 2002/01/22 16:14:48 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -35,7 +35,6 @@ struct psihosttable{
 };
 
 extern struct psihosttable *psihosttable;
-extern char **hosttable;
 
 extern char *Configfile;
 
@@ -59,9 +58,9 @@ extern int MyPsiId;
 extern unsigned int MyId;
 
 void installhost(char *s,int n);
-void setnrofnodes(int n);
+void setNrOfNodes(int n);
 
-int parse_config(int syslogerror);
+int parseConfig(int syslogerror);
 
 #ifdef __cplusplus
 }/* extern "C" */

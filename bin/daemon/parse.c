@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: parse.c,v 1.10 2002/01/16 17:07:30 eicker Exp $
+ * $Id: parse.c,v 1.11 2002/01/22 16:14:15 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: parse.c,v 1.10 2002/01/16 17:07:30 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: parse.c,v 1.11 2002/01/22 16:14:15 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -20,6 +20,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: parse.c,v 1.10 2002/01/16 1
 #include <sys/stat.h>
 #include <syslog.h>
 #include <unistd.h>
+#include <netinet/in.h>
 
 #include "psi.h"
 
@@ -53,7 +54,6 @@ long ConfigPsidSelectTime=-1;
 long ConfigDeclareDeadInterval=-1;
 
 struct psihosttable *psihosttable = NULL;
-char **hosttable = NULL;           /* to store hostnames */
 
 static int usesyslog=0;
 static char errtxt[255];
@@ -94,7 +94,7 @@ unsigned int GetIP(char *s)
     return id;
 }
 
-void setnrofnodes(int n)
+void setNrOfNodes(int n)
 {
     int i;
 
@@ -107,25 +107,26 @@ void setnrofnodes(int n)
     }
     NrOfNodes = n;
 
-    hosttable = (char **) malloc((NrOfNodes+1)*sizeof(char *));
-
     psihosttable =
 	(struct psihosttable *) malloc((NrOfNodes+1)
 				       * sizeof(struct psihosttable));
     for(i=0; i<=NrOfNodes; i++){
         psihosttable[i].found = 0;
-        psihosttable[i].inet = 0;
+        psihosttable[i].inet = INADDR_ANY;
         psihosttable[i].name = NULL;
     }
 }
 
 int lookupHost(char *s)
 {
-    register int i;
+    int i;
 
-    for(i=0;i<nodesfound;i++){
-	if(!strcmp(hosttable[i],s)) return 1;
+    for (i=0; i<NrOfNodes; i++) {
+	if (psihosttable[i].found && !strcmp(psihosttable[i].name, s)) {
+	    return 1;
+	}
     }
+
     return 0;
 }
 
@@ -136,14 +137,14 @@ void installhost(char *s,int n)
 
     localid = GetIP(s);
 
-    if (NrOfNodes==-1){ /* NrOfNodes not defined */
+    if (NrOfNodes==-1) { /* NrOfNodes not defined */
 	snprintf(errtxt, sizeof(errtxt),
 		 "ERROR(Line %d): You have to define NrOfNodes before hosts\n",
 		 lineno);
 	ERR_OUT(errtxt);
 	exit(-1);
     }
-    if ((n>NrOfNodes) || (n<0)){ /* PSI-Id out of Range */
+    if ((n>NrOfNodes) || (n<0)) { /* PSI-Id out of Range */
 	snprintf(errtxt, sizeof(errtxt),
 		 "ERROR: PSI-Id <%d> out of range (NrOfNodes=%d)\n", n,
 		 NrOfNodes);
@@ -166,14 +167,13 @@ void installhost(char *s,int n)
 	ERR_OUT(errtxt);
 	exit(-1);
     }
-/* sprintf(errtxt,"Installing host[%d] %s MyPsiID=%x\n",n,s,MyPsiId); */
-/* ERR_OUT(errtxt); */
+
     /* install hostname */
-    hosttable[nodesfound] = (char *)malloc(strlen(s)+1);
-    strcpy(hosttable[nodesfound],s);
     psihosttable[n].found = 1; /* true */
     psihosttable[n].inet = localid;
-    psihosttable[n].name = hosttable[nodesfound];
+    psihosttable[n].name = (char *)malloc(strlen(s)+1);
+    strcpy(psihosttable[n].name, s);
+
     if(!licserver)nodesfound++;
     if (nodesfound > NrOfNodes){ /* more hosts than nodes ??? */
 	ERR_OUT("ERROR: NrOfNodes does not match number of hosts in list\n");
@@ -184,7 +184,7 @@ void installhost(char *s,int n)
     return;
 }
 
-int parse_config(int syslogreq)
+int parseConfig(int syslogreq)
 {
     char myname[255], *temp, emptyfilename[] = "--------";
     char ext[] = "/config/psm.config";
