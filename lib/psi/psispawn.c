@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.44 2003/08/04 15:18:55 eicker Exp $
+ * $Id: psispawn.c,v 1.45 2003/08/27 12:56:00 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.44 2003/08/04 15:18:55 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.45 2003/08/27 12:56:00 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -64,40 +64,6 @@ static int dospawn(int count, short *dstnodes, char *workingdir,
 		   int argc, char **argv,
 		   long loggertid,
 		   int rank, int *errors, long *tids);
-
-long PSI_spawn(short dstnode, char *workdir, int argc, char **argv,
-	       long loggertid,
-	       int rank, int *error)
-{
-    int ret;
-    long tid;
-
-    snprintf(errtxt, sizeof(errtxt), "%s()", __func__);
-    PSI_errlog(errtxt, 10);
-
-    if (dstnode<0) {
-	if (!PSI_Partition) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: you have to call PSI_getPartition() beforehand.",
-		     __func__);
-	    PSI_errlog(errtxt, 0);
-	    *error = ENXIO;
-	    return -1;
-	}
-
-	dstnode = PSI_Partition[PSI_PartitionIndex];
-
-	PSI_PartitionIndex++;
-	PSI_PartitionIndex %= PSI_PartitionSize;
-    }
-
-    ret = dospawn(1, &dstnode, workdir, argc, argv,
-		  loggertid, rank, error, &tid);
-
-    if (ret<0) return ret;
-
-    return tid;
-}
 
 int PSI_spawnM(int count, short *dstnodes, char *workdir,
 	       int argc, char **argv,
