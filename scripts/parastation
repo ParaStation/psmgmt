@@ -6,11 +6,16 @@
 #
 # Author: Jens Hauke <hauke@par-tec.com>, Norbert Eicker <eicker@par-tec.com>
 #
-# $Id: parastation,v 1.7 2003/02/25 12:03:29 eicker Exp $
+# $Id: parastation,v 1.8 2003/04/03 15:49:34 eicker Exp $
 #
 
-
 MODULEFULLNAME=$PS_MODULE
+if [ ! -f $MODULEFULLNAME ]; then
+    MODULEFULLNAME=`dirname $0`/modules/$PS_MODULE
+fi
+if [ ! -f $PS_ROUTEFILE ]; then
+    PS_ROUTEFILE=`dirname $0`/../config/$PS_ROUTEFILE
+fi
 MODULENAME=`basename $MODULEFULLNAME .o`
 PSCONFIG=`dirname $0`/psconfig
 
