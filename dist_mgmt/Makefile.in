@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.10 2003/11/10 17:53:44 eicker Exp $
+# $Id: Makefile.in,v 1.11 2004/02/10 17:02:11 hauke Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -164,7 +164,11 @@ else
 ifeq ("$(TARGET_CPU)","ia64")
 TARCPU  := ia64
 else
+ifeq ("$(TARGET_CPU)","x86_64")
+TARCPU  := x86_64
+else
 $(error "error: Unknown target CPU $(TARGET_CPU)!")
+endif # x86_64
 endif # ia64
 endif # alphaev56
 endif # i686
