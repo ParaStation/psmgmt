@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.16 2002/02/26 13:18:10 eicker Exp $
+ * $Id: psilogger.c,v 1.17 2002/02/26 13:21:15 eicker Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.16 2002/02/26 13:18:10 eicker Exp $
+ * $Id: psilogger.c,v 1.17 2002/02/26 13:21:15 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.16 2002/02/26 13:18:10 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.17 2002/02/26 13:21:15 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* DEBUG_LOGGER allows logger debuging without the daemon
@@ -83,7 +83,7 @@ void sighandler(int sig)
     switch(sig){
     case SIGTERM:
 	if (firstCall) {
-	    fprintf(stderr, "PSIlogger: Got SIGTERM. Problem with client?\n");
+	    fprintf(stderr, "PSIlogger: Got SIGTERM. Problem with child?\n");
 	    firstCall = 0;
 	}
 	if (verbose) {
