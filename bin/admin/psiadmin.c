@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.54 2003/03/19 16:56:19 eicker Exp $
+ * $Id: psiadmin.c,v 1.55 2003/04/02 13:35:21 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.54 2003/03/19 16:56:19 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.55 2003/04/02 13:35:21 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -49,7 +49,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.54 $";
+static char psiadmversion[] = "$Revision: 1.55 $";
 static int doRestart = 0;
 
 static char *hoststatus = NULL;
@@ -340,7 +340,7 @@ void PSIADM_ShowMaxProc(int first, int last)
 
     for (i = first; i < last; i++) {
 	printf("%3d:  ", i);
-	ret = INFO_request_option(0, 1, &option, &proclimit, 1);
+	ret = INFO_request_option(i, 1, &option, &proclimit, 1);
 
 	if (ret==-1) {
 	    printf("Can't get max. processes.\n");
