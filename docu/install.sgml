@@ -64,7 +64,7 @@
       </para>
       <para>
 	On nodes with more than one Ethernet interface you have to setup a
-	defaultroute for the multicast traffic. This is done by
+	default route for the multicast traffic. This is done by
       </para>
       <programlisting>	route add -net 224.0.0.0 netmask 240.0.0.0 dev <replaceable>ethX</replaceable></programlisting>
       <para>
@@ -135,7 +135,7 @@
       &ps; supports both methods of installation: It can either be installed on
       every node (residing per default in
       <filename>/opt/parastation</filename>) or it may be installed on a front
-      end machine and mounted on everey node of the cluster (ideally also to
+      end machine and mounted on every node of the cluster (ideally also to
       <filename>/opt/parastation</filename>). Be aware of the fact that even if
       &ps; is installed on a front-end machine, some configuration work on each
       node has to be done anyway.
@@ -167,7 +167,7 @@
 	  <manvolnum>8</manvolnum>
       </citerefentry> in this case, since the nodes of a cluster usually cannot
 	be operated in a usable way without the users'
-	<filename>/home</filename> directories. Therefor static NFS mounting
+	<filename>/home</filename> directories. Therefore static NFS mounting
 	seems to be reasonable in this case.
       </para>
     </note>
@@ -260,7 +260,7 @@
 	      necessary steps are described in <xref linkend="docu_install"/>.
 	    </para>
 	    <para>
-	      In order to enable this pages to the user via the
+	      In order to enable these pages to the user via the
 	      <citerefentry>
 		<refentrytitle>man</refentrytitle>
 		<manvolnum>1</manvolnum>
@@ -316,9 +316,9 @@
 	<filename>arch</filename> is the architecture, i.e. one of
 	<filename>i386</filename><!--, <filename>x86-64</filename>,
 	<filename>ia64</filename>-->, <filename>alpha</filename> or
-	<filename>tru64</filename>. The first architectures are assumed to run
-	Linux, while the last one is for HP's Tru64 UNIX running on the Alpha
-	processor.
+	<filename>tru64</filename>. The first two architectures are assumed to
+	run Linux, while the last one is for HP's Tru64 UNIX running on the
+	Alpha processor.
       </para>
       <para>
 	In order to install the ethernet version called &psfe; the name of the
@@ -393,9 +393,9 @@
 	<filename>arch</filename> is the architecture, i.e. one of
 	<filename>i386</filename><!--, <filename>x86-64</filename>,
 	<filename>ia64</filename>-->, <filename>alpha</filename> or
-	<filename>tru64</filename>. The first architectures are assumed to run
-	Linux, while the last one is for HP's Tru64 UNIX running on the Alpha
-	processor.
+	<filename>tru64</filename>. The first two architectures are assumed to
+	run Linux, while the last one is for HP's Tru64 UNIX running on the
+	Alpha processor.
       </para>
       <para>
 	In order to install &psfe;, the ethernet version of &ps; the name of
@@ -469,9 +469,9 @@
   <section id="Install_by_hand">
     <title>Installation by hand</title>
     <para>
-      For full controll on the installation process you might not want to run
+      For full control on the installation process you might not want to run
       the <command>PSM_INSTALL</command> script but do the necessary
-      modifications by hand. Therefor the changes made by this script will be
+      modifications by hand. Therefore the changes made by this script will be
       discussed now step by step.
     </para>
     <note>
@@ -755,7 +755,7 @@
       </listitem>
       <listitem>
 	<para><link linkend="embed">optionally the embedding of the &ps; system
-	    into an allready existing batch system.</link>
+	    into an already existing batch system.</link>
 	</para>
       </listitem>
     </itemizedlist>
@@ -767,7 +767,7 @@
   <section>
     <title>Uninstall</title>
     <para>
-      In order to remove &ps; from the cluster it was installed on there are
+      In order to remove &ps; from the cluster it was installed on, there are
       different ways to do so depending on the choosen way of installation.
     </para>
     <simplesect>

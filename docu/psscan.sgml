@@ -92,7 +92,7 @@
       connected to.
     </para>
     <para>
-      Therefor the map files format can be viewed as a list of nodes plus a
+      Therefore the map files format can be viewed as a list of nodes plus a
       list of links of the specific network. In an abstract way the redundant
       information contained within the map file is transferred by the <xref
 	linkend="psroute"/> command to the much less redundant form of the
@@ -108,7 +108,7 @@
       Within the map file, two types of nodes are differentiated, hosts and
       switches. While a host only has one port to the Myrinet (which is usually
       a Myrinet NIC), a switch usually has more than one port. Furthermore host
-      own a &ps; ID, whilst switches don't do so.
+      own a &ps; ID, while switches don't do so.
     </para>
     <para>
       The form of a node description is as follows:

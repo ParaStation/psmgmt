@@ -48,8 +48,10 @@
 	    <citerefentry>
 	      <refentrytitle>fork</refentrytitle>
 	      <manvolnum>2</manvolnum>
-	    </citerefentry> is executed on startup. Furthermore the output is
-	    much more verbose and not directed to <citerefentry>
+	    </citerefentry> is executed on startup. This is done as default in
+	    order to run <command>psld</command> as a daemon process in
+	    background. Furthermore the output is much more verbose and not
+	    directed to <citerefentry>
 	      <refentrytitle>syslog</refentrytitle>
 	      <manvolnum>3</manvolnum>
 	    </citerefentry> but to stderr. This option implies

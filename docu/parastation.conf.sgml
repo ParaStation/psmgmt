@@ -90,7 +90,7 @@
 	  </para>
 	  <note>
 	    <para>
-	      The installation directory has to be declare before any of
+	      The installation directory has to be declared before any of
 	      <command>LicenseFile</command>, <command>MyrinetModule</command>,
 	      <command>RoutingFile</command> or <command>IPModule</command> is
 	      used.
@@ -273,7 +273,7 @@
 	  <para>If the argument is one of <parameter>yes</parameter>,
 	    <parameter>true</parameter> or <parameter>1</parameter> all nodes
 	    declared within a <command>Node</command> statement will allow to
-	    start parallel jobs, unless otherwise stated.
+	    start parallel tasks, unless otherwise stated.
 	  </para>
 	  <para>
 	    If the argument is one of <parameter>no</parameter>,
@@ -281,7 +281,15 @@
 	    will be not allowed.
 	  </para>
 	  <para>
-	    The default is to allow starting parallel jobs from all nodes.
+	    It might be useful to prohibit the startup of parallel task from
+	    the frontend machine if a batch system is used. This will force all
+	    users to use the batch system in order to start their tasks.
+	    Otherwise it would be possible to circumvent the batch system by
+	    starting parallel task directly from the frontend machine.
+	  </para>
+	  <para>
+	    The default is to allow the starting of parallel tasks from all
+	    nodes.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -321,7 +329,7 @@
 	    once per entry again and again.
 	  </para>
 	  <para>
-	    Each entry has to have at least to items, the
+	    Each entry has to have at least two items, the
 	    <parameter><replaceable>hostname</replaceable></parameter> and the
 	    <parameter><replaceable>id</replaceable></parameter>. This will
 	    tell the &ps; system that the node called
@@ -401,7 +409,7 @@
 	  </para>
 	  <para>
 	    &ps; will try to start the license server on this machine if the
-	    license ping is missing for too long. Therefor, the <citerefentry>
+	    license ping is missing for too long. Therefore, the <citerefentry>
 	      <refentrytitle>inetd</refentrytitle>
 	      <manvolnum>8</manvolnum>
 	    </citerefentry> has to be set up correctly on this node in order to
@@ -618,7 +626,7 @@
 	    </para>
 	    <para>
 	      In the current version of &ps; this parameter is fixed and cannot
-	      be modified.
+	      be modified. This might change in the future.
 	    </para>
 	  </note>
 	</listitem>
@@ -691,7 +699,7 @@
 	    value can be set using the parameter
 	    <command>ResendTimeout</command>) it will be resend by the source
 	    node. If a packet is received twice by the destination node, an
-	    immediate ACK message is sent and therefor correct delivery of
+	    immediate ACK message is sent and therefore correct delivery of
 	    packets is ensured.
 	  </para>
 	  <para>
@@ -796,7 +804,7 @@
 	      Myrinet should be enabled on a Myrinet cluster.
 	    </para>
 	    <para>
-	      It is also possible to assing IP addresses to Myrinet cards on
+	      It is also possible to assign IP addresses to Myrinet cards on
 	      the different nodes on a per node basis. Use the
 	      <option>MyrinetIP</option> option of the <command>Nodes</command>
 	      parameter for this feature.

@@ -14,7 +14,7 @@
   <refsynopsisdiv>
     <cmdsynopsis>
       <command>psid</command>
-      <arg>-v?</arg>
+      <arg>-dv?</arg>
       <arg>-f configfile</arg>
       <arg>-l logfile</arg>
       <arg>--usage</arg>
@@ -133,7 +133,8 @@
 	    <citerefentry>
 	      <refentrytitle>fork</refentrytitle>
 	      <manvolnum>2</manvolnum>
-	    </citerefentry> is made on startup.
+	    </citerefentry> is made on startup, which is usually done in order
+	    to run <command>psid</command> as a daemon process in background.
 	  </para>
 	  <para>
 	    The debugging level of the daemon can also be modified during

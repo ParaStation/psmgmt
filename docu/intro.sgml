@@ -18,11 +18,12 @@
 
   <para>
     Furthermore another version called &psfe; exists. This variant of &ps; uses
-    Ethernet for communication in a only slightly optimized way and thus cannot
-    give the high throughput, low latency communication one is used to from the
-    Myrinet version. Nevertheless some disadvantages of the MPIch communication
-    implementations are eliminated doubling the throughput for big packets
-    (i.e. larger than 32 kByte).
+    Ethernet for communication in an optimized way but cannot give the high
+    throughput, low latency communication one is used to from the Myrinet
+    version due to the limited potential provided by Ethernet. Additionally
+    some disadvantages of the MPIch communication implementations are
+    eliminated doubling the throughput for big packets (i.e. larger than 32
+    kByte).
   </para>
 
   <para>
@@ -47,23 +48,23 @@
     The foundations of the &ps; software were laid in 1995, when the &ps;
     communication hardware and software system was presented. It was developed
     at the chair of Professor Tichy at computer science department of Karlsruhe
-    University. Thus in the early days the &ps; project was mainly a hardware
-    project.
+    University.
   </para>
   <para>
-    This changed when in 1998 ParaStation2 was presented, now a pure software
-    project. The communication platform used then was Myrinet, a gigabit
-    interconnect developed  by <ulink url="http://www.myri.com">
-      MyriCom</ulink>. The development of ParaStation2 still took place at the
-    University of Karlsruhe.
+    When in 1998 ParaStation2 was presented, it was a pure software project.
+    The communication platform used then was Myrinet, a gigabit interconnect
+    developed  by <ulink url="http://www.myri.com"> MyriCom</ulink>. The
+    development of ParaStation2 still took place at the University of
+    Karlsruhe.
   </para>
   <para>
     &ps; became commercial in 1999 when <ulink
       url="http://www.par-tec.com">ParTec AG</ulink> was founded. This spin-off
-    of Karlsruhe University now owns all rights and patent connected with the
-    &ps; software. ParTec promoted the further development and improvement of
-    the software. This includes the support of a broader basis of supported
-    processor types, communication interconnect and operating systems.
+    from the University of Karlsruhe now owns all rights and patent connected
+    with the &ps; software. ParTec promoted the further development and
+    improvement of the software. This includes the support of a broader basis
+    of supported processor types, communication interconnect and operating
+    systems.
   </para>
 </section>
 

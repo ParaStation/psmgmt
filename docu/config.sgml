@@ -67,15 +67,16 @@
 	<para>
 	  The template file contains all possible parameters understood by the
 	  &ps; daemon <xref linkend="psid"/>. Most of these parameters are set
-	  to their default value and commented out. Only those that have to be
-	  modified in order to addapt &ps; to the local cluster are enabled.
-	  Additionally all parameters are accompanied by a describing comment.
-	  A detailed description of all the parameters can be found in the
+	  to their default value within lines marked as comments. Only those
+	  that have to be modified in order to adapt &ps; to the local cluster
+	  are enabled. Additionally all parameters are accompanied by a
+	  describing comment. A detailed description of all the parameters can
+	  be found in the
 	  <xref linkend="parastation_conf"/> manual page.
 	</para>
 	<para>
-	  The template file is a good basis in order to create a working
-	  configuration of &ps; for your cluster.
+	  The template file is a good starting point in order to create a
+	  working configuration of &ps; for your cluster.
 	</para>
       </listitem>
       <listitem>
@@ -114,7 +115,7 @@
 	<para>
 	  Furthermore &ps; has to be told which nodes are contained in the
 	  cluster. The usual way of using the <command>Nodes</command>
-	  parameter is the environment mode, that is allready enabled in the
+	  parameter is the environment mode, that is already enabled in the
 	  template file.
 	</para>
 	<para>
@@ -412,7 +413,7 @@
       parameter.
     </para>
     <para>
-      Both possible ways will be discussed in detail in the next two
+      Both possibilities will be discussed in detail in the next two
       subsections.
     </para>
     <section>
@@ -420,7 +421,7 @@
       <para>
 	The first concept used by &ps; is the following: You can define a
 	prefix and its lenght which are identical for all participating nodes.
-	This prefix defines the most signigicant bits of the IP address. Then
+	This prefix defines the most significant bits of the IP address. Then
 	the IP address is filled up with the &ps; ID to create a valid
 	address<footnote>
 	  <para>
@@ -537,7 +538,7 @@
       and repeat this command until all nodes are up. While doing so, you use
       the first &ps; command: <command>psiadmin</command>. Here it is used in
       the single command mode requesting the status of all nodes again and
-      again. At the same time within each startup og
+      again. At the same time within each startup of
       <command>psiadmin</command> the local &ps; daemon is connected. While
       being connected the daemon will try to start all other daemons not yet
       up. The &ps; administration tool is described in detail in the
@@ -624,10 +625,10 @@ Process 7 to 0-2,4-7 ( node 7 to 0-2,4-7 ) OK
   <section id="setup_route">
     <title>Setting up routing on customized network topologies</title>
     <para>
-      <anchor id="embed"/>
+      <anchor id="embed"/> <!-- @todo: Just to fix the error -->
       If your network topology is special and not covered within the standard
       routing files or if you are using the old Myrinet hardware (i.e. pre
-      Myrinet 2000 hardware), you might have to create a a custimized routing
+      Myrinet 2000 hardware), you might have to create a customized routing
       file in order to setup &ps; correctly.
     </para>
     <para>
@@ -656,7 +657,7 @@ Process 7 to 0-2,4-7 ( node 7 to 0-2,4-7 ) OK
     <para>
       Then start up all daemons following the steps in <xref
 	linkend="testing"/>. Of course actual testing of the Myrinet using the
-      <command>test_nodes</command> program cannot yet be done. It is fully
+      <command>test_nodes</command> program cannot be done yet. It is
       sufficient if all &ps; daemons are up (test this using the
       <command>status</command> directive withing the &ps; administration tool
       <xref
