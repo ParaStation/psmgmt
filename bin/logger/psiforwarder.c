@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiforwarder.c,v 1.8 2002/01/23 11:28:42 eicker Exp $
+ * $Id: psiforwarder.c,v 1.9 2002/02/08 17:19:30 hauke Exp $
  *
  */
 /**
  * @file
  * psiforwarder: Forwarding-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psiforwarder.c,v 1.8 2002/01/23 11:28:42 eicker Exp $
+ * $Id: psiforwarder.c,v 1.9 2002/02/08 17:19:30 hauke Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.8 2002/01/23 11:28:42 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.9 2002/02/08 17:19:30 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -120,7 +120,8 @@ int loggerconnect(unsigned int node, int port)
     }else{
 	verbose = *(int *) msg.buf;
     }
-
+    /* Send a dummy message to tell the logger my id */
+    writelog(loggersock,STDOUT,id,"",0);
     return loggersock;
 }
 
@@ -192,6 +193,40 @@ void CheckFileTable(fd_set* openfds)
     }
 }
 
+int writeall(int fd,void *buf,int count)
+{
+    int len;
+    int c=count;
+
+    while (c>0){
+	len = write(fd,buf,c);
+	if (len<0) return -1;
+	c-=len;
+	((char*)buf)+=len;
+    }
+    return count;
+}
+
+void read_from_logger(int logfd, int stdinport)
+{
+    FLBufferMsg_t msg;
+    char obuf[120];
+
+    if (readlog(logfd, &msg) > 0){
+	if (msg.header.type == STDIN){
+	    if (verbose){
+		snprintf(obuf, sizeof(obuf),
+			 "PSIforwarder: receive %d byte for STDIN\n",
+			    msg.header.len - sizeof(msg.header) );
+		printlog(loggersock, STDERR, id, obuf);
+	    }
+	    writeall(stdinport, msg.buf,msg.header.len - sizeof(msg.header)); 
+	}else{
+	    /* unexpected message. Ignore. */
+	}
+    }
+}
+
 /**
  * @brief The main loop
  *
@@ -223,6 +258,7 @@ void loop(int stdoutport, int stderrport)
     FD_ZERO(&myfds);
     FD_SET(stdoutport, &myfds);
     FD_SET(stderrport, &myfds);
+    FD_SET(loggersock, &myfds);
 
     /*
      * Loop until there is no connection left.
@@ -246,6 +282,10 @@ void loop(int stdoutport, int stderrport)
 		    type=STDOUT;
 		}else if(sock==stderrport){
 		    type=STDERR;
+		}else if(sock==loggersock){
+		    /* Read new input */
+		    read_from_logger(loggersock,stdoutport);
+		    continue;
 		}else{
 		    snprintf(obuf, sizeof(obuf),
 			     "PSIforwarder: PANIC: sock %d, which is neither"
@@ -310,7 +350,7 @@ void loop(int stdoutport, int stderrport)
  *  -# The node on which the logger listens.
  *  -# The port on which the logger listens.
  *  -# The #id, as which we will send.
- *  -# The port number for stdout data.
+ *  -# The port number for stdin and stdout data.
  *  -# The port number for stderr data.
  *
  * @return Always returns 0.

@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: logmsg.h,v 1.4 2002/01/23 11:28:42 eicker Exp $
+ * $Id: logmsg.h,v 1.5 2002/02/08 17:19:30 hauke Exp $
  *
  */
 /**
  * @file
  * logmsg: Forwarding protocol for ParaStation I/O forwarding facility
  *
- * $Id: logmsg.h,v 1.4 2002/01/23 11:28:42 eicker Exp $
+ * $Id: logmsg.h,v 1.5 2002/02/08 17:19:30 hauke Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -34,6 +34,7 @@ extern "C" {
 typedef enum {
     INITIALIZE, /**< logger -> forwarder. Forwarder correctly accepted by
 		    logger. */
+    STDIN,      /**< logger -> forwarder. Contains input to stdin. */
     STDOUT,     /**< forwarder -> logger. Contains output to stdout. */
     STDERR,     /**< forwarder -> logger. Contains output to stderr. */
     FINALIZE,   /**< forwarder -> logger. Request to shut down connection. */

@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.11 2002/02/08 10:57:53 eicker Exp $
+ * $Id: pse.c,v 1.12 2002/02/08 17:19:29 hauke Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.11 2002/02/08 10:57:53 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.12 2002/02/08 17:19:29 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -301,6 +301,7 @@ void PSEfinalize(void)
     fflush(stdout);
     fflush(stderr);
 
+    /* jh: did we need this distinction anymore ? */
     if(worldRankPSE){
 	/* client process */
 
@@ -310,7 +311,9 @@ void PSEfinalize(void)
 	/* release our forwarder */
 	close(STDERR_FILENO);
 	close(STDOUT_FILENO);
+	close(STDIN_FILENO);
 
+	/* jh: this looks buggy ... */
 	/* Small delay to give forwarder the chance to clean up */
 	usleep(1000);
 
@@ -319,6 +322,7 @@ void PSEfinalize(void)
 	/* master process */
 
 	/* release our forwarder and reuse the old fds*/
+	dup2(stdin_fileno_backup, STDIN_FILENO);
 	dup2(stdout_fileno_backup, STDOUT_FILENO);
 	dup2(stderr_fileno_backup, STDERR_FILENO);
 

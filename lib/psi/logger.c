@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: logger.c,v 1.16 2002/02/08 10:35:39 eicker Exp $
+ * $Id: logger.c,v 1.17 2002/02/08 17:19:29 hauke Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: logger.c,v 1.16 2002/02/08 10:35:39 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: logger.c,v 1.17 2002/02/08 17:19:29 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -28,6 +28,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: logger.c,v 1.16 2002/02/08 
 #include <sys/time.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <pty.h>
 
 #include "psi.h"
 #include "psitask.h"
@@ -37,6 +38,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: logger.c,v 1.16 2002/02/08 
 
 pid_t logger_pid=0;
 
+int stdin_fileno_backup=-1;
 int stdout_fileno_backup=-1;
 int stderr_fileno_backup=-1;
 
@@ -60,10 +62,11 @@ int LOGGERexecv( const char *path, char *const argv[])
  *
  * spawns a forwarder connected with 2 pipes and redirects stdout and
  * stderr to this pipes. stdout and stderr are backed up for later reuse
+ * if (tty) create an pty for stdin stdout and stderr.
  *
  * RETURN nothing
  */
-void LOGGERspawnforwarder(unsigned int logger_node, int logger_port)
+void LOGGERspawnforwarder(unsigned int logger_node, int logger_port,int rank,int tty)
 {
     int pid;
     int stdoutfds[2], stderrfds[2];
@@ -72,14 +75,36 @@ void LOGGERspawnforwarder(unsigned int logger_node, int logger_port)
     /* 
      * create two pipes for the forwarder to listen to. 
      */
-    if(pipe(stdoutfds)){
-        errtxt = strerror(errno);
-        syslog(LOG_ERR, "LOGGERspawnforwarder(pipe(stdout)): [%d] %s", errno,
-               errtxt?errtxt:"UNKNOWN");
-        perror("pipe(stdout)");
-	exit(1);
+    if (tty){
+#if 0
+	/* ToDo: Receive the terminal size of the orginal tty for winsize
+	 * and remove this codepart from the daemon. The forwarder should open
+	 * the pty. The user process should be a child of the forwarder
+	 * (like the sshd). I dont want openpty inside the psi-library
+	 * because the need of -lutil  *jh*
+	 */
+	if (openpty (&stdoutfds[0],&stdoutfds[1],NULL,NULL,NULL)){
+	    errtxt = strerror(errno);
+	    syslog(LOG_ERR, "LOGGERspawnforwarder(openpty()): [%d] %s", errno,
+		   errtxt?errtxt:"UNKNOWN");
+	    perror("openpty()");
+	    /* fallback to socketpair */
+	    tty = 0;
+	}
+#else
+	tty=0;
+#endif
     }
-    if(pipe(stderrfds)){;
+    if (!tty){
+	if(socketpair(PF_UNIX,SOCK_STREAM,0,stdoutfds)){
+	    errtxt = strerror(errno);
+	    syslog(LOG_ERR, "LOGGERspawnforwarder(pipe(stdout)): [%d] %s", errno,
+		   errtxt?errtxt:"UNKNOWN");
+	    perror("pipe(stdout)");
+	    exit(1);
+	}
+    }
+    if(socketpair(PF_UNIX,SOCK_STREAM,0,stderrfds)){;
         errtxt = strerror(errno);
         syslog(LOG_ERR, "LOGGERspawnforwarder(pipe(stderr)): [%d] %s", errno,
                errtxt?errtxt:"UNKNOWN");
@@ -110,7 +135,7 @@ void LOGGERspawnforwarder(unsigned int logger_node, int logger_port)
 	argv[2] = (char*)malloc(10);
 	sprintf(argv[2], "%d", logger_port);
 	argv[3] = (char*)malloc(10);
-	sprintf(argv[3], "%d", PSI_myid);
+	sprintf(argv[3], "%d", rank);
 	argv[4] = (char*)malloc(10);
 	sprintf(argv[4], "%d", stdoutfds[0]);
 	argv[5] = (char*)malloc(10);
@@ -160,12 +185,14 @@ void LOGGERspawnforwarder(unsigned int logger_node, int logger_port)
     /*
      * backup stdout and stderr for later reuse
      */
+    stdin_fileno_backup=dup(STDIN_FILENO);
     stdout_fileno_backup=dup(STDOUT_FILENO);
     stderr_fileno_backup=dup(STDERR_FILENO);
 
     /*
-     * redirect output
+     * redirect input and output
      */
+    dup2(stdoutfds[1], STDIN_FILENO);
     dup2(stdoutfds[1], STDOUT_FILENO);
     close(stdoutfds[1]);
     dup2(stderrfds[1], STDERR_FILENO);

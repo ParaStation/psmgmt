@@ -5,22 +5,30 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.10 2002/02/08 11:00:01 eicker Exp $
+ * $Id: psilogger.c,v 1.11 2002/02/08 17:19:30 hauke Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.10 2002/02/08 11:00:01 eicker Exp $
+ * $Id: psilogger.c,v 1.11 2002/02/08 17:19:30 hauke Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.10 2002/02/08 11:00:01 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.11 2002/02/08 17:19:30 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
+/* DEBUG_LOGGER allows logger debuging without the daemon
+ * Set arg[1] to -1 to open an tcp port (listen):
+ * ./psilogger -1 2
+ * And psiforwarder (localhost port rank stdin stdout)
+ * ./psiforwarder 16777343 20000 0 1 2 
+ */
+#define DEBUG_LOGGER 1
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -191,6 +199,16 @@ void CheckFileTable(fd_set* openfds)
     }
 }
 
+void forward_input( int std_in, int fwclient)
+{
+    char buf[1000];
+    int len;
+
+    len = read(std_in, buf, sizeof(buf));
+    if (len > 0){
+	writelog(fwclient,STDIN, -1, buf, len);
+    }
+}
 
 /**
  * @brief The main loop
@@ -212,7 +230,8 @@ void loop(int listen)
     int n;               /* number of bytes received */
     int outfd;
     int timeoutval;
-
+    int forward_input_sock = -1; /* client socket which want stdin */
+    
     if (verbose) {
 	fprintf(stderr, "PSIlogger: listening on port %d\n", listen);
     }
@@ -254,12 +273,15 @@ void loop(int listen)
 		}
 	    }
 	}
+	if ( FD_ISSET(STDIN_FILENO, &afds) && (forward_input>=0)) {
+	    forward_input( STDIN_FILENO, forward_input_sock);
+	}
 	/*
 	 * check the rest sockets for any outputs
 	 */
 	for (sock=3; sock<FD_SETSIZE; sock++) {
 	    if (FD_ISSET(sock, &afds) /* socket ready */
-		&&(sock != listen)) {   /* not my listen socket */
+		&&(sock != listen)) {    /* not my listen socket */
 		n = readlog(sock, &msg);
 		if (verbose) {
 		    fprintf(stderr, "PSIlogger: Got %d bytes on sock %d\n",
@@ -295,12 +317,29 @@ void loop(int listen)
 			case STDOUT:
 			    if(PrependSource){
 				char prefix[30];
-				snprintf(prefix, sizeof(prefix), "[%d, %d]:",
-					 msg.header.sender, msg.header.len);
-				write(outfd, prefix, strlen(prefix));
+				if(verbose){
+				    snprintf(prefix, sizeof(prefix), "[%d, %d]:",
+					     msg.header.sender, msg.header.len);
+				    write(outfd, prefix, strlen(prefix));
+				}else{
+				    if (msg.header.len - sizeof(msg.header) > 0){
+					snprintf(prefix, sizeof(prefix), "[%d]:",
+						 msg.header.sender);
+					write(outfd, prefix, strlen(prefix));
+				    }
+				}
 			    }
 			    write(outfd, msg.buf,
 				  msg.header.len - sizeof(msg.header));
+			    if ((msg.header.sender == 0)&&(forward_input_sock < 0)){
+				/* rank 0 want the input */
+				forward_input_sock = sock;
+				FD_SET(STDIN_FILENO,&myfds);
+				if(verbose){
+				    fprintf(stderr, "PSIlogger: forward input to sock %d\n",
+					    forward_input_sock);
+				}
+			    }
 			    break;
 			default:
 			    fprintf(stderr,
@@ -320,6 +359,50 @@ void loop(int listen)
 
     return;
 }
+
+#ifdef DEBUG_LOGGER
+/*********************************************************************
+ * int LOGGERopenPort()
+ *
+ * open the logger port.
+ * RETURN the portno of the logger
+ */
+unsigned short LOGGERopenPort(void)
+{
+    unsigned short defaultPortNo = 20000;
+    struct sockaddr_in sa;	/* socket address */ 
+    int err;                    /* error code while binding */
+    int listenport;
+    /*
+     * create a port for the logger to listen to.
+     */
+    if((listenport = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP))<0){
+	perror("LOGGERopenPort: can't create socket:");
+	exit(1);
+    }
+    memset(&sa, 0, sizeof(sa)); 
+    sa.sin_family = AF_INET;
+    sa.sin_addr.s_addr = INADDR_ANY;
+    sa.sin_port = htons(defaultPortNo); 
+
+    while(((err = bind(listenport, (struct sockaddr *)&sa, sizeof(sa)))<0)
+	  &&(errno == EADDRINUSE)){
+	sa.sin_port = htons(ntohs(sa.sin_port)-1); 
+    }
+    if(err <0){
+	perror("LOGGERopenPort: can't bind socket:");
+	exit(1);
+    }
+
+    if(listen(listenport, 256)<0){
+	perror("LOGGERopenPort: can't listen to socket:");
+	exit(1);
+    }
+
+    printf("Using port %d\n",ntohs(sa.sin_port));
+    return listenport;
+}
+#endif
 
 /**
  * @brief The main program
@@ -371,6 +454,12 @@ int main( int argc, char**argv)
 	}
     }
 
+#ifdef DEBUG_LOGGER
+    /* For debug: */
+    if (listen < 0)
+	listen = LOGGERopenPort();
+#endif
+    
     /* call the loop which does all the work */
     loop(listen);
 
