@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.h,v 1.16 2003/10/29 17:34:49 eicker Exp $
+ * $Id: config_parsing.h,v 1.17 2003/12/10 16:14:31 eicker Exp $
  *
  */
 /**
  * \file
  * Parser for the config file of the ParaStation daemon
  *
- * $Id: config_parsing.h,v 1.16 2003/10/29 17:34:49 eicker Exp $
+ * $Id: config_parsing.h,v 1.17 2003/12/10 16:14:31 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -46,6 +46,8 @@ typedef struct {
 			    Result of 'DeadInterval'. Default is 10. */
     int RDPPort;         /**< The UDP port to use for RDP messages.
 			    Result of 'RDPPort'. Default is 886. */
+    int useMCast;        /**< Flag if MCast should be used for status controll.
+			    Result of 'UseMCast'. Default is 1 (use MCast). */ 
     int MCastGroup;      /**< The MCast group to use.
 			    Result of 'MCastGroup'. Default is 237. */
     int MCastPort;       /**< The UDP port to use for MCast messages.
