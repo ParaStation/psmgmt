@@ -46,7 +46,7 @@ struct timeval killclientstimer;
 struct timeval pingtimer;
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.16 2002/01/07 09:37:43 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.17 2002/01/07 15:23:32 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #define timerset(tvp,fvp)        {(tvp)->tv_sec  = (fvp)->tv_sec;\
@@ -55,7 +55,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.16 2002/01/07 09
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.16 $";
+static char psid_cvsid[] = "$Revision: 1.17 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -2684,32 +2684,40 @@ void CheckFileTable()
     }
 }
 
-/******************************************
- *  usage()
+/*
+ * Print version info
  */
-void usage(void)
+static void version(void)
 {
-    fprintf(stderr,"usage: psid [-h] [-d] [-D MASK] [-f file]\n");
+    char revision[] = "$Revision: 1.17 $";
+    fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
-/******************************************
- *  help()
+/*
+ * Print usage message
  */
-void help(void)
+static void usage(void)
+{
+    fprintf(stderr,"usage: psid [-h] [-v] [-d] [-D MASK] [-f file]\n");
+}
+
+/*
+ * Print more detailed help message
+ */
+static void help(void)
 {
     usage();
     fprintf(stderr,"\n");
     fprintf(stderr," -d       : Activate logging.\n");
-    fprintf(stderr," -D  MASK : Activate logging, use MASK for debugging in psilib.\n");
-    fprintf(stderr," -f file  : use 'file' as config-file (default is psidir/config/psm.config).\n");
-    fprintf(stderr," -h,      : print this screen.\n");
+    fprintf(stderr," -D  MASK : Activate logging, use MASK for debugging"
+	    " in psilib.\n");
+    fprintf(stderr," -f file  : use 'file' as config-file (default is"
+	    " psidir/config/psm.config).\n");
+    fprintf(stderr," -v,      : output version information and exit.\n");
+    fprintf(stderr," -h,      : display this help and exit.\n");
 }
 
-/******************************************
-*  main(int argc, char **argv)
-*/
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
     if(!fork()){
 	struct servent *service;
@@ -2749,13 +2757,19 @@ main(int argc, char **argv)
 	    case 'f' :
 		Configfile = strdup( optarg );
 		break;
-	    case 'h' : /* help */
+	    case 'v' :
+	    case 'V' :
+		version();
+		return 0;
+		break;
+	    case 'h' :
 	    case 'H' :
 		help();
 		return 0;
 		break;
 	    default :
-		SYSLOG(0,(LOG_ERR, "usage: %s [-d] [-D MASK] [-f configfile]\n",argv[0]));
+		SYSLOG(0,(LOG_ERR, "usage: %s [-h] [-v] [-d] [-D MASK]"
+			  " [-f file]\n",argv[0]));
 		usage();
 		return -1;
 	    }
