@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.6 2002/01/09 14:58:51 eicker Exp $
+ * $Id: rdp.c,v 1.7 2002/01/09 20:28:05 eicker Exp $
  *
  */
 /**
  * \file
  * rdp: ParaStation Reliable Datagram Protocol
  *
- * $Id: rdp.c,v 1.6 2002/01/09 14:58:51 eicker Exp $ 
+ * $Id: rdp.c,v 1.7 2002/01/09 20:28:05 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.6 2002/01/09 14:58:51 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.7 2002/01/09 20:28:05 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -105,8 +105,8 @@ static int  nr_of_nodes = 0;            /* size of cluster */
 
 static char errtxt[256];                /* string to hold error messages */
 
-static void resendmsg(int node);	/* forward declaration */
-static void CloseConnection(int node);	/* forward declaration */
+static void resendMsg(int node);	/* forward declaration */
+static void closeConnection(int node);	/* forward declaration */
 static void handleMCAST(void);		/* forward declaration */
 static void MCAST_PING(RDPState state);	/* forward declaration */
 static void initMCAST(int group, unsigned short port); /* forward declaration */
@@ -198,12 +198,12 @@ static void errexit (char * s, int syslogerr, int eno)
  * my version of recvfrom, which restarts on EINTR
  * (EINTR is mostly caused bt the interval timer)
  */
-static int MYrecvfrom(int rdpsock, void *buf, size_t len, int flags,
+static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
                       struct sockaddr *from, socklen_t *fromlen)
 {
     int retval;
  restart:
-    if ( (retval=recvfrom(rdpsock, buf, len, flags, from, fromlen)) < 0) {
+    if ( (retval=recvfrom(sock, buf, len, flags, from, fromlen)) < 0) {
 	if (errno == EINTR) goto restart;
 	snprintf(errtxt, sizeof(errtxt), "MYrecvfrom returns: %s",
 		 strerror(errno));
@@ -239,7 +239,7 @@ static int passivesock (unsigned short port, int qlen)
     struct sockaddr_in sin;  /* an internet endpoint address */ 
     int s;		     /* socket descriptor */ 
 
-    bzero( (char *)&sin, sizeof(sin));
+    memset(&sin, 0, sizeof(sin));
     sin.sin_family = AF_INET;
     sin.sin_addr.s_addr = INADDR_ANY;
     sin.sin_port = port;
@@ -256,7 +256,8 @@ static int passivesock (unsigned short port, int qlen)
      * bind the socket
      */
     if ( bind(s, (struct sockaddr *)&sin, sizeof(sin)) < 0) {
-	snprintf(errtxt, sizeof(errtxt), "can't bind to port %d.", port);
+	snprintf(errtxt, sizeof(errtxt),
+		 "can't bind to port %d.", ntohs(port));
 	errexit(errtxt, syslogerror, errno);
     }
 
@@ -272,11 +273,12 @@ static int passivesock (unsigned short port, int qlen)
 	errexit(errtxt, syslogerror, errno);
     }
 #elif defined (__linux)
-/*    val = 1; */
-/*    if ( setsockopt(s, SOL_SOCKET, SO_BSDCOMPAT, &val, sizeof(int)) < 0) { */
-/*        snprintf(errtxt, sizeof(errtxt), "can't set socketoption SO_BSDCOMPAT"); */
-/*        errexit(errtxt, syslogerror, errno); */
-/*    } */
+/*      val = 1; */
+/*      if ( setsockopt(s, SOL_SOCKET, SO_BSDCOMPAT, &val, sizeof(int)) < 0) { */
+/*  	snprintf(errtxt, sizeof(errtxt), */
+/*  		 "can't set socketoption SO_BSDCOMPAT"); */
+/*  	errexit(errtxt, syslogerror, errno); */
+/*      } */
 #endif
 
     return s;
@@ -289,13 +291,13 @@ static void getsinbyname(char *host, unsigned short port,
   
     memset(sin, 0, sizeof(struct sockaddr_in));
     sin->sin_family = AF_INET;
-    sin->sin_port = htons(port);
+    sin->sin_port = port;
 
     /*
      * map host name to IP address
      */
     if ( (phe = gethostbyname(host)) ) {
-	bcopy(phe->h_addr, (char *)&sin->sin_addr, phe->h_length);
+	memcpy(&sin->sin_addr, phe->h_addr, phe->h_length);
     } else {
 	if ( (sin->sin_addr.s_addr = inet_addr(host)) == INADDR_NONE) {
 	    snprintf(errtxt, sizeof(errtxt), "can't get %s host entry", host);
@@ -822,7 +824,7 @@ static void checkConnection(void)
 			 "misscount exceeded, closing connection to node %d",
 			 i);
 		errlog(errtxt, syslogerror, 0);
-		CloseConnection(i);
+		closeConnection(i);
 		conntable[i].misscounter=0;
 	    }
 	}
@@ -868,7 +870,7 @@ static void checkConnection(void)
  */
 static void sendSYN(int node)
 {
-    rdphdr hdr; 
+    rdphdr hdr;
 
     hdr.type=RDP_SYN;
     hdr.len=0;
@@ -876,7 +878,8 @@ static void sendSYN(int node)
     hdr.ackno=0;			       /* nothing to ack yet */
     hdr.connid=conntable[node].ConnID_out;
     Dsnprintf(errtxt, sizeof(errtxt),
-	      "sending SYN to node %d, NFTS=%d", node, hdr.seqno);
+	      "sending SYN to node %d (%s), NFTS=%d", node,
+	      inet_ntoa(conntable[node].sin.sin_addr), hdr.seqno);
     Derrlog(errtxt, syslogerror, 11);
     sendto(rdpsock, (char *)&hdr, sizeof(rdphdr), 0, 
 	   (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
@@ -1133,7 +1136,7 @@ static int updateState(int node, rdphdr *hdr)
 		      " FrameEx=%d", node, cp->FrameExpected);
 	    Derrlog(errtxt, syslogerror, 12);
 	    if (cp->msg_pending != 0) {
-		resendmsg(node);
+		resendMsg(node);
 		cp->NextFrameToSend += cp->msg_pending;
 		cp->msg_pending = 0;
 	    }
@@ -1268,7 +1271,7 @@ static void clearMsgQ(int node)
  * clear message queue of a connection
  * (upon final timeout or reestablishing the conn)
  */
-static int ResequenceMsgQ(int node, int new_sno, int old_sno)
+static int resequenceMsgQ(int node, int new_sno, int old_sno)
 {
     Rconninfo *cp;
     msgbuf *mp;
@@ -1287,7 +1290,7 @@ static int ResequenceMsgQ(int node, int new_sno, int old_sno)
 		deadbuf.dst = node;
 		deadbuf.buf = mp->msg.small->data;
 		deadbuf.buflen = mp->len;
-		syslog(LOG_ERR,"ResequenceMsgQ(%d,%d,%d)", node, new_sno,
+		syslog(LOG_ERR,"resequenceMsgQ(%d,%d,%d)", node, new_sno,
 		       old_sno);
 		callback(RDP_PKT_UNDELIVERABLE, &deadbuf);
 	    }
@@ -1321,7 +1324,7 @@ static int ResequenceMsgQ(int node, int new_sno, int old_sno)
     return count;
 }
 
-static void CloseConnection(int node)
+static void closeConnection(int node)
 {
     snprintf(errtxt, sizeof(errtxt), "Closing connection to node %d", node);
     errlog(errtxt, syslogerror, 0);
@@ -1340,7 +1343,7 @@ static void CloseConnection(int node)
 /*
  * handle msg timouts;
  */
-static void handletimeout(void)
+static void handleTimeout(void)
 {
     ackent *ap;
     msgbuf *mp;
@@ -1362,7 +1365,7 @@ static void handletimeout(void)
 			     " closing connection to node %d",
 			     mp->msg.small->header.seqno, node);
 		    errlog(errtxt, syslogerror, 0);
-		    CloseConnection(node);
+		    closeConnection(node);
 		    ap = AckListHead;
 		} else {
 		    Dsnprintf(errtxt, sizeof(errtxt),
@@ -1399,7 +1402,7 @@ static void RDPhandler(int sig)
 {
     MCAST_PING(ACTIVE);
     dotimeout=1;
-    /* handletimeout(); */
+    /* handleTimeout(); */
     return;
 }
 
@@ -1503,7 +1506,7 @@ static void RDPdoack(rdphdr *hdr, int fromnode)
 
 int initRDP(int nodes, int mgroup, int usesyslog, void (*func)(int, void*))
 {
-    unsigned short portno=0;
+    unsigned short portno; /* in network byteorder */
     struct sigaction sa;
 
     syslogerror = usesyslog;
@@ -1517,10 +1520,11 @@ int initRDP(int nodes, int mgroup, int usesyslog, void (*func)(int, void*))
     initMsgList(nodes);
     initSMsgList(nodes);
     initAckList(nodes);
+
     portno = getServicePort(RDPSERVICE);
     rdpsock = passivesock(portno, 0);
 
-    initConntable(nodes,portno);
+    initConntable(nodes, portno);
 
     /*
      * setup signal handler
@@ -1611,7 +1615,7 @@ static int wait_for_answer(int node, int id)
 /*
  * open a RDP connection
  */
-static int openconnection(int node)
+static int openConnection(int node)
 {
     struct sockaddr_in fsin;
     socklen_t alen;
@@ -1633,7 +1637,7 @@ static int openconnection(int node)
 	if (MYrecvfrom(rdpsock, (char *)&msg, sizeof(Smsg), 0,
 		      (struct sockaddr *)&fsin, &alen) < 0) {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "error calling recvfrom in openconnection: %s",
+		     "error calling recvfrom in openConnection: %s",
 		     strerror(errno));
 	    errlog(errtxt, syslogerror, 0);
 	    return -1;
@@ -1643,7 +1647,7 @@ static int openconnection(int node)
     return 0;
 }
 
-static void reestablishconnection(int node, rdphdr *hdr)
+static void reestablishConnection(int node, rdphdr *hdr)
 {
     Dsnprintf(errtxt, sizeof(errtxt),
 	      "Going to reestablish connection to node %d", node);
@@ -1652,7 +1656,7 @@ static void reestablishconnection(int node, rdphdr *hdr)
 	Dsnprintf(errtxt, sizeof(errtxt), "Resequencing MSG-Q");
 	Derrlog(errtxt, syslogerror, 7);
 	conntable[node].msg_pending =
-	    ResequenceMsgQ(node,hdr->seqno,hdr->ackno);
+	    resequenceMsgQ(node,hdr->seqno,hdr->ackno);
     } else {
 	Dsnprintf(errtxt, sizeof(errtxt), "Clearing MSG-Q");
 	Derrlog(errtxt, syslogerror, 7);
@@ -1703,7 +1707,7 @@ int Rsendto(int node, void *buf, int len)
 	errno = EAGAIN;
 	return -1;
 #ifdef TOMDELETE
-	if (openconnection(node)==-1) { /* errno is passed through */
+	if (openConnection(node)==-1) { /* errno is passed through */
 	    return -1;
 	}
 #endif
@@ -1747,7 +1751,7 @@ int Rsendto(int node, void *buf, int len)
     /*
      * copy msg data
      */
-    bcopy(buf,mp->msg.small->data,len);
+    memcpy(mp->msg.small->data, buf, len);
 
     /*
      * finally send the data
@@ -1778,7 +1782,7 @@ int Rsendto(int node, void *buf, int len)
     return (retval - sizeof(rdphdr));
 }
 
-static void resendmsg(int node)
+static void resendMsg(int node)
 {
     Rconninfo *cp;
     msgbuf *mp;
@@ -1792,11 +1796,11 @@ static void resendmsg(int node)
 	timeradd(&mp->tv,&RESEND_TIMEOUT,&mp->tv);
 	if (mp->retrans > RDPMAX_RETRANS_COUNT) {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "resendmsg() Retransmission count exceeds limit"
+		     "resendMsg() Retransmission count exceeds limit"
 		     " [seqno=%d], closing connection to node %d",
 		     mp->msg.small->header.seqno, node);
 	    errlog(errtxt, syslogerror, 0);
-	    CloseConnection(node);
+	    closeConnection(node);
 	    /* clearMsgQ(node); */
 	    return;
 	}
@@ -1817,7 +1821,7 @@ static void resendmsg(int node)
     }
 }
 
-static void HandleRDPControlPacket(void)
+static void handleRDPControlPacket(void)
 {
     struct sockaddr_in sin;
     Smsg msg;
@@ -1846,13 +1850,13 @@ static void HandleRDPControlPacket(void)
 	Dsnprintf(errtxt, sizeof(errtxt), "receiving NACK from node %d", node);
 	Derrlog(errtxt, syslogerror, 11);
 	RDPdoack(&msg.header,node);
-	resendmsg(node);
+	resendMsg(node);
 	break;
     case RDP_SYN:
 	Dsnprintf(errtxt, sizeof(errtxt), "receiving SYN from node %d", node);
 	Derrlog(errtxt, syslogerror, 11);
 	updateState(node,&msg.header);
-	/* reestablishconnection(node,&msg.header); */
+	/* reestablishConnection(node,&msg.header); */
 	break;
     case RDP_SYNACK:
 	Dsnprintf(errtxt, sizeof(errtxt), "receiving SYNACK from node %d",
@@ -1864,7 +1868,7 @@ static void HandleRDPControlPacket(void)
 	Dsnprintf(errtxt, sizeof(errtxt), "receiving SYNNACK from node %d",
 		  node);
 	Derrlog(errtxt,syslogerror, 11);
-	reestablishconnection(node,&msg.header);
+	reestablishConnection(node,&msg.header);
 	break;
     default: 
 	snprintf(errtxt, sizeof(errtxt),
@@ -1888,40 +1892,40 @@ int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
     struct timeval start,end,stv;
     socklen_t slen;
     int nn;
-    fd_set rfds,wfds,efds;
+    fd_set rfds, wfds, efds;
 
     if (dotimeout) {
-	handletimeout();
+	handleTimeout();
 	checkConnection();
 	dotimeout=0;
     }
 
     if (timeout != NULL) {
-	gettimeofday(&start,NULL);		/* get starttime */
-	timeradd(&start,timeout,&end);		/* add timeout as given */
+	gettimeofday(&start,NULL);		  /* get starttime */
+	timeradd(&start,timeout,&end);		  /* add timeout as given */
     }
 
  restart:
     if (readfds) {
-	bcopy(readfds,&rfds,sizeof(fd_set));   /* clone redafds */
-	rdpreq = FD_ISSET(rdpsock,readfds);    /* look if rdp was requested */
+	memcpy(&rfds, readfds, sizeof(fd_set));   /* clone redafds */
+	rdpreq = FD_ISSET(rdpsock,readfds);       /* is RDP requested? */
     } else {
 	FD_ZERO(&rfds);
     }
     if (writefds) {
-	bcopy(writefds,&wfds,sizeof(fd_set));  /* clone writefds */
+	memcpy(&wfds, writefds, sizeof(fd_set));  /* clone writefds */
     } else {
 	FD_ZERO(&wfds);
     }
     if (exceptfds) {
-	bcopy(exceptfds,&efds,sizeof(fd_set)); /* clone exceptfds */
+	memcpy(&efds, exceptfds, sizeof(fd_set)); /* clone exceptfds */
     } else {
 	FD_ZERO(&efds);
     }
-    FD_SET(rdpsock,&rfds);		       /* activate rdp port */
+    FD_SET(rdpsock,&rfds);		          /* activate rdp port */
     nn = n;
     if (rdpsock>n) nn = rdpsock+1;
-    FD_SET(mcastsock,&rfds);		       /* activate MCAST port */
+    FD_SET(mcastsock,&rfds);		          /* activate MCAST port */
     if (mcastsock>n) nn = mcastsock+1;
 
     while (1) {
@@ -1933,8 +1937,9 @@ int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	} else {
 	    if (retval==-1) {
 		snprintf(errtxt, sizeof(errtxt),
-			 "select in Rselect returns %d, eno=%d[%s]", retval,
-			 errno, strerror(errno));
+			 "select in Rselect returns %d, eno=%d[%s],"
+			 " n=%d, nn=%d", retval,
+			 errno, strerror(errno), n, nn);
 		errlog(errtxt, syslogerror, 0);
 	    }
 	    break;
@@ -1954,7 +1959,7 @@ int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 
     if ((retval>0) && FD_ISSET(rdpsock,&rfds)) { /* rdp msg available */
 	slen = sizeof(sin);
-	bzero(&sin,slen);
+	memset(&sin, 0, slen);
 	if (MYrecvfrom(rdpsock, &msg, sizeof(msg), MSG_PEEK,
 		       (struct sockaddr *)&sin, &slen)<0) { /* inspect msg */
 	    snprintf(errtxt, sizeof(errtxt),
@@ -1988,7 +1993,7 @@ int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 		    Dsnprintf(errtxt, sizeof(errtxt),
 			      "CONNREFUSED from %s port %d",
 			      inet_ntoa(sinp->sin_addr),
-			      sinp->sin_port); 
+			      ntohs(sinp->sin_port));
 		    Derrlog(errtxt, syslogerror, 1);
 		};
 		free(ubuf);
@@ -1996,13 +2001,13 @@ int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 #endif
 	    if (!rdpreq) FD_CLR(rdpsock,&rfds);
 	    /* copy fds back */
-	    if (readfds)   bcopy(&rfds,readfds,sizeof(rfds));
-	    if (writefds)  bcopy(&wfds,writefds,sizeof(wfds));
-	    if (exceptfds) bcopy(&efds,exceptfds,sizeof(efds));
+	    if (readfds)   memcpy(readfds, &rfds, sizeof(rfds));
+	    if (writefds)  memcpy(writefds, &wfds, sizeof(wfds));
+	    if (exceptfds) memcpy(exceptfds, &efds, sizeof(efds));
 	    return -1;
 	}
 	if (msg.header.type != RDP_DATA) {
-	    HandleRDPControlPacket();
+	    handleRDPControlPacket();
 	    retval--;
 	    FD_CLR(rdpsock,&rfds);
 	    gettimeofday(&start,NULL);		   /* get NEW starttime */
@@ -2039,9 +2044,9 @@ int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
     }
 
     /* copy fds back */
-    if (readfds)   bcopy(&rfds, readfds, sizeof(rfds));
-    if (writefds)  bcopy(&wfds, writefds, sizeof(wfds));
-    if (exceptfds) bcopy(&efds, exceptfds, sizeof(efds));
+    if (readfds)   memcpy(readfds, &rfds, sizeof(rfds));
+    if (writefds)  memcpy(writefds, &wfds, sizeof(wfds));
+    if (exceptfds) memcpy(exceptfds, &efds, sizeof(efds));
     if (retval < -1) {
 	errlog("PANIC: STRANGE THINGS HAPPEN (negative retval in select)",
 	       syslogerror, 0);
@@ -2093,7 +2098,7 @@ int Rrecvfrom(int *node, void *msg, int len)
 	errno = EAGAIN;
 	return -1;
 #ifdef TOMDELETE
-	if (openconnection(*node)==-1) { /* errno is passed through */
+	if (openConnection(*node)==-1) { /* errno is passed through */
 	    return -1;
 	}
 #endif
@@ -2113,14 +2118,14 @@ int Rrecvfrom(int *node, void *msg, int len)
 		  "receiving from node %d connection not ACTIVE [%d]",
 		  fromnode,conntable[fromnode].state);
 	Derrlog(errtxt, syslogerror, 7);
-	reestablishconnection(fromnode, &msgbuf.header);
+	reestablishConnection(fromnode, &msgbuf.header);
 	*node = -1;
 	errno = EAGAIN;
 	return -1;
     }
 
     if (msgbuf.header.type != RDP_DATA) {
-	HandleRDPControlPacket();
+	handleRDPControlPacket();
 	*node = -1;
 	errno = EAGAIN;
 	return -1;
@@ -2143,7 +2148,7 @@ int Rrecvfrom(int *node, void *msg, int len)
 	if (conntable[fromnode].ack_pending >= MAX_ACK_PENDING) {
 	    sendACK(fromnode);
 	}
-	bcopy(msgbuf.data, msg, msgbuf.header.len);	/* copy data part */
+	memcpy(msg, msgbuf.data, msgbuf.header.len);	/* copy data part */
 	retval -= sizeof(rdphdr);			/* adjust retval */
 	*node = fromnode;
     } else {	/* WrongSeqNo Received */
@@ -2307,7 +2312,7 @@ static void handleMCAST(void)
 		      "Got CLOSE MCAST Ping from %s [%d]",
 		      inet_ntoa(sin.sin_addr), node);
 	    Derrlog(errtxt, syslogerror, 2);
-	    if (!licserver) CloseConnection(node);
+	    if (!licserver) closeConnection(node);
 	    goto restart;
 	};
 
@@ -2414,22 +2419,22 @@ int Mselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 /* Dsnprintf(errtxt, sizeof(errtxt),"Mselect called/restarted: %x:%x",start.tv_sec,start.tv_usec); */
 /* Derrlog(errtxt, syslogerror, 1); */
     if (readfds) {
-	bcopy(readfds,&rfds,sizeof(fd_set));	/* clone redafds */
-	rdpreq = FD_ISSET(rdpsock,readfds); 	/* look if rdp was requested */
+	memcpy(&rfds, readfds, sizeof(fd_set));   /* clone readfds */
+	rdpreq = FD_ISSET(rdpsock,readfds);       /* was rdp requested ? */
     } else {
 	FD_ZERO(&rfds);
     }
     if (writefds) {
-	bcopy(writefds,&wfds,sizeof(fd_set));	/* clone writefds */
+	memcpy(&wfds, writefds, sizeof(fd_set));  /* clone writefds */
     } else {
 	FD_ZERO(&wfds);
     }
     if (exceptfds) {
-	bcopy(exceptfds,&efds,sizeof(fd_set));	/* clone exceptfds */
+	memcpy(&efds, exceptfds, sizeof(fd_set)); /* clone exceptfds */
     } else {
 	FD_ZERO(&efds);
     }
-    FD_SET(mcastsock,&rfds);			/* activate MCAST port */
+    FD_SET(mcastsock,&rfds);                      /* activate MCAST port */
     if (mcastsock>n) nn = mcastsock+1;
 
     while (1) {
@@ -2461,9 +2466,9 @@ int Mselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	FD_CLR(mcastsock,&rfds);
     }
 
-    if (readfds)   bcopy(&rfds,readfds,sizeof(rfds));	/* copy fds back */
-    if (writefds)  bcopy(&wfds,writefds,sizeof(wfds));
-    if (exceptfds) bcopy(&efds,exceptfds,sizeof(efds));
+    if (readfds)   memcpy(readfds, &rfds, sizeof(rfds));  /* copy fds back */
+    if (writefds)  memcpy(writefds, &wfds, sizeof(wfds));
+    if (exceptfds) memcpy(exceptfds, &efds, sizeof(efds));
     if (retval < -1) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "PANIC: STRANGE THINGS HAPPEN (negative retval in Mselect)");
