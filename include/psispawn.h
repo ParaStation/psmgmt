@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.h,v 1.10 2003/02/27 18:30:23 eicker Exp $
+ * $Id: psispawn.h,v 1.11 2003/06/11 18:00:35 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for spawning of ParaStation tasks.
  *
- * $Id: psispawn.h,v 1.10 2003/02/27 18:30:23 eicker Exp $
+ * $Id: psispawn.h,v 1.11 2003/06/11 18:00:35 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -133,7 +133,7 @@ long PSI_spawn(short dstnode, char *workingdir, int argc, char **argv,
  * @return On success, the number of tasks spawned is returned, or -1
  * if an error occurred. Then errors is set appropriately.
  *
- * @see PSI_getPartition()
+ * @see PSI_getPartition() PSE_getRank()
  */
 int PSI_spawnM(int count, short* dstnodes, char *workingdir,
 	       int argc, char **argv,
@@ -240,6 +240,22 @@ void PSI_RemoteArgs(int Argc,char **Argv,int *RArgc,char ***RArgv);
  * returned or -1 if an error occurred.
  */
 short PSI_getPartition(unsigned int hwType, int myrank);
+
+/*
+ * @brief Get ParaStation ID from rank.
+ *
+ * Get the ParaStation ID of the node on which the process with rank
+ * @a rank will be started on.
+ *
+ * @param rank The rank of the requested process.
+ *
+ * @return On success, the ParaStation ID of the requested node. Or
+ * -1, if an error occured, i.e. PSI_getPartition was not called
+ * beforehand.
+ *
+ * @see PSI_getPartition() PSE_getRank()
+ */
+short PSI_getPartitionNode(int rank);
 
 /**
  * @brief Create a pg (process group) file for MPIch/P4

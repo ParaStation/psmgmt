@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.40 2003/06/06 10:57:37 eicker Exp $
+ * $Id: psispawn.c,v 1.41 2003/06/11 18:00:35 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.40 2003/06/06 10:57:37 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.41 2003/06/11 18:00:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -1010,6 +1010,19 @@ short PSI_getPartition(unsigned int hwType, int myRank)
     free(priv_str);
 
     return PSI_PartitionSize;
+}
+
+short PSI_getPartitionNode(int rank)
+{
+    if (!PSI_Partition) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: you have to call PSI_getPartition() beforehand.",
+		 __func__);
+	PSI_errlog(errtxt, 0);
+	return -1;
+    }
+
+    return PSI_Partition[rank%PSI_PartitionSize];
 }
 
 int PSI_dospawn(int count, short *dstnodes, char *workingdir,
