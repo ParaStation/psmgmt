@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidforwarder.c,v 1.13 2003/10/29 17:21:23 eicker Exp $
+ * $Id: psidforwarder.c,v 1.14 2003/10/30 16:34:31 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.13 2003/10/29 17:21:23 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.14 2003/10/30 16:34:31 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -31,8 +31,6 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.13 2003
 #include "pslog.h"
 
 #include "psidforwarder.h"
-
-/** @todo Update and complete docu */
 
 /**
  * Verbosity of Forwarder (1=Yes, 0=No)
@@ -85,14 +83,34 @@ static void closeDaemonSock(void)
     close(tmp);
 }
 
+/**
+ * @brief Send message to logger.
+ *
+ * Send a message of type @a type and size @a len within @a buf to the
+ * logger. This is done via the PSLog facility.
+ *
+ * @param type The type of the message to send.
+ *
+ * @param buf Buffer holding the message to send.
+ *
+ * @param len The length of the message to send.
+ *
+ * @return On success, the number of bytes written is returned,
+ * i.e. usually this is @a len. On error, -1 is returned, and errno is
+ * set appropriately.
+ *
+ * @see PSLog_write()
+ */
 static int sendMsg(PSLog_msg_t type, char *buf, size_t len)
 {
     char txt[128];
     int ret = 0;
 
     if (loggerTID < 0) {
-	snprintf(txt, sizeof(txt), "%s():  not connected.\n", __func__);
+	snprintf(txt, sizeof(txt), "%s:  not connected.\n", __func__);
 	PSID_errlog(txt, 1);
+	errno = EPIPE;
+
 	return -1;
     }
 
@@ -100,7 +118,7 @@ static int sendMsg(PSLog_msg_t type, char *buf, size_t len)
 
     if (ret < 0) {
 	char *errstr = strerror(errno);
-	snprintf(txt, sizeof(txt), "%s(): error (%d): %s\n",
+	snprintf(txt, sizeof(txt), "%s: error (%d): %s\n",
 		 __func__, errno, errstr ? errstr : "UNKNOWN");
 	PSID_errlog(txt, 0);
 
@@ -110,18 +128,58 @@ static int sendMsg(PSLog_msg_t type, char *buf, size_t len)
     return ret;
 }
 
+/**
+ * @brief Send string to logger.
+ *
+ * Send the NULL terminated string stored within @a buf as a message
+ * of type @a type to the logger. This is done via the PSLog facility.
+ *
+ * @param type The type of the message to send.
+ *
+ * @param buf Buffer holding the character string to send.
+ *
+ * @return On success, the number of bytes written is returned,
+ * i.e. usually this is strlen(@a buf). On error, -1 is returned, and
+ * errno is set appropriately.
+ *
+ * @see PSLog_print()
+ */
 static int printMsg(PSLog_msg_t type, char *buf)
 {
     return sendMsg(type, buf, strlen(buf));
 }
 
+/**
+ * @brief Receive message from logger.
+ *
+ * Receive a message from the logger and store it to @a msg. If @a
+ * timeout is given, it is tried to receive a message for the period
+ * defined therein. Otherwise this function will block until a message
+ * is available.
+ *
+ * If the receive times out, i.e. the period defined in @a timeout
+ * elapsed without receiving a complete message, a error is
+ * returned.
+ *
+ * This is done via the PSLog facility.
+ *
+ * @param msg Buffer to store the message to.
+ *
+ * @param timout The timeout after which the function returns. If this
+ * is NULL, this function will block indefinitely.
+ *
+ * @return On success, the number of bytes read are returned. On
+ * error, -1 is returned, and errno is set appropriately.
+ *
+ * @see PSLog_read()
+ */
 static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 {
     char txt[128];
     int ret;
 
     if (loggerTID < 0) {
-	snprintf(txt, sizeof(txt), "%s(): not connected\n", __func__);
+	snprintf(txt, sizeof(txt), "%s: not connected\n", __func__);
 	PSID_errlog(txt, 1);
 	errno = EPIPE;
 
@@ -132,7 +190,7 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 
     if (ret < 0) {
 	char *errstr = strerror(errno);
-	snprintf(txt, sizeof(txt), "%s(): error (%d): %s\n",
+	snprintf(txt, sizeof(txt), "%s: error (%d): %s\n",
 		 __func__, errno, errstr ? errstr : "UNKNOWN");
 	PSID_errlog(txt, 0);
 
@@ -146,7 +204,7 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
     switch (msg->header.type) {
     case PSP_CC_ERROR:
 	if (msg->header.sender == loggerTID) {
-	    snprintf(txt, sizeof(txt), "%s(): logger %s disappeared.\n",
+	    snprintf(txt, sizeof(txt), "%s: logger %s disappeared.\n",
 		     __func__, PSC_printTID(loggerTID));
 	    PSID_errlog(txt, 1);
 
@@ -155,7 +213,7 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 	    errno = EPIPE;
 	    ret = -1;
 	} else {
-	    snprintf(txt, sizeof(txt), "%s(): CC_ERROR from %s.\n",
+	    snprintf(txt, sizeof(txt), "%s: CC_ERROR from %s.\n",
 		     __func__, PSC_printTID(loggerTID));
 	    PSID_errlog(txt, 0);
 
@@ -165,7 +223,7 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
     case PSP_CC_MSG:
 	break;
     default:
-	snprintf(txt, sizeof(txt), "%s(): Unknown message type %s.\n",
+	snprintf(txt, sizeof(txt), "%s: Unknown message type %s.\n",
 		 __func__, PSDaemonP_printMsg(msg->type));
 	PSID_errlog(txt, 0);
 
@@ -175,6 +233,17 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
     return ret;
 }
 
+/**
+ * @brief Send a message to the local daemon.
+ *
+ * Send the message @a msg to the local daemon.
+ *
+ * @param msg The message to send.
+ *
+ * @return On success, the number of bytes send is returned,
+ * i.e. usually @a msg->header.len. Otherwise -1 is returned and errno
+ * is set appropriately.
+ */
 static int sendDaemonMsg(DDErrorMsg_t *msg)
 {
     char txt[128];
@@ -202,7 +271,7 @@ static int sendDaemonMsg(DDErrorMsg_t *msg)
 
     if (n < 0) {
 	char *errstr = strerror(errno);
-	snprintf(txt, sizeof(txt), "%s(): error (%d): %s\n",
+	snprintf(txt, sizeof(txt), "%s: error (%d): %s\n",
 		 __func__, errno, errstr ? errstr : "UNKNOWN");
 	PSID_errlog(txt, 0);
 
@@ -211,7 +280,7 @@ static int sendDaemonMsg(DDErrorMsg_t *msg)
 	return n;
     } else if (!n) {
 	snprintf(txt, sizeof(txt),
-		 "%s(): Lost connection to daemon\n", __func__);
+		 "%s: Lost connection to daemon\n", __func__);
 	PSID_errlog(txt, 0);
 
 	closeDaemonSock();
@@ -220,7 +289,7 @@ static int sendDaemonMsg(DDErrorMsg_t *msg)
     }
 
     if (verbose) {
-        snprintf(txt, sizeof(txt), "%s() type %s (len=%d) to %s\n",
+        snprintf(txt, sizeof(txt), "%s type %s (len=%d) to %s\n",
                  __func__, PSDaemonP_printMsg(msg->header.type),
 		 msg->header.len, PSC_printTID(msg->header.dest));
         printMsg(STDERR, txt);
@@ -230,16 +299,15 @@ static int sendDaemonMsg(DDErrorMsg_t *msg)
 }
 
 /**
- * @brief Connect to the logger
+ * @brief Connect to the logger.
  *
- * Connect to the logger listening at @a node on @a port. Wait for
- * #INITIALIZE message and set #loggerTID and #verbose correctly.
+ * Connect to the logger described by the unique task ID @a tid. Wait
+ * for #INITIALIZE message and set #loggerTID and #verbose correctly.
  *
- * @param tid The ParaStation task ID of the logger.
+ * @param tid The logger's ParaStation task ID.
  *
- * @return On success, 0 is returned.
- * Simultaneously #loggerTID is set.
- * On error, -1 is returned, and errno is set appropriately.
+ * @return On success, 0 is returned. Simultaneously #loggerTID is
+ * set. On error, -1 is returned, and errno is set appropriately.
  */
 static int connectLogger(PStask_ID_t tid)
 {
@@ -248,7 +316,7 @@ static int connectLogger(PStask_ID_t tid)
     struct timeval timeout = {10, 0};
     int ret;
 
-    loggerTID = tid;
+    loggerTID = tid; /* Only set for the first sendMsg()/recvMsg() pair */
 
     sendMsg(INITIALIZE, NULL, 0);
 
@@ -326,7 +394,7 @@ static void releaseLogger(int status)
 	    PSID_errlog(txt, 0);
 	} else {
 	    char *errstr = strerror(errno);
-	    snprintf(txt, sizeof(txt), "%s(): error (%d): %s\n",
+	    snprintf(txt, sizeof(txt), "%s: error (%d): %s\n",
 		     __func__, errno, errstr ? errstr : "UNKNOWN");
 	    PSID_errlog(txt, 0);
 	}
@@ -410,8 +478,22 @@ size_t collectRead(int sock, char *buf, size_t count, size_t *total)
 /**
  * @brief Signal handler
  *
- * This handles the 
- *  sighandler(signal)
+ * The forwarders signal handler functions. At the moment the
+ * following signals @a sig are handled:
+ *
+ * - SIGUSR1 Print messages about open sockets and do some more
+ * debugging stuff. This is mainly for internal use as testing and
+ * debugging.
+ *
+ * - SIGCHLD This is usually generated by the dying client process
+ * controlled by the forwarder. It will result in reading and
+ * forwarding the remaining output of the client and sending post
+ * mortem information like exit status and usage to the logger
+ * process. Finally the forwarder will exit on this signal.
+ *
+ * @param sig The signal to handle.
+ *
+ * @return No return value.
  */
 static void sighandler(int sig)
 {
@@ -563,6 +645,9 @@ static void sighandler(int sig)
 /**
  * @brief Checks file table after select has failed.
  *
+ * Detailed checking of the file table on validity after a select()
+ * call has failed.
+ *
  * @param openfds Set of file descriptors that have to be checked.
  *
  * @return No return value.
@@ -628,6 +713,24 @@ static void checkFileTable(fd_set* openfds)
     }
 }
 
+/**
+ * @brief Write to a file descriptor
+ *
+ * Write the first @a count bytes within @a buf to the file descriptor
+ * @a fd. If less than the requested number of bytes within an atomic
+ * write(2) call were written, further attempts are made in order to
+ * send the rest of the buffer.
+ *
+ * @param fd The file descriptor to write to.
+ *
+ * @param buf The buffer containing the bytes to send.
+ *
+ * @param count The number of bytes to send.
+ *
+ * @return On success, the total number of bytes written is returned,
+ * i.e. usually this is @a count. Otherwise -1 is returned and errno
+ * is set appropriately.
+ */
 static int writeall(int fd, void *buf, int count)
 {
     int len;
@@ -642,6 +745,22 @@ static int writeall(int fd, void *buf, int count)
     return count;
 }
 
+/**
+ * @brief Read input from logger
+ *
+ * Read and handle input from the logger. Usually this will be input
+ * designated to the local client process which will be forwarded. As
+ * an extension this might be an #EXIT message displaying that the
+ * controlling logger is going to die. Thus also the forwarder will
+ * stop execution and exit() which finally will result in the local
+ * daemon killing the client process.
+ *
+ * @param stdinport The file descriptor connected to the clients stdin
+ * file descriptor.
+ *
+ * @return Usually the number of bytes received is returned. If an
+ * error occured, -1 is returned and errno is set appropriately.
+ */
 static int readFromLogger(int stdinport)
 {
     PSLog_Msg_t msg;
@@ -689,9 +808,6 @@ static int readFromLogger(int stdinport)
  * Does all the forwarding work. A tasks is connected and output forwarded
  * to the logger. I/O data is expected on stdoutport and stderrport.
  * Is is send via #STDOUT and #STDERR messages respectively.
- *
- * @param stdoutport The port, on which stdout-data is expected.
- * @param stderrport The port, on which stderr-data is expected.
  *
  * @return No return value.
  *
@@ -804,6 +920,7 @@ static void loop(void)
     return;
 }
 
+/* see header file for docu */
 void PSID_forwarder(PStask_t *task, int daemonfd,
 		    int stdinfd, int stdoutfd, int stderrfd)
 {
