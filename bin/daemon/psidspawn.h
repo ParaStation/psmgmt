@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidspawn.h,v 1.3 2003/10/08 14:51:21 eicker Exp $
+ * $Id: psidspawn.h,v 1.4 2003/10/30 16:30:45 eicker Exp $
  *
  */
 /**
  * \file
  * Spawning of client processes and forwarding for the ParaStation daemon
  *
- * $Id: psidspawn.h,v 1.3 2003/10/08 14:51:21 eicker Exp $
+ * $Id: psidspawn.h,v 1.4 2003/10/30 16:30:45 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -30,46 +30,71 @@ extern "C" {
 
 #include "pstask.h"
 
-/** @todo Documentation */
-
 /**
  * @brief Frontend to execv(3).
  *
- * Frontend to execv(3). Retry exec on failure after a short delay.
+ * Frontend to execv(3). Retry execv() on failure after a delay of
+ * 400ms. With 5 tries at all this results in a total trial time of
+ * about 2sec.
+ *
+ * @param path The pathname of the file to be executed.
+ *
+ * @param argv Array of pointers to null-terminated strings that
+ * represent the argument list available to the new program. The first
+ * argument, by convention, should point to the file name associated
+ * with the file being executed. The array of pointers must be
+ * terminated by a NULL pointer.
  *
  *
- * @param path
- *
- * @param argv
- *
- *
- * @return Like the execv(3).
+ * @return Like the execv(3) return value.
  *
  * @see execv(3)
  */
 int PSID_execv( const char *path, char *const argv[]);
 
-/*----------------------------------------------------------------------*/
-/*
- * PSID_stat
+/**
+ * @brief Frontend to stat(2).
  *
- *  frontend to syscall stat. Retry stat(2) on failure after a short delay
- *  (workaround for automounter problems)
- *  RETURN: like the syscall stat(2)
+ * Frontend to stat(2). Retry stat() on failure after a delay of
+ * 400ms. With 5 tries at all this results in a total trial time of
+ * about 2sec.
+ *
+ * @param file_name The name of the file to stat. This might be a
+ * absolute or relative path to the file.
+ *
+ * @param buf Buffer to hold the returned stat information of the file.
+ *
+ * @return Like the stat(2) return value.
+ *
+ * @see stat(2)
  */
 int PSID_stat(char *file_name, struct stat *buf);
 
-/*----------------------------------------------------------------------*/
-/*
- * PStask_spawn
+/**
+ * @brief Spawn a new process.
  *
- *  executes the argv[0] with parameters argv[1]..argv[argc-1]
- *  in working directory workingdir with userid uid
- *  RETURN: 0 on success with childpid set to the pid of the new process
- *          errno  when an error occurs
+ * Spawn a new process described by @a client. In order to do this,
+ * first of all a forwarder is created that sets up a sendbox for the
+ * client process to run in. The the actual client process is started
+ * within this sandbox.
+ *
+ * All necessary information determined during startup of the
+ * forwarder and client process is stored within the corresponding
+ * task structures. For the forwarder this includes the task ID and
+ * the file descriptor connecting the local daemon to the
+ * forwarder. For the client only the task ID is stored.
+ *
+ * @param forwarder Task structure describing the forwarder process to
+ * create.
+ *
+ * @param client Task structure describing the actual client process
+ * to create.
+ *
+ * @return On success, 0 is returned. If something went wrong, a value
+ * different from 0 is returned. This value might be interpreted as an
+ * errno describing the problem that occurred during the spawn.
  */
 int PSID_spawnTask(PStask_t *forwarder, PStask_t *client);
-/* spawns a process with the definitions in task on the local node */
 
 #ifdef __cplusplus
 }/* extern "C" */
