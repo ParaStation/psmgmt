@@ -1,3 +1,17 @@
+/*
+ *               ParaStation3
+ * psispawn.c
+ *
+ * Copyright (C) ParTec AG Karlsruhe
+ * All rights reserved.
+ *
+ * $Id: psispawn.c,v 1.14 2002/02/18 19:58:33 eicker Exp $
+ *
+ */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.14 2002/02/18 19:58:33 eicker Exp $";
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -140,8 +154,7 @@ int PSI_spawnM(int count, short *dstnodes, char *workdir,
      * if I allocated mydstnodes myself
      * => destroy it again
      */
-    if(dstnodes==NULL)
-	free(mydstnodes);
+    if (dstnodes==NULL) free(mydstnodes);
 
     return ret;
 }
@@ -492,17 +505,9 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
     char* pmyworkingdir = &myworkingdir[0];
 
     int i;          /* count variable */
-    int ret=0;      /* return value */
+    int ret = 0;    /* return value */
+    int error = 0;  /* error flag */
     PStask_t* task; /* structure to store the information of the new process */
-
-#ifdef DEBUG
-    if(PSP_DEBUGTASK & PSI_debugmask){
-	sprintf(PSI_txt,"PSI_spawn(%d,%lx,\"%s\",%d,\"%s\", %x, %x, %x)\n",
-		count, (long)dstnodes, workingdir?workingdir:"NULL",
-		argc, argc?argv[0]:"NULL", loggernode, loggerport, rank);
-	PSI_logerror(PSI_txt);
-    }
-#endif
 
     /*
      * Get a SIGTERM if a child dies. May be overwritten by explicit
@@ -515,9 +520,9 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
      *----------------------------------
      */
 
-    for(i=0;i<count;i++){
-	errors[i] =0;
-	tids[i]=0;
+    for (i=0; i<count; i++) {
+	errors[i] = 0;
+	tids[i] = 0;
     }
 
     /*
@@ -537,30 +542,30 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
     task->loggernode = loggernode;
     task->loggerport = loggerport;
 
-    if ((workingdir==NULL)||(workingdir[0]!='/')){
+    if (!workingdir || (workingdir[0]!='/')) {
 	/*
 	 * get the working directory
 	 */
 	pmyworkingdir = getenv("PWD");
-	if(pmyworkingdir){
-	    strcpy(myworkingdir,pmyworkingdir);
+	if (pmyworkingdir) {
+	    strcpy(myworkingdir, pmyworkingdir);
 	    pmyworkingdir = myworkingdir;
-	}else{
-	    getcwd(myworkingdir,sizeof(myworkingdir));
-	    strcat(myworkingdir,"/");
-	    strcat(myworkingdir,workingdir?workingdir:".");
+	} else {
+	    getcwd(myworkingdir, sizeof(myworkingdir));
+	    strcat(myworkingdir, "/");
+	    strcat(myworkingdir, workingdir ? workingdir : ".");
 	    /*
 	     * remove automount directory name.
 	     */
-	    if(strncmp(myworkingdir,"/tmp_mnt",strlen("/tmp_mnt"))==0)
+	    if (strncmp(myworkingdir,"/tmp_mnt",strlen("/tmp_mnt"))==0)
 		pmyworkingdir = &myworkingdir[8];
-	    else if(strncmp(myworkingdir,"/export",strlen("/export"))==0)
+	    else if (strncmp(myworkingdir,"/export",strlen("/export"))==0)
 		pmyworkingdir = &myworkingdir[7];
 	    else
 		pmyworkingdir = &myworkingdir[0];
 	}
-    }else
-	strcpy(myworkingdir,workingdir);
+    } else
+	strcpy(myworkingdir, workingdir);
     task->workingdir = strdup(pmyworkingdir);
     task->argc = argc;
     task->argv = (char**)malloc(sizeof(char*)*(task->argc+1));
@@ -571,14 +576,14 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
     task->environ = dumpPSIEnv();
 
     outstanding_answers=0;
-    for(i=0;i<count;i++){
+    for (i=0; i<count; i++) {
 	/*
 	 * check if dstnode is ok
 	 */
-	if(dstnodes[i] >= PSI_getnrofnodes()){
+	if (dstnodes[i] >= PSI_getnrofnodes()) {
 	    errors[i] = ENETUNREACH;
 	    tids[i] = -1;
-	}else{
+	} else {
 	    /*
 	     * set the correct destination node
 	     */
@@ -611,74 +616,43 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
      * Receive Answer from  my own daemon
      *----------------------------------
      */
-    while(outstanding_answers>0){
-	if(ClientMsgReceive(&msg)<0){
+    while (outstanding_answers>0) {
+	if (ClientMsgReceive(&msg)<0) {
 	    perror("PSI_spawn(receiving answer from my daemon)");
 	    ret = -1;
 	    break;
 	}
-	switch (msg.header.type){
+	switch (msg.header.type) {
+	case PSP_DD_SPAWNFAILED:
 	case PSP_DD_SPAWNSUCCESS:
-#ifdef DEBUG
-	    if(PSP_DEBUGTASK & PSI_debugmask){
-		sprintf(PSI_txt,"PSPSPAWNSUCCESS received: msglen %ld\n",
-			msg.header.len);
-		PSI_logerror(PSI_txt);
-	    }
-#endif
-	    PStask_decode(msg.buf,task);
+	    PStask_decode(msg.buf, task);
 	    /*
 	     * find the right task request
 	     */
-	    for(i=0;i<count;i++)
-		if((dstnodes[i]==task->nodeno) && (tids[i]==0)){
+	    for (i=0; i<count; i++) {
+		if ((dstnodes[i]==task->nodeno) && (tids[i]==0)) {
 		    errors[i] = task->error;
 		    tids[i] = task->tid;
 		    ret++;
 		    break;
 		}
+	    }
 
-#ifdef DEBUG
-	    if(PSP_DEBUGTASK & PSI_debugmask){
-		sprintf(PSI_txt,"PSPSPAWNSUCCESS with no (%lx)"
-			" and parent(%lx) of user (%d). "
-			"It was request nr %d\n", task->tid, task->ptid,
-			task->uid,i);
-		PSI_logerror(PSI_txt);
+	    if (i==count) {
+		fprintf(stderr, "Got SPAWNSUCCESS/SPAWNFAILED message from"
+			" unknown node %d\n", task->nodeno);
 	    }
-#endif
-	    break;
-	case PSP_DD_SPAWNFAILED:
-#ifdef DEBUG
-	    if(PSP_DEBUGTASK & PSI_debugmask){
-		sprintf(PSI_txt,"PSPMSGSPAWNFAILED received: msglen %ld\n",
-			msg.header.len);
-		PSI_logerror(PSI_txt);
+
+	    if (msg.header.type==PSP_DD_SPAWNFAILED) {
+		fprintf(stderr, "Spawn to node %d failed.\n", task->nodeno);
+		error = 1;
 	    }
-#endif
-	    PStask_decode(msg.buf,task);
-	    /*
-	     * find the right task request
-	     */
-	    for(i=0;i<count;i++)
-		if((dstnodes[i]==task->nodeno) && (tids[i]==0)){
-		    errors[i] = task->error;
-		    tids[i] = -1;
-		    break;
-		}
-#ifdef DEBUG
-	    if(PSP_DEBUGTASK & PSI_debugmask){
-		sprintf(PSI_txt,"PSPMSGSPAWNFAILED error = %ld parent(%lx)\n",
-			task->error, task->ptid);
-		PSI_logerror(PSI_txt);
-	    }
-#endif
 	    break;
 	default:
 	    sprintf(PSI_txt,"response == UNKNOWN answer\n");
 	    PSI_logerror(PSI_txt);
 	    errors[0] = 0;
-	    ret = -1;
+	    error = 1;
 	    break;
 	}
 	outstanding_answers--;
@@ -689,6 +663,7 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
      */
     PStask_delete(task);
 
+    if (error) ret = -ret;
     return ret;
 }
 
