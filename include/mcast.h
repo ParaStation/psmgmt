@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.h,v 1.14 2002/08/06 14:51:48 eicker Exp $
+ * $Id: mcast.h,v 1.15 2002/08/26 09:03:36 eicker Exp $
  *
  */
 /**
  * \file
  * ParaStation MultiCast facility
  *
- * $Id: mcast.h,v 1.14 2002/08/06 14:51:48 eicker Exp $
+ * $Id: mcast.h,v 1.15 2002/08/26 09:03:36 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -26,6 +26,10 @@ extern "C" {
 #if 0
 } /* <- just for emacs indentation */
 #endif
+#endif
+
+#ifdef __osf__
+#include <netinet/in.h>
 #endif
 
 /** Possible MCast states of a node */
