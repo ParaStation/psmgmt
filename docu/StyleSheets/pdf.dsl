@@ -81,9 +81,10 @@
 ;;(define %body-font-family% "Computer-Modern-Sans")
 
 (define (book-titlepage-recto-elements)
-  (list (normalize "mediaobject")
-	(normalize "title")
-	(normalize "releaseinfo")))
+  (list (normalize "title")
+	(normalize "releaseinfo")
+	(normalize "pubdate")
+	(normalize "mediaobject")))
 					 
 (define (book-titlepage-verso-elements)
   (list (normalize "titleabbrev")
@@ -223,6 +224,18 @@ note"))))
 ;; New styles for the title and the release info on the front page
 ;;
 (mode book-titlepage-recto-mode
+  (element title
+    (make paragraph
+      use: book-titlepage-recto-style
+      font-size: (HSIZE 7)
+      line-spacing: (* (HSIZE 7) %line-spacing-factor%)
+      space-before: (* (HSIZE 9) %head-before-factor%)
+      quadding: %division-title-quadding%
+      keep-with-next?: #t
+      heading-level: (if %generate-heading-level% 1 0)
+      (with-mode title-mode
+        (process-children-trim))))
+
   (element releaseinfo
     (make paragraph
       use: book-titlepage-recto-style
@@ -234,17 +247,31 @@ note"))))
       (with-mode title-mode
         (process-children-trim))))
 
-  (element title 
+  (element pubdate
     (make paragraph
       use: book-titlepage-recto-style
-      font-size: (HSIZE 7)
+      font-size: (HSIZE 3)
       line-spacing: (* (HSIZE 7) %line-spacing-factor%)
       space-before: (* (HSIZE 9) %head-before-factor%)
       quadding: %division-title-quadding%
       keep-with-next?: #t
-      heading-level: (if %generate-heading-level% 1 0)
       (with-mode title-mode
-        (process-children-trim)))))
+        (process-children-trim))))
+
+  (element mediaobject
+    (make paragraph
+      space-before: (* (HSIZE 9) 3.2)
+      ($mediaobject$))))
+
+(define (book-titlepage-before node side)
+  (if (equal? side 'recto)
+      (cond
+       ((equal? (gi node) (normalize "title"))
+        (make paragraph
+          space-after: (* (HSIZE 5) %head-after-factor% 0)
+          (literal "\no-break-space;")))
+       (else (empty-sosofo)))
+      (empty-sosofo)))
 
 ;;
 ;; New style for the revision history on second page:
