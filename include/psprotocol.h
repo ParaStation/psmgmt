@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.26 2004/01/09 15:10:58 eicker Exp $
+ * $Id: psprotocol.h,v 1.27 2004/01/15 19:37:17 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation client-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.26 2004/01/09 15:10:58 eicker Exp $
+ * $Id: psprotocol.h,v 1.27 2004/01/15 19:37:17 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -70,6 +70,7 @@ typedef enum {
  * #PSP_CD_SETOPTION message
  */
 typedef enum {
+    PSP_OP_UNKNOWN,               /**< Unknown option */
     PSP_OP_HWSTATUS = 0x0001,     /**< Hardware status */
     /* PSP_OP_CPUS,*/ /* unused *//**< Number of CPUs */
     PSP_OP_PROCLIMIT = 0x0003,    /**< Maximum number of processes */
@@ -77,6 +78,8 @@ typedef enum {
     PSP_OP_PSIDDEBUG,             /**< psid's debug level */
     PSP_OP_PSIDSELECTTIME,        /**< Time (sec) in psid's select() */
     PSP_OP_GIDLIMIT,              /**< gid the node is restricted to */
+
+    PSP_OP_MASTER,                /**< current master of the cluster */
 
     PSP_OP_RDPDEBUG = 0x0020,     /**< RDP's debug level */
     PSP_OP_RDPPKTLOSS,            /**< Paket loss within RDP (debugging) */
