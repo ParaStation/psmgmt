@@ -1,0 +1,37 @@
+#!/bin/sh
+
+DVER=${1-"x.x.x"}
+BUILDDIR=`pwd`
+BINDIR=$BUILDDIR/opt/parastation
+
+SPECFILE=ps-snmp-$DVER.spec
+
+cat > $SPECFILE <<EOF
+Summary:   ParaStation Cluster Communication and Management
+Vendor:    ParTec AG, Karlsruhe, Germany
+Name:      ps-snmp
+Version:   $DVER
+Release:   `date +%Y%m%d`
+Copyright: (c) 2001-2002 ParTec AG
+Group:     System
+Packager:  support@par-tec.de
+
+BuildRoot: $BUILDDIR
+ 
+%description
+ParaStation Cluster Communication and Management. Graphical User Interface.
+
+%post
+%preun
+%files
+%attr(-,root,root) /opt/parastation
+EOF
+
+rpm -v -bb $SPECFILE 2>&1 |while read tag val
+do
+    echo $tag $val
+    if [ x$tag = xWrote: ];then
+	echo Moving $val to $BUILDDIR
+	mv $val $BUILDDIR
+    fi
+done
