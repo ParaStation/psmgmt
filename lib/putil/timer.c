@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: timer.c,v 1.8 2002/03/27 14:30:33 eicker Exp $
+ * $Id: timer.c,v 1.9 2002/07/08 14:57:00 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: timer.c,v 1.8 2002/03/27 14:30:33 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: timer.c,v 1.9 2002/07/08 14:57:00 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -352,7 +352,9 @@ void sigHandler(int sig)
 	    if (timer->sigBlocked) {
 		timer->sigPending = 1;
 	    } else if (timer->timeoutHandler) {
+		timer->sigBlocked = 1;
 		timer->timeoutHandler(timer->fd);
+		timer->sigBlocked = 0;
 	    }
 	}
 	timer = timer->next;
