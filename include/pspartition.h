@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pspartition.h,v 1.2 2003/09/26 14:12:43 eicker Exp $
+ * $Id: pspartition.h,v 1.3 2004/01/09 15:10:58 eicker Exp $
  *
  */
 /**
  * @file
  * Basic enumerations for partition creation and reservation.
  *
- * $Id: pspartition.h,v 1.2 2003/09/26 14:12:43 eicker Exp $
+ * $Id: pspartition.h,v 1.3 2004/01/09 15:10:58 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -52,12 +52,6 @@ typedef enum {
     PART_OPT_WAIT = 0x0008,      /**< If not enough nodes are available, wait
 				    for them (batch mode). */
 } PSpart_option_t;
-
-/**
- * Chunksize for PSP_CD_GETNODES, PSP_CD_CREATEPARTNL,
- * PSP_DD_GETPARTNL and PSP_DD_PROVIDEPARTNL messages
- */
-#define GETNODES_CHUNK 512
 
 #ifdef __cplusplus
 }/* extern "C" */

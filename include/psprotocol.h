@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.25 2003/12/22 18:32:02 eicker Exp $
+ * $Id: psprotocol.h,v 1.26 2004/01/09 15:10:58 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation client-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.25 2003/12/22 18:32:02 eicker Exp $
+ * $Id: psprotocol.h,v 1.26 2004/01/09 15:10:58 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -188,6 +188,12 @@ typedef enum {
 
 /** global reset actions. */
 #define PSP_RESET_HW              0x0001
+
+/**
+ * Chunksize for PSP_CD_GETNODES, PSP_CD_CREATEPARTNL,
+ * PSP_DD_GETPARTNL and PSP_DD_PROVIDEPARTNL messages
+ */
+#define NODES_CHUNK 512
 
 
 /*--------------------------------------*/
