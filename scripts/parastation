@@ -5,6 +5,10 @@ MODULEFULLNAME=$PS_MODULE
 MODULENAME=`basename $MODULEFULLNAME .o`
 PSCONFIG=`dirname $0`/psconfig
 
+# PSN Network Device for Parastation3
+PSNINOUT=`dirname $0`/psninout
+PSN_MODULENAME=`dirname $PS_MODULE`/mod_psn.o
+
 case "$1" in
     start)
 	# Test if module is already loaded
@@ -28,10 +32,18 @@ case "$1" in
         fi
 	$PSCONFIG -key "$PS_LIC" || exit 2
 	$PSCONFIG -id "$PS_ID" "$PS_ROUTEFILE" || exit 3
+
+# The following two lines increase somtimes the performance of huge applications
+#	$PSCONFIG -p 4 1
+#	$PSCONFIG -p 5 0
+
+# Enable the next line to load the PSN Network Device for Parastation
+#	$PSNINOUT -m $PSN_MODULENAME -n "192.168.48.0" -p 20
 	
 	;;
 
     stop)
+	$PSNINOUT -m $PSN_MODULENAME -o
 	rmmod "$MODULENAME"
 	;;
 
