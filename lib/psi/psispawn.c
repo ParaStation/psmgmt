@@ -397,7 +397,7 @@ short PSI_getPartition()
 		if(hostname[0] == '#')
 		    continue;
 		hp = gethostbyname(hostname);
-		bcopy((char *)hp->h_addr, (char*)&sin_addr, hp->h_length);
+		memcpy(&sin_addr, hp->h_addr, hp->h_length);
 		if ((PSI_Partition[PSI_PartitionSize] =
 		     INFO_request_host(sin_addr.s_addr)) != -1){
 		    PSI_PartitionSize++;
@@ -488,7 +488,7 @@ PSI_dospawn(int count, short *dstnodes, char *workingdir,
 
     gethostname(hostname, sizeof(hostname));
     hp = gethostbyname(hostname);
-    bcopy((char *)hp->h_addr, (char*)&sin_addr, hp->h_length);
+    memcpy(&sin_addr, hp->h_addr, hp->h_length);
     task->loggernode = sin_addr.s_addr;
     task->loggerport = LOGGERspawnlogger();
 

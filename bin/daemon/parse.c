@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: parse.c,v 1.8 2002/01/08 23:37:35 eicker Exp $
+ * $Id: parse.c,v 1.9 2002/01/09 20:22:17 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: parse.c,v 1.8 2002/01/08 23:37:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: parse.c,v 1.9 2002/01/09 20:22:17 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -89,7 +89,7 @@ unsigned int GetIP(char *s)
 	ERR_OUT(errtxt);
 	exit(-1); 
     }
-    bcopy((char *)host->h_addr_list[0], (char*)&id, host->h_length); 
+    memcpy(&id, host->h_addr_list[0], host->h_length); 
 
     return id;
 }

@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.20 2002/01/09 19:59:35 eicker Exp $
+ * $Id: psid.c,v 1.21 2002/01/09 20:22:17 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.20 2002/01/09 19:59:35 eicker Exp $ 
+ * $Id: psid.c,v 1.21 2002/01/09 20:22:17 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.20 2002/01/09 19:59:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.21 2002/01/09 20:22:17 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -61,7 +61,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.20 $";
+static char psid_cvsid[] = "$Revision: 1.21 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -1759,7 +1759,7 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 
 	    ic=PSHALSYSGetInfoCounter();
 
-	    bcopy(ic,msg.buf,sizeof(*ic));
+	    memcpy(msg.buf, ic, sizeof(*ic));
 	    msg.header.type = PSP_CD_COUNTSTATUSRESPONSE;
 	    msg.header.len += sizeof(*ic);
 	    break;
@@ -1777,7 +1777,7 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 	    break;
 	}
 	case PSP_CD_HOSTSTATUSREQUEST:
-	    bcopy(PSID_hoststatus, msg.buf, NrOfNodes);
+	    memcpy(msg.buf, PSID_hoststatus, NrOfNodes);
 	    msg.header.len += NrOfNodes;
 	    msg.header.type = PSP_CD_HOSTSTATUSRESPONSE;
 	    break;
@@ -1787,7 +1787,7 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 	    int node;
 	    address = (unsigned int *) ((DDBufferMsg_t*)inmsg)->buf;
 	    node = PSID_host(*address);
-	    bcopy(&node, msg.buf, sizeof(int));
+	    memcpy(msg.buf, &node, sizeof(int));
 	    msg.header.len += sizeof(int);
 	    msg.header.type = PSP_CD_HOSTRESPONSE;
 	    break;
@@ -2639,7 +2639,7 @@ void CheckFileTable()
 	SYSLOG(1,(LOG_ERR,"CheckFileTable()\n"));
     for(fd=0;fd<FD_SETSIZE;) {
 	if(FD_ISSET(fd,&openfds)) {
-	    bzero(&rfds,sizeof(rfds));
+	    memset(&rfds, 0, sizeof(rfds));
 	    FD_SET(fd,&rfds);
 
 	    tv.tv_sec=0;
@@ -2690,7 +2690,7 @@ void CheckFileTable()
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.20 $";
+    char revision[] = "$Revision: 1.21 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -2849,7 +2849,7 @@ int main(int argc, char **argv)
 	/*
 	 * bind the socket to the right address
 	 */
-	bzero((char *)&sa, sizeof(sa));
+	memset(&sa, 0, sizeof(sa));
 	sa.sin_family = AF_INET;
 	sa.sin_addr.s_addr = INADDR_ANY;
 	sa.sin_port = service->s_port;
@@ -2982,7 +2982,7 @@ int main(int argc, char **argv)
 		blockSig(0, SIGCHLD); /* Handle deceased child processes */
 		blockSig(1, SIGCHLD);
 		blockSig(0, SIGALRM);
-		bcopy((char *)&openfds, (char *)&rfds, sizeof(rfds));
+		memcpy(&rfds, &openfds, sizeof(rfds));
 		CalledFromRSelect=1;
 
 		if (Rselect(nfds, &rfds, (fd_set *)0, (fd_set *)0, &tv) < 0){
@@ -3066,7 +3066,7 @@ int main(int argc, char **argv)
 		 */
 		while(FD_ISSET(RDPSocket,&rfds)){
 		    psicontrol(RDPSocket);
-		    bzero(&rfds,sizeof(rfds));
+		    memset(&rfds, 0, sizeof(rfds));
 		    FD_SET(RDPSocket,&rfds);
 
 		    blockSig(0,SIGALRM);

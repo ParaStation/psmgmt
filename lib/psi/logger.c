@@ -177,7 +177,7 @@ int LOGGERspawnlogger(void)
 	perror("LOGGERspawnlogger: can't create socket:");
 	exit(1);
     }
-    bzero((char *)&sa, sizeof(sa)); 
+    memset(&sa, 0, sizeof(sa)); 
     sa.sin_family = AF_INET;
     sa.sin_addr.s_addr = INADDR_ANY;
 

@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.15 2002/01/09 19:59:35 eicker Exp $
+ * $Id: psidutil.c,v 1.16 2002/01/09 20:22:17 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.15 2002/01/09 19:59:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.16 2002/01/09 20:22:17 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -152,7 +152,7 @@ int PSID_readconfigfile(void)
 		  errno, errstr ? errstr : "UNKNOWN errno"));
 	exit(-1);
     }
-    bcopy((char *)mhost->h_addr, (char*)&sin_addr, mhost->h_length); 
+    memcpy(&sin_addr, mhost->h_addr, mhost->h_length); 
     endhostent(); 
 
     if(parse_config(1)<0)
@@ -241,7 +241,7 @@ int PSID_startlicenseserver(unsigned int hostaddr)
 	close(sock);
 	return 0; 
     }
-    bzero((char *)&sa, sizeof(sa)); 
+    memset(&sa, 0, sizeof(sa)); 
     sa.sin_family = AF_INET; 
     sa.sin_addr.s_addr = hostaddr;
     sa.sin_port = service->s_port;

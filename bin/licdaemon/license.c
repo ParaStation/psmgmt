@@ -200,7 +200,7 @@ void makeLicenseRequest( char* licenserequest)
 	fprintf(stderr, "can't get \"%s\" host entry\n", host);
 	exit(1);
     }
-    bcopy((char *)hp->h_addr, (char *)&IP, hp->h_length);
+    memcpy(&IP, hp->h_addr, hp->h_length);
     Code6Bit(&licenserequest[0],IP,6); /* Code the IP */
     Code6Bit(&licenserequest[6],nodes,6); /* Code the number of nodes */
     Code6Bit(&licenserequest[12],PSPprotocolversion,6); /* Code the actual protocolnumber */

@@ -159,7 +159,7 @@ int PStask_encode(char* buffer, PStask_t * task)
     }
 #endif
     msglen = sizeof(PStask_t);
-    bcopy(task,buffer,sizeof(PStask_t));
+    memcpy(buffer, task, sizeof(PStask_t));
     /* reinit the pointers */
     ((PStask_t*)buffer)->workingdir = NULL;
     ((PStask_t*)buffer)->argv = NULL;
@@ -217,7 +217,7 @@ int PStask_decode(char* buffer, PStask_t * task)
     /* unpack buffer */
 
     msglen = sizeof(PStask_t);
-    bcopy(buffer,task,sizeof(PStask_t));
+    memcpy(task, buffer, sizeof(PStask_t));
     task->link = NULL;
     task->rlink = NULL;
 

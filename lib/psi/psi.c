@@ -144,7 +144,7 @@ PSI_startdaemon(u_long hostaddr)
 	close(sock);
 	return 0; 
     }
-    bzero((char *)&sa, sizeof(sa)); 
+    memset(&sa, 0, sizeof(sa)); 
     sa.sin_family = PF_INET; 
     sa.sin_addr.s_addr = hostaddr;
     sa.sin_port = service->s_port;
@@ -187,7 +187,7 @@ PSI_daemonsocket(u_long hostaddr)
 	close(sock);
 	return -1; 
     }
-    bzero((char *)&sa, sizeof(sa)); 
+    memset(&sa, 0, sizeof(sa)); 
     sa.sin_family = AF_INET; 
     sa.sin_addr.s_addr = hostaddr;
     sa.sin_port = service->s_port;

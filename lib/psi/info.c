@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.6 2002/01/08 21:33:40 eicker Exp $
+ * $Id: info.c,v 1.7 2002/01/09 20:21:18 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.6 2002/01/08 21:33:40 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.7 2002/01/09 20:21:18 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -108,10 +108,10 @@ INFO_request_receive(long *what, void* buffer,int size)
 	    break;
 	}
 	case PSP_CD_RDPSTATUSRESPONSE:
-	    bcopy(((DDTagedBufferMsg_t*)&msg)->buf,buffer,size);
+	    memcpy(buffer, ((DDTagedBufferMsg_t*)&msg)->buf, size);
 	    break;
 	case PSP_CD_HOSTSTATUSRESPONSE:
-	    bcopy(((DDBufferMsg_t*)&msg)->buf,buffer,size);
+	    memcpy(buffer, ((DDBufferMsg_t*)&msg)->buf, size);
 	    break;
 	case PSP_CD_HOSTRESPONSE:
 	    *what = *(int *)((DDBufferMsg_t*) &msg)->buf;
@@ -209,7 +209,7 @@ int INFO_request_host(unsigned int address)
     msg.header.dest = PSI_gettid(PSI_myid,0);
     msg.header.sender = PSI_mytid;
     msg.header.len = sizeof(msg.header);
-    bcopy(&address, msg.buf, sizeof(unsigned int));
+    memcpy(msg.buf, &address, sizeof(unsigned int));
     msg.header.len += sizeof(address);
 
     if(ClientMsgSend(&msg)<0){
