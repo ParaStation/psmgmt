@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidspawn.c,v 1.2 2002/07/31 09:10:48 eicker Exp $
+ * $Id: psidspawn.c,v 1.3 2002/07/31 11:31:00 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.2 2002/07/31 09:10:48 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.3 2002/07/31 11:31:00 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -56,7 +56,6 @@ int PSID_execClient(PStask_t *task, int controlchannel)
 {
     /* logging is done via the forwarder thru stderr! */
     struct stat sb;
-    char pid_str[20];
     int i;
 
     /* change the gid */

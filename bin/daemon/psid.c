@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.63 2002/07/31 09:17:41 eicker Exp $
+ * $Id: psid.c,v 1.64 2002/07/31 11:31:00 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.63 2002/07/31 09:17:41 eicker Exp $ 
+ * $Id: psid.c,v 1.64 2002/07/31 11:31:00 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.63 2002/07/31 09:17:41 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.64 2002/07/31 11:31:00 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -72,7 +72,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.63 $";
+static char psid_cvsid[] = "$Revision: 1.64 $";
 
 static int PSID_mastersock;
 
@@ -874,7 +874,6 @@ void getProcessProperties(PStask_t *task)
 void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 {
     PStask_t *task;
-    PStask_t *tmptask;
     MCastConInfo_t info;
     pid_t pid;
     uid_t uid;
@@ -1321,8 +1320,6 @@ void sendAllSignals(PStask_t *task)
  */
 void sendSignalToParent(long ptid, long tid, uid_t uid)
 {
-    PStask_t *task = PStasklist_find(managedTasks, tid);
-
     if (PSC_getID(ptid)==PSC_getMyID()) {
 	/* receiver is on local node, send signal */
 	sendSignal(ptid, uid, tid, -1);
@@ -1570,7 +1567,6 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 		nodelist = malloc(PSC_getNrOfNodes() * sizeof(*nodelist));
 	    }
 	    for (i=0; i<PSC_getNrOfNodes(); i++) {
-		PStask_t *task;
 		MCastConInfo_t info;
 
 		nodelist[i].up = isUpDaemon(i);
@@ -3026,7 +3022,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.63 $";
+    char revision[] = "$Revision: 1.64 $";
     snprintf(errtxt, sizeof(errtxt), "psid %s\b ", revision+11);
     PSID_errlog(errtxt, 0);
 }
@@ -3059,7 +3055,6 @@ static void help(void)
 int main(int argc, char **argv)
 {
     struct sockaddr_un sa;
-    struct stat sb;
 
     int fd;             /* master socket and socket to check connections*/
     struct timeval tv;  /* timeval for waiting on select()*/
