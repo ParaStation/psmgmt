@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.22 2002/01/15 09:56:01 eicker Exp $
+ * $Id: psid.c,v 1.23 2002/01/16 17:20:02 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.22 2002/01/15 09:56:01 eicker Exp $ 
+ * $Id: psid.c,v 1.23 2002/01/16 17:20:02 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.22 2002/01/15 09:56:01 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.23 2002/01/16 17:20:02 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -61,7 +61,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.22 $";
+static char psid_cvsid[] = "$Revision: 1.23 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -2638,7 +2638,7 @@ void CheckFileTable()
     if (PSI_isoption(PSP_ODEBUG)) SYSLOG(1,(LOG_ERR,"CheckFileTable()\n"));
     for (fd=0;fd<FD_SETSIZE;) {
 	if (FD_ISSET(fd,&openfds)) {
-	    memset(&rfds, 0, sizeof(rfds));
+	    FD_ZERO(&rfds);
 	    FD_SET(fd,&rfds);
 
 	    tv.tv_sec=0;
@@ -2689,7 +2689,7 @@ void CheckFileTable()
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.22 $";
+    char revision[] = "$Revision: 1.23 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -2910,7 +2910,7 @@ int main(int argc, char **argv)
 	    FD_SET(PSI_msock, &openfds);
 
 	    {
-		/* set the memory limits to 256 MB */
+		/* set the memory limits */
 		struct rlimit rlp;
 		int dummy;
 		dummy=getrlimit(RLIMIT_DATA,&rlp);
@@ -3063,17 +3063,17 @@ int main(int argc, char **argv)
 		/*
 		 * Read all RDP messages
 		 */
-		while(FD_ISSET(RDPSocket,&rfds)){
+		while (FD_ISSET(RDPSocket, &rfds)) {
 		    psicontrol(RDPSocket);
-		    memset(&rfds, 0, sizeof(rfds));
-		    FD_SET(RDPSocket,&rfds);
+		    FD_ZERO(&rfds);
+		    FD_SET(RDPSocket, &rfds);
 
 		    blockSig(0,SIGALRM);
 		    tv.tv_sec = 0;
 		    tv.tv_usec = 0;
 		    CalledFromRSelect=1;
-		    if (Rselect(RDPSocket+1,
-				&rfds, (fd_set *)0, (fd_set *)0, &tv) < 0)
+		    if (Rselect(RDPSocket+1, &rfds, (fd_set *)NULL,
+				(fd_set *)NULL, &tv) < 0)
 			break;
 		    CalledFromRSelect=0;
 		    blockSig(1,SIGALRM);
