@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psnodes.h,v 1.1 2003/03/06 14:00:59 eicker Exp $
+ * $Id: psnodes.h,v 1.2 2003/03/11 10:16:25 eicker Exp $
  *
  */
 /**
@@ -13,7 +13,7 @@
  * Functions for handling the various informations about the nodes
  * with a ParaStation cluster
  *
- * $Id: psnodes.h,v 1.1 2003/03/06 14:00:59 eicker Exp $
+ * $Id: psnodes.h,v 1.2 2003/03/11 10:16:25 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -282,6 +282,10 @@ int PSnodes_setHWStatus(int id, int hwStatus);
  */
 int PSnodes_getHWStatus(int id);
 
+
+/** Pseudo user ID to allow any user to run on a specific node */
+#define PSNODES_ANYUSER (uid_t) -1
+
 /**
  * @brief Set the exclusive user of a node.
  *
@@ -306,6 +310,10 @@ int PSnodes_setUser(int id, uid_t uid);
  * -1, if an error occured.
  */
 uid_t PSnodes_getUser(int id);
+
+
+/** Pseudo number of processes to allow any job to run on a specific node */
+#define PSNODES_ANYPROC -1
 
 /**
  * @brief Set the maximum number of processes of a node.
