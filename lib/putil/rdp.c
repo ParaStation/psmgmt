@@ -509,16 +509,15 @@ static void init_conntable(int nodes, int port)
     struct timeval tv;
 
     if(!conntable){
-	conntable = (Rconninfo *) malloc((PSI_nrofnodes + 1)
-					 * sizeof(Rconninfo));
+	conntable = (Rconninfo *) malloc((nodes + 1) * sizeof(Rconninfo));
     }
     init_iptable();
-    gettimeofday(&tv,NULL);
+    gettimeofday(&tv, NULL);
     srandom(tv.tv_sec+tv.tv_usec);
-    Dsprintf(errtxt,"init conntable for %d nodes, win is %d",
-	     nodes,MAX_WINDOW_SIZE);
-    Derrlog(errtxt,syslogerror,10);
-    for(i=0;i<=PSI_nrofnodes;i++){
+    Dsprintf(errtxt, "init conntable for %d nodes, win is %d", nodes,
+	     MAX_WINDOW_SIZE);
+    Derrlog(errtxt, syslogerror, 10);
+    for(i=0; i<=nodes; i++){
 	if(i<nodes){
 	    conntable[i].hostname = psihosttable[i].name;
 	    conntable[i].lastping.tv_sec = 0;
@@ -2239,83 +2238,92 @@ Derrlog(errtxt,syslogerror,9);
 
 static void HandleMCAST(void)
 {
-  Mmsg buf;
-  struct sockaddr_in sin;
-  struct timeval tv;
-  fd_set rdfs;
-  int node,retval,info;
-  SIZE_T slen;
+    Mmsg buf;
+    struct sockaddr_in sin;
+    struct timeval tv;
+    fd_set rdfs;
+    int node,retval,info;
+    SIZE_T slen;
 
-  do{
-    slen = sizeof(sin);
-    if (MYrecvfrom(mcastsock, &buf, sizeof(Mmsg), 0, (struct sockaddr *)&sin, &slen)<0){ /* get msg */
-	  sprintf(errtxt,"MCAST recvfrom returns[%d]: %s",errno,strerror(errno));
-	  errlog(errtxt,syslogerror,0);
-    }
-    node = iplookup(sin.sin_addr);
-    if(buf.node == nr_of_nodes){
-	node = nr_of_nodes;
-Dsprintf(errtxt,"... receiving MCAST Ping from LIC %x[%d], state[%x]:%x",sin.sin_addr.s_addr,node,
-	buf.node,buf.state);
-    } else {
-Dsprintf(errtxt,"... receiving MCAST Ping from %x[%d], state[%x]:%x",sin.sin_addr.s_addr,node,
-	buf.node,buf.state);
-    }
-Derrlog(errtxt,syslogerror,9);
-
-    if (node != buf.node){ /* Got ping from a different cluster */
-      sprintf(errtxt,"Getting MCASTs from unknown node [%d %x(%d)]",
-	        buf.node,sin.sin_addr.s_addr,node);
-      errlog(errtxt,syslogerror,0);
-      goto restart;
-    };
-
-    if(buf.type == T_CLOSE){ /* Got a shutdown msg */
-Dsprintf(errtxt,"Got CLOSE MCAST Ping from %x [%d]",sin.sin_addr.s_addr,node);
-Derrlog(errtxt,syslogerror,2);
-      if(!licserver)CloseConnection(node);
-      goto restart;
-    };
-
-    if(buf.type == T_KILL){ /* Got a KILL msg (from LIC Server) */
-Dsprintf(errtxt,"License Server told me to shut down operation !!");
-Derrlog(errtxt,syslogerror,0);
-	if (callback.func != NULL){ /* inform daemon */
-	  info=LIC_KILL_MSG;
-	  callback.func(RDP_LIC_SHUTDOWN,&info);
-	} else {
-	  RDPexit();
-	  exit(-1);
+    do{
+	slen = sizeof(sin);
+	if (MYrecvfrom(mcastsock, &buf, sizeof(Mmsg), 0,
+		       (struct sockaddr *)&sin, &slen)<0){ /* get msg */
+	    sprintf(errtxt, "MCAST recvfrom returns[%d]: %s", errno,
+		    strerror(errno));
+	    errlog(errtxt,syslogerror,0);
 	}
-    };
+	node = iplookup(sin.sin_addr);
+	if(buf.node == nr_of_nodes){
+	    node = nr_of_nodes;
+	    Dsprintf(errtxt, "... receiving MCAST Ping from LIC %x[%d],"
+		     " state[%x]:%x", sin.sin_addr.s_addr, node, buf.node,
+		     buf.state);
+	}else{
+	    Dsprintf(errtxt, "... receiving MCAST Ping from %x[%d],"
+		     " state[%x]:%x", sin.sin_addr.s_addr, node, buf.node,
+		     buf.state);
+	}
+	Derrlog(errtxt,syslogerror,9);
 
-    gettimeofday(&conntable[node].lastping,NULL);
-    conntable[node].misscounter=0;
-    conntable[node].load = buf.load;
-    if(!licserver && conntable[node].state != ACTIVE){ /* got PING from unconnected node */
-Dsprintf(errtxt,"Got MCAST Ping from %x [%d] which is NOT ACTIVE",sin.sin_addr.s_addr,node);
-Derrlog(errtxt,syslogerror,2);
-      sendSYN(node);	/* Setup connection */
-    }
+	if (node != buf.node){ /* Got ping from a different cluster */
+	    sprintf(errtxt,"Getting MCASTs from unknown node [%d %x(%d)]",
+		    buf.node,sin.sin_addr.s_addr,node);
+	    errlog(errtxt,syslogerror,0);
+	    goto restart;
+	};
 
-restart:
-    FD_ZERO(&rdfs);
-    FD_SET(mcastsock,&rdfs);
-    tv.tv_sec = 0;
-    tv.tv_usec = 0;
+	if(buf.type == T_CLOSE){
+	    /* Got a shutdown msg */
+	    Dsprintf(errtxt,"Got CLOSE MCAST Ping from %x [%d]",
+		     sin.sin_addr.s_addr, node);
+	    Derrlog(errtxt,syslogerror,2);
+	    if(!licserver) CloseConnection(node);
+	    goto restart;
+	};
 
-    if( (retval=select(mcastsock+1,&rdfs,NULL,NULL,&tv)) == -1){
-      if (errno == EINTR) goto restart;
-      sprintf(errtxt,"select (HandleMCAST) returns: %s",strerror(errno));
-      errlog(errtxt,syslogerror,0);
-    };
+	if(buf.type == T_KILL){
+	    /* Got a KILL msg (from LIC Server) */
+	    Dsprintf(errtxt,"License Server told me to shut down operation !");
+	    Derrlog(errtxt,syslogerror,0);
+	    if (callback.func != NULL){ /* inform daemon */
+		info=LIC_KILL_MSG;
+		callback.func(RDP_LIC_SHUTDOWN,&info);
+	    }else{
+		RDPexit();
+		exit(-1);
+	    }
+	};
+
+	gettimeofday(&conntable[node].lastping,NULL);
+	conntable[node].misscounter=0;
+	conntable[node].load = buf.load;
+	if(!licserver && conntable[node].state != ACTIVE){
+	    /* got PING from unconnected node */
+	    Dsprintf(errtxt, "Got MCAST Ping from %x [%d] which is NOT ACTIVE",
+		     sin.sin_addr.s_addr, node);
+	    Derrlog(errtxt,syslogerror,2);
+	    sendSYN(node);	/* Setup connection */
+	}
+
+    restart:
+	FD_ZERO(&rdfs);
+	FD_SET(mcastsock,&rdfs);
+	tv.tv_sec = 0;
+	tv.tv_usec = 0;
+
+	if( (retval=select(mcastsock+1,&rdfs,NULL,NULL,&tv)) == -1){
+	    if (errno == EINTR) goto restart;
+	    sprintf(errtxt,"select (HandleMCAST) returns: %s",strerror(errno));
+	    errlog(errtxt,syslogerror,0);
+	};
 
 /* Dsprintf(errtxt,"HandleMCAST internal select returns %d (%d)",retval,errno); */
 /* Derrlog(errtxt,syslogerror,1); */
 
-  }while(retval>0);
+    }while(retval>0);
 
-  return;
+    return;
 }
 
 
@@ -2538,6 +2546,3 @@ void RDP_StateInfo(int n, char *s)
 	    conntable[n].bufptr);
     return;
 }
-
-
-
