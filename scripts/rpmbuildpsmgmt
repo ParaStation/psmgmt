@@ -6,6 +6,14 @@ BINDIR=$BUILDDIR/opt/parastation
 
 SPECFILE=psmgmt-$DVER.spec
 
+mkdir -p .build
+ln -sf "../opt" ".build/opt"
+if [ -f /usr/bin/rpmbuild ] ; then
+    RPM=/usr/bin/rpmbuild
+else
+    RPM=rpm
+fi
+
 cat > $SPECFILE <<EOF
 Summary:   ParaStation Management
 Vendor:    ParTec AG, Karlsruhe, Germany
@@ -16,7 +24,7 @@ Copyright: (c) 2001-2003 ParTec AG
 Group:     System/Development/Libraries
 Packager:  support@par-tec.de
 
-BuildRoot: $BUILDDIR
+BuildRoot: $BUILDDIR/.build
  
 %description
 ParaStation Management Layer.
@@ -29,7 +37,7 @@ ParaStation Management Layer.
 %attr(-,root,root) /opt/parastation
 EOF
 
-rpm -v -bb $SPECFILE 2>&1 |while read tag val
+$RPM -v -bb $SPECFILE 2>&1 |while read tag val
 do
     echo $tag $val
     if [ x$tag = xWrote: ];then

@@ -6,6 +6,14 @@ BINDIR=$BUILDDIR/opt/parastation
 
 SPECFILE=psfe-$DVER.spec
 
+mkdir -p .build
+ln -sf "../opt" ".build/opt"
+if [ -f /usr/bin/rpmbuild ] ; then
+    RPM=/usr/bin/rpmbuild
+else
+    RPM=rpm
+fi
+
 cat > $SPECFILE <<EOF
 Summary:   ParaStation FE Cluster Communication libraries
 Vendor:    ParTec AG, Karlsruhe, Germany
@@ -16,7 +24,7 @@ Copyright: (c) 2001-2003 ParTec AG
 Group:     System/Development/Libraries
 Packager:  support@par-tec.de
 Requires:  psmgmt
-BuildRoot: $BUILDDIR
+BuildRoot: $BUILDDIR/.build
  
 %description
 ParaStation FE Cluster Communication libraries. TCP/IP Version.
@@ -27,7 +35,7 @@ ParaStation FE Cluster Communication libraries. TCP/IP Version.
 %attr(-,root,root) /opt/parastation
 EOF
 
-rpm -v -bb $SPECFILE 2>&1 |while read tag val
+$RPM -v -bb $SPECFILE 2>&1 |while read tag val
 do
     echo $tag $val
     if [ x$tag = xWrote: ];then
