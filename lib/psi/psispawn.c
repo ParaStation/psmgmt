@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.28 2002/12/19 13:58:24 eicker Exp $
+ * $Id: psispawn.c,v 1.29 2003/02/07 16:18:37 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.28 2002/12/19 13:58:24 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.29 2003/02/07 16:18:37 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -60,11 +60,11 @@ static char errtxt[256];
 
 int PSI_dospawn(int count, short *dstnodes, char *workingdir,
 		int argc, char **argv,
-		unsigned int loggernode, unsigned short loggerport,
+		long loggertid,
 		int rank, int *errors, long *tids);
 
 long PSI_spawn(short dstnode, char *workdir, int argc, char **argv,
-	       unsigned int loggernode, unsigned short loggerport,
+	       long loggertid,
 	       int rank, int *error)
 {
     int ret;
@@ -88,7 +88,7 @@ long PSI_spawn(short dstnode, char *workdir, int argc, char **argv,
     }
 
     ret = PSI_dospawn(1, &dstnode, workdir, argc, argv,
-		      loggernode, loggerport, rank, error, &tid);
+		      loggertid, rank, error, &tid);
 
     if (ret<0) return ret;
 
@@ -97,7 +97,7 @@ long PSI_spawn(short dstnode, char *workdir, int argc, char **argv,
 
 int PSI_spawnM(int count, short *dstnodes, char *workdir,
 	       int argc, char **argv,
-	       unsigned int loggernode, unsigned short loggerport,
+	       long loggertid,
 	       int rank, int *errors, long *tids)
 {
     short *mydstnodes=NULL;
@@ -136,7 +136,7 @@ int PSI_spawnM(int count, short *dstnodes, char *workdir,
     PSI_errlog(errtxt, 1);
 
     ret = PSI_dospawn(count, mydstnodes, workdir, argc, argv,
-		      loggernode, loggerport, rank, errors, tids);
+		      loggertid, rank, errors, tids);
 
     /*
      * if I allocated mydstnodes myself, free() it now
@@ -751,7 +751,7 @@ short PSI_getPartition(unsigned int hwType, int myRank)
 
 int PSI_dospawn(int count, short *dstnodes, char *workingdir,
 		int argc, char **argv,
-		unsigned int loggernode, unsigned short loggerport,
+		long loggertid,
 		int rank, int *errors, long *tids)
 {
     int outstanding_answers=0;
@@ -765,12 +765,6 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
     int error = 0;  /* error flag */
     int fd = 0;
     PStask_t* task; /* structure to store the information of the new process */
-
-    /*
-     * Get a SIGTERM if a child dies. May be overwritten by explicit
-     * PSI_notifydead() calls.
-     */
-    PSI_notifydead(0, SIGTERM);
 
     /*
      * Send the request to my own daemon
@@ -808,9 +802,7 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
 	ioctl(fd, TIOCGWINSZ, &task->winsize);
     }
     task->group = TG_ANY;
-    task->loggernode = loggernode;
-    task->loggerport = loggerport;
-    task->loggertid = 0;
+    task->loggertid = loggertid;
 
     if (!workingdir || (workingdir[0]!='/')) {
 	/*
