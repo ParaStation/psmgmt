@@ -82,9 +82,14 @@ typedef void  psm_ext_irq_func( unsigned int irq,void * ptr);
 int psm_register_external_irq( psm_ext_irq_func *handler);
 void psm_unregister_external_irq( psm_ext_irq_func *handler);
 
+#ifdef ENABLE_DEBUG_MSG
 void psm_mcpif_print(char *str);
 #define MCPIF_PRINT(fmt,rest...) {char b[256];sprintf(b,fmt,##rest);psm_mcpif_print(b);}
 
+#else
+#define psm_mcpif_print(str)
+#define MCPIF_PRINT(fmt,rest...)
+#endif
 
 #if ( MAX_HOST_PAGESIZE < PAGE_SIZE )
  . error MAX_HOST_PAGESIZE to small !!

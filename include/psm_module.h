@@ -1,6 +1,6 @@
 
 /*************************************************************fdb*
- * $Id: psm_module.h,v 1.1 2001/04/02 09:41:13 hauke Exp $
+ * $Id: psm_module.h,v 1.2 2001/08/30 17:32:03 hauke Exp $
  * structures and prototypes of psm_module.c
  *
  *************************************************************fde*/
@@ -29,6 +29,7 @@ struct psm_mmap_result{
     enum { mmapf_write = 1,
 	   mmapf_read  = 2 } allowed_flags;
     char * region_name; /* name for mapped region */
+    int   bufno; /* no of this buffer (for debug print to suppress some lines)*/
 };
     
 
