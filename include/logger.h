@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: logger.h,v 1.8 2002/02/11 12:52:04 eicker Exp $
+ * $Id: logger.h,v 1.9 2002/07/03 20:04:08 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with the ParaStation Logger.
  *
- * $Id: logger.h,v 1.8 2002/02/11 12:52:04 eicker Exp $
+ * $Id: logger.h,v 1.9 2002/07/03 20:04:08 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -32,9 +32,7 @@ extern "C" {
 
 extern pid_t logger_pid;
 
-extern int stdin_fileno_backup;
-extern int stdout_fileno_backup;
-extern int stderr_fileno_backup;
+/** @todo Documentation */
 
 /**
  * @brief Spans a forwarder.
@@ -49,17 +47,23 @@ extern int stderr_fileno_backup;
  * spawns a forwarder connected with 2 pipes and redirects stdout and
  * stderr to this pipes. stdout and stderr are backed up for later reuse
  *
+ *
  * @param logger_node IP-address of the node where the logger listens.
+ *
  * @param logger_port Port the logger is listening on.
+ *
  * @param rank @todo
+ *
  * @param tty
+ *
  *
  * @return No return value.
  */
 void LOGGERspawnforwarder(unsigned int logger_node, int logger_port,
 			  int rank, int tty);
 
-/*********************************************************************
+/**
+ * @todo
  * int LOGGERspawnlogger()
  *
  * spawns a logger.

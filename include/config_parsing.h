@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.h,v 1.2 2002/06/13 17:32:32 eicker Exp $
+ * $Id: config_parsing.h,v 1.3 2002/07/03 20:04:08 eicker Exp $
  *
  */
 /**
  * \file
  * parse: Parser for ParaStation daemon
  *
- * $Id: config_parsing.h,v 1.2 2002/06/13 17:32:32 eicker Exp $
+ * $Id: config_parsing.h,v 1.3 2002/07/03 20:04:08 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -29,9 +29,9 @@ extern "C" {
 #endif
 
 #include <sys/resource.h>
-#include "psitask.h"
+#include "pstask.h"
 
-typedef enum {none, myrinet, ethernet} HWType;
+/** @todo Documentation */
 
 /* Hashed host table needed for reverse lookup (ip-addr given, determine id) */
 struct host_t{
@@ -45,14 +45,17 @@ extern struct host_t *hosts[256];  /* host table */
 /* List of all nodes, info about hardware included */
 struct node_t{
     unsigned int addr;     /* IP address of that node */
-    char status;           /* Actual status of that node */
-    HWType hwtype;         /* Communication hardware on that node */
-    int ip;                /* Flag to mark that node to have the ip-module */
+    char isUp;             /* Actual status of that node */
+    unsigned int hwType;   /* Communication hardware on that node */
+    unsigned int hwStatus; /* Corresponding stati of the hardware */
+    int hasIP;             /* Flag to mark that node to load the ip-module */
     int starter;           /* Flag to allow to start jobs from that node */
     PStask_t* tasklist;    /* tasklist of that node */
 };
 
 extern struct node_t *nodes;
+
+extern struct node_t licNode;
 
 
 extern char *Configfile;
@@ -80,16 +83,14 @@ extern rlim_t ConfigRLimitDataSize;
 extern rlim_t ConfigRLimitStackSize;
 extern rlim_t ConfigRLimitRSSSize;
 
-extern int ConfigSyslogLevel;
-extern int ConfigSyslog;
-
-extern HWType ConfigHWType;
+extern int ConfigLogLevel;
+extern int ConfigLogDest;
 
 extern int MyPsiId;
 
 int parser_lookupHost(unsigned int ipaddr);
 
-int parseConfig(int syslogerror);
+int parseConfig(int usesyslog, int loglevel);
 
 #ifdef __cplusplus
 }/* extern "C" */

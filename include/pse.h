@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.h,v 1.6 2002/02/18 19:51:26 eicker Exp $
+ * $Id: pse.h,v 1.7 2002/07/03 20:04:08 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation Programming Environment
  *
- * $Id: pse.h,v 1.6 2002/02/18 19:51:26 eicker Exp $
+ * $Id: pse.h,v 1.7 2002/07/03 20:04:08 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -25,54 +25,14 @@
    portid of each spawned child process                           */
 #define PSE_TIME_OUT         2000000
 
-/* time in which parent process makes a pause */
-#define PSE_TIME_SLEEP       100
-
-/* these are tags used with the PSISend/Receive functions */
-#define PSE_InitExit_Tag     3   /* for starting/terminating processes */
-
-/* hier aendern, wenn wieder DEBUG Meldungden kommen sollen */
-#ifndef DEBUG
-#ifdef DODEBUG
-#include <stdio.h>
-#define DEBUG(args) {fprintf args ;}
-#else
-#define DEBUG(args) 
-#endif
-#endif
-
-#define DEBUG0(s) DEBUG((stderr, "[%d(%d)]: "s,\
-                              worldRankPSE,getpid()))
-
-#define DEBUG1(s, arg1) DEBUG((stderr, "[%d(%d)]: "s,\
-                              worldRankPSE,getpid(), arg1))
-
-#define DEBUG2(s, arg1, arg2) DEBUG((stderr, "[%d(%d)]: "s,\
-                              worldRankPSE,getpid(), arg1, arg2))
-
-#define DEBUG3(s, arg1, arg2, arg3) DEBUG((stderr, "[%d(%d)]: "s,\
-                              worldRankPSE,getpid(), arg1, arg2, arg3))
-
-#define EXIT(s, arg) {char reason[200];sprintf(reason,"[%d]: "s,\
-                              worldRankPSE, arg);\
-                      PSE_SYexitall(reason,10);}
-#define EXIT2(s, arg1, arg2) {char reason[200];sprintf(reason,"[%d]: "s,\
-                              worldRankPSE, arg1, arg2);\
-                      PSE_SYexitall(reason,10);}
-#define EXIT3(s, arg1, arg2, arg3) {char reason[200];sprintf(reason,"[%d]: "s,\
-                              worldRankPSE, arg1, arg2,arg3);\
-                      PSE_SYexitall(reason,10);}
-#define EXIT6(s, arg1, arg2, arg3, arg4, arg5, arg6)\
-                      {char reason[400];sprintf(reason,"[%d]: "s,\
-                            worldRankPSE, arg1, arg2, arg3, arg4, arg5, arg6);\
-                      PSE_SYexitall(reason,10);}
-
 #ifdef __cplusplus
 extern "C" {
 #if 0
 } /* <- just for emacs indentation */
 #endif
 #endif
+
+/** @todo Documentation */
 
 /***************************************************************************
  * void      PSEinit(int NP, int Argc, char** Argv);
@@ -110,50 +70,62 @@ extern "C" {
  */
 void PSEinit(int NP, int *rank);
 
+/**
+ * @brief PSEspawn
+ *
+ * @todo
+ *
+ * @param
+ * @param
+ * @param
+ *
+ * @return
+ */
 void PSEspawn(int Argc, char** Argv,
 	      int *masternode, int *masterport, int rank);
 
-/***************************************************************************
- * void      PSEfinalize(void);
- *  
- *  PSEfinalize waits until all task in the task group have called PSEfinalize
- *  
- * PARAMETERS
- * RETURN
+/**
+ * @brief Finish the actual process.
+ *
+ * Finish the actual process without shutting down all other processes
+ * within the process group.
+ *
+ * @return No return value.
+ *
+ * @see PSEabort()
  */
 void PSEfinalize(void);
 
+/**
+ * @brief Finish the actual process and shut down the whole process group.
+ *
+ * Finish the actual process and shut down all other processes within
+ * the process group. @a nCode is returned to the calling process,
+ * which is usually the daemon (or the forwarder in ParaStation4 @todo).
+ *
+ * @return No return value.
+ *
+ * @see PSEabort()
+ */
 void PSEabort(int nCode);
 
-/***************************************************************************
- * void      PSEkillmachine(void);
- *  
- *  PSEkillmachine kills all other tasks in the own task group.
- *  
- * PARAMETERS
- * RETURN
- */
-void PSEkillmachine(void);
-
-/***************************************************************************
- * int       PSEgetmyrank();
- *  
- *  PSEgetmyrank  returns the rank of this task
- *  
- * PARAMETERS
- * RETURN  >=0 rank of the task
- *         -1  not in a task group
+/**
+ * @brief Get the rank of the process.
+ *
+ * @todo
+ *
+ * @return On success, the actual rank of the process within the group
+ * is returned, or -1, if an error occurred.
  */
 int PSEgetmyrank(void);
 
-/***************************************************************************
- * int       PSEgetsize();
- *  
- *  PSEgetsize  returns the number of tasks addressable with the PSE interface
- *  
- * PARAMETERS
- * RETURN  >0 number of tasks in task group
- *         -1 not in a task group
+/**
+ * @brief Get the size of the process group.
+ *
+ * @todo
+ *
+ * @return On success, the actual size of the process group is
+ * returned, or -1, if an error occurred.
  */
 int PSEgetsize(void);
 

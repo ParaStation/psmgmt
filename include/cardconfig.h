@@ -14,7 +14,7 @@ typedef struct card_init_T{
 }card_init_t;
 
 int card_init(card_init_t *ic);
-int card_cleanup(void);
+int card_cleanup(card_init_t *ic);
 
 /* return str of last error */
 char *card_errstr(void);

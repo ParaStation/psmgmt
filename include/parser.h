@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: parser.h,v 1.2 2002/06/12 15:29:15 eicker Exp $
+ * $Id: parser.h,v 1.3 2002/07/03 20:04:08 eicker Exp $
  *
  */
 /**
  * @file
  * General parser utility for ParaStation daemon and admin
  *
- * $Id: parser.h,v 1.2 2002/06/12 15:29:15 eicker Exp $
+ * $Id: parser.h,v 1.3 2002/07/03 20:04:08 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -53,19 +53,29 @@ typedef struct parser_T {
  *
  * Initializes the parser machinery for inputstream @a input.
  *
+ *
  * @param usesyslog If true, all error-messages are printed via syslog().
+ *
  * @param input The inputstream the parser is expected to act on.
+ *
+ *
+ * @return No return value.
  */
 void parser_init(int usesyslog, FILE *input);
 
 /**
- * @brief Parses a string.
+ * @brief Parses a token.
+ *
+ * @todo Docu not up to date any more!!
  *
  * Parses the character array @a string pursuant to the syntax given
  * by @a parser.
  *
+ *
  * @param string The character array to parse.
+ *
  * @param parser The parser syntax used for parsing.
+ *
  *
  * Parsing is started by getting the first token in @a string via
  * strtok(). Tokens are delimited per @a parser->delim. Tokens will be
@@ -87,7 +97,79 @@ void parser_init(int usesyslog, FILE *input);
  *
  * @see strtok(3)
  */
-int parser_parseString(char *string, parser_t *parser);
+int parser_parseToken(char *token, parser_t *parser);
+
+/**
+ * @brief Parses a string.
+ *
+ * @todo Docu not up to date any more!!
+ *
+ * Parses the character array @a string pursuant to the syntax given
+ * by @a parser.
+ *
+ *
+ * @param string The character array to parse.
+ *
+ * @param parser The parser syntax used for parsing.
+ *
+ *
+ * Parsing is started by getting the first token in @a string via
+ * strtok(). Tokens are delimited per @a parser->delim. Tokens will be
+ * converted to lowercase characters. The converted token is compared
+ * to each key in @a parser->keylist. If a key matches the token, the
+ * corresponding action() is called. The token is passed as an
+ * argument.
+ *
+ * If the last key in @a parser->keylist also does not match like all
+ * keys befor @b and is NULL, the corresponding action() is called
+ * with token passed as an argument (default action).
+ *
+ * If action() returns 0, parsing goes on without regard to further
+ * keys, otherwise the return value of action() is returned.
+ *
+ * @return If @a string can be parsed without error (as shown by all
+ * action() calls returning 0), 0 is returned. Otherwise the return
+ * value of the first action() call displaying an error is returned.
+ *
+ * @see strtok(3)
+ */
+int parser_parseString(char *token, parser_t *parser);
+
+/**
+ * @brief Register a string to parse.
+ *
+ * @todo Docu not up to date!!
+ *
+ * Parses the character array @a string pursuant to the syntax given
+ * by @a parser.
+ *
+ *
+ * @param string The character array to parse.
+ *
+ * @param parser The parser syntax used for parsing.
+ *
+ *
+ * Parsing is started by getting the first token in @a string via
+ * strtok(). Tokens are delimited per @a parser->delim. Tokens will be
+ * converted to lowercase characters. The converted token is compared
+ * to each key in @a parser->keylist. If a key matches the token, the
+ * corresponding action() is called. The token is passed as an
+ * argument.
+ *
+ * If the last key in @a parser->keylist also does not match like all
+ * keys befor @b and is NULL, the corresponding action() is called
+ * with token passed as an argument (default action).
+ *
+ * If action() returns 0, parsing goes on without regard to further
+ * keys, otherwise the return value of action() is returned.
+ *
+ * @return If @a string can be parsed without error (as shown by all
+ * action() calls returning 0), 0 is returned. Otherwise the return
+ * value of the first action() call displaying an error is returned.
+ *
+ * @see strtok(3)
+ */
+char * parser_registerString(char *string, parser_t *parser);
 
 /**
  * @brief Parses a character stream.
@@ -95,8 +177,10 @@ int parser_parseString(char *string, parser_t *parser);
  * Parses the character stream set via @ref parser_init() pursuant to
  * the syntax given by @parser.
  *
+ *
  * @param parser The parser syntax used for parsing by passing to @ref
  * parser_parseString().
+ *
  *
  * Parsing is done by reading whole lines from the character
  * stream. Following the line is parsed using @ref
@@ -108,7 +192,8 @@ int parser_parseString(char *string, parser_t *parser);
  * @return If the character stream can be parsed without error (as
  * shown by all parser_parseString() calls returning 0), 0 is
  * returned. Otherwise the return value of the first
- * parser_parseString() call displaying an error is returned. */
+ * parser_parseString() call displaying an error is returned.
+ */
 int parser_parseFile(parser_t *parser);
 
 /**
@@ -153,9 +238,13 @@ void parser_setDebugLevel(int level);
 /**
  * @brief Print out a comment.
  *
+ *
  * @param token The actual token where the error was noticed.
+ *
  * @param comment A user-defined comment added to the message.
+ *
  * @param level The @todo
+ *
  *
  * @return No return value.
  */
@@ -218,9 +307,13 @@ long int parser_getNumber(char *token);
  * prefix/extradir/filename and, on absence, the existence of
  * prefix/filename is tested.
  *
+ *
  * @param token The character array that contains the filename.
+ *
  * @param prefix The directory prefix to lookup the filename.
+ *
  * @param extradir An optional directory to lookup the filename.
+ *
  *
  * @return On success a pointer to the absolute filename is returned,
  * or NULL otherwise.
@@ -249,9 +342,13 @@ unsigned int parser_getHostname(char *token);
  * occurred (i.e. token contains no valid number), a message
  * concerning @a valname is produced and @a *value remains unchanged.
  *
+ *
  * @param token The character array that contains the number.
+ *
  * @param value Pointer to the value to get.
+ *
  * @param valname The symbolic name of the value to get.
+ *
  *
  * @return On success 0 is returned, or -1 otherwise. 
  */
@@ -265,9 +362,13 @@ int parser_getNumValue(char *token, int *value, char *valname);
  * boolean value), a message concerning @a valname is produced and @a
  * *value remains unchanged.
  *
+ *
  * @param token The character array that contains the boolean value.
+ *
  * @param value Pointer to the value to get.
+ *
  * @param valname The symbolic name of the value to get.
+ *
  *
  * @return On success 0 is returned, or -1 otherwise.
  */
@@ -282,8 +383,11 @@ int parser_getBool(char *token, int *value, char *valname);
  * parser_parseString(). After the parsing of @a line is done, parsing
  * pursuant to @a parser continues using @ref parser_parseFile().
  *
+ *
  * @param line The line parsing should start with.
+ *
  * @param parser The parser syntax used for parsing.
+ *
  *
  * @return If @ref parser_parseString() or @ref parser_parseFile()
  * return a value different from 0, this function returns immediately
@@ -291,6 +395,9 @@ int parser_getBool(char *token, int *value, char *valname);
  * returns 0.
  */
 int parser_parseOn(char *line, parser_t *parser);
+
+
+#define UP 17 /* Some magic value */
 
 #ifdef __cplusplus
 }/* extern "C" */

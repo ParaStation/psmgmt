@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: errlog.h,v 1.4 2002/06/14 15:27:00 eicker Exp $
+ * $Id: errlog.h,v 1.5 2002/07/03 20:04:08 eicker Exp $
  *
  */
 /**
  * \file
  * ParaStation ErrLog facility used within MCast and RDP.
  *
- * $Id: errlog.h,v 1.4 2002/06/14 15:27:00 eicker Exp $
+ * $Id: errlog.h,v 1.5 2002/07/03 20:04:08 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -29,6 +29,8 @@ extern "C" {
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
 
 /** Flag whether to use syslog. Set via initErrLog(). */
@@ -66,7 +68,7 @@ static int getErrLogLevel(void)
  * Set the log-level of the ErrLog module. The possible values depend on
  * the usage in the actual modules.
  *
- * @param level The log-level to be set
+ * @param level The log-level to be set.
  *
  * @return No return value.
  *
@@ -124,8 +126,11 @@ static void setErrLogTag(char *tag)
  * Initialize the ErrLog facility using the tag @a tag to log via syslog(),
  * if @a syslog is true, and via stderr otherwise.
  *
+ *
  * @param tag The tag to be used in all output via errlog()/errexit().
+ *
  * @param syslog Flag to mark syslog() to be used for any output.
+ *
  *
  * @return No return value.
  */
@@ -142,9 +147,12 @@ static void initErrLog(char *tag, int syslog)
  * <= @ref levelErrLog. The output goes to syslog or stderr depending on
  * @ref syslogErrLog.
  *
+ *
  * @param s The actual message to log.
+ *
  * @param level The log-level of the message. Comparing to @ref levelErrLog
  * decides whether @a s is actually put out or not.
+ *
  *
  * @return No return value.
  */
@@ -171,9 +179,12 @@ static void errlog(char *s, int level)
  * beautification. The output goes to syslog or stderr depending on
  * @ref syslogErrLog.
  *
+ *
  * @param s The actual message to log.
+ *
  * @param errorno The errno which occured. errexit() logs the corresponding
  * string given by strerror().
+ *
  *
  * @return No return value.
  *

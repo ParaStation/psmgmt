@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.h,v 1.9 2002/05/22 18:43:50 hauke Exp $
+ * $Id: mcast.h,v 1.10 2002/07/03 20:04:08 eicker Exp $
  *
  */
 /**
  * \file
  * ParaStation MultiCast facility
  *
- * $Id: mcast.h,v 1.9 2002/05/22 18:43:50 hauke Exp $
+ * $Id: mcast.h,v 1.10 2002/07/03 20:04:08 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -102,21 +102,31 @@ typedef struct {
  *
  * Initializes the MCast machinery for @a nodes nodes.
  *
- * @param nodes Number of nodes to handle.
+ *
+ * @param nodes Number of nodes to handle (minus the node of the
+ * license-daemon).
+ *
  * @param mcastgroup The MCast group to use. If 0, @ref DEFAULT_MCAST_GROUP is
  * used.
+ *
  * @param portno The UDP port number in host byteorder to use for sending and
  * receiving packets. If 0, @ref DEFAULT_MCAST_PORT is used.
+ *
  * @param usesyslog If true, all error-messages are printed via syslog().
- * @param hosts An array of size @a nodes containing the IP-addresses of the
- * participating nodes in network-byteorder.
+ *
+ * @param hosts An array of size @a nodes+1 containing the
+ * IP-addresses of the participating nodes in network-byteorder. The
+ * first @ref nodes entries represent the ordinary nodes, the last entry
+ * is the node of the license-daemon.
+ *
  * @param licServer Flag to mark the calling process as a license server.
+ *
  * @param callback Pointer to a callback-function. This function is called if
  * something exceptional happens. If NULL, no callbacks will be done.
  *
+ *
  * @return On success, the filedescriptor of the MCast socket is returned.
- * On error, exit() is called within this function.
- */
+ * On error, exit() is called within this function.  */
 int initMCast(int nodes, int mcastgroup, unsigned short portno,
 	      int usesyslog,  unsigned int hosts[], int licServer,
 	      void (*callback)(int, void*));
@@ -207,9 +217,12 @@ void setDeadLimitMCast(int limit);
  * Get connection information from the MCast module concerning the node
  * @a node. The result is returned in a @ref MCastConInfo structure.
  *
+ *
  * @param node The node, to get MCast connection information about.
+ *
  * @param info The @ref MCastConInfo structure holding the connection info
  * on return.
+ *
  *
  * @return No return value.
  */
@@ -222,9 +235,13 @@ void getInfoMCast(int node, MCastConInfo *info);
  * The result is returned in @a string and can be directly
  * put out via printf() and friends.
  *
+ *
  * @param node The node, to get MCast status information about.
+ *
  * @param string The string to which the status information is written.
+ *
  * @param len The length of @a string.
+ *
  *
  * @return No return value.
  *

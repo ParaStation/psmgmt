@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.h,v 1.10 2002/05/10 09:56:26 eicker Exp $
+ * $Id: info.h,v 1.11 2002/07/03 20:04:08 eicker Exp $
  *
  */
 /**
  * @file
  * info: Functions for information retrieving from ParaStation daemon
  *
- * $Id: info.h,v 1.10 2002/05/10 09:56:26 eicker Exp $
+ * $Id: info.h,v 1.11 2002/07/03 20:04:08 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -22,6 +22,7 @@
 #define __INFO_H
 
 #include <sys/types.h>
+#include "psprotocol.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,6 +30,8 @@ extern "C" {
 } /* <- just for emacs indentation */
 #endif
 #endif
+
+/** @todo Documentation */
 
 /*****************************
  *
@@ -38,7 +41,7 @@ extern "C" {
  * RETURN: filled buffer
  *
  */
-int INFO_request_rdpstatus(int nodeno, void* buffer, int size, int verbose);
+int INFO_request_rdpstatus(int nodeno, void* buffer, size_t size, int verbose);
 
 /*****************************
  *
@@ -48,14 +51,16 @@ int INFO_request_rdpstatus(int nodeno, void* buffer, int size, int verbose);
  * RETURN: filled buffer
  *
  */
-int INFO_request_mcaststatus(int nodeno, void* buffer, int size, int verbose);
+int INFO_request_mcaststatus(int nodeno,
+			     void* buffer, size_t size, int verbose);
 
 /*****************************
  *
  * request_countstatus(int nodeno)
  *
  */
-int INFO_request_countstatus(int nodeno, void* buffer, int size, int verbose);
+int INFO_request_countstatus(int nodeno,
+			     void* buffer, size_t size, int verbose);
 
 /*****************************
  *
@@ -65,17 +70,17 @@ int INFO_request_countstatus(int nodeno, void* buffer, int size, int verbose);
  * RETURN: filled buffer
  *
  */
-int INFO_request_hoststatus(void* buffer, int size, int verbose);
+int INFO_request_hoststatus(void* buffer, size_t size, int verbose);
 
 /*****************************
  *
  * request_hostlist(void *buffer, int size)
  *
- * requests a list of all hosts with a myrinetcard
+ * requests a list of all hosts with a defined HWstatus
  * RETURN: filled buffer
  *
  */
-int INFO_request_hostlist(void *buffer, int size, int verbose);
+int INFO_request_nodelist(NodelistEntry_t *buffer, size_t size, int verbose);
 
 /*****************************
  *
@@ -86,7 +91,6 @@ int INFO_request_hostlist(void *buffer, int size, int verbose);
  *
  */
 int INFO_request_host(unsigned int addr, int verbose);
-
 
 typedef struct {
     short nodeno;
