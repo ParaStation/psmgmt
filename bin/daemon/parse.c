@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <syslog.h>
 #include <unistd.h>
 
@@ -23,14 +24,17 @@
 
 #include "parse.h"
 
-extern int check_config(int config, int nodes);
+void yyparse(void);
 
 char acthostname[80];
 int nodesfound=0;
 extern FILE *yyin;
 extern int lineno;
 
+char *Configfile = NULL;
+
 char ConfigLicensekey[100];
+char ConfigModule[100];
 char ConfigRoutefile[100];
 int MyPsiId=-1;
 unsigned int MyId=-1;
@@ -169,11 +173,12 @@ void installhost(char *s,int n)
 
 int parse_config(int syslogreq)
 {
-    char myname[255];
-    char fname[80];
+    char myname[255], *temp, emptyfilename[] = "--------";
+    int found;
     FILE *cfd;
-    char emptyfilename[] = "--------";
+    struct stat sbuf;
 
+    strcpy(ConfigModule, emptyfilename);
     strcpy(ConfigRoutefile, emptyfilename);
 
     usesyslog=syslogreq;
@@ -184,14 +189,18 @@ int parse_config(int syslogreq)
     gethostname(myname,255);
     MyId = GetIP(myname);
 
-    strcpy(fname, PSI_LookupInstalldir());
-    strcat(fname, "/config/psm.config");
-    if ( (cfd = fopen(fname,"r"))!=0){
+    if(!Configfile){
+	Configfile = (char *) malloc(80);
+	strcpy(Configfile, PSI_LookupInstalldir());
+	strcat(Configfile, "/config/psm.config");
+    }
+    if ( (cfd = fopen(Configfile,"r"))!=0){
 	/* file found */
-	sprintf(errtxt,"Using <%s> as configuration file\n",fname);
+	sprintf(errtxt, "Using <%s> as configuration file\n", Configfile);
 	ERR_OUT(errtxt);
     }else{
-	sprintf(errtxt,"Unable to locate configuration file [%s]\n",fname);
+	sprintf(errtxt, "Unable to locate configuration file [%s]\n",
+		Configfile);
 	ERR_OUT(errtxt);
 	return(-1);
     }
@@ -209,7 +218,7 @@ int parse_config(int syslogreq)
      * Sanity Checks
      */
 
-    if (NrOfNodes==-1){ /* NrOfNodes not defined */
+    if (NrOfNodes==-1){
 	ERR_OUT("ERROR: NrOfNodes not defined\n");
 	exit(-1);
     }
@@ -219,8 +228,68 @@ int parse_config(int syslogreq)
 	exit(-1);
     }
 
-    if (!strcmp(ConfigRoutefile, emptyfilename)){ /* RouteFile not defined */
+    if (!strcmp(ConfigModule, emptyfilename)){
+	ERR_OUT("ERROR: Module not defined\n");
+	exit(-1);
+    }
+
+    found=0;
+    if(ConfigModule[0] == '/'){
+	if(stat(ConfigModule, &sbuf) != -1)
+	    found=1;
+    }else{
+	temp = (char *) malloc(100);
+	strcpy(temp, PSI_LookupInstalldir());
+	strcat(temp, "/");
+	strcat(temp, ConfigModule);
+	if(stat(temp, &sbuf) != -1){
+	    strcpy(ConfigModule, temp);
+	    found=1;
+	}else{
+	    strcpy(temp, PSI_LookupInstalldir());
+	    strcat(temp, "/bin/modules/");
+	    strcat(temp, ConfigModule);
+	    if(stat(temp, &sbuf) != -1){
+		strcpy(ConfigModule, temp);
+		found=1;
+	    }
+	}
+	free(temp);
+    }
+    if(!found){
+	ERR_OUT("ERROR: Module not found\n");
+	exit(-1);
+    }
+
+    if (!strcmp(ConfigRoutefile, emptyfilename)){
 	ERR_OUT("ERROR: Routefile not defined\n");
+	exit(-1);
+    }
+    found=0;
+    if(ConfigRoutefile[0] == '/'){
+	if(stat(ConfigRoutefile, &sbuf) != -1)
+	    found=1;
+    }else{
+	temp = (char *) malloc(100);
+	strcpy(temp, PSI_LookupInstalldir());
+	strcat(temp, "/");
+	strcat(temp, ConfigRoutefile);
+	if(stat(temp, &sbuf) != -1){
+	    strcpy(ConfigRoutefile, temp);
+	    found=1;
+	}else{
+	    strcpy(temp, PSI_LookupInstalldir());
+	    strcat(temp, "/config/");
+	    strcat(temp, ConfigRoutefile);
+	    if(stat(temp, &sbuf) != -1){
+		strcpy(ConfigRoutefile, temp);
+		found=1;
+	    }
+	}
+	free(temp);
+    }
+    if(!found){
+	ERR_OUT("ERROR: Routefile not found\n");
 	exit(-1);
     }
 

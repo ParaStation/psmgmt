@@ -10,13 +10,15 @@ struct psihosttable{
 extern struct psihosttable *psihosttable;
 extern char **hosttable;
 
+extern char *Configfile;
+
 extern int NrOfNodes;
-extern int ConfigNo;
 
 extern long ConfigPsidSelectTime;
 extern long ConfigDeclareDeadInterval;
 
 extern char ConfigLicensekey[];
+extern char ConfigModule[];
 extern char ConfigRoutefile[];
 extern int ConfigSmallPacketSize;
 extern int ConfigResendTimeout;
