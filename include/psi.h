@@ -1,32 +1,22 @@
 /*
- * Copyright (c) 1995 Regents of the University of Karlsruhe / Germany.
+ *               ParaStation3
+ * psi.h
+ *
+ * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
+ * $Id: psi.h,v 1.7 2002/01/23 11:25:12 eicker Exp $
  *
- *      @(#)PSI.h    1.00 (Karlsruhe) 03/11/97
+ */
+/**
+ * @file
+ * psi: User-functions for interaction with the ParaStation system.
  *
- *      ParaStation User Level Protocol
+ * $Id: psi.h,v 1.7 2002/01/23 11:25:12 eicker Exp $
  *
- *      written by Joachim Blum
+ * @author
+ * Norbert Eicker <eicker@par-tec.com>
  *
- *
- * This is the key module for the ParaStationProtocol.
- * It manages the protocol independet protocol support functions
- *
- *  History
- *
- *   970311 Joe Creation: used psp.h and changed some things
  */
 #ifndef __PSI_H
 #define __PSI_H
@@ -34,6 +24,13 @@
 #include <sys/types.h>
 
 #include "psitask.h"
+
+#ifdef __cplusplus
+extern "C" {
+#if 0
+} /* <- just for emacs indentation */
+#endif
+#endif
 
 extern int PSI_msock;          /* master socket for connection to PSI daemon */
 extern int PSI_mygroup;        /* the group id of the process */
@@ -185,4 +182,8 @@ double PSI_getNumberOfProcs(int node);
 char * PSI_LookupInstalldir(void);
 void PSI_SetInstalldir(char *installdir);
 
-#endif 
+#ifdef __cplusplus
+}/* extern "C" */
+#endif
+
+#endif  /* __PSI_H */
