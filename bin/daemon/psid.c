@@ -1,4 +1,3 @@
-
 /*
  *      @(#)psid.c    1.00 (Karlsruhe) 10/4/95
  *
@@ -771,11 +770,11 @@ void client_delete(int fd)
 }
 
 /******************************************
-*  Do_NewReset()
+*  Do_Reset()
 */
-int Do_NewReset()
+int Do_Reset()
 {
-    sprintf(PSI_txt,"Do_NewReset() status %s\n",
+    sprintf(PSI_txt,"Do_Reset() status %s\n",
 	    daemons[PSI_myid].status & PSP_DSTATE_RESET_HW?"Hardware ":"");
     SYSLOG(9,(LOG_ERR,PSI_txt));
     /*
@@ -817,16 +816,16 @@ int Do_NewReset()
 				    | PSP_DSTATE_RESET_HW));
     daemons[PSI_myid].status &= ~PSP_DSTATE_DORESET;
 
-    sprintf(PSI_txt,"Do_NewReset() returns success\n");
+    sprintf(PSI_txt,"Do_Reset() returns success\n");
     SYSLOG(9,(LOG_ERR,PSI_txt));
     return 1;
 }
 
 /******************************************
- *  msg_NewReset()
+ *  msg_RESET()
  */
 void
-msg_NewReset(DDResetMsg_t* msg)
+msg_RESET(DDResetMsg_t* msg)
 {
     /*
      * First check if I have to reset myself
@@ -849,7 +848,7 @@ msg_NewReset(DDResetMsg_t* msg)
      * Resetting my node
      */
 
-    Do_NewReset();
+    Do_Reset();
 }
 
 
@@ -1080,7 +1079,7 @@ void msg_CLIENTCONNECT(int fd,DDInitMsg_t* msg)
 					  & ~(PSP_DSTATE_RESET_WAIT
 					      | PSP_DSTATE_RESET_INACTION
 					      | PSP_DSTATE_RESET_HW));
-	    Do_NewReset();
+	    Do_Reset();
 	}
     }else{
 	DDInitMsg_t outmsg;
@@ -1994,8 +1993,7 @@ void msg_LOADREQ(DDMsg_t* inmsg)
 /******************************************
 *  msg_WHODIED()
 */
-void
-msg_WHODIED(DDSignalMsg_t* msg)
+void msg_WHODIED(DDSignalMsg_t* msg)
 {
     PStask_t* task;
 
@@ -2279,7 +2277,7 @@ void psicontrol(int fd )
 	    /* fall though to reset yourself */
 	case PSP_DD_RESET:
 	    /* no sychronisation is needed anymore */
-	    msg_NewReset((DDResetMsg_t*)&msg);
+	    msg_RESET((DDResetMsg_t*)&msg);
 	    break;
 	case PSP_DD_NOTIFYDEAD:
 	    /*
@@ -2978,7 +2976,7 @@ main(int argc, char **argv)
 		 * Check for reset state
 		 */
 		if(daemons[PSI_myid].status & PSP_DSTATE_DORESET){
-		    Do_NewReset();
+		    Do_Reset();
 		}
 		/*
 		 * Check if any operation forced me to shutdown
@@ -3019,7 +3017,7 @@ main(int argc, char **argv)
 				     & ~(PSP_DSTATE_RESET_WAIT
 					 | PSP_DSTATE_RESET_INACTION
 					 | PSP_DSTATE_RESET_HW));
-				Do_NewReset();
+				Do_Reset();
 			    }
 			    check_reset_status = daemons[PSI_myid].status
 				& PSP_DSTATE_NOCONNECT;
