@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.h,v 1.13 2002/07/31 09:07:07 eicker Exp $
+ * $Id: psidutil.h,v 1.14 2003/02/10 18:48:13 eicker Exp $
  *
  */
 /**
  * \file
  * Utilities for the ParaStation daemon
  *
- * $Id: psidutil.h,v 1.13 2002/07/31 09:07:07 eicker Exp $
+ * $Id: psidutil.h,v 1.14 2003/02/10 18:48:13 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -45,7 +45,7 @@ extern short PSID_numCPU;            /** The actual number of CPUs */
  *
  * @return No return value.
  *
- * If @usesyslog is different from 0, syslog() will be used for any
+ * If @a usesyslog is different from 0, syslog() will be used for any
  * output. Otherwise if @a logfile is set, this file will be used or
  * stderr, if @a logfile is NULL.
  *
