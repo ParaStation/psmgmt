@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.h,v 1.17 2003/10/08 13:50:03 eicker Exp $
+ * $Id: mcast.h,v 1.18 2003/10/23 13:05:20 eicker Exp $
  *
  */
 /**
  * \file
  * ParaStation MultiCast facility
  *
- * $Id: mcast.h,v 1.17 2003/10/08 13:50:03 eicker Exp $
+ * $Id: mcast.h,v 1.18 2003/10/23 13:05:20 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -65,7 +65,7 @@ typedef struct {
        tru64 uses the multicast address as source address in the IP
        packet -> The receiver cant detect the sender of the message,
        which is needed in handleMCast() for error checking. */
-    struct in_addr ip;	 /**< Sender IP */
+    unsigned int ip;     /**< Sender IP address in network byteorder */
 #endif
     short node;          /**< Sender ID */
     short type;          /**< Message type */
