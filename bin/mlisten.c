@@ -103,10 +103,8 @@ int main(int argc, char *argv[])
     int errflg=0;
     int debug=0;
 
-#define DARGS "p:n:D"
-
     optarg = NULL;
-    while (!errflg && ((c = getopt(argc,argv, DARGS)) != -1)){
+    while (!errflg && ((c = getopt(argc,argv, "p:n:m:D")) != -1)){
 	switch(c){
 	case 'p':
 	    service = optarg; 
@@ -115,6 +113,10 @@ int main(int argc, char *argv[])
 	case 'n':
 	    net = optarg; 
 	    printf("using network %s\n",net);
+	    break;
+	case 'm':
+	    sscanf(optarg, "%d", &MY_MCAST_GROUP);
+	    printf("using mcast %d\n", MY_MCAST_GROUP);
 	    break;
 	case 'D':
 	    debug=1;
