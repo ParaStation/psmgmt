@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.36 2002/02/12 19:09:09 eicker Exp $
+ * $Id: psid.c,v 1.37 2002/02/13 08:37:15 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.36 2002/02/12 19:09:09 eicker Exp $ 
+ * $Id: psid.c,v 1.37 2002/02/13 08:37:15 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.36 2002/02/12 19:09:09 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.37 2002/02/13 08:37:15 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -63,7 +63,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.36 $";
+static char psid_cvsid[] = "$Revision: 1.37 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -101,6 +101,7 @@ struct daemon_t{
     u_short node;            /* node number of the daemon */
     int     fd;              /* file descr. to the daemon */
     PStask_t* tasklist;      /* tasklist of that node */
+    int     hasCard;         /* Flag to show if card is present */
 };
 
 struct daemon_t *daemons = NULL;
@@ -135,7 +136,7 @@ void deleteClient(int fd);
 void checkFileTable(void);
 void closeConnection(int fd);
 void declareDaemonDead(int node);
-void initDaemon(int fd, int id);
+void initDaemon(int fd, int id, int hasCard);
 int DaemonIsUp(int node);
 int send_DAEMONCONNECT(int id);
 
@@ -519,11 +520,14 @@ int shutdownNode(int phase)
  *  initDaemon()
  * Initializes a daemon structure
  */
-void initDaemon(int fd, int id)
+void initDaemon(int fd, int id, int hasCard)
 {
     daemons[id].fd = fd;
     daemons[id].node = id;
     daemons[id].tasklist = NULL;
+    if (hasCard >= 0) {
+	daemons[id].hasCard = hasCard;
+    }
 
     PSID_hoststatus[id] |= PSPHOSTUP;
 }
@@ -577,13 +581,14 @@ void declareDaemonDead(int node)
 */
 int send_DAEMONCONNECT(int id)
 {
-    DDMsg_t msg;
+    DDConnectMsg_t msg;
 
-    msg.type = PSP_DD_DAEMONCONNECT;
-    msg.sender = PSI_gettid(PSI_myid,0);
-    msg.dest = PSI_gettid(id,0);
-    msg.len = sizeof(msg);
-    if(sendMsg(&msg)== msg.len)
+    msg.header.type = PSP_DD_DAEMONCONNECT;
+    msg.header.sender = PSI_gettid(PSI_myid,0);
+    msg.header.dest = PSI_gettid(id,0);
+    msg.header.len = sizeof(msg);
+    msg.hasCard = PSID_CardPresent;
+    if(sendMsg(&msg) == msg.header.len)
 	/* successful connection request is sent */
 	return 0;
     return -1;
@@ -1166,14 +1171,14 @@ int send_OPTIONS(int destnode)
 /******************************************
  *  msg_DAEMONCONNECT()
  */
-void msg_DAEMONCONNECT(int fd, int number)
+void msg_DAEMONCONNECT(int fd, DDConnectMsg_t *msg)
 {
-    DDMsg_t msg;
     int success;
+    int node = PSI_getnode(msg->header.sender);
 
     if (PSI_isoption(PSP_ODEBUG)){
-	sprintf(PSI_txt,"msg_DAEMONCONNECT (%d,%d) daemons[%d].fd=%d\n",
-		fd, number, number, daemons[number].fd);
+	sprintf(PSI_txt,"msg_DAEMONCONNECT (%d,%p) daemons[%d].fd=%d\n",
+		fd, msg, node, daemons[node].fd);
 	PSI_logerror(PSI_txt);
     }
     /*
@@ -1181,24 +1186,26 @@ void msg_DAEMONCONNECT(int fd, int number)
      * so no difficult initialization is needed
      */
 
-    SYSLOG(2,(LOG_ERR,"New connection to daemon on node %d (fd:%d)\n",
-	      number, fd));
+    SYSLOG(2,(LOG_ERR,"New connection to daemon on node %d (fd:%d, cp:%d)\n",
+	      node, fd, msg->hasCard));
 
     /*
      * accept this request and send an ESTABLISH msg back to the requester
      */
 
-    initDaemon(fd, number);
+    initDaemon(fd, node, msg->hasCard);
 
-    msg.type = PSP_DD_DAEMONESTABLISHED;
-    msg.sender = PSI_gettid(PSI_myid,0);
-    msg.dest = PSI_gettid(number,0);
-    msg.len = sizeof(msg);
-    if((success = sendMsg(&msg))<=0)
-	SYSLOG(2,(LOG_ERR,"sending Daemonestablished errno %d\n",errno));
+    msg->header.type = PSP_DD_DAEMONESTABLISHED;
+    msg->header.sender = PSI_gettid(PSI_myid, 0);
+    msg->header.dest = PSI_gettid(node, 0);
+    msg->header.len = sizeof(*msg);
+    msg->hasCard = PSID_CardPresent;
+    if((success = sendMsg(msg))<=0)
+	SYSLOG(2,(LOG_ERR,"sending Daemonestablished errno %d: %s\n",
+		  errno, strerror(errno)));
 
     if(success>0)
-	success = send_OPTIONS(number);
+	success = send_OPTIONS(node);
 
     /*
      * checking if the whole cluster is up
@@ -1210,7 +1217,7 @@ void msg_DAEMONCONNECT(int fd, int number)
  *  msg_SPAWNREQUEST()
  */
 /*void msg_SPAWNREQUEST(int fd,int msglen)*/
-void msg_SPAWNREQUEST(DDBufferMsg_t* msg)
+void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 {
     PStask_t *task;
     int err=0;
@@ -1810,6 +1817,27 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 	    msg.header.len += sizeof(int);
 	    break;
 	}
+	case PSP_CD_HOSTLISTREQUEST:
+	{
+	    int i, j;
+	    static short *nodelist = NULL;
+	    if (!nodelist) {
+		nodelist = (short *)malloc(PSI_nrofnodes*sizeof(*nodelist));
+	    }
+	    j=0;
+	    for (i=0; i<PSI_nrofnodes; i++) {
+		if (daemons[i].hasCard) {
+		    nodelist[j] = (short) i;
+		    j++;
+		}
+	    }
+	    msg.header.type = PSP_CD_HOSTLISTRESPONSE;
+	    *(int *)msg.buf = j;
+	    msg.header.len += sizeof(int);
+	    memcpy(msg.buf + sizeof(int), nodelist, j*sizeof(*nodelist));
+	    msg.header.len += j*sizeof(*nodelist);
+	    break;
+	}
 	default:
 	    err = -1;
 	}
@@ -2315,9 +2343,10 @@ int request_options(int node)
 /******************************************
  *  msg_DAEMONESTABLISHED()
  */
-void msg_DAEMONESTABLISHED(int fd, DDMsg_t* msg)
+void msg_DAEMONESTABLISHED(int fd, DDConnectMsg_t* msg)
 {
-    int node = PSI_getnode(msg->sender);
+    DDMsg_t taskmsg;
+    int node = PSI_getnode(msg->header.sender);
     if ((abs(daemons[node].fd)!=fd)   /* other fd than local info suggests */
 	&&(daemons[node].fd!=0)) {
 	/* remove the pointer of the client to the daemon */
@@ -2327,7 +2356,7 @@ void msg_DAEMONESTABLISHED(int fd, DDMsg_t* msg)
 		  "valid connection fd %d \n", node, fd, oldfd));
 	declareDaemonDead(node);
     }
-    initDaemon(fd, node);
+    initDaemon(fd, node, msg->hasCard);
 
     /*
      * request the remote tasklist
@@ -2344,9 +2373,9 @@ void msg_DAEMONESTABLISHED(int fd, DDMsg_t* msg)
      * this is a request to send a tasklist and then send
      * the tasklist
      */
-    msg->sender = PSI_gettid(node,0);
-    msg->dest = PSI_gettid(PSI_myid,0);
-    send_TASKLIST(msg);
+    taskmsg.sender = PSI_gettid(node,0);
+    taskmsg.dest = PSI_gettid(PSI_myid,0);
+    send_TASKLIST(&taskmsg);
     /*
      * checking if the whole cluster is up
      */
@@ -2388,20 +2417,20 @@ void psicontrol(int fd )
 	switch (msg.header.type) {
 	case PSP_CD_CLIENTCONNECT :
 	case PSP_CD_REMOTECONNECT :
-	    msg_CLIENTCONNECT(fd,(DDInitMsg_t*)&msg);
+	    msg_CLIENTCONNECT(fd, (DDInitMsg_t *)&msg);
 	    break;
 	case PSP_DD_DAEMONCONNECT:
-	    msg_DAEMONCONNECT(fd,PSI_getnode(msg.header.sender));
+	    msg_DAEMONCONNECT(fd, (DDConnectMsg_t *)&msg);
 	    break;
 	case PSP_CD_DAEMONSTOP:
 	    msg.header.type = PSP_DD_DAEMONSTOP;
-	    broadcastMsg((DDMsg_t*)&msg);
+	    broadcastMsg((DDMsg_t *)&msg);
 	    /* fall through*/
 	case PSP_DD_DAEMONSTOP:
-	    msg_DAEMONSTOP((DDResetMsg_t*)&msg);
+	    msg_DAEMONSTOP((DDResetMsg_t *)&msg);
 	    break;
 	case PSP_DD_DAEMONESTABLISHED:
-	    msg_DAEMONESTABLISHED(fd,(DDMsg_t*)&msg);
+	    msg_DAEMONESTABLISHED(fd, (DDConnectMsg_t *)&msg);
 	    break;
 	case PSP_DD_SPAWNREQUEST :
 	    msg_SPAWNREQUEST(&msg);
@@ -2440,6 +2469,7 @@ void psicontrol(int fd )
 	case PSP_CD_RDPSTATUSREQUEST:
 	case PSP_CD_MCASTSTATUSREQUEST:
 	case PSP_CD_HOSTSTATUSREQUEST:
+	case PSP_CD_HOSTLISTREQUEST:
 	case PSP_CD_HOSTREQUEST:
 	    /*
 	     * request to send the information about a specific info
@@ -2450,6 +2480,7 @@ void psicontrol(int fd )
 	case PSP_CD_RDPSTATUSRESPONSE:
 	case PSP_CD_MCASTSTATUSRESPONSE:
 	case PSP_CD_HOSTSTATUSRESPONSE:
+	case PSP_CD_HOSTLISTRESPONSE:
 	case PSP_CD_HOSTRESPONSE:
 	    /*
 	     * request to send the information about a specific info
@@ -2582,7 +2613,7 @@ void MCastCallBack(int msgid, void* buf)
 	SYSLOG(2, (LOG_ERR,
 		   "MCastCallBack(MCAST_NEW_CONNECTION,%d). \n", node));
 	if (node!=PSI_myid && !DaemonIsUp(node)) {
-	    initDaemon(0, node);
+	    initDaemon(0, node, -1);
 	    if (send_DAEMONCONNECT(node)<0) {
 		SYSLOG(2, (LOG_ERR, "MCastCallBack() send_DAEMONCONNECT() "
 			   "returned with error %d\n",
@@ -2881,7 +2912,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.36 $";
+    char revision[] = "$Revision: 1.37 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -3128,6 +3159,7 @@ int main(int argc, char **argv)
 	daemons[i].fd = 0;
 	daemons[i].node = 0;
 	daemons[i].tasklist = 0;
+	daemons[i].hasCard = 0;
 	PSID_hoststatus[i] &= ~PSPHOSTUP;
     }
 
@@ -3154,7 +3186,6 @@ int main(int argc, char **argv)
 
 	for (i=0; i<=PSI_nrofnodes; i++) {
 	    hostlist[i] = psihosttable[i].inet;
-	    SYSLOG(0,(LOG_ERR, "%d: %x\n", i, psihosttable[i].inet));
 	}
 
 	/*
