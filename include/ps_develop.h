@@ -108,7 +108,7 @@
 #define ENABLE_PACKETCOUNTER
 
 /* PSPORT print debuging on ^Z */
-//#define ENABLE_REQUESTDUMP
+#define ENABLE_REQUESTDUMP
 
 #else
 
@@ -126,6 +126,10 @@
 
 
 #define PSM_PRINT_MAP_LEVEL_OFF 1000
+#define ASMC(str) asm volatile ("!*************************\n\t!* " str "\n\t!*************************\n\t")
+#define _STRINGIFY(param) #param
+#define INT2STR(param) _STRINGIFY(param)
+#define LINEID __FILE__ ":" INT2STR(__LINE__) ":" __FUNCTION__ "()"
 #define xMARK PSM_PRINT(0,("PSM: MARK in File "__FILE__" :%d\n",__LINE__))
 
 
