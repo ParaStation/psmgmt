@@ -75,7 +75,7 @@
 
       <varlistentry>
 	<term><envar>PSI_HOSTS</envar> <replaceable>hostname</replaceable>
-	  <optional>, <replaceable>hostname</replaceable></optional>...</term>
+	  <optional> <replaceable>hostname</replaceable></optional>...</term>
 	<listitem>
 	  <para>Space separted list of hostnames on which new processes should
 	    be spawned on. Similar to <envar>PSI_NODES</envar>, but with
@@ -229,6 +229,41 @@
     </para>
     <variablelist>
       <varlistentry>
+	<term><envar>PSI_INPUTDEST</envar>
+	  <replaceable>rank</replaceable></term>
+	<listitem>
+	  <para>If set, psilogger will forward all input to the process with
+	    the corresponding rank within the process group. The default is to
+	    give all available input to process 0.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><envar>PSI_RUSAGE</envar></term>
+	<listitem>
+	  <para>If set, psilogger will print a message about the user
+	    and system time consumed by each process of the parallel
+	    task upon exit of this process.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><envar>PSI_SOURCEPRINTF</envar></term>
+	<listitem>
+	  <para>If set, psilogger gives information about the source of the
+	    received output, i.e. it will prepend every output by
+	    <quote>[id]:</quote>, where id is the rank of the printing process
+	    within the process group. Usually the id coincides with the
+	    MPI-rank.  If <envar>PSI_LOGGERDEBUG</envar> is also set, every
+	    output is prepended by <quote>[id, len]</quote>, where id is the
+	    rank again and len is the length of the printed message in bytes. 
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
 	<term><envar>PSI_NOMSGLOGGERDONE</envar></term>
 	<listitem>
 	  <para>If set, psilogger will <emphasis role="bold">not</emphasis>
@@ -252,31 +287,6 @@
 	<listitem>
 	  <para>If set, debug output of the psiforwarder about connected
 	    programs, received input and received output is printed.
-	  </para>
-	</listitem>
-      </varlistentry>
-
-      <varlistentry>
-	<term><envar>PSI_SOURCEPRINTF</envar></term>
-	<listitem>
-	  <para>If set, psilogger gives information about the source of the
-	    received output, i.e. it will prepend every output by
-	    <quote>[id]:</quote>, where id is the rank of the printing process
-	    within the process group. Usually the id coincides with the
-	    MPI-rank.  If <envar>PSI_LOGGERDEBUG</envar> is also set, every
-	    output is prepended by <quote>[id, len]</quote>, where id is the
-	    rank again and len is the length of the printed message in bytes. 
-	  </para>
-	</listitem>
-      </varlistentry>
-
-      <varlistentry>
-	<term><envar>PSI_INPUTDEST</envar>
-	  <replaceable>rank</replaceable></term>
-	<listitem>
-	  <para>If set, psilogger will forward all input to the process with
-	    the corresponding rank within the process group. The default is to
-	    give all available input to process 0.
 	  </para>
 	</listitem>
       </varlistentry>
