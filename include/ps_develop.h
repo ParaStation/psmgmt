@@ -80,6 +80,12 @@
 /* Debug pshal */
 //#define DEBUG_PSHAL
 
+
+/* Send data with zero copy */
+#define ENABLE_DMASEND
+/* Receive data with zero copy */
+#define ENABLE_DMARECV
+
 #define PSM_PRINT_MAP_LEVEL_OFF 1000
 #define xMARK PSM_PRINT(0,("PSM: MARK in File "__FILE__" :%d\n",__LINE__))
 

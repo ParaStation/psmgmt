@@ -97,8 +97,8 @@
 #define MCP_MAX_MCP_PARAMS	8
 
 #define MCP_PARAM_SPS		0	/* Small packet size */
-#define MCP_PARAM_SPS_INIT	7500	/* 50 bytes are short */
-#define MCP_PARAM_SPS_USAGE	1
+#define MCP_PARAM_SPS_INIT	2000	/* 50 bytes are short */
+#define MCP_PARAM_SPS_USAGE	0
 
 #define MCP_PARAM_RTO		1	/* Retransmission timeout */
 #define MCP_PARAM_RTO_INIT	(2*1024)/*  1 ms  :max Time between First Netsend and Ack */
@@ -294,6 +294,8 @@ typedef struct MCPNetRecvHeader_T {
     UINT16		xhlen;			/* len of extra header */
     INT16		seqno;			/* Sequnece Number */
     INT16		ackno;			/* ACK Number */
+    /* (UINT32)(seqno,ackno) = PortSeqNo on Receive */
+    /* *(UINT8*)(&connid) = Last Databyte for DataPick */
 } MCPNetRecvHeader_t;
 
 
@@ -323,6 +325,7 @@ typedef struct MCPDmaMarker_T {
 
 #define MCP_DMAMARKER_SMALLPACK		1
 #define MCP_DMAMARKER_LARGEPACK		2
+#define MCP_DMAMARKER_LARGEPACKPICK	3
 
 
 
@@ -360,7 +363,7 @@ typedef struct MCPDmaMarker_T {
 #define PSM_MAX_HSENDBUFS	512        /*< Maximal No of Hostbuffers */
 #define PSM_MIN_HSENDBUFS	PSM_MAX_HSENDBUFS   /*< Minimal No of Hostbuffers */
 #define PSM_MAX_HSENDHEADERS	PSM_MAX_HSENDBUFS  /* Same buffers as HSENDBUFS */
-#define PSM_MAX_HRECVBUFS	PSM_MAX_HSENDBUFS-100  /* Same buffers as HSENDBUFS */
+//#define PSM_MAX_HRECVBUFS	PSM_MAX_HSENDBUFS-100  /* Same buffers as HSENDBUFS */
 #define PSM_MAX_RECVBUFS	64 /* Context Shared MCP recv bufs */
 #define PSM_MAX_REGRECVBUFS	PSM_MAX_HSENDBUFS  /* Same or less than PSM_MAX_HSENDHEADERS */
 #define PSM_MAX_NOTIFYENTRYS	(MAX_HOST_PAGESIZE / sizeof(MCPHostNotifyEntry_t))
@@ -515,7 +518,13 @@ typedef struct MCP_Context_T {
     }RegRecv;
     /* MCP sendbuffers */
     MCP_POINTER(MCPSendBuf_t) SendBuf;
-    /* Permissions for this context (eg set routingtable) */
+
+    /* LargeData */
+    MCP_POINTER(MCPRecvBuf_t) RecvBufs;
+    MCP_POINTER(
+	MCP_POINTER(MCPRecvBuf_t)) RecvBufsTail;
+
+	/* Permissions for this context (eg set routingtable) */
     UINT32		Permissions;
     /* Last Intr RTC to for irq flooding prevention */
     UINT32		LastIRQTime;
@@ -636,7 +645,28 @@ typedef struct MCP_ConnInfo_T{
 //    INT32	ConnTimeout;	/* Timeout in between SYN Packets */
 }MCP_ConnInfo_t;
 
+
 #ifdef __lanai__
+
+extern inline void AddContextRecvBuf(MCP_Context_t *context,MCPRecvBuf_t *recv)
+{
+    recv->Next = NULL;
+    *context->RecvBufsTail = recv;
+    context->RecvBufsTail = &recv->Next;
+}
+
+extern inline void DelFirstContextRecvBuf(MCP_Context_t *context)
+{
+    if (context->RecvBufs){
+	context->RecvBufs = context->RecvBufs->Next;
+	if (!context->RecvBufs){
+	    // Last entry removed
+	    context->RecvBufsTail =
+		&context->RecvBufs;
+	}
+    }
+}
+
 
 //#define IS_SENDQ_EMPTY( sendqp ) (!(sendqp)->Actual)
 
@@ -785,6 +815,15 @@ TRACE(name,_RECVPTR2NO(mcp_mem.RecvPool->Next));
 
 #define FIFOCMD_OPEN_CONTEXT	113	/* Param  context permissions */
 
+#define FIFOCMD_H2N_DMA		114	/* Used with FIFOH2NDMA */
+#define FIFOCMD_H2N_DMA_AND_SEND 115	/* Used with FIFOH2NDMA */
+
+/* Get RecvBuffer (use dbxparam for offset and eal) */
+#define FIFOCMD_N2H_DMA		116	/* Used with FIFON2HDMA */
+#define FIFOCMD_N2H_DMA_AND_FIN 117	/* Used with FIFON2HDMA */
+/* Get RecvBuffer (use next hostbuf) */
+#define FIFOCMD_N2H_RECV	118	/* Used with FIFON2HDMAUSR */
+
 /*--------------------------------------------------------------------*/
 // Copy Host Buffer srch to LANai buffer desl,
 // use byteoffset desoff(0-511) and dwordlen (len= des32len*4+4)
@@ -825,6 +864,40 @@ htonl( BITENC1( PSM_NBIT_HSENDBUFS	, bufno))
 BITDEC1( val,					\
 	 PSM_NBIT_HSENDBUFS	, bufno)
 /*--------------------------------------------------------------------*/
+/* copy deslen bytes from host to lanai.
+   send buffer desl, if used with FIFOCMD_H2N_DMA_AND_SEND after dma.
+   Expect 2 Parameters in dbxparam ( UINT32 lar,UINT32 eal ) */
+#define FIFOH2NDMA( desl , deslen )			\
+htonl( BITENC2( PSM_NBIT_SENDBUFS	, desl,		\
+		PSM_NBIT_SENDBUFLEN	, deslen))
+
+#define FIFOH2NDMA_GETP( val , desl , deslen )	\
+BITDEC2( val,					\
+	 PSM_NBIT_SENDBUFS	, desl,		\
+	 PSM_NBIT_SENDBUFLEN	, deslen )
+
+/*--------------------------------------------------------------------*/
+/* copy len bytes from lanai context->RecvBufs to host.
+   Expect 2 Parameters in dbxparam ( UINT32 dataoff,UINT32 eal ) */
+#define FIFON2HDMA( len )			\
+htonl( BITENC1( PSM_NBIT_SENDBUFLEN	, len))
+
+#define FIFON2HDMA_GETP( val , len )		\
+BITDEC1( val,					\
+	 PSM_NBIT_SENDBUFLEN	, len )
+
+/*--------------------------------------------------------------------*/
+/* copy lanai context->RecvBufs to hostbuf bufno.*/
+
+#define FIFON2HDMAUSR( bufno )					\
+htonl( BITENC1( PSM_NBIT_HSENDBUFS	, bufno))	
+
+#define FIFON2HDMAUSR_GETP( val, bufno )	\
+BITDEC1( val,					\
+	 PSM_NBIT_HSENDBUFS	, bufno)
+
+/*--------------------------------------------------------------------*/
+
 
 #define FIFOCMD_context(cmd)		\
  (((cmd) - (DOORBELL_ADDR_OFF+DOORBELL_USER_CONTEXT_OFF))>> (NBIT_DOORBELL_CONTEXTSIZE))
@@ -835,7 +908,7 @@ BITDEC1( val,					\
 
 
 
-
+#define DBX_PARAM_SIZE	FIFO_ENTRIES
 
 
 

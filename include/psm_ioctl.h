@@ -96,8 +96,17 @@ typedef struct PSHALMCPSleepOnPort_T{
     unsigned int	Timeout;
 }PSHALMCPSleepOnPort_t;
 
+typedef struct PSHALMCPDMASend_T{
+    void			*data;
+    unsigned int		size;
+    unsigned int		dest; /* SendBufNo */
+    unsigned int		destoff; /* offset */
+}PSHALMCPDMASend_t;
 
-
+typedef struct PSHALMCPDMARecv_T{
+    void			*data;
+    unsigned int		size;
+}PSHALMCPDMARecv_t;
 
 /* Get Debug Message or MCP Panic */
 #define PSHAL_MCP_GETMESSAGE	_IOR( PSHAL_GROUP,200,PSHALMCPMessage_t)
@@ -124,6 +133,10 @@ typedef struct PSHALMCPSleepOnPort_T{
 #define PSHAL_MCP_SETLIC	_IOW(PSHAL_GROUP,214,pslic_binpub_t)
 #define PSHAL_MCP_SLEEP_FOR_EVENT _IO(PSHAL_GROUP,215)
 #define PSHAL_MCP_SEND_EVENT	_IO(PSHAL_GROUP,216)
+#define PSHAL_MCP_DMASEND	_IOR(PSHAL_GROUP,216,PSHALMCPDMASend_t)
+#define PSHAL_MCP_DMARECV	_IOR(PSHAL_GROUP,217,PSHALMCPDMARecv_t)
+
+
 /* Local Communication */
 #define PSHAL_MCP_LOC_SEND	_IOW(PSHAL_GROUP,300,PSMLC_SendMsg_t)
 #define PSHAL_MCP_LOC_FREEB	_IOW(PSHAL_GROUP,301,int)

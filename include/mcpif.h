@@ -365,6 +365,9 @@ typedef struct MCPmem_T {
     MCP_POINTER(FIFO_ENTRY)     fifo1p; /*unused*/
     MCP_POINTER(FIFO_ENTRY)     fifo2p; /*unused*/
     MCP_POINTER(FIFO_ENTRY)     fifo3p; /*unused*/
+    UINT32			dbxparam[DBX_PARAM_SIZE];/* doorbell x parameter */
+    MCP_POINTER(UINT32)		dbxparamp;
+
     MCP_Context_t               Context[ NR_OF_MCPCONTEXTS ];
 
     MCP_CtrlPacket_t		CtrlPackets[ CTRLQBUFS ];

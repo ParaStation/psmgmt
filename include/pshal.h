@@ -2,7 +2,7 @@
  *
  *      @(#)pshal.h    1.00 (Karlsruhe) 08/15/2000
  *
- *      $Id: pshal.h,v 1.5 2001/05/30 09:58:33 hauke Exp $	
+ *      $Id: pshal.h,v 1.6 2001/06/07 12:35:13 hauke Exp $	
  *
  *      written by Joachim Blum
  *                 Jens Hauke
@@ -89,7 +89,8 @@ typedef struct PSHALSendHeader_T{
 */
 typedef struct PSHALRecvHeader_T {
     INT16		protocol;	/**< used protocol                   */
-    INT16		_reserved1;
+    UINT8		lastdatabyte;
+    UINT8		_reserved1;
     INT16		_reserved2;
     INT16		datalen;	/**< length of the data              */
 
@@ -236,7 +237,9 @@ int PSHALMsgAvailable(void);
  * This function checks the HAL if a new msg is available and 
  * return a pointer to the header and a pointer to data.
  * Header and data must be freed with PSHALMsgHeaderPut and PSHALMsgDataPut
- * after use.
+ * after use, except data is NULL.
+ * if *data is NULL, call PSHALMsgDataGetHeaderPut() to receive message data
+ * and free header.
  * if no message is available header and data set to NULL.
  * To be thread save the PSHAL_ReceiveLock must 
  * be held, otherwise manipulation of datastructures inside could be corrupt.
@@ -292,6 +295,22 @@ int PSHALMsgBodyPut(void *data);
  */
 void* PSHALMsgBodyAddress(int bufno);
 
+
+/*------------------------------------------------------------------------------
+ * int PSHALMsgDataGetHeaderPut(PSHALRecvHeader_t *header,void *data,int len)
+ */
+/**
+ * Gets data from PSHALMsgGet() call where data was NULL and frees header
+ * @param  header        the header from PSHALMsgGet().
+ * @param  data          ptr to user allocated data buffer.
+ * @param  len           len of data
+ * @return    0          on success
+ *
+ * With data == NULL discard packet.
+ */
+int PSHALMsgDataGetHeaderPut(PSHALRecvHeader_t *header,void *data,int len);
+
+void PSHALCopyAndFree(PSHALRecvHeader_t *header,void *srcdata,void *destdata,int len);
 
 /*------------------------------------------------------------------------------
  * void PSHALEvaluateNotifications(void)
