@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.69 2003/09/12 14:26:03 eicker Exp $
+ * $Id: psiadmin.c,v 1.70 2003/11/26 17:16:15 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.69 2003/09/12 14:26:03 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.70 2003/11/26 17:16:15 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -29,7 +29,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.69 2003/09/1
 #include "commands.h"
 #include "adminparser.h"
 
-char psiadmversion[] = "$Revision: 1.69 $";
+char psiadmversion[] = "$Revision: 1.70 $";
 
 /*
  * Print version info
@@ -122,8 +122,6 @@ int main(int argc, const char **argv)
 	fprintf(stderr,"can't contact my own daemon.\n");
 	exit(-1);
     }
-
-    PSIADM_Init();
 
     signal(SIGTERM, PSIADM_sighandler);
 
