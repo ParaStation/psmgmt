@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psipartition.c,v 1.7 2003/11/26 15:15:11 eicker Exp $
+ * $Id: psipartition.c,v 1.8 2003/12/10 13:09:24 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.7 2003/11/26 15:15:11 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.8 2003/12/10 13:09:24 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -156,7 +156,7 @@ static PSpart_sort_t getSortMode(void)
 	return PART_SORT_NONE;
     }
 
-    snprintf(errtxt, sizeof(errtxt), "%s: Unknown criterium '%s'\n", __func__,
+    snprintf(errtxt, sizeof(errtxt), "%s: Unknown criterium '%s'", __func__,
 	     env_sort);
     PSI_errlog(errtxt, 0);
 
@@ -238,7 +238,7 @@ static int addNode(PSnodes_ID_t node, nodelist_t *nl)
 	nl->maxsize += 128;
 	nl->nodes = realloc(nl->nodes, nl->maxsize * sizeof(*nl->nodes));
 	if (!nl->nodes) {
-            snprintf(errtxt, sizeof(errtxt), "%s: no memory.\n", __func__);
+            snprintf(errtxt, sizeof(errtxt), "%s: no memory.", __func__);
             PSI_errlog(errtxt, 0);
             return 0;
 	}
@@ -475,7 +475,7 @@ static nodelist_t *getNodelist(void)
 
     nodelist = malloc(sizeof(nodelist_t));
     if (!nodelist) {
-	snprintf(errtxt, sizeof(errtxt), "%s: no memory.\n", __func__);
+	snprintf(errtxt, sizeof(errtxt), "%s: no memory.", __func__);
 	PSI_errlog(errtxt, 0);
 	return NULL;
     }
@@ -593,7 +593,7 @@ int PSI_createPartition(unsigned int size, unsigned int hwType)
     msg.header.len += sizeof(priority);
 
     snprintf(errtxt, sizeof(errtxt),
-	     "%s: size %d hwType %x sort %x options %x priority %d\n",
+	     "%s: size %d hwType %x sort %x options %x priority %d",
 	     __func__, size, hwType, sort, options, priority);
     PSI_errlog(errtxt, 10);
 
@@ -634,7 +634,7 @@ int PSI_createPartition(unsigned int size, unsigned int hwType)
 	ptr = msg.buf;
 	if (*(int *)ptr) {
 	    char *errstr = strerror(*(int *)ptr);
-	    snprintf(errtxt, sizeof(errtxt), "%s: %s\n",
+	    snprintf(errtxt, sizeof(errtxt), "%s: %s",
 		     __func__, errstr ? errstr : "UNKNOWN");
 	    PSI_errlog(errtxt, 0);
 	    return -1;
@@ -643,7 +643,7 @@ int PSI_createPartition(unsigned int size, unsigned int hwType)
     case PSP_CD_ERROR:
     {
 	char *errstr = strerror(((DDErrorMsg_t *)&msg)->error);
-	snprintf(errtxt, sizeof(errtxt), "%s: error in command %s : %s\n",
+	snprintf(errtxt, sizeof(errtxt), "%s: error in command %s : %s",
 		 __func__, PSP_printMsg(((DDErrorMsg_t*)&msg)->request),
 		 errtxt ? errtxt : "UNKNOWN");
 	PSI_errlog(errtxt, 0);
@@ -704,7 +704,7 @@ int PSI_getNodes(unsigned int num, PSnodes_ID_t *nodes)
 	ptr += sizeof(int);
 	if (ret<0) {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: Cannot get %d nodes\n", __func__, num);
+		     "%s: Cannot get %d nodes.", __func__, num);
 	    PSI_errlog(errtxt, 0);
 	} else {
 	    memcpy(nodes, ptr, num*sizeof(*nodes));
@@ -714,7 +714,7 @@ int PSI_getNodes(unsigned int num, PSnodes_ID_t *nodes)
     case PSP_CD_ERROR:
     {
 	char *errstr = strerror(((DDErrorMsg_t *)&msg)->error);
-	snprintf(errtxt, sizeof(errtxt), "%s: error in command %s : %s\n",
+	snprintf(errtxt, sizeof(errtxt), "%s: error in command %s : %s",
 		 __func__, PSP_printMsg(((DDErrorMsg_t*)&msg)->request),
 		 errtxt ? errtxt : "UNKNOWN");
 	PSI_errlog(errtxt, 0);
