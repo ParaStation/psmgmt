@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.h,v 1.14 2002/07/08 16:14:28 eicker Exp $
+ * $Id: psi.h,v 1.15 2002/07/11 16:51:21 eicker Exp $
  *
  */
 /**
  * @file
  * psi: User-functions for interaction with the ParaStation system.
  *
- * $Id: psi.h,v 1.14 2002/07/08 16:14:28 eicker Exp $
+ * $Id: psi.h,v 1.15 2002/07/11 16:51:21 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -22,6 +22,7 @@
 #define __PSI_H
 
 #include <sys/types.h>
+#include "pstask.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,7 +48,7 @@ extern char *PSI_psidversion;  /** CVS versionstring of psid */
  *
  *
  */
-int PSI_clientinit(unsigned short taskGroup);
+int PSI_clientinit(PStask_group_t taskGroup);
 
 /***************************************************************************
  *       PSI_clientexit()

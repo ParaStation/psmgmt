@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.31 2002/07/03 20:37:39 eicker Exp $
+ * $Id: psi.c,v 1.32 2002/07/11 16:56:01 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.31 2002/07/03 20:37:39 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.32 2002/07/11 16:56:01 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -73,7 +73,7 @@ int PSI_daemonsocket(unsigned int hostaddr)
     return sock;
 }
 
-static int PSI_daemon_connect(unsigned short taskGroup, unsigned int hostaddr)
+static int PSI_daemon_connect(PStask_group_t taskGroup, unsigned int hostaddr)
 {
     DDInitMsg_t msg;
     int pid;
@@ -82,8 +82,9 @@ static int PSI_daemon_connect(unsigned short taskGroup, unsigned int hostaddr)
     int retry_count =0;
     int ret;
 
-    snprintf(errtxt, sizeof(errtxt), "PSI_daemon_connect(%d, %s)",
-	     taskGroup, inet_ntoa(* (struct in_addr *) &hostaddr));
+    snprintf(errtxt, sizeof(errtxt),
+	     "PSI_daemon_connect(%s, %s)", PStask_groupMsg(taskGroup),
+	     inet_ntoa(* (struct in_addr *) &hostaddr));
     PSI_errlog(errtxt, 10);
 
     /*
@@ -170,7 +171,7 @@ static int PSI_daemon_connect(unsigned short taskGroup, unsigned int hostaddr)
 	PSI_errlog(errtxt, 0);
 	break;
     case PSP_CD_CLIENTREFUSED :
-	if (taskGroup!=TG_RESET && taskGroup!=TG_RESETABORT) {
+	if (taskGroup!=TG_RESET) {
 	    snprintf(errtxt, sizeof(errtxt),"PSI_daemon_connect():"
 		     " Daemon refused connection.");
 	    PSI_errlog(errtxt, 0);
@@ -233,14 +234,15 @@ static int PSI_daemon_connect(unsigned short taskGroup, unsigned int hostaddr)
     return 0;
 }
 
-int PSI_clientinit(unsigned short taskGroup)
+int PSI_clientinit(PStask_group_t taskGroup)
 {
     char* envstrvalue;
 
     PSI_initLog(0 /* don't use syslog */, NULL /* No special logfile */);
     PSC_initLog(0 /* don't use syslog */, NULL /* No special logfile */);
 
-    snprintf(errtxt, sizeof(errtxt), "PSI_clientinit(%d)", taskGroup);
+    snprintf(errtxt, sizeof(errtxt),
+	     "PSI_clientinit(%s)", PStask_groupMsg(taskGroup));
     PSI_errlog(errtxt, 10);
 
     if (PSI_msock != -1) {
@@ -252,7 +254,7 @@ int PSI_clientinit(unsigned short taskGroup)
      * connect to local PSI daemon
      */
     if (!PSI_daemon_connect(taskGroup, INADDR_ANY)) {
-	if (taskGroup!=TG_RESET && taskGroup!=TG_RESETABORT) {
+	if (taskGroup!=TG_RESET) {
 	    snprintf(errtxt, sizeof(errtxt),
 		     "PSI_clientinit(): cannot contact local daemon.");
 	    PSI_errlog(errtxt, 0);
