@@ -8,6 +8,7 @@
 
 <!ENTITY installation SYSTEM "install.sgml">
 <!ENTITY configuration SYSTEM "config.sgml">
+<!ENTITY pvfs SYSTEM "pvfs.sgml">
 
 <!ENTITY mlisten SYSTEM "mlisten.sgml">
 <!ENTITY parastationconf SYSTEM "parastation.conf.sgml">
@@ -26,24 +27,43 @@
   <title>&ps; Administrators Guide</title>
 
   <bookinfo>
-      <copyright><year>2002</year><holder>ParTec AG</holder></copyright>
-      <releaseinfo>Release 0.9</releaseinfo>
-      <corpname>ParTec AG</corpname>
-      <author>
-	<firstname>Norbert</firstname>
-	<surname>Eicker</surname>
-	<email>eicker@par-tec.com</email>
-      </author>
-      <mediaobject>
-	<imageobject>
-	  <imagedata fileref="../images/parastation.png"/>
-	</imageobject>
-      </mediaobject>
+    <copyright><year>2002</year><holder>ParTec AG</holder></copyright>
+    <releaseinfo>Release 1.0</releaseinfo>
+    <corpname>ParTec AG</corpname>
+    <author>
+      <firstname>Norbert</firstname>
+      <surname>Eicker</surname>
+      <email>eicker@par-tec.com</email>
+    </author>
+    <mediaobject>
+      <imageobject>
+	<imagedata scale="35" align="center"
+	  fileref="../images/ParTecLogo.png"/>
+      </imageobject>
+    </mediaobject>
+    <revhistory>
+      <revision>
+	<revnumber>1.0</revnumber>
+	<date>16 Oct 2002</date>
+	<revremark>First official release</revremark>
+      </revision>
+      <revision>
+	<revnumber>0.9</revnumber>
+	<date>11 Oct 2002</date>
+	<revremark>First beta release</revremark>
+      </revision>
+      <revision>
+	<revnumber>0.8</revnumber>
+	<date>26 Sep 2002</date>
+	<revremark>First internal release</revremark>
+      </revision>
+    </revhistory>
   </bookinfo>
 
   &intro_admin;
   &installation;
   &configuration;
+  <!-- &pvfs; -->
 
   <reference id="references_admin">
     <title>Reference Pages</title>
@@ -71,7 +91,7 @@ sgml-always-quote-attributes:t
 sgml-indent-step:2
 sgml-indent-data:t
 sgml-parent-document:nil
-sgml-default-dtd-file:"main.ced"
+sgml-default-dtd-file:"adminguide.ced"
 sgml-exposed-tags:nil
 sgml-local-catalogs:nil
 sgml-local-ecat-files:nil
