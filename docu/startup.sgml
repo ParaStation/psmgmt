@@ -11,8 +11,8 @@
     fast and robust startup mechanism for parallel tasks, on the other hand the
     &ps; daemons running on each node of the cluster control the various
     remotely started <link linkend="process">processes</link> forming the
-    parallel <link linkend="task">task</link> in a combined effort and clean up
-    the whole task if one of the processes dies unexpectedly.
+    <xref linkend="task"/> in a combined effort and clean up the whole task if
+    one of the processes dies unexpectedly.
   </para>
   <para>
     Within this chapter it is assumed that an executable ready to run on a &ps;
@@ -73,8 +73,7 @@
       times, which means that <emphasis role="bold">all</emphasis>
       <quote>working</quote> processes of the parallel task will be spawned
       ones. As a last step the first locally started process will convert to an
-      I/O handling process, the so called <link linkend="loggerfull">&ps;
-	logger</link> process.
+      I/O handling process, the so called <xref linkend="loggerfull"/> process.
     </para>
     <para>
       The whole I/O handling machinery will be discussed in detail in <xref
@@ -324,13 +323,13 @@
     <itemizedlist>
       <listitem>
 	<para>The originally started process, i.e. the root of the parallel
-	  task, converts to a so called <link linkend="loggerfull">&ps;
-	    logger</link> process after spawning all child processes. It
-	  receives output from the spawned processes (or more precisely from
-	  the controlling <link linkend="forwarder">forwarder</link> process)
-	  and dispense it to its final destination. This might be the (virtual)
-	  terminal from which the root process was started or the file to which
-	  the output of the root process is redirected.
+	  task, converts to a so called <xref linkend="loggerfull"/> process
+	  after spawning all child processes. It receives output from the
+	  spawned processes (or more precisely from the controlling <xref
+	    linkend="forwarder"/> process) and dispense it to its final
+	  destination. This might be the (virtual) terminal from which the root
+	  process was started or the file to which the output of the root
+	  process is redirected.
 	</para>
       </listitem>
       <listitem>
@@ -338,21 +337,20 @@
 	    <refentrytitle>psid</refentrytitle>
 	    <manvolnum>8</manvolnum>
 	  </citerefentry> on request of the root process of the parallel task
-	  via a so called <link linkend="forwarderfull">&ps; forwarder</link>
-	  process. The task of this process is to control the spawned child
-	  process and to fetch all output produced. This output than is
-	  forwarded to the <link linkend="logger">logger</link> process which
-	  will send it to its final destination.
+	  via a so called <xref linkend="forwarderfull"/> process. The task of
+	  this process is to control the spawned child process and to fetch all
+	  output produced. This output than is forwarded to the <xref
+	    linkend="logger"/> process which will send it to its final
+	  destination.
 	</para>
       </listitem>
     </itemizedlist>
     <para>
-      Input data is handled in a quite similar way. The <link
-	linkend="loggerfull">&ps; logger</link> process reads the input from
-      the (virtual) terminal or the file from which the input is redirected and
-      sends it to a forwarder. The default is to send it to the forwarder of
-      the process with rank 0. This behaviour might be modified as discussed
-      below.
+      Input data is handled in a quite similar way. The <xref
+	linkend="loggerfull"/> process reads the input from the (virtual)
+      terminal or the file from which the input is redirected and sends it to a
+      forwarder. The default is to send it to the forwarder of the process with
+      rank 0. This behaviour might be modified as discussed below.
     </para>
     <para>
       The redirection of input and output can be configured via various
@@ -388,10 +386,10 @@
 	<listitem>
 	  <para>If this environment variable is set, each fraction of output is
 	    prepended with a tag providing the rank of the process that was
-	    producing it. If the <link linkend="loggerfull">&ps; logger</link>
-	    is put into the verbose mode using the
-	    <envar>PSI_LOGGERDEBUG</envar> environment variable, also the
-	    length of the output fraction to print is displayed.
+	    producing it. If the <xref linkend="loggerfull"/> is put into the
+	    verbose mode using the <envar>PSI_LOGGERDEBUG</envar> environment
+	    variable, also the length of the output fraction to print is
+	    displayed.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -400,39 +398,37 @@
 	<listitem>
 	  <para>Set this environment variable in order to suppress the
 	    <quote>PSIlogger: done</quote> messsage that is produced by the
-	    <link linkend="loggerfull">&ps; logger</link> process after
-	    finishing its task. This is usually the case when all <link
-	      linkend="forwarderfull">&ps; forwarders</link> have closed their
-	    connection to the logger.
+	    <xref linkend="loggerfull"/> process after finishing its task. This
+	    is usually the case when all <xref linkend="forwarderfull"/> have
+	    closed their connection to the logger.
 	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
 	<term>PSI_LOGGERDEBUG</term>
 	<listitem>
-	  <para>Put the <link linkend="loggerfull">&ps; logger</link> process
-	    into verbose mode. This will produce messages about connecting and
-	    detaching forwarders, received output, sended input and received
-	    signals.
+	  <para>Put the <xref linkend="loggerfull"/> process into verbose mode.
+	    This will produce messages about connecting and detaching
+	    forwarders, received output, sended input and received signals.
 	  </para>
 	  <para>
-	    The main purpose of this mode is to debug the <link
-	      linkend="loggerfull">&ps; logger</link> code. It might be less
-	    usefull for the normal enduser.
+	    The main purpose of this mode is to debug the <xref
+	      linkend="loggerfull"/> code. It might be less usefull for the
+	    normal enduser.
 	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
 	<term>PSI_FORWARDERDEBUG</term>
 	<listitem>
-	  <para>Put the <link linkend="forwarderfull">&ps; forwarder</link>
-	    process into verbose mode. Within this mode information about
-	    received input, output and signals will be displayed.
+	  <para>Put the <xref linkend="forwarderfull"/> process into verbose
+	    mode. Within this mode information about received input, output and
+	    signals will be displayed.
 	  </para>
 	  <para>
-	    The main purpose of this mode is to debug the <link
-	      linkend="forwarderfull">&ps; forwarder</link> code. It might be
-	    less usefull for the normal enduser.
+	    The main purpose of this mode is to debug the <xref
+	      linkend="forwarderfull"/> code. It might be less usefull for the
+	    normal enduser.
 	  </para>
 	</listitem>
       </varlistentry>
