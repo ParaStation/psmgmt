@@ -451,14 +451,26 @@ short PSI_getPartition(void)
 	}else
 	    return -1;
     }else{
-	/* No variable found - accept all? */
-	int localnode;
-	localnode = PSI_getnode(-1);
+	/* No variable found - get list from daemon */
+	struct {
+	    int numNodes;
+	    short nodelist[256];
+	} nodeinfo;
+
+	// printf("Get hostlist\n");
+	INFO_request_hostlist(&nodeinfo, sizeof(nodeinfo));
+	// printf("Got hostlist of size %d\n", nodeinfo.numNodes);
+	// localnode = PSI_getnode(-1);
+	if (!nodeinfo.numNodes) {
+	    printf("Can't get any hosts with MyriNet interface. Exiting...\n");
+	    exit(1);
+	}
+
 	PSI_PartitionSize = 0;
-	for (PSI_PartitionSize=0; PSI_PartitionSize<maxnodes;
+	for (PSI_PartitionSize=0; PSI_PartitionSize<nodeinfo.numNodes;
 	     PSI_PartitionSize++) {
 	    PSI_Partition[PSI_PartitionSize] =
-		(PSI_PartitionSize+localnode)%maxnodes;
+		nodeinfo.nodelist[PSI_PartitionSize];
 	}
     }
 
