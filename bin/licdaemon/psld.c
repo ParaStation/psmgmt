@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.22 2002/07/05 14:46:21 eicker Exp $
+ * $Id: psld.c,v 1.23 2002/07/11 10:46:13 eicker Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Daemon
  *
- * $Id: psld.c,v 1.22 2002/07/05 14:46:21 eicker Exp $
+ * $Id: psld.c,v 1.23 2002/07/11 10:46:13 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.22 2002/07/05 14:46:21 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.23 2002/07/11 10:46:13 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -179,7 +179,7 @@ int check_license(void)
     unsigned long now;
     int ipfound,i;
 
-    IpNodesEndFromLicense(ConfigLicensekey, &IP, &numnodes, &start, &end,
+    IpNodesEndFromLicense(ConfigLicenseKey, &IP, &numnodes, &start, &end,
 			  &version);
     now = time(NULL);
 
@@ -299,7 +299,7 @@ void sighandler(int sig)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.22 $";
+    char revision[] = "$Revision: 1.23 $";
     snprintf(errtxt, sizeof(errtxt), "psld %s\b ", revision+11);
     errlog(errtxt, 0);
 }
