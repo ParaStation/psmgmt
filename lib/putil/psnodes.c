@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psnodes.c,v 1.1 2003/03/06 14:03:00 eicker Exp $
+ * $Id: psnodes.c,v 1.2 2003/03/07 15:50:08 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psnodes.c,v 1.1 2003/03/06 14:03:00 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psnodes.c,v 1.2 2003/03/07 15:50:08 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -38,6 +38,7 @@ static struct host_t *hosts[256];  /* host table */
 /* List of all nodes, info about hardware included */
 struct node_t {
     unsigned int addr;     /**< IP address of that node */
+    int version;           /**< Version of the config info from that node */
     short numCPU;          /**< Number of CPUs in that node */
     char isUp;             /**< Actual status of that node */
     unsigned int hwType;   /**< Communication hardware on that node */
@@ -196,6 +197,28 @@ int PSnodes_isUp(int id)
     }
 }
 
+/**********************************************************************/
+/* @todo This does not really make sense, but is a good start.
+   Actually each piece of information needs its own version number */
+int PSnodes_setInfoVersion(int id, unsigned int version)
+{
+    if (ID_ok(id)) {
+	nodes[id].version = version;
+	return 0;
+    } else {
+	return -1;
+    }
+}
+
+int PSnodes_getInfoVersion(int id)
+{
+    if (ID_ok(id)) {
+	return nodes[id].version;
+    } else {
+	return -1;
+    }
+}
+/**********************************************************************/
 
 int PSnodes_setHWType(int id, int hwType)
 {
