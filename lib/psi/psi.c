@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.35 2002/07/23 12:40:10 eicker Exp $
+ * $Id: psi.c,v 1.36 2002/07/26 15:31:52 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.35 2002/07/23 12:40:10 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.36 2002/07/26 15:31:52 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -39,9 +39,7 @@ int PSI_msock = -1;
 unsigned int PSI_loggernode;   /* IP number of my loggernode (or 0) */
 int PSI_loggerport;            /* port of my logger process */
 
-int PSI_myrank;
-
-char *PSI_psidversion = NULL;
+static char *psidVersion = NULL;
 
 static char errtxt[256];
 
@@ -76,8 +74,9 @@ int daemonSocket(unsigned int hostaddr)
 static int connectDaemon(PStask_group_t taskGroup, unsigned int hostaddr)
 {
     DDInitMsg_t msg;
-    int pid;
-    int uid;
+    pid_t pid;
+    uid_t uid;
+    gid_t gid;
     int connectfailes;
     int retry_count =0;
     int ret;
@@ -118,6 +117,7 @@ static int connectDaemon(PStask_group_t taskGroup, unsigned int hostaddr)
 
     pid = PSC_specialGetPID();
     uid = getuid();
+    gid = getgid();
 
     /* local connect */
     msg.header.type = PSP_CD_CLIENTCONNECT;
@@ -128,6 +128,7 @@ static int connectDaemon(PStask_group_t taskGroup, unsigned int hostaddr)
     msg.version = PSprotocolversion;
     msg.pid = pid;
     msg.uid = uid;
+    msg.gid = gid;
     msg.group = taskGroup;
 
     if (PSI_sendMsg(&msg)<0) {
@@ -204,7 +205,6 @@ static int connectDaemon(PStask_group_t taskGroup, unsigned int hostaddr)
 	PSC_setMyID(msg.myid);
 	PSI_loggernode = msg.loggernode;
 	PSI_loggerport = msg.loggerport;
-	PSI_myrank = msg.rank;
 	PSC_setInstalldir(msg.instdir);
 	if (strcmp(msg.instdir, PSC_lookupInstalldir())) {
 	    snprintf(errtxt, sizeof(errtxt),"connectDaemon():"
@@ -212,12 +212,9 @@ static int connectDaemon(PStask_group_t taskGroup, unsigned int hostaddr)
 	    PSI_errlog(errtxt, 0);
 	    break;
 	}
-	/* @todo failed malloc abfangen */
-	if (!PSI_psidversion) {
-	    PSI_psidversion = malloc(sizeof(msg.psidvers));
-	}
-	strncpy(PSI_psidversion, msg.psidvers, sizeof(msg.psidvers));
-	PSI_psidversion[sizeof(msg.psidvers)-1] = '\0';
+	if (psidVersion) free(psidVersion);
+	psidVersion = strdup(msg.psidvers);
+
 	return 1;
 	break;
     default :
@@ -329,6 +326,11 @@ int PSI_exitClient(void)
     return 1;
 }
 
+char *PSI_getPsidVersion(void)
+{
+    return psidVersion;
+}
+
 int PSI_sendMsg(void *amsg)
 {
     DDMsg_t *msg = (DDMsg_t *)amsg;
@@ -365,7 +367,12 @@ int PSI_recvMsg(void *amsg)
 	if (n>0) count+=n;
 	if (!n) {
 	    snprintf(errtxt, sizeof(errtxt), "PSI_recvMsg():"
-		     " Lost connection to ParaStation daemon");
+		     " Lost connection to ParaStation daemon.");
+	    if (!errno) {
+		snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
+			 " Maybe version of daemon and library do not match.");
+		errno = EPIPE;
+	    }
 	    PSI_errexit(errtxt, errno);
 	}
     } while (msg->len>count && n>0);
