@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiforwarder.c,v 1.4 2001/12/18 12:23:13 eicker Exp $
+ * $Id: psiforwarder.c,v 1.5 2002/01/02 12:28:09 eicker Exp $
  *
  */
 /**
  * \file
  * psiforwarder: Forwarding-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psiforwarder.c,v 1.4 2001/12/18 12:23:13 eicker Exp $ 
+ * $Id: psiforwarder.c,v 1.5 2002/01/02 12:28:09 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.4 2001/12/18 12:23:13 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiforwarder.c,v 1.5 2002/01/02 12:28:09 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -51,9 +51,7 @@ fd_set myfds;
 
 /** The socket connected to the logger. */
 int loggersock=-1;
-/**
- * The id, as which we will send. Set in main().
- */
+/** The id, as which we will send. Set in main(). */
 int id=-1;
 
 /**
@@ -71,36 +69,13 @@ void closelog(void)
 
     readlog(loggersock, (FLBufferMsg_t *) &msg);
     if(msg.type != EXIT){
-	/* Protocol messed up. Hopefully we can log anyhow. */
+	/* Protocol messed up. Hopefully we still can log. */
 	printlog(loggersock, STDERR, id,
 		 "PSIForwarder: PANIC!! Protocol messed up!\n");
     }
 
     if(loggersock>0)
 	close(loggersock);
-}
-
-/**
- * \brief Signal handler.
- *
- * Handles catched signals. Up to now, only HUP is handled.
- *
- * \param sig The signal to handle.
- *
- * \return No return value.
- */
-void sighandler(int sig)
-{
-    char buf[80];
-
-    switch(sig){
-    case SIGHUP:    /* hangup, generated when terminal disconnects */
-	snprintf(buf, sizeof(buf),
-		 "PSIForwarder: PANIC!! No of clients left: %d\n", noclients);
-	printlog(loggersock, STDERR, id, buf);
-    }
-
-    closelog();
 }
 
 /**
@@ -143,8 +118,7 @@ int loggerconnect(unsigned int node, int port)
 
 	return -1;
     }else{
-	
-	verbose = (int) *(msg.buf);
+	verbose = *(int *) msg.buf;
     }
 
     return loggersock;
@@ -235,10 +209,9 @@ void loop(int stdoutport, int stderrport)
 {
     int sock;      /* client socket */
     fd_set afds;
-    struct timeval mytv={2,0},atv;
+    struct timeval mytv={2,0}, atv;
     char buf[4000], obuf[120];
     int n;                       /* number of bytes received */
-    int timeoutval;
     FLMsg_msg_t type;
 
     if(verbose){
@@ -251,13 +224,10 @@ void loop(int stdoutport, int stderrport)
     FD_SET(stdoutport, &myfds);
     FD_SET(stderrport, &myfds);
 
-    timeoutval=0;
-
     /*
-     * Loop until there is no connection left. Pay attention to the startup
-     * phase, while no connection exists.
+     * Loop until there is no connection left.
      */
-    while(noclients > 0 && timeoutval < 10){
+    while (noclients > 0) {
 	bcopy((char *)&myfds, (char *)&afds, sizeof(afds)); 
 	atv = mytv;
 	if(select(FD_SETSIZE, &afds, NULL, NULL, &atv) < 0){
@@ -304,6 +274,12 @@ void loop(int stdoutport, int stderrport)
 		    close(sock);
 		    FD_CLR(sock,&myfds);
 		    noclients--;
+		    if(verbose){
+			snprintf(obuf, sizeof(obuf),
+				 "PSIforwarder: clients left: %d\n",
+				 noclients);
+			printlog(loggersock, STDERR, id, obuf);
+		    }
 		}else if(n<0){
 		    /* ignore the error */
 		    snprintf(obuf, sizeof(obuf),
@@ -316,8 +292,6 @@ void loop(int stdoutport, int stderrport)
 		break;
 	    }
 	}
-	if(noclients==0)
-	    timeoutval++;
     }
 
     return;
@@ -326,7 +300,8 @@ void loop(int stdoutport, int stderrport)
 /**
  * \brief The main program
  *
- * Connects to logger using loggerconnect() and calls loop().
+ * After becoming process group leader, connects to logger using
+ * loggerconnect() and calls loop().
  *
  * \param argc The number of arguments in \a argv.
  * \param argv Array of character strings containing the arguments.
@@ -347,6 +322,9 @@ int main( int argc, char**argv)
 
     int ret;
 
+    /* become process group leader */
+    setpgid(0,0);
+
     if(argc<6){
 	exit(1);
     }
@@ -361,15 +339,15 @@ int main( int argc, char**argv)
 	exit(1);
     }
 
-    signal(SIGHUP,sighandler);	
-
     /* Two clients allready connected (stdout/stderr) */      
     noclients = 2;
-    /*
-     * call the loop which does all the work
-     */
+
+    /* call the loop which does all the work */
     loop(stdoutport, stderrport);
 
+    if(verbose){
+	printlog(loggersock, STDERR, id, "PSIforwarder: Closing log\n");
+    }
     closelog();
 
     return 0;
