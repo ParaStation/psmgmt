@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.37 2003/04/03 15:14:45 eicker Exp $
+ * $Id: psispawn.c,v 1.38 2003/04/10 17:35:01 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.37 2003/04/03 15:14:45 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.38 2003/04/10 17:35:01 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -1198,12 +1198,13 @@ int PSI_kill(long tid, short signal)
     snprintf(errtxt, sizeof(errtxt), "%s(%lx, %d)", __func__, tid, signal);
     PSI_errlog(errtxt, 10);
 
-    msg.header.len = sizeof(msg);
     msg.header.type = PSP_CD_SIGNAL;
     msg.header.sender = PSC_getMyTID();
     msg.header.dest = tid;
+    msg.header.len = sizeof(msg);
     msg.signal = signal;
     msg.param = getuid();
+    msg.pervasive = 0;
 
     if (PSI_sendMsg(&msg)<0) {
 	char *errstr = strerror(errno);
