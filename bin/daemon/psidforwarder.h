@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidforwarder.h,v 1.3 2004/01/09 16:01:45 eicker Exp $
+ * $Id: psidforwarder.h,v 1.4 2004/01/15 16:22:35 eicker Exp $
  *
  */
 /**
  * \file
  * Handling of all input/output forwarding between logger and client.
  *
- * $Id: psidforwarder.h,v 1.3 2004/01/09 16:01:45 eicker Exp $
+ * $Id: psidforwarder.h,v 1.4 2004/01/15 16:22:35 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -35,7 +35,7 @@ extern "C" {
  *
  * The actual forwarder process handling all input from stdin and
  * output to stdout and stderr operations of the controlled client
- * process. Therefor the forwarder process is connected to the local
+ * process. Therefore the forwarder process is connected to the local
  * daemon via which all communication operations of this kind are
  * delivered.
  *

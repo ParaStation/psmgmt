@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidstatus.h,v 1.2 2004/01/09 16:09:05 eicker Exp $
+ * $Id: psidstatus.h,v 1.3 2004/01/15 16:22:35 eicker Exp $
  *
  */
 /**
  * @file
  * Helper functions for master-node detection and status actions.
  *
- * $Id: psidstatus.h,v 1.2 2004/01/09 16:09:05 eicker Exp $
+ * $Id: psidstatus.h,v 1.3 2004/01/15 16:22:35 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -176,7 +176,7 @@ void releaseStatusTimer(void);
 
 /** @brief Declare a node dead.
  *
- * Declare the node with ParaStation ID @a id to be dead. Therefor
+ * Declare the node with ParaStation ID @a id to be dead. Therefore
  * various internal and external (e.g. within PSnodes or MCast)
  * indicators are set appropriately. Furthermore local processes
  * connected with foreign ones on the according node will be signaled.
@@ -195,7 +195,7 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode);
 
 /** @brief Declare a node alive.
  *
- * Declare the node with ParaStation ID @a id to be alive. Therefor
+ * Declare the node with ParaStation ID @a id to be alive. Therefore
  * various internal and externel (e.g. within PSnodes or MCast)
  * indicators are set appropriately. Within this process the node is
  * registered to have @a virtCPUs logical CPUs realized by @a physCPUs
