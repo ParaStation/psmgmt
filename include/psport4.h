@@ -7,7 +7,7 @@
 /**
  * PSPort: Communication Library for Parastation , third edition
  *
- * $Id: psport4.h,v 1.1 2002/06/10 12:55:51 hauke Exp $
+ * $Id: psport4.h,v 1.2 2002/06/11 00:14:15 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -75,6 +75,9 @@ typedef struct PSP_Header_Net_T {
     uint32_t		datalen;
     long		xheader[0];
 } PSP_Header_Net_t;
+
+/* compatiblity to psport for p3 */
+#define PSP_RecvHeader_t PSP_Header_Net_t
 
 struct PSP_Header_T;
 
@@ -361,6 +364,81 @@ PSP_RequestH_t PSP_IReceive(PSP_PortH_t porth,
 
 
 /* ----------------------------------------------------------------------
+ * PSP_IProbe()
+ * ----------------------------------------------------------------------
+ */
+
+/**
+ * @brief Test for availability of a message.
+ *
+ * This call returns true if a message is already available that would
+ * be received by a call to PSP_IReceive() with the same callback
+ * function and parameters. The header data of this message is copied
+ * to the given header buffer, then.
+ *
+ * @param porth handle of the port, from PSP_OpenPort()
+ * @param header address of buffer for header data
+ * @param xheaderlen length of message extra header buffer, in bytes
+ * @param cb callback function
+ * @param cb_param this pointer is passed to the callback function
+ * @param sender one can specify the sender (node number) of the
+ * message to be received here if already known, or PSP_AnySender
+ * @return Returns true if a matching message is available (already
+ * received) and false otherwise.
+ */
+int PSP_IProbeFrom(PSP_PortH_t porth,
+		   PSP_Header_t* header, unsigned xheaderlen,
+		   PSP_RecvCallBack_t *cb, void* cb_param,
+		   int sender);
+
+static inline
+int PSP_IProbe(PSP_PortH_t porth,
+	       PSP_Header_t* header, unsigned xheaderlen,
+	       PSP_RecvCallBack_t *cb, void* cb_param)
+{
+    return PSP_IProbeFrom(porth, header, xheaderlen, cb, cb_param,
+			  PSP_AnySender);
+}
+
+/* ----------------------------------------------------------------------
+ * PSP_Probe()
+ * ----------------------------------------------------------------------
+ */
+
+/**
+ * @brief Wait for availability of a message.
+ *
+ * This call returns when and if a message is available that would be
+ * received by a call to PSP_IReceive() with the same callback
+ * function and parameters. The header data of this message is copied
+ * to the given header buffer.
+ *
+ * @param porth handle of the port, from PSP_OpenPort()
+ * @param header address of buffer for header data
+ * @param xheaderlen length of message extra header buffer, in bytes
+ * @param cb callback function
+ * @param cb_param this pointer is passed to the callback function
+ * @return Returns true.
+ */
+int PSP_ProbeFrom(PSP_PortH_t porth,
+		  PSP_Header_t* header, unsigned xheaderlen,
+		  PSP_RecvCallBack_t *cb, void* cb_param,
+		  int sender);
+
+static inline
+int PSP_Probe(PSP_PortH_t porth,
+	      PSP_Header_t* header, unsigned xheaderlen,
+	      PSP_RecvCallBack_t *cb, void* cb_param)
+{
+    return PSP_ProbeFrom(porth, header, xheaderlen, cb, cb_param,
+			 PSP_AnySender);
+}
+
+
+#define PSP_MSGFLAG_HIGHPRIO 1
+#define PSP_DEST_LOOPBACK    0x7fff
+
+/* ----------------------------------------------------------------------
  * PSP_ISend()
  * ----------------------------------------------------------------------
  */
@@ -396,9 +474,9 @@ PSP_RequestH_t PSP_IReceive(PSP_PortH_t porth,
  */
 
 PSP_RequestH_t PSP_ISend(PSP_PortH_t porth,
-			   void* buf, unsigned buflen,
-			   PSP_Header_t* header, unsigned xheaderlen,
-			   int dest,int flags);
+			 void* buf, unsigned buflen,
+			 PSP_Header_t* header, unsigned xheaderlen,
+			 int dest,int flags);
 
 
 /* ----------------------------------------------------------------------
