@@ -47,6 +47,16 @@ PSI_NOMSGLOGGERDONE	any
 	Do not print out the message "PSPLogger done" at the end of a
 	parallel run.
 
+PSI_LOGGERDEBUG
+	debug output for the psilogger.
+PSI_FORWARDERDEBUG
+	debug output for the psiforwarder.
+PSI_SOURCEPRINTF
+	prepend the initiator of outputs (psilogger)
+
+
+
+
 
 MPICH:
 
