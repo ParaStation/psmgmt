@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: logmsg.c,v 1.3 2001/12/18 12:23:13 eicker Exp $ 
+ * $Id: logmsg.c,v 1.4 2002/01/02 12:20:44 eicker Exp $ 
  *
  */
 
-static char vcid[] __attribute__ (( unused )) = "$Id: logmsg.c,v 1.3 2001/12/18 12:23:13 eicker Exp $";
+static char vcid[] __attribute__ (( unused )) = "$Id: logmsg.c,v 1.4 2002/01/02 12:20:44 eicker Exp $";
 
 #include <stdio.h>
 #include <unistd.h>
@@ -32,7 +32,7 @@ int writelog(int sock, FLMsg_msg_t type, int node, char *buf, size_t count)
 	msg.header.type = type;
 	msg.header.sender = node;
 	if(count < 0) return 0;
-	while(sent < count){
+	do {
 	    n = (count>sizeof(msg.buf))?sizeof(msg.buf):count;
 	    bcopy(buf, msg.buf, n);
 	    msg.header.len = sizeof(msg.header) + n;
@@ -48,7 +48,7 @@ int writelog(int sock, FLMsg_msg_t type, int node, char *buf, size_t count)
 	    sent += n - sizeof(msg.header);
 	    count -= n - sizeof(msg.header);
 	    buf += n - sizeof(msg.header);
-	}
+	} while(sent < count);
     }
 
     return sent;
@@ -84,7 +84,6 @@ int readlog(int sock, FLBufferMsg_t *msg)
 	    buf += n;
 	}
 	nleft = msg->header.len - total;
-	buf += n;
 	while(nleft > 0){      /* Complete message */
 	    n = read(sock, buf, (nleft>SSIZE_MAX)?SSIZE_MAX:nleft);
 	    if (n < 0){
