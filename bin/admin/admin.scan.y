@@ -11,7 +11,7 @@
 #define yylex adminlex
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.21 2003/04/03 15:53:14 eicker Exp $";
+static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.22 2003/05/28 17:11:13 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #define NODEERR -2
@@ -34,7 +34,7 @@ static void CheckUserName(char *name);
 %token <val> NUMBER HEXNUMBER SIGNAL
 %token <name> NAME
 
-%token ADDOP SETOP SHOWOP STATOP KILLOP CONFIGOP RESTARTOP SHUTDOWNOP RESETOP
+%token ADDOP SETOP SHOWOP STATOP KILLOP RESTARTOP SHUTDOWNOP RESETOP
 %token TESTOP QUITOP HELPOP VERSIONOP NULLOP
 
 %token PSM_SPS PSM_RTO PSM_HNPEND PSM_ACKPEND SELECTTIME
@@ -172,7 +172,6 @@ showline:
                  {MyShowParam(PSP_OP_PSM_HNPEND,FirstNode,LastNode);}
         | SHOWOP PSM_ACKPEND nodes
                  {MyShowParam(PSP_OP_PSM_ACKPEND,FirstNode,LastNode);}
-        | CONFIGOP                  {PSIADM_ShowConfig();}
         ;
 
 statline:
@@ -241,8 +240,6 @@ helpline:
 
         | HELPOP QUITOP                {PrintQuitHelp();}
 
-        | HELPOP CONFIGOP              {PrintConfigHelp();}
-
         | HELPOP SETOP                 {PrintSetHelp();}
         | HELPOP SETOP MAXPROC         {PrintSetHelp();}
         | HELPOP SETOP USER            {PrintSetHelp();}
@@ -254,6 +251,18 @@ helpline:
         | HELPOP SETOP RDPDEBUG        {PrintRDPDebugHelp();}
         | HELPOP SETOP RDPPKTLOSS      {PrintRDPPktLossHelp();}
         | HELPOP SETOP MCASTDEBUG      {PrintMCastDebugHelp();}
+
+        | HELPOP SHOWOP                {PrintShowHelp();}
+        | HELPOP SHOWOP MAXPROC        {PrintShowHelp();}
+        | HELPOP SHOWOP USER           {PrintShowHelp();}
+        | HELPOP SHOWOP PSM_SPS        {PrintShowHelp();}
+        | HELPOP SHOWOP PSM_RTO        {PrintShowHelp();}
+        | HELPOP SHOWOP PSM_HNPEND     {PrintShowHelp();}
+        | HELPOP SHOWOP PSM_ACKPEND    {PrintShowHelp();}
+        | HELPOP SHOWOP PSIDDEBUG      {PrintShowHelp();}
+        | HELPOP SHOWOP RDPDEBUG       {PrintShowHelp();}
+        | HELPOP SHOWOP RDPPKTLOSS     {PrintShowHelp();}
+        | HELPOP SHOWOP MCASTDEBUG     {PrintShowHelp();}
 
         | HELPOP TESTOP                {PrintTestHelp();}
         | HELPOP TESTOP NORMAL         {PrintTestHelp();}
