@@ -2,6 +2,11 @@
 
 	* Extensions: Use mpirun_chgm to start MPIch/GM apps within ParaStation
 
+	* Extensions: Don't start daemons on other nodes automatically.
+
+	* Extensions: New option to psiadmin: -s / --start-all
+	Starts all daemons within the cluster.
+
 2003-06-25  Norbert Eicker  <eicker@par-tec.com>
 
 	* Bugfix: Root can start on any node now.
