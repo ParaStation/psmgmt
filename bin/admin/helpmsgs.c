@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: helpmsgs.c,v 1.8 2004/01/16 14:08:25 eicker Exp $
+ * $Id: helpmsgs.c,v 1.9 2004/01/27 21:04:19 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.8 2004/01/16 14:08:25 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.9 2004/01/27 21:04:19 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -411,27 +411,36 @@ static info_t testInfo = {
 
 /* ---------------------------------------------------------------------- */
 
+/** A long string of separating characters */
 static const char sep[] =   "================================================"
 "============================================================================";
+
+/** A long string of whitespace characters */
 static const char space[] = "                                                "
 "                                                                            ";
 
 /**
  * @brief Get screen width.
  *
- * Get the screen width of the terminal connected to 
- * @doctodo
+ * Get the screen width of the terminal stdout is connected to.
  *
- * Get readline's idea of the screen size.  TTY is a file descriptor
- * open to the terminal.  If IGNORE_ENV is true, we do not pay
- * attention to the values of $LINES and $COLUMNS.  The tests for
- * TERM_STRING_BUFFER being non-null serve to check whether or not we
- * have initialized termcap.
+ * If the TIOCGWINSZ @ref ioctl() is available, it is used to
+ * determine the width. Otherwise the COLUMNS environment variable is
+ * used to identify the size.
+ *
+ * If the determined width is smaller than 60, it is set to this
+ * minimum value.
+ *
+ * If both methods cited above failed, the width is set to the default
+ * size of 80.
+ *
  *
  * @return On success, the actual screen size is returned. If the
  * determination of the current screen size failed, the default width
  * 80 is passed to the calling function. If the determined width is
  * too small, the minimal width 60 is returned.
+ *
+ * @see ioctl()
  */
 static int getWidth(void)
 {
@@ -453,7 +462,7 @@ static int getWidth(void)
     /* Everything failed. Use standard width */
     if (width < 1) width = 80;
     /* Extend to minimum width */
-    if (width <= 60) width = 60;
+    if (width < 60) width = 60;
 
     return width;
 }
@@ -461,7 +470,28 @@ static int getWidth(void)
 /**
  * @brief Print syntax information.
  *
- * @doctodo
+ * Print syntax information provided in @a syntax after displaying the
+ * leading tag @a tag. The syntax_t structure @a syntax consists of
+ * two part, the actual command and trailing arguments.
+ *
+ * The output format is as follows: After the indenting tag @a tag, at
+ * first the command is given out. This is followed by the arguments.
+ *
+ * If the output generated in this way does not fit within one line,
+ * it is wrapped at suitable positions of the trailing arguments. For
+ * this purpose an indentation of the length of the leading tag and
+ * the actual command is taken into account. Thus, the leading tag and
+ * the command part of the syntax are expected to be (much) smaller
+ * than the length of the actual line.
+ *
+ * Suitable positions for a line wrap are withspace (' ') characters
+ * which are not preceeded by pipe ('|') characters, or the
+ * corresponding pipe character. Leading whitespace at the beginning
+ * of a wrapped line - apart from the indentation - will be skipped.
+ *
+ * @param tag The indenting tag of the command syntax to print.
+ *
+ * @param syntax The actual command syntax to print.
  *
  * @return No return value.
  */
@@ -493,8 +523,26 @@ static void printSyntax(const char *tag, syntax_t *syntax)
 }
 
 /**
- * @brief
- * @doctodo
+ * @brief Print tagged description.
+ *
+ * Print the description @a descr preceeded by the tag @a tag.
+ *
+ * The output format is as follows: After the indenting tag @a tag,
+ * the description is printed out.
+ *
+ * If the output generated does not fit within one line, it is wrapped
+ * at suitable positions. For this purpose an indentation of the
+ * length of the leading tag is taken into account. Thus, the leading
+ * tag is expected to be (much) smaller than the length of the actual
+ * line.
+ *
+ * Suitable positions for a line wrap are withspace (' ') characters.
+ * Leading whitespace at the beginning of a wrapped line - apart from
+ * the indentation - will be skipped.
+ *
+ * @param tag The indenting tag of the description to print.
+ *
+ * @param descr The actual description of the tag to print.
  *
  * @return No return value.
  */
@@ -521,10 +569,23 @@ static void printDescr(const char *tag, char *descr)
 }
 
 /**
- * @brief
- * @doctodo
+ * @brief Print tagged info.
  *
+ * Print tagged info provided within @a tags. The taggedInfo_t
+ * structure tags consists of pairs of tags and descriptions to this
+ * tag.
+ *
+ * In order to create the output, first of all the maximum length of
+ * the actual tags within @a tag is determined. Then each pair of tag
+ * and description is printed to stdout using the @ref printDescr()
+ * function, where the actual tag is embedded within a string filled
+ * up with whitespace to reach the maximum taglength. This yields to
+ * the effect, that each description starts at the same
+ * column. i.e. all descriptions are equally indented.
+ * 
  * @return No return value.
+ *
+ * @see printDescr()
  */
 static void printTags(taggedInfo_t *tags)
 {
@@ -550,8 +611,9 @@ static void printTags(taggedInfo_t *tags)
  * Print a syntax error message followed by the correct syntax of the
  * command detected. The correct syntax is taken from @a info.
  *
- * In order to do the actual output printSyntax() might be called. If
- * no syntax is defined within @a info, a general warning is created.
+ * In order to do the actual output, @ref printSyntax() might be
+ * called. If no syntax is defined within @a info, a general warning
+ * is created.
  *
  * @param info Structure holding the information to print out.
  *
