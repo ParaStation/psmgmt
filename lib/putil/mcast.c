@@ -1,5 +1,5 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * mcast.c
  *
  * ParaStation MultiCast facility
@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.c,v 1.18 2003/12/10 16:26:26 eicker Exp $
+ * $Id: mcast.c,v 1.19 2003/12/16 19:08:59 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.18 2003/12/10 16:26:26 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.19 2003/12/16 19:08:59 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -39,11 +39,123 @@ static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.18 2003/12/10 1
 #endif
 
 #include "errlog.h"
+#include "selector.h"
 #include "timer.h"
 
 #include "mcast.h"
-#include "mcast_private.h"
 
+/**
+ * OSF provides no timeradd in sys/time.h
+ */
+#ifndef timeradd
+#define timeradd(a, b, result)                                        \
+  do {                                                                \
+    (result)->tv_sec = (a)->tv_sec + (b)->tv_sec;                     \
+    (result)->tv_usec = (a)->tv_usec + (b)->tv_usec;                  \
+    if ((result)->tv_usec >= 1000000) {                               \
+        ++(result)->tv_sec;                                           \
+        (result)->tv_usec -= 1000000;                                 \
+    }                                                                 \
+  } while (0)
+#endif
+
+/**
+ * The socket used to send and receive MCast packets. Will be opened in
+ * initMCast().
+ */
+static int mcastsock = -1;
+
+/** The corresponding socket-address of the MCast packets. */
+static struct sockaddr_in msin;
+
+/** The unique ID of the timer registered by MCast. */
+static int timerID = -1;
+
+/** The size of the cluster. Set via initMCast(). */
+static int  nrOfNodes = 0;
+
+static char errtxt[256];         /**< String to hold error messages. */
+
+/** My node-ID within the cluster. Set inside initMCast(). */
+static int myID = -1;
+
+#ifdef __osf__
+/**
+ * My IP address. Set within initMCast(). Only needed for broken MCast
+ * support within TRU64 Unix.
+ */
+unsigned int myIP;
+#endif
+
+/**
+ * The callback function. Will be used to send messages to the calling
+ * process. Set via initMCast().
+ */
+static void (*MCastCallback)(int, void*) = NULL;
+
+/** The possible MCast message types. */
+typedef enum {
+    T_INFO = 0x01,   /**< Normal info message */
+    T_CLOSE,         /**< Info message from node going down */
+} MCastMsgType_t;
+
+/**
+ * The default MCast-group number. Magic number defined by Joe long time ago.
+ * Can be overruled via initMCast().
+ */
+#define DEFAULT_MCAST_GROUP 237
+
+/**
+ * The default MCast-port number. Magic number defined by Joe long time ago.
+ * Can be overruled via initMCast().
+ */
+#define DEFAULT_MCAST_PORT 1889
+
+/**
+ * The timeout used for MCast ping. The is a const for now and can only
+ * changed in the sources.
+ */
+static struct timeval MCastTimeout = {2, 0}; /* sec, usec */
+
+/**
+ * The actual dead-limit. Get/set by getDeadLimitMCast()/setDeadLimitMCast().
+ */
+static int MCastDeadLimit = 10;
+
+/** The jobs on my local node. */
+static MCastJobs_t jobsMCast = {0, 0};
+
+
+/* ---------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------- */
+
+/**
+ * @brief Recv a message
+ *
+ * My version of recvfrom(), which restarts on EINTR.
+ * EINTR is mostly caused by the interval timer. Receives a message from
+ * @a sock and stores it to @a buf. The sender-address is stored in @a from.
+ *
+ *
+ * @param sock The socket to read from.
+ *
+ * @param buf Buffer the message is stored to.
+ *
+ * @param len Length of @a buf.
+ *
+ * @param flags Flags passed to recvfrom().
+ *
+ * @param from The address of the message-sender.
+ *
+ * @param fromlen Length of @a from.
+ *
+ *
+ * @return On success, the number of bytes received is returned, or -1 if
+ * an error occured.
+ *
+ * @see recvfrom(2)
+ */
 static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
                       struct sockaddr *from, socklen_t *fromlen)
 {
@@ -61,6 +173,32 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
     return retval;
 }
 
+/**
+ * @brief Send a message
+ *
+ * My version of sendto(), which restarts on EINTR.
+ * EINTR is mostly caused by the interval timer. Send a message stored in
+ * @a buf via @a sock to address @a to.
+ *
+ *
+ * @param sock The socket to send to.
+ *
+ * @param buf Buffer the message is stored in.
+ *
+ * @param len Length of the message.
+ *
+ * @param flags Flags passed to sendto().
+ *
+ * @param to The address the message is send to.
+ *
+ * @param tolen Length of @a to.
+ *
+ *
+ * @return On success, the number of bytes sent is returned, or -1 if an error
+ * occured.
+ *
+ * @see sendto(2)
+ */
 static int MYsendto(int sock, void *buf, size_t len, int flags,
 		    struct sockaddr *to, socklen_t tolen)
 {
@@ -80,6 +218,28 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 
 /* ---------------------------------------------------------------------- */
 
+/**
+ * One entry for each node we want to connect with
+ */
+typedef struct ipentry_ {
+    unsigned int ipnr;      /**< IP number of the node */
+    int node;               /**< logical node number */
+    struct ipentry_ *next;  /**< pointer to next entry */
+} ipentry_t;
+
+/**
+ * 256 entries since lookup is based on LAST byte of IP number.
+ * Initialized by initIPTable().
+ */
+static ipentry_t iptable[256];
+
+/**
+ * @brief Initialize @ref iptable.
+ *
+ * Initializes @ref iptable. List is empty after this call.
+ *
+ * @return No return value.
+ */
 static void initIPTable(void)
 {
     int i;
@@ -92,6 +252,20 @@ static void initIPTable(void)
     return;
 }
 
+/**
+ * @brief Create new entry in @ref iptable.
+ *
+ * Register another node in @ref iptable.
+ *
+ *
+ * @param ip_addr The IP address in network byteorder of the node to
+ * register.
+ *
+ * @param node The corresponding node number.
+ *
+ *
+ * @return No return value.
+ */
 static void insertIPTable(unsigned int ip_addr, int node)
 {
     ipentry_t *ip;
@@ -120,6 +294,18 @@ static void insertIPTable(unsigned int ip_addr, int node)
     return;
 }
 
+/**
+ * @brief Get node number from IP number.
+ *
+ * Get the node number from given IP address in network byteorder for
+ * a node registered via insertIPTable().
+ *
+ * @param ip_addr The IP address in network byteorder of the node to
+ * find.
+ *
+ * @return On success, the node number corresponding to @a ip_addr is
+ * returned, or -1 if the node could not be found in @ref iptable.
+ */
 static int lookupIPTable(unsigned int ip_addr)
 {
     ipentry_t *ip;
@@ -139,6 +325,37 @@ static int lookupIPTable(unsigned int ip_addr)
 
 /* ---------------------------------------------------------------------- */
 
+/**
+ * Connection info for each node pings are expected from.
+ */
+typedef struct {
+    struct timeval lastping; /**< Timestamp of last received ping */
+    int misscounter;         /**< Number of pings missing */
+    MCastLoad_t load;        /**< Load parameters of node */
+    MCastJobs_t jobs;        /**< Number of jobs on the node */
+    MCastState_t state;      /**< State of the node (determined from pings) */
+} Mconninfo_t;
+
+/**
+ * Array to hold all connection info.
+ */
+static Mconninfo_t *conntable = NULL;
+
+/**
+ * @brief Initialize the @ref conntable.
+ *
+ * Initialize the @ref conntable for @a nodes nodes to receive pings
+ * from. The IP addresses in network by order of all nodes are stored
+ * in @a host.
+ *
+ *
+ * @param nodes The number of nodes pings are expected from.
+ *
+ * @param host The IP address in network byte order of each node
+ * indexed by node number. The length of @a host must be at least @a
+ * nodes.
+ *
+ * @return No return value.  */
 static void initConntable(int nodes, unsigned int host[])
 {
     int i;
@@ -170,6 +387,21 @@ static void initConntable(int nodes, unsigned int host[])
 
 /* ---------------------------------------------------------------------- */
 
+/**
+ * @brief Setup a socket for MCast communication.
+ *
+ * Sets up a socket used for all MCast communications.
+ *
+ *
+ * @param group The MCast group to join. If @group is 0, the @ref
+ * DEFAULT_MCAST_GROUP is joined.
+ *
+ * @param port The UDP port to use.
+ *
+ *
+ * @return -1 is returned if an error occurs; otherwise the return value
+ * is a descriptor referencing the socket.
+ */
 static int initSockMCast(int group, unsigned short port)
 {
     int sock;
@@ -257,6 +489,14 @@ static int initSockMCast(int group, unsigned short port)
     return sock;
 }
 
+/**
+ * @brief Close a connection.
+ *
+ * Close the MCast connection to node @a node, i.e. don't expect further
+ * pings from this node, and inform the calling program.
+ *
+ * @return No return value.
+ */
 static void closeConnectionMCast(int node)
 {
     snprintf(errtxt, sizeof(errtxt), "Closing connection to node %d", node);
@@ -268,6 +508,16 @@ static void closeConnectionMCast(int node)
     return;
 }
 
+/**
+ * @brief Check all connections.
+ *
+ * Check all connections to other nodes, i.e. test if there are any missing
+ * MCast pings. If more than @ref MCastDeadLimit consecutive pings from one
+ * node are missing, the calling process is informed via the @ref MCastCallback
+ * function.
+ *
+ * @return No return value.
+ */
 static void checkConnectionsMCast(void)
 {
     int i, nrDownNodes = 0;
@@ -306,13 +556,136 @@ static void checkConnectionsMCast(void)
     return;
 }
 
-static void handleTimeoutMCast(int fd)
+/**
+ * @brief Get load information from kernel.
+ *
+ * Get load information from the kernel. The implementation is platform
+ * specific, since POSIX has no mechanism to retrieve this info.
+ *
+ * @return A @ref MCastLoad_t structure containing the load info.
+ */
+static MCastLoad_t getLoad(void)
+{
+    MCastLoad_t load = {{0.0, 0.0, 0.0}};
+#ifdef __linux__
+    struct sysinfo s_info;
+
+    sysinfo(&s_info);
+    load.load[0] = (double) s_info.loads[0] / (1<<SI_LOAD_SHIFT);
+    load.load[1] = (double) s_info.loads[1] / (1<<SI_LOAD_SHIFT);
+    load.load[2] = (double) s_info.loads[2] / (1<<SI_LOAD_SHIFT);
+#elif __osf__
+    struct tbl_loadavg load_struct;
+
+    /* Use table call to extract the load for the node. */
+    table(TBL_LOADAVG, 0, &load_struct, 1, sizeof(struct tbl_loadavg));
+
+    /* Get the double value of the load. */
+    load.load[0] = (load_struct.tl_lscale == 0)?load_struct.tl_avenrun.d[0] :
+	((double)load_struct.tl_avenrun.l[0]/(double)load_struct.tl_lscale);
+    load.load[1] = (load_struct.tl_lscale == 0)?load_struct.tl_avenrun.d[1] :
+	((double)load_struct.tl_avenrun.l[1]/(double)load_struct.tl_lscale);
+    load.load[2] = (load_struct.tl_lscale == 0)?load_struct.tl_avenrun.d[2] :
+	((double)load_struct.tl_avenrun.l[2]/(double)load_struct.tl_lscale);
+#else
+#error BAD OS !!!!
+#endif
+
+    return load;
+}
+
+/**
+ * @brief Send MCast ping.
+ *
+ * Send a MCast ping message to the MCast group.
+ *
+ * @param state The actual state of the sending node.
+ *
+ * @return No return value.
+ */
+static void pingMCast(MCastState_t state)
+{
+    MCastMsg_t msg;
+
+    msg.node = myID;
+    msg.type = T_INFO;
+    if (state==DOWN) msg.type=T_CLOSE;
+#ifdef __osf__
+    msg.ip = myIP;
+#endif
+    msg.state = state;
+    msg.load = getLoad();
+    snprintf(errtxt, sizeof(errtxt),
+	     "pingMCast: Current load is [%.2f|%.2f|%.2f]",
+	     msg.load.load[0], msg.load.load[1], msg.load.load[2]);
+    errlog(errtxt, 12);
+    msg.jobs = jobsMCast;
+    snprintf(errtxt, sizeof(errtxt),
+	     "pingMCast: Currently %d normal jobs (%d total)",
+	     msg.jobs.normal, msg.jobs.total);
+    errlog(errtxt, 12);
+    snprintf(errtxt, sizeof(errtxt),
+	     "Sending MCast ping [%d:%d] to %s", myID, state,
+	     inet_ntoa(msin.sin_addr));
+    errlog(errtxt, 12);
+    if (MYsendto(mcastsock, &msg, sizeof(msg), 0,
+		 (struct sockaddr *)&msin, sizeof(struct sockaddr))==-1) {
+	errlog("in pingMCast()", 0);
+    }
+
+    return;
+}
+
+/**
+ * @brief Timeout handler to be registered in Timer facility.
+ *
+ * Timeout handler called from Timer facility every time @ref MCastTimeout
+ * expires.
+ *
+ * @return No return value.
+ */
+static void handleTimeoutMCast(void)
 {
     pingMCast(UP);
 
     checkConnectionsMCast();
 }
 
+/**
+ * @brief Create string from @ref MCastState_t.
+ *
+ * Create a \\0-terminated string from @a state.
+ *
+ * @param state The @ref MCastState_t for which the name is requested.
+ *
+ * @return Returns a pointer to a \\0-terminated string containing the
+ * symbolic name of the @ref MCastState_t @a state.
+ */
+static char *stateStringMCast(MCastState_t state)
+{
+    switch (state) {
+    case DOWN:
+	return "DOWN";
+	break;
+    case UP:
+	return "UP";
+	break;
+    default:
+	break;
+    }
+  return "UNKNOWN";
+}
+
+/**
+ * @brief Handle MCast ping.
+ *
+ * Read a MCast ping message from @a fd and update all relevant variables
+ * such that one get's a overview over the state of the cluster.
+ *
+ * @param fd The file-descriptor from which the ping message is read.
+ *
+ * @return On success, 0 is returned, or -1 if an error occurred.
+ */
 static int handleMCast(int fd)
 {
     MCastMsg_t msg;
@@ -398,84 +771,6 @@ static int handleMCast(int fd)
     return 0;
 }
 
-static MCastLoad_t getLoad(void)
-{
-    MCastLoad_t load = {{0.0, 0.0, 0.0}};
-#ifdef __linux__
-    struct sysinfo s_info;
-
-    sysinfo(&s_info);
-    load.load[0] = (double) s_info.loads[0] / (1<<SI_LOAD_SHIFT);
-    load.load[1] = (double) s_info.loads[1] / (1<<SI_LOAD_SHIFT);
-    load.load[2] = (double) s_info.loads[2] / (1<<SI_LOAD_SHIFT);
-#elif __osf__
-    struct tbl_loadavg load_struct;
-
-    /* Use table call to extract the load for the node. */
-    table(TBL_LOADAVG, 0, &load_struct, 1, sizeof(struct tbl_loadavg));
-
-    /* Get the double value of the load. */
-    load.load[0] = (load_struct.tl_lscale == 0)?load_struct.tl_avenrun.d[0] :
-	((double)load_struct.tl_avenrun.l[0]/(double)load_struct.tl_lscale);
-    load.load[1] = (load_struct.tl_lscale == 0)?load_struct.tl_avenrun.d[1] :
-	((double)load_struct.tl_avenrun.l[1]/(double)load_struct.tl_lscale);
-    load.load[2] = (load_struct.tl_lscale == 0)?load_struct.tl_avenrun.d[2] :
-	((double)load_struct.tl_avenrun.l[2]/(double)load_struct.tl_lscale);
-#else
-#error BAD OS !!!!
-#endif
-
-    return load;
-}
-
-static void pingMCast(MCastState_t state)
-{
-    MCastMsg_t msg;
-
-    msg.node = myID;
-    msg.type = T_INFO;
-    if (state==DOWN) msg.type=T_CLOSE;
-#ifdef __osf__
-    msg.ip = myIP;
-#endif
-    msg.state = state;
-    msg.load = getLoad();
-    snprintf(errtxt, sizeof(errtxt),
-	     "pingMCast: Current load is [%.2f|%.2f|%.2f]",
-	     msg.load.load[0], msg.load.load[1], msg.load.load[2]);
-    errlog(errtxt, 12);
-    msg.jobs = jobsMCast;
-    snprintf(errtxt, sizeof(errtxt),
-	     "pingMCast: Currently %d normal jobs (%d total)",
-	     msg.jobs.normal, msg.jobs.total);
-    errlog(errtxt, 12);
-    snprintf(errtxt, sizeof(errtxt),
-	     "Sending MCast ping [%d:%d] to %s", myID, state,
-	     inet_ntoa(msin.sin_addr));
-    errlog(errtxt, 12);
-    if (MYsendto(mcastsock, &msg, sizeof(msg), 0,
-		 (struct sockaddr *)&msin, sizeof(struct sockaddr))==-1) {
-	errlog("in pingMCast()", 0);
-    }
-
-    return;
-}
-
-static char *stateStringMCast(MCastState_t state)
-{
-    switch (state) {
-    case DOWN:
-	return "DOWN";
-	break;
-    case UP:
-	return "UP";
-	break;
-    default:
-	break;
-    }
-  return "UNKNOWN";
-}
-
 /* ---------------------------------------------------------------------- */
 
 int initMCast(int nodes, int mcastgroup, unsigned short portno, int usesyslog,
@@ -518,13 +813,16 @@ int initMCast(int nodes, int mcastgroup, unsigned short portno, int usesyslog,
     myIP = hosts[myID];
 #endif
 
-    if (!isInitializedTimer()) {
-	initTimer(usesyslog);
+    if (!Selector_isInitialized()) {
+	Selector_init(usesyslog);
     }
-
     mcastsock = initSockMCast(mcastgroup, htons(portno));
+    Selector_register(mcastsock, handleMCast);
 
-    registerTimer(mcastsock, &MCastTimeout, handleTimeoutMCast, handleMCast); 
+    if (!Timer_isInitialized()) {
+	Timer_init(usesyslog);
+    }
+    timerID = Timer_register(&MCastTimeout, handleTimeoutMCast); 
 
     return mcastsock;
 }
@@ -533,7 +831,8 @@ void exitMCast(void)
 {
     if (nrOfNodes) {
 	pingMCast(DOWN);               /* send shutdown msg */
-	removeTimer(mcastsock);        /* stop interval timer */
+	Selector_remove(mcastsock);    /* deregister selector */
+	Timer_remove(timerID);         /* stop interval timer */
 	close(mcastsock);              /* close Multicast socket */
     }
 }
