@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.32 2003/04/02 13:22:57 eicker Exp $
+ * $Id: info.c,v 1.33 2003/04/03 15:21:37 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.32 2003/04/02 13:22:57 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.33 2003/04/03 15:21:37 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -42,7 +42,7 @@ static char errtxt[128];
  * int size: size of buffer
  * RETURN type of the msg received
  */
-static PSP_Info_t INFO_receive(void *buffer, size_t size, int verbose)
+static PSP_Info_t INFO_receive(void *buffer, size_t *size, int verbose)
 {
     DDTypedBufferMsg_t msg;
     PSP_Info_t ret;
@@ -64,11 +64,12 @@ static PSP_Info_t INFO_receive(void *buffer, size_t size, int verbose)
 	    INFO_taskinfo_t *taskinfo = (INFO_taskinfo_t *) buffer;
 
 	    if (taskinfo) {
-		if (size < sizeof(*taskinfo)) {
+		if (*size < sizeof(*taskinfo)) {
 		    if (verbose) {
 			fprintf(stderr,
 				"%s: task-buffer to small\n", __func__);
 		    }
+		    *size = 0;
 		    break;
 		}
 		taskinfo->tid = ti->tid;
@@ -78,30 +79,41 @@ static PSP_Info_t INFO_receive(void *buffer, size_t size, int verbose)
 		taskinfo->group = ti->group;
 		taskinfo->rank = ti->rank;
 		taskinfo->connected = ti->connected;
+		*size = sizeof(INFO_taskinfo_t);
 	    }
 	    break;
 	}
 	case PSP_INFO_TASKEND:
 	    break;
-	case PSP_INFO_COUNTSTATUS:
-	case PSP_INFO_RDPSTATUS:
-	case PSP_INFO_MCASTSTATUS:
-	case PSP_INFO_HOSTSTATUS:
-	case PSP_INFO_NODELIST:
-	case PSP_INFO_PARTITION:
-	case PSP_INFO_HOST:
-	case PSP_INFO_NODE:
 	case PSP_INFO_NROFNODES:
 	case PSP_INFO_INSTDIR:
 	case PSP_INFO_DAEMONVER:
-	    memcpy(buffer, msg.buf, size);
+	case PSP_INFO_HOST:
+	case PSP_INFO_NODE:
+	case PSP_INFO_NODELIST:
+	case PSP_INFO_PARTITION:
+	case PSP_INFO_HOSTSTATUS:
+	case PSP_INFO_RDPSTATUS:
+	case PSP_INFO_MCASTSTATUS:
+	case PSP_INFO_COUNTHEADER:
+	case PSP_INFO_COUNTSTATUS:
+	case PSP_INFO_HWNUM:
+	case PSP_INFO_HWINDEX:
+	case PSP_INFO_HWNAME:
+	{
+	    size_t s = msg.header.len - sizeof(msg.header) - sizeof(msg.type);
+	    *size = (s > *size) ? *size : s;
+	    memcpy(buffer, msg.buf, *size);
 	    break;
+	}
 	case PSP_INFO_UNKNOWN:
 	    fprintf(stderr, "%s: daemon does not know info.", __func__);
+	    *size = 0;
 	    break;
 	default:
  	    fprintf(stderr, "%s: received unexpected info type '%d'.",
 		    __func__, msg.type);
+	    *size = 0;
 	}
 	break;
     }
@@ -113,11 +125,13 @@ static PSP_Info_t INFO_receive(void *buffer, size_t size, int verbose)
 		   __func__, PSP_printMsg(((DDErrorMsg_t*)&msg)->request),
 		   errtxt ? errtxt : "UNKNOWN");
 	}
+	*size = 0;
 	ret = PSP_INFO_UNKNOWN;
 	break;
     default:
 	fprintf(stderr, "%s: received unexpected msgtype '%s'.",
 		__func__, PSP_printMsg(msg.header.type));
+	*size = 0;
 	ret = PSP_INFO_UNKNOWN;
     }
 
@@ -142,7 +156,7 @@ int INFO_request_rdpstatus(int nodeno, void *buffer, size_t size, int verbose)
 	PSI_errexit(errtxt, errno);
     }
 
-    if (INFO_receive(buffer, size, verbose) == PSP_INFO_RDPSTATUS) {
+    if (INFO_receive(buffer, &size, verbose) == PSP_INFO_RDPSTATUS) {
 	return size;
     }
 
@@ -168,30 +182,59 @@ int INFO_request_mcaststatus(int nodeno,
 	PSI_errexit(errtxt, errno);
     }
 
-    if (INFO_receive(buffer, size, verbose) == PSP_INFO_MCASTSTATUS) {
+    if (INFO_receive(buffer, &size, verbose) == PSP_INFO_MCASTSTATUS) {
 	return size;
     }
 
     return -1;
 }
 
-int INFO_request_countstatus(int nodeno,
+int INFO_request_countheader(int nodeno, int hwindex,
 			     void *buffer, size_t size, int verbose)
 {
-    DDTypedMsg_t msg;
+    DDTypedBufferMsg_t msg;
 
     msg.header.type = PSP_CD_INFOREQUEST;
     msg.header.dest = PSC_getTID(nodeno, 0);
     msg.header.sender = PSC_getMyTID();
-    msg.header.len = sizeof(msg);
-    msg.type = PSP_INFO_COUNTSTATUS;
+    msg.header.len = sizeof(msg.header);
+    msg.type = PSP_INFO_COUNTHEADER;
+    msg.header.len += sizeof(msg.type);
+    *(int *)msg.buf = hwindex;
+    msg.header.len += sizeof(int);
 
     if (PSI_sendMsg(&msg)<0) {
 	snprintf(errtxt, sizeof(errtxt), "%s: write", __func__);
 	PSI_errexit(errtxt, errno);
     }
 
-    if (INFO_receive(buffer, size, verbose) == PSP_INFO_COUNTSTATUS) {
+    if (INFO_receive(buffer, &size, verbose) == PSP_INFO_COUNTHEADER) {
+	return size;
+    }
+
+    return -1;
+}
+
+int INFO_request_countstatus(int nodeno, int hwindex,
+			     void *buffer, size_t size, int verbose)
+{
+    DDTypedBufferMsg_t msg;
+
+    msg.header.type = PSP_CD_INFOREQUEST;
+    msg.header.dest = PSC_getTID(nodeno, 0);
+    msg.header.sender = PSC_getMyTID();
+    msg.header.len = sizeof(msg.header);
+    msg.type = PSP_INFO_COUNTSTATUS;
+    msg.header.len += sizeof(msg.type);
+    *(int *)msg.buf = hwindex;
+    msg.header.len += sizeof(int);
+
+    if (PSI_sendMsg(&msg)<0) {
+	snprintf(errtxt, sizeof(errtxt), "%s: write", __func__);
+	PSI_errexit(errtxt, errno);
+    }
+
+    if (INFO_receive(buffer, &size, verbose) == PSP_INFO_COUNTSTATUS) {
 	return size;
     }
 
@@ -213,7 +256,7 @@ int INFO_request_hoststatus(void *buffer, size_t size, int verbose)
 	PSI_errexit(errtxt, errno);
     }
 
-    if (INFO_receive(buffer, size, verbose) == PSP_INFO_HOSTSTATUS) {
+    if (INFO_receive(buffer, &size, verbose) == PSP_INFO_HOSTSTATUS) {
 	return size;
     }
 
@@ -224,6 +267,7 @@ int INFO_request_host(unsigned int address, int verbose)
 {
     DDTypedBufferMsg_t msg;
     int host;
+    size_t size = sizeof(host);
 
     msg.header.type = PSP_CD_INFOREQUEST;
     msg.header.dest = PSC_getTID(-1, 0);
@@ -239,7 +283,7 @@ int INFO_request_host(unsigned int address, int verbose)
 	PSI_errexit(errtxt, errno);
     }
 
-    if (INFO_receive(&host, sizeof(host), verbose) == PSP_INFO_HOST) {
+    if (INFO_receive(&host, &size, verbose) == PSP_INFO_HOST) {
 	return host;
     }
 
@@ -250,6 +294,7 @@ unsigned int INFO_request_node(int node, int verbose)
 {
     DDTypedBufferMsg_t msg;
     unsigned int address;
+    size_t size = sizeof(address);
 
     msg.header.type = PSP_CD_INFOREQUEST;
     msg.header.dest = PSC_getTID(-1, 0);
@@ -265,7 +310,7 @@ unsigned int INFO_request_node(int node, int verbose)
 	PSI_errexit(errtxt, errno);
     }
 
-    if (INFO_receive(&address, sizeof(address), verbose) == PSP_INFO_NODE) {
+    if (INFO_receive(&address, &size, verbose) == PSP_INFO_NODE) {
 	if (address == INADDR_ANY) {
 	    return -1;
 	} else {
@@ -291,7 +336,7 @@ int INFO_request_nodelist(NodelistEntry_t *buffer, size_t size, int verbose)
 	PSI_errexit(errtxt, errno);
     }
 
-    if (INFO_receive(buffer, size, verbose) == PSP_INFO_NODELIST) {
+    if (INFO_receive(buffer, &size, verbose) == PSP_INFO_NODELIST) {
 	return size;
     }
 
@@ -317,7 +362,7 @@ int INFO_request_partition(unsigned int hwType,
 	PSI_errexit(errtxt, errno);
     }
 
-    if (INFO_receive(buffer, size, verbose) == PSP_INFO_PARTITION) {
+    if (INFO_receive(buffer, &size, verbose) == PSP_INFO_PARTITION) {
 	return size;
     }
 
@@ -347,7 +392,8 @@ int INFO_request_tasklist(int nodeno, INFO_taskinfo_t taskinfo[], size_t size,
     task = 0;
     do {
 	if (task<maxtask) {
-	    type = INFO_receive(&taskinfo[task], sizeof(*taskinfo), verbose);
+	    size_t size = sizeof(*taskinfo);
+	    type = INFO_receive(&taskinfo[task], &size, verbose);
 	} else {
 	    type = INFO_receive(NULL, 0, verbose);
 	}
@@ -367,6 +413,7 @@ long INFO_request_taskinfo(long tid, INFO_info_t what, int verbose)
     INFO_taskinfo_t taskinfo;
     PSP_Info_t type;
     long answer = 0;
+    size_t size = sizeof(taskinfo);
 
     msg.header.type = PSP_CD_INFOREQUEST;
     msg.header.dest = tid;
@@ -379,7 +426,7 @@ long INFO_request_taskinfo(long tid, INFO_info_t what, int verbose)
 	PSI_errexit(errtxt, errno);
     }
 
-    type = INFO_receive(&taskinfo, sizeof(taskinfo), verbose);
+    type = INFO_receive(&taskinfo, &size, verbose);
 
     if (INFO_receive(NULL, 0, 0) != PSP_INFO_TASKEND) return -1;
 
@@ -411,7 +458,8 @@ long INFO_request_taskinfo(long tid, INFO_info_t what, int verbose)
 int INFO_request_nrofnodes(int verbose)
 {
     DDTypedMsg_t msg;
-    int nodes;
+    int nrofnodes;
+    size_t size = sizeof(nrofnodes);
 
     msg.header.type = PSP_CD_INFOREQUEST;
     msg.header.dest = PSC_getTID(-1, 0);
@@ -424,8 +472,8 @@ int INFO_request_nrofnodes(int verbose)
 	PSI_errexit(errtxt, errno);
     }
 
-    if (INFO_receive(&nodes, sizeof(nodes), verbose) == PSP_INFO_NROFNODES) {
-	return nodes;
+    if (INFO_receive(&nrofnodes, &size, verbose) == PSP_INFO_NROFNODES) {
+	return nrofnodes;
     }
 
     return -1;
@@ -435,6 +483,7 @@ char *INFO_request_instdir(int verbose)
 {
     DDTypedMsg_t msg;
     static char instdir[1000];
+    size_t size = sizeof(instdir);
 
     msg.header.type = PSP_CD_INFOREQUEST;
     msg.header.dest = PSC_getTID(-1, 0);
@@ -447,7 +496,7 @@ char *INFO_request_instdir(int verbose)
 	PSI_errexit(errtxt, errno);
     }
 
-    if (INFO_receive(&instdir, sizeof(instdir), verbose) == PSP_INFO_INSTDIR) {
+    if (INFO_receive(instdir, &size, verbose) == PSP_INFO_INSTDIR) {
 	return instdir;
     }
 
@@ -458,6 +507,7 @@ char *INFO_request_psidver(int verbose)
 {
     DDTypedMsg_t msg;
     static char version[80];
+    size_t size = sizeof(version);
 
     msg.header.type = PSP_CD_INFOREQUEST;
     msg.header.dest = PSC_getTID(-1, 0);
@@ -470,11 +520,127 @@ char *INFO_request_psidver(int verbose)
 	PSI_errexit(errtxt, errno);
     }
 
-    if (INFO_receive(&version, sizeof(version), verbose) == PSP_INFO_DAEMONVER) {
+    if (INFO_receive(version, &size, verbose) == PSP_INFO_DAEMONVER) {
 	return version;
     }
 
     return NULL;
+}
+
+int INFO_request_hwnum(int verbose)
+{
+    DDTypedMsg_t msg;
+    int num;
+    size_t size = sizeof(num);
+
+    msg.header.type = PSP_CD_INFOREQUEST;
+    msg.header.dest = PSC_getTID(-1, 0);
+    msg.header.sender = PSC_getMyTID();
+    msg.header.len = sizeof(msg.header);
+    msg.type = PSP_INFO_HWNUM;
+    msg.header.len += sizeof(msg.type);
+
+    if (PSI_sendMsg(&msg)<0) {
+	snprintf(errtxt, sizeof(errtxt), "%s: write", __func__);
+	PSI_errexit(errtxt, errno);
+    }
+
+    if (INFO_receive(&num, &size, verbose) == PSP_INFO_HWNUM) {
+	if (size == sizeof(num)) {
+	    return num;
+	}
+    }
+
+    return -1;
+}
+
+int INFO_request_hwindex(char *hwType, int verbose)
+{
+    DDTypedBufferMsg_t msg;
+    int index;
+    size_t size = sizeof(index);
+
+    msg.header.type = PSP_CD_INFOREQUEST;
+    msg.header.dest = PSC_getTID(-1, 0);
+    msg.header.sender = PSC_getMyTID();
+    msg.header.len = sizeof(msg.header);
+    msg.type = PSP_INFO_HWINDEX;
+    msg.header.len += sizeof(msg.type);
+    strncpy(msg.buf, hwType, sizeof(msg.buf));
+    msg.buf[sizeof(msg.buf)-1] = '\0';
+    msg.header.len += strlen(msg.buf);
+
+    if (PSI_sendMsg(&msg)<0) {
+	snprintf(errtxt, sizeof(errtxt), "%s: write", __func__);
+	PSI_errexit(errtxt, errno);
+    }
+
+    if (INFO_receive(&index, &size, verbose) == PSP_INFO_HWINDEX) {
+	if (size == sizeof(index)) {
+	    return index;
+	}
+    }
+
+    return -1;
+}
+
+char *INFO_request_hwname(int index, int verbose)
+{
+    DDTypedBufferMsg_t msg;
+    static char hwname[80];
+    size_t size = sizeof(hwname);
+
+    msg.header.type = PSP_CD_INFOREQUEST;
+    msg.header.dest = PSC_getTID(-1, 0);
+    msg.header.sender = PSC_getMyTID();
+    msg.header.len = sizeof(msg.header);
+    msg.type = PSP_INFO_HWNAME;
+    msg.header.len += sizeof(msg.type);
+    *(int *)msg.buf = index;
+    msg.header.len += sizeof(index);
+
+    if (PSI_sendMsg(&msg)<0) {
+	snprintf(errtxt, sizeof(errtxt), "%s: write", __func__);
+	PSI_errexit(errtxt, errno);
+    }
+
+    if (INFO_receive(hwname, &size, verbose) == PSP_INFO_HWNAME) {
+	if (size) {
+	    return hwname;
+	}
+    }
+
+    return NULL;
+}
+
+char *INFO_printHWType(unsigned int hwType)
+{
+    int index = 0;
+    static char txt[80];
+
+    txt[0] = '\0';
+
+    if (!hwType) snprintf(txt, sizeof(txt), "none ");
+
+    while (hwType) {
+	if (hwType & 1) {
+	    char *name = INFO_request_hwname(index, 1);
+
+	    if (name) {
+		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt),
+			 "%s ", name);
+	    } else {
+		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "unknown ");
+	    }
+	}
+
+	hwType >>= 1;
+	index++;
+    }
+
+    txt[strlen(txt)-1] = '\0';
+
+    return txt;
 }
 
 int INFO_request_option(unsigned short node, int num, long option[],
