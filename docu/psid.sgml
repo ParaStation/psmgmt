@@ -31,9 +31,9 @@
     </para>
 
     <para>
-      The daemon is usually started by executing <xref linkend="psiadmin"/>. If
-      it is not running at the time a &ps; process is starting, the
-      <citerefentry>
+      The local daemon is usually started by executing <xref
+	linkend="psiadmin"/>. If it is not running at the time a &ps; process
+      is starting, the <citerefentry>
 	<refentrytitle>inetd</refentrytitle>
 	<manvolnum>8</manvolnum>
       </citerefentry> daemon is starting up <command>psid</command>
@@ -46,6 +46,20 @@
 	<manvolnum>5</manvolnum>
       </citerefentry>. Most of the parameters can also be given in the &ps;
       configuration file <xref linkend="parastation_conf" />.
+    </para>
+
+    <para>
+      Nodes without a running &ps; daemon are not visible within the cluster.
+      Be aware of the fact that <xref linkend="psiadmin"/> usually only starts
+      the local daemon. All other daemons managing the nodes configured to
+      belong to the cluster may be started using the <command>add</command>
+      directive from withing the &ps; administation tool <xref
+	linkend="psiadmin"/>.
+    </para>
+
+    <para>
+      If <xref linkend="psiadmin"/> is started with the <option>-s</option>
+      option, all daemons within the cluster will be started automatically.
     </para>
 
     <para>
@@ -78,6 +92,11 @@
 	</para>
       </listitem>
       <listitem>
+	<para>the group is temporally not allowed to access &ps; (see <xref
+	    linkend="psiadmin"/>).
+	</para>
+      </listitem>
+      <listitem>
 	<para>the number of processes exceed the maximum set by <xref
 	    linkend="psiadmin"/>.
 	</para>
@@ -89,8 +108,8 @@
       a specific user or a maximum number of processes. This enables the
       cluster to run in an optimized way, since multiple processes slow down
       application execution due to scheduling overhead. (See <xref
-	linkend="psiadmin"/>, <command>set user</command> and <command>set
-	maxproc</command> for this features.)
+	linkend="psiadmin"/>, <command>set user</command>, <command>set
+	group</command> and <command>set maxproc</command> for this features.)
     </para>
 
     <para>
