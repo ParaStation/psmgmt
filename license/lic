@@ -1,34 +1,120 @@
 #!/bin/sh
 
-#ToDo!!!
 
-filename=testlic
+fields="ID, Ver, Cpr, Name, License, LicType, Date, Expire, Nodes,\\
+CPUs, Features"
+
+
+ask=1;while [ "$ask" == 1 ];do     ask=0
+    echo "Version? {3,FE}"
+    read ver
+    
+    case "$ver" in
+    3)
+	id="ParaStation 3"
+	ver="3.1"
+	features="IP, Ether, Myrinet"
+	fields="$fields ,MCPKey"
+	mcpkeyline="MCPKey   = `echo|pslic_gen -sm`
+"
+	;;
+    fe|FE)
+	id="ParaStation FE"
+	ver="3.1"
+	features=""
+	;;
+    *)
+	echo Unknown version $ver
+	ask=1
+    esac
+done
+
+ask=1;while [ "$ask" == 1 ];do     ask=0
+    echo "expire? (YYYY-MM-DD | (days) | n | never ) default 30days"
+    read expire
+
+    case "$expire" in
+    n*)
+	echo "License never expire"
+	expire="never"
+	;;
+    20[0-9][0-9]-[01][0-9]-[0-3][0-9])
+	echo License expire at
+	date -d $expire
+	ask=$?
+	;;
+    [0-9]*)
+	expire=`date -d ${expire}days -I`
+	echo License expire at $expire
+	;;
+    "")
+	expire=`date -d 30days -I`
+	echo License expire at $expire
+	;;
+    *)
+	echo invalid date $expire
+	ask=1
+    esac
+done 
+
+ask=1;while [ "$ask" == 1 ];do     ask=0
+    echo "Commercial? {y,n}"
+    read com
+    case "$com" in
+    y|Y)
+    	lictype="commercial"
+	;;
+    n|N)
+	lictype="non-commercial"
+	;;
+    *)
+	echo Unknown answer $com
+	ask=1
+    esac
+done
+
+echo "Name?"
+read name
+
+echo "Contact?"
+read contact
+
+echo "nodes? [0-9]+"
+read nodes
+
+echo "cpus? [0-9]+"
+read cpus
+
+echo "Licensefilename? (default license)"
+read filename
+
+if [ "$filename" == "" ] ;then
+    filename="license"
+fi
 
 cat > $filename <<EOF
 #
 # ParaStation license
 #
 
-ID       = "ParaStation"
-Ver      = "3.1"
+ID       = "$id"
+Ver      = "$ver"
 Cpr      = "COPYRIGHT (C) 2002 ParTec AG Karlsruhe"
 
-Name     = "Uni-Karlsruhe IPD"
-Contact  = "xyz@blup.de"
+Name     = "$name"
+Contact  = "$contact"
 License  = `echo|pslic_gen -sl`
-LicType  = "non-commercial"
+LicType  = "$lictype"
 
-Date     = "2002-07-16"
-Expire   = "never"
+Date     = "`date -I`"
+Expire   = "$expire"
 
-Nodes    = 32
-CPUs     = 64
-Features = "IP, Ether, Myrinet"
+Nodes    = $nodes
+CPUs     = $cpus
+Features = "$features"
 
-MCPKey   = `echo|pslic_gen -sm`
-
-Fields   = "ID, Ver, Cpr, Name, License, LicType, Date, Expire, Nodes,\\
-CPUs, Features, MCPKey"
+$mcpkeyline
+Fields   = "$fields"
 
 EOF
 
@@ -38,7 +124,7 @@ Hash     = `pslic_gen -sa < $filename`
 EOF
 
 #cat $filename
-echo Wrote $filename
+echo "Wrote licensefile <$filename>"
 pslic_gen -c < $filename
 
 
