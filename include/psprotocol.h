@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.24 2003/11/26 15:05:57 eicker Exp $
+ * $Id: psprotocol.h,v 1.25 2003/12/22 18:32:02 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation client-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.24 2003/11/26 15:05:57 eicker Exp $
+ * $Id: psprotocol.h,v 1.25 2003/12/22 18:32:02 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -49,7 +49,7 @@ extern "C" {
 /** Error code within a #PSP_CD_CLIENTREFUSED message */
 typedef enum {
     PSP_CONN_ERR_NONE = 0,        /**< No error, but TG_RESET task group */
-    PSP_CONN_ERR_OLDVERSION = 1,  /**< Protocol version mismatch */
+    PSP_CONN_ERR_VERSION = 1,     /**< Protocol version mismatch */
     PSP_CONN_ERR_NOSPACE,         /**< No space to create task struct */
     PSP_CONN_ERR_UIDLIMIT,        /**< Node is limited to different user */
     PSP_CONN_ERR_PROCLIMIT,       /**< Number of processes exceeded */
