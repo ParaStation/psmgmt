@@ -1,15 +1,15 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * psi.c
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.52 2003/07/22 18:36:00 eicker Exp $
+ * $Id: psi.c,v 1.53 2003/09/12 14:15:51 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.52 2003/07/22 18:36:00 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.53 2003/09/12 14:15:51 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
