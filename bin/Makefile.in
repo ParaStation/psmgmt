@@ -73,7 +73,7 @@ lex.admin.o: lex.admin.c admin.tab.c admin.tab.h
 # psid
 VPATH += $(SRCDIR)/daemon
 psid: psid.o psidutil.o psidtask.o psidspawn.o psidforwarder.o
-psid: psidsignal.o psidcomm.o psidclient.o
+psid: psidsignal.o psidmsgbuf.o psidrdp.o psidclient.o psidcomm.o
 psid: -lm -lputil -lpscommon -lutil -lpopt -lpslog
 
 #psld
