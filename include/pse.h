@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.h,v 1.17 2003/09/12 13:54:40 eicker Exp $
+ * $Id: pse.h,v 1.18 2004/01/20 11:47:11 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation Programming Environment
  *
- * $Id: pse.h,v 1.17 2003/09/12 13:54:40 eicker Exp $
+ * $Id: pse.h,v 1.18 2004/01/20 11:47:11 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -120,7 +120,8 @@ int PSE_getRank(void);
  *
  * @param NP The aspired size of the process group.
  *
- * @param rank On return, @rank contains the actual rank of the process.
+ * @param rank On return, @a rank contains the actual rank of the
+ * process.
  *
  * @warning Deprecated form of @ref PSE_initialize(). Don't use this.
  *
