@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.14 2002/01/28 19:10:48 eicker Exp $
+ * $Id: psld.c,v 1.15 2002/01/30 10:42:02 eicker Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Daemon
  *
- * $Id: psld.c,v 1.14 2002/01/28 19:10:48 eicker Exp $
+ * $Id: psld.c,v 1.15 2002/01/30 10:42:02 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.14 2002/01/28 19:10:48 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.15 2002/01/30 10:42:02 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -41,8 +41,9 @@ static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.14 2002/01/28 19
 
 #include <netdb.h>
 
-#include <timer.h>
-#include <mcast.h>
+#include "errlog.h"
+#include "timer.h"
+#include "mcast.h"
 
 #include "../psid/parse.h"
 
@@ -59,9 +60,6 @@ extern int ConfigSyslog;
 extern char ConfigLicensekey[];
 
 static char errtxt[255];
-
-#define ERR_OUT(msg) if (usesyslog) syslog(LOG_ERR,"PSLD: %s\n",msg);\
-                     else fprintf(stderr,"%s\n",msg);
 
 void IpNodesEndFromLicense(char* licensekey, unsigned int* IP, long* nodes,
 			   unsigned long* start, unsigned long* end,
@@ -89,15 +87,13 @@ int check_machine(int *interface)
 
     skfd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);  /* allocate a socket */
     if (skfd<0) {
-	ERR_OUT("Unable to obtain socket");
-	return 1;
+	errexit("Unable to obtain socket", errno);
     }
 
     ifc.ifc_len = sizeof(struct ifreq) * numreqs;
     ifc.ifc_buf = malloc(ifc.ifc_len);
     if (ioctl(skfd, SIOCGIFCONF, &ifc) < 0) {
-	ERR_OUT("Unable to obtain network configuration");
-	return 1;
+	errexit("Unable to obtain network configuration", errno);
     }
 
     ifr = ifc.ifc_req;
@@ -113,8 +109,7 @@ int check_machine(int *interface)
 		snprintf(errtxt, sizeof(errtxt),
 			 "Unable to obtain interface address for interface %s",
 			 ifr->ifr_name);
-		ERR_OUT(errtxt);
-		return 1;
+		errexit(errtxt, errno);
 	    } else {
 		memcpy(iflist[i].mac_addr, ifr->ifr_hwaddr.sa_data, 6);
 	    }
@@ -127,7 +122,7 @@ int check_machine(int *interface)
 		     iflist[i].mac_addr[0], iflist[i].mac_addr[1],
 		     iflist[i].mac_addr[2], iflist[i].mac_addr[3],
 		     iflist[i].mac_addr[4], iflist[i].mac_addr[5]);
-	    ERR_OUT(errtxt);
+	    errlog(errtxt, 0);
 	    i++;
 	}
 	ifr++;
@@ -139,7 +134,7 @@ int check_machine(int *interface)
     LicIP = psihosttable[NrOfNodes].inet;
     snprintf(errtxt, sizeof(errtxt), "LicIP is %s [%d interfaces]",
 	     inet_ntoa(*(struct in_addr *) &LicIP), if_found);
-    ERR_OUT(errtxt);
+    errlog(errtxt, 1);
 
     ipfound = 0;
 /*      netfound = 0; */
@@ -151,7 +146,7 @@ int check_machine(int *interface)
 /*  	if (!netfound && inet_netof(iaddr1) == inet_netof(iaddr2)){ */
 /*  	    snprintf(errtxt, sizeof(errtxt), */
 /*  		     "Using %s as multicast interface", iflist[i].name); */
-/*  	    ERR_OUT(errtxt); */
+/*  	    errlog(errtxt); */
 /*  	    netfound = 1; */
 /*  	    *interface = i; */
 /*  	} */
@@ -162,8 +157,7 @@ int check_machine(int *interface)
 	snprintf(errtxt, sizeof(errtxt),
 		"Machine %s not configured as LicenseServer [Server is %s]",
 		host, psihosttable[NrOfNodes].name);
-	ERR_OUT(errtxt);
-	return 1;
+	errexit(errtxt, ECONNREFUSED);
     }
 
     return 0;
@@ -188,27 +182,27 @@ int check_license(void)
 	     "LIC-INFO: IP=%x, nodes=%ld, start=%lx, now=%lx, end=%lx,"
 	     " version=%ld\n",
 	     IP, nodes, start, now, end, version);
-    ERR_OUT(errtxt);
+    errlog(errtxt, 1);
 
     if (NrOfNodes<=4) return 1;  /* 4 nodes are for free */
 
     if (start+end == 0) {        /* Illegal Key (wrong checksum) */
-	ERR_OUT("Invalid License Key");
+	errlog("Invalid License Key", 0);
 	return 0;
     }
 
     if (now<start) {             /* License is no more valid */
-	ERR_OUT("License out of date: check clock setting");
+	errlog("License out of date: check clock setting", 0);
 	return 0;
     }
     if (end<now) {               /* License is no more valid */
 	snprintf(errtxt, sizeof(errtxt),
 		 "License out of date (end=%lx, now=%lx)",end,now);
-	ERR_OUT(errtxt);
+	errlog(errtxt, 0);
 	return 0;
     }
     if (nodes < NrOfNodes) {     /* more nodes than in license */
-	ERR_OUT("License not valid for this number of nodes");
+	errlog("License not valid for this number of nodes", 0);
 	return 0;
     }
 
@@ -223,8 +217,8 @@ int check_license(void)
 	snprintf(errtxt, sizeof(errtxt),
 		"LicenseKey does not match current LicenseServer [%s:%s]",
 		host, psihosttable[NrOfNodes].name);
-	ERR_OUT(errtxt);
-	return 1;
+	errlog(errtxt, 0);
+	return 0;
     }
 
     return 1;
@@ -258,14 +252,14 @@ int check_lock(void)
 	errno = 0;
 	if (kill(fpid, 0)==-1) {
 	    if (errno == ESRCH){ /* old pid file */
-		ERR_OUT("old PID File");
+		errlog("old PID File", 0);
 	    } else {
-		ERR_OUT("strange error");
+		errlog("strange error", 0);
 		return 0; /* psld already running */
 	    }
 	} else {
 	    snprintf(errtxt, sizeof(errtxt), "process %d still running", fpid);
-	    ERR_OUT(errtxt);
+	    errlog(errtxt, 1);
 	    return 0; /* psld already running */
 	}
     }
@@ -274,7 +268,7 @@ int check_lock(void)
 	 || ((f = fdopen(fd, "r+")) == NULL) ) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "Can't open or create %s.\n", PIDFILE);
-	ERR_OUT(errtxt);
+	errlog(errtxt, 0);
 	return 0;
     } else {
 	fprintf(f,"%d\n", mypid);
@@ -299,9 +293,9 @@ void sighandler(int sig)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.14 $";
+    char revision[] = "$Revision: 1.15 $";
     snprintf(errtxt, sizeof(errtxt), "psld %s\b ", revision+11);
-    ERR_OUT(errtxt);
+    errlog(errtxt, 0);
 }
 
 /*
@@ -309,7 +303,7 @@ static void version(void)
  */
 static void usage(void)
 {
-    ERR_OUT("usage: psld [-h] [-v] [-d] [-D] [-f file]");
+    errlog("usage: psld [-h] [-v] [-d] [-D] [-f file]", 0);
 }
 
 /*
@@ -319,18 +313,18 @@ static void help(void)
 {
     usage();
     snprintf(errtxt, sizeof(errtxt), " -d      : Enable debugging.");
-    ERR_OUT(errtxt);
+    errlog(errtxt, 0);
     snprintf(errtxt, sizeof(errtxt), " -D      : Enable more debugging.");
-    ERR_OUT(errtxt);
+    errlog(errtxt, 0);
     snprintf(errtxt, sizeof(errtxt), " -f file : use 'file' as config-file"
 	     " (default is psidir/config/psm.config).");
-    ERR_OUT(errtxt);
+    errlog(errtxt, 0);
     snprintf(errtxt, sizeof(errtxt),
 	     " -v,      : output version information and exit.\n");
-    ERR_OUT(errtxt);
+    errlog(errtxt, 0);
     snprintf(errtxt, sizeof(errtxt),
 	     " -h,      : display this help and exit.\n");
-    ERR_OUT(errtxt);
+    errlog(errtxt, 0);
 }
 
 int main(int argc, char *argv[])
@@ -345,14 +339,14 @@ int main(int argc, char *argv[])
     while ( (c = getopt(argc,argv, "dDhHvVf:")) != -1 ) {
 	switch (c) {
 	case 'd':
-	    dofork=0;
-	    usesyslog=0;
+	    setErrLogLevel(1);
 	    break;
 	case 'D':
-	    setTimerDebugLevel(10);
-	    setMCastDebugLevel(10);
 	    dofork=0;
 	    usesyslog=0;
+	    setErrLogLevel(1);
+	    setDebugLevelTimer(10);
+	    setDebugLevelMCast(10);
 	    break;
 	case 'f' :
 	    Configfile = strdup( optarg );
@@ -371,30 +365,27 @@ int main(int argc, char *argv[])
     }
 
     if (usesyslog) openlog("psld", LOG_PID, LOG_DAEMON);
+    initErrLog("psld", usesyslog);
 
     if(errflg){
 	usage();
-	if (usesyslog) closelog();
 	return -1;
     }
 
     if (helpflg) {
 	help();
-	if (usesyslog) closelog();
 	return 0;
     }
 
     if (verflg) {
 	version();
-	if (usesyslog) closelog();
 	return 0;
     }
 
     if (dofork) {  /* Start as daemon */
 	switch (c = fork()) {
 	case -1:
-	    ERR_OUT("unable to fork server process\n");
-	    return(-1);
+	    errexit("unable to fork server process", errno);
 	    break;
 	case 0: /* I'm the child (and running further) */
 	    break;
@@ -405,7 +396,7 @@ int main(int argc, char *argv[])
     }
 
     if (!check_lock()) {
-	ERR_OUT("PSLD already running\n");
+	errlog("PSLD already running\n", 1);
 	return -1;
     }
     /* Install sighandler to remove lockfile on exit */
@@ -414,14 +405,10 @@ int main(int argc, char *argv[])
     signal(SIGINT,sighandler);
 
     if (parseConfig(usesyslog) < 0) {
-	if (usesyslog) closelog();
 	return -1;
     }
 
-    if (check_machine(&interface)) {
-	if (usesyslog) closelog();
-	return -1;
-    }
+    check_machine(&interface);
 
     if (usesyslog) {
 	closelog();
@@ -435,8 +422,7 @@ int main(int argc, char *argv[])
 	 */
 	hostlist = malloc((NrOfNodes+1) * sizeof (unsigned int));
 	if (!hostlist) {
-	    ERR_OUT("Not enough memory for hostlist\n");
-	    if (usesyslog) closelog();
+	    errlog("Not enough memory for hostlist\n", 0);
 	    return -1;
 	}
 
@@ -445,7 +431,7 @@ int main(int argc, char *argv[])
 	}
 
 	msock = initMCast(NrOfNodes, ConfigMgroup, usesyslog, hostlist,
-			  NULL);
+			  1, NULL);
 
 	tv.tv_sec = 1;
 	tv.tv_usec = 0;
