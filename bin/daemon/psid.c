@@ -2650,7 +2650,7 @@ main(int argc, char **argv)
 		return 0;
 		break;
 	    default :
-		SYSLOG(0,(LOG_ERR, "usage: %s [-d] [-D MASK]\n",argv[0]));
+		SYSLOG(0,(LOG_ERR, "usage: %s [-d] [-D MASK] [-f configfile]\n",argv[0]));
 		usage();
 		return -1;
 	    }
