@@ -238,7 +238,7 @@ int MsgReceive(int fd, DDMsg_t* msg,int size)
 	    if(count!=msg->len){
 		/* if wrong msg format initiate a disconnect */
 		sprintf(PSI_txt,"%d=MsgReceive(fd %d) PANIC received an "
-			"initial message wich incompatible msg type.(%ld)\n",
+			"initial message with incompatible msg type.(%ld)\n",
 			n,fd,msg->len);
 		SYSLOG(0,(LOG_ERR,PSI_txt));
 		count=n=0;
@@ -803,7 +803,8 @@ int Do_NewReset()
 	    sprintf(PSI_txt,"Do_Reset() resetting the hardware\n");
 	    SYSLOG(2,(LOG_ERR,PSI_txt));
 	}
-	PSID_ReConfig(PSI_myid, PSI_nrofnodes, ConfigRoutefile);
+	PSID_ReConfig(PSI_myid, PSI_nrofnodes, ConfigLicensekey, ConfigModule,
+		      ConfigRoutefile);
     }
     /*
      * change the state
@@ -2654,13 +2655,7 @@ main(int argc, char **argv)
 	PSI_setoption(PSP_OSYSLOG,1);
 	SYSLOG_LEVEL = 9;
 
-	SYSLOG(0,(LOG_ERR, "***************************************"
-		  "********************\n"));
-	SYSLOG(0,(LOG_ERR, "Starting ParaStation DAEMON V%d"
-		  " (c) ParTec AG (www.par-tec.com)\n",
-		  PSPprotocolversion));
-
-	while ((opt = getopt(argc, argv, "dD:hH?")) != -1){
+	while ((opt = getopt(argc, argv, "dD:f:hH?")) != -1){
 	    switch (opt){
 	    case 'd' : /* DEBUG print out debug informations */
 		DEBUGGING = 1;
@@ -2669,6 +2664,10 @@ main(int argc, char **argv)
 	    case 'D' :
 		DEBUGGING = 1;
 		sscanf(optarg,"%lx",&debugmask);
+		break;
+	    case 'f' :
+		Configfile = (char *) malloc(strlen(optarg));
+		strcpy(Configfile, optarg);
 		break;
 	    case 'h' : /* help */
 	    case 'H' :
@@ -2785,6 +2784,12 @@ main(int argc, char **argv)
 	    setsockopt(PSI_msock,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(reuse));
 #endif
 	}
+
+	SYSLOG(0,(LOG_ERR, "***************************************"
+		  "********************\n"));
+	SYSLOG(0,(LOG_ERR, "Starting ParaStation DAEMON V%d"
+		  " (c) ParTec AG (www.par-tec.com)\n",
+		  PSPprotocolversion));
 
 	if (listen(PSI_msock, 20) < 0){
 	    SYSLOG(0,(LOG_ERR,
