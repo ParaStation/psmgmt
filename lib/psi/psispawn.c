@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.30 2003/02/14 15:38:24 eicker Exp $
+ * $Id: psispawn.c,v 1.31 2003/02/14 16:28:05 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.30 2003/02/14 15:38:24 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.31 2003/02/14 16:28:05 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -476,7 +476,8 @@ char *PSI_createPIfile(int num, const char *prog)
 
 	hostaddr.s_addr = INFO_request_node(PSI_Partition[i], 0);
 
-	fprintf(PIfile, "%s %d %s\n", inet_ntoa(hostaddr), 1, myprog);
+	fprintf(PIfile, "%s %d %s\n", inet_ntoa(hostaddr), (i != 0), myprog);
+	
 
 	j = (j+1) % PSI_PartitionSize;
     }
@@ -856,6 +857,7 @@ short PSI_getPartition(unsigned int hwType, int myRank)
 	    }
 
 	    for (i=0; i<PSI_PartitionSize; i++) {
+		int j;
 		for (j=0; j<num; j++) {
 		    temp[num*i+j] = PSI_Partition[i];
 		}
