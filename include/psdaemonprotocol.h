@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psdaemonprotocol.h,v 1.8 2004/01/28 10:48:20 eicker Exp $
+ * $Id: psdaemonprotocol.h,v 1.9 2004/03/11 14:08:58 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation daemon-daemon high-level protocol.
  *
- * $Id: psdaemonprotocol.h,v 1.8 2004/01/28 10:48:20 eicker Exp $
+ * $Id: psdaemonprotocol.h,v 1.9 2004/03/11 14:08:58 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -63,6 +63,8 @@ extern "C" {
 #define PSP_DD_PROVIDETASKNL       0x0127  /**< Task reply nodelist */
 #define PSP_DD_CANCELPART          0x0128  /**< Cancel partition request */
 #define PSP_DD_TASKDEAD            0x0129  /**< Complete task finished */
+#define PSP_DD_TASKSUSPEND         0x012A  /**< Task got SIGTSTP */
+#define PSP_DD_TASKRESUME          0x012B  /**< Task got SIGCONT */
 
 /** Messages used to find master */
 #define PSP_DD_LOAD                0x0130  /**< Load message to master */
