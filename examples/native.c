@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: native.c,v 1.2 2002/11/26 13:20:08 eicker Exp $
+ * $Id: native.c,v 1.3 2002/11/27 09:06:53 eicker Exp $
  *
  * A simple example on how to use the ParaStation API.
  *
- * It starts up a parallel program and does some ping-pong
+ * It starts up a parallel program and does some round-robin
  * communication.
  *
  * Norbert Eicker <eicker@par-tec.com>
@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <pse.h>
 #include <psport.h>
 
@@ -126,10 +127,6 @@ void initClient(PSP_identity_t *map)
 
 int main(int argc, char *argv[])
 {
-    struct PSP_PortH *porth; /* our PSPort port handle */
-    PSP_identity_t *map;     /* our global map of ports; index is rank */
-    int worldSize, rank;
-
     int err;
 
     /* Get mandatory -np argument */
@@ -208,9 +205,42 @@ int main(int argc, char *argv[])
     }
 
     /* Now we are finished with the setup and can do the real stuff */
-    printf("My rank is %d and im running on node %d\n", rank, node);
+
+    /* Give some info about the myself */
+    printf("My rank is %d and im running on node %d.\n", rank, map[rank].node);
+
+    /* Initialize the random number generator */
+    srand(rank+17);
+    
+    /* Do some simple round-robin communication */
+    {
+	PSP_Header_t recvHeader, sendHeader;
+	PSP_RequestH_t recvReq, sendReq;
+	int dest = (rank + 1) % worldSize;
+	float random = (float) rand() / RAND_MAX, next=0.0;
+
+	printf("The random number on rank %d is %f.\n", rank, random);
+	//printf("%d %d\n", rank, dest);
+
+	/* First post the receive */
+	recvReq = PSP_IReceive(porth, &next, sizeof(next),
+			       &recvHeader, 0, PSP_RecvAny, NULL);
+
+	/* Then do the send */
+	sendReq = PSP_ISend(porth, &random, sizeof(random),
+			    &sendHeader, 0, map[dest].node, map[dest].port, 0);
+
+	/* Now wait for both operations */
+	PSP_Wait(porth, recvReq);
+	PSP_Wait(porth, sendReq);
+
+	/* Look what we got */
+	printf("On rank %d I got %f.\n", rank, next);
+    }
+    sleep(120);
 
     /* In order to stop gracefully */
+    PSP_ClosePort(porth);
     PSE_finalize();
 
     return 0;
