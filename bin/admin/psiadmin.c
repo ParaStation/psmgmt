@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.44 2002/07/26 15:08:57 eicker Exp $
+ * $Id: psiadmin.c,v 1.45 2002/08/06 08:31:06 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.44 2002/07/26 15:08:57 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.45 2002/08/06 08:31:06 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -47,7 +47,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.44 $";
+static char psiadmversion[] = "$Revision: 1.45 $";
 static int doRestart = 0;
 
 static char *hoststatus = NULL;
@@ -1167,7 +1167,7 @@ int main(int argc, char **argv)
 	exit(-1);
     }
 
-    hoststatus = malloc(sizeof(char) * PSC_getNrOfNodes());
+    hoststatus = (char *)malloc(sizeof(char) * PSC_getNrOfNodes());
     if (!hoststatus) {
 	printf("node memory\n");
 	exit(1);
