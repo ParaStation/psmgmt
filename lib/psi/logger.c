@@ -19,42 +19,24 @@
 
 #include "logger.h"
 
-struct LOGGERclient_t{
-    long id;
-    int std;
-    int logfd;
-};
-
-struct LOGGERclient_t LOGGERclients[128];
-
-long LOGGERportno = -1;
-int LOGGERsocket = -1;
-int LOGGERstdout = 1;
-int LOGGERstderr = 2;
-int PrependSource = 0;
-
-fd_set LOGGERmyfds;
-int LOGGERnoclients;
-
 /*************************************************************
  * int
- * LOGGERstdconnect(u_long port,int MyOut,PStask_t* task)
+ * LOGGERstdconnect(u_int node, int port, int fd, PStask_t* task)
  *
  * creates a socket and connects it to the port. It signals the logger that
- * it will be used as MyOut(STDOUT/STDERR).
+ * it will be used as std(STDOUT/STDERR).
+ *
  * RETURN the newly created socket.
  */
-int
-LOGGERstdconnect(unsigned int node, int port, int MyOut, PStask_t* task)
+int LOGGERstdconnect(unsigned int node, int port, int std, PStask_t* task)
 {
-    int sock;     /* master socket to listen to.*/
+    int sock;                   /* master socket to log to */
     struct sockaddr_in sa;	/* socket address */ 
     struct LOGGERclient_t mystruct;
 
     int delay;
 
     if((sock = socket(PF_INET,SOCK_STREAM,0))<0){
-	perror("PSPlogger: can't create socket:");
 #ifdef DEBUG
 	sprintf(PSI_txt,"LOGGERstdconnect: socket() error %d\n",errno);
 	PSI_logerror(PSI_txt);
@@ -80,48 +62,50 @@ LOGGERstdconnect(unsigned int node, int port, int MyOut, PStask_t* task)
     }
 
     mystruct.id = PSI_gettid(-1,getpid());
-    mystruct.std = MyOut;
-    mystruct.logfd = 0;
+    mystruct.std = std;
 
-    if(task->options & TaskOption_SENDSTDHEADER)
+    if(task->options & TaskOption_SENDSTDHEADER){
 	write(sock,&mystruct,sizeof(struct LOGGERclient_t));
+    }
 
-    dup2(sock, MyOut);
+    dup2(sock, std);
     close(sock);
 
     return sock;
 }
 
 /*************************************************************
- * int
- * LOGGERstdDevNull(int std)
+ * int LOGGERstdDevNull(int std)
  * 
  * redirect stdout/stderr to /dev/null
+ *
  * RETURN 0 success
  *        -1 error errno is set.
  */
-int
-LOGGERstdDevNull(int std)
+int LOGGERstdDevNull(int std)
 {
     int fd;
 
     if((fd = open("/dev/null",O_WRONLY, S_IRUSR|S_IWUSR))<0){
+#ifdef DEBUG
 	sprintf(PSI_txt,"LOGGERstdDevNull: Even </dev/null> is not "
 		"usable for %s!! PANIC exit (errno %d)!!",
-		(std==1)?"STDOUT":"STDERR",errno);
+		(std==STDOUT_FILENO)?"STDOUT":"STDERR",errno);
 	PSI_logerror(PSI_txt);
+#endif
 	errno = EIO;
 	return -1;
     }
+#ifdef DEBUG
     sprintf(PSI_txt,"LOGGERredirect_std: Now using /dev/null for %s\n",
-	    (std==1)?"STDOUT":"STDERR");
+	    (std==STDOUT_FILENO)?"STDOUT":"STDERR");
     PSI_logerror(PSI_txt);
-    close(std);
-    dup(fd);
+#endif
+    dup2(fd, std);
     close(fd);
+
     return 0;
 }
-
 
 /*************************************************************
  * int
@@ -131,8 +115,7 @@ LOGGERstdDevNull(int std)
  * RETURN 0 success
  *        -1 error errno is set.
  */
-int
-LOGGERredirect_std(unsigned int node, int port, PStask_t* task)
+int LOGGERredirect_std(unsigned int node, int port, PStask_t* task)
 {
     int sock;     /* master socket to listen to.*/
 
@@ -146,7 +129,7 @@ LOGGERredirect_std(unsigned int node, int port, PStask_t* task)
 	fflush(stdout);
 	fflush(stderr);
 	if((sock = LOGGERstdconnect(node, port, STDOUT_FILENO, task))<0)
-	    if(LOGGERstdDevNull(1)<0)
+	    if(LOGGERstdDevNull(STDOUT_FILENO)<0)
 		return -1;
 
 	/* 
@@ -157,11 +140,9 @@ LOGGERredirect_std(unsigned int node, int port, PStask_t* task)
 	if(task->options & TaskOption_ONESTDOUTERR){
 	    dup2(STDOUT_FILENO, STDERR_FILENO);
 	}else if((sock = LOGGERstdconnect(node, port, STDERR_FILENO, task))<0)
-	    if(LOGGERstdDevNull(2)<0)
+	    if(LOGGERstdDevNull(STDERR_FILENO)<0)
 		return -1;
     }else{
-	/* TODO: use /dev/null for any output */
-
 	int fd;           /* filedesc. of the stdout/stderr while creating */
 	char stdname[40]; /* name for stdout/stderr files of spawned process*/
 
@@ -171,10 +152,10 @@ LOGGERredirect_std(unsigned int node, int port, PStask_t* task)
 	    char* errtxt;
 	    errtxt=strerror(errno);
 	    sprintf(PSI_txt,"LOGGERredirect_std: can not open new stdout "
-		    " errno(%d) %s <%s>>",
-		    errno,errtxt?errtxt:"UNKNOWN",stdname);
+		    " errno(%d) %s <%s>>", errno,
+		    errtxt?errtxt:"UNKNOWN", stdname);
 	    PSI_logerror(PSI_txt);
-	    if(LOGGERstdDevNull(1)<0)
+	    if(LOGGERstdDevNull(STDOUT_FILENO)<0)
 		return -1;
 	}else{
 	    dup2(fd, STDOUT_FILENO);
@@ -184,24 +165,18 @@ LOGGERredirect_std(unsigned int node, int port, PStask_t* task)
 	if((fd = open(stdname, O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR))<0){
 	    char* errtxt;
 	    errtxt=strerror(errno);
-	    sprintf(PSI_txt,"LOGGERredirect_std:"
-		    " can not open new stdout  errno(%d) %s <%s>",
+	    sprintf(PSI_txt,"LOGGERredirect_std: can not open new stderr "
+		    " errno(%d) %s <%s>",
 		    errno,errtxt?errtxt:"UNKNOWN",stdname);
 	    PSI_logerror(PSI_txt);
-
-	    if((fd = open("/dev/null",O_WRONLY, S_IRUSR|S_IWUSR))<0){
-		sprintf(PSI_txt,"LOGGERredirect_std: Even </dev/null> is not "
-			"usable !! PANIC exit!!");
-		PSI_logerror(PSI_txt);
-		errno = EIO;
+	    if(LOGGERstdDevNull(STDERR_FILENO)<0)
 		return -1;
-	    }
-	    sprintf(PSI_txt,"LOGGERredirect_std: Now using /dev/null");
-	    PSI_logerror(PSI_txt);
+	}else{
+	    dup2(fd, STDERR_FILENO);
+	    close(fd);
 	}
-	dup2(fd, STDERR_FILENO);
-	close(fd);
     }
+
     return 0;
 }
 
@@ -213,8 +188,7 @@ LOGGERredirect_std(unsigned int node, int port, PStask_t* task)
  *  RETURN -1 on error; socketfd of success
  *         portno is set to the real portno
  */
-int
-LOGGERcreateport(long * portno)
+int LOGGERcreateport(int *portno)
 {
     struct sockaddr_in sa;	/* socket address */ 
     int sock;
@@ -222,13 +196,13 @@ LOGGERcreateport(long * portno)
 
 #ifdef DEBUG
     if(0){
-	sprintf(PSI_txt,"LOGGERcreateport(%ld)\n",*portno);
+	sprintf(PSI_txt,"LOGGERcreateport(%d)\n",*portno);
 	PSI_logerror(PSI_txt);
     }
 #endif
 
     if((sock = socket(AF_INET,SOCK_STREAM,0))<0){
-	perror("PSPlogger: can't create socket:");
+	perror("PSIlogger: can't create socket:");
 	return(-1);
     }
     bzero((char *)&sa, sizeof(sa)); 
@@ -242,12 +216,12 @@ LOGGERcreateport(long * portno)
 	sa.sin_port = htons(ntohs(sa.sin_port)-1); 
     }
     if(err <0){
-	perror("PSPlogger: can't bind socket:");
+	perror("PSIlogger: can't bind socket:");
 	return(-1);
     }
 
     if((listen(sock,256))<0){
-	perror("PSPlogger: can't listen to socket:");
+	perror("PSIlogger: can't listen to socket:");
 	return(-1);
     }
     *portno = ntohs(sa.sin_port);
@@ -256,439 +230,121 @@ LOGGERcreateport(long * portno)
 }
 
 /*********************************************************************
- * LOGGERgetparentsock(int listensock)
+ * int LOGGERspawnforwarder()
  *
- * waits util the parent connects to this socket.
- * This socket is needed for (logger<->parent) control
+ * spawns a forwarder.
+ * RETURN the portno of the forwarder
  */
-int 
-LOGGERgetparentsock(int listensock)
+int LOGGERspawnforwarder(unsigned int logger_node, int logger_port)
 {
-   struct sockaddr sa;	/* socket address */ 
-   int salen;
-   int sock;
+    int portno, listen;
 
-#ifdef DEBUG
-   if(0)
-     {
-       sprintf(PSI_txt,"LOGGERgetparentsock(%d)\n",listensock);
-       PSI_logerror(PSI_txt);
-     }
-#endif
-
-   salen = sizeof(sa);
-   sock = accept(listensock, &sa,&salen);
-   
-   /* TODO setup the protocol*/
-   /* TODO setup the initial stdout/stderr */
-   return sock;
-}
-
-/*********************************************************************
- * LOGGERparentrequest(int sock)
- *
- * get the message from the parent and react in that way
- */
-int 
-LOGGERparentrequest(int sock)
-{
-    char buffer[4096];
-    int n;
-
-#ifdef DEBUG
-    if(0){
-	sprintf(PSI_txt,"LOGGERparentrequest(%d)\n",sock);
-	PSI_logerror(PSI_txt);
-    }
-#endif
-
-    n = read(sock,buffer,sizeof(buffer));
-
-    /* TODO (parent<-> logger) protocol specification */
-    return n;
-}
-
-/*********************************************************************
- * LOGGERgetloggersock(int portno)
- *
- * it connects to the logger. This function is only called by the parent.
- * This socket is needed for (logger<->parent) control
- */
-int 
-LOGGERgetloggersock(long portno)
-{
-    int sock;     /* master socket to listen to.*/
-    struct sockaddr_in sa;	/* socket address */ 
-
-#ifdef DEBUG
-    if(0){
-	sprintf(PSI_txt,"LOGGERgetloggersock(%lx[%ld,%ld])\n",
-		portno,portno>>16,portno&0xffff);
-	PSI_logerror(PSI_txt);
-    }
-#endif
-
-    if((sock = socket(AF_INET,SOCK_STREAM,0))<0){
-	perror("Loggerparent: can't create socket:");
-	return(-1);
-    }
-
-    bzero((char *)&sa, sizeof(sa)); 
-    sa.sin_family = AF_INET; 
-    sa.sin_addr.s_addr = INADDR_ANY;
-
-    sa.sin_port = htons(portno & 0xffff); 
-
-    if((connect(sock,(struct sockaddr *)&sa, sizeof(sa)))<0){
-	perror("Logger: can't connect socket:");
-	return(-1);
-    }
-
-    /* TODO setup the protocol*/
-    /* TODO setup the initial stdout/stderr */
-
-    return sock;
-}
-
-/*********************************************************************
- * LOGGERnewrequest(int LOGGERlisten)
- *
- * accepts a new connection to a client.
- * The client sends its parameters 
- * and this routine packs them in a LOGGERclient_t struct
- * RETURN the new fd (which is also index in the LOGGERclient array
- *        -1 on error
- */
-int
-LOGGERnewrequest(int LOGGERlisten, int verbose)
-{
-    struct sockaddr_in sa; /* socket address */ 
-    int salen;
-    int sock, reuse;
-
-#ifdef DEBUG
-    if(0){
-	sprintf(PSI_txt,"LOGGERnewrequest(%d)\n",LOGGERlisten);
-	PSI_logerror(PSI_txt);
-    }
-#endif
-
-    salen = sizeof(sa);
-    sock = accept(LOGGERlisten, &sa,&salen);
-
-    if(verbose){
-	int cli_port;
-	char *cli_name;
-	cli_name = inet_ntoa(sa.sin_addr);
-        cli_port = ntohs(sa.sin_port);
-	printf("PSPlogger: new connection from %s (%d)\n", cli_name, cli_port);
-    }
-
-    reuse = 1;
-    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
-
-    if(read(sock,&LOGGERclients[sock],sizeof(struct LOGGERclient_t))>0){
-#ifdef DEBUG
-	sprintf(PSI_txt,"PSPlogger: %ld is logging his %s\n",
-		LOGGERclients[sock].id,
-		(LOGGERclients[sock].std==1)?"STDOUT":"STDERR");
-	PSI_logerror(PSI_txt);
-#endif
-	if(LOGGERclients[sock].std==1)
-	    LOGGERclients[sock].logfd = LOGGERstdout;
-	else
-	    LOGGERclients[sock].logfd = LOGGERstderr;
-	if(verbose){
-	    printf("PSPlogger: %lx [%d,%d] is logging his %s\n",
-		   LOGGERclients[sock].id,
-		   PSI_getnode(LOGGERclients[sock].id),
-		   PSI_getpid(LOGGERclients[sock].id),
-		   (LOGGERclients[sock].std==1)?"STDOUT":"STDERR");
-	}
-    }else{
-	close(sock);
-	sock = -1;
-    }
-    return sock;
-}
-
-/******************************************
- *  CheckFileTable()
- */
-void LOGGER_CheckFileTable(fd_set* openfds)
-{
-    fd_set rfds;
-    int fd;
-    struct timeval tv;
-
-    for(fd=0;fd<FD_SETSIZE;){
-	if(FD_ISSET(fd,openfds)){
-	    bzero(&rfds,sizeof(rfds));
-	    FD_SET(fd,&rfds);
-
-	    tv.tv_sec=0;
-	    tv.tv_usec=0;
-	    if (select(FD_SETSIZE, &rfds, (fd_set *)0, (fd_set *)0, &tv) < 0){ 
-		/* error : check if it is a wrong fd in the table */
-		switch(errno){
-		case EBADF :
-		    /* if(SHM_isoption(PSP_ODEBUG))*/
-		    fprintf(stderr,"LOGGER_CheckFileTable(%d):"
-			    " EBADF -> close socket\n",fd);
-		    close(fd);
-		    FD_CLR(fd,openfds);
-		    fd++;
-		    break;
-		case EINTR:
-		    fprintf(stderr,"LOGGER_CheckFileTable(%d):"
-			    " EINTR -> trying again\n",fd);
-		    break;
-		case EINVAL:
-		    fprintf(stderr,"CheckFileTable(%d):"
-			    " PANIC filenumber is wrong. Close socket!\n", fd);
-		    close(fd);
-		    FD_CLR(fd,openfds);
-		    break;
-		case ENOMEM:
-		    fprintf(stderr,"CheckFileTable(%d):"
-			    " PANIC not enough memory. Good bye!\n",fd);
-		    close(fd);
-		    FD_CLR(fd,openfds);
-		    break;
-		default:
-		{
-		    char* errtxt;
-		    errtxt=strerror(errno);
-		    fprintf(stderr, "CheckFileTable(%d):"
-			    " unrecognized error (%d):%s\n", fd, errno,
-			    errtxt?errtxt:"UNKNOWN errno");
-		    fd ++;
-		    break;
-		}
-		}
-	    }else
-		fd ++;	    
-	}else
-	    fd ++;
-    }
-}
-
-/*********************************************************************
- * LOGGERloop(LOGGERlisten,LOGGERparent)
- *
- * does all the logging work. The connection to the parent is already
- * installed. Now childs can connect and log out via the logger.
- */
-int
-LOGGERloop(int LOGGERlisten,int LOGGERparent)
-{
-    int sock;      /* client socket */
-    fd_set afds;
-    struct timeval mytv={2,0},atv;
-    char buf[4000];
-    char buf2[4094];
-    int n;                       /* number of bytes received */
-    int timeoutval;
-    int verbose=0;
-
-#ifdef DEBUG
-    if(0){
-	sprintf(PSI_txt,"PSPlogger(%d,%d)\n",LOGGERlisten,LOGGERparent);
-	PSI_logerror(PSI_txt);
-    }
-#endif
-
-    if(getenv("PSI_LOGGERDEBUG")!=NULL){
-	verbose=1;
-    }
-
-    if(verbose)
-	printf("PSPlogger: LOGGERlisten:%d  LOGGERparent:%d\n",
-	       LOGGERlisten, LOGGERparent);
-
-    FD_ZERO(&LOGGERmyfds);
-    FD_SET(LOGGERlisten,&LOGGERmyfds);
-    FD_SET(LOGGERparent,&LOGGERmyfds);
-
-    LOGGERnoclients = 1;  /* the parent */
-
-    timeoutval=0;
-    /*
-     * Loop until there is no connection left
-     */
-    while(LOGGERnoclients>0 && timeoutval<10){
-	bcopy((char *)&LOGGERmyfds, (char *)&afds, sizeof(afds)); 
-	atv = mytv;
-	if(select(FD_SETSIZE,&afds,NULL,NULL,&atv)<0){
-	    sprintf(PSI_txt,"PSPlogger:error on select(%d): %s\n",errno,
-		    sys_errlist[errno]);
-	    PSI_logerror(PSI_txt);
-	    LOGGER_CheckFileTable(&LOGGERmyfds);
-	    continue;
-	}
-	/*
-	 * check the parent socket for any control msgs
-	 */
-	if((LOGGERparent>0) && (FD_ISSET(LOGGERparent,&afds))){
-	    /* 
-	     * a control request from the parent. 
-	     * Maybe I have to change any of my settings 
-	     */
-	    if((LOGGERparentrequest(LOGGERparent))==0){
-		close(LOGGERparent);
-		FD_CLR(LOGGERparent,&LOGGERmyfds);
-		FD_CLR(LOGGERparent,&afds);
-		LOGGERparent = -1;
-		LOGGERnoclients--;
-	    }
-	}
-	/*
-	 * check the listen socket for any new connections
-	 */
-	if(FD_ISSET(LOGGERlisten,&afds)){
-	    /* a connection request on my master socket */
-	    if((sock = LOGGERnewrequest(LOGGERlisten, verbose))>0){
-		FD_SET(sock,&LOGGERmyfds);
-		LOGGERnoclients++;
-		if(verbose)
-		    printf("PSPlogger: opening %d\n", sock);
-	    }
-	}
-	/*
-	 * check the rest sockets for any outputs
-	 */
-	for(sock=3;sock<FD_SETSIZE;sock++)
-	    if(FD_ISSET(sock,&afds) /* socket ready */
-	       &&(sock != LOGGERparent)   /* not my parent socket */
-	       &&(sock != LOGGERlisten)){   /* not my listen socket */
-		n = read(sock,buf,sizeof(buf));
-		if(verbose)
-		    printf("Got %d bytes on sock %d\n", n, sock); 
-		buf[n] = 0x0;
-		if(n==0){
-		    /* socket closed */
-		    if(verbose)
-			printf("PSPlogger: closing %d\n", sock);
-		    close(sock);
-		    FD_CLR(sock,&LOGGERmyfds);
-		    LOGGERnoclients--;
-		}else if(n<0)
-		    /* ignore the error */
-		    perror("PSPlogger:read()");
-		else{
-		    /* print it out */
-		    if(PrependSource){
-			sprintf(buf2,"%8lx[%4d,%4d]%s:%s",
-				LOGGERclients[sock].id,
-				PSI_getnode(LOGGERclients[sock].id),
-				PSI_getpid(LOGGERclients[sock].id),
-				(LOGGERclients[sock].std==1)?"STDOUT":"STDERR",
-				buf);
-			n+=26;
-		    }else
-			sprintf(buf2,buf);		       
-		    write(LOGGERclients[sock].std,buf2,n);
-		}
-	    }
-	if(LOGGERnoclients==0)
-	    timeoutval++;
-    }
-    if(getenv("PSI_NOMSGLOGGERDONE")==NULL){
-	fprintf(stderr,"PSPlogger: done\n");
-    }
-    exit(1);
-}
-
-/*********************************************************************
- * long
- * LOGGERspawnlogger()
- *
- * spawns a logger and creates a channel to it.
- * RETURN the portno of the logger
- */
-long
-LOGGERspawnlogger()
-{
-    int LOGGERlisten;
-    int LOGGERparent;
-
-    int LOGGERID;
-    int verbose=0;
-
-    if(getenv("PSI_LOGGERDEBUG")!=NULL){
-	verbose=1;
-    }
-
-    if(LOGGERportno>0)
-	return LOGGERportno;
     /* 
-     * create to port for the logger to listen to. 
+     * create to port for the forwarder to listen to. 
      */
-    LOGGERportno = 20000;
-    LOGGERlisten = LOGGERcreateport(&LOGGERportno);
+    portno = 20000;
+    listen = LOGGERcreateport(&portno);
 
-    if(LOGGERlisten<0){
-	LOGGERportno = -1;
+    if(listen < 0)
 	return -1;
-    }
     /* 
-     * fork to logger
+     * fork to forwarder
      */
-    if((LOGGERID = fork())==0){
-	int i;
-	char* argv[3];
+    if(fork()==0){
 	/*
 	 *   L O G G E R 
 	 */
+	int i;
+	char* argv[5];
 	/*
-	 * close all open filedesciptor except my std* and the LOGGERSOCK
+	 * close all open filedesciptor except my FORWARDERSOCK
 	 */
-	for(i=3;i<FD_SETSIZE;i++)
-	    if(i!=LOGGERlisten)
+	for(i=3; i<FD_SETSIZE; i++)
+	    if(i != listen)
 		close(i);
 
 	argv[0] = (char*)malloc(strlen(PSI_LookupInstalldir()) + 20);
-	sprintf(argv[0],"%s/bin/psilogger", PSI_LookupInstalldir());
+	sprintf(argv[0],"%s/bin/psiforwarder", PSI_LookupInstalldir());
 	argv[1] = (char*)malloc(10);
-	sprintf(argv[1],"%d",LOGGERlisten);
-	argv[2]=NULL;
+	sprintf(argv[1],"%u", logger_node);
+	argv[2] = (char*)malloc(10);
+	sprintf(argv[2],"%d", logger_port);
+	argv[3] = (char*)malloc(10);
+	sprintf(argv[3],"%d", listen);
+	argv[4] = NULL;
 
-	execv(argv[0],argv);
+	execv(argv[0], argv);
 
 	/* usually never reached, but if execv fails try to do the logging 
 	   inside this program
 	*/
-
-	/* 
-	 * create a (parent<->logger) control channel 
-	 * for interaction 
-	 */
-	LOGGERparent = LOGGERgetparentsock(LOGGERlisten);
-
-	/*
-	 * call the logger who does all the work
-	 */
-	LOGGERloop(LOGGERlisten,LOGGERparent);
+	exit(1);
     }
     /*
      * P A R E N T 
      */
     /*
-     * close the socket which is used by logger to listen for new connections 
+     * close the socket which is used by forwarder to listen for connections.
      */
-    close(LOGGERlisten);
-    /* 
-     * create a (parent<->logger) control channel 
-     * for interaction 
-     */
-    LOGGERsocket = LOGGERgetloggersock(LOGGERportno);
+    close(listen);
 
-    if(LOGGERsocket<0){
-	LOGGERportno = -1;
+    return portno;
+}
+
+/*********************************************************************
+ * int LOGGERspawnlogger()
+ *
+ * spawns a logger.
+ * RETURN the portno of the logger
+ */
+int LOGGERspawnlogger(void)
+{
+    int portno, listen;
+
+    /*
+     * create to port for the logger to listen to.
+     */
+    portno = 20000;
+    listen = LOGGERcreateport(&portno);
+
+    if(listen < 0)
 	return -1;
-    }
-    if(verbose)
-	printf("PSPlogger: listening on port %ld\n", LOGGERportno);
+    /* 
+     * fork to logger
+     */
+    if(fork()==0){
+	/*
+	 *   L O G G E R 
+	 */
+	int i;
+	char* argv[3];
+	/*
+	 * close all open filedesciptor except my std* and the LOGGERSOCK
+	 */
+	for(i=3; i<FD_SETSIZE; i++)
+	    if(i != listen)
+		close(i);
 
-    return LOGGERportno;
+	argv[0] = (char*)malloc(strlen(PSI_LookupInstalldir()) + 20);
+	sprintf(argv[0],"%s/bin/psilogger", PSI_LookupInstalldir());
+	argv[1] = (char*)malloc(10);
+	sprintf(argv[1],"%d", listen);
+	argv[2] = NULL;
+
+	execv(argv[0], argv);
+
+	/* usually never reached, but if execv fails try to do the logging 
+	   inside this program
+	*/
+	exit(1);
+    }
+    /*
+     * P A R E N T 
+     */
+    /*
+     * close the socket which is used by logger to listen for new connections.
+     */
+    close(listen);
+
+    return portno;
 }
