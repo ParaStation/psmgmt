@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidoption.c,v 1.7 2004/01/15 19:40:44 eicker Exp $
+ * $Id: psidoption.c,v 1.8 2004/03/11 14:13:59 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidoption.c,v 1.7 2004/01/15 19:40:44 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidoption.c,v 1.8 2004/03/11 14:13:59 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -198,6 +198,9 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 	    case PSP_OP_MCASTDEBUG:
 		setDebugLevelMCast(msg->opt[i].value);
 		break;
+	    case PSP_OP_FREEONSUSP:
+		config->freeOnSuspend = msg->opt[i].value;
+		break;
 	    default:
 		snprintf(errtxt, sizeof(errtxt), "%s: unknown option %d",
 			 __func__, msg->opt[i].option);
@@ -300,6 +303,9 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_MASTER:
 		msg->opt[i].value = getMasterID();
+		break;
+	    case PSP_OP_FREEONSUSP:
+		msg->opt[i].value = config->freeOnSuspend;
 		break;
 	    default:
 		snprintf(errtxt, sizeof(errtxt), "%s: unknown option %d",
