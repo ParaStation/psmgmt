@@ -1,7 +1,7 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.4 2001/05/21 08:28:07 hauke Exp $
+ * $Id: psport.h,v 1.5 2001/05/21 11:38:07 moschny Exp $
  *
  * @author
  * Jens Hauke <hauke@par-tec.com>,
@@ -129,21 +129,20 @@ extern unsigned PSP_GenReqUsedCount;
  */
 PSP_Err_t PSP_Init(void);
 
-
 /* ----------------------------------------------------------------------
  * PSP_GetNodeID()
  * ----------------------------------------------------------------------
  */
+
 /**
- * Get the ID of this node.
- * @return	NodeID	on success
- * @return	-1	on error
+ * @brief Get the ID of this node.
  *
  * Get the ParaStation ID of this node.
+ * 
+ * @return	NodeID	on success and
+ * @return	-1	on error
  */
 int PSP_GetNodeID(void);
-
-
 
 /* ----------------------------------------------------------------------
  * PSP_OpenPort()
@@ -282,7 +281,7 @@ PSP_RequestH_t PSP_IReceive(PSP_PortH_t porth,
  *
  * With this call, the communication library is advised to send a
  * message asynchronously from the application. Two addresses must be
- * provided: one points to the data itself and one two the header
+ * provided: one points to the data itself and one to the header
  * data.
  *
  * The memory for header must be provided by the user. Its length has
