@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: adminparser.c,v 1.8 2004/01/09 15:55:59 eicker Exp $
+ * $Id: adminparser.c,v 1.9 2004/01/15 19:39:36 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.8 2004/01/09 15:55:59 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.9 2004/01/15 19:39:36 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -37,7 +37,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.8 2004/0
 
 #include "helpmsgs.c"
 
-static char parserversion[] = "$Revision: 1.8 $";
+static char parserversion[] = "$Revision: 1.9 $";
 
 static char *getNodeList(char *nl_descr)
 {
@@ -453,6 +453,8 @@ static int showCommand(char *token)
 	option = PSP_OP_RDPMAXRETRANS;
     } else if (!strcasecmp(what, "mcastdebug")) {
 	option = PSP_OP_MCASTDEBUG;
+    } else if (!strcasecmp(what, "master")) {
+	option = PSP_OP_MASTER;
     } else if (!strcasecmp(what, "smallpacketsize")) {
 	option = PSP_OP_PSM_SPS;
     } else if (!strcasecmp(what, "sps")) {
