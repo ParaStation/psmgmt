@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidmaster.h,v 1.1 2003/10/09 19:20:39 eicker Exp $
+ * $Id: psidmaster.h,v 1.2 2003/11/28 15:51:45 eicker Exp $
  *
  */
 /**
  * @file
  * Helper functions for master-node detection and actions.
  *
- * $Id: psidmaster.h,v 1.1 2003/10/09 19:20:39 eicker Exp $
+ * $Id: psidmaster.h,v 1.2 2003/11/28 15:51:45 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -38,13 +38,13 @@ int amMasterNode(void);
  * Vorgehen:
  *
  * Falls eine Nachfrage nach einer Partition kommt:
- *  - Knoten ist nicht master -> zum Master weiterleiten. Ende.
+ *  - Knoten ist nicht master -> speichern & zum Master weiterleiten. Ende.
  *       Kommt mit Fehler zurück: Erneut behandeln (Master tot?).
  *  - Knoten ist master -> speichern.
  *
  * Weitere Punkte nur auf Master:
  *
- * Abfrage vollständig empfangen:
+ * Anfrage vollständig empfangen:
  *  - Nachfrage ist erste Nachfrage -> gatherMasterInfo(). Ende.
  *  - Cluster Information noch nicht vollständig -> Ende.
  *  - Cluster Information bereits vollständig -> 
