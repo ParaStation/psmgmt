@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.c,v 1.12 2002/07/23 12:35:51 eicker Exp $
+ * $Id: mcast.c,v 1.13 2002/07/24 06:27:22 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.12 2002/07/23 12:35:51 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.13 2002/07/24 06:27:22 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -96,8 +96,11 @@ static void insertIPTable(struct in_addr ipno, int node)
     ipentry *ip;
     int idx = ntohl(ipno.s_addr) & 0xff;  /* use last byte of IP addr */
 
+    if (ipno.s_addr==INADDR_ANY) return;
+
     if (iptable[idx].ipnr != 0) { /* create new entry */
-	/* printf("Node %d goes to table %d [NEW ENTRY]", node, idx); */
+	snprintf(errtxt, sizeof(errtxt),
+		 "Node %d goes to table %d [NEW ENTRY]", node, idx);
 	ip = &iptable[idx];
 	while (ip->next) ip = ip->next; /* search end */
 	ip->next = (ipentry *)malloc(sizeof(ipentry));
@@ -106,10 +109,13 @@ static void insertIPTable(struct in_addr ipno, int node)
 	ip->ipnr = ipno.s_addr;
 	ip->node = node;
     } else { /* base entry is free, so use it */
-	/* printf("Node %d goes to table %d", node, idx); */
+	snprintf(errtxt, sizeof(errtxt),
+		 "Node %d goes to table %d", node, idx);
 	iptable[idx].ipnr = ipno.s_addr;
 	iptable[idx].node = node;
     }
+    errlog(errtxt, 4);
+
     return;
 }
 
