@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.49 2003/06/20 13:47:47 eicker Exp $
+ * $Id: psi.c,v 1.50 2003/06/25 16:34:00 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.49 2003/06/20 13:47:47 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.50 2003/06/25 16:34:00 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -174,6 +174,12 @@ static int connectDaemon(PStask_group_t taskGroup)
 	    snprintf(errtxt, sizeof(errtxt),
 		     "%s: Node is limited to user id %d.",
 		     __func__, (int) *(uid_t *) answer.buf);
+	    PSI_errlog(errtxt, 0);
+	    break;
+	case PSP_CONN_ERR_GIDLIMIT :
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: Node is limited to group id %d.",
+		     __func__, (int) *(gid_t *) answer.buf);
 	    PSI_errlog(errtxt, 0);
 	    break;
 	case PSP_CONN_ERR_PROCLIMIT :
