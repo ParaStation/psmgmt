@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.21 2003/10/23 16:27:20 eicker Exp $
+ * $Id: psprotocol.h,v 1.22 2003/10/29 17:35:42 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation client-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.21 2003/10/23 16:27:20 eicker Exp $
+ * $Id: psprotocol.h,v 1.22 2003/10/29 17:35:42 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -21,7 +21,9 @@
 #ifndef __PSPROTOCOL_H
 #define __PSPROTOCOL_H
 
+#include <stdint.h>
 #include <sys/types.h>
+#include "psnodes.h"
 #include "pstask.h"
 
 #ifdef __cplusplus
@@ -181,8 +183,8 @@ typedef enum {
 
 /** Message primitive. This is also the header of more complex messages. */
 typedef struct {
-    short type;            /**< msg type */
-    short len;             /**< total length of the message */
+    int16_t type;          /**< msg type */
+    int16_t len;           /**< total length of the message */
     PStask_ID_t sender;    /**< sender of the message */ 
     PStask_ID_t dest;      /**< final destination of the message */
 } DDMsg_t;
@@ -190,7 +192,7 @@ typedef struct {
 /** Typed message containing the type and nothing else. */
 typedef struct {
     DDMsg_t header;        /**< message header */
-    int type;              /**< message type */
+    int32_t type;          /**< message (sub-)type */
 } DDTypedMsg_t;
 
 #define BufMsgSize 8000
@@ -211,23 +213,23 @@ typedef struct {
  */
 typedef struct {
     DDMsg_t header;        /**< message header */
-    int type;              /**< message type */
+    int32_t type;          /**< message (sub-)type */
     char buf[BufMsgSize-sizeof(int)]; /**< message buffer */
 } DDTypedBufferMsg_t;
 
 /** Simple error message */
 typedef struct {
     DDMsg_t header;        /**< message header */
-    int error;             /**< error number */
-    long request;          /**< request which caused the error */
+    int32_t error;         /**< error number */
+    PStask_ID_t request;   /**< request which caused the error */
 } DDErrorMsg_t;
 
 /** Initial message send by a potential client to the daemon. */
 typedef struct {
     DDMsg_t header;        /**< header of the message */
     PStask_group_t group;  /**< process group of the task */
-    long version;          /**< version of the PS library */
-    int ppid;              /**< PID of the parent process (for TG_SPAWNER) */
+    uint16_t version;      /**< Protocol version spoken by the PS library */
+    PStask_ID_t ppid;      /**< PID of the parent process (for TG_SPAWNER) */
 #ifndef SO_PEERCRED
     pid_t pid;             /**< process id. Not used with UNIX sockets. */
     uid_t uid;             /**< user id. Not used with UNIX sockets. */
@@ -235,12 +237,15 @@ typedef struct {
 #endif
 } DDInitMsg_t;
 
+/** Maximum number of options to set or get within one DDOption message. */
 #define DDOptionMsgMax 16
 
+/** Type for option's value within an option message */
+typedef int32_t PSP_Optval_t;
+
 typedef struct {
-/*     PSP_Option_t option;   /\**< option to be set/requested *\/ */
-    long option;           /**< option to be set/requested */
-    long value;            /**< value of option to be set */
+    PSP_Option_t option;   /**< option to be set/requested */
+    PSP_Optval_t value;    /**< option to be set/requested */
 } DDOption_t;
 
 /* Option message used to set or get various options. */
@@ -253,8 +258,8 @@ typedef struct {
 /* Signal message used to (de)register and send signals. */
 typedef struct {
     DDMsg_t header;        /**< message header */
-    int signal;            /**< signal to be set or sent */
-    int param;             /**< additional parameter used as follows:
+    int32_t signal;        /**< signal to be set or sent */
+    int32_t param;         /**< additional parameter used as follows:
 			      - PSP_CD_NOTIFYDEAD: unused
 			      - PSP_CD_NOTIFYDEADRES: resulting error
 			      - PSP_CD_RELEASE: unused
@@ -262,7 +267,7 @@ typedef struct {
 			      - PSP_CD_WHODIED: unused
 			      - PSP_CD_SIGNAL: uid of the sender.
 			      - PSP_DD_CHILDDEAD: unused. */
-    int pervasive;         /**< flag to send signal to the whole task.
+    char pervasive;        /**< flag to send signal to the whole task.
 			      Only used within PSP_CD_SIGNAL messages. */
 } DDSignalMsg_t;
 
@@ -275,8 +280,8 @@ typedef struct {
     PStask_ID_t loggertid; /**< unique identifier of tasks logger-task */
     uid_t uid;             /**< user id of the task */
     PStask_group_t group;  /**< task group of the task */
-    int rank;              /**< rank of the task within process group */
-    int connected;         /**< flag if task has connected the daemon */
+    int32_t rank;          /**< rank of the task within process group */
+    int32_t connected;     /**< flag if task has connected the daemon */
 } Taskinfo_t;
 
 
@@ -285,14 +290,14 @@ typedef struct {
  * PSP_INFO_PARTITION responses.
  */
 typedef struct {
-    int id;              /**< ID of this node */
-    short up;            /**< Flag if node is up */
-    short numCPU;        /**< Number of CPUs in this node */
+    PSnodes_ID_t id;       /**< ID of this node */
+    char up;               /**< Flag if node is up */
+    int16_t numCPU;        /**< Number of CPUs in this node */
     unsigned int hwStatus; /**< HW available on this node */
-    float load[3];       /**< load on this node */
-    short totalJobs;     /**< number of jobs */
-    short normalJobs;    /**< number of "normal" jobs (no logger, admin,...) */
-    short maxJobs;       /**< maximum number of "normal" jobs */
+    float load[3];         /**< load on this node */
+    int16_t totalJobs;     /**< number of jobs */
+    int16_t normalJobs;    /**< number of jobs without logger, admin, etc. */
+    int16_t maxJobs;       /**< maximum number of "normal" jobs */
 } NodelistEntry_t;
 
 /**
