@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.59 2003/12/22 20:59:37 eicker Exp $
+ * $Id: psi.c,v 1.60 2004/01/28 10:26:00 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.59 2003/12/22 20:59:37 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.60 2004/01/28 10:26:00 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -476,7 +476,7 @@ int PSI_recvMsg(void *amsg)
 	    }
 
 	    snprintf(errtxt, sizeof(errtxt),
-		     "%s(): Lost connection to ParaStation daemon: %s",
+		     "%s(): Lost connection to ParaStation daemon: %s.",
 		     __func__,  errstr ? errstr : "UNKNOWN");
 	    if (!errno) {
 		snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
