@@ -59,7 +59,7 @@ psid: -lm -lpshal -lputil -lpscommon -lpsi
 
 #psld
 VPATH += $(SRCDIR)/licdaemon
-psld: psld.o license.o config_parsing.o
+psld: psld.o config_parsing.o
 psld: -lm -lputil -lpscommon
 
 # logger

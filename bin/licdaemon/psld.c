@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.23 2002/07/11 10:46:13 eicker Exp $
+ * $Id: psld.c,v 1.24 2002/07/17 17:51:22 hauke Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Daemon
  *
- * $Id: psld.c,v 1.23 2002/07/11 10:46:13 eicker Exp $
+ * $Id: psld.c,v 1.24 2002/07/17 17:51:22 hauke Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.23 2002/07/11 10:46:13 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.24 2002/07/17 17:51:22 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -168,67 +168,6 @@ int check_machine(int *interface)
     return 0;
 }
 
-int check_license(void)
-{
-    char host[80];
-    unsigned int IP;
-    long numnodes;
-    unsigned long start=0;
-    unsigned long end=0;
-    long version;
-    unsigned long now;
-    int ipfound,i;
-
-    IpNodesEndFromLicense(ConfigLicenseKey, &IP, &numnodes, &start, &end,
-			  &version);
-    now = time(NULL);
-
-    snprintf(errtxt, sizeof(errtxt),
-	     "LIC-INFO: IP=%x, nodes=%ld, start=%lx, now=%lx, end=%lx,"
-	     " version=%ld\n",
-	     IP, numnodes, start, now, end, version);
-    errlog(errtxt, 1);
-
-    if (NrOfNodes<=4) return 1;  /* 4 nodes are for free */
-
-    if (start+end == 0) {        /* Illegal Key (wrong checksum) */
-	errlog("Invalid License Key", 0);
-	return 0;
-    }
-
-    if (now<start) {             /* License is no more valid */
-	errlog("License out of date: check clock setting", 0);
-	return 0;
-    }
-    if (end<now) {               /* License is no more valid */
-	snprintf(errtxt, sizeof(errtxt),
-		 "License out of date (end=%lx, now=%lx)",end,now);
-	errlog(errtxt, 0);
-	return 0;
-    }
-    if (numnodes < NrOfNodes) {  /* more nodes than in license */
-	errlog("License not valid for this number of nodes", 0);
-	return 0;
-    }
-
-    ipfound = 0, i = 0;
-    while (i<if_found && !ipfound) {
-	ipfound = (IP == iflist[i].ipaddr);
-	i++;
-    }
-
-    gethostname(host, sizeof(host));
-    if (!ipfound) {
-	snprintf(errtxt, sizeof(errtxt),
-		"LicenseKey does not match current LicenseServer [%s:%s]",
-		 host, inet_ntoa(* (struct in_addr *) &licNode.addr));
-	errlog(errtxt, 0);
-	return 0;
-    }
-
-    return 1;
-}
-
 int check_lock(void)
 {
     FILE *f;
@@ -299,7 +238,7 @@ void sighandler(int sig)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.23 $";
+    char revision[] = "$Revision: 1.24 $";
     snprintf(errtxt, sizeof(errtxt), "psld %s\b ", revision+11);
     errlog(errtxt, 0);
 }
