@@ -292,6 +292,7 @@
 	    <command>show</command>
 	    <group choice="req">
 	      <arg choice="plain">user</arg>
+	      <arg choice="plain">group</arg>
 	      <arg choice="plain">maxproc</arg>
 	      <arg choice="plain">smallpacketsize</arg>
 	      <arg choice="plain">resendtimeout</arg>
@@ -318,6 +319,20 @@
 	      </term>
 	      <listitem>
 		<para>Show who grants exclusiv access on the selected node(s).
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>group</command>
+		  <arg>from <arg>to</arg></arg>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>Show which group grants exclusiv access on the selected
+		  node(s).
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -645,7 +660,9 @@
 		  there, <xref linkend="forwarderfull"/>
 		  processes, i.e. processes spawned by the &ps; daemon <xref
 		    linkend="psid"/> in order to control a spawned process, are
-		  marked by <quote>(F)</quote> after the user ID.
+		  marked by <quote>(F)</quote> after the user ID. Further
+		  helper processes needed in order to spawn non &ps;
+		  applications are marked with <quote>(S)</quote>.
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -1020,6 +1037,10 @@
 		    <arg><replaceable>name</replaceable></arg>
 		    <arg>any</arg>
 		  </group></arg>
+		<arg>group <group choice="req">
+		    <arg><replaceable>name</replaceable></arg>
+		    <arg>any</arg>
+		  </group></arg>
 		<arg>maxproc <group choice="req">
 		    <arg choice="plain"><replaceable>num</replaceable></arg>
 		    <arg choice="plain">any</arg>
@@ -1053,6 +1074,24 @@
 		<listitem>
 		  <para>Grant exclusiv access on the selected node(s) to the
 		    special user <option>name</option> or to any user.
+		  </para>
+		</listitem>
+	      </varlistentry>
+
+	      <varlistentry>
+		<term>
+		  <cmdsynopsis>
+		    <command>group</command>
+		    <group choice="req">
+		      <arg><replaceable>name</replaceable></arg>
+		      <arg>any</arg>
+		    </group>
+		    <arg>from <arg>to</arg></arg>
+		  </cmdsynopsis>
+		</term>
+		<listitem>
+		  <para>Grant exclusiv access on the selected node(s) to the
+		    special group <option>name</option> or to any group.
 		  </para>
 		</listitem>
 	      </varlistentry>
