@@ -33,6 +33,8 @@ allbutmcp:	dep psm pshal psport pvar arg tools buildno
 
 all:	mcpdep mcp allbutmcp buildno
 
+libs:	pshal psport pvar arg
+
 mcp:	mcpdep
 	make -C $(MCPDIR) all
 
