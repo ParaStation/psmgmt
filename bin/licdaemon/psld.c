@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.21 2002/07/03 20:49:30 eicker Exp $
+ * $Id: psld.c,v 1.22 2002/07/05 14:46:21 eicker Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Daemon
  *
- * $Id: psld.c,v 1.21 2002/07/03 20:49:30 eicker Exp $
+ * $Id: psld.c,v 1.22 2002/07/05 14:46:21 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.21 2002/07/03 20:49:30 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.22 2002/07/05 14:46:21 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -157,7 +157,7 @@ int check_machine(int *interface)
 /*  	} */
     }
 
-    gethostname(host,80);
+    gethostname(host, sizeof(host));
     if (!ipfound) {
 	snprintf(errtxt, sizeof(errtxt),
 		 "Machine %s not configured as LicenseServer [Server is %s]",
@@ -217,7 +217,7 @@ int check_license(void)
 	i++;
     }
 
-    gethostname(host,80);
+    gethostname(host, sizeof(host));
     if (!ipfound) {
 	snprintf(errtxt, sizeof(errtxt),
 		"LicenseKey does not match current LicenseServer [%s:%s]",
@@ -299,7 +299,7 @@ void sighandler(int sig)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.21 $";
+    char revision[] = "$Revision: 1.22 $";
     snprintf(errtxt, sizeof(errtxt), "psld %s\b ", revision+11);
     errlog(errtxt, 0);
 }
@@ -458,7 +458,7 @@ int main(int argc, char *argv[])
 	hostlist[NrOfNodes] = licNode.addr;
 
 	msock = initMCast(NrOfNodes, ConfigMCastGroup, ConfigMCastPort,
-			  usesyslog, hostlist, 1, NULL);
+			  usesyslog, hostlist, NrOfNodes, NULL);
 
 	tv.tv_sec = 1;
 	tv.tv_usec = 0;
