@@ -43,10 +43,10 @@
     <para>
       The distributed configuration files may explicitely replace the symbolic
       link <filename>/etc/parastation.conf</filename>, which of course is also
-      possible for the centralized installation, although not recommended. Another
-      possibility for the distributed installation to keep the symbolic link
-      and to modify the file the link is pointing to distributedly. Keep in
-      mind that this has to be done on <emphasis role="bold">all</emphasis>
+      possible for the centralized installation, although not recommended.
+      Another possibility for the distributed installation to keep the symbolic
+      link and to modify the file the link is pointing to distributedly. Keep
+      in mind that this has to be done on <emphasis role="bold">all</emphasis>
       nodes.
     </para>
     <para>
@@ -150,7 +150,7 @@
 	</para>
 	<para>
 	  The described convention is mainly due to the routing used within
-	  Myrinet clusters. While on a ethernet cluster the mapping between
+	  Myrinet clusters. While on a Ethernet cluster the mapping between
 	  hostnames and &ps; ID is completely unrestricted, there are
 	  constraints concerning this mapping in the Myrinet case. Actually in
 	  order to use standard routing files the &ps; ID of a specific node
@@ -193,8 +193,8 @@
       </listitem>
     </orderedlist>
     <para>
-      In the case of a ethernet cluser running ParaStation FE the configuration
-      precedure is finished now and you can proceed with <xref
+      In the case of a Ethernet cluster running ParaStation FE the
+      configuration procedure is finished now and you can proceed with <xref
 	linkend="testing"/>. On Myrinet clusters some further parameters
       concerning the Myrinet configuration have to be set up. These will be
       discussed in
@@ -380,7 +380,7 @@
       efficient MPI or the PSPort interface. Be aware of the fact that IP over
       Myrinet is quite unefficient, since the overhead of the whole TCP/IP
       stack has to be taken into account. On the other hand it is much faster
-      than TCP/IP over fast ethernet anyway.
+      than TCP/IP over fast Ethernet anyway.
     </para>
     <para>
       To enable IP over Myrinet three different parameters might have to be set
@@ -399,7 +399,7 @@
       IP packets usually do not contain routing information but only the
       destination IP address. This address will be resolved to a destination
       hardware address via an <link linkend="ARP">ARP</link> call. Then the
-      packet will be send to this hardware address. An ethernet switch will
+      packet will be send to this hardware address. An Ethernet switch will
       deliver the packet to the right line on basis of this hardware address.
     </para>
     <para>
