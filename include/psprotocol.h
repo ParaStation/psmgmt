@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.16 2003/04/10 17:25:40 eicker Exp $
+ * $Id: psprotocol.h,v 1.17 2003/06/25 16:31:39 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation client-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.16 2003/04/10 17:25:40 eicker Exp $
+ * $Id: psprotocol.h,v 1.17 2003/06/25 16:31:39 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -32,7 +32,7 @@ extern "C" {
 #endif
 
 /** Unique version number of the high-level protocol */
-#define PSprotocolVersion  325
+#define PSprotocolVersion  326
 
 /** The location of the UNIX socket used to contact the daemon. */
 #define PSmasterSocketName "/var/run/parastation.sock"
@@ -51,7 +51,8 @@ typedef enum {
     PSP_CONN_ERR_NOSPACE,         /**< No space to create task struct */
     PSP_CONN_ERR_UIDLIMIT,        /**< Node is limited to different user */
     PSP_CONN_ERR_PROCLIMIT,       /**< Number of processes exceeded */
-    PSP_CONN_ERR_STATENOCONNECT   /**< No connections accepted */
+    PSP_CONN_ERR_STATENOCONNECT,  /**< No connections accepted */
+    PSP_CONN_ERR_GIDLIMIT         /**< Node is limited to different group */
 } PSP_ConnectError_t;
 
 /* We will keep this message types for compatibility with older executables */
@@ -72,6 +73,7 @@ typedef enum {
     PSP_OP_UIDLIMIT,              /**< uid the node is restricted to */
     PSP_OP_PSIDDEBUG,             /**< psid's debug level */
     PSP_OP_PSIDSELECTTIME,        /**< Time (sec) in psid's select() */
+    PSP_OP_GIDLIMIT,              /**< gid the node is restricted to */
 
     PSP_OP_RDPDEBUG = 0x0020,     /**< RDP's debug level */
     PSP_OP_RDPPKTLOSS,            /**< Paket loss within RDP (debugging) */
