@@ -6,7 +6,7 @@
 
   <refnamediv>
     <refname>psiadmin</refname>
-    <refpurpose>the ParaStation administration and management tool</refpurpose>
+    <refpurpose>the &ps; administration and management tool</refpurpose>
   </refnamediv>
 
   <refsynopsisdiv>
@@ -21,13 +21,13 @@
   <refsect1>
     <title>Description</title>
     <para>
-      The psiadmin command provides an administrators interface to the
-      ParaStation system.
+      The psiadmin command provides an administrators interface to the &ps;
+      system.
     </para>
     <para>
       The command reads directives from standard input. The syntax of each
       directive is checked and the appropriate request is sent to the local
-      ParaStation daemon <xref linkend="psid"/>.
+      &ps; daemon <xref linkend="psid"/>.
     </para>
     <para>
       Most of the directive listed below can be executed by general users. Only
@@ -68,7 +68,7 @@
         </term>
 	<listitem>
 	  <para>
-	    Do a reset of the ParaStation system on startup.
+	    Do a reset of the &ps; system on startup.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -164,8 +164,8 @@
     <para>
       Most directive share the options <option><optional>from
 	  <optional>to</optional></optional></option> marking a range of nodes
-      managed by ParaStation. If <option>to</option> is missing, only the
-      single node <option>from</option> is selected. All nodes are selected, if
+      managed by &ps;. If <option>to</option> is missing, only the single node
+      <option>from</option> is selected. All nodes are selected, if
       <option>from</option> is missing, too.
     </para>
     <para>
@@ -185,19 +185,18 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Start the ParaStation daemon <xref linkend="psid"/> on the selected
-            node(s)	    
+	  <para>Start the &ps; daemon <xref linkend="psid"/> on the selected
+	    node(s)	    
 	  </para>
 	  <para>
 	    Usually this is done automatically when the system comes up, i.e.
-	    when the ParaStation administration and management tool <xref
+	    when the &ps; administration and management tool <xref
 	      linkend="psiadmin"/> is started for the first time.
 	  </para>
 	  <para>
-	    <command>add</command> only tries to start the ParaStation daemon
-	    on the selected node(s). If it is not possible to start the daemon,
-	    no error message occurs. The current status of the nodes can be
+	    <command>add</command> only tries to start the &ps; daemon on the
+	    selected node(s). If it is not possible to start the daemon, no
+	    error message occurs. The current status of the nodes can be
 	    checked using the directive <command>status</command>.
 	  </para>
 	</listitem>
@@ -211,8 +210,7 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Print current settings of internal parameters on the selected
+	  <para>Print current settings of internal parameters on the selected
 	    nodes.
 	  </para>
 	  <para>
@@ -234,8 +232,7 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Exit the interactive mode of psiadmin. Same as
+	  <para>Exit the interactive mode of psiadmin. Same as
 	    <command>quit</command>.
 	  </para>
 	</listitem>
@@ -249,8 +246,7 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Print a general help message or a help message concerning
+	  <para>Print a general help message or a help message concerning
 	    <option><replaceable>directive</replaceable></option>.
 	  </para>
 	</listitem>
@@ -264,9 +260,8 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Kill the process with the task ID <option>tid</option> by sending a
-	    SIGTERM signal.
+	  <para>Kill the process with the task ID <option>tid</option> by
+	    sending a SIGTERM signal.
 	  </para>
 	  <para>
 	    Processes can only be killed by the user who ownes the process or
@@ -282,8 +277,7 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Exit the interactive mode of psiadmin. Same as
+	  <para>Exit the interactive mode of psiadmin. Same as
 	    <command>exit</command>.
 	  </para>
 	</listitem>
@@ -309,8 +303,7 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Show various parameters of the ParaStation system.
+	  <para>Show various parameters of the &ps; system.
 	  </para>
 	  <variablelist>
 	    <varlistentry>
@@ -321,8 +314,7 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  Show who grants exclusiv access on the selected node(s).
+		<para>Show who grants exclusiv access on the selected node(s).
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -335,9 +327,8 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  Show the maximum number of ParaStation processes on the
-		  selected node(s).
+		<para>Show the maximum number of &ps; processes on the selected
+		  node(s).
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -350,9 +341,8 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  Show the the maximum number of bytes of PIO packets on the
-		  selected node(s).
+		<para>Show the the maximum number of bytes of PIO packets on
+		  the selected node(s).
 		</para>
 		<para>
 		  PIO packets are send directly to the node's memory by the
@@ -374,14 +364,12 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  Show the retansmission timeout on the selected node(s). This
-		  parameter is in units of microseconds.
+		<para>Show the retansmission timeout on the selected node(s).
+		  This parameter is in units of microseconds.
 		</para>
 		<para>
-		  If a packet sent by ParaStation to another node is not
-		  acknowledged for this period of time, it will be resend to
-		  this node.
+		  If a packet sent by &ps; to another node is not acknowledged
+		  for this period of time, it will be resend to this node.
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -394,8 +382,7 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  Show the number of pending host notify messages on the
+		<para>Show the number of pending host notify messages on the
 		  selected node(s).
 		</para>
 		<para>
@@ -420,14 +407,13 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  Show the maximum number of pending acknowledgements on the
-		  selected node(s).
+		<para>Show the maximum number of pending acknowledgements on
+		  the selected node(s).
 		</para>
 		<para>
-		  ParaStation usually does not send acknowledgements
-		  immediately but waits for some pending ACK messages and send
-		  them accumulated.
+		  &ps; usually does not send acknowledgements immediately but
+		  waits for some pending ACK messages and send them
+		  accumulated.
 		</para>
 		<para>
 		  If a packet is not acknowledged for some microsecond (the
@@ -448,12 +434,11 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  Show the timeout of the central <citerefentry>
+		<para>Show the timeout of the central <citerefentry>
 		    <refentrytitle>select</refentrytitle>
 		    <manvolnum>2</manvolnum>
-		  </citerefentry> of the ParaStation daemon <xref
-		    linkend="psid"/> on the selected node(s).
+		  </citerefentry> of the &ps; daemon <xref linkend="psid"/> on
+		  the selected node(s).
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -466,9 +451,8 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  Show the debugging level of the ParaStation daemon
-		  <xref linkend="psid"/> on the seleceted node(s).
+		<para>Show the debugging level of the &ps; daemon <xref
+		    linkend="psid"/> on the seleceted node(s).
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -481,10 +465,8 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  Show the debugging level of the RDP protocol within the
-		  ParaStation daemon <xref linkend="psid"/> on the seleceted
-		  node(s).
+		<para>Show the debugging level of the RDP protocol within the
+		  &ps; daemon <xref linkend="psid"/> on the seleceted node(s).
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -497,10 +479,8 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  Show the debugging level of the MCast protocol within the
-		  ParaStation daemon <xref linkend="psid"/> on the seleceted
-		  node(s).
+		<para>Show the debugging level of the MCast protocol within the
+		  &ps; daemon <xref linkend="psid"/> on the seleceted node(s).
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -528,11 +508,10 @@
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>
-	    Report various stati of the selected node(s). Depending on the
+	  <para>Report various stati of the selected node(s). Depending on the
 	    given argument, different information can be requested from the
-	    ParaStation system. If no argument is given, the
-	    <option>node</option> information is retrieved.
+	    &ps; system. If no argument is given, the <option>node</option>
+	    information is retrieved.
 	  </para>
 	  <variablelist>
 	    <varlistentry>
@@ -542,10 +521,9 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  Show the status of the selected node(s). Depending on the
-		  state of the ParaStation daemons, the node(s) are marked to
-		  be "UP" or "DOWN".
+		<para>Show the status of the selected node(s). Depending on the
+		  state of the &ps; daemons, the node(s) are marked to be "UP"
+		  or "DOWN".
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -557,8 +535,7 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  Show the processes managed by the ParaStation system on the
+		<para>Show the processes managed by the &ps; system on the
 		  selected node(s).
 		</para>
 		<para>
@@ -576,14 +553,13 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  Show all processes managed by ParaStations system on the
+		<para>Show all processes managed by the &ps; system on the
 		  selected node(s).
 		</para>
 		<para>
-		  All processes managed by ParaStation are displayed. If
-		  forwarder processes should not be displayed, use the
-		  <command>status <option>proc</option></command> directive.
+		  All processes managed by &ps; are displayed. If forwarder
+		  processes should not be displayed, use the <command>status
+		    <option>proc</option></command> directive.
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -595,15 +571,14 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  Show the load and the number of processes managed by the
-		  ParaStation system on the selected node(s).
+		<para>Show the load and the number of processes managed by the
+		  &ps; system on the selected node(s).
 		</para>
 		<para>
 		  The three load values displayed are the averages for 1, 5 and
 		  15 minutes respectively. The two numbers of processes are as
 		  follows: The total number of processes contains all processes
-		  managed by the ParaStation system, including <link
+		  managed by the &ps; system, including <link
 		    linkend="logger">logger</link> processes, <link
 		    linkend="forwarder">forwarder</link> processes and <xref
 		    linkend="psiadmin"/> processes. Furthermore of course the
@@ -621,10 +596,9 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  Show the hardware setup on the selected node(s). Displayed
-		  are the number of CPUs and the communication hardware
-		  available to the ParaStation system.
+		<para>Show the hardware setup on the selected node(s).
+		  Displayed are the number of CPUs and the communication
+		  hardware available to the &ps; system.
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -636,9 +610,8 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  Show the status of the Myrinet communication system on the
-		  selected node(s). Various counters of the <link
+		<para>Show the status of the Myrinet communication system on
+		  the selected node(s). Various counters of the <link
 		    linkend="MCP">MCP</link> running on the Myrinet card are
 		  displayed.
 		</para>
@@ -651,9 +624,7 @@
 		      <command>RECV</command>
 		    </term>
 		    <listitem>
-		      <para>
-			The total number of all received packets.
-		      </para>
+		      <para>The total number of all received packets.</para>
 		    </listitem>
 		  </varlistentry>
 
@@ -662,9 +633,7 @@
 		      <command>SEND</command>
 		    </term>
 		    <listitem>
-		      <para>
-			The total number of all sent packets.
-		      </para>
+		      <para>The total number of all sent packets.</para>
 		    </listitem>
 		  </varlistentry>
 
@@ -673,10 +642,9 @@
 		      <command>CRC_ERR</command>
 		    </term>
 		    <listitem>
-		      <para>
-			The number of packets received with wrong CRC checksum.
-			These packets were thrown away and a resend was
-			initiated.
+		      <para>The number of packets received with wrong CRC
+			checksum. These packets were thrown away and a resend
+			was initiated.
 		      </para>
  		      <para>
 			Higher counts (a few ppm of <command>SEND</command> +
@@ -690,8 +658,7 @@
 		      <command>OVERRUNS</command>
 		    </term>
 		    <listitem>
-		      <para>
-			The number of packets that left the receive buffer
+		      <para>The number of packets that left the receive buffer
 			misalligned. This is usually due to data loss on the
 			line and thus in coincidence with
 			<command>CRC_ERR</command>.
@@ -707,10 +674,9 @@
 		      <command>DEST_ERR</command>
 		    </term>
 		    <listitem>
-		      <para>
-			The number of packets received with wrong destination
-			ID, i.e. packets that were send to the wrong
-			destination host.
+		      <para>The number of packets received with wrong
+			destination ID, i.e. packets that were send to the
+			wrong destination host.
 		      </para>
 		      <para>
 			If these kind of errors occur, usually something is
@@ -724,10 +690,9 @@
 		      <command>CONNIDERR</command>
 		    </term>
 		    <listitem>
-		      <para>
-			The number of packets received with wrong connection
-			ID. These are usually due to (temporary) hardware
-			problems.
+		      <para>The number of packets received with wrong
+			connection ID. These are usually due to (temporary)
+			hardware problems.
 		      </para>
 		      <para>
 			This should rarely never happen.
@@ -740,9 +705,9 @@
 		      <command>IGNORED</command>
 		    </term>
 		    <listitem>
-		      <para>
-			The number of packets that were ignored, i.e. that were
-			recognized as non &ps; packets and thus thrown away.
+		      <para>The number of packets that were ignored, i.e. that
+			were recognized as non &ps; packets and thus thrown
+			away.
 		      </para>
 		    </listitem>
 		  </varlistentry>
@@ -752,8 +717,7 @@
 		      <command>SNACK</command>
 		    </term>
 		    <listitem>
-		      <para>
-			The number of sequence NACKs. A sequence NACK is
+		      <para>The number of sequence NACKs. A sequence NACK is
 			released when an unexpected packet is received. These
 			are most often packets that where on the line while a
 			CNACK_HR or CNACK_MCP was send.
@@ -770,12 +734,12 @@
 		      <command>CNACK_HR</command>
 		    </term>
 		    <listitem>
-		      <para>
-			The number of Host Receive Capacity NACKs send. These
-			are released when the host is unable to receive further
-			data because no receive buffers are left. This might be
-			due to sends on the source side of the communication
-			whilst no receive is posted on the destination side.
+		      <para>The number of Host Receive Capacity NACKs send.
+			These are released when the host is unable to receive
+			further data because no receive buffers are left. This
+			might be due to sends on the source side of the
+			communication whilst no receive is posted on the
+			destination side.
 		      </para>
  		      <para>
 			Higher counts (a few ppm of <command>SEND</command> +
@@ -789,9 +753,8 @@
 		      <command>CNACK_MCP</command>
 		    </term>
 		    <listitem>
-		      <para>
-			The number of <link linkend="MCP">MCP</link> Capacity
-			NACKs send. These are released when the <link
+		      <para>The number of <link linkend="MCP">MCP</link>
+			Capacity NACKs send. These are released when the <link
 			  linkend="MCP">MCP</link> is unable to receive further
 			data because no receive buffers are left. This might be
 			due to sends on the source side of the communication
@@ -810,9 +773,7 @@
 		      <command>CNACK_RS</command>
 		    </term>
 		    <listitem>
-		      <para>
-			Diagnostic counter for internal use only.
-		      </para>
+		      <para>Diagnostic counter for internal use only.</para>
 		    </listitem>
 		  </varlistentry>
 
@@ -821,10 +782,9 @@
 		      <command>CRESET</command>
 		    </term>
 		    <listitem>
-		      <para>
-			The number of connection resets. A connection reset is
-			triggered when a connection comes back to live after a
-			<command>DLINK</command>.
+		      <para>The number of connection resets. A connection reset
+			is triggered when a connection comes back to live after
+			a <command>DLINK</command>.
 		      </para>
 		    </listitem>
 		  </varlistentry>
@@ -834,11 +794,10 @@
 		      <command>DLINK</command>
 		    </term>
 		    <listitem>
-		      <para>
-			The number of Dead Link recognized. A link is declared
-			dead, if after some timeout no ACK is received from the
-			node on the other side of the link. This is normally
-			due to hardware problems.
+		      <para>The number of Dead Link recognized. A link is
+			declared dead, if after some timeout no ACK is received
+			from the node on the other side of the link. This is
+			normally due to hardware problems.
 		      </para>
 		      <para>
 			This should rarely never happen.
@@ -851,9 +810,7 @@
 		      <command>USEQ_ERR</command>
 		    </term>
 		    <listitem>
-		      <para>
-			Diagnostic counter for internal use only.
-		      </para>
+		      <para>Diagnostic counter for internal use only.</para>
 		    </listitem>
 		  </varlistentry>
 
@@ -868,8 +825,7 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  Show the status of the RDP protocol of the ParaStation daemon
+		<para>Show the status of the RDP protocol of the &ps; daemon
 		  <xref linkend="psid"/> on the selected node(s).
 		</para>
 	      </listitem>
@@ -882,9 +838,8 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  Show the status of the MCast facility of the ParaStation
-		  daemon <xref linkend="psid"/> on the selected node(s).
+		<para>Show the status of the MCast facility of the &ps; daemon
+		  <xref linkend="psid"/> on the selected node(s).
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -896,8 +851,7 @@
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>
-		  Show the information given by <command>node</command>,
+		<para>Show the information given by <command>node</command>,
 		  <command>count</command> and <command>proc</command> on the
 		  selected node(s).
 		</para>
@@ -938,8 +892,7 @@
 	    </cmdsynopsis>
 	  </term>
 	  <listitem>
-	    <para>
-	      Reset the ParaStation daemon on all selected node(s). As a
+	    <para>Reset the &ps; daemon on all selected node(s). As a
 	      consequence <emphasis role="bold">all</emphasis> processes using
 	      the selected node(s) are <emphasis role="bold">killed</emphasis>!
 	    </para>
@@ -960,11 +913,10 @@
 	    </cmdsynopsis>
 	  </term>
 	  <listitem>
-	    <para>
-	      Restart the ParaStation system on all selected node(s). This
+	    <para>Restart the &ps; system on all selected node(s). This
 	      includes reinitialization of the communucation hardware. On the
-	      selected node(s) the ParaStation daemon processes are forced to
-	      reinitialize the ParaStation cluster. As a consequence <emphasis
+	      selected node(s) the &ps; daemon processes are forced to
+	      reinitialize the &ps; cluster. As a consequence <emphasis
 		role="bold">all</emphasis> processes using the selected
 	      node(s)s are <emphasis role="bold">killed</emphasis>!
 	    </para>
@@ -1001,9 +953,7 @@
 	    </cmdsynopsis>
 	  </term>
 	  <listitem>
-	    <para>
-	      Modify various parameters of the ParaStation system.
-	    </para>
+	    <para>Modify various parameters of the &ps; system.</para>
 	    <variablelist>
 	      <varlistentry>
 		<term>
@@ -1017,8 +967,7 @@
 		  </cmdsynopsis>
 		</term>
 		<listitem>
-		  <para>
-		    Grant exclusiv access on the selected node(s) to the
+		  <para>Grant exclusiv access on the selected node(s) to the
 		    special user <option>name</option> or to any user.
 		  </para>
 		</listitem>
@@ -1036,8 +985,7 @@
 		  </cmdsynopsis>
 		</term>
 		<listitem>
-		  <para>
-		    Limit the number of running ParaStation processes on the
+		  <para>Limit the number of running &ps; processes on the
 		    selected node(s) to <option>num</option> or remove the
 		    limit.
 		  </para>
@@ -1053,8 +1001,7 @@
 		  </cmdsynopsis>
 		</term>
 		<listitem>
-		  <para>
-		    Set the the maximum size of PIO packets to
+		  <para>Set the the maximum size of PIO packets to
 		    <option>size</option> bytes on the selected node(s).
 		  </para>
 		  <para>
@@ -1069,9 +1016,8 @@
 		  </para>
 		  <para>
 		    This parameter can be set persistently via the
-		    <command>SmallPacketSize</command> option within the
-		    ParaStation configuration file <xref
-		      linkend="parastation_conf"/>.
+		    <command>SmallPacketSize</command> option within the &ps;
+		    configuration file <xref linkend="parastation_conf"/>.
 		  </para>
 		</listitem>
 	      </varlistentry>
@@ -1085,25 +1031,23 @@
 		  </cmdsynopsis>
 		</term>
 		<listitem>
-		  <para>
-		    Set the retansmission timeout to <option>time</option>
+		  <para>Set the retansmission timeout to <option>time</option>
 		    microseconds on the selected node(s).
 		  </para>
 		  <para>
-		    If a packet sent by ParaStation to another node is not
+		    If a packet sent by &ps; to another node is not
 		    acknowledged for this period of time, it will be resend to
 		    this node.
 		  </para>
 		  <para>
 		    This parameter can be set persistently via the
-		    <command>ResendTimeout</command> option within the
-		    ParaStation configuration file <xref
-		      linkend="parastation_conf"/>.
+		    <command>ResendTimeout</command> option within the &ps;
+		    configuration file <xref linkend="parastation_conf"/>.
 		  </para>
 		  <note>
 		    <para>
-		      In the current version of ParaStation this parameter is
-		      read only and cannot be modified.
+		      In the current version of &ps; this parameter is read
+		      only and cannot be modified.
 		    </para>
 		  </note>
 		</listitem>
@@ -1118,8 +1062,7 @@
 		  </cmdsynopsis>
 		</term>
 		<listitem>
-		  <para>
-		    Set the number of pending host notify messages to
+		  <para>Set the number of pending host notify messages to
 		    <option>val</option> on the selected node(s).
 		  </para>
 		  <para>
@@ -1138,7 +1081,7 @@
 		  </para>
 		  <para>
 		    This parameter can be set persistently via the
-		    <command>HNPend</command> option within the ParaStation
+		    <command>HNPend</command> option within the &ps;
 		    configuration file <xref linkend="parastation_conf"/>.
 		  </para>
 		  <note>
@@ -1162,14 +1105,13 @@
 		  </cmdsynopsis>
 		</term>
 		<listitem>
-		  <para>
-		    Set the number of pending acknowledgements to
+		  <para>Set the number of pending acknowledgements to
 		    <option>val</option> on the selected node(s).
 		  </para>
 		  <para>
-		    ParaStation usually does not send acknowledgements
-		    immediately but waits for some pending ACK messages and
-		    sends them accumulated.
+		    &ps; usually does not send acknowledgements immediately but
+		    waits for some pending ACK messages and sends them
+		    accumulated.
 		  </para>
 		  <para>
 		    If a packet is not acknowledged for some microseconds (the
@@ -1181,7 +1123,7 @@
 		  </para>
 		  <para>
 		    This parameter can be set persistently via the
-		    <command>ACKPend</command> option within the ParaStation
+		    <command>ACKPend</command> option within the &ps;
 		    configuration file <xref linkend="parastation_conf"/>.
 		  </para>
 		  <note>
@@ -1204,17 +1146,15 @@
 		  </cmdsynopsis>
 		</term>
 		<listitem>
-		  <para>
-		    Set the timeout of the central <citerefentry>
+		  <para>Set the timeout of the central <citerefentry>
 		      <refentrytitle>select</refentrytitle>
 		      <manvolnum>2</manvolnum>
-		    </citerefentry> of the ParaStation daemon <xref
-		      linkend="psid"/> to <option>time</option> seconds on the
-		    selected node(s).
+		    </citerefentry> of the &ps; daemon <xref linkend="psid"/>
+		    to <option>time</option> seconds on the selected node(s).
 		  </para>
 		  <para>
 		    This parameter can be set persistently via the
-		    <command>SelectTime</command> option within the ParaStation
+		    <command>SelectTime</command> option within the &ps;
 		    configuration file <xref linkend="parastation_conf"/>.
 		  </para>
 		</listitem>
@@ -1229,14 +1169,13 @@
 		  </cmdsynopsis>
 		</term>
 		<listitem>
-		  <para>
-		    Set the debugging level of the ParaStation daemon
+		  <para>Set the debugging level of the &ps; daemon
 		    <xref linkend="psid"/> to <option>level</option> on the
 		    seleceted node(s).
 		  </para>
 		  <para>
 		    This parameter can be set persistently via the
-		    <command>LogLevel</command> option within the ParaStation
+		    <command>LogLevel</command> option within the &ps;
 		    configuration file <xref linkend="parastation_conf"/>.
 		  </para>
 		  <note>
@@ -1263,9 +1202,8 @@
 		  </cmdsynopsis>
 		</term>
 		<listitem>
-		  <para>
-		    Set the debugging level of the RDP protocol within the
-		    ParaStation daemon <xref linkend="psid"/> to
+		  <para>Set the debugging level of the RDP protocol within the
+		    &ps; daemon <xref linkend="psid"/> to
 		    <option>level</option> on the seleceted node(s).
 		  </para>
 		  <note>
@@ -1287,9 +1225,8 @@
 		  </cmdsynopsis>
 		</term>
 		<listitem>
-		  <para>
-		    Set the debugging level of the MCast protocol within the
-		    ParaStation daemon <xref linkend="psid"/> to
+		  <para>Set the debugging level of the MCast protocol within
+		    the &ps; daemon <xref linkend="psid"/> to
 		    <option>level</option> on the seleceted node(s).
 		  </para>
 		  <note>
@@ -1314,8 +1251,7 @@
 	    </cmdsynopsis>
 	  </term>
 	  <listitem>
-	    <para>
-	      Shutdown the ParaStation daemon on all selected node(s). As a
+	    <para>Shutdown the &ps; daemon on all selected node(s). As a
 	      consequence <emphasis role="bold">all</emphasis> processes using
 	      the selected node(s) are <emphasis role="bold">killed</emphasis>!
 	    </para>
@@ -1334,9 +1270,7 @@
 	    </cmdsynopsis>
 	  </term>
 	  <listitem>
-	    <para>
-	      All communications links in a ParaStation network are tested.
-	    </para>
+	    <para>All communications links in a &ps; network are tested.</para>
 	    <variablelist>
 	      <varlistentry>
 		<term>
@@ -1345,8 +1279,7 @@
 		  </cmdsynopsis>
 		</term>
 		<listitem>
-		  <para>
-		    Quiet execution. Only a short message is printed if the
+		  <para>Quiet execution. Only a short message is printed if the
 		    test was successful.
 		  </para>
 		</listitem>
@@ -1358,9 +1291,8 @@
 		  </cmdsynopsis>
 		</term>
 		<listitem>
-		  <para>
-		    Normal execution with some messages during runtime. This is
-		    the default.
+		  <para>Normal execution with some messages during runtime.
+		    This is the default.
 		  </para>
 		</listitem>
 	      </varlistentry>
@@ -1371,8 +1303,8 @@
 		  </cmdsynopsis>
 		</term>
 		<listitem>
-		  <para>
-		    Very verbose execution with many message during runtime.
+		  <para>Very verbose execution with many message during
+		    runtime.
 		  </para>
 		</listitem>
 	      </varlistentry>
