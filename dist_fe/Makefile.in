@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.15 2003/04/04 13:51:02 hauke Exp $
+# $Id: Makefile.in,v 1.16 2003/07/03 14:01:16 hauke Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -33,7 +33,6 @@ CONFIGDIR := $(DISTPATH)/config
 MISC += config/ps_ethernet
 
 MISC += VERSION.psfe
-.PHONY: VERSION.psfe
 
 DIRS += $(LIBDIR) $(INCDIR) $(CONFIGDIR)
 
@@ -90,6 +89,7 @@ includes: $(INCDIR) $(patsubst %,$(INCDIR)/%,$(INCLUDES))
 $(DISTPATH)/config/ps_ethernet: $(TOP_SRCDIR)/scripts/ps_ethernet
 	cp $< $@
 
+.PHONY: $(DISTPATH)/VERSION.psfe
 $(DISTPATH)/VERSION.psfe:
 	echo "ParaStation FE $(DVER) ($(shell date))" > $@
 
