@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.41 2003/09/12 15:16:48 eicker Exp $
+ * $Id: pse.c,v 1.42 2003/09/29 09:15:51 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.41 2003/09/12 15:16:48 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.42 2003/09/29 09:15:51 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -148,6 +148,8 @@ int PSE_getPartition(unsigned int num)
 {
     /* Check for LSF-Parallel */
     PSI_LSF();
+    /* Check for PBSPro/OpenPBS */
+    PSI_PBS();
     return PSI_createPartition(num, defaultHWType);
 }
 
