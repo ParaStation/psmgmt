@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.111 2003/10/22 17:36:03 eicker Exp $
+ * $Id: psid.c,v 1.112 2003/10/23 16:20:32 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.111 2003/10/22 17:36:03 eicker Exp $ 
+ * $Id: psid.c,v 1.112 2003/10/23 16:20:32 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.111 2003/10/22 17:36:03 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.112 2003/10/23 16:20:32 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -81,7 +81,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-char psid_cvsid[] = "$Revision: 1.111 $";
+char psid_cvsid[] = "$Revision: 1.112 $";
 
 /** Master socket (type UNIX) for clients to connect */
 static int masterSock;
@@ -271,7 +271,7 @@ static void declareNodeDead(int id)
 	while (sig) {
 	    if (PSC_getID(sig->tid)==id) {
 		/* controlled task was on dead node */
-		long senderTid = sig->tid;
+		PStask_ID_t senderTid = sig->tid;
 		int signal = sig->signal;
 
 		/* Send the signal */
@@ -418,7 +418,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
     pid_t pid;
     uid_t uid;
     gid_t gid;
-    long tid;
+    PStask_ID_t tid;
 
 #ifdef SO_PEERCRED
     socklen_t size;
@@ -447,7 +447,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
      */
     task = PStasklist_find(managedTasks, tid);
     if (!task && msg->group != TG_SPAWNER) {
-	long pgtid = PSC_getTID(-1, getpgid(pid));
+	PStask_ID_t pgtid = PSC_getTID(-1, getpgid(pid));
 
 	task = PStasklist_find(managedTasks, pgtid);
 
@@ -518,7 +518,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	/* TG_SPAWNER have to get a special handling */
 	if (task->group == TG_SPAWNER) {
 	    PStask_t *parent;
-	    long ptid;
+	    PStask_ID_t ptid;
 
 	    ptid = PSC_getTID(-1, msg->ppid);
 
@@ -694,7 +694,7 @@ void msg_DAEMONESTABLISHED(DDTypedMsg_t *msg)
 void msg_DAEMONSTART(DDBufferMsg_t *msg)
 {
     unsigned short starter = PSC_getID(msg->header.dest);
-    int node = *(long *) msg->buf;
+    unsigned short node = *(unsigned short *) msg->buf;
 
     /*
      * contact the other node if no connection already exist
@@ -704,7 +704,7 @@ void msg_DAEMONSTART(DDBufferMsg_t *msg)
     PSID_errlog(errtxt, 1);
 
     if (starter==PSC_getMyID()) {
-	if ((node >=0 && node<PSC_getNrOfNodes())) {
+	if (node<PSC_getNrOfNodes()) {
 	    if (!PSnodes_isUp(node)) {
 		unsigned int addr = PSnodes_getAddr(node);
 		if (addr != INADDR_ANY)	PSC_startDaemon(addr);
@@ -1094,8 +1094,8 @@ void msg_CHILDDEAD(DDErrorMsg_t *msg)
  */
 void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
 {
-    long tid = msg->header.sender;
-    long ptid = msg->header.dest;
+    PStask_ID_t tid = msg->header.sender;
+    PStask_ID_t ptid = msg->header.dest;
     PStask_t *task;
 
     snprintf(errtxt, sizeof(errtxt), "SPAWNSUCCESS (%s)",
@@ -1158,8 +1158,8 @@ void msg_SPAWNFINISH(DDMsg_t *msg)
  */
 void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 {
-    long registrarTid = msg->header.sender;
-    long tid = msg->header.dest;
+    PStask_ID_t registrarTid = msg->header.sender;
+    PStask_ID_t tid = msg->header.dest;
 
     PStask_t *task;
 
@@ -1245,8 +1245,8 @@ void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
  */
 void msg_NOTIFYDEADRES(DDSignalMsg_t *msg)
 {
-    long controlledTid = msg->header.sender;
-    long registrarTid = msg->header.dest;
+    PStask_ID_t controlledTid = msg->header.sender;
+    PStask_ID_t registrarTid = msg->header.dest;
 
     if (msg->param) {
 	snprintf(errtxt, sizeof(errtxt),
@@ -1294,7 +1294,7 @@ void msg_NOTIFYDEADRES(DDSignalMsg_t *msg)
  *
  * @see errno(3)
  */
-static int releaseSignal(long tid, long receiverTid, int sig)
+static int releaseSignal(PStask_ID_t tid, PStask_ID_t receiverTid, int sig)
 {
     PStask_t *task;
 
@@ -1339,7 +1339,7 @@ static int releaseSignal(long tid, long receiverTid, int sig)
  */
 static int releaseTask(DDSignalMsg_t *msg)
 {
-    long tid = msg->header.sender;
+    PStask_ID_t tid = msg->header.sender;
     PStask_t *task;
     int ret;
 
@@ -1377,7 +1377,7 @@ static int releaseTask(DDSignalMsg_t *msg)
 	/* Don't send any signals to me after release */
 	sig = task->assignedSigs;
 	while (sig) {
-	    long senderTid = sig->tid;
+	    PStask_ID_t senderTid = sig->tid;
 	    int signal = sig->signal;
 
 	    if (PSC_getID(senderTid)==PSC_getMyID()) {
@@ -1418,8 +1418,8 @@ static int releaseTask(DDSignalMsg_t *msg)
  */
 void msg_RELEASE(DDSignalMsg_t *msg)
 {
-    long registrarTid = msg->header.sender;
-    long tid = msg->header.dest;
+    PStask_ID_t registrarTid = msg->header.sender;
+    PStask_ID_t tid = msg->header.dest;
 
     snprintf(errtxt, sizeof(errtxt), "%s(%s)", __func__, PSC_printTID(tid));
     PSID_errlog(errtxt, 1);
@@ -1464,7 +1464,7 @@ void msg_RELEASE(DDSignalMsg_t *msg)
  */
 void msg_RELEASERES(DDSignalMsg_t *msg)
 {
-    long tid = msg->header.dest;
+    PStask_ID_t tid = msg->header.dest;
     PStask_t *task;
 
     if (PSID_getDebugLevel() >= 10) {
@@ -1550,7 +1550,7 @@ void msg_SIGNAL(DDSignalMsg_t *msg)
 	    PStask_t *dest = PStasklist_find(managedTasks, msg->header.dest);
 	    if (dest) {
 		PStask_t *clone = PStask_clone(dest);
-		long childTID;
+		PStask_ID_t childTID;
 		int sig = -1;
 
 		while ((childTID = PSID_getSignal(&clone->childs, &sig))) {
@@ -1602,7 +1602,7 @@ void msg_WHODIED(DDSignalMsg_t *msg)
 
     task = PStasklist_find(managedTasks, msg->header.sender);
     if (task) {
-	long tid;
+	PStask_ID_t tid;
 	tid = PSID_getSignal(&task->signalSender, &msg->signal);
 
 	snprintf(errtxt, sizeof(errtxt), "%s: tid=%s sig=%d)", __func__,
@@ -1742,7 +1742,7 @@ void psicontrol(int fd)
 	case PSP_CC_MSG:
 	    /* Forward this message. If this fails, send an error message. */
 	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-		long temp = msg.header.dest;
+		PStask_ID_t temp = msg.header.dest;
 
 		msg.header.type = PSP_CC_ERROR;
 		msg.header.dest = msg.header.sender;
@@ -1982,7 +1982,7 @@ static void sighandler(int sig)
     case SIGCHLD:
     {
 	pid_t pid;         /* pid of the child process */
-	long tid;          /* tid of the child process */
+	PStask_ID_t tid;   /* tid of the child process */
 	int estatus;       /* termination status of the child process */
 
 	while ((pid = waitpid(-1, &estatus, WNOHANG)) > 0){
@@ -2233,7 +2233,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.111 $";
+    char revision[] = "$Revision: 1.112 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 

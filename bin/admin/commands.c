@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: commands.c,v 1.2 2003/08/27 12:46:41 eicker Exp $
+ * $Id: commands.c,v 1.3 2003/10/23 16:19:27 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.2 2003/08/27 12:46:41 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.3 2003/10/23 16:19:27 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -45,7 +45,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.2 2003/08/2
 
 #include "commands.h"
 
-char commandsversion[] = "$Revision: 1.2 $";
+char commandsversion[] = "$Revision: 1.3 $";
 
 static int doRestart = 0;
 
@@ -84,7 +84,7 @@ void PSIADM_AddNode(char *nl)
     msg.header.type = PSP_CD_DAEMONSTART;
     msg.header.sender = PSC_getMyTID();
     msg.header.dest = PSC_getTID(-1, 0);
-    msg.header.len = sizeof(msg.header) + sizeof(long);
+    msg.header.len = sizeof(msg.header) + sizeof(unsigned short);
 
     INFO_request_hoststatus(hoststatus, PSC_getNrOfNodes(), 1);
 
@@ -95,7 +95,7 @@ void PSIADM_AddNode(char *nl)
 	    printf("%d already up.\n",i);
 	} else {
 	    printf("starting node %d\n",i);
-	    *(long *)msg.buf = i;
+	    *(unsigned short *)msg.buf = i;
 	    PSI_sendMsg(&msg);
 	}
     }
@@ -590,7 +590,7 @@ void PSIADM_TestNetwork(int mode)
     }
 }
 
-void PSIADM_KillProc(long tid, int sig)
+void PSIADM_KillProc(PStask_ID_t tid, int sig)
 {
     if (sig == -1) sig = SIGTERM;
 
