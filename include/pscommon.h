@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.h,v 1.3 2002/07/24 06:24:41 eicker Exp $
+ * $Id: pscommon.h,v 1.4 2002/07/31 08:49:04 eicker Exp $
  *
  */
 /**
  * @file
  * Functions used in user-programs and daemon.
  *
- * $Id: pscommon.h,v 1.3 2002/07/24 06:24:41 eicker Exp $
+ * $Id: pscommon.h,v 1.4 2002/07/31 08:49:04 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -73,11 +73,6 @@ short PSC_getMyID(void);
  * @return No return value.
  */
 void PSC_setMyID(short id);
-
-/**
- * @todo
- */
-pid_t PSC_specialGetPID(void);
 
 /**
  * @brief Computes a task ID from process ID and node number.
