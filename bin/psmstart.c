@@ -5,20 +5,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psmstart.c,v 1.12 2003/12/19 14:27:33 eicker Exp $
+ * $Id: psmstart.c,v 1.13 2004/04/20 08:14:00 hauke Exp $
  *
  */
 /**
  * @file Simple wrapper to allow non ParaStation aware programs to be
  * distributed in a cluster.
  *
- * $Id: psmstart.c,v 1.12 2003/12/19 14:27:33 eicker Exp $
+ * $Id: psmstart.c,v 1.13 2004/04/20 08:14:00 hauke Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c,v 1.12 2003/12/19 14:27:33 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c,v 1.13 2004/04/20 08:14:00 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -36,7 +36,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c,v 1.12 2003/12/1
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.12 $";
+    char revision[] = "$Revision: 1.13 $";
     fprintf(stderr, "psmstart %s\b \n", revision+11);
 }
 
@@ -155,6 +155,7 @@ int main(int argc, const char *argv[])
     char *nodelist, *hostlist, *hostfile, *sort, *envlist, *login;
     char *PGfile, *pwd, *envstr;
     int dup_argc;
+    int partitionsize=1;
     char **dup_argv;
 
     /*
@@ -183,6 +184,8 @@ int main(int argc, const char *argv[])
 	  &envlist, 0, "environment to export to foreign nodes", "envlist"},
         { "login", 'l', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
 	  &login, 0, "remote user used to execute command", "login_name"},
+        { "np", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
+	  &partitionsize, 0, "Size of partition", "count"},
 	{ "verbose", 'v', POPT_ARG_NONE,
 	  &verbose, 0, "verbose mode", NULL},
         { "version", 'V', POPT_ARG_NONE,
@@ -353,7 +356,7 @@ int main(int argc, const char *argv[])
 
 	/* Set default HW to none: */
 	PSE_setHWType(0);
-	if (PSE_getPartition(1)<0) exit(1);
+	if (PSE_getPartition(partitionsize)<0) exit(1);
 
 	PSE_spawnMaster(argc, (char **) argv);
 
