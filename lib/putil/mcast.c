@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.c,v 1.6 2002/02/15 19:15:58 eicker Exp $
+ * $Id: mcast.c,v 1.7 2002/04/22 18:17:20 hauke Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.6 2002/02/15 19:15:58 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.7 2002/04/22 18:17:20 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -178,7 +178,13 @@ static int initSockMCast(int group, unsigned short port)
     int sock;
     char host[80];
     struct hostent *phe;        /* pointer to host information entry */
+#ifdef __osf__
+    unsigned char loop;
+    int reuse;
+#endif
+#ifdef __linux__    
     int loop, reuse;
+#endif
     struct ip_mreq mreq;
     /* an internet endpoint address */
     struct in_addr in_sin;
@@ -408,10 +414,12 @@ static int handleMCast(int fd)
 	errlog(errtxt, 11);
 
 	if (node != msg.node) { /* Got ping from a different cluster */
+/*
 	    snprintf(errtxt, sizeof(errtxt),
 		     "Getting MCast ping from unknown node [%d %s(%d)]",
 		     msg.node, inet_ntoa(sin.sin_addr), node);
 	    errlog(errtxt, 0);
+*/
 	    continue;
 	}
 

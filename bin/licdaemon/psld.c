@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.16 2002/02/15 19:35:37 eicker Exp $
+ * $Id: psld.c,v 1.17 2002/04/22 18:17:00 hauke Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Daemon
  *
- * $Id: psld.c,v 1.16 2002/02/15 19:35:37 eicker Exp $
+ * $Id: psld.c,v 1.17 2002/04/22 18:17:00 hauke Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.16 2002/02/15 19:35:37 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.17 2002/04/22 18:17:00 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -95,10 +95,15 @@ int check_machine(int *interface)
     if (ioctl(skfd, SIOCGIFCONF, &ifc) < 0) {
 	errexit("Unable to obtain network configuration", errno);
     }
-
+    
     ifr = ifc.ifc_req;
     for (n = 0, i=0; n < ifc.ifc_len; n += sizeof(struct ifreq)) {
-	if (ifr->ifr_dstaddr.sa_family == AF_INET) {
+	if ((ifr->ifr_dstaddr.sa_family == AF_INET)
+#ifdef __osf__
+	    /* Tru64 return AF_UNSPEC for all interfaces */
+	    ||(ifr->ifr_dstaddr.sa_family == AF_UNSPEC)
+#endif
+	    ) {
 	    strcpy(iflist[i].name, ifr->ifr_name);
 	    iflist[i].ipaddr =
 		((struct sockaddr_in *)&ifr->ifr_addr)->sin_addr.s_addr;
@@ -122,7 +127,7 @@ int check_machine(int *interface)
 		     iflist[i].mac_addr[0], iflist[i].mac_addr[1],
 		     iflist[i].mac_addr[2], iflist[i].mac_addr[3],
 		     iflist[i].mac_addr[4], iflist[i].mac_addr[5]);
-	    errlog(errtxt, 0);
+	    errlog(errtxt, 1);
 	    i++;
 	}
 	ifr++;
@@ -293,7 +298,7 @@ void sighandler(int sig)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.16 $";
+    char revision[] = "$Revision: 1.17 $";
     snprintf(errtxt, sizeof(errtxt), "psld %s\b ", revision+11);
     errlog(errtxt, 0);
 }
