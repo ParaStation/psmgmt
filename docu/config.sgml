@@ -566,16 +566,16 @@
       If everything went fine, you are ready to test &ps; now. On one of the
       nodes do 
     </para>
-    <programlisting>	/opt/parastation/bin/psiadmin -c "status"</programlisting>
+    <programlisting>	/opt/parastation/bin/psiadmin -s -c "status"</programlisting>
     <para>
       and repeat this command until all nodes are up. While doing so, you use
       the first &ps; command: <command>psiadmin</command>. Here it is used in
       the single command mode requesting the status of all nodes again and
       again. At the same time within each startup of
       <command>psiadmin</command> the local &ps; daemon is connected. While
-      being connected the daemon will try to start all other daemons not yet
-      up. The &ps; administration tool is described in detail in the
-      corresponding manual page <xref
+      being connected, the daemon will try to start all other daemons not yet
+      up due to the <option>-s</option> option. The &ps; administration tool is
+      described in detail in the corresponding manual page <xref
 	linkend="psiadmin"/>.
     </para>
     <para>
@@ -693,9 +693,8 @@ Process 7 to 0-2,4-7 ( node 7 to 0-2,4-7 ) OK
       <command>test_nodes</command> program cannot be done yet. It is
       sufficient if all &ps; daemons are up (test this using the
       <command>status</command> directive withing the &ps; administration tool
-      <xref
-	linkend="psiadmin"/>) and all daemons have found the local Myrinet card
-      and activated (test this within <xref linkend="psiadmin"/> using the
+      <xref linkend="psiadmin"/>) and all daemons have found the local Myrinet
+      card and activated (test this within <xref linkend="psiadmin"/> using the
       <command>status <option>hw</option></command> directive).
     </para>
     <para>

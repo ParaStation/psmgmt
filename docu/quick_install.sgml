@@ -63,10 +63,13 @@
     <listitem>
       <para><emphasis role="bold">Startup &ps;</emphasis></para>
       <para>
-	In order to startup the whole &ps; system execute
-	<filename>psiadmin</filename> located in
-	<filename>/opt/parastation/bin</filename>. This should bring up the
-	&ps; daemon <xref linkend="psid"/> on every node.
+	In order to startup the whole &ps; system run
+	<xref linkend="psiadmin"/> located in
+	<filename>/opt/parastation/bin</filename> and execute
+	<command>add</command> at the prompt. This should bring up the &ps;
+	daemon <xref linkend="psid"/> on every node. Alternatively you can
+	start <xref linkend="psiadmin"/> with the <option>-s</option> option
+	which does the add automatically.
       </para>
     </listitem>
     <listitem>
