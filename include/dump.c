@@ -21,7 +21,9 @@
 #define __PRINT printf
 #endif
 
-
+#ifdef DUMP_PREFIX
+DUMP_PREFIX
+#endif
 void dump( void * addr, int offset, int len,int allign,
 	   int cols, char * desc ){
     int line[100];
