@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.h,v 1.4 2002/01/31 08:46:46 eicker Exp $
+ * $Id: mcast.h,v 1.5 2002/01/31 12:00:58 eicker Exp $
  *
  */
 /**
  * \file
  * ParaStation MultiCast facility
  *
- * $Id: mcast.h,v 1.4 2002/01/31 08:46:46 eicker Exp $
+ * $Id: mcast.h,v 1.5 2002/01/31 12:00:58 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -84,7 +84,7 @@ typedef struct {
  * The default MCast-group number. Magic number defined by Joe long time ago.
  * Can be overruled via initMCast().
  */
-static int DEFAULT_MCAST_GROUP = 237;
+#define DEFAULT_MCAST_GROUP 237
 
 /**
  * @brief Initialize the MCast module.

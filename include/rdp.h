@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.h,v 1.9 2002/01/30 22:26:28 eicker Exp $
+ * $Id: rdp.h,v 1.10 2002/01/31 12:00:58 eicker Exp $
  *
  */
 /**
  * @file
  * Reliable Datagram Protocol for ParaStation daemon
  *
- * $Id: rdp.h,v 1.9 2002/01/30 22:26:28 eicker Exp $
+ * $Id: rdp.h,v 1.10 2002/01/31 12:00:58 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -36,9 +36,15 @@ typedef struct {
 } RDPDeadbuf;
 
 
-#define RDP_NEW_CONNECTION	0x1	/**< @todo Create docu */
-#define RDP_LOST_CONNECTION	0x2	/**< @todo Create docu */
-#define RDP_PKT_UNDELIVERABLE	0x3	/**< @todo Create docu */
+/** Tag to @ref RDPCallback: New connection detected */
+#define RDP_NEW_CONNECTION	0x1
+/** Tag to @ref RDPCallback: Connection lost */
+#define RDP_LOST_CONNECTION	0x2
+/**
+ * Tag to @ref RDPCallback: Cannot deliver packet. Usually followed by
+ * @ref RDP_LOST_CONNECTION.
+ */
+#define RDP_PKT_UNDELIVERABLE	0x3
 
 /**
  * @brief Initializes the RDP module.
