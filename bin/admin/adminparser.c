@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: adminparser.c,v 1.9 2004/01/15 19:39:36 eicker Exp $
+ * $Id: adminparser.c,v 1.10 2004/01/16 14:03:53 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.9 2004/01/15 19:39:36 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.10 2004/01/16 14:03:53 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -37,7 +37,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.9 2004/0
 
 #include "helpmsgs.c"
 
-static char parserversion[] = "$Revision: 1.9 $";
+static char parserversion[] = "$Revision: 1.10 $";
 
 static char *getNodeList(char *nl_descr)
 {
@@ -89,7 +89,7 @@ static int addCommand(char *token)
     return 0;
 
  error:
-    printf("Syntax error: add [<nodes>]\n");
+    printError(&addInfo);
     return -1;
 }
 
@@ -110,7 +110,7 @@ static int shutdownCommand(char *token)
     return 0;
 
  error:
-    printf("Syntax error: shutdown [<nodes>]\n");
+    printError(&shutdownInfo);
     return -1;
 }
 
@@ -155,7 +155,7 @@ static int hwstartCommand(char *token)
     return 0;
 
  error:
-    printf ("Syntax error: hwstart [hw {<hw> | all}] [<nodes>]\n");
+    printError(&hwstartInfo);
     return -1;
 }
 
@@ -186,7 +186,7 @@ static int hwstopCommand(char *token)
     return 0;
 
  error:
-    printf ("Syntax error: hwstop [hw {<hw> | all}] [<nodes>]\n");
+    printError(&hwstopInfo);
     return -1;
 }
 
@@ -207,7 +207,7 @@ static int restartCommand(char *token)
     return 0;
 
  error:
-    printf("Syntax error: restart [<nodes>]\n");
+    printError(&restartInfo);
     return -1;
 }
 
@@ -234,7 +234,7 @@ static int resetCommand(char *token)
     return 0;
 
  error:
-    printf("Syntax error: reset [hw] [<nodes>]\n");
+    printError(&resetInfo);
     return -1;
 }
 
@@ -250,6 +250,7 @@ static int statCommand(char *token)
 
 	if (nl_descr && !strcasecmp(nl_descr, "hw")) {
 	    hw = parser_getString();
+	    if (!hw) goto error;
 	    nl_descr = parser_getString();
 	}
     } else if (what && (!strcasecmp(what, "allproc")
@@ -258,7 +259,9 @@ static int statCommand(char *token)
 			|| !strcasecmp(what, "p"))) {
 	if (nl_descr && !strcasecmp(nl_descr, "cnt")) {
 	    char *tok = parser_getString();
+	    if (!tok) goto error;
 	    cnt = parser_getNumber(tok);
+	    if (cnt<0) goto error;
 	    nl_descr = parser_getString();
 	}
     }
@@ -310,7 +313,7 @@ static int statCommand(char *token)
     return 0;
 
  error:
-    printf ("Syntax error: s[tatus] <what> [<nodes>]\n");
+    printError(&statInfo);
     return -1;
 }
 
@@ -416,7 +419,7 @@ static int setCommand(char *token)
     return 0;
 
  error:
-    printf ("Syntax error: set <item> <value> [<nodes>]\n");
+    printError(&setInfo);
     return -1;
 }
 
@@ -473,7 +476,7 @@ static int showCommand(char *token)
     return 0;
 
  error:
-    printf ("Syntax error: show <item> [<nodes>]\n");
+    printError(&showInfo);
     return -1;
 }
 
@@ -498,7 +501,7 @@ static int killCommand(char *token)
     return 0;
 
  error:
-    printf ("Syntax error: kill [-signal] tid\n");
+    printError(&killInfo);
     return -1;
 }
 
@@ -520,7 +523,7 @@ static int testCommand(char *token)
     return 0;
 
  error:
-    printf ("Syntax error: test {normal|verbose|quiet}\n");
+    printError(&testInfo);
     return -1;
 }
 
@@ -579,7 +582,7 @@ static int helpCommand(char *token)
     return 0;
 
  error:
-    printf ("Syntax error: help [<command>]\n");
+    printError(&helpInfo);
     return -1;
 }
 
@@ -599,7 +602,7 @@ static int versionCommand(char *token)
     return 0;
 
  error:
-    printf ("Syntax error: v[ersion]\n");
+    printError(&versionInfo);
     return -1;
 }
 
@@ -612,7 +615,7 @@ static int quitCommand(char *token)
     return quitMagic;
 
  error:
-    printf ("Syntax error: {e[xit]|q[uit]}\n");
+    printError(&exitInfo);
     return -1;
 }
 
