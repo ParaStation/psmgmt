@@ -18,9 +18,11 @@
 #ifndef _DEVELOP_H_
 #define _DEVELOP_H_
 
-
 /* More debug output (increased default print level)*/
-//#define DEVELOP
+/* Makefile parse the next line with grep! Dont put comments after DEVELOP! */
+//#define DEVELOP 
+
+#ifdef DEVELOP
 
 /* Old Buildin debug Dispatchtable: Now use getinfo*/
 //#define DEBUGDT
@@ -85,10 +87,10 @@
 //#define DEBUG_PSHAL
 
 /* Enable sis MCP */
-//#define ENABLE_SIS
+#define ENABLE_SIS
 
 /* Enable sis MCP */
-//#define ENABLE_JM
+#define ENABLE_JM
 
 /* Enable remote kernel debuging */
 //#define ENABLE_DEBUG_MSG	
@@ -103,11 +105,21 @@
 #define DISABLE_LOCAL_COM
 
 /* Enable Packetcounter in PSHAL */
-//#define ENABLE_PACKETCOUNTER
+#define ENABLE_PACKETCOUNTER
 
 /* PSPORT print debuging on ^Z */
-//#define ENABLE_REQUESTDUMP
+#define ENABLE_REQUESTDUMP
 
+#else
+
+/* switches for production */
+
+/* Send data with zero copy */
+#define ENABLE_DMASEND
+/* Receive data with zero copy */
+#define ENABLE_DMARECV
+
+#endif
 
 
 #define PSM_PRINT_MAP_LEVEL_OFF 1000

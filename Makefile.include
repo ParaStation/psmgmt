@@ -11,6 +11,7 @@ PSHALDIR := $(ROOTDIR)/pshal
 PSPORTDIR := $(ROOTDIR)/psport
 PSPORT2DIR := $(ROOTDIR)/psport2
 MCPDIR := $(ROOTDIR)/kern/mcp
+TOOLDIR := $(ROOTDIR)/tools
 INCLUDEDIR := $(ROOTDIR)/include
 OSNAME := $(shell uname -s)
 
@@ -43,4 +44,13 @@ TMPOBJDIR := $(ROOTDIR)/tmp
 LIB := $(LIBARCHIVEDIR)
 INC := $(INCLUDEDIR)
 GCCINC := -I$(INC) -I$(PSMDIR)/$(OSNAME)
+
+
+DEVELOP := $(shell grep -q -e '^\#define *DEVELOP *$\' $(INCLUDEDIR)/ps_develop.h && echo 1 || echo 0)
+
+
+
+
+
+
 

@@ -29,7 +29,7 @@ include $(ROOTDIR)/Makefile.include
 
 ifeq ($(shell cd .;pwd),$(ROOTDIR))
 
-allbutmcp:	dep psm pshal psport pvar arg buildno 
+allbutmcp:	dep psm pshal psport pvar arg buildno tools
 
 all:	mcpdep mcp allbutmcp buildno
 
@@ -63,6 +63,9 @@ mcpdep:
 mcpclean:
 	make -C $(MCPDIR) clean
 
+tools:
+	make -C $(TOOLDIR) tools
+
 dep:
 	make -C $(PSMDIR) $@
 	make -C $(PSHALDIR) $@
@@ -72,6 +75,11 @@ dep:
 buildno:
 	@echo "## Build #################################################"
 	@cat include/.build
+ifeq ($(DEVELOP),1)
+	@echo development version
+else
+	@echo production version
+endif
 	@echo "##########################################################"
 
 clean:

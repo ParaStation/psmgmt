@@ -11,6 +11,7 @@ VPATH+=$(shell until [ -f .SOURCEDIR ];do cd ..;done;pwd)
 ifeq ($(shell [ -f .SOURCEDIR ]&&echo 1),1)
 .EXPORT_ALL_VARIABLES:
 
+tools:	psconfig
 
 $(ROOTDIR)/Makefile Makefile:
 	@echo Makefile $@ checked
