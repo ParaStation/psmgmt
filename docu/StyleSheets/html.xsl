@@ -5,8 +5,11 @@
 
   <xsl:import href="http://docbook.sourceforge.net/release/xsl/current/html/chunk.xsl"/>
 
+  <xsl:param name="make.year.ranges" select="1"></xsl:param>
+
   <xsl:param name="shade.verbatim" select="1"/>
   <xsl:param name="xref.with.number.and.title" select="0"/>
+  <xsl:param name="preferred.mediaobject.role">HTML</xsl:param>
 
   <xsl:param name="generate.toc">
     book      toc,title
@@ -14,6 +17,8 @@
    
   <xsl:template name="book.titlepage.recto">
     <xsl:apply-templates mode="book.titlepage.recto.auto.mode" select="title"/>
+    <xsl:apply-templates
+      mode="book.titlepage.recto.auto.mode" select="subtitle"/>
 
     <xsl:apply-templates
       mode="book.titlepage.recto.auto.mode" select="bookinfo/releaseinfo"/>

@@ -99,6 +99,7 @@
 
 (define (book-titlepage-recto-elements)
   (list (normalize "title")
+	(normalize "subtitle")
 	(normalize "releaseinfo")
 	(normalize "pubdate")
 	(normalize "mediaobject")))
@@ -253,6 +254,17 @@ note"))))
       (with-mode title-mode
         (process-children-trim))))
 
+  (element subtitle
+    (make paragraph
+      use: book-titlepage-recto-style
+      font-size: (HSIZE 7)
+      line-spacing: (* (HSIZE 7) %line-spacing-factor%)
+      quadding: %division-title-quadding%
+      keep-with-next?: #t
+      heading-level: (if %generate-heading-level% 1 0)
+      (with-mode title-mode
+        (process-children-trim))))
+
   (element releaseinfo
     (make paragraph
       use: book-titlepage-recto-style
@@ -388,6 +400,7 @@ note"))))
   ;;    but with "partintro" filtered out.
 
   (let* ((title (select-elements (children node) (normalize "title")))
+	 (subtitle (select-elements (children node) (normalize "subtitle")))
 	 (titleabb (select-elements (children node) (normalize "titleabbrev")))
          (nl    (if (node-list-empty? info)
                     (node-list-filter-by-not-gi (children node) 
@@ -400,6 +413,7 @@ note"))))
         (node-list (if (node-list-empty? nltitle)
                        title
                        (empty-node-list))
+		   subtitle
 		   titleabb
 		   nl
                    intro))))
