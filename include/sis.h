@@ -13,7 +13,11 @@
 
 
 typedef struct SendBuf_T{
+#ifdef ENABLE_SIS_USERLEVEL	    
+    volatile UINT16	Type;
+#else
     UINT16	Type;
+#endif
     UINT16	Len;
     UINT8	Data[100];
 }SendBuf_t;
