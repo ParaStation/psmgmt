@@ -1,0 +1,105 @@
+/*
+ *               ParaStation
+ * psidmsgbuf.c
+ *
+ * Copyright (C) ParTec AG Karlsruhe
+ * All rights reserved.
+ *
+ * $Id: psidmsgbuf.c,v 1.1 2003/07/04 09:33:59 eicker Exp $
+ *
+ */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+static char vcid[] __attribute__(( unused )) = "$Id: psidmsgbuf.c,v 1.1 2003/07/04 09:33:59 eicker Exp $";
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "psidutil.h"
+
+#include "psidmsgbuf.h"
+
+/**
+ * Pool of message buffers ready to use. Initialized by initMsgList().
+ * To get a buffer from this pool, use getMsg(), to put it back into
+ * it use putMsg().
+ */
+static msgbuf_t *msgFreeList;
+
+#define NUM_MESSAGES 1024
+
+static char errtxt[256]; /**< General string to create error messages */
+
+static msgbuf_t *getInitializedList(size_t size)
+{
+    msgbuf_t *buf = malloc(sizeof(msgbuf_t) * size);
+
+    if (buf) {
+	unsigned int i;
+
+	for (i=0; i<size; i++) {
+	    buf[i].msg = NULL;
+	    buf[i].offset = 0;
+	    buf[i].next = &buf[i+1];
+	}
+	buf[size-1].next = NULL;
+    }
+
+    return buf;
+}
+
+void initMsgList(void)
+{
+    int i, count;
+    msgbuf_t *buf;
+
+    msgFreeList = getInitializedList(NUM_MESSAGES);
+
+    if (!msgFreeList) {
+	snprintf(errtxt, sizeof(errtxt), "%s: no memory", __func__);
+	PSID_errlog(errtxt, 0);
+	exit(0);
+    }
+
+    return;
+}
+
+msgbuf_t *getMsg(void)
+{
+    msgbuf_t *mp = msgFreeList;
+
+    if (!mp) {
+	snprintf(errtxt, sizeof(errtxt), "%s: no more elements", __func__);
+	PSID_errlog(errtxt, 1);
+
+	msgFreeList = getInitializedList(NUM_MESSAGES);
+
+	if (!msgFreeList) {
+	    snprintf(errtxt, sizeof(errtxt), "%s: no memory", __func__);
+	    PSID_errlog(errtxt, 0);
+	    return NULL;
+	}
+
+	mp = msgFreeList;
+    }
+
+    msgFreeList = msgFreeList->next;
+    mp->msg = NULL;
+    mp->offset = 0;
+    mp->next = NULL;
+
+    return mp;
+}
+
+void putMsg(msgbuf_t *mp)
+{
+    mp->next = msgFreeList;
+    msgFreeList = mp;
+    return;
+}
+
+void freeMsg(msgbuf_t *mp)
+{
+    if (mp->msg) free(mp->msg);
+    putMsg(mp);
+}
