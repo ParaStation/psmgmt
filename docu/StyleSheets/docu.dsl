@@ -93,6 +93,9 @@
 	(normalize "releaseinfo")
 	(normalize "author")
 	(normalize "copyright")
+	(normalize "legalnotice")
+	(normalize "address")
+	(normalize "abstract")
 	(normalize "revhistory")))
 					 
 ;;
