@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.7 2002/07/17 19:37:58 hauke Exp $
+ * $Id: config_parsing.c,v 1.8 2002/07/18 13:13:45 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.7 2002/07/17 19:37:58 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.8 2002/07/18 13:13:45 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -30,7 +30,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.7 2002
 #include "parser.h"
 
 #include "pscommon.h"
-#include "psprotocol.h"
+#include "pshwtypes.h"
 
 #include "psidutil.h"
 
@@ -51,8 +51,7 @@ struct node_t licNode = {
     0,          /* hwtype */
     0,          /* hwStatus */
     0,          /* hasIP */
-    0,          /* starter */
-    NULL,       /* tasklist */
+    0           /* starter */
 };
 
 char *Configfile = NULL;
@@ -123,7 +122,6 @@ static int allocHosts(int num)
         nodes[i].hwStatus = 0;
 	nodes[i].hasIP = 0;
 	nodes[i].starter = 0;
-        nodes[i].tasklist = NULL;
     }
 
     return 0;
@@ -675,21 +673,21 @@ static int getHWnone(char *token)
 
 static int getHWethernet(char *token)
 {
-    node_hwtype |= PSP_HW_ETHERNET;
+    node_hwtype |= PSHW_ETHERNET;
 
     return 0;
 }
 
 static int getHWmyrinet(char *token)
 {
-    node_hwtype |= PSP_HW_MYRINET;
+    node_hwtype |= PSHW_MYRINET;
 
     return 0;
 }
 
 static int getHWgigaethernet(char *token)
 {
-    node_hwtype |= PSP_HW_GIGAETHERNET;
+    node_hwtype |= PSHW_GIGAETHERNET;
 
     return 0;
 }
@@ -750,11 +748,8 @@ static int getHWLine(char *token)
 
     hwtype = node_hwtype;
 
-    snprintf(errtxt, sizeof(errtxt), "Default HWType is now '%s%s%s%s'",
-	     (hwtype & PSP_HW_ETHERNET) ? "ethernet," : "",
-	     (hwtype & PSP_HW_MYRINET) ? "myrinet," : "",
-	     (hwtype & PSP_HW_GIGAETHERNET) ? "gigaethernet," : "",
-	     (hwtype == 0) ? "none" : "\b");
+    snprintf(errtxt, sizeof(errtxt),
+	     "Default HWType is now '%s'", PSHW_printType(hwtype));
     parser_comment(errtxt, 8);
 
     return ret;
@@ -845,14 +840,9 @@ static int getNodeLine(char *token)
 
     if (parser_getDebugLevel()>=6) {
 	snprintf(errtxt, sizeof(errtxt), "Register '%s' as %d with"
-		 " HW '%s%s%s%s' IP%s supported, starting%s allowed.\n",
-		 hostname, nodenum,
-		 (node_hwtype & PSP_HW_ETHERNET) ? "ethernet," : "",
-		 (node_hwtype & PSP_HW_MYRINET) ? "myrinet," : "",
-		 (node_hwtype & PSP_HW_GIGAETHERNET) ? "gigaethernetnet," : "",
-		 (node_hwtype == 0) ? "none" : "\b",
-		 node_hasIP ? "" : " not",
-		 node_canstart ? "" : " not");
+		 " HW '%s' IP%s supported, starting%s allowed.\n",
+		 hostname, nodenum, PSHW_printType(node_hwtype),
+		 node_hasIP ? "" : " not", node_canstart ? "" : " not");
 	parser_comment(errtxt, 6);
     }
 
