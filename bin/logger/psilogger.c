@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.35 2003/11/26 14:56:53 eicker Exp $
+ * $Id: psilogger.c,v 1.36 2004/01/28 17:56:20 eicker Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.35 2003/11/26 14:56:53 eicker Exp $
+ * $Id: psilogger.c,v 1.36 2004/01/28 17:56:20 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.35 2003/11/26 14:56:53 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.36 2004/01/28 17:56:20 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -589,7 +589,11 @@ static void loop(void)
 	    ret = recvMsg(&msg);
 
 	    /* Ignore all errors */
-	    if (ret <= 0) continue;
+	    if (ret < 0) continue;
+	    if (!ret) {
+		fprintf(stderr, "PSIlogger: daemon died. Exiting\n");
+		exit(1);
+	    }
 
 	    if (msg.type == INITIALIZE) {
 		if (newrequest(&msg)) {
