@@ -1,4 +1,7 @@
-
+/*
+ * 2001-01-22 Jens Hauke <hauke@wtal.de>
+ *
+ */
 /*************************************************************fdb*
  * include for debugging  
  * void dump( void * addr, int offset, int len,int allign,
