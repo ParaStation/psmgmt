@@ -1,5 +1,5 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * pse.c
  *
  * ParaStation Programming Environment
@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.44 2003/10/31 12:04:51 eicker Exp $
+ * $Id: pse.c,v 1.45 2003/11/26 15:12:27 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.44 2003/10/31 12:04:51 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.45 2003/11/26 15:12:27 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -28,7 +28,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.44 2003/10/31 12:
 #include "pshwtypes.h"
 
 #include "psi.h"
-#include "info.h"
+#include "psiinfo.h"
 #include "psipartition.h"
 #include "psispawn.h"
 #include "psienv.h"
@@ -39,7 +39,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.44 2003/10/31 12:
 static char errtxt[256];
 
 static int myWorldSize = -1;
-static int worldSize = -1;  /* @todo only used within deprecated functions */
+static int worldSize = -1;  /* @deprecated: only used within such functions */
 static int worldRank = -2;
 static int masterNode = -1;
 static int masterPort = -1;
@@ -88,8 +88,8 @@ void PSE_initialize(void)
 	exitAll(errtxt, 10);
     }
 
-    parentTID = INFO_request_taskinfo(PSC_getMyTID(), INFO_PTID, 0);
-    worldRank = INFO_request_taskinfo(PSC_getMyTID(), INFO_RANK, 0);
+    PSI_infoTaskID(-1, PSP_INFO_PARENTTID, NULL, &parentTID, 0);
+    PSI_infoInt(-1, PSP_INFO_TASKRANK, NULL, &worldRank, 0);
 
     snprintf(errtxt, sizeof(errtxt), "[%d] My TID is %s.",
 	     PSE_getRank(), PSC_printTID(PSC_getMyTID()));
@@ -137,7 +137,13 @@ void PSE_initialize(void)
 
 int PSE_getSize(void)
 {
-    return INFO_request_taskSize(0);
+    int err, size;
+
+    err = PSI_infoInt(-1, PSP_INFO_TASKSIZE, NULL, &size, 0);
+
+    if (err) return -1;
+
+    return size;
 }
 
 int PSE_getRank(void)
@@ -154,7 +160,7 @@ int PSE_getPartition(unsigned int num)
     return PSI_createPartition(num, defaultHWType);
 }
 
-/* @todo deprecated functions */
+/* @deprecated */
 void PSE_init(int NP, int *rank)
 {
     PSE_initialize();
@@ -175,9 +181,9 @@ int PSE_setHWList(char **hwList)
     int ret = 0;
     
     while (hwList && *hwList) {
-	int idx;
-	idx = INFO_request_hwindex(*hwList, 0);
-	if ((idx >= 0) && (idx < ((int)sizeof(hwType) * 8))) {
+	int err, idx;
+	err = PSI_infoInt(-1, PSP_INFO_HWINDEX, *hwList, &idx, 0);
+	if (!err && (idx >= 0) && (idx < ((int)sizeof(hwType) * 8))) {
 	    hwType |= 1 << idx;
 	} else {
 	    ret = -1;
@@ -318,7 +324,7 @@ int PSE_getMasterPort(void)
     return masterPort;
 }
 
-/* @todo deprecated functions */
+/* @deprecated */
 void PSE_spawn(int argc, char *argv[], int *node, int *port, int rank)
 {
     if (rank != PSE_getRank()) {
