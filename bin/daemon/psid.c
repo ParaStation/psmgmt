@@ -1,3 +1,4 @@
+
 /*
  *      @(#)psid.c    1.00 (Karlsruhe) 10/4/95
  *
@@ -36,7 +37,6 @@
 #include "psi.h"
 #include "psidutil.h"
 #include "psilog.h"
-#include "info.h"
 
 int CalledFromRSelect=0;
 
@@ -500,6 +500,7 @@ int shutdown_node(int phase)
     }
     if(phase >2) {
 	RDPexit();
+	PSID_CardStop();
 	SYSLOG(0,(LOG_ERR,"shutdown_node() good bye\n"));
 	exit(1);
     }
@@ -1691,7 +1692,7 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 	PSI_logerror(PSI_txt);
     }
     if(nodeno!=PSI_myid){
-	/* a request for a remote SHM */
+	/* a request for a remote daemon */
 	if(DaemonIsUp(nodeno)){
 	    /*
 	     * transfer the request to the remote daemon
@@ -1728,40 +1729,15 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 	msg.header.len = sizeof(msg.header);
 
 	switch(inmsg->type){
-	case PSP_CD_PSISTATUSREQUEST:
-	{
-  	    INFO_STATUS info;
-	    bzero(&info, sizeof(INFO_STATUS));
-
-/*  	    PSHAL_GetStatus(&info,0); */
-
-/*  	    sprintf(PSI_txt,"Myid: %d, NrOfNodes: %d, Interface: %s [%d loops]," */
-/*  		    " Err[%d,%d,%d,%d,%d]\n", */
-/*  		    info.myid, info.nrofnodes,(info.speed>0.0)?"UP":"DOWN", */
-/*  		    info.speed, info.aos_err, info.da_err, info.nack_err, */
-/*  		    info.crc_err,info.rsa_err); */
-/*  	    SYSLOG(3,(LOG_ERR,PSI_txt)); */
-/*  	    sprintf(PSI_txt,"Buff: Send[%d|%d], MCPRecv[%d|%d]," */
-/*  		    " HostRecv[%d|%d]\n", */
-/*  		    info.sbuf, info.maxsbuf, info.irbuf, info.maxirbuf, */
-/*  		    info.rbuf, info.maxrbuf); */
-/*  	    SYSLOG(3,(LOG_ERR,PSI_txt)); */
-
-	    bcopy(&info,msg.buf,sizeof(INFO_STATUS));
-	    msg.header.len += sizeof(INFO_STATUS);
-	    msg.header.type = PSP_CD_PSISTATUSRESPONSE;
-	    break;
-	}
 	case PSP_CD_COUNTSTATUSREQUEST:
 	{
-	    INFO_COUNT info;
-	    bzero(&info, sizeof(INFO_STATUS));
+	    PSHALInfoCounter_t *ic;
 
-/*  	    PSHAL_GetCount(&info,0); */
+	    ic=PSHALSYSGetInfoCounter();
 
-	    bcopy(&info,msg.buf,sizeof(INFO_COUNT));
+	    bcopy(ic,msg.buf,sizeof(*ic));
 	    msg.header.type = PSP_CD_COUNTSTATUSRESPONSE;
-	    msg.header.len += sizeof(INFO_COUNT);
+	    msg.header.len += sizeof(*ic);
 	    break;
 	}
 	case PSP_CD_RDPSTATUSREQUEST:
@@ -2221,21 +2197,19 @@ void psicontrol(int fd )
 	case PSP_CD_TASKINFOEND:
 	    /* Ignore */
 	    break;
-	case PSP_CD_PSISTATUSREQUEST:
 	case PSP_CD_COUNTSTATUSREQUEST:
 	case PSP_CD_RDPSTATUSREQUEST:
 	case PSP_CD_HOSTSTATUSREQUEST:
 	    /*
-	     * request to send the information about a specific shm info
+	     * request to send the information about a specific info
 	     */
 	    msg_INFOREQUEST((DDMsg_t*)&msg);
 	    break;
-	case PSP_CD_PSISTATUSRESPONSE:
 	case PSP_CD_COUNTSTATUSRESPONSE:
 	case PSP_CD_RDPSTATUSRESPONSE:
 	case PSP_CD_HOSTSTATUSRESPONSE:
 	    /*
-	     * request to send the information about a specific shm info
+	     * request to send the information about a specific info
 	     */
 	    MsgSend(&msg);
 	    break;
@@ -2610,8 +2584,7 @@ void CheckFileTable()
  */
 void usage(void)
 {
-    fprintf(stderr,"usage: psid [-d] [-D MASK]\n");
-    fprintf(stderr,"usage: psid -h\n");
+    fprintf(stderr,"usage: psid [-h] [-d] [-D MASK] [-f file]\n");
 }
 
 /******************************************
@@ -2620,9 +2593,11 @@ void usage(void)
 void help(void)
 {
     usage();
-    fprintf(stderr,"\n -d       : Set logging to active\n");
-    fprintf(stderr,"  MASK    : Set logging to active and use MASK for any debugging in the library\n");
-    fprintf(stderr," -h       : print this screen\n");
+    fprintf(stderr,"\n");
+    fprintf(stderr," -d       : Activate logging.\n");
+    fprintf(stderr," -D  MASK : Activate logging, use MASK for debugging in psilib.\n");
+    fprintf(stderr," -f file  : use 'file' as config-file (default is psidir/config/psm.config).\n");
+    fprintf(stderr," -h,      : print this screen.\n");
 }
 
 /******************************************
@@ -2655,7 +2630,7 @@ main(int argc, char **argv)
 	PSI_setoption(PSP_OSYSLOG,1);
 	SYSLOG_LEVEL = 9;
 
-	while ((opt = getopt(argc, argv, "dD:f:hH?")) != -1){
+	while ((opt = getopt(argc, argv, "dD:f:hH")) != -1){
 	    switch (opt){
 	    case 'd' : /* DEBUG print out debug informations */
 		DEBUGGING = 1;
@@ -2671,7 +2646,6 @@ main(int argc, char **argv)
 		break;
 	    case 'h' : /* help */
 	    case 'H' :
-	    case '?' :
 		help();
 		return 0;
 		break;
