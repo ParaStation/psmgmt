@@ -101,14 +101,8 @@
 
 #include "rdp.h"
 
-/* #define USERTEST */
-#ifdef USERTEST
-#define MCASTSERVICE	"1222"
-#define RDPSERVICE	"1223"
-#else
 #define MCASTSERVICE	"psmcast"
 #define RDPSERVICE	"psrdp"
-#endif
 #define RDPPROTOCOL	"udp"
 
 static int syslogerror = 1;    	/* flag if syslog is used */
@@ -157,9 +151,7 @@ static struct {
 
 static int DEBUGLEVEL = 0;
 
-/****************************/
 int RDP_SetDBGLevel(int level)
-/****************************/
 {
     if ( (level>=0) || (level<16) ){
 	DEBUGLEVEL = level;
@@ -180,9 +172,7 @@ void RDP_SetLogMsg(int n)
     logmsg = n;
 }
 
-/******************************************************/
 static void errlog (char * s, int syslogerr, int level)
-/******************************************************/
 {
     char errtxt[256];
 
@@ -198,9 +188,7 @@ static void errlog (char * s, int syslogerr, int level)
     return; 
 }
 
-/****************************************************/
 static void errexit (char * s, int eno, int syslogerr)
-/****************************************************/
 {
     char errtxt[256];
 
@@ -218,10 +206,8 @@ static void errexit (char * s, int eno, int syslogerr)
  * my version of recvfrom, which restarts on EINTR
  * (EINTR is mostly caused bt the interval timer)
  */
-/***************************************************************/
 static int MYrecvfrom(int rdpsock, void *buf, size_t len, int flags,
                       struct sockaddr *from, SIZE_T *fromlen)
-/***************************************************************/
 {
     int retval;
 restart:
@@ -233,9 +219,7 @@ restart:
     return retval;
 }
 
-/***************************************************************************/
 static int passivesock (char *service, char *protocol, int qlen, int *portno)
-/***************************************************************************/
 {
   struct servent *pse;		/* pointer to servive intformation entry */ 
   struct protoent *ppe;		/* pointer to protocol intformation entry */ 
@@ -321,9 +305,7 @@ static int passivesock (char *service, char *protocol, int qlen, int *portno)
   return s;
 }
 
-/*********************************************************************/
 static void getsinbyname(char *host, int port, struct sockaddr_in *sin)
-/*********************************************************************/
 {
   struct hostent *phe;	/* pointer to host information entry */
   
@@ -426,21 +408,21 @@ struct timeval RESEND_TIMEOUT = {0,100000}; /* sec, usec */
  * connection info for each connection (peer to peer)
  */
 typedef struct Rconninfo_ {
-  char *hostname;		/* Hostname of partner */
-  struct timeval lastping;	/* timestamp of last received ping msg */
-  int misscounter;		/* nr of pings missing */
-  RDPLoad load;			/* load parameters of that node */
-  int window;			/* Window size */
-  int ack_pending;		/* flag, that an a packet to that node is pending */
-  int msg_pending;		/* outstanding msg's during reconnect */
-  struct sockaddr_in sin;	/* prebuilt descriptor for sendto */
-  int NextFrameToSend;		/* Seq Nr for next frame going to that host */
-  int AckExpected;		/* Expected Ack Nr for mesg's pending to that hosts */
-  int FrameExpected;		/* Expected Seq Nr for msg coming from that host */
-  int ConnID_in;		/* Connection ID to recognize that node */
-  int ConnID_out;		/* My Connection ID to that node */
-  RDPState state;		/* state of connection to that host */
-  msgbuf *bufptr;		/* pointer to first message buffer */
+    char *hostname;	     /* Hostname of partner */
+    struct timeval lastping; /* timestamp of last received ping msg */
+    int misscounter;	     /* nr of pings missing */
+    RDPLoad load;	     /* load parameters of node */
+    int window;		     /* Window size */
+    int ack_pending;	     /* flag, that a packet to node is pending */
+    int msg_pending;	     /* outstanding msg's during reconnect */
+    struct sockaddr_in sin;  /* prebuilt descriptor for sendto */
+    int NextFrameToSend;     /* Seq Nr for next frame going to host */
+    int AckExpected;	     /* Expected Ack Nr for mesg's pending to hosts */
+    int FrameExpected;	     /* Expected Seq Nr for msg coming from host */
+    int ConnID_in;	     /* Connection ID to recognize node */
+    int ConnID_out;	     /* My Connection ID to node */
+    RDPState state;	     /* state of connection to host */
+    msgbuf *bufptr;	     /* pointer to first message buffer */
 } Rconninfo;
 
 /*
@@ -452,9 +434,9 @@ static Rconninfo *conntable = NULL;
  * ipentry & iptabel is used to lookup node_nr if ip_nr is given
  */
 typedef struct ipentry_ {
-  int ipnr;		/* ip nr of host */
-  int node;		/* logical node number */
-  struct ipentry_ *next; /* pointer to next entry */
+    int ipnr;		    /* ip nr of host */
+    int node;		    /* logical node number */
+    struct ipentry_ *next;  /* pointer to next entry */
 } ipentry;
 
 /*
@@ -465,77 +447,70 @@ static ipentry iptable[256];
 /*
  * init iptable
  */
-/****************************/
 static void init_iptable(void)
-/****************************/
 {
-  int i;
-  for(i=0;i<256;i++){
-    iptable[i].ipnr=0;
-    iptable[i].node=0;
-    iptable[i].next=NULL;
-  }
-  return;
+    int i;
+    for(i=0;i<256;i++){
+	iptable[i].ipnr=0;
+	iptable[i].node=0;
+	iptable[i].next=NULL;
+    }
+    return;
 }
 
 /*
  * create new entry in iptable
  */
-/*******************************************************/
 static void insert_iptable(struct in_addr ipno, int node)
-/*******************************************************/
 {
-  ipentry *ip;
-  int idx = ipno.s_addr >> 24; /* use last byte of IP addr */
+    ipentry *ip;
+    int idx = ipno.s_addr >> 24; /* use last byte of IP addr */
 
-  if( iptable[idx].ipnr != 0 ){ /* create new entry */
-/* printf("Node %d goes to table %d [NEW ENTRY]",node,idx); */
-    ip = &iptable[idx];
-    while(ip->next != NULL) ip = ip->next; /* search end */
-    ip->next = (ipentry *)malloc(sizeof(ipentry)); 
-    ip = ip->next;
-    ip->next = NULL;
-    ip->ipnr= ipno.s_addr;
-    ip->node= node;
-  } else { /* base entry is free, so use it */
-/* printf("Node %d goes to table %d",node,idx); */
-    iptable[idx].ipnr = ipno.s_addr;
-    iptable[idx].node = node;
-  }
-  return;
+    if( iptable[idx].ipnr != 0 ){ /* create new entry */
+	/* printf("Node %d goes to table %d [NEW ENTRY]",node,idx); */
+	ip = &iptable[idx];
+	while(ip->next != NULL) ip = ip->next; /* search end */
+	ip->next = (ipentry *)malloc(sizeof(ipentry)); 
+	ip = ip->next;
+	ip->next = NULL;
+	ip->ipnr= ipno.s_addr;
+	ip->node= node;
+    }else{ /* base entry is free, so use it */
+	/* printf("Node %d goes to table %d",node,idx); */
+	iptable[idx].ipnr = ipno.s_addr;
+	iptable[idx].node = node;
+    }
+    return;
 }
 
 /*
  * get node_nr from ip_nr
  */
-/**************************************/
 static int iplookup(struct in_addr ipno)
-/**************************************/
 {
-  int idx = ipno.s_addr >> 24; /* use last byte of IP addr */
-  ipentry *ip = NULL;
+    int idx = ipno.s_addr >> 24; /* use last byte of IP addr */
+    ipentry *ip = NULL;
 
-  ip = &iptable[idx];
+    ip = &iptable[idx];
 
-  do{
-    if(ip->ipnr == ipno.s_addr){ /* node found */
-	return ip->node;
-    }
-    ip = ip->next;
-  } while(ip != NULL);
+    do{
+	if(ip->ipnr == ipno.s_addr){ /* node found */
+	    return ip->node;
+	}
+	ip = ip->next;
+    } while(ip != NULL);
 
-  return -1;
+    return -1;
 }
 
-/*********************************************/
 static void init_conntable(int nodes, int port)
-/*********************************************/
 {
     int i;
     struct timeval tv;
 
     if(!conntable){
-	conntable = (Rconninfo *) malloc(PSI_nrofnodes * sizeof(Rconninfo));
+	conntable = (Rconninfo *) malloc((PSI_nrofnodes + 1)
+					 * sizeof(Rconninfo));
     }
     init_iptable();
     gettimeofday(&tv,NULL);
@@ -596,104 +571,94 @@ static void init_conntable(int nodes, int port)
 /*
  * Initialization and Management of msg buffers
  */
-/*********************************/
 static void init_msgbufs(int nodes)
-/*********************************/
 {
-   int i,count;
-   Smsg *sbuf;
-   msgbuf *buf;
+    int i,count;
+    Smsg *sbuf;
+    msgbuf *buf;
 
-   count = nodes * MAX_WINDOW_SIZE;
-   sbuf = (Smsg *)malloc(sizeof(Smsg) * count);
-   buf = (msgbuf *)malloc(sizeof(msgbuf) * count);
-   for(i=0;i<count; i++){
-     sbuf[i].next = &sbuf[i+1];
-     buf[i].next = &buf[i+1];
-     buf[i].connid = -1;
-     buf[i].state = BIDLE;
-     buf[i].ackptr = NULL;
-     buf[i].tv.tv_sec = 0;
-     buf[i].tv.tv_usec = 0;
-     buf[i].retrans = 0;
-     buf[i].len = -1;
-     buf[i].msg.small = NULL;
-   }
-   sbuf[count - 1].next = (Smsg *)NULL;
-   buf[count - 1].next = (msgbuf *)NULL;
-   Smsgfreelist = sbuf;
-   msgfreelist = buf;
-   return;
+    count = nodes * MAX_WINDOW_SIZE;
+    sbuf = (Smsg *)malloc(sizeof(Smsg) * count);
+    buf = (msgbuf *)malloc(sizeof(msgbuf) * count);
+    for(i=0;i<count; i++){
+	sbuf[i].next = &sbuf[i+1];
+	buf[i].next = &buf[i+1];
+	buf[i].connid = -1;
+	buf[i].state = BIDLE;
+	buf[i].ackptr = NULL;
+	buf[i].tv.tv_sec = 0;
+	buf[i].tv.tv_usec = 0;
+	buf[i].retrans = 0;
+	buf[i].len = -1;
+	buf[i].msg.small = NULL;
+    }
+    sbuf[count - 1].next = (Smsg *)NULL;
+    buf[count - 1].next = (msgbuf *)NULL;
+    Smsgfreelist = sbuf;
+    msgfreelist = buf;
+    return;
 }
 
 /*
  * get msg entry from msgfreelist
  */
-/**************************/
 static msgbuf *get_msg(void)
-/**************************/
 {
-  msgbuf *mp = msgfreelist;
-  if (mp == NULL){
-     sprintf(errtxt,"no more elements in msgfreelist");
-     errlog(errtxt,syslogerror,0);
-  } else {
-    msgfreelist = msgfreelist->next;
-    mp->connid = -1;
-    mp->state = BIDLE;
-    mp->retrans = 0;
-  }
-  return mp;
+    msgbuf *mp = msgfreelist;
+    if (mp == NULL){
+	sprintf(errtxt,"no more elements in msgfreelist");
+	errlog(errtxt,syslogerror,0);
+    } else {
+	msgfreelist = msgfreelist->next;
+	mp->connid = -1;
+	mp->state = BIDLE;
+	mp->retrans = 0;
+    }
+    return mp;
 }
 
 /*
  * insert msg entry into msgfreelist
  */
-/*****************************/
 static void put_msg(msgbuf *mp)
-/*****************************/
 {
-  mp->next = msgfreelist;
-  msgfreelist = mp;
-  return;
+    mp->next = msgfreelist;
+    msgfreelist = mp;
+    return;
 }
 
 /*
  * get Smsg entry from Smsgfreelist
  */
-/*************************/
 static Smsg *get_Smsg(void)
-/*************************/
 {
-  Smsg *mp = Smsgfreelist;
-  if (mp == NULL){
-     sprintf(errtxt,"no more elements in Smsgfreelist");
-     errlog(errtxt,syslogerror,0);
-  } else {
-    Smsgfreelist = Smsgfreelist->next;
-  }
-  return mp;
+    Smsg *mp = Smsgfreelist;
+    if (mp == NULL){
+	sprintf(errtxt,"no more elements in Smsgfreelist");
+	errlog(errtxt,syslogerror,0);
+    }else{
+	Smsgfreelist = Smsgfreelist->next;
+    }
+    return mp;
 }
 
 /*
  * insert Smsg entry into Smsgfreelist
  */
-/****************************/
 static void put_Smsg(Smsg *mp)
-/****************************/
 {
-  mp->next = Smsgfreelist;
-  Smsgfreelist = mp;
-  return;
+    mp->next = Smsgfreelist;
+    Smsgfreelist = mp;
+    return;
 }
 
 /*
  * Initialization and Management of ack list
  */
 typedef struct ackent_ {
-  struct ackent_ *prev;		/* pointer to previous msg waiting for an ack */
-  struct ackent_ *next;		/* pointer to next msg waiting for an ack */
-  msgbuf *bufptr;		/* pointer to first message buffer */
+    struct ackent_ *prev;      /* pointer to previous msg waiting for an ack */
+    struct ackent_ *next;      /* pointer to next msg waiting for an ack */
+    msgbuf *bufptr;	       /* pointer to first message buffer */
 }ackent;
 
 static ackent	*acklisthead;	/* head of ack list */
@@ -703,104 +668,94 @@ static ackent	*ackfreelist;	/* list of free ack buffers */
 /*
  * init ack list
  */
-/*********************************/
 static void init_acklist(int nodes)
-/*********************************/
 {
-   ackent *ackbuf;
-   int i;
-   int count;
+    ackent *ackbuf;
+    int i;
+    int count;
 
-   /*
-    * Max set size is MAX_NR_OF_NODES * MAX_WINDOW_SIZE !!
-    */
-   count = nodes * MAX_WINDOW_SIZE;
-   ackbuf = (ackent *)malloc(sizeof(ackent) * count);
-   acklisthead = (ackent *) NULL;
-   acklisttail = (ackent *) NULL;
-   ackfreelist = ackbuf;
-   for(i=0;i<count; i++){
-     ackbuf[i].prev = (ackent *)NULL;
-     ackbuf[i].next = &ackbuf[i+1];
-     ackbuf[i].bufptr = (msgbuf *)NULL;
-   }
-   ackbuf[count - 1].next = (ackent *)NULL;
-   return;
+    /*
+     * Max set size is MAX_NR_OF_NODES * MAX_WINDOW_SIZE !!
+     */
+    count = nodes * MAX_WINDOW_SIZE;
+    ackbuf = (ackent *)malloc(sizeof(ackent) * count);
+    acklisthead = (ackent *) NULL;
+    acklisttail = (ackent *) NULL;
+    ackfreelist = ackbuf;
+    for(i=0;i<count; i++){
+	ackbuf[i].prev = (ackent *)NULL;
+	ackbuf[i].next = &ackbuf[i+1];
+	ackbuf[i].bufptr = (msgbuf *)NULL;
+    }
+    ackbuf[count - 1].next = (ackent *)NULL;
+    return;
 }
 
 /*
  * get ack entry from freelist
  */
-/*****************************/
 static ackent *get_ackent(void)
-/*****************************/
 {
-  ackent *ap = ackfreelist;
-  if (ap == NULL){
-     sprintf(errtxt,"no more elements in ackfreelist");
-     errlog(errtxt,syslogerror,0);
-  } else {
-    ackfreelist = ackfreelist->next;
-  }
-  return ap;
+    ackent *ap = ackfreelist;
+    if (ap == NULL){
+	sprintf(errtxt,"no more elements in ackfreelist");
+	errlog(errtxt,syslogerror,0);
+    }else{
+	ackfreelist = ackfreelist->next;
+    }
+    return ap;
 }
 
 /*
  * insert ack entry into freelist
  */
-/********************************/
 static void put_ackent(ackent *ap)
-/********************************/
 {
-  ap->prev = NULL;
-  ap->bufptr = NULL;
-  ap->next = ackfreelist;
-  ackfreelist = ap;
-  return;
+    ap->prev = NULL;
+    ap->bufptr = NULL;
+    ap->next = ackfreelist;
+    ackfreelist = ap;
+    return;
 }
 
 /*
  * enqueue msg into list of msg's waiting to be acked
  */
-/************************************/
 static ackent *enq_ack(msgbuf *bufptr)
-/************************************/
 {
-  ackent *ap;
-  if (acklisthead == NULL){
-     ap = acklisthead = get_ackent();
-     acklisthead->next = NULL;
-     acklisthead->bufptr = bufptr;
-     acklisttail = acklisthead;
-  } else {
-     ap = acklisttail->next = get_ackent();
-     acklisttail->next->prev = acklisttail;
-     acklisttail->next->next = NULL;
-     acklisttail->next->bufptr = bufptr;
-     acklisttail = acklisttail->next;
-  }
-  return ap;
+    ackent *ap;
+    if (acklisthead == NULL){
+	ap = acklisthead = get_ackent();
+	acklisthead->next = NULL;
+	acklisthead->bufptr = bufptr;
+	acklisttail = acklisthead;
+    }else{
+	ap = acklisttail->next = get_ackent();
+	acklisttail->next->prev = acklisttail;
+	acklisttail->next->next = NULL;
+	acklisttail->next->bufptr = bufptr;
+	acklisttail = acklisttail->next;
+    }
+    return ap;
 }
 
 /*
  * renove msg from list of msg's waiting to be acked
  */
-/*****************************/
 static void deq_ack(ackent *ap)
-/*****************************/
 {
-  if(acklisthead == ap){
-    acklisthead = acklisthead->next;
-  } else {
-    ap->prev->next = ap->next;
-  }
-  if(acklisttail == ap){
-    acklisttail = acklisttail->prev;
-  } else {
-    ap->next->prev = ap->prev;
-  }
-  put_ackent(ap);
-  return;
+    if(acklisthead == ap){
+	acklisthead = acklisthead->next;
+    }else{
+      ap->prev->next = ap->next;
+    }
+    if(acklisttail == ap){
+	acklisttail = acklisttail->prev;
+    }else{
+	ap->next->prev = ap->prev;
+    }
+    put_ackent(ap);
+    return;
 }
 
 static int timer_running=0;
@@ -808,22 +763,20 @@ static int timer_running=0;
  * Setup interval timer to generate SIGALRM each sec.usec seconds
  * RDPtimer(0,0) stops the timer
  */
-/*************************************/
 static void RDPtimer(int sec, int usec)
-/*************************************/
 {
-  struct itimerval itv;
+    struct itimerval itv;
 
-  itv.it_interval.tv_sec = sec;
-  itv.it_interval.tv_usec = usec;
-  itv.it_value.tv_sec = sec;
-  itv.it_value.tv_usec = usec;
-  if(setitimer(ITIMER_REAL,&itv,NULL)==-1){
-     sprintf(errtxt,"unable to set itimer");
-     errexit(errtxt,errno,syslogerror);
-  }
-  timer_running = sec+usec;
-  return;
+    itv.it_interval.tv_sec = sec;
+    itv.it_interval.tv_usec = usec;
+    itv.it_value.tv_sec = sec;
+    itv.it_value.tv_usec = usec;
+    if(setitimer(ITIMER_REAL,&itv,NULL)==-1){
+	sprintf(errtxt,"unable to set itimer");
+	errexit(errtxt,errno,syslogerror);
+    }
+    timer_running = sec+usec;
+    return;
 }
 
 static int DEAD_LIMIT = 10;
@@ -831,513 +784,522 @@ static int DEAD_LIMIT = 10;
 /*
  * Set/Get Dead Limit (-1 == Get, else Set)
  */
-/**************************/
 int RDP_DeadLimit(int limit)
-/**************************/
 {
-  if(limit==-1) return DEAD_LIMIT;
-  DEAD_LIMIT = limit;
-  return limit;
+    if(limit==-1) return DEAD_LIMIT;
+    DEAD_LIMIT = limit;
+    return limit;
 }
 
 /*
  * Check for broken connections
  */
-/********************************/
 static void check_connection(void)
-/********************************/
 {
-  int i,info;
-  struct timeval tv1, tv2;
+    int i,info;
+    struct timeval tv1, tv2;
 
-  gettimeofday(&tv2,NULL);
-  for(i=0;i<nr_of_nodes;i++){
-    if (licserver || conntable[i].state != CLOSED){
-      tv1.tv_sec=TIMER_LOOP+1;
-      tv1.tv_usec=0;
-      timeradd(&tv1,&conntable[i].lastping,&tv1);
+    gettimeofday(&tv2,NULL);
+    for(i=0;i<nr_of_nodes;i++){
+	if (licserver || conntable[i].state != CLOSED){
+	    tv1.tv_sec=TIMER_LOOP+1;
+	    tv1.tv_usec=0;
+	    timeradd(&tv1,&conntable[i].lastping,&tv1);
 /* Dsprintf(errtxt,"checkconn: (now=%x, to=%x, last=%x)",tv2.tv_sec,tv1.tv_sec, */
 /*          conntable[i].lastping.tv_sec); */
 /* Derrlog(errtxt,syslogerror,1); */
-      if(timercmp(&tv1,&tv2,<)){ /* no ping seen in the last 'round' */
-Dsprintf(errtxt,"Ping from node %d missing [%d] (now=%lx, last=%lx, new=%lx)",i,
-         conntable[i].misscounter,tv2.tv_sec,conntable[i].lastping.tv_sec,tv1.tv_sec);
-	  conntable[i].misscounter++;
-	  conntable[i].lastping = tv1;
-if((conntable[i].misscounter%5)==0){
-  Derrlog(errtxt,syslogerror,5);
-} else {
-  Derrlog(errtxt,syslogerror,9);
-}
-      }
-      if(!licserver && conntable[i].misscounter > DEAD_LIMIT){
-	Dsprintf(errtxt,"misscount exceeded, closing connection to node %d",i);
-	Derrlog(errtxt,syslogerror,0);
-	CloseConnection(i);
-	conntable[i].misscounter=0;
-      }
+	    if(timercmp(&tv1,&tv2,<)){ /* no ping seen in the last 'round' */
+		Dsprintf(errtxt, "Ping from node %d missing [%d] "
+			 "(now=%lx, last=%lx, new=%lx)",i,
+			 conntable[i].misscounter, tv2.tv_sec,
+			 conntable[i].lastping.tv_sec, tv1.tv_sec);
+		conntable[i].misscounter++;
+		conntable[i].lastping = tv1;
+		if((conntable[i].misscounter%5)==0){
+		    Derrlog(errtxt,syslogerror,5);
+		} else {
+		    Derrlog(errtxt,syslogerror,9);
+		}
+	    }
+	    if(!licserver && conntable[i].misscounter > DEAD_LIMIT){
+		Dsprintf(errtxt,
+			 "misscount exceeded, closing connection to node %d",
+			 i);
+		Derrlog(errtxt,syslogerror,0);
+		CloseConnection(i);
+		conntable[i].misscounter=0;
+	    }
+	}
     }
-  }
-  tv1.tv_sec=TIMER_LOOP+1;
-  tv1.tv_usec=0;
-  timeradd(&tv1,&conntable[nr_of_nodes].lastping,&tv1);
-  if(timercmp(&tv1,&tv2,<)){ /* no ping seen in the last 'round' */
+    tv1.tv_sec=TIMER_LOOP+1;
+    tv1.tv_usec=0;
+    timeradd(&tv1,&conntable[nr_of_nodes].lastping,&tv1);
+    if(timercmp(&tv1,&tv2,<)){ /* no ping seen in the last 'round' */
 	conntable[nr_of_nodes].misscounter++;
 	conntable[nr_of_nodes].lastping = tv1;
-    Dsprintf(errtxt,"Ping from LicServer [%x] missing [%d]",
-	     conntable[nr_of_nodes].sin.sin_addr.s_addr, conntable[nr_of_nodes].misscounter);
-    if(conntable[nr_of_nodes].misscounter%10 == 0){ /* TOMHACK: %100 */
-      Derrlog(errtxt,syslogerror,0);
-      if (callback.func != NULL){ /* inform daemon */
-	 info=conntable[nr_of_nodes].sin.sin_addr.s_addr;
-	 callback.func(RDP_LIC_LOST,&info);
-      }
-    } else {
-      Derrlog(errtxt,syslogerror,9);
+	Dsprintf(errtxt,"Ping from LicServer [%x] missing [%d]",
+		 conntable[nr_of_nodes].sin.sin_addr.s_addr,
+		 conntable[nr_of_nodes].misscounter);
+	if(conntable[nr_of_nodes].misscounter%10 == 0){ /* TOMHACK: %100 */
+	    Derrlog(errtxt,syslogerror,0);
+	    if (callback.func != NULL){ /* inform daemon */
+		info=conntable[nr_of_nodes].sin.sin_addr.s_addr;
+		callback.func(RDP_LIC_LOST,&info);
+	    }
+	}else{
+	    Derrlog(errtxt,syslogerror,9);
+	}
     }
-  }
-  if(conntable[nr_of_nodes].misscounter > (100 * DEAD_LIMIT) ){
-	Dsprintf(errtxt,"Lost connection to License Server, shutting down operation");
+    if(conntable[nr_of_nodes].misscounter > (100 * DEAD_LIMIT) ){
+	Dsprintf(errtxt,"Lost connection to License Server,"
+		 " shutting down operation");
 	Derrlog(errtxt,syslogerror,0);
 	if (callback.func != NULL){ /* inform daemon */
-	  info=LIC_LOST_CONECTION;
-          conntable[nr_of_nodes].misscounter=0;	/* HACK HACK HACK : TOM */
+	    info=LIC_LOST_CONECTION;
+	    conntable[nr_of_nodes].misscounter=0; /* HACK HACK HACK : TOM */
 /* 	  callback.func(RDP_LIC_SHUTDOWN,&info); */
-	} else {
-          RDPexit();
-	  exit(-1);
+	}else{
+	    RDPexit();
+	    exit(-1);
 	}
-  }
-  return;
+    }
+    return;
 }
 
 /*
  * send a SYN msg
  */
-/***************************/
 static void sendSYN(int node)
-/***************************/
 {
-  rdphdr hdr; 
+    rdphdr hdr; 
 
-  hdr.type=RDP_SYN;
-  hdr.len=0;
-  hdr.seqno=conntable[node].NextFrameToSend;	/* Tell partner initial seqno */
-  hdr.ackno=0;				/* nothing to ack yet */
-  hdr.connid=conntable[node].ConnID_out;
-Dsprintf(errtxt,"sending SYN to node %d, NFTS=%d",node,hdr.seqno);
-Derrlog(errtxt,syslogerror,11);
-  sendto(rdpsock, (char *)&hdr, sizeof(rdphdr), 0, 
-         (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
-  return;
+    hdr.type=RDP_SYN;
+    hdr.len=0;
+    hdr.seqno=conntable[node].NextFrameToSend; /* Tell partner initial seqno */
+    hdr.ackno=0;			       /* nothing to ack yet */
+    hdr.connid=conntable[node].ConnID_out;
+    Dsprintf(errtxt,"sending SYN to node %d, NFTS=%d",node,hdr.seqno);
+    Derrlog(errtxt,syslogerror,11);
+    sendto(rdpsock, (char *)&hdr, sizeof(rdphdr), 0, 
+	   (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
+    return;
 }
 
 /*
  * send a explicit ACK msg
  */
-/***************************/
 static void sendACK(int node)
-/***************************/
 {
-  rdphdr hdr; 
+    rdphdr hdr; 
 
-  hdr.type=RDP_ACK;
-  hdr.len=0;
-  hdr.seqno=0; /* ACKs do not have a seqno */
-  hdr.ackno=conntable[node].FrameExpected-1;	/* ACK one before Expected !! */
-  hdr.connid=conntable[node].ConnID_out;
-Dsprintf(errtxt,"sending ACK to node %d, FE=%d",node,hdr.ackno);
-Derrlog(errtxt,syslogerror,11);
-  sendto(rdpsock, (char *)&hdr, sizeof(rdphdr), 0, 
-         (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
-  conntable[node].ack_pending=0;
-  return;
+    hdr.type=RDP_ACK;
+    hdr.len=0;
+    hdr.seqno=0; /* ACKs do not have a seqno */
+    hdr.ackno=conntable[node].FrameExpected-1; /* ACK one before Expected !! */
+    hdr.connid=conntable[node].ConnID_out;
+    Dsprintf(errtxt,"sending ACK to node %d, FE=%d",node,hdr.ackno);
+    Derrlog(errtxt,syslogerror,11);
+    sendto(rdpsock, (char *)&hdr, sizeof(rdphdr), 0, 
+	   (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
+    conntable[node].ack_pending=0;
+    return;
 }
 
 /*
  * send a SYNACK msg
  */
-/******************************/
 static void sendSYNACK(int node)
-/******************************/
 {
-  rdphdr hdr; 
+    rdphdr hdr; 
 
-  hdr.type=RDP_SYNACK;
-  hdr.len=0;
-  hdr.seqno=conntable[node].NextFrameToSend;	/* Tell partner initial seqno */
-  hdr.ackno=conntable[node].FrameExpected-1;
-  hdr.connid=conntable[node].ConnID_out;
-Dsprintf(errtxt,"sending SYNACK to node %d, NFTS=%d, FE=%d",node,hdr.seqno,hdr.ackno);
-Derrlog(errtxt,syslogerror,11);
-  sendto(rdpsock, (char *)&hdr, sizeof(rdphdr), 0, 
-         (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
-  conntable[node].ack_pending=0;
-  return;
+    hdr.type=RDP_SYNACK;
+    hdr.len=0;
+    hdr.seqno=conntable[node].NextFrameToSend; /* Tell partner initial seqno */
+    hdr.ackno=conntable[node].FrameExpected-1;
+    hdr.connid=conntable[node].ConnID_out;
+    Dsprintf(errtxt,"sending SYNACK to node %d, NFTS=%d, FE=%d",
+	     node, hdr.seqno, hdr.ackno);
+    Derrlog(errtxt,syslogerror,11);
+    sendto(rdpsock, (char *)&hdr, sizeof(rdphdr), 0, 
+	   (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
+    conntable[node].ack_pending=0;
+    return;
 }
 
 /*
  * send a SYNNACK msg
  */
-/*******************************************/
 static void sendSYNNACK(int node, int oldseq)
-/*******************************************/
 {
-  rdphdr hdr; 
+    rdphdr hdr; 
 
-  hdr.type=RDP_SYNNACK;
-  hdr.len=0;
-  hdr.seqno=conntable[node].NextFrameToSend;	/* Tell partner initial seqno */
-  hdr.ackno=oldseq;	/* NACK for old seqno */
-  hdr.connid=conntable[node].ConnID_out;
-Dsprintf(errtxt,"sending SYNNACK to node %d, NFTS=%d, FE=%d",node,hdr.seqno,hdr.ackno);
-Derrlog(errtxt,syslogerror,11);
-  sendto(rdpsock, (char *)&hdr, sizeof(rdphdr), 0, 
-         (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
-  conntable[node].ack_pending=0;
-  return;
+    hdr.type=RDP_SYNNACK;
+    hdr.len=0;
+    hdr.seqno=conntable[node].NextFrameToSend; /* Tell partner initial seqno */
+    hdr.ackno=oldseq;	/* NACK for old seqno */
+    hdr.connid=conntable[node].ConnID_out;
+    Dsprintf(errtxt,"sending SYNNACK to node %d, NFTS=%d, FE=%d",
+	     node, hdr.seqno, hdr.ackno);
+    Derrlog(errtxt,syslogerror,11);
+    sendto(rdpsock, (char *)&hdr, sizeof(rdphdr), 0, 
+	   (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
+    conntable[node].ack_pending=0;
+    return;
 }
 
 
 /*
  * send a NACK msg
  */
-/****************************/
 static void sendNACK(int node)
-/****************************/
 {
-  rdphdr hdr; 
+    rdphdr hdr; 
 
-  hdr.type=RDP_NACK;
-  hdr.len=0;
-  hdr.seqno=0; /* NACKs do not have a seqno */
-  hdr.ackno=conntable[node].FrameExpected-1; /* That's the frame I expect */
-  hdr.connid=conntable[node].ConnID_out;
-Dsprintf(errtxt,"sending NACK to node %d, FE=%d",node,hdr.ackno);
-Derrlog(errtxt,syslogerror,11);
-  sendto(rdpsock, (char *)&hdr, sizeof(rdphdr), 0, 
-         (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
-  return;
+    hdr.type=RDP_NACK;
+    hdr.len=0;
+    hdr.seqno=0; /* NACKs do not have a seqno */
+    hdr.ackno=conntable[node].FrameExpected-1; /* That's the frame I expect */
+    hdr.connid=conntable[node].ConnID_out;
+    Dsprintf(errtxt,"sending NACK to node %d, FE=%d",node,hdr.ackno);
+    Derrlog(errtxt,syslogerror,11);
+    sendto(rdpsock, (char *)&hdr, sizeof(rdphdr), 0, 
+	   (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
+    return;
 }
 
-/*************************************/
 int SEQNO_IN_WINFRAME(int exp, int got)
-/*************************************/
 {
-  /*
-   * Valid Frame is: exp - WINSIZE < got < exp + WINSIZE
-   */
-  if ( ((exp-MAX_WINDOW_SIZE) < got) && (got < (exp+MAX_WINDOW_SIZE)) ){
-    return 1;
-  } else {
-    return 0;
-  }
+    /*
+     * Valid Frame is: exp - WINSIZE < got < exp + WINSIZE
+     */
+    if ( ((exp-MAX_WINDOW_SIZE) < got) && (got < (exp+MAX_WINDOW_SIZE)) ){
+	return 1;
+    }else{
+	return 0;
+    }
 }
 
 /*
  * Update state machine for a connection 
  */
-/*******************************************/
 static int updatestate(int node, rdphdr *hdr)
-/*******************************************/
 {
-  int retval=0;
-  Rconninfo *cp;
-  cp = &conntable[node];
+    int retval=0;
+    Rconninfo *cp;
+    cp = &conntable[node];
 
-  switch(cp->state){
+    switch(cp->state){
     case CLOSED:		
 	 /*
 	  * CLOSED & RDP_SYN -> SYN_RECVD
 	  * ELSE -> ERROR !! (SYN has to be received first !!)
-	  *         possible reason: my node has been restarted without notifying other nodes
+	  *         possible reason: node has been restarted without notifying other nodes
 	  *         action: reinitialize connection
 	  */
-	 switch(hdr->type){
-	   case RDP_SYN:
-	        cp->state = SYN_RECVD;
-		cp->ConnID_in = hdr->connid;    /* Accept connection ID */
-		cp->FrameExpected = hdr->seqno; /* Accept initial seqno */
-Dsprintf(errtxt,"Changing State for node %d from CLOSE to SYN_RECVD, FrameEx=%d",node,cp->FrameExpected);
-Derrlog(errtxt,syslogerror,12);
-		sendSYNACK(node);
-		retval = RDP_SYNACK;
-		break;
-	   case RDP_DATA: 
-	        cp->state = SYN_SENT;
-Dsprintf(errtxt,"Changing State for node %d from CLOSED to SYN_SENT, FrameEx=%d",node,cp->FrameExpected);
-Derrlog(errtxt,syslogerror,12);
-		sendSYNNACK(node,hdr->seqno);
-		retval = RDP_SYNACK;
-		break;
-	   default:
-	        cp->state = SYN_SENT;
-Dsprintf(errtxt,"Changing State for node %d from CLOSE to SYN_SENT, FrameEX=%d",node,cp->FrameExpected);
-Derrlog(errtxt,syslogerror,12);
-		sendSYN(node);
-		retval = RDP_SYN;
-		break;
-	  }
-	 break;
+	switch(hdr->type){
+	case RDP_SYN:
+	    cp->state = SYN_RECVD;
+	    cp->ConnID_in = hdr->connid;    /* Accept connection ID */
+	    cp->FrameExpected = hdr->seqno; /* Accept initial seqno */
+	    Dsprintf(errtxt,"Changing State for node %d from CLOSE "
+		     "to SYN_RECVD, FrameEx=%d",node,cp->FrameExpected);
+	    Derrlog(errtxt,syslogerror,12);
+	    sendSYNACK(node);
+	    retval = RDP_SYNACK;
+	    break;
+	case RDP_DATA: 
+	    cp->state = SYN_SENT;
+	    Dsprintf(errtxt,"Changing State for node %d from CLOSED "
+		     "to SYN_SENT, FrameEx=%d",node,cp->FrameExpected);
+	    Derrlog(errtxt,syslogerror,12);
+	    sendSYNNACK(node,hdr->seqno);
+	    retval = RDP_SYNACK;
+	    break;
+	default:
+	    cp->state = SYN_SENT;
+	    Dsprintf(errtxt,"Changing State for node %d from CLOSE "
+		     "to SYN_SENT, FrameEX=%d",node,cp->FrameExpected);
+	    Derrlog(errtxt,syslogerror,12);
+	    sendSYN(node);
+	    retval = RDP_SYN;
+	    break;
+	}
+	break;
     case SYN_SENT:		
-	 /*
-	  * SYN_SENT & RDP_SYN -> SYN_RECVD
-	  * SYN_SENT & RDP_SYNACK -> ACTIVE
-	  * ELSE -> ERROR (SYN from partner still missing )
-	  *         possible reason: my node has been restarted, SYN was sent, but
-	  *                          not yet processed by partner (or SYN was lost)
-	  *	    action: reinitialize connection 
-	  */
-	 switch(hdr->type){
-	   case RDP_SYN:
-	        cp->state = SYN_RECVD;
-		cp->FrameExpected = hdr->seqno; /* Accept initial seqno */
-		cp->ConnID_in = hdr->connid;    /* Accept connection ID */
-Dsprintf(errtxt,"Changing State for node %d from SYN_SENT to SYN_RECVD, FrameEx=%d",node,cp->FrameExpected);
-Derrlog(errtxt,syslogerror,12);
-		sendACK(node);
-		retval = RDP_ACK;
-		break;
-	   case RDP_SYNACK:
-	        cp->state = ACTIVE;
-		cp->FrameExpected = hdr->seqno; /* Accept initial seqno */
-		cp->ConnID_in = hdr->connid;    /* Accept connection ID */
-		sendACK(node);
-		retval = RDP_ACK;
-Dsprintf(errtxt,"Changing State for node %d from SYN_SENT to ACTIVE, FrameEx=%d",node,cp->FrameExpected);
-Derrlog(errtxt,syslogerror,12);
-		if (callback.func != NULL){ /* inform daemon */
-	           callback.func(RDP_NEW_CONNECTION,&node);
-		}
-		break;
-	   default:
-Dsprintf(errtxt,"Staying in SYN_SENT for node %d,  FrameEx=%d",node,cp->FrameExpected);
-Derrlog(errtxt,syslogerror,12);
-		sendSYN(node);
-		retval = RDP_SYN;
-		break;
- 
-	 }
-	 break;
+	/*
+	 * SYN_SENT & RDP_SYN -> SYN_RECVD
+	 * SYN_SENT & RDP_SYNACK -> ACTIVE
+	 * ELSE -> ERROR (SYN from partner still missing )
+	 *         possible reason: node has been restarted, SYN was sent, but
+	 *                          not yet processed by partner
+	 *                          (or SYN was lost)
+	 *	    action: reinitialize connection 
+	 */
+	switch(hdr->type){
+	case RDP_SYN:
+	    cp->state = SYN_RECVD;
+	    cp->FrameExpected = hdr->seqno; /* Accept initial seqno */
+	    cp->ConnID_in = hdr->connid;    /* Accept connection ID */
+	    Dsprintf(errtxt,"Changing State for node %d from SYN_SENT "
+		     "to SYN_RECVD, FrameEx=%d",node,cp->FrameExpected);
+	    Derrlog(errtxt,syslogerror,12);
+	    sendACK(node);
+	    retval = RDP_ACK;
+	    break;
+	case RDP_SYNACK:
+	    cp->state = ACTIVE;
+	    cp->FrameExpected = hdr->seqno; /* Accept initial seqno */
+	    cp->ConnID_in = hdr->connid;    /* Accept connection ID */
+	    sendACK(node);
+	    retval = RDP_ACK;
+	    Dsprintf(errtxt,"Changing State for node %d from SYN_SENT "
+		     "to ACTIVE, FrameEx=%d",node,cp->FrameExpected);
+	    Derrlog(errtxt,syslogerror,12);
+	    if (callback.func != NULL){ /* inform daemon */
+		callback.func(RDP_NEW_CONNECTION,&node);
+	    }
+	    break;
+	default:
+	    Dsprintf(errtxt,"Staying in SYN_SENT for node %d,  FrameEx=%d",
+		     node,cp->FrameExpected);
+	    Derrlog(errtxt,syslogerror,12);
+	    sendSYN(node);
+	    retval = RDP_SYN;
+	    break;
+	}
+	break;
     case SYN_RECVD:		
-	 /*
-	  * SYN_RECVD & SYN -> SYN_RECVD / sendSYNACK
-	  * SYN_RECVD & NACK/SYNACK -> SYN_SENT / sendSYN
-	  * SYN_RECVD & if ACK then ACTIVE, else SYN/SYN_SENT
-	  * SYN_RECVD & RDP_SYNACK -> ACTIVE
-	  * ELSE -> ERROR (SYN from partner still missing )
-	  *         possible reason: my node has been restarted, SYN was sent, but
-	  *                          not yet processed by partner (or SYN was lost)
-	  *	    action: reinitialize connection 
-	  */
-	 switch(hdr->type){
-	   case RDP_SYN:
-		if(hdr->connid != cp->ConnID_in){ /* NEW CONNECTION */
-		  cp->FrameExpected = hdr->seqno; /* Accept initial seqno */
-		  cp->ConnID_in = hdr->connid;    /* Accept connection ID */
-Dsprintf(errtxt,"New Connection in SYN_RECVD for node %d, FrameEx=%d",node,cp->FrameExpected);
-Derrlog(errtxt,syslogerror,12);
-		}
-Dsprintf(errtxt,"Staying in SYN_RECVD for node %d, FrameEx=%d",node,cp->FrameExpected);
-Derrlog(errtxt,syslogerror,12);
+	/*
+	 * SYN_RECVD & SYN -> SYN_RECVD / sendSYNACK
+	 * SYN_RECVD & NACK/SYNACK -> SYN_SENT / sendSYN
+	 * SYN_RECVD & if ACK then ACTIVE, else SYN/SYN_SENT
+	 * SYN_RECVD & RDP_SYNACK -> ACTIVE
+	 * ELSE -> ERROR (SYN from partner still missing )
+	 *         possible reason: node has been restarted, SYN was sent, but
+	 *                          not yet processed by partner
+	 *                          (or SYN was lost)
+	 *	    action: reinitialize connection 
+	 */
+	switch(hdr->type){
+	case RDP_SYN:
+	    if(hdr->connid != cp->ConnID_in){ /* NEW CONNECTION */
+		cp->FrameExpected = hdr->seqno; /* Accept initial seqno */
+		cp->ConnID_in = hdr->connid;    /* Accept connection ID */
+		Dsprintf(errtxt,"New Connection in SYN_RECVD for node %d"
+			 ", FrameEx=%d",node,cp->FrameExpected);
+		Derrlog(errtxt,syslogerror,12);
+	    }
+	    Dsprintf(errtxt,"Staying in SYN_RECVD for node %d, FrameEx=%d",
+		     node,cp->FrameExpected);
+	    Derrlog(errtxt,syslogerror,12);
+	    sendSYNACK(node);
+	    retval = RDP_SYNACK;
+	    break;
+	case RDP_SYNACK:
+	    if(hdr->connid != cp->ConnID_in){ /* New connection */
+		cp->FrameExpected = hdr->seqno; /* Accept initial seqno */
+		cp->ConnID_in = hdr->connid;    /* Accept connection ID */
 		sendSYNACK(node);
-		retval = RDP_SYNACK;
-		break;
-	   case RDP_SYNACK:
-		if(hdr->connid != cp->ConnID_in){ /* New connection */
-		  cp->FrameExpected = hdr->seqno; /* Accept initial seqno */
-		  cp->ConnID_in = hdr->connid;    /* Accept connection ID */
-		  sendSYNACK(node);
-		} 
-	        cp->state = ACTIVE;
-Dsprintf(errtxt,"Changing State for node %d from SYN_RECVD to ACTIVE, FrameEx=%d",node,cp->FrameExpected);
-Derrlog(errtxt,syslogerror,12);
-		break;
-	   case RDP_NACK:
-	        cp->state = SYN_SENT;
-Dsprintf(errtxt,"Changing State for node %d from SYN_RECVD to SYN_SENT, FrameEx=%d",node,cp->FrameExpected);
-Derrlog(errtxt,syslogerror,12);
-		sendSYN(node);
-		retval = RDP_SYN;
-		break;
-	   case RDP_ACK:
-	        cp->state = ACTIVE;
-Dsprintf(errtxt,"Changing State for node %d from SYN_RECVD to ACTIVE, FrameEx=%d",node,cp->FrameExpected);
-Derrlog(errtxt,syslogerror,12);
-	        if(cp->msg_pending != 0){
-		  resendmsg(node);
-		  cp->NextFrameToSend += cp->msg_pending;
-		  cp->msg_pending = 0;
-		}
-		if (callback.func != NULL){ /* inform daemon */
-Dsprintf(errtxt,"Changing State for node %d from SYN_RECVD to ACTIVE, FrameEx=%d",node,cp->FrameExpected);
-Derrlog(errtxt,syslogerror,12);
-	           callback.func(RDP_NEW_CONNECTION,&node);
-		}
-		retval = RDP_ACK;
-		break;
-	   case RDP_DATA:
-	        cp->state = ACTIVE;
-                sendNACK(node);
-Dsprintf(errtxt,"Changing State for node %d from SYN_RECVD to ACTIVE, FrameEx=%d",node,cp->FrameExpected);
-Derrlog(errtxt,syslogerror,12);
-		if (callback.func != NULL){ /* inform daemon */
-	           callback.func(RDP_NEW_CONNECTION,&node);
-		}
-		retval = RDP_NACK;
-		break;
-	 }
-	 break;
+	    } 
+	    cp->state = ACTIVE;
+	    Dsprintf(errtxt,"Changing State for node %d from SYN_RECVD "
+		     "to ACTIVE, FrameEx=%d",node,cp->FrameExpected);
+	    Derrlog(errtxt,syslogerror,12);
+	    break;
+	case RDP_NACK:
+	    cp->state = SYN_SENT;
+	    Dsprintf(errtxt,"Changing State for node %d from SYN_RECVD "
+		     "to SYN_SENT, FrameEx=%d",node,cp->FrameExpected);
+	    Derrlog(errtxt,syslogerror,12);
+	    sendSYN(node);
+	    retval = RDP_SYN;
+	    break;
+	case RDP_ACK:
+	    cp->state = ACTIVE;
+	    Dsprintf(errtxt,"Changing State for node %d from SYN_RECVD "
+		     "to ACTIVE, FrameEx=%d",node,cp->FrameExpected);
+	    Derrlog(errtxt,syslogerror,12);
+	    if(cp->msg_pending != 0){
+		resendmsg(node);
+		cp->NextFrameToSend += cp->msg_pending;
+		cp->msg_pending = 0;
+	    }
+	    if (callback.func != NULL){ /* inform daemon */
+		Dsprintf(errtxt,"Changing State for node %d from SYN_RECVD "
+			 "to ACTIVE, FrameEx=%d",node,cp->FrameExpected);
+		Derrlog(errtxt,syslogerror,12);
+		callback.func(RDP_NEW_CONNECTION,&node);
+	    }
+	    retval = RDP_ACK;
+	    break;
+	case RDP_DATA:
+	    cp->state = ACTIVE;
+	    sendNACK(node);
+	    Dsprintf(errtxt,"Changing State for node %d from SYN_RECVD "
+		     "to ACTIVE, FrameEx=%d",node,cp->FrameExpected);
+	    Derrlog(errtxt,syslogerror,12);
+	    if (callback.func != NULL){ /* inform daemon */
+		callback.func(RDP_NEW_CONNECTION,&node);
+	    }
+	    retval = RDP_NACK;
+	    break;
+	}
+	break;
     case ACTIVE:		
-	 if (hdr->connid != cp->ConnID_in) { /* New Connection */
-sprintf(errtxt,"New Connection form node %d, FE=%d, seqno=%d in ACTIVE State [%d:%d]",
-                node,cp->FrameExpected, hdr->seqno,hdr->connid, cp->ConnID_in);
-errlog(errtxt,syslogerror,12);
-	   switch(hdr->type){
-	   case RDP_SYN:
+	if (hdr->connid != cp->ConnID_in) { /* New Connection */
+	    sprintf(errtxt,"New Connection form node %d, FE=%d"
+		    ", seqno=%d in ACTIVE State [%d:%d]", node,
+		    cp->FrameExpected, hdr->seqno,hdr->connid, cp->ConnID_in);
+	    errlog(errtxt,syslogerror,12);
+	    switch(hdr->type){
+	    case RDP_SYN:
 	        cp->state = SYN_RECVD;
 		cp->FrameExpected = hdr->seqno; /* Accept initial seqno */
 		cp->ConnID_in = hdr->connid;    /* Accept connection ID */
-Dsprintf(errtxt,"Changing State for node %d from ACTIVE to SYN_RECVD, FrameEx=%d",node,cp->FrameExpected);
-Derrlog(errtxt,syslogerror,12);
+		Dsprintf(errtxt,"Changing State for node %d from ACTIVE "
+			 "to SYN_RECVD, FrameEx=%d",node,cp->FrameExpected);
+		Derrlog(errtxt,syslogerror,12);
 		sendSYNACK(node);
 		retval = RDP_SYNACK;
 		break;
-	   case RDP_SYNACK:
+	    case RDP_SYNACK:
 	        cp->state = SYN_RECVD;
 		cp->FrameExpected = hdr->seqno; /* Accept initial seqno */
 		cp->ConnID_in = hdr->connid;    /* Accept connection ID */
-Dsprintf(errtxt,"Changing State for node %d from ACTIVE to SYN_RECVD, FrameEx=%d",node,cp->FrameExpected);
-Derrlog(errtxt,syslogerror,12);
+		Dsprintf(errtxt,"Changing State for node %d from ACTIVE "
+			 "to SYN_RECVD, FrameEx=%d",node,cp->FrameExpected);
+		Derrlog(errtxt,syslogerror,12);
 		sendSYN(node);
 		retval = RDP_SYN;
 		break;
-	   case RDP_SYNNACK: 
+	    case RDP_SYNNACK: 
 	        cp->state = SYN_RECVD;
 		cp->FrameExpected = hdr->seqno; /* Accept initial seqno */
 		cp->ConnID_in = hdr->connid;    /* Accept connection ID */
-Dsprintf(errtxt,"Changing State for node %d from ACTIVE to SYN_RECVD, FrameEx=%d",node,cp->FrameExpected);
-Derrlog(errtxt,syslogerror,12);
+		Dsprintf(errtxt,"Changing State for node %d from ACTIVE "
+			 "to SYN_RECVD, FrameEx=%d",node,cp->FrameExpected);
+		Derrlog(errtxt,syslogerror,12);
 		sendSYNACK(node);
 		retval = RDP_SYNACK;
 		break;
-	   default:
+	    default:
 		break;
-	   }
-	 } else { /* SYN Packet on OLD Connection (probably lost answers) */
-	   switch(hdr->type){
-	   case RDP_SYN:
+	    }
+	}else{ /* SYN Packet on OLD Connection (probably lost answers) */
+	    switch(hdr->type){
+	    case RDP_SYN:
 		sendSYNACK(node);
 		break;
-	   default:
+	    default:
 		break;
-	   }
-	 }
-	 break;
+	    }
+	}
+	break;
     default:
-         sprintf(errtxt,"invalid state for node %d in updatestate",node);
-         errlog(errtxt,syslogerror,0);
-	 break;
-  }
-  return retval;
+	sprintf(errtxt,"invalid state for node %d in updatestate",node);
+	errlog(errtxt,syslogerror,0);
+	break;
+    }
+    return retval;
 }
 
 
 RDP_Deadbuf deadbuf;
 
 /*
- * clear message queue of a connection (upon final timeout or reestablishing the conn)
+ * clear message queue of a connection
+ * (upon final timeout or reestablishing the conn)
  */
-/*****************************/
 static void ClearMsgQ(int node)
-/*****************************/
 {
-  Rconninfo *cp;
-  msgbuf *mp;
+    Rconninfo *cp;
+    msgbuf *mp;
 
-  cp = &conntable[node];
-  mp = cp->bufptr;
+    cp = &conntable[node];
+    mp = cp->bufptr;
 
-  while(mp){ /* still a message there */
-    if(callback.func != NULL){ /* give msg back to upper layer */
-	deadbuf.dst = node;
-	deadbuf.buf = mp->msg.small->data;
-	deadbuf.buflen = mp->len;
-	syslog(LOG_ERR,"ClearMsgQ(%d)",node);
-	callback.func(RDP_PKT_UNDELIVERABLE,&deadbuf);
+    while(mp){ /* still a message there */
+	if(callback.func != NULL){ /* give msg back to upper layer */
+	    deadbuf.dst = node;
+	    deadbuf.buf = mp->msg.small->data;
+	    deadbuf.buflen = mp->len;
+	    syslog(LOG_ERR,"ClearMsgQ(%d)",node);
+	    callback.func(RDP_PKT_UNDELIVERABLE,&deadbuf);
+	}
+	Dsprintf(errtxt,"Dropping msg %d to node %d",
+		 mp->msg.small->header.seqno,node);
+	Derrlog(errtxt,syslogerror,2);
+	mp->state = BIDLE;
+	if(mp->len > RDP_SMALL_DATA_SIZE){	/* release msg frame */
+	    free(mp->msg.large);		/* free memory */
+	} else {
+	    put_Smsg(mp->msg.small);		/* back to freelist */
+	}
+	deq_ack(mp->ackptr);		 /* dequeue ack */
+	cp->bufptr = cp->bufptr->next;	 /* remove msgbuf from list */
+	put_msg(mp);			 /* back to freelist */
+	mp = cp->bufptr;		 /* next message */
     }
-Dsprintf(errtxt,"Dropping msg %d to node %d",mp->msg.small->header.seqno,node);
-Derrlog(errtxt,syslogerror,2);
-    mp->state = BIDLE;
-    if(mp->len > RDP_SMALL_DATA_SIZE){	/* release msg frame */
-      free(mp->msg.large);		/* free memory */
-    } else {
-      put_Smsg(mp->msg.small);		/* back to freelist */
-    }
-    deq_ack(mp->ackptr);		/* dequeue ack */
-    cp->bufptr = cp->bufptr->next;	/* remove msgbuf from list */
-    put_msg(mp);			/* back to freelist */
-    mp = cp->bufptr;			/* next message */
-  }
-  cp->AckExpected=cp->NextFrameToSend;	/* restore initial setting */
-  cp->window=MAX_WINDOW_SIZE;		/* restore window size */
+    cp->AckExpected=cp->NextFrameToSend; /* restore initial setting */
+    cp->window=MAX_WINDOW_SIZE;		 /* restore window size */
   return;
 }
 
 /*
- * clear message queue of a connection (upon final timeout or reestablishing the conn)
+ * clear message queue of a connection
+ * (upon final timeout or reestablishing the conn)
  */
-/***********************************************************/
 static int ResequenceMsgQ(int node, int new_sno, int old_sno)
-/***********************************************************/
 {
-  Rconninfo *cp;
-  msgbuf *mp;
-  int count = 0;
+    Rconninfo *cp;
+    msgbuf *mp;
+    int count = 0;
 
-  cp = &conntable[node];
-  mp = cp->bufptr;
+    cp = &conntable[node];
+    mp = cp->bufptr;
 
-  cp->FrameExpected = new_sno;	/* Accept initial seqno */
-  cp->NextFrameToSend = old_sno;	
-  cp->AckExpected = old_sno;	
-  while(mp){ /* still a message there */
-    if(RSEQCMP(mp->msg.small->header.seqno,old_sno) < 0){ /* current msg precedes NACKed msg */
-      if(callback.func != NULL){ /* give msg back to upper layer */
-	 deadbuf.dst = node;
-	 deadbuf.buf = mp->msg.small->data;
-	 deadbuf.buflen = mp->len;
-	 syslog(LOG_ERR,"ResequenceMsgQ(%d,%d,%d)",node,new_sno,old_sno);
-	 callback.func(RDP_PKT_UNDELIVERABLE,&deadbuf);
-      }
-Dsprintf(errtxt,"Dropping msg %d to node %d",mp->msg.small->header.seqno,node);
-Derrlog(errtxt,syslogerror,2);
-      mp->state = BIDLE;
-      if(mp->len > RDP_SMALL_DATA_SIZE){	/* release msg frame */
-        free(mp->msg.large);		/* free memory */
-      } else {
-        put_Smsg(mp->msg.small);		/* back to freelist */
-      }
-      deq_ack(mp->ackptr);		/* dequeue ack */
-      cp->bufptr = cp->bufptr->next;	/* remove msgbuf from list */
-      put_msg(mp);			/* back to freelist */
-      mp = cp->bufptr;			/* next message */
-      cp->window++;			/* allow another packet to be send */
-    } else { /* resequence outstanding mgs's */
-Dsprintf(errtxt,"Changing SeqNo from %d to %d",mp->msg.small->header.seqno,old_sno + count);
-Derrlog(errtxt,syslogerror,2);
-      mp->msg.small->header.seqno = old_sno + count;
-      mp = mp->next;			/* next message */
-      count++;
+    cp->FrameExpected = new_sno;	/* Accept initial seqno */
+    cp->NextFrameToSend = old_sno;	
+    cp->AckExpected = old_sno;	
+    while(mp){ /* still a message there */
+	if(RSEQCMP(mp->msg.small->header.seqno,old_sno) < 0){
+	    /* current msg precedes NACKed msg */
+	    if(callback.func != NULL){ /* give msg back to upper layer */
+		deadbuf.dst = node;
+		deadbuf.buf = mp->msg.small->data;
+		deadbuf.buflen = mp->len;
+		syslog(LOG_ERR,"ResequenceMsgQ(%d,%d,%d)",node,new_sno,
+		       old_sno);
+		callback.func(RDP_PKT_UNDELIVERABLE,&deadbuf);
+	    }
+	    Dsprintf(errtxt,"Dropping msg %d to node %d",
+		     mp->msg.small->header.seqno,node);
+	    Derrlog(errtxt,syslogerror,2);
+	    mp->state = BIDLE;
+	    if(mp->len > RDP_SMALL_DATA_SIZE){	/* release msg frame */
+		free(mp->msg.large);		/* free memory */
+	    }else{
+		put_Smsg(mp->msg.small);		/* back to freelist */
+	    }
+	    deq_ack(mp->ackptr);	   /* dequeue ack */
+	    cp->bufptr = cp->bufptr->next; /* remove msgbuf from list */
+	    put_msg(mp);		   /* back to freelist */
+	    mp = cp->bufptr;		   /* next message */
+	    cp->window++;		  /* allow another packet to be send */
+	}else{ /* resequence outstanding mgs's */
+	    Dsprintf(errtxt,"Changing SeqNo from %d to %d",
+		     mp->msg.small->header.seqno,old_sno + count);
+	    Derrlog(errtxt,syslogerror,2);
+	    mp->msg.small->header.seqno = old_sno + count;
+	    mp = mp->next;			/* next message */
+	    count++;
+	}
     }
-  }
 /*   if(acklisthead==NULL && !domcast) RDPtimer(0,0);  */
-  return count;
+    return count;
 }
 
-/***********************************/
 static void CloseConnection(int node)
-/***********************************/
 {
   Dsprintf(errtxt,"Closing connection to node %d",node);
   Derrlog(errtxt,syslogerror,0);
@@ -1356,9 +1318,7 @@ static void CloseConnection(int node)
 /*
  * handle msg timouts;
  */
-/*****************************/
 static void handletimeout(void)
-/*****************************/
 {
   ackent *ap;
   msgbuf *mp;
@@ -1404,9 +1364,7 @@ Derrlog(errtxt,syslogerror,8);
 /*
  * handler to catch timout signals
  */
-/*****************************/
 static void RDPhandler(int sig)
-/*****************************/
 {
   MCAST_PING(ACTIVE);
   dotimeout=1;
@@ -1414,9 +1372,7 @@ static void RDPhandler(int sig)
   return;
 }
 
-/**********************************/
 static void RDPMCASThandler(int sig)
-/**********************************/
 {
   MCAST_PING(ACTIVE);
   check_connection();
@@ -1426,9 +1382,7 @@ static void RDPMCASThandler(int sig)
 /*
  * complete ack code
  */
-/*********************************************/
 static void RDPdoack(rdphdr *hdr, int fromnode)
-/*********************************************/
 {
   Rconninfo *cp;
   msgbuf *mp;
@@ -1503,9 +1457,7 @@ Derrlog(errtxt,syslogerror,3);
  *  Return: FD from RDP port
  */
 
-/*************************************************************************/
 int RDPinit(int nodes, int mgroup, int usesyslog, void (*func)(int, void*))
-/*************************************************************************/
 {
     char *service=RDPSERVICE;
     char *protocol=RDPPROTOCOL;
@@ -1541,9 +1493,7 @@ int RDPinit(int nodes, int mgroup, int usesyslog, void (*func)(int, void*))
     return rdpsock;
 }
 
-/****************/
 void RDPexit(void)
-/****************/
 {
     MCAST_PING(CLOSED);            /* send shutdown msg */
     RDPtimer(0,0);                 /* stop interval timer */
@@ -1567,9 +1517,7 @@ struct {
 
 #define MAX_WAIT_FOR_ANSWER 10
 
-/******************************************/
 static int wait_for_answer(int node, int id)
-/******************************************/
 {
   struct timeval tv;
   fd_set rfds;
@@ -1617,9 +1565,7 @@ WAIT_LOOP:
 /*
  * open a RDP connection
  */
-/*********************************/
 static int openconnection(int node)
-/*********************************/
 {
   struct sockaddr_in fsin;
   SIZE_T alen;
@@ -1648,9 +1594,7 @@ static int openconnection(int node)
   return 0;
 }
 
-/******************************************************/
 static void reestablishconnection(int node, rdphdr *hdr)
-/******************************************************/
 {
     Dsprintf(errtxt,"Going to reestablish connection to node %d",node);
     Derrlog(errtxt,syslogerror,7);
@@ -1672,9 +1616,7 @@ static void reestablishconnection(int node, rdphdr *hdr)
 /*
  * Sent a msg[buf:len] to node <node> reliable
  */
-/***************************************/
 int Rsendto(int node, void *buf, int len)
-/***************************************/
 {
     msgbuf *mp;
     int retval;
@@ -1784,9 +1726,7 @@ Derrlog(errtxt,syslogerror,8);
   return (retval - sizeof(rdphdr));
 }
 
-/*****************************/
 static void resendmsg(int node)
-/*****************************/
 {
   Rconninfo *cp;
   msgbuf *mp;
@@ -1819,9 +1759,7 @@ Derrlog(errtxt,syslogerror,8);
 
 }
 
-/**************************************/
 static void HandleRDPControlPacket(void)
-/**************************************/
 {
   struct sockaddr_in sin;
   Smsg msg;
@@ -1878,9 +1816,8 @@ Derrlog(errtxt,syslogerror,11);
 /*
  * select call which handles RDP and MCAST packets
  */
-/**************************************************************************************************/
-int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds, struct timeval *timeout)
-/**************************************************************************************************/
+int Rselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
+	    struct timeval *timeout)
 {
   int rdpreq = 0;
   int retval = 0;
@@ -2069,9 +2006,7 @@ Derrlog(errtxt,syslogerror,0);
 /*
  * receive a RDP packet 
  */
-/******************************************/
 int Rrecvfrom(int *node, void *msg, int len)
-/******************************************/
 {
     struct sockaddr_in sin;
     Lmsg msgbuf;
@@ -2173,56 +2108,53 @@ int Rrecvfrom(int *node, void *msg, int len)
     return retval;
 }
 
-/***************************************************************************************
+/****************************************************************************
   MULTICAST ALIVE & LOAD-INFO
-***************************************************************************************/
+*****************************************************************************/
 
-
-/***********************************************************/
 static void MCASTinit(int group, char *ifname, int interface)
-/***********************************************************/
 {
-  char host[80];
-  char *service=MCASTSERVICE;
-  char *protocol=RDPPROTOCOL;
-  struct hostent *phe;		/* pointer to host information entry */
-  struct servent *pse;		/* pointer to servive intformation entry */ 
-  u_char loop;
-  int reuse;
-  struct ip_mreq mreq;
-  struct sockaddr_in sin;
-  /* an internet endpoint address */ 
-  struct in_addr in_sin;
+    char host[80];
+    char *service=MCASTSERVICE;
+    char *protocol=RDPPROTOCOL;
+    struct hostent *phe;	/* pointer to host information entry */
+    struct servent *pse;	/* pointer to servive intformation entry */ 
+    u_char loop;
+    int reuse;
+    struct ip_mreq mreq;
+    struct sockaddr_in sin;
+    /* an internet endpoint address */ 
+    struct in_addr in_sin;
 
-  if (group) MY_MCAST_GROUP = group;
-  bzero( (char *)&sin, sizeof(sin));
+    if (group) MY_MCAST_GROUP = group;
+    bzero( (char *)&sin, sizeof(sin));
 
-  if(gethostname(host,sizeof(host))<0){
-         sprintf(errtxt,"unable to get hostname");
-	 errexit(errtxt,errno,syslogerror);
-  }
-
-  /*
-   * map host name to IP address
-   */
-  if( (phe = gethostbyname(host)) ){
-    bcopy(phe->h_addr, (char *)&in_sin.s_addr, phe->h_length);
-  } else {
-    if( (in_sin.s_addr = inet_addr(host)) == INADDR_NONE){
-         sprintf(errtxt,"can't get %s host entry", host);
-	 errexit(errtxt,errno,syslogerror);
+    if(gethostname(host,sizeof(host))<0){
+	sprintf(errtxt,"unable to get hostname");
+	errexit(errtxt,errno,syslogerror);
     }
-  }
-  
-  myid = (licserver)?nr_of_nodes:iplookup(in_sin);
 
-  /*
-   * allocate a socket
-   */
-  if ( (mcastsock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0){
-         sprintf(errtxt,"can't create socket (mcast)");
-	 errexit(errtxt,errno,syslogerror);
-  }
+    /*
+     * map host name to IP address
+     */
+    if( (phe = gethostbyname(host)) ){
+	bcopy(phe->h_addr, (char *)&in_sin.s_addr, phe->h_length);
+    } else {
+	if( (in_sin.s_addr = inet_addr(host)) == INADDR_NONE){
+	    sprintf(errtxt,"can't get %s host entry", host);
+	    errexit(errtxt,errno,syslogerror);
+	}
+    }
+
+    myid = (licserver)?nr_of_nodes:iplookup(in_sin);
+
+    /*
+     * allocate a socket
+     */
+    if ( (mcastsock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0){
+	sprintf(errtxt,"can't create socket (mcast)");
+	errexit(errtxt,errno,syslogerror);
+    }
 
   sin.sin_family = AF_INET;
 /*   sin.sin_addr.s_addr = INADDR_ANY; */
@@ -2305,9 +2237,7 @@ Derrlog(errtxt,syslogerror,9);
   return;
 }
 
-/***************************/
 static void HandleMCAST(void)
-/***************************/
 {
   Mmsg buf;
   struct sockaddr_in sin;
@@ -2392,10 +2322,8 @@ restart:
 /*
  * Run MCAST Protocol WITHOUT RDP (used by license daemon)
  */
-/**********************************************************************************/
-int RDPMCASTinit(int nodes, int mgroup, char *ifname, int interface, int usesyslog, 
-		 void (*func)(int, void*))
-/**********************************************************************************/
+int RDPMCASTinit(int nodes, int mgroup, char *ifname, int interface,
+		 int usesyslog, void (*func)(int, void*))
 {
     char *service=MCASTSERVICE;
     char *protocol=RDPPROTOCOL;
@@ -2431,7 +2359,7 @@ int RDPMCASTinit(int nodes, int mgroup, char *ifname, int interface, int usesysl
 	sprintf(errtxt,"unable set sighandler");
 	errexit(errtxt,errno,syslogerror);
     }
- 
+
     MCASTinit(mgroup,ifname,interface); 
     return mcastsock;
 }
@@ -2439,9 +2367,8 @@ int RDPMCASTinit(int nodes, int mgroup, char *ifname, int interface, int usesysl
 /*
  * select call which handles MCAST packets
  */
-/**************************************************************************************************/
-int Mselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds, struct timeval *timeout)
-/**************************************************************************************************/
+int Mselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
+	    struct timeval *timeout)
 {
   int rdpreq = 0;
   int retval = 0;
@@ -2517,9 +2444,7 @@ restart:
 }
 
 
-/************************/
 RDPLoad RDPGetMyLoad(void)
-/************************/
 {
   RDPLoad load = {{0.0, 0.0, 0.0}};
 #ifdef __linux__
@@ -2555,69 +2480,63 @@ Derrlog(errtxt,syslogerror,9);
   return load;
 }
 
-/************************************/
 static void MCAST_PING(RDPState state)
-/************************************/
 {
-  Mmsg msg;
+    Mmsg msg;
 
-  msg.node = myid;
-  msg.type = (licserver)?T_LIC:T_INFO;
-  if (state==CLOSED) msg.type=T_CLOSE;
-  msg.state = state;
-  msg.load = RDPGetMyLoad();
-  conntable[myid].load = msg.load;
-  gettimeofday(&conntable[myid].lastping,NULL);
-Dsprintf(errtxt,"Sending MCAST[%d:%d] to %x %x",myid,state,msin.sin_addr.s_addr,htonl(msin.sin_addr.s_addr));
-Derrlog(errtxt,syslogerror,9);
-  if(sendto(mcastsock, (char *)&msg, sizeof(Mmsg), 0, 
-           (struct sockaddr *)&msin, sizeof(struct sockaddr))==-1){
+    msg.node = myid;
+    msg.type = (licserver)?T_LIC:T_INFO;
+    if (state==CLOSED) msg.type=T_CLOSE;
+    msg.state = state;
+    msg.load = RDPGetMyLoad();
+    conntable[myid].load = msg.load;
+    gettimeofday(&conntable[myid].lastping,NULL);
+    Dsprintf(errtxt, "Sending MCAST[%d:%d] to %x %x",myid, state,
+	     msin.sin_addr.s_addr, htonl(msin.sin_addr.s_addr));
+    Derrlog(errtxt,syslogerror,9);
+    if(sendto(mcastsock, (char *)&msg, sizeof(Mmsg), 0, 
+	      (struct sockaddr *)&msin, sizeof(struct sockaddr))==-1){
 	sprintf(errtxt,"MCAST sendto returns[%d]: %s",errno,strerror(errno));
 	errlog(errtxt,syslogerror,9);
-  }
+    }
 #ifdef TOMDELETE
-  if(state!=CLOSED) check_connection();/* check connection status */
+    if(state!=CLOSED) check_connection();/* check connection status */
 #endif
-  return;
+    return;
 }
 
-/****************************************/
 void RDP_GetInfo(int n, RDP_ConInfo *info)
-/****************************************/
 {
-  info->load = conntable[n].load;
-  info->state = conntable[n].state;
-  info->misscounter = conntable[n].misscounter;
-  return;
+    info->load = conntable[n].load;
+    info->state = conntable[n].state;
+    info->misscounter = conntable[n].misscounter;
+    return;
 }
 
-/***********************************/
 static char * CIstate(RDPState state)
-/***********************************/
 { 
-  switch(state){
+    switch(state){
     case CINVAL:        return "CINVAL"; break;
     case CLOSED:        return "CLOSED"; break;
     case SYN_SENT:      return "SYN_SENT"; break;
     case SYN_RECVD:     return "SYN_RECVD"; break;
     case ACTIVE:        return "ACTIVE"; break;
     default:            break;
-  }
+    }
   return "UNKNOWN";
 }   
 
-/********************************/
 void RDP_StateInfo(int n, char *s)
-/********************************/
 {
-  sprintf(s,"%10s[%s]: ID[%x|%x] NTFS=%x AE=%x FE=%x \n\t miss=%d ap=%d mp=%d bptr=%p\n",
+    sprintf(s,"%10s[%s]: ID[%x|%x] NTFS=%x AE=%x FE=%x \n"
+	    "\t miss=%d ap=%d mp=%d bptr=%p\n",
             conntable[n].hostname, CIstate(conntable[n].state),
 	    conntable[n].ConnID_in,        conntable[n].ConnID_out,
 	    conntable[n].NextFrameToSend,  conntable[n].AckExpected,
 	    conntable[n].FrameExpected,    conntable[n].misscounter,
 	    conntable[n].ack_pending,      conntable[n].msg_pending,
 	    conntable[n].bufptr);
-  return;
+    return;
 }
 
 
