@@ -22,7 +22,7 @@ endif
 
 TOOLS:=psconfig pscounter test_nodes psiadmin psid psld parastation
 TOOLS += psilogger psiforwarder mlisten test_config_parsing psmstart
-
+TOOLS += psscan psroute
 bin:	$(TOOLS)
 
 unlock: unlock.o -lpshal
@@ -67,6 +67,10 @@ VPATH += $(SRCDIR)/logger
 psiforwarder: psiforwarder.o logmsg.o -lm
 psilogger: psilogger.o logmsg.o -lm
 
+# psscan and psroute
+VPATH += $(SRCDIR)/mapper
+psroute: genid.o route.o simul.o psroute.o -lpshal -lm -lpopt
+psscan: genid.o route.o psscan.o -lpshal -lm -lpopt
 
 
 parastation: $(TOP_SRCDIR)/scripts/parastation@TRU64FILEADD@
