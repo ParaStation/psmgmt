@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.h,v 1.18 2003/10/23 16:27:35 eicker Exp $
+ * $Id: pstask.h,v 1.19 2003/10/29 17:35:17 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with ParaStation tasks.
  *
- * $Id: pstask.h,v 1.18 2003/10/23 16:27:35 eicker Exp $
+ * $Id: pstask.h,v 1.19 2003/10/29 17:35:17 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -21,12 +21,14 @@
 #ifndef __PSTASK_H
 #define __PSTASK_H
 
+#include <stdint.h>
 #include <sys/types.h>
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <time.h>
 
 #include "pspartition.h"
+#include "psnodes.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -48,7 +50,7 @@ typedef enum {
 } PStask_group_t;
 
 /** Type to store unique task IDs in */
-typedef long PStask_ID_t;
+typedef int32_t PStask_ID_t;
 
 /**
  * @brief Get the name of a PStask_group.
@@ -99,11 +101,11 @@ typedef struct PStask_T{
 				      tasks that are fork()ed by a client */
     time_t killat;                 /**< flag a killed task, i.e. the time when
 				      the task should really go away. */
-    long protocolVersion;          /**< Protocol version the task speaks. */
+    uint16_t protocolVersion;      /**< Protocol version the task speaks. */
     PStask_sig_t *childs;          /**< Childs of the task. Signal not used. */
     unsigned int partitionSize;    /**< Size of the partition. */
     PSpart_option_t options;       /**< The partition's options. */
-    short *partition;              /**< The actual partition. List of nodes. */
+    PSnodes_ID_t *partition;       /**< The actual partition. List of nodes. */
     int nextRank;                  /**< Next rank to start within the task. */
 
     PStask_sig_t *signalSender;    /**< Tasks which sent signals */
