@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.59 2003/06/13 14:48:45 eicker Exp $
+ * $Id: psidutil.c,v 1.60 2003/06/27 16:55:39 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.59 2003/06/13 14:48:45 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.60 2003/06/27 16:55:39 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -168,12 +168,13 @@ static int callScript(int hw, char *script)
 
     if (!(pid=fork())) {
         /* This part calls the script and returns results to the parent */
-        int i;
+        int i, fd;
         char *command;
         char buf[20];
 
-        close(controlfds[0]);
-        close(iofds[0]);
+	for (fd=0; fd<getdtablesize(); fd++) {
+	    if (fd != controlfds[1] && fd != iofds[1]) close(fd);
+	}
 
         /* Put the hardware's environment into the real one */
 	for (i=0; i<HW_getEnvSize(hw); i++) {
