@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.50 2003/10/31 12:05:20 eicker Exp $
+ * $Id: psispawn.c,v 1.51 2003/11/26 15:39:53 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.50 2003/10/31 12:05:20 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.51 2003/11/26 15:39:53 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -35,7 +35,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.50 2003/10/3
 
 #include "psi.h"
 #include "psilog.h"
-#include "info.h"
+#include "psiinfo.h"
 #include "psienv.h"
 #include "psipartition.h"
 
@@ -254,7 +254,8 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	ioctl(fd, TIOCGWINSZ, &task->winsize);
     }
     task->group = TG_ANY;
-    task->loggertid = INFO_request_taskinfo(PSC_getMyTID(), INFO_LOGGERTID, 0);
+    PSI_infoTaskID(-1, PSP_INFO_LOGGERTID, &(task->ptid),
+		   &(task->loggertid), 0);
 
     mywd = mygetwd(workingdir);
 
@@ -482,8 +483,8 @@ PStask_ID_t PSI_spawnRank(int rank, char *workdir, int argc, char **argv,
     snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, rank);
     PSI_errlog(errtxt, 10);
 
-    node = INFO_request_rankID(rank, 1);
-    if (node < 0) {
+    ret = PSI_infoNodeID(-1, PSP_INFO_RANKID, &rank, &node, 1);
+    if (ret || (node < 0)) {
 	*error = ENXIO;
 	return 0;
     }
@@ -501,14 +502,14 @@ PStask_ID_t PSI_spawnGMSpawner(int np, char *workdir, int argc, char **argv,
 			       int *error)
 {
     PSnodes_ID_t node;
-    int ret;
+    int ret, rank0 = 0;
     PStask_ID_t tid;
 
     snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, np);
     PSI_errlog(errtxt, 10);
 
-    node = INFO_request_rankID(0, 1);
-    if (node < 0) {
+    ret = PSI_infoNodeID(-1, PSP_INFO_RANKID, &rank0, &node, 1);
+    if (ret || node < 0) {
 	*error = ENXIO;
 	return 0;
     }
@@ -569,13 +570,13 @@ char *PSI_createPGfile(int num, const char *prog, int local)
 	static struct in_addr hostaddr;
 
 	if (!local || !i) {
-	    node = INFO_request_rankID(i, 0);
-	    if (node<0) {
+	    int ret = PSI_infoNodeID(-1, PSP_INFO_RANKID, &i, &node, 1);
+	    if (ret || (node < 0)) {
 		fclose(PIfile);
 		free(PIfilename);
 		return NULL;
 	    }
-	    hostaddr.s_addr = INFO_request_node(node, 0);
+	    PSI_infoInt(-1, PSP_INFO_NODE, &node, &hostaddr.s_addr, 0);
 	}
 	fprintf(PIfile, "%s %d %s\n", inet_ntoa(hostaddr), (i != 0), myprog);
     }
