@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psp.h,v 1.16 2002/02/19 09:33:10 eicker Exp $
+ * $Id: psprotocol.h,v 1.1 2002/07/03 20:12:15 eicker Exp $
  *
  */
 /**
@@ -13,14 +13,14 @@
  * psp: The ParaStation Protocol
  *      Used for daemon-daemon and client-daemon communication.
  *
- * $Id: psp.h,v 1.16 2002/02/19 09:33:10 eicker Exp $
+ * $Id: psprotocol.h,v 1.1 2002/07/03 20:12:15 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
-#ifndef __PSP_H
-#define __PSP_H
+#ifndef __PSPROTOCOL_H
+#define __PSPROTOCOL_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,7 +29,9 @@ extern "C" {
 #endif
 #endif
 
-#define PSPprotocolversion  310
+#define PSprotocolversion  311
+
+/** @todo Documentation */
 
 /*------------------------------------------------------------------------- 
 * PSP_ctrl messages through the OS socket of the daemon
@@ -53,12 +55,12 @@ extern "C" {
 
 #define PSP_CD_HOSTREQUEST         0x0018
 #define PSP_CD_HOSTRESPONSE        0x0019
-#define PSP_CD_HOSTLISTREQUEST     0x001a
-#define PSP_CD_HOSTLISTRESPONSE    0x001b
-#define PSP_CD_LOADREQ             0x001c
-#define PSP_CD_LOADRES             0x001d
-#define PSP_CD_PROCREQ             0x001e
-#define PSP_CD_PROCRES             0x001f
+#define PSP_CD_NODELISTREQUEST     0x001a
+#define PSP_CD_NODELISTRESPONSE    0x001b
+#define PSP_CD_LOADREQUEST         0x001c  /* Obsolete ? */
+#define PSP_CD_LOADRESPONSE        0x001d  /* Obsolete ? */
+#define PSP_CD_PROCREQUEST         0x001e  /* Obsolete ? */
+#define PSP_CD_PROCRESPONSE        0x001f  /* Obsolete ? */
 
 #define PSP_CD_HOSTSTATUSREQUEST   0x0020
 #define PSP_CD_HOSTSTATUSRESPONSE  0x0021
@@ -133,6 +135,13 @@ extern "C" {
 /*----------------------------------------------------------------------*/
 #define PSP_RESET_HW              0x0001
 
+/*----------------------------------------------------------------------*/
+/* types of communication-hardware supported by ParaStation             */
+/*----------------------------------------------------------------------*/
+#define PSP_HW_ETHERNET            0x0001
+#define PSP_HW_MYRINET             0x0002
+#define PSP_HW_GIGAETHERNET        0x0004
+
 /***************************************************************************
  *       PSPctrlmsg()
  *
@@ -144,103 +153,99 @@ char* PSPctrlmsg(int msgtype);
 /* Daemon-Daemon Protocol Message Types                                 */
 /*----------------------------------------------------------------------*/
 
+/* Message primitive. This is also the header of more complex messages */
 typedef struct {
-    long type;        /* msg type */
-    long sender;      /* sender of the message */ 
-    long dest;        /* final destination of the message */
-    long len;         /* total length of the message */
+    long type;              /* msg type */
+    long sender;            /* sender of the message */ 
+    long dest;              /* final destination of the message */
+    long len;               /* total length of the message */
 }DDMsg_t;
 
 /* Load Message */
 typedef struct{
-    DDMsg_t header;   /* header of the message */
-    double load[3];   /* three load values */
+    DDMsg_t header;         /* header of the message */
+    double load[3];         /* three load values */
 }DDLoadMsg_t;
 
 /* Error Message */
 typedef struct{
-    DDMsg_t header;   /* header of the message */
-    int err;          /* error number */
-    long request;     /* request which caused the error */
+    DDMsg_t header;         /* header of the message */
+    int err;                /* error number */
+    long request;           /* request which caused the error */
 }DDErrorMsg_t;
 
 /* Reset Message */
 typedef struct{
-    DDMsg_t header;   /* header of the message */
-    int first;        /* first node to be reset */
-    int last;         /* last node to be reset */
-    long action;      /* request which caused the error */
+    DDMsg_t header;         /* header of the message */
+    int first;              /* first node to be reset */
+    int last;               /* last node to be reset */
+    long action;            /* request which caused the error */
 }DDResetMsg_t;
 
 /* Contact Node Message */
 typedef struct{
-    DDMsg_t header;   /* header of the message */
-    long partner;     /* node which should be contacted by header.dest */
+    DDMsg_t header;         /* header of the message */
+    long partner;           /* node which should be contacted by header.dest */
 }DDContactMsg_t;
 
 /* Connect Node Message */
 typedef struct{
-    DDMsg_t header;   /* header of the message */
-    int hasCard;      /* Flag to show if nodes has a card */
+    DDMsg_t header;         /* header of the message */
+    unsigned int hwStatus;  /* Flag to show which hw on nodes is active */
 }DDConnectMsg_t;
 
 /* untyped Buffer Message */
 typedef struct{
-    DDMsg_t header;   /* header of the message */
-    char buf[8000];   /* buffer for Message */
+    DDMsg_t header;         /* header of the message */
+    char buf[8000];         /* buffer for Message */
 }DDBufferMsg_t;
 
 /* Init Message */
 typedef struct{
-    DDMsg_t header;   /* header of the message */
-    long reason;      /* reason for unaccepted connect */
-    long group;       /* process group of the task */
-    long version;     /* version of the PS library */
-    int nrofnodes;    /* # of nodes */
-    int myid;         /* PS id of this node */
-    unsigned int loggernode; /* */
-    int loggerport;   /* */
-    int rank;         /* rank of client passed by spawn */
-    int uid;          /* user id */
-    int pid;          /* process id */
-    char instdir[80]; /** Installation directory of ParaStation stuff */
-    char psidvers[80];/** CVS version-string of the ParaStation daemon */
+    DDMsg_t header;         /* header of the message */
+    long reason;            /* reason for unaccepted connect */
+    long group;             /* process group of the task */
+    long version;           /* version of the PS library */
+    int nrofnodes;          /* # of nodes */
+    int myid;               /* PS id of this node */
+    unsigned int loggernode;/* */
+    short loggerport;       /* */
+    int rank;               /* rank of client passed by spawn */
+    int uid;                /* user id */
+    int pid;                /* process id */
+    char instdir[80];       /** Installation directory of ParaStation stuff */
+    char psidvers[80];      /** CVS version-string of the ParaStation daemon */
 }DDInitMsg_t;
 
 #define DDOptionMsgMax 16
 
 /* Options Message */
 typedef struct{
-    DDMsg_t header;   /* header of the message */
-    char count;       /* no of options in opt[] */
+    DDMsg_t header;         /* header of the message */
+    char count;             /* no of options in opt[] */
     struct{
-	long option;  /* option to be set/requested */
-	long value;   /* value of option to be set */
+	long option;        /* option to be set/requested */
+	long value;         /* value of option to be set */
     }opt[DDOptionMsgMax];
 }DDOptionMsg_t;
 
 /* Signal Message */
 typedef struct{
-    DDMsg_t header;   /* header of the message */
-    int signal;       /* signal to be sent */
-    int senderuid;    /* uid of the sender task */
-}DDSignalMsg_t;
+    DDMsg_t header;         /* header of the message */
+    int signal;             /* signal to be sent */
+    int senderuid;          /* uid of the sender task */
+} DDSignalMsg_t;
 
-/******************************************
- * int ClientMsgSend(void* amsg)
- * send a message to the destination. This is done by sending it
- * to the local daemon. 
- */
-int ClientMsgSend(void* amsg);
-
-/******************************************
-*  ClientMsgReceive()
-*  Receive a msg from the local daemon
-*/
-int ClientMsgRecv(void* msg);
+/* Array of this struct is returned to NODELIST_REQUEST */
+typedef struct{
+    short up;               /* Flag if nodes is up */
+    unsigned int hwType;    /* HW available on this node */
+    short numJobs;          /* number of jobs (without logger & admin) */
+    float load[3];          /* load on this node */
+} NodelistEntry_t;
 
 #ifdef __cplusplus
 }/* extern "C" */
 #endif
 
-#endif /* __PSP_H */
+#endif /* __PSPROTOCOL_H */
