@@ -1,0 +1,17 @@
+#!/bin/sh
+
+make clean
+make KDIR=/home/i41pc17/hauke/psmlib/kernel/axp/linux-2.2.14.SuSE  OSSUF=.SuSE libs
+make KDIR=/home/i41pc17/hauke/psmlib/kernel/axp/linux-2.2.14.SuSE  OSSUF=.SuSE tools
+
+make KDIR=/home/i41pc17/hauke/psmlib/kernel/axp/linux-2.2.14.SuSE  OSSUF=.SuSE psm
+make KDIR=/home/i41pc17/hauke/psmlib/kernel/axp/linux-2.2.14-SMP.SuSE  OSSUF=.SuSE psm
+
+make KDIR=/home/i41pc17/hauke/psmlib/kernel/axp/linux-2.2.16.SuSE  OSSUF=.SuSE psm
+make KDIR=/home/i41pc17/hauke/psmlib/kernel/axp/linux-2.2.16-SMP.SuSE  OSSUF=.SuSE psm
+
+make KDIR=/home/i41pc17/hauke/psmlib/kernel/axp/linux-2.2.19.redhat OSSUF=.redhat OSVER="2.2.19-7.0.8" psm
+make KDIR=/home/i41pc17/hauke/psmlib/kernel/axp/linux-2.2.19-SMP.redhat OSSUF=.redhat OSVER="2.2.19-7.0.8smp" psm
+
+make KDIR=/home/i41pc17/hauke/psmlib/kernel/axp/linux-2.2.19.SuSE  OSSUF=.SuSE psm
+make KDIR=/home/i41pc17/hauke/psmlib/kernel/axp/linux-2.2.19-SMP.SuSE  OSSUF=.SuSE psm
