@@ -7,7 +7,7 @@
 /**
  * PSPort: Communication Library for Parastation , third edition
  *
- * $Id: psport4.h,v 1.7 2003/04/03 13:40:06 hauke Exp $
+ * $Id: psport4.h,v 1.8 2003/05/28 15:34:31 eicker Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -128,11 +128,11 @@ typedef struct PSP_Header_T {
 #define PSP_HEADER_NET( header ) ((PSP_Header_Net_t *)&(header)->xheaderlen)
 #define PSP_HEADER_NET_LEN (sizeof(PSP_Header_Net_t))
     /* Here the PSP_Header_Net_t begins */
-    uint32_t            xheaderlen;  /**< len of the user extra header,
+    uint32_t            xheaderlen;  /* len of the user extra header,
 					read-only. */
-    uint32_t		datalen;     /**< len of message data,
+    uint32_t		datalen;     /* len of message data,
 					read-only. */
-    long		xheader[0];  /**< from here on, the extra
+    long		xheader[0];  /* from here on, the extra
 					header is placed */
 } PSP_Header_t;
 
@@ -276,6 +276,8 @@ PSP_Err_t PSP_ClosePort(PSP_PortH_t porth);
  * @brief Open a connection to remote server.
  *
  * @param porth handle of the port, from PSP_OpenPort()
+ * @param nodeid unique ID of the remote server (comparable to IP address)
+ * @param portno port number on the remote server
  * @return Returns the connection number usefull for PSP_ISend()
  * or -1 on error ( reason in errno )
  */
@@ -340,7 +342,7 @@ typedef struct PSP_RecvFrom_Param_T{
  * @param xheaderlen length of message extra header buffer, in bytes
  * @param cb call-back function that will be used to determine whether
  * a certain message is to be received by this receive-request
- * @param cp_param this pointer is passed to the call-back function
+ * @param cb_param this pointer is passed to the call-back function
  * @param dcb call-back function that will be called upon completion
  * of the receive request
  * @param dcb_param this pointer is passed to dcb
@@ -446,6 +448,7 @@ int PSP_IProbe(PSP_PortH_t porth,
  * @param xheaderlen length of message extra header buffer, in bytes
  * @param cb callback function
  * @param cb_param this pointer is passed to the callback function
+ * @param sender ???
  * @return Returns true.
  */
 int PSP_ProbeFrom(PSP_PortH_t porth,
@@ -489,9 +492,11 @@ int PSP_Probe(PSP_PortH_t porth,
  *
  * @param porth handle of the port, from PSP_OpenPort()
  * @param buf address of buffer for message data
- * @param length of message data buffer, in bytes
+ * @param buflen length of message data buffer, in bytes
  * @param header address of header data buffer
  * @param xheaderlen length of message extra header buffer, in bytes
+ * @param dest ????
+ * @param flags ????
  * @return Returns a handle for the request or Null if there is an
  * error.
  *
