@@ -1,14 +1,387 @@
+Version psmgmt-4.1.3:
+=====================
+
+2004-09-28  Norbert Eicker  <eicker@par-tec.com>
+
+	* ChangeLog: Update ChangeLog. Prepare for release 4.1.3.
+
+2004-09-23  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extension: Make the help messages more describing the actual admin.
+
+2004-09-22  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extension: New directive r[ange] within admin.
+	New noderange 'all' selecting (guess what) all nodes.
+
+	* Modification: Make RDP output less verbose.
+
+	* Modification: Set PSI_LOOP_NODES_FIRST when LSF or PBS detected.
+
+2004-09-15  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Do not exit daemon when MYrecvfrom() return EWOULDBLOCK
+
+	* Bugfix: Catch interrupted system call within PSC_startDaemon()
+
+2004-07-23  Norbert Eicker  <eicker@par-tec.com>
+
+	* Modification: Remove obsolete 'env PS_MODULEPATH' (Bug #8)
+	and obsolete 'Hardware myrinet' entry from parastation.conf.
+
 Version psmgmt-4.1.2:
 =====================
+
+2004-06-22  Norbert Eicker  <eicker@par-tec.com>
+
+	* ChangeLog: Add some stubs for released version.
+
+2004-06-14  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extension: Handle return values and catched signals of client
+	processes correctly in psilogger. Create more useful return values.
+
+2004-05-25  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extension: Add some infiniband stuff.
+
+2004-04-30  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Try to fix broken connections by testing the number of
+	active clients on each node and sending the list of actually
+	active nodes if a difference occured.
+
+2004-04-29  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Remove all client's group memberships inherited from psid.
+
+	* Bugfix: Close file descriptors to /dev/cpu/?/cpuid devices after use.
+
+2004-04-22  Jens Hauke  <hauke@par-tec.com>
+
+	* Extension: mpirun for javampi.
+
+2004-04-20  Jens Hauke  <hauke@par-tec.com>
+
+	* Extension: New option -np for psmstart to order a bigger
+	partition (used for java mpi).
+
+2004-04-19  moschny  <moschny@par-tec.com>
+
+	* Extension: Some changes to psh:
+	- Allow absolute paths for -s option.
+	- Change autocmd defaults, so following commands are not executed in
+	  case of a failure.
+
+2004-04-16  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Insert a 50 msec delay between consecutive startups of
+	remote daemons.
 
 Version psmgmt-4.1.1:
 =====================
 
+2004-03-16  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Prevent segmentation fault after using illegal nodenames
+	several times.
+
+2004-03-11  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extension: Add the test_config utility to the distribution.
+
+	* Extension: Implement handleOldBins and freeOnSuspend.
+
+	* Bugfix: Implicit overbooking due to suspend/resume may lead to
+	further harm.
+
+Version psmgmt-4.1.0beta2:
+==========================
+
+2004-03-10  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extension: Give a hint to the user while waiting for resources.
+
+	* Modification: Improved hints on finished jobs of the status system.
+
+2004-03-09  Norbert Eicker  <eicker@par-tec.com>
+
+	* Modification: Link statically against libpopt in order to circumvent
+	version problems.
+
+	* Extension: Also show the exclusive flag for 's load' in admin.
+
+	* Bugfix: Partition creation should work now correctly.
+
+2004-03-08  Norbert Eicker  <eicker@par-tec.com>
+
+	* Modification: Reintroduce 'licenseserver' token for convenience.
+
+2004-02-27  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Set errno correctly within PSI_info*() calls.
+
+2004-02-23  Norbert Eicker  <eicker@par-tec.com>
+
+	* Modification: Print info type as string, not just as number.
+
+	* Modification: Fix error message concerning wrong daemon version
+	(daemon to old).
+
+	* Bugfix: Return message of the right type to old clients
+	(i.e. version < 329).
+
+	* Typo: Short form of 'status allproc' is 's ap' not 's aw'.
+
+2004-02-12  Jens Hauke  <hauke@par-tec.com>
+
+	* Extension: psh is usefull :-).
+
+2004-02-11  Jens Hauke  <hauke@par-tec.com>
+
+	* Extension: Include TCP-Bypass option.
+
+2004-02-10  Jens Hauke  <hauke@par-tec.com>
+
+	* Extension: Changes for ia64.
+
+Version psmgmt-4.1.0beta:
+=========================
+
+2004-02-06  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Get NORMJOBS when displaying normal jobs in admin.
+
+2004-01-29  Norbert Eicker  <eicker@par-tec.com>
+
+	* Modification: Make process spawning more robust.
+
+2004-01-28  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extension: New status handling: Replace MCast by sending
+	messages via RDP. This can be switched back to the old MCast
+	functionality via UseMCast within parastation.conf.
+
+	* Extension: New partition handler. We have a quite primitive
+	batch system now.
+
+	* Bugfix: Correct request handling within msg_PROVIDETASK() and
+	msg_PROVIDETASKNL().
+
+	* Bugfix: Kill client process in case the local daemon disappears.
+
+	* Bugfix: Fix master determination for first node connecting.
+
+	* Extension: Also print out PSP_INFO_LIST_ALLOCJOBS info on
+	'status load' in admin.
+
+2004-01-22  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Fix memory leak: free nodelist on return.
+
+	* Bugfix: Special handling for local daemon messages.
+
+	* Bugfix: Handle local daemon's undeliverable packets (needed to
+	detect master)
+
+2004-01-16  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Many fixes in admin:
+	- Fix memory leak in printTags().
+	- hwstop's name is hwstop, not hwstart.
+	- Add descrition for set command.
+	- Catch another syntax error: 's c hw' is illegal.
+	- Catch more syntax errors: 's p cnt' is illegal.
+
+2004-01-15  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extension: New command 'show master' in admin.
+
+	* Modification: Improve RDP.
+
+	* Bugfix: Catch some more interrupted system calls.
+
+	* Bugfix: Catch one possible infinite loop.
+
+2004-01-14  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extension: Printing of help messages in admin recognize the
+	actual screen width.
+
+2004-01-13  Jens Hauke  <hauke@par-tec.com>
+
+	* Extension: Architecture x86_64.
+
+2004-01-09  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: NOTIFYDEADRES and RELEASERES messages have to be forwarded.
+
+	* Extension: Enable the new status code.
+
+	* Modification:	Adapt test program to new parseConfig() syntax.
+
+	* Modification: Always show when MCast is disabled.
+
+	* Bugfix: Always handle the extended error messages under
+	Linux. Otherwise spurious exits from the daemon complaining on RDP
+	ERRORS might happen.
+
+	* Modification: Change default RDPMaxRetransCount from 128 to 32.
+
+	* Bugfix: Sselect will not return on timeout if timeout is longer
+	than timer's timeout. This will only return, if data appears on
+	one of the controlled fds. This usually happens regulary, if MCast
+	is used (due to local pings), but not for the new status facility.
+
+2003-12-19  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extension: Make daemon more modularized.
+
+	* Extension: Do not use MCast directly but use the more abstract
+	status facility. MCast's use is configurable now.
+
+	* Extension: Prepare for forwarding requests to master node if MCast
+	is not used.
+
+	* Bugfix: Stop execution when no sufficient partition could be
+	provided within psmstart or test_pse.
+
+2003-12-16  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extension: Reorganization within RDP and MCast.
+
+2003-12-11  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extension: Separate Timer and Selector functionality inside the
+	daemon.
+
+2003-12-10  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Get info from correct nodes when building candidate list.
+
+	* Extension: Make code more robust against changes in PSnodes_ID_t.
+	Also give info on various limits within send_OPTIONS().
+
+	* Extension: Adding new messages in order to replace MCast. New
+	keyword 'NoMCast' in parastation.conf in order to switch MCast off
+	and use alternative protocol.
+
+2003-12-09  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extension: Make daemon more modularized.
+
+2003-12-04  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Segfault due to free() of dup_argv to early in psmstart.
+
+2003-11-28  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extension: Don't exit on non-fatal errors from psiinfo calls.
+
+	* Bugfix myTID set false for any PSI_-call before PSI_initClient().
+
+2003-11-26  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: 64bit compatibility changes.
+
+	* Extension: Differentiate between physical and virtual CPUs.
+	Thus enable the CPU limit within the license checking.
+
+	* Modification: Use virtual CPUs for partition creation.
+
+	* Extension: Implement new 'cnt' option to 'status proc' and
+	'status allproc' commands.
+
+	* Extension: Make task encoding more platform independent.
+
+2003-11-24  Norbert Eicker  <eicker@par-tec.com>
+
+	* Modification:	Remove trailing '\n' from status strings.
+
+2003-11-14  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extensions: Make daemon's protocol more platform transparent.
+
+2003-11-10  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extension: Also include test_pse in the distribution.
+
+	* Modification:	Remove the 'test_nodes' utility from mgmt. This is
+	in p4 now.
+
+2003-10-31  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extension: Smarter error message upon spawn failure.
+
+2003-10-29  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Fix potential problems if Linux' PIDs where larger than
+	16 bits. Reserve 12 bits for node ID under OSF.
+
+2003-10-22  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Don't declare own node dead. This might happen, if local
+	MCast pings stay away.
+
+2003-10-20  Norbert Eicker  <eicker@par-tec.com>
+
+	* Extension: Error message containing more info in pscommon.c.
+
 Version psmgmt-4.0.6:
 =====================
 
-Version psmgmt-4.0.5:
-=====================
+2004-01-09  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Always handle the extended error messages under
+	Linux. Otherwise spurious exits from the daemon complaining on RDP 
+	ERRORS might happen. This is merged from the main trunk.
+
+	* Bugfix: Tselect will not return on timeout if timeout is longer
+	than timer's timeout. This will only return, if data appears on
+	one of the controlled fds. This usually happens regulary, if MCast
+	is used (due to local pings), but not for the new status facility.
+	This one was found in the main trunk.
+
+2003-12-22  Norbert Eicker  <eicker@par-tec.com>
+
+	* Bugfix: Don't allow clients with newer protocol than mine. Send
+	daemons protocol version architecture independent. This is merged
+	from the main trunk.
+
+	* Modification:	Merge compatible changes from internal 4.0.5 revision.
+
+	* Modification: Merge compatible changes from internal 4.0.5
+	revision. This includes:
+	- Add help messages for hwstart/hwstop commands.
+	- Bugfixes to RDP.
+	- OpenPBS/PBSPro detection and handling.
+	
+	* Extension: Add some compatibility dummy calls for 4.1.x.
+
+	* Bugfix: Merge changes from main trunk concerning PSM_INSTALL,
+	psh and rpmbuildpsmgmt.
+
+2003-10-14  Jens Hauke  <hauke@par-tec.com>
+
+	* Modification:	replace isspace() by ps_isspace, to avoid a GLIBC
+	2.3 dependency.
+
+	* Bugfix: Fix some problems with rpm -U (Update) in PSM_INSTALL.
+
+Version psmgmt-4.0.5 (internal version):
+========================================
+
+  Note: This was a kind of internal psmgmt-4.1 preview. Most of the stuff
+        in this revision did not made it into psmgmt-4.0.6 which was
+	released in a normal fashion.
+
+2003-10-13  Jens Hauke  <hauke@par-tec.com>
+
+	* dist_mgmt/Makefile.in: Remove psld.
+
+	* dist_mgmt/ChangeLog: Update changelog for 4.0.5.
+
+	* scripts/psh: Fix some quoting problems.
 
 2003-10-13  Jens Hauke  <hauke@par-tec.com>
 
@@ -49,11 +422,16 @@ Version psmgmt-4.0.5:
 	* Extension: Complete redesign of spawning stuff:
 	- Remove PSI_spawnM() function.
 	- Add PSI_spawnRank() and PSI_spawnGMSpawner() functions.
+
 	* Extension: New messages to create and manage partition within
 	the daemon. Thus new protocol version.
 
 Version psmgmt-4.0.4:
 ===========================
+
+2003-07-03  Jens Hauke  <hauke@par-tec.com>
+
+	* Release: psmgmt-4.0.3 released.
 
 2003-08-27  Jens Hauke  <hauke@par-tec.com>
 
