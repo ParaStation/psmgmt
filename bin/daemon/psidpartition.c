@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidpartition.c,v 1.13 2004/01/29 17:28:06 eicker Exp $
+ * $Id: psidpartition.c,v 1.14 2004/02/11 14:23:32 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.13 2004/01/29 17:28:06 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.14 2004/02/11 14:23:32 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -152,7 +152,6 @@ static PSpart_request_t *dequeueRequest(PSpart_request_t **queue,
  */
 static void clearQueue(PSpart_request_t **queue)
 {
-    PSID_errlog(__func__, 0);
     while (*queue) {
 	PSpart_request_t *r = dequeueRequest(queue, *queue);
 	if (r) PSpart_delReq(r);
