@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: errlog.h,v 1.7 2002/08/06 08:21:33 eicker Exp $
+ * $Id: errlog.h,v 1.8 2002/08/07 13:09:29 eicker Exp $
  *
  */
 /**
  * \file
  * ParaStation ErrLog facility used within MCast and RDP.
  *
- * $Id: errlog.h,v 1.7 2002/08/06 08:21:33 eicker Exp $
+ * $Id: errlog.h,v 1.8 2002/08/07 13:09:29 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -174,7 +174,8 @@ static void errlog(char *s, int level)
 	txtlen = tmp;
     }
 
-    sprintf(errtxt, "%s: %s\n", ErrLogTag ? ErrLogTag:"", s);
+    sprintf(errtxt, "%s%s%s\n",
+	    ErrLogTag ? ErrLogTag:"", ErrLogTag ? ": ":"", s);
     if (syslogErrLog) {
         syslog(LOG_ERR, errtxt);
     } else {
@@ -222,8 +223,9 @@ static void errexit(char *s, int errorno)
 	    txtlen = tmp;
 	}
 
-	sprintf(errtxt, "%s ERROR: %s: %s\n",
-		ErrLogTag ? ErrLogTag:"", s, errstr ? errstr : "UNKNOWN");
+	sprintf(errtxt, "%s%sERROR: %s: %s\n",
+		ErrLogTag ? ErrLogTag:"", ErrLogTag ? " ":"",
+		s, errstr ? errstr : "UNKNOWN");
         syslog(LOG_ERR, errtxt);
     } else {
         perror(s);
