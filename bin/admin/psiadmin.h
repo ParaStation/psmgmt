@@ -13,6 +13,7 @@ void PSIADM_MCastStat(int first, int last);
 void PSIADM_CountStat(int first, int last);
 void PSIADM_ProcStat(int first, int last);
 void PSIADM_LoadStat(int first, int last);
+void PSIADM_HWStat(int first, int last);
 
 void PSIADM_SetMaxProc(int count);
 void PSIADM_ShowMaxProc(void);

@@ -10,7 +10,7 @@
 #define yylex adminlex
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.14 2002/07/03 21:07:04 eicker Exp $";
+static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.15 2002/07/11 17:05:48 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #define NODEERR -2
@@ -165,6 +165,7 @@ statline:
         | STATOP LOAD nodes   {MyLoadStat(FirstNode, LastNode);}
         | STATOP RDP nodes    {MyRDPStat(FirstNode, LastNode);}
         | STATOP MCAST nodes  {MyMCastStat(FirstNode, LastNode);}
+        | STATOP HW nodes     {MyHWStat(FirstNode, LastNode);}
         ;
 
 resetline:
@@ -345,6 +346,14 @@ static void MyMCastStat(int first, int last)
 {
     if ( (first != NODEERR) && (last != NODEERR))
 	PSIADM_MCastStat(first, last);
+
+    return;
+}
+
+static void MyHWStat(int first, int last)
+{
+    if ( (first != NODEERR) && (last != NODEERR))
+	PSIADM_HWStat(first, last);
 
     return;
 }
