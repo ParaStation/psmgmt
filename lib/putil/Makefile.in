@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.4 2002/10/01 12:42:51 hauke Exp $
+# $Id: Makefile.in,v 1.5 2003/03/06 14:05:29 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -17,7 +17,8 @@ TOPSRCDIR := @TOP_SRCDIR@
 ################################
 
 export LIBNAME := putil
-export LIBOBJS := mcast.o rdp.o timer.o parser.o pslic.o psstrings.o
+export LIBOBJS := mcast.o rdp.o timer.o parser.o pslic.o psstrings.o \
+			psnodes.o config_parsing.o
 export LIBVPATH := $(SRCDIR)
 export LIBINC = -I$(TOPSRCDIR)/include
 export LIBDSTDIR = ../..
