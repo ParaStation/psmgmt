@@ -4,13 +4,14 @@
 #include <unistd.h>
 #include <sys/types.h>
 
+#include "psprotocol.h"
 #include "pscommon.h"
 #include "psiadmin.h"
 
 #define yylex adminlex
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.20 2003/03/19 16:52:33 eicker Exp $";
+static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.21 2003/04/03 15:53:14 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #define NODEERR -2
@@ -36,7 +37,7 @@ static void CheckUserName(char *name);
 %token ADDOP SETOP SHOWOP STATOP KILLOP CONFIGOP RESTARTOP SHUTDOWNOP RESETOP
 %token TESTOP QUITOP HELPOP VERSIONOP NULLOP
 
-%token SMALLPACKETSIZE RESENDTIMEOUT HNPEND ACKPEND SELECTTIME
+%token PSM_SPS PSM_RTO PSM_HNPEND PSM_ACKPEND SELECTTIME
 %token RDPDEBUG RDPPKTLOSS RDPMAXRETRANS MCASTDEBUG PSIDDEBUG
 
 %token MAXPROC USER ANY
@@ -125,38 +126,52 @@ setline:
         | SETOP USER NAME nodes        {MySetUserName($3,FirstNode,LastNode);}
         | SETOP USER NUMBER nodes      {MySetUser($3,FirstNode,LastNode);}
         | SETOP USER ANY nodes         {MySetUser(-1,FirstNode,LastNode);}
-        | SETOP RESENDTIMEOUT NUMBER   {PSIADM_SetResendTimeout($3);}
-        | SETOP SMALLPACKETSIZE NUMBER {PSIADM_SetSmallPacketSize($3);}
-        | SETOP HNPEND NUMBER          {PSIADM_SetHNPend($3);}
-        | SETOP ACKPEND NUMBER         {PSIADM_SetAckPend($3);}
         | SETOP SELECTTIME NUMBER nodes
-                {MySetPsidSelectTime($3,FirstNode,LastNode);}
+                {MySetParam(PSP_OP_PSIDSELECTTIME,$3,FirstNode,LastNode);}
         | SETOP PSIDDEBUG NUMBER nodes
-                {MySetPsidDebug($3,FirstNode,LastNode);}
+                {MySetParam(PSP_OP_PSIDDEBUG,$3,FirstNode,LastNode);}
         | SETOP RDPDEBUG NUMBER nodes
-                {MySetRDPDebug($3,FirstNode,LastNode);}
+                {MySetParam(PSP_OP_RDPDEBUG,$3,FirstNode,LastNode);}
         | SETOP RDPPKTLOSS NUMBER nodes
-                {MySetRDPPktLoss($3,FirstNode,LastNode);}
+                {MySetParam(PSP_OP_RDPPKTLOSS,$3,FirstNode,LastNode);}
         | SETOP RDPMAXRETRANS NUMBER nodes
-                {MySetRDPMaxRetrans($3,FirstNode,LastNode);}
+                {MySetParam(PSP_OP_RDPMAXRETRANS,$3,FirstNode,LastNode);}
         | SETOP MCASTDEBUG NUMBER nodes
-                {MySetMCastDebug($3,FirstNode,LastNode);}
+                {MySetParam(PSP_OP_MCASTDEBUG,$3,FirstNode,LastNode);}
+        | SETOP PSM_SPS NUMBER nodes
+                {MySetParam(PSP_OP_PSM_SPS,$3,FirstNode,LastNode);}
+        | SETOP PSM_RTO NUMBER nodes
+                {MySetParam(PSP_OP_PSM_RTO,$3,FirstNode,LastNode);}
+        | SETOP PSM_HNPEND NUMBER nodes
+                {MySetParam(PSP_OP_PSM_HNPEND,$3,FirstNode,LastNode);}
+        | SETOP PSM_ACKPEND NUMBER nodes
+                {MySetParam(PSP_OP_PSM_ACKPEND,$3,FirstNode,LastNode);}
         ;
 
 showline:
           SHOWOP                    {printf("SHOW what?\n");}
         | SHOWOP MAXPROC nodes      {MyShowMaxProc(FirstNode,LastNode);}
         | SHOWOP USER nodes         {MyShowUser(FirstNode,LastNode);}
-        | SHOWOP RESENDTIMEOUT      {PSIADM_ShowResendTimeout();}
-        | SHOWOP SMALLPACKETSIZE    {PSIADM_ShowSmallPacketSize();}
-        | SHOWOP HNPEND             {PSIADM_ShowHNPend();}
-        | SHOWOP ACKPEND            {PSIADM_ShowAckPend();}
-        | SHOWOP PSIDDEBUG nodes    {MyShowPsidDebug(FirstNode,LastNode);}
-        | SHOWOP SELECTTIME nodes   {MyShowPsidSelectTime(FirstNode,LastNode);}
-        | SHOWOP RDPDEBUG nodes     {MyShowRDPDebug(FirstNode,LastNode);}
-        | SHOWOP RDPPKTLOSS nodes   {MyShowRDPPktLoss(FirstNode,LastNode);}
-        | SHOWOP RDPMAXRETRANS nodes {MyShowRDPMaxRetrans(FirstNode,LastNode);}
-        | SHOWOP MCASTDEBUG nodes   {MyShowMCastDebug(FirstNode,LastNode);}
+        | SHOWOP PSIDDEBUG nodes
+                 {MyShowParam(PSP_OP_PSIDDEBUG,FirstNode,LastNode);}
+        | SHOWOP SELECTTIME nodes
+                 {MyShowParam(PSP_OP_PSIDSELECTTIME,FirstNode,LastNode);}
+        | SHOWOP RDPDEBUG nodes
+                 {MyShowParam(PSP_OP_RDPDEBUG,FirstNode,LastNode);}
+        | SHOWOP RDPPKTLOSS nodes
+                 {MyShowParam(PSP_OP_RDPPKTLOSS,FirstNode,LastNode);}
+        | SHOWOP RDPMAXRETRANS nodes
+                 {MyShowParam(PSP_OP_RDPMAXRETRANS,FirstNode,LastNode);}
+        | SHOWOP MCASTDEBUG nodes
+                 {MyShowParam(PSP_OP_MCASTDEBUG,FirstNode,LastNode);}
+        | SHOWOP PSM_SPS nodes
+                 {MyShowParam(PSP_OP_PSM_SPS,FirstNode,LastNode);}
+        | SHOWOP PSM_RTO nodes
+                 {MyShowParam(PSP_OP_PSM_RTO,FirstNode,LastNode);}
+        | SHOWOP PSM_HNPEND nodes
+                 {MyShowParam(PSP_OP_PSM_HNPEND,FirstNode,LastNode);}
+        | SHOWOP PSM_ACKPEND nodes
+                 {MyShowParam(PSP_OP_PSM_ACKPEND,FirstNode,LastNode);}
         | CONFIGOP                  {PSIADM_ShowConfig();}
         ;
 
@@ -231,8 +246,10 @@ helpline:
         | HELPOP SETOP                 {PrintSetHelp();}
         | HELPOP SETOP MAXPROC         {PrintSetHelp();}
         | HELPOP SETOP USER            {PrintSetHelp();}
-        | HELPOP SETOP SMALLPACKETSIZE {PrintSetHelp();}
-        | HELPOP SETOP RESENDTIMEOUT   {PrintSetHelp();}
+        | HELPOP SETOP PSM_SPS         {PrintSetHelp();}
+        | HELPOP SETOP PSM_RTO         {PrintSetHelp();}
+        | HELPOP SETOP PSM_HNPEND      {PrintSetHelp();}
+        | HELPOP SETOP PSM_ACKPEND     {PrintSetHelp();}
         | HELPOP SETOP PSIDDEBUG       {PrintPsidDebugHelp();}
         | HELPOP SETOP RDPDEBUG        {PrintRDPDebugHelp();}
         | HELPOP SETOP RDPPKTLOSS      {PrintRDPPktLossHelp();}
@@ -395,74 +412,14 @@ static void MyShowMaxProc(int first, int last)
 	PSIADM_ShowMaxProc(first, last);
 }
 
-static void MySetPsidDebug(int what, int first, int last)
+static void MySetParam(int type, int val, int first, int last)
 {
     if ( (first != NODEERR) && (last != NODEERR))
-	PSIADM_SetPsidDebug(what, first, last);
+	PSIADM_SetParam(type, val, first, last);
 }
 
-static void MyShowPsidDebug(int first, int last)
+static void MyShowParam(int type, int first, int last)
 {
     if ( (first != NODEERR) && (last != NODEERR))
-	PSIADM_ShowPsidDebug(first, last);
-}
-
-static void MySetPsidSelectTime(int what, int first, int last)
-{
-    if ( (first != NODEERR) && (last != NODEERR))
-	PSIADM_SetPsidSelectTime(what, first, last);
-}
-
-static void MyShowPsidSelectTime(int first, int last)
-{
-    if ( (first != NODEERR) && (last != NODEERR))
-	PSIADM_ShowPsidSelectTime(first, last);
-}
-
-static void MySetRDPDebug(int what, int first, int last)
-{
-    if ( (first != NODEERR) && (last != NODEERR))
-	PSIADM_SetRDPDebug(what, first, last);
-}
-
-static void MyShowRDPDebug(int first, int last)
-{
-    if ( (first != NODEERR) && (last != NODEERR))
-	PSIADM_ShowRDPDebug(first, last);
-}
-
-static void MySetRDPPktLoss(int what, int first, int last)
-{
-    if ( (first != NODEERR) && (last != NODEERR))
-	PSIADM_SetRDPPktLoss(what, first, last);
-}
-
-static void MyShowRDPPktLoss(int first, int last)
-{
-    if ( (first != NODEERR) && (last != NODEERR))
-	PSIADM_ShowRDPPktLoss(first, last);
-}
-
-static void MySetRDPMaxRetrans(int what, int first, int last)
-{
-    if ( (first != NODEERR) && (last != NODEERR))
-	PSIADM_SetRDPMaxRetrans(what, first, last);
-}
-
-static void MyShowRDPMaxRetrans(int first, int last)
-{
-    if ( (first != NODEERR) && (last != NODEERR))
-	PSIADM_ShowRDPMaxRetrans(first, last);
-}
-
-static void MySetMCastDebug(int what, int first, int last)
-{
-    if ( (first != NODEERR) && (last != NODEERR))
-	PSIADM_SetMCastDebug(what, first, last);
-}
-
-static void MyShowMCastDebug(int first, int last)
-{
-    if ( (first != NODEERR) && (last != NODEERR))
-	PSIADM_ShowMCastDebug(first, last);
+	PSIADM_ShowParam(type, first, last);
 }
