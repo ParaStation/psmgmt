@@ -102,6 +102,12 @@
 /* Disable local communication */
 #define DISABLE_LOCAL_COM
 
+/* Enable Packetcounter in PSHAL */
+//#define ENABLE_PACKETCOUNTER
+
+/* PSPORT print debuging on ^Z */
+//#define ENABLE_REQUESTDUMP
+
 
 
 #define PSM_PRINT_MAP_LEVEL_OFF 1000
