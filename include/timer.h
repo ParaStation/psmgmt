@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: timer.h,v 1.6 2002/02/01 17:04:57 eicker Exp $
+ * $Id: timer.h,v 1.7 2002/02/15 19:10:19 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation Timer facility @todo More info on module.
  *
- * $Id: timer.h,v 1.6 2002/02/01 17:04:57 eicker Exp $
+ * $Id: timer.h,v 1.7 2002/02/15 19:10:19 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -67,12 +67,12 @@ int getDebugLevelTimer(void);
 /**
  * @brief Set the debug-level.
  *
- * Set the debug-level of the Timer module. Posible values are:
+ * Set the debug-level of the Timer module. Possible values are:
  *  - 0: Critical errors (usually exit)
  *
  * Only critical errors yet!
  *
- * @param level The debug-level to set
+ * @param level The debug-level to set.
  *
  * @return No return value.
  *
