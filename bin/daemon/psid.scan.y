@@ -7,7 +7,7 @@
 #include "parse.h"
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char yaccid[] __attribute__(( unused )) = "$Id: psid.scan.y,v 1.10 2002/04/03 15:33:05 eicker Exp $";
+static char yaccid[] __attribute__(( unused )) = "$Id: psid.scan.y,v 1.11 2002/04/22 18:16:03 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
  %}
