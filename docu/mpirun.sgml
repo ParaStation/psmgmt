@@ -38,8 +38,7 @@
     <para>
       <command>mpirun</command> typically works like this
     </para>
-    <programlisting>	mpirun -np <replaceable>num</replaceable> <replaceable>prog</replaceable> <optional><replaceable>args</replaceable></optional>
-    </programlisting>
+    <programlisting>	mpirun -np <replaceable>num</replaceable> <replaceable>prog</replaceable> <optional><replaceable>args</replaceable></optional></programlisting>
     <para>
       This will start up the parallel program <command>prog</command> on
       <replaceable>num</replaceable> nodes of the cluster.

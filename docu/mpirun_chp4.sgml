@@ -56,8 +56,7 @@
     <para>
       <command>mpirun_chp4</command> typically works like this:
     </para>
-    <programlisting>	mpirun_chp4 -np <replaceable>num</replaceable> <replaceable>prog</replaceable> <optional><replaceable>args</replaceable></optional>
-    </programlisting>
+    <programlisting>	mpirun_chp4 -np <replaceable>num</replaceable> <replaceable>prog</replaceable> <optional><replaceable>args</replaceable></optional></programlisting>
     <para>
       This will startup the parallel MPIch/P4 program <command>prog</command>
       on <replaceable>num</replaceable> nodes of the cluster.
