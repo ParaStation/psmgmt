@@ -8,7 +8,7 @@
 #**
 #* PSM_INSTALL: ParaStation De-/Installationscript
 #*
-#* $Id: PSM_INSTALL,v 1.14 2002/12/06 14:09:28 hauke Exp $
+#* $Id: PSM_INSTALL,v 1.15 2003/10/14 15:31:51 hauke Exp $
 #*
 #* @author  
 #*         Eduard Syrchyn <syrchyn@par-tec.de>
@@ -37,14 +37,13 @@ PSMMTH="$PSMDRV.mth"
 #/etc/inetd.conf
 INETD_PSIDMASK="^[ 	]*psid[ 	]"
 INETD_PSIDLINE="psid	stream	tcp	nowait	root	$PSMAIN/bin/psid psid"
-INETD_PSLDMASK="^[ 	]*psld[ 	]"
-INETD_PSLDLINE="psld	stream	tcp	nowait	root	$PSMAIN/bin/psld psld"
 INETD_PID="/var/run/inetd.pid"
 INETD_CNF="$ETC_DIR/inetd.conf"
 INETD_BKP="$INETD_CNF.psm"
 
 #/etc/xinetd.d
 XINETD_DIR="$ETC_DIR/xinetd.d"
+XINETD_PID="/var/run/xinetd.pid"
 XINETD_PARA="\
 #
 # parastation
@@ -58,21 +57,10 @@ service psid
         server          = $PSMAIN/bin/psid
         log_on_failure  += USERID
 }
-service psld
-{
-        disable = no
-        socket_type     = stream
-        wait            = no
-        user            = root
-        server          = $PSMAIN/bin/psld
-        log_on_failure  += USERID
-}
 "
 XINETD_PSM="$ETC_DIR/xinetd.d/parastation"
 
 #/etc/services
-SERV_PSLDMASK="^[ 	]*psld[ 	]"
-SERV_PSLDLINE="psld             887/tcp       # ParaStation License Daemon Start Port"
 SERV_PSIDMASK="^[ 	]*psid[ 	]"
 SERV_PSIDLINE="psid             888/tcp       # ParaStation Daemon Start Port"
 SERV_CNF="$ETC_DIR/services"
@@ -113,7 +101,7 @@ unbackup() {
     bak=$2
     if [ -f $bak ]
     then
-	diff $src $bak
+	diff -bB $src $bak
 	if [ $? -eq 0 ]
 	then
 	    rm $bak
@@ -179,38 +167,45 @@ reload_inetd() {
     fi
 }
 
+reload_xinetd() {        
+    if [ -f $XINETD_PID ]    
+    then
+	echo "Reload xinetd."
+ 	sss=`cat $XINETD_PID`
+	kill -s HUP $sss    
+    else 
+	echo "#######################################################"
+	echo "# Reload or start the xinetd daemon !                 #"
+	echo "#######################################################"
+    fi
+}
+
 patch_services() {
     backup $SERV_CNF $SERV_BKP
     echo "Update $SERV_CNF."
-    patch_conf "$SERV_CNF" "$SERV_PSLDMASK" "$SERV_PSLDLINE"
     patch_conf "$SERV_CNF" "$SERV_PSIDMASK" "$SERV_PSIDLINE"
-    echo "Update $SERV_CNF done."
 }
 
 patch_inetd() {
     backup $INETD_CNF $INETD_BKP
     echo "Update $INETD_CNF."
     patch_conf "$INETD_CNF" "$INETD_PSIDMASK" "$INETD_PSIDLINE"
-    patch_conf "$INETD_CNF" "$INETD_PSLDMASK" "$INETD_PSLDLINE"
-    echo "Update $INETD_CNF done."
     reload_inetd
 }
 
 patch_xinetd() {
     echo "Update $XINETD_DIR."
     echo "$XINETD_PARA" > $XINETD_PSM
-    echo "Update $XINETD_DIR done."
+    reload_xinetd
 }
 
 cleanup_services() {
-    unpatch_conf "$SERV_CNF" "$SERV_PSLDMASK" "$SERV_PSLDLINE"
     unpatch_conf "$SERV_CNF" "$SERV_PSIDMASK" "$SERV_PSIDLINE"
     unbackup $SERV_CNF $SERV_BKP
 }
 
 cleanup_inetd() {
     unpatch_conf "$INETD_CNF" "$INETD_PSIDMASK" "$INETD_PSIDLINE"
-    unpatch_conf "$INETD_CNF" "$INETD_PSLDMASK" "$INETD_PSLDLINE"
     unbackup $INETD_CNF $INETD_BKP
     reload_inetd
 }
@@ -220,14 +215,13 @@ cleanup_xinetd() {
     then
 	rm $XINETD_PSM
     fi
+    reload_xinetd
 }
 
 self_check_root() {
     WHO=`whoami`
-    if [ $WHO = "root" ]
+    if [ $WHO != "root" ]
     then
-	echo "User is <root>, OK!"	
-    else
 	echo "You should be <root>, but you are <$WHO>!"
     fi
 }
@@ -283,12 +277,14 @@ create_configlink() {
 }
 
 cleanup_configlink() {
-   rm -f $ETC_DIR/parastation.conf
+    if [ -L $ETC_DIR/parastation.conf ]
+    then
+	rm -f $ETC_DIR/parastation.conf
+    fi
 }
 
 do_install() {
-    echo "Install ParaStation"
-    do_info
+    echo "Install ParaStation in $PSMAIN"
 
     patch_services
     if [ -f $INETD_CNF ]
@@ -309,8 +305,8 @@ do_install() {
 }
 
 do_uninstall() {
-    echo "Uninstall ParaStation"
-    do_info
+    echo "Uninstall ParaStation from $PSMAIN"
+    killall psid
     cleanup_services
     if [ -f $INETD_CNF ]
     then
@@ -329,14 +325,10 @@ do_uninstall() {
     cleanup_configlink
 }
 
-do_info() {
-    echo "Using ParaStation root: $PSMAIN"
-}
-
 do_help() {
-    echo "Use: $0 [-i|-u|-h]"
+    echo "Use: $0 [-i|-U|-h]"
     echo "-i       : install"
-    echo "-u       : uninstall "
+    echo "-U       : uninstall "
     echo "-h       : this poor help..."
 }
 
@@ -368,8 +360,10 @@ case "$1" in
 	do_install
 	self_post_inst_msg
 	;;
-    -u)
+    -U)
 	do_uninstall
+	;;
+    -u)
 	;;
     -h)
 	do_help

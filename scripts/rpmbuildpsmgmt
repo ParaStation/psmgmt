@@ -27,10 +27,20 @@ BuildRoot: $BUILDDIR/build
 %description
 ParaStation Management Layer.
 
+%pre
+    if [ "\$1" = "2" ] ; then  # Thats an update
+      if [ -x /opt/parastation/config/PSM_INSTALL ]; then
+        # Call the OLD uninstall script.
+        /opt/parastation/config/PSM_INSTALL -U
+      fi
+    fi
 %post
     /opt/parastation/config/PSM_INSTALL -i
 %preun
-    /opt/parastation/config/PSM_INSTALL -u
+    if [ "\$1" = "0" ] ; then  # Thats NOT an update
+      # Call the uninstall script only, if this is NOT an update.
+      /opt/parastation/config/PSM_INSTALL -U
+    fi
 %files
 %attr(-,root,root) /opt/parastation
 EOF
