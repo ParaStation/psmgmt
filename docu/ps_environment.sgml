@@ -61,7 +61,7 @@
 	<term><envar>PSI_NODES</envar> <replaceable>number</replaceable>
 	  <optional>, <replaceable>number</replaceable></optional>...</term>
 	<listitem>
-	  <para>Defines the nodes building th partition used to spawn new
+	  <para>Defines the nodes building the partition used to spawn new
 	    processes to. Depending on the variable
 	    <envar>PSI_NODES_SORT</envar> the ordering may be relevant. If the
 	    number of processes to spawn exceed the number of nodes in the
