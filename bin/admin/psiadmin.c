@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.28 2002/02/15 19:25:00 eicker Exp $
+ * $Id: psiadmin.c,v 1.29 2002/03/05 14:12:14 hauke Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.28 2002/02/15 19:25:00 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.29 2002/03/05 14:12:14 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -40,7 +40,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.28 $";
+static char psiadmversion[] = "$Revision: 1.29 $";
 static int  DoRestart = 1;
 
 int PSIADM_LookUpNodeName(char* hostname)
@@ -951,6 +951,24 @@ void PSIADM_ShutdownCluster(int first, int last)
 
 void PSIADM_TestNetwork(int mode)
 {
+    char *dir;
+    char command[100];
+    dir = PSI_LookupInstalldir();
+    if (dir){
+	chdir( dir );
+    }else{
+	printf("Cant find 'test_nodes'.\n");
+	return;
+    }
+    snprintf(command,sizeof(command),
+	     "./bin/test_nodes -np %d",PSI_nrofnodes);
+    if (system(command) < 0){
+	printf("Cant execute %s : %s\n",command,strerror(errno));
+    }
+    return;
+    
+    
+#if 0
     int mynode;
     int spawnargc;
     char** spawnargs;
@@ -992,6 +1010,7 @@ void PSIADM_TestNetwork(int mode)
 
     free(spawnargs);
     return;
+#endif
 }
 
 void PSIADM_KillProc(int id)
