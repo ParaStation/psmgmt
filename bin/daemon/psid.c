@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.120 2003/12/22 21:00:42 eicker Exp $
+ * $Id: psid.c,v 1.121 2004/01/09 16:19:46 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.120 2003/12/22 21:00:42 eicker Exp $ 
+ * $Id: psid.c,v 1.121 2004/01/09 16:19:46 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.120 2003/12/22 21:00:42 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.121 2004/01/09 16:19:46 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -75,9 +75,12 @@ struct timeval selectTime;
 
 static struct timeval shutdownTimer;
 
-char psid_cvsid[] = "$Revision: 1.120 $";
+char psid_cvsid[] = "$Revision: 1.121 $";
 
-/** Master socket (type UNIX) for clients to connect */
+/**
+ * Master socket (type UNIX) for clients to connect. Setup within @ref
+ * setupMasterSock().
+ */
 static int masterSock;
 
 /** Another helper status. This one is for reset/shutdown */
@@ -96,7 +99,16 @@ static char errtxt[256]; /**< General string to create error messages */
 #define PSID_STATE_NOCONNECT (PSID_STATE_DORESET \
 			      | PSID_STATE_SHUTDOWN | PSID_STATE_SHUTDOWN2)
 
-
+/**
+ * @brief Shutdown node.
+ *
+ * Shutdown the local node, i.e. stop daemons operation.
+ * @doctodo More info about phases.
+ *
+ * @param phase
+ *
+ * @return 
+ */
 /******************************************
  *  shutdownNode()
  *
@@ -150,7 +162,7 @@ int shutdownNode(int phase)
      */
     killAllClients(phase);
 
-    if (phase > 1) {
+    if (phase == 2) {
 	/*
 	 * close all sockets to the clients
 	 */
@@ -160,8 +172,10 @@ int shutdownNode(int phase)
 		closeConnection(i);
 	    }
 	}
+	send_DAEMONSHUTDOWN();
+	if (!config->useMCast) releaseStatusTimer();
     }
-    if (phase > 2) {
+    if (phase == 3) {
 	if (config->useMCast) exitMCast();
 	exitRDP();
 	PSID_stopAllHW();
@@ -175,6 +189,7 @@ int shutdownNode(int phase)
 /******************************************
  *  doReset()
  */
+/** @doctodo */
 static int doReset(void)
 {
     snprintf(errtxt, sizeof(errtxt), "doReset() status %s",
@@ -224,6 +239,8 @@ static int doReset(void)
  *
  * Handle the message @a msg of type PSP_CD_DAEMONSTART.
  *
+ * @doctodo
+ *
  * @param msg Pointer to the message to handle.
  *
  * @return No return value.
@@ -268,6 +285,10 @@ static void msg_DAEMONSTART(DDBufferMsg_t *msg)
  *
  * Handle the message @a msg of type PSP_CD_DAEMONSTOP.
  *
+ * If the local node is the final destination of the message, it will
+ * be stopped using @ref shutdownNode(). Otherwise @a msg will be
+ * forwarded to the correct destination.
+ *
  * @param msg Pointer to the message to handle.
  *
  * @return No return value.
@@ -285,6 +306,10 @@ static void msg_DAEMONSTOP(DDMsg_t *msg)
  * @brief Handle a PSP_CD_DAEMONRESET message.
  *
  * Handle the message @a msg of type PSP_CD_DAEMONRESET.
+ *
+ * If the local node is the final destination of the message, it will
+ * be reseted using @ref doReset(). Otherwise @a msg will be forwarded
+ * to the correct destination.
  *
  * @param msg Pointer to the message to handle.
  *
@@ -306,13 +331,15 @@ static void msg_DAEMONRESET(DDBufferMsg_t *msg)
     }
 }
 
+pid_t getpgid(pid_t); /* @todo HACK HACK HACK */
+
 /******************************************
  *  msg_CLIENTCONNECT()
  *   a client trys to connect to the daemon.
  *   accept the connection request if enough resources are available
  */
-pid_t getpgid(pid_t); /* @todo HACK HACK HACK */
-void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
+/** @doctodo */
+static void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 {
     PStask_t *task;
     DDTypedBufferMsg_t outmsg;
@@ -531,6 +558,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
     }
 }
 
+/** @doctodo */
 static void informOtherNodes(void)
 {
     DDOptionMsg_t msg = (DDOptionMsg_t) {
@@ -552,7 +580,8 @@ static void informOtherNodes(void)
     }
 }
 
-void msg_HWSTART(DDBufferMsg_t *msg)
+/** @doctodo */
+static void msg_HWSTART(DDBufferMsg_t *msg)
 {
     snprintf(errtxt, sizeof(errtxt), "%s from requester %s",
 	     __func__, PSC_printTID(msg->header.sender));
@@ -573,7 +602,8 @@ void msg_HWSTART(DDBufferMsg_t *msg)
     }
 }
 
-void msg_HWSTOP(DDBufferMsg_t *msg)
+/** @doctodo */
+static void msg_HWSTOP(DDBufferMsg_t *msg)
 {
     snprintf(errtxt, sizeof(errtxt), "%s from requester %s",
 	     __func__, PSC_printTID(msg->header.sender));
@@ -599,7 +629,8 @@ void msg_HWSTOP(DDBufferMsg_t *msg)
  *  msg_SPAWNREQUEST()
  */
 /*void msg_SPAWNREQUEST(int fd,int msglen)*/
-void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
+/** @doctodo */
+static void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 {
     PStask_t *task;
     DDErrorMsg_t answer;
@@ -794,7 +825,8 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 /******************************************
  *  msg_CHILDDEAD()
  */
-void msg_CHILDDEAD(DDErrorMsg_t *msg)
+/** @doctodo */
+static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 {
     PStask_t *task, *forwarder;
 
@@ -885,7 +917,8 @@ void msg_CHILDDEAD(DDErrorMsg_t *msg)
 /******************************************
  *  msg_SPAWNSUCCESS()
  */
-void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
+/** @doctodo */
+static void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
 {
     PStask_ID_t tid = msg->header.sender;
     PStask_ID_t ptid = msg->header.dest;
@@ -918,7 +951,8 @@ void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
 /******************************************
  *  msg_SPAWNFAILED()
  */
-void msg_SPAWNFAILED(DDErrorMsg_t *msg)
+/** @doctodo */
+static void msg_SPAWNFAILED(DDErrorMsg_t *msg)
 {
     snprintf(errtxt, sizeof(errtxt),
 	     "SPAWNFAILED error = %d sending msg to parent(%s) on my node",
@@ -932,7 +966,8 @@ void msg_SPAWNFAILED(DDErrorMsg_t *msg)
 /******************************************
  *  msg_SPAWNFINISH()
  */
-void msg_SPAWNFINISH(DDMsg_t *msg)
+/** @doctodo */
+static void msg_SPAWNFINISH(DDMsg_t *msg)
 {
     snprintf(errtxt, sizeof(errtxt), "%s: sending to parent(%s) on my node",
 	     __func__, PSC_printTID(msg->dest));
@@ -948,7 +983,8 @@ void msg_SPAWNFINISH(DDMsg_t *msg)
 /******************************************
  *  msg_NOTIFYDEAD()
  */
-void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
+/** @doctodo */
+static void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 {
     PStask_ID_t registrarTid = msg->header.sender;
     PStask_ID_t tid = msg->header.dest;
@@ -964,6 +1000,7 @@ void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
     msg->header.type = PSP_CD_NOTIFYDEADRES;
     msg->header.dest = registrarTid;
     msg->header.sender = tid;
+    /* Do not set msg->header.len! Length of DDSignalMsg_t has changed */
 
     if (!tid) {
 	task = PStasklist_find(managedTasks, registrarTid);
@@ -1035,10 +1072,13 @@ void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 /******************************************
  *  msg_NOTIFYDEADRES()
  */
-void msg_NOTIFYDEADRES(DDSignalMsg_t *msg)
+/** @doctodo */
+static void msg_NOTIFYDEADRES(DDSignalMsg_t *msg)
 {
     PStask_ID_t controlledTid = msg->header.sender;
     PStask_ID_t registrarTid = msg->header.dest;
+
+    if (PSC_getID(registrarTid) != PSC_getMyID()) sendMsg(msg);
 
     if (msg->param) {
 	snprintf(errtxt, sizeof(errtxt),
@@ -1121,9 +1161,15 @@ static int releaseSignal(PStask_ID_t tid, PStask_ID_t receiverTid, int sig)
 }
 
 /**
- * @brief Remove all signals from task
+ * @brief Release a task.
  *
- * @todo
+ * Release the task denoted within the PSP_CD_RELEASE message. Thus
+ * the daemon expects this tasks to disappear and will not send the
+ * standard signal to the parent task.
+ *
+ * Nevertheless explicitly registered signal will be sent.
+ *
+ * @param msg Pointer to the PSP_CD_RELEASE message to handle.
  *
  * @return On success, 0 is returned or an @a errno on error.
  *
@@ -1205,10 +1251,34 @@ static int releaseTask(DDSignalMsg_t *msg)
     return 0;
 }
 
-/******************************************
- *  msg_RELEASE()
+/**
+ * @brief Handle a PSP_CD_RELEASE message.
+ *
+ * Handle the message @a msg of type PSP_CD_RELEASE.
+ *
+ * The actual task to be done is to release a task, i.e. to tell the
+ * task not to send a signal to the sender upon exit.
+ *
+ * Two different cases have to be distinguished:
+ *
+ * - The releasing task will release a different task, which might be
+ * local or remote. In the latter case, the message @a msg will be
+ * forwarded to the corresponding daemon.
+ * 
+ * - The task to release is identical to the releasing tasks. This
+ * special case tells the local daemon to expect the corresponding
+ * process to disappear, i.e. not to signal the parent task upon exit
+ * as long as no error occured. The corresponding action are
+ * undertaken within the @ref releaseTask() function called.
+ *
+ * In all cases adequate PSP_CD_RELEASERES message are send to the
+ * task requesting the release.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
  */
-void msg_RELEASE(DDSignalMsg_t *msg)
+static void msg_RELEASE(DDSignalMsg_t *msg)
 {
     PStask_ID_t registrarTid = msg->header.sender;
     PStask_ID_t tid = msg->header.dest;
@@ -1224,6 +1294,7 @@ void msg_RELEASE(DDSignalMsg_t *msg)
 	msg->header.type = PSP_CD_RELEASERES;
 	msg->header.dest = msg->header.sender;
 	msg->header.sender = tid;
+	/* Do not set msg->header.len! Length of DDSignalMsg_t has changed */
 	msg->param = ret;
 
 	task = PStasklist_find(managedTasks, tid);
@@ -1251,10 +1322,21 @@ void msg_RELEASE(DDSignalMsg_t *msg)
     sendMsg(msg);
 }
 
-/******************************************
- *  msg_RELEASERES()
+/**
+ * @brief Handle a PSP_CD_RELEASERES message.
+ *
+ * Handle the message @a msg of type PSP_CD_RELEASE.
+ *
+ * The message will be forwarded to its final destination, which
+ * usually is a client of the local daemon, unless there are pending
+ * PSP_CD_RELEASERES to the same client. In this case, the actual
+ * message @a msg is thrown away.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
  */
-void msg_RELEASERES(DDSignalMsg_t *msg)
+static void msg_RELEASERES(DDSignalMsg_t *msg)
 {
     PStask_ID_t tid = msg->header.dest;
     PStask_t *task;
@@ -1264,6 +1346,8 @@ void msg_RELEASERES(DDSignalMsg_t *msg)
 		 PSC_printTID(msg->header.sender));
 	PSID_errlog(errtxt, 10);
     }
+
+    if (PSC_getID(tid) != PSC_getMyID()) sendMsg(msg);
 
     task = PStasklist_find(managedTasks, tid);
 
@@ -1304,7 +1388,8 @@ void msg_RELEASERES(DDSignalMsg_t *msg)
 /******************************************
  *  msg_SIGNAL()
  */
-void msg_SIGNAL(DDSignalMsg_t *msg)
+/** @doctodo */
+static void msg_SIGNAL(DDSignalMsg_t *msg)
 {
     if (msg->header.dest == -1) {
 	snprintf(errtxt, sizeof(errtxt), "%s: no broadcast", __func__);
@@ -1400,7 +1485,8 @@ void msg_SIGNAL(DDSignalMsg_t *msg)
 /******************************************
  *  msg_WHODIED()
  */
-void msg_WHODIED(DDSignalMsg_t *msg)
+/** @doctodo */
+static void msg_WHODIED(DDSignalMsg_t *msg)
 {
     PStask_t *task;
 
@@ -1430,7 +1516,8 @@ void msg_WHODIED(DDSignalMsg_t *msg)
 /******************************************
  *  psicontrol(int fd)
  */
-void psicontrol(int fd)
+/** @doctodo */
+static void psicontrol(int fd)
 {
     DDBufferMsg_t msg;
 
@@ -1569,6 +1656,9 @@ void psicontrol(int fd)
 	case PSP_DD_DAEMONESTABLISHED:
 	    msg_DAEMONESTABLISHED(&msg);
 	    break;
+	case PSP_DD_DAEMONSHUTDOWN:
+	    msg_DAEMONSHUTDOWN((DDMsg_t *)&msg);
+	    break;
 	case PSP_DD_CHILDDEAD:
 	    msg_CHILDDEAD((DDErrorMsg_t*)&msg);
 	    break;
@@ -1605,6 +1695,18 @@ void psicontrol(int fd)
 	case PSP_CD_NODESRES:
 	    sendMsg(&msg);
 	    break;
+	case PSP_DD_LOAD:
+	    msg_LOAD(&msg);
+	    break;
+	case PSP_DD_MASTER_IS:
+	    msg_MASTERIS(&msg);
+	    break;
+	case PSP_DD_ACTIVE_NODES:
+	    msg_ACTIVENODES(&msg);
+	    break;
+	case PSP_DD_DEAD_NODE:
+	    msg_DEADNODE(&msg);
+	    break;
 	default :
 	    snprintf(errtxt, sizeof(errtxt),
 		     "psid: Wrong msgtype %d (%s) on socket %d",
@@ -1623,7 +1725,8 @@ void psicontrol(int fd)
  * - the license-server is missing
  * - the license-server is going down
  */
-void MCastCallBack(int msgid, void *buf)
+/** @doctodo */
+static void MCastCallBack(int msgid, void *buf)
 {
     int node;
     struct in_addr hostaddr;
@@ -1648,7 +1751,7 @@ void MCastCallBack(int msgid, void *buf)
 	snprintf(errtxt, sizeof(errtxt), "%s(MCAST_LOST_CONNECTION,%d)",
 		 __func__, node);
 	PSID_errlog(errtxt, 2);
-	if (node != PSC_getMyID()) declareNodeDead(node);
+	if (node != PSC_getMyID()) declareNodeDead(node, 0);
 	/*
 	 * Send CONNECT msg via RDP. This should timeout and tell RDP that
 	 * the connection is down.
@@ -1669,14 +1772,13 @@ void MCastCallBack(int msgid, void *buf)
  * - a msg could not be sent
  * - a daemon is declared as dead
  */
-void RDPCallBack(int msgid, void *buf)
+/** @doctodo */
+static void RDPCallBack(int msgid, void *buf)
 {
-    int node;
-    DDMsg_t *msg;
-
     switch(msgid) {
     case RDP_NEW_CONNECTION:
-	node = *(int*)buf;
+    {
+	int node = *(int*)buf;
 	snprintf(errtxt, sizeof(errtxt), "%s(RDP_NEW_CONNECTION,%d)",
 		 __func__, node);
 	PSID_errlog(errtxt, 2);
@@ -1689,8 +1791,10 @@ void RDPCallBack(int msgid, void *buf)
 	    }
 	}
 	break;
+    }
     case RDP_PKT_UNDELIVERABLE:
-	msg = (DDMsg_t*)((RDPDeadbuf*)buf)->buf;
+    {
+	DDMsg_t *msg = (DDMsg_t*)((RDPDeadbuf*)buf)->buf;
 	snprintf(errtxt, sizeof(errtxt),
 		 "%s(RDP_PKT_UNDELIVERABLE, dest %x source %x %s)", __func__,
 		 msg->dest, msg->sender, PSDaemonP_printMsg(msg->type));
@@ -1703,8 +1807,8 @@ void RDPCallBack(int msgid, void *buf)
 	    case PSP_CD_INFOREQUEST:
 	    {
 		/* Sender expects an answer */
-		DDErrorMsg_t errmsg = (DDErrorMsg_t) {
-		    .header = (DDMsg_t) {
+		DDErrorMsg_t errmsg = {
+		    .header = {
 			.type = PSP_CD_ERROR,
 			.dest = msg->sender,
 			.sender = PSC_getMyTID(),
@@ -1716,38 +1820,70 @@ void RDPCallBack(int msgid, void *buf)
 	    }
 	    case PSP_CD_SPAWNREQUEST:
 	    {
-		DDErrorMsg_t answer = (DDErrorMsg_t) {
-		    .header = (DDMsg_t) {
+		DDErrorMsg_t answer = {
+		    .header = {
 			.type = PSP_CD_SPAWNFAILED,
 			.dest = msg->sender,
 			.sender = PSC_getMyTID(),
 			.len = sizeof(answer) },
 		    .request = msg->type,
 		    .error = EHOSTDOWN };
-		    sendMsg(&answer);
+		sendMsg(&answer);
 		break;
 	    }
 	    case PSP_CD_RELEASE:
 	    case PSP_CD_NOTIFYDEAD:
-	    { /* @todo Generate correct RES message */}
+	    {
+		/* Sender expects an answer */
+		DDSignalMsg_t answer = {
+		    .header = {
+			.type = (msg->type==PSP_CD_RELEASE) ?
+			PSP_CD_RELEASERES : PSP_CD_NOTIFYDEADRES,
+			.dest = msg->sender,
+			.sender = PSC_getMyTID(),
+			.len = msg->len },
+		    .signal = ((DDSignalMsg_t *)msg)->signal,
+		    .param = EHOSTUNREACH,
+		    .pervasive = 0 };
+		sendMsg(&answer);
+		break;
+	    }
+	    case PSP_DD_DAEMONCONNECT:
+	    {
+		if (!config->useMCast && !knowMaster()) {
+		    PSnodes_ID_t next = PSC_getID(msg->dest) + 1;
+
+		    if (next < PSC_getMyID()) {
+			send_DAEMONCONNECT(next);
+		    } else {
+			declareMaster(PSC_getMyID());
+		    }
+		}
+		break;
+	    }
 	    default:
 		break;
 	    }
 	}
 	break;
+    }
     case RDP_LOST_CONNECTION:
-	node = *(int*)buf;
+    {
+	int node = *(int*)buf;
 	snprintf(errtxt, sizeof(errtxt), "%s(RDP_LOST_CONNECTION,%d)",
 		 __func__, node);
 	PSID_errlog(errtxt, 2);
 
-	declareNodeDead(node);
+	declareNodeDead(node, 1);
 
 	break;
+    }
     case RDP_CAN_CONTINUE:
-	node = *(int*)buf;
+    {
+	int node = *(int*)buf;
 	flushRDPMsgs(node);
 	break;
+    }
     default:
 	snprintf(errtxt, sizeof(errtxt), "%s(%d,%p). Unhandled message",
 		 __func__, msgid, buf);
@@ -1755,6 +1891,7 @@ void RDPCallBack(int msgid, void *buf)
     }
 }
 
+/** @doctodo */
 static void sighandler(int sig)
 {
     switch(sig){
@@ -1881,6 +2018,7 @@ static void sighandler(int sig)
     }
 }
 
+/** @doctodo */
 static void initSignals(void)
 {
     signal(SIGINT   ,sighandler);
@@ -1928,7 +2066,18 @@ static void initSignals(void)
     signal(SIGHUP   ,SIG_IGN);
 }
 
-static void setupMastersock(void)
+/**
+ * @brief Setup master socket.
+ *
+ * Create and initialize the daemons master socket.
+ *
+ * @doctodo
+ *
+ * @return No return value.
+ *
+ * @see masterSock
+ */
+static void setupMasterSock(void)
 {
     struct sockaddr_un sa;
 
@@ -1974,6 +2123,17 @@ static void setupMastersock(void)
     FD_SET(masterSock, &PSID_readfds);
 }
 
+/**
+ * @brief Checks file table after select has failed.
+ *
+ * Detailed checking of the file table on validity after a select(2)
+ * call has failed. Thus all file descriptors within the set @a
+ * controlfds are examined and handled if necessary.
+ *
+ * @param controlfds Set of file descriptors that have to be checked.
+ *
+ * @return No return value.
+ */
 static void checkFileTable(fd_set *controlfds)
 {
     fd_set fdset;
@@ -2033,12 +2193,16 @@ static void checkFileTable(fd_set *controlfds)
     }
 }
 
-/*
- * Print version info
+/**
+ * @brief Print version info.
+ *
+ * Print version infos of the current psid.c CVS revision number to stderr.
+ *
+ * @return No return value.
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.120 $";
+    char revision[] = "$Revision: 1.121 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -2147,20 +2311,14 @@ int main(int argc, const char *argv[])
 	PSID_errlog(errtxt, 0);
     }
 
-    /*
-     * Init fd sets
-     */
+    /* Init fd sets */
     FD_ZERO(&PSID_readfds);
     FD_ZERO(&PSID_writefds);
 
-    /*
-     * create the socket to listen to the client
-     */
-    setupMastersock();
+    /* create the socket to listen for clients */
+    setupMasterSock();
 
-    /*
-     * read the config file
-     */
+    /* read the config file */
     PSID_readConfigFile(!logfile, configfile);
     /* Now we can rely on the config structure */
 
@@ -2302,6 +2460,17 @@ int main(int argc, const char *argv[])
     snprintf(errtxt, sizeof(errtxt), "SelectTime=%d sec    DeadInterval=%d",
 	     config->selectTime, config->deadInterval);
     PSID_errlog(errtxt, 0);
+
+    /* Trigger status stuff if necessary */
+    if (config->useMCast) {
+	declareMaster(PSC_getMyID());
+    } else {
+	if (PSC_getMyID()) {
+	    send_DAEMONCONNECT(0);
+	} else {
+	    declareMaster(0);
+	}
+    }
 
     /*
      * Main loop
