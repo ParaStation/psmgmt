@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidstatus.c,v 1.6 2004/01/29 17:25:19 eicker Exp $
+ * $Id: psidstatus.c,v 1.7 2004/03/09 08:49:33 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidstatus.c,v 1.6 2004/01/29 17:25:19 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidstatus.c,v 1.7 2004/03/09 08:49:33 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -122,6 +122,7 @@ static void allocMasterSpace(void)
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	gettimeofday(&clientStat[node].lastPing, NULL);
 	clientStat[node].missCounter = 0;
+	clientStat[node].jobs = (PSID_Jobs_t) { .normal = 0, .total = 0 };
     }
 }
 
