@@ -1,5 +1,5 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * psidsignal.c
  *
  * ParaStation signaling functions.
@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidsignal.c,v 1.7 2003/10/23 16:27:35 eicker Exp $
+ * $Id: psidsignal.c,v 1.8 2004/01/09 16:06:29 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidsignal.c,v 1.7 2003/10/23 16:27:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidsignal.c,v 1.8 2004/01/09 16:06:29 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -32,7 +32,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidsignal.c,v 1.7 2003/10/
 
 #include "psidsignal.h"
 
-static char errtxt[256];
+static char errtxt[256]; /**< General string to create error messages */
 
 int PSID_kill(pid_t pid, int sig, uid_t uid)
 {

@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidrdp.c,v 1.3 2003/07/08 12:08:56 eicker Exp $
+ * $Id: psidrdp.c,v 1.4 2004/01/09 16:06:03 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidrdp.c,v 1.3 2003/07/08 12:08:56 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidrdp.c,v 1.4 2004/01/09 16:06:03 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -29,6 +29,10 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidrdp.c,v 1.3 2003/07/08 
 
 int RDPSocket = -1;
 
+/**
+ * Array used to temporarily hold message that could not yet be
+ * delivered to their final destination.
+ */
 static msgbuf_t **node_bufs;
 
 static char errtxt[256]; /**< General string to create error messages */
@@ -60,6 +64,19 @@ void clearRDPMsgs(int node)
 
 }
 
+/**
+ * @brief Store RDP message to bufferes.
+ *
+ * Store the RDP messages @a msg that could not yet be delivered to
+ * node @a node to the corresponding buffer within @ref node_bufs. The
+ * message will be delivered later upon a corresponding call to @ref
+ * flushRDPMsgs().
+ *
+ * @return On success, 0 is returned. Otherwise -1 is returned and
+ * errno is set appropriately.
+ *
+ * @see node_bufs, flushRDPMsgs()
+ */
 static int storeMsgRDP(int node, DDMsg_t *msg)
 {
     msgbuf_t *msgbuf = node_bufs[node];
