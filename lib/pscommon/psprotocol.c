@@ -1,5 +1,5 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * psprotocol.c
  *
  * ParaStation client-daemon and daemon-daemon high-level protocol.
@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.c,v 1.10 2003/10/29 17:28:52 eicker Exp $
+ * $Id: psprotocol.c,v 1.11 2003/11/26 15:07:25 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psprotocol.c,v 1.10 2003/10/29 17:28:52 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psprotocol.c,v 1.11 2003/11/26 15:07:25 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -24,8 +24,8 @@ static char vcid[] __attribute__(( unused )) = "$Id: psprotocol.c,v 1.10 2003/10
  */
 static struct {
     int id;
-    char *message;
-} ctrlmessages[] = {
+    char *name;
+} messages[] = {
     { PSP_CD_CLIENTCONNECT    , "PSP_CD_CLIENTCONNECT"    },
     { PSP_CD_CLIENTESTABLISHED, "PSP_CD_CLIENTESTABLISHED"},
     { PSP_CD_CLIENTREFUSED    , "PSP_CD_CLIENTREFUSED"    },
@@ -73,14 +73,81 @@ char *PSP_printMsg(int msgtype)
     static char txt[30];
     int i = 0;
 
-    while (ctrlmessages[i].id && ctrlmessages[i].id != msgtype) {
+    while (messages[i].name && messages[i].id != msgtype) {
 	i++;
     }
 
-    if (ctrlmessages[i].id) {
-	return ctrlmessages[i].message;
+    if (messages[i].name) {
+	return messages[i].name;
     } else {
 	snprintf(txt, sizeof(txt), "msgtype 0x%x UNKNOWN", msgtype);
+	return txt;
+    }
+}
+
+/*
+ * string identification of info IDs.
+ * Nicer output for errrors and debugging.
+ */
+static struct {
+    PSP_Info_t id;
+    char *name;
+} infos[] = {
+    { PSP_INFO_UNKNOWN,          "PSP_INFO_UNKNOWN" },
+    { PSP_INFO_NROFNODES,        "PSP_INFO_NROFNODES" },
+    { PSP_INFO_INSTDIR,          "PSP_INFO_INSTDIR" },
+    { PSP_INFO_DAEMONVER,        "PSP_INFO_DAEMONVER" },
+    { PSP_INFO_HOST,             "PSP_INFO_HOST" },
+    { PSP_INFO_NODE,             "PSP_INFO_NODE" },
+    { PSP_INFO_NODELIST,         "PSP_INFO_NODELIST" },
+    { PSP_INFO_PARTITION,        "PSP_INFO_PARTITION" },
+
+    { PSP_INFO_LIST_TASKS,       "PSP_INFO_LIST_TASK" },
+    { PSP_INFO_LIST_END,         "PSP_INFO_LIST_END" },
+
+    { PSP_INFO_LIST_HOSTSTATUS,  "PSP_INFO_LIST_HOSTSTATUS" },
+    { PSP_INFO_RDPSTATUS,        "PSP_INFO_RDPSTATUS" },
+    { PSP_INFO_MCASTSTATUS,      "PSP_INFO_MCASTSTATUS" },
+
+    { PSP_INFO_COUNTHEADER,      "PSP_INFO_COUNTHEADER" },
+    { PSP_INFO_COUNTSTATUS,      "PSP_INFO_COUNTSTATUS" },
+
+    { PSP_INFO_HWNUM,            "PSP_INFO_HWNUM" },
+    { PSP_INFO_HWINDEX,          "PSP_INFO_HWINDEX" },
+    { PSP_INFO_HWNAME,           "PSP_INFO_HWNAME" }, 
+
+    { PSP_INFO_RANKID,           "PSP_INFO_RANKID" }, 
+    { PSP_INFO_TASKSIZE,         "PSP_INFO_TASKSIZE" },
+    { PSP_INFO_TASKRANK,         "PSP_INFO_TASKRANK" },
+
+    { PSP_INFO_PARENTTID,        "PSP_INFO_PARENTTID" },
+    { PSP_INFO_LOGGERTID,        "PSP_INFO_LOGGERTID" },
+
+    { PSP_INFO_LIST_VIRTCPUS,    "PSP_INFO_LIST_VIRTCPUS" },
+    { PSP_INFO_LIST_PHYSCPUS,    "PSP_INFO_LIST_PHYSCPUS" },
+    { PSP_INFO_LIST_HWSTATUS,    "PSP_INFO_LIST_HWSTATUS" },
+    { PSP_INFO_LIST_LOAD,        "PSP_INFO_LIST_LOAD" },
+    { PSP_INFO_LIST_ALLJOBS,     "PSP_INFO_LIST_ALLJOBS" },
+    { PSP_INFO_LIST_NORMJOBS,    "PSP_INFO_LIST_NORMJOBS" },
+    { PSP_INFO_LIST_ALLTASKS,    "PSP_INFO_LIST_ALLTASK" },
+    { PSP_INFO_LIST_NORMTASKS,   "PSP_INFO_LIST_NORMTASK" },
+
+    {0,NULL}
+};
+
+char *PSP_printInfo(PSP_Info_t infotype)
+{
+    static char txt[30];
+    int i = 0;
+
+    while (infos[i].name && infos[i].id != infotype) {
+	i++;
+    }
+
+    if (infos[i].name) {
+	return infos[i].name;
+    } else {
+	snprintf(txt, sizeof(txt), "infotype 0x%x UNKNOWN", infotype);
 	return txt;
     }
 }
