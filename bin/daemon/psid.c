@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.33 2002/02/08 11:06:58 eicker Exp $
+ * $Id: psid.c,v 1.34 2002/02/11 12:39:01 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.33 2002/02/08 11:06:58 eicker Exp $ 
+ * $Id: psid.c,v 1.34 2002/02/11 12:39:01 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.33 2002/02/08 11:06:58 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.34 2002/02/11 12:39:01 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -62,7 +62,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.33 $";
+static char psid_cvsid[] = "$Revision: 1.34 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -1011,7 +1011,11 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t* msg)
 	task->uid = msg->uid;
 	task->nodeno = PSI_myid;
 	/* Now connection, this task becomes logger */
-	task->group = msg->group;
+	if (msg->group == TG_ANY) {
+	    task->group = TG_LOGGER;
+	} else {
+	    task->group = msg->group;
+	}
 	GetProcessProperties(task);
 	PStask_sprintf(PSI_txt, task);
 	SYSLOG(9,(LOG_ERR,"Connection request from: %s",PSI_txt));
@@ -2073,8 +2077,8 @@ void msg_LOADREQ(DDMsg_t* inmsg)
 {
     int nodenr;
     if (PSI_isoption(PSP_ODEBUG)){
-	sprintf(PSI_txt,"LOADREQ(from = 0x%lx node %ld\n",
-		inmsg->sender, inmsg->dest);
+	sprintf(PSI_txt,"LOADREQ(node %d) from = 0x%lx \n",
+		PSI_getnode(inmsg->dest), inmsg->sender);
 	PSI_logerror(PSI_txt);
     }
 
@@ -2107,6 +2111,57 @@ void msg_LOADREQ(DDMsg_t* inmsg)
 	sendMsg(&msg);
     }
 }
+
+/**********************************************************
+ *  msg_PROCREQ()
+ */
+void msg_PROCREQ(DDMsg_t* inmsg)
+{
+    int node;
+
+    if (PSI_isoption(PSP_ODEBUG)){
+	sprintf(PSI_txt,"PROCREQ(node %d) from = 0x%lx \n",
+		PSI_getnode(inmsg->dest), inmsg->sender);
+	PSI_logerror(PSI_txt);
+    }
+
+    node = PSI_getnode(inmsg->dest);
+
+    if((node<0) || (node>=PSI_nrofnodes)
+       || !(PSID_hoststatus[node] & PSPHOSTUP)){
+	DDErrorMsg_t errmsg;
+	errmsg.header.len = sizeof(errmsg);
+	errmsg.request = inmsg->type;
+	errmsg.err = EHOSTDOWN;
+	errmsg.header.len = sizeof(errmsg);
+	errmsg.header.type = PSP_DD_SYSTEMERROR;
+	errmsg.header.dest = inmsg->sender;
+	errmsg.header.sender = PSI_gettid(PSI_myid,0);
+
+	sendMsg(&errmsg);
+    } else {
+	PStask_t* task;
+	DDLoadMsg_t msg;
+	double procs = 0.0;
+	for(task=daemons[node].tasklist; task; task=task->link){
+	    if (task->group==TG_ANY){ /* dont count special task */
+		procs += 1.0;
+	    }else{
+		procs += 0.0;
+	    }
+	}
+
+	msg.header.len = sizeof(msg);
+	msg.header.type = PSP_CD_PROCRES;
+	msg.header.dest = inmsg->sender;
+	msg.header.sender = PSI_gettid(PSI_myid,0);
+
+	msg.load[0] = procs;
+
+	sendMsg(&msg);
+    }
+}
+
 
 /******************************************
 *  msg_WHODIED()
@@ -2436,6 +2491,12 @@ void psicontrol(int fd )
 	     */
 	    msg_LOADREQ((DDMsg_t*)&msg);
 	    break;
+	case PSP_CD_PROCREQ:
+	    /*
+	     * ask about the current number of processes on a processor
+	     */
+	    msg_PROCREQ((DDMsg_t*)&msg);
+	    break;
 	default :
 	    SYSLOG(1,(LOG_ERR,"psid: Wrong msgtype %ld (%s) on socket %d \n",
 		      msg.header.type, PSPctrlmsg(msg.header.type), fd));
@@ -2761,7 +2822,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.33 $";
+    char revision[] = "$Revision: 1.34 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
