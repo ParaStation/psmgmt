@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.28 2002/01/22 16:16:40 eicker Exp $
+ * $Id: psid.c,v 1.29 2002/01/23 11:30:05 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.28 2002/01/22 16:16:40 eicker Exp $ 
+ * $Id: psid.c,v 1.29 2002/01/23 11:30:05 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.28 2002/01/22 16:16:40 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.29 2002/01/23 11:30:05 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -59,7 +59,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.28 $";
+static char psid_cvsid[] = "$Revision: 1.29 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -2689,7 +2689,7 @@ void CheckFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.28 $";
+    char revision[] = "$Revision: 1.29 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -2719,404 +2719,407 @@ static void help(void)
 
 int main(int argc, char **argv)
 {
-    if(!fork()){
-	struct servent *service;
-	struct sockaddr_in sa;
+    struct servent *service;
+    struct sockaddr_in sa;
 
-	int fd;             /* master socket and socket to check connections*/
-	struct timeval tv;  /* timeval for waiting on select()*/
+    int fd;             /* master socket and socket to check connections*/
+    struct timeval tv;  /* timeval for waiting on select()*/
 
-	fd_set rfds;        /* read file descriptor set */
-	int opt;            /* return value of getopt */
+    fd_set rfds;        /* read file descriptor set */
+    int opt;            /* return value of getopt */
 
-	long debugmask = 0;
-	int i;
+    long debugmask = 0;
+    int i;
 
-	int DEBUGGING = 0;
-	char* errstr;
-	int dummy_fd;
+    int DEBUGGING = 0;
+    char* errstr;
 
-	unsigned int *hostlist;         /* hostlist for RDP and MCast */
+    if(fork()){
+	/* Parent process */
+	return 0;
+    }
 
-	blockSig(1,SIGCHLD);
-	blockSig(1,SIGALRM);
+    blockSig(1,SIGCHLD);
+    blockSig(1,SIGALRM);
 
-	openlog("psid",LOG_PID|LOG_CONS,LOG_DAEMON);
-	PSI_setoption(PSP_OSYSLOG,1);
-	SYSLOG_LEVEL = 9;
+    openlog("psid",LOG_PID|LOG_CONS,LOG_DAEMON);
+    PSI_setoption(PSP_OSYSLOG,1);
+    SYSLOG_LEVEL = 9;
 
-	while ((opt = getopt(argc, argv, "dD:f:hH")) != -1){
-	    switch (opt){
-	    case 'd' : /* DEBUG print out debug informations */
-		DEBUGGING = 1;
-		debugmask = 0;
-		break;
-	    case 'D' :
-		DEBUGGING = 1;
-		sscanf(optarg,"%lx",&debugmask);
-		break;
-	    case 'f' :
-		Configfile = strdup( optarg );
-		break;
-	    case 'v' :
-	    case 'V' :
-		version();
-		return 0;
-		break;
-	    case 'h' :
-	    case 'H' :
-		help();
-		return 0;
-		break;
-	    default :
-		SYSLOG(0,(LOG_ERR, "usage: %s [-h] [-v] [-d] [-D MASK]"
-			  " [-f file]\n",argv[0]));
-		usage();
-		return -1;
-	    }
+    while ((opt = getopt(argc, argv, "dD:f:hH")) != -1){
+	switch (opt){
+	case 'd' : /* DEBUG print out debug informations */
+	    DEBUGGING = 1;
+	    debugmask = 0;
+	    break;
+	case 'D' :
+	    DEBUGGING = 1;
+	    sscanf(optarg,"%lx",&debugmask);
+	    break;
+	case 'f' :
+	    Configfile = strdup( optarg );
+	    break;
+	case 'v' :
+	case 'V' :
+	    version();
+	    return 0;
+	    break;
+	case 'h' :
+	case 'H' :
+	    help();
+	    return 0;
+	    break;
+	default :
+	    SYSLOG(0,(LOG_ERR, "usage: %s [-h] [-v] [-d] [-D MASK]"
+		      " [-f file]\n",argv[0]));
+	    usage();
+	    return -1;
 	}
+    }
 
-	signal(SIGHUP   ,sighandler);
-	signal(SIGINT   ,sighandler);
-	signal(SIGQUIT  ,sighandler);
-	signal(SIGILL	,sighandler);
-	signal(SIGTRAP	,sighandler);
-	signal(SIGABRT	,sighandler);
-	signal(SIGIOT	,sighandler);
-	signal(SIGBUS	,sighandler);
-	signal(SIGFPE	,sighandler);
-	signal(SIGUSR1	,sighandler);
-	signal(SIGSEGV	,sighandler);
-	signal(SIGUSR2	,sighandler);
-	signal(SIGPIPE	,sighandler);
-	signal(SIGALRM	,sighandler);
-	signal(SIGTERM	,sighandler);
-	signal(SIGCHLD	,sighandler);
-	signal(SIGCONT	,sighandler);
-	signal(SIGTSTP	,sighandler);
-	signal(SIGTTIN	,sighandler);
-	signal(SIGTTOU	,sighandler);
-	signal(SIGURG	,sighandler);
-	signal(SIGXCPU	,sighandler);
-	signal(SIGXFSZ	,sighandler);
-	signal(SIGVTALRM,sighandler);
-	signal(SIGPROF	,sighandler);
-	signal(SIGWINCH	,sighandler);
-	signal(SIGIO	,sighandler);
+    signal(SIGINT   ,sighandler);
+    signal(SIGQUIT  ,sighandler);
+    signal(SIGILL   ,sighandler);
+    signal(SIGTRAP  ,sighandler);
+    signal(SIGABRT  ,sighandler);
+    signal(SIGIOT   ,sighandler);
+    signal(SIGBUS   ,sighandler);
+    signal(SIGFPE   ,sighandler);
+    signal(SIGUSR1  ,sighandler);
+    signal(SIGSEGV  ,sighandler);
+    signal(SIGUSR2  ,sighandler);
+    signal(SIGPIPE  ,sighandler);
+    signal(SIGALRM  ,sighandler);
+    signal(SIGTERM  ,sighandler);
+    signal(SIGCHLD  ,sighandler);
+    signal(SIGCONT  ,sighandler);
+    signal(SIGTSTP  ,sighandler);
+    signal(SIGTTIN  ,sighandler);
+    signal(SIGTTOU  ,sighandler);
+    signal(SIGURG   ,sighandler);
+    signal(SIGXCPU  ,sighandler);
+    signal(SIGXFSZ  ,sighandler);
+    signal(SIGVTALRM,sighandler);
+    signal(SIGPROF  ,sighandler);
+    signal(SIGWINCH ,sighandler);
+    signal(SIGIO    ,sighandler);
 #ifdef __osf__
-	/* OSF on Alphas */
-	signal( SIGSYS  ,sighandler);
-	signal( SIGINFO ,sighandler);
-	signal( SIGIOINT,sighandler);
-	signal( SIGAIO  ,sighandler);
-	signal( SIGPTY  ,sighandler);
+    /* OSF on Alphas */
+    signal(SIGSYS   ,sighandler);
+    signal(SIGINFO  ,sighandler);
+    signal(SIGIOINT ,sighandler);
+    signal(SIGAIO   ,sighandler);
+    signal(SIGPTY   ,sighandler);
 #elif defined(__alpha)
 	/* Linux on Alpha*/
-	signal( SIGSYS  ,sighandler);
-	signal( SIGINFO ,sighandler);
+    signal( SIGSYS  ,sighandler);
+    signal( SIGINFO ,sighandler);
 #endif
 #if !defined(__sun) && !defined(__osf__) && !defined(__alpha)
-	signal(SIGSTKFLT,sighandler);
+    signal(SIGSTKFLT,sighandler);
 #endif
-	signal(SIGHUP   ,SIG_IGN);
+    signal(SIGHUP   ,SIG_IGN);
 
-	/*
-	 * Disable stdin,stdout,stderr and install dummy replacement
-	 */
+    /*
+     * Disable stdin,stdout,stderr and install dummy replacement
+     */
+    {
+	int dummy_fd;
+
 	dummy_fd=open("/dev/null",O_WRONLY ,0);
 	dup2(dummy_fd, STDIN_FILENO);
 	dup2(dummy_fd, STDOUT_FILENO);
 	dup2(dummy_fd, STDERR_FILENO);
 	close(dummy_fd);
+    }
 
+    if(DEBUGGING){
+	PSI_setoption(PSP_ODEBUG, 1);
+	PSI_debugmask = debugmask;
+	SYSLOG(0,(LOG_ERR,"Debugging mode with debugmask 0x%lx\n",
+		  debugmask));
+    }
+
+    /*
+     * create the socket to listen to the client
+     */
+    PSI_msock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if ((service = getservbyname("psids","tcp")) == NULL){
+	SYSLOG(0,(LOG_ERR, "can't get \"psids\" service entry\n"));
+	exit(1);
+    }
+
+    /*
+     * bind the socket to the right address
+     */
+    memset(&sa, 0, sizeof(sa));
+    sa.sin_family = AF_INET;
+    sa.sin_addr.s_addr = INADDR_ANY;
+    sa.sin_port = service->s_port;
+    if (bind(PSI_msock, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
 	if(DEBUGGING){
-	    PSI_setoption(PSP_ODEBUG, 1);
-	    PSI_debugmask = debugmask;
-	    SYSLOG(0,(LOG_ERR,"Debugging mode with debugmask 0x%lx\n",
-		      debugmask));
+	    errstr = strerror(errno);
+	    SYSLOG(0, (LOG_ERR,
+		       "Daemon already running?\n"
+		       " used port: %d error(%d):%s \n",
+		       ntohs(sa.sin_port),
+		       errno, errstr ? errstr:"UNKNOWN errno"));
 	}
+	exit(1);
+    }
 
-	/*
-	 * create the socket to listen to the client
-	 */
-	PSI_msock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if ((service = getservbyname("psids","tcp")) == NULL){
-	    SYSLOG(0,(LOG_ERR, "can't get \"psids\" service entry\n"));
-	    exit(1);
-	}
+    {
+	int reuse = 1;
+	setsockopt(PSI_msock,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(reuse));
+    }
 
-	/*
-	 * bind the socket to the right address
-	 */
-	memset(&sa, 0, sizeof(sa));
-	sa.sin_family = AF_INET;
-	sa.sin_addr.s_addr = INADDR_ANY;
-	sa.sin_port = service->s_port;
-	if (bind(PSI_msock, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
-	    if(DEBUGGING){
-		errstr = strerror(errno);
-		SYSLOG(0, (LOG_ERR,
-			   "Daemon already running?\n"
-			   " used port: %d error(%d):%s \n",
-			   ntohs(sa.sin_port),
-			   errno, errstr ? errstr:"UNKNOWN errno"));
-	    }
-	    exit(1);
-	}
-	{
-	    int reuse = 1;
-	    setsockopt(PSI_msock,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(reuse));
-	}
+    SYSLOG(0, (LOG_ERR, "Starting ParaStation3 DAEMON Protocol Version %d",
+	       PSPprotocolversion));
+    SYSLOG(0, (LOG_ERR, " (c) ParTec AG (www.par-tec.com)"));
 
+    if (listen(PSI_msock, 20) < 0) {
+	SYSLOG(0, (LOG_ERR,
+		   "Error while trying to listen (code %d)\n",errno));
+	exit(1);
+    }
+
+    /*
+     * read the config file
+     */
+    if (!PSID_readconfigfile()) {
+	SYSLOG(0,(LOG_ERR,"%s: PSI Daemon: init failed \n",argv[0]));
+	exit(1);
+    }
+
+    if (ConfigSyslog!=LOG_DAEMON) {
+	SYSLOG(0, (LOG_ERR, "Changing logging dest from LOG_DAEMON "
+		   "to %s\n", ConfigSyslog==LOG_KERN ? "LOG_KERN":
+		   ConfigSyslog==LOG_LOCAL0 ? "LOG_LOCAL0" :
+		   ConfigSyslog==LOG_LOCAL1 ? "LOG_LOCAL1" :
+		   ConfigSyslog==LOG_LOCAL2 ? "LOG_LOCAL2" :
+		   ConfigSyslog==LOG_LOCAL3 ? "LOG_LOCAL3" :
+		   ConfigSyslog==LOG_LOCAL4 ? "LOG_LOCAL4" :
+		   ConfigSyslog==LOG_LOCAL5 ? "LOG_LOCAL5" :
+		   ConfigSyslog==LOG_LOCAL6 ? "LOG_LOCAL6" :
+		   ConfigSyslog==LOG_LOCAL7 ? "LOG_LOCAL7" :
+		   "UNKNOWN"));
+	closelog();
+	openlog("psid",LOG_PID|LOG_CONS,ConfigSyslog);
 	SYSLOG(0, (LOG_ERR, "Starting ParaStation3 DAEMON Protocol Version %d",
 		   PSPprotocolversion));
 	SYSLOG(0, (LOG_ERR, " (c) ParTec AG (www.par-tec.com)"));
+    }
 
-	if (listen(PSI_msock, 20) < 0) {
-	    SYSLOG(0, (LOG_ERR,
-		       "Error while trying to listen (code %d)\n",errno));
+    SYSLOG_LEVEL = ConfigSyslogLevel;
+
+    FD_ZERO(&openfds);
+    FD_SET(PSI_msock, &openfds);
+
+    {
+	/* set the memory limits */
+	struct rlimit rlp;
+
+	getrlimit(RLIMIT_DATA,&rlp);
+	if(ConfigRLimitDataSize>0)
+	    rlp.rlim_cur=ConfigRLimitDataSize*1024;
+	else
+	    rlp.rlim_cur = RLIM_INFINITY;
+	setrlimit(RLIMIT_DATA,&rlp);
+    }
+
+    timerclear(&shutdowntimer);
+    timerclear(&killclientstimer);
+    selecttimer.tv_sec = ConfigPsidSelectTime==-1 ? 2 : ConfigPsidSelectTime;
+    selecttimer.tv_usec = 0;
+    gettimeofday(&maintimer,NULL);
+
+    for(i=0; i<FD_SETSIZE; i++){
+	clients[i].tid =-1;
+	clients[i].ob.daemon = NULL;
+    }
+
+    SYSLOG(0,(LOG_ERR, "Local Service Port initialized. Using socket %d\n",
+	      PSI_msock));
+
+    /*
+     * Prepare hostlist for initialization of RDP and MCast
+     */
+    {
+	unsigned int *hostlist;
+
+	hostlist = malloc((PSI_nrofnodes+1) * sizeof (unsigned int));
+	if (!hostlist) {
+	    SYSLOG(0,(LOG_ERR, "Not enough memory for hostlist\n"));
 	    exit(1);
 	}
 
+	for (i=0; i<=PSI_nrofnodes; i++) {
+	    hostlist[i] = psihosttable[i].inet;
+	}
+
 	/*
-	 * read the config file
+	 * Initialize RDP and MCast
 	 */
-	if (PSID_readconfigfile()) {
-	    if (ConfigSyslog!=LOG_DAEMON) {
-		SYSLOG(0, (LOG_ERR, "Changing logging dest from LOG_DAEMON "
-			  "to %s\n", ConfigSyslog==LOG_KERN ? "LOG_KERN":
-			   ConfigSyslog==LOG_LOCAL0 ? "LOG_LOCAL0" :
-			   ConfigSyslog==LOG_LOCAL1 ? "LOG_LOCAL1" :
-			   ConfigSyslog==LOG_LOCAL2 ? "LOG_LOCAL2" :
-			   ConfigSyslog==LOG_LOCAL3 ? "LOG_LOCAL3" :
-			   ConfigSyslog==LOG_LOCAL4 ? "LOG_LOCAL4" :
-			   ConfigSyslog==LOG_LOCAL5 ? "LOG_LOCAL5" :
-			   ConfigSyslog==LOG_LOCAL6 ? "LOG_LOCAL6" :
-			   ConfigSyslog==LOG_LOCAL7 ? "LOG_LOCAL7" :
-			   "UNKNOWN"));
-		closelog();
-		openlog("psid",LOG_PID|LOG_CONS,ConfigSyslog);
-		SYSLOG(0, (LOG_ERR, "Starting ParaStation3 DAEMON"
-			   " Protocol Version %d", PSPprotocolversion));
-		SYSLOG(0, (LOG_ERR, " (c) ParTec AG (www.par-tec.com)"));
-	    }
-	    SYSLOG(0,(LOG_ERR,"  Protocol Version %d\n",
-		      PSPprotocolversion ));
-
-	    SYSLOG_LEVEL = ConfigSyslogLevel;
-
-	    FD_ZERO(&openfds);
-	    FD_SET(PSI_msock, &openfds);
-
-	    {
-		/* set the memory limits */
-		struct rlimit rlp;
-		int dummy;
-		dummy=getrlimit(RLIMIT_DATA,&rlp);
-		if(ConfigRLimitDataSize>0)
-		    rlp.rlim_cur=ConfigRLimitDataSize*1024;
-		else
-		    rlp.rlim_cur = RLIM_INFINITY;
-		dummy=setrlimit(RLIMIT_DATA,&rlp);
-	    }
-
-	    timerclear(&shutdowntimer);
-	    timerclear(&killclientstimer);
-	    selecttimer.tv_sec =
-		ConfigPsidSelectTime==-1 ? 2 : ConfigPsidSelectTime;
-	    selecttimer.tv_usec = 0;
-	    gettimeofday(&maintimer,NULL);
-
-	    for(i=0; i<FD_SETSIZE; i++){
-		clients[i].tid =-1;
-		clients[i].ob.daemon = NULL;
-	    }
-
+	RDPSocket = initRDP(PSI_nrofnodes, ConfigMgroup, 1 /* use syslog */,
+			    hostlist, RDPCallBack);
+	if (RDPSocket<0) {
 	    SYSLOG(0,(LOG_ERR,
-		      "Local Service Port initialized. Using socket %d\n",
-		      PSI_msock));
+		      "Error while trying initRDP (code %d)\n",errno));
+	    exit(1);
+	}
 
+	SYSLOG(0,(LOG_ERR,
+		  "RDP initialized. Using socket %d\n", RDPSocket));
+	FD_SET(RDPSocket, &openfds);
+
+	free(hostlist);
+    }
+
+    SYSLOG(2,(LOG_ERR,"Contacting other daemons in the cluster\n"));
+    for(i=0;i<PSI_nrofnodes;i++){
+	daemons[i].fd=0;
+	daemons[i].node = 0;
+	daemons[i].tasklist = 0;
+	timerset(&daemons[i].pongtime, &maintimer);
+    }
+
+    SYSLOG(2,(LOG_ERR, "Contacting other daemons in the cluster. DONE\n"));
+    SYSLOG(1,(LOG_ERR, "SelectTimer=%ld sec DeclareDeadInterval=%ld\n",
+	      ConfigPsidSelectTime, ConfigDeclareDeadInterval));
+
+    spawned_tasks_waiting_for_connect = 0;
+
+    PSID_hoststatus[PSI_myid] |= PSPHOSTUP;
+
+    /*
+     * check if the Cluster is ready
+     */
+    checkCluster();
+    startDaemons();
+    checkCluster();
+
+    /*
+     * Main loop
+     */
+    while (1) {
+	timerset(&tv, &selecttimer);
+	blockSig(0, SIGCHLD); /* Handle deceased child processes */
+	blockSig(1, SIGCHLD);
+	blockSig(0, SIGALRM);
+	memcpy(&rfds, &openfds, sizeof(rfds));
+
+	if (Rselect(FD_SETSIZE,
+		    &rfds, (fd_set *)NULL, (fd_set *)NULL, &tv) < 0){
+	    errstr=strerror(errno);
+	    SYSLOG(1,(LOG_ERR,"Error while Select (code %d) %s\n",
+		      errno,errstr?errstr:"UNKNOWN errno"));
+
+	    CheckFileTable();
+	    SYSLOG(6,(LOG_ERR,"Error while Select continueing\n"));
+	    blockSig(1,SIGALRM);
+	    continue;
+	}
+	blockSig(1,SIGALRM);
+
+	gettimeofday(&maintimer,NULL);
+	/*
+	 * check the master socket for new requests
+	 */
+	if (FD_ISSET(PSI_msock, &rfds)){
+	    int ssock;  /* slave server socket */
+	    int flen = sizeof(sa);
+
+	    if(PSI_isoption(PSP_ODEBUG))
+		SYSLOG(4,(LOG_ERR,"accepting new connection\n"));
+
+	    ssock = accept(PSI_msock, (struct sockaddr *)&sa, &flen);
+	    if (ssock < 0){
+		char* errstr=strerror(errno);
+		SYSLOG(0,(LOG_ERR,"Error while accept (code %d):%s\n",
+			  errno,errstr?errstr:"UNKNOWN errno"));
+		continue;
+	    }else{
+		char keepalive;
+		char linger;
+		char reuse;
+		socklen_t size;
+
+		clients[ssock].flags = INITIALCONTACT;
+		FD_SET(ssock, &openfds);
+		if(PSI_isoption(PSP_ODEBUG))
+		    SYSLOG(4,(LOG_ERR, "accepting: new socket(%d)\n",ssock));
+		size = sizeof(reuse);
+		getsockopt(ssock, SOL_SOCKET, SO_REUSEADDR, &reuse, &size);
+		size = sizeof(keepalive);
+		getsockopt(ssock, SOL_SOCKET, SO_KEEPALIVE, &keepalive, &size);
+		size = sizeof(linger);
+		getsockopt(ssock, SOL_SOCKET, SO_LINGER, &linger, &size);
+		SYSLOG(9,(LOG_ERR,
+			  "socketoptions was (linger=%d keepalive=%d)"
+			  " setting it to (1,1)\n",linger,keepalive));
+
+		size = sizeof(reuse);
+		reuse=1;
+		setsockopt(ssock, SOL_SOCKET, SO_REUSEADDR, &reuse,size);
+
+		size = sizeof(keepalive);
+		keepalive=1;
+		setsockopt(ssock, SOL_SOCKET, SO_KEEPALIVE, &keepalive, size);
+
+		size = sizeof(linger);
+		linger=1;
+		setsockopt(ssock, SOL_SOCKET, SO_LINGER, &linger, size);
+	    }
+	}
+	/*
+	 * check the client sockets for any closing connections
+	 * or control msgs
+	 */
+	for (fd=0; fd<FD_SETSIZE; fd++) {
+	    if (fd != PSI_msock      /* handled before */
+		&& fd != RDPSocket   /* handled below */
+		&& FD_ISSET(fd, &rfds)){
+		psicontrol(fd);
+	    }
+	}
+	/*
+	 * Read all RDP messages
+	 */
+	while (FD_ISSET(RDPSocket, &rfds)) {
+	    psicontrol(RDPSocket);
+	    FD_ZERO(&rfds);
+	    FD_SET(RDPSocket, &rfds);
+
+	    blockSig(0,SIGALRM);
+	    tv.tv_sec = 0;
+	    tv.tv_usec = 0;
+	    if (Rselect(RDPSocket+1,
+			&rfds, (fd_set *)NULL, (fd_set *)NULL, &tv) < 0) {
+		break;
+	    }
+	    blockSig(1,SIGALRM);
+	}
+
+	/*
+	 * Check for reset state
+	 */
+	if(daemons[PSI_myid].status & PSP_DSTATE_DORESET){
+	    doReset();
+	}
+	/*
+	 * Check if any operation forced me to shutdown
+	 */
+	if(daemons[PSI_myid].status & PSP_DSTATE_SHUTDOWN)
+	    if(daemons[PSI_myid].status & PSP_DSTATE_SHUTDOWN2)
+		shutdownNode(3);
+	    else
+		shutdownNode(2);
+	else{
 	    /*
-	     * Prepare hostlist for initialization of RDP and MCast
-	     */
-	    hostlist = malloc((PSI_nrofnodes+1) * sizeof (unsigned int));
-	    if (!hostlist) {
-		SYSLOG(0,(LOG_ERR, "Not enough memory for hostlist\n"));
-		exit(1);
-	    }
-
-	    for (i=0; i<=PSI_nrofnodes; i++) {
-		hostlist[i] = psihosttable[i].inet;
-	    }
-
-	    /*
-	     * Initialize RDP and MCast
-	     */
-	    RDPSocket = initRDP(PSI_nrofnodes, ConfigMgroup,
-				1 /* use syslog */,
-				hostlist, RDPCallBack);
-	    if (RDPSocket<0) {
-		SYSLOG(0,(LOG_ERR,
-			  "Error while trying initRDP (code %d)\n",errno));
-		exit(1);
-	    }
-
-	    SYSLOG(0,(LOG_ERR,
-		      "RDP initialized. Using socket %d\n", RDPSocket));
-	    FD_SET(RDPSocket, &openfds);
-
-	    SYSLOG(2,(LOG_ERR,"Contacting other daemons in the cluster\n"));
-	    for(i=0;i<PSI_nrofnodes;i++){
-		daemons[i].fd=0;
-		daemons[i].node = 0;
-		daemons[i].tasklist = 0;
-		timerset(&daemons[i].pongtime, &maintimer);
-	    }
-
-	    SYSLOG(2,(LOG_ERR,
-		      "Contacting other daemons in the cluster. DONE\n"));
-	    SYSLOG(1,(LOG_ERR, "SelectTimer=%ld sec DeclareDeadInterval=%ld\n",
-		      ConfigPsidSelectTime, ConfigDeclareDeadInterval));
-
-	    spawned_tasks_waiting_for_connect = 0;
-
-	    PSID_hoststatus[PSI_myid] |= PSPHOSTUP;
-
-	    /*
-	     * check if the Cluster is ready
+	     * checking all the other daemos, if they are still okay
+	     * \todo Does this make sense??
 	     */
 	    checkCluster();
-	    startDaemons();
-	    checkCluster();
-
-	    /*
-	     * Main loop
-	     */
-	    while (1) {
-		timerset(&tv, &selecttimer);
-		blockSig(0, SIGCHLD); /* Handle deceased child processes */
-		blockSig(1, SIGCHLD);
-		blockSig(0, SIGALRM);
-		memcpy(&rfds, &openfds, sizeof(rfds));
-
-		if (Rselect(FD_SETSIZE,
-			    &rfds, (fd_set *)NULL, (fd_set *)NULL, &tv) < 0){
-		    errstr=strerror(errno);
-		    SYSLOG(1,(LOG_ERR,"Error while Select (code %d) %s\n",
-			      errno,errstr?errstr:"UNKNOWN errno"));
-
-		    CheckFileTable();
-		    SYSLOG(6,(LOG_ERR,"Error while Select continueing\n"));
-		    blockSig(1,SIGALRM);
-		    continue;
-		}
-		blockSig(1,SIGALRM);
-
-		gettimeofday(&maintimer,NULL);
-		/*
-		 * check the master socket for new requests
-		 */
-		if (FD_ISSET(PSI_msock, &rfds)){
-		    int ssock;  /* slave server socket */
-		    int flen = sizeof(sa);
-
-		    if(PSI_isoption(PSP_ODEBUG))
-			SYSLOG(4,(LOG_ERR,"accepting new connection\n"));
-
-		    ssock = accept(PSI_msock, (struct sockaddr *)&sa, &flen);
-		    if (ssock < 0){
-			char* errstr=strerror(errno);
-			SYSLOG(0,(LOG_ERR,"Error while accept (code %d):%s\n",
-				  errno,errstr?errstr:"UNKNOWN errno"));
-			continue;
-		    }else{
-			char keepalive;
-			char linger;
-			char reuse;
-			socklen_t size;
-
-			clients[ssock].flags = INITIALCONTACT;
-			FD_SET(ssock, &openfds);
-			if(PSI_isoption(PSP_ODEBUG))
-			    SYSLOG(4,(LOG_ERR,
-				      "accepting: new socket(%d)\n",ssock));
-			size = sizeof(reuse);
-			getsockopt(ssock,SOL_SOCKET,SO_REUSEADDR,&reuse,&size);
-			size = sizeof(keepalive);
-			getsockopt(ssock,SOL_SOCKET,SO_KEEPALIVE,
-				   &keepalive,&size);
-			size = sizeof(linger);
-			getsockopt(ssock,SOL_SOCKET,SO_LINGER,&linger,&size);
-			SYSLOG(9,(LOG_ERR,
-				  "socketoptions was (linger=%d keepalive=%d)"
-				  " setting it to (1,1)\n",linger,keepalive));
-
-			size = sizeof(reuse);
-			reuse=1;
-			setsockopt(ssock,SOL_SOCKET,SO_REUSEADDR,&reuse,size);
-
-			size = sizeof(keepalive);
-			keepalive=1;
-			setsockopt(ssock,SOL_SOCKET,SO_KEEPALIVE,
-				   &keepalive,size);
-
-			size = sizeof(linger);
-			linger=1;
-			setsockopt(ssock,SOL_SOCKET,SO_LINGER,&linger,size);
-		    }
-		}
-		/*
-		 * check the client sockets for any closing connections
-		 * or control msgs
-		 */
-		for (fd=0; fd<FD_SETSIZE; fd++)
-		    if (fd != PSI_msock      /* handled before */
-			&& fd != RDPSocket   /* handled below */
-			&& FD_ISSET(fd, &rfds)){
-			psicontrol(fd);
-		    }
-		/*
-		 * Read all RDP messages
-		 */
-		while (FD_ISSET(RDPSocket, &rfds)) {
-		    psicontrol(RDPSocket);
-		    FD_ZERO(&rfds);
-		    FD_SET(RDPSocket, &rfds);
-
-		    blockSig(0,SIGALRM);
-		    tv.tv_sec = 0;
-		    tv.tv_usec = 0;
-		    if (Rselect(RDPSocket+1, &rfds, (fd_set *)NULL,
-				(fd_set *)NULL, &tv) < 0)
-			break;
-		    blockSig(1,SIGALRM);
-		}
-
-		/*
-		 * Check for reset state
-		 */
-		if(daemons[PSI_myid].status & PSP_DSTATE_DORESET){
-		    doReset();
-		}
-		/*
-		 * Check if any operation forced me to shutdown
-		 */
-		if(daemons[PSI_myid].status & PSP_DSTATE_SHUTDOWN)
-		    if(daemons[PSI_myid].status & PSP_DSTATE_SHUTDOWN2)
-			shutdownNode(3);
-		    else
-			shutdownNode(2);
-		else{
-		    /*
-		     * checking all the other daemos, if they are still okay
-		     * \todo Does this make sense??
-		     */
-		    checkCluster();
-		}
-	    }
-	} else {
-	    SYSLOG(0,(LOG_ERR,"%s: PSI Daemon: init failed \n",argv[0]));
 	}
     }
-    return 0;
 }
