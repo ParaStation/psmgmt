@@ -109,7 +109,7 @@ void print_list_sort(int *ilist,int size)
     int sisize = 0;
     int i;
     if (!size) return;
-    qsort(ilist,size,sizeof(int*),print_list_compare);
+    qsort(ilist,size,sizeof(int),print_list_compare);
     silist[sisize++] = ilist[ 0 ];
     for (i=1;i<size;i++){
 	if (silist[sisize-1] != ilist[i]){
