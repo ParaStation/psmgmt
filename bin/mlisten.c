@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mlisten.c,v 1.8 2002/01/17 12:50:06 eicker Exp $
+ * $Id: mlisten.c,v 1.9 2002/01/30 10:46:07 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mlisten.c,v 1.8 2002/01/17 12:50:06 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mlisten.c,v 1.9 2002/01/30 10:46:07 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -23,10 +23,8 @@ static char vcid[] __attribute__(( unused )) = "$Id: mlisten.c,v 1.8 2002/01/17 
 #include <netinet/in.h>
 #include <netdb.h>
 
-#include "rdp.h"
+#include "mcast.h"
 
-#define MCASTSERVICE   "psmcast"
-#define DEFAULT_MCAST_GROUP 237
 #define NODES 129
 
 static char errtxt[256];
@@ -63,7 +61,7 @@ void init(int num_nodes)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.8 $";
+    char revision[] = "$Revision: 1.9 $";
     fprintf(stderr, "mlisten %s\b \n", revision+11);
 }
 
@@ -110,7 +108,7 @@ int main(int argc, char *argv[])
     int mcastsock;
     fd_set rfds;
     int slen;
-    Mmsg buf;
+    MCastMsg buf;
     char c;
     int debug=0;
 
@@ -228,7 +226,7 @@ int main(int argc, char *argv[])
 	select(mcastsock+1, &rfds, NULL, NULL, NULL);
 	if (FD_ISSET(mcastsock, &rfds)) {
 	    slen = sizeof(sin);
-	    recvfrom(mcastsock, &buf, sizeof(Mmsg), 0,
+	    recvfrom(mcastsock, &buf, sizeof(buf), 0,
 		     (struct sockaddr *)&sin, &slen);
 	    if (debug) {
 		printf("receiving MCAST Ping from %s, type=%x state[%x]:%x"
