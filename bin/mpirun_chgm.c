@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mpirun_chgm.c,v 1.4 2003/09/12 14:29:29 eicker Exp $
+ * $Id: mpirun_chgm.c,v 1.5 2003/11/26 17:14:39 eicker Exp $
  *
  */
 /**
@@ -13,13 +13,13 @@
  * MPIch/GM in order to start such applications within a ParaStation
  * cluster.
  *
- * $Id: mpirun_chgm.c,v 1.4 2003/09/12 14:29:29 eicker Exp $
+ * $Id: mpirun_chgm.c,v 1.5 2003/11/26 17:14:39 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chgm.c,v 1.4 2003/09/12 14:29:29 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chgm.c,v 1.5 2003/11/26 17:14:39 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -39,7 +39,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chgm.c,v 1.4 2003/09
 
 #include <pse.h>
 #include <psi.h>
-#include <info.h>
+#include <psiinfo.h>
 #include <psipartition.h>
 #include <psispawn.h>
 #include <psienv.h>
@@ -50,7 +50,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chgm.c,v 1.4 2003/09
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.4 $";
+    char revision[] = "$Revision: 1.5 $";
     fprintf(stderr, "mpirun_chgm %s\b \n", revision+11);
 }
 
@@ -400,12 +400,12 @@ int main(int argc, const char *argv[])
 	unsigned int hwType = 0;
 	int idx;
 
-	idx = INFO_request_hwindex("gm", 0);
-	if ((idx >= 0) && (idx < ((int)sizeof(hwType) * 8))) {
-	    hwType = 1 << idx;
-	} else {
+	int err = PSI_infoInt(-1, PSP_INFO_HWINDEX, "gm", &idx, 1);
+	if (err || (idx < 0)) {
 	    fprintf(stderr, "%s: Unknown hardware type 'gm'.\n", argv[0]);
 	    exit(1);
+	} else {
+	    hwType = 1 << idx;
 	}
 
 	if (PSI_createPartition(np, hwType) < 0) {
