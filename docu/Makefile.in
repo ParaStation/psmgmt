@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.10 2003/02/27 18:39:23 eicker Exp $
+# $Id: Makefile.in,v 1.11 2003/05/28 12:30:34 eicker Exp $
 #
 # @author
 #         Norbert Eicker <eicker@par-tec.de>
@@ -15,9 +15,8 @@ STYLESHEETDIR := @srcdir@/StyleSheets
 
 VPATH += @srcdir@
 
-SGML_CATALOG = /var/lib/sgml/CATALOG.db42xml
 XSLT = xsltproc
-XSLTFLAGS = --catalogs --timing --nonet
+XSLTFLAGS = --timing --nonet
 CP = cp -p
 
 CLASSPATH:="fop/build/fop.jar:fop/lib/batik.jar:fop/lib/jimi.jar"
@@ -96,7 +95,6 @@ HTML: validate dirs $(patsubst %,html/%/index.html,$(TARGETS)) \
 	html/index.html $(patsubst %,html/images/%,$(HTMLIMAGES))
 
 html/%/index.html: %.xml $(STYLESHEETDIR)/html.xsl
-	@export SGML_CATALOG_FILES=$(SGML_CATALOG); \
 	$(XSLT) $(XSLTFLAGS) -o $(@D)/ $(STYLESHEETDIR)/html.xsl $<
 
 html/index.html: index.html
@@ -115,13 +113,11 @@ html/userguide/index.html: $(USERDEPS)
 man: validate dirs $(patsubst %,man/%,$(ADMINMANS)) $(patsubst %,man/%,$(USERMANS))
 
 $(patsubst %,man/%,$(ADMINMANS)): adminguide.xml $(STYLESHEETDIR)/man.xsl
-	@export SGML_CATALOG_FILES=$(SGML_CATALOG); \
 	$(XSLT) $(XSLTFLAGS) -o man/ $(STYLESHEETDIR)/man.xsl $<
 
 $(patsubst %,man/%,$(ADMINMANS)): $(ADMINDEPS)
 
 $(patsubst %,man/%,$(USERMANS)): userguide.xml $(STYLESHEETDIR)/man.xsl
-	@export SGML_CATALOG_FILES=$(SGML_CATALOG); \
 	$(XSLT) $(XSLTFLAGS) -o man/ $(STYLESHEETDIR)/man.xsl $<;
 
 $(patsubst %,man/%,$(USERMANS)): $(USERDEPS)
@@ -158,7 +154,6 @@ pdf/userguide.tex: $(USERDEPS)
 # This uses .fo output to be processed by fop or pdfxmltex.
 #
 pdf/%.fo: %.xml $(STYLESHEETDIR)/fo.xsl
-	@export SGML_CATALOG_FILES=$(SGML_CATALOG); \
 	$(XSLT) $(XSLTFLAGS) -o $@ $(STYLESHEETDIR)/fo.xsl $<
 
 # This one uses pdfxmltex (which actually does not work)
