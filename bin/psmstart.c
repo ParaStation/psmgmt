@@ -5,20 +5,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psmstart.c,v 1.1 2002/08/01 16:59:34 eicker Exp $
+ * $Id: psmstart.c,v 1.2 2002/08/07 08:17:33 eicker Exp $
  *
  */
 /**
  * @file Simple wrapper to allow non ParaStation aware programs to be
  * distributed in a cluster.
  *
- * $Id: psmstart.c,v 1.1 2002/08/01 16:59:34 eicker Exp $
+ * $Id: psmstart.c,v 1.2 2002/08/07 08:17:33 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c,v 1.1 2002/08/01 16:59:34 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c,v 1.2 2002/08/07 08:17:33 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
 	/* Set default HW to none: */
 	PSE_setHWType(0);
 
-	PSE_spawnTasks(1, -1, -1, argc, argv);
+	PSE_spawnMaster(argc, argv);
 
 	/* Never be here ! */
 	exit(1);
