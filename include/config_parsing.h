@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.h,v 1.11 2002/11/22 16:05:27 eicker Exp $
+ * $Id: config_parsing.h,v 1.12 2003/03/06 14:09:57 eicker Exp $
  *
  */
 /**
  * \file
  * Parser for the config file of the ParaStation daemon
  *
- * $Id: config_parsing.h,v 1.11 2002/11/22 16:05:27 eicker Exp $
+ * $Id: config_parsing.h,v 1.12 2003/03/06 14:09:57 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -29,36 +29,9 @@ extern "C" {
 #endif
 
 #include <sys/resource.h>
-#include "pstask.h"
+#include "pslic.h"
 
 /** @todo Documentation */
-
-/** Hashed host table for reverse lookup (ip-addr given, determine id) */
-struct host_t{
-    unsigned int addr;
-    int id;
-    struct host_t* next;
-};
-
-extern struct host_t *hosts[256];  /* host table */
-
-extern int NrOfNodes;
-
-/* List of all nodes, info about hardware included */
-struct node_t{
-    unsigned int addr;     /**< IP address of that node */
-    short numCPU;          /**< Number of CPUs in that node */
-    char isUp;             /**< Actual status of that node */
-    unsigned int hwType;   /**< Communication hardware on that node */
-    unsigned int hwStatus; /**< Corresponding stati of the hardware */
-    int hasIP;             /**< Flag to mark that node to load the ip-module */
-    unsigned int myriIP;   /**< IP address of the Myrinet card (0 if not set)*/
-    int starter;           /**< Flag to allow to start jobs from that node */
-};
-
-extern struct node_t *nodes;
-
-extern struct node_t licNode;
 
 extern char *Configfile;
 extern char *ConfigInstDir;
@@ -94,8 +67,6 @@ extern int ConfigLogLevel;
 extern int ConfigLogDest;
 
 extern int MyPsiId;
-
-int parser_lookupHost(unsigned int ipaddr);
 
 int parseConfig(int usesyslog, int loglevel);
 
