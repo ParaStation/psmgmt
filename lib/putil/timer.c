@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: timer.c,v 1.2 2002/01/30 10:45:04 eicker Exp $
+ * $Id: timer.c,v 1.3 2002/01/30 22:45:33 eicker Exp $
  *
  */
 /**
  * \file
  * timer: ParaStation Timer facility
  *
- * $Id: timer.c,v 1.2 2002/01/30 10:45:04 eicker Exp $
+ * $Id: timer.c,v 1.3 2002/01/30 22:45:33 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: timer.c,v 1.2 2002/01/30 10:45:04 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: timer.c,v 1.3 2002/01/30 22:45:33 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -196,6 +196,8 @@ int registerTimer(int fd, struct timeval *timeout,
 	    old_period = t->period;
 	    t->period = timerdiv(&t->timeout, &actPeriod);
 	    t->calls = t->calls * t->period / old_period;
+
+	    t = t->next;
 	}
 
 	/* Change the timer */
@@ -317,6 +319,8 @@ int removeTimer(int fd)
 		old_period = t->period;
 		t->period = timerdiv(&t->timeout, &actPeriod);
 		t->calls = t->calls * t->period / old_period;
+
+		t = t->next;
 	    }
 
 	    /* Change the timer */
