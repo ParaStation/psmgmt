@@ -54,7 +54,7 @@
   <refsect1>
     <title>Parameters</title>
     <para>
-      The different parameters are discussed in the order they should appear in
+      The different parameters are discussed in the order they should appear
       within the configuration file. Dependencies between parameters -
       resulting in a defined order of parameters - are marked explicitely.
     </para>
@@ -71,8 +71,9 @@
       &ps; to run on a cluster. These parameters are
       <command>NrOfNodes</command>, <command>HWType</command>,
       <command>Nodes</command> and <command>LicenseServer</command>. In the
-      case of a Myrinet cluster <command>MyrinetModule</command> and
-      <command>Routingfile</command> have also to be declared.
+      case of a Myrinet cluster the <envar>PS_ROUTEFILE</envar> environment
+      parameters within the <command>Hardware
+	<option>myrinet</option></command> declaration also has to be modified.
     </para>
     <para>
       If parameters are declared more than once, the latest declaration is the
@@ -96,12 +97,327 @@
 	  </para>
 	  <note>
 	    <para>
-	      The installation directory has to be declared before any of
-	      <command>LicenseFile</command>, <command>MyrinetModule</command>,
-	      <command>RoutingFile</command> or <command>IPModule</command> is
-	      used.
+	      The installation directory has to be declared before
+	      <command>LicenseFile</command> is used.
 	    </para>
 	  </note>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>Hardware</command>
+	    <arg choice="plain"> <replaceable>name</replaceable></arg>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>Tell the &ps; daemon how to handle a distinct hardware. Usually
+	    it is not necessary to edit these entries, since the template
+	    version of the configuration file contains up to date entries of
+	    all supported hardware types. Furthermore a deeper insight into the
+	    low-level functionality of &ps; is needed in order to create such
+	    an entry.
+	  </para>
+	  <para>
+	    Nevertheless a brief overview on the structure of the
+	    <command>Hardware</command> entries is given here.
+	  </para>
+	  <para>
+	    The following five types of parameters within the
+	    <command>Hardware</command> environment will get a special handling
+	    from the &ps; daemon <xref linkend="psid"/>. These define different
+	    script files called in order to execute various operations towards
+	    the corresponding communication hardware.
+	  </para>
+	  <para>
+	    All these entries have the form of the parameter's name followed by
+	    the corresponding value. The value might be enclosed by single or
+	    double quotes in order to allow a space within.
+	  </para>
+	  <para>
+	    The values are interpreted as absolute or relative paths. Relative
+	    paths will be looked up relative to
+	    <filename><replaceable>InstallDir</replaceable></filename>. If one
+	    or more of the scripts are not defined, no corresponding action
+	    will take place for this hardware.
+	  </para>
+	  <variablelist>
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>startscript</command>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>Define a script called in order to startup the
+		  corresponding communication hardware. This script will be
+		  executed when the daemon starts up or after a reset of the 
+		  communication hardware.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>stopscript</command>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>Define a script called in order to shutdown the
+		  corresponding communication hardware. This script will be
+		  executed when the daemon exits or before a reset of the
+		  communication hardware.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>setupscript</command>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>Define a script called in order to set special parameters
+		  on the corresponding communication hardware.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>statusscript</command>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>Define a script called in order to get a status message
+		  from the corresponding communication hardware. This is mainly
+		  used in order to generate the lines shown be the
+		  <command>status <option>counter</option></command> directive
+		  of the &ps; administration tool <xref linkend="psiadmin"/>.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>headerscript</command>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>Define a script called in order to get a header line for
+		  the status message produced by the above discussed
+		  <command>statusscript</command> .
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	  </variablelist>
+	  <para>
+	    All further parameters defined within a <command>Hardware</command>
+	    section are interpreted as environment variables when calling the
+	    above defined scripts. Again these parameters have the form of the
+	    parameters name - interpreted as the environments variables name -
+	    followed by the correspondings value. The values might be single
+	    strings not containing whitespace characters or enclosed by single
+	    or double quotes, too.
+	  </para>
+	  <para>
+	    The impact of the environment variables on the scripts of course
+	    depend on the scripts itself.
+	  </para>
+	  <para>
+	    At the date three different hardware types are defined within the
+	    template configuration file coming with the &ps; software
+	    distribution. These hardware types, the corresponding scripts and
+	    the environment variables the scripts understand are briefly
+	    discussed within the following lines.
+	  </para>
+	  <variablelist>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>myrinet</command>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>Use optimized communication over Myrinet.</para>
+		<para>
+		  The script used in order to start or stop the hardware and to
+		  get counters from the hardware is
+		  <command>ps_myrinet</command> located within the
+		  <filename>config</filename> directory. This script understand
+		  various environment variables:
+		</para>
+		<variablelist>
+		  <varlistentry>
+		    <term><envar>PS_MODULE</envar></term>
+		    <listitem>
+		      <para>The name of the kernel module to use in order to
+			handle the Myrinet card. The default is
+			<filename>psm.o</filename>.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+		  <varlistentry>
+		    <term><envar>PS_MODULEPATH</envar></term>
+		    <listitem>
+		      <para>The directory to search for the kernel modules.
+			Relative paths are looked up relative to
+			<filename><replaceable>InstallDir</replaceable></filename>. 
+			The default is <filename>bin/modules</filename>.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+		  <varlistentry>
+		    <term><envar>PS_ROUTEFILE</envar></term>
+		    <listitem>
+		      <para>The file containing the correct Myrinet routes for
+			the network topology in use. If this is a relative
+			path, it is expected to be within the
+			<filename>config</filename> subdirectory.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+		  <varlistentry>
+		    <term><envar>PS_IPENABLED</envar></term>
+		    <listitem>
+		      <para>If set to 1, IP over Myrinet will be enabled. The
+			default is 0 and hence IP over Myrinet is disabled.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+		  <varlistentry>
+		    <term><envar>PS_IPMODULE</envar></term>
+		    <listitem>
+		      <para>The name of the kernel module that implements IP
+			over Myrinet. The default is
+			<filename>mod_psn.o</filename>.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+		  <varlistentry>
+		    <term><envar>PS_IPPREFIX</envar></term>
+		    <listitem>
+		      <para>The prefix for Myrinet card's IP address. The full
+			IP address will be assembled from the prefix and the
+			&ps; Id of the node. Trailing zeros may be omitted from
+			the address given here.
+		      </para>
+		      <para>The default is 192.168.48.</para>
+		    </listitem>
+		  </varlistentry>
+		  <varlistentry>
+		    <term><envar>PS_IPPREFIXLEN</envar></term>
+		    <listitem>
+		      <para>The number of valid bits within
+			<envar>PS_IPPREFIX</envar>. The default is 20.</para>
+		    </listitem>
+		  </varlistentry>
+		  <varlistentry>
+		    <term><envar>PS_SPS</envar></term>
+		    <listitem>
+		      <para>The maximum small packet size for PIO packets.
+			Refer to <xref linkend="psiadmin"/> for a more detailed
+			description.
+		      </para>
+		      <para>
+			The default is 2000.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+		  <varlistentry>
+		    <term><envar>PS_HNPEND</envar></term>
+		    <listitem>
+		      <para>The number of pending host notify messages. Refer
+			to <xref linkend="psiadmin"/> for a more detailed
+			description.
+		      </para>
+		      <para>
+			The default is 2.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+		  <varlistentry>
+		    <term><envar>PS_ACKPEND</envar></term>
+		    <listitem>
+		      <para>The number of pending acknowledgements. Refer to
+			<xref linkend="psiadmin"/> for a more detailed
+			description.
+		      </para>
+		      <para>
+			The default is 1.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+		</variablelist>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>ethernet</command>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>Use classical TCP/IP communication over Ethernet via an
+		  optimized MPI implementation.
+		</para>
+		<para>
+		  Since TCP/IP has to be configured before &ps; starts up, the
+		  corresponding script <command>ps_ethernet</command> has
+		  almost nothing to do and hence does not understand a single
+		  environment variable.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>p4sock</command>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>Use optimized communication via (Gigabit)
+		  Ethernet.</para>
+		<para>
+		  The script handling this hardware type
+		  <command>ps_p4sock</command> is also located in the
+		  <filename>config</filename> subdirectory. It understands the
+		  following two environment variables:
+		</para>
+		<variablelist>
+		  <varlistentry>
+		    <term><envar>PS_MODULE</envar></term>
+		    <listitem>
+		      <para>The name of the kernel module to use in order to
+			implement the &ps; protocol running on the ethernet
+			hardware. The default is <filename>p4sock.o</filename>.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+		  <varlistentry>
+		    <term><envar>PS_MODULEPATH</envar></term>
+		    <listitem>
+		      <para>The directory to search for the kernel modules.
+			Relative paths are looked up relative to
+			<filename><replaceable>InstallDir</replaceable></filename>. 
+			The default is <filename>bin/modules</filename>.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+		</variablelist>
+	      </listitem>
+	    </varlistentry>
+
+	  </variablelist>
 	</listitem>
       </varlistentry>
 
@@ -136,19 +452,18 @@
 	  <cmdsynopsis>
 	    <command>HWType</command>
 	    <group choice="req">
-	      <arg>Ethernet</arg>
-	      <arg>Myrinet</arg>
-<!-- 	      <arg>GigaEthernet</arg> -->
-	      <arg>None</arg>
+	      <arg>myrinet</arg>
+	      <arg>ethernet</arg>
+ 	      <arg>p4sock</arg>
+	      <arg>none</arg>
 	    </group>
 	  </cmdsynopsis>
 	  <cmdsynopsis>
 	    <command>HWType {</command>
 	    <group rep="repeat" choice="req">
-	      <arg>Ethernet</arg>
-	      <arg>Myrinet</arg>
-<!-- 	      <arg>GigaEthernet</arg> -->
-	      <arg>None</arg>
+	      <arg>myrinet</arg>
+	      <arg>ethernet</arg>
+ 	      <arg>p4sock</arg>
 	    </group>
 	    <command>}</command>
 	  </cmdsynopsis>
@@ -159,15 +474,33 @@
 	    <option>HWType</option> option in a <command>Node</command>
 	    statement.
 	  </para>
+	  <para>The hardware types used within this command have to be defined
+	    in <command>Hardware</command> declarations before.
+	  </para>
 	  <para>
-	    Available hardware types are:
+	    The available hardware types in the template configuration file
+	    are:
 	  </para>
 	  <variablelist>
 
 	    <varlistentry>
 	      <term>
 		<cmdsynopsis>
-		  <command>Ethernet</command>
+		  <command>myrinet</command>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>Use optimized communication over Myrinet.</para>
+		<para>
+		  This is only available within &ps3;.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>ethernet</command>
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
@@ -183,35 +516,22 @@
 	    <varlistentry>
 	      <term>
 		<cmdsynopsis>
-		  <command>Myrinet</command>
+		  <command>p4sock</command>
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
-		<para>Use optimized communication over Myrinet.</para>
+		<para>Use optimized communication via (Gigabit)
+		  Ethernet.</para>
 		<para>
-		  This is only available within &ps; 3.
+		  This is only available within &ps4;.
 		</para>
 	      </listitem>
 	    </varlistentry>
 
-<!-- 	    <varlistentry> -->
-<!-- 	      <term> -->
-<!-- 		<cmdsynopsis> -->
-<!-- 		  <command>GigaEthernet</command> -->
-<!-- 		</cmdsynopsis> -->
-<!-- 	      </term> -->
-<!-- 	      <listitem> -->
-<!-- 		<para>Use optimized communication via Gigabit Ethernet.</para> -->
-<!-- 		<para> -->
-<!-- 		  This is only available within &ps; 4. -->
-<!-- 		</para> -->
-<!-- 	      </listitem> -->
-<!-- 	    </varlistentry> -->
-
 	    <varlistentry>
 	      <term>
 		<cmdsynopsis>
-		  <command>None</command>
+		  <command>none</command>
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
@@ -221,50 +541,24 @@
 
 	  </variablelist>
 	  <para>
+	    Further hardware declarations might be defined by the user, but
+	    this is pretty much undocumented.
+	  </para>
+	  <para>
 	    It is possible to enable more than one hardware type, either as
 	    default or on a per node basis. Think of a node that has both, a
 	    Myrinet and a Fast Ethernet card. Furthermore the cluster contains
 	    nodes that lack Myrinet. Then it might be useful to run jobs only
 	    depending on Ethernet communication even on nodes that have a
 	    Myrinet card in order to talk to nodes that don't have one. The
-	    corresponding <command>HWType</command> declaration reads
-	    <command>HWType {<parameter>Myrinet</parameter>
-	      <parameter>Ethernet</parameter> }</command>.
+	    corresponding <command>HWType</command> declaration then reads
+	    <command>HWType {<parameter>myrinet</parameter>
+	      <parameter>ethernet</parameter> }</command>.
 	  </para>
 	  <para>
 	    The default value of <command>HWType</command> is
-	    <parameter>None</parameter>.
+	    <parameter>none</parameter>.
 	  </para>
-	</listitem>
-      </varlistentry>
-
-      <varlistentry>
-	<term>
-	  <cmdsynopsis>
-	    <command>hasIP</command>
-	    &boolargs;
-	  </cmdsynopsis>
-	</term>
-	<listitem>
-	  <para>If the argument is one of <parameter>yes</parameter>,
-	    <parameter>true</parameter> or <parameter>1</parameter> all nodes
-	    declared within a <command>Node</command> statement will load the
-	    &ps; IP module in order to enable TCP/IP over Myrinet, unless
-	    otherwise stated within the <command>Node</command> statement.
-	  </para>
-	  <para>
-	    If the argument is one of <parameter>no</parameter>,
-	    <parameter>false</parameter> or <parameter>0</parameter> TCP/IP
-	    over Myrinet will be disabled, unless otherwise stated.
-	  </para>
-	  <para>
-	    The default is to disable TCP/IP over Myrinet.
-	  </para>
-	  <note>
-	    <para>This parameter is only useful when configuring a Myrinet
-	      cluster.
-	    </para>
-	  </note>
 	</listitem>
       </varlistentry>
 
@@ -277,13 +571,13 @@
 	</term>
 	<listitem>
 	  <para>If the argument is one of <parameter>yes</parameter>,
-	    <parameter>true</parameter> or <parameter>1</parameter> all nodes
+	    <parameter>true</parameter> or <parameter>1</parameter>, all nodes
 	    declared within a <command>Node</command> statement will allow to
 	    start parallel tasks, unless otherwise stated.
 	  </para>
 	  <para>
 	    If the argument is one of <parameter>no</parameter>,
-	    <parameter>false</parameter> or <parameter>0</parameter> starting
+	    <parameter>false</parameter> or <parameter>0</parameter>, starting
 	    will be not allowed.
 	  </para>
 	  <para>
@@ -303,22 +597,54 @@
       <varlistentry>
 	<term>
 	  <cmdsynopsis>
+	    <command>runJobs</command>
+	    &boolargs;
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>If the argument is one of <parameter>yes</parameter>,
+	    <parameter>true</parameter> or <parameter>1</parameter>, all nodes
+	    declared within a <command>Node</command> statement will allow to
+	    run processes of parallel tasks, unless otherwise stated.
+	  </para>
+	  <para>
+	    If the argument is one of <parameter>no</parameter>,
+	    <parameter>false</parameter> or <parameter>0</parameter>, &ps; will
+	    start no processes on this nodes.
+	  </para>
+	  <para>
+	    It might be useful to prohibit the start of processes on a frontend
+	    machine since usually this machine is reserved for interactive work
+	    done by the users. When the execution of processes is forbidden on
+	    a distinct node, parallel task might be started from this node
+	    anyhow.
+	  </para>
+	  <para>
+	    The default is to allow all nodes to run processes of parallel
+	    tasks.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
 	    <command>Node[s]</command>
 	    <arg choice="plain"><replaceable>hostname</replaceable></arg>
 	    <arg choice="plain"><replaceable>id</replaceable></arg>
 	    <arg>HWtype-entry</arg>
-	    <arg>hasIP-entry</arg>
 	    <arg>starter-entry</arg>
-	    <arg>MyrinetIP <replaceable>ip-addr</replaceable></arg>
+	    <arg>runJobs-entry</arg>
+	    <!--<arg>extraIP <replaceable>ip-addr</replaceable></arg>-->
 	  </cmdsynopsis>
 	  <cmdsynopsis>
 	    <command>Node[s] {</command>
 	    <arg choice="plain">{<replaceable>hostname</replaceable></arg>
 	    <arg choice="plain"><replaceable>id</replaceable></arg>
 	    <arg>HWtype-entry</arg>
-	    <arg>hasIP-entry</arg>
 	    <arg>starter-entry</arg>
-	    <arg>MyrinetIP <replaceable>ip-addr</replaceable></arg>
+	    <arg>runJobs-entry</arg>
+	    <!--<arg>extraIP <replaceable>ip-addr</replaceable></arg>-->
 	    <arg choice="plain">}...</arg>
 	    <command>}</command>
 	  </cmdsynopsis>
@@ -352,15 +678,16 @@
 	  </para>
 	  <para>
 	    Further optional items as <option>HWtype-entry</option>,
-	    <option>hasIP-entry</option> and <option>starter-entry</option> may
-	    overrule the default values of the hardware type on the node, the
-	    existence of the IP over Myrinet feature and the ability to start
-	    parallel jobs from this node respectively. These entry have the
-	    same syntax as the stand alone commands to set the corresponding
-	    default value.
+	    <option>starter-entry</option> or <option>runJobs-entry</option>
+	    may overrule the default values of the hardware type on the node,
+	    the ability to start parallel jobs from this node or the
+	    possibility to run processes on this node respectively. These entry
+	    have the same syntax as the stand alone commands to set the
+	    corresponding default value.
 	  </para>
+	  <!--
 	  <para>
-	    The optional item <command>MyrinetIP</command> will assign the IP
+	    The optional item <command>extraIP</command> will assign the IP
 	    address <parameter><replaceable>ip-addr</replaceable></parameter>
 	    to the local Myrinet card.
 	    <parameter><replaceable>ip-addr</replaceable></parameter> is either
@@ -369,32 +696,37 @@
 	    to <xref linkend="ip_over_myrinet"/> of the <emphasis
 	      role="bold">&ps; Administrators Guide</emphasis>.
 	  </para>
+	  -->
 	  <para>
 	    E.g. the line
 	  </para>
 	  <programlisting>
-	Node node17 16 HWType { ethernet myrinet } hasIP yes MyrinetIP myri17
+	Node node17 16 HWType { ethernet myrinet } starter yes runJobs no
 	  </programlisting>
 	  <para>
 	    will define the node <parameter>node17</parameter> to have the &ps;
 	    ID 16. Furthermore it is expected to have Ethernet <emphasis
-	      role="bold">and</emphasis> Myrinet communication interfaces and
-	    the IP over Myrinet functionality will be activated on this node.
-	    The IP address of the Myrinet card will be the one
-	    <parameter>myri17</parameter> resolves to.
+	      role="bold">and</emphasis> Myrinet communication interfaces. It
+	    is allow to start parallel tasks from this node but the node itself
+	    will not run any process of any parallel task (except the &ps;
+	    logger processes of the tasks started on this node).
 	  </para>
+	  <!--
 	  <note>
 	    <para>
-	      The optional <command>MyrinetIP</command> item is only usefull
+	      The optional <command>extraIP</command> item is only usefull
 	      when configuring a Myrinet cluster where IP over Myrinet is
 	      enabled.
 	    </para>
 	    <para>
 	      It is also possible to assign IP addresses to Myrinet cards on
 	      the different nodes in a general manner based on the &ps; IDs.
-	      Use the <command>IPPrefix</command> parameter for this feature.
+	      Use the <envar>PS_IPPREFIX</envar> environment parameter within
+	      the <command>Hardware <option>myrinet</option></command>
+	      declaration for this feature.
 	    </para>
 	  </note>
+	  -->
 	</listitem>
       </varlistentry>
 
@@ -492,356 +824,6 @@
 	    shutting down the license daemon 1 minute after the last &ps;
 	    daemon within the cluster has finished execution.
 	  </para>
-	</listitem>
-      </varlistentry>
-
-      <varlistentry>
-	<term>
-	  <cmdsynopsis>
-	    <command>MyrinetModule</command>
-	    <arg choice="plain"><replaceable>mod-file</replaceable></arg>
-	  </cmdsynopsis>
-	</term>
-	<listitem>
-	  <para>Tell the &ps; daemon <xref linkend="psid"/> to use
-	    <filename><replaceable>mod-file</replaceable></filename> as the
-	    Myrinet kernel module.
-	  </para>
-	  <para>
-	    <filename><replaceable>mod-file</replaceable></filename> may be a
-	    absolute or relative path. Relative paths are looked up relative to
-	    <filename><replaceable>InstallDir</replaceable>/bin/modules</filename> 
-	    and <filename><replaceable>InstallDir</replaceable></filename> in
-	    this order.
-	  </para>
-	  <note>
-	    <para>
-	      This parameter is only useful when configuring a Myrinet cluster.
-	    </para>
-	    <para>
-	      There is no default value for <command>MyrinetModule</command>.
-	      <command>MyrinetModule</command> has to be declared within the
-	      configuration file in any case for a Myrinet cluster.
-	    </para>
-	    <para>
-	      If <filename><replaceable>mod-file</replaceable></filename> is
-	      a relative path, <command>InstallDir</command> has to be declared
-	      beforehand, unless it is the default.
-	    </para>
-	  </note>
-	</listitem>
-      </varlistentry>
-
-      <varlistentry>
-	<term>
-	  <cmdsynopsis>
-	    <command>RoutingFile</command>
-	    <arg choice="plain"><replaceable>route-file</replaceable></arg>
-	  </cmdsynopsis>
-	</term>
-	<listitem>
-	  <para>Tell the &ps; daemon <xref linkend="psid"/> to use
-	    <filename><replaceable>route-file</replaceable></filename> as the
-	    Myrinet routing file.
-	  </para>
-	  <para>
-	    <filename><replaceable>route-file</replaceable></filename> may be
-	    a absolute or relative path. Relative paths are looked up relative
-	    to
-	    <filename><replaceable>InstallDir</replaceable>/config</filename> 
-	    and <filename><replaceable>InstallDir</replaceable></filename> in
-	    this order.
-	  </para>
-	  <note>
-	    <para>
-	      This parameter is only useful when configuring a Myrinet cluster.
-	    </para>
-	    <para>
-	      There is no default value for <command>RoutingFile</command>.
-	      <command>RoutingFile</command> has to be declared within the
-	      configuration file in any case for a Myrinet cluster.
-	    </para>
-	    <para>
-	      If <filename><replaceable>route-file</replaceable></filename>
-	      is a relative path, <command>InstallDir</command> has to be
-	      declared beforehand, unless it is the default.
-	    </para>
-	  </note>
-	</listitem>
-      </varlistentry>
-
-      <varlistentry>
-	<term>
-	  <cmdsynopsis>
-	    <command>SmallPacketSize</command>
-	    <arg choice="plain"><replaceable>size</replaceable></arg>
-	  </cmdsynopsis>
-	</term>
-	<listitem>
-	  <para>Set the the maximum size of PIO packets to
-	    <parameter><replaceable>size</replaceable></parameter> bytes.
-	  </para>
-	  <para>
-	    PIO packets are send directly to the node's memory by the <link
-	      linkend="MCP">MCP</link> and copied by a <citerefentry>
-	      <refentrytitle>memcpy</refentrytitle>
-	      <manvolnum>3</manvolnum>
-		    </citerefentry> into the final destination. Non-PIO packets
-	    are send via <link linkend="DMA">DMA</link> immediately to their
-	    final destination.
-	  </para>
-	  <para>
-	    The default value is 250 byte.
-	  </para>
-	  <note>
-	    <para>
-	      This parameter is only useful when configuring a Myrinet cluster.
-	    </para>
-	    <para>
-	      This parameter can be set during runtime via the <command>set
-		<option>smallpacketsize</option></command> directive within the
-	      &ps; administration and management tool <xref
-		linkend="psiadmin"/>.
-	    </para>
-	  </note>
-	</listitem>
-      </varlistentry>
-
-      <varlistentry>
-	<term>
-	  <cmdsynopsis>
-	    <command>ResendTimeout</command>
-	    <arg choice="plain"><replaceable>time</replaceable></arg>
-	  </cmdsynopsis>
-	</term>
-	<listitem>
-	  <para>Set the retansmission timeout to
-	    <parameter><replaceable>time</replaceable></parameter>
-	    microseconds.
-	  </para>
-	  <para>
-	    If a packet sent by &ps; to another node is not acknowledged for
-	    this period of time, it will be resend to this node.
-	  </para>
-	  <para>
-	    The default value is 2048 microseconds.
-	  </para>
-	  <note>
-	    <para>
-	      This parameter is only useful when configuring a Myrinet cluster.
-	    </para>
-	    <para>
-	      In the current version of &ps; this parameter is fixed and cannot
-	      be modified. This might change in the future.
-	    </para>
-	  </note>
-	</listitem>
-      </varlistentry>
-
-      <varlistentry>
-	<term>
-	  <cmdsynopsis>
-	    <command>HNPend</command>
-	    <arg choice="plain"><replaceable>val</replaceable></arg>
-	  </cmdsynopsis>
-	</term>
-	<listitem>
-	  <para>Set the number of pending host notify messages to
-	    <parameter><replaceable>val</replaceable></parameter>.
-	  </para>
-	  <para>
-	    Host notify messages are send by the <link linkend="MCP">MCP</link>
-	    to the kernel to mark send buffers as free. This is done when data
-	    that was sent successfully via this buffer was acknowledged by the
-	    destination node.
-	  </para>
-	  <para>
-	    Usually not every free buffer is communicated, but the <link
-	      linkend="MCP">MCP</link> waits until several buffers are freed
-	    and sends accumulated host notify messages then.
-	    <parameter><replaceable>val</replaceable></parameter> is the number
-	    of accumulated messages to sent simultaniously.
-	  </para>
-	  <para>
-	    The default value is 2.
-	  </para>
-	  <note>
-	    <para>
-	      This parameter is only useful when configuring a Myrinet cluster.
-	    </para>
-	    <para>
-	      <option>val</option> has to be choosen as 0 &lt;=
-	      <option>val</option> &lt; 3. Small values lead to more traffic on
-	      the PCI bus, but prevent free send buffers on the Myrinet card
-	      from not being used. Values larger than 3 have empirically proven
-	      to do a disservice.
-	    </para>
-	    <para>
-	      This parameter can be set during runtime via the <command>set
-		<option>hnpend</option></command> directive within the &ps;
-	      administration and management tool <xref linkend="psiadmin"/>.
-	    </para>
-	  </note>
-	</listitem>
-      </varlistentry>
-
-      <varlistentry>
-	<term>
-	  <cmdsynopsis>
-	    <command>ACKPend</command>
-	    <arg choice="plain"><replaceable>val</replaceable></arg>
-	  </cmdsynopsis>
-	</term>
-	<listitem>
-	  <para>Set the number of pending acknowledgements to
-	    <parameter><replaceable>val</replaceable></parameter>.
-	  </para>
-	  <para>
-	    &ps; usually does not send acknowledgements immediately but waits
-	    for some pending ACK messages and sends them accumulated.
-	  </para>
-	  <para>
-	    If a packet is not acknowledged for some microseconds (the actual
-	    value can be set using the parameter
-	    <command>ResendTimeout</command>) it will be resend by the source
-	    node. If a packet is received twice by the destination node, an
-	    immediate ACK message is sent and therefore correct delivery of
-	    packets is ensured.
-	  </para>
-	  <para>
-	    The default value is 1.
-	  </para>
-	  <note>
-	    <para>
-	      This parameter is only useful when configuring a Myrinet cluster.
-	    </para>
-	    <para>
-	      <option>val</option> has to be choosen as 0 &lt;=
-	      <option>val</option> &lt; 3. Small values lead to more ACK
-	      messages, but prevent from to many resends. Values larger than 3
-	      have empirically proven to do a disservice.
-	    </para>
-	    <para>
-	      This parameter can be set during runtime via the <command>set
-		<option>ackpend</option></command> directive within the &ps;
-	      administration and management tool <xref linkend="psiadmin"/>.
-	    </para>
-	  </note>
-	</listitem>
-      </varlistentry>
-
-      <varlistentry>
-	<term>
-	  <cmdsynopsis>
-	    <command>IPModule</command>
-	    <arg choice="plain"><replaceable>mod-file</replaceable></arg>
-	  </cmdsynopsis>
-	</term>
-	<listitem>
-	  <para>Tell the &ps; daemon <xref linkend="psid"/> to use
-	    <filename><replaceable>mod-file</replaceable></filename> as the IP
-	    over Myrinet kernel module.
-	  </para>
-	  <para>
-	    <filename><replaceable>mod-file</replaceable></filename> may be a
-	    absolute or relative path. Relative paths are looked up relative to
-	    <filename><replaceable>InstallDir</replaceable>/bin/modules</filename> 
-	    and <filename><replaceable>InstallDir</replaceable></filename> in
-	    this order.
-	  </para>
-	  <para>
-	    If IPModule is not given within the configuration file, the &ps;
-	    daemon <xref linkend="psid"/> will try to find the kernel module
-	    anyhow. The place to look at is
-	    <filename><replaceable>InstallDir</replaceable>/bin/modules/<replaceable>arch</replaceable>_Linux_<replaceable>version</replaceable></filename>, 
-	    where <parameter><replaceable>arch</replaceable></parameter> is the
-	    hardware architecture (usually one of 'i386' and 'alpha') and
-	    <parameter><replaceable>version</replaceable></parameter> the
-	    kernel version in use.
-	  </para>
-	  <note>
-	    <para>
-	      This parameter is only useful when configuring a Myrinet cluster.
-	    </para>
-	    <para>
-	      If <filename><replaceable>mod-file</replaceable></filename> is
-	      a relative path, <command>InstallDir</command> has to be declared
-	      beforehand, unless it is the default.
-	    </para>
-	  </note>
-	</listitem>
-      </varlistentry>
-
-      <varlistentry>
-	<term>
-	  <cmdsynopsis>
-	    <command>IPPrefix</command>
-	    <arg choice="plain"><replaceable>prefix</replaceable></arg>
-	  </cmdsynopsis>
-	</term>
-	<listitem>
-	  <para>Tell &ps; the prefix to build IP addresses from &ps; IDs. For a
-	    detailed description on how this works refer to
-	    <xref
-	      linkend="ip_over_myrinet"/> of the <emphasis role="bold">&ps;
-	      Administrators Guide</emphasis>.
-	  </para>
-	  <para>
-	    <replaceable>prefix</replaceable> is expected to be in the ordinary
-	    dot notation for IP addresses (i.e. something like
-	    '192.168.16.0'). Trailing zero may be omitted, so '192.168.16' is
-	    also valid and leads to the same result as '192.168.16.0'.
-	  </para>
-	  <para>
-	    The number of bits used from the <replaceable>prefix</replaceable>
-	    is biased by the <command>IPPrefixLen</command> parameter. Assuming
-	    a prefix length of 20 bits, '192.168.16' and '192.168.17' will lead
-	    to the same result since the 20 most significant bits of both
-	    addresses are identical.
-	  </para>
-	  <note>
-	    <para>
-	      This parameter is only useful when configuring a Myrinet cluster.
-	    </para>
-	    <para>
-	      There is no default value for
-	      <command>IPPrefix</command>. <command>IPPrefix</command> has to
-	      be declared within the configuaration file in any case if IP over
-	      Myrinet should be enabled on a Myrinet cluster.
-	    </para>
-	    <para>
-	      It is also possible to assign IP addresses to Myrinet cards on
-	      the different nodes on a per node basis. Use the
-	      <option>MyrinetIP</option> option of the <command>Nodes</command>
-	      parameter for this feature.
-	    </para>
-	  </note>
-	</listitem>
-      </varlistentry>
-
-      <varlistentry>
-	<term>
-	  <cmdsynopsis>
-	    <command>IPPrefixLen</command>
-	    <arg choice="plain"><replaceable>len</replaceable></arg>
-	  </cmdsynopsis>
-	</term>
-	<listitem>
-	  <para>Tell &ps; the number of valid bits within the prefix used to
-	    build IP addresses from &ps; IDs. The prefix may be defined using
-	    the <command>IPPrefix</command> parameter.
-	  </para>
-	  <para>
-	    <replaceable>len</replaceable> is measured in bits.
-	  </para>
-	  <para>
-	    The default value is 20.
-	  </para>
-	  <note>
-	    <para>
-	      This parameter is only useful when configuring a Myrinet cluster.
-	    </para>
-	  </note>
 	</listitem>
       </varlistentry>
 
@@ -1151,23 +1133,48 @@
 	</listitem>
       </varlistentry>
 
-      <!-- @todo Implement and document this parameter -->
-      <!-- 
       <varlistentry>
 	<term>
 	  <cmdsynopsis>
-	    <command>Environment</command>
+	    <command>Env[ironment]</command>
+	    <arg choice="plain"><replaceable>name</replaceable></arg>
+	    <arg choice="plain"><replaceable> value</replaceable></arg>
+	  </cmdsynopsis>
+	  <cmdsynopsis>
+	    <command>Env[ironment] {</command>
+	    <arg choice="plain">{<replaceable>name</replaceable></arg>
+	    <arg choice="plain"><replaceable> value</replaceable></arg>
+	    <arg choice="plain">}...</arg>
+	    <command>}</command>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <note>
-	    <para>
-	      NOT YET IMPLEMENTED !
-	    </para>
-	  </note>
+	  <para>
+	    Set environment variables for the &ps; daemon <xref
+	      linkend="psid"/> and any application started via this daemon.
+	  </para>
+	  <para>
+	    This command again has two different mode. While within the first
+	    form exactly one variable is set, within the environment form of
+	    this command as many variables as wanted may be set. The general
+	    form of the latter case is one variable per line.
+	  </para>
+	  <para>
+	    The <replaceable>value</replaceable> part of each line either is a
+	    single word or an expression enclosed by single or double quotes.
+	    The expression might contain whitespace characters. If the
+	    expression is enclosed by single quotes, it is allowed to use
+	    balanced or unbalanced double quotes within this expression and
+	    vice verse.
+	  </para>
+	  <para>
+	    This command might be used for example in order to set the
+	    <envar>PSP_NETWORK</envar> environment variable globally without
+	    the need of every user to adjust this parameter in his own
+	    environment.
+	  </para>
 	</listitem>
       </varlistentry>
-      -->
 
     </variablelist>
   </refsect1>
@@ -1175,10 +1182,7 @@
   <refsect1>
     <title>Errors</title>
     <para>
-      <!-- @todo Implement this parameters -->
-      The commands <command>hasIP</command>, <command>IPModule</command>,
-      <command>IPPrefix</command> and <command>IPPrefixLen</command> are not
-      implemented yet.
+      No known errors.
     </para>
   </refsect1>
 
