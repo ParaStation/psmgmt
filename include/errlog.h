@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: errlog.h,v 1.8 2002/08/07 13:09:29 eicker Exp $
+ * $Id: errlog.h,v 1.9 2003/06/11 14:46:30 hauke Exp $
  *
  */
 /**
  * \file
  * ParaStation ErrLog facility used within MCast and RDP.
  *
- * $Id: errlog.h,v 1.8 2002/08/07 13:09:29 eicker Exp $
+ * $Id: errlog.h,v 1.9 2003/06/11 14:46:30 hauke Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -156,7 +156,7 @@ static void initErrLog(char *tag, int syslog)
  *
  * @return No return value.
  */
-static void errlog(char *s, int level)
+static void errlog(const char *s, int level)
 {
     static char *errtxt = NULL;
     static int txtlen = 320;
