@@ -1,9 +1,0 @@
-
-
-
-psid
-----------------------
-
--Clear the environment before spawning the new process. Now all
-environments from the psid are inherited. (wrong HOME !).
-
