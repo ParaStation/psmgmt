@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.32 2003/03/06 14:25:37 eicker Exp $
+ * $Id: psld.c,v 1.33 2003/04/03 15:27:56 eicker Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Daemon
  *
- * $Id: psld.c,v 1.32 2003/03/06 14:25:37 eicker Exp $
+ * $Id: psld.c,v 1.33 2003/04/03 15:27:56 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.32 2003/03/06 14:25:37 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.33 2003/04/03 15:27:56 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -269,13 +269,14 @@ void MCastCallBack(int msgid, void *buf)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.32 $";
+    char revision[] = "$Revision: 1.33 $";
     fprintf(stderr, "psld %s\b ", revision+11);
 }
 
 int main(int argc, const char *argv[])
 {
     int rc, i, verbose = 0, debug = 0, version = 0;
+    char *configfile = NULL;
     int msock;
     struct timeval tv;
     int lok;
@@ -289,7 +290,7 @@ int main(int argc, const char *argv[])
     struct poptOption optionsTable[] = {
 	{ "debug", 'd', POPT_ARG_NONE, &debug, 0, "enble debugging", NULL},
 	{ "verbose", 'v', POPT_ARG_NONE, &verbose, 0, "be more verbose", NULL},
-	{ "configfile", 'f', POPT_ARG_STRING, &Configfile, 0,
+	{ "configfile", 'f', POPT_ARG_STRING, &configfile, 0,
 	  "use <file> as config-file (default is /etc/parastation.conf).",
 	  "file"},
 	{ "lockfile", 'l', POPT_ARG_STRING | POPT_ARGFLAG_DOC_HIDDEN,
@@ -355,15 +356,17 @@ int main(int argc, const char *argv[])
     }
 
     if (!checkLock()) {
-	errlog("PSLD already running\n", 1);
+	errlog("PSLD already running\n", 0);
 	return -1;
     }
+
     /* Install sighandler to remove lockfile on exit */
     signal(SIGHUP,sighandler);
     signal(SIGTERM,sighandler);
     signal(SIGINT,sighandler);
 
-    if (parseConfig(!debug, loglevel) < 0) {
+    if (parseConfig(!debug, loglevel, configfile) < 0) {
+	errlog("parsing failed\n", 0);
 	return -1;
     }
 
