@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.31 2003/02/14 16:28:05 eicker Exp $
+ * $Id: psispawn.c,v 1.32 2003/02/21 12:26:23 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.31 2003/02/14 16:28:05 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.32 2003/02/21 12:26:23 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -394,7 +394,7 @@ void PSI_RemoteArgs(int Argc, char **Argv, int *RArgc, char ***RArgv)
     int cnt;
     int i;
 
-    snprintf(errtxt, sizeof(errtxt), "PSI_RemoteArgs()");
+    snprintf(errtxt, sizeof(errtxt), "%s()", __func__);
     PSI_errlog(errtxt, 10);
 
     cnt=0;
@@ -430,21 +430,29 @@ void PSI_RemoteArgs(int Argc, char **Argv, int *RArgc, char ***RArgv)
     return;
 }
 
-char *PSI_createPIfile(int num, const char *prog)
+char *PSI_createPGfile(int num, const char *prog)
 {
     char *PIfilename, *myprog, filename[20];
     FILE *PIfile;
     int i, j=0;
 
     if (!PSI_Partition) {
-	snprintf(errtxt, sizeof(errtxt), "PSI_createPIfile():"
-		 " you have to call PSI_getPartition() beforehand.");
+	snprintf(errtxt, sizeof(errtxt), "%s():"
+		 " you have to call PSI_getPartition() beforehand.", __func__);
 	PSI_errlog(errtxt, 0);
 	return NULL;
     }
 
     myprog = mygetwd(prog);
-    if (!myprog) return 0;
+    if (!myprog) {
+	char *errstr = strerror(errno);
+
+	snprintf(errtxt, sizeof(errtxt), "%s(): mygetwd() failed: %s"
+		 __func__, errstr ? errstr : "UNKNOWN");
+	PSI_errlog(errtxt, 0);
+
+	return NULL;
+    }
 
     snprintf(filename, sizeof(filename), "PI%d", getpid());
     PIfile = fopen(filename, "w+");
@@ -466,6 +474,12 @@ char *PSI_createPIfile(int num, const char *prog)
 
 	/* File open failed finally */
 	if (!PIfile) {
+	    char *errstr = strerror(errno);
+
+	    snprintf(errtxt, sizeof(errtxt), "%s(): fopen() failed finally: %s"
+		     __func__, errstr ? errstr : "UNKNOWN");
+	    PSI_errlog(errtxt, 0);
+
 	    free(PIfilename);
 	    return NULL;
 	}
@@ -474,7 +488,7 @@ char *PSI_createPIfile(int num, const char *prog)
     for (i=0; i<num; i++) {
 	struct in_addr hostaddr;
 
-	hostaddr.s_addr = INFO_request_node(PSI_Partition[i], 0);
+	hostaddr.s_addr = INFO_request_node(PSI_Partition[j], 0);
 
 	fprintf(PIfile, "%s %d %s\n", inet_ntoa(hostaddr), (i != 0), myprog);
 	
