@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidtimer.h,v 1.1 2003/12/09 16:54:45 eicker Exp $
+ * $Id: psidtimer.h,v 1.2 2004/01/09 15:58:25 eicker Exp $
  *
  */
 /**
@@ -15,7 +15,7 @@
  * All the stuff within this file is defined inline. Thus no
  * psidtimer.c is necessary.
  *
- * $Id: psidtimer.h,v 1.1 2003/12/09 16:54:45 eicker Exp $
+ * $Id: psidtimer.h,v 1.2 2004/01/09 15:58:25 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -92,6 +92,20 @@ extern struct timeval selectTime;
  * @param usec The number of microseconds to add to the timer.
  */
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
+
+/**
+ * @brief Subtract from a timer
+ *
+ * Subtract @a sec seconds and @a usec microseconds from the timer
+ * pointed by tvp.
+ *
+ * @param tvp Pointer to the timer to modify.
+ *
+ * @param sec The number of seconds to add to the timer.
+ *
+ * @param usec The number of microseconds to add to the timer.
+ */
+#define mytimersub(tvp,sec,usec) timerop(tvp,sec,usec,-)
 
 
 #ifdef __cplusplus
