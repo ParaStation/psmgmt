@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.36 2004/01/22 13:20:33 eicker Exp $
+ * $Id: rdp.c,v 1.37 2004/01/22 15:04:15 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.36 2004/01/22 13:20:33 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.37 2004/01/22 15:04:15 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -2280,9 +2280,12 @@ int Rrecvfrom(int *node, void *msg, size_t len)
 			(struct sockaddr *)&sin, &slen);
 
     if (retval < 0) {
-	errexit("Rrecvfrom(): recvfrom()", errno);
+	snprintf(errtxt, sizeof(errtxt), "%s: recvfrom()", __func__);
+	errexit(errtxt, errno);
     } else if (!retval) {
-	errlog(__func__": got 0 from MYrecvfrom()", 0);
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: got 0 from MYrecvfrom()", __func__);
+	errlog(errtxt, 0);
 	return 0;
     }
 
