@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidoption.c,v 1.1 2003/09/12 14:41:53 eicker Exp $
+ * $Id: psidoption.c,v 1.2 2003/10/08 14:49:32 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidoption.c,v 1.1 2003/09/12 14:41:53 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidoption.c,v 1.2 2003/10/08 14:49:32 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -49,10 +49,6 @@ void send_OPTIONS(int destnode)
 
     msg.opt[(int) msg.count].option = PSP_OP_HWSTATUS;
     msg.opt[(int) msg.count].value = PSnodes_getHWStatus(PSC_getMyID());
-    msg.count++;
-
-    msg.opt[(int) msg.count].option = PSP_OP_CPUS;
-    msg.opt[(int) msg.count].value = PSnodes_getCPUs(PSC_getMyID());
     msg.count++;
 
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
