@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.3 2002/10/17 16:24:47 eicker Exp $
+# $Id: Makefile.in,v 1.4 2002/10/17 17:13:44 eicker Exp $
 #
 # @author
 #         Norbert Eicker <eicker@par-tec.de>
@@ -18,6 +18,7 @@ VPATH += @srcdir@
 SGML_CATALOG = /var/lib/sgml/CATALOG.db42xml
 XSLT = xsltproc
 XSLTFLAGS = --catalogs --timing --nonet
+CP = cp -p
 
 CLASSPATH:="fop/build/fop.jar:fop/lib/batik.jar:fop/lib/jimi.jar"
 CLASSPATH:=$(CLASSPATH)":fop/lib/xalan-2.3.1.jar:fop/lib/xercesImpl-2.0.1.jar"
@@ -33,7 +34,7 @@ ADMINMAN8 = man8/psid.8 man8/psld.8 man8/psroute.8 man8/psscan.8
 ADMINMANS = $(ADMINMAN1) $(ADMINMAN5) $(ADMINMAN8)
 
 ADMINDEPS = infoblurb.sgml intro.sgml intro_admin.sgml
-ADMINDEPS = install.sgml config.sgml pvfs.sgml glossary.sgml
+ADMINDEPS += install.sgml config.sgml pvfs.sgml glossary.sgml
 ADMINDEPS += $(patsubst man1/%.1,%.sgml,$(ADMINMAN1))
 ADMINDEPS += $(patsubst man5/%.5,%.sgml,$(ADMINMAN5))
 ADMINDEPS += $(patsubst man8/%.8,%.sgml,$(ADMINMAN8)) boolargs.sgml
@@ -86,11 +87,14 @@ validate: $(patsubst %,%.xml,$(TARGETS))
 #
 # Rules to create the HTML stuff
 #
-HTML: validate dirs $(patsubst %,html/%/index.html,$(TARGETS))
+HTML: validate dirs $(patsubst %,html/%/index.html,$(TARGETS)) html/index.html
 
 html/%/index.html: %.xml $(STYLESHEETDIR)/html.xsl
 	@export SGML_CATALOG=$(SGML_CATALOG); \
 	$(XSLT) $(XSLTFLAGS) -o $(@D)/ $(STYLESHEETDIR)/html.xsl $<
+
+html/index.html: index.html
+	$(CP) $< $@
 
 html/adminguide/index.html: $(ADMINDEPS)
 
