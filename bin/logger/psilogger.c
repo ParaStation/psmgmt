@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.12 2002/02/08 20:32:24 hauke Exp $
+ * $Id: psilogger.c,v 1.13 2002/02/11 14:10:12 eicker Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.12 2002/02/08 20:32:24 hauke Exp $
+ * $Id: psilogger.c,v 1.13 2002/02/11 14:10:12 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.12 2002/02/08 20:32:24 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.13 2002/02/11 14:10:12 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* DEBUG_LOGGER allows logger debuging without the daemon
@@ -199,7 +199,7 @@ void CheckFileTable(fd_set* openfds)
     }
 }
 
-void forward_input( int std_in, int fwclient)
+void forward_input(int std_in, int fwclient)
 {
     char buf[1000];
     int len;
@@ -264,7 +264,7 @@ void loop(int listen)
 	 */
 	if ( FD_ISSET(listen, &afds) ) {
 	    /* a connection request on my master socket */
-	    if ( (sock = newrequest(listen)) > 0 ) {
+	    if ((sock = newrequest(listen)) > 0 ) {
 		FD_SET(sock, &myfds);
 		timeoutval = 10;
 		noclients++;
@@ -273,8 +273,8 @@ void loop(int listen)
 		}
 	    }
 	}
-	if ( FD_ISSET(STDIN_FILENO, &afds) && (forward_input>=0)) {
-	    forward_input( STDIN_FILENO, forward_input_sock);
+	if (FD_ISSET(STDIN_FILENO, &afds) && (forward_input_sock >= 0)) {
+	    forward_input(STDIN_FILENO, forward_input_sock);
 	}
 	/*
 	 * check the rest sockets for any outputs
@@ -322,26 +322,29 @@ void loop(int listen)
 			case STDOUT:
 			    if(PrependSource){
 				char prefix[30];
-				if(verbose){
-				    snprintf(prefix, sizeof(prefix), "[%d, %d]:",
-					     msg.header.sender, msg.header.len);
+				if (verbose) {
+				    snprintf(prefix, sizeof(prefix),
+					     "[%d, %d]:", msg.header.sender,
+					     msg.header.len);
 				    write(outfd, prefix, strlen(prefix));
 				}else{
-				    if (msg.header.len - sizeof(msg.header) > 0){
-					snprintf(prefix, sizeof(prefix), "[%d]:",
-						 msg.header.sender);
+				    if (msg.header.len - sizeof(msg.header)>0){
+					snprintf(prefix, sizeof(prefix),
+						 "[%d]:", msg.header.sender);
 					write(outfd, prefix, strlen(prefix));
 				    }
 				}
 			    }
 			    write(outfd, msg.buf,
 				  msg.header.len - sizeof(msg.header));
-			    if ((msg.header.sender == 0)&&(forward_input_sock < 0)){
+			    if ((msg.header.sender == 0)
+				&& (forward_input_sock < 0)) {
 				/* rank 0 want the input */
 				forward_input_sock = sock;
 				FD_SET(STDIN_FILENO,&myfds);
 				if(verbose){
-				    fprintf(stderr, "PSIlogger: forward input to sock %d\n",
+				    fprintf(stderr, "PSIlogger:"
+					    " forward input to sock %d\n",
 					    forward_input_sock);
 				}
 			    }
