@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.13 2004/03/08 19:24:35 eicker Exp $
+ * $Id: config_parsing.c,v 1.14 2004/03/11 14:11:20 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.13 2004/03/08 19:24:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.14 2004/03/11 14:11:20 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -51,6 +51,7 @@ static config_t config = (config_t) {
     .logLevel = 0,
     .logDest = LOG_DAEMON,
     .useSyslog = 1,
+    .freeOnSuspend = 0,
 };
 
 #define ENV_END 17 /* Some magic value */
@@ -249,7 +250,7 @@ static int getLicFile(char *token)
 static int getMCastUse(char *token)
 {
     config.useMCast = 1;
-    parser_comment("Will use MCast. Disnable alternative status control", 0);
+    parser_comment("Will use MCast. Disable alternative status control", 0);
     return 0;
 }
 
@@ -994,6 +995,15 @@ static int getHardware(char *token)
 
 /* ---------------------------------------------------------------------- */
 
+static int getFreeOnSusp(char *token)
+{
+    config.freeOnSuspend = 1;
+    parser_comment("Suspended jobs will free their resources", 0);
+    return 0;
+}
+    
+/* ---------------------------------------------------------------------- */
+
 static keylist_t config_list[] = {
     {"installationdir", getInstDir},
     {"installdir", getInstDir},
@@ -1020,6 +1030,7 @@ static keylist_t config_list[] = {
     {"logdest", getLogDest},
     {"environment", getEnv},
     {"env", getEnv},
+    {"freeOnSuspend", getFreeOnSusp},
     {NULL, parser_error}
 };
 
