@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.11 2002/10/17 15:42:00 eicker Exp $
+# $Id: Makefile.in,v 1.12 2003/02/06 10:22:47 hauke Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -61,7 +61,7 @@ dirs: $(DIRS)
 ifeq ("$(TARGET_OS)","linux")
 $(LIBDIR)/%: $(TOP_BUILDDIR)/lib/%
 	cp $< $@
-	strip -g $<
+	strip -g $@
 endif
 ifeq ("$(TARGET_OS)","osf5.1")
 $(LIBDIR)/%: $(TOP_BUILDDIR)/lib/%
