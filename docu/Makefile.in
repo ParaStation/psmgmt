@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.8 2002/11/18 12:16:58 eicker Exp $
+# $Id: Makefile.in,v 1.9 2002/12/03 15:56:23 eicker Exp $
 #
 # @author
 #         Norbert Eicker <eicker@par-tec.de>
@@ -52,11 +52,14 @@ USERDEPS += $(patsubst man1/%.1,%.sgml,$(USERMAN1))
 USERDEPS += $(patsubst man7/%.7,%.sgml,$(USERMAN7))
 
 
+HTMLIMAGES = ParTec.png ParaStation.png approach.png interface.png network.png
+
+
 DOXYSRC = psport.h pshwtypes.h pse.h
 DOXYDIR = html/api
 DOXYINDEX = $(DOXYDIR)/index.html
 
-HTMLDIRS = html/adminguide html/userguide
+HTMLDIRS = html/adminguide html/userguide html/images
 MANDIRS = man/man1 man/man5 man/man8 man/man7
 
 DIRS = $(HTMLDIRS) $(MANDIRS) $(DOXYDIR) pdf
@@ -89,13 +92,17 @@ validate: $(patsubst %,%.xml,$(TARGETS))
 #
 # Rules to create the HTML stuff
 #
-HTML: validate dirs $(patsubst %,html/%/index.html,$(TARGETS)) html/index.html
+HTML: validate dirs $(patsubst %,html/%/index.html,$(TARGETS)) \
+	html/index.html $(patsubst %,html/images/%,$(HTMLIMAGES))
 
 html/%/index.html: %.xml $(STYLESHEETDIR)/html.xsl
 	@export SGML_CATALOG_FILES=$(SGML_CATALOG); \
 	$(XSLT) $(XSLTFLAGS) -o $(@D)/ $(STYLESHEETDIR)/html.xsl $<
 
 html/index.html: index.html
+	$(CP) $< $@
+
+html/images/%: images/%
 	$(CP) $< $@
 
 html/adminguide/index.html: $(ADMINDEPS)
