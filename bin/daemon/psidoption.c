@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidoption.c,v 1.4 2003/11/26 17:40:27 eicker Exp $
+ * $Id: psidoption.c,v 1.5 2003/12/09 16:17:51 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidoption.c,v 1.4 2003/11/26 17:40:27 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidoption.c,v 1.5 2003/12/09 16:17:51 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -29,12 +29,11 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidoption.c,v 1.4 2003/11/
 #include "psidutil.h"
 #include "psidcomm.h"
 #include "psidtask.h"
+#include "psidtimer.h"
 
 #include "psidoption.h"
 
 static char errtxt[256]; /**< General string to create error messages */
-
-extern struct timeval selecttimer;
 
 void send_OPTIONS(int destnode)
 {
@@ -93,7 +92,7 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 	    }
 	    case PSP_OP_PSIDSELECTTIME:
 		if (msg->opt[i].value > 0) {
-		    selecttimer.tv_sec = msg->opt[i].value;
+		    selectTime.tv_sec = msg->opt[i].value;
 		}
 	    break;
 	    case PSP_OP_PROCLIMIT:
@@ -263,7 +262,7 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		msg->opt[i].value = PSID_getDebugLevel();
 		break;
 	    case PSP_OP_PSIDSELECTTIME:
-		msg->opt[i].value = selecttimer.tv_sec;
+		msg->opt[i].value = selectTime.tv_sec;
 		break;
 	    case PSP_OP_PROCLIMIT:
 		msg->opt[i].value = PSnodes_getProcs(PSC_getMyID());
