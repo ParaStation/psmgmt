@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.20 2002/07/31 10:24:47 eicker Exp $
+ * $Id: psilogger.c,v 1.21 2002/08/01 10:51:01 eicker Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.20 2002/07/31 10:24:47 eicker Exp $
+ * $Id: psilogger.c,v 1.21 2002/08/01 10:51:01 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.20 2002/07/31 10:24:47 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.21 2002/08/01 10:51:01 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* DEBUG_LOGGER allows logger debuging without the daemon
@@ -89,13 +89,13 @@ int msock;
 void sighandler(int sig)
 {
     int i;
-    static int firstCall = 1;
+    static int firstTERM = 1;
 
     switch(sig){
     case SIGTERM:
-	if (verbose && firstCall) {
+	if (verbose && firstTERM) {
 	    fprintf(stderr, "PSIlogger: Got SIGTERM. Problem with child?\n");
-	    firstCall = 0;
+	    firstTERM = 0;
 	}
 	if (verbose) {
 	    fprintf(stderr,
@@ -109,7 +109,17 @@ void sighandler(int sig)
 	    close(msock);
 	    msock = -1;
 	}
+	break;
+    case SIGTTIN:
+	// if (verbose) {
+	fprintf(stderr, "PSIlogger %d: Got SIGTTIN.\n", getpid());
+	usleep(200000);
+	// }
+	break;
+    default:
+	fprintf(stderr, "PSIlogger %d: Got signal %d.\n", getpid(), sig);
     }
+
     fflush(stdout);
     fflush(stderr);
 
@@ -221,13 +231,28 @@ void forward_input(int std_in, int fwclient)
 {
     char buf[1000];
     int len;
+    long arg;
+    static int count=0;
 
     len = read(std_in, buf, sizeof(buf)>SSIZE_MAX ? SSIZE_MAX : sizeof(buf));
-    if (len > 0){
-	writelog(fwclient,STDIN, -1, buf, len);
-    } else {
+    switch (len) {
+    case -1:
+	if (errno != EIO) {
+	    char *errstr = strerror(errno);
+	    fprintf(stderr, "PSIlogger: read() failed in forward_input()"
+		    " with errno %d: %s",errno, errstr ? errstr : "UNKNOWN");
+
+	    FD_CLR(std_in, &myfds);
+	    /* Don't close std_in to prevent STDIN_FILENO from use */
+	} else {
+	    /* ignore */
+	}
+	break;
+    case 0:
 	FD_CLR(std_in, &myfds);
-	/* close(std_in); */ /* Don't close std_in to prevent fd=0 from use */
+	/* Don't close std_in to prevent STDIN_FILENO from use */
+    default:
+	writelog(fwclient,STDIN, -1, buf, len);
     }
 }
 
@@ -451,6 +476,15 @@ int main( int argc, char**argv)
 {
     int listen;
     char *envstr;
+
+    sigset_t set;
+
+    /* block SIGTTIN so logger work also in background */
+    sigemptyset(&set);
+    sigaddset(&set, SIGTTIN);
+    if (sigprocmask(SIG_BLOCK, &set, NULL)) {
+	printf("PSIlogger: blockSig(): sigprocmask()");
+    }
 
     /* become process group leader */
     // setpgid(0,0);
