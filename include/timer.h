@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: timer.h,v 1.1 2002/01/28 19:09:17 eicker Exp $
+ * $Id: timer.h,v 1.2 2002/01/30 10:45:04 eicker Exp $
  *
  */
 /**
  * @file
  * timer: ParaStation Timer facility @todo More info on module.
  *
- * $Id: timer.h,v 1.1 2002/01/28 19:09:17 eicker Exp $
+ * $Id: timer.h,v 1.2 2002/01/30 10:45:04 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -28,34 +28,6 @@
 extern "C" {
 #if 0
 } /* <- just for emacs indentation */
-#endif
-#endif
-
-#if defined(__osf__)
-/*
- * OSF provides no timeradd/timersub in sys/time.h :-((
- */
-#ifndef timeradd
-#define timeradd(a, b, result)                                        \
-  do {                                                                \
-    (result)->tv_sec = (a)->tv_sec + (b)->tv_sec;                     \
-    (result)->tv_usec = (a)->tv_usec + (b)->tv_usec;                  \
-    if ((result)->tv_usec >= 1000000) {                               \
-        ++(result)->tv_sec;                                           \
-        (result)->tv_usec -= 1000000;                                 \
-    }                                                                 \
-  } while (0)
-#endif
-#ifndef timersub
-#define timersub(a, b, result)                                        \
-  do {                                                                \
-    (result)->tv_sec = (a)->tv_sec - (b)->tv_sec;                     \
-    (result)->tv_usec = (a)->tv_usec - (b)->tv_usec;                  \
-    if ((result)->tv_usec < 0) {                                      \
-      --(result)->tv_sec;                                             \
-      (result)->tv_usec += 1000000;                                   \
-    }                                                                 \
-  } while (0)
 #endif
 #endif
 
@@ -88,9 +60,9 @@ int isInitializedTimer(void);
  *
  * @return The actual debug-level is returned.
  *
- * @see setTimerDebugLevel()
+ * @see setDebugLevelTimer()
  */
-int getTimerDebugLevel(void);
+int getDebugLevelTimer(void);
 
 /**
  * @brief Set the debug-level.
@@ -103,9 +75,9 @@ int getTimerDebugLevel(void);
  *
  * @return No return value.
  *
- * @see getTimerDebugLevel()
+ * @see getDebugLevelTimer()
  */
-void setTimerDebugLevel(int level);
+void setDebugLevelTimer(int level);
 
 /**
  * @brief Register a new timer

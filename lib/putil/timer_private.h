@@ -1,19 +1,19 @@
 /*
  *               ParaStation3
- * timer_priv.h
+ * timer_private.h
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: timer_private.h,v 1.1 2002/01/29 12:37:24 eicker Exp $
+ * $Id: timer_private.h,v 1.2 2002/01/30 10:45:04 eicker Exp $
  *
  */
 /**
  * \file
- * timer_priv: ParaStation Timer facility
- *             Private functions and definitions
+ * timer_private: ParaStation Timer facility
+ *                Private functions and definitions
  *
- * $Id: timer_private.h,v 1.1 2002/01/29 12:37:24 eicker Exp $
+ * $Id: timer_private.h,v 1.2 2002/01/30 10:45:04 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>

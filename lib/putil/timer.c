@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: timer.c,v 1.1 2002/01/28 19:09:17 eicker Exp $
+ * $Id: timer.c,v 1.2 2002/01/30 10:45:04 eicker Exp $
  *
  */
 /**
  * \file
  * timer: ParaStation Timer facility
  *
- * $Id: timer.c,v 1.1 2002/01/28 19:09:17 eicker Exp $
+ * $Id: timer.c,v 1.2 2002/01/30 10:45:04 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: timer.c,v 1.1 2002/01/28 19:09:17 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: timer.c,v 1.2 2002/01/30 10:45:04 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -30,17 +30,18 @@ static char vcid[] __attribute__(( unused )) = "$Id: timer.c,v 1.1 2002/01/28 19
 #include <syslog.h>
 #include <signal.h>
 #include <sys/time.h>
-#include <errlog.h>
+
+#include "errlog.h"
 
 #include "timer.h"
-#include "timer_priv.h"
+#include "timer_private.h"
 
-int getTimerDebugLevel(void)
+int getDebugLevelTimer(void)
 {
     return getErrLogLevel();
 }
 
-void setTimerDebugLevel(int level)
+void setDebugLevelTimer(int level)
 {
     setErrLogLevel(level);
 }
@@ -88,6 +89,7 @@ void initTimer(int syslog)
     }
 
     timerList = NULL;
+    initialized = 1;
 }
 
 int isInitializedTimer(void)
