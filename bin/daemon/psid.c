@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.45 2002/03/05 13:31:54 eicker Exp $
+ * $Id: psid.c,v 1.46 2002/03/27 14:28:51 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.45 2002/03/05 13:31:54 eicker Exp $ 
+ * $Id: psid.c,v 1.46 2002/03/27 14:28:51 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.45 2002/03/05 13:31:54 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.46 2002/03/27 14:28:51 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -38,6 +38,10 @@ static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.45 2002/03/05 13
 #include <syslog.h>
 #include <fcntl.h>
 #include <arpa/inet.h>
+
+#ifdef __osf__
+#include <sys/table.h>
+#endif
 
 #include <pshal.h>
 #include <psm_mcpif.h>
@@ -63,7 +67,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.45 $";
+static char psid_cvsid[] = "$Revision: 1.46 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -1906,7 +1910,8 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
  */
 void msg_SETOPTION(DDOptionMsg_t *msg)
 {
-    int i, val;
+    int i;
+    unsigned int val;
     for (i=0; i<msg->count; i++) {
 	if (PSI_isoption(PSP_ODEBUG)) {
 	    sprintf(PSI_txt,"SETOPTION()option: %ld value 0x%lx \n",
@@ -2049,7 +2054,8 @@ void msg_GETOPTION(DDOptionMsg_t* msg)
 	    sendMsg(&errmsg);
 	}
     } else {
-	int i, val;
+	int i;
+	unsigned int val;
 	for (i=0; i<msg->count; i++) {
 	    if (PSI_isoption(PSP_ODEBUG)) {
 		sprintf(PSI_txt,"GETOPTION() sender %lx option: %ld \n",
@@ -2985,12 +2991,6 @@ void sighandler(int sig)
 #ifdef SIGINFO
     case  SIGINFO   : /* (+) information request */
 #endif
-#ifdef SIGIOINT
-    case  SIGIOINT  : /* printer to backend error signal */
-#endif
-#ifdef SIGAIO
-    case  SIGAIO    : /* base lan i/o */
-#endif
 #ifdef SIGURG
     case  SIGURG    : /* (+) urgent contition on I/O channel */
 #endif
@@ -3083,7 +3083,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.45 $";
+    char revision[] = "$Revision: 1.46 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
