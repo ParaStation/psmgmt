@@ -51,8 +51,8 @@ void PSID_ReConfig(int nodenr,int nrofnodes, char *routingfile)
     PSI_myid = nodenr;
     PSI_nrofnodes = nrofnodes;
 
-    PSHALSYS_SetSmallPacketSize(ConfigSmallPacketSize);
-    PSHALSYS_SetResendTimeout(ConfigResendTimeout);
+//    PSHALSYS_SetSmallPacketSize(ConfigSmallPacketSize);
+//    PSHALSYS_SetResendTimeout(ConfigResendTimeout);
 
     return;
 }
