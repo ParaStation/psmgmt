@@ -7,7 +7,7 @@
 /**
  * PSPort: Communication Library for Parastation , third edition
  *
- * $Id: psport4.h,v 1.5 2002/07/17 22:05:30 hauke Exp $
+ * $Id: psport4.h,v 1.6 2003/02/25 11:14:12 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -202,6 +202,18 @@ PSP_PortH_t PSP_OpenPort(int portno);
 #define PSP_ANYPORT -1 /**< When used as a port-number, stands for any
 			  port (wildcard). */
 
+
+/* ----------------------------------------------------------------------
+ * PSP_StopListen()
+ * ----------------------------------------------------------------------
+ */
+
+/**
+ * @brief Stop listening for new connections on port.
+ *
+ */
+void PSP_StopListen(PSP_PortH_t porth);
+
 /* ----------------------------------------------------------------------
  * PSP_GetPortNo()
  * ----------------------------------------------------------------------
@@ -253,7 +265,6 @@ PSP_Err_t PSP_ClosePort(PSP_PortH_t porth);
  * @return Returns the connection number usefull for PSP_ISend()
  * or -1 on error ( reason in errno )
  */
-int PSP_Connect_( PSP_PortH_t porth, struct sockaddr *sa, socklen_t addrlen );
 int PSP_Connect( PSP_PortH_t porth, int nodeid, int portno );
 
 /* ----------------------------------------------------------------------

@@ -7,7 +7,7 @@
 /**
  * name: Description
  *
- * $Id: psport4.c,v 1.11 2003/01/21 14:04:47 hauke Exp $
+ * $Id: psport4.c,v 1.12 2003/02/25 11:14:12 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -19,7 +19,7 @@
  */
 
 static char vcid[] __attribute__(( unused )) =
-"$Id: psport4.c,v 1.11 2003/01/21 14:04:47 hauke Exp $";
+"$Id: psport4.c,v 1.12 2003/02/25 11:14:12 hauke Exp $";
 
 #ifdef XREF
 #include <sys/uio.h>
@@ -1397,7 +1397,7 @@ int DoBackgroundWorkWait( PSP_Port_t *port, struct timeval *timeout )
 	}
     }
 
-    if ( FD_ISSET( port->port_fd, &fds_read )){
+    if ((port->port_fd >= 0) && FD_ISSET( port->port_fd, &fds_read )){
 	/* the listen socket */
 	FD_CLR( port->port_fd, &fds_read );
 	DoAccept( port );
@@ -1533,7 +1533,7 @@ static
 void init_env( void )
 {
     intgetenv( &env_debug, ENV_DEBUG );
-    DPRINT(1,"# Version(PSFE): %s\n", vcid);
+    DPRINT(1,"# Version(PSFE): %s", vcid);
     intgetenv( &env_so_sndbuf, ENV_SO_SNDBUF );
     intgetenv( &env_so_rcvbuf, ENV_SO_RCVBUF );
     intgetenv( &env_tcp_nodelay, ENV_TCP_NODELAY );
@@ -1661,7 +1661,7 @@ PSP_PortH_t PSP_OpenPort(int portno)
 	si->sin_addr.s_addr = INADDR_ANY;
 	ret = bind( port->port_fd, &sa, sizeof(sa));
 	if (! ret )
-	    ret = listen( port->port_fd, 40 );
+	    ret = listen( port->port_fd, 64 );
 	if (! ret ){
 	    FD_SET2( port->port_fd, &port->fds_read, &port->nfds );
 	    break; /* Bind and listen ok */
@@ -1687,6 +1687,20 @@ PSP_PortH_t PSP_OpenPort(int portno)
  err_noport:
     PSP_UNLOCK;
     return (PSP_PortH_t)NULL;
+}
+
+
+/**********************************************************************/
+void PSP_StopListen(PSP_PortH_t porth)
+/**********************************************************************/
+{
+    PSP_Port_t *port = (PSP_Port_t *)porth;
+
+    if (port->port_fd < 0) return;
+
+    close(port->port_fd);
+    FD_CLR(port->port_fd, &port->fds_read);
+    port->port_fd = -1;
 }
 
 
