@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidtask.h,v 1.1 2002/07/03 20:07:14 eicker Exp $
+ * $Id: psidtask.h,v 1.2 2002/07/18 13:15:41 eicker Exp $
  *
  */
 /**
  * @file
  * psidtask: Functions for interaction with ParaStation tasks within the Daemon
  *
- * $Id: psidtask.h,v 1.1 2002/07/03 20:07:14 eicker Exp $
+ * $Id: psidtask.h,v 1.2 2002/07/18 13:15:41 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -30,18 +30,21 @@ extern "C" {
 #endif
 #endif
 
-/*----------------------------------------------------------------------*/
-/*
- * PStask_setsignalreceiver
+/**
+ * PSID_setSignal
  *
  *  adds the receiver TID to the list of tasks which shall receive a
  *  signal, when this task dies
  *  RETURN: void
  */
-void PStask_setsignalreceiver(PStask_t *task, long sender, int signal);
+void PSID_setSignal(PStask_sig_t **siglist, long tid, int signal);
 
-/*----------------------------------------------------------------------*/
-/*
+/**
+ * @todo
+ */
+int PSID_removeSignal(PStask_sig_t **siglist, long tid, int signal);
+
+/**
  * PStask_getsignalreceiver
  *
  *  returns the tid of the task,which sent the signal
@@ -49,29 +52,7 @@ void PStask_setsignalreceiver(PStask_t *task, long sender, int signal);
  *  RETURN: 0 if no such task exists
  *          >0 : tid of the receiver task
  */
-long PStask_getsignalreceiver(PStask_t *task, int *signal);
-
-/*----------------------------------------------------------------------*/
-/*
- * PStask_setsignalsender
- *
- *  adds the sender TID to the list of tasks which has send a signal to this
- *  task due to the death of sender tid
- *  RETURN: void
- */
-void PStask_setsignalsender(PStask_t *task, long sender, int signal);
-
-/*----------------------------------------------------------------------*/
-/*
- * PStask_getsignalsender
- *
- *  returns the tid of the task,which sent the signal
- *  removes the signalsender from the list
- *  RETURN: 0 if no such task exists
- *          >0 : tid of the sender task
- */
-long PStask_getsignalsender(PStask_t *task, int *signal);
-
+long PSID_getSignal(PStask_sig_t **siglist, int *signal);
 
 /*----------------------------------------------------------------------
  * Tasklist routines

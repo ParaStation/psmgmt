@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidtask.c,v 1.2 2002/07/11 11:12:03 eicker Exp $
+ * $Id: psidtask.c,v 1.3 2002/07/18 13:16:35 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.2 2002/07/11 11:12:03 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.3 2002/07/18 13:16:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -26,118 +26,80 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.2 2002/07/11
 
 static char errtxt[256];
 
-void PStask_setsignalreceiver(PStask_t* task, long tid, int signal)
+void PSID_setSignal(PStask_sig_t **siglist, long tid, int signal)
 {
-    struct PSsignal_t* thissignal;
-    struct PSsignal_t* prevsignal;
+    PStask_sig_t *thissignal;
 
-    thissignal = (struct PSsignal_t*) malloc(sizeof(struct PSsignal_t));
+    thissignal = (PStask_sig_t*) malloc(sizeof(PStask_sig_t));
+
     thissignal->signal = signal;
     thissignal->tid = tid;
-    thissignal->next = NULL;
+    thissignal->next = *siglist;
 
-    if (!task->signalreceiver) {
-	task->signalreceiver = thissignal;
-    } else {
-	prevsignal = task->signalreceiver;
-	while (prevsignal->next) prevsignal = prevsignal->next;
-	prevsignal->next = thissignal;
-    }
+    *siglist = thissignal;
 }
 
-long PStask_getsignalreceiver(PStask_t *task, int *signal)
+int PSID_removeSignal(PStask_sig_t **siglist, long tid, int signal)
 {
-    long tid;
-    struct PSsignal_t *thissignal;
-    struct PSsignal_t *prevsignal;
+    PStask_sig_t *this, *prev = NULL;
 
-    if (!task->signalreceiver)
-	return 0;
-
-    if ((*signal==-1) || (task->signalreceiver->signal == *signal)) {
-	/*
-	 * get the receiver of any signal
-	 * or the first signal sent is the one requested
-	 */
-	thissignal = task->signalreceiver;
-	*signal = thissignal->signal;
-	tid = thissignal->tid;
-
-	task->signalreceiver = thissignal->next;
-	free(thissignal);
-	return tid;
+    this = *siglist;
+    while (this && this->tid != tid && this->signal != signal) {
+	prev = this;
+	this = this->next;
     }
 
-    for (prevsignal = task->signalreceiver,
-	     thissignal = task->signalreceiver; thissignal;) {
-	if (thissignal->signal==*signal) {
-	    *signal = thissignal->signal;
-	    tid = thissignal->tid;
-	    prevsignal->next = thissignal->next;
-	    free(thissignal);
-	    return tid;
+    if (this) {
+	/* Signal found */
+	if (this == *siglist) {
+	    /* First element in siglist */
+	    *siglist = this->next;
 	} else {
-	    prevsignal= thissignal;
-	    thissignal = thissignal->next;
+	    /* Somewhere in the middle */
+	    prev->next = this->next;
 	}
+
+	free(this);
+
+	return 1;
     }
 
     return 0;
 }
 
-void PStask_setsignalsender(PStask_t *task, long tid, int signal)
-{
-    struct PSsignal_t *thissignal;
-    struct PSsignal_t *prevsignal;
-
-    thissignal = (struct PSsignal_t*) malloc(sizeof(struct PSsignal_t));
-    thissignal->signal = signal;
-    thissignal->tid = tid;
-    thissignal->next = NULL;
-
-    if (task->signalsender==NULL) {
-	task->signalsender = thissignal;
-    } else{
-	prevsignal = task->signalsender;
-	while (prevsignal->next) prevsignal = prevsignal->next;
-	prevsignal->next = thissignal;
-    }
-}
-
-long PStask_getsignalsender(PStask_t *task, int *signal)
+long PSID_getSignal(PStask_sig_t **siglist, int *signal)
 {
     long tid;
-    struct PSsignal_t *thissignal;
-    struct PSsignal_t *prevsignal;
+    PStask_sig_t *this, *prev = NULL;
 
-    if (task->signalsender==NULL)
+    if (!*siglist)
 	return 0;
 
-    if ((*signal== -1) || (task->signalsender->signal == *signal)) {
-	/*
-	 * get the sender of any signal
-	 * or the first signal sent is the one requested
-	 */
-	 thissignal = task->signalsender;
-	 *signal = thissignal->signal;
-	 tid = thissignal->tid;
-	 task->signalsender = thissignal->next;
-	 free(thissignal);
-	 return tid;
+    this = *siglist;
+
+    /* Take any signal if *signal==-1, i.e. first entry */
+    if (*signal!=-1) {
+	while (this && this->signal != *signal) {
+	    prev = this;
+	    this = this->next;
+	}
     }
 
-    for (prevsignal = task->signalsender,
-	     thissignal = task->signalsender; thissignal;) {
-	if (thissignal->signal==*signal) {
-	    *signal = thissignal->signal;
-	    tid = thissignal->tid;
-	    prevsignal->next = thissignal->next;
-	    free(thissignal);
-	    return tid;
+    if (this) {
+	/* Signal found */
+	*signal = this->signal;
+	tid = this->tid;
+	if (this == *siglist) {
+	    /* First element in siglist */
+	    *siglist = this->next;
 	} else {
-	    prevsignal = thissignal;
-	    thissignal = thissignal->next;
+	    /* Somewhere in the middle */
+	    prev->next = this->next;
 	}
+
+	free(this);
+
+	return tid;
     }
 
     return 0;
