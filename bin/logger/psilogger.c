@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.24 2003/02/27 18:20:57 eicker Exp $
+ * $Id: psilogger.c,v 1.25 2003/03/11 18:14:41 eicker Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.24 2003/02/27 18:20:57 eicker Exp $
+ * $Id: psilogger.c,v 1.25 2003/03/11 18:14:41 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.24 2003/02/27 18:20:57 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.25 2003/03/11 18:14:41 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -238,6 +238,24 @@ void sighandler(int sig)
 	    fprintf(stderr, "\b\n");
 	}
 	break;
+    case SIGINT:
+	/* This is a second path to exit childs */
+	for (i=0; i<maxClients; i++) {
+	    if (clientTID[i] != -1) {
+		if (verbose)
+		    fprintf(stderr, "PSIlogger: killing %s (rank %d)\n",
+			    PSC_printTID(clientTID[i]), i);
+
+		PSLog_write(clientTID[i], EXIT, NULL, 0);
+
+		clientTID[i] = -1;
+		noClients--;
+	    }
+	}
+
+	exit(1);
+
+	break;
     case SIGTTIN:
 	if (verbose) {
 	    fprintf(stderr, "PSIlogger %d: Got SIGTTIN.\n", getpid());
@@ -251,6 +269,7 @@ void sighandler(int sig)
 	/* @todo:
 	 * Send STOP to childs, then really stop ( kill(getpid(),SIGSTOP); ).
 	 */
+	break;
     case SIGCONT:
 	if (verbose) {
 	    fprintf(stderr, "PSIlogger %d: Got SIGCONT.\n", getpid());
@@ -258,6 +277,7 @@ void sighandler(int sig)
 	/* @todo:
 	 * Send CONT to childs.
 	 */
+	break;
     default:
 	fprintf(stderr, "PSIlogger %d: Got signal %d.\n", getpid(), sig);
     }
@@ -662,6 +682,7 @@ int main( int argc, char**argv)
     signal(SIGTERM, sighandler);
     signal(SIGTSTP, sighandler);
     signal(SIGCONT, sighandler);
+    signal(SIGINT, sighandler);
 
     if (argc < 3) {
 	fprintf(stderr, "PSIlogger: Sorry, program must be called correctly"
