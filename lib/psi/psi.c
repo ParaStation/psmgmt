@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.42 2003/02/21 12:23:13 eicker Exp $
+ * $Id: psi.c,v 1.43 2003/02/27 18:33:02 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.42 2003/02/21 12:23:13 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.43 2003/02/27 18:33:02 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -389,7 +389,7 @@ int PSI_recvMsg(void *amsg)
 	    }
 
 	    snprintf(errtxt, sizeof(errtxt),
-		     "%s(): Lost connection to ParaStation daemon: %s"
+		     "%s(): Lost connection to ParaStation daemon: %s",
 		     __func__,  errstr ? errstr : "UNKNOWN");
 	    if (!errno) {
 		snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
@@ -403,7 +403,7 @@ int PSI_recvMsg(void *amsg)
 	}
     } while (msg->len>count && n>0);
 
-    if (count > sizeof(*msg)) {
+    if (count > (int) sizeof(*msg)) {
 	snprintf(errtxt, sizeof(errtxt), "%s() type %s (len=%d) from %s",
 		 __func__, PSP_printMsg(msg->type), msg->len,
 		 PSC_printTID(msg->sender));
@@ -610,10 +610,10 @@ static int myexecv( const char *path, char *const argv[])
     return ret;
 }
 
-void PSI_execLogger(void)
+void PSI_execLogger(const char *command)
 {
     int i;
-    char* argv[4];
+    char* argv[5];
     char *errstr;
     /*
      * close all open filedesciptor except my std* and the daemonSock
@@ -630,7 +630,12 @@ void PSI_execLogger(void)
     sprintf(argv[1],"%d", daemonSock);
     argv[2] = (char*)malloc(10);
     sprintf(argv[2],"%d", PSC_getMyID());
-    argv[3] = NULL;
+    if (command) {
+	argv[3] = strdup(command);
+    } else {
+	argv[3] = NULL;
+    }
+    argv[4] = NULL;
 
     myexecv(argv[0], argv);
 
