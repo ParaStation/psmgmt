@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.39 2002/07/11 17:12:24 eicker Exp $
+ * $Id: psiadmin.c,v 1.40 2002/07/18 13:10:43 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.39 2002/07/11 17:12:24 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.40 2002/07/18 13:10:43 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -27,6 +27,8 @@ static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.39 2002/07/1
 #include <psport.h>
 
 #include "pscommon.h"
+#include "psprotocol.h"
+#include "pshwtypes.h"
 #include "pstask.h"
 
 #include "psi.h"
@@ -44,7 +46,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.39 $";
+static char psiadmversion[] = "$Revision: 1.40 $";
 static int doRestart = 0;
 
 static char *hoststatus;
@@ -278,12 +280,7 @@ void PSIADM_HWStat(int first, int last)
     printf("Node\t Available Hardware\n");
     for (i = first; i < last; i++) {
 	if (nl[i].up) {
-	    printf("%4d\t ", i);
-	    if (nl[i].hwType & PSP_HW_ETHERNET) printf("ethernet ");
-	    if (nl[i].hwType & PSP_HW_MYRINET) printf("myrinet ");
-	    if (nl[i].hwType & PSP_HW_GIGAETHERNET) printf("gigaethernet ");
-	    if (!nl[i].hwType) printf("none");
-	    printf("\n");
+	    printf("%4d\t %s\n", i, PSHW_printType(nl[i].hwType));
 	} else {
 	    printf("%4d\t down\n", i);
 	}
@@ -1078,10 +1075,10 @@ void sighandler(int sig)
 
 	fprintf(stderr, "\nPSIadmin: Got SIGTERM .... exiting"
 		" ...wait for a reconnect..\n");
-	PSI_clientexit();
+	PSI_exitClient();
 	sleep(2);
 	fprintf(stderr, "PSIadmin: Restarting...\n");
-	if (!PSI_clientinit(TG_ADMIN)) {
+	if (!PSI_initClient(TG_ADMIN)) {
 	    fprintf(stderr, "can't contact my own daemon.\n");
 	    exit(-1);
         }
@@ -1157,14 +1154,14 @@ int main(int argc, char **argv)
 	    exit(-1);
 	}
 	printf("Initiating RESET.\n");
-	PSI_clientinit(TG_RESET);
-	PSI_clientexit();
+	PSI_initClient(TG_RESET);
+	PSI_exitClient();
 	printf("Waiting for reset.\n");
 	sleep(1);
 	printf("Trying to reconnect.\n");
     }
 
-    if (!PSI_clientinit(TG_ADMIN)) {
+    if (!PSI_initClient(TG_ADMIN)) {
 	fprintf(stderr,"can't contact my own daemon.\n");
 	exit(-1);
     }
