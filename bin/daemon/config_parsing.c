@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.12 2002/07/25 13:52:57 eicker Exp $
+ * $Id: config_parsing.c,v 1.13 2002/08/06 08:30:50 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.12 2002/07/25 13:52:57 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.13 2002/08/06 08:30:50 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -82,11 +82,6 @@ int ConfigRDPPort = 886;
 int ConfigMCastGroup = 237;
 int ConfigMCastPort = 1889;
 
-rlim_t ConfigRLimitCPUTime = -1;
-rlim_t ConfigRLimitDataSize = -1;
-rlim_t ConfigRLimitStackSize = -1;
-rlim_t ConfigRLimitRSSSize = -1;
-
 int ConfigLogLevel = 0;          /* default logging level */
 int ConfigLogDest = LOG_DAEMON;
 
@@ -102,9 +97,9 @@ static int allocHosts(int num)
 {
     int i;
 
-    if (nodes) free(nodes); /* @todo nodes allready allocated. Error? */
+    if (nodes) free(nodes);
 
-    nodes = malloc(sizeof(*nodes) * num);
+    nodes = (node_t *)malloc(sizeof(*nodes) * num);
 
     if (!nodes) {
 	snprintf(errtxt, sizeof(errtxt),
@@ -218,8 +213,7 @@ int parser_lookupHost(unsigned int ipaddr)
 
     /* loopback address */
     if ((ntohl(ipaddr) >> 24 ) == 0x7F)
-	return PSC_getMyID(); /* @todo Ist das sinnvoll ? */
-                   /* Macht es ueberhaupt Sinn localhost zu benutzen ? */
+	return PSC_getMyID();
 
     /* other addresses */
     hostno = ntohl(ipaddr) & 0xFF;
@@ -593,7 +587,7 @@ static int getLogDest(char *token)
 
 /* ---------------------- Stuff for rlimit lines ------------------------ */
 
-static int getRLimitVal(char *token, long *value, char *valname)
+static int getRLimitVal(char *token, rlim_t *value, char *valname)
 {
     char skip_it[] = "rlim_";
     int intval, ret;
@@ -616,28 +610,66 @@ static int getRLimitVal(char *token, long *value, char *valname)
     return 0;
 }
 
+static void setLimit(int limit, rlim_t value)
+{
+    struct rlimit rlp;
+
+    getrlimit(limit, &rlp);
+    rlp.rlim_cur=value;
+    setrlimit(limit, &rlp);
+}
+
+
 static int getRLimitCPU(char *token)
 {
-    return getRLimitVal(parser_getString(),
-			&ConfigRLimitCPUTime, "RLimit CPUTime");
+    rlim_t value;
+    int ret;
+
+    ret = getRLimitVal(parser_getString(), &value, "RLimit CPUTime");
+    if (ret) return ret;
+
+    setLimit(RLIMIT_CPU, value);
+
+    return 0;
 }
 
 static int getRLimitData(char *token)
 {
-    return getRLimitVal(parser_getString(),
-			&ConfigRLimitDataSize, "RLimit DataSize");
+    rlim_t value;
+    int ret;
+
+    ret = getRLimitVal(parser_getString(), &value, "RLimit DataSize");
+    if (ret) return ret;
+
+    setLimit(RLIMIT_DATA, value*1024);
+
+    return 0;
 }
 
 static int getRLimitStack(char *token)
 {
-    return getRLimitVal(parser_getString(),
-			&ConfigRLimitStackSize, "RLimit StackSize");
+    rlim_t value;
+    int ret;
+
+    ret = getRLimitVal(parser_getString(), &value, "RLimit StackSize");
+    if (ret) return ret;
+
+    setLimit(RLIMIT_STACK, value*1024);
+
+    return 0;
 }
 
 static int getRLimitRSS(char *token)
 {
-    return getRLimitVal(parser_getString(),
-			&ConfigRLimitRSSSize, "RLimit RSSSize");
+    rlim_t value;
+    int ret;
+
+    return getRLimitVal(parser_getString(), &value, "RLimit RSSSize");
+    if (ret) return ret;
+
+    setLimit(RLIMIT_RSS, value*1024);
+
+    return 0;
 }
 
 static int endRLimitEnv(char *token)
@@ -841,8 +873,8 @@ static parser_t nodeline_parser = {" \t\n", nodeline_list};
 
 static int getNodeLine(char *token)
 {
-    unsigned int ipaddr, nodenum;
-    int ret;
+    unsigned int ipaddr;
+    int nodenum, ret;
     char *hostname;
 
     node_hwtype = hwtype;
