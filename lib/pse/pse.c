@@ -42,9 +42,10 @@ PSE_Identity_t *mymap;
 
 static int   s_nPSE_WorldSize = -1;
 static int   s_nPSE_MyWorldRank = -1;
+static int   s_nPSE_NodeNo = -1;
+static int   s_nPSE_PortNo = -1;
 static long* s_pSpawnedProcesses;     /* size: <s_nPSE_WorldSize>  */
 
-static void  PSE_Abort(int nCode);
 void  PSE_SYexitall(char* pszReason, int nCode);
 
 /*****************************************************************************
@@ -89,7 +90,6 @@ void PSEinit(int NP, int Argc, char** Argv)
     int         i;
     int         maxnodes_partition;  /* total number of nodes          */
 
-    int myportno, mynodeno;
     PSE_Info_t myinfo;
 
     if( (s_nPSE_WorldSize = NP)<=0 ){
@@ -102,6 +102,8 @@ void PSEinit(int NP, int Argc, char** Argv)
 	EXIT("Initialization of PSI failed!%s\n", "");
     }
     s_nPSE_MyWorldRank = PSI_myrank;
+    printf("My rank is %d\n", PSI_myrank);
+    fflush(stdout);
 
     /* init the PSPort library */
     if(PSP_Init() != PSP_OK){
@@ -113,19 +115,19 @@ void PSEinit(int NP, int Argc, char** Argv)
 	EXIT("PSP_OpenPort() failed!%s\n", "");
     }
 
-    myportno = PSP_GetPortNo(PSEmyport);
-    if (myportno < 0 ){
+    s_nPSE_PortNo = PSP_GetPortNo(PSEmyport);
+    if (s_nPSE_PortNo < 0 ){
 	EXIT("PSP_GetPortNo() failed!%s\n", "");
     }
 
     /* get node id */
-    if (( mynodeno = PSP_GetNodeID())< 0){
+    if (( s_nPSE_NodeNo = PSP_GetNodeID())< 0){
 	EXIT("PSP_GetNodeID() failed!%s\n", "");
     }
-    DEBUG((stderr, "nodeno = %d, portno = %d\n", mynodeno, myportno););
+    DEBUG((stderr,"nodeno = %d, portno = %d\n",s_nPSE_NodeNo,s_nPSE_PortNo););
 
-    myinfo.myid.node = mynodeno;
-    myinfo.myid.port = myportno;
+    myinfo.myid.node = s_nPSE_NodeNo;
+    myinfo.myid.port = s_nPSE_PortNo;
     myinfo.mygrank = s_nPSE_MyWorldRank;
 
     /* now we know how many entries will be in the map */
@@ -161,7 +163,7 @@ void PSEinit(int NP, int Argc, char** Argv)
 		  parenttid, PSI_masternode, PSI_masterport);
 
 	DEBUG((stderr,"Sending nodeno (%d) and portno (%d) to (%d,%d).\n",
-	       mynodeno, myportno, PSI_masternode, PSI_masterport););
+	       s_nPSE_NodeNo, s_nPSE_PortNo, PSI_masternode, PSI_masterport););
 
 	/* step 1: send my identity to the master */
 	/* we send Info, that contains mygrank and myid */
@@ -174,7 +176,7 @@ void PSEinit(int NP, int Argc, char** Argv)
 	}
 
 	DEBUG((stderr, "[%d]: expecting msg on port %d from 0x%x [%d,%d]).\n",
-	       s_nPSE_MyWorldRank, myportno, parenttid, PSI_masternode,
+	       s_nPSE_MyWorldRank, s_nPSE_PortNo, parenttid, PSI_masternode,
 	       PSI_masterport);
 	      fflush(stderr););
 
@@ -216,7 +218,7 @@ void PSEinit(int NP, int Argc, char** Argv)
 	/* spawn client processes */
 	errors = malloc(s_nPSE_WorldSize*sizeof(int));
 	if( PSI_spawnM(s_nPSE_WorldSize-1, NULL, ".", Argc, Argv,
-		       mynodeno, myportno, 0, &errors[1],
+		       s_nPSE_NodeNo, s_nPSE_PortNo, 0, &errors[1],
 		       &s_pSpawnedProcesses[1]) < 0 ) {
 	    for(num_processes=1, loop_nr=1; num_processes < s_nPSE_WorldSize;
 		num_processes++, loop_nr++){
@@ -244,7 +246,7 @@ void PSEinit(int NP, int Argc, char** Argv)
 	    /* try to receive the TID of each spawned client process unless
 	       PSE_TIME_OUT is exceeded, trying it at least one time       */
 	    DEBUG((stderr, "[%d]: trying to receive info on port %d.\n",
-		   s_nPSE_MyWorldRank, myportno);
+		   s_nPSE_MyWorldRank, s_nPSE_PortNo);
 		  fflush(stderr););
 
 	    req = PSP_IReceive(PSEmyport, &clientinfo, sizeof(PSE_Info_t),
@@ -355,9 +357,40 @@ int PSEgetmyrank(void)
  * RETURN  >0 number of tasks in task group
  *         -1 not in a task group
  */
-int PSEgetsize()
+int PSEgetsize(void)
 {
    return s_nPSE_WorldSize;
+}
+
+/***************************************************************************
+ * int       PSEgetnodeno();
+ *
+ *  PSEgetnodeno  returns the number of the current node
+ *
+ * PARAMETERS
+ * RETURN  node number
+ */
+int PSEgetnodeno(void)
+{
+   return s_nPSE_NodeNo;
+}
+
+/***************************************************************************
+ * int       PSEgetportno();
+ *
+ *  PSEgetportno  returns the number of the current port
+ *
+ * PARAMETERS
+ * RETURN  port number
+ */
+int PSEgetportno(void)
+{
+   return s_nPSE_PortNo;
+}
+
+PSE_Identity_t * PSEgetmap(void)
+{
+    return mymap;
 }
 
 /***************************************************************************
