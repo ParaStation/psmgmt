@@ -38,6 +38,9 @@ test_nodes: test_nodes.o -lpshal -lpsport -larg -lpse -lpsi -lm -lpthread
 
 test_pse: test_pse.o -lpshal -lpsport -larg -lpse -lpsi -lm -lpthread
 
+mlisten: mlisten.o
+
+test_config_parsing: config_parsing.o -lputil -lpscommon
 
 # psiadmin
 EXTRACLEAN += lex.admin.c admin.tab.c admin.tab.h
@@ -53,8 +56,6 @@ VPATH += $(SRCDIR)/daemon $(SRCDIR)/cardconfig
 psid: psid.o psidutil.o psidtask.o config_parsing.o cardconfig.o
 psid: -lm -lpshal -lputil -lpscommon -lpsi
 # -lpsi only needed for forwarder! To be removed soon.
-
-test_config_parsing: config_parsing.o -lputil -lpscommon
 
 #psld
 VPATH += $(SRCDIR)/licdaemon
