@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.c,v 1.12 2003/04/10 17:24:30 eicker Exp $
+ * $Id: pstask.c,v 1.13 2003/07/22 18:34:36 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.12 2003/04/10 17:24:30 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.13 2003/07/22 18:34:36 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -275,12 +275,15 @@ size_t PStask_encode(char *buffer, size_t size, PStask_t *task)
     size_t msglen;
     int i;
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "PStask_encode(%p, %ld, task(", buffer, (long)size);
+    snprintf(errtxt, sizeof(errtxt), "%s(%p, %ld, task(", __func__,
+	     buffer, (long)size);
     PStask_snprintf(errtxt+strlen(errtxt),
 		    sizeof(errtxt)-strlen(errtxt), task);
     snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt), ")");
     PSC_errlog(errtxt, 10);
+
+    msglen = sizeof(tmpTask);
+    if (msglen > size) return msglen; /* buffer to small */
 
     tmpTask.tid = task->tid;
     tmpTask.ptid = task->ptid;
@@ -294,7 +297,6 @@ size_t PStask_encode(char *buffer, size_t size, PStask_t *task)
     tmpTask.loggertid = task->loggertid;
     tmpTask.argc = task->argc;
 
-    msglen = sizeof(tmpTask);
     memcpy(buffer, &tmpTask, sizeof(tmpTask));
 
     if (task->workingdir) {
@@ -306,15 +308,16 @@ size_t PStask_encode(char *buffer, size_t size, PStask_t *task)
 	    return msglen + strlen(task->workingdir);
 	}
     } else {
-	buffer[msglen]=0;
+	buffer[msglen]='\0';
     }
     msglen++; /* zero byte */
 
     for (i=0; i<task->argc; i++) {
 	if (msglen + strlen(task->argv[i]) < size) {
 	    strcpy(&buffer[msglen], task->argv[i]);
-	    msglen +=strlen(task->argv[i])+1;
+	    msglen += strlen(task->argv[i])+1;
 	} else {
+	    /* buffer to small */
 	    return msglen + strlen(task->argv[i]) + 1;
 	}
     }
@@ -326,15 +329,17 @@ size_t PStask_encode(char *buffer, size_t size, PStask_t *task)
 		strcpy(&buffer[msglen], task->environ[i]);
 		msglen += strlen(task->environ[i])+1;
 	    } else {
+		/* buffer to small */
 		return msglen + strlen(task->environ[i]) + 1;
 	    }
 	}
     }
     /* append zero byte */
     if (msglen < size) {
-	buffer[msglen] = 0;
+	buffer[msglen] = '\0';
 	msglen++;
     } else {
+	/* buffer to small */
 	return msglen + 1;
     }
 
@@ -345,7 +350,7 @@ int PStask_decode(char *buffer, PStask_t *task)
 {
     int msglen, len, count, i;
 
-    snprintf(errtxt, sizeof(errtxt), "PStask_decode(%p, task(", buffer);
+    snprintf(errtxt, sizeof(errtxt), "%s(%p, task(", __func__, buffer);
     PStask_snprintf(errtxt+strlen(errtxt),
 		    sizeof(errtxt)-strlen(errtxt), task);
     snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt), ")");
@@ -406,7 +411,7 @@ int PStask_decode(char *buffer, PStask_t *task)
 	msglen++;
     }
 
-    snprintf(errtxt, sizeof(errtxt), "PStask_decode() returns %d", msglen);
+    snprintf(errtxt, sizeof(errtxt), "%s returns %d", __func__, msglen);
     PSC_errlog(errtxt, 10);
 
     return msglen;
