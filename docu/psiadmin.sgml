@@ -1159,6 +1159,15 @@
   </refsect1>
 
   <refsect1>
+    <title>Errors</title>
+    <para>
+      The directives <command>status <parameter>load</parameter></command> and
+      <command>status <parameter>hw</parameter></command> are not documented
+      yet.
+    </para>
+  </refsect1>
+
+  <refsect1>
     <title>See also</title>
     <para>
       <xref linkend="parastation_conf"/>, <xref linkend="psid"/>, <xref
