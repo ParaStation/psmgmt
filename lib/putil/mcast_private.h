@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast_private.h,v 1.14 2003/10/23 13:30:57 eicker Exp $
+ * $Id: mcast_private.h,v 1.15 2003/12/10 16:24:14 eicker Exp $
  *
  */
 /**
@@ -14,7 +14,7 @@
  *
  * Private functions and definitions.
  *
- * $Id: mcast_private.h,v 1.14 2003/10/23 13:30:57 eicker Exp $
+ * $Id: mcast_private.h,v 1.15 2003/12/10 16:24:14 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -59,8 +59,8 @@ static int  nrOfNodes = 0;
 
 static char errtxt[256];         /**< String to hold error messages. */
 
-/** My node-ID withing the cluster. Set within initMCast(). */
-static int myID;
+/** My node-ID within the cluster. Set inside initMCast(). */
+static int myID = -1;
 
 #ifdef __osf__
 /**
@@ -80,7 +80,7 @@ static void (*MCastCallback)(int, void*) = NULL;
 typedef enum {
     T_INFO = 0x01,   /**< Normal info message */
     T_CLOSE,         /**< Info message from node going down */
-} MCastMsgType;
+} MCastMsgType_t;
 
 /**
  * The default MCast-group number. Magic number defined by Joe long time ago.
@@ -106,7 +106,7 @@ static struct timeval MCastTimeout = {2, 0}; /* sec, usec */
 static int MCastDeadLimit = 10;
 
 /** The jobs on my local node. */
-static MCastJobs jobsMCast = {0, 0};
+static MCastJobs_t jobsMCast = {0, 0};
 
 /* ---------------------------------------------------------------------- */
 
@@ -177,13 +177,13 @@ typedef struct ipentry_ {
     unsigned int ipnr;      /**< IP number of the node */
     int node;               /**< logical node number */
     struct ipentry_ *next;  /**< pointer to next entry */
-} ipentry;
+} ipentry_t;
 
 /**
  * 256 entries since lookup is based on LAST byte of IP number.
  * Initialized by initIPTable().
  */
-static ipentry iptable[256];
+static ipentry_t iptable[256];
 
 /**
  * @brief Initialize @ref iptable.
@@ -232,15 +232,15 @@ static int lookupIPTable(unsigned int ip_addr);
 typedef struct {
     struct timeval lastping; /**< Timestamp of last received ping */
     int misscounter;         /**< Number of pings missing */
-    MCastLoad load;          /**< Load parameters of node */
-    MCastJobs jobs;          /**< Number of jobs on the node */
-    MCastState state;        /**< State of the node (determined from pings */
-} Mconninfo;
+    MCastLoad_t load;        /**< Load parameters of node */
+    MCastJobs_t jobs;        /**< Number of jobs on the node */
+    MCastState_t state;      /**< State of the node (determined from pings) */
+} Mconninfo_t;
 
 /**
  * Array to hold all connection info.
  */
-static Mconninfo *conntable = NULL;
+static Mconninfo_t *conntable = NULL;
 
 /**
  * @brief Initialize the @ref conntable.
@@ -330,9 +330,9 @@ static int handleMCast(int fd);
  * Get load information from the kernel. The implementation is platform
  * specific, since POSIX has no mechanism to retrieve this info.
  *
- * @return A @ref MCastLoad structure containing the load info.
+ * @return A @ref MCastLoad_t structure containing the load info.
  */
-static MCastLoad getLoad(void);
+static MCastLoad_t getLoad(void);
 
 /**
  * @brief Send MCast ping.
@@ -343,19 +343,19 @@ static MCastLoad getLoad(void);
  *
  * @return No return value.
  */
-static void pingMCast(MCastState state);
+static void pingMCast(MCastState_t state);
 
 /**
- * @brief Create string from @ref MCastState.
+ * @brief Create string from @ref MCastState_t.
  *
- * Create a \\0-terminated string from MCastState @a state.
+ * Create a \\0-terminated string from @a state.
  *
- * @param state The @ref MCastState for which the name is requested.
+ * @param state The @ref MCastState_t for which the name is requested.
  *
  * @return Returns a pointer to a \\0-terminated string containing the
- * symbolic name of the @ref MCastState @a state.
+ * symbolic name of the @ref MCastState_t @a state.
  */
-static char *stateStringMCast(MCastState state);
+static char *stateStringMCast(MCastState_t state);
 
 #ifdef __cplusplus
 }/* extern "C" */
