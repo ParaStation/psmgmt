@@ -7,22 +7,148 @@
   <refnamediv>
     <refname>mpirun</refname>
     <refpurpose>
-      ToDo
+      run a &ps; MPI program
     </refpurpose>
   </refnamediv>
 
   <refsynopsisdiv>
     <cmdsynopsis>
       <command>mpirun</command>
+      <arg>-?htv</arg>
+      <arg choice="req">-np <replaceable>nodes</replaceable></arg>
+      <arg>-all-local</arg>
+      <arg>-nolocal</arg>
+      <arg>-dbg=<replaceable>debugger</replaceable></arg>
+      <arg choice="plain">program</arg>
+      <arg rep="repeat">arg</arg>
     </cmdsynopsis>
   </refsynopsisdiv>
 
   <refsect1>
     <title>Description</title>
     <para>
-      ToDo
+      <command>mpirun</command> is a shell script that attempts to hide the
+      differences in starting parallel jobs for various implementations of the
+      MPI messsage passing interface from the user. Within the &ps;
+      implementation the startup of parallel jobs is handled as described
+      within the <xref linkend="spawning"/> manual page. The spawning mechanism
+      is steered by environment variables which are described in detail within
+      <xref linkend="environment"/>.
+    </para>
+    <para>
+      <command>mpirun</command> typically works like this
+    </para>
+    <programlisting>	mpirun -np <replaceable>num</replaceable> <replaceable>prog</replaceable> <optional><replaceable>args</replaceable></optional>
+    </programlisting>
+    <para>
+      This will startup the parallel program <command>prog</command> on
+      <replaceable>num</replaceable> nodes of the cluster.
+      <replaceable>args</replaceable> are optional arguments which will be
+      passed to each instance of <command>prog</command>.
     </para>
   </refsect1>
+
+  <refsect1>
+    <title>Options</title>
+    <variablelist>
+      <varlistentry>
+	<term>
+	  <option>-np <replaceable>nodes</replaceable></option>
+        </term>
+	<listitem>
+	  <para>Specify the number of processors to run on.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>
+          <option>-all-local</option>
+        </term>
+        <listitem>
+          <para>Run all processes on the master node.</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>
+          <option>-nolocal</option>
+        </term>
+        <listitem>
+          <para>Don't run any processes on the local machine.</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-dbg=<replaceable>debugger</replaceable></option>
+        </term>
+	<listitem>
+	  <para>The option <option>-dbg</option> may be used to select a
+	    debugger.  For example, <option>-dbg=gdb</option> invokes the
+	    <filename>mpirun_dbg.gdb</filename> script located in the
+	    <filename>/opt/parastion/mpich/bin</filename> directory. This
+	    script captures the correct arguments, invokes the gdb debugger,
+	    and starts the first process under gdb where possible.
+	  </para>
+	  <para>
+	    There are 4 debugger scripts: gdb, xxgdb, ddd, totalview. These
+	    may need to be edited depending on your system. There is another
+	    debugger script for dbx, but this one will always need to be edited
+	    as the debugger commands for dbx varies between versions.
+	  </para>
+	  <para>
+	    You can also use this option to call another debugger; for example,
+	    <option>-dbg=mydebug</option>. All you need to do is write a script
+	    file, <filename>mpirun_dbg.mydebug</filename>, which follows the
+	    format of the included debugger scripts, and place it in the
+	    <filename>/opt/parastion/mpich/bin</filename> directory.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>
+          <option>-t</option>
+        </term>
+        <listitem>
+          <para>Testing - do not actually run, just print what would be
+	    executed.
+	  </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>
+          <option>-v</option>
+        </term>
+        <listitem>
+          <para>Verbose - throw in some comments.</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term>
+          <option>-?</option>
+          <option>, -h</option>
+        </term>
+        <listitem>
+          <para>Show a help message.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+  </refsect1>
+
+  <refsect1>
+    <title>Errors</title>
+    <para>
+      <!-- @todo Implement this parameters -->
+      The options <option>-all-local</option>, <option>-nolocal</option> and
+      <option>-dbg</option> are not implemented yet.
+    </para>
+  </refsect1>
+
+  <refsect1>
+    <title>See also</title>
+    <para>
+      <xref linkend="psmstart"/>, <xref linkend="environment"/>, <xref
+	linkend="spawning"/>
+    </para>
+  </refsect1>
+
 </refentry>
   <!-- Keep this comment at the end of the file
   Local variables:
