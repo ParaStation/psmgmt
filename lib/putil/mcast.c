@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.c,v 1.15 2003/10/08 13:49:33 eicker Exp $
+ * $Id: mcast.c,v 1.16 2003/10/23 13:34:50 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.15 2003/10/08 13:49:33 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.16 2003/10/23 13:34:50 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -84,34 +84,34 @@ static void initIPTable(void)
 {
     int i;
     for (i=0; i<256; i++) {
-	iptable[i].ipnr = 0;
+	iptable[i].ipnr = INADDR_ANY;
 	iptable[i].node = 0;
 	iptable[i].next = NULL;
     }
     return;
 }
 
-static void insertIPTable(struct in_addr ipno, int node)
+static void insertIPTable(unsigned int ip_addr, int node)
 {
     ipentry *ip;
-    int idx = ntohl(ipno.s_addr) & 0xff;  /* use last byte of IP addr */
+    int idx = ntohl(ip_addr) & 0xff;  /* use last byte of IP addr */
 
-    if (ipno.s_addr==INADDR_ANY) return;
+    if (ip_addr==INADDR_ANY) return;
 
-    if (iptable[idx].ipnr != 0) { /* create new entry */
+    if (iptable[idx].ipnr != INADDR_ANY) { /* create new entry */
 	snprintf(errtxt, sizeof(errtxt),
 		 "Node %d goes to table %d [NEW ENTRY]", node, idx);
 	ip = &iptable[idx];
 	while (ip->next) ip = ip->next; /* search end */
-	ip->next = (ipentry *)malloc(sizeof(ipentry));
+	ip->next = malloc(sizeof(ipentry));
 	ip = ip->next;
 	ip->next = NULL;
-	ip->ipnr = ipno.s_addr;
+	ip->ipnr = ip_addr;
 	ip->node = node;
     } else { /* base entry is free, so use it */
 	snprintf(errtxt, sizeof(errtxt),
 		 "Node %d goes to table %d", node, idx);
-	iptable[idx].ipnr = ipno.s_addr;
+	iptable[idx].ipnr = ip_addr;
 	iptable[idx].node = node;
     }
     errlog(errtxt, 4);
@@ -119,54 +119,50 @@ static void insertIPTable(struct in_addr ipno, int node)
     return;
 }
 
-static int lookupIPTable(struct in_addr ipno)
+static int lookupIPTable(unsigned int ip_addr)
 {
-    ipentry *ip = NULL;
-    int idx = ntohl(ipno.s_addr) & 0xff;  /* use last byte of IP addr */
+    ipentry *ip;
+    int idx = ntohl(ip_addr) & 0xff;  /* use last byte of IP addr */
 
     ip = &iptable[idx];
 
-    do {
-	if (ip->ipnr == ipno.s_addr) { /* node found */
+    while (ip) {
+	if (ip->ipnr == ip_addr) { /* node found */
 	    return ip->node;
 	}
 	ip = ip->next;
-    } while (ip);
+    };
 
     return -1;
 }
 
 /* ---------------------------------------------------------------------- */
 
-static void initConntable(int nodes, unsigned int host[], unsigned short port)
+static void initConntable(int nodes, unsigned int host[])
 {
     int i;
     struct timeval tv;
 
-    if (!conntableMCast) conntableMCast = malloc(nodes * sizeof(Mconninfo));
+    if (!conntable) conntable = malloc(nodes * sizeof(Mconninfo));
     initIPTable();
     gettimeofday(&tv, NULL);
     srandom(tv.tv_sec+tv.tv_usec);
     snprintf(errtxt, sizeof(errtxt), "%s: %d nodes", __func__, nodes);
     errlog(errtxt, 4);
     for (i=0; i<nodes; i++) {
-	memset(&conntableMCast[i].sin, 0, sizeof(struct sockaddr_in));
-	conntableMCast[i].sin.sin_family = AF_INET;
-	conntableMCast[i].sin.sin_addr.s_addr = host[i];
-	conntableMCast[i].sin.sin_port = port;
-	insertIPTable(conntableMCast[i].sin.sin_addr, i);
+	insertIPTable(host[i], i);
 	snprintf(errtxt, sizeof(errtxt), "IP-ADDR of node %d is %s",
-		 i, inet_ntoa(conntableMCast[i].sin.sin_addr));
+		 i, inet_ntoa(* (struct in_addr *) &host[i]));
 	errlog(errtxt, 4);
-	conntableMCast[i].misscounter = 0;
-	conntableMCast[i].lastping.tv_sec = 0;
-	conntableMCast[i].lastping.tv_usec = 0;
-	conntableMCast[i].load.load[0] = 0.0;
-	conntableMCast[i].load.load[1] = 0.0;
-	conntableMCast[i].load.load[2] = 0.0;
-	conntableMCast[i].jobs.total = 0;
-	conntableMCast[i].jobs.normal = 0;
-	conntableMCast[i].state = DOWN;
+	conntable[i].misscounter = 0;
+	conntable[i].lastping.tv_sec = 0;
+	conntable[i].lastping.tv_usec = 0;
+	conntable[i].load.load[0] = 0.0;
+	conntable[i].load.load[1] = 0.0;
+	conntable[i].load.load[2] = 0.0;
+	conntable[i].jobs.total = 0;
+	conntable[i].jobs.normal = 0;
+	conntable[i].state = DOWN;
     }
     return;
 }
@@ -264,7 +260,7 @@ static void closeConnectionMCast(int node)
 {
     snprintf(errtxt, sizeof(errtxt), "Closing connection to node %d", node);
     errlog(errtxt, 0);
-    conntableMCast[node].state = DOWN;
+    conntable[node].state = DOWN;
     if (MCastCallback) {  /* inform daemon */
 	MCastCallback(MCAST_LOST_CONNECTION, &node);
     }
@@ -278,23 +274,23 @@ static void checkConnectionsMCast(void)
 
     gettimeofday(&tv2, NULL);
     for (i=0; i<nrOfNodes; i++) {
-	if (conntableMCast[i].state != DOWN) {
-	    timeradd(&conntableMCast[i].lastping, &MCastTimeout, &tv1);
+	if (conntable[i].state != DOWN) {
+	    timeradd(&conntable[i].lastping, &MCastTimeout, &tv1);
 	    if (timercmp(&tv1, &tv2, <)) { /* no ping in the last 'round' */
 		snprintf(errtxt, sizeof(errtxt),
 			 "Ping from node %d missing [%d] "
 			 "(now=%lx, last=%lx, new=%lx)", i,
-			 conntableMCast[i].misscounter, tv2.tv_sec,
-			 conntableMCast[i].lastping.tv_sec, tv1.tv_sec);
-		conntableMCast[i].misscounter++;
-		conntableMCast[i].lastping = tv1;
-		if ((conntableMCast[i].misscounter%5)==0) {
+			 conntable[i].misscounter, tv2.tv_sec,
+			 conntable[i].lastping.tv_sec, tv1.tv_sec);
+		conntable[i].misscounter++;
+		conntable[i].lastping = tv1;
+		if ((conntable[i].misscounter%5)==0) {
 		    errlog(errtxt, 8);
 		} else {
 		    errlog(errtxt, 10);
 		}
 	    }
-	    if (conntableMCast[i].misscounter > MCastDeadLimit) {
+	    if (conntable[i].misscounter > MCastDeadLimit) {
 		snprintf(errtxt, sizeof(errtxt),
 			 "misscount exceeded, closing connection to node %d",
 			 i);
@@ -352,9 +348,9 @@ static int handleMCast(int fd)
 	}
 #ifdef __osf__
 	/* Workaround for tru64. s.o. comment in struct MCastMsg */
-	memcpy(&sin.sin_addr, &msg.ip, sizeof(sin.sin_addr));
+	memcpy(&sin.sin_addr.s_addr, &msg.ip, sizeof(sin.sin_addr.s_addr));
 #endif
-	node = lookupIPTable(sin.sin_addr);
+	node = lookupIPTable(sin.sin_addr.s_addr);
 	snprintf(errtxt, sizeof(errtxt),
 		 "... receiving MCast ping from %s [%d/%d], state: %s",
 		 inet_ntoa(sin.sin_addr), node, msg.node,
@@ -380,13 +376,13 @@ static int handleMCast(int fd)
 	    closeConnectionMCast(node);
 	    break;
 	default:
-	    gettimeofday(&conntableMCast[node].lastping, NULL);
-	    conntableMCast[node].misscounter = 0;
-	    conntableMCast[node].load = msg.load;
-	    conntableMCast[node].jobs = msg.jobs;
-	    if (conntableMCast[node].state != UP) {
+	    gettimeofday(&conntable[node].lastping, NULL);
+	    conntable[node].misscounter = 0;
+	    conntable[node].load = msg.load;
+	    conntable[node].jobs = msg.jobs;
+	    if (conntable[node].state != UP) {
 		/* got PING from unconnected node */
-		conntableMCast[node].state = UP;
+		conntable[node].state = UP;
 		snprintf(errtxt, sizeof(errtxt),
 			 "Got MCast ping from %s [%d] which is NOT ACTIVE",
 			 inet_ntoa(sin.sin_addr), node);
@@ -439,7 +435,7 @@ static void pingMCast(MCastState state)
     msg.type = T_INFO;
     if (state==DOWN) msg.type=T_CLOSE;
 #ifdef __osf__
-    memcpy(&msg.ip, &myIP, sizeof(msg.ip));
+    msg.ip = myIP;
 #endif
     msg.state = state;
     msg.load = getLoad();
@@ -503,11 +499,6 @@ int initMCast(int nodes, int mcastgroup, unsigned short portno, int usesyslog,
     }
     myID = id;
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "initMCast() for %d nodes, using %d as MCast group on port %d",
-	     nrOfNodes, mcastgroup, portno);
-    errlog(errtxt, 2);
-
     if (!mcastgroup) {
 	mcastgroup = DEFAULT_MCAST_GROUP;
     }
@@ -516,9 +507,15 @@ int initMCast(int nodes, int mcastgroup, unsigned short portno, int usesyslog,
 	portno = DEFAULT_MCAST_PORT;
     }
 
-    initConntable(nrOfNodes, hosts, htons(portno));
+    snprintf(errtxt, sizeof(errtxt),
+	     "initMCast() for %d nodes, using %d as MCast group on port %d",
+	     nrOfNodes, mcastgroup, portno);
+    errlog(errtxt, 2);
 
-    memcpy(&myIP, &conntableMCast[myID].sin.sin_addr, sizeof(myIP));
+    initConntable(nrOfNodes, hosts);
+#ifdef __osf__
+    myIP = hosts[myID];
+#endif
 
     if (!isInitializedTimer()) {
 	initTimer(usesyslog);
@@ -540,11 +537,11 @@ void exitMCast(void)
 
 void declareNodeDeadMCast(int node)
 {
-    if (0 <= node && node < nrOfNodes && conntableMCast[node].state != DOWN) {
+    if (0 <= node && node < nrOfNodes && conntable[node].state != DOWN) {
 	snprintf(errtxt, sizeof(errtxt), "Connection to node %d declared dead",
 		 node);
 	errlog(errtxt, 0);
-	conntableMCast[node].state = DOWN;
+	conntable[node].state = DOWN;
     }
 }
 
@@ -571,8 +568,8 @@ void setDeadLimitMCast(int limit)
 void incJobsMCast(int node, int total, int normal)
 {
     if (0 <= node && node < nrOfNodes) {
-	if (total) conntableMCast[node].jobs.total++;
-	if (normal) conntableMCast[node].jobs.normal++;
+	if (total) conntable[node].jobs.total++;
+	if (normal) conntable[node].jobs.normal++;
     }
     if (node == myID) {
 	if (total) jobsMCast.total++;
@@ -585,8 +582,8 @@ void incJobsMCast(int node, int total, int normal)
 void decJobsMCast(int node, int total, int normal)
 {
     if (0 <= node && node < nrOfNodes) {
-	if (total) conntableMCast[node].jobs.total--;
-	if (normal) conntableMCast[node].jobs.normal--;
+	if (total) conntable[node].jobs.total--;
+	if (normal) conntable[node].jobs.normal--;
     }
     if (node == myID) {
 	if (total) jobsMCast.total--;
@@ -598,17 +595,17 @@ void decJobsMCast(int node, int total, int normal)
 
 void getInfoMCast(int n, MCastConInfo_t *info)
 {
-    info->state = conntableMCast[n].state;
-    info->load = conntableMCast[n].load;
-    info->jobs = conntableMCast[n].jobs;
-    info->misscounter = conntableMCast[n].misscounter;
+    info->state = conntable[n].state;
+    info->load = conntable[n].load;
+    info->jobs = conntable[n].jobs;
+    info->misscounter = conntable[n].misscounter;
     return;
 }
 
 void getStateInfoMCast(int node, char *s, size_t len)
 {
     snprintf(s, len, "%3d [%s]: miss=%d\n", node,
-	     stateStringMCast(conntableMCast[node].state),
-	     conntableMCast[node].misscounter);
+	     stateStringMCast(conntable[node].state),
+	     conntable[node].misscounter);
     return;
 }
