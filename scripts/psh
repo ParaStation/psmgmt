@@ -9,11 +9,9 @@
 #
 # The configfile could look like this:
 #${HOME}/.psh.d/default:
-#-n carla1
-#-n carla2
-#-n carla3
-#-n carla4
-#-max 16
+#-n carla[1-4]
+#node carla14
+#max 16
 
 D_CONFIG_D="${HOME}/.psh.d"
 D_CONFIG="${D_CONFIG_D}/default"
