@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pscommon.c,v 1.1 2002/06/27 18:37:53 eicker Exp $
+ * $Id: pscommon.c,v 1.2 2002/07/03 20:22:33 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.1 2002/06/27 18:37:53 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.2 2002/07/03 20:22:33 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -19,10 +19,13 @@ static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c,v 1.1 2002/06/27
 #include <netdb.h>
 #include <unistd.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+
+#include "errlog.h"
 
 #include "pscommon.h"
 
@@ -30,6 +33,45 @@ static short PSC_nrOfNodes = -1;
 static short PSC_myID = -1;
 
 static long PSC_myTID = -1;
+
+static char errtxt[256];
+
+/* Wrapper functions for logging */
+void PSC_initLog(int usesyslog, FILE *logfile)
+{
+    if (!usesyslog && logfile) {
+	int fno = fileno(logfile);
+
+	if (fno!=STDERR_FILENO) {
+	    dup2(fno, STDERR_FILENO);
+	    if (fno!=STDOUT_FILENO) {
+		fclose(logfile);
+	    }
+	}
+    }
+
+    initErrLog("PSC", usesyslog);
+}
+
+int PSC_getDebugLevel(void)
+{
+    return getErrLogLevel();
+}
+
+void PSC_setDebugLevel(int level)
+{
+    setErrLogLevel(level);
+}
+
+void PSC_errlog(char *s, int level)
+{
+    errlog(s, level);
+}
+
+void PSC_errexit(char *s, int errorno)
+{
+    errexit(s, errorno);
+}
 
 short PSC_getNrOfNodes(void)
 {
@@ -83,7 +125,7 @@ long PSC_getTID(short node, pid_t pid)
 #endif
 }
 
-unsigned short PSC_getNode(long tid)
+unsigned short PSC_getID(long tid)
 {
 #ifndef __osf__
     if (tid>=0) {
@@ -139,12 +181,10 @@ int PSC_startDaemon(unsigned int hostaddr)
     int sock;
     struct sockaddr_in sa;
 
-#if defined(DEBUG)
-    if (PSP_DEBUGADMIN & (PSI_debugmask )) {
-	sprintf(PSI_txt, "PSI_startdaemon(%x)\n", hostaddr);
-	PSI_logerror(PSI_txt);
-    }
-#endif
+    snprintf(errtxt, sizeof(errtxt), "PSC_startDaemon(%s)",
+	     inet_ntoa(* (struct in_addr *) &hostaddr));
+    PSC_errlog(errtxt, 10);
+
     /*
      * start the PSI Daemon via inetd
      */
@@ -155,7 +195,11 @@ int PSC_startDaemon(unsigned int hostaddr)
     sa.sin_addr.s_addr = hostaddr;
     sa.sin_port =  htons(PSC_getServicePort("psid", 888));
     if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0) {
-	perror("PSI daemon connect for start with inetd.");
+	char *errstr = strerror(errno);
+
+	snprintf(errtxt, sizeof(errtxt), "PSC_startDaemon():"
+		 " connect() fails: %s", errstr ? errstr : "UNKNOWN");
+	PSC_errlog(errtxt, 0);
 	shutdown(sock,2);
 	close(sock);
 	return 0;
@@ -193,31 +237,39 @@ char *PSC_lookupInstalldir(void)
 	return "";
 }
 
-void PSC_setInstalldir(char *installdir)
+void PSC_setInstalldir(char *dir)
 {
     char *name, logger[] = "/bin/psilogger";
     static char *instdir=NULL;
     struct stat fstat;
 
-    name = (char*) malloc(strlen(installdir) + strlen(logger) + 1);
-    strcpy(name,installdir);
+    name = (char*) malloc(strlen(dir) + strlen(logger) + 1);
+    strcpy(name,dir);
     strcat(name,logger);
     if (stat(name, &fstat)) {
-	perror(name);
+	char *errstr = strerror(errno);
+	snprintf(errtxt, sizeof(errtxt), "PSC_setInstalldir():"
+		 " '%s': %s.", name, errstr ? errstr : "UNKNOWN");
+	PSC_errlog(errtxt, 0);
 	free(name);
 	return;
     }
 
     if (!S_ISREG(fstat.st_mode)) {
-	fprintf(stderr, "%s: not a regular file\n", name);
+	snprintf(errtxt, sizeof(errtxt), "PSC_setInstalldir():"
+		 " '%s' not a regular file.", name);
+	PSC_errlog(errtxt, 0);
 	free(name);
+
 	return;
     }
 	    
     if (instdir) free(instdir);
-    instdir = strdup(installdir);
+    instdir = strdup(dir);
     installdir = instdir;
     free(name);
+
+    return;
 }
 
 
@@ -227,9 +279,10 @@ int PSC_getServicePort(char *name , int def)
 
     service = getservbyname(name,"tcp");
     if (!service) {
-	fprintf(stderr,
-		"can't get \"%s\" service entry. Now using port %d.\n",
-		name, def);
+	snprintf(errtxt, sizeof(errtxt), "PSC_getServicePort():"
+		 " can't get '%s' service entry, using port %d.",
+		 name, def);
+	PSC_errlog(errtxt, 1);
 	return def;
     } else {
 	return ntohs(service->s_port);
