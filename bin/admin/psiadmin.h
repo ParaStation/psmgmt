@@ -47,7 +47,7 @@ void PSIADM_ShowAckPend(void);
 void PSIADM_Reset(int reset_hw, int first, int last);
 void PSIADM_ShutdownCluster(int first, int last);
 void PSIADM_TestNetwork(int mode);
-void PSIADM_KillProc(int id);
+void PSIADM_KillProc(long tid, int sig);
 void PSIADM_Exit(void);
 
 #endif

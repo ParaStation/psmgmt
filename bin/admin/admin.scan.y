@@ -10,7 +10,7 @@
 #define yylex adminlex
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.19 2003/03/06 13:29:09 eicker Exp $";
+static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.20 2003/03/19 16:52:33 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #define NODEERR -2
@@ -30,7 +30,7 @@ static void CheckUserName(char *name);
     char name[80];
 }
 
-%token <val> NUMBER HEXNUMBER
+%token <val> NUMBER HEXNUMBER SIGNAL
 %token <name> NAME
 
 %token ADDOP SETOP SHOWOP STATOP KILLOP CONFIGOP RESTARTOP SHUTDOWNOP RESETOP
@@ -105,8 +105,10 @@ addline:
 
 killline: 
           KILLOP              {printf("KILL needs a task-id as parameter\n");}
-        | KILLOP NUMBER       {PSIADM_KillProc($2);}
-        | KILLOP HEXNUMBER    {PSIADM_KillProc($2);}
+        | KILLOP NUMBER       {PSIADM_KillProc($2, -1);}
+        | KILLOP HEXNUMBER    {PSIADM_KillProc($2, -1);}
+        | KILLOP SIGNAL NUMBER {PSIADM_KillProc($3, -$2);}
+        | KILLOP SIGNAL HEXNUMBER {PSIADM_KillProc($3, -$2);}
         ;
 
 setline:

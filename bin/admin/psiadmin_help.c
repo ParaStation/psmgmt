@@ -5,13 +5,13 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin_help.c,v 1.10 2003/03/06 13:29:40 eicker Exp $
+ * $Id: psiadmin_help.c,v 1.11 2003/03/19 16:54:29 eicker Exp $
  *
  * \todo More detailed messages for 'status' and 'set'.
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin_help.c,v 1.10 2003/03/06 13:29:40 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin_help.c,v 1.11 2003/03/19 16:54:29 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 static void PrintHelp(void)
@@ -93,11 +93,12 @@ static void PrintKillHelp(void)
     printf("Kill command:\n");
     printf("=============\n");
     printf("\n");
-    printf("SYNTAX: KILL NUMBER\n");
+    printf("SYNTAX: KILL [-SIGNAL] NUMBER\n");
     printf("\n");
-    printf("Description: Kills a process with the given task-id. The task-id"
-	   " can be\n");
-    printf("             obtained from the STATUS PROC command.\n");
+    printf("Description: Send a signal to a process with the given task-id."
+	   " The task-id\n");
+    printf("             can be obtained from the STATUS PROC command.\n");
+    printf("             The default signal sent is SIGTERM.\n");
     printf("\n");
     return;
 }
