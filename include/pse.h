@@ -1,39 +1,25 @@
 /*
- * Copyright (c) 1998 Regents of the University of Karlsruhe / Germany.
+ *               ParaStation3
+ * pse.h
+ *
+ * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
+ * $Id: pse.h,v 1.5 2002/02/08 10:45:06 eicker Exp $
  *
- *      @(#)pseinit.h    1.00 (Karlsruhe) 01/01/98
+ */
+/**
+ * @file
+ * ParaStation Programming Environment
  *
- *      written by  Joachim Blum (blum@ira.uka.de)
- *                  Patrick Ohly (ohly@ira.uka.de)
- *      changed by  Farzad Safa (safa@planNET.de)
+ * $Id: pse.h,v 1.5 2002/02/08 10:45:06 eicker Exp $
  *
+ * @author
+ * Norbert Eicker <eicker@par-tec.com>
  *
- * This is header file for the ParaStation Environment interface
- * It enables the programmer to use the ParaStation System similar
- * to MPI, where processes are addressed by ranks. 
- *
- * The rank to port translation has still to be done by hand, but
- * probably in the next version we will include communication calls
- * which directly use the rank instead of PSI-ports.
- * For now, please use PSI functions to communicate.
  */
 #ifndef __PSE_H
 #define __PSE_H
-
-#include <psport.h>
 
 /* time limit within which parent process must receive the global
    portid of each spawned child process                           */
@@ -55,29 +41,33 @@
 #endif
 #endif
 
-#define DEBUG0(s) DEBUG((stderr, "[%d(%d)]: " s,\
-                              s_nPSE_MyWorldRank,getpid()))
+#define DEBUG0(s) DEBUG((stderr, "[%d(%d)]: "s,\
+                              worldRankPSE,getpid()))
 
-#define DEBUG1(s, arg1) DEBUG((stderr, "[%d(%d)]: " s,\
-                              s_nPSE_MyWorldRank,getpid(), arg1))
+#define DEBUG1(s, arg1) DEBUG((stderr, "[%d(%d)]: "s,\
+                              worldRankPSE,getpid(), arg1))
 
-#define DEBUG2(s, arg1, arg2) DEBUG((stderr, "[%d(%d)]: " s,\
-                              s_nPSE_MyWorldRank,getpid(), arg1, arg2))
+#define DEBUG2(s, arg1, arg2) DEBUG((stderr, "[%d(%d)]: "s,\
+                              worldRankPSE,getpid(), arg1, arg2))
 
-#define DEBUG3(s, arg1, arg2, arg3) DEBUG((stderr, "[%d(%d)]: " s,\
-                              s_nPSE_MyWorldRank,getpid(), arg1, arg2, arg3))
+#define DEBUG3(s, arg1, arg2, arg3) DEBUG((stderr, "[%d(%d)]: "s,\
+                              worldRankPSE,getpid(), arg1, arg2, arg3))
 
-#define EXIT(s, arg) {char reason[200];sprintf(reason, "[%d]: " s, s_nPSE_MyWorldRank, arg);\
+#define EXIT(s, arg) {char reason[200];sprintf(reason,"[%d]: "s,\
+                              worldRankPSE, arg);\
                       PSE_SYexitall(reason,10);}
-#define EXIT2(s, arg1, arg2) {char reason[200];sprintf(reason, "[%d]: " s, s_nPSE_MyWorldRank,\
-                                      arg1, arg2);\
+#define EXIT2(s, arg1, arg2) {char reason[200];sprintf(reason,"[%d]: "s,\
+                              worldRankPSE, arg1, arg2);\
                       PSE_SYexitall(reason,10);}
-#define EXIT3(s, arg1, arg2, arg3) {char reason[200];sprintf(reason, "[%d]: " s, s_nPSE_MyWorldRank,\
-                                      arg1, arg2,arg3);\
+#define EXIT3(s, arg1, arg2, arg3) {char reason[200];sprintf(reason,"[%d]: "s,\
+                              worldRankPSE, arg1, arg2,arg3);\
                       PSE_SYexitall(reason,10);}
 
 #ifdef __cplusplus
 extern "C" {
+#if 0
+} /* <- just for emacs indentation */
+#endif
 #endif
 
 /***************************************************************************
@@ -114,8 +104,10 @@ extern "C" {
  * SEE     
  *         PSEfinalize, PSEkillmachine, PSIspawn, PSEgetmyrank
  */
-void PSEinit(int NP, int Argc, char** Argv,
-	     int *masternode, int *masterport, int *rank);
+void PSEinit(int NP, int *rank);
+
+void PSEspawn(int Argc, char** Argv,
+	      int *masternode, int *masterport, int rank);
 
 /***************************************************************************
  * void      PSEfinalize(void);
@@ -165,4 +157,4 @@ int PSEgetsize(void);
 }/* extern "C" */
 #endif
 
-#endif
+#endif /* __PSE_H */

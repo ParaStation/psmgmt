@@ -1,14 +1,18 @@
 /*
-    pseini.c:  implementation of startup and communication
-    Author:      Patrick Ohly, Joachim Blum
-    eMail:       patrick.ohly@stud.uni-karlsruhe.de
-                 blum@par-tec.com
-
-    Revised by:  Farzad Safa
-                 Markus Goeken (CPort)
-    eMail:       safa@planNET.de
-                 goeken@ceta.de
-*/
+ *               ParaStation3
+ * pse.c
+ *
+ * ParaStation Programming Environment
+ *
+ * Copyright (C) ParTec AG Karlsruhe
+ * All rights reserved.
+ *
+ * $Id: pse.c,v 1.10 2002/02/08 10:45:06 eicker Exp $
+ *
+ */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.10 2002/02/08 10:45:06 eicker Exp $";
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,14 +21,15 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <netinet/in.h>
 #include <signal.h>
-
-#include <psport.h>
+#include <netdb.h>
 
 #include "psi.h"
 #include "info.h"
 #include "psispawn.h"
 #include "logger.h"
+#include "psienv.h"
 
 #include "pse.h"
 
@@ -39,15 +44,24 @@
 */
 #define ENV_PSE_TIMEOUT   "PSI_TIMEOUT"
 
-static int   s_nPSE_WorldSize = -1;
-static int   s_nPSE_MyWorldRank = -1;
-static long* s_pSpawnedProcesses;     /* size: <s_nPSE_WorldSize>  */
+static int   worldSizePSE = -1;
+static int   worldRankPSE = -1;
+static long* s_pSpawnedProcesses;     /* size: <worldSizePSE>  */
 
 void  PSE_SYexitall(char* pszReason, int nCode);
 
 /*****************************************************************************
     I N T E R F A C E   of  the  M O D U L E
 *****************************************************************************/
+
+static void flusher(int sig)
+{
+    /* printf("%d: Got sig %d\n", worldRankPSE, sig); */
+    fflush(stderr);
+    fflush(stdout);
+
+    exit(sig);
+}
 
 /***************************************************************************
  * void      PSEinit(int NP, int Argc, char** Argv);
@@ -82,46 +96,51 @@ void  PSE_SYexitall(char* pszReason, int nCode);
  * SEE
  *         PSEfinalize, PSEkillmachine, PSIspawn, PSEgetmyrank
  */
-void PSEinit(int NP, int Argc, char** Argv,
-	     int *masternode, int *masterport, int *rank)
+void PSEinit(int NP, int *rank)
 {
-    int         i;
-    int         maxnodes_partition;  /* total number of nodes          */
-
-    if( (s_nPSE_WorldSize = NP)<=0 ){
-	EXIT("Illegal number of processes: %d\n", s_nPSE_WorldSize);
+    if( (worldSizePSE = NP)<=0 ){
+	EXIT("Illegal number of processes: %d\n", worldSizePSE);
     }
-    DEBUG1("Argument:  NP = %d\n", s_nPSE_WorldSize);
+    DEBUG1("Argument:  NP = %d\n", worldSizePSE);
 
     /* init PSI */
     if( !PSI_clientinit(0) ){
 	EXIT("Initialization of PSI failed!%s\n", "");
     }
 
+    *rank = worldRankPSE = PSI_myrank;
+
+    fflush(stdout);
+
+    signal(SIGTERM, flusher);
+}
+
+/**
+ * @brief PSEspawn
+ *
+ * @todo
+ *
+ * @param
+ * @param
+ * @param
+ *
+ * @return
+ */
+void PSEspawn(int Argc, char** Argv,
+	      int *masternode, int *masterport, int rank)
+{
+    int i;
+    int maxnodes_partition;  /* total number of nodes          */
+
     /* client process? */
-    if( PSI_masterport > -1 ) {
-	long parenttid;
+    if (rank == -1) {
+	/* Spawn master process (we are going to be logger) */
+	long s_pSpawnedProcess = -1;
+	int error;
 
-	*rank = s_nPSE_MyWorldRank = PSI_myrank;
-	*masternode = PSI_masternode;
-	*masterport = PSI_masterport;
-	fflush(stdout);
-
-	/* send a my task identifier to the parent so it will know my
-	 * global portid too */
-	parenttid = INFO_request_taskinfo(PSI_mytid,INFO_PTID);
-	if((parenttid<=0) || (PSI_notifydead(parenttid,SIGTERM)<0))
-	    EXIT3("Parent with tid 0x%lx[%d,%d] is probably no more alive."
-		  " This shouldn't happen. I'm exiting.\n",
-		  parenttid, PSI_masternode, PSI_masterport);
-
-    } else {
-	/* parent process */
-
-	int *errors;
-	int num_processes;   /* number of valid table entries      */
-	
-	*rank = s_nPSE_MyWorldRank = 0;
+	char hostname[256];
+	struct hostent *hp;
+	struct in_addr sin_addr;
 
 	/* Check for LSF-Parallel */
 	PSI_LSF();
@@ -130,23 +149,70 @@ void PSEinit(int NP, int Argc, char** Argv,
 	/* get the partition */
 	maxnodes_partition = PSI_getPartition();
 
+	gethostname(hostname, sizeof(hostname));
+	hp = gethostbyname(hostname);
+	memcpy(&sin_addr, hp->h_addr, hp->h_length);
+
+	/* spawn master process */
+	if (PSI_spawnM(1, NULL, ".", Argc, Argv,
+		       sin_addr.s_addr, LOGGERopenPort(),
+		       rank+1, 0, &error, &s_pSpawnedProcess) < 0 ) {
+	    if(error!=0)
+		EXIT2("Could not spawn master process (%s) error = %s !\n",
+		      Argv[0],
+		      (error<sys_nerr) ? strerror(error):"UNKNOWN ERROR");
+	}
+
+	DEBUG0("Spawned master process.\n");
+
+	/* Switch to psilogger */
+	LOGGERexecLogger();
+
+    } else if (rank == 0) {
+	/* master process */
+
+	long parenttid;
+	int *errors;
+	char envstr[80];
+	int num_processes;   /* number of valid table entries      */
+
+	/* Check for LSF-Parallel */
+	PSI_RemoteArgs(Argc,Argv,&Argc,&Argv);
+
+	/* get the partition */
+	maxnodes_partition = PSI_getPartition();
+
+	/*
+	 * Register myself to the parents task, so I'm notified if the parent
+	 * dies.
+	 */
+	parenttid = INFO_request_taskinfo(PSI_mytid,INFO_PTID);
+	if((parenttid<=0) || (PSI_notifydead(parenttid,SIGTERM)<0))
+	    EXIT3("Parent with tid 0x%lx[%d:%d] is probably no more alive."
+		  " This shouldn't happen. I'm exiting.\n",
+		  parenttid, PSI_getnode(parenttid), PSI_getpid(parenttid));
+
+	snprintf(envstr, sizeof(envstr), "PSI_MASTERNODE=%d", *masternode);
+	putPSIEnv(envstr);
+	snprintf(envstr, sizeof(envstr), "PSI_MASTERPORT=%d", *masterport);
+	putPSIEnv(envstr);
+
 	/* init table of spawned processes */
-	if( !(s_pSpawnedProcesses=malloc(sizeof(long) * s_nPSE_WorldSize))){
+	if( !(s_pSpawnedProcesses=malloc(sizeof(long) * worldSizePSE))){
 	    EXIT("No memory!%s\n", "");
 	}
-	for( i=0; i<s_nPSE_WorldSize; i++ ){
+	for( i=0; i<worldSizePSE; i++ ){
 	    s_pSpawnedProcesses[i] = -1;
 	}
 	s_pSpawnedProcesses[0] = PSI_mytid;
 
-	PSI_notifydead(0,SIGTERM);
-
 	/* spawn client processes */
-	errors = malloc(s_nPSE_WorldSize*sizeof(int));
-	if( PSI_spawnM(s_nPSE_WorldSize-1, NULL, ".", Argc, Argv,
-		       *masternode, *masterport, *rank, &errors[1],
-		       &s_pSpawnedProcesses[1]) < 0 ) {
-	    for(num_processes=1; num_processes < s_nPSE_WorldSize;
+	errors = malloc(worldSizePSE*sizeof(int));
+	if (PSI_spawnM(worldSizePSE-1, NULL, ".", Argc, Argv,
+		       PSI_loggernode, PSI_loggerport,
+		       rank+1, parenttid,
+		       &errors[1], &s_pSpawnedProcesses[1]) < 0 ) {
+	    for(num_processes=1; num_processes < worldSizePSE;
 		num_processes++){
 		if(errors[num_processes]!=0)
 		    EXIT2("Could not spawn process (%s) error = %s !\n",
@@ -159,7 +225,36 @@ void PSEinit(int NP, int Argc, char** Argv,
 
 	DEBUG0("Spawned all processes.\n");
 
+    } else {
+	/* client process */
+
+	long parenttid;
+	char *env_str;
+
+	/* Get masternode/masterport from environment */
+	env_str = getenv("PSI_MASTERNODE");
+	if (!env_str) {
+	    EXIT("Could not determine PSI_MASTERNODE !%s\n", "");
+	}
+	*masternode = atoi(env_str);
+
+	env_str = getenv("PSI_MASTERPORT");
+	if (!env_str) {
+	    EXIT("Could not determine PSI_MASTERPORT !%s\n", "");
+	}
+	*masterport = atoi(env_str);
+
+	/*
+	 * Register myself to the parents task, so I'm notified if the parent
+	 * dies.
+	 */
+	parenttid = INFO_request_taskinfo(PSI_mytid, INFO_PTID);
+	if((parenttid<=0) || (PSI_notifydead(parenttid, SIGTERM)<0))
+	    EXIT3("Parent with tid 0x%lx[%d:%d] is probably no more alive."
+		  " This shouldn't happen. I'm exiting.\n",
+		  parenttid, PSI_getnode(parenttid), PSI_getpid(parenttid));
     }
+
 }
 
 /***************************************************************************
@@ -173,7 +268,7 @@ void PSEinit(int NP, int Argc, char** Argv,
  */
 int PSEgetmyrank(void)
 {
-   return s_nPSE_MyWorldRank;
+   return worldRankPSE;
 }
 
 
@@ -188,7 +283,7 @@ int PSEgetmyrank(void)
  */
 int PSEgetsize(void)
 {
-   return s_nPSE_WorldSize;
+   return worldSizePSE;
 }
 
 /***************************************************************************
@@ -206,7 +301,7 @@ void PSEfinalize(void)
     fflush(stdout);
     fflush(stderr);
 
-    if(s_nPSE_MyWorldRank){
+    if(worldRankPSE){
 	/* client process */
 
 	/* Don't kill parent when we exit */
@@ -246,8 +341,8 @@ void PSEkillmachine(void)
 {
     int i;
 
-    for(i=0; i<s_nPSE_WorldSize; i++){
-	if( i!=s_nPSE_MyWorldRank ){
+    for(i=0; i<worldSizePSE; i++){
+	if (i!=worldRankPSE) {
 	    PSI_kill(s_pSpawnedProcesses[i], SIGTERM);
 	    DEBUG2("Killing rank %d, pid 0x%x\n", i, s_pSpawnedProcesses[i]);
 	}
@@ -259,20 +354,20 @@ void PSEkillmachine(void)
     user requested or internal abort.                                      */
 void PSEabort(int nCode)
 {
-    fprintf( stderr, "[%d] Aborting program!\n", s_nPSE_MyWorldRank );
+    fprintf(stderr, "[%d] Aborting program!\n", worldRankPSE);
     fflush(stderr);
     fflush(stdout);
-    PSE_SYexitall((char*)0, nCode);
+    PSE_SYexitall(NULL, nCode);
 }
 
 /*  kill all spawned processes and exit  */
 void PSE_SYexitall(char* pszReason, int nCode)
 {
-    fprintf(stderr, "[%d]: Killing all(%d) processes",
-	    s_nPSE_MyWorldRank,s_nPSE_WorldSize);
-    if( pszReason ){
+    fprintf(stderr,
+	    "[%d]: Killing all(%d) processes", worldRankPSE, worldSizePSE);
+    if (pszReason) {
 	fprintf(stderr, ", reason: %s\n", pszReason);
-    }else{
+    } else {
 	fprintf(stderr, "\n");
     }
 
