@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilogger.c,v 1.14 2002/02/15 19:09:37 eicker Exp $
+ * $Id: psilogger.c,v 1.15 2002/02/18 19:48:26 eicker Exp $
  *
  */
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
- * $Id: psilogger.c,v 1.14 2002/02/15 19:09:37 eicker Exp $
+ * $Id: psilogger.c,v 1.15 2002/02/18 19:48:26 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.14 2002/02/15 19:09:37 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilogger.c,v 1.15 2002/02/18 19:48:26 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* DEBUG_LOGGER allows logger debuging without the daemon
@@ -112,7 +112,7 @@ int newrequest(int listen)
 {
     struct sockaddr_in sa; /* socket address */
     int salen;
-    int sock, reuse;
+    int sock, reuse = 1;
 
     salen = sizeof(sa);
     sock = accept(listen, (struct sockaddr *)&sa, &salen);
@@ -123,11 +123,10 @@ int newrequest(int listen)
 	char *cli_name;
 	cli_name = inet_ntoa(sa.sin_addr);
 	cli_port = ntohs(sa.sin_port);
-	fprintf(stderr, "PSIlogger: new connection from %s (%d)\n",
-		cli_name, cli_port);
+	fprintf(stderr, "PSIlogger: new connection (%d) from %s (%d)\n",
+		sock, cli_name, cli_port);
     }
 
-    reuse = 1;
     setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
 
     /* Send Init-message */
@@ -208,8 +207,8 @@ void forward_input(int std_in, int fwclient)
     if (len > 0){
 	writelog(fwclient,STDIN, -1, buf, len);
     } else {
-	close(std_in);
 	FD_CLR(std_in, &myfds);
+	/* close(std_in); */ /* Don't close std_in to prevent fd=0 from use */
     }
 }
 
@@ -267,7 +266,7 @@ void loop(int listen)
 	 */
 	if ( FD_ISSET(listen, &afds) ) {
 	    /* a connection request on my master socket */
-	    if ((sock = newrequest(listen)) > 0 ) {
+	    if ((sock = newrequest(listen)) > 0) {
 		FD_SET(sock, &myfds);
 		timeoutval = 10;
 		noclients++;
