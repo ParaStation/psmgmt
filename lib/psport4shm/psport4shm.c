@@ -7,7 +7,7 @@
 /**
  * name: Description
  *
- * $Id: psport4shm.c,v 1.1 2003/02/25 11:16:38 hauke Exp $
+ * $Id: psport4shm.c,v 1.2 2003/03/31 16:16:02 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -19,7 +19,7 @@
  */
 
 static char vcid[] __attribute__(( unused )) =
-"$Id: psport4shm.c,v 1.1 2003/02/25 11:16:38 hauke Exp $";
+"$Id: psport4shm.c,v 1.2 2003/03/31 16:16:02 hauke Exp $";
 
 #ifdef XREF
 #include <sys/uio.h>
@@ -48,6 +48,7 @@ static char vcid[] __attribute__(( unused )) =
 #include <netdb.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <sys/poll.h>
 #include "list.h"
 
 #define PSP_DPRINT_LEVEL 0
@@ -281,6 +282,7 @@ typedef struct con_s {
 	struct {
 	    int		fd;
 	    ReadAhead_t	readahead; /*< store data between two reads */
+	    int		ufd_idx;
 	}		fd;
 	shm_info_t	shm;
     } u;
@@ -303,10 +305,14 @@ typedef struct PSP_Port_s {
 
     con_t conns[PSP_MAX_CONNS];
 
+    struct pollfd ufds[PSP_MAX_CONNS];
+    con_t	*ufds_user[PSP_MAX_CONNS];
+    int		nufds;
+    
     int		min_connid;
-    fd_set	fds_read;
-    fd_set	fds_write;
-    int		nfds;
+//    fd_set	fds_read;
+//    fd_set	fds_write;
+//    int		nfds;
 
     struct list_head shm_list;
     struct list_head shm_list_send;
@@ -342,7 +348,7 @@ static int GenReqs = 0;
 static int GenReqsUsed = 0;
 static int PostedRecvReqs = 0;
 static int PostedRecvReqsUsed = 0;
-static int SelectCalls = 0;
+static int PollCalls = 0;
 
 
 //  static
@@ -493,6 +499,95 @@ void proceed_header(PSP_Header_t *header, size_t len)
     };
 }
 
+/**********************************************************************
+ *
+ *  fd stuff for poll()
+ *
+ **********************************************************************/
+
+static
+void ufd_add(PSP_Port_t *port, con_t *con)
+{
+    int idx;
+
+    idx = port->nufds;
+    port->nufds++;
+    
+    port->ufds[idx].fd = con->u.fd.fd;
+    port->ufds[idx].events = POLLIN;
+    port->ufds[idx].revents = 0;
+    port->ufds_user[idx] = con;
+
+    con->u.fd.ufd_idx = idx;
+}
+
+static
+void ufd_add_listen(PSP_Port_t *port)
+{
+    int idx;
+
+    idx = port->nufds;
+    port->nufds++;
+    
+    port->ufds[idx].fd = port->port_fd;
+    port->ufds[idx].events = POLLIN;
+    port->ufds[idx].revents = 0;
+    port->ufds_user[idx] = NULL;
+}
+
+static
+void ufd_del(PSP_Port_t *port, con_t *con)
+{
+    int idx;
+
+    if (con) {
+	idx = con->u.fd.ufd_idx;
+	con->u.fd.ufd_idx = -1;
+    } else {
+	/* listener? */
+	idx = -1;
+	for (idx = 0; idx < port->nufds; idx++) {
+	    if (port->ufds_user[idx] == NULL)
+		break;
+	}
+	if (idx < 0) goto err_intern;
+    }
+    
+    port->nufds--;
+    
+    /* move list down. */
+    for (;idx < port->nufds; idx++) {
+	port->ufds[idx] = port->ufds[idx + 1];
+	port->ufds_user[idx] = port->ufds_user[idx + 1];
+	if (port->ufds_user[idx]) {
+	    port->ufds_user[idx]->u.fd.ufd_idx = idx;
+	}
+    }
+    return;
+ err_intern:
+    DPRINT(0, __FUNCTION__ "() : Internal error!\n");
+    return;
+}
+
+static
+void ufd_write_set(PSP_Port_t *port, con_t *con)
+{
+    if (con->u.fd.ufd_idx >= 0) {
+	port->ufds[con->u.fd.ufd_idx].events |= POLLOUT;
+    } else {
+	DPRINT(0, __FUNCTION__ "() : Internal error!\n");
+    }
+}
+
+static
+void ufd_write_clr(PSP_Port_t *port, con_t *con)
+{
+    if (con->u.fd.ufd_idx >= 0) {
+	port->ufds[con->u.fd.ufd_idx].events &= ~POLLOUT;
+    } else {
+	DPRINT(0, __FUNCTION__ "() : Internal error!\n");
+    }
+}
 
 /**********************************************************************
  *
@@ -568,7 +663,7 @@ void AddSendRequest(PSP_Port_t *port, PSP_Request_t *req)
 	if (con->con_type == CON_TYPE_SHM) {
 	    list_add_tail(&con->u.shm.next_send, &port->shm_list_send);
 	} else if (con->con_type == CON_TYPE_FD) {
-	    FD_SET2(con->u.fd.fd, &port->fds_write, &port->nfds);
+	    ufd_write_set(port, con);
 	}
     }
     req->Next = NULL;
@@ -597,7 +692,7 @@ void DelFirstSendRequest(PSP_Port_t *port, PSP_Request_t *req)
 	if (con->con_type == CON_TYPE_SHM) {
 	    list_del(&con->u.shm.next_send);
 	} else if (con->con_type == CON_TYPE_FD) {
-	    FD_CLR(con->u.fd.fd, &port->fds_write);
+	    ufd_write_clr(port, con);
 	}
     }
     con->PostedSendRequests = req->Next;
@@ -1180,10 +1275,11 @@ PSP_Port_t *AllocPortStructInitialized(void)
 	    con->PostedSendRequestsTailP = &con->PostedSendRequests;
 	    con->RunningRecvRequest = NULL;
 	}
-	FD_ZERO(&port->fds_read);
-	FD_ZERO(&port->fds_write);
-	port->nfds = 0;
+
+	/* fd */
+	port->nufds = 0;
 	port->min_connid = PSP_MAX_CONNS;
+	/* shm */
 	INIT_LIST_HEAD(&port->shm_list);
 	INIT_LIST_HEAD(&port->shm_list_send);
     }
@@ -1241,6 +1337,8 @@ PSP_Port_t *DelPort(PSP_Port_t *Port)
     return hash;
 }
 
+
+
 static
 void ConfigureConnection(PSP_Port_t *port, con_t *con, int fd)
 {
@@ -1250,28 +1348,29 @@ void ConfigureConnection(PSP_Port_t *port, con_t *con, int fd)
     con->con_type = CON_TYPE_FD;
     con->u.fd.fd = fd;
     ReadAHInit(&con->u.fd.readahead, env_readahead);
-    FD_SET2(fd, &port->fds_read, &port->nfds);
 
-    if ( env_so_sndbuf ){
+    ufd_add(port, con);
+    
+    if (env_so_sndbuf) {
 	errno = 0;
 	val = env_so_sndbuf;
-	ret = setsockopt( fd, SOL_SOCKET, SO_SNDBUF, &val, sizeof(val));
-	DPRINT( 2, "setsockopt( %d, SOL_SOCKET, SO_SNDBUF, [%d], %ld ) = %d : %s",
-		fd, val, (long)sizeof(val), ret, strerror( errno ));
+	ret = setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &val, sizeof(val));
+	DPRINT( 2, "setsockopt(%d, SOL_SOCKET, SO_SNDBUF, [%d], %ld) = %d : %s",
+		fd, val, (long)sizeof(val), ret, strerror(errno));
     }
-    if ( env_so_rcvbuf ){
+    if (env_so_rcvbuf) {
 	errno = 0;
 	val = env_so_rcvbuf;
-	ret = setsockopt( fd, SOL_SOCKET, SO_RCVBUF, &val, sizeof(val));
-	DPRINT( 2, "setsockopt( %d, SOL_SOCKET, SO_RCVBUF, [%d], %ld ) = %d : %s",
-		fd, val, (long)sizeof(val), ret, strerror( errno ));
+	ret = setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &val, sizeof(val));
+	DPRINT( 2, "setsockopt(%d, SOL_SOCKET, SO_RCVBUF, [%d], %ld) = %d : %s",
+		fd, val, (long)sizeof(val), ret, strerror(errno));
     }
     errno = 0;
 
     val = env_tcp_nodelay;
-    ret = setsockopt( fd, IPPROTO_TCP, TCP_NODELAY, &val, sizeof(val));
-    DPRINT( 2, "setsockopt( %d, IPPROTO_TCP, TCP_NODELAY, [%d], %ld ) = %d : %s",
-	    fd, val, (long) sizeof(val), ret, strerror( errno ));
+    ret = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &val, sizeof(val));
+    DPRINT( 2, "setsockopt(%d, IPPROTO_TCP, TCP_NODELAY, [%d], %ld) = %d : %s",
+	    fd, val, (long) sizeof(val), ret, strerror(errno));
 }
 
 static
@@ -1290,16 +1389,6 @@ int GetUnusedCon(PSP_Port_t *port)
 }
 
 static
-void recalc_portfds(PSP_Port_t *port)
-{
-    while ((port->nfds != 0) &&
-	   (!FD_ISSET(port->nfds - 1, &port->fds_read)) &&
-	   (!FD_ISSET(port->nfds - 1, &port->fds_write))) {
-	port->nfds--;
-    }
-}
-
-static
 void PSP_CloseCon(PSP_Port_t *port, con_t *con)
 {
     switch (con->con_type) {
@@ -1311,12 +1400,10 @@ void PSP_CloseCon(PSP_Port_t *port, con_t *con)
 	if (con->u.fd.fd >= 0) {
 	    shutdown(con->u.fd.fd, 2);
 	    close(con->u.fd.fd);
-	    FD_CLR(con->u.fd.fd, &port->fds_read);
-	    FD_CLR(con->u.fd.fd, &port->fds_write);
+	    ufd_del(port, con);
 	    con->u.fd.fd = -1;
 	}
 	ReadAHCleanup(&con->u.fd.readahead);
-	recalc_portfds(port);
 	break;
     case CON_TYPE_SHM:
 	if (con->u.shm.local_com) shmdt(con->u.shm.local_com);
@@ -1591,17 +1678,17 @@ void ReadAHClear(ReadAhead_t *rh)
    the readaheaed buffer is alway empty!
 */
 static inline
-int DoRecvNewMessage(PSP_Port_t *port, int con_idx)
+int DoRecvNewMessage(PSP_Port_t *port, con_t *con)
 {
     int ret;
     PSP_Request_t *req;
-    con_t *con = &port->conns[con_idx];
     int con_fd = con->u.fd.fd;
     ReadAhead_t *rh = &con->u.fd.readahead;
     int hlen; /*< headerlen ( PSP_Header_Net_t + xhlen ) */
     int rlen; /*< length of the readahbuf */
     int mlen; /*< lenght of the whole message ( PSP_Header_Net_t + xhlen +data ) */
     int minrm; /*< min( rlen, mlen ) */
+    int con_idx;
 
     /* Read at least the PSP_Header_Net_t and the xheader !!! */
 
@@ -1625,7 +1712,8 @@ int DoRecvNewMessage(PSP_Port_t *port, int con_idx)
     rlen = ret;
  more:
     minrm = PSP_MIN(rlen, mlen);
-    
+
+    con_idx = con->con_idx;
     /* Search or generate the Request */
     req = GetPostedRequest(&port->ReqList, (PSP_Header_Net_t *)rh->buf, minrm, con_idx);
     if (!req){
@@ -1668,6 +1756,7 @@ int DoRecvNewMessage(PSP_Port_t *port, int con_idx)
 	return 1;
     }else{
 	if ((errno != EAGAIN) && (errno != EWOULDBLOCK) && (errno != EINTR)) {
+	    con_idx = con->con_idx;
 	    DPRINT(1, "STOPPED conn %d (recvnew : %s)", con_idx,
 		   strerror(errno));
 	    PSP_CloseCon(port, con);
@@ -1678,10 +1767,9 @@ int DoRecvNewMessage(PSP_Port_t *port, int con_idx)
 
 
 static inline
-void DoRecv(PSP_Port_t *port, int con_idx)
+void DoRecv(PSP_Port_t *port, con_t *con)
 {
     PSP_Request_t *req;
-    con_t *con = &port->conns[con_idx];
     int ret;
  trymore3:
     req = con->RunningRecvRequest;
@@ -1730,7 +1818,7 @@ void DoRecv(PSP_Port_t *port, int con_idx)
 	}
     }else{
 	/* New message */
-	if (!DoRecvNewMessage(port, con_idx) && con->RunningRecvRequest) {
+	if (!DoRecvNewMessage(port, con) && con->RunningRecvRequest) {
 	    goto trymore3;
 	}
     }
@@ -1740,7 +1828,7 @@ void DoRecv(PSP_Port_t *port, int con_idx)
  err_recvmsg:
     if (ret == 0) errno = ECONNREFUSED;
     if ((errno != EAGAIN) && (errno != EWOULDBLOCK) && (errno != EINTR)) {
-	DPRINT(1, "STOPPED conn %d (recv : %s)", con_idx,
+	DPRINT(1, "STOPPED conn %d (recv : %s)", con->con_idx,
 	       strerror(errno));
 	PSP_CloseCon(port, con);
     }
@@ -1748,9 +1836,8 @@ void DoRecv(PSP_Port_t *port, int con_idx)
 }
 
 static inline
-void DoSend(PSP_Port_t *port, int con_idx)
+void DoSend(PSP_Port_t *port, con_t *con)
 {
-    con_t *con = &port->conns[con_idx];
     PSP_Request_t *req = con->PostedSendRequests;
     int ret;
 
@@ -1779,7 +1866,7 @@ void DoSend(PSP_Port_t *port, int con_idx)
     return;
  err_sendmsg:
     if ((errno != EAGAIN) && (errno != EWOULDBLOCK) && (errno != EINTR)) {
-	DPRINT( 1, "STOPPED conn %d (send : %s)", con_idx,
+	DPRINT( 1, "STOPPED conn %d (send : %s)", con->con_idx,
 		strerror(errno));
 	PSP_CloseCon(port, con);
     }
@@ -1893,77 +1980,77 @@ int DoSendRecvShm(PSP_Port_t *port)
 }
 
 static 
-int DoSendRecvTo(PSP_Port_t *port, struct timeval *timeout) 
+int DoSendRecvTo(PSP_Port_t *port, int timeout) 
 {
-    fd_set fds_read;
-    fd_set fds_write;
     int nfds;
     int i;
-    
-    if (DoSendRecvShm(port))
-	return 1;
-    sched_yield();
 
-//#warning HACK
-//    if (PostedRecvReqs > 1000) return;
-    
-    fds_read = port->fds_read;
-    fds_write = port->fds_write;
+    if (!list_empty(&port->shm_list)) {
+	/* look inside sharemem regions */
+	if (DoSendRecvShm(port))
+	    return 1;
+	/* switch to polling mode */
+	sched_yield();
+	timeout = 0;
+    }
 
-    SelectCalls++;
-    nfds = select(port->nfds, &fds_read, &fds_write, NULL, timeout);
+    if (!port->nufds) return 0;
+#if 0
+    { /* Hack to stop the listener after some communication */
+	static stopped = 0;
+	if (!stopped && (PostedRecvReqs > 1000)) {
+	    PSP_StopListen((PSP_PortH_t)port);
+	    printf("Stop Listen\n");
+	    stopped = 1;
+	}
+    }
+#endif
+    
+    PollCalls++;
+    nfds = poll(port->ufds, port->nufds, timeout);
 
     if (nfds <= 0) return 0;
 
-    for (i = PSP_MAX_CONNS - 1; i >= port->min_connid; i--) {
-	con_t *con = &port->conns[i];
-	if ((con->con_type == CON_TYPE_FD) && (con->u.fd.fd >= 0)) {
-	    if (FD_ISSET(con->u.fd.fd, &fds_write)) {
-		FD_CLR(con->u.fd.fd, &fds_write);
-//		printf("s");
-		DoSend(port, i);
-		if (!(--nfds)) return 1;
-	    }	    
-	    if (FD_ISSET(con->u.fd.fd, &fds_read)) {
-		FD_CLR(con->u.fd.fd, &fds_read);
-//		printf("r");
-		DoRecv(port, i);
-		if (!(--nfds)) return 1;
+    for (i = 0; i < port->nufds; i++) {
+	if (port->ufds[i].revents & POLLOUT) {
+	    con_t *con = port->ufds_user[i];
+	    if (con) {
+		DoSend(port, con);
 	    }
+	    if (!(--nfds)) return 1;
+	}
+	if (port->ufds[i].revents & POLLIN) {
+	    con_t *con = port->ufds_user[i];
+	    if (con) {
+		DoRecv(port, con);
+	    } else {
+		/* listener */
+		if (port->port_fd >= 0) {
+		    DoAccept(port);
+		}
+	    }
+	    if (!(--nfds)) return 1;
 	}
     }
-    
-    if ((port->port_fd >= 0) && FD_ISSET(port->port_fd, &fds_read)) {
-	/* the listen socket */
-	FD_CLR(port->port_fd, &fds_read);
-	DoAccept(port);
-    }
-
     return 1;
 }
 
 static inline
 void DoSendRecv(PSP_Port_t *port)
 {
-    struct timeval to;
     int ret;
 //  do{
-    to.tv_sec = 0;
-    to.tv_usec = 0;
-    ret = DoSendRecvTo(port, &to);
+    ret = DoSendRecvTo(port, 0);
 //  } while (ret);
 }
 
 static inline
 void DoSendRecvWait(PSP_Port_t *port)
 {
-    struct timeval to;
     int ret;
     /* ToDo: Call DoSendRecvTo with NULL! */
 //  do{
-    to.tv_sec = 0;
-    to.tv_usec = 0;
-    ret = DoSendRecvTo(port, &to);
+    ret = DoSendRecvTo(port, -1);
 //  } while (ret);
 }
 
@@ -1994,12 +2081,15 @@ void sigquit(int signal)
     int i;
     unused_var(signal);
     printf(" +++++++++ SIGQUIT START ++++ \n");
-    printf(" GenReq:%d (%d) PostedReq: %d(%d) Selects: %d\n",
+    printf(" GenReq:%d (%d) PostedReq: %d(%d) fd_polls: %d\n",
 	   GenReqs-GenReqsUsed, GenReqs,
 	   PostedRecvReqs-PostedRecvReqsUsed, PostedRecvReqs,
-	   SelectCalls);
+	   PollCalls);
 
     for (port = Ports; port; port = port->NextPort) {
+	printf(" npollfd: %d (listener: %s)\n", port->nufds,
+	       port->port_fd >= 0 ? "yes" : "no");
+
 	for (i = 0; i < PSP_MAX_CONNS; i++) {
 	    con_t *con = &port->conns[i];
 	    int cnt = 0;
@@ -2229,7 +2319,7 @@ PSP_PortH_t PSP_OpenPort(int portno)
 	if (!ret)
 	    ret = listen(port->port_fd, 64);
 	if (!ret) {
-	    FD_SET2(port->port_fd, &port->fds_read, &port->nfds);
+	    ufd_add_listen(port);
 	    break; /* Bind and listen ok */
 	}
 	if (portno != PSP_ANYPORT) break; /* Bind failed */
@@ -2264,7 +2354,9 @@ void PSP_StopListen(PSP_PortH_t porth)
     if (port->port_fd < 0) return;
 
     close(port->port_fd);
-    FD_CLR(port->port_fd, &port->fds_read);
+
+    ufd_del(port, NULL);
+
     port->port_fd = -1;
 }
 
