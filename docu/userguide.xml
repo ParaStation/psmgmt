@@ -16,6 +16,7 @@
 
 <!ENTITY psmstart SYSTEM "psmstart.sgml">
 <!ENTITY mpirun SYSTEM "mpirun.sgml">
+<!ENTITY mpirun_p4 SYSTEM "mpirun_p4.sgml">
 <!ENTITY environment SYSTEM "ps_environment.sgml">
 
 <!ENTITY spawning SYSTEM "spawning.sgml">
@@ -33,7 +34,7 @@
   <bookinfo>
     &infoblurb;
 
-    <releaseinfo>Release 0.2</releaseinfo>
+    <releaseinfo>Release 0.8</releaseinfo>
 
     <revhistory>
 <!--       <revision> -->
@@ -43,9 +44,14 @@
 <!--       </revision> -->
 <!--       <revision> -->
 <!-- 	<revnumber>0.9</revnumber> -->
-<!-- 	<date>11 Oct 2002</date> -->
-<!-- 	<revremark>First beta release</revremark> -->
+<!-- 	<date>22 Nov 2002</date> -->
+<!-- 	<revremark>Beta release</revremark> -->
 <!--       </revision> -->
+      <revision>
+	<revnumber>0.8</revnumber>
+	<date>22 Nov 2002</date>
+	<revremark>Internal interim release.</revremark>
+      </revision>
       <revision>
 	<revnumber>0.3</revnumber>
 	<date>8 Nov 2002</date>
@@ -79,6 +85,7 @@
     </referenceinfo>
     <title>Reference Pages</title>
     &mpirun;
+    <!-- &mpirun_p4; -->
     &psmstart;
     &environment;
   </reference>
