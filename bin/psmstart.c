@@ -5,36 +5,37 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psmstart.c,v 1.7 2003/07/18 11:09:45 eicker Exp $
+ * $Id: psmstart.c,v 1.8 2003/07/31 18:11:10 eicker Exp $
  *
  */
 /**
  * @file Simple wrapper to allow non ParaStation aware programs to be
  * distributed in a cluster.
  *
- * $Id: psmstart.c,v 1.7 2003/07/18 11:09:45 eicker Exp $
+ * $Id: psmstart.c,v 1.8 2003/07/31 18:11:10 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c,v 1.7 2003/07/18 11:09:45 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c,v 1.8 2003/07/31 18:11:10 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pse.h>
-
 #ifdef __linux__
 #include <unistd.h>
 #include <limits.h>
 #endif
 
+#include <pse.h>
+
 int main(int argc, char *argv[])
 {
     int rank, i, totlen = 0;
     char *command;
+    char *newargv[4];
 
     if (argc < 2) {
 	fprintf(stderr, "You need to give at least one argument\n");
@@ -64,14 +65,18 @@ int main(int argc, char *argv[])
     for (i=1; i<argc; i++) {
 	totlen += strlen(argv[i])+1;
     }
-
     command = (char *) malloc(totlen*sizeof(char));
     sprintf(command, "%s", argv[1]);
     for (i=2; i<argc; i++) {
 	sprintf(command+strlen(command), " %s", argv[i]);
     }
 
-    system(command);
+    newargv[0] = "/bin/sh";
+    newargv[1] = "-c";
+    newargv[2] = command;
+    newargv[3] = NULL;
+
+    execv("/bin/sh", newargv);
 
     return 0;
 }
