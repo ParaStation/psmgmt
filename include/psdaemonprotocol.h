@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psdaemonprotocol.h,v 1.2 2003/07/04 07:27:17 eicker Exp $
+ * $Id: psdaemonprotocol.h,v 1.3 2003/09/12 13:52:34 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation daemon-daemon high-level protocol.
  *
- * $Id: psdaemonprotocol.h,v 1.2 2003/07/04 07:27:17 eicker Exp $
+ * $Id: psdaemonprotocol.h,v 1.3 2003/09/12 13:52:34 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -49,6 +49,12 @@ extern "C" {
 
 /** Message between daemon and the daemon forwarder part */
 #define PSP_DD_CHILDDEAD           0x0110  /**< Tell a child has finished */
+
+/** Message between daemon and master */
+#define PSP_DD_GETPART             0x0120  /**< Get partition from master */
+#define PSP_DD_GETPARTNL           0x0121  /**< Partition request nodelist */
+#define PSP_DD_PROVIDEPART         0x0122  /**< Reply partition bind */
+#define PSP_DD_PROVIDEPARTNL       0x0123  /**< Partition reply nodelist */
 
 /**
  * @brief Generate a string describing the message type.
