@@ -1,5 +1,5 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * psitask.c
  *
  * ParaStation tasks and helper functions.
@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.c,v 1.16 2003/10/29 17:28:52 eicker Exp $
+ * $Id: pstask.c,v 1.17 2003/11/26 15:09:45 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.16 2003/10/29 17:28:52 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.17 2003/11/26 15:09:45 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -32,7 +32,11 @@ char *PStask_printGrp(PStask_group_t tg)
     return (tg==TG_ANY) ? "TG_ANY" :
 	(tg==TG_ADMIN) ? "TG_ADMIN" :
 	(tg==TG_RESET) ? "TG_RESET" :
-	(tg==TG_LOGGER) ? "TG_ADMIN" : "UNKNOWN";
+	(tg==TG_LOGGER) ? "TG_ADMIN" :
+	(tg==TG_FORWARDER) ? "TG_FORWARDER" :
+	(tg==TG_SPAWNER) ? "TG_SPAWNER" :
+	(tg==TG_GMSPAWNER) ? "TG_GMSPAWNER" :
+	(tg==TG_MONITOR) ? "TG_MONITOR" : "UNKNOWN";
 }
 
 PStask_t *PStask_new()
@@ -274,13 +278,13 @@ static struct {
     PStask_ID_t ptid;
     uid_t uid;
     gid_t gid;
-    unsigned int aretty;
+    uint32_t aretty;
     struct termios termios;
     struct winsize winsize;
     PStask_group_t group;
-    int rank;
+    int32_t rank;
     PStask_ID_t loggertid;
-    int argc;
+    int32_t argc;
 } tmpTask;
     
 size_t PStask_encode(char *buffer, size_t size, PStask_t *task)
