@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.21 2002/07/18 11:40:30 eicker Exp $
+ * $Id: psispawn.c,v 1.22 2002/07/19 12:50:18 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.21 2002/07/18 11:40:30 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.22 2002/07/19 12:50:18 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -27,6 +27,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.21 2002/07/1
 
 #include "pscommon.h"
 #include "psprotocol.h"
+#include "pshwtypes.h"
 #include "pstask.h"
 
 #include "psi.h"
@@ -103,7 +104,7 @@ int PSI_spawnM(int count, short *dstnodes, char *workdir,
     snprintf(errtxt, sizeof(errtxt), "PSI_spawnM()");
     PSI_errlog(errtxt, 10);
 
-    if (count<0) return 0;
+    if (count<=0) return 0;
 
     if (!dstnodes) {
 	if (!PSI_Partition) {
@@ -680,7 +681,8 @@ short PSI_getPartition(unsigned int hwType, int myRank)
 
         if (!PSI_PartitionSize) {
 	    snprintf(errtxt, sizeof(errtxt), "PSI_getPartition():"
-		     " cannot get any hosts with correct HW.");
+		     " cannot get any hosts with correct HW. HW is %s.",
+		     PSHW_printType(hwType));
 	    PSI_errlog(errtxt, 0);
 	    if (nodelist) free(nodelist);
             free(PSI_Partition);
