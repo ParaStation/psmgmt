@@ -2,7 +2,7 @@
  *
  *      @(#)pshal.h    1.00 (Karlsruhe) 08/15/2000
  *
- *      $Id: pshal.h,v 1.11 2001/07/16 19:39:50 hauke Exp $	
+ *      $Id: pshal.h,v 1.12 2001/07/17 14:45:25 hauke Exp $	
  *
  *      written by Joachim Blum
  *                 Jens Hauke
@@ -102,8 +102,7 @@ typedef struct PSHALRecvHeader_T {
     INT16		tag;		/**< protocol specific used tag      */
     INT16		xheaderlen;	/**< length of the extra header      */
     INT32		portseqno;	/**< SequenceNo of Port		     */
-
-    char		xheader[0];	/**< begining of extra header */
+    long		xheader[0];	/**< begining of extra header */
 } PSHALRecvHeader_t;
 
 
