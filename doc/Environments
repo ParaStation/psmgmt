@@ -59,7 +59,30 @@ PSI_SOURCEPRINTF
 	prepend the initiator of outputs (psilogger)
 
 
+PSPort Library:
 
+Variable	possible values
+--------------	----------------
+PSP_DEBUG
+	Set debuglevel (verbose output)
+PSP_POLL
+	Time to poll for a new message (in milliseconds)
+
+
+PSPort4 Library: (ParaStation FE)
+
+Variable	possible values
+--------------	----------------
+PSP_DEBUG
+	Set debuglevel (verbose output)
+PSP_SO_SNDBUF
+PSP_SO_RCVBUF
+PSP_TCP_NODELAY
+	Corresponding TCP socket options
+PSP_SIGQUIT
+	Print some statistics on SIGQUIT ( ctrl-\ )
+PSP_READAHEAD
+	Initial size of the "read ahead buffer"
 
 
 MPICH:
