@@ -46,7 +46,7 @@ struct timeval killclientstimer;
 struct timeval pingtimer;
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char psid_cvsid[] __attribute__(( unused )) = "$Id: psid.c,v 1.14 2002/01/07 08:10:55 eicker Exp $";
+static char psid_cvsid[] __attribute__(( unused )) = "$Id: psid.c,v 1.15 2002/01/07 08:30:57 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #define timerset(tvp,fvp)        {(tvp)->tv_sec  = (fvp)->tv_sec;\
@@ -1112,6 +1112,9 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t* msg)
 	outmsg.masterport = task->masterport;
 	outmsg.rank = task->rank;
 	outmsg.group = msg->group;
+	strncpy(outmsg.instdir, PSI_LookupInstalldir(),
+		sizeof(outmsg.instdir));
+	outmsg.instdir[sizeof(outmsg.instdir)-1] = '\0';
 	strncpy(outmsg.psidvers, psid_cvsid, sizeof(outmsg.psidvers));
 	outmsg.psidvers[sizeof(outmsg.psidvers)-1] = '\0';
 	if(MsgSend(&outmsg)>0)
@@ -2963,7 +2966,7 @@ main(int argc, char **argv)
 	     */
 	    while (1) {
 		timerset(&tv, &selecttimer);
-		BlockSig(0, SIGCHLD);
+		BlockSig(0, SIGCHLD); /* Handle deceased child processes */
 		BlockSig(1, SIGCHLD);
 		BlockSig(0, SIGALRM);
 		bcopy((char *)&openfds, (char *)&rfds, sizeof(rfds));
