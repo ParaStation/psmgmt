@@ -7,7 +7,7 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.25 2002/06/17 14:03:00 hauke Exp $
+ * $Id: psport.h,v 1.26 2002/08/01 18:37:29 eicker Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -82,10 +82,10 @@ typedef UINT16 PSP_MessageID_t;
  * Receive header.
  */
 typedef struct PSP_RecvHeader_T {
-    PSHALRecvHeader_t	HALHeader;
-    PSP_MessageID_t	MessageID;
-    UINT32		FragOffset;
-    UINT32		MessageSize;
+    PSHALRecvHeader_t	HALHeader;   /**< the HALHeader */
+    PSP_MessageID_t	MessageID;   /**< a message ID */
+    UINT32		FragOffset;  /**< a fragment offset */
+    UINT32		MessageSize; /**< the message size */
     long		xheader[zeroarray];  /**< from here on, the extra
 					header is placed */
 } PSP_RecvHeader_t;
@@ -94,16 +94,16 @@ typedef struct PSP_RecvHeader_T {
  * General header to be used for send or receive requests.
  */
 typedef struct PSP_Header_T {
-    int                 state;
+    int                 state;       /**< a status */
     unsigned            xheaderlen;  /**< len of the extra header,
 					read-only. */
     unsigned            datalen;     /**< len of message data,
 					read-only. */
-    int			_space1_;    /* align HALHeader to 8 byte on alpha */
-    PSHALRecvHeader_t   HALHeader;
-    PSP_MessageID_t     MessageID;
-    UINT32              FragOffset;
-    UINT32              MessageSize;
+    int			_space1_;    /**< align HALHeader to 8 byte on alpha */
+    PSHALRecvHeader_t   HALHeader;   /**< the HALHeader */
+    PSP_MessageID_t     MessageID;   /**< a message ID */
+    UINT32              FragOffset;  /**< a fragment offset */
+    UINT32              MessageSize; /**< the message size */
     long		xheader[zeroarray];  /**< from here on, the extra
 					header is placed */
 } PSP_Header_t;
@@ -112,14 +112,14 @@ typedef struct PSP_Header_T {
  * Type of the callback to be passed to PSP_IReceive().
  */
 typedef int (PSP_RecvCallBack_t)
-     (PSP_RecvHeader_t* header, unsigned xheaderlen, void *param);
+(PSP_RecvHeader_t *header, unsigned xheaderlen /**< */, void *param /**< */);
 
 /**
  * Type of the callback that is executed upon finishing a send or
  * receive request. See PSP_IsendCB() and PSP_IReceiveCB().
  */
 typedef void (PSP_DoneCallback_t)
-     (PSP_RequestH_t req, void *param);
+(PSP_RequestH_t req, void *param);
 
 /** Number of receives without recv request */
 extern unsigned PSP_GenReqCount;
@@ -237,8 +237,8 @@ PSP_RecvCallBack_t PSP_RecvFrom; /**< Receive from a certain sender */
  *  Parameter for PSP_RecvFrom().
  */
 typedef struct PSP_RecvFrom_Param_T{
-  INT16 srcnode;
-  INT16 srcport;
+  INT16 srcnode;   /**< the source node */
+  INT16 srcport;   /**< the source port */
 } PSP_RecvFrom_Param_t;
 
 /* ----------------------------------------------------------------------
@@ -296,6 +296,7 @@ PSP_RequestH_t PSP_IReceiveCBFrom(PSP_PortH_t porth,
 				  PSP_DoneCallback_t* dcb, void* dcb_param,
 				  int sender);
 
+/** Any sender */
 #define PSP_AnySender -1
 
 static inline
