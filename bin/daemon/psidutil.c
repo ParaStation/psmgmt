@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.20 2002/02/04 18:26:27 eicker Exp $
+ * $Id: psidutil.c,v 1.21 2002/02/08 11:06:58 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.20 2002/02/04 18:26:27 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.21 2002/02/08 11:06:58 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -381,8 +381,12 @@ int PSID_taskspawn(PStask_t* task)
 	    sprintf(envvar, "PWD=%s", task->workingdir);
 	    /* Don't free envvar, since it becomes part of the environment! */
 	    putenv(envvar);
-	    for(i=0; i < task->environc; i++)
-		if (task->environ[i]) putenv(task->environ[i]);
+
+	    if (task->environ) {
+		for (i=0; task->environ[i]; i++) {
+		    putenv(strdup(task->environ[i]));
+		}
+	    }
 	}
 	{
 	    /*

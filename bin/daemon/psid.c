@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.32 2002/02/04 18:26:55 eicker Exp $
+ * $Id: psid.c,v 1.33 2002/02/08 11:06:58 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.32 2002/02/04 18:26:55 eicker Exp $ 
+ * $Id: psid.c,v 1.33 2002/02/08 11:06:58 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.32 2002/02/04 18:26:55 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.33 2002/02/08 11:06:58 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -62,7 +62,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.32 $";
+static char psid_cvsid[] = "$Revision: 1.33 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -139,7 +139,7 @@ int DaemonIsUp(int node);
 int send_DAEMONCONNECT(int id);
 
 void TaskDeleteSendSignals(PStask_t* oldtask);
-void TaskDeleteSendSignalsToParent(long tid,long ptid,int sig);
+void TaskDeleteSendSignalsToParent(long tid, long ptid, int sig);
 
 int TOTALsend(int fd,void* buffer,int msglen)
 {
@@ -293,19 +293,22 @@ int broadcastMsg(void* amsg)
     DDMsg_t* msg = (DDMsg_t*) amsg;
     int count=1;
     int i;
-    if (PSI_isoption(PSP_ODEBUG)){
-	sprintf(PSI_txt,"broadcastMsg(type %s (len=%ld)\n",
-		PSPctrlmsg(msg->type),msg->len);
-	SYSLOG(6,(LOG_ERR,PSI_txt));
+    if (PSI_isoption(PSP_ODEBUG)) {
+	sprintf(PSI_txt, "broadcastMsg(type %s (len=%ld)\n",
+		PSPctrlmsg(msg->type), msg->len);
+	SYSLOG(6,(LOG_ERR, PSI_txt));
     }
 
-    /* broadcast to every daemon and the sender */
-    for (i=0;i<PSI_nrofnodes;i++)
-	if (DaemonIsUp(i) && i!= PSI_myid){
+    /* broadcast to every daemon except the sender */
+    for (i=0; i<PSI_nrofnodes; i++) {
+	if (DaemonIsUp(i) && i != PSI_myid) {
 	    msg->dest = PSI_gettid(i,0);
-	    if(sendMsg(msg)>=0)
+	    if (sendMsg(msg)>=0) {
 		count++;
+	    }
 	}
+    }
+
     return count;
 }
 
@@ -315,8 +318,9 @@ int broadcastMsg(void* amsg)
  */
 int DaemonIsUp(int node)
 {
-    if(node<0 || node>=PSI_nrofnodes)
+    if (node<0 || node>=PSI_nrofnodes) {
 	return 0;
+    }
 
     return PSID_hoststatus[node] & PSPHOSTUP;
 }
@@ -332,8 +336,9 @@ static void blockSig(int block, int sig)
     sigemptyset(&newset);
     sigaddset(&newset, sig);
     result = sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &newset, &oldset);
-    if (result)
+    if (result) {
 	PSI_logerror("blockSig(): sigprocmask() ");
+    }
 }
 
 /******************************************
@@ -706,9 +711,9 @@ void client_task_delete(long thisclienttid)
 		  thisclienttid==-1?-1:PSI_getnode(thisclienttid),
 		  (long) PSI_getpid(thisclienttid)));
 
-    oldtask = PStasklist_dequeue(&daemons[PSI_myid].tasklist,thisclienttid);
+    oldtask = PStasklist_dequeue(&daemons[PSI_myid].tasklist, thisclienttid);
     if(oldtask){
-	send_PROCESS(oldtask->tid,PSP_DD_DELETEPROCESS,oldtask);
+	send_PROCESS(oldtask->tid, PSP_DD_DELETEPROCESS, oldtask);
 	/*
 	 * send all task which want to receive a signal
 	 * the signal they want to receive
@@ -1005,9 +1010,8 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t* msg)
 	task->fd = fd;
 	task->uid = msg->uid;
 	task->nodeno = PSI_myid;
+	/* Now connection, this task becomes logger */
 	task->group = msg->group;
-	/* New task => It has to be the master */
-	task->rank = 0;
 	GetProcessProperties(task);
 	PStask_sprintf(PSI_txt, task);
 	SYSLOG(9,(LOG_ERR,"Connection request from: %s",PSI_txt));
@@ -1095,8 +1099,8 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t* msg)
 	outmsg.version = PSPprotocolversion;
 	outmsg.nrofnodes = PSI_nrofnodes;
 	outmsg.myid = PSI_myid;
-	outmsg.masternode = task->masternode;
-	outmsg.masterport = task->masterport;
+	outmsg.loggernode = task->loggernode;
+	outmsg.loggerport = task->loggerport;
 	outmsg.rank = task->rank;
 	outmsg.group = msg->group;
 	strncpy(outmsg.instdir, PSI_LookupInstalldir(),
@@ -1223,20 +1227,21 @@ void msg_SPAWNREQUEST(DDBufferMsg_t* msg)
 	 * first check if resource for this task is available
 	 * and if ok try to start the task
 	 */
-	err= PSID_taskspawn(task);
+	err = PSID_taskspawn(task);
 
-	if (PSI_isoption(PSP_ODEBUG)){
-	    if(err==0)
+	if (PSI_isoption(PSP_ODEBUG)) {
+	    if (err==0) {
 		sprintf(PSI_txt,
 			"execspawn returned with no error(childpid=%lx)\n",
 			task->tid);
-	    else
+	    } else {
 		sprintf(PSI_txt,"execspawn returned with error no %d\n",err);
+	    }
 	    PSI_logerror(PSI_txt);
 	}
-	msg->header.type = err==0? PSP_DD_SPAWNSUCCESS: PSP_DD_SPAWNFAILED;;
+	msg->header.type = err==0 ? PSP_DD_SPAWNSUCCESS:PSP_DD_SPAWNFAILED;
 
-	if(err==0){
+	if (err==0) {
 	    PStasklist_enqueue(&spawned_tasks_waiting_for_connect,task);
 	} else {
 	    SYSLOG(3,(LOG_ERR,"taskspawn returned err=%d [%s]\n", err,
@@ -1293,10 +1298,10 @@ void msg_SPAWNREQUEST(DDBufferMsg_t* msg)
 	    msg->header.type = PSP_DD_SPAWNFAILED;
 	    msg->header.dest = msg->header.sender;
 	    msg->header.sender = PSI_gettid(PSI_myid,0);
-	    PStask_encode(msg->buf,task);
 
 	    sendMsg(msg);
 	}
+
 	PStask_delete(task);
     }
 }
@@ -1456,7 +1461,7 @@ void TaskDeleteSendSignalsToParent(long tid, long ptid, int signal)
     int mysignal;
 
     if((ptid !=-1) && (PSI_getnode(ptid)==PSI_myid)){
-	receivertask = PStasklist_find(daemons[PSI_myid].tasklist,ptid);
+	receivertask = PStasklist_find(daemons[PSI_myid].tasklist, ptid);
 	if(receivertask){
 	    int pid;
 	    pid = PSI_getpid(ptid);
@@ -1466,8 +1471,8 @@ void TaskDeleteSendSignalsToParent(long tid, long ptid, int signal)
 			"(ptid = 0x%lx(pid=%d) tid= 0x%lx ) signal %d \n",
 			ptid,pid,tid,mysignal);
 		SYSLOG(4,(LOG_ERR,PSI_txt));
+		PStask_setsignalsender(receivertask, tid, mysignal);
 		kill(pid,mysignal);
-		PStask_setsignalsender(receivertask,tid,mysignal);
 	    }
 	}
     }
@@ -1487,10 +1492,16 @@ void msg_DELETEPROCESS(DDBufferMsg_t* msg)
 
     if (PSI_isoption(PSP_ODEBUG)){
 	sprintf(PSI_txt,
-		"msg_PSPDELETEPROCESS (%lx %s) with parent(%lx) on node %d \n",
+		"msg_DELETEPROCESS (%lx %s) with parent(%lx) on node %d \n",
 		task->tid,
 		task->argv==0?"(NULL)":task->argv[0]?task->argv[0]:"(NULL)",
-		task->ptid,PSI_myid);
+		task->ptid, PSI_myid);
+	PSI_logerror(PSI_txt);
+	sprintf(PSI_txt,
+		"msg_DELETEPROCESS (%lx %s) send sig %d to parent(%lx)\n",
+		task->tid,
+		task->argv==0?"(NULL)":task->argv[0]?task->argv[0]:"(NULL)",
+		task->childsignal, task->tid);
 	PSI_logerror(PSI_txt);
     }
     if((oldtask
@@ -1506,7 +1517,7 @@ void msg_DELETEPROCESS(DDBufferMsg_t* msg)
      * Check the parent task
      */
 
-    TaskDeleteSendSignalsToParent(task->tid,task->ptid,task->childsignal);
+    TaskDeleteSendSignalsToParent(task->tid, task->ptid, task->childsignal);
 
     PStask_delete(task);
 }
@@ -1554,8 +1565,9 @@ msg_SPAWNSUCCESS(DDBufferMsg_t *msg)
     }
 
     if ((task->ptid !=0)
-	&&(task->ptid !=-1)
-	&&(PSI_getnode(task->ptid) == PSI_myid)){
+	&&(task->ptid !=-1)){
+	// &&(task->ptid !=-1)
+	// &&(PSI_getnode(task->ptid) == PSI_myid)){
 	/*
 	 * the spawn request was sent by a process on my node
 	 */
@@ -2749,7 +2761,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.32 $";
+    char revision[] = "$Revision: 1.33 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
