@@ -13,11 +13,11 @@
 #include "fifo.h"
 
 //#include "psm_osif.h"
+
+#ifdef __GNUC__
 #if ( MAX_HOST_PAGESIZE < PAGE_SIZE )
  . error MAX_HOST_PAGESIZE to small !!
 #endif
-
-#ifdef __GNUC__
 #define ALIGNPAGE( var ) ALIGN(MAX_HOST_PAGESIZE,var)
 #endif
 #ifdef __DECC 
@@ -130,7 +130,7 @@ void psm_mcpif_print(char *str);
 #ifndef NO_MACRODOTDOT
 #define MCPIF_PRINT(fmt,rest...)
 #else
-static inline void MCPIF_PRINT(char *fmt,...){}
+static void MCPIF_PRINT(char *fmt,...){}
 #endif
 #endif
 

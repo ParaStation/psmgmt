@@ -1,6 +1,6 @@
 
 /*************************************************************fdb*
- * $Id: psm_module.h,v 1.4 2002/04/15 09:28:16 hauke Exp $
+ * $Id: psm_module.h,v 1.5 2002/04/15 14:30:12 hauke Exp $
  * structures and prototypes of psm_module.c
  *
  *************************************************************fde*/
@@ -81,29 +81,6 @@ extern int psm_mmap( psm_context_t context,int offset,int len,struct psm_mmap_re
 void psm_cleanup(void);
 int psm_init(void);
 
-
-extern inline int psm_copy_from_user_or_kernel(int kern,void *to, const void *from,
-				 unsigned long n )
-{
-    if (!kern)
-	return copy_from_user(to,from,n);
-    else{
-	memcpy(to,from,n);
-	return 0;
-    }
-}
-
-extern inline int psm_copy_to_user_or_kernel(int kern,void*to, const void *from,
-			       unsigned long n )
-{
-    if (!kern)
-	return copy_to_user(to,from,n);
-    else{
-	memcpy(to,from,n);
-	return 0;
-    }
-}
-       
 
 
 

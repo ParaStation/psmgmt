@@ -27,12 +27,12 @@ LIBDIRS := $(patsubst %,lib/%,$(LIBS))
 
 SUBDIRS := $(LIBDIRS) kern/mcp $(PSM_OSDIR) bin
 
-.PHONY all: mcp psm lib bin
+.PHONY all: psm lib bin
 
 
 mcp:
 	$(MAKE) -C kern/mcp
-psm:
+psm:	mcp
 	$(MAKE) -C $(PSM_OSDIR)
 
 lib: $(LIBS)

@@ -13,29 +13,33 @@ typedef struct pslic_binpub_T{
   ("abcdefgh%jklmnopqrstuvwxyzABCDEFGH@JKLMN*PQRSTUVWXYZ?=23456789+-"	\
    [(bin) & 0x3f]))
 
-#define LICBITPACK_A2B(asci) ((unsigned char)(		\
-"\x00\x00\x00\x00\x00\x00\x00\x00" /* ........ */	\
-"\x00\x00\x00\x00\x00\x00\x00\x00" /* ........ */	\
-"\x00\x00\x00\x00\x00\x00\x00\x00" /* ........ */	\
-"\x00\x00\x00\x00\x00\x00\x00\x00" /* ........ */	\
-"\x3f\x0b\x00\x00\x00\x08\x00\x00" /* _!"#$%&' */	\
-"\x00\x00\x28\x3e\x00\x3f\x00\x00" /* ()*+,-./ */	\
-"\x0e\x0b\x36\x37\x38\x39\x3a\x3b" /* 01234567 */	\
-"\x3c\x3d\x00\x00\x00\x35\x00\x34" /* 89:;<=>? */	\
-"\x22\x1a\x1b\x1c\x1d\x1e\x1f\x20" /* @ABCDEFG */	\
-"\x21\x0b\x23\x24\x25\x26\x27\x0e" /* HIJKLMNO */	\
-"\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30" /* PQRSTUVW */	\
-"\x31\x32\x33\x0b\x00\x0b\x00\x3f" /* XYZ[\]^_ */	\
-"\x00\x00\x01\x02\x03\x04\x05\x06" /* `abcdefg */	\
-"\x07\x0b\x09\x0a\x0b\x0c\x0d\x0e" /* hijklmno */	\
-"\x0f\x10\x11\x12\x13\x14\x15\x16" /* pqrstuvw */	\
-"\x17\x18\x19\x00\x0b\x00\x00\x00" /* xyz{|}~. */	\
-[(asci) & 0x7f]))
+static unsigned char ARRAY_LICBITPACK_A2B[] = {
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* ........ */
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* ........ */
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* ........ */
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* ........ */
+    0x3f, 0x0b, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, /* _!"#$%&' */
+    0x00, 0x00, 0x28, 0x3e, 0x00, 0x3f, 0x00, 0x00, /* ()*+,-./ */
+    0x0e, 0x0b, 0x36, 0x37, 0x38, 0x39, 0x3a, 0x3b, /* 01234567 */
+    0x3c, 0x3d, 0x00, 0x00, 0x00, 0x35, 0x00, 0x34, /* 89:;<=>? */
+    0x22, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0x20, /* @ABCDEFG */
+    0x21, 0x0b, 0x23, 0x24, 0x25, 0x26, 0x27, 0x0e, /* HIJKLMNO */
+    0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f, 0x30, /* PQRSTUVW */
+    0x31, 0x32, 0x33, 0x0b, 0x00, 0x0b, 0x00, 0x3f, /* XYZ[\]^_ */
+    0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, /* `abcdefg */
+    0x07, 0x0b, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, /* hijklmno */
+    0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, /* pqrstuvw */
+    0x17, 0x18, 0x19, 0x00, 0x0b, 0x00, 0x00, 0x00  /* xyz{|}~. */
+};
+
+#define LICBITPACK_A2B(asci) (ARRAY_LICBITPACK_A2B[(asci) & 0x7f])
 
 #define pslic_alen2blen(alen) (((alen) * 6) / 8)
 #define pslic_blen2alen(blen)    (((blen) * 8 + 5) / 6)
 
-
+#ifdef __DECC
+#define inline
+#endif
 
 static inline void
 pslic_ascii2bin(unsigned char *ascii,int alen,unsigned char *bin ){
@@ -71,6 +75,9 @@ pslic_bin2ascii(unsigned char *bin,int blen,unsigned char *ascii ){
     
 }
 
+#ifdef __DECC
+#undef inline
+#endif
 
 
 #endif /* _LICENSE_PUB_H_ */

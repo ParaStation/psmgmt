@@ -95,11 +95,14 @@
 /* Enable remote kernel debuging */
 //#define ENABLE_DEBUG_MSG	
 
+#ifndef __osf__
 
 /* Send data with zero copy */
 #define ENABLE_DMASEND
 /* Receive data with zero copy */
 #define ENABLE_DMARECV
+
+#endif
 
 /* Disable local communication */
 #define DISABLE_LOCAL_COM
@@ -117,10 +120,14 @@
 
 /* switches for production */
 
+#ifndef __osf__
+
 /* Send data with zero copy */
 #define ENABLE_DMASEND
 /* Receive data with zero copy */
 #define ENABLE_DMARECV
+
+#endif
 
 /* Disable local communication */
 #define DISABLE_LOCAL_COM
@@ -138,9 +145,9 @@
 
 
 #ifdef DEVELOP
-  #define PSM_PRINT_LEVEL_DEV 10
+#define PSM_PRINT_LEVEL_DEV 10
 #else
-  #define PSM_PRINT_LEVEL_DEV 1
+#define PSM_PRINT_LEVEL_DEV 1
 #endif
 
 
