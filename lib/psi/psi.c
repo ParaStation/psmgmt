@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.c,v 1.24 2002/03/25 18:11:42 eicker Exp $
+ * $Id: psi.c,v 1.25 2002/03/26 13:53:49 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.24 2002/03/25 18:11:42 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psi.c,v 1.25 2002/03/26 13:53:49 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -51,11 +51,11 @@ char *PSI_hoststatus = NULL;
 enum TaskOptions PSI_mychildoptions = TaskOption_SENDSTDHEADER;
 
 /****************************************
-*  PSI_getpid()
-*  returns the value of the local PID of the OS. The TID of a Task in the
-*  Cluster is a combination of the Node number and the local pid
-*  on the node.
-*/
+ *  PSI_getpid()
+ *  returns the value of the local PID of the OS. The TID of a Task in the
+ *  Cluster is a combination of the Node number and the local pid
+ *  on the node.
+ */
 pid_t PSI_getpid(long tid)
 {
     return (tid & 0xFFFF);
@@ -76,11 +76,11 @@ static pid_t PSIgetpid(void)
 
 
 /****************************************
-*  PSI_getnode()
-*  return the value of the node number of a TID. The TID of a Task in the
-*  Cluster is a combination of the Node number and the local pid
-*  on the node.
-*/
+ *  PSI_getnode()
+ *  return the value of the node number of a TID. The TID of a Task in the
+ *  Cluster is a combination of the Node number and the local pid
+ *  on the node.
+ */
 unsigned short PSI_getnode(long tid)
 {
     if (tid>=0) {
@@ -91,21 +91,21 @@ unsigned short PSI_getnode(long tid)
 }
 
 /****************************************
-*  PSI_getnrofnodes()
-* returns the number of nodes
-*/
+ *  PSI_getnrofnodes()
+ * returns the number of nodes
+ */
 short PSI_getnrofnodes(void)
 {
     return PSI_nrofnodes;
 }
 
 /****************************************
-*  PSI_gettid()
-*  returns the TID. This is necessary to have unique Task Identifiers in
-*  the cluster .The TID of a Task in the Cluster is a combination
-*  of the Node number and the local pid on the node.
-*  If node=-1 the local nodenr is used
-*/
+ *  PSI_gettid()
+ *  returns the TID. This is necessary to have unique Task Identifiers in
+ *  the cluster .The TID of a Task in the Cluster is a combination
+ *  of the Node number and the local pid on the node.
+ *  If node=-1 the local nodenr is used
+ */
 long PSI_gettid(short node, pid_t pid)
 {
     if (node<0) {
@@ -390,8 +390,6 @@ int PSI_clientinit(unsigned short protocol)
     char* envstrvalue;
 
 #if defined(DEBUG)
-    PSI_openlog();
-
     if (PSP_DEBUGSTARTUP & (PSI_debugmask )) {
 	sprintf(PSI_txt,"PSI_clientinit()\n");
 	PSI_logerror(PSI_txt);
