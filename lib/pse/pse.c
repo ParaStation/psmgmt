@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.13 2002/02/11 12:04:06 eicker Exp $
+ * $Id: pse.c,v 1.14 2002/02/11 12:06:34 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.13 2002/02/11 12:04:06 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.14 2002/02/11 12:06:34 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -301,36 +301,16 @@ void PSEfinalize(void)
     fflush(stdout);
     fflush(stderr);
 
-    /* jh: did we need this distinction anymore ? */
-    if(worldRankPSE){
-	/* client process */
-
-	/* Don't kill parent when we exit */
-	PSI_release(PSI_mytid);
-
-	/* release our forwarder */
-	close(STDERR_FILENO);
-	close(STDOUT_FILENO);
-	close(STDIN_FILENO);
-
-	/* jh: this looks buggy ... */
-	/* Small delay to give forwarder the chance to clean up */
-	usleep(1000);
-
-    }else{
-	int status;
-	/* master process */
-
-	/* release our forwarder and reuse the old fds*/
-	dup2(stdin_fileno_backup, STDIN_FILENO);
-	dup2(stdout_fileno_backup, STDOUT_FILENO);
-	dup2(stderr_fileno_backup, STDERR_FILENO);
-
-	/* Wait for logger */
-	waitpid(logger_pid, &status, 0);
-    }
+    /* Don't kill parent when we exit */
+    PSI_release(PSI_mytid);
 
     DEBUG0("Quitting program, good bye.\n");
+
+    /* release our forwarder */
+    close(STDERR_FILENO);
+    close(STDOUT_FILENO);
+    close(STDIN_FILENO);
+
 }
 
 /***************************************************************************
