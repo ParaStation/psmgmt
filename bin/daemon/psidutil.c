@@ -29,6 +29,8 @@ struct PSID_host_t *PSID_hosts[256];
 unsigned long *PSID_hostaddresses = NULL;
 char *PSID_hoststatus = NULL;
 
+static char errtxt[256];
+
 void PSID_ReConfig(int nodeid, int nrofnodes, char *licensekey, char *module,
 		   char *routingfile)
 {
@@ -121,7 +123,7 @@ int PSID_readconfigfile(void)
     struct hostent *mhost;
     char myname[256];
     struct in_addr sin_addr;
-    char* errtxt;
+    char* errstr;
 
     int i;
 
@@ -130,10 +132,10 @@ int PSID_readconfigfile(void)
     if(! (mhost = gethostbyname(myname))){
 	endhostent(); 
 	perror("Unable to lookup hostname");
-	errtxt=strerror(errno);
+	errstr=strerror(errno);
 	SYSLOG(0,(LOG_ERR,
 		  "PSID_readconfigfile():Unable to lookup hostname: [%d] %s",
-		  errno, errtxt?errtxt:"UNKNOWN errno"));
+		  errno, errstr ? errstr : "UNKNOWN errno"));
 	exit(-1);
     }
     bcopy((char *)mhost->h_addr, (char*)&sin_addr, mhost->h_length); 
@@ -168,10 +170,11 @@ int PSID_readconfigfile(void)
 	if (!(PSID_inserthost(psihosttable[i].inet,i))){
 	    /* error: the host could not be inserted 
 	       in the hostlist */
-	    sprintf(PSI_txt,"PSID_readconfigfile: host (address[%x],id[%d])"
+	    snprintf(errtxt, sizeof(errtxt),
+		    "PSID_readconfigfile: host (address[%x],id[%d])"
 		    " could not be inserted in the hostlist.\n",
-		    psihosttable[i].inet,i);
-	    PSI_logerror(PSI_txt);
+		    psihosttable[i].inet, i);
+	    PSI_logerror(errtxt);
 	}
     }
 
@@ -209,8 +212,8 @@ PSID_startlicenseserver(u_long hostaddr)
     struct sockaddr_in sa;
 #if defined(DEBUG)
     if(PSP_DEBUGADMIN & (PSI_debugmask )){
-	sprintf(PSI_txt,"PSID_startlicenseserver(%lx)\n", hostaddr);
-	PSI_logerror(PSI_txt);
+	snprintf(errtxt, sizeof(errtxt), "PSID_startlicenseserver(%lx)\n", hostaddr);
+	PSI_logerror(errtxt);
     }
 #endif
     /*
@@ -219,10 +222,10 @@ PSID_startlicenseserver(u_long hostaddr)
     sock = socket(AF_INET,SOCK_STREAM,0);
 
     if ((service = getservbyname("psld","tcp")) == NULL){ 
-	sprintf(PSI_txt, "PSID_startlicenseserver():"
-		" can't get \"psld\" service entry\n"); 
-	fprintf(stderr, PSI_txt);
-	PSI_logerror(PSI_txt);
+	snprintf(errtxt, sizeof(errtxt), "PSID_startlicenseserver():"
+		 " can't get \"psld\" service entry\n"); 
+	fprintf(stderr, errtxt);
+	PSI_logerror(errtxt);
 	shutdown(sock,2);
 	close(sock);
 	return 0; 
@@ -285,9 +288,12 @@ int PSID_taskspawn(PStask_t* task)
 
 #if defined(DEBUG)||defined(PSID)
     if(PSP_DEBUGTASK & PSI_debugmask){
-	sprintf(PSI_txt,"PSID_taskspawn(task: ");
-	PStask_sprintf(PSI_txt+strlen(PSI_txt),task);
-	sprintf(PSI_txt+strlen(PSI_txt),")\n");
+	snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn(task: ");
+	/** \todo this may cause segfaults !! Norbert */
+	PStask_sprintf(errtxt+strlen(errtxt), task);
+	/** \todo this is not correct since sizeof(errtxt)-strlen(errtxt) may be
+	    negative !! Norbert */
+	snprintf(errtxt + strlen(errtxt), sizeof(errtxt)-strlen(errtxt), ")\n");
 	PSI_logerror(PSI_txt);
     }
 #endif
@@ -297,10 +303,10 @@ int PSID_taskspawn(PStask_t* task)
      * for observing the successful exec call
      */
     if(pipe(fds)<0){
-	char* errtxt;
-	errtxt=strerror(errno);
+	char* errstr;
+	errstr = strerror(errno);
 	syslog(LOG_ERR, "PSID_taskspawn(pipe): [#%d] %s ", errno,
-	       errtxt?errtxt:"UNKNOWN");
+	       errstr ? errstr : "UNKNOWN");
 	perror("pipe");
     }
     fcntl(fds[1],F_SETFD,FD_CLOEXEC);
@@ -315,14 +321,14 @@ int PSID_taskspawn(PStask_t* task)
 	 * change the group id to the appropriate group
 	 */
 	if(setgid(task->gid)<0){
-	    char* errtxt;
-	    errtxt=strerror(errno);
+	    char* errstr;
+	    errstr = strerror(errno);
 
 	    syslog(LOG_ERR, "PSID_taskspawn(setgid): [%d] %s", errno,
-		   errtxt?errtxt:"UNKNOWN");
+		   errstr ? errstr : "UNKNOWN");
 	    perror("setgid");
 	    buf = errno;
-	    write(fds[1],&buf,sizeof(buf));
+	    write(fds[1], &buf, sizeof(buf));
 	    exit(0);
 	}
 
@@ -330,14 +336,14 @@ int PSID_taskspawn(PStask_t* task)
 	 * change the user id to the appropriate user
 	 */
 	if(setuid(task->uid)<0){
-	    char* errtxt;
-	    errtxt=strerror(errno);
+	    char* errstr;
+	    errstr = strerror(errno);
 
 	    syslog(LOG_ERR, "PSID_taskspawn(setuid): [%d] %s", errno,
-		   errtxt?errtxt:"UNKNOWN");
+		   errstr ? errstr : "UNKNOWN");
 	    perror("setuid");
 	    buf = errno;
-	    write(fds[1],&buf,sizeof(buf));
+	    write(fds[1], &buf, sizeof(buf));
 	    exit(0);
 	}
 
@@ -345,40 +351,41 @@ int PSID_taskspawn(PStask_t* task)
 	 * change to the appropriate directory
 	 */
 	if(chdir(task->workingdir)<0){
-	    char* errtxt;
-	    errtxt=strerror(errno);
+	    char* errstr;
+	    errstr = strerror(errno);
 	    syslog(LOG_ERR, "PSID_taskspawn(chdir): %d %s :%s", errno,
-		   errtxt?errtxt:"UNKNOWN",
-		   task->workingdir?task->workingdir:"");
+		   errstr ? errstr : "UNKNOWN",
+		   task->workingdir ? task->workingdir : "");
 	    perror("chdir");
 	    buf = errno;
-	    write(fds[1],&buf,sizeof(buf));
+	    write(fds[1], &buf, sizeof(buf));
 	    exit(0);
 	}
 	/*
 	 * set the environment variable
 	 */
 	{
-	    char envvar[200];
-	    sprintf(envvar,"PWD=%s",task->workingdir);
+	    char *envvar;
+	    envvar = malloc(strlen(task->workingdir) + strlen("PWD=") + 1);
+	    sprintf(envvar, "PWD=%s", task->workingdir);
+	    /* Don't free envvar, since it becomes part of the environment! */
 	    putenv(envvar);
-	    for(i=0;i<task->environc;i++)
-		if(task->environ[i])
-		    putenv(task->environ[i]);
+	    for(i=0; i < task->environc; i++)
+		if (task->environ[i]) putenv(task->environ[i]);
 	}
 
 	if (stat(task->argv[0], &sb) == -1
 	    || ((sb.st_mode & S_IFMT) != S_IFREG)
 	    || !(sb.st_mode & S_IEXEC)){
-	    char* errtxt;
-	    errtxt=strerror(errno);
+	    char* errstr;
+	    errstr=strerror(errno);
 	    syslog(LOG_ERR,"PSID_taskspawn(stat): [%d] %s :%s  %s %s",
-		   errno, errtxt?errtxt:"UNKNOWN",
-		   task->argv[0]?task->argv[0]:"",
-		   ((sb.st_mode & S_IFMT) != S_IFREG)?"S_IFREG error":"S_IFREG ok",
-		   (sb.st_mode & S_IEXEC)?"S_IEXEC set":"S_IEXEC error");
+		   errno, errstr ? errstr : "UNKNOWN",
+		   task->argv[0] ? task->argv[0] : "",
+		   ((sb.st_mode & S_IFMT) != S_IFREG) ? "S_IFREG error" : "S_IFREG ok",
+		   (sb.st_mode & S_IEXEC) ? "S_IEXEC set" : "S_IEXEC error");
 	    buf = errno;
-	    write(fds[1],&buf,sizeof(buf));
+	    write(fds[1], &buf, sizeof(buf));
 	    exit(0);
 	}
 
@@ -386,9 +393,8 @@ int PSID_taskspawn(PStask_t* task)
 	 * close all file descriptors
 	 * except my control channel to my parent
 	 */
-	for (i=getdtablesize()-1;i>2;i--)
-	    if (i!=fds[1])
-		close(i);
+	for (i=getdtablesize()-1; i>2; i--)
+	    if (i != fds[1]) close(i);
 
 	/*
 	 * Start the forwarder and redirect stdout/stderr
@@ -403,12 +409,12 @@ int PSID_taskspawn(PStask_t* task)
 	 * execute the image
 	 */
 	if (PSID_execv(task->argv[0],&(task->argv[0]))<0){
-	    char* errtxt;
-	    errtxt=strerror(errno);
-	    openlog("psid spawned process",LOG_PID|LOG_CONS,LOG_DAEMON);
-	    PSI_setoption(PSP_OSYSLOG,1);
-	    syslog(LOG_ERR,"PSID_taskspawn(execv): [%d] %s",
-		   errno,errtxt?errtxt:"UNKNOWN");
+	    char* errstr;
+	    errstr = strerror(errno);
+	    openlog("psid spawned process", LOG_PID|LOG_CONS, LOG_DAEMON);
+	    PSI_setoption(PSP_OSYSLOG, 1);
+	    syslog(LOG_ERR, "PSID_taskspawn(execv): [%d] %s",
+		   errno, errstr ? errstr : "UNKNOWN");
 	    perror("exec");
 	}
 	/*
@@ -429,13 +435,13 @@ int PSID_taskspawn(PStask_t* task)
      * check if fork() was successful
      */
     if (pid ==-1){
-	char *errtxt;
-	errtxt = strerror(errno);
+	char *errstr;
+	errstr = strerror(errno);
 
 	close(fds[0]);
 	close(fds[1]);
 	syslog(LOG_ERR, "PSID_taskspawn(fork): [%d] %s", errno,
-	       errtxt?errtxt:"UNKNOWN");
+	       errstr ? errstr : "UNKNOWN");
 	perror("fork()");
 	task->error = -errno;
 	ret = -errno;
@@ -444,9 +450,9 @@ int PSID_taskspawn(PStask_t* task)
 	 * check for a sign of the child
 	 */
 	if(PSP_DEBUGTASK & PSI_debugmask){
-	    sprintf(PSI_txt, "I'm the parent. I'm waiting for my child (%d)\n",
-		   pid);
-	    PSI_logerror(PSI_txt);
+	    snprintf(errtxt, sizeof(errtxt),
+		     "I'm the parent. I'm waiting for my child (%d)\n", pid);
+	    PSI_logerror(errtxt);
 	}
 
 	close(fds[1]);
@@ -460,25 +466,26 @@ int PSID_taskspawn(PStask_t* task)
 	    task->nodeno = PSI_getnode(-1);
 #if defined(DEBUG)||defined(PSID)
 	    if(PSP_DEBUGTASK & PSI_debugmask){
-		sprintf(PSI_txt,"child execute was successful\n");
-		PSI_logerror(PSI_txt);
+		snprintf(errtxt, sizeof(errtxt), "child execute was successful\n");
+		PSI_logerror(errtxt);
 	    }
 #endif
 	}else{
-	    char *errtxt;
+	    char *errstr;
 
 	    /*
 	     * the child sent us a sign that the execv wasn't successful
 	     */
 	    ret = buf;
-	    errtxt = strerror(ret);
+	    errstr = strerror(ret);
 #if defined(DEBUG)||defined(PSID)
 	    /*	    if(PSP_DEBUGTASK & PSI_debugmask)
 	     */
 	    {
-		sprintf(PSI_txt, "child execute failed error(%d):%s\n", ret,
-		       errtxt?errtxt:"UNKNOWN");
-		PSI_logerror(PSI_txt);
+		snprintf(errtxt, sizeof(errtxt),
+			 "child execute failed error(%d):%s\n", ret,
+			 errstr ? errstr : "UNKNOWN");
+		PSI_logerror(errtxt);
 	    }
 #endif
 	}
@@ -511,9 +518,9 @@ int PSID_inserthost(unsigned int addr, unsigned short psino)
 	PSID_hostaddresses[psino] = addr;
 #ifdef DEBUG
 	if((PSP_DEBUGADMIN|PSP_DEBUGSTARTUP) & PSI_debugmask){
-	    sprintf(PSI_txt,"PSID_inserthost(): the host (address[%x],"
+	    snprintf(errtxt, sizeof(errtxt), "PSID_inserthost(): the host (address[%x],"
 		    "cardid[%d]) is inserted in the hostlist.\n", addr, psino);
-	    PSI_logerror(PSI_txt);
+	    PSI_logerror(errtxt);
 	}
 #endif
 	return 1;
@@ -534,8 +541,8 @@ int PSID_host(unsigned int addr)
     struct PSID_host_t *host;
 #if defined(DEBUG)
     if(PSP_DEBUGHOST & PSI_debugmask ){
-	sprintf(PSI_txt,"PSID_host(%x) \n", addr);
-	PSI_logerror(PSI_txt);
+	snprintf(errtxt,"PSID_host(%x) \n", addr);
+	PSI_logerror(errtxt);
     }
 #endif
     /* loopback address */
@@ -571,9 +578,9 @@ unsigned long PSID_hostaddress(unsigned short id)
 {
 #if defined(DEBUG)
     if(PSP_DEBUGHOST & PSI_debugmask){
-	sprintf(PSI_txt,"PSID_hostaddress(%d) = %x\n",
-		id, (int) PSID_hostaddresses[id]);
-	PSI_logerror(PSI_txt);
+	snprintf(errtxt, sizeof(errtxt), "PSID_hostaddress(%d) = %x\n",
+		 id, (int) PSID_hostaddresses[id]);
+	PSI_logerror(errtxt);
     }
 #endif
 
