@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psipartition.c,v 1.3 2003/09/12 15:26:49 eicker Exp $
+ * $Id: psipartition.c,v 1.4 2003/09/26 14:18:39 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.3 2003/09/12 15:26:49 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.4 2003/09/26 14:18:39 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -33,17 +33,53 @@ static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.3 2003/0
 
 #include "psipartition.h"
 
-/*
- * The name for the environment variable setting the nodes used
- * when spawning.
+static char errtxt[256];
+
+/**
+ * The name of the environment variable defining a nodelist from a
+ * nodestring, i.e. a string containing a comma separated list of node
+ * ranges.
  */
 #define ENV_NODE_NODES     "PSI_NODES"
-#define ENV_NODE_HOSTS     "PSI_HOSTS"
-#define ENV_NODE_HOSTFILE  "PSI_HOSTFILE"
-#define ENV_NODE_SORT      "PSI_NODES_SORT"
-#define ENV_NODE_HOSTS_LSF "LSB_HOSTS"
 
-static char errtxt[256];
+/**
+ * The name of the environment variable defining a nodelist from a
+ * hoststring, i.e. a string containing a whitespace separated list of
+ * resolvable hostnames.
+ */
+#define ENV_NODE_HOSTS     "PSI_HOSTS"
+
+/**
+ * The name of the environment variable defining a nodelist from a
+ * hostfile, i.e. a file containing a list of resolvable hostnames.
+ */
+#define ENV_NODE_HOSTFILE  "PSI_HOSTFILE"
+
+/**
+ * Name of the environment variable steering the sorting of nodes
+ * within building the partition. Possible values are:
+ *
+ * - LOAD, LOAD_1: Use the 1 minute load average for sorting.
+ *
+ * - LOAD_5: Use the 5 minute load average for sorting.
+ *
+ * - LOAD_15: Use the 15 minute load average for sorting.
+ *
+ * - PROC: Use the number of processes controlled by ParaStation.
+ *
+ * - PROC+LOAD: Use PROC + LOAD for sorting.
+ *
+ * - NONE: No sorting at all.
+ *
+ * The value is considered case-insensitive.
+ */
+#define ENV_NODE_SORT      "PSI_NODES_SORT"
+
+/**
+ * Name of the environment variable used by LSF in order to keep the
+ * hostnames of the nodes reserved for the batch job.
+*/
+#define ENV_NODE_HOSTS_LSF "LSB_HOSTS"
 
 void PSI_LSF(void)
 {
@@ -52,16 +88,52 @@ void PSI_LSF(void)
     snprintf(errtxt, sizeof(errtxt), "%s()", __func__);
     PSI_errlog(errtxt, 10);
 
-    lsf_hosts=getenv(ENV_NODE_HOSTS_LSF);
+    lsf_hosts = getenv(ENV_NODE_HOSTS_LSF);
     if (lsf_hosts) {
 	setenv(ENV_NODE_SORT, "none", 1);
-	unsetenv(ENV_NODE_HOSTFILE);
 	unsetenv(ENV_NODE_NODES);
 	setenv(ENV_NODE_HOSTS, lsf_hosts, 1);
+	unsetenv(ENV_NODE_HOSTFILE);
     }
 }
 
-/** @todo docu */
+/**
+ * Name of the environment variable used by OpenPBS and PBSPro in
+ * order to keep the filename of the hostfile. This file contains a
+ * list of hostnames of the nodes reserved for the batch job.
+*/
+#define ENV_NODE_HOSTFILE_PBS "PBS_NODEFILE"
+
+void PSI_PBS(void)
+{
+    char *pbs_hostfile=NULL;
+
+    snprintf(errtxt, sizeof(errtxt), "%s()", __func__);
+    PSI_errlog(errtxt, 10);
+
+    pbs_hostfile = getenv(ENV_NODE_HOSTFILE_PBS);
+    if (pbs_hostfile) {
+	setenv(ENV_NODE_SORT, "none", 1);
+	unsetenv(ENV_NODE_NODES);
+	unsetenv(ENV_NODE_HOSTS);
+	setenv(ENV_NODE_HOSTFILE, pbs_hostfile, 1);
+    }
+}
+
+/**
+ * @brief Get sort mode.
+ *
+ * Get the partition's sort mode from the environment variable @ref
+ * ENV_NODE_SORT.
+ *
+ * If the environment variable is not set at all, the default value
+ * PART_SORT_PROC is returned. If one of the possible values as
+ * discussed in @ref ENV_NODE_SORT is detected, its corresponding
+ * value is returned. If it was impossible to detect any valid
+ * criterium, PART_SORT_UNKNOWN will be returned.
+ *
+ * @return The determined sorting criterium as discussed above.
+ */
 static PSpart_sort_t getSortMode(void)
 {
     PSpart_sort_t sort = PART_SORT_PROC;
@@ -79,6 +151,8 @@ static PSpart_sort_t getSortMode(void)
 	return PART_SORT_PROC;
     } else if (strcasecmp(env_sort,"PROC+LOAD")==0) {
 	return PART_SORT_PROCLOAD;
+    } else if (strcasecmp(env_sort,"NONE")==0) {
+	return PART_SORT_NONE;
     }
 
     snprintf(errtxt, sizeof(errtxt), "%s: Unknown criterium '%s'\n", __func__,
@@ -88,37 +162,72 @@ static PSpart_sort_t getSortMode(void)
     return PART_SORT_UNKNOWN;
 }
 
+/**
+ * Name of the evironment variable used in order to enable a
+ * partitions PART_OPT_NODEFIRST option.
+ */
 #define ENV_PART_LOOPNODES "PSI_LOOP_NODES_FIRST"
+
+/**
+ * Name of the evironment variable used in order to enable a
+ * partitions PART_OPT_EXCLUSIVE option.
+ */
 #define ENV_PART_EXCLUSIVE "PSI_EXCLUSIVE"
+
+/**
+ * Name of the evironment variable used in order to enable a
+ * partitions PART_OPT_OVERBOOK option.
+ */
 #define ENV_PART_OVERBOOK  "PSI_OVERBOOK"
+
+/**
+ * Name of the evironment variable used in order to enable a
+ * partitions PART_OPT_WAIT option.
+ */
 #define ENV_PART_WAIT      "PSI_WAIT"
 
-/** @todo docu */
+/**
+ * @brief Get options.
+ *
+ * Get the partition's options from the environment variables @ref
+ * ENV_PART_LOOPNODES, @ref ENV_PART_EXCLUSIVE, @ref ENV_PART_OVERBOOK
+ * and ENV_PART_WAIT.
+ *
+ * @return The bitwise OR'ed combination of the detected options.
+ */
 static PSpart_option_t getPartitionOptions(void)
 {
     PSpart_option_t options = 0;
 
     if (getenv(ENV_PART_LOOPNODES)) options |= PART_OPT_NODEFIRST;
     if (getenv(ENV_PART_EXCLUSIVE)) options |= PART_OPT_EXCLUSIVE;
-    if (getenv(ENV_PART_OVERBOOK)) {
-	/* @todo OVERBOOK will crash the daemon -> disabled */
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: OVERBOOK not yet stable -> Disabled.", __func__);
-	PSI_errlog(errtxt, 0);
-	//options |= PART_OPT_OVERBOOK;
-    }
+    if (getenv(ENV_PART_OVERBOOK)) options |= PART_OPT_OVERBOOK;
     if (getenv(ENV_PART_WAIT)) options |= PART_OPT_WAIT;
 
     return options;
 }
 
+/** Structure to hold a nodelist */
 typedef struct {
     int size;              /**< Number of valid entries within nodes[] */
     int maxsize;           /**< Maximum number of entries within nodes[] */
     unsigned short *nodes; /**< ParaStation IDs of the requested nodes. */
 } nodelist_t;
 
-/** @todo docu */
+/**
+ * @brief Extend nodelist by node.
+ *
+ * Extend the nodelist @a nl by one node. If the new node would bust
+ * the nodelist's allocated space, it will be extended automatically.
+ *
+ * @param node The node to be added to the nodelist.
+ *
+ * @param nl The nodelist to be extended.
+ *
+ * @return On success, i.e. if the nodelist's allocated space was
+ * large enough or if the extension of this space worked woll, 1 is
+ * returned. Or 0, if something went wrong.
+ */
 static int addNode(unsigned short node, nodelist_t *nl)
 {
     snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, node);
@@ -186,9 +295,9 @@ static int nodelistFromRange(char *range, nodelist_t *nodelist)
 /**
  * @brief Get nodelist from node-string.
  *
- * Get @a nodelist from @a node_str of the form range{,range}*.
+ * Get @a nodelist from @a nodeStr of the form range{,range}*.
  *
- * @param node_str Nodestring of the form 'range{,range}*'. The form
+ * @param nodeStr Nodestring of the form 'range{,range}*'. The form
  * of a range is described within @ref nodelistFromRange().
  *
  * @param nodelist Nodelist to be build.
@@ -207,7 +316,22 @@ static int nodelistFromNodeStr(char *nodeStr, nodelist_t *nodelist)
     return nodelist->size;
 }
 
-/** @todo docu */
+/**
+ * @brief Get nodelist from hostname.
+ *
+ * Get @a nodelist from single hostname string @a host which contains
+ * a resolvable hostname. Naturally the nodelist is extended by only a
+ * single node.
+ *
+ * @param host String containing a resolvable hostname. The resolved
+ * IP address has to be registered within the ParaStation system in
+ * order to determine its ParaStation ID.
+ *
+ * @param nodelist Nodelist to be extended.
+ *
+ * @return On success, the extension of the nodelist size (i.e. 1) is
+ * returned. Otherwise 0 is returned.
+ */
 static int nodelistFromHost(char *host, nodelist_t *nodelist)
 {
     struct hostent *hp;
@@ -243,7 +367,22 @@ static int nodelistFromHost(char *host, nodelist_t *nodelist)
     return 1;
 }
 
-/** @todo docu */
+/**
+ * @brief Get nodelist from host-string.
+ *
+ * Get @a nodelist from @a hostStr containing a whitespace separated
+ * list of resolvable hostnames. The nodelist is build via successiv
+ * calls to @ref nodelistFromHost().
+ *
+ * @param hostStr String containing a list of resolvable
+ * hostnames. Each hostname is handled via a call to @ref
+ * nodelistFromHost().
+ *
+ * @param nodelist Nodelist to be build.
+ *
+ * @return On success, the size of the nodelist is returned. Otherwise
+ * 0 is returned.
+ */
 static int nodelistFromHostStr(char *hostStr, nodelist_t *nodelist)
 {
     char *work, *host = strtok_r(hostStr, " \f\n\r\t\v", &work);
@@ -258,7 +397,25 @@ static int nodelistFromHostStr(char *hostStr, nodelist_t *nodelist)
     return total;
 }
 
-/** @todo docu */
+/**
+ * @brief Get nodelist from host-file.
+ *
+ * Get @a nodelist from the hostfile @a fileName containing a list of
+ * resolvable hostnames. The nodelist is build via successiv calls to
+ * @ref nodelistFromHostStr().
+ *
+ * Each line of the hostfile might contain a whitespace separated list
+ * of resolvable hostnames which will be passed to @ref
+ * nodelistFromHostStr(). Lines starting with a hash ('#') as the
+ * first character within this line will be ignored.
+ *
+ * @param fileName String containing the name of the file used.
+ *
+ * @param nodelist Nodelist to be build.
+ *
+ * @return On success, the size of the nodelist is returned. Otherwise
+ * 0 is returned.
+ */
 static int nodelistFromHostFile(char *fileName, nodelist_t *nodelist)
 {
     FILE* file = fopen(fileName, "r");
@@ -287,22 +444,33 @@ static int nodelistFromHostFile(char *fileName, nodelist_t *nodelist)
     return total;
 }
 
-/** @todo docu */
+/**
+ * @brief Get a nodelist.
+ *
+ * Get a @a nodelist from the corresponding environment variables.
+ *
+ * This function test the environment variables @ref ENV_NODE_NODES,
+ * @ref ENV_NODE_HOSTS and @ref ENV_NODE_HOSTFILE in this order. If
+ * any is set, the nodelist is created via @ref
+ * nodelistFromHostNodeStr(), @ref nodelistFromHostStr() or @ref
+ * nodelistFromHostFile() respectively.
+ *
+ * @return On success, the created nodelist is returned. Otherwise
+ * NULL is returned. The latter case is also valid, if none of the
+ * expected environment variables is set.
+ */
 static nodelist_t *getNodelist(void)
 {
     int i;
-    char *nodeStr = NULL;
-    char *hostStr = NULL;
-    char *hostfileStr = NULL;
+    char *nodeStr = getenv(ENV_NODE_NODES);
+    char *hostStr = getenv(ENV_NODE_HOSTS);
+    char *hostfileStr = getenv(ENV_NODE_HOSTFILE);
     nodelist_t *nodelist;
 
     snprintf(errtxt, sizeof(errtxt), "%s", __func__);
     PSI_errlog(errtxt, 10);
 
-    if (!(nodeStr = getenv(ENV_NODE_NODES))
-	&& !(hostStr = getenv(ENV_NODE_HOSTS))
-	&& !(hostfileStr = getenv(ENV_NODE_HOSTFILE)))
-	return NULL;
+    if (!nodeStr && !hostStr && !hostfileStr) return NULL;
 
     nodelist = malloc(sizeof(nodelist_t));
     if (!nodelist) {
@@ -334,6 +502,56 @@ static nodelist_t *getNodelist(void)
     return nodelist;
 }
 
+/**
+ * @brief Send a nodelist.
+ *
+ * Send a @a nodelist to the local daemon using the message buffer @a
+ * msg.
+ *
+ * In order to send the nodelist, it is split into chunks of @ref
+ * GETNODES_CHUNK entries. Each chunk is copied into the message and
+ * send separately to the local daemon.
+ *
+ * This function is typically called from within @ref
+ * PSI_createPartition().
+ *
+ * @param nodelist The nodelist to be send.
+ *
+ * @param msg The message buffer used to send the nodelist to the
+ * daemon.
+ *
+ * @return If something went wrong, -1 is returned and errno is set
+ * appropriately. Otherwise 0 is returned.
+ *
+ * @see errno(3)
+ */
+static int sendNodelist(nodelist_t *nodelist, DDBufferMsg_t *msg)
+{
+    int offset = 0;
+
+    msg->header.type = PSP_CD_CREATEPARTNL;
+    while (offset < nodelist->size) {
+	int chunk = (nodelist->size-offset > GETNODES_CHUNK) ?
+	    GETNODES_CHUNK : nodelist->size-offset;
+	char *ptr = msg->buf;
+	msg->header.len = sizeof(msg->header);
+
+	*(int *)ptr = chunk;
+	ptr += sizeof(int);
+	msg->header.len += sizeof(int);
+
+	memcpy(ptr, nodelist->nodes+offset, chunk * sizeof(*nodelist->nodes));
+	msg->header.len += chunk * sizeof(*nodelist->nodes);
+	offset += chunk;
+	if (PSI_sendMsg(msg)<0) {
+	    snprintf(errtxt, sizeof(errtxt), "%s: write", __func__);
+	    PSI_errlog(errtxt, 0);
+	    return -1;
+	}
+    }
+    return 0;
+}
+
 int PSI_createPartition(unsigned int size, unsigned int hwType)
 {
     DDBufferMsg_t msg = (DDBufferMsg_t) {
@@ -348,6 +566,9 @@ int PSI_createPartition(unsigned int size, unsigned int hwType)
     unsigned int priority = 0; /* Not used */
     nodelist_t *nodelist;
     char *ptr = msg.buf;
+
+    snprintf(errtxt, sizeof(errtxt), "%s", __func__);
+    PSI_errlog(errtxt, 10);
 
     *(unsigned int *)ptr = size;
     ptr += sizeof(size);
@@ -369,6 +590,11 @@ int PSI_createPartition(unsigned int size, unsigned int hwType)
     *(unsigned int *)ptr = priority;
     ptr += sizeof(priority);
     msg.header.len += sizeof(priority);
+
+    snprintf(errtxt, sizeof(errtxt),
+	     "%s: size %d hwType %x sort %x options %x priority %d\n",
+	     __func__, size, hwType, sort, options, priority);
+    PSI_errlog(errtxt, 10);
 
     nodelist = getNodelist();
     if (nodelist) {
@@ -392,29 +618,8 @@ int PSI_createPartition(unsigned int size, unsigned int hwType)
     }
 
     if (nodelist) {
-	int offset = 0;
-
-	msg.header.type = PSP_CD_CREATEPARTNL;
-	while (offset < nodelist->size) {
-	    int chunk = (nodelist->size-offset > GETNODES_CHUNK) ?
-		GETNODES_CHUNK : nodelist->size-offset;
-	    msg.header.len = sizeof(msg.header);
-	    ptr = msg.buf;
-
-	    *(int *)ptr = chunk;
-	    ptr += sizeof(int);
-	    msg.header.len += sizeof(int);
-
-	    memcpy(ptr, nodelist->nodes+offset,
-		   chunk * sizeof(*nodelist->nodes));
-	    msg.header.len += chunk * sizeof(*nodelist->nodes);
-	    offset += chunk;
-	    if (PSI_sendMsg(&msg)<0) {
-		snprintf(errtxt, sizeof(errtxt), "%s: write", __func__);
-		PSI_errlog(errtxt, 0);
-		return -1;
-	    }
-	}
+	int ret = sendNodelist(nodelist, &msg);
+	if (ret) return ret;
     }
 
     if (PSI_recvMsg(&msg)<0) {
