@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.20 2002/07/11 10:32:56 eicker Exp $
+ * $Id: info.c,v 1.21 2002/07/11 16:54:09 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.20 2002/07/11 10:32:56 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.21 2002/07/11 16:54:09 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -121,7 +121,7 @@ static int INFO_receive(INFO_info_t what, void *buffer, size_t size,
 	{
 	    if (verbose) {
 		char* errtxt;
-		errtxt = strerror(((DDErrorMsg_t*)&msg)->err);
+		errtxt = strerror(((DDErrorMsg_t*)&msg)->error);
 		printf("INFO_receive: error in command %s : %s\n", 
 		       PSPctrlmsg(((DDErrorMsg_t*)&msg)->request),
 		       errtxt ? errtxt : "UNKNOWN");
