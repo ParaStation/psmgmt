@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.91 2003/04/11 13:17:24 eicker Exp $
+ * $Id: psid.c,v 1.92 2003/06/06 15:01:51 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.91 2003/04/11 13:17:24 eicker Exp $ 
+ * $Id: psid.c,v 1.92 2003/06/06 15:01:51 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.91 2003/04/11 13:17:24 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.92 2003/06/06 15:01:51 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -64,6 +64,8 @@ static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.91 2003/04/11 13
 #include "psidtask.h"
 #include "psidspawn.h"
 #include "psidsignal.h"
+#include "psidcomm.h"
+#include "psidclient.h"
 
 struct timeval maintimer;
 struct timeval selecttimer;
@@ -76,25 +78,13 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.91 $";
+static char psid_cvsid[] = "$Revision: 1.92 $";
 
 static int PSID_mastersock;
 
 int myStatus;         /* Another helper status. This is for reset/shutdown */
 
 static char errtxt[256]; /**< General string to create error messages */
-
-/*------------------------------
- * CLIENTS
- */
-/* possible values of clients.flags */
-#define INITIALCONTACT  0x00000001   /* No message yet (only accept()ed) */
-
-struct {
-    long tid;       /**< Clients task ID */
-    PStask_t *task; /**< Clients task structure */
-    long flags;     /**< Special flags. Up to now only INITIALCONTACT */
-} clients[FD_SETSIZE];
 
 /*----------------------------------------------------------------------*/
 /* states of the daemons                                                */
@@ -107,234 +97,6 @@ struct {
 #define PSID_STATE_NOCONNECT (PSID_STATE_DORESET \
 			      | PSID_STATE_SHUTDOWN | PSID_STATE_SHUTDOWN2)
 
-fd_set openfds;			/* active file descriptor set */
-
-int RDPSocket = -1;
-
-/*----------------------------------------------------------------------*/
-/* needed prototypes                                                    */
-/*----------------------------------------------------------------------*/
-void deleteClient(int fd);
-
-/************************************************************************/
-/*                   The communication stuff                            */
-/************************************************************************/
-
-/******************************************
- * closeConnection()
- * shutdown the filedescriptor and reinit the
- * clienttable on that filedescriptor
- */
-void closeConnection(int fd)
-{
-    if (fd<0) {
-	snprintf(errtxt, sizeof(errtxt), "%s(%d): fd < 0.", __func__, fd);
-	PSID_errlog(errtxt, 0);
-
-	return;
-    }
-
-    clients[fd].tid = -1;
-    clients[fd].task = NULL;
-
-    shutdown(fd, 2);
-    close(fd);
-    FD_CLR(fd, &openfds);
-}
-
-
-/******************************************
- * int sendMsg(DDMsg_t *msg)
- */
-int sendMsg(void *amsg)
-{
-    DDMsg_t *msg = (DDMsg_t *)amsg;
-    int fd = FD_SETSIZE;
-
-    if (PSID_getDebugLevel() >= 10) {
-	snprintf(errtxt, sizeof(errtxt), "%s(type %s (len=%d) to %s",
-		 __func__, PSDaemonP_printMsg(msg->type), msg->len,
-		 PSC_printTID(msg->dest));
-	PSID_errlog(errtxt, 10);
-    }
-
-    if (PSC_getID(msg->dest)==PSC_getMyID()) { /* my own node */
-	for (fd=0; fd<FD_SETSIZE; fd++) {
-	    /* find the FD for the dest */
-	    if (clients[fd].tid==msg->dest) break;
-	}
-    } else if (PSC_getID(msg->dest)<PSC_getNrOfNodes()) {
-	int ret = Rsendto(PSC_getID(msg->dest), msg, msg->len);
-	if (ret==-1) {
-	    char *errstr = strerror(errno);
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s(type %s (len=%d) to %s error (%d) while Rsendto: %s",
-		     __func__, PSDaemonP_printMsg(msg->type),
-		     msg->len, PSC_printTID(msg->dest),
-		     errno, errstr ? errstr : "UNKNOWN");
-	    PSID_errlog(errtxt, 0);
-	}
-	return ret;
-    }
-
-    if (fd <FD_SETSIZE) {
-	int n, i;
-
-	for (n=0, i=1; (n<msg->len) && (i>0);) {
-	    i = send(fd, &(((char*)msg)[n]), msg->len-n, 0);
-	    if (i<=0) {
-		if (errno!=EINTR) {
-		    char *errstr = strerror(errno);
-
-		    snprintf(errtxt, sizeof(errtxt),
-			     "%s(): got error %d on socket %d: %s",
-			     __func__, errno, fd,
-			     errstr ? errstr : "UNKNOWN");
-		    PSID_errlog(errtxt, (errno==EPIPE) ? 1 : 0);
-		    deleteClient(fd);
-		    return i;
-		}
-	    } else
-		n+=i;
-	}
-	return n;
-    }
-
-    snprintf(errtxt, sizeof(errtxt),
-	     "%s(type %s (len=%d) to %s error: dest not found",
-	     __func__, PSDaemonP_printMsg(msg->type),
-	     msg->len, PSC_printTID(msg->dest));
-    PSID_errlog(errtxt, 1);
-
-    return -1;
-}
-
-/******************************************
- *  recvMsg()
- */
-static int recvMsg(int fd, DDMsg_t *msg, size_t size)
-{
-    int n;
-    int count = 0;
-    int fromnode = -1;
-    if (fd == RDPSocket) {
-	fromnode = -1;
-	n = Rrecvfrom(&fromnode, msg, size);
-	if (n>0) {
-	    if (PSID_getDebugLevel() >= 10) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s(RDPSocket) type %s (len=%d) from %s",
-			 __func__, PSDaemonP_printMsg(msg->type), msg->len,
-			 PSC_printTID(msg->sender));
-		snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
-			 " dest %s", PSC_printTID(msg->dest));
-		PSID_errlog(errtxt, 10);
-	    }
-	} else {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s(RDPSocket) returns %d", __func__, n);
-	    PSID_errlog(errtxt, 0);
-	}
-	return n;
-    } else {
-	/* @todo: We have to take size into account !! */
-	/* it is a connection to a client */
-	/* so use the regular OS receive */
-	if (clients[fd].flags & INITIALCONTACT) {
-	    /* if this is the first contact of the client,
-	     * the client may use an incompatible msg format
-	     */
-	    n = count = read(fd, msg, sizeof(DDInitMsg_t));
-	    if (!count) {
-		/* Socket close before initial message was sent */
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s(%d) socket already closed.", __func__, fd);
-		PSID_errlog(errtxt, 1);
-	    } else if (count!=msg->len) {
-		/* if wrong msg format initiate a disconnect */
-		snprintf(errtxt, sizeof(errtxt),
-			 "%d=%s(%d): initial message with incompatible type.",
-			 n, __func__, fd);
-		PSID_errlog(errtxt, 0);
-		count=n=0;
-	    }
-	} else do {
-	    if (!count) {
-		/* First chunk of data */
-		n = read(fd, msg, sizeof(*msg));
-	    } else {
-		/* Later on we have msg->len */
-		n = read(fd, &((char*) msg)[count], msg->len-count);
-	    }
-	    if (n>0) {
-		count+=n;
-	    } else if (n<0 && (errno==EINTR)) {
-		continue;
-	    } else if (n<0 && (errno==ECONNRESET)) {
-		/* socket is closed unexpectedly */
-		n = 0;
-		break;
-	    } else break;
-	} while (msg->len > count);
-    }
-
-    if (n==-1) {
-	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s(%d/%s): %d=read() failed with errno %d: %s",
-		 __func__, fd, PSC_printTID(clients[fd].tid), count,
-		 errno, errstr ? errstr : "UNKNOWN");
-	PSID_errlog(errtxt, 0);
-    } else if (PSID_getDebugLevel() >= 10) {
-	if (n==0) {
-	    snprintf(errtxt, sizeof(errtxt), "%d=%s(fd %d)", n, __func__, fd);
-	} else {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%d=%s(fd %d type %s (len=%d) from %s",
-		     n, __func__, fd, PSDaemonP_printMsg(msg->type), msg->len,
-		     PSC_printTID(msg->sender));
-	    snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
-		     " dest %s", PSC_printTID(msg->dest));
-	}
-	PSID_errlog(errtxt, 10);
-    }
-
-    if (count && count==msg->len) {
-	return msg->len;
-    } else {
-	return n;
-    }
-}
-
-/******************************************
- * int broadcastMsg(DDMsg_t *msg)
- */
-static int broadcastMsg(void *amsg)
-{
-    DDMsg_t *msg = (DDMsg_t *) amsg;
-    int count=1;
-    int i;
-    if (PSID_getDebugLevel() >= 6) {
-	snprintf(errtxt, sizeof(errtxt), "%s(type %s (len=%d)",
-		 __func__, PSDaemonP_printMsg(msg->type), msg->len);
-	PSID_errlog(errtxt, 6);
-    }
-
-    /* broadcast to every daemon except the sender */
-    for (i=0; i<PSC_getNrOfNodes(); i++) {
-	if (PSnodes_isUp(i) && i != PSC_getMyID()) {
-	    msg->dest = PSC_getTID(i, 0);
-	    if (sendMsg(msg)>=0) {
-		count++;
-	    }
-	}
-    }
-
-    return count;
-}
-
-
-/*****************************************************************************/
 
 /******************************************
  *  startDaemons()
@@ -394,18 +156,20 @@ int killClients(int phase)
     mytimeradd(&killclientstimer, 0, 200000);
 
     for (i=0; i<FD_SETSIZE; i++) {
-	if (FD_ISSET(i,&openfds) && (i!=PSID_mastersock) && (i!=RDPSocket)) {
+	if (FD_ISSET(i,&PSID_readfds)
+	    && (i!=PSID_mastersock) && (i!=RDPSocket)) {
 	    /* if a client process send SIGTERM */
-	    if (clients[i].tid!=-1
-		&& (phase==1 || phase==3
-		    || clients[i].task->group!=TG_ADMIN)) {
+	    long tid = getClientTID(i);
+	    PStask_t *task = getClientTask(i);
+
+	    if (tid!=-1 && (phase==1 || phase==3 || task->group!=TG_ADMIN)) {
 		/* in phase 1 and 3 all */
 		/* in phase 0 and 2 only process not in TG_ADMIN group */
-		pid = PSC_getPID(clients[i].tid);
+		pid = PSC_getPID(tid);
 		snprintf(errtxt, sizeof(errtxt),
 			 "%s: sending %s to %s pid %d index[%d]",
 			 __func__, (phase<2) ? "SIGTERM" : "SIGKILL",
-			 PSC_printTID(clients[i].tid), pid, i);
+			 PSC_printTID(tid), pid, i);
 		PSID_errlog(errtxt, 4);
 		if (pid > 0)
 		    kill(pid, (phase<2) ? SIGTERM : SIGKILL);
@@ -465,9 +229,9 @@ int shutdownNode(int phase)
 	/*
 	 * close the Master socket -> no new connections
 	 */
-	shutdown(PSID_mastersock, 2);
+	shutdown(PSID_mastersock, SHUT_RDWR);
 	close(PSID_mastersock);
-	FD_CLR(PSID_mastersock, &openfds);
+	FD_CLR(PSID_mastersock, &PSID_readfds);
     }
     /*
      * kill all clients
@@ -479,7 +243,8 @@ int shutdownNode(int phase)
 	 * close all sockets to the clients
 	 */
 	for (i=0; i<FD_SETSIZE; i++) {
-	    if (FD_ISSET(i, &openfds) && i!=PSID_mastersock && i!=RDPSocket) {
+	    if (FD_ISSET(i, &PSID_readfds)
+		&& i!=PSID_mastersock && i!=RDPSocket) {
 		closeConnection(i);
 	    }
 	}
@@ -534,116 +299,6 @@ void declareDaemonDead(int id)
     snprintf(errtxt, sizeof(errtxt),
 	     "Lost connection to daemon of node %d", id);
     PSID_errlog(errtxt, 2);
-}
-
-void cleanupTask(long tid)
-{
-    PStask_t *task, *clone = NULL;
-
-    snprintf(errtxt, sizeof(errtxt), "%s(%s)", __func__, PSC_printTID(tid));
-    PSID_errlog(errtxt, 10);
-
-    task = PStasklist_dequeue(&managedTasks, tid);
-    if (task) {
-	/*
-	 * send all task which want to receive a signal
-	 * the signal they want to receive
-	 */
-	PSID_sendAllSignals(task);
-
-	if (task->group==TG_FORWARDER && !task->released) {
-	    /*
-	     * Backup task in order to get the child later. The child
-	     * list will be destroyd within sendSignalsToRelatives()
-	     */
-	    clone = PStask_clone(task);
-	}
-
-	/* Check the relatives */
-	if (!task->released) {
-	    PSID_sendSignalsToRelatives(task);
-	}
-
-	/* Tell MCast about removing the task */
-	if (!task->duplicate) {
-	    decJobsMCast(PSC_getMyID(), 1, (task->group==TG_ANY));
-	}
-
-	if (task->group==TG_FORWARDER && !task->released) {
-	    /* cleanup child */
-	    long childTID;
-	    int sig = -1;
-
-	    childTID = PSID_getSignal(&clone->childs, &sig);
-
-	    if (childTID) {
-		PStask_t *child = PStasklist_find(managedTasks, childTID);
-
-		if (child && child->fd == -1) {
-		    snprintf(errtxt, sizeof(errtxt),
-			     "%s: forwarder kills child %s",
-			     __func__, PSC_printTID(child->tid));
-		    PSID_errlog(errtxt, 0);
-
-		    PSID_kill(-PSC_getPID(child->tid), SIGKILL, child->uid);
-		    cleanupTask(child->tid);
-		}
-	    }
-
-	    PStask_delete(clone);
-	}
-
-	PStask_delete(task);
-
-    } else {
-	snprintf(errtxt, sizeof(errtxt), "%s: task(%s) not in my tasklist",
-		 __func__, PSC_printTID(tid));
-	PSID_errlog(errtxt, 0);
-    }
-}
-
-/******************************************
- *  deleteClient(int fd)
- */
-void deleteClient(int fd)
-{
-    PStask_t *task;
-    long tid;
-
-    if (fd<0) {
-	snprintf(errtxt, sizeof(errtxt), "%s(%d): fd < 0.", __func__, fd);
-	PSID_errlog(errtxt, 0);
-
-	return;
-    }
-
-    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, fd);
-    PSID_errlog(errtxt, 4);
-
-    tid = clients[fd].tid;
-    closeConnection(fd);
-
-    if (tid==-1) return;
-
-    /* Tell logger about unreleased forwarders */
-    task = PStasklist_find(managedTasks, tid);
-    if (task && task->group == TG_FORWARDER && !task->released) {
-	DDMsg_t msg;
-
-	msg.type = PSP_CC_ERROR;
-	msg.dest = task->loggertid;
-	msg.sender = task->tid;
-	msg.len = sizeof(msg);
-	sendMsg(&msg);
-    }
-
-    snprintf(errtxt, sizeof(errtxt), "%s(): closing connection to %s",
-	     __func__, PSC_printTID(tid));
-    PSID_errlog(errtxt, 1);
-
-    cleanupTask(tid);
-
-    return;
 }
 
 /******************************************
@@ -726,6 +381,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
     pid_t pid;
     uid_t uid;
     gid_t gid;
+    long tid;
 
 #ifdef SO_PEERCRED
     socklen_t size;
@@ -741,18 +397,18 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
     uid = msg->uid;
     gid = msg->gid;
 #endif
-    clients[fd].tid = PSC_getTID(-1, pid);
+    tid = PSC_getTID(-1, pid);
 
     snprintf(errtxt, sizeof(errtxt), "connection request from %s"
 	     " at fd %d, group=%s, version=%ld, uid=%d",
-	     PSC_printTID(clients[fd].tid), fd, PStask_printGrp(msg->group),
+	     PSC_printTID(tid), fd, PStask_printGrp(msg->group),
 	     msg->version, uid);
     PSID_errlog(errtxt, 3);
     /*
      * first check if it is a reconnection
      * this can happen due to a exec call.
      */
-    task = PStasklist_find(managedTasks, clients[fd].tid);
+    task = PStasklist_find(managedTasks, tid);
     if (!task && msg->group != TG_SPAWNER) {
 	long pgtid = PSC_getTID(-1, getpgid(pid));
 
@@ -772,7 +428,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	    PStask_t *child = PStask_clone(task);
 
 	    if (child) {
-		child->tid = clients[fd].tid;
+		child->tid = tid;
 		child->duplicate = 1;
 		PSID_setSignal(&child->assignedSigs, child->ptid, -1);
 		PStasklist_enqueue(&managedTasks, child);
@@ -797,12 +453,11 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	if (task->fd > 0) {
 	    closeConnection(task->fd);
 	}
-	clients[fd].task = task;
 	task->fd = fd;
     } else {
 	char tasktxt[128];
 	task = PStask_new();
-	task->tid = clients[fd].tid;
+	task->tid = tid;
 	task->fd = fd;
 	task->uid = uid;
 	task->gid = gid;
@@ -839,11 +494,12 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	PSID_errlog(errtxt, 9);
 
 	PStasklist_enqueue(&managedTasks, task);
-	clients[fd].task = task;
 
 	/* Tell MCast about the new task */
 	incJobsMCast(PSC_getMyID(), 1, (task->group==TG_ANY));
     }
+
+    registerClient(fd, tid, task);
 
     /*
      * Get the number of processes from MCast
@@ -854,7 +510,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
      * Reject or accept connection
      */
     outmsg.header.type = PSP_CD_CLIENTESTABLISHED;
-    outmsg.header.dest = clients[fd].tid;
+    outmsg.header.dest = tid;
     outmsg.header.sender = PSC_getMyTID();
     outmsg.header.len = sizeof(outmsg.header) + sizeof(outmsg.type);
 
@@ -905,7 +561,7 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	    doReset();
 	}
     } else {
-	clients[fd].flags &= ~INITIALCONTACT;
+	setEstablishedClient(fd);
 	task->protocolVersion = msg->version;
 
 	outmsg.type = PSC_getMyID();
@@ -1158,11 +814,10 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	    PSID_setSignal(&forwarder->childs, task->tid, -1);
 	    /* Enqueue the forwarder */
 	    PStasklist_enqueue(&managedTasks, forwarder);
-	    /* The forwarder is already connected */
-	    clients[forwarder->fd].tid = forwarder->tid;
-	    clients[forwarder->fd].task = forwarder;
-	    clients[forwarder->fd].flags &= ~INITIALCONTACT;
-	    FD_SET(forwarder->fd, &openfds);
+	    /* The forwarder is already connected and established */
+	    registerClient(forwarder->fd, forwarder->tid, forwarder);
+	    setEstablishedClient(forwarder->fd);
+	    FD_SET(forwarder->fd, &PSID_readfds);
 	    /* Tell MCast about the new forwarder task */
 	    incJobsMCast(PSC_getMyID(), 1, (forwarder->group==TG_ANY));
 
@@ -1331,7 +986,7 @@ void msg_CHILDDEAD(DDErrorMsg_t *msg)
 
 	/* If child not connected, remove task from tasklist */
 	if (task->fd == -1) {
-	    cleanupTask(msg->request);
+	    PStask_cleanup(msg->request);
 	}
     }
 }
@@ -2756,8 +2411,12 @@ void sighandler(int sig)
 	} else {
 	    shutdownNode(1);
 	}
+#if 0
+	signal(SIGSEGV,SIG_DFL);
+	kill(getpid(), SIGSEGV);
+	sleep(1);
+#endif
 	exit(-1);
-	/*signal(SIGSEGV,sighandler);*/
 	break;
     case SIGTERM:
 	PSID_errlog("Received SIGTERM signal. Shut down.", 0);
@@ -2802,7 +2461,7 @@ void sighandler(int sig)
 
 	    /* If task not connected, remove from tasklist */
 	    task = PStasklist_find(managedTasks, tid);
-	    if (task && (task->fd == -1)) cleanupTask(tid);
+	    if (task && (task->fd == -1)) PStask_cleanup(tid);
 	}
     }
     /* reset the sighandler */
@@ -2872,57 +2531,52 @@ void sighandler(int sig)
 /******************************************
 *  checkFileTable()
 */
-void checkFileTable(void)
+void checkFileTable(fd_set *controlfds)
 {
-    fd_set rfds;
+    fd_set fdset;
     int fd;
     struct timeval tv;
 
-    PSID_errlog("checkFileTable()", 1);
-
     for (fd=0; fd<FD_SETSIZE;) {
-	if (FD_ISSET(fd,&openfds)) {
-	    FD_ZERO(&rfds);
-	    FD_SET(fd,&rfds);
+	if (FD_ISSET(fd, controlfds)) {
+	    FD_ZERO(&fdset);
+	    FD_SET(fd, &fdset);
 
 	    tv.tv_sec=0;
 	    tv.tv_usec=0;
-	    if (select(FD_SETSIZE, &rfds, (fd_set *)0, (fd_set *)0, &tv) < 0) {
+	    if (select(FD_SETSIZE, &fdset, NULL, NULL, &tv) < 0) {
 		/* error : check if it is a wrong fd in the table */
 		switch (errno) {
 		case EBADF :
 		    snprintf(errtxt, sizeof(errtxt),
-			     "checkFileTable(%d): EBADF -> closing connection",
-			     fd);
-		    PSID_errlog(errtxt, 1);
+			     "%s(%d): EBADF -> close", __func__, fd);
+		    PSID_errlog(errtxt, 0);
 		    deleteClient(fd);
 		    fd++;
 		    break;
 		case EINTR:
 		    snprintf(errtxt, sizeof(errtxt),
-			     "checkFileTable(%d): EINTR -> trying again", fd);
-		    PSID_errlog(errtxt, 1);
+			     "%s(%d): EINTR -> try again", __func__, fd);
+		    PSID_errlog(errtxt, 0);
 		case EINVAL:
 		    snprintf(errtxt, sizeof(errtxt),
-			     "checkFileTable(%d): wrong filenumber. Exiting",
-			      fd);
-		    PSID_errlog(errtxt, 1);
+			     "%s(%d): wrong filenumber -> exit", __func__, fd);
+		    PSID_errlog(errtxt, 0);
 		    shutdownNode(1);
 		    break;
 		case ENOMEM:
 		    snprintf(errtxt, sizeof(errtxt),
-			     "checkFileTable(%d): not enough memory. Exiting",
-			     fd);
-		    PSID_errlog(errtxt, 1);
+			     "%s(%d): not enough memory. exit", __func__, fd);
+		    PSID_errlog(errtxt, 0);
 		    shutdownNode(1);
 		    break;
 		default:
 		{
 		    char *errstr = strerror(errno);
 		    snprintf(errtxt, sizeof(errtxt),
-			     "checkFileTable(%d): unrecognized error (%d):%s",
-			     fd, errno, errstr ? errstr : "UNKNOWN");
-		    PSID_errlog(errtxt, 1);
+			     "%s(%d): unrecognized error (%d):%s",
+			     __func__, fd, errno, errstr ? errstr : "UNKNOWN");
+		    PSID_errlog(errtxt, 0);
 		    fd ++;
 		    break;
 		}
@@ -2941,17 +2595,12 @@ void checkFileTable(void)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.91 $";
+    char revision[] = "$Revision: 1.92 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
 int main(int argc, const char *argv[])
 {
-    struct timeval tv;  /* timeval for waiting on select()*/
-    struct sockaddr_un sa;
-    fd_set rfds;        /* read file descriptor set */
-    int fd;
-
     poptContext optCon;   /* context for parsing command-line options */
 
     int rc, version = 0, debuglevel = 0;
@@ -3081,7 +2730,7 @@ int main(int argc, const char *argv[])
     {
 	int dummy_fd;
 
-	dummy_fd=open("/dev/null",O_WRONLY , 0);
+	dummy_fd=open("/dev/null", O_WRONLY , 0);
 	dup2(dummy_fd, STDIN_FILENO);
 	dup2(dummy_fd, STDOUT_FILENO);
 	if (!logfile) {
@@ -3099,45 +2748,57 @@ int main(int argc, const char *argv[])
     }
 
     /*
+     * Init fd sets
+     */
+    FD_ZERO(&PSID_readfds);
+    FD_ZERO(&PSID_writefds);
+
+    /*
      * create the socket to listen to the client
      */
-    PSID_mastersock = socket(PF_UNIX, SOCK_STREAM, 0);
+    {
+	struct sockaddr_un sa;
 
-    memset(&sa, 0, sizeof(sa));
-    sa.sun_family = AF_UNIX;
-    strncpy(sa.sun_path, PSmasterSocketName, sizeof(sa.sun_path));
+	PSID_mastersock = socket(PF_UNIX, SOCK_STREAM, 0);
 
-    /*
-     * Test if socket exists and another daemon is already connected
-     */
-    if (connect(PSID_mastersock, (struct sockaddr *)&sa, sizeof (sa))<0) {
-	if (errno != ECONNREFUSED && errno != ENOENT) {
-	    PSID_errexit("connect (PSID_mastersock)", errno);
+	memset(&sa, 0, sizeof(sa));
+	sa.sun_family = AF_UNIX;
+	strncpy(sa.sun_path, PSmasterSocketName, sizeof(sa.sun_path));
+
+	/*
+	 * Test if socket exists and another daemon is already connected
+	 */
+	if (connect(PSID_mastersock, (struct sockaddr *)&sa, sizeof (sa))<0) {
+	    if (errno != ECONNREFUSED && errno != ENOENT) {
+		PSID_errexit("connect (PSID_mastersock)", errno);
+	    }
+	} else {
+	    snprintf(errtxt, sizeof(errtxt),
+		     "Daemon already running?: %s", strerror(EBUSY));
+	    PSID_errlog(errtxt, 1);
+	    exit(0);
 	}
-    } else {
-	snprintf(errtxt, sizeof(errtxt),
-		 "Daemon already running?: %s", strerror(EBUSY));
-	PSID_errlog(errtxt, 1);
-	exit(0);
-    }
 
-    /*
-     * bind the socket to the right address
-     */
-    unlink(PSmasterSocketName);
-    if (bind(PSID_mastersock, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
-	PSID_errexit("Daemon already running?", errno);
-    }
-    chmod(sa.sun_path, S_IRWXU | S_IRWXG | S_IRWXO);
+	/*
+	 * bind the socket to the right address
+	 */
+	unlink(PSmasterSocketName);
+	if (bind(PSID_mastersock, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
+	    PSID_errexit("Daemon already running?", errno);
+	}
+	chmod(sa.sun_path, S_IRWXU | S_IRWXG | S_IRWXO);
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "Starting ParaStation3 DAEMON Protocol Version %d",
-	     PSprotocolVersion);
-    PSID_errlog(errtxt, 0);
-    PSID_errlog(" (c) ParTec AG (www.par-tec.com)", 0);
+	PSID_errlog("Starting ParaStation DAEMON", 0);
+	snprintf(errtxt, sizeof(errtxt), "Protocol Version %d",
+		 PSprotocolVersion);
+	PSID_errlog(errtxt, 0);
+	PSID_errlog(" (c) ParTec AG (www.par-tec.com)", 0);
 
-    if (listen(PSID_mastersock, 20) < 0) {
-	PSID_errexit("Error while trying to listen", errno);
+	if (listen(PSID_mastersock, 20) < 0) {
+	    PSID_errexit("Error while trying to listen", errno);
+	}
+
+	FD_SET(PSID_mastersock, &PSID_readfds);
     }
 
     /*
@@ -3174,14 +2835,38 @@ int main(int argc, const char *argv[])
 	closelog();
 
 	openlog("psid", LOG_PID|LOG_CONS, ConfigLogDest);
-	snprintf(errtxt, sizeof(errtxt),
-		 "Starting ParaStation3 DAEMON Protocol Version %d",
+	PSID_errlog("Starting ParaStation DAEMON", 0);
+	snprintf(errtxt, sizeof(errtxt), "Protocol Version %d",
 		 PSprotocolVersion);
 	PSID_errlog(errtxt, 0);
-	snprintf(errtxt, sizeof(errtxt),
-		 " (c) ParTec AG (www.par-tec.com)");
-	PSID_errlog(errtxt, 0);
+	PSID_errlog(" (c) ParTec AG (www.par-tec.com)", 0);
     }
+
+#if 0
+    {
+	struct rlimit rlimit;
+	int ret=0;
+
+        getrlimit(RLIMIT_CORE, &rlimit);
+        snprintf(errtxt, sizeof(errtxt),
+		 "core: %ld/%ld\n", rlimit.rlim_cur, rlimit.rlim_max);
+	PSID_errlog(errtxt, 0);
+
+	rlimit.rlim_cur = RLIM_INFINITY;
+ 	rlimit.rlim_max = RLIM_INFINITY;
+	ret = setrlimit(RLIMIT_CORE, &rlimit);
+	if (ret) {
+	    snprintf(errtxt, sizeof(errtxt), "setrlimit() returns %d\n", ret);
+	    PSID_errlog(errtxt, 0);
+	}
+
+        getrlimit(RLIMIT_CORE, &rlimit);
+        snprintf(errtxt, sizeof(errtxt),
+		 "core: %ld/%ld\n", rlimit.rlim_cur, rlimit.rlim_max);
+	PSID_errlog(errtxt, 0);
+
+    }
+#endif
 
     /* Check LicServer Setting */
     if (PSnodes_getAddr(PSNODES_LIC)==INADDR_ANY) {
@@ -3206,10 +2891,6 @@ int main(int argc, const char *argv[])
 
     PSnodes_bringUp(PSC_getMyID());
 
-    /* Init fd set */
-    FD_ZERO(&openfds);
-    FD_SET(PSID_mastersock, &openfds);
-
     /* Initialize timers */
     timerclear(&shutdowntimer);
     timerclear(&killclientstimer);
@@ -3217,13 +2898,10 @@ int main(int argc, const char *argv[])
     selecttimer.tv_usec = 0;
     gettimeofday(&maintimer, NULL);
 
-    for (fd=0; fd<FD_SETSIZE; fd++) {
-	clients[fd].tid = -1;
-	clients[fd].task = NULL;
-    }
+    /* Initialize the clients structure */
+    initClients();
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "Local Service Port initialized. Using socket %d",
+    snprintf(errtxt, sizeof(errtxt), "Local Service Port (%d) initialized.",
 	     PSID_mastersock);
     PSID_errlog(errtxt, 0);
 
@@ -3265,12 +2943,11 @@ int main(int argc, const char *argv[])
 	    PSID_errexit("Error while trying initRDP()", errno);
 	}
 
-	snprintf(errtxt, sizeof(errtxt),
-		 "MCast and RDP initialized. Using socket %d for RDP",
+	snprintf(errtxt, sizeof(errtxt), "MCast and RDP (%d) initialized.",
 		 RDPSocket);
 	PSID_errlog(errtxt, 0);
 
-	FD_SET(RDPSocket, &openfds);
+	FD_SET(RDPSocket, &PSID_readfds);
 
 	free(hostlist);
     }
@@ -3295,10 +2972,14 @@ int main(int argc, const char *argv[])
      * Main loop
      */
     while (1) {
+	struct timeval tv;  /* timeval for waiting on select()*/
+	fd_set rfds;        /* read file descriptor set */
+	int fd;
+
 	timerset(&tv, &selecttimer);
 	PSID_blockSig(0, SIGCHLD); /* Handle deceased child processes */
 	PSID_blockSig(1, SIGCHLD);
-	memcpy(&rfds, &openfds, sizeof(rfds));
+	memcpy(&rfds, &PSID_readfds, sizeof(rfds));
 
 	if (Tselect(FD_SETSIZE,
 		    &rfds, (fd_set *)NULL, (fd_set *)NULL, &tv) < 0) {
@@ -3307,7 +2988,8 @@ int main(int argc, const char *argv[])
 		     "Error while Tselect: %s", errstr ? errstr : "UNKNOWN");
 	    PSID_errlog(errtxt, 0);
 
-	    checkFileTable();
+	    checkFileTable(&PSID_readfds);
+	    checkFileTable(&PSID_writefds);
 
 	    snprintf(errtxt, sizeof(errtxt),"Error while Tselect continueing");
 	    PSID_errlog(errtxt, 6);
@@ -3321,11 +3003,10 @@ int main(int argc, const char *argv[])
 	 */
 	if (FD_ISSET(PSID_mastersock, &rfds)) {
 	    int ssock;  /* slave server socket */
-	    socklen_t flen = sizeof(sa);
 
 	    PSID_errlog("accepting new connection", 1);
 
-	    ssock = accept(PSID_mastersock, (struct sockaddr *)&sa, &flen);
+	    ssock = accept(PSID_mastersock, NULL, 0);
 	    if (ssock < 0) {
 		char *errstr = strerror(errno);
 		snprintf(errtxt, sizeof(errtxt),
@@ -3337,8 +3018,8 @@ int main(int argc, const char *argv[])
 		struct linger linger;
 		socklen_t size;
 
-		clients[ssock].flags = INITIALCONTACT;
-		FD_SET(ssock, &openfds);
+		registerClient(ssock, -1, NULL);
+		FD_SET(ssock, &PSID_readfds);
 
 		snprintf(errtxt, sizeof(errtxt),
 			 "accepting: new socket(%d)",ssock);
