@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidspawn.c,v 1.4 2002/11/13 16:48:29 hauke Exp $
+ * $Id: psidspawn.c,v 1.5 2003/02/10 18:50:50 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.4 2002/11/13 16:48:29 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.5 2003/02/10 18:50:50 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -23,11 +23,13 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.4 2002/11/1
 #include <sys/time.h>
 #include <pty.h>
 #include <signal.h>
+#include <syslog.h>
 
 #include "pscommon.h"
 
 #include "config_parsing.h"
 #include "psidutil.h"
+#include "psidforwarder.h"
 
 /* magic license check */
 #include "../license/pslic_hidden.h"
@@ -157,19 +159,21 @@ int PSID_execClient(PStask_t *task, int controlchannel)
     exit(0);
 }
 
-int PSID_execForwarder(PStask_t *task, int controlchannel)
+int PSID_execForwarder(PStask_t *task, int daemonfd, int controlchannel)
 {
     pid_t pid;
     int clientfds[2], stdinfds[2], stdoutfds[2], stderrfds[2];
     int ret, buf, i;
     char *argv[9];
 
-    PSID_blockSig(0, SIGCHLD);
+    /* Block until the forwarder has handled all output */
+    PSID_blockSig(1, SIGCHLD);
+
     /* create a control channel in order to observe the client */
     if (pipe(clientfds)<0) {
 	char *errstr = strerror(errno);
 
-	snprintf(errtxt, sizeof(errtxt), "PSID_execForwarder(): pipe: %s ",
+	snprintf(errtxt, sizeof(errtxt), "PSID_execForwarder(): pipe(): %s\n",
 		 errstr ? errstr : "UNKNOWN");
 	PSID_errlog(errtxt, 0);
     }
@@ -184,7 +188,7 @@ int PSID_execForwarder(PStask_t *task, int controlchannel)
 		    NULL, &task->termios, &task->winsize)) {
 	    char *errstr = strerror(errno);
 	    snprintf(errtxt, sizeof(errtxt),
-		     "PSID_execForwarder() openpty(stdout): [%d] %s",
+		     "PSID_execForwarder(): openpty(stdout): [%d] %s\n",
 		     errno, errstr ? errstr : "UNKNOWN");
 	    PSID_errlog(errtxt, 0);
 
@@ -195,7 +199,7 @@ int PSID_execForwarder(PStask_t *task, int controlchannel)
 	if (socketpair(PF_UNIX, SOCK_STREAM, 0, stdoutfds)) {
 	    char *errstr = strerror(errno);
 	    snprintf(errtxt, sizeof(errtxt),
-		     "PSID_execForwarder() socketpair(stdout): [%d] %s",
+		     "PSID_execForwarder(): socketpair(stdout): [%d] %s\n",
 		     errno, errstr ? errstr : "UNKNOWN");
 	    PSID_errlog(errtxt, 0);
 
@@ -210,7 +214,7 @@ int PSID_execForwarder(PStask_t *task, int controlchannel)
 		    NULL, &task->termios, &task->winsize)) {
 	    char *errstr = strerror(errno);
 	    snprintf(errtxt, sizeof(errtxt),
-		     "PSID_execForwarder() openpty(stderr): [%d] %s",
+		     "PSID_execForwarder(): openpty(stderr): [%d] %s\n",
 		     errno, errstr ? errstr : "UNKNOWN");
 	    PSID_errlog(errtxt, 0);
 
@@ -221,7 +225,7 @@ int PSID_execForwarder(PStask_t *task, int controlchannel)
 	if (socketpair(PF_UNIX, SOCK_STREAM, 0, stderrfds)) {
 	    char *errstr = strerror(errno);
 	    snprintf(errtxt, sizeof(errtxt),
-		     "PSID_execForwarder() socketpair(stderr): [%d] %s",
+		     "PSID_execForwarder(): socketpair(stderr): [%d] %s\n",
 		     errno, errstr ? errstr : "UNKNOWN");
 	    PSID_errlog(errtxt, 0);
 
@@ -246,7 +250,7 @@ int PSID_execForwarder(PStask_t *task, int controlchannel)
 			NULL, &task->termios, &task->winsize)) {
 		char *errstr = strerror(errno);
 		snprintf(errtxt, sizeof(errtxt),
-			 "PSID_execForwarder() openpty(stdin): [%d] %s",
+			 "PSID_execForwarder(): openpty(stdin): [%d] %s\n",
 			 errno, errstr ? errstr : "UNKNOWN");
 		PSID_errlog(errtxt, 0);
 
@@ -265,7 +269,7 @@ int PSID_execForwarder(PStask_t *task, int controlchannel)
 	    if (socketpair(PF_UNIX, SOCK_STREAM, 0, stdinfds)) {
 		char *errstr = strerror(errno);
 		snprintf(errtxt, sizeof(errtxt),
-			 "PSID_execForwarder() socketpair(stdin): [%d] %s",
+			 "PSID_execForwarder(): socketpair(stdin): [%d] %s\n",
 			 errno, errstr ? errstr : "UNKNOWN");
 		PSID_errlog(errtxt, 0);
 
@@ -297,7 +301,7 @@ int PSID_execForwarder(PStask_t *task, int controlchannel)
 	if (errno) {
 	    /* at least one dup2() failed */
 	    char *errstr = strerror(errno);
-	    fprintf(stderr, "PSID_execForwarder() dup2(): [%d] %s",
+	    fprintf(stderr, "PSID_execForwarder(): dup2(): [%d] %s\n",
 		    errno, errstr ? errstr : "UNKNOWN");
 
 	    write(clientfds[1], &errno, sizeof(errno));
@@ -332,7 +336,7 @@ int PSID_execForwarder(PStask_t *task, int controlchannel)
 
 	close(clientfds[0]);
 
-	snprintf(errtxt, sizeof(errtxt), "PSID_execForwarder() fork: %s",
+	snprintf(errtxt, sizeof(errtxt), "PSID_execForwarder(): fork: %s\n",
 		 errstr ? errstr : "UNKNOWN");
 	PSID_errlog(errtxt, 0);
 
@@ -341,10 +345,10 @@ int PSID_execForwarder(PStask_t *task, int controlchannel)
     }
 
     /*
-     * check for a sign of the client
+     * check for a sign from the client
      */
     snprintf(errtxt, sizeof(errtxt),
-	     "PSID_execForwarder() waiting for my child (%d)", pid);
+	     "PSID_execForwarder(): waiting for my child (%d)\n", pid);
     PSID_errlog(errtxt, 10);
 
  restart:
@@ -358,7 +362,7 @@ int PSID_execForwarder(PStask_t *task, int controlchannel)
 	/*
 	 * the control channel was closed in case of a successful execv
 	 */
-	PSID_errlog("PSID_execForwarder() child execute was successful", 10);
+	PSID_errlog("PSID_execForwarder(): child exec() was successful\n", 10);
 
 	/* Tell the parent about the client's pid */
 	buf = 0; /* errno will never be 0, this mark the following pid */
@@ -372,7 +376,7 @@ int PSID_execForwarder(PStask_t *task, int controlchannel)
 	char *errstr = strerror(buf);
 
 	snprintf(errtxt, sizeof(errtxt),
-		 "PSID_execForwarder() child execute failed: %s",
+		 "PSID_execForwarder(): child execute failed: %s\n",
 		 errstr ? errstr : "UNKNOWN");
 	PSID_errlog(errtxt, 0);
 
@@ -382,54 +386,71 @@ int PSID_execForwarder(PStask_t *task, int controlchannel)
     }
     close(clientfds[0]);
 
-    /* now really start the forwarder */
-    argv[i=0] = (char*)malloc(strlen(PSC_lookupInstalldir()) + 20);
-    sprintf(argv[i], "%s/bin/psiforwarder", PSC_lookupInstalldir());
-    argv[++i] = (char*)malloc(10);
-    sprintf(argv[i], "%u", task->loggernode);
-    argv[++i] = (char*)malloc(10);
-    sprintf(argv[i], "%d", task->loggerport);
-    /* @todo loggernode/loggerport obsoleted by loggertid */
-    argv[++i] = (char*)malloc(10);
-    sprintf(argv[i], "%d", task->rank);
-    /* @todo obsolete: get rank via INFO_request_taskinfo() within forwarder */
-    argv[++i] = (char*)malloc(10);
-    sprintf(argv[i], "%d", stdinfds[0]);
-    argv[++i] = (char*)malloc(10);
-    sprintf(argv[i], "%d", stdoutfds[0]);
-    argv[++i] = (char*)malloc(10);
-    sprintf(argv[i], "%d", stderrfds[0]);
-    argv[++i] = (char*)malloc(10);
-    sprintf(argv[i], "%d", pid);
-    argv[++i] = NULL;
+    closelog();
 
-    PSID_execv(argv[0], argv);
-    if (PSID_execv(task->argv[0], &(task->argv[0]))<0) {
-	char *errstr = strerror(errno);
+    /* reset all the signal handlers */
+    signal(SIGINT   ,SIG_DFL);
+    signal(SIGQUIT  ,SIG_DFL);
+    signal(SIGILL   ,SIG_DFL);
+    signal(SIGTRAP  ,SIG_DFL);
+    signal(SIGABRT  ,SIG_DFL);
+    signal(SIGIOT   ,SIG_DFL);
+    signal(SIGBUS   ,SIG_DFL);
+    signal(SIGFPE   ,SIG_DFL);
+    signal(SIGUSR1  ,SIG_DFL);
+    signal(SIGSEGV  ,SIG_DFL);
+    signal(SIGUSR2  ,SIG_DFL);
+    signal(SIGPIPE  ,SIG_DFL);
+    signal(SIGTERM  ,SIG_DFL);
+    signal(SIGCHLD  ,SIG_DFL);
+    signal(SIGCONT  ,SIG_DFL);
+    signal(SIGTSTP  ,SIG_DFL);
+    signal(SIGTTIN  ,SIG_DFL);
+    signal(SIGTTOU  ,SIG_DFL);
+    signal(SIGURG   ,SIG_DFL);
+    signal(SIGXCPU  ,SIG_DFL);
+    signal(SIGXFSZ  ,SIG_DFL);
+    signal(SIGVTALRM,SIG_DFL);
+    signal(SIGPROF  ,SIG_DFL);
+    signal(SIGWINCH ,SIG_DFL);
+    signal(SIGIO    ,SIG_DFL);
+#ifdef __osf__
+    /* OSF on Alphas */
+    signal(SIGSYS   ,SIG_DFL);
+    signal(SIGINFO  ,SIG_DFL);
+    signal(SIGIOINT ,SIG_DFL);
+    signal(SIGAIO   ,SIG_DFL);
+    signal(SIGPTY   ,SIG_DFL);
+#elif defined(__alpha)
+    /* Linux on Alpha*/
+    signal( SIGSYS  ,SIG_DFL);
+    signal( SIGINFO ,SIG_DFL);
+#endif
+#if !defined(__osf__) && !defined(__alpha)
+    signal(SIGSTKFLT,SIG_DFL);
+#endif
 
-	snprintf(errtxt, sizeof(errtxt), "PSID_execForwarder() execv: %s",
-		 errstr ? errstr : "UNKNOWN");
-	PSID_errlog(errtxt, 0);
-    }
-    /* never reached, if execv succesful */
+    /* Rename the syslog tag */
+    openlog("psidforwarder", LOG_PID|LOG_CONS, ConfigLogDest);
 
-    /*
-     * send the parent a sign that the exec wasn't successful.
-     * controlchannel would have been closed on successful exec.
-     */
-    write(controlchannel, &errno, sizeof(errno));
+    /* Release the waiting daemon and exec forwarder */
+    close(controlchannel);
+    PSID_forwarder(task, daemonfd, stdinfds[0], stdoutfds[0], stderrfds[0]);
+
+    /* never reached */
     exit(1);
 }
 
 int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
 {
-    int forwarderfds[2];  /* pipe fds for communication with forwarder */
+    int forwarderfds[2];  /* pipe fds to control forwarders startup */
+    int socketfds[2];     /* sockets for communication with forwarder */
     int pid;              /* pid of the forwarder */
     int buf;              /* buffer for communication with forwarder */
     int i, ret;
 
     if (PSID_getDebugLevel() >= 10) {
-	snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn() task: ");
+	snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn(): task=");
 	PStask_snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
 			client);
 	PSID_errlog(errtxt, 10);
@@ -439,14 +460,24 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
     if (pipe(forwarderfds)<0) {
 	char *errstr = strerror(errno);
 
-	snprintf(errtxt, sizeof(errtxt), "PSID_spawnTask(): pipe: %s ",
+	snprintf(errtxt, sizeof(errtxt), "PSID_spawnTask(): pipe(): %s\n",
 		 errstr ? errstr : "UNKNOWN");
 	PSID_errlog(errtxt, 0);
     }
     fcntl(forwarderfds[1], F_SETFD, FD_CLOEXEC);
 
+    /* create a socketpair for communication between daemon and forwarder */
+    if (socketpair(PF_UNIX, SOCK_STREAM, 0, socketfds)<0) {
+	char *errstr = strerror(errno);
+
+	snprintf(errtxt, sizeof(errtxt),
+		 "PSID_spawnTask(): socketpair(): %s\n",
+		 errstr ? errstr : "UNKNOWN");
+	PSID_errlog(errtxt, 0);
+    }
+
     if (!lic_isvalid(&ConfigLicEnv)) {
-    	PSID_errlog("Corrupted license!", 0);
+    	PSID_errlog("Corrupted license!\n", 0);
 	exit(1);
     }
     
@@ -454,15 +485,16 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
     if (!(pid = fork())) {
 	/* this is the forwarder process */
 
-	/* close all fds except the control channel and stdin/stdout/stderr */
+	/* close all fds except the control channel, stdin/stdout/stderr and
+	   the connecting socket */
 	for (i=0; i<getdtablesize(); i++) {
 	    if (i!=STDIN_FILENO && i!=STDOUT_FILENO && i!=STDERR_FILENO
-		&& i!=forwarderfds[1]) {
+		&& i!=forwarderfds[1] && i!=socketfds[1]) {
 		close(i);
 	    }
 	}
 
-	PSID_execForwarder(client, forwarderfds[1]);
+	PSID_execForwarder(client, socketfds[1], forwarderfds[1]);
     }
 
     /* this is the parent process */
@@ -473,27 +505,32 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
     /* close the writing pipe */
     close(forwarderfds[1]);
 
+    /* close forwarders end of the socketpair */
+    close(socketfds[1]);
+
     /* check if fork() was successful */
     if (pid == -1) {
 	char *errstr = strerror(ret);
 
 	close(forwarderfds[0]);
+	close(socketfds[0]);
 
-	snprintf(errtxt, sizeof(errtxt), "PSID_spawnTask() fork: %s",
+	snprintf(errtxt, sizeof(errtxt), "PSID_spawnTask(): fork(): %s\n",
 		 errstr ? errstr : "UNKNOWN");
 	PSID_errlog(errtxt, 0);
 
 	return ret;
     }
 
+    forwarder->tid = PSC_getTID(-1, pid);
+    forwarder->fd = socketfds[0];
     /*
      * check for a sign of the forwarder
      */
     snprintf(errtxt, sizeof(errtxt),
-	     "PSID_spawnTask() waiting for my child (%d)", pid);
+	     "PSID_spawnTask(): waiting for my child (%d)\n", pid);
     PSID_errlog(errtxt, 10);
 
-    forwarder->tid = PSC_getTID(-1, pid);
     client->tid = 0;
 
  restart:
@@ -509,12 +546,15 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
 	     * the control channel was closed in case of a successful execv
 	     * after telling the client pid.
 	     */
-	    PSID_errlog("PSID_spawnTask() child execute was successful", 10);
+	    snprintf(errtxt, sizeof(errtxt),
+		     "PSID_spawnTask(): child %s spawned successfully\n",
+		     PSC_printTID(client->tid));
+	    PSID_errlog(errtxt, 10);
 	} else {
 	    /*
 	     * the control channel was closed without telling the client's pid.
 	     */
-	    PSID_errlog("PSID_spawnTask() haven't got child's pid", 0);
+	    PSID_errlog("PSID_spawnTask(): haven't got child's pid\n", 0);
 
 	    ret = EBADMSG;
 	}
@@ -533,10 +573,12 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
 		/*
 		 * the control channel was closed during message.
 		 */
-		PSID_errlog("PSID_spawnTask() channel closed unexpectedly", 0);
+		PSID_errlog("PSID_spawnTask(): pipe closed unexpectedly\n",
+			    0);
 
 		ret = EBADMSG;
 	    } else {
+
 		client->tid = PSC_getTID(-1, buf);
 
 		goto restart;
@@ -550,7 +592,7 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
 	    ret = buf;
 
 	    snprintf(errtxt, sizeof(errtxt),
-		     "PSID_spawnTask() child execute failed: %s",
+		     "PSID_spawnTask(): child exec() failed: %s\n",
 		     errstr ? errstr : "UNKNOWN");
 	    PSID_errlog(errtxt, 0);
 	    
@@ -558,6 +600,7 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
     }
 
     close(forwarderfds[0]);
+    if (ret) close(socketfds[0]);
 
     return ret;
 }
