@@ -6,7 +6,7 @@
 #
 # Author: Jens Hauke <hauke@par-tec.com>, Norbert Eicker <eicker@par-tec.com>
 #
-# $Id: ps_myrinet,v 1.1 2003/04/04 10:59:24 hauke Exp $
+# $Id: ps_myrinet,v 1.2 2003/04/04 13:16:52 eicker Exp $
 #
 
 #checks
@@ -80,9 +80,9 @@ case "$1" in
 	$PSCONFIG -key "$PS_LIC" || exit 2
 	$PSCONFIG -id "$PS_ID" "$PS_ROUTEFILE" || exit 3
 
-# The following two lines increase somtimes the performance of huge applications
-#	$PSCONFIG -p 4 1
-#	$PSCONFIG -p 5 0
+	test -z "$PS_SPS" || $PSCONFIG -p 0 "$PS_SPS"
+	test -z "$PS_HNPEND" || $PSCONFIG -p 4 "$PS_HNPEND"
+	test -z "$PS_ACKPEND" || $PSCONFIG -p 5 "$PS_ACKPEND"
 
 	if [ "$PS_IPENABLED" = "1" ]; then
 	    $PSNINOUT -m ${MODULE_IP} -n ${PS_IPPREFIX} -p ${PS_IPPREFIXLEN}
