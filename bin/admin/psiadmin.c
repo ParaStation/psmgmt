@@ -700,14 +700,15 @@ int main(int argc, char **argv)
      * Interactive mode
      */
     using_history();
+    add_history("shutdown");
 
     while(!PARSE_DONE){ 
 	/* Get a line from the user. */
-	line = readline ("PSIadmin>");
+	line = readline("PSIadmin>");
 
 	if (line && *line){
 	    /* If the line has any text in it, save it on the history. */
-	    add_history (line);
+	    add_history(line);
 
 	    if(strlen(line) + 2 > sizeof(line_field)){
 		printf("Line too long!\n");
