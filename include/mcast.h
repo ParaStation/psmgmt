@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.h,v 1.6 2002/02/15 19:15:58 eicker Exp $
+ * $Id: mcast.h,v 1.7 2002/04/23 15:55:20 eicker Exp $
  *
  */
 /**
  * \file
  * ParaStation MultiCast facility
  *
- * $Id: mcast.h,v 1.6 2002/02/15 19:15:58 eicker Exp $
+ * $Id: mcast.h,v 1.7 2002/04/23 15:55:20 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -77,8 +77,6 @@ typedef struct {
  */
 #define LIC_KILL_MSG          0x2
 
-
-#define MCASTSERVICE "psmcast"   /**< The symbolic name of MCast-service */
 
 /**
  * The default MCast-group number. Magic number defined by Joe long time ago.
