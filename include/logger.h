@@ -4,6 +4,11 @@
 #include <sys/types.h>
 #include "psitask.h"
 
+extern pid_t logger_pid;
+
+extern int stdout_fileno_backup;
+extern int stderr_fileno_backup;
+
 struct LOGGERclient_t{
     long id;
     int std;

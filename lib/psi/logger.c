@@ -19,6 +19,11 @@
 
 #include "logger.h"
 
+pid_t logger_pid=0;
+
+int stdout_fileno_backup=-1;
+int stderr_fileno_backup=-1;
+
 /*************************************************************
  * int
  * LOGGERstdconnect(u_int node, int port, int fd, PStask_t* task)
@@ -312,7 +317,7 @@ int LOGGERspawnlogger(void)
     /* 
      * fork to logger
      */
-    if(fork()==0){
+    if((logger_pid=fork())==0){
 	/*
 	 *   L O G G E R 
 	 */
