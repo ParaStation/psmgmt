@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.h,v 1.4 2002/02/08 10:55:26 eicker Exp $
+ * $Id: psispawn.h,v 1.5 2002/07/03 19:58:34 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for spawning of ParaStation tasks.
  *
- * $Id: psispawn.h,v 1.4 2002/02/08 10:55:26 eicker Exp $
+ * $Id: psispawn.h,v 1.5 2002/07/03 19:58:34 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -64,17 +64,6 @@ int PSI_spawnM(int count, short* dstnodes, char *workingdir,
 	       unsigned int loggernode, unsigned short loggerport,
 	       int rank, long parenttid, int *errors, long *tids);
 
-/*----------------------------------------------------------------------*/
-/*
- * PSIisalive(long tid)
- *
- *  checks if a task is still running
- *
- *  RETURN 0 if the task is not alive
- *         1 if the task is alive
- */
-int PSI_isalive(long tid);
-
 /*------------------------------------------------------------
  * PSI_LSF()
  *
@@ -100,7 +89,7 @@ void PSI_RemoteArgs(int Argc,char **Argv,int *RArgc,char ***RArgv);
  *
  * RETURN:  the number of nodes in the partition or -1 on error.
  */
-short PSI_getPartition(void);
+short PSI_getPartition(unsigned int hwType, int myrank);
 
 /*
  * PSI_do_spawn()
