@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp_private.h,v 1.11 2003/02/07 16:02:19 eicker Exp $
+ * $Id: rdp_private.h,v 1.12 2003/06/04 07:59:27 eicker Exp $
  *
  */
 /**
@@ -14,7 +14,7 @@
  *
  * Private functions and definitions
  *
- * $Id: rdp_private.h,v 1.11 2003/02/07 16:02:19 eicker Exp $
+ * $Id: rdp_private.h,v 1.12 2003/06/04 07:59:27 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -75,7 +75,7 @@ typedef enum {
 #define RDP_SYN      0x2  /**< synchronozation message */
 #define RDP_ACK      0x3  /**< explicit acknowledgement */
 #define RDP_SYNACK   0x4  /**< first acknowledgement */
-#define RDP_NACK     0x5  /**< negaitve acknowledgement */
+#define RDP_NACK     0x5  /**< negative acknowledgement */
 #define RDP_SYNNACK  0x6  /**< NACK to reestablish broken connection */
 
 /** The RDP Packet Header */
