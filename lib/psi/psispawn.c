@@ -459,10 +459,19 @@ PSI_dospawn(int count, short *dstnodes, char *workingdir,
     task->loggerport = LOGGERspawnlogger();
 
     /*
-     * psilogger is started. Now start forwarder and redirect output
+     * psilogger is started. Now start forwarder.
      */
     forwport = LOGGERspawnforwarder(task->loggernode, task->loggerport);
 
+    /*
+     * backup stdout and stderr for reuse after PSEfinalize();
+     */
+    stdout_fileno_backup=dup(STDOUT_FILENO);
+    stderr_fileno_backup=dup(STDERR_FILENO);
+
+    /*
+     * and redirect output
+     */
     if(LOGGERredirect_std(task->loggernode, forwport, task)<0){
 	char *errtxt;
 
