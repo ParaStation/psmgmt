@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.33 2003/02/27 18:31:45 eicker Exp $
+ * $Id: psispawn.c,v 1.34 2003/03/11 10:12:31 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.33 2003/02/27 18:31:45 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.34 2003/03/11 10:12:31 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -519,8 +519,8 @@ char *PSI_createPGfile(int num, const char *prog, int local)
 static int node_ok(short node, unsigned hwType, NodelistEntry_t *nodelist)
 {
     if ( node < 0 || node >= PSC_getNrOfNodes()) {
-	snprintf(errtxt, sizeof(errtxt), "node_ok():"
-		 " node %d out of range.", node);
+	snprintf(errtxt, sizeof(errtxt), "%s: node %d out of range.",
+		 __func__, node);
 	PSI_errlog(errtxt, 0);
 	return 0;
     }
@@ -530,17 +530,25 @@ static int node_ok(short node, unsigned hwType, NodelistEntry_t *nodelist)
 	return 1;
     }
 
+    if (nodelist[node].id == -1) {
+	snprintf(errtxt, sizeof(errtxt), "%s: node %d not in nodelist.",
+		 __func__, node);
+	PSI_errlog(errtxt, 8);
+	return 0;
+    }
+
     if (! nodelist[node].up) {
-	snprintf(errtxt, sizeof(errtxt), "node_ok():"
-		 " node %d not UP, excluding from partition.", node);
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: node %d not UP, excluding from partition.",
+		 __func__, node);
 	PSI_errlog(errtxt, 8);
 	return 0;
     }
 
     if (hwType && (hwType & nodelist[node].hwType) != hwType) {
-	snprintf(errtxt, sizeof(errtxt), "node_ok():"
-		 " node %d lacks requested HW, excluding from partition.",
-		 node);
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: node %d lacks requested HW, excluding from partition.",
+		 __func__, node);
 	PSI_errlog(errtxt, 8);
 	return 0;
     }
@@ -784,7 +792,42 @@ short PSI_getPartition(unsigned int hwType, int myRank)
 	    return -1;
 	}
 
-	ret = INFO_request_nodelist(nodelist, nodelist_size, 0);
+	ret = INFO_request_partition(hwType, nodelist, nodelist_size, 0);
+
+	{
+	    int i,j;
+	    NodelistEntry_t *nodelist2;
+
+	    nodelist2 = (NodelistEntry_t *)malloc(nodelist_size);
+
+	    if (!nodelist2) {
+		snprintf(errtxt, sizeof(errtxt),
+			 "%s: not enough memory for nodelist2.", __func__);
+		PSI_errlog(errtxt, 0);
+		free(PSI_Partition);
+		free(nodelist);
+		PSI_Partition = NULL;
+		return -1;
+	    }
+
+	    for (i=0, j=0; i<PSC_getNrOfNodes(); i++, j++) {
+		if (nodelist[j].id == -1) {
+		    while (i<PSC_getNrOfNodes()) {
+			nodelist2[i].id = -1;
+			i++;
+		    }
+		    break;
+		}
+		while (i<nodelist[j].id) {
+		    nodelist2[i].id = -1;
+		    i++;
+		}
+		memcpy(&nodelist2[i], &nodelist[j], sizeof(*nodelist));
+	    }
+
+	    free(nodelist);
+	    nodelist = nodelist2;
+	}
 
 	if (ret==-1) {
 	    snprintf(errtxt, sizeof(errtxt), "PSI_getPartition():"
