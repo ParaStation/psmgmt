@@ -4,7 +4,7 @@ CFLAGS += -O2 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
 PSM_OSDIR := @PSM_OSDIR@
 CPPFLAGS += -I@top_srcdir@/include -I@top_srcdir@/$(PSM_OSDIR) @CPPFLAG_MMD@
 
-PSCOMMONOBJS := pscommon.o psprotocol.o pstask.o
+PSCOMMONOBJS := pscommon.o psprotocol.o pshwtypes.o pstask.o
 PSCOMMONDEPS := $(PSCOMMONOBJS:.o=@DEPEXTENSION@)
 
 RANLIB := @RANLIB@
