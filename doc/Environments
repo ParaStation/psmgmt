@@ -43,6 +43,10 @@ PSI_RARG_PRE_{n}
 	/usr/bin/time yourApplication yourArgs
 	on remote.
 
+PSI_DEBUGLEVEL number
+	Enable debugging of PSE, PSI and PSC calls. The higher 'number'
+	the more messages will be printed.
+
 PSI_NOMSGLOGGERDONE	any
 	Do not print out the message "PSPLogger done" at the end of a
 	parallel run.
