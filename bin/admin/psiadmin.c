@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.47 2002/09/03 08:55:13 eicker Exp $
+ * $Id: psiadmin.c,v 1.48 2003/02/10 18:47:19 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.47 2002/09/03 08:55:13 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.48 2003/02/10 18:47:19 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -48,7 +48,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.47 $";
+static char psiadmversion[] = "$Revision: 1.48 $";
 static int doRestart = 0;
 
 static char *hoststatus = NULL;
@@ -705,7 +705,7 @@ void PSIADM_ShowMCastDebug(int first, int last)
 void PSIADM_Version(void)
 {
     printf("PSIADMIN: ParaStation administration tool\n");
-    printf("Copyright (C) 1996-2002 ParTec AG Karlsruhe\n");
+    printf("Copyright (C) 1996-2003 ParTec AG Karlsruhe\n");
     printf("\n");
     printf("PSIADMIN:   %s\b \n", psiadmversion+11);
     printf("PSID:       %s\b \n", PSI_getPsidVersion()+11);
