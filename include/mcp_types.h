@@ -339,6 +339,7 @@ typedef struct MCPDmaMarker_T {
 #define MCP_DMAMARKER_SMALLPACK		1
 #define MCP_DMAMARKER_LARGEPACK		2
 #define MCP_DMAMARKER_LARGEPACKPICK	3
+#define MCP_DMAMARKER_RAWPACK		4
 
 
 
@@ -872,6 +873,8 @@ TRACE(name,_RECVPTR2NO(mcp_mem.RecvPool->Next));
 /* Get RecvBuffer (use next hostbuf) */
 #define FIFOCMD_N2H_RECV	118	/* Used with FIFON2HDMAUSR */
 
+#define FIFOCMD_SENDRAW		119	/* Used with FIFOSENDRAW */
+
 /*--------------------------------------------------------------------*/
 // Copy Host Buffer srch to LANai buffer desl,
 // use byteoffset desoff(0-511) and dwordlen (len= des32len*4+4)
@@ -947,6 +950,17 @@ htonl( BITENC1( PSM_NBIT_HSENDBUFS	, bufno))
 #define FIFON2HDMAUSR_GETP( val, bufno )	\
 BITDEC1( val,					\
 	 PSM_NBIT_HSENDBUFS	, bufno)
+
+/*--------------------------------------------------------------------*/
+#define FIFOSENDRAW( srcl , len)			\
+htonl( BITENC2( PSM_NBIT_SENDBUFS	, srcl,		\
+		PSM_NBIT_SENDBUFLEN     , len))	
+
+
+#define FIFOSENDRAW_GETP( val , srcl , len)	\
+BITDEC2( val,					\
+	 PSM_NBIT_SENDBUFS	, srcl,		\
+	 PSM_NBIT_SENDBUFLEN	, len)
 
 /*--------------------------------------------------------------------*/
 
