@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.98 2003/06/26 16:38:11 eicker Exp $
+ * $Id: psid.c,v 1.99 2003/06/27 16:57:05 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.98 2003/06/26 16:38:11 eicker Exp $ 
+ * $Id: psid.c,v 1.99 2003/06/27 16:57:05 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.98 2003/06/26 16:38:11 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.99 2003/06/27 16:57:05 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -78,7 +78,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.98 $";
+static char psid_cvsid[] = "$Revision: 1.99 $";
 
 static int PSID_mastersock;
 
@@ -108,8 +108,7 @@ static char errtxt[256]; /**< General string to create error messages */
  */
 int killClients(int phase)
 {
-    int i;
-    pid_t pid;
+    PStask_t *task;
 
     if (timercmp(&maintimer, &killclientstimer, <)) {
 	snprintf(errtxt, sizeof(errtxt),
@@ -133,29 +132,26 @@ int killClients(int phase)
     gettimeofday(&killclientstimer, NULL);
     mytimeradd(&killclientstimer, 0, 200000);
 
-    for (i=0; i<FD_SETSIZE; i++) {
-	if (FD_ISSET(i,&PSID_readfds)
-	    && (i!=PSID_mastersock) && (i!=RDPSocket)) {
-	    /* if a client process send SIGTERM */
-	    long tid = getClientTID(i);
-	    PStask_t *task = getClientTask(i);
-
-	    if (tid!=-1 && (phase==1 || phase==3 || task->group!=TG_ADMIN)) {
-		/* in phase 1 and 3 all */
-		/* in phase 0 and 2 only process not in TG_ADMIN group */
-		pid = PSC_getPID(tid);
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: sending %s to %s pid %d index[%d]",
-			 __func__, (phase<2) ? "SIGTERM" : "SIGKILL",
-			 PSC_printTID(tid), pid, i);
-		PSID_errlog(errtxt, 4);
-		if (pid > 0)
-		    kill(pid, (phase<2) ? SIGTERM : SIGKILL);
-		if (phase>2) {
-		    deleteClient(i);
-		}
-	    }
+    task=managedTasks;
+    /* loop over all tasks */
+    while (task) {
+	if (task->group != TG_MONITOR
+	    && (phase==1 || phase==3 || task->group!=TG_ADMIN)) {
+	    /* TG_MONITOR never */
+	    /* in phase 1 and 3 all other */
+	    /* in phase 0 and 2 all other not in TG_ADMIN group */
+	    pid_t pid = PSC_getPID(task->tid);
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: sending %s to %s pid %d index[%d]",
+		     __func__, (phase<2) ? "SIGTERM" : "SIGKILL",
+		     PSC_printTID(task->tid), pid, task->fd);
+	    PSID_errlog(errtxt, 4);
+	    if (pid > 0) kill(pid, (phase<2) ? SIGTERM : SIGKILL);
 	}
+	if (phase>2 && task->fd>=0) {
+	    deleteClient(task->fd);
+	}
+	task = task->next;
     }
 
     snprintf(errtxt, sizeof(errtxt), "%s(%d) done", __func__, phase);
@@ -209,6 +205,7 @@ int shutdownNode(int phase)
 	 */
 	shutdown(PSID_mastersock, SHUT_RDWR);
 	close(PSID_mastersock);
+	unlink(PSmasterSocketName);
 	FD_CLR(PSID_mastersock, &PSID_readfds);
     }
     /*
@@ -231,7 +228,6 @@ int shutdownNode(int phase)
 	exitMCast();
 	exitRDP();
 	PSID_stopAllHW();
-	unlink(PSmasterSocketName);
 	snprintf(errtxt, sizeof(errtxt), "%s() good bye", __func__);
 	PSID_errlog(errtxt, 0);
 	exit(0);
@@ -2623,7 +2619,7 @@ void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.98 $";
+    char revision[] = "$Revision: 1.99 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
