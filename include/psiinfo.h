@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiinfo.h,v 1.4 2004/01/28 13:59:05 eicker Exp $
+ * $Id: psiinfo.h,v 1.5 2004/02/27 16:11:13 eicker Exp $
  *
  */
 /**
@@ -13,7 +13,7 @@
  * psiinfo: Functions for information retrieving from ParaStation
  * daemon
  *
- * $Id: psiinfo.h,v 1.4 2004/01/28 13:59:05 eicker Exp $
+ * $Id: psiinfo.h,v 1.5 2004/02/27 16:11:13 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -80,7 +80,10 @@ extern "C" {
  * @param verbose Flag to be more verbose, if something within the
  * information retrival went wrong.
  *
- * @return On success, 0 is returned. Otherwise -1 is returned.
+ * @return On success, 0 is returned. Otherwise -1 is returned and
+ * errno is set appropriately.
+ *
+ * @see errno(3)
  */
 int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 		int32_t *val, int verbose);
@@ -144,7 +147,10 @@ int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * @param verbose Flag to be more verbose, if something within the
  * information retrival went wrong.
  *
- * @return On success, 0 is returned. Otherwise -1 is returned.
+ * @return On success, 0 is returned. Otherwise -1 is returned and
+ * errno is set appropriately.
+ *
+ * @see errno(3)
  */
 int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 		   char *string, size_t size, int verbose);
@@ -178,7 +184,10 @@ int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * @param verbose Flag to be more verbose, if something within the
  * information retrival went wrong.
  *
- * @return On success, 0 is returned. Otherwise -1 is returned.
+ * @return On success, 0 is returned. Otherwise -1 is returned and
+ * errno is set appropriately.
+ *
+ * @see errno(3)
  */
 int PSI_infoTaskID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 		   PStask_ID_t *tid, int verbose);
@@ -215,7 +224,10 @@ int PSI_infoTaskID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * @param verbose Flag to be more verbose, if something within the
  * information retrival went wrong.
  *
- * @return On success, 0 is returned. Otherwise -1 is returned.
+ * @return On success, 0 is returned. Otherwise -1 is returned and
+ * errno is set appropriately.
+ *
+ * @see errno(3)
  */
 int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 		   PSnodes_ID_t *nid, int verbose);
@@ -307,7 +319,10 @@ int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * information retrival went wrong.
  *
  * @return On success, the number of bytes received and stored within
- * buf is returned. Otherwise -1 is returned.
+ * buf is returned. Otherwise -1 is returned and errno is set
+ * appropriately.
+ *
+ * @see errno(3)
  */
 int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 		 void *buf, size_t size, int verbose);
@@ -340,7 +355,10 @@ int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * information retrival went wrong.
  *
  * @return On success, the number of options received and stored
- * within value is returned. Otherwise -1 is returned.
+ * within value is returned. Otherwise -1 is returned and
+ * errno is set appropriately.
+ *
+ * @see errno(3)
  */
 int PSI_infoOption(PSnodes_ID_t node, int num,
 		   PSP_Option_t option[], PSP_Optval_t value[], int verbose);

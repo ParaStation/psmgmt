@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiinfo.c,v 1.4 2004/01/28 10:26:36 eicker Exp $
+ * $Id: psiinfo.c,v 1.5 2004/02/27 16:11:13 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiinfo.c,v 1.4 2004/01/28 10:26:36 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiinfo.c,v 1.5 2004/02/27 16:11:13 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -185,6 +185,7 @@ int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    snprintf(errtxt, sizeof(errtxt), "%s: %s request needs parameter.",
 		     __func__, PSP_printInfo(what));
 	    PSI_errlog(errtxt, 0);
+	    errno = EINVAL;
 	    return -1;
 	}
 	break;
@@ -197,6 +198,7 @@ int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    snprintf(errtxt, sizeof(errtxt), "%s: %s request needs parameter.",
 		     __func__, PSP_printInfo(what));
 	    PSI_errlog(errtxt, 0);
+	    errno = EINVAL;
 	    return -1;
 	}
 	break;
@@ -210,6 +212,7 @@ int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 		 "%s: don't know how to handle '%s' request",
 		 __func__, PSP_printInfo(what));
 	PSI_errlog(errtxt, 0);
+	errno = EINVAL;
 	return -1;
     }
 
@@ -249,6 +252,7 @@ int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    snprintf(errtxt, sizeof(errtxt), "%s: %s request needs parameter.",
 		     __func__, PSP_printInfo(what));
 	    PSI_errlog(errtxt, 0);
+	    errno = EINVAL;
 	    return -1;
 	}
 	break;
@@ -261,6 +265,7 @@ int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    snprintf(errtxt, sizeof(errtxt), "%s: %s request needs parameter.",
 		     __func__, PSP_printInfo(what));
 	    PSI_errlog(errtxt, 0);
+	    errno = EINVAL;
 	    return -1;
 	}
 	break;
@@ -272,6 +277,7 @@ int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 		 "%s: don't know how to handle '%s' request",
 		 __func__, PSP_printInfo(what));
 	PSI_errlog(errtxt, 0);
+	errno = EINVAL;
 	return -1;
     }
 
@@ -310,6 +316,7 @@ int PSI_infoTaskID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 		 "%s: don't know how to handle '%s' request",
 		 __func__, PSP_printInfo(what));
 	PSI_errlog(errtxt, 0);
+	errno = EINVAL;
 	return -1;
     }
 
@@ -348,6 +355,7 @@ int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    snprintf(errtxt, sizeof(errtxt), "%s: %s request needs parameter.",
 		     __func__, PSP_printInfo(what));
 	    PSI_errlog(errtxt, 0);
+	    errno = EINVAL;
 	    return -1;
 	}
 	break;
@@ -359,6 +367,7 @@ int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    snprintf(errtxt, sizeof(errtxt), "%s: %s request needs parameter.",
 		     __func__, PSP_printInfo(what));
 	    PSI_errlog(errtxt, 0);
+	    errno = EINVAL;
 	    return -1;
 	}
 	break;
@@ -367,6 +376,7 @@ int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 		 "%s: don't know how to handle '%s' request",
 		 __func__, PSP_printInfo(what));
 	PSI_errlog(errtxt, 0);
+	errno = EINVAL;
 	return -1;
     }
 
@@ -414,6 +424,7 @@ int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 		 "%s: don't know how to handle '%s' request",
 		 __func__, PSP_printInfo(what));
 	PSI_errlog(errtxt, 0);
+	errno = EINVAL;
 	return -1;
     }
 
