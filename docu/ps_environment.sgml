@@ -220,6 +220,43 @@
     </variablelist>
   </refsect1>
 
+  <refsect1>
+    <title>Variables steering the communication layer</title>
+    <para>
+      This variable controls the network card to use in order to actually do
+      communication operations.
+    </para>
+    <variablelist>
+      <varlistentry>
+	<term><envar>PSP_NETWORK</envar> <replaceable>network</replaceable>
+	  <optional>, <replaceable>network</replaceable></optional>
+	</term>
+	<listitem>
+	  <para>A comma or space separated list of networks enabled to do
+	    optimized &ps; communication. Each
+	    <replaceable>network</replaceable> is a resolvable hostname in the
+	    choosen network, the IP address of a host in this network or the IP
+	    address of this network. The corresponding network has to be bound
+	    to a <xref linkend="NIC"/> of the current node.
+	  </para>
+	  <para>
+	    If <envar>PSP_NETWORK</envar> is set, each
+	    <replaceable>network</replaceable> should be bound to a distinct
+	    <xref linkend="NIC"/>. This card then is used in order to do
+	    communication operations. If more than one
+	    <replaceable>network</replaceable> is given, the first one found to
+	    be bound to a local <xref linkend="NIC"/> is used.
+	  </para>
+	  <para>
+	    If <envar>PSP_NETWORK</envar> is not set, &ps; uses the <xref
+	      linkend="NIC"/> bound to the IP address, the local hostname
+	    resolves to.
+	  </para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+  </refsect1>
+
   <refsect1> 
     <title>Variables steering logger/forwarder</title>
     <para>
@@ -362,7 +399,8 @@
 	  <optional><replaceable>, hostname</replaceable></optional>...</term>
 	<listitem>
 	  <para>Comma separated list of hostnames. Used for
-	    <envar>MPID_PSP_START</envar>=SSH only.</para>
+	    <envar>MPID_PSP_START=<replaceable>SSH</replaceable></envar>
+	    only.</para>
 	</listitem>
       </varlistentry>
     </variablelist>
