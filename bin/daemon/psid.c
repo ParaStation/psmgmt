@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.23 2002/01/16 17:20:02 eicker Exp $
+ * $Id: psid.c,v 1.24 2002/01/16 17:56:42 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.23 2002/01/16 17:20:02 eicker Exp $ 
+ * $Id: psid.c,v 1.24 2002/01/16 17:56:42 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.23 2002/01/16 17:20:02 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.24 2002/01/16 17:56:42 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -61,7 +61,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.23 $";
+static char psid_cvsid[] = "$Revision: 1.24 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -127,8 +127,6 @@ PStask_t* spawned_tasks_waiting_for_connect;
 #define PSP_DSTATE_NOCONNECT (PSP_DSTATE_RESET_INACTION \
 			      | PSP_DSTATE_SHUTDOWN | PSP_DSTATE_SHUTDOWN2)
 
-int nfds;
-
 fd_set openfds;			/* active file descriptor set */
 
 u_long rawdata_is_used=0;
@@ -173,8 +171,9 @@ int TOTALsend(int fd,void* buffer,int msglen)
 static int sendMsg(void* amsg)
 {
     DDMsg_t* msg = (DDMsg_t*)amsg;
-    int fd=FD_SETSIZE;
-    if (PSI_isoption(PSP_ODEBUG)){
+    int fd = FD_SETSIZE;
+
+    if (PSI_isoption(PSP_ODEBUG)) {
 	sprintf(PSI_txt,"sendMsg(type %s (len=%ld) to task 0x%lx[%d,%d]\n",
 		PSPctrlmsg(msg->type),msg->len,msg->dest,
 		msg->dest==-1?-1:PSI_getnode(msg->dest),
@@ -184,11 +183,11 @@ static int sendMsg(void* amsg)
 
     if ((PSI_getnode(msg->dest)==PSI_myid) || /* my own node */
 	(PSI_getnode(msg->dest)==PSI_nrofnodes)) { /* remotely connected */
-	for (fd=0;fd<FD_SETSIZE;fd++) {
+	for (fd=0; fd<FD_SETSIZE; fd++) {
 	    /* find the FD for the dest */
 	    if (clients[fd].tid==msg->dest) break;
 	}
-    } else if(PSI_getnode(msg->dest)<PSI_nrofnodes) {
+    } else if (PSI_getnode(msg->dest)<PSI_nrofnodes) {
 	int ret;
 	if ((ret = Rsendto(PSI_getnode(msg->dest),msg,msg->len))<msg->len) {
 	    sprintf(PSI_txt,
@@ -201,7 +200,7 @@ static int sendMsg(void* amsg)
 	}
 	return ret;
     }
-    if(fd <FD_SETSIZE) {
+    if (fd <FD_SETSIZE) {
 	return TOTALsend(fd,msg,msg->len);
     } else {
 	return -1;
@@ -405,7 +404,7 @@ int killClients(int phase)
     int i;
     int pid;
 
-    if(timercmp(&maintimer,&killclientstimer,<)) {
+    if (timercmp(&maintimer,&killclientstimer,<)) {
 	if (PSI_isoption(PSP_ODEBUG)) {
 	    sprintf(PSI_txt,
 		    "killClients(PHASE %d) timer not ready [%d:%d] < [%d:%d]\n",
@@ -422,15 +421,14 @@ int killClients(int phase)
     timerset(&killclientstimer,&maintimer);
     mytimeradd(&killclientstimer,0,200000);
 
-    for(i=0;i<FD_SETSIZE;i++)
-	if(FD_ISSET(i,&openfds) && (i!=PSI_msock) && (i!=RDPSocket)) {
+    for (i=0; i<FD_SETSIZE; i++) {
+	if (FD_ISSET(i,&openfds) && (i!=PSI_msock) && (i!=RDPSocket)) {
 	    /* if a client process send SIGTERM */
-	    if((clients[i].tid != -1)
-	       && (PSI_getnode(clients[i].tid)==PSI_myid) /* client proc */
-	       && ((phase>0) || (clients[i].ob.task->group!=TG_ADMIN)))
+	    if ((clients[i].tid != -1)
+		&& (PSI_getnode(clients[i].tid)==PSI_myid) /* client proc */
+		&& ((phase>0) || (clients[i].ob.task->group!=TG_ADMIN))) {
 		/* in phase 1-3 all */
 		/* in phase 0 only process not in TG_ADMIN group */
-	    {
 		pid = PSI_getpid(clients[i].tid);
 		SYSLOG(4,(LOG_ERR,
 			  "killClients():sending tid%lx pid%d index[%d] %s\n",
@@ -443,7 +441,10 @@ int killClients(int phase)
 		}
 	    }
 	}
+    }
+
     SYSLOG(4,(LOG_ERR,"killClients(PHASE %d) done.\n",phase));
+
     return 1;
 }
 
@@ -498,17 +499,18 @@ int shutdownNode(int phase)
      */
     killClients(phase);
 
-    if(phase >1) {
+    if (phase > 1) {
 	/*
 	 * close all sockets to the other daemons
 	 * and the sockets to the clients
 	 */
-	for(i=0;i<FD_SETSIZE;i++)
-	    if(FD_ISSET(i,&openfds)&&(i!=PSI_msock)&&(i!=RDPSocket)) {
+	for (i=0; i<FD_SETSIZE; i++) {
+	    if (FD_ISSET(i,&openfds)&&(i!=PSI_msock)&&(i!=RDPSocket)) {
 		closeConnection(i);
 	    }
+	}
     }
-    if(phase >2) {
+    if (phase > 2) {
 	exitRDP();
 	PSID_CardStop();
 	SYSLOG(0,(LOG_ERR,"shutdownNode() good bye\n"));
@@ -2636,14 +2638,14 @@ void CheckFileTable()
     struct timeval tv;
 
     if (PSI_isoption(PSP_ODEBUG)) SYSLOG(1,(LOG_ERR,"CheckFileTable()\n"));
-    for (fd=0;fd<FD_SETSIZE;) {
+    for (fd=0; fd<FD_SETSIZE;) {
 	if (FD_ISSET(fd,&openfds)) {
 	    FD_ZERO(&rfds);
 	    FD_SET(fd,&rfds);
 
 	    tv.tv_sec=0;
 	    tv.tv_usec=0;
-	    if (select(nfds, &rfds, (fd_set *)0, (fd_set *)0, &tv) < 0) {
+	    if (select(FD_SETSIZE, &rfds, (fd_set *)0, (fd_set *)0, &tv) < 0) {
 		/* error : check if it is a wrong fd in the table */
 		switch (errno) {
 		case EBADF :
@@ -2658,8 +2660,8 @@ void CheckFileTable()
 			      " EINTR -> trying again\n", fd));
 		case EINVAL:
 		    SYSLOG(1,(LOG_ERR, "CheckFileTable(%d):"
-			      " PANIC filenumber(%d) is wrong. Good bye!\n",
-			      fd, nfds));
+			      " PANIC filenumber is wrong. Good bye!\n",
+			      fd));
 		    shutdownNode(1);
 		    break;
 		case ENOMEM:
@@ -2689,7 +2691,7 @@ void CheckFileTable()
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.23 $";
+    char revision[] = "$Revision: 1.24 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -2834,12 +2836,10 @@ int main(int argc, char **argv)
 		      debugmask));
 	}
 
-	nfds = getdtablesize();
-
 	/*
 	 * create the socket to listen to the client
 	 */
-	PSI_msock = socket(AF_INET,SOCK_STREAM,0);
+	PSI_msock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if ((service = getservbyname("psids","tcp")) == NULL){
 	    SYSLOG(0,(LOG_ERR, "can't get \"psids\" service entry\n"));
 	    exit(1);
@@ -2905,7 +2905,6 @@ int main(int argc, char **argv)
 
 	    SYSLOG_LEVEL = ConfigSyslogLevel;
 
-	    nfds = getdtablesize();
 	    FD_ZERO(&openfds);
 	    FD_SET(PSI_msock, &openfds);
 
@@ -2928,7 +2927,7 @@ int main(int argc, char **argv)
 	    selecttimer.tv_usec = 0;
 	    gettimeofday(&maintimer,NULL);
 
-	    for(i=0;i<FD_SETSIZE;i++){
+	    for(i=0; i<FD_SETSIZE; i++){
 		clients[i].tid =-1;
 		clients[i].ob.daemon = NULL;
 	    }
@@ -2984,7 +2983,8 @@ int main(int argc, char **argv)
 		memcpy(&rfds, &openfds, sizeof(rfds));
 		CalledFromRSelect=1;
 
-		if (Rselect(nfds, &rfds, (fd_set *)0, (fd_set *)0, &tv) < 0){
+		if (Rselect(FD_SETSIZE,
+			    &rfds, (fd_set *)NULL, (fd_set *)NULL, &tv) < 0){
 		    errstr=strerror(errno);
 		    SYSLOG(1,(LOG_ERR,"Error while Select (code %d) %s\n",
 			      errno,errstr?errstr:"UNKNOWN errno"));
@@ -3054,7 +3054,7 @@ int main(int argc, char **argv)
 		 * check the client sockets for any closing connections
 		 * or control msgs
 		 */
-		for (fd=0; fd<nfds; ++fd)
+		for (fd=0; fd<FD_SETSIZE; fd++)
 		    if (fd != PSI_msock      /* handled before */
 			&& fd != RDPSocket   /* handled below */
 			&& FD_ISSET(fd, &rfds)){
