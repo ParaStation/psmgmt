@@ -7,79 +7,27 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psilog.c,v 1.3 2002/02/19 09:38:11 eicker Exp $
+ * $Id: psilog.c,v 1.4 2002/03/26 13:51:40 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilog.c,v 1.3 2002/02/19 09:38:11 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psilog.c,v 1.4 2002/03/26 13:51:40 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <time.h>
 #include <sys/time.h>
-#include <errno.h>
+#include <unistd.h>
 
 #include "psi.h"
 
 #include "psilog.h"
-
-#ifndef DEBUGFILE
-#define DEBUGFILE "/var/tmp/PSPdebug"
-#endif
 
 int SYSLOG_LEVEL=1;
 
 unsigned long PSI_debugmask = 0;  /* debugmask for the local process. */
 
 char PSI_txt[1024];            /* scratch for error log */
-
-FILE* PSI_errorlog=0;
-
-/***************************************************************************
- *      PSI_openlog()
- *
- *      Log a PSILib error message.  Prepends a string identifying the task.
- */
-void 
-PSI_openlog()
-{
-#if defined(DEBUG)
-    char errorlogname[200];
-    char hostname[50];
-    int filenum;
-    if (!PSI_errorlog){
-	gethostname(hostname,sizeof(hostname));
-	sprintf(errorlogname,"%s.%s.%d",
-		DEBUGFILE,hostname,getpid());
-	PSI_errorlog = fopen(errorlogname,"a");
-	filenum=fileno(PSI_errorlog);
-	if ((PSI_errorlog) && (fcntl(filenum, F_SETFD, FD_CLOEXEC) < 0)){
-	    sprintf(PSI_txt, "PSI_openlog():"
-		    " can't set FD_CLOEXEC on logfile <%s> errno:%d\n",
-		    errorlogname, errno); 
-	    PSI_logerror(PSI_txt);
-	}
-    }
-#endif
-}
-
-/***************************************************************************
- *      PSI_closelog()
- *
- *      Log a PSILib error message.  Prepends a string identifying the task.
- */
-void
-PSI_closelog()
-{
-#if defined(DEBUG)
-    if (PSI_errorlog){
-	fclose(PSI_errorlog);
-	PSI_errorlog = NULL;
-    }
-#endif
-}
 
 /***************************************************************************
  *      PSI_logerror()
@@ -93,7 +41,7 @@ PSI_logerror(char *s)
 	SYSLOG(6,(LOG_ERR, "PSIlib [%lx]: %s", PSI_mytid, s));
     }else{
 	if (PSI_isoption(PSP_OTIMESTAMP)){
-	    struct tm*  now;                    /* current time */ 
+	    struct tm*  now;       /* current time */ 
 	    struct timeval tv;
 	    time_t t_now;
 
@@ -101,23 +49,11 @@ PSI_logerror(char *s)
 	    gettimeofday(&tv,0);
 	    now = localtime(&t_now);
 
-	    if (PSI_errorlog){
-		fprintf(PSI_errorlog,"PSPlib [%lx][%2d:%02d:%02d:%03d]: %s", 
-			PSI_mytid, now->tm_hour, now->tm_min, now->tm_sec,
-			(int)tv.tv_usec/1000,s);
-		fflush(PSI_errorlog);
-	    }else{
-		fprintf(stderr,"PSPlib [%lx][%2d:%02d:%02d:%03d]: %s", 
-			PSI_mytid, now->tm_hour, now->tm_min, now->tm_sec,
-			(int)tv.tv_usec/1000,s);
-	    }
+	    fprintf(stderr,"PSPlib [%lx][%2d:%02d:%02d:%03d]: %s", 
+		    PSI_mytid, now->tm_hour, now->tm_min, now->tm_sec,
+		    (int)tv.tv_usec/1000,s);
 	}else{
-	    if (PSI_errorlog){
-		fprintf(PSI_errorlog, "PSPlib [%lx]: %s", PSI_mytid,s);
-		fflush(PSI_errorlog);
-	    }else{
-		fprintf(stderr, "PSIlib [%lx]: %s", PSI_mytid,s);
-	    }
+	    fprintf(stderr, "PSIlib [%lx]: %s", PSI_mytid, s);
 	}
     }
 }
