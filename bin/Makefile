@@ -46,7 +46,7 @@ test_nodes:test_nodes.c $(LIB)/libpshal.a $(LIB)/libarg.a
 	chmod og+rx $@
 
 test_pse:test_pse.c $(LIB)/libpshal.a $(LIB)/libarg.a $(LIB)/libpse.a  $(LIB)/libpsi.a
-	gcc $< -s -I$(INC) -Wall -I.. -L$(LIB) -larg -lpshal -lpsport -lpse -lpsi -lpthread -lm -o $@
+	gcc $< -s -I$(INC) -Wall -I.. -I$(INC)/../userspace/include -L$(LIB) -larg -lpshal -lpsport -lpse -lpsi -lpthread -lm -o $@
 
 psroute:psroute.c $(LIB)/libpshal.a $(LIB)/libarg.a
 	gcc $< -I$(INC) -I.. -L$(LIB) -larg -lpshal -lm -o $@
