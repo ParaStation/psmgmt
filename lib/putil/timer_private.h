@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: timer_private.h,v 1.4 2002/02/08 17:22:59 hauke Exp $
+ * $Id: timer_private.h,v 1.5 2002/02/11 12:58:51 eicker Exp $
  *
  */
 /**
@@ -14,7 +14,7 @@
  *
  * Private functions and definitions.
  *
- * $Id: timer_private.h,v 1.4 2002/02/08 17:22:59 hauke Exp $
+ * $Id: timer_private.h,v 1.5 2002/02/11 12:58:51 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -68,7 +68,7 @@ static int initialized = 0;
 /**
  * Structure to hold all info about each timer
  */
-typedef struct priv_timer_t_ {
+typedef struct Timer_t_ {
     int fd;                        /**< The corresponding file-descriptor. */
     struct timeval timeout;        /**< The corresponding timeout. */
     int calls;                     /**< Counter for timeouts. */
@@ -80,11 +80,11 @@ typedef struct priv_timer_t_ {
     int sigPending;                /**< A blocked signal is pending. */
     int (*selectHandler)(int);     /**< Handler called within Tselect(). */
     int requested;                 /**< Flag used within Tselect(). */
-    struct priv_timer_t_ *next;         /**< Pointer to next timer. */
-} priv_timer_t;
+    struct Timer_t_ *next;         /**< Pointer to next timer. */
+} Timer_t;
 
-
-static priv_timer_t *timerList = NULL;  /**< List of all registered timers. */
+/** List of all registered timers. */
+static Timer_t *timerList = NULL;
 
 /** The minimum timer period. */
 static const struct timeval minPeriod = {0,100000};
