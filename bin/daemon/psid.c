@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.109 2003/10/09 16:41:01 eicker Exp $
+ * $Id: psid.c,v 1.110 2003/10/09 19:19:21 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.109 2003/10/09 16:41:01 eicker Exp $ 
+ * $Id: psid.c,v 1.110 2003/10/09 19:19:21 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.109 2003/10/09 16:41:01 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.110 2003/10/09 19:19:21 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -81,14 +81,18 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-char psid_cvsid[] = "$Revision: 1.109 $";
+char psid_cvsid[] = "$Revision: 1.110 $";
 
-static int PSID_mastersock;
+/** Master socket (type UNIX) for clients to connect */
+static int masterSock;
 
+/** Total number of nodes connected. Needed for license testing */
 static int totalNodes = 0;
+/** Total number of CPUs connected. Needed for license testing */
 static int totalCPUs = 0;
 
-int myStatus;         /* Another helper status. This is for reset/shutdown */
+/** Another helper status. This one is for reset/shutdown */
+static int myStatus;
 
 static char errtxt[256]; /**< General string to create error messages */
 
@@ -209,10 +213,10 @@ int shutdownNode(int phase)
 	/*
 	 * close the Master socket -> no new connections
 	 */
-	shutdown(PSID_mastersock, SHUT_RDWR);
-	close(PSID_mastersock);
+	shutdown(masterSock, SHUT_RDWR);
+	close(masterSock);
 	unlink(PSmasterSocketName);
-	FD_CLR(PSID_mastersock, &PSID_readfds);
+	FD_CLR(masterSock, &PSID_readfds);
     }
     /*
      * kill all clients
@@ -225,7 +229,7 @@ int shutdownNode(int phase)
 	 */
 	for (i=0; i<FD_SETSIZE; i++) {
 	    if (FD_ISSET(i, &PSID_readfds)
-		&& i!=PSID_mastersock && i!=RDPSocket) {
+		&& i!=masterSock && i!=RDPSocket) {
 		closeConnection(i);
 	    }
 	}
@@ -2123,7 +2127,7 @@ static void setupMastersock(void)
 {
     struct sockaddr_un sa;
 
-    PSID_mastersock = socket(PF_UNIX, SOCK_STREAM, 0);
+    masterSock = socket(PF_UNIX, SOCK_STREAM, 0);
 
     memset(&sa, 0, sizeof(sa));
     sa.sun_family = AF_UNIX;
@@ -2132,9 +2136,9 @@ static void setupMastersock(void)
     /*
      * Test if socket exists and another daemon is already connected
      */
-    if (connect(PSID_mastersock, (struct sockaddr *)&sa, sizeof (sa))<0) {
+    if (connect(masterSock, (struct sockaddr *)&sa, sizeof (sa))<0) {
 	if (errno != ECONNREFUSED && errno != ENOENT) {
-	    PSID_errexit("connect (PSID_mastersock)", errno);
+	    PSID_errexit("connect (masterSock)", errno);
 	}
     } else {
 	snprintf(errtxt, sizeof(errtxt),
@@ -2147,7 +2151,7 @@ static void setupMastersock(void)
      * bind the socket to the right address
      */
     unlink(PSmasterSocketName);
-    if (bind(PSID_mastersock, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
+    if (bind(masterSock, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
 	PSID_errexit("Daemon already running?", errno);
     }
     chmod(sa.sun_path, S_IRWXU | S_IRWXG | S_IRWXO);
@@ -2158,11 +2162,11 @@ static void setupMastersock(void)
     PSID_errlog(errtxt, 0);
     PSID_errlog(" (c) ParTec AG (www.par-tec.com)", 0);
 
-    if (listen(PSID_mastersock, 20) < 0) {
+    if (listen(masterSock, 20) < 0) {
 	PSID_errexit("Error while trying to listen", errno);
     }
 
-    FD_SET(PSID_mastersock, &PSID_readfds);
+    FD_SET(masterSock, &PSID_readfds);
 }
 
 static void checkFileTable(fd_set *controlfds)
@@ -2229,7 +2233,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.109 $";
+    char revision[] = "$Revision: 1.110 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -2444,7 +2448,7 @@ int main(int argc, const char *argv[])
     initComm();
 
     snprintf(errtxt, sizeof(errtxt), "Local Service Port (%d) initialized.",
-	     PSID_mastersock);
+	     masterSock);
     PSID_errlog(errtxt, 0);
 
     /*
@@ -2530,12 +2534,12 @@ int main(int argc, const char *argv[])
 	/*
 	 * check the master socket for new requests
 	 */
-	if (FD_ISSET(PSID_mastersock, &rfds)) {
+	if (FD_ISSET(masterSock, &rfds)) {
 	    int ssock;  /* slave server socket */
 
 	    PSID_errlog("accepting new connection", 1);
 
-	    ssock = accept(PSID_mastersock, NULL, 0);
+	    ssock = accept(masterSock, NULL, 0);
 	    if (ssock < 0) {
 		char *errstr = strerror(errno);
 		snprintf(errtxt, sizeof(errtxt),
@@ -2573,8 +2577,7 @@ int main(int argc, const char *argv[])
 	 * or control msgs
 	 */
 	for (fd=0; fd<FD_SETSIZE; fd++) {
-	    if (fd != PSID_mastersock      /* handled before */
-		&& fd != RDPSocket         /* handled below */
+	    if (fd != masterSock && fd != RDPSocket  /* both handled below */
 		&& FD_ISSET(fd, &rfds)){
 		psicontrol(fd);
 	    }
