@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.20 2002/07/03 20:26:23 eicker Exp $
+ * $Id: pse.c,v 1.21 2002/07/11 10:26:39 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.20 2002/07/03 20:26:23 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.21 2002/07/11 10:26:39 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -204,7 +204,7 @@ void PSEspawn(int Argc, char** Argv,
 	 * dies.
 	 */
 	parenttidPSE = INFO_request_taskinfo(PSC_getMyTID(), INFO_PTID, 0);
-	if(parenttidPSE<=0 || PSI_notifydead(parenttidPSE, SIGTERM)<0) {
+	if (parenttidPSE<=0 || PSI_notifydead(parenttidPSE, SIGTERM)<0) {
 	    snprintf(errtxt, sizeof(errtxt),
 		     "Parent (0x%lx[%d:%d]) is probably no more alive.",
 		     parenttidPSE, PSC_getID(parenttidPSE),
@@ -280,7 +280,7 @@ void PSEspawn(int Argc, char** Argv,
 	 * dies.
 	 */
 	parenttidPSE = INFO_request_taskinfo(PSC_getMyTID(), INFO_PTID, 0);
-	if ((parenttidPSE<=0) || (PSI_notifydead(parenttidPSE, SIGTERM)<0)) {
+	if (parenttidPSE<=0 || PSI_notifydead(parenttidPSE, SIGTERM)<0) {
 	    snprintf(errtxt, sizeof(errtxt),
 		     "Parent (0x%lx[%d:%d]) is probably no more alive.",
 		     parenttidPSE, PSC_getID(parenttidPSE),
