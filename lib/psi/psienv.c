@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psienv.c,v 1.4 2002/02/08 10:36:28 eicker Exp $
+ * $Id: psienv.c,v 1.5 2002/04/26 12:39:22 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psienv.c,v 1.4 2002/02/08 10:36:28 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psienv.c,v 1.5 2002/04/26 12:39:22 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -174,9 +174,10 @@ char* getPSIEnv(const char* name)
     }
 }
 
-int packPSIEnv(char *buffer, int size)
+int packPSIEnv(char *buffer, size_t size)
 {
-    int i, msglen = 0;
+    int i;
+    size_t msglen = 0;
 
     if (! buffer) return -1; /* We need a buffer */
     if (! sizeOfEnv) return 0; /* No environment to pack */

@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.15 2002/02/19 09:33:10 eicker Exp $
+ * $Id: info.c,v 1.16 2002/04/26 12:40:34 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.15 2002/02/19 09:33:10 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.16 2002/04/26 12:40:34 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -35,7 +35,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.15 2002/02/19 09
  * int size: size of buffer
  * RETURN type of the msg received
  */
-static int INFO_receive(INFO_info_t what, void* buffer, int size)
+static int INFO_receive(INFO_info_t what, void* buffer, size_t size)
 {
     DDBufferMsg_t msg;
     if (ClientMsgRecv(&msg)<0) {

@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psienv.h,v 1.3 2002/02/08 10:30:07 eicker Exp $
+ * $Id: psienv.h,v 1.4 2002/04/26 12:39:22 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for interaction with the ParaStation environment.
  *
- * $Id: psienv.h,v 1.3 2002/02/08 10:30:07 eicker Exp $
+ * $Id: psienv.h,v 1.4 2002/04/26 12:39:22 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -20,6 +20,8 @@
  */
 #ifndef __PSIENV_H
 #define __PSIENV_H
+
+#include <stdlib.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -111,7 +113,7 @@ char* getPSIEnv(const char *name);
  * @return On success, the number of used bytes in buffer is returned, or -1
  * if an error occurred (i.e. the buffer is to small).
  */
-int packPSIEnv(char *buffer, int size);
+int packPSIEnv(char *buffer, size_t size);
 
 /**
  * @brief Get the number variables in the ParaStation Environment.

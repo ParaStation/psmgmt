@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: logmsg.c,v 1.9 2002/02/11 13:10:49 eicker Exp $
+ * $Id: logmsg.c,v 1.10 2002/04/26 12:40:34 eicker Exp $
  *
  */
 
-static char vcid[] __attribute__ (( unused )) = "$Id: logmsg.c,v 1.9 2002/02/11 13:10:49 eicker Exp $";
+static char vcid[] __attribute__ (( unused )) = "$Id: logmsg.c,v 1.10 2002/04/26 12:40:34 eicker Exp $";
 
 #include <stdio.h>
 #include <unistd.h>
@@ -25,13 +25,13 @@ int writelog(int sock, FLMsg_msg_t type, int node, char *buf, size_t count)
      * This implementation is *not* correct !!
      * What happens if less then msg.header.len bytes are written ?
      */
-    int n, c = count;
+    int n;
+    size_t c = count;
     FLBufferMsg_t msg;
 
     if(sock > 0){
 	msg.header.type = type;
 	msg.header.sender = node;
-	if (c < 0) return 0; /* allow NULL messages */
 	do {
 	    n = (c>sizeof(msg.buf)) ? sizeof(msg.buf) : c;
 	    memcpy(msg.buf, buf, n);
