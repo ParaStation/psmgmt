@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psi.h,v 1.11 2002/04/03 15:35:21 eicker Exp $
+ * $Id: psi.h,v 1.12 2002/04/22 18:18:49 hauke Exp $
  *
  */
 /**
  * @file
  * psi: User-functions for interaction with the ParaStation system.
  *
- * $Id: psi.h,v 1.11 2002/04/03 15:35:21 eicker Exp $
+ * $Id: psi.h,v 1.12 2002/04/22 18:18:49 hauke Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -165,6 +165,8 @@ long PSI_whodied(int sig);
 char * PSI_LookupInstalldir(void);
 
 void PSI_SetInstalldir(char *installdir);
+
+int PSI_GetServicePort( char *name , int def);
 
 #ifdef __cplusplus
 }/* extern "C" */
