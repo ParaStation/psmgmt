@@ -5,20 +5,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psmstart.c,v 1.3 2002/08/16 15:42:05 eicker Exp $
+ * $Id: psmstart.c,v 1.4 2002/11/22 16:08:54 eicker Exp $
  *
  */
 /**
  * @file Simple wrapper to allow non ParaStation aware programs to be
  * distributed in a cluster.
  *
- * $Id: psmstart.c,v 1.3 2002/08/16 15:42:05 eicker Exp $
+ * $Id: psmstart.c,v 1.4 2002/11/22 16:08:54 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c,v 1.3 2002/08/16 15:42:05 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c,v 1.4 2002/11/22 16:08:54 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
     char *command;
 
     if (argc < 2) {
-	fprintf(stderr, "You need to give at least on argument\n");
+	fprintf(stderr, "You need to give at least one argument\n");
 	exit(1);
     }
 
