@@ -7,7 +7,7 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.28 2002/08/02 15:38:55 hauke Exp $
+ * $Id: psport.h,v 1.29 2002/08/02 15:46:39 eicker Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -84,10 +84,10 @@ typedef UINT16 PSP_MessageID_t;
  * Receive header.
  */
 typedef struct PSP_RecvHeader_T {
-    PSHALRecvHeader_t	HALHeader;   /**< the HALHeader */
-    PSP_MessageID_t	MessageID;   /**< a message ID */
-    UINT32		FragOffset;  /**< a fragment offset */
-    UINT32		MessageSize; /**< the message size */
+    PSHALRecvHeader_t	HALHeader;   /**< the header of the HAL layer */
+    PSP_MessageID_t	MessageID;   /**< the unique message ID */
+    UINT32		FragOffset;  /**< the offset of this fragment */
+    UINT32		MessageSize; /**< the size of this message */
     long		xheader[zeroarray];  /**< from here on, the extra
 					header is placed */
 } PSP_RecvHeader_t;
@@ -96,16 +96,16 @@ typedef struct PSP_RecvHeader_T {
  * General header to be used for send or receive requests.
  */
 typedef struct PSP_Header_T {
-    int                 state;       /**< a status */
-    unsigned            xheaderlen;  /**< len of the extra header,
+    int                 state;       /**< the status */
+    unsigned            xheaderlen;  /**< the length of the extra header,
 					read-only. */
-    unsigned            datalen;     /**< len of message data,
+    unsigned            datalen;     /**< the lenght of the message data,
 					read-only. */
     int			_space1_;    /**< align HALHeader to 8 byte on alpha */
-    PSHALRecvHeader_t   HALHeader;   /**< the HALHeader */
-    PSP_MessageID_t     MessageID;   /**< a message ID */
-    UINT32              FragOffset;  /**< a fragment offset */
-    UINT32              MessageSize; /**< the message size */
+    PSHALRecvHeader_t   HALHeader;   /**< the header of the HAL layer */
+    PSP_MessageID_t     MessageID;   /**< the unique message ID */
+    UINT32              FragOffset;  /**< the offset of this fragment */
+    UINT32              MessageSize; /**< the size of this message */
     long		xheader[zeroarray];  /**< from here on, the extra
 					header is placed */
 } PSP_Header_t;
@@ -399,7 +399,7 @@ PSP_RequestH_t PSP_IReceiveFrom(PSP_PortH_t porth,
 				int sender)
 {
     return PSP_IReceiveCBFrom(porth, buf, buflen, header, xheaderlen,
-			      cb, cb_param, 0, 0, sender);
+			      cb, cb_param, NULL, NULL, sender);
 }
 
 /**
@@ -449,7 +449,7 @@ PSP_RequestH_t PSP_IReceive(PSP_PortH_t porth,
 			    PSP_RecvCallBack_t* cb, void* cb_param)
 {
     return PSP_IReceiveCBFrom(porth, buf, buflen, header, xheaderlen,
-			      cb, cb_param, 0, 0, PSP_AnySender);
+			      cb, cb_param, NULL, NULL, PSP_AnySender);
 }
 
 /* ----------------------------------------------------------------------
@@ -650,7 +650,7 @@ PSP_RequestH_t PSP_ISend(PSP_PortH_t porth,
 			 int dest, int destport, int flags)
 {
     return PSP_ISendCB(porth, buf, buflen, header, xheaderlen,
-		       dest, destport, 0, 0, flags);
+		       dest, destport, NULL, NULL, flags);
 }
 
 /** Flag this message to be very important. */
