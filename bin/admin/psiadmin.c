@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.25 2002/02/12 15:06:51 eicker Exp $
+ * $Id: psiadmin.c,v 1.26 2002/02/12 19:07:35 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.25 2002/02/12 15:06:51 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.26 2002/02/12 19:07:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -40,7 +40,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.25 $";
+static char psiadmversion[] = "$Revision: 1.26 $";
 static int  DoRestart = 1;
 
 int PSIADM_LookUpNodeName(char* hostname)
@@ -136,30 +136,41 @@ void PSIADM_MCastStat(int first, int last)
 void PSIADM_CountStat(int first, int last)
 {
     int i, j;
-    PSHALInfoCounter_t ic;
+    struct {
+	int present;
+	PSHALInfoCounter_t ic;
+    } countstat;
 
     first = (first==ALLNODES) ? 0 : first;
     last  = (last==ALLNODES) ? PSI_nrofnodes : last+1;
 
     /* Get header info from own daemon */
-    INFO_request_countstatus(PSI_myid, &ic, sizeof(ic));
+    for (i=0; i<PSI_nrofnodes; i++) {
+	INFO_request_countstatus(i, &countstat, sizeof(countstat));
+	if (countstat.present) break;
+    }
     printf("%6s ", "NODE");
-    for (j=0 ; j<ic.n; j++){
-	printf("%8s ",ic.counter[j].name);
+    for (j=0 ; j<countstat.ic.n; j++){
+	printf("%8s ", countstat.ic.counter[j].name);
     }
     printf("\n");
 
     for (i = first; i < last; i++) {
 	printf("%6u ", i); fflush(stdout);
 
-	if (INFO_request_countstatus(i, &ic, sizeof(ic)) != -1) {
-	    for (j=0; j<ic.n; j++){
-		char ch[10];
-		/* calc column size from name length */
-		sprintf(ch,"%%%du ",(int) MAX(strlen(ic.counter[j].name),8));
-		printf(ch, ic.counter[j].value);
+	if (INFO_request_countstatus(i, &countstat, sizeof(countstat)) != -1) {
+	    if (countstat.present) {
+		for (j=0; j<countstat.ic.n; j++){
+		    char ch[10];
+		    /* calc column size from name length */
+		    sprintf(ch, "%%%du ",
+			    (int) MAX(strlen(countstat.ic.counter[j].name),8));
+		    printf(ch, countstat.ic.counter[j].value);
+		}
+		printf("\n");
+	    } else {
+		printf("No card present\n");
 	    }
-	    printf("\n");
 	}
     }
 
