@@ -7,7 +7,7 @@
   <refnamediv>
     <refname>test_nodes</refname>
     <refpurpose>
-      test MyriNet connections within a cluster.
+      test Myrinet connections within a cluster.
     </refpurpose>
   </refnamediv>
 
@@ -23,7 +23,7 @@
   <refsect1>
     <title>Description</title>
     <para>
-      Tests all or some MyriNet connections within a cluster. Therefor the
+      Tests all or some Myrinet connections within a cluster. Therefor the
       program is started on <replaceable>num</replaceable> nodes. After all
       processes came up correctly, each of them starts to send test packets to
       every other nodes of the cluster. For this purpose the <citerefentry>
@@ -32,7 +32,7 @@
       </citerefentry> and <citerefentry>
 	<refentrytitle>PSP_ISend</refentrytitle>
 	<manvolnum>3</manvolnum>
-      </citerefentry> calls of the ParaStation PSPort library are used.
+      </citerefentry> calls of the &ps; PSPort library are used.
     </para>
     <para>
       After every node has received data from any node (i.e. an all to all
@@ -105,7 +105,7 @@
   sgml-always-quote-attributes:t
   sgml-indent-step:2
   sgml-indent-data:t
-  sgml-parent-document:("main.xml" "set" "book" "reference" "reference" ("title"))
+  sgml-parent-document:("adminguide.xml" "book" "reference" "reference" ("title"))
   sgml-exposed-tags:nil
   sgml-local-catalogs:nil
   sgml-local-ecat-files:nil
