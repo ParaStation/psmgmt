@@ -5,20 +5,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psmstart.c,v 1.4 2002/11/22 16:08:54 eicker Exp $
+ * $Id: psmstart.c,v 1.5 2003/05/28 17:06:46 eicker Exp $
  *
  */
 /**
  * @file Simple wrapper to allow non ParaStation aware programs to be
  * distributed in a cluster.
  *
- * $Id: psmstart.c,v 1.4 2002/11/22 16:08:54 eicker Exp $
+ * $Id: psmstart.c,v 1.5 2003/05/28 17:06:46 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c,v 1.4 2002/11/22 16:08:54 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c,v 1.5 2003/05/28 17:06:46 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -26,10 +26,14 @@ static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c,v 1.4 2002/11/22
 #include <string.h>
 #include <pse.h>
 
+#ifdef __linux__
+#include <unistd.h>
+#endif
+
 int main(int argc, char *argv[])
 {
     int rank, i, totlen = 0;
-    char *command;
+    char myexec[256], *command;
 
     if (argc < 2) {
 	fprintf(stderr, "You need to give at least one argument\n");
@@ -44,6 +48,19 @@ int main(int argc, char *argv[])
 
     if (rank == -1){
 	/* I am the logger */
+
+#ifdef __linux__
+	int length;
+
+	length = readlink("/proc/self/exe", myexec, sizeof(myexec)-1);
+	if (length<0) {
+	    perror("readlink");
+	} else {
+	    myexec[length]='\0';
+	}
+
+	argv[0] = myexec;
+#endif
 
 	/* Set default HW to none: */
 	PSE_setHWType(0);
