@@ -5,17 +5,17 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psp.h,v 1.7 2002/01/18 15:53:38 eicker Exp $
+ * $Id: psp.h,v 1.8 2002/01/23 11:25:49 eicker Exp $
  *
  */
 /**
- * \file
+ * @file
  * psp: The ParaStation Protocol
  *      Used for daemon-daemon and client-daemon communication.
  *
- * $Id: psp.h,v 1.7 2002/01/18 15:53:38 eicker Exp $
+ * $Id: psp.h,v 1.8 2002/01/23 11:25:49 eicker Exp $
  *
- * \author
+ * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */

@@ -5,16 +5,16 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.h,v 1.4 2002/01/18 15:54:22 eicker Exp $
+ * $Id: info.h,v 1.5 2002/01/23 11:25:49 eicker Exp $
  *
  */
 /**
- * \file
+ * @file
  * info: Functions for information retrieving from ParaStation daemon
  *
- * $Id: info.h,v 1.4 2002/01/18 15:54:22 eicker Exp $
+ * $Id: info.h,v 1.5 2002/01/23 11:25:49 eicker Exp $
  *
- * \author
+ * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */

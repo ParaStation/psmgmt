@@ -5,16 +5,16 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.h,v 1.5 2002/01/22 16:22:01 eicker Exp $
+ * $Id: rdp.h,v 1.6 2002/01/23 11:25:49 eicker Exp $
  *
  */
 /**
- * \file
+ * @file
  * rdp: Reliable Datagram Protocol for ParaStation daemon
  *
- * $Id: rdp.h,v 1.5 2002/01/22 16:22:01 eicker Exp $
+ * $Id: rdp.h,v 1.6 2002/01/23 11:25:49 eicker Exp $
  *
- * \author
+ * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
@@ -77,12 +77,12 @@ typedef struct RDPDeadbuf_{
 /**
  * @brief Initializes the RDP and MCast modules.
  *
- * Initializes the RDP and MCast machinery for \a nodes nodes.
+ * Initializes the RDP and MCast machinery for @a nodes nodes.
  *
  * @param nodes Number of nodes to handle.
  * @param mgroup The MultiCast group to use.
  * @param usesyslog If true, all error-messages are printed via syslog().
- * @param hosts An array of size \a nodes containing the IP-addresses of the
+ * @param hosts An array of size @a nodes containing the IP-addresses of the
  * participating nodes in network-byteorder.
  * @param func Pointer to a callback-function. This function is called if
  * something exceptional happens. If NULL, no callbacks will be done.
@@ -96,12 +96,12 @@ int initRDP(int nodes, int mgroup, int usesyslog, unsigned int hosts[],
 /**
  * @brief Initializes the MCast module.
  *
- * Initializes the MCast machinery for \a nodes nodes.
+ * Initializes the MCast machinery for @a nodes nodes.
  *
  * @param nodes Number of nodes to handle.
  * @param mgroup The MultiCast group to use.
  * @param usesyslog If true, all error-messages are printed via syslog().
- * @param hosts An array of size \a nodes containing the IP-addresses of the
+ * @param hosts An array of size @a nodes containing the IP-addresses of the
  * participating nodes in network-byteorder.
  * @param func Pointer to a callback-function. This function is called if
  * something exceptional happens. If NULL, no callbacks will be done.
