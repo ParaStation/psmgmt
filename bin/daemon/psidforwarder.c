@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidforwarder.c,v 1.9 2003/04/07 14:22:32 eicker Exp $
+ * $Id: psidforwarder.c,v 1.10 2003/04/10 17:43:54 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.9 2003/04/07 14:22:32 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.10 2003/04/10 17:43:54 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -183,10 +183,12 @@ static int sendDaemonMsg(DDErrorMsg_t *msg)
 
 	loggerTID = -1;
 
-        FD_CLR(daemonSock, &myfds);
-        close(daemonSock);
+	if (daemonSock != -1) {
+	    FD_CLR(daemonSock, &myfds);
+	    close(daemonSock);
 
-	daemonSock = -1;
+	    daemonSock = -1;
+	}
 
 	return n;
     } else if (!n) {
@@ -196,10 +198,12 @@ static int sendDaemonMsg(DDErrorMsg_t *msg)
 
 	loggerTID = -1;
 
-        FD_CLR(daemonSock, &myfds);
-        close(daemonSock);
+	if (daemonSock != -1) {
+	    FD_CLR(daemonSock, &myfds);
+	    close(daemonSock);
 
-	daemonSock = -1;
+	    daemonSock = -1;
+	}
 
 	return n;
     }
@@ -425,10 +429,13 @@ static void sighandler(int sig)
 		char buf[128], txt2[128];
 
 		/* Try to read from fd */
-		n = read(i, buf, sizeof(buf));
+		errno=0;
+		n = read(i, buf, sizeof(buf)-1);
+		buf[sizeof(buf)-1]='\0';
 		snprintf(txt2, sizeof(txt2),
 			 "read(%d) returned %d, errno %d\n", i, n, errno);
 		printMsg(STDERR, txt2);
+		printMsg(STDOUT, buf);
 	    }
 	}
 	break;
@@ -504,7 +511,9 @@ static void sighandler(int sig)
 	    } while (ret);
 	}
 
-	pid = wait3(&status, 0, &rusage);
+	pid = wait3(&status, WUNTRACED, &rusage);
+
+	if (WIFSTOPPED(status)) break;
 
 	sendMsg(USAGE, (char *) &rusage, sizeof(rusage));
 
@@ -520,7 +529,7 @@ static void sighandler(int sig)
 	releaseLogger(status);
 
 	/* Release the daemon */
-	close(daemonSock);
+	if (daemonSock != -1) close(daemonSock);
 
 	exit(0);
 
@@ -567,37 +576,37 @@ static void checkFileTable(fd_set* openfds)
 		/* error : check if it is a wrong fd in the table */
 		switch(errno){
 		case EBADF :
-		    snprintf(buf, sizeof(buf), "checkFileTable(%d): EBADF"
-			     " -> close socket\n", fd);
+		    snprintf(buf, sizeof(buf),
+			     "%s(%d): EBADF -> close socket\n", __func__, fd);
 		    printMsg(STDERR, buf);
 		    close(fd);
 		    FD_CLR(fd,openfds);
 		    fd++;
 		    break;
 		case EINTR:
-		    snprintf(buf, sizeof(buf), "checkFileTable(%d): EINTR"
-			     " -> trying again\n", fd);
+		    snprintf(buf, sizeof(buf),
+			     "%s(%d): EINTR -> trying again\n", __func__, fd);
 		    printMsg(STDERR, buf);
 		    break;
 		case EINVAL:
-		    snprintf(buf, sizeof(buf), "checkFileTable(%d): EINVAL"
-			     " -> close socket\n", fd);
+		    snprintf(buf, sizeof(buf),
+			     "%s(%d): EINVAL -> close socket\n", __func__, fd);
 		    printMsg(STDERR, buf);
 		    close(fd);
 		    FD_CLR(fd,openfds);
 		    break;
 		case ENOMEM:
-		    snprintf(buf , sizeof(buf), "checkFileTable(%d): ENOMEM"
-			    " -> close socket\n",fd);
+		    snprintf(buf , sizeof(buf),
+			     "%s(%d): ENOMEM -> close socket\n", __func__, fd);
 		    printMsg(STDERR, buf);
 		    close(fd);
 		    FD_CLR(fd,openfds);
 		    break;
 		default:
 		    errtxt=strerror(errno);
-		    snprintf(buf, sizeof(buf), "checkFileTable(%d):"
-			    " unrecognized error (%d):%s\n", fd, errno,
-			    errtxt?errtxt:"UNKNOWN errno");
+		    snprintf(buf, sizeof(buf),
+			     "%s(%d): unrecognized error (%d):%s\n", __func__,
+			     fd, errno, errtxt ? errtxt : "UNKNOWN errno");
 		    printMsg(STDERR, buf);
 		    fd ++;
 		    break;
@@ -642,7 +651,7 @@ static int read_from_logger(int logfd, int stdinport)
 	} else 	if ((msg.header.type == PSP_CC_MSG) && (msg.type == EXIT)) {
 	    /* Logger is going to die */
 	    /* Release the daemon */
-	    close(daemonSock);
+	    if (daemonSock != -1) close(daemonSock);
 
 	    exit(0);
 	} else {
