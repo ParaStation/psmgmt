@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.c,v 1.1 2002/06/27 18:37:53 eicker Exp $
+ * $Id: pstask.c,v 1.2 2002/07/08 16:42:52 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.1 2002/06/27 18:37:53 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.2 2002/07/08 16:42:52 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -39,7 +39,6 @@ int PStask_init(PStask_t *task)
     task->ptid = 0;
     task->uid = -1;
     task->gid = -1;
-    task->nodeno = -1;
     task->group = TG_ANY;
     task->rank = -1;
     task->loggernode = 0;
@@ -119,10 +118,10 @@ void PStask_snprintf(char *txt, size_t size, PStask_t * task)
 	return ;
 
     snprintf(txt, size, " links(%08lx,%08lx) tid %08lx, ptid %08lx, uid %d"
-	     " loggernode %x loggerport %d node %d"
+	     " loggernode %x loggerport %d"
 	     " group0x%lx rank %x error %ld fd %d argc %d ",
 	     (long)task->link, (long)task->rlink, task->tid, task->ptid,
-	     task->uid, task->loggernode, task->loggerport, task->nodeno,
+	     task->uid, task->loggernode, task->loggerport,
 	     task->group, task->rank, task->error, task->fd, task->argc);
     if (strlen(txt)+1 == size) return;
 
