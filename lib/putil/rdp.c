@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.18 2002/02/01 16:47:22 eicker Exp $
+ * $Id: rdp.c,v 1.19 2002/02/04 08:31:53 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.18 2002/02/01 16:47:22 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.19 2002/02/04 08:31:53 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -923,6 +923,7 @@ static void handleTimeoutRDP(int fd)
 				 sizeof(struct sockaddr));
 			conntableRDP[node].ackPending = 0;
 			ap = ap->next;
+			break;
 		    default:
 			snprintf(errtxt, sizeof(errtxt),
 				 "handleTimeoutRDP(): unknown state %d"
