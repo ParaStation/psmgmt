@@ -121,8 +121,8 @@ int PSI_mastersocket(unsigned long hostaddr);
 /* 
  * PSI_notifydead()
  *  
- *  PSI_notifydead requests the signal sig, when the child with task identifier tid
- *  dies.
+ *  PSI_notifydead requests the signal sig, when the child with task
+ *  identifier tid dies.
  *  
  * PARAMETERS
  *  tid: the task identifier of the child whose death shall be signaled to you
@@ -131,6 +131,21 @@ int PSI_mastersocket(unsigned long hostaddr);
  *         -1 on error
  */
 int PSI_notifydead(long tid, int sig);
+
+/*----------------------------------------------------------------------*/
+/*
+ * PSI_release()
+ *
+ *  PSI_release() helps parent to survive if task is exiting. Quite usefull
+ *       this in PSE_finalize().
+ *
+ * PARAMETERS
+ *  tid: the task identifier of the task that should *not* kill the parent
+ *
+ * RETURN  0 on success
+ *         -1 on error
+ */
+int PSI_release(long tid);
 
 /*----------------------------------------------------------------------*/
 /* 
