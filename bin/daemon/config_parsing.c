@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.8 2002/07/18 13:13:45 eicker Exp $
+ * $Id: config_parsing.c,v 1.9 2002/07/19 13:03:45 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.8 2002/07/18 13:13:45 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.9 2002/07/19 13:03:45 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -88,6 +88,8 @@ rlim_t ConfigRLimitRSSSize = -1;
 
 int ConfigLogLevel = 0;          /* default logging level */
 int ConfigLogDest = LOG_DAEMON;
+
+char *LicFile = NULL;
 
 int MyPsiId = -1;
 
@@ -334,6 +336,11 @@ static int getIPModuleName(char *token)
 
     ConfigIPModule = strdup(file);
 
+    /* Set IPPrefix to default value */
+    if (!ConfigIPPrefix) {
+	ConfigIPPrefix = strdup("192.168.16");
+    }
+
     return 0;
 }
 
@@ -445,9 +452,14 @@ static int getLicFile(char *token)
 {
     char *licfile = parser_getString();
 
-    if (ConfigLicenseFile) free(ConfigLicenseFile);
+    /*
+     * Don't use ConfigLicenseFile here. It will be assigned later.
+     * This is due to the fact that you don't have to give the
+     * LicenseFile entry inevitably.
+     */
+    if (LicFile) free(LicFile);
 
-    ConfigLicenseFile = strdup(licfile);
+    LicFile = strdup(licfile);
 
     return 0;
 }
@@ -981,25 +993,6 @@ int parseConfig(int usesyslog, int loglevel)
     fclose(cfd);
 
     /*
-     * Read the Licensefile 
-     */
-    if (!ConfigLicenseFile) {
-	char *tmp = strdup(Configfile);
-	ConfigLicenseFile = (char *)malloc(strlen(Configfile) + 1 +
-					   sizeof(DEFAULT_LICFILE) + 3);
-	strcpy(ConfigLicenseFile, dirname(tmp));
-	strcat(ConfigLicenseFile, "/" DEFAULT_LICFILE);
-	free(tmp);
-    }
-    if (lic_fromfile(&ConfigLicEnv, ConfigLicenseFile) < 0) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "ERROR: %s.", lic_errstr ? lic_errstr : "in licensefile");
-	parser_comment(errtxt, 0);
-	return -1;
-    }
-    ConfigLicenseKeyMCP = env_get(&ConfigLicEnv, LIC_MCPKEY);
-    
-    /*
      * Sanity Checks
      */
     if (NrOfNodes==-1) {
@@ -1007,6 +1000,48 @@ int parseConfig(int usesyslog, int loglevel)
 	return -1;
     }
 
+    /*
+     * Test if the Licensefile exists
+     */
+    if (!LicFile) {
+	LicFile = strdup(DEFAULT_LICFILE);
+    }
+
+    ConfigLicenseFile = parser_getFilename(LicFile, PSC_lookupInstalldir(),
+					   "/config");
+
+    if (!ConfigLicenseFile) {
+	char *tmp = strdup(Configfile);
+	ConfigLicenseFile = parser_getFilename(LicFile, dirname(tmp), NULL);
+	free(tmp);
+    }
+	
+    if (!ConfigLicenseFile) {
+ 	snprintf(errtxt, sizeof(errtxt),
+		 "Unable to locate LicenseFile '%s'", LicFile);
+	parser_comment(errtxt, 0);
+
+	return -1;
+    } else {
+ 	snprintf(errtxt, sizeof(errtxt),
+		 "Using <%s> as license file", ConfigLicenseFile);
+	parser_comment(errtxt, 1);
+    }
+
+    /*
+     * Read the Licensefile 
+     */
+    if (lic_fromfile(&ConfigLicEnv, ConfigLicenseFile) < 0) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "ERROR: %s.", lic_errstr ? lic_errstr : "in licensefile");
+	parser_comment(errtxt, 0);
+	return -1;
+    }
+    ConfigLicenseKeyMCP = env_get(&ConfigLicEnv, LIC_MCPKEY);
+
+    /*
+     * Sanity Checks
+     */
     if (NrOfNodes > lic_numval(&ConfigLicEnv, LIC_NODES, 0)) {
 	parser_comment("ERROR: NrOfNodes to large for this License.", 0);
 	return -1;
