@@ -1,7 +1,7 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.1 2001/05/03 11:36:20 hauke Exp $
+ * $Id: psport.h,v 1.2 2001/05/08 16:12:10 hauke Exp $
  *
  * @author
  * Jens Hauke <hauke@par-tec.com>,
@@ -67,7 +67,7 @@ typedef struct PSP_RecvHeader_T{
 
 typedef struct PSP_SendHeader_T{
     PSHALSendHeader_t	HALHeader;
-    PSP_MessageID_t	MessageID;
+    PSP_MessageID_t	MessageID; // leave MessageID direct after HALHeader !!
     UINT32		FragOffset;
     UINT32		MessageSize;
     char		xheader[0];
@@ -91,6 +91,8 @@ typedef struct PSP_Header_T{
 
 
 
+extern unsigned PSP_GenReqCount;     /* count receives without recv request */
+extern unsigned PSP_GenReqUsedCount; /* count use of generated requests */
 
 
 
@@ -174,6 +176,39 @@ int PSP_GetPortNo(PSP_PortH_t porth);
  * to stderr.
  */
 PSP_Err_t PSP_ClosePort(PSP_PortH_t porth);
+
+
+
+/* ----------------------------------------------------------------------
+ * PSP_RecvFrom()
+ * ----------------------------------------------------------------------
+ */
+/**
+ * @brief call-back function for PSP_IReceive()
+ *
+ */
+int PSP_RecvAny(PSP_RecvHeader_t* header, unsigned xheaderlen,void *param);
+
+
+/**
+ *  Parameter for PSP_RecvFrom()
+ */
+typedef struct PSP_RecvFrom_Param_T{
+    INT16	srcnode;
+    INT16	srcport;
+}PSP_RecvFrom_Param_t;
+
+/* ----------------------------------------------------------------------
+ * PSP_RecvFrom()
+ * ----------------------------------------------------------------------
+ */
+/**
+ * @brief call-back function for PSP_IReceive() 
+ *
+ */
+int PSP_RecvFrom(PSP_RecvHeader_t* header, unsigned xheaderlen,void *param);
+
+    
 
 /* ----------------------------------------------------------------------
  * PSP_IReceive()
