@@ -1,5 +1,3 @@
-
-
 #ifndef _COMPAT_TRU64_H_
 #define _COMPAT_TRU64_H_
 
@@ -8,7 +6,6 @@
 
 #ifndef __KERNEL__
 #define _DEC_XPG
-/*typedef unsigned long   socklen_t;*/
 
 /* #define _BSD */
 /* Only defined if _BSD is defined */
@@ -19,9 +16,4 @@ extern void     unsetenv (const char *);
 
 #define NO_MACRODOTDOT
 
-
-
 #endif /* _COMPAT_TRU64_H_ */
-
-
-
