@@ -1,5 +1,7 @@
 #!/bin/sh
 
 
-#make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.4.2.SuSE LINUXVERSION=L24 OSSUF=.SuSE $*
-make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.4.2-SMP.redhat LINUXVERSION=L24 OSSUF=-SMP.redhat $*
+#make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.4.2.redhat LINUXVERSION=L24 OSVER=2.4.2-2 OSSUF=.redhat psm
+
+make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.4.2-SMP.redhat LINUXVERSION=L24 OSVER=2.4.2-2smp OSSUF=.redhat psm
+
