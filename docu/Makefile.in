@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.13 2003/05/28 17:01:03 eicker Exp $
+# $Id: Makefile.in,v 1.14 2003/06/27 11:00:23 eicker Exp $
 #
 # @author
 #         Norbert Eicker <eicker@par-tec.de>
@@ -43,7 +43,7 @@ ADMINDEPS += $(patsubst man5/%.5,%.sgml,$(ADMINMAN5))
 ADMINDEPS += $(patsubst man8/%.8,%.sgml,$(ADMINMAN8)) boolargs.sgml
 
 
-USERMAN1 = man1/mpirun.1 man1/mpirun_chp4.1 man1/psmstart.1
+USERMAN1 = man1/mpirun.1 man1/mpirun_chp4.1 man1/mpirun_chgm.1 man1/psmstart.1
 USERMAN7 = man7/ps_environment.7 man7/spawning.7
 USERMANS = $(USERMAN1) $(USERMAN7)
 

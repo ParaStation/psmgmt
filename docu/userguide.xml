@@ -18,6 +18,7 @@
 
 <!ENTITY psmstart SYSTEM "psmstart.sgml">
 <!ENTITY mpirun SYSTEM "mpirun.sgml">
+<!ENTITY mpirun_gm SYSTEM "mpirun_chgm.sgml">
 <!ENTITY mpirun_p4 SYSTEM "mpirun_chp4.sgml">
 <!ENTITY environment SYSTEM "ps_environment.sgml">
 
@@ -37,13 +38,13 @@
     &infoblurb;
 
     <releaseinfo>Release 1.1</releaseinfo>
-    <pubdate>May 2003</pubdate>
+    <pubdate>July 2003</pubdate>
 
     <revhistory>
       <revision>
 	<revnumber>1.1</revnumber>
-	<date>28 May 2003</date>
-	<revremark>mpirun_chp4 added</revremark>
+	<date>1 Jul 2003</date>
+	<revremark>mpirun_chp4 and mpirun_chgm added</revremark>
       </revision>
       <revision>
 	<revnumber>1.0</revnumber>
@@ -89,10 +90,11 @@
     <referenceinfo>
       <title>ParTec</title>
       <productname>ParaStation</productname>
-      <date>March 2003</date>
+      <date>July 2003</date>
     </referenceinfo>
     <title>Reference Pages</title>
     &mpirun;
+    &mpirun_gm;
     &mpirun_p4;
     &psmstart;
     &environment;
