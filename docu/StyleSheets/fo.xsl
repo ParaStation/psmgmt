@@ -13,9 +13,9 @@
   <!-- xep is PDF bookmarks and document information -->
   <xsl:param name="use.extensions" select="'1'"/>   <!-- must be on -->
   <xsl:param name="xep.extensions" select="0"/>      
-  <xsl:param name="fop.extensions" select="0"/>     
+  <xsl:param name="fop.extensions" select="1"/>     
   <xsl:param name="saxon.extensions" select="0"/>   
-  <xsl:param name="passivetex.extensions" select="1"/>
+  <xsl:param name="passivetex.extensions" select="0"/>
   <xsl:param name="tablecolumns.extension" select="'1'"/>
 
   <!-- ************** Modifications to manpages/synop.xsl *********** -->
