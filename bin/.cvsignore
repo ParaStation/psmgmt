@@ -2,6 +2,8 @@ alpha_Linux
 alpha_Linux.SuSE
 alpha_Linux.redhat
 i686_Linux
+i686_Linux-SMP.redhat
 i686_Linux.SuSE
+i686_Linux.redhat
 i686_devel_Linux
 i686_devel_Linux.SuSE
