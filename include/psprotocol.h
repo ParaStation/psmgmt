@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.9 2003/02/10 18:32:17 eicker Exp $
+ * $Id: psprotocol.h,v 1.10 2003/02/13 17:08:47 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation client-daemon and daemon-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.9 2003/02/10 18:32:17 eicker Exp $
+ * $Id: psprotocol.h,v 1.10 2003/02/13 17:08:47 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -32,7 +32,7 @@ extern "C" {
 #endif
 #endif
 
-#define PSprotocolversion  317
+#define PSprotocolversion  318
 
 #define PSmasterSocketName "/var/run/parastation.sock"
 
@@ -41,17 +41,33 @@ extern "C" {
 /*
  * PSP_ctrl messages through the OS socket of the daemon
  */
-#define PSP_CD_CLIENTCONNECT       0x0001
-#define PSP_CD_CLIENTESTABLISHED   0x0002
-#define PSP_CD_CLIENTREFUSED       0x0003 
+#define PSP_CD_CLIENTCONNECT       0x0001  /**< Request to connect daemon */
+#define PSP_CD_CLIENTESTABLISHED   0x0002  /**< Connection request accepted */
+#define PSP_CD_CLIENTREFUSED       0x0003  /**< Connection request denied */
+
+typedef enum {
+    OLDVERSION = 1, 
+    NOSPACE = 2,
+    UIDLIMIT = 3,
+    PROCLIMIT = 4,
+    REFUSED = 5
+} ConnectError_t; /**< Error code within a #PSP_CD_CLIENTREFUSED message */
+
+/* We will keep this message types for compatibility with older executables */
 #define PSP_CD_OLDVERSION          0x0004
 #define PSP_CD_NOSPACE             0x0005
 #define PSP_CD_UIDLIMIT            0x0006
 #define PSP_CD_PROCLIMIT           0x0007
+
+/* SET/GETOPTION also used between client and daemon! */
 #define PSP_DD_SETOPTION           0x0008
 #define PSP_DD_GETOPTION           0x0009
 #define PSP_DD_CONTACTNODE         0x000a
 
+/* Replace the following request/response by PSP_CD_INFOREQUEST/RESPONSE */
+/* The corresponding message contains an extra type-flag describing the
+   requested info (extra case-switch in psid.c */
+/* PSP_CD_INFORESPONSE my give type unknown -> generate error in info.c */
 #define PSP_CD_TASKINFOREQUEST     0x0010  /**< Request info about one or more
 					      tasks */
 #define PSP_CD_TASKINFO            0x0011  /**< Reply info about a task */
@@ -77,7 +93,7 @@ extern "C" {
 #define PSP_CD_MCASTSTATUSREQUEST  0x0026
 #define PSP_CD_MCASTSTATUSRESPONSE 0x0027
 
-/* Messages conceerning spawning of tasks */
+/* Messages conceerning spawning of tasks. client-daemon. */
 
 #define PSP_DD_SPAWNREQUEST        0x0030  /**< Request to spawn a process */
 #define PSP_DD_SPAWNSUCCESS        0x0031  /**< Reply on successful spawn */
@@ -85,11 +101,14 @@ extern "C" {
 #define PSP_DD_SPAWNFINISH         0x0033  /**< Reply after successfil end of
 					      spawned process */
 
+/* The next four ones are mainly used between client-daemon */
 #define PSP_DD_NOTIFYDEAD          0x0040
 #define PSP_DD_NOTIFYDEADRES       0x0041
 #define PSP_DD_RELEASE             0x0042
 #define PSP_DD_RELEASERES          0x0043
+/* This will be used between client-daemon and daemon-daemon */
 #define PSP_DD_SIGNAL              0x0044
+/* This is also only between client-daemon */
 #define PSP_DD_WHODIED             0x0045
 
 #define PSP_DD_SYSTEMERROR         0x0050
@@ -110,6 +129,7 @@ extern "C" {
 #define PSP_DD_DAEMONSTOP          0x0102
 #define PSP_CD_DAEMONSTOP          0x0103
 
+/* This is only used between forwarder(part of daemon) and daemon */
 #define PSP_DD_CHILDDEAD           0x0112  /**< Tell someone that its child has
 					      finished */
 
@@ -213,15 +233,18 @@ typedef struct {
     DDMsg_t header;        /**< header of the message */
     PStask_group_t group;  /**< process group of the task */
     long version;          /* version of the PS library */
-    int nrofnodes;         /* # of nodes */
+    int nrofnodes;         /* # of nodes  @todo -> new info message */
     int myid;              /**< id of this node or info about failure */
+    int ppid;              /**< PID of the parent process (for TG_SPAWNER) */
 #ifndef SO_PEERCRED
     pid_t pid;             /**< process id. Not used with UNIX sockets. */
     uid_t uid;             /**< user id. Not used with UNIX sockets. */
     gid_t gid;             /**< group id. Not used with UNIX sockets. */
 #endif
-    char instdir[80];      /**< Installation directory of ParaStation stuff */
-    char psidvers[80];     /**< CVS version-string of the ParaStation daemon */
+    char instdir[80];      /**< Installation directory of ParaStation stuff
+			    @todo -> New info message */
+    char psidvers[80];     /**< CVS version-string of the ParaStation daemon
+			    @todo -> New info message */
 } DDInitMsg_t;
 
 #define DDOptionMsgMax 16
