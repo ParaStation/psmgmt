@@ -85,7 +85,7 @@
 //#define DEBUG_PSHAL
 
 /* Enable sis MCP */
-//#define ENABLE_SIS
+#define ENABLE_SIS
 
 /* Enable sis MCP */
 //#define ENABLE_JM
