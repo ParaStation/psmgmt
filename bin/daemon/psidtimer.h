@@ -1,11 +1,10 @@
 /*
  *               ParaStation
- * psidtimer.h
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: psidtimer.h,v 1.2 2004/01/09 15:58:25 eicker Exp $
+ * $Id$
  *
  */
 /**
@@ -15,7 +14,7 @@
  * All the stuff within this file is defined inline. Thus no
  * psidtimer.c is necessary.
  *
- * $Id: psidtimer.h,v 1.2 2004/01/09 15:58:25 eicker Exp $
+ * $Id$
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>

@@ -1,11 +1,10 @@
 /*
  *               ParaStation
- * timer.h
  *
- * Copyright (C) 2002-2003 ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: timer.h,v 1.11 2003/12/16 19:16:11 eicker Exp $
+ * $Id$
  *
  */
 /**
@@ -14,7 +13,7 @@
  * applications that need to use independent timers in a transparent
  * way. Within ParaStation this is used by the MCast and RDP modules.
  *
- * $Id: timer.h,v 1.11 2003/12/16 19:16:11 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>

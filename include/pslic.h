@@ -1,20 +1,22 @@
-/***********************************************************
- *                  ParaStation4
+/*
+ *               ParaStation
  *
- *       Copyright (c) 2002 ParTec AG Karlsruhe
- *       All rights reserved.
- ***********************************************************/
+ * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ *
+ * $Id$
+ *
+ */
 /**
- * pslic.h: Licensekey handling
+ * @file
+ * Licensekey handling
  *
- * $Id: pslic.h,v 1.8 2003/08/15 13:29:38 eicker Exp $
+ * $Id$
  *
  * @author
- *         Jens Hauke <hauke@par-tec.de>
+ * Jens Hauke <hauke@par-tec.de>
  *
- * @file
- ***********************************************************/
-
+ */
 #ifndef _PSLIC_H_
 #define _PSLIC_H_
 

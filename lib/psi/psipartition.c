@@ -1,17 +1,14 @@
 /*
  *               ParaStation
- * psipartition.c
  *
- * Setting up partitions for spawning of processes.
+ * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
- *
- * $Id: psipartition.c,v 1.13 2004/09/22 09:08:02 eicker Exp $
+ * $Id$
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.13 2004/09/22 09:08:02 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>

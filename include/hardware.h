@@ -1,18 +1,17 @@
 /*
  *               ParaStation
- * hardware.h
  *
- * Copyright (C) 2003 ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: hardware.h,v 1.3 2004/01/15 16:06:51 eicker Exp $
+ * $Id$
  *
  */
 /**
  * @file
  * Hardware handling
  *
- * $Id: hardware.h,v 1.3 2004/01/15 16:06:51 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>

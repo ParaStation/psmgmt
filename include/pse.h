@@ -1,18 +1,17 @@
 /*
  *               ParaStation
- * pse.h
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: pse.h,v 1.18 2004/01/20 11:47:11 eicker Exp $
+ * $Id$
  *
  */
 /**
  * @file
  * ParaStation Programming Environment
  *
- * $Id: pse.h,v 1.18 2004/01/20 11:47:11 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>

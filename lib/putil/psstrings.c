@@ -1,19 +1,12 @@
-/***********************************************************
- *                  ParaStation4
+/*
+ *               ParaStation
  *
- *       Copyright (c) 2002 ParTec AG Karlsruhe
- *       All rights reserved.
- ***********************************************************/
-/**
- * psstrings.c: string handling
+ * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: psstrings.c,v 1.3 2003/10/14 15:33:19 hauke Exp $
+ * $Id$
  *
- * @author
- *         Jens Hauke <hauke@par-tec.de>
- *
- * @file
- ***********************************************************/
+ */
 
 #include <stdio.h>
 #include <stdlib.h>

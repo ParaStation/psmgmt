@@ -1,17 +1,14 @@
 /*
  *               ParaStation
- * mcast.c
  *
- * ParaStation MultiCast facility
+ * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
- *
- * $Id: mcast.c,v 1.20 2004/01/09 15:55:07 eicker Exp $
+ * $Id$
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.20 2004/01/09 15:55:07 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>

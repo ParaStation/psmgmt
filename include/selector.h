@@ -1,11 +1,10 @@
 /*
  *               ParaStation
- * selector.h
  *
- * Copyright (C) 2003 ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2003 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: selector.h,v 1.1 2003/12/11 20:23:59 eicker Exp $
+ * $Id$
  *
  */
 /**
@@ -14,7 +13,7 @@
  * without disturbing a select() call in a transparent way. Within
  * ParaStation this is used by the MCast, RDP and PSIDstatus modules.
  *
- * $Id: selector.h,v 1.1 2003/12/11 20:23:59 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>

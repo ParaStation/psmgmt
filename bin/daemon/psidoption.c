@@ -1,17 +1,14 @@
 /*
  *               ParaStation
- * psidoption.c
  *
- * Handle option requests to the ParaStation daemon.
+ * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
- *
- * $Id: psidoption.c,v 1.9 2004/03/11 14:53:56 eicker Exp $
+ * $Id$
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidoption.c,v 1.9 2004/03/11 14:53:56 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>

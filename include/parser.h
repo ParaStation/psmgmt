@@ -1,18 +1,17 @@
 /*
- *               ParaStation3
- * parser.h
+ *               ParaStation
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: parser.h,v 1.7 2003/10/30 16:40:20 eicker Exp $
+ * $Id$
  *
  */
 /**
  * @file
  * General parser utility for ParaStation daemon and admin
  *
- * $Id: parser.h,v 1.7 2003/10/30 16:40:20 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>

@@ -1,17 +1,14 @@
 /*
  *               ParaStation
- * timer.c
  *
- * ParaStation Timer facility
+ * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
- *
- * $Id: timer.c,v 1.12 2004/01/09 15:15:22 eicker Exp $
+ * $Id$
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: timer.c,v 1.12 2004/01/09 15:15:22 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>

@@ -1,18 +1,17 @@
 /*
- *               ParaStation3
- * pslog.h
+ *               ParaStation
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2003 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: pslog.h,v 1.3 2003/10/23 16:27:35 eicker Exp $
+ * $Id$
  *
  */
 /**
  * @file
  * pslog: Forwarding protocol for ParaStation I/O forwarding facility
  *
- * $Id: pslog.h,v 1.3 2003/10/23 16:27:35 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>

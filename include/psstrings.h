@@ -1,19 +1,22 @@
-/***********************************************************
- *                  ParaStation4
+/*
+ *               ParaStation
  *
- *       Copyright (c) 2002 ParTec AG Karlsruhe
- *       All rights reserved.
- ***********************************************************/
+ * Copyright (C) 2002 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ *
+ * $Id$
+ *
+ */
 /**
- * psstrings.h: string handling
+ * @file
+ * string handling
  *
- * $Id: psstrings.h,v 1.1 2002/07/16 19:25:13 hauke Exp $
+ * $Id$
  *
  * @author
- *         Jens Hauke <hauke@par-tec.de>
+ * Jens Hauke <hauke@par-tec.de>
  *
- * @file
- ***********************************************************/
+ */
 
 #ifndef _PSSTRINGS_H_
 #define _PSSTRINGS_H_

@@ -1,5 +1,5 @@
 Summary:   ParaStation Cluster Management
-Vendor:    ParTec AG,Karlsruhe,Germany
+Vendor:    Cluster Competence Center GmbH, Munich, Germany
 Name:      psmgmt
 Version:   @VERSION_psmgmt@
 Release:   @RELEASE_psmgmt@

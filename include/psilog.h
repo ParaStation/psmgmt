@@ -1,18 +1,17 @@
 /*
- *               ParaStation3
- * psilog.h
+ *               ParaStation
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 1999-2002 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: psilog.h,v 1.5 2002/07/24 06:24:14 eicker Exp $
+ * $Id$
  *
  */
 /**
  * @file
  * Logging facility for the ParaStation user library.
  *
- * $Id: psilog.h,v 1.5 2002/07/24 06:24:14 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>

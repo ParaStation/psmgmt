@@ -1,7 +1,7 @@
 ###################################################### -*- Makefile -*- #####
-#                  ParaStation4
-#        Copyright (c) 2003 ParTec AG Karlsruhe
-#        All rights reserved.
+#                  ParaStation
+#        Copyright (c) 2003 ParTec AG, Karlsruhe
+#        Copyright (c) 2005 Cluster Competence Center GmbH, Munich
 #############################################################################
 #
 # $Id$

@@ -1,18 +1,17 @@
 /*
- *               ParaStation3
- * mcast.h
+ *               ParaStation
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: mcast.h,v 1.19 2003/12/10 16:21:18 eicker Exp $
+ * $Id$
  *
  */
 /**
  * \file
  * ParaStation MultiCast facility
  *
- * $Id: mcast.h,v 1.19 2003/12/10 16:21:18 eicker Exp $
+ * $Id$
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>

@@ -1,18 +1,17 @@
 /*
  *               ParaStation
- * rdp.h
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: rdp.h,v 1.17 2004/01/14 16:56:20 eicker Exp $
+ * $Id$
  *
  */
 /**
  * @file
  * Reliable Datagram Protocol for ParaStation daemon
  *
- * $Id: rdp.h,v 1.17 2004/01/14 16:56:20 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>

@@ -1,18 +1,17 @@
 /*
  *               ParaStation
- * psispawn.h
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: psispawn.h,v 1.16 2003/10/23 16:27:35 eicker Exp $
+ * $Id$
  *
  */
 /**
  * @file
  * User-functions for spawning of ParaStation tasks.
  *
- * $Id: psispawn.h,v 1.16 2003/10/23 16:27:35 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>

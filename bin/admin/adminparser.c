@@ -1,17 +1,14 @@
 /*
  *               ParaStation
- * adminparser.c
  *
- * ParaStation admin command line parser functions
+ * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
- *
- * $Id: adminparser.c,v 1.16 2004/09/22 09:22:59 eicker Exp $
+ * $Id$
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.16 2004/09/22 09:22:59 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -657,6 +654,7 @@ static int versionCommand(char *token)
     
     printf("PSIADMIN: ParaStation administration tool\n");
     printf("Copyright (C) 1996-2004 ParTec AG Karlsruhe\n");
+    printf("Copyright (C) 2005 Cluster Competence Center GmbH, Munich\n");
     printf("\n");
     printf("PSIADMIN:   %s\b/ %s\b/ %s\b \b\b\n", psiadmversion+11,
 	   commandsversion+11, parserversion+11);

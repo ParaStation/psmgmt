@@ -1,5 +1,21 @@
 /*
- * 2001-09-17  ParTec AG , Jens Hauke
+ *               ParaStation
+ *
+ * Copyright (C) 2001-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ *
+ * $Id$
+ *
+ *
+ */
+/**
+ * \file
+ * test_pse: ParaStation PSE test program
+ *
+ * $Id$ 
+ *
+ * \author
+ * Jens Hauke <hauke@par-tec.com>
  *
  */
 

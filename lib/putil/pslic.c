@@ -1,19 +1,12 @@
-/***********************************************************
- *                  ParaStation4
+/*
+ *               ParaStation
  *
- *       Copyright (c) 2002 ParTec AG Karlsruhe
- *       All rights reserved.
- ***********************************************************/
-/**
- * pslic.c: License handling
+ * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: pslic.c,v 1.5 2003/08/15 13:30:20 eicker Exp $
+ * $Id$
  *
- * @author
- *         Jens Hauke <hauke@par-tec.de>
- *
- * @file
- ***********************************************************/
+ */
 
 #include <stdio.h>
 #include <stdlib.h>

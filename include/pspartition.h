@@ -1,18 +1,17 @@
 /*
  *               ParaStation
- * pspartition.h
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: pspartition.h,v 1.6 2004/03/11 14:18:15 eicker Exp $
+ * $Id$
  *
  */
 /**
  * @file
  * Basic enumerations for partition creation and reservation.
  *
- * $Id: pspartition.h,v 1.6 2004/03/11 14:18:15 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>

@@ -1,17 +1,14 @@
 /*
- *               ParaStation3
- * psnodes.c
+ *               ParaStation
  *
- * ParaStation node handling functions.
+ * Copyright (C) 2003 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
- *
- * $Id: psnodes.c,v 1.8 2003/12/10 16:12:24 eicker Exp $
+ * $Id$
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psnodes.c,v 1.8 2003/12/10 16:12:24 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>

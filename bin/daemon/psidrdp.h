@@ -1,18 +1,17 @@
 /*
  *               ParaStation
- * psidrdp.h
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: psidrdp.h,v 1.1 2003/07/04 09:49:51 eicker Exp $
+ * $Id$
  *
  */
 /**
  * \file
  * RDP wrapper and helper functions for the ParaStation daemon
  *
- * $Id: psidrdp.h,v 1.1 2003/07/04 09:49:51 eicker Exp $
+ * $Id$
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>

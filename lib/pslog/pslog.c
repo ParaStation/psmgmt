@@ -1,15 +1,14 @@
 /*
  *               ParaStation
- * pslog.c
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2003 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: pslog.c,v 1.3 2003/10/23 16:27:36 eicker Exp $
+ * $Id$
  *
  */
 
-static char vcid[] __attribute__ (( unused )) = "$Id: pslog.c,v 1.3 2003/10/23 16:27:36 eicker Exp $";
+static char vcid[] __attribute__ (( unused )) = "$Id$";
 
 #include <stdio.h>
 #include <unistd.h>

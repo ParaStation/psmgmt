@@ -1,19 +1,12 @@
-/***********************************************************
- *                  ParaStation4
+/*
+ *               ParaStation
  *
- *       Copyright (c) 2002 ParTec AG Karlsruhe
- *       All rights reserved.
- ***********************************************************/
-/**
- * env.c: Simple environment handling
+ * Copyright (C) 2003 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: env.c,v 1.3 2003/07/22 18:37:34 eicker Exp $
+ * $Id$
  *
- * @author
- *         Jens Hauke <hauke@par-tec.de>
- *
- * @file
- ***********************************************************/
+ */
 
 #include <stdio.h>
 #include <stdlib.h>

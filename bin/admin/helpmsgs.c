@@ -1,17 +1,24 @@
 /*
  *               ParaStation
- * helpmsgs.c
  *
- * Help messages of the ParaStation adminstration tool
+ * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * $Id$
  *
- * $Id: helpmsgs.c,v 1.13 2004/09/23 13:14:48 eicker Exp $
+ */
+/**
+ * \file
+ * Help messages of the ParaStation Adminstration Tool
+ *
+ * $Id$
+ *
+ * \author
+ * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.13 2004/09/23 13:14:48 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>

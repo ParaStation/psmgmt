@@ -1,9 +1,8 @@
 /*
  *               ParaStation
- * pscommon.h
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *

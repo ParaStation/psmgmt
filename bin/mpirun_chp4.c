@@ -1,24 +1,23 @@
 /*
- *               ParaStation3
- * mpirun_chp4.c
+ *               ParaStation
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: mpirun_chp4.c,v 1.9 2003/10/23 16:27:35 eicker Exp $
+ * $Id$
  *
  */
 /**
  * @file Replacement for the standard mpirun command provided by MPIch in order
  * to start MPIch/P4 application within a ParaStation cluster.
  *
- * $Id: mpirun_chp4.c,v 1.9 2003/10/23 16:27:35 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chp4.c,v 1.9 2003/10/23 16:27:35 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>

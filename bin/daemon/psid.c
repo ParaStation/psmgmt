@@ -1,9 +1,8 @@
 /*
  *               ParaStation
- * psid.c
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -1989,7 +1988,8 @@ static void setupMasterSock(void)
     snprintf(errtxt, sizeof(errtxt), "Protocol Version %d",
 	     PSprotocolVersion);
     PSID_errlog(errtxt, 0);
-    PSID_errlog(" (c) ParTec AG (www.par-tec.com)", 0);
+    PSID_errlog(" (c) Cluster Competence GmbH "
+		"(www.cluster-competence-center.com)", 0);
 
     if (listen(masterSock, 20) < 0) {
 	PSID_errexit("Error while trying to listen", errno);
@@ -2230,7 +2230,8 @@ int main(int argc, const char *argv[])
 	snprintf(errtxt, sizeof(errtxt), "Protocol Version %d",
 		 PSprotocolVersion);
 	PSID_errlog(errtxt, 0);
-	PSID_errlog(" (c) ParTec AG (www.par-tec.com)", 0);
+	PSID_errlog(" (c) Cluster Competence GmbH "
+		    "(www.cluster-competence-center.com)", 0);
     }
 
 #ifdef DUMP_CORE

@@ -1,18 +1,17 @@
 /*
  *               ParaStation
- * psidoption.h
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: psidoption.h,v 1.4 2004/01/28 14:01:05 eicker Exp $
+ * $Id$
  *
  */
 /**
  * @file
  * Handle option requests to the ParaStation daemon.
  *
- * $Id: psidoption.h,v 1.4 2004/01/28 14:01:05 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>

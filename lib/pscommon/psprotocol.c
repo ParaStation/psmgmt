@@ -1,17 +1,14 @@
 /*
  *               ParaStation
- * psprotocol.c
  *
- * ParaStation client-daemon and daemon-daemon high-level protocol.
+ * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
- *
- * $Id: psprotocol.c,v 1.13 2004/03/11 14:15:53 eicker Exp $
+ * $Id$
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psprotocol.c,v 1.13 2004/03/11 14:15:53 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>

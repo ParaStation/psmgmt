@@ -1,24 +1,23 @@
 /*
  *               ParaStation
- * gmspawner.c
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: gmspawner.c,v 1.4 2003/11/26 17:13:20 eicker Exp $
+ * $Id$
  *
  */
 /**
  * @file Helper in order to start MPIch/GM applications within a ParaStation
  * cluster.
  *
- * $Id: gmspawner.c,v 1.4 2003/11/26 17:13:20 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: gmspawner.c,v 1.4 2003/11/26 17:13:20 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>

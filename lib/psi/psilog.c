@@ -1,17 +1,14 @@
 /*
- *               ParaStation3
- * psilog.c
+ *               ParaStation
  *
- * ParaStation logging facility.
+ * Copyright (C) 1999-2002 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
- *
- * $Id: psilog.c,v 1.5 2002/07/03 20:34:19 eicker Exp $
+ * $Id$
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psilog.c,v 1.5 2002/07/03 20:34:19 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>

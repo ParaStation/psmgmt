@@ -1,18 +1,17 @@
 /*
- *               ParaStation3
- * errlog.h
+ *               ParaStation
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: errlog.h,v 1.9 2003/06/11 14:46:30 hauke Exp $
+ * $Id$
  *
  */
 /**
  * \file
  * ParaStation ErrLog facility used within MCast and RDP.
  *
- * $Id: errlog.h,v 1.9 2003/06/11 14:46:30 hauke Exp $
+ * $Id$
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>

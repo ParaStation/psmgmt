@@ -1,11 +1,10 @@
 /*
  *               ParaStation
- * psiinfo.h
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: psiinfo.h,v 1.7 2004/03/11 14:12:13 eicker Exp $
+ * $Id$
  *
  */
 /**
@@ -13,7 +12,7 @@
  * psiinfo: Functions for information retrieving from ParaStation
  * daemon
  *
- * $Id: psiinfo.h,v 1.7 2004/03/11 14:12:13 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>

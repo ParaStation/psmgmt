@@ -1,18 +1,17 @@
 /*
  *               ParaStation
- * psidtask.h
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: psidtask.h,v 1.11 2003/12/19 14:28:43 eicker Exp $
+ * $Id$
  *
  */
 /**
  * @file
  * Functions for interaction with ParaStation tasks within the Daemon
  *
- * $Id: psidtask.h,v 1.11 2003/12/19 14:28:43 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>

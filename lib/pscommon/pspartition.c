@@ -1,17 +1,14 @@
 /*
  *               ParaStation
- * psipartition.c
  *
- * ParaStation partition requests and helper functions.
+ * Copyright (C) 2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
- *
- * $Id: pspartition.c,v 1.5 2004/03/11 14:18:15 eicker Exp $
+ * $Id$
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pspartition.c,v 1.5 2004/03/11 14:18:15 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>

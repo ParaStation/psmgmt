@@ -1,17 +1,14 @@
 /*
- *               ParaStation3
- * parser.c
+ *               ParaStation
  *
- * General parser utility for ParaStation daemon and admin
+ * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
- *
- * $Id: parser.c,v 1.8 2003/10/23 16:25:48 eicker Exp $
+ * $Id$
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: parser.c,v 1.8 2003/10/23 16:25:48 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>

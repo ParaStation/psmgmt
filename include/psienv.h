@@ -1,18 +1,17 @@
 /*
- *               ParaStation3
- * psienv.h
+ *               ParaStation
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2001-2003 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: psienv.h,v 1.6 2003/07/22 18:30:33 eicker Exp $
+ * $Id$
  *
  */
 /**
  * @file
  * User-functions for interaction with the ParaStation environment.
  *
- * $Id: psienv.h,v 1.6 2003/07/22 18:30:33 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>

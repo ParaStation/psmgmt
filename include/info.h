@@ -1,11 +1,10 @@
 /*
  *               ParaStation
- * info.h
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: info.h,v 1.23 2003/11/26 17:10:58 eicker Exp $
+ * $Id$
  *
  */
 /**
@@ -13,7 +12,7 @@
  * info: Deprecated functions for information retrieving from
  * ParaStation daemon
  *
- * $Id: info.h,v 1.23 2003/11/26 17:10:58 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>

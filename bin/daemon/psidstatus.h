@@ -1,18 +1,17 @@
 /*
  *               ParaStation
- * psidstatus.h
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: psidstatus.h,v 1.5 2004/03/10 08:45:11 eicker Exp $
+ * $Id$
  *
  */
 /**
  * @file
  * Helper functions for master-node detection and status actions.
  *
- * $Id: psidstatus.h,v 1.5 2004/03/10 08:45:11 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>

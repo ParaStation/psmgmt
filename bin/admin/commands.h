@@ -1,18 +1,17 @@
 /*
  *               ParaStation
- * commands.h
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: commands.h,v 1.7 2004/01/15 16:10:15 eicker Exp $
+ * $Id$
  *
  */
 /**
  * \file
- * Commands of the ParaStation adminstration tool
+ * Commands of the ParaStation Adminstration Tool
  *
- * $Id: commands.h,v 1.7 2004/01/15 16:10:15 eicker Exp $
+ * $Id$
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>

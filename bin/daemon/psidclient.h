@@ -1,18 +1,17 @@
 /*
  *               ParaStation
- * psidclient.h
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: psidclient.h,v 1.5 2003/12/09 16:20:20 eicker Exp $
+ * $Id$
  *
  */
 /**
  * \file
  * Functions for client handling within the ParaStation daemon
  *
- * $Id: psidclient.h,v 1.5 2003/12/09 16:20:20 eicker Exp $
+ * $Id$
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>

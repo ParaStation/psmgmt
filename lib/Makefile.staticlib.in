@@ -1,10 +1,10 @@
 ###################################################### -*- Makefile -*- #####
 #                  ParaStation
-#        Copyright (c) 2002-2003 ParTec AG Karlsruhe
-#        All rights reserved.
+#        Copyright (c) 2002-2003 ParTec AG, Karlsruhe
+#        Copyright (c) 2005 Cluster Competence Center GmbH, Munich
 #############################################################################
 #
-# $Id: Makefile.staticlib.in,v 1.2 2003/07/18 14:27:52 eicker Exp $
+# $Id$
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>

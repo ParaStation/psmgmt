@@ -1,11 +1,10 @@
 /*
  *               ParaStation
- * mpirun_chgm.c
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: mpirun_chgm.c,v 1.5 2003/11/26 17:14:39 eicker Exp $
+ * $Id$
  *
  */
 /**
@@ -13,13 +12,13 @@
  * MPIch/GM in order to start such applications within a ParaStation
  * cluster.
  *
- * $Id: mpirun_chgm.c,v 1.5 2003/11/26 17:14:39 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chgm.c,v 1.5 2003/11/26 17:14:39 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>

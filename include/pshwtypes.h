@@ -1,18 +1,17 @@
 /*
- *               ParaStation3
- * pshwtypes.h
+ *               ParaStation
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: pshwtypes.h,v 1.8 2003/07/25 13:21:41 eicker Exp $
+ * $Id$
  *
  */
 /**
  * @file
  * ParaStation hardware types.
  *
- * $Id: pshwtypes.h,v 1.8 2003/07/25 13:21:41 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>

@@ -1,18 +1,17 @@
 /*
  *               ParaStation
- * psidpartition.h
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: psidpartition.h,v 1.5 2004/03/11 14:25:49 eicker Exp $
+ * $Id$
  *
  */
 /**
  * @file
  * Helper functions in order to setup and handle partitions.
  *
- * $Id: psidpartition.h,v 1.5 2004/03/11 14:25:49 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>

@@ -1,18 +1,17 @@
 /*
- *               ParaStation3
- * psi.h
+ *               ParaStation
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: psi.h,v 1.22 2003/10/23 16:27:35 eicker Exp $
+ * $Id$
  *
  */
 /**
  * @file
  * User-functions for interaction with the ParaStation system.
  *
- * $Id: psi.h,v 1.22 2003/10/23 16:27:35 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>

@@ -1,11 +1,10 @@
 /*
  *               ParaStation
- * license_pub.h
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2001-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: license_pub.h,v 1.5 2004/06/15 13:47:30 eicker Exp $
+ * $Id$
  *
  */
 /**
@@ -13,7 +12,7 @@
  *
  * license_pub.h: Public definitions and functions for licensing.
  *
- * $Id: license_pub.h,v 1.5 2004/06/15 13:47:30 eicker Exp $
+ * $Id$
  *
  * @author
  * Jens Hauke <hauke@par-tec.com>

@@ -1,18 +1,17 @@
 /*
  *               ParaStation
- * psidutil.h
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: psidutil.h,v 1.22 2003/11/26 17:39:42 eicker Exp $
+ * $Id$
  *
  */
 /**
  * \file
  * Utilities for the ParaStation daemon
  *
- * $Id: psidutil.h,v 1.22 2003/11/26 17:39:42 eicker Exp $
+ * $Id$
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>

@@ -1,15 +1,24 @@
 /*
  *               ParaStation
- * test_config.c
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: test_config.c,v 1.1 2004/03/11 18:20:26 eicker Exp $
+ * $Id$
+ *
+ */
+/**
+ * \file
+ * test_config: ParaStation configuration validator
+ *
+ * $Id$ 
+ *
+ * \author
+ * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: test_config.c,v 1.1 2004/03/11 18:20:26 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>

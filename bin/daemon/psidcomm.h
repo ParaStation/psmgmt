@@ -1,18 +1,17 @@
 /*
  *               ParaStation
- * psidcomm.h
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: psidcomm.h,v 1.4 2004/01/28 14:00:30 eicker Exp $
+ * $Id$
  *
  */
 /**
  * \file
  * Communication multiplexer for the ParaStation daemon
  *
- * $Id: psidcomm.h,v 1.4 2004/01/28 14:00:30 eicker Exp $
+ * $Id$
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>

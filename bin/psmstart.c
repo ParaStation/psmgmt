@@ -1,24 +1,23 @@
 /*
- *               ParaStation3
- * psmstart.c
+ *               ParaStation
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: psmstart.c,v 1.13 2004/04/20 08:14:00 hauke Exp $
+ * $Id$
  *
  */
 /**
  * @file Simple wrapper to allow non ParaStation aware programs to be
  * distributed in a cluster.
  *
- * $Id: psmstart.c,v 1.13 2004/04/20 08:14:00 hauke Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c,v 1.13 2004/04/20 08:14:00 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>

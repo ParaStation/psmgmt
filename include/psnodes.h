@@ -1,11 +1,10 @@
 /*
  *               ParaStation
- * psnodes.h
  *
- * Copyright (C) ParTec AG Karlsruhe
- * All rights reserved.
+ * Copyright (C) 2003 ParTec AG, Karlsruhe
+ * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: psnodes.h,v 1.8 2003/11/26 17:09:11 eicker Exp $
+ * $Id$
  *
  */
 /**
@@ -13,7 +12,7 @@
  * Functions for handling the various informations about the nodes
  * with a ParaStation cluster
  *
- * $Id: psnodes.h,v 1.8 2003/11/26 17:09:11 eicker Exp $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
