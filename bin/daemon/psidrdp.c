@@ -5,15 +5,16 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidrdp.c,v 1.2 2003/07/04 14:38:25 eicker Exp $
+ * $Id: psidrdp.c,v 1.3 2003/07/08 12:08:56 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidrdp.c,v 1.2 2003/07/04 14:38:25 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidrdp.c,v 1.3 2003/07/08 12:08:56 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <errno.h>
 
 #include "rdp.h"
