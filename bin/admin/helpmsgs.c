@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: helpmsgs.c,v 1.4 2003/10/29 17:15:27 eicker Exp $
+ * $Id: helpmsgs.c,v 1.5 2003/11/26 17:16:53 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.4 2003/10/29 17:15:27 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: helpmsgs.c,v 1.5 2003/11/26 17:16:53 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -276,8 +276,9 @@ static info_t statInfo = {
     .head = "Status command:",
     .syntax = (syntax_t[]) {{
 	.cmd = "s[tatus]",
-	.arg = "{[node] | c[ount] [hw <hw>] | p[roc] | {allproc|ap}"
-	" | {hardware|hw} | l[oad] | rdp | mcast} <nodes>"
+	.arg = "{[node] | c[ount] [hw <hw>] | p[roc] [cnt <cnt>]"
+	" | {allproc|ap} [cnt <cnt>] | {hardware|hw} | l[oad] | rdp"
+	" | mcast} <nodes>"
     }},
     .nodes = 1,
     .descr = "Show various status parameters of the ParaStation system:",
@@ -289,14 +290,16 @@ static info_t statInfo = {
 	  " <hw>' is given, only the counters of the specified hardware are"
 	  " displayed. The possible values of <hw> can be found out using the"
 	  " 'status hw' command." },
-	{ .tag = "status p[roc]",
+	{ .tag = "status p[roc] [cnt <cnt>]",
 	  .descr = "Show processes managed by ParaStation on the selected"
 	  " nodes. Only normal processes are displayed, no forwarder, spawner"
-	  " etc. processes." },
-	{ .tag = "status {allproc|aw}",
+	  " etc. processes. Up to <cnt> processes per node will be displayed."
+	  " The default is to show 10 processes."},
+	{ .tag = "status {allproc|ap} [cnt <cnt>]",
 	  .descr = "Show all processes managed by ParaStation on the selected"
 	  " nodes. This includes all special processes like forwarder, spawner"
-	  " etc."},
+	  " etc. Up to <cnt> processes per node will be displayed. The default"
+	  " is to show 10 processes."},
 	{ .tag = "status {hardware|hw}",
 	  .descr = "Show the available communcation hardware on the selected"
 	  " nodes." },
