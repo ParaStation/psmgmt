@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: commands.c,v 1.3 2003/10/23 16:19:27 eicker Exp $
+ * $Id: commands.c,v 1.4 2003/10/29 17:15:02 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.3 2003/10/23 16:19:27 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.4 2003/10/29 17:15:02 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -45,7 +45,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.3 2003/10/2
 
 #include "commands.h"
 
-char commandsversion[] = "$Revision: 1.3 $";
+char commandsversion[] = "$Revision: 1.4 $";
 
 static int doRestart = 0;
 
@@ -456,7 +456,8 @@ void PSIADM_SetParam(int type, int value, char *nl)
 void PSIADM_ShowParam(int type, char *nl)
 {
     int i, ret;
-    long option = type, value;
+    PSP_Option_t option = type;
+    PSP_Optval_t value;
 
     for (i = 0; i < PSC_getNrOfNodes(); i++) {
 	if (nl && !nl[i]) continue;
@@ -469,7 +470,7 @@ void PSIADM_ShowParam(int type, char *nl)
 		if (value==-1)
 		    printf("ANY\n");
 		else
-		    printf("%ld\n", value);
+		    printf("%d\n", value);
 		break;
 	    case PSP_OP_UIDLIMIT:
 		if (value==-1)
@@ -479,7 +480,7 @@ void PSIADM_ShowParam(int type, char *nl)
 		    if (passwd) {
 			printf("%s\n", passwd->pw_name);
 		    } else {
-			printf("uid %ld\n", value);
+			printf("uid %d\n", value);
 		    }
 		}
 		break;
@@ -491,12 +492,12 @@ void PSIADM_ShowParam(int type, char *nl)
 		    if (group) {
 			printf("%s\n", group->gr_name);
 		    } else {
-			printf("gid %ld\n", value);
+			printf("gid %d\n", value);
 		    }
 		}
 		break;
 	    default:
-		printf("%ld\n", value);
+		printf("%d\n", value);
 	    }
 	} else {
 	    printf("Cannot get\n");
@@ -532,7 +533,7 @@ void PSIADM_sighandler(int sig)
 void PSIADM_Reset(int reset_hw, char *nl)
 {
     DDBufferMsg_t msg;
-    long *action = (long *)msg.buf;
+    int *action = (int *)msg.buf;
     int i, send_local = 0;
 
     if (geteuid()) {
