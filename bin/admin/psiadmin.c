@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.59 2003/05/28 17:13:07 eicker Exp $
+ * $Id: psiadmin.c,v 1.60 2003/06/20 13:53:13 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.59 2003/05/28 17:13:07 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.60 2003/06/20 13:53:13 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -49,7 +49,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.59 $";
+static char psiadmversion[] = "$Revision: 1.60 $";
 static int doRestart = 0;
 
 static char *hoststatus = NULL;
@@ -240,6 +240,7 @@ void PSIADM_ProcStat(int first, int last, int full)
 	    for (j=0; j<MIN(num,NUMTASKS); j++) {
 		if (taskinfo[j].group==TG_FORWARDER && !full) continue;
 		if (taskinfo[j].group==TG_SPAWNER && !full) continue;
+		if (taskinfo[j].group==TG_GMSPAWNER && !full) continue;
 		printf("%4d ", i);
 		printf("%22s ", PSC_printTID(taskinfo[j].tid));
 		printf("%22s ", PSC_printTID(taskinfo[j].ptid));
@@ -248,7 +249,8 @@ void PSIADM_ProcStat(int first, int last, int full)
 		       taskinfo[j].group==TG_ADMIN ? "(A)" :
 		       taskinfo[j].group==TG_LOGGER ? "(L)" :
 		       taskinfo[j].group==TG_FORWARDER ? "(F)" :
-		       taskinfo[j].group==TG_SPAWNER ? "(S)" : "");
+		       taskinfo[j].group==TG_SPAWNER ? "(S)" :
+		       taskinfo[j].group==TG_GMSPAWNER ? "(S)" : "");
 	    }
 	    if (num>NUMTASKS) {
 		printf(" + %d more tasks\n", num-NUMTASKS);
