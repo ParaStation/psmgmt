@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.16 2002/01/09 20:22:17 eicker Exp $
+ * $Id: psidutil.c,v 1.17 2002/01/16 17:50:07 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.16 2002/01/09 20:22:17 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.17 2002/01/16 17:50:07 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -230,7 +230,7 @@ int PSID_startlicenseserver(unsigned int hostaddr)
     /*
      * start the PSI Daemon via inetd
      */
-    sock = socket(AF_INET,SOCK_STREAM,0);
+    sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
     if ((service = getservbyname("psld","tcp")) == NULL){ 
 	snprintf(errtxt, sizeof(errtxt), "PSID_startlicenseserver():"

@@ -173,7 +173,7 @@ int LOGGERspawnlogger(void)
      */
     portno = 20000;
 
-    if((listenport = socket(AF_INET,SOCK_STREAM,0))<0){
+    if((listenport = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP))<0){
 	perror("LOGGERspawnlogger: can't create socket:");
 	exit(1);
     }

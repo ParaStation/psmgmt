@@ -136,7 +136,7 @@ PSI_startdaemon(u_long hostaddr)
     /*
      * start the PSI Daemon via inetd
      */
-    sock = socket(PF_INET,SOCK_STREAM,0);
+    sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
     if ((service = getservbyname("psid","tcp")) == NULL){ 
 	fprintf(stderr, "can't get \"psid\" service entry\n"); 
@@ -145,7 +145,7 @@ PSI_startdaemon(u_long hostaddr)
 	return 0; 
     }
     memset(&sa, 0, sizeof(sa)); 
-    sa.sin_family = PF_INET; 
+    sa.sin_family = AF_INET; 
     sa.sin_addr.s_addr = hostaddr;
     sa.sin_port = service->s_port;
     if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0){ 
@@ -177,7 +177,7 @@ PSI_daemonsocket(u_long hostaddr)
     }
 #endif
 
-    sock = socket(PF_INET,SOCK_STREAM,0);
+    sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
     if(sock <0)
 	return -1;
 
