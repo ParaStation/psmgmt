@@ -108,7 +108,6 @@
 #define PSP_OP_PSIDDEBUG           0x0004
 #define PSP_OP_SMALLPACKETSIZE     0x0008
 #define PSP_OP_RESENDTIMEOUT       0x0010
-#define PSP_OP_CONFIGNO            0x0020
 #define PSP_OP_RDPDEBUG            0x0040
 
 /*----------------------------------------------------------------------*/
