@@ -7,7 +7,7 @@
 /**
  * pslic.h: Licensekey handling
  *
- * $Id: pslic.h,v 1.6 2002/08/26 10:00:01 hauke Exp $
+ * $Id: pslic.h,v 1.7 2003/03/24 17:51:37 eicker Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -29,19 +29,7 @@ extern "C" {
 #include <string.h>
 #include <time.h>
 #include "psstrings.h"
-
-typedef struct env_fields_s{
-    char **vars;
-    int cnt;
-    int size;
-}env_fields_t;
-
-int env_index(env_fields_t *env, const char *name);
-int env_unset(env_fields_t *env, const char *name);
-int env_set(env_fields_t *env, const char *name, const char *val);
-char *env_get(env_fields_t *env, const char *name);
-void env_init(env_fields_t *env);
-
+#include "env.h"
 
 char *lic_readline(FILE *f, int *lineno);
 int lic_parseline(char *line, char **fieldname, char **val, char **rest);
