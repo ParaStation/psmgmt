@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp_private.h,v 1.8 2002/02/15 19:18:22 eicker Exp $
+ * $Id: rdp_private.h,v 1.9 2002/03/08 14:17:23 eicker Exp $
  *
  */
 /**
@@ -14,7 +14,7 @@
  *
  * Private functions and definitions
  *
- * $Id: rdp_private.h,v 1.8 2002/02/15 19:18:22 eicker Exp $
+ * $Id: rdp_private.h,v 1.9 2002/03/08 14:17:23 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -601,6 +601,12 @@ static void resendMsgs(int node);
  * @todo
  */
 static void handleControlPacket(rdphdr *hdr, int node);
+
+/**
+ *
+ * @todo
+ */
+static int handleErr(void);
 
 /**
  * @brief Handle RDP message.

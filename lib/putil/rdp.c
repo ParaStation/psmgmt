@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.21 2002/02/26 12:50:17 eicker Exp $
+ * $Id: rdp.c,v 1.22 2002/03/08 14:17:23 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.21 2002/02/26 12:50:17 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.22 2002/03/08 14:17:23 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -56,8 +56,7 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
 	    break;
 	case ECONNREFUSED:
 	case EHOSTUNREACH:
-	    /* Do nothing */
-	    break;
+	    /* Do nothing. Extended error handled in handleRDP() */
 	default:
 	    snprintf(errtxt, sizeof(errtxt), "MYrecvfrom returns: %s",
 		     strerror(errno));
@@ -73,13 +72,30 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
     int retval;
  restart:
     if ((retval=sendto(sock, buf, len, flags, to, tolen)) < 0) {
-	if (errno == EINTR) {
+	switch (errno) {
+	case EINTR:
 	    errlog("MYsendto was interrupted !", 5);
 	    goto restart;
+	    break;
+	case ECONNREFUSED:
+	case EHOSTUNREACH:
+#if defined(__linux__)
+	    snprintf(errtxt, sizeof(errtxt), "MYsendto to %s got: %s",
+		     inet_ntoa(((struct sockaddr_in *)to)->sin_addr),
+		     strerror(errno));
+	    errlog(errtxt, 0);
+	    /* Handle extended error */
+	    handleErr();
+	    /* Try to send again */
+	    goto restart;
+	    break;
+#endif
+	default:
+	    snprintf(errtxt, sizeof(errtxt), "MYsendto to %s returns: %s",
+		     inet_ntoa(((struct sockaddr_in *)to)->sin_addr),
+		     strerror(errno));
+	    errlog(errtxt, 0);
 	}
-	snprintf(errtxt, sizeof(errtxt), "MYsendto returns: %s",
-		 strerror(errno));
-	errlog(errtxt, 0);
     }
     return retval;
 }
@@ -1092,6 +1108,130 @@ static void handleControlPacket(rdphdr *hdr, int node)
     return;
 }
 
+static int handleErr(void)
+{
+#if defined(__linux__)
+    struct msghdr errmsg;
+    struct sockaddr_in sin;
+    struct sockaddr_in * sinp;
+    struct iovec iov;
+    struct cmsghdr *cmsg;
+    struct sock_extended_err *extErr;
+    int node, handleErrno;
+    char cbuf[256];
+
+    handleErrno = errno;
+    errmsg.msg_name = &sin;
+    errmsg.msg_namelen = sizeof(sin);
+    errmsg.msg_iov = &iov;
+    errmsg.msg_iovlen = 1;
+    errmsg.msg_control = &cbuf;
+    errmsg.msg_controllen = sizeof(cbuf);
+    iov.iov_base = NULL;
+    iov.iov_len = 0;
+    if (recvmsg(rdpsock, &errmsg, MSG_ERRQUEUE) == -1) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "handleErr(): Error in recvmsg [%d]: %s",
+		 errno, strerror(errno));
+	errlog(errtxt, 0);
+	return -1;
+    }
+
+    if (! (errmsg.msg_flags & MSG_ERRQUEUE)) {
+	errlog("handleErr(): MSG_ERRQUEUE requested but not returned", 0);
+	return -1;
+    }
+
+    if (errmsg.msg_flags & MSG_CTRUNC) {
+	errlog("handleErr(): cmsg truncated.", 0);
+	return -1;
+    }
+
+    snprintf(errtxt, sizeof(errtxt),
+	     "handleErr(): errmsg: msg_name->sinaddr = %s,"
+	     " msg_namelen = %d, msg_iovlen = %ld, msg_controllen = %ld",
+	     inet_ntoa(sin.sin_addr),
+	     errmsg.msg_namelen, errmsg.msg_iovlen, errmsg.msg_controllen);
+    errlog(errtxt, 10);
+
+    snprintf(errtxt, sizeof(errtxt),
+	     "handleErr(): errmsg.msg_flags: < %s%s%s%s%s%s>",
+	     errmsg.msg_flags & MSG_EOR ? "MSG_EOR ":"",
+	     errmsg.msg_flags & MSG_TRUNC ? "MSG_TRUNC ":"",
+	     errmsg.msg_flags & MSG_CTRUNC ? "MSG_CTRUNC ":"",
+	     errmsg.msg_flags & MSG_OOB ? "MSG_OOB ":"",
+	     errmsg.msg_flags & MSG_ERRQUEUE ? "MSG_ERRQUEUE ":"",
+	     errmsg.msg_flags & MSG_DONTWAIT ? "MSG_DONTWAIT ":"");
+    errlog(errtxt, 10);
+
+    cmsg = CMSG_FIRSTHDR(&errmsg);
+    if (!cmsg) {
+	errlog("handleErr(): cmsg is NULL", 0);
+	return -1;
+    }
+
+    snprintf(errtxt, sizeof(errtxt),
+	     "handleErr(): cmsg: cmsg_len = %ld,"
+	     " cmsg_level = %d (SOL_IP=%d),"
+	     " cmsg_type = %d (IP_RECVERR = %d)",
+	     cmsg->cmsg_len, cmsg->cmsg_level, SOL_IP,
+	     cmsg->cmsg_type, IP_RECVERR);
+    errlog(errtxt, 10);
+
+    if (! cmsg->cmsg_len) {
+	errlog("handleErr(): cmsg->cmsg_len = 0, local error?", 0);
+	return -1;
+    }
+
+    extErr = (struct sock_extended_err *)CMSG_DATA(cmsg);
+    if (!cmsg) {
+	errlog("handleErr(): extErr is NULL", 0);
+	return -1;
+    }
+
+    snprintf(errtxt, sizeof(errtxt),
+	     "handleErr(): sock_extended_err: ee_errno = %u,"
+	     " ee_origin = %hhu, ee_type = %hhu,"
+	     " ee_code = %hhu, ee_pad = %hhu,"
+	     " ee_info = %u, ee_data = %u",
+	     extErr->ee_errno, extErr->ee_origin,  extErr->ee_type,
+	     extErr->ee_code,  extErr->ee_pad,  extErr->ee_info,
+	     extErr->ee_data);
+    errlog(errtxt, 10);
+
+    sinp = (struct sockaddr_in *)SO_EE_OFFENDER(extErr);
+    if (sinp->sin_family == AF_UNSPEC) {
+	errlog("handleErr(): address unknown", 0);
+	return -1;
+    }
+
+    node = lookupIPTable(sinp->sin_addr);
+
+    switch (handleErrno) {
+    case ECONNREFUSED:
+	snprintf(errtxt, sizeof(errtxt),
+		 "handleErr(): CONNREFUSED from node %d (%s) port %d",
+		 node, inet_ntoa(sinp->sin_addr), ntohs(sinp->sin_port));
+	errlog(errtxt, 0);
+	closeConnectionRDP(node);
+	break;
+    case EHOSTUNREACH:
+	snprintf(errtxt, sizeof(errtxt),
+		 "handleErr(): HOSTUNREACH from node %d (%s) port %d",
+		 node, inet_ntoa(sinp->sin_addr), ntohs(sinp->sin_port));
+	errlog(errtxt, 0);
+	break;
+    default:
+	snprintf(errtxt, sizeof(errtxt),
+		 "handleErr(): UNKNOWN from node %d (%s) port %d",
+		 node, inet_ntoa(sinp->sin_addr), ntohs(sinp->sin_port));
+	errlog(errtxt, 0);
+    }
+#endif
+
+    return 0;
+}
+
 int handleRDP(int fd)
 {
     Lmsg msg;
@@ -1108,138 +1248,18 @@ int handleRDP(int fd)
 	switch (errno) {
 	case ECONNREFUSED:
 	case EHOSTUNREACH:
-	{
-	    struct msghdr errmsg;
-	    struct sockaddr_in sin;
-	    struct sockaddr_in * sinp;
-	    struct iovec iov;
-	    struct cmsghdr *cmsg;
-	    struct sock_extended_err *extErr;
-	    int node;
-	    char cbuf[256];
-
-	    errmsg.msg_name = &sin;
-	    errmsg.msg_namelen = sizeof(sin);
-	    errmsg.msg_iov = &iov;
-	    errmsg.msg_iovlen = 1;
-	    errmsg.msg_control = &cbuf;
-	    errmsg.msg_controllen = sizeof(cbuf);
-	    iov.iov_base = NULL;
-	    iov.iov_len = 0;
-	    if (recvmsg(rdpsock, &errmsg, MSG_ERRQUEUE) == -1) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "handleRDP(): Error in recvmsg [%d]: %s",
-			 errno, strerror(errno));
-		errlog(errtxt, 0);
-		return -1;
-	    }
-
-	    if (! (errmsg.msg_flags & MSG_ERRQUEUE)) {
-		errlog("handleRDP():"
-		       " MSG_ERRQUEUE requested but not returned", 0);
-		return -1;
-	    }
-
-	    if (errmsg.msg_flags & MSG_CTRUNC) {
-		errlog("handleRDP(): cmsg truncated.", 0);
-		return -1;
-	    }
-
 	    snprintf(errtxt, sizeof(errtxt),
-		     "handleRDP(): errmsg: msg_name->sinaddr = %s,"
-		     " msg_namelen = %d, msg_iovlen = %ld,"
-		     " msg_controllen = %ld", inet_ntoa(sin.sin_addr),
-		     errmsg.msg_namelen, errmsg.msg_iovlen,
-		     errmsg.msg_controllen);
-	    errlog(errtxt, 10);
+		     "handleRDP(): recvfrom(MSG_PEEK) returns: %s",
+		     strerror(errno));
+	    errlog(errtxt, 0);
 
-	    snprintf(errtxt, sizeof(errtxt),
-		     "handleRDP(): errmsg.msg_flags: < %s%s%s%s%s%s>",
-		     errmsg.msg_flags & MSG_EOR ? "MSG_EOR ":"",
-		     errmsg.msg_flags & MSG_TRUNC ? "MSG_TRUNC ":"",
-		     errmsg.msg_flags & MSG_CTRUNC ? "MSG_CTRUNC ":"",
-		     errmsg.msg_flags & MSG_OOB ? "MSG_OOB ":"",
-		     errmsg.msg_flags & MSG_ERRQUEUE ? "MSG_ERRQUEUE ":"",
-		     errmsg.msg_flags & MSG_DONTWAIT ? "MSG_DONTWAIT ":"");
-	     errlog(errtxt, 10);
-
-	     cmsg = CMSG_FIRSTHDR(&errmsg);
-	     if (!cmsg) {
-		 errlog("handleRDP(): cmsg is NULL", 0);
-		 return -1;
-	     }
-
-	     snprintf(errtxt, sizeof(errtxt),
-		      "handleRDP(): cmsg: cmsg_len = %ld,"
-		      " cmsg_level = %d (SOL_IP=%d),"
-		      " cmsg_type = %d (IP_RECVERR = %d)",
-		      cmsg->cmsg_len, cmsg->cmsg_level, SOL_IP,
-		      cmsg->cmsg_type, IP_RECVERR);
-	     errlog(errtxt, 10);
-
-	     if (! cmsg->cmsg_len) {
-		 errlog("handleRDP(): cmsg->cmsg_len = 0, local error?", 0);
-		 return -1;
-	     }
-
-	     extErr = (struct sock_extended_err *)CMSG_DATA(cmsg);
-	     if (!cmsg) {
-		 errlog("handleRDP(): extErr is NULL", 0);
-		 return -1;
-	     }
-
-	     snprintf(errtxt, sizeof(errtxt),
-		      "handleRDP(): sock_extended_err: ee_errno = %u,"
-		      " ee_origin = %hhu, ee_type = %hhu,"
-		      " ee_code = %hhu, ee_pad = %hhu,"
-		      " ee_info = %u, ee_data = %u",
-		      extErr->ee_errno, extErr->ee_origin,  extErr->ee_type,
-		      extErr->ee_code,  extErr->ee_pad,  extErr->ee_info,
-		       extErr->ee_data);
-	     errlog(errtxt, 10);
-
-	     sinp = (struct sockaddr_in *)SO_EE_OFFENDER(extErr);
-	     if (sinp->sin_family == AF_UNSPEC) {
-		 errlog("handleRDP(): address unknown", 0);
-		 return -1;
-	     }
-
-	     node = lookupIPTable(sinp->sin_addr);
-
-	     switch (errno) {
-	     case ECONNREFUSED:
-		 snprintf(errtxt, sizeof(errtxt),
-			  "handleRDP(): CONNREFUSED from node %d (%s) port %d",
-			  node, inet_ntoa(sinp->sin_addr),
-			  ntohs(sinp->sin_port));
-		 errlog(errtxt, 0);
-
-		 closeConnectionRDP(node);
-
-		 break;
-	     case EHOSTUNREACH:
-		 snprintf(errtxt, sizeof(errtxt),
-			  "handleRDP(): HOSTUNREACH from node %d (%s) port %d",
-			  node, inet_ntoa(sinp->sin_addr),
-			  ntohs(sinp->sin_port));
-		 errlog(errtxt, 10);
-		 break;
-	     default:
-		 snprintf(errtxt, sizeof(errtxt),
-			  "handleRDP(): UNKNOWN from node %d (%s) port %d",
-			  node, inet_ntoa(sinp->sin_addr),
-			  ntohs(sinp->sin_port));
-		 errlog(errtxt, 0);
-	     }
-
-	     return 0;
-
-	}
+	    return handleErr();
+	    break;
 	default:
 #endif
 	    snprintf(errtxt, sizeof(errtxt),
-		     "handleRDP(): recvfrom(MSG_PEEK) returns -1, errno=%d %s",
-		     errno, strerror(errno));
+		     "handleRDP(): recvfrom(MSG_PEEK) returns: %s",
+		     strerror(errno));
 	    errlog(errtxt, 0);
 
 	    return -1;
@@ -1255,8 +1275,8 @@ int handleRDP(int fd)
 	    if (MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
 			   (struct sockaddr *) &sin, &slen)<0) {
 		snprintf(errtxt, sizeof(errtxt),
-			 "handleRDP(): recvfrom(0) returns -1, errno=%d: %s",
-			 errno, strerror(errno));
+			 "handleRDP(): recvfrom(0) returns: %s",
+			 strerror(errno));
 		errexit(errtxt, errno);
 	    }
 
@@ -1274,8 +1294,8 @@ int handleRDP(int fd)
 	if (MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
 		       (struct sockaddr *) &sin, &slen)<0) {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "handleRDP(): recvfrom(0) returns -1, errno=%d: %s",
-		     errno, strerror(errno));
+		     "handleRDP(): recvfrom(0) returns: %s",
+		     strerror(errno));
 	    errexit(errtxt, errno);
 	}
 
@@ -1292,8 +1312,8 @@ int handleRDP(int fd)
 	if (MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
 		       (struct sockaddr *) &sin, &slen)<0) {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "handleRDP()/CDTA: recvfrom(0) returns -1, errno=%d: %s",
-		     errno, strerror(errno));
+		     "handleRDP()/CDTA: recvfrom(0) returns: %s",
+		     strerror(errno));
 	    errexit(errtxt, errno);
 	}
 	snprintf(errtxt, sizeof(errtxt),
