@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidspawn.h,v 1.1 2002/07/26 15:29:54 eicker Exp $
+ * $Id: psidspawn.h,v 1.2 2002/11/13 16:48:29 hauke Exp $
  *
  */
 /**
  * \file
  * Spawning of client processes and forwarding for the ParaStation daemon
  *
- * $Id: psidspawn.h,v 1.1 2002/07/26 15:29:54 eicker Exp $
+ * $Id: psidspawn.h,v 1.2 2002/11/13 16:48:29 hauke Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -48,6 +48,16 @@ extern "C" {
  * @see execv(3)
  */
 int PSID_execv( const char *path, char *const argv[]);
+
+/*----------------------------------------------------------------------*/
+/*
+ * PSID_stat
+ *
+ *  frontend to syscall stat. Retry stat(2) on failure after a short delay
+ *  (workaround for automounter problems)
+ *  RETURN: like the syscall stat(2)
+ */
+int PSID_stat(char *file_name, struct stat *buf);
 
 /*----------------------------------------------------------------------*/
 /*

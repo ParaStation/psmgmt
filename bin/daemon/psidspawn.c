@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidspawn.c,v 1.3 2002/07/31 11:31:00 eicker Exp $
+ * $Id: psidspawn.c,v 1.4 2002/11/13 16:48:29 hauke Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.3 2002/07/31 11:31:00 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.4 2002/11/13 16:48:29 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -51,6 +51,22 @@ int PSID_execv(const char *path, char *const argv[])
 
     return ret;
 }
+
+/* (workaround for automounter problems) */
+int PSID_stat(char *file_name, struct stat *buf)
+{
+    int ret;
+    int cnt;
+
+    /* Try 5 times with delay 400ms = 2 sec overall */
+    for (cnt=0;cnt<5;cnt++){
+	ret = stat(file_name, buf);
+	if (!ret) return 0; /* No error */
+	usleep(1000 * 400);
+    }
+    return ret; /* return last error */
+}
+
 
 int PSID_execClient(PStask_t *task, int controlchannel)
 {
@@ -102,7 +118,8 @@ int PSID_execClient(PStask_t *task, int controlchannel)
     }
 
     /* Test if executable is there */
-    if (stat(task->argv[0], &sb) == -1) {
+    /* Why we do this? The execv will do the same later. *jh* */
+    if (PSID_stat(task->argv[0], &sb) == -1) {
 	char *errstr = strerror(errno);
 
 	fprintf(stderr, "PSID_execClient(): stat(%s): %s",
