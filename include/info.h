@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.h,v 1.3 2002/01/18 15:43:22 eicker Exp $
+ * $Id: info.h,v 1.4 2002/01/18 15:54:22 eicker Exp $
  *
  */
 /**
  * \file
  * info: Functions for information retrieving from ParaStation daemon
  *
- * $Id: info.h,v 1.3 2002/01/18 15:43:22 eicker Exp $
+ * $Id: info.h,v 1.4 2002/01/18 15:54:22 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -56,8 +56,7 @@ typedef enum {
     INFO_GETINFO = 0x01,    /**< get infos of this task (internally used) */
     INFO_ISALIVE = 0x02,    /**< check if the tid is alive */
     INFO_PTID = 0x03,       /**< get the parents TID */
-    INFO_UID = 0x04,        /**< get the uid of the task */
-    INFO_PRINTINFO = 0x05   /**< print the infos of this task */
+    INFO_UID = 0x04         /**< get the uid of the task */
 } INFO_info_t;
 
 long INFO_request_taskinfo(long tid, INFO_info_t what);
