@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.7 2002/01/07 13:56:15 eicker Exp $
+ * $Id: psld.c,v 1.8 2002/01/07 15:22:56 eicker Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Deamon
  *
- * $Id: psld.c,v 1.7 2002/01/07 13:56:15 eicker Exp $ 
+ * $Id: psld.c,v 1.8 2002/01/07 15:22:56 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.7 2002/01/07 13:56:15 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.8 2002/01/07 15:22:56 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -294,9 +294,9 @@ void sighandler(int sig)
 /*
  * Print version info
  */
-void version(void)
+static void version(void)
 {
-    char revision[] = "$Revision: 1.7 $";
+    char revision[] = "$Revision: 1.8 $";
     snprintf(errtxt, sizeof(errtxt), "psld %s\b ", revision+11);
     ERR_OUT(errtxt);
 }
@@ -304,7 +304,7 @@ void version(void)
 /*
  * Print usage message
  */
-void usage(void)
+static void usage(void)
 {
     ERR_OUT("usage: psld [-h] [-v] [-d] [-D] [-f file]");
 }
@@ -312,7 +312,7 @@ void usage(void)
 /*
  * Print more detailed help message
  */
-void help(void)
+static void help(void)
 {
     usage();
     snprintf(errtxt, sizeof(errtxt), " -d      : Enable debugging.");
@@ -337,7 +337,6 @@ int main(int argc, char *argv[])
     int interface;
     struct timeval tv;
 
-    optarg = NULL;
     while ( (c = getopt(argc,argv, "dDhHvVf:")) != -1 ) {
 	switch (c) {
 	case 'd':

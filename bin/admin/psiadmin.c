@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.12 2002/01/07 13:46:16 eicker Exp $
+ * $Id: psiadmin.c,v 1.13 2002/01/07 15:22:56 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.12 2002/01/07 13:46:16 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.13 2002/01/07 15:22:56 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -40,7 +40,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.12 $";
+static char psiadmversion[] = "$Revision: 1.13 $";
 static int  DoRestart = 1;
 
 int PSIADM_LookUpNodeName(char* hostname)
@@ -572,7 +572,7 @@ void sighandler(int sig)
 /*
  * Print version info
  */
-void version(void)
+static void version(void)
 {
     fprintf(stderr, "psiadmin %s\b \n", psiadmversion+11);
 }
@@ -580,7 +580,7 @@ void version(void)
 /*
  * Print usage message
  */
-void usage(void)
+static void usage(void)
 {
     fprintf(stderr,"usage: psiadmin [-h] [-v] [-c command] [-r]\n");
 }
@@ -588,7 +588,7 @@ void usage(void)
 /*
  * Print more detailed help message
  */
-void help(void)
+static void help(void)
 {
     usage();
     fprintf(stderr,"\n");

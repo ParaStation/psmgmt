@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mlisten.c,v 1.6 2002/01/07 13:54:32 eicker Exp $
+ * $Id: mlisten.c,v 1.7 2002/01/07 15:22:56 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mlisten.c,v 1.6 2002/01/07 13:54:32 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mlisten.c,v 1.7 2002/01/07 15:22:56 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -61,16 +61,16 @@ void init(int num_nodes)
 /*
  * Print version info
  */
-void version(void)
+static void version(void)
 {
-    char revision[] = "$Revision: 1.6 $";
+    char revision[] = "$Revision: 1.7 $";
     fprintf(stderr, "mlisten %s\b \n", revision+11);
 }
 
 /*
  * Print usage message
  */
-void usage(void)
+static void usage(void)
 {
     fprintf(stderr, "usage: mlisten [-h] [-v] [-D] [-# nodes] [-m MCAST]"
 	    " [-n NET] [-p PORT]\n");
@@ -79,7 +79,7 @@ void usage(void)
 /*
  * Print more detailed help message
  */
-void help(void)
+static void help(void)
 {
     usage();
     fprintf(stderr,"\n");
@@ -114,7 +114,6 @@ int main(int argc, char *argv[])
     char c;
     int debug=0;
 
-    optarg = NULL;
     while (((c = getopt(argc,argv, "DhvVH#:m:n:p:")) != -1)) {
 	switch (c) {
 	case 'p':
