@@ -17,8 +17,6 @@ bin/daemon/psidforwarder.c \
 bin/daemon/psidforwarder.h \
 bin/daemon/psidinfo.c \
 bin/daemon/psidinfo.h \
-bin/daemon/psidmaster.c \
-bin/daemon/psidmaster.h \
 bin/daemon/psidmsgbuf.c \
 bin/daemon/psidmsgbuf.h \
 bin/daemon/psidoption.c \
@@ -38,7 +36,6 @@ bin/daemon/psidtask.h \
 bin/daemon/psidtimer.h \
 bin/daemon/psidutil.c \
 bin/daemon/psidutil.h \
-bin/daemon/psm.config \
 bin/daemon/test_config_parsing.c \
 bin/gmspawner.c \
 bin/logger/psilogger.c \
@@ -54,9 +51,7 @@ configure.ac \
 dist/ChangeLog \
 dist/Makefile.in \
 dist/Makefile.sources \
-doc/Environments \
 doc/INSTALL \
-doc/ImplementationGuidlines \
 doc/parastation.conf \
 doc/parastation.conf_tru64 \
 include/compat_tru64.h \
