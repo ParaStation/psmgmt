@@ -82,9 +82,9 @@ $(patsubst %,man/%,$(USERMANS)): $(USERDEPS)
 pdf: validate $(patsubst %,pdf/%.pdf,$(TARGETS))
 
 # First create the tex file
-pdf/%.tex: %.xml docu.dsl
+pdf/%.tex: %.xml StyleSheets/docu.dsl
 	@if [ ! -d $(@D) ]; then mkdir $(@D); fi; \
-	db2tex -o -s docu.dsl $<; \
+	db2tex -o -s StyleSheets/docu.dsl $<; \
 	mv $(@F) $@
 
 pdf/%.pdf: pdf/%.tex
