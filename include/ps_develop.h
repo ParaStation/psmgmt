@@ -90,6 +90,11 @@
 /* Receive data with zero copy */
 #define ENABLE_DMARECV
 
+/* Disable local communication */
+#define DISABLE_LOCAL_COM
+
+
+
 #define PSM_PRINT_MAP_LEVEL_OFF 1000
 #define xMARK PSM_PRINT(0,("PSM: MARK in File "__FILE__" :%d\n",__LINE__))
 
