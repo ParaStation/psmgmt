@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: parser.c,v 1.3 2002/07/03 20:19:49 eicker Exp $
+ * $Id: parser.c,v 1.4 2002/07/25 11:32:37 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: parser.c,v 1.3 2002/07/03 20:19:49 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: parser.c,v 1.4 2002/07/25 11:32:37 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -89,22 +89,6 @@ void parser_setDebugLevel(int level)
     setErrLogLevel(level);
 }
 
-int parser_parseString(char *token, parser_t *parser)
-{
-    int ret;
-
-    do {
-	if (!token) break; /* end of string */
-
-	ret = parser_parseToken(token, parser);
-	if (ret) return ret;
-
-	token = strtok(NULL, parser->delim); /* next token */
-    } while(1);
-
-    return 0;
-}
-
 int parser_parseToken(char *token, parser_t *parser)
 {
     unsigned int i;
@@ -137,6 +121,29 @@ char *parser_registerString(char *string, parser_t *parser)
     return strtok(string, parser->delim);
 }
 
+int parser_parseString(char *token, parser_t *parser)
+{
+    int ret;
+
+    do {
+	if (!token) break; /* end of string */
+
+	ret = parser_parseToken(token, parser);
+	if (ret) return ret;
+
+	token = strtok(NULL, parser->delim); /* next token */
+    } while(1);
+
+    return 0;
+}
+
+/* This parser serves for parsing comment lines */
+static keylist_t dummy_list[] = {
+    {NULL, parser_error}
+};
+
+static parser_t dummy_parser = {"\n", dummy_list};
+
 int parser_parseFile(parser_t *parser)
 {
     char *line, *token;
@@ -150,6 +157,28 @@ int parser_parseFile(parser_t *parser)
 	}
 
 	if (!strlen(line)) break; /* EOF reached */
+
+	/*
+	 * Special handling for first character is '#': comment
+	 * This is due to allow comments without whitespace after '#'
+	 */
+	if (line[0]=='#') {
+	    line++;
+	    /* Remove leading whitespace */
+	    while (*line==' ' || *line=='\t') line++;
+
+	    token = parser_registerString(line, &dummy_parser);
+
+	    if (token) {
+		snprintf(errtxt, sizeof(errtxt), "Got comment '%s'", token);
+	    } else {
+		snprintf(errtxt, sizeof(errtxt), "Got empty comment");
+	    }
+
+	    parser_comment(errtxt, 12);
+
+	    continue;
+	}
 
 	/* Put line into strtok() */
 	token = parser_registerString(line, parser);
