@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.26 2002/08/06 08:19:06 eicker Exp $
+ * $Id: psispawn.c,v 1.27 2002/12/19 13:27:17 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.26 2002/08/06 08:19:06 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.27 2002/12/19 13:27:17 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -170,7 +170,7 @@ static int compareNodes(const void *entry1, const void *entry2)
     return ret;
 }
 
-enum sortType {none, proc, load_1, load_5, load_15};
+enum sortType {none, proc, load_1, load_5, load_15, both};
 
 /*-----------------------------------------------------------------------------
  * PSI_SortNodesInPartition
@@ -210,6 +210,8 @@ static int sortNodes(short nodes[], int numNodes, NodelistEntry_t nodelist[])
 	sort = load_15;
     } else if (strcasecmp(env_sort,"PROC")==0) {
 	sort = proc;
+    } else if (strcasecmp(env_sort,"BOTH")==0) {
+	sort = both;
     }
 
     if (sort != none) {
@@ -231,25 +233,37 @@ static int sortNodes(short nodes[], int numNodes, NodelistEntry_t nodelist[])
 	case load_1:
 	    for (i=0; i<numNodes; i++) {
 		node_entry[i].rating =
-		    nodelist[nodes[i]].load[0] - nodelist[nodes[i]].numCPU;
+		    nodelist[nodes[i]].load[0] / nodelist[nodes[i]].numCPU;
 	    }
 	    break;
 	case load_5:
 	    for (i=0; i<numNodes; i++) {
 		node_entry[i].rating =
-		    nodelist[nodes[i]].load[1] - nodelist[nodes[i]].numCPU;
+		    nodelist[nodes[i]].load[1] / nodelist[nodes[i]].numCPU;
 	    }
 	    break;
 	case load_15:
 	    for (i=0; i<numNodes; i++) {
 		node_entry[i].rating =
-		    nodelist[nodes[i]].load[2] - nodelist[nodes[i]].numCPU;
+		    nodelist[nodes[i]].load[2] / nodelist[nodes[i]].numCPU;
 	    }
 	    break;
 	case proc:
 	    for (i=0; i<numNodes; i++) {
 		node_entry[i].rating =
-		    nodelist[nodes[i]].normalJobs - nodelist[nodes[i]].numCPU;
+		    nodelist[nodes[i]].normalJobs / nodelist[nodes[i]].numCPU;
+	    }
+	    break;
+	case both:
+	    for (i=0; i<numNodes; i++) {
+		/* Take the worse of load and jobs */
+		NodelistEntry_t *node = &nodelist[nodes[i]];
+
+		if (node->normalJobs > node->load[0]) {
+		    node_entry[i].rating = node->normalJobs / node->numCPU;
+		} else {
+		    node_entry[i].rating = node->load[0] / node->numCPU;
+		}
 	    }
 	    break;
 	default:
