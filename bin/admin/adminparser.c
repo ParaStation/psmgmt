@@ -7,17 +7,18 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: adminparser.c,v 1.4 2003/10/06 19:08:51 eicker Exp $
+ * $Id: adminparser.c,v 1.5 2003/10/08 16:27:06 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.4 2003/10/06 19:08:51 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.5 2003/10/08 16:27:06 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <netdb.h>
+#include <netinet/in.h>
 #include <pwd.h>
 #include <grp.h>
 
@@ -34,7 +35,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.4 2003/1
 
 #include "helpmsgs.c"
 
-static char parserversion[] = "$Revision: 1.4 $";
+static char parserversion[] = "$Revision: 1.5 $";
 
 static char *getNodeList(char *nl_descr)
 {
