@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.33 2003/02/27 18:34:41 eicker Exp $
+ * $Id: pse.c,v 1.34 2003/04/03 11:06:02 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.33 2003/02/27 18:34:41 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.34 2003/04/03 11:06:02 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -45,7 +45,7 @@ static int masterPort = -1;
 static long *spawnedProcesses;     /* size: <worldSize>  */
 static long parentTID = -1;
 
-static unsigned int defaultHWType = PSHW_MYRINET;
+static unsigned int defaultHWType = 0; /* Take any node */
 
 static void exitAll(char *reason, int code)
 {
