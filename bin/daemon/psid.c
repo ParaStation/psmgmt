@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.73 2003/02/11 19:30:53 eicker Exp $
+ * $Id: psid.c,v 1.74 2003/02/13 17:10:17 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.73 2003/02/11 19:30:53 eicker Exp $ 
+ * $Id: psid.c,v 1.74 2003/02/13 17:10:17 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.73 2003/02/11 19:30:53 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.74 2003/02/13 17:10:17 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -73,7 +73,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.73 $";
+static char psid_cvsid[] = "$Revision: 1.74 $";
 
 static int PSID_mastersock;
 
@@ -962,6 +962,10 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	    task->group = msg->group;
 	}
 
+	if (task->group == TG_SPAWNER) {
+	    task->ptid = PSC_getTID(-1, msg->ppid);
+	}
+
 	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
 	snprintf(errtxt, sizeof(errtxt),
 		 "Connection request from: %s", tasktxt);
@@ -1580,6 +1584,20 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 	    msg.header.type = PSP_CD_HOSTRESPONSE;
 	    *(int *)msg.buf = parser_lookupHost(*address);
 	    msg.header.len += sizeof(int);
+	    break;
+	}
+	case PSP_CD_NODEREQUEST:
+	{
+	    int *node;
+
+	    node = (int *) ((DDBufferMsg_t*)inmsg)->buf;
+	    msg.header.type = PSP_CD_NODERESPONSE;
+	    if ((*node > 0) && (*node < PSC_getNrOfNodes())) {
+		*(unsigned int *)msg.buf = nodes[*node].addr;
+	    } else {
+		*(unsigned int *)msg.buf = INADDR_ANY;
+	    }
+	    msg.header.len += sizeof(unsigned int);
 	    break;
 	}
 	case PSP_CD_NODELISTREQUEST:
@@ -3044,7 +3062,7 @@ void checkFileTable(void)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.73 $";
+    char revision[] = "$Revision: 1.74 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
