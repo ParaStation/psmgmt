@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast.c,v 1.13 2002/07/24 06:27:22 eicker Exp $
+ * $Id: mcast.c,v 1.14 2003/07/11 13:06:29 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.13 2002/07/24 06:27:22 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mcast.c,v 1.14 2003/07/11 13:06:29 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -616,7 +616,7 @@ void exitMCast(void)
 
 void declareNodeDeadMCast(int node)
 {
-    if (0 <= node && node < nrOfNodes) {
+    if (0 <= node && node < nrOfNodes && conntableMCast[node].state != DOWN) {
 	snprintf(errtxt, sizeof(errtxt), "Connection to node %d declared dead",
 		 node);
 	errlog(errtxt, 0);
