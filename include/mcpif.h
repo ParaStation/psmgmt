@@ -313,7 +313,9 @@ typedef struct MCP_Timestamps_T{
 
 typedef struct MCP_Counter_T{
     UINT32	Recv;		// Count all Recv (inclusive errors)
+    UINT32	Send;		// Count all Send
     UINT32	RecvCRCErr;	// Count CRC Errors
+    UINT32	RecvOrunErr;	// Count Overrun conditions
     UINT32	RecvDestErr;	// Count Packs with wrong destinationadd.
     UINT32	RecvConnIdErr;	// Count Packs with wrong ConnId
     UINT32	RecvUnknown;	// Count Unkown Packs

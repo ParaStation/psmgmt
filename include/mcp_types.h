@@ -614,8 +614,8 @@ enum MCP_ConnState {
 #define CSA_CLR(state,attrib) (state) &= ~(attrib)
 
 typedef struct MCP_ConnInfoCounter_T{
-    UINT16	Recv;	/* Count received packets */
-    UINT16	Send;	/* Count Packs send */
+    UINT16	_Recv;	/* Count received packets (unused)*/
+    UINT16	_Send;	/* Count Packs send (unused)*/
     UINT16	SendCtrl; /* Count CtrlPacks prepared to send */
     UINT16	Resend;	/* Count retransmissions */
 }MCP_ConnInfoCounter_t;
