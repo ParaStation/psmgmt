@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.107 2003/10/08 15:15:42 eicker Exp $
+ * $Id: psid.c,v 1.108 2003/10/08 16:31:57 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.107 2003/10/08 15:15:42 eicker Exp $ 
+ * $Id: psid.c,v 1.108 2003/10/08 16:31:57 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.107 2003/10/08 15:15:42 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.108 2003/10/08 16:31:57 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -81,7 +81,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-char psid_cvsid[] = "$Revision: 1.107 $";
+char psid_cvsid[] = "$Revision: 1.108 $";
 
 static int PSID_mastersock;
 
@@ -320,6 +320,7 @@ static void declareNodeAlive(int id, int cpus)
 	    declareNodeDead(id);
 	}
     }
+#if 0  /* @todo Do not test on CPUs since we cannot handle hyperthreading. */
     if (totalCPUs > lic_numval(&config->licEnv, LIC_CPUs, 0)) {
 	if (id < PSC_getMyID()) {
 	    snprintf(errtxt, sizeof(errtxt), "%s: too many CPUs.", __func__);
@@ -330,6 +331,7 @@ static void declareNodeAlive(int id, int cpus)
 	    declareNodeDead(id);
 	}
     }
+#endif
     if (lic_isexpired(&config->licEnv)) {
 	snprintf(errtxt, sizeof(errtxt), "%s: License expired.", __func__);
 	PSID_errlog(errtxt, 0);
@@ -2231,7 +2233,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.107 $";
+    char revision[] = "$Revision: 1.108 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
