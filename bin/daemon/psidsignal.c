@@ -1,0 +1,199 @@
+/*
+ *               ParaStation3
+ * psidsignal.c
+ *
+ * ParaStation signaling functions.
+ *
+ * Copyright (C) ParTec AG Karlsruhe
+ * All rights reserved.
+ *
+ * $Id: psidsignal.c,v 1.1 2003/02/21 13:25:59 eicker Exp $
+ *
+ */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+static char vcid[] __attribute__(( unused )) = "$Id: psidsignal.c,v 1.1 2003/02/21 13:25:59 eicker Exp $";
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
+#include <stdio.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <signal.h>
+#include <sys/types.h>
+
+#include "pscommon.h"
+#include "psprotocol.h"
+
+#include "psidtask.h"
+#include "psidutil.h"
+
+#include "psidsignal.h"
+
+static char errtxt[256];
+
+/** @todo HackHackHack */
+int sendMsg(void *amsg);
+
+int PSID_kill(pid_t pid, int sig, uid_t uid)
+{
+    snprintf(errtxt, sizeof(errtxt),
+	     "%s(%d, %d, %d)", __func__, pid, sig, uid);
+    PSID_errlog(errtxt, 10);
+
+    /*
+     * fork to a new process to change the userid
+     * and get the right errors
+     */
+    if (!fork()) {
+	/*
+	 * I'm the killing process
+	 * my father is just returning
+	 */
+	int error;
+
+	/*
+	 * change the user id to the appropriate user
+	 */
+	if (setuid(uid)<0) {
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s(): setuid(%d)", __func__, uid);
+	    PSID_errexit(errtxt, errno);
+	}
+	/* Send signal to the whole process group */
+	error = kill(pid, sig);
+
+	if (error && errno!=ESRCH) {
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s(%d, %d)", __func__, pid, sig);
+	    PSID_errexit(errtxt, errno);
+	}
+
+	if (error) {
+            char *errstr = strerror(errno);
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s(): kill(%d, %d) returned %d: %s", __func__,
+		     pid, sig, errno, errstr ? errstr : "UNKNOWN");
+	    PSID_errlog(errtxt, (errno==ESRCH) ? 1 : 0);
+	} else {
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s(): sent signal %d to %d", __func__, sig, pid);
+	    PSID_errlog(errtxt, 4);
+	}
+
+	exit(0);
+    }
+
+    /* @todo Test if sending of signal was successful */
+    /* This might be done via a pipe */
+    /* for now, assume it was successful */
+    snprintf(errtxt, sizeof(errtxt),
+	     "PSID_kill() sent signal %d to %d", sig, pid);
+    PSID_errlog(errtxt, 2);
+
+    return 0;
+}
+
+void PSID_sendSignal(long tid, uid_t uid, long senderTid, int signal)
+{
+    PStask_t *task = PStasklist_find(managedTasks, tid);
+    pid_t pid = PSC_getPID(tid);
+
+    if (!task) {
+	snprintf(errtxt, sizeof(errtxt), "PSID_sendSignal()"
+		 " tried to send sig %d to %s: task not found",
+		 signal, PSC_printTID(tid));
+	PSID_errlog(errtxt, 1);
+    } else if (pid) {
+	int ret, sig = (signal!=-1) ? signal : task->relativesignal;
+
+	ret = PSID_kill(pid, sig, uid);
+
+	if (ret) {
+            char *errstr = strerror(errno);
+	    snprintf(errtxt, sizeof(errtxt),
+		     "PSID_sendSignal() tried to send sig %d to %s:"
+		     " error (%d): %s", sig, PSC_printTID(tid),
+		     errno, errstr ? errstr : "UNKNOWN");
+	    PSID_errlog(errtxt, 0);
+	} else {
+	    snprintf(errtxt, sizeof(errtxt),
+		     "PSID_sendSignal() sent signal %d to %s",
+		     sig, PSC_printTID(tid));
+	    PSID_errlog(errtxt, 1);
+
+	    PSID_setSignal(&task->signalSender, senderTid, sig);
+	}
+    }
+}
+
+void PSID_sendAllSignals(PStask_t *task)
+{
+    int sig=-1;
+    long sigtid;
+
+    while ((sigtid = PSID_getSignal(&task->signalReceiver, &sig))) {
+	if (PSC_getID(sigtid)==PSC_getMyID()) {
+	    /* receiver is on local node, send signal */
+	    PSID_sendSignal(sigtid, task->uid, task->tid, sig);
+	} else {
+	    /* receiver is on a remote node, send message */
+	    DDSignalMsg_t msg;
+
+	    msg.header.type = PSP_DD_SIGNAL;
+	    msg.header.sender = task->tid;
+	    msg.header.dest = sigtid;
+	    msg.header.len = sizeof(msg);
+	    msg.signal = sig;
+	    msg.param = task->uid;
+
+	    sendMsg(&msg);
+	}
+
+	snprintf(errtxt, sizeof(errtxt),
+		 "sendAllSignals(%s)", PSC_printTID(task->tid));
+	snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
+		 " sent signal %d to %s", sig, PSC_printTID(sigtid));
+	PSID_errlog(errtxt, 1);
+
+	sig = -1;
+    }
+}
+
+void PSID_sendSignalsToRelatives(PStask_t *task)
+{
+    long sigtid;
+    int sig = -1;
+
+    sigtid = task->ptid;
+
+    if (!sigtid) sigtid = PSID_getSignal(&task->childs, &sig);
+
+    while (sigtid) {
+	if (PSC_getID(sigtid)==PSC_getMyID()) {
+	    /* receiver is on local node, send signal */
+	    PSID_sendSignal(sigtid, task->uid, task->tid, -1);
+	} else {
+	    /* receiver is on a remote node, send message */
+	    DDSignalMsg_t msg;
+
+	    msg.header.type = PSP_DD_SIGNAL;
+	    msg.header.dest = sigtid;
+	    msg.header.sender = task->tid;
+	    msg.header.len = sizeof(msg);
+	    msg.signal = -1;
+	    msg.param = task->uid;
+
+	    sendMsg(&msg);
+	}
+
+	snprintf(errtxt, sizeof(errtxt),
+		 "sendSignalsToRelatives(%s)", PSC_printTID(task->tid));
+	snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
+		 " sent signal -1 to %s", PSC_printTID(sigtid));
+	PSID_errlog(errtxt, 8);
+
+	sig = -1;
+
+	sigtid = PSID_getSignal(&task->childs, &sig);
+    }
+}

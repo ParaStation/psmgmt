@@ -69,7 +69,7 @@ lex.admin.o: lex.admin.c admin.tab.c admin.tab.h
 # psid
 VPATH += $(SRCDIR)/daemon $(SRCDIR)/cardconfig
 psid: psid.o psidutil.o psidtask.o psidspawn.o psidforwarder.o
-psid: config_parsing.o cardconfig.o
+psid: psidsignal.o config_parsing.o cardconfig.o
 psid: -lm -lpshal -lputil -lpscommon -lutil -lpopt -lpslog
 
 #psld
