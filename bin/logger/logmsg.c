@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: logmsg.c,v 1.5 2002/01/07 08:48:37 eicker Exp $ 
+ * $Id: logmsg.c,v 1.6 2002/01/16 17:21:37 eicker Exp $
  *
  */
 
-static char vcid[] __attribute__ (( unused )) = "$Id: logmsg.c,v 1.5 2002/01/07 08:48:37 eicker Exp $";
+static char vcid[] __attribute__ (( unused )) = "$Id: logmsg.c,v 1.6 2002/01/16 17:21:37 eicker Exp $";
 
 #include <stdio.h>
 #include <unistd.h>

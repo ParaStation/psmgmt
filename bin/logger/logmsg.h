@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: logmsg.h,v 1.2 2001/12/18 12:23:13 eicker Exp $ 
+ * $Id: logmsg.h,v 1.3 2002/01/16 17:21:37 eicker Exp $
  *
  */
 /**
  * \file
  * logmsg: Forwarding protocol for ParaStation I/O forwarding facility
  *
- * $Id: logmsg.h,v 1.2 2001/12/18 12:23:13 eicker Exp $ 
+ * $Id: logmsg.h,v 1.3 2002/01/16 17:21:37 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -24,7 +24,7 @@
 #ifdef __cplusplus
 extern "C" {
 #if 0
-} // <- just for emacs indentation
+} /* <- just for emacs indentation */
 #endif
 #endif
 
