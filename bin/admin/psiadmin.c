@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.42 2002/07/23 15:45:44 eicker Exp $
+ * $Id: psiadmin.c,v 1.43 2002/07/25 13:39:57 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.42 2002/07/23 15:45:44 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.43 2002/07/25 13:39:57 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -21,6 +21,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.42 2002/07/2
 #include <signal.h>
 #include <errno.h>
 #include <unistd.h>
+#include <termios.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 
@@ -46,7 +47,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.42 $";
+static char psiadmversion[] = "$Revision: 1.43 $";
 static int doRestart = 0;
 
 static char *hoststatus = NULL;
@@ -205,7 +206,7 @@ void PSIADM_CountStat(int first, int last)
 
 #define NUMTASKS 20
 
-void PSIADM_ProcStat(int first, int last)
+void PSIADM_ProcStat(int first, int last, int full)
 {
     INFO_taskinfo_t taskinfo[NUMTASKS];
     int i, j, num;
@@ -223,11 +224,13 @@ void PSIADM_ProcStat(int first, int last)
 	if (hoststatus[i]) {
 	    num = INFO_request_tasklist(i, taskinfo, sizeof(taskinfo), 1);
 	    for (j=0; j<MIN(num,NUMTASKS); j++) {
+		if (taskinfo[j].group==TG_FORWARDER && !full) continue;
 		printf("%4d %10ld 0x%010lx %10ld 0x%010lx %5d %s\n",
 		       i, taskinfo[j].tid, taskinfo[j].tid,
 		       taskinfo[j].ptid, taskinfo[j].ptid, taskinfo[j].uid,
 		       taskinfo[j].group==TG_ADMIN ? "(A)" :
-		       taskinfo[j].group==TG_LOGGER ? "(L)" : "");
+		       taskinfo[j].group==TG_LOGGER ? "(L)" :
+		       taskinfo[j].group==TG_FORWARDER ? "(F)" : "");
 	    }
 	    if (num>NUMTASKS) {
 		printf(" + %d more tasks\n", num-NUMTASKS);
@@ -703,7 +706,7 @@ void PSIADM_Version(void)
     printf("Copyright (C) 1996-2002 ParTec AG Karlsruhe\n");
     printf("\n");
     printf("PSIADMIN:   %s\b \n", psiadmversion+11);
-    printf("PSID:       %s\b \n", PSI_psidversion+11);
+    printf("PSID:       %s\b \n", PSI_getPsidVersion()+11);
     printf("PSProtocol: %d\n", PSprotocolversion);
     return;
 }

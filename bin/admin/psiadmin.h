@@ -11,7 +11,7 @@ void PSIADM_NodeStat(int first, int last);
 void PSIADM_RDPStat(int first, int last);
 void PSIADM_MCastStat(int first, int last);
 void PSIADM_CountStat(int first, int last);
-void PSIADM_ProcStat(int first, int last);
+void PSIADM_ProcStat(int first, int last, int full);
 void PSIADM_LoadStat(int first, int last);
 void PSIADM_HWStat(int first, int last);
 

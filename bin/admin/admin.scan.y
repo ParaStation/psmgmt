@@ -10,7 +10,7 @@
 #define yylex adminlex
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.15 2002/07/11 17:05:48 eicker Exp $";
+static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.16 2002/07/25 13:39:57 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #define NODEERR -2
@@ -41,7 +41,7 @@ static void CheckUserName(char *name);
 
 %token MAXPROC USER ANY
 
-%token NODE COUNT RDP MCAST PROC LOAD ALL
+%token NODE COUNT RDP MCAST PROC LOAD ALLPROC ALL
 
 %token HW
 
@@ -157,11 +157,12 @@ showline:
 statline:
           STATOP ALL nodes    {MyNodeStat(FirstNode, LastNode);
                                MyCountStat(FirstNode, LastNode);
-                               MyProcStat(FirstNode, LastNode);}
+                               MyProcStat(FirstNode, LastNode, 0);}
         | STATOP nodes        {MyNodeStat(FirstNode, LastNode);}
         | STATOP NODE nodes   {MyNodeStat(FirstNode, LastNode);}
         | STATOP COUNT nodes  {MyCountStat(FirstNode, LastNode);}
-        | STATOP PROC nodes   {MyProcStat(FirstNode, LastNode);}
+        | STATOP PROC nodes   {MyProcStat(FirstNode, LastNode, 0);}
+        | STATOP ALLPROC nodes{MyProcStat(FirstNode, LastNode, 1);}
         | STATOP LOAD nodes   {MyLoadStat(FirstNode, LastNode);}
         | STATOP RDP nodes    {MyRDPStat(FirstNode, LastNode);}
         | STATOP MCAST nodes  {MyMCastStat(FirstNode, LastNode);}
@@ -318,10 +319,10 @@ static void MyCountStat(int first, int last)
     return;
 }
 
-static void MyProcStat(int first, int last)
+static void MyProcStat(int first, int last, int full)
 {
     if ( (first != NODEERR) && (last != NODEERR))
-	PSIADM_ProcStat(first, last);
+	PSIADM_ProcStat(first, last, full);
 
     return;
 }
