@@ -25,6 +25,7 @@
 
 # SuSE 8.1
 2.4.19.SuSE		/home/phoenix/kernel/i386/linux-2.4.19.SuSE
+2.4.19-4GB.SuSE		/home/phoenix/kernel/i386/linux-2.4.19-4GB.SuSE
 2.4.19-SMP.SuSE		/home/phoenix/kernel/i386/linux-2.4.19-SMP.SuSE
 2.4.19-4GB-SMP.SuSE	/home/phoenix/kernel/i386/linux-2.4.19-4GB-SMP.SuSE
 2.4.19-64GB-SMP.SuSE	/home/phoenix/kernel/i386/linux-2.4.19-64GB-SMP.SuSE
@@ -56,4 +57,4 @@
 2.4.19-24-4GB-SMP.mdk   /home/phoenix/kernel/i386/linux-2.4.19-24-4GB-SMP.mdk
 
 #MSC
-linux-2.4.18-9-4GB-SMP.msc /home/phoenix/kernel/i386/linux-2.4.18-9-4GB-SMP.msc
+2.4.18-9-4GB-SMP.msc /home/phoenix/kernel/i386/linux-2.4.18-9-4GB-SMP.msc
