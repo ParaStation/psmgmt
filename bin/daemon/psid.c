@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.114 2003/10/31 12:13:39 eicker Exp $
+ * $Id: psid.c,v 1.115 2003/10/31 13:20:23 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.114 2003/10/31 12:13:39 eicker Exp $ 
+ * $Id: psid.c,v 1.115 2003/10/31 13:20:23 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.114 2003/10/31 12:13:39 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.115 2003/10/31 13:20:23 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -81,7 +81,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-char psid_cvsid[] = "$Revision: 1.114 $";
+char psid_cvsid[] = "$Revision: 1.115 $";
 
 /** Master socket (type UNIX) for clients to connect */
 static int masterSock;
@@ -436,9 +436,9 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 #endif
     tid = PSC_getTID(-1, pid);
 
-    snprintf(errtxt, sizeof(errtxt), "connection request from %s"
-	     " at fd %d, group=%s, version=%d, uid=%d",
-	     PSC_printTID(tid), fd, PStask_printGrp(msg->group),
+    snprintf(errtxt, sizeof(errtxt),
+	     "%s: from %s at fd %d, group=%s, version=%d, uid=%d",
+	     __func__, PSC_printTID(tid), fd, PStask_printGrp(msg->group),
 	     msg->version, uid);
     PSID_errlog(errtxt, 3);
     /*
@@ -1536,7 +1536,23 @@ void msg_SIGNAL(DDSignalMsg_t *msg)
 	    newMsg.pervasive = 0;
 
 	    msg = &newMsg;
+	} else if (sender && sender->protocolVersion < 328
+		   && sender->group != TG_LOGGER) {
+
+	    /* Client uses old protocol. Map to new one. */
+	    static DDSignalMsg_t newMsg;
+
+	    newMsg.header.type = msg->header.type;
+	    newMsg.header.sender = msg->header.sender;
+	    newMsg.header.dest = msg->header.dest;
+	    newMsg.header.len = sizeof(newMsg);
+	    newMsg.signal = msg->signal;
+	    newMsg.param = msg->param;
+	    newMsg.pervasive = (int *)&msg->pervasive;
+
+	    msg = &newMsg;
 	}
+
     }
 
     if (PSC_getID(msg->header.dest)==PSC_getMyID()) {
@@ -2232,7 +2248,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.114 $";
+    char revision[] = "$Revision: 1.115 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
