@@ -1,5 +1,5 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * rdp.c
  *
  * ParaStation Reliable Datagram Protocol
@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.31 2003/11/24 09:58:56 eicker Exp $
+ * $Id: rdp.c,v 1.32 2003/12/16 19:07:00 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.31 2003/11/24 09:58:56 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.32 2003/12/16 19:07:00 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -37,12 +37,137 @@ static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.31 2003/11/24 09:
 #endif
 
 #include "errlog.h"
+#include "selector.h"
 #include "timer.h"
 
 #include "rdp.h"
-#include "rdp_private.h"
 
+/**
+ * OSF does not provides timeradd in sys/time.h
+ */
+#ifndef timeradd
+#define timeradd(a, b, result)                                        \
+  do {                                                                \
+    (result)->tv_sec = (a)->tv_sec + (b)->tv_sec;                     \
+    (result)->tv_usec = (a)->tv_usec + (b)->tv_usec;                  \
+    if ((result)->tv_usec >= 1000000) {                               \
+        ++(result)->tv_sec;                                           \
+        (result)->tv_usec -= 1000000;                                 \
+    }                                                                 \
+  } while (0)
+#endif
 
+/**
+ * The socket used to send and receive RDP packets. Will be opened in
+ * initRDP().
+ */
+static int rdpsock = -1;
+
+/** The unique ID of the timer registered by RDP. */
+static int timerID = -1;
+
+/** The size of the cluster. Set via initRDP(). */
+static int  nrOfNodes = 0;
+
+static char errtxt[256];         /**< String to hold error messages. */
+
+/**
+ * The callback function. Will be used to send messages to the calling
+ * process. Set via initRDP().
+ */
+static void (*RDPCallback)(int, void*) = NULL;
+
+/** Possible RDP states of a connection */
+typedef enum {
+    CLOSED=0x1,  /**< connection is down */
+    SYN_SENT,    /**< connection establishing: SYN sent */
+    SYN_RECVD,   /**< connection establishing: SYN received */
+    ACTIVE       /**< connection is up */
+} RDPState;
+
+/** The possible RDP message types */
+#define RDP_DATA     0x1  /**< regular data message */
+#define RDP_SYN      0x2  /**< synchronozation message */
+#define RDP_ACK      0x3  /**< explicit acknowledgement */
+#define RDP_SYNACK   0x4  /**< first acknowledgement */
+#define RDP_NACK     0x5  /**< negative acknowledgement */
+#define RDP_SYNNACK  0x6  /**< NACK to reestablish broken connection */
+
+/** The RDP Packet Header */
+typedef struct {
+    short type;           /**< packet type */
+    unsigned short len;   /**< message length */
+    int seqno;            /**< Sequence number of packet */
+    int ackno;            /**< Sequence number of ack */
+    int connid;           /**< Connection Identifier */
+} rdphdr;
+
+/** Up to this size predefined buffers are use to store the message. */
+#define RDP_SMALL_DATA_SIZE 32
+/** The maximum size of a RDP message. May decrease in future.*/
+#define RDP_MAX_DATA_SIZE 8192
+
+/**
+ * The maximum number of pending messages on a connection. If
+ * @a MAX_WINDOW_SIZE messages are pending on a connection, calls to
+ * Rsendto() will return -1 with errno set to EAGAIN.
+ */
+#define MAX_WINDOW_SIZE 64
+/**
+ * The maximum number of pending ACKs on a connection. If @a MAX_ACK_PENDING
+ * ACKs are pending on a connection, a explicit ACK is send.
+ */
+#define MAX_ACK_PENDING  4
+
+/** Timeout for retransmission = 100msec */
+struct timeval RESEND_TIMEOUT = {0, 100000}; /* sec, usec */
+
+/**
+ * The timeout used for RDP timer = 100 msec. The is a const for now
+ * and can only changed in the sources.
+ */
+struct timeval RDPTimeout = {0, 100000}; /* sec, usec */
+
+/** The actual packet-loss rate. Get/set by getPktLossRDP()/setPktLossRDP() */
+static int RDPPktLoss = 0;
+
+/**
+ * The actual maximum retransmission count. Get/set by
+ * getMaxRetransRDP()/setMaxRetransRDP()
+ */
+static int RDPMaxRetransCount = 128;
+
+/**
+ * Compare two sequence numbers. The sign of the result represents the
+ * relationship in sequence space similar to the result of
+ * strcmp(). '-' means a precedes b, '0' stands for a equals b and '+'
+ * represents a follows b.
+ */
+#define RSEQCMP(a,b) ( (a) - (b) )
+
+/* ---------------------------------------------------------------------- */
+
+static int handleErr(void);
+
+/**
+ * @brief Recv a message
+ *
+ * My version of recvfrom(), which restarts on EINTR.
+ * EINTR is mostly caused by the interval timer. Receives a message from
+ * @a sock and stores it to @a buf. The sender-address is stored in @a from.
+ *
+ * @param sock The socket to read from.
+ * @param buf Buffer the message is stored to.
+ * @param len Length of @a buf.
+ * @param flags Flags passed to recvfrom().
+ * @param from The address of the message-sender.
+ * @param fromlen Length of @a from.
+ *
+ * @return On success, the number of bytes received is returned, or -1 if
+ * an error occured.
+ *
+ * @see recvfrom(2)
+ */
 static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
                       struct sockaddr *from, socklen_t *fromlen)
 {
@@ -66,6 +191,26 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
     return retval;
 }
 
+
+/**
+ * @brief Send a message
+ *
+ * My version of sendto(), which restarts on EINTR.
+ * EINTR is mostly caused by the interval timer. Send a message stored in
+ * @a buf via @a sock to address @a to.
+ *
+ * @param sock The socket to send to.
+ * @param buf Buffer the message is stored in.
+ * @param len Length of the message.
+ * @param flags Flags passed to sendto().
+ * @param to The address the message is send to.
+ * @param tolen Length of @a to.
+ *
+ * @return On success, the number of bytes sent is returned, or -1 if an error
+ * occured.
+ *
+ * @see sendto(2)
+ */
 static int MYsendto(int sock, void *buf, size_t len, int flags,
 		    struct sockaddr *to, socklen_t tolen)
 {
@@ -101,7 +246,28 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 }
 
 /* ---------------------------------------------------------------------- */
+/**
+ * One entry for each node we want to connect with
+ */
+typedef struct ipentry_ {
+    unsigned int ipnr;      /**< IP number of the node */
+    int node;               /**< logical node number */
+    struct ipentry_ *next;  /**< pointer to next entry */
+} ipentry;
 
+/**
+ * 256 entries since lookup is based on LAST byte of IP number.
+ * Initialized by initIPTable().
+ */
+static ipentry iptable[256];
+
+/**
+ * @brief Initialize @ref iptable.
+ *
+ * Initializes @ref iptable. List is empty after this call.
+ *
+ * @return No return value.
+ */
 static void initIPTable(void)
 {
     int i;
@@ -113,6 +279,16 @@ static void initIPTable(void)
     return;
 }
 
+/**
+ * @brief Create new entry in @ref iptable.
+ *
+ * Register another node in @ref iptable.
+ *
+ * @param ipno The IP number of the node to register.
+ * @param node The corresponding node number.
+ *
+ * @return No return value.
+ */
 static void insertIPTable(struct in_addr ipno, int node)
 {
     ipentry *ip;
@@ -135,6 +311,17 @@ static void insertIPTable(struct in_addr ipno, int node)
     return;
 }
 
+/**
+ * @brief Get node number from IP number.
+ *
+ * Get the node number from given IP number for a node registered via
+ * insertIPTable().
+ *
+ * @param ipno The IP number of the node to find.
+ *
+ * @return On success, the node number corresponding to @a ipno is returned,
+ * or -1 if the node could not be found in @ref iptable.
+ */
 static int lookupIPTable(struct in_addr ipno)
 {
     ipentry *ip = NULL;
@@ -155,6 +342,58 @@ static int lookupIPTable(struct in_addr ipno)
 
 /* ---------------------------------------------------------------------- */
 
+/**
+ * Prototype of a small RDP message.
+ */
+typedef struct Smsg_ {
+    rdphdr       header;                    /**< Message header */
+    char         data[RDP_SMALL_DATA_SIZE]; /**< Body for small pakets */
+    struct Smsg_ *next;                     /**< Pointer to next Smsg buffer */
+} Smsg;
+
+/**
+ * Prototype of a large (or normal) RDP message.
+ */
+typedef struct {
+    rdphdr header;                          /**< Message header */
+    char   data[RDP_MAX_DATA_SIZE];         /**< Body for large pakets */
+} Lmsg;
+
+struct ackent_; /* forward declaration */
+
+/**
+ * Control info for each message buffer
+ */
+typedef struct msgbuf_ {
+    int            node;                    /**< ID of connection */
+    struct msgbuf_ *next;                   /**< Pointer to next buffer */
+    struct ackent_ *ackptr;                 /**< Pointer to ACK buffer */
+    struct timeval tv;                      /**< Timeout timer */
+    int            retrans;                 /**< Number of retransmissions */
+    int            len;                     /**< Length of body */
+    union {
+	Smsg *small;                        /**< Pointer to a small msg */
+	Lmsg *large;                        /**< Pointer to a large msg */
+    } msg;                                  /**< The actual message */
+} msgbuf;
+
+/**
+ * Pool of message buffers ready to use. Initialized by initMsgList().
+ * To get a buffer from this pool, use getMsg(), to put it back into
+ * it use putMsg().
+ */
+static msgbuf *MsgFreeList;
+
+/**
+ * @brief Initialize the message pool.
+ *
+ * Initialize the pool of message buffers @ref MsgFreeList for @a nodes nodes.
+ * For now @ref MAX_WINDOW_SIZE * @a nodes message buffer will be allocated.
+ *
+ * @param nodes The number of nodes the message buffer pool has to serve.
+ *
+ * @return No return value.
+ */
 static void initMsgList(int nodes)
 {
     int i, count;
@@ -180,6 +419,13 @@ static void initMsgList(int nodes)
     return;
 }
 
+/**
+ * @brief Get message buffer from pool.
+ *
+ * Get a message buffer from the pool of free ones @ref MsgFreeList.
+ *
+ * @return Pointer to the message buffer taken from the pool.
+ */
 static msgbuf *getMsg(void)
 {
     msgbuf *mp = MsgFreeList;
@@ -194,6 +440,15 @@ static msgbuf *getMsg(void)
     return mp;
 }
 
+/**
+ * @brief Put message buffer back to pool.
+ *
+ * Put a message buffer back to the pool of free ones @ref MsgFreeList.
+ *
+ * @param mp The message buffer to be put back.
+ *
+ * @return No return value.
+ */
 static void putMsg(msgbuf *mp)
 {
     mp->next = MsgFreeList;
@@ -203,6 +458,23 @@ static void putMsg(msgbuf *mp)
 
 /* ---------------------------------------------------------------------- */
 
+/**
+ * Pool of small messages ready to use. Initialized by initSMsgList().
+ * To get a message from this pool, use getSMsg(), to put it back into
+ * it use putSMsg().
+ */
+static Smsg   *SMsgFreeList;
+
+/**
+ * @brief Initialize the message pool.
+ *
+ * Initialize the pool of small messages @ref SMsgFreeList for @a nodes nodes.
+ * For now @ref MAX_WINDOW_SIZE * @a nodes small messages will be allocated.
+ *
+ * @param nodes The number of nodes the small message pool has to serve.
+ *
+ * @return No return value.
+ */
 static void initSMsgList(int nodes)
 {
     int i, count;
@@ -220,6 +492,13 @@ static void initSMsgList(int nodes)
     return;
 }
 
+/**
+ * @brief Get small message from pool.
+ *
+ * Get a small message from the pool of free ones @ref SMsgFreeList.
+ *
+ * @return Pointer to the small message taken from the pool.
+ */
 static Smsg *getSMsg(void)
 {
     Smsg *mp = SMsgFreeList;
@@ -231,6 +510,15 @@ static Smsg *getSMsg(void)
     return mp;
 }
 
+/**
+ * @brief Put small message back to pool.
+ *
+ * Put a small message back to the pool of free ones @ref SMsgFreeList.
+ *
+ * @param mp The small message to be put back.
+ *
+ * @return No return value.
+ */
 static void putSMsg(Smsg *mp)
 {
     mp->next = SMsgFreeList;
@@ -240,13 +528,49 @@ static void putSMsg(Smsg *mp)
 
 /* ---------------------------------------------------------------------- */
 
+/**
+ * Connection info for each node expected to receive data from or send data
+ * to.
+ */
+typedef struct Rconninfo_ {
+    int window;              /**< Window size */
+    int ackPending;          /**< Flag, that a ACK to node is pending */
+    int msgPending;          /**< Outstanding msgs during reconnect */
+    struct sockaddr_in sin;  /**< Pre-built descriptor for sendto */
+    int frameToSend;         /**< Seq Nr for next frame going to host */
+    int ackExpected;         /**< Expected ACK for msgs pending to hosts */
+    int frameExpected;       /**< Expected Seq Nr for msg coming from host */
+    int ConnID_in;           /**< Connection ID to recognize node */
+    int ConnID_out;          /**< Connection ID to node */
+    RDPState state;          /**< State of connection to host */
+    msgbuf *bufptr;          /**< Pointer to first message buffer */
+} Rconninfo;
+
+/**
+ * Array to hold all connection info.
+ */
+static Rconninfo *conntable = NULL;
+
+/**
+ * @brief Initialize the @ref conntable.
+ *
+ * Initialize the @ref conntable for @a nodes nodes to receive data from
+ * or send data to. The IP numbers of all nodes are stored in @a host.
+ *
+ * @param nodes The number of nodes that should be connected.
+ * @param host The IP number of each node indexed by node number. The length
+ * of @a host must be at least @a nodes.
+ * @param port The port we expect the data to be sent from.
+ *
+ * @return No return value.
+ */
 static void initConntable(int nodes, unsigned int host[], unsigned short port)
 {
     int i;
     struct timeval tv;
 
-    if (!conntableRDP) {
-	conntableRDP = (Rconninfo *) malloc(nodes * sizeof(Rconninfo));
+    if (!conntable) {
+	conntable = (Rconninfo *) malloc(nodes * sizeof(Rconninfo));
     }
     initIPTable();
     gettimeofday(&tv, NULL);
@@ -255,36 +579,58 @@ static void initConntable(int nodes, unsigned int host[], unsigned short port)
 	     nodes, MAX_WINDOW_SIZE);
     errlog(errtxt, 4);
     for (i=0; i<nodes; i++) {
-	memset(&conntableRDP[i].sin, 0, sizeof(struct sockaddr_in));
-	conntableRDP[i].sin.sin_family = AF_INET;
-	conntableRDP[i].sin.sin_addr.s_addr = host[i];
-	conntableRDP[i].sin.sin_port = port;
-	insertIPTable(conntableRDP[i].sin.sin_addr, i);
+	memset(&conntable[i].sin, 0, sizeof(struct sockaddr_in));
+	conntable[i].sin.sin_family = AF_INET;
+	conntable[i].sin.sin_addr.s_addr = host[i];
+	conntable[i].sin.sin_port = port;
+	insertIPTable(conntable[i].sin.sin_addr, i);
 	snprintf(errtxt, sizeof(errtxt), "%s: IP-ADDR of node %d is %s",
-		 __func__, i, inet_ntoa(conntableRDP[i].sin.sin_addr));
+		 __func__, i, inet_ntoa(conntable[i].sin.sin_addr));
 	errlog(errtxt, 4);
-	conntableRDP[i].bufptr = NULL;
-	conntableRDP[i].ConnID_in = -1;
-	conntableRDP[i].window = MAX_WINDOW_SIZE;
-	conntableRDP[i].ackPending = 0;
-	conntableRDP[i].msgPending = 0;
-	conntableRDP[i].frameToSend = random();
+	conntable[i].bufptr = NULL;
+	conntable[i].ConnID_in = -1;
+	conntable[i].window = MAX_WINDOW_SIZE;
+	conntable[i].ackPending = 0;
+	conntable[i].msgPending = 0;
+	conntable[i].frameToSend = random();
 	snprintf(errtxt, sizeof(errtxt), "%s: NFTS to %d set to %x",
-		 __func__, i, conntableRDP[i].frameToSend);
+		 __func__, i, conntable[i].frameToSend);
 	errlog(errtxt, 4);
-	conntableRDP[i].ackExpected = conntableRDP[i].frameToSend;
-	conntableRDP[i].frameExpected = random();
+	conntable[i].ackExpected = conntable[i].frameToSend;
+	conntable[i].frameExpected = random();
 	snprintf(errtxt, sizeof(errtxt), "%s: FE from %d set to %x",
-		 __func__, i, conntableRDP[i].frameExpected);
+		 __func__, i, conntable[i].frameExpected);
 	errlog(errtxt, 4);
-	conntableRDP[i].ConnID_out = random();;
-	conntableRDP[i].state = CLOSED;
+	conntable[i].ConnID_out = random();;
+	conntable[i].state = CLOSED;
     }
     return;
 }
 
 /* ---------------------------------------------------------------------- */
 
+/** Double linked list of messages with pending ACK */
+typedef struct ackent_ {
+    struct ackent_ *prev;    /**< Pointer to previous msg waiting for an ack */
+    struct ackent_ *next;    /**< Pointer to next msg waiting for an ack */
+    msgbuf *bufptr;          /**< Pointer to corresponding msg buffer */
+} ackent;
+
+static ackent *AckListHead;  /**< Head of ACK list */
+static ackent *AckListTail;  /**< Tail of ACK list */
+static ackent *AckFreeList;  /**< Pool of free ACK buffers */
+
+/**
+ * @brief Initialize the pool of ACK buffers and the ACK list.
+ *
+ * Initialize the pool of ACK buffers @ref AckFreeList for @a nodes nodes.
+ * For now @ref MAX_WINDOW_SIZE * @a nodes ACK buffers will be allocated.
+ * Furthermore the ACK list is initialized in an empty state.
+ *
+ * @param nodes The number of nodes the ACK buffer pool has to serve.
+ *
+ * @return No return value.
+ */
 static void initAckList(int nodes)
 {
     ackent *ackbuf;
@@ -308,6 +654,13 @@ static void initAckList(int nodes)
     return;
 }
 
+/**
+ * @brief Get ACK buffer from pool.
+ *
+ * Get a ACK buffer from the pool of free ones @ref AckFreeList.
+ *
+ * @return Pointer to the ACK buffer taken from the pool.
+ */
 static ackent *getAckEnt(void)
 {
     ackent *ap = AckFreeList;
@@ -319,6 +672,15 @@ static ackent *getAckEnt(void)
     return ap;
 }
 
+/**
+ * @brief Put ACK buffer back to pool.
+ *
+ * Put a ACK buffer back to the pool of free ones @ref AckFreeList.
+ *
+ * @param ap The ACK buffer to be put back.
+ *
+ * @return No return value.
+ */
 static void putAckEnt(ackent *ap)
 {
     ap->prev = NULL;
@@ -328,6 +690,18 @@ static void putAckEnt(ackent *ap)
     return;
 }
 
+/**
+ * @brief Enqueue a message to the ACK list.
+ *
+ * Append a message to the list of messages waiting to be
+ * ACKed. Therefore an ACK buffer is taken from the pool using
+ * getAckEnt(), configured appropriately and appended to the list of
+ * buffer waiting to be ACKed.
+ *
+ * @param Pointer to the message to be appended.
+ *
+ * @return Pointer to the ACK buffer taken from the pool.
+ */
 static ackent *enqAck(msgbuf *bufptr)
 {
     ackent *ap;
@@ -347,6 +721,15 @@ static ackent *enqAck(msgbuf *bufptr)
     return ap;
 }
 
+/**
+ * @brief Dequeue ACK buffer.
+ *
+ * Remove a ACK buffer from the list of buffers waiting to be ACKed.
+ *
+ * @param ap Pointer to the message to be removed.
+ *
+ * @return No return value.
+ */
 static void deqAck(ackent *ap)
 {
     if (ap == AckListHead) {
@@ -365,102 +748,153 @@ static void deqAck(ackent *ap)
 
 /* ---------------------------------------------------------------------- */
 
+/**
+ * @brief Send a SYN message.
+ *
+ * Send a SYN message to node @a node.
+ *
+ * @param node The node number the message is send to.
+ *
+ * @return No return value.
+ */
 static void sendSYN(int node)
 {
     rdphdr hdr;
 
     hdr.type = RDP_SYN;
     hdr.len = 0;
-    hdr.seqno = conntableRDP[node].frameToSend;     /* Tell initial seqno */
-    hdr.ackno = 0;                                  /* nothing to ack yet */
-    hdr.connid = conntableRDP[node].ConnID_out;
+    hdr.seqno = conntable[node].frameToSend;       /* Tell initial seqno */
+    hdr.ackno = 0;                                 /* nothing to ack yet */
+    hdr.connid = conntable[node].ConnID_out;
     snprintf(errtxt, sizeof(errtxt), "%s: to node %d (%s), NFTS=%x", __func__,
-	     node, inet_ntoa(conntableRDP[node].sin.sin_addr), hdr.seqno);
+	     node, inet_ntoa(conntable[node].sin.sin_addr), hdr.seqno);
     errlog(errtxt, 8);
     MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
-	     (struct sockaddr *)&conntableRDP[node].sin,
-	     sizeof(struct sockaddr));
+	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
     return;
 }
 
+/**
+ * @brief Send a explicit ACK message.
+ *
+ * Send a ACK message to node @a node.
+ *
+ * @param node The node number the message is send to.
+ *
+ * @return No return value.
+ */
 static void sendACK(int node)
 {
     rdphdr hdr;
 
     hdr.type = RDP_ACK;
     hdr.len = 0;
-    hdr.seqno = 0;                                  /* ACKs have no seqno */
-    hdr.ackno = conntableRDP[node].frameExpected-1; /* ACK Expected - 1 */
-    hdr.connid = conntableRDP[node].ConnID_out;
+    hdr.seqno = 0;                                 /* ACKs have no seqno */
+    hdr.ackno = conntable[node].frameExpected-1;   /* ACK Expected - 1 */
+    hdr.connid = conntable[node].ConnID_out;
     snprintf(errtxt, sizeof(errtxt), "%s: to node %d, FE=%x", __func__,
 	     node, hdr.ackno);
     errlog(errtxt, 14);
     MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
-	     (struct sockaddr *)&conntableRDP[node].sin,
-	     sizeof(struct sockaddr));
-    conntableRDP[node].ackPending = 0;
+	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
+    conntable[node].ackPending = 0;
     return;
 }
 
+/**
+ * @brief Send a SYNACK message.
+ *
+ * Send a SYNACK message to node @a node.
+ *
+ * @param node The node number the message is send to.
+ *
+ * @return No return value.
+ */
 static void sendSYNACK(int node)
 {
     rdphdr hdr;
 
     hdr.type = RDP_SYNACK;
     hdr.len = 0;
-    hdr.seqno = conntableRDP[node].frameToSend;     /* Tell initial seqno */
-    hdr.ackno = conntableRDP[node].frameExpected-1; /* ACK Expected - 1 */
-    hdr.connid = conntableRDP[node].ConnID_out;
+    hdr.seqno = conntable[node].frameToSend;       /* Tell initial seqno */
+    hdr.ackno = conntable[node].frameExpected-1;   /* ACK Expected - 1 */
+    hdr.connid = conntable[node].ConnID_out;
     snprintf(errtxt, sizeof(errtxt), "%s: to node %d, NFTS=%x, FE=%x",
 	     __func__, node, hdr.seqno, hdr.ackno);
     errlog(errtxt, 8);
     MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
-	     (struct sockaddr *)&conntableRDP[node].sin,
-	     sizeof(struct sockaddr));
-    conntableRDP[node].ackPending = 0;
+	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
+    conntable[node].ackPending = 0;
     return;
 }
 
+/**
+ * @brief Send a SYNNACK message.
+ *
+ * Send a SYNNACK message to node @a node.
+ *
+ * @param node The node number the message is send to.
+ * @param oldseq The last sequence number we received from this node.
+ *
+ * @return No return value.
+ */
 static void sendSYNNACK(int node, int oldseq)
 {
     rdphdr hdr;
 
     hdr.type = RDP_SYNNACK;
     hdr.len = 0;
-    hdr.seqno = conntableRDP[node].frameToSend;     /* Tell initial seqno */
-    hdr.ackno = oldseq;                             /* NACK for old seqno */
-    hdr.connid = conntableRDP[node].ConnID_out;
+    hdr.seqno = conntable[node].frameToSend;       /* Tell initial seqno */
+    hdr.ackno = oldseq;                            /* NACK for old seqno */
+    hdr.connid = conntable[node].ConnID_out;
     snprintf(errtxt, sizeof(errtxt), "%s: to node %d, NFTS=%x, FE=%x",
 	     __func__, node, hdr.seqno, hdr.ackno);
     errlog(errtxt, 8);
     MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
-	     (struct sockaddr *)&conntableRDP[node].sin,
-	     sizeof(struct sockaddr));
-    conntableRDP[node].ackPending = 0;
+	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
+    conntable[node].ackPending = 0;
     return;
 }
 
-
+/**
+ * @brief Send a NACK message.
+ *
+ * Send a NACK message to node @a node.
+ *
+ * @param node The node number the message is send to.
+ *
+ * @return No return value.
+ */
 static void sendNACK(int node)
 {
     rdphdr hdr;
 
     hdr.type = RDP_NACK;
     hdr.len = 0;
-    hdr.seqno = 0;                                  /* NACKs have no seqno */
-    hdr.ackno = conntableRDP[node].frameExpected-1; /* The frame I expect */
-    hdr.connid = conntableRDP[node].ConnID_out;
+    hdr.seqno = 0;                                 /* NACKs have no seqno */
+    hdr.ackno = conntable[node].frameExpected-1;   /* The frame I expect */
+    hdr.connid = conntable[node].ConnID_out;
     snprintf(errtxt, sizeof(errtxt), "%s: to node %d, FE=%x", __func__,
 	     node, hdr.ackno);
     errlog(errtxt, 8);
     MYsendto(rdpsock, &hdr, sizeof(rdphdr), 0,
-	     (struct sockaddr *)&conntableRDP[node].sin,
-	     sizeof(struct sockaddr));
+	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
     return;
 }
 
 /* ---------------------------------------------------------------------- */
 
+/**
+ * @brief Setup a socket for RDP communication.
+ *
+ * Sets up a socket used for all RDP communications.
+ *
+ * @param port The UDP port to use.
+ * @param qlen No used yet
+ *
+ * @return -1 is returned if an error occurs; otherwise the return value
+ * is a descriptor referencing the socket.
+ */
 static int initSockRDP(unsigned short port, int qlen)
 {
     struct sockaddr_in sin;  /* an internet endpoint address */
@@ -502,11 +936,172 @@ static int initSockRDP(unsigned short port, int qlen)
     return s;
 }
 
-static int updateStateRDP(rdphdr *hdr, int node)
+RDPDeadbuf deadbuf;
+
+/**
+ * @brief Clear message queue of a connection.
+ *
+ * Clear the message queue of the connection to node @a node. This is usually
+ * called upon final timeout.
+ *
+ * @param node The node number of the connection to be cleared.
+ *
+ * @return No return value.
+ */
+static void clearMsgQ(int node)
+{
+    Rconninfo *cp;
+    msgbuf *mp;
+    int blocked;
+
+    cp = &conntable[node];
+    mp = cp->bufptr;
+
+    /*
+     * A blocked timer needs to be restored since clearMsgQ() can be called
+     * from within handleTimeoutRDP().
+     */
+    blocked = Timer_block(timerID, 1);
+
+    while (mp) { /* still a message there */
+	if (RDPCallback) { /* give msg back to upper layer */
+	    deadbuf.dst = node;
+	    deadbuf.buf = mp->msg.small->data;
+	    deadbuf.buflen = mp->len;
+	    RDPCallback(RDP_PKT_UNDELIVERABLE, &deadbuf);
+	}
+	snprintf(errtxt, sizeof(errtxt), "%s: Dropping msg %x to node %d",
+		 __func__, mp->msg.small->header.seqno, node);
+	errlog(errtxt, 6);
+	if (mp->len > RDP_SMALL_DATA_SIZE) {    /* release msg frame */
+	    free(mp->msg.large);                /* free memory */
+	} else {
+	    putSMsg(mp->msg.small);             /* back to freelist */
+	}
+	deqAck(mp->ackptr);                     /* dequeue ack */
+	cp->bufptr = cp->bufptr->next;          /* remove msgbuf from list */
+	putMsg(mp);                             /* back to freelist */
+	mp = cp->bufptr;                        /* next message */
+    }
+    cp->ackExpected = cp->frameToSend;          /* restore initial setting */
+    cp->window = MAX_WINDOW_SIZE;               /* restore window size */
+
+    /* Restore blocked timer */
+    Timer_block(timerID, blocked);
+
+    return;
+}
+
+/**
+ * @brief Close a connection.
+ *
+ * Close the RDP connection to node @a node and inform the calling program.
+ *
+ * @return No return value.
+ */
+static void closeConnection(int node)
+{
+    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, node);
+    errlog(errtxt, 0);
+    clearMsgQ(node);
+    conntable[node].state = CLOSED;
+    conntable[node].ackPending = 0;
+    conntable[node].msgPending = 0;
+    if (RDPCallback) {  /* inform daemon */
+	RDPCallback(RDP_LOST_CONNECTION, &node);
+    }
+    return;
+}
+
+/**
+ *
+ * @todo
+ */
+static void resendMsgs(int node)
+{
+    msgbuf *mp;
+    struct timeval tv;
+
+    mp = conntable[node].bufptr;
+    if (!mp) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: no pending messages", __func__);
+	errlog(errtxt, 1);
+
+	return;
+    }
+
+    gettimeofday(&tv, NULL);
+
+    if (timercmp(&mp->tv, &tv, >=)) { /* msg has no timeout */
+	return;
+    }
+
+    timeradd(&tv, &RESEND_TIMEOUT, &tv);
+
+    if (mp->retrans > RDPMaxRetransCount) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: Retransmission count exceeds limit"
+		 " [seqno=%x], closing connection to node %d",
+		 __func__, mp->msg.small->header.seqno, node);
+	errlog(errtxt, 0);
+	closeConnection(node);
+	return;
+    }
+
+    mp->tv = tv;
+    mp->retrans++;
+
+    switch (conntable[node].state) {
+    case CLOSED:
+	snprintf(errtxt, sizeof(errtxt), "%s: CLOSED connection.", __func__);
+	errlog(errtxt, 0);
+	break;
+    case SYN_SENT:
+	snprintf(errtxt, sizeof(errtxt), "%s: send SYN again", __func__);
+	errlog(errtxt, 8);
+	sendSYN(node);
+	break;
+    case SYN_RECVD:
+	snprintf(errtxt, sizeof(errtxt), "%s: send SYNACK again", __func__);
+	errlog(errtxt, 0);
+	sendSYNACK(node);
+	break;
+    case ACTIVE:
+	/* First one not sent twice */
+	while (mp) {
+	    snprintf(errtxt, sizeof(errtxt), "%s: %d to node %d",
+		     __func__, mp->msg.small->header.seqno, mp->node);
+	    errlog(errtxt, 14);
+	    mp->tv = tv;
+	    /* update ackinfo */
+	    mp->msg.small->header.ackno = conntable[node].frameExpected-1;
+	    MYsendto(rdpsock, &mp->msg.small->header,
+		     mp->len + sizeof(rdphdr), 0,
+		     (struct sockaddr *)&conntable[node].sin,
+		     sizeof(struct sockaddr));
+	    mp = mp->next;
+	}
+	conntable[node].ackPending = 0;
+	break;
+    default:
+	snprintf(errtxt, sizeof(errtxt), "%s: unknown state %d for node %d",
+		 __func__, conntable[node].state, node);
+	errlog(errtxt, 0);
+    }
+}
+
+/**
+ * @brief Update state machine for a connection.
+ *
+ * @todo
+ * Update state machine for a connection
+ */
+static int updateState(rdphdr *hdr, int node)
 {
     int retval = 0;
     Rconninfo *cp;
-    cp = &conntableRDP[node];
+    cp = &conntable[node];
 
     switch (cp->state) {
     case CLOSED:
@@ -676,7 +1271,7 @@ static int updateStateRDP(rdphdr *hdr, int node)
 		     cp->frameExpected, hdr->seqno, hdr->connid,
 		     cp->ConnID_in);
 	    errlog(errtxt, 8);
-	    closeConnectionRDP(node);
+	    closeConnection(node);
 	    switch (hdr->type) {
 	    case RDP_SYN:
 	    case RDP_SYNNACK:
@@ -707,7 +1302,7 @@ static int updateStateRDP(rdphdr *hdr, int node)
 	} else { /* SYN Packet on OLD Connection (probably lost answers) */
 	    switch (hdr->type) {
 	    case RDP_SYN:
-		closeConnectionRDP(node);
+		closeConnection(node);
 	        cp->state = SYN_RECVD;
 		cp->frameExpected = hdr->seqno; /* Accept new seqno */
 		snprintf(errtxt, sizeof(errtxt),
@@ -724,7 +1319,7 @@ static int updateStateRDP(rdphdr *hdr, int node)
 	break;
     default:
 	snprintf(errtxt, sizeof(errtxt),
-		 "invalid state for node %d in updateStateRDP()", node);
+		 "invalid state for node %d in updateState()", node);
 	errlog(errtxt, 0);
 	break;
     }
@@ -732,52 +1327,20 @@ static int updateStateRDP(rdphdr *hdr, int node)
 }
 
 
-RDPDeadbuf deadbuf;
-
-static void clearMsgQ(int node)
-{
-    Rconninfo *cp;
-    msgbuf *mp;
-    int blocked;
-
-    cp = &conntableRDP[node];
-    mp = cp->bufptr;
-
-    /*
-     * A blocked timer needs to be restored since clearMsgQ() can be called
-     * from within handleTimeoutRDP().
-     */
-    blocked = blockTimer(rdpsock, 1);
-
-    while (mp) { /* still a message there */
-	if (RDPCallback) { /* give msg back to upper layer */
-	    deadbuf.dst = node;
-	    deadbuf.buf = mp->msg.small->data;
-	    deadbuf.buflen = mp->len;
-	    RDPCallback(RDP_PKT_UNDELIVERABLE, &deadbuf);
-	}
-	snprintf(errtxt, sizeof(errtxt), "%s: Dropping msg %x to node %d",
-		 __func__, mp->msg.small->header.seqno, node);
-	errlog(errtxt, 6);
-	if (mp->len > RDP_SMALL_DATA_SIZE) {    /* release msg frame */
-	    free(mp->msg.large);                /* free memory */
-	} else {
-	    putSMsg(mp->msg.small);             /* back to freelist */
-	}
-	deqAck(mp->ackptr);                     /* dequeue ack */
-	cp->bufptr = cp->bufptr->next;          /* remove msgbuf from list */
-	putMsg(mp);                             /* back to freelist */
-	mp = cp->bufptr;                        /* next message */
-    }
-    cp->ackExpected = cp->frameToSend;          /* restore initial setting */
-    cp->window = MAX_WINDOW_SIZE;               /* restore window size */
-
-    /* Restore blocked timer */
-    blockTimer(rdpsock, blocked);
-
-    return;
-}
-
+/**
+ * @brief Resequence message queue of a connection.
+ *
+ * Resequence the message queue of the connection to node @a node, i.e. throw
+ * away undeliverable message (and inform calling process via
+ * @ref RDPCallback()) and resequence all other messages.
+ * This is usually called upon reestablishing a disturbed connection.
+ *
+ * @param node The node number of the connection to be cleared.
+ * @param newExpected The next frame expected from @a node.
+ * @param newSend The number of the next paket to send.
+ *
+ * @return The number of resequenced pakets.
+ */
 static int resequenceMsgQ(int node, int newExpected, int newSend)
 {
     Rconninfo *cp;
@@ -786,7 +1349,7 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
 
     errlog(__func__, 8);
 
-    cp = &conntableRDP[node];
+    cp = &conntable[node];
     mp = cp->bufptr;
 
     callback = !cp->window;
@@ -795,7 +1358,7 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
     cp->frameToSend = newSend;
     cp->ackExpected = newSend;
 
-    blockTimer(rdpsock, 1);
+    Timer_block(timerID, 1);
 
     while (mp) { /* still a message there */
 	if (RSEQCMP(mp->msg.small->header.seqno, newSend) < 0) {
@@ -831,7 +1394,7 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
 	}
     }
 
-    blockTimer(rdpsock, 0);
+    Timer_block(timerID, 0);
 
     if (callback && cp->window && RDPCallback) {
 	RDPCallback(RDP_CAN_CONTINUE, &node);
@@ -840,21 +1403,17 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
     return count;
 }
 
-static void closeConnectionRDP(int node)
-{
-    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, node);
-    errlog(errtxt, 0);
-    clearMsgQ(node);
-    conntableRDP[node].state = CLOSED;
-    conntableRDP[node].ackPending = 0;
-    conntableRDP[node].msgPending = 0;
-    if (RDPCallback) {  /* inform daemon */
-	RDPCallback(RDP_LOST_CONNECTION, &node);
-    }
-    return;
-}
-
-static void handleTimeoutRDP(int fd)
+/**
+ * @brief Timeout handler to be registered in Timer facility.
+ *
+ * Timeout handler called from Timer facility every time @ref RDPTimeout
+ * expires.
+ *
+ * @param fd Descriptor referencing the RDP socket.
+ *
+ * @return No return value.
+ */
+static void handleTimeoutRDP(void)
 {
     ackent *ap;
     msgbuf *mp;
@@ -872,12 +1431,12 @@ static void handleTimeoutRDP(int fd)
 	    break;
 	}
 	node = mp->node;
-	if (mp == conntableRDP[node].bufptr) {
+	if (mp == conntable[node].bufptr) {
 	    /* handle only first outstanding buffer */
 	    gettimeofday(&tv, NULL);
 	    if (timercmp(&mp->tv, &tv, <)) { /* msg has a timeout */
 		/*
-		 * ap may become invalid due to closeConnectionRDP(),
+		 * ap may become invalid due to closeConnection(),
 		 * therefore we store the predecessor.
 		 */
 		ackent *pre = ap->prev;
@@ -885,7 +1444,7 @@ static void handleTimeoutRDP(int fd)
 		resendMsgs(node);
 
 		/*
-		 * If the ap->next was removed due to a closeConnectionRDP()
+		 * If the ap->next was removed due to a closeConnection()
 		 * we now get a valid successor.
 		 */
 		pre = (pre) ? pre->next : AckListHead;
@@ -905,6 +1464,11 @@ static void handleTimeoutRDP(int fd)
     return;
 }
 
+/**
+ * complete ack code
+ *
+ * @todo
+ */
 static void doACK(rdphdr *hdr, int fromnode)
 {
     Rconninfo *cp;
@@ -914,7 +1478,7 @@ static void doACK(rdphdr *hdr, int fromnode)
     if ((hdr->type == RDP_SYN) || (hdr->type == RDP_SYNACK)) return;
     /* these packets are used for initialization only */
 
-    cp = &conntableRDP[fromnode];
+    cp = &conntable[fromnode];
     mp = cp->bufptr;
 
     callback = !cp->window;
@@ -947,7 +1511,7 @@ static void doACK(rdphdr *hdr, int fromnode)
 	}
     }
 
-    blockTimer(rdpsock, 1);
+    Timer_block(timerID, 1);
 
     while (mp) {
 	snprintf(errtxt, sizeof(errtxt), "Comparing seqno %d with %d",
@@ -984,7 +1548,7 @@ static void doACK(rdphdr *hdr, int fromnode)
 	}
     }
 
-    blockTimer(rdpsock, 0);
+    Timer_block(timerID, 0);
 
     if (callback && cp->window && RDPCallback) {
 	RDPCallback(RDP_CAN_CONTINUE, &fromnode);
@@ -993,88 +1557,18 @@ static void doACK(rdphdr *hdr, int fromnode)
     return;
 }
 
-static void resendMsgs(int node)
-{
-    msgbuf *mp;
-    struct timeval tv;
-
-    mp = conntableRDP[node].bufptr;
-    if (!mp) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: no pending messages", __func__);
-	errlog(errtxt, 1);
-
-	return;
-    }
-
-    gettimeofday(&tv, NULL);
-
-    if (timercmp(&mp->tv, &tv, >=)) { /* msg has no timeout */
-	return;
-    }
-
-    timeradd(&tv, &RESEND_TIMEOUT, &tv);
-
-    if (mp->retrans > RDPMaxRetransCount) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: Retransmission count exceeds limit"
-		 " [seqno=%x], closing connection to node %d",
-		 __func__, mp->msg.small->header.seqno, node);
-	errlog(errtxt, 0);
-	closeConnectionRDP(node);
-	return;
-    }
-
-    mp->tv = tv;
-    mp->retrans++;
-
-    switch (conntableRDP[node].state) {
-    case CLOSED:
-	snprintf(errtxt, sizeof(errtxt), "%s: CLOSED connection.", __func__);
-	errlog(errtxt, 0);
-	break;
-    case SYN_SENT:
-	snprintf(errtxt, sizeof(errtxt), "%s: send SYN again", __func__);
-	errlog(errtxt, 8);
-	sendSYN(node);
-	break;
-    case SYN_RECVD:
-	snprintf(errtxt, sizeof(errtxt), "%s: send SYNACK again", __func__);
-	errlog(errtxt, 0);
-	sendSYNACK(node);
-	break;
-    case ACTIVE:
-	/* First one not sent twice */
-	while (mp) {
-	    snprintf(errtxt, sizeof(errtxt), "%s: %d to node %d",
-		     __func__, mp->msg.small->header.seqno, mp->node);
-	    errlog(errtxt, 14);
-	    mp->tv = tv;
-	    /* update ackinfo */
-	    mp->msg.small->header.ackno = conntableRDP[node].frameExpected-1;
-	    MYsendto(rdpsock, &mp->msg.small->header,
-		     mp->len + sizeof(rdphdr), 0,
-		     (struct sockaddr *)&conntableRDP[node].sin,
-		     sizeof(struct sockaddr));
-	    mp = mp->next;
-	}
-	conntableRDP[node].ackPending = 0;
-	break;
-    default:
-	snprintf(errtxt, sizeof(errtxt), "%s: unknown state %d for node %d",
-		 __func__, conntableRDP[node].state, node);
-	errlog(errtxt, 0);
-    }
-}
-
+/**
+ *
+ * @todo
+ */
 static void handleControlPacket(rdphdr *hdr, int node)
 {
     switch (hdr->type) {
     case RDP_ACK:
 	snprintf(errtxt, sizeof(errtxt), "got ACK from node %d", node);
 	errlog(errtxt, 14);
-	if (conntableRDP[node].state != ACTIVE) {
-	    updateStateRDP(hdr, node);
+	if (conntable[node].state != ACTIVE) {
+	    updateState(hdr, node);
 	} else {
 	    doACK(hdr, node);
 	}
@@ -1088,19 +1582,19 @@ static void handleControlPacket(rdphdr *hdr, int node)
     case RDP_SYN:
 	snprintf(errtxt, sizeof(errtxt), "got SYN from node %d", node);
 	errlog(errtxt, 8);
-	updateStateRDP(hdr, node);
+	updateState(hdr, node);
 	break;
     case RDP_SYNACK:
 	snprintf(errtxt, sizeof(errtxt), "got SYNACK from node %d", node);
 	errlog(errtxt, 8);
-	updateStateRDP(hdr, node);
+	updateState(hdr, node);
 	break;
     case RDP_SYNNACK:
 	snprintf(errtxt, sizeof(errtxt), "got SYNNACK from node %d", node);
 	errlog(errtxt, 8);
-	conntableRDP[node].msgPending =
+	conntable[node].msgPending =
 	    resequenceMsgQ(node, hdr->seqno, hdr->ackno);
-	updateStateRDP(hdr, node);
+	updateState(hdr, node);
 	break;
     default:
 	errlog("handleControlPacket: deleting unknown msg", 0);
@@ -1109,6 +1603,10 @@ static void handleControlPacket(rdphdr *hdr, int node)
     return;
 }
 
+/**
+ *
+ * @todo
+ */
 static int handleErr(void)
 {
 #if defined(__linux__)
@@ -1211,7 +1709,7 @@ static int handleErr(void)
 		 "%s: CONNREFUSED from node %d (%s) port %d", __func__,
 		 node, inet_ntoa(sinp->sin_addr), ntohs(sinp->sin_port));
 	errlog(errtxt, 0);
-	closeConnectionRDP(node);
+	closeConnection(node);
 	break;
     case EHOSTUNREACH:
 	snprintf(errtxt, sizeof(errtxt),
@@ -1230,7 +1728,20 @@ static int handleErr(void)
     return 0;
 }
 
-int handleRDP(int fd)
+/**
+ * @brief Handle RDP message.
+ *
+ * Peek into a RDP message pending on @a fd. If it is a DATA message,
+ * @todo
+ * such that one get's a overview over the state of the cluster.
+ *
+ * @param fd The file-descriptor from which the ping message is read.
+ *
+ * @return On success, 0 is returned, or -1 if an error occurred.
+ *
+ * select call which handles RDP packets
+ */
+static int handleRDP(int fd)
 {
     Lmsg msg;
     struct sockaddr_in sin;
@@ -1296,7 +1807,7 @@ int handleRDP(int fd)
     }
 
     /* Check DATA_MSG for Retransmissions */
-    if (RSEQCMP(msg.header.seqno, conntableRDP[fromnode].frameExpected)) {
+    if (RSEQCMP(msg.header.seqno, conntable[fromnode].frameExpected)) {
 	/* Wrong seq */
 	slen = sizeof(sin);
 	if (MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
@@ -1308,7 +1819,7 @@ int handleRDP(int fd)
 	snprintf(errtxt, sizeof(errtxt),
 		 "%s: Check DATA from %d (seq=%x, FE=%x)",
 		 __func__, fromnode, msg.header.seqno,
-		 conntableRDP[fromnode].frameExpected);
+		 conntable[fromnode].frameExpected);
 	errlog(errtxt, 6);
 
 	doACK(&msg.header, fromnode);
@@ -1319,6 +1830,16 @@ int handleRDP(int fd)
     return 1;
 }
 
+/**
+ * @brief Create string from @ref RDPState.
+ *
+ * Create a \\0-terminated string from RDPState @a state.
+ *
+ * @param state The @ref RDPState for which the name is requested.
+ *
+ * @return Returns a pointer to a \\0-terminated string containing the
+ * symbolic name of the @ref RDPState @a state.
+ */
 static char *stateStringRDP(RDPState state)
 {
     switch (state) {
@@ -1347,10 +1868,6 @@ int initRDP(int nodes, unsigned short portno, int usesyslog,
 {
     initErrLog("RDP", usesyslog);
 
-    if (!isInitializedTimer()) {
-        initTimer(usesyslog);
-    }
-
     RDPCallback = callback;
     nrOfNodes = nodes;
 
@@ -1367,16 +1884,24 @@ int initRDP(int nodes, unsigned short portno, int usesyslog,
 
     initConntable(nodes, hosts, htons(portno));
 
+    if (!Selector_isInitialized()) {
+	Selector_init(usesyslog);
+    }
     rdpsock = initSockRDP(htons(portno), 0);
+    Selector_register(rdpsock, handleRDP);
 
-    registerTimer(rdpsock, &RDPTimeout, handleTimeoutRDP, handleRDP);
+    if (!Timer_isInitialized()) {
+	Timer_init(usesyslog);
+    }
+    timerID = Timer_register(&RDPTimeout, handleTimeoutRDP);
 
     return rdpsock;
 }
 
 void exitRDP(void)
 {
-    removeTimer(rdpsock);          /* stop interval timer */
+    Selector_remove(rdpsock);      /* deregister selector */
+    Timer_remove(timerID);         /* stop interval timer */
     close(rdpsock);                /* close RDP socket */
 }
 
@@ -1426,7 +1951,7 @@ int Rsendto(int node, void *buf, size_t len)
 	return -1;
     }
 
-    if (conntableRDP[node].window == 0) {
+    if (conntable[node].window == 0) {
 	/* transmission window full */
 	snprintf(errtxt, sizeof(errtxt), "%s: window to node %d full",
 		 __func__, node);
@@ -1443,17 +1968,17 @@ int Rsendto(int node, void *buf, size_t len)
 	return -1;
     }
 
-    blockTimer(rdpsock, 1);
+    Timer_block(timerID, 1);
 
     /* setup msg buffer */
-    mp = conntableRDP[node].bufptr;
+    mp = conntable[node].bufptr;
     if (mp) {
 	while (mp->next != NULL) mp = mp->next; /* search tail */
 	mp->next = getMsg();
 	mp = mp->next;
     } else {
 	mp = getMsg();
-	conntableRDP[node].bufptr = mp; /* bufptr was empty */
+	conntable[node].bufptr = mp; /* bufptr was empty */
     }
 
     if (len <= RDP_SMALL_DATA_SIZE) {
@@ -1473,26 +1998,26 @@ int Rsendto(int node, void *buf, size_t len)
     mp->msg.small->header.type = RDP_DATA;
     mp->msg.small->header.len = len;
     mp->msg.small->header.seqno =
-	conntableRDP[node].frameToSend + conntableRDP[node].msgPending;
-    mp->msg.small->header.ackno = conntableRDP[node].frameExpected-1;
-    mp->msg.small->header.connid = conntableRDP[node].ConnID_out;
-    conntableRDP[node].ackPending = 0;
+	conntable[node].frameToSend + conntable[node].msgPending;
+    mp->msg.small->header.ackno = conntable[node].frameExpected-1;
+    mp->msg.small->header.connid = conntable[node].ConnID_out;
+    conntable[node].ackPending = 0;
 
     /* copy msg data */
     memcpy(mp->msg.small->data, buf, len);
 
-    blockTimer(rdpsock, 0);
+    Timer_block(timerID, 0);
 
-    switch (conntableRDP[node].state) {
+    switch (conntable[node].state) {
     case CLOSED:
-	conntableRDP[node].state = SYN_SENT;
+	conntable[node].state = SYN_SENT;
     case SYN_SENT:
 	snprintf(errtxt, sizeof(errtxt), "%s: no connection to %d yet",
 		 __func__, node);
 	errlog(errtxt, 8);
 
 	sendSYN(node);
-	conntableRDP[node].msgPending++;
+	conntable[node].msgPending++;
 
 	retval = len + sizeof(rdphdr);
 	break;
@@ -1502,7 +2027,7 @@ int Rsendto(int node, void *buf, size_t len)
 	errlog(errtxt, 8);
 
 	sendSYNACK(node);
-	conntableRDP[node].msgPending++;
+	conntable[node].msgPending++;
 
 	retval = len + sizeof(rdphdr);
 	break;
@@ -1511,28 +2036,28 @@ int Rsendto(int node, void *buf, size_t len)
 	/* send the data */
 	snprintf(errtxt, sizeof(errtxt),
 		 "%s: sending DATA[len=%ld] to node %d (seq=%x, ack=%x)",
-		 __func__, (long) len, node, conntableRDP[node].frameToSend,
-		 conntableRDP[node].frameExpected);
+		 __func__, (long) len, node, conntable[node].frameToSend,
+		 conntable[node].frameExpected);
 	errlog(errtxt, 12);
 
 	retval = MYsendto(rdpsock, &mp->msg.small->header,
 			  len + sizeof(rdphdr), 0,
-			  (struct sockaddr *)&conntableRDP[node].sin,
+			  (struct sockaddr *)&conntable[node].sin,
 			  sizeof(struct sockaddr));
 
-	conntableRDP[node].frameToSend++;
+	conntable[node].frameToSend++;
 
 	break;
     default:
 	snprintf(errtxt, sizeof(errtxt), "%s: unknown state %d for node %d",
-		 __func__, conntableRDP[node].state, node);
+		 __func__, conntable[node].state, node);
 	errlog(errtxt, 0);
     }
 
     /*
      * update counter
      */
-    conntableRDP[node].window--;
+    conntable[node].window--;
 
     if (retval==-1) {
 	snprintf(errtxt, sizeof(errtxt), "%s: return %d [%s]",
@@ -1567,7 +2092,7 @@ int Rrecvfrom(int *node, void *msg, size_t len)
 	errno = EINVAL;
 	return -1;
     }
-    if ((*node != -1) && (conntableRDP[*node].state != ACTIVE)) {
+    if ((*node != -1) && (conntable[*node].state != ACTIVE)) {
 	/* connection not established */
 	snprintf(errtxt, sizeof(errtxt), "%s: node %d NOT ACTIVE",
 		 __func__, *node);
@@ -1599,34 +2124,34 @@ int Rrecvfrom(int *node, void *msg, size_t len)
 	     __func__, fromnode, msgbuf.header.seqno, msgbuf.header.ackno);
     errlog(errtxt, 12);
 
-    switch (conntableRDP[fromnode].state) {
+    switch (conntable[fromnode].state) {
     case CLOSED:
     case SYN_SENT:
-	updateStateRDP(&msgbuf.header, fromnode);
+	updateState(&msgbuf.header, fromnode);
 	*node = -1;
 	errno = EAGAIN;
 	return -1;
 	break;
     case SYN_RECVD:
-	updateStateRDP(&msgbuf.header, fromnode);
+	updateState(&msgbuf.header, fromnode);
 	break;
     case ACTIVE:
 	break;
     default:
 	snprintf(errtxt, sizeof(errtxt), "%s: unknown state %d for node %d",
-		 __func__, conntableRDP[fromnode].state, fromnode);
+		 __func__, conntable[fromnode].state, fromnode);
 	errlog(errtxt, 0);
     }
 
     doACK(&msgbuf.header, fromnode);
-    if (conntableRDP[fromnode].frameExpected == msgbuf.header.seqno) {
+    if (conntable[fromnode].frameExpected == msgbuf.header.seqno) {
 	/* msg is good */
-	conntableRDP[fromnode].frameExpected++;  /* update seqno counter */
+	conntable[fromnode].frameExpected++;  /* update seqno counter */
 	snprintf(errtxt, sizeof(errtxt), "%s: INC FE for node %d to %x",
-		 __func__, fromnode, conntableRDP[fromnode].frameExpected);
+		 __func__, fromnode, conntable[fromnode].frameExpected);
 	errlog(errtxt, 12);
-	conntableRDP[fromnode].ackPending++;
-	if (conntableRDP[fromnode].ackPending >= MAX_ACK_PENDING) {
+	conntable[fromnode].ackPending++;
+	if (conntable[fromnode].ackPending >= MAX_ACK_PENDING) {
 	    sendACK(fromnode);
 	}
 
@@ -1653,10 +2178,10 @@ void getStateInfoRDP(int node, char *s, size_t len)
 {
     snprintf(s, len, "%3d [%s]: ID[%08x|%08x] FTS=%08x AE=%08x FE=%08x"
 	     " AP=%3d MP=%3d Bptr=%p",
-	     node, stateStringRDP(conntableRDP[node].state),
-	     conntableRDP[node].ConnID_in,     conntableRDP[node].ConnID_out,
-	     conntableRDP[node].frameToSend,   conntableRDP[node].ackExpected,
-	     conntableRDP[node].frameExpected, conntableRDP[node].ackPending,
-	     conntableRDP[node].msgPending,    conntableRDP[node].bufptr);
+	     node, stateStringRDP(conntable[node].state),
+	     conntable[node].ConnID_in,     conntable[node].ConnID_out,
+	     conntable[node].frameToSend,   conntable[node].ackExpected,
+	     conntable[node].frameExpected, conntable[node].ackPending,
+	     conntable[node].msgPending,    conntable[node].bufptr);
     return;
 }
