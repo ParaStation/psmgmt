@@ -1,7 +1,7 @@
 /*
  *
  *
- *      $Id: pshal.h,v 1.14 2001/08/23 12:40:33 hauke Exp $	
+ *      $Id: pshal.h,v 1.15 2001/08/31 13:42:46 hauke Exp $	
  *
  *      written by Jens Hauke
  *
@@ -340,7 +340,7 @@ extern char * pshal_default_mcp;
 
 
 /*------------------------------------------------------------------------------
- * void PSHALStartUp(int syslogerror)
+ * int PSHALStartUp(int syslogerror)
  */
 /**
  * Open PSM device.
@@ -350,6 +350,16 @@ extern char * pshal_default_mcp;
  * Open PSM device. This function initialize PSHAL and should called first.
  */
 int PSHALStartUp(int syslogerror);
+
+
+/*------------------------------------------------------------------------------
+ * void PSHALCleanup(int syslogerror)
+ */
+/**
+ * Close PSM device.
+ *
+ */
+void PSHALCleanup(void);
 
 
 /*------------------------------------------------------------------------------
