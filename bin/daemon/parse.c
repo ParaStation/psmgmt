@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: parse.c,v 1.14 2002/02/15 19:35:25 eicker Exp $
+ * $Id: parse.c,v 1.15 2002/04/24 13:18:14 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: parse.c,v 1.14 2002/02/15 19:35:25 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: parse.c,v 1.15 2002/04/24 13:18:14 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -207,7 +207,7 @@ int parseConfig(int syslogreq)
     /*
      * Set MyId to my own ID (needed for installhost())
      */
-    gethostname(myname,255);
+    gethostname(myname, sizeof(myname));
     MyId = getIP(myname);
     if(!Configfile){
 	char *tmpnam;
