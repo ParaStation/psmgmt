@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: errlog.h,v 1.2 2002/01/30 18:25:57 eicker Exp $
+ * $Id: errlog.h,v 1.3 2002/04/30 17:38:42 eicker Exp $
  *
  */
 /**
  * \file
  * ParaStation ErrLog facility used within MCast and RDP.
  *
- * $Id: errlog.h,v 1.2 2002/01/30 18:25:57 eicker Exp $
+ * $Id: errlog.h,v 1.3 2002/04/30 17:38:42 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -27,6 +27,9 @@ extern "C" {
 } /* <- just for emacs indentation */
 #endif
 #endif
+
+#include <stdio.h>
+#include <syslog.h>
 
 /** Flag whether to use syslog. Set via initErrLog(). */
 static int syslogErrLog = 1;
