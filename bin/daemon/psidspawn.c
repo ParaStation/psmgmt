@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidspawn.c,v 1.18 2004/01/28 17:59:43 eicker Exp $
+ * $Id: psidspawn.c,v 1.19 2004/04/29 11:02:12 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.18 2004/01/28 17:59:43 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.19 2004/04/29 11:02:12 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -18,6 +18,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.18 2004/01/
 #include <errno.h>
 #include <fcntl.h>
 #include <pwd.h>
+#include <grp.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
@@ -146,6 +147,9 @@ static int execClient(PStask_t *task, int controlchannel)
 	write(controlchannel, &errno, sizeof(errno));
 	exit(0);
     }
+
+    /* remove psid's group memberships */
+    setgroups(0, NULL);
 
     /* change the uid */
     if (setuid(task->uid)<0) {
