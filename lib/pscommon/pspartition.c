@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pspartition.c,v 1.4 2004/01/28 13:59:49 eicker Exp $
+ * $Id: pspartition.c,v 1.5 2004/03/11 14:18:15 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pspartition.c,v 1.4 2004/01/28 13:59:49 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pspartition.c,v 1.5 2004/03/11 14:18:15 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -48,7 +48,9 @@ void PSpart_initReq(PSpart_request_t *request)
 	.num = -1,
 	.numGot = -1,
 	.nodes = NULL,
-	.deleted = 0, };
+	.deleted = 0,
+	.suspended = 0,
+	.freed = 0, };
 }
 
 void PSpart_reinitReq(PSpart_request_t *request)

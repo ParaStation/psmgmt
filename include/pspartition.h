@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pspartition.h,v 1.5 2004/01/28 10:45:09 eicker Exp $
+ * $Id: pspartition.h,v 1.6 2004/03/11 14:18:15 eicker Exp $
  *
  */
 /**
  * @file
  * Basic enumerations for partition creation and reservation.
  *
- * $Id: pspartition.h,v 1.5 2004/01/28 10:45:09 eicker Exp $
+ * $Id: pspartition.h,v 1.6 2004/03/11 14:18:15 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -76,6 +76,8 @@ typedef struct request{
     int numGot;                    /**< Number of nodes currently received */
     PSnodes_ID_t *nodes;           /**< List of partition candidates */
     char deleted;                  /**< Flag to mark request for deletion */
+    char suspended;                /**< Corresponding task is suspended */
+    char freed;                    /**< Resources are freed temporarily */
 } PSpart_request_t;
 
 /**
