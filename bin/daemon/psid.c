@@ -2526,9 +2526,6 @@ void sighandler(int sig)
 #ifdef SIGIO
     case  SIGIO     : /* (+) I/O possible, or completed */
 #endif
-#ifdef SIGPWR
-    case  SIGPWR    : /* Power Fail/Restart -- SVID3/SVR4 */
-#endif
     case  SIGTTIN   : /* (@) background read attempted from control terminal*/
     case  SIGTTOU   : /* (@) background write attempted to control terminal */
     case  SIGXCPU   : /* cpu time limit exceeded (see setrlimit()) */
