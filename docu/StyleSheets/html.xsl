@@ -7,6 +7,46 @@
 
   <xsl:param name="shade.verbatim" select="1"/>
 
+  <xsl:param name="generate.toc">
+    book      toc,title
+  </xsl:param>
+   
+  <xsl:template name="book.titlepage.recto">
+    <xsl:apply-templates mode="book.titlepage.recto.auto.mode" select="title"/>
+
+    <xsl:apply-templates
+      mode="book.titlepage.recto.auto.mode" select="bookinfo/releaseinfo"/>
+    <xsl:apply-templates
+      mode="book.titlepage.recto.auto.mode" select="bookinfo/pubdate"/>
+    <xsl:apply-templates
+      mode="book.titlepage.recto.auto.mode" select="bookinfo/copyright"/>
+    <xsl:apply-templates
+      mode="book.titlepage.recto.auto.mode" select="bookinfo/legalnotice"/>
+    <xsl:apply-templates
+      mode="book.titlepage.recto.auto.mode" select="bookinfo/revision"/>
+    <xsl:apply-templates
+      mode="book.titlepage.recto.auto.mode" select="bookinfo/abstract"/>
+  </xsl:template>
+
+  <xsl:template match="abstract" mode="titlepage.mode">
+    <div class="{name(.)}">
+      <xsl:call-template name="anchor"/>
+      <xsl:apply-templates mode="titlepage.mode"/>
+    </div>
+  </xsl:template>
+
+  <xsl:template match="book" mode="object.title.markup">
+    <xsl:param name="allow-anchors" select="0"/>
+    <xsl:variable name="template">
+      <xsl:apply-templates select="." mode="object.title.template"/>
+    </xsl:variable>
+
+    <xsl:call-template name="substitute-markup">
+      <xsl:with-param name="allow-anchors" select="$allow-anchors"/>
+      <xsl:with-param name="template" select="titleabbrev"/>
+    </xsl:call-template>
+  </xsl:template>
+
   <!-- ************** Modifications to html/synop.xsl *********** -->
   <!-- Display commands in bold style, no newline after command -->
   <xsl:template match="cmdsynopsis/command">
