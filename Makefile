@@ -63,7 +63,7 @@ mcpdep:
 mcpclean:
 	make -C $(MCPDIR) clean
 
-tools:
+tools:	FORCE
 	make -C $(TOOLDIR) tools
 
 dep:
