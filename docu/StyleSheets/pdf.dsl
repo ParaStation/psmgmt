@@ -61,6 +61,10 @@
   ;; Which Lists of Titles should be produced for Books?
   (list ))
 
+(define ($object-titles-after$)
+  ;; List of objects who's titles go after the object
+  (list (normalize "figure")))
+
 (define %footer-margin% 
   ;; Height of footer margin
   6pi)
