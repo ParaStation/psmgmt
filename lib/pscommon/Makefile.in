@@ -21,4 +21,4 @@ clean:
 	$(RM) $(PSCOMMONDEPS) $(PSCOMMONOBJS) 
 
 
--include $(PUTILDEPS)
+-include $(PSCOMMONDEPS)
