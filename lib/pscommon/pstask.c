@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.c,v 1.13 2003/07/22 18:34:36 eicker Exp $
+ * $Id: pstask.c,v 1.14 2003/09/12 14:01:29 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.13 2003/07/22 18:34:36 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.14 2003/09/12 14:01:29 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -73,6 +73,11 @@ int PStask_init(PStask_t *task)
 
     task->childs = NULL;
 
+    task->partitionSize = 0;
+    task->options = 0;
+    task->partition = NULL;
+    task->nextRank = -1;
+
     task->signalSender = NULL;
     task->signalReceiver = NULL;
     task->assignedSigs = NULL;
@@ -109,6 +114,8 @@ int PStask_reinit(PStask_t *task)
 	task->childs = thissignal->next;
 	free(thissignal);
     }
+
+    if (task->partition) free(task->partition);
 
     while (task->signalSender) {
 	PStask_sig_t *thissignal = task->signalSender;
@@ -212,6 +219,13 @@ PStask_t *PStask_clone(PStask_t *task)
 
     clone->childs = cloneSigList(task->childs);
 
+    clone->partitionSize = task->partitionSize;
+    clone->options = task->options;
+    clone->partition = malloc(clone->partitionSize * sizeof(short));
+    memcpy(clone->partition, task->partition,
+	   clone->partitionSize * sizeof(short));
+    clone->nextRank = task->nextRank;
+ 
     clone->signalSender = cloneSigList(task->signalSender);
     clone->signalReceiver = cloneSigList(task->signalReceiver);
     clone->assignedSigs = cloneSigList(task->assignedSigs);
