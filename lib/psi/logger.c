@@ -76,7 +76,7 @@ void LOGGERspawnforwarder(unsigned int logger_node, int logger_port)
      */
     if((pid = fork())==0){
 	/*
-	 *   L O G G E R 
+	 *   F O R W A R D E R 
 	 */
 	int i;
 	char* argv[7];
@@ -156,6 +156,8 @@ void LOGGERspawnforwarder(unsigned int logger_node, int logger_port)
     close(stderrfds[1]);
 }
 
+static int listenport = -1;
+
 /*********************************************************************
  * int LOGGERspawnlogger()
  *
@@ -164,39 +166,12 @@ void LOGGERspawnforwarder(unsigned int logger_node, int logger_port)
  */
 int LOGGERspawnlogger(void)
 {
-    int portno, listenport;
-    struct sockaddr_in sa;	/* socket address */ 
-    int err;                    /* error code while binding */
+    unsigned short portno;
 
     /*
      * create a port for the logger to listen to.
      */
-    portno = 20000;
-
-    if((listenport = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP))<0){
-	perror("LOGGERspawnlogger: can't create socket:");
-	exit(1);
-    }
-    memset(&sa, 0, sizeof(sa)); 
-    sa.sin_family = AF_INET;
-    sa.sin_addr.s_addr = INADDR_ANY;
-
-    sa.sin_port = htons(portno); 
-
-    while(((err = bind(listenport, (struct sockaddr *)&sa, sizeof(sa)))<0)
-	  &&(errno == EADDRINUSE)){
-	sa.sin_port = htons(ntohs(sa.sin_port)-1); 
-    }
-    if(err <0){
-	perror("LOGGERspawnlogger: can't bind socket:");
-	exit(1);
-    }
-
-    if(listen(listenport, 256)<0){
-	perror("LOGGERspawnlogger: can't listen to socket:");
-	exit(1);
-    }
-    portno = ntohs(sa.sin_port);
+    portno = LOGGERopenPort();
 
     /* 
      * fork to logger
@@ -205,34 +180,7 @@ int LOGGERspawnlogger(void)
 	/*
 	 *   L O G G E R 
 	 */
-	int i;
-	char* argv[3];
-	char *errtxt;
-	/*
-	 * close all open filedesciptor except my std* and the LOGGERSOCK
-	 */
-	for(i=1; i<FD_SETSIZE; i++)
-	    if(i != listenport && i != STDOUT_FILENO && i != STDERR_FILENO)
-		close(i);
-
-	argv[0] = (char*)malloc(strlen(PSI_LookupInstalldir()) + 20);
-	sprintf(argv[0],"%s/bin/psilogger", PSI_LookupInstalldir());
-	argv[1] = (char*)malloc(10);
-	sprintf(argv[1],"%d", listenport);
-	argv[2] = NULL;
-
-	LOGGERexecv(argv[0], argv);
-
-	/* usually never reached, but if execv fails try to do the logging 
-	   inside this program
-	*/
-	close(listenport);
-
-	errtxt = strerror(errno);
-	syslog(LOG_ERR, "LOGGERspawnlogger(execv): %s [%d] %s", argv[0],
-	       errno, errtxt?errtxt:"UNKNOWN");
-	perror("execv()");
-	exit(1);
+	LOGGERexecLogger();
     }
     /*
      * P A R E N T 
@@ -243,4 +191,96 @@ int LOGGERspawnlogger(void)
     close(listenport);
 
     return portno;
+}
+
+/*********************************************************************
+ * int LOGGERopenPort()
+ *
+ * open the logger port.
+ * RETURN the portno of the logger
+ */
+unsigned short LOGGERopenPort(void)
+{
+    unsigned short defaultPortNo = 20000;
+    struct sockaddr_in sa;	/* socket address */ 
+    int err;                    /* error code while binding */
+
+    /*
+     * create a port for the logger to listen to.
+     */
+    if((listenport = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP))<0){
+	perror("LOGGERopenPort: can't create socket:");
+	exit(1);
+    }
+    memset(&sa, 0, sizeof(sa)); 
+    sa.sin_family = AF_INET;
+    sa.sin_addr.s_addr = INADDR_ANY;
+    sa.sin_port = htons(defaultPortNo); 
+
+    while(((err = bind(listenport, (struct sockaddr *)&sa, sizeof(sa)))<0)
+	  &&(errno == EADDRINUSE)){
+	sa.sin_port = htons(ntohs(sa.sin_port)-1); 
+    }
+    if(err <0){
+	perror("LOGGERopenPort: can't bind socket:");
+	exit(1);
+    }
+
+    if(listen(listenport, 256)<0){
+	perror("LOGGERopenPort: can't listen to socket:");
+	exit(1);
+    }
+
+    return ntohs(sa.sin_port);
+}
+
+/**
+ * void LOGGERexecLogger()
+ *
+ * @param portno The previously opened port the logger should listen on.
+ *
+ * spawns a logger.
+ * @return No return value.
+ *
+ * @see LOGGERopenPort()
+ */
+void LOGGERexecLogger(void)
+{
+    int i;
+    char* argv[4];
+    char *errtxt;
+    /*
+     * close all open filedesciptor except my std* and the LOGGERSOCK
+     */
+    for (i=1; i<FD_SETSIZE; i++) {
+	if(i != listenport && i != PSI_msock
+	   && i != STDOUT_FILENO && i != STDERR_FILENO)
+	if (i != listenport) {
+	    close(i);
+	}
+    }
+
+    argv[0] = (char*)malloc(strlen(PSI_LookupInstalldir()) + 20);
+    sprintf(argv[0],"%s/bin/psilogger", PSI_LookupInstalldir());
+    argv[1] = (char*)malloc(10);
+    sprintf(argv[1],"%d", listenport);
+    argv[2] = (char*)malloc(10);
+    sprintf(argv[2],"%d", PSI_msock);
+    argv[3] = NULL;
+
+    LOGGERexecv(argv[0], argv);
+
+    /*
+     * Usually never reached, but if execv() fails just exit. This should
+     * also shutdown all spawned processes.
+     */
+    close(PSI_msock);
+    close(listenport);
+
+    errtxt = strerror(errno);
+    syslog(LOG_ERR, "LOGGERexecLogger(execv): %s [%d] %s", argv[0],
+	   errno, errtxt?errtxt:"UNKNOWN");
+    perror("execv()");
+
+    exit(1);
 }

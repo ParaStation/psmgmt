@@ -1,8 +1,34 @@
+/*
+ *               ParaStation3
+ * logger.h
+ *
+ * Copyright (C) ParTec AG Karlsruhe
+ * All rights reserved.
+ *
+ * $Id: logger.h,v 1.5 2002/02/08 10:22:44 eicker Exp $
+ *
+ */
+/**
+ * @file
+ * User-functions for interaction with the ParaStation Logger.
+ *
+ * $Id: logger.h,v 1.5 2002/02/08 10:22:44 eicker Exp $
+ *
+ * @author
+ * Norbert Eicker <eicker@par-tec.com>
+ *
+ */
 #ifndef __LOGGER_H__
 #define __LOGGER_H__
 
 #include <sys/types.h>
-#include "psitask.h"
+
+#ifdef __cplusplus
+extern "C" {
+#if 0
+} /* <- just for emacs indentation */
+#endif
+#endif
 
 extern pid_t logger_pid;
 
@@ -33,4 +59,12 @@ void LOGGERspawnforwarder(unsigned int logger_node, int logger_port);
  */
 int LOGGERspawnlogger(void);
 
+unsigned short LOGGERopenPort(void);
+
+void LOGGERexecLogger(void);
+
+#ifdef __cplusplus
+}/* extern "C" */
 #endif
+
+#endif /* __LOGGER_H */
