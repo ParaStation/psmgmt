@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: timer.c,v 1.6 2002/02/11 12:58:51 eicker Exp $
+ * $Id: timer.c,v 1.7 2002/03/26 13:33:19 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: timer.c,v 1.6 2002/02/11 12:58:51 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: timer.c,v 1.7 2002/03/26 13:33:19 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -411,7 +411,7 @@ int Tselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	} else {
 	    timer->requested = 0;
 	}
-	if (timer->fd >= n) n = timer->fd;
+	if (timer->fd >= n) n = timer->fd + 1;
 	timer = timer->next;
     }
 
@@ -456,6 +456,7 @@ int Tselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 			 "%s: select returns %d, eno=%d[%s]",
 			 __func__, retval, errno, strerror(errno));
 		errlog(errtxt, 0);
+		break;
 	    }
 	}
 
@@ -463,22 +464,24 @@ int Tselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	while (timer) {
 	    if ((retval>0) && FD_ISSET(timer->fd, &rfds)) {
 		/* Got message on fd */
-		int ret;
-		switch ((ret=timer->selectHandler(timer->fd))) {
-		case -1:
-		    retval = -1;
-		    break;
-		case 0:
-		    retval--;
-		    FD_CLR(timer->fd, &rfds);
-		    break;
-		case 1:
-		    break;
-		default:
-		    snprintf(errtxt, sizeof(errtxt),
-			     "%s: selectHander for fd=%d returns %d",
-			     __func__, timer->fd, ret);
-		    errlog(errtxt, 0);
+		if (timer->selectHandler) {
+		    int ret;
+		    switch ((ret=timer->selectHandler(timer->fd))) {
+		    case -1:
+			retval = -1;
+			break;
+		    case 0:
+			retval--;
+			FD_CLR(timer->fd, &rfds);
+			break;
+		    case 1:
+			break;
+		    default:
+			snprintf(errtxt, sizeof(errtxt),
+				 "%s: selectHander for fd=%d returns %d",
+				 __func__, timer->fd, ret);
+			errlog(errtxt, 0);
+		    }
 		}
 	    }
 	    timer = timer->next;
