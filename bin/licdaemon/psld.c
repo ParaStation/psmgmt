@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psld.c,v 1.29 2002/08/07 09:31:28 eicker Exp $
+ * $Id: psld.c,v 1.30 2002/08/07 11:31:46 eicker Exp $
  *
  */
 /**
  * \file
  * psld: ParaStation License Daemon
  *
- * $Id: psld.c,v 1.29 2002/08/07 09:31:28 eicker Exp $
+ * $Id: psld.c,v 1.30 2002/08/07 11:31:46 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.29 2002/08/07 09:31:28 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psld.c,v 1.30 2002/08/07 11:31:46 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -268,7 +268,7 @@ void MCastCallBack(int msgid, void *buf)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.29 $";
+    char revision[] = "$Revision: 1.30 $";
     snprintf(errtxt, sizeof(errtxt), "psld %s\b ", revision+11);
     errlog(errtxt, 0);
 }
@@ -303,6 +303,11 @@ int main(int argc, const char *argv[])
     optCon = poptGetContext(NULL, argc, argv, optionsTable, 0);
     rc = poptGetNextOpt(optCon);
 
+    if (version) {
+	printVersion();
+	return 0;
+    }
+
     if (verbose) {
 	loglevel = 10;
 	setErrLogLevel(1);
@@ -315,23 +320,21 @@ int main(int argc, const char *argv[])
 	setDebugLevelMCast(10);
     }
 
-    if (!debug) {
+    if (debug) {
+	initErrLog("psld", 0);
+    } else {
 	openlog("psld", LOG_PID, LOG_DAEMON);
-    }
-    initErrLog("psld", !debug);
-
-    if (version) {
-	printVersion();
-	return 0;
+	initErrLog(NULL, 1);
     }
 
     if (rc < -1) {
 	/* an error occurred during option processing */
 	poptPrintUsage(optCon, stderr, 0);
-	snprintf(errtxt, sizeof(errtxt), "%s: %s\n",
+	snprintf(errtxt, sizeof(errtxt), "%s: %s",
 		 poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
 		 poptStrerror(rc));
 
+	if (!debug) fprintf(stderr, "%s\n", errtxt);
 	errlog(errtxt, 0);
 
 	return 1;
