@@ -2,7 +2,7 @@
  *
  *      @(#)pshal.h    1.00 (Karlsruhe) 08/15/2000
  *
- *      $Id: pshal.h,v 1.6 2001/06/07 12:35:13 hauke Exp $	
+ *      $Id: pshal.h,v 1.7 2001/06/15 15:20:36 hauke Exp $	
  *
  *      written by Joachim Blum
  *                 Jens Hauke
@@ -465,6 +465,23 @@ int PSHALPortDelete( int ProtocolNo,int Port );
  */
 int PSHALPortSleep( int ProtocolNo,int Port, int SeqNo );
 
+#ifdef __KERNEL__
+/*------------------------------------------------------------------------------
+ * int PSHALPortMarkIntr( int ProtocolNo,int Port, int SeqNo );
+ */
+/**
+ * Generate Intr on recv
+ * @param	ProtocolNo	0..x
+ * @param	Port		PortNo
+ * @param       SeqNo		ToDo: Doc
+ *
+ * @return	0	on success
+ * @return	ERRNO	on error
+ *
+ */
+int PSHALPortMarkIntr( int ProtocolNo,int Port, int SeqNo );
+
+#endif
 
 /*------------------------------------------------------------------------------
  * void PSHALSleepForEvent();
