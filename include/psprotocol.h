@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.6 2002/07/26 15:23:01 eicker Exp $
+ * $Id: psprotocol.h,v 1.7 2002/07/31 09:02:14 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation client-daemon and daemon-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.6 2002/07/26 15:23:01 eicker Exp $
+ * $Id: psprotocol.h,v 1.7 2002/07/31 09:02:14 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -22,6 +22,7 @@
 #define __PSPROTOCOL_H
 
 #include <sys/types.h>
+#include <sys/socket.h>
 #include "pstask.h"
 
 #ifdef __cplusplus
@@ -31,7 +32,9 @@ extern "C" {
 #endif
 #endif
 
-#define PSprotocolversion  315
+#define PSprotocolversion  316
+
+#define PSmasterSocketName "/var/run/parastation.sock"
 
 /** @todo Documentation */
 
@@ -152,10 +155,10 @@ char *PSP_printMsg(int msgtype);
 
 /* Message primitive. This is also the header of more complex messages */
 typedef struct {
-    long type;             /* msg type */
-    long sender;           /* sender of the message */ 
-    long dest;             /* final destination of the message */
-    long len;              /* total length of the message */
+    short type;            /**< msg type */
+    short len;             /**< total length of the message */
+    long sender;           /**< sender of the message */ 
+    long dest;             /**< final destination of the message */
 } DDMsg_t;
 
 /* Load Message */
@@ -209,19 +212,21 @@ typedef struct {
 
 /* Init Message */
 typedef struct {
-    DDMsg_t header;        /* header of the message */
-    long reason;           /* reason for unaccepted connect */
-    PStask_group_t group;  /* process group of the task */
+    DDMsg_t header;        /**< header of the message */
+    PStask_group_t group;  /**< process group of the task */
     long version;          /* version of the PS library */
     int nrofnodes;         /* # of nodes */
-    int myid;              /* PS id of this node */
+    int myid;              /**< id of this node or info about failure */
     unsigned int loggernode;/* @todo Obsolete with new forwarder; loggernode */
     short loggerport;       /* @todo Obsolete with new forwarder; loggerport */
-    int pid;               /* @todo Obsolete with UNIX sockets; process id */
-    int uid;               /* @todo Obsolete with UNIX sockets; user id */
-    int gid;               /* @todo Obsolete with UNIX sockets; group id */
-    char instdir[80];      /** Installation directory of ParaStation stuff */
-    char psidvers[80];     /** CVS version-string of the ParaStation daemon */
+    long loggertid;        /* @todo */
+#ifndef SO_PEERCRED
+    pid_t pid;             /**< process id. Not used with UNIX sockets. */
+    uid_t uid;             /**< user id. Not used with UNIX sockets. */
+    gid_t gid;             /**< group id. Not used with UNIX sockets. */
+#endif
+    char instdir[80];      /**< Installation directory of ParaStation stuff */
+    char psidvers[80];     /**< CVS version-string of the ParaStation daemon */
 } DDInitMsg_t;
 
 #define DDOptionMsgMax 16
