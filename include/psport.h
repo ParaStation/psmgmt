@@ -1,14 +1,20 @@
+/**********************************************************
+ *                  ParaStation3
+ *
+ *       Copyright (c) 2002 ParTec AG Karlsruhe
+ *       All rights reserved.
+ ***********************************************************/
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.22 2002/04/12 20:38:31 hauke Exp $
+ * $Id: psport.h,v 1.23 2002/05/24 10:22:56 hauke Exp $
  *
  * @author
- * Jens Hauke <hauke@par-tec.com>,
- * Thomas Moschny <moschny@ipd.uni-karlsruhe.de>
- *
+ *         Jens Hauke <hauke@par-tec.de>
+ *         Thomas Moschny <moschny@ipd.uni-karlsruhe.de>
  * @file
- */
+ ***********************************************************/
+
 #ifndef _PSPORT_H_
 #define _PSPORT_H_
 

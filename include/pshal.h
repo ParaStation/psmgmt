@@ -1,18 +1,20 @@
-/*
+/***********************************************************
+ *                  ParaStation3
  *
+ *       Copyright (c) 2002 ParTec AG Karlsruhe
+ *       All rights reserved.
+ ***********************************************************/
+/**
+ * PSHAL: ParaStation Hardware Abstraction Layer
  *
- *      $Id: pshal.h,v 1.19 2002/04/12 20:38:31 hauke Exp $	
+ * $Id: pshal.h,v 1.20 2002/05/24 10:22:56 hauke Exp $
  *
- *      written by Jens Hauke
+ * @author  
+ *         Jens Hauke <hauke@par-tec.de>
  *
- * This the interface definition between the HAL (Hardware Abstraction Layer)
- * of ParaStation and the upper parts of the protocols.
- *
- *  History
- *
- *   000911 Joe Creation (Joachim Blum)
- *   001023 Jens Implementation
- */
+ * @file
+ ***********************************************************/
+
 #ifndef __pshal_h
 #define __pshal_h
 

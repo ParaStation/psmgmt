@@ -1,9 +1,19 @@
-
-/*************************************************************fdb*
- * define machine independent types 
- * (UINT32,INT8 ...)		      
- *************************************************************fde*/
-
+/***********************************************************
+ *                  ParaStation3
+ *
+ *       Copyright (c) 2000 ParTec AG Karlsruhe
+ *       All rights reserved.
+ ***********************************************************/
+/**
+ * ps_types:
+ *
+ * $Id: ps_types.h,v 1.3 2002/05/24 10:22:55 hauke Exp $
+ *
+ * @author  
+ *         Jens Hauke <hauke@par-tec.de>
+ *
+ * @file
+ ***********************************************************/
 
 #ifndef _PSM_TYPES_H_
 #define _PSM_TYPES_H_
