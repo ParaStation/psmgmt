@@ -492,7 +492,7 @@ typedef struct MCP_CtrlPacketQ_T {
 
 
 
-enum MCP_SendBufState {CFREE=0x0, CH2NDMA=0x01, CSENDING=0x02,CACKEXP=0x03,CSENDRUN=0x04};
+enum MCP_SendBufState {CFREE=0x0, CH2NDMA=0x01, CSENDING=0x02,CACKEXP=0x03,CSENDRUN=0x04,CACKED=0x05};
 
 
 typedef struct MCP_SendCtrl_T {
@@ -779,40 +779,32 @@ extern inline void DEQ_SENDRING(MCP_SENDRING_t * sendring,MCP_ConnInfo_t * conni
     conninfop->Next_srq = 0;
 }
 
-#if 1
-/* new send version */
-/* ToDo: add a new state for sendbuffers */
-extern inline void CHECK_SENDRING_INTRANSIT(MCP_SENDRING_t * sendring){
-    if (sendring->InTransaction && (ISR & SEND_INT_BIT)){
-	sendring->InTransaction->State=CACKEXP;
-	sendring->InTransaction = NULL; 
-    }
-}
-
-extern inline void ADD_SENDRING_INTRANSIT(MCP_SENDRING_t * sendring,struct MCP_SendCtrl_T *ctrlp){
-    if (sendring->InTransaction){
-	sendring->InTransaction->State=CACKEXP;
-    }
-    sendring->InTransaction=ctrlp;
-    ctrlp->State=CSENDRUN;
-}
+void FreeSendBuffer(struct MCP_SendCtrl_T *sc);
 
 extern inline void CLR_SENDRING_INTRANSIT(MCP_SENDRING_t * sendring){
     if (sendring->InTransaction){
-	sendring->InTransaction->State=CACKEXP;
+	if (sendring->InTransaction->State == CACKED){
+	    /* Delayed Ack */
+	    FreeSendBuffer( sendring->InTransaction );
+	    sendring->InTransaction->State = CFREE;
+	}else{
+	    sendring->InTransaction->State = CACKEXP;
+	}
     }
     sendring->InTransaction=NULL;
 }
 
-#else
-/* old non working version */
-extern inline void CHECK_SENDRING_INTRANSIT(MCP_SENDRING_t * sendring){
+extern inline void ADD_SENDRING_INTRANSIT(MCP_SENDRING_t * sendring,struct MCP_SendCtrl_T *ctrlp){
+    CLR_SENDRING_INTRANSIT( sendring );
+    sendring->InTransaction=ctrlp;
+    ctrlp->State=CSENDRUN;
 }
 
-extern inline void ADD_SENDRING_INTRANSIT(MCP_SENDRING_t * sendring,struct MCP_SendCtrl_T *ctrlp){
-    ctrlp->State=CACKEXP;
+extern inline void CHECK_SENDRING_INTRANSIT(MCP_SENDRING_t * sendring){
+    if (sendring->InTransaction && (ISR & SEND_INT_BIT)){
+	CLR_SENDRING_INTRANSIT( sendring );
+    }
 }
-#endif
 
 #define ENQ_CTRLPACKET( CtrlP )				\
         if (mcp_mem.CtrlPacketQ.Head){			\

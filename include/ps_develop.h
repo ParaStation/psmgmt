@@ -112,7 +112,6 @@
 
 #define PSM_PRINT_MAP_LEVEL_OFF 15
 
-//#define ENABLE_ACK_RING
 
 #else
 
