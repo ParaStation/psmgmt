@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.c,v 1.8 2003/07/04 07:34:19 eicker Exp $
+ * $Id: psprotocol.c,v 1.9 2003/09/12 14:00:20 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psprotocol.c,v 1.8 2003/07/04 07:34:19 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psprotocol.c,v 1.9 2003/09/12 14:00:20 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -51,6 +51,14 @@ static struct {
     { PSP_CD_DAEMONSTART      , "PSP_CD_DAEMONSTART"      },
     { PSP_CD_DAEMONSTOP       , "PSP_CD_DAEMONSTOP"       },
     { PSP_CD_DAEMONRESET      , "PSP_CD_DAEMONRESET"      },
+    { PSP_CD_HWSTART          , "PSP_CD_HWSTART"          },
+    { PSP_CD_HWSTOP           , "PSP_CD_HWSTOP"           },
+
+    { PSP_CD_CREATEPART       , "PSP_CD_CREATEPART"       },
+    { PSP_CD_CREATEPARTNL     , "PSP_CD_CREATEPARTNL"     },
+    { PSP_CD_PARTITIONRES     , "PSP_CD_PARTITIONRES"     },
+    { PSP_CD_GETNODES         , "PSP_CD_GETNODES"         },
+    { PSP_CD_NODESRES         , "PSP_CD_NODESRES"         },
 
     { PSP_CC_MSG              , "PSP_CC_MSG"              },
     { PSP_CC_ERROR            , "PSP_CC_ERROR"            },

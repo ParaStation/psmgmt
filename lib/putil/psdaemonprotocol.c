@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psdaemonprotocol.c,v 1.2 2003/07/04 07:27:17 eicker Exp $
+ * $Id: psdaemonprotocol.c,v 1.3 2003/09/12 13:57:49 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psdaemonprotocol.c,v 1.2 2003/07/04 07:27:17 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psdaemonprotocol.c,v 1.3 2003/09/12 13:57:49 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -34,6 +34,11 @@ static struct {
     { PSP_DD_SENDCONT         , "PSP_DD_SENDCONT"         }, 
 
     { PSP_DD_CHILDDEAD        , "PSP_DD_CHILDDEAD"        },
+
+    { PSP_DD_GETPART          , "PSP_DD_GETPART"          },
+    { PSP_DD_GETPARTNL        , "PSP_DD_GETPARTNL"        },
+    { PSP_DD_PROVIDEPART      , "PSP_DD_PROVIDEPART"      },
+    { PSP_DD_PROVIDEPARTNL    , "PSP_DD_PROVIDEPARTNL"    },
 
     {0,NULL}
 };
