@@ -927,7 +927,7 @@ BITDEC1( val,					\
  ***************************************************************/
 #define MAXPORTS	1024	/*< Maximal count of portbindings */
 #define PORTHASHSIZE    64	/*< Power of 2 ! */
-#define PORTHASHFUNCTION(channel) (channel.PortIdU&(PORTHASHSIZE-1))
+#define PORTHASHFUNCTION(channel) (channel.PortId.PortNo&(PORTHASHSIZE-1))
 
 
 typedef struct MCP_PortElement_T{
