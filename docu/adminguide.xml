@@ -39,13 +39,18 @@
   <bookinfo>
     &infoblurb;
 
-    <releaseinfo>Release 0.99.2</releaseinfo>
+    <releaseinfo>Release 0.99.3</releaseinfo>
 
     <revhistory>
       <revision>
 	<revnumber>1.0</revnumber>
 	<date>??????</date> <!-- <date>20 Nov 2002</date> -->
 	<revremark>First official release</revremark>
+      </revision>
+      <revision>
+	<revnumber>0.99.3</revnumber>
+	<date>22 Nov 2002</date>
+	<revremark>PS/PS FE comments in intro.</revremark>
       </revision>
       <revision>
 	<revnumber>0.99.2</revnumber>
