@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.30 2002/01/31 12:02:30 eicker Exp $
+ * $Id: psid.c,v 1.31 2002/02/01 16:39:12 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.30 2002/01/31 12:02:30 eicker Exp $ 
+ * $Id: psid.c,v 1.31 2002/02/01 16:39:12 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.30 2002/01/31 12:02:30 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.31 2002/02/01 16:39:12 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -62,7 +62,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.30 $";
+static char psid_cvsid[] = "$Revision: 1.31 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -131,7 +131,7 @@ int RDPSocket = -1;
 /* needed prototypes                                                    */
 /*----------------------------------------------------------------------*/
 void deleteClient(int fd);
-void CheckFileTable(void);
+void checkFileTable(void);
 void closeConnection(int fd);
 void declareDaemonDead(int node);
 void initDaemon(int fd, int id);
@@ -210,18 +210,18 @@ static int sendMsg(void* amsg)
 static int recvMsg(int fd, DDMsg_t* msg,int size)
 {
     int n;
-    int count =0;
-    int fromnode=-1;
+    int count = 0;
+    int fromnode = -1;
     if (fd == RDPSocket) {
-	fromnode=-1;
-	n = Rrecvfrom(&fromnode,msg,size);
+	fromnode = -1;
+	n = Rrecvfrom(&fromnode, msg, size);
 	if (PSI_isoption(PSP_ODEBUG)){
-	    if(n>0) {
+	    if (n>0) {
 		sprintf(PSI_txt,"recvMsg(fd %d type %s (len=%ld) "
 			"from task 0x%lx[%d,%d] to 0x%lx\n",
-			fd,PSPctrlmsg(msg->type),msg->len,msg->sender,
-			msg->sender==-1?-1:PSI_getnode(msg->sender),
-			PSI_getpid(msg->sender),msg->dest);
+			fd, PSPctrlmsg(msg->type), msg->len, msg->sender,
+			msg->sender==-1 ? -1:PSI_getnode(msg->sender),
+			PSI_getpid(msg->sender), msg->dest);
 	    } else if (n==0) {
 		sprintf(PSI_txt,"recvMsg(RDPSocket) returns 0\n");
 	    } else{
@@ -338,6 +338,10 @@ static void blockSig(int block, int sig)
 
 /******************************************
  *  checkCluster()
+ *
+ *  @todo:
+ *  Only sets NoOfConnectedDaemons. This should be obsolete soon.
+ *
  */
 static void checkCluster(void)
 {
@@ -364,7 +368,6 @@ static void startDaemons(void)
 
     if(fork()==0) {
 	/* fork a process which starts all other daemons */
-	blockSig(0,SIGALRM);
 	for (i=0; i<PSI_nrofnodes; i++) {
 	    if (!DaemonIsUp(i)) {
 		addr = PSID_hostaddress(i);
@@ -2677,16 +2680,16 @@ void sighandler(int sig)
 }
 
 /******************************************
-*  CheckFileTable()
+*  checkFileTable()
 */
-void CheckFileTable(void)
+void checkFileTable(void)
 {
     fd_set rfds;
     int fd;
     char* errstr;
     struct timeval tv;
 
-    if (PSI_isoption(PSP_ODEBUG)) SYSLOG(1,(LOG_ERR,"CheckFileTable()\n"));
+    if (PSI_isoption(PSP_ODEBUG)) SYSLOG(1,(LOG_ERR,"checkFileTable()\n"));
     for (fd=0; fd<FD_SETSIZE;) {
 	if (FD_ISSET(fd,&openfds)) {
 	    FD_ZERO(&rfds);
@@ -2699,28 +2702,28 @@ void CheckFileTable(void)
 		switch (errno) {
 		case EBADF :
 		    /* if(PSI_isoption(PSP_ODEBUG))*/
-		    SYSLOG(1,(LOG_ERR, "CheckFileTable(%d):"
+		    SYSLOG(1,(LOG_ERR, "checkFileTable(%d):"
 			      " EBADF -> closing connection\n", fd));
 		    deleteClient(fd);
 		    fd++;
 		    break;
 		case EINTR:
-		    SYSLOG(1,(LOG_ERR, "CheckFileTable(%d):"
+		    SYSLOG(1,(LOG_ERR, "checkFileTable(%d):"
 			      " EINTR -> trying again\n", fd));
 		case EINVAL:
-		    SYSLOG(1,(LOG_ERR, "CheckFileTable(%d):"
+		    SYSLOG(1,(LOG_ERR, "checkFileTable(%d):"
 			      " PANIC filenumber is wrong. Good bye!\n",
 			      fd));
 		    shutdownNode(1);
 		    break;
 		case ENOMEM:
-		    SYSLOG(1,(LOG_ERR,"CheckFileTable(%d):"
+		    SYSLOG(1,(LOG_ERR,"checkFileTable(%d):"
 			      " PANIC not enough memory. Good bye!\n", fd));
 		    shutdownNode(1);
 		    break;
 		default:
 		    errstr = strerror(errno);
-		    SYSLOG(1,(LOG_ERR,"CheckFileTable(%d):"
+		    SYSLOG(1,(LOG_ERR,"checkFileTable(%d):"
 			      " unrecognized error (%d):%s\n", fd, errno,
 			      errstr ? errstr : "UNKNOWN errno"));
 		    fd ++;
@@ -2740,7 +2743,7 @@ void CheckFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.30 $";
+    char revision[] = "$Revision: 1.31 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -3071,7 +3074,7 @@ int main(int argc, char **argv)
 	    SYSLOG(1,(LOG_ERR,"Error while Select (code %d) %s\n",
 		      errno,errstr?errstr:"UNKNOWN errno"));
 
-	    CheckFileTable();
+	    checkFileTable();
 	    SYSLOG(6,(LOG_ERR,"Error while Select continueing\n"));
 	    continue;
 	}
@@ -3171,7 +3174,7 @@ int main(int argc, char **argv)
 	} else {
 	    /*
 	     * checking all the other daemos, if they are still okay
-	     * \todo Does this make sense??
+	     * @todo Does this make sense??
 	     */
 	    checkCluster();
 	}
