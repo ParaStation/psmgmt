@@ -24,9 +24,10 @@ SERV_PSMCASTMASK="^[ 	]*psmcast[ 	]"
 SERV_PSMCASTLINE="psmcast         1889/udp       # ParaStation MCAST Port"
 
 self_post_inst_msg() {
-    echo "#########################################################################################"
-    echo "# Please, prepare and mantain the file /opt/parastation/psm.config according to manual! #"
-    echo "#########################################################################################"
+    echo "#################################################################"
+    echo "  Please, prepare and mantain the file                           "
+    echo "  /opt/parastation/config/psm.config! (s.o. psm.config.template) "
+    echo "#################################################################"
 }
 
 
