@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.11 2003/02/21 12:27:16 eicker Exp $
+ * $Id: psprotocol.h,v 1.12 2003/03/07 16:06:45 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation client-daemon and daemon-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.11 2003/02/21 12:27:16 eicker Exp $
+ * $Id: psprotocol.h,v 1.12 2003/03/07 16:06:45 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -32,7 +32,7 @@ extern "C" {
 #endif
 #endif
 
-#define PSprotocolversion  318
+#define PSprotocolversion  319
 
 #define PSmasterSocketName "/var/run/parastation.sock"
 
@@ -143,14 +143,17 @@ typedef enum {
 
 #define PSP_OP_PSIDDEBUG           0x0010
 #define PSP_OP_PSIDSELECTTIME      0x0011
-#define PSP_OP_PROCLIMIT           0x0012
-#define PSP_OP_UIDLIMIT            0x0013
 
 #define PSP_OP_RDPDEBUG            0x0020
 #define PSP_OP_RDPPKTLOSS          0x0021
 #define PSP_OP_RDPMAXRETRANS       0x0022
 
 #define PSP_OP_MCASTDEBUG          0x0028
+
+#define PSP_OP_HWSTATUS            0x0030
+#define PSP_OP_CPUS                0x0031
+#define PSP_OP_PROCLIMIT           0x0032
+#define PSP_OP_UIDLIMIT            0x0033
 
 /*----------------------------------------------------------------------*/
 /* global reset actions to be sent in the DD/CD protocol                */
@@ -205,13 +208,6 @@ typedef struct {
     DDMsg_t header;        /* header of the message */
     long partner;          /* node which should be contacted by header.dest */
 } DDContactMsg_t;
-
-/* Connect Node Message */
-typedef struct {
-    DDMsg_t header;        /* header of the message */
-    unsigned int hwStatus; /* Flag to show which hw on nodes is active */
-    short numCPU;          /* Number of CPUs in that node */
-} DDConnectMsg_t;
 
 #define BufMsgSize 8000
 
