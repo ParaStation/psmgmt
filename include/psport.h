@@ -1,7 +1,7 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.10 2001/06/25 11:16:18 moschny Exp $
+ * $Id: psport.h,v 1.11 2001/06/26 09:13:54 moschny Exp $
  *
  * @author
  * Jens Hauke <hauke@par-tec.com>,
@@ -106,8 +106,8 @@ typedef int (PSP_RecvCallBack_t)
      (PSP_RecvHeader_t* header, unsigned xheaderlen, void *param);
 
 /**
- * Type of the callback that is executed upon finishing PSP_ISend() or
- * PSP_IReceive().
+ * Type of the callback that is executed upon finishing a send or
+ * receive request. See PSP_IsendCB() and PSP_IReceiveCB().
  */
 typedef void (PSP_DoneCallback_t)
      (PSP_RequestH_t req, void *param);
@@ -268,6 +268,9 @@ typedef struct PSP_RecvFrom_Param_T{
  * @param cb call-back function that will be used to determine whether
  * a certain message is to be received by this receive-request
  * @param cp_param this pointer is passed to the call-back function
+ * @param dcb call-back function that will be called upon completion
+ * of the receive request
+ * @param dcb_param this pointer is passed to dcb
  * @return Returns a handle for the request or NULL if there is an
  * error. The handle can be passed to PSP_Test() and PSP_Wait().
  */
@@ -306,6 +309,9 @@ PSP_RequestH_t PSP_IReceiveCB(PSP_PortH_t porth,
  * @param length of message data buffer, in bytes
  * @param header address of header data buffer
  * @param xheaderlen length of message extra header buffer, in bytes
+ * @param dcb call-back function that will be called upon completion
+ * of the send request
+ * @param dcb_param this pointer is passed to dcb
  * @return Returns a handle for the request or Null if there is an
  * error.
  *
