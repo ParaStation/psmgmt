@@ -1,7 +1,7 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.20 2002/02/21 13:16:13 moschny Exp $
+ * $Id: psport.h,v 1.21 2002/02/26 12:28:25 moschny Exp $
  *
  * @author
  * Jens Hauke <hauke@par-tec.com>,
@@ -421,6 +421,7 @@ int PSP_Probe(PSP_PortH_t porth,
  * @param dcb call-back function that will be called upon completion
  * of the send request
  * @param dcb_param this pointer is passed to dcb
+ * @param flags additional flags can be specified here
  * @return Returns a handle for the request or Null if there is an
  * error.
  *
@@ -429,8 +430,6 @@ int PSP_Probe(PSP_PortH_t porth,
  * user-provided memory for the header data is valid and not altered
  * (e.g. reused for another send or receive request.)
  */
-#define PSP_MSGFLAG_HIGHPRIO PSHAL_MSGFLAG_HIGHPRIO
-
 PSP_RequestH_t PSP_ISendCB(PSP_PortH_t porth,
 			   void* buf, unsigned buflen,
 			   PSP_Header_t* header, unsigned xheaderlen,
@@ -447,6 +446,9 @@ PSP_RequestH_t PSP_ISend(PSP_PortH_t porth,
     return PSP_ISendCB(porth, buf, buflen, header, xheaderlen,
 		       dest, destport, 0, 0, 0);
 }
+
+/** Flag this message to be very important. */
+#define PSP_MSGFLAG_HIGHPRIO PSHAL_MSGFLAG_HIGHPRIO
 
 /* ----------------------------------------------------------------------
  * PSP_Test()
