@@ -8,7 +8,7 @@
 #**
 #* PSM_INSTALL: ParaStation De-/Installationscript
 #*
-#* $Id: PSM_INSTALL,v 1.5 2002/07/10 15:36:00 hauke Exp $
+#* $Id: PSM_INSTALL,v 1.6 2002/07/10 16:19:05 hauke Exp $
 #*
 #* @author  
 #*         Eduard Syrchyn <syrchyn@par-tec.de>
@@ -36,9 +36,9 @@ PSMMTH="$PSMDRV.mth"
 
 #/etc/inetd.conf
 INETD_PSIDMASK="^[ 	]*psid[ 	]"
-INETD_PSIDLINE="psid	stream	tcp	nowait	root	$PSMAIN/bin/psid -f $PSMAIN/config/psm.config"
+INETD_PSIDLINE="psid	stream	tcp	nowait	root	$PSMAIN/bin/psid psid -f $PSMAIN/config/psm.config"
 INETD_PSLDMASK="^[ 	]*psld[ 	]"
-INETD_PSLDLINE="psld	stream	tcp	nowait	root	$PSMAIN/bin/psld -f $PSMAIN/config/psm.config"
+INETD_PSLDLINE="psld	stream	tcp	nowait	root	$PSMAIN/bin/psld psld -f $PSMAIN/config/psm.config"
 INETD_PID="/var/run/inetd.pid"
 INETD_CNF="$ETC_DIR/inetd.conf"
 INETD_BKP="$INETD_CNF.psm"
