@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.67 2002/08/06 08:29:50 eicker Exp $
+ * $Id: psid.c,v 1.68 2002/08/07 07:26:11 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.67 2002/08/06 08:29:50 eicker Exp $ 
+ * $Id: psid.c,v 1.68 2002/08/07 07:26:11 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.67 2002/08/06 08:29:50 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.68 2002/08/07 07:26:11 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -72,7 +72,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.67 $";
+static char psid_cvsid[] = "$Revision: 1.68 $";
 
 static int PSID_mastersock;
 
@@ -3045,7 +3045,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.67 $";
+    char revision[] = "$Revision: 1.68 $";
     snprintf(errtxt, sizeof(errtxt), "psid %s\b ", revision+11);
     PSID_errlog(errtxt, 0);
 }
@@ -3237,6 +3237,7 @@ int main(int argc, char **argv)
     /*
      * bind the socket to the right address
      */
+    unlink(PSmasterSocketName);
     if (bind(PSID_mastersock, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
 	PSID_errexit("Daemon already running?", errno);
     }
