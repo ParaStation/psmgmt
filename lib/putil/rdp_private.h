@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp_private.h,v 1.10 2002/07/03 20:20:18 eicker Exp $
+ * $Id: rdp_private.h,v 1.11 2003/02/07 16:02:19 eicker Exp $
  *
  */
 /**
@@ -14,7 +14,7 @@
  *
  * Private functions and definitions
  *
- * $Id: rdp_private.h,v 1.10 2002/07/03 20:20:18 eicker Exp $
+ * $Id: rdp_private.h,v 1.11 2003/02/07 16:02:19 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -111,7 +111,8 @@ struct timeval RESEND_TIMEOUT = {0, 100000}; /* sec, usec */
  * The timeout used for RDP timer = 1 sec. The is a const for now and can only
  * changed in the sources.
  */
-struct timeval RDPTimeout = {1, 0}; /* sec, usec */
+//struct timeval RDPTimeout = {1, 0}; /* sec, usec */
+struct timeval RDPTimeout = {0, 100000}; /* sec, usec */
 
 /** The actual packet-loss rate. Get/set by getPktLossRDP()/setPktLossRDP() */
 static int RDPPktLoss = 0;
