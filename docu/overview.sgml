@@ -1,0 +1,61 @@
+<chapter id="overview">
+  <title>What is &ps;</title>
+  <para>
+    Besides the brief overview on &ps; given within <link linkend="intro">the
+      introduction </link> this chapter will give a more detailed insight
+    concerning the building blocks forming the &ps; system and the main
+    architecure of &ps;.
+  </para>
+  <para>
+    As already mentioned &ps; consists of two main part,
+  </para>
+  <itemizedlist>
+    <listitem>
+      <para>the high performance communication subsystem and</para>
+    </listitem>
+    <listitem>
+      <para>the cluster management facility.</para>
+    </listitem>
+  </itemizedlist>
+  <para>
+    Both will be discussed within the next sections in detail.
+  </para>
+
+
+  <section>
+    <title>The Communication Subsytem</title>
+    <para>
+      Jens (?).
+    </para>
+  </section>
+
+  <section>
+    <title>The Cluster Management facility</title>
+    <para>
+      In addition to the pure communication tasks that build the primary
+      requirements of parallel application running on a cluster, further
+      assistence of the runtime environment is needed in order to startup or
+      control this applications.
+    </para>
+    <para>
+      ToDo
+    </para>
+  </section>
+</chapter>
+  <!-- Keep this comment at the end of the file
+  Local variables:
+  mode: xml
+  sgml-omittag:nil
+  sgml-shorttag:nil
+  sgml-namecase-general:nil
+  sgml-general-insert-case:lower
+  sgml-minimize-attributes:nil
+  sgml-always-quote-attributes:t
+  sgml-indent-step:2
+  sgml-indent-data:t
+  sgml-parent-document:("userguide.xml" "book" "book" ("title" "bookinfo"))
+  sgml-exposed-tags:nil
+  sgml-local-catalogs:nil
+  sgml-local-ecat-files:nil
+  End:
+  -->
