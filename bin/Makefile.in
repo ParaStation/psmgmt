@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.41 2003/12/19 15:13:07 eicker Exp $
+# $Id: Makefile.in,v 1.42 2004/03/09 17:29:36 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -39,33 +39,40 @@ TARGETS = $(TOOLS) test_config_parsing
 
 all bin: $(TOOLS)
 
-test_pse: test_pse.o -lpopt -lpse -lpsi
+test_pse psmstart mpirun_chp4 mpirun_chgm mlisten: \
+	LOADLIBES+=-Wl,-Bstatic -lpopt -Wl,-Bdynamic
 
-psmstart: psmstart.o -lpse -lpsi -lpopt
+test_pse: test_pse.o -lpse -lpsi
 
-mpirun_chp4: mpirun_chp4.o -lpse -lpsi -lpopt
+psmstart: psmstart.o -lpse -lpsi
+
+mpirun_chp4: mpirun_chp4.o -lpse -lpsi
 
 psispawn: psispawn.o -lpsi
 
-mpirun_chgm: mpirun_chgm.o -lpse -lpsi -lpopt
+mpirun_chgm: mpirun_chgm.o -lpse -lpsi
 
-gmspawner: gmspawner.o -lpsi -lpopt -lpthread
+gmspawner: gmspawner.o -lpsi
+gmspawner: LOADLIBES:=-lpthread -Wl,-Bstatic -lpopt -Wl,-Bdynamic
 
-mlisten: mlisten.o -lpopt
+mlisten: mlisten.o
 
 test_config_parsing: -lputil -lpscommon
 
 # psiadmin
 VPATH += $(SRCDIR)/admin
 psiadmin: psiadmin.o commands.o adminparser.o
-psiadmin: -lreadline -lhistory -lpsi -lpopt -l@LIBCURSES@ -lputil
+psiadmin: -lpsi -lputil
+psiadmin: LOADLIBES:=-lreadline -lhistory -l@LIBCURSES@ \
+		-Wl,-Bstatic -lpopt -Wl,-Bdynamic
 
 # psid
 VPATH += $(SRCDIR)/daemon
 psid: psid.o psidutil.o psidtask.o psidspawn.o psidforwarder.o
 psid: psidsignal.o psidmsgbuf.o psidrdp.o psidclient.o psidcomm.o
 psid: psidinfo.o psidoption.o psidpartition.o psidstatus.o
-psid: -lm -lputil -lpscommon -lutil -lpopt -lpslog
+psid: -lputil -lpscommon -lutil -lpslog
+psid: LOADLIBES:=-lm -Wl,-Bstatic -lpopt -Wl,-Bdynamic
 
 # logger
 VPATH += $(SRCDIR)/logger
@@ -73,19 +80,6 @@ psilogger: psilogger.o -lpslog -lpscommon -lm
 
 parastation: $(TOP_SRCDIR)/scripts/parastation@TRU64FILEADD@
 	cp $< $@
-
-# lex and yacc
-#: %.tab.c %.scan.y
-
-%.tab.c %.tab.h: %.scan.y
-	$(YACC) $(YFLAGS) -b $* $^
-
-# %.tab.h
-lex.%.c: %.scan.l %.tab.h
-	$(LEX) $(LFLAGS) -P$* $<
-
-
-
 
 # WARNING!!! if DEPEXTENSION from configure is empty, make clean remove all files!!
 DEPFILES := $(wildcard *@DEPEXTENSION@) dummy.d
