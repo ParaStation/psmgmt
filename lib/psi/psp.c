@@ -86,6 +86,7 @@ struct PSPctrlmessages_t PSPctrlmessages[]=
    { PSP_DD_SPAWNREQUEST       ,"PSP_DD_SPAWNREQUEST"       }, 
    { PSP_DD_SPAWNSUCCESS       ,"PSP_DD_SPAWNSUCCESS"       }, 
    { PSP_DD_SPAWNFAILED        ,"PSP_DD_SPAWNFAILED"        }, 
+   { PSP_DD_SPAWNFINISH        ,"PSP_DD_SPAWNFINISH"        }, 
    
    { PSP_DD_TASKKILL           ,"PSP_DD_TASKKILL"           }, 
    { PSP_DD_NOTIFYDEAD         ,"PSP_DD_NOTIFYDEAD"         },

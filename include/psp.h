@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psp.h,v 1.14 2002/02/15 19:21:46 eicker Exp $
+ * $Id: psp.h,v 1.15 2002/02/18 19:50:46 eicker Exp $
  *
  */
 /**
@@ -13,7 +13,7 @@
  * psp: The ParaStation Protocol
  *      Used for daemon-daemon and client-daemon communication.
  *
- * $Id: psp.h,v 1.14 2002/02/15 19:21:46 eicker Exp $
+ * $Id: psp.h,v 1.15 2002/02/18 19:50:46 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -29,7 +29,7 @@ extern "C" {
 #endif
 #endif
 
-#define PSPprotocolversion  309
+#define PSPprotocolversion  310
 
 /*------------------------------------------------------------------------- 
 * PSP_ctrl messages through the OS socket of the daemon
@@ -72,6 +72,7 @@ extern "C" {
 #define PSP_DD_SPAWNREQUEST        0x0030
 #define PSP_DD_SPAWNSUCCESS        0x0031
 #define PSP_DD_SPAWNFAILED         0x0032
+#define PSP_DD_SPAWNFINISH         0x0033
 
 #define PSP_DD_TASKKILL            0x0040
 #define PSP_DD_NOTIFYDEAD          0x0041
