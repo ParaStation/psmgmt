@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidtask.c,v 1.1 2002/07/03 21:11:04 eicker Exp $
+ * $Id: psidtask.c,v 1.2 2002/07/11 11:12:03 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.1 2002/07/03 21:11:04 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidtask.c,v 1.2 2002/07/11 11:12:03 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -155,7 +155,7 @@ void PStasklist_delete(PStask_t **list)
 
     while (*list) {
 	task = (*list);
-	(*list) = (*list)->link;
+	(*list) = (*list)->next;
 	PStask_delete(task);
     }
 }
@@ -167,11 +167,11 @@ int PStasklist_enqueue(PStask_t **list, PStask_t *newtask)
     PSID_errlog(errtxt, 10);
 
     if (*list) {
-	newtask->link = (*list)->link;
-	newtask->rlink = (*list);
-	(*list)->link = newtask;
-	if (newtask->link) {
-	    newtask->link->rlink = newtask;
+	newtask->next = (*list)->next;
+	newtask->prev = (*list);
+	(*list)->next = newtask;
+	if (newtask->next) {
+	    newtask->next->prev = newtask;
 	}
     } else {
 	(*list) = newtask;
@@ -180,41 +180,33 @@ int PStasklist_enqueue(PStask_t **list, PStask_t *newtask)
     return 0;
 }
 
-PStask_t* PStasklist_dequeue(PStask_t **list, long tid)
+PStask_t *PStasklist_dequeue(PStask_t **list, long tid)
 {
     PStask_t *task = NULL;
-    PStask_t *prevtask = NULL;
 
     snprintf(errtxt, sizeof(errtxt), "PStasklist_dequeue(%p[%lx],%lx)",
 	     list, *list ? (long)*list : -1, tid);
     PSID_errlog(errtxt, 10);
 
-    task = (*list);
-
-    if (tid!=-1) {
-	while (task && task->tid!=tid) {
-	    prevtask = task;
-	    task = task->link;
-	}
-    }
+    task = PStasklist_find(*list, tid);
 
     if (task) {
-	if (prevtask) {
+	if (task->prev) {
 	    /* found in the middle of the list */
-	    prevtask->link = task->link;
+	    task->prev->next = task->next;
 	} else {
 	    /* the task was the head of the list */
-	    *list = task->link;
+	    *list = task->next;
 	}
-	if (task->link) {
-	    task->link->rlink = task->rlink;
+	if (task->next) {
+	    task->next->prev = task->prev;
 	}
     }
 
     return task;
 }
 
-PStask_t* PStasklist_find(PStask_t *list, long tid)
+PStask_t *PStasklist_find(PStask_t *list, long tid)
 {
     PStask_t *task;
 
@@ -223,8 +215,8 @@ PStask_t* PStasklist_find(PStask_t *list, long tid)
 
     task = list;
 
-    while ((task)&&(task->tid != tid)) {
-	task = task->link;
+    while (task && task->tid!=tid) {
+	task = task->next;
     }
 
     return task;
