@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.28 2002/04/22 22:51:38 hauke Exp $
+ * $Id: psidutil.c,v 1.29 2002/04/24 13:20:47 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.28 2002/04/22 22:51:38 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.29 2002/04/24 13:20:47 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -75,6 +75,7 @@ void PSID_ReConfig(int nodeid, int nrofnodes, char *licensekey, char *module,
     card_info.options = NULL;
     card_info.routing_file = routingfile;
 
+    card_cleanup();
     ret = card_init(&card_info);
     if (ret) {
 	PSID_CardPresent = 0;
@@ -82,19 +83,19 @@ void PSID_ReConfig(int nodeid, int nrofnodes, char *licensekey, char *module,
 	return;
     }
 
-    if(ConfigSmallPacketSize != -1){
+    if (ConfigSmallPacketSize != -1) {
 	PSHALSYS_SetSmallPacketSize(ConfigSmallPacketSize);
     }
 
-    if(ConfigRTO != -1){
+    if (ConfigRTO != -1) {
 	PSHALSYS_SetMCPParam(MCP_PARAM_RTO, ConfigRTO);
     }
 
-    if(ConfigHNPend != -1){
+    if (ConfigHNPend != -1) {
 	PSHALSYS_SetMCPParam(MCP_PARAM_HNPEND, ConfigHNPend);
     }
 
-    if(ConfigAckPend != -1){
+    if (ConfigAckPend != -1) {
 	PSHALSYS_SetMCPParam(MCP_PARAM_ACKPEND, ConfigAckPend);
     }
 
@@ -126,24 +127,24 @@ int PSID_checklicense(unsigned int myIP)
 /*  			  &version); */
 
     now = time(NULL);
-    if(now<start){
+    if (now<start) {
 	/* License is no more valid */
 	SYSLOG(0,(LOG_ERR,"PSID_checklicense(): Your clock is running wrong"));
 	exit(-1);
     }
-    if(start+end==0){
+    if (start+end==0) {
 	/* License is no more valid */
 	SYSLOG(0,(LOG_ERR,"PSID_checklicense(): Licensekey invalid."));
 	exit(-1);
     }
-    if(end<now){
+    if (end<now) {
 	/* License is no more valid */
 	SYSLOG(0,(LOG_ERR,"PSID_checklicense(): License is out of date."
 		  "(end %lx now %lx) ", end, now));
 	exit(-1);
     }
     SYSLOG(9,(LOG_ERR,"nodes %ld PSI_nrofnodes %d", nodes, PSI_nrofnodes));
-    if((nodes < PSI_nrofnodes) || (PSI_nrofnodes<0)){
+    if ((nodes < PSI_nrofnodes) || (PSI_nrofnodes<0)) {
 	/* License is no more valid */
 	SYSLOG(0,(LOG_ERR,"License is not valid for this number of nodes."));
 	exit(-1);
@@ -161,24 +162,10 @@ int PSID_readconfigfile(void)
 {
     struct hostent *mhost;
     char myname[256];
-    struct in_addr sin_addr;
+    struct in_addr *sin_addr;
     char* errstr;
 
     int i;
-
-    gethostname(myname,sizeof(myname));
-
-    if(! (mhost = gethostbyname(myname))){
-	endhostent(); 
-	perror("Unable to lookup hostname");
-	errstr=strerror(errno);
-	SYSLOG(0,(LOG_ERR,
-		  "PSID_readconfigfile():Unable to lookup hostname: [%d] %s",
-		  errno, errstr ? errstr : "UNKNOWN errno"));
-	exit(-1);
-    }
-    memcpy(&sin_addr, mhost->h_addr, mhost->h_length); 
-    endhostent(); 
 
     if (parseConfig(1)<0)
 	return -1;
@@ -214,13 +201,40 @@ int PSID_readconfigfile(void)
 	}
     }
 
-    if (PSID_host(sin_addr.s_addr)==-1) {
-	PSID_CardPresent = 0;
-	SYSLOG(1,(LOG_ERR,"No card present\n"));
-	return PSID_CardPresent;
+    /* Find out if our node is configured */
+    /* Lookup hostname */
+    gethostname(myname, sizeof(myname));
+
+    /* Get list of IP-addresses */
+    mhost = gethostbyname(myname);
+    endhostent(); 
+
+    if (!mhost) {
+	perror("Unable to lookup hostname");
+	errstr=strerror(errno);
+	SYSLOG(0,(LOG_ERR,
+		  "PSID_readconfigfile():Unable to lookup hostname: [%d] %s",
+		  errno, errstr ? errstr : "UNKNOWN errno"));
+	exit(-1);
     }
 
-    PSID_CardPresent = 1;
+    PSID_CardPresent = 0;
+
+    /* Any IP-address configured ? */
+    while (*mhost->h_addr_list) {
+	sin_addr = (struct in_addr *) *mhost->h_addr_list;
+	if (PSID_host(sin_addr->s_addr)==MyPsiId) {
+	    /* node is configured */
+	    PSID_CardPresent = 1;
+	}
+	mhost->h_addr_list++;
+    }
+
+    if (!PSID_CardPresent) {
+	SYSLOG(1,(LOG_ERR, "Node not configured\n"));
+	return -1;
+    }
+
     SYSLOG(1,(LOG_ERR,"starting up the card\n"));
     /*
      * check if I can reserve the card for me 
@@ -245,7 +259,7 @@ int PSID_startlicenseserver(unsigned int hostaddr)
     int sock;
     struct sockaddr_in sa;
 #if defined(DEBUG)
-    if(PSP_DEBUGADMIN & (PSI_debugmask )){
+    if (PSP_DEBUGADMIN & (PSI_debugmask)) {
 	snprintf(errtxt, sizeof(errtxt), "PSID_startlicenseserver(%ulx)\n",
 		 ntohl(hostaddr));
 	PSI_logerror(errtxt);
@@ -259,8 +273,8 @@ int PSID_startlicenseserver(unsigned int hostaddr)
     memset(&sa, 0, sizeof(sa)); 
     sa.sin_family = AF_INET; 
     sa.sin_addr.s_addr = hostaddr;
-    sa.sin_port =  htons(PSI_GetServicePort("psld",887));
-    if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0){ 
+    sa.sin_port = htons(PSI_GetServicePort("psld",887));
+    if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0) { 
 	perror("PSID_startlicenseserver():"
 	       " Connect to port for start with inetd failed."); 
 	shutdown(sock,2);
@@ -287,7 +301,7 @@ int PSID_execv( const char *path, char *const argv[])
     int cnt;
 
     /* Try 5 times with delay 400ms = 2 sec overall */
-    for (cnt=0;cnt<5;cnt++){
+    for (cnt=0;cnt<5;cnt++) {
 	ret = execv(path,argv);
 	usleep(1000 * 400);
     }
@@ -313,7 +327,7 @@ int PSID_taskspawn(PStask_t* task)
     struct stat sb;
 
 #if defined(DEBUG)||defined(PSID)
-    if(PSP_DEBUGTASK & PSI_debugmask){
+    if (PSP_DEBUGTASK & PSI_debugmask) {
 	snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn(task: ");
 	/** \todo this may cause segfaults !! Norbert */
 	PStask_sprintf(errtxt+strlen(errtxt), task);
@@ -328,7 +342,7 @@ int PSID_taskspawn(PStask_t* task)
      * create a control channel
      * for observing the successful exec call
      */
-    if(pipe(fds)<0){
+    if (pipe(fds)<0) {
 	char* errstr;
 	errstr = strerror(errno);
 	syslog(LOG_ERR, "PSID_taskspawn(pipe): [#%d] %s ", errno,
@@ -340,13 +354,13 @@ int PSID_taskspawn(PStask_t* task)
     /*
      * fork the new process
      */
-    if ((pid = fork())==0){
+    if ((pid = fork())==0) {
 	/* child process */
 
 	/*
 	 * change the group id to the appropriate group
 	 */
-	if(setgid(task->gid)<0){
+	if (setgid(task->gid)<0) {
 	    char* errstr;
 	    errstr = strerror(errno);
 
@@ -361,7 +375,7 @@ int PSID_taskspawn(PStask_t* task)
 	/*
 	 * change the user id to the appropriate user
 	 */
-	if(setuid(task->uid)<0){
+	if (setuid(task->uid)<0) {
 	    char* errstr;
 	    errstr = strerror(errno);
 
@@ -376,7 +390,7 @@ int PSID_taskspawn(PStask_t* task)
 	/*
 	 * change to the appropriate directory
 	 */
-	if(chdir(task->workingdir)<0){
+	if (chdir(task->workingdir)<0) {
 	    char* errstr;
 	    errstr = strerror(errno);
 	    syslog(LOG_ERR, "PSID_taskspawn(chdir): %d %s :%s", errno,
@@ -413,7 +427,7 @@ int PSID_taskspawn(PStask_t* task)
 	}
 	if (stat(task->argv[0], &sb) == -1
 	    || ((sb.st_mode & S_IFMT) != S_IFREG)
-	    || !(sb.st_mode & S_IEXEC)){
+	    || !(sb.st_mode & S_IEXEC)) {
 	    char* errstr;
 	    errstr=strerror(errno);
 	    syslog(LOG_ERR,"PSID_taskspawn(stat): [%d] %s :%s  %s %s",
@@ -447,7 +461,7 @@ int PSID_taskspawn(PStask_t* task)
 	/*
 	 * execute the image
 	 */
-	if (PSID_execv(task->argv[0],&(task->argv[0]))<0){
+	if (PSID_execv(task->argv[0],&(task->argv[0]))<0) {
 	    char* errstr;
 	    errstr = strerror(errno);
 	    openlog("psid spawned process", LOG_PID|LOG_CONS, LOG_DAEMON);
@@ -473,7 +487,7 @@ int PSID_taskspawn(PStask_t* task)
     /*
      * check if fork() was successful
      */
-    if (pid ==-1){
+    if (pid ==-1) {
 	char *errstr;
 	errstr = strerror(errno);
 
@@ -484,11 +498,11 @@ int PSID_taskspawn(PStask_t* task)
 	perror("fork()");
 	task->error = -errno;
 	ret = -errno;
-    }else{
+    } else {
 	/*
 	 * check for a sign of the child
 	 */
-	if(PSP_DEBUGTASK & PSI_debugmask){
+	if (PSP_DEBUGTASK & PSI_debugmask) {
 	    snprintf(errtxt, sizeof(errtxt),
 		     "I'm the parent. I'm waiting for my child (%d)\n", pid);
 	    PSI_logerror(errtxt);
@@ -503,7 +517,7 @@ int PSID_taskspawn(PStask_t* task)
 	    }
 	}
 
-	if(ret == 0){
+	if (ret == 0) {
 	    /*
 	     * the control channel was closed in case of a successful execv
 	     */
@@ -512,12 +526,12 @@ int PSID_taskspawn(PStask_t* task)
 	    task->tid = PSI_gettid(-1,pid);
 	    task->nodeno = PSI_getnode(-1);
 #if defined(DEBUG)||defined(PSID)
-	    if(PSP_DEBUGTASK & PSI_debugmask){
+	    if (PSP_DEBUGTASK & PSI_debugmask) {
 		snprintf(errtxt, sizeof(errtxt), "child execute was successful\n");
 		PSI_logerror(errtxt);
 	    }
 #endif
-	}else{
+	} else {
 	    char *errstr;
 
 	    /*
@@ -526,7 +540,7 @@ int PSID_taskspawn(PStask_t* task)
 	    ret = buf;
 	    errstr = strerror(ret);
 #if defined(DEBUG)||defined(PSID)
-	    /*	    if(PSP_DEBUGTASK & PSI_debugmask)
+	    /*	    if (PSP_DEBUGTASK & PSI_debugmask)
 	     */
 	    {
 		snprintf(errtxt, sizeof(errtxt),
@@ -548,20 +562,20 @@ int PSID_inserthost(unsigned int addr, unsigned short psino)
 
     hostno = ntohl(addr) & 0xff;
 
-    for (host = PSID_hosts[hostno];  host; host = host->next){
-	if (host->saddr == addr){
+    for (host = PSID_hosts[hostno]; host; host = host->next) {
+	if (host->saddr == addr) {
 	    host->psino = psino;
 	    return 1;
 	}
     }
-    if ((host = (struct PSID_host_t*) malloc(sizeof(struct PSID_host_t)))){
+    if ((host = (struct PSID_host_t*) malloc(sizeof(struct PSID_host_t)))) {
 	host->saddr = addr;
 	host->psino = psino;
 	host->next = PSID_hosts[hostno];
 	PSID_hosts[hostno] = host;
 	PSID_hostaddresses[psino] = addr;
 #ifdef DEBUG
-	if((PSP_DEBUGADMIN|PSP_DEBUGSTARTUP) & PSI_debugmask){
+	if ((PSP_DEBUGADMIN|PSP_DEBUGSTARTUP) & PSI_debugmask) {
 	    snprintf(errtxt, sizeof(errtxt), "PSID_inserthost(): the host (address[%x],"
 		    "cardid[%d]) is inserted in the hostlist.\n", addr, psino);
 	    PSI_logerror(errtxt);
@@ -584,7 +598,7 @@ int PSID_host(unsigned int addr)
     unsigned int hostno;
     struct PSID_host_t *host;
 #if defined(DEBUG)
-    if(PSP_DEBUGHOST & PSI_debugmask ){
+    if (PSP_DEBUGHOST & PSI_debugmask ) {
 	snprintf(errtxt, sizeof(errtxt), "PSID_host(%x) \n", addr);
 	PSI_logerror(errtxt);
     }
@@ -595,7 +609,7 @@ int PSID_host(unsigned int addr)
 
     /* other addresses */
     hostno = ntohl(addr) & 0xFF;
-    for (host = PSID_hosts[hostno]; host; host = host->next){
+    for (host = PSID_hosts[hostno]; host; host = host->next) {
 	if (host->saddr == addr)
 	    return host->psino ;
     }
@@ -613,7 +627,7 @@ int PSID_host(unsigned int addr)
 unsigned int PSID_hostaddress(unsigned short id)
 {
 #if defined(DEBUG)
-    if(PSP_DEBUGHOST & PSI_debugmask){
+    if (PSP_DEBUGHOST & PSI_debugmask) {
 	snprintf(errtxt, sizeof(errtxt), "PSID_hostaddress(%d) = %x\n",
 		 id, (int) PSID_hostaddresses[id]);
 	PSI_logerror(errtxt);
