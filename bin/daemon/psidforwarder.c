@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidforwarder.c,v 1.3 2003/02/21 14:08:58 eicker Exp $
+ * $Id: psidforwarder.c,v 1.4 2003/02/27 18:21:27 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.3 2003/02/21 14:08:58 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.4 2003/02/27 18:21:27 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -642,6 +642,7 @@ static void loop(void)
 		    continue;
 		}
 
+		/* @todo collect "micro"reads as from time */
 		n = read(sock, buf, sizeof(buf));
 		if (verbose) {
 		    snprintf(obuf, sizeof(obuf),
