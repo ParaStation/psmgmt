@@ -1,87 +1,112 @@
 /*
- * Copyright (c) 1995 Regents of the University of Karlsruhe / Germany.
+ *               ParaStation3
+ * psilog.h
+ *
+ * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
+ * $Id: psilog.h,v 1.4 2002/07/03 20:00:33 eicker Exp $
  *
- *      @(#)shm.h    1.00 (Karlsruhe) 10/4/95
+ */
+/**
+ * @file
+ * psilog: Logging facility for the ParaStation user library.
  *
- *      written by Joachim Blum
+ * $Id: psilog.h,v 1.4 2002/07/03 20:00:33 eicker Exp $
  *
- * This is the header file of the base module for the ParaStationProtocol.
- * It manages the SHareMemory.
+ * @author
+ * Norbert Eicker <eicker@par-tec.com>
+ *
  */
 #ifndef __PSILOG_H
 #define __PSILOG_H
-#include <sys/types.h>
-#include <stdio.h>
-#include <syslog.h>
 
-extern FILE* PSI_errorlog;
-
-/*------------------------------------------------------------------------- 
- *  PSP port/socket states
- *    a port/socket can be in different states. Some functions are 
- *    only possible if the port/socket is in a special state.
+/**
+ * @brief Initialize the PSI logging facility.
+ *
+ * Initialize the PSI logging facility. This is mainly a wrapper to
+ * @ref initErrLog().
+ *
+ *
+ * @param usesyslog Flag to mark syslog(3) to be used for any output.
+ *
+ * @param logfile Alternative file to use for logging.
+ *
+ *
+ * @return No return value.
+ *
+ * If @usesyslog is not 0, syslog() will be used for any
+ * output. Otherwise if @a logfile is set, this file will be used or
+ * stderr, if @a logfile is NULL.
+ *
+ * @see initErrLog(), syslog(3)
  */
-#define PSPCLOSED       0
-#define PSPESTABLISHED  1
-#define PSPREQUESTED    3
-#define PSPREFUSED      4
-#define PSPLISTENING    5
-#define PSPWAITACCEPT   6
+void PSI_initLog(int usesyslog, FILE *logfile);
 
-/*----------------------------------------------------------------------
- * PSP Optionen
+/**
+ * @brief Get the log-level of the PSI logging facility.
+ *
+ * Get the actual log-level of the PSI logging facility. This is
+ * mainly a wrapper to @ref getErrLogLevel().
+ *
+ * @return The actual log-level is returned.
+ *
+ * @see PSI_setDebugLevel(), getErrLogLevel()
  */
-/* Debugging MODES:
-   0: Very URGENT. 
-   1: important but not so urgent messages
-   2: Daemon-Daemon Protocol
-   3: Daemon-Client Protocol
-   4: Client Process Management
-   5: Spawning of Clients
-   6: Message transmission
-   
-   8: Daemon-Daemon unimportant things
-   9: very unimportant tracing information
-*/
-extern int SYSLOG_LEVEL;
-#define SYSLOG(a,b) if((a<=SYSLOG_LEVEL) ||(PSI_isoption(PSP_ODEBUG)))syslog b
+int PSI_getDebugLevel(void);
 
-#define PSP_ODEBUG        0x00000001
-#define PSP_OSYSLOG       0x00000002
-#define PSP_OTIMESTAMP    0x00000004
-
-
-/*----------------------------------------------------------------------
- * Host status constants
- * for variable PSPshm->hoststatus
+/**
+ * @brief Set the log-level of the PSI logging facility.
+ *
+ * Set the log-level of the PSI logging facility to @a level. This is
+ * mainly a wrapper to @ref setErrLogLevel().
+ *
+ * @param level The log-level to be set.
+ *
+ * @return No return value.
+ *
+ * @see PSI_setDebugLevel(), getErrLogLevel()
  */
-#define PSPHOSTUP   0x01
+void PSI_setDebugLevel(int level);
 
-/*----------------------------------------------------------------------
- * PSP DEBUG MASK
+/**
+ * @brief Print log-messages via the PSI logging facility.
+ *
+ * Prints message @a s with some beautification, if @a level is <= the
+ * result of @ref PSI_getDebugLevel(). This is mainly a wrapper to
+ * @ref errlog().
+ *
+ *
+ * @param s The actual message to log.
+ *
+ * @param level The log-level of the message. Comparing to the result
+ * of @ref PSI_getDebugLevel() decides whether @a s is actually put
+ * out or not.
+ *
+ *
+ * @return No return value.
+ *
+ * @see errlog(), PSI_getDebugLevel(), PSI_setDebugLevel()
  */
-#define PSP_DEBUGADMIN     0x00000001 /* debug administration funcs */
-#define PSP_DEBUGSTARTUP   0x00000002 /* debug startup funcs */
-#define PSP_DEBUGTASK      0x00000004 /* debug task manipulations */
-#define PSP_DEBUGHOST      0x00000008 /* debug host funcs */
+void PSI_errlog(char *s, int level);
 
-extern unsigned long PSI_debugmask;         /* from psilog.c */
-
-extern char PSI_txt[];			    /* scratch for error log */
-
-void PSI_logerror(char *s);
+/**
+ * @brief Print log-messages via the PSI logging facility and exit.
+ *
+ * Prints message @a s and string corresponding to errno with some
+ * beautification. This is mainly a wrapper to @ref errexit().
+ *
+ *
+ * @param s The actual message to log.
+ *
+ * @param errorno The errno which occured. PSI_errexit() logs the
+ * corresponding string given by strerror().
+ *
+ *
+ * @return No return value.
+ *
+ * @see errno(3), strerror(3), errexit()
+ */
+void PSI_errexit(char *s, int errorno);
 
 #endif
