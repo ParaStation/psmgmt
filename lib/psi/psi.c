@@ -154,7 +154,7 @@ PSI_startdaemon(u_long hostaddr)
 	close(sock);
 	return 0;
     } 
-    sleep(1);
+    usleep(200000);
     shutdown(sock,2);
     close(sock);
     return 1;
