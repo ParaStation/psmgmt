@@ -131,18 +131,18 @@
 	  <cmdsynopsis>
 	    <command>HWType</command>
 	    <group choice="req">
-	      <arg choice="plain">EtherNet</arg>
-	      <arg choice="plain">MyriNet</arg>
-<!-- 	      <arg choice="plain">GigaEtherNet</arg> -->
-	      <arg choice="plain">None</arg>
+	      <arg>EtherNet</arg>
+	      <arg>MyriNet</arg>
+<!-- 	      <arg>GigaEtherNet</arg> -->
+	      <arg>None</arg>
 	    </group>
 	    <sbr/>
 	    <command>HWType {</command>
 	    <group rep="repeat" choice="req">
-	      <arg choice="plain">EtherNet</arg>
-	      <arg choice="plain">MyriNet</arg>
-<!-- 	      <arg choice="plain">GigaEtherNet</arg> -->
-	      <arg choice="plain">None</arg>
+	      <arg>EtherNet</arg>
+	      <arg>MyriNet</arg>
+<!-- 	      <arg>GigaEtherNet</arg> -->
+	      <arg>None</arg>
 	    </group>
 	    <command>}</command>
 	  </cmdsynopsis>
@@ -306,13 +306,15 @@
 	    <arg>HWtype-entry</arg>
 	    <arg>hasIP-entry</arg>
 	    <arg>starter-entry</arg>
+	    <arg>MyriNetIP<replaceable>ip-addr</replaceable></arg>
 	    <sbr/>
 	    <command>Node[s] {</command>
 	    <arg choice="plain">{<replaceable>hostname</replaceable></arg>
 	    <arg choice="plain"><replaceable>id</replaceable></arg>
-	    <arg choice="opt">HWtype-entry</arg>
+	    <arg>HWtype-entry</arg>
 	    <arg>hasIP-entry</arg>
 	    <arg>starter-entry</arg>
+	    <arg>MyriNetIP<replaceable>ip-addr</replaceable></arg>
 	    <arg choice="plain">}...</arg>
 	    <command>}</command>
 	  </cmdsynopsis>
@@ -340,24 +342,58 @@
 	    <parameter><replaceable>id</replaceable></parameter>.
 	  </para>
 	  <para>
-	    Further items may overrule the default values of the hardware type
-	    on the node, the existence of the IP over Myrinet feature and the
-	    ability to start parallel jobs from this node. These entry have the
+	    <parameter><replaceable>hostname</replaceable></parameter> is
+	    either a resolvable hostname or an IP address in dot notation (e.g.
+	    192.168.1.17). <parameter><replaceable>id</replaceable></parameter>
+	    is an integer number in the range from 0 to
+	    <command>NrOfNodes</command>-1.
+	  </para>
+	  <para>
+	    Further optional items as <option>HWtype-entry</option>,
+	    <option>hasIP-entry</option> and <option>starter-entry</option> may
+	    overrule the default values of the hardware type on the node, the
+	    existence of the IP over Myrinet feature and the ability to start
+	    parallel jobs from this node respectively. These entry have the
 	    same syntax as the stand alone commands to set the corresponding
 	    default value.
+	  </para>
+	  <para>
+	    The optional item <command>MyriNetIP</command> will assign the IP
+	    address <parameter><replaceable>ip-addr</replaceable></parameter>
+	    to the local MyriNet card.
+	    <parameter><replaceable>ip-addr</replaceable></parameter> is either
+	    a resolvable hostname or an IP address in dot notation (e.g.
+	    192.168.1.17). For a detailed description on how this works refer
+	    to <xref linkend="ip_over_myrinet"/> of the <xref
+	      linkend="adminguide"/>.
 	  </para>
 	  <para>
 	    E.g. the line
 	  </para>
 	  <programlisting>
-	Node node17 16 HWType { ethernet myrinet } hasIP yes
+	Node node17 16 HWType { ethernet myrinet } hasIP yes MyriNetIP myri17
 	  </programlisting>
 	  <para>
 	    will define the node <parameter>node17</parameter> to have the &ps;
 	    ID 16. Furthermore it is expected to have ethernet <emphasis
 	      role="bold">and</emphasis> myrinet communication interfaces and
 	    the IP over MyriNet functionality will be activated on this node.
+	    The IP address of the MyriNet card will be the one
+	    <parameter>myri17</parameter> resolves to.
 	  </para>
+	  <note>
+	    <para>
+	      The optional <command>MyriNetIP</command> item is only usefull
+	      when configuring a MyriNet cluster where IP over MyriNet is
+	      enabled.
+	    </para>
+	    <para>
+	      It is also possible to assign IP addresses to MyriNet cards on
+	      the different nodes in a general manner based on the ParaStation
+	      IDs. Use the <command>IPPrefix</command> parameter for this
+	      feature.
+	    </para>
+	  </note>
 	</listitem>
       </varlistentry>
 
@@ -784,6 +820,12 @@
 	      be declared within the configuaration file in any case if IP over
 	      MyriNet should be enabled on a MyriNet cluster.
 	    </para>
+	    <para>
+	      It is also possible to assing IP addresses to MyriNet cards on
+	      the different nodes on a per node basis. Use the
+	      <option>MyriNetIP</option> option of the <command>Nodes</command>
+	      parameter for this feature.
+	    </para>
 	  </note>
 	</listitem>
       </varlistentry>
@@ -891,8 +933,7 @@
 	    <para>
 	      For values of <option>level</option> larger than
 	      <constant>10</constant> the daemon logs a huge amount of message
-	      in the logging destination, which is usually the
-	      <citerefentry>
+	      in the logging destination, which is usually the <citerefentry>
 		<refentrytitle>syslog</refentrytitle>
 		<manvolnum>3</manvolnum>
 	      </citerefentry>. Don't use this levels different from
@@ -908,21 +949,52 @@
 	</listitem>
       </varlistentry>
 
-      <!--
-      @todo
       <varlistentry>
 	<term>
 	  <cmdsynopsis>
 	    <command>LogDest</command>
-	    <command>, LogDestination</command>
+	    <group choice="req">
+	      <arg>LOG_DAEMON</arg>
+	      <arg>LOG_KERN</arg>
+	      <arg>LOG_LOCAL[0-7]</arg>
+	    </group>
+	    <sbr/>
+	    <command>LogDestination</command>
+	    <group choice="req">
+	      <arg>LOG_DAEMON</arg>
+	      <arg>LOG_KERN</arg>
+	      <arg>LOG_LOCAL[0-7]</arg>
+	    </group>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
 	  <para>
+	    Set the logging output's destination for the ParaStation daemon
+	    <xref linkend="psid"/>. Usually the daemon prints logging output
+	    using the <citerefentry>
+	      <refentrytitle>syslog</refentrytitle>
+	      <manvolnum>3</manvolnum>
+	    </citerefentry> mechanism, unless an alternative logging file is
+	    requested via <xref linkend="psid"/>'s <option>-l</option> option.
+	  </para>
+	  <para>
+	    In order to collect all the ParaStation specific log messages into
+	    a special file, the <replaceable>facility</replaceable> argument of
+	    the <citerefentry>
+	      <refentrytitle>openlog</refentrytitle>
+	      <manvolnum>3</manvolnum>
+	    </citerefentry> function call in cooperation with a suitable setup
+	    of the <citerefentry>
+	      <refentrytitle>syslogd</refentrytitle>
+	      <manvolnum>8</manvolnum>
+	    </citerefentry> may be used. This parameter will set the argument
+	    to one of the mentioned values.
+	  </para>
+	  <para>
+	    The defaul value is <command>LOG_DAEMON</command>.
 	  </para>
 	</listitem>
       </varlistentry>
-      -->
 
       <varlistentry>
 	<term>
@@ -1026,8 +1098,8 @@
       <command>Environment</command> are not implemented yet.
     </para>
     <para>
-      The commands <command>LogDest</command>, <command>RLimit</command> and
-      <command>Environment</command> are not documented yet.
+      The commands <command>RLimit</command> and <command>Environment</command>
+      are not documented yet.
     </para>
   </refsect1>
 </refentry>

@@ -30,6 +30,16 @@
     </glossdef>
   </glossentry>
 
+  <glossentry id="forwarder">
+    <glossterm>forwarder</glossterm>
+    <glosssee otherterm="forwarderfull"/>
+  </glossentry>
+
+  <glossentry id="logger">
+    <glossterm>logger</glossterm>
+    <glosssee otherterm="loggerfull"/>
+  </glossentry>
+
   <glossentry id="MCP">
     <glossterm>MCP</glossterm>
     <glosssee otherterm="MCPfull"/>
@@ -57,6 +67,31 @@
       <para>
 	<!-- @todo -->
 	ToDo
+      </para>
+    </glossdef>
+  </glossentry>
+
+  <glossentry id="loggerfull">
+    <glossterm>ParaStation logger</glossterm>
+    <glossdef>
+      <para>
+	<!-- @todo -->
+	ToDo
+      </para>
+    </glossdef>
+  </glossentry>
+
+  <glossentry id="forwarderfull">
+    <glossterm>ParaStation forwarder</glossterm>
+    <glossdef>
+      <para>
+	Collects output written by ParaStation controlled processes to
+	<filename>stdout</filename> or <filename>stderr</filename> and sends it
+	to the ParaStation <link linkend="logger">logger</link>.
+      </para>
+      <para>
+	Furthermore the forwareder controls the process and sends information
+	about its exit status when it finishes to the local daemon.
       </para>
     </glossdef>
   </glossentry>

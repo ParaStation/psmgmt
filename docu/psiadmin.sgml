@@ -596,7 +596,20 @@
 	      </term>
 	      <listitem>
 		<para>
-		  ToDo <!-- @todo -->
+		  Show the load and the number of processes managed by the
+		  ParaStation system on the selected node(s).
+		</para>
+		<para>
+		  The three load values displayed are the averages for 1, 5 and
+		  15 minutes respectively. The two numbers of processes are as
+		  follows: The total number of processes contains all processes
+		  managed by the ParaStation system, including <link
+		    linkend="logger">logger</link> processes, <link
+		    linkend="forwarder">forwarder</link> processes and <xref
+		    linkend="psiadmin"/> processes. Furthermore of course the
+		  actual working processes started by the users are included.
+		  The latter ones are the <quote>normal</quote> processes,
+		  additionally displayed in the last column of the output.
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -609,7 +622,9 @@
 	      </term>
 	      <listitem>
 		<para>
-		  ToDo <!-- @todo -->
+		  Show the hardware setup on the selected node(s). Displayed
+		  are the number of CPUs and the communication hardware
+		  available to the ParaStation system.
 		</para>
 	      </listitem>
 	    </varlistentry>
@@ -1161,9 +1176,7 @@
   <refsect1>
     <title>Errors</title>
     <para>
-      The directives <command>status <parameter>load</parameter></command> and
-      <command>status <parameter>hw</parameter></command> are not documented
-      yet.
+      No known errors.
     </para>
   </refsect1>
 

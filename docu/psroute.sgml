@@ -15,19 +15,19 @@
     <cmdsynopsis>
       <command>psroute</command>
       <arg>-d debugfile</arg>
-      <arg choice="plain">mapfile</arg>
+      <arg choice="plain">map-file</arg>
     </cmdsynopsis>
   </refsynopsisdiv>
 
   <refsect1>
     <title>Description</title>
     <para>
-      Take the <filename>mapfile</filename> which is created by <xref
+      Take the <filename>map-file</filename> which is created by <xref
 	linkend="psscan"/> and write a routing table to stdout.
     </para>
     <para>
       The routing table is fed by the ParaStation daemon <xref linkend="psid"/>
-      into the ParaStation MyriNet module to enable proper routing.
+      into the ParaStation MyriNet module in order to enable proper routing.
     </para>
   </refsect1>
   <refsect1>
@@ -45,6 +45,12 @@
 	</listitem>
       </varlistentry>
     </variablelist>
+  </refsect1>
+  <refsect1>
+    <title>The routing table's format</title>
+    <para>
+      ToDo
+    </para>
   </refsect1>
   <refsect1>
     <title>See also</title>
