@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.80 2003/03/05 12:41:29 eicker Exp $
+ * $Id: psid.c,v 1.81 2003/03/06 14:23:06 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.80 2003/03/05 12:41:29 eicker Exp $ 
+ * $Id: psid.c,v 1.81 2003/03/06 14:23:06 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.80 2003/03/05 12:41:29 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.81 2003/03/06 14:23:06 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -51,6 +51,8 @@ static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.80 2003/03/05 12
 #include "timer.h"
 #include "mcast.h"
 #include "rdp.h"
+#include "config_parsing.h"
+#include "psnodes.h"
 
 #include "pscommon.h"
 #include "psprotocol.h"
@@ -61,7 +63,6 @@ static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.80 2003/03/05 12
 #include "psidtask.h"
 #include "psidspawn.h"
 #include "psidsignal.h"
-#include "config_parsing.h"
 
 struct timeval maintimer;
 struct timeval selecttimer;
@@ -74,7 +75,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.80 $";
+static char psid_cvsid[] = "$Revision: 1.81 $";
 
 static int PSID_mastersock;
 
@@ -123,8 +124,6 @@ int RDPSocket = -1;
 /* needed prototypes                                                    */
 /*----------------------------------------------------------------------*/
 void deleteClient(int fd);
-int isUpDaemon(int node);
-
 
 /************************************************************************/
 /*                   The communication stuff                            */
@@ -327,7 +326,7 @@ static int broadcastMsg(void *amsg)
 
     /* broadcast to every daemon except the sender */
     for (i=0; i<PSC_getNrOfNodes(); i++) {
-	if (isUpDaemon(i) && i != PSC_getMyID()) {
+	if (PSnodes_isUp(i) && i != PSC_getMyID()) {
 	    msg->dest = PSC_getTID(i, 0);
 	    if (sendMsg(msg)>=0) {
 		count++;
@@ -342,19 +341,6 @@ static int broadcastMsg(void *amsg)
 /*****************************************************************************/
 
 /******************************************
- *  isUpDaemon()
- * returns true if a daemon is up
- */
-int isUpDaemon(int id)
-{
-    if ((id<0) || (id>=PSC_getNrOfNodes())) {
-	return 0;
-    }
-
-    return nodes[id].isUp;
-}
-
-/******************************************
  *  startDaemons()
  * if an applications contacts the daemon, the daemon trys
  * to start the other daemons on the cluster.
@@ -366,8 +352,8 @@ static void startDaemons(void)
     if (fork()==0) {
 	/* fork a process which starts all other daemons */
 	for (id=0; id<PSC_getNrOfNodes(); id++) {
-	    if (!isUpDaemon(id)) {
-		PSC_startDaemon(nodes[id].addr);
+	    if (!PSnodes_isUp(id)) {
+		PSC_startDaemon(PSnodes_getAddr(id));
 	    }
 	}
 	exit(0);
@@ -514,23 +500,6 @@ int shutdownNode(int phase)
 }
 
 /******************************************
- *  initDaemon()
- * Initializes a daemon structure
- */
-void initDaemon(int id, int hwStatus, short numCPU)
-{
-    if (hwStatus >= 0) {
-	nodes[id].hwStatus = hwStatus;
-    }
-
-    if (numCPU > 0) {
-	nodes[id].numCPU = numCPU;
-    }
-
-    nodes[id].isUp = 1;
-}
-
-/******************************************
  * declareDaemonDead()
  * is called when a connection to a daemon is lost
  */
@@ -538,7 +507,7 @@ void declareDaemonDead(int id)
 {
     PStask_t *task;
 
-    nodes[id].isUp = 0;
+    PSnodes_bringDown(id);
 
     /* Send signals to all processes that controlled task on the dead node */
     task=managedTasks;
@@ -581,7 +550,10 @@ int send_DAEMONCONNECT(int id)
     msg.header.sender = PSC_getMyTID();
     msg.header.dest = PSC_getTID(id, 0);
     msg.header.len = sizeof(msg);
-    msg.hwStatus = PSID_HWstatus;
+    /* @todo put the next two into separate SETOPTION messages */
+    msg.hwStatus = PSnodes_getHWStatus(PSC_getMyID());
+    msg.numCPU = PSnodes_getCPUs(PSC_getMyID());
+
     if (sendMsg(&msg)==msg.header.len) {
 	/* successful connection request is sent */
 	return 0;
@@ -1036,14 +1008,18 @@ void msg_DAEMONCONNECT(DDConnectMsg_t *msg)
     /*
      * accept this request and send an ESTABLISH msg back to the requester
      */
-    initDaemon(id, msg->hwStatus, msg->numCPU);
+    PSnodes_bringUp(id);
+    /* @todo put the next two into separate SETOPTION messages */
+    PSnodes_setHWStatus(id, msg->hwStatus);
+    PSnodes_setCPUs(id, msg->numCPU);
 
     msg->header.type = PSP_DD_DAEMONESTABLISHED;
     msg->header.sender = PSC_getMyTID();
     msg->header.dest = PSC_getTID(id, 0);
     msg->header.len = sizeof(*msg);
-    msg->hwStatus = PSID_HWstatus;
-    msg->numCPU = PSID_numCPU;
+    /* @todo put the next two into separate SETOPTION messages */
+    msg->hwStatus = PSnodes_getHWStatus(PSC_getMyID());
+    msg->numCPU = PSnodes_getCPUs(PSC_getMyID());
 
     if ((success = sendMsg(msg))<=0) {
 	snprintf(errtxt, sizeof(errtxt),
@@ -1087,7 +1063,7 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
     if (PSC_getID(msg->header.sender)==PSC_getMyID()) {
 	PStask_t *ptask;
 
-	if (!nodes[PSC_getMyID()].starter) {
+	if (!PSnodes_isStarter(PSC_getMyID())) {
 	     /* starting not allowed */
 	    PSID_errlog("SPAWNREQUEST: spawning not allowed", 0);
 	    answer.error = EACCES;
@@ -1209,7 +1185,7 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	/*
 	 * this is a request for a remote site.
 	 */
-	if (isUpDaemon(PSC_getID(msg->header.dest))) {
+	if (PSnodes_isUp(PSC_getID(msg->header.dest))) {
 	    /* the daemon of the requested node is connected to me */
 	    snprintf(errtxt, sizeof(errtxt),
 		     "sending spawnrequest to node %d",
@@ -1407,7 +1383,7 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 
     if (id!=PSC_getMyID()) {
 	/* a request for a remote daemon */
-	if (isUpDaemon(id)) {
+	if (PSnodes_isUp(id)) {
 	    /*
 	     * transfer the request to the remote daemon
 	     */
@@ -1491,15 +1467,17 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 	case PSP_CD_COUNTSTATUSREQUEST:
 	{
 	    PSHALInfoCounter_t *ic;
+	    unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
 
 	    msg.header.type = PSP_CD_COUNTSTATUSRESPONSE;
-	    memcpy(msg.buf, &PSID_HWstatus, sizeof(PSID_HWstatus));
-	    msg.header.len += sizeof(PSID_HWstatus);
 
-	    if (PSID_HWstatus & PSHW_MYRINET) {
+	    memcpy(msg.buf, &status, sizeof(status));
+	    msg.header.len += sizeof(status);
+
+	    if (status & PSHW_MYRINET) {
 		ic = PSHALSYSGetInfoCounter();
 		if (ic) {
-		    memcpy(msg.buf+sizeof(PSID_HWstatus), ic, sizeof(*ic));
+		    memcpy(msg.buf+sizeof(status), ic, sizeof(*ic));
 		    msg.header.len += sizeof(*ic);
 		}
 	    }
@@ -1527,7 +1505,7 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 	    int i;
 	    msg.header.type = PSP_CD_HOSTSTATUSRESPONSE;
 	    for (i=0; i<PSC_getNrOfNodes(); i++) {
-		msg.buf[i] = isUpDaemon(i);
+		msg.buf[i] = PSnodes_isUp(i);
 	    }
 	    msg.header.len += sizeof(*msg.buf) * PSC_getNrOfNodes();
 	    break;
@@ -1538,7 +1516,7 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 
 	    address = (unsigned int *) ((DDBufferMsg_t*)inmsg)->buf;
 	    msg.header.type = PSP_CD_HOSTRESPONSE;
-	    *(int *)msg.buf = parser_lookupHost(*address);
+	    *(int *)msg.buf = PSnodes_lookupHost(*address);
 	    msg.header.len += sizeof(int);
 	    break;
 	}
@@ -1549,7 +1527,7 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 	    node = (int *) ((DDBufferMsg_t*)inmsg)->buf;
 	    msg.header.type = PSP_CD_NODERESPONSE;
 	    if ((*node >= 0) && (*node < PSC_getNrOfNodes())) {
-		*(unsigned int *)msg.buf = nodes[*node].addr;
+		*(unsigned int *)msg.buf = PSnodes_getAddr(*node);
 	    } else {
 		*(unsigned int *)msg.buf = INADDR_ANY;
 	    }
@@ -1569,9 +1547,9 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 	    for (i=0; i<PSC_getNrOfNodes(); i++) {
 		MCastConInfo_t info;
 
-		nodelist[i].up = isUpDaemon(i);
-		nodelist[i].numCPU = nodes[i].numCPU;
-		nodelist[i].hwType = nodes[i].hwStatus;
+		nodelist[i].up = PSnodes_isUp(i);
+		nodelist[i].numCPU = PSnodes_getCPUs(i);
+		nodelist[i].hwType = PSnodes_getHWStatus(i);
 
 		getInfoMCast(i, &info);
 		nodelist[i].load[0] = info.load.load[0];
@@ -1613,7 +1591,7 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 
 	switch (msg->opt[i].option) {
 	case PSP_OP_SMALLPACKETSIZE:
-	    if (PSID_HWstatus & PSHW_MYRINET) {
+	    if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
 		if (PSHALSYS_GetSmallPacketSize()!=msg->opt[i].value) {
 		    PSHALSYS_SetSmallPacketSize(msg->opt[i].value);
 		    ConfigSmallPacketSize = msg->opt[i].value;
@@ -1621,7 +1599,7 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 	    }
 	    break;
 	case PSP_OP_RESENDTIMEOUT:
-	    if (PSID_HWstatus & PSHW_MYRINET) {
+	    if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
 		unsigned int optval = msg->opt[i].value;
 		if (PSHALSYS_GetMCPParam(MCP_PARAM_RTO, &val, NULL))
 		    break;
@@ -1632,7 +1610,7 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 	    }
 	    break;
 	case PSP_OP_HNPEND:
-	    if (PSID_HWstatus & PSHW_MYRINET) {
+	    if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
 		unsigned int optval = msg->opt[i].value;
 		if (PSHALSYS_GetMCPParam(MCP_PARAM_HNPEND, &val, NULL))
 		    break;
@@ -1643,7 +1621,7 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 	    }
 	    break;
 	case PSP_OP_ACKPEND:
-	    if (PSID_HWstatus & PSHW_MYRINET) {
+	    if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
 		unsigned int optval = msg->opt[i].value;
 		if (PSHALSYS_GetMCPParam(MCP_PARAM_ACKPEND, &val, NULL))
 		    break;
@@ -1740,7 +1718,7 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 
     if (id!=PSC_getMyID()) {
 	/* a request for a remote daemon */
-	if (isUpDaemon(id)) {
+	if (PSnodes_isUp(id)) {
 	    /*
 	     * transfer the request to the remote daemon
 	     */
@@ -1776,14 +1754,14 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 
 	    switch (msg->opt[i].option) {
 	    case PSP_OP_SMALLPACKETSIZE:
-		if (PSID_HWstatus & PSHW_MYRINET) {
+		if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
 		    msg->opt[i].value = PSHALSYS_GetSmallPacketSize();
 		} else {
 		    msg->opt[i].value = -1;
 		}
 		break;
 	    case PSP_OP_RESENDTIMEOUT:
-		if (PSID_HWstatus & PSHW_MYRINET) {
+		if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
 		    if (PSHALSYS_GetMCPParam(MCP_PARAM_RTO, &val, NULL))
 			break;
 		    msg->opt[i].value = val;
@@ -1792,7 +1770,7 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		}
 		break;
 	    case PSP_OP_HNPEND:
-		if (PSID_HWstatus & PSHW_MYRINET) {
+		if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
 		    if (PSHALSYS_GetMCPParam(MCP_PARAM_HNPEND, &val, NULL))
 			break;
 		    msg->opt[i].value = val;
@@ -1801,7 +1779,7 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		}
 		break;
 	    case PSP_OP_ACKPEND:
-		if (PSID_HWstatus & PSHW_MYRINET) {
+		if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
 		    if (PSHALSYS_GetMCPParam(MCP_PARAM_ACKPEND, &val, NULL))
 			break;
 		    msg->opt[i].value = val;
@@ -2298,7 +2276,7 @@ void msg_WHODIED(DDSignalMsg_t *msg)
 /*  	     id, PSC_printTID(inmsg->sender)); */
 /*      PSID_errlog(errtxt, 1); */
 
-/*      if (id<0 || id>=PSC_getNrOfNodes() || !isUpDaemon(id)) { */
+/*      if (id<0 || id>=PSC_getNrOfNodes() || !PSnodes_isUp(id)) { */
 /*  	DDErrorMsg_t errmsg; */
 /*  	errmsg.header.len = sizeof(errmsg); */
 /*  	errmsg.request = inmsg->type; */
@@ -2337,7 +2315,7 @@ void msg_WHODIED(DDSignalMsg_t *msg)
 /*  	     id, PSC_printTID(inmsg->sender)); */
 /*      PSID_errlog(errtxt, 1); */
 
-/*      if (id<0 || id>=PSC_getNrOfNodes() || !isUpDaemon(id)) { */
+/*      if (id<0 || id>=PSC_getNrOfNodes() || !PSnodes_isUp(id)) { */
 /*  	DDErrorMsg_t errmsg; */
 /*  	errmsg.header.len = sizeof(errmsg); */
 /*  	errmsg.request = inmsg->type; */
@@ -2405,14 +2383,17 @@ int requestOptions(int node)
  */
 void msg_DAEMONESTABLISHED(DDConnectMsg_t *msg)
 {
-    int node = PSC_getID(msg->header.sender);
+    int id = PSC_getID(msg->header.sender);
 
-    initDaemon(node, msg->hwStatus, msg->numCPU);
+    PSnodes_bringUp(id);
+    /* @todo put the next two into separate SETOPTION messages */
+    PSnodes_setHWStatus(id, msg->hwStatus);
+    PSnodes_setCPUs(id, msg->numCPU);
 
     /*
      * request the remote options
      */
-    requestOptions(node);
+    requestOptions(id);
 }
 
 /******************************************
@@ -2541,8 +2522,8 @@ void psicontrol(int fd)
 
 	    if (node1==PSC_getMyID()) {
 		if ((node2 >=0 && node2<PSC_getNrOfNodes())) {
-		    if (!isUpDaemon(node2)) {
-			PSC_startDaemon(nodes[node2].addr);
+		    if (!PSnodes_isUp(node2)) {
+			PSC_startDaemon(PSnodes_getAddr(node2));
 		    } else {
 			snprintf(errtxt, sizeof(errtxt),
 				 "CONTACTNODE received but node %d is"
@@ -2551,7 +2532,7 @@ void psicontrol(int fd)
 		    }
 		}
 	    } else {
-		if (isUpDaemon(node1)) {
+		if (PSnodes_isUp(node1)) {
 		    /* forward message */
 		    sendMsg(&msg);
 		} else {
@@ -2666,8 +2647,8 @@ void MCastCallBack(int msgid, void *buf)
 	snprintf(errtxt, sizeof(errtxt),
 		 "MCastCallBack(MCAST_NEW_CONNECTION,%d)", node);
 	PSID_errlog(errtxt, 1);
-	if (node!=PSC_getMyID() && !isUpDaemon(node)) {
-	    initDaemon(node, -1, -1); /* @todo needed ? */
+	if (node!=PSC_getMyID() && !PSnodes_isUp(node)) {
+	    PSnodes_bringUp(node);  /* @todo needed ? */
 	    if (send_DAEMONCONNECT(node)<0) {
 		snprintf(errtxt, sizeof(errtxt),
 			 "MCastCallBack() send_DAEMONCONNECT() "
@@ -2732,8 +2713,8 @@ void RDPCallBack(int msgid, void *buf)
 	snprintf(errtxt, sizeof(errtxt),
 		 "RDPCallBack(RDP_NEW_CONNECTION,%d)", node);
 	PSID_errlog(errtxt, 2);
-	if (node != PSC_getMyID() && !isUpDaemon(node)) {
-	    initDaemon(node, -1, -1); /* @todo needed ? */
+	if (node != PSC_getMyID() && !PSnodes_isUp(node)) {
+	    PSnodes_bringUp(node);  /* @todo needed ? */
 	    if (send_DAEMONCONNECT(node)<0) {
 		snprintf(errtxt, sizeof(errtxt),
 			 "RDPCallBack() send_DAEMONCONNECT()"
@@ -3030,7 +3011,7 @@ void checkFileTable(void)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.80 $";
+    char revision[] = "$Revision: 1.81 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -3234,12 +3215,17 @@ int main(int argc, const char *argv[])
      */
     PSID_readConfigFile(!logfile);
 
-    snprintf(errtxt, sizeof(errtxt), "My ID is %d", PSC_getMyID());
-    PSID_errlog(errtxt, 1);
-    snprintf(errtxt, sizeof(errtxt),
-	     "My IP is %s",
-	     inet_ntoa(*(struct in_addr *) &nodes[PSC_getMyID()].addr));
-    PSID_errlog(errtxt, 1);
+    {
+	unsigned int addr;
+
+	snprintf(errtxt, sizeof(errtxt), "My ID is %d", PSC_getMyID());
+	PSID_errlog(errtxt, 1);
+
+	addr = PSnodes_getAddr(PSC_getMyID());
+	snprintf(errtxt, sizeof(errtxt),
+		 "My IP is %s", inet_ntoa(*(struct in_addr *) &addr));
+	PSID_errlog(errtxt, 1);
+    }
 
     if (!logfile && ConfigLogDest!=LOG_DAEMON) {
 	snprintf(errtxt, sizeof(errtxt),
@@ -3277,8 +3263,6 @@ int main(int argc, const char *argv[])
     selecttimer.tv_usec = 0;
     gettimeofday(&maintimer, NULL);
 
-    initDaemon(PSC_getMyID(), PSID_HWstatus, PSID_numCPU);
-
     for (fd=0; fd<FD_SETSIZE; fd++) {
 	clients[fd].tid = -1;
 	clients[fd].task = NULL;
@@ -3305,9 +3289,9 @@ int main(int argc, const char *argv[])
 	}
 
 	for (i=0; i<PSC_getNrOfNodes(); i++) {
-	    hostlist[i] = nodes[i].addr;
+	    hostlist[i] = PSnodes_getAddr(i);
 	}
-	hostlist[PSC_getNrOfNodes()] = licNode.addr;
+	hostlist[PSC_getNrOfNodes()] = PSnodes_getAddr(PSNODES_LIC);
 
 	/*
 	 * Initialize MCast and RDP
