@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psprotocol.h,v 1.13 2003/03/11 10:26:11 eicker Exp $
+ * $Id: psprotocol.h,v 1.14 2003/03/19 17:05:07 eicker Exp $
  *
  */
 /**
  * @file
- * ParaStation client-daemon and daemon-daemon high-level protocol.
+ * ParaStation client-daemon high-level protocol.
  *
- * $Id: psprotocol.h,v 1.13 2003/03/11 10:26:11 eicker Exp $
+ * $Id: psprotocol.h,v 1.14 2003/03/19 17:05:07 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -22,7 +22,6 @@
 #define __PSPROTOCOL_H
 
 #include <sys/types.h>
-#include <sys/socket.h>
 #include "pstask.h"
 
 #ifdef __cplusplus
@@ -32,151 +31,134 @@ extern "C" {
 #endif
 #endif
 
-#define PSprotocolversion  320
+/** Unique version number of the high-level protocol */
+#define PSprotocolversion  323
 
+/** The location of the UNIX socket used to contact the daemon. */
 #define PSmasterSocketName "/var/run/parastation.sock"
 
-/** @todo Documentation */
+/** IDs of the various message types */
 
-/*
- * PSP_ctrl messages through the OS socket of the daemon
- */
-#define PSP_CD_CLIENTCONNECT       0x0001  /**< Request to connect daemon */
-#define PSP_CD_CLIENTESTABLISHED   0x0002  /**< Connection request accepted */
-#define PSP_CD_CLIENTREFUSED       0x0003  /**< Connection request denied */
+/** First messages used for setting up connections between client and daemon */
+#define PSP_CD_CLIENTCONNECT     0x0001  /**< Request to connect daemon */
+#define PSP_CD_CLIENTESTABLISHED 0x0002  /**< Connection request accepted */
+#define PSP_CD_CLIENTREFUSED     0x0003  /**< Connection request denied */
 
+/** Error code within a #PSP_CD_CLIENTREFUSED message */
 typedef enum {
-    OLDVERSION = 1, 
-    NOSPACE = 2,
-    UIDLIMIT = 3,
-    PROCLIMIT = 4,
-    REFUSED = 5
-} ConnectError_t; /**< Error code within a #PSP_CD_CLIENTREFUSED message */
+    PSP_CONN_ERR_NONE = 0,        /**< No error, but TG_RESET task group */
+    PSP_CONN_ERR_OLDVERSION = 1,  /**< Protocol version mismatch */
+    PSP_CONN_ERR_NOSPACE,         /**< No space to create task struct */
+    PSP_CONN_ERR_UIDLIMIT,        /**< Node is limited to different user */
+    PSP_CONN_ERR_PROCLIMIT,       /**< Number of processes exceeded */
+    PSP_CONN_ERR_STATENOCONNECT   /**< No connections accepted */
+} PSP_ConnectError_t;
 
 /* We will keep this message types for compatibility with older executables */
-#define PSP_CD_OLDVERSION          0x0004
-#define PSP_CD_NOSPACE             0x0005
-#define PSP_CD_UIDLIMIT            0x0006
-#define PSP_CD_PROCLIMIT           0x0007
+// #define PSP_CD_OLDVERSION          0x0004
 
-/* SET/GETOPTION also used between client and daemon! */
-#define PSP_DD_SETOPTION           0x0008
-#define PSP_DD_GETOPTION           0x0009
-#define PSP_DD_CONTACTNODE         0x000a
-
-/* Replace the following request/response by PSP_CD_INFOREQUEST/RESPONSE */
-/* The corresponding message contains an extra type-flag describing the
-   requested info (extra case-switch in psid.c */
-/* PSP_CD_INFORESPONSE my give type unknown -> generate error in info.c */
-#define PSP_CD_TASKINFOREQUEST     0x0010  /**< Request info about one or more
-					      tasks */
-#define PSP_CD_TASKINFO            0x0011  /**< Reply info about a task */
-#define PSP_CD_TASKINFOEND         0x0012  /**< End of task info replies */
-
-#define PSP_CD_HOSTREQUEST         0x0018  /**< Request PS ID from IP */
-#define PSP_CD_HOSTRESPONSE        0x0019  /**< Reply PS ID from IP */
-#define PSP_CD_NODELISTREQUEST     0x001a  /**< Request up to date nodelist */
-#define PSP_CD_NODELISTRESPONSE    0x001b  /**< Reply up to date nodelist */
-#define PSP_CD_NODEREQUEST         0x001c  /**< Request IP from PS ID */
-#define PSP_CD_NODERESPONSE        0x001d  /**< Reply IP from PS ID */
-#define PSP_CD_PARTITIONREQUEST    0x001e  /**< Request incomplete nodelist */
-#define PSP_CD_PARTITIONRESPONSE   0x001f  /**< Reply incomplete nodelist */
-//#define PSP_CD_LOADREQUEST         0x001c  /* Obsolete ? */
-//#define PSP_CD_LOADRESPONSE        0x001d  /* Obsolete ? */
-//#define PSP_CD_PROCREQUEST         0x001e  /* Obsolete ? */
-//#define PSP_CD_PROCRESPONSE        0x001f  /* Obsolete ? */
-
-#define PSP_CD_HOSTSTATUSREQUEST   0x0020
-#define PSP_CD_HOSTSTATUSRESPONSE  0x0021
-#define PSP_CD_COUNTSTATUSREQUEST  0x0022
-#define PSP_CD_COUNTSTATUSRESPONSE 0x0023
-#define PSP_CD_RDPSTATUSREQUEST    0x0024
-#define PSP_CD_RDPSTATUSRESPONSE   0x0025
-#define PSP_CD_MCASTSTATUSREQUEST  0x0026
-#define PSP_CD_MCASTSTATUSRESPONSE 0x0027
-
-/* Messages conceerning spawning of tasks. client-daemon. */
-
-#define PSP_DD_SPAWNREQUEST        0x0030  /**< Request to spawn a process */
-#define PSP_DD_SPAWNSUCCESS        0x0031  /**< Reply on successful spawn */
-#define PSP_DD_SPAWNFAILED         0x0032  /**< Reply on failed spawn */
-#define PSP_DD_SPAWNFINISH         0x0033  /**< Reply after successfil end of
-					      spawned process */
-
-/* The next four ones are mainly used between client-daemon */
-#define PSP_DD_NOTIFYDEAD          0x0040
-#define PSP_DD_NOTIFYDEADRES       0x0041
-#define PSP_DD_RELEASE             0x0042
-#define PSP_DD_RELEASERES          0x0043
-/* This will be used between client-daemon and daemon-daemon */
-#define PSP_DD_SIGNAL              0x0044
-/* This is also only between client-daemon */
-#define PSP_DD_WHODIED             0x0045
-
-#define PSP_DD_SYSTEMERROR         0x0050
-#define PSP_DD_STATENOCONNECT      0x0051
-
-#define PSP_CD_RESET               0x0060
-
-#define PSP_CC_MSG                 0x0080  /**< Messages between clients.
-					      These should be fully transparent
-					      for the daemons. */
-#define PSP_CC_ERROR               0x0081  /**< Error in client communication.
-					      Usually client not found. These
-					      should be fully transparent for
-					      the daemons. */
-
-#define PSP_DD_DAEMONCONNECT       0x0100
-#define PSP_DD_DAEMONESTABLISHED   0x0101
-#define PSP_DD_DAEMONSTOP          0x0102
-#define PSP_CD_DAEMONSTOP          0x0103
-
-/* This is only used between forwarder(part of daemon) and daemon */
-#define PSP_DD_CHILDDEAD           0x0112  /**< Tell someone that its child has
-					      finished */
-
-/*----------------------------------------------------------------------*/
-/* global options to be sent in the DD protocol                         */
-/*----------------------------------------------------------------------*/
-#define PSP_OP_SMALLPACKETSIZE     0x0001
-#define PSP_OP_RESENDTIMEOUT       0x0002
-#define PSP_OP_HNPEND              0x0003
-#define PSP_OP_ACKPEND             0x0004
-
-#define PSP_OP_PSIDDEBUG           0x0010
-#define PSP_OP_PSIDSELECTTIME      0x0011
-
-#define PSP_OP_RDPDEBUG            0x0020
-#define PSP_OP_RDPPKTLOSS          0x0021
-#define PSP_OP_RDPMAXRETRANS       0x0022
-
-#define PSP_OP_MCASTDEBUG          0x0028
-
-#define PSP_OP_HWSTATUS            0x0030
-#define PSP_OP_CPUS                0x0031
-#define PSP_OP_PROCLIMIT           0x0032
-#define PSP_OP_UIDLIMIT            0x0033
-
-/*----------------------------------------------------------------------*/
-/* global reset actions to be sent in the DD/CD protocol                */
-/*----------------------------------------------------------------------*/
-#define PSP_RESET_HW              0x0001
+/** Messages used for setting and getting option values */
+#define PSP_CD_SETOPTION         0x0008  /**< Set one or more options */
+#define PSP_CD_GETOPTION         0x0009  /**< Get one or more options */
 
 /**
- * @todo Docu
+ * Type of option to get/set within a #PSP_CD_GETOPTION /
+ * #PSP_CD_SETOPTION message
  */
-/***************************************************************************
- *       PSPctrlmsg()
- *
- *       outputs description of the type of a psid message
+typedef enum {
+    PSP_OP_HWSTATUS = 0x0001,     /**< Hardware status */
+    PSP_OP_CPUS,                  /**< Number of CPUs */
+    PSP_OP_PROCLIMIT,             /**< Maximum number of processes */
+    PSP_OP_UIDLIMIT,              /**< uid the node is restricted to */
+    PSP_OP_PSIDDEBUG,             /**< psid's debug level */
+    PSP_OP_PSIDSELECTTIME,        /**< Time (sec) in psid's select() */
+
+    PSP_OP_RDPDEBUG = 0x0020,     /**< RDP's debug level */
+    PSP_OP_RDPPKTLOSS,            /**< Paket loss within RDP (debugging) */
+    PSP_OP_RDPMAXRETRANS,         /**< Max. retransmissions in RDP */
+
+    PSP_OP_MCASTDEBUG = 0x0028,   /**< MCast's debug level */
+
+    PSP_OP_PSM_HNPEND = 0x0030,   /**< */
+    PSP_OP_PSM_ACKPEND,           /**< */
+    PSP_OP_PSM_SMALLPACKETSIZE,   /**< */
+    PSP_OP_PSM_RESENDTIMEOUT      /**< */
+} PSP_Option_t;
+
+/** Messages used for information retrieval */
+#define PSP_CD_INFOREQUEST       0x0010  /**< Get info from daemon */
+#define PSP_CD_INFORESPONSE      0x0011  /**< The requested info */
+
+/**
+ * Type of information to get within a #PSP_CD_INFOREQUEST /
+ * #PSP_CD_INFORESPONSE message
  */
-char *PSP_printMsg(int msgtype);
+typedef enum {
+    PSP_INFO_UNKNOWN = 0x0000,    /**< Unknown info type */
 
-/*----------------------------------------------------------------------*/
-/* Daemon-Daemon Protocol Message Types                                 */
-/*----------------------------------------------------------------------*/
+    PSP_INFO_NROFNODES,           /**< Number of cluster nodes */
+    PSP_INFO_INSTDIR,             /**< ParaStation installation directory */
+    PSP_INFO_DAEMONVER,           /**< Version string of the daemon */
 
-/* Message primitive. This is also the header of more complex messages */
+    PSP_INFO_HOST,                /**< ParaStation ID from IP */
+    PSP_INFO_NODE,                /**< IP from ParaStation ID */
+    PSP_INFO_NODELIST,            /**< Up to date nodelist */
+    PSP_INFO_PARTITION,           /**< Nodelist according certain limits */
+
+    PSP_INFO_TASK,                /**< info about one tasks */
+    PSP_INFO_TASKEND,             /**< end of task info replies */
+
+    PSP_INFO_HOSTSTATUS,          /**< Complete status of all cluster nodes */
+    PSP_INFO_COUNTSTATUS,         /**< Communication counters */
+    PSP_INFO_RDPSTATUS,           /**< Status of the RDP */
+    PSP_INFO_MCASTSTATUS          /**< Status of the MCast */
+} PSP_Info_t;
+
+/** Messages concerning spawning of tasks. */
+#define PSP_CD_SPAWNREQUEST      0x0020  /**< Request to spawn a process */
+#define PSP_CD_SPAWNSUCCESS      0x0021  /**< Reply on successful spawn */
+#define PSP_CD_SPAWNFAILED       0x0022  /**< Reply on failed spawn */
+#define PSP_CD_SPAWNFINISH       0x0023  /**< Reply after successful end of
+					      spawned process */
+
+/** All the signal handling stuff. */
+#define PSP_CD_NOTIFYDEAD        0x0040  /**< Register to get a signal */
+#define PSP_CD_NOTIFYDEADRES     0x0041  /**< Reply registration's success */
+#define PSP_CD_RELEASE           0x0042  /**< Cancal the signal */
+#define PSP_CD_RELEASERES        0x0043  /**< Reply cancelation's success */
+#define PSP_CD_SIGNAL            0x0044  /**< Send a signal */
+#define PSP_CD_WHODIED           0x0045  /**< Find out who sent a signal */
+
+
+/** Messages to steer the daemons. */
+#define PSP_CD_DAEMONSTART       0x0050  /**< Request to start remote daemon */
+#define PSP_CD_DAEMONSTOP        0x0051  /**< Request to stop remote daemon */
+#define PSP_CD_DAEMONRESET       0x0052  /**< Request to reset daemon */
+
+/** Client-client messages. These are fully transparent for the daemons. */
+#define PSP_CC_MSG               0x0080  /**< Message between clients. */
+#define PSP_CC_ERROR             0x0081  /**< Error in client communication. */
+
+/** Error messages. */
+#define PSP_CD_ERROR             0x00FF  /**< General error message */
+
+
+
+    /******************************************************************/
+    /* The IDs from 0x0100 on are reserved for daemon-daemon messages */
+    /******************************************************************/
+
+
+
+/** global reset actions. */
+#define PSP_RESET_HW              0x0001
+
+
+/*--------------------------------------*/
+/* Client-Daemon Protocol Message Types */
+/*--------------------------------------*/
+
+/** Message primitive. This is also the header of more complex messages. */
 typedef struct {
     short type;            /**< msg type */
     short len;             /**< total length of the message */
@@ -184,107 +166,98 @@ typedef struct {
     long dest;             /**< final destination of the message */
 } DDMsg_t;
 
-/* Load Message */
-//typedef struct {
-//    DDMsg_t header;        /* header of the message */
-//    double load[3];        /* three load values */
-//} DDLoadMsg_t;
-
-/* Error Message */
+/** Typed message containing the type and nothing else. */
 typedef struct {
-    DDMsg_t header;        /* header of the message */
-    int error;             /* error number */
-    long request;          /* request which caused the error */
-} DDErrorMsg_t;
-
-/* Reset Message */
-typedef struct {
-    DDMsg_t header;        /* header of the message */
-    int first;             /* first node to be reset */
-    int last;              /* last node to be reset */
-    long action;           /* request which caused the error */
-} DDResetMsg_t;
-
-/* Contact Node Message */
-typedef struct {
-    DDMsg_t header;        /* header of the message */
-    long partner;          /* node which should be contacted by header.dest */
-} DDContactMsg_t;
+    DDMsg_t header;        /**< message header */
+    int type;              /**< message type */
+} DDTypedMsg_t;
 
 #define BufMsgSize 8000
 
-/* untyped Buffer Message */
+/**
+ * Untyped buffer message. This is the largest message
+ * possible. I.e. receiving a message of this type saves from
+ * segmentation faults as long as the protocol is not messed up.
+ */
 typedef struct {
-    DDMsg_t header;        /* header of the message */
-    char buf[BufMsgSize];  /* buffer for Message */
+    DDMsg_t header;        /**< message header */
+    char buf[BufMsgSize];  /**< message buffer */
 } DDBufferMsg_t;
 
-/* typed Buffer Message */
+/**
+ * Typed buffer message. Pretty much the same as #DDBufferMsg_t but
+ * with an additional type (and a slightly smaller buffer)
+ */
 typedef struct {
-    DDMsg_t header;        /* header of the message */
-    int type;              /* type of buffer message */
-    char buf[BufMsgSize-sizeof(int)];        /* buffer for Message */
+    DDMsg_t header;        /**< message header */
+    int type;              /**< message type */
+    char buf[BufMsgSize-sizeof(int)]; /**< message buffer */
 } DDTypedBufferMsg_t;
 
-/* Init Message */
+/** Simple error message */
+typedef struct {
+    DDMsg_t header;        /**< message header */
+    int error;             /**< error number */
+    long request;          /**< request which caused the error */
+} DDErrorMsg_t;
+
+/** Initial message send by a potential client to the daemon. */
 typedef struct {
     DDMsg_t header;        /**< header of the message */
     PStask_group_t group;  /**< process group of the task */
-    long version;          /* version of the PS library */
-    int nrofnodes;         /* # of nodes  @todo -> new info message */
-    int myid;              /**< id of this node or info about failure */
+    long version;          /**< version of the PS library */
     int ppid;              /**< PID of the parent process (for TG_SPAWNER) */
 #ifndef SO_PEERCRED
     pid_t pid;             /**< process id. Not used with UNIX sockets. */
     uid_t uid;             /**< user id. Not used with UNIX sockets. */
     gid_t gid;             /**< group id. Not used with UNIX sockets. */
 #endif
-    char instdir[80];      /**< Installation directory of ParaStation stuff
-			    @todo -> New info message */
-    char psidvers[80];     /**< CVS version-string of the ParaStation daemon
-			    @todo -> New info message */
 } DDInitMsg_t;
 
 #define DDOptionMsgMax 16
 
-/* Options Message */
+/* Option message used to set or get various options. */
 typedef struct {
-    DDMsg_t header;        /* header of the message */
-    char count;            /* no of options in opt[] */
+    DDMsg_t header;        /**< message header */
+    char count;            /**< no of options in opt[] */
     struct {
-        long option;       /* option to be set/requested */
-	long value;        /* value of option to be set */
-    }opt[DDOptionMsgMax];
+        long option;       /**< option to be set/requested */
+	long value;        /**< value of option to be set */
+    }opt[DDOptionMsgMax];  /**< array of option-value pairs */
 } DDOptionMsg_t;
 
-/* Signal Message */
+/* Signal message used to (de)register and send signals. */
 typedef struct {
-    DDMsg_t header;        /**< header of the message */
+    DDMsg_t header;        /**< message header */
     int signal;            /**< signal to be set or sent */
     int param;             /**< additional parameter used as follows:
-			      - PSP_DD_NOTIFYDEAD: unused
-			      - PSP_DD_NOTIFYDEADRES: resulting error
-			      - PSP_DD_RELEASE: unused
-			      - PSP_DD_RELEASERES: resulting error
-			      - PSP_DD_WHODIED: unused
-			      - PSP_DD_SIGNAL: uid of the sender.
+			      - PSP_CD_NOTIFYDEAD: unused
+			      - PSP_CD_NOTIFYDEADRES: resulting error
+			      - PSP_CD_RELEASE: unused
+			      - PSP_CD_RELEASERES: resulting error
+			      - PSP_CD_WHODIED: unused
+			      - PSP_CD_SIGNAL: uid of the sender.
 			      - PSP_DD_CHILDDEAD: unused. */
 } DDSignalMsg_t;
 
-/* Taskinfo Message */
+/**
+ * Types describing the content of PSP_INFO_TASKLIST responses.
+ */
 typedef struct {
-    DDMsg_t header;        /**< header of the message */
-    long tid;              /**< tasks unique identifier */
-    long ptid;             /**< unique identifier of tasks parent-task */
-    long loggertid;        /**< unique identifier of tasks logger-task */
-    uid_t uid;             /**< user id of the task */
-    long group;            /**< process group of the task */
-    int rank;              /**< rank of the task within process group */
-    int connected;         /**< flag if task has connected the daemon */
-} DDTaskinfoMsg_t;
+    long tid;            /**< tasks unique identifier */
+    long ptid;           /**< unique identifier of tasks parent-task */
+    long loggertid;      /**< unique identifier of tasks logger-task */
+    uid_t uid;           /**< user id of the task */
+    long group;          /**< process group of the task */
+    int rank;            /**< rank of the task within process group */
+    int connected;       /**< flag if task has connected the daemon */
+} Taskinfo_t;
 
 
-/* Array of this struct is returned to PARTITION/NODELIST_REQUEST */
+/**
+ * Type describing the content of PSP_INFO_NODELIST and
+ * PSP_INFO_PARTITION responses.
+ */
 typedef struct {
     int id;              /**< ID of this node */
     short up;            /**< Flag if node is up */
@@ -295,6 +268,22 @@ typedef struct {
     short normalJobs;    /**< number of "normal" jobs (no logger, admin,...) */
     short maxJobs;       /**< maximum number of "normal" jobs */
 } NodelistEntry_t;
+
+/**
+ * @brief Generate a string describing the message type.
+ *
+ * Generate a character string describing the message type @a
+ * msgtype. The message type has to contain one of the PSP_CD_ or
+ * PSP_CC_ message type constants.
+ *
+ * @param msgtype Message type the name should be generated for.
+ *
+ * @return A pointer to the '\0' terminated character string
+ * containing the name of the message type or a special message
+ * containing @a msgtype if the type is unknown.
+ */
+char *PSP_printMsg(int msgtype);
+
 
 #ifdef __cplusplus
 }/* extern "C" */
