@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: commands.c,v 1.4 2003/10/29 17:15:02 eicker Exp $
+ * $Id: commands.c,v 1.5 2003/11/26 17:22:49 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.4 2003/10/29 17:15:02 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.5 2003/11/26 17:22:49 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -40,62 +40,243 @@ static char lexid[] __attribute__(( unused )) = "$Id: commands.c,v 1.4 2003/10/2
 #include "pstask.h"
 
 #include "psi.h"
-#include "info.h"
+#include "psiinfo.h"
 #include "psispawn.h"
 
 #include "commands.h"
 
-char commandsversion[] = "$Revision: 1.4 $";
+char commandsversion[] = "$Revision: 1.5 $";
 
 static int doRestart = 0;
 
-static char *hoststatus = NULL;
-
-static NodelistEntry_t *nodelist = NULL;
-static size_t nodelistSize = 0;
 
 /* @todo PSI_sendMsg(): Wrapper, control if sendMsg was successful or exit */
 
-void PSIADM_Init(void) {
-    hoststatus = (char *)malloc(sizeof(char) * PSC_getNrOfNodes());
-    if (!hoststatus) {
-	printf("node memory\n");
-	exit(1);
+
+/** Simple array with attached actual size. */
+typedef struct {
+    size_t actSize;  /**< The actual size of the array @ref list */
+    char *list;      /**< The array. */
+} sizedList_t;
+
+/**
+ * @brief Extend a array.
+ *
+ * Extend the array @a list to provide at least @a size bytes of
+ * content. If @list is allready larger than @a size, do nothing.
+ *
+ * @param list The array to enlarge.
+ *
+ * @param size The requested minimal size.
+ *
+ * @param caller String used for better error logging.
+ *
+ * @return On success, i.e. if @a list was large enough or the
+ * extension of @a list was possible, 1 is returned. Otherwise 0 is
+ * returned.
+ */
+static int extendList(sizedList_t *list, size_t size, char *caller)
+{
+    if (list->actSize < size) {
+	char *tmp = list->list;
+	list->actSize = size;
+	list->list = realloc(list->list, list->actSize);
+	if (!list->list) {
+	    printf("%s: %s: out of memory\n", caller, __func__);
+	    free(tmp);
+	    list->actSize=0;
+	    return 0;
+	}
+    }
+    return 1;
+}
+
+/**
+ * @brief Get a full list.
+ *
+ * Get a full list from the daemon. Therefor a list of type @a what is
+ * stored to @a list. Each item of the list is expected to have size
+ * @a itemSize. In order to provide this function with the correct @a
+ * itemSize, please refer to the documentation within psiinfo.h.
+ *
+ * This function expects the list to be of length PSC_getNrOfNodes().
+ *
+ *
+ * @param list A sized list to store the result to.
+ *
+ * @param what The type of information to retrieve.
+ *
+ * @param itemSize The size of each item within @a list.
+ *
+ * @return On success, 1 is returned, or 0, if an error occurred.
+ */
+static int getFullList(sizedList_t *list, PSP_Info_t what, size_t itemSize)
+{
+    int recv, hosts;
+    char funcStr[256];
+
+    snprintf(funcStr, sizeof(funcStr),
+	     "%s(%s)", __func__, PSP_printInfo(what));
+    if (!extendList(list, itemSize*PSC_getNrOfNodes(), funcStr)) return 0;
+
+    recv = PSI_infoList(-1, what, NULL, list->list, list->actSize, 1);
+    hosts = recv/itemSize;
+
+    if (hosts != PSC_getNrOfNodes()) {
+	printf("%s: failed.\n", funcStr);
+	return 0;
     }
 
-    nodelistSize = sizeof(NodelistEntry_t) * PSC_getNrOfNodes();
-    nodelist = (NodelistEntry_t *) malloc(nodelistSize);
-    if (!nodelist) {
-	printf("nodelist memory\n");
-	exit(1);
-    }
+    return 1;
 }
+
+/** List used for storing of host stati. */
+static sizedList_t hostStatus = { .actSize = 0, .list = NULL };
+
+/** Simple wrapper for retrieval of host stati */
+static inline int getHostStatus(void)
+{
+    return getFullList(&hostStatus, PSP_INFO_LIST_HOSTSTATUS, sizeof(char));
+}
+
+/** List used for storing of hardware stati. */
+static sizedList_t hwList = { .actSize = 0, .list = NULL };
+
+/** Simple wrapper for retrieval of hardware stati */
+static inline int getHWStat(void)
+{
+    return getFullList(&hwList, PSP_INFO_LIST_HWSTATUS, sizeof(uint32_t));
+}
+
+/** List used for storing of task informations. */
+static sizedList_t tiList = { .actSize = 0, .list = NULL };
+
+/**
+ * @brief Get a task list.
+ *
+ * Get a task list of node @a node. Up to @a count task information
+ * structures are received from the daemon and stored to @ref
+ * tiList. If the flag @a full is different from 0, information on all
+ * kind of tasks is received. Otherwise only normal tasks, i.e. tasks
+ * of task group @ref TG_ANY, are considered.
+ *
+ *
+ * @param node The node from which the task list should be retrieved.
+ *
+ * @param count The number of tasks to store to @ref tiList.
+ *
+ * @param full Flag to mark, if all jobs or only "normal" jobs should
+ * be stored to @ref tiList.
+ *
+ * @return On success, the number of task infos received and stored to
+ * @a taskInfo is returned, or 0, if an error occurred.
+ */
+static inline int getTaskInfo(PSnodes_ID_t node, int count, int full)
+{
+    int tasks;
+    PSP_Info_t what = full ? PSP_INFO_LIST_ALLTASKS : PSP_INFO_LIST_NORMTASKS;
+
+    if (!extendList(&tiList, count * sizeof(PSP_taskInfo_t), __func__))
+	return 0;
+
+    tasks = PSI_infoList(node, what, NULL,
+			 tiList.list, count * sizeof(PSP_taskInfo_t), 1);
+
+    if (tasks < 0) {
+	printf("%s: failed.\n", __func__);
+	return 0;
+    }
+    return tasks / sizeof(PSP_taskInfo_t);
+}
+
+/** @todo */
+static sizedList_t tn0List = { .actSize = 0, .list = NULL };
+/** @todo */
+static sizedList_t tn1List = { .actSize = 0, .list = NULL };
+
+/**
+ * @brief Update @ref taskNum.
+ *
+ * Update the @ref taskNum variable.
+ *
+ * @param full @todo
+ *
+ * @return On success, 1 is returned, or 0, if an error occurred.
+ */
+static inline int getTaskNum(int full)
+{
+    PSP_Info_t what = full ? PSP_INFO_LIST_ALLJOBS : PSP_INFO_LIST_NORMJOBS;
+
+    return getFullList(full ? &tn1List : &tn0List, what, sizeof(uint16_t));
+}
+
+/** @todo */
+static sizedList_t ldList = { .actSize = 0, .list = NULL };
+
+/**
+ * @todo
+ * @brief Update @ref taskInfo.
+ *
+ * Update the @ref taskInfo variable from node @a node.
+ *
+ * @param node @todo
+ *
+ * @param count @todo
+ *
+ * @return On success, the number of task infos received and stored to
+ * @a taskInfo is returned, or 0, if an error occurred.
+ */
+static inline int getLoads(void)
+{
+    return getFullList(&ldList, PSP_INFO_LIST_LOAD, 3 * sizeof(float));
+}
+
+/** @todo */
+static sizedList_t pcpuList = { .actSize = 0, .list = NULL };
+/** @todo */
+static sizedList_t vcpuList = { .actSize = 0, .list = NULL };
+
+/** @todo */
+static inline int getPhysCPUs(void)
+{
+    return getFullList(&pcpuList, PSP_INFO_LIST_PHYSCPUS, sizeof(uint16_t));
+}
+
+/** @todo */
+static inline int getVirtCPUs(void)
+{
+    return getFullList(&vcpuList, PSP_INFO_LIST_VIRTCPUS, sizeof(uint16_t));
+}
+
+
+/* ---------------------------------------------------------------------- */
 
 void PSIADM_AddNode(char *nl)
 {
-    int i;
-    DDBufferMsg_t msg;
+    DDBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_DAEMONSTART,
+	    .sender = PSC_getMyTID(),
+	    .dest = PSC_getTID(-1, 0),
+	    .len = sizeof(msg.header) + sizeof(uint16_t) },
+	.buf = { 0 } };
+    PSnodes_ID_t node;
 
     if (geteuid()) {
 	printf("Insufficient priviledge\n");
 	return;
     }
 
-    msg.header.type = PSP_CD_DAEMONSTART;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.dest = PSC_getTID(-1, 0);
-    msg.header.len = sizeof(msg.header) + sizeof(unsigned short);
+    if (! getHostStatus()) return;
 
-    INFO_request_hoststatus(hoststatus, PSC_getNrOfNodes(), 1);
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
 
-    for (i = 0; i < PSC_getNrOfNodes(); i++) {
-	if (nl && !nl[i]) continue;
-
-	if (hoststatus[i]) {
-	    printf("%d already up.\n",i);
+	if (hostStatus.list[node]) {
+	    printf("%d already up.\n", node);
 	} else {
-	    printf("starting node %d\n",i);
-	    *(unsigned short *)msg.buf = i;
+	    printf("starting node %d\n", node);
+	    *(uint16_t *)msg.buf = node;
 	    PSI_sendMsg(&msg);
 	}
     }
@@ -104,28 +285,29 @@ void PSIADM_AddNode(char *nl)
 
 void PSIADM_ShutdownNode(char *nl)
 {
-    DDMsg_t msg;
-    int i, send_local = 0;
+    DDMsg_t msg = {
+	.type = PSP_CD_DAEMONSTOP,
+	.sender = PSC_getMyTID(),
+	.dest = 0,
+	.len = sizeof(msg) };
+    PSnodes_ID_t node;
+    int send_local = 0;
 
     if (geteuid()) {
 	printf("Insufficient priviledge\n");
 	return;
     }
 
-    msg.type = PSP_CD_DAEMONSTOP;
-    msg.sender = PSC_getMyTID();
-    msg.len = sizeof(msg);
+    if (! getHostStatus()) return;
 
-    INFO_request_hoststatus(hoststatus, PSC_getNrOfNodes(), 1);
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
 
-    for (i = 0; i < PSC_getNrOfNodes(); i++) {
-	if (nl && !nl[i]) continue;
-
-	if (hoststatus[i]) {
-	    if (i == PSC_getMyID()) {
+	if (hostStatus.list[node]) {
+	    if (node == PSC_getMyID()) {
 		send_local = 1;
 	    } else {
-		msg.dest = PSC_getTID(i, 0);
+		msg.dest = PSC_getTID(node, 0);
 		PSI_sendMsg(&msg);
 	    }
 	}
@@ -139,266 +321,332 @@ void PSIADM_ShutdownNode(char *nl)
 
 void PSIADM_HWStart(int hw, char *nl)
 {
-    int i, hwnum = INFO_request_hwnum(1);
-    DDBufferMsg_t msg;
+    DDBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_HWSTART,
+	    .sender = PSC_getMyTID(),
+	    .dest = 0,
+	    .len = sizeof(msg.header) + sizeof(int32_t) },
+	.buf = { 0 } };
+    PSnodes_ID_t node;
+    int hwnum, err;
 
     if (geteuid()) {
 	printf("Insufficient priviledge\n");
 	return;
     }
 
-    if (hw < -1 || hw >= hwnum) return;
+    err = PSI_infoInt(-1, PSP_INFO_HWNUM, NULL, &hwnum, 1);
+    if (err || hw < -1 || hw >= hwnum) return;
 
-    msg.header.type = PSP_CD_HWSTART;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.len = sizeof(msg.header) + sizeof(int);
-    *(int *)msg.buf = hw;
+    *(int32_t *)msg.buf = hw;
 
-    INFO_request_hoststatus(hoststatus, PSC_getNrOfNodes(), 1);
+    if (! getHostStatus()) return;
 
-    for (i = 0; i < PSC_getNrOfNodes(); i++) {
-	if (nl && !nl[i]) continue;
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
 
-	if (hoststatus[i]) {
-	    msg.header.dest = PSC_getTID(i, 0);
+	if (hostStatus.list[node]) {
+	    msg.header.dest = PSC_getTID(node, 0);
 	    PSI_sendMsg(&msg);
 	} else {
-	    printf("%4d down.\n",i);
+	    printf("%4d down.\n", node);
 	}
     }
 }
 
 void PSIADM_HWStop(int hw, char *nl)
 {
-    int i, hwnum = INFO_request_hwnum(1);
-    DDBufferMsg_t msg;
+    DDBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_HWSTOP,
+	    .sender = PSC_getMyTID(),
+	    .dest = 0,
+	    .len = sizeof(msg.header) + sizeof(int32_t) },
+	.buf = { 0 } };
+    PSnodes_ID_t node;
+    int hwnum, err;
 
     if (geteuid()) {
 	printf("Insufficient priviledge\n");
 	return;
     }
 
-    if (hw < -1 || hw >= hwnum) return;
+    err = PSI_infoInt(-1, PSP_INFO_HWNUM, NULL, &hwnum, 1);
+    if (err || hw < -1 || hw >= hwnum) return;
 
-    msg.header.type = PSP_CD_HWSTOP;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.len = sizeof(msg.header) + sizeof(int);
-    *(int *)msg.buf = hw;
+    *(int32_t *)msg.buf = hw;
 
-    INFO_request_hoststatus(hoststatus, PSC_getNrOfNodes(), 1);
+    if (! getHostStatus()) return;
 
-    for (i = 0; i < PSC_getNrOfNodes(); i++) {
-	if (nl && !nl[i]) continue;
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
 
-	if (hoststatus[i]) {
-	    msg.header.dest = PSC_getTID(i, 0);
+	if (hostStatus.list[node]) {
+	    msg.header.dest = PSC_getTID(node, 0);
 	    PSI_sendMsg(&msg);
 	} else {
-	    printf("%4d down.\n",i);
+	    printf("%4d down.\n", node);
 	}
     }
 }
 
 void PSIADM_NodeStat(char *nl)
 {
-    int i;
+    PSnodes_ID_t node;
 
-    INFO_request_hoststatus(hoststatus, PSC_getNrOfNodes(), 1);
+    if (! getHostStatus()) return;
 
-    for (i = 0; i < PSC_getNrOfNodes(); i++) {
-	if (nl && !nl[i]) continue;
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
 
-	if (hoststatus[i]) {
-	    printf("%4d up.\n",i);
+	if (hostStatus.list[node]) {
+	    printf("%4d up.\n", node);
 	} else {
-	    printf("%4d down.\n",i);
+	    printf("%4d down.\n", node);
 	}
     }
 }
 
-static char statusline[1024];
+static char line[1024];
 
 void PSIADM_RDPStat(char *nl)
 {
-    int i;
+    PSnodes_ID_t node, partner;
 
-    for (i = 0; i < PSC_getNrOfNodes(); i++) {
-	if (nl && !nl[i]) continue;
+    if (! getHostStatus()) return;
 
-	INFO_request_rdpstatus(i, statusline, sizeof(statusline), 1);
-	printf("%s", statusline);
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
+	printf("%4d:\n", node);
+	if (hostStatus.list[node]) {
+	    for (partner=0; partner<PSC_getNrOfNodes(); partner++) {
+		int err = PSI_infoString(node, PSP_INFO_RDPSTATUS, &partner,
+					 line, sizeof(line), 1);
+		if (!err) printf("%s\n", line);
+	    }
+	    printf("\n");
+	} else {
+	    printf("  down\n\n");
+	}
     }
 }
 
 void PSIADM_MCastStat(char *nl)
 {
-    int i;
+    PSnodes_ID_t node;
 
-    for (i = 0; i < PSC_getNrOfNodes(); i++) {
-	if (nl && !nl[i]) continue;
+    if (! getHostStatus()) return;
 
-	INFO_request_mcaststatus(i, statusline, sizeof(statusline), 1);
-	printf("%s", statusline);
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	int err;
+	if ((nl && !nl[node])) continue;
+	err = PSI_infoString(-1, PSP_INFO_MCASTSTATUS, &node,
+			     line, sizeof(line), 1);
+	if (!err) printf("%s\n", line);
     }
 }
 
-static int getHeaderLine(int hw)
+static int getHeaderLine(int32_t hw)
 {
-    int i, hwnum = INFO_request_hwnum(1);
+    PSnodes_ID_t node;
+    uint32_t *hwStatus = (uint32_t *)hwList.list;
 
-    for (i = 0; i < PSC_getNrOfNodes(); i++) {
-	if (nodelist[i].up && nodelist[i].hwStatus & 1<<hw) {
-	    if (INFO_request_countheader(i, hw, &statusline,
-					 sizeof(statusline), 1)) {
-		char *hwname = INFO_request_hwname(hw, 1);
-		int last = strlen(statusline)-1;
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (hostStatus.list[node] && hwStatus[node] & 1<<hw) {
+	    int err = PSI_infoString(node, PSP_INFO_COUNTHEADER, &hw,
+				     line, sizeof(line), 1);
+	    if (!err) {
+		char name[40];
+		int last = strlen(line)-1;
+
+		err = PSI_infoString(-1, PSP_INFO_HWNAME, &hw,
+				     name, sizeof(name), 1);
 
 		printf("Counter for hardware type '%s':\n\n",
-		       hwname ? hwname : "unknown");
+		       err ? "unknown" : name);
 		printf("%6s ", "NODE");
 
-		if (statusline[(last>0) ? last : 0] == '\n') {
-		    printf("%s", statusline);
+		if (line[(last>0) ? last : 0] == '\n') {
+		    printf("%s", line);
 		} else {
-		    printf("%s\n", statusline);
+		    printf("%s\n", line);
 		}
 		break;
 	    }
 	}
     }
-    return i;
+    return node;
 }
 
 void PSIADM_CountStat(int hw, char *nl)
 {
-    int i, hwnum = INFO_request_hwnum(1);
-    int first = 0, last = hwnum-1;
+    PSnodes_ID_t node;
+    uint32_t *hwStatus;
+    int hwnum, err;
+    int first = 0, last;
 
-    if (hw < -1 || hw >= hwnum) return;
-    if (hw != -1) first = last = hw;
+    err = PSI_infoInt(-1, PSP_INFO_HWNUM, NULL, &hwnum, 1);
+    if (err || hw < -1 || hw >= hwnum) return;
 
-    INFO_request_nodelist(nodelist, nodelistSize, 1);
+    if (hw != -1) {
+	first = last = hw;
+    } else {
+	last = hwnum - 1;
+    }
+
+    if (! getHostStatus()) return;
+    if (! getHWStat()) return;
+    hwStatus = (uint32_t *)hwList.list;
 
     for (hw=first; hw<=last; hw++) {
+	if (getHeaderLine(hw) == PSC_getNrOfNodes()) continue;
 
-	if (getHeaderLine(hw) < PSC_getNrOfNodes()) {
-	    for (i = 0; i < PSC_getNrOfNodes(); i++) {
-		if (nl && !nl[i]) continue;
+	for (node=0; node<PSC_getNrOfNodes(); node++) {
+	    if (nl && !nl[node]) continue;
 
-		printf("%6d ", i);
-		if (nodelist[i].up) {
-		    if (! (nodelist[i].hwStatus & 1<<hw)) {
-			printf("    No card present\n");
-		    } else {
-			if (INFO_request_countstatus(i, hw, &statusline,
-						     sizeof(statusline), 1)) {
-			    int last = strlen(statusline)-1;
-			    if (statusline[(last>0) ? last : 0] == '\n') {
-				printf("%s", statusline);
-			    } else {
-				printf("%s\n", statusline);
-			    }
-			} else {
-			    printf("    Counter unavailable\n");
-			}
-		    }
+	    printf("%6d ", node);
+	    if (hostStatus.list[node]) {
+		if (! hwStatus[node] & 1<<hw) {
+		    printf("    No card present\n");
 		} else {
-		    printf("\tdown\n");
+		    int err = PSI_infoString(node, PSP_INFO_COUNTSTATUS, &hw,
+					     line, sizeof(line), 1);
+		    if (!err) {
+			int last = strlen(line)-1;
+			if (line[(last>0) ? last : 0] == '\n') {
+			    printf("%s", line);
+			} else {
+			    printf("%s\n", line);
+			}
+		    } else {
+			printf("    Counter unavailable\n");
+		    }
 		}
+	    } else {
+		printf("\tdown\n");
 	    }
-	    printf("\n");
 	}
+	printf("\n");
     }
 }
 
-#define NUMTASKS 20
-
-void PSIADM_ProcStat(char *nl, int full)
+void PSIADM_ProcStat(int count, int full, char *nl)
 {
-    INFO_taskinfo_t taskinfo[NUMTASKS];
-    int i, j, num;
+    PSnodes_ID_t node;
+    PSP_taskInfo_t *taskInfo;
+    uint16_t *taskNum;
+    int task, num;
 
-    INFO_request_hoststatus(hoststatus, PSC_getNrOfNodes(), 1);
+    if (! getHostStatus()) return;
+    if (! getTaskNum(full)) return;
+    taskNum = full ? (uint16_t *) tn1List.list : (uint16_t *) tn0List.list;
 
-    printf("%4s %22s %22s %3s %9s\n", "Node", "TaskId",
-	   "ParentTaskId", "Con", "UserId");
-    for (i = 0; i < PSC_getNrOfNodes(); i++) {
-	if (nl && !nl[i]) continue;
+    printf("%4s %22s %22s %3s %9s\n",
+	   "Node", "TaskId", "ParentTaskId", "Con", "UserId");
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
 
 	printf("---------------------------------------------------------"
 	       "---------\n");
-	if (hoststatus[i]) {
-	    num = INFO_request_tasklist(i, taskinfo, sizeof(taskinfo), 1);
-	    for (j=0; j<MIN(num,NUMTASKS); j++) {
-		if (taskinfo[j].group==TG_FORWARDER && !full) continue;
-		if (taskinfo[j].group==TG_SPAWNER && !full) continue;
-		if (taskinfo[j].group==TG_GMSPAWNER && !full) continue;
-		if (taskinfo[j].group==TG_MONITOR && !full) continue;
-		printf("%4d ", i);
-		printf("%22s ", PSC_printTID(taskinfo[j].tid));
-		printf("%22s ", PSC_printTID(taskinfo[j].ptid));
-		printf("%2d  %5d ", taskinfo[j].connected, taskinfo[j].uid);
+	if (hostStatus.list[node]) {
+	    num = getTaskInfo(node, count, full);
+	    taskInfo = (PSP_taskInfo_t *) tiList.list;
+	    for (task=0; task<num; task++) {
+		if (taskInfo[task].group==TG_FORWARDER && !full) continue;
+		if (taskInfo[task].group==TG_SPAWNER && !full) continue;
+		if (taskInfo[task].group==TG_GMSPAWNER && !full) continue;
+		if (taskInfo[task].group==TG_MONITOR && !full) continue;
+		printf("%4d ", node);
+		printf("%22s ", PSC_printTID(taskInfo[task].tid));
+		printf("%22s ", PSC_printTID(taskInfo[task].ptid));
+		printf("%2d  ", taskInfo[task].connected);
+		printf("%5d ", taskInfo[task].uid);
 		printf("%s\n",
-		       taskinfo[j].group==TG_ADMIN ? "(A)" :
-		       taskinfo[j].group==TG_LOGGER ? "(L)" :
-		       taskinfo[j].group==TG_FORWARDER ? "(F)" :
-		       taskinfo[j].group==TG_SPAWNER ? "(S)" :
-		       taskinfo[j].group==TG_GMSPAWNER ? "(S)" :
-		       taskinfo[j].group==TG_MONITOR ? "(M)" : "");
+		       taskInfo[task].group==TG_ADMIN ? "(A)" :
+		       taskInfo[task].group==TG_LOGGER ? "(L)" :
+		       taskInfo[task].group==TG_FORWARDER ? "(F)" :
+		       taskInfo[task].group==TG_SPAWNER ? "(S)" :
+		       taskInfo[task].group==TG_GMSPAWNER ? "(S)" :
+		       taskInfo[task].group==TG_MONITOR ? "(M)" : "");
 	    }
-	    if (num>NUMTASKS) {
-		printf(" + %d more tasks\n", num-NUMTASKS);
+	    if (taskNum[node]>num) {
+		printf(" + %d more tasks\n", taskNum[node]-num);
 	    }
 	} else {
-	    printf("%4d\tdown\n", i);
+	    printf("%4d\tdown\n", node);
 	}
     }
 }
 
 void PSIADM_LoadStat(char *nl)
 {
-    int i;
+    PSnodes_ID_t node;
+    float *loads;
+    uint16_t *taskNumFull, *taskNumNorm;
 
-    INFO_request_nodelist(nodelist, nodelistSize, 1);
+    if (! getHostStatus()) return;
+    if (! getLoads()) return;
+    loads = (float *)ldList.list;
+    if (! getTaskNum(1)) return;
+    taskNumFull = (uint16_t *) tn1List.list;
+    if (! getTaskNum(0)) return;
+    taskNumNorm = (uint16_t *) tn0List.list;
+
     printf("Node\t\t Load\t\t     Jobs\n");
     printf("\t 1 min\t 5 min\t15 min\t tot.\tnorm.\n");
 
-    for (i = 0; i < PSC_getNrOfNodes(); i++) {
-	if (nl && !nl[i]) continue;
-	if (nodelist[i].up) {
-	    printf("%4d\t%2.4f\t%2.4f\t%2.4f\t%4d\t%4d\n", i,
-		   nodelist[i].load[0], nodelist[i].load[1],
-		   nodelist[i].load[2],
-		   nodelist[i].totalJobs, nodelist[i].normalJobs);
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
+	if (hostStatus.list[node]) {
+	    printf("%4d\t%2.4f\t%2.4f\t%2.4f\t%4d\t%4d\n", node,
+		   loads[3*node+0], loads[3*node+1], loads[3*node+2],
+		   taskNumFull[node], taskNumNorm[node]);
 	} else {
-	    printf("%4d\t down\n", i);
+	    printf("%4d\t down\n", node);
 	}
-	
     }
 }
 
 void PSIADM_HWStat(char *nl)
 {
-    int i;
+    PSnodes_ID_t node;
+    uint32_t *hwStatus;
+    uint16_t *physCPUs, *virtCPUs;
 
-    INFO_request_nodelist(nodelist, nodelistSize, 1);
+    if (! getHostStatus()) return;
+    if (! getHWStat()) return;
+    hwStatus = (uint32_t *)hwList.list;
+    if (! getPhysCPUs()) return;
+    physCPUs = (uint16_t *)pcpuList.list;
+    if (! getVirtCPUs()) return;
+    virtCPUs = (uint16_t *)vcpuList.list;
+
     printf("Node\t CPUs\t Available Hardware\n");
-    for (i = 0; i < PSC_getNrOfNodes(); i++) {
-	if (nl && !nl[i]) continue;
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
 
-	if (nodelist[i].up) {
-	    printf("%4d\t %d\t %s\n", i, nodelist[i].numCPU,
-		   INFO_printHWType(nodelist[i].hwStatus));
+	if (hostStatus.list[node]) {
+	    printf("%4d\t %2d/%2d\t %s\n", node,
+		   virtCPUs[node], physCPUs[node],
+		   PSI_printHWType(hwStatus[node]));
 	} else {
-	    printf("%4d\t down\n", i);
+	    printf("%4d\t down\n", node);
 	}
     }
 }
 
-void PSIADM_SetParam(int type, int value, char *nl)
+void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
 {
-    int i;
-    DDOptionMsg_t msg;
+    PSnodes_ID_t node;
+    DDOptionMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_SETOPTION,
+	    .sender = PSC_getMyTID(),
+	    .dest = 0,
+	    .len = sizeof(msg) },
+	.count = 1,
+	.opt = { { .option = 0, .value = 0 } } };
 
     if (geteuid()) {
 	printf("Insufficient priviledge\n");
@@ -429,78 +677,83 @@ void PSIADM_SetParam(int type, int value, char *nl)
 	    printf(" value must be 0 <= val <=100.\n");
 	    return;
 	}
+	break;
+    default:
+	printf("Cannot handle option type %d.\n", type);
+	return;
     }
 
     /*
      * prepare the message to send it to the daemon
      */
-    msg.header.type = PSP_CD_SETOPTION;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.len = sizeof(msg);
-    msg.count = 1;
-    msg.opt[0].option = type;
-    msg.opt[0].value = value;
+    msg.opt[0] = (DDOption_t) { .option = type, .value = value };
 
-    INFO_request_hoststatus(hoststatus, PSC_getNrOfNodes(), 1);
+    if (! getHostStatus()) return;
 
-    for (i = 0; i < PSC_getNrOfNodes(); i++) {
-	if (nl && !nl[i]) continue;
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
 
-	if (hoststatus[i]) {
-	    msg.header.dest = PSC_getTID(i, 0);
+	if (hostStatus.list[node]) {
+	    msg.header.dest = PSC_getTID(node, 0);
 	    PSI_sendMsg(&msg);
 	}
     }
 }
 
-void PSIADM_ShowParam(int type, char *nl)
+void PSIADM_ShowParam(PSP_Option_t type, char *nl)
 {
-    int i, ret;
-    PSP_Option_t option = type;
+    PSnodes_ID_t node;
     PSP_Optval_t value;
+    int ret;
 
-    for (i = 0; i < PSC_getNrOfNodes(); i++) {
-	if (nl && !nl[i]) continue;
+    if (! getHostStatus()) return;
 
-	printf("%3d:  ", i);
-	ret = INFO_request_option(i, 1, &option, &value, 1);
-	if (ret != -1) {
-	    switch (type) {
-	    case PSP_OP_PROCLIMIT:
-		if (value==-1)
-		    printf("ANY\n");
-		else
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
+
+	printf("%3d:  ", node);
+	if (hostStatus.list[node]) {
+	    ret = PSI_infoOption(node, 1, &type, &value, 1);
+	    if (ret != -1) {
+		switch (type) {
+		case PSP_OP_PROCLIMIT:
+		    if (value==-1)
+			printf("ANY\n");
+		    else
+			printf("%d\n", value);
+		    break;
+		case PSP_OP_UIDLIMIT:
+		    if (value==-1)
+			printf("ANY\n");
+		    else {
+			struct passwd *passwd = getpwuid(value);
+			if (passwd) {
+			    printf("%s\n", passwd->pw_name);
+			} else {
+			    printf("uid %d\n", value);
+			}
+		    }
+		    break;
+		case PSP_OP_GIDLIMIT:
+		    if (value==-1)
+			printf("ANY\n");
+		    else {
+			struct group *group = getgrgid(value);
+			if (group) {
+			    printf("%s\n", group->gr_name);
+			} else {
+			    printf("gid %d\n", value);
+			}
+		    }
+		    break;
+		default:
 		    printf("%d\n", value);
-		break;
-	    case PSP_OP_UIDLIMIT:
-		if (value==-1)
-		    printf("ANY\n");
-		else {
-		    struct passwd *passwd = getpwuid(value);
-		    if (passwd) {
-			printf("%s\n", passwd->pw_name);
-		    } else {
-			printf("uid %d\n", value);
-		    }
 		}
-		break;
-	    case PSP_OP_GIDLIMIT:
-		if (value==-1)
-		    printf("ANY\n");
-		else {
-		    struct group *group = getgrgid(value);
-		    if (group) {
-			printf("%s\n", group->gr_name);
-		    } else {
-			printf("gid %d\n", value);
-		    }
-		}
-		break;
-	    default:
-		printf("%d\n", value);
+	    } else {
+		printf("Cannot get\n");
 	    }
-	} else {
-	    printf("Cannot get\n");
+	}else {
+	    printf("down\n");
 	}
     }
 }
@@ -532,21 +785,21 @@ void PSIADM_sighandler(int sig)
 
 void PSIADM_Reset(int reset_hw, char *nl)
 {
-    DDBufferMsg_t msg;
-    int *action = (int *)msg.buf;
-    int i, send_local = 0;
+    DDBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_DAEMONRESET,
+	    .sender = PSC_getMyTID(),
+	    .dest = 0,
+	    .len = sizeof(msg.header) + sizeof(int32_t) },
+	.buf = { 0 } };
+    int32_t *action = (int32_t *)msg.buf;
+    PSnodes_ID_t node;
+    int send_local = 0;
 
     if (geteuid()) {
 	printf("Insufficient priviledge\n");
 	return;
     }
-
-    /*
-     * prepare the message to send it to the daemon
-     */
-    msg.header.type = PSP_CD_DAEMONRESET;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.len = sizeof(msg.header) + sizeof(*action);
 
     *action = 0;
     if (reset_hw) {
@@ -554,14 +807,16 @@ void PSIADM_Reset(int reset_hw, char *nl)
 	doRestart = 1;
     }
 
-    for (i = 0; i < PSC_getNrOfNodes(); i++) {
-	if (nl && !nl[i]) continue;
+    if (! getHostStatus()) return;
 
-	if (hoststatus[i]) {
-	    if (i == PSC_getMyID()) {
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
+
+	if (hostStatus.list[node]) {
+	    if (node == PSC_getMyID()) {
 		send_local = 1;
 	    } else {
-		msg.header.dest = PSC_getTID(i, 0);
+		msg.header.dest = PSC_getTID(node, 0);
 		PSI_sendMsg(&msg);
 	    }
 	}
