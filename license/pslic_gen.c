@@ -86,6 +86,42 @@ void parse_opt(int argc, char **argv)
     poptFreeContext(optCon);
 }
 
+
+void check_mcpkey(char *Key)
+{
+    static pslic_bin_t LicKey;
+    pslic_binpub_t LicPub;
+
+    char *from;
+    char *to;
+    unsigned int i;
+    
+    if (!Key) return;
+    
+    pslic_ascii2bin((unsigned char *) Key,
+		    pslic_blen2alen(sizeof(LicPub))
+		    ,(unsigned char *)&LicPub);
+
+    from=(char*)&(LicPub);
+    to=(char*)(&LicKey);
+
+    for (i=0; i < sizeof(pslic_bin_t); i++) *to++=*from++;
+    
+    pslic_decode(&LicKey,sizeof(LicKey),LIC_KEYMAGIC);
+
+    LicKey.Nodes     = htonl(LicKey.Nodes);
+    LicKey.ValidFrom = htonl(LicKey.ValidFrom);
+    LicKey.ValidTo   = htonl(LicKey.ValidTo);
+    LicKey.Magic     = htonl(LicKey.Magic);
+
+    fprintf(stderr, "MCPKey: LicMagic : %s\n",
+	    LicKey.Magic == LIC_KEYMAGIC ? "OK" : "FALSE");
+    fprintf(stderr, "MCPKey: ValidFrom: %d\n", LicKey.ValidFrom);
+    fprintf(stderr, "MCPKey: ValidTo  : %d\n", LicKey.ValidTo);
+    fprintf(stderr, "MCPKey: Nodes    : %d\n", LicKey.Nodes);
+}
+
+
 void do_createmcpkey(env_fields_t *env)
 {
 #define BLEN (pslic_blen2alen(sizeof(pslic_bin_t)))
@@ -232,6 +268,8 @@ int main(int argc, char **argv)
 	/* check dates */
 	fprintf(stderr, "    Key up to date : %s\n",
 		!lic_isexpired(&env) ? "YES" : "NO" );
+
+	check_mcpkey(env_get(&env, LIC_MCPKEY));
     }
     
     return 0;
