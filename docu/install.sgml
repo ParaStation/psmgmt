@@ -85,13 +85,6 @@
     </simplesect>
 
     <simplesect>
-      <title>Channel bonding</title>
-      <para>
-	Info from Jens.
-      </para>
-    </simplesect>
-
-    <simplesect>
       <title>Kernel version</title>
       <para>
 	Since kernel modules are needed for the high bandwidth, low latency
@@ -509,7 +502,7 @@
 
     <orderedlist>
       <listitem id="ibh_create_dev">
-	<para><emphasis>Create the device entry</emphasis></para>
+	<para><emphasis role="bold">Create the device entry</emphasis></para>
 	<para>
 	  If not yet done (e.g. from a previous installation), you must create
 	  a character device:
@@ -527,7 +520,7 @@
 	</note>
       </listitem>
       <listitem id="ibh_services">
-	<para><emphasis>Services</emphasis></para>
+	<para><emphasis role="bold">Services</emphasis></para>
 	<para>
 	  The following lines must be appended to
 	  <filename>/etc/services</filename>:
@@ -551,7 +544,7 @@
 	</para>
       </listitem>
       <listitem id="ibh_inetd">
-	<para><emphasis>(X)inetd Configuration</emphasis></para>
+	<para><emphasis role="bold">(X)inetd Configuration</emphasis></para>
 	<para>
 	  This part of the installation process differs for the various Linux
 	  distributions. If your system has
@@ -573,7 +566,7 @@
 	</para>
 	<orderedlist numeration="arabic" inheritnum="inherit">
 	  <listitem id="ibh_inetd_suse">
-	    <para><emphasis>Inetd Configuration</emphasis></para>
+	    <para><emphasis role="bold">Inetd Configuration</emphasis></para>
 	    <para>
 	      The following lines must be appended to
 	      <filename>/etc/inetd.conf</filename>:
@@ -600,7 +593,7 @@
 	    </programlisting>
 	  </listitem>
 	  <listitem id="ibh_inetd_rh">
-	    <para><emphasis>Xinetd Configuration</emphasis></para>
+	    <para><emphasis role="bold">Xinetd Configuration</emphasis></para>
 	    <para>
 	      Create a file named
 	      <filename>/etc/xinetd.d/parastation</filename> with the following
@@ -710,6 +703,71 @@
       how to do this.
     </para>
   </section>
+
+  <section>
+    <title>Uninstall</title>
+    <para>
+      In order to uninstall ParaStation there are different ways to do so
+      depending on the choosen way of installation.
+    </para>
+    <simplesect>
+      <title>Centralized installations</title>
+      <para>
+	First of all for any centralized installation you have to run
+      </para>
+      <programlisting>
+	/opt/parastation/config/PSM_INSTALL -u
+      </programlisting>
+      <para>
+	on all nodes that have mounted <filename>/opt/parastation</filename>
+	from the NFS server unless you want to remove the modifications done
+	while installation manually. In that case consult <xref
+	linkend="Install_by_hand"/> to find out which steps have to be made
+	undone.
+      </para>
+      <para>
+      Now it is save to remove all files installed on the the NFS server. If
+	the installation was made via <citerefentry>
+	  <refentrytitle>rpm</refentrytitle>
+	  <manvolnum>1</manvolnum>
+      </citerefentry> the corresponding packet simply has to be remove using
+      </para>
+      <programlisting>
+	rpm -e psm
+      </programlisting>
+      <para>
+	For installations done from the <filename>.tar.gz</filename> first undo
+	all modification to configuration files within
+	<filename>/etc</filename> by running
+      </para>
+      <programlisting>
+	/opt/parastation/config/PSM_INSTALL -u
+      </programlisting>
+      <para>
+	Afterwards /opt/parastation can be removed savely.
+      </para>
+    </simplesect>
+    <simplesect>
+      <title>Distributed installation</title>
+      <para>
+	If the installation was done from the RPM file, simply execute a
+      </para>
+      <programlisting>
+	rpm -e psm
+      </programlisting>
+      <para>
+	on all nodes of the cluster. Otherwise
+      </para>
+      <programlisting>
+	/opt/parastation/config/PSM_INSTALL -u
+      </programlisting>
+      <para>
+	has to be called on every node of the cluster and
+	<filename>/opt/parastation</filename> can be removed afterwards.
+      </para>
+    </simplesect>
+  </section>
+
   <section>
     <title>Further steps</title>
     <para>
