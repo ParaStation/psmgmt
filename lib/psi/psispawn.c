@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.38 2003/04/10 17:35:01 eicker Exp $
+ * $Id: psispawn.c,v 1.39 2003/06/02 16:21:14 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.38 2003/04/10 17:35:01 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.39 2003/06/02 16:21:14 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -672,21 +672,24 @@ static int getNodesFromHostStr(char *host_str, NodelistEntry_t *nodelist)
     /* Now do the real parsing */
     while ((hostname=get_wss_entry(p, &p))) {
 	hp = gethostbyname(hostname);
-	memcpy(&sin_addr, hp->h_addr, hp->h_length);
-	next_node = INFO_request_host(sin_addr.s_addr, 0);
-
-	if (next_node != -1) {
-	    if (nodeOK(next_node, nodelist)) {
-		addNode(next_node, nodelist);
-	    }
-	} else {
+	if (!hp) {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: cannot get ParaStation ID for host '%s'.",
-		     __func__, hostname);
+		     "%s: unknown node '%s'.", __func__, hostname);
 	    PSI_errlog(errtxt, 0);
-	    free(hostname);
-	    endhostent();
-	    return 0;
+	} else {
+	    memcpy(&sin_addr, hp->h_addr, hp->h_length);
+	    next_node = INFO_request_host(sin_addr.s_addr, 0);
+
+	    if (next_node != -1) {
+		if (nodeOK(next_node, nodelist)) {
+		    addNode(next_node, nodelist);
+		}
+	    } else {
+		snprintf(errtxt, sizeof(errtxt),
+			 "%s: cannot get ParaStation ID for node '%s'.",
+			 __func__, hostname);
+		PSI_errlog(errtxt, 0);
+	    }
 	}
 	free(hostname);
     }
@@ -737,21 +740,24 @@ static int getNodesFromHostFile(char *hostfile_str, NodelistEntry_t *nodelist)
 	if (hostname[0] == '#') continue;
 
 	hp = gethostbyname(hostname);
-	memcpy(&sin_addr, hp->h_addr, hp->h_length);
-	next_node = INFO_request_host(sin_addr.s_addr, 0);
-
-	if (next_node != -1) {
-	    if (nodeOK(next_node, nodelist)) {
-		addNode(next_node, nodelist);
-	    }
-	} else {
+	if (!hp) {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: cannot get ParaStation ID for host '%s'.",
-		     __func__, hostname);
+		     "%s: unknown node '%s'.", __func__, hostname);
 	    PSI_errlog(errtxt, 0);
-	    endhostent();
-	    fclose(file);
-	    return 0;
+	} else {
+	    memcpy(&sin_addr, hp->h_addr, hp->h_length);
+	    next_node = INFO_request_host(sin_addr.s_addr, 0);
+
+	    if (next_node != -1) {
+		if (nodeOK(next_node, nodelist)) {
+		    addNode(next_node, nodelist);
+		}
+	    } else {
+		snprintf(errtxt, sizeof(errtxt),
+			 "%s: cannot get ParaStation ID for node '%s'.",
+			 __func__, hostname);
+		PSI_errlog(errtxt, 0);
+	    }
 	}
     }
     endhostent();
