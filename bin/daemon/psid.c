@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.79 2003/03/05 09:30:06 eicker Exp $
+ * $Id: psid.c,v 1.80 2003/03/05 12:41:29 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.79 2003/03/05 09:30:06 eicker Exp $ 
+ * $Id: psid.c,v 1.80 2003/03/05 12:41:29 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.79 2003/03/05 09:30:06 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.80 2003/03/05 12:41:29 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -74,7 +74,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.79 $";
+static char psid_cvsid[] = "$Revision: 1.80 $";
 
 static int PSID_mastersock;
 
@@ -794,6 +794,14 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 
 	task = PStasklist_find(managedTasks, pgtid);
 
+	if (task && task->group == TG_LOGGER) {
+	    /*
+	     * Logger never fork. This is another executable started from
+	     * within a shell script. Forget about this task.
+	     */
+	    task = NULL;
+	}
+
 	if (task) {
 	    /* Spawned process has changed pid */
 	    /* This might happen due to stuff in PSI_RARG_PRE_0 */
@@ -1307,8 +1315,13 @@ void msg_CHILDDEAD(DDErrorMsg_t *msg)
 
 	/*
 	 * Send a SIGTERM to the process group in order to stop fork()ed childs
+	 *
+	 * Don't send to logger. These might share their process group
+	 * with other processes. Furthermore logger never fork().
 	 */
-	PSID_kill(-PSC_getPID(task->tid), SIGTERM, task->uid);
+	if (task->group != TG_LOGGER) {
+	    PSID_kill(-PSC_getPID(task->tid), SIGTERM, task->uid);
+	}
 
 	/* Send a message to the parent (a TG_SPAWNER might wait for it ) */
 	msg->header.dest = task->ptid;
@@ -3017,7 +3030,7 @@ void checkFileTable(void)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.79 $";
+    char revision[] = "$Revision: 1.80 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
