@@ -12,7 +12,7 @@
   <refsynopsisdiv>
     <cmdsynopsis>
       <command>psiadmin</command>
-      <arg>-rv?</arg>
+      <arg>-erv?</arg>
       <arg>-c command</arg>
       <arg>--usage</arg>
     </cmdsynopsis>
@@ -20,7 +20,18 @@
 
   <refsect1><title>Description</title>
     <para>
-      blablabla.
+      The psiadmin command provides an administrator interface to the
+      ParaStation system.
+    </para>
+    <para>
+      The command reads directives from standard input. The syntax of each
+      directive is checked and the appropriate request is sent to the local
+      ParaStation daemon <xref linkend="psid"/>.
+    </para>
+    <para>
+      Most of the commands listed below can be executed by general users. Only
+      modifying parameters, killing foreign jobs or shutting down single nodes
+      or the whole system require root privilege.
     </para>
   </refsect1>
 
@@ -34,8 +45,18 @@
 	</term>
 	<listitem>
 	  <para>
-	    Execute the single interactive command <command>command</command>
-	    and exit.
+	    Execute the single directive <command>command</command> and exit.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <option>-e</option>
+	  <option>--echo</option>
+	</term>
+	<listitem>
+	  <para>
+	    Echo each executed command to stdout.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -84,6 +105,55 @@
   </refsect1>
 
   <refsect1>
+    <title>Standard Input</title>
+    <para>
+      The psiadmin command reads standard input for directives until end of
+      file is reached, or the <command>exit</command> or
+      <command>quit</command> directive is read.
+    </para>
+  </refsect1>
+
+  <refsect1>
+    <title>Standard Output</title>
+    <para>
+      If Standard Output is connected to a terminal, a command prompt will be
+      written to standard output when psiadmin is ready to read a directive.
+    </para>
+    <para>
+      If the <option>-e</option> option is specified, psiadmin will echo the
+      directives read from standard input to standard output.
+    </para>
+  </refsect1>
+
+  <refsect1>
+    <title>Standard Error</title>
+    <para>
+      The psiadmin command will write a diagnostic message to standard error
+      for each error occurrence.
+    </para>
+  </refsect1>
+
+  <refsect1>
+    <title>Extended description</title>
+    <para>
+      If psiadmin is invoked without the <option>-c</option> option and
+      standard output is connected to a terminal, psiadmin will write a prompt
+      to standard output and read a directive from standard input.
+    </para>
+    <para>
+      <!-- @todo Commands can be abbreviated to their minimum unambiguous form.
+      A command is terminated by a new line character or a semicolon, ";",
+      character. Multiple commands may be entered on a single line. A command
+      may extend across lines by escaping the new line character with a
+      back-slash "\". -->
+    </para>
+    <para>
+      Comments begin with the # character and continue to end of the line.
+      Comments and blank lines are ignored by psiadmin.
+    </para>
+  </refsect1>
+       
+  <refsect1>
     <title>Interactive commands</title>
     <para>
       When the psiadmin is started, it will prompt for commands.
@@ -98,7 +168,8 @@
     <para>
       <option>from</option> and <option>to</option> may either be symbolic
       hostnames or nodenumbers. Nodenumbers can be given decimal or hexadecimal
-      and must be in the range of (0 &le; number &lt; NumberOfNodes).
+      and must be in the range between <constant>0</constant> and
+      <constant>NumberOfNodes-1</constant>.
     </para>
     
     <variablelist>
@@ -106,21 +177,451 @@
       <varlistentry>
 	<term>
 	  <cmdsynopsis>
+	    <command>add</command>
+	    <arg>from <arg>to</arg></arg>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	    Start the ParaStation daemon <xref linkend="psid"/> on the selected
+            node(s)	    
+	  </para>
+	  <para>
+	    Usually this is done automatically when the system comes up,
+	    i.e. when the ParaStation administration and management tool is
+	    started for the first time.
+	  </para>
+	  <para>
+	    <command>add</command> only tries to start the ParaStation daemon
+	    on the selected node(s). If it is not possible to start the daemon,
+	    no error message occurs. The actual status of the nodes can be
+	    checked using the directive <command>status</command>.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>config</command>
+	    <arg>from <arg>to</arg></arg>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	    Print current settings of internal parameters on the selected
+	    nodes.
+	  </para>
+	  <para>
+	    All the displayed parameters can also be obtained via the
+	    <command>show</command> command. For a detailed describtion of
+	    these parameters see this command.
+	  </para>
+	  <para>
+	    This command is only supported for compatibility and will be
+	    removed in future versions.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>exit</command>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	    Exit the interactive mode of psiadmin. Same as
+	    <command>quit</command>.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>help</command>
+	    <arg><replaceable>command</replaceable></arg>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	    Print a general help message or a help message concerning
+	    <option><replaceable>command</replaceable></option>.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><cmdsynopsis>
+	    <command>kill</command>
+	    <arg><replaceable>tid</replaceable></arg>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	    Kill the process with the task ID <option>tid</option> by sending a
+	    SIGTERM signal.
+	  </para>
+	  <para>
+	    Processes can only be killed by the user who ownes the process or
+	    by root.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>quit</command>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	    Exit the interactive mode of psiadmin. Same as
+	    <command>exit</command>.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
+	    <command>show</command>
+	    <group choice="req">
+	      <arg>user</arg>
+	      <arg>maxproc</arg>
+	      <arg>smallpacketsize</arg>
+	      <arg>resendtimeout</arg>
+	      <arg>hnpend</arg>
+	      <arg>ackpend</arg>
+
+	      <arg>selecttime</arg>
+
+	      <arg>psiddebug</arg>
+	      <arg>rdpdebug</arg>
+	      <arg>mcastdebug</arg>
+	    </group>
+	    <arg>from <arg>to</arg></arg>
+	  </cmdsynopsis>
+	</term>
+	<listitem>
+	  <para>
+	    Show various parameters of the ParaStation system.
+	  </para>
+	  <variablelist>
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>user</command>
+		  <arg>from <arg>to</arg></arg>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>
+		  Show who grants exclusiv access on the selected node(s).
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>maxproc</command>
+		  <arg>from <arg>to</arg></arg>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>
+		  Show the maximum number of ParaStation processes on the
+		  selected node(s).
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>smallpacketsize</command>
+		  <arg>from <arg>to</arg></arg>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>
+		  Show the the maximum number of bytes of PIO packets on the
+		  selected node(s).
+		</para>
+		<para>
+		  PIO packets are send directly to the node's memory by the MCP
+		  and copied by a <citerefentry>
+		    <refentrytitle>memcpy</refentrytitle>
+		    <manvolnum>3</manvolnum>
+		  </citerefentry> into the final destination. Non-PIO packets
+		  are send via DMA immediately to their final destination.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>resendtimeout</command>
+		  <arg>from <arg>to</arg></arg>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>
+		  Show the retansmission timeout on the selected node(s). This
+		  parameter is in units of microseconds.
+		</para>
+		<para>
+		  If a packet sent by ParaStation to another node is not
+		  acknowledged for this period of time, it will be resend to
+		  this node.
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>hnpend</command>
+		  <arg>from <arg>to</arg></arg>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>
+		  Show the number of pending host notify messages on the
+		  selected node(s).
+		</para>
+		<para>
+		  Host notify messages are send by the MCP to the kernel to
+		  mark send buffers as free. This is done when data, that was
+		  sent successfully via this buffer, was acknowledged by the
+		  destination node.
+		</para>
+		<para>
+		  Usually not every free buffer is communicated, but the MCP
+		  waits until several buffers are freed and sends accumulated
+		  host notify messages then.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>ackpend</command>
+		  <arg>from <arg>to</arg></arg>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>
+		  Show the maximum number of pending acknowledgements on the
+		  selected node(s).
+		</para>
+		<para>
+		  ParaStation usually does not send acknowledgements
+		  immediately but waits for some pending ACK messages and send
+		  them accumulated.
+		</para>
+		<para>
+		  If a packet is not acknowledged for some microsecond (the
+		  actual value can be determined using the command
+		  <command>show <option>resendtimeout</option></command>) it
+		  will be resend by the source node. If a packet is received
+		  twice by the destination node, a immediate ACK message is
+		  sent and therefor correct delivery of packets is ensured.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>selecttime</command>
+		  <arg>from <arg>to</arg></arg>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>
+		  Show the timeout of the central <citerefentry>
+		    <refentrytitle>select</refentrytitle>
+		    <manvolnum>2</manvolnum>
+		  </citerefentry> of the ParaStation daemon <xref
+		    linkend="psid"/> on the selected node(s).
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>psiddebug</command>
+		  <arg>from <arg>to</arg></arg>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>
+		  Shows the debugging level of the ParaStation daemon
+		  <xref linkend="psid"/> on the seleceted node(s).
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>rdpdebug</command>
+		  <arg>from <arg>to</arg></arg>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>
+		  Shows the debugging level of the RDP protocol within the
+		  ParaStation daemon <xref linkend="psid"/> on the seleceted
+		  node(s).
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis>
+		  <command>mcastdebug</command>
+		  <arg>from <arg>to</arg></arg>
+		</cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>
+		  Shows the debugging level of the MCast protocol within the
+		  ParaStation daemon <xref linkend="psid"/> on the seleceted
+		  node(s).
+		</para>
+	      </listitem>
+	    </varlistentry>
+	    
+	  </variablelist>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term>
+	  <cmdsynopsis>
 	    <command>status</command>
 	    <group>
 	      <arg>node</arg>
-	      <arg>count</arg>
-	      <arg>rdp</arg>
-	      <arg>mcast</arg>
 	      <arg>proc</arg>
 	      <arg>allproc</arg>
+	      <arg>count</arg>
+	      <arg>mcast</arg>
+	      <arg>rdp</arg>
 	      <arg>all</arg>
 	    </group>
 	    <arg>from <arg>to</arg></arg>
 	  </cmdsynopsis>
 	</term>
 	<listitem>
-	  <para>bla</para>
+	  <para>
+	    Report various stati of the selected node(s). Depending on the
+	    given argument, different information can be requested from the
+	    ParaStation system. If no argument is given, the
+	    <option>node</option> information is retrieved.
+	  </para>
+	  <variablelist>
+	    <varlistentry>
+	      <term><cmdsynopsis><command>node</command></cmdsynopsis></term>
+	      <listitem>
+		<para>
+		  Show the status of the selected node(s). Depending on the
+		  state of the ParaStation daemons, the node(s) are marked to
+		  be "UP" or "DOWN".
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term><cmdsynopsis><command>proc</command></cmdsynopsis></term>
+	      <listitem>
+		<para>
+		  Show the processes managed by ParaStations system on the
+		  selected node(s).
+		</para>
+		<para>
+		  Only user, logger and admin processes are displayed. If
+		  forwarder processes should also be displayed, use the
+		  <command>status <option>allproc</option></command> command.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term><cmdsynopsis><command>count</command></cmdsynopsis></term>
+	      <listitem>
+		<para>
+		  Show the status of the MyriNet communication system on the
+		  selected node(s). Various counters of the MCP running on the
+		  MyriNet card are displayed.
+		</para>
+		<!--
+		<para>
+		  For a detailed describtion of the counters refer to the
+		  technical reference.... @todo
+		</para>
+		-->
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term>
+		<cmdsynopsis><command>allproc</command></cmdsynopsis>
+	      </term>
+	      <listitem>
+		<para>
+		  Show all processes managed by ParaStations system on the
+		  selected node(s).
+		</para>
+		<para>
+		  All processes managed by ParaStation are displayed. If
+		  forwarder processes should not be displayed, use the
+		  <command>status <option>proc</option></command> command.
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term><cmdsynopsis><command>rdp</command></cmdsynopsis></term>
+	      <listitem>
+		<para>
+		  Show the status of the RDP protocol of the ParaStation daemon
+		  <xref linkend="psid"/> on the selected node(s).
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term><cmdsynopsis><command>mcast</command></cmdsynopsis></term>
+	      <listitem>
+		<para>
+		  Show the status of the MCast facility of the ParaStation
+		  daemon <xref linkend="psid"/> on the selected node(s).
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	    <varlistentry>
+	      <term><cmdsynopsis><command>all</command></cmdsynopsis></term>
+	      <listitem>
+		<para>
+		  Show the information given by <command>node</command>,
+		  <command>count</command> and <command>proc</command> on the
+		  selected node(s).
+		</para>
+	      </listitem>
+	    </varlistentry>
+
+	  </variablelist>
 	</listitem>
       </varlistentry>
 
@@ -135,30 +636,469 @@
 	</listitem>
       </varlistentry>
 
-      <varlistentry>
-	<term>
-	  <cmdsynopsis>
-	    <command>reset</command>
-	    <arg>hw</arg>
-	    <arg>from <arg>to</arg></arg>
-	  </cmdsynopsis>
-	</term>
-	<listitem>
-	  <para>
-	    Reset the ParaStation daemon on all selected node(s). As a
-	    consequence <emphasis>all</emphasis> processes using the selected
-	    node(s) are terminated (killed)!
-	  </para>
-	  <para>
-	    Furthermore the communication hardware is brought into a known
-	    state, if the option <option>hw</option> is given.
-	    <command>reset<option>hw</option></command> is the same as
-	    <command>restart</command>.
-	  </para>
-	</listitem>
-      </varlistentry>
     </variablelist>
+
+    <refsect2>
+      <title>Privileged commands</title>
+      <para>
+	Some commands are only available for privileged users, i.e. only root
+	can execute these commands.
+      </para>
+      <variablelist>
+
+	<varlistentry>
+	  <term>
+	    <cmdsynopsis>
+	      <command>reset</command>
+	      <arg>hw</arg>
+	      <arg>from <arg>to</arg></arg>
+	    </cmdsynopsis>
+	  </term>
+	  <listitem>
+	    <para>
+	      Reset the ParaStation daemon on all selected node(s). As a
+	      consequence <emphasis>all</emphasis> processes using the selected
+	      node(s) are <emphasis>killed</emphasis>!
+	    </para>
+	    <para>
+	      If the option <option>hw</option> is given, additionally the
+	      communication hardware is brought into a known state. Executing
+	      <command>reset <option>hw</option></command> is the same as using
+	      <command>restart</command>.
+	    </para>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>
+	    <cmdsynopsis>
+	      <command>restart</command>
+	      <arg>from <arg>to</arg></arg>
+	    </cmdsynopsis>
+	  </term>
+	  <listitem>
+	    <para>
+	      Restart the ParaStation system on all selected node(s). This
+	      includes reinitialization of the communucation hardware. On the
+	      selected node(s) the ParaStation daemon processes are forced to
+	      reinitialize the ParaStation cluster. As a consequence
+	      <emphasis>all processes</emphasis> using the selected node(s)s
+	      are <emphasis>killed</emphasis>!
+	    </para>
+	    <para>
+	      This is the same as using <command>reset
+		<option>hw</option></command>.
+	    </para>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>
+	    <cmdsynopsis>
+	      <command>set</command>
+	      <group choice="req">
+		<arg>user <group choice="req">
+		    <arg><replaceable>name</replaceable></arg>
+		    <arg>any</arg>
+		  </group></arg>
+		<arg>maxproc <group choice="req">
+		    <arg><replaceable>num</replaceable></arg>
+		    <arg>any</arg>
+		  </group></arg>
+
+		<arg>smallpacketsize <replaceable>size</replaceable></arg>
+		<arg>resendtimeout <replaceable>time</replaceable></arg>
+		<arg>hnpend <replaceable>val</replaceable></arg>
+		<arg>ackpend <replaceable>val</replaceable></arg>
+
+		<arg>selecttime <replaceable>time</replaceable></arg>
+
+		<arg>psiddebug <replaceable>level</replaceable></arg>
+		<arg>rdpdebug <replaceable>level</replaceable></arg>
+		<arg>mcastdebug <replaceable>level</replaceable></arg>
+	      </group>
+	      <arg>from <arg>to</arg></arg>
+	    </cmdsynopsis>
+	  </term>
+	  <listitem>
+	    <para>
+	      Modify various parameters of the ParaStation system.
+	    </para>
+	    <variablelist>
+	      <varlistentry>
+		<term>
+		  <cmdsynopsis>
+		    <command>user</command>
+		    <group choice="req">
+		      <arg><replaceable>name</replaceable></arg>
+		      <arg>any</arg>
+		    </group>
+		    <arg>from <arg>to</arg></arg>
+		  </cmdsynopsis>
+		</term>
+		<listitem>
+		  <para>
+		    Grant exclusiv access on the selected node(s) to the
+		    special user <option>name</option> or to any user.
+		  </para>
+		</listitem>
+	      </varlistentry>
+
+	      <varlistentry>
+		<term>
+		  <cmdsynopsis>
+		    <command>maxproc</command>
+		    <group choice="req">
+		      <arg><replaceable>num</replaceable></arg>
+		      <arg>any</arg>
+		    </group>
+		    <arg>from <arg>to</arg></arg>
+		  </cmdsynopsis>
+		</term>
+		<listitem>
+		  <para>
+		    Limit the number of running ParaStation processes on the
+		    selected node(s) to <option>num</option> or remove the
+		    limit.
+		  </para>
+		</listitem>
+	      </varlistentry>
+
+	      <varlistentry>
+		<term>
+		  <cmdsynopsis>
+		    <command>smallpacketsize</command>
+		    <arg><replaceable>size</replaceable></arg>
+		    <arg>from <arg>to</arg></arg>
+		  </cmdsynopsis>
+		</term>
+		<listitem>
+		  <para>
+		    Set the the maximum size of PIO packets to
+		    <option>size</option> bytes on the selected node(s).
+		  </para>
+		  <para>
+		    PIO packets are send directly to the node's memory by the
+		    MCP and copied by a <citerefentry>
+		      <refentrytitle>memcpy</refentrytitle>
+		      <manvolnum>3</manvolnum>
+		    </citerefentry> into the final destination. Non-PIO packets
+		    are send via DMA immediately to their final destination.
+		  </para>
+		  <para>
+		    This parameter can be set persistently via the
+		    <command>SmallPacketsize</command> option within the
+		    ParaStation configuration file <xref
+		      linkend="parastation_conf"/>.
+		  </para>
+		</listitem>
+	      </varlistentry>
+
+	      <varlistentry>
+		<term>
+		  <cmdsynopsis>
+		    <command>resendtimeout</command>
+		    <arg><replaceable>time</replaceable></arg>
+		    <arg>from <arg>to</arg></arg>
+		  </cmdsynopsis>
+		</term>
+		<listitem>
+		  <para>
+		    Set the retansmission timeout to <option>time</option>
+		    microseconds on the selected node(s).
+		  </para>
+		  <para>
+		    If a packet sent by ParaStation to another node is not
+		    acknowledged for this period of time, it will be resend to
+		    this node.
+		  </para>
+		  <para>
+		    This parameter can be set persistently via the
+		    <command>ResendTimeout</command> option within the
+		    ParaStation configuration file <xref
+		      linkend="parastation_conf"/>.
+		  </para>
+		  <note>
+		    <para>
+		      In the actual verion of ParaStation this parameter is
+		      read only and cannot be modified.
+		    </para>
+		  </note>
+		</listitem>
+	      </varlistentry>
+
+	      <varlistentry>
+		<term>
+		  <cmdsynopsis>
+		    <command>hnpend</command>
+		    <arg><replaceable>val</replaceable></arg>
+		    <arg>from <arg>to</arg></arg>
+		  </cmdsynopsis>
+		</term>
+		<listitem>
+		  <para>
+		    Set the number of pending host notify messages to
+		    <option>val</option> on the selected node(s).
+		  </para>
+		  <para>
+		    Host notify messages are send by the MCP to the kernel to
+		    mark send buffers as free. This is done when data, that was
+		    sent successfully via this buffer, was acknowledged by the
+		    destination node.
+		  </para>
+		  <para>
+		    Usually not every freed buffer is communicated, but the MCP
+		    waits until several buffers are freed and sends accumulated
+		    host notify messages then. <option>val</option> is the
+		    number of accumulated messages to sent simultaniously.
+		  </para>
+		  <para>
+		    This parameter can be set persistently via the
+		    <command>HNPend</command> option within the ParaStation
+		    configuration file <xref linkend="parastation_conf"/>.
+		  </para>
+		  <note>
+		    <para>
+		      <option>val</option> has to be choosen as 0 &lt;
+		      <option>val</option> &lt; 3. Small values lead to more
+		      traffic on the PCI bus, but prevent from free send
+		      buffers on the MyriNet card from not being used.
+		    </para>
+		  </note>
+		</listitem>
+	      </varlistentry>
+
+	      <varlistentry>
+		<term>
+		  <cmdsynopsis>
+		    <command>ackpend</command>
+		    <arg><replaceable>val</replaceable></arg>
+		    <arg>from <arg>to</arg></arg>
+		  </cmdsynopsis>
+		</term>
+		<listitem>
+		  <para>
+		    Set the number of pending acknowledgements to
+		    <option>val</option> on the selected node(s).
+		  </para>
+		  <para>
+		    ParaStation usually does not send acknowledgements
+		    immediately but waits for some pending ACK messages and
+		    send them accumulated.
+		  </para>
+		  <para>
+		    If a packet is not acknowledged for some microsecond (the
+		    actual value can be determined using the command
+		    <command>show <option>resendtimeout</option></command>) it
+		    will be resend by the source node. If a packet is received
+		    twice by the destination node, a immediate ACK message is
+		    sent and therefor correct delivery of packets is ensured.
+		  </para>
+		  <para>
+		    This parameter can be set persistently via the
+		    <command>ACKPend</command> option within the ParaStation
+		    configuration file <xref linkend="parastation_conf"/>.
+		  </para>
+		  <note>
+		    <para>
+		      <option>val</option> has to be choosen as 0 &lt;
+		      <option>val</option> &lt; 3. Small values lead to more
+		      ACK messages, but prevent from to many resends.
+		    </para>
+		  </note>
+		</listitem>
+	      </varlistentry>
+
+	      <varlistentry>
+		<term>
+		  <cmdsynopsis>
+		    <command>selecttime</command>
+		    <arg><replaceable>time</replaceable></arg>
+		    <arg>from <arg>to</arg></arg>
+		  </cmdsynopsis>
+		</term>
+		<listitem>
+		  <para>
+		    Set the timeout of the central <citerefentry>
+		      <refentrytitle>select</refentrytitle>
+		      <manvolnum>2</manvolnum>
+		    </citerefentry> of the ParaStation daemon <xref
+		      linkend="psid"/> to <option>time</option> seconds on the
+		    selected node(s).
+		  </para>
+		  <para>
+		    This parameter can be set persistently via the
+		    <command>SelectTime</command> option within the ParaStation
+		    configuration file <xref linkend="parastation_conf"/>.
+		  </para>
+		</listitem>
+	      </varlistentry>
+
+	      <varlistentry>
+		<term>
+		  <cmdsynopsis>
+		    <command>psiddebug</command>
+		    <arg><replaceable>level</replaceable></arg>
+		    <arg>from <arg>to</arg></arg>
+		  </cmdsynopsis>
+		</term>
+		<listitem>
+		  <para>
+		    Sets the debugging level of the ParaStation daemon
+		    <xref linkend="psid"/> to <option>level</option> on the
+		    seleceted node(s).
+		  </para>
+		  <para>
+		    This parameter can be set persistently via the
+		    <command>LogLevel</command> option within the ParaStation
+		    configuration file <xref linkend="parastation_conf"/>.
+		  </para>
+		  <note>
+		    <para>
+		      For values of <option>level</option> larger than
+		      <constant>10</constant> the daemon logs a huge amount of
+		      message in the logging destination, which is usually the
+		      <citerefentry>
+			<refentrytitle>syslog</refentrytitle>
+			<manvolnum>3</manvolnum>
+		      </citerefentry>. Don't use this levels differeent from
+		      <constant>0</constant> for too long!
+		    </para>
+		  </note>
+		</listitem>
+	      </varlistentry>
+
+	      <varlistentry>
+		<term>
+		  <cmdsynopsis>
+		    <command>rdpdebug</command>
+		    <arg><replaceable>level</replaceable></arg>
+		    <arg>from <arg>to</arg></arg>
+		  </cmdsynopsis>
+		</term>
+		<listitem>
+		  <para>
+		    Sets the debugging level of the RDP protocol within the
+		    ParaStation daemon <xref linkend="psid"/> to
+		    <option>level</option> on the seleceted node(s).
+		  </para>
+		  <note>
+		    <para>
+		      Unless you want to debug the RDP protocol (i.e. the
+		      secure protocol used by the daemons to talk to each
+		      other) this parameter is not really useful.
+		    </para>
+		  </note>
+		</listitem>
+	      </varlistentry>
+
+	      <varlistentry>
+		<term>
+		  <cmdsynopsis>
+		    <command>mcastdebug</command>
+		    <arg><replaceable>level</replaceable></arg>
+		    <arg>from <arg>to</arg></arg>
+		  </cmdsynopsis>
+		</term>
+		<listitem>
+		  <para>
+		    Sets the debugging level of the MCast protocol within the
+		    ParaStation daemon <xref linkend="psid"/> to
+		    <option>level</option> on the seleceted node(s).
+		  </para>
+		  <note>
+		    <para>
+		      Unless you want to debug the MCast protocol (i.e. the
+		      protocol used by the daemons to ping alive-messages to
+		      each other) this parameter is not really useful.
+		    </para>
+		  </note>
+		</listitem>
+	      </varlistentry>
+
+	    </variablelist>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>
+	    <cmdsynopsis>
+	      <command>shutdown</command>
+	      <arg>from <arg>to</arg></arg>
+	    </cmdsynopsis>
+	  </term>
+	  <listitem>
+	    <para>
+	      Shutdown the ParaStation daemon on all selected node(s). As a
+	      consequence <emphasis>all processes</emphasis> using the selected
+	      node(s) are <emphasis>killed</emphasis>!
+	    </para>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>
+	    <cmdsynopsis>
+	      <command>test</command>
+	      <group>
+		<arg>quiet</arg>
+		<arg>normal</arg>
+		<arg>verbose</arg>
+	      </group>
+	    </cmdsynopsis>
+	  </term>
+	  <listitem>
+	    <para>
+	      All communications links in a ParaStation network are tested.
+	    </para>
+	    <variablelist>
+	      <varlistentry>
+		<term>
+		  <cmdsynopsis><command>quiet</command></cmdsynopsis>
+		</term>
+		<listitem>
+		  <para>
+		    Quiet execution. Only a short message is printed if the
+		    test was successful.
+		  </para>
+		</listitem>
+	      </varlistentry>
+	      <varlistentry>
+		<term>
+		  <cmdsynopsis><command>normal</command></cmdsynopsis>
+		</term>
+		<listitem>
+		  <para>
+		    Normal execution with some messages during runtime. This is
+		    the default.
+		  </para>
+		</listitem>
+	      </varlistentry>
+	      <varlistentry>
+		<term>
+		  <cmdsynopsis><command>verbose</command></cmdsynopsis>
+		</term>
+		<listitem>
+		  <para>
+		    Very verbose execution with many message during runtime.
+		  </para>
+		</listitem>
+	      </varlistentry>
+	    </variablelist>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+    </refsect2>
   </refsect1>
+
+  <refsect1>
+    <title>See also</title>
+    <para>
+      <xref linkend="parastation_conf"/>, <xref linkend="psid"/>, <xref
+	linkend="mlisten"/>, <xref linkend="psld"/>
+    </para>
+  </refsect1>
+
 </refentry>
   <!-- Keep this comment at the end of the file
   Local variables:
