@@ -20,7 +20,7 @@ LIBDIR := $(DISTPATH)/lib
 
 CONFIGDIR := $(DISTPATH)/config
 
-MISC += config/parastation.conf.template INSTALL config/PSM_INSTALL
+MISC += config/parastation.conf.tmpl INSTALL config/PSM_INSTALL
 
 MISCDIR :=
 
@@ -74,7 +74,7 @@ includes: $(INCDIR) $(patsubst %,$(INCDIR)/%,$(INCLUDES))
 #
 # Misc files
 #
-$(DISTPATH)/config/parastation.conf.template: $(TOP_SRCDIR)/doc/parastation.conf.template
+$(DISTPATH)/config/parastation.conf.tmpl: $(TOP_SRCDIR)/doc/parastation.conf
 	cp $< $@
 
 $(DISTPATH)/INSTALL: $(TOP_SRCDIR)/doc/INSTALL
