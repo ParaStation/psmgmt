@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: rdp.c,v 1.26 2002/07/11 09:46:50 eicker Exp $
+ * $Id: rdp.c,v 1.27 2003/06/04 08:04:57 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.26 2002/07/11 09:46:50 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: rdp.c,v 1.27 2003/06/04 08:04:57 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -752,7 +752,7 @@ static void clearMsgQ(int node)
 
     /*
      * A blocked timer needs to be restored since clearMsgQ() can be called
-     * from withing handleTimeoutRDP().
+     * from within handleTimeoutRDP().
      */
     blocked = blockTimer(rdpsock, 1);
 
@@ -871,8 +871,8 @@ static void handleTimeoutRDP(int fd)
     while (ap) {
 	mp = ap->bufptr;
 	if (!mp) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "handleTimeoutRDP(): mp is NULL for ap = %p", ap);
+	    snprintf(errtxt, sizeof(errtxt), "%s: mp is NULL for ap = %p",
+		     __func__, ap);
 	    errlog(errtxt, 0);
 	    break;
 	}
@@ -881,75 +881,27 @@ static void handleTimeoutRDP(int fd)
 	    /* handle only first outstanding buffer */
 	    gettimeofday(&tv, NULL);
 	    if (timercmp(&mp->tv, &tv, <)) { /* msg has a timeout */
-		if (mp->retrans > RDPMaxRetransCount) {
-		    snprintf(errtxt, sizeof(errtxt),
-			     "Retransmission count exceeds limit [seqno=%d],"
-			     " closing connection to node %d",
-			     mp->msg.small->header.seqno, node);
-		    errlog(errtxt, 0);
-		    ap = ap->prev;
-		    closeConnectionRDP(node);
-		    if (ap)
-			ap = ap->next;
-		    else
-			ap = AckListHead;
-		} else {
-		    snprintf(errtxt, sizeof(errtxt),
-			     "resending msg %d to node %d",
-			     mp->msg.small->header.seqno, mp->node);
-		    errlog(errtxt, 14);
-		    mp->tv = tv;
-		    mp->retrans++;
-		    timeradd(&mp->tv, &RESEND_TIMEOUT, &mp->tv);
+		/*
+		 * ap may become invalid due to closeConnectionRDP(),
+		 * therefore we store the predecessor.
+		 */
+		ackent *pre = ap->prev;
 
-		    /*
-		     * ap may become invalid during sending, therefor
-		     * we store the predecessor.
-		     */
-		    ap = ap->prev;
-		    switch (conntableRDP[node].state) {
-		    case CLOSED:
-			errlog("handleTimeoutRDP(): connection is CLOSED.", 0);
-			break;
-		    case SYN_SENT:
-			errlog("handleTimeoutRDP(): send SYN again", 8);
-			sendSYN(node);
-			break;
-		    case SYN_RECVD:
-			errlog("handleTimeoutRDP(): send SYNACK again", 8);
-			sendSYNACK(node);
-			break;
-		    case ACTIVE:
-			/* connection established */
-			/* update ackinfo */
-			mp->msg.small->header.ackno =
-			    conntableRDP[node].frameExpected-1;
-			MYsendto(rdpsock, &mp->msg.small->header,
-				 mp->len + sizeof(rdphdr), 0,
-				 (struct sockaddr *)&conntableRDP[node].sin,
-				 sizeof(struct sockaddr));
-			conntableRDP[node].ackPending = 0;
-			break;
-		    default:
-			snprintf(errtxt, sizeof(errtxt),
-				 "handleTimeoutRDP(): unknown state %d"
-				 " for node %d",
-				 conntableRDP[node].state, node);
-			errlog(errtxt, 0);
-		    }
-		    /*
-		     * If the ap->next was removed during the send we
-		     * now get a valid successor. If it was not
-		     * removed, just handle the same ap again (the tv
-		     * element will keep us from doing to much).
-		     */
-		    if (ap)
-			ap = ap->next;
-		    else
-			ap = AckListHead;
+		resendMsgs(node);
+
+		/*
+		 * If the ap->next was removed due to a closeConnectionRDP()
+		 * we now get a valid successor.
+		 */
+		pre = (pre) ? pre->next : AckListHead;
+		if (pre == ap) {
+		    /* ap not removed */
+		    ap = ap->next;
+		} else {
+		    ap = pre;
 		}
 	    } else {
-		break; /* all following msg's do not have a timeout */
+		ap = ap->next; /* try with next buffer */
 	    }
 	} else {
 	    ap = ap->next; /* try with next buffer */
@@ -1041,38 +993,72 @@ static void doACK(rdphdr *hdr, int fromnode)
 
 static void resendMsgs(int node)
 {
-    Rconninfo *cp;
     msgbuf *mp;
     struct timeval tv;
 
-    cp = &conntableRDP[node];
-    mp = cp->bufptr;
-
-    while (mp) {
-	gettimeofday(&tv, NULL);
-	timeradd(&mp->tv, &RESEND_TIMEOUT, &mp->tv);
-	if (mp->retrans > RDPMaxRetransCount) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "resendMsgs() Retransmission count exceeds limit"
-		     " [seqno=%d], closing connection to node %d",
-		     mp->msg.small->header.seqno, node);
-	    errlog(errtxt, 0);
-	    closeConnectionRDP(node);
-	    return;
-	}
+    mp = conntableRDP[node].bufptr;
+    if (!mp) {
 	snprintf(errtxt, sizeof(errtxt),
-		 "resending msg %d to node %d", mp->msg.small->header.seqno,
-		 mp->node);
-	errlog(errtxt, 14);
-	mp->tv = tv;
-	mp->retrans++;
-	/* update ackinfo */
-	mp->msg.small->header.ackno = conntableRDP[node].frameExpected-1;
-	MYsendto(rdpsock, &mp->msg.small->header, mp->len + sizeof(rdphdr), 0,
-		 (struct sockaddr *)&conntableRDP[node].sin,
-		 sizeof(struct sockaddr));
+		 "%s: no pending messages", __func__);
+	errlog(errtxt, 1);
+
+	return;
+    }
+
+    gettimeofday(&tv, NULL);
+    timeradd(&tv, &RESEND_TIMEOUT, &tv);
+
+    if (mp->retrans > RDPMaxRetransCount) {
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: Retransmission count exceeds limit"
+		 " [seqno=%d], closing connection to node %d",
+		 __func__, mp->msg.small->header.seqno, node);
+	errlog(errtxt, 0);
+	closeConnectionRDP(node);
+	return;
+    }
+
+    mp->tv = tv;
+    mp->retrans++;
+
+    switch (conntableRDP[node].state) {
+    case CLOSED:
+	snprintf(errtxt, sizeof(errtxt), "%s: CLOSED connection.", __func__);
+	errlog(errtxt, 0);
+	break;
+    case SYN_SENT:
+	snprintf(errtxt, sizeof(errtxt), "%s: send SYN again", __func__);
+	errlog(errtxt, 8);
+	sendSYN(node);
+	break;
+    case SYN_RECVD:
+	snprintf(errtxt, sizeof(errtxt), "%s: send SYNACK again", __func__);
+	errlog(errtxt, 0);
+	sendSYNACK(node);
+	break;
+    case ACTIVE:
+	/* First one not sent twice */
+	mp->retrans--;
+	while (mp) {
+	    snprintf(errtxt, sizeof(errtxt), "%s: %d to node %d",
+		     __func__, mp->msg.small->header.seqno, mp->node);
+	    errlog(errtxt, 14);
+	    mp->tv = tv;
+	    mp->retrans++;
+	    /* update ackinfo */
+	    mp->msg.small->header.ackno = conntableRDP[node].frameExpected-1;
+	    MYsendto(rdpsock, &mp->msg.small->header,
+		     mp->len + sizeof(rdphdr), 0,
+		     (struct sockaddr *)&conntableRDP[node].sin,
+		     sizeof(struct sockaddr));
+	    mp = mp->next;
+	}
 	conntableRDP[node].ackPending = 0;
-	mp = mp->next;
+	break;
+    default:
+	snprintf(errtxt, sizeof(errtxt), "%s: unknown state %d for node %d",
+		 __func__, conntableRDP[node].state, node);
+	errlog(errtxt, 0);
     }
 }
 
@@ -1260,8 +1246,8 @@ int handleRDP(int fd)
 	case ECONNREFUSED:
 	case EHOSTUNREACH:
 	    snprintf(errtxt, sizeof(errtxt),
-		     "handleRDP(): recvfrom(MSG_PEEK) returns: %s",
-		     strerror(errno));
+		     "%s: recvfrom(MSG_PEEK) returns: %s",
+		     __func__, strerror(errno));
 	    errlog(errtxt, 0);
 
 	    return handleErr();
@@ -1269,8 +1255,8 @@ int handleRDP(int fd)
 	default:
 #endif
 	    snprintf(errtxt, sizeof(errtxt),
-		     "handleRDP(): recvfrom(MSG_PEEK) returns: %s",
-		     strerror(errno));
+		     "%s: recvfrom(MSG_PEEK) returns: %s",
+		     __func__, strerror(errno));
 	    errlog(errtxt, 0);
 
 	    return -1;
@@ -1286,8 +1272,8 @@ int handleRDP(int fd)
 	    if (MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
 			   (struct sockaddr *) &sin, &slen)<0) {
 		snprintf(errtxt, sizeof(errtxt),
-			 "handleRDP(): recvfrom(0) returns: %s",
-			 strerror(errno));
+			 "%s: recvfrom(0) returns: %s",
+			 __func__, strerror(errno));
 		errexit(errtxt, errno);
 	    }
 
@@ -1305,8 +1291,8 @@ int handleRDP(int fd)
 	if (MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
 		       (struct sockaddr *) &sin, &slen)<0) {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "handleRDP(): recvfrom(0) returns: %s",
-		     strerror(errno));
+		     "%s: recvfrom(0) returns: %s",
+		     __func__, strerror(errno));
 	    errexit(errtxt, errno);
 	}
 
@@ -1323,13 +1309,14 @@ int handleRDP(int fd)
 	if (MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
 		       (struct sockaddr *) &sin, &slen)<0) {
 	    snprintf(errtxt, sizeof(errtxt),
-		     "handleRDP()/CDTA: recvfrom(0) returns: %s",
-		     strerror(errno));
+		     "%s/CDTA: recvfrom(0) returns: %s",
+		     __func__, strerror(errno));
 	    errexit(errtxt, errno);
 	}
 	snprintf(errtxt, sizeof(errtxt),
-		 "handleRDP(): Check DATA from %d (seq=%d, xpct=%d)", fromnode,
-		 msg.header.seqno, conntableRDP[fromnode].frameExpected);
+		 "%s: Check DATA from %d (seq=%d, xpct=%d)",
+		 __func__, fromnode, msg.header.seqno,
+		 conntableRDP[fromnode].frameExpected);
 	errlog(errtxt, 6);
 
 	doACK(&msg.header, fromnode);
