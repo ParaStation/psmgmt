@@ -3,6 +3,7 @@
                   "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd"[
 <!ENTITY docinfo SYSTEM "docinfo.sgml">
 
+<!ENTITY preface SYSTEM "preface.sgml">
 <!ENTITY intro SYSTEM "intro.sgml">
 <!ENTITY installation SYSTEM "install.sgml">
 <!ENTITY configuration SYSTEM "config.sgml">
@@ -26,6 +27,7 @@
     &docinfo;
   </bookinfo>
 
+  &preface;
   &intro;
   &installation;
   &configuration;
