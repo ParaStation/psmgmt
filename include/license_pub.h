@@ -1,7 +1,26 @@
+/*
+ *               ParaStation
+ * license_pub.h
+ *
+ * Copyright (C) ParTec AG Karlsruhe
+ * All rights reserved.
+ *
+ * $Id: license_pub.h,v 1.4 2003/11/26 17:11:16 eicker Exp $
+ *
+ */
+/**
+ * @file
+ *
+ * license_pub.h: Public definitions and functions for licensing.
+ *
+ * $Id: license_pub.h,v 1.4 2003/11/26 17:11:16 eicker Exp $
+ *
+ * @author
+ * Jens Hauke <hauke@par-tec.com>
+ *
+ */
 #ifndef _LICENSE_PUB_H_
 #define _LICENSE_PUB_H_
-
-/** @todo Docu and header */
 
 typedef struct pslic_binpub_T{
     UINT32	param[4];
