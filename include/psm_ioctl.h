@@ -40,6 +40,7 @@ typedef char PSHAL_MCP_CNAME[20];
 #define PSHAL_GETRTC            _IOR(PSHAL_GROUP,104,int)
 #define PSHAL_GETISR            _IOR(PSHAL_GROUP,105,int)
 #define PSHAL_GETMCPNAME	_IOW(PSHAL_GROUP,106,PSHAL_MCP_CNAME)
+#define PSHAL_RELOADMCP		_IO(PSHAL_GROUP,107)
 
 /********************************************************/
 /*							*/
