@@ -8,6 +8,7 @@ PSMDIR := $(ROOTDIR)/kern
 ZLIBDIR := $(ROOTDIR)/zlib
 PSHALDIR := $(ROOTDIR)/pshal
 PSPORTDIR := $(ROOTDIR)/psport
+PSPORT2DIR := $(ROOTDIR)/psport2
 MCPDIR := $(ROOTDIR)/kern/mcp
 INCLUDEDIR := $(ROOTDIR)/include
 OSNAME := $(shell uname -s)

@@ -29,7 +29,7 @@ include $(ROOTDIR)/Makefile.include
 
 ifeq ($(shell cd .;pwd),$(ROOTDIR))
 
-allbutmcp:	dep psm pshal psport pvar arg buildno
+allbutmcp:	dep psm pshal psport pvar arg buildno 
 
 all:	mcpdep mcp allbutmcp buildno
 
@@ -48,6 +48,9 @@ pshal:	FORCE
 psport:	FORCE	
 	make -C $(PSPORTDIR) psport
 
+psport2:	FORCE	
+	make -C $(PSPORT2DIR) psport2
+
 pvar:	FORCE	
 	make -C $(PSHALDIR) pvar
 
@@ -64,6 +67,7 @@ dep:
 	make -C $(PSMDIR) $@
 	make -C $(PSHALDIR) $@
 	make -C $(PSPORTDIR) $@
+	make -C $(PSPORT2DIR) $@
 
 buildno:
 	@echo "## Build #################################################"
@@ -74,6 +78,7 @@ clean:
 	make -C $(PSMDIR) $@
 	make -C $(PSHALDIR) $@
 	make -C $(PSPORTDIR) $@
+	make -C $(PSPORT2DIR) $@
 	rm -rf tmp/*
 
 TAGS:
