@@ -7,26 +7,26 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.42 2003/07/11 13:07:30 eicker Exp $
+ * $Id: psispawn.c,v 1.43 2003/07/18 11:08:33 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.42 2003/07/11 13:07:30 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.43 2003/07/18 11:08:33 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
 #include <unistd.h>
-#include <sys/types.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <netdb.h>
-// #include <ctype.h>
 #include <signal.h>
 #include <termios.h>
+#include <sys/types.h>
 #include <sys/ioctl.h>
-#include <arpa/inet.h>
+#include <sys/stat.h>
 
 #include "pscommon.h"
 #include "psprotocol.h"
@@ -60,10 +60,10 @@ int PSI_PartitionIndex = 0;   /** Index of the next node to use. */
 
 static char errtxt[256];
 
-int PSI_dospawn(int count, short *dstnodes, char *workingdir,
-		int argc, char **argv,
-		long loggertid,
-		int rank, int *errors, long *tids);
+static int dospawn(int count, short *dstnodes, char *workingdir,
+		   int argc, char **argv,
+		   long loggertid,
+		   int rank, int *errors, long *tids);
 
 long PSI_spawn(short dstnode, char *workdir, int argc, char **argv,
 	       long loggertid,
@@ -91,8 +91,8 @@ long PSI_spawn(short dstnode, char *workdir, int argc, char **argv,
 	PSI_PartitionIndex %= PSI_PartitionSize;
     }
 
-    ret = PSI_dospawn(1, &dstnode, workdir, argc, argv,
-		      loggertid, rank, error, &tid);
+    ret = dospawn(1, &dstnode, workdir, argc, argv,
+		  loggertid, rank, error, &tid);
 
     if (ret<0) return ret;
 
@@ -141,8 +141,8 @@ int PSI_spawnM(int count, short *dstnodes, char *workdir,
     snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt), ".");
     PSI_errlog(errtxt, 1);
 
-    ret = PSI_dospawn(count, mydstnodes, workdir, argc, argv,
-		      loggertid, rank, errors, tids);
+    ret = dospawn(count, mydstnodes, workdir, argc, argv,
+		  loggertid, rank, errors, tids);
 
     /*
      * if I allocated mydstnodes myself, free() it now
@@ -1027,10 +1027,10 @@ short PSI_getPartitionNode(int rank)
     return PSI_Partition[rank%PSI_PartitionSize];
 }
 
-int PSI_dospawn(int count, short *dstnodes, char *workingdir,
-		int argc, char **argv,
-		long loggertid,
-		int rank, int *errors, long *tids)
+static int dospawn(int count, short *dstnodes, char *workingdir,
+		   int argc, char **argv,
+		   long loggertid,
+		   int rank, int *errors, long *tids)
 {
     int outstanding_answers=0;
     DDBufferMsg_t msg;
@@ -1088,7 +1088,33 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
     task->workingdir = mywd;
     task->argc = argc;
     task->argv = (char**)malloc(sizeof(char*)*(task->argc+1));
-    for (i=0;i<task->argc;i++)
+    {
+	struct stat statbuf;
+
+	if (stat(argv[0], &statbuf)) {
+#ifdef __linux__
+	    char myexec[PATH_MAX];
+	    int length;
+
+	    length = readlink("/proc/self/exe", myexec, sizeof(myexec)-1);
+	    if (length<0) {
+		perror("readlink");
+	    } else {
+		myexec[length]='\0';
+	    }
+
+	    task->argv[0]=strdup(myexec);
+#else
+	    snprintf(errtxt, sizeof(errtxt),
+		     "%s: Can't start parallel jobs from PATH.\n", __func__);
+	    PSI_errlog(errtxt, 0);
+	    return -1;
+#endif
+	} else {
+	    task->argv[0]=strdup(argv[0]);
+	}
+    }
+    for (i=1;i<task->argc;i++)
 	task->argv[i]=strdup(argv[i]);
     task->argv[task->argc]=0;
 
