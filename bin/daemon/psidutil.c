@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.42 2002/07/23 15:44:33 eicker Exp $
+ * $Id: psidutil.c,v 1.43 2002/07/26 15:25:26 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.42 2002/07/23 15:44:33 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.43 2002/07/26 15:25:26 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -17,12 +17,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.42 2002/07/2
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#include <time.h>
-#include <fcntl.h>
-#include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/stat.h>
-#include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
@@ -36,14 +31,13 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.42 2002/07/2
 #include "pscommon.h"
 #include "pshwtypes.h"
 
-#include "logger.h"
 #include "cardconfig.h"
 #include "config_parsing.h"
 
-#include "psidutil.h"
-
 /* magic license check */
 #include "../license/pslic_hidden.h"
+
+#include "psidutil.h"
 
 unsigned int PSID_HWstatus;
 short PSID_numCPU;
@@ -85,6 +79,7 @@ void PSID_errexit(char *s, int errorno)
     errexit(s, errorno);
 }
 
+/* (Re)Config and shutdown the MyriNet card */
 static card_init_t card_info;
 
 void PSID_ReConfig(void)
@@ -194,15 +189,10 @@ void PSID_CardStop(void)
     }
 }
 
-/***************************************************************************
- *	PSID_readconfigfile()
- *
- */
+/* Reading and basic handling of the configuration */
 
-void PSID_readconfigfile(int usesyslog)
+void PSID_readConfigFile(int usesyslog)
 {
-    struct hostent *mhost;
-    char myname[256];
     struct in_addr *sin_addr;
 
     int numNICs = 2;
@@ -276,8 +266,7 @@ void PSID_readconfigfile(int usesyslog)
     close(skfd);
 
     if (MyPsiId == -1) {
-	snprintf(errtxt, sizeof(errtxt), "Node '%s' not configured", myname);
-	PSID_errlog(errtxt, 0);
+	PSID_errlog("Node not configured", 0);
 	exit(1);
     }
 
@@ -300,14 +289,6 @@ void PSID_readconfigfile(int usesyslog)
     /* @todo Implement!! */
     PSID_numCPU = 1;
 
-    if (PSC_getNrOfNodes() > 4) {
-	/*
-	 * Check the license key
-	 * Clusters smaller than 4 nodes are free
-	 */
-	// PSID_checklicense(sin_addr.s_addr);
-    }
-
     PSID_errlog("starting up the card", 1);
     /*
      * check if I can reserve the card for me 
@@ -318,12 +299,7 @@ void PSID_readconfigfile(int usesyslog)
     PSID_errlog("PSID_readconfigfile(): PSID_ReConfig ok.", 9);
 }
 
-/***************************************************************************
- *       PSI_startlicensserver()
- *
- *       starts the licenseserver via the inetd
- */
-int PSID_startlicenseserver(unsigned int addr)
+int PSID_startLicServer(unsigned int addr)
 {
     int sock;
     struct sockaddr_in sa;
@@ -356,263 +332,4 @@ int PSID_startlicenseserver(unsigned int addr)
     shutdown(sock, SHUT_RDWR);
     close(sock);
     return 1;
-}
-
-
-
-/*----------------------------------------------------------------------*/
-/*
- * PSID_execv
- *
- *  frontend to syscall execv. Retry exec on failure after a short delay 
- *  RETURN: like the syscall execv
- */
-int PSID_execv( const char *path, char *const argv[])
-{
-    int ret;
-    int cnt;
-
-    /* Try 5 times with delay 400ms = 2 sec overall */
-    for (cnt=0; cnt<5; cnt++) {
-	ret = execv(path, argv);
-	usleep(1000 * 400);
-    }
-
-    return ret;
-}
-
-/*----------------------------------------------------------------------*/
-/*
- * PStask_spawn
- *
- *  executes the argv[0] with parameters argv[1]..argv[argc-1]
- *  in working directory workingdir with userid uid
- *  RETURN: 0 on success with childpid set to the pid of the new process
- *          errno  when an error occurs
- */
-int PSID_taskspawn(PStask_t* task)
-{
-    int fds[2];    /* pipe fd for communication between parent and child */
-    int pid;       /* pid of the child */
-    int i;
-    int buf;   /* buffer for communication between child and parent */
-    int ret;       /* return value */
-    struct stat sb;
-
-    if (PSID_getDebugLevel() >= 10) {
-	snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn() task: ");
-	PStask_snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
-			task);
-	PSID_errlog(errtxt, 10);
-    }
-
-    /*
-     * create a control channel
-     * for observing the successful exec call
-     */
-    if (pipe(fds)<0) {
-	char *errstr = strerror(errno);
-
-	snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn(): pipe: %s ",
-		 errstr ? errstr : "UNKNOWN");
-	PSID_errlog(errtxt, 0);
-    }
-    fcntl(fds[1],F_SETFD,FD_CLOEXEC);
-
-    if (!lic_isvalid(&ConfigLicEnv)) {
-    	PSID_errlog("Corrupted license!", 0);
-	exit(1);
-    }
-    
-    /*
-     * fork the new process
-     */
-    if ((pid = fork())==0) {
-	/* child process */
-
-	/*
-	 * change the group id to the appropriate group
-	 */
-	if (setgid(task->gid)<0) {
-	    char *errstr = strerror(errno);
-	    buf = errno;
-
-	    snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn(): setgid: %s",
-		     errstr ? errstr : "UNKNOWN");
-	    PSID_errlog(errtxt, 0);
-
-	    write(fds[1], &buf, sizeof(buf));
-	    exit(0);
-	}
-
-	/*
-	 * change the user id to the appropriate user
-	 */
-	if (setuid(task->uid)<0) {
-	    char *errstr = strerror(errno);
-	    buf = errno;
-
-	    snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn() setuid: %s",
-		     errstr ? errstr : "UNKNOWN");
-	    PSID_errlog(errtxt, 0);
-
-	    write(fds[1], &buf, sizeof(buf));
-	    exit(0);
-	}
-
-	/*
-	 * change to the appropriate directory
-	 */
-	if (chdir(task->workingdir)<0) {
-	    char *errstr = strerror(errno);
-	    buf = errno;
-
-	    snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn(): chdir(%s): %s",
-		     task->workingdir ? task->workingdir : "",
- 		     errstr ? errstr : "UNKNOWN");
-	    PSID_errlog(errtxt, 0);
-
-	    write(fds[1], &buf, sizeof(buf));
-	    exit(0);
-	}
-
-	/*
-	 * set the environment variable
-	 */
-	{
-	    char *envvar;
-	    envvar = malloc(strlen(task->workingdir) + strlen("PWD=") + 1);
-	    sprintf(envvar, "PWD=%s", task->workingdir);
-	    /* Don't free envvar, since it becomes part of the environment! */
-	    putenv(envvar);
-
-	    if (task->environ) {
-		for (i=0; task->environ[i]; i++) {
-		    putenv(strdup(task->environ[i]));
-		}
-	    }
-	}
-	{
-	    /*
-	     * store client PID in environment
-	     */
-	    char pid_str[20];
-	    snprintf(pid_str, sizeof(pid_str), "%d", getpid());
-	    setenv("PSI_PID", pid_str, 1);
-	}
-	if (stat(task->argv[0], &sb) == -1) {
-	    char *errstr = strerror(errno);
-	    buf = errno;
-
-	    snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn(): stat(%s): %s",
-		     task->argv[0] ? task->argv[0] : "",
-		     errstr ? errstr : "UNKNOWN");
-	    PSID_errlog(errtxt, 0);
-
-	    write(fds[1], &buf, sizeof(buf));
-	    exit(0);
-	}
-
-	if (((sb.st_mode & S_IFMT) != S_IFREG) || !(sb.st_mode & S_IEXEC)) {
-	    buf = 1;
-	    snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn(): stat(): %s",
-		     ((sb.st_mode & S_IFMT) != S_IFREG) ? "S_IFREG error" :
-		     (sb.st_mode & S_IEXEC) ? "" : "S_IEXEC error");
-	    PSID_errlog(errtxt, 0);
-
-	    write(fds[1], &buf, sizeof(buf));
-	    exit(0);
-	}
-
-	/*
-	 * close all file descriptors
-	 * except my control channel to my parent
-	 */
-	for (i=getdtablesize()-1; i>2; i--)
-	    if (i != fds[1]) close(i);
-
-	/*
-	 * Start the forwarder and redirect stdout/stderr
-	 */
-	LOGGERspawnforwarder(task->loggernode, task->loggerport, task->rank,
-			     task->rank == 0);
-
-	/*
-	 * execute the image
-	 */
-	if (PSID_execv(task->argv[0], &(task->argv[0]))<0) {
-	    char *errstr = strerror(errno);
-	    snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn() execv: %s",
-		     errstr ? errstr : "UNKNOWN");
-	    PSID_errlog(errtxt, 0);
-	}
-	/*
-	 * never reached, if execv succesful
-	 */
-	/*
-	 * send the parent a sign that the exec wasn't successful
-	 * fds[0] would have been closed on successful exec.
-	 */
-	buf = errno;
-	write(fds[1], &buf, sizeof(buf));
-	exit(0);
-    }
-    /*
-     * this is the parent process
-     */
-    /*
-     * check if fork() was successful
-     */
-    task->tid = PSC_getTID(-1, pid);
-
-    if (pid == -1) {
-	char *errstr = strerror(errno);
-
-	ret = errno;
-
-	close(fds[0]);
-	close(fds[1]);
-
-	snprintf(errtxt, sizeof(errtxt), "PSID_taskspawn() fork: %s",
-		 errstr ? errstr : "UNKNOWN");
-	PSID_errlog(errtxt, 0);
-    } else {
-	/*
-	 * check for a sign of the child
-	 */
-	snprintf(errtxt, sizeof(errtxt),
-		 "I'm the parent. I'm waiting for my child (%d)", pid);
-	PSID_errlog(errtxt, 10);
-
-	close(fds[1]);
-
-    restart:
-	if ((ret=read(fds[0], &buf, sizeof(buf))) < 0) {
-	    if (errno == EINTR) {
-		goto restart;
-	    }
-	}
-
-	if (!ret) {
-	    /*
-	     * the control channel was closed in case of a successful execv
-	     */
-	    PSID_errlog("child execute was successful", 10);
-	} else {
-	    /*
-	     * the child sent us a sign that the execv wasn't successful
-	     */
-	    char *errstr = strerror(buf);
-
-	    ret = buf;
-
-	    snprintf(errtxt, sizeof(errtxt), "child execute failed: %s",
-		     errstr ? errstr : "UNKNOWN");
-	    PSID_errlog(errtxt, 0);
-
-	}
-	close(fds[0]);
-    }
-
-    return ret;
 }
