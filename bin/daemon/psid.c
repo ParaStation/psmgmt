@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.110 2003/10/09 19:19:21 eicker Exp $
+ * $Id: psid.c,v 1.111 2003/10/22 17:36:03 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.110 2003/10/09 19:19:21 eicker Exp $ 
+ * $Id: psid.c,v 1.111 2003/10/22 17:36:03 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.110 2003/10/09 19:19:21 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.111 2003/10/22 17:36:03 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /* #define DUMP_CORE */
@@ -81,7 +81,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-char psid_cvsid[] = "$Revision: 1.110 $";
+char psid_cvsid[] = "$Revision: 1.111 $";
 
 /** Master socket (type UNIX) for clients to connect */
 static int masterSock;
@@ -1840,7 +1840,7 @@ void MCastCallBack(int msgid, void *buf)
 	snprintf(errtxt, sizeof(errtxt), "%s(MCAST_LOST_CONNECTION,%d)",
 		 __func__, node);
 	PSID_errlog(errtxt, 2);
-	declareNodeDead(node);
+	if (node != PSC_getMyID()) declareNodeDead(node);
 	/*
 	 * Send CONNECT msg via RDP. This should timeout and tell RDP that
 	 * the connection is down.
@@ -2233,7 +2233,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.110 $";
+    char revision[] = "$Revision: 1.111 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
