@@ -818,7 +818,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
     snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
 	     " to %s", PSC_printTID(msg->header.dest));
     snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
-	     " conceerning %s.", PSC_printTID(msg->request));
+	     " concerning %s.", PSC_printTID(msg->request));
     PSID_errlog(errtxt, 1);
 
     if (msg->header.dest != PSC_getMyTID()) {
