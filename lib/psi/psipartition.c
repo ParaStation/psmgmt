@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psipartition.c,v 1.1 2003/09/12 14:23:21 eicker Exp $
+ * $Id: psipartition.c,v 1.2 2003/09/12 15:20:58 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.1 2003/09/12 14:23:21 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psipartition.c,v 1.2 2003/09/12 15:20:58 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -100,7 +100,13 @@ static PSpart_option_t getPartitionOptions(void)
 
     if (getenv(ENV_PART_LOOPNODES)) options |= PART_OPT_NODEFIRST;
     if (getenv(ENV_PART_EXCLUSIVE)) options |= PART_OPT_EXCLUSIVE;
-    if (getenv(ENV_PART_OVERBOOK)) options |= PART_OPT_OVERBOOK;
+    if (getenv(ENV_PART_OVERBOOK)) {
+	/* @todo OVERBOOK will crash the daemon -> disabled */
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: OVERBOOK not yet stable -> Disabled.", __func__);
+	PSI_errlog(errtxt, 0);
+	//options |= PART_OPT_OVERBOOK;
+    }
     if (getenv(ENV_PART_WAIT)) options |= PART_OPT_WAIT;
 
     return options;
@@ -421,9 +427,10 @@ int PSI_createPartition(unsigned int size, unsigned int hwType)
     case PSP_CD_PARTITIONRES:
 	ptr = msg.buf;
 	if (*(int *)ptr) {
-	    char *errstr = strerror(((DDErrorMsg_t *)&msg)->error);
-	    snprintf(errtxt, sizeof(errtxt), "%s: error: %s\n",
-		     __func__, errtxt ? errtxt : "UNKNOWN");
+	    char *errstr = strerror(*(int *)ptr);
+	    snprintf(errtxt, sizeof(errtxt), "%s: %s\n",
+		     __func__, errstr ? errstr : "UNKNOWN");
+	    PSI_errlog(errtxt, 0);
 	    return -1;
 	}
 	break;
