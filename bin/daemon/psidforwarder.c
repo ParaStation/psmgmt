@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidforwarder.c,v 1.1 2003/02/10 13:35:31 eicker Exp $
+ * $Id: psidforwarder.c,v 1.2 2003/02/21 13:21:41 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.1 2003/02/10 13:35:31 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.2 2003/02/21 13:21:41 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -48,8 +48,21 @@ int childRank = -1;
 /** The socket connecting to the local ParaStation daemon */
 int daemonSock = -1;
 
-/** Set of fds the forwarder listens to. */
+/** The socket connected to the stdin port of the client */
+int stdinSock = -1;
+
+/** The socket connected to the stdout port of the client */
+int stdoutSock = -1;
+
+/** The socket connected to the stderr port of the client */
+int stderrSock = -1;
+
+/** Set of fds the forwarder listens to */
 fd_set myfds;
+
+/** Flag marking all controlled fds closed */
+int canend = 0;
+
 
 static int sendMsg(PSLog_msg_t type, char *buf, size_t len)
 {
@@ -57,7 +70,8 @@ static int sendMsg(PSLog_msg_t type, char *buf, size_t len)
     int ret = 0;
 
     if (loggerTID < 0) {
-	PSID_errlog("sendMsg(): not connected\n", 1);
+	snprintf(txt, sizeof(txt), "%s():  not connected%s\n", __func__);
+	PSID_errlog(txt, 1);
 	return -1;
     }
 
@@ -65,8 +79,8 @@ static int sendMsg(PSLog_msg_t type, char *buf, size_t len)
 
     if (ret < 0) {
 	char *errstr = strerror(errno);
-	snprintf(txt, sizeof(txt), "sendMsg(): error (%d): %s\n",
-		 errno, errstr ? errstr : "UNKNOWN");
+	snprintf(txt, sizeof(txt), "%s(): error (%d): %s\n",
+		 __func__, errno, errstr ? errstr : "UNKNOWN");
 	PSID_errlog(txt, 0);
 
 	loggerTID = -1;
@@ -86,7 +100,8 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
     int ret;
 
     if (loggerTID < 0) {
-	PSID_errlog("recvMsg(): not connected\n", 1);
+	snprintf(txt, sizeof(txt), "%s(): not connected\n", __func__);
+	PSID_errlog(txt, 1);
 	errno = EPIPE;
 
 	return -1;
@@ -96,8 +111,8 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 
     if (ret < 0) {
 	char *errstr = strerror(errno);
-	snprintf(txt, sizeof(txt), "recvMsg(): error (%d): %s\n",
-		 errno, errstr ? errstr : "UNKNOWN");
+	snprintf(txt, sizeof(txt), "%s(): error (%d): %s\n",
+		 __func__, errno, errstr ? errstr : "UNKNOWN");
 	PSID_errlog(txt, 0);
 
 	loggerTID = -1;
@@ -105,11 +120,13 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 	return ret;
     }
 
+    if (!ret) return ret;
+
     switch (msg->header.type) {
     case PSP_CC_ERROR:
 	if (msg->header.sender == loggerTID) {
-	    snprintf(txt, sizeof(txt), "recvMsg(): logger %s disappeared.\n",
-		     PSC_printTID(loggerTID));
+	    snprintf(txt, sizeof(txt), "%s(): logger %s disappeared.\n",
+		     __func__, PSC_printTID(loggerTID));
 	    PSID_errlog(txt, 1);
 
 	    loggerTID = -1;
@@ -117,8 +134,8 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 	    errno = EPIPE;
 	    ret = -1;
 	} else {
-	    snprintf(txt, sizeof(txt), "recvMsg(): CC_ERROR from %s.\n",
-		     PSC_printTID(loggerTID));
+	    snprintf(txt, sizeof(txt), "%s(): CC_ERROR from %s.\n",
+		     __func__, PSC_printTID(loggerTID));
 	    PSID_errlog(txt, 0);
 
 	    ret = 0;
@@ -127,8 +144,8 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
     case PSP_CC_MSG:
 	break;
     default:
-	snprintf(txt, sizeof(txt), "recvMsg(): Unknown message type %s.\n",
-		 PSP_printMsg(msg->type));
+	snprintf(txt, sizeof(txt), "%s(): Unknown message type %s.\n",
+		 __func__, PSP_printMsg(msg->type));
 	PSID_errlog(txt, 0);
 
 	ret = 0;
@@ -137,11 +154,11 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
     return ret;
 }
 
-static int sendDaemonMsg(DDMsg_t *msg)
+static int sendDaemonMsg(DDErrorMsg_t *msg)
 {
     char txt[128];
     char *buf = (void *)msg;
-    size_t c = msg->len;
+    size_t c = msg->header.len;
     int n;
 
     do {
@@ -159,8 +176,8 @@ static int sendDaemonMsg(DDMsg_t *msg)
 
     if (n < 0) {
 	char *errstr = strerror(errno);
-	snprintf(txt, sizeof(txt), "sendDaemonMsg(): error (%d): %s\n",
-		 errno, errstr ? errstr : "UNKNOWN");
+	snprintf(txt, sizeof(txt), "%s(): error (%d): %s\n",
+		 __func__, errno, errstr ? errstr : "UNKNOWN");
 	PSID_errlog(txt, 0);
 
 	loggerTID = -1;
@@ -172,7 +189,9 @@ static int sendDaemonMsg(DDMsg_t *msg)
 
 	return n;
     } else if (!n) {
-	PSID_errlog("sendDaemonMsg(): Lost connection to daemon\n", 0);
+	snprintf(txt, sizeof(txt),
+		 "%s(): Lost connection to daemon\n", __func__);
+	PSID_errlog(txt, 0);
 
 	loggerTID = -1;
 
@@ -185,12 +204,13 @@ static int sendDaemonMsg(DDMsg_t *msg)
     }
 
     if (verbose) {
-        snprintf(txt, sizeof(txt), "sendDaemonMsg() type %s (len=%d) to %s\n",
-                 PSP_printMsg(msg->type), msg->len, PSC_printTID(msg->dest));
+        snprintf(txt, sizeof(txt), "%s() type %s (len=%d) to %s\n",
+                 __func__, PSP_printMsg(msg->header.type), msg->header.len,
+		 PSC_printTID(msg->header.dest));
         printMsg(STDERR, txt);
     }
 
-    return msg->len;
+    return msg->header.len;
 }
 
 /**
@@ -221,30 +241,36 @@ static int connectLogger(long tid)
     loggerTID = -1;
 
     if (ret <= 0) {
-	PSID_errlog("connectLogger(): Connection refused\n", 0);
+	snprintf(txt, sizeof(txt), "%s(): Connection refused\n", __func__);
+	PSID_errlog(txt, 0);
 	errno = ECONNREFUSED;
 	return -1;
     }
 
     if (msg.header.len != PSLog_headerSize + (int) sizeof(int)) {
-	PSID_errlog("connectLogger(): Message to short\n", 0);
+	snprintf(txt, sizeof(txt), "%s(): Message to short\n", __func__);
+	PSID_errlog(txt, 0);
 
 	errno = ECONNREFUSED;
 	return -1;
     } else if (msg.type != INITIALIZE) {
-	PSID_errlog("connectLogger(): Protocol messed up\n", 0);
+	snprintf(txt, sizeof(txt), "%s(): Protocol messed up\n", __func__);
+	PSID_errlog(txt, 0);
 
 	errno = ECONNREFUSED;
 	return -1;
     } else if (msg.header.sender != tid) {
-	PSID_errlog("connectLogger(): Got INITIALIZE not from logger\n", 0);
+	snprintf(txt, sizeof(txt),
+		 "%s(): Got INITIALIZE not from logger\n", __func__);
+	PSID_errlog(txt, 0);
 
 	errno = ECONNREFUSED;
 	return -1;
     } else {
 	loggerTID = tid;
 	verbose = *(int *) msg.buf;
-	PSID_errlog("connectLogger(): Connected\n", 10);
+	snprintf(txt, sizeof(txt), "%s(): Connected\n", __func__);
+	PSID_errlog(txt, 10);
     }
 
     return 0;
@@ -275,17 +301,23 @@ static void releaseLogger(int status)
 
     if (ret < 0) {
 	if (errno == EPIPE) {
-	    PSID_errlog("releaseLogger(): logger already dissapeared\n", 0);
+	    snprintf(txt, sizeof(txt),
+		     "%s(): logger already dissapeared\n", __func__);
+	    PSID_errlog(txt, 0);
 	} else {
 	    char *errstr = strerror(errno);
-	    snprintf(txt, sizeof(txt), "releaseLogger(): error (%d): %s\n",
-		     errno, errstr ? errstr : "UNKNOWN");
+	    snprintf(txt, sizeof(txt), "%s(): error (%d): %s\n",
+		     __func__, errno, errstr ? errstr : "UNKNOWN");
 	    PSID_errlog(txt, 0);
 	}
+    } else if (!ret) {
+	snprintf(txt, sizeof(txt),
+		 "%s(): receive timed out. logger dissapeared\n", __func__);
+	PSID_errlog(txt, 0);
     } else if (msg.type != EXIT) {
 	snprintf(txt, sizeof(txt),
-		 "releaseLogger(): Protocol messed up (type %d) from %s\n",
-		 msg.type, PSC_printTID(msg.header.sender));
+		 "%s(): Protocol messed up (type %d) from %s\n",
+		 __func__, msg.type, PSC_printTID(msg.header.sender));
 	PSID_errlog(txt, 0);
     }
 
@@ -304,14 +336,93 @@ static void sighandler(int sig)
     struct rusage rusage;
     pid_t pid;
     static int firstCall = 1;
-    DDMsg_t msg;
+    DDErrorMsg_t msg;
 
     char txt[80];
 
     switch (sig) {
+    case SIGUSR1:
+	snprintf(txt, sizeof(txt),
+		 "[%d] PSID_forwarder: open sockets left:", childRank);
+	for (i=0; i<FD_SETSIZE; i++) {
+	    if (FD_ISSET(i, &myfds) && i != daemonSock) {
+		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), " %d", i);
+	    }
+	}
+	snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "\n");
+	printMsg(STDERR, txt);
+	for (i=0; i<FD_SETSIZE; i++) {
+	    if (FD_ISSET(i, &myfds) && i != daemonSock) {
+		int n;
+		char buf[128], txt2[128];
+
+		/* Try to read from fd */
+		n = read(i, buf, sizeof(buf));
+		snprintf(txt2, sizeof(txt2),
+			 "read(%d) returned %d, errno %d\n", i, n, errno);
+		printMsg(STDERR, txt2);
+	    }
+	}
+	break;
     case SIGCHLD:
 	if (verbose) {
-	    printMsg(STDERR, "PSID_forwarder: Got SIGCHLD.\n");
+	    snprintf(txt, sizeof(txt),
+		     "[%d] PSID_forwarder: Got SIGCHLD.\n", childRank);
+	    printMsg(STDERR, txt);
+	}
+
+	if (!canend) {
+	    /* Read all the remaining stuff from the controlled fds */
+	    fd_set afds;
+	    struct timeval atv={0,0};
+	    int ret;
+
+	    memcpy(&afds, &myfds, sizeof(afds));
+	    
+	    ret = select(FD_SETSIZE, &afds, NULL, NULL, &atv);
+	    if (ret < 0) {
+		if (errno != EINTR) {
+		    snprintf(txt, sizeof(txt),
+			     "PSID_forwarder: error on select(%d): %s\n",
+			     errno, strerror(errno));
+		    printMsg(STDERR, txt);
+		}
+	    } else if (ret) {
+		int sock, n;
+		char buf[4000];
+		PSLog_msg_t type;
+
+		for (sock=0; sock<FD_SETSIZE; sock++) {
+		    if (FD_ISSET(sock, &afds)) { /* socket ready */
+			if (sock==stdoutSock) {
+			    type=STDOUT;
+			} else if (sock==stderrSock) {
+			    type=STDERR;
+			} else {
+			    continue;
+			}
+
+			n = read(sock, buf, sizeof(buf));
+			if (verbose) {
+			    snprintf(txt, sizeof(txt), "PSID_forwarder:"
+				     " got %d bytes on sock %d\n", n, sock);
+			    printMsg(STDERR, txt);
+			}
+			if (n==0 || (n<0 && errno==EIO)) {
+			    /* socket closed */
+			} else if (n<0) {
+			    /* ignore the error */
+			    snprintf(txt, sizeof(txt), "PSID_forwarder:"
+				     " read():%s\n", strerror(errno));
+			    printMsg(STDERR, txt);
+			} else {
+			    /* forward it to logger */
+			    sendMsg(type, buf, n);
+			}
+			break;
+		    }
+		}
+	    } // else ret == 0
 	}
 
 	pid = wait3(&status, 0, &rusage);
@@ -319,10 +430,12 @@ static void sighandler(int sig)
 	sendMsg(USAGE, (char *) &rusage, sizeof(rusage));
 
 	/* Send CHILDDEAD message to the daemon */
-	msg.type = PSP_DD_CHILDDEAD;
-	msg.dest = PSC_getTID(-1, pid);
-	msg.sender = PSC_getTID(-1, getpid());
-	msg.len = sizeof(msg);
+	msg.header.type = PSP_DD_CHILDDEAD;
+	msg.header.dest = PSC_getTID(-1, 0);
+	msg.header.sender = PSC_getTID(-1, getpid());
+	msg.error = status;
+	msg.request = PSC_getTID(-1, pid);
+	msg.header.len = sizeof(msg);
 	sendDaemonMsg(&msg);
 
 	releaseLogger(status);
@@ -467,7 +580,7 @@ static int read_from_logger(int logfd, int stdinport)
  * @return No return value.
  *
  */
-static void loop(int stdinport, int stdoutport, int stderrport)
+static void loop(void)
 {
     int sock;      /* client socket */
     fd_set afds;
@@ -480,13 +593,13 @@ static void loop(int stdinport, int stdoutport, int stderrport)
     if (verbose) {
 	snprintf(obuf, sizeof(obuf),
 		 "PSID_forwarder: stdin=%d stdout=%d stderr=%d\n",
-		 stdinport, stdoutport, stderrport);
+		 stdinSock, stdoutSock, stderrSock);
 	printMsg(STDERR, obuf);
     }
 
     FD_ZERO(&myfds);
-    FD_SET(stdoutport, &myfds);
-    FD_SET(stderrport, &myfds);
+    FD_SET(stdoutSock, &myfds);
+    FD_SET(stderrSock, &myfds);
     FD_SET(daemonSock, &myfds);
 
     /*
@@ -496,30 +609,33 @@ static void loop(int stdinport, int stdoutport, int stderrport)
 	memcpy(&afds, &myfds, sizeof(afds));
 	atv = mytv;
 	if (select(FD_SETSIZE, &afds, NULL, NULL, &atv) < 0) {
-	    snprintf(obuf, sizeof(obuf), "PSID_forwarder: error on select(%d):"
-		     " %s\n", errno, strerror(errno));
-	    printMsg(STDERR, obuf);
-	    checkFileTable(&myfds);
+	    if (errno != EINTR) {
+		snprintf(obuf, sizeof(obuf),
+			 "PSID_forwarder: error on select(%d): %s\n",
+			 errno, strerror(errno));
+		printMsg(STDERR, obuf);
+		checkFileTable(&myfds);
+	    }
 	    continue;
 	}
 	/*
 	 * check the remaining sockets for any outputs
 	 */
-	for (sock=1; sock<FD_SETSIZE; sock++) {
+	for (sock=0; sock<FD_SETSIZE; sock++) {
 	    if (FD_ISSET(sock, &afds)) { /* socket ready */
 		if (sock==daemonSock) {
 		    /* Read new input */
-		    read_from_logger(daemonSock, stdinport);
+		    read_from_logger(daemonSock, stdinSock);
 		    continue;
-		} else if (sock==stdoutport) {
+		} else if (sock==stdoutSock) {
 		    type=STDOUT;
-		} else if (sock==stderrport) {
+		} else if (sock==stderrSock) {
 		    type=STDERR;
 		} else {
 		    snprintf(obuf, sizeof(obuf),
 			     "PSID_forwarder: PANIC: sock %d, which is neither"
 			     " stdout (%d) nor stderr (%d) is active!!\n",
-			     sock, stdoutport, stderrport);
+			     sock, stdoutSock, stderrSock);
 		    printMsg(STDERR, obuf);
 		    /* At least, read this stuff and throw it away */
 		    n = read(sock, buf, sizeof(buf));
@@ -535,11 +651,13 @@ static void loop(int stdinport, int stdoutport, int stderrport)
 		}
 		if (n==0 || (n<0 && errno==EIO)) {
 		    /* socket closed */
+		    PSID_blockSig(1, SIGCHLD);
 		    if (verbose) {
 			snprintf(obuf, sizeof(obuf),
 				 "PSID_forwarder: closing %d\n", sock);
 			printMsg(STDERR, obuf);
 		    }
+
 		    close(sock);
 		    FD_CLR(sock,&myfds);
 		    openfds--;
@@ -550,8 +668,9 @@ static void loop(int stdinport, int stdoutport, int stderrport)
 				     "PSID_forwarder: wait for SIGCHLD\n");
 			    printMsg(STDERR, obuf);
 			}
-			PSID_blockSig(0, SIGCHLD);
+			canend = 1;
 		    }
+		    PSID_blockSig(0, SIGCHLD);
 		} else if (n<0) {
 		    /* ignore the error */
 		    snprintf(obuf, sizeof(obuf),
@@ -569,42 +688,29 @@ static void loop(int stdinport, int stdoutport, int stderrport)
     return;
 }
 
-/**
- * @brief The main program
- *
- * After becoming process group leader, connects to logger using
- * loggerconnect() and calls loop().
- *
- * @param argc The number of arguments in @a argv.
- * @param argv Array of character strings containing the arguments.
- *
- * This program expects at least 5 additional arguments:
- *  -# The node on which the logger listens.
- *  -# The port on which the logger listens.
- *  -# The #id, as which we will send.
- *  -# The port number for stdin and stdout data.
- *  -# The port number for stderr data.
- *
- * @return Always returns 0.
- */
 void PSID_forwarder(PStask_t *task, int daemonfd,
 		    int stdinfd, int stdoutfd, int stderrfd)
 {
     childRank = task->rank;
     daemonSock = daemonfd;
+    stdinSock = stdinfd;
+    stdoutSock = stdoutfd;
+    stderrSock = stderrfd;
 
     /* catch SIGCHLD from client */
     signal(SIGCHLD, sighandler);
+    signal(SIGUSR1, sighandler);
 
     PSLog_init(daemonSock, childRank, 1);
 
+    PSID_blockSig(0, SIGCHLD);
+
     if (connectLogger(task->loggertid) != 0) {
 	/* There is no logger. Just wait for the client to finish. */
-	PSID_blockSig(0, SIGCHLD);
 
 	while (1) sleep(10);
     }
 
     /* call the loop which does all the work */
-    loop(stdinfd, stdoutfd, stderrfd);
+    loop();
 }
