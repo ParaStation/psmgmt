@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: adminparser.c,v 1.2 2003/08/27 12:48:08 eicker Exp $
+ * $Id: adminparser.c,v 1.3 2003/09/12 14:25:42 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.2 2003/08/27 12:48:08 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.3 2003/09/12 14:25:42 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -34,7 +34,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.2 2003/0
 
 #include "helpmsgs.c"
 
-static char parserversion[] = "$Revision: 1.2 $";
+static char parserversion[] = "$Revision: 1.3 $";
 
 static char *getNodeList(char *nl_descr)
 {
@@ -587,6 +587,9 @@ static int versionCommand(char *token)
     return -1;
 }
 
+/** Magic value returned by the parser function to show 'quit' was reached. */
+#define quitMagic 17
+
 static int quitCommand(char *token)
 {
     if (parser_getString()) goto error;
@@ -659,7 +662,6 @@ static parser_t lineParser = {";\n", lineList};
 int parseLine(char *line)
 {
     char *token;
-    int ret;
 
     static int firstCall = 1;
 
@@ -673,6 +675,5 @@ int parseLine(char *line)
     token = parser_registerString(line, &lineParser);
 
     /* Do the parsing */
-    ret = parser_parseString(token, &lineParser);
-    return ret;
+    return (parser_parseString(token, &lineParser) == quitMagic);
 }
