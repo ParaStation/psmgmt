@@ -1,7 +1,7 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.11 2001/06/26 09:13:54 moschny Exp $
+ * $Id: psport.h,v 1.12 2001/07/04 11:11:21 moschny Exp $
  *
  * @author
  * Jens Hauke <hauke@par-tec.com>,
@@ -280,8 +280,15 @@ PSP_RequestH_t PSP_IReceiveCB(PSP_PortH_t porth,
 			      PSP_RecvCallBack_t* cb, void* cb_param,
 			      PSP_DoneCallback_t* dcb, void* dcb_param);
 
-#define PSP_IReceive(porth, buf, buflen, header, xheaderlen, cb, cb_param) \
-  PSP_IReceiveCB(porth, buf, buflen, header, xheaderlen, cb, cb_param, 0, 0)
+static inline
+PSP_RequestH_t PSP_IReceive(PSP_PortH_t porth,
+			    void* buf, unsigned buflen,
+			    PSP_Header_t* header, unsigned xheaderlen,
+			    PSP_RecvCallBack_t* cb, void* cb_param)
+{
+    return PSP_IReceiveCB(porth, buf, buflen, header, xheaderlen,
+			  cb, cb_param, 0, 0);
+}
 
 /* ----------------------------------------------------------------------
  * PSP_ISend()
@@ -327,8 +334,15 @@ PSP_RequestH_t PSP_ISendCB(PSP_PortH_t porth,
 			   int dest, int destport,
 			   PSP_DoneCallback_t *dcb, void* dcb_param);
 
-#define PSP_ISend(porth, buf, buflen, header, xheaderlen, dest, destport) \
-  PSP_ISendCB(porth, buf, buflen, header, xheaderlen, dest, destport, 0, 0)
+static inline
+PSP_RequestH_t PSP_ISend(PSP_PortH_t porth,
+			 void* buf, unsigned buflen,
+			 PSP_Header_t* header, unsigned xheaderlen,
+			 int dest, int destport)
+{
+    return PSP_ISendCB(porth, buf, buflen, header, xheaderlen,
+		       dest, destport, 0, 0);
+}
 
 /* ----------------------------------------------------------------------
  * PSP_Test()
