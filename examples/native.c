@@ -2,12 +2,15 @@
  *               ParaStation3
  * native.c
  *
- * Copyright (C) ParTec AG Karlsruhe
+ * Copyright (C) ParTec AG
  * All rights reserved.
  *
- * $Id: native.c,v 1.3 2002/11/27 09:06:53 eicker Exp $
+ * $Id: native.c,v 1.4 2002/11/27 11:24:04 eicker Exp $
  *
  * A simple example on how to use the ParaStation API.
+ *
+ * This is for version 3 of the PSPort library that comes with
+ * ParaStation3.
  *
  * It starts up a parallel program and does some round-robin
  * communication.
