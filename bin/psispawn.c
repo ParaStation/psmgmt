@@ -5,20 +5,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.2 2003/02/21 14:02:14 eicker Exp $
+ * $Id: psispawn.c,v 1.3 2003/03/04 15:35:41 eicker Exp $
  *
  */
 /**
  * @file Simple wrapper to allow MPIch/P4 programs to run under the
  * control of ParaStation.
  *
- * $Id: psispawn.c,v 1.2 2003/02/21 14:02:14 eicker Exp $
+ * $Id: psispawn.c,v 1.3 2003/03/04 15:35:41 eicker Exp $
  *
  * @author Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.2 2003/02/21 14:02:14 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.3 2003/03/04 15:35:41 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -119,16 +119,26 @@ int main(int argc, char *argv[])
 
     /* spawning the process */
     {
-	int error, ret;
+	int error, ret, dup_argc;
 	long spawnedProcess = -1;
+	long loggerTID;
+	char **dup_argv;
 
 	/* get the partition with hardware type none */
 	PSI_getPartition(0, worldRank-1);
 
+	/* Get my logger */
+	loggerTID = INFO_request_taskinfo(PSC_getTID(-1, getpgrp()),
+					  INFO_LOGGERTID, 0);
+	if (!loggerTID) {
+	    fprintf(stderr, "Unable to determine logger.\n");
+	    exit(1);
+	}
+
+	PSI_RemoteArgs(argc-5, &argv[5], &dup_argc, &dup_argv);
+
 	/* spawn client processes */
-	ret = PSI_spawnM(1, NULL, ".", argc-5, &argv[5],
-			 INFO_request_taskinfo(PSC_getTID(-1, getppid()),
-					       INFO_LOGGERTID, 0),
+	ret = PSI_spawnM(1, NULL, ".", dup_argc, dup_argv, loggerTID,
 			 worldRank, &error, &spawnedProcess);
 	if (ret<0) {
 	    char *errstr = strerror(error);
