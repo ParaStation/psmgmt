@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.66 2002/08/01 16:57:32 eicker Exp $
+ * $Id: psid.c,v 1.67 2002/08/06 08:29:50 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.66 2002/08/01 16:57:32 eicker Exp $ 
+ * $Id: psid.c,v 1.67 2002/08/06 08:29:50 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.66 2002/08/01 16:57:32 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.67 2002/08/06 08:29:50 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -72,7 +72,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.66 $";
+static char psid_cvsid[] = "$Revision: 1.67 $";
 
 static int PSID_mastersock;
 
@@ -674,12 +674,14 @@ void deleteClient(int fd)
 	 * the signal they want to receive
 	 */
 	sendAllSignals(task);
-	/*
-	 * Check the parent task
-	 */
+
+	/* Check the parent task */
 	if (task->ptid && !task->released) {
 	    sendSignalToParent(task->ptid, task->tid, task->uid);
 	}
+
+	/* Tell MCast about removing the task */
+	decJobsMCast(PSC_getMyID(), 1, (task->group==TG_ANY));
 
 	PStask_delete(task);
     } else {
@@ -945,6 +947,9 @@ void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 
 	PStasklist_enqueue(&managedTasks, task);
 	clients[fd].task = task;
+
+	/* Tell MCast about the new task */
+	incJobsMCast(PSC_getMyID(), 1, (task->group==TG_ANY));
     }
 
     /*
@@ -1220,7 +1225,13 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 
 	if (!err) {
 	    PStasklist_enqueue(&managedTasks, forwarder);
+	    /* Tell MCast about the new task */
+	    incJobsMCast(PSC_getMyID(), 1, (forwarder->group==TG_ANY));
+
 	    PStasklist_enqueue(&managedTasks, task);
+	    /* Tell MCast about the new task */
+	    incJobsMCast(PSC_getMyID(), 1, (task->group==TG_ANY));
+
 	    answer.header.sender = task->tid;
 	} else {
 	    char *errstr = strerror(err);
@@ -1568,7 +1579,8 @@ void msg_INFOREQUEST(DDMsg_t *inmsg)
 	    int i;
 	    static NodelistEntry_t *nodelist = NULL;
 	    if (!nodelist) {
-		nodelist = malloc(PSC_getNrOfNodes() * sizeof(*nodelist));
+		nodelist = (NodelistEntry_t *)malloc(PSC_getNrOfNodes()
+						     * sizeof(*nodelist));
 	    }
 	    for (i=0; i<PSC_getNrOfNodes(); i++) {
 		MCastConInfo_t info;
@@ -2285,80 +2297,80 @@ void msg_WHODIED(DDSignalMsg_t *msg)
 /**********************************************************
  *  msg_LOADREQUEST()
  */
-void msg_LOADREQUEST(DDMsg_t *inmsg)
-{
-    int id = PSC_getID(inmsg->dest);
+/*  void msg_LOADREQUEST(DDMsg_t *inmsg) */
+/*  { */
+/*      int id = PSC_getID(inmsg->dest); */
 
-    snprintf(errtxt, sizeof(errtxt), "LOADREQUEST() for node %d from %s",
-	     id, PSC_printTID(inmsg->sender));
-    PSID_errlog(errtxt, 1);
+/*      snprintf(errtxt, sizeof(errtxt), "LOADREQUEST() for node %d from %s", */
+/*  	     id, PSC_printTID(inmsg->sender)); */
+/*      PSID_errlog(errtxt, 1); */
 
-    if (id<0 || id>=PSC_getNrOfNodes() || !isUpDaemon(id)) {
-	DDErrorMsg_t errmsg;
-	errmsg.header.len = sizeof(errmsg);
-	errmsg.request = inmsg->type;
-	errmsg.error = EHOSTDOWN;
-	errmsg.header.len = sizeof(errmsg);
-	errmsg.header.type = PSP_DD_SYSTEMERROR;
-	errmsg.header.dest = inmsg->sender;
-	errmsg.header.sender = PSC_getMyTID();
-	sendMsg(&errmsg);
-    } else {
-	DDLoadMsg_t msg;
-	MCastConInfo_t info;
+/*      if (id<0 || id>=PSC_getNrOfNodes() || !isUpDaemon(id)) { */
+/*  	DDErrorMsg_t errmsg; */
+/*  	errmsg.header.len = sizeof(errmsg); */
+/*  	errmsg.request = inmsg->type; */
+/*  	errmsg.error = EHOSTDOWN; */
+/*  	errmsg.header.len = sizeof(errmsg); */
+/*  	errmsg.header.type = PSP_DD_SYSTEMERROR; */
+/*  	errmsg.header.dest = inmsg->sender; */
+/*  	errmsg.header.sender = PSC_getMyTID(); */
+/*  	sendMsg(&errmsg); */
+/*      } else { */
+/*  	DDLoadMsg_t msg; */
+/*  	MCastConInfo_t info; */
 
-	msg.header.len = sizeof(msg);
-	msg.header.type = PSP_CD_LOADRESPONSE;
-	msg.header.dest = inmsg->sender;
-	msg.header.sender = PSC_getMyTID();
+/*  	msg.header.len = sizeof(msg); */
+/*  	msg.header.type = PSP_CD_LOADRESPONSE; */
+/*  	msg.header.dest = inmsg->sender; */
+/*  	msg.header.sender = PSC_getMyTID(); */
 
-	getInfoMCast(id, &info);
-	msg.load[0] = info.load.load[0];
-	msg.load[1] = info.load.load[1];
-	msg.load[2] = info.load.load[2];
+/*  	getInfoMCast(id, &info); */
+/*  	msg.load[0] = info.load.load[0]; */
+/*  	msg.load[1] = info.load.load[1]; */
+/*  	msg.load[2] = info.load.load[2]; */
 
-	sendMsg(&msg);
-    }
-}
+/*  	sendMsg(&msg); */
+/*      } */
+/*  } */
 
 /**********************************************************
  *  msg_PROCREQUEST()
  */
-void msg_PROCREQUEST(DDMsg_t *inmsg)
-{
-    int id = PSC_getID(inmsg->dest);
+/*  void msg_PROCREQUEST(DDMsg_t *inmsg) */
+/*  { */
+/*      int id = PSC_getID(inmsg->dest); */
 
-    snprintf(errtxt, sizeof(errtxt), "PROCREQUEST() for node %d from %s",
-	     id, PSC_printTID(inmsg->sender));
-    PSID_errlog(errtxt, 1);
+/*      snprintf(errtxt, sizeof(errtxt), "PROCREQUEST() for node %d from %s", */
+/*  	     id, PSC_printTID(inmsg->sender)); */
+/*      PSID_errlog(errtxt, 1); */
 
-    if (id<0 || id>=PSC_getNrOfNodes() || !isUpDaemon(id)) {
-	DDErrorMsg_t errmsg;
-	errmsg.header.len = sizeof(errmsg);
-	errmsg.request = inmsg->type;
-	errmsg.error = EHOSTDOWN;
-	errmsg.header.len = sizeof(errmsg);
-	errmsg.header.type = PSP_DD_SYSTEMERROR;
-	errmsg.header.dest = inmsg->sender;
-	errmsg.header.sender = PSC_getMyTID();
+/*      if (id<0 || id>=PSC_getNrOfNodes() || !isUpDaemon(id)) { */
+/*  	DDErrorMsg_t errmsg; */
+/*  	errmsg.header.len = sizeof(errmsg); */
+/*  	errmsg.request = inmsg->type; */
+/*  	errmsg.error = EHOSTDOWN; */
+/*  	errmsg.header.len = sizeof(errmsg); */
+/*  	errmsg.header.type = PSP_DD_SYSTEMERROR; */
+/*  	errmsg.header.dest = inmsg->sender; */
+/*  	errmsg.header.sender = PSC_getMyTID(); */
 
-	sendMsg(&errmsg);
-    } else {
-	DDLoadMsg_t msg;
-	MCastConInfo_t info;
+/*  	sendMsg(&errmsg); */
+/*      } else { */
+/*  	DDLoadMsg_t msg; */
+/*  	MCastConInfo_t info; */
 
-	msg.header.len = sizeof(msg);
-	msg.header.type = PSP_CD_PROCRESPONSE;
-	msg.header.dest = inmsg->sender;
-	msg.header.sender = PSC_getMyTID();
+/*  	msg.header.len = sizeof(msg); */
+/*  	msg.header.type = PSP_CD_PROCRESPONSE; */
+/*  	msg.header.dest = inmsg->sender; */
+/*  	msg.header.sender = PSC_getMyTID(); */
 
-	getInfoMCast(id, &info);
-	msg.load[0] = info.jobs.normal;
-	msg.load[1] = info.jobs.total;
+/*  	getInfoMCast(id, &info); */
+/*  	msg.load[0] = info.jobs.normal; */
+/*  	msg.load[1] = info.jobs.total; */
 
-	sendMsg(&msg);
-    }
-}
+/*  	sendMsg(&msg); */
+/*      } */
+/*  } */
 
 /******************************************
  * requestOptions()
@@ -2604,18 +2616,18 @@ void psicontrol(int fd)
 	     */
 	    msg_WHODIED((DDSignalMsg_t*)&msg);
 	    break;
-	case PSP_CD_LOADREQUEST:
+/*  	case PSP_CD_LOADREQUEST: */
 	    /*
 	     * ask about the current load of a processor
 	     */
-	    msg_LOADREQUEST((DDMsg_t*)&msg);
-	    break;
-	case PSP_CD_PROCREQUEST:
+/*  	    msg_LOADREQUEST((DDMsg_t*)&msg); */
+/*  	    break; */
+/*  	case PSP_CD_PROCREQUEST: */
 	    /*
 	     * ask about the current number of processes on a processor
 	     */
-	    msg_PROCREQUEST((DDMsg_t*)&msg);
-	    break;
+/*  	    msg_PROCREQUEST((DDMsg_t*)&msg); */
+/*  	    break; */
 	default :
 	    snprintf(errtxt, sizeof(errtxt),
 		     "psid: Wrong msgtype %d (%s) on socket %d",
@@ -2738,8 +2750,8 @@ void RDPCallBack(int msgid, void *buf)
 	    case PSP_CD_HOSTSTATUSREQUEST:
 	    case PSP_CD_NODELISTREQUEST:
 	    case PSP_CD_HOSTREQUEST:
-	    case PSP_CD_LOADREQUEST:
-	    case PSP_CD_PROCREQUEST:
+/*  	    case PSP_CD_LOADREQUEST: */
+/*  	    case PSP_CD_PROCREQUEST: */
 	    {
 		/* Sender expects an answer */
 		DDErrorMsg_t errmsg;
@@ -2865,6 +2877,9 @@ void sighandler(int sig)
 	     */
 	    if (diedtask && (diedtask->fd==-1)) {
 		PStasklist_dequeue(&managedTasks, tid);
+
+		/* Tell MCast about removing the task */
+		decJobsMCast(PSC_getMyID(), 1, (diedtask->group==TG_ANY));
 
 		if (diedtask->ptid && diedtask->group != TG_FORWARDER) {
 		    DDSignalMsg_t msg;
@@ -3030,7 +3045,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.66 $";
+    char revision[] = "$Revision: 1.67 $";
     snprintf(errtxt, sizeof(errtxt), "psid %s\b ", revision+11);
     PSID_errlog(errtxt, 0);
 }
@@ -3278,18 +3293,7 @@ int main(int argc, char **argv)
     FD_ZERO(&openfds);
     FD_SET(PSID_mastersock, &openfds);
 
-    {
-	/* set the memory limits */
-	struct rlimit rlp;
-
-	getrlimit(RLIMIT_DATA,&rlp);
-	if(ConfigRLimitDataSize>0)
-	    rlp.rlim_cur=ConfigRLimitDataSize*1024;
-	else
-	    rlp.rlim_cur = RLIM_INFINITY;
-	setrlimit(RLIMIT_DATA,&rlp);
-    }
-
+    /* Initialize timers */
     timerclear(&shutdowntimer);
     timerclear(&killclientstimer);
     selecttimer.tv_sec = ConfigSelectTime;
@@ -3315,7 +3319,8 @@ int main(int argc, char **argv)
 	unsigned int *hostlist;
 	int MCastSock, i;
 
-	hostlist = malloc((PSC_getNrOfNodes()+1) * sizeof(unsigned int));
+	hostlist = (unsigned int *)malloc((PSC_getNrOfNodes()+1)
+					  * sizeof(unsigned int));
 	if (!hostlist) {
 	    snprintf(errtxt, sizeof(errtxt), "Not enough memory for hostlist");
 	    PSID_errlog(errtxt, 0);
