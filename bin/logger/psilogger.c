@@ -40,8 +40,8 @@ int main( int argc, char**argv)
      */
     LOGGERparent = LOGGERgetparentsock(LOGGERlisten);
 
-    if(getenv("PSI_NOSOURCEPRINTF")==NULL){
-	PrependSource = 0;
+    if(getenv("PSI_SOURCEPRINTF")!=NULL){
+	PrependSource = 1;
     }
     /*
      * call the logger who does all the work
