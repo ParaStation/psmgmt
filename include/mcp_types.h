@@ -874,27 +874,31 @@ htonl( BITENC1( PSM_NBIT_HSENDBUFS	, bufno))
 BITDEC1( val,					\
 	 PSM_NBIT_HSENDBUFS	, bufno)
 /*--------------------------------------------------------------------*/
-/* copy deslen bytes from host to lanai.
+/* copy deslen bytes from host to lanai.(1 <= deslen <= PSM_MAX_MTU)
    send buffer desl, if used with FIFOCMD_H2N_DMA_AND_SEND after dma.
    Expect 2 Parameters in dbxparam ( UINT32 lar,UINT32 eal ) */
 #define FIFOH2NDMA( desl , deslen )			\
 htonl( BITENC2( PSM_NBIT_SENDBUFS	, desl,		\
-		PSM_NBIT_SENDBUFLEN	, deslen))
+		PSM_NBIT_SENDBUFLEN	, deslen-1))
 
 #define FIFOH2NDMA_GETP( val , desl , deslen )	\
-BITDEC2( val,					\
+{BITDEC2( val,					\
 	 PSM_NBIT_SENDBUFS	, desl,		\
-	 PSM_NBIT_SENDBUFLEN	, deslen )
+	 PSM_NBIT_SENDBUFLEN	, deslen );	\
+ deslen++;					\
+}
 
 /*--------------------------------------------------------------------*/
-/* copy len bytes from lanai context->RecvBufs to host.
+/* copy len bytes from lanai context->RecvBufs to host.(1 <= len <= PSM_MAX_MTU)
    Expect 2 Parameters in dbxparam ( UINT32 dataoff,UINT32 eal ) */
 #define FIFON2HDMA( len )			\
-htonl( BITENC1( PSM_NBIT_SENDBUFLEN	, len))
+htonl( BITENC1( PSM_NBIT_SENDBUFLEN	, len-1))
 
 #define FIFON2HDMA_GETP( val , len )		\
-BITDEC1( val,					\
-	 PSM_NBIT_SENDBUFLEN	, len )
+{BITDEC1( val,					\
+	 PSM_NBIT_SENDBUFLEN	, len );	\
+ len++;						\
+}
 
 /*--------------------------------------------------------------------*/
 /* copy lanai context->RecvBufs to hostbuf bufno.*/
