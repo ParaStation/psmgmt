@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.58 2003/04/10 17:38:11 eicker Exp $
+ * $Id: psiadmin.c,v 1.59 2003/05/28 17:13:07 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.58 2003/04/10 17:38:11 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.59 2003/05/28 17:13:07 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -49,7 +49,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.58 $";
+static char psiadmversion[] = "$Revision: 1.59 $";
 static int doRestart = 0;
 
 static char *hoststatus = NULL;
@@ -410,7 +410,7 @@ void PSIADM_ShowUser(int first, int last)
 	if (ret==-1) {
 	    printf("Can't get user limit.\n");
 	} else if (uidlimit==-1) {
-	    printf("limited to user : ANY\n");
+	    printf("limited to user: ANY\n");
 	} else {
 	    char *name;
 	    struct passwd *passwd;
@@ -511,68 +511,68 @@ void PSIADM_Version(void)
     return;
 }
 
-void PSIADM_ShowConfig(void)
-{
-    long option[] = {
-	PSP_OP_UIDLIMIT,
-	PSP_OP_PROCLIMIT,
-	PSP_OP_PSM_SPS,
-	PSP_OP_PSM_RTO,
-	PSP_OP_PSM_HNPEND,
-	PSP_OP_PSM_ACKPEND};
-    long value[DDOptionMsgMax];
-    int uidlimit=0, proclimit=0, smallpacksize=0, resendtimeout=0, hnpend=0;
-    int ackpend=0;
-    int num, i;
+/* void PSIADM_ShowConfig(void) */
+/* { */
+/*     long option[] = { */
+/* 	PSP_OP_UIDLIMIT, */
+/* 	PSP_OP_PROCLIMIT, */
+/* 	PSP_OP_PSM_SPS, */
+/* 	PSP_OP_PSM_RTO, */
+/* 	PSP_OP_PSM_HNPEND, */
+/* 	PSP_OP_PSM_ACKPEND}; */
+/*     long value[DDOptionMsgMax]; */
+/*     int uidlimit=0, proclimit=0, smallpacksize=0, resendtimeout=0, hnpend=0; */
+/*     int ackpend=0; */
+/*     int num, i; */
 
-    /*
-     * prepare the message to send it to the daemon
-     */
-    num = sizeof(option)/sizeof(*option);
-    if (INFO_request_option(0, num, option, value, 1) != num) {
-	printf("PANIC: Got less options than requested.\n");
-    }
+/*     /\* */
+/*      * prepare the message to send it to the daemon */
+/*      *\/ */
+/*     num = sizeof(option)/sizeof(*option); */
+/*     if (INFO_request_option(0, num, option, value, 1) != num) { */
+/* 	printf("PANIC: Got less options than requested.\n"); */
+/*     } */
 
-    for(i=0; i<num; i++){
-	switch(option[i]){
-	case PSP_OP_UIDLIMIT:
-	    uidlimit = value[i];
-	    break;
-	case PSP_OP_PROCLIMIT:
-	    proclimit = value[i];
-	    break;
-	case PSP_OP_PSM_SPS:
-	    smallpacksize = value[i];
-	    break;
-	case PSP_OP_PSM_RTO:
-	    resendtimeout = value[i];
-	    break;
-	case PSP_OP_PSM_HNPEND:
-	    hnpend = value[i];
-	    break;
-	case PSP_OP_PSM_ACKPEND:
-	    ackpend = value[i];
-	    break;
-	}
-    }
-    printf("SmallPacketSize is %d\n", smallpacksize);
-    printf("ResendTimeout is %d [us]\n", resendtimeout);
-    printf("HNPend is %d\n", hnpend);
-    printf("AckPend is %d\n", ackpend);
-    if(proclimit==-1)
-	printf("max. processes: NONE\n");
-    else
-	printf("max. processes: %d\n", proclimit);
-    if(uidlimit==-1)
-	printf("limited to user : NONE\n");
-    else
-	printf("limited to user : %d\n", uidlimit);
+/*     for(i=0; i<num; i++){ */
+/* 	switch(option[i]){ */
+/* 	case PSP_OP_UIDLIMIT: */
+/* 	    uidlimit = value[i]; */
+/* 	    break; */
+/* 	case PSP_OP_PROCLIMIT: */
+/* 	    proclimit = value[i]; */
+/* 	    break; */
+/* 	case PSP_OP_PSM_SPS: */
+/* 	    smallpacksize = value[i]; */
+/* 	    break; */
+/* 	case PSP_OP_PSM_RTO: */
+/* 	    resendtimeout = value[i]; */
+/* 	    break; */
+/* 	case PSP_OP_PSM_HNPEND: */
+/* 	    hnpend = value[i]; */
+/* 	    break; */
+/* 	case PSP_OP_PSM_ACKPEND: */
+/* 	    ackpend = value[i]; */
+/* 	    break; */
+/* 	} */
+/*     } */
+/*     printf("SmallPacketSize is %d\n", smallpacksize); */
+/*     printf("ResendTimeout is %d [us]\n", resendtimeout); */
+/*     printf("HNPend is %d\n", hnpend); */
+/*     printf("AckPend is %d\n", ackpend); */
+/*     if(proclimit==-1) */
+/* 	printf("max. processes: NONE\n"); */
+/*     else */
+/* 	printf("max. processes: %d\n", proclimit); */
+/*     if(uidlimit==-1) */
+/* 	printf("limited to user : NONE\n"); */
+/*     else */
+/* 	printf("limited to user : %d\n", uidlimit); */
 
-    return;
-}
+/*     return; */
+/* } */
 
 /*
- *   what : 1=HW,2 = SHM
+ *   what : 1=HW
  *   first: first node to be reset
  *   last : last node to be reset
  */
@@ -675,50 +675,6 @@ void PSIADM_TestNetwork(int mode)
 	printf("Cant execute %s : %s\n", command, strerror(errno));
     }
     return;
-    
-    
-#if 0
-    int mynode;
-    int spawnargc;
-    char** spawnargs;
-    long tid;
-
-    /* printf("TestNetwork\n"); */
-    if (geteuid()) {
-	printf("Insufficient priviledge\n");
-	return;
-    }
-    mynode = PSC_getMyID();
-    spawnargc = 2;
-    spawnargs = (char**) malloc(spawnargc*sizeof(char*));
-
-    spawnargs[0]="psiconntest";
-    switch (mode) {
-    case 0:
-	spawnargs[1]="-q";
-	break;
-    case 1:
-	spawnargs[1]="-o";
-	break;
-    case 2:
-	spawnargs[1]="-v";
-	break;
-    default:
-	spawnargs[1]="-o";
-    }
-    tid = PSI_spawn(mynode, PSC_lookupInstalldir(),
-		    spawnargc, spawnargs, -1, -1, 0, &errno);
-    if (tid<0) {
-	char *errstr = strerror(errno);
-	printf("Couln't spawn the test task. Error <%d>: %s\n",
-	       errno, errstr ? txt : "UNKNOWN");
-    } else {
-	printf("Spawning test task successfull.\n");
-    }
-
-    free(spawnargs);
-    return;
-#endif
 }
 
 void PSIADM_KillProc(long tid, int sig)
