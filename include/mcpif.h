@@ -325,7 +325,8 @@ typedef struct MCP_Counter_T{
     UINT32	CNACK_Resend;	// Resend counter for CNACKs
     UINT32	ConnReset;      // Count Connection Resets 
     UINT32	DeadLink;       // Count Timeouts from dead links
-    UINT32	UnrecSeqErr;    // Count Unrecoverble Sequence Error 
+    UINT32	UnrecSeqErr;    // Count Unrecoverble Sequence Error
+    UINT32	EIMR_Reset;	// Count resets of EIMR
 } MCP_Counter_t;
 
 
