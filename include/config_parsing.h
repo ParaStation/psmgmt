@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.h,v 1.9 2002/07/24 06:25:05 eicker Exp $
+ * $Id: config_parsing.h,v 1.10 2002/09/26 15:40:15 eicker Exp $
  *
  */
 /**
  * \file
  * Parser for the config file of the ParaStation daemon
  *
- * $Id: config_parsing.h,v 1.9 2002/07/24 06:25:05 eicker Exp $
+ * $Id: config_parsing.h,v 1.10 2002/09/26 15:40:15 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -52,6 +52,7 @@ struct node_t{
     unsigned int hwType;   /**< Communication hardware on that node */
     unsigned int hwStatus; /**< Corresponding stati of the hardware */
     int hasIP;             /**< Flag to mark that node to load the ip-module */
+    unsigned int myriIP;   /**< IP address of the MyriNet card (0 if not set)*/
     int starter;           /**< Flag to allow to start jobs from that node */
 };
 

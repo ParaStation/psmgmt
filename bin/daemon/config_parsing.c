@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: config_parsing.c,v 1.15 2002/08/07 13:07:58 eicker Exp $
+ * $Id: config_parsing.c,v 1.16 2002/09/26 15:40:15 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.15 2002/08/07 13:07:58 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: config_parsing.c,v 1.16 2002/09/26 15:40:15 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -51,6 +51,7 @@ struct node_t licNode = {
     0,          /* hwtype */
     0,          /* hwStatus */
     0,          /* hasIP */
+    0,          /* myriIP */
     0           /* starter */
 };
 
@@ -126,7 +127,7 @@ static int allocHosts(int num)
 }
 
 static int installHost(unsigned int ipaddr, int id,
-		       int hwtype, int ip, int starter)
+		       int hwtype, int ip, unsigned int myriIP, int starter)
 {
     unsigned int hostno;
     struct host_t *host;
@@ -164,6 +165,7 @@ static int installHost(unsigned int ipaddr, int id,
     nodes[id].addr = ipaddr;
     nodes[id].hwType = hwtype;
     nodes[id].hasIP = ip;
+    nodes[id].myriIP = myriIP;
     nodes[id].starter = starter;
 
     nodesfound++;
@@ -858,6 +860,16 @@ static int getHasIPLine(char *token)
     return ret;
 }
 
+static unsigned int node_myriIP;
+
+static int getMyriIP(char *token)
+{
+    node_myriIP = parser_getHostname(parser_getString());
+
+    if (!node_myriIP) return -1;
+
+    return 0;
+}
 
 /* ---------------------------------------------------------------------- */
 
@@ -865,6 +877,7 @@ static keylist_t nodeline_list[] = {
     {"hwtype", getHW},
     {"starter", getCS},
     {"hasip", getHasIP},
+    {"myrinetip", getMyriIP},
     {"#", parser_getComment},
     {NULL, parser_error}
 };
@@ -880,6 +893,7 @@ static int getNodeLine(char *token)
     node_hwtype = hwtype;
     node_canstart = canstart;
     node_hasIP = hasIP;
+    node_myriIP = 0;
 
     ipaddr = parser_getHostname(token);
 
@@ -899,13 +913,20 @@ static int getNodeLine(char *token)
 
     if (parser_getDebugLevel()>=6) {
 	snprintf(errtxt, sizeof(errtxt), "Register '%s' as %d with"
-		 " HW '%s' IP%s supported, starting%s allowed.\n",
+		 " HW '%s' IP%s supported, starting%s allowed.",
 		 hostname, nodenum, PSHW_printType(node_hwtype),
 		 node_hasIP ? "" : " not", node_canstart ? "" : " not");
 	parser_comment(errtxt, 6);
+	if (node_hasIP && node_myriIP) {
+	    snprintf(errtxt, sizeof(errtxt), " MyriNet IP will be <%s>.",
+		     inet_ntoa(* (struct in_addr *) &node_myriIP));
+	    parser_comment(errtxt, 6);
+	}
+	parser_comment("\n", 6);
     }
 
-    ret = installHost(ipaddr, nodenum, node_hwtype, node_hasIP, node_canstart);
+    ret = installHost(ipaddr, nodenum,
+		      node_hwtype, node_hasIP, node_myriIP, node_canstart);
 
     return ret;
 }
