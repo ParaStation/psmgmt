@@ -359,11 +359,6 @@ int PSID_taskspawn(PStask_t* task)
 	    exit(0);
 	}
 
-	if(LOGGERredirect_std(task->loggernode, task->loggerport, task)<0){
-	    buf = errno;
-	    write(fds[1],&buf,sizeof(buf));
-	    exit(0);
-	}
 	/*
 	 * close all file descriptors
 	 * except my control channel to my parent
@@ -373,9 +368,23 @@ int PSID_taskspawn(PStask_t* task)
 		close(i);
 
 	/*
+	 * Start the forwarder and redirect stdout/stderr
+	 */
+	{
+	    int forwport;
+	    forwport=LOGGERspawnforwarder(task->loggernode, task->loggerport);
+
+	    if(LOGGERredirect_std(PSID_hostaddress(PSI_myid),
+				  forwport, task)<0){
+		buf = errno;
+		write(fds[1],&buf,sizeof(buf));
+		exit(0);
+	    }
+	}
+
+	/*
 	 * execute the image
 	 */
-
 	if (execv(task->argv[0],&(task->argv[0]))<0){
 	    char* errtxt;
 	    errtxt=strerror(errno);
@@ -392,7 +401,7 @@ int PSID_taskspawn(PStask_t* task)
 	 * send the parent a sign that the exec wasn't successful
 	 * fds[0] would have been closed on successful exec.
 	 */
-	buf= errno;
+	buf = errno;
 	write(fds[1],&buf,sizeof(buf));
 	exit(0);
     }
@@ -400,11 +409,11 @@ int PSID_taskspawn(PStask_t* task)
      * this is the parent process
      */
     /*
-     * check if sys_fork() was successful
+     * check if fork() was successful
      */
     if (pid ==-1){
-	char* errtxt;
-	errtxt=strerror(errno);
+	char *errtxt;
+	errtxt = strerror(errno);
 
 	close(fds[0]);
 	close(fds[1]);
@@ -412,21 +421,19 @@ int PSID_taskspawn(PStask_t* task)
 	       errtxt?errtxt:"UNKNOWN");
 	perror("fork()");
 	task->error = -errno;
-	ret= -errno;
+	ret = -errno;
     }else{
 	/*
 	 * check for a sign of the child
 	 */
-	/*#if defined(DEBUG)||defined(PSID)*/
 	if(PSP_DEBUGTASK & PSI_debugmask){
-	    printf(PSI_txt, "I'm the parent. I'm waiting for my child (%d)\n",
+	    sprintf(PSI_txt, "I'm the parent. I'm waiting for my child (%d)\n",
 		   pid);
 	    PSI_logerror(PSI_txt);
 	}
-	/*#endif */
 
 	close(fds[1]);
-	if(read(fds[0],&buf,sizeof(buf))==0){
+	if(read(fds[0], &buf, sizeof(buf)) == 0){
 	    /*
 	     * the control channel was closed in case of a successful execv
 	     */
@@ -436,23 +443,23 @@ int PSID_taskspawn(PStask_t* task)
 	    task->nodeno = PSI_getnode(-1);
 #if defined(DEBUG)||defined(PSID)
 	    if(PSP_DEBUGTASK & PSI_debugmask){
-		printf(PSI_txt,"child execute was successful\n");
+		sprintf(PSI_txt,"child execute was successful\n");
 		PSI_logerror(PSI_txt);
 	    }
 #endif
 	}else{
-	    char* errtxt;
+	    char *errtxt;
 
 	    /*
 	     * the child sent us a sign that the execv wasn't successful
 	     */
 	    ret = buf;
-	    errtxt=strerror(ret);
+	    errtxt = strerror(ret);
 #if defined(DEBUG)||defined(PSID)
 	    /*	    if(PSP_DEBUGTASK & PSI_debugmask)
 	     */
 	    {
-		printf(PSI_txt, "child execute failed error(%d):%s\n", ret,
+		sprintf(PSI_txt, "child execute failed error(%d):%s\n", ret,
 		       errtxt?errtxt:"UNKNOWN");
 		PSI_logerror(PSI_txt);
 	    }
@@ -537,7 +544,7 @@ int PSID_host(unsigned int addr)
 }
 
 /***************************************************************************
- *      SHM_hostaddress()
+ *      PSID_hostaddress()
  *
  *      LIMIT   the id must be valid.
  *      RETURN  the INET id addr for the host with psi node no id, 
