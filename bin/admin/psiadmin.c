@@ -5,22 +5,23 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psiadmin.c,v 1.51 2003/03/04 15:37:15 eicker Exp $
+ * $Id: psiadmin.c,v 1.52 2003/03/05 09:54:11 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.51 2003/03/04 15:37:15 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psiadmin.c,v 1.52 2003/03/05 09:54:11 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <string.h>
+#include <errno.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <netdb.h>
 #include <signal.h>
-#include <errno.h>
-#include <unistd.h>
+#include <pwd.h>
 #include <termios.h>
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -48,7 +49,7 @@ void *yy_scan_string(char *line);
 void yyparse(void);
 void yy_delete_buffer(void *line_state);
 
-static char psiadmversion[] = "$Revision: 1.51 $";
+static char psiadmversion[] = "$Revision: 1.52 $";
 static int doRestart = 0;
 
 static char *hoststatus = NULL;
@@ -298,8 +299,9 @@ void PSIADM_HWStat(int first, int last)
     return;
 }
 
-void PSIADM_SetMaxProc(int count)
+void PSIADM_SetMaxProc(int count, int first, int last)
 {
+    int i;
     DDOptionMsg_t msg;
 
     if(geteuid()){
@@ -307,77 +309,112 @@ void PSIADM_SetMaxProc(int count)
 	return;
     }
 
+    first = (first==ALLNODES) ? 0 : first;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
+
     /*
      * prepare the message to send it to the daemon
      */
     msg.header.type = PSP_DD_SETOPTION;
     msg.header.len = sizeof(msg);
     msg.header.sender = PSC_getMyTID();
-    /*msg.header.dest = PULC_gettid(PSC_getMyID(), 0);*/
-    msg.header.dest = -1 /* broadcast */;
-    msg.count =1;
+    msg.count = 1;
     msg.opt[0].option = PSP_OP_PROCLIMIT;
     msg.opt[0].value = count;
-    PSI_sendMsg(&msg);
 
-    return;
-}
-
-void PSIADM_ShowMaxProc(void)
-{
-    int ret;
-    long option = PSP_OP_PROCLIMIT, proclimit;
-
-    ret = INFO_request_option(0, 1, &option, &proclimit, 1);
-
-    if (ret==-1) {
-	printf("Can't get max. processes.\n");
-    } else if (proclimit==-1) {
-	printf("max. processes: NONE\n");
-    } else {
-	printf("max. processes: %ld\n", proclimit);
+    for (i = first; i < last; i++) {
+	msg.header.dest = PSC_getTID(i, 0);
+	PSI_sendMsg(&msg);
     }
 
     return;
 }
 
-void PSIADM_SetUser(int uid)
+void PSIADM_ShowMaxProc(int first, int last)
 {
+    int i, ret;
+    long option = PSP_OP_PROCLIMIT, proclimit;
+
+    first = (first==ALLNODES) ? 0 : first;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
+
+    for (i = first; i < last; i++) {
+	printf("%3d:  ", i);
+	ret = INFO_request_option(0, 1, &option, &proclimit, 1);
+
+	if (ret==-1) {
+	    printf("Can't get max. processes.\n");
+	} else if (proclimit==-1) {
+	    printf("max. processes: ANY\n");
+	} else {
+	    printf("max. processes: %ld\n", proclimit);
+	}
+    }
+
+    return;
+}
+
+void PSIADM_SetUser(int uid, int first, int last)
+{
+    int i;
     DDOptionMsg_t msg;
 
     if(geteuid()){
 	printf("Sorry, only root access\n");
 	return;
     }
+
+    first = (first==ALLNODES) ? 0 : first;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
+
     /*
      * prepare the message to send it to the daemon
      */
     msg.header.type = PSP_DD_SETOPTION;
-    msg.header.len = sizeof(msg);
     msg.header.sender = PSC_getMyTID();
-    /*msg.header.dest = PULC_gettid(PSC_getMyID(), 0);*/
-    msg.header.dest = -1 /* broadcast */;
-    msg.count =1;
+    msg.header.len = sizeof(msg);
+    msg.count = 1;
     msg.opt[0].option = PSP_OP_UIDLIMIT;
     msg.opt[0].value = uid;
-    PSI_sendMsg(&msg);
+
+    for (i = first; i < last; i++) {
+	msg.header.dest = PSC_getTID(i, 0);
+	PSI_sendMsg(&msg);
+    }
 
     return;
 }
 
-void PSIADM_ShowUser(void)
+void PSIADM_ShowUser(int first, int last)
 {
-    int ret;
+    int i, ret;
     long option = PSP_OP_UIDLIMIT, uidlimit;
 
-    ret = INFO_request_option(0, 1, &option, &uidlimit, 1);
+    first = (first==ALLNODES) ? 0 : first;
+    last  = (last==ALLNODES) ? PSC_getNrOfNodes() : last+1;
 
-    if (ret==-1) {
-	printf("Can't get user limit.\n");
-    } else if (uidlimit==-1) {
-	printf("limited to user : NONE\n");
-    } else {
-	printf("limited to user : %ld\n", uidlimit);
+    for (i = first; i < last; i++) {
+	printf("%3d:  ", i);
+	ret = INFO_request_option(i, 1, &option, &uidlimit, 1);
+
+	if (ret==-1) {
+	    printf("Can't get user limit.\n");
+	} else if (uidlimit==-1) {
+	    printf("limited to user : ANY\n");
+	} else {
+	    char *name;
+	    struct passwd *passwd;
+
+	    passwd = getpwuid(uidlimit);
+	    if (passwd) {
+		name = strdup(passwd->pw_name);
+	    } else {
+		name = malloc(10*sizeof(char));
+		sprintf(name, "%d", uidlimit);
+	    }
+	    printf("limited to user : %s\n", name);
+	    free(name);
+	}
     }
 
     return;

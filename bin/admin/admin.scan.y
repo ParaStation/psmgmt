@@ -10,7 +10,7 @@
 #define yylex adminlex
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.17 2002/09/18 09:18:25 eicker Exp $";
+static char yaccid[] __attribute__(( unused )) = "$Id: admin.scan.y,v 1.18 2003/03/05 09:54:11 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #define NODEERR -2
@@ -113,12 +113,16 @@ setline:
           SETOP                        {printf("SET what?\n");}
         | SETOP MAXPROC
                 {printf("SET MAXPROC needs number of processes\n");}
-        | SETOP MAXPROC NUMBER         {PSIADM_SetMaxProc($3);}
-        | SETOP MAXPROC HEXNUMBER      {PSIADM_SetMaxProc($3);}
-        | SETOP MAXPROC ANY            {PSIADM_SetMaxProc(-1);}
-        | SETOP USER                   {printf("SET USER needs username\n");}
-        | SETOP USER NAME              {CheckUserName($3);}
-        | SETOP USER ANY               {PSIADM_SetUser(-1);}
+        | SETOP MAXPROC NUMBER nodes
+                {MySetMaxProc($3,FirstNode,LastNode);}
+        | SETOP MAXPROC HEXNUMBER nodes
+                {MySetMaxProc($3,FirstNode,LastNode);}
+        | SETOP MAXPROC ANY nodes
+                {MySetMaxProc(-1,FirstNode,LastNode);}
+        | SETOP USER nodes             {printf("SET USER needs username\n");}
+        | SETOP USER NAME nodes        {MySetUserName($3,FirstNode,LastNode);}
+        | SETOP USER NUMBER nodes      {MySetUser($3,FirstNode,LastNode);}
+        | SETOP USER ANY nodes         {MySetUser(-1,FirstNode,LastNode);}
         | SETOP RESENDTIMEOUT NUMBER   {PSIADM_SetResendTimeout($3);}
         | SETOP SMALLPACKETSIZE NUMBER {PSIADM_SetSmallPacketSize($3);}
         | SETOP HNPEND NUMBER          {PSIADM_SetHNPend($3);}
@@ -139,8 +143,8 @@ setline:
 
 showline:
           SHOWOP                    {printf("SHOW what?\n");}
-        | SHOWOP MAXPROC            {PSIADM_ShowMaxProc();}
-        | SHOWOP USER               {PSIADM_ShowUser();}
+        | SHOWOP MAXPROC nodes      {MyShowMaxProc(FirstNode,LastNode);}
+        | SHOWOP USER nodes         {MyShowUser(FirstNode,LastNode);}
         | SHOWOP RESENDTIMEOUT      {PSIADM_ShowResendTimeout();}
         | SHOWOP SMALLPACKETSIZE    {PSIADM_ShowSmallPacketSize();}
         | SHOWOP HNPEND             {PSIADM_ShowHNPend();}
@@ -261,18 +265,6 @@ void yyerror(char *s)
     return;
 }
 
-static void CheckUserName(char *name)
-{
-    struct passwd *passwd;
-
-    if ((passwd = getpwnam(name))==NULL){
-	printf("PSIamnin: Unknown user %s\n",name);
-	return;
-    };
-    PSIADM_SetUser(passwd->pw_uid);
-    return;
-}
-
 static int CheckNr(int node)
 {
     register int NrOfNodes = PSC_getNrOfNodes();
@@ -364,6 +356,41 @@ static void MyReset(int what, int first, int last)
 {
     if ( (first != NODEERR) && (last != NODEERR))
 	PSIADM_Reset(what, first, last);
+}
+
+static void MySetUser(int what, int first, int last)
+{
+    if ( (first != NODEERR) && (last != NODEERR))
+	PSIADM_SetUser(what, first, last);
+}
+
+static void MySetUserName(char *name, int first, int last)
+{
+    struct passwd *passwd;
+
+    if ((passwd = getpwnam(name))==NULL){
+	printf("PSIamnin: Unknown user %s\n",name);
+	return;
+    };
+    MySetUser(passwd->pw_uid, first, last);
+}
+
+static void MyShowUser(int first, int last)
+{
+    if ( (first != NODEERR) && (last != NODEERR))
+	PSIADM_ShowUser(first, last);
+}
+
+static void MySetMaxProc(int what, int first, int last)
+{
+    if ( (first != NODEERR) && (last != NODEERR))
+	PSIADM_SetMaxProc(what, first, last);
+}
+
+static void MyShowMaxProc(int first, int last)
+{
+    if ( (first != NODEERR) && (last != NODEERR))
+	PSIADM_ShowMaxProc(first, last);
 }
 
 static void MySetPsidDebug(int what, int first, int last)
