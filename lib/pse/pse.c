@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.27 2002/07/23 12:38:11 eicker Exp $
+ * $Id: pse.c,v 1.28 2002/07/26 15:11:24 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.27 2002/07/23 12:38:11 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.28 2002/07/26 15:11:24 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -126,7 +126,7 @@ void PSE_init(int NP, int *rank)
 	exitAll(errtxt, 10);
     }
 
-    *rank = worldRank = PSI_myrank;
+    *rank = worldRank = INFO_request_taskinfo(PSC_getMyTID(), INFO_RANK, 0);
 
     signal(SIGTERM, flusher);
 
@@ -239,6 +239,10 @@ void PSE_spawn(int Argc, char** Argv,
 	ret = PSI_spawnM(worldSize-1, NULL, ".", Argc, Argv,
 			 PSI_loggernode, PSI_loggerport,
 			 rank+1, &errors[1], &spawnedProcesses[1]);
+/*  	ret = PSI_spawnM(worldSize-1, NULL, ".", Argc, Argv, */
+/*  			 INFO_request_taskinfo(PSC_getMyTID(), */
+/*  					       INFO_LOGGERTID, 0), */
+/*  			 rank+1, &errors[1], &spawnedProcesses[1]); */
 	if (ret<0) {
 	    int proc;
 	    for (proc=1; proc<worldSize; proc++) {
