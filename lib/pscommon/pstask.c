@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pstask.c,v 1.7 2002/08/02 10:21:30 eicker Exp $
+ * $Id: pstask.c,v 1.8 2002/08/06 08:20:14 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.7 2002/08/02 10:21:30 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pstask.c,v 1.8 2002/08/06 08:20:14 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -264,10 +264,10 @@ static struct {
     int argc;
 } tmpTask;
     
-int PStask_encode(char *buffer, size_t size, PStask_t *task)
+size_t PStask_encode(char *buffer, size_t size, PStask_t *task)
 {
-    /* @todo size ignored !! */
-    int msglen, i;
+    size_t msglen;
+    int i;
 
     snprintf(errtxt, sizeof(errtxt),
 	     "PStask_encode(%p, %ld, task(", buffer, (long)size);
@@ -294,28 +294,45 @@ int PStask_encode(char *buffer, size_t size, PStask_t *task)
     memcpy(buffer, &tmpTask, sizeof(tmpTask));
 
     if (task->workingdir) {
-	strcpy(&buffer[msglen], task->workingdir);
-	msglen += strlen(task->workingdir);
+	if (msglen + strlen(task->workingdir) < size) {
+	    strcpy(&buffer[msglen], task->workingdir);
+	    msglen += strlen(task->workingdir);
+	} else {
+	    /* buffer to small */
+	    return msglen + strlen(task->workingdir);
+	}
     } else {
 	buffer[msglen]=0;
     }
     msglen++; /* zero byte */
 
     for (i=0; i<task->argc; i++) {
-	strcpy(&buffer[msglen], task->argv[i]);
-	msglen +=strlen(task->argv[i])+1;
+	if (msglen + strlen(task->argv[i]) < size) {
+	    strcpy(&buffer[msglen], task->argv[i]);
+	    msglen +=strlen(task->argv[i])+1;
+	} else {
+	    return msglen + strlen(task->argv[i]) + 1;
+	}
     }
 
     if (task->environ) {
 	int i;
 	for (i=0; task->environ[i]; i++) {
-	    strcpy(&buffer[msglen], task->environ[i]);
-	    msglen += strlen(task->environ[i])+1;
+	    if (msglen + strlen(task->environ[i]) < size) {
+		strcpy(&buffer[msglen], task->environ[i]);
+		msglen += strlen(task->environ[i])+1;
+	    } else {
+		return msglen + strlen(task->environ[i]) + 1;
+	    }
 	}
     }
     /* append zero byte */
-    buffer[msglen] = 0;
-    msglen++;
+    if (msglen < size) {
+	buffer[msglen] = 0;
+	msglen++;
+    } else {
+	return msglen + 1;
+    }
 
     return msglen;
 }
