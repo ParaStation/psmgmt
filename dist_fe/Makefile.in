@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.9 2002/10/16 14:13:14 hauke Exp $
+# $Id: Makefile.in,v 1.10 2002/10/16 17:58:20 eicker Exp $
 #
 # @author
 #         Jens Hauke <hauke@par-tec.de>
@@ -42,6 +42,9 @@ MISCDIR :=
 
 DIRS += $(BINDIR) $(LIBDIR) $(INCDIR) $(MISCDIR) $(CONFIGDIR)
 
+TARFILES = $(DISTPATH)/INSTALL $(DISTPATH)/VERSION $(DISTPATH)/bin $(DISTPATH)/config
+TARFILES += $(DISTPATH)/include $(DISTPATH)/lib
+
 ######################################################
 MISCEXP := $(patsubst %,$(DISTPATH)/%, $(MISC))
 
@@ -56,7 +59,7 @@ $(DIRS):
 dirs: $(DIRS)
 
 #
-# building striped libs
+# building stripped libs
 #
 ifeq ("$(TARGET_OS)","linux")
 $(LIBDIR)/%: $(TOP_BUILDDIR)/lib/%
@@ -71,7 +74,7 @@ endif
 libs: $(LIBDIR) $(patsubst %,$(LIBDIR)/%,$(LIBS))
 
 #
-# building striped bins
+# building stripped bins
 #
 $(BINDIR)/%: $(TOP_BUILDDIR)/bin/%
 	cp $< $@
@@ -139,14 +142,14 @@ TARCPU  := alpha
 endif
 
 tar:	tarcleanups
-	tar --owner=0 --group=0 -czf psfe_$(TARCPU)-$(DVER).tgz $(DISTPATH)
+	tar --owner=0 --group=0 -czf psfe_$(TARCPU)-$(DVER).tgz $(TARFILES)
 
 endif
 ifeq ("$(TARGET_OS)","osf5.1")
 TARCPU  := tru64
 
 tar:	tarcleanups
-	gtar --owner=0 --group=0 -czf psfe_$(TARCPU)-$(DVER).tar.gz $(DISTPATH)
+	gtar --owner=0 --group=0 -czf psfe_$(TARCPU)-$(DVER).tar.gz $(TARFILES)
 
 endif
 
