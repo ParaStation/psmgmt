@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidpartition.c,v 1.12 2004/01/28 18:03:54 eicker Exp $
+ * $Id: psidpartition.c,v 1.13 2004/01/29 17:28:06 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.12 2004/01/28 18:03:54 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidpartition.c,v 1.13 2004/01/29 17:28:06 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -1781,6 +1781,7 @@ void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
 	PSnodes_ID_t node = PSC_getID(inmsg->header.sender);
 	pendingTaskReq -= nodeStat[node].taskReqPending;
 	nodeStat[node].taskReqPending = 0;
+	if (!pendingTaskReq) doHandle=1;
 	return;
     }
 
