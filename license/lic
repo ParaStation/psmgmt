@@ -99,7 +99,7 @@ cat > $filename <<EOF
 
 ID       = "$id"
 Ver      = "$ver"
-Cpr      = "COPYRIGHT (C) 2002 ParTec AG Karlsruhe"
+Cpr      = "COPYRIGHT (C) 2003 ParTec AG Karlsruhe"
 
 Name     = "$name"
 Contact  = "$contact"
