@@ -1,0 +1,188 @@
+###################################################### -*- Makefile -*- #####
+#                  ParaStation3
+#        Copyright (c) 2002 ParTec AG Karlsruhe
+#        All rights reserved.
+#############################################################################
+#
+# $Id: Makefile.in,v 1.1 2002/10/16 16:40:20 eicker Exp $
+#
+# @author
+#         Norbert Eicker <eicker@par-tec.de>
+#############################################################################
+
+TOP_SRCDIR := @top_srcdir@
+STYLESHEETDIR := @srcdir@/StyleSheets
+
+VPATH += @srcdir@
+
+SGML_CATALOG = /var/lib/sgml/CATALOG.db42xml
+XSLT = xsltproc
+XSLTFLAGS = --catalogs --timing --nonet
+
+CLASSPATH:="fop/build/fop.jar:fop/lib/batik.jar:fop/lib/jimi.jar"
+CLASSPATH:=$(CLASSPATH)":fop/lib/xalan-2.3.1.jar:fop/lib/xercesImpl-2.0.1.jar"
+CLASSPATH:=$(CLASSPATH)":fop/lib/xml-apis.jar:fop/lib/logkit-1.0.jar"
+CLASSPATH:=$(CLASSPATH)":fop/lib/avalon-framework-cvs-20020315.jar"
+
+
+TARGETS = adminguide userguide
+
+ADMINMAN1 = man1/mlisten.1 man1/psiadmin.1 man1/test_nodes.1
+ADMINMAN5 = man5/parastation.conf.5
+ADMINMAN8 = man8/psid.8 man8/psld.8 man8/psroute.8 man8/psscan.8
+ADMINMANS = $(ADMINMAN1) $(ADMINMAN5) $(ADMINMAN8)
+
+ADMINDEPS = infoblurb.sgml intro.sgml intro_admin.sgml
+ADMINDEPS = install.sgml config.sgml pvfs.sgml glossary.sgml
+ADMINDEPS += $(patsubst man1/%.1,%.sgml,$(ADMINMAN1))
+ADMINDEPS += $(patsubst man5/%.5,%.sgml,$(ADMINMAN5))
+ADMINDEPS += $(patsubst man8/%.8,%.sgml,$(ADMINMAN8)) boolargs.sgml
+
+
+USERMAN1 = man1/mpirun.1 man1/psmstart.1
+USERMAN7 = man7/ps_environment.7 man7/spawning.7
+USERMANS = $(USERMAN1) $(USERMAN7)
+
+USERDEPS = infoblurb.sgml intro.sgml intro_user.sgml 
+USERDEPS += startup.sgml using_mpi.sgml building.sgml glossary.sgml
+USERDEPS += $(patsubst man1/%.1,%.sgml,$(USERMAN1))
+USERDEPS += $(patsubst man7/%.7,%.sgml,$(USERMAN7))
+
+
+DOXYSRC = psport.h pshwtypes.h pse.h
+DOXYDIR = html/api
+DOXYINDEX = $(DOXYDIR)/index.html
+
+HTMLDIRS = html/adminguide html/userguide
+MANDIRS = man/man1 man/man5 man/man8 man/man7
+
+DIRS = $(HTMLDIRS) $(MANDIRS) $(DOXYDIR)
+
+all: dirs validate HTML man PDF doxygen
+
+.PHONY: all dirs validate html man pdf doxygen
+
+#
+# Creating directories
+#
+$(DIRS):
+	@mkdir -p $@
+
+dirs: $(DIRS)
+
+#
+# Validating
+#
+validate: $(patsubst %,%.xml,$(TARGETS))
+	@for doc in $^ ; do \
+	    res=`db2x.sh -o -W $$doc`; \
+	    if [ "$$res" != $$doc' is valid.' ]; then \
+		exit 1; \
+	    else \
+		echo $$res; \
+	    fi \
+	done
+
+#
+# Rules to create the HTML stuff
+#
+HTML: validate dirs $(patsubst %,html/%/index.html,$(TARGETS))
+
+html/%/index.html: %.xml $(STYLESHEETDIR)/html.xsl
+	@export SGML_CATALOG=$(SGML_CATALOG); \
+	$(XSLT) $(XSLTFLAGS) -o $(@D)/ $(STYLESHEETDIR)/html.xsl $<
+
+adminguide/index.html: $(ADMINDEPS)
+
+userguide/index.html: $(USERDEPS)
+
+#
+# Rules to create manual pages
+#
+man: validate dirs $(patsubst %,man/%,$(ADMINMANS)) $(patsubst %,man/%,$(USERMANS))
+
+$(patsubst %,man/%,$(ADMINMANS)): adminguide.xml $(STYLESHEETDIR)/db2man.xsl
+	@export SGML_CATALOG=$(SGML_CATALOG); \
+	$(XSLT) $(XSLTFLAGS) -o man/ $(STYLESHEETDIR)/db2man.xsl $<
+
+$(patsubst %,man/%,$(ADMINMANS)): $(ADMINDEPS)
+
+$(patsubst %,man/%,$(USERMANS)): userguide.xml $(STYLESHEETDIR)/db2man.xsl
+	@export SGML_CATALOG=$(SGML_CATALOG); \
+	$(XSLT) $(XSLTFLAGS) -o man/ $(STYLESHEETDIR)/db2man.xsl $<;
+
+$(patsubst %,man/%,$(USERMANS)): $(USERDEPS)
+
+#
+# Rules to create the PDF files
+#
+PDF: validate dirs $(patsubst %,pdf/%.pdf,$(TARGETS))
+
+# First create the tex file
+pdf/%.tex: %.xml $(STYLESHEETDIR)/docu.dsl
+	@db2tex -o -s $(STYLESHEETDIR)/docu.dsl $<; \
+	mv $(patsubst %.xml,%.tex,$(<)) $@
+
+# Create pdf from tex
+pdf/%.pdf: pdf/%.tex
+	@ln -s @srcdir@/images .; \
+	cd $(@D); \
+	pdfjadetex $(<F); \
+	if egrep '^LaTeX Warning: There were undefined references.' \
+					$(*F).log > /dev/null 2>&1; then \
+	    pdfjadetex $(<F); \
+	    pdfjadetex $(<F); \
+	fi; \
+	cd ..; \
+	rm -f images
+
+pdf/adminguide.tex: $(ADMINDEPS)
+
+pdf/userguide.tex: $(USERDEPS)
+
+#
+# Alternative rules to create PDF files.
+# This uses .fo output to be processed by fop or pdfxmltex.
+#
+pdf/%.fo: %.xml $(STYLESHEETDIR)/fo.xsl
+	@export SGML_CATALOG=$(SGML_CATALOG); \
+	$(XSLT) $(XSLTFLAGS) -o $@ $(STYLESHEETDIR)/fo.xsl $<
+
+# This one uses pdfxmltex (which actually does not work)
+# pdf/%.pdf: pdf/%.fo \
+	@cd $(@D); \
+	pdfxmltex $(<F); \
+	cd ..
+
+# This is done using fop (which works, but gives ugly output)
+# pdf/%.pdf: pdf/%.fo \
+	@ CLASSPATH=$(CLASSPATH); \
+	export CLASSPATH; \
+	java org.apache.fop.apps.Fop -c fop/conf/userconfig.xml $< -pdf $@
+
+
+pdf/adminguide.fo: $(ADMINDEPS)
+
+pdf/userguide.fo: $(USERDEPS)
+
+#
+# Doxygen Files
+#
+doxygen: $(DOXYINDEX)
+
+$(DOXYINDEX): $(patsubst %,$(TOP_SRCDIR)/include/%,$(DOXYSRC))
+	@ doxx=`which doxygen`x ; \
+        if [ `basename "$$doxx"` = doxygenx ]; then \
+            doxygen; \
+        fi
+
+#
+# General rules
+#
+.PHONY: clean realclean
+
+clean:
+	$(RM) *~
+
+realclean: clean
+	$(RM) -r $(TARGETS) man pdf
