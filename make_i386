@@ -21,5 +21,8 @@ make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.4.2-SMP.redhat LINUXVER
 make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.4.2 LINUXVERSION=L24 OSSUF=  psm
 make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.4.2-SMP LINUXVERSION=L24 OSSUF=-SMP psm
 
+make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.4.7.SuSE LINUXVERSION=L24 OSSUF=.SuSE psm
+make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.4.7-SMP.SuSE LINUXVERSION=L24 OSSUF=.SuSE psm
+
 make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.4.9 LINUXVERSION=L24 OSSUF=  psm
 make KDIR=/home/i41pc17/hauke/psmlib/kernel/i386/linux-2.4.9-SMP LINUXVERSION=L24 OSSUF=-SMP psm
