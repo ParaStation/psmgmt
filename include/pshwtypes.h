@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pshwtypes.h,v 1.4 2002/08/01 18:38:27 eicker Exp $
+ * $Id: pshwtypes.h,v 1.5 2003/04/03 13:40:06 hauke Exp $
  *
  */
 /**
  * @file
  * ParaStation hardware types.
  *
- * $Id: pshwtypes.h,v 1.4 2002/08/01 18:38:27 eicker Exp $
+ * $Id: pshwtypes.h,v 1.5 2003/04/03 13:40:06 hauke Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -68,6 +68,13 @@ extern "C" {
  * @return A pointer to a static character array containing hwType's
  * description. Do not try to free(2) this array.  */
 char *PSHW_printType(int hwType);
+
+
+#define PSHW_NAME_ETHERNET	"ethernet"
+#define PSHW_NAME_MYRINET	"myrinet"
+#define PSHW_NAME_INFINIBAND	"infiniband"
+#define PSHW_NAME_STARFABRIC	"starfabric"
+#define PSHW_NAME_P4SOCK	"p4sock"
 
 
 #ifdef __cplusplus

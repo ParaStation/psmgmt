@@ -7,7 +7,7 @@
 /**
  * name: Description
  *
- * $Id: psport4.c,v 1.12 2003/02/25 11:14:12 hauke Exp $
+ * $Id: psport4.c,v 1.13 2003/04/03 13:40:07 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -19,7 +19,7 @@
  */
 
 static char vcid[] __attribute__(( unused )) =
-"$Id: psport4.c,v 1.12 2003/02/25 11:14:12 hauke Exp $";
+"$Id: psport4.c,v 1.13 2003/04/03 13:40:07 hauke Exp $";
 
 #ifdef XREF
 #include <sys/uio.h>
@@ -35,7 +35,7 @@ static char vcid[] __attribute__(( unused )) =
 #include <ctype.h>
 
 #include "psport4.h"
-
+#include "pshwtypes.h"
 #include <sys/time.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -1575,15 +1575,20 @@ int PSP_Init()
     return 0;
 }
 
+/* deprecated Interface */
 unsigned int PSP_UsedHW(void)
 {
-/*
-  From pshwtypes.h:
-#define PSHW_ETHERNET            0x0001
-#define PSHW_MYRINET             0x0002
-#define PSHW_GIGAETHERNET        0x0004
-*/
-    return 0x0001;
+    return 0x0000; /* Any */
+}
+
+char **PSP_HWList(void)
+{
+    static char *HWList[] = {
+	PSHW_NAME_ETHERNET,
+	NULL
+    };
+    
+    return HWList;
 }
 
 

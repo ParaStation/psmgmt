@@ -7,7 +7,7 @@
 /**
  * PSPort: Communication Library for Parastation
  *
- * $Id: psport.h,v 1.29 2002/08/02 15:46:39 eicker Exp $
+ * $Id: psport.h,v 1.30 2003/04/03 13:40:06 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -145,6 +145,21 @@ extern unsigned PSP_GenReqUsedCount;
  * an error code otherwise.
  */
 int PSP_Init(void);
+
+/* ----------------------------------------------------------------------
+ * PSP_HWList()
+ * ----------------------------------------------------------------------
+ */
+
+/**
+ * @brief Get a list of supportet hardwaretypes.
+ *
+ * No parameters.
+ *
+ * @return Returns a NULL terminated list of strings with the names of
+ * supported hardwaretypes.
+ */
+char **PSP_HWList(void);
 
 /* ----------------------------------------------------------------------
  * PSP_GetNodeID()
