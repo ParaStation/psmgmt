@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.19 2002/07/11 10:31:11 eicker Exp $
+ * $Id: psispawn.c,v 1.20 2002/07/11 16:59:03 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.19 2002/07/11 10:31:11 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.20 2002/07/11 16:59:03 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -55,6 +55,11 @@ int PSI_PartitionIndex = 0;   /** Index of the next node to use. */
 
 static char errtxt[256];
 
+int PSI_dospawn(int count, short *dstnodes, char *workingdir,
+		int argc, char **argv,
+		unsigned int loggernode, unsigned short loggerport,
+		int rank, int *errors, long *tids);
+
 long PSI_spawn(short dstnode, char *workdir, int argc, char **argv,
 	       unsigned int loggernode, unsigned short loggerport,
 	       int rank, int *error)
@@ -80,18 +85,17 @@ long PSI_spawn(short dstnode, char *workdir, int argc, char **argv,
     }
 
     ret = PSI_dospawn(1, &dstnode, workdir, argc, argv,
-		      loggernode, loggerport, rank, 0, error, &tid);
+		      loggernode, loggerport, rank, error, &tid);
 
-    if (ret<0)
-	return ret;
-    else
-	return tid;
+    if (ret<0) return ret;
+
+    return tid;
 }
 
 int PSI_spawnM(int count, short *dstnodes, char *workdir,
 	       int argc, char **argv,
 	       unsigned int loggernode, unsigned short loggerport,
-	       int rank, long parenttid, int *errors, long *tids)
+	       int rank, int *errors, long *tids)
 {
     short *mydstnodes=NULL;
     int ret, i;
@@ -99,8 +103,7 @@ int PSI_spawnM(int count, short *dstnodes, char *workdir,
     snprintf(errtxt, sizeof(errtxt), "PSI_spawnM()");
     PSI_errlog(errtxt, 10);
 
-    if (count < 0)
-	return 0;
+    if (count<0) return 0;
 
     if (!dstnodes) {
 	if (!PSI_Partition) {
@@ -130,7 +133,7 @@ int PSI_spawnM(int count, short *dstnodes, char *workdir,
     PSI_errlog(errtxt, 1);
 
     ret = PSI_dospawn(count, mydstnodes, workdir, argc, argv,
-		      loggernode, loggerport, rank, parenttid, errors, tids);
+		      loggernode, loggerport, rank, errors, tids);
 
     /*
      * if I allocated mydstnodes myself, free() it now
@@ -734,10 +737,11 @@ short PSI_getPartition(unsigned int hwType, int myRank)
 int PSI_dospawn(int count, short *dstnodes, char *workingdir,
 		int argc, char **argv,
 		unsigned int loggernode, unsigned short loggerport,
-		int rank, long parenttid, int *errors, long *tids)
+		int rank, int *errors, long *tids)
 {
     int outstanding_answers=0;
     DDBufferMsg_t msg;
+    DDErrorMsg_t answer;
     char myworkingdir[200];
     char* pmyworkingdir = &myworkingdir[0];
 
@@ -766,11 +770,8 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
      * Init the Task structure
      */
     task = PStask_new();
-    if (parenttid) {
-	task->ptid = parenttid;
-    } else {
-	task->ptid = PSC_getMyTID();
-    }
+
+    task->ptid = PSC_getMyTID();
     task->uid = getuid();
     task->gid = getgid();
     task->group = TG_ANY;
@@ -850,12 +851,14 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
 	}
     }/* for all new processes */
 
+    PStask_delete(task);
+
     /*
      * Receive Answer from  my own daemon
      *----------------------------------
      */
     while (outstanding_answers>0) {
-	if (PSI_recvMsg(&msg)<0) {
+	if (PSI_recvMsg(&answer)<0) {
 	    char *errstr = strerror(errno);
 	    snprintf(errtxt, sizeof(errtxt), "PSI_dospawn():"
 		     " PSI_recvMsg() failed: %s",
@@ -864,17 +867,21 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
 	    ret = -1;
 	    break;
 	}
-	switch (msg.header.type) {
+	switch (answer.header.type) {
 	case PSP_DD_SPAWNFAILED:
 	case PSP_DD_SPAWNSUCCESS:
-	    PStask_decode(msg.buf, task);
 	    /*
 	     * find the right task request
 	     */
 	    for (i=0; i<count; i++) {
-		if ((dstnodes[i]==PSC_getID(task->tid)) && (tids[i]==0)) {
-		    errors[i] = task->error;
-		    tids[i] = task->tid;
+		if (dstnodes[i]==PSC_getID(answer.header.sender)
+		    && !tids[i] && !errors[i]) {
+		    /*
+		     * We have to test for !errors[i], since daemon on node 0
+		     * (which has tid 0) might have returned an error.
+		     */
+		    errors[i] = answer.error;
+		    tids[i] = answer.header.sender;
 		    ret++;
 		    break;
 		}
@@ -883,13 +890,14 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
 	    if (i==count) {
 		snprintf(errtxt, sizeof(errtxt), "PSI_dospawn():"
 			 " got SPAWNSUCCESS/SPAWNFAILED message from"
-			 " unknown node %d.", PSC_getID(task->tid));
+			 " unknown node %d.", PSC_getID(answer.header.sender));
 		PSI_errlog(errtxt, 0);
 	    }
 
-	    if (msg.header.type==PSP_DD_SPAWNFAILED) {
+	    if (answer.header.type==PSP_DD_SPAWNFAILED) {
 		snprintf(errtxt, sizeof(errtxt), "PSI_dospawn():"
-			 " spawn to node %d failed.", PSC_getID(task->tid));
+			 " spawn to node %d failed.",
+			 PSC_getID(answer.header.sender));
 		PSI_errlog(errtxt, 0);
 		error = 1;
 	    }
@@ -903,11 +911,6 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
 	}
 	outstanding_answers--;
     }
-
-    /*
-     * Clean up
-     */
-    PStask_delete(task);
 
     if (error) ret = -ret;
     return ret;
