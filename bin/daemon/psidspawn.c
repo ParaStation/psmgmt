@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidspawn.c,v 1.19 2004/04/29 11:02:12 eicker Exp $
+ * $Id: psidspawn.c,v 1.20 2004/10/18 12:48:27 hauke Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.19 2004/04/29 11:02:12 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c,v 1.20 2004/10/18 12:48:27 hauke Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -488,8 +488,11 @@ static int execForwarder(PStask_t *task, int daemonfd, int controlchannel)
 	/*
 	 * the child sent us a sign that the execv wasn't successful
 	 */
-	snprintf(errtxt, sizeof(errtxt), "%s: child exec() failed: %s\n",
-		 __func__, get_strerror(errno));
+	snprintf(errtxt, sizeof(errtxt), "%s: child exec(\"%s\", argc=%d) failed: %s\n",
+		 __func__,
+		 task->argv ? (task->argv[0] ? task->argv[0] : "argv[0]=<NULL>") : "<argv=NULL>",
+		 task->argc,
+		 get_strerror(errno));
 	PSID_errlog(errtxt, 0);
 
 	/* Tell the parent about this */
