@@ -4,7 +4,7 @@
 #        All rights reserved.
 #############################################################################
 #
-# $Id: Makefile.in,v 1.21 2004/10/13 14:00:57 geier Exp $
+# $Id: Makefile.in,v 1.22 2004/10/15 13:27:00 eicker Exp $
 #
 # @author
 #         Norbert Eicker <eicker@par-tec.de>
@@ -23,11 +23,7 @@ XSLTFLAGS = --timing --nonet
 
 CP = cp -p
 
-CLASSPATH:="fop/build/fop.jar:fop/lib/batik.jar:fop/lib/jimi.jar"
-CLASSPATH:=$(CLASSPATH)":fop/lib/xalan-2.3.1.jar:fop/lib/xercesImpl-2.0.1.jar"
-CLASSPATH:=$(CLASSPATH)":fop/lib/xml-apis.jar:fop/lib/logkit-1.0.jar"
-CLASSPATH:=$(CLASSPATH)":fop/lib/avalon-framework-cvs-20020315.jar"
-
+FOPHOME = /usr/share/fop-0.20.5
 
 TARGETS = adminguide userguide
 
@@ -151,28 +147,16 @@ pdf/userguide.tex: $(USERDEPS)
 
 #
 # Alternative rules to create PDF files.
-# This uses .fo output to be processed by fop or pdfxmltex.
+# This uses .fo output to be processed by fop.
 #
-pdf/%.fo: %.xml $(STYLESHEETDIR)/fo.xsl
+pdf/%.fo: %.xml $(STYLESHEETDIR)/fo.xsl $(STYLESHEETDIR)/fo-titlepage.xsl
 	$(XSLT) $(XSLTFLAGS) -o $@ $(STYLESHEETDIR)/fo.xsl $<
 
-# This one uses pdfxmltex (which does almost work with passivetex 1.24)
+# This is done using fop (which works, but gives suboptimal output)
 # pdf/%.pdf: pdf/%.fo
-	@ln -s @srcdir@/images .; \
-	cd $(@D); \
-	pdfxmltex $(<F); \
-	cd ..; \
-	rm -f images
-
-# This is done using fop (which works, but gives ugly output)
-# pdf/%.pdf: pdf/%.fo
-	@ CLASSPATH=$(CLASSPATH); \
-	ln -s @srcdir@/images .; \
-	ln -s @srcdir@/fop .; \
-	export CLASSPATH; \
-	java org.apache.fop.apps.Fop -c fop/conf/userconfig.xml $< -pdf $@; \
-	rm -f images; \
-	rm -f fop
+# 	ln -s @srcdir@/images .; \
+# 	env FOP_HOME=$(FOPHOME) fop $< -pdf $@; \
+# 	rm -f images
 
 
 pdf/adminguide.fo: $(ADMINDEPS)
