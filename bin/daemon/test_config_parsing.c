@@ -1,15 +1,15 @@
 /*
- *               ParaStation3
+ *               ParaStation
  * config_parsing_test.c
  *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: test_config_parsing.c,v 1.3 2003/04/03 15:13:02 eicker Exp $
+ * $Id: test_config_parsing.c,v 1.4 2004/01/09 15:56:58 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: test_config_parsing.c,v 1.3 2003/04/03 15:13:02 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: test_config_parsing.c,v 1.4 2004/01/09 15:56:58 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -20,20 +20,21 @@ static char vcid[] __attribute__(( unused )) = "$Id: test_config_parsing.c,v 1.3
 // Just for testing
 int main(int argc, char *argv[])
 {
-    int ret;
+    config_t *config;
 
     if (argc>1) {
-	ret = parseConfig(0, 10, argv[1]);
+	config = parseConfig(0, 10, argv[1]);
     } else {
-	ret = parseConfig(0, 10, "psm.config");
+	config = parseConfig(0, 10, "psm.config");
     }
 
 
-    if (ret) {
-	printf("ERROR: parseConfig returned %d\n", ret);
+    if (config) {
+	printf("ERROR: parseConfig failed\n");
+	return 1;
     } else {
 	printf("parseConfig finished successfully.\n");
     }
 
-    return ret;
+    return 0;
 }
