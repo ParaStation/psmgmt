@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidutil.c,v 1.49 2003/02/25 12:08:40 eicker Exp $
+ * $Id: psidutil.c,v 1.50 2003/03/06 14:15:31 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.49 2003/02/25 12:08:40 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.50 2003/03/06 14:15:31 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -29,19 +29,18 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c,v 1.49 2003/02/2
 
 #include "errlog.h"
 
+#include "config_parsing.h"
+#include "psnodes.h"
+
 #include "pscommon.h"
 #include "pshwtypes.h"
 
 #include "cardconfig.h"
-#include "config_parsing.h"
 
 /* magic license check */
 #include "../license/pslic_hidden.h"
 
 #include "psidutil.h"
-
-unsigned int PSID_HWstatus;
-short PSID_numCPU;
 
 static char errtxt[256];
 
@@ -100,9 +99,9 @@ void PSID_startHW(void)
     char licdot[10];
     int ret;
 
-    PSID_HWstatus = 0;
+    PSnodes_setHWStatus(PSC_getMyID(), 0);
 
-    if (nodes[PSC_getMyID()].hwType & PSHW_MYRINET) {
+    if (PSnodes_getHWType(PSC_getMyID()) & PSHW_MYRINET) {
 	if (!ConfigMyriModule) {
 	    PSID_errlog("PSID_startHW(): Myrinet module not defined", 0);
 	} else if (!ConfigRoutefile) {
@@ -132,11 +131,13 @@ void PSID_startHW(void)
 			 __func__, ret, card_errstr());
 		PSID_errlog(errtxt, 0);
 	    } else {
+		unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
+		
 		snprintf(errtxt, sizeof(errtxt), "%s(): cardinit(): success",
 			 __func__);
 		PSID_errlog(errtxt, 10);
 
-		PSID_HWstatus |= PSHW_MYRINET;
+		PSnodes_setHWStatus(PSC_getMyID(), status | PSHW_MYRINET);
 
 		if (ConfigSmallPacketSize != -1) {
 		    PSHALSYS_SetSmallPacketSize(ConfigSmallPacketSize);
@@ -157,12 +158,13 @@ void PSID_startHW(void)
 	}
     }
 
-    if (nodes[PSC_getMyID()].hwType & PSHW_ETHERNET) {
+    if (PSnodes_getHWType(PSC_getMyID()) & PSHW_ETHERNET) {
 	/* Nothing to do, ethernet will work allways */
-	PSID_HWstatus |= PSHW_ETHERNET;
+	unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
+	PSnodes_setHWStatus(PSC_getMyID(), status | PSHW_ETHERNET);
     }
 
-    if (nodes[PSC_getMyID()].hwType & PSHW_GIGAETHERNET) {
+    if (PSnodes_getHWType(PSC_getMyID()) & PSHW_GIGAETHERNET) {
 	PSID_errlog("PSID_startHW(): gigaethernet not implemented yet", 0);
     }
 
@@ -173,25 +175,28 @@ void PSID_stopHW(void)
 {
     int ret;
 
-    if (PSID_HWstatus & PSHW_MYRINET) {
+    if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_MYRINET) {
 	ret = card_cleanup(&card_info);
 	if (ret) {
 	    snprintf(errtxt, sizeof(errtxt),
 		     "PSID_stopHW(): cardcleanup(): %s", card_errstr());
 	    PSID_errlog(errtxt, 0);
 	} else {
+	    unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
+
 	    PSID_errlog("PSID_stopHW(): cardcleanup(): success", 10);
 
-	    PSID_HWstatus &= ~PSHW_MYRINET;
+	    PSnodes_setHWStatus(PSC_getMyID(), status & ~PSHW_MYRINET);
 	}
     }
 
-    if (PSID_HWstatus & PSHW_ETHERNET) {
+    if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_ETHERNET) {
+	unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
 	/* Nothing to do, ethernet will work allways */
-	PSID_HWstatus &= ~PSHW_ETHERNET;
+	PSnodes_setHWStatus(PSC_getMyID(), status & ~PSHW_ETHERNET);
     }
 
-    if (PSID_HWstatus & PSHW_GIGAETHERNET) {
+    if (PSnodes_getHWStatus(PSC_getMyID()) & PSHW_GIGAETHERNET) {
 	PSID_errlog("PSID_stopHW(): gigaethernet not implemented yet", 0);
     }
 }
@@ -258,7 +263,7 @@ void PSID_readConfigFile(int usesyslog)
 	    snprintf(errtxt, sizeof(errtxt),
 		     "Testing address %s", inet_ntoa(*sin_addr));
 	    PSID_errlog(errtxt, 10);
-	    if ((MyPsiId=parser_lookupHost(sin_addr->s_addr))!=-1) {
+	    if ((MyPsiId=PSnodes_lookupHost(sin_addr->s_addr))!=-1) {
 		/* node is configured */
 		snprintf(errtxt, sizeof(errtxt),
 			 "Node found to have ID %d", MyPsiId);
@@ -277,23 +282,23 @@ void PSID_readConfigFile(int usesyslog)
 	exit(1);
     }
 
-    PSC_setNrOfNodes(NrOfNodes);
+    PSC_setNrOfNodes(PSnodes_getNum());
     PSC_setMyID(MyPsiId);
     PSC_setDaemonFlag(1); /* To get the correct result from PSC_getMyTID() */
 
-    if (licNode.addr == INADDR_ANY) { /* Check LicServer Setting */
-	/*
-	 * Set node 0 as default server
-	 */
-	licNode.addr = nodes[0].addr;
+    /* Check LicServer Setting */
+    if (PSnodes_getAddr(PSNODES_LIC)==INADDR_ANY) {
+	/* No LicServer yet. Set node 0 as default server */
+	unsigned int addr = PSnodes_getAddr(0);
+	PSnodes_register(PSNODES_LIC, addr);
 	snprintf(errtxt, sizeof(errtxt),
 		 "Using %s (ID=0) as Licenseserver",
-		 inet_ntoa(* (struct in_addr *) &licNode.addr));
+		 inet_ntoa(* (struct in_addr *) &addr));
 	PSID_errlog(errtxt, 1);
     }
 
     /* Determine the number of CPUs */
-    PSID_numCPU = sysconf(_SC_NPROCESSORS_CONF);
+    PSnodes_setCPUs(PSC_getMyID(), sysconf(_SC_NPROCESSORS_CONF));
 
     PSID_errlog("starting up the card", 1);
     /*
@@ -303,6 +308,8 @@ void PSID_readConfigFile(int usesyslog)
     PSID_errlog("PSID_readConfigFile(): calling PSID_startHW()", 9);
     PSID_startHW();
     PSID_errlog("PSID_readConfigFile(): PSID_startHW() ok.", 9);
+
+    PSnodes_bringUp(PSC_getMyID());
 }
 
 int PSID_startLicServer(unsigned int addr)
