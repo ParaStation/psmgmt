@@ -86,8 +86,86 @@
   <refsect1>
     <title>The map file's format</title>
     <para>
-      ToDo
+      The map file represents the complete topology of the Myrinet network.
+      Assuming the physical network to be a connected graph, it would be
+      sufficient to give a list of all links connecting two nodes to describe
+      the graph. The routing table as described in <xref linkend="psroute"/> is
+      such a type of description of the network graph.
     </para>
+    <para>
+      In fact the map files contains much more (redundant) information. It list
+      detailed descriptions of all nodes within the network. Each
+      node-description embodies a list of all ports on this special network
+      nodes. Adjoined to every listed node is the remonte node and port it is
+      connected to.
+    </para>
+    <para>
+      Therefor the map files format can be viewed as a list of nodes plus a
+      list of links of the specific network. In an abstract way the redundant
+      information contained within the map file is transferred by the <xref
+	linkend="psroute"/> command to the much less redundant form of the
+      routing table.
+    </para>
+    <para>
+      The map file is a list of descriptions of the nodes contained in the
+      network. A node description is finished, when the next node description
+      starts. The start of a new description is recognized at hand of the
+      symbolic name of the new node.
+    </para>
+    <para>
+      Within the map file, two types of nodes are differentiated, hosts and
+      switches. While a host only has one port to the Myrinet (which is usually
+      a Myrinet NIC), a switch usually has more than one port. Furthermore host
+      own a &ps; ID, whilst switches don't do so.
+    </para>
+    <para>
+      The form of a node description is as follows:
+    </para>
+    <programlisting>	[host_name]
+	ID XXX
+	PORT 0 remote_node_name remote_port_number</programlisting>
+    <para>
+      <replaceable>host_name</replaceable> is the symbolic name of the host,
+      <replaceable>XXX</replaceable> is the corresponding &ps; ID. The last
+      line describes the the port and its connectivity. Since hosts only have
+      one port, the port's number is 0. The port number is followed by the
+      symbolic name <replaceable>remote_node_name</replaceable> of the node the
+      port is connected to and the port number
+      <replaceable>remote_port_number</replaceable> on that switch.
+    </para>
+    <para>
+      The other type of node, a switch, is described as follows:
+    </para>
+    <programlisting>	[switch_name]
+	PORT port_number_0 remote_node_name remote_port_number
+	PORT port_number_1 remote_node_name remote_port_number
+	PORT port_number_2 remote_node_name remote_port_number
+	...</programlisting>
+    <para>
+      <replaceable>switch_name</replaceable> is the symbolic name of the
+      switch. Since switches do not have a &ps; ID, in contrast to host entries
+      a <command>ID</command> line is missing within the switch description. On
+      the other hand a switch might contain (and usually has) more than one
+      port. These are listed in a <command>PORT</command> line each.
+    </para>
+    <para>
+      Be aware of the fact, that some port numbers might be missing from the
+      list. This is due to method on how the port are detected: Unconnected
+      port are undetectable for the search algorithm!
+    </para>
+    <para>
+      Of course switches can be connected to hosts or other switchs. If
+      remote_node_name is a host, the remote_port_number must be 0.
+    </para>
+    <para>
+      As an example let's try to describe switch sw12, which is connected on
+      port 0 to host 2, on port 1 to host1 and on port 5 to port 2 of a switch
+      sw11. The resulting node entry for sw12 will look like:
+    </para>
+    <programlisting>	[sw12]
+	PORT 0 host2 0
+	PORT 1 host1 0
+	PORT 5 sw11 2</programlisting>
   </refsect1>
   <refsect1>
     <title>See also</title>
