@@ -72,6 +72,23 @@
 (define %title-font-family% "Helvetica")
 (define %body-font-family% "Helvetica")
 
+(define %graphic-extensions% 
+  ;; The list of extensions which may appear on a 'fileref'
+  ;; on a 'Graphic' which are indicative of graphic formats.
+  '("pdf" "jpg" "jpeg" "png"))
+
+(define preferred-mediaobject-notations
+  (list "PDF"))
+
+(define preferred-mediaobject-extensions
+  (list "pdf"))
+
+(define acceptable-mediaobject-notations
+  (list "PNG"))
+
+(define acceptable-mediaobject-extensions
+  (list "png"))
+
 ;; Alternative fonts
 ;;(define %title-font-family% "iso-sanserif")
 ;;(define %body-font-family% "iso-sanserif")
