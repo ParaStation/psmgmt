@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psp.h,v 1.15 2002/02/18 19:50:46 eicker Exp $
+ * $Id: psp.h,v 1.16 2002/02/19 09:33:10 eicker Exp $
  *
  */
 /**
@@ -13,7 +13,7 @@
  * psp: The ParaStation Protocol
  *      Used for daemon-daemon and client-daemon communication.
  *
- * $Id: psp.h,v 1.15 2002/02/18 19:50:46 eicker Exp $
+ * $Id: psp.h,v 1.16 2002/02/19 09:33:10 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -237,7 +237,7 @@ int ClientMsgSend(void* amsg);
 *  ClientMsgReceive()
 *  Receive a msg from the local daemon
 */
-int ClientMsgReceive(void* msg);
+int ClientMsgRecv(void* msg);
 
 #ifdef __cplusplus
 }/* extern "C" */

@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: info.c,v 1.14 2002/02/15 19:19:24 eicker Exp $
+ * $Id: info.c,v 1.15 2002/02/19 09:33:10 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.14 2002/02/15 19:19:24 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.15 2002/02/19 09:33:10 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -38,7 +38,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: info.c,v 1.14 2002/02/15 19
 static int INFO_receive(INFO_info_t what, void* buffer, int size)
 {
     DDBufferMsg_t msg;
-    if (ClientMsgReceive(&msg)<0) {
+    if (ClientMsgRecv(&msg)<0) {
 	perror("INFO_receive: read");
 	exit(-1);
     } else {

@@ -2,14 +2,16 @@
  *               ParaStation3
  * psispawn.c
  *
+ * Spawning of processes and helper functions.
+ *
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.c,v 1.14 2002/02/18 19:58:33 eicker Exp $
+ * $Id: psispawn.c,v 1.15 2002/02/19 09:33:10 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.14 2002/02/18 19:58:33 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psispawn.c,v 1.15 2002/02/19 09:33:10 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -617,7 +619,7 @@ int PSI_dospawn(int count, short *dstnodes, char *workingdir,
      *----------------------------------
      */
     while (outstanding_answers>0) {
-	if (ClientMsgReceive(&msg)<0) {
+	if (ClientMsgRecv(&msg)<0) {
 	    perror("PSI_spawn(receiving answer from my daemon)");
 	    ret = -1;
 	    break;
