@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: selector.c,v 1.1 2003/12/11 20:24:20 eicker Exp $
+ * $Id: selector.c,v 1.2 2004/01/09 15:22:28 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: selector.c,v 1.1 2003/12/11 20:24:20 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: selector.c,v 1.2 2004/01/09 15:22:28 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -23,6 +23,35 @@ static char vcid[] __attribute__(( unused )) = "$Id: selector.c,v 1.1 2003/12/11
 #include "errlog.h"
 
 #include "selector.h"
+
+/**
+ * OSF provides no timeradd in sys/time.h
+ */
+#ifndef timeradd
+#define timeradd(a, b, result)                                        \
+  do {                                                                \
+    (result)->tv_sec = (a)->tv_sec + (b)->tv_sec;                     \
+    (result)->tv_usec = (a)->tv_usec + (b)->tv_usec;                  \
+    if ((result)->tv_usec >= 1000000) {                               \
+        ++(result)->tv_sec;                                           \
+        (result)->tv_usec -= 1000000;                                 \
+    }                                                                 \
+  } while (0)
+#endif
+/**
+ * OSF provides no timersub in sys/time.h
+ */
+#ifndef timersub
+#define timersub(a, b, result)                                        \
+  do {                                                                \
+    (result)->tv_sec = (a)->tv_sec - (b)->tv_sec;                     \
+    (result)->tv_usec = (a)->tv_usec - (b)->tv_usec;                  \
+    if ((result)->tv_usec < 0) {                                      \
+      --(result)->tv_sec;                                             \
+      (result)->tv_usec += 1000000;                                   \
+    }                                                                 \
+  } while (0)
+#endif
 
 /**
  * The module's initialization state. Set by @ref Selector_init(),
@@ -198,7 +227,9 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	}
 
 	if (timeout) {
+	    gettimeofday(&start, NULL);               /* get NEW starttime */
 	    timersub(&end, &start, &stv);
+	    if (stv.tv_sec < 0) timerclear(&stv);
 	}
 
 	retval = select(n, &rfds, &wfds, &efds, (timeout)?(&stv):NULL);
