@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.21 2002/01/09 20:22:17 eicker Exp $
+ * $Id: psid.c,v 1.22 2002/01/15 09:56:01 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.21 2002/01/09 20:22:17 eicker Exp $ 
+ * $Id: psid.c,v 1.22 2002/01/15 09:56:01 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.21 2002/01/09 20:22:17 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.22 2002/01/15 09:56:01 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -61,7 +61,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.21 $";
+static char psid_cvsid[] = "$Revision: 1.22 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -2635,10 +2635,9 @@ void CheckFileTable()
     char* errstr;
     struct timeval tv;
 
-    if(PSI_isoption(PSP_ODEBUG))
-	SYSLOG(1,(LOG_ERR,"CheckFileTable()\n"));
-    for(fd=0;fd<FD_SETSIZE;) {
-	if(FD_ISSET(fd,&openfds)) {
+    if (PSI_isoption(PSP_ODEBUG)) SYSLOG(1,(LOG_ERR,"CheckFileTable()\n"));
+    for (fd=0;fd<FD_SETSIZE;) {
+	if (FD_ISSET(fd,&openfds)) {
 	    memset(&rfds, 0, sizeof(rfds));
 	    FD_SET(fd,&rfds);
 
@@ -2646,7 +2645,7 @@ void CheckFileTable()
 	    tv.tv_usec=0;
 	    if (select(nfds, &rfds, (fd_set *)0, (fd_set *)0, &tv) < 0) {
 		/* error : check if it is a wrong fd in the table */
-		switch(errno){
+		switch (errno) {
 		case EBADF :
 		    /* if(PSI_isoption(PSP_ODEBUG))*/
 		    SYSLOG(1,(LOG_ERR, "CheckFileTable(%d):"
@@ -2669,7 +2668,6 @@ void CheckFileTable()
 		    shutdownNode(1);
 		    break;
 		default:
-		{
 		    errstr = strerror(errno);
 		    SYSLOG(1,(LOG_ERR,"CheckFileTable(%d):"
 			      " unrecognized error (%d):%s\n", fd, errno,
@@ -2677,11 +2675,12 @@ void CheckFileTable()
 		    fd ++;
 		    break;
 		}
-		}
-	    }else
+	    } else {
 		fd ++;
-	}else
+	    }
+	} else {
 	    fd ++;
+	}
     }
 }
 
@@ -2690,7 +2689,7 @@ void CheckFileTable()
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.21 $";
+    char revision[] = "$Revision: 1.22 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
