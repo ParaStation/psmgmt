@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mlisten.c,v 1.5 2002/01/07 13:41:22 eicker Exp $
+ * $Id: mlisten.c,v 1.6 2002/01/07 13:54:32 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mlisten.c,v 1.5 2002/01/07 13:41:22 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: mlisten.c,v 1.6 2002/01/07 13:54:32 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -63,8 +63,8 @@ void init(int num_nodes)
  */
 void version(void)
 {
-    char revision[] = "$Revision: 1.5 $";
-    fprintf(stderr, "mlisten %s\b \n", revision+10);
+    char revision[] = "$Revision: 1.6 $";
+    fprintf(stderr, "mlisten %s\b \n", revision+11);
 }
 
 /*
