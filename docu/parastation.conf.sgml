@@ -64,7 +64,7 @@
       ParaStation to run on a cluster. These parameters are
       <command>NrOfNodes</command>, <command>HWType</command>,
       <command>Nodes</command> and <command>LicenseServer</command>. In the
-      case of a MyriNet cluster <command>MyriNetModule</command> and
+      case of a Myrinet cluster <command>MyrinetModule</command> and
       <command>Routingfile</command> have also to be declared.
     </para>
     <para>
@@ -91,7 +91,7 @@
 	  <note>
 	    <para>
 	      The installation directory has to be declare before any of
-	      <command>LicenseFile</command>, <command>MyriNetModule</command>,
+	      <command>LicenseFile</command>, <command>MyrinetModule</command>,
 	      <command>RoutingFile</command> or <command>IPModule</command> is
 	      used.
 	    </para>
@@ -131,17 +131,17 @@
 	  <cmdsynopsis>
 	    <command>HWType</command>
 	    <group choice="req">
-	      <arg>EtherNet</arg>
-	      <arg>MyriNet</arg>
-<!-- 	      <arg>GigaEtherNet</arg> -->
+	      <arg>Ethernet</arg>
+	      <arg>Myrinet</arg>
+<!-- 	      <arg>GigaEthernet</arg> -->
 	      <arg>None</arg>
 	    </group>
 	    <sbr/>
 	    <command>HWType {</command>
 	    <group rep="repeat" choice="req">
-	      <arg>EtherNet</arg>
-	      <arg>MyriNet</arg>
-<!-- 	      <arg>GigaEtherNet</arg> -->
+	      <arg>Ethernet</arg>
+	      <arg>Myrinet</arg>
+<!-- 	      <arg>GigaEthernet</arg> -->
 	      <arg>None</arg>
 	    </group>
 	    <command>}</command>
@@ -162,7 +162,7 @@
 	    <varlistentry>
 	      <term>
 		<cmdsynopsis>
-		  <command>EtherNet</command>
+		  <command>Ethernet</command>
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
@@ -179,12 +179,12 @@
 	    <varlistentry>
 	      <term>
 		<cmdsynopsis>
-		  <command>MyriNet</command>
+		  <command>Myrinet</command>
 		</cmdsynopsis>
 	      </term>
 	      <listitem>
 		<para>
-		  Use optimized communication over MyriNet.
+		  Use optimized communication over Myrinet.
 		</para>
 		<para>
 		  This is only available within ParaStation 3.
@@ -195,7 +195,7 @@
 <!-- 	    <varlistentry> -->
 <!-- 	      <term> -->
 <!-- 		<cmdsynopsis> -->
-<!-- 		  <command>GigaEtherNet</command> -->
+<!-- 		  <command>GigaEthernet</command> -->
 <!-- 		</cmdsynopsis> -->
 <!-- 	      </term> -->
 <!-- 	      <listitem> -->
@@ -225,13 +225,13 @@
 	  <para>
 	    It is possible to enable more than one hardware type, either as
 	    default or on a per node basis. Think of a node that has both, a
-	    MyriNet and a fast ethernet card. Furthermore the cluster contains
-	    nodes that lack MyriNet. Then it might be useful to run jobs only
+	    Myrinet and a fast ethernet card. Furthermore the cluster contains
+	    nodes that lack Myrinet. Then it might be useful to run jobs only
 	    depending on ethernet communication even on nodes that have a
-	    MyriNet card in order to talk to nodes that don't have one. The
+	    Myrinet card in order to talk to nodes that don't have one. The
 	    corresponding <command>HWType</command> declaration reads
-	    <command>HWType {<parameter>MyriNet</parameter>
-	      <parameter>EtherNet</parameter> }</command>.
+	    <command>HWType {<parameter>Myrinet</parameter>
+	      <parameter>Ethernet</parameter> }</command>.
 	  </para>
 	  <para>
 	    The default value of <command>HWType</command> is
@@ -252,20 +252,20 @@
 	    If the argument is one of <parameter>yes</parameter>,
 	    <parameter>true</parameter> or <parameter>1</parameter> all nodes
 	    declared within a <command>Node</command> statement will load the
-	    ParaStation IP module in order to enable TCP/IP over MyriNet,
+	    ParaStation IP module in order to enable TCP/IP over Myrinet,
 	    unless otherwise stated within the <command>Node</command>
 	    statement.
 	  </para>
 	  <para>
 	    If the argument is one of <parameter>no</parameter>,
 	    <parameter>false</parameter> or <parameter>0</parameter> TCP/IP
-	    over MyriNet will be disabled, unless otherwise stated.
+	    over Myrinet will be disabled, unless otherwise stated.
 	  </para>
 	  <para>
-	    The default is to disable TCP/IP over MyriNet.
+	    The default is to disable TCP/IP over Myrinet.
 	  </para>
 	  <note>
-	    <para>This parameter is only useful when configuring a MyriNet
+	    <para>This parameter is only useful when configuring a Myrinet
 	      cluster.
 	    </para>
 	  </note>
@@ -306,7 +306,7 @@
 	    <arg>HWtype-entry</arg>
 	    <arg>hasIP-entry</arg>
 	    <arg>starter-entry</arg>
-	    <arg>MyriNetIP<replaceable>ip-addr</replaceable></arg>
+	    <arg>MyrinetIP<replaceable>ip-addr</replaceable></arg>
 	    <sbr/>
 	    <command>Node[s] {</command>
 	    <arg choice="plain">{<replaceable>hostname</replaceable></arg>
@@ -314,7 +314,7 @@
 	    <arg>HWtype-entry</arg>
 	    <arg>hasIP-entry</arg>
 	    <arg>starter-entry</arg>
-	    <arg>MyriNetIP<replaceable>ip-addr</replaceable></arg>
+	    <arg>MyrinetIP<replaceable>ip-addr</replaceable></arg>
 	    <arg choice="plain">}...</arg>
 	    <command>}</command>
 	  </cmdsynopsis>
@@ -358,9 +358,9 @@
 	    default value.
 	  </para>
 	  <para>
-	    The optional item <command>MyriNetIP</command> will assign the IP
+	    The optional item <command>MyrinetIP</command> will assign the IP
 	    address <parameter><replaceable>ip-addr</replaceable></parameter>
-	    to the local MyriNet card.
+	    to the local Myrinet card.
 	    <parameter><replaceable>ip-addr</replaceable></parameter> is either
 	    a resolvable hostname or an IP address in dot notation (e.g.
 	    192.168.1.17). For a detailed description on how this works refer
@@ -371,24 +371,24 @@
 	    E.g. the line
 	  </para>
 	  <programlisting>
-	Node node17 16 HWType { ethernet myrinet } hasIP yes MyriNetIP myri17
+	Node node17 16 HWType { ethernet myrinet } hasIP yes MyrinetIP myri17
 	  </programlisting>
 	  <para>
 	    will define the node <parameter>node17</parameter> to have the &ps;
 	    ID 16. Furthermore it is expected to have ethernet <emphasis
 	      role="bold">and</emphasis> myrinet communication interfaces and
-	    the IP over MyriNet functionality will be activated on this node.
-	    The IP address of the MyriNet card will be the one
+	    the IP over Myrinet functionality will be activated on this node.
+	    The IP address of the Myrinet card will be the one
 	    <parameter>myri17</parameter> resolves to.
 	  </para>
 	  <note>
 	    <para>
-	      The optional <command>MyriNetIP</command> item is only usefull
-	      when configuring a MyriNet cluster where IP over MyriNet is
+	      The optional <command>MyrinetIP</command> item is only usefull
+	      when configuring a Myrinet cluster where IP over Myrinet is
 	      enabled.
 	    </para>
 	    <para>
-	      It is also possible to assign IP addresses to MyriNet cards on
+	      It is also possible to assign IP addresses to Myrinet cards on
 	      the different nodes in a general manner based on the ParaStation
 	      IDs. Use the <command>IPPrefix</command> parameter for this
 	      feature.
@@ -501,7 +501,7 @@
       <varlistentry>
 	<term>
 	  <cmdsynopsis>
-	    <command>MyriNetModule</command>
+	    <command>MyrinetModule</command>
 	    <arg choice="plain"><replaceable>mod-file</replaceable></arg>
 	  </cmdsynopsis>
 	</term>
@@ -509,7 +509,7 @@
 	  <para>
 	    Tell the ParaStation daemon <xref linkend="psid"/> to use
 	    <filename><replaceable>mod-file</replaceable></filename> as the
-	    MyriNet kernel module.
+	    Myrinet kernel module.
 	  </para>
 	  <para>
 	    <filename><replaceable>mod-file</replaceable></filename> may be a
@@ -520,12 +520,12 @@
 	  </para>
 	  <note>
 	    <para>
-	      This parameter is only useful when configuring a MyriNet cluster.
+	      This parameter is only useful when configuring a Myrinet cluster.
 	    </para>
 	    <para>
-	      There is no default value for <command>MyriNetModule</command>.
-	      <command>MyriNetModule</command> has to be declared within the
-	      configuration file in any case for a MyriNet cluster.
+	      There is no default value for <command>MyrinetModule</command>.
+	      <command>MyrinetModule</command> has to be declared within the
+	      configuration file in any case for a Myrinet cluster.
 	    </para>
 	    <para>
 	      If <filename><replaceable>mod-file</replaceable></filename> is
@@ -547,7 +547,7 @@
 	  <para>
 	    Tell the ParaStation daemon <xref linkend="psid"/> to use
 	    <filename><replaceable>route-file</replaceable></filename> as the
-	    MyriNet routing file.
+	    Myrinet routing file.
 	  </para>
 	  <para>
 	    <filename><replaceable>route-file</replaceable></filename> may be
@@ -559,12 +559,12 @@
 	  </para>
 	  <note>
 	    <para>
-	      This parameter is only useful when configuring a MyriNet cluster.
+	      This parameter is only useful when configuring a Myrinet cluster.
 	    </para>
 	    <para>
 	      There is no default value for <command>RoutingFile</command>.
 	      <command>RoutingFile</command> has to be declared within the
-	      configuration file in any case for a MyriNet cluster.
+	      configuration file in any case for a Myrinet cluster.
 	    </para>
 	    <para>
 	      If <filename><replaceable>route-file</replaceable></filename>
@@ -601,7 +601,7 @@
 	  </para>
 	  <note>
 	    <para>
-	      This parameter is only useful when configuring a MyriNet cluster.
+	      This parameter is only useful when configuring a Myrinet cluster.
 	    </para>
 	    <para>
 	      This parameter can be set during runtime via the <command>set
@@ -635,7 +635,7 @@
 	  </para>
 	  <note>
 	    <para>
-	      This parameter is only useful when configuring a MyriNet cluster.
+	      This parameter is only useful when configuring a Myrinet cluster.
 	    </para>
 	    <para>
 	      In the current version of ParaStation this parameter is fixed and
@@ -675,12 +675,12 @@
 	  </para>
 	  <note>
 	    <para>
-	      This parameter is only useful when configuring a MyriNet cluster.
+	      This parameter is only useful when configuring a Myrinet cluster.
 	    </para>
 	    <para>
 	      <option>val</option> has to be choosen as 0 &lt;=
 	      <option>val</option> &lt; 3. Small values lead to more traffic on
-	      the PCI bus, but prevent free send buffers on the MyriNet card
+	      the PCI bus, but prevent free send buffers on the Myrinet card
 	      from not being used. Values larger than 3 have empirically proven
 	      to do a disservice.
 	    </para>
@@ -723,7 +723,7 @@
 	  </para>
 	  <note>
 	    <para>
-	      This parameter is only useful when configuring a MyriNet cluster.
+	      This parameter is only useful when configuring a Myrinet cluster.
 	    </para>
 	    <para>
 	      <option>val</option> has to be choosen as 0 &lt;=
@@ -752,7 +752,7 @@
 	  <para>
 	    Tell the ParaStation daemon <xref linkend="psid"/> to use
 	    <filename><replaceable>mod-file</replaceable></filename> as the
-	    IP over MyriNet kernel module.
+	    IP over Myrinet kernel module.
 	  </para>
 	  <para>
 	    <filename><replaceable>mod-file</replaceable></filename> may be a
@@ -773,7 +773,7 @@
 	  </para>
 	  <note>
 	    <para>
-	      This parameter is only useful when configuring a MyriNet cluster.
+	      This parameter is only useful when configuring a Myrinet cluster.
 	    </para>
 	    <para>
 	      If <filename><replaceable>mod-file</replaceable></filename> is
@@ -812,18 +812,18 @@
 	  </para>
 	  <note>
 	    <para>
-	      This parameter is only useful when configuring a MyriNet cluster.
+	      This parameter is only useful when configuring a Myrinet cluster.
 	    </para>
 	    <para>
 	      There is no default value for
 	      <command>IPPrefix</command>. <command>IPPrefix</command> has to
 	      be declared within the configuaration file in any case if IP over
-	      MyriNet should be enabled on a MyriNet cluster.
+	      Myrinet should be enabled on a Myrinet cluster.
 	    </para>
 	    <para>
-	      It is also possible to assing IP addresses to MyriNet cards on
+	      It is also possible to assing IP addresses to Myrinet cards on
 	      the different nodes on a per node basis. Use the
-	      <option>MyriNetIP</option> option of the <command>Nodes</command>
+	      <option>MyrinetIP</option> option of the <command>Nodes</command>
 	      parameter for this feature.
 	    </para>
 	  </note>
@@ -851,7 +851,7 @@
 	  </para>
 	  <note>
 	    <para>
-	      This parameter is only useful when configuring a MyriNet cluster.
+	      This parameter is only useful when configuring a Myrinet cluster.
 	    </para>
 	  </note>
 	</listitem>
@@ -1114,7 +1114,7 @@
   sgml-always-quote-attributes:t
   sgml-indent-step:2
   sgml-indent-data:t
-  sgml-parent-document:("main.xml" "set" "book" "reference" "reference" ("title"))
+  sgml-parent-document:("adminguide.xml" "book" "reference" "reference" ("title"))
   sgml-exposed-tags:nil
   sgml-local-catalogs:nil
   sgml-local-ecat-files:nil
