@@ -57,11 +57,19 @@
     <title>The &ps; network setup.</title>
     <mediaobject>
       <imageobject>
-	<imagedata width="80%" fileref="../images/network.png"/>
+	<imagedata scale="80%" fileref="../images/network.png"/>
       </imageobject>
       <imageobject>
 	<imagedata scale="66" align="center"
 	  fileref="../images/network.pdf"/>
+      </imageobject>
+      <imageobject role="HTML">
+	<imagedata width="75%" align="center"
+	  fileref="../images/network.png"/>
+      </imageobject>
+      <imageobject role="FO-PDF">
+	<imagedata width="12cm" align="center"
+	  fileref="../images/network.png"/>
       </imageobject>
     </mediaobject>
   </figure>

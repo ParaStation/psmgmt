@@ -45,7 +45,16 @@ http://www.cluster-compentence-center.com
 
 <mediaobject>
   <imageobject>
-    <imagedata scale="75" align="center" fileref="../images/CCC-Logo-5new.png"/>
+    <imagedata scale="75" align="center"
+      fileref="../images/CCC-Logo-5new.png"/>
+  </imageobject>
+  <imageobject role="HTML">
+    <imagedata width="10%" align="center"
+      fileref="../images/CCC-Logo-5new.png"/>
+  </imageobject>
+  <imageobject role="FO-PDF">
+    <imagedata width="5cm" align="center"
+      fileref="../images/CCC-Logo-5new.png"/>
   </imageobject>
 </mediaobject>
 
