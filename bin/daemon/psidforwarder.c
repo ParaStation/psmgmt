@@ -5,11 +5,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psidforwarder.c,v 1.10 2003/04/10 17:43:54 eicker Exp $
+ * $Id: psidforwarder.c,v 1.11 2003/07/31 17:58:35 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.10 2003/04/10 17:43:54 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psidforwarder.c,v 1.11 2003/07/31 17:58:35 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -64,6 +64,25 @@ fd_set myfds;
 /** Flag marking all controlled fds closed */
 int canend = 0;
 
+/**
+ * @brief Close socket to daemon.
+ *
+ * Close the socket connecting the forwarder with the local daemon.
+ *
+ * @return No return value.
+ */
+static void closeDaemonSock(void)
+{
+    int tmp = daemonSock;
+
+    if (daemonSock < 0) return;
+
+    daemonSock = -1;
+    FD_CLR(tmp, &myfds);
+    loggerTID = -1;
+    PSLog_close();
+    close(tmp);
+}
 
 static int sendMsg(PSLog_msg_t type, char *buf, size_t len)
 {
@@ -162,6 +181,11 @@ static int sendDaemonMsg(DDErrorMsg_t *msg)
     size_t c = msg->header.len;
     int n;
 
+    if (daemonSock < 0) {
+	errno = EBADF;
+	return -1;
+    }
+
     do {
 	n = send(daemonSock, buf, c, 0);
 	if (n < 0){
@@ -181,14 +205,7 @@ static int sendDaemonMsg(DDErrorMsg_t *msg)
 		 __func__, errno, errstr ? errstr : "UNKNOWN");
 	PSID_errlog(txt, 0);
 
-	loggerTID = -1;
-
-	if (daemonSock != -1) {
-	    FD_CLR(daemonSock, &myfds);
-	    close(daemonSock);
-
-	    daemonSock = -1;
-	}
+	closeDaemonSock();
 
 	return n;
     } else if (!n) {
@@ -196,14 +213,7 @@ static int sendDaemonMsg(DDErrorMsg_t *msg)
 		 "%s(): Lost connection to daemon\n", __func__);
 	PSID_errlog(txt, 0);
 
-	loggerTID = -1;
-
-	if (daemonSock != -1) {
-	    FD_CLR(daemonSock, &myfds);
-	    close(daemonSock);
-
-	    daemonSock = -1;
-	}
+	closeDaemonSock();
 
 	return n;
     }
@@ -407,7 +417,6 @@ static void sighandler(int sig)
     int i, status;
     struct rusage rusage;
     pid_t pid;
-    static int firstCall = 1;
     DDErrorMsg_t msg;
 
     char txt[80];
@@ -529,7 +538,7 @@ static void sighandler(int sig)
 	releaseLogger(status);
 
 	/* Release the daemon */
-	if (daemonSock != -1) close(daemonSock);
+	closeDaemonSock();
 
 	exit(0);
 
@@ -632,7 +641,7 @@ static int writeall(int fd, void *buf, int count)
     return count;
 }
 
-static int read_from_logger(int logfd, int stdinport)
+static int readFromLogger(int stdinport)
 {
     PSLog_Msg_t msg;
     char obuf[120];
@@ -641,17 +650,29 @@ static int read_from_logger(int logfd, int stdinport)
     ret = recvMsg(&msg, NULL);
     if (ret > 0) {
 	if ((msg.header.type == PSP_CC_MSG) && (msg.type == STDIN)) {
+	    int len = msg.header.len - PSLog_headerSize;
 	    if (verbose) {
 		snprintf(obuf, sizeof(obuf),
-			 "PSID_forwarder: receive %ld byte for STDIN\n",
-			 (long) msg.header.len-(sizeof(msg)-sizeof(msg.buf)));
+			 "PSID_forwarder: receive %d byte for STDIN\n", len);
 		printMsg(STDERR, obuf);
 	    }
-	    writeall(stdinport, msg.buf, msg.header.len - PSLog_headerSize); 
+	    if (len) {
+		if (stdinport<0) {
+		    snprintf(obuf, sizeof(obuf),
+			     "PSID_forwarder: STDIN already closed\n");
+		    printMsg(STDERR, obuf);
+		} else {
+		    writeall(stdinport, msg.buf, len);
+		}
+	    } else {
+		/* close clients stdin */
+		shutdown(stdinport, SHUT_WR);
+		stdinport = -1;
+	    }
 	} else 	if ((msg.header.type == PSP_CC_MSG) && (msg.type == EXIT)) {
 	    /* Logger is going to die */
 	    /* Release the daemon */
-	    if (daemonSock != -1) close(daemonSock);
+	    closeDaemonSock();
 
 	    exit(0);
 	} else {
@@ -720,7 +741,7 @@ static void loop(void)
 	    if (FD_ISSET(sock, &afds)) { /* socket ready */
 		if (sock==daemonSock) {
 		    /* Read new input */
-		    read_from_logger(daemonSock, stdinSock);
+		    readFromLogger(stdinSock);
 		    continue;
 		} else if (sock==stdoutSock) {
 		    type=STDOUT;
