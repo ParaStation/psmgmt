@@ -11,7 +11,7 @@
  *        DO NOT DISTRIBUTE THIS FILE !!!
  *
  *
- * $Id: pslic_hidden.h,v 1.2 2002/07/17 19:37:58 hauke Exp $
+ * $Id: pslic_hidden.h,v 1.3 2002/07/19 12:17:48 hauke Exp $
  *
  * @author
  *         Jens Hauke <hauke@par-tec.de>
@@ -34,8 +34,8 @@ extern inline char *lic_calchash(env_fields_t *env, char *HashFields)
     char *fn;
     char *val;
     static char res[20];
-    uint32_t h1 = *(uint32_t *)"halo";
-    uint32_t h2 = *(uint32_t *)"blub";
+    uint32_t h1 = 0x6f6c6168;/* *(uint32_t *)"halo";*/
+    uint32_t h2 = 0x62756c62;/* *(uint32_t *)"blub";*/
     int cnt = 0;
 
     if (!HashFields) goto err;
