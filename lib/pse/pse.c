@@ -7,23 +7,20 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: pse.c,v 1.31 2003/02/07 15:59:59 eicker Exp $
+ * $Id: pse.c,v 1.32 2003/02/13 17:05:05 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.31 2003/02/07 15:59:59 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: pse.c,v 1.32 2003/02/13 17:05:05 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <netinet/in.h>
 #include <signal.h>
-#include <netdb.h>
 
 #include "errlog.h"
 
@@ -183,10 +180,6 @@ void PSE_spawnMaster(int argc, char *argv[])
     long spawnedProcess = -1;
     int error;
 
-    char hostname[256];
-    struct hostent *hp;
-    struct in_addr sin_addr;
-
     /* client process? */
     if (PSE_getRank() != -1) {
 	snprintf(errtxt, sizeof(errtxt),
@@ -202,10 +195,6 @@ void PSE_spawnMaster(int argc, char *argv[])
 
     /* Check for LSF-Parallel */
     PSI_RemoteArgs(argc, argv, &argc, &argv);
-
-    gethostname(hostname, sizeof(hostname));
-    hp = gethostbyname(hostname);
-    memcpy(&sin_addr, hp->h_addr, hp->h_length);
 
     /* spawn master process */
     if (PSI_spawnM(1, NULL, ".", argc, argv, PSC_getMyTID(),
@@ -258,6 +247,7 @@ void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
 
     /* init table of spawned processes */
     myWorldSize = num;
+    /* @todo What happens if spawnTasks is called twice -> error */
     spawnedProcesses = malloc(sizeof(long) * myWorldSize);
     if (!spawnedProcesses) {
 	snprintf(errtxt, sizeof(errtxt), "No memory.");
