@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psdaemonprotocol.h,v 1.6 2004/01/09 15:12:44 eicker Exp $
+ * $Id: psdaemonprotocol.h,v 1.7 2004/01/22 16:54:58 eicker Exp $
  *
  */
 /**
  * @file
  * ParaStation daemon-daemon high-level protocol.
  *
- * $Id: psdaemonprotocol.h,v 1.6 2004/01/09 15:12:44 eicker Exp $
+ * $Id: psdaemonprotocol.h,v 1.7 2004/01/22 16:54:58 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -57,8 +57,9 @@ extern "C" {
 #define PSP_DD_GETPARTNL           0x0121  /**< Partition request nodelist */
 #define PSP_DD_PROVIDEPART         0x0122  /**< Reply partition bound */
 #define PSP_DD_PROVIDEPARTNL       0x0123  /**< Partition reply nodelist */
-#define PSP_DD_GETTASKS            0x0124  /**< Get tasks from slaves */
-#define PSP_DD_PROVIDETASKS        0x0125  /**< Reply tasks */
+#define PSP_DD_GETNODES            0x0124  /**< Forwarded GETNODES message */
+#define PSP_DD_GETTASKS            0x0125  /**< Get tasks from slaves */
+#define PSP_DD_PROVIDETASKS        0x0126  /**< Reply tasks */
 
 /** Messages used to find master */
 #define PSP_DD_LOAD                0x0130  /**< Load message to master */
