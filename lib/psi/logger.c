@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: logger.c,v 1.18 2002/02/11 12:51:33 eicker Exp $
+ * $Id: logger.c,v 1.19 2002/07/03 20:33:45 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: logger.c,v 1.18 2002/02/11 12:51:33 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: logger.c,v 1.19 2002/07/03 20:33:45 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -29,18 +29,17 @@ static char vcid[] __attribute__(( unused )) = "$Id: logger.c,v 1.18 2002/02/11 
 #include <stdlib.h>
 #include <signal.h>
 #include <pty.h>
+#include <syslog.h>
 
+#include "pscommon.h"
 #include "psi.h"
-#include "psitask.h"
-#include "psilog.h"
+//#include "psitask.h"
+//#include "psilog.h"
 
 #include "logger.h"
 
 pid_t logger_pid=0;
 
-int stdin_fileno_backup=-1;
-int stdout_fileno_backup=-1;
-int stderr_fileno_backup=-1;
 
 static int LOGGERexecv( const char *path, char *const argv[])
 {
@@ -118,8 +117,8 @@ void LOGGERspawnforwarder(unsigned int logger_node, int logger_port,
 	    if(i != stdoutfds[0] && i !=stderrfds[0])
 		close(i);
 
-	argv[0] = (char*)malloc(strlen(PSI_LookupInstalldir()) + 20);
-	sprintf(argv[0], "%s/bin/psiforwarder", PSI_LookupInstalldir());
+	argv[0] = (char*)malloc(strlen(PSC_lookupInstalldir()) + 20);
+	sprintf(argv[0], "%s/bin/psiforwarder", PSC_lookupInstalldir());
 	argv[1] = (char*)malloc(10);
 	sprintf(argv[1], "%u", logger_node);
 	argv[2] = (char*)malloc(10);
@@ -171,13 +170,6 @@ void LOGGERspawnforwarder(unsigned int logger_node, int logger_port,
         perror("execv()");
 	exit(1);
     }
-
-    /*
-     * backup stdout and stderr for later reuse
-     */
-    stdin_fileno_backup=dup(STDIN_FILENO);
-    stdout_fileno_backup=dup(STDOUT_FILENO);
-    stderr_fileno_backup=dup(STDERR_FILENO);
 
     /*
      * redirect input and output
@@ -271,8 +263,8 @@ void LOGGERexecLogger(void)
 	}
     }
 
-    argv[0] = (char*)malloc(strlen(PSI_LookupInstalldir()) + 20);
-    sprintf(argv[0],"%s/bin/psilogger", PSI_LookupInstalldir());
+    argv[0] = (char*)malloc(strlen(PSC_lookupInstalldir()) + 20);
+    sprintf(argv[0],"%s/bin/psilogger", PSC_lookupInstalldir());
     argv[1] = (char*)malloc(10);
     sprintf(argv[1],"%d", listenport);
     argv[2] = (char*)malloc(10);
