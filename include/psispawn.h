@@ -5,14 +5,14 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psispawn.h,v 1.5 2002/07/03 19:58:34 eicker Exp $
+ * $Id: psispawn.h,v 1.6 2002/07/11 16:52:53 eicker Exp $
  *
  */
 /**
  * @file
  * User-functions for spawning of ParaStation tasks.
  *
- * $Id: psispawn.h,v 1.5 2002/07/03 19:58:34 eicker Exp $
+ * $Id: psispawn.h,v 1.6 2002/07/11 16:52:53 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -62,7 +62,7 @@ long PSI_spawn(short dstnode, char *workingdir, int argc, char **argv,
 int PSI_spawnM(int count, short* dstnodes, char *workingdir,
 	       int argc, char **argv,
 	       unsigned int loggernode, unsigned short loggerport,
-	       int rank, long parenttid, int *errors, long *tids);
+	       int rank, int *errors, long *tids);
 
 /*------------------------------------------------------------
  * PSI_LSF()
@@ -90,24 +90,6 @@ void PSI_RemoteArgs(int Argc,char **Argv,int *RArgc,char ***RArgv);
  * RETURN:  the number of nodes in the partition or -1 on error.
  */
 short PSI_getPartition(unsigned int hwType, int myrank);
-
-/*
- * PSI_do_spawn()
- *
- *  creates COUNT new processes on ParaStation node DSTNODES[].
- *  The WORKINGDIR can either be absolute or realativ to the actual
- *  working directory of the spawning process.
- *  ARGC is the number of arguments and ARGV are the arguments as known
- *  from main(argc,argv)
- *  ERROR[] returns an errorcode if the spawning failed.
- *  TIDS[] returns an tids if the spawning is successful.
- *  RETURN -1 on failure
- *         nr of processes spawned on success
- */
-int PSI_dospawn(int count, short *dstnodes, char *workingdir,
-		int argc, char **argv,
-		unsigned int loggernode, unsigned short loggerport,
-		int firstrank, long parenttid, int *errors, long* tids);
 
 /*
  * PSI_kill()
