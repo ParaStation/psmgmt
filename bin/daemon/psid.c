@@ -5,21 +5,21 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psid.c,v 1.40 2002/02/20 13:31:27 hauke Exp $
+ * $Id: psid.c,v 1.41 2002/02/20 15:40:08 eicker Exp $
  *
  */
 /**
  * \file
  * psid: ParaStation Daemon
  *
- * $Id: psid.c,v 1.40 2002/02/20 13:31:27 hauke Exp $ 
+ * $Id: psid.c,v 1.41 2002/02/20 15:40:08 eicker Exp $ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.40 2002/02/20 13:31:27 hauke Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psid.c,v 1.41 2002/02/20 15:40:08 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -63,7 +63,7 @@ struct timeval killclientstimer;
                                   (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 #define mytimeradd(tvp,sec,usec) timerop(tvp,sec,usec,+)
 
-static char psid_cvsid[] = "$Revision: 1.40 $";
+static char psid_cvsid[] = "$Revision: 1.41 $";
 
 int UIDLimit = -1;   /* not limited to any user */
 int MAXPROCLimit = -1;   /* not limited to any number of processes */
@@ -2746,7 +2746,7 @@ void MCastCallBack(int msgid, void* buf)
 	node = *(int*)buf;
 	SYSLOG(2, (LOG_ERR,
 		   "MCastCallBack(MCAST_NEW_CONNECTION,%d). \n", node));
-	if (node!=PSI_myid) {
+	if (node!=PSI_myid && !DaemonIsUp(node)) {
 	    initDaemon(0, node, -1);
 	    if (send_DAEMONCONNECT(node)<0) {
 		SYSLOG(2, (LOG_ERR, "MCastCallBack() send_DAEMONCONNECT() "
@@ -2799,7 +2799,7 @@ void RDPCallBack(int msgid, void* buf)
     case RDP_NEW_CONNECTION:
 	node = *(int*)buf;
 	SYSLOG(2,(LOG_ERR, "RDPCallBack(RDP_NEW_CONNECTION,%d). \n", node));
-	if (node != PSI_myid) {
+	if (node != PSI_myid && !DaemonIsUp(node)) {
 	    initDaemon(0, node, -1);
 	    if(send_DAEMONCONNECT(node)<0)
 		SYSLOG(2,(LOG_ERR,"RDPCallBack() send_DAEMONCONNECT() "
@@ -3082,7 +3082,7 @@ void checkFileTable(void)
  */
 static void version(void)
 {
-    char revision[] = "$Revision: 1.40 $";
+    char revision[] = "$Revision: 1.41 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
