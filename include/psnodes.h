@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psnodes.h,v 1.5 2003/07/22 18:31:23 eicker Exp $
+ * $Id: psnodes.h,v 1.6 2003/10/08 13:44:47 eicker Exp $
  *
  */
 /**
@@ -13,7 +13,7 @@
  * Functions for handling the various informations about the nodes
  * with a ParaStation cluster
  *
- * $Id: psnodes.h,v 1.5 2003/07/22 18:31:23 eicker Exp $
+ * $Id: psnodes.h,v 1.6 2003/10/08 13:44:47 eicker Exp $
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
@@ -30,9 +30,6 @@ extern "C" {
 } /* <- just for emacs indentation */
 #endif
 #endif
-
-/** Special ID to find the node running the license server */
-#define PSNODES_LIC -1
 
 /**
  * @brief Initialize the PSnodes module.

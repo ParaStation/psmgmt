@@ -5,7 +5,7 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: mcast_private.h,v 1.12 2002/08/06 14:51:48 eicker Exp $
+ * $Id: mcast_private.h,v 1.13 2003/10/08 13:47:25 eicker Exp $
  *
  */
 /**
@@ -14,7 +14,7 @@
  *
  * Private functions and definitions.
  *
- * $Id: mcast_private.h,v 1.12 2002/08/06 14:51:48 eicker Exp $
+ * $Id: mcast_private.h,v 1.13 2003/10/08 13:47:25 eicker Exp $
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -44,9 +44,6 @@ extern "C" {
     }                                                                 \
   } while (0)
 #endif
-
-/** Flag whether we are LicServer. Set via initMCast(). */
-static int licServer = 0;
 
 /**
  * The socket used to send and receive MCast packets. Will be opened in
@@ -78,8 +75,6 @@ static void (*MCastCallback)(int, void*) = NULL;
 typedef enum {
     T_INFO = 0x01,   /**< Normal info message */
     T_CLOSE,         /**< Info message from node going down */
-    T_LIC,           /**< Normal info message from license-server */
-    T_KILL           /**< Info message from exiting license-server */
 } MCastMsgType;
 
 /**
@@ -104,12 +99,6 @@ static struct timeval MCastTimeout = {2, 0}; /* sec, usec */
  * The actual dead-limit. Get/set by getDeadLimitMCast()/setDeadLimitMCast().
  */
 static int MCastDeadLimit = 10;
-
-/**
- * The license dead-limit. If this amount of pings from the
- * license-daemon are missing, MCast shuts down via callback or exit().
- */
-static const int MCastLicShutdownLimit = 30;
 
 /** The jobs on my local node. */
 static MCastJobs jobsMCast = {0, 0};
@@ -250,17 +239,15 @@ static Mconninfo *conntableMCast = NULL;
 /**
  * @brief Initialize the @ref conntableMCast.
  *
- * Initialize the @ref conntableMCast for @a nodes+1 nodes to receive pings
+ * Initialize the @ref conntableMCast for @a nodes nodes to receive pings
  * from. The IP numbers of all nodes are stored in @a host.
  *
  *
- * @param nodes The number of nodes pings are expected from (minus the
- * node of the license-daemon).
+ * @param nodes The number of nodes pings are expected from.
  *
  * @param host The IP number of each node in network-byteorder indexed
  * by node number. The length of @a host must be at least @a
- * nodes+1. The first @ref nodes entries represent the ordinary
- * nodes, the last entry is the node of the license-daemon.
+ * nodes.
  *
  * @param port The port pings are expected to be sent from.
  *

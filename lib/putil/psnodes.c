@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: psnodes.c,v 1.4 2003/06/25 16:33:24 eicker Exp $
+ * $Id: psnodes.c,v 1.5 2003/10/08 13:44:47 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psnodes.c,v 1.4 2003/06/25 16:33:24 eicker Exp $";
+static char vcid[] __attribute__(( unused )) = "$Id: psnodes.c,v 1.5 2003/10/08 13:44:47 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdlib.h>
@@ -57,20 +57,18 @@ int PSnodes_init(int num)
 {
     int i;
 
-    if (nodes) free(--nodes);
+    if (nodes) free(nodes);
 
     numNodes = num;
 
-    nodes = (struct node_t *)malloc(sizeof(*nodes) * (numNodes + 1));
+    nodes = (struct node_t *)malloc(sizeof(*nodes) * numNodes);
 
     if (!nodes) {
 	return -1;
     }
 
-    nodes++;
-
     /* Clear nodes */
-    for (i=-1; i<numNodes; i++) {
+    for (i=0; i<numNodes; i++) {
         nodes[i].addr = INADDR_ANY;
 	nodes[i].numCPU = 0;
 	nodes[i].isUp = 0;
@@ -94,7 +92,7 @@ int PSnodes_getNum(void)
 
 static int ID_ok(int id)
 {
-    if (PSnodes_getNum() == -1 || id < -1 || id >= PSnodes_getNum()) {
+    if (PSnodes_getNum() == -1 || id < 0 || id >= PSnodes_getNum()) {
 	/* id out of Range */
 	return 0;
     }
@@ -111,7 +109,7 @@ int PSnodes_register(int id, unsigned int IPaddr)
 	return -1;
     }
 
-    if (id != PSNODES_LIC && PSnodes_lookupHost(IPaddr)!=-1) {
+    if (PSnodes_lookupHost(IPaddr)!=-1) {
 	/* duplicated host */
 	return -1;
     }
@@ -122,8 +120,6 @@ int PSnodes_register(int id, unsigned int IPaddr)
 
     /* install hostname */
     nodes[id].addr = IPaddr;
-
-    if (id == PSNODES_LIC) return 0;
 
     hostno = ntohl(IPaddr) & 0xff;
 
