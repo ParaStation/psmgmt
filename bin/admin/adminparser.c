@@ -7,11 +7,11 @@
  * Copyright (C) ParTec AG Karlsruhe
  * All rights reserved.
  *
- * $Id: adminparser.c,v 1.5 2003/10/08 16:27:06 eicker Exp $
+ * $Id: adminparser.c,v 1.6 2003/10/23 16:18:30 eicker Exp $
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.5 2003/10/08 16:27:06 eicker Exp $";
+static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.6 2003/10/23 16:18:30 eicker Exp $";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -21,8 +21,10 @@ static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.5 2003/1
 #include <netinet/in.h>
 #include <pwd.h>
 #include <grp.h>
+#include <sys/types.h>
 
 #include "pscommon.h"
+#include "pstask.h"
 #include "psprotocol.h"
 #include "psi.h"
 #include "info.h"
@@ -35,7 +37,7 @@ static char lexid[] __attribute__(( unused )) = "$Id: adminparser.c,v 1.5 2003/1
 
 #include "helpmsgs.c"
 
-static char parserversion[] = "$Revision: 1.5 $";
+static char parserversion[] = "$Revision: 1.6 $";
 
 static char *getNodeList(char *nl_descr)
 {
@@ -324,7 +326,7 @@ static uid_t uidFromString(char *user)
     return -2;
 }
 
-static uid_t gidFromString(char *group)
+static gid_t gidFromString(char *group)
 {
     long tmp = parser_getNumber(group);
     struct group *grp = getgrnam(group);
@@ -465,7 +467,7 @@ static int showCommand(char *token)
 static int killCommand(char *token)
 {
     int signal = -1;
-    long tid;
+    PStask_ID_t tid;
 
     token = parser_getString();
     if (!token) goto error;
