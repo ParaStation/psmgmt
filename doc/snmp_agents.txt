@@ -32,13 +32,36 @@ II. Installation:
     I think, you have security subsystem and this subsystem is active
     
     Example of my security subsystem - 
-    part of my configuration file of snmpd (snmpd.conf)
+    a) how I can determine what configuration file is used by snmpd?
+	If you have correct installed snmpd, you will have file /etc/init.d/snmpd, and in this file you
+    will have a line, which looks like this:
+	startproc /usr/sbin/snmpd -c /etc/ucdsnmpd.conf -f || return=$rc_failed
+    It means, the name of configuration file is /etc/ucdsnmpd.conf.
+    b) Security configuration of SNMP (version 3) for /etc/ucdsnmpd.conf. I create only 2 users
 
-	<Later>
+	############################################################################
+	# for verions 3
+	# createUser username (MD5|SHA) authpassphrase [DES]  [privpassphrase]
 
-    configuration file (snmp.conf (~/.snmp/snmp.conf))
+	createUser probausr MD5 attention
+	createUser superusr MD5 paragone DES paranoya
 
-	<Later>
+	rouser probausr
+	rwuser superusr
+
+    c) Security configuration file (snmp.conf (~/.snmp/snmp.conf))
+
+	defContext none
+	defSecurityName syrchyn
+	defAuthPassphrase paragone
+	defPrivPassphrase paranoya
+	defVersion 3
+	defAuthType MD5
+	defPrivType DES
+	defSecurityLevel authPriv	
+
+    d) Security part (version 3) of command line for commands snmpget, snmpwalk, snmpset
+	-v 3 -u superusr -l authNoPriv -a MD5 -A paragone
 
 2) Do you have installed dynamic loaded agents already?
 	snmpwalk <security settings> <host>  UCD-DLMOD-MIB::dlmodName
