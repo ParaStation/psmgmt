@@ -1889,7 +1889,7 @@ static int handleRDP(int fd)
     slen = sizeof(sin);
     memset(&sin, 0, slen);
     /* read msg for inspection */
-    ret = MYrecvfrom(rdpsock, &msg, sizeof(msg), MSG_PEEK,
+    ret = MYrecvfrom(fd, &msg, sizeof(msg), MSG_PEEK,
 		     (struct sockaddr *)&sin, &slen);
     if (ret < 0) {
 	snprintf(errtxt, sizeof(errtxt), "%s: recvfrom(MSG_PEEK) returns: %s",
@@ -1903,7 +1903,7 @@ static int handleRDP(int fd)
 	if (100.0*rand()/(RAND_MAX+1.0) < RDPPktLoss) {
 
 	    /* really get the msg */
-	    if (MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
+	    if (MYrecvfrom(fd, &msg, sizeof(msg), 0,
 			   (struct sockaddr *) &sin, &slen)<0) {
 		snprintf(errtxt, sizeof(errtxt),
 			 "%s/PKTLOSS: recvfrom() returns: %s",
@@ -1927,7 +1927,7 @@ static int handleRDP(int fd)
 	errlog(errtxt, 0);
 
 	/* really get the msg */
-	if (MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
+	if (MYrecvfrom(fd, &msg, sizeof(msg), 0,
 		       (struct sockaddr *) &sin, &slen)<0) {
 	    snprintf(errtxt, sizeof(errtxt),
 		     "%s/ELNRNG: recvfrom() returns: %s",
@@ -1947,13 +1947,13 @@ static int handleRDP(int fd)
 	/* This is a control message */
 
 	/* really get the msg */
-	ret = MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
+	ret = MYrecvfrom(fd, &msg, sizeof(msg), 0,
 			 (struct sockaddr *) &sin, &slen);
 	if (ret < 0) {
 	    snprintf(errtxt, sizeof(errtxt),
 		     "%s/CCTRL: recvfrom() returns: %s",
 		     __func__, strerror(errno));
-	    errexit(errtxt, errno);
+	    errlog(errtxt, 0);
 	} else if (!ret) {
 	    snprintf(errtxt, sizeof(errtxt),
 		     "%s/CCTRL: got 0 from recvfrom()", __func__);
@@ -1969,7 +1969,7 @@ static int handleRDP(int fd)
     if (RSEQCMP(msg.header.seqno, conntable[fromnode].frameExpected)) {
 	/* Wrong seq */
 	slen = sizeof(sin);
-	ret = MYrecvfrom(rdpsock, &msg, sizeof(msg), 0,
+	ret = MYrecvfrom(fd, &msg, sizeof(msg), 0,
 			 (struct sockaddr *) &sin, &slen);
 
 	if (ret < 0) {
