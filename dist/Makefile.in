@@ -13,9 +13,6 @@
 TOP_SRCDIR := @top_srcdir@
 TOP_BUILDDIR := @top_builddir@
 
-TARGET_OS := @target_os@
-TARGET_CPU := @target_cpu@
-
 INSTALL = @INSTALL@
 INSTFLAGS_NOEXEC = -m 644
 
@@ -79,11 +76,11 @@ tar: $(DISTNAME).tar.gz
 srpm: $(DISTNAME).src.rpm
 
 $(DISTNAME).src.rpm: $(DISTNAME).tar.gz
-	rpmbuild --define='_srcrpmdir .' -ts $<
+	rpmbuild --define="_srcrpmdir $$PWD" -ts $<
 
 .PHONY: rpm
 rpm: $(DISTNAME).tar.gz srpm
-	rpmbuild --clean --define='_rpmdir .' -tb $<
+	rpmbuild --clean --define="_rpmdir $$PWD" -tb $<
 
 #
 # building stripped libs
