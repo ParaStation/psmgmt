@@ -37,7 +37,7 @@ TARGETS = $(TOOLS) test_config_parsing
 all bin: $(TOOLS)
 
 test_pse psmstart mpirun_chp4 mpirun_chgm mlisten test_config: \
-	LOADLIBES+=-Wl,-Bstatic -lpopt -Wl,-Bdynamic
+	LOADLIBES+=-Wl -lpopt
 
 test_pse: test_pse.o -lpse -lpsi
 
@@ -52,7 +52,7 @@ psispawn: psispawn.o -lpsi
 mpirun_chgm: mpirun_chgm.o -lpse -lpsi
 
 gmspawner: gmspawner.o -lpsi
-gmspawner: LOADLIBES:=-lpthread -Wl,-Bstatic -lpopt -Wl,-Bdynamic
+gmspawner: LOADLIBES:=-lpthread -lpopt
 
 mlisten: mlisten.o
 
@@ -62,8 +62,7 @@ test_config_parsing: -lputil -lpscommon
 VPATH += $(SRCDIR)/admin
 psiadmin: psiadmin.o commands.o adminparser.o
 psiadmin: -lpsi -lputil
-psiadmin: LOADLIBES:=-lreadline -lhistory -l@LIBCURSES@ \
-		-Wl,-Bstatic -lpopt -Wl,-Bdynamic
+psiadmin: LOADLIBES:=-lreadline -lhistory -l@LIBCURSES@ -lpopt
 
 # psid
 VPATH += $(SRCDIR)/daemon
@@ -71,7 +70,7 @@ psid: psid.o psidutil.o psidtask.o psidspawn.o psidforwarder.o
 psid: psidsignal.o psidmsgbuf.o psidrdp.o psidclient.o psidcomm.o
 psid: psidinfo.o psidoption.o psidpartition.o psidstatus.o
 psid: -lputil -lpscommon -lutil -lpslog
-psid: LOADLIBES:=-lm -Wl,-Bstatic -lpopt -Wl,-Bdynamic
+psid: LOADLIBES:=-lm -lpopt
 
 # logger
 VPATH += $(SRCDIR)/logger
