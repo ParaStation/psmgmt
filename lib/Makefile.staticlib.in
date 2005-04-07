@@ -28,7 +28,7 @@ $(LIBDSTDIR)/lib$(LIBNAME).a: $(LIBOBJS)
 clean:
 	$(RM) $(_LIBDEPS) $(LIBOBJS) 
 
-realclean: clean
+distclean: clean
 	$(RM) $(LIBDSTDIR)/lib$(LIBNAME).a
 
 

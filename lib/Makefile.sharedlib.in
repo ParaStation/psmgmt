@@ -34,7 +34,7 @@ $(LIBDSTDIR)/lib$(LIBNAME).so: $(LIBOBJS)
 clean:
 	$(RM) $(_LIBDEPS) $(LIBOBJS) 
 
-realclean: clean
+distclean: clean
 	$(RM) $(LIBDSTDIR)/lib$(LIBNAME).so
 
 -include $(_LIBDEPS)
@@ -43,5 +43,5 @@ else
 # No shared libs for tru64. Maybe in the future?
 all:
 	@echo "Warning: No shared lib support fur tru64!"
-clean realclean:
+clean distclean:
 endif

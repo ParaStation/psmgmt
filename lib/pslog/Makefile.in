@@ -34,7 +34,7 @@ sharedlib staticlib: sharedlib.dir staticlib.dir
 sharedlib.dir staticlib.dir:
 	$(INSTALL) -d $@
 
-clean realclean: sharedlib.dir staticlib.dir
+clean distclean: sharedlib.dir staticlib.dir
 	$(MAKE) -C sharedlib.dir -f ../../Makefile.sharedlib $@
 	$(MAKE) -C staticlib.dir -f ../../Makefile.staticlib $@
 
