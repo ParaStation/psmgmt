@@ -33,14 +33,9 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "hardware.h"
 
 #include "config_parsing.h"
-#include "pslic.h"
-
-/* magic license check */
-#include "../../license/pslic_hidden.h"
 
 static config_t config = (config_t) {
     .instDir = NULL,
-    .licEnv = { NULL, 0, 0},
     .selectTime = 2,
     .deadInterval = 10,
     .RDPPort = 886,
@@ -57,8 +52,6 @@ static config_t config = (config_t) {
 #define ENV_END 17 /* Some magic value */
 
 static int nodesfound = 0;
-
-static char *licFile = NULL;
 
 static char errtxt[256];
 
@@ -222,10 +215,7 @@ static int getNumNodes(char *token)
 
 static int getLicServer(char *token)
 {
-    char *hname;
-    unsigned int ipaddr;
-
-    hname = parser_getString();
+    char *hname = parser_getString();
     parser_comment("definition of license server is obsolete", 0);
 
     return 0;
@@ -234,15 +224,7 @@ static int getLicServer(char *token)
 static int getLicFile(char *token)
 {
     char *licfile = parser_getString();
-
-    /*
-     * Don't use absLicFile here. It will be assigned later.
-     * This is due to the fact that you don't have to give the
-     * LicenseFile entry inevitably.
-     */
-    if (licFile) free(licFile);
-
-    licFile = strdup(licfile);
+    parser_comment("definition of license file is obsolete", 0);
 
     return 0;
 }
@@ -1044,8 +1026,6 @@ static keylist_t config_list[] = {
 
 static parser_t config_parser = {" \t\n", config_list};
 
-#define DEFAULT_LICFILE "license"
-
 config_t *parseConfig(int usesyslog, int loglevel, char *configfile)
 {
     FILE *cfd;
@@ -1095,76 +1075,10 @@ config_t *parseConfig(int usesyslog, int loglevel, char *configfile)
     }
 
     /*
-     * Test if the Licensefile exists
-     */
-    if (!licFile) {
-	licFile = strdup(DEFAULT_LICFILE);
-    }
-
-    absLicFile = parser_getFilename(licFile, PSC_lookupInstalldir(),
-				    "/config");
-
-    if (!absLicFile) {
-	char *tmp = strdup(configfile);
-	absLicFile = parser_getFilename(licFile, dirname(tmp), NULL);
-	free(tmp);
-    }
-	
-    if (!absLicFile) {
- 	snprintf(errtxt, sizeof(errtxt),
-		 "Unable to locate LicenseFile '%s'", licFile);
-	parser_comment(errtxt, 0);
-	return NULL;
-    } else {
- 	snprintf(errtxt, sizeof(errtxt),
-		 "Using <%s> as license file", absLicFile);
-	parser_comment(errtxt, 1);
-    }
-
-    /*
-     * Read the Licensefile 
-     */
-    env_init(&config.licEnv);
-    if (lic_fromfile(&config.licEnv, absLicFile) < 0) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "ERROR: %s.", lic_errstr ? lic_errstr : "in licensefile");
-	parser_comment(errtxt, 0);
-	return NULL;
-    }
-
-    {
-	/* Put the MCP license key into the right environment */
-	char *LicKeyMCP = env_get(&config.licEnv, LIC_MCPKEY);
-
-	if (LicKeyMCP) {
-	    int hw = HW_index("myrinet");
-
-	    if (hw >= 0) {
-		HW_setEnv(hw, "PS_LIC", LicKeyMCP);
-	    }
-	}
-    }
-
-    /*
      * Sanity Checks
      */
     if (PSnodes_getNum() > nodesfound) { /* hosts missing in hostlist */
 	parser_comment("WARNING: # hosts in hostlist less than NrOfNodes", 0);
-    }
-    
-    if (!lic_isvalid(&config.licEnv)) {
-	parser_comment("ERROR: Corrupted license.", 0);
-	return NULL;
-    }
-    
-    if (PSnodes_getNum() > lic_numval(&config.licEnv, LIC_NODES, 0)) {
-	parser_comment("ERROR: NrOfNodes to large for this License.", 0);
-	return NULL;
-    }
-
-    if (lic_isexpired(&config.licEnv)) {
-	parser_comment("ERROR: License expired.", 0);
-	return NULL;
     }
     
     return &config;

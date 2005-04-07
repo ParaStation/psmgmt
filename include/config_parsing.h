@@ -27,8 +27,6 @@ extern "C" {
 #endif
 #endif
 
-#include "pslic.h"
-
 /**
  * Structure to store the daemons configuration read from the
  * configuration file. Further parts of the configuration file are
@@ -37,8 +35,6 @@ extern "C" {
 typedef struct {
     char *instDir;       /**< PS installation directory.
 			    Result of 'InstallDir'. Default is NULL. */
-    env_fields_t licEnv; /**< License environment. Read from license file.
-			    Results from 'LicenseFile'. */
     int selectTime;      /**< Time spent within psid's central select().
 			    Result of 'SelectTime'. Default is 2. */
     int deadInterval;    /**< Declare node dead after this # missing pings.

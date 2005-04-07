@@ -12,7 +12,9 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
+#include <string.h>
 
 /* Extra includes for load-determination */
 #if defined(__linux__)
@@ -47,11 +49,8 @@ static char errtxt[256]; /**< General string to create error messages */
 /** The jobs of the local node node */
 static PSID_Jobs_t myJobs = { .normal = 0, .total = 0 };
 
-/** Total number of nodes connected. Needed for license testing */
+/** Total number of nodes connected. Needed for keep-alive pings */
 static int totalNodes = 0;
-
-/** Total number of physical CPUs connected. Needed for license testing */
-static int totalCPUs = 0;
 
 /**
  * @brief Get load information from kernel.
@@ -390,7 +389,6 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode)
 	     __func__, id, sendDeadnode ? "" : "not ");
     PSID_errlog(errtxt, 2);
 
-    totalCPUs -= PSnodes_getPhysCPUs(id);
     totalNodes--;
     PSnodes_bringDown(id);
     PSnodes_setPhysCPUs(id, 0);
@@ -453,9 +451,6 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode)
     }
 }
 
-/* External function. @todo */
-int shutdownNode(int phase);
-
 /* Prototype forward declaration */
 static int send_ACTIVENODES(PSnodes_ID_t dest);
 
@@ -473,37 +468,12 @@ void declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs)
 	return;
     }
 
-    if (wasUp) {
-	totalCPUs += physCPUs - PSnodes_getPhysCPUs(id);
-    } else {
+    if (!wasUp) {
 	totalNodes++;
-	totalCPUs += physCPUs;
     }
     PSnodes_bringUp(id);
     PSnodes_setPhysCPUs(id, physCPUs);
     PSnodes_setVirtCPUs(id, virtCPUs);
-
-    /* Test the license */
-    if (totalNodes > lic_numval(&config->licEnv, LIC_NODES, 0)) {
-	if (id <= PSC_getMyID()) {
-	    snprintf(errtxt, sizeof(errtxt), "%s: too many nodes.", __func__);
-	    PSID_errlog(errtxt, 0);
-	    shutdownNode(1);
-	    return;
-	} else {
-	    declareNodeDead(id, 0);
-	}
-    }
-    if (totalCPUs > lic_numval(&config->licEnv, LIC_CPUs, 0)) {
-	if (id <= PSC_getMyID()) {
-	    snprintf(errtxt, sizeof(errtxt), "%s: too many CPUs.", __func__);
-	    PSID_errlog(errtxt, 0);
-	    shutdownNode(1);
-	    return;
-	} else {
-	    declareNodeDead(id, 0);
-	}
-    }
 
     if (!knowMaster()) {
 	if (id < PSC_getMyID()) {

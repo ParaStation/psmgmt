@@ -12,6 +12,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
@@ -30,9 +31,6 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #include "psidutil.h"
 #include "psidforwarder.h"
-
-/* magic license check */
-#include "../license/pslic_hidden.h"
 
 #include "psidspawn.h"
 
@@ -553,11 +551,6 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
 	return errno;
     }
 
-    if (!lic_isvalid(&config->licEnv)) {
-    	PSID_errlog("Corrupted license!\n", 0);
-	exit(1);
-    }
-    
     /* fork the forwarder */
     if (!(pid = fork())) {
 	/* this is the forwarder process */

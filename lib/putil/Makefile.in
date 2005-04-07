@@ -19,7 +19,7 @@ INSTALL = @INSTALL@
 ################################
 
 export LIBNAME := putil
-export LIBOBJS := mcast.o rdp.o timer.o selector.o env.o parser.o pslic.o \
+export LIBOBJS := mcast.o rdp.o timer.o selector.o env.o parser.o \
 		psstrings.o hardware.o psnodes.o config_parsing.o \
 		psdaemonprotocol.o
 export LIBVPATH := $(SRCDIR)

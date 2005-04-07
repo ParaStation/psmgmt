@@ -59,8 +59,6 @@ include/config_parsing.h \
 include/env.h \
 include/errlog.h \
 include/hardware.h \
-include/info.h \
-include/license_pub.h \
 include/mcast.h \
 include/parser.h \
 include/pscommon.h \
@@ -73,7 +71,6 @@ include/psiinfo.h \
 include/psilog.h \
 include/psipartition.h \
 include/psispawn.h \
-include/pslic.h \
 include/pslog.h \
 include/psnodes.h \
 include/pspartition.h \
@@ -94,7 +91,6 @@ lib/pscommon/pstask.c \
 lib/pse/Makefile.in \
 lib/pse/pse.c \
 lib/psi/Makefile.in \
-lib/psi/info.c \
 lib/psi/psi.c \
 lib/psi/psienv.c \
 lib/psi/psiinfo.c \
@@ -110,13 +106,11 @@ lib/putil/hardware.c \
 lib/putil/mcast.c \
 lib/putil/parser.c \
 lib/putil/psdaemonprotocol.c \
-lib/putil/pslic.c \
 lib/putil/psnodes.c \
 lib/putil/psstrings.c \
 lib/putil/rdp.c \
 lib/putil/selector.c \
 lib/putil/timer.c \
-license/pslic_hidden.h \
 scripts/PSM_INSTALL \
 scripts/config.guess \
 scripts/config.sub \

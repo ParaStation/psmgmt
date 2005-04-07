@@ -499,8 +499,6 @@ static void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	outmsg.type = PSP_CONN_ERR_VERSION;
 	*(uint32_t *)outmsg.buf = PSprotocolVersion;
 	outmsg.header.len += sizeof(uint32_t);
-    } else if (lic_isexpired(&config->licEnv)) {
-	outmsg.type = PSP_CONN_ERR_LICEND;
     } else if (!task) {
 	outmsg.type = PSP_CONN_ERR_NOSPACE;
     } else if (uid && PSnodes_getUser(PSC_getMyID()) != PSNODES_ANYUSER
