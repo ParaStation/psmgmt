@@ -1974,7 +1974,7 @@ static void setupMasterSock(void)
     snprintf(errtxt, sizeof(errtxt), "Protocol Version %d",
 	     PSprotocolVersion);
     PSID_errlog(errtxt, 0);
-    PSID_errlog(" (c) Cluster Competence GmbH "
+    PSID_errlog(" (c) Cluster Competence Center GmbH "
 		"(www.cluster-competence-center.com)", 0);
 
     if (listen(masterSock, 20) < 0) {
@@ -2216,7 +2216,7 @@ int main(int argc, const char *argv[])
 	snprintf(errtxt, sizeof(errtxt), "Protocol Version %d",
 		 PSprotocolVersion);
 	PSID_errlog(errtxt, 0);
-	PSID_errlog(" (c) Cluster Competence GmbH "
+	PSID_errlog(" (c) Cluster Competence Center GmbH "
 		    "(www.cluster-competence-center.com)", 0);
     }
 
