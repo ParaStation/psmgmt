@@ -94,7 +94,7 @@ void PSC_setMyID(PSnodes_ID_t id)
 
 PStask_ID_t PSC_getTID(PSnodes_ID_t node, pid_t pid)
 {
-#ifndef __osf__
+#ifdef __linux__
     /* Linux uses PIDs smaller than 32768, thus 16 bits for pid are enough */
     if (node<0) {
 	return (((PSC_getMyID()&0xFFFF)<<16)|(pid&0xFFFF));
@@ -115,7 +115,7 @@ PStask_ID_t PSC_getTID(PSnodes_ID_t node, pid_t pid)
 
 PSnodes_ID_t PSC_getID(PStask_ID_t tid)
 {
-#ifndef __osf__
+#ifdef __linux__
     if (tid>=0) {
 	return (tid>>16)&0xFFFF;
     } else {
@@ -135,7 +135,7 @@ PSnodes_ID_t PSC_getID(PStask_ID_t tid)
 
 pid_t PSC_getPID(PStask_ID_t tid)
 {
-#ifndef __osf__
+#ifndef __linux__
     return (tid & 0xFFFF);
 #else
     /* Maybe we should do this on every architecture ? *JH* */

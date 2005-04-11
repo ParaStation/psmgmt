@@ -1521,15 +1521,6 @@ linux|linux-gnu)
 	TRU64FILEADD=
 	LIBCURSES=ncurses
 	;;
-osf5.1)
-	CFLAG_WALL="-w0  -msg_disable incomparry,unreachcode"
-	CFLAG_G=-g3
-	CFLAG_COMPAT="-FIcompat_tru64.h"
-	CPPFLAG_MMD=-MD
-	DEPEXTENSION=.o.d
-	TRU64FILEADD=_tru64
-	LIBCURSES=curses
-	;;
 *)
 	echo "Unkown os ($target_os)"
 	exit 1

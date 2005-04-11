@@ -41,10 +41,6 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #include <popt.h>
 
-#ifdef __osf__
-#include <sys/table.h>
-#endif
-
 #include "selector.h"
 #include "mcast.h"
 #include "rdp.h"
@@ -1920,19 +1916,11 @@ static void initSignals(void)
     signal(SIGPROF  ,sighandler);
     signal(SIGWINCH ,sighandler);
     signal(SIGIO    ,sighandler);
-#ifdef __osf__
-    /* OSF on Alphas */
-    signal(SIGSYS   ,sighandler);
-    signal(SIGINFO  ,sighandler);
-    signal(SIGIOINT ,sighandler);
-    signal(SIGAIO   ,sighandler);
-    signal(SIGPTY   ,sighandler);
-#elif defined(__alpha)
+#if defined(__alpha)
     /* Linux on Alpha*/
     signal( SIGSYS  ,sighandler);
     signal( SIGINFO ,sighandler);
-#endif
-#if !defined(__osf__) && !defined(__alpha)
+#else
     signal(SIGSTKFLT,sighandler);
 #endif
     signal(SIGHUP   ,SIG_IGN);

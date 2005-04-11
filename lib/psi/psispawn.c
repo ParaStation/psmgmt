@@ -124,7 +124,7 @@ static char *mygetwd(const char *ext)
 	if (temp) {
 	    dir = strdup(temp);
 	} else {
-#if defined __osf__ || defined __linux__
+#ifdef __linux__
 	    dir = getcwd(NULL, 0);
 #else
 #error wrong OS

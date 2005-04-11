@@ -253,19 +253,11 @@ static void resetSignals(void)
     signal(SIGPROF  ,SIG_DFL);
     signal(SIGWINCH ,SIG_DFL);
     signal(SIGIO    ,SIG_DFL);
-#ifdef __osf__
-    /* OSF on Alphas */
-    signal(SIGSYS   ,SIG_DFL);
-    signal(SIGINFO  ,SIG_DFL);
-    signal(SIGIOINT ,SIG_DFL);
-    signal(SIGAIO   ,SIG_DFL);
-    signal(SIGPTY   ,SIG_DFL);
-#elif defined(__alpha)
+#if defined(__alpha)
     /* Linux on Alpha*/
     signal( SIGSYS  ,SIG_DFL);
     signal( SIGINFO ,SIG_DFL);
-#endif
-#if !defined(__osf__) && !defined(__alpha)
+#else
     signal(SIGSTKFLT,SIG_DFL);
 #endif
 }

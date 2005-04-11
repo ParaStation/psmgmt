@@ -1,18 +1,27 @@
 Installing ParaStation
 ======================
-$Id: INSTALL,v 1.6 2002/09/23 13:05:30 moschny Exp $
+$Id$
 
 0. Notes
 
-   - The steps (2) through (5) must be performed on all nodes of your
-     cluster.
-   - You might want to setup your cluster so that /opt/parastation is
-     mirrored (via NFS) from one node to all other nodes. Then you
-     need to perform the steps (1), (6) and (7) only on this
-     node. Otherwise these steps must be followed on all nodes, too.
-   - You must be superuser (root) when installing ParaStation.
-   - The script /opt/parastation/config/PSM_INSTALL performs the
-     steps (2), (3) and (5). 
+   - The easiest way to put ParaStation on your cluster is to put the
+     corresponding RPMs on every node of your cluster. If you follow
+     this direction, all you have to do is:
+	- Adapt the ParaStation configuration file on *every* node
+	  (i.e. adapt it on one node (see step (5) below) and don't forget
+	  to copy it to every node).
+	- Reload the xinetd via 'rcxinetd reload'
+	- Test the installation (step (6)).
+   - Otherwise installation is a little bit more complicated:
+	- The steps (2) through (5) must be performed on all nodes of your
+	  cluster.
+	- You might want to setup your cluster so that /opt/parastation is
+	  mirrored (via NFS) from one node to all other nodes. Then you
+	  need to perform the steps (1), (6) and (7) only on this
+	  node. Otherwise these steps must be followed on all nodes, too.
+	- You must be superuser (root) when installing ParaStation.
+	- The script /opt/parastation/config/PSM_INSTALL performs the
+	  steps (2), (3) and (5). 
 
 1. Extracting the Distribution
 
@@ -38,41 +47,20 @@ $Id: INSTALL,v 1.6 2002/09/23 13:05:30 moschny Exp $
 
   -------------------- snip --------------------
   # ParaStation entries
-  psld             887/tcp       # ParaStation License Daemon Start Port
   psid             888/tcp       # ParaStation Daemon Start Port
   # end of ParaStation entries 
   -------------------- snip --------------------
 
-4. Multicast setup
-
-  ParaStation needs Multicast support on all nodes, i.e. the installed
-  kernel has to support it. This is usually no problem if a standard
-  kernel from a common distribution is used. You have to enable Multicast
-  support if you build your own kernel. To learn more about Multicast take
-  a look at the 'Multicast over TCP/IP HOWTO' [1].
-
-  On nodes with more than one ethernet interface you have to setup a
-  default route for the Multicast traffic. This is done by
-
-	route add -net 224.0.0.0 netmask 240.0.0.0 dev ethX
-
-  where ethX has to be replaced by the name of the interface connecting
-  to all other nodes.
-
-  Usually only the front-end machine has to used ethernet interfaces.
-  Then you have to add the Multicast route to the interface connecting
-  the front-end with all the nodes.
-
-5. (X)inetd Configuration
+4. (X)inetd Configuration
 
   This part of the installation process differs for the various Linux
   distributions. If your system has 
-  - a file named /etc/inetd.conf (SuSE based distributions), read
+  - a file named /etc/inetd.conf (SuSE based distributions befor 8.1), read
     section 4.1,
   - a directory /etc/xinetd.d (RedHat based distributions), read
     section 4.2.
 
-5.1 Inetd Configuration
+4.1 Inetd Configuration
 
   The following lines must be appended to /etc/inetd.conf:
 
@@ -92,7 +80,7 @@ $Id: INSTALL,v 1.6 2002/09/23 13:05:30 moschny Exp $
 	/etc/init.d/inetd reload
 
 
-5.2 Xinetd Configuration
+4.2 Xinetd Configuration
 
   Create a file named /etc/xinetd.d/parastation with the following
   contents:
@@ -111,26 +99,13 @@ $Id: INSTALL,v 1.6 2002/09/23 13:05:30 moschny Exp $
         server_args     =
         log_on_failure  += USERID
   }
-  #
-  # ParaStation license server
-  #
-  service psld
-  {
-        disable         = no
-        socket_type     = stream
-        wait            = no
-        user            = root
-        server          = /opt/parastation/bin/psld
-        server_args     =
-        log_on_failure  += USERID
-  }
   -------------------- snip --------------------
 
   Now, the xinetd daemon must be triggered to read this file:
 
 	/etc/init.d/xinetd reload
 
-6. ParaStation Configuration
+5. ParaStation Configuration
 
   [If another version of ParaStation was installed before, you may
   want to make a backup of your old configuration file parastation.conf
@@ -141,7 +116,7 @@ $Id: INSTALL,v 1.6 2002/09/23 13:05:30 moschny Exp $
   edit it following the hints given there.
 
 
-7. Testing
+6. Testing
 
   If everything went fine, you are ready to test ParaStation now. On
   one of the nodes do
@@ -149,7 +124,3 @@ $Id: INSTALL,v 1.6 2002/09/23 13:05:30 moschny Exp $
 	/opt/parastation/bin/psiadmin -c "s all"
 
   and repeat this command until all nodes are up.
-
-
-[1] http://jungla.dit.upm.es/~jmseyas/linux/mcast.howto/multic.html
- or http://www.tldp.org/HOWTO/Multicast-HOWTO.html

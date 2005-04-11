@@ -17,10 +17,8 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <string.h>
 
 /* Extra includes for load-determination */
-#if defined(__linux__)
+#ifdef __linux__
 #include <sys/sysinfo.h>
-#elif defined(__osf__)
-#include <sys/table.h>
 #else
 #error WRONG OS Type
 #endif
@@ -63,26 +61,13 @@ static int totalNodes = 0;
 static PSID_Load_t getLoad(void)
 {
     PSID_Load_t load = {{0.0, 0.0, 0.0}};
-#if defined __linux__
+#ifdef __linux__
     struct sysinfo s_info;
 
     sysinfo(&s_info);
     load.load[0] = (double) s_info.loads[0] / (1<<SI_LOAD_SHIFT);
     load.load[1] = (double) s_info.loads[1] / (1<<SI_LOAD_SHIFT);
     load.load[2] = (double) s_info.loads[2] / (1<<SI_LOAD_SHIFT);
-#elif defined __osf__
-    struct tbl_loadavg load_struct;
-
-    /* Use table call to extract the load for the node. */
-    table(TBL_LOADAVG, 0, &load_struct, 1, sizeof(struct tbl_loadavg));
-
-    /* Get the double value of the load. */
-    load.load[0] = (load_struct.tl_lscale == 0)?load_struct.tl_avenrun.d[0] :
-	((double)load_struct.tl_avenrun.l[0]/(double)load_struct.tl_lscale);
-    load.load[1] = (load_struct.tl_lscale == 0)?load_struct.tl_avenrun.d[1] :
-	((double)load_struct.tl_avenrun.l[1]/(double)load_struct.tl_lscale);
-    load.load[2] = (load_struct.tl_lscale == 0)?load_struct.tl_avenrun.d[2] :
-	((double)load_struct.tl_avenrun.l[2]/(double)load_struct.tl_lscale);
 #else
 #error BAD OS !!!!
 #endif

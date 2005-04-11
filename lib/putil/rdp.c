@@ -28,7 +28,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <netdb.h>
 
 /* Extra includes for extended reliable error message passing */
-#if defined(__linux__)
+#ifdef __linux__
 #include <asm/types.h>
 #include <linux/errqueue.h>
 #include <sys/uio.h>
@@ -39,21 +39,6 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "timer.h"
 
 #include "rdp.h"
-
-/**
- * OSF does not provides timeradd in sys/time.h
- */
-#ifndef timeradd
-#define timeradd(a, b, result)                                        \
-  do {                                                                \
-    (result)->tv_sec = (a)->tv_sec + (b)->tv_sec;                     \
-    (result)->tv_usec = (a)->tv_usec + (b)->tv_usec;                  \
-    if ((result)->tv_usec >= 1000000) {                               \
-        ++(result)->tv_sec;                                           \
-        (result)->tv_usec -= 1000000;                                 \
-    }                                                                 \
-  } while (0)
-#endif
 
 /**
  * The socket used to send and receive RDP packets. Will be opened in
@@ -193,7 +178,7 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
 	    break;
 	case ECONNREFUSED:
 	case EHOSTUNREACH:
-#if defined(__linux__)
+#ifdef __linux__
 	    snprintf(errtxt, sizeof(errtxt), "%s got: %s",
 		     __func__, strerror(errno));
 	    errlog(errtxt, 1);
@@ -282,7 +267,7 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 	    break;
 	case ECONNREFUSED:
 	case EHOSTUNREACH:
-#if defined(__linux__)
+#ifdef __linux__
 	    snprintf(errtxt, sizeof(errtxt), "%s to %s got: %s",
 		     __func__, inet_ntoa(((struct sockaddr_in *)to)->sin_addr),
 		     strerror(errno));
@@ -980,7 +965,7 @@ static int initSockRDP(unsigned short port, int qlen)
 	errexit(errtxt, errno);
     }
 
-#if defined(__linux__)
+#ifdef __linux__
     /*
      * enable RECV Error Queue
      */
@@ -1722,7 +1707,7 @@ static void handleControlPacket(rdphdr_t *hdr, int node)
  */
 static int handleErr(void)
 {
-#if defined(__linux__)
+#ifdef __linux__
     struct msghdr errmsg;
     struct sockaddr_in sin;
     struct sockaddr_in * sinp;

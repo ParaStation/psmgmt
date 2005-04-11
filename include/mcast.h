@@ -27,10 +27,6 @@ extern "C" {
 #endif
 #endif
 
-#ifdef __osf__
-#include <netinet/in.h>
-#endif
-
 /** Possible MCast states of a node */
 typedef enum {
     DOWN = 0x1,  /**< node is down */
@@ -57,13 +53,6 @@ typedef struct {
 
 /** Structure of a MCast message */
 typedef struct {
-#ifdef __osf__
-    /* If we use the same mcastsocket for sending and receiving,
-       tru64 uses the multicast address as source address in the IP
-       packet -> The receiver cant detect the sender of the message,
-       which is needed in handleMCast() for error checking. */
-    unsigned int ip;     /**< Sender IP address in network byteorder */
-#endif
     short node;          /**< Sender ID */
     short type;          /**< Message type */
     MCastState_t state;  /**< The state info @see MCastState_t */

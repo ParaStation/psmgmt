@@ -341,7 +341,7 @@ int main(int argc, const char *argv[])
 
     pwd = getenv("PWD");
     if (!pwd) {
-#if defined __osf__ || defined __linux__
+#ifdef __linux__
 	pwd = getcwd(NULL, 0);
 #else
 #error wrong OS

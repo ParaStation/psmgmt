@@ -14,13 +14,9 @@
 CFLAGS += -O3 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
 CPPFLAGS += $(LIBINC) @CPPFLAG_MMD@
 
-TARGET_OS := @target_os@
-
 _LIBDEPS := $(LIBOBJS:.o=@DEPEXTENSION@)
 
 VPATH += $(LIBVPATH)
-
-ifneq ("$(TARGET_OS)","osf5.1")
 
 all: $(LIBDSTDIR)/lib$(LIBNAME).so
 
@@ -38,10 +34,3 @@ distclean: clean
 	$(RM) $(LIBDSTDIR)/lib$(LIBNAME).so
 
 -include $(_LIBDEPS)
-
-else
-# No shared libs for tru64. Maybe in the future?
-all:
-	@echo "Warning: No shared lib support fur tru64!"
-clean distclean:
-endif

@@ -53,8 +53,6 @@ dist/Makefile.in \
 dist/Makefile.sources \
 doc/INSTALL \
 doc/parastation.conf \
-doc/parastation.conf_tru64 \
-include/compat_tru64.h \
 include/config_parsing.h \
 include/env.h \
 include/errlog.h \

@@ -8,7 +8,7 @@
 #**
 #* PSM_INSTALL: ParaStation De-/Installationscript
 #*
-#* $Id: PSM_INSTALL,v 1.15 2003/10/14 15:31:51 hauke Exp $
+#* $Id$
 #*
 #* @author  
 #*         Eduard Syrchyn <syrchyn@par-tec.de>
@@ -27,12 +27,6 @@ PSCNFDIR=$SELFPATH
 PSMAIN=`cd $PSCNFDIR/..;pwd`
 
 #Linux only
-
-#OSF only
-PSKERNOSF="$PSMAIN/bin/modules/osf5.1"
-PSDRV="psmx"
-PSMMOD="$PSMDRV.mod"
-PSMMTH="$PSMDRV.mth"
 
 #/etc/inetd.conf
 INETD_PSIDMASK="^[ 	]*psid[ 	]"
@@ -226,43 +220,6 @@ self_check_root() {
     fi
 }
 
-
-inst_driver_osf() {
-    if [ -d $PSKERNOSF ]
-    then
-        echo "Copying psmx.mod to /sys/BINARY and linking to /usr/sys/BINARY"
-	rm -f /var/subsys/$PSMMOD
-	rm -f /var/subsys/$PSMMTH
-    
-	/sbin/sysconfigdb -a -f $PSMMODCNFFUL $PSMDRV
-	VSTATE=$?
-	if [ $VSTATE -gt 0 ]
-	then
-	    echo "ERROR: cannot install the parameters of $PSMDRV kernel module,"
-	    echo "check the path sysconfigtab ($PSMMODCNFFUL)!"
-	fi
-    
-	symlink $PSMMODBIN /var/subsys/$PSMMOD
-	symlink /subsys/device.mth /var/subsys/$PSMMTH
-	/sbin/sync
-    fi
-}
-
-uninst_driver_osf() {
-    if [ -d $PSKERNOSF ]
-    then
-	echo "Unloading the driver if it is loaded"
-	/sbin/sysconfig -u $PSMDRV >& /dev/null
-	/sbin/sync
-	echo "Removing a psmx module from sysconfigtab if it exists"
-	/sbin/sysconfigdb -d $PSMDRV >& /dev/null
-	/sbin/sync
-    
-	rm -f /var/subsys/$PSMMOD
-	rm -f /var/subsys/$PSMMTH
-    fi
-}
-
 create_devicefiles() {
    mknod /dev/psm c 40 0
    chmod 666 /dev/psm
@@ -295,12 +252,7 @@ do_install() {
     then
 	patch_xinetd
     fi
-    if [ "$UNAME" = "OSF1" ]
-    then
-        inst_driver_osf
-    else
-	create_devicefiles
-    fi
+    create_devicefiles
     create_configlink
 }
 
@@ -316,12 +268,7 @@ do_uninstall() {
     then
 	cleanup_xinetd
     fi
-    if [ "$UNAME" = "OSF1" ]
-    then
-	deinst_driver_osf
-    else
-	cleanup_devicefiles
-    fi
+    cleanup_devicefiles
     cleanup_configlink
 }
 
@@ -342,9 +289,6 @@ do_help() {
 #/sbin/sysconfigdb -d $PSMDRV
 
 if [ "$UNAME" = "Linux" ]
-then
-    echo
-elif [ "$UNAME" = "OSF1" ]
 then
     echo
 else

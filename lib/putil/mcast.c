@@ -27,10 +27,8 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <netdb.h>
 
 /* Extra includes for load-determination */
-#if defined(__linux__)
+#ifdef __linux__
 #include <sys/sysinfo.h>
-#elif defined(__osf__)
-#include <sys/table.h>
 #else
 #error WRONG OS Type
 #endif
@@ -40,21 +38,6 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "timer.h"
 
 #include "mcast.h"
-
-/**
- * OSF provides no timeradd in sys/time.h
- */
-#ifndef timeradd
-#define timeradd(a, b, result)                                        \
-  do {                                                                \
-    (result)->tv_sec = (a)->tv_sec + (b)->tv_sec;                     \
-    (result)->tv_usec = (a)->tv_usec + (b)->tv_usec;                  \
-    if ((result)->tv_usec >= 1000000) {                               \
-        ++(result)->tv_sec;                                           \
-        (result)->tv_usec -= 1000000;                                 \
-    }                                                                 \
-  } while (0)
-#endif
 
 /**
  * The socket used to send and receive MCast packets. Will be opened in
@@ -75,14 +58,6 @@ static char errtxt[256];         /**< String to hold error messages. */
 
 /** My node-ID within the cluster. Set inside initMCast(). */
 static int myID = -1;
-
-#ifdef __osf__
-/**
- * My IP address. Set within initMCast(). Only needed for broken MCast
- * support within TRU64 Unix.
- */
-unsigned int myIP;
-#endif
 
 /**
  * The callback function. Will be used to send messages to the calling
@@ -397,14 +372,7 @@ static void initConntable(int nodes, unsigned int host[])
  */
 static int initSockMCast(int group, unsigned short port)
 {
-    int sock;
-#ifdef __osf__
-    unsigned char loop;
-    int reuse;
-#endif
-#ifdef __linux__    
-    int loop, reuse;
-#endif
+    int sock, loop, reuse;
     struct ip_mreq mreq;
 
     /*
@@ -445,7 +413,7 @@ static int initSockMCast(int group, unsigned short port)
         errexit("unable to set reuse flag", errno);
     }
 
-#if defined(__osf__)
+#ifndef __linux__
     reuse = 1; /* 0 = disable (default), 1 = enable */
     if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &reuse,
 		   sizeof(reuse)) == -1) {
@@ -564,19 +532,6 @@ static MCastLoad_t getLoad(void)
     load.load[0] = (double) s_info.loads[0] / (1<<SI_LOAD_SHIFT);
     load.load[1] = (double) s_info.loads[1] / (1<<SI_LOAD_SHIFT);
     load.load[2] = (double) s_info.loads[2] / (1<<SI_LOAD_SHIFT);
-#elif __osf__
-    struct tbl_loadavg load_struct;
-
-    /* Use table call to extract the load for the node. */
-    table(TBL_LOADAVG, 0, &load_struct, 1, sizeof(struct tbl_loadavg));
-
-    /* Get the double value of the load. */
-    load.load[0] = (load_struct.tl_lscale == 0)?load_struct.tl_avenrun.d[0] :
-	((double)load_struct.tl_avenrun.l[0]/(double)load_struct.tl_lscale);
-    load.load[1] = (load_struct.tl_lscale == 0)?load_struct.tl_avenrun.d[1] :
-	((double)load_struct.tl_avenrun.l[1]/(double)load_struct.tl_lscale);
-    load.load[2] = (load_struct.tl_lscale == 0)?load_struct.tl_avenrun.d[2] :
-	((double)load_struct.tl_avenrun.l[2]/(double)load_struct.tl_lscale);
 #else
 #error BAD OS !!!!
 #endif
@@ -600,9 +555,6 @@ static void pingMCast(MCastState_t state)
     msg.node = myID;
     msg.type = T_INFO;
     if (state==DOWN) msg.type=T_CLOSE;
-#ifdef __osf__
-    msg.ip = myIP;
-#endif
     msg.state = state;
     msg.load = getLoad();
     snprintf(errtxt, sizeof(errtxt),
@@ -710,10 +662,6 @@ static int handleMCast(int fd)
 	    errlog("in handleMCast()", 0);
 	    break;
 	}
-#ifdef __osf__
-	/* Workaround for tru64. s.o. comment in struct MCastMsg */
-	memcpy(&sin.sin_addr.s_addr, &msg.ip, sizeof(sin.sin_addr.s_addr));
-#endif
 	node = lookupIPTable(sin.sin_addr.s_addr);
 	snprintf(errtxt, sizeof(errtxt),
 		 "... receiving MCast ping from %s [%d/%d], state: %s",
@@ -799,9 +747,6 @@ int initMCast(int nodes, int mcastgroup, unsigned short portno, int usesyslog,
     errlog(errtxt, 2);
 
     initConntable(nrOfNodes, hosts);
-#ifdef __osf__
-    myIP = hosts[myID];
-#endif
 
     if (!Selector_isInitialized()) {
 	Selector_init(usesyslog);

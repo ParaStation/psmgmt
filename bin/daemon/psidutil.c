@@ -600,13 +600,7 @@ static int getOwnID(void)
     /* Test the IP-addresses assigned to this NICs */
     ifr = ifc.ifc_req;
     for (n = 0; n < ifc.ifc_len; n += sizeof(struct ifreq)) {
-	if ((ifr->ifr_addr.sa_family == AF_INET)
-#ifdef __osf__
-	    /* Tru64 return AF_UNSPEC for all interfaces */
-	    ||(ifr->ifr_addr.sa_family == AF_UNSPEC)
-#endif
-	    ) {
-
+	if (ifr->ifr_addr.sa_family == AF_INET) {
 	    sin_addr = &((struct sockaddr_in *)&ifr->ifr_addr)->sin_addr;
 
 	    snprintf(errtxt, sizeof(errtxt),
