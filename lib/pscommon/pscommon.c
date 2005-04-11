@@ -135,7 +135,7 @@ PSnodes_ID_t PSC_getID(PStask_ID_t tid)
 
 pid_t PSC_getPID(PStask_ID_t tid)
 {
-#ifndef __linux__
+#ifdef __linux__
     return (tid & 0xFFFF);
 #else
     /* Maybe we should do this on every architecture ? *JH* */
