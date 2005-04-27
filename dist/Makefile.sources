@@ -1,6 +1,7 @@
 SOURCE_FILES= \
 Makefile.in \
 Makefile.version \
+LICENSE \
 bin/Makefile.in \
 bin/admin/adminparser.c \
 bin/admin/adminparser.h \

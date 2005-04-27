@@ -31,7 +31,7 @@ BINS += psispawn psmstart test_config test_pse
 
 LIBS += libpse.a libpse.so libpsi.a libpsi.so
 
-MISC += VERSION.psmgmt ChangeLog.psmgmt INSTALL
+MISC += VERSION.psmgmt ChangeLog.psmgmt INSTALL LICENSE
 MISC += bin/psh
 MISC += config/PSM_INSTALL config/parastation.conf.tmpl config/ps_gm
 MISC += scripts/ps_gmcounters
@@ -117,6 +117,9 @@ $(DISTPATH)/ChangeLog.psmgmt: $(TOP_SRCDIR)/dist/ChangeLog
 	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
 
 $(DISTPATH)/INSTALL: $(TOP_SRCDIR)/doc/INSTALL
+	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
+
+$(DISTPATH)/LICENSE: $(TOP_SRCDIR)/LICENSE
 	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
 
 $(DISTPATH)/bin/psh: $(TOP_SRCDIR)/scripts/psh

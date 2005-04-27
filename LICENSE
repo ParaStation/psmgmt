@@ -1,0 +1,300 @@
+
+
+            Software and Know-how License Agreement
+                          Version 1.0
+
+between            ParTec Cluster Competence Center GmbH
+place of business: Possartstr. 20, 81679 München
+represented by:    Bernhard Frohwitter
+
+- in the following referred to as ParTec -
+
+and                you
+
+- in the following referred to as "Licensee" -
+
+
+Preamble
+
+ParTec has developed a cluster middleware software, comprising a
+high-performance communication layer. ParTec decided to license a
+base version of such software including a significant portion of
+the high-performance communication layer royalty free to
+educational institutions, such as universities, in order to
+enable them to evaluate, study and enhance the software. It
+should, however, be noted that the use of the software is solely
+allowed for noncommercial purposes.
+If any party, such as enterprises or governmental authorities,
+wishes to use the software for commercial purposes in any sense,
+need to contact ParTec in order to ask for a commercial license.
+They have, however, the opportunity to use the software according
+to this license one-time for a limited period of three (3)
+months.
+It is acknowledged that ParTec has invested an massive amount of
+labour and financial means into the development of the software.
+It is therefore, requested from each licensee to return the
+results of their studies, amendments and enhancements free of
+charge to ParTec in return for the granted rights as specified in
+this contract.
+
+
+§ 1 Definitions
+
+"Technology" means ParTec's cluster middleware solution
+       ParaStation Base Version.
+
+"Software" means the computer implementation of the Technology,
+       in object code, source code or any other machine readable
+       form, the source code of which is available for download.
+
+"Base Version Code" means the Software in form of source code.
+
+"Modifications" means any improvement and/or extensions by
+       Licensee of the Base Version Code, including the
+       underlying concepts.
+
+"Derivative Work Code" means the Base Version Code with
+       Modifications.
+
+"Documentation" means specifications and description of the
+       Technology.
+
+"University Use" means evaluation, research, development and
+       educational use within the educational institution,
+       excluding use for direct or indirect commercial (including
+       strategic) gain or advantage.
+
+"Commercial Use" means any non-consumer use that is not covered by
+       University Use.
+
+"Know-how" means program documents and information which relates to
+       Software, also in machine readable form, in particular the
+       Base Version Code and the detailed comments on the Base
+       Version Code, provided together with the Base Version
+       Code.
+
+
+§ 2 Granted Rights
+
+Subject to and conditioned upon Licensees full compliance with
+the terms and conditions of this license, ParTec grants Licensee
+of this contract a non-exclusive, worldwide and royaltyfree
+license for University Use and Commercial Use only to:
+
+    (a) reproduce, prepare derivative works of, display and
+	perform the Base Version Code, in whole or in part, alone
+	or as part of Derivative Work Code;
+
+    (b) reproduce, prepare derivative works of and display the
+        Documentation;
+
+    (c) use the Know-how.
+
+
+§ 3 Assignment and Sublicenses
+
+Licensee does not have the right to assign the license to third
+parties or to grant sublicenses.
+
+
+§ 4 Confidentiality
+
+(1) Licensee promises to maintain in confidence the Know-how
+    provided to him by ParTec, in particular not to transfer it
+    to third parties, and to use the Know-how only in the scope
+    of this agreement.
+
+(2) For this purpose Licensee will keep all documents and data
+    carriers containing Knowhow of ParTec locked up in the same
+    way as he keeps its own secret documents, and Licensee shall
+    require all of its staff having access to the know-how of
+    ParTec to sign a written confidentiality obligation, which
+    complies with this agreement.
+
+(3) Furthermore Licensee promises not to publish the Software as
+    object code or as source code, nor the corresponding comments
+    either totally or in part on his own publications or other
+    documentation. Any functional description of Licensee's
+    Modifications, in particular source code of Modifications,
+    which shows Know-how, such as the structure of the Software,
+    is prohibited.
+
+(4) The above limitations do not apply to information
+
+    (a) which Licensee already had in written form prior to
+        signing this agreement,
+
+    (b) which have become accessible to the public due to
+	publication of third parties without the activity of
+	Licensee.
+
+    The Licensee has the burden of proof for the existence of
+    such an exception.
+
+(5) The above obligations also remain after the termination of
+    this agreement.
+
+
+§ 5 Licensee's Duties
+
+(1) Licensee shall submit to ParTec any suggestions for
+    improvements and further developments of the Technology.
+    ParTec may on its own discretion use, implement, publish,
+    exploit, commercialize those suggestions.
+
+(2) Licensee shall provide source code and any documentation for
+    its Modification to ParTec as soon as practicable, but before
+    the publication of a functional description of Licensee's
+    Modifications. Licensee shall include
+
+    (a) a declaration about the origin of the contributed
+	material to the Modification, as in Attachment I,
+
+    (b) a file with the source code of Licensee's Modification
+        showing all changes and additions made,
+
+    (c) proper description of its Modification in English language.
+
+(3) Licensee shall keep intact all existing copyright notices,
+    any notices referring to particular licenses and any warranty
+    related statements.
+
+
+§ 6 Grant-Back
+
+(1) Licensee grants ParTec for Modifications being severable
+    improvements a nonexclusive, perpetual, irrevocable,
+    worldwide and royalty-free license, and for Modifications
+    being non-severable improvements an exclusive, perpetual,
+    irrevocable, worldwide and royalty-free license to
+
+    (a) use, reproduce, modify, display, prepare derivative works
+	of and distribute its Modifications and derivative works
+	thereof, in whole or in part, in source code and object
+	code form, as part of the Software or other technologies
+	based in whole or in part on Base Version Code or
+	Technology;
+
+    (b) use, reproduce, modify, display, prepare derivative works
+	of and distribute Licensee's documentation of its
+	Modifications;
+
+    (c) sublicense any of the foregoing through multiple tiers of
+        distribution
+
+(2) As far as the license granted in section §6(1) covers
+    Licensee's patents and patent applications, Licensee grants
+    ParTec a non-exclusive, perpetual, irrevocable, worldwide and
+    royalty-free license.
+
+
+§ 7 Procedure against Infringers
+
+Licensee shall promptly inform ParTec about infringement acts
+related to the Software, particularly about offers and
+distribution of piracy copies.
+
+
+§ 8 Trademarks and Source Indication
+
+Licensee does not have the right, except in the copyright notice,
+to use the company name or any trademark of ParTec. Licensee may,
+however, in the usual way refer to the fact that Licensee uses
+ParTec's Software.
+
+
+§ 9 Exclusion of Liability
+
+(1) ParTec is not liable for errors and does not guarantee the
+    specific utility of the Technology for Licensee's purpose. In
+    particular, ParTec is not liable for indirect or subsequent
+    damages due to errors of the licensed Software.
+
+(2) ParTec is not aware of any rights of third parties which
+    would oppose University Use or Commercial Use. ParTec is not
+    liable however for the licensed Software and the licensed
+    Know-how being free of rights of third parties.
+
+(3) If Licensee is accused by third parties of infringing
+    intellectual property rights due to the use of the licensed
+    Software or the licensed Know-how, ParTec promises to provide
+    Licensee with information and documents in defense against
+    such claims as far as ParTec is able to do so without breach
+    of third party obligations and while maintaining its own
+    confidentiality interests. All costs involved in such
+    activities shall be borne by Licensee.
+
+
+§ 10 Duration
+
+(1) If licensee solely makes University Use of the licensed
+    Software and Know-how, this agreement is entered into for a
+    duration of 1 year. It is extended year by year unless it is
+    terminated 6 months beforehand by one of the parties.
+
+(2) For licensees, which make Commercial Use of the licensed
+    Software or Know-how, this agreement is entered into for a
+    duration of three (3) months only. Licensee acknowledges that
+    he may only take advantage of this license for Commercial Use
+    once.  For any subsequent retrieval of the Software, licensee
+    needs to obtain a separate License from ParTec.
+
+
+§ 11 Termination
+
+(1) A termination for cause is possible particularly in the case
+    of one of the following reasons.
+
+    (a) A breach by the Licensee of one of the obligations under
+	this agreement and the fruitless expiration of a period
+	of 10 days after warning by ParTec.
+
+    (b) Beginning of bankruptcy or receivership proceedings
+        relating to the property of the other party.
+
+    (c) An essential change in the control over the other party,
+        in particular merger or major control by a third company.
+
+(2) A breach by Licensee of any one of the obligations under
+    sections §4, §5 and §6, will automatically terminate
+    Licensee's rights under this license.
+
+
+§ 12 Rights after Expiration of the Agreement
+
+(1) All rights of Licensee on the use of the Base Version Code
+    end at the expiration or termination of this agreement.
+
+(2) Licensee promises to return to ParTec within one week after
+    the expiration or termination of the agreement all relevant
+    documents relating to the Base Version Code, whether secret
+    or not, as well as all copies made and to delete any copies
+    retrieved by downloading or copies thereof.
+
+
+§ 13 Salvatorian clause
+
+(1) Should a provision of this agreement be invalid or become
+    invalid or should this agreement contain an omission, then
+    the legal effect of the other provisions shall not thereby be
+    affected.
+
+(2) Instead of the invalid provision a valid provision is deemed
+    to have been agreed upon which comes closest to what the
+    parties intended commercially; the same applies in the case
+    of an omission.
+
+
+§ 14 Changes to this agreement
+
+Any change of this agreement shall be made in writing, no
+collateral agreements to this agreement have been made.
+
+
+§ 15 Jurisdiction and Applicable Law
+
+For all controversies out of this agreement the patent chamber of
+the District Court Munich I shall have jurisdiction. The
+applicable law shall be that of the Federal Republic of Germany
+excluding United Nations Convention on Contracts for the
+International Sale of Goods (CISG) and International Private Law.
