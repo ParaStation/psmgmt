@@ -29,7 +29,7 @@ linux|linux-gnu)
 	LIBCURSES=ncurses
 	;;
 *)
-	echo "Unkown os ($target_os)"
+	echo "Unknown os ($target_os)"
 	exit 1
 	;;
 esac
