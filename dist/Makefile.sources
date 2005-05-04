@@ -52,6 +52,7 @@ configure.ac \
 dist/ChangeLog \
 dist/Makefile.in \
 dist/Makefile.sources \
+dist/psmgmt.spec.in \
 doc/INSTALL \
 doc/parastation.conf \
 include/config_parsing.h \

@@ -25,6 +25,8 @@ BINDIR := $(DISTPATH)/bin
 LIBDIR := $(DISTPATH)/lib
 
 INCLUDES += pse.h pshwtypes.h
+INCLUDES += psprotocol.h psnodes.h pstask.h pspartition.h pscommon.h
+INCLUDES += psiinfo.h psi.h
 
 BINS += gmspawner mlisten mpirun_chgm mpirun_chp4 psiadmin psid psilogger
 BINS += psispawn psmstart test_config test_pse
