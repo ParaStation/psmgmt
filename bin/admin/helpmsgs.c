@@ -355,7 +355,7 @@ static info_t statInfo = {
 	.cmd = "s[tatus]",
 	.arg = "{[node] | c[ount] [hw <hw>] | p[roc] [cnt <cnt>]"
 	" | {allproc|ap} [cnt <cnt>] | {hardware|hw} | l[oad] | rdp"
-	" | mcast} <nodes>"
+	" | mcast | summary} <nodes>"
     }},
     .nodes = 1,
     .descr = "Show various status parameters of the ParaStation system:",
@@ -388,6 +388,8 @@ static info_t statInfo = {
 	{ .tag = "status mcast",
 	  .descr = "Show the status of the MCast facility on the selected"
 	  " nodes." },
+	{ .tag = "status summary",
+	  .descr = "Print a brief summary of the active and down nodes." },
 	{ NULL, NULL }
     },
     .comment = NULL

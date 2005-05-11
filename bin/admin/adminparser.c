@@ -317,6 +317,9 @@ static int statCommand(char *token)
 
     if (!what || !strcasecmp(what, "node")) {
 	PSIADM_NodeStat(nl);
+    } else if (!strcasecmp(what, "summary")
+	       || !strcasecmp(what, "s")) {
+	PSIADM_SummaryStat(nl);
     } else if (!strcasecmp(what, "count")
 	       || !strcasecmp(what, "c")) {
 	int hwIndex = -1;

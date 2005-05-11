@@ -127,6 +127,23 @@ void PSIADM_HWStop(int hw, char *nl);
 void PSIADM_NodeStat(char *nl);
 
 /**
+ * @brief Show node status summary.
+ *
+ * Show the status summary of the nodes marked within the nodelist @a
+ * nl. Therefore the corresponding list containing the information is
+ * requested from the local daemon and printed to stdout in a
+ * compressed fashion only giving the number of up and down nodes. In
+ * the special case where less than 20 nodes are down also the IDs of
+ * the down nodes are printed in a further line.
+ *
+ * @param nl The nodelist describing the nodes from which the
+ * information should requested and put out.
+ *
+ * @return No return value.
+ */
+void PSIADM_SummaryStat(char *nl);
+
+/**
  * @brief Show RDP status.
  *
  * Show the RDP status on the nodes marked within the nodelist @a

@@ -268,7 +268,7 @@ void PSIADM_AddNode(char *nl)
 	if (nl && !nl[node]) continue;
 
 	if (hostStatus.list[node]) {
-	    printf("%d already up.\n", node);
+	    /* printf("%d already up.\n", node); */
 	} else {
 	    printf("starting node %d\n", node);
 	    *(PSnodes_ID_t *)msg.buf = node;
@@ -401,6 +401,39 @@ void PSIADM_NodeStat(char *nl)
 	} else {
 	    printf("%4d down.\n", node);
 	}
+    }
+}
+
+void PSIADM_SummaryStat(char *nl)
+{
+    PSnodes_ID_t node;
+    int upNodes = 0, downNodes = 0;
+
+    if (! getHostStatus()) return;
+
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
+
+	if (hostStatus.list[node]) {
+	    upNodes++;
+	} else {
+	    downNodes++;
+	}
+    }
+    printf("Node status summary:  %d up   %d down  of %d total\n",
+	   upNodes, downNodes, upNodes+downNodes);
+
+    /* Also print list of down nodes if sufficiently less */
+    if (downNodes && (downNodes < 20)) {
+	printf("Down nodes are:");
+	for (node=0; node<PSC_getNrOfNodes(); node++) {
+	    if (nl && !nl[node]) continue;
+
+	    if (!hostStatus.list[node]) {
+		printf(" %d", node);
+	    }
+	}
+	printf("\n");
     }
 }
 
