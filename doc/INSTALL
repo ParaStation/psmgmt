@@ -43,7 +43,7 @@ $Id$
 
 3. Services
 
-  The following (7) lines must be appended to /etc/services:
+  The following lines must be appended to /etc/services:
 
   -------------------- snip --------------------
   # ParaStation entries
@@ -55,7 +55,7 @@ $Id$
 
   This part of the installation process differs for the various Linux
   distributions. If your system has 
-  - a file named /etc/inetd.conf (SuSE based distributions befor 8.1), read
+  - a file named /etc/inetd.conf (SuSE based distributions before 8.1), read
     section 4.1,
   - a directory /etc/xinetd.d (RedHat based distributions), read
     section 4.2.
