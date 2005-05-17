@@ -12,18 +12,27 @@
 # $Id$
 #
 
-if ( -e /etc/parastation.conf ) then
-    set _psdir = `< /etc/parastation.conf grep '^InstallDir' | sed 's,^InstallDir[[:space:]]\+\(.*\)$,\1,'`
+set _psconf="/etc/parastation.conf"
+set _psdir="/opt/parastation"
 
-    if ( -d ${_psdir}/bin ) then
-        set path = ( ${path} ${_psdir}/bin )
+if ( -e "${_psconf}" ) then
 
-        if ( -d ${_psdir}/man ) then
-            if ( ${?MANPATH} ) then
-                setenv MANPATH ${MANPATH}:${_psdir}/man
-            endif
+    set _re1='^[[:space:]]*InstallDir\b'
+    set _re2='[[:space:]]*\(.*\)$'
+    set _psdir=`sed -e '/'${_re1}'/!d' -e 's/'${_re1}${_re2}'/\1/' "${_psconf}"`
+
+endif
+
+if ( -d "${_psdir}/bin" ) then
+    
+    set path = ( ${path} "${_psdir}/bin" )
+
+    if ( -d "${_psdir}/man" ) then
+	if ( ${?MANPATH} ) then
+	    setenv MANPATH "${MANPATH}:${_psdir}/man"
         endif
     endif
-
-    unset _psdir
 endif
+
+unset _psdir
+unset _psconf
