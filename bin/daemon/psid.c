@@ -2001,7 +2001,7 @@ static void checkFileTable(fd_set *controlfds)
     int fd;
     struct timeval tv;
 
-    for (fd=0; fd<FD_SETSIZE;) {
+    for (fd=0; fd<FD_SETSIZE; fd++) {
 	if (FD_ISSET(fd, controlfds)) {
 	    FD_ZERO(&fdset);
 	    FD_SET(fd, &fdset);
@@ -2016,12 +2016,12 @@ static void checkFileTable(fd_set *controlfds)
 			     "%s(%d): EBADF -> close", __func__, fd);
 		    PSID_errlog(errtxt, 0);
 		    deleteClient(fd);
-		    fd++;
 		    break;
 		case EINTR:
 		    snprintf(errtxt, sizeof(errtxt),
 			     "%s(%d): EINTR -> try again", __func__, fd);
 		    PSID_errlog(errtxt, 0);
+		    fd--; /* try again */
 		    break;
 		case EINVAL:
 		    snprintf(errtxt, sizeof(errtxt),
@@ -2042,15 +2042,10 @@ static void checkFileTable(fd_set *controlfds)
 			     "%s(%d): unrecognized error (%d):%s",
 			     __func__, fd, errno, errstr ? errstr : "UNKNOWN");
 		    PSID_errlog(errtxt, 0);
-		    fd ++;
 		    break;
 		}
 		}
-	    } else {
-		fd ++;
 	    }
-	} else {
-	    fd ++;
 	}
     }
 }
