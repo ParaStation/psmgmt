@@ -56,3 +56,5 @@ fi
 
 %files
 %attr(-,root,root) /opt/parastation
+%attr(-,root,root) /etc/profile.d/psmgmt.sh
+%attr(-,root,root) /etc/profile.d/psmgmt.csh

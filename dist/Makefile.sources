@@ -123,4 +123,6 @@ scripts/mpirun_java \
 scripts/ps_gm \
 scripts/ps_gmcounters \
 scripts/psh \
-scripts/rpm_noreq
+scripts/rpm_noreq \
+scripts/psmgmt.csh \
+scripts/psmgmt.sh

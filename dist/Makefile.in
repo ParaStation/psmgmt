@@ -40,6 +40,8 @@ MISC += scripts/ps_gmcounters
 
 ######################################################
 MISCEXP := $(patsubst %,$(DISTPATH)/%, $(MISC))
+MISCEXP += $(RPM_BUILD_ROOT)/etc/profile.d/psmgmt.csh
+MISCEXP += $(RPM_BUILD_ROOT)/etc/profile.d/psmgmt.sh
 
 all: tar
 
@@ -139,6 +141,8 @@ $(DISTPATH)/config/ps_gm: $(TOP_SRCDIR)/scripts/ps_gm
 $(DISTPATH)/scripts/ps_gmcounters: $(TOP_SRCDIR)/scripts/ps_gmcounters
 	$(INSTALL) -D $< $@
 
+$(RPM_BUILD_ROOT)/etc/profile.d/psmgmt.%: $(TOP_SRCDIR)/scripts/psmgmt.%
+	$(INSTALL) -D $< $@
 
 DISTCLEAN+= psmgmt*.tar.gz
 DISTCLEAN+= psmgmt*.rpm
