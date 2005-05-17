@@ -2022,6 +2022,7 @@ static void checkFileTable(fd_set *controlfds)
 		    snprintf(errtxt, sizeof(errtxt),
 			     "%s(%d): EINTR -> try again", __func__, fd);
 		    PSID_errlog(errtxt, 0);
+		    break;
 		case EINVAL:
 		    snprintf(errtxt, sizeof(errtxt),
 			     "%s(%d): wrong filenumber -> exit", __func__, fd);
