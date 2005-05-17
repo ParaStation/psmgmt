@@ -102,8 +102,8 @@ typedef struct {
  */
 #define MAX_ACK_PENDING  4
 
-/** Timeout for retransmission = 100msec */
-struct timeval RESEND_TIMEOUT = {0, 100000}; /* sec, usec */
+/** Timeout for retransmission = 300msec */
+struct timeval RESEND_TIMEOUT = {0, 300000}; /* sec, usec */
 
 /**
  * The timeout used for RDP timer = 100 msec. The is a const for now
@@ -1502,7 +1502,7 @@ static void handleTimeoutRDP(void)
 		 * ap may become invalid due to closeConnection(),
 		 * therefore we store the predecessor.
 		 */
-		ackent_t *pre = ap->prev;
+		ackent_t *tmp, *pre = ap->prev;
 
 		resendMsgs(node);
 
@@ -1510,19 +1510,15 @@ static void handleTimeoutRDP(void)
 		 * If the ap (and thus ap->next) was removed due to a
 		 * closeConnection(), we now get a valid successor.
 		 */
-		pre = (pre) ? pre->next : AckListHead;
-		if (pre == ap) {
-		    /* ap not removed */
-		    ap = ap->next;
-		} else {
-		    ap = pre;
+		tmp = (pre) ? pre->next : AckListHead;
+		if (tmp != ap) {
+		    /* ap was removed, next ap allready in tmp */
+		    ap = tmp;
+		    continue;
 		}
-	    } else {
-		ap = ap->next; /* try with next buffer */
 	    }
-	} else {
-	    ap = ap->next; /* try with next buffer */
 	}
+	ap = ap->next; /* try with next buffer */
     }
     return;
 }

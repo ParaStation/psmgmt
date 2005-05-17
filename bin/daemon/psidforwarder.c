@@ -662,7 +662,7 @@ static void checkFileTable(fd_set* openfds)
     struct timeval tv;
     char *errtxt, buf[80];
 
-    for(fd=0;fd<FD_SETSIZE;){
+    for (fd=0; fd<FD_SETSIZE;) {
 	if (FD_ISSET(fd,openfds)) {
 	    memset(&rfds, 0, sizeof(rfds));
 	    FD_SET(fd,&rfds);

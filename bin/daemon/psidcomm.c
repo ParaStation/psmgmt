@@ -130,7 +130,7 @@ int recvMsg(int fd, DDMsg_t *msg, size_t size)
 	    snprintf(errtxt, sizeof(errtxt),
 		     "%s(RDPSocket): recvRDP() failed (%d): %s",
 		     __func__, errno, errstr ? errstr : "UNKNOWN");
-	    PSID_errlog(errtxt, 0);
+	    PSID_errlog(errtxt, (errno==EAGAIN) ? 1 : 0);
 	} else if (ret && ret != msg->len) {
 	    snprintf(errtxt, sizeof(errtxt),
 		     "%s(RDPSocket) type %s (len=%d) from %s",
