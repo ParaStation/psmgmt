@@ -12,16 +12,7 @@
 # $Id$
 #
 
-_psconf="/etc/parastation.conf"
 _psdir="/opt/parastation"
-
-if test -r "${_psconf}" ; then
-
-    _re1='^[[:space:]]*InstallDir\b'
-    _re2='[[:space:]]*\(.*\)$'
-    _psdir=`sed -e '/'${_re1}'/!d' -e 's/'${_re1}${_re2}'/\1/' "${_psconf}"`
-
-fi
 
 if test -d "${_psdir}/bin" ; then
 
@@ -35,4 +26,3 @@ if test -d "${_psdir}/bin" ; then
 fi
 
 unset _psdir
-unset _psconf
