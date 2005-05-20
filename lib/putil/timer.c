@@ -78,17 +78,25 @@ static void sigHandler(int sig)
     while (timer) {
 	timer->calls = ++timer->calls % timer->period;
 	if (!timer->calls) {
-	    if (timer->sigBlocked) {
-		timer->sigPending = 1;
-	    } else if (timer->timeoutHandler) {
-		timer->sigBlocked = 1;
-		timer->timeoutHandler();
-		timer->sigBlocked = 0;
-	    }
+	    timer->sigPending = 1;
 	}
 	timer = timer->next;
     }
+}
 
+void Timer_handleSignals(void)
+{
+    Timer_t *timer;
+
+    timer = timerList;
+
+    while (timer) {
+	if (timer->sigPending && !timer->sigBlocked && timer->timeoutHandler) {
+	    timer->timeoutHandler();
+	    timer->sigPending = 0;
+	}
+	timer = timer->next;
+    }
 }
 
 int Timer_getDebugLevel(void)

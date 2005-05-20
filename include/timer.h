@@ -136,6 +136,11 @@ int Timer_remove(int id);
  */
 int Timer_block(int id, int block);
 
+/**
+ * @doctodo
+ */
+void Timer_handleSignals(void);
+
 #ifdef __cplusplus
 }/* extern "C" */
 #endif
