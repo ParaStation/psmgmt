@@ -360,9 +360,6 @@ void PSE_finalize(void)
     errlog(errtxt, 10);
 
     if (PSE_getRank()>0) {
-	/* Don't kill parent on exit */
-	PSI_release(PSC_getMyTID());
-
 	if (PSI_sendFinish(parentTID)) {
 	    snprintf(errtxt, sizeof(errtxt),
 		     "Failed to send SPAWNFINISH to parent %s.",
@@ -373,13 +370,14 @@ void PSE_finalize(void)
 	if (PSI_recvFinish(myWorldSize)) {
 	    exitAll("Failed to receive SPAWNFINISH from childs.", 10);
 	}
-	/* Don't kill logger on exit */
-	PSI_release(PSC_getMyTID());
     } else {
 	snprintf(errtxt, sizeof(errtxt), "%s: PSE_getRank() returned %d",
 		 __func__, PSE_getRank());
 	exitAll(errtxt, 10);
     }
+
+    /* Don't kill parent/logger on exit */
+    PSI_release(PSC_getMyTID());
 
     snprintf(errtxt, sizeof(errtxt), "[%d] Quitting program, good bye.",
 	     PSE_getRank());
