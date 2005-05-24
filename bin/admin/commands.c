@@ -592,13 +592,23 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 		printf("%22s ", PSC_printTID(taskInfo[task].ptid));
 		printf("%2d  ", taskInfo[task].connected);
 		printf("%5d ", taskInfo[task].uid);
-		printf("%s\n",
+		printf("%s",
 		       taskInfo[task].group==TG_ADMIN ? "(A)" :
 		       taskInfo[task].group==TG_LOGGER ? "(L)" :
 		       taskInfo[task].group==TG_FORWARDER ? "(F)" :
 		       taskInfo[task].group==TG_SPAWNER ? "(S)" :
 		       taskInfo[task].group==TG_GMSPAWNER ? "(S)" :
 		       taskInfo[task].group==TG_MONITOR ? "(M)" : "");
+#if 0
+		{
+		    pid_t pid = PSC_getPID(taskInfo[task].tid);
+		    char cmdline[8096] = { '\0' };
+		    PSI_infoString(node, PSP_INFO_CMDLINE, &pid,
+				   cmdline, sizeof(cmdline), 0);
+		    printf(" %s", cmdline);
+		}
+#endif
+		printf("\n");
 	    }
 	    if (taskNum[node]>num) {
 		printf(" + %d more tasks\n", taskNum[node]-num);

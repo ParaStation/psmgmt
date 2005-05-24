@@ -130,6 +130,12 @@ int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * - PSP_INFO_DAEMONVER request the version string of the ParaStation
  * daemon. No further parameters needed.
  *
+ * - PSP_INFO_CMDLINE requests the command line of a process running
+ * on node @a node under the control of the ParaStation daemon. The
+ * requested process is given within the extra parameter. Thus @a
+ * param has to point to a datum of type @c pid_t holding the process
+ * ID. The maximum size of the returned commandline is about 8000
+ * byte.
  *
  * @param node The ParaStation ID of the node to ask.
  *

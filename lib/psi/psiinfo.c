@@ -104,6 +104,7 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
 	case PSP_INFO_LIST_NORMTASKS:
 	case PSP_INFO_LIST_ALLOCJOBS:
 	case PSP_INFO_LIST_EXCLUSIVE:
+	case PSP_INFO_CMDLINE:
 	{
 	    size_t s = msg.header.len - sizeof(msg.header) - sizeof(msg.type);
 	    if (!buf) {
@@ -261,6 +262,17 @@ int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	if (param) {
 	    *(PSnodes_ID_t *)msg.buf = *(const PSnodes_ID_t *)param;
 	    msg.header.len += sizeof(PSnodes_ID_t);
+	} else {
+	    snprintf(errtxt, sizeof(errtxt), "%s: %s request needs parameter.",
+		     __func__, PSP_printInfo(what));
+	    PSI_errlog(errtxt, 0);
+	    errno = EINVAL;
+	    return -1;
+	}
+	break;
+    case PSP_INFO_CMDLINE:
+	if (param) {
+	    msg.header.dest = PSC_getTID(node, *(pid_t *)param);
 	} else {
 	    snprintf(errtxt, sizeof(errtxt), "%s: %s request needs parameter.",
 		     __func__, PSP_printInfo(what));

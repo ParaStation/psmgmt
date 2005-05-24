@@ -554,6 +554,22 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    }
 	    break;
 	}
+	case PSP_INFO_CMDLINE:
+	{
+	    PStask_t *task = PStasklist_find(managedTasks, inmsg->header.dest);
+	    if (task) {
+		int i;
+		for (i=0; i<task->argc; i++) {
+		    snprintf(&msg.buf[strlen(msg.buf)],
+			     sizeof(msg.buf)-strlen(msg.buf),
+			     "%s ", task->argv[i]);
+		}
+		/* Cut the trailing space */
+		if (strlen(msg.buf)) msg.buf[strlen(msg.buf)-1]='\0';
+	    }
+	    msg.header.len += strlen(msg.buf) + 1;
+	    break;
+	}
 	default:
 	    msg.type = PSP_INFO_UNKNOWN;
 	}

@@ -131,6 +131,8 @@ static struct {
     { PSP_INFO_LIST_ALLOCJOBS,   "PSP_INFO_LIST_ALLOCJOBS" },
     { PSP_INFO_LIST_EXCLUSIVE,   "PSP_INFO_LIST_EXCLUSIVE" },
 
+    { PSP_INFO_CMDLINE,          "PSP_INFO_CMDLINE" },
+
     {0,NULL}
 };
 

@@ -146,6 +146,8 @@ typedef enum {
     PSP_INFO_LIST_NORMTASKS,      /**< List of tasks (normal tasks tasks) */
     PSP_INFO_LIST_ALLOCJOBS,      /**< List of allocated job slots */
     PSP_INFO_LIST_EXCLUSIVE,      /**< List of flags of exclusive allocation */
+
+    PSP_INFO_CMDLINE,             /**< Task's command line (if available) */
 } PSP_Info_t;
 
 /** Messages concerning spawning of tasks. */
@@ -240,7 +242,7 @@ typedef struct {
 typedef struct {
     DDMsg_t header;        /**< message header */
     int32_t type;          /**< message (sub-)type */
-    char buf[BufMsgSize-sizeof(int)]; /**< message buffer */
+    char buf[BufMsgSize-sizeof(int32_t)]; /**< message buffer */
 } DDTypedBufferMsg_t;
 
 /** Simple error message */
