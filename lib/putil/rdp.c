@@ -184,7 +184,10 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
 	    errlog(errtxt, 1);
 	    /* Handle extended error */
 	    ret = handleErr();
-	    if (ret < 0) return ret;
+	    if (ret < 0) {
+		errlog(errtxt, 0);
+		return ret;
+	    }
 	    /* Another packet pending ? */
 	select_cont:
 	    {
@@ -274,7 +277,10 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 	    errlog(errtxt, 1);
 	    /* Handle extended error */
 	    ret = handleErr();
-	    if (ret < 0) return ret;
+	    if (ret < 0) {
+		errlog(errtxt, 0);
+		return ret;
+	    }
 	    /* Try to send again */
 	    goto restart;
 	    break;
@@ -1956,7 +1962,8 @@ static int handleRDP(int fd)
 	if (ret < 0) {
 	    snprintf(errtxt, sizeof(errtxt), "%s/CDTA: recvfrom() returns: %s",
 		     __func__, strerror(errno));
-	    errexit(errtxt, errno);
+	    errlog(errtxt, 0);
+	    return ret;
 	} else if (!ret) {
 	    snprintf(errtxt, sizeof(errtxt),
 		     "%s/CDTA: got 0 from recvfrom()", __func__);
