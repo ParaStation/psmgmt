@@ -22,7 +22,6 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #include "pscommon.h"
 #include "pstask.h"
-#include "pshwtypes.h"
 
 #include "psi.h"
 #include "psiinfo.h"
