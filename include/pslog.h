@@ -39,7 +39,9 @@ typedef enum {
     STDERR,     /**< fw -> lg  Contains output to stderr from client. */
     USAGE,      /**< fw -> lg  Resources used by the client. */
     FINALIZE,   /**< fw -> lg  Client has finished. Request to shut down. */
-    EXIT        /**< lg -> fw  FINALIZE ack. */
+    EXIT,       /**< lg -> fw  FINALIZE ack. */
+    STOP,       /**< fw -> lg (and lg -> fw)  flow control: stop send */
+    CONT,       /**< fw -> lg (and lg -> fw)  flow control: continue send */
 } PSLog_msg_t;
 
 /** Untyped Buffer Message. Used for all communication. */

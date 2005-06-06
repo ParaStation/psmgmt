@@ -207,7 +207,8 @@ static int recvMsg(PSLog_Msg_t *msg)
 	if (i == maxClients) {
 	    fprintf(stderr, "PSIlogger: %s: CC_ERROR from unknown task %s.\n",
 		    __func__, PSC_printTID(msg->header.sender));
-	    ret = 0;
+	    errno = EBADMSG;
+	    ret = -1;
 	} else {
 	    fprintf(stderr,
 		    "PSIlogger: %s: forwarder %s (rank %d) disappeared.\n",
@@ -540,6 +541,9 @@ static void forwardInput(int std_in, PStask_ID_t fwTID)
 	close(std_in);
     default:
 	sendMsg(fwTID, STDIN, buf, len);
+	if (verbose) {
+	    fprintf(stderr, "PSIlogger: %s: %d bytes\n", __func__, len);
+	}
     }
 }
 
@@ -726,6 +730,33 @@ static void loop(void)
 
 		break;
 	    }
+	    case STOP:
+		if (msg.sender == InputDest) {
+		    /* rank InputDest wants pause */
+		    FD_CLR(STDIN_FILENO,&myfds);
+		    if (verbose) {
+			fprintf(stderr,
+				"PSIlogger: forward input is paused\n");
+		    }
+		} else {
+		    fprintf(stderr, "PSIlogger: STOP from wrong rank: %d\n",
+			    msg.sender);
+		}
+		break;
+	    case CONT:
+		if (msg.sender == InputDest
+		    && forwardInputTID == msg.header.sender) {
+		    /* rank InputDest wants the input again */
+		    FD_SET(STDIN_FILENO,&myfds);
+		    if (verbose) {
+			fprintf(stderr,
+				"PSIlogger: forward input continues\n");
+		    }
+		} else {
+		    fprintf(stderr, "PSIlogger: CONT from wrong rank: %d\n",
+			    msg.sender);
+		}
+		break;
 	    default:
 		fprintf(stderr, "PSIlogger: %s: Unknown message type %d!\n",
 			__func__, msg.type);

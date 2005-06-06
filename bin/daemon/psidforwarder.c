@@ -16,6 +16,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -27,6 +28,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "pscommon.h"
 #include "pstask.h"
 #include "psdaemonprotocol.h"
+#include "psidmsgbuf.h"
 #include "pslog.h"
 
 #include "psidforwarder.h"
@@ -60,10 +62,16 @@ int stdoutSock = -1;
 int stderrSock = -1;
 
 /** Set of fds the forwarder listens to */
-fd_set myfds;
+fd_set readfds;
+
+/** Set of fds the forwarder writes to (this is stdinSock) */
+fd_set writefds;
 
 /** Flag marking all controlled fds closed */
 int canend = 0;
+
+/** */
+msgbuf_t *oldMsgs = NULL;
 
 /**
  * @brief Close socket to daemon.
@@ -79,7 +87,7 @@ static void closeDaemonSock(void)
     if (daemonSock < 0) return;
 
     daemonSock = -1;
-    FD_CLR(tmp, &myfds);
+    FD_CLR(tmp, &readfds);
     loggerTID = -1;
     PSLog_close();
     close(tmp);
@@ -443,14 +451,14 @@ static size_t collectRead(int sock, char *buf, size_t count, size_t *total)
     *total = 0;
 
     do {
-	fd_set readfds;
+	fd_set fds;
 	struct timeval timeout;
 
-	FD_ZERO(&readfds);
-	FD_SET(sock, &readfds);
+	FD_ZERO(&fds);
+	FD_SET(sock, &fds);
 	timeout = (struct timeval) {0, 1000};
 
-	n = select(sock+1, &readfds, NULL, NULL, &timeout);
+	n = select(sock+1, &fds, NULL, NULL, &timeout);
 	if (n < 0) {
 	    if (errno == EINTR) {
 		continue;
@@ -511,14 +519,14 @@ static void sighandler(int sig)
 	snprintf(txt, sizeof(txt),
 		 "[%d] PSID_forwarder: open sockets left:", childRank);
 	for (i=0; i<FD_SETSIZE; i++) {
-	    if (FD_ISSET(i, &myfds) && i != daemonSock) {
+	    if (FD_ISSET(i, &readfds) && i != daemonSock) {
 		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), " %d", i);
 	    }
 	}
 	snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "\n");
 	printMsg(STDERR, txt);
 	for (i=0; i<FD_SETSIZE; i++) {
-	    if (FD_ISSET(i, &myfds) && i != daemonSock) {
+	    if (FD_ISSET(i, &readfds) && i != daemonSock) {
 		int n;
 		char buf[128], txt2[128];
 
@@ -542,15 +550,15 @@ static void sighandler(int sig)
 
 	if (!canend) {
 	    /* Read all the remaining stuff from the controlled fds */
-	    fd_set afds;
+	    fd_set fds;
 	    struct timeval atv;
 	    int ret;
 
 	    do {
-		memcpy(&afds, &myfds, sizeof(afds));
+		memcpy(&fds, &readfds, sizeof(fds));
 		atv = (struct timeval) {0,1000};
 
-		ret = select(FD_SETSIZE, &afds, NULL, NULL, &atv);
+		ret = select(FD_SETSIZE, &fds, NULL, NULL, &atv);
 		if (ret < 0) {
 		    if (errno != EINTR) {
 			snprintf(txt, sizeof(txt),
@@ -566,7 +574,7 @@ static void sighandler(int sig)
 		    PSLog_msg_t type;
 
 		    for (sock=0; sock<FD_SETSIZE; sock++) {
-			if (FD_ISSET(sock, &afds)) { /* socket ready */
+			if (FD_ISSET(sock, &fds)) { /* socket ready */
 			    if (sock==stdoutSock) {
 				type=STDOUT;
 			    } else if (sock==stderrSock) {
@@ -587,8 +595,9 @@ static void sighandler(int sig)
 			    if (n==0 || (n<0 && errno==EIO)) {
 				/* socket closed */
 				close(sock);
-				FD_CLR(sock,&myfds);
-			    } else if (n<0 && errno!=ETIME) {
+				FD_CLR(sock,&readfds);
+			    } else if (n<0
+				       && errno!=ETIME && errno!=ECONNRESET) {
 				/* ignore the error */
 				snprintf(txt, sizeof(txt),
 					 "PSID_forwarder: collectRead():%s\n",
@@ -633,7 +642,7 @@ static void sighandler(int sig)
     if (verbose) {
 	snprintf(txt, sizeof(txt), "PSID_forwarder: open sockets left:");
 	for (i=0; i<FD_SETSIZE; i++) {
-	    if (FD_ISSET(i, &myfds)) {
+	    if (FD_ISSET(i, &readfds)) {
 		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), " %d", i);
 	    }
 	}
@@ -663,9 +672,9 @@ static void checkFileTable(fd_set* openfds)
     char *errtxt, buf[80];
 
     for (fd=0; fd<FD_SETSIZE;) {
-	if (FD_ISSET(fd,openfds)) {
+	if (FD_ISSET(fd, openfds)) {
 	    memset(&rfds, 0, sizeof(rfds));
-	    FD_SET(fd,&rfds);
+	    FD_SET(fd, &rfds);
 
 	    tv.tv_sec=0;
 	    tv.tv_usec=0;
@@ -677,7 +686,7 @@ static void checkFileTable(fd_set* openfds)
 			     "%s(%d): EBADF -> close socket\n", __func__, fd);
 		    printMsg(STDERR, buf);
 		    close(fd);
-		    FD_CLR(fd,openfds);
+		    FD_CLR(fd, openfds);
 		    fd++;
 		    break;
 		case EINTR:
@@ -690,14 +699,14 @@ static void checkFileTable(fd_set* openfds)
 			     "%s(%d): EINVAL -> close socket\n", __func__, fd);
 		    printMsg(STDERR, buf);
 		    close(fd);
-		    FD_CLR(fd,openfds);
+		    FD_CLR(fd, openfds);
 		    break;
 		case ENOMEM:
 		    snprintf(buf , sizeof(buf),
 			     "%s(%d): ENOMEM -> close socket\n", __func__, fd);
 		    printMsg(STDERR, buf);
 		    close(fd);
-		    FD_CLR(fd,openfds);
+		    FD_CLR(fd, openfds);
 		    break;
 		default:
 		    errtxt=strerror(errno);
@@ -714,6 +723,7 @@ static void checkFileTable(fd_set* openfds)
 	    fd ++;
     }
 }
+
 
 /**
  * @brief Write to a file descriptor
@@ -733,21 +743,118 @@ static void checkFileTable(fd_set* openfds)
  * i.e. usually this is @a count. Otherwise -1 is returned and errno
  * is set appropriately.
  */
-static int writeall(int fd, void *buf, int count)
-{
-    int len;
-    char *cbuf = (char *)buf;
-    int c = count;
 
-    while (c>0){
-	len = write(fd, cbuf, c);
-	if (len<0) return -1;
-	c -= len;
-	cbuf += len;
+static int do_write(PSLog_Msg_t *msg, int offset)
+{
+    int n, i;
+    int count = msg->header.len - PSLog_headerSize;
+
+    for (n=offset, i=1; (n<count) && (i>0);) {
+	i = write(stdinSock, &msg->buf[n], count-n);
+	if (i<=0) {
+	    switch (errno) {
+	    case EINTR:
+		break;
+	    case EAGAIN:
+		return n;
+		break;
+	    default:
+	    {
+		char obuf[120];
+		char *errstr = strerror(errno);
+
+		snprintf(obuf, sizeof(obuf),
+			 "%s(): got error %d on stdinSock: %s",
+			 __func__, errno, 
+			 errstr ? errstr : "UNKNOWN");
+		printMsg(STDERR, obuf);
+		return i;
+	    }
+	    }
+	} else
+	    n+=i;
     }
-    return count;
+    return n;
 }
 
+static int storeMsg(PSLog_Msg_t *msg, int offset)
+{
+    msgbuf_t *msgbuf = oldMsgs;
+
+    if (msgbuf) {
+        /* Search for end of list */
+        while (msgbuf->next) msgbuf = msgbuf->next;
+        msgbuf->next = getMsg();
+        msgbuf = msgbuf->next;
+    } else {
+        msgbuf = oldMsgs = getMsg();
+    }
+
+    if (!msgbuf) {
+        errno = ENOMEM;
+        return -1;
+    }
+
+    msgbuf->msg = malloc(msg->header.len);
+    if (!msgbuf->msg) {
+        errno = ENOMEM;
+        return -1;
+    }
+    memcpy(msgbuf->msg, msg, msg->header.len);
+
+    msgbuf->offset = offset;
+
+    return 0;
+}
+
+static int flushMsgs(void)
+{
+    while (oldMsgs) {
+	msgbuf_t *msg = oldMsgs;
+	int len = msg->msg->len - PSLog_headerSize;
+	int written = do_write((PSLog_Msg_t *)msg->msg, msg->offset);
+
+	if (written<0) return written;
+	if (written != len) {
+	    msg->offset = written;
+	    break;
+	}
+
+	oldMsgs = msg->next;
+	freeMsg(msg);
+    }
+
+    if (oldMsgs) {
+	errno = EWOULDBLOCK;
+	return -1;
+    } else {
+	sendMsg(CONT, NULL, 0);
+    }
+
+    return 0;
+}
+
+static int writeMsg(PSLog_Msg_t *msg)
+{
+    int len = msg->header.len - PSLog_headerSize, written = 0;
+
+    if (oldMsgs) flushMsgs();
+
+    if (!oldMsgs) {
+        written = do_write(msg, 0);
+    }
+
+    if (written<0) return written;
+    if (written != len) {
+        if (!storeMsg(msg, written)) errno = EWOULDBLOCK;
+	sendMsg(STOP, NULL, 0);
+        return -1;
+    }
+
+    return written;
+}
+
+	
 /**
  * @brief Read input from logger
  *
@@ -758,13 +865,10 @@ static int writeall(int fd, void *buf, int count)
  * stop execution and exit() which finally will result in the local
  * daemon killing the client process.
  *
- * @param stdinport The file descriptor connected to the clients stdin
- * file descriptor.
- *
  * @return Usually the number of bytes received is returned. If an
  * error occured, -1 is returned and errno is set appropriately.
  */
-static int readFromLogger(int stdinport)
+static int readFromLogger(void)
 {
     PSLog_Msg_t msg;
     char obuf[120];
@@ -784,17 +888,17 @@ static int readFromLogger(int stdinport)
 		    printMsg(STDERR, obuf);
 		}
 		if (len) {
-		    if (stdinport<0) {
+		    if (stdinSock<0) {
 			snprintf(obuf, sizeof(obuf),
 				 "%s: STDIN already closed\n", __func__);
 			printMsg(STDERR, obuf);
 		    } else {
-			writeall(stdinport, msg.buf, len);
+			writeMsg(&msg);
 		    }
 		} else {
 		    /* close clients stdin */
-		    shutdown(stdinport, SHUT_WR);
-		    stdinport = -1;
+		    shutdown(stdinSock, SHUT_WR);
+		    stdinSock = -1;
 		}
 		break;
 	    }
@@ -837,7 +941,7 @@ static int readFromLogger(int stdinport)
 static void loop(void)
 {
     int sock;      /* client socket */
-    fd_set afds;
+    fd_set rfds, wfds;
     struct timeval mytv={2,0}, atv;
     char buf[4000], obuf[120];
     int n;
@@ -852,23 +956,25 @@ static void loop(void)
 	printMsg(STDERR, obuf);
     }
 
-    FD_ZERO(&myfds);
-    FD_SET(stdoutSock, &myfds);
-    FD_SET(stderrSock, &myfds);
-    FD_SET(daemonSock, &myfds);
+    FD_ZERO(&readfds);
+    FD_SET(stdoutSock, &readfds);
+    FD_SET(stderrSock, &readfds);
+    FD_SET(daemonSock, &readfds);
+    FD_ZERO(&writefds);
 
     /* Loop forever. We exit on SIGCHLD. */
     PSID_blockSig(0, SIGCHLD);
     while (1) {
-	memcpy(&afds, &myfds, sizeof(afds));
+	memcpy(&rfds, &readfds, sizeof(rfds));
+	memcpy(&wfds, &writefds, sizeof(wfds));
 	atv = mytv;
-	if (select(FD_SETSIZE, &afds, NULL, NULL, &atv) < 0) {
+	if (select(FD_SETSIZE, &rfds, &wfds, NULL, &atv) < 0) {
 	    if (errno != EINTR) {
 		snprintf(obuf, sizeof(obuf),
 			 "PSID_forwarder: error on select(%d): %s\n",
 			 errno, strerror(errno));
 		printMsg(STDERR, obuf);
-		checkFileTable(&myfds);
+		checkFileTable(&readfds);
 	    }
 	    continue;
 	}
@@ -877,10 +983,10 @@ static void loop(void)
 	 */
 	PSID_blockSig(1, SIGCHLD);
 	for (sock=0; sock<FD_SETSIZE; sock++) {
-	    if (FD_ISSET(sock, &afds)) { /* socket ready */
+	    if (FD_ISSET(sock, &rfds)) { /* socket ready */
 		if (sock==daemonSock) {
 		    /* Read new input */
-		    readFromLogger(stdinSock);
+		    readFromLogger();
 		    continue;
 		} else if (sock==stdoutSock) {
 		    type=STDOUT;
@@ -913,7 +1019,7 @@ static void loop(void)
 		    }
 
 		    close(sock);
-		    FD_CLR(sock,&myfds);
+		    FD_CLR(sock, &readfds);
 		    openfds--;
 		    if (!openfds) {
 			/* stdout and stderr closed -> wait for SIGCHLD */
@@ -924,7 +1030,7 @@ static void loop(void)
 			}
 			canend = 1;
 		    }
-		} else if (n<0 && errno!=ETIME) {
+		} else if (n<0 && errno!=ETIME && errno!=ECONNRESET) {
 		    /* ignore the error */
 		    snprintf(obuf, sizeof(obuf),
 			     "PSID_forwarder: read():%s\n", strerror(errno));
@@ -933,6 +1039,15 @@ static void loop(void)
 		if (total) {
 		    /* forward it to logger */
 		    sendMsg(type, buf, total);
+		}
+	    }
+	    if (FD_ISSET(sock, &wfds)) { /* socket ready */
+		if (sock == stdinSock) {
+		    flushMsgs();
+		} else {
+		    snprintf(obuf, sizeof(obuf),
+			     "PSID_forwarder: write to %d?\n", sock);
+		    printMsg(STDERR, obuf);
 		}
 	    }
 	}
@@ -946,6 +1061,8 @@ static void loop(void)
 void PSID_forwarder(PStask_t *task, int daemonfd,
 		    int stdinfd, int stdoutfd, int stderrfd)
 {
+    long flags;
+
     childRank = task->rank;
     childPID = PSC_getPID(task->tid);
     daemonSock = daemonfd;
@@ -958,6 +1075,11 @@ void PSID_forwarder(PStask_t *task, int daemonfd,
     signal(SIGUSR1, sighandler);
 
     PSLog_init(daemonSock, childRank, 1);
+
+    /* Make stdin nonblocking for us */
+    flags = fcntl(stdinSock, F_GETFL);
+    flags |= O_NONBLOCK;
+    fcntl(stdinSock, F_SETFL, flags);
 
     if (connectLogger(task->loggertid) != 0) {
 	/* There is no logger. Just wait for the client to finish. */

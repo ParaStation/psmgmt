@@ -137,6 +137,10 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t senderTid,
 		    dest->killat = time(NULL) + 10;
 		    if (dest->group == TG_LOGGER) dest->killat++;
 		}
+		/* Let's listen to this client again */
+		if (dest->fd != -1) {
+		    FD_SET(dest->fd, &PSID_readfds);
+		}
 	    }
 
 	    ret = PSID_kill(pid, sig, uid);

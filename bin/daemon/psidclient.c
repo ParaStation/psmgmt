@@ -336,6 +336,15 @@ void closeConnection(int fd)
 	msgbuf_t *mp = clients[fd].msgs;
 
 	clients[fd].msgs = clients[fd].msgs->next;
+
+	if (PSC_getPID(mp->msg->sender)) {
+	    DDMsg_t contmsg = { .type = PSP_DD_SENDCONT,
+				.sender = mp->msg->dest,
+				.dest = mp->msg->sender,
+				.len = sizeof(DDMsg_t) };
+	    sendMsg(&contmsg);
+	}
+
 	freeMsg(mp);
     }
 
@@ -370,6 +379,10 @@ void deleteClient(int fd)
     task = PStasklist_find(managedTasks, tid);
     if (task && task->group == TG_FORWARDER && !task->released) {
 	DDMsg_t msg;
+
+	snprintf(errtxt, sizeof(errtxt), "%s: Unreleased forwarder %s",
+		 __func__, PSC_printTID(tid));
+	PSID_errlog(errtxt, 0);
 
 	msg.type = PSP_CC_ERROR;
 	msg.dest = task->loggertid;
