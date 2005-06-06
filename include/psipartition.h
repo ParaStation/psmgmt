@@ -137,7 +137,7 @@ void PSI_PBS(void);
  *
  * @param hwType Type of communication hardware each requested node
  * has to have. This is a 0 bitwise ORed with one or more of the
- * hardware types defined in pshwtypes.h.
+ * hardware types defined in the ParaStation configuration file.
  *
  * @return On success, the number of nodes in the partition is
  * returned or -1 if an error occurred.

@@ -24,7 +24,7 @@ INCDIR := $(DISTPATH)/include
 BINDIR := $(DISTPATH)/bin
 LIBDIR := $(DISTPATH)/lib
 
-INCLUDES += pse.h pshwtypes.h
+INCLUDES += pse.h
 INCLUDES += psprotocol.h psnodes.h pstask.h pspartition.h pscommon.h
 INCLUDES += psiinfo.h psi.h
 

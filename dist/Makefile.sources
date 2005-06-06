@@ -64,7 +64,6 @@ include/parser.h \
 include/pscommon.h \
 include/psdaemonprotocol.h \
 include/pse.h \
-include/pshwtypes.h \
 include/psi.h \
 include/psienv.h \
 include/psiinfo.h \

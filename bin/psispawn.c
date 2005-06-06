@@ -30,7 +30,6 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <sys/wait.h>
 
 #include "pscommon.h"
-#include "pshwtypes.h"
 #include "psprotocol.h"
 #include "psi.h"
 #include "psienv.h"
