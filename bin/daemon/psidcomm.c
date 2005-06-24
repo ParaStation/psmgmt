@@ -58,7 +58,7 @@ int sendMsg(void *amsg)
 	ret = handleMsg(-1, (DDBufferMsg_t *) msg) - 1;
 	if (ret) errno = EINVAL;
     } else if (PSC_getID(msg->dest)==PSC_getMyID()) { /* my own node */
-	if (msg->type < 0x0100) {
+	if (msg->type < 0x0100) {          /* PSP_CD_* message */
 	    sender="sendClient";
 	    ret = sendClient(amsg);
 
@@ -73,7 +73,7 @@ int sendMsg(void *amsg)
 		    PSID_errlog(errtxt, 0);
 		}
 	    }
-	} else {
+	} else {                           /* PSP_DD_* message */
 	    /* Daemon message */
 	    sender="handleMsg";
 	    ret = handleMsg(-1, (DDBufferMsg_t *) msg) - 1;
