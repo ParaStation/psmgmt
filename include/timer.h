@@ -137,7 +137,27 @@ int Timer_remove(int id);
 int Timer_block(int id, int block);
 
 /**
- * @doctodo
+ * @brief Handle elapsed timers
+ *
+ * Within this functions the actual handling of pending timers is
+ * done. In order to achieve greater robustness of the code the signal
+ * handler within the Timer facility only sets flags marking elapsed
+ * timers. The actual work is done within this function.
+ *
+ * Thus it looks for timers marked to be elapsed and not blocked. If
+ * such a timer is found, the corresponding @a timeoutHandler as
+ * registered within @ref Timer_register() is called.
+ *
+ * Since the actual work is done within this function, it is crutial
+ * to call it on a regular basis in order to guarantee the handling of
+ * the timers. Ideal points are immediately arround central select()
+ * calls or somewhere within a main loop of a program.
+ *
+ * As an example, the Selector facility uses Timers in order to
+ * provide certain functionality. Here @ref Timer_handleSignals() is
+ * called every time before going into the central select(). Be aware
+ * of the fact that this select() is interrupted on a regular basis
+ * due to signals sent to the process because of ellapsed timers.
  */
 void Timer_handleSignals(void);
 
