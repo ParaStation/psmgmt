@@ -1,0 +1,12 @@
+How to prepare a new release:
+
+1. Check in all changes.
+2. Also change Makefile.version and check this in.
+3. Update the ChangeLog. Use 'svn log -r HEAD:lastHead' in order to create
+	the list of changes.
+4. Tag the new release using:
+
+svn copy http://svn.ipd.uka.de/repos/ParaStation/trunk/mgmt \
+	http://svn.ipd.uka.de/repos/ParaStation/tags/psmgmt-version \
+	-m Tagging the x.x.x release of psmgmt
+
