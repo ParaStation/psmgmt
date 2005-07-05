@@ -1,6 +1,12 @@
 Version psmgmt-4.2.3:
 =====================
 ------------------------------------------------------------------------
+r3717 | eicker | 2005-07-05 14:19:13 +0200 (Tue, 05 Jul 2005) | 3 lines
+
+Prepare for new version.
+Update ChangeLog.
+
+------------------------------------------------------------------------
 r3716 | eicker | 2005-07-05 14:03:38 +0200 (Tue, 05 Jul 2005) | 2 lines
 
 Don't clone whole task structures when only a siglist is needed.
