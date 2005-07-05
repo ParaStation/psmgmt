@@ -1,9 +1,226 @@
-Version psmgmt-4.2.0:
+Version psmgmt-4.2.3:
 =====================
+------------------------------------------------------------------------
+r3716 | eicker | 2005-07-05 14:03:38 +0200 (Tue, 05 Jul 2005) | 2 lines
+
+Don't clone whole task structures when only a siglist is needed.
+
+------------------------------------------------------------------------
+r3715 | eicker | 2005-07-05 13:54:03 +0200 (Tue, 05 Jul 2005) | 4 lines
+
+Bugfix: Fix some race-conditions within code used during shutdown of
+parallel tasks. This should suppress some error-messages, as well in the
+syslogs of the daemon as in the output of the user processes.
+
+------------------------------------------------------------------------
+r3714 | eicker | 2005-07-05 13:42:44 +0200 (Tue, 05 Jul 2005) | 2 lines
+
+Add some documentation.
+
+------------------------------------------------------------------------
+r3688 | eicker | 2005-06-24 16:01:42 +0200 (Fri, 24 Jun 2005) | 2 lines
+
+Some comments added.
+
+
+
+Version psmgmt-4.2.2:
+=====================
+------------------------------------------------------------------------
+r3667 | eicker | 2005-06-08 12:24:34 +0200 (Wed, 08 Jun 2005) | 2 lines
+
+New version
+
+------------------------------------------------------------------------
+r3663 | eicker | 2005-06-06 11:13:35 +0200 (Mon, 06 Jun 2005) | 2 lines
+
+Implement a flow control between logger and forwarder for stdin.
+
+------------------------------------------------------------------------
+r3662 | eicker | 2005-06-06 11:10:10 +0200 (Mon, 06 Jun 2005) | 2 lines
+
+Cleanup: Remove more obsolete references to pshwtypes.h
+
+------------------------------------------------------------------------
+r3661 | eicker | 2005-05-25 14:24:29 +0200 (Wed, 25 May 2005) | 2 lines
+
+Cleanup: Remove obsolete pshwtypes.h and all references to it.
+
+------------------------------------------------------------------------
+r3660 | eicker | 2005-05-24 19:34:48 +0200 (Tue, 24 May 2005) | 5 lines
+
+New info call PSP_INFO_CMDLINE retrieving the command line of a task
+which is actually started by the ParaStation daemon.
+An (deactivated) example for the usage may be found within psiadmin's
+commands.c.
+
+------------------------------------------------------------------------
+r3659 | eicker | 2005-05-24 13:24:46 +0200 (Tue, 24 May 2005) | 2 lines
+
+Bugfix: Don't exit daemon on problem in recvfrom().
+
+------------------------------------------------------------------------
+r3658 | eicker | 2005-05-20 14:57:12 +0200 (Fri, 20 May 2005) | 2 lines
+
+Bugfix: Don't handle the timeout stuff within the signal handler.
+
+------------------------------------------------------------------------
+r3657 | eicker | 2005-05-20 13:03:34 +0200 (Fri, 20 May 2005) | 2 lines
+
+Bugfix: Prevent apps from hanging on exit due to connection breakdown.
+
+------------------------------------------------------------------------
+r3652 | moschny | 2005-05-17 19:38:52 +0200 (Tue, 17 May 2005) | 2 lines
+
+Hardcoding "/opt/parastation".
+Nobody seems to be interested anyway.
+------------------------------------------------------------------------
+r3651 | moschny | 2005-05-17 18:36:28 +0200 (Tue, 17 May 2005) | 1 line
+
+Include the login scripts in dist.
+------------------------------------------------------------------------
+r3650 | moschny | 2005-05-17 18:34:04 +0200 (Tue, 17 May 2005) | 4 lines
+
+- More quoting.
+- Eliminate use of grep.
+- Default to /opt/parastation if there's no /etc/parastation file or
+  no InstallDir option.
+
+
+Version psmgmt-4.2.1:
+=====================
+------------------------------------------------------------------------
+r3649 | eicker | 2005-05-17 17:28:11 +0200 (Tue, 17 May 2005) | 2 lines
+
+New version.
+
+------------------------------------------------------------------------
+r3648 | eicker | 2005-05-17 17:26:30 +0200 (Tue, 17 May 2005) | 2 lines
+
+Cleanup code.
+
+------------------------------------------------------------------------
+r3647 | eicker | 2005-05-17 15:14:58 +0200 (Tue, 17 May 2005) | 2 lines
+
+Minor cleanup.
+
+------------------------------------------------------------------------
+r3646 | eicker | 2005-05-17 15:11:31 +0200 (Tue, 17 May 2005) | 2 lines
+
+Bugfix: loop and do not shutdown on EINTR.
+
+------------------------------------------------------------------------
+r3644 | moschny | 2005-05-13 16:06:16 +0200 (Fri, 13 May 2005) | 5 lines
+
+Scripts that can be used to set user's PATH and MANPATH at login
+time. Something like this could be included in the rpms. However, the
+current build process expects all files to be under /opt/parastation,
+while these two files should be placed in /etc/profile.d.
+
+------------------------------------------------------------------------
+r3643 | moschny | 2005-05-13 14:24:06 +0200 (Fri, 13 May 2005) | 1 line
+
+Made two small corrections.
+------------------------------------------------------------------------
+r3637 | eicker | 2005-05-11 16:40:45 +0200 (Wed, 11 May 2005) | 2 lines
+
+New command 'status summary' within psiadmin.
+
+------------------------------------------------------------------------
+r3635 | hauke | 2005-05-10 16:39:24 +0200 (Tue, 10 May 2005) | 2 lines
+
+Small autocd fix.
+
+------------------------------------------------------------------------
+r3623 | hauke | 2005-05-04 20:22:32 +0200 (Wed, 04 May 2005) | 1 line
+
+Powerpc64 support.
 ------------------------------------------------------------------------
 r3622 | hauke | 2005-05-04 20:20:25 +0200 (Wed, 04 May 2005) | 1 line
 
 Powerpc64 support.
+
+
+Version psmgmt-4.2.0:
+=====================
+------------------------------------------------------------------------
+r3610 | hauke | 2005-04-28 17:34:07 +0200 (Thu, 28 Apr 2005) | 2 lines
+
+Version 4.2.0-0
+
+------------------------------------------------------------------------
+r3607 | hauke | 2005-04-27 11:13:16 +0200 (Wed, 27 Apr 2005) | 1 line
+
+Include LICENSE.
+------------------------------------------------------------------------
+r3606 | hauke | 2005-04-27 11:12:33 +0200 (Wed, 27 Apr 2005) | 1 line
+
+Typo
+------------------------------------------------------------------------
+r3571 | eicker | 2005-04-11 19:28:49 +0200 (Mon, 11 Apr 2005) | 2 lines
+
+Bugfix: Fix changes done when removing OSF support.
+
+------------------------------------------------------------------------
+r3570 | eicker | 2005-04-11 19:28:10 +0200 (Mon, 11 Apr 2005) | 2 lines
+
+Fix typo in copyright messages.
+
+------------------------------------------------------------------------
+r3569 | eicker | 2005-04-11 17:09:59 +0200 (Mon, 11 Apr 2005) | 2 lines
+
+Remove obsolete stuff.
+
+------------------------------------------------------------------------
+r3568 | eicker | 2005-04-11 17:03:39 +0200 (Mon, 11 Apr 2005) | 2 lines
+
+Remove OSF aka Tru64 remnants.
+
+------------------------------------------------------------------------
+r3561 | eicker | 2005-04-07 14:24:24 +0200 (Thu, 07 Apr 2005) | 2 lines
+
+Remove all the license stuff.
+
+------------------------------------------------------------------------
+r3560 | eicker | 2005-04-07 14:22:53 +0200 (Thu, 07 Apr 2005) | 2 lines
+
+Do not link libpopt statically any longer. SuSE has fixed their bug.
+
+------------------------------------------------------------------------
+r3559 | eicker | 2005-04-07 14:16:19 +0200 (Thu, 07 Apr 2005) | 3 lines
+
+Bugfix: Do not exit daemon if actually reading a control message fails.
+Bugfix: Don't use rdpsock explicitely within handleRDP().
+
+------------------------------------------------------------------------
+r3558 | eicker | 2005-04-07 14:11:26 +0200 (Thu, 07 Apr 2005) | 2 lines
+
+Fix build-system in order to make 'make distclean' working as intended.
+
+------------------------------------------------------------------------
+r3557 | eicker | 2005-04-07 14:04:55 +0200 (Thu, 07 Apr 2005) | 3 lines
+
+Fix build-system in order to work with old versions of rpm.
+Cleanup.
+
+------------------------------------------------------------------------
+r3556 | eicker | 2005-04-04 19:09:50 +0200 (Mon, 04 Apr 2005) | 2 lines
+
+Fix cleaning stuff.
+
+------------------------------------------------------------------------
+r3555 | eicker | 2005-04-04 18:51:37 +0200 (Mon, 04 Apr 2005) | 3 lines
+
+Remove obsolete info stuff. The new PSI_info-API is used for more than a
+year now.
+
+------------------------------------------------------------------------
+r3545 | eicker | 2005-03-02 15:47:39 +0100 (Wed, 02 Mar 2005) | 2 lines
+
+Remove one compiler warning.
+
+------------------------------------------------------------------------
+
 
 Version psmgmt-4.1.4:
 =====================
