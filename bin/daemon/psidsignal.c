@@ -113,11 +113,11 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t senderTid,
 		     "%s: Do not send signal to daemon", __func__);
 	    PSID_errlog(errtxt, 0);
 	} else if (pervasive) {
-	    PStask_t *clone = PStask_clone(dest);
+	    PStask_sig_t *childs = PStask_cloneSigList(dest->childs);
 	    PStask_ID_t childTID;
 	    int sig = -1;
 
-	    while ((childTID = PSID_getSignal(&clone->childs, &sig))) {
+	    while ((childTID = PSID_getSignal(&childs, &sig))) {
 		PSID_sendSignal(childTID, uid, senderTid, signal, 1);
 		sig = -1;
 	    }
@@ -126,7 +126,6 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t senderTid,
 	    if (senderTid != tid) {
 		PSID_sendSignal(tid, uid, senderTid, signal, 0);
 	    }
-	    PStask_delete(clone);
 	} else {
 	    int ret, sig = (signal!=-1) ? signal : dest->relativesignal;
 
@@ -291,16 +290,15 @@ void msg_SIGNAL(DDSignalMsg_t *msg)
 	if (msg->pervasive) {
 	    PStask_t *dest = PStasklist_find(managedTasks, msg->header.dest);
 	    if (dest) {
-		PStask_t *clone = PStask_clone(dest);
+		PStask_sig_t *childs = PStask_cloneSigList(dest->childs);
 		PStask_ID_t childTID;
 		int sig = -1;
 
-		while ((childTID = PSID_getSignal(&clone->childs, &sig))) {
+		while ((childTID = PSID_getSignal(&childs, &sig))) {
 		    PSID_sendSignal(childTID, msg->param, msg->header.sender,
 				    msg->signal, 1);
 		    sig = -1;
 		}
-		PStask_delete(clone);
 
 		/* Don't send back to the original sender */
 		if (msg->header.sender != msg->header.dest) {
