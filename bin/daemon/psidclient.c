@@ -375,9 +375,16 @@ void deleteClient(int fd)
 
     if (tid==-1) return;
 
-    /* Tell logger about unreleased forwarders */
     task = PStasklist_find(managedTasks, tid);
-    if (task && task->group == TG_FORWARDER && !task->released) {
+    if (!task) {
+	snprintf(errtxt, sizeof(errtxt), "%s: Task %s not found.",
+		 __func__, PSC_printTID(tid));
+	PSID_errlog(errtxt, 0);
+	return;
+    }
+
+    /* Tell logger about unreleased forwarders */
+    if (task->group == TG_FORWARDER && !task->released) {
 	DDMsg_t msg;
 
 	snprintf(errtxt, sizeof(errtxt), "%s: Unreleased forwarder %s",

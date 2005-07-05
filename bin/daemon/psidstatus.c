@@ -388,6 +388,7 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode)
     /* loop over all tasks */
     while (task) {
 	PStask_sig_t *sig = task->assignedSigs;
+	PStask_t *next;
 	/* loop over all controlled tasks */
 	while (sig) {
 	    if (PSC_getID(sig->tid)==id) {
@@ -401,11 +402,21 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode)
 		sig = sig->next;
 		/* Remove signal from list */
 		PSID_removeSignal(&task->assignedSigs, senderTid, signal);
+		if (signal == -1 && senderTid != task->ptid) {
+		    /* This might have been a child */
+		    PSID_removeSignal(&task->childs, senderTid, -1);
+		}
 	    } else {
 		sig = sig->next;
 	    }
 	}
-	task = task->next;
+	next = task->next;
+	if (task->removeIt && ! task->childs) {
+	    snprintf(errtxt, sizeof(errtxt), "%s: PStask_cleanup()", __func__);
+	    PSID_errlog(errtxt, 1);
+	    PStask_cleanup(task->tid);
+	}
+	task=next;
     }
 
     snprintf(errtxt, sizeof(errtxt), "%s: connection lost to node %d",

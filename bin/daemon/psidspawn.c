@@ -130,9 +130,37 @@ static int mystat(char *file_name, struct stat *buf)
 /**
  * @brief Actually start the client process.
  *
- * @doctodo
+ * This function actually sets up the client process as described
+ * within the task structure @a task.In order to do so, first the UID,
+ * GID and the current working directory are set up correctly. If no
+ * working directory is provided within @a task, the corresponding
+ * user's home directory is used. After setting up the environment and
+ * doing some tests on the existence and accessability of the
+ * executable to call, finally the executable is called via @ref
+ * myexecv().
+ *
+ * Since this function is typically called from within a fork()ed
+ * process, possible errors cannot be signaled via a return
+ * value. Thus a @a controllchannel is used, a file descriptor the
+ * calling process has to listen to. If some data appears on this
+ * channel, this is a signal that something failed during setting up
+ * the client process. Actually the datum passed back is the current
+ * @ref errno within the function set by the failing library call.
+ *
+ * Furthermore error-messages are sent to stderr. It is the task of
+ * the calling function to provide an environment to forward this
+ * message to the end-user of this function.
+ *
+ * @param task The task structure describing the client process to set
+ * up.
+ *
+ * @param controlchannel
+ *
+ * @return No return value.
+ *
+ * @see fork(), errno
  */
-static int execClient(PStask_t *task, int controlchannel)
+static void execClient(PStask_t *task, int controlchannel)
 {
     /* logging is done via the forwarder thru stderr! */
     struct stat sb;
@@ -598,6 +626,7 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
 	     __func__, pid);
     PSID_errlog(errtxt, 10);
 
+    client->forwardertid = forwarder->tid;
     client->tid = 0;
 
  restart:

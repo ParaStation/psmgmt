@@ -59,6 +59,7 @@ int PStask_init(PStask_t *task)
     task->aretty = 0;
     task->group = TG_ANY;
     task->loggertid = 0;
+    task->forwardertid = 0;
     task->rank = -1;
     task->fd = -1;
     task->workingdir = NULL;
@@ -70,6 +71,7 @@ int PStask_init(PStask_t *task)
     task->released = 0;
     task->duplicate = 0;
     task->suspended = 0;
+    task->removeIt = 0;
     task->killat = 0;
     task->protocolVersion = -1;
 
@@ -155,7 +157,8 @@ int PStask_delete(PStask_t * task)
     return 1;
 }
 
-PStask_sig_t *cloneSigList(PStask_sig_t *list)
+/* @todo Test if malloc() fails */
+PStask_sig_t *PStask_cloneSigList(PStask_sig_t *list)
 {
     PStask_sig_t *clone = NULL, *signal = NULL;
 
@@ -195,6 +198,7 @@ PStask_t *PStask_clone(PStask_t *task)
     clone->winsize = task->winsize;
     clone->group = task->group;
     clone->loggertid = task->loggertid;
+    clone->forwardertid = task->forwardertid;
     clone->rank = task->rank;
     /* clone->fd = -1; */
     clone->workingdir = (task->workingdir) ? strdup(task->workingdir) : NULL;
@@ -219,10 +223,11 @@ PStask_t *PStask_clone(PStask_t *task)
     clone->released = task->released;
     clone->duplicate = task->duplicate;
     clone->suspended = task->suspended;
+    clone->removeIt = task->removeIt;
     clone->killat = task->killat;
     clone->protocolVersion = task->protocolVersion;
 
-    clone->childs = cloneSigList(task->childs);
+    clone->childs = PStask_cloneSigList(task->childs);
 
     clone->request = NULL; /* Do not clone requests */
     clone->partitionSize = task->partitionSize;
@@ -232,9 +237,9 @@ PStask_t *PStask_clone(PStask_t *task)
 	   clone->partitionSize * sizeof(short));
     clone->nextRank = task->nextRank;
  
-    clone->signalSender = cloneSigList(task->signalSender);
-    clone->signalReceiver = cloneSigList(task->signalReceiver);
-    clone->assignedSigs = cloneSigList(task->assignedSigs);
+    clone->signalSender = PStask_cloneSigList(task->signalSender);
+    clone->signalReceiver = PStask_cloneSigList(task->signalReceiver);
+    clone->assignedSigs = PStask_cloneSigList(task->assignedSigs);
 
     return clone;
 }

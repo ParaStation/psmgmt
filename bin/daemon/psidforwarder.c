@@ -190,7 +190,7 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 
     if (loggerTID < 0) {
 	snprintf(txt, sizeof(txt), "%s: not connected\n", __func__);
-	PSID_errlog(txt, 1);
+	PSID_errlog(txt, 0);
 	errno = EPIPE;
 
 	return -1;
@@ -216,7 +216,7 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 	if (msg->header.sender == loggerTID) {
 	    snprintf(txt, sizeof(txt), "%s: logger %s disappeared.\n",
 		     __func__, PSC_printTID(loggerTID));
-	    PSID_errlog(txt, 1);
+	    PSID_errlog(txt, 0);
 
 	    loggerTID = -1;
 
@@ -395,6 +395,7 @@ static void releaseLogger(int status)
 
     sendMsg(FINALIZE, (char *)&status, sizeof(status));
 
+ again:
     ret = recvMsg(&msg, &timeout);
 
     if (ret < 0) {
@@ -413,10 +414,11 @@ static void releaseLogger(int status)
 		 "%s: receive timed out. logger dissapeared\n", __func__);
 	PSID_errlog(txt, 0);
     } else if (msg.type != EXIT) {
+	if (msg.type == STDIN) goto again; /* Ignore late STDIN messages */
 	snprintf(txt, sizeof(txt),
 		 "%s: Protocol messed up (type %d) from %s\n",
 		 __func__, msg.type, PSC_printTID(msg.header.sender));
-	PSID_errlog(txt, 1);
+	PSID_errlog(txt, 0);
     }
 
     loggerTID = -1;

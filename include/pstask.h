@@ -86,6 +86,7 @@ typedef struct PStask_T{
     struct winsize winsize;  /*C*/ /**< window size of the controlling tty */
     PStask_group_t group;    /*C*/ /**< task group @see PStask_group_t */
     PStask_ID_t loggertid;   /*C*/ /**< unique identifier of the logger */
+    PStask_ID_t forwardertid;      /**< unique identifier of the forwarder */
     int32_t rank;            /*C*/ /**< rank of task within task group */
     short fd;                      /**< connection fd within psid */
     char *workingdir;        /*C*/ /**< working directory */
@@ -100,6 +101,8 @@ typedef struct PStask_T{
     char duplicate;                /**< flag to mark duplicate task, i.e. a
 				      tasks that are fork()ed by a client */
     char suspended;                /**< flag to mark suspended tasks. */
+    char removeIt;                 /**< flag to mark task to be removed (as
+				      soon as all childs are released). */
     time_t killat;                 /**< flag a killed task, i.e. the time when
 				      the task should really go away. */
     uint16_t protocolVersion;      /**< Protocol version the task speaks. */
@@ -166,6 +169,21 @@ int PStask_reinit(PStask_t *task);
  * @return On success, 1 is returned, or 0 otherwise.
  */
 int PStask_delete(PStask_t *task);
+
+/**
+ * @brief Clone a signal list.
+ *
+ * Create an exact clone of the signal list @a siglist and return a
+ * pointer to first element of the cloned list.
+ *
+ * @param siglist The signal list to clone.
+ *
+ * @return On success, a pointer to the first element of the cloned
+ * signal list is returned, or NULL otherwise. Beware of the fact that
+ * the return value might also be NULL if the original @siglist was
+ * also NULl.
+ */
+PStask_sig_t *PStask_cloneSigList(PStask_sig_t *siglist);
 
 /**
  * @brief Clone a task structure.

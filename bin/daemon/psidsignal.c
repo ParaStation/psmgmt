@@ -99,7 +99,6 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t senderTid,
 	PStask_t *dest = PStasklist_find(managedTasks, tid);
 	pid_t pid = PSC_getPID(tid);
 
-	/* receiver is on local node, send signal */
 	snprintf(errtxt, sizeof(errtxt), "%s: sending signal %d to %s",
 		 __func__, signal, PSC_printTID(tid));
 	PSID_errlog(errtxt, 2);
@@ -140,6 +139,15 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t senderTid,
 		/* Let's listen to this client again */
 		if (dest->fd != -1) {
 		    FD_SET(dest->fd, &PSID_readfds);
+		}
+		/* This might have been a child */
+		PSID_removeSignal(&dest->childs, senderTid, -1);
+		if (dest->removeIt && !dest->childs) {
+		    snprintf(errtxt, sizeof(errtxt), "%s: PStask_cleanup()",
+			     __func__);
+		    PSID_errlog(errtxt, 1);
+		    PStask_cleanup(dest->tid);
+		    return;
 		}
 	    }
 
@@ -204,10 +212,11 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
 {
     PStask_ID_t sigtid;
     int sig = -1;
+    PStask_sig_t *childs = PStask_cloneSigList(task->childs);
 
     sigtid = task->ptid;
 
-    if (!sigtid) sigtid = PSID_getSignal(&task->childs, &sig);
+    if (!sigtid) sigtid = PSID_getSignal(&childs, &sig);
 
     while (sigtid) {
 	PSID_sendSignal(sigtid, task->uid, task->tid, -1, 0);
@@ -220,7 +229,7 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
 
 	sig = -1;
 
-	sigtid = PSID_getSignal(&task->childs, &sig);
+	sigtid = PSID_getSignal(&childs, &sig);
     }
 }
 
@@ -232,10 +241,15 @@ void msg_SIGNAL(DDSignalMsg_t *msg)
 	return;
     }
 
-    if (PSC_getPID(msg->header.sender)) {
+    if (PSC_getID(msg->header.sender)==PSC_getMyID()
+	&& PSC_getPID(msg->header.sender)) {
 	PStask_t *sender = PStasklist_find(managedTasks, msg->header.sender);
-	if (sender && sender->protocolVersion < 325
-	    && sender->group != TG_LOGGER) {
+	if (!sender) {
+	    snprintf(errtxt, sizeof(errtxt), "%s: sender %s not found",
+		     __func__, PSC_printTID(msg->header.sender));
+	    PSID_errlog(errtxt, 0);
+	} else if (sender->protocolVersion < 325
+		   && sender->group != TG_LOGGER) {
 
 	    /* Client uses old protocol. Map to new one. */
 	    static DDSignalMsg_t newMsg;
@@ -249,7 +263,7 @@ void msg_SIGNAL(DDSignalMsg_t *msg)
 	    newMsg.pervasive = 0;
 
 	    msg = &newMsg;
-	} else if (sender && sender->protocolVersion < 328
+	} else if (sender->protocolVersion < 328
 		   && sender->group != TG_LOGGER) {
 
 	    /* Client uses old protocol. Map to new one. */
@@ -286,13 +300,13 @@ void msg_SIGNAL(DDSignalMsg_t *msg)
 				    msg->signal, 1);
 		    sig = -1;
 		}
+		PStask_delete(clone);
 
 		/* Don't send back to the original sender */
 		if (msg->header.sender != msg->header.dest) {
 		    PSID_sendSignal(msg->header.dest, msg->param,
 				    msg->header.sender, msg->signal, 0);
 		}
-		PStask_delete(clone);
 
 		/* Now inform the master, if necessary */
 		if (dest->partition && dest->partitionSize) {

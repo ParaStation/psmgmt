@@ -230,7 +230,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	    if (stv.tv_sec < 0) timerclear(&stv);
 	}
 
-	Timer_handleSignals();
+	Timer_handleSignals();                     /* Handle pending timers */
 	retval = select(n, &rfds, &wfds, &efds, (timeout)?(&stv):NULL);
 	if (retval == -1) {
 	    if (errno == EINTR) {

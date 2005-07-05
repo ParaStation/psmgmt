@@ -391,11 +391,26 @@ static void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	    if (child) {
 		child->tid = tid;
 		child->duplicate = 1;
-		PSID_setSignal(&child->assignedSigs, child->ptid, -1);
 		PStasklist_enqueue(&managedTasks, child);
 
-		/* Register new child to its parent */
-		PSID_setSignal(&task->childs, child->tid, -1);
+		if (task->forwardertid) {
+		    PStask_t *forwarder = PStasklist_find(managedTasks,
+							  task->forwardertid);
+		    if (forwarder) {
+			/* Register new child to its forwarder */
+			PSID_setSignal(&forwarder->childs, child->tid, -1);
+		    } else {
+			snprintf(errtxt, sizeof(errtxt),
+				 "%s: forwarder %s not found",
+				 __func__, PSC_printTID(task->forwardertid));
+			PSID_errlog(errtxt, 0);
+		    }
+		} else {
+		    snprintf(errtxt, sizeof(errtxt),
+			     "%s: task %s has no forwarder",
+			     __func__, PSC_printTID(task->tid));
+		    PSID_errlog(errtxt, 0);
+		}
 
 		/* We want to handle the reconnected child now */
 		task = child;
@@ -815,23 +830,33 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
     PSID_errlog(errtxt, 1);
 
     if (msg->header.dest != PSC_getMyTID()) {
+	/* Not for me, thus forward it. But first take a peek */
 	if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
 	    /* dest is on my node */
 	    task = PStasklist_find(managedTasks, msg->header.dest);
 
-	    /* Don't do anything if task not found or not TG_(GM)SPAWNER */
 	    if (!task) return;
-
-	    if (task->group != TG_SPAWNER && task->group != TG_GMSPAWNER )
-		return;
-
-	    /* Not for me, thus forward it. But first take a peek */
-	    if (WIFEXITED(msg->error) && !WIFSIGNALED(msg->error)) {
-		if (task->group == TG_SPAWNER) task->released = 1;
-	    }
 
 	    /* Remove dead child from list of childs */
 	    PSID_removeSignal(&task->assignedSigs, msg->request, -1);
+	    PSID_removeSignal(&task->childs, msg->request, -1);
+
+	    if (task->removeIt && !task->childs) {
+		snprintf(errtxt, sizeof(errtxt), "%s: PStask_cleanup()",
+			 __func__);
+		PSID_errlog(errtxt, 1);
+		PStask_cleanup(task->tid);
+		return;
+	    }
+
+	    /* Don't do anything if task not TG_(GM)SPAWNER */
+	    if (task->group != TG_SPAWNER && task->group != TG_GMSPAWNER )
+		return;
+
+	    /* Release a TG_SPAWNER if child died in a fine way */
+	    if (WIFEXITED(msg->error) && !WIFSIGNALED(msg->error)) {
+		if (task->group == TG_SPAWNER) task->released = 1;
+	    }
 
 	    /* Don't send a DD message to a client */
 	    msg->header.type = PSP_CD_SPAWNFINISH;
@@ -845,6 +870,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
     forwarder = PStasklist_find(managedTasks, msg->header.sender);
     if (forwarder) {
 	forwarder->released = 1;
+	PSID_removeSignal(&forwarder->childs, msg->request, -1);
     } else {
 	/* Forwarder not found */
 	snprintf(errtxt, sizeof(errtxt), "%s: forwarder task %s not found",
@@ -979,7 +1005,7 @@ static void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
     /* Do not set msg->header.len! Length of DDSignalMsg_t has changed */
 
     if (!tid) {
-	/* Try to set signal send to relatives */
+	/* Try to set signal send from relatives */
 	task = PStasklist_find(managedTasks, registrarTid);
 	if (task) {
 	    task->relativesignal = msg->signal;
@@ -1108,16 +1134,16 @@ static void msg_NOTIFYDEADRES(DDSignalMsg_t *msg)
  *
  * @see errno(3)
  */
-static int releaseSignal(PStask_ID_t tid, PStask_ID_t receiverTid, int sig)
+static int releaseSignal(PStask_ID_t sender, PStask_ID_t receiver, int sig)
 {
     PStask_t *task;
 
     snprintf(errtxt, sizeof(errtxt), "%s: sig %d to %s", __func__,
-	     sig, PSC_printTID(receiverTid));
+	     sig, PSC_printTID(receiver));
     snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt), " from %s",
-	     PSC_printTID(tid));
+	     PSC_printTID(sender));
 
-    task = PStasklist_find(managedTasks, tid);
+    task = PStasklist_find(managedTasks, sender);
 
     if (!task) {
 	snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
@@ -1134,9 +1160,16 @@ static int releaseSignal(PStask_ID_t tid, PStask_ID_t receiverTid, int sig)
     /* Remove signal from list */
     if (sig==-1) {
 	/* Release a child */
-	PSID_removeSignal(&task->assignedSigs, receiverTid, sig);
+	PSID_removeSignal(&task->assignedSigs, receiver, sig);
+	PSID_removeSignal(&task->childs, receiver, sig);
+	if (task->removeIt && !task->childs) {
+	    snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
+		     ": PStask_cleanup()");
+	    PSID_errlog(errtxt, 2);
+	    PStask_cleanup(sender);
+	}
     } else {
-	PSID_removeSignal(&task->signalReceiver, receiverTid, sig);
+	PSID_removeSignal(&task->signalReceiver, receiver, sig);
     }
 
     return 0;
@@ -1192,6 +1225,7 @@ static int releaseTask(DDSignalMsg_t *msg)
 
 		task->pendingReleaseRes++;
 	    }
+	    PSID_removeSignal(&task->assignedSigs, task->ptid, -1);
 	}
 
 	/* Don't send any signals to me after release */
