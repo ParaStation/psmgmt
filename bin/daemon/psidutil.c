@@ -26,6 +26,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 
 #include "errlog.h"
 #include "psprotocol.h"
@@ -753,4 +754,39 @@ long PSID_getPhysCPUs(void)
     }
 
     return physCPUs;
+}
+
+#define LOCKFILENAME "/var/lock/subsys/parastation"
+
+void PSID_getLock(void)
+{
+    int fd;
+
+    fd = open(LOCKFILENAME, O_CREAT);
+    if (fd<0) {
+	char *errstr = strerror(errno);
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: Unable to open lockfile '%s': %s\n",
+		 __func__, LOCKFILENAME, errstr ? errstr : "UNKNOWN");
+	PSID_errlog(errtxt, 0);
+	exit (1);
+    }
+
+    if (chmod(LOCKFILENAME, S_IRWXU | S_IRGRP | S_IROTH)) {
+	char *errstr = strerror(errno);
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: Unable to chmod: %s\n",
+		 __func__, errstr ? errstr : "UNKNOWN");
+	PSID_errlog(errtxt, 0);
+	exit (1);
+    }
+
+    if (flock(fd, LOCK_EX | LOCK_NB)) {
+	char *errstr = strerror(errno);
+	snprintf(errtxt, sizeof(errtxt),
+		 "%s: Unable to get lock: %s\n",
+		 __func__, errstr ? errstr : "UNKNOWN");
+	PSID_errlog(errtxt, 0);
+	exit (1);
+    }
 }

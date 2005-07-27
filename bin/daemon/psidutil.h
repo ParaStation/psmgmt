@@ -298,6 +298,24 @@ long PSID_getVirtCPUs(void);
  */
 long PSID_getPhysCPUs(void);
 
+/**
+ * @brief Try to get an exclusive lock
+ *
+ * Try to get an exclusive lock in order to guarantee exclusiveness on
+ * the according node. Thus the file @a /var/run/parastation.lock is
+ * created first and afterwards @ref flock() is used in order to get a
+ * lock on this file. If it is impossible to get a lock, i.e. another
+ * instance of the daemon is already running and holding the lock,
+ * this function will @b not return and call @ref exit() instead.
+ *
+ * Once the lock is created, it will never be released and thus it
+ * guarantees exclusiveness on the node as long as the calling process
+ * exists.
+ *
+ * @return No return value.
+ */
+void PSID_getLock(void);
+
 #ifdef __cplusplus
 }/* extern "C" */
 #endif

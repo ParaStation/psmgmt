@@ -1982,20 +1982,6 @@ static void setupMasterSock(void)
     strncpy(sa.sun_path, PSmasterSocketName, sizeof(sa.sun_path));
 
     /*
-     * Test if socket exists and another daemon is already connected
-     */
-    if (connect(masterSock, (struct sockaddr *)&sa, sizeof (sa))<0) {
-	if (errno != ECONNREFUSED && errno != ENOENT) {
-	    PSID_errexit("connect (masterSock)", errno);
-	}
-    } else {
-	snprintf(errtxt, sizeof(errtxt),
-		 "Daemon already running?: %s", strerror(EBUSY));
-	PSID_errlog(errtxt, 1);
-	exit(0);
-    }
-
-    /*
      * bind the socket to the right address
      */
     unlink(PSmasterSocketName);
@@ -2205,6 +2191,9 @@ int main(int argc, const char *argv[])
     /* Init fd sets */
     FD_ZERO(&PSID_readfds);
     FD_ZERO(&PSID_writefds);
+
+    /* Try to get a lock. This will guarantee exlusiveness */
+    PSID_getLock();
 
     /* create the socket to listen for clients */
     setupMasterSock();

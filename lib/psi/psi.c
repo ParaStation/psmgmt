@@ -124,6 +124,7 @@ static int connectDaemon(PStask_group_t taskGroup)
 	 */
 	if (connectfailes++ < 5) {
 	    PSC_startDaemon(INADDR_ANY);
+	    usleep(100000);
 	    daemonSock=daemonSocket();
 	} else {
 	    char *errstr = strerror(errno);
