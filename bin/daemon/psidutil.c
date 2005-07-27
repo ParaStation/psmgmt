@@ -758,12 +758,12 @@ long PSID_getPhysCPUs(void)
 
 #define LOCKFILENAME "/var/lock/subsys/parastation"
 
+int PSID_lockFD = -1;
+
 void PSID_getLock(void)
 {
-    int fd;
-
-    fd = open(LOCKFILENAME, O_CREAT);
-    if (fd<0) {
+    PSID_lockFD = open(LOCKFILENAME, O_CREAT);
+    if (PSID_lockFD<0) {
 	char *errstr = strerror(errno);
 	snprintf(errtxt, sizeof(errtxt),
 		 "%s: Unable to open lockfile '%s': %s\n",
@@ -781,7 +781,7 @@ void PSID_getLock(void)
 	exit (1);
     }
 
-    if (flock(fd, LOCK_EX | LOCK_NB)) {
+    if (flock(PSID_lockFD, LOCK_EX | LOCK_NB)) {
 	char *errstr = strerror(errno);
 	snprintf(errtxt, sizeof(errtxt),
 		 "%s: Unable to get lock: %s\n",

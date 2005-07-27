@@ -586,7 +586,8 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
 	   the connecting socket */
 	for (i=0; i<getdtablesize(); i++) {
 	    if (i!=STDIN_FILENO && i!=STDOUT_FILENO && i!=STDERR_FILENO
-		&& i!=forwarderfds[1] && i!=socketfds[1]) {
+		&& i!=forwarderfds[1] && i!=socketfds[1]
+		&& i != PSID_lockFD) {
 		close(i);
 	    }
 	}

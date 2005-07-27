@@ -299,6 +299,19 @@ long PSID_getVirtCPUs(void);
 long PSID_getPhysCPUs(void);
 
 /**
+ * @brief File-descriptor holding lock
+ *
+ * This is the file-descriptor holding the daemon's lock in order to
+ * have exclusive access to a node. This is set within @ref
+ * PSID_getLock() to the correct value.
+
+ * Never ever close this socket since it will introduce big trouble.
+ *
+ * @see PSID_getLock()
+ */
+extern int PSID_lockFD;
+
+/**
  * @brief Try to get an exclusive lock
  *
  * Try to get an exclusive lock in order to guarantee exclusiveness on
@@ -312,7 +325,13 @@ long PSID_getPhysCPUs(void);
  * guarantees exclusiveness on the node as long as the calling process
  * exists.
  *
+ * Never ever close the file-descriptor associated with the lock
+ * created. In order to get information on the associated
+ * file-descriptor have a look at the @ref PSID_lockFD variable.
+ *
  * @return No return value.
+ *
+ * @see PSID_lockFD
  */
 void PSID_getLock(void);
 
