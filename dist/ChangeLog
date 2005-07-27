@@ -1,3 +1,23 @@
+Version psmgmt-4.2.4:
+=====================
+------------------------------------------------------------------------
+r3736 | eicker | 2005-07-27 09:12:43 +0200 (Wed, 27 Jul 2005) | 4 lines
+
+Bugfix: Fix race-condition on startup. This might lead to a daemon
+  which is locally not accessible but works as expected in all other
+  means.
+
+------------------------------------------------------------------------
+r3725 | eicker | 2005-07-15 11:38:59 +0200 (Fri, 15 Jul 2005) | 2 lines
+
+Correct 'status s[ummary]' help message.
+
+------------------------------------------------------------------------
+r3720 | eicker | 2005-07-05 14:31:39 +0200 (Tue, 05 Jul 2005) | 2 lines
+
+Small README describing the creation of a new release of psmgmt.
+
+
 Version psmgmt-4.2.3:
 =====================
 ------------------------------------------------------------------------
