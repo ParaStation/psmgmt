@@ -26,6 +26,8 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <unistd.h>
 #include <string.h>
 #include <signal.h>
+#include <errno.h>
+#include <pwd.h>
 #include <termios.h> /* Just to prevent a warning */
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -84,10 +86,80 @@ static char *nextline(int silent)
     return line;
 }
 
+static char *homedir(void)
+{
+    char *env = getenv("HOME");
+    struct passwd *pw = getpwuid(getuid());
+
+    if (env != NULL) return env;
+    else if (pw && pw->pw_dir) return strdup(pw->pw_dir);
+
+    return NULL;
+}
+
+#define RCNAME ".psiadminrc"
+
+static int handleRCfile(const char *progname)
+{
+    int i=0;
+    char *rcname, *home = homedir();
+    FILE *rcfile = NULL;
+
+    rcname = malloc(strlen(home) + strlen(RCNAME) + 2);
+
+    strcpy(rcname, RCNAME);
+    rcfile = fopen(rcname, "r");
+    if (!rcfile && errno != ENOENT) {
+	char *errstr = strerror(errno);
+	fprintf(stderr, "%s: %s: %s\n",
+		progname, rcname, errstr ? errstr : "UNKNOWN");
+	return -1;
+    }
+    if (!rcfile) {
+	strcpy(rcname, home);
+	strcat(rcname, "/");
+	strcat(rcname, RCNAME);
+
+	rcfile = fopen(rcname, "r");
+	if (!rcfile && errno != ENOENT) {
+	    char *errstr = strerror(errno);
+	    fprintf(stderr, "%s: %s: %s\n",
+		    progname, rcname, errstr ? errstr : "UNKNOWN");
+	    return -1;
+	}
+    }
+
+    if (rcfile) {
+	int done = 0;
+	rl_instream = rcfile;
+
+	while (!done) {
+	    char *line = nextline(1);
+
+	    if (line && *line) {
+		int ret;
+
+		parser_removeComment(line);
+		add_history(line);
+		done = parseLine(line);
+	    }
+	    if (line)
+		free(line);
+	    else
+		break;
+	}
+	rl_instream = stdin;
+	fclose(rcfile);
+    }
+
+    return 0;
+}
+
 int main(int argc, const char **argv)
 {
-    char *copt = NULL;
-    int rc, len, echo=0, quiet=0, reset=0, start_all=0, version=0, done=0;
+    char *copt = NULL, *progfile = NULL;
+    int echo=0, noinit=0, quiet=0, reset=0, start_all=0, version=0;
+    int rc, len, done=0;
 
     poptContext optCon;   /* context for parsing command-line options */
 
@@ -96,6 +168,10 @@ int main(int argc, const char **argv)
 	  "execute a single <command> and exit", "command"},
 	{ "echo", 'e', POPT_ARG_NONE, &echo, 0,
 	  "echo each executed command to stdout", NULL},
+	{ "file", 'f', POPT_ARG_STRING, &progfile, 0,
+	  "read commands from <program-file> and exit", "program-file"},
+	{ "noinit", 'n', POPT_ARG_NONE, &noinit, 0,
+	  "ignore the initialization file ~/.psiadminrc", NULL},
 	{ "quiet", 'q', POPT_ARG_NONE, &quiet, 0,
 	  "Don't print a prompt while waiting for commands", NULL},
 	{ "reset", 'r', POPT_ARG_NONE, &reset, 0,
@@ -152,6 +228,30 @@ int main(int argc, const char **argv)
      */
     using_history();
     add_history("shutdown");
+    rl_readline_name = "PSIadmin";
+
+    /*
+     * Read the startup file
+     */
+    if (!noinit) {
+	int ret = handleRCfile(argv[0]);
+	if (ret) return ret;
+    }
+
+    /*
+     * Program-file processing
+     */
+    if (progfile) {
+	rl_instream = fopen(progfile, "r");
+
+	if (!rl_instream) {
+	    char *errstr = strerror(errno);
+	    fprintf(stderr, "%s: %s: %s\n",
+		    argv[0], progfile, errstr ? errstr : "UNKNOWN");
+	    return -1;
+	}
+	quiet = 1;
+    }
 
     while (!done) {
 	char *line = nextline(quiet);
@@ -171,7 +271,7 @@ int main(int argc, const char **argv)
 	    break;
     }
 
-    printf("PSIadmin: Goodbye\n");
+    if (!quiet) printf("PSIadmin: Goodbye\n");
 
     return 0;
 }
