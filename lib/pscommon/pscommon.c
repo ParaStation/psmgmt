@@ -330,6 +330,7 @@ static int parseRange(char *list, char *range)
     }
 
     if (range) {
+	if (*range == '\0') return 0;
 	last = strtol(range, &end, 0);
 	if (*end != '\0') return 0;
 	if (last < 0 || last >= PSC_getNrOfNodes()) {

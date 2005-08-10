@@ -101,7 +101,6 @@ static char *homedir(void)
 
 static int handleRCfile(const char *progname)
 {
-    int i=0;
     char *rcname, *home = homedir();
     FILE *rcfile = NULL;
 
@@ -137,8 +136,6 @@ static int handleRCfile(const char *progname)
 	    char *line = nextline(1);
 
 	    if (line && *line) {
-		int ret;
-
 		parser_removeComment(line);
 		add_history(line);
 		done = parseLine(line);
@@ -159,7 +156,7 @@ int main(int argc, const char **argv)
 {
     char *copt = NULL, *progfile = NULL;
     int echo=0, noinit=0, quiet=0, reset=0, start_all=0, version=0;
-    int rc, len, done=0;
+    int rc, done=0;
 
     poptContext optCon;   /* context for parsing command-line options */
 
@@ -229,6 +226,7 @@ int main(int argc, const char **argv)
     using_history();
     add_history("shutdown");
     rl_readline_name = "PSIadmin";
+    rl_attempted_completion_function = completeLine;
 
     /*
      * Read the startup file
@@ -257,8 +255,6 @@ int main(int argc, const char **argv)
 	char *line = nextline(quiet);
 
 	if (line && *line) {
-	    int ret;
-
 	    if (echo) printf("%s\n", line);
 
 	    parser_removeComment(line);

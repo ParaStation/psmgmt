@@ -61,9 +61,6 @@ static char errtxt[256];
 static int installHost(unsigned int ipaddr, int id, int hwtype, 
 		       unsigned int extraIP, int jobs, int starter)
 {
-    unsigned int hostno;
-    struct host_t *host;
-
     if (PSnodes_getNum() == -1) { /* NrOfNodes not defined */
 	parser_comment("You have to define NrOfNodes before any host", 0);
 	return -1;
@@ -215,7 +212,7 @@ static int getNumNodes(char *token)
 
 static int getLicServer(char *token)
 {
-    char *hname = parser_getString();
+    parser_getString(); /* Throw away the license server's name */
     parser_comment("definition of license server is obsolete", 0);
 
     return 0;
@@ -223,7 +220,7 @@ static int getLicServer(char *token)
 
 static int getLicFile(char *token)
 {
-    char *licfile = parser_getString();
+    parser_getString(); /* Throw away the license file's name */
     parser_comment("definition of license file is obsolete", 0);
 
     return 0;
@@ -881,7 +878,7 @@ static int getHardwareScript(char *token)
 
 static int getHardwareEnvLine(char *token)
 {
-    char *line, *end;
+    char *line;
     char *name, *value = NULL;
 
     if (token) {
@@ -941,11 +938,6 @@ static keylist_t hardwareenv_list[] = {
 
 static parser_t hardwareenv_parser = {" \t\n", hardwareenv_list};
 
-static int getHardwareEnv(char *token)
-{
-    return parser_parseOn(parser_getString(), &hardwareenv_parser);
-}
-
 static int getHardware(char *token)
 {
     char *name, *brace;
@@ -1001,7 +993,6 @@ static keylist_t config_list[] = {
     {"hwtype", getHWLine},
     {"runjobs", getRJLine},
     {"starter", getCSLine},
-    {"node", getNodes},
     {"nodes", getNodes},
     {"licenseserver", getLicServer},
     {"licserver", getLicServer},
@@ -1016,9 +1007,7 @@ static keylist_t config_list[] = {
     {"rlimit", getRLimit},
     {"loglevel", getLogLevel},
     {"logdestination", getLogDest},
-    {"logdest", getLogDest},
     {"environment", getEnv},
-    {"env", getEnv},
     {"freeOnSuspend", getFreeOnSusp},
     {"handleOldBins", getHandleOldBins},
     {NULL, parser_error}
@@ -1029,7 +1018,6 @@ static parser_t config_parser = {" \t\n", config_list};
 config_t *parseConfig(int usesyslog, int loglevel, char *configfile)
 {
     FILE *cfd;
-    char *absLicFile = NULL;
     int ret;
 
     parser_init(usesyslog, NULL);

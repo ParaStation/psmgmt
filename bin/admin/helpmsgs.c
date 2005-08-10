@@ -72,8 +72,8 @@ static info_t helpInfo = {
 	  .descr = "Set or show the default node-range." },
 	{ .tag = "show",
 	  .descr = "Show control parameters." },
-	{ .tag = "status",
-	  .descr = "Status information." },
+	{ .tag = "list",
+	  .descr = "List information." },
 	{ .tag = "version",
 	  .descr = "Print version numbers." },
 	{ .tag = "quit",
@@ -349,10 +349,10 @@ static info_t showInfo = {
     .comment = NULL
 };
 
-static info_t statInfo = {
-    .head = "Status command:",
+static info_t listInfo = {
+    .head = "List command:",
     .syntax = (syntax_t[]) {{
-	.cmd = "s[tatus]",
+	.cmd = "l[ist]",
 	.arg = "{[node] | c[ount] [hw <hw>] | p[roc] [cnt <cnt>]"
 	" | {allproc|ap} [cnt <cnt>] | {hardware|hw} | l[oad] | rdp"
 	" | mcast | s[ummary]} <nodes>"
@@ -360,35 +360,35 @@ static info_t statInfo = {
     .nodes = 1,
     .descr = "Show various status parameters of the ParaStation system:",
     .tags = (taggedInfo_t[]) {
-	{ .tag = "status [node]",
+	{ .tag = "list [node]",
 	  .descr = "shows the active nodes amongst the selected ones." },
-	{ .tag = "status c[ount] [hw <hw>]",
+	{ .tag = "list c[ount] [hw <hw>]",
 	  .descr = "Show the hardware counters on the selected nodes. If 'hw"
 	  " <hw>' is given, only the counters of the specified hardware are"
 	  " displayed. The possible values of <hw> can be found out using the"
-	  " 'status hw' command." },
-	{ .tag = "status p[roc] [cnt <cnt>]",
+	  " 'list hw' command." },
+	{ .tag = "list p[roc] [cnt <cnt>]",
 	  .descr = "Show processes managed by ParaStation on the selected"
 	  " nodes. Only normal processes are displayed, no forwarder, spawner"
 	  " etc. processes. Up to <cnt> processes per node will be displayed."
 	  " The default is to show 10 processes."},
-	{ .tag = "status {allproc|ap} [cnt <cnt>]",
+	{ .tag = "list {allproc|ap} [cnt <cnt>]",
 	  .descr = "Show all processes managed by ParaStation on the selected"
 	  " nodes. This includes all special processes like forwarder, spawner"
 	  " etc. Up to <cnt> processes per node will be displayed. The default"
 	  " is to show 10 processes."},
-	{ .tag = "status {hardware|hw}",
+	{ .tag = "list {hardware|hw}",
 	  .descr = "Show the available communcation hardware on the selected"
 	  " nodes." },
-	{ .tag = "status l[oad]",
+	{ .tag = "list l[oad]",
 	  .descr = "Show the load on the selected nodes." },
-	{ .tag = "status rdp",
+	{ .tag = "list rdp",
 	  .descr = "Show the status of the RDP protocol on the selected"
 	  " nodes." },
-	{ .tag = "status mcast",
+	{ .tag = "list mcast",
 	  .descr = "Show the status of the MCast facility on the selected"
 	  " nodes." },
-	{ .tag = "status s[ummary]",
+	{ .tag = "list s[ummary]",
 	  .descr = "Print a brief summary of the active and down nodes." },
 	{ NULL, NULL }
     },
@@ -508,7 +508,6 @@ static const char space[] = "                                                "
 static int getWidth(void)
 {
     int width = 0;
-    char *ss;
 #if defined (TIOCGWINSZ)
     struct winsize window_size;
 

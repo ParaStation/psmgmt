@@ -14,6 +14,7 @@ static char lexid[] __attribute__(( unused )) = "$Id$";
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <pwd.h>
@@ -129,20 +130,6 @@ static int shutdownCommand(char *token)
  error:
     printError(&shutdownInfo);
     return -1;
-}
-
-static int startCommand(char *token)
-{
-    /** @todo implement this */
-    printf("Not implemented\n");
-    return 0;
-}
-
-static int stopCommand(char *token)
-{
-    /** @todo implement this */
-    printf("Not implemented\n");
-    return 0;
 }
 
 static int hwstartCommand(char *token)
@@ -279,87 +266,226 @@ static int resetCommand(char *token)
     return -1;
 }
 
-static int statCommand(char *token)
+/**************************** list commands *****************************/
+static int listCountCommand(char *token)
 {
-    char *what = parser_getString();
     char *nl_descr = parser_getString();
-    char *nl = defaultNL, *hw = NULL;
-    int cnt = 10;
+    char *nl = defaultNL;
+    int hwIndex = -1;
 
-    if (what && (!strcasecmp(what, "count")
-		 || !strcasecmp(what, "c"))) {
-
-	if (nl_descr && !strcasecmp(nl_descr, "hw")) {
-	    hw = parser_getString();
-	    if (!hw) goto error;
-	    nl_descr = parser_getString();
-	}
-    } else if (what && (!strcasecmp(what, "allproc")
-			|| !strcasecmp(what, "ap")
-			|| !strcasecmp(what, "proc")
-			|| !strcasecmp(what, "p"))) {
-	if (nl_descr && !strcasecmp(nl_descr, "cnt")) {
-	    char *tok = parser_getString();
-	    if (!tok) goto error;
-	    cnt = parser_getNumber(tok);
-	    if (cnt<0) goto error;
-	    nl_descr = parser_getString();
-	}
+    if (nl_descr && !strcasecmp(nl_descr, "hw")) {
+	char *hw = parser_getString();
+	if (hw) {
+	    int err = PSI_infoInt(-1, PSP_INFO_HWINDEX, hw, &hwIndex, 1);
+	    if (err || hwIndex == -1) goto error;
+	} else goto error;
+	nl_descr = parser_getString();
     }
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
+	if (!nl) goto error;
+    }
+    if (parser_getString()) goto error; /* trailing garbage */
 
-	if (!nl) return -1;
+    PSIADM_CountStat(hwIndex, nl);
+    return 0;
+
+ error:
+    printError(&listInfo);
+    return -1;
+}
+
+static int listProcCommand(char *token)
+{
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL;
+    int cnt = 10;
+
+    if (nl_descr && !strcasecmp(nl_descr, "cnt")) {
+	char *tok = parser_getString();
+	if (!tok) goto error;
+	cnt = parser_getNumber(tok);
+	if (cnt<0) goto error;
+	nl_descr = parser_getString();
     }
 
-    if (parser_getString()) goto error;
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+	if (!nl) goto error;
+    }
+    if (parser_getString()) goto error; /* trailing garbage */
 
-    if (!what || !strcasecmp(what, "node")) {
-	PSIADM_NodeStat(nl);
-    } else if (!strcasecmp(what, "summary")
-	       || !strcasecmp(what, "s")) {
-	PSIADM_SummaryStat(nl);
-    } else if (!strcasecmp(what, "count")
-	       || !strcasecmp(what, "c")) {
-	int hwIndex = -1;
-	if (hw) {
-	    int err = PSI_infoInt(-1, PSP_INFO_HWINDEX, hw, &hwIndex, 1);
-	    if (err || hwIndex == -1) goto error;
-	}
-	PSIADM_CountStat(hwIndex, nl);
-    } else if (!strcasecmp(what, "rdp")) {
-	PSIADM_RDPStat(nl);
-    } else if (!strcasecmp(what, "mcast")) {
-	PSIADM_MCastStat(nl);
-    } else if (!strcasecmp(what, "proc")
-	       || !strcasecmp(what, "p")) {
+    if (!strcasecmp(token, "proc")) {
 	PSIADM_ProcStat(cnt, 0, nl);
-    } else if (!strcasecmp(what, "allproc")
-	       || !strcasecmp(what, "ap")) {
+    } else if (!strcasecmp(token, "aproc")) {
 	PSIADM_ProcStat(cnt, 1, nl);
-    } else if (!strcasecmp(what, "load")
-	       || !strcasecmp(what, "l")) {
-	PSIADM_LoadStat(nl);
-    } else if (!strcasecmp(what, "hardware")
-	       ||!strcasecmp(what, "hw")) {
-	PSIADM_HWStat(nl);
-    } else if (!strcasecmp(what, "all")) {
-	PSIADM_NodeStat(nl);
-	PSIADM_ProcStat(cnt, 0, nl);
-    } else if (!nl_descr) {
-	/* Maybe this is like 'status a-b' */
-	nl = getNodeList(what);
-
-	if (!nl) return -1;
-	PSIADM_NodeStat(nl);
     } else goto error;
     return 0;
 
  error:
-    printError(&statInfo);
+    printError(&listInfo);
     return -1;
 }
+
+static int listNodeCommand(char *token)
+{
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL;
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+	if (!nl) goto error;
+    }
+    if (parser_getString()) goto error; /* trailing garbage */
+
+    PSIADM_NodeStat(nl);
+    return 0;
+
+ error:
+    printError(&listInfo);
+    return -1;
+}
+
+static int listSummaryCommand(char *token)
+{
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL;
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+	if (!nl) goto error;
+    }
+    if (parser_getString()) goto error; /* trailing garbage */
+
+    PSIADM_SummaryStat(nl);
+    return 0;
+
+ error:
+    printError(&listInfo);
+    return -1;
+}
+
+static int listRDPCommand(char *token)
+{
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL;
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+	if (!nl) goto error;
+    }
+    if (parser_getString()) goto error; /* trailing garbage */
+
+    PSIADM_RDPStat(nl);
+    return 0;
+
+ error:
+    printError(&listInfo);
+    return -1;
+}
+
+static int listMCastCommand(char *token)
+{
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL;
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+	if (!nl) goto error;
+    }
+    if (parser_getString()) goto error; /* trailing garbage */
+
+    PSIADM_MCastStat(nl);
+    return 0;
+
+ error:
+    printError(&listInfo);
+    return -1;
+}
+
+static int listLoadCommand(char *token)
+{
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL;
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+	if (!nl) goto error;
+    }
+    if (parser_getString()) goto error; /* trailing garbage */
+
+    PSIADM_LoadStat(nl);
+    return 0;
+
+ error:
+    printError(&listInfo);
+    return -1;
+}
+
+static int listHWCommand(char *token)
+{
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL;
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+	if (!nl) goto error;
+    }
+    if (parser_getString()) goto error; /* trailing garbage */
+
+    PSIADM_HWStat(nl);
+    return 0;
+
+ error:
+    printError(&listInfo);
+    return -1;
+}
+
+static int listSpecialCommand(char *token)
+{
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL;
+
+    if (!nl_descr) {
+	/* Maybe this is like 'status a-b' */
+	if (token) nl = getNodeList(token);
+	if (!nl) goto error;
+    } else goto error;
+
+    PSIADM_NodeStat(nl);
+    return 0;
+
+ error:
+    printError(&listInfo);
+    return -1;
+}
+
+static keylist_t listList[] = {
+    {"aproc", listProcCommand},
+    {"count", listCountCommand},
+    {"hardware", listHWCommand},
+    {"hw", listHWCommand},
+    {"load", listLoadCommand},
+    {"mcast", listMCastCommand},
+    {"node", listNodeCommand},
+    {"proc", listProcCommand},
+    {"rdp", listRDPCommand},
+    {"summary", listSummaryCommand},
+    {NULL, listSpecialCommand}
+};
+static parser_t listParser = {" \t\n", listList};
+
+static int listCommand(char *token)
+{
+    char *what = parser_getString();
+
+    if (!what) listSpecialCommand(what);
+
+    return parser_parseString(what, &listParser);
+}
+
+/************************* set / show commands **************************/
 
 static long procsFromString(char *procs)
 {
@@ -397,77 +523,187 @@ static gid_t gidFromString(char *group)
     return -2;
 }
 
+static PSP_Option_t setShowOpt = PSP_OP_UNKNOWN;
+
+static int setShowMaxProc(char *token)
+{
+    setShowOpt = PSP_OP_PROCLIMIT;
+    return 0;
+}
+
+static int setShowUser(char *token)
+{
+    setShowOpt = PSP_OP_UIDLIMIT;
+    return 0;
+}
+
+static int setShowGroup(char *token)
+{
+    setShowOpt = PSP_OP_GIDLIMIT;
+    return 0;
+}
+
+static int setShowPSIDDebug(char *token)
+{
+    setShowOpt = PSP_OP_PSIDDEBUG;
+    return 0;
+}
+
+static int setShowSelectTime(char *token)
+{
+    setShowOpt = PSP_OP_PSIDSELECTTIME;
+    return 0;
+}
+
+static int setShowRDPDebug(char *token)
+{
+    setShowOpt = PSP_OP_RDPDEBUG;
+    return 0;
+}
+
+static int setShowRDPPktLoss(char *token)
+{
+    setShowOpt = PSP_OP_RDPPKTLOSS;
+    return 0;
+}
+
+static int setShowRDPMaxRetrans(char *token)
+{
+    setShowOpt = PSP_OP_RDPMAXRETRANS;
+    return 0;
+}
+
+static int setShowMaster(char *token)
+{
+    setShowOpt = PSP_OP_MASTER;
+    return 0;
+}
+
+static int setShowMCastDebug(char *token)
+{
+    setShowOpt = PSP_OP_MCASTDEBUG;
+    return 0;
+}
+
+static int setShowSPS(char *token)
+{
+    setShowOpt = PSP_OP_PSM_SPS;
+    return 0;
+}
+
+static int setShowRTO(char *token)
+{
+    setShowOpt = PSP_OP_PSM_RTO;
+    return 0;
+}
+
+static int setShowHNPend(char *token)
+{
+    setShowOpt = PSP_OP_PSM_HNPEND;
+    return 0;
+}
+
+static int setShowAckPend(char *token)
+{
+    setShowOpt = PSP_OP_PSM_ACKPEND;
+    return 0;
+}
+
+static int setShowFOS(char *token)
+{
+    setShowOpt = PSP_OP_FREEONSUSP;
+    return 0;
+}
+
+static int setShowHOB(char *token)
+{
+    setShowOpt = PSP_OP_HANDLEOLD;
+    return 0;
+}
+
+static int setShowError(char *token)
+{
+    return -1;
+}
+
+static keylist_t setShowList[] = {
+    {"maxproc", setShowMaxProc},
+    {"user", setShowUser},
+    {"group", setShowGroup},
+    {"psiddebug", setShowPSIDDebug},
+    {"selecttime", setShowSelectTime},
+    {"rdpdebug", setShowRDPDebug},
+    {"rdppktloss", setShowRDPPktLoss},
+    {"rdpmaxretrans", setShowRDPMaxRetrans},
+    {"master", setShowMaster},
+    {"mcastdebug", setShowMCastDebug},
+    {"smallpacketsize", setShowSPS},
+    {"sps", setShowSPS},
+    {"resendtimeout", setShowRTO},
+    {"rto", setShowRTO},
+    {"hnpend", setShowHNPend},
+    {"ackpend", setShowAckPend},
+    {"freeonsuspend", setShowFOS},
+    {"fos", setShowFOS},
+    {"handleoldbins", setShowHOB},
+    {"hob", setShowHOB},
+    {NULL, setShowError}
+};
+static parser_t setShowParser = {" \t\n", setShowList};
+
 static int setCommand(char *token)
 {
     char *what = parser_getString();
     char *value = parser_getString();
     char *nl_descr = parser_getString();
     char *nl = defaultNL;
-    PSP_Option_t option = 0;
     long val;
 
     if (parser_getString() || !what || !value) goto error;
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
-
 	if (!nl) return -1;
     }
 
-    if (strcasecmp(what, "maxproc") == 0) {
-	option = PSP_OP_PROCLIMIT;
+    setShowOpt = PSP_OP_UNKNOWN;
+    if (parser_parseToken(what, &setShowParser)) goto error;
+
+    switch (setShowOpt) {
+    case PSP_OP_PROCLIMIT:
 	val = procsFromString(value);
 	if (val == -2) goto error;
-    } else if (strcasecmp(what, "user") == 0) {
-	option = PSP_OP_UIDLIMIT;
+	break;
+    case PSP_OP_UIDLIMIT:
 	val = uidFromString(value);
 	if (val == -2) goto error;
-    } else if (strcasecmp(what, "group") == 0) {
-	option = PSP_OP_GIDLIMIT;
+	break;
+    case PSP_OP_GIDLIMIT:
 	val = gidFromString(value);
 	if (val == -2) goto error;
-    } else {
-	if (strcasecmp(what, "psiddebug") == 0) {
-	    option = PSP_OP_PSIDDEBUG;
-	} else if (strcasecmp(what, "selecttime") == 0) {
-	    option = PSP_OP_PSIDSELECTTIME;
-	} else if (strcasecmp(what, "rdpdebug") == 0) {
-	    option = PSP_OP_RDPDEBUG;
-	} else if (strcasecmp(what, "rdppktloss") == 0) {
-	    option = PSP_OP_RDPPKTLOSS;
-	} else if (strcasecmp(what, "rdpmaxretrans") == 0) {
-	    option = PSP_OP_RDPMAXRETRANS;
-	} else if (strcasecmp(what, "mcastdebug") == 0) {
-	    option = PSP_OP_MCASTDEBUG;
-	} else if (strcasecmp(what, "smallpacketsize") == 0) {
-	    option = PSP_OP_PSM_SPS;
-	} else if (strcasecmp(what, "sps") == 0) {
-	    option = PSP_OP_PSM_SPS;
-	} else if (strcasecmp(what, "resendtimeout") == 0) {
-	    option = PSP_OP_PSM_RTO;
-	} else if (strcasecmp(what, "rto") == 0) {
-	    option = PSP_OP_PSM_RTO;
-	} else if (strcasecmp(what, "hnpend") == 0) {
-	    option = PSP_OP_PSM_HNPEND;
-	} else if (strcasecmp(what, "ackpend") == 0) {
-	    option = PSP_OP_PSM_ACKPEND;
-	} else if (strcasecmp(what, "freeonsuspend") == 0) {
-	    option = PSP_OP_FREEONSUSP;
-	} else if (strcasecmp(what, "fos") == 0) {
-	    option = PSP_OP_FREEONSUSP;
-	} else if (strcasecmp(what, "handleoldbins") == 0) {
-	    option = PSP_OP_HANDLEOLD;
-	} else if (strcasecmp(what, "hob") == 0) {
-	    option = PSP_OP_HANDLEOLD;
-	} else goto error;
-
+	break;
+    case PSP_OP_PSIDDEBUG:
+    case PSP_OP_PSIDSELECTTIME:
+    case PSP_OP_RDPDEBUG:
+    case PSP_OP_RDPPKTLOSS:
+    case PSP_OP_RDPMAXRETRANS:
+    case PSP_OP_MCASTDEBUG:
+    case PSP_OP_PSM_SPS:
+    case PSP_OP_PSM_RTO:
+    case PSP_OP_PSM_HNPEND:
+    case PSP_OP_PSM_ACKPEND:
+    case PSP_OP_FREEONSUSP:
+    case PSP_OP_HANDLEOLD:
 	val = parser_getNumber(value);
 	if (val==-1) {
 	    printf("Illegal value %s\n", value);
 	    goto error;
 	}
+	break;
+    default:
+	goto error;
     }
-    PSIADM_SetParam(option, val, nl);
+    PSIADM_SetParam(setShowOpt, val, nl);
     return 0;
 
  error:
@@ -480,59 +716,40 @@ static int showCommand(char *token)
     char *what = parser_getString();
     char *nl_descr = parser_getString();
     char *nl = defaultNL;
-    PSP_Option_t option = 0;
 
     if (parser_getString() || !what) goto error;
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
-
 	if (!nl) return -1;
     }
 
-    if (!strcasecmp(what, "maxproc")) {
-	option = PSP_OP_PROCLIMIT;
-    } else if (!strcasecmp(what, "user")) {
-	option = PSP_OP_UIDLIMIT;
-    } else if (!strcasecmp(what, "group")) {
-	option = PSP_OP_GIDLIMIT;
-    } else if (!strcasecmp(what, "psiddebug")) {
-	option = PSP_OP_PSIDDEBUG;
-    } else if (!strcasecmp(what, "selecttime")) {
-	option = PSP_OP_PSIDSELECTTIME;
-    } else if (!strcasecmp(what, "rdpdebug")) {
-	option = PSP_OP_RDPDEBUG;
-    } else if (!strcasecmp(what, "rdppktloss")) {
-	option = PSP_OP_RDPPKTLOSS;
-    } else if (!strcasecmp(what, "rdpmaxretrans")) {
-	option = PSP_OP_RDPMAXRETRANS;
-    } else if (!strcasecmp(what, "mcastdebug")) {
-	option = PSP_OP_MCASTDEBUG;
-    } else if (!strcasecmp(what, "master")) {
-	option = PSP_OP_MASTER;
-    } else if (!strcasecmp(what, "smallpacketsize")) {
-	option = PSP_OP_PSM_SPS;
-    } else if (!strcasecmp(what, "sps")) {
-	option = PSP_OP_PSM_SPS;
-    } else if (!strcasecmp(what, "resendtimeout")) {
-	option = PSP_OP_PSM_RTO;
-    } else if (!strcasecmp(what, "rto")) {
-	option = PSP_OP_PSM_RTO;
-    } else if (!strcasecmp(what, "hnpend")) {
-	option = PSP_OP_PSM_HNPEND;
-    } else if (!strcasecmp(what, "ackpend")) {
-	option = PSP_OP_PSM_ACKPEND;
-    } else if (!strcasecmp(what, "freeonsuspend")) {
-	option = PSP_OP_FREEONSUSP;
-    } else if (!strcasecmp(what, "fos")) {
-	option = PSP_OP_FREEONSUSP;
-    } else if (strcasecmp(what, "handleoldbins") == 0) {
-	option = PSP_OP_HANDLEOLD;
-    } else if (strcasecmp(what, "hob") == 0) {
-	option = PSP_OP_HANDLEOLD;
-    } else goto error;
+    setShowOpt = PSP_OP_UNKNOWN;
+    if (parser_parseToken(what, &setShowParser)) goto error;
 
-    PSIADM_ShowParam(option, nl);
+    switch (setShowOpt) {
+    case PSP_OP_PROCLIMIT:
+    case PSP_OP_UIDLIMIT:
+    case PSP_OP_GIDLIMIT:
+    case PSP_OP_PSIDDEBUG:
+    case PSP_OP_PSIDSELECTTIME:
+    case PSP_OP_RDPDEBUG:
+    case PSP_OP_RDPPKTLOSS:
+    case PSP_OP_RDPMAXRETRANS:
+    case PSP_OP_MCASTDEBUG:
+    case PSP_OP_MASTER:
+    case PSP_OP_PSM_SPS:
+    case PSP_OP_PSM_RTO:
+    case PSP_OP_PSM_HNPEND:
+    case PSP_OP_PSM_ACKPEND:
+    case PSP_OP_FREEONSUSP:
+    case PSP_OP_HANDLEOLD:
+	break;
+    default:
+	goto error;
+    }
+
+    PSIADM_ShowParam(setShowOpt, nl);
     return 0;
 
  error:
@@ -587,53 +804,133 @@ static int testCommand(char *token)
     return -1;
 }
 
+/************************** help commands *******************************/
+static int helpAdd(char *token)
+{
+    printInfo(&addInfo);
+    return 0;
+}
+
+static int helpShutdown(char *token)
+{
+    printInfo(&shutdownInfo);
+    return 0;
+}
+
+static int helpHWStart(char *token)
+{
+    printInfo(&hwstartInfo);
+    return 0;
+}
+
+static int helpHWStop(char *token)
+{
+    printInfo(&hwstopInfo);
+    return 0;
+}
+
+static int helpListCmd(char *token)
+{
+    printInfo(&listInfo);
+    return 0;
+}
+
+static int helpRange(char *token)
+{
+    printInfo(&rangeInfo);
+    return 0;
+}
+
+static int helpReset(char *token)
+{
+    printInfo(&resetInfo);
+    return 0;
+}
+
+static int helpRestart(char *token)
+{
+    printInfo(&restartInfo);
+    return 0;
+}
+
+static int helpVersion(char *token)
+{
+    printInfo(&versionInfo);
+    return 0;
+}
+
+static int helpExit(char *token)
+{
+    printInfo(&exitInfo);
+    return 0;
+}
+
+static int helpSet(char *token)
+{
+    printInfo(&setInfo);
+    return 0;
+}
+
+static int helpShow(char *token)
+{
+    printInfo(&showInfo);
+    return 0;
+}
+
+static int helpKill(char *token)
+{
+    printInfo(&killInfo);
+    return 0;
+}
+
+static int helpTest(char *token)
+{
+    printInfo(&testInfo);
+    return 0;
+}
+
+static int helpNodes(char *token)
+{
+    printInfo(&nodeInfo);
+    return 0;
+}
+
+static int helpNotFound(char *token)
+{
+    return -1;
+}
+
+static keylist_t helpList[] = {
+    {"add", helpAdd},
+    {"shutdown", helpShutdown},
+    {"hwstart", helpHWStart},
+    {"hwstop", helpHWStop},
+    {"list", helpListCmd},
+    {"status", helpListCmd},
+    {"range", helpRange},
+    {"reset", helpReset},
+    {"restart", helpRestart},
+    {"version", helpVersion},
+    {"exit", helpExit},
+    {"quit", helpExit},
+    {"set", helpSet},
+    {"show", helpShow},
+    {"kill", helpKill},
+    {"test", helpTest},
+    {"nodes", helpNodes},
+    {NULL, helpNotFound}
+};
+static parser_t helpParser = {" \t\n", helpList};
+
 static int helpCommand(char *token)
 {
-    char *option = parser_getString();
+    char *topic = parser_getString();
 
-    if (option) {
-	if (!strcasecmp(option, "add")) {
-	    printInfo(&addInfo);
-	} else if (!strcasecmp(option, "shutdown")) {
-	    printInfo(&shutdownInfo);
-	} else if (!strcasecmp(option, "start")) {
-	    printf("Not yet implemented\n");
-	} else if (!strcasecmp(option, "stop")) {
-	    printf("Not yet implemented\n");
-	} else if (!strcasecmp(option, "hwstart")) {
-	    printInfo(&hwstartInfo);
-	} else if (!strcasecmp(option, "hwstop")) {
-	    printInfo(&hwstopInfo);
-	} else if (!strcasecmp(option, "status")
-		   || !strcasecmp(option, "stat")
-		   || !strcasecmp(option, "s")) {
-	    printInfo(&statInfo);
-	} else if (!strcasecmp(option, "range")
-		   || !strcasecmp(option, "r")) {
-	    printInfo(&rangeInfo);
-	} else if (!strcasecmp(option, "reset")) {
-	    printInfo(&resetInfo);
-	} else if (!strcasecmp(option, "restart")) {
-	    printInfo(&restartInfo);
-	} else if (!strcasecmp(option, "v")
-		   || !strcasecmp(option, "version")) {
-	    printInfo(&versionInfo);
-	} else if (!strcasecmp(option, "exit")
-		   || !strcasecmp(option, "e")
-		   || !strcasecmp(option, "quit")
-		   || !strcasecmp(option, "q")) {
-	    printInfo(&exitInfo);
-	} else if (!strcasecmp(option, "set")) {
-	    printInfo(&setInfo);
-	} else if (!strcasecmp(option, "show")) {
-	    printInfo(&showInfo);
-	} else if (!strcasecmp(option, "kill")) {
-	    printInfo(&killInfo);
-	} else if (!strcasecmp(option, "test")) {
-	    printInfo(&testInfo);
-	} else if (!strcasecmp(option, "nodes")) {
-	    printInfo(&nodeInfo);
-	} else goto error;
+    if (topic) {
+	if (parser_parseToken(topic, &helpParser)) {
+	    printError(&helpInfo);
+	    return -1;
+	}
     } else {
 	printInfo(&helpInfo);
 	if (!getuid()) printInfo(&privilegedInfo);
@@ -643,15 +940,11 @@ static int helpCommand(char *token)
     while (parser_getString());
 
     return 0;
-
- error:
-    printError(&helpInfo);
-    return -1;
 }
 
 static int versionCommand(char *token)
 {
-    extern char psiadmversion[], commandversion[];
+    extern char psiadmversion[];
 
     if (parser_getString()) goto error;
     
@@ -693,30 +986,22 @@ static int error(char *token)
 static keylist_t commandList[] = {
     {"add", addCommand},
     {"shutdown", shutdownCommand},
-    {"start", startCommand},
-    {"stop", stopCommand},
     {"hwstart", hwstartCommand},
     {"hwstop", hwstopCommand},
-    {"r", rangeCommand},
     {"range", rangeCommand},
     {"restart", restartCommand},
     {"reset", resetCommand},
-    {"status", statCommand},
-    {"stat", statCommand},
-    {"s", statCommand},
+    {"list", listCommand},
+    {"status", listCommand},
     {"show", showCommand},
     {"set", setCommand},
     {"kill", killCommand},
     {"test", testCommand},
-    {"h", helpCommand},
     {"?", helpCommand},
     {"help", helpCommand},
-    {"v", versionCommand},
     {"version", versionCommand},
     {"exit", quitCommand},
     {"quit", quitCommand},
-    {"q", quitCommand},
-    {"e", quitCommand},
     {NULL, error}
 };
 static parser_t commandParser = {" \t\n", commandList};
@@ -762,4 +1047,69 @@ int parseLine(char *line)
 
     /* Do the parsing */
     return (parser_parseString(token, &lineParser) == quitMagic);
+}
+
+#include <readline/readline.h>
+
+static keylist_t *genList = NULL;
+
+static char *generator(const char *text, int state)
+{
+    static int index, len;
+    char *name, *ret=NULL;
+
+    /* If this is a new word to complete, initialize now.  This
+       includes saving the length of TEXT for efficiency, and
+       initializing the index variable to 0. */
+    if (!state) {
+	index = 0;
+	len = strlen (text);
+    }
+
+    /* Return the next name which partially matches from the
+       command list. */
+    if (genList) {
+	while ((name = genList[index].key) && !ret) {
+	    if (!strncmp(name, text, len))
+		ret = strdup(name);
+	    index++;
+	}
+    }
+
+    return ret;
+}
+
+char **completeLine(const char *text, int start, int end)
+{
+    int tokStart = 0, tokEnd = start-1;
+    char **matches = NULL;
+
+    genList = NULL;
+    rl_attempted_completion_over = 1;
+
+    /* Try to find a token in front of the text to complete */
+    while (isspace(rl_line_buffer[tokStart])) tokStart++;
+
+    if (tokStart == start) {
+	genList = commandList;
+    } else {
+	char *token = &rl_line_buffer[tokStart];
+
+	while (isspace(rl_line_buffer[tokEnd])) tokEnd--;
+
+	if (!strncmp(token, "help", tokEnd-tokStart+1)) {
+	    genList = helpList;
+	} else if (!strncmp(token, "set", tokEnd-tokStart+1)) {
+	    genList = setShowList;
+	} else if (!strncmp(token, "show", tokEnd-tokStart+1)) {
+	    genList = setShowList;
+	} else if (!strncmp(token, "status", tokEnd-tokStart+1)) {
+	    genList = listList;
+	} else if (!strncmp(token, "list", tokEnd-tokStart+1)) {
+	    genList = listList;
+	}
+    }
+    matches = rl_completion_matches(text, generator);
+
+    return (matches);
 }

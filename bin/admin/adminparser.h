@@ -40,6 +40,33 @@ extern "C" {
  */
 int parseLine(char *line);
 
+/**
+ * @brief Generate candidate for line completion
+ *
+ * Generate a list list of candidates for readline's line completion
+ * given the word @a text typed in so far. This function is intended
+ * to act as readline's @a rl_attempted_completion_function, thus it
+ * will be called from readline whenever a completion has to be done.
+ *
+ * The actual implementation utilizes the same keylists as the parser
+ * used to implement the special syntax of psiadmin's directives.
+ *
+ * @param text The text to complete
+ *
+ * @param start The position of the first character of @a text within
+ * readline's @a rl_line_buffer.
+ *
+ * @param end The position of the last character of @a text within
+ * readline's @a rl_line_buffer.
+ *
+ * @return If possible completions are found, a array of these strings
+ * is returned. The actual array returned is created using readline's
+ * @ref rl_completion_matches() function.
+ *
+ * @see rl_line_buffer, rl_completion_matches()
+ */
+char **completeLine(const char *text, int start, int end);
+
 #ifdef __cplusplus
 }/* extern "C" */
 #endif

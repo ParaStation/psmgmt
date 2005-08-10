@@ -38,9 +38,7 @@ static char errtxt[256];
 static char *nextline(void)
 {
     static char line[512];
-    char *hash, *start, *l;
     int length=0;
-    int quote=0, dquote=0;
 
  continuation:
     parseline++;
@@ -158,18 +156,31 @@ void parser_removeComment(char *line)
 int parser_parseToken(char *token, parser_t *parser)
 {
     unsigned int i;
-    int ret;
+    int mismatch = 0;
+    keylist_t *candidate = NULL;
+    size_t tokLen;
 
     if (!token) return 0; /* end of string */
     // fprintf(stderr, "Token: %s\n", token);
 
+    tokLen = strlen(token);
+    if (!tokLen) return 0; /* empty token */
+
     for (i=0; parser->keylist[i].key; i++) {
-	if (strcasecmp(token, parser->keylist[i].key)==0) {
-	    if (parser->keylist[i].action) {
-		return parser->keylist[i].action(token);
+	if (strncasecmp(token, parser->keylist[i].key, tokLen)==0) {
+	    if (!candidate) {
+		candidate = &parser->keylist[i];
+	    } else if (parser->keylist[i].action != candidate->action) {
+		mismatch = 1; /* found more than 1 matching key */
 	    }
-	    break;
 	}
+    }
+
+    if (candidate && !mismatch) {
+	if (candidate->action) {
+	    return candidate->action(candidate->key);
+	}
+	return 0;
     }
 
     /* Default action */
