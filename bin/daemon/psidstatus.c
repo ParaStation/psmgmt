@@ -169,13 +169,13 @@ static void handleMasterTasks(void)
     PSnodes_ID_t node;
     static int round = 0;
     int nrDownNodes = 0;
-    struct timeval tv1, tv2;
+    struct timeval tv;
 
-    gettimeofday(&tv2, NULL);
-    mytimersub(&tv2, StatusTimeout.tv_sec, StatusTimeout.tv_usec);
+    gettimeofday(&tv, NULL);
+    mytimersub(&tv, StatusTimeout.tv_sec, StatusTimeout.tv_usec);
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (PSnodes_isUp(node)) {
-	    if (timercmp(&clientStat[node].lastPing, &tv2, <)) {
+	    if (timercmp(&clientStat[node].lastPing, &tv, <)) {
 		/* no ping in the last 'round' */
 		snprintf(errtxt, sizeof(errtxt),
 			 "%s: Ping from node %d missing [%d]",

@@ -66,7 +66,6 @@ char *strshrink(char *str)
    ToDo: Unterminated strings are not detected! */
 char *strunquote_r(char *str, char **ptrptr)
 {
-    char *ret;
     char *s, *d;
     char *rest = NULL;
     

@@ -134,8 +134,6 @@ size_t PSpart_encodeReq(char *buffer, size_t size, PSpart_request_t *request)
 
 int PSpart_decodeReq(char *buffer, PSpart_request_t *request)
 {
-    int msglen, len, count, i;
-
     snprintf(errtxt, sizeof(errtxt), "%s(%p)", __func__, buffer);
     PSC_errlog(errtxt, 10);
 

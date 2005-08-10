@@ -523,7 +523,7 @@ char *PSI_createPGfile(int num, const char *prog, int local)
 {
     char *PIfilename, *myprog, filename[20];
     FILE *PIfile;
-    int i, j=0;
+    int i;
 
     myprog = mygetwd(prog);
     if (!myprog) {

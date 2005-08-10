@@ -144,7 +144,6 @@ int Selector_register(int fd, int (*selectHandler)(int))
 int Selector_remove(int fd)
 {
     Selector_t *selector, *prev = NULL;
-    sigset_t sigset;
 
     /* Find timer to remove */
     selector = selectorList;

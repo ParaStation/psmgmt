@@ -145,14 +145,14 @@ static void handleSort(poptContext *optCon, int verbose, char *sort)
 
 int main(int argc, const char *argv[])
 {
-    int rank, i, j, totlen = 0;
+    int rank, i, totlen = 0;
     char *command;
     char *newargv[4];
 
     int dest, version, verbose, rusage;
     int rc;
     char *nodelist, *hostlist, *hostfile, *sort, *envlist, *login;
-    char *PGfile, *pwd, *envstr;
+    char *envstr;
     int dup_argc;
     int partitionsize=1;
     char **dup_argv;

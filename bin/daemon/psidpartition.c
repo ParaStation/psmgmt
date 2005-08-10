@@ -1237,7 +1237,6 @@ static int sendPartition(PSnodes_ID_t *part, PSpart_request_t *req)
 	    .len = sizeof(msg.header) },
 	.buf = { '\0' }};
     char *ptr = msg.buf;
-    unsigned int offset = 0;
 
     *(uint32_t *)ptr = req->size;
     ptr += sizeof(req->size);
@@ -1294,7 +1293,7 @@ static int sendPartition(PSnodes_ID_t *part, PSpart_request_t *req)
  */
 static int getPartition(PSpart_request_t *request)
 {
-    int ret=0, i;
+    int ret=0;
     sortlist_t *candidates = NULL; 
     PSnodes_ID_t *partition = NULL;
 

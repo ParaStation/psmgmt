@@ -1634,7 +1634,6 @@ static void psicontrol(int fd)
 static void MCastCallBack(int msgid, void *buf)
 {
     int node;
-    struct in_addr hostaddr;
 
     switch(msgid) {
     case MCAST_NEW_CONNECTION:

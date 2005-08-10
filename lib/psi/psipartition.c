@@ -162,7 +162,6 @@ void PSI_PBS(void)
  */
 static PSpart_sort_t getSortMode(void)
 {
-    PSpart_sort_t sort = PART_SORT_PROC;
     char *env_sort = getenv(ENV_NODE_SORT);
 
     if (!env_sort) return PART_SORT_PROC;
@@ -669,7 +668,7 @@ int PSI_createPartition(unsigned int size, unsigned int hwType)
 	char *errstr = strerror(((DDErrorMsg_t *)&msg)->error);
 	snprintf(errtxt, sizeof(errtxt), "%s: error in command %s : %s",
 		 __func__, PSP_printMsg(((DDErrorMsg_t*)&msg)->request),
-		 errtxt ? errtxt : "UNKNOWN");
+		 errstr ? errstr : "UNKNOWN");
 	PSI_errlog(errtxt, 0);
 	return -1;
 	break;
@@ -748,7 +747,7 @@ int PSI_getNodes(unsigned int num, PSnodes_ID_t *nodes)
 	char *errstr = strerror(((DDErrorMsg_t *)&msg)->error);
 	snprintf(errtxt, sizeof(errtxt), "%s: error in command %s : %s",
 		 __func__, PSP_printMsg(((DDErrorMsg_t*)&msg)->request),
-		 errtxt ? errtxt : "UNKNOWN");
+		 errstr ? errstr : "UNKNOWN");
 	PSI_errlog(errtxt, 0);
 	break;
     }
