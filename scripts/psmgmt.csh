@@ -21,6 +21,8 @@ if ( -d "${_psdir}/bin" ) then
     if ( -d "${_psdir}/man" ) then
 	if ( ${?MANPATH} ) then
 	    setenv MANPATH "${MANPATH}:${_psdir}/man"
+	else
+	    setenv MANPATH "${_psdir}/man"
         endif
     endif
 endif

@@ -21,6 +21,8 @@ if test -d "${_psdir}/bin" ; then
     if test -d "${_psdir}/man" ; then
 	if test "${MANPATH}" ; then
 	    export MANPATH="${MANPATH}:${_psdir}/man"
+	else
+	    export MANPATH="${_psdir}/man"
 	fi
     fi
 fi
