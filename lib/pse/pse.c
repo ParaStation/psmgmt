@@ -104,6 +104,33 @@ void PSE_initialize(void)
     if ((env_str = getenv("TERM"))) {
 	setPSIEnv("TERM", env_str, 1);
     }
+    if ((env_str = getenv("LD_LIBRARY_PATH"))) {
+	setPSIEnv("LD_LIBRARY_PATH", env_str, 1);
+    }
+    if ((env_str = getenv("LD_PRELOAD"))) {
+	setPSIEnv("LD_PRELOAD", env_str, 1);
+    }
+    if ((env_str = getenv("MPID_PSP_MAXSMALLMSG"))) {
+	setPSIEnv("MPID_PSP_MAXSMALLMSG", env_str, 1);
+    }
+    if ((env_str = getenv("PSP_NETWORK"))) {
+	setPSIEnv("PSP_NETWORK", env_str, 1);
+    }
+    if ((env_str = getenv("PSP_P4SOCK"))) {
+	setPSIEnv("PSP_P4SOCK", env_str, 1);
+    }
+    if ((env_str = getenv("PSP_SHAREDMEM"))) {
+	setPSIEnv("PSP_SHAREDMEM", env_str, 1);
+    }
+    if ((env_str = getenv("PSP_GM"))) {
+	setPSIEnv("PSP_GM", env_str, 1);
+    }
+    if ((env_str = getenv("PSP_MVAPI"))) {
+	setPSIEnv("PSP_MVAPI", env_str, 1);
+    }
+    if ((env_str = getenv("PSP_DEBUG"))) {
+	setPSIEnv("PSP_DEBUG", env_str, 1);
+    }
 
     /* Get masterNode/masterPort from environment (if available) */
     env_str = getenv("__PSI_MASTERNODE");
