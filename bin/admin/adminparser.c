@@ -759,7 +759,7 @@ static int setCommand(char *token)
 	break;
     case PSP_OP_NODESSORT:
 	origToken = value;
-	if (!parser_parseString(origToken, &sort_parser)) {
+	if (parser_parseString(origToken, &sort_parser)) {
 	    printf("Illegal value %s\n", value);
 	    goto error;
 	}

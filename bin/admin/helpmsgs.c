@@ -235,7 +235,8 @@ static info_t setInfo = {
 	" | psiddebug <level> | selecttime <timeout> | rdpdebug <level>"
 	" | rdppktloss <rate> | rdpmaxretrans <val> | mcastdebug <level>"
 	" | {smallpacketsize|sps} <size> | hnpend <val> | ackpend <val>"
-	" | {freeonsuspend|fos} | {handleoldbins|hob} } <nodes>"
+	" | {freeonsuspend|fos} | {handleoldbins|hob} | nodessort <mode>}"
+	" <nodes>"
     }},
     .nodes = 1,
     .descr = "Set one of various parameters of the ParaStation system:",
@@ -291,6 +292,14 @@ static info_t setInfo = {
 	  " correctly to <val>. Relevant values are 0 or different from 0."
 	  " Unfortunately this will break 'freeOnSuspend'. Only the value on"
 	  " the master node really steers the behaviour!" },
+	{ .tag = "set nodessort <mode>",
+	  .descr = "Define the default sorting strategy for nodes when"
+	  " attaching them to a partition. Valid values for <mode> are"
+	  " PROC, LOAD1, LOAD5, LOAD15, PROCLOAD or NONE. This only comes"
+	  " into play, if the user does not define a sorting strategy"
+	  " explicitely via PSI_NODES_SORT. Be aware of the fact that using"
+	  " a batch-system like PBS or LSF *will* set the strategy"
+	  " explicitely, namely to NONE." },
 	{ NULL, NULL }
     },
     .comment = "For more information reffer to 'help set <subcommand>'"
@@ -303,7 +312,7 @@ static info_t showInfo = {
 	.arg = "{maxproc | user | group | psiddebug | selecttime | rdpdebug"
 	" | rdppktloss | rdpmaxretrans | mcastdebug | master"
 	" | {smallpacketsize|sps} | {resendtimeout|rto} | hnpend | ackpend"
-	" | {freeonsuspend|fos} | {handleoldbins|hob}} <nodes>"
+	" | {freeonsuspend|fos} | {handleoldbins|hob} | nodessort} <nodes>"
     }},
     .nodes = 1,
     .descr = "Show various parameters of the ParaStation system:",
@@ -344,6 +353,9 @@ static info_t showInfo = {
 	  .descr = "Show flag marking if old binaries resources are handled"
 	  " correctly. Unfortunately this will break 'freeOnSuspend'. Only"
 	  " the value on the master node really steers the behaviour!" },
+	{ .tag = "show nodessort",
+	  .descr = "Show the default sorting strategy used when attaching"
+	  " nodes to partitions." },
 	{ NULL, NULL }
     },
     .comment = NULL
