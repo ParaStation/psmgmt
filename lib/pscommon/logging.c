@@ -50,6 +50,7 @@ logger_t* logger_init(char* tag, int syslog)
 
     logger->useSyslog = syslog;
     logger_setMask(logger, 0);
+    logger->tag = NULL;
     logger_setTag(logger, tag);
     logger->trail = NULL;
 
