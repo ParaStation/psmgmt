@@ -37,6 +37,7 @@ typedef enum {
     PART_SORT_LOAD_5,         /**< Sort by 5 minute load average. */
     PART_SORT_LOAD_15,        /**< Sort by 15 minute load average. */
     PART_SORT_PROCLOAD,       /**< Sort by load_1 + proc. */
+    PART_SORT_DEFAULT,        /**< Use the daemon's default mode. */
     PART_SORT_UNKNOWN = 0x0ff /**< Dummy for unknown sort mode. */
 } PSpart_sort_t;
 

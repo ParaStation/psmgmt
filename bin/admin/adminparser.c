@@ -621,6 +621,12 @@ static int setShowHOB(char *token)
     return 0;
 }
 
+static int setShowNodesSort(char *token)
+{
+    setShowOpt = PSP_OP_NODESSORT;
+    return 0;
+}
+
 static int setShowError(char *token)
 {
     return -1;
@@ -647,9 +653,60 @@ static keylist_t setShowList[] = {
     {"fos", setShowFOS},
     {"handleoldbins", setShowHOB},
     {"hob", setShowHOB},
+    {"nodessort", setShowNodesSort},
     {NULL, setShowError}
 };
 static parser_t setShowParser = {" \t\n", setShowList};
+
+
+
+static char* origToken;
+static long sortMode;
+
+static int sortLoad1or15(char *token)
+{
+    sortMode = PART_SORT_LOAD_1;
+    if ((strcasecmp(origToken, "load15")==0)
+	|| (strcasecmp(origToken, "load_15")==0)) {
+	sortMode = PART_SORT_LOAD_15;
+    }
+    return 0;
+}
+
+static int sortLoad5(char *token)
+{
+    sortMode = PART_SORT_LOAD_5;
+    return 0;
+}
+
+static int sortProcOrProcLoad(char *token)
+{
+    const char discr[]="procl";
+    sortMode = PART_SORT_PROC;
+    if (strncasecmp(origToken, discr, strlen(discr))==0) {
+	sortMode = PART_SORT_PROCLOAD;
+    }
+    return 0;
+}
+
+static int sortNone(char *token)
+{
+    sortMode = PART_SORT_NONE;
+    return 0;
+}
+
+static keylist_t sort_list[] = {
+    {"load15", sortLoad1or15},
+    {"load_15", sortLoad1or15},
+    {"load5", sortLoad5},
+    {"load_5", sortLoad5},
+    {"procload", sortProcOrProcLoad},
+    {"none", sortNone},
+    {NULL, parser_error}
+};
+
+static parser_t sort_parser = {" \t\n", sort_list};
+
 
 static int setCommand(char *token)
 {
@@ -700,6 +757,14 @@ static int setCommand(char *token)
 	    goto error;
 	}
 	break;
+    case PSP_OP_NODESSORT:
+	origToken = value;
+	if (!parser_parseString(origToken, &sort_parser)) {
+	    printf("Illegal value %s\n", value);
+	    goto error;
+	}
+	val = sortMode;
+	break;
     default:
 	goto error;
     }
@@ -744,6 +809,7 @@ static int showCommand(char *token)
     case PSP_OP_PSM_ACKPEND:
     case PSP_OP_FREEONSUSP:
     case PSP_OP_HANDLEOLD:
+    case PSP_OP_NODESSORT:
 	break;
     default:
 	goto error;

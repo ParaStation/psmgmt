@@ -59,6 +59,8 @@ typedef struct {
 			    suspend. */
     int handleOldBins;   /**< Flag if resources occupied by old binaries
 			    (prior 4.1.0 should be recognized. */
+    int nodesSort;       /**< The default sorting strategy; used if the user
+			    does not declare a different one explicitely. */
 } config_t;
 
 /**

@@ -161,7 +161,7 @@ static PSpart_sort_t getSortMode(void)
 {
     char *env_sort = getenv(ENV_NODE_SORT);
 
-    if (!env_sort) return PART_SORT_PROC;
+    if (!env_sort) return PART_SORT_DEFAULT;
 
     if (strcasecmp(env_sort,"LOAD")==0 || strcasecmp(env_sort,"LOAD_1")==0) {
 	return PART_SORT_LOAD_1;

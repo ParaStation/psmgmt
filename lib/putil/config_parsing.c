@@ -31,6 +31,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #include "pscommon.h"
 #include "hardware.h"
+#include "pspartition.h"
 
 #include "config_parsing.h"
 
@@ -47,6 +48,7 @@ static config_t config = (config_t) {
     .useSyslog = 1,
     .freeOnSuspend = 0,
     .handleOldBins = 0,
+    .nodesSort = PART_SORT_PROC,
 };
 
 #define ENV_END 17 /* Some magic value */
@@ -251,8 +253,90 @@ static int getLogMask(char *token)
     return parser_getNumValue(parser_getString(), &config.logMask, "logmask");
 }
 
+static int destDaemon(char *token)
+{
+    config.logDest = LOG_DAEMON;
+    return 0;
+}
+
+static int destKern(char *token)
+{
+    config.logDest = LOG_KERN;
+    return 0;
+}
+
+static int destLocal0(char *token)
+{
+    config.logDest = LOG_LOCAL0;
+    return 0;
+}
+
+static int destLocal1(char *token)
+{
+    config.logDest = LOG_LOCAL1;
+    return 0;
+}
+
+static int destLocal2(char *token)
+{
+    config.logDest = LOG_LOCAL2;
+    return 0;
+}
+
+static int destLocal3(char *token)
+{
+    config.logDest = LOG_LOCAL3;
+    return 0;
+}
+
+static int destLocal4(char *token)
+{
+    config.logDest = LOG_LOCAL4;
+    return 0;
+}
+
+static int destLocal5(char *token)
+{
+    config.logDest = LOG_LOCAL5;
+    return 0;
+}
+
+static int destLocal6(char *token)
+{
+    config.logDest = LOG_LOCAL6;
+    return 0;
+}
+
+static int destLocal7(char *token)
+{
+    config.logDest = LOG_LOCAL7;
+    return 0;
+}
+
+static int endList(char *token)
+{
+    return -1;
+}
+
+static keylist_t dest_list[] = {
+    {"daemon", destDaemon},
+    {"kernel", destKern},
+    {"local0", destLocal0},
+    {"local1", destLocal1},
+    {"local2", destLocal2},
+    {"local3", destLocal3},
+    {"local4", destLocal4},
+    {"local5", destLocal5},
+    {"local6", destLocal6},
+    {"local7", destLocal7},
+    {NULL, endList}
+};
+
+static parser_t dest_parser = {" \t\n", dest_list};
+
 static int getLogDest(char *token)
 {
+    int ret;
     char skip_it[] = "log_";
 
     /* Get next token to parse */
@@ -263,33 +347,13 @@ static int getLogDest(char *token)
 	token += strlen(skip_it);
     }
 
-    if (strcasecmp(token, "daemon")==0) {
-	config.logDest = LOG_DAEMON;
-    } else if (strcasecmp(token, "kernel")==0) {
-	config.logDest = LOG_KERN;
-    } else if (strcasecmp(token, "kern")==0) {
-	config.logDest = LOG_KERN;
-    } else if (strcasecmp(token, "local0")==0) {
-	config.logDest = LOG_LOCAL0;
-    } else if (strcasecmp(token, "local1")==0) {
-	config.logDest = LOG_LOCAL1;
-    } else if (strcasecmp(token, "local2")==0) {
-	config.logDest = LOG_LOCAL2;
-    } else if (strcasecmp(token, "local3")==0) {
-	config.logDest = LOG_LOCAL3;
-    } else if (strcasecmp(token, "local4")==0) {
-	config.logDest = LOG_LOCAL4;
-    } else if (strcasecmp(token, "local5")==0) {
-	config.logDest = LOG_LOCAL5;
-    } else if (strcasecmp(token, "local6")==0) {
-	config.logDest = LOG_LOCAL6;
-    } else if (strcasecmp(token, "local7")==0) {
-	config.logDest = LOG_LOCAL7;
-    } else {
-	return parser_getNumValue(token, &config.logDest, "log destination");
+    ret = parser_parseString(token, &dest_parser);
+
+    if (ret) {
+	ret = parser_getNumValue(token, &config.logDest, "log destination");
     }
 
-    return 0;
+    return ret;
 }
 
 /* ---------------------- Stuff for rlimit lines ------------------------ */
@@ -950,6 +1014,71 @@ static int getHandleOldBins(char *token)
     parser_comment(-1, "recognize old binaries within resource management");
     return 0;
 }
+
+static char* origToken;
+
+static int sortLoad1or15(char *token)
+{
+    config.nodesSort = PART_SORT_LOAD_1;
+    if ((strcasecmp(origToken, "load15")==0)
+	|| (strcasecmp(origToken, "load_15")==0)) {
+	config.nodesSort = PART_SORT_LOAD_15;
+    }
+    return 0;
+}
+
+static int sortLoad5(char *token)
+{
+    config.nodesSort = PART_SORT_LOAD_5;
+    return 0;
+}
+
+static int sortProcOrProcLoad(char *token)
+{
+    const char discr[]="procl";
+    config.nodesSort = PART_SORT_PROC;
+    if (strncasecmp(origToken, discr, strlen(discr))==0) {
+	config.nodesSort = PART_SORT_PROCLOAD;
+    }
+    return 0;
+}
+
+static int sortNone(char *token)
+{
+    config.nodesSort = PART_SORT_NONE;
+    return 0;
+}
+
+static keylist_t sort_list[] = {
+    {"load15", sortLoad1or15},
+    {"load_15", sortLoad1or15},
+    {"load5", sortLoad5},
+    {"load_5", sortLoad5},
+    {"procload", sortProcOrProcLoad},
+    {"none", sortNone},
+    {NULL, parser_error}
+};
+
+static parser_t sort_parser = {" \t\n", sort_list};
+
+static int getPSINodesSort(char *token)
+{
+    int ret;
+
+    origToken = parser_getString();
+    ret = parser_parseString(origToken, &sort_parser);
+    if (!ret) {
+	parser_comment(-1, "default sorting strategy for nodes is '%s'",
+		       (config.nodesSort == PART_SORT_PROC) ? "PROC" :
+		       (config.nodesSort == PART_SORT_LOAD_1) ? "LOAD_1" :
+		       (config.nodesSort == PART_SORT_LOAD_5) ? "LOAD_5" :
+		       (config.nodesSort == PART_SORT_LOAD_15) ? "LOAD_15" :
+		       (config.nodesSort == PART_SORT_PROCLOAD) ? "PROCLOAD" :
+		       (config.nodesSort == PART_SORT_NONE) ? "NONE" :
+		       "UNKNOWN");
+    }
+    return ret;
+}
     
 /* ---------------------------------------------------------------------- */
 
@@ -979,6 +1108,7 @@ static keylist_t config_list[] = {
     {"environment", getEnv},
     {"freeOnSuspend", getFreeOnSusp},
     {"handleOldBins", getHandleOldBins},
+    {"psiNodesSort", getPSINodesSort},
     {NULL, parser_error}
 };
 

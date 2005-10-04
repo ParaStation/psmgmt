@@ -192,6 +192,9 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 	    case PSP_OP_HANDLEOLD:
 		config->handleOldBins = msg->opt[i].value;
 		break;
+	    case PSP_OP_NODESSORT:
+		config->nodesSort = msg->opt[i].value;
+		break;
 	    default:
 		PSID_log(-1, "%s: unknown option %d\n", __func__,
 			msg->opt[i].option);
@@ -297,6 +300,9 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_HANDLEOLD:
 		msg->opt[i].value = config->handleOldBins;
+		break;
+	    case PSP_OP_NODESSORT:
+		msg->opt[i].value = config->nodesSort;
 		break;
 	    default:
 		PSID_log(-1, "%s: unknown option %d\n", __func__,

@@ -93,6 +93,7 @@ typedef enum {
 
     PSP_OP_FREEONSUSP = 0x0038,   /**< Free suspended job's resources? */
     PSP_OP_HANDLEOLD,             /**< Notice old binaries? */
+    PSP_OP_NODESSORT,             /**< Sorting strategy for nodes */
 } PSP_Option_t;
 
 /** Messages used for information retrieval */

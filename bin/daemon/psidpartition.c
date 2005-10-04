@@ -1404,6 +1404,11 @@ void msg_GETPART(DDBufferMsg_t *inmsg)
     PSpart_decodeReq(inmsg->buf, req);
     req->tid = inmsg->header.sender;
 
+    /* Set the default sorting strategy, if necessary */
+    if (req->sort == PART_SORT_DEFAULT) {
+	req->sort = config->nodesSort;
+    }
+
     if (req->num) {
 	req->nodes = malloc(req->num * sizeof(*req->nodes));
 	if (!req->nodes) {

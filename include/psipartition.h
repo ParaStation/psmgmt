@@ -92,7 +92,8 @@ void PSI_PBS(void);
  *
  * - PROC: Sort the pool depending on the number of processes managed
  * by ParaStation residing on the nodes. This is also the default if
- * PSI_NODES_SORT is not set.
+ * PSI_NODES_SORT is not set and no other default behaviour is
+ * configured within the daemon's configuration file.
  *
  * - LOAD or LOAD_1: Sort the pool depending on the load average
  * within the last minute on the nodes.

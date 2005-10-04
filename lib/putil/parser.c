@@ -155,7 +155,7 @@ int parser_parseToken(char *token, parser_t *parser)
     size_t tokLen;
 
     if (!token) return 0; /* end of string */
-    // fprintf(stderr, "Token: %s\n", token);
+    /* fprintf(stderr, "Token: %s\n", token); */
 
     tokLen = strlen(token);
     if (!tokLen) return 0; /* empty token */
