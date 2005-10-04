@@ -1513,7 +1513,7 @@ fi
 
 case $target_os in
 linux|linux-gnu)
-	CFLAG_WALL="-W -Wall -Wno-unused"
+	CFLAG_WALL="-W -Wall -Wno-unused-parameter"
 	CFLAG_G=-g
 	CFLAG_COMPAT=
 	CPPFLAG_MMD=-MMD
@@ -1522,7 +1522,7 @@ linux|linux-gnu)
 	LIBCURSES=ncurses
 	;;
 *)
-	echo "Unkown os ($target_os)"
+	echo "Unknown os ($target_os)"
 	exit 1
 	;;
 esac

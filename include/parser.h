@@ -43,8 +43,8 @@ typedef struct keylist_T {
  * Information container for parser calls.
  */
 typedef struct parser_T {
-    char *delim;
-    keylist_t *keylist;
+    char* delim;
+    keylist_t* keylist;
 } parser_t;
 
 /**
@@ -65,7 +65,7 @@ typedef struct parser_T {
  *
  * @see parser_setFile()
  * */
-void parser_init(int usesyslog, FILE *input);
+void parser_init(int usesyslog, FILE* input);
 
 /**
  * @brief Set the input stream.
@@ -76,7 +76,7 @@ void parser_init(int usesyslog, FILE *input);
  *
  * @return No return value.
  * */
-void parser_setFile(FILE *input);
+void parser_setFile(FILE* input);
 
 /**
  * @brief Handle a token.
@@ -100,7 +100,7 @@ void parser_setFile(FILE *input);
  * @return If @a token matches a key, the return value of the
  * corresponding action is returned. Otherwise 0 is returned.
  */
-int parser_parseToken(char *token, parser_t *parser);
+int parser_parseToken(char* token, parser_t* parser);
 
 /**
  * @brief Register a string to parse.
@@ -123,7 +123,7 @@ int parser_parseToken(char *token, parser_t *parser);
  *
  * @see strtok_r(3)
  */
-char * parser_registerString(char *string, parser_t *parser);
+char* parser_registerString(char* string, parser_t* parser);
 
 /**
  * @brief Parses a string.
@@ -154,7 +154,7 @@ char * parser_registerString(char *string, parser_t *parser);
  *
  * @see strtok_r(3)
  */
-int parser_parseString(char *token, parser_t *parser);
+int parser_parseString(char* token, parser_t* parser);
 
 /**
  * @brief Remove comment.
@@ -174,7 +174,7 @@ int parser_parseString(char *token, parser_t *parser);
  *
  * @return No return value.
  */
-void parser_removeComment(char *line);
+void parser_removeComment(char* line);
 
 /**
  * @brief Parses a character stream.
@@ -199,7 +199,20 @@ void parser_removeComment(char *line);
  * returned. Otherwise the return value of the first
  * parser_parseString() call displaying an error is returned.
  */
-int parser_parseFile(parser_t *parser);
+int parser_parseFile(parser_t* parser);
+
+/**
+ * Various message classes for logging. These define the different
+ * bits of the debug-mask set via @ref parser_setDebugMask().
+ */
+typedef enum {
+    PARSER_LOG_ECHO = 0x0001,    /**< Echo each line to parse */
+    PARSER_LOG_FILE = 0x0002,    /**< logs concerning the file to parse */
+    PARSER_LOG_COMMENT = 0x0004, /**< Comment handling */
+    PARSER_LOG_NODE = 0x0008,    /**< Info concerning each node */
+    PARSER_LOG_RES = 0x0010,     /**< Info on various resource to define */
+    PARSER_LOG_VERB = 0x0020,    /**< more verbose stuff */
+} parser_log_key_t;
 
 /**
  * @brief Quit parsing.
@@ -212,55 +225,67 @@ int parser_parseFile(parser_t *parser);
  *
  * @see keylist_t
  */
-int parser_error(char *token);
+int parser_error(char* token);
 
 /**
- * @brief Query the debug-level.
+ * @brief Query the debug-mask.
  *
- * Get the debug-level of the parser module.
+ * Get the debug-mask of the parser module.
  *
- * @return The actual debug-level is returned.
+ * @return The actual debug-mask is returned.
  *
- * @see parserr_setDebugLevel()
+ * @see parser_setDebugMask()
  */
-int parser_getDebugLevel(void);
+int32_t parser_getDebugMask(void);
 
 /**
- * @brief Set the debug-level.
+ * @brief Set the debug-mask.
  *
- * Set the debug-level of the parser module. Possible values are:
- *  - 0: Critical errors (usually exit). This is the default.
- *  - 5: Critical errors (usually exit). This is the default.
+ * Set the log-mask of the parser's logging facility to @a mask. @a
+ * mask is a bit-wise OR of the different keys defined within @ref
+ * parser_log_key_t.
  *
- * @param level The debug-level to set.
+ * @param mask The debug-mask to set.
  *
  * @return No return value.
  *
- * @see parser_getDebugLevel()
+ * @see parser_getDebugMask()
  */
-void parser_setDebugLevel(int level);
+void parser_setDebugMask(int32_t mask);
 
 /**
  * @brief Print out a comment.
  *
  * Print out a comment concerning actual parsing. The @a comment will
- * be prepended with the actual line number the parser acts at while
+ * be prepended with the current line number the parser acts at while
  * the comment is launched.
  *
- * Actually the comment will only be launched if @a level is smaller
- * or equal to the current debug level of the parser subsystem. The
- * debug level might be read/set using
- * parser_getDebugLevel()/parser_setDebugLevel().
+ * This is a wrapper to @ref logger_print().
  *
- * @param comment A user-defined comment added to the message.
+ * The message is only put out if either:
  *
- * @param level The minimum debug level to actually launch the message.
+ * - the key @a key bitwise or'ed with @a parser's current debug-mask
+ * set via @ref setDebugMask() is different form zero, or
+ *
+ * - the key @a key is -1.
+ *
+ * Thus all messages with @a key set to -1 are put out always,
+ * independently of the choice of @a parser's mask. Therefor critical
+ * messages of general interest should be but out with @a key st to
+ * this value.
+ *
+ * @param key The key to use in order to decide if anything is put out.
+ *
+ * @param format The format to be used in order to produce output. The
+ * syntax used is according to the one defined for the @ref printf()
+ * family of functions from the C standard. This string will also
+ * define the further parameters to be expected.
  *
  * @return No return value.
  *
- * @see parser_getDebugLevel() parser_setDebugLevel()
+ * @see logger_print(), parser_getDebugLevel(), parser_setDebugLevel()
  */
-void parser_comment(char *comment, int level);
+void parser_comment(parser_log_key_t key, char* format, ...);
 
 /*
  * Basic routines to get defined fields
@@ -274,7 +299,7 @@ void parser_comment(char *comment, int level);
  *
  * @return The result of strtok(NULL, " \t\n") is returned.
  */
-char *parser_getString(void);
+char* parser_getString(void);
 
 /**
  * @brief Get the rest of the string to parse.
@@ -284,7 +309,7 @@ char *parser_getString(void);
  *
  * @return The result of strtok(NULL, "\n") is returned.
  */
-char *parser_getLine(void);
+char* parser_getLine(void);
 
 /**
  * @brief Get a comment during a running line.
@@ -296,7 +321,7 @@ char *parser_getLine(void);
  *
  * @return The return value of @ref parser_getLine() is passed thru.
  */
-int parser_getComment(char *token);
+int parser_getComment(char* token);
 
 /**
  * @brief Get a (positiv) number.
@@ -307,7 +332,7 @@ int parser_getComment(char *token);
  *
  * @return On success the number is returned, or -1 otherwise.
  */
-long parser_getNumber(char *token);
+long parser_getNumber(char* token);
 
 /**
  * @brief Get a filename.
@@ -330,7 +355,7 @@ long parser_getNumber(char *token);
  * @return On success a pointer to the absolute filename is returned,
  * or NULL otherwise.
  */
-char *parser_getFilename(char *token, char *prefix, char *extradir);
+char* parser_getFilename(char* token, char* prefix, char* extradir);
 
 /**
  * @brief Get a hostname.
@@ -344,7 +369,7 @@ char *parser_getFilename(char *token, char *prefix, char *extradir);
  * returned, or 0 otherwise. On error, the @a h_errno variable holds
  * an error number.
  */
-unsigned int parser_getHostname(char *token);
+unsigned int parser_getHostname(char* token);
 
 /**
  * @brief Get a (positiv) numerical value.
@@ -364,7 +389,7 @@ unsigned int parser_getHostname(char *token);
  *
  * @return On success 0 is returned, or -1 otherwise. 
  */
-int parser_getNumValue(char *token, int *value, char *valname);
+int parser_getNumValue(char* token, int* value, char* valname);
 
 /**
  * @brief Get a boolean value.
@@ -384,7 +409,7 @@ int parser_getNumValue(char *token, int *value, char *valname);
  *
  * @return On success 0 is returned, or -1 otherwise.
  */
-int parser_getBool(char *token, int *value, char *valname);
+int parser_getBool(char* token, int* value, char* valname);
 
 /**
  * @brief Continue to parse the file.
@@ -406,7 +431,7 @@ int parser_getBool(char *token, int *value, char *valname);
  * with the given value. 0 is returned, if @ref parser_parseFile()
  * returns 0.
  */
-int parser_parseOn(char *line, parser_t *parser);
+int parser_parseOn(char* line, parser_t* parser);
 
 #ifdef __cplusplus
 }/* extern "C" */

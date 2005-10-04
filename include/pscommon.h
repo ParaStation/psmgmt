@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 
+#include "logging.h"
 #include "psnodes.h"
 #include "pstask.h"
 
@@ -32,6 +33,9 @@ extern "C" {
 } /* <- just for emacs indentation */
 #endif
 #endif
+
+/** The logger we use inside PSC */
+extern logger_t* PSC_logger;
 
 /**
  * @brief Determines the number of nodes of the cluster.
@@ -184,7 +188,11 @@ void PSC_startDaemon(unsigned int hostaddr);
  * @brief Initialize the PSC logging facility.
  *
  * Initialize the PSC logging facility. This is mainly a wrapper to
- * @ref initErrLog().
+ * @ref logger_init().
+ *
+ * If @usesyslog is different from 0, syslog() will be used for any
+ * output. Otherwise if @a logfile is set, this file will be used or
+ * stderr, if @a logfile is NULL.
  *
  *
  * @param usesyslog Flag to mark syslog(3) to be used for any output.
@@ -194,79 +202,75 @@ void PSC_startDaemon(unsigned int hostaddr);
  *
  * @return No return value.
  *
- * If @usesyslog is different from 0, syslog() will be used for any
- * output. Otherwise if @a logfile is set, this file will be used or
- * stderr, if @a logfile is NULL.
- *
- * @see initErrLog(), syslog(3)
+ * @see logger_init(), syslog(3)
  */
 void PSC_initLog(int usesyslog, FILE *logfile);
 
 /**
- * @brief Get the log-level of the PSC logging facility.
+ * @brief Get the log-mask of the PSC logging facility.
  *
- * Get the actual log-level of the PSC logging facility. This is
- * mainly a wrapper to @ref getErrLogLevel().
+ * Get the actual log-mask of the PSC logging facility. This is
+ * mainly a wrapper to @ref logger_getMask().
  *
- * @return The actual log-level is returned.
+ * @return The actual log-mask is returned.
  *
- * @see PSC_setDebugLevel(), getErrLogLevel()
+ * @see PSC_setDebugMask(), logger_getMask()
  */
-int PSC_getDebugLevel(void);
+int32_t PSC_getDebugMask(void);
 
 /**
- * @brief Set the log-level of the PSC logging facility.
+ * @brief Set the log-mask of the PSC logging facility.
  *
- * Set the log-level of the PSC logging facility to @a level. This is
- * mainly a wrapper to @ref setErrLogLevel().
+ * Set the log-mask of the PSC logging facility to @a mask. @a mask is
+ * a bit-wise OR of the different keys defined within @ref
+ * PSC_Log_key_t.
  *
- * @param level The log-level to be set.
+ * This is mainly a wrapper to @ref logger_setMask().
+ *
+ * @param mask The log-mask to be set.
  *
  * @return No return value.
  *
- * @see PSC_setDebugLevel(), getErrLogLevel()
+ * @see PSC_setDebugMask(), logger_setMask()
  */
-void PSC_setDebugLevel(int level);
+void PSC_setDebugMask(int32_t mask);
 
 /**
- * @brief Print log-messages via the PSC logging facility.
+ * Print a log messages via PSC's logging facility @a PSC_logger .
  *
- * Prints message @a s with some beautification, if @a level is <= the
- * result of @ref PSC_getDebugLevel(). This is mainly a wrapper to
- * @ref errlog().
+ * This is a wrapper to @ref logger_print().
  *
- *
- * @param s The actual message to log.
- *
- * @param level The log-level of the message. Comparing to the result
- * of @ref PSC_getDebugLevel() decides whether @a s is actually put
- * out or not.
- *
- *
- * @return No return value.
- *
- * @see errlog(), PSC_getDebugLevel(), PSC_setDebugLevel()
+ * @see logger_print()
  */
-void PSC_errlog(char *s, int level);
+#define PSC_log(...) logger_print(PSC_logger, __VA_ARGS__)
 
 /**
- * @brief Print log-messages via the PSC logging facility and exit.
+ * Print a warn messages via PSC's logging facility @a PSC_logger .
  *
- * Prints message @a s and string corresponding to errno with some
- * beautification. This is mainly a wrapper to @ref errexit().
+ * This is a wrapper to @ref logger_warn().
  *
- *
- * @param s The actual message to log.
- *
- * @param errorno The errno which occured. PSC_errexit() logs the
- * corresponding string given by strerror().
- *
- *
- * @return No return value.
- *
- * @see errno(3), strerror(3), errexit()
+ * @see logger_warn()
  */
-void PSC_errexit(char *s, int errorno);
+#define PSC_warn(...) logger_warn(PSC_logger, __VA_ARGS__)
+
+/**
+ * Print a warn messages via PSC's logging facility @a PSC_logger and exit.
+ *
+ * This is a wrapper to @ref logger_exit().
+ *
+ * @see logger_exit()
+ */
+#define PSC_exit(...) logger_exit(PSC_logger, __VA_ARGS__)
+
+/**
+ * Various message classes for logging. These define the different
+ * bits of the debug-mask set via @ref PSC_setDebugMask().
+ */
+typedef enum {
+    PSC_LOG_PART = 0x1000, /**< partitioning functions (i.e. PSpart_()) */
+    PSC_LOG_TASK = 0x2000, /**< task structure handling (i.e. PStask_()) */
+    PSC_LOG_VERB = 0x4000, /**< Various, less interesting messages. */
+} PSC_Log_key_t;
 
 /**
  * @brief Get the ParaStation installation directory.
@@ -303,7 +307,7 @@ char *PSC_lookupInstalldir(void);
  *
  * @return No return value.
  */
-void PSC_setInstalldir(char *installdir);
+void PSC_setInstalldir(char* installdir);
 
 /**
  * @brief Get a port entry
@@ -321,7 +325,7 @@ void PSC_setInstalldir(char *installdir);
  * def is returned. If the resolved port number is identical to @a
  * def, the failure of the lookup is indiscernible.
  */
-int PSC_getServicePort(char *name , int def);
+int PSC_getServicePort(char* name , int def);
 
 /**
  * @brief Get nodelist from string.
@@ -344,7 +348,7 @@ int PSC_getServicePort(char *name , int def);
  * @return On success, a char array as described above is returned. Or
  * NULL, if an (parsing-) error occured.
  */
-char *PSC_parseNodelist(char *descr);
+char *PSC_parseNodelist(char* descr);
 
 /**
  * @brief Print a nodelist description.
@@ -362,7 +366,7 @@ char *PSC_parseNodelist(char *descr);
  *
  * @see PSC_parseNodelist()
  */
-void PSC_printNodelist(char *nl);
+void PSC_printNodelist(char* nl);
 
 #ifdef __cplusplus
 }/* extern "C" */

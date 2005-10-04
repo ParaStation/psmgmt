@@ -45,8 +45,6 @@ static struct {
 
 static struct timeval killClientsTimer;
 
-static char errtxt[256]; /**< General string to create error messages */
-
 void initClients(void)
 {
     int fd;
@@ -116,17 +114,10 @@ static int do_send(int fd, DDMsg_t *msg, int offset)
 		return n;
 		break;
 	    default:
-	    {
-		char *errstr = strerror(errno);
-
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s(): got error %d on socket %d: %s",
-			 __func__, errno, fd,
-			 errstr ? errstr : "UNKNOWN");
-		PSID_errlog(errtxt, (errno==EPIPE) ? 1 : 0);
+		PSID_warn((errno==EPIPE) ? PSID_LOG_CLIENT : -1, errno,
+			  "%s: error on socket %d", __func__, fd);
 		deleteClient(fd);
 		return i;
-	    }
 	    }
 	} else
 	    n+=i;
@@ -257,15 +248,12 @@ int recvClient(int fd, DDMsg_t *msg, size_t size)
 	n = count = read(fd, msg, sizeof(DDInitMsg_t));
 	if (!count) {
 	    /* Socket close before initial message was sent */
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s(%d) socket already closed.", __func__, fd);
-	    PSID_errlog(errtxt, 1);
+	    PSID_log(PSID_LOG_CLIENT, 
+		     "%s(%d) socket already closed\n", __func__, fd);
 	} else if (count!=msg->len) {
 	    /* if wrong msg format initiate a disconnect */
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%d=%s(%d): initial message with incompatible type.",
+	    PSID_log(-1, "%d=%s(%d): initial message with incompatible type\n",
 		     n, __func__, fd);
-	    PSID_errlog(errtxt, 0);
 	    count=n=0;
 	}
     } else do {
@@ -298,9 +286,7 @@ int recvClient(int fd, DDMsg_t *msg, size_t size)
 void closeConnection(int fd)
 {
     if (fd<0) {
-	snprintf(errtxt, sizeof(errtxt), "%s(%d): fd < 0.", __func__, fd);
-	PSID_errlog(errtxt, 0);
-
+	PSID_log(-1, "%s(%d): fd < 0\n", __func__, fd);
 	return;
     }
 
@@ -336,14 +322,11 @@ void deleteClient(int fd)
     PStask_ID_t tid;
 
     if (fd<0) {
-	snprintf(errtxt, sizeof(errtxt), "%s(%d): fd < 0.", __func__, fd);
-	PSID_errlog(errtxt, 0);
-
+	PSID_log(-1, "%s(%d): fd < 0\n", __func__, fd);
 	return;
     }
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, fd);
-    PSID_errlog(errtxt, 4);
+    PSID_log(PSID_LOG_CLIENT, "%s(%d)\n", __func__, fd);
 
     tid = clients[fd].tid;
     closeConnection(fd);
@@ -352,9 +335,7 @@ void deleteClient(int fd)
 
     task = PStasklist_find(managedTasks, tid);
     if (!task) {
-	snprintf(errtxt, sizeof(errtxt), "%s: Task %s not found.",
-		 __func__, PSC_printTID(tid));
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: Task %s not found\n", __func__, PSC_printTID(tid));
 	return;
     }
 
@@ -362,9 +343,8 @@ void deleteClient(int fd)
     if (task->group == TG_FORWARDER && !task->released) {
 	DDMsg_t msg;
 
-	snprintf(errtxt, sizeof(errtxt), "%s: Unreleased forwarder %s",
+	PSID_log(-1, "%s: Unreleased forwarder %s\n",
 		 __func__, PSC_printTID(tid));
-	PSID_errlog(errtxt, 0);
 
 	msg.type = PSP_CC_ERROR;
 	msg.dest = task->loggertid;
@@ -373,10 +353,10 @@ void deleteClient(int fd)
 	sendMsg(&msg);
     }
 
-    snprintf(errtxt, sizeof(errtxt), "%s: closing connection to %s",
+    PSID_log(PSID_LOG_CLIENT, "%s: closing connection to %s\n",
 	     __func__, PSC_printTID(tid));
-    PSID_errlog(errtxt, 1);
 
+    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
     PStask_cleanup(tid);
 
     return;
@@ -386,24 +366,19 @@ int killAllClients(int phase)
 {
     PStask_t *task;
 
-    if (timercmp(&mainTimer, &killClientsTimer, <)) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s(%d) timer not ready [%ld:%ld] < [%ld:%ld]",
-		 __func__, phase, mainTimer.tv_sec, mainTimer.tv_usec,
-		 killClientsTimer.tv_sec, killClientsTimer.tv_usec);
-	PSID_errlog(errtxt, 8);
+    PSID_log(PSID_LOG_CLIENT, "%s(%d)", __func__, phase);
 
+    if (timercmp(&mainTimer, &killClientsTimer, <)) {
+	PSID_log(PSID_LOG_CLIENT, " timer not ready [%ld:%ld] < [%ld:%ld]\n",
+		 mainTimer.tv_sec, mainTimer.tv_usec,
+		 killClientsTimer.tv_sec, killClientsTimer.tv_usec);
 	return 0;
     }
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, phase);
-    PSID_errlog(errtxt, 1);
-
-    snprintf(errtxt, sizeof(errtxt),
-	     "timers are main[%ld:%ld] and killclients[%ld:%ld]",
+    PSID_log(PSID_LOG_CLIENT, 
+	     " timers are main[%ld:%ld] and killclients[%ld:%ld]\n",
 	     mainTimer.tv_sec, mainTimer.tv_usec,
 	     killClientsTimer.tv_sec, killClientsTimer.tv_usec);
-    PSID_errlog(errtxt, 8);
 
     gettimeofday(&killClientsTimer, NULL);
     mytimeradd(&killClientsTimer, 0, 200000);
@@ -417,11 +392,9 @@ int killAllClients(int phase)
 	    /* in phase 1 and 3 all other */
 	    /* in phase 0 and 2 all other not in TG_ADMIN group */
 	    pid_t pid = PSC_getPID(task->tid);
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: sending %s to %s pid %d index[%d]",
+	    PSID_log(PSID_LOG_CLIENT, "%s: sending %s to %s pid %d fd %d\n",
 		     __func__, (phase<2) ? "SIGTERM" : "SIGKILL",
 		     PSC_printTID(task->tid), pid, task->fd);
-	    PSID_errlog(errtxt, 4);
 	    if (pid > 0) kill(pid, (phase<2) ? SIGTERM : SIGKILL);
 	}
 	if (phase>2 && task->fd>=0) {
@@ -430,8 +403,6 @@ int killAllClients(int phase)
 	task = task->next;
     }
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%d) done", __func__, phase);
-    PSID_errlog(errtxt, 4);
-
+    PSID_log(PSID_LOG_CLIENT, "%s(%d) done\n", __func__, phase);
     return 1;
 }

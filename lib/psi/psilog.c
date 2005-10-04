@@ -12,16 +12,13 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
-#include <time.h>
-#include <sys/time.h>
 #include <unistd.h>
-
-#include "errlog.h"
 
 #include "psilog.h"
 
-/* Wrapper functions for logging */
-void PSI_initLog(int usesyslog, FILE *logfile)
+logger_t* PSI_logger;
+
+void PSI_initLog(int usesyslog, FILE* logfile)
 {
     if (!usesyslog && logfile) {
 	int fno = fileno(logfile);
@@ -34,25 +31,15 @@ void PSI_initLog(int usesyslog, FILE *logfile)
 	}
     }
 
-    initErrLog("PSI", usesyslog);
+    PSI_logger = logger_init("PSI", usesyslog);
 }
 
-int PSI_getDebugLevel(void)
+int32_t PSI_getDebugMask(void)
 {
-    return getErrLogLevel();
+    return logger_getMask(PSI_logger);
 }
 
-void PSI_setDebugLevel(int level)
+void PSI_setDebugMask(int32_t mask)
 {
-    setErrLogLevel(level);
-}
-
-void PSI_errlog(char *s, int level)
-{
-    errlog(s, level);
-}
-
-void PSI_errexit(char *s, int errorno)
-{
-    errexit(s, errorno);
+    logger_setMask(PSI_logger, mask);
 }

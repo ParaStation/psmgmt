@@ -33,7 +33,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #error WRONG OS Type
 #endif
 
-#include "errlog.h"
+#include "logging.h"
 #include "selector.h"
 #include "timer.h"
 
@@ -54,10 +54,20 @@ static int timerID = -1;
 /** The size of the cluster. Set via initMCast(). */
 static int  nrOfNodes = 0;
 
-static char errtxt[256];         /**< String to hold error messages. */
-
 /** My node-ID within the cluster. Set inside initMCast(). */
 static int myID = -1;
+
+/** The logger we use inside MCast */
+static logger_t *logger;
+
+/** Abbrev for normal log messages. This is a wrapper to @ref logger_print() */
+#define MCast_log(...) logger_print(logger, __VA_ARGS__)
+
+/** Abbrev for errno-warnings. This is a wrapper to @ref logger_warn() */
+#define MCast_warn(...) logger_warn(logger, __VA_ARGS__)
+
+/** Abbrev for fatal log messages. This is a wrapper to @ref logger_exit() */
+#define MCast_exit(...) logger_exit(logger, __VA_ARGS__)
 
 /**
  * The callback function. Will be used to send messages to the calling
@@ -135,12 +145,11 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
  restart:
     if ((retval=recvfrom(sock, buf, len, flags, from, fromlen)) < 0) {
 	if (errno == EINTR) {
-	    errlog("MYrecvfrom was interrupted !", 5);
+	    MCast_log(MCAST_LOG_INTR,
+		      "%s: recvfrom() interrupted\n", __func__);
 	    goto restart;
 	}
-	snprintf(errtxt, sizeof(errtxt), "MYrecvfrom returns [%d]: %s",
-		 errno, strerror(errno));
-	errlog(errtxt, 0);
+	MCast_warn(-1, errno, "%s: recvfrom", __func__);
     }
     return retval;
 }
@@ -178,12 +187,10 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
  restart:
     if ((retval=sendto(sock, buf, len, flags, to, tolen)) < 0) {
 	if (errno == EINTR) {
-	    errlog("MYsendto was interrupted !", 5);
+	    MCast_log(MCAST_LOG_INTR, "%s: sendto() interrupted\n", __func__);
 	    goto restart;
 	}
-	snprintf(errtxt, sizeof(errtxt), "MYsendto returns [%d]: %s",
-		 errno, strerror(errno));
-	errlog(errtxt, 0);
+	MCast_warn(-1, errno, "%s: sendto", __func__);
     }
     return retval;
 }
@@ -246,8 +253,8 @@ static void insertIPTable(unsigned int ip_addr, int node)
     if (ip_addr==INADDR_ANY) return;
 
     if (iptable[idx].ipnr != INADDR_ANY) { /* create new entry */
-	snprintf(errtxt, sizeof(errtxt),
-		 "Node %d goes to table %d [NEW ENTRY]", node, idx);
+	MCast_log(MCAST_LOG_INIT, "Node %d goes to table %d [NEW ENTRY]\n",
+		  node, idx);
 	ip = &iptable[idx];
 	while (ip->next) ip = ip->next; /* search end */
 	ip->next = malloc(sizeof(ipentry_t));
@@ -256,13 +263,11 @@ static void insertIPTable(unsigned int ip_addr, int node)
 	ip->ipnr = ip_addr;
 	ip->node = node;
     } else { /* base entry is free, so use it */
-	snprintf(errtxt, sizeof(errtxt),
-		 "Node %d goes to table %d", node, idx);
+	MCast_log(MCAST_LOG_INIT,  "Node %d goes to table %d\n", node, idx);
 	iptable[idx].ipnr = ip_addr;
 	iptable[idx].node = node;
     }
-    errlog(errtxt, 4);
-
+ 
     return;
 }
 
@@ -334,13 +339,11 @@ static void initConntable(int nodes, unsigned int host[])
 
     if (!conntable) conntable = malloc(nodes * sizeof(Mconninfo_t));
     initIPTable();
-    snprintf(errtxt, sizeof(errtxt), "%s: %d nodes", __func__, nodes);
-    errlog(errtxt, 4);
+    MCast_log(MCAST_LOG_INIT, "%s: %d nodes\n", __func__, nodes);
     for (i=0; i<nodes; i++) {
 	insertIPTable(host[i], i);
-	snprintf(errtxt, sizeof(errtxt), "IP-ADDR of node %d is %s",
-		 i, inet_ntoa(* (struct in_addr *) &host[i]));
-	errlog(errtxt, 4);
+	MCast_log(MCAST_LOG_INIT, " IP-ADDR of %d is %s\n",
+		  i, inet_ntoa(*(struct in_addr*)&host[i]));
 	conntable[i].misscounter = 0;
 	conntable[i].lastping = (struct timeval) { .tv_sec = 0, .tv_usec = 0};
 	conntable[i].load.load[0] = 0.0;
@@ -379,7 +382,7 @@ static int initSockMCast(int group, unsigned short port)
      * Allocate socket
      */
     if ((sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
-	errexit("can't create socket (mcast)", errno);
+	MCast_exit(errno, "%s: socket", __func__);
     }
 
     /*
@@ -390,9 +393,8 @@ static int initSockMCast(int group, unsigned short port)
 
     if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq,
 		   sizeof(mreq)) == -1) {
-	snprintf(errtxt, sizeof(errtxt), "unable to join mcast group %s",
-		 inet_ntoa(mreq.imr_multiaddr));
-	errexit(errtxt, errno);
+	MCast_exit(errno, "%s: setsockopt(IP_ADD_MEMBERSHIP, %s)",
+		   __func__, inet_ntoa(mreq.imr_multiaddr));
     }
 
     /*
@@ -401,7 +403,7 @@ static int initSockMCast(int group, unsigned short port)
     loop = 1; /* 0 = disable, 1 = enable (default) */
     if (setsockopt(sock, IPPROTO_IP, IP_MULTICAST_LOOP, &loop,
 		   sizeof(loop)) == -1){
-	errexit("unable to enable mcast loopback", errno);
+	MCast_exit(errno, "%s: setsockopt(IP_MULTICAST_LOOP)", __func__);
     }
 
     /*
@@ -409,22 +411,20 @@ static int initSockMCast(int group, unsigned short port)
      */
     reuse = 1; /* 0 = disable (default), 1 = enable */
     if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse,
-		   sizeof(reuse)) == -1){
-        errexit("unable to set reuse flag", errno);
+		   sizeof(reuse)) == -1) {
+        MCast_exit(errno, "%s: setsockopt(SO_REUSEADDR)", __func__);
     }
 
 #ifndef __linux__
     reuse = 1; /* 0 = disable (default), 1 = enable */
     if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &reuse,
 		   sizeof(reuse)) == -1) {
-	errexit("unable to set reuse flag", errno);
+	MCast_exit(errno, "%s: setsockopt(SO_REUSEPORT)", __func__);
     }
 #endif
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "I'm node %d, using interface %s",
-	     myID, inet_ntoa(mreq.imr_interface));
-    errlog(errtxt, 2);
+    MCast_log(MCAST_LOG_INIT, "%s: I'm node %d, using interface %s\n",
+	      __func__, myID, inet_ntoa(mreq.imr_interface));
 
     /*
      * Bind the socket to MCast group
@@ -436,16 +436,11 @@ static int initSockMCast(int group, unsigned short port)
 
     /* Do the bind */
     if (bind(sock, (struct sockaddr *)&msin, sizeof(msin)) < 0) {
-        snprintf(errtxt, sizeof(errtxt),
-                 "can't bind mcast socket to mcast addr %s",
-                 inet_ntoa(msin.sin_addr));
-	errexit(errtxt, errno);
+        MCast_exit(errno, "%s: bind(%s)", __func__, inet_ntoa(msin.sin_addr));
     }
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "I'm node %d, using addr %s port: %d",
-	     myID, inet_ntoa(msin.sin_addr), ntohs(msin.sin_port));
-    errlog(errtxt, 2);
+    MCast_log(MCAST_LOG_INIT, "%s: I'm node %d, using addr %s port: %d\n",
+	      __func__, myID, inet_ntoa(msin.sin_addr), ntohs(msin.sin_port));
 
     return sock;
 }
@@ -460,8 +455,7 @@ static int initSockMCast(int group, unsigned short port)
  */
 static void closeConnectionMCast(int node)
 {
-    snprintf(errtxt, sizeof(errtxt), "Closing connection to node %d", node);
-    errlog(errtxt, 0);
+    MCast_log(-1, "%s(%d)\n", __func__, node);
     conntable[node].state = DOWN;
     if (MCastCallback) {  /* inform daemon */
 	MCastCallback(MCAST_LOST_CONNECTION, &node);
@@ -489,23 +483,17 @@ static void checkConnections(void)
 	if (conntable[i].state != DOWN) {
 	    timeradd(&conntable[i].lastping, &MCastTimeout, &tv1);
 	    if (timercmp(&tv1, &tv2, <)) { /* no ping in the last 'round' */
-		snprintf(errtxt, sizeof(errtxt),
-			 "Ping from node %d missing [%d] "
-			 "(now=%lx, last=%lx, new=%lx)", i,
-			 conntable[i].misscounter, tv2.tv_sec,
-			 conntable[i].lastping.tv_sec, tv1.tv_sec);
+		int miscnt = conntable[i].misscounter;
 		conntable[i].misscounter++;
-		if ((conntable[i].misscounter%5)==0) {
-		    errlog(errtxt, 8);
-		} else {
-		    errlog(errtxt, 10);
-		}
+		MCast_log((conntable[i].misscounter%5) ? MCAST_LOG_MSNG
+			  : MCAST_LOG_5MIS,
+			  "%s: ping from %d missing [%d] (now=%lx, last=%lx,"
+			  " new=%lx)\n", __func__, i, miscnt, tv2.tv_sec,
+			  conntable[i].lastping.tv_sec, tv1.tv_sec);
 	    }
 	    if (conntable[i].misscounter > MCastDeadLimit) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "misscount exceeded, closing connection to node %d",
-			 i);
-		errlog(errtxt, 0);
+		MCast_log(-1, "%s: misscount exceeds limit;"
+			  " close connection to %d\n", __func__, i);
 		closeConnectionMCast(i);
 	    }
 	}
@@ -557,22 +545,16 @@ static void pingMCast(MCastState_t state)
     if (state==DOWN) msg.type=T_CLOSE;
     msg.state = state;
     msg.load = getLoad();
-    snprintf(errtxt, sizeof(errtxt),
-	     "pingMCast: Current load is [%.2f|%.2f|%.2f]",
-	     msg.load.load[0], msg.load.load[1], msg.load.load[2]);
-    errlog(errtxt, 12);
+    MCast_log(MCAST_LOG_SENT, "%s: load is [%.2f|%.2f|%.2f];", __func__,
+	      msg.load.load[0], msg.load.load[1], msg.load.load[2]);
     msg.jobs = jobsMCast;
-    snprintf(errtxt, sizeof(errtxt),
-	     "pingMCast: Currently %d normal jobs (%d total)",
-	     msg.jobs.normal, msg.jobs.total);
-    errlog(errtxt, 12);
-    snprintf(errtxt, sizeof(errtxt),
-	     "Sending MCast ping [%d:%d] to %s", myID, state,
-	     inet_ntoa(msin.sin_addr));
-    errlog(errtxt, 12);
+    MCast_log(MCAST_LOG_SENT, " %d normal jobs (%d total);",
+	      msg.jobs.normal, msg.jobs.total);
+    MCast_log(MCAST_LOG_SENT, " sending MCast ping [%d:%d] to %s\n",
+	      myID, state, inet_ntoa(msin.sin_addr));
     if (MYsendto(mcastsock, &msg, sizeof(msg), 0,
 		 (struct sockaddr *)&msin, sizeof(struct sockaddr))==-1) {
-	errlog("in pingMCast()", 0);
+	MCast_warn(-1, errno, "%s: MYsendto", __func__);
     }
 
     return;
@@ -647,9 +629,7 @@ static int handleMCast(int fd)
 	    if (errno == EINTR) {
 		continue;
 	    } else {
-		snprintf(errtxt, sizeof(errtxt), "%s: select returns [%d]: %s",
-			 __func__, errno, strerror(errno));
-		errlog(errtxt, 0);
+		MCast_warn(-1, errno, "%s: select", __func__);
 		break;
 	    }
 	}
@@ -659,32 +639,26 @@ static int handleMCast(int fd)
 	slen = sizeof(sin);
 	if (MYrecvfrom(fd, &msg, sizeof(msg), 0,
 		       (struct sockaddr *)&sin, &slen)<0) { /* get msg */
-	    errlog("in handleMCast()", 0);
+	    MCast_warn(-1, errno, "%s: MYrecvfrom", __func__);
 	    break;
 	}
 	node = lookupIPTable(sin.sin_addr.s_addr);
-	snprintf(errtxt, sizeof(errtxt),
-		 "... receiving MCast ping from %s [%d/%d], state: %s",
-		 inet_ntoa(sin.sin_addr), node, msg.node,
-		 stateStringMCast(msg.state));
-	errlog(errtxt, 11);
+	MCast_log(MCAST_LOG_RCVD,
+		  "%s: received MCast ping from %s [%d/%d], state: %s\n",
+		  __func__, inet_ntoa(sin.sin_addr), node, msg.node,
+		  stateStringMCast(msg.state));
 
 	if (node != msg.node) { /* Got ping from a different cluster */
-	    snprintf(errtxt, sizeof(errtxt),
-		     "Getting MCast ping from unknown node [%d %s(%d)]",
-		     msg.node, inet_ntoa(sin.sin_addr), node);
-	    errlog(errtxt, 0);
-
+	    MCast_log(-1, "%s: MCast ping from unknown node [%d %s(%d)]\n",
+		      __func__, msg.node, inet_ntoa(sin.sin_addr), node);
 	    continue;
 	}
 
 	switch (msg.type) {
 	case T_CLOSE:
 	    /* Got a shutdown msg */
-	    snprintf(errtxt, sizeof(errtxt),
-		     "Got T_CLOSE MCast ping from %s [%d]",
-		     inet_ntoa(sin.sin_addr), node);
-	    errlog(errtxt, 6);
+	    MCast_log(MCAST_LOG_CONN, "%s: got T_CLOSE from %s [%d]\n",
+		      __func__, inet_ntoa(sin.sin_addr), node);
 	    closeConnectionMCast(node);
 	    break;
 	default:
@@ -695,10 +669,9 @@ static int handleMCast(int fd)
 	    if (conntable[node].state != UP) {
 		/* got PING from unconnected node */
 		conntable[node].state = UP;
-		snprintf(errtxt, sizeof(errtxt),
-			 "Got MCast ping from %s [%d] which is NOT ACTIVE",
-			 inet_ntoa(sin.sin_addr), node);
-		errlog(errtxt, 6);
+		MCast_log(MCAST_LOG_CONN,
+			  "%s: got ping from %s [%d] which is NOT ACTIVE\n",
+			  __func__, inet_ntoa(sin.sin_addr), node);
 		if (MCastCallback) { /* inform daemon */
 		    MCastCallback(MCAST_NEW_CONNECTION, &node);
 		}
@@ -714,21 +687,17 @@ static int handleMCast(int fd)
 int initMCast(int nodes, int mcastgroup, unsigned short portno, int usesyslog,
 	      unsigned int hosts[], int id, void (*callback)(int, void*))
 {
-    initErrLog("MCast", usesyslog);
+    logger = logger_init("MCast", usesyslog);
 
     if (nodes<=0) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "initMCast(): nodes = %d out of range.", nodes);
-	errlog(errtxt, 0);
+	MCast_log(-1, "%s: nodes = %d out of range\n", __func__, nodes);
 	exit(1);
     }
     nrOfNodes = nodes;
     MCastCallback = callback;
 
     if (id<0 || id>=nodes) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "initMCast(): id = %d out of range.", id);
-	errlog(errtxt, 0);
+	MCast_log(-1, "%s: id = %d out of range\n", __func__, id);
 	exit(1);
     }
     myID = id;
@@ -741,10 +710,9 @@ int initMCast(int nodes, int mcastgroup, unsigned short portno, int usesyslog,
 	portno = DEFAULT_MCAST_PORT;
     }
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "initMCast() for %d nodes, using %d as MCast group on port %d",
-	     nrOfNodes, mcastgroup, portno);
-    errlog(errtxt, 2);
+    MCast_log(MCAST_LOG_INIT,
+	      "%s: %d nodes, using %d as MCast group on port %d\n",
+	      __func__, nrOfNodes, mcastgroup, portno);
 
     initConntable(nrOfNodes, hosts);
 
@@ -775,21 +743,19 @@ void exitMCast(void)
 void declareNodeDeadMCast(int node)
 {
     if (0 <= node && node < nrOfNodes && conntable[node].state != DOWN) {
-	snprintf(errtxt, sizeof(errtxt), "Connection to node %d declared dead",
-		 node);
-	errlog(errtxt, 0);
+	MCast_log(-1, "%s(%d)\n", __func__, node);
 	conntable[node].state = DOWN;
     }
 }
 
-int getDebugLevelMCast(void)
+int32_t getDebugMaskMCast(void)
 {
-    return getErrLogLevel();
+    return logger_getMask(logger);
 }
 
-void setDebugLevelMCast(int level)
+void setDebugMaskMCast(int32_t mask)
 {
-    setErrLogLevel(level);
+    logger_setMask(logger, mask);
 }
 
 int getDeadLimitMCast(void)

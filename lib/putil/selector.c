@@ -18,7 +18,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <sys/select.h>
 
 #include "timer.h"
-#include "errlog.h"
+#include "logging.h"
 
 #include "selector.h"
 
@@ -67,26 +67,27 @@ typedef struct Selector_t_ {
     struct Selector_t_ *next;      /**< Pointer to next selector. */
 } Selector_t;
 
+/** The logger used by the Selector facility */
+static logger_t *logger = NULL;
+
 /** List of all registered selectors. */
 static Selector_t *selectorList = NULL;
 
-static char errtxt[256];           /**< String to hold error messages. */
-
-int Selector_getDebugLevel(void)
+int32_t Selector_getDebugMask(void)
 {
-    return getErrLogLevel();
+    return logger_getMask(logger);
 }
 
-void Selector_setDebugLevel(int level)
+void Selector_setDebugMask(int32_t mask)
 {
-    setErrLogLevel(level);
+    logger_setMask(logger, mask);
 }
 
 void Selector_init(int syslog)
 {
     Selector_t *selector;
 
-    initErrLog("Selector", syslog);
+    logger = logger_init("Selector", syslog);
 
     /* Free all old selectors, if any */
     selector = selectorList;
@@ -117,17 +118,15 @@ int Selector_register(int fd, int (*selectHandler)(int))
     }
 
     if (selector) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: found selector for fd=%d.", __func__, fd);
-	errlog(errtxt, 0);
+	logger_print(logger, -1,
+		     "%s: found selector for fd %d\n", __func__, fd);
 	return -1;
     }
 
     /* Create new selector */
     selector = malloc(sizeof(Selector_t));
     if (!selector) {
-	snprintf(errtxt, sizeof(errtxt), "%s: No memory.", __func__);
-	errlog(errtxt, 0);
+	logger_print(logger, -1, "%s: No memory\n", __func__);
 	return -1;
     }
 
@@ -154,9 +153,8 @@ int Selector_remove(int fd)
     }
 
     if (!selector) {
-	snprintf(errtxt, sizeof(errtxt), "%s: no selector found for fd=%d.",
-		 __func__, fd);
-	errlog(errtxt, 0);
+	logger_print(logger, -1,
+		     "%s: no selector found for fd %d\n", __func__, fd);
 	return -1;
     }
 
@@ -238,10 +236,8 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 		timersub(&end, &delta, &start);       /* assure next round */
 		continue;
 	    } else {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: select returns %d, eno=%d[%s]",
-			 __func__, retval, errno, strerror(errno));
-		errlog(errtxt, 0);
+		logger_warn(logger, -1, errno,
+			    "%s: select returns %d\n", __func__, retval);
 		break;
 	    }
 	}
@@ -262,10 +258,9 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 		case 1:
 		    break;
 		default:
-		    snprintf(errtxt, sizeof(errtxt),
-			     "%s: selectHander for fd=%d returns %d",
-			     __func__, selector->fd, ret);
-		    errlog(errtxt, 0);
+		    logger_print(logger, -1,
+				 "%s: selectHander for fd=%d returns %d\n",
+				 __func__, selector->fd, ret);
 		}
 	    }
 	    selector = selector->next;

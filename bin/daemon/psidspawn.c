@@ -34,8 +34,6 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #include "psidspawn.h"
 
-static char errtxt[256]; /**< General string to create error messages */
-
 /**
  * @brief Get error string from errno.
  *
@@ -306,9 +304,7 @@ static int execForwarder(PStask_t *task, int daemonfd, int controlchannel)
 
     /* create a control channel in order to observe the client */
     if (pipe(clientfds)<0) {
-	snprintf(errtxt, sizeof(errtxt), "%s: pipe(): %s\n", __func__,
-		 get_strerror(errno));
-	PSID_errlog(errtxt, 0);
+	PSID_warn(-1, errno, "%s: pipe()", __func__);
     }
     fcntl(clientfds[1], F_SETFD, FD_CLOEXEC);
 
@@ -319,20 +315,13 @@ static int execForwarder(PStask_t *task, int daemonfd, int controlchannel)
     if (task->aretty & (1<<STDOUT_FILENO)) {
 	if (openpty(&stdoutfds[0], &stdoutfds[1],
 		    NULL, &task->termios, &task->winsize)) {
-	    snprintf(errtxt, sizeof(errtxt), "%s: openpty(stdout): [%d] %s\n",
-		     __func__, errno, get_strerror(errno));
-	    PSID_errlog(errtxt, 0);
-
+	    PSID_warn(-1, errno, "%s: openpty(stdout)", __func__);
 	    write(controlchannel, &errno, sizeof(errno));
 	    exit(1);
 	}
     } else {
 	if (socketpair(PF_UNIX, SOCK_STREAM, 0, stdoutfds)) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: socketpair(stdout): [%d] %s\n", __func__,
-		     errno, get_strerror(errno));
-	    PSID_errlog(errtxt, 0);
-
+	    PSID_warn(-1, errno, "%s: socketpair(stdout)", __func__);
 	    write(controlchannel, &errno, sizeof(errno));
 	    exit(1);
 	}
@@ -342,20 +331,13 @@ static int execForwarder(PStask_t *task, int daemonfd, int controlchannel)
     if (task->aretty & (1<<STDERR_FILENO)) {
 	if (openpty(&stderrfds[0], &stderrfds[1],
 		    NULL, &task->termios, &task->winsize)) {
-	    snprintf(errtxt, sizeof(errtxt), "%s: openpty(stderr): [%d] %s\n",
-		     __func__, errno, get_strerror(errno));
-	    PSID_errlog(errtxt, 0);
-
+	    PSID_warn(-1, errno, "%s: openpty(stderr)", __func__);
 	    write(controlchannel, &errno, sizeof(errno));
 	    exit(1);
 	}
     } else {
 	if (socketpair(PF_UNIX, SOCK_STREAM, 0, stderrfds)) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: socketpair(stderr): [%d] %s\n", __func__,
-		     errno, get_strerror(errno));
-	    PSID_errlog(errtxt, 0);
-
+	    PSID_warn(-1, errno, "%s: socketpair(stderr)", __func__);
 	    write(controlchannel, &errno, sizeof(errno));
 	    exit(1);
 	}
@@ -375,11 +357,7 @@ static int execForwarder(PStask_t *task, int daemonfd, int controlchannel)
 	} else {
 	    if (openpty(&stdinfds[0], &stdinfds[1],
 			NULL, &task->termios, &task->winsize)) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: openpty(stdin): [%d] %s\n", __func__,
-			 errno, get_strerror(errno));
-		PSID_errlog(errtxt, 0);
-
+		PSID_warn(-1, errno, "%s: openpty(stdin)", __func__);
 		write(controlchannel, &errno, sizeof(errno));
 		exit(1);
 	    }
@@ -393,11 +371,7 @@ static int execForwarder(PStask_t *task, int daemonfd, int controlchannel)
 	    stdinfds[1] = stderrfds[1];
 	} else {
 	    if (socketpair(PF_UNIX, SOCK_STREAM, 0, stdinfds)) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: socketpair(stdin): [%d] %s\n", __func__,
-			 errno, get_strerror(errno));
-		PSID_errlog(errtxt, 0);
-
+		PSID_warn(-1, errno, "%s: socketpair(stdin)", __func__);
 		write(controlchannel, &errno, sizeof(errno));
 		exit(1);
 	    }
@@ -467,20 +441,13 @@ static int execForwarder(PStask_t *task, int daemonfd, int controlchannel)
     /* check if fork() was successful */
     if (pid == -1) {
 	close(clientfds[0]);
-	snprintf(errtxt, sizeof(errtxt), "%s: fork: %s\n", __func__,
-		 get_strerror(errno));
-	PSID_errlog(errtxt, 0);
-
+	PSID_warn(-1, errno, "%s: fork()", __func__);
 	write(controlchannel, &ret, sizeof(ret));
 	exit(1);
     }
 
-    /*
-     * check for a sign from the client
-     */
-    snprintf(errtxt, sizeof(errtxt), "%s: waiting for my child (%d)\n",
-	     __func__, pid);
-    PSID_errlog(errtxt, 10);
+    /* check for a sign from the client */
+    PSID_log(PSID_LOG_SPAWN, "%s: waiting for my child (%d)\n", __func__, pid);
 
  restart:
     if ((ret=read(clientfds[0], &buf, sizeof(buf))) < 0) {
@@ -493,8 +460,7 @@ static int execForwarder(PStask_t *task, int daemonfd, int controlchannel)
 	/*
 	 * the control channel was closed in case of a successful execv
 	 */
-	snprintf(errtxt, sizeof(errtxt), "%s: child exec() ok\n", __func__);
-	PSID_errlog(errtxt, 10);
+	PSID_log(PSID_LOG_SPAWN, "%s: child exec(): ok\n", __func__);
 
 	/* Tell the parent about the client's pid */
 	buf = 0; /* errno will never be 0, this marks the following pid */
@@ -505,12 +471,10 @@ static int execForwarder(PStask_t *task, int daemonfd, int controlchannel)
 	/*
 	 * the child sent us a sign that the execv wasn't successful
 	 */
-	snprintf(errtxt, sizeof(errtxt), "%s: child exec(\"%s\", argc=%d) failed: %s\n",
-		 __func__,
-		 task->argv ? (task->argv[0] ? task->argv[0] : "argv[0]=<NULL>") : "<argv=NULL>",
-		 task->argc,
-		 get_strerror(errno));
-	PSID_errlog(errtxt, 0);
+	char** av= task->argv;
+	PSID_warn(-1, errno, "%s: child exec(\"%s\", argc=%d)", __func__,
+		  av ? (av[0] ? av[0] : "argv[0]=<NULL>") : "<argv=NULL>",
+		  task->argc);
 
 	/* Tell the parent about this */
 	buf=errno;
@@ -545,27 +509,22 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
     int buf;              /* buffer for communication with forwarder */
     int i, ret;
 
-    if (PSID_getDebugLevel() >= 10) {
-	snprintf(errtxt, sizeof(errtxt), "%s: task=", __func__);
-	PStask_snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
-			client);
-	PSID_errlog(errtxt, 10);
+    if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
+	char tasktxt[128];
+	PStask_snprintf(tasktxt, sizeof(tasktxt), client);
+	PSID_log(PSID_LOG_TASK, "%s: task=%s\n", __func__, tasktxt);
     }
 
     /* create a control channel in order to observe the forwarder */
     if (pipe(forwarderfds)<0) {
-	snprintf(errtxt, sizeof(errtxt), "%s: pipe(): %s\n",
-		 __func__, get_strerror(errno));
-	PSID_errlog(errtxt, 0);
+	PSID_warn(-1, errno, "%s: pipe()", __func__);
 	return errno;
     }
     fcntl(forwarderfds[1], F_SETFD, FD_CLOEXEC);
 
     /* create a socketpair for communication between daemon and forwarder */
     if (socketpair(PF_UNIX, SOCK_STREAM, 0, socketfds)<0) {
-	snprintf(errtxt, sizeof(errtxt), "%s: socketpair(): %s\n",
-		 __func__, get_strerror(errno));
-	PSID_errlog(errtxt, 0);
+	PSID_warn(-1, errno, "%s: socketpair()", __func__);
 	close(forwarderfds[0]);
 	close(forwarderfds[1]);
 	return errno;
@@ -611,21 +570,15 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
 	close(forwarderfds[0]);
 	close(socketfds[0]);
 
-	snprintf(errtxt, sizeof(errtxt), "%s: fork(): %s\n",
-		 __func__, get_strerror(ret));
-	PSID_errlog(errtxt, 0);
+	PSID_warn(-1, errno, "%s: fork()", __func__);
 
 	return ret;
     }
 
     forwarder->tid = PSC_getTID(-1, pid);
     forwarder->fd = socketfds[0];
-    /*
-     * check for a sign of the forwarder
-     */
-    snprintf(errtxt, sizeof(errtxt), "%s: waiting for my child (%d)\n",
-	     __func__, pid);
-    PSID_errlog(errtxt, 10);
+    /* check for a sign of the forwarder */
+    PSID_log(PSID_LOG_SPAWN, "%s: waiting for my child (%d)\n", __func__, pid);
 
     client->forwardertid = forwarder->tid;
     client->tid = 0;
@@ -643,18 +596,13 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
 	     * the control channel was closed in case of a successful execv
 	     * after telling the client pid.
 	     */
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: child %s spawned successfully\n",
+	    PSID_log(PSID_LOG_SPAWN, "%s: child %s spawned successfully\n",
 		     __func__, PSC_printTID(client->tid));
-	    PSID_errlog(errtxt, 10);
 	} else {
 	    /*
 	     * the control channel was closed without telling the client's pid.
 	     */
-	    snprintf(errtxt, sizeof(errtxt), "%s: haven't got child's pid\n",
-		     __func__);
-	    PSID_errlog(errtxt, 0);
-
+	    PSID_log(-1, "%s: haven't got child's pid\n", __func__);
 	    ret = EBADMSG;
 	}
     } else {
@@ -672,10 +620,7 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
 		/*
 		 * the control channel was closed during message.
 		 */
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: pipe closed unexpectedly\n", __func__);
-		PSID_errlog(errtxt, 0);
-
+		PSID_log(-1, "%s: pipe closed unexpectedly\n", __func__);
 		ret = EBADMSG;
 	    } else {
 
@@ -688,10 +633,7 @@ int PSID_spawnTask(PStask_t *forwarder, PStask_t *client)
 	     * the child sent us a sign that the execv wasn't successful
 	     */
 	    ret = buf;
-	    snprintf(errtxt, sizeof(errtxt), "%s: child exec() failed: %s\n",
-		     __func__, get_strerror(buf));
-	    PSID_errlog(errtxt, 0);
-	    
+	    PSID_warn(-1, buf, "%s: child exec()", __func__);
 	}
     }
 

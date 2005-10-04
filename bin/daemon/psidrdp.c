@@ -34,16 +34,13 @@ int RDPSocket = -1;
  */
 static msgbuf_t **node_bufs;
 
-static char errtxt[256]; /**< General string to create error messages */
-
 void initRDPMsgs(void)
 {
     int i;
 
     node_bufs = malloc(sizeof(msgbuf_t) * PSC_getNrOfNodes());
     if (!node_bufs) {
-	snprintf(errtxt, sizeof(errtxt), "%s: no memory", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: no memory\n", __func__);
 	exit(0);
     }
 

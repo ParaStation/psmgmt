@@ -33,7 +33,7 @@ extern "C" {
  * directly stored into the PSnodes-database and further databases.
  */
 typedef struct {
-    char *instDir;       /**< PS installation directory.
+    char* instDir;       /**< PS installation directory.
 			    Result of 'InstallDir'. Default is NULL. */
     int selectTime;      /**< Time spent within psid's central select().
 			    Result of 'SelectTime'. Default is 2. */
@@ -47,8 +47,8 @@ typedef struct {
 			    Result of 'MCastGroup'. Default is 237. */
     int MCastPort;       /**< The UDP port to use for MCast messages.
 			    Result of 'MCastPort'. Default is 1889. */
-    int logLevel;        /**< The logging level (verbosity) to use.
-			    Result of 'LogLevel'. Default is 0. */
+    int logMask;         /**< The logging mask (verbosity) to use.
+			    Result of 'LogMask'. Default is 0. */
     int logDest;         /**< The destination of all information to put out.
 			    Result of 'LogDestination'. Default is
 			    LOG_DAEMON. */
@@ -89,7 +89,7 @@ typedef struct {
  *
  * @see syslog(3)
  */
-config_t *parseConfig(int usesyslog, int loglevel, char *configfile);
+config_t* parseConfig(int usesyslog, int loglevel, char* configfile);
 
 #ifdef __cplusplus
 }/* extern "C" */

@@ -20,7 +20,7 @@ AC_SUBST([LIBCURSES])
 
 case $target_os in
 linux|linux-gnu)
-	CFLAG_WALL="-W -Wall -Wno-unused"
+	CFLAG_WALL="-W -Wall -Wno-unused-parameter"
 	CFLAG_G=-g
 	CFLAG_COMPAT=
 	CPPFLAG_MMD=-MMD

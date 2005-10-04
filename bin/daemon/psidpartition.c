@@ -33,8 +33,6 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #include "psidpartition.h"
 
-static char errtxt[256]; /**< General string to create error messages */
-
 /** The head of the actual list of pending request. Only on master nodes. */
 static PSpart_request_t *pendReq = NULL;
 
@@ -63,9 +61,8 @@ static void enqueueRequest(PSpart_request_t **queue, PSpart_request_t *req)
 {
     PSpart_request_t *r = *queue;
 
-    snprintf(errtxt, sizeof(errtxt), "%s: %p %p %p %s",
-	     __func__, queue, *queue, req, PSC_printTID(req->tid));
-    PSID_errlog(errtxt, 2);
+    PSID_log(PSID_LOG_PART, "%s(%p(%p), %s(%p))\n",
+	     __func__, queue, *queue, PSC_printTID(req->tid), req);
 
     while (r && r->next) r = r->next;
 
@@ -93,8 +90,7 @@ static PSpart_request_t *findRequest(PSpart_request_t *queue, PStask_ID_t tid)
 {
     PSpart_request_t *r = queue;
 
-    snprintf(errtxt, sizeof(errtxt), "%s: %s", __func__, PSC_printTID(tid));
-    PSID_errlog(errtxt, 2);
+    PSID_log(PSID_LOG_PART, "%s(%p,%s)\n", __func__, queue, PSC_printTID(tid));
 
     while (r && r->tid != tid) r = r->next;
 
@@ -122,9 +118,8 @@ static PSpart_request_t *dequeueRequest(PSpart_request_t **queue,
 {
     PSpart_request_t *r = *queue;
 
-    snprintf(errtxt, sizeof(errtxt), "%s: %p %p %p %s",
-	     __func__, queue, *queue, req, PSC_printTID(req->tid));
-    PSID_errlog(errtxt, 2);
+    PSID_log(PSID_LOG_PART, "%s(%p(%p), %s(%p))\n",
+	     __func__, queue, *queue, PSC_printTID(req->tid), req);
 
     if (!req) return NULL;
 
@@ -188,8 +183,7 @@ void initPartHandler(void)
     if (!nodeStat) nodeStat = malloc(PSC_getNrOfNodes() * sizeof(*nodeStat));
 
     if (!nodeStat) {
-	snprintf(errtxt, sizeof(errtxt), "%s: No memory.", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: No memory\n", __func__);
 	return;
     }
 
@@ -202,9 +196,7 @@ void initPartHandler(void)
 	    .taskReqPending = 0 };
 	if (PSnodes_isUp(node)) {
 	    if (send_GETTASKS(node)<0) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: send_GETTASKS(%d) failed.", __func__, node);
-		PSID_errlog(errtxt, 0);
+		PSID_warn(-1, errno, "%s: send_GETTASKS(%d)", __func__, node);
 	    }
 	}
     }
@@ -236,15 +228,12 @@ static void registerReq(PSpart_request_t *req)
 {
     unsigned int i;
 
-    snprintf(errtxt, sizeof(errtxt), "%s: %s",
-	     __func__, PSC_printTID(req->tid));
-    PSID_errlog(errtxt, 2);
+    PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(req->tid));
 
     if (!req->size || !req->nodes) return;
 
     if (!nodeStat) {
-	snprintf(errtxt, sizeof(errtxt), "%s: No status array.", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: No status array\n", __func__);
 	return;
     }
     for (i=0; i<req->size; i++) {
@@ -268,15 +257,12 @@ static void deregisterReq(PSpart_request_t *req)
 {
     unsigned int i;
 
-    snprintf(errtxt, sizeof(errtxt), "%s: %s",
-	     __func__, PSC_printTID(req->tid));
-    PSID_errlog(errtxt, 2);
+    PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(req->tid));
 
     if (!req->size || !req->nodes) return;
 
     if (!nodeStat) {
-	snprintf(errtxt, sizeof(errtxt), "%s: No status array.", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: No status array\n", __func__);
 	return;
     }
     for (i=0; i<req->size; i++) {
@@ -305,15 +291,12 @@ static void jobFinished(PSpart_request_t *req)
 {
     if (!req) return;
 
-    snprintf(errtxt, sizeof(errtxt), "%s: tid %s",
-	     __func__, PSC_printTID(req->tid));
-    PSID_errlog(errtxt, 2);
+    PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(req->tid));
 
     deregisterReq(req);
     if (!dequeueRequest(&runReq, req)) {
-	snprintf(errtxt, sizeof(errtxt), "%s: Unable to dequeue request %s",
+	PSID_log(-1, "%s: Unable to dequeue request %s\n",
 		 __func__, PSC_printTID(req->tid));
-	PSID_errlog(errtxt, 0);
     }
     PSpart_delReq(req);
 
@@ -324,14 +307,11 @@ static void jobSuspended(PSpart_request_t *req)
 {
     if (!req) return;
 
-    snprintf(errtxt, sizeof(errtxt), "%s: tid %s",
-	     __func__, PSC_printTID(req->tid));
-    PSID_errlog(errtxt, 2);
+    PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(req->tid));
 
     if (!dequeueRequest(&runReq, req)) {
-	snprintf(errtxt, sizeof(errtxt), "%s: Unable to dequeue request %s",
+	PSID_log(-1, "%s: Unable to dequeue request %s\n",
 		 __func__, PSC_printTID(req->tid));
-	PSID_errlog(errtxt, 0);
     }
     if (config->freeOnSuspend) {
 	deregisterReq(req);
@@ -346,14 +326,11 @@ static void jobResumed(PSpart_request_t *req)
 {
     if (!req) return;
 
-    snprintf(errtxt, sizeof(errtxt), "%s: tid %s",
-	     __func__, PSC_printTID(req->tid));
-    PSID_errlog(errtxt, 2);
+    PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(req->tid));
 
     if (!dequeueRequest(&suspReq, req)) {
-	snprintf(errtxt, sizeof(errtxt), "%s: Unable to dequeue request %s",
+	PSID_log(-1, "%s: Unable to dequeue request %s\n",
 		 __func__, PSC_printTID(req->tid));
-	PSID_errlog(errtxt, 0);
     }
     if (req->freed) {
 	registerReq(req);
@@ -421,10 +398,8 @@ static void cleanupReqQueues(void)
 	PSpart_request_t *next = req->next;
 	if (req->deleted) {
 	    if (!dequeueRequest(&pendReq, req)) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: Unable to dequeue request %s",
+		PSID_log(-1, "%s: Unable to dequeue request %s\n",
 			 __func__, PSC_printTID(req->tid));
-		PSID_errlog(errtxt, 0);
 	    }
 	    PSpart_delReq(req);
 	}
@@ -454,15 +429,13 @@ void msg_TASKDEAD(DDMsg_t *msg)
     PSpart_request_t *req = findRequest(runReq, msg->sender);
 
     if (!nodeStat) {
-	snprintf(errtxt, sizeof(errtxt), "%s: not master", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: not master\n", __func__);
 	return;
     }
 
     if (!req) {
-	snprintf(errtxt, sizeof(errtxt), "%s: request %s not found",
+	PSID_log(-1, "%s: request %s not found\n",
 		 __func__, PSC_printTID(msg->sender));
-	PSID_errlog(errtxt, 0);
 	return;
     }
 
@@ -490,15 +463,13 @@ void msg_TASKSUSPEND(DDMsg_t *msg)
     PSpart_request_t *req = findRequest(runReq, msg->sender);
 
     if (!nodeStat) {
-	snprintf(errtxt, sizeof(errtxt), "%s: not master", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: not master\n", __func__);
 	return;
     }
 
     if (!req) {
-	snprintf(errtxt, sizeof(errtxt), "%s: request %s not found",
+	PSID_log(-1, "%s: request %s not found\n",
 		 __func__, PSC_printTID(msg->sender));
-	PSID_errlog(errtxt, 0);
 	return;
     }
 
@@ -526,15 +497,13 @@ void msg_TASKRESUME(DDMsg_t *msg)
     PSpart_request_t *req = findRequest(suspReq, msg->sender);
 
     if (!nodeStat) {
-	snprintf(errtxt, sizeof(errtxt), "%s: not master", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: not master\n", __func__);
 	return;
     }
 
     if (!req) {
-	snprintf(errtxt, sizeof(errtxt), "%s: request %s not found",
+	PSID_log(-1, "%s: request %s not found\n",
 		 __func__, PSC_printTID(msg->sender));
-	PSID_errlog(errtxt, 0);
 	return;
     }
 
@@ -562,22 +531,19 @@ void msg_CANCELPART(DDBufferMsg_t *inmsg)
     PSpart_request_t *req = findRequest(pendReq, inmsg->header.sender);
 
     if (!nodeStat) {
-	snprintf(errtxt, sizeof(errtxt), "%s: not master", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: not master\n", __func__);
 	return;
     }
 
     if (!req) {
-	snprintf(errtxt, sizeof(errtxt), "%s: request %s not found",
+	PSID_log(-1, "%s: request %s not found\n",
 		 __func__, PSC_printTID(inmsg->header.sender));
-	PSID_errlog(errtxt, 0);
 	return;
     }
 
     if (!dequeueRequest(&pendReq, req)) {
-	snprintf(errtxt, sizeof(errtxt), "%s: Unable to dequeue request %s",
+	PSID_log(-1, "%s: Unable to dequeue request %s\n",
 		 __func__, PSC_printTID(req->tid));
-	PSID_errlog(errtxt, 0);
     }
     PSpart_delReq(req);
 }
@@ -585,8 +551,7 @@ void msg_CANCELPART(DDBufferMsg_t *inmsg)
 unsigned short getAssignedJobs(PSnodes_ID_t node)
 {
     if (!nodeStat) {
-	snprintf(errtxt, sizeof(errtxt), "%s: not master", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: not master\n", __func__);
 	return 0;
     }
 
@@ -596,8 +561,7 @@ unsigned short getAssignedJobs(PSnodes_ID_t node)
 int getIsExclusive(PSnodes_ID_t node)
 {
     if (!nodeStat) {
-	snprintf(errtxt, sizeof(errtxt), "%s: not master", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: not master\n", __func__);
 	return 0;
     }
 
@@ -639,17 +603,13 @@ int getIsExclusive(PSnodes_ID_t node)
 static int nodeOK(PSnodes_ID_t node, PSpart_request_t *req, int procs)
 {
     if (node >= PSC_getNrOfNodes()) {
-	snprintf(errtxt, sizeof(errtxt), "%s: node %d out of range.",
-		 __func__, node);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: node %d out of range\n", __func__, node);
 	return 0;
     }
 
     if (! PSnodes_isUp(node)) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: node %d not UP, excluding from partition.",
+	PSID_log(PSID_LOG_PART, "%s: node %d not UP, exclude from partition\n",
 		 __func__, node);
-	PSID_errlog(errtxt, 1);
 	return 0;
     }
 
@@ -710,8 +670,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
     list.entry = malloc(request->num * sizeof(*list.entry));
 
     if (!list.entry) {
-	snprintf(errtxt, sizeof(errtxt), "%s: No memory", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: No memory\n", __func__);
 	errno = ENOMEM;
 	return NULL;
     }
@@ -758,9 +717,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 	    case PART_SORT_NONE:
 		break;
 	    default:
-		snprintf(errtxt, sizeof(errtxt), "%s: Unknown criterium",
-			 __func__);
-		PSID_errlog(errtxt, 0);
+		PSID_log(-1, "%s: Unknown criterium\n", __func__);
 		free(list.entry);
 		errno = EINVAL;
 		return NULL;
@@ -770,9 +727,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
     }
 
     if (totCPUs < request->size && !(request->options & PART_OPT_OVERBOOK)) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: Unable to ever get sufficient resources", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: Unable to ever get sufficient resources\n",__func__);
 	free(list.entry);
 	errno = ENOSPC;
 	return NULL;
@@ -869,13 +824,11 @@ static unsigned int getNormalPart(PSpart_request_t *request,
     short *candSlots = calloc(sizeof(short), PSC_getNrOfNodes());
 
     if (!candSlots) {
-	snprintf(errtxt, sizeof(errtxt), "%s: No memory", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: No memory\n", __func__);
 	return 0;
     }
 
-    snprintf(errtxt, sizeof(errtxt), "%s", __func__);
-    PSID_errlog(errtxt, 10);
+    PSID_log(PSID_LOG_PART, "%s\n", __func__);
 
     /* Determine number of available slots */
     for (cand = 0; cand < candidates->size; cand++) {
@@ -894,8 +847,7 @@ static unsigned int getNormalPart(PSpart_request_t *request,
     }
 
     if (avail < request->size) {
-	snprintf(errtxt, sizeof(errtxt), "%s: Not enough slots", __func__);
-	PSID_errlog(errtxt, 1);
+	PSID_log(PSID_LOG_PART, "%s: Not enough slots\n", __func__);
 	free(candSlots);
 	return 0;
     }
@@ -1042,13 +994,11 @@ static unsigned int getOverbookPart(PSpart_request_t *request,
     short *candSlots = calloc(sizeof(short), PSC_getNrOfNodes());
 
     if (!candSlots) {
-	snprintf(errtxt, sizeof(errtxt), "%s: No memory", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: No memory\n", __func__);
 	return 0;
     }
 
-    snprintf(errtxt, sizeof(errtxt), "%s", __func__);
-    PSID_errlog(errtxt, 10);
+    PSID_log(PSID_LOG_PART, "%s\n", __func__);
 
     /* Determine number of available slots */
     for (cand = 0; cand < candidates->size && avail < request->size; cand++) {
@@ -1073,8 +1023,7 @@ static unsigned int getOverbookPart(PSpart_request_t *request,
     }
 
     if (availSlots < request->size) {
-	snprintf(errtxt, sizeof(errtxt), "%s: Not enough Slots", __func__);
-	PSID_errlog(errtxt, 1);
+	PSID_log(PSID_LOG_PART, "%s: Not enough slots\n", __func__);
 	free(candSlots);
 	return 0;
     } else if (avail >= request->size) {
@@ -1133,8 +1082,7 @@ static PSnodes_ID_t *createPartition(PSpart_request_t *request,
 
     partition = malloc(request->size * sizeof(*partition));
     if (!partition) {
-	snprintf(errtxt, sizeof(errtxt), "%s: No memory", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: No memory\n", __func__);
 	return NULL;
     }
 
@@ -1145,8 +1093,7 @@ static PSnodes_ID_t *createPartition(PSpart_request_t *request,
     }
 
     if (nodes < request->size) {
-	snprintf(errtxt, sizeof(errtxt), "%s: Not enough nodes", __func__);
-	PSID_errlog(errtxt, 1);
+	PSID_log(PSID_LOG_PART, "%s: Not enough nodes\n", __func__);
 	free(partition);
 
 	return NULL;
@@ -1183,8 +1130,7 @@ static int sendNodelist(PSnodes_ID_t *nodes, int num, DDBufferMsg_t *msg)
     int offset = 0;
 
     if (!nodes) {
-	snprintf(errtxt, sizeof(errtxt), "%s: No nodes given", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: No nodes given\n", __func__);
 	return -1;
     }
 
@@ -1201,9 +1147,7 @@ static int sendNodelist(PSnodes_ID_t *nodes, int num, DDBufferMsg_t *msg)
 	msg->header.len += chunk * sizeof(*nodes);
 	offset += chunk;
 	if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: sendMsg(): errno %d", __func__, errno);
-	    PSID_errlog(errtxt, 0);
+	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
 	    return -1;
 	}
     }
@@ -1247,17 +1191,13 @@ static int sendPartition(PSnodes_ID_t *part, PSpart_request_t *req)
     msg.header.len += sizeof(req->options);
 
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: sendMsg(): errno %d", __func__, errno);
-	PSID_errlog(errtxt, 0);
+	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
 	return 0;
     }
 
     msg.header.type = PSP_DD_PROVIDEPARTNL;
     if (sendNodelist(part, req->size, &msg) < 0) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: sendNodelist(): errno %d", __func__, errno);
-	PSID_errlog(errtxt, 0);
+	PSID_warn(-1, errno, "%s: sendNodelist()", __func__);
 	return 0;
     }
 
@@ -1297,16 +1237,14 @@ static int getPartition(PSpart_request_t *request)
     sortlist_t *candidates = NULL; 
     PSnodes_ID_t *partition = NULL;
 
-    snprintf(errtxt, sizeof(errtxt), "%s([%s], %d)",
+    PSID_log(PSID_LOG_PART, "%s([%s], %d)\n",
 	     __func__, HW_printType(request->hwType), request->size);
-    PSID_errlog(errtxt, 10);
 
     if (!request->nodes) {
 	PSnodes_ID_t i;
 	request->nodes = malloc(PSC_getNrOfNodes() * sizeof(*request->nodes));
 	if (!request->nodes) {
-	    snprintf(errtxt, sizeof(errtxt), "%s: No memory", __func__);
-	    PSID_errlog(errtxt, 0);
+	    PSID_log(-1, "%s: No memory\n", __func__);
 	    errno = ENOMEM;
 	    goto error;
 	}
@@ -1319,8 +1257,7 @@ static int getPartition(PSpart_request_t *request)
     if (!candidates) goto error;
 
     if (!candidates->size) {
-	snprintf(errtxt, sizeof(errtxt), "%s: No candidates", __func__);
-	PSID_errlog(errtxt, 1);
+	PSID_log(PSID_LOG_PART, "%s: No candidates\n", __func__);
 	errno = EAGAIN;
 	goto error;
     }
@@ -1329,16 +1266,14 @@ static int getPartition(PSpart_request_t *request)
 
     partition = createPartition(request, candidates);
     if (!partition) {
-	snprintf(errtxt, sizeof(errtxt), "%s: No partition", __func__);
-	PSID_errlog(errtxt, 1);
+	PSID_log(PSID_LOG_PART, "%s: No partition\n", __func__);
 	errno = EAGAIN;
 	goto error;
     }
 
     if (!dequeueRequest(&pendReq, request)) {
-	snprintf(errtxt, sizeof(errtxt), "%s: Unable to dequeue request %s",
+	PSID_log(-1, "%s: Unable to dequeue request %s\n",
 		 __func__, PSC_printTID(request->tid));
-	PSID_errlog(errtxt, 0);
 	errno = EBUSY;
 	goto error;
     }
@@ -1370,20 +1305,17 @@ void handlePartRequests(void)
 
     while (req) {
 	PSpart_request_t *next = req->next;
+	char partStr[256];
 
-	snprintf(errtxt, sizeof(errtxt), "%s: ", __func__);
-	PSpart_snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
-			req);
-	PSID_errlog(errtxt, 2);
+	PSpart_snprintf(partStr, sizeof(partStr), req);
+	PSID_log(PSID_LOG_PART, "%s: %s\n", __func__, partStr);
 
 	if ((req->numGot == req->num) && !getPartition(req)) {
 	    DDTypedMsg_t msg;
 	    if ((req->options & PART_OPT_WAIT) && (errno != ENOSPC)) break;
 	    if (!dequeueRequest(&pendReq, req)) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: Unable to dequeue request %s",
+		PSID_log(-1, "%s: Unable to dequeue request %s\n",
 			 __func__, PSC_printTID(req->tid));
-		PSID_errlog(errtxt, 0);
 		errno = EBUSY;
 	    }
 	    msg = (DDTypedMsg_t) {
@@ -1406,16 +1338,14 @@ void msg_CREATEPART(DDBufferMsg_t *inmsg)
     PStask_t *task = PStasklist_find(managedTasks, inmsg->header.sender);
 
     if (!task || (task && task->ptid)) {
-	snprintf(errtxt, sizeof(errtxt), "%s: task %s not root process.",
+	PSID_log(-1, "%s: task %s not root process\n",
 		 __func__, PSC_printTID(inmsg->header.sender));
-	PSID_errlog(errtxt, 0);
 	errno = EACCES;
 	goto error;
     }
     if (task->request) {
-	snprintf(errtxt, sizeof(errtxt), "%s: pending request on task %s.",
+	PSID_log(-1, "%s: pending request on task %s\n",
 		 __func__, PSC_printTID(inmsg->header.sender));
-	PSID_errlog(errtxt, 0);
 	errno = EACCES;
 	goto error;
     }
@@ -1431,8 +1361,7 @@ void msg_CREATEPART(DDBufferMsg_t *inmsg)
 	task->request->nodes =
 	    malloc(task->request->num * sizeof(*task->request->nodes));
 	if (!task->request->nodes) {
-	    snprintf(errtxt, sizeof(errtxt), "%s: No memory", __func__);
-	    PSID_errlog(errtxt, 0);
+	    PSID_log(-1, "%s: No memory\n", __func__);
 	    errno = ENOMEM;
 	    goto error;
 	}
@@ -1444,9 +1373,7 @@ void msg_CREATEPART(DDBufferMsg_t *inmsg)
     inmsg->header.type = PSP_DD_GETPART;
     inmsg->header.dest = PSC_getTID(getMasterID(), 0);
     if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: sendMsg(): errno %d", __func__, errno);
-	PSID_errlog(errtxt, 0);
+	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
 	goto error;
     }
     return;
@@ -1470,8 +1397,7 @@ void msg_GETPART(DDBufferMsg_t *inmsg)
     if (!knowMaster() || PSC_getMyID() != getMasterID()) return;
 
     if (!req) {
-	snprintf(errtxt, sizeof(errtxt), "%s: No memory", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: No memory\n", __func__);
 	errno = ENOMEM;
 	goto error;
     }
@@ -1481,8 +1407,7 @@ void msg_GETPART(DDBufferMsg_t *inmsg)
     if (req->num) {
 	req->nodes = malloc(req->num * sizeof(*req->nodes));
 	if (!req->nodes) {
-	    snprintf(errtxt, sizeof(errtxt), "%s: No memory", __func__);
-	    PSID_errlog(errtxt, 0);
+	    PSID_log(-1, "%s: No memory\n", __func__);
 	    errno = ENOMEM;
 	    goto error;
 	}
@@ -1548,16 +1473,14 @@ void msg_CREATEPARTNL(DDBufferMsg_t *inmsg)
     PStask_t *task = PStasklist_find(managedTasks, inmsg->header.sender);
 
     if (!task || (task && task->ptid)) {
-	snprintf(errtxt, sizeof(errtxt), "%s: task %s not root process.",
+	PSID_log(-1, "%s: task %s not root process\n",
 		 __func__, PSC_printTID(inmsg->header.sender));
-	PSID_errlog(errtxt, 0);
 	errno = EACCES;
 	goto error;
     }
     if (!task->request) {
-	snprintf(errtxt, sizeof(errtxt), "%s: No pending request on task %s.",
+	PSID_log(-1, "%s: No pending request on task %s\n",
 		 __func__, PSC_printTID(inmsg->header.sender));
-	PSID_errlog(errtxt, 0);
 	errno = EACCES;
 	goto error;
     }
@@ -1569,9 +1492,7 @@ void msg_CREATEPARTNL(DDBufferMsg_t *inmsg)
     inmsg->header.dest = PSC_getTID(getMasterID(), 0);
 
     if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: sendMsg(): errno %d", __func__, errno);
-	PSID_errlog(errtxt, 0);
+	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
 	goto error;
     }
     return;
@@ -1595,9 +1516,8 @@ void msg_GETPARTNL(DDBufferMsg_t *inmsg)
     if (!knowMaster() || PSC_getMyID() != getMasterID()) return;
 
     if (!req) {
-	snprintf(errtxt, sizeof(errtxt), "%s: Unable to find request %s",
+	PSID_log(-1, "%s: Unable to find request %s\n",
 		 __func__, PSC_printTID(inmsg->header.sender));
-	PSID_errlog(errtxt, 0);
 	errno = ECANCELED;
 	goto error;
     }
@@ -1630,9 +1550,8 @@ void msg_PROVIDEPART(DDBufferMsg_t *inmsg)
     char *ptr = inmsg->buf;
 
     if (!task) {
-	snprintf(errtxt, sizeof(errtxt), "%s: Task %s not found", __func__,
+	PSID_log(-1, "%s: Task %s not found\n", __func__,
 		 PSC_printTID(inmsg->header.dest));
-	PSID_errlog(errtxt, 0);
 	send_TASKDEAD(inmsg->header.dest);
 	errno = EINVAL;
 	goto error;
@@ -1646,8 +1565,7 @@ void msg_PROVIDEPART(DDBufferMsg_t *inmsg)
 
     task->partition = malloc(task->partitionSize * sizeof(*task->partition));
     if (!task->partition) {
-	snprintf(errtxt, sizeof(errtxt), "%s: No memory", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: No memory\n", __func__);
 	send_TASKDEAD(inmsg->header.dest);
 	PSpart_delReq(task->request);
 	task->request = NULL;
@@ -1677,17 +1595,15 @@ void msg_PROVIDEPARTNL(DDBufferMsg_t *inmsg)
     int chunk;
 
     if (!task) {
-	snprintf(errtxt, sizeof(errtxt), "%s: Task %s not found", __func__,
+	PSID_log(-1, "%s: Task %s not found\n", __func__,
 		 PSC_printTID(inmsg->header.dest));
-	PSID_errlog(errtxt, 0);
 	send_TASKDEAD(inmsg->header.dest);
 	errno = EINVAL;
 	goto error;
     }
 
     if (!task->partition) {
-	snprintf(errtxt, sizeof(errtxt), "%s: No Partition created", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: No Partition created\n", __func__);
 	send_TASKDEAD(inmsg->header.dest);
 	errno = EBADMSG;
 	goto error;
@@ -1740,46 +1656,37 @@ void msg_GETNODES(DDBufferMsg_t *inmsg)
     }
 
     if (!task) {
-	snprintf(errtxt, sizeof(errtxt), "%s: Task %s not found", __func__,
+	PSID_log(-1, "%s: Task %s not found\n", __func__,
 		 PSC_printTID(inmsg->header.dest));
-	PSID_errlog(errtxt, 0);
 	goto error;
     }
 
     if (task->ptid) {
-	snprintf(errtxt, sizeof(errtxt), "%s: forward to root process %s.",
+	PSID_log(PSID_LOG_PART, "%s: forward to root process %s\n",
 		 __func__, PSC_printTID(task->loggertid));
-	PSID_errlog(errtxt, 1);
 	inmsg->header.type = PSP_DD_GETNODES;
 	inmsg->header.dest = task->loggertid;
 	if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: sendMsg(): errno %d", __func__, errno);
-	    PSID_errlog(errtxt, 0);
+	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
 	    goto error;
 	}
 	return;
     }
 
     if (!task->partitionSize || !task->partition) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: Create partition first", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: Create partition first\n", __func__);
 	goto error;
     }
 
     if (task->nextRank < 0) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: Partition's creation not yet finished", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: Partition's creation not yet finished\n", __func__);
 	goto error;
     }
 
     num = *(unsigned int *)ptr;
     ptr += sizeof(unsigned int);
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, num);
-    PSID_errlog(errtxt, 10);
+    PSID_log(PSID_LOG_PART, "%s(%d)\n", __func__, num);
 
     if (task->nextRank + num <= task->partitionSize) {
 	DDBufferMsg_t msg = (DDBufferMsg_t) {
@@ -1859,9 +1766,8 @@ void msg_GETTASKS(DDBufferMsg_t *inmsg)
 	.buf = { '\0' }};
 
     if (PSC_getID(inmsg->header.sender) != getMasterID()) {
-	snprintf(errtxt, sizeof(errtxt), "%s: wrong master from %s", __func__,
+	PSID_log(-1, "%s: wrong master from %s\n", __func__,
 		 PSC_printTID(inmsg->header.sender));
-	PSID_errlog(errtxt, 0);
 	send_MASTERIS(PSC_getID(inmsg->header.sender));
 	/* Send all tasks anyhow. Maybe I am wrong with the master. */
     }
@@ -1880,9 +1786,7 @@ void msg_GETTASKS(DDBufferMsg_t *inmsg)
 
 	    len = PSpart_encodeReq(msg.buf, sizeof(msg.buf), task->request);
 	    if (len > sizeof(msg.buf)) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: PSpart_encodeReq", __func__);
-		PSID_errlog(errtxt, 0);
+		PSID_log(-1, "%s: PSpart_encodeReq() failed\n", __func__);
 		continue;
 	    }
 	    msg.header.len += len;
@@ -1892,9 +1796,7 @@ void msg_GETTASKS(DDBufferMsg_t *inmsg)
 	    if (task->request->num
 		&& (sendNodelist(task->request->nodes,
 				task->request->num, &msg)<0)) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: sendNodelist(): errno %d", __func__, errno);
-		PSID_errlog(errtxt, 0);
+		PSID_warn(-1, errno, "%s: sendNodelist()", __func__);
 	    }
 
 	} else if (task->partition && task->partitionSize) {
@@ -1920,9 +1822,7 @@ void msg_GETTASKS(DDBufferMsg_t *inmsg)
 
 	    msg.header.type = PSP_DD_PROVIDETASKNL;
 	    if (sendNodelist(task->partition, task->partitionSize, &msg)<0) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: sendNodelist(): errno %d", __func__, errno);
-		PSID_errlog(errtxt, 0);
+		PSID_warn(-1, errno, "%s: sendNodelist()", __func__);
 	    }
 	}
 	task = task->next;
@@ -1943,8 +1843,7 @@ void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
     if (!knowMaster() || PSC_getMyID() != getMasterID()) return;
 
     if (!request) {
-	snprintf(errtxt, sizeof(errtxt), "%s: No memory", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: No memory\n", __func__);
 	return;
     }
 
@@ -1971,8 +1870,7 @@ void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
     if (request->size) {
 	request->nodes = malloc(request->size * sizeof(*request->nodes));
 	if (!request->nodes) {
-	    snprintf(errtxt, sizeof(errtxt), "%s: No memory", __func__);
-	    PSID_errlog(errtxt, 0);
+	    PSID_log(-1, "%s: No memory\n", __func__);
 	    PSpart_delReq(request);
 	    return;
 	}
@@ -1980,9 +1878,8 @@ void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
 	request->num = request->size;
 	enqueueRequest(&pendReq, request);
     } else {
-	snprintf(errtxt, sizeof(errtxt), "%s: Task %s without partition.",
+	PSID_log(-1, "%s: Task %s without partition\n",
 		 __func__, PSC_printTID(request->tid));
-	PSID_errlog(errtxt, 0);
 	PSpart_delReq(request);
     }
 }
@@ -1994,19 +1891,16 @@ void msg_PROVIDETASKNL(DDBufferMsg_t *inmsg)
     if (!knowMaster() || PSC_getMyID() != getMasterID()) return;
 
     if (!req) {
-	snprintf(errtxt, sizeof(errtxt), "%s: Unable to find request %s",
+	PSID_log(-1, "%s: Unable to find request %s\n",
 		 __func__, PSC_printTID(inmsg->header.sender));
-	PSID_errlog(errtxt, 0);
 	return;
     }
     appendToNodelist(inmsg->buf, req);
 
     if (req->numGot == req->num) {
 	if (!dequeueRequest(&pendReq, req)) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: Unable to dequeue request %s",
+	    PSID_log(-1, "%s: Unable to dequeue request %s\n",
 		     __func__, PSC_printTID(req->tid));
-	    PSID_errlog(errtxt, 0);
 	    PSpart_delReq(req);
 	    return;
 	}

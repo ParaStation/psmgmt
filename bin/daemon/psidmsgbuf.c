@@ -27,8 +27,6 @@ static msgbuf_t *msgFreeList;
 
 #define NUM_MESSAGES 1024
 
-static char errtxt[256]; /**< General string to create error messages */
-
 static msgbuf_t *getInitializedList(size_t size)
 {
     msgbuf_t *buf = malloc(sizeof(msgbuf_t) * size);
@@ -52,8 +50,7 @@ void initMsgList(void)
     msgFreeList = getInitializedList(NUM_MESSAGES);
 
     if (!msgFreeList) {
-	snprintf(errtxt, sizeof(errtxt), "%s: no memory", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: no memory\n", __func__);
 	exit(0);
     }
 
@@ -65,14 +62,12 @@ msgbuf_t *getMsg(void)
     msgbuf_t *mp = msgFreeList;
 
     if (!mp) {
-	snprintf(errtxt, sizeof(errtxt), "%s: no more elements", __func__);
-	PSID_errlog(errtxt, 1);
+	PSID_log(PSID_LOG_COMM, "%s: no more elements\n", __func__);
 
 	msgFreeList = getInitializedList(NUM_MESSAGES);
 
 	if (!msgFreeList) {
-	    snprintf(errtxt, sizeof(errtxt), "%s: no memory", __func__);
-	    PSID_errlog(errtxt, 0);
+	    PSID_log(-1, "%s: no memory\n", __func__);
 	    return NULL;
 	}
 

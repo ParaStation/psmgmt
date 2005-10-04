@@ -35,8 +35,6 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 static int daemonSock = -1;
 
-static char errtxt[256];
-
 /**
  * @brief Open socket to daemon.
  *
@@ -51,8 +49,7 @@ static int daemonSocket(void)
     int sock;
     struct sockaddr_un sa;
 
-    snprintf(errtxt, sizeof(errtxt), "%s()", __func__);
-    PSI_errlog(errtxt, 10);
+    PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
 
     sock = socket(PF_UNIX, SOCK_STREAM, 0);
     if (sock <0) {
@@ -97,9 +94,7 @@ static int connectDaemon(PStask_group_t taskGroup)
     int retry_count =0;
     int ret;
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "%s(%s)", __func__, PStask_printGrp(taskGroup));
-    PSI_errlog(errtxt, 10);
+    PSI_log(PSI_LOG_VERB, "%s(%s)\n", __func__, PStask_printGrp(taskGroup));
 
     /*
      * connect to the PSI Daemon service port
@@ -127,11 +122,7 @@ static int connectDaemon(PStask_group_t taskGroup)
 	    usleep(100000);
 	    daemonSock=daemonSocket();
 	} else {
-	    char *errstr = strerror(errno);
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: failed finally: %s",
-		     __func__, errstr ? errstr : "UNKNOWN");
-	    PSI_errlog(errtxt, 0);
+	    PSI_warn(-1, errno, "%s: failed finally", __func__);
 	    return 0;
 	}
     }
@@ -153,26 +144,16 @@ static int connectDaemon(PStask_group_t taskGroup)
     msg.group = taskGroup;
 
     if (PSI_sendMsg(&msg)<0) {
-	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: PSI_sendMsg() failed: %s",
-		 __func__, errstr ? errstr : "UNKNOWN");
-	PSI_errlog(errtxt, 0);
+	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 	return 0;
     }
 
     ret = PSI_recvMsg(&answer);
     if (ret<=0) {
 	if (!ret) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: unexpected message length 0.", __func__);
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1, "%s: unexpected message length 0\n", __func__);
 	} else {
-	    char* errstr = strerror(errno);
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: PSI_recvMsg() failed: %s",
-		     __func__, errstr ? errstr : "UNKNOWN");
-	    PSI_errlog(errtxt, 0);
+	    PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	}
 
 	return 0;
@@ -185,40 +166,29 @@ static int connectDaemon(PStask_group_t taskGroup)
 	switch (type) {
 	case PSP_CONN_ERR_NONE:
 	    if (taskGroup!=TG_RESET) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: Daemon refused connection.", __func__);
-		PSI_errlog(errtxt, 0);
+		PSI_log(-1, "%s: Daemon refused connection\n", __func__);
 	    }
 	    break;
 	case PSP_CONN_ERR_VERSION :
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: Daemon (%u) does not support library version (%u)."
-		     " Pleases relink program.",
-		     __func__, *(uint32_t *) answer.buf, PSprotocolVersion );
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1,
+		    "%s: Daemon (%u) does not support library version (%u)."
+		    " Pleases relink program\n",
+		    __func__, *(uint32_t*) answer.buf, PSprotocolVersion);
 	    break;
 	case PSP_CONN_ERR_NOSPACE:
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: Daemon has no space available.", __func__);
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1, "%s: Daemon has no space available\n", __func__);
 	    break;
 	case PSP_CONN_ERR_UIDLIMIT :
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: Node is limited to user id %d.",
-		     __func__, (int) *(uid_t *) answer.buf);
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1, "%s: Node is limited to user id %d\n",
+		    __func__, (int) *(uid_t*) answer.buf);
 	    break;
 	case PSP_CONN_ERR_GIDLIMIT :
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: Node is limited to group id %d.",
-		     __func__, (int) *(gid_t *) answer.buf);
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1, "%s: Node is limited to group id %d\n",
+		    __func__, (int) *(gid_t*) answer.buf);
 	    break;
 	case PSP_CONN_ERR_PROCLIMIT :
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: Node is limited to %d processes.",
-		     __func__, *(int *) answer.buf);
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1, "%s: Node is limited to %d processes\n",
+		    __func__, *(int*) answer.buf);
 	    break;
 	case PSP_CONN_ERR_STATENOCONNECT:
 	    retry_count++;
@@ -226,20 +196,15 @@ static int connectDaemon(PStask_group_t taskGroup)
 		sleep(1);
 		goto RETRY_CONNECT;
 	    }
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s:  Daemon does not allow new connections", __func__);
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1,
+		    "%s: Daemon does not allow new connections\n", __func__);
 	    break;
 	case PSP_CONN_ERR_LICEND :
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: Daemon's license is expired.", __func__);
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1 , "%s: Daemon's license is expired\n", __func__);
 	    break;
 	default:
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s:  Daemon refused connection with unknown error type",
-		     __func__);
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1,"%s: Daemon refused connection with unknown error %d\n",
+		    __func__, type);
 	    break;
 	}
 	break;
@@ -253,26 +218,20 @@ static int connectDaemon(PStask_group_t taskGroup)
 
 	err = PSI_infoInt(-1, PSP_INFO_NROFNODES, NULL, &nrOfNodes, 0);
 	if (err) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s:  Cannot determine # of nodes", __func__);
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1, "%s:  Cannot determine # of nodes\n", __func__);
 	    break;
 	} else PSC_setNrOfNodes(nrOfNodes);
 
 	err = PSI_infoString(-1, PSP_INFO_INSTDIR, NULL,
 			     instdir, sizeof(instdir), 0);
 	if (err) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s:  Cannot determine instdir", __func__);
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1, "%s:  Cannot determine instdir\n", __func__);
 	    break;
 	} else {
 	    PSC_setInstalldir(instdir);
 	    if (strcmp(instdir, PSC_lookupInstalldir())) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: Installation directory '%s' not correct.",
-			 __func__, instdir);
-		PSI_errlog(errtxt, 0);
+		PSI_log(-1, "%s: Installation directory '%s' not correct\n",
+			__func__, instdir);
 		break;
 	    }
 	}
@@ -281,10 +240,8 @@ static int connectDaemon(PStask_group_t taskGroup)
 	break;
     }
     default :
-	snprintf(errtxt, sizeof(errtxt), "%s: unexpected return code %d (%s).",
-		 __func__, answer.header.type,
-		 PSP_printMsg(answer.header.type));
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: unexpected return code %d (%s)\n", __func__,
+		answer.header.type, PSP_printMsg(answer.header.type));
  	break;
     }
 
@@ -302,20 +259,24 @@ int PSI_initClient(PStask_group_t taskGroup)
     PSI_initLog(0 /* don't use syslog */, NULL /* No special logfile */);
     PSC_initLog(0 /* don't use syslog */, NULL /* No special logfile */);
 
-    envStr = getenv("PSI_DEBUGLEVEL");
+    envStr = getenv("PSI_DEBUGMASK");
+    if (!envStr) envStr = getenv("PSI_DEBUGLEVEL"); /* Backward compat. */
     if (envStr) {
-	int loglevel = atoi(envStr);
+	char *end;
+	int debugmask = strtol(envStr, &end, 0);
+	if (*end) {
+	    PSI_log(-1, "%s: Found trailing string '%s' in debug-mask %x\n",
+		    __func__, end, debugmask);
+	}
 
 	/* Propagate to client */
-	setPSIEnv("PSI_DEBUGLEVEL", envStr, 1);
+	setPSIEnv("PSI_DEBUGMASK", envStr, 1);
 
-	PSI_setDebugLevel(loglevel);
-	PSC_setDebugLevel(loglevel);
+	PSI_setDebugMask(debugmask);
+	PSC_setDebugMask(debugmask);
     }
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%s)", __func__,
-	     PStask_printGrp(taskGroup));
-    PSI_errlog(errtxt, 10);
+    PSI_log(PSI_LOG_VERB, "%s(%s)\n", __func__, PStask_printGrp(taskGroup));
 
     if (daemonSock != -1) {
 	/* Allready connected */
@@ -327,13 +288,8 @@ int PSI_initClient(PStask_group_t taskGroup)
      */
     if (!connectDaemon(taskGroup)) {
 	if (taskGroup!=TG_RESET) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: cannot contact local daemon.", __func__);
-	    if (taskGroup == TG_MONITOR) {
-		PSI_errlog(errtxt, 1);
-	    } else {
-		PSI_errlog(errtxt, 0);
-	    }
+	    PSI_log( (taskGroup == TG_MONITOR) ? PSI_LOG_VERB : -1,
+		     "%s: cannot contact local daemon\n", __func__);
 	}
 	return 0;
     }
@@ -377,8 +333,7 @@ int PSI_initClient(PStask_group_t taskGroup)
 
 int PSI_exitClient(void)
 {
-    snprintf(errtxt, sizeof(errtxt), "%s()", __func__);
-    PSI_errlog(errtxt, 10);
+    PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
 
     if (daemonSock == -1) {
 	return 1;
@@ -393,16 +348,14 @@ int PSI_exitClient(void)
     return 1;
 }
 
-char *PSI_getPsidVersion(void)
+char* PSI_getPsidVersion(void)
 {
     static char vStr[40];
     int err;
 
     err = PSI_infoString(-1, PSP_INFO_DAEMONVER, NULL, vStr, sizeof(vStr), 0);
     if (err) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: Cannot get version string", __func__);
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: Cannot get version string\n", __func__);
 
 	return NULL;
     }
@@ -410,9 +363,9 @@ char *PSI_getPsidVersion(void)
     return vStr;
 }
 
-int PSI_sendMsg(void *amsg)
+int PSI_sendMsg(void* amsg)
 {
-    DDMsg_t *msg = (DDMsg_t *)amsg;
+    DDMsg_t *msg = (DDMsg_t*)amsg;
     int ret = 0;
 
     if (daemonSock == -1) {
@@ -423,15 +376,10 @@ int PSI_sendMsg(void *amsg)
     ret = write(daemonSock, msg, msg->len);
 
     if (ret <= 0) {
-        char* errstr;
-
 	if (!errno) errno = ENOTCONN;
-	errstr = strerror(errno);
 
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: Lost connection to ParaStation daemon: %s",
-		 __func__, errstr ? errstr : "UNKNOWN");
-	PSI_errlog(errtxt, 0);
+	PSI_warn(-1, errno,
+		 "%s: Lost connection to ParaStation daemon", __func__);
 
 	close(daemonSock);
 	daemonSock = -1;
@@ -439,17 +387,15 @@ int PSI_sendMsg(void *amsg)
 	return -1;
     }
 
-    snprintf(errtxt, sizeof(errtxt), "%s() type %s (len=%d) to %s",
-	     __func__, PSP_printMsg(msg->type), msg->len,
-	     PSC_printTID(msg->dest));
-    PSI_errlog(errtxt, 12);
+    PSI_log(PSI_LOG_COMM, "%s: type %s (len=%d) to %s\n", __func__,
+	    PSP_printMsg(msg->type), msg->len, PSC_printTID(msg->dest));
 
     return ret;
 }
 
-int PSI_recvMsg(void *amsg)
+int PSI_recvMsg(void* amsg)
 {
-    DDMsg_t *msg = (DDMsg_t *)amsg;
+    DDMsg_t *msg = (DDMsg_t*)amsg;
     int n;
     int count = 0;
 
@@ -467,23 +413,12 @@ int PSI_recvMsg(void *amsg)
 	if (n>0) {
 	    count+=n;
 	} else {
-	    char* errstr;
-
-	    if (errno) {
-		errstr = strerror(errno);
-	    } else {
-		errstr = strerror(ENOTCONN);
-	    }
-
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s(): Lost connection to ParaStation daemon: %s.",
-		     __func__,  errstr ? errstr : "UNKNOWN");
+	    PSI_warn(-1, errno ? errno : ENOTCONN,
+		     "%s: Lost connection to ParaStation daemon", __func__);
 	    if (!errno) {
-		snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
-			 " Maybe version of daemon and library do not match.");
+		PSI_log(-1, " Maybe daemon/library versions do not match\n");
 		errno = ENOTCONN;
 	    }
-	    PSI_errlog(errtxt, 0);
 
 	    close(daemonSock);
 	    daemonSock = -1;
@@ -491,10 +426,8 @@ int PSI_recvMsg(void *amsg)
     } while (msg->len>count && n>0);
 
     if (count > (int) sizeof(*msg)) {
-	snprintf(errtxt, sizeof(errtxt), "%s() type %s (len=%d) from %s",
-		 __func__, PSP_printMsg(msg->type), msg->len,
-		 PSC_printTID(msg->sender));
-	PSI_errlog(errtxt, 12);
+	PSI_log(PSI_LOG_COMM, "%s: type %s (len=%d) from %s\n", __func__,
+		PSP_printMsg(msg->type), msg->len, PSC_printTID(msg->sender));
     }
 
     if (count==msg->len) {
@@ -510,9 +443,7 @@ int PSI_notifydead(PStask_ID_t tid, int sig)
     DDSignalMsg_t msg;
     int ret;
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%s, %d)", __func__,
-	     PSC_printTID(tid), sig);
-    PSI_errlog(errtxt, 10);
+    PSI_log(PSI_LOG_VERB, "%s(%s, %d)\n", __func__, PSC_printTID(tid), sig);
 
     msg.header.type = PSP_CD_NOTIFYDEAD;
     msg.header.sender = PSC_getMyTID();
@@ -521,36 +452,25 @@ int PSI_notifydead(PStask_ID_t tid, int sig)
     msg.signal = sig;
 
     if (PSI_sendMsg(&msg)<0) {
-	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "%s: PSI_sendMsg() failed: %s",
-		 __func__, errstr ? errstr : "UNKNOWN");
-	PSI_errlog(errtxt, 0);
+	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 	return -1;
     }
 
     ret = PSI_recvMsg(&msg);
     if (ret<0) {
-	char* errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "%s: PSI_recvMsg() failed: %s",
-		 __func__, errstr ? errstr : "UNKNOWN");
-	PSI_errlog(errtxt, 0);
+	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
     } else if (!ret) {
-	snprintf(errtxt, sizeof(errtxt), "%s: PSI_recvMsg() returned 0",
-		 __func__);
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: PSI_recvMsg() returned 0\n", __func__);
 	return -1;
     }
 
     if (msg.header.type != PSP_CD_NOTIFYDEADRES) {
-	snprintf(errtxt, sizeof(errtxt), "%s: wrong message type %d (%s).",
-		 __func__, msg.header.type, PSP_printMsg(msg.header.type));
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: wrong message type %d (%s)\n",
+		__func__, msg.header.type, PSP_printMsg(msg.header.type));
 	return -1;
     } else if (msg.param) {
-	snprintf(errtxt, sizeof(errtxt), "%s: error = %d",
-		 __func__, msg.param);
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: error = %d\n", __func__, msg.param);
 	return -1;
     }
 
@@ -562,8 +482,7 @@ int PSI_release(PStask_ID_t tid)
     DDSignalMsg_t msg;
     int ret;
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%s)", __func__, PSC_printTID(tid));
-    PSI_errlog(errtxt, 10);
+    PSI_log(PSI_LOG_VERB, "%s(%s)\n", __func__, PSC_printTID(tid));
 
     msg.header.type = PSP_CD_RELEASE;
     msg.header.sender = PSC_getMyTID();
@@ -572,36 +491,25 @@ int PSI_release(PStask_ID_t tid)
     msg.signal = -1;
 
     if (PSI_sendMsg(&msg)<0) {
-	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "%s: PSI_sendMsg() failed: %s",
-		 __func__, errstr ? errstr : "UNKNOWN");
-	PSI_errlog(errtxt, 0);
+	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 	return -1;
     }
 
     ret = PSI_recvMsg(&msg);
     if (ret<0) {
-	char* errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "%s: PSI_recvMsg() failed: %s",
-		 __func__, errstr ? errstr : "UNKNOWN");
-	PSI_errlog(errtxt, 0);
+	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
     } else if (!ret) {
-	snprintf(errtxt, sizeof(errtxt), "%s: PSI_recvMsg() returned 0",
-		 __func__);
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: PSI_recvMsg() returned 0\n", __func__);
 	return -1;
     }
 
     if (msg.header.type != PSP_CD_RELEASERES) {
-	snprintf(errtxt, sizeof(errtxt), "%s: wrong message type %d (%s).",
-		 __func__, msg.header.type, PSP_printMsg(msg.header.type));
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: wrong message type %d (%s)\n",
+		__func__, msg.header.type, PSP_printMsg(msg.header.type));
 	return -1;
     } else if (msg.param) {
-	snprintf(errtxt, sizeof(errtxt), "%s: error = %d",
-		 __func__, msg.param);
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: error = %d\n", __func__, msg.param);
 	return -1;
     }
 
@@ -612,8 +520,7 @@ PStask_ID_t PSI_whodied(int sig)
 {
     DDSignalMsg_t msg;
 
-    snprintf(errtxt, sizeof(errtxt), "PSI_whodied(%d)", sig);
-    PSI_errlog(errtxt, 10);
+    PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, sig);
 
     msg.header.type = PSP_CD_WHODIED;
     msg.header.sender = PSC_getMyTID();
@@ -622,18 +529,12 @@ PStask_ID_t PSI_whodied(int sig)
     msg.signal = sig;
 
     if (PSI_sendMsg(&msg)<0) {
-	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "PSI_whodied():"
-		 "PSI_sendMsg() failed: %s", errstr ? errstr : "UNKNOWN");
-	PSI_errlog(errtxt, 0);
+	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 	return -1;
     }
 
     if (PSI_recvMsg(&msg)<0) {
-	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "PSI_whodied():"
-		 "PSI_recvMsg() failed: %s", errstr ? errstr : "UNKNOWN");
-	PSI_errlog(errtxt, 0);
+	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return(-1);
     }
 
@@ -644,9 +545,7 @@ int PSI_sendFinish(PStask_ID_t parenttid)
 {
     DDMsg_t msg;
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%s)", __func__,
-	     PSC_printTID(parenttid));
-    PSI_errlog(errtxt, 10);
+    PSI_log(PSI_LOG_VERB, "%s(%s)\n", __func__, PSC_printTID(parenttid));
 
     msg.type = PSP_CD_SPAWNFINISH;
     msg.sender = PSC_getMyTID();
@@ -654,10 +553,7 @@ int PSI_sendFinish(PStask_ID_t parenttid)
     msg.len = sizeof(msg);
 
     if (PSI_sendMsg(&msg)<0) {
-	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "%s: PSI_sendMsg() failed: %s",
-		 __func__, errstr ? errstr : "UNKNOWN");
-	PSI_errlog(errtxt, 0);
+	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 	return -1;
     }
 
@@ -669,15 +565,11 @@ int PSI_recvFinish(int outstanding)
     DDMsg_t msg;
     int error = 0;
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, outstanding);
-    PSI_errlog(errtxt, 10);
+    PSI_log(PSI_LOG_VERB, "%s(%s)\n", __func__, outstanding);
 
     while (outstanding>0) {
 	if (PSI_recvMsg(&msg)<0) {
-	    char *errstr = strerror(errno);
-	    snprintf(errtxt, sizeof(errtxt), "%s(): PSI_recvMsg() failed: %s",
-		     __func__, errstr ? errstr : "UNKNOWN");
-	    PSI_errlog(errtxt, 0);
+	    PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	    error = 1;
 	    break;
 	}
@@ -685,8 +577,7 @@ int PSI_recvFinish(int outstanding)
 	case PSP_CD_SPAWNFINISH:
 	    break;
 	default:
-	    snprintf(errtxt, sizeof(errtxt), "%s(): UNKNOWN answer", __func__);
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1, "%s: UNKNOWN answer\n", __func__);
 	    error = 1;
 	    break;
 	}
@@ -738,7 +629,6 @@ void PSI_execLogger(const char *command)
 {
     int i;
     char* argv[5];
-    char *errstr;
     /*
      * close all open filedesciptor except my std* and the daemonSock
      */
@@ -769,11 +659,6 @@ void PSI_execLogger(const char *command)
      */
     close(daemonSock);
 
-    errstr = strerror(errno);
-
-    fprintf(stderr, "%s(): execv(%s) returned %d: %s", __func__, argv[0],
-	    errno, errstr ? errstr : "UNKNOWN");
-    perror("execv()");
-
+    PSI_warn(-1, errno, "%s: execv(%s)", __func__, argv[0]);
     exit(1);
 }

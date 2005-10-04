@@ -46,6 +46,7 @@ bin/mpirun_chp4.c \
 bin/psispawn.c \
 bin/psmstart.c \
 bin/test_config.c \
+bin/test_logging.c \
 bin/test_pse.c \
 configure \
 configure.ac \
@@ -57,8 +58,8 @@ doc/INSTALL \
 doc/parastation.conf \
 include/config_parsing.h \
 include/env.h \
-include/errlog.h \
 include/hardware.h \
+include/logging.h \
 include/mcast.h \
 include/parser.h \
 include/pscommon.h \
@@ -83,6 +84,7 @@ lib/Makefile.in \
 lib/Makefile.sharedlib.in \
 lib/Makefile.staticlib.in \
 lib/pscommon/Makefile.in \
+lib/pscommon/logging.c \
 lib/pscommon/pscommon.c \
 lib/pscommon/pspartition.c \
 lib/pscommon/psprotocol.c \

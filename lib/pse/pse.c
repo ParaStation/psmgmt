@@ -18,7 +18,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#include "errlog.h"
+#include "logging.h"
 
 #include "pscommon.h"
 #include "pstask.h"
@@ -32,8 +32,6 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #include "pse.h"
 
-static char errtxt[256];
-
 static int myWorldSize = -1;
 static int worldSize = -1;  /* @deprecated: only used within such functions */
 static int worldRank = -2;
@@ -43,19 +41,22 @@ static PStask_ID_t parentTID = -1;
 
 static unsigned int defaultHWType = 0; /* Take any node */
 
+/** The logger we use inside PSE */
+static logger_t *logger;
+
+typedef enum {
+    PSE_LOG_SPAWN = PSI_LOG_SPAWN,
+    PSE_LOG_VERB = PSI_LOG_VERB, 
+} PSE_Log_key_t;
+
 static void exitAll(char *reason, int code)
 {
-    char errtxt[320];
-
+    logger_print(logger, -1, "[%d]: Killing all processes", PSE_getRank());
     if (reason) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "[%d]: Killing all processes, reason: %s",
-		 PSE_getRank(), reason);
+	logger_print(logger, -1, ", reason: %s\n", reason);
     } else {
-	snprintf(errtxt, sizeof(errtxt),
-		 "[%d]: Killing all processes", PSE_getRank());
+	logger_print(logger, -1, "\n");
     }
-    errlog(errtxt, 0);
 
     fflush(stderr);
     fflush(stdout);
@@ -65,96 +66,95 @@ static void exitAll(char *reason, int code)
 
 void PSE_initialize(void)
 {
-    char *env_str;
+    char *envStr;
 
-    initErrLog("PSE", 0 /* Don't use syslog */);
+    logger = logger_init("PSE", 0 /* Don't use syslog */);
 
-    env_str = getenv("PSI_DEBUGLEVEL");
-    if (env_str) {
-	int loglevel = atoi(env_str);
+    envStr = getenv("PSI_DEBUGMASK");
+    if (!envStr) envStr = getenv("PSI_DEBUGLEVEL"); /* Backward compat. */
+    if (envStr) {
+	int logmask = atoi(envStr);
 
 	/* Propagate to client done within libpsi */
 
-	setErrLogLevel(loglevel);
+	logger_setMask(logger, logmask);
     }
 
     /* init PSI */
     if (!PSI_initClient(TG_ANY)) {
-	snprintf(errtxt, sizeof(errtxt), "Initialization of PSI failed.");
-	exitAll(errtxt, 10);
+	exitAll("Initialization of PSI failed", 10);
     }
 
     PSI_infoTaskID(-1, PSP_INFO_PARENTTID, NULL, &parentTID, 0);
     PSI_infoInt(-1, PSP_INFO_TASKRANK, NULL, &worldRank, 0);
 
-    snprintf(errtxt, sizeof(errtxt), "[%d] My TID is %s.",
-	     PSE_getRank(), PSC_printTID(PSC_getMyTID()));
-    errlog(errtxt, 10);
+    logger_print(logger, PSE_LOG_VERB, "[%d] My TID is %s\n",
+		 PSE_getRank(), PSC_printTID(PSC_getMyTID()));
 
     /* Propagate some environment variables */
-    if ((env_str = getenv("HOME"))) {
-	setPSIEnv("HOME", env_str, 1);
+    if ((envStr = getenv("HOME"))) {
+	setPSIEnv("HOME", envStr, 1);
     }
-    if ((env_str = getenv("USER"))) {
-	setPSIEnv("USER", env_str, 1);
+    if ((envStr = getenv("USER"))) {
+	setPSIEnv("USER", envStr, 1);
     }
-    if ((env_str = getenv("SHELL"))) {
-	setPSIEnv("SHELL", env_str, 1);
+    if ((envStr = getenv("SHELL"))) {
+	setPSIEnv("SHELL", envStr, 1);
     }
-    if ((env_str = getenv("TERM"))) {
-	setPSIEnv("TERM", env_str, 1);
+    if ((envStr = getenv("TERM"))) {
+	setPSIEnv("TERM", envStr, 1);
     }
-    if ((env_str = getenv("LD_LIBRARY_PATH"))) {
-	setPSIEnv("LD_LIBRARY_PATH", env_str, 1);
+    if ((envStr = getenv("LD_LIBRARY_PATH"))) {
+	setPSIEnv("LD_LIBRARY_PATH", envStr, 1);
     }
-    if ((env_str = getenv("LD_PRELOAD"))) {
-	setPSIEnv("LD_PRELOAD", env_str, 1);
+    if ((envStr = getenv("LD_PRELOAD"))) {
+	setPSIEnv("LD_PRELOAD", envStr, 1);
     }
-    if ((env_str = getenv("MPID_PSP_MAXSMALLMSG"))) {
-	setPSIEnv("MPID_PSP_MAXSMALLMSG", env_str, 1);
+    if ((envStr = getenv("MPID_PSP_MAXSMALLMSG"))) {
+	setPSIEnv("MPID_PSP_MAXSMALLMSG", envStr, 1);
     }
-    if ((env_str = getenv("PSP_NETWORK"))) {
-	setPSIEnv("PSP_NETWORK", env_str, 1);
+    if ((envStr = getenv("PSP_NETWORK"))) {
+	setPSIEnv("PSP_NETWORK", envStr, 1);
     }
-    if ((env_str = getenv("PSP_P4SOCK"))) {
-	setPSIEnv("PSP_P4SOCK", env_str, 1);
+    if ((envStr = getenv("PSP_P4SOCK"))) {
+	setPSIEnv("PSP_P4SOCK", envStr, 1);
     }
-    if ((env_str = getenv("PSP_SHAREDMEM"))) {
-	setPSIEnv("PSP_SHAREDMEM", env_str, 1);
+    if ((envStr = getenv("PSP_SHAREDMEM"))) {
+	setPSIEnv("PSP_SHAREDMEM", envStr, 1);
     }
-    if ((env_str = getenv("PSP_GM"))) {
-	setPSIEnv("PSP_GM", env_str, 1);
+    if ((envStr = getenv("PSP_GM"))) {
+	setPSIEnv("PSP_GM", envStr, 1);
     }
-    if ((env_str = getenv("PSP_MVAPI"))) {
-	setPSIEnv("PSP_MVAPI", env_str, 1);
+    if ((envStr = getenv("PSP_MVAPI"))) {
+	setPSIEnv("PSP_MVAPI", envStr, 1);
     }
-    if ((env_str = getenv("PSP_DEBUG"))) {
-	setPSIEnv("PSP_DEBUG", env_str, 1);
+    if ((envStr = getenv("PSP_DEBUG"))) {
+	setPSIEnv("PSP_DEBUG", envStr, 1);
     }
 
     /* Get masterNode/masterPort from environment (if available) */
-    env_str = getenv("__PSI_MASTERNODE");
-    if (!env_str) {
+    envStr = getenv("__PSI_MASTERNODE");
+    if (!envStr) {
 	if (PSE_getRank()>0) {
-	    exitAll("Could not determine __PSI_MASTERNODE.", 10);
+	    exitAll("Could not determine __PSI_MASTERNODE", 10);
 	}
     } else {
-	masterNode = atoi(env_str);
+	masterNode = atoi(envStr);
 
 	/* propagate to childs */
-	setPSIEnv("__PSI_MASTERNODE", env_str, 1);
+	setPSIEnv("__PSI_MASTERNODE", envStr, 1);
     }
 
-    env_str = getenv("__PSI_MASTERPORT");
-    if (!env_str) {
+    envStr = getenv("__PSI_MASTERPORT");
+    if (!envStr) {
 	if (PSE_getRank()>0) {
-	    exitAll("Could not determine __PSI_MASTERPORT.", 10);
+	    exitAll("Could not determine __PSI_MASTERPORT", 10);
 	}
     } else {
-	masterPort = atoi(env_str);
+	masterPort = atoi(envStr);
 
 	/* propagate to childs */
-	setPSIEnv("__PSI_MASTERPORT", env_str, 1);
+	setPSIEnv("__PSI_MASTERPORT", envStr, 1);
     }
 }
 
@@ -238,15 +238,14 @@ void PSE_spawnMaster(int argc, char *argv[])
     PStask_ID_t spawnedProcess = -1;
     int error;
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%s)", __func__, argv[0]);
-    errlog(errtxt, 10);
+    logger_print(logger, PSE_LOG_VERB, "%s(%s)\n", __func__, argv[0]);
 
     /* client process? */
     if (PSE_getRank() != -1) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: Don't call if rank is not -1 (rank=%d).", __func__,
-		 PSE_getRank());
-	exitAll(errtxt, 10);
+	logger_print(logger, -1,
+		     "%s: Don't call if rank is not -1 (rank=%d)\n",
+		     __func__, PSE_getRank());
+	exitAll("Wrong rank", 10);
     }
 
     /* Check for LSF-Parallel */
@@ -255,17 +254,14 @@ void PSE_spawnMaster(int argc, char *argv[])
     /* spawn master process */
     if (PSI_spawn(1, ".", argc, argv, &error, &spawnedProcess) < 0 ) {
 	if (error) {
-	    char *errstr = strerror(error);
-	    snprintf(errtxt, sizeof(errtxt),
-		     "Could not spawn master process (%s) error = %s.",
-		     argv[0], errstr ? errstr : "UNKNOWN");
-	    exitAll(errtxt, 10);
+	    logger_warn(logger, -1, error,
+			"Could not spawn master process (%s)",argv[0]);
+	    exitAll("Spawn failed", 10);
 	}
     }
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "[%d] Spawned master process.", PSE_getRank());
-    errlog(errtxt, 10);
+    logger_print(logger, PSE_LOG_SPAWN,
+		 "[%d] Spawned master process\n", PSE_getRank());
 
     if (defaultUID) setuid(defaultUID);
 
@@ -280,13 +276,13 @@ void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
     PStask_ID_t *spawnedProcesses;
     char envstr[80];
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%d, %d, %d, %s)",
-	     __func__, num, node, port, argv[0]);
-    errlog(errtxt, 10);
+    logger_print(logger, PSE_LOG_VERB, "%s(%d, %d, %d, %s)\n",
+		 __func__, num, node, port, argv[0]);
 
     /* client process? */
     if (PSE_getRank() == -1) {
-	exitAll("Don't call PSE_spawnTasks() if rank is -1.", 10);
+	logger_print(logger, -1, "%s: Don't call if rank is -1\n", __func__);
+	exitAll("Wrong rank", 10);
     }
 
     /* Check for LSF-Parallel */
@@ -304,8 +300,9 @@ void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
     myWorldSize = num;
     spawnedProcesses = malloc(sizeof(*spawnedProcesses) * num);
     if (!spawnedProcesses) {
-	snprintf(errtxt, sizeof(errtxt), "%s: No memory.", __func__);
-	exitAll(errtxt, 10);
+	logger_print(logger, -1,
+		     "%s: malloc(spawnedProcesses) failed\n", __func__);
+	exitAll("No memory", 10);
     }
     for (i=0; i<myWorldSize; i++) {
 	spawnedProcesses[i] = -1;
@@ -313,28 +310,24 @@ void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
 
     errors = malloc(sizeof(int) * myWorldSize);
     if (!errors) {
-	snprintf(errtxt, sizeof(errtxt), "No memory.");
-	exitAll(errtxt, 10);
+	logger_print(logger, -1, "%s: malloc(errors) failed\n", __func__);
+	exitAll("No memory", 10);
     }
 
     /* spawn client processes */
     ret = PSI_spawn(myWorldSize, ".", argc, argv, errors, spawnedProcesses);
     if (ret<0) {
 	for (i=0; i<myWorldSize; i++) {
-	    char *errstr = strerror(errors[i]);
-
-	    snprintf(errtxt, sizeof(errtxt),
-		     "Could%s spawn '%s' process %d%s%s.",
-		     errors[i] ? " not" : "", argv[0], i+1,
-		     errors[i] ? ", error = " : "",
-		     errors[i] ? (errstr ? errstr : "UNKNOWN") : "");
-	    errlog(errtxt, errors[i] ? 0 : 1);
+	    logger_warn(logger, errors[i] ? -1 : PSE_LOG_SPAWN, errors[i],
+			"Could%s spawn '%s' process %d",
+			errors[i] ? " not" : "", argv[0], i+1);
 	}
-	exitAll("Exiting", 10);
+	exitAll("Spawn failed", 10);
     }
     free(errors);
+    free(spawnedProcesses);
 
-    errlog("Spawned all processes.", 5);
+    logger_print(logger, PSE_LOG_SPAWN, "Spawned all processes\n");
 }
 
 int PSE_getMasterNode(void)
@@ -348,19 +341,19 @@ int PSE_getMasterPort(void)
 }
 
 /* @deprecated */
+/*
 void PSE_spawn(int argc, char *argv[], int *node, int *port, int rank)
 {
     if (rank != PSE_getRank()) {
-	snprintf(errtxt, sizeof(errtxt), "[%d] %s: rank is %d",
-		 PSE_getRank(), __func__, rank);
-	exitAll(errtxt, 10);
+	logger_print(logger, -1, "[%d] %s: rank is %d\n",
+		     PSE_getRank(), __func__, rank);
+	exitAll("Wrong rank", 10);
     }
 
     if (worldSize == -1) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "[%d] %s: Use PSE_init() to set worldSize",
-		 PSE_getRank(), __func__);
-	exitAll(errtxt, 10);
+	logger_print(logger, -1, "[%d] %s: Use PSE_init() to set worldSize\n",
+		     PSE_getRank(), __func__);
+	exitAll("Wrong worldsize", 10);
     }
 
     switch (PSE_getRank()) {
@@ -378,36 +371,36 @@ void PSE_spawn(int argc, char *argv[], int *node, int *port, int rank)
 	*port = PSE_getMasterPort();
     }
 }
+*/
 
 void PSE_finalize(void)
 {
-    snprintf(errtxt, sizeof(errtxt), "[%d] Quitting program, good bye.",
-	     PSE_getRank());
-    errlog(errtxt, 10);
+    logger_print(logger, PSE_LOG_VERB, "[%d] %s()\n", PSE_getRank(), __func__);
 
     if (PSE_getRank()>0) {
 	if (PSI_sendFinish(parentTID)) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "Failed to send SPAWNFINISH to parent %s.",
-		     PSC_printTID(parentTID));
-	    exitAll(errtxt, 10);
+	    logger_print(logger, -1,
+			 "Failed to send SPAWNFINISH to parent %s\n",
+			 PSC_printTID(parentTID));
+	    exitAll("Finalize error", 10);
 	}
     } else if (PSE_getRank()==0) {
 	if (PSI_recvFinish(myWorldSize)) {
-	    exitAll("Failed to receive SPAWNFINISH from childs.", 10);
+	    logger_print(logger, -1,
+			 "Failed to receive SPAWNFINISH from childs\n");
+	    exitAll("Finalize error", 10);
 	}
     } else {
-	snprintf(errtxt, sizeof(errtxt), "%s: PSE_getRank() returned %d",
-		 __func__, PSE_getRank());
-	exitAll(errtxt, 10);
+	logger_print(logger, -1, "%s: PSE_getRank() returned %d\n",
+		     __func__, PSE_getRank());
+	exitAll("Wrong rank", 10);
     }
 
     /* Don't kill parent/logger on exit */
     PSI_release(PSC_getMyTID());
 
-    snprintf(errtxt, sizeof(errtxt), "[%d] Quitting program, good bye.",
-	     PSE_getRank());
-    errlog(errtxt, 10);
+    logger_print(logger, PSE_LOG_VERB, "[%d] Quitting program, good bye\n",
+		 PSE_getRank());
 
     fflush(stdout);
     fflush(stderr);
@@ -418,9 +411,7 @@ void PSE_finalize(void)
     user requested or internal abort.                                      */
 void PSE_abort(int code)
 {
-    snprintf(errtxt, sizeof(errtxt), "[%d(%d)] Aborting program.",
-	     worldRank, getpid());
-    errlog(errtxt, 0);
-
-    exitAll(NULL, code);
+    logger_print(logger, -1,
+		 "[%d(%d)] Aborting program\n", worldRank, getpid());
+    exitAll("Abort", code);
 }

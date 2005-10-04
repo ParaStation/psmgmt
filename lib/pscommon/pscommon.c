@@ -24,19 +24,19 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <stdlib.h>
 #include <sys/stat.h>
 
-#include "errlog.h"
+#include "logging.h"
 
 #include "pscommon.h"
+
+logger_t* PSC_logger;
 
 static PSnodes_ID_t nrOfNodes = -1;
 static PSnodes_ID_t myID = -1;
 
 static PStask_ID_t myTID = -1;
 
-static char errtxt[256];
-
 /* Wrapper functions for logging */
-void PSC_initLog(int usesyslog, FILE *logfile)
+void PSC_initLog(int usesyslog, FILE* logfile)
 {
     if (!usesyslog && logfile) {
 	int fno = fileno(logfile);
@@ -49,27 +49,17 @@ void PSC_initLog(int usesyslog, FILE *logfile)
 	}
     }
 
-    initErrLog("PSC", usesyslog);
+    PSC_logger = logger_init("PSC", usesyslog);
 }
 
-int PSC_getDebugLevel(void)
+int32_t PSC_getDebugMask(void)
 {
-    return getErrLogLevel();
+    return logger_getMask(PSC_logger);
 }
 
-void PSC_setDebugLevel(int level)
+void PSC_setDebugMask(int32_t mask)
 {
-    setErrLogLevel(level);
-}
-
-void PSC_errlog(char *s, int level)
-{
-    errlog(s, level);
-}
-
-void PSC_errexit(char *s, int errorno)
-{
-    errexit(s, errorno);
+    logger_setMask(PSC_logger, mask);
 }
 
 PSnodes_ID_t PSC_getNrOfNodes(void)
@@ -175,7 +165,7 @@ PStask_ID_t PSC_getMyTID(void)
     return myTID;
 }
 
-char *PSC_printTID(PStask_ID_t tid)
+char* PSC_printTID(PStask_ID_t tid)
 {
     static char taskNumString[40];
 
@@ -189,18 +179,13 @@ void PSC_startDaemon(unsigned int hostaddr)
     int sock;
     struct sockaddr_in sa;
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%s)", __func__,
-	     inet_ntoa(* (struct in_addr *) &hostaddr));
-    PSC_errlog(errtxt, 10);
+    PSC_log(PSC_LOG_VERB, "%s(%s)\n",
+	    __func__, inet_ntoa(*(struct in_addr*)&hostaddr));
 
     switch (fork()) {
     case -1:
     {
-	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: unable to fork server process: %s", __func__,
-		 errstr ? errstr : "UNKNOWN");
-	PSC_errlog(errtxt, 0);
+	PSC_warn(-1, errno, "%s: unable to fork server process", __func__);
 	break;
     }
     case 0: /* I'm the child (and running further) */
@@ -221,14 +206,10 @@ void PSC_startDaemon(unsigned int hostaddr)
     sa.sin_addr.s_addr = hostaddr;
     sa.sin_port = htons(PSC_getServicePort("psid", 888));
     if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0) {
-	char *errstr = strerror(errno);
-
 	if (errno==EINTR) goto again;
 
-	snprintf(errtxt, sizeof(errtxt), "%s: connect() to %s fails: %s",
-		 __func__, inet_ntoa(sa.sin_addr),
-		 errstr ? errstr : "UNKNOWN");
-	PSC_errlog(errtxt, 0);
+	PSC_warn(-1, errno, "%s: connect() to %s fails",
+		 __func__, inet_ntoa(sa.sin_addr));
 	shutdown(sock, SHUT_RDWR);
 	close(sock);
 	exit(0);
@@ -241,9 +222,9 @@ void PSC_startDaemon(unsigned int hostaddr)
 
 static char default_installdir[] = "/opt/parastation";
 
-static char *installdir = NULL;
+static char* installdir = NULL;
 
-char *PSC_lookupInstalldir(void)
+char* PSC_lookupInstalldir(void)
 {
     char *name = NULL, logger[] = "/bin/psilogger";
     struct stat fstat;
@@ -266,7 +247,7 @@ char *PSC_lookupInstalldir(void)
 	return "";
 }
 
-void PSC_setInstalldir(char *dir)
+void PSC_setInstalldir(char* dir)
 {
     char *name, logger[] = "/bin/psilogger";
     struct stat fstat;
@@ -275,18 +256,13 @@ void PSC_setInstalldir(char *dir)
     strcpy(name,dir);
     strcat(name,logger);
     if (stat(name, &fstat)) {
-	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "%s: '%s': %s.",
-		 __func__, name, errstr ? errstr : "UNKNOWN");
-	PSC_errlog(errtxt, 0);
+	PSC_warn(-1, errno, "%s: '%s'", __func__, name);
 	free(name);
 	return;
     }
 
     if (!S_ISREG(fstat.st_mode)) {
-	snprintf(errtxt, sizeof(errtxt), "%s: '%s' not a regular file.",
-		 __func__, name);
-	PSC_errlog(errtxt, 0);
+	PSC_log(-1, "%s: '%s' not a regular file\n", __func__, name);
 	free(name);
 
 	return;
@@ -300,23 +276,22 @@ void PSC_setInstalldir(char *dir)
 }
 
 
-int PSC_getServicePort(char *name , int def)
+int PSC_getServicePort(char* name , int def)
 {
-    struct servent *service;
+    struct servent* service;
 
     service = getservbyname(name, "tcp");
     if (!service) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: can't get '%s' service entry, using port %d.",
-		 __func__, name, def);
-	PSC_errlog(errtxt, 1);
+	PSC_log(PSC_LOG_VERB,
+		"%s: can't get '%s' service entry, using port %d\n",
+		__func__, name, def);
 	return def;
     } else {
 	return ntohs(service->s_port);
     }
 }
 
-static int parseRange(char *list, char *range)
+static int parseRange(char* list, char* range)
 {
     long first, last, i;
     char *start = strsep(&range, "-"), *end;
@@ -324,8 +299,7 @@ static int parseRange(char *list, char *range)
     first = strtol(start, &end, 0);
     if (*end != '\0') return 0;
     if (first < 0 || first >= PSC_getNrOfNodes()) {
-	snprintf(errtxt, sizeof(errtxt), "node %ld out of range.", first);
-	PSC_errlog(errtxt, 0);
+	PSC_log(-1, "node %ld out of range\n", first);
 	return 0;
     }
 
@@ -334,8 +308,7 @@ static int parseRange(char *list, char *range)
 	last = strtol(range, &end, 0);
 	if (*end != '\0') return 0;
 	if (last < 0 || last >= PSC_getNrOfNodes()) {
-	    snprintf(errtxt, sizeof(errtxt), "node %ld out of range.", last);
-	    PSC_errlog(errtxt, 0);
+	    PSC_log(-1, "node %ld out of range\n", last);
 	    return 0;
 	}
     } else {
@@ -346,16 +319,15 @@ static int parseRange(char *list, char *range)
     return 1;
 }
 
-char *PSC_parseNodelist(char *descr)
+char* PSC_parseNodelist(char* descr)
 {
-    static char *nl = NULL;
-    char *range;
-    char *work;
+    static char* nl = NULL;
+    char* range;
+    char* work;
 
     nl = realloc(nl, sizeof(char) * PSC_getNrOfNodes());
     if (!nl) {
-	snprintf(errtxt, sizeof(errtxt), "%s: no memory.", __func__);
-	PSC_errlog(errtxt, 0);
+	PSC_log(-1, "%s: no memory\n", __func__);
 	return NULL;
     }
     memset(nl, 0, sizeof(char) * PSC_getNrOfNodes());
@@ -370,7 +342,7 @@ char *PSC_parseNodelist(char *descr)
     return nl;
 }
 
-void PSC_printNodelist(char *nl)
+void PSC_printNodelist(char* nl)
 {
     PSnodes_ID_t pos=0, numNodes = PSC_getNrOfNodes();
     int first=1;

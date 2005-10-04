@@ -22,8 +22,8 @@
 #ifndef __TIMER_H
 #define __TIMER_H
 
+#include <stdint.h>
 #include <sys/time.h>
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,32 +57,50 @@ void Timer_init(int syslog);
 int Timer_isInitialized(void);
 
 /**
- * @brief Query the debug-level.
- *
- * Get the debug-level of the Timer module.
- *
- * @return The actual debug-level is returned.
- *
- * @see Timer_setDebugLevel()
- */
-int Timer_getDebugLevel(void);
+ * Various message classes for logging. These define the different
+ * bits of the debug-mask set via @ref Timer_setDebugMask().
+ */ 
+typedef enum {
+    TIMER_LOG_DUMMY = 0x0000, /**< No non fatal messages yet */
+} Timer_log_key_t;
 
 /**
- * @brief Set the debug-level.
+ * @brief Query the debug-mask.
  *
- * Set the debug-level of the Timer module. Possible values are:
+ * Get the debug-mask of the Timer module.
  *
- *  - 0: Critical errors (usually exit). This is the default.
+ * @return The actual debug-mask is returned.
  *
- * Only critical errors yet!
+ * @see Timer_setDebugMask()
+ */
+int32_t Timer_getDebugMask(void);
+
+/**
+ * @brief Set the debug-mask.
  *
- * @param level The debug-level to set.
+ * Set the debug-mask of the Timer module. @a mask is a bit-wise OR of
+ * the different keys defined within @ref Timer_log_key_t. If the
+ * respective bit is set within @a mask, the log-messages marked with
+ * the corresponding bits are put out to the selected channel
+ * (i.e. stderr of syslog() as defined within @ref
+ * Timer_init()). Accordingly a @mask of -1 means to put out all
+ * messages defined.
+ *
+ * All messages marked with -1 represent fatal messages that are
+ * always put out independently of the choice of @a mask, i.e. even if
+ * it is 0.
+ *
+ * @a mask's default value is 0, i.e. only fatal messages are put out.
+ *
+ * At the time the Timer module only produces critical errors yet!
+ *
+ * @param mask The debug-mask to set.
  *
  * @return No return value.
  *
- * @see Timer_getDebugLevel()
+ * @see Timer_getDebugMask(), Timer_log_key_t
  */
-void Timer_setDebugLevel(int level);
+void Timer_setDebugMask(int32_t mask);
 
 /**
  * @brief Register a new timer
@@ -103,7 +121,7 @@ void Timer_setDebugLevel(int level);
  * returned. This Id is a positive number or 0. On error, -1 is
  * returned.
  */
-int Timer_register(struct timeval *timeout, void (*timeoutHandler)(void));
+int Timer_register(struct timeval* timeout, void (*timeoutHandler)(void));
 
 /**
  * @brief Remove a timer

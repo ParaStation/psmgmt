@@ -28,7 +28,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <sys/stat.h>
 #include <sys/file.h>
 
-#include "errlog.h"
+#include "logging.h"
 #include "psprotocol.h"
 
 #include "config_parsing.h"
@@ -39,9 +39,9 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #include "psidutil.h"
 
-static char errtxt[256]; /**< General string to create error messages */
-
 config_t *config = NULL;
+
+logger_t *PSID_logger;
 
 /* Wrapper functions for logging */
 void PSID_initLog(int usesyslog, FILE *logfile)
@@ -55,27 +55,17 @@ void PSID_initLog(int usesyslog, FILE *logfile)
 	}
     }
 
-    initErrLog(usesyslog ? NULL : "PSID", usesyslog);
+    PSID_logger = logger_init(usesyslog ? NULL : "PSID", usesyslog);
 }
 
-int PSID_getDebugLevel(void)
+int32_t PSID_getDebugMask(void)
 {
-    return getErrLogLevel();
+    return logger_getMask(PSID_logger);
 }
 
-void PSID_setDebugLevel(int level)
+void PSID_setDebugMask(int32_t mask)
 {
-    setErrLogLevel(level);
-}
-
-void PSID_errlog(char *s, int level)
-{
-    errlog(s, level);
-}
-
-void PSID_errexit(char *s, int errorno)
-{
-    errexit(s, errorno);
+    logger_setMask(PSID_logger, mask);
 }
 
 void PSID_blockSig(int block, int sig)
@@ -86,8 +76,7 @@ void PSID_blockSig(int block, int sig)
     sigaddset(&set, sig);
 
     if (sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &set, NULL)) {
-	snprintf(errtxt, sizeof(errtxt), "%s: sigprocmask()", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: sigprocmask()\n", __func__);
     }
 }
 
@@ -339,9 +328,7 @@ void PSID_startHW(int hw)
     char *script = HW_getScript(hw, HW_STARTER);
 
     if (hw<0 || hw>HW_num()) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: hw = %d out of range", __func__, hw);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: hw = %d out of range\n", __func__, hw);
 	return;
     }
 
@@ -349,16 +336,13 @@ void PSID_startHW(int hw)
 	int res = callScript(hw, script);
 
 	if (res) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: callScript(%s, %s) returned %d: %s",
+	    PSID_log(-1, "%s: callScript(%s, %s) returned %d: %s\n",
 		     __func__, HW_name(hw), script, res, scriptOut);
-	    PSID_errlog(errtxt, 0);
 	} else {
 	    unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
 
-	    snprintf(errtxt, sizeof(errtxt), "%s: callScript(%s, %s): success",
+	    PSID_log(PSID_LOG_HW, "%s: callScript(%s, %s): success\n",
 		     __func__, HW_name(hw), script);
-	    PSID_errlog(errtxt, 10);
 
 	    PSnodes_setHWStatus(PSC_getMyID(), status | (1<<hw));
 
@@ -367,9 +351,8 @@ void PSID_startHW(int hw)
 	/* No script, assume HW runs already */
 	unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
 
-	snprintf(errtxt, sizeof(errtxt), "%s: assume %s already up",
+	PSID_log(PSID_LOG_HW, "%s: assume %s already up\n",
 		 __func__, HW_name(hw));
-	PSID_errlog(errtxt, 10);
 
 	PSnodes_setHWStatus(PSC_getMyID(), status | (1<<hw));
     }
@@ -388,9 +371,7 @@ void PSID_stopHW(int hw)
     char *script = HW_getScript(hw, HW_STOPPER);
 
     if (hw<0 || hw>HW_num()) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: hw = %d out of range", __func__, hw);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: hw = %d out of range\n", __func__, hw);
 	return;
     }
 
@@ -398,16 +379,13 @@ void PSID_stopHW(int hw)
 	int res = callScript(hw, script);
 
 	if (res) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: callScript(%s, %s) returned %d: %s",
+	    PSID_log(-1, "%s: callScript(%s, %s) returned %d: %s\n",
 		     __func__, HW_name(hw), script, res, scriptOut);
-	    PSID_errlog(errtxt, 0);
 	} else {
 	    unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
 
-	    snprintf(errtxt, sizeof(errtxt), "%s: callScript(%s, %s): success",
+	    PSID_log(PSID_LOG_HW, "%s: callScript(%s, %s): success\n",
 		     __func__, HW_name(hw), script);
-	    PSID_errlog(errtxt, 10);
 
 	    PSnodes_setHWStatus(PSC_getMyID(), status & ~(1<<hw));
 
@@ -416,9 +394,8 @@ void PSID_stopHW(int hw)
 	/* No script, assume HW does not run any more */
 	unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
 
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: assume %s already down", __func__, HW_name(hw));
-	PSID_errlog(errtxt, 10);
+	PSID_log(PSID_LOG_HW, "%s: assume %s already down\n",
+		 __func__, HW_name(hw));
 
 	PSnodes_setHWStatus(PSC_getMyID(), status & ~(1<<hw));
     }
@@ -443,35 +420,27 @@ void PSID_getCounter(int hw, char *buf, size_t size, int header)
 	    int res = callScript(hw, script);
 
 	    if (res) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: callScript(%s, %s) returned %d: %s",
+		PSID_log(-1, "%s: callScript(%s, %s) returned %d: %s\n",
 			 __func__, HW_name(hw), script, res, scriptOut);
-		PSID_errlog(errtxt, 0);
-		strncpy(buf, errtxt, size);
+		snprintf(buf, size, "%s: callScript(%s, %s) returned %d: %s",
+			 __func__, HW_name(hw), script, res, scriptOut);
 	    } else {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: callScript(%s, %s): success",
+		PSID_log(PSID_LOG_HW, "%s: callScript(%s, %s): success\n",
 			 __func__, HW_name(hw), script);
-		PSID_errlog(errtxt, 10);
-
 		strncpy(buf, scriptOut, size);
 	    }
 	} else {
 	    /* No script, cannot get counter */
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: no %s-script for %s available",
+	    PSID_log(PSID_LOG_HW, "%s: no %s-script for %s available\n",
 		     __func__, header ? "header" : "counter", HW_name(hw));
-	    PSID_errlog(errtxt, 1);
-
-	    strncpy(buf, errtxt, size);
+	    snprintf(buf, size, "%s: no %s-script for %s available",
+		     __func__, header ? "header" : "counter", HW_name(hw));
 	}
     } else {
 	/* No HW, cannot get counter */
-	snprintf(errtxt, sizeof(errtxt), "%s: no %s hardware available",
+	PSID_log(-1, "%s: no %s hardware available\n", __func__, HW_name(hw));
+	snprintf(buf, size, "%s: no %s hardware available",
 		 __func__, HW_name(hw));
-	PSID_errlog(errtxt, 0);
-
-	strncpy(buf, errtxt, size);
     }
 }
 
@@ -580,9 +549,9 @@ static int getOwnID(void)
     /* Get any socket */
     skfd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (skfd<0) {
-	PSID_errexit("Unable to obtain socket", errno);
+	PSID_exit(errno, "%s: socket()", __func__);
     }
-    PSID_errlog("Get list of NICs", 10);
+    PSID_log(PSID_LOG_VERB, "%s: get list of NICs\n", __func__);
     /* Get list of NICs */
     ifc.ifc_buf = NULL;
     do {
@@ -590,12 +559,11 @@ static int getOwnID(void)
 	ifc.ifc_len = numNICs * sizeof(struct ifreq);
 	ifc.ifc_buf = (char *)realloc(ifc.ifc_buf, ifc.ifc_len);
 	if (!ifc.ifc_buf) {
-	    PSID_errlog("realloc failed", 0);
-	    exit(1);
+	    PSID_exit(errno, "%s: realloc()", __func__);
 	}
 
 	if (ioctl(skfd, SIOCGIFCONF, &ifc) < 0) {
-	    PSID_errexit("Unable to obtain network configuration", errno);
+	    PSID_exit(errno, "%s: ioctl(SIOCGIFCONF)");
 	}
     } while (ifc.ifc_len == numNICs * (int)sizeof(struct ifreq));
     /* Test the IP-addresses assigned to this NICs */
@@ -604,14 +572,12 @@ static int getOwnID(void)
 	if (ifr->ifr_addr.sa_family == AF_INET) {
 	    sin_addr = &((struct sockaddr_in *)&ifr->ifr_addr)->sin_addr;
 
-	    snprintf(errtxt, sizeof(errtxt),
-		     "Testing address %s", inet_ntoa(*sin_addr));
-	    PSID_errlog(errtxt, 10);
+	    PSID_log(PSID_LOG_VERB, "%s: testing address %s\n",
+		     __func__, inet_ntoa(*sin_addr));
 	    if ((ownID=PSnodes_lookupHost(sin_addr->s_addr))!=-1) {
 		/* node is configured */
-		snprintf(errtxt, sizeof(errtxt),
-			 "Node found to have ID %d", ownID);
-		PSID_errlog(errtxt, 10);
+		PSID_log(PSID_LOG_VERB, "%s: node has ID %d\n",
+			 __func__, ownID);
 		break;
 	    }
 	}
@@ -630,25 +596,23 @@ void PSID_readConfigFile(int usesyslog, char *configfile)
     int ownID;
 
     /* Parse the configfile */
-    config = parseConfig(usesyslog, PSID_getDebugLevel(), configfile);
+    config = parseConfig(usesyslog, PSID_getDebugMask(), configfile);
     if (! config) {
-	snprintf(errtxt, sizeof(errtxt), "Parsing of <%s> failed.",
-		 configfile);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: parsing of <%s> failed\n", __func__, configfile);
 	exit(1);
     }
     config->useSyslog = usesyslog;
 
-    /* Set correct debugging level if given in config-file */
-    if (config->logLevel && !PSID_getDebugLevel()) {
-	PSID_setDebugLevel(config->logLevel);
-	PSC_setDebugLevel(config->logLevel);
+    /* Set correct debugging mask if given in config-file */
+    if (config->logMask && !PSID_getDebugMask()) {
+	PSID_setDebugMask(config->logMask);
+	PSC_setDebugMask(config->logMask);
     }
 
     /* Try to find out if node is configured */
     ownID = getOwnID();
     if (ownID == -1) {
-	PSID_errlog("Node not configured", 0);
+	PSID_log(-1, "%s: Node not configured\n", __func__);
 	exit(1);
     }
 
@@ -672,22 +636,16 @@ long PSID_getPhysCPUs(void)
     long virtCPUs = PSID_getVirtCPUs(), physCPUs = 0;
     int virtCount, virtMask, APIC_ID;
 
-    snprintf(errtxt, sizeof(errtxt), "%s: %ld virtual CPUs found.",
-	     __func__, virtCPUs);
-    PSID_errlog(errtxt, 5);
+    PSID_log(PSID_LOG_VERB, "%s: got %ld virtual CPUs\n", __func__, virtCPUs);
 
     fd = open(filename, 0);
     if (fd==-1) {
-	if (errno == ENODEV) {
-	    snprintf(errtxt, sizeof(errtxt), "%s: No CPUID support.",
-		     __func__);
-	} else {
-	    char *errstr = strerror(errno);
-	    snprintf(errtxt, sizeof(errtxt), "%s: Unable to open '%s': %s\n",
-		     __func__, filename, errstr ? errstr : "UNKNOWN");
-	}
 #ifdef __i386__
-	PSID_errlog(errtxt, 0);
+	if (errno == ENODEV) {
+	    PSID_log(-1, "%s: No CPUID support\n", __func__);
+	} else {
+	    PSID_warn(-1, errno, "%s: unable to open '%s'", __func__,filename);
+	}
 #endif
 	return virtCPUs;
     }
@@ -695,60 +653,49 @@ long PSID_getPhysCPUs(void)
     got = read(fd, buf, sizeof(buf));
     close(fd);
     if (got != sizeof(buf)) {
-	snprintf(errtxt, sizeof(errtxt), "%s: Got only %d/%ld bytes.",
+	PSID_log(-1, "%s: Got only %d/%ld bytes\n",
 		 __func__, got, (long)sizeof(buf));
-	PSID_errlog(errtxt, 0);
 	return virtCPUs;
     }
 
     for (i=0; i<3; i++) {
 	if (buf[i+1] != intelMagic[i]) {
-	    snprintf(errtxt, sizeof(errtxt), "%s: No Intel CPU.", __func__);
-	    PSID_errlog(errtxt, 5);
+	    PSID_log(PSID_LOG_VERB, "%s: No Intel CPU\n", __func__);
 	    return virtCPUs;
 	}
     }
-    snprintf(errtxt, sizeof(errtxt), "%s: Intel CPU.", __func__);
-    PSID_errlog(errtxt, 5);
+    PSID_log(PSID_LOG_VERB, "%s: Intel CPU\n", __func__);
 
     if (! (buf[7] & 0x10000000)) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: No Hyper-Threading Technology.", __func__);
-	PSID_errlog(errtxt, 5);
+	PSID_log(PSID_LOG_VERB, "%s: No Hyper-Threading Technology\n",
+		 __func__);
 	return virtCPUs;
     }
-    snprintf(errtxt, sizeof(errtxt),
-	     "%s: With Hyper-Threading Technology.", __func__);
-    PSID_errlog(errtxt, 5);
+    PSID_log(PSID_LOG_VERB, "%s: With Hyper-Threading Technology\n", __func__);
     virtCount =  (buf[5] & 0x00ff0000) >> 16;
-    snprintf(errtxt, sizeof(errtxt),
-	     "%s: CPU supports %d virtual CPUs\n", __func__, virtCount);
-    PSID_errlog(errtxt, 5);
+    PSID_log(PSID_LOG_VERB, "%s: CPU supports %d virtual CPUs\n",
+	     __func__, virtCount);
     virtMask = virtCount-1;
 
     for (i=0; i<virtCPUs; i++) {
 	snprintf(filename, sizeof(filename), "/dev/cpu/%d/cpuid", i);
 	fd = open(filename, 0);
 	if (fd==-1) {
-	    char *errstr = strerror(errno);
-	    snprintf(errtxt, sizeof(errtxt), "%s: Unable to open '%s': %s\n",
-		     __func__, filename, errstr ? errstr : "UNKNOWN");
-	    PSID_errlog(errtxt, 0);
+	    PSID_warn(-1, errno, "%s: Unable to open '%s'",
+		      __func__, filename);
 	    return virtCPUs;
 	}
 	got = read(fd, buf, sizeof(buf));
 	close(fd);
 	if (got != sizeof(buf)) {
-	    snprintf(errtxt, sizeof(errtxt), "%s: Got only %d/%ld bytes.",
+	    PSID_log(-1, "%s: Got only %d/%ld bytes\n",
 		     __func__, got, (long)sizeof(buf));
-	    PSID_errlog(errtxt, 0);
 	    return virtCPUs;
 	}
 
 	APIC_ID = (buf[5] & 0xff000000) >> 24;
-	snprintf(errtxt, sizeof(errtxt), "%s: APIC ID %d -> %s CPU", __func__,
+	PSID_log(PSID_LOG_VERB, "%s: APIC ID %d -> %s CPU\n", __func__,
 		 APIC_ID, APIC_ID & virtMask ? "virtual" : "physical");
-	PSID_errlog(errtxt, 5);
 
 	if ( ! (APIC_ID & virtMask)) physCPUs++;
     }
@@ -764,29 +711,18 @@ void PSID_getLock(void)
 {
     PSID_lockFD = open(LOCKFILENAME, O_CREAT);
     if (PSID_lockFD<0) {
-	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: Unable to open lockfile '%s': %s\n",
-		 __func__, LOCKFILENAME, errstr ? errstr : "UNKNOWN");
-	PSID_errlog(errtxt, 0);
+	PSID_warn(-1, errno, "%s: Unable to open lockfile '%s'",
+		  __func__, LOCKFILENAME);
 	exit (1);
     }
 
     if (chmod(LOCKFILENAME, S_IRWXU | S_IRGRP | S_IROTH)) {
-	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: Unable to chmod: %s\n",
-		 __func__, errstr ? errstr : "UNKNOWN");
-	PSID_errlog(errtxt, 0);
+	PSID_warn(-1, errno, "%s: chmod()", __func__);
 	exit (1);
     }
 
     if (flock(PSID_lockFD, LOCK_EX | LOCK_NB)) {
-	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: Unable to get lock: %s\n",
-		 __func__, errstr ? errstr : "UNKNOWN");
-	PSID_errlog(errtxt, 0);
+	PSID_warn(-1, errno, "%s: Unable to get lock", __func__);
 	exit (1);
     }
 }

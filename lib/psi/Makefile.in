@@ -24,7 +24,7 @@ export LIBVPATH := $(SRCDIR)
 export LIBINC = -I$(TOPSRCDIR)/include
 export LIBDSTDIR = ../..
 # Objects from libpscommon:
-export LIBOBJS += pscommon.o psprotocol.o pstask.o pspartition.o
+export LIBOBJS += logging.o pscommon.o psprotocol.o pstask.o pspartition.o
 export LIBVPATH += $(SRCDIR)/../pscommon
 
 ################################

@@ -42,7 +42,7 @@ static config_t config = (config_t) {
     .useMCast = 0,
     .MCastGroup = 237,
     .MCastPort = 1889,
-    .logLevel = 0,
+    .logMask = 0,
     .logDest = LOG_DAEMON,
     .useSyslog = 1,
     .freeOnSuspend = 0,
@@ -53,8 +53,6 @@ static config_t config = (config_t) {
 
 static int nodesfound = 0;
 
-static char errtxt[256];
-
 /*----------------------------------------------------------------------*/
 /* Helper function to insert a node */
 
@@ -62,87 +60,68 @@ static int installHost(unsigned int ipaddr, int id, int hwtype,
 		       unsigned int extraIP, int jobs, int starter)
 {
     if (PSnodes_getNum() == -1) { /* NrOfNodes not defined */
-	parser_comment("You have to define NrOfNodes before any host", 0);
+	parser_comment(-1, "define NrOfNodes before any host");
 	return -1;
     }
 
     if ((id<0) || (id >= PSnodes_getNum())) { /* id out of Range */
-	snprintf(errtxt, sizeof(errtxt),
-		 "node ID <%d> out of range (NrOfNodes = %d)",
-		 id, PSnodes_getNum());
-	parser_comment(errtxt, 0);
+	parser_comment(-1, "node ID <%d> out of range (NrOfNodes = %d)",
+		       id, PSnodes_getNum());
 	return -1;
     }
 
     if (PSnodes_lookupHost(ipaddr)!=-1) { /* duplicated host */
-	snprintf(errtxt, sizeof(errtxt),
-		 "duplicated host <%s> in config file",
-		 inet_ntoa(* (struct in_addr *) &ipaddr));
-	parser_comment(errtxt, 0);
+	parser_comment(-1, "duplicated host <%s>",
+		       inet_ntoa(* (struct in_addr *) &ipaddr));
 	return -1;
     }
 
     if (PSnodes_getAddr(id) != INADDR_ANY) { /* duplicated PSI-ID */
 	unsigned int addr = PSnodes_getAddr(id);
-	snprintf(errtxt, sizeof(errtxt),
-		 "duplicated ID <%d> for hosts <%s> and <%s> in config file",
-		 id, inet_ntoa(* (struct in_addr *) &ipaddr),
-		 inet_ntoa(* (struct in_addr *) &addr));
-	parser_comment(errtxt, 0);
+	parser_comment(-1, "duplicated ID <%d> for hosts <%s> and <%s>",
+		       id, inet_ntoa(* (struct in_addr *) &ipaddr),
+		       inet_ntoa(* (struct in_addr *) &addr));
 	return -1;
     }
 
     /* install hostname */
     if (PSnodes_register(id, ipaddr)) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "PSnodes_register(%d, <%s>) failed",
-		 id, inet_ntoa(* (struct in_addr *) &ipaddr));
-	parser_comment(errtxt, 0);
+	parser_comment(-1, "PSnodes_register(%d, <%s>) failed",
+		       id, inet_ntoa(* (struct in_addr *) &ipaddr));
 	return -1;
     }
 
     if (PSnodes_setHWType(id, hwtype)) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "PSnodes_setHWType(%d, %d) failed", id, hwtype);
-	parser_comment(errtxt, 0);
+	parser_comment(-1, "PSnodes_setHWType(%d, %d) failed", id, hwtype);
 	return -1;
     }
 
     if (PSnodes_setExtraIP(id, extraIP)) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "PSnodes_setExtraIP(%d, %d) failed", id, extraIP);
-	parser_comment(errtxt, 0);
+	parser_comment(-1, "PSnodes_setExtraIP(%d, %d) failed", id, extraIP);
 	return -1;
     }
 
     if (PSnodes_setRunJobs(id, jobs)) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "PSnodes_setRunJobs(%d, %d) failed", id, jobs);
-	parser_comment(errtxt, 0);
+	parser_comment(-1, "PSnodes_setRunJobs(%d, %d) failed", id, jobs);
 	return -1;
     }
 
     if (PSnodes_setIsStarter(id, starter)) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "PSnodes_setIsStarter(%d, %d) failed", id, starter);
-	parser_comment(errtxt, 0);
+	parser_comment(-1, "PSnodes_setIsStarter(%d, %d) failed", id, starter);
 	return -1;
     }
 
     nodesfound++;
 
     if (nodesfound > PSnodes_getNum()) { /* more hosts than nodes ??? */
-	snprintf(errtxt, sizeof(errtxt),
-		 "NrOfNodes = %d does not match number of hosts in list (%d)",
-		 PSnodes_getNum(), nodesfound);
-	parser_comment(errtxt, 0);
+	parser_comment(-1, "NrOfNodes = %d does not match number of"
+		       " hosts in list (%d)", PSnodes_getNum(), nodesfound);
 	return -1;
     }
 
-    snprintf(errtxt, sizeof(errtxt), "installHost():"
-	     " host <%s> is inserted in the hostlist with id=%d.",
-	     inet_ntoa(* (struct in_addr *) &ipaddr), id);
-    parser_comment(errtxt, 10);
+    parser_comment(PARSER_LOG_VERB,
+		   "%s: host <%s> inserted in hostlist with id=%d.",
+		   __func__, inet_ntoa(* (struct in_addr *) &ipaddr), id);
 
     return 0;
 }
@@ -160,25 +139,18 @@ static int getInstDir(char *token)
     dname = parser_getString();
     /* test if dir is a valid directory */
     if (stat(dname, &fstat)) {
-	snprintf(errtxt, sizeof(errtxt), "%s: %s", dname, strerror(errno));
-	parser_comment(errtxt, 0);
-
+	parser_comment(-1, "%s: %s", dname, strerror(errno));
 	return -1;
     }
 
     if (!S_ISDIR(fstat.st_mode)) {
-	snprintf(errtxt, sizeof(errtxt), "'%s' is not a directory", dname);
-	parser_comment(errtxt, 0);
-
+	parser_comment(-1, "'%s' is not a directory", dname);
 	return -1;
     }
 
     PSC_setInstalldir(dname);
     if (strcmp(dname, PSC_lookupInstalldir())) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "'%s' seems to be no valid installdir", dname);
-	parser_comment(errtxt, 0);
-
+	parser_comment(-1, "'%s' seems to be no valid installdir", dname);
 	return -1;
     }
 
@@ -191,8 +163,7 @@ static int getNumNodes(char *token)
 
     if (PSnodes_getNum() != -1) {
 	/* NrOfNodes already defined */
-	parser_comment("You have to define NrOfNodes only once", 0);
-
+	parser_comment(-1, "define NrOfNodes only once");
 	return -1;
     }
 
@@ -203,8 +174,7 @@ static int getNumNodes(char *token)
     /* Initialize the PSnodes module */
     ret = PSnodes_init(num);
     if (ret) {
-    	snprintf(errtxt, sizeof(errtxt), "PSnodes_init(%d) failed", num);
-	parser_comment(errtxt, 0);
+	parser_comment(-1, "PSnodes_init(%d) failed", num);
     }
 
     return ret;
@@ -213,7 +183,7 @@ static int getNumNodes(char *token)
 static int getLicServer(char *token)
 {
     parser_getString(); /* Throw away the license server's name */
-    parser_comment("definition of license server is obsolete", 0);
+    parser_comment(-1, "definition of license server is obsolete");
 
     return 0;
 }
@@ -221,7 +191,7 @@ static int getLicServer(char *token)
 static int getLicFile(char *token)
 {
     parser_getString(); /* Throw away the license file's name */
-    parser_comment("definition of license file is obsolete", 0);
+    parser_comment(-1, "definition of license file is obsolete");
 
     return 0;
 }
@@ -229,7 +199,7 @@ static int getLicFile(char *token)
 static int getMCastUse(char *token)
 {
     config.useMCast = 1;
-    parser_comment("Will use MCast. Disable alternative status control", 0);
+    parser_comment(-1, "will use MCast. Disable alternative status control");
     return 0;
 }
 
@@ -276,10 +246,9 @@ static int getDeadInterval(char *token)
     return ret;
 }
 
-static int getLogLevel(char *token)
+static int getLogMask(char *token)
 {
-    return parser_getNumValue(parser_getString(),
-			      &config.logLevel, "loglevel");
+    return parser_getNumValue(parser_getString(), &config.logMask, "logmask");
 }
 
 static int getLogDest(char *token)
@@ -336,9 +305,7 @@ static int getRLimitVal(char *token, rlim_t *value, char *valname)
 
     if (strcasecmp(token,"infinity")==0 || strcasecmp(token, "unlimited")==0) {
 	*value = RLIM_INFINITY;
-	snprintf(errtxt, sizeof(errtxt),
-		 "Got 'RLIM_INFINITY' for '%s'", valname);
-	parser_comment(errtxt, 8);
+	parser_comment(PARSER_LOG_RES, "got 'RLIM_INFINITY' for '%s'",valname);
     } else {
 	ret = parser_getNumValue(token, &intval, valname);
 	*value = intval;
@@ -527,9 +494,8 @@ static int getHWLine(char *token)
 
     hwtype = node_hwtype;
 
-    snprintf(errtxt, sizeof(errtxt), "Default HWType is now '%s'",
-	     HW_printType(hwtype));
-    parser_comment(errtxt, 8);
+    parser_comment(PARSER_LOG_RES, "setting default HWType to '%s'",
+		   HW_printType(hwtype));
 
     return ret;
 }
@@ -549,9 +515,8 @@ static int getCSLine(char *token)
 
     canstart = node_canstart;
 
-    snprintf(errtxt, sizeof(errtxt), "Default for 'CanStart' is now '%s'",
-	     canstart ? "TRUE" : "FALSE");
-    parser_comment(errtxt, 8);
+    parser_comment(PARSER_LOG_RES, "setting default 'CanStart' to '%s'",
+		   canstart ? "TRUE" : "FALSE");
 
     return ret;
 }
@@ -571,9 +536,8 @@ static int getRJLine(char *token)
 
     runjobs = node_runjobs;
 
-    snprintf(errtxt, sizeof(errtxt), "Default for 'RunJobs' is now '%s'",
-	     runjobs ? "TRUE" : "FALSE");
-    parser_comment(errtxt, 8);
+    parser_comment(PARSER_LOG_RES, "setting default 'RunJobs' to '%s'",
+		   runjobs ? "TRUE" : "FALSE");
 
     return ret;
 }
@@ -628,18 +592,15 @@ static int getNodeLine(char *token)
 
     if (ret) return ret;
 
-    if (parser_getDebugLevel()>=6) {
-	snprintf(errtxt, sizeof(errtxt), "Register '%s' as %d with"
-		 " HW '%s', jobs%s allowed, starting%s allowed.",
-		 hostname, nodenum, HW_printType(node_hwtype),
-		 node_runjobs ? "" : " not", node_canstart ? "" : " not");
-	parser_comment(errtxt, 6);
+    if (parser_getDebugMask() & PARSER_LOG_NODE) {
+	parser_comment(PARSER_LOG_NODE, "Register '%s' as %d with"
+		       " HW '%s', jobs%s allowed, starting%s allowed.",
+		       hostname, nodenum, HW_printType(node_hwtype),
+		       node_runjobs ? "":" not", node_canstart ? "":" not");
 	if (node_extraIP) {
-	    snprintf(errtxt, sizeof(errtxt), " Myrinet IP will be <%s>.",
-		     inet_ntoa(* (struct in_addr *) &node_extraIP));
-	    parser_comment(errtxt, 6);
+	    parser_comment(PARSER_LOG_NODE, " Myrinet IP will be <%s>.",
+			   inet_ntoa(* (struct in_addr *) &node_extraIP));
 	}
-	parser_comment("\n", 6);
     }
 
     ret = installHost(ipaddr, nodenum, node_hwtype, node_extraIP,
@@ -694,8 +655,7 @@ char *getQuotedString(char *line)
     char *end, *value = NULL;
 
     if (!line) {
-	snprintf(errtxt, sizeof(errtxt), "empty line\n");
-	parser_comment(errtxt,0);
+	parser_comment(-1, "empty line");
 	return NULL;
     }
 
@@ -727,17 +687,14 @@ char *getQuotedString(char *line)
     }
 
     if (!value) {
-	snprintf(errtxt, sizeof(errtxt), "no string found within %s\n", line);
-	parser_comment(errtxt,0);
+	parser_comment(-1, "no string found within '%s'", line);
 	return NULL;
     }
 
     /* Skip trailing whitespace */
     while (*end==' ' || *end=='\t') end++;
     if (*end) {
-	snprintf(errtxt, sizeof(errtxt), "found trailing garbage '%s' %d\n",
-		 end, *end);
-	parser_comment(errtxt,0);
+	parser_comment(-1, "found trailing garbage '%s' %d", end, *end);
 	return NULL;
     }
 
@@ -753,33 +710,28 @@ static int getEnvLine(char *token)
     if (token) {
 	name = strdup(token);
     } else {
-	snprintf(errtxt, sizeof(errtxt), "syntax error\n");
-	parser_comment(errtxt,0);
+	parser_comment(-1, "syntax error");
 	return -1;
     }
 
     line = parser_getLine();
 
     if (!line) {
-	snprintf(errtxt, sizeof(errtxt), "premature end of line\n");
-	parser_comment(errtxt,0);
+	parser_comment(-1, "premature end of line");
 	return -1;
     }
 
     value = getQuotedString(line);
 
     if (!value) {
-	snprintf(errtxt, sizeof(errtxt), "no value for %s\n", name);
-	parser_comment(errtxt,0);
+	parser_comment(-1, "no value for %s", name);
 	return -1;
     }
 
     /* store environment */
     setenv(name, value, 1);
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "Got environment: %s='%s'\n", name , value);
-    parser_comment(errtxt,10);
+    parser_comment(PARSER_LOG_RES, "got environment: %s='%s'", name , value);
 
     return 0;
 }
@@ -840,38 +792,31 @@ static int getHardwareScript(char *token)
     } else if (strcasecmp(token, "statusscript")==0) {
 	name = HW_COUNTER;
     } else {
-	snprintf(errtxt, sizeof(errtxt), "unknown script type '%s'\n", token);
-	parser_comment(errtxt,0);
+	parser_comment(-1, "unknown script type '%s'", token);
 	return -1;
     }
 
     line = parser_getLine();
 
     if (!line) {
-	snprintf(errtxt, sizeof(errtxt), "premature end of line\n");
-	parser_comment(errtxt,0);
+	parser_comment(-1, "premature end of line");
 	return -1;
     }
 
     value = getQuotedString(line);
 
     if (!value) {
-	snprintf(errtxt, sizeof(errtxt), "no value for %s\n", name);
-	parser_comment(errtxt,0);
+	parser_comment(-1, "no value for %s", name);
 	return -1;
     }
 
     /* store environment */
     if (HW_getScript(actHW, name)) {
-	snprintf(errtxt, sizeof(errtxt),
-	     "Redefineing hardware script: %s\n", name);
-	parser_comment(errtxt,0);
+	parser_comment(-1, "redefineing hardware script: %s", name);
     }
     HW_setScript(actHW, name, value);
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "Got hardware script: %s='%s'\n", name , value);
-    parser_comment(errtxt,10);
+    parser_comment(PARSER_LOG_RES, "got hardware script: %s='%s'",name, value);
 
     return 0;
 }
@@ -884,38 +829,32 @@ static int getHardwareEnvLine(char *token)
     if (token) {
 	name = strdup(token);
     } else {
-	snprintf(errtxt, sizeof(errtxt), "syntax error\n");
-	parser_comment(errtxt,0);
+	parser_comment(-1, "syntax error");
 	return -1;
     }
 
     line = parser_getLine();
 
     if (!line) {
-	snprintf(errtxt, sizeof(errtxt), "premature end of line\n");
-	parser_comment(errtxt,0);
+	parser_comment(-1, "premature end of line");
 	return -1;
     }
 
     value = getQuotedString(line);
 
     if (!value) {
-	snprintf(errtxt, sizeof(errtxt), "no value for %s\n", name);
-	parser_comment(errtxt,0);
+	parser_comment(-1, "no value for %s", name);
 	return -1;
     }
 
     /* store environment */
     if (HW_getEnv(actHW, name)) {
-	snprintf(errtxt, sizeof(errtxt),
-	     "Redefineing hardware environment: %s\n", name);
-	parser_comment(errtxt,0);
+	parser_comment(-1, "redefineing hardware environment: %s", name);
     }
     HW_setEnv(actHW, name, value);
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "Got hardware environment: %s='%s'\n", name , value);
-    parser_comment(errtxt,10);
+    parser_comment(PARSER_LOG_RES, "got hardware environment: %s='%s'\n",
+		   name , value);
 
     return 0;
 }
@@ -950,9 +889,8 @@ static int getHardware(char *token)
     if (actHW == -1) {
 	actHW = HW_add(name);
 
-	snprintf(errtxt, sizeof(errtxt),
-		 "New hardware '%s' registered as %d\n", name, actHW);
-	parser_comment(errtxt,10);
+	parser_comment(PARSER_LOG_RES, "new hardware '%s' registered as %d",
+		       name, actHW);
     }
 
     brace = parser_getString();
@@ -972,14 +910,14 @@ static int getHardware(char *token)
 static int getFreeOnSusp(char *token)
 {
     config.freeOnSuspend = 1;
-    parser_comment("Suspended jobs will free their resources", 0);
+    parser_comment(-1, "suspended jobs will free their resources");
     return 0;
 }
     
 static int getHandleOldBins(char *token)
 {
     config.handleOldBins = 1;
-    parser_comment("Recognize old binaries within resource management", 0);
+    parser_comment(-1, "recognize old binaries within resource management");
     return 0;
 }
     
@@ -1005,7 +943,8 @@ static keylist_t config_list[] = {
     {"selecttime", getSelectTime},
     {"deadinterval", getDeadInterval},
     {"rlimit", getRLimit},
-    {"loglevel", getLogLevel},
+    {"loglevel", getLogMask},
+    {"logmask", getLogMask},
     {"logdestination", getLogDest},
     {"environment", getEnv},
     {"freeOnSuspend", getFreeOnSusp},
@@ -1015,7 +954,7 @@ static keylist_t config_list[] = {
 
 static parser_t config_parser = {" \t\n", config_list};
 
-config_t *parseConfig(int usesyslog, int loglevel, char *configfile)
+config_t *parseConfig(int usesyslog, int logmask, char *configfile)
 {
     FILE *cfd;
     int ret;
@@ -1023,32 +962,23 @@ config_t *parseConfig(int usesyslog, int loglevel, char *configfile)
     parser_init(usesyslog, NULL);
 
     if (!configfile) {
-	parser_comment("No configuration file defined", 0);
+	parser_comment(-1, "no configuration file defined");
 	return NULL;
     }
  
     if (!(cfd = fopen(configfile,"r"))) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "Unable to locate configuration file <%s>", configfile);
-	parser_comment(errtxt, 0);
-
+	parser_comment(-1, "unable to locate file <%s>", configfile);
 	return NULL;
     }
+
     parser_setFile(cfd);
-
-    parser_setDebugLevel(loglevel);
-
-    snprintf(errtxt, sizeof(errtxt),
-	     "Using <%s> as configuration file", configfile);
-    parser_comment(errtxt, 1);
+    parser_setDebugMask(logmask);
+    parser_comment(PARSER_LOG_FILE, "using file <%s>", configfile);
 
     ret = parser_parseFile(&config_parser);
 
     if (ret) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "ERROR: Parsing of configuration file <%s> failed.",
-		 configfile);
-	parser_comment(errtxt, 0);
+	parser_comment(-1, "ERROR: Parsing of <%s> failed.", configfile);
 	return NULL;
     }
 
@@ -1058,7 +988,7 @@ config_t *parseConfig(int usesyslog, int loglevel, char *configfile)
      * Sanity Checks
      */
     if (PSnodes_getNum()==-1) {
-	parser_comment("ERROR: NrOfNodes not defined", 0);
+	parser_comment(-1, "ERROR: NrOfNodes not defined");
 	return NULL;
     }
 
@@ -1066,7 +996,7 @@ config_t *parseConfig(int usesyslog, int loglevel, char *configfile)
      * Sanity Checks
      */
     if (PSnodes_getNum() > nodesfound) { /* hosts missing in hostlist */
-	parser_comment("WARNING: # hosts in hostlist less than NrOfNodes", 0);
+	parser_comment(-1, "WARNING: # hosts in hostlist less than NrOfNodes");
     }
     
     return &config;

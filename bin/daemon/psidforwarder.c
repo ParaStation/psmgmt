@@ -113,12 +113,10 @@ static void closeDaemonSock(void)
  */
 static int sendMsg(PSLog_msg_t type, char *buf, size_t len)
 {
-    char txt[128];
     int ret = 0;
 
     if (loggerTID < 0) {
-	snprintf(txt, sizeof(txt), "%s:  not connected.\n", __func__);
-	PSID_errlog(txt, 1);
+	PSID_log(-1, "%s:  not connected\n", __func__);
 	errno = EPIPE;
 
 	return -1;
@@ -127,11 +125,7 @@ static int sendMsg(PSLog_msg_t type, char *buf, size_t len)
     ret = PSLog_write(loggerTID, type, buf, len);
 
     if (ret < 0) {
-	char *errstr = strerror(errno);
-	snprintf(txt, sizeof(txt), "%s: error (%d): %s\n",
-		 __func__, errno, errstr ? errstr : "UNKNOWN");
-	PSID_errlog(txt, 0);
-
+	PSID_warn(-1, errno, "%s: PSLog_write()", __func__);
 	loggerTID = -1;
     }
 
@@ -185,12 +179,10 @@ static int printMsg(PSLog_msg_t type, char *buf)
  */
 static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 {
-    char txt[128];
     int ret;
 
     if (loggerTID < 0) {
-	snprintf(txt, sizeof(txt), "%s: not connected\n", __func__);
-	PSID_errlog(txt, 0);
+	PSID_log(-1, "%s: not connected\n", __func__);
 	errno = EPIPE;
 
 	return -1;
@@ -199,11 +191,7 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
     ret = PSLog_read(msg, timeout);
 
     if (ret < 0) {
-	char *errstr = strerror(errno);
-	snprintf(txt, sizeof(txt), "%s: error (%d): %s\n",
-		 __func__, errno, errstr ? errstr : "UNKNOWN");
-	PSID_errlog(txt, 0);
-
+	PSID_warn(-1, errno, "%s: PSLog_read()", __func__);
 	loggerTID = -1;
 
 	return ret;
@@ -214,29 +202,22 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
     switch (msg->header.type) {
     case PSP_CC_ERROR:
 	if (msg->header.sender == loggerTID) {
-	    snprintf(txt, sizeof(txt), "%s: logger %s disappeared.\n",
+	    PSID_log(-1, "%s: logger %s disappeared\n",
 		     __func__, PSC_printTID(loggerTID));
-	    PSID_errlog(txt, 0);
-
 	    loggerTID = -1;
-
 	    errno = EPIPE;
 	    ret = -1;
 	} else {
-	    snprintf(txt, sizeof(txt), "%s: CC_ERROR from %s.\n",
+	    PSID_log(-1, "%s: CC_ERROR from %s\n",
 		     __func__, PSC_printTID(loggerTID));
-	    PSID_errlog(txt, 0);
-
 	    ret = 0;
 	}
 	break;
     case PSP_CC_MSG:
 	break;
     default:
-	snprintf(txt, sizeof(txt), "%s: Unknown message type %s.\n",
+	PSID_log(-1, "%s: Unknown message type %s\n",
 		 __func__, PSDaemonP_printMsg(msg->type));
-	PSID_errlog(txt, 0);
-
 	ret = 0;
     }
 
@@ -256,7 +237,6 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
  */
 static int sendDaemonMsg(DDErrorMsg_t *msg)
 {
-    char txt[128];
     char *buf = (void *)msg;
     size_t c = msg->header.len;
     int n;
@@ -280,25 +260,19 @@ static int sendDaemonMsg(DDErrorMsg_t *msg)
     } while (c > 0);
 
     if (n < 0) {
-	char *errstr = strerror(errno);
-	snprintf(txt, sizeof(txt), "%s: error (%d): %s\n",
-		 __func__, errno, errstr ? errstr : "UNKNOWN");
-	PSID_errlog(txt, 0);
-
+	PSID_warn(-1, errno ,"%s: send()", __func__);
 	closeDaemonSock();
 
 	return n;
     } else if (!n) {
-	snprintf(txt, sizeof(txt),
-		 "%s: Lost connection to daemon\n", __func__);
-	PSID_errlog(txt, 0);
-
+	PSID_log(-1, "%s: Lost connection to daemon\n", __func__);
 	closeDaemonSock();
 
 	return n;
     }
 
     if (verbose) {
+	char txt[128];
         snprintf(txt, sizeof(txt), "%s type %s (len=%d) to %s\n",
                  __func__, PSDaemonP_printMsg(msg->header.type),
 		 msg->header.len, PSC_printTID(msg->header.dest));
@@ -321,7 +295,6 @@ static int sendDaemonMsg(DDErrorMsg_t *msg)
  */
 static int connectLogger(PStask_ID_t tid)
 {
-    char txt[128];
     PSLog_Msg_t msg;
     struct timeval timeout = {10, 0};
     int ret;
@@ -335,40 +308,32 @@ static int connectLogger(PStask_ID_t tid)
     loggerTID = -1;
 
     if (ret <= 0) {
-	snprintf(txt, sizeof(txt), "%s(%s): Connection refused\n",
+	PSID_log(-1, "%s(%s): Connection refused\n",
 		 __func__, PSC_printTID(tid));
-	PSID_errlog(txt, 0);
 	errno = ECONNREFUSED;
 	return -1;
     }
 
     if (msg.header.len != PSLog_headerSize + (int) sizeof(int)) {
-	snprintf(txt, sizeof(txt), "%s(%s): Message to short\n",
+	PSID_log(-1, "%s(%s): Message to short\n",
 		 __func__, PSC_printTID(tid));
-	PSID_errlog(txt, 0);
-
 	errno = ECONNREFUSED;
 	return -1;
     } else if (msg.type != INITIALIZE) {
-	snprintf(txt, sizeof(txt), "%s(%s): Protocol messed up\n",
+	PSID_log(-1 ,"%s(%s): Protocol messed up\n",
 		 __func__, PSC_printTID(tid));
-	PSID_errlog(txt, 0);
-
 	errno = ECONNREFUSED;
 	return -1;
     } else if (msg.header.sender != tid) {
-	snprintf(txt, sizeof(txt), "%s(%s): Got INITIALIZE not from logger\n",
+	PSID_log(-1, "%s(%s): Got INITIALIZE not from logger\n",
 		 __func__, PSC_printTID(tid));
-	PSID_errlog(txt, 0);
-
 	errno = ECONNREFUSED;
 	return -1;
     } else {
 	loggerTID = tid;
 	verbose = *(int *) msg.buf;
-	snprintf(txt, sizeof(txt), "%s(%s): Connected\n",
+	PSID_log(PSID_LOG_SPAWN, "%s(%s): Connected\n",
 		 __func__, PSC_printTID(tid));
-	PSID_errlog(txt, 10);
     }
 
     return 0;
@@ -388,7 +353,6 @@ static int connectLogger(PStask_ID_t tid)
  */
 static void releaseLogger(int status)
 {
-    char txt[128];
     PSLog_Msg_t msg;
     int ret;
     struct timeval timeout = {10, 0};
@@ -400,25 +364,16 @@ static void releaseLogger(int status)
 
     if (ret < 0) {
 	if (errno == EPIPE) {
-	    snprintf(txt, sizeof(txt),
-		     "%s: logger already dissapeared\n", __func__);
-	    PSID_errlog(txt, 0);
+	    PSID_log(-1, "%s: logger already dissapeared\n", __func__);
 	} else {
-	    char *errstr = strerror(errno);
-	    snprintf(txt, sizeof(txt), "%s: error (%d): %s\n",
-		     __func__, errno, errstr ? errstr : "UNKNOWN");
-	    PSID_errlog(txt, 0);
+	    PSID_warn(-1, errno, "%s: recvMsg()", __func__);
 	}
     } else if (!ret) {
-	snprintf(txt, sizeof(txt),
-		 "%s: receive timed out. logger dissapeared\n", __func__);
-	PSID_errlog(txt, 0);
+	PSID_log(-1, "%s: receive timed out. logger dissapeared\n", __func__);
     } else if (msg.type != EXIT) {
 	if (msg.type == STDIN) goto again; /* Ignore late STDIN messages */
-	snprintf(txt, sizeof(txt),
-		 "%s: Protocol messed up (type %d) from %s\n",
+	PSID_log(-1, "%s: Protocol messed up (type %d) from %s\n",
 		 __func__, msg.type, PSC_printTID(msg.header.sender));
-	PSID_errlog(txt, 0);
     }
 
     loggerTID = -1;
@@ -447,7 +402,6 @@ static void releaseLogger(int status)
  */
 static size_t collectRead(int sock, char *buf, size_t count, size_t *total)
 {
-    char txt[128];
     int n;
 
     *total = 0;
@@ -465,6 +419,7 @@ static size_t collectRead(int sock, char *buf, size_t count, size_t *total)
 	    if (errno == EINTR) {
 		continue;
 	    } else {
+		char txt[128];
 		snprintf(txt, sizeof(txt),
 			 "PSID_forwarder: error on select(%d): %s\n",
 			 errno, strerror(errno));
@@ -546,7 +501,7 @@ static void sighandler(int sig)
     case SIGCHLD:
 	if (verbose) {
 	    snprintf(txt, sizeof(txt),
-		     "[%d] PSID_forwarder: Got SIGCHLD.\n", childRank);
+		     "[%d] PSID_forwarder: Got SIGCHLD\n", childRank);
 	    printMsg(STDERR, txt);
 	}
 
@@ -671,7 +626,7 @@ static void checkFileTable(fd_set* openfds)
     fd_set rfds;
     int fd;
     struct timeval tv;
-    char *errtxt, buf[80];
+    char *errstr, buf[80];
 
     for (fd=0; fd<FD_SETSIZE;) {
 	if (FD_ISSET(fd, openfds)) {
@@ -711,10 +666,10 @@ static void checkFileTable(fd_set* openfds)
 		    FD_CLR(fd, openfds);
 		    break;
 		default:
-		    errtxt=strerror(errno);
+		    errstr=strerror(errno);
 		    snprintf(buf, sizeof(buf),
-			     "%s(%d): unrecognized error (%d):%s\n", __func__,
-			     fd, errno, errtxt ? errtxt : "UNKNOWN errno");
+			     "%s(%d): unrecognized error (%d): %s\n", __func__,
+			     fd, errno, errstr ? errstr : "UNKNOWN");
 		    printMsg(STDERR, buf);
 		    fd ++;
 		    break;
@@ -766,9 +721,8 @@ static int do_write(PSLog_Msg_t *msg, int offset)
 		char *errstr = strerror(errno);
 
 		snprintf(obuf, sizeof(obuf),
-			 "%s(): got error %d on stdinSock: %s",
-			 __func__, errno, 
-			 errstr ? errstr : "UNKNOWN");
+			 "%s: got error %d on stdinSock: %s",
+			 __func__, errno, errstr ? errstr : "UNKNOWN");
 		printMsg(STDERR, obuf);
 		return i;
 	    }

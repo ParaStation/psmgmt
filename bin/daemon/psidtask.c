@@ -26,8 +26,6 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #include "psidtask.h"
 
-static char errtxt[256]; /**< General string to create error messages */
-
 PStask_t *managedTasks = NULL;
 
 void PSID_setSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal)
@@ -48,8 +46,7 @@ static void printList(PStask_sig_t *list)
     PStask_sig_t *thissig = list;
 
     while (thissig) {
-	snprintf(errtxt, sizeof(errtxt), "   %s", PSC_printTID(thissig->tid));
-	PSID_errlog(errtxt, 9);
+	PSID_log(PSID_LOG_SIGDBG, " %s", PSC_printTID(thissig->tid));
 	thissig = thissig->next;
     }
 }
@@ -58,10 +55,10 @@ int PSID_removeSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal)
 {
     PStask_sig_t *thissig, *prev = NULL;
 
-    snprintf(errtxt, sizeof(errtxt), "%s: childs before (for %s) are:",
+    PSID_log(PSID_LOG_SIGDBG, "%s: childs before (for %s):",
 	     __func__, PSC_printTID(tid));
-    PSID_errlog(errtxt, 9);
     printList(*siglist);
+    PSID_log(PSID_LOG_SIGDBG, "\n");
     
     thissig = *siglist;
     while (thissig && (thissig->tid != tid || thissig->signal != signal)) {
@@ -81,15 +78,14 @@ int PSID_removeSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal)
 
 	free(thissig);
 
-	snprintf(errtxt, sizeof(errtxt), "%s: childs after are:", __func__);
-	PSID_errlog(errtxt, 9);
+	PSID_log(PSID_LOG_SIGDBG, "%s: childs after:", __func__);
 	printList(*siglist);
+	PSID_log(PSID_LOG_SIGDBG, "\n");
 
 	return 1;
     } else {
-	snprintf(errtxt, sizeof(errtxt), "%s(%s, %d): Not found",
+	PSID_log(PSID_LOG_SIGNAL, "%s(%s, %d): Not found\n",
 		 __func__, PSC_printTID(tid), signal);
-	PSID_errlog(errtxt, 1);
     }
 
     return 0;
@@ -134,9 +130,8 @@ void PStasklist_delete(PStask_t **list)
 {
     PStask_t *task;
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%p[%lx])", __func__,
-	     list, *list ? (long)*list : -1);
-    PSID_errlog(errtxt, 10);
+    PSID_log(PSID_LOG_TASK,
+	     "%s(%p[%lx])\n", __func__, list, *list ? (long)*list : -1);
 
     while (*list) {
 	task = (*list);
@@ -147,9 +142,8 @@ void PStasklist_delete(PStask_t **list)
 
 int PStasklist_enqueue(PStask_t **list, PStask_t *task)
 {
-    snprintf(errtxt, sizeof(errtxt), "%s(%p[%lx],%p) %s", __func__,
-	     list, *list ? (long)*list : -1, task, PSC_printTID(task->tid));
-    PSID_errlog(errtxt, 10);
+    PSID_log(PSID_LOG_TASK, "%s(%p[%lx],%s(%p))\n", __func__,
+	     list, *list ? (long)*list : -1, PSC_printTID(task->tid), task);
 
     if (*list) {
 	task->next = (*list)->next;
@@ -169,9 +163,8 @@ PStask_t *PStasklist_dequeue(PStask_t **list, PStask_ID_t tid)
 {
     PStask_t *task = NULL;
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%p[%lx], %s)", __func__,
+    PSID_log(PSID_LOG_TASK, "%s(%p[%lx], %s)\n", __func__,
 	     list, *list ? (long)*list : -1, PSC_printTID(tid));
-    PSID_errlog(errtxt, 10);
 
     task = PStasklist_find(*list, tid);
 
@@ -195,9 +188,7 @@ PStask_t *PStasklist_find(PStask_t *list, PStask_ID_t tid)
 {
     PStask_t *task;
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%p, %s)", __func__,
-	     list, PSC_printTID(tid));
-    PSID_errlog(errtxt, 10);
+    PSID_log(PSID_LOG_TASK, "%s(%p, %s)\n", __func__, list, PSC_printTID(tid));
 
     task = list;
 
@@ -212,14 +203,12 @@ void PStask_cleanup(PStask_ID_t tid)
 {
     PStask_t *task;
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%s)", __func__, PSC_printTID(tid));
-    PSID_errlog(errtxt, 10);
+    PSID_log(PSID_LOG_TASK, "%s(%s)\n", __func__, PSC_printTID(tid));
 
     task = PStasklist_find(managedTasks, tid);
     if (!task) {
-	snprintf(errtxt, sizeof(errtxt), "%s: task(%s) not in my tasklist",
+	PSID_log(-1, "%s: %s not in my tasklist\n",
 		 __func__, PSC_printTID(tid));
-	PSID_errlog(errtxt, 0);
 	return;
     }
 
@@ -250,15 +239,12 @@ void PStask_cleanup(PStask_ID_t tid)
 		PSID_removeSignal(&forwarder->childs, task->tid, -1);
 
 		if (forwarder->removeIt && !forwarder->childs) {
-		    snprintf(errtxt, sizeof(errtxt), "%s: PStask_cleanup()",
-			     __func__);
-		    PSID_errlog(errtxt, 1);
+		    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n",__func__);
 		    PStask_cleanup(forwarder->tid);
 		}
 	    } else {
-		snprintf(errtxt, sizeof(errtxt), "%s: forwarder %s not found",
+		PSID_log(-1, "%s: forwarder %s not found\n",
 			 __func__, PSC_printTID(task->forwardertid));
-		PSID_errlog(errtxt, 0);
 	    }
 	}
 
@@ -273,10 +259,8 @@ void PStask_cleanup(PStask_ID_t tid)
 		    PStask_t *child = PStasklist_find(managedTasks, childTID);
 
 		    if (child && child->fd == -1) {
-			snprintf(errtxt, sizeof(errtxt),
-				 "%s: forwarder kills child %s",
+			PSID_log(-1, "%s: forwarder kills child %s\n",
 				 __func__, PSC_printTID(child->tid));
-			PSID_errlog(errtxt, 0);
 
 			PSID_kill(-PSC_getPID(childTID), SIGKILL, child->uid);
 			PSID_removeSignal(&task->childs, childTID, -1);

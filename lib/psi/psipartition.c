@@ -17,6 +17,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <string.h>
 #include <signal.h>
 #include <time.h>
+#include <errno.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -32,8 +33,6 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "psiinfo.h"
 
 #include "psipartition.h"
-
-static char errtxt[256];
 
 /**
  * The name of the environment variable defining a nodelist from a
@@ -109,8 +108,7 @@ void PSI_LSF(void)
 {
     char *lsf_hosts=NULL;
 
-    snprintf(errtxt, sizeof(errtxt), "%s()", __func__);
-    PSI_errlog(errtxt, 10);
+    PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
 
     lsf_hosts = getenv(ENV_NODE_HOSTS_LSF);
     if (lsf_hosts) {
@@ -133,8 +131,7 @@ void PSI_PBS(void)
 {
     char *pbs_hostfile=NULL;
 
-    snprintf(errtxt, sizeof(errtxt), "%s()", __func__);
-    PSI_errlog(errtxt, 10);
+    PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
 
     pbs_hostfile = getenv(ENV_NODE_HOSTFILE_PBS);
     if (pbs_hostfile) {
@@ -180,9 +177,7 @@ static PSpart_sort_t getSortMode(void)
 	return PART_SORT_NONE;
     }
 
-    snprintf(errtxt, sizeof(errtxt), "%s: Unknown criterium '%s'", __func__,
-	     env_sort);
-    PSI_errlog(errtxt, 0);
+    PSI_log(-1, "%s: Unknown criterium '%s'\n", __func__, env_sort);
 
     return PART_SORT_UNKNOWN;
 }
@@ -232,15 +227,13 @@ typedef struct {
  */
 static int addNode(PSnodes_ID_t node, nodelist_t *nl)
 {
-    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, node);
-    PSI_errlog(errtxt, 10);
+    PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, node);
 
     if (nl->size == nl->maxsize) {
 	nl->maxsize += 128;
 	nl->nodes = realloc(nl->nodes, nl->maxsize * sizeof(*nl->nodes));
 	if (!nl->nodes) {
-            snprintf(errtxt, sizeof(errtxt), "%s: no memory.", __func__);
-            PSI_errlog(errtxt, 0);
+            PSI_log(-1, "%s: no memory\n", __func__);
             return 0;
 	}
     }
@@ -279,8 +272,7 @@ static int nodelistFromRange(char *range, nodelist_t *nodelist)
     first = strtol(start, &end, 0);
     if (*end != '\0') return 0;
     if (first < 0 || first >= PSC_getNrOfNodes()) {
-        snprintf(errtxt, sizeof(errtxt), "node %ld out of range.", first);
-        PSI_errlog(errtxt, 0);
+        PSI_log(-1, "%s: node %ld out of range\n", __func__, first);
         return 0;
     }
 
@@ -288,8 +280,7 @@ static int nodelistFromRange(char *range, nodelist_t *nodelist)
         last = strtol(range, &end, 0);
         if (*end != '\0') return 0;
         if (last < 0 || last >= PSC_getNrOfNodes()) {
-            snprintf(errtxt, sizeof(errtxt), "node %ld out of range.", last);
-            PSI_errlog(errtxt, 0);
+            PSI_log(-1, "%s: node %ld out of range\n", __func__, last);
             return 0;
         }
     } else {
@@ -351,9 +342,7 @@ static int nodelistFromHost(char *host, nodelist_t *nodelist)
 
     hp = gethostbyname(host);
     if (!hp) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: unknown node '%s'.", __func__, host);
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: unknown node '%s'\n", __func__, host);
 	return 0;
     }
 
@@ -361,16 +350,12 @@ static int nodelistFromHost(char *host, nodelist_t *nodelist)
     err = PSI_infoNodeID(-1, PSP_INFO_HOST, &sin_addr.s_addr, &node, 0);
 
     if (err || node < 0) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: cannot get ParaStation ID for node '%s'.",
-		 __func__, host);
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: cannot get ParaStation ID for node '%s'\n",
+		__func__, host);
 	return 0;
     } else if (node >= PSC_getNrOfNodes()) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: ParaStation ID %d for node '%s' out of range.",
-		 __func__, node, host);
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: ParaStation ID %d for node '%s' out of range\n",
+		__func__, node, host);
 	return 0;
     }
 
@@ -434,18 +419,14 @@ static int nodelistFromHostFile(char *fileName, nodelist_t *nodelist)
     int total = 0;
 
     if (!file) {
-	snprintf(errtxt, sizeof(errtxt), "%s: cannot open file <%s>.",
-		 __func__, fileName);
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: cannot open file <%s>\n", __func__, fileName);
 	return 0;
     }
 
     while (fgets(line, sizeof(line), file)) {
 	if (line[0] == '#') continue;
 	if (nodelistFromHostStr(line, nodelist) != 1) {
-	    snprintf(errtxt, sizeof(errtxt), "%s: syntax error at: '%s'.",
-		     __func__, line);
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1, "%s: syntax error at: '%s'\n", __func__, line);
 	    fclose(file);
 	    return 0;
 	} else
@@ -477,15 +458,13 @@ static nodelist_t *getNodelist(void)
     char *hostfileStr = getenv(ENV_NODE_HOSTFILE);
     nodelist_t *nodelist;
 
-    snprintf(errtxt, sizeof(errtxt), "%s", __func__);
-    PSI_errlog(errtxt, 10);
+    PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
 
     if (!nodeStr && !hostStr && !hostfileStr) return NULL;
 
     nodelist = malloc(sizeof(nodelist_t));
     if (!nodelist) {
-	snprintf(errtxt, sizeof(errtxt), "%s: no memory.", __func__);
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: no memory\n", __func__);
 	return NULL;
     }
     *nodelist = (nodelist_t) {
@@ -546,7 +525,7 @@ static int sendNodelist(nodelist_t *nodelist, DDBufferMsg_t *msg)
 	char *ptr = msg->buf;
 	msg->header.len = sizeof(msg->header);
 
-	*(int16_t *)ptr = chunk;
+	*(int16_t*)ptr = chunk;
 	ptr += sizeof(int16_t);
 	msg->header.len += sizeof(int16_t);
 
@@ -554,8 +533,7 @@ static int sendNodelist(nodelist_t *nodelist, DDBufferMsg_t *msg)
 	msg->header.len += chunk * sizeof(*nodelist->nodes);
 	offset += chunk;
 	if (PSI_sendMsg(msg)<0) {
-	    snprintf(errtxt, sizeof(errtxt), "%s: write", __func__);
-	    PSI_errlog(errtxt, 0);
+	    PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 	    return -1;
 	}
     }
@@ -569,8 +547,7 @@ static void alarmHandler(int sig)
     char *timeStr = ctime(&now);
     alarmCalled = 1;
     timeStr[strlen(timeStr)-1] = '\0';
-    snprintf(errtxt, sizeof(errtxt), "%s -- Waiting for ressources", timeStr);
-    PSI_errlog(errtxt, 0);
+    PSI_log(-1, "%s -- Waiting for ressources\n", timeStr);
 }
 
 int PSI_createPartition(unsigned int size, unsigned int hwType)
@@ -586,13 +563,10 @@ int PSI_createPartition(unsigned int size, unsigned int hwType)
     nodelist_t *nodelist;
     size_t len;
 
-    snprintf(errtxt, sizeof(errtxt), "%s", __func__);
-    PSI_errlog(errtxt, 10);
+    PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
 
     if (size <= 0) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: size %d to small", __func__, size);
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: size %d to small\n", __func__, size);
 	return -1;
     }
 
@@ -604,11 +578,10 @@ int PSI_createPartition(unsigned int size, unsigned int hwType)
 
     if (request->sort == PART_SORT_UNKNOWN) return -1;
 
-    snprintf(errtxt, sizeof(errtxt),
-	     "%s: size %d hwType %x sort %x options %x priority %d",
-	     __func__, request->size, request->hwType, request->sort,
-	     request->options, request->priority);
-    PSI_errlog(errtxt, 10);
+    PSI_log(PSI_LOG_PART,
+	    "%s: size %d hwType %x sort %x options %x priority %d\n",
+	    __func__, request->size, request->hwType, request->sort,
+	    request->options, request->priority);
 
     nodelist = getNodelist();
     if (nodelist) {
@@ -624,16 +597,14 @@ int PSI_createPartition(unsigned int size, unsigned int hwType)
     len = PSpart_encodeReq(msg.buf, sizeof(msg.buf), request);
     PSpart_delReq(request);
     if (len > sizeof(msg.buf)) {
-	snprintf(errtxt, sizeof(errtxt), "%s: PSpart_encodeReq", __func__);
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: PSpart_encodeReq\n", __func__);
 	freeNodelist(nodelist);
 	return -1;
     }
     msg.header.len += len;
 
     if (PSI_sendMsg(&msg)<0) {
-	snprintf(errtxt, sizeof(errtxt), "%s: write", __func__);
-	PSI_errlog(errtxt, 0);
+	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 	freeNodelist(nodelist);
 	return -1;
     }
@@ -647,37 +618,26 @@ int PSI_createPartition(unsigned int size, unsigned int hwType)
     signal(SIGALRM, alarmHandler);
     alarm(2);
     if (PSI_recvMsg(&msg)<0) {
-	snprintf(errtxt, sizeof(errtxt), "%s: recv", __func__);
-	PSI_errlog(errtxt, 0);
+	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
     }
     alarm(0);
 
     switch (msg.header.type) {
     case PSP_CD_PARTITIONRES:
-	if (*(int *)msg.buf) {
-	    char *errstr = strerror(*(int *)msg.buf);
-	    snprintf(errtxt, sizeof(errtxt), "%s: %s",
-		     __func__, errstr ? errstr : "UNKNOWN");
-	    PSI_errlog(errtxt, 0);
+	if (*(int*)msg.buf) {
+	    PSI_warn(-1, *(int*)msg.buf, "%s", __func__);
 	    return -1;
 	}
 	break;
     case PSP_CD_ERROR:
-    {
-	char *errstr = strerror(((DDErrorMsg_t *)&msg)->error);
-	snprintf(errtxt, sizeof(errtxt), "%s: error in command %s : %s",
-		 __func__, PSP_printMsg(((DDErrorMsg_t*)&msg)->request),
-		 errstr ? errstr : "UNKNOWN");
-	PSI_errlog(errtxt, 0);
+	PSI_warn(-1, ((DDErrorMsg_t*)&msg)->error, "%s: error in command %s",
+		 __func__, PSP_printMsg(((DDErrorMsg_t*)&msg)->request));
 	return -1;
 	break;
-    }
     default:
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: received unexpected msgtype '%s'.",
-		 __func__, PSP_printMsg(msg.header.type));
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: received unexpected msgtype '%s'\n",
+		__func__, PSP_printMsg(msg.header.type));
 	return -1;
     }
 
@@ -685,8 +645,7 @@ int PSI_createPartition(unsigned int size, unsigned int hwType)
 	time_t now = time(NULL);
 	char *timeStr = ctime(&now);
 	timeStr[strlen(timeStr)-1] = '\0';
-	snprintf(errtxt, sizeof(errtxt), "%s -- Starting now...", timeStr);
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s -- Starting now...\n", timeStr);
     }
 
     return size;
@@ -705,25 +664,21 @@ int PSI_getNodes(unsigned int num, PSnodes_ID_t *nodes)
     int ret = -1;
 
     if (num > NODES_CHUNK) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: Do not request more than %d nodes.",
-		 __func__, NODES_CHUNK);
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: Do not request more than %d nodes\n", __func__,
+		NODES_CHUNK);
 	return -1;
     }
 
-    *(unsigned int *)ptr = num;
+    *(unsigned int*)ptr = num;
     msg.header.len += sizeof(unsigned int);
 
     if (PSI_sendMsg(&msg)<0) {
-	snprintf(errtxt, sizeof(errtxt), "%s: send", __func__);
-	PSI_errlog(errtxt, 0);
+	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 	return -1;
     }
 
     if (PSI_recvMsg(&msg)<0) {
-	snprintf(errtxt, sizeof(errtxt), "%s: recv", __func__);
-	PSI_errlog(errtxt, 0);
+	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
     }
 
@@ -731,12 +686,10 @@ int PSI_getNodes(unsigned int num, PSnodes_ID_t *nodes)
     case PSP_CD_NODESRES:
     {
 	char *ptr = msg.buf;
-	ret = *(int *)ptr;
+	ret = *(int*)ptr;
 	ptr += sizeof(int);
 	if (ret<0) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: Cannot get %d nodes.", __func__, num);
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1, "%s: Cannot get %d nodes\n", __func__, num);
 	} else {
 	    memcpy(nodes, ptr, num*sizeof(*nodes));
 	}
@@ -744,18 +697,13 @@ int PSI_getNodes(unsigned int num, PSnodes_ID_t *nodes)
     }
     case PSP_CD_ERROR:
     {
-	char *errstr = strerror(((DDErrorMsg_t *)&msg)->error);
-	snprintf(errtxt, sizeof(errtxt), "%s: error in command %s : %s",
-		 __func__, PSP_printMsg(((DDErrorMsg_t*)&msg)->request),
-		 errstr ? errstr : "UNKNOWN");
-	PSI_errlog(errtxt, 0);
+	PSI_warn(-1, ((DDErrorMsg_t*)&msg)->error, "%s: error in command %s",
+		 __func__, PSP_printMsg(((DDErrorMsg_t*)&msg)->request));
 	break;
     }
     default:
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: received unexpected msgtype '%s'.",
-		 __func__, PSP_printMsg(msg.header.type));
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: received unexpected msgtype '%s'\n", __func__,
+		PSP_printMsg(msg.header.type));
     }
 
     return ret;

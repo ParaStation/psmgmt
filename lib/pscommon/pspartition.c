@@ -19,18 +19,16 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #include "pspartition.h"
 
-static char errtxt[512]; /**< General string to create error messages */
-
-PSpart_request_t *PSpart_newReq()
+PSpart_request_t* PSpart_newReq()
 {
-    PSpart_request_t *request = malloc(sizeof(PSpart_request_t));
+    PSpart_request_t* request = malloc(sizeof(PSpart_request_t));
 
     if (request) PSpart_initReq(request);
 
     return request;
 }
 
-void PSpart_initReq(PSpart_request_t *request)
+void PSpart_initReq(PSpart_request_t* request)
 {
     if (request) *request = (PSpart_request_t) {
 	.next = NULL,
@@ -50,18 +48,24 @@ void PSpart_initReq(PSpart_request_t *request)
 	.freed = 0, };
 }
 
-void PSpart_reinitReq(PSpart_request_t *request)
+void PSpart_reinitReq(PSpart_request_t* request)
 {
-    if (!request) return;
+    if (!request) {
+	PSC_log(-1, "%s: request is NULL\n", __func__);
+	return;
+    }
 
     if (request->nodes) free(request->nodes);
 
     PSpart_initReq(request);
 }
 
-int PSpart_delReq(PSpart_request_t * request)
+int PSpart_delReq(PSpart_request_t* request)
 {
-    if (!request) return 0;
+    if (!request) {
+	PSC_log(-1, "%s: request is NULL\n", __func__);
+	return 0;
+    }
 
     PSpart_reinitReq(request);
     free(request);
@@ -70,11 +74,14 @@ int PSpart_delReq(PSpart_request_t * request)
     return 1;
 }
 
-void PSpart_snprintf(char *txt, size_t size, PSpart_request_t *request)
+void PSpart_snprintf(char* txt, size_t size, PSpart_request_t* request)
 {
     int i;
 
-    if (!request) return;
+    if (!request) {
+	PSC_log(-1, "%s: request is NULL\n", __func__);
+	return;
+    }
 
     snprintf(txt, size, "%stid 0x%08x size %d hwType 0x%x uid %d gid %d"
 	     " sort 0x%x options 0x%x priority %d num %d",
@@ -106,15 +113,19 @@ static struct {
     uint32_t priority;
     int32_t num;
 } tmpRequest;
-    
-size_t PSpart_encodeReq(char *buffer, size_t size, PSpart_request_t *request)
+
+static char partString[256];
+
+size_t PSpart_encodeReq(char* buffer, size_t size, PSpart_request_t* request)
 {
-    snprintf(errtxt, sizeof(errtxt), "%s(%p, %ld, request(", __func__,
-	     buffer, (long)size);
-    PSpart_snprintf(errtxt+strlen(errtxt),
-		    sizeof(errtxt)-strlen(errtxt), request);
-    snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt), ")");
-    PSC_errlog(errtxt, 10);
+    if (!request) {
+	PSC_log(-1, "%s: request is NULL\n", __func__);
+	return 0;
+    }
+
+    PSpart_snprintf(partString, sizeof(partString), request);
+    PSC_log(PSC_LOG_PART, "%s(%p, %ld, request(%s))\n",
+	    __func__, buffer, (long)size, partString);
 
     if (size >= sizeof(tmpRequest)) {
 	tmpRequest.size = request->size;
@@ -132,12 +143,15 @@ size_t PSpart_encodeReq(char *buffer, size_t size, PSpart_request_t *request)
     return sizeof(tmpRequest);
 }
 
-int PSpart_decodeReq(char *buffer, PSpart_request_t *request)
+int PSpart_decodeReq(char* buffer, PSpart_request_t* request)
 {
-    snprintf(errtxt, sizeof(errtxt), "%s(%p)", __func__, buffer);
-    PSC_errlog(errtxt, 10);
+    if (!request) {
+	PSC_log(-1, "%s: request is NULL\n", __func__);
+	return 0;
+    }
 
-    if (!request) return 0;
+    PSpart_snprintf(partString, sizeof(partString), request);
+    PSC_log(PSC_LOG_PART, "%s(%p)", __func__, buffer);
 
     PSpart_reinitReq(request);
 
@@ -152,6 +166,9 @@ int PSpart_decodeReq(char *buffer, PSpart_request_t *request)
     request->options = tmpRequest.options;
     request->priority = tmpRequest.priority;
     request->num = tmpRequest.num;
+
+    PSpart_snprintf(partString, sizeof(partString), request);
+    PSC_log(PSC_LOG_PART, " received request = (%s)\n", partString);
 
     return sizeof(tmpRequest);
 }

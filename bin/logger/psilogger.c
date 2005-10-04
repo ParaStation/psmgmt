@@ -457,7 +457,7 @@ static void CheckFileTable(fd_set* openfds)
     fd_set rfds;
     int fd;
     struct timeval tv;
-    char* errtxt;
+    char* errstr;
 
     for (fd=0;fd<FD_SETSIZE;) {
 	if (FD_ISSET(fd,openfds)) {
@@ -490,9 +490,9 @@ static void CheckFileTable(fd_set* openfds)
 		    FD_CLR(fd,openfds);
 		    break;
 		default:
-		    errtxt=strerror(errno);
-		    fprintf(stderr, "unrecognized error (%d):%s\n",
-			    errno, errtxt?errtxt:"UNKNOWN errno");
+		    errstr=strerror(errno);
+		    fprintf(stderr, "unrecognized error (%d): %s\n",
+			    errno, errstr ? errstr : "UNKNOWN");
 		    fd ++;
 		    break;
 		}

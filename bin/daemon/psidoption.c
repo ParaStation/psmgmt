@@ -31,8 +31,6 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #include "psidoption.h"
 
-static char errtxt[256]; /**< General string to create error messages */
-
 void send_OPTIONS(PSnodes_ID_t destnode)
 {
     DDOptionMsg_t msg = {
@@ -58,9 +56,7 @@ void send_OPTIONS(PSnodes_ID_t destnode)
     msg.count++;
 
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: sendMsg(): errno %d", __func__, errno);
-	PSID_errlog(errtxt, 0);
+	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
     }
 }
 
@@ -68,16 +64,14 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 {
     int i;
 
-    snprintf(errtxt, sizeof(errtxt), "%s from requester %s",
+    PSID_log(PSID_LOG_OPTION, "%s: from requester %s\n",
 	     __func__, PSC_printTID(msg->header.sender));
-    PSID_errlog(errtxt, 1);
 
     if (msg->header.dest == PSC_getMyTID()) {
 	/* Message is for me */
 	for (i=0; i<msg->count; i++) {
-	    snprintf(errtxt, sizeof(errtxt), "%s: option %d value 0x%x",
+	    PSID_log(PSID_LOG_OPTION, "%s: option %d value 0x%x\n",
 		     __func__, msg->opt[i].option, msg->opt[i].value);
-	    PSID_errlog(errtxt, 3);
 
 	    switch (msg->opt[i].option) {
 	    case PSP_OP_PSM_SPS:
@@ -170,21 +164,18 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 				    msg->opt[i].value);
 		break;
 	    case PSP_OP_PSIDDEBUG:
-		PSID_setDebugLevel(msg->opt[i].value);
-		PSC_setDebugLevel(msg->opt[i].value);
+		PSID_setDebugMask(msg->opt[i].value);
+		PSC_setDebugMask(msg->opt[i].value);
 
 		if (msg->opt[i].value) {
-		    snprintf(errtxt, sizeof(errtxt),
-			     "Debugging mode with debuglevel %d enabled",
+		    PSID_log(-1, "Debugging mode with mask 0x%x enabled\n",
 			     msg->opt[i].value);
 		} else {
-		    snprintf(errtxt, sizeof(errtxt),
-			     "Debugging mode disabled");
+		    PSID_log(-1, "Debugging mode disabled\n");
 		}
-		PSID_errlog(errtxt, 0);
 		break;
 	    case PSP_OP_RDPDEBUG:
-		setDebugLevelRDP(msg->opt[i].value);
+		setDebugMaskRDP(msg->opt[i].value);
 		break;
 	    case PSP_OP_RDPPKTLOSS:
 		setPktLossRDP(msg->opt[i].value);
@@ -193,7 +184,7 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 		setMaxRetransRDP(msg->opt[i].value);
 		break;
 	    case PSP_OP_MCASTDEBUG:
-		setDebugLevelMCast(msg->opt[i].value);
+		setDebugMaskMCast(msg->opt[i].value);
 		break;
 	    case PSP_OP_FREEONSUSP:
 		config->freeOnSuspend = msg->opt[i].value;
@@ -202,9 +193,8 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 		config->handleOldBins = msg->opt[i].value;
 		break;
 	    default:
-		snprintf(errtxt, sizeof(errtxt), "%s: unknown option %d",
-			 __func__, msg->opt[i].option);
-		PSID_errlog(errtxt, 0);
+		PSID_log(-1, "%s: unknown option %d\n", __func__,
+			msg->opt[i].option);
 	    }
 	}
     } else {
@@ -218,9 +208,8 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 {
     int id = PSC_getID(msg->header.dest);
 
-    snprintf(errtxt, sizeof(errtxt), "%s from node %d for requester %s",
+    PSID_log(PSID_LOG_OPTION, "%s: from node %d for requester %s\n",
 	     __func__, id, PSC_printTID(msg->header.sender));
-    PSID_errlog(errtxt, 1);
 
     if (id!=PSC_getMyID()) {
 	DDErrorMsg_t errmsg = (DDErrorMsg_t) {
@@ -250,9 +239,8 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
     } else {
 	int i;
 	for (i=0; i<msg->count; i++) {
-	    snprintf(errtxt, sizeof(errtxt), "%s option: %d",
+	    PSID_log(PSID_LOG_OPTION, "%s: option %d\n",
 		     __func__, msg->opt[i].option);
-	    PSID_errlog(errtxt, 3);
 
 	    switch (msg->opt[i].option) {
 	    case PSP_OP_PSM_SPS:
@@ -275,7 +263,7 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		break;
 	    }
 	    case PSP_OP_PSIDDEBUG:
-		msg->opt[i].value = PSID_getDebugLevel();
+		msg->opt[i].value = PSID_getDebugMask();
 		break;
 	    case PSP_OP_PSIDSELECTTIME:
 		msg->opt[i].value = selectTime.tv_sec;
@@ -290,7 +278,7 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		msg->opt[i].value = PSnodes_getGroup(PSC_getMyID());
 		break;
 	    case PSP_OP_RDPDEBUG:
-		msg->opt[i].value = getDebugLevelRDP();
+		msg->opt[i].value = getDebugMaskRDP();
 		break;
 	    case PSP_OP_RDPPKTLOSS:
 		msg->opt[i].value = getPktLossRDP();
@@ -299,7 +287,7 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		msg->opt[i].value = getMaxRetransRDP();
 		break;
 	    case PSP_OP_MCASTDEBUG:
-		msg->opt[i].value = getDebugLevelMCast();
+		msg->opt[i].value = getDebugMaskMCast();
 		break;
 	    case PSP_OP_MASTER:
 		msg->opt[i].value = getMasterID();
@@ -311,9 +299,8 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		msg->opt[i].value = config->handleOldBins;
 		break;
 	    default:
-		snprintf(errtxt, sizeof(errtxt), "%s: unknown option %d",
-			 __func__, msg->opt[i].option);
-		PSID_errlog(errtxt, 0);
+		PSID_log(-1, "%s: unknown option %d\n", __func__,
+			 msg->opt[i].option);
 		msg->opt[i].option = PSP_OP_UNKNOWN;
 	    }
 	}

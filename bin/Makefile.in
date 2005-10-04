@@ -32,7 +32,7 @@ TOOLS:= psiadmin psid psilogger mlisten
 TOOLS += psmstart mpirun_chp4 psispawn mpirun_chgm gmspawner
 TOOLS += test_pse test_config
 
-TARGETS = $(TOOLS) test_config_parsing
+TARGETS = $(TOOLS) test_config_parsing test_logging
 
 all bin: $(TOOLS)
 
@@ -57,6 +57,8 @@ gmspawner: LOADLIBES:=-lpthread -lpopt
 mlisten: mlisten.o
 
 test_config_parsing: -lputil -lpscommon
+
+test_logging: test_logging.o -lpscommon
 
 # psiadmin
 VPATH += $(SRCDIR)/admin

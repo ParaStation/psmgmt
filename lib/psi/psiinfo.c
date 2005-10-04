@@ -26,8 +26,6 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #include "psiinfo.h"
 
-static char errtxt[128];
-
 /**
  * @brief Receive and handle info message.
  *
@@ -60,10 +58,7 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
     PSP_Info_t ret;
 
     if (PSI_recvMsg(&msg)<0) {
-	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "%s: PSI_recvMsg: %s", __func__,
-		 errstr);
-	PSI_errlog(errtxt, 0);
+	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
  	*size = 0;
 	return PSP_INFO_UNKNOWN;
    }
@@ -108,16 +103,12 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
 	{
 	    size_t s = msg.header.len - sizeof(msg.header) - sizeof(msg.type);
 	    if (!buf) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: No buffer provided.", __func__);
-		PSI_errlog(errtxt, 1);
+		PSI_log(PSI_LOG_INFO, "%s: No buffer provided\n", __func__);
 		*size = 0;
 		break;
 	    }
 	    if (*size < s) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: buffer to small.", __func__);
-		PSI_errlog(errtxt, 0);
+		PSI_log(-1, "%s: buffer to small\n", __func__);
 		*size = 0;
 		break;
 	    }
@@ -126,16 +117,12 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
 	    break;
 	}
 	case PSP_INFO_UNKNOWN:
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: daemon does not know info.", __func__);
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1, "%s: daemon does not know info\n", __func__);
 	    *size = 0;
 	    break;
 	default:
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: received unexpected info type '%s'.",
-		     __func__, PSP_printInfo(msg.type));
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1, "%s: received unexpected info type '%s'\n",
+		    __func__, PSP_printInfo(msg.type));
 	    *size = 0;
 	    ret = PSP_INFO_UNKNOWN;
 	}
@@ -143,20 +130,16 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
     }
     case PSP_CD_ERROR:
     {
-	char *errstr = strerror(((DDErrorMsg_t*)&msg)->error);
-	snprintf(errtxt, sizeof(errtxt), "%s: error in command %s : %s",
-		 __func__, PSP_printMsg(((DDErrorMsg_t*)&msg)->request),
-		 errstr ? errstr : "UNKNOWN");
-	PSI_errlog(errtxt, verbose ? 0 : 1);
+	PSI_warn(verbose ? -1 : PSI_LOG_INFO, ((DDErrorMsg_t*)&msg)->error,
+		 "%s: error in command '%s'",
+		 __func__, PSP_printMsg(((DDErrorMsg_t*)&msg)->request));
 	*size = 0;
 	ret = PSP_INFO_UNKNOWN;
 	break;
     }
     default:
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: received unexpected msgtype '%s'.",
-		 __func__, PSP_printMsg(msg.header.type));
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: received unexpected msgtype '%s'\n",
+		__func__, PSP_printMsg(msg.header.type));
 	*size = 0;
 	ret = PSP_INFO_UNKNOWN;
     }
@@ -180,25 +163,23 @@ int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     switch (what) {
     case PSP_INFO_NODE:
 	if (param) {
-	    *(PSnodes_ID_t *)msg.buf = *(const PSnodes_ID_t *)param;
+	    *(PSnodes_ID_t*)msg.buf = *(const PSnodes_ID_t*)param;
 	    msg.header.len += sizeof(PSnodes_ID_t);
 	} else {
-	    snprintf(errtxt, sizeof(errtxt), "%s: %s request needs parameter.",
-		     __func__, PSP_printInfo(what));
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1, "%s: %s request needs parameter\n", __func__,
+		    PSP_printInfo(what));
 	    errno = EINVAL;
 	    return -1;
 	}
 	break;
     case PSP_INFO_HWINDEX:
 	if (param) {
-	    strncpy(msg.buf, (const char *)param, sizeof(msg.buf));
+	    strncpy(msg.buf, (const char*)param, sizeof(msg.buf));
 	    msg.buf[sizeof(msg.buf)-1] = '\0';
 	    msg.header.len += strlen(msg.buf)+1;
 	} else {
-	    snprintf(errtxt, sizeof(errtxt), "%s: %s request needs parameter.",
-		     __func__, PSP_printInfo(what));
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1, "%s: %s request needs parameter\n", __func__,
+		    PSP_printInfo(what));
 	    errno = EINVAL;
 	    return -1;
 	}
@@ -209,19 +190,15 @@ int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     case PSP_INFO_TASKRANK:
 	break;
     default:
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: don't know how to handle '%s' request",
-		 __func__, PSP_printInfo(what));
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,
+		PSP_printInfo(what));
 	errno = EINVAL;
 	return -1;
     }
 
     if (PSI_sendMsg(&msg)<0) {
-	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "%s(%s): PSI_sendMsg: %s", __func__,
-		 PSP_printInfo(what), errstr);
-	PSI_errlog(errtxt, 0);
+	PSI_warn(-1, errno, "%s(%s): PSI_sendMsg", __func__,
+		 PSP_printInfo(what));
 	return -1;
     }
 
@@ -247,12 +224,11 @@ int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     case PSP_INFO_COUNTSTATUS:
     case PSP_INFO_HWNAME:
 	if (param) {
-	    *(int32_t *)msg.buf = *(const int32_t *)param;
+	    *(int32_t*)msg.buf = *(const int32_t*)param;
 	    msg.header.len += sizeof(int32_t);
 	} else {
-	    snprintf(errtxt, sizeof(errtxt), "%s: %s request needs parameter.",
-		     __func__, PSP_printInfo(what));
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1, "%s: %s request needs parameter\n", __func__,
+		    PSP_printInfo(what));
 	    errno = EINVAL;
 	    return -1;
 	}
@@ -260,23 +236,21 @@ int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     case PSP_INFO_RDPSTATUS:
     case PSP_INFO_MCASTSTATUS:
 	if (param) {
-	    *(PSnodes_ID_t *)msg.buf = *(const PSnodes_ID_t *)param;
+	    *(PSnodes_ID_t*)msg.buf = *(const PSnodes_ID_t*)param;
 	    msg.header.len += sizeof(PSnodes_ID_t);
 	} else {
-	    snprintf(errtxt, sizeof(errtxt), "%s: %s request needs parameter.",
-		     __func__, PSP_printInfo(what));
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1, "%s: %s request needs parameter\n", __func__,
+		    PSP_printInfo(what));
 	    errno = EINVAL;
 	    return -1;
 	}
 	break;
     case PSP_INFO_CMDLINE:
 	if (param) {
-	    msg.header.dest = PSC_getTID(node, *(pid_t *)param);
+	    msg.header.dest = PSC_getTID(node, *(pid_t*)param);
 	} else {
-	    snprintf(errtxt, sizeof(errtxt), "%s: %s request needs parameter.",
-		     __func__, PSP_printInfo(what));
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1, "%s: %s request needs parameter\n", __func__,
+		    PSP_printInfo(what));
 	    errno = EINVAL;
 	    return -1;
 	}
@@ -285,19 +259,15 @@ int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     case PSP_INFO_DAEMONVER:
 	break;
     default:
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: don't know how to handle '%s' request",
-		 __func__, PSP_printInfo(what));
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,
+		PSP_printInfo(what));
 	errno = EINVAL;
 	return -1;
     }
 
     if (PSI_sendMsg(&msg)<0) {
-	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "%s(%s): PSI_sendMsg: %s", __func__,
-		 PSP_printInfo(what), errstr);
-	PSI_errlog(errtxt, 0);
+	PSI_warn(-1, errno, "%s(%s): PSI_sendMsg", __func__,
+		 PSP_printInfo(what));
 	return -1;
     }
 
@@ -324,19 +294,15 @@ int PSI_infoTaskID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     case PSP_INFO_LOGGERTID:
 	break;
     default:
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: don't know how to handle '%s' request",
-		 __func__, PSP_printInfo(what));
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,
+		PSP_printInfo(what));
 	errno = EINVAL;
 	return -1;
     }
 
     if (PSI_sendMsg(&msg)<0) {
-	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "%s(%s): PSI_sendMsg: %s", __func__,
-		 PSP_printInfo(what), errstr);
-	PSI_errlog(errtxt, 0);
+	PSI_warn(-1, errno, "%s(%s): PSI_sendMsg", __func__,
+		 PSP_printInfo(what));
 	return -1;
     }
 
@@ -361,42 +327,36 @@ int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     switch (what) {
     case PSP_INFO_RANKID:
 	if (param) {
-	    *(uint32_t *)msg.buf = *(const uint32_t *)param;
+	    *(uint32_t*)msg.buf = *(const uint32_t*)param;
 	    msg.header.len += sizeof(uint32_t);
 	} else {
-	    snprintf(errtxt, sizeof(errtxt), "%s: %s request needs parameter.",
-		     __func__, PSP_printInfo(what));
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1, "%s: %s request needs parameter\n", __func__,
+		    PSP_printInfo(what));
 	    errno = EINVAL;
 	    return -1;
 	}
 	break;
     case PSP_INFO_HOST:
 	if (param) {
-	    *(uint32_t *)msg.buf = *(const uint32_t *)param;
+	    *(uint32_t*)msg.buf = *(const uint32_t*)param;
 	    msg.header.len += sizeof(uint32_t);
 	} else {
-	    snprintf(errtxt, sizeof(errtxt), "%s: %s request needs parameter.",
-		     __func__, PSP_printInfo(what));
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1, "%s: %s request needs parameter\n", __func__,
+		    PSP_printInfo(what));
 	    errno = EINVAL;
 	    return -1;
 	}
 	break;
     default:
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: don't know how to handle '%s' request",
-		 __func__, PSP_printInfo(what));
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,
+		PSP_printInfo(what));
 	errno = EINVAL;
 	return -1;
     }
 
     if (PSI_sendMsg(&msg)<0) {
-	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "%s(%s): PSI_sendMsg: %s", __func__,
-		 PSP_printInfo(what), errstr);
-	PSI_errlog(errtxt, 0);
+	PSI_warn(-1, errno, "%s(%s): PSI_sendMsg", __func__,
+		 PSP_printInfo(what));
 	return -1;
     }
 
@@ -433,19 +393,15 @@ int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     case PSP_INFO_LIST_EXCLUSIVE:
 	break;
     default:
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: don't know how to handle '%s' request",
-		 __func__, PSP_printInfo(what));
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,
+		PSP_printInfo(what));
 	errno = EINVAL;
 	return -1;
     }
 
     if (PSI_sendMsg(&msg)<0) {
-	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "%s(%s): PSI_sendMsg: %s", __func__,
-		 PSP_printInfo(what), errstr);
-	PSI_errlog(errtxt, 0);
+	PSI_warn(-1, errno, "%s(%s): PSI_sendMsg", __func__,
+		 PSP_printInfo(what));
 	return -1;
     }
 
@@ -476,8 +432,7 @@ int PSI_infoOption(PSnodes_ID_t node, int num, PSP_Option_t option[],
     int i;
 
     if (num > DDOptionMsgMax) {
-	snprintf(errtxt, sizeof(errtxt), "%s: too many options", __func__);
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: too many options\n", __func__);
 	return -1;
     }
 
@@ -493,27 +448,20 @@ int PSI_infoOption(PSnodes_ID_t node, int num, PSP_Option_t option[],
     msg.count = num;
 
     if (PSI_sendMsg(&msg)<0) {
-	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "%s: PSI_sendMsg: %s", __func__,
-		 errstr);
-	PSI_errlog(errtxt, 0);
+	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 	return -1;
     }
 
     if (PSI_recvMsg(&msg)<0) {
-	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt), "%s: PSI_recvMsg: %s", __func__,
-		 errstr);
-	PSI_errlog(errtxt, 0);
+	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
     }
 
     switch (msg.header.type) {
     case PSP_CD_SETOPTION:
 	if (msg.count > num) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: option-buffer to small.", __func__);
-	    PSI_errlog(errtxt, verbose ? 0 : 1);
+	    PSI_log(verbose ? -1 : PSI_LOG_INFO,
+		    "%s: option-buffer to small.\n", __func__);
 	    msg.count = num;
 	}
 
@@ -525,16 +473,13 @@ int PSI_infoOption(PSnodes_ID_t node, int num, PSP_Option_t option[],
 	return msg.count;
     case PSP_CD_ERROR:
     {
-	char* errstr = strerror(((DDErrorMsg_t*)&msg)->error);
-	snprintf(errtxt, sizeof(errtxt), "%s: error: %s",
-		 __func__,errstr ? errstr : "UNKNOWN");
-	PSI_errlog(errtxt, verbose ? 0 : 1);
+	PSI_warn(verbose ? -1 : PSI_LOG_INFO, ((DDErrorMsg_t*)&msg)->error,
+		 "%s: error", __func__);
 	break;
     }
     default:
-	snprintf(errtxt, sizeof(errtxt), "%s: unexpected msgtype '%s'",
-		 __func__, PSP_printMsg(msg.header.type));
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: unexpected msgtype '%s'",
+		__func__, PSP_printMsg(msg.header.type));
     }
 
     return -1;

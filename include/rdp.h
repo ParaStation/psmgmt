@@ -27,6 +27,7 @@ extern "C" {
 #endif
 #endif
 
+#include <stdint.h>
 #include <sys/types.h>
 
 /**
@@ -34,7 +35,7 @@ extern "C" {
  */
 typedef struct {
     int dst;     /**< The destination of the canceled message */
-    void *buf;   /**< The payload of the canceled message */
+    void* buf;   /**< The payload of the canceled message */
     int buflen;  /**< The payload's length */
 } RDPDeadbuf;
 
@@ -81,7 +82,8 @@ typedef struct {
  * @param portno The UDP port number in host byteorder to use for sending and
  * receiving packets. If 0, @ref DEFAULT_RDP_PORT is used.
  *
- * @param usesyslog If true, all error-messages are printed via syslog().
+ * @param usesyslog If true, all logging is done via syslog() instead
+ * of stderr.
  *
  * @param hosts An array of size @a nodes containing the IP-addresses of the
  * participating nodes in network-byteorder.
@@ -97,6 +99,8 @@ typedef struct {
  *
  * @return On success, the filedescriptor of the RDP socket is returned.
  * On error, exit() is called within this function.
+ *
+ * @see syslog()
  */
 int initRDP(int nodes, unsigned short portno, int usesyslog,
 	    unsigned int hosts[], void (*callback)(int, void*));
@@ -111,38 +115,55 @@ int initRDP(int nodes, unsigned short portno, int usesyslog,
 void exitRDP(void);
 
 /**
- * @brief Query the debug-level.
- *
- * Get the debug-level of the RDP module.
- *
- * @return The actual debug-level is returned.
- *
- * @see setDebugLevelRDP()
- */
-int getDebugLevelRDP(void);
+ * Various message classes for logging. These define the different
+ * bits of the debug-mask set via @ref setDebugMaskRDP().
+ */ 
+typedef enum {
+    RDP_LOG_CONN = 0x0001, /**< Uncritical errors on connection loss */
+    RDP_LOG_INIT = 0x0002, /**< Info from initialization (IP, FE, NFTS etc.) */
+    RDP_LOG_INTR = 0x0004, /**< Interrupted syscalls */
+    RDP_LOG_DROP = 0x0008, /**< Message dropping and resequencing */
+    RDP_LOG_CNTR = 0x0010, /**< Control messages and state changes */
+    RDP_LOG_EXTD = 0x0020, /**< Extended reliable error messages (on linux) */
+    RDP_LOG_COMM = 0x0040, /**< Sending and receiving of data (huge! amount) */
+    RDP_LOG_ACKS = 0x0080, /**< Resending and acknowledging (huge! amount) */
+} RDP_log_key_t;
 
 /**
- * @brief Set the debug-level.
+ * @brief Query the debug-mask.
  *
- * Set the debug-level of the RDP module. Possible values are:
- *  - 0: Critical errors (usually exit). This is the default.
- *  - 1: Uncritical errors on connection loss.
- *  - 2: Basic info about initialization.
- *  - 4: More detailed info about initialization, i.e. from initConntableRDP().
- *  - 5: Info about interrupted syscalls.
- *  - 6: Info about dropping and resequencing of messages.
- *  - 8: Info about control messages and state changes.
- *  -10: Info about extended reliable error messages on linux.
- *  -12: Info about sending and receiving of data.
- *  -14: Info about resending and acknowledging.
+ * Get the debug-mask of the RDP module.
  *
- * @param level The debug-level to set.
+ * @return The actual debug-mask is returned.
+ *
+ * @see setDebugMaskRDP()
+ */
+int32_t getDebugMaskRDP(void);
+
+/**
+ * @brief Set the debug-mask.
+ *
+ * Set the debug-mask of the RDP module. @a mask is a bit-wise OR of
+ * the different keys defined within @ref RDP_log_key_t. If the
+ * respective bit is set within @a mask, the log-messages marked with
+ * the corresponding bits are put out to the selected channel
+ * (i.e. stderr of syslog() as defined within @ref
+ * initRDP()). Accordingly a @mask of -1 means to put out all messages
+ * defined.
+ *
+ * All messages marked with -1 represent fatal messages that are
+ * always put out independently of the choice of @a mask, i.e. even if
+ * it is 0.
+ *
+ * @a mask's default value is 0, i.e. only fatal messages are put out.
+ *
+ * @param mask The debug-mask to set.
  *
  * @return No return value.
  *
- * @see getDebugLevelRDP()
+ * @see getDebugMaskRDP(), RDP_log_key_t
  */
-void setDebugLevelRDP(int level);
+void setDebugMaskRDP(int32_t mask);
 
 /**
  * @brief Query the packet-loss rate.
@@ -215,7 +236,7 @@ void setMaxRetransRDP(int count);
  *
  * @see sendto(2)
  */
-int Rsendto(int node, void *buf, size_t len);
+int Rsendto(int node, void* buf, size_t len);
 
 /**
  * @brief Receive a RDP packet.
@@ -238,7 +259,7 @@ int Rsendto(int node, void *buf, size_t len);
  *
  * @see recvfrom(2)
  */
-int Rrecvfrom(int *node, void *buf, size_t len);
+int Rrecvfrom(int* node, void* buf, size_t len);
 
 /**
  * @brief Get status info.
@@ -260,7 +281,7 @@ int Rrecvfrom(int *node, void *buf, size_t len);
  *
  * @see printf(3)
  */
-void getStateInfoRDP(int node, char *string, size_t len);
+void getStateInfoRDP(int node, char* string, size_t len);
 
 #ifdef __cplusplus
 }/* extern "C" */

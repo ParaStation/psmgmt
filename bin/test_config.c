@@ -44,13 +44,13 @@ int main(int argc, const char *argv[])
 {
     poptContext optCon;   /* context for parsing command-line options */
 
-    int rc, version = 0, debuglevel = 0;
+    int rc, version = 0, debugmask = 0;
     char *file = "/etc/parastation.conf";
     config_t *config;
 
     struct poptOption optionsTable[] = {
-        { "debug", 'd', POPT_ARG_INT, &debuglevel, 0,
-          "enble debugging with level <level>", "level"},
+        { "debug", 'd', POPT_ARG_INT, &debugmask, 0,
+          "enble debugging with mask <mask>", "mask"},
         { "file", 'f', POPT_ARG_STRING, &file, 0,
           "use <file> as config-file (default is /etc/parastation.conf)",
           "file"},
@@ -77,7 +77,7 @@ int main(int argc, const char *argv[])
         return 1;
     }
 
-    config = parseConfig(0, debuglevel, file);
+    config = parseConfig(0, debugmask, file);
     if (!config) return 1;
 
     printf("configuration file '%s' seems to be correct.\n", file);

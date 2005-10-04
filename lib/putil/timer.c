@@ -20,7 +20,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <signal.h>
 #include <sys/time.h>
 
-#include "errlog.h"
+#include "logging.h"
 
 #include "timer.h"
 
@@ -46,6 +46,9 @@ typedef struct Timer_t_ {
     struct Timer_t_ *next;         /**< Pointer to next timer. */
 } Timer_t;
 
+/** The logger used by the Timer facility */
+static logger_t *logger = NULL;
+
 /** List of all registered timers. */
 static Timer_t *timerList = NULL;
 
@@ -54,8 +57,6 @@ static const struct timeval minPeriod = {0,100000};
 
 /** The actual timer period. */
 static struct timeval actPeriod = {0,0};
-
-static char errtxt[256];           /**< String to hold error messages. */
 
 /**
  * @brief Handles received signals
@@ -99,14 +100,14 @@ void Timer_handleSignals(void)
     }
 }
 
-int Timer_getDebugLevel(void)
+int32_t Timer_getDebugMask(void)
 {
-    return getErrLogLevel();
+    return logger_getMask(logger);
 }
 
-void Timer_setDebugLevel(int level)
+void Timer_setDebugMask(int32_t mask)
 {
-    setErrLogLevel(level);
+    logger_setMask(logger, mask);
 }
 
 void Timer_init(int syslog)
@@ -116,7 +117,7 @@ void Timer_init(int syslog)
     struct itimerval itv;
     struct sigaction sa;
 
-    initErrLog("Timer", syslog);
+    logger = logger_init("Timer", syslog);
 
     /* (Re)set our actual timer-period */
     actPeriod.tv_sec = 0;
@@ -126,10 +127,8 @@ void Timer_init(int syslog)
     itv.it_value.tv_sec = itv.it_interval.tv_sec = actPeriod.tv_sec;
     itv.it_value.tv_usec = itv.it_interval.tv_usec = actPeriod.tv_usec;
     if (setitimer(ITIMER_REAL, &itv, NULL)==-1) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: unable to set itimer to %ld.%.6ld",
-		 __func__, actPeriod.tv_sec, actPeriod.tv_usec);
-	errexit(errtxt, errno);
+	logger_exit(logger, errno, "%s: unable to set itimer to %ld.%.6ld",
+		    __func__, actPeriod.tv_sec, actPeriod.tv_usec);
     }
 
     /* (Re)set sigaction to default */
@@ -137,9 +136,7 @@ void Timer_init(int syslog)
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
     if (sigaction(SIGALRM, &sa, 0)==-1) {
-	snprintf(errtxt, sizeof(errtxt), "%s: unable to set sigHandler",
-		 __func__);
-	errexit(errtxt, errno);
+	logger_exit(logger, errno, "%s: unable to set sigHandler", __func__);
     }
 
     /* Free all old timers, if any */
@@ -175,18 +172,15 @@ int Timer_register(struct timeval *timeout, void (*timeoutHandler)(void))
 
     /* Test if timeout is appropiate */
     if (timercmp(timeout, &minPeriod, <)) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: timeout = %ld.%.6ld sec to small",
-		 __func__, timeout->tv_sec, timeout->tv_usec);
-	errlog(errtxt, 0);
+	logger_print(logger, -1, "%s: timeout = %ld.%.6ld sec to small\n",
+		     __func__, timeout->tv_sec, timeout->tv_usec);
 	return -1;
     }
 
     /* Create new timer */
     timer = malloc(sizeof(Timer_t));
     if (!timer) {
-	snprintf(errtxt, sizeof(errtxt), "%s: No memory.", __func__);
-	errlog(errtxt, 0);
+	logger_print(logger, -1, "%s: No memory.\n", __func__);
 	return -1;
     }
     *timer = (Timer_t) {
@@ -217,19 +211,17 @@ int Timer_register(struct timeval *timeout, void (*timeoutHandler)(void))
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = 0;
 	if (sigaction(SIGALRM, &sa, 0)==-1) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: unable to set sigHandler", __func__);
-	    errexit(errtxt, errno);
+	    logger_exit(logger, errno,
+			"%s: unable to set sigHandler", __func__);
 	}
 
 	/* Set the timer */
 	itv.it_value.tv_sec = itv.it_interval.tv_sec = actPeriod.tv_sec;
 	itv.it_value.tv_usec = itv.it_interval.tv_usec = actPeriod.tv_usec;
 	if (setitimer(ITIMER_REAL, &itv, NULL)==-1) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: unable to set itimer to %ld.%.6ld",
-		     __func__, actPeriod.tv_sec, actPeriod.tv_usec);
-	    errexit(errtxt, errno);
+	    logger_exit(logger, errno,
+			"%s: unable to set itimer to %ld.%.6ld",
+			__func__, actPeriod.tv_sec, actPeriod.tv_usec);
 	}
     } else if (timercmp(timeout, &actPeriod, <)) {
 	/* change actPeriod */
@@ -256,10 +248,9 @@ int Timer_register(struct timeval *timeout, void (*timeoutHandler)(void))
 	itv.it_value.tv_sec = itv.it_interval.tv_sec = actPeriod.tv_sec;
 	itv.it_value.tv_usec = itv.it_interval.tv_usec = actPeriod.tv_usec;
 	if (setitimer(ITIMER_REAL, &itv, NULL)==-1) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: unable to set itimer to %ld.%.6ld",
-		     __func__, actPeriod.tv_sec, actPeriod.tv_usec);
-	    errexit(errtxt, errno);
+	    logger_exit(logger, errno,
+			"%s: unable to set itimer to %ld.%.6ld",
+			__func__, actPeriod.tv_sec, actPeriod.tv_usec);
 	}
     } else {
 	timer->period = timerdiv(timeout, &actPeriod);
@@ -290,9 +281,7 @@ int Timer_remove(int id)
     }
 
     if (!timer) {
-	snprintf(errtxt, sizeof(errtxt), "%s: no timer found for id=%d.",
-		 __func__, id);
-	errlog(errtxt, 0);
+	logger_print(logger, -1, "%s: no timer found id=%d\n", __func__, id);
 	return -1;
     }
 
@@ -321,10 +310,9 @@ int Timer_remove(int id)
 	itv.it_value.tv_sec = itv.it_interval.tv_sec = actPeriod.tv_sec;
 	itv.it_value.tv_usec = itv.it_interval.tv_usec = actPeriod.tv_usec;
 	if (setitimer(ITIMER_REAL, &itv, NULL)==-1) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: unable to set itimer to %ld.%.6ld",
-		     __func__, actPeriod.tv_sec, actPeriod.tv_usec);
-	    errexit(errtxt, errno);
+	    logger_exit(logger, errno,
+			"%s: unable to set itimer to %ld.%.6ld",
+			__func__, actPeriod.tv_sec, actPeriod.tv_usec);
 	}
 
 	/* Set sigaction to default */
@@ -332,9 +320,7 @@ int Timer_remove(int id)
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = 0;
 	if (sigaction(SIGALRM, &sa, 0)==-1) {
-	    snprintf(errtxt, sizeof(errtxt), "%s: unable to set SIG_DFL",
-		     __func__);
-	    errexit(errtxt, errno);
+	    logger_exit(logger, errno, "%s: unable to set SIG_DFL", __func__);
 	}
 
     } else if (timercmp(&timer->timeout, &actPeriod, ==)) {
@@ -378,10 +364,9 @@ int Timer_remove(int id)
 	    itv.it_value.tv_sec = itv.it_interval.tv_sec = actPeriod.tv_sec;
 	    itv.it_value.tv_usec = itv.it_interval.tv_usec = actPeriod.tv_usec;
 	    if (setitimer(ITIMER_REAL, &itv, NULL)==-1) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: unable to set itimer to %ld.%.6ld",
-			 __func__, actPeriod.tv_sec, actPeriod.tv_usec);
-		errexit(errtxt, errno);
+		logger_exit(logger, errno,
+			    "%s: unable to set itimer to %ld.%.6ld",
+			    __func__, actPeriod.tv_sec, actPeriod.tv_usec);
 	    }
 	}
     }
@@ -410,9 +395,8 @@ int Timer_block(int id, int block)
     }
 
     if (!timer) {
-	snprintf(errtxt, sizeof(errtxt), "%s: no timer for id=%d found",
-		 __func__, timer->id);
-	errlog(errtxt, 0);
+	logger_print(logger, -1, "%s: no timer found id=%d\n",
+		     __func__, timer->id);
 	return -1;
     }
 

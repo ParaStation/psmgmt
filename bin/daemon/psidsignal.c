@@ -30,13 +30,9 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #include "psidsignal.h"
 
-static char errtxt[256]; /**< General string to create error messages */
-
 int PSID_kill(pid_t pid, int sig, uid_t uid)
 {
-    snprintf(errtxt, sizeof(errtxt),
-	     "%s(%d, %d, %d)", __func__, pid, sig, uid);
-    PSID_errlog(errtxt, 10);
+    PSID_log(PSID_LOG_SIGNAL, "%s(%d, %d, %d)\n", __func__, pid, sig, uid);
 
     /*
      * fork to a new process to change the userid
@@ -53,29 +49,21 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 	 * change the user id to the appropriate user
 	 */
 	if (setuid(uid)<0) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s(): setuid(%d)", __func__, uid);
-	    PSID_errexit(errtxt, errno);
+	    PSID_exit(errno, "%s: setuid(%d)", __func__, uid);
 	}
 	/* Send signal to the whole process group */
 	error = kill(pid, sig);
 
 	if (error && errno!=ESRCH) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s(%d, %d)", __func__, pid, sig);
-	    PSID_errexit(errtxt, errno);
+	    PSID_exit(errno, "%s: kill(%d, %d)", __func__, pid, sig);
 	}
 
 	if (error) {
-            char *errstr = strerror(errno);
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s(): kill(%d, %d) returned %d: %s", __func__,
-		     pid, sig, errno, errstr ? errstr : "UNKNOWN");
-	    PSID_errlog(errtxt, (errno==ESRCH) ? 1 : 0);
+	    PSID_warn((errno==ESRCH) ? PSID_LOG_SIGNAL : -1, errno,
+		      "%s: kill(%d, %d)", __func__, pid, sig);
 	} else {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s(): sent signal %d to %d", __func__, sig, pid);
-	    PSID_errlog(errtxt, 4);
+	    PSID_log(PSID_LOG_SIGNAL,
+		     "%s: sent signal %d to %d\n", __func__, sig, pid);
 	}
 
 	exit(0);
@@ -84,9 +72,8 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
     /* @todo Test if sending of signal was successful */
     /* This might be done via a pipe */
     /* for now, assume it was successful */
-/*     snprintf(errtxt, sizeof(errtxt), */
-/* 	     "PSID_kill() sent signal %d to %d", sig, pid); */
-/*     PSID_errlog(errtxt, 2); */
+/*     PSID_log(PSID_LOG_SIGNAL, */
+/* 	     "%s: sent signal %d to %d\n", __func__, sig, pid); */
 
     return 0;
 }
@@ -99,19 +86,15 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t senderTid,
 	PStask_t *dest = PStasklist_find(managedTasks, tid);
 	pid_t pid = PSC_getPID(tid);
 
-	snprintf(errtxt, sizeof(errtxt), "%s: sending signal %d to %s",
+	PSID_log(PSID_LOG_SIGNAL, "%s: sending signal %d to %s\n",
 		 __func__, signal, PSC_printTID(tid));
-	PSID_errlog(errtxt, 2);
 
 	if (!dest) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: tried to send sig %d to %s: task not found",
+	    /* PSID_log(PSID_LOG_SIGNAL, @todo see how often this happens */
+	    PSID_log(-1, "%s: tried to send sig %d to %s: task not found\n",
 		     __func__, signal, PSC_printTID(tid));
-	    PSID_errlog(errtxt, 1);
 	} else if (!pid) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: Do not send signal to daemon", __func__);
-	    PSID_errlog(errtxt, 0);
+	    PSID_log(-1, "%s: Do not send signal to daemon\n", __func__);
 	} else if (pervasive) {
 	    PStask_sig_t *childs = PStask_cloneSigList(dest->childs);
 	    PStask_ID_t childTID;
@@ -142,9 +125,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t senderTid,
 		/* This might have been a child */
 		PSID_removeSignal(&dest->childs, senderTid, -1);
 		if (dest->removeIt && !dest->childs) {
-		    snprintf(errtxt, sizeof(errtxt), "%s: PStask_cleanup()",
-			     __func__);
-		    PSID_errlog(errtxt, 1);
+		    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n",__func__);
 		    PStask_cleanup(dest->tid);
 		    return;
 		}
@@ -153,18 +134,11 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t senderTid,
 	    ret = PSID_kill(pid, sig, uid);
 
 	    if (ret) {
-		char *errstr = strerror(errno);
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: tried to send signal %d to %s: error (%d): %s",
-			 __func__, sig, PSC_printTID(tid),
-			 errno, errstr ? errstr : "UNKNOWN");
-		PSID_errlog(errtxt, 0);
+		PSID_warn(-1, errno, "%s: tried to send signal %d to %s",
+			  __func__, sig, PSC_printTID(tid));
 	    } else {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: sent signal %d to %s",
+		PSID_log(PSID_LOG_SIGNAL, "%s: sent signal %d to %s\n",
 			 __func__, sig, PSC_printTID(tid));
-		PSID_errlog(errtxt, 1);
-
 		PSID_setSignal(&dest->signalSender, senderTid, sig);
 	    }
 	}
@@ -182,10 +156,8 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t senderTid,
 
 	sendMsg(&msg);
 
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: forward signal %d to %s",
+	PSID_log(PSID_LOG_SIGNAL, "%s: forward signal %d to %s\n",
 		 __func__, signal, PSC_printTID(tid));
-	PSID_errlog(errtxt, 1);
     }
 }
 
@@ -197,12 +169,9 @@ void PSID_sendAllSignals(PStask_t *task)
     while ((sigtid = PSID_getSignal(&task->signalReceiver, &sig))) {
 	PSID_sendSignal(sigtid, task->uid, task->tid, sig, 0);
 
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s(%s)", __func__, PSC_printTID(task->tid));
-	snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
-		 " sent signal %d to %s", sig, PSC_printTID(sigtid));
-	PSID_errlog(errtxt, 1);
-
+	PSID_log(PSID_LOG_SIGNAL, "%s(%s)", __func__, PSC_printTID(task->tid));
+	PSID_log(PSID_LOG_SIGNAL,
+		 " sent signal %d to %s\n", sig, PSC_printTID(sigtid));
 	sig = -1;
     }
 }
@@ -220,11 +189,9 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
     while (sigtid) {
 	PSID_sendSignal(sigtid, task->uid, task->tid, -1, 0);
 
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s(%s)", __func__, PSC_printTID(task->tid));
-	snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
-		 " sent signal -1 to %s", PSC_printTID(sigtid));
-	PSID_errlog(errtxt, 8);
+	PSID_log(PSID_LOG_SIGNAL, "%s(%s)", __func__, PSC_printTID(task->tid));
+	PSID_log(PSID_LOG_SIGNAL, 
+		 " sent signal -1 to %s\n", PSC_printTID(sigtid));
 
 	sig = -1;
 
@@ -235,8 +202,7 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
 void msg_SIGNAL(DDSignalMsg_t *msg)
 {
     if (msg->header.dest == -1) {
-	snprintf(errtxt, sizeof(errtxt), "%s: no broadcast", __func__);
-	PSID_errlog(errtxt, 0);
+	PSID_log(-1, "%s: no broadcast\n", __func__);
 	return;
     }
 
@@ -244,9 +210,8 @@ void msg_SIGNAL(DDSignalMsg_t *msg)
 	&& PSC_getPID(msg->header.sender)) {
 	PStask_t *sender = PStasklist_find(managedTasks, msg->header.sender);
 	if (!sender) {
-	    snprintf(errtxt, sizeof(errtxt), "%s: sender %s not found",
+	    PSID_log(-1, "%s: sender %s not found\n",
 		     __func__, PSC_printTID(msg->header.sender));
-	    PSID_errlog(errtxt, 0);
 	} else if (sender->protocolVersion < 325
 		   && sender->group != TG_LOGGER) {
 
@@ -283,9 +248,8 @@ void msg_SIGNAL(DDSignalMsg_t *msg)
 
     if (PSC_getID(msg->header.dest)==PSC_getMyID()) {
 	/* receiver is on local node, send signal */
-	snprintf(errtxt, sizeof(errtxt), "%s: sending signal %d to %s",
+	PSID_log(PSID_LOG_SIGNAL, "%s: sending signal %d to %s\n",
 		 __func__, msg->signal, PSC_printTID(msg->header.dest));
-	PSID_errlog(errtxt, 1);
 
 	if (msg->pervasive) {
 	    PStask_t *dest = PStasklist_find(managedTasks, msg->header.dest);
@@ -317,11 +281,10 @@ void msg_SIGNAL(DDSignalMsg_t *msg)
 		    }
 		}
 	    } else {
-		snprintf(errtxt, sizeof(errtxt), "%s: sender %s:",
+		PSID_log(-1, "%s: sender %s:",
 			 __func__, PSC_printTID(msg->header.sender));
-		snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
-			 " dest %s not found", PSC_printTID(msg->header.dest));
-		PSID_errlog(errtxt, 0);
+		PSID_log(-1, " dest %s not found\n",
+			 PSC_printTID(msg->header.dest));
 	    }
 	} else {
 	    PSID_sendSignal(msg->header.dest, msg->param, msg->header.sender,
@@ -332,10 +295,8 @@ void msg_SIGNAL(DDSignalMsg_t *msg)
 	 * this is a request for a remote site.
 	 * find the right fd to send to request
 	 */
-	snprintf(errtxt, sizeof(errtxt), "%s: sending to node %d", __func__,
-		 PSC_getID(msg->header.dest));
-	PSID_errlog(errtxt, 1);
-
+	PSID_log(PSID_LOG_SIGNAL, "%s: sending to node %d\n",
+		 __func__, PSC_getID(msg->header.dest));
 	sendMsg(msg);
     }
 }
@@ -344,18 +305,16 @@ void msg_WHODIED(DDSignalMsg_t *msg)
 {
     PStask_t *task;
 
-    snprintf(errtxt, sizeof(errtxt), "%s: who=%s sig=%d", __func__,
+    PSID_log(PSID_LOG_SIGNAL, "%s: who=%s sig=%d\n", __func__,
 	     PSC_printTID(msg->header.sender), msg->signal);
-    PSID_errlog(errtxt, 1);
 
     task = PStasklist_find(managedTasks, msg->header.sender);
     if (task) {
 	PStask_ID_t tid;
 	tid = PSID_getSignal(&task->signalSender, &msg->signal);
 
-	snprintf(errtxt, sizeof(errtxt), "%s: tid=%s sig=%d)", __func__,
+	PSID_log(PSID_LOG_SIGNAL, "%s: tid=%s sig=%d\n", __func__,
 		 PSC_printTID(tid), msg->signal);
-	PSID_errlog(errtxt, 1);
 
 	msg->header.dest = msg->header.sender;
 	msg->header.sender = tid;

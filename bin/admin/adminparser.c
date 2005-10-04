@@ -1037,7 +1037,7 @@ int parseLine(char *line)
 
     if (firstCall) {
 	parser_init(0, NULL);
-	parser_setDebugLevel(0);
+	parser_setDebugMask(0);
 	setupDefaultNL();
 	firstCall = 0;
     }

@@ -27,6 +27,8 @@ extern "C" {
 #endif
 #endif
 
+#include <stdint.h>
+
 /** Possible MCast states of a node */
 typedef enum {
     DOWN = 0x1,  /**< node is down */
@@ -79,7 +81,8 @@ typedef struct {
  * @param portno The UDP port number in host byteorder to use for sending and
  * receiving packets. If 0, @ref DEFAULT_MCAST_PORT is used.
  *
- * @param usesyslog If true, all error-messages are printed via syslog().
+ * @param usesyslog If true, all logging is done via syslog() instead
+ * of stderr.
  *
  * @param hosts An array of size @a nodes containing the IP-addresses
  * of the participating nodes in network-byteorder.
@@ -92,7 +95,10 @@ typedef struct {
  *
  *
  * @return On success, the filedescriptor of the MCast socket is returned.
- * On error, exit() is called within this function.  */
+ * On error, exit() is called within this function.
+ *
+ * @see syslog()
+ */
 int initMCast(int nodes, int mcastgroup, unsigned short portno,
 	      int usesyslog,  unsigned int hosts[], int id,
 	      void (*callback)(int, void*));
@@ -118,38 +124,54 @@ void exitMCast(void);
 void declareNodeDeadMCast(int node);
 
 /**
- * @brief Query the debug-level.
- *
- * Get the debug-level of the MCast module.
- *
- * @return The actual debug-level is returned.
- *
- * @see setDebugLevelMCast()
- */
-int getDebugLevelMCast(void);
+ * Various message classes for logging. These define the different
+ * bits of the debug-mask set via @ref setDebugMaskMCast().
+ */ 
+typedef enum {
+    MCAST_LOG_INIT = 0x0001, /**< Info from initialization (IP etc.) */
+    MCAST_LOG_INTR = 0x0002, /**< Interrupted syscalls */
+    MCAST_LOG_CONN = 0x0004, /**< @ref T_CLOSE and new pings */
+    MCAST_LOG_5MIS = 0x0008, /**< Every 5th missing ping */
+    MCAST_LOG_MSNG = 0x0010, /**< Every missing ping */
+    MCAST_LOG_RCVD = 0x0020, /**< Every received ping */
+    MCAST_LOG_SENT = 0x0040, /**< Every sent ping */
+} MCast_log_key_t;
 
 /**
- * @brief Set the debug-level.
+ * @brief Query the debug-mask.
  *
- * Set the debug-level of the MCast module. Possible values are:
- *  - 0: Critical errors (usually exit). This is the default.
- *  - 2: Basic info about initialization.
- *  - 4: More detailed info about initialization, i.e. from
- *       initConntableMCast().
- *  - 5: Info about interrupted syscalls.
- *  - 6: Info about @ref T_CLOSE and new pings.
- *  - 8: Info about every 5th missing ping.
- *  -10: Info about every missing ping.
- *  -11: Info about every received ping.
- *  -12: Info about every sent ping.
+ * Get the debug-mask of the MCast module.
  *
- * @param level The debug-level to set.
+ * @return The actual debug-mask is returned.
+ *
+ * @see setDebugMaskMCast()
+ */
+int32_t getDebugMaskMCast(void);
+
+/**
+ * @brief Set the debug-mask.
+ *
+ * Set the debug-mask of the MCast module. @a mask is a bit-wise OR of
+ * the different keys defined within @ref MCast_log_key_t. If the
+ * respective bit is set within @a mask, the log-messages marked with
+ * the corresponding bits are put out to the selected channel
+ * (i.e. stderr of syslog() as defined within @ref
+ * initMCast()). Accordingly a @mask of -1 means to put out all
+ * messages defined.
+ *
+ * All messages marked with -1 represent fatal messages that are
+ * always put out independently of the choice of @a mask, i.e. even if
+ * it is 0.
+ *
+ * @a mask's default value is 0, i.e. only fatal messages are put out.
+ *
+ * @param mask The debug-mask to set.
  *
  * @return No return value.
  *
- * @see getDebugLevelMCast()
+ * @see getDebugMaskMCast(), MCast_log_key_t
  */
-void setDebugLevelMCast(int level);
+void setDebugMaskMCast(int32_t mask);
 
 /**
  * @brief Get MCast deadlimit
@@ -238,7 +260,7 @@ void decJobsMCast(int node, int total, int normal);
  *
  * @return No return value.
  */
-void getInfoMCast(int node, MCastConInfo_t *info);
+void getInfoMCast(int node, MCastConInfo_t* info);
 
 /**
  * @brief Get status info.
@@ -259,7 +281,7 @@ void getInfoMCast(int node, MCastConInfo_t *info);
  *
  * @see printf(3)
  */
-void getStateInfoMCast(int n, char *s, size_t len);
+void getStateInfoMCast(int node, char* string, size_t len);
 
 #ifdef __cplusplus
 }/* extern "C" */

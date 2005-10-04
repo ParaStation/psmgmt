@@ -22,9 +22,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #include "pstask.h"
 
-static char errtxt[512];
-
-char *PStask_printGrp(PStask_group_t tg)
+char* PStask_printGrp(PStask_group_t tg)
 {
     return (tg==TG_ANY) ? "TG_ANY" :
 	(tg==TG_ADMIN) ? "TG_ADMIN" :
@@ -36,9 +34,9 @@ char *PStask_printGrp(PStask_group_t tg)
 	(tg==TG_MONITOR) ? "TG_MONITOR" : "UNKNOWN";
 }
 
-PStask_t *PStask_new()
+PStask_t* PStask_new(void)
 {
-    PStask_t *task;
+    PStask_t* task;
 
     task = (PStask_t*)malloc(sizeof(PStask_t));
 
@@ -47,7 +45,7 @@ PStask_t *PStask_new()
     return task;
 }
 
-int PStask_init(PStask_t *task)
+int PStask_init(PStask_t* task)
 {
     task->next = NULL;
     task->prev = NULL;
@@ -90,7 +88,7 @@ int PStask_init(PStask_t *task)
     return 1;
 }
 
-int PStask_reinit(PStask_t *task)
+int PStask_reinit(PStask_t* task)
 {
     int i;
 
@@ -115,7 +113,7 @@ int PStask_reinit(PStask_t *task)
     }
 
     while (task->childs) {
-	PStask_sig_t *thissignal = task->childs;
+	PStask_sig_t* thissignal = task->childs;
 	task->childs = thissignal->next;
 	free(thissignal);
     }
@@ -124,19 +122,19 @@ int PStask_reinit(PStask_t *task)
     if (task->partition) free(task->partition);
 
     while (task->signalSender) {
-	PStask_sig_t *thissignal = task->signalSender;
+	PStask_sig_t* thissignal = task->signalSender;
 	task->signalSender = thissignal->next;
 	free(thissignal);
     }
 
     while (task->signalReceiver) {
-	PStask_sig_t *thissignal = task->signalReceiver;
+	PStask_sig_t* thissignal = task->signalReceiver;
 	task->signalReceiver = thissignal->next;
 	free(thissignal);
     }
 
     while (task->assignedSigs) {
-	PStask_sig_t *thissignal = task->assignedSigs;
+	PStask_sig_t* thissignal = task->assignedSigs;
 	task->assignedSigs = thissignal->next;
 	free(thissignal);
     }
@@ -146,7 +144,7 @@ int PStask_reinit(PStask_t *task)
     return 1;
 }
 
-int PStask_delete(PStask_t * task)
+int PStask_delete(PStask_t* task)
 {
     if (!task)
 	return 0;
@@ -158,9 +156,9 @@ int PStask_delete(PStask_t * task)
 }
 
 /* @todo Test if malloc() fails */
-PStask_sig_t *PStask_cloneSigList(PStask_sig_t *list)
+PStask_sig_t* PStask_cloneSigList(PStask_sig_t* list)
 {
-    PStask_sig_t *clone = NULL, *signal = NULL;
+    PStask_sig_t* clone = NULL,* signal = NULL;
 
     while (list) {
 	if (!signal) {
@@ -182,7 +180,7 @@ PStask_sig_t *PStask_cloneSigList(PStask_sig_t *list)
     return clone;
 }
 
-PStask_t *PStask_clone(PStask_t *task)
+PStask_t* PStask_clone(PStask_t* task)
 {
     PStask_t *clone;
     int i;
@@ -293,18 +291,17 @@ static struct {
     PStask_ID_t loggertid;
     int32_t argc;
 } tmpTask;
-    
+
+static char taskString[256];
+
 size_t PStask_encode(char *buffer, size_t size, PStask_t *task)
 {
     size_t msglen;
     int i;
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%p, %ld, task(", __func__,
-	     buffer, (long)size);
-    PStask_snprintf(errtxt+strlen(errtxt),
-		    sizeof(errtxt)-strlen(errtxt), task);
-    snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt), ")");
-    PSC_errlog(errtxt, 10);
+    PStask_snprintf(taskString, sizeof(taskString), task);
+    PSC_log(PSC_LOG_TASK, "%s(%p, %ld, task(%s))\n",
+	    __func__, buffer, (long)size, taskString);
 
     msglen = sizeof(tmpTask);
     if (msglen > size) return msglen; /* buffer to small */
@@ -374,11 +371,9 @@ int PStask_decode(char *buffer, PStask_t *task)
 {
     int msglen, len, count, i;
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%p, task(", __func__, buffer);
-    PStask_snprintf(errtxt+strlen(errtxt),
-		    sizeof(errtxt)-strlen(errtxt), task);
-    snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt), ")");
-    PSC_errlog(errtxt, 10);
+    PStask_snprintf(taskString, sizeof(taskString), task);
+    PSC_log(PSC_LOG_TASK, "%s(%p, task(%s))\n",
+	    __func__, buffer, taskString);
 
     if (!task)
 	return 0;
@@ -435,8 +430,9 @@ int PStask_decode(char *buffer, PStask_t *task)
 	msglen++;
     }
 
-    snprintf(errtxt, sizeof(errtxt), "%s returns %d", __func__, msglen);
-    PSC_errlog(errtxt, 10);
+    PStask_snprintf(taskString, sizeof(taskString), task);
+    PSC_log(PSC_LOG_TASK, " received task = (%s)\n", taskString);
+    PSC_log(PSC_LOG_TASK, "%s returns %d\n", __func__, msglen);
 
     return msglen;
 }

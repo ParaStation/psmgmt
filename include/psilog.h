@@ -20,11 +20,18 @@
 #ifndef __PSILOG_H
 #define __PSILOG_H
 
+#include <stdint.h>
+
+#include "logging.h"
+
+/** The logger we use inside PSI */
+extern logger_t* PSI_logger;
+
 /**
  * @brief Initialize the PSI logging facility.
  *
  * Initialize the PSI logging facility. This is mainly a wrapper to
- * @ref initErrLog().
+ * @ref logger_init().
  *
  *
  * @param usesyslog Flag to mark syslog(3) to be used for any output.
@@ -38,74 +45,76 @@
  * output. Otherwise if @a logfile is set, this file will be used or
  * stderr, if @a logfile is NULL.
  *
- * @see initErrLog(), syslog(3)
+ * @see logger_init(), syslog(3)
  */
-void PSI_initLog(int usesyslog, FILE *logfile);
+void PSI_initLog(int usesyslog, FILE* logfile);
 
 /**
- * @brief Get the log-level of the PSI logging facility.
+ * @brief Get the log-mask of the PSI logging facility.
  *
- * Get the actual log-level of the PSI logging facility. This is
- * mainly a wrapper to @ref getErrLogLevel().
+ * Get the actual log-mask of the PSI logging facility. This is
+ * mainly a wrapper to @ref logger_getMask().
  *
- * @return The actual log-level is returned.
+ * @return The actual log-mask is returned.
  *
- * @see PSI_setDebugLevel(), getErrLogLevel()
+ * @see PSI_setDebugMask(), logger_getMask()
  */
-int PSI_getDebugLevel(void);
+int32_t PSI_getDebugMask(void);
 
 /**
- * @brief Set the log-level of the PSI logging facility.
+ * @brief Set the log-mask of the PSI logging facility.
  *
- * Set the log-level of the PSI logging facility to @a level. This is
- * mainly a wrapper to @ref setErrLogLevel().
+ * Set the log-mask of the PSI logging facility to @a mask. @a mask is
+ * a bit-wise OR of the different keys defined within @ref
+ * PSI_Log_key_t.
  *
- * @param level The log-level to be set.
+ * This is mainly a wrapper to @ref logger_setMask().
+ *
+ * @param mask The log-mask to be set.
  *
  * @return No return value.
  *
- * @see PSI_setDebugLevel(), getErrLogLevel()
+ * @see PSI_setDebugMask(), logger_setMask()
  */
-void PSI_setDebugLevel(int level);
+void PSI_setDebugMask(int32_t mask);
 
 /**
- * @brief Print log-messages via the PSI logging facility.
+ * Print a log messages via PSI's logging facility @a PSI_logger .
  *
- * Prints message @a s with some beautification, if @a level is <= the
- * result of @ref PSI_getDebugLevel(). This is mainly a wrapper to
- * @ref errlog().
+ * This is a wrapper to @ref logger_print().
  *
- *
- * @param s The actual message to log.
- *
- * @param level The log-level of the message. Comparing to the result
- * of @ref PSI_getDebugLevel() decides whether @a s is actually put
- * out or not.
- *
- *
- * @return No return value.
- *
- * @see errlog(), PSI_getDebugLevel(), PSI_setDebugLevel()
+ * @see logger_print()
  */
-void PSI_errlog(char *s, int level);
+#define PSI_log(...) logger_print(PSI_logger, __VA_ARGS__)
 
 /**
- * @brief Print log-messages via the PSI logging facility and exit.
+ * Print a warn messages via PSI's logging facility @a PSI_logger .
  *
- * Prints message @a s and string corresponding to errno with some
- * beautification. This is mainly a wrapper to @ref errexit().
+ * This is a wrapper to @ref logger_warn().
  *
- *
- * @param s The actual message to log.
- *
- * @param errorno The errno which occured. PSI_errexit() logs the
- * corresponding string given by strerror().
- *
- *
- * @return No return value.
- *
- * @see errno(3), strerror(3), errexit()
+ * @see logger_warn()
  */
-void PSI_errexit(char *s, int errorno);
+#define PSI_warn(...) logger_warn(PSI_logger, __VA_ARGS__)
+
+/**
+ * Print a warn messages via PSI's logging facility @a PSI_logger and exit.
+ *
+ * This is a wrapper to @ref logger_exit().
+ *
+ * @see logger_exit()
+ */
+#define PSI_exit(...) logger_exit(PSI_logger, __VA_ARGS__)
+
+/**
+ * Various message classes for logging. These define the different
+ * bits of the debug-mask set via @ref PSI_setDebugMask().
+ */
+typedef enum {
+    PSI_LOG_PART = 0x0001,  /**< partition handling */
+    PSI_LOG_SPAWN = 0x0002, /**< spawning */
+    PSI_LOG_INFO = 0x0004,  /**< info requests */
+    PSI_LOG_COMM = 0x0008,  /**< daemon communication */
+    PSI_LOG_VERB = 0x0010,  /**< more verbose stuff, mainly called functions */
+} PSI_Log_key_t;
 
 #endif

@@ -29,8 +29,6 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 fd_set PSID_readfds;
 fd_set PSID_writefds;
 
-static char errtxt[256]; /**< General string to create error messages */
-
 void initComm(void)
 {
     initMsgList();
@@ -46,11 +44,10 @@ int sendMsg(void *amsg)
     int ret;
     char *sender;
 
-    if (PSID_getDebugLevel() >= 10) {
-	snprintf(errtxt, sizeof(errtxt), "%s(type %s (len=%d) to %s",
+    if (PSID_getDebugMask() & PSID_LOG_COMM) {
+	PSID_log(PSID_LOG_COMM, "%s(type %s (len=%d) to %s\n",
 		 __func__, PSDaemonP_printMsg(msg->type), msg->len,
 		 PSC_printTID(msg->dest));
-	PSID_errlog(errtxt, 10);
     }
 
     if (msg->dest==PSC_getMyTID()) { /* myself */
@@ -68,9 +65,8 @@ int sendMsg(void *amsg)
 		if (fd<FD_SETSIZE) {
 		    FD_SET(fd, &PSID_writefds);
 		} else {
-		    snprintf(errtxt, sizeof(errtxt), "%s: No fd for task %s",
+		    PSID_log(-1, "%s: No fd for task %s\n",
 			     __func__, PSC_printTID(msg->dest));
-		    PSID_errlog(errtxt, 0);
 		}
 	    }
 	} else {                           /* PSP_DD_* message */
@@ -83,24 +79,19 @@ int sendMsg(void *amsg)
 	sender="sendRDP";
 	ret = sendRDP(msg);
     } else {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s(type %s (len=%d) to %s error: dest not found",
+	PSID_log(-1, "%s(type %s (len=%d) to %s error: dest not found\n",
 		 __func__, PSDaemonP_printMsg(msg->type),
 		 msg->len, PSC_printTID(msg->dest));
-	PSID_errlog(errtxt, 0);
 	errno = EHOSTUNREACH;
 
 	return -1;
     }
     
     if (ret==-1) {
-	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s(type=%s, len=%d) to %s error (%d) in %s: %s",
-		 __func__, PSDaemonP_printMsg(msg->type), msg->len,
-		 PSC_printTID(msg->dest),
-		 errno, sender, errstr ? errstr : "UNKNOWN");
-	PSID_errlog(errtxt, (errno==EWOULDBLOCK) ? 1 : 0);
+	PSID_warn((errno==EWOULDBLOCK) ? PSID_LOG_COMM : -1, errno,
+		  "%s(type=%s, len=%d) to %s in %s",
+		  __func__, PSDaemonP_printMsg(msg->type), msg->len,
+		  PSC_printTID(msg->dest), sender);
 
 	if (errno==EWOULDBLOCK && PSC_getPID(msg->sender)) {
 	    DDMsg_t stopmsg = { .type = PSP_DD_SENDSTOP,
@@ -108,10 +99,8 @@ int sendMsg(void *amsg)
 				.dest = msg->sender,
 				.len = sizeof(DDMsg_t) };
 
-	    snprintf(errtxt, sizeof(errtxt), "%s: SENDSTOP for %s triggered",
+	    PSID_log(PSID_LOG_COMM, "%s: SENDSTOP for %s triggered\n",
 		     __func__, PSC_printTID(stopmsg.dest));
-	    PSID_errlog(errtxt, 2);
-
 	    sendMsg(&stopmsg);
 	}
     }
@@ -126,56 +115,39 @@ int recvMsg(int fd, DDMsg_t *msg, size_t size)
 	ret = recvRDP(msg, size);
 
 	if (ret<0) {
-	    char *errstr = strerror(errno);
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s(RDPSocket): recvRDP() failed (%d): %s",
-		     __func__, errno, errstr ? errstr : "UNKNOWN");
-	    PSID_errlog(errtxt, (errno==EAGAIN) ? 1 : 0);
+	    PSID_warn((errno==EAGAIN) ? PSID_LOG_COMM : -1, errno,
+		      "%s(RDPSocket): recvRDP()", __func__);
 	} else if (ret && ret != msg->len) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s(RDPSocket) type %s (len=%d) from %s",
+	    PSID_log(-1, "%s(RDPSocket) type %s (len=%d) from %s",
 		     __func__, PSDaemonP_printMsg(msg->type), msg->len,
 		     PSC_printTID(msg->sender));
-	    snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
-		     " dest %s only %d bytes", PSC_printTID(msg->dest), ret);
-	    PSID_errlog(errtxt, 0);
-	} else if (PSID_getDebugLevel() >= 10) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s(RDPSocket) type %s (len=%d) from %s",
+	    PSID_log(-1, " dest %s only %d bytes\n",
+		     PSC_printTID(msg->dest), ret);
+	} else if (PSID_getDebugMask() & PSID_LOG_COMM) {
+	    PSID_log(PSID_LOG_COMM, "%s(RDPSocket) type %s (len=%d) from %s",
 		     __func__, PSDaemonP_printMsg(msg->type), msg->len,
 		     PSC_printTID(msg->sender));
-	    snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
-		     " dest %s", PSC_printTID(msg->dest));
-	    PSID_errlog(errtxt, 10);
+	    PSID_log(PSID_LOG_COMM, " dest %s\n", PSC_printTID(msg->dest));
 	}
     } else {
 	ret = recvClient(fd, msg, size);
 
 	if (ret<0) {
-	    char *errstr = strerror(errno);
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s(%d/%s): recvClient() failed (%d): %s",
-		     __func__, fd, PSC_printTID(getClientTID(fd)), errno,
-		     errstr ? errstr : "UNKNOWN");
-	    PSID_errlog(errtxt, 0);
+	    PSID_warn(-1, errno, "%s(%d/%s): recvClient()",
+		      __func__, fd, PSC_printTID(getClientTID(fd)));
 	} else if (ret && ret != msg->len) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s(%d/%s) type %s (len=%d) from %s",
+	    PSID_log(-1, "%s(%d/%s) type %s (len=%d) from %s",
 		     __func__, fd, PSC_printTID(getClientTID(fd)),
 		     PSDaemonP_printMsg(msg->type), msg->len,
 		     PSC_printTID(msg->sender));
-	    snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
-		     " dest %s only %d bytes", PSC_printTID(msg->dest), ret);
-	    PSID_errlog(errtxt, 0);
-	} else if (PSID_getDebugLevel() >= 10) {
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s(%d/%s) type %s (len=%d) from %s",
+	    PSID_log(-1, " dest %s only %d bytes\n",
+		     PSC_printTID(msg->dest), ret);
+	} else if (PSID_getDebugMask() & PSID_LOG_COMM) {
+	    PSID_log(PSID_LOG_COMM, "%s(%d/%s) type %s (len=%d) from %s",
 		     __func__, fd, PSC_printTID(getClientTID(fd)),
 		     PSDaemonP_printMsg(msg->type), msg->len,
 		     PSC_printTID(msg->sender));
-	    snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
-		     " dest %s", PSC_printTID(msg->dest));
-	    PSID_errlog(errtxt, 10);
+	    PSID_log(PSID_LOG_COMM, " dest %s\n", PSC_printTID(msg->dest));
 	}
     }
 
@@ -187,10 +159,9 @@ int broadcastMsg(void *amsg)
     DDMsg_t *msg = (DDMsg_t *) amsg;
     int count=1;
     int i;
-    if (PSID_getDebugLevel() >= 6) {
-	snprintf(errtxt, sizeof(errtxt), "%s(type %s (len=%d)",
+    if (PSID_getDebugMask() & PSID_LOG_COMM) {
+	PSID_log(PSID_LOG_COMM, "%s(type %s len=%d)\n",
 		 __func__, PSDaemonP_printMsg(msg->type), msg->len);
-	PSID_errlog(errtxt, 6);
     }
 
     /* broadcast to every daemon except the sender */
@@ -210,20 +181,17 @@ void msg_SENDSTOP(DDMsg_t *msg)
 {
     int fd = getClientFD(msg->dest);
 
-    snprintf(errtxt, sizeof(errtxt), "%s: from %s", __func__,
+    PSID_log(PSID_LOG_COMM, "%s: from %s\n", __func__,
 	     PSC_printTID(msg->sender));
-    PSID_errlog(errtxt, 10);
 
     if (fd<FD_SETSIZE) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: client %s at %d removed from PSID_readfds", __func__,
+	PSID_log(PSID_LOG_COMM,
+		 "%s: client %s at %d removed from PSID_readfds\n", __func__,
 		 PSC_printTID(msg->dest), fd);
-	PSID_errlog(errtxt, 10);
 	FD_CLR(fd, &PSID_readfds);
     } else {
-	snprintf(errtxt, sizeof(errtxt), "%s: No fd for task %s found",
+	PSID_log(-1, "%s: No fd for task %s\n",
 		 __func__, PSC_printTID(msg->dest));
-	PSID_errlog(errtxt, 1);
     }
 }
 
@@ -231,19 +199,16 @@ void msg_SENDCONT(DDMsg_t *msg)
 {
     int fd = getClientFD(msg->dest);
 
-    snprintf(errtxt, sizeof(errtxt), "%s: from %s", __func__,
+    PSID_log(PSID_LOG_COMM, "%s: from %s\n", __func__,
 	     PSC_printTID(msg->sender));
-    PSID_errlog(errtxt, 10);
 
     if (fd<FD_SETSIZE) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: client %s at %d readded to PSID_readfds", __func__,
+	PSID_log(PSID_LOG_COMM, 
+		 "%s: client %s at %d readded to PSID_readfds\n", __func__,
 		 PSC_printTID(msg->dest), fd);
-	PSID_errlog(errtxt, 10);
 	FD_SET(fd, &PSID_readfds);
     } else {
-	snprintf(errtxt, sizeof(errtxt), "%s: No fd for task %s found",
+	PSID_log(-1, "%s: No fd for task %s\n",
 		 __func__, PSC_printTID(msg->dest));
-	PSID_errlog(errtxt, 1);
     }
 }

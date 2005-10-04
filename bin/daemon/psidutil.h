@@ -23,6 +23,7 @@
 #include <stdio.h>
 
 #include "psprotocol.h"
+#include "logging.h"
 #include "config_parsing.h"
 
 #ifdef __cplusplus
@@ -31,6 +32,9 @@ extern "C" {
 } /* <- just for emacs indentation */
 #endif
 #endif
+
+/** The logger we use inside PSID */
+extern logger_t *PSID_logger;
 
 /**
  * @brief Initialize the PSID logging facility.
@@ -55,70 +59,86 @@ extern "C" {
 void PSID_initLog(int usesyslog, FILE *logfile);
 
 /**
- * @brief Get the log-level of the PSID logging facility.
+ * @brief Get the log-mask of the PSID logging facility.
  *
- * Get the actual log-level of the PSID logging facility. This is
- * mainly a wrapper to @ref getErrLogLevel().
+ * Get the actual log-mask of the PSID logging facility. This is
+ * mainly a wrapper to @ref logger_getMask().
  *
- * @return The actual log-level is returned.
+ * @return The actual log-mask is returned.
  *
- * @see PSID_setDebugLevel(), getErrLogLevel()
+ * @see PSID_setDebugMask(), logger_getMask()
  */
-int PSID_getDebugLevel(void);
+int32_t PSID_getDebugMask(void);
 
 /**
- * @brief Set the log-level of the PSID logging facility.
+ * @brief Set the log-mask of the PSID logging facility.
  *
- * Set the log-level of the PSID logging facility to @a level. This is
- * mainly a wrapper to @ref setErrLogLevel().
+ * Set the log-mask of the PSID logging facility to @a mask. @a mask
+ * is a bit-wise OR of the different keys defined within @ref
+ * PSID_Log_key_t.
  *
- * @param level The log-level to be set.
+ *
+ * This is mainly a wrapper to @ref logger_setMask().
+ *
+ * @param mask The log-mask to be set.
  *
  * @return No return value.
  *
- * @see PSID_setDebugLevel(), getErrLogLevel()
+ * @see PSID_setDebugMask(), logger_setMask()
  */
-void PSID_setDebugLevel(int level);
+void PSID_setDebugMask(int32_t mask);
 
 /**
- * @brief Print log-messages via the PSID logging facility.
+ * Print a log messages via PSI's logging facility @a PSI_logger .
  *
- * Prints message @a s with some beautification, if @a level is <= the
- * result of @ref PSID_getDebugLevel(). This is mainly a wrapper to
- * @ref errlog().
+ * This is a wrapper to @ref logger_print().
  *
- *
- * @param s The actual message to log.
- *
- * @param level The log-level of the message. Comparing to the result
- * of @ref PSID_getDebugLevel() decides whether @a s is actually put
- * out or not.
- *
- *
- * @return No return value.
- *
- * @see errlog(), PSID_getDebugLevel(), PSID_setDebugLevel()
+ * @see logger_print()
  */
-void PSID_errlog(char *s, int level);
+#define PSID_log(...) logger_print(PSID_logger, __VA_ARGS__)
 
 /**
- * @brief Print log-messages via the PSID logging facility and exit.
+ * Print a warn messages via PSID's logging facility @a PSID_logger .
  *
- * Prints message @a s and string corresponding to errno with some
- * beautification. This is mainly a wrapper to @ref errexit().
+ * This is a wrapper to @ref logger_warn().
  *
- *
- * @param s The actual message to log.
- *
- * @param errorno The errno which occured. PSID_errexit() logs the
- * corresponding string given by strerror().
- *
- *
- * @return No return value.
- *
- * @see errno(3), strerror(3), errexit()
+ * @see logger_warn()
  */
-void PSID_errexit(char *s, int errorno);
+#define PSID_warn(...) logger_warn(PSID_logger, __VA_ARGS__)
+
+/**
+ * Print a warn messages via PSID's logging facility @a PSID_logger
+ * and exit.
+ *
+ * This is a wrapper to @ref logger_exit().
+ *
+ * @see logger_exit()
+ */
+#define PSID_exit(...) logger_exit(PSID_logger, __VA_ARGS__)
+
+/**
+ * Various message classes for logging. These define the different
+ * bits of the debug-mask set via @ref PSID_setDebugMask().
+ */
+typedef enum {
+    PSID_LOG_SIGNAL = 0x000001, /**< Signal handling stuff */
+    PSID_LOG_TIMER = 0x000002,  /**< Timer stuff */
+    PSID_LOG_HW = 0x000004,     /**< Hardware stuff */
+    PSID_LOG_RESET = 0x000008,  /**< Messages concerning (partial) resets */
+    PSID_LOG_STATUS = 0x000010, /**< Status determination */
+    PSID_LOG_CLIENT = 0x000020, /**< Client handling */
+    PSID_LOG_SPAWN = 0x000040,  /**< Spawning clients */
+    PSID_LOG_TASK = 0x000080,   /**< PStask_cleanup() call etc. */
+    PSID_LOG_RDP = 0x000100,    /**< RDP messages @see RDP module */
+    PSID_LOG_MCAST = 0x000200,  /**< MCast messages @see MCast modules*/
+    PSID_LOG_VERB = 0x000400,   /**< Higher verbosity (function call, etc.)  */
+    PSID_LOG_SIGDBG = 0x000800, /**< More verbose signaling stuff */
+    PSID_LOG_COMM = 0x001000,   /**< General daemon communication */
+    PSID_LOG_OPTION = 0x002000, /**< Option handling */
+    PSID_LOG_INFO = 0x004000,   /**< Handling of info request messages */
+    PSID_LOG_PART = 0x008000,   /**< Partition creation and management */
+} PSID_log_key_t;
+
 
 /**
  * This holds most of the daemon's configuration.

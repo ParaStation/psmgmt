@@ -33,8 +33,6 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #include "psidinfo.h"
 
-static char errtxt[256]; /**< General string to create error messages */
-
 extern char psid_cvsid[];
 
 void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
@@ -43,10 +41,9 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
     int header = 0;
     char funcStr[80];
 
-    snprintf(errtxt, sizeof(errtxt), "%s: type %s for %d from requester %s",
+    PSID_log(PSID_LOG_INFO, "%s: type %s for %d from requester %s\n",
 	     __func__, PSP_printInfo(inmsg->type), destID,
 	     PSC_printTID(inmsg->header.sender));
-    PSID_errlog(errtxt, 1);
 
     snprintf(funcStr, sizeof(funcStr),
 	     "%s(%s)", __func__, PSP_printInfo(inmsg->type));
@@ -76,10 +73,8 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		PStask_t *requester = PStasklist_find(managedTasks,
 						      inmsg->header.sender);
 		if (!requester) {
-		    snprintf(errtxt, sizeof(errtxt),
-			     "%s: requester %s not found",
+		    PSID_log(-1, "%s: requester %s not found\n",
 			     funcStr, PSC_printTID(inmsg->header.sender));
-		    PSID_errlog(errtxt, 0);
 		    inmsg = (DDTypedBufferMsg_t *)&msg;
 		} else {
 		    /* Test for protocol changes */
@@ -267,10 +262,8 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 					    inmsg->header.sender);
 
 		if (!requester) {
-		    snprintf(errtxt, sizeof(errtxt),
-			     "%s: requester %s not found", funcStr,
-			     PSC_printTID(inmsg->header.sender));
-		    PSID_errlog(errtxt, 0);
+		    PSID_log(-1, "%s: requester %s not found\n",
+			     funcStr, PSC_printTID(inmsg->header.sender));
 		    err = 1;
 		    break;
 		}
@@ -418,9 +411,8 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    PStask_t *task=PStasklist_find(managedTasks, inmsg->header.sender);
 
 	    if (!task) {
-		snprintf(errtxt, sizeof(errtxt), "%s: task %s not found",
+		PSID_log(-1, "%s: task %s not found\n",
 			 funcStr, PSC_printTID(inmsg->header.sender));
-		PSID_errlog(errtxt, 0);
 		err = 1;
 		break;
 	    }
@@ -465,10 +457,8 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 					    inmsg->header.sender);
 
 		if (!requester) {
-		    snprintf(errtxt, sizeof(errtxt),
-			     "%s: requester %s not found", funcStr,
-			     PSC_printTID(inmsg->header.sender));
-		    PSID_errlog(errtxt, 0);
+		    PSID_log(-1, "%s: requester %s not found\n",
+			     funcStr, PSC_printTID(inmsg->header.sender));
 		    err = 1;
 		    break;
 		}

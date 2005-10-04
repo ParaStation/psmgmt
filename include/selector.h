@@ -22,8 +22,9 @@
 #ifndef __SELECTOR_H
 #define __SELECTOR_H
 
+#include <stdint.h>
+#include <sys/types.h>
 #include <sys/time.h>
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -58,32 +59,50 @@ void Selector_init(int syslog);
 int Selector_isInitialized(void);
 
 /**
- * @brief Query the debug-level.
- *
- * Get the debug-level of the Selector module.
- *
- * @return The actual debug-level is returned.
- *
- * @see Selector_setDebugLevel()
- */
-int Selector_getDebugLevel(void);
+ * Various message classes for logging. These define the different
+ * bits of the debug-mask set via @ref Selector_setDebugMask().
+ */ 
+typedef enum {
+    SELECTOR_LOG_DUMMY = 0x0000, /**< No non fatal messages yet */
+} Selector_log_key_t;
 
 /**
- * @brief Set the debug-level.
+ * @brief Query the debug-mask.
  *
- * Set the debug-level of the Selector module. Possible values are:
+ * Get the debug-mask of the Selector module.
  *
- *  - 0: Critical errors (usually exit). This is the default.
+ * @return The actual debug-mask is returned.
  *
- * Only critical errors yet!
+ * @see Selector_setDebugMask()
+ */
+int32_t Selector_getDebugMask(void);
+
+/**
+ * @brief Set the debug-mask.
  *
- * @param level The debug-level to set.
+ * Set the debug-mask of the Selector module. @a mask is a bit-wise OR of
+ * the different keys defined within @ref Selector_log_key_t. If the
+ * respective bit is set within @a mask, the log-messages marked with
+ * the corresponding bits are put out to the selected channel
+ * (i.e. stderr of syslog() as defined within @ref
+ * Selector_init()). Accordingly a @mask of -1 means to put out all
+ * messages defined.
+ *
+ * All messages marked with -1 represent fatal messages that are
+ * always put out independently of the choice of @a mask, i.e. even if
+ * it is 0.
+ *
+ * @a mask's default value is 0, i.e. only fatal messages are put out.
+ *
+ * At the time the Selector module only produces critical errors yet!
+ *
+ * @param mask The debug-mask to set.
  *
  * @return No return value.
  *
- * @see Selector_getDebugLevel()
+ * @see Selector_getDebugMask(), Selector_log_key_t
  */
-void Selector_setDebugLevel(int level);
+void Selector_setDebugMask(int32_t mask);
 
 /**
  * @brief Register a new selector.
@@ -152,8 +171,8 @@ int Selector_remove(int fd);
  *
  * @see select(2) 
  */
-int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
-            struct timeval *timeout);
+int Sselect(int n, fd_set* readfds, fd_set* writefds, fd_set* exceptfds,
+            struct timeval* timeout);
 
 #ifdef __cplusplus
 }/* extern "C" */

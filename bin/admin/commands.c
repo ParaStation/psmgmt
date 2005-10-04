@@ -710,10 +710,7 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
 	}
 	break;
     case PSP_OP_PSIDSELECTTIME:
-    case PSP_OP_PSIDDEBUG:
-    case PSP_OP_RDPDEBUG:
     case PSP_OP_RDPMAXRETRANS:
-    case PSP_OP_MCASTDEBUG:
 	if (value<0) {
 	    printf(" value must be >= 0.\n");
 	    return;
@@ -725,6 +722,9 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
 	    return;
 	}
 	break;
+    case PSP_OP_PSIDDEBUG:
+    case PSP_OP_RDPDEBUG:
+    case PSP_OP_MCASTDEBUG:
     case PSP_OP_FREEONSUSP:
     case PSP_OP_HANDLEOLD:
 	break;
@@ -796,6 +796,11 @@ void PSIADM_ShowParam(PSP_Option_t type, char *nl)
 			    printf("gid %d\n", value);
 			}
 		    }
+		    break;
+		case PSP_OP_PSIDDEBUG:
+		case PSP_OP_RDPDEBUG:
+		case PSP_OP_MCASTDEBUG:
+		    printf("0x%x\n", value);
 		    break;
 		case PSP_OP_UNKNOWN:
 		    printf("unknown option\n");

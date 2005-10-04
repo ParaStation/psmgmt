@@ -39,8 +39,6 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #define ENV_NODE_RARG      "PSI_RARG_PRE_%d"
 
-static char errtxt[256];
-
 static uid_t defaultUID = 0;
 
 void PSI_setUID(uid_t uid)
@@ -58,8 +56,7 @@ void PSI_RemoteArgs(int Argc, char **Argv, int *RArgc, char ***RArgv)
     int cnt;
     int i;
 
-    snprintf(errtxt, sizeof(errtxt), "%s()", __func__);
-    PSI_errlog(errtxt, 10);
+    PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
 
     cnt=0;
     for (;;) {
@@ -73,7 +70,7 @@ void PSI_RemoteArgs(int Argc, char **Argv, int *RArgc, char ***RArgv)
 
     if (cnt) {
 	new_argc=cnt+Argc;
-	new_argv=malloc(sizeof(char *)*(new_argc+1));
+	new_argv=malloc(sizeof(char*)*(new_argc+1));
 	new_argv[new_argc]=NULL;
 
 	for (i=0; i<cnt; i++) {
@@ -270,16 +267,15 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
 	    length = readlink("/proc/self/exe", myexec, sizeof(myexec)-1);
 	    if (length<0) {
-		perror("readlink");
+		PSI_warn(-1, errno, "%s: readlink", __func__);
 	    } else {
 		myexec[length]='\0';
 	    }
 
 	    task->argv[0]=strdup(myexec);
 #else
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: Can't start parallel jobs from PATH.\n", __func__);
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1, "%s: Can't start parallel jobs from PATH.\n",
+		    __func__);
 	    return -1;
 #endif
 	} else {
@@ -294,10 +290,8 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
     /* Test if task is small enough */
     if (PStask_encode(msg.buf, sizeof(msg.buf), task) > sizeof(msg.buf)) {
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: size of task too large. Too many environment variables?",
-		 __func__);
-	PSI_errlog(errtxt, 0);
+	PSI_log(-1, "%s: size of task too large.", __func__);
+	PSI_log(-1, " Too many environment variables?\n");
 	return -1;
     }
 
@@ -329,11 +323,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    msg.header.len += PStask_encode(msg.buf, sizeof(msg.buf), task);
 
 	    if (PSI_sendMsg(&msg)<0) {
-		char *errstr = strerror(errno);
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: PSI_sendMsg() failed: %s",
-			 __func__, errstr ? errstr : "UNKNOWN");
-		PSI_errlog(errtxt, 0);
+		PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 
 		PStask_delete(task);
 		return -1;
@@ -351,11 +341,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
      */
     while (outstanding_answers>0) {
 	if (PSI_recvMsg(&answer)<0) {
-	    char *errstr = strerror(errno);
-	    snprintf(errtxt, sizeof(errtxt),
-		     "%s: PSI_recvMsg() failed: %s",
-		     __func__, errstr ? errstr : "UNKNOWN");
-	    PSI_errlog(errtxt, 0);
+	    PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	    ret = -1;
 	    break;
 	}
@@ -387,26 +373,21 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 		    tids[0] = answer.header.sender;
 		    ret++;
 		} else {
-		    snprintf(errtxt, sizeof(errtxt),
-			     "%s: %s from unknown node %d.",
-			     __func__, PSP_printMsg(answer.header.type),
-			     PSC_getID(answer.header.sender));
-		    PSI_errlog(errtxt, 0);
+		    PSI_log(-1, "%s: %s from unknown node %d\n", __func__,
+			    PSP_printMsg(answer.header.type),
+			    PSC_getID(answer.header.sender));
 		}
 	    }
 
 	    if (answer.header.type==PSP_CD_SPAWNFAILED) {
-		snprintf(errtxt, sizeof(errtxt),
-			 "%s: spawn to node %d failed.", __func__,
-			 PSC_getID(answer.header.sender));
-		PSI_errlog(errtxt, 0);
+		PSI_log(-1, "%s: spawn to node %d failed\n", __func__,
+			PSC_getID(answer.header.sender));
 		error = 1;
 	    }
 	    break;
 	default:
-	    snprintf(errtxt, sizeof(errtxt), "%s: UNKNOWN answer (%s)",
-		     __func__, PSP_printMsg(answer.header.type));
-	    PSI_errlog(errtxt, 0);
+	    PSI_log(-1, "%s: UNKNOWN answer (%s)\n", __func__,
+		    PSP_printMsg(answer.header.type));
 	    errors[0] = 0;
 	    error = 1;
 	    break;
@@ -424,8 +405,7 @@ int PSI_spawn(int count, char *workdir, int argc, char **argv,
     int total = 0;
     PSnodes_ID_t *nodes;
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, count);
-    PSI_errlog(errtxt, 10);
+    PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, count);
 
     if (count<=0) return 0;
 
@@ -446,14 +426,12 @@ int PSI_spawn(int count, char *workdir, int argc, char **argv,
 	    return -1;
 	}
 
-	snprintf(errtxt, sizeof(errtxt), "%s: will spawn to:", __func__);
+	PSI_log(PSI_LOG_SPAWN, "%s: will spawn to:", __func__);
 	for (i=0; i<chunk; i++) {
-	    snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt),
-		     " %2d", nodes[i]);
+	    PSI_log(PSI_LOG_SPAWN, " %2d", nodes[i]);
 	}
-	snprintf(errtxt+strlen(errtxt), sizeof(errtxt)-strlen(errtxt), ".");
-	snprintf(errtxt, sizeof(errtxt), "%s: first rank: %d", __func__, rank);
-	PSI_errlog(errtxt, 1);
+	PSI_log(PSI_LOG_SPAWN, ".\n");
+	PSI_log(PSI_LOG_SPAWN, "%s: first rank: %d\n", __func__, rank);
 
 	ret = dospawn(chunk, nodes, workdir, argc, argv, rank, errors, tids);
 	if (ret != chunk) {
@@ -476,8 +454,7 @@ PStask_ID_t PSI_spawnRank(int rank, char *workdir, int argc, char **argv,
     int ret;
     PStask_ID_t tid;
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, rank);
-    PSI_errlog(errtxt, 10);
+    PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, rank);
 
     ret = PSI_infoNodeID(-1, PSP_INFO_RANKID, &rank, &node, 1);
     if (ret || (node < 0)) {
@@ -485,8 +462,7 @@ PStask_ID_t PSI_spawnRank(int rank, char *workdir, int argc, char **argv,
 	return 0;
     }
 
-    snprintf(errtxt, sizeof(errtxt), "%s: will spawn to: %d", __func__, node);
-    PSI_errlog(errtxt, 1);
+    PSI_log(PSI_LOG_SPAWN, "%s: will spawn to: %d\n", __func__, node);
 
     ret = dospawn(1, &node, workdir, argc, argv, rank, error, &tid);
     if (ret != 1) return 0;
@@ -501,8 +477,7 @@ PStask_ID_t PSI_spawnGMSpawner(int np, char *workdir, int argc, char **argv,
     int ret, rank0 = 0;
     PStask_ID_t tid;
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%d)", __func__, np);
-    PSI_errlog(errtxt, 10);
+    PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, np);
 
     ret = PSI_infoNodeID(-1, PSP_INFO_RANKID, &rank0, &node, 1);
     if (ret || node < 0) {
@@ -510,8 +485,7 @@ PStask_ID_t PSI_spawnGMSpawner(int np, char *workdir, int argc, char **argv,
 	return 0;
     }
 
-    snprintf(errtxt, sizeof(errtxt), "%s: will spawn to: %d", __func__, node);
-    PSI_errlog(errtxt, 1);
+    PSI_log(PSI_LOG_SPAWN, "%s: will spawn to: %d", __func__, node);
 
     ret = dospawn(1, &node, workdir, argc, argv, np, error, &tid);
     if (ret != 1) return 0;
@@ -527,12 +501,7 @@ char *PSI_createPGfile(int num, const char *prog, int local)
 
     myprog = mygetwd(prog);
     if (!myprog) {
-	char *errstr = strerror(errno);
-
-	snprintf(errtxt, sizeof(errtxt), "%s: mygetwd() failed: %s",
-		 __func__, errstr ? errstr : "UNKNOWN");
-	PSI_errlog(errtxt, 0);
-
+	PSI_warn(-1, errno, "%s: mygetwd", __func__);
 	return NULL;
     }
 
@@ -552,10 +521,7 @@ char *PSI_createPGfile(int num, const char *prog, int local)
 	PIfile = fopen(PIfilename, "w+");
 	/* File open failed finally */
 	if (!PIfile) {
-	    char *errstr = strerror(errno);
-	    snprintf(errtxt, sizeof(errtxt), "%s: fopen() failed: %s",
-		     __func__, errstr ? errstr : "UNKNOWN");
-	    PSI_errlog(errtxt, 0);
+	    PSI_warn(-1, errno, "%s: fopen", __func__);
 	    free(PIfilename);
 	    return NULL;
 	}
@@ -585,9 +551,7 @@ int PSI_kill(PStask_ID_t tid, short signal)
 {
     DDSignalMsg_t  msg;
 
-    snprintf(errtxt, sizeof(errtxt), "%s(%s, %d)", __func__,
-	     PSC_printTID(tid), signal);
-    PSI_errlog(errtxt, 10);
+    PSI_log(PSI_LOG_VERB, "%s(%s, %d)\n", __func__, PSC_printTID(tid), signal);
 
     msg.header.type = PSP_CD_SIGNAL;
     msg.header.sender = PSC_getMyTID();
@@ -598,11 +562,7 @@ int PSI_kill(PStask_ID_t tid, short signal)
     msg.pervasive = 0;
 
     if (PSI_sendMsg(&msg)<0) {
-	char *errstr = strerror(errno);
-	snprintf(errtxt, sizeof(errtxt),
-		 "%s: PSI_sendMsg() failed: %s",
-		 __func__, errstr ? errstr : "UNKNOWN");
-	PSI_errlog(errtxt, 0);
+	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 	return -1;
     }
 
