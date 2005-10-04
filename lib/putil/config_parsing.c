@@ -372,7 +372,33 @@ static int getRLimitRSS(char *token)
     return getRLimitVal(parser_getString(), &value, "RLimit RSSize");
     if (ret) return ret;
 
-    setLimit(RLIMIT_RSS, value*1024);
+    setLimit(RLIMIT_RSS, value);
+
+    return 0;
+}
+
+static int getRLimitMemLock(char *token)
+{
+    rlim_t value;
+    int ret;
+
+    return getRLimitVal(parser_getString(), &value, "RLimit MemLock");
+    if (ret) return ret;
+
+    setLimit(RLIMIT_MEMLOCK, value*1024);
+
+    return 0;
+}
+
+static int getRLimitCore(char *token)
+{
+    rlim_t value;
+    int ret;
+
+    return getRLimitVal(parser_getString(), &value, "RLimit Core");
+    if (ret) return ret;
+
+    setLimit(RLIMIT_CORE, value*1024);
 
     return 0;
 }
@@ -387,6 +413,8 @@ static keylist_t rlimitenv_list[] = {
     {"datasize", getRLimitData},
     {"stacksize", getRLimitStack},
     {"rssize", getRLimitRSS},
+    {"memlock", getRLimitMemLock},
+    {"core", getRLimitCore},
     {"}", endRLimitEnv},
     {NULL, parser_error}
 };
@@ -404,6 +432,8 @@ static keylist_t rlimit_list[] = {
     {"datasize", getRLimitData},
     {"stacksize", getRLimitStack},
     {"rssize", getRLimitRSS},
+    {"memlock", getRLimitMemLock},
+    {"core", getRLimitCore},
     {NULL, parser_error}
 };
 
