@@ -1722,7 +1722,7 @@ static void sighandler(int sig)
 	     * Delete the task now. These should mainly be forwarders.
 	     */
 	    PStask_t *task;
-	    int logclass = (WEXITSTATUS(estatus)||WIFSIGNALED(estatus)) ?
+	    int logClass = (WEXITSTATUS(estatus)||WIFSIGNALED(estatus)) ?
 		-1 : PSID_LOG_CLIENT;
 
 	    /* I'll just report it to the logfile */
