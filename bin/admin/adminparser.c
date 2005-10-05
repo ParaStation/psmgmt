@@ -681,7 +681,7 @@ static int sortLoad5(char *token)
 
 static int sortProcOrProcLoad(char *token)
 {
-    const char discr[]="procl";
+    const char discr[]="proc+";
     sortMode = PART_SORT_PROC;
     if (strncasecmp(origToken, discr, strlen(discr))==0) {
 	sortMode = PART_SORT_PROCLOAD;
@@ -700,7 +700,7 @@ static keylist_t sort_list[] = {
     {"load_15", sortLoad1or15},
     {"load5", sortLoad5},
     {"load_5", sortLoad5},
-    {"procload", sortProcOrProcLoad},
+    {"proc+load", sortProcOrProcLoad},
     {"none", sortNone},
     {NULL, parser_error}
 };

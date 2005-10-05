@@ -140,7 +140,7 @@ static info_t nodeInfo = {
 static info_t rangeInfo = {
     .head = "Range command:",
     .syntax = (syntax_t[]) {{
-	.cmd = "r[ange]",
+	.cmd = "range",
 	.arg = "[<nodes> | all]"
     }},
     .nodes = 0,
@@ -295,7 +295,7 @@ static info_t setInfo = {
 	{ .tag = "set nodessort <mode>",
 	  .descr = "Define the default sorting strategy for nodes when"
 	  " attaching them to a partition. Valid values for <mode> are"
-	  " PROC, LOAD1, LOAD5, LOAD15, PROCLOAD or NONE. This only comes"
+	  " PROC, LOAD1, LOAD5, LOAD15, PROC+LOAD or NONE. This only comes"
 	  " into play, if the user does not define a sorting strategy"
 	  " explicitely via PSI_NODES_SORT. Be aware of the fact that using"
 	  " a batch-system like PBS or LSF *will* set the strategy"
@@ -364,22 +364,22 @@ static info_t showInfo = {
 static info_t listInfo = {
     .head = "List command:",
     .syntax = (syntax_t[]) {{
-	.cmd = "l[ist]",
-	.arg = "{[node] | c[ount] [hw <hw>] | p[roc] [cnt <cnt>]"
-	" | {allproc|ap} [cnt <cnt>] | {hardware|hw} | l[oad] | rdp"
-	" | mcast | s[ummary]} <nodes>"
+	.cmd = "list",
+	.arg = "{[node] | count [hw <hw>] | proc [cnt <cnt>]"
+	" | {allproc|ap} [cnt <cnt>] | {hardware|hw} | load | rdp"
+	" | mcast | summary} <nodes>"
     }},
     .nodes = 1,
     .descr = "Show various status parameters of the ParaStation system:",
     .tags = (taggedInfo_t[]) {
 	{ .tag = "list [node]",
 	  .descr = "shows the active nodes amongst the selected ones." },
-	{ .tag = "list c[ount] [hw <hw>]",
+	{ .tag = "list count [hw <hw>]",
 	  .descr = "Show the hardware counters on the selected nodes. If 'hw"
 	  " <hw>' is given, only the counters of the specified hardware are"
 	  " displayed. The possible values of <hw> can be found out using the"
 	  " 'list hw' command." },
-	{ .tag = "list p[roc] [cnt <cnt>]",
+	{ .tag = "list proc [cnt <cnt>]",
 	  .descr = "Show processes managed by ParaStation on the selected"
 	  " nodes. Only normal processes are displayed, no forwarder, spawner"
 	  " etc. processes. Up to <cnt> processes per node will be displayed."
@@ -392,7 +392,7 @@ static info_t listInfo = {
 	{ .tag = "list {hardware|hw}",
 	  .descr = "Show the available communcation hardware on the selected"
 	  " nodes." },
-	{ .tag = "list l[oad]",
+	{ .tag = "list load",
 	  .descr = "Show the load on the selected nodes." },
 	{ .tag = "list rdp",
 	  .descr = "Show the status of the RDP protocol on the selected"
@@ -400,7 +400,7 @@ static info_t listInfo = {
 	{ .tag = "list mcast",
 	  .descr = "Show the status of the MCast facility on the selected"
 	  " nodes." },
-	{ .tag = "list s[ummary]",
+	{ .tag = "list summary",
 	  .descr = "Print a brief summary of the active and down nodes." },
 	{ NULL, NULL }
     },
@@ -410,7 +410,7 @@ static info_t listInfo = {
 static info_t versionInfo = {
     .head = "Version command:",
     .syntax = (syntax_t[]) {{
-	.cmd = "v[ersion]",
+	.cmd = "version",
 	.arg = ""
     }},
     .nodes = 0,
@@ -422,7 +422,7 @@ static info_t versionInfo = {
 static info_t exitInfo = {
     .head = "Exit command:",
     .syntax = (syntax_t[]) {{
-	.cmd = "{e[xit] | q[uit]}",
+	.cmd = "{exit | quit}",
 	.arg = ""
     }},
     .nodes = 0,
