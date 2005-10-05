@@ -223,7 +223,7 @@ int32_t PSC_getDebugMask(void);
  *
  * Set the log-mask of the PSC logging facility to @a mask. @a mask is
  * a bit-wise OR of the different keys defined within @ref
- * PSC_Log_key_t.
+ * PSC_log_key_t.
  *
  * This is mainly a wrapper to @ref logger_setMask().
  *
@@ -267,10 +267,10 @@ void PSC_setDebugMask(int32_t mask);
  * bits of the debug-mask set via @ref PSC_setDebugMask().
  */
 typedef enum {
-    PSC_LOG_PART = 0x1000, /**< partitioning functions (i.e. PSpart_()) */
-    PSC_LOG_TASK = 0x2000, /**< task structure handling (i.e. PStask_()) */
-    PSC_LOG_VERB = 0x4000, /**< Various, less interesting messages. */
-} PSC_Log_key_t;
+    PSC_LOG_PART = 0x0001, /**< partitioning functions (i.e. PSpart_()) */
+    PSC_LOG_TASK = 0x0002, /**< task structure handling (i.e. PStask_()) */
+    PSC_LOG_VERB = 0x0004, /**< Various, less interesting messages. */
+} PSC_log_key_t;
 
 /**
  * @brief Get the ParaStation installation directory.

@@ -66,7 +66,7 @@ int32_t PSI_getDebugMask(void);
  *
  * Set the log-mask of the PSI logging facility to @a mask. @a mask is
  * a bit-wise OR of the different keys defined within @ref
- * PSI_Log_key_t.
+ * PSI_log_key_t.
  *
  * This is mainly a wrapper to @ref logger_setMask().
  *
@@ -110,11 +110,11 @@ void PSI_setDebugMask(int32_t mask);
  * bits of the debug-mask set via @ref PSI_setDebugMask().
  */
 typedef enum {
-    PSI_LOG_PART = 0x0001,  /**< partition handling */
-    PSI_LOG_SPAWN = 0x0002, /**< spawning */
-    PSI_LOG_INFO = 0x0004,  /**< info requests */
-    PSI_LOG_COMM = 0x0008,  /**< daemon communication */
-    PSI_LOG_VERB = 0x0010,  /**< more verbose stuff, mainly called functions */
-} PSI_Log_key_t;
+    PSI_LOG_PART =  0x0010, /**< partition handling */
+    PSI_LOG_SPAWN = 0x0020, /**< spawning */
+    PSI_LOG_INFO =  0x0040, /**< info requests */
+    PSI_LOG_COMM =  0x0080, /**< daemon communication */
+    PSI_LOG_VERB =  0x0100, /**< more verbose stuff, mainly called functions */
+} PSI_log_key_t;
 
 #endif

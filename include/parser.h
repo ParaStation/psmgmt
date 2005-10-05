@@ -206,12 +206,12 @@ int parser_parseFile(parser_t* parser);
  * bits of the debug-mask set via @ref parser_setDebugMask().
  */
 typedef enum {
-    PARSER_LOG_ECHO = 0x0001,    /**< Echo each line to parse */
-    PARSER_LOG_FILE = 0x0002,    /**< logs concerning the file to parse */
-    PARSER_LOG_COMMENT = 0x0004, /**< Comment handling */
-    PARSER_LOG_NODE = 0x0008,    /**< Info concerning each node */
-    PARSER_LOG_RES = 0x0010,     /**< Info on various resource to define */
-    PARSER_LOG_VERB = 0x0020,    /**< more verbose stuff */
+    PARSER_LOG_ECHO = 0x01000000, /**< Echo each line to parse */
+    PARSER_LOG_FILE = 0x02000000, /**< logs concerning the file to parse */
+    PARSER_LOG_CMNT = 0x04000000, /**< Comment handling */
+    PARSER_LOG_NODE = 0x08000000, /**< Info concerning each node */
+    PARSER_LOG_RES =  0x10000000, /**< Info on various resource to define */
+    PARSER_LOG_VERB = 0x20000000, /**< more verbose stuff */
 } parser_log_key_t;
 
 /**

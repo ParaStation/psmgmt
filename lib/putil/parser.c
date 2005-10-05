@@ -127,18 +127,17 @@ void parser_removeComment(char *line)
     }
 
     if (hash) {
-	if (parser_getDebugMask() & PARSER_LOG_COMMENT) {
+	if (parser_getDebugMask() & PARSER_LOG_CMNT) {
 	    char *txt = hash+1;
 
 	    /* Remove leading whitespace */
 	    while (*txt==' ' || *txt=='\t') txt++;
 
 	    if (*txt == '\n') {
-		parser_comment(PARSER_LOG_COMMENT, "Remove empty comment");
+		parser_comment(PARSER_LOG_CMNT, "Remove empty comment");
 	    } else {
 		if (txt[strlen(txt)-1] == '\n') txt[strlen(txt)-1] = '\0';
-		parser_comment(PARSER_LOG_COMMENT,
-			       "Remove comment: '%s'", txt);
+		parser_comment(PARSER_LOG_CMNT, "Remove comment: '%s'", txt);
 	    }
 	}
 
@@ -267,9 +266,9 @@ int parser_getComment(char *token)
     char *line = parser_getLine();
 
     if (line) {
-	parser_comment(PARSER_LOG_COMMENT, "Got comment '%s'", line);
+	parser_comment(PARSER_LOG_CMNT, "Got comment '%s'", line);
     } else {
-	parser_comment(PARSER_LOG_COMMENT, "Got empty comment");
+	parser_comment(PARSER_LOG_CMNT, "Got empty comment");
     }
 
     return 0;

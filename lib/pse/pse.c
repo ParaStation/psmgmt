@@ -47,7 +47,7 @@ static logger_t *logger;
 typedef enum {
     PSE_LOG_SPAWN = PSI_LOG_SPAWN,
     PSE_LOG_VERB = PSI_LOG_VERB, 
-} PSE_Log_key_t;
+} PSE_log_key_t;
 
 static void exitAll(char *reason, int code)
 {

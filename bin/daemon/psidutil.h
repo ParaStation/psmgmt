@@ -75,7 +75,7 @@ int32_t PSID_getDebugMask(void);
  *
  * Set the log-mask of the PSID logging facility to @a mask. @a mask
  * is a bit-wise OR of the different keys defined within @ref
- * PSID_Log_key_t.
+ * PSID_log_key_t.
  *
  *
  * This is mainly a wrapper to @ref logger_setMask().
@@ -121,22 +121,22 @@ void PSID_setDebugMask(int32_t mask);
  * bits of the debug-mask set via @ref PSID_setDebugMask().
  */
 typedef enum {
-    PSID_LOG_SIGNAL = 0x000001, /**< Signal handling stuff */
-    PSID_LOG_TIMER = 0x000002,  /**< Timer stuff */
-    PSID_LOG_HW = 0x000004,     /**< Hardware stuff */
-    PSID_LOG_RESET = 0x000008,  /**< Messages concerning (partial) resets */
-    PSID_LOG_STATUS = 0x000010, /**< Status determination */
-    PSID_LOG_CLIENT = 0x000020, /**< Client handling */
-    PSID_LOG_SPAWN = 0x000040,  /**< Spawning clients */
-    PSID_LOG_TASK = 0x000080,   /**< PStask_cleanup() call etc. */
-    PSID_LOG_RDP = 0x000100,    /**< RDP messages @see RDP module */
-    PSID_LOG_MCAST = 0x000200,  /**< MCast messages @see MCast modules*/
-    PSID_LOG_VERB = 0x000400,   /**< Higher verbosity (function call, etc.)  */
-    PSID_LOG_SIGDBG = 0x000800, /**< More verbose signaling stuff */
-    PSID_LOG_COMM = 0x001000,   /**< General daemon communication */
-    PSID_LOG_OPTION = 0x002000, /**< Option handling */
-    PSID_LOG_INFO = 0x004000,   /**< Handling of info request messages */
-    PSID_LOG_PART = 0x008000,   /**< Partition creation and management */
+    PSID_LOG_SIGNAL = 0x000010, /**< Signal handling stuff */
+    PSID_LOG_TIMER =  0x000020, /**< Timer stuff */
+    PSID_LOG_HW =     0x000040, /**< Hardware stuff */
+    PSID_LOG_RESET =  0x000080, /**< Messages concerning (partial) resets */
+    PSID_LOG_STATUS = 0x000100, /**< Status determination */
+    PSID_LOG_CLIENT = 0x000200, /**< Client handling */
+    PSID_LOG_SPAWN =  0x000400, /**< Spawning clients */
+    PSID_LOG_TASK =   0x000800, /**< PStask_cleanup() call etc. */
+    PSID_LOG_RDP =    0x001000, /**< RDP messages @see RDP module */
+    PSID_LOG_MCAST =  0x002000, /**< MCast messages @see MCast modules*/
+    PSID_LOG_VERB =   0x004000, /**< Higher verbosity (function call, etc.)  */
+    PSID_LOG_SIGDBG = 0x008000, /**< More verbose signaling stuff */
+    PSID_LOG_COMM =   0x010000, /**< General daemon communication */
+    PSID_LOG_OPTION = 0x020000, /**< Option handling */
+    PSID_LOG_INFO =   0x040000, /**< Handling of info request messages */
+    PSID_LOG_PART =   0x080000, /**< Partition creation and management */
 } PSID_log_key_t;
 
 
