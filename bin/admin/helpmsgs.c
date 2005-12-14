@@ -479,7 +479,8 @@ static info_t testInfo = {
 	  .descr = "only the coordinator node is telling about his activity."
 	},
 	{ .tag = "verbose",
-	  .descr = "each node is telling about his activity." }
+	  .descr = "each node is telling about his activity." },
+	{ NULL, NULL }
     },
     .comment = NULL
 };
