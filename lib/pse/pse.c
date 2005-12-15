@@ -128,6 +128,9 @@ void PSE_initialize(void)
     if ((envStr = getenv("PSP_MVAPI"))) {
 	setPSIEnv("PSP_MVAPI", envStr, 1);
     }
+    if ((envStr = getenv("PSP_LIB"))) {
+	setPSIEnv("PSP_LIB", envStr, 1);
+    }
     if ((envStr = getenv("PSP_DEBUG"))) {
 	setPSIEnv("PSP_DEBUG", envStr, 1);
     }
