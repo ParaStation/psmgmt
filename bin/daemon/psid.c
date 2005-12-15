@@ -636,12 +636,6 @@ static void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
     if (PSC_getID(msg->header.sender)==PSC_getMyID()) {
 	PStask_t *ptask;
 
-	if (!PSnodes_isStarter(PSC_getMyID())) {
-	    /* starting not allowed */
-	    PSID_log(-1, "%s: spawning not allowed\n", __func__);
-	    answer.error = EACCES;
-	}
-
 	if (msg->header.sender!=task->ptid) {
 	    /* Sender has to be parent */
 	    PSID_log(-1, "%s: spawner tries to cheat\n", __func__);
@@ -667,6 +661,12 @@ static void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	    /* Spawn tries to change gid */
 	    PSID_log(-1, "%s: try to setgid() task->gid %d  ptask->gid %d\n",
 		     __func__, task->gid, ptask->gid);
+	    answer.error = EACCES;
+	}
+
+	if (!PSnodes_isStarter(PSC_getMyID()) && ptask->group == TG_LOGGER) {
+	    /* starting not allowed */
+	    PSID_log(-1, "%s: spawning not allowed\n", __func__);
 	    answer.error = EACCES;
 	}
 
