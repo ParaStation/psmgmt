@@ -42,6 +42,7 @@ MISC += scripts/ps_gmcounters
 MISCEXP := $(patsubst %,$(DISTPATH)/%, $(MISC))
 MISCEXP += $(RPM_BUILD_ROOT)/etc/profile.d/psmgmt.csh
 MISCEXP += $(RPM_BUILD_ROOT)/etc/profile.d/psmgmt.sh
+MISCEXP += $(RPM_BUILD_ROOT)/etc/init.d/parastation
 
 all: tar
 
@@ -142,6 +143,9 @@ $(DISTPATH)/scripts/ps_gmcounters: $(TOP_SRCDIR)/scripts/ps_gmcounters
 	$(INSTALL) -D $< $@
 
 $(RPM_BUILD_ROOT)/etc/profile.d/psmgmt.%: $(TOP_SRCDIR)/scripts/psmgmt.%
+	$(INSTALL) -D $< $@
+
+$(RPM_BUILD_ROOT)/etc/init.d/parastation: $(TOP_SRCDIR)/scripts/parastation.init.d
 	$(INSTALL) -D $< $@
 
 DISTCLEAN+= psmgmt*.tar.gz
