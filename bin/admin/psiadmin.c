@@ -25,10 +25,13 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <limits.h>
 #include <signal.h>
 #include <errno.h>
 #include <pwd.h>
 #include <termios.h> /* Just to prevent a warning */
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <popt.h>
@@ -91,7 +94,7 @@ static char *homedir(void)
     char *env = getenv("HOME");
     struct passwd *pw = getpwuid(getuid());
 
-    if (env != NULL) return env;
+    if (env != NULL) return strdup(env);
     else if (pw && pw->pw_dir) return strdup(pw->pw_dir);
 
     return NULL;
@@ -101,11 +104,13 @@ static char *homedir(void)
 
 static int handleRCfile(const char *progname)
 {
-    char *rcname, *home = homedir();
+    char rcname[FILENAME_MAX+1];
     FILE *rcfile = NULL;
 
-    rcname = malloc(strlen(home) + strlen(RCNAME) + 2);
-
+    if (sizeof(rcname) <= strlen(RCNAME)) {
+	fprintf(stderr, "%s: filename '%s' too large\n", progname, rcname);
+	return -1;
+    }	
     strcpy(rcname, RCNAME);
     rcfile = fopen(rcname, "r");
     if (!rcfile && errno != ENOENT) {
@@ -115,7 +120,18 @@ static int handleRCfile(const char *progname)
 	return -1;
     }
     if (!rcfile) {
+	char *home = homedir();
+	if (!home) {
+	    fprintf(stderr, "%s: no homedir?\n", progname);
+	    return -1;
+	}
+	if (sizeof(rcname) <= strlen(home) + 1 + strlen(RCNAME)) {
+	    fprintf(stderr, "%s: filename '%s/%s' too large\n",
+		    progname, home, rcname);
+	    return -1;
+	}
 	strcpy(rcname, home);
+	free(home);
 	strcat(rcname, "/");
 	strcat(rcname, RCNAME);
 
@@ -137,7 +153,6 @@ static int handleRCfile(const char *progname)
 
 	    if (line && *line) {
 		parser_removeComment(line);
-		add_history(line);
 		done = parseLine(line);
 	    }
 	    if (line)
@@ -150,6 +165,101 @@ static int handleRCfile(const char *progname)
     }
 
     return 0;
+}
+
+#define HISTNAME ".psiadm_history"
+
+char *histname = NULL;
+int histfilesize = 200;
+
+static int handleHistFile(const char *progname)
+{
+    char name[FILENAME_MAX+1], *env;
+    struct stat statbuf;
+    FILE *file = NULL;
+
+    if ((env = getenv("PSIADM_HISTFILE"))) {
+	int len = snprintf(name, sizeof(name), "%s", env);
+	if ((size_t)len >= sizeof(name)) {
+	    fprintf(stderr, "%s: filename '%s' too large,", progname, env);
+	    fprintf(stderr, " use default ($HOME/.psiadm_history).\n");
+	} else {
+	    histname = strdup(name);
+	}
+    }
+
+    if (!histname) {
+	char *home = homedir();
+	if (!home) {
+	    fprintf(stderr, "%s: no homedir?\n", progname);
+	    return -1;
+	}
+	if (sizeof(name) <= strlen(home) + 1 + strlen(HISTNAME)) {
+	    fprintf(stderr, "%s: filename '%s/%s' too large\n",
+		    progname, home, HISTNAME);
+	    return -1;
+	}
+	strcpy(name, home);
+	free(home);
+	strcat(name, "/");
+	strcat(name, HISTNAME);
+
+	histname = strdup(name);
+    }
+
+    if ((env = getenv("PSIADM_HISTFILESIZE"))) {
+	char *tail;
+	unsigned long size = strtoul(env, &tail, 0);
+
+	if (*tail) {
+	    fprintf(stderr,
+		    "%s: '%s' is not a valid number, use infinity (0).\n",
+		    progname, env);
+	    histfilesize = 0;
+	} else {
+	    if (size != (unsigned long)(int)size) {
+		fprintf(stderr,
+			"%s: '%s' is too large, use INT_MAX.\n",
+			progname, env);
+		histfilesize = INT_MAX;
+	    } else {
+		histfilesize = (int)size;
+	    }
+	}
+    }
+
+    if ((stat(histname, &statbuf) < 0) && !(file = fopen(histname, "a"))) {
+	char *errstr = strerror(errno);
+	fprintf(stderr, "%s: cannot create history file '%s': %s\n",
+		progname, histname, errstr ? errstr : "UNKNOWN");
+    }
+    if (file) fclose(file);
+
+    if (read_history(histname)) {
+	char *errstr = strerror(errno);
+	fprintf(stderr, "%s: cannot read history file %s: %s\n",
+		progname, histname, errstr ? errstr : "UNKNOWN");
+	return -1;
+    }
+}
+
+static int saveHistFile(const char *progname)
+{
+    if (histname) {
+	if (write_history(histname)) {
+	    char *errstr = strerror(errno);
+	    fprintf(stderr, "%s: cannot write history file %s: %s\n",
+		    progname, histname, errstr ? errstr : "UNKNOWN");
+	    return -1;
+	} else if (histfilesize) {
+	    if (history_truncate_file(histname, histfilesize)) {
+		char *errstr = strerror(errno);
+		fprintf(stderr, "%s: cannot truncate history file %s: %s\n",
+			progname, histname, errstr ? errstr : "UNKNOWN");
+	    }
+	}
+	free(histname);
+    }
 }
 
 int main(int argc, const char **argv)
@@ -221,14 +331,6 @@ int main(int argc, const char **argv)
     }
 
     /*
-     * Interactive mode
-     */
-    using_history();
-    add_history("shutdown");
-    rl_readline_name = "PSIadmin";
-    rl_attempted_completion_function = completeLine;
-
-    /*
      * Read the startup file
      */
     if (!noinit) {
@@ -249,6 +351,15 @@ int main(int argc, const char **argv)
 	    return -1;
 	}
 	quiet = 1;
+    } else {
+	/*
+	 * Interactive mode
+	 */
+	using_history();
+	handleHistFile(argv[0]);
+
+	rl_readline_name = "PSIadmin";
+	rl_attempted_completion_function = completeLine;
     }
 
     while (!done) {
@@ -258,7 +369,14 @@ int main(int argc, const char **argv)
 	    if (echo) printf("%s\n", line);
 
 	    parser_removeComment(line);
-	    add_history(line);
+
+	    if (!progfile) {
+		HIST_ENTRY *prev = previous_history();
+		if (!prev || strcmp(prev->line, line)) {
+		    add_history(line);
+		}
+	    }
+
 	    done = parseLine(line);
 	}
 	if (line)
@@ -268,6 +386,8 @@ int main(int argc, const char **argv)
     }
 
     if (!quiet) printf("PSIadmin: Goodbye\n");
+
+    if (!progfile) saveHistFile(argv[0]);
 
     return 0;
 }
