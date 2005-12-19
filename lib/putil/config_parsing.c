@@ -25,7 +25,9 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <libgen.h>
-
+#include <pwd.h>
+#include <grp.h>
+ 
 #include "parser.h"
 #include "psnodes.h"
 
@@ -56,10 +58,33 @@ static config_t config = (config_t) {
 static int nodesfound = 0;
 
 /*----------------------------------------------------------------------*/
-/* Helper function to insert a node */
-
+/**
+ * @brief Insert a node.
+ *
+ * Helper function to insert a node.... @todo
+ *
+ * @param ipaddr
+ *
+ * @param id
+ *
+ * @param hwtype
+ *
+ * @param extraIP Not used.
+ *
+ * @param jobs
+ *
+ * @param starter
+ *
+ * @param uid The user ID the node is reserved to as default.
+ *
+ * @param gid The group ID the node is reserved to as default.
+ *
+ * @return Return -1 if an error occurred or 0 if the node was
+ * inserted successfully.
+ */
 static int installHost(unsigned int ipaddr, int id, int hwtype, 
-		       unsigned int extraIP, int jobs, int starter)
+		       unsigned int extraIP, int jobs, int starter,
+		       uid_t uid, gid_t gid)
 {
     if (PSnodes_getNum() == -1) { /* NrOfNodes not defined */
 	parser_comment(-1, "define NrOfNodes before any host");
@@ -110,6 +135,16 @@ static int installHost(unsigned int ipaddr, int id, int hwtype,
 
     if (PSnodes_setIsStarter(id, starter)) {
 	parser_comment(-1, "PSnodes_setIsStarter(%d, %d) failed", id, starter);
+	return -1;
+    }
+
+    if (PSnodes_setUser(id, uid)) {
+	parser_comment(-1, "PSnodes_setUser(%d, %d) failed", id, uid);
+	return -1;
+    }
+
+    if (PSnodes_setGroup(id, gid)) {
+	parser_comment(-1, "PSnodes_setGroup(%d, %d) failed", id, gid);
 	return -1;
     }
 
@@ -647,6 +682,104 @@ static int getExtraIP(char *token)
     return 0;
 }
 
+/* from bin/admin/adminparser.c */
+static uid_t uidFromString(char *user)
+{
+    long tmp = parser_getNumber(user);
+    struct passwd *passwd = getpwnam(user);
+
+    if (strcasecmp(user, "any") == 0) return -1;
+    if (tmp > -1) return tmp;
+    if (passwd) return passwd->pw_uid;
+
+    return -2;
+}
+
+/* from bin/admin/adminparser.c */
+static gid_t gidFromString(char *group)
+{
+    long tmp = parser_getNumber(group);
+    struct group *grp = getgrnam(group);
+
+    if (strcasecmp(group, "any") == 0) return -1;
+    if (tmp > -1) return tmp;
+    if (grp) return grp->gr_gid;
+
+    return -2;
+}
+
+static uid_t uid = -1, node_uid;
+
+static int getUser(char *token)
+{
+    char *user = parser_getString();
+    node_uid = uidFromString(user);
+
+    if ((int)node_uid < -1) {
+	parser_comment(-1, "Unknown user '%s'", user);
+	return -1;
+    }
+
+    return 0;
+}
+
+static int getUserLine(char *token)
+{
+    int ret;
+    char *user;
+    struct passwd *pwd;
+
+    ret = getUser(token);
+
+    uid = node_uid;
+
+    if ((int)uid >= 0) {
+	pwd = getpwuid(uid);
+	user = pwd->pw_name;
+    } else {
+	user = "ANY";
+    }
+    parser_comment(PARSER_LOG_RES, "setting default 'User' to '%s'", user);
+
+    return ret;
+}
+
+static uid_t gid = -1, node_gid;
+
+static int getGroup(char *token)
+{
+    char *group = parser_getString();
+    node_gid = gidFromString(group);
+
+    if ((int)node_gid < -1) {
+	parser_comment(-1, "Unknown group '%s'");
+	return -1;
+    }
+
+    return 0;
+}
+
+static int getGroupLine(char *token)
+{
+    int ret;
+    char *group;
+    struct group *grp;
+
+    ret = getGroup(token);
+
+    gid = node_gid;
+
+    if ((int)gid >= 0) {
+	grp = getgrgid(uid);
+	group = grp->gr_name;
+    } else {
+	group = "ANY";
+    }
+    parser_comment(PARSER_LOG_RES, "setting default 'Group' to '%s'", group);
+
+    return ret;
+}
+
 /* ---------------------------------------------------------------------- */
 
 static keylist_t nodeline_list[] = {
@@ -654,6 +787,8 @@ static keylist_t nodeline_list[] = {
     {"runjobs", getRJ},
     {"starter", getCS},
     {"extraip", getExtraIP},
+    {"user", getUser},
+    {"group", getGroup},
     {NULL, parser_error}
 };
 
@@ -669,6 +804,8 @@ static int getNodeLine(char *token)
     node_runjobs = runjobs;
     node_canstart = canstart;
     node_extraIP = 0;
+    node_uid = uid;
+    node_gid = gid;
 
     ipaddr = parser_getHostname(token);
 
@@ -698,7 +835,7 @@ static int getNodeLine(char *token)
     }
 
     ret = installHost(ipaddr, nodenum, node_hwtype, node_extraIP,
-		      node_runjobs, node_canstart);
+		      node_runjobs, node_canstart, node_uid, node_gid);
 
  exit:
     free(hostname);
@@ -1102,6 +1239,8 @@ static keylist_t config_list[] = {
     {"hwtype", getHWLine},
     {"runjobs", getRJLine},
     {"starter", getCSLine},
+    {"user", getUserLine},
+    {"group", getGroupLine},
     {"nodes", getNodes},
     {"licenseserver", getLicServer},
     {"licserver", getLicServer},
