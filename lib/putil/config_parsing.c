@@ -680,11 +680,11 @@ static int getNodeLine(char *token)
 
     ret = parser_getNumValue(parser_getString(), &nodenum, "node number");
 
-    if (ret) return ret;
+    if (ret) goto exit;
 
     ret = parser_parseString(parser_getString(), &nodeline_parser);
 
-    if (ret) return ret;
+    if (ret) goto exit;
 
     if (parser_getDebugMask() & PARSER_LOG_NODE) {
 	parser_comment(PARSER_LOG_NODE, "Register '%s' as %d with"
@@ -699,6 +699,9 @@ static int getNodeLine(char *token)
 
     ret = installHost(ipaddr, nodenum, node_hwtype, node_extraIP,
 		      node_runjobs, node_canstart);
+
+ exit:
+    free(hostname);
 
     return ret;
 }
@@ -789,6 +792,7 @@ char *getQuotedString(char *line)
     while (*end==' ' || *end=='\t') end++;
     if (*end) {
 	parser_comment(-1, "found trailing garbage '%s' %d", end, *end);
+	if (value) free(value);
 	return NULL;
     }
 
@@ -826,6 +830,9 @@ static int getEnvLine(char *token)
     setenv(name, value, 1);
 
     parser_comment(PARSER_LOG_RES, "got environment: %s='%s'", name , value);
+
+    free(name);
+    free(value);
 
     return 0;
 }
@@ -912,6 +919,8 @@ static int getHardwareScript(char *token)
 
     parser_comment(PARSER_LOG_RES, "got hardware script: %s='%s'",name, value);
 
+    free(value);
+
     return 0;
 }
 
@@ -949,6 +958,9 @@ static int getHardwareEnvLine(char *token)
 
     parser_comment(PARSER_LOG_RES, "got hardware environment: %s='%s'\n",
 		   name , value);
+
+    free(name);
+    free(value);
 
     return 0;
 }
