@@ -35,7 +35,7 @@ static char lexid[] __attribute__(( unused )) = "$Id$";
 
 #include "helpmsgs.c"
 
-static char parserversion[] = "$Revision $";
+static char parserversion[] = "$Revision$";
 
 static char *defaultNL = NULL;
 
