@@ -43,7 +43,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "commands.h"
 #include "adminparser.h"
 
-char psiadmversion[] = "$Revision: 1.70 $";
+char psiadmversion[] = "$Revision$";
 
 /*
  * Print version info
