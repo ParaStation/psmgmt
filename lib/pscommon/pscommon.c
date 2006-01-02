@@ -296,11 +296,15 @@ static int parseRange(char* list, char* range)
     long first, last, i;
     char *start = strsep(&range, "-"), *end;
 
-    first = strtol(start, &end, 0);
-    if (*end != '\0') return 0;
-    if (first < 0 || first >= PSC_getNrOfNodes()) {
-	PSC_log(-1, "node %ld out of range\n", first);
-	return 0;
+    if (*start == '\0') {
+	first = -1;
+    } else {
+	first = strtol(start, &end, 0);
+	if (*end != '\0') return 0;
+	if (first < 0 || first >= PSC_getNrOfNodes()) {
+	    PSC_log(-1, "node %ld out of range\n", first);
+	    return 0;
+	}
     }
 
     if (range) {
@@ -313,6 +317,15 @@ static int parseRange(char* list, char* range)
 	}
     } else {
 	last = first;
+    }
+
+    if (first == -1) {
+	if (last == 1) {
+	    first = last = PSC_getMyID();
+	} else {
+	    fprintf(stderr, "node %ld out of range\n", -last);
+	    return 0;
+	}
     }
 
     for (i=first; i<=last; i++) list[i] = 1;
