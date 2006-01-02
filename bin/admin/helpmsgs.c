@@ -366,8 +366,8 @@ static info_t listInfo = {
     .syntax = (syntax_t[]) {{
 	.cmd = "list",
 	.arg = "{[node] | count [hw <hw>] | proc [cnt <cnt>]"
-	" | {allproc|ap} [cnt <cnt>] | {hardware|hw} | load | rdp"
-	" | mcast | summary} <nodes>"
+	" | {aproc|ap} [cnt <cnt>] | {hardware|hw} | load | rdp"
+	" | mcast | summary | versions} <nodes>"
     }},
     .nodes = 1,
     .descr = "Show various status parameters of the ParaStation system:",
@@ -384,7 +384,7 @@ static info_t listInfo = {
 	  " nodes. Only normal processes are displayed, no forwarder, spawner"
 	  " etc. processes. Up to <cnt> processes per node will be displayed."
 	  " The default is to show 10 processes."},
-	{ .tag = "list {allproc|ap} [cnt <cnt>]",
+	{ .tag = "list {aproc|ap} [cnt <cnt>]",
 	  .descr = "Show all processes managed by ParaStation on the selected"
 	  " nodes. This includes all special processes like forwarder, spawner"
 	  " etc. Up to <cnt> processes per node will be displayed. The default"
@@ -402,6 +402,9 @@ static info_t listInfo = {
 	  " nodes." },
 	{ .tag = "list summary",
 	  .descr = "Print a brief summary of the active and down nodes." },
+	{ .tag = "list versions",
+	  .descr = "Show the daemon's version and the revision of the"
+	  " corresponding RPM on the selected nodes." },
 	{ NULL, NULL }
     },
     .comment = NULL

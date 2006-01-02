@@ -560,6 +560,11 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    msg.header.len += strlen(msg.buf) + 1;
 	    break;
 	}
+	case PSP_INFO_RPMREV:
+	    snprintf(msg.buf, sizeof(msg.buf), "%s-%s",
+		     VERSION_psmgmt, RELEASE_psmgmt);
+	    msg.header.len += strlen(msg.buf)+1;
+	    break;
 	default:
 	    msg.type = PSP_INFO_UNKNOWN;
 	}

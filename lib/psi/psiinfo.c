@@ -117,7 +117,8 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
 	    break;
 	}
 	case PSP_INFO_UNKNOWN:
-	    PSI_log(-1, "%s: daemon does not know info\n", __func__);
+	    PSI_log(verbose ? -1 : PSI_LOG_INFO,
+		    "%s: daemon does not know info\n", __func__);
 	    *size = 0;
 	    break;
 	default:
@@ -255,8 +256,9 @@ int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    return -1;
 	}
 	break;
-    case PSP_INFO_INSTDIR:
     case PSP_INFO_DAEMONVER:
+    case PSP_INFO_INSTDIR:
+    case PSP_INFO_RPMREV:
 	break;
     default:
 	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,

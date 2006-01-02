@@ -149,6 +149,7 @@ typedef enum {
     PSP_INFO_LIST_EXCLUSIVE,      /**< List of flags of exclusive allocation */
 
     PSP_INFO_CMDLINE,             /**< Task's command line (if available) */
+    PSP_INFO_RPMREV,              /**< Daemon's RPM revision */
 } PSP_Info_t;
 
 /** Messages concerning spawning of tasks. */

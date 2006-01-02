@@ -67,7 +67,8 @@ psiadmin: psiadmin.o commands.o adminparser.o
 psiadmin: -lpsi -lputil
 psiadmin: LOADLIBES:=-lreadline -lhistory -l@LIBCURSES@ -lpopt
 
-adminparser.o: CPPFLAGS += -DVERSION_psmgmt='"$(VERSION_psmgmt)"' -DRELEASE_psmgmt='"$(RELEASE_psmgmt)"'
+adminparser.o: CPPFLAGS += -DVERSION_psmgmt='"$(VERSION_psmgmt)"' \
+		-DRELEASE_psmgmt='"$(RELEASE_psmgmt)"'
 
 # psid
 VPATH += $(SRCDIR)/daemon
@@ -76,6 +77,9 @@ psid: psidsignal.o psidmsgbuf.o psidrdp.o psidclient.o psidcomm.o
 psid: psidinfo.o psidoption.o psidpartition.o psidstatus.o
 psid: -lputil -lpscommon -lutil -lpslog
 psid: LOADLIBES:=-lm -lpopt
+
+psidinfo.o: CPPFLAGS += -DVERSION_psmgmt='"$(VERSION_psmgmt)"' \
+		-DRELEASE_psmgmt='"$(RELEASE_psmgmt)"'
 
 # logger
 VPATH += $(SRCDIR)/logger

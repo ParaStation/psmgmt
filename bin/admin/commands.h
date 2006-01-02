@@ -248,6 +248,22 @@ void PSIADM_LoadStat(char *nl);
 void PSIADM_HWStat(char *nl);
 
 /**
+ * @brief Get daemon versions.
+ *
+ * Show the daemon versions of the nodes marked within the nodelist @a
+ * nl. Therefore the corresponding information is requested from the
+ * daemons and printed to stdout. Two version numbers are presented,
+ * the current revisions of psid.c and the revision of the RPM-file
+ * the daemon is installed from.
+ *
+ * @param nl The nodelist describing the nodes from which the
+ * information should requested and put out.
+ *
+ * @return No return value.
+ */
+void PSIADM_VersionStat(char *nl);
+
+/**
  * @brief Set parameter
  *
  * Set the parameter @a type to the value @a value on the nodes marked

@@ -683,6 +683,33 @@ void PSIADM_HWStat(char *nl)
     }
 }
 
+void PSIADM_VersionStat(char *nl)
+{
+    PSnodes_ID_t node;
+
+    if (! getHostStatus()) return;
+
+    printf("Node\t psid\t RPM\n");
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
+
+	if (hostStatus.list[node]) {
+	    char psidver[100], rpmrev[100];
+	    int err;
+
+	    err = PSI_infoString(node, PSP_INFO_DAEMONVER, NULL,
+				 psidver, sizeof(psidver), 0);
+	    if (err) strcpy(psidver, "$Revision: unknown$");
+	    err = PSI_infoString(node, PSP_INFO_RPMREV, NULL,
+				 rpmrev, sizeof(rpmrev), 0);
+	    if (err) strcpy(rpmrev, "unknown");
+	    printf("%4d\t%s\b \t%s\n", node, psidver+11, rpmrev);
+	} else {
+	    printf("%4d\tdown\n", node);
+	}
+    }
+}
+
 void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
 {
     PSnodes_ID_t node;

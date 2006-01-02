@@ -442,13 +442,32 @@ static int listHWCommand(char *token)
     return -1;
 }
 
+static int listVersionCommand(char *token)
+{
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL;
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+	if (!nl) goto error;
+    }
+    if (parser_getString()) goto error; /* trailing garbage */
+
+    PSIADM_VersionStat(nl);
+    return 0;
+
+ error:
+    printError(&listInfo);
+    return -1;
+}
+
 static int listSpecialCommand(char *token)
 {
     char *nl_descr = parser_getString();
     char *nl = defaultNL;
 
     if (!nl_descr) {
-	/* Maybe this is like 'status a-b' */
+	/* Maybe this is like 'list a-b' */
 	if (token) nl = getNodeList(token);
 	if (!nl) goto error;
     } else goto error;
@@ -472,6 +491,7 @@ static keylist_t listList[] = {
     {"proc", listProcCommand},
     {"rdp", listRDPCommand},
     {"summary", listSummaryCommand},
+    {"versions", listVersionCommand},
     {NULL, listSpecialCommand}
 };
 static parser_t listParser = {" \t\n", listList};
@@ -1011,18 +1031,27 @@ static int helpCommand(char *token)
 static int versionCommand(char *token)
 {
     extern char psiadmversion[];
+    char tmp[100];
+    int err;
 
     if (parser_getString()) goto error;
-    
+
     printf("PSIADMIN: ParaStation administration tool\n");
     printf("Copyright (C) 1996-2004 ParTec AG Karlsruhe\n");
     printf("Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich\n");
     printf("\n");
     printf("PSIADMIN:   %s\b/ %s\b/ %s\b \b\b\n", psiadmversion+11,
 	   commandsversion+11, parserversion+11);
-    printf("PSID:       %s\b \n", PSI_getPsidVersion()+11);
     printf("PSProtocol: %d\n", PSprotocolVersion);
     printf("RPM:        %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
+
+    err = PSI_infoString(-1, PSP_INFO_DAEMONVER, NULL, tmp, sizeof(tmp), 0);
+    if (err) strcpy(tmp, "$Revision: unknown$");
+    printf("PSID:       %s\b \n", tmp+11);
+
+    err = PSI_infoString(-1, PSP_INFO_RPMREV, NULL, tmp, sizeof(tmp), 0);
+    if (err) strcpy(tmp, "unknown");
+    printf("RPM:        %s\n", tmp);
     return 0;
 
  error:
