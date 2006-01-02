@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -1016,12 +1016,13 @@ static int versionCommand(char *token)
     
     printf("PSIADMIN: ParaStation administration tool\n");
     printf("Copyright (C) 1996-2004 ParTec AG Karlsruhe\n");
-    printf("Copyright (C) 2005 Cluster Competence Center GmbH, Munich\n");
+    printf("Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich\n");
     printf("\n");
     printf("PSIADMIN:   %s\b/ %s\b/ %s\b \b\b\n", psiadmversion+11,
 	   commandsversion+11, parserversion+11);
     printf("PSID:       %s\b \n", PSI_getPsidVersion()+11);
     printf("PSProtocol: %d\n", PSprotocolVersion);
+    printf("RPM:        %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
     return 0;
 
  error:

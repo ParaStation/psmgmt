@@ -1,7 +1,7 @@
 ###################################################### -*- Makefile -*- #####
 #                  ParaStation
 #        Copyright (c) 2002-2003 ParTec AG, Karlsruhe
-#        Copyright (c) 2005 Cluster Competence Center GmbH, Munich
+#        Copyright (c) 2005-2006 Cluster Competence Center GmbH, Munich
 #############################################################################
 #
 # $Id$
@@ -21,6 +21,7 @@ VPATH += $(SRCDIR)
 
 LIBDIR := ../lib
 
+include $(TOP_SRCDIR)/Makefile.version
 
 ifeq ("$(TARGET_OS)","linux")
 .LIBPATTERNS+= $(LIBDIR)/lib%.a
@@ -65,6 +66,8 @@ VPATH += $(SRCDIR)/admin
 psiadmin: psiadmin.o commands.o adminparser.o
 psiadmin: -lpsi -lputil
 psiadmin: LOADLIBES:=-lreadline -lhistory -l@LIBCURSES@ -lpopt
+
+adminparser.o: CPPFLAGS += -DVERSION_psmgmt='"$(VERSION_psmgmt)"' -DRELEASE_psmgmt='"$(RELEASE_psmgmt)"'
 
 # psid
 VPATH += $(SRCDIR)/daemon
