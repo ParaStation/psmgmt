@@ -58,7 +58,7 @@ void init(int num_nodes)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.14 $";
+    char revision[] = "$Revision$";
     fprintf(stderr, "mlisten %s\b \n", revision+11);
 }
 

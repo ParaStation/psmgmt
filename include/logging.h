@@ -3,14 +3,14 @@
  *
  * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: errlog.h 3537 2005-02-11 15:06:17Z eicker $
+ * $Id$
  *
  */
 /**
  * \file
  * ParaStation logging facility used within RDP, MCast, psid etc.
  *
- * $Id: errlog.h 3537 2005-02-11 15:06:17Z eicker $
+ * $Id$
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>

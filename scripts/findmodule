@@ -5,7 +5,7 @@
 #
 # Author: Jens Hauke <hauke@par-tec.com>
 #
-# $Id: findmodule,v 1.2 2003/04/15 08:19:50 hauke Exp $
+# $Id$
 #
 
 MODULEDIR=${1-"."}

@@ -35,7 +35,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.13 $";
+    char revision[] = "$Revision$";
     fprintf(stderr, "psmstart %s\b \n", revision+11);
 }
 

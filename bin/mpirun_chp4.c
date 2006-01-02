@@ -39,7 +39,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.9 $";
+    char revision[] = "$Revision$";
     fprintf(stderr, "mpirun_chp4 %s\b \n", revision+11);
 }
 

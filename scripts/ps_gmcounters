@@ -6,7 +6,7 @@
 #
 # Author: Norbert Eicker <eicker@par-tec.com>
 #
-# $Id: ps_gmcounters,v 1.1 2003/07/25 13:13:54 eicker Exp $
+# $Id$
 #
 
 GM_INSTALLDIR=${GM_INSTALLDIR-"/opt/gm"}

@@ -3,11 +3,11 @@
  *
  * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: errlog.h 3537 2005-02-11 15:06:17Z eicker $
+ * $Id$
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: pscommon.c 3747 2005-08-10 07:06:16Z eicker $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>

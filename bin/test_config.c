@@ -36,7 +36,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 1.1 $";
+    char revision[] = "$Revision$";
     fprintf(stderr, "test_config %s\b \n", revision+11);
 }
 

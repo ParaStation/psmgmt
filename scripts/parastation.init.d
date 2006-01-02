@@ -8,7 +8,7 @@
 #
 # parastation:       Starts the ParaStation Daemon.
 #
-# Version:           $Id: $
+# Version:           $Id$
 #
 # chkconfig: 35 15 72
 # description: The ParaStation management daemon
