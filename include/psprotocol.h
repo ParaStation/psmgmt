@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -94,6 +94,9 @@ typedef enum {
     PSP_OP_FREEONSUSP = 0x0038,   /**< Free suspended job's resources? */
     PSP_OP_HANDLEOLD,             /**< Notice old binaries? */
     PSP_OP_NODESSORT,             /**< Sorting strategy for nodes */
+    PSP_OP_OVERBOOK,              /**< (Dis-)Allow overbooking this node */
+    PSP_OP_STARTER,               /**< (Dis-)Allow starting from this node */
+    PSP_OP_RUNJOBS,               /**< (Dis-)Allow running on this node */
 } PSP_Option_t;
 
 /** Messages used for information retrieval */

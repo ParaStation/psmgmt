@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -71,20 +71,25 @@ static int nodesfound = 0;
  *
  * @param extraIP Not used.
  *
- * @param jobs
+ * @param jobs Flag if jobs are allowed on this node.
  *
- * @param starter
+ * @param starter Flag if start of jobs is allowed on this node.
  *
  * @param uid The user ID the node is reserved to as default.
  *
  * @param gid The group ID the node is reserved to as default.
+ *
+ * @param procs The numer of processes allowed to run on this node. -1
+ * flags unlimited number of processes.
+ *
+ * @param overbook Flag if overbooking is allowed on this node.
  *
  * @return Return -1 if an error occurred or 0 if the node was
  * inserted successfully.
  */
 static int installHost(unsigned int ipaddr, int id, int hwtype, 
 		       unsigned int extraIP, int jobs, int starter,
-		       uid_t uid, gid_t gid)
+		       uid_t uid, gid_t gid, int procs, int overbook)
 {
     if (PSnodes_getNum() == -1) { /* NrOfNodes not defined */
 	parser_comment(-1, "define NrOfNodes before any host");
@@ -145,6 +150,16 @@ static int installHost(unsigned int ipaddr, int id, int hwtype,
 
     if (PSnodes_setGroup(id, gid)) {
 	parser_comment(-1, "PSnodes_setGroup(%d, %d) failed", id, gid);
+	return -1;
+    }
+
+    if (PSnodes_setProcs(id, procs)) {
+	parser_comment(-1, "PSnodes_setProcs(%d, %d) failed", id, procs);
+	return -1;
+    }
+
+    if (PSnodes_setOverbook(id, overbook)) {
+	parser_comment(-1, "PSnodes_setOverbook(%d, %d) failed", id, overbook);
 	return -1;
     }
 
@@ -752,7 +767,7 @@ static int getGroup(char *token)
     node_gid = gidFromString(group);
 
     if ((int)node_gid < -1) {
-	parser_comment(-1, "Unknown group '%s'");
+	parser_comment(-1, "Unknown group '%s'", group);
 	return -1;
     }
 
@@ -780,6 +795,60 @@ static int getGroupLine(char *token)
     return ret;
 }
 
+static int procs = -1, node_procs;
+
+static int getProcs(char *token)
+{
+    char *procStr = parser_getString();
+    node_procs = parser_getNumber(procStr);
+
+    if ((node_procs == -1) && strcasecmp(procStr, "any")) {
+	parser_comment(-1, "Unknown number of processes '%s'", procStr);
+	return -1;
+    }
+
+    return 0;
+}
+
+static int getProcsLine(char *token)
+{
+    int ret;
+
+    ret = getProcs(token);
+
+    procs = node_procs;
+
+    if (procs == -1) {
+	parser_comment(PARSER_LOG_RES, "setting default 'Processes' to 'ANY'");
+    } else {
+	parser_comment(PARSER_LOG_RES, "setting default 'Processes' to '%d'",
+		       procs);
+    }
+
+    return ret;
+}
+
+static int overbook = 1, node_overbook;
+
+static int getOB(char *token)
+{
+    return parser_getBool(parser_getString(), &node_overbook, "node_overbook");
+}
+
+static int getOBLine(char *token)
+{
+    int ret;
+
+    ret = getOB(token);
+
+    overbook = node_overbook;
+
+    parser_comment(PARSER_LOG_RES, "setting default 'Overbook' to '%s'",
+		   overbook ? "TRUE" : "FALSE");
+
+    return ret;
+}
+
 /* ---------------------------------------------------------------------- */
 
 static keylist_t nodeline_list[] = {
@@ -789,6 +858,8 @@ static keylist_t nodeline_list[] = {
     {"extraip", getExtraIP},
     {"user", getUser},
     {"group", getGroup},
+    {"processes", getProcs},
+    {"overbook", getOB},
     {NULL, parser_error}
 };
 
@@ -806,6 +877,8 @@ static int getNodeLine(char *token)
     node_extraIP = 0;
     node_uid = uid;
     node_gid = gid;
+    node_procs = procs;
+    node_overbook = overbook;
 
     ipaddr = parser_getHostname(token);
 
@@ -825,9 +898,11 @@ static int getNodeLine(char *token)
 
     if (parser_getDebugMask() & PARSER_LOG_NODE) {
 	parser_comment(PARSER_LOG_NODE, "Register '%s' as %d with"
-		       " HW '%s', jobs%s allowed, starting%s allowed.",
+		       " HW '%s', %d procs, jobs%s allowed,"
+		       " starting%s allowed, overbooking%s allowed.",
 		       hostname, nodenum, HW_printType(node_hwtype),
-		       node_runjobs ? "":" not", node_canstart ? "":" not");
+		       node_procs, node_runjobs ? "":" not",
+		       node_canstart ? "":" not", node_overbook ? "":" not");
 	if (node_extraIP) {
 	    parser_comment(PARSER_LOG_NODE, " Myrinet IP will be <%s>.",
 			   inet_ntoa(* (struct in_addr *) &node_extraIP));
@@ -835,7 +910,8 @@ static int getNodeLine(char *token)
     }
 
     ret = installHost(ipaddr, nodenum, node_hwtype, node_extraIP,
-		      node_runjobs, node_canstart, node_uid, node_gid);
+		      node_runjobs, node_canstart, node_uid, node_gid,
+		      node_procs, node_overbook);
 
  exit:
     free(hostname);
@@ -1241,6 +1317,8 @@ static keylist_t config_list[] = {
     {"starter", getCSLine},
     {"user", getUserLine},
     {"group", getGroupLine},
+    {"processes", getProcsLine},
+    {"overbook", getOBLine},
     {"nodes", getNodes},
     {"licenseserver", getLicServer},
     {"licserver", getLicServer},

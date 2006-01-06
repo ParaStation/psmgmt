@@ -514,6 +514,7 @@ static long procsFromString(char *procs)
     if (strcasecmp(procs, "any") == 0) return -1;
     if (tmp > -1) return tmp;
 
+    printf("Unknown value '%s'\n", procs);
     return -2;
 }
 
@@ -525,8 +526,8 @@ static uid_t uidFromString(char *user)
     if (strcasecmp(user, "any") == 0) return -1;
     if (tmp > -1) return tmp;
     if (passwd) return passwd->pw_uid;
-    
-    printf("Unknown user %s\n", user);
+
+    printf("Unknown user '%s'\n", user);
     return -2;
 }
 
@@ -539,7 +540,7 @@ static gid_t gidFromString(char *group)
     if (tmp > -1) return tmp;
     if (grp) return grp->gr_gid;
     
-    printf("Unknown group %s\n", group);
+    printf("Unknown group '%s'\n", group);
     return -2;
 }
 
@@ -647,6 +648,24 @@ static int setShowNodesSort(char *token)
     return 0;
 }
 
+static int setShowOverbook(char *token)
+{
+    setShowOpt = PSP_OP_OVERBOOK;
+    return 0;
+}
+
+static int setShowRunJobs(char *token)
+{
+    setShowOpt = PSP_OP_RUNJOBS;
+    return 0;
+}
+
+static int setShowStarter(char *token)
+{
+    setShowOpt = PSP_OP_STARTER;
+    return 0;
+}
+
 static int setShowError(char *token)
 {
     return -1;
@@ -674,6 +693,9 @@ static keylist_t setShowList[] = {
     {"handleoldbins", setShowHOB},
     {"hob", setShowHOB},
     {"nodessort", setShowNodesSort},
+    {"overbook", setShowOverbook},
+    {"runjobs", setShowRunJobs},
+    {"starter", setShowStarter},
     {NULL, setShowError}
 };
 static parser_t setShowParser = {" \t\n", setShowList};
@@ -769,18 +791,30 @@ static int setCommand(char *token)
     case PSP_OP_PSM_RTO:
     case PSP_OP_PSM_HNPEND:
     case PSP_OP_PSM_ACKPEND:
-    case PSP_OP_FREEONSUSP:
-    case PSP_OP_HANDLEOLD:
 	val = parser_getNumber(value);
 	if (val==-1) {
-	    printf("Illegal value %s\n", value);
+	    printf("Illegal value '%s'\n", value);
 	    goto error;
 	}
 	break;
+    case PSP_OP_FREEONSUSP:
+    case PSP_OP_HANDLEOLD:
+    case PSP_OP_OVERBOOK:
+    case PSP_OP_RUNJOBS:
+    case PSP_OP_STARTER:
+    {
+	int tmp, ret = parser_getBool(value, &tmp, NULL);
+	if (ret==-1) {
+	    printf("Illegal value '%s' is not boolean\n", value);
+	    goto error;
+	}
+	val = tmp;
+	break;
+    }
     case PSP_OP_NODESSORT:
 	origToken = value;
 	if (parser_parseString(origToken, &sort_parser)) {
-	    printf("Illegal value %s\n", value);
+	    printf("Illegal value '%s'\n", value);
 	    goto error;
 	}
 	val = sortMode;
@@ -830,6 +864,9 @@ static int showCommand(char *token)
     case PSP_OP_FREEONSUSP:
     case PSP_OP_HANDLEOLD:
     case PSP_OP_NODESSORT:
+    case PSP_OP_OVERBOOK:
+    case PSP_OP_STARTER:
+    case PSP_OP_RUNJOBS:
 	break;
     default:
 	goto error;
@@ -1193,7 +1230,8 @@ char **completeLine(const char *text, int start, int end)
 
 	while (isspace(rl_line_buffer[tokEnd])) tokEnd--;
 
-	if (!strncmp(token, "help", tokEnd-tokStart+1)) {
+	if (!strncmp(token, "help", tokEnd-tokStart+1)
+	    || !strncmp(token, "?", tokEnd-tokStart+1)) {
 	    genList = helpList;
 	} else if (!strncmp(token, "set", tokEnd-tokStart+1)) {
 	    genList = setShowList;

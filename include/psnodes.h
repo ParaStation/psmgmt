@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -399,6 +399,32 @@ int PSnodes_setProcs(PSnodes_ID_t id, int procs);
  * returned. Or -1, if an error occured.
  */
 int PSnodes_getProcs(PSnodes_ID_t id);
+
+/**
+ * @brief Set the overbook flag of a node.
+ *
+ * Set the overbook flag of the node with ParaStation ID @a id to @a
+ * overbook.
+ *
+ * @param id ParaStation ID of the node to be modified.
+ *
+ * @param overbook The overbook flag to be set to this node.
+ *
+ * @return On success, 0 is returned or -1, if an error occured.
+ */
+int PSnodes_setOverbook(PSnodes_ID_t id, int overbook);
+
+/**
+ * @brief Get the overbook flag of a node.
+ *
+ * Get the overbook flag of the node with ParaStation ID @a id.
+ *
+ * @param id ParaStation ID of the node to look up.
+ *
+ * @return If the node was found, the overbook flag is returned. Or
+ * -1, if an error occured.
+ */
+int PSnodes_overbook(PSnodes_ID_t id);
 
 #ifdef __cplusplus
 }/* extern "C" */

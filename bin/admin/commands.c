@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -755,6 +755,7 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
     case PSP_OP_FREEONSUSP:
     case PSP_OP_HANDLEOLD:
     case PSP_OP_NODESSORT:
+    case PSP_OP_OVERBOOK:
 	break;
     default:
 	printf("Cannot handle option type %d.\n", type);
@@ -837,6 +838,13 @@ void PSIADM_ShowParam(PSP_Option_t type, char *nl)
 			   (value == PART_SORT_LOAD_15) ? "LOAD_15" :
 			   (value == PART_SORT_PROCLOAD) ? "PROCLOAD" :
 			   (value == PART_SORT_NONE) ? "NONE" : "UNKNOWN");
+		    break;
+		case PSP_OP_FREEONSUSP:
+		case PSP_OP_HANDLEOLD:
+		case PSP_OP_OVERBOOK:
+		case PSP_OP_RUNJOBS:
+		case PSP_OP_STARTER:
+		    printf("%s\n", value ? "TRUE" : "FALSE");
 		    break;
 		case PSP_OP_UNKNOWN:
 		    printf("unknown option\n");

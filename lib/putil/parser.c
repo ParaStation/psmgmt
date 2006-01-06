@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -399,13 +399,14 @@ int parser_getBool(char *token, int *value, char *valname)
 	num = parser_getNumber(token);
 
 	if (num < 0) {
-	    parser_comment(-1, "'%s' is not a valid bool value for '%s'",
-			   token, valname);
+	    parser_comment(-1, "'%s' is not a valid boolean value%s%s%s",
+			   token, valname ? " for '" : "",
+			   valname ? valname : "", valname ? "'" : "");
 
 	    return -1;
 	}
 
-	*value = num;
+	*value = !!num;
     }
 
     parser_comment(PARSER_LOG_RES, "got '%s' for boolean value '%s'",

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -44,6 +44,7 @@ typedef struct {
     unsigned int extraIP;  /**< Additional IP address of that node */
     char runJobs;          /**< Flag to mark that node to run jobs */
     char isStarter;        /**< Flag to allow to start jobs from that node */
+    char overbooking;      /**< Flag to allow overbooking that node */
     uid_t uid;             /**< User this nodes is reserved to */
     gid_t gid;             /**< Group this nodes is reserved to */
     int maxProcs;          /**< Number of processes this node will handle */
@@ -272,6 +273,25 @@ int PSnodes_isStarter(PSnodes_ID_t id)
 {
     if (ID_ok(id)) {
 	return nodes[id].isStarter;
+    } else {
+	return -1;
+    }
+}
+
+int PSnodes_setOverbook(PSnodes_ID_t id, int overbook)
+{
+    if (ID_ok(id)) {
+	nodes[id].overbooking = overbook;
+	return 0;
+    } else {
+	return -1;
+    }
+}
+
+int PSnodes_overbook(PSnodes_ID_t id)
+{
+    if (ID_ok(id)) {
+	return nodes[id].overbooking;
     } else {
 	return -1;
     }

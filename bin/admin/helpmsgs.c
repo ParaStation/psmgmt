@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -235,8 +235,9 @@ static info_t setInfo = {
 	" | psiddebug <level> | selecttime <timeout> | rdpdebug <level>"
 	" | rdppktloss <rate> | rdpmaxretrans <val> | mcastdebug <level>"
 	" | {smallpacketsize|sps} <size> | hnpend <val> | ackpend <val>"
-	" | {freeonsuspend|fos} | {handleoldbins|hob} | nodessort <mode>}"
-	" <nodes>"
+	" | {freeonsuspend|fos} <bool> | {handleoldbins|hob} <bool>"
+	" | starter <bool> | runjobs <bool> | overbook <bool>"
+	" | nodessort <mode>} <nodes>"
     }},
     .nodes = 1,
     .descr = "Set one of various parameters of the ParaStation system:",
@@ -283,15 +284,29 @@ static info_t setInfo = {
 	  .descr = "Set MCP's ACKPend parameter to <val>." },
 	{ .tag = "set hnpend <val>",
 	  .descr = "Set MCP's HNPend parameter to <val>." },
-	{ .tag = "set {freeonsuspend|fos} <val>",
+	{ .tag = "set {freeonsuspend|fos} <bool>",
 	  .descr = "Set flag marking if resources of suspended jobs are freed"
-	  " temporarily to <val>. Relevant values are 0 or different from 0."
+	  " temporarily to <bool>. Relevant values are 'false', 'true', 'no',"
+	  " 'yes', 0 or different from 0 (but != -1)."
 	  " Only the value on the master node really steers the behaviour!" },
-	{ .tag = "set {handleoldbins|hob} <val>",
+	{ .tag = "set {handleoldbins|hob} <bool>",
 	  .descr = "Set flag marking if old binaries resources are handled"
-	  " correctly to <val>. Relevant values are 0 or different from 0."
+	  " correctly to <bool>. Relevant values are 'false', 'true', 'no',"
+	  " 'yes', 0 or different from 0 (but != -1)."
 	  " Unfortunately this will break 'freeOnSuspend'. Only the value on"
 	  " the master node really steers the behaviour!" },
+	{ .tag = "set starter <bool>",
+	  .descr = "Set flag marking if starting is allowed from this nodes"
+	  " to <bool>. Relevant values are 'false', 'true', 'no',"
+	  " 'yes', 0 or different from 0 (but != -1)." },
+	{ .tag = "set runJobs <bool>",
+	  .descr = "Set flag marking if this nodes run processes"
+	  " to <bool>. Relevant values are 'false', 'true', 'no',"
+	  " 'yes', 0 or different from 0 (but != -1)." },
+	{ .tag = "set overbook <bool>",
+	  .descr = "Set flag marking if this nodes shall be overbooked upon"
+	  " user-request to <bool>. Relevant values are 'false', 'true',"
+	  " 'no', 'yes', 0 or different from 0 (but != -1)." },
 	{ .tag = "set nodessort <mode>",
 	  .descr = "Define the default sorting strategy for nodes when"
 	  " attaching them to a partition. Valid values for <mode> are"
@@ -312,7 +327,8 @@ static info_t showInfo = {
 	.arg = "{maxproc | user | group | psiddebug | selecttime | rdpdebug"
 	" | rdppktloss | rdpmaxretrans | mcastdebug | master"
 	" | {smallpacketsize|sps} | {resendtimeout|rto} | hnpend | ackpend"
-	" | {freeonsuspend|fos} | {handleoldbins|hob} | nodessort} <nodes>"
+	" | {freeonsuspend|fos} | {handleoldbins|hob} | starter | runjobs"
+	" | overbook | nodessort} <nodes>"
     }},
     .nodes = 1,
     .descr = "Show various parameters of the ParaStation system:",
@@ -353,6 +369,13 @@ static info_t showInfo = {
 	  .descr = "Show flag marking if old binaries resources are handled"
 	  " correctly. Unfortunately this will break 'freeOnSuspend'. Only"
 	  " the value on the master node really steers the behaviour!" },
+	{ .tag = "show starter",
+	  .descr = "Show flag marking if starting is allowed." },
+	{ .tag = "set runJobs <bool>",
+	  .descr = "Show flag marking if this nodes run processes" },
+	{ .tag = "set overbook <bool>",
+	  .descr = "Set flag marking if this nodes shall be overbooked upon"
+	  " user-request." },
 	{ .tag = "show nodessort",
 	  .descr = "Show the default sorting strategy used when attaching"
 	  " nodes to partitions." },
