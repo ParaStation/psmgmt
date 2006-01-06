@@ -897,11 +897,18 @@ static int getNodeLine(char *token)
     if (ret) goto exit;
 
     if (parser_getDebugMask() & PARSER_LOG_NODE) {
+	char procStr[20];
+	if (node_procs==-1) {
+	    snprintf(procStr, sizeof(procStr), "any");
+	} else {
+	    snprintf(procStr, sizeof(procStr), "%d", node_procs);
+	}
+
 	parser_comment(PARSER_LOG_NODE, "Register '%s' as %d with"
-		       " HW '%s', %d procs, jobs%s allowed,"
+		       " HW '%s', %s procs, jobs%s allowed,"
 		       " starting%s allowed, overbooking%s allowed.",
 		       hostname, nodenum, HW_printType(node_hwtype),
-		       node_procs, node_runjobs ? "":" not",
+		       procStr, node_runjobs ? "":" not",
 		       node_canstart ? "":" not", node_overbook ? "":" not");
 	if (node_extraIP) {
 	    parser_comment(PARSER_LOG_NODE, " Myrinet IP will be <%s>.",

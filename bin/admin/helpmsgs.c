@@ -299,7 +299,7 @@ static info_t setInfo = {
 	  .descr = "Set flag marking if starting is allowed from this nodes"
 	  " to <bool>. Relevant values are 'false', 'true', 'no',"
 	  " 'yes', 0 or different from 0 (but != -1)." },
-	{ .tag = "set runJobs <bool>",
+	{ .tag = "set runjobs <bool>",
 	  .descr = "Set flag marking if this nodes run processes"
 	  " to <bool>. Relevant values are 'false', 'true', 'no',"
 	  " 'yes', 0 or different from 0 (but != -1)." },
@@ -371,7 +371,7 @@ static info_t showInfo = {
 	  " the value on the master node really steers the behaviour!" },
 	{ .tag = "show starter",
 	  .descr = "Show flag marking if starting is allowed." },
-	{ .tag = "set runJobs <bool>",
+	{ .tag = "set runjobs <bool>",
 	  .descr = "Show flag marking if this nodes run processes" },
 	{ .tag = "set overbook <bool>",
 	  .descr = "Set flag marking if this nodes shall be overbooked upon"
