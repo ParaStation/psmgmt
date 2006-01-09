@@ -828,7 +828,7 @@ static int getProcsLine(char *token)
     return ret;
 }
 
-static int overbook = 1, node_overbook;
+static int overbook = 0, node_overbook;
 
 static int getOB(char *token)
 {
