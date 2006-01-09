@@ -36,20 +36,9 @@ static PSnodes_ID_t myID = -1;
 static PStask_ID_t myTID = -1;
 
 /* Wrapper functions for logging */
-void PSC_initLog(int usesyslog, FILE* logfile)
+void PSC_initLog(FILE* logfile)
 {
-    if (!usesyslog && logfile) {
-	int fno = fileno(logfile);
-
-	if (fno!=STDERR_FILENO) {
-	    dup2(fno, STDERR_FILENO);
-	    if (fno!=STDOUT_FILENO) {
-		fclose(logfile);
-	    }
-	}
-    }
-
-    PSC_logger = logger_init("PSC", usesyslog);
+    PSC_logger = logger_init("PSC", logfile);
 }
 
 int32_t PSC_getDebugMask(void)

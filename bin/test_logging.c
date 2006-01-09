@@ -57,8 +57,8 @@ int main(void)
 {
     logger_t *my, *my2;
 
-    my = logger_init("TEST", 0);
-    my2 = logger_init("TEST2", 0);
+    my = logger_init("TEST", stderr);
+    my2 = logger_init("TEST2", stderr);
 
     log_it(my);
     log_it(my2);

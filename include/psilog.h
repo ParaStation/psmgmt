@@ -33,21 +33,16 @@ extern logger_t* PSI_logger;
  * Initialize the PSI logging facility. This is mainly a wrapper to
  * @ref logger_init().
  *
- *
- * @param usesyslog Flag to mark syslog(3) to be used for any output.
- *
  * @param logfile Alternative file to use for logging.
- *
  *
  * @return No return value.
  *
- * If @usesyslog is different from 0, syslog() will be used for any
- * output. Otherwise if @a logfile is set, this file will be used or
- * stderr, if @a logfile is NULL.
+ * If @a logfile is NULL, syslog() will be used for any
+ * output. Otherwise @a logfile will be used.
  *
  * @see logger_init(), syslog(3)
  */
-void PSI_initLog(int usesyslog, FILE* logfile);
+void PSI_initLog(FILE* logfile);
 
 /**
  * @brief Get the log-mask of the PSI logging facility.

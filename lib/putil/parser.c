@@ -73,9 +73,9 @@ static char *nextline(void)
     return line;
 }
 
-void parser_init(int usesyslog, FILE *input)
+void parser_init(FILE* logfile, FILE *input)
 {
-    logger = logger_init("Parser", usesyslog);
+    logger = logger_init("Parser", logfile);
 
     parsefile = input;
 

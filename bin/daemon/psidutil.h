@@ -42,21 +42,14 @@ extern logger_t *PSID_logger;
  * Initialize the PSID logging facility. This is mainly a wrapper to
  * @ref initErrLog().
  *
- *
- * @param usesyslog Flag to mark syslog(3) to be used for any output.
- *
- * @param logfile Alternative file to use for logging.
- *
+ * @param logfile File to use for logging. If NULL, use syslog(3) for
+ * any output.
  *
  * @return No return value.
  *
- * If @a usesyslog is different from 0, syslog() will be used for any
- * output. Otherwise if @a logfile is set, this file will be used or
- * stderr, if @a logfile is NULL.
- *
  * @see initErrLog(), syslog(3)
  */
-void PSID_initLog(int usesyslog, FILE *logfile);
+void PSID_initLog(FILE *logfile);
 
 /**
  * @brief Get the log-mask of the PSID logging facility.
@@ -151,14 +144,14 @@ extern config_t *config;
  * Read (and parse) the configuration file @a configfile. Furthermore
  * basic tests on the consistancy of the configuration is done.
  *
- * @param usesyslog Flag to mark syslog(3) to be used for any output
- * within the parser.
+ * @param logfile The file used for any output within the parser. If
+ * NULL, syslog(3) is used.
  *
  * @param configfile The filename of the configuration file.
  *
  * @return No return value.
  */
-void PSID_readConfigFile(int usesyslog, char *configfile);
+void PSID_readConfigFile(FILE* logfile, char *configfile);
 
 /**
  * @brief (Un-)Block signal.

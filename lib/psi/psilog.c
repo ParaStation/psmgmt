@@ -18,20 +18,9 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 logger_t* PSI_logger;
 
-void PSI_initLog(int usesyslog, FILE* logfile)
+void PSI_initLog(FILE* logfile)
 {
-    if (!usesyslog && logfile) {
-	int fno = fileno(logfile);
-
-	if (fno!=STDERR_FILENO) {
-	    dup2(fno, STDERR_FILENO);
-	    if (fno!=STDOUT_FILENO) {
-		fclose(logfile);
-	    }
-	}
-    }
-
-    PSI_logger = logger_init("PSI", usesyslog);
+    PSI_logger = logger_init("PSI", logfile);
 }
 
 int32_t PSI_getDebugMask(void)

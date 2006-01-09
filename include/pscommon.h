@@ -190,21 +190,16 @@ void PSC_startDaemon(unsigned int hostaddr);
  * Initialize the PSC logging facility. This is mainly a wrapper to
  * @ref logger_init().
  *
- * If @usesyslog is different from 0, syslog() will be used for any
- * output. Otherwise if @a logfile is set, this file will be used or
- * stderr, if @a logfile is NULL.
- *
- *
- * @param usesyslog Flag to mark syslog(3) to be used for any output.
- *
  * @param logfile Alternative file to use for logging.
- *
  *
  * @return No return value.
  *
+ * If @a logfile is NULL, syslog() will be used for any
+ * output. Otherwise @a logfile will be used.
+ *
  * @see logger_init(), syslog(3)
  */
-void PSC_initLog(int usesyslog, FILE *logfile);
+void PSC_initLog(FILE *logfile);
 
 /**
  * @brief Get the log-mask of the PSC logging facility.

@@ -33,7 +33,8 @@ extern "C" {
  * Container for all the internal information of a logger facility.
  */
 typedef struct {
-    int useSyslog; /**< Flag whether to use syslog. Set via logger_init(). */
+    FILE* logfile; /**< The logfile to use. If NULL, use syslog. Set
+		      via logger_init(). */
     int32_t mask;  /**< Mask used to determine wich messages to print.
 		      Set/get thru logger_setMask()/logger_getMask().*/
     char* tag;     /**< Actual tag prepended each log-message. Set/get thru
@@ -105,22 +106,23 @@ void logger_setTag(logger_t* logger, char* tag);
 /**
  * @brief Initialize logger facility
  *
- * Initialize the logger facility using the tag @a tag to log via syslog(),
- * if @a syslog is true, and via stderr otherwise.
+ * Initialize the logger facility using the tag @a tag to log into @a
+ * logfile. Use syslog(), if @a logfile is NULL.
  *
  *
  * @param tag The tag to be used for all output via @ref
  * logger_print(), @ref logger_vprint(), @ref logger_warn(), @ref
  * logger_exit().
  *
- * @param syslog Flag to mark syslog() to be used for any output.
+ * @param logfile The file to use for logging. If NULL, syslog() will
+ * be used.
  *
  *
  * @return No return value.
  *
  * @see logger_print(), logger_vprint(), logger_warn(), logger_exit()
  */
-logger_t* logger_init(char* tag, int syslog);
+logger_t* logger_init(char* tag, FILE *logfile);
 
 /**
  * @brief Print a log message.

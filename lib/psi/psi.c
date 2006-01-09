@@ -256,8 +256,8 @@ int PSI_initClient(PStask_group_t taskGroup)
 {
     char* envStr;
 
-    PSI_initLog(0 /* don't use syslog */, NULL /* No special logfile */);
-    PSC_initLog(0 /* don't use syslog */, NULL /* No special logfile */);
+    PSI_initLog(stderr);
+    PSC_initLog(stderr);
 
     envStr = getenv("PSI_DEBUGMASK");
     if (!envStr) envStr = getenv("PSI_DEBUGLEVEL"); /* Backward compat. */

@@ -1920,10 +1920,10 @@ static char *stateStringRDP(RDPState_t state)
 
 /* ---------------------------------------------------------------------- */
 
-int initRDP(int nodes, unsigned short portno, int usesyslog,
+int initRDP(int nodes, unsigned short portno, FILE* logfile,
 	    unsigned int hosts[], void (*callback)(int, void*))
 {
-    logger = logger_init("RDP", usesyslog);
+    logger = logger_init("RDP", logfile);
 
     RDPCallback = callback;
     nrOfNodes = nodes;
@@ -1941,13 +1941,13 @@ int initRDP(int nodes, unsigned short portno, int usesyslog,
     initConntable(nodes, hosts, htons(portno));
 
     if (!Selector_isInitialized()) {
-	Selector_init(usesyslog);
+	Selector_init(logfile);
     }
     rdpsock = initSockRDP(htons(portno), 0);
     Selector_register(rdpsock, handleRDP);
 
     if (!Timer_isInitialized()) {
-	Timer_init(usesyslog);
+	Timer_init(logfile);
     }
     timerID = Timer_register(&RDPTimeout, handleTimeoutRDP);
 

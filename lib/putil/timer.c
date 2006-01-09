@@ -110,14 +110,14 @@ void Timer_setDebugMask(int32_t mask)
     logger_setMask(logger, mask);
 }
 
-void Timer_init(int syslog)
+void Timer_init(FILE* logfile)
 {
     Timer_t *timer;
 
     struct itimerval itv;
     struct sigaction sa;
 
-    logger = logger_init("Timer", syslog);
+    logger = logger_init("Timer", logfile);
 
     /* (Re)set our actual timer-period */
     actPeriod.tv_sec = 0;

@@ -38,13 +38,13 @@ extern "C" {
  * Initialization of the Timer machinery. If any timer is registered,
  * it will be removed.
  *
- * @param syslog If 0, logging is done via stderr. Otherwise syslog(3) is used.
+ * @param logfile File to use for logging. If NULL, syslog(3) is used.
  *
  * @return No return value.
  *
  * @see syslog(3)
  */
-void Timer_init(int syslog);
+void Timer_init(FILE* logfile);
 
 /**
  * @brief Test if the Timer module is initialized.

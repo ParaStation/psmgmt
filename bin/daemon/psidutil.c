@@ -44,18 +44,9 @@ config_t *config = NULL;
 logger_t *PSID_logger;
 
 /* Wrapper functions for logging */
-void PSID_initLog(int usesyslog, FILE *logfile)
+void PSID_initLog(FILE *logfile)
 {
-    if (!usesyslog && logfile) {
-	int fno = fileno(logfile);
-
-	if (fno!=STDERR_FILENO) {
-	    dup2(fno, STDERR_FILENO);
-	    close(fno);
-	}
-    }
-
-    PSID_logger = logger_init(usesyslog ? NULL : "PSID", usesyslog);
+    PSID_logger = logger_init(logfile ? "PSID" : NULL, logfile);
 }
 
 int32_t PSID_getDebugMask(void)
@@ -591,17 +582,17 @@ static int getOwnID(void)
 }
 
 /* Reading and basic handling of the configuration */
-void PSID_readConfigFile(int usesyslog, char *configfile)
+void PSID_readConfigFile(FILE* logfile, char *configfile)
 {
     int ownID;
 
     /* Parse the configfile */
-    config = parseConfig(usesyslog, PSID_getDebugMask(), configfile);
+    config = parseConfig(logfile, PSID_getDebugMask(), configfile);
     if (! config) {
 	PSID_log(-1, "%s: parsing of <%s> failed\n", __func__, configfile);
 	exit(1);
     }
-    config->useSyslog = usesyslog;
+    config->logfile = logfile;
 
     /* Set correct debugging mask if given in config-file */
     if (config->logMask && !PSID_getDebugMask()) {

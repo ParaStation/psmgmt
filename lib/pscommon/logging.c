@@ -44,11 +44,11 @@ void logger_setTag(logger_t* logger, char* tag)
     }
 }
 
-logger_t* logger_init(char* tag, int syslog)
+logger_t* logger_init(char* tag, FILE* logfile)
 {
     logger_t* logger = malloc(sizeof(*logger));
 
-    logger->useSyslog = syslog;
+    logger->logfile = logfile;
     logger_setMask(logger, 0);
     logger->tag = NULL;
     logger_setTag(logger, tag);
@@ -131,10 +131,10 @@ static void do_print(logger_t* logger, const char* format, va_list ap)
     }
 
     if (errtxt[strlen(errtxt)-1] == '\n') {
-	if (logger->useSyslog) {
-	    syslog(LOG_ERR, logger->trail ? errline : errtxt);
+	if (logger->logfile) {
+	    fprintf(logger->logfile, "%s", logger->trail ? errline : errtxt);
 	} else {
-	    fprintf(stderr, "%s", logger->trail ? errline : errtxt);
+	    syslog(LOG_ERR, logger->trail ? errline : errtxt);
 	}
 	if (logger->trail) {
 	    free(logger->trail);

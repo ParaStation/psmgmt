@@ -68,7 +68,7 @@ void PSE_initialize(void)
 {
     char *envStr;
 
-    logger = logger_init("PSE", 0 /* Don't use syslog */);
+    logger = logger_init("PSE", stderr);
 
     envStr = getenv("PSI_DEBUGMASK");
     if (!envStr) envStr = getenv("PSI_DEBUGLEVEL"); /* Backward compat. */

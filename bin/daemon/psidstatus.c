@@ -329,7 +329,7 @@ void declareMaster(PSnodes_ID_t newMaster)
 	timerID = 0;
     } else if (!knowMaster()) {
 	if (!Timer_isInitialized()) {
-	    Timer_init(config->useSyslog);
+	    Timer_init(config->logfile);
 	}
 	timerID = Timer_register(&StatusTimeout, sendRDPPing); 
 	sendRDPPing();

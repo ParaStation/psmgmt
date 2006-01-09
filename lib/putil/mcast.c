@@ -684,10 +684,10 @@ static int handleMCast(int fd)
 
 /* ---------------------------------------------------------------------- */
 
-int initMCast(int nodes, int mcastgroup, unsigned short portno, int usesyslog,
+int initMCast(int nodes, int mcastgroup, unsigned short portno, FILE* logfile,
 	      unsigned int hosts[], int id, void (*callback)(int, void*))
 {
-    logger = logger_init("MCast", usesyslog);
+    logger = logger_init("MCast", logfile);
 
     if (nodes<=0) {
 	MCast_log(-1, "%s: nodes = %d out of range\n", __func__, nodes);
@@ -717,13 +717,13 @@ int initMCast(int nodes, int mcastgroup, unsigned short portno, int usesyslog,
     initConntable(nrOfNodes, hosts);
 
     if (!Selector_isInitialized()) {
-	Selector_init(usesyslog);
+	Selector_init(logfile);
     }
     mcastsock = initSockMCast(mcastgroup, htons(portno));
     Selector_register(mcastsock, handleMCast);
 
     if (!Timer_isInitialized()) {
-	Timer_init(usesyslog);
+	Timer_init(logfile);
     }
     timerID = Timer_register(&MCastTimeout, handleTimeoutMCast); 
 

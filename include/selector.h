@@ -39,13 +39,13 @@ extern "C" {
  * Initialization of the Selector machinery. If any selector is registered,
  * it will be removed.
  *
- * @param syslog If 0, logging is done to stderr. Otherwise syslog(3) is used.
+ * @param logfile File to use for logging. If NULL, syslog(3) is used.
  *
  * @return No return value.
  *
  * @see syslog(3)
  */
-void Selector_init(int syslog);
+void Selector_init(FILE* logfile);
 
 /**
  * @brief Test if the Selector module is initialized.

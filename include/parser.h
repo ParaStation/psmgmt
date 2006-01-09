@@ -53,7 +53,7 @@ typedef struct parser_T {
  * Initializes the parser machinery for inputstream @a input.
  *
  *
- * @param usesyslog If true, all error-messages are printed via syslog().
+ * @param logfile File to use for logging. If NULL, syslog(3) is used.
  *
  * @param input The inputstream the parser is expected to act on. This
  * parameter is optional and may be NULL. If @a input is NULL, the
@@ -65,7 +65,7 @@ typedef struct parser_T {
  *
  * @see parser_setFile()
  * */
-void parser_init(int usesyslog, FILE* input);
+void parser_init(FILE* logfile, FILE* input);
 
 /**
  * @brief Set the input stream.

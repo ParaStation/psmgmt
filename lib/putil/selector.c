@@ -83,11 +83,11 @@ void Selector_setDebugMask(int32_t mask)
     logger_setMask(logger, mask);
 }
 
-void Selector_init(int syslog)
+void Selector_init(FILE* logfile)
 {
     Selector_t *selector;
 
-    logger = logger_init("Selector", syslog);
+    logger = logger_init("Selector", logfile);
 
     /* Free all old selectors, if any */
     selector = selectorList;

@@ -82,8 +82,7 @@ typedef struct {
  * @param portno The UDP port number in host byteorder to use for sending and
  * receiving packets. If 0, @ref DEFAULT_RDP_PORT is used.
  *
- * @param usesyslog If true, all logging is done via syslog() instead
- * of stderr.
+ * @param logfile File to use for logging. If NULL, syslog(3) is used.
  *
  * @param hosts An array of size @a nodes containing the IP-addresses of the
  * participating nodes in network-byteorder.
@@ -102,7 +101,7 @@ typedef struct {
  *
  * @see syslog()
  */
-int initRDP(int nodes, unsigned short portno, int usesyslog,
+int initRDP(int nodes, unsigned short portno, FILE* logfile,
 	    unsigned int hosts[], void (*callback)(int, void*));
 
 /**

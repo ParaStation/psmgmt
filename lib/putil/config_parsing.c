@@ -47,7 +47,7 @@ static config_t config = (config_t) {
     .MCastPort = 1889,
     .logMask = 0,
     .logDest = LOG_DAEMON,
-    .useSyslog = 1,
+    .logfile = NULL,
     .freeOnSuspend = 0,
     .handleOldBins = 0,
     .nodesSort = PART_SORT_PROC,
@@ -1350,12 +1350,12 @@ static keylist_t config_list[] = {
 
 static parser_t config_parser = {" \t\n", config_list};
 
-config_t *parseConfig(int usesyslog, int logmask, char *configfile)
+config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 {
     FILE *cfd;
     int ret;
 
-    parser_init(usesyslog, NULL);
+    parser_init(logfile, NULL);
 
     if (!configfile) {
 	parser_comment(-1, "no configuration file defined");

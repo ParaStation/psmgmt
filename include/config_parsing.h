@@ -52,8 +52,9 @@ typedef struct {
     int logDest;         /**< The destination of all information to put out.
 			    Result of 'LogDestination'. Default is
 			    LOG_DAEMON. */
-    int useSyslog;       /**< Flag if syslog(3) is used for output or
-			    other destinations are defined on the
+    FILE* logfile;       /**< The file to use for logging. If NULL,
+			    syslog(3) is used for output. This
+			    destinations is defined on the
 			    commandline. */
     int freeOnSuspend;   /**< Flag if a job's resources are freed on
 			    suspend. */
@@ -79,7 +80,8 @@ typedef struct {
  * cluster. I.e. resolving of IP address to node ID and vice versa is
  * possible after calling this function successfully.
  *
- * @param usesyslog If true, all messages are printed via syslog(3).
+ * @param logfile File to use for logging. If NULL, all messages are
+ * printed via syslog(3).
  *
  * @param loglevel The verbosity of generated output.
  *
@@ -91,7 +93,7 @@ typedef struct {
  *
  * @see syslog(3)
  */
-config_t* parseConfig(int usesyslog, int loglevel, char* configfile);
+config_t* parseConfig(FILE* logfile, int loglevel, char* configfile);
 
 #ifdef __cplusplus
 }/* extern "C" */

@@ -2001,8 +2001,8 @@ int main(int argc, const char *argv[])
     if (!logfile) {
 	openlog("psid",LOG_PID|LOG_CONS,LOG_DAEMON);
     }
-    PSID_initLog(!logfile, logfile);
-    PSC_initLog(!logfile, logfile);
+    PSID_initLog(logfile);
+    PSC_initLog(logfile);
 
     if (rc < -1) {
         /* an error occurred during option processing */
@@ -2052,7 +2052,7 @@ int main(int argc, const char *argv[])
     if (debugMask) {
 	PSID_setDebugMask(debugMask);
 	PSC_setDebugMask(debugMask);
-	PSID_log(-1, "Debugging mode (mask %x) enabled\n", debugMask);
+	PSID_log(-1, "Debugging mode (mask 0x%x) enabled\n", debugMask);
     }
 
     /* Init fd sets */
@@ -2066,7 +2066,7 @@ int main(int argc, const char *argv[])
     setupMasterSock();
 
     /* read the config file */
-    PSID_readConfigFile(!logfile, configfile);
+    PSID_readConfigFile(logfile, configfile);
     /* Now we can rely on the config structure */
 
     {
@@ -2078,7 +2078,7 @@ int main(int argc, const char *argv[])
 	PSID_log(-1, "My IP is %s\n", inet_ntoa(*(struct in_addr *) &addr));
     }
 
-    if (config->useSyslog && config->logDest!=LOG_DAEMON) {
+    if (!logfile && config->logDest!=LOG_DAEMON) {
 	PSID_log(-1, "Changing logging dest from LOG_DAEMON to %s\n",
 		 config->logDest==LOG_KERN ? "LOG_KERN":
 		 config->logDest==LOG_LOCAL0 ? "LOG_LOCAL0" :
@@ -2161,7 +2161,7 @@ int main(int argc, const char *argv[])
 	    /* Initialize MCast */
 	    int MCastSock = initMCast(PSC_getNrOfNodes(),
 				      config->MCastGroup, config->MCastPort,
-				      config->useSyslog, hostlist,
+				      logfile, hostlist,
 				      PSC_getMyID(), MCastCallBack);
 	    if (MCastSock<0) {
 		PSID_exit(errno, "Error while trying initMCast");
@@ -2172,8 +2172,8 @@ int main(int argc, const char *argv[])
 	}
 
 	/* Initialize RDP */
-	RDPSocket = initRDP(PSC_getNrOfNodes(), config->RDPPort,
-			    config->useSyslog, hostlist, RDPCallBack);
+	RDPSocket = initRDP(PSC_getNrOfNodes(), config->RDPPort, logfile,
+			    hostlist, RDPCallBack);
 	if (RDPSocket<0) {
 	    PSID_exit(errno, "Error while trying initRDP");
 	}
