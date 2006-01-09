@@ -100,6 +100,7 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
 	case PSP_INFO_LIST_ALLOCJOBS:
 	case PSP_INFO_LIST_EXCLUSIVE:
 	case PSP_INFO_CMDLINE:
+	case PSP_INFO_RPMREV:
 	{
 	    size_t s = msg.header.len - sizeof(msg.header) - sizeof(msg.type);
 	    if (!buf) {
