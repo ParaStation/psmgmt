@@ -279,6 +279,8 @@ long parser_getNumber(char *token)
     char *end;
     long num;
 
+    if (!token) return -1;
+
     num = strtol(token, &end, 0);
     if (*end != '\0') {
 	return -1;
@@ -338,6 +340,11 @@ unsigned int parser_getHostname(char *token)
 
     struct hostent *hostinfo;
 
+    if (!token) {
+	parser_comment(-1, "%s: token is NULL", __func__);
+	return 0;
+    }
+	
     hname = token;
 
     hostinfo = gethostbyname(hname);
@@ -385,6 +392,13 @@ int parser_getNumValue(char *token, int *value, char *valname)
 
 int parser_getBool(char *token, int *value, char *valname)
 {
+    if (!token) {
+	parser_comment(-1, "No boolean value given%s%s%s",
+		       valname ? " for '" : "",
+		       valname ? valname : "", valname ? "'" : "");
+	return -1;
+    }
+
     if (strcasecmp(token, "true")==0) {
 	*value = 1;
     } else if (strcasecmp(token, "false")==0) {
