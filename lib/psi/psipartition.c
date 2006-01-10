@@ -34,6 +34,9 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #include "psipartition.h"
 
+/** Flag used to mark environment originating from batch-system */
+static int batchPartition = 0;
+
 /**
  * The name of the environment variable defining a nodelist from a
  * nodestring, i.e. a string containing a comma separated list of node
@@ -117,12 +120,13 @@ void PSI_LSF(void)
 	setenv(ENV_NODE_HOSTS, lsf_hosts, 1);
 	unsetenv(ENV_NODE_HOSTFILE);
 	setenv(ENV_PART_LOOPNODES, "1", 1);
+	batchPartition = 1;
     }
 }
 
 /**
- * Name of the environment variable used by OpenPBS and PBSPro in
- * order to keep the filename of the hostfile. This file contains a
+ * Name of the environment variable used by OpenPBS, Torque and PBSPro
+ * in order to keep the filename of the hostfile. This file contains a
  * list of hostnames of the nodes reserved for the batch job.
 */
 #define ENV_NODE_HOSTFILE_PBS "PBS_NODEFILE"
@@ -140,6 +144,30 @@ void PSI_PBS(void)
 	unsetenv(ENV_NODE_HOSTS);
 	setenv(ENV_NODE_HOSTFILE, pbs_hostfile, 1);
 	setenv(ENV_PART_LOOPNODES, "1", 1);
+	batchPartition = 1;
+    }
+}
+
+/**
+ * Name of the environment variable used by LoadLeveler in order to
+ * keep the hostnames of the nodes reserved for the batch job.
+*/
+#define ENV_NODE_HOSTS_LL "LOADL_PROCESSOR_LIST"
+
+void PSI_LL(void)
+{
+    char *ll_hosts=NULL;
+
+    PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
+
+    ll_hosts = getenv(ENV_NODE_HOSTS_LL);
+    if (ll_hosts) {
+	setenv(ENV_NODE_SORT, "none", 1);
+	unsetenv(ENV_NODE_NODES);
+	setenv(ENV_NODE_HOSTS, ll_hosts, 1);
+	unsetenv(ENV_NODE_HOSTFILE);
+	setenv(ENV_PART_LOOPNODES, "1", 1);
+	batchPartition = 1;
     }
 }
 
@@ -200,6 +228,7 @@ static PSpart_option_t getPartitionOptions(void)
     if (getenv(ENV_PART_OVERBOOK)) options |= (PART_OPT_OVERBOOK
 					       | PART_OPT_EXCLUSIVE);
     if (getenv(ENV_PART_WAIT)) options |= PART_OPT_WAIT;
+    if (batchPartition) options |= PART_OPT_EXACT;
 
     return options;
 }
@@ -288,7 +317,9 @@ static int nodelistFromRange(char *range, nodelist_t *nodelist)
     }
 
     /* Now put the range into the nodelist */
-    for (i=first; i<=last; i++) addNode(i, nodelist);
+    for (i=first; i<=last; i++) {
+	if (!addNode(i, nodelist)) return 0;
+    }
 
     return last - first + 1;
 }
@@ -359,8 +390,7 @@ static int nodelistFromHost(char *host, nodelist_t *nodelist)
 	return 0;
     }
 
-    addNode(node, nodelist);
-    return 1;
+    return addNode(node, nodelist);
 }
 
 /**

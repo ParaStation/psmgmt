@@ -44,7 +44,7 @@ void PSI_LSF(void);
 /**
  * @brief Handle OpenPBS/PBSPro environment variables.
  *
- * Handle OpenPBS/PBSPro environment variables. Thus @a
+ * Handle OpenPBS/PBSPro/Torque environment variables. Thus @a
  * ENV_NODE_HOSTFILE is set to the value of the PBS_NODEFILE
  * environment variable, if available. Furthermore all other
  * environment variables steering the partition are cleared and any
@@ -53,6 +53,19 @@ void PSI_LSF(void);
  * @return No return value.
  */
 void PSI_PBS(void);
+
+/**
+ * @brief Handle LoadLeveler environment variables.
+ *
+ * Handle LoadLeveler environment variables. Thus @a ENV_NODES_HOSTS
+ * is set to the value of the LOADL_PROCESSOR_LIST environment
+ * variable, if available. Furthermore all other environment variables
+ * steering the partition are cleared and any sorting of nodes is
+ * switched off.
+ *
+ * @return No return value.
+ */
+void PSI_LL(void);
 
 /**
  * @brief Create a partition.

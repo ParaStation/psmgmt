@@ -53,6 +53,7 @@ typedef enum {
 				    implicitely. */
     PART_OPT_WAIT = 0x0008,      /**< If not enough nodes are available, wait
 				    for them (batch mode). */
+    PART_OPT_EXACT = 0x0010,     /**< Nodelist is from a batch-system */
 } PSpart_option_t;
 
 /**
