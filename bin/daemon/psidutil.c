@@ -103,7 +103,7 @@ static size_t writeall(int fd, const void *buf, size_t count)
                 return -1;
         }
         c -= len;
-        (char*)cbuf += len;
+        cbuf += len;
     }
 
     return count;

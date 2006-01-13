@@ -241,6 +241,7 @@ static int handleHistFile(const char *progname)
 		progname, histname, errstr ? errstr : "UNKNOWN");
 	return -1;
     }
+    return 0;
 }
 
 static int saveHistFile(const char *progname)
@@ -260,6 +261,7 @@ static int saveHistFile(const char *progname)
 	}
 	free(histname);
     }
+    return 0;
 }
 
 int main(int argc, const char **argv)

@@ -890,7 +890,8 @@ static unsigned int getNormalPart(PSpart_request_t *request,
  * worked well, 1 is returned. Otherwise the return value is 0.
  */
 static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
-			   short* allowedCPUs, short* candSlots)
+			   unsigned short* allowedCPUs,
+			   unsigned short* candSlots)
 {
     unsigned int neededSlots = request->size;
     unsigned int procsPerCPU = 1, availCPUs, cand;
@@ -1072,7 +1073,7 @@ static PSnodes_ID_t *createPartition(PSpart_request_t *request,
 				     sortlist_t *candidates)
 {
     PSnodes_ID_t *partition;
-    short *allowedCPUs;
+    unsigned short *allowedCPUs;
     unsigned int nodes = 0, avail = 0, cand;
 
     PSID_log(PSID_LOG_PART, "%s\n", __func__);
@@ -1083,7 +1084,7 @@ static PSnodes_ID_t *createPartition(PSpart_request_t *request,
 	return NULL;
     }
 
-    allowedCPUs = calloc(sizeof(short), PSC_getNrOfNodes());
+    allowedCPUs = calloc(sizeof(unsigned short), PSC_getNrOfNodes());
     if (!allowedCPUs) {
 	PSID_log(-1, "%s: No memory\n", __func__);
 	return NULL;

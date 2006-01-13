@@ -599,7 +599,7 @@ int main(int argc, const char *argv[])
 		    exit(1);
 		}
 		    
-		err = PSI_infoInt(-1, PSP_INFO_NODE, &node, &ip.s_addr, 1);
+		err = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &ip.s_addr, 1);
 		if (err) {
 		    fprintf(stderr,
 			    "Could not determine node %d's IP address.\n",

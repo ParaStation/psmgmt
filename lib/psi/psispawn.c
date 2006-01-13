@@ -538,7 +538,7 @@ char *PSI_createPGfile(int num, const char *prog, int local)
 		free(PIfilename);
 		return NULL;
 	    }
-	    PSI_infoInt(-1, PSP_INFO_NODE, &node, &hostaddr.s_addr, 0);
+	    PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr.s_addr, 0);
 	}
 	fprintf(PIfile, "%s %d %s\n", inet_ntoa(hostaddr), (i != 0), myprog);
     }

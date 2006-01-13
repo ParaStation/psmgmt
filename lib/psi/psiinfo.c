@@ -163,17 +163,6 @@ int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     size_t size = sizeof(*val);
 
     switch (what) {
-    case PSP_INFO_NODE:
-	if (param) {
-	    *(PSnodes_ID_t*)msg.buf = *(const PSnodes_ID_t*)param;
-	    msg.header.len += sizeof(PSnodes_ID_t);
-	} else {
-	    PSI_log(-1, "%s: %s request needs parameter\n", __func__,
-		    PSP_printInfo(what));
-	    errno = EINVAL;
-	    return -1;
-	}
-	break;
     case PSP_INFO_HWINDEX:
 	if (param) {
 	    strncpy(msg.buf, (const char*)param, sizeof(msg.buf));
@@ -190,6 +179,49 @@ int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     case PSP_INFO_NROFNODES:
     case PSP_INFO_HWNUM:
     case PSP_INFO_TASKRANK:
+	break;
+    default:
+	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,
+		PSP_printInfo(what));
+	errno = EINVAL;
+	return -1;
+    }
+
+    if (PSI_sendMsg(&msg)<0) {
+	PSI_warn(-1, errno, "%s(%s): PSI_sendMsg", __func__,
+		 PSP_printInfo(what));
+	return -1;
+    }
+
+    if (receiveInfo(val, &size, verbose) == what && size) return 0;
+
+    return -1;
+}
+
+int PSI_infoUInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
+		 uint32_t *val, int verbose)
+{
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_INFOREQUEST,
+	    .dest = PSC_getTID(node, 0),
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg.header)+sizeof(msg.type) },
+	.type = what,
+	.buf = { 0 } };
+    size_t size = sizeof(*val);
+
+    switch (what) {
+    case PSP_INFO_NODE:
+	if (param) {
+	    *(PSnodes_ID_t*)msg.buf = *(const PSnodes_ID_t*)param;
+	    msg.header.len += sizeof(PSnodes_ID_t);
+	} else {
+	    PSI_log(-1, "%s: %s request needs parameter\n", __func__,
+		    PSP_printInfo(what));
+	    errno = EINVAL;
+	    return -1;
+	}
 	break;
     default:
 	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,

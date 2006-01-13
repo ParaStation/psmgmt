@@ -228,7 +228,7 @@ static info_t hwstopInfo = {
 };
 
 static info_t setInfo = {
-    .head " Set command:",
+    .head = " Set command:",
     .syntax = (syntax_t[]) {{
 	.cmd = "set",
 	.arg = "{maxproc {<num>|any} | user {<user>|any} | group {<group>|any}"

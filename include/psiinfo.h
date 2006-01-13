@@ -44,11 +44,6 @@ extern "C" {
  *
  * The possible values for @a what are:
  *
- * - PSP_INFO_NODE request a nodes IP address from its ParaStation
- * ID. @a param points to a datum of type PSnodes_ID_t containing the
- * ParaStation ID. Although @a val points to a datum of type @c
- * int32_t, the value returned has to be interpreted as a @c uint32_t.
- *
  * - PSP_INFO_NROFNODES request the total number of nodes within the
  * ParaStation cluster. No further parameters needed.
  *
@@ -86,6 +81,41 @@ extern "C" {
  */
 int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 		int32_t *val, int verbose);
+
+/**
+ * @brief Retrieve unsigned integer information.
+ *
+ * Retrieve the unsigned integer information of type @a what from node
+ * @a node and store it to @a val. Depending on the type of
+ * information requested, @a param points to further parameter(s)
+ * needed in order to answer the request.
+ *
+ * The possible values for @a what are:
+ *
+ * - PSP_INFO_NODE request a nodes IP address from its ParaStation
+ * ID. @a param points to a datum of type PSnodes_ID_t containing the
+ * ParaStation ID. Although @a val points to a datum of type @c
+ * int32_t, the value returned has to be interpreted as a @c uint32_t.
+ *
+ * @param node The ParaStation ID of the node to ask.
+ *
+ * @param what The type of information to request as described above.
+ *
+ * @param param Pointer to further parameters needed in order to
+ * retrieve the requested information.
+ *
+ * @param val Pointer to the datum reserved for the result.
+ *
+ * @param verbose Flag to be more verbose, if something within the
+ * information retrival went wrong.
+ *
+ * @return On success, 0 is returned. Otherwise -1 is returned and
+ * errno is set appropriately.
+ *
+ * @see errno(3)
+ */
+int PSI_infoUInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
+		 uint32_t *val, int verbose);
 
 /**
  * @brief Retrieve string information.

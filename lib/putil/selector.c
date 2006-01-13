@@ -175,7 +175,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	    struct timeval *timeout)
 {
     int retval;
-    struct timeval start, end, stv;
+    struct timeval start, end = { .tv_sec = 0, .tv_usec = 0 }, stv;
     fd_set rfds, wfds, efds;
     Selector_t *selector;
 
@@ -230,7 +230,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	Timer_handleSignals();                     /* Handle pending timers */
 	retval = select(n, &rfds, &wfds, &efds, (timeout)?(&stv):NULL);
 	if (retval == -1) {
-	    if (errno == EINTR) {
+	    if (errno == EINTR && timeout) {
 		/* Interrupted syscall, just start again */
 		const struct timeval delta = { .tv_sec = 0, .tv_usec = 10 };
 		timersub(&end, &delta, &start);       /* assure next round */
@@ -270,7 +270,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 
 	gettimeofday(&start, NULL);  /* get NEW starttime */
 
-    } while (timeout==NULL || timercmp(&start, &end, <));
+    } while (!timeout || timercmp(&start, &end, <));
 
     if (readfds) {
 	selector = selectorList;
