@@ -357,7 +357,7 @@ static void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
      * this can happen due to a exec call.
      */
     task = PStasklist_find(managedTasks, tid);
-    if (!task && msg->group != TG_SPAWNER) {
+    if (!task && msg->group != TG_SPAWNER && msg->group != TG_PSCSPAWNER) {
 	PStask_ID_t pgtid = PSC_getTID(-1, getpgid(pid));
 
 	task = PStasklist_find(managedTasks, pgtid);
@@ -435,8 +435,8 @@ static void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	    task->group = msg->group;
 	}
 
-	/* TG_SPAWNER have to get a special handling */
-	if (task->group == TG_SPAWNER) {
+	/* TG_(PSC)SPAWNER have to get a special handling */
+	if (task->group == TG_SPAWNER || task->group == TG_PSCSPAWNER) {
 	    PStask_t *parent;
 	    PStask_ID_t ptid;
 
@@ -449,7 +449,18 @@ static void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 		PSID_setSignal(&parent->childs, task->tid, -1);
 
 		task->ptid = ptid;
-		task->loggertid = parent->loggertid;
+
+		switch (task->group) {
+		case TG_SPAWNER:
+		    task->loggertid = parent->loggertid;
+		    break;
+		case TG_PSCSPAWNER:
+		    task->loggertid = tid;
+		    break;
+		default:
+		    PSID_log(-1, "%s: group %s not handled\n",
+			     __func__, PStask_printGrp(msg->group));
+		}
 	    } else {
 		/* no parent !? kill the task */
 		PSID_sendSignal(task->tid, task->uid, PSC_getMyTID(), -1, 0);
@@ -798,13 +809,16 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 		return;
 	    }
 
-	    /* Don't do anything if task not TG_(GM)SPAWNER */
-	    if (task->group != TG_SPAWNER && task->group != TG_GMSPAWNER )
+	    /* Don't do anything if task not TG_(GM/PSC)SPAWNER */
+	    if (task->group != TG_SPAWNER
+		&& task->group != TG_GMSPAWNER
+		&& task->group != TG_PSCSPAWNER )
 		return;
 
 	    /* Release a TG_SPAWNER if child died in a fine way */
 	    if (WIFEXITED(msg->error) && !WIFSIGNALED(msg->error)) {
-		if (task->group == TG_SPAWNER) task->released = 1;
+		if (task->group == TG_SPAWNER || task->group == TG_PSCSPAWNER)
+		    task->released = 1;
 	    }
 
 	    /* Don't send a DD message to a client */

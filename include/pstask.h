@@ -37,14 +37,15 @@ extern "C" {
 
 /** Task Group constants */
 typedef enum {
-    TG_ANY,       /**< A normal task */
-    TG_ADMIN,     /**< Taskgroup for psiadmin (and GUI client) */
-    TG_RESET,     /**< A normal task */
-    TG_LOGGER,    /**< A special task, the logger */
-    TG_FORWARDER, /**< A special task, the forwarder */
-    TG_SPAWNER,   /**< A special task, the spawner (helper to spawn p4 jobs) */
-    TG_GMSPAWNER, /**< A special task, the gmspawner (helper to spawn GM) */
-    TG_MONITOR    /**< A special task that monitors the daemon. Don't kill */
+    TG_ANY,       /**< normal task */
+    TG_ADMIN,     /**< taskgroup for psiadmin (and GUI client) */
+    TG_RESET,     /**< normal task */
+    TG_LOGGER,    /**< special task, the logger */
+    TG_FORWARDER, /**< special task, the forwarder */
+    TG_SPAWNER,   /**< special task, the spawner (helper to spawn p4 jobs) */
+    TG_GMSPAWNER, /**< special task, the gmspawner (helper to spawn GM) */
+    TG_MONITOR,   /**< special task that monitors the daemon. Don't kill */
+    TG_PSCSPAWNER,/**< special task, the pscspawner (helper to spawn PSC) */
 } PStask_group_t;
 
 /** Type to store unique task IDs in */

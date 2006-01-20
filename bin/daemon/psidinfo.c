@@ -182,6 +182,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 			task->group == TG_FORWARDER
 			|| task->group == TG_SPAWNER
 			|| task->group == TG_GMSPAWNER
+			|| task->group == TG_PSCSPAWNER
 			|| task->group == TG_MONITOR )) continue;
 		taskinfo->tid = task->tid;
 		taskinfo->ptid = task->ptid;

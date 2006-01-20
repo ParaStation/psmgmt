@@ -31,6 +31,7 @@ char* PStask_printGrp(PStask_group_t tg)
 	(tg==TG_FORWARDER) ? "TG_FORWARDER" :
 	(tg==TG_SPAWNER) ? "TG_SPAWNER" :
 	(tg==TG_GMSPAWNER) ? "TG_GMSPAWNER" :
+	(tg==TG_PSCSPAWNER) ? "TG_PSCSPAWNER" :
 	(tg==TG_MONITOR) ? "TG_MONITOR" : "UNKNOWN";
 }
 

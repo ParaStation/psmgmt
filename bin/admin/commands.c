@@ -586,6 +586,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 		if (taskInfo[task].group==TG_FORWARDER && !full) continue;
 		if (taskInfo[task].group==TG_SPAWNER && !full) continue;
 		if (taskInfo[task].group==TG_GMSPAWNER && !full) continue;
+		if (taskInfo[task].group==TG_PSCSPAWNER && !full) continue;
 		if (taskInfo[task].group==TG_MONITOR && !full) continue;
 		printf("%4d ", node);
 		printf("%22s ", PSC_printTID(taskInfo[task].tid));
@@ -598,6 +599,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 		       taskInfo[task].group==TG_FORWARDER ? "(F)" :
 		       taskInfo[task].group==TG_SPAWNER ? "(S)" :
 		       taskInfo[task].group==TG_GMSPAWNER ? "(S)" :
+		       taskInfo[task].group==TG_PSCSPAWNER ? "(S)" :
 		       taskInfo[task].group==TG_MONITOR ? "(M)" : "");
 #if 0
 		{
