@@ -43,6 +43,8 @@ bin/logger/psilogger.c \
 bin/mlisten.c \
 bin/mpirun_chgm.c \
 bin/mpirun_chp4.c \
+bin/mpirun_psc.c \
+bin/pscspawner.c \
 bin/psispawn.c \
 bin/psmstart.c \
 bin/test_config.c \
