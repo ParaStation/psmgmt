@@ -30,7 +30,7 @@ export LIBDSTDIR = ../..
 #only static
 all lib: staticlib
 
-sharedlib staticlib: sharedlib.dir staticlib.dir
+sharedlib staticlib: $$@.dir
 	$(MAKE) -C $@.dir -f ../../Makefile.$@
 
 sharedlib.dir staticlib.dir:

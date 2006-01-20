@@ -35,55 +35,48 @@ TOOLS += test_pse test_config
 
 TARGETS = $(TOOLS) test_config_parsing test_logging
 
+LDFLAGS+=-L../lib -Wl,-rpath,/opt/parastation/lib
+
 all bin: $(TOOLS)
 
-test_pse psmstart mpirun_chp4 mpirun_chgm mlisten test_config: \
-	LOADLIBES+=-Wl -lpopt
+$(TOOLS): $$@.o
 
-test_pse: test_pse.o -lpse -lpsi
+psiadmin psid mlisten test_pse psmstart mpirun_chp4 mpirun_chgm gmspawner \
+	test_config: LOADLIBES+=-lpopt
 
-test_config: test_config.o -lputil -lpscommon
+test_pse psmstart mpirun_chp4 mpirun_chgm: \
+	LOADLIBES+=-lpse -lpsi
 
-psmstart: psmstart.o -lpse -lpsi
+psiadmin psid test_config test_config_parsing: LOADLIBES+=-lputil
 
-mpirun_chp4: mpirun_chp4.o -lpse -lpsi
+psid psilogger test_config test_config_parsing test_logging: \
+	LOADLIBES+=-lpscommon
 
-psispawn: psispawn.o -lpsi
+psiadmin psispawn gmspawner: LOADLIBES+=-lpsi
 
-mpirun_chgm: mpirun_chgm.o -lpse -lpsi
-
-gmspawner: gmspawner.o -lpsi
-gmspawner: LOADLIBES:=-lpthread -lpopt
-
-mlisten: mlisten.o
-
-test_config_parsing: -lputil -lpscommon
-
-test_logging: test_logging.o -lpscommon
+gmspawner: LOADLIBES+=-lpthread
 
 # psiadmin
 VPATH += $(SRCDIR)/admin
-psiadmin: psiadmin.o commands.o adminparser.o
-psiadmin: -lpsi -lputil
-psiadmin: LOADLIBES:=-lreadline -lhistory -l@LIBCURSES@ -lpopt
+psiadmin: commands.o adminparser.o
+psiadmin: LOADLIBES+=-lreadline -lhistory -l@LIBCURSES@
 
 adminparser.o: CPPFLAGS += -DVERSION_psmgmt='"$(VERSION_psmgmt)"' \
 		-DRELEASE_psmgmt='"$(RELEASE_psmgmt)"'
 
 # psid
 VPATH += $(SRCDIR)/daemon
-psid: psid.o psidutil.o psidtask.o psidspawn.o psidforwarder.o
+psid: psidutil.o psidtask.o psidspawn.o psidforwarder.o
 psid: psidsignal.o psidmsgbuf.o psidrdp.o psidclient.o psidcomm.o
 psid: psidinfo.o psidoption.o psidpartition.o psidstatus.o
-psid: -lputil -lpscommon -lutil -lpslog
-psid: LOADLIBES:=-lm -lpopt
+psid: LOADLIBES+=-lm -lutil -lpslog
 
 psidinfo.o: CPPFLAGS += -DVERSION_psmgmt='"$(VERSION_psmgmt)"' \
 		-DRELEASE_psmgmt='"$(RELEASE_psmgmt)"'
 
 # logger
 VPATH += $(SRCDIR)/logger
-psilogger: psilogger.o -lpslog -lpscommon -lm
+psilogger: LOADLIBES+=-lpslog
 
 parastation: $(TOP_SRCDIR)/scripts/parastation@TRU64FILEADD@
 	cp $< $@
