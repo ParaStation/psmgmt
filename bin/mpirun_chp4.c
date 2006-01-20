@@ -333,11 +333,13 @@ int main(int argc, const char *argv[])
 
     if (rank != -1) {
 	fprintf(stderr, "%s: never act as client process.\n", argv[dup_argc]);
-
 	exit(1);
     }
 
-    PSI_createPartition(np, 0 /* HWType none */);
+    if (PSE_getPartition(np) < 0) {
+	fprintf(stderr, "%s: unable to get partition.\n", argv[dup_argc]);
+	exit(1);
+    }
 
     pwd = getenv("PWD");
     if (!pwd) {
