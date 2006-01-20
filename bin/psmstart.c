@@ -329,24 +329,22 @@ int main(int argc, const char *argv[])
 	free(dup_argv);
 
 	if (login) {
+	    struct passwd *passwd;
+	    uid_t myUid = getuid();
 
-	    if (getuid()) {
+	    passwd = getpwnam(login);
+
+	    if (!passwd) {
+		fprintf(stderr, "Unknown user '%s'\n", login);
+	    } else if (myUid && passwd->pw_uid != myUid) {
 		fprintf(stderr, "Can't start '%s' as %s\n",
 			argv[dup_argc], login);
 
 		exit(1);
 	    } else {
-		struct passwd *passwd;
-
-		passwd = getpwnam(login);
-
-		if (passwd) {
-		    PSE_setUID(passwd->pw_uid);
-		    if (verbose) printf("Run as user '%s' UID %d\n",
-					passwd->pw_name, passwd->pw_uid);
-		} else {
-		    fprintf(stderr, "Unknown user '%s'\n", login);
-		}
+		PSE_setUID(passwd->pw_uid);
+		if (verbose) printf("Run as user '%s' UID %d\n",
+				    passwd->pw_name, passwd->pw_uid);
 	    }
 	}
 
