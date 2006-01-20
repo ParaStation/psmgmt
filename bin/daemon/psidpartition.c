@@ -1692,9 +1692,9 @@ void msg_GETNODES(DDBufferMsg_t *inmsg)
 
     if (task->ptid) {
 	PSID_log(PSID_LOG_PART, "%s: forward to root process %s\n",
-		 __func__, PSC_printTID(task->loggertid));
+		 __func__, PSC_printTID(task->ptid));
 	inmsg->header.type = PSP_DD_GETNODES;
-	inmsg->header.dest = task->loggertid;
+	inmsg->header.dest = task->ptid;
 	if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
 	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
 	    goto error;
