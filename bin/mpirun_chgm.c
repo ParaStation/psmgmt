@@ -396,20 +396,18 @@ int main(int argc, const char *argv[])
     }
 
     {
-	unsigned int hwType = 0;
-	int idx;
+	char* hwList[] = { "gm", NULL };
 
-	int err = PSI_infoInt(-1, PSP_INFO_HWINDEX, "gm", &idx, 1);
-	if (err || (idx < 0)) {
-	    fprintf(stderr, "%s: Unknown hardware type 'gm'.\n", argv[0]);
-	    exit(1);
-	} else {
-	    hwType = 1 << idx;
-	}
-
-	if (PSI_createPartition(np, hwType) < 0) {
+	if (PSE_setHWList(hwList) < 0) {
+	    fprintf(stderr,
+		    "%s: Unknown hardware type '%s'.\n", argv[0], hwList[0]);
 	    exit(1);
 	}
+    }
+
+    if (PSE_getPartition(np) < 0) {
+	fprintf(stderr, "%s: unable to get partition.\n", argv[dup_argc]);
+	exit(1);
     }
 
     propagateEnv("LD_LIBRARY_PATH", 0);
