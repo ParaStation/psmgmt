@@ -539,11 +539,7 @@ int main(int argc, const char *argv[])
     }
 
     /* Propagate some environment variables */
-
-    propagateEnv("HOME", 0);
-    propagateEnv("USER", 0);
-    propagateEnv("SHELL", 0);
-    propagateEnv("TERM", 0);
+    PSI_propEnv();
 
     srandom(time(NULL));
     magic = random()%9999999;
@@ -565,7 +561,6 @@ int main(int argc, const char *argv[])
     }
 
     propagateEnv("GMPI_SHMEM", 1);
-    propagateEnv("LD_LIBRARY_PATH", 0);
     propagateEnv("DISPLAY", 0);
     propagateEnv("GMPI_EAGER", 0);
     propagateEnv("GMPI_RECV", 1);
