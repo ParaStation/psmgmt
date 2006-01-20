@@ -447,6 +447,34 @@ int PSI_spawn(int count, char *workdir, int argc, char **argv,
     return total;
 }
 
+int PSI_spawnSingle(char *workdir, int argc, char **argv,
+		    int *error, PStask_ID_t *tid)
+{
+    /* @todo Here we should get the node to spawn to and test if this
+     * is corret */
+    int ret;
+    PSnodes_ID_t node;
+    int rank = PSI_getNodes(1, &node);
+
+    PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
+
+
+    if (rank < 0) {
+	*error = ENXIO;
+	return -1;
+    }
+
+    PSI_log(PSI_LOG_SPAWN, "%s: will spawn to: %d  rank %d\n",
+	    __func__, node, rank);
+
+    ret = dospawn(1, &node, workdir, argc, argv, rank, error, tid);
+    if (ret != 1) {
+	return -1;
+    }
+
+    return rank;
+}
+
 PStask_ID_t PSI_spawnRank(int rank, char *workdir, int argc, char **argv,
 			  int *error)
 {
@@ -545,6 +573,55 @@ char *PSI_createPGfile(int num, const char *prog, int local)
     fclose(PIfile);
 
     return PIfilename;
+}
+
+char *PSI_createMPIhosts(int num, int local)
+{
+    char *MPIhostsFilename, filename[20];
+    FILE *MPIhostsFile;
+    int i;
+
+    snprintf(filename, sizeof(filename), "mpihosts%d", getpid());
+    MPIhostsFile = fopen(filename, "w+");
+
+    if (MPIhostsFile) {
+	MPIhostsFilename = strdup(filename);
+    } else {	
+	/* File open failed, lets try the user's home directory */
+	char *home = getenv("HOME");
+	MPIhostsFilename = malloc((strlen(home) + strlen(filename) + 2)
+				  * sizeof(char));
+	strcpy(MPIhostsFilename, home);
+	strcat(MPIhostsFilename, "/");
+	strcat(MPIhostsFilename, filename);
+
+	MPIhostsFile = fopen(MPIhostsFilename, "w+");
+	/* File open failed finally */
+	if (!MPIhostsFile) {
+	    PSI_warn(-1, errno, "%s: fopen", __func__);
+	    free(MPIhostsFilename);
+	    return NULL;
+	}
+    }
+
+    for (i=0; i<num; i++) {
+	PSnodes_ID_t node;
+	static struct in_addr hostaddr;
+
+	if (!local || !i) {
+	    int ret = PSI_infoNodeID(-1, PSP_INFO_RANKID, &i, &node, 1);
+	    if (ret || (node < 0)) {
+		fclose(MPIhostsFile);
+		free(MPIhostsFilename);
+		return NULL;
+	    }
+	    PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr.s_addr, 0);
+	}
+	fprintf(MPIhostsFile, "%s\n", inet_ntoa(hostaddr));
+    }
+    fclose(MPIhostsFile);
+
+    return MPIhostsFilename;
 }
 
 int PSI_kill(PStask_ID_t tid, short signal)
