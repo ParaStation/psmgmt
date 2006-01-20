@@ -219,6 +219,21 @@ int PSI_recvFinish(int num);
  */
 void PSI_execLogger(const char *command);
 
+/**
+ * @brief Propagate environment
+ *
+ * Propagate a list of environment variables into the ParaStation
+ * environment and thus to all client processes spawned.
+ *
+ * At the time the following variables are propagated:
+ *
+ * HOME, USER, SHELL, TERM, LD_LIBRARY_PATH, LD_PRELOAD,
+ * MPID_PSP_MAXSMALLMSG, PSP_NETWORK, PSP_P4SOCK, PSP_SHAREDMEM,
+ * PSP_GM, PSP_MVAPI, PSP_LIB and PSP_DEBUG.
+ *
+ * @return No return value.
+ */
+void PSI_propEnv(void);
 
 #ifdef __cplusplus
 }/* extern "C" */

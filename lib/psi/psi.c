@@ -662,3 +662,52 @@ void PSI_execLogger(const char *command)
     PSI_warn(-1, errno, "%s: execv(%s)", __func__, argv[0]);
     exit(1);
 }
+
+void PSI_propEnv(void)
+{
+    char *envStr;
+
+    /* Propagate some environment variables */
+    if ((envStr = getenv("HOME"))) {
+	setPSIEnv("HOME", envStr, 1);
+    }
+    if ((envStr = getenv("USER"))) {
+	setPSIEnv("USER", envStr, 1);
+    }
+    if ((envStr = getenv("SHELL"))) {
+	setPSIEnv("SHELL", envStr, 1);
+    }
+    if ((envStr = getenv("TERM"))) {
+	setPSIEnv("TERM", envStr, 1);
+    }
+    if ((envStr = getenv("LD_LIBRARY_PATH"))) {
+	setPSIEnv("LD_LIBRARY_PATH", envStr, 1);
+    }
+    if ((envStr = getenv("LD_PRELOAD"))) {
+	setPSIEnv("LD_PRELOAD", envStr, 1);
+    }
+    if ((envStr = getenv("MPID_PSP_MAXSMALLMSG"))) {
+	setPSIEnv("MPID_PSP_MAXSMALLMSG", envStr, 1);
+    }
+    if ((envStr = getenv("PSP_NETWORK"))) {
+	setPSIEnv("PSP_NETWORK", envStr, 1);
+    }
+    if ((envStr = getenv("PSP_P4SOCK"))) {
+	setPSIEnv("PSP_P4SOCK", envStr, 1);
+    }
+    if ((envStr = getenv("PSP_SHAREDMEM"))) {
+	setPSIEnv("PSP_SHAREDMEM", envStr, 1);
+    }
+    if ((envStr = getenv("PSP_GM"))) {
+	setPSIEnv("PSP_GM", envStr, 1);
+    }
+    if ((envStr = getenv("PSP_MVAPI"))) {
+	setPSIEnv("PSP_MVAPI", envStr, 1);
+    }
+    if ((envStr = getenv("PSP_LIB"))) {
+	setPSIEnv("PSP_LIB", envStr, 1);
+    }
+    if ((envStr = getenv("PSP_DEBUG"))) {
+	setPSIEnv("PSP_DEBUG", envStr, 1);
+    }
+}
