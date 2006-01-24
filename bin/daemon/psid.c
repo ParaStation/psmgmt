@@ -809,17 +809,15 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 		return;
 	    }
 
-	    /* Don't do anything if task not TG_(GM/PSC)SPAWNER */
-	    if (task->group != TG_SPAWNER
-		&& task->group != TG_GMSPAWNER
-		&& task->group != TG_PSCSPAWNER )
-		return;
-
-	    /* Release a TG_SPAWNER if child died in a fine way */
+	    /* Release a TG_(PSC)SPAWNER if child died in a fine way */
 	    if (WIFEXITED(msg->error) && !WIFSIGNALED(msg->error)) {
 		if (task->group == TG_SPAWNER || task->group == TG_PSCSPAWNER)
 		    task->released = 1;
 	    }
+
+	    /* Don't send message if task not TG_(GM)SPAWNER */
+	    if (task->group != TG_SPAWNER && task->group != TG_GMSPAWNER)
+		return;
 
 	    /* Don't send a DD message to a client */
 	    msg->header.type = PSP_CD_SPAWNFINISH;
