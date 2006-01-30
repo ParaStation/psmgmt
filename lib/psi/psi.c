@@ -704,6 +704,9 @@ void PSI_propEnv(void)
     if ((envStr = getenv("PSP_MVAPI"))) {
 	setPSIEnv("PSP_MVAPI", envStr, 1);
     }
+    if ((envStr = getenv("PSP_OPENIB"))) {
+	setPSIEnv("PSP_OPENIB", envStr, 1);
+    }
     if ((envStr = getenv("PSP_LIB"))) {
 	setPSIEnv("PSP_LIB", envStr, 1);
     }
