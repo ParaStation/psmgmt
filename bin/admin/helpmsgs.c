@@ -371,10 +371,10 @@ static info_t showInfo = {
 	  " the value on the master node really steers the behaviour!" },
 	{ .tag = "show starter",
 	  .descr = "Show flag marking if starting is allowed." },
-	{ .tag = "set runjobs <bool>",
+	{ .tag = "show runjobs",
 	  .descr = "Show flag marking if this nodes run processes" },
-	{ .tag = "set overbook <bool>",
-	  .descr = "Set flag marking if this nodes shall be overbooked upon"
+	{ .tag = "show overbook",
+	  .descr = "Show flag marking if this nodes shall be overbooked upon"
 	  " user-request." },
 	{ .tag = "show nodessort",
 	  .descr = "Show the default sorting strategy used when attaching"
