@@ -838,7 +838,7 @@ void PSIADM_ShowParam(PSP_Option_t type, char *nl)
 			   (value == PART_SORT_LOAD_1) ? "LOAD_1" :
 			   (value == PART_SORT_LOAD_5) ? "LOAD_5" :
 			   (value == PART_SORT_LOAD_15) ? "LOAD_15" :
-			   (value == PART_SORT_PROCLOAD) ? "PROCLOAD" :
+			   (value == PART_SORT_PROCLOAD) ? "PROC+LOAD" :
 			   (value == PART_SORT_NONE) ? "NONE" : "UNKNOWN");
 		    break;
 		case PSP_OP_FREEONSUSP:
