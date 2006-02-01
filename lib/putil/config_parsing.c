@@ -700,11 +700,11 @@ static int getExtraIP(char *token)
 /* from bin/admin/adminparser.c */
 static uid_t uidFromString(char *user)
 {
-    long tmp = parser_getNumber(user);
+    long uid;
     struct passwd *passwd = getpwnam(user);
 
     if (strcasecmp(user, "any") == 0) return -1;
-    if (tmp > -1) return tmp;
+    if (!parser_getNumber(user, &uid) && uid > -1) return uid;
     if (passwd) return passwd->pw_uid;
 
     return -2;
@@ -713,11 +713,11 @@ static uid_t uidFromString(char *user)
 /* from bin/admin/adminparser.c */
 static gid_t gidFromString(char *group)
 {
-    long tmp = parser_getNumber(group);
+    long gid;
     struct group *grp = getgrnam(group);
 
     if (strcasecmp(group, "any") == 0) return -1;
-    if (tmp > -1) return tmp;
+    if (!parser_getNumber(group, &gid) && gid > -1) return gid;
     if (grp) return grp->gr_gid;
 
     return -2;
@@ -800,12 +800,13 @@ static int procs = -1, node_procs;
 static int getProcs(char *token)
 {
     char *procStr = parser_getString();
-    node_procs = parser_getNumber(procStr);
+    long processes = -1;
 
-    if ((node_procs == -1) && strcasecmp(procStr, "any")) {
+    if (parser_getNumber(procStr, &processes) && strcasecmp(procStr, "any")) {
 	parser_comment(-1, "Unknown number of processes '%s'", procStr);
 	return -1;
     }
+    node_procs = processes;
 
     return 0;
 }

@@ -300,13 +300,12 @@ static int listProcCommand(char *token)
 {
     char *nl_descr = parser_getString();
     char *nl = defaultNL;
-    int cnt = 10;
+    long cnt = 10;
 
     if (nl_descr && !strcasecmp(nl_descr, "cnt")) {
 	char *tok = parser_getString();
 	if (!tok) goto error;
-	cnt = parser_getNumber(tok);
-	if (cnt<0) goto error;
+	if (parser_getNumber(tok, &cnt) || cnt < 0) goto error;
 	nl_descr = parser_getString();
     }
 
@@ -507,24 +506,24 @@ static int listCommand(char *token)
 
 /************************* set / show commands **************************/
 
-static long procsFromString(char *procs)
+static long procsFromString(char *procStr)
 {
-    long tmp = parser_getNumber(procs);
+    long procs;
 
-    if (strcasecmp(procs, "any") == 0) return -1;
-    if (tmp > -1) return tmp;
+    if (strcasecmp(procStr, "any") == 0) return -1;
+    if (!parser_getNumber(procStr, &procs) && procs > -1) return procs;
 
-    printf("Unknown value '%s'\n", procs);
+    printf("Unknown value '%s'\n", procStr);
     return -2;
 }
 
 static uid_t uidFromString(char *user)
 {
-    long tmp = parser_getNumber(user);
+    long uid;
     struct passwd *passwd = getpwnam(user);
 
     if (strcasecmp(user, "any") == 0) return -1;
-    if (tmp > -1) return tmp;
+    if (!parser_getNumber(user, &uid) && uid > -1) return uid;
     if (passwd) return passwd->pw_uid;
 
     printf("Unknown user '%s'\n", user);
@@ -533,11 +532,11 @@ static uid_t uidFromString(char *user)
 
 static gid_t gidFromString(char *group)
 {
-    long tmp = parser_getNumber(group);
+    long gid;
     struct group *grp = getgrnam(group);
 
     if (strcasecmp(group, "any") == 0) return -1;
-    if (tmp > -1) return tmp;
+    if (!parser_getNumber(group, &gid) && gid > -1) return gid;
     if (grp) return grp->gr_gid;
     
     printf("Unknown group '%s'\n", group);
@@ -791,8 +790,7 @@ static int setCommand(char *token)
     case PSP_OP_PSM_RTO:
     case PSP_OP_PSM_HNPEND:
     case PSP_OP_PSM_ACKPEND:
-	val = parser_getNumber(value);
-	if (val==-1) {
+	if (parser_getNumber(value, &val)) {
 	    printf("Illegal value '%s'\n", value);
 	    goto error;
 	}
@@ -884,17 +882,19 @@ static int killCommand(char *token)
 {
     int signal = -1;
     PStask_ID_t tid;
+    long tmp;
 
     token = parser_getString();
     if (!token) goto error;
-    tid = parser_getNumber(token);
+    if (parser_getNumber(token, &tmp)) goto error;
 
     token = parser_getString();
     if (token) {
-	signal = -tid;
+	signal = -tmp;
 	if (signal < 0) goto error;
-	tid = parser_getNumber(token);
+	if (parser_getNumber(token, &tmp)) goto error;
     }
+    tid = tmp;
     if (tid < 0 || parser_getString()) goto error;
 
     PSIADM_KillProc(tid, signal);

@@ -324,15 +324,19 @@ char* parser_getLine(void);
 int parser_getComment(char* token);
 
 /**
- * @brief Get a (positiv) number.
+ * @brief Get a number.
  *
- * Get a (positiv) number from the character array @a token.
+ * Get a number from the character array @a token and assign it to @a
+ * val. If @a token does not contain a valid number, @a val remains
+ * unchanged.
  *
  * @param token The character array that contains the number.
  *
- * @return On success the number is returned, or -1 otherwise.
+ * @param val Pointer to the value to get.
+ *
+ * @return On success 0 is returned, or -1 otherwise.
  */
-long parser_getNumber(char* token);
+int parser_getNumber(char *token, long *val);
 
 /**
  * @brief Get a filename.
@@ -372,12 +376,12 @@ char* parser_getFilename(char* token, char* prefix, char* extradir);
 unsigned int parser_getHostname(char* token);
 
 /**
- * @brief Get a (positiv) numerical value.
+ * @brief Get a numerical value.
  *
- * Get a (positiv) numerical value from the character array @a token
- * via @ref parser_getNumber() and store it to @a *value. If an error
- * occurred (i.e. token contains no valid number), a message
- * concerning @a valname is produced and @a *value remains unchanged.
+ * Get a numerical value from the character array @a token via @ref
+ * parser_getNumber() and store it to @a *value. If an error occurred
+ * (i.e. token contains no valid number), a message concerning @a
+ * valname is produced and @a *value remains unchanged.
  *
  *
  * @param token The character array that contains the number.

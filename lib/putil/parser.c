@@ -274,7 +274,7 @@ int parser_getComment(char *token)
     return 0;
 }
 
-long parser_getNumber(char *token)
+int parser_getNumber(char *token, long *val)
 {
     char *end;
     long num;
@@ -285,8 +285,9 @@ long parser_getNumber(char *token)
     if (*end != '\0') {
 	return -1;
     }
+    *val = num;
 
-    return num;
+    return 0;
 }
 
 char *parser_getFilename(char *token, char *prefix, char *extradir)
@@ -372,18 +373,16 @@ unsigned int parser_getHostname(char *token)
 
 int parser_getNumValue(char *token, int *value, char *valname)
 {
-    int num;
+    long num;
 
-    num = parser_getNumber(token);
-
-    if (num < 0) {
+    if (parser_getNumber(token, &num)) {
 	parser_comment(-1, "'%s' is not a valid number for '%s'",
 		       token, valname);
 
 	return -1;
     }
 
-    parser_comment(PARSER_LOG_RES, "got '%d' for '%s'", num, valname);
+    parser_comment(PARSER_LOG_RES, "got '%ld' for '%s'", num, valname);
 
     *value = num;
 
@@ -408,11 +407,9 @@ int parser_getBool(char *token, int *value, char *valname)
     } else if (strcasecmp(token, "no")==0) {
 	*value = 0;
     } else {
-	int num;
+	long num;
 
-	num = parser_getNumber(token);
-
-	if (num < 0) {
+	if (parser_getNumber(token, &num)) {
 	    parser_comment(-1, "'%s' is not a valid boolean value%s%s%s",
 			   token, valname ? " for '" : "",
 			   valname ? valname : "", valname ? "'" : "");
