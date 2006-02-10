@@ -1,3 +1,325 @@
+Version psmgmt-4.3.0:
+=====================
+------------------------------------------------------------------------
+r3956 | eicker | 2006-02-01 14:10:15 +0100 (Wed, 01 Feb 2006) | 2 lines
+
+Extend parser to also handle -1 numerical values.
+
+------------------------------------------------------------------------
+r3955 | eicker | 2006-01-31 17:47:50 +0100 (Tue, 31 Jan 2006) | 2 lines
+
+Make psiadmin output consistent with expected input.
+
+------------------------------------------------------------------------
+r3950 | eicker | 2006-01-31 11:05:59 +0100 (Tue, 31 Jan 2006) | 2 lines
+
+Fix on-line help messages for 'show runjobs' and 'show overbook'.
+
+------------------------------------------------------------------------
+r3949 | eicker | 2006-01-30 18:43:13 +0100 (Mon, 30 Jan 2006) | 2 lines
+
+Also forward PSP_OPENIB environment.
+
+------------------------------------------------------------------------
+r3939 | eicker | 2006-01-24 17:34:33 +0100 (Tue, 24 Jan 2006) | 2 lines
+
+Prevent some unnecessary (and misleading) messages on job crash.
+
+------------------------------------------------------------------------
+r3935 | eicker | 2006-01-20 14:25:40 +0100 (Fri, 20 Jan 2006) | 2 lines
+
+New version (add PathScale support).
+
+------------------------------------------------------------------------
+r3934 | eicker | 2006-01-20 14:24:48 +0100 (Fri, 20 Jan 2006) | 2 lines
+
+Enhancement: Add support for PathScale binaries.
+
+------------------------------------------------------------------------
+r3933 | eicker | 2006-01-20 14:13:33 +0100 (Fri, 20 Jan 2006) | 5 lines
+
+Use ptid instead of loggertid in order to find a job's root. This is
+needed for TG_PSCSPAWNER. Thus a PSP_CD_GETNODES message might take some
+more hops in order to reach the root. On the other hand this is much
+cleaner.
+
+------------------------------------------------------------------------
+r3932 | eicker | 2006-01-20 14:07:52 +0100 (Fri, 20 Jan 2006) | 2 lines
+
+New task-group TG_PSCSPAWNER.
+
+------------------------------------------------------------------------
+r3931 | eicker | 2006-01-20 13:59:25 +0100 (Fri, 20 Jan 2006) | 2 lines
+
+Makefile reorganization.
+
+------------------------------------------------------------------------
+r3930 | eicker | 2006-01-20 13:55:15 +0100 (Fri, 20 Jan 2006) | 3 lines
+
+Makefile reorganization.
+Don't build pslog sharedlibs (will never be used).
+
+------------------------------------------------------------------------
+r3929 | eicker | 2006-01-20 13:53:19 +0100 (Fri, 20 Jan 2006) | 3 lines
+
+New functions: PSI_spawnSingle() and PSI_createMPIhosts(). Will be used
+within PathScale support.
+
+------------------------------------------------------------------------
+r3928 | eicker | 2006-01-20 13:45:33 +0100 (Fri, 20 Jan 2006) | 2 lines
+
+Switch to new PSI_propEnv() function.
+
+------------------------------------------------------------------------
+r3927 | eicker | 2006-01-20 13:43:19 +0100 (Fri, 20 Jan 2006) | 3 lines
+
+New function PSI_propEnv(). This will propagate some default environment
+to child processes spawned via ParaStation.
+
+------------------------------------------------------------------------
+r3926 | eicker | 2006-01-20 13:35:54 +0100 (Fri, 20 Jan 2006) | 3 lines
+
+Bugfix: Use PSE_getPartition() instead of PSI_createPartition() in order
+to support all the batch-systems.
+
+------------------------------------------------------------------------
+r3925 | eicker | 2006-01-20 13:34:23 +0100 (Fri, 20 Jan 2006) | 3 lines
+
+Bugfix: Use PSE_getPartition() instead of PSI_createPartition() in order
+to support all the batch-systems. 
+
+------------------------------------------------------------------------
+r3924 | eicker | 2006-01-20 13:32:30 +0100 (Fri, 20 Jan 2006) | 3 lines
+
+Bugfix: 'psmstart -l' is allowed as normal user if argument maps to same
+uid.
+
+------------------------------------------------------------------------
+r3897 | eicker | 2006-01-13 14:21:15 +0100 (Fri, 13 Jan 2006) | 2 lines
+
+New version
+
+------------------------------------------------------------------------
+r3896 | eicker | 2006-01-13 13:48:05 +0100 (Fri, 13 Jan 2006) | 2 lines
+
+Fix some problems/warnings discovered by gcc 4.0.
+
+------------------------------------------------------------------------
+r3895 | eicker | 2006-01-10 14:04:10 +0100 (Tue, 10 Jan 2006) | 2 lines
+
+New version.
+
+------------------------------------------------------------------------
+r3894 | eicker | 2006-01-10 14:03:23 +0100 (Tue, 10 Jan 2006) | 5 lines
+
+Extensions:
+- Support IBM's LoadLeveler ressource management.
+- If a batch-system is detected, follow the provided allegations more
+  tightly.
+
+------------------------------------------------------------------------
+r3893 | eicker | 2006-01-09 19:31:19 +0100 (Mon, 09 Jan 2006) | 2 lines
+
+Switch off overbooking per default.
+
+------------------------------------------------------------------------
+r3892 | eicker | 2006-01-09 19:29:54 +0100 (Mon, 09 Jan 2006) | 2 lines
+
+Bugfix: Make 'psid -l stdout' work as expected.
+
+------------------------------------------------------------------------
+r3891 | eicker | 2006-01-09 19:14:49 +0100 (Mon, 09 Jan 2006) | 2 lines
+
+Bugfix: Some more test if token != NULL to prevent SEGFAULT (bug #31).
+
+------------------------------------------------------------------------
+r3890 | eicker | 2006-01-09 19:09:13 +0100 (Mon, 09 Jan 2006) | 2 lines
+
+Bugfix: Make list version work (bug #32).
+
+------------------------------------------------------------------------
+r3889 | eicker | 2006-01-06 11:38:54 +0100 (Fri, 06 Jan 2006) | 2 lines
+
+Minor cosmetic changes.
+
+------------------------------------------------------------------------
+r3888 | eicker | 2006-01-06 11:38:33 +0100 (Fri, 06 Jan 2006) | 2 lines
+
+Adapt sample configuration file to the now directives.
+
+------------------------------------------------------------------------
+r3887 | eicker | 2006-01-06 10:20:52 +0100 (Fri, 06 Jan 2006) | 5 lines
+
+New options PSP_OP_OVERBOOK, PSP_OP_STARTER, PSP_OP_RUNJOBS.
+Support this options within psiadmin.
+Allow this options within configuration file.
+Remark: PSP_OP_OVERBOOK not yet considered during partition-build.
+
+------------------------------------------------------------------------
+r3886 | eicker | 2006-01-06 09:58:41 +0100 (Fri, 06 Jan 2006) | 2 lines
+
+Undo last change (revision stuff).
+
+------------------------------------------------------------------------
+r3885 | eicker | 2006-01-06 09:57:09 +0100 (Fri, 06 Jan 2006) | 2 lines
+
+Revision stuff
+
+------------------------------------------------------------------------
+r3884 | eicker | 2006-01-06 09:48:15 +0100 (Fri, 06 Jan 2006) | 2 lines
+
+Fix copyright.
+
+------------------------------------------------------------------------
+r3883 | eicker | 2006-01-02 13:54:06 +0100 (Mon, 02 Jan 2006) | 4 lines
+
+New admin directive 'list versions' shows daemon and RPM version of
+every node (see Bug #28)
+Now the RPM-version can also be retrieved from psid.
+
+------------------------------------------------------------------------
+r3875 | eicker | 2006-01-02 10:27:25 +0100 (Mon, 02 Jan 2006) | 2 lines
+
+Enhancement: Show psiadmin's RPM version from within admin (Bug #28)
+
+------------------------------------------------------------------------
+r3874 | eicker | 2006-01-02 10:10:08 +0100 (Mon, 02 Jan 2006) | 2 lines
+
+Bugfix: In psiadmin a noderange of '-1' means the local node. (Bug #27).
+
+------------------------------------------------------------------------
+r3869 | eicker | 2005-12-21 22:01:11 +0100 (Wed, 21 Dec 2005) | 2 lines
+
+Bugfix: Also distribute logging.h (this is needed by pscommon.h)
+
+------------------------------------------------------------------------
+r3862 | eicker | 2005-12-19 19:32:43 +0100 (Mon, 19 Dec 2005) | 3 lines
+
+Extension: psiadmin now has a history file (Thanks to Bert Wesarg
+<wesarg@informatik.uni-halle.de>)
+
+------------------------------------------------------------------------
+r3854 | eicker | 2005-12-19 10:17:25 +0100 (Mon, 19 Dec 2005) | 3 lines
+
+Extension: Default reservations from parastation.conf (thanks to Bert
+Wesarg <wesarg@informatik.uni-halle.de>)
+
+------------------------------------------------------------------------
+r3853 | eicker | 2005-12-19 09:50:55 +0100 (Mon, 19 Dec 2005) | 3 lines
+
+Bugfix: close some memory leaks (thanks to Bert Wesarg
+  <wesarg@informatik.uni-halle.de>)
+
+------------------------------------------------------------------------
+r3844 | eicker | 2005-12-15 13:30:54 +0100 (Thu, 15 Dec 2005) | 2 lines
+
+New version.
+
+------------------------------------------------------------------------
+r3843 | eicker | 2005-12-15 13:30:18 +0100 (Thu, 15 Dec 2005) | 2 lines
+
+Introduce init.d script for ParaStation.
+
+------------------------------------------------------------------------
+r3841 | eicker | 2005-12-15 10:40:49 +0100 (Thu, 15 Dec 2005) | 3 lines
+
+Bugfix: All processes (besides the loggers) are allowed to spawn further
+processes even if 'starter no' is given.
+
+------------------------------------------------------------------------
+r3840 | eicker | 2005-12-15 10:38:43 +0100 (Thu, 15 Dec 2005) | 2 lines
+
+Also forward PSP_LIB.
+
+------------------------------------------------------------------------
+r3839 | eicker | 2005-12-14 17:01:21 +0100 (Wed, 14 Dec 2005) | 2 lines
+
+Bugfix: Prevent psiadmin from segfault on 'help test'.
+
+------------------------------------------------------------------------
+r3801 | hauke | 2005-11-03 11:26:34 +0100 (Thu, 03 Nov 2005) | 2 lines
+
+specfile tag "Copyright" is deprecated. Changed to "License: Proprietary".
+
+------------------------------------------------------------------------
+r3787 | eicker | 2005-10-05 10:57:12 +0200 (Wed, 05 Oct 2005) | 2 lines
+
+Decouple various logging masks.
+
+------------------------------------------------------------------------
+r3785 | eicker | 2005-10-05 10:02:56 +0200 (Wed, 05 Oct 2005) | 3 lines
+
+Use PROC+LOAD instead of PROCLOAD in parastation.conf and psiadmin.
+Improve psiadmin's online-help.
+
+------------------------------------------------------------------------
+r3784 | eicker | 2005-10-04 22:36:51 +0200 (Tue, 04 Oct 2005) | 3 lines
+
+Make sure 'set nodessort <mode>' in psiadmin really works.
+Add 'set/show nodessort' to psiadmin's online-help.
+
+------------------------------------------------------------------------
+r3783 | eicker | 2005-10-04 22:34:43 +0200 (Tue, 04 Oct 2005) | 2 lines
+
+Bugfix: Make sure tag is resetted when initializing the logger.
+
+------------------------------------------------------------------------
+r3782 | eicker | 2005-10-04 22:03:24 +0200 (Tue, 04 Oct 2005) | 3 lines
+
+Implement default PSINodesSort configuration in /etc/parastation.conf.
+Also make nodesSort an option configurable during run-time via psiadmin.
+
+------------------------------------------------------------------------
+r3780 | eicker | 2005-10-04 15:48:05 +0200 (Tue, 04 Oct 2005) | 2 lines
+
+Implement new rlimits: RLIMIT_MEMLOCK, RLIMIT_CORE (see Bug #23)
+
+------------------------------------------------------------------------
+r3779 | eicker | 2005-10-04 15:19:17 +0200 (Tue, 04 Oct 2005) | 3 lines
+
+Fix typo.
+Correct version.
+
+------------------------------------------------------------------------
+r3778 | eicker | 2005-10-04 15:10:57 +0200 (Tue, 04 Oct 2005) | 4 lines
+
+Complete new logging. Now logging is steered via masks and no longer via
+simple levels.
+This patch touches almost the whole management code.
+
+------------------------------------------------------------------------
+r3771 | eicker | 2005-09-15 14:03:00 +0200 (Thu, 15 Sep 2005) | 4 lines
+
+Propagate some more environment variables by default:
+  LD_LIBRARY_PATH, LD_PRELOAD, MPID_PSP_MAXSMALLMSG, PSP_NETWORK,
+  PSP_P4SOCK, PSP_SHAREDMEM, PSP_GM, PSP_MVAPI and PSP_DEBUG.
+
+------------------------------------------------------------------------
+r3769 | eicker | 2005-09-15 13:33:33 +0200 (Thu, 15 Sep 2005) | 2 lines
+
+Create MANPATH if it was not set before.
+
+------------------------------------------------------------------------
+r3748 | eicker | 2005-08-10 13:35:15 +0200 (Wed, 10 Aug 2005) | 3 lines
+
+Cleanup: Remove obsolete variables/function to suppress compiler
+warnings.
+
+------------------------------------------------------------------------
+r3747 | eicker | 2005-08-10 09:06:16 +0200 (Wed, 10 Aug 2005) | 4 lines
+
+Directives for psiadmin or parastation.conf might be abbreviated as much
+as possible (of course commands have to be unique).
+Implement completion within psiadmin.
+
+------------------------------------------------------------------------
+r3745 | eicker | 2005-08-08 13:58:21 +0200 (Mon, 08 Aug 2005) | 4 lines
+
+Implement an extended batch-mode (-f flag).
+Handle .psiadminrc files either in the current directory or in the
+user's home.
+
+
 Version psmgmt-4.2.5:
 =====================
 ------------------------------------------------------------------------
