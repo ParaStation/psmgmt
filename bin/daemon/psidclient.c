@@ -353,6 +353,22 @@ void deleteClient(int fd)
 	sendMsg(&msg);
     }
 
+    /* Deregister TG_(PSC)SPAWNER from parent process */
+    if (task->group == TG_SPAWNER || task->group == TG_PSCSPAWNER) {
+	PStask_t *parent = PStasklist_find(managedTasks, task->ptid);
+
+	if (parent) {
+	    /* Remove dead spawner from list of childs */
+	    PSID_removeSignal(&parent->childs, tid, -1);
+
+	    if (parent->removeIt && !parent->childs) {
+		PSID_log(PSID_LOG_TASK,
+			 "%s: PStask_cleanup(parent)\n", __func__);
+		PStask_cleanup(parent->tid);
+	    }
+	}
+    }
+
     PSID_log(PSID_LOG_CLIENT, "%s: closing connection to %s\n",
 	     __func__, PSC_printTID(tid));
 
