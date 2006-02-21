@@ -1,7 +1,7 @@
 ###################################################### -*- Makefile -*- #####
 #                  ParaStation
 #        Copyright (c) 2002-2003 ParTec AG, Karlsruhe
-#        Copyright (c) 2005 Cluster Competence Center GmbH, Munich
+#        Copyright (c) 2005-2006 Cluster Competence Center GmbH, Munich
 #############################################################################
 #
 # $Id$
@@ -31,7 +31,7 @@ export LIBDSTDIR = ../..
 #only static
 all lib: staticlib
 
-sharedlib staticlib: sharedlib.dir staticlib.dir
+sharedlib staticlib: %: %.dir
 	$(MAKE) -C $@.dir -f ../../Makefile.$@
 
 sharedlib.dir staticlib.dir:
@@ -39,4 +39,6 @@ sharedlib.dir staticlib.dir:
 
 clean distclean: sharedlib.dir staticlib.dir
 	$(MAKE) -C sharedlib.dir -f ../../Makefile.sharedlib $@
+	rmdir sharedlib.dir
 	$(MAKE) -C staticlib.dir -f ../../Makefile.staticlib $@
+	rmdir staticlib.dir

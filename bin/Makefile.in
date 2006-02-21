@@ -39,26 +39,27 @@ LDFLAGS+=-L../lib -Wl,-rpath,/opt/parastation/lib
 
 all bin: $(TOOLS)
 
-$(TOOLS): $$@.o
+$(TOOLS): %: %.o
 
 psiadmin psid mlisten test_pse psmstart mpirun_chp4 mpirun_chgm gmspawner \
-	test_config mpirun_psc pscspawner: LOADLIBES+=-lpopt
+	test_config mpirun_psc pscspawner: LOADLIBES:=$(LOADLIBES) -lpopt
 
-test_pse psmstart mpirun_chp4 mpirun_chgm mpirun_psc: LOADLIBES+=-lpse -lpsi
+test_pse psmstart mpirun_chp4 mpirun_chgm mpirun_psc: \
+	LOADLIBES:=$(LOADLIBES) -lpse -lpsi
 
-psiadmin psid test_config test_config_parsing: LOADLIBES+=-lputil
+psiadmin psid test_config test_config_parsing: LOADLIBES:=$(LOADLIBES) -lputil
 
 psid psilogger test_config test_config_parsing test_logging: \
-	LOADLIBES+=-lpscommon
+	LOADLIBES:=$(LOADLIBES) -lpscommon
 
-psiadmin psispawn gmspawner pscspawner: LOADLIBES+=-lpsi
+psiadmin psispawn gmspawner pscspawner: LOADLIBES:=$(LOADLIBES) -lpsi
 
-gmspawner: LOADLIBES+=-lpthread
+gmspawner: LOADLIBES:=$(LOADLIBES) -lpthread
 
 # psiadmin
 VPATH += $(SRCDIR)/admin
 psiadmin: commands.o adminparser.o
-psiadmin: LOADLIBES+=-lreadline -lhistory -l@LIBCURSES@
+psiadmin: LOADLIBES:=$(LOADLIBES) -lreadline -lhistory -l@LIBCURSES@
 
 adminparser.o: CPPFLAGS += -DVERSION_psmgmt='"$(VERSION_psmgmt)"' \
 		-DRELEASE_psmgmt='"$(RELEASE_psmgmt)"'
@@ -68,14 +69,14 @@ VPATH += $(SRCDIR)/daemon
 psid: psidutil.o psidtask.o psidspawn.o psidforwarder.o
 psid: psidsignal.o psidmsgbuf.o psidrdp.o psidclient.o psidcomm.o
 psid: psidinfo.o psidoption.o psidpartition.o psidstatus.o
-psid: LOADLIBES+=-lm -lutil -lpslog
+psid: LOADLIBES:=$(LOADLIBES) -lm -lutil -lpslog
 
 psidinfo.o: CPPFLAGS += -DVERSION_psmgmt='"$(VERSION_psmgmt)"' \
 		-DRELEASE_psmgmt='"$(RELEASE_psmgmt)"'
 
 # logger
 VPATH += $(SRCDIR)/logger
-psilogger: LOADLIBES+=-lpslog
+psilogger: LOADLIBES:=$(LOADLIBES) -lpslog
 
 parastation: $(TOP_SRCDIR)/scripts/parastation@TRU64FILEADD@
 	cp $< $@
