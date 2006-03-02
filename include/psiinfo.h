@@ -268,7 +268,7 @@ int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 		   PSnodes_ID_t *nid, int verbose);
 
 /**
- * @brief
+ * @brief Retrieve info list
  *
  * Retrieve a list of information of type @a what from node @a node
  * and store it to the buffer @a buf of size @a size. Depending on the
@@ -368,6 +368,97 @@ int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  */
 int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 		 void *buf, size_t size, int verbose);
+
+/**
+ * @brief Retrieve queue of information
+ *
+ * Trigger a queue of information of type @a what from node @a node.
+ * The actual information items can be retrieved via subsequent calls
+ * to @ref PSI_infoQueueNext(). As long as such answers are pending no
+ * further calls to any other PSI_info-function is allowed.
+ *
+ * Depending on the type of information requested, @a param
+ * points to further parameter(s) needed in order to answer the
+ * request.
+ *
+ * The possible values for @a what are:
+ *
+ * - PSP_INFO_QUEUE_ALLTASK requests a queue of all tasks on the
+ * designated node @a node. All the information about the single tasks
+ * is returned within @ref PSP_taskInfo_t structures. No further
+ * parameters needed.
+ *
+ * - PSP_INFO_QUEUE_NORMTASK requests a list of all normal tasks on
+ * the designated node @a node. Normal tasks are those with task group
+ * TG_ANY, i.e. in contrast to all tasks this one excludes tasks
+ * representing admin, logger, forwared etc. processes. All the
+ * information about the single tasks is returned within a @ref
+ * PSP_taskInfo_t structures. No further parameters needed.
+ *
+ * - PSP_INFO_QUEUE_PARTITION requests a list of all partitions
+ * (associated to actual jobs) on the designated node @a node.
+ * @doctodo structure of answers !!
+ * No further parameters needed.
+ *
+ *
+ * @param node The ParaStation ID of the node to ask.
+ *
+ * @param what The type of information to request as described above.
+ *
+ * @param param Pointer to further parameters needed in order to
+ * retrieve the requested information.
+ *
+ * @return On success, the 0 is returned. Otherwise -1 is returned and
+ * errno is set appropriately.
+ *
+ * @see errno(3)
+ */
+int PSI_infoQueueReq(PSnodes_ID_t node, PSP_Info_t what, const void *param);
+
+/**
+ * @brief Retrieve (more) information from queue
+ *
+ * Retrieve (more) information of type @a what from the queue
+ * triggered by @ref PSI_infoQueueReq() and store it to the buffer @a
+ * buf of size @a size.
+ *
+ * Depending on the return value more information might be
+ * available. It can be retrieved via subsequent calls to this
+ * function. As long as such answers are pending no
+ * further calls to any other PSI_info-function is allowed.
+ *
+ * The possible values for @a what are:
+ *
+ * - PSP_INFO_QUEUE_ALLTASK receives information concerning a single
+ * task within a @ref PSP_taskInfo_t structure from node @a node.
+ *
+ * - PSP_INFO_QUEUE_NORMTASK receives information concerning a normal
+ * task within a @ref PSP_taskInfo_t structure from node @a
+ * node. Normal tasks are those with task group TG_ANY, i.e. in
+ * contrast to all tasks this one excludes tasks representing admin,
+ * logger, forwared etc. processes.
+ *
+ * - PSP_INFO_QUEUE_PARTITION receives information concerning a
+ * partition (associated to actual jobs) on the designated node @a
+ * node.
+ * @doctodo structure of answers !!
+ *
+ * @param what The type of information to request as described above.
+ *
+ * @param buf Buffer to store the requested list to.
+ *
+ * @param size Actual size of the buffer @a buf.
+ *
+ * @param verbose Flag to be more verbose, if something within the
+ * information retrival went wrong.
+ *
+ * @return On success, the number of bytes received and stored within
+ * buf is returned. If no more information is available, 0 is
+ * returned. Otherwise -1 is returned and errno is set appropriately.
+ *
+ * @see errno(3)
+ */
+int PSI_infoQueueNext(PSP_Info_t what, void *buf, size_t size, int verbose);
 
 /**
  * @brief Request options

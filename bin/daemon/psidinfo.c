@@ -529,7 +529,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 			size = 0;
 		    }
 		    idx++;
-		    if (size && (idx == chunkSize/size)) {
+		    if (size && (idx >= chunkSize/size)) {
 			msg.header.len += idx * size;
 			sendMsg(&msg);
 			msg.header.len -= idx * size;
@@ -565,6 +565,45 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    snprintf(msg.buf, sizeof(msg.buf), "%s-%s",
 		     VERSION_psmgmt, RELEASE_psmgmt);
 	    msg.header.len += strlen(msg.buf)+1;
+	    break;
+	case PSP_INFO_QUEUE_NORMTASK:
+	case PSP_INFO_QUEUE_ALLTASK:
+	{
+	    /* request info for all normal tasks */
+	    PStask_t *task;
+	    PSP_taskInfo_t *taskinfo = (PSP_taskInfo_t *)msg.buf;
+	    for (task=managedTasks; task; task=task->next) {
+		if ((PSP_Info_t) inmsg->type == PSP_INFO_QUEUE_NORMTASK && (
+			task->group == TG_FORWARDER
+			|| task->group == TG_SPAWNER
+			|| task->group == TG_GMSPAWNER
+			|| task->group == TG_PSCSPAWNER
+			|| task->group == TG_MONITOR )) continue;
+		taskinfo->tid = task->tid;
+		taskinfo->ptid = task->ptid;
+		taskinfo->loggertid = task->loggertid;
+		taskinfo->uid = task->uid;
+		taskinfo->group = task->group;
+		taskinfo->rank = task->rank;
+		taskinfo->connected = (task->fd != -1);
+
+		/* Send task info */
+		msg.header.len += sizeof(PSP_taskInfo_t);
+		sendMsg(&msg);
+		msg.header.len -= sizeof(PSP_taskInfo_t);
+		/* Send separator */
+		msg.type = PSP_INFO_QUEUE_SEP;
+		sendMsg(&msg);
+		msg.type = inmsg->type;
+	    }
+
+	    /*
+	     * send a EndOfQueue Sign
+	     */
+	    msg.type = PSP_INFO_QUEUE_SEP;
+	    break;
+	}
+	case PSP_INFO_QUEUE_PARTITION:
 	    break;
 	default:
 	    msg.type = PSP_INFO_UNKNOWN;

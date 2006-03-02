@@ -698,6 +698,12 @@ static void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	 * this is a request for my node
 	 */
 	forwarder = PStask_clone(task);
+	{
+	    int arg;
+	    for (arg=0; arg<forwarder->argc; arg++)
+		if (forwarder->argv[arg]) free(forwarder->argv[arg]);
+	    if (forwarder->argv) free(forwarder->argv);
+	}
 	forwarder->group = TG_FORWARDER;
 	forwarder->protocolVersion = PSprotocolVersion;
 	/*

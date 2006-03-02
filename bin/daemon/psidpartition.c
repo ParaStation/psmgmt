@@ -1783,25 +1783,10 @@ int send_GETTASKS(PSnodes_ID_t node)
     return sendMsg(&msg);
 }
 
-void msg_GETTASKS(DDBufferMsg_t *inmsg)
+static void sendRequests(void)
 {
     PStask_t *task = managedTasks;
-    DDBufferMsg_t msg = {
-	.header = {
-	    .type = PSP_DD_PROVIDETASK,
-	    .sender = 0,
-	    .dest = inmsg->header.sender,
-	    .len = sizeof(msg.header) },
-	.buf = { '\0' }};
 
-    if (PSC_getID(inmsg->header.sender) != getMasterID()) {
-	PSID_log(-1, "%s: wrong master from %s\n", __func__,
-		 PSC_printTID(inmsg->header.sender));
-	send_MASTERIS(PSC_getID(inmsg->header.sender));
-	/* Send all tasks anyhow. Maybe I am wrong with the master. */
-    }
-
-    /* loop over all tasks */
     while (task) {
 	if (task->request) {
 	    DDBufferMsg_t msg = {
@@ -1827,8 +1812,25 @@ void msg_GETTASKS(DDBufferMsg_t *inmsg)
 				task->request->num, &msg)<0)) {
 		PSID_warn(-1, errno, "%s: sendNodelist()", __func__);
 	    }
+	}
+	task = task->next;
+    }
+}
 
-	} else if (task->partition && task->partitionSize) {
+static void sendPartitions(PStask_ID_t dest)
+{
+    PStask_t *task = managedTasks;
+
+    DDBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_DD_PROVIDETASK,
+	    .sender = 0,
+	    .dest = dest,
+	    .len = sizeof(msg.header) },
+	.buf = { '\0' }};
+
+    while (task) {
+	if (task->partition && task->partitionSize) {
 	    char *ptr = msg.buf;
 
 	    msg.header.type = PSP_DD_PROVIDETASK;
@@ -1856,10 +1858,25 @@ void msg_GETTASKS(DDBufferMsg_t *inmsg)
 	}
 	task = task->next;
     }
-    
-    msg.header.type = PSP_DD_PROVIDETASK;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.len = sizeof(msg.header);
+}
+
+void msg_GETTASKS(DDBufferMsg_t *inmsg)
+{
+    DDMsg_t msg = {
+	.type = PSP_DD_PROVIDETASK,
+	.sender = PSC_getMyTID(),
+	.dest = inmsg->header.sender,
+	.len = sizeof(msg) };
+
+    if (PSC_getID(inmsg->header.sender) != getMasterID()) {
+	PSID_log(-1, "%s: wrong master from %s\n", __func__,
+		 PSC_printTID(inmsg->header.sender));
+	send_MASTERIS(PSC_getID(inmsg->header.sender));
+	/* Send all tasks anyhow. Maybe I am wrong with the master. */
+    }
+
+    sendPartitions(inmsg->header.sender);
+    sendRequests();
 
     sendMsg(&msg);
 }

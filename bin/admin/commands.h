@@ -200,7 +200,8 @@ void PSIADM_CountStat(int hw, char *nl);
  *
  * The maximum number of process information displayed per node is @a
  * count. If more than @a count processes per node exists, a hint
- * concerning the left out processes is displayed.
+ * concerning the left out processes is displayed. If @a count is -1,
+ * all processes are displayed.
  *
  * If @a full is different from 0, all processes (controlled by the
  * ParaStation daemon) are displayed. Otherwise only "normal"
@@ -246,6 +247,20 @@ void PSIADM_LoadStat(char *nl);
  * @return No return value.
  */
 void PSIADM_HWStat(char *nl);
+
+/**
+ * @brief Get hardware status. @todo @doctodo
+ *
+ * Show the hardware status of the nodes marked within the nodelist @a
+ * nl. Therefore the corresponding list containing the information is
+ * requested from the local daemon and printed to stdout.
+ *
+ * @param nl The nodelist describing the nodes from which the
+ * information should requested and put out.
+ *
+ * @return No return value.
+ */
+void PSIADM_JobStat(char *nl);
 
 /**
  * @brief Get daemon versions.
@@ -342,6 +357,31 @@ void PSIADM_TestNetwork(int mode);
  * @return No return value.
  */
 void PSIADM_KillProc(PStask_ID_t tid, int sig);
+
+/**
+ * @brief Get screen width.
+ *
+ * Get the screen width of the terminal stdout is connected to.
+ *
+ * If the TIOCGWINSZ @ref ioctl() is available, it is used to
+ * determine the width. Otherwise the COLUMNS environment variable is
+ * used to identify the size.
+ *
+ * If the determined width is smaller than 60, it is set to this
+ * minimum value.
+ *
+ * If both methods cited above failed, the width is set to the default
+ * size of 80.
+ *
+ *
+ * @return On success, the actual screen size is returned. If the
+ * determination of the current screen size failed, the default width
+ * 80 is passed to the calling function. If the determined width is
+ * too small, the minimal width 60 is returned.
+ *
+ * @see ioctl()
+ */
+int getWidth(void);
 
 #ifdef __cplusplus
 }/* extern "C" */

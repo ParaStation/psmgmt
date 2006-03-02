@@ -33,7 +33,7 @@ extern "C" {
 #endif
 
 /** Unique version number of the high-level protocol */
-#define PSprotocolVersion 329
+#define PSprotocolVersion 330
 
 /** The location of the UNIX socket used to contact the daemon. */
 #define PSmasterSocketName "/var/run/parastation.sock"
@@ -146,13 +146,18 @@ typedef enum {
     PSP_INFO_LIST_LOAD,           /**< List of load average values */
     PSP_INFO_LIST_ALLJOBS,        /**< List of job numbers (all jobs) */
     PSP_INFO_LIST_NORMJOBS,       /**< List of job numbers (normal jobs) */
-    PSP_INFO_LIST_ALLTASKS,       /**< List of tasks (all tasks) */
-    PSP_INFO_LIST_NORMTASKS,      /**< List of tasks (normal tasks tasks) */
+    PSP_INFO_LIST_ALLTASKS,       /**< List of all tasks @deprecated */
+    PSP_INFO_LIST_NORMTASKS,      /**< List of normal tasks  @deprecated */
     PSP_INFO_LIST_ALLOCJOBS,      /**< List of allocated job slots */
     PSP_INFO_LIST_EXCLUSIVE,      /**< List of flags of exclusive allocation */
 
     PSP_INFO_CMDLINE,             /**< Task's command line (if available) */
     PSP_INFO_RPMREV,              /**< Daemon's RPM revision */
+
+    PSP_INFO_QUEUE_SEP,           /**< Queue separator (end of info item) */
+    PSP_INFO_QUEUE_ALLTASK,       /**< Queue of tasks (all tasks) */
+    PSP_INFO_QUEUE_NORMTASK,      /**< Queue of tasks (normal tasks tasks) */
+    PSP_INFO_QUEUE_PARTITION,     /**< Queue of partitions */
 } PSP_Info_t;
 
 /** Messages concerning spawning of tasks. */

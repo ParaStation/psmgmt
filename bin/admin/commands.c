@@ -17,6 +17,7 @@ static char lexid[] __attribute__(( unused )) = "$Id$";
 #include <string.h>
 #include <errno.h>
 #include <sys/types.h>
+#include <sys/ioctl.h>
 #include <signal.h>
 #include <pwd.h>
 #include <grp.h>
@@ -44,7 +45,7 @@ typedef struct {
 } sizedList_t;
 
 /**
- * @brief Extend a array.
+ * @brief Extend an array.
  *
  * Extend the array @a list to provide at least @a size bytes of
  * content. If @list is allready larger than @a size, do nothing.
@@ -133,47 +134,6 @@ static inline int getHWStat(void)
     return getFullList(&hwList, PSP_INFO_LIST_HWSTATUS, sizeof(uint32_t));
 }
 
-/** List used for storing of task informations. */
-static sizedList_t tiList = { .actSize = 0, .list = NULL };
-
-/**
- * @brief Get a task list.
- *
- * Get a task list of node @a node. Up to @a count task information
- * structures are received from the daemon and stored to @ref
- * tiList. If the flag @a full is different from 0, information on all
- * kind of tasks is received. Otherwise only normal tasks, i.e. tasks
- * of task group @ref TG_ANY, are considered.
- *
- *
- * @param node The node from which the task list should be retrieved.
- *
- * @param count The number of tasks to store to @ref tiList.
- *
- * @param full Flag to mark, if all jobs or only "normal" jobs should
- * be stored to @ref tiList.
- *
- * @return On success, the number of task infos received and stored to
- * @a taskInfo is returned, or 0, if an error occurred.
- */
-static inline int getTaskInfo(PSnodes_ID_t node, int count, int full)
-{
-    int tasks;
-    PSP_Info_t what = full ? PSP_INFO_LIST_ALLTASKS : PSP_INFO_LIST_NORMTASKS;
-
-    if (!extendList(&tiList, count * sizeof(PSP_taskInfo_t), __func__))
-	return 0;
-
-    tasks = PSI_infoList(node, what, NULL,
-			 tiList.list, count * sizeof(PSP_taskInfo_t), 1);
-
-    if (tasks < 0) {
-	printf("%s: failed.\n", __func__);
-	return 0;
-    }
-    return tasks / sizeof(PSP_taskInfo_t);
-}
-
 /** List used for storing of normal task number informations. */
 static sizedList_t tnnList = { .actSize = 0, .list = NULL };
 /** List used for storing of full task number informations. */
@@ -240,6 +200,29 @@ static inline int getExclusiveFlags(void)
     return getFullList(&exclList, PSP_INFO_LIST_EXCLUSIVE, sizeof(int8_t));
 }
 
+int getWidth(void)
+{
+    int width = 0;
+#if defined (TIOCGWINSZ)
+    struct winsize window_size;
+
+    if (ioctl (STDOUT_FILENO, TIOCGWINSZ, &window_size) == 0) {
+	width = (int) window_size.ws_col;
+    }
+#endif /* TIOCGWINSZ */
+
+    if (width <= 0) {
+	char *colstr = getenv("COLUMNS");
+	if (colstr) width = atoi(colstr);
+    }
+
+    /* Everything failed. Use standard width */
+    if (width < 1) width = 80;
+    /* Extend to minimum width */
+    if (width < 60) width = 60;
+
+    return width;
+}
 
 /* ---------------------------------------------------------------------- */
 
@@ -560,63 +543,92 @@ void PSIADM_CountStat(int hw, char *nl)
     }
 }
 
+/** List used for storing of task informations. */
+static sizedList_t tiList = { .actSize = 0, .list = NULL };
+
 void PSIADM_ProcStat(int count, int full, char *nl)
 {
     PSnodes_ID_t node;
+    PSP_Info_t what = full ? PSP_INFO_QUEUE_ALLTASK : PSP_INFO_QUEUE_NORMTASK;
     PSP_taskInfo_t *taskInfo;
-    uint16_t *taskNum;
-    int task, num;
+    int width = getWidth();
 
     if (! getHostStatus()) return;
-    if (! getTaskNum(full ? PSP_INFO_LIST_ALLJOBS : PSP_INFO_LIST_NORMJOBS))
-	return;
-    taskNum = full ? (uint16_t *) tnfList.list : (uint16_t *) tnnList.list;
 
-    printf("%4s %22s %22s %3s %9s\n",
-	   "Node", "TaskId", "ParentTaskId", "Con", "UserId");
+    if (!extendList(&tiList,
+		    ((count<0) ? 20 : (count+1)) * sizeof(PSP_taskInfo_t),
+		    __func__)) return;
+    taskInfo = (PSP_taskInfo_t *)tiList.list;
+
+    printf("%d %d\n", width, (width-64) > 0 ? width-64 : 0);
+    printf("%4s %22s %22s %3s %9s %.*s\n",
+	   "Node", "TaskId", "ParentTaskId", "Con", "UserId",
+	   (width-65) > 0 ? width-65 : 0, "Cmd");
     for (node=0; node<PSC_getNrOfNodes(); node++) {
+	int numTasks = 0, task, displdTasks;
+
 	if (nl && !nl[node]) continue;
 
-	printf("---------------------------------------------------------"
-	       "---------\n");
-	if (hostStatus.list[node]) {
-	    num = getTaskInfo(node, count, full);
-	    taskInfo = (PSP_taskInfo_t *) tiList.list;
-	    for (task=0; task<num; task++) {
-		if (taskInfo[task].group==TG_FORWARDER && !full) continue;
-		if (taskInfo[task].group==TG_SPAWNER && !full) continue;
-		if (taskInfo[task].group==TG_GMSPAWNER && !full) continue;
-		if (taskInfo[task].group==TG_PSCSPAWNER && !full) continue;
-		if (taskInfo[task].group==TG_MONITOR && !full) continue;
-		printf("%4d ", node);
-		printf("%22s ", PSC_printTID(taskInfo[task].tid));
-		printf("%22s ", PSC_printTID(taskInfo[task].ptid));
-		printf("%2d  ", taskInfo[task].connected);
-		printf("%5d ", taskInfo[task].uid);
-		printf("%s",
-		       taskInfo[task].group==TG_ADMIN ? "(A)" :
-		       taskInfo[task].group==TG_LOGGER ? "(L)" :
-		       taskInfo[task].group==TG_FORWARDER ? "(F)" :
-		       taskInfo[task].group==TG_SPAWNER ? "(S)" :
-		       taskInfo[task].group==TG_GMSPAWNER ? "(S)" :
-		       taskInfo[task].group==TG_PSCSPAWNER ? "(S)" :
-		       taskInfo[task].group==TG_MONITOR ? "(M)" : "");
-#if 0
-		{
-		    pid_t pid = PSC_getPID(taskInfo[task].tid);
-		    char cmdline[8096] = { '\0' };
-		    PSI_infoString(node, PSP_INFO_CMDLINE, &pid,
-				   cmdline, sizeof(cmdline), 0);
-		    printf(" %s", cmdline);
-		}
-#endif
-		printf("\n");
-	    }
-	    if (taskNum[node]>num) {
-		printf(" + %d more tasks\n", taskNum[node]-num);
-	    }
-	} else {
+	printf("%.*s\n", (width-2) > 0 ? width-2 : 0,
+	       "---------------------------------------------------------"
+	       "---------------------------------------------------------");
+	if (!hostStatus.list[node]) {
 	    printf("%4d\tdown\n", node);
+	    continue;
+	}
+
+	if (PSI_infoQueueReq(node, what, NULL) < 0) {
+	    printf("Error!!\n");
+	}
+
+	/* Receive full queue, no output yet */
+	/* This has to be splitted from the actual output due to
+	 * PSI_infoString() calls there */
+	while (PSI_infoQueueNext(what, &taskInfo[numTasks],
+				 sizeof(*taskInfo), 1) > 0) {
+	    if (taskInfo[numTasks].group==TG_FORWARDER && !full) continue;
+	    if (taskInfo[numTasks].group==TG_SPAWNER && !full) continue;
+	    if (taskInfo[numTasks].group==TG_GMSPAWNER && !full) continue;
+	    if (taskInfo[numTasks].group==TG_PSCSPAWNER && !full) continue;
+	    if (taskInfo[numTasks].group==TG_MONITOR && !full) continue;
+	    numTasks++;
+	    if (numTasks*sizeof(*taskInfo) >= tiList.actSize) {
+		if (extendList(&tiList, tiList.actSize * 2, __func__)) {
+		    taskInfo = (PSP_taskInfo_t *)tiList.list;
+		} else {
+		    return;
+		}
+	    }
+	}
+
+	/* Now do the output */
+	displdTasks = (count<0) ? numTasks : (numTasks<count) ? numTasks:count;
+	for (task=0; task < displdTasks; task++) {
+	    printf("%4d ", node);
+	    printf("%22s ", PSC_printTID(taskInfo[task].tid));
+	    printf("%22s ", PSC_printTID(taskInfo[task].ptid));
+	    printf("%2d  ", taskInfo[task].connected);
+	    printf("%5d ", taskInfo[task].uid);
+	    printf("%s",
+		   taskInfo[task].group==TG_ADMIN ? "(A)" :
+		   taskInfo[task].group==TG_LOGGER ? "(L)" :
+		   taskInfo[task].group==TG_FORWARDER ? "(F)" :
+		   taskInfo[task].group==TG_SPAWNER ? "(S)" :
+		   taskInfo[task].group==TG_GMSPAWNER ? "(S)" :
+		   taskInfo[task].group==TG_PSCSPAWNER ? "(S)" :
+		   taskInfo[task].group==TG_MONITOR ? "(M)" : "   ");
+
+	    {
+		pid_t pid = PSC_getPID(taskInfo[task].tid);
+		char cmdline[8096] = { '\0' };
+		PSI_infoString(node, PSP_INFO_CMDLINE, &pid,
+			       cmdline, sizeof(cmdline), 0);
+		printf(" %.*s", (width-67) > 0 ? width-67 : 0, cmdline);
+	    }
+	    printf("\n");
+	}
+	if (numTasks>displdTasks) {
+	    printf(" + %d more tasks\n", numTasks-displdTasks);
 	}
     }
 }
@@ -672,6 +684,36 @@ void PSIADM_HWStat(char *nl)
     virtCPUs = (uint16_t *)vcpuList.list;
 
     printf("Node\t CPUs\t Available Hardware\n");
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
+
+	if (hostStatus.list[node]) {
+	    printf("%4d\t %2d/%2d\t %s\n", node,
+		   virtCPUs[node], physCPUs[node],
+		   PSI_printHWType(hwStatus[node]));
+	} else {
+	    printf("%4d\t down\n", node);
+	}
+    }
+}
+
+void PSIADM_JobStat(char *nl)
+{
+    PSnodes_ID_t node;
+    uint32_t *hwStatus;
+    uint16_t *physCPUs, *virtCPUs;
+
+    if (! getHostStatus()) return;
+    if (! getHWStat()) return;
+    hwStatus = (uint32_t *)hwList.list;
+    if (! getPhysCPUs()) return;
+    physCPUs = (uint16_t *)pcpuList.list;
+    if (! getVirtCPUs()) return;
+    virtCPUs = (uint16_t *)vcpuList.list;
+
+    printf("%4s %22s %22s\n",
+	   "Node", "RootTaskId", "TargetSlots");
+    printf("Node\tRootTID\tTarget slots\n");
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 

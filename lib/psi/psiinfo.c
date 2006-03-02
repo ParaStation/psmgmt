@@ -69,6 +69,7 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
 	ret = msg.type;
 	switch (msg.type) {
 	case PSP_INFO_LIST_END:
+	case PSP_INFO_QUEUE_SEP:
 	    *size = 0;
 	    break;
 	case PSP_INFO_NROFNODES:
@@ -101,6 +102,9 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
 	case PSP_INFO_LIST_EXCLUSIVE:
 	case PSP_INFO_CMDLINE:
 	case PSP_INFO_RPMREV:
+	case PSP_INFO_QUEUE_ALLTASK:
+	case PSP_INFO_QUEUE_NORMTASK:
+	case PSP_INFO_QUEUE_PARTITION:
 	{
 	    size_t s = msg.header.len - sizeof(msg.header) - sizeof(msg.type);
 	    if (!buf) {
@@ -128,6 +132,8 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
 	    *size = 0;
 	    ret = PSP_INFO_UNKNOWN;
 	}
+	PSI_log(PSI_LOG_INFO, "%s: got info type '%s' message\n",
+		__func__, PSP_printInfo(msg.type));
 	break;
     }
     case PSP_CD_ERROR:
@@ -456,6 +462,75 @@ int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     } while (type == what);
 
     if (type == PSP_INFO_LIST_END) return recvd;
+
+    return -1;
+}
+
+int PSI_infoQueueReq(PSnodes_ID_t node, PSP_Info_t what, const void *param)
+{
+    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CD_INFOREQUEST,
+	    .dest = PSC_getTID(node, 0),
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg.header)+sizeof(msg.type) },
+	.type = what,
+	.buf = { 0 } };
+
+    switch (what) {
+    case PSP_INFO_QUEUE_ALLTASK:
+    case PSP_INFO_QUEUE_NORMTASK:
+    case PSP_INFO_QUEUE_PARTITION:
+	break;
+    default:
+	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,
+		PSP_printInfo(what));
+	errno = EINVAL;
+	return -1;
+    }
+
+    if (PSI_sendMsg(&msg)<0) {
+	PSI_warn(-1, errno, "%s(%s): PSI_sendMsg", __func__,
+		 PSP_printInfo(what));
+	return -1;
+    }
+
+    return 0;
+}
+
+int PSI_infoQueueNext(PSP_Info_t what, void *buf, size_t size, int verbose)
+{
+    PSP_Info_t type;
+    size_t recvd = 0;
+
+    switch (what) {
+    case PSP_INFO_QUEUE_ALLTASK:
+    case PSP_INFO_QUEUE_NORMTASK:
+    case PSP_INFO_QUEUE_PARTITION:
+	break;
+    default:
+	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,
+		PSP_printInfo(what));
+	errno = EINVAL;
+	return -1;
+    }
+
+    do {
+	size_t chunk = size;
+	if (chunk) {
+	    type = receiveInfo(buf+recvd, &chunk, verbose);
+	} else {
+	    type = receiveInfo(NULL, &chunk, verbose);
+	}
+	if (chunk) {
+	    size -= chunk;
+	    recvd += chunk;
+	} else {
+	    size = 0;
+	}
+    } while (type == what);
+
+    if (type == PSP_INFO_QUEUE_SEP) return recvd;
 
     return -1;
 }

@@ -300,7 +300,7 @@ static int listProcCommand(char *token)
 {
     char *nl_descr = parser_getString();
     char *nl = defaultNL;
-    long cnt = 10;
+    long cnt = -1;
 
     if (nl_descr && !strcasecmp(nl_descr, "cnt")) {
 	char *tok = parser_getString();
@@ -441,6 +441,25 @@ static int listHWCommand(char *token)
     return -1;
 }
 
+static int listJobsCommand(char *token)
+{
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL;
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+	if (!nl) goto error;
+    }
+    if (parser_getString()) goto error; /* trailing garbage */
+
+    PSIADM_JobStat(nl);
+    return 0;
+
+ error:
+    printError(&listInfo);
+    return -1;
+}
+
 static int listVersionCommand(char *token)
 {
     char *nl_descr = parser_getString();
@@ -484,6 +503,7 @@ static keylist_t listList[] = {
     {"count", listCountCommand},
     {"hardware", listHWCommand},
     {"hw", listHWCommand},
+    {"jobs", listJobsCommand},
     {"load", listLoadCommand},
     {"mcast", listMCastCommand},
     {"node", listNodeCommand},

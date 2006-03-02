@@ -24,7 +24,6 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/ioctl.h>
 
 /**
  * Structure holding a syntax information. The content is intended to
@@ -520,53 +519,6 @@ static const char sep[] =   "================================================"
 /** A long string of whitespace characters */
 static const char space[] = "                                                "
 "                                                                            ";
-
-/**
- * @brief Get screen width.
- *
- * Get the screen width of the terminal stdout is connected to.
- *
- * If the TIOCGWINSZ @ref ioctl() is available, it is used to
- * determine the width. Otherwise the COLUMNS environment variable is
- * used to identify the size.
- *
- * If the determined width is smaller than 60, it is set to this
- * minimum value.
- *
- * If both methods cited above failed, the width is set to the default
- * size of 80.
- *
- *
- * @return On success, the actual screen size is returned. If the
- * determination of the current screen size failed, the default width
- * 80 is passed to the calling function. If the determined width is
- * too small, the minimal width 60 is returned.
- *
- * @see ioctl()
- */
-static int getWidth(void)
-{
-    int width = 0;
-#if defined (TIOCGWINSZ)
-    struct winsize window_size;
-
-    if (ioctl (STDOUT_FILENO, TIOCGWINSZ, &window_size) == 0) {
-	width = (int) window_size.ws_col;
-    }
-#endif /* TIOCGWINSZ */
-
-    if (width <= 0) {
-	char *colstr = getenv("COLUMNS");
-	if (colstr) width = atoi(colstr);
-    }
-
-    /* Everything failed. Use standard width */
-    if (width < 1) width = 80;
-    /* Extend to minimum width */
-    if (width < 60) width = 60;
-
-    return width;
-}
 
 /**
  * @brief Print syntax information.
