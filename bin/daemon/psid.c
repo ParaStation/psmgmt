@@ -703,6 +703,8 @@ static void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	    for (arg=0; arg<forwarder->argc; arg++)
 		if (forwarder->argv[arg]) free(forwarder->argv[arg]);
 	    if (forwarder->argv) free(forwarder->argv);
+	    forwarder->argv = NULL;
+	    forwarder->argc = 0;
 	}
 	forwarder->group = TG_FORWARDER;
 	forwarder->protocolVersion = PSprotocolVersion;

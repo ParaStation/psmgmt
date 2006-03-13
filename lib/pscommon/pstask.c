@@ -100,7 +100,7 @@ int PStask_reinit(PStask_t* task)
 	free(task->workingdir);
 
     for (i=0;i<task->argc;i++)
-	if (task->argv[i])
+	if (task->argv && task->argv[i])
 	    free(task->argv[i]);
     if (task->argv) free(task->argv);
 
