@@ -18,6 +18,7 @@ static char lexid[] __attribute__(( unused )) = "$Id$";
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
+#include <sys/wait.h>
 #include <signal.h>
 #include <pwd.h>
 #include <grp.h>
@@ -560,7 +561,6 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 		    __func__)) return;
     taskInfo = (PSP_taskInfo_t *)tiList.list;
 
-    printf("%d %d\n", width, (width-64) > 0 ? width-64 : 0);
     printf("%4s %22s %22s %3s %9s %.*s\n",
 	   "Node", "TaskId", "ParentTaskId", "Con", "UserId",
 	   (width-65) > 0 ? width-65 : 0, "Cmd");
@@ -984,7 +984,9 @@ void PSIADM_Reset(int reset_hw, char *nl)
 void PSIADM_TestNetwork(int mode)
 {
     char *dir;
-    char command[100];
+    pid_t childPID;
+    int status;
+
     dir = PSC_lookupInstalldir();
     if (dir) {
 	chdir (dir);
@@ -992,11 +994,26 @@ void PSIADM_TestNetwork(int mode)
 	printf("Cannot find 'test_nodes'.\n");
 	return;
     }
-    snprintf(command, sizeof(command),
-	     "./bin/test_nodes -np %d", PSC_getNrOfNodes());
-    if (system(command) < 0) {
-	printf("Cant execute %s : %s\n", command, strerror(errno));
+
+    childPID = fork();
+    if (!childPID) {
+	/* This is the child */
+	char command[100];
+
+	snprintf(command, sizeof(command),
+		 "./bin/test_nodes -np %d", PSC_getNrOfNodes());
+
+	setenv("PSI_LOOP_NODES_FIRST", "", 1);
+	unsetenv("PSI_NODES");
+
+	if (system(command) < 0) {
+	    printf("Cant execute %s : %s\n", command, strerror(errno));
+	}
+
+	exit(0);
     }
+
+    waitpid(childPID, &status, 0);
 }
 
 void PSIADM_KillProc(PStask_ID_t tid, int sig)

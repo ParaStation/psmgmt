@@ -362,7 +362,7 @@ static void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 
 	task = PStasklist_find(managedTasks, pgtid);
 
-	if (task && task->group == TG_LOGGER) {
+	if (task && (task->group == TG_LOGGER || task->group == TG_ADMIN)) {
 	    /*
 	     * Logger never fork. This is another executable started from
 	     * within a shell script. Forget about this task.
