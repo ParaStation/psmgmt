@@ -22,9 +22,9 @@ int main(int argc, char *argv[])
     config_t *config;
 
     if (argc>1) {
-	config = parseConfig(0, 10, argv[1]);
+	config = parseConfig(stderr, 10, argv[1]);
     } else {
-	config = parseConfig(0, 10, "psm.config");
+	config = parseConfig(stderr, 10, "psm.config");
     }
 
 

@@ -77,7 +77,7 @@ int main(int argc, const char *argv[])
         return 1;
     }
 
-    config = parseConfig(0, debugmask, file);
+    config = parseConfig(stderr, debugmask, file);
     if (!config) return 1;
 
     printf("configuration file '%s' seems to be correct.\n", file);
