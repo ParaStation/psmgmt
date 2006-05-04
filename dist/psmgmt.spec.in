@@ -8,6 +8,7 @@ Group:     Productivity/Clustering/Computing
 Packager:  support@par-tec.de
 Source0:   %{name}-%{version}-%{release}.tar.gz
 Requires:  psmgmt
+BuildRequires:	ncurses-devel, popt-devel, readline-devel 
 
 # Dont use internal find_requires, because we dont want dependencies
 # to the infiniband libs. (Searching for a clean solution!)
