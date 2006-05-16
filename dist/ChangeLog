@@ -1,3 +1,41 @@
+Version psmgmt-4.3.2:
+=====================
+------------------------------------------------------------------------
+r4100 | eicker | 2006-05-16 16:35:05 +0200 (Tue, 16 May 2006) | 4 lines
+
+Bugfix: Make 'RLimit RSSize', 'RLimit MemLock' and 'RLimit Core'
+    actually work (Bug #23)
+Minor bugfixes in rlimit-context.
+
+------------------------------------------------------------------------
+r4099 | eicker | 2006-05-04 11:49:13 +0200 (Thu, 04 May 2006) | 2 lines
+
+Add some BuildRequires in order to make rpmbuild more robust.
+
+------------------------------------------------------------------------
+r4065 | eicker | 2006-04-06 15:35:05 +0200 (Thu, 06 Apr 2006) | 2 lines
+
+Bugfix: Let test_config use stderr instead of syslog() for output.
+
+------------------------------------------------------------------------
+r4041 | eicker | 2006-03-22 14:28:13 +0100 (Wed, 22 Mar 2006) | 2 lines
+
+Don't let any user kill psid by just doing 'test' in psiadmin (Bug #29).
+
+------------------------------------------------------------------------
+r4025 | eicker | 2006-03-13 17:53:47 +0100 (Mon, 13 Mar 2006) | 2 lines
+
+Bugfix: Prevent calling free() more than once on task->argv[i].
+
+------------------------------------------------------------------------
+r4006 | eicker | 2006-03-02 15:49:58 +0100 (Thu, 02 Mar 2006) | 5 lines
+
+Extension: New info-type PSP_INFO_QUEUE_*. This make info-retrival more
+        flexible.
+Refactor PSIADM_ProcStat() in order to make use of the new info-retrival
+        mechanism.
+
+
 Version psmgmt-4.3.1:
 =====================
 ------------------------------------------------------------------------
