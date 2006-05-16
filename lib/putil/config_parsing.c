@@ -435,7 +435,16 @@ static void setLimit(int limit, rlim_t value)
 
     getrlimit(limit, &rlp);
     rlp.rlim_cur=value;
-    setrlimit(limit, &rlp);
+    if ( value == RLIM_INFINITY
+	 || (value > rlp.rlim_max && rlp.rlim_max != RLIM_INFINITY)) {
+	rlp.rlim_max=value;
+    }
+
+    if (setrlimit(limit, &rlp)) {
+	char *errstr = strerror(errno);
+	parser_comment(-1, "%s: setres failed: %s",
+		       __func__, errstr ? errstr : "UNKNOWN");
+    }
 }
 
 
@@ -460,7 +469,7 @@ static int getRLimitData(char *token)
     ret = getRLimitVal(parser_getString(), &value, "RLimit DataSize");
     if (ret) return ret;
 
-    setLimit(RLIMIT_DATA, value*1024);
+    setLimit(RLIMIT_DATA, (value == RLIM_INFINITY) ? value : value*1024);
 
     return 0;
 }
@@ -473,7 +482,7 @@ static int getRLimitStack(char *token)
     ret = getRLimitVal(parser_getString(), &value, "RLimit StackSize");
     if (ret) return ret;
 
-    setLimit(RLIMIT_STACK, value*1024);
+    setLimit(RLIMIT_STACK, (value == RLIM_INFINITY) ? value : value*1024);
 
     return 0;
 }
@@ -483,7 +492,7 @@ static int getRLimitRSS(char *token)
     rlim_t value;
     int ret;
 
-    return getRLimitVal(parser_getString(), &value, "RLimit RSSize");
+    ret = getRLimitVal(parser_getString(), &value, "RLimit RSSize");
     if (ret) return ret;
 
     setLimit(RLIMIT_RSS, value);
@@ -496,10 +505,10 @@ static int getRLimitMemLock(char *token)
     rlim_t value;
     int ret;
 
-    return getRLimitVal(parser_getString(), &value, "RLimit MemLock");
+    ret = getRLimitVal(parser_getString(), &value, "RLimit MemLock");
     if (ret) return ret;
 
-    setLimit(RLIMIT_MEMLOCK, value*1024);
+    setLimit(RLIMIT_MEMLOCK, (value == RLIM_INFINITY) ? value : value*1024);
 
     return 0;
 }
@@ -509,10 +518,10 @@ static int getRLimitCore(char *token)
     rlim_t value;
     int ret;
 
-    return getRLimitVal(parser_getString(), &value, "RLimit Core");
+    ret = getRLimitVal(parser_getString(), &value, "RLimit Core");
     if (ret) return ret;
 
-    setLimit(RLIMIT_CORE, value*1024);
+    setLimit(RLIMIT_CORE, (value == RLIM_INFINITY) ? value : value*1024);
 
     return 0;
 }
