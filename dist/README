@@ -8,5 +8,5 @@ How to prepare a new release:
 
 svn copy http://svn.ipd.uka.de/repos/ParaStation/trunk/mgmt \
 	http://svn.ipd.uka.de/repos/ParaStation/tags/psmgmt-version \
-	-m Tagging the x.x.x release of psmgmt
+	-m "Tagging the x.x.x release of psmgmt"
 
