@@ -706,6 +706,14 @@ static int do_write(PSLog_Msg_t *msg, int offset)
     int n, i;
     int count = msg->header.len - PSLog_headerSize;
 
+    if (!count) {
+	/* close clients stdin */
+	shutdown(stdinSock, SHUT_WR);
+	FD_CLR(stdinSock, &writefds);
+	stdinSock = -1;
+	return 0;
+    }
+
     for (n=offset, i=1; (n<count) && (i>0);) {
 	i = write(stdinSock, &msg->buf[n], count-n);
 	if (i<=0) {
@@ -784,6 +792,7 @@ static int flushMsgs(void)
 	errno = EWOULDBLOCK;
 	return -1;
     } else {
+	if (stdinSock != -1) FD_CLR(stdinSock, &writefds);
 	sendMsg(CONT, NULL, 0);
     }
 
@@ -801,8 +810,9 @@ static int writeMsg(PSLog_Msg_t *msg)
     }
 
     if (written<0) return written;
-    if (written != len) {
+    if ((written != len) || (oldMsgs && !len)) {
         if (!storeMsg(msg, written)) errno = EWOULDBLOCK;
+	if (stdinSock != -1) FD_SET(stdinSock, &writefds);
 	sendMsg(STOP, NULL, 0);
         return -1;
     }
@@ -836,28 +846,20 @@ static int readFromLogger(void)
 	case PSP_CC_MSG:
 	    switch (msg.type) {
 	    case STDIN:
-	    {
-		int len = msg.header.len - PSLog_headerSize;
 		if (verbose) {
 		    snprintf(obuf, sizeof(obuf),
-			     "%s: %d byte received on STDIN\n", __func__, len);
+			     "%s: %d byte received on STDIN\n", __func__,
+			     msg.header.len - PSLog_headerSize);
 		    printMsg(STDERR, obuf);
 		}
-		if (len) {
-		    if (stdinSock<0) {
-			snprintf(obuf, sizeof(obuf),
-				 "%s: STDIN already closed\n", __func__);
-			printMsg(STDERR, obuf);
-		    } else {
-			writeMsg(&msg);
-		    }
+		if (stdinSock<0) {
+		    snprintf(obuf, sizeof(obuf),
+			     "%s: STDIN already closed\n", __func__);
+		    printMsg(STDERR, obuf);
 		} else {
-		    /* close clients stdin */
-		    shutdown(stdinSock, SHUT_WR);
-		    stdinSock = -1;
+		    writeMsg(&msg);
 		}
 		break;
-	    }
 	    case EXIT:
 		/* Logger is going to die */
 		/* Release the daemon */
