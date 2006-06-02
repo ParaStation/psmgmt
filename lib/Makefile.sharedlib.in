@@ -1,7 +1,7 @@
 ###################################################### -*- Makefile -*- #####
 #                  ParaStation
 #        Copyright (c) 2002-2003 ParTec AG, Karlsruhe
-#        Copyright (c) 2005 Cluster Competence Center GmbH, Munich
+#        Copyright (c) 2005-2006 Cluster Competence Center GmbH, Munich
 #############################################################################
 #
 # $Id$
@@ -10,6 +10,8 @@
 #         Jens Hauke <hauke@par-tec.de>
 #         Norbert Eicker <eicker@par-tec.de>
 #############################################################################
+
+TARGET_LIBC_PROVIDES_SSP=@TARGET_LIBC_PROVIDES_SSP@
 
 CFLAGS += -O3 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
 CPPFLAGS += $(LIBINC) @CPPFLAG_MMD@
@@ -20,7 +22,11 @@ VPATH += $(LIBVPATH)
 
 all: $(LIBDSTDIR)/lib$(LIBNAME).so
 
-COMPILE.c-shared = $(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -fPIC -DPIC -c
+COMPILE.c-shared = $(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -fPIC -DPIC
+ifeq ($(TARGET_LIBC_PROVIDES_SSP),yes)
+COMPILE.c-shared += -fno-stack-protector
+endif
+COMPILE.c-shared += -c
 %.o: %.c
 	$(COMPILE.c-shared) $(OUTPUT_OPTION) $<
 

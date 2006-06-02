@@ -10,6 +10,38 @@ AC_CANONICAL_TARGET([])
 AC_PROG_INSTALL
 AC_PROG_RANLIB 
 
+# Test for stack protector support in target C library.
+case "$target" in
+     *-*-linux*)
+	AC_CACHE_CHECK(__stack_chk_fail in target GNU C library,
+	gcc_cv_libc_provides_ssp,
+	[gcc_cv_libc_provides_ssp=no
+
+	glibc_header_dir=/usr/include
+	# glibc 2.4 and later provides __stack_chk_fail and
+	# either __stack_chk_guard, or TLS access to stack guard canary.
+	if test -f $glibc_header_dir/features.h \
+	   && egrep '^@<:@ 	@:>@*#[ 	]*define[ 	]+__GNU_LIBRARY__[ 	]+([1-9][0-9]|[6-9])' \
+	   $glibc_header_dir/features.h > /dev/null; then
+	   if egrep '^@<:@ 	@:>@*#[ 	]*define[ 	]+__GLIBC__[ 	]+([1-9][0-9]|[3-9])' \
+	      $glibc_header_dir/features.h > /dev/null; then
+	      gcc_cv_libc_provides_ssp=yes
+	   elif egrep '^@<:@ 	@:>@*#[ 	]*define[ 	]+__GLIBC__[ 	]+2' \
+	      $glibc_header_dir/features.h > /dev/null \
+	      && egrep '^@<:@ 	@:>@*#[ 	]*define[ 	]+__GLIBC_MINOR__[ 	]+([1-9][0-9]|[4-9])' \
+		 $glibc_header_dir/features.h > /dev/null; then
+		 gcc_cv_libc_provides_ssp=yes
+	fi
+      fi]) ;;
+     *) gcc_cv_libc_provides_ssp=no ;;
+esac
+
+if test x$gcc_cv_libc_provides_ssp = xyes; then
+   TARGET_LIBC_PROVIDES_SSP=yes
+else
+   TARGET_LIBC_PROVIDES_SSP=no
+fi
+
 AC_SUBST([CFLAG_WALL])
 AC_SUBST([CFLAG_G])
 AC_SUBST([CFLAG_COMPAT])
@@ -17,6 +49,7 @@ AC_SUBST([CPPFLAG_MMD])
 AC_SUBST([DEPEXTENSION])
 AC_SUBST([TRU64FILEADD])
 AC_SUBST([LIBCURSES])
+AC_SUBST([TARGET_LIBC_PROVIDES_SSP])
 
 case $target_os in
 linux|linux-gnu)
