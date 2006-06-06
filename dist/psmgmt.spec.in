@@ -1,3 +1,5 @@
+%{expand:%define buildForSuSE %(if [ -e /etc/SuSE-release ]; then echo 1; else echo 0; fi)}
+
 Summary:   ParaStation Cluster Management
 Vendor:    ParTec Cluster Competence Center GmbH, Munich, Germany
 Name:      psmgmt
@@ -8,7 +10,11 @@ Group:     Productivity/Clustering/Computing
 Packager:  support@par-tec.de
 Source0:   %{name}-%{version}-%{release}.tar.gz
 Requires:  psmgmt
-BuildRequires:	ncurses-devel, popt-devel, readline-devel 
+BuildRequires:	ncurses-devel, readline-devel 
+%if %buildForSuSE
+BuildRequires:  popt-devel
+%endif
+
 
 # Dont use internal find_requires, because we dont want dependencies
 # to the infiniband libs. (Searching for a clean solution!)
