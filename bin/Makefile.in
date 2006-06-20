@@ -13,6 +13,7 @@
 
 CFLAGS += -O2 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
 CPPFLAGS += -I@top_srcdir@/include -I. @CPPFLAG_MMD@
+LIB_DIRNAME:=@LIB_DIRNAME@
 SRCDIR = @srcdir@
 TOP_SRCDIR = @top_srcdir@
 TARGET_OS := @target_os@
@@ -35,7 +36,7 @@ TOOLS += test_pse test_config mpirun_psc pscspawner
 
 TARGETS = $(TOOLS) test_config_parsing test_logging
 
-LDFLAGS+=-L../lib -Wl,-rpath,/opt/parastation/lib
+LDFLAGS+=-L../lib -Wl,-rpath,/opt/parastation/$(LIB_DIRNAME)
 
 all bin: $(TOOLS)
 

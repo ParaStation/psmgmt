@@ -15,6 +15,7 @@ TOP_BUILDDIR := @top_builddir@
 
 INSTALL = @INSTALL@
 INSTFLAGS_NOEXEC = -m 644
+LIB_DIRNAME:=@LIB_DIRNAME@
 
 #############################################################################
 #s.o. clean:
@@ -22,7 +23,7 @@ DISTPATH := opt/parastation
 
 INCDIR := $(DISTPATH)/include
 BINDIR := $(DISTPATH)/bin
-LIBDIR := $(DISTPATH)/lib
+LIBDIR := $(DISTPATH)/$(LIB_DIRNAME)
 
 INCLUDES += pse.h
 INCLUDES += psprotocol.h psnodes.h pstask.h pspartition.h pscommon.h

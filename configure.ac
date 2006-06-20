@@ -67,6 +67,17 @@ linux|linux-gnu)
 	;;
 esac
 
+# Test for lib or lib64
+AC_SUBST([LIB_DIRNAME])
+case $target_cpu in
+x86_64)
+	LIB_DIRNAME=lib64
+	;;
+*)
+	LIB_DIRNAME=lib
+	;;
+esac
+
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([lib/Makefile])
 AC_CONFIG_FILES([lib/Makefile.sharedlib])
