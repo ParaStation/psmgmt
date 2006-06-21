@@ -747,7 +747,8 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 	     * Don't subtract procs here since we might wait 'till the
 	     * corresponding jobs have finished
 	     */
-	    if (PSnodes_getProcs(node) == PSNODES_ANYPROC) {
+	    if (PSnodes_getProcs(node) == PSNODES_ANYPROC
+		|| PSnodes_getProcs(node) > cpus) {
 		totCPUs += cpus;
 	    } else {
 		totCPUs += PSnodes_getProcs(node);
@@ -799,6 +800,11 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 
     if (totCPUs < request->size
 	&& (!(request->options & PART_OPT_OVERBOOK) || !canOverbook )) {
+	/*
+	 * @todo We have to do a deeper test here: If
+	 * PSnodes_getProcs()!=PSNODES_ANYPROC on the node allowing
+	 * overbooking we might never get the resources!
+	 */
 	PSID_log(-1, "%s: Unable to ever get sufficient resources\n",__func__);
 	free(list.entry);
 	errno = ENOSPC;
