@@ -621,6 +621,9 @@ static int nodeOK(PSnodes_ID_t node, PSpart_request_t *req)
 	return 1;
     }
 
+    PSID_log(PSID_LOG_PART,
+	     "%s: node %d does not match, exclude from partition\n",
+	     __func__, node);
     return 0;
 }
 
@@ -679,6 +682,8 @@ static int nodeFree(PSnodes_ID_t node, PSpart_request_t *req, int procs)
 	return 1;
     }
 
+    PSID_log(PSID_LOG_PART, "%s: node %d not free, exclude from partition\n",
+	     __func__, node);
     return 0;
 }
 
@@ -965,6 +970,7 @@ static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
 	for (cand=0; cand<candidates->size; cand++) {
 	    PSnodes_ID_t cid = candidates->entry[cand].id;
 	    int maxProcs = PSnodes_getProcs(cid);
+	    int oldJobs = candidates->entry[cand].jobs;
 	    unsigned short cpus = (request->options & PART_OPT_EXACT) ?
 		allowedCPUs[cid] : candidates->entry[cand].cpus;
 	    unsigned short procs = cpus * procsPerCPU;
@@ -972,16 +978,16 @@ static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
 	    if (candSlots[cid] < procs) {
 		switch (PSnodes_overbook(cid)) {
 		case OVERBOOK_FALSE:
-		    if (candSlots[cid] < cpus) {
-			neededSlots -= cpus - candSlots[cid];
-			candSlots[cid] = cpus;
+		    if (candSlots[cid] < allowedCPUs[cid]) {
+			neededSlots -= allowedCPUs[cid] - candSlots[cid];
+			candSlots[cid] = allowedCPUs[cid];
 		    }
 		    break;
 		case OVERBOOK_AUTO:
 		    if (getAssignedJobs(cid)) {
-			if (candSlots[cid] < cpus) {
-			    neededSlots -= cpus - candSlots[cid];
-			    candSlots[cid] = cpus;
+			if (candSlots[cid] < allowedCPUs[cid]) {
+			    neededSlots -= allowedCPUs[cid] - candSlots[cid];
+			    candSlots[cid] = allowedCPUs[cid];
 			}
 			break;
 		    } /* else let's overbook */
@@ -990,14 +996,14 @@ static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
 			availCPUs += cpus;
 			neededSlots -= procs - candSlots[cid];
 			candSlots[cid] = procs;
-		    } else if (procs < maxProcs) {
-			short tmp = maxProcs - procs;
+		    } else if (procs < maxProcs-oldJobs) {
+			short tmp = maxProcs-oldJobs - procs;
 			availCPUs += (tmp > cpus) ? cpus : tmp;
 			neededSlots -= procs - candSlots[cid];
 			candSlots[cid] = procs;
 		    } else {
-			neededSlots -= maxProcs - candSlots[cid];
-			candSlots[cid] = maxProcs;
+			neededSlots -= maxProcs-oldJobs - candSlots[cid];
+			candSlots[cid] = maxProcs-oldJobs;
 		    }
 		    break;
 		default:
