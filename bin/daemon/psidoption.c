@@ -57,6 +57,9 @@ void send_OPTIONS(PSnodes_ID_t destnode)
     msg.opt[(int) msg.count].option = PSP_OP_OVERBOOK;
     msg.opt[(int) msg.count].value = PSnodes_overbook(PSC_getMyID());
     msg.count++;
+    msg.opt[(int) msg.count].option = PSP_OP_EXCLUSIVE;
+    msg.opt[(int) msg.count].value = PSnodes_exclusive(PSC_getMyID());
+    msg.count++;
     msg.opt[(int) msg.count].option = PSP_OP_STARTER;
     msg.opt[(int) msg.count].value = PSnodes_isStarter(PSC_getMyID());
     msg.count++;
@@ -182,10 +185,31 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 			    
 		    PSnodes_setOverbook(PSC_getMyID(), msg->opt[i].value);
 
-		    /* Info all nodes about my PROCLIMIT */
+		    /* Info all nodes about my OVERBOOK */
 		    broadcastMsg(&info);
 		} else {
 		    PSnodes_setOverbook(PSC_getID(msg->header.sender),
+					   msg->opt[i].value);
+		}
+		break;
+	    case PSP_OP_EXCLUSIVE:
+		if (PSC_getPID(msg->header.sender)) {
+		    DDOptionMsg_t info = {
+			.header = {
+			    .type = PSP_CD_SETOPTION,
+			    .sender = PSC_getMyTID(),
+			    .dest = 0,
+			    .len = sizeof(info) },
+			.count = 1,
+			.opt = {{ .option = msg->opt[i].option,
+				  .value = msg->opt[i].value }} };
+			    
+		    PSnodes_setExclusive(PSC_getMyID(), msg->opt[i].value);
+
+		    /* Info all nodes about my EXCLUSIVE */
+		    broadcastMsg(&info);
+		} else {
+		    PSnodes_setExclusive(PSC_getID(msg->header.sender),
 					   msg->opt[i].value);
 		}
 		break;
@@ -203,7 +227,7 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 			    
 		    PSnodes_setIsStarter(PSC_getMyID(), msg->opt[i].value);
 
-		    /* Info all nodes about my PROCLIMIT */
+		    /* Info all nodes about my STARTER */
 		    broadcastMsg(&info);
 		} else {
 		    PSnodes_setIsStarter(PSC_getID(msg->header.sender),
@@ -224,7 +248,7 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 			    
 		    PSnodes_setRunJobs(PSC_getMyID(), msg->opt[i].value);
 
-		    /* Info all nodes about my PROCLIMIT */
+		    /* Info all nodes about my RUNJOBS */
 		    broadcastMsg(&info);
 		} else {
 		    PSnodes_setRunJobs(PSC_getID(msg->header.sender),
@@ -354,6 +378,9 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_OVERBOOK:
 		msg->opt[i].value = PSnodes_overbook(PSC_getMyID());
+		break;
+	    case PSP_OP_EXCLUSIVE:
+		msg->opt[i].value = PSnodes_exclusive(PSC_getMyID());
 		break;
 	    case PSP_OP_STARTER:
 		msg->opt[i].value = PSnodes_isStarter(PSC_getMyID());

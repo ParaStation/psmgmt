@@ -97,6 +97,7 @@ typedef enum {
     PSP_OP_OVERBOOK,              /**< (Dis-)Allow overbooking this node */
     PSP_OP_STARTER,               /**< (Dis-)Allow starting from this node */
     PSP_OP_RUNJOBS,               /**< (Dis-)Allow running on this node */
+    PSP_OP_EXCLUSIVE,             /**< (Dis-)Allow assign node exclusively */
 } PSP_Option_t;
 
 /** Messages used for information retrieval */

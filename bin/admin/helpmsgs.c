@@ -235,8 +235,8 @@ static info_t setInfo = {
 	" | rdppktloss <rate> | rdpmaxretrans <val> | mcastdebug <level>"
 	" | {smallpacketsize|sps} <size> | hnpend <val> | ackpend <val>"
 	" | {freeonsuspend|fos} <bool> | {handleoldbins|hob} <bool>"
-	" | starter <bool> | runjobs <bool> | overbook <bool>"
-	" | nodessort <mode>} <nodes>"
+	" | starter <bool> | runjobs <bool> | overbook {<bool>|auto}"
+	" | exclusive <bool> | nodessort <mode>} <nodes>"
     }},
     .nodes = 1,
     .descr = "Set one of various parameters of the ParaStation system:",
@@ -286,26 +286,30 @@ static info_t setInfo = {
 	{ .tag = "set {freeonsuspend|fos} <bool>",
 	  .descr = "Set flag marking if resources of suspended jobs are freed"
 	  " temporarily to <bool>. Relevant values are 'false', 'true', 'no',"
-	  " 'yes', 0 or different from 0 (but != -1)."
+	  " 'yes', 0 or different from 0."
 	  " Only the value on the master node really steers the behaviour!" },
 	{ .tag = "set {handleoldbins|hob} <bool>",
 	  .descr = "Set flag marking if old binaries resources are handled"
 	  " correctly to <bool>. Relevant values are 'false', 'true', 'no',"
-	  " 'yes', 0 or different from 0 (but != -1)."
+	  " 'yes', 0 or different from 0."
 	  " Unfortunately this will break 'freeOnSuspend'. Only the value on"
 	  " the master node really steers the behaviour!" },
 	{ .tag = "set starter <bool>",
 	  .descr = "Set flag marking if starting is allowed from this nodes"
 	  " to <bool>. Relevant values are 'false', 'true', 'no',"
-	  " 'yes', 0 or different from 0 (but != -1)." },
+	  " 'yes', 0 or different from 0." },
 	{ .tag = "set runjobs <bool>",
 	  .descr = "Set flag marking if this nodes run processes"
 	  " to <bool>. Relevant values are 'false', 'true', 'no',"
-	  " 'yes', 0 or different from 0 (but != -1)." },
-	{ .tag = "set overbook <bool>",
+	  " 'yes', 0 or different from 0." },
+	{ .tag = "set overbook {<bool>|auto}",
 	  .descr = "Set flag marking if this nodes shall be overbooked upon"
-	  " user-request to <bool>. Relevant values are 'false', 'true',"
-	  " 'no', 'yes', 0 or different from 0 (but != -1)." },
+	  " user-request. Relevant values are 'auto', 'false', 'true',"
+	  " 'no', 'yes', 0 or different from 0." },
+	{ .tag = "set exclusive <bool>",
+	  .descr = "Set flag marking if this nodes can be requested by users"
+	  " exclusively to <bool>. Relevant values are 'false', 'true',"
+	  " 'no', 'yes', 0 or different from 0." },
 	{ .tag = "set nodessort <mode>",
 	  .descr = "Define the default sorting strategy for nodes when"
 	  " attaching them to a partition. Valid values for <mode> are"
@@ -327,7 +331,7 @@ static info_t showInfo = {
 	" | rdppktloss | rdpmaxretrans | mcastdebug | master"
 	" | {smallpacketsize|sps} | {resendtimeout|rto} | hnpend | ackpend"
 	" | {freeonsuspend|fos} | {handleoldbins|hob} | starter | runjobs"
-	" | overbook | nodessort} <nodes>"
+	" | overbook | exclusive | nodessort} <nodes>"
     }},
     .nodes = 1,
     .descr = "Show various parameters of the ParaStation system:",
@@ -375,6 +379,9 @@ static info_t showInfo = {
 	{ .tag = "show overbook",
 	  .descr = "Show flag marking if this nodes shall be overbooked upon"
 	  " user-request." },
+	{ .tag = "show exclusive",
+	  .descr = "Show flag marking if this nodes can be requested by users"
+	  "exclusively." },
 	{ .tag = "show nodessort",
 	  .descr = "Show the default sorting strategy used when attaching"
 	  " nodes to partitions." },

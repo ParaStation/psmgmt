@@ -673,6 +673,12 @@ static int setShowOverbook(char *token)
     return 0;
 }
 
+static int setShowExclusive(char *token)
+{
+    setShowOpt = PSP_OP_EXCLUSIVE;
+    return 0;
+}
+
 static int setShowRunJobs(char *token)
 {
     setShowOpt = PSP_OP_RUNJOBS;
@@ -713,6 +719,7 @@ static keylist_t setShowList[] = {
     {"hob", setShowHOB},
     {"nodessort", setShowNodesSort},
     {"overbook", setShowOverbook},
+    {"exclusive", setShowExclusive},
     {"runjobs", setShowRunJobs},
     {"starter", setShowStarter},
     {NULL, setShowError}
@@ -815,9 +822,21 @@ static int setCommand(char *token)
 	    goto error;
 	}
 	break;
+    case PSP_OP_OVERBOOK:
+	if (strcasecmp(value, "auto") == 0) {
+	    val = OVERBOOK_AUTO;
+	} else {
+	    int tmp, ret = parser_getBool(value, &tmp, NULL);
+	    if (ret==-1) {
+		printf("Illegal value '%s' is not 'auto' or boolean\n", value);
+		goto error;
+	    }
+	    val = tmp;
+	}
+	break;
     case PSP_OP_FREEONSUSP:
     case PSP_OP_HANDLEOLD:
-    case PSP_OP_OVERBOOK:
+    case PSP_OP_EXCLUSIVE:
     case PSP_OP_RUNJOBS:
     case PSP_OP_STARTER:
     {
@@ -883,6 +902,7 @@ static int showCommand(char *token)
     case PSP_OP_HANDLEOLD:
     case PSP_OP_NODESSORT:
     case PSP_OP_OVERBOOK:
+    case PSP_OP_EXCLUSIVE:
     case PSP_OP_STARTER:
     case PSP_OP_RUNJOBS:
 	break;

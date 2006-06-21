@@ -45,6 +45,7 @@ typedef struct {
     char runJobs;          /**< Flag to mark that node to run jobs */
     char isStarter;        /**< Flag to allow to start jobs from that node */
     char overbooking;      /**< Flag to allow overbooking that node */
+    char exclusive;        /**< Flag to assign this node exclusively */
     uid_t uid;             /**< User this nodes is reserved to */
     gid_t gid;             /**< Group this nodes is reserved to */
     int maxProcs;          /**< Number of processes this node will handle */
@@ -278,7 +279,7 @@ int PSnodes_isStarter(PSnodes_ID_t id)
     }
 }
 
-int PSnodes_setOverbook(PSnodes_ID_t id, int overbook)
+int PSnodes_setOverbook(PSnodes_ID_t id, PSnodes_overbook_t overbook)
 {
     if (ID_ok(id)) {
 	nodes[id].overbooking = overbook;
@@ -288,10 +289,29 @@ int PSnodes_setOverbook(PSnodes_ID_t id, int overbook)
     }
 }
 
-int PSnodes_overbook(PSnodes_ID_t id)
+PSnodes_overbook_t PSnodes_overbook(PSnodes_ID_t id)
 {
     if (ID_ok(id)) {
 	return nodes[id].overbooking;
+    } else {
+	return -1;
+    }
+}
+
+int PSnodes_setExclusive(PSnodes_ID_t id, int exclusive)
+{
+    if (ID_ok(id)) {
+	nodes[id].exclusive = exclusive;
+	return 0;
+    } else {
+	return -1;
+    }
+}
+
+int PSnodes_exclusive(PSnodes_ID_t id)
+{
+    if (ID_ok(id)) {
+	return nodes[id].exclusive;
     } else {
 	return -1;
     }

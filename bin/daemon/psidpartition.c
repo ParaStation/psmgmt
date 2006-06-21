@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -591,8 +591,6 @@ int getIsExclusive(PSnodes_ID_t node)
  *
  * - If at least one process slot is available on this node.
  *
- * - In case of a EXCLUSIVE request, if the node is totally free.
- *
  * @param node The node to evaluate.
  *
  * @param req The request holding all the criteria.
@@ -600,7 +598,7 @@ int getIsExclusive(PSnodes_ID_t node)
  * @return If the node is suitable to fulfill the request @a req, 1 is
  * returned. Or 0 otherwise.
  */
-static int nodeOK(PSnodes_ID_t node, PSpart_request_t *req, int procs)
+static int nodeOK(PSnodes_ID_t node, PSpart_request_t *req)
 {
     if (node >= PSC_getNrOfNodes()) {
 	PSID_log(-1, "%s: node %d out of range\n", __func__, node);
@@ -615,22 +613,76 @@ static int nodeOK(PSnodes_ID_t node, PSpart_request_t *req, int procs)
 
     if ((!req->hwType || PSnodes_getHWStatus(node) & req->hwType)
 	&& PSnodes_runJobs(node)
-	&& !getIsExclusive(node)
 	&& (PSnodes_getUser(node) == PSNODES_ANYUSER
 	    || !req->uid || PSnodes_getUser(node) == req->uid)
 	&& (PSnodes_getGroup(node) == PSNODES_ANYGROUP
 	    || !req->gid || PSnodes_getGroup(node) == req->gid)
+	&& (PSnodes_getVirtCPUs(node))) {
+	return 1;
+    }
+
+    return 0;
+}
+
+/**
+ * @brief Test availability of nodes resources.
+ *
+ * Test if the node @a node has enough resources in order to act as a
+ * candidate within the creation of a partition which fulfills all
+ * criteria of the request @a req.
+ *
+ * The following criteria are tested:
+ *
+ * - If the node has free processor slots.
+ *
+ * - In case of a EXCLUSIVE request, if the node is totally free and
+ *   exclusiveness is allowed.
+ *
+ * - In case of a OVERBOOK request, if overbooking is generally
+ * allowed or if overbooking in the classical sense
+ * (i.e. OVERBOOK_AUTO) is allowed and the node is free or if
+ * overbooking is not allowed and the node has a free CPU.
+ *
+ * @param node The node to evaluate.
+ *
+ * @param req The request holding all the criteria.
+ *
+ * @param procs
+ *
+ * @return If the node is suitable to fulfill the request @a req, 1 is
+ * returned. Or 0 otherwise.
+ */
+static int nodeFree(PSnodes_ID_t node, PSpart_request_t *req, int procs)
+{
+    if (node >= PSC_getNrOfNodes()) {
+	PSID_log(-1, "%s: node %d out of range\n", __func__, node);
+	return 0;
+    }
+
+    if (! PSnodes_isUp(node)) {
+	PSID_log(PSID_LOG_PART, "%s: node %d not UP, exclude from partition\n",
+		 __func__, node);
+	return 0;
+    }
+
+    if (!getIsExclusive(node)
 	&& (PSnodes_getProcs(node) == PSNODES_ANYPROC
-	    || (PSnodes_getProcs(node) > procs)
-	    || ((req->options & PART_OPT_OVERBOOK) && PSnodes_overbook(node)))
-	&& (PSnodes_getVirtCPUs(node))
-	&& (! (req->options & PART_OPT_EXCLUSIVE) || !procs)) {
+	    || (PSnodes_getProcs(node) > procs))
+	&& (!(req->options & PART_OPT_OVERBOOK)
+	    || (PSnodes_overbook(node)==OVERBOOK_FALSE
+		&& PSnodes_getVirtCPUs(node) > procs)
+	    || (PSnodes_overbook(node)==OVERBOOK_AUTO)
+	    || (PSnodes_overbook(node)==OVERBOOK_TRUE))
+	&& (!(req->options & PART_OPT_EXCLUSIVE)
+	    || ( PSnodes_exclusive(node) && !procs))) {
 
 	return 1;
     }
 
     return 0;
 }
+
+
 
 /** Entries of the sortable candidate list */
 typedef struct {
@@ -651,8 +703,8 @@ typedef struct {
  *
  * Create a list of candidates, i.e. nodes that might be used for the
  * processes of the task described by @a request. Within this function
- * @ref nodeOK() is used in order to determine the suitability of a
- * node.
+ * @ref nodeOK() is used in order to determine if a node is suitable
+ * and @ref nodeFree() if it is currently available.
  *
  * @param request This one describes the partition request.
  *
@@ -678,7 +730,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
     for (i=0; i<request->num; i++) {
 	PSnodes_ID_t node = request->nodes[i];
 	int cpus = PSnodes_getVirtCPUs(node);
-	int procs = nodeStat[node].assignedProcs;
+	int procs = getAssignedJobs(node);
 	PSID_NodeStatus_t status = getStatus(node);
 
 	if (config->handleOldBins) {
@@ -686,6 +738,10 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 	}
 
 	if (PSnodes_isUp(node)) {
+	    /*
+	     * Don't subtract procs here since we might wait 'till the
+	     * corresponding jobs have finished
+	     */
 	    if (PSnodes_getProcs(node) == PSNODES_ANYPROC) {
 		totCPUs += cpus;
 	    } else {
@@ -693,38 +749,46 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 	    }
 	}
 
-	if (nodeOK(request->nodes[i], request, procs)) {
-	    list.entry[list.size].id = node;
-	    list.entry[list.size].cpus = cpus;
-	    list.entry[list.size].jobs = procs;
-	    switch (request->sort) {
-	    case PART_SORT_PROC:
-		list.entry[list.size].rating = (double)procs/cpus;
-		break;
-	    case PART_SORT_LOAD_1:
-		list.entry[list.size].rating = status.load.load[0]/cpus;
-		break;
-	    case PART_SORT_LOAD_5:
-		list.entry[list.size].rating = status.load.load[1]/cpus;
-		break;
-	    case PART_SORT_LOAD_15:
-		list.entry[list.size].rating = status.load.load[2]/cpus;
-		break;
-	    case PART_SORT_PROCLOAD:
-		list.entry[list.size].rating =
-		    (procs + status.load.load[0])/cpus;
-		break;
-	    case PART_SORT_NONE:
-		break;
-	    default:
-		PSID_log(-1, "%s: Unknown criterium\n", __func__);
-		free(list.entry);
-		errno = EINVAL;
-		return NULL;
+	if (nodeOK(request->nodes[i], request)) {
+
+	    if (nodeFree(request->nodes[i], request, procs)) {
+		list.entry[list.size].id = node;
+		list.entry[list.size].cpus = cpus;
+		list.entry[list.size].jobs = procs;
+		switch (request->sort) {
+		case PART_SORT_PROC:
+		    list.entry[list.size].rating = (double)procs/cpus;
+		    break;
+		case PART_SORT_LOAD_1:
+		    list.entry[list.size].rating = status.load.load[0]/cpus;
+		    break;
+		case PART_SORT_LOAD_5:
+		    list.entry[list.size].rating = status.load.load[1]/cpus;
+		    break;
+		case PART_SORT_LOAD_15:
+		    list.entry[list.size].rating = status.load.load[2]/cpus;
+		    break;
+		case PART_SORT_PROCLOAD:
+		    list.entry[list.size].rating =
+			(procs + status.load.load[0])/cpus;
+		    break;
+		case PART_SORT_NONE:
+		    break;
+		default:
+		    PSID_log(-1, "%s: Unknown criterium\n", __func__);
+		    free(list.entry);
+		    errno = EINVAL;
+		    return NULL;
+		}
+		list.size++;
 	    }
-	    list.size++;
-	    /* This has to be inside if(nodeOK()) ! */
-	    if (PSnodes_overbook(node)) canOverbook = 1;
+	    /*
+	     * This has to be inside if(nodeOK()) but outside
+	     * if(nodeFree()). We might want to wait for
+	     * (overbooking-)resources to become available!
+	     */
+	    if (PSnodes_overbook(node)==OVERBOOK_TRUE
+		|| PSnodes_overbook(node)==OVERBOOK_AUTO) canOverbook = 1;
 	}
     }
 
@@ -906,7 +970,22 @@ static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
 	    unsigned short procs = cpus * procsPerCPU;
 
 	    if (candSlots[cid] < procs) {
-		if (PSnodes_overbook(cid)) {
+		switch (PSnodes_overbook(cid)) {
+		case OVERBOOK_FALSE:
+		    if (candSlots[cid] < cpus) {
+			neededSlots -= cpus - candSlots[cid];
+			candSlots[cid] = cpus;
+		    }
+		    break;
+		case OVERBOOK_AUTO:
+		    if (getAssignedJobs(cid)) {
+			if (candSlots[cid] < cpus) {
+			    neededSlots -= cpus - candSlots[cid];
+			    candSlots[cid] = cpus;
+			}
+			break;
+		    } /* else let's overbook */
+		case OVERBOOK_TRUE:
 		    if (maxProcs == PSNODES_ANYPROC) {
 			availCPUs += cpus;
 			neededSlots -= procs - candSlots[cid];
@@ -920,9 +999,11 @@ static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
 			neededSlots -= maxProcs - candSlots[cid];
 			candSlots[cid] = maxProcs;
 		    }
-		} else if (candSlots[cid] < cpus) {
-		    neededSlots -= cpus - candSlots[cid];
-		    candSlots[cid] = cpus;
+		    break;
+		default:
+		    PSID_log(-1,"%s: Unknown value for PSnodes_overbook(%d)\n",
+			     __func__, cid);
+		    return 0;
 		}
 	    }
 	}
@@ -945,8 +1026,11 @@ static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
 	int maxCPUs = 0;
 	for (cand=0; cand<candidates->size; cand++) {
 	    PSnodes_ID_t cid = candidates->entry[cand].id;
-	    if (PSnodes_getProcs(cid) == PSNODES_ANYPROC
-		|| candSlots[cid] < PSnodes_getProcs(cid)) {
+	    if ((PSnodes_getProcs(cid) == PSNODES_ANYPROC
+		 || candSlots[cid] < PSnodes_getProcs(cid))
+		&& ((PSnodes_overbook(cid) == OVERBOOK_AUTO
+		     && !getAssignedJobs(cid))
+		    || PSnodes_overbook(cid) == OVERBOOK_TRUE)) {
 		unsigned short cpus = (request->options & PART_OPT_EXACT) ?
 		    allowedCPUs[cid] : candidates->entry[cand].cpus;
 		if (cpus > maxCPUs) maxCPUs = cpus;
@@ -956,8 +1040,11 @@ static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
 	while (neededSlots > 0) {
 	    for (cand=0; cand<candidates->size && neededSlots; cand++) {
 		PSnodes_ID_t cid = candidates->entry[cand].id;
-		if (PSnodes_getProcs(cid) == PSNODES_ANYPROC
-		     || candSlots[cid] < PSnodes_getProcs(cid)) {
+		if ((PSnodes_getProcs(cid) == PSNODES_ANYPROC
+		     || candSlots[cid] < PSnodes_getProcs(cid))
+		    && ((PSnodes_overbook(cid) == OVERBOOK_AUTO
+			 && !getAssignedJobs(cid))
+			|| PSnodes_overbook(cid) == OVERBOOK_TRUE)) {
 		    unsigned short cpus = (request->options & PART_OPT_EXACT) ?
 			allowedCPUs[cid] : candidates->entry[cand].cpus;
 		    if ((lateProcs[cid]+1)*maxCPUs <= round*cpus) {
@@ -983,10 +1070,6 @@ static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
  * conforming to the request @a request from the nodes described by
  * the sorted list @a candidates. The created partition is stored
  * within @a partition.
- *
- * If it turns out, that enough CPUs are available in order to create
- * a partition without overbooking any of them, @ref getNormalPart()
- * is called internally.
  *
  * @param request The request describing the partition to create.
  *

@@ -84,12 +84,15 @@ static int nodesfound = 0;
  *
  * @param overbook Flag if overbooking is allowed on this node.
  *
+ * @param exclusive Flag if the node can be assigned exclusively.
+ *
  * @return Return -1 if an error occurred or 0 if the node was
  * inserted successfully.
  */
 static int installHost(unsigned int ipaddr, int id, int hwtype, 
 		       unsigned int extraIP, int jobs, int starter,
-		       uid_t uid, gid_t gid, int procs, int overbook)
+		       uid_t uid, gid_t gid, int procs,
+		       PSnodes_overbook_t overbook, int exclusive)
 {
     if (PSnodes_getNum() == -1) { /* NrOfNodes not defined */
 	parser_comment(-1, "define NrOfNodes before any host");
@@ -160,6 +163,12 @@ static int installHost(unsigned int ipaddr, int id, int hwtype,
 
     if (PSnodes_setOverbook(id, overbook)) {
 	parser_comment(-1, "PSnodes_setOverbook(%d, %d) failed", id, overbook);
+	return -1;
+    }
+
+    if (PSnodes_setExclusive(id, exclusive)) {
+	parser_comment(-1, "PSnodes_setExclusive(%d, %d) failed", id,
+		       exclusive);
 	return -1;
     }
 
@@ -838,11 +847,23 @@ static int getProcsLine(char *token)
     return ret;
 }
 
-static int overbook = 0, node_overbook;
+static PSnodes_overbook_t overbook = OVERBOOK_FALSE, node_overbook;
 
 static int getOB(char *token)
 {
-    return parser_getBool(parser_getString(), &node_overbook, "node_overbook");
+    char *obStr = parser_getString();
+    int ob, ret;
+
+    if (strcasecmp(obStr, "auto") == 0) {
+	node_overbook = OVERBOOK_AUTO;
+	parser_comment(PARSER_LOG_RES, "got 'auto' for value 'node_overbook'");
+	return 0;
+    }
+
+    ret = parser_getBool(obStr, &ob, "node_overbook");
+    node_overbook = ob;
+
+    return ret;
 }
 
 static int getOBLine(char *token)
@@ -854,7 +875,29 @@ static int getOBLine(char *token)
     overbook = node_overbook;
 
     parser_comment(PARSER_LOG_RES, "setting default 'Overbook' to '%s'",
+		   (overbook==OVERBOOK_AUTO) ? "auto" :
 		   overbook ? "TRUE" : "FALSE");
+
+    return ret;
+}
+
+static int exclusive = 1, node_exclusive;
+
+static int getExcl(char *token)
+{
+    return parser_getBool(parser_getString(), &node_exclusive, "node_exclusive");
+}
+
+static int getExclLine(char *token)
+{
+    int ret;
+
+    ret = getExcl(token);
+
+    exclusive = node_exclusive;
+
+    parser_comment(PARSER_LOG_RES, "setting default 'Exclusive' to '%s'",
+		   exclusive ? "TRUE" : "FALSE");
 
     return ret;
 }
@@ -870,6 +913,7 @@ static keylist_t nodeline_list[] = {
     {"group", getGroup},
     {"processes", getProcs},
     {"overbook", getOB},
+    {"exclusive", getExcl},
     {NULL, parser_error}
 };
 
@@ -889,6 +933,7 @@ static int getNodeLine(char *token)
     node_gid = gid;
     node_procs = procs;
     node_overbook = overbook;
+    node_exclusive = exclusive;
 
     ipaddr = parser_getHostname(token);
 
@@ -916,10 +961,14 @@ static int getNodeLine(char *token)
 
 	parser_comment(PARSER_LOG_NODE, "Register '%s' as %d with"
 		       " HW '%s', %s procs, jobs%s allowed,"
-		       " starting%s allowed, overbooking%s allowed.",
+		       " starting%s allowed, overbooking is '%s',"
+		       " exclusive assign%s allowed.",
 		       hostname, nodenum, HW_printType(node_hwtype),
 		       procStr, node_runjobs ? "":" not",
-		       node_canstart ? "":" not", node_overbook ? "":" not");
+		       node_canstart ? "":" not",
+		       node_overbook==OVERBOOK_AUTO ? "auto" :
+		       node_overbook ? "true" : "false",
+		       node_exclusive ? "":" not");
 	if (node_extraIP) {
 	    parser_comment(PARSER_LOG_NODE, " Myrinet IP will be <%s>.",
 			   inet_ntoa(* (struct in_addr *) &node_extraIP));
@@ -928,7 +977,7 @@ static int getNodeLine(char *token)
 
     ret = installHost(ipaddr, nodenum, node_hwtype, node_extraIP,
 		      node_runjobs, node_canstart, node_uid, node_gid,
-		      node_procs, node_overbook);
+		      node_procs, node_overbook, node_exclusive);
 
  exit:
     free(hostname);
@@ -1336,6 +1385,7 @@ static keylist_t config_list[] = {
     {"group", getGroupLine},
     {"processes", getProcsLine},
     {"overbook", getOBLine},
+    {"exclusive", getExclLine},
     {"nodes", getNodes},
     {"licenseserver", getLicServer},
     {"licserver", getLicServer},

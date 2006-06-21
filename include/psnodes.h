@@ -400,6 +400,12 @@ int PSnodes_setProcs(PSnodes_ID_t id, int procs);
  */
 int PSnodes_getProcs(PSnodes_ID_t id);
 
+typedef enum {
+    OVERBOOK_FALSE,   /**< No overbooking at all */
+    OVERBOOK_TRUE,    /**< Complete overbooking */
+    OVERBOOK_AUTO,    /**< Overbooking on user request */
+} PSnodes_overbook_t;
+
 /**
  * @brief Set the overbook flag of a node.
  *
@@ -412,7 +418,7 @@ int PSnodes_getProcs(PSnodes_ID_t id);
  *
  * @return On success, 0 is returned or -1, if an error occured.
  */
-int PSnodes_setOverbook(PSnodes_ID_t id, int overbook);
+int PSnodes_setOverbook(PSnodes_ID_t id, PSnodes_overbook_t overbook);
 
 /**
  * @brief Get the overbook flag of a node.
@@ -424,7 +430,33 @@ int PSnodes_setOverbook(PSnodes_ID_t id, int overbook);
  * @return If the node was found, the overbook flag is returned. Or
  * -1, if an error occured.
  */
-int PSnodes_overbook(PSnodes_ID_t id);
+PSnodes_overbook_t PSnodes_overbook(PSnodes_ID_t id);
+
+/**
+ * @brief Set the exclusive flag of a node.
+ *
+ * Set the exclusive flag of the node with ParaStation ID @a id to @a
+ * exclusive.
+ *
+ * @param id ParaStation ID of the node to be modified.
+ *
+ * @param exclusive The exclusive flag to be set to this node.
+ *
+ * @return On success, 0 is returned or -1, if an error occured.
+ */
+int PSnodes_setExclusive(PSnodes_ID_t id, int exclusive);
+
+/**
+ * @brief Get the exclusive flag of a node.
+ *
+ * Get the exclusive flag of the node with ParaStation ID @a id.
+ *
+ * @param id ParaStation ID of the node to look up.
+ *
+ * @return If the node was found, the exclusive flag is returned. Or
+ * -1, if an error occured.
+ */
+int PSnodes_exclusive(PSnodes_ID_t id);
 
 #ifdef __cplusplus
 }/* extern "C" */

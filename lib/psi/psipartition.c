@@ -225,8 +225,7 @@ static PSpart_option_t getPartitionOptions(void)
 
     if (getenv(ENV_PART_LOOPNODES)) options |= PART_OPT_NODEFIRST;
     if (getenv(ENV_PART_EXCLUSIVE)) options |= PART_OPT_EXCLUSIVE;
-    if (getenv(ENV_PART_OVERBOOK)) options |= (PART_OPT_OVERBOOK
-					       | PART_OPT_EXCLUSIVE);
+    if (getenv(ENV_PART_OVERBOOK)) options |= PART_OPT_OVERBOOK;
     if (getenv(ENV_PART_WAIT)) options |= PART_OPT_WAIT;
     if (batchPartition) options |= PART_OPT_EXACT;
 

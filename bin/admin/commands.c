@@ -800,6 +800,7 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
     case PSP_OP_HANDLEOLD:
     case PSP_OP_NODESSORT:
     case PSP_OP_OVERBOOK:
+    case PSP_OP_EXCLUSIVE:
 	break;
     default:
 	printf("Cannot handle option type %d.\n", type);
@@ -883,9 +884,14 @@ void PSIADM_ShowParam(PSP_Option_t type, char *nl)
 			   (value == PART_SORT_PROCLOAD) ? "PROC+LOAD" :
 			   (value == PART_SORT_NONE) ? "NONE" : "UNKNOWN");
 		    break;
+		case PSP_OP_OVERBOOK:
+		    if (value==OVERBOOK_AUTO) {
+			printf("AUTO\n");
+			break;
+		    }
 		case PSP_OP_FREEONSUSP:
 		case PSP_OP_HANDLEOLD:
-		case PSP_OP_OVERBOOK:
+		case PSP_OP_EXCLUSIVE:
 		case PSP_OP_RUNJOBS:
 		case PSP_OP_STARTER:
 		    printf("%s\n", value ? "TRUE" : "FALSE");
