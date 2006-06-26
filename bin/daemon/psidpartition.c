@@ -721,7 +721,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 {
     static sortlist_t list;
     int i, canOverbook = 0;
-    unsigned int totCPUs = 0;
+    unsigned int totCPUs = 0, totSlots = 0;
 
     list.size = 0;
     list.entry = malloc(request->num * sizeof(*list.entry));
@@ -740,19 +740,6 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 
 	if (config->handleOldBins) {
 	    if (status.jobs.normal > procs) procs = status.jobs.normal;
-	}
-
-	if (PSnodes_isUp(node)) {
-	    /*
-	     * Don't subtract procs here since we might wait 'till the
-	     * corresponding jobs have finished
-	     */
-	    if (PSnodes_getProcs(node) == PSNODES_ANYPROC
-		|| PSnodes_getProcs(node) > cpus) {
-		totCPUs += cpus;
-	    } else {
-		totCPUs += PSnodes_getProcs(node);
-	    }
 	}
 
 	if (nodeOK(request->nodes[i], request)) {
@@ -793,18 +780,34 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 	     * if(nodeFree()). We might want to wait for
 	     * (overbooking-)resources to become available!
 	     */
+	    if (PSnodes_getProcs(node) == PSNODES_ANYPROC
+		|| PSnodes_getProcs(node) > cpus) {
+		totCPUs += cpus;
+	    } else {
+		totCPUs += PSnodes_getProcs(node);
+	    }
+
 	    if (PSnodes_overbook(node)==OVERBOOK_TRUE
-		|| PSnodes_overbook(node)==OVERBOOK_AUTO) canOverbook = 1;
+		|| PSnodes_overbook(node)==OVERBOOK_AUTO) {
+		canOverbook = 1;
+		if (PSnodes_getProcs(node) == PSNODES_ANYPROC) {
+		    totSlots += request->size;
+		} else {
+		    totSlots += PSnodes_getProcs(node);
+		}
+	    } else if (PSnodes_getProcs(node) == PSNODES_ANYPROC
+		       || PSnodes_getProcs(node) > cpus) {
+		totSlots += cpus;
+	    } else {
+		totSlots += PSnodes_getProcs(node);
+	    }
 	}
     }
 
     if (totCPUs < request->size
-	&& (!(request->options & PART_OPT_OVERBOOK) || !canOverbook )) {
-	/*
-	 * @todo We have to do a deeper test here: If
-	 * PSnodes_getProcs()!=PSNODES_ANYPROC on the node allowing
-	 * overbooking we might never get the resources!
-	 */
+	&& (!(request->options & PART_OPT_OVERBOOK)
+	    || !canOverbook
+	    || totSlots < request->size)) {
 	PSID_log(-1, "%s: Unable to ever get sufficient resources\n",__func__);
 	free(list.entry);
 	errno = ENOSPC;
