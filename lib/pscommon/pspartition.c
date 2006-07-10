@@ -138,19 +138,20 @@ size_t PSpart_encodeReq(char* buffer, size_t size, PSpart_request_t* request)
 	tmpRequest.num = request->num;
 
 	memcpy(buffer, &tmpRequest, sizeof(tmpRequest));
+    } else {
+	PSC_log(-1, "%s: Buffer (size %ld) too small\n", __func__, (long)size);
     }
 
     return sizeof(tmpRequest);
 }
 
-int PSpart_decodeReq(char* buffer, PSpart_request_t* request)
+size_t PSpart_decodeReq(char* buffer, PSpart_request_t* request)
 {
     if (!request) {
 	PSC_log(-1, "%s: request is NULL\n", __func__);
 	return 0;
     }
 
-    PSpart_snprintf(partString, sizeof(partString), request);
     PSC_log(PSC_LOG_PART, "%s(%p)", __func__, buffer);
 
     PSpart_reinitReq(request);

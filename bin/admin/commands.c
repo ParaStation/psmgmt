@@ -697,34 +697,149 @@ void PSIADM_HWStat(char *nl)
     }
 }
 
-void PSIADM_JobStat(char *nl)
+static void printSlots(int num, PSnodes_ID_t *nodes, int width, int offset)
 {
-    PSnodes_ID_t node;
-    uint32_t *hwStatus;
-    uint16_t *physCPUs, *virtCPUs;
+    int i=0, pos=0;
+    int myWidth = (width<20) ? 20 : width;
+    char range[128];
 
-    if (! getHostStatus()) return;
-    if (! getHWStat()) return;
-    hwStatus = (uint32_t *)hwList.list;
-    if (! getPhysCPUs()) return;
-    physCPUs = (uint16_t *)pcpuList.list;
-    if (! getVirtCPUs()) return;
-    virtCPUs = (uint16_t *)vcpuList.list;
+    printf(" ");
+    while (i < num) {
+	PSnodes_ID_t cur = nodes[i], loopCur;
+	int rep = 0, loopRep;
 
-    printf("%4s %22s %22s\n",
-	   "Node", "RootTaskId", "TargetSlots");
-    printf("Node\tRootTID\tTarget slots\n");
-    for (node=0; node<PSC_getNrOfNodes(); node++) {
-	if (nl && !nl[node]) continue;
+	while(i<num && nodes[i] == cur) {
+	    rep++;
+	    i++;
+	}
+	snprintf(range, sizeof(range), "%d", cur);
+	loopCur=cur+1;
 
-	if (hostStatus.list[node]) {
-	    printf("%4d\t %2d/%2d\t %s\n", node,
-		   virtCPUs[node], physCPUs[node],
-		   PSI_printHWType(hwStatus[node]));
-	} else {
-	    printf("%4d\t down\n", node);
+	while (i<num && nodes[i]==loopCur) {
+	    int j=i;
+	    loopRep = 0;
+
+	    while(j<num && nodes[j] == loopCur) {
+		loopRep++;
+		j++;
+	    }
+	    if (loopRep != rep) break;
+	    i=j;
+	    loopCur++;
+	}
+	if (loopCur != cur+1) {
+	    snprintf(range+strlen(range), sizeof(range)-strlen(range),
+		     "-%d", loopCur-1);
+	}
+	if (rep>1) {
+	    snprintf(range+strlen(range), sizeof(range)-strlen(range),
+		     "(%d)", rep);
+	}
+	pos+=strlen(range)+1;
+	if (pos > myWidth) {
+	    printf("\n%*s", offset, "");
+	    pos = strlen(range)+1;
+	}
+	printf("%s%s", range, (i < num) ? "," : "");
+    }
+}
+
+void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
+{
+    PSP_Info_t what = PSP_INFO_QUEUE_PARTITION;
+    char buf[sizeof(PStask_ID_t)
+	     +sizeof(PSpart_list_t)
+	     +sizeof(PSpart_request_t)];
+    int recvd;
+    int found = 0;
+    PStask_ID_t rootTID, parentTID;
+    PSpart_request_t *req;
+
+    int width = getWidth();
+
+    /* Determine root process of given task */
+    rootTID=parentTID=task;
+    while (parentTID) {
+	int ret;
+
+	ret = PSI_infoTaskID(-1, PSP_INFO_PARENTTID, &rootTID, &parentTID, 1);
+	if (ret) {
+	    printf("root-task for task '%s' not found:", PSC_printTID(task));
+	    printf(" unknown task '%s'\n", PSC_printTID(rootTID));
+	    return;
+	}
+	if (parentTID) rootTID = parentTID;
+    }
+
+    if (PSI_infoQueueReq(-1, what, &opt) < 0) {
+	printf("Error!!\n");
+    }
+
+    req = PSpart_newReq();
+
+    while ((recvd=PSI_infoQueueNext(what, buf, sizeof(buf), 1)) > 0) {
+	static PSnodes_ID_t *nodeBuf = NULL;
+	static size_t nodeBufSize = 0;
+
+	PStask_ID_t tid;
+	PSpart_list_t flags;
+	int len = 0;
+
+	tid = *(PStask_ID_t *)(buf+len);
+	len += sizeof(PStask_ID_t);
+
+	flags = *(PSpart_list_t *)(buf+len);
+	len += sizeof(PSpart_list_t);
+
+	len += PSpart_decodeReq(buf + len, req);
+	if (len != recvd) {
+	    printf("Wrong number of bytes received (%ld vs. %ld)!\n",
+		   (long)len, (long)recvd);
+	    break;
+	}
+
+	if (req->num) {
+	    if (req->num * sizeof(*nodeBuf) > nodeBufSize) {
+		nodeBufSize = 2 * req->num * sizeof(*nodeBuf);
+		nodeBuf = realloc(nodeBuf, nodeBufSize);
+	    }
+
+	    if (!nodeBuf) {
+		printf("No memory\n");
+		break;
+	    }
+
+	    recvd=PSI_infoQueueNext(what, nodeBuf, nodeBufSize, 1);
+
+	    if ((unsigned int)recvd != req->num * sizeof(*nodeBuf)) {
+		printf("Message lost\n");
+	    }
+	}
+
+	if (!task || rootTID == tid) {
+	    if (!found) {
+		printf("%22s %5s %5s %5s %5s %-*s\n",
+		       "RootTaskId", "State", "Size", "UID ", "GID ",
+		       width-47, "Target Slots");
+	    }
+
+	    printf("%22s", PSC_printTID(tid));
+	    printf("   %c  ", (flags & PART_LIST_PEND) ? 'P' :
+		   (flags & PART_LIST_RUN) ? 'R' :
+		   (flags & PART_LIST_SUSP) ? 'S' : '?');
+	    printf(" %5d", req->size);
+	    printf(" %5d", req->uid);
+	    printf(" %5d", req->gid);
+	    if (req->num) printSlots(req->num, nodeBuf, width-47, 47);
+	    printf("\n");
+
+	    found=1;
 	}
     }
+
+    if (task && !found)	printf("task '%s' not found.\n", PSC_printTID(task));
+
+    PSpart_delReq(req);
 }
 
 void PSIADM_VersionStat(char *nl)

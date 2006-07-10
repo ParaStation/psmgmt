@@ -247,8 +247,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	ioctl(fd, TIOCGWINSZ, &task->winsize);
     }
     task->group = TG_ANY;
-    PSI_infoTaskID(-1, PSP_INFO_LOGGERTID, &(task->ptid),
-		   &(task->loggertid), 0);
+    PSI_infoTaskID(-1, PSP_INFO_LOGGERTID, NULL, &(task->loggertid), 0);
 
     mywd = mygetwd(workingdir);
 

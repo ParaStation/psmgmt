@@ -484,6 +484,26 @@ unsigned short getAssignedJobs(PSnodes_ID_t node);
  */
 int getIsExclusive(PSnodes_ID_t node);
 
+
+/**
+ * @brief Send list of requests.
+ *
+ * Send a list of partition-requests registered within the master
+ * daemon. Dependings on the flags set within @a opt, only pending,
+ * running or suspended requests might be send to the @a requester.
+ *
+ * If @a ref PART_LIST_NODES is set in @a opt, also a list of the
+ * processor slots allocated to the request is sent.
+ *
+ * @param requester Task ID of process waiting for answer.
+ *
+ * @param opt Option flags marking which type of requests to send and
+ * format of answer (with/without list of slots).
+ *
+ * @return No return value.
+ */
+void sendRequestLists(PStask_ID_t requester, PSpart_list_t opt);
+    
 #ifdef __cplusplus
 }/* extern "C" */
 #endif

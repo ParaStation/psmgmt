@@ -22,6 +22,7 @@
 
 #include "pstask.h"
 #include "psprotocol.h"
+#include "pspartition.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -249,18 +250,33 @@ void PSIADM_LoadStat(char *nl);
 void PSIADM_HWStat(char *nl);
 
 /**
- * @brief Get hardware status. @todo @doctodo
+ * @brief Show jobs.
  *
- * Show the hardware status of the nodes marked within the nodelist @a
- * nl. Therefore the corresponding list containing the information is
- * requested from the local daemon and printed to stdout.
+ * Show the jobs registered to the master daemon. This only includes
+ * "normal" jobs, i.e. jobs not accounted and, thus, not registered to
+ * the master daemon are not displayed.
  *
- * @param nl The nodelist describing the nodes from which the
- * information should requested and put out.
+ * Therefore the corresponding list containing the information is
+ * requested from the master daemon and printed to stdout.
+ *
+ * Via the @a opt parameter the kind of information to be presented
+ * might be restricted.
+ *
+ * Only informations concerning a special jobs might be requested by
+ * setting the @a task parameter to a valid task ID. Then the
+ * corresponding job is determined and the requested information is
+ * requested and displayed.
+ *
+ *
+ * @param task A task ID of one process within a job. If set to 0
+ * information on all task (as defined via @a opt) is provided.
+ *
+ * @param opt Set of flags describing the kind of information to be
+ * retrived.
  *
  * @return No return value.
  */
-void PSIADM_JobStat(char *nl);
+void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt);
 
 /**
  * @brief Get daemon versions.

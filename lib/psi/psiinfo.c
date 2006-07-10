@@ -113,7 +113,8 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
 		break;
 	    }
 	    if (*size < s) {
-		PSI_log(-1, "%s: buffer to small\n", __func__);
+		PSI_log(-1, "%s: buffer to small (%d/%d/%s)\n",
+			__func__, *size, s, PSP_printInfo(msg.type));
 		*size = 0;
 		break;
 	    }
@@ -333,6 +334,7 @@ int PSI_infoTaskID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     switch (what) {
     case PSP_INFO_PARENTTID:
     case PSP_INFO_LOGGERTID:
+	if (param) msg.header.dest = *(PStask_ID_t *)param;
 	break;
     default:
 	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,
@@ -480,7 +482,17 @@ int PSI_infoQueueReq(PSnodes_ID_t node, PSP_Info_t what, const void *param)
     switch (what) {
     case PSP_INFO_QUEUE_ALLTASK:
     case PSP_INFO_QUEUE_NORMTASK:
+	break;
     case PSP_INFO_QUEUE_PARTITION:
+	if (param) {
+	    *(uint32_t*)msg.buf = *(const uint32_t*)param;
+	    msg.header.len += sizeof(uint32_t);
+	} else {
+	    PSI_log(-1, "%s: %s request needs parameter\n", __func__,
+		    PSP_printInfo(what));
+	    errno = EINVAL;
+	    return -1;
+	}
 	break;
     default:
 	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,

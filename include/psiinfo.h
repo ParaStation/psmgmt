@@ -52,7 +52,8 @@ extern "C" {
  * parameters needed.
  *
  * - PSP_INFO_HWINDEX request the index from a hardware's name. @a
- * param points to a \0 terminated character array containing the name.
+ * param points to a '\\0' terminated character array containing the
+ * name.
  *
  * - PSP_INFO_TASKSIZE request the total number of processes within
  * the actual task. No further parameters needed.
@@ -201,10 +202,14 @@ int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * The possible values for @a what are:
  *
  * - PSP_INFO_PARENTTID request the parent task ID of the actual task,
- * if any. No further parameters needed.
+ * if any. If a parameter of is provided, not the parent task ID of
+ * the actual task but of the parameter's parent is returned. It has
+ * to be of type PStask_ID_t.
  *
  * - PSP_INFO_LOGGERTID request the logger task ID of the actual task,
- * if any. No further parameters needed.
+ * if any. If a parameter of is provided, not the logger task ID of
+ * the actual task but of the parameter's logger is returned. It has
+ * to be of type PStask_ID_t.
  *
  *
  * @param node The ParaStation ID of the node to ask.
@@ -396,9 +401,20 @@ int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * PSP_taskInfo_t structures. No further parameters needed.
  *
  * - PSP_INFO_QUEUE_PARTITION requests a list of all partitions
- * (associated to actual jobs) on the designated node @a node.
- * @doctodo structure of answers !!
- * No further parameters needed.
+ *   (associated to actual jobs). The request will be automatically
+ *   forwarded to the current master daemon, the @a node parameter will
+ *   be ignored. As an answer for each partition a message containing
+ *   the following information is provided:
+ *   - The task ID of the partition's root process.
+ *   - A flag field of type @ref PSpart_list_t marking the partition as
+ *     pending, running or suspended.
+ *   - The encoded request to be decoded vi @ref PSpart_decodeReq().
+ *   .
+ *   This one is followed by one or more messages providing the actual
+ *   nodes building the partition if requested. The parameter is of
+ *   type @ref PSpart_list_t. Here only special types of partitions
+ *   (pending, running or suspended) might requested. Furthermore it
+ *   can be flaged of the list of scheduled nodes should be provided.
  *
  *
  * @param node The ParaStation ID of the node to ask.
@@ -438,10 +454,22 @@ int PSI_infoQueueReq(PSnodes_ID_t node, PSP_Info_t what, const void *param);
  * contrast to all tasks this one excludes tasks representing admin,
  * logger, forwared etc. processes.
  *
- * - PSP_INFO_QUEUE_PARTITION receives information concerning a
- * partition (associated to actual jobs) on the designated node @a
- * node.
- * @doctodo structure of answers !!
+ * - PSP_INFO_QUEUE_PARTITION requests a list of all partitions
+ *   (associated to actual jobs). The request will be automatically
+ *   forwarded to the current master daemon, the @a node parameter will
+ *   be ignored. As an answer for each partition a message containing
+ *   the following information is provided:
+ *   - The task ID of the partition's root process.
+ *   - A flag field of type @ref PSpart_list_t marking the partition as
+ *     pending, running or suspended.
+ *   - The encoded request to be decoded vi @ref PSpart_decodeReq().
+ *   .
+ *   This one is followed by one or more messages providing the actual
+ *   nodes building the partition if requested. The parameter is of
+ *   type @ref PSpart_list_t. Here only special types of partitions
+ *   (pending, running or suspended) might requested. Furthermore it
+ *   can be flaged of the list of scheduled nodes should be provided.
+ *
  *
  * @param what The type of information to request as described above.
  *

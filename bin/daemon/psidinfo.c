@@ -409,12 +409,14 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	case PSP_INFO_PARENTTID:
 	case PSP_INFO_LOGGERTID:
 	{
-	    PStask_t *task=PStasklist_find(managedTasks, inmsg->header.sender);
+	    PStask_ID_t tid = PSC_getPID(inmsg->header.dest) ?
+		inmsg->header.dest : inmsg->header.sender;
+	    PStask_t *task=PStasklist_find(managedTasks, tid);
 
 	    if (!task) {
 		PSID_log(-1, "%s: task %s not found\n",
 			 funcStr, PSC_printTID(inmsg->header.sender));
-		err = 1;
+		/*  Not err=1 ! Send empty message to mark 'task not found'. */
 		break;
 	    }
 
@@ -604,6 +606,18 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    break;
 	}
 	case PSP_INFO_QUEUE_PARTITION:
+	    if (PSC_getMyID() != getMasterID()) {
+		/* Handled by master node -> forward */
+		inmsg->header.dest = PSC_getTID(getMasterID(), 0);
+		msg_INFOREQUEST(inmsg);
+		return;
+	    }
+	    sendRequestLists(inmsg->header.sender,
+			     *(PSpart_list_t*)inmsg->buf);
+	    /*
+	     * send a EndOfQueue Sign
+	     */
+	    msg.type = PSP_INFO_QUEUE_SEP;
 	    break;
 	default:
 	    msg.type = PSP_INFO_UNKNOWN;

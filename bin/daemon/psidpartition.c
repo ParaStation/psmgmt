@@ -1490,7 +1490,7 @@ void msg_CREATEPART(DDBufferMsg_t *inmsg)
     }
     task->request->numGot = 0;
 
-    if (!knowMaster()) return; /* Automatic send/handle from declareMaster() */
+    if (!knowMaster()) return; /* Automatic pull in initPartHandler() */
 
     inmsg->header.type = PSP_DD_GETPART;
     inmsg->header.dest = PSC_getTID(getMasterID(), 0);
@@ -2060,4 +2060,130 @@ void msg_PROVIDETASKNL(DDBufferMsg_t *inmsg)
 	    enqueueRequest(&runReq, req);
 	}
     }
+}
+
+/**
+ * @brief Actually send requests.
+ *
+ * Send notifications on the requests in the list @a requests to @a
+ * dest. Depending on the presence of the @ref PART_LIST_NODES flag in
+ * @a opt, each message is followed by one or more messages containing
+ * the list of processor slots allocated to the request.
+ *
+ * @param dest The task ID of the process the answeres are sent to.
+ *
+ * @param requests List of requests on which information should be
+ * provided.
+ *
+ * @param opt Set of flags marking the kind of requests (pending,
+ * running, suspended) and if a list of processor slots should be
+ * sent.
+ *
+ * @return No return value.
+ */
+static void sendReqList(PStask_ID_t dest, PSpart_request_t *requests,
+			PSpart_list_t opt)
+{
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_INFORESPONSE,
+	    .sender = PSC_getMyTID(),
+	    .dest = dest,
+	    .len = sizeof(msg.header) + sizeof(msg.type) },
+	.type = PSP_INFO_QUEUE_PARTITION,
+	.buf = {0}};
+
+    while (requests) {
+	size_t len = sizeof(requests->tid);
+	int tmp, num;
+
+	if (len < sizeof(msg.buf)) {
+	    memcpy(msg.buf, &requests->tid, len);
+	} else {
+	    PSID_log(-1, "%s: Buffer too small\n", __func__);
+	    return;
+	}
+
+	if (len + sizeof(PSpart_list_t) < sizeof(msg.buf)) {
+	    memcpy(msg.buf+len, &opt, sizeof(PSpart_list_t));
+	    len += sizeof(PSpart_list_t);
+	} else {
+	    PSID_log(-1, "%s: Buffer too small\n", __func__);
+	    return;
+	}
+
+	tmp = requests->num;
+	num = requests->num = (opt & PART_LIST_NODES) ? requests->size : 0;
+	len += PSpart_encodeReq(msg.buf+len, sizeof(msg.buf)-len, requests);
+	requests->num = tmp;
+
+	if (len > sizeof(msg.buf)) {
+	    PSID_log(-1, "%s: PSpart_encodeReq\n", __func__);
+	    return;
+	}
+
+	msg.header.len += len;
+	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    return;
+	}
+	msg.header.len -= len;
+
+	if (num) {
+	    int offset = 0;
+
+	    msg.type = PSP_INFO_QUEUE_SEP;
+	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+		PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+		goto error;
+	    }
+	    msg.type = PSP_INFO_QUEUE_PARTITION;
+
+	    while (offset < num) {
+		int chunk =
+		    (num-offset > NODES_CHUNK) ? NODES_CHUNK : num-offset;
+		char *ptr = msg.buf;
+
+		memcpy(ptr, requests->nodes+offset,
+		       chunk * sizeof(*requests->nodes));
+		len = chunk * sizeof(*requests->nodes);
+		offset += chunk;
+
+		msg.header.len += len;
+		if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+		    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+		    goto error;
+		}
+		msg.header.len -= len;
+	    }
+	}
+	msg.type = PSP_INFO_QUEUE_SEP;
+	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    return;
+	}
+	msg.type = PSP_INFO_QUEUE_PARTITION;
+
+	requests = requests->next;
+    }
+
+    return;
+
+ error:
+    msg.type = PSP_INFO_QUEUE_SEP;
+    msg.header.len = sizeof(msg.header) + sizeof(msg.type);
+    sendMsg(&msg);
+}
+
+
+void sendRequestLists(PStask_ID_t requester, PSpart_list_t opt)
+{
+    PSpart_list_t nodes = opt & PART_LIST_NODES;
+
+    if (opt & PART_LIST_PEND)
+	sendReqList(requester, pendReq, PART_LIST_PEND);
+    if (opt & PART_LIST_RUN)
+	sendReqList(requester, runReq, PART_LIST_RUN | nodes );
+    if (opt & PART_LIST_SUSP)
+	sendReqList(requester, suspReq, PART_LIST_SUSP | nodes);
 }

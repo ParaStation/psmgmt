@@ -443,16 +443,44 @@ static int listHWCommand(char *token)
 
 static int listJobsCommand(char *token)
 {
-    char *nl_descr = parser_getString();
-    char *nl = defaultNL;
+    char *tid_descr = parser_getString();
+    PStask_ID_t task = 0;
+    PSpart_list_t opt = 0;
 
-    if (nl_descr) {
-	nl = getNodeList(nl_descr);
-	if (!nl) goto error;
+    while (tid_descr) {
+	if (!strcasecmp(tid_descr, "state")) {
+	    char *tok = parser_getString();
+	    if (!tok) goto error;
+	    if (!strncasecmp(tok, "p", 1)) {
+		opt |= PART_LIST_PEND;
+	    } else if (!strncasecmp(tok, "s", 1)) {
+		opt |= PART_LIST_SUSP;
+	    } else if (!strncasecmp(tok, "r", 1)) {
+		opt |= PART_LIST_RUN;
+	    } else goto error;
+	    tid_descr = parser_getString();
+	    continue;
+	} else if (!strncasecmp(tid_descr, "slots", 1)) {
+	    opt |= PART_LIST_NODES;
+	    tid_descr = parser_getString();
+	    continue;
+	} else break;
     }
+
+    if (! (opt & ~PART_LIST_NODES)) {
+	opt |= PART_LIST_PEND | PART_LIST_SUSP | PART_LIST_RUN;
+    }
+
+    if (tid_descr) {
+	long tmp;
+	if (parser_getNumber(tid_descr, &tmp)) goto error;
+	task = tmp;
+    }
+    if (task && (PSC_getID(task) < 0 || PSC_getID(task) > PSC_getNrOfNodes()
+		 || PSC_getPID(task) < 1)) goto error; /* task out of range */
     if (parser_getString()) goto error; /* trailing garbage */
 
-    PSIADM_JobStat(nl);
+    PSIADM_JobStat(task, opt);
     return 0;
 
  error:

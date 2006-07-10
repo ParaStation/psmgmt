@@ -48,14 +48,22 @@ typedef enum {
 				    processes are placed on the same node. */
     PART_OPT_EXCLUSIVE = 0x0002, /**< Only get exclusive nodes. I.e. no further
 				    processes are allowed on that node. */
-    PART_OPT_OVERBOOK = 0x0004,  /**< Allow more than one process per
+    PART_OPT_OVERBOOK  = 0x0004, /**< Allow more than one process per
 				    node. This induces @ref PART_OPT_EXCLUSIVE
 				    implicitely. */
-    PART_OPT_WAIT = 0x0008,      /**< If not enough nodes are available, wait
+    PART_OPT_WAIT      = 0x0008, /**< If not enough nodes are available, wait
 				    for them (batch mode). */
-    PART_OPT_EXACT = 0x0010,     /**< Nodelist is from a batch-system */
+    PART_OPT_EXACT     = 0x0010, /**< Nodelist is from a batch-system */
 } PSpart_option_t;
 
+/** Options possible for PSP_INFO_QUEUE_PARTITION requests */
+typedef enum {
+    PART_LIST_PEND  = 0x0001,  /**< Send pending requests */
+    PART_LIST_SUSP  = 0x0002,  /**< Send suspended jobs */
+    PART_LIST_RUN   = 0x0004,  /**< Send running jobs */
+    PART_LIST_NODES = 0x0008,  /**< Also send attached nodelists */
+} PSpart_list_t;
+				 
 /**
  * Structure describing a actual request to create a partition
  */
@@ -66,14 +74,14 @@ typedef enum {
 typedef struct request{
     struct request *next;          /**< Pointer to the next request */
     PStask_ID_t tid;               /**< TaskID of the requesting process */
-    uint32_t size;           /*C*/ /**< Requested size of the partition */
-    uint32_t hwType;         /*C*/ /**< Hardware type of the requested nodes */
-    uid_t uid;               /*C*/ /**< UID of the requesting process */
-    gid_t gid;               /*C*/ /**< GID of the requesting process */
-    PSpart_sort_t sort;      /*C*/ /**< Sort mode for sorting candidates */
-    PSpart_option_t options; /*C*/ /**< Options steering partition creation */
-    uint32_t priority;       /*C*/ /**< Priority of the parallel task */
-    int32_t num;             /*C*/ /**< Number of nodes within request */
+    /*C*/ uint32_t size;           /**< Requested size of the partition */
+    /*C*/ uint32_t hwType;         /**< Hardware type of the requested nodes */
+    /*C*/ uid_t uid;               /**< UID of the requesting process */
+    /*C*/ gid_t gid;               /**< GID of the requesting process */
+    /*C*/ PSpart_sort_t sort;      /**< Sort mode for sorting candidates */
+    /*C*/ PSpart_option_t options; /**< Options steering partition creation */
+    /*C*/ uint32_t priority;       /**< Priority of the parallel task */
+    /*C*/ int32_t num;             /**< Number of nodes within request */
     int numGot;                    /**< Number of nodes currently received */
     PSnodes_ID_t *nodes;           /**< List of partition candidates */
     char deleted;                  /**< Flag to mark request for deletion */
@@ -175,7 +183,7 @@ size_t PSpart_encodeReq(char *buffer, size_t size, PSpart_request_t *request);
  * @return The number of chars within @a buffer used in order to
  * decode the partition request structure.
  */
-int PSpart_decodeReq(char *buffer, PSpart_request_t *request);
+size_t PSpart_decodeReq(char *buffer, PSpart_request_t *request);
 
 /**
  * @brief Print a partition request in a string.
@@ -188,7 +196,7 @@ int PSpart_decodeReq(char *buffer, PSpart_request_t *request);
  *
  * @param size Size of the character array @a txt.
  *
- * @param task Pointer to the partition request to print.
+ * @param request Pointer to the partition request to print.
  *
  * @return No return value.
  */
