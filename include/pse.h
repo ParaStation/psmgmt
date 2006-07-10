@@ -173,7 +173,7 @@ void PSE_setUID(uid_t uid);
  * partition. For details on the spawning strategy look @ref
  * spawn_strategy "here".
  *
- * If no call to this function or to @ref PSE_HWList() is made before
+ * If no call to this function or to @ref PSE_setHWList() is made before
  * @ref PSE_getPartition() is called, the default hardware-type 0 is
  * used. This means, any node is accepted.
  *

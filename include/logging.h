@@ -155,8 +155,8 @@ logger_t* logger_init(char* tag, FILE *logfile);
  *
  * @param format The format to be used in order to produce output. The
  * syntax of this parameter is according to the one defined for the
- * @ref printf() family of functions from the C standard. This string
- * will also define the further parameters to be expected.
+ * printf() family of functions from the C standard. This string will
+ * also define the further parameters to be expected.
  *
  *
  * @return No return value.
@@ -194,9 +194,9 @@ void logger_vprint(logger_t* logger, long key, const char* format, va_list ap);
  * @brief Print a warn message.
  *
  * Print a warn message similar to the log messages puted out via @ref
- * logger_print(), but append the string returned from @ref strerror()
- * for the argument @a errorno and a trailing newline. Thus this
- * function will always produce output instantly.
+ * logger_print(), but append the string returned from strerror() for
+ * the argument @a errorno and a trailing newline. Thus this function
+ * will always produce output instantly.
  *
  * @param logger The logger facility to use.
  *
@@ -215,9 +215,9 @@ void logger_warn(logger_t* logger, long key, int errorno,
 /**
  * @brief Print a warn-messages and exit.
  *
- * Print a message like from @ref logger_warn(), but give this message
- * always, i.e not comparison to @a logger's mask. Furthermore call
- * @ref exit() afterwards.
+ * Print a message like from @ref logger_warn(), but gives this
+ * message always, i.e no comparison to @a logger's mask. Furthermore
+ * calls exit() afterwards.
  *
  * @param logger The logger facility to use.
  *

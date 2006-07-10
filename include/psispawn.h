@@ -227,7 +227,7 @@ PStask_ID_t PSI_spawnGMSpawner(int np, char *workingdir, int argc, char **argv,
  * the root process).
  *
  *
- * @param workingdir Present working directory of the spawned task on
+ * @param workdir Present working directory of the spawned task on
  * startup. This might be an absolute or relative path. If @a
  * workingdir is a relative path, the content of the PWD environment
  * variable is prepended. If @a workingdir is NULL, the content of the
@@ -242,7 +242,7 @@ PStask_ID_t PSI_spawnGMSpawner(int np, char *workingdir, int argc, char **argv,
  * @param error Errorcode displaying if an error occurred within
  * PSI_spawnSingle() while spawning the task.
  *
- * @param tids The task ID of the spawned process.
+ * @param tid The task ID of the spawned process.
  *
  *
  * @return On success, the unique rank of the spawned process will be

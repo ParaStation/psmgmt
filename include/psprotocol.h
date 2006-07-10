@@ -234,6 +234,7 @@ typedef struct {
     int32_t type;          /**< message (sub-)type */
 } DDTypedMsg_t;
 
+/** Buffer size (and thus maximum message size) */
 #define BufMsgSize 8000
 
 /**
@@ -282,19 +283,20 @@ typedef struct {
 /** Type for option's value within an option message */
 typedef int32_t PSP_Optval_t;
 
+/** Option container. A list of these is Used within @ref DDOptionMsg_t*/
 typedef struct {
     PSP_Option_t option;   /**< option to be set/requested */
-    PSP_Optval_t value;    /**< option to be set/requested */
+    PSP_Optval_t value;    /**< option's value */
 } DDOption_t;
 
-/* Option message used to set or get various options. */
+/** Option message used to set or get various options. */
 typedef struct {
     DDMsg_t header;        /**< message header */
     char count;            /**< no of options in opt[] */
     DDOption_t opt[DDOptionMsgMax]; /**< array of option-value pairs */
 } DDOptionMsg_t;
 
-/* Signal message used to (de)register and send signals. */
+/** Signal message used to (de)register and send signals. */
 typedef struct {
     DDMsg_t header;        /**< message header */
     int32_t signal;        /**< signal to be set or sent */
@@ -349,7 +351,7 @@ typedef struct {
  *
  * @param msgtype Message type the name should be generated for.
  *
- * @return A pointer to the '\0' terminated character string
+ * @return A pointer to the '\\0' terminated character string
  * containing the name of the message type or a special message
  * containing @a msgtype if the type is unknown.
  */
@@ -364,7 +366,7 @@ char *PSP_printMsg(int msgtype);
  *
  * @param infotype Info type the name should be generated for.
  *
- * @return A pointer to the '\0' terminated character string
+ * @return A pointer to the '\\0' terminated character string
  * containing the name of the info type or a special message
  * containing @a infotype if the type is unknown.
  */

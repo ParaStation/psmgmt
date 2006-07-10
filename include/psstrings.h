@@ -21,7 +21,7 @@
 #ifndef _PSSTRINGS_H_
 #define _PSSTRINGS_H_
 
-
+/** Whitespace characters used within @ref strunquote_r() to split string */
 #define _SPACES "\t "
 
 /**
@@ -46,7 +46,7 @@ char *strshrink(char *str);
  *  
  * @param str
  * @param ptrptr if ptrptr !NULL, *ptrptr is set to the rest of the string
- * (if any e.g. <"abc"xyz> set *ptrptr to <xyz>)
+ * (if any e.g. \<"abc"xyz\> set *ptrptr to \<xyz\>)
  *
  * @return Same as str
  */

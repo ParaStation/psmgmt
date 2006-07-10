@@ -96,7 +96,7 @@ void PSI_LL(void);
  * take all nodes managed by ParaStation to build the pool.
  *
  * To get into the pool, each node is tested, if it is available and if
- * it supports the requested hardware-type @hwType.
+ * it supports the requested hardware-type @a hwType.
  *
  * When the pool is build, it may have to be sorted. The sorting is
  * steered via the environment variable PSI_NODES_SORT. Depending on
@@ -163,7 +163,7 @@ int PSI_createPartition(unsigned int num, unsigned int hwType);
  *
  * Get @a num nodes in order to spawn processes to this nodes and
  * store their ParaStation IDs to @a nodes. Nodes may only be
- * requested in chunks of @ref GETNODES_CHUNK each. If more nodes are
+ * requested in chunks of @ref NODES_CHUNK each. If more nodes are
  * requested, an error is returned. Furthermore the rank of the first
  * process to spawn is returned.
  *

@@ -78,22 +78,22 @@ typedef struct PStask_T{
     struct PStask_T *next;         /**< link to the next task */
     struct PStask_T *prev;         /**< link to the previous task */
 
-    PStask_ID_t tid;         /*C*/ /**< unique task identifier */
-    PStask_ID_t ptid;        /*C*/ /**< unique identifier of parent task */
-    uid_t uid;               /*C*/ /**< user id */
-    gid_t gid;               /*C*/ /**< group id */
-    uint32_t aretty;         /*C*/ /**< flag stdin, stdout & stderr as tty */
-    struct termios termios;  /*C*/ /**< parameters of the controlling tty */
-    struct winsize winsize;  /*C*/ /**< window size of the controlling tty */
-    PStask_group_t group;    /*C*/ /**< task group @see PStask_group_t */
-    PStask_ID_t loggertid;   /*C*/ /**< unique identifier of the logger */
+    /*C*/ PStask_ID_t tid;         /**< unique task identifier */
+    /*C*/ PStask_ID_t ptid;        /**< unique identifier of parent task */
+    /*C*/ uid_t uid;               /**< user id */
+    /*C*/ gid_t gid;               /**< group id */
+    /*C*/ uint32_t aretty;         /**< flag stdin, stdout & stderr as tty */
+    /*C*/ struct termios termios;  /**< parameters of the controlling tty */
+    /*C*/ struct winsize winsize;  /**< window size of the controlling tty */
+    /*C*/ PStask_group_t group;    /**< task group @see PStask_group_t */
+    /*C*/ PStask_ID_t loggertid;   /**< unique identifier of the logger */
     PStask_ID_t forwardertid;      /**< unique identifier of the forwarder */
-    int32_t rank;            /*C*/ /**< rank of task within task group */
+    /*C*/ int32_t rank;            /**< rank of task within task group */
     short fd;                      /**< connection fd within psid */
-    char *workingdir;        /*C*/ /**< working directory */
-    int32_t argc;            /*C*/ /**< num of args, length of @a argv */
-    char **argv;             /*C*/ /**< command line arguments */
-    char **environ;          /*C*/ /**< PS environment, used for spawning */
+    /*C*/ char *workingdir;        /**< working directory */
+    /*C*/ int32_t argc;            /**< num of args, length of @a argv */
+    /*C*/ char **argv;             /**< command line arguments */
+    /*C*/ char **environ;          /**< PS environment, used for spawning */
     int relativesignal;            /**< the signal sent when a relative (i.e.
 				      parent or child) dies */
     int pendingReleaseRes;         /**< num of pending RELEASERES messages */
@@ -181,7 +181,7 @@ int PStask_delete(PStask_t *task);
  *
  * @return On success, a pointer to the first element of the cloned
  * signal list is returned, or NULL otherwise. Beware of the fact that
- * the return value might also be NULL if the original @siglist was
+ * the return value might also be NULL if the original @a siglist was
  * also NULl.
  */
 PStask_sig_t *PStask_cloneSigList(PStask_sig_t *siglist);
