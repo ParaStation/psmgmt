@@ -856,6 +856,7 @@ void PSIADM_VersionStat(char *nl)
 	    char psidver[100], rpmrev[100];
 	    int err;
 
+	    psidver[0] = rpmrev[0] = '\0';
 	    err = PSI_infoString(node, PSP_INFO_DAEMONVER, NULL,
 				 psidver, sizeof(psidver), 0);
 	    if (err) strcpy(psidver, "$Revision: unknown$");
