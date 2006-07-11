@@ -335,7 +335,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     PStask_delete(task);
 
     /*
-     * Receive Answer from  my own daemon
+     * Receive answer from my own daemon
      *----------------------------------
      */
     while (outstanding_answers>0) {

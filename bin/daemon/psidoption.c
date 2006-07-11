@@ -28,6 +28,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "psidtask.h"
 #include "psidtimer.h"
 #include "psidstatus.h"
+#include "psidhw.h"
 
 #include "psidoption.h"
 

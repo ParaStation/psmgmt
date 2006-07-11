@@ -136,7 +136,7 @@ typedef enum {
 
     PSP_INFO_RANKID,              /**< ParaStation ID from rank */
     PSP_INFO_TASKSIZE,            /**< Actual task's number of processes */
-    PSP_INFO_TASKRANK,            /**< Local processes rank within task */
+    PSP_INFO_TASKRANK,            /**< Local process' rank within task */
 
     PSP_INFO_PARENTTID,           /**< Parent's task ID */
     PSP_INFO_LOGGERTID,           /**< Logger's task ID */
@@ -167,6 +167,8 @@ typedef enum {
 #define PSP_CD_SPAWNFAILED       0x0022  /**< Reply on failed spawn */
 #define PSP_CD_SPAWNFINISH       0x0023  /**< Reply after successful end of
 					      spawned process */
+#define PSP_CD_SPAWNREQ          0x0024  /**< Request to spawn a process */
+#define PSP_CD_SPAWNREQENV       0x0025  /**< Request to spawn a process */
 
 /** All the signal handling stuff. */
 #define PSP_CD_NOTIFYDEAD        0x0040  /**< Register to get a signal */

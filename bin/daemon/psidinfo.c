@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -30,6 +30,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "psidtask.h"
 #include "psidstatus.h"
 #include "psidpartition.h"
+#include "psidhw.h"
 
 #include "psidinfo.h"
 
@@ -531,7 +532,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 			size = 0;
 		    }
 		    idx++;
-		    if (size && (idx >= chunkSize/size)) {
+		    if (size && (idx*size >= chunkSize)) {
 			msg.header.len += idx * size;
 			sendMsg(&msg);
 			msg.header.len -= idx * size;

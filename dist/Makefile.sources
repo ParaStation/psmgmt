@@ -16,6 +16,8 @@ bin/daemon/psidcomm.c \
 bin/daemon/psidcomm.h \
 bin/daemon/psidforwarder.c \
 bin/daemon/psidforwarder.h \
+bin/daemon/psidhw.c \
+bin/daemon/psidhw.h \
 bin/daemon/psidinfo.c \
 bin/daemon/psidinfo.h \
 bin/daemon/psidmsgbuf.c \

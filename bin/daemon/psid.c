@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -64,6 +64,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "psidoption.h"
 #include "psidpartition.h"
 #include "psidstatus.h"
+#include "psidhw.h"
 
 struct timeval mainTimer;
 struct timeval selectTime;
@@ -553,69 +554,6 @@ static void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	sendMsg(&outmsg);
     }
 }
-
-/** @doctodo */
-static void informOtherNodes(void)
-{
-    DDOptionMsg_t msg = (DDOptionMsg_t) {
-	.header = (DDMsg_t) {
-	    .type = PSP_CD_SETOPTION,
-	    .sender = PSC_getMyTID(),
-	    .dest = 0,
-	    .len = sizeof(msg) },
-	.count = 1,
-	.opt = {(DDOption_t) {
-	    .option =  PSP_OP_HWSTATUS,
-	    .value =  PSnodes_getHWStatus(PSC_getMyID()) }
-	}};
-
-    if (broadcastMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	PSID_warn(-1, errno, "%s: broadcastMsg()", __func__);
-    }
-}
-
-/** @doctodo */
-static void msg_HWSTART(DDBufferMsg_t *msg)
-{
-    PSID_log(PSID_LOG_HW, "%s: requester %s\n",
-	     __func__, PSC_printTID(msg->header.sender));
-
-    if (msg->header.dest == PSC_getMyTID()) {
-	int hw = *(int *)msg->buf;
-	int status = PSnodes_getHWStatus(PSC_getMyID());
-
-	if (hw == -1) {
-	    PSID_startAllHW();
-	} else {
-	    PSID_startHW(hw);
-	}
-	if (status != PSnodes_getHWStatus(PSC_getMyID())) informOtherNodes();
-    } else {
-	sendMsg(msg);
-    }
-}
-
-/** @doctodo */
-static void msg_HWSTOP(DDBufferMsg_t *msg)
-{
-    PSID_log(PSID_LOG_HW, "%s: requester %s\n",
-	     __func__, PSC_printTID(msg->header.sender));
-
-    if (msg->header.dest == PSC_getMyTID()) {
-	int hw = *(int *)msg->buf;
-	int status = PSnodes_getHWStatus(PSC_getMyID());
-
-	if (hw == -1) {
-	    PSID_stopAllHW();
-	} else {
-	    PSID_stopHW(hw);
-	}
-	if (status != PSnodes_getHWStatus(PSC_getMyID())) informOtherNodes();
-    } else {
-	sendMsg(msg);
-    }
-}
-
 
 /******************************************
  *  msg_SPAWNREQUEST()
