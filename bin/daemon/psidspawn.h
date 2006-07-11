@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -28,32 +28,64 @@ extern "C" {
 #endif
 
 #include "pstask.h"
+#include "psprotocol.h"
 
 /**
- * @brief Spawn a new process.
+ * @brief Handle a PSP_CD_SPAWNREQUEST message.
  *
- * Spawn a new process described by @a client. In order to do this,
- * first of all a forwarder is created that sets up a sendbox for the
- * client process to run in. The the actual client process is started
- * within this sandbox.
+ * Handle the message @a msg of type PSP_CD_SPAWNREQUEST.
  *
- * All necessary information determined during startup of the
- * forwarder and client process is stored within the corresponding
- * task structures. For the forwarder this includes the task ID and
- * the file descriptor connecting the local daemon to the
- * forwarder. For the client only the task ID is stored.
+ * Spawn a process as described with @a msg. Therefor a @ref PStask_t
+ * structure is extracted from @a msg. If called on the node of the
+ * initiating task, various tests are undertaken in order to determine
+ * the spawn to be allowed. If all tests pass, the message is
+ * forwarded to the target-node where the process to spawn is created.
  *
- * @param forwarder Task structure describing the forwarder process to
- * create.
+ * @param msg Pointer to the message to handle.
  *
- * @param client Task structure describing the actual client process
- * to create.
- *
- * @return On success, 0 is returned. If something went wrong, a value
- * different from 0 is returned. This value might be interpreted as an
- * errno describing the problem that occurred during the spawn.
+ * @return No return value.
  */
-int PSID_spawnTask(PStask_t *forwarder, PStask_t *client);
+void msg_SPAWNREQUEST(DDBufferMsg_t *msg);
+
+/**
+ * @brief Handle a PSP_CD_SPAWNSUCCESS message.
+ *
+ * Handle the message @a msg of type PSP_CD_SPAWNSUCCESS.
+ *
+ * Register the spawned process to its parent task and forward the
+ * message to the initiating process.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+void msg_SPAWNSUCCESS(DDErrorMsg_t *msg);
+
+/**
+ * @brief Handle a PSP_CD_SPAWNFAILED message.
+ *
+ * Handle the message @a msg of type PSP_CD_SPAWNFAILED.
+ *
+ * This just forwards the message to the initiating process.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+void msg_SPAWNFAILED(DDErrorMsg_t *msg);
+
+/**
+ * @brief Handle a PSP_CD_SPAWNFINISH message.
+ *
+ * Handle the message @a msg of type PSP_CD_SPAWNFINISH.
+ *
+ * This just forwards the message to the initiating process.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+void msg_SPAWNFINISH(DDMsg_t *msg);
 
 #ifdef __cplusplus
 }/* extern "C" */
