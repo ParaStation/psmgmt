@@ -94,6 +94,8 @@ typedef struct PStask_T{
     /*C*/ int32_t argc;            /**< num of args, length of @a argv */
     /*C*/ char **argv;             /**< command line arguments */
     /*C*/ char **environ;          /**< PS environment, used for spawning */
+    int envSize;                   /**< Cur. size of environ (needed
+				      during @ref PStask_decodeEnv()) */
     int relativesignal;            /**< the signal sent when a relative (i.e.
 				      parent or child) dies */
     int pendingReleaseRes;         /**< num of pending RELEASERES messages */
@@ -222,10 +224,66 @@ void PStask_snprintf(char *txt, size_t size, PStask_t *task);
 
 /**
  * @brief Encode a task structure.
+ * @deprecated
  *
  * Encode the task structure @a task into the the buffer @a buffer of
  * size @a size. This enables the task to be sent to a remote node
- * where it can be decoded using the PStask_decode() function.
+ * where it can be decoded using the @ref PStask_decodeFull() function.
+ *
+ * This function encodes the full task structure, i.e. including the
+ * argv part and the whole environment. This might lead to huge
+ * packets sent to remote nodes on the hand and disables some task
+ * structures to be sent at all.
+ *
+ * In order to circumvent such problems, a new family of encoding
+ * functions (@ref PStask_encodeTask(), @ref PStask_encodeArgs(), @ref
+ * PStask_encodeEnv()) was introduced.
+ *
+ * @param buffer The buffer used to encode the task structure.
+ *
+ * @param size The size of the buffer.
+ *
+ * @param task The task structure to encode.
+ *
+ * @return On success, the number of bytes written to the buffer are
+ * returned. If the return value is larger than @a size, the buffer is
+ * to small in order to encode the whole task. If this is the case the
+ * new family of encoding functions might help.
+ *
+ * @see PStask_decodeFull(), PStask_encodeTask(), PStask_encodeArgs(),
+ * PStask_encodeEnv()
+ */
+size_t PStask_encodeFull(char *buffer, size_t size, PStask_t *task);
+
+/**
+ * @brief Decode a task structure.
+ *
+ * Decode a task structure encoded by @ref PStask_encodeFull() and
+ * stored within @a buffer and write it to the task structure @a task
+ * is pointing to.
+ *
+ * @param buffer The buffer the encoded task strucure is stored in.
+ *
+ * @param task The task structure to write to.
+ *
+ * @return The number of chars within @a buffer used in order to
+ * decode the task structure.
+ *
+ * @see PStask_encodeFull()
+ */
+int PStask_decodeFull(char *buffer, PStask_t *task);
+
+/**
+ * @brief Encode a task structure.
+ *
+ * Encode the task structure @a task into the the buffer @a buffer of
+ * size @a size. This enables the task to be sent to a remote node
+ * where it can be decoded using the @ref PStask_decodeTask() function.
+ *
+ * Beware of the fact that the argv and environment part of the task
+ * structure is not encoded. In order to send these part they have to
+ * be encoded separately using the @ref PStask_encodeArgs() and @ref
+ * PStask_encodeEnv() functions.
  *
  * @param buffer The buffer used to encode the task structure.
  *
@@ -237,14 +295,14 @@ void PStask_snprintf(char *txt, size_t size, PStask_t *task);
  * returned. If the return value is larger than @a size, the buffer is
  * to small in order to encode the whole task.
  *
- * @see PStask_decode()
+ * @see PStask_decodeTask(), PStask_encodeArgs(), PStask_encodeEnv()
  */
-size_t PStask_encode(char *buffer, size_t size, PStask_t *task);
+size_t PStask_encodeTask(char *buffer, size_t size, PStask_t *task);
 
 /**
  * @brief Decode a task structure.
  *
- * Decode a task structure encoded by PStask_encode() and stored
+ * Decode a task structure encoded by PStask_encodeTask() and stored
  * within @a buffer and write it to the task structure @a task is
  * pointing to.
  *
@@ -255,7 +313,101 @@ size_t PStask_encode(char *buffer, size_t size, PStask_t *task);
  * @return The number of chars within @a buffer used in order to
  * decode the task structure.
  */
-int PStask_decode(char *buffer, PStask_t *task);
+int PStask_decodeTask(char *buffer, PStask_t *task);
+
+/**
+ * @brief Encode argv part of task structure.
+ *
+ * Encode the argv-part of a task structure @a task into the the
+ * buffer @a buffer of size @a size. This enables the task to be sent
+ * to a remote node where this part can be decoded using the
+ * @ref PStask_decodeArgs() function.
+ *
+ * The actual task structure might be encoded using the @ref
+ * PStask_encodeTask() function.
+ *
+ * @param buffer The buffer used to encode the task structure.
+ *
+ * @param size The size of the buffer.
+ *
+ * @param task The task structure to encode.
+ *
+ * @return On success, the number of bytes written to the buffer are
+ * returned. If the return value is larger than @a size, the buffer is
+ * to small in order to encode the task's argv-part.
+ *
+ * @see PStask_encodeTask(), PStask_decodeArgs()
+ */
+size_t PStask_encodeArgs(char *buffer, size_t size, PStask_t *task);
+
+/**
+ * @brief Decode argv part of task structure.
+ *
+ * Decode the argv-part of a task structure encoded by
+ * PStask_encodeArgs() and stored within @a buffer and write it to the
+ * task structure @a task is pointing to.
+ *
+ * @param buffer The buffer the encoded argv-part is stored in.
+ *
+ * @param task The task structure to write to.
+ *
+ * @return The number of chars within @a buffer used in order to
+ * decode the argv-part of the task structure.
+ */
+int PStask_decodeArgs(char *buffer, PStask_t *task);
+
+/**
+ * @brief Encode environment part of task structure.
+ *
+ * Encode the environment-part of a task structure @a task into the
+ * the buffer @a buffer of size @a size. This enables the task to be
+ * sent to a remote node where it can be decoded using the
+ * PStask_decodeEnv() function.
+ *
+ * The actual task structure might be encoded using the @ref
+ * PStask_encodeTask() function.
+ *
+ * Since the environment-part of a task structure might be
+ * substantially larger than the buffer's size @a size, it might be
+ * splitted into more than one messages and thus buffer contents. To
+ * support this feature, a pointer to an integer within the calling
+ * context @a cur has to be provided. The integer @a cur points to has
+ * to be set to 0 before calling this function for the first time on a
+ * given structure @a task. During consecutive calls with the same @a
+ * task it has to be left untouched.
+ *
+ * @param buffer The buffer used to encode the task structure.
+ *
+ * @param size The size of the buffer.
+ *
+ * @param task The task structure containing the environment to encode.
+ *
+ * @param cur Pointer to an integer holding the internal status in
+ * between consecutive calls.
+ *
+ * @return On success, the number of bytes written to the buffer are
+ * returned. If the return value is larger than @a size, the buffer is
+ * to small in order to encode the whole task.
+ *
+ * @see PStask_encodeTask() PStask_decodeEnv()
+ */
+size_t PStask_encodeEnv(char *buffer, size_t size, PStask_t *task, int *cur);
+
+/**
+ * @brief Decode environment part of task structure.
+ *
+ * Decode the environment-part of a task structure encoded by
+ * PStask_encodeArgs() and stored within @a buffer and write it to the
+ * task structure @a task is pointing to.
+ *
+ * @param buffer The buffer the encoded environment-part is stored in.
+ *
+ * @param task The task structure to write to.
+ *
+ * @return The number of chars within @a buffer used in order to
+ * decode the environment-part of the task structure.
+ */
+int PStask_decodeEnv(char *buffer, PStask_t *task);
 
 #ifdef __cplusplus
 }/* extern "C" */

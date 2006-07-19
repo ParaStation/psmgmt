@@ -41,7 +41,7 @@ PStask_t* PStask_new(void)
 
     task = (PStask_t*)malloc(sizeof(PStask_t));
 
-    PStask_init(task);
+    if (task) PStask_init(task);
 
     return task;
 }
@@ -65,6 +65,7 @@ int PStask_init(PStask_t* task)
     task->argc = 0;
     task->argv = NULL;
     task->environ = NULL;
+    task->envSize = 0;
     task->relativesignal = SIGTERM;
     task->pendingReleaseRes = 0;
     task->released = 0;
@@ -205,11 +206,8 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->argv = (char**)malloc(sizeof(char*)*(task->argc+1));
     for (i=0; i<task->argc; i++) clone->argv[i] = strdup(task->argv[i]);
     clone->argv[clone->argc] = NULL;
-    /* Get number of environment variables */
-    i = 0;
-    if (task->environ) for (i=0; task->environ[i]; i++);
-
-    if (i) clone->environ = (char**)malloc((i+1)*sizeof(char*));
+    if (task->envSize)
+	clone->environ = (char**)malloc(task->envSize*sizeof(char*));
 
     if (clone->environ) {
 	for (i=0; task->environ[i]; i++) {
@@ -217,6 +215,7 @@ PStask_t* PStask_clone(PStask_t* task)
 	}
 	clone->environ[i] = NULL;
     }
+    clone->envSize = task->envSize;
     clone->relativesignal = task->relativesignal;
     clone->pendingReleaseRes = task->pendingReleaseRes;
     clone->released = task->released;
@@ -261,9 +260,11 @@ void PStask_snprintf(char *txt, size_t size, PStask_t * task)
 	     (task->workingdir)?task->workingdir:"");
     if (strlen(txt)+1 == size) return;
 
-    for (i=0; i<task->argc; i++) {
-	snprintf(txt+strlen(txt), size-strlen(txt), "%s ", task->argv[i]);
-	if (strlen(txt)+1 == size) return;
+    if (task->argv) {
+	for (i=0; i<task->argc; i++) {
+	    snprintf(txt+strlen(txt), size-strlen(txt), "%s ", task->argv[i]);
+	    if (strlen(txt)+1 == size) return;
+	}
     }
 
     snprintf(txt+strlen(txt), size-strlen(txt), "\" env=");
@@ -295,7 +296,7 @@ static struct {
 
 static char taskString[256];
 
-size_t PStask_encode(char *buffer, size_t size, PStask_t *task)
+size_t PStask_encodeFull(char *buffer, size_t size, PStask_t *task)
 {
     size_t msglen;
     int i;
@@ -368,7 +369,7 @@ size_t PStask_encode(char *buffer, size_t size, PStask_t *task)
     return msglen;
 }
 
-int PStask_decode(char *buffer, PStask_t *task)
+int PStask_decodeFull(char *buffer, PStask_t *task)
 {
     int msglen, len, count, i;
 
@@ -418,10 +419,236 @@ int PStask_decode(char *buffer, PStask_t *task)
 	len += strlen(&buffer[len])+1;
     }
 
-    if (count) task->environ = (char**)malloc((count+1)*sizeof(char*));
-
+    if (count) {
+	task->environ = (char**)malloc((count+1)*sizeof(char*));
+	task->envSize = count+1;
+    }
     if (task->environ) {
 	i = 0;
+	while (strlen(&buffer[msglen])) {
+	    task->environ[i] = strdup(&buffer[msglen]);
+	    msglen += strlen(&buffer[msglen])+1;
+	    i++;
+	}
+	task->environ[i] = NULL;
+	msglen++;
+    }
+
+    PStask_snprintf(taskString, sizeof(taskString), task);
+    PSC_log(PSC_LOG_TASK, " received task = (%s)\n", taskString);
+    PSC_log(PSC_LOG_TASK, "%s returns %d\n", __func__, msglen);
+
+    return msglen;
+}
+
+size_t PStask_encodeTask(char *buffer, size_t size, PStask_t *task)
+{
+    size_t msglen = sizeof(tmpTask);
+
+    PStask_snprintf(taskString, sizeof(taskString), task);
+    PSC_log(PSC_LOG_TASK, "%s(%p, %ld, task(%s))\n",
+	    __func__, buffer, (long)size, taskString);
+
+    if (msglen > size) return msglen; /* buffer to small */
+
+    tmpTask.tid = task->tid;
+    tmpTask.ptid = task->ptid;
+    tmpTask.uid = task->uid;
+    tmpTask.gid = task->gid;
+    tmpTask.aretty = task->aretty;
+    tmpTask.termios = task->termios;
+    tmpTask.winsize = task->winsize;
+    tmpTask.group = task->group;
+    tmpTask.rank = task->rank;
+    tmpTask.loggertid = task->loggertid;
+    tmpTask.argc = task->argc;
+
+    memcpy(buffer, &tmpTask, sizeof(tmpTask));
+
+    if (task->workingdir) {
+	if (msglen + strlen(task->workingdir) < size) {
+	    strcpy(&buffer[msglen], task->workingdir);
+	    msglen += strlen(task->workingdir);
+	} else {
+	    /* buffer to small */
+	    return msglen + strlen(task->workingdir);
+	}
+    } else {
+	buffer[msglen]='\0';
+    }
+    msglen++; /* zero byte */
+
+    return msglen;
+}
+
+int PStask_decodeTask(char *buffer, PStask_t *task)
+{
+    int msglen, len;
+
+    if (!task) {
+	PSC_log(-1, "%s: task is NULL\n", __func__);
+	return 0;
+    }
+
+    PStask_snprintf(taskString, sizeof(taskString), task);
+    PSC_log(PSC_LOG_TASK, "%s(%p, task(%s))\n",
+	    __func__, buffer, taskString);
+
+    PStask_reinit(task);
+
+    /* unpack buffer */
+    msglen = sizeof(tmpTask);
+    memcpy(&tmpTask, buffer, sizeof(tmpTask));
+
+    task->tid = tmpTask.tid;
+    task->ptid = tmpTask.ptid;
+    task->uid = tmpTask.uid;
+    task->gid = tmpTask.gid;
+    task->aretty = tmpTask.aretty;
+    task->termios = tmpTask.termios;
+    task->winsize = tmpTask.winsize;
+    task->group = tmpTask.group;
+    task->rank = tmpTask.rank;
+    task->loggertid = tmpTask.loggertid;
+    task->argc = tmpTask.argc;
+
+    len = strlen(&buffer[msglen]);
+
+    if (len) task->workingdir = strdup(&buffer[msglen]);
+    msglen += len+1;
+
+    PStask_snprintf(taskString, sizeof(taskString), task);
+    PSC_log(PSC_LOG_TASK, " received task = (%s)\n", taskString);
+    PSC_log(PSC_LOG_TASK, "%s returns %d\n", __func__, msglen);
+
+    return msglen;
+}
+
+size_t PStask_encodeArgs(char *buffer, size_t size, PStask_t *task)
+{
+    size_t msglen = 0;
+    int i;
+
+    PStask_snprintf(taskString, sizeof(taskString), task);
+    PSC_log(PSC_LOG_TASK, "%s(%p, %ld, task(%s))\n",
+	    __func__, buffer, (long)size, taskString);
+
+    for (i=0; i<task->argc; i++) {
+	if (msglen + strlen(task->argv[i]) < size) {
+	    strcpy(&buffer[msglen], task->argv[i]);
+	    msglen += strlen(task->argv[i])+1;
+	} else {
+	    /* buffer to small */
+	    return msglen + strlen(task->argv[i]) + 1;
+	}
+    }
+
+    return msglen;
+}
+
+int PStask_decodeArgs(char *buffer, PStask_t *task)
+{
+    int msglen=0, i;
+
+    if (!task) {
+	PSC_log(-1, "%s: task is NULL\n", __func__);
+	return 0;
+    }
+
+    PStask_snprintf(taskString, sizeof(taskString), task);
+    PSC_log(PSC_LOG_TASK, "%s(%p, task(%s))\n",
+	    __func__, buffer, taskString);
+
+
+    /* Get the arguments */
+    task->argv = (char**)malloc(sizeof(char*)*(task->argc+1));
+    for (i=0; i<task->argc; i++) {
+	task->argv[i] = strdup(&buffer[msglen]);
+	msglen += strlen(&buffer[msglen])+1;
+    }
+    task->argv[task->argc] = NULL;
+
+    PStask_snprintf(taskString, sizeof(taskString), task);
+    PSC_log(PSC_LOG_TASK, " received task = (%s)\n", taskString);
+    PSC_log(PSC_LOG_TASK, "%s returns %d\n", __func__, msglen);
+
+    return msglen;
+}
+
+size_t PStask_encodeEnv(char *buffer, size_t size, PStask_t *task, int *cur)
+{
+    size_t msglen = 0;
+    int first=*cur;
+
+    PStask_snprintf(taskString, sizeof(taskString), task);
+    PSC_log(PSC_LOG_TASK, "%s(%p, %ld, task(%s))\n",
+	    __func__, buffer, (long)size, taskString);
+
+    if (task->environ) {
+	for (; task->environ[*cur]; (*cur)++) {
+	    if (msglen + strlen(task->environ[*cur]) + 1 < size) {
+		strcpy(&buffer[msglen], task->environ[*cur]);
+		msglen += strlen(task->environ[*cur])+1;
+	    } else if (*cur > first) {
+		break;
+	    } else {
+		/* buffer to small */
+		return msglen + strlen(task->environ[*cur]) + 1;
+	    }
+	}
+    }
+    /* append zero byte */
+    if (msglen < size) {
+	buffer[msglen] = '\0';
+	msglen++;
+    } else {
+	/* buffer to small */
+	return msglen + 1;
+    }
+
+    return msglen;
+}
+
+int PStask_decodeEnv(char *buffer, PStask_t *task)
+{
+    int msglen=0, i;
+    int envSize, envNew;
+
+    if (!task) {
+	PSC_log(-1, "%s: task is NULL\n", __func__);
+	return 0;
+    }
+
+    PStask_snprintf(taskString, sizeof(taskString), task);
+    PSC_log(PSC_LOG_TASK, "%s(%p, task(%s))\n",
+	    __func__, buffer, taskString);
+
+    if (!task) return 0;
+
+    /* Get number of existing environment variables */
+    envSize = 0;
+    if (task->environ) {
+	while (task->environ[envSize]) envSize++;
+    }
+
+    /* Get number of new environment variables */
+    envNew = task->envSize;
+    while (strlen(&buffer[msglen])) {
+	envNew ++;
+	msglen += strlen(&buffer[msglen])+1;
+    }
+
+    /* Extend environ (if necessary) */
+    if (envSize+envNew+1 > task->envSize) {
+	task->environ = realloc(task->environ,
+				(envSize+envNew+1)*sizeof(char*));
+	task->envSize = envSize+envNew+1;
+    }
+
+    /* Unpack new environment */
+    if (task->environ) {
+	msglen = 0;
+	i = envSize;
 	while (strlen(&buffer[msglen])) {
 	    task->environ[i] = strdup(&buffer[msglen]);
 	    msglen += strlen(&buffer[msglen])+1;

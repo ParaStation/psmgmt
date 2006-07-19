@@ -296,6 +296,30 @@ static void resetSignals(void)
 #endif
 }
 
+/**
+ * @brief Create fd pair
+ *
+ * Create a pair of file-descriptors @a fds acting as forwarder's
+ * stdout or stderr connections to an actual client. The task
+ * structure @a task determines in the member @a aretty if openpty()
+ * or socketpair() is used to create the file-descriptor-pair. @a
+ * fileNo is either STDOUT_FILENO or STDERR_FILENO and steers creation
+ * of the corresponding channels. The file-descriptor @a cntrlCh is
+ * used for flagging possible errors to a calling process.
+ *
+ * @param task Task structure determining the use of either openpty()
+ * or socketpair().
+ *
+ * @param fds The pair of file-descriptors to create.
+ *
+ * @param fileNo Either STDOUT_FILENO or STDERR_FILENO.
+ *
+ * @param cntrlCh Possible errnos are send to this file-descriptor
+ *
+ * @return No return value.
+ *
+ * @see openpty(), socketpair()
+ */
 static void openChannel(PStask_t *task, int *fds, int fileNo, int cntrlCh)
 {
     char *fdName = (fileNo == STDOUT_FILENO) ? "stdout" :
@@ -541,12 +565,12 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 }
 
 /**
- * @brief Spawn a new process.
+ * @brief Build sandbox and spawn process within.
  *
- * Spawn a new process described by @a client. In order to do this,
- * first of all a forwarder is created that sets up a sendbox for the
- * client process to run in. The the actual client process is started
- * within this sandbox.
+ * Build a new sandbox and spawn the process described by @a client
+ * within. In order to do this, first of all a forwarder is created
+ * that sets up a sandbox for the client process to run in. The the
+ * actual client process is started within this sandbox.
  *
  * All necessary information determined during startup of the
  * forwarder and client process is stored within the corresponding
@@ -564,7 +588,7 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
  * different from 0 is returned. This value might be interpreted as an
  * errno describing the problem that occurred during the spawn.
  */
-static int spawnTask(PStask_t *forwarder, PStask_t *client)
+static int buildSandbox(PStask_t *forwarder, PStask_t *client)
 {
     int forwarderfds[2];  /* pipe fds to control forwarders startup */
     int socketfds[2];     /* sockets for communication with forwarder */
@@ -706,17 +730,165 @@ static int spawnTask(PStask_t *forwarder, PStask_t *client)
     return ret;
 }
 
+/**
+ * @brief Check spawn request
+ *
+ * Check if the spawnrequest as decoded in @a task is correct, i.e. if
+ * it does not violate some security measures or node configurations.
+ *
+ * While checking the request it is assumed that its origin is the
+ * task @a sender.
+ *
+ * @param sender Assumed origin of the spawn request.
+ *
+ * @param task Task structure describing the spawn request.
+ *
+ * @return On success, 0 is returned. Otherwise the return value might
+ * be interpreted as an errno.
+ */
+static int checkRequest(PStask_ID_t sender, PStask_t *task)
+{
+    PStask_t *ptask;
+
+    if (sender != task->ptid) {
+	/* Sender has to be parent */
+	PSID_log(-1, "%s: spawner tries to cheat\n", __func__);
+	return EACCES;
+    }
+
+    ptask = PStasklist_find(managedTasks, task->ptid);
+
+    if (!ptask) {
+	/* Parent not found */
+	PSID_log(-1, "%s: parent task not found\n", __func__);
+	return EACCES;
+    }
+
+    if (ptask->uid && task->uid!=ptask->uid) {
+	/* Spawn tries to change uid */
+	PSID_log(-1, "%s: try to setuid() task->uid %d  ptask->uid %d\n",
+		 __func__, task->uid, ptask->uid);
+	return EACCES;
+    }
+
+    if (ptask->gid && task->gid!=ptask->gid) {
+	/* Spawn tries to change gid */
+	PSID_log(-1, "%s: try to setgid() task->gid %d  ptask->gid %d\n",
+		 __func__, task->gid, ptask->gid);
+	return EACCES;
+    }
+
+    if (!PSnodes_isStarter(PSC_getMyID()) && ptask->group == TG_LOGGER) {
+	/* starting not allowed */
+	PSID_log(-1, "%s: spawning not allowed\n", __func__);
+	return EACCES;
+    }
+
+    PSID_log(PSID_LOG_SPAWN, "%s: request from %s ok\n", __func__,
+	     PSC_printTID(task->ptid));
+    return 0;
+}
+
+/**
+ * @brief Spawn new task.
+ *
+ * Build a new sandbox and spawn the process described by @a client
+ * within. In order to do this, first of all a forwarder is created
+ * that sets up a sandbox for the client process to run in. The the
+ * actual client process is started within this sandbox.
+ *
+ * All necessary information determined during startup of the
+ * forwarder and client process is stored within the corresponding
+ * task structures. For the forwarder this includes the task ID and
+ * the file descriptor connecting the local daemon to the
+ * forwarder. For the client only the task ID is stored.
+ *
+ * @param task Task structure describing the task to create.
+ *
+ * @return On success, 0 is returned. If something went wrong, a value
+ * different from 0 is returned. This value might be interpreted as an
+ * errno describing the problem that occurred during the spawn.
+ */
+static int spawnTask(PStask_t *task)
+{
+    PStask_t *forwarder;
+    int err;
+
+    if (!task) return EINVAL;
+
+    /* prepare forwarder task */
+    forwarder = PStask_clone(task);
+    if (forwarder->argv) {
+	int i;
+	for (i=0; i<forwarder->argc; i++) {
+	    if (forwarder->argv[i]) free(forwarder->argv[i]);
+	}
+	free(forwarder->argv);
+	forwarder->argv = NULL;
+	forwarder->argc = 0;
+    }
+    forwarder->group = TG_FORWARDER;
+    forwarder->protocolVersion = PSprotocolVersion;
+
+    /* now try to start the task */
+    err = buildSandbox(forwarder, task);
+
+    if (!err) {
+	/*
+	 * Mark the spawned task as the forwarders childs. Thus the task
+	 * will get a signal if the forwarder dies unexpectedly.
+	 */
+	PSID_setSignal(&forwarder->childs, task->tid, -1);
+	/* Enqueue the forwarder */
+	PStasklist_enqueue(&managedTasks, forwarder);
+	/* The forwarder is already connected and established */
+	registerClient(forwarder->fd, forwarder->tid, forwarder);
+	setEstablishedClient(forwarder->fd);
+	FD_SET(forwarder->fd, &PSID_readfds);
+	/* Tell everybody about the new forwarder task */
+	incJobs(1, (forwarder->group==TG_ANY));
+
+	/*
+	 * The task will get a signal from its parent. Thus add ptid
+	 * to assignedSigs
+	 */
+	PSID_setSignal(&task->assignedSigs, task->ptid, -1);
+	/* Enqueue the task */
+	PStasklist_enqueue(&managedTasks, task);
+	/* Tell everybody about the new task */
+	incJobs(1, (task->group==TG_ANY));
+
+	/*
+	 * The answer will be sent directly to the initiator if he is on
+	 * the same node. Thus register directly as his child.
+	 */
+	if (PSC_getID(task->ptid) == PSC_getMyID()) {
+	    PStask_t *parent = PStasklist_find(managedTasks, task->ptid);
+
+	    if (parent) {
+		PSID_setSignal(&parent->childs, task->tid, -1);
+	    }
+	}
+    } else {
+	PSID_warn(PSID_LOG_SPAWN, err, "%s: spawnTask()", __func__);
+
+	PStask_delete(forwarder);
+	PStask_delete(task);
+    }
+
+    return err;
+}
+
 void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 {
     PStask_t *task;
     DDErrorMsg_t answer;
-    int err = 0;
 
     char tasktxt[128];
 
     task = PStask_new();
 
-    PStask_decode(msg->buf, task);
+    PStask_decodeFull(msg->buf, task);
 
     PStask_snprintf(tasktxt, sizeof(tasktxt), task);
     PSID_log(PSID_LOG_SPAWN, "%s: from %s msglen %d task %s\n", __func__,
@@ -725,45 +897,10 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
     answer.header.dest = msg->header.sender;
     answer.header.sender = PSC_getMyTID();
     answer.header.len = sizeof(answer);
-    answer.error = 0;
 
     /* If message is from my node, test if everything is okay */
     if (PSC_getID(msg->header.sender)==PSC_getMyID()) {
-	PStask_t *ptask;
-
-	if (msg->header.sender!=task->ptid) {
-	    /* Sender has to be parent */
-	    PSID_log(-1, "%s: spawner tries to cheat\n", __func__);
-	    answer.error = EACCES;
-	}
-
-	ptask = PStasklist_find(managedTasks, task->ptid);
-
-	if (!ptask) {
-	    /* Parent not found */
-	    PSID_log(-1, "%s: parent task not found\n", __func__);
-	    answer.error = EACCES;
-	}
-
-	if (ptask->uid && task->uid!=ptask->uid) {
-	    /* Spawn tries to change uid */
-	    PSID_log(-1, "%s: try to setuid() task->uid %d  ptask->uid %d\n",
-		     __func__, task->uid, ptask->uid);
-	    answer.error = EACCES;
-	}
-
-	if (ptask->gid && task->gid!=ptask->gid) {
-	    /* Spawn tries to change gid */
-	    PSID_log(-1, "%s: try to setgid() task->gid %d  ptask->gid %d\n",
-		     __func__, task->gid, ptask->gid);
-	    answer.error = EACCES;
-	}
-
-	if (!PSnodes_isStarter(PSC_getMyID()) && ptask->group == TG_LOGGER) {
-	    /* starting not allowed */
-	    PSID_log(-1, "%s: spawning not allowed\n", __func__);
-	    answer.error = EACCES;
-	}
+	answer.error = checkRequest(msg->header.sender, task);
 
 	if (answer.error) {
 	    PStask_delete(task);
@@ -773,81 +910,17 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	    sendMsg(&answer);
 
 	    return;
-	}	
+	}
     }
-    
+
     if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
-	PStask_t *forwarder;
-	/*
-	 * this is a request for my node
-	 */
-	forwarder = PStask_clone(task);
-	{
-	    int arg;
-	    for (arg=0; arg<forwarder->argc; arg++)
-		if (forwarder->argv[arg]) free(forwarder->argv[arg]);
-	    if (forwarder->argv) free(forwarder->argv);
-	    forwarder->argv = NULL;
-	    forwarder->argc = 0;
-	}
-	forwarder->group = TG_FORWARDER;
-	forwarder->protocolVersion = PSprotocolVersion;
-	/*
-	 * try to start the task
-	 */
-	err = spawnTask(forwarder, task);
+	answer.error = spawnTask(task);
 
-	answer.header.type = (err ? PSP_CD_SPAWNFAILED : PSP_CD_SPAWNSUCCESS);
-	answer.error = err;
+	answer.header.type =
+	    (answer.error ? PSP_CD_SPAWNFAILED : PSP_CD_SPAWNSUCCESS);
+	if (!answer.error) answer.header.sender = task->tid;
 
-	if (!err) {
-	    /*
-	     * Mark the spawned task as the forwarders childs. Thus the task
-	     * will get a signal if the forwarder dies unexpectedly.
-	     */
-	    PSID_setSignal(&forwarder->childs, task->tid, -1);
-	    /* Enqueue the forwarder */
-	    PStasklist_enqueue(&managedTasks, forwarder);
-	    /* The forwarder is already connected and established */
-	    registerClient(forwarder->fd, forwarder->tid, forwarder);
-	    setEstablishedClient(forwarder->fd);
-	    FD_SET(forwarder->fd, &PSID_readfds);
-	    /* Tell everybody about the new forwarder task */
-	    incJobs(1, (forwarder->group==TG_ANY));
-
-	    /*
-	     * The task will get a signal from its parent. Thus add ptid
-	     * to assignedSigs
-	     */
-	    PSID_setSignal(&task->assignedSigs, task->ptid, -1);
-	    /* Enqueue the task */
-	    PStasklist_enqueue(&managedTasks, task);
-	    /* Tell everybody about the new task */
-	    incJobs(1, (task->group==TG_ANY));
-
-	    answer.header.sender = task->tid;
-
-	    /*
-	     * The answer will be sent directly to the initiator if he is on
-	     * the same node. Thus register directly as his child.
-	     */
-	    if (PSC_getID(task->ptid) == PSC_getMyID()) {
-		PStask_t *parent = PStasklist_find(managedTasks, task->ptid);
-
-		if (parent) {
-		    PSID_setSignal(&parent->childs, task->tid, -1);
-		}
-	    }
-	} else {
-	    PSID_warn(PSID_LOG_SPAWN, err, "%s: spawnTask()", __func__);
-
-	    PStask_delete(forwarder);
-	    PStask_delete(task);
-	}
-
-	/*
-	 * send the existence or failure of the request
-	 */
+	/* send the existence or failure of the request */
 	sendMsg(&answer);
     } else {
 	/* request for a remote site. */
@@ -867,6 +940,128 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	}
 
 	PStask_delete(task);
+    }
+}
+
+/**
+ * List of all tasks waiting to get spawned, i.e. waiting for last
+ * environment packets to come in.
+ */
+static PStask_t *spawnTasks = NULL;
+
+void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
+{
+    PStask_t *task;
+    DDErrorMsg_t answer;
+    size_t usedBytes;
+
+    char tasktxt[128];
+
+    PSID_log(PSID_LOG_SPAWN, "%s: from %s msglen %d\n", __func__,
+	     PSC_printTID(msg->header.sender), msg->header.len);
+
+    answer.header.dest = msg->header.sender;
+    answer.header.sender = PSC_getMyTID();
+    answer.header.len = sizeof(answer);
+    answer.error = 0;
+
+    /* If message is from my node, test if everything is okay */
+    if (PSC_getID(msg->header.sender)==PSC_getMyID()
+	&& msg->type == PSP_SPAWN_TASK) {
+	task = PStask_new();
+	PStask_decodeTask(msg->buf, task);
+	answer.error = checkRequest(msg->header.sender, task);
+
+	if (answer.error) {
+	    PStask_delete(task);
+	    answer.header.type = PSP_CD_SPAWNFAILED;
+	    sendMsg(&answer);
+
+	    return;
+	}
+	PStask_delete(task);
+    }
+
+    if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
+	/* request for a remote site. */
+	if (!PSnodes_isUp(PSC_getID(msg->header.dest))) {
+	    send_DAEMONCONNECT(PSC_getID(msg->header.dest));
+	}
+
+	PSID_log(PSID_LOG_SPAWN, "%s: forwarding to node %d\n",
+		 __func__, PSC_getID(msg->header.dest));
+
+	if (sendMsg(msg) < 0) {
+	    answer.header.type = PSP_CD_SPAWNFAILED;
+	    answer.header.sender = msg->header.dest;
+	    answer.error = errno;
+
+	    sendMsg(&answer);
+	}
+	return;
+    }
+
+    task = PStasklist_find(spawnTasks, msg->header.sender);
+
+    switch (msg->type) {
+    case PSP_SPAWN_TASK:
+	if (task) {
+	    PStask_snprintf(tasktxt, sizeof(tasktxt), task);
+	    PSID_log(-1, "%s: from %s task %s allready there\n",
+		     __func__, PSC_printTID(msg->header.sender), tasktxt);
+	    return;
+	}
+	task = PStask_new();
+	PStask_decodeTask(msg->buf, task);
+	task->tid = msg->header.sender;
+
+	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
+	PSID_log(PSID_LOG_SPAWN, "%s: create %s\n", __func__, tasktxt);
+
+	PStasklist_enqueue(&spawnTasks, task);
+	return;
+	break;
+    case PSP_SPAWN_ARG:
+	if (!task) {
+	    PSID_log(-1, "%s: PSP_SPAWN_ARG from %s: task not found\n",
+		     __func__, PSC_printTID(msg->header.sender));
+	    return;
+	}
+	usedBytes = PStask_decodeArgs(msg->buf, task);
+	break;
+    case PSP_SPAWN_ENV:
+    case PSP_SPAWN_END:
+	if (!task) {
+	    PSID_log(-1, "%s: PSP_SPAWN_EN[V|D] from %s: task not found\n",
+		     __func__, PSC_printTID(msg->header.sender));
+	    return;
+	}
+	usedBytes = PStask_decodeEnv(msg->buf, task);
+	break;
+    default:
+	PSID_log(-1, "%s: Unknown type '%d'\n", __func__, msg->type);
+	return;
+    }
+
+    if (msg->header.len-sizeof(msg->header)-sizeof(msg->type) != usedBytes) {
+	PSID_log(-1, "%s: problem decoding task %s\n", __func__,
+		 PSC_printTID(msg->header.sender));
+	return;
+    }
+
+    if (msg->type == PSP_SPAWN_END) {
+	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
+	PSID_log(PSID_LOG_SPAWN, "%s: Spawning %s\n", __func__, tasktxt);
+	
+	PStasklist_dequeue(&spawnTasks, task->tid);
+	answer.error = spawnTask(task);
+
+	answer.header.type =
+	    (answer.error ? PSP_CD_SPAWNFAILED : PSP_CD_SPAWNSUCCESS);
+	if (!answer.error) answer.header.sender = task->tid;
+
+	/* send the existence or failure of the request */
+	sendMsg(&answer);
     }
 }
 

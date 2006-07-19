@@ -1053,7 +1053,7 @@ static void msg_RELEASERES(DDSignalMsg_t *msg)
 int handleMsg(int fd, DDBufferMsg_t *msg)
 {
     switch (msg->header.type) {
-    case PSP_CD_CLIENTCONNECT :
+    case PSP_CD_CLIENTCONNECT:
 	msg_CLIENTCONNECT(fd, (DDInitMsg_t *)msg);
 	break;
     case PSP_CD_SETOPTION:
@@ -1069,10 +1069,13 @@ int handleMsg(int fd, DDBufferMsg_t *msg)
     case PSP_CC_ERROR:
 	sendMsg(msg);	/* just forward this kind of messages */
 	break;
-    case PSP_CD_SPAWNREQUEST :
+    case PSP_CD_SPAWNREQUEST:
 	msg_SPAWNREQUEST(msg);
 	break;
-    case PSP_CD_SPAWNSUCCESS :
+    case PSP_CD_SPAWNREQ:
+	msg_SPAWNREQ((DDTypedBufferMsg_t*)msg);
+	break;
+    case PSP_CD_SPAWNSUCCESS:
 	msg_SPAWNSUCCESS((DDErrorMsg_t*)msg);
 	break;
     case PSP_CD_SPAWNFAILED:
@@ -1209,7 +1212,7 @@ int handleMsg(int fd, DDBufferMsg_t *msg)
     case PSP_DD_DEAD_NODE:
 	msg_DEADNODE(msg);
 	break;
-    default :
+    default:
 	PSID_log(-1, "%s: Wrong msgtype %d (%s) from %d\n", __func__,
 		 msg->header.type, PSDaemonP_printMsg(msg->header.type), fd);
 	return 0;
@@ -1474,45 +1477,45 @@ static void sighandler(int sig)
     signal(SIGCHLD,sighandler);
     break;
 
-    case  SIGHUP    : /* hangup, generated when terminal disconnects */
-//    case  SIGINT    : /* interrupt, generated from terminal special char */
-    case  SIGQUIT   : /* (*) quit, generated from terminal special char */
-    case  SIGTSTP   : /* (@) interactive stop */
-    case  SIGCONT   : /* (!) continue if stopped */
-    case  SIGVTALRM : /* virtual time alarm (see setitimer) */
-    case  SIGPROF   : /* profiling time alarm (see setitimer) */
-    case  SIGWINCH  : /* (+) window size changed */
-    case  SIGALRM   : /* alarm clock timeout */
-    case  SIGPIPE   : /* write on a pipe with no one to read it */
+    case  SIGHUP:    /* hangup, generated when terminal disconnects */
+//  case  SIGINT:    /* interrupt, generated from terminal special char */
+    case  SIGQUIT:   /* (*) quit, generated from terminal special char */
+    case  SIGTSTP:   /* (@) interactive stop */
+    case  SIGCONT:   /* (!) continue if stopped */
+    case  SIGVTALRM: /* virtual time alarm (see setitimer) */
+    case  SIGPROF:   /* profiling time alarm (see setitimer) */
+    case  SIGWINCH:  /* (+) window size changed */
+    case  SIGALRM:   /* alarm clock timeout */
+    case  SIGPIPE:   /* write on a pipe with no one to read it */
 	PSID_log(-1, "Received  signal %d. Continue\n", sig);
 	signal(sig,sighandler);
 	break;
-    case  SIGILL    : /* (*) illegal instruction (not reset when caught)*/
-    case  SIGTRAP   : /* (*) trace trap (not reset when caught) */
-    case  SIGABRT   : /* (*) abort process */
-    case  SIGFPE    : /* (*) floating point exception */
-    case  SIGBUS    : /* (*) bus error (specification exception) */
+    case  SIGILL:    /* (*) illegal instruction (not reset when caught)*/
+    case  SIGTRAP:   /* (*) trace trap (not reset when caught) */
+    case  SIGABRT:   /* (*) abort process */
+    case  SIGFPE:    /* (*) floating point exception */
+    case  SIGBUS:    /* (*) bus error (specification exception) */
 #ifdef SIGEMT
-    case  SIGEMT    : /* (*) EMT instruction */
+    case  SIGEMT:    /* (*) EMT instruction */
 #endif
 #ifdef SIGSYS
-    case  SIGSYS    : /* (*) bad argument to system call */
+    case  SIGSYS:    /* (*) bad argument to system call */
 #endif
 #ifdef SIGINFO
-    case  SIGINFO   : /* (+) information request */
+    case  SIGINFO:   /* (+) information request */
 #endif
 #ifdef SIGURG
-    case  SIGURG    : /* (+) urgent contition on I/O channel */
+    case  SIGURG:    /* (+) urgent contition on I/O channel */
 #endif
 #ifdef SIGIO
-    case  SIGIO     : /* (+) I/O possible, or completed */
+    case  SIGIO:     /* (+) I/O possible, or completed */
 #endif
-    case  SIGTTIN   : /* (@) background read attempted from control terminal*/
-    case  SIGTTOU   : /* (@) background write attempted to control terminal */
-    case  SIGXCPU   : /* cpu time limit exceeded (see setrlimit()) */
-    case  SIGXFSZ   : /* file size limit exceeded (see setrlimit()) */
-    case  SIGUSR1   : /* user defined signal 1 */
-    case  SIGUSR2   : /* user defined signal 2 */
+    case  SIGTTIN:   /* (@) background read attempted from control terminal*/
+    case  SIGTTOU:   /* (@) background write attempted to control terminal */
+    case  SIGXCPU:   /* cpu time limit exceeded (see setrlimit()) */
+    case  SIGXFSZ:   /* file size limit exceeded (see setrlimit()) */
+    case  SIGUSR1:   /* user defined signal 1 */
+    case  SIGUSR2:   /* user defined signal 2 */
     default:
 	PSID_log(-1, "Received signal %d. Shut down\n", sig);
 
@@ -1639,7 +1642,7 @@ static void checkFileTable(fd_set *controlfds)
 	    if (select(FD_SETSIZE, &fdset, NULL, NULL, &tv) < 0) {
 		/* error : check if it is a wrong fd in the table */
 		switch (errno) {
-		case EBADF :
+		case EBADF:
 		    PSID_log(-1, "%s(%d): EBADF -> close\n", __func__, fd);
 		    deleteClient(fd);
 		    break;

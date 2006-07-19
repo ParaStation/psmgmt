@@ -33,7 +33,10 @@ extern "C" {
 /**
  * @brief Handle a PSP_CD_SPAWNREQUEST message.
  *
- * Handle the message @a msg of type PSP_CD_SPAWNREQUEST.
+ * Handle the message @a msg of type PSP_CD_SPAWNREQUEST. These are
+ * replaced by PSP_CD_SPAWNREQ messages in later versions of the
+ * protocol. For reasons of compatibility the old requests are still
+ * supported.
  *
  * Spawn a process as described with @a msg. Therefor a @ref PStask_t
  * structure is extracted from @a msg. If called on the node of the
@@ -46,6 +49,30 @@ extern "C" {
  * @return No return value.
  */
 void msg_SPAWNREQUEST(DDBufferMsg_t *msg);
+
+/**
+ * @brief Handle a PSP_CD_SPAWNREQ message.
+ *
+ * Handle the message @a msg of type PSP_CD_SPAWNREQ. These replace
+ * the PSP_CD_SPAWNREQUEST messages of earlier protocol versions.
+ *
+ * Spawn a process as described within a series of messages. Depending
+ * on the subtype of the current message @a msg, either the @ref
+ * PStask_t structure contained is extracted or the argv or
+ * environment parts are decoded and added to the corresponding task
+ * structure. After receiving the last part of the environment the
+ * actual task is created.
+ *
+ * If called on the node of the initiating task, various
+ * tests are undertaken in order to determine the spawn to be
+ * allowed. If all tests pass, the message is forwarded to the
+ * target-node where the process to spawn is created.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+void msg_SPAWNREQ(DDTypedBufferMsg_t *msg);
 
 /**
  * @brief Handle a PSP_CD_SPAWNSUCCESS message.

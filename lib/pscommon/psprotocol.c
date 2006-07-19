@@ -37,6 +37,7 @@ static struct {
     { PSP_CD_SPAWNSUCCESS     , "PSP_CD_SPAWNSUCCESS"     },
     { PSP_CD_SPAWNFAILED      , "PSP_CD_SPAWNFAILED"      },
     { PSP_CD_SPAWNFINISH      , "PSP_CD_SPAWNFINISH"      },
+    { PSP_CD_SPAWNREQ         , "PSP_CD_SPAWNREQ"         },
 
     { PSP_CD_NOTIFYDEAD       , "PSP_CD_NOTIFYDEAD"       },
     { PSP_CD_NOTIFYDEADRES    , "PSP_CD_NOTIFYDEADRES"    },

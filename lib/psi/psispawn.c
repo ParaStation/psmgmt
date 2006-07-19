@@ -197,7 +197,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 		   int rank, int *errors, PStask_ID_t *tids)
 {
     int outstanding_answers=0;
-    DDBufferMsg_t msg;
+    DDTypedBufferMsg_t msg;
     DDErrorMsg_t answer;
     char *mywd;
 
@@ -205,22 +205,20 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     int ret = 0;    /* return value */
     int error = 0;  /* error flag */
     int fd = 0;
+    int envNum = 0;
     PStask_t* task; /* structure to store the information of the new process */
-
-    /*
-     * Send the request to my own daemon
-     *----------------------------------
-     */
 
     for (i=0; i<count; i++) {
 	errors[i] = 0;
 	tids[i] = 0;
     }
 
-    /*
-     * Init the Task structure
-     */
+    /* setup task structure */
     task = PStask_new();
+    if (!task) {
+	PSI_log(-1, "%s: Cannot create task structure.\n", __func__);
+	return -1;
+    }
 
     task->ptid = PSC_getMyTID();
     if (defaultUID) {
@@ -251,11 +249,12 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
     mywd = mygetwd(workingdir);
 
-    if (!mywd) return -1;
+    if (!mywd) goto error;
 
     task->workingdir = mywd;
     task->argc = argc;
     task->argv = (char**)malloc(sizeof(char*)*(task->argc+1));
+    if (!task->argv) goto error;
     {
 	struct stat statbuf;
 
@@ -273,60 +272,96 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
 	    task->argv[0]=strdup(myexec);
 #else
-	    PSI_log(-1, "%s: Can't start parallel jobs from PATH.\n",
-		    __func__);
-	    return -1;
+	    PSI_log(-1, "%s: Cannot start job from PATH.\n", __func__);
+	    goto error;
 #endif
 	} else {
 	    task->argv[0]=strdup(argv[0]);
 	}
     }
-    for (i=1;i<task->argc;i++)
+    for (i=1;i<task->argc;i++) {
 	task->argv[i]=strdup(argv[i]);
+	if (!task->argv[i]) goto error;
+    }
     task->argv[task->argc]=0;
 
     task->environ = dumpPSIEnv();
-
-    /* Test if task is small enough */
-    if (PStask_encode(msg.buf, sizeof(msg.buf), task) > sizeof(msg.buf)) {
-	PSI_log(-1, "%s: size of task too large.", __func__);
-	PSI_log(-1, " Too many environment variables?\n");
-	return -1;
+    if (!task->environ) {
+	PSI_log(-1, "%s: cannot dump environment.", __func__);
+	goto error;
     }
 
+    /* test if task can be send */
+    if (PStask_encodeTask(msg.buf, sizeof(msg.buf), task) > sizeof(msg.buf)) {
+	PSI_log(-1, "%s: size of task too large.", __func__);
+	PSI_log(-1, " Working directory '%s' too long?\n", task->workingdir);
+	goto error;
+    }
+    if (PStask_encodeArgs(msg.buf, sizeof(msg.buf), task) > sizeof(msg.buf)) {
+	PSI_log(-1, "%s: size of task too large.", __func__);
+	PSI_log(-1, " Too many/too long arguments?\n");
+	goto error;
+    }
+    do {
+	
+	if (PStask_encodeEnv(msg.buf, sizeof(msg.buf),
+			     task, &envNum) > sizeof(msg.buf)) {
+	    PSI_log(-1, "%s: size of task too large.", __func__);
+	    PSI_log(-1, " Environment '%s' too long?\n",task->environ[envNum]);
+	    goto error;
+	}
+    } while (task->environ[envNum]);
+
+    /* send actual requests */
     outstanding_answers=0;
     for (i=0; i<count; i++) {
-	/*
-	 * check if dstnode is ok
-	 */
+	/* check if dstnode is ok */
 	if (dstnodes[i] >= PSC_getNrOfNodes()) {
 	    errors[i] = ENETUNREACH;
 	    tids[i] = -1;
 	} else {
-	    /*
-	     * put the type of the msg in the head
-	     * put the length of the whole msg to the head of the msg
-	     * and return this value
-	     */
-	    msg.header.type = PSP_CD_SPAWNREQUEST;
+	    size_t len;
+
+	    msg.header.type = PSP_CD_SPAWNREQ;
 	    msg.header.dest = PSC_getTID(dstnodes[i],0);
 	    msg.header.sender = PSC_getMyTID();
-	    msg.header.len = sizeof(msg.header);;
+	    msg.header.len = sizeof(msg.header) + sizeof(msg.type);
+	    msg.type = PSP_SPAWN_TASK;
 
-	    /*
-	     * set the correct rank
-	     */
+	    /* set correct rank */
 	    task->rank = rank++;
 
 	    /* pack the task information in the msg */
-	    msg.header.len += PStask_encode(msg.buf, sizeof(msg.buf), task);
-
+	    len = PStask_encodeTask(msg.buf, sizeof(msg.buf), task);
+	    msg.header.len += len;
 	    if (PSI_sendMsg(&msg)<0) {
 		PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
-
-		PStask_delete(task);
-		return -1;
+		goto error;
 	    }
+	    msg.header.len -= len;
+
+	    msg.type = PSP_SPAWN_ARG;
+	    len = PStask_encodeArgs(msg.buf, sizeof(msg.buf), task);
+	    msg.header.len += len;
+	    if (PSI_sendMsg(&msg)<0) {
+		PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+		goto error;
+	    }
+	    msg.header.len -= len;
+
+	    msg.type = PSP_SPAWN_ENV;
+	    envNum=0;
+	    do {
+		len = PStask_encodeEnv(msg.buf, sizeof(msg.buf),task, &envNum);
+		msg.header.len += len;
+		if (!task->environ[envNum]) msg.type = PSP_SPAWN_END;
+
+		if (PSI_sendMsg(&msg)<0) {
+		    PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+		    goto error;
+		}
+		msg.header.len -= len;
+	    } while (task->environ[envNum]);
 
 	    outstanding_answers++;
 	}
@@ -334,10 +369,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
     PStask_delete(task);
 
-    /*
-     * Receive answer from my own daemon
-     *----------------------------------
-     */
+    /* receive answers */
     while (outstanding_answers>0) {
 	if (PSI_recvMsg(&answer)<0) {
 	    PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
@@ -347,9 +379,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	switch (answer.header.type) {
 	case PSP_CD_SPAWNFAILED:
 	case PSP_CD_SPAWNSUCCESS:
-	    /*
-	     * find the right task request
-	     */
+	    /* find the right task request */
 	    for (i=0; i<count; i++) {
 		if (dstnodes[i]==PSC_getID(answer.header.sender)
 		    && !tids[i] && !errors[i]) {
@@ -396,6 +426,11 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
     if (error) ret = -ret;
     return ret;
+
+ error:
+    PStask_delete(task);
+
+    return -1;
 }
 
 int PSI_spawn(int count, char *workdir, int argc, char **argv,

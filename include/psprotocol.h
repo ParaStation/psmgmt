@@ -33,7 +33,7 @@ extern "C" {
 #endif
 
 /** Unique version number of the high-level protocol */
-#define PSprotocolVersion 330
+#define PSprotocolVersion 331
 
 /** The location of the UNIX socket used to contact the daemon. */
 #define PSmasterSocketName "/var/run/parastation.sock"
@@ -162,13 +162,22 @@ typedef enum {
 } PSP_Info_t;
 
 /** Messages concerning spawning of tasks. */
-#define PSP_CD_SPAWNREQUEST      0x0020  /**< Request to spawn a process */
+#define PSP_CD_SPAWNREQUEST      0x0020  /**< Request to spawn a process
+					      @deprecated */
 #define PSP_CD_SPAWNSUCCESS      0x0021  /**< Reply on successful spawn */
 #define PSP_CD_SPAWNFAILED       0x0022  /**< Reply on failed spawn */
 #define PSP_CD_SPAWNFINISH       0x0023  /**< Reply after successful end of
 					      spawned process */
 #define PSP_CD_SPAWNREQ          0x0024  /**< Request to spawn a process */
-#define PSP_CD_SPAWNREQENV       0x0025  /**< Request to spawn a process */
+
+/** Kind of content within #PSP_CD_SPAWNREQ message */
+typedef enum {
+    PSP_SPAWN_TASK = 0x0000,      /**< Content is task (and workdir) */
+    PSP_SPAWN_ARG,                /**< Content is arguments (argv-vector) */
+    PSP_SPAWN_ENV,                /**< Content is chunk of environment */
+    PSP_SPAWN_END,                /**< Content is last chunk of environment */
+} PSP_Spawn_t;
+
 
 /** All the signal handling stuff. */
 #define PSP_CD_NOTIFYDEAD        0x0040  /**< Register to get a signal */
