@@ -73,11 +73,14 @@ void PSE_initialize(void)
     envStr = getenv("PSI_DEBUGMASK");
     if (!envStr) envStr = getenv("PSI_DEBUGLEVEL"); /* Backward compat. */
     if (envStr) {
-	int logmask = atoi(envStr);
-
-	/* Propagate to client done within libpsi */
-
-	logger_setMask(logger, logmask);
+	char *end;
+	int debugmask = strtol(envStr, &end, 0);
+	if (*end) {
+	    logger_print(logger, -1,
+			 "%s: Found trailing string '%s' in debug-mask %x\n",
+			 __func__, end, debugmask);
+	}
+	logger_setMask(logger, debugmask);
     }
 
     /* init PSI */
@@ -220,8 +223,8 @@ void PSE_spawnMaster(int argc, char *argv[])
 	if (error) {
 	    logger_warn(logger, -1, error,
 			"Could not spawn master process (%s)",argv[0]);
-	    exitAll("Spawn failed", 10);
 	}
+	exitAll("Spawn failed", 10);
     }
 
     logger_print(logger, PSE_LOG_SPAWN,
