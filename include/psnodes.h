@@ -336,9 +336,41 @@ int PSnodes_setUser(PSnodes_ID_t id, uid_t uid);
  * @param id ParaStation ID of the node to look up.
  *
  * @return If the node was found, the exclusive user is returned. Or
- * -1, if an error occured.
+ * -2, if an error occured. Note that -1 is reserved to @ref
+ * PSNODES_ANYUSER.
  */
 uid_t PSnodes_getUser(PSnodes_ID_t id);
+
+
+/**
+ * @brief Set the admin-user of a node.
+ *
+ * Set the admin-user of the node with ParaStation ID @a id to @a
+ * uid. The admin-user is the user who is allowed to start
+ * admin-tasks, i.e. task that are not accounted.
+ *
+ * @param id ParaStation ID of the node to be modified.
+ *
+ * @param uid The admin-user to be set to this node.
+ *
+ * @return On success, 0 is returned or -1, if an error occured.
+ */
+int PSnodes_setAdminUser(PSnodes_ID_t id, uid_t uid);
+
+/**
+ * @brief Get the admin-user of a node.
+ *
+ * Get the admin-user of the node with ParaStation ID @a id. The
+ * admin-user is the user who is allowed to start admin-tasks,
+ * i.e. task that are not accounted.
+ *
+ * @param id ParaStation ID of the node to look up.
+ *
+ * @return If the node was found, the admin-user is returned. Or -2,
+ * if an error occured. Note that -1 is reserved to @ref
+ * PSNODES_ANYUSER.
+ */
+uid_t PSnodes_getAdminUser(PSnodes_ID_t id);
 
 
 /** Pseudo user ID to allow any group to run on a specific node */
@@ -351,11 +383,11 @@ uid_t PSnodes_getUser(PSnodes_ID_t id);
  *
  * @param id ParaStation ID of the node to be modified.
  *
- * @param uid The exclusive group to be set to this node.
+ * @param gid The exclusive group to be set to this node.
  *
  * @return On success, 0 is returned or -1, if an error occured.
  */
-int PSnodes_setGroup(PSnodes_ID_t id, uid_t uid);
+int PSnodes_setGroup(PSnodes_ID_t id, gid_t gid);
 
 /**
  * @brief Get the exclusive group of a node.
@@ -365,9 +397,40 @@ int PSnodes_setGroup(PSnodes_ID_t id, uid_t uid);
  * @param id ParaStation ID of the node to look up.
  *
  * @return If the node was found, the exclusive group is returned. Or
- * -1, if an error occured.
+ * -2, if an error occured. Note that -1 is reserved to @ref
+ * PSNODES_ANYGROUP.
  */
-uid_t PSnodes_getGroup(PSnodes_ID_t id);
+gid_t PSnodes_getGroup(PSnodes_ID_t id);
+
+/**
+ * @brief Set the admin-group of a node.
+ *
+ * Set the admin-group of the node with ParaStation ID @a id to @a
+ * gid. The admin-group is the group that is allowed to start
+ * admin-tasks, i.e. task that are not accounted.
+ *
+ * @param id ParaStation ID of the node to be modified.
+ *
+ * @param gid The admin-group to be set to this node.
+ *
+ * @return On success, 0 is returned or -1, if an error occured.
+ */
+int PSnodes_setAdminGroup(PSnodes_ID_t id, gid_t gid);
+
+/**
+ * @brief Get the admin-group of a node.
+ *
+ * Get the admin-group of the node with ParaStation ID @a id. The
+ * admin-group is the group that is allowed to start admin-tasks,
+ * i.e. task that are not accounted.
+ *
+ * @param id ParaStation ID of the node to look up.
+ *
+ * @return If the node was found, the exclusive group is returned. Or
+ * -2, if an error occured. Note that -1 is reserved to @ref
+ * PSNODES_ANYGROUP.
+ */
+gid_t PSnodes_getAdminGroup(PSnodes_ID_t id);
 
 
 /** Pseudo number of processes to allow any job to run on a specific node */

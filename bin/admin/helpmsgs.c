@@ -236,7 +236,8 @@ static info_t setInfo = {
 	" | {smallpacketsize|sps} <size> | hnpend <val> | ackpend <val>"
 	" | {freeonsuspend|fos} <bool> | {handleoldbins|hob} <bool>"
 	" | starter <bool> | runjobs <bool> | overbook {<bool>|auto}"
-	" | exclusive <bool> | nodessort <mode>} <nodes>"
+	" | exclusive <bool> | nodessort <mode> | adminuser {<user>|any}"
+	" | admingroup {<group>|any}} <nodes>"
     }},
     .nodes = 1,
     .descr = "Set one of various parameters of the ParaStation system:",
@@ -318,6 +319,14 @@ static info_t setInfo = {
 	  " explicitely via PSI_NODES_SORT. Be aware of the fact that using"
 	  " a batch-system like PBS or LSF *will* set the strategy"
 	  " explicitely, namely to NONE." },
+	{ .tag = "set adminuser {<user>|any}",
+	  .descr = "Grant authorization to start admin-task, i.e. task not"
+	  " accounted to a particular or any user. <user> might be"
+	  "a user name or a numerical UID." },
+	{ .tag = "set admingroup {<group>|any}",
+	  .descr = "Grant authorization to start admin-task, i.e. task not"
+	  " accounted to a particular or any group. <group> might be"
+	  "a group name or a numerical GID." },
 	{ NULL, NULL }
     },
     .comment = "For more information reffer to 'help set <subcommand>'"
@@ -331,7 +340,8 @@ static info_t showInfo = {
 	" | rdppktloss | rdpmaxretrans | mcastdebug | master"
 	" | {smallpacketsize|sps} | {resendtimeout|rto} | hnpend | ackpend"
 	" | {freeonsuspend|fos} | {handleoldbins|hob} | starter | runjobs"
-	" | overbook | exclusive | nodessort} <nodes>"
+	" | overbook | exclusive | nodessort | adminuser | admingroup}"
+	" <nodes>"
     }},
     .nodes = 1,
     .descr = "Show various parameters of the ParaStation system:",
@@ -385,6 +395,12 @@ static info_t showInfo = {
 	{ .tag = "show nodessort",
 	  .descr = "Show the default sorting strategy used when attaching"
 	  " nodes to partitions." },
+	{ .tag = "show adminuser",
+	  .descr = "Show user allowed to start admin-tasks, i.e. unaccounted"
+	  " tasks." },
+	{ .tag = "show admingroup",
+	  .descr = "Show group allowed to start admin-tasks, i.e. unaccounted"
+	  " tasks." },
 	{ NULL, NULL }
     },
     .comment = NULL

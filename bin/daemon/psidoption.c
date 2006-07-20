@@ -55,6 +55,12 @@ void send_OPTIONS(PSnodes_ID_t destnode)
     msg.opt[(int) msg.count].option = PSP_OP_GIDLIMIT;
     msg.opt[(int) msg.count].value = PSnodes_getGroup(PSC_getMyID());
     msg.count++;
+    msg.opt[(int) msg.count].option = PSP_OP_ADMINUID;
+    msg.opt[(int) msg.count].value = PSnodes_getAdminUser(PSC_getMyID());
+    msg.count++;
+    msg.opt[(int) msg.count].option = PSP_OP_ADMINGID;
+    msg.opt[(int) msg.count].value = PSnodes_getAdminGroup(PSC_getMyID());
+    msg.count++;
     msg.opt[(int) msg.count].option = PSP_OP_OVERBOOK;
     msg.opt[(int) msg.count].value = PSnodes_overbook(PSC_getMyID());
     msg.count++;
@@ -151,6 +157,27 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 				    msg->opt[i].value);
 		}
 		break;
+	    case PSP_OP_ADMINUID:
+		if (PSC_getPID(msg->header.sender)) {
+		    DDOptionMsg_t info = {
+			.header = {
+			    .type = PSP_CD_SETOPTION,
+			    .sender = PSC_getMyTID(),
+			    .dest = 0,
+			    .len = sizeof(info) },
+			.count = 1,
+			.opt = {{ .option = msg->opt[i].option,
+				  .value = msg->opt[i].value }} };
+			    
+		    PSnodes_setAdminUser(PSC_getMyID(), msg->opt[i].value);
+
+		    /* Info all nodes about my ADMINUID */
+		    broadcastMsg(&info);
+		} else {
+		    PSnodes_setAdminUser(PSC_getID(msg->header.sender),
+					 msg->opt[i].value);
+		}
+		break;
 	    case PSP_OP_GIDLIMIT:
 		if (PSC_getPID(msg->header.sender)) {
 		    DDOptionMsg_t info = {
@@ -170,6 +197,27 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 		} else {
 		    PSnodes_setGroup(PSC_getID(msg->header.sender),
 				     msg->opt[i].value);
+		}
+		break;
+	    case PSP_OP_ADMINGID:
+		if (PSC_getPID(msg->header.sender)) {
+		    DDOptionMsg_t info = {
+			.header = {
+			    .type = PSP_CD_SETOPTION,
+			    .sender = PSC_getMyTID(),
+			    .dest = 0,
+			    .len = sizeof(info) },
+			.count = 1,
+			.opt = {{ .option = msg->opt[i].option,
+				  .value = msg->opt[i].value }} };
+
+		    PSnodes_setAdminGroup(PSC_getMyID(), msg->opt[i].value);
+
+		    /* Info all nodes about my ADMINGID */
+		    broadcastMsg(&info);
+		} else {
+		    PSnodes_setAdminGroup(PSC_getID(msg->header.sender),
+					  msg->opt[i].value);
 		}
 		break;
 	    case PSP_OP_OVERBOOK:
@@ -376,6 +424,12 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_GIDLIMIT:
 		msg->opt[i].value = PSnodes_getGroup(PSC_getMyID());
+		break;
+	    case PSP_OP_ADMINUID:
+		msg->opt[i].value = PSnodes_getAdminUser(PSC_getMyID());
+		break;
+	    case PSP_OP_ADMINGID:
+		msg->opt[i].value = PSnodes_getAdminGroup(PSC_getMyID());
 		break;
 	    case PSP_OP_OVERBOOK:
 		msg->opt[i].value = PSnodes_overbook(PSC_getMyID());

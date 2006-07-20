@@ -891,6 +891,8 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
     case PSP_OP_PROCLIMIT:
     case PSP_OP_UIDLIMIT:
     case PSP_OP_GIDLIMIT:
+    case PSP_OP_ADMINUID:
+    case PSP_OP_ADMINGID:
 	if (value < -1) {
 	    printf(" value must be -1 <= val\n");
 	    return;
@@ -964,6 +966,7 @@ void PSIADM_ShowParam(PSP_Option_t type, char *nl)
 			printf("%d\n", value);
 		    break;
 		case PSP_OP_UIDLIMIT:
+		case PSP_OP_ADMINUID:
 		    if (value==-1)
 			printf("ANY\n");
 		    else {
@@ -976,6 +979,7 @@ void PSIADM_ShowParam(PSP_Option_t type, char *nl)
 		    }
 		    break;
 		case PSP_OP_GIDLIMIT:
+		case PSP_OP_ADMINGID:
 		    if (value==-1)
 			printf("ANY\n");
 		    else {

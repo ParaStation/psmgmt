@@ -78,7 +78,7 @@ typedef enum {
     PSP_OP_PSIDSELECTTIME,        /**< Time (sec) in psid's select() */
     PSP_OP_GIDLIMIT,              /**< gid the node is restricted to */
 
-    PSP_OP_MASTER,                /**< current master of the cluster */
+    PSP_OP_MASTER = 0x0008,       /**< current master of the cluster */
 
     PSP_OP_RDPDEBUG = 0x0020,     /**< RDP's debug level */
     PSP_OP_RDPPKTLOSS,            /**< Paket loss within RDP (debugging) */
@@ -98,6 +98,11 @@ typedef enum {
     PSP_OP_STARTER,               /**< (Dis-)Allow starting from this node */
     PSP_OP_RUNJOBS,               /**< (Dis-)Allow running on this node */
     PSP_OP_EXCLUSIVE,             /**< (Dis-)Allow assign node exclusively */
+
+    PSP_OP_ADMINUID = 0x0040,     /**< user allowed starting admin
+				     jobs, i.e. unaccounted jobs */
+    PSP_OP_ADMINGID,              /**< group allowed starting admin
+				     jobs, i.e. unaccounted jobs */
 } PSP_Option_t;
 
 /** Messages used for information retrieval */

@@ -611,6 +611,18 @@ static int setShowGroup(char *token)
     return 0;
 }
 
+static int setShowAdminUser(char *token)
+{
+    setShowOpt = PSP_OP_ADMINUID;
+    return 0;
+}
+
+static int setShowAdminGroup(char *token)
+{
+    setShowOpt = PSP_OP_ADMINGID;
+    return 0;
+}
+
 static int setShowPSIDDebug(char *token)
 {
     setShowOpt = PSP_OP_PSIDDEBUG;
@@ -728,6 +740,8 @@ static keylist_t setShowList[] = {
     {"maxproc", setShowMaxProc},
     {"user", setShowUser},
     {"group", setShowGroup},
+    {"adminuser", setShowAdminUser},
+    {"admingroup", setShowAdminGroup},
     {"psiddebug", setShowPSIDDebug},
     {"selecttime", setShowSelectTime},
     {"rdpdebug", setShowRDPDebug},
@@ -835,6 +849,14 @@ static int setCommand(char *token)
 	val = gidFromString(value);
 	if (val == -2) goto error;
 	break;
+    case PSP_OP_ADMINUID:
+	val = uidFromString(value);
+	if (val == -2) goto error;
+	break;
+    case PSP_OP_ADMINGID:
+	val = gidFromString(value);
+	if (val == -2) goto error;
+	break;
     case PSP_OP_PSIDDEBUG:
     case PSP_OP_PSIDSELECTTIME:
     case PSP_OP_RDPDEBUG:
@@ -915,6 +937,8 @@ static int showCommand(char *token)
     case PSP_OP_PROCLIMIT:
     case PSP_OP_UIDLIMIT:
     case PSP_OP_GIDLIMIT:
+    case PSP_OP_ADMINUID:
+    case PSP_OP_ADMINGID:
     case PSP_OP_PSIDDEBUG:
     case PSP_OP_PSIDSELECTTIME:
     case PSP_OP_RDPDEBUG:

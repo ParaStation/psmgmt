@@ -46,8 +46,10 @@ typedef struct {
     char isStarter;        /**< Flag to allow to start jobs from that node */
     char overbooking;      /**< Flag to allow overbooking that node */
     char exclusive;        /**< Flag to assign this node exclusively */
-    uid_t uid;             /**< User this nodes is reserved to */
-    gid_t gid;             /**< Group this nodes is reserved to */
+    uid_t uid;             /**< User this node is reserved to */
+    gid_t gid;             /**< Group this node is reserved to */
+    uid_t admuid;          /**< AdminUser on this node */
+    gid_t admgid;          /**< AdminGroup on this node */
     int maxProcs;          /**< Number of processes this node will handle */
 } node_t;
 
@@ -408,7 +410,26 @@ uid_t PSnodes_getUser(PSnodes_ID_t id)
     if (ID_ok(id)) {
 	return nodes[id].uid;
     } else {
+	return -2;
+    }
+}
+
+int PSnodes_setAdminUser(PSnodes_ID_t id, uid_t uid)
+{
+    if (ID_ok(id)) {
+	nodes[id].admuid = uid;
+	return 0;
+    } else {
 	return -1;
+    }
+}
+
+uid_t PSnodes_getAdminUser(PSnodes_ID_t id)
+{
+    if (ID_ok(id)) {
+	return nodes[id].admuid;
+    } else {
+	return -2;
     }
 }
 
@@ -427,7 +448,26 @@ gid_t PSnodes_getGroup(PSnodes_ID_t id)
     if (ID_ok(id)) {
 	return nodes[id].gid;
     } else {
+	return -2;
+    }
+}
+
+int PSnodes_setAdminGroup(PSnodes_ID_t id, gid_t gid)
+{
+    if (ID_ok(id)) {
+	nodes[id].admgid = gid;
+	return 0;
+    } else {
 	return -1;
+    }
+}
+
+gid_t PSnodes_getAdminGroup(PSnodes_ID_t id)
+{
+    if (ID_ok(id)) {
+	return nodes[id].admgid;
+    } else {
+	return -2;
     }
 }
 

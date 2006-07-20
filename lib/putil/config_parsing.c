@@ -86,13 +86,22 @@ static int nodesfound = 0;
  *
  * @param exclusive Flag if the node can be assigned exclusively.
  *
+ * @param admuid The admin user ID the node is reserved to as
+ * default. This user is allowed to start admin-tasks,
+ * .i.e. unaccounted tasks, from this node.
+ *
+ * @param admgid The admin group ID the node is reserved to as
+ * default. This group is allowed to start admin-tasks,
+ * .i.e. unaccounted tasks, from this node.
+ *
  * @return Return -1 if an error occurred or 0 if the node was
  * inserted successfully.
  */
 static int installHost(unsigned int ipaddr, int id, int hwtype, 
 		       unsigned int extraIP, int jobs, int starter,
 		       uid_t uid, gid_t gid, int procs,
-		       PSnodes_overbook_t overbook, int exclusive)
+		       PSnodes_overbook_t overbook, int exclusive,
+		       uid_t admuid, gid_t admgid)
 {
     if (PSnodes_getNum() == -1) { /* NrOfNodes not defined */
 	parser_comment(-1, "define NrOfNodes before any host");
@@ -172,6 +181,16 @@ static int installHost(unsigned int ipaddr, int id, int hwtype,
 	return -1;
     }
 
+    if (PSnodes_setAdminUser(id, admuid)) {
+	parser_comment(-1, "PSnodes_setAdminUser(%d, %d) failed", id, admuid);
+	return -1;
+    }
+
+    if (PSnodes_setAdminGroup(id, admgid)) {
+	parser_comment(-1, "PSnodes_setAdminGroup(%d, %d) failed", id, admgid);
+	return -1;
+    }
+
     nodesfound++;
 
     if (nodesfound > PSnodes_getNum()) { /* more hosts than nodes ??? */
@@ -199,6 +218,11 @@ static int getInstDir(char *token)
 
     dname = parser_getString();
     /* test if dir is a valid directory */
+    if (!dname) {
+	parser_comment(-1, "directory name is empty");
+	return -1;
+    }
+
     if (stat(dname, &fstat)) {
 	parser_comment(-1, "%s: %s", dname, strerror(errno));
 	return -1;
@@ -400,6 +424,10 @@ static int getLogDest(char *token)
 
     /* Get next token to parse */
     token = parser_getString();
+    if (!token) {
+	parser_comment(-1, "empty destination");
+	return -1;
+    }
 
     /* Ignore heading log_, so e.g. log_local0 and local0 are both valid */
     if (strncasecmp(token, skip_it, strlen(skip_it)) == 0) {
@@ -422,6 +450,10 @@ static int getRLimitVal(char *token, rlim_t *value, char *valname)
     char skip_it[] = "rlim_";
     int intval, ret;
 
+    if (!token) {
+	parser_comment(-1, "empty rlimit");
+	return -1;
+    }
     if (strncasecmp(token, skip_it, sizeof(skip_it)) == 0) {
 	token += sizeof(skip_it);
     }
@@ -741,11 +773,70 @@ static gid_t gidFromString(char *group)
     return -2;
 }
 
-static uid_t uid = -1, node_uid;
+/**
+ * @brief Create user-string.
+ *
+ * Create a string describing the user identified by the user ID @a uid.
+ *
+ * @param uid User ID of the user to describe.
+ *
+ * @return Pointer to a new string describing the user. Memory for the
+ * new string is obtained with malloc(3), and can be freed with
+ * free(3).
+ */
+static char* userFromUID(uid_t uid)
+{
+    struct passwd *pwd;
+
+    if ((int)uid >= 0) {
+	pwd = getpwuid(uid);
+	if (pwd) {
+	    return strdup(pwd->pw_name);
+	} else {
+	    return strdup("unknown");
+	}
+    } else {
+	return strdup("ANY");
+    }
+
+}
+
+/**
+ * @brief Create group-string.
+ *
+ * Create a string describing the group identified by the group ID @a gid.
+ *
+ * @param gid Group ID of the group to describe.
+ *
+ * @return Pointer to a new string describing the group. Memory for the
+ * new string is obtained with malloc(3), and can be freed with
+ * free(3).
+ */
+static char* groupFromGID(gid_t gid)
+{
+    struct group *grp;
+
+    if ((int)gid >= 0) {
+	grp = getgrgid(gid);
+	if (grp) {
+	    return strdup(grp->gr_name);
+	} else {
+	    return strdup("unknown");
+	}
+    } else {
+	return strdup("ANY");
+    }
+}
+
+static uid_t uid = PSNODES_ANYUSER, node_uid;
 
 static int getUser(char *token)
 {
     char *user = parser_getString();
+    if (!user) {
+	parser_comment(-1, "Empty user");
+	return -1;
+    }
     node_uid = uidFromString(user);
 
     if ((int)node_uid < -1) {
@@ -760,28 +851,27 @@ static int getUserLine(char *token)
 {
     int ret;
     char *user;
-    struct passwd *pwd;
 
     ret = getUser(token);
 
     uid = node_uid;
 
-    if ((int)uid >= 0) {
-	pwd = getpwuid(uid);
-	user = pwd->pw_name;
-    } else {
-	user = "ANY";
-    }
+    user = userFromUID(uid);
     parser_comment(PARSER_LOG_RES, "setting default 'User' to '%s'", user);
+    free(user);
 
     return ret;
 }
 
-static uid_t gid = -1, node_gid;
+static uid_t gid = PSNODES_ANYGROUP, node_gid;
 
 static int getGroup(char *token)
 {
     char *group = parser_getString();
+    if (!group) {
+	parser_comment(-1, "Empty group");
+	return -1;
+    }
     node_gid = gidFromString(group);
 
     if ((int)node_gid < -1) {
@@ -796,19 +886,86 @@ static int getGroupLine(char *token)
 {
     int ret;
     char *group;
-    struct group *grp;
 
     ret = getGroup(token);
 
     gid = node_gid;
 
-    if ((int)gid >= 0) {
-	grp = getgrgid(uid);
-	group = grp->gr_name;
-    } else {
-	group = "ANY";
-    }
+    group = groupFromGID(gid);
     parser_comment(PARSER_LOG_RES, "setting default 'Group' to '%s'", group);
+    free(group);
+
+    return ret;
+}
+
+static uid_t admuid = 0, node_admuid;
+
+static int getAdminUser(char *token)
+{
+    char *user = parser_getString();
+    if (!user) {
+	parser_comment(-1, "Empty adminUser");
+	return -1;
+    }
+    node_admuid = uidFromString(user);
+
+    if ((int)node_admuid < -1) {
+	parser_comment(-1, "Unknown adminUser '%s'", user);
+	return -1;
+    }
+
+    return 0;
+}
+
+static int getAdminUserLine(char *token)
+{
+    int ret;
+    char *user;
+
+    ret = getAdminUser(token);
+
+    admuid = node_admuid;
+
+    user = userFromUID(uid);
+    parser_comment(PARSER_LOG_RES,
+		   "setting default 'AdminUser' to '%s'", user);
+    free(user);
+
+    return ret;
+}
+
+static uid_t admgid = 0, node_admgid;
+
+static int getAdminGroup(char *token)
+{
+    char *group = parser_getString();
+    if (!group) {
+	parser_comment(-1, "Empty adminGroup");
+	return -1;
+    }
+    node_admgid = gidFromString(group);
+
+    if ((int)node_admgid < -1) {
+	parser_comment(-1, "Unknown adminGroup '%s'", group);
+	return -1;
+    }
+
+    return 0;
+}
+
+static int getAdminGroupLine(char *token)
+{
+    int ret;
+    char *group;
+
+    ret = getAdminGroup(token);
+
+    admgid = node_admgid;
+
+    group = groupFromGID(gid);
+    parser_comment(PARSER_LOG_RES,
+		   "setting default 'AdminGroup' to '%s'", group);
+    free(group);
 
     return ret;
 }
@@ -854,6 +1011,10 @@ static int getOB(char *token)
     char *obStr = parser_getString();
     int ob, ret;
 
+    if (!obStr) {
+	parser_comment(-1, "overbook-value is empty");
+	return -1;
+    }
     if (strcasecmp(obStr, "auto") == 0) {
 	node_overbook = OVERBOOK_AUTO;
 	parser_comment(PARSER_LOG_RES, "got 'auto' for value 'node_overbook'");
@@ -911,6 +1072,8 @@ static keylist_t nodeline_list[] = {
     {"extraip", getExtraIP},
     {"user", getUser},
     {"group", getGroup},
+    {"adminuser", getAdminUser},
+    {"admingroup", getAdminGroup},
     {"processes", getProcs},
     {"overbook", getOB},
     {"exclusive", getExcl},
@@ -934,6 +1097,8 @@ static int getNodeLine(char *token)
     node_procs = procs;
     node_overbook = overbook;
     node_exclusive = exclusive;
+    node_admuid = admuid;
+    node_admgid = admgid;
 
     ipaddr = parser_getHostname(token);
 
@@ -952,7 +1117,7 @@ static int getNodeLine(char *token)
     if (ret) goto exit;
 
     if (parser_getDebugMask() & PARSER_LOG_NODE) {
-	char procStr[20];
+	char procStr[20], *user, *group, *admuser, *admgroup;
 	if (node_procs==-1) {
 	    snprintf(procStr, sizeof(procStr), "any");
 	} else {
@@ -973,11 +1138,21 @@ static int getNodeLine(char *token)
 	    parser_comment(PARSER_LOG_NODE, " Myrinet IP will be <%s>.",
 			   inet_ntoa(* (struct in_addr *) &node_extraIP));
 	}
+
+	user=userFromUID(node_uid);
+	admuser=userFromUID(node_admuid);
+	group=groupFromGID(node_gid);
+	admgroup=groupFromGID(node_admgid);
+	parser_comment(PARSER_LOG_NODE,
+		       "user '%s' group '%s' adminuser '%s' admingroup '%s'",
+		       user, group, admuser, admgroup);
+	free(user); free(group); free(admuser); free(admgroup);
     }
 
     ret = installHost(ipaddr, nodenum, node_hwtype, node_extraIP,
 		      node_runjobs, node_canstart, node_uid, node_gid,
-		      node_procs, node_overbook, node_exclusive);
+		      node_procs, node_overbook, node_exclusive,
+		      node_admuid, node_admgid);
 
  exit:
     free(hostname);
@@ -1268,6 +1443,10 @@ static int getHardware(char *token)
     int ret;
 
     name = parser_getString();
+    if (!name) {
+	parser_comment(-1, "no hardware name");
+	return -1;
+    }
 
     actHW = HW_index(name);
 
@@ -1279,7 +1458,7 @@ static int getHardware(char *token)
     }
 
     brace = parser_getString();
-    if (strcmp(brace, "{")) return -1;
+    if (!brace || strcmp(brace, "{")) return -1;
 
     ret = parser_parseOn(parser_getString(), &hardwareenv_parser);
 
@@ -1383,6 +1562,8 @@ static keylist_t config_list[] = {
     {"starter", getCSLine},
     {"user", getUserLine},
     {"group", getGroupLine},
+    {"adminuser", getAdminUserLine},
+    {"admingroup", getAdminGroupLine},
     {"processes", getProcsLine},
     {"overbook", getOBLine},
     {"exclusive", getExclLine},
