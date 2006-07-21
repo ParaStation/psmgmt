@@ -457,7 +457,7 @@ int PSE_getMasterPort();
  * @see PSE_spawnMaster(), PSE_spawnTasks(), PSE_getMasterNode(),
  * PSE_getMasterPort(), PSE_init()
  * */
-void PSE_spawn(int argc, char *argv[], int *node, int *port, int rank);
+/* void PSE_spawn(int argc, char *argv[], int *node, int *port, int rank); */
 
 /**
  * @brief Finish the actual process.

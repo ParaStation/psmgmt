@@ -46,6 +46,7 @@ typedef enum {
     TG_GMSPAWNER, /**< special task, the gmspawner (helper to spawn GM) */
     TG_MONITOR,   /**< special task that monitors the daemon. Don't kill */
     TG_PSCSPAWNER,/**< special task, the pscspawner (helper to spawn PSC) */
+    TG_ADMINTASK, /**< admin-task, i.e. unaccounted task */
 } PStask_group_t;
 
 /** Type to store unique task IDs in */
