@@ -40,68 +40,6 @@ static void printVersion(void)
 
 #define OTHER_OPTIONS_STR "<command> [options]"
 
-static void handleNodes(poptContext *optCon, int verbose,
-			char *nodelist, char *hostlist, char *hostfile)
-{
-    char *envstr;
-
-    envstr = getenv("PSI_NODES");
-    if (!envstr) envstr = getenv("PSI_HOSTS");
-    if (!envstr) envstr = getenv("PSI_HOSTFILE");
-    /* envstr marks any of PSI_NODES, PSI_HOSTS or PSI_HOSTFILE set */
-    if (nodelist) {
-	if (hostlist) {
-	    poptPrintUsage(*optCon, stderr, 0);
-	    fprintf(stderr,
-		    "Do not use --nodes and --hosts simultaneously.\n");
-	    exit(1);
-	}
-	if (hostfile) {
-	    poptPrintUsage(*optCon, stderr, 0);
-	    fprintf(stderr,
-		    "Do not use --nodes and --hosts simultaneously.\n");
-	    exit(1);
-	}
-	if (envstr) {
-	    poptPrintUsage(*optCon, stderr, 0);
-	    fprintf(stderr, "Do not use --nodes when any of"
-		    " PSI_NODES, PSI_HOSTS or PSI_HOSTFILE is set.\n");
-	    exit(1);
-	}
-	setenv("PSI_NODES", nodelist, 1);
-	if (verbose) {
-	    printf("PSI_NODES set to '%s'\n", nodelist);
-	}
-    } else if (hostlist) {
-	if (hostfile) {
-	    poptPrintUsage(*optCon, stderr, 0);
-	    fprintf(stderr,
-		    "Do not use --hosts and --hostfile simultaneously.\n");
-	    exit(1);
-	}
-	if (envstr) {
-	    poptPrintUsage(*optCon, stderr, 0);
-	    fprintf(stderr, "Do not use --hosts when any of"
-		    " PSI_NODES, PSI_HOSTS or PSI_HOSTFILE is set.\n");
-	    exit(1);
-	}
-	setenv("PSI_HOSTS", hostlist, 1);
-	if (verbose) {
-	    printf("PSI_HOSTS set to '%s'\n", hostlist);
-	}
-    } else if (hostfile) {
-	if (envstr) {
-	    poptPrintUsage(*optCon, stderr, 0);
-	    fprintf(stderr, "Do not use --hostfile when any of"
-		    " PSI_NODES, PSI_HOSTS or PSI_HOSTFILE is set.\n");
-	    exit(1);
-	}
-	setenv("PSI_HOSTFILE", hostfile, 1);
-	if (verbose) {
-	    printf("PSI_HOSTFILE set to '%s'\n", hostfile);
-	}
-    }
-}
 
 int main(int argc, const char *argv[])
 {
@@ -109,13 +47,13 @@ int main(int argc, const char *argv[])
     char *command;
     char *newargv[4];
 
-    int node, version, verbose, rusage;
+    int node = -1, version=0, verbose=0, rusage=0;
     int rc;
-    char *host, *envlist, *login;
-    char *envstr;
-    int dup_argc;
-    char **dup_argv;
+    const char *host, *envlist, *login;
+    int cmd_argc;
+    char **cmd_argv;
 
+    printf("argc = %d\n", argc);
     /*
      * We can't use popt for argument parsing here. popt is not
      * capable to stop at the first unrecogniced option, i.e. at the
@@ -145,10 +83,9 @@ int main(int argc, const char *argv[])
     };
 
     /* The duplicated argv will contain the apps commandline */
-    poptDupArgv(argc, argv, &dup_argc, (const char ***)&dup_argv);
+    // poptDupArgv(argc, argv, &dup_argc, (const char ***)&dup_argv);
 
-    optCon = poptGetContext(NULL, dup_argc, (const char **)dup_argv,
-			    optionsTable, 0);
+    optCon = poptGetContext(NULL, argc, (const char **)argv, optionsTable, 0);
     poptSetOtherOptionHelp(optCon, OTHER_OPTIONS_STR);
 
     /*
@@ -157,39 +94,58 @@ int main(int argc, const char *argv[])
      *  - second one containing the apps argv
      * The first one is already parsed while splitting
      */
+    node = -1; version = verbose = rusage = 0;
+    host = envlist = login = NULL;
+
+    rc = poptGetNextOpt(optCon);
+
     while (1) {
 	const char *unknownArg;
 
-	version = verbose = rusage = 0;
-	node = host = hostfile = sort = envlist = login = NULL;
-
-	rc = poptGetNextOpt(optCon);
+	printf("next round: host is %p\n", host);
 
 	if ((unknownArg=poptGetArg(optCon))) {
+	    printf("unknownArg: *%p = '%s'\n", unknownArg, unknownArg);
+
+	    if (node<0 && !host) {
+		host = unknownArg;
+		continue;
+	    }
+		
 	    /*
 	     * Find the first unknown argument (which is the apps
 	     * name) within dup_argv. Start searching from dup_argv's end
 	     * since the apps name might be used within another
 	     * options argument.
 	     */
-	    for (i=argc-1; i>0; i--) {
-		if (strcmp(dup_argv[i], unknownArg)==0) {
-		    dup_argc = i;
-		    dup_argv[dup_argc] = NULL;
-		    poptFreeContext(optCon);	
-		    optCon = poptGetContext(NULL,
-					    dup_argc, (const char **)dup_argv,
-					    optionsTable, 0);
-		    poptSetOtherOptionHelp(optCon, OTHER_OPTIONS_STR);
+	    for (i=0; i<=argc; i++) {
+		printf("argv[%d] = %p\n", i, argv[i]);
+		if (unknownArg == argv[i]) {
+		    poptDupArgv(argc-i, &argv[i],
+				&cmd_argc, (const char ***)&cmd_argv);
+		    argv[i]=NULL;
+		    argc = i;
 		    break;
 		}
 	    }
-	    if (i==0) {
+	    if (i>argc) {
 		printf("unknownArg '%s' not found !?\n", unknownArg);
 		exit(1);
-	    }
+	    } else {
+		node = -1; version = verbose = rusage = 0;
+		host = envlist = login = NULL;
+
+		poptFreeContext(optCon);	
+		optCon = poptGetContext(NULL, argc, (const char **)argv,
+					optionsTable, 0);
+		poptSetOtherOptionHelp(optCon, OTHER_OPTIONS_STR);
+		rc = poptGetNextOpt(optCon);
+		continue;
+
+	    }		
 	} else {
 	    /* No unknownArg left, we are finished */
+	    printf("Unknown is now %p\n", unknownArg);
 	    break;
 	}
     }
@@ -208,29 +164,29 @@ int main(int argc, const char *argv[])
         return 0;
     }
 
-    if (!argv[dup_argc]) {
+    if (!cmd_argv || !cmd_argv[0]) {
         poptPrintUsage(optCon, stderr, 0);
 	fprintf(stderr, "No <command> specified.\n");
 	exit(1);
     }
 
-    PSE_initialize();
+/*     PSE_initialize(); */
 
-    rank = PSE_getRank();
+/*     rank = PSE_getRank(); */
 
-    if (rank == -1){
-	/* I am the logger */
+/*     if (rank == -1){ */
+/* 	/\* I am the logger *\/ */
 
 	if (verbose) {
 	    printf("The 'psmstart' command-line is:\n");
-	    for (i=0; i<dup_argc; i++) {
+	    for (i=0; i<argc; i++) {
 		printf("%s ", argv[i]);
 	    }
 	    printf("\b\n\n");
 
 	    printf("The applications command-line is:\n");
-	    for (i=dup_argc; i<argc; i++) {
-		printf("%s ", argv[i]);
+	    for (i=0; i<cmd_argc; i++) {
+		printf("%s ", cmd_argv[i]);
 	    }
 	    printf("\b\n\n");
 	}
@@ -242,30 +198,30 @@ int main(int argc, const char *argv[])
 	    }
 	}
 
-	if (envlist) {
-	    char *val;
+/* 	if (envlist) { */
+/* 	    char *val; */
 
-	    envstr = getenv("PSI_EXPORTS");
-	    if (envstr) {
-		val = malloc(strlen(envstr) + strlen(envlist) + 2);
-		sprintf(val, "%s,%s", envstr, envlist);
-	    } else {
-		val = strdup(envlist);
-	    }
-	    setenv("PSI_EXPORTS", val, 1);
-	    free(val);
-	    if (verbose) {
-		printf("Environment variables to be exported: %s\n", val);
-	    }
-	}
+/* 	    char *envstr = getenv("PSI_EXPORTS"); */
+/* 	    if (envstr) { */
+/* 		val = malloc(strlen(envstr) + strlen(envlist) + 2); */
+/* 		sprintf(val, "%s,%s", envstr, envlist); */
+/* 	    } else { */
+/* 		val = strdup(envlist); */
+/* 	    } */
+/* 	    setenv("PSI_EXPORTS", val, 1); */
+/* 	    free(val); */
+/* 	    if (verbose) { */
+/* 		printf("Environment variables to be exported: %s\n", val); */
+/* 	    } */
+/* 	} */
 
-	handleNodes(&optCon, verbose, nodelist, hostlist, hostfile);
+/* 	// handleNodes(&optCon, verbose, nodelist, hostlist, hostfile); */
 
-	handleSort(&optCon, verbose, sort);
+/* 	handleSort(&optCon, verbose, NULL); */
 
-	/* optCon no longer needed. Do not free() dup_argv before! */
-	optCon = NULL;
-	free(dup_argv);
+/* 	/\* optCon no longer needed. Do not free() dup_argv before! *\/ */
+/* 	optCon = NULL; */
+/* 	free(dup_argv); */
 
 	if (login) {
 	    struct passwd *passwd;
@@ -277,38 +233,38 @@ int main(int argc, const char *argv[])
 		fprintf(stderr, "Unknown user '%s'\n", login);
 	    } else if (myUid && passwd->pw_uid != myUid) {
 		fprintf(stderr, "Can't start '%s' as %s\n",
-			argv[dup_argc], login);
+			cmd_argv[0], login);
 
 		exit(1);
 	    } else {
-		PSE_setUID(passwd->pw_uid);
+/* 		PSE_setUID(passwd->pw_uid); */
 		if (verbose) printf("Run as user '%s' UID %d\n",
 				    passwd->pw_name, passwd->pw_uid);
 	    }
 	}
 
-	/* Don't irritate the user with logger messages */
-	setenv("PSI_NOMSGLOGGERDONE", "", 1);
+/* 	/\* Don't irritate the user with logger messages *\/ */
+/* 	setenv("PSI_NOMSGLOGGERDONE", "", 1); */
 
-	/* Set default HW to none: */
-	PSE_setHWType(0);
-	if (PSE_getPartition(partitionsize)<0) exit(1);
+/* 	/\* Set default HW to none: *\/ */
+/* 	PSE_setHWType(0); */
+/* 	if (PSE_getPartition(partitionsize)<0) exit(1); */
 
-	PSE_spawnMaster(argc, (char **) argv);
+/* 	PSE_spawnMaster(argc, (char **) argv); */
 
 	/* Never be here ! */
-	exit(1);
-    }
+/* 	exit(1); */
+/*     } */
 
-    PSE_registerToParent();
+/*     PSE_registerToParent(); */
 
-    for (i=dup_argc; i<argc; i++) {
-	totlen += strlen(argv[i])+1;
+    for (i=0; i<cmd_argc; i++) {
+	totlen += strlen(cmd_argv[i])+1;
     }
     command = (char *) malloc(totlen*sizeof(char));
-    sprintf(command, "%s", argv[dup_argc]);
-    for (i=dup_argc+1; i<argc; i++) {
-	sprintf(command+strlen(command), " %s", argv[i]);
+    sprintf(command, "%s", cmd_argv[0]);
+    for (i=1; i<cmd_argc; i++) {
+	sprintf(command+strlen(command), " %s", cmd_argv[i]);
     }
 
     newargv[0] = "/bin/sh";
@@ -316,7 +272,8 @@ int main(int argc, const char *argv[])
     newargv[2] = command;
     newargv[3] = NULL;
 
-    execv("/bin/sh", newargv);
+/*     execv("/bin/sh", newargv); */
+    printf("execv(\"/bin/sh\", newargv=\"/bin/sh -c %s\");\n", newargv[2]);
 
     return 0;
 }
