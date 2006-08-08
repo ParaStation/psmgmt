@@ -107,7 +107,7 @@ static info_t privilegedInfo = {
 	  .descr = "Shutdown the ParaStation daemon process on some or all"
 	  " nodes." },
 	{ .tag = "test",
-	  .descr = "The the ParaStation network." },
+	  .descr = "Test the ParaStation network." },
 	{ NULL, NULL }
     },
     .comment = NULL
