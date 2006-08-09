@@ -784,6 +784,16 @@ static int checkRequest(PStask_ID_t sender, PStask_t *task)
 	return EACCES;
     }
 
+    if (task->group == TG_ADMINTASK
+	&& PSnodes_getAdminUser(PSC_getMyID()) != PSNODES_ANYUSER
+	&& ptask->uid != PSnodes_getAdminUser(PSC_getMyID())
+	&& PSnodes_getAdminGroup(PSC_getMyID()) != PSNODES_ANYGROUP
+	&& ptask->gid != PSnodes_getAdminGroup(PSC_getMyID())) {
+	/* no permission to start admin task */
+	PSID_log(-1, "%s: no permission to spawn admintask\n", __func__);
+	return EACCES;
+    }
+
     PSID_log(PSID_LOG_SPAWN, "%s: request from %s ok\n", __func__,
 	     PSC_printTID(task->ptid));
     return 0;
@@ -975,6 +985,7 @@ void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	if (answer.error) {
 	    PStask_delete(task);
 	    answer.header.type = PSP_CD_SPAWNFAILED;
+	    answer.header.sender = msg->header.dest;
 	    sendMsg(&answer);
 
 	    return;

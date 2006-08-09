@@ -527,7 +527,7 @@ int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
 	return -1;
     }
 
-    return node;
+    return 1;
 }
 
 PStask_ID_t PSI_spawnRank(int rank, char *workdir, int argc, char **argv,

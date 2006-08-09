@@ -49,6 +49,7 @@ bin/mpirun_psc.c \
 bin/pscspawner.c \
 bin/psispawn.c \
 bin/psmstart.c \
+bin/pssh.c \
 bin/test_config.c \
 bin/test_logging.c \
 bin/test_pse.c \

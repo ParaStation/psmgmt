@@ -22,6 +22,8 @@
 
 #include <sys/types.h>
 
+#include "psnodes.h"
+
 #ifdef __cplusplus
 extern "C" {
 #if 0
@@ -401,6 +403,35 @@ int PSE_getMasterNode();
  * @see PSE_spawnTasks(), PSP_GetPortNo()
  * */
 int PSE_getMasterPort();
+
+/**
+ * @brief Spawn admin process.
+ *
+ * Spawn an admin process and become logger. A process with rank =
+ * 0 is spawned and the actual process will exec(2) to the
+ * psilogger. It will serve the spawned process as an I/O daemon.
+ *
+ * Spawning is done without allocating a partition. Only selected
+ * users are allowed to spawn admin processes.
+ *
+ * If an error occures, an error message is generated and the process
+ * exits.
+ *
+ * @param node ID of the node to spawn to.
+ *
+ * @param argc The size of @a argv.
+ *
+ * @param argv The argument vector of the task to spawn.
+ *
+ * @return No return value. Actually, @a PSE_spawnAdmin() never
+ * returns but becomes a psilogger process.
+ *
+ * @warning Calls to this function from within processes where @ref
+ * PSE_getRank() returns a value different from -1 will fail.
+ *
+ * @see PSE_getRank(), exec(2)
+ * */
+void PSE_spawnAdmin(PSnodes_ID_t node, int argc, char *argv[]);
 
 /**
  * @brief Deprecated form of PSE_spawnMaster() and PSE_spawnTasks()

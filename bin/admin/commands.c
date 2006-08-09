@@ -616,7 +616,8 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 		   taskInfo[task].group==TG_SPAWNER ? "(S)" :
 		   taskInfo[task].group==TG_GMSPAWNER ? "(S)" :
 		   taskInfo[task].group==TG_PSCSPAWNER ? "(S)" :
-		   taskInfo[task].group==TG_MONITOR ? "(M)" : "   ");
+		   taskInfo[task].group==TG_MONITOR ? "(M)" :
+		   taskInfo[task].group==TG_ADMINTASK ? "(*)" : "   ");
 
 	    {
 		pid_t pid = PSC_getPID(taskInfo[task].tid);
