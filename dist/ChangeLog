@@ -1,6 +1,100 @@
 Version psmgmt-4.3.3:
 =====================
 ------------------------------------------------------------------------
+r4257 | eicker | 2006-08-17 13:16:05 +0200 (Thu, 17 Aug 2006) | 2 lines
+
+New version
+
+------------------------------------------------------------------------
+r4256 | eicker | 2006-08-17 12:59:52 +0200 (Thu, 17 Aug 2006) | 2 lines
+
+Enable PSE_spawnAdmin() and PSI_spawnAdmin() to set rank explicitely.
+
+------------------------------------------------------------------------
+r4236 | eicker | 2006-08-09 21:30:49 +0200 (Wed, 09 Aug 2006) | 2 lines
+
+Spawning of admin tasks completed. pssh is first example to use this.
+
+------------------------------------------------------------------------
+r4235 | eicker | 2006-08-08 21:01:01 +0200 (Tue, 08 Aug 2006) | 2 lines
+
+Fix help message (see bug #52).
+
+------------------------------------------------------------------------
+r4234 | eicker | 2006-08-08 00:05:55 +0200 (Tue, 08 Aug 2006) | 2 lines
+
+Next snapshot of pssh. Still not working.
+
+------------------------------------------------------------------------
+r4199 | eicker | 2006-07-21 17:18:41 +0200 (Fri, 21 Jul 2006) | 2 lines
+
+First snapshot of pssh. Not working, not enabled in Makefile.
+
+------------------------------------------------------------------------
+r4198 | eicker | 2006-07-21 15:48:04 +0200 (Fri, 21 Jul 2006) | 2 lines
+
+Add user-land support for admin-tasks (at least a stub of it).
+
+------------------------------------------------------------------------
+r4196 | eicker | 2006-07-20 12:58:57 +0200 (Thu, 20 Jul 2006) | 4 lines
+
+Extension: Add 'adminuser' and 'admingroup' attribute to nodes. This
+   includes extensions to the configuration file and to psiadmin. Needed
+   for admin-task to be implemented later.
+
+------------------------------------------------------------------------
+r4195 | eicker | 2006-07-19 16:58:42 +0200 (Wed, 19 Jul 2006) | 4 lines
+
+Bugfix: Enable PSI_spawn() and relatives to handle much larger
+        environments. Now we might reduce the maximum size of
+        DDBufferMsg_t and DDTypedBufferMsg_t significantly.
+
+------------------------------------------------------------------------
+r4194 | eicker | 2006-07-19 15:34:25 +0200 (Wed, 19 Jul 2006) | 4 lines
+
+Bugfix: Interprete PSI_DEBUGMASK correct even when given as hex.
+Bugfix: Exit from PSE_spawnMaster() even if PSI_spawn gives no error
+        code.
+
+------------------------------------------------------------------------
+r4180 | eicker | 2006-07-11 23:55:32 +0200 (Tue, 11 Jul 2006) | 2 lines
+
+Move all the spawning stuff into psidspawn.c.
+
+------------------------------------------------------------------------
+r4175 | eicker | 2006-07-11 16:55:07 +0200 (Tue, 11 Jul 2006) | 3 lines
+
+Extract all functions concerning handling of communication hardware into
+   one file.
+
+------------------------------------------------------------------------
+r4164 | eicker | 2006-07-10 15:42:55 +0200 (Mon, 10 Jul 2006) | 3 lines
+
+Prevent 'list version' from providing obsolete info (belonging to a
+   previous node).
+
+------------------------------------------------------------------------
+r4163 | eicker | 2006-07-10 15:27:10 +0200 (Mon, 10 Jul 2006) | 2 lines
+
+Implement psiadmin's 'list jobs' directive.
+
+------------------------------------------------------------------------
+r4162 | eicker | 2006-07-10 14:33:26 +0200 (Mon, 10 Jul 2006) | 2 lines
+
+Improved documentation. This prevents some warnings within doxygen.
+
+------------------------------------------------------------------------
+r4145 | eicker | 2006-06-26 18:08:27 +0200 (Mon, 26 Jun 2006) | 3 lines
+
+Smarter test if we'll ever get the requested resources when we have to
+overbook.
+
+------------------------------------------------------------------------
+r4143 | eicker | 2006-06-22 00:35:14 +0200 (Thu, 22 Jun 2006) | 2 lines
+
+Some more corrections on allocation. One minor issue remains.
+
+------------------------------------------------------------------------
 r4138 | hauke | 2006-06-20 14:40:43 +0200 (Tue, 20 Jun 2006) | 2 lines
 
 Install x86_64 libs to /opt/parastation/lib64.
