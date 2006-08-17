@@ -289,12 +289,6 @@ int main(int argc, const char *argv[])
 	nodeID = node;
     }
 
-    {
-	char nodeStr[16];
-	snprintf(nodeStr, sizeof(nodeStr), "%d", nodeID);
-	setenv("PSI_INPUTDEST", nodeStr, 1);
-    }
-
     /* Don't irritate the user with logger messages */
     setenv("PSI_NOMSGLOGGERDONE", "", 1);
 
@@ -305,7 +299,7 @@ int main(int argc, const char *argv[])
 	cmd_argc=1;
     }
 
-    PSE_spawnAdmin(nodeID, cmd_argc, cmd_argv);
+    PSE_spawnAdmin(nodeID, 0, cmd_argc, cmd_argv);
 
     /* Never be here ! */
     exit(1);

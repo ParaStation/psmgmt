@@ -297,7 +297,8 @@ void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
     logger_print(logger, PSE_LOG_SPAWN, "Spawned all processes\n");
 }
 
-void PSE_spawnAdmin(PSnodes_ID_t node, int argc, char *argv[])
+void PSE_spawnAdmin(PSnodes_ID_t node, unsigned int rank,
+		    int argc, char *argv[])
 {
     PStask_ID_t spawnedProcess = -1;
     int error;
@@ -313,7 +314,8 @@ void PSE_spawnAdmin(PSnodes_ID_t node, int argc, char *argv[])
     }
 
     /* spawn admin process */
-    if (PSI_spawnAdmin(node, NULL, argc, argv, &error, &spawnedProcess) < 0 ) {
+    if (PSI_spawnAdmin(node, NULL, argc, argv, rank,
+		       &error, &spawnedProcess) < 0 ) {
 	if (error) {
 	    logger_warn(logger, -1, error,
 			"Could not spawn admin process (%s)",argv[0]);

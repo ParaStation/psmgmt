@@ -419,6 +419,9 @@ int PSE_getMasterPort();
  *
  * @param node ID of the node to spawn to.
  *
+ * @param rank The rank of the spawned process. This is mainly used
+ * within reconnection to the logger.
+ *
  * @param argc The size of @a argv.
  *
  * @param argv The argument vector of the task to spawn.
@@ -431,7 +434,8 @@ int PSE_getMasterPort();
  *
  * @see PSE_getRank(), exec(2)
  * */
-void PSE_spawnAdmin(PSnodes_ID_t node, int argc, char *argv[]);
+void PSE_spawnAdmin(PSnodes_ID_t node, unsigned int rank,
+		    int argc, char *argv[]);
 
 /**
  * @brief Deprecated form of PSE_spawnMaster() and PSE_spawnTasks()

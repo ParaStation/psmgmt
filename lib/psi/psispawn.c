@@ -198,7 +198,7 @@ static char *mygetwd(const char *ext)
  */
 static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 		   int argc, char **argv, PStask_group_t taskGroup,
-		   int rank, int *errors, PStask_ID_t *tids)
+		   unsigned int rank, int *errors, PStask_ID_t *tids)
 {
     int outstanding_answers=0;
     DDTypedBufferMsg_t msg;
@@ -320,7 +320,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     outstanding_answers=0;
     for (i=0; i<count; i++) {
 	/* check if dstnode is ok */
-	if (dstnodes[i] >= PSC_getNrOfNodes()) {
+	if (dstnodes[i] < 0 || dstnodes[i] >= PSC_getNrOfNodes()) {
 	    errors[i] = ENETUNREACH;
 	    tids[i] = -1;
 	} else {
@@ -515,14 +515,15 @@ int PSI_spawnSingle(char *workdir, int argc, char **argv,
 }
 
 int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
-		    int *error, PStask_ID_t *tid)
+		   unsigned int rank, int *error, PStask_ID_t *tid)
 {
     int ret;
 
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, node);
 
+    if (node == -1) node = PSC_getMyID();
     ret = dospawn(1, &node, workdir, argc, argv,
-		  TG_ADMINTASK, node, error, tid);
+		  TG_ADMINTASK, rank, error, tid);
     if (ret != 1) {
 	return -1;
     }

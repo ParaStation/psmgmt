@@ -284,6 +284,9 @@ int PSI_spawnSingle(char *workdir, int argc, char **argv,
  * @param argv Array of argument strings passed to the resulting
  * execve() call in order to finally spawn the task.
  *
+ * @param rank The rank of the spawned process. This is mainly used
+ * within reconnection to the logger.
+ *
  * @param error Errorcode displaying if an error occurred within
  * PSI_spawnAdmin() while spawning the corresponding task.
  *
@@ -294,7 +297,7 @@ int PSI_spawnSingle(char *workdir, int argc, char **argv,
  * @a error is set appropriately.
  */
 int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
-		   int *error, PStask_ID_t *tid);
+		   unsigned int rank, int *error, PStask_ID_t *tid);
 
 /**
  * @brief Create a pg (process group) file for MPIch/P4
