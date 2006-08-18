@@ -73,6 +73,8 @@ static info_t helpInfo = {
 	  .descr = "Show control parameters." },
 	{ .tag = "list",
 	  .descr = "List information." },
+	{ .tag = "sleep",
+	  .descr = "Sleep for a given period." },
 	{ .tag = "version",
 	  .descr = "Print version numbers." },
 	{ .tag = "quit",
@@ -459,6 +461,18 @@ static info_t listInfo = {
 	  " <tid> is connected to is displayed." },
 	{ NULL, NULL }
     },
+    .comment = NULL
+};
+
+static info_t sleepInfo = {
+    .head = "Sleep command:",
+    .syntax = (syntax_t[]) {{
+	.cmd = "sleep",
+	.arg = "<sec>"
+    }},
+    .nodes = 0,
+    .descr = "Sleep for <sec> seconds before continueing to parse intput.",
+    .tags = NULL,
     .comment = NULL
 };
 

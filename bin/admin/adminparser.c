@@ -1104,6 +1104,12 @@ static int helpTest(char *token)
     return 0;
 }
 
+static int helpSleep(char *token)
+{
+    printInfo(&sleepInfo);
+    return 0;
+}
+
 static int helpNodes(char *token)
 {
     printInfo(&nodeInfo);
@@ -1132,6 +1138,7 @@ static keylist_t helpList[] = {
     {"show", helpShow},
     {"kill", helpKill},
     {"test", helpTest},
+    {"sleep", helpSleep},
     {"nodes", helpNodes},
     {NULL, helpNotFound}
 };
@@ -1188,6 +1195,24 @@ static int versionCommand(char *token)
     return -1;
 }
 
+static int sleepCommand(char *token)
+{
+    long tmp;
+
+    token = parser_getString();
+    if (!token) goto error;
+    if (parser_getNumber(token, &tmp)) goto error;
+
+    if (tmp < 0 || parser_getString()) goto error;
+
+    sleep(tmp);
+    return 0;
+
+ error:
+    printError(&sleepInfo);
+    return -1;
+}
+
 /** Magic value returned by the parser function to show 'quit' was reached. */
 #define quitMagic 17
 
@@ -1225,6 +1250,7 @@ static keylist_t commandList[] = {
     {"?", helpCommand},
     {"help", helpCommand},
     {"version", versionCommand},
+    {"sleep", sleepCommand},
     {"exit", quitCommand},
     {"quit", quitCommand},
     {NULL, error}
