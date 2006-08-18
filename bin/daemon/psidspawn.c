@@ -450,7 +450,7 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 	 * kills whole process groups. Otherwise the daemon might
 	 * also kill the forwarder by sending a signal to the client.
 	 */
-	setpgid(0, 0);
+	setsid();
 
 	/* no direct connection to the daemon */
 	close(daemonfd);
@@ -463,18 +463,27 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
         close(stdoutfds[0]);
         close(stderrfds[0]);
 
-	/* redirect input/output */
+	/* redirect stderr */
 	errno = 0;
-        dup2(stdinfds[1], STDIN_FILENO);
-        dup2(stdoutfds[1], STDOUT_FILENO);
 	dup2(stderrfds[1], STDERR_FILENO);
 
-	/* From now on, all logging is done via the forwarder thru stderr */
 	if (errno) {
-	    /* at least one dup2() failed */
-	    fprintf(stderr, "%s: dup2(): [%d] %s\n", __func__,
-		    errno, get_strerror(errno));
+	    write(clientfds[1], &errno, sizeof(errno));
+	    exit(1);
+	}
 
+	/* From now on, all logging is done via the forwarder thru stderr */
+
+	/* redirect stdin/stdout */
+	if (dup2(stdinfds[1], STDIN_FILENO) < 0) {
+	    fprintf(stderr, "%s: dup2(%d): [%d] %s\n", __func__,
+		    STDIN_FILENO, errno, get_strerror(errno));
+	    write(clientfds[1], &errno, sizeof(errno));
+	    exit(1);
+	}
+	if (dup2(stdoutfds[1], STDOUT_FILENO) < 0) {
+	    fprintf(stderr, "%s: dup2(%d): [%d] %s\n", __func__,
+		    STDOUT_FILENO, errno, get_strerror(errno));
 	    write(clientfds[1], &errno, sizeof(errno));
 	    exit(1);
 	}
@@ -483,6 +492,25 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
         close(stdinfds[1]);
 	close(stdoutfds[1]);
 	close(stderrfds[1]);
+
+        /* Setup terminal foreground group */
+	fprintf(stderr, "%s: Setup terminal foreground group\n", __func__);
+        if (task->aretty & (1<<STDERR_FILENO)) {
+            if (ioctl(STDERR_FILENO, TIOCSCTTY, NULL) == -1) {
+                fprintf(stderr, "%s: ioctl(%d, TIOCSCTTY): %s\n",
+                        __func__, STDERR_FILENO, get_strerror(errno));
+            }
+        } else if (task->aretty & (1<<STDOUT_FILENO)) {
+            if (ioctl(STDOUT_FILENO, TIOCSCTTY, NULL) == -1) {
+                fprintf(stderr, "%s: ioctl(%d, TIOCSCTTY): %s\n",
+                        __func__, STDOUT_FILENO, get_strerror(errno));
+            }
+        } else if (task->aretty & (1<<STDIN_FILENO)) {
+            if (ioctl(STDIN_FILENO, TIOCSCTTY, NULL) == -1) {
+                fprintf(stderr, "%s: ioctl(%d, TIOCSCTTY): %s\n",
+                        __func__, STDIN_FILENO, get_strerror(errno));
+            }
+        }
 
 	/* try to start the client */
 	execClient(task, clientfds[1]);
