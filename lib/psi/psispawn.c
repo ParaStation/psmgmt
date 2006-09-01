@@ -671,7 +671,12 @@ char *PSI_createMPIhosts(int num, int local)
 		free(MPIhostsFilename);
 		return NULL;
 	    }
-	    PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr.s_addr, 0);
+	    ret = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr.s_addr, 0);
+	    if (ret || (hostaddr.s_addr == INADDR_ANY)) {
+		fclose(MPIhostsFile);
+		free(MPIhostsFilename);
+		return NULL;
+	    }
 	}
 	fprintf(MPIhostsFile, "%s\n", inet_ntoa(hostaddr));
     }
