@@ -919,6 +919,8 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
     case PSP_OP_HANDLEOLD:
     case PSP_OP_NODESSORT:
     case PSP_OP_OVERBOOK:
+    case PSP_OP_STARTER:
+    case PSP_OP_RUNJOBS:
     case PSP_OP_EXCLUSIVE:
 	break;
     default:
