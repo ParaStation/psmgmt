@@ -289,11 +289,23 @@ function expand(name,pat)
 
 {
    hostname=$1;
-   match(hostname, "\\[(.*)\\]", s);
-   if (s[0] != "") {
-       expand(hostname, s[1]);
-   } else {
-       print hostname;
+   n = split(hostname, hs, ","); /* comma sep list */
+   for (ii=1; ii<=n;ii++) {
+       if (hs[ii] ~ /\[/ ) {
+           h=hs[ii];
+           while ((ii+1<=n) && !(h ~ /\]/)) {
+               ii++;
+               h=h","hs[ii]; /* merge splited [,]*/
+           }
+           match(h, "\\[([^[]*)\\]", s);
+           if (s[0] != "") {
+               expand(h, s[1]);
+           } else {
+               print h;
+           }
+       } else {
+               print hs[ii];
+       }
    }
 }
 '
