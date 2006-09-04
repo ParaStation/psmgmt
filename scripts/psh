@@ -41,8 +41,12 @@ function psstart()
 #############################
 # create a default template 
 if [ ! -e "${D_CONFIG}" ] ; then
-    mkdir -p ${D_CONFIG_D}
-    cat >> ${D_CONFIG} <<EOF
+    read -n 1 -p "Create ${D_CONFIG} [y/N]? " q
+    echo
+    case "$q" in
+    y|Y)
+        mkdir -p ${D_CONFIG_D}
+        cat >> ${D_CONFIG} <<EOF
 ## psh defaults
 ## uncomment all options you need...
 
@@ -59,6 +63,8 @@ if [ ! -e "${D_CONFIG}" ] ; then
 # verbose
 
 EOF
+        ;;
+    esac
 fi
 
 ####################################################
