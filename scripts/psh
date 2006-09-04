@@ -26,7 +26,7 @@ TMPTEMPLATE="/tmp/pshout.XXXXXX"
 
 PARASTATIONSTART="/opt/parastation/bin/psmstart"
 if [ -x "${PARASTATIONSTART}" ] ; then
-    D_RCMD="psstart";
+#    D_RCMD="psstart";
 fi
 
 function psstart()
