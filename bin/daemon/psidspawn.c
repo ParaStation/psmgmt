@@ -494,7 +494,6 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 	close(stderrfds[1]);
 
         /* Setup terminal foreground group */
-	fprintf(stderr, "%s: Setup terminal foreground group\n", __func__);
         if (task->aretty & (1<<STDERR_FILENO)) {
             if (ioctl(STDERR_FILENO, TIOCSCTTY, NULL) == -1) {
                 fprintf(stderr, "%s: ioctl(%d, TIOCSCTTY): %s\n",
