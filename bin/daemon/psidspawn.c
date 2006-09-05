@@ -805,7 +805,9 @@ static int checkRequest(PStask_ID_t sender, PStask_t *task)
 	return EACCES;
     }
 
-    if (!PSnodes_isStarter(PSC_getMyID()) && ptask->group == TG_LOGGER) {
+    if (!PSnodes_isStarter(PSC_getMyID()) && ( ptask->group == TG_SPAWNER
+					       || ptask->group == TG_PSCSPAWNER
+					       || ptask->group == TG_LOGGER)) {
 	/* starting not allowed */
 	PSID_log(-1, "%s: spawning not allowed\n", __func__);
 	return EACCES;

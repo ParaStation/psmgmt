@@ -413,7 +413,8 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    }
 
 	    if (answer.header.type==PSP_CD_SPAWNFAILED) {
-		PSI_log(-1, "%s: spawn to node %d failed\n", __func__,
+		PSI_warn(-1, answer.error,
+			"%s: spawn to node %d failed", __func__,
 			PSC_getID(answer.header.sender));
 		error = 1;
 	    }

@@ -227,9 +227,10 @@ int main(int argc, const char *argv[])
 				       &error, &spawnedProcess);
 	    if (rank < 0 ) {
 		if (error) {
+		    char *errstr = strerror(error);
 		    fprintf(stderr,
-			    "Could not spawn master process (%s)",argv[0]);
-		    fprintf(stderr, "Spawn failed.\n");
+			    "Could not spawn master process (%s): %s\n",
+			    argv[0], errstr ? errstr : "UNKNOWN");
 		    exit(10);
 		}
 	    }
