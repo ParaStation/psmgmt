@@ -170,12 +170,12 @@ static void execClient(PStask_t *task, int cntrlCh)
 {
     /* logging is done via the forwarder thru stderr! */
     struct stat sb;
-    int i;
+    int i, ret;
 
     /* change the gid */
     if (setgid(task->gid)<0) {
 	fprintf(stderr, "%s: setgid: %s\n", __func__, get_strerror(errno));
-	write(cntrlCh, &errno, sizeof(errno));
+	ret = write(cntrlCh, &errno, sizeof(errno));
 	exit(0);
     }
 
@@ -185,7 +185,7 @@ static void execClient(PStask_t *task, int cntrlCh)
     /* change the uid */
     if (setuid(task->uid)<0) {
 	fprintf(stderr, "%s: setuid: %s\n", __func__, get_strerror(errno));
-	write(cntrlCh, &errno, sizeof(errno));
+	ret = write(cntrlCh, &errno, sizeof(errno));
 	exit(0);
     }
 
@@ -202,12 +202,12 @@ static void execClient(PStask_t *task, int cntrlCh)
 		fprintf(stderr, "%s: chdir(%s): %s\n", __func__,
 			passwd->pw_dir ? passwd->pw_dir : "",
 			get_strerror(errno));
-		write(cntrlCh, &errno, sizeof(errno));
+		ret = write(cntrlCh, &errno, sizeof(errno));
 		exit(0);
 	    }
 	} else {
 	    fprintf(stderr, "Cannot determine home directory\n");
-	    write(cntrlCh, &errno, sizeof(errno));
+	    ret = write(cntrlCh, &errno, sizeof(errno));
 	    exit(0);
 	}	    
     }
@@ -225,7 +225,7 @@ static void execClient(PStask_t *task, int cntrlCh)
     if (mystat(task->argv[0], &sb) == -1) {
 	fprintf(stderr, "%s: stat(%s): %s\n", __func__,
 		task->argv[0] ? task->argv[0] : "", get_strerror(errno));
-	write(cntrlCh, &errno, sizeof(errno));
+	ret = write(cntrlCh, &errno, sizeof(errno));
 	exit(0);
     }
 
@@ -235,7 +235,7 @@ static void execClient(PStask_t *task, int cntrlCh)
 		(!S_ISREG(sb.st_mode)) ? "S_ISREG error" :
 		(sb.st_mode & S_IXUSR) ? "" : "S_IXUSR error");
 
-	write(cntrlCh, &errno, sizeof(errno));
+	ret = write(cntrlCh, &errno, sizeof(errno));
 	exit(0);
     }
 
@@ -249,7 +249,7 @@ static void execClient(PStask_t *task, int cntrlCh)
      * send the forwarder a sign that the exec wasn't successful.
      * cntrlCh would have been closed on successful exec.
      */
-    write(cntrlCh, &errno, sizeof(errno));
+    ret = write(cntrlCh, &errno, sizeof(errno));
     exit(0);
 }
 
@@ -322,19 +322,20 @@ static void resetSignals(void)
  */
 static void openChannel(PStask_t *task, int *fds, int fileNo, int cntrlCh)
 {
+    int ret;
     char *fdName = (fileNo == STDOUT_FILENO) ? "stdout" :
 	(fileNo == STDERR_FILENO) ? "stderr" : "unknown";
 
     if (task->aretty & (1<<fileNo)) {
 	if (openpty(&fds[0], &fds[1], NULL, &task->termios, &task->winsize)) {
 	    PSID_warn(-1, errno, "%s: openpty(%s)", __func__, fdName);
-	    write(cntrlCh, &errno, sizeof(errno));
+	    ret = write(cntrlCh, &errno, sizeof(errno));
 	    exit(1);
 	}
     } else {
 	if (socketpair(PF_UNIX, SOCK_STREAM, 0, fds)) {
 	    PSID_warn(-1, errno, "%s: socketpair(%s)", __func__, fdName);
-	    write(cntrlCh, &errno, sizeof(errno));
+	    ret = write(cntrlCh, &errno, sizeof(errno));
 	    exit(1);
 	}
     }
@@ -421,7 +422,7 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 	    if (openpty(&stdinfds[0], &stdinfds[1],
 			NULL, &task->termios, &task->winsize)) {
 		PSID_warn(-1, errno, "%s: openpty(stdin)", __func__);
-		write(cntrlCh, &errno, sizeof(errno));
+		ret = write(cntrlCh, &errno, sizeof(errno));
 		exit(1);
 	    }
 	}
@@ -435,7 +436,7 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 	} else {
 	    if (socketpair(PF_UNIX, SOCK_STREAM, 0, stdinfds)) {
 		PSID_warn(-1, errno, "%s: socketpair(stdin)", __func__);
-		write(cntrlCh, &errno, sizeof(errno));
+		ret = write(cntrlCh, &errno, sizeof(errno));
 		exit(1);
 	    }
 	}
@@ -468,7 +469,7 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 	dup2(stderrfds[1], STDERR_FILENO);
 
 	if (errno) {
-	    write(clientfds[1], &errno, sizeof(errno));
+	    ret = write(clientfds[1], &errno, sizeof(errno));
 	    exit(1);
 	}
 
@@ -478,13 +479,13 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 	if (dup2(stdinfds[1], STDIN_FILENO) < 0) {
 	    fprintf(stderr, "%s: dup2(%d): [%d] %s\n", __func__,
 		    STDIN_FILENO, errno, get_strerror(errno));
-	    write(clientfds[1], &errno, sizeof(errno));
+	    ret = write(clientfds[1], &errno, sizeof(errno));
 	    exit(1);
 	}
 	if (dup2(stdoutfds[1], STDOUT_FILENO) < 0) {
 	    fprintf(stderr, "%s: dup2(%d): [%d] %s\n", __func__,
 		    STDOUT_FILENO, errno, get_strerror(errno));
-	    write(clientfds[1], &errno, sizeof(errno));
+	    ret = write(clientfds[1], &errno, sizeof(errno));
 	    exit(1);
 	}
 
@@ -532,7 +533,7 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
     if (pid == -1) {
 	close(clientfds[0]);
 	PSID_warn(-1, errno, "%s: fork()", __func__);
-	write(cntrlCh, &ret, sizeof(ret));
+	ret = write(cntrlCh, &ret, sizeof(ret));
 	exit(1);
     }
 
@@ -554,9 +555,9 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 
 	/* Tell the parent about the client's pid */
 	buf = 0; /* errno will never be 0, this marks the following pid */
-	write(cntrlCh, &buf, sizeof(buf));
+	ret = write(cntrlCh, &buf, sizeof(buf));
 	buf = pid;
-	write(cntrlCh, &buf, sizeof(buf));
+	ret = write(cntrlCh, &buf, sizeof(buf));
     } else {
 	/*
 	 * the child sent us a sign that the execv wasn't successful
@@ -568,7 +569,7 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 
 	/* Tell the parent about this */
 	buf=errno;
-	write(cntrlCh, &buf, sizeof(buf));
+	ret = write(cntrlCh, &buf, sizeof(buf));
 	exit(1);
     }
     close(clientfds[0]);

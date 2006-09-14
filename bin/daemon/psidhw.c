@@ -202,7 +202,11 @@ static int callScript(int hw, char *script)
 	{
 	    char *dir = PSC_lookupInstalldir();
 
-	    if (dir) chdir(dir);
+	    if (dir && (chdir(dir)<0)) {
+		fprintf(stderr, "%s: cannot change to directory '%s'",
+			__func__, dir);
+		exit(0);
+	    }
 	}
 
         ret = system(command);

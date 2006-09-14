@@ -657,8 +657,8 @@ static void loop(void)
 
 			if (nl) nl++; /* Thus nl points behind the newline */
 
-			write(outfd, prefix, strlen(prefix));
-			write(outfd, buf, nl ? (size_t)(nl - buf) : count);
+			ret = write(outfd, prefix, strlen(prefix));
+			ret = write(outfd, buf, nl ? (size_t)(nl - buf):count);
 
 			if (nl) {
 			    count -= nl - buf;
@@ -668,7 +668,8 @@ static void loop(void)
 			}
 		    }
 		} else {
-		    write(outfd, msg.buf, msg.header.len - PSLog_headerSize);
+		    ret = write(outfd, msg.buf,
+				msg.header.len-PSLog_headerSize);
 		}
 		break;
 	    }
@@ -912,8 +913,9 @@ int main( int argc, char**argv)
     closeDaemonSock();
 
     for (i=3; i<argc; i++) {
+	int ret;
 	if (verbose) fprintf(stderr, "Execute '%s'\n", argv[i]);
-	system(argv[i]);
+	ret = system(argv[i]);
     }
 
     return retVal ? retVal : (signaled ? -1 : 0);

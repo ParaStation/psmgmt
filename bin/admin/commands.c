@@ -1118,7 +1118,10 @@ void PSIADM_TestNetwork(int mode)
 
     dir = PSC_lookupInstalldir();
     if (dir) {
-	chdir (dir);
+	if (chdir(dir)<0) {
+	    printf("Cannot change to directory '%s'.\n", dir);
+	    return;
+	}
     } else {
 	printf("Cannot find 'test_nodes'.\n");
 	return;
