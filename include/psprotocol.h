@@ -154,7 +154,7 @@ typedef enum {
     PSP_INFO_LIST_NORMJOBS,       /**< List of job numbers (normal jobs) */
     PSP_INFO_LIST_ALLTASKS,       /**< List of all tasks @deprecated */
     PSP_INFO_LIST_NORMTASKS,      /**< List of normal tasks  @deprecated */
-    PSP_INFO_LIST_ALLOCJOBS,      /**< List of allocated job slots */
+    PSP_INFO_LIST_ALLOCJOBS,      /**< List of allocated job slots (per node)*/
     PSP_INFO_LIST_EXCLUSIVE,      /**< List of flags of exclusive allocation */
 
     PSP_INFO_CMDLINE,             /**< Task's command line (if available) */
@@ -164,6 +164,9 @@ typedef enum {
     PSP_INFO_QUEUE_ALLTASK,       /**< Queue of tasks (all tasks) */
     PSP_INFO_QUEUE_NORMTASK,      /**< Queue of tasks (normal tasks tasks) */
     PSP_INFO_QUEUE_PARTITION,     /**< Queue of partitions */
+
+    PSP_INFO_LIST_PARTITION,      /**< Task's list of allocated slots */
+
 } PSP_Info_t;
 
 /** Messages concerning spawning of tasks. */

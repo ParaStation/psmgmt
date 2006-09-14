@@ -100,6 +100,7 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
 	case PSP_INFO_LIST_NORMTASKS:
 	case PSP_INFO_LIST_ALLOCJOBS:
 	case PSP_INFO_LIST_EXCLUSIVE:
+	case PSP_INFO_LIST_PARTITION:
 	case PSP_INFO_CMDLINE:
 	case PSP_INFO_RPMREV:
 	case PSP_INFO_QUEUE_ALLTASK:
@@ -434,6 +435,9 @@ int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     case PSP_INFO_LIST_NORMTASKS:
     case PSP_INFO_LIST_ALLOCJOBS:
     case PSP_INFO_LIST_EXCLUSIVE:
+	break;
+    case PSP_INFO_LIST_PARTITION:
+	if (param) msg.header.dest = *(PStask_ID_t *)param;
 	break;
     default:
 	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,

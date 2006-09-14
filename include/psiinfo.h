@@ -348,7 +348,14 @@ int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * the task running on it has requested exclusive access to this node
  * and this was granted by the resource manager on the master node. On
  * nodes marked as exclusive no other parallel applications are
- * allowed to start processes on.
+ * allowed to start processes on. No further parameters needed.
+ *
+ * - PSP_INFO_LIST_PARTITION requests a list of all process slots
+ * associated to the partition either of the requesting process or of
+ * any other process given in @a param. The process slots are given
+ * back as a list of entries of type PSnodes_ID_t. No further
+ * parameters needed but param might point to a PStask_ID_t in order
+ * to get info on some foreign tasks.
  *
  *
  * @param node The ParaStation ID of the node to ask.

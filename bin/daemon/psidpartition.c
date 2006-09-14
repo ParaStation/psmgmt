@@ -1771,20 +1771,15 @@ void msg_PROVIDEPARTNL(DDBufferMsg_t *inmsg)
 
 void msg_GETNODES(DDBufferMsg_t *inmsg)
 {
-    PStask_t *task;
+    PStask_ID_t target = PSC_getPID(inmsg->header.dest) ?
+	inmsg->header.dest : inmsg->header.sender;
+    PStask_t *task = PStasklist_find(managedTasks, target);
     char *ptr = inmsg->buf;
     unsigned int num;
 
-    if (PSC_getPID(inmsg->header.dest)) {
-	/* Forwarded message */
-	task = PStasklist_find(managedTasks, inmsg->header.dest);
-    } else {
-	task = PStasklist_find(managedTasks, inmsg->header.sender);
-    }
-
     if (!task) {
 	PSID_log(-1, "%s: Task %s not found\n", __func__,
-		 PSC_printTID(inmsg->header.dest));
+		 PSC_printTID(target));
 	goto error;
     }
 

@@ -548,6 +548,51 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    }
 	    break;
 	}
+	case PSP_INFO_LIST_PARTITION:
+	{
+	    PStask_ID_t target = PSC_getPID(inmsg->header.dest) ?
+		inmsg->header.dest : inmsg->header.sender;
+	    PStask_t *task = PStasklist_find(managedTasks, target);
+
+	    if (!task) {
+		PSID_log(-1, "%s: task %s not found\n",
+			 funcStr, PSC_printTID(target));
+		err = 1;
+		break;
+	    }
+
+	    if (task->ptid) {
+		PSID_log(PSID_LOG_INFO, "%s: forward to root process %s\n",
+			 funcStr, PSC_printTID(task->ptid));
+		inmsg->header.dest = task->ptid;
+		if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
+		    PSID_warn(-1, errno, "%s: sendMsg()", funcStr);
+		    err=1;
+		    break;
+		}
+		return;
+	    } else {
+		const size_t chunkSize = 1024;
+		unsigned int idx = 0, n;
+		for (n=0; n<task->partitionSize; n++) {
+		    ((PSnodes_ID_t *)msg.buf)[idx] = task->partition[n];
+		    idx++;
+		    if (idx >= chunkSize/sizeof(PSnodes_ID_t)) {
+			msg.header.len += idx * sizeof(PSnodes_ID_t);
+			sendMsg(&msg);
+			msg.header.len -= idx * sizeof(PSnodes_ID_t);
+			idx=0;
+		    }
+		}
+		if (idx) {
+		    msg.header.len += idx * sizeof(PSnodes_ID_t);
+		    sendMsg(&msg);
+		    msg.header.len -= idx * sizeof(PSnodes_ID_t);
+		}
+		msg.type = PSP_INFO_LIST_END;
+	    }
+	    break;
+	}
 	case PSP_INFO_CMDLINE:
 	{
 	    PStask_t *task = PStasklist_find(managedTasks, inmsg->header.dest);
