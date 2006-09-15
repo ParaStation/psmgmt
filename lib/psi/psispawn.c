@@ -532,6 +532,28 @@ int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
     return 1;
 }
 
+int PSI_spawnService(PSnodes_ID_t node, char *workdir, int argc, char **argv,
+		     unsigned int rank, int *error, PStask_ID_t *tid)
+{
+    int ret;
+
+    PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, node);
+
+    if (node == -1) node = PSC_getMyID();
+
+    if (!getPSIEnv("__PSI_MASTERNODE"))
+	setPSIEnv("__PSI_MASTERNODE", "42", 1);
+    if (!getPSIEnv("__PSI_MASTERPORT"))
+	setPSIEnv("__PSI_MASTERPORT", "4711", 1);
+
+    ret = dospawn(1, &node, workdir, argc, argv, TG_SERVICE, rank, error, tid);
+    if (ret != 1) {
+	return -1;
+    }
+
+    return 1;
+}
+
 PStask_ID_t PSI_spawnRank(int rank, char *workdir, int argc, char **argv,
 			  int *error)
 {

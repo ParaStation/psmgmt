@@ -300,6 +300,49 @@ int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
 		   unsigned int rank, int *error, PStask_ID_t *tid);
 
 /**
+ * @brief Spawn service task within the cluster.
+ *
+ * Spawn a service task described by the @a argc arguments within @a
+ * argv to node @a node. The present working directory of the
+ * spawned task will be @a workdir.
+ *
+ * The unique task ID of the spawned task will be returned within @a
+ * tid. If an error occurred, @a error will contain an errno
+ * describing the error.
+ *
+ * Spawning is done within an allocated a partition, nevertheless,
+ * service tasks do not use a slot, but are handled as special tasks.
+ *
+ * @param node Node to spawn to.
+ *
+ * @param workdir Present working directory of the spawned tasks on
+ * startup. This might be an absolute or relative path. If @a workdir
+ * is a relative path, the content of the PWD environment variable is
+ * prepended. If @a workdir is NULL, the content of the PWD
+ * environment variable is taken.
+ *
+ * @param argc Number of arguments within @a argv used within the
+ * resulting execve() call in order to really spawn the tasks.
+ *
+ * @param argv Array of argument strings passed to the resulting
+ * execve() call in order to finally spawn the task.
+ *
+ * @param rank The rank of the spawned process. This is mainly used
+ * within reconnection to the logger.
+ *
+ * @param error Errorcode displaying if an error occurred within
+ * PSI_spawnAdmin() while spawning the corresponding task.
+ *
+ * @param tid The task ID of the spawned process.
+ *
+ *
+ * @return On success, 1 is returned, or -1 if an error occurred. Then
+ * @a error is set appropriately.
+ */
+int PSI_spawnService(PSnodes_ID_t node, char *workdir, int argc, char **argv,
+		     unsigned int rank, int *error, PStask_ID_t *tid);
+
+/**
  * @brief Create a pg (process group) file for MPIch/P4
  *
  * Create a pg (process group) file for @a num nodes used by MPIch/P4

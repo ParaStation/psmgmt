@@ -27,12 +27,15 @@ char* PStask_printGrp(PStask_group_t tg)
     return (tg==TG_ANY) ? "TG_ANY" :
 	(tg==TG_ADMIN) ? "TG_ADMIN" :
 	(tg==TG_RESET) ? "TG_RESET" :
-	(tg==TG_LOGGER) ? "TG_ADMIN" :
+	(tg==TG_LOGGER) ? "TG_LOGGER" :
 	(tg==TG_FORWARDER) ? "TG_FORWARDER" :
 	(tg==TG_SPAWNER) ? "TG_SPAWNER" :
 	(tg==TG_GMSPAWNER) ? "TG_GMSPAWNER" :
+	(tg==TG_MONITOR) ? "TG_MONITOR" :
 	(tg==TG_PSCSPAWNER) ? "TG_PSCSPAWNER" :
-	(tg==TG_MONITOR) ? "TG_MONITOR" : "UNKNOWN";
+	(tg==TG_ADMINTASK) ? "TG_ADMINTASK" :
+	(tg==TG_SERVICE) ? "TG_SERVICE" :
+	"UNKNOWN";
 }
 
 PStask_t* PStask_new(void)

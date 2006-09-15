@@ -184,7 +184,8 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 			|| task->group == TG_SPAWNER
 			|| task->group == TG_GMSPAWNER
 			|| task->group == TG_PSCSPAWNER
-			|| task->group == TG_MONITOR )) continue;
+			|| task->group == TG_MONITOR
+			|| task->group == TG_SERVICE )) continue;
 		taskinfo->tid = task->tid;
 		taskinfo->ptid = task->ptid;
 		taskinfo->loggertid = task->loggertid;
@@ -626,7 +627,8 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 			|| task->group == TG_SPAWNER
 			|| task->group == TG_GMSPAWNER
 			|| task->group == TG_PSCSPAWNER
-			|| task->group == TG_MONITOR )) continue;
+			|| task->group == TG_MONITOR
+			|| task->group == TG_SERVICE )) continue;
 		taskinfo->tid = task->tid;
 		taskinfo->ptid = task->ptid;
 		taskinfo->loggertid = task->loggertid;
