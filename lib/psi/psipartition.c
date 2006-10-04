@@ -102,6 +102,13 @@ static int batchPartition = 0;
 #define ENV_PART_WAIT      "PSI_WAIT"
 
 /**
+ * Name of the evironment variable used in order to enable a special
+ * mode removing all multiple consecutive entry from within a
+ * hostfile.
+ */
+#define ENV_HOSTS_UNIQUE    "PSI_HOSTS_UNIQUE"
+
+/**
  * Name of the environment variable used by LSF in order to keep the
  * hostnames of the nodes reserved for the batch job.
 */
@@ -444,16 +451,34 @@ static int nodelistFromHostStr(char *hostStr, nodelist_t *nodelist)
 static int nodelistFromHostFile(char *fileName, nodelist_t *nodelist)
 {
     FILE* file = fopen(fileName, "r");
-    char line[1024];
+    char lastline[1024], line[1024];
     int total = 0;
+    int unique = !!getenv(ENV_HOSTS_UNIQUE);
 
     if (!file) {
 	PSI_log(-1, "%s: cannot open file <%s>\n", __func__, fileName);
 	return 0;
     }
 
+    lastline[0] = '\0';
     while (fgets(line, sizeof(line), file)) {
 	if (line[0] == '#') continue;
+	if (unique) {
+	    size_t pos = strlen(line)-1;
+	    /* Eliminate trailing whitespace */
+	    while (pos && (line[pos] == '\n'
+			   || line[pos] == '\t'
+			   || line[pos] == ' ')) {
+		line[pos] = '\0';
+		pos--;
+	    }
+	    if (!strcmp(lastline, line)) {
+		PSI_log(PSI_LOG_PART, "%s: '%s' discarded\n", __func__, line);
+		continue;
+	    } else {
+		strcpy(lastline, line);
+	    }
+	}
 	if (nodelistFromHostStr(line, nodelist) != 1) {
 	    PSI_log(-1, "%s: syntax error at: '%s'\n", __func__, line);
 	    fclose(file);
