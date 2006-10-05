@@ -71,6 +71,7 @@ VPATH += $(SRCDIR)/daemon
 psid: psidutil.o psidtask.o psidspawn.o psidforwarder.o
 psid: psidsignal.o psidmsgbuf.o psidrdp.o psidclient.o psidcomm.o
 psid: psidinfo.o psidoption.o psidpartition.o psidstatus.o psidhw.o
+psid: psidaccount.o
 psid: LOADLIBES:=$(LOADLIBES) -lm -lutil -lpslog
 
 psidinfo.o: CPPFLAGS += -DVERSION_psmgmt='"$(VERSION_psmgmt)"' \

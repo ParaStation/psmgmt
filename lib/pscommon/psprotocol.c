@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -38,6 +38,7 @@ static struct {
     { PSP_CD_SPAWNFAILED      , "PSP_CD_SPAWNFAILED"      },
     { PSP_CD_SPAWNFINISH      , "PSP_CD_SPAWNFINISH"      },
     { PSP_CD_SPAWNREQ         , "PSP_CD_SPAWNREQ"         },
+    { PSP_CD_ACCOUNT          , "PSP_CD_ACCOUNT"          },
 
     { PSP_CD_NOTIFYDEAD       , "PSP_CD_NOTIFYDEAD"       },
     { PSP_CD_NOTIFYDEADRES    , "PSP_CD_NOTIFYDEADRES"    },

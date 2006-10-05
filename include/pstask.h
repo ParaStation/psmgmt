@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -48,6 +48,7 @@ typedef enum {
     TG_PSCSPAWNER,/**< special task, the pscspawner (helper to spawn PSC) */
     TG_ADMINTASK, /**< admin-task, i.e. unaccounted task */
     TG_SERVICE,   /**< special task, used to spawn new PSC tasks */
+    TG_ACCOUNT,   /**< accounter, will receive and log accounting info */
 } PStask_group_t;
 
 /** Type to store unique task IDs in */

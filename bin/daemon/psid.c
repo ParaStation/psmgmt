@@ -65,6 +65,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "psidpartition.h"
 #include "psidstatus.h"
 #include "psidhw.h"
+#include "psidaccount.h"
 
 struct timeval mainTimer;
 struct timeval selectTime;
@@ -1145,6 +1146,8 @@ int handleMsg(int fd, DDBufferMsg_t *msg)
     case PSP_DD_CHILDDEAD:
 	msg_CHILDDEAD((DDErrorMsg_t*)msg);
 	break;
+    case PSP_CD_ACCOUNT:
+	msg_ACCOUNT(msg);
     case PSP_DD_SENDSTOP:
 	msg_SENDSTOP((DDMsg_t *)msg);
 	break;

@@ -80,6 +80,10 @@ typedef enum {
 
     PSP_OP_MASTER = 0x0008,       /**< current master of the cluster */
 
+    PSP_OP_ADD_ACCT = 0x0010,     /**< add a new accounting process */
+    PSP_OP_REM_ACCT,              /**< sign off accounting process */
+    PSP_OP_ACCT,                  /**< current master of the cluster */
+
     PSP_OP_RDPDEBUG = 0x0020,     /**< RDP's debug level */
     PSP_OP_RDPPKTLOSS,            /**< Paket loss within RDP (debugging) */
     PSP_OP_RDPMAXRETRANS,         /**< Max. retransmissions in RDP */
@@ -177,6 +181,7 @@ typedef enum {
 #define PSP_CD_SPAWNFINISH       0x0023  /**< Reply after successful end of
 					      spawned process */
 #define PSP_CD_SPAWNREQ          0x0024  /**< Request to spawn a process */
+#define PSP_CD_ACCOUNT           0x0025  /**< Accounting message */
 
 /** Kind of content within #PSP_CD_SPAWNREQ message */
 typedef enum {

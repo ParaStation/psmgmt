@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -43,11 +43,8 @@ int verbose = 0;
 /** The ParaStation task ID of the logger */
 PStask_ID_t loggerTID = -1;
 
-/** The rank of the local task */
-int childRank = -1;
-
-/** The PID of the local task */
-pid_t childPID = 0;
+/** Description of the local child-task */
+PStask_t *childTask = NULL;
 
 /** The socket connecting to the local ParaStation daemon */
 int daemonSock = -1;
@@ -70,7 +67,8 @@ fd_set writefds;
 /** Flag marking all controlled fds closed */
 int canend = 0;
 
-/** */
+/** List of messages waiting to be sent to
+ */
 msgbuf_t *oldMsgs = NULL;
 
 /**
@@ -235,10 +233,10 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
  * i.e. usually @a msg->header.len. Otherwise -1 is returned and errno
  * is set appropriately.
  */
-static int sendDaemonMsg(DDErrorMsg_t *msg)
+static int sendDaemonMsg(DDMsg_t *msg)
 {
     char *buf = (void *)msg;
-    size_t c = msg->header.len;
+    size_t c = msg->len;
     int n;
 
     if (daemonSock < 0) {
@@ -274,12 +272,12 @@ static int sendDaemonMsg(DDErrorMsg_t *msg)
     if (verbose) {
 	char txt[128];
         snprintf(txt, sizeof(txt), "%s type %s (len=%d) to %s\n",
-                 __func__, PSDaemonP_printMsg(msg->header.type),
-		 msg->header.len, PSC_printTID(msg->header.dest));
+                 __func__, PSDaemonP_printMsg(msg->type),
+		 msg->len, PSC_printTID(msg->dest));
         printMsg(STDERR, txt);
     }
 
-    return msg->header.len;
+    return msg->len;
 }
 
 /**
@@ -467,14 +465,13 @@ static void sighandler(int sig)
     int i, status;
     struct rusage rusage;
     pid_t pid;
-    DDErrorMsg_t msg;
 
     char txt[80];
 
     switch (sig) {
     case SIGUSR1:
 	snprintf(txt, sizeof(txt),
-		 "[%d] PSID_forwarder: open sockets left:", childRank);
+		 "[%d] PSID_forwarder: open sockets left:", childTask->rank);
 	for (i=0; i<FD_SETSIZE; i++) {
 	    if (FD_ISSET(i, &readfds) && i != daemonSock) {
 		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), " %d", i);
@@ -501,7 +498,7 @@ static void sighandler(int sig)
     case SIGCHLD:
 	if (verbose) {
 	    snprintf(txt, sizeof(txt),
-		     "[%d] PSID_forwarder: Got SIGCHLD\n", childRank);
+		     "[%d] PSID_forwarder: Got SIGCHLD\n", childTask->rank);
 	    printMsg(STDERR, txt);
 	}
 
@@ -577,14 +574,54 @@ static void sighandler(int sig)
 
 	sendMsg(USAGE, (char *) &rusage, sizeof(rusage));
 
+	/* Send accounting message to the daemon */
+	{
+	    DDBufferMsg_t msg;
+	    char *ptr = msg.buf;
+
+	    msg.header.type = PSP_CD_ACCOUNT;
+	    msg.header.dest = PSC_getTID(-1, 0);
+	    msg.header.sender = PSC_getTID(-1, getpid());
+	    msg.header.len = sizeof(msg.header);
+
+	    *(PStask_ID_t *)ptr = childTask->loggertid;
+	    ptr += sizeof(PStask_ID_t);
+	    msg.header.len += sizeof(PStask_ID_t);
+
+	    *(int32_t *)ptr = childTask->rank;
+	    ptr += sizeof(int32_t);
+	    msg.header.len += sizeof(int32_t);
+
+	    *(uid_t *)ptr = childTask->uid;
+	    ptr += sizeof(uid_t);
+	    msg.header.len += sizeof(uid_t);
+
+	    *(gid_t *)ptr = childTask->gid;
+	    ptr += sizeof(gid_t);
+	    msg.header.len += sizeof(gid_t);
+
+	    *(int32_t *)ptr = -1;
+	    ptr += sizeof(int32_t);
+	    msg.header.len += sizeof(int32_t);
+
+	    memcpy(ptr, &rusage, sizeof(rusage));
+	    ptr += sizeof(rusage);
+	    msg.header.len += sizeof(rusage);
+
+	    sendDaemonMsg((DDMsg_t *)&msg);
+	}
+
 	/* Send CHILDDEAD message to the daemon */
-	msg.header.type = PSP_DD_CHILDDEAD;
-	msg.header.dest = PSC_getTID(-1, 0);
-	msg.header.sender = PSC_getTID(-1, getpid());
-	msg.error = status;
-	msg.request = PSC_getTID(-1, pid);
-	msg.header.len = sizeof(msg);
-	sendDaemonMsg(&msg);
+	{
+	    DDErrorMsg_t msg;
+	    msg.header.type = PSP_DD_CHILDDEAD;
+	    msg.header.dest = PSC_getTID(-1, 0);
+	    msg.header.sender = PSC_getTID(-1, getpid());
+	    msg.error = status;
+	    msg.request = PSC_getTID(-1, pid);
+	    msg.header.len = sizeof(msg);
+	    sendDaemonMsg((DDMsg_t *)&msg);
+	}
 
 	releaseLogger(status);
 
@@ -683,25 +720,25 @@ static void checkFileTable(fd_set* openfds)
 
 
 /**
- * @brief Write to a file descriptor
+ * @brief Write to @ref stdinSock descriptor
  *
- * Write the first @a count bytes within @a buf to the file descriptor
- * @a fd. If less than the requested number of bytes within an atomic
- * write(2) call were written, further attempts are made in order to
- * send the rest of the buffer.
+ * Write the message @a msg to the @ref stdinSock file-descriptor,
+ * starting at by @a offset of the message. It is expected that the
+ * previos parts of the message were sent in earlier calls to this
+ * function.
  *
- * @param fd The file descriptor to write to.
+ * @param msg The message to transmit.
  *
- * @param buf The buffer containing the bytes to send.
- *
- * @param count The number of bytes to send.
+ * @param offset Number of bytes sent in earlier calls.
  *
  * @return On success, the total number of bytes written is returned,
- * i.e. usually this is @a count. Otherwise -1 is returned and errno
- * is set appropriately.
+ * i.e. usually this is the length of @a msg. If the @ref stdinSock
+ * file-descriptor blocks, this might also be smaller. In this case
+ * the total number of bytes sent in this and all previous calls is
+ * returned. If an error occurs, -1 or 0 is returned and errno is set
+ * appropriately.
  */
-
-static int do_write(PSLog_Msg_t *msg, int offset)
+ static int do_write(PSLog_Msg_t *msg, int offset)
 {
     int n, i;
     int count = msg->header.len - PSLog_headerSize;
@@ -880,7 +917,7 @@ static int readFromLogger(void)
 	}
     } else if (!ret) {
 	/* The connection to the daemon died. Kill the client the hard way. */
-	kill(-childPID, SIGKILL);
+	kill(-PSC_getPID(childTask->tid), SIGKILL);
     }
 	
     return ret;
@@ -1021,8 +1058,7 @@ void PSID_forwarder(PStask_t *task, int daemonfd,
 {
     long flags;
 
-    childRank = task->rank;
-    childPID = PSC_getPID(task->tid);
+    childTask = task;
     daemonSock = daemonfd;
     stdinSock = stdinfd;
     stdoutSock = stdoutfd;
@@ -1032,14 +1068,14 @@ void PSID_forwarder(PStask_t *task, int daemonfd,
     signal(SIGCHLD, sighandler);
     signal(SIGUSR1, sighandler);
 
-    PSLog_init(daemonSock, childRank, 1);
+    PSLog_init(daemonSock, childTask->rank, 1);
 
     /* Make stdin nonblocking for us */
     flags = fcntl(stdinSock, F_GETFL);
     flags |= O_NONBLOCK;
     fcntl(stdinSock, F_SETFL, flags);
 
-    if (connectLogger(task->loggertid) != 0) {
+    if (connectLogger(childTask->loggertid) != 0) {
 	/* There is no logger. Just wait for the client to finish. */
 	PSID_blockSig(0, SIGCHLD);
 	while (1) sleep(10);
