@@ -592,6 +592,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 	    if (taskInfo[numTasks].group==TG_PSCSPAWNER && !full) continue;
 	    if (taskInfo[numTasks].group==TG_MONITOR && !full) continue;
 	    if (taskInfo[numTasks].group==TG_SERVICE && !full) continue;
+	    if (taskInfo[numTasks].group==TG_ACCOUNT && !full) continue;
 	    numTasks++;
 	    if (numTasks*sizeof(*taskInfo) >= tiList.actSize) {
 		if (extendList(&tiList, tiList.actSize * 2, __func__)) {
@@ -620,6 +621,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 		   taskInfo[task].group==TG_MONITOR ? "(M)" :
 		   taskInfo[task].group==TG_ADMINTASK ? "(*)" :
 		   taskInfo[task].group==TG_SERVICE ? "(S)" :
+		   taskInfo[task].group==TG_ACCOUNT ? "(C)" :
 		   "   ");
 
 	    {
@@ -1034,6 +1036,67 @@ void PSIADM_ShowParam(PSP_Option_t type, char *nl)
 	}else {
 	    printf("down\n");
 	}
+    }
+}
+
+void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
+{
+    PSnodes_ID_t node;
+    DDOption_t options[DDOptionMsgMax];
+    int ret;
+
+    if (! getHostStatus()) return;
+
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
+
+	printf("%3d:  ", node);
+	if (!hostStatus.list[node]) {
+	    printf("down\n");
+	    continue;
+	}
+
+	ret = PSI_infoOptionList(node, type);
+	if (ret == -1) {
+	    printf("Cannot get\n");
+	    continue;
+	}
+	do {
+	    int i;
+
+	    ret = PSI_infoOptionListNext(options, DDOptionMsgMax, 1);
+	    if (ret == -1) {
+		printf(" error getting info");
+		break;
+	    }
+
+	    for (i=0; i<ret; i++) {
+		if (options[i].option == PSP_OP_LISTEND) {
+		    goto next_node;
+		}
+		if (options[i].option != type) {
+		    printf(" wrong answer");
+		    goto next_node;
+		}
+
+		switch (type) {
+		case PSP_OP_ACCT:
+		    printf(" %s", PSC_printTID(options[i].value));
+		    break;
+		case PSP_OP_UNKNOWN:
+		    printf(" unknown option");
+		    break;
+		default:
+		    printf(" wrong type");
+		}
+	    }
+	    if (options[i].option == PSP_OP_LISTEND
+		|| options[i].option != type) {
+		break;
+	    }
+	} while (1);
+    next_node:
+	printf("\n");
     }
 }
 

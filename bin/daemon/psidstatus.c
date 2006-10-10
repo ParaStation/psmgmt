@@ -39,6 +39,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "psidrdp.h"
 #include "psidtimer.h"
 #include "psidpartition.h"
+#include "psidaccount.h"
 
 #include "psidstatus.h"
 
@@ -409,6 +410,9 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode)
 	}
 	task=next;
     }
+
+    /* Disable accounters located on dead node */
+    PSID_cleanAcctFromNode(id);
 
     PSID_log(-1, "%s: connection lost to node %d\n", __func__, id);
 

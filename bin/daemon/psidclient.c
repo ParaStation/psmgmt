@@ -30,6 +30,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "psidtimer.h"
 #include "psidmsgbuf.h"
 #include "psidcomm.h"
+#include "psidaccount.h"
 
 #include "psidclient.h"
 
@@ -235,7 +236,7 @@ int recvClient(int fd, DDMsg_t *msg, size_t size)
     int n;
     int count = 0;
 
-    if (clients[fd].flags & INITIALCONTACT) {
+    if (!isEstablishedClient(fd)) {
 	/*
 	 * if this is the first contact of the client, the client may
 	 * use an incompatible msg format
@@ -367,6 +368,64 @@ void deleteClient(int fd)
 		PStask_cleanup(parent->tid);
 	    }
 	}
+    }
+
+    /* Deregister TG_ACCOUNT */
+    if (task->group == TG_ACCOUNT) {
+	DDOptionMsg_t acctmsg = {
+	    .header = {
+		.type = PSP_CD_SETOPTION,
+		.sender = PSC_getMyTID(),
+		.dest = 0,
+		.len = sizeof(acctmsg) },
+	    .count = 0,
+	    .opt = {{ .option = 0, .value = 0 }} };
+	acctmsg.opt[(int) acctmsg.count].option = PSP_OP_REM_ACCT;
+	acctmsg.opt[(int) acctmsg.count].value = task->tid;
+	acctmsg.count++;
+
+	broadcastMsg(&acctmsg);
+
+	PSID_remAcct(task->tid);
+    }
+
+    /* Send accounting info for logger */
+    if (task->group == TG_LOGGER) {
+	DDBufferMsg_t msg;
+	char *ptr = msg.buf;
+
+	msg.header.type = PSP_CD_ACCOUNT;
+	msg.header.dest = PSC_getMyTID();
+	msg.header.sender = task->tid;
+	msg.header.len = sizeof(msg.header);
+
+	/* logger's TID, this identifies a task uniquely */
+	*(PStask_ID_t *)ptr = task->tid;
+	ptr += sizeof(PStask_ID_t);
+	msg.header.len += sizeof(PStask_ID_t);
+
+	/* current rank */
+	*(int32_t *)ptr = task->rank;
+	ptr += sizeof(int32_t);
+	msg.header.len += sizeof(int32_t);
+
+	/* childs uid */
+	*(uid_t *)ptr = task->uid;
+	ptr += sizeof(uid_t);
+	msg.header.len += sizeof(uid_t);
+
+	/* childs gid */
+	*(gid_t *)ptr = task->gid;
+	ptr += sizeof(gid_t);
+	msg.header.len += sizeof(gid_t);
+
+	/* total number of childs */
+	*(int32_t *)ptr = task->nextRank;
+	ptr += sizeof(int32_t);
+	msg.header.len += sizeof(int32_t);
+
+	sendMsg((DDMsg_t *)&msg);
+	
     }
 
     PSID_log(PSID_LOG_CLIENT, "%s: closing connection to %s\n",

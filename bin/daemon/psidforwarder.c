@@ -574,7 +574,7 @@ static void sighandler(int sig)
 
 	sendMsg(USAGE, (char *) &rusage, sizeof(rusage));
 
-	/* Send accounting message to the daemon */
+	/* Send ACCOUNT message to daemon; will forward to accounters */
 	{
 	    DDBufferMsg_t msg;
 	    char *ptr = msg.buf;
@@ -584,26 +584,32 @@ static void sighandler(int sig)
 	    msg.header.sender = PSC_getTID(-1, getpid());
 	    msg.header.len = sizeof(msg.header);
 
+	    /* logger's TID, this identifies a task uniquely */
 	    *(PStask_ID_t *)ptr = childTask->loggertid;
 	    ptr += sizeof(PStask_ID_t);
 	    msg.header.len += sizeof(PStask_ID_t);
 
+	    /* current rank */
 	    *(int32_t *)ptr = childTask->rank;
 	    ptr += sizeof(int32_t);
 	    msg.header.len += sizeof(int32_t);
 
+	    /* childs uid */
 	    *(uid_t *)ptr = childTask->uid;
 	    ptr += sizeof(uid_t);
 	    msg.header.len += sizeof(uid_t);
 
+	    /* childs gid */
 	    *(gid_t *)ptr = childTask->gid;
 	    ptr += sizeof(gid_t);
 	    msg.header.len += sizeof(gid_t);
 
+	    /* total number of childs. Only the logger knows this */
 	    *(int32_t *)ptr = -1;
 	    ptr += sizeof(int32_t);
 	    msg.header.len += sizeof(int32_t);
 
+	    /* actual rusage structure */
 	    memcpy(ptr, &rusage, sizeof(rusage));
 	    ptr += sizeof(rusage);
 	    msg.header.len += sizeof(rusage);

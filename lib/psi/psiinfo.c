@@ -598,11 +598,66 @@ int PSI_infoOption(PSnodes_ID_t node, int num, PSP_Option_t option[],
 
 	return msg.count;
     case PSP_CD_ERROR:
-    {
 	PSI_warn(verbose ? -1 : PSI_LOG_INFO, ((DDErrorMsg_t*)&msg)->error,
 		 "%s: error", __func__);
 	break;
+    default:
+	PSI_log(-1, "%s: unexpected msgtype '%s'",
+		__func__, PSP_printMsg(msg.header.type));
     }
+
+    return -1;
+}
+
+int PSI_infoOptionList(PSnodes_ID_t node, PSP_Option_t option)
+{
+    DDOptionMsg_t msg;
+
+    msg.header = (DDMsg_t) {
+	.type = PSP_CD_GETOPTION,
+	.dest = PSC_getTID(node, 0),
+	.sender = PSC_getMyTID(),
+	.len = sizeof(msg) };
+
+    msg.opt[0].option = option;
+    msg.count = 1;
+
+    if (PSI_sendMsg(&msg)<0) {
+	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+	return -1;
+    }
+
+    return 0;
+}
+
+int PSI_infoOptionListNext(DDOption_t opts[], int num, int verbose)
+{
+    DDOptionMsg_t msg;
+    int i;
+
+    if (PSI_recvMsg(&msg)<0) {
+	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+	return -1;
+    }
+
+    switch (msg.header.type) {
+    case PSP_CD_SETOPTION:
+	if (msg.count > num) {
+	    PSI_log(verbose ? -1 : PSI_LOG_INFO,
+		    "%s: option-buffer to small.\n", __func__);
+	    msg.count = num;
+	}
+
+	for (i=0; i<msg.count; i++) {
+	    opts[i].option = msg.opt[i].option;
+	    opts[i].value = msg.opt[i].value;
+	}
+
+	return msg.count;
+    case PSP_CD_ERROR:
+	PSI_warn(verbose ? -1 : PSI_LOG_INFO, ((DDErrorMsg_t*)&msg)->error,
+		 "%s: error", __func__);
+	break;
     default:
 	PSI_log(-1, "%s: unexpected msgtype '%s'",
 		__func__, PSP_printMsg(msg.header.type));

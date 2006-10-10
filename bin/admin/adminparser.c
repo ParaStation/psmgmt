@@ -731,6 +731,12 @@ static int setShowStarter(char *token)
     return 0;
 }
 
+static int setShowAccounter(char *token)
+{
+    setShowOpt = PSP_OP_ACCT;
+    return 0;
+}
+
 static int setShowError(char *token)
 {
     return -1;
@@ -764,6 +770,7 @@ static keylist_t setShowList[] = {
     {"exclusive", setShowExclusive},
     {"runjobs", setShowRunJobs},
     {"starter", setShowStarter},
+    {"accounter", setShowAccounter},
     {NULL, setShowError}
 };
 static parser_t setShowParser = {" \t\n", setShowList};
@@ -957,12 +964,15 @@ static int showCommand(char *token)
     case PSP_OP_EXCLUSIVE:
     case PSP_OP_STARTER:
     case PSP_OP_RUNJOBS:
+	PSIADM_ShowParam(setShowOpt, nl);
+	break;
+    case PSP_OP_ACCT:
+	PSIADM_ShowParamList(setShowOpt, nl);
 	break;
     default:
 	goto error;
     }
 
-    PSIADM_ShowParam(setShowOpt, nl);
     return 0;
 
  error:

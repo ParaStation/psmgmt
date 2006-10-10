@@ -488,7 +488,7 @@ int PSI_infoQueueReq(PSnodes_ID_t node, PSP_Info_t what, const void *param);
  * information retrival went wrong.
  *
  * @return On success, the number of bytes received and stored within
- * buf is returned. If no more information is available, 0 is
+ * @a buf is returned. If no more information is available, 0 is
  * returned. Otherwise -1 is returned and errno is set appropriately.
  *
  * @see errno(3)
@@ -530,6 +530,104 @@ int PSI_infoQueueNext(PSP_Info_t what, void *buf, size_t size, int verbose);
  */
 int PSI_infoOption(PSnodes_ID_t node, int num,
 		   PSP_Option_t option[], PSP_Optval_t value[], int verbose);
+
+/**
+ * @brief Retrieve list of options
+ *
+ * Trigger a list of options of type @a option from node @a node.
+ * The actual information items can be retrieved via subsequent calls
+ * to @ref PSI_infoOptionListNext(). As long as such answers are pending no
+ * further calls to any other PSI_info-function is allowed.
+ *
+ * The possible values for @a option are:
+ *
+ * - PSP_OP_ACCT requests a series of options describing the
+ * accounting tasks as known to node @a node. The corresponding option
+ * values of the answers will contain task IDs.
+ *
+ * - PSP_OP_USER requests a series of options describing the
+ * users allowed to run processes on node @a node. The corresponding option
+ * values of the answers will contain UIDs.
+ *
+ * - PSP_OP_GROUP requests a series of options describing the
+ * groups allowed to run processes on node @a node. The corresponding option
+ * values of the answers will contain GIDs.
+ *
+ * - PSP_OP_ADMUSER requests a series of options describing the users
+ * allowed to start administration processes from node @a node. The
+ * corresponding option values of the answers will contain UIDs.
+ *
+ * - PSP_OP_ADMGROUP requests a series of options describing the groups
+ * allowed to start administration processes from node @a node. The
+ * corresponding option values of the answers will contain GIDs.
+ *
+ *
+ * @param node The ParaStation ID of the node to ask.
+ *
+ * @param option The type of information to request as described above.
+ *
+ * @param param Pointer to further parameters needed in order to
+ * retrieve the requested information.
+ *
+ * @return On success, the 0 is returned. Otherwise -1 is returned and
+ * errno is set appropriately.
+ */
+int PSI_infoOptionList(PSnodes_ID_t node, PSP_Option_t option);
+
+
+/**
+ * @brief Retrieve (more) information from option list
+ *
+ * Retrieve (more) information from the option list triggered by @ref
+ * PSI_infoOptionList() and store at most @a num entries to the buffer
+ * @a opts.
+ *
+ * Depending on the value within @a opts more information might be
+ * available. It can be retrieved via subsequent calls to this
+ * function. As long as such answers are pending no further calls to
+ * any other PSI_info-function is allowed.
+ *
+ * The possible return values of the option-part of @a opts are:
+ *
+ * - PSP_OP_ACCT describes an accounting tasks as known to the
+ * requested node. The corresponding value-part of @a opts contains a
+ * task ID.
+ *
+ * - PSP_OP_USER describes an user allowed to run processes on the
+ * requested node. The corresponding value-part of @a opts contains a
+ * UID.
+ *
+ * - PSP_OP_GROUP describes a group allowed to run processes on the
+ * requested node. The corresponding value-part of @a opts contains a
+ * GID.
+ *
+ * - PSP_OP_ADMUSER describes an user allowed to start administation
+ * processes from the requested node. The corresponding value-part of
+ * @a opts contains a UID.
+ *
+ * - PSP_OP_ADMGROUP describes a group allowed to start administation
+ * processes from the requested node. The corresponding value-part of
+ * @a opts contains a GID.
+ *
+ * - PSP_OP_LISTEND flags the end of the option list. No further
+ * option messages connected with the @ref PSI_infoOptionList() call
+ * will be received.
+ *
+ *
+ * @param opts Buffer to store the option list to.
+ *
+ * @param num Actual number of entries within the buffer @a optsbuf.
+ *
+ * @param verbose Flag to be more verbose, if something within the
+ * information retrival went wrong.
+ *
+ * @return On success, the number of options received and stored
+ * within @a opts is returned. Otherwise -1 is returned and errno is
+ * set appropriately.
+ *
+ * @see errno(3)
+ */
+int PSI_infoOptionListNext(DDOption_t opts[], int num, int verbose);
 
 /**
  * @brief Get hardware name.

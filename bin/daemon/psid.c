@@ -553,6 +553,26 @@ static void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	outmsg.type = PSC_getMyID();
 
 	sendMsg(&outmsg);
+
+	if (task->group == TG_ACCOUNT) {
+	    /* Register accounter */
+	    DDOptionMsg_t acctmsg = {
+		.header = {
+		    .type = PSP_CD_SETOPTION,
+		    .sender = PSC_getMyTID(),
+		    .dest = 0,
+		    .len = sizeof(acctmsg) },
+		.count = 0,
+		.opt = {{ .option = 0, .value = 0 }} };
+	    acctmsg.opt[(int) acctmsg.count].option = PSP_OP_ADD_ACCT;
+	    acctmsg.opt[(int) acctmsg.count].value = task->tid;
+	    acctmsg.count++;
+
+	    broadcastMsg(&acctmsg);
+
+	    PSID_addAcct(task->tid);
+	}
+
     }
 }
 
@@ -1148,6 +1168,7 @@ int handleMsg(int fd, DDBufferMsg_t *msg)
 	break;
     case PSP_CD_ACCOUNT:
 	msg_ACCOUNT(msg);
+	break;
     case PSP_DD_SENDSTOP:
 	msg_SENDSTOP((DDMsg_t *)msg);
 	break;

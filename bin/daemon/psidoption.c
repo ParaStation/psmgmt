@@ -29,6 +29,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "psidtimer.h"
 #include "psidstatus.h"
 #include "psidhw.h"
+#include "psidaccount.h"
 
 #include "psidoption.h"
 
@@ -77,6 +78,10 @@ void send_OPTIONS(PSnodes_ID_t destnode)
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
     }
+
+    send_acct_OPTIONS(PSC_getTID(destnode, 0), 0);
+    /* @todo send_user_OPTIONS(PSC_getTID(destnode, 0)); */
+    /* @todo send_admin_OPTIONS(PSC_getTID(destnode, 0)); */
 }
 
 void msg_SETOPTION(DDOptionMsg_t *msg)
@@ -340,6 +345,15 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 	    case PSP_OP_NODESSORT:
 		config->nodesSort = msg->opt[i].value;
 		break;
+	    case PSP_OP_ADD_ACCT:
+		PSID_addAcct(msg->opt[i].value);
+		break;
+	    case PSP_OP_REM_ACCT:
+		PSID_remAcct(msg->opt[i].value);
+		break;
+	    case PSP_OP_LISTEND:
+		/* Ignore */
+		break;
 	    default:
 		PSID_log(-1, "%s: unknown option %d\n", __func__,
 			msg->opt[i].option);
@@ -385,12 +399,14 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 	    sendMsg(&errmsg);
 	}
     } else {
-	int i;
-	for (i=0; i<msg->count; i++) {
+	int in, out;
+	for (in=0, out=0; in<msg->count; in++, out++) {
 	    PSID_log(PSID_LOG_OPTION, "%s: option %d\n",
-		     __func__, msg->opt[i].option);
+		     __func__, msg->opt[in].option);
 
-	    switch (msg->opt[i].option) {
+	    msg->opt[out].option = msg->opt[in].option;
+	    
+	    switch (msg->opt[in].option) {
 	    case PSP_OP_PSM_SPS:
 	    case PSP_OP_PSM_RTO:
 	    case PSP_OP_PSM_HNPEND:
@@ -403,74 +419,79 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		}
 
 		if (MYRINETindex != -1) {
-		    msg->opt[i].value = PSID_getParam(MYRINETindex,
-						      msg->opt[i].option);
+		    msg->opt[out].value = PSID_getParam(MYRINETindex,
+							msg->opt[in].option);
 		} else {
-		    msg->opt[i].value = -1;
+		    msg->opt[out].value = -1;
 		}
 		break;
 	    }
 	    case PSP_OP_PSIDDEBUG:
-		msg->opt[i].value = PSID_getDebugMask();
+		msg->opt[out].value = PSID_getDebugMask();
 		break;
 	    case PSP_OP_PSIDSELECTTIME:
-		msg->opt[i].value = selectTime.tv_sec;
+		msg->opt[out].value = selectTime.tv_sec;
 		break;
 	    case PSP_OP_PROCLIMIT:
-		msg->opt[i].value = PSnodes_getProcs(PSC_getMyID());
+		msg->opt[out].value = PSnodes_getProcs(PSC_getMyID());
 		break;
 	    case PSP_OP_UIDLIMIT:
-		msg->opt[i].value = PSnodes_getUser(PSC_getMyID());
+		msg->opt[out].value = PSnodes_getUser(PSC_getMyID());
 		break;
 	    case PSP_OP_GIDLIMIT:
-		msg->opt[i].value = PSnodes_getGroup(PSC_getMyID());
+		msg->opt[out].value = PSnodes_getGroup(PSC_getMyID());
 		break;
 	    case PSP_OP_ADMINUID:
-		msg->opt[i].value = PSnodes_getAdminUser(PSC_getMyID());
+		msg->opt[out].value = PSnodes_getAdminUser(PSC_getMyID());
 		break;
 	    case PSP_OP_ADMINGID:
-		msg->opt[i].value = PSnodes_getAdminGroup(PSC_getMyID());
+		msg->opt[out].value = PSnodes_getAdminGroup(PSC_getMyID());
 		break;
 	    case PSP_OP_OVERBOOK:
-		msg->opt[i].value = PSnodes_overbook(PSC_getMyID());
+		msg->opt[out].value = PSnodes_overbook(PSC_getMyID());
 		break;
 	    case PSP_OP_EXCLUSIVE:
-		msg->opt[i].value = PSnodes_exclusive(PSC_getMyID());
+		msg->opt[out].value = PSnodes_exclusive(PSC_getMyID());
 		break;
 	    case PSP_OP_STARTER:
-		msg->opt[i].value = PSnodes_isStarter(PSC_getMyID());
+		msg->opt[out].value = PSnodes_isStarter(PSC_getMyID());
 		break;
 	    case PSP_OP_RUNJOBS:
-		msg->opt[i].value = PSnodes_runJobs(PSC_getMyID());
+		msg->opt[out].value = PSnodes_runJobs(PSC_getMyID());
 		break;
 	    case PSP_OP_RDPDEBUG:
-		msg->opt[i].value = getDebugMaskRDP();
+		msg->opt[out].value = getDebugMaskRDP();
 		break;
 	    case PSP_OP_RDPPKTLOSS:
-		msg->opt[i].value = getPktLossRDP();
+		msg->opt[out].value = getPktLossRDP();
 		break;
 	    case PSP_OP_RDPMAXRETRANS:
-		msg->opt[i].value = getMaxRetransRDP();
+		msg->opt[out].value = getMaxRetransRDP();
 		break;
 	    case PSP_OP_MCASTDEBUG:
-		msg->opt[i].value = getDebugMaskMCast();
+		msg->opt[out].value = getDebugMaskMCast();
 		break;
 	    case PSP_OP_MASTER:
-		msg->opt[i].value = getMasterID();
+		msg->opt[out].value = getMasterID();
 		break;
 	    case PSP_OP_FREEONSUSP:
-		msg->opt[i].value = config->freeOnSuspend;
+		msg->opt[out].value = config->freeOnSuspend;
 		break;
 	    case PSP_OP_HANDLEOLD:
-		msg->opt[i].value = config->handleOldBins;
+		msg->opt[out].value = config->handleOldBins;
 		break;
 	    case PSP_OP_NODESSORT:
-		msg->opt[i].value = config->nodesSort;
+		msg->opt[out].value = config->nodesSort;
+		break;
+	    case PSP_OP_ACCT:
+		send_acct_OPTIONS(msg->header.sender, 1);
+		/* Do not send option again */
+		out--;
 		break;
 	    default:
 		PSID_log(-1, "%s: unknown option %d\n", __func__,
-			 msg->opt[i].option);
-		msg->opt[i].option = PSP_OP_UNKNOWN;
+			 msg->opt[in].option);
+		msg->opt[out].option = PSP_OP_UNKNOWN;
 	    }
 	}
 
@@ -481,7 +502,8 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 	msg->header.type = PSP_CD_SETOPTION;
 	msg->header.dest = msg->header.sender;
 	msg->header.sender = PSC_getMyTID();
+	msg->count = out;
 
-	sendMsg(msg);
+	if (msg->count) sendMsg(msg);
     }
 }

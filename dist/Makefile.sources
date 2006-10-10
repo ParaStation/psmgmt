@@ -10,6 +10,8 @@ bin/admin/commands.h \
 bin/admin/helpmsgs.c \
 bin/admin/psiadmin.c \
 bin/daemon/psid.c \
+bin/daemon/psidaccount.c \
+bin/daemon/psidaccount.h \
 bin/daemon/psidclient.c \
 bin/daemon/psidclient.h \
 bin/daemon/psidcomm.c \
@@ -46,6 +48,7 @@ bin/mlisten.c \
 bin/mpirun_chgm.c \
 bin/mpirun_chp4.c \
 bin/mpirun_psc.c \
+bin/psaccounter.c \
 bin/pscspawner.c \
 bin/psispawn.c \
 bin/psmstart.c \
@@ -64,6 +67,7 @@ doc/parastation.conf \
 include/config_parsing.h \
 include/env.h \
 include/hardware.h \
+include/list.h \
 include/logging.h \
 include/mcast.h \
 include/parser.h \

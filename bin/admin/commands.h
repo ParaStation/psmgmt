@@ -327,6 +327,22 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl);
  */
 void PSIADM_ShowParam(PSP_Option_t type, char *nl);
 
+/**
+ * @brief Show parameter list
+ *
+ * Show the list of parameters of type @a type on the nodes marked
+ * within the nodelist @a nl. Therefore the corresponding list
+ * containing the information is requested from the local daemon and
+ * printed to stdout.
+ *
+ * @param type The parameter type requested.
+ *
+ * @param nl The nodelist describing the nodes from which the
+ * parameter should be requested and put out.
+ *
+ * @return No return value.
+ */
+void PSIADM_ShowParamList(PSP_Option_t type, char *nl);
 
 /**
  * @brief Reset nodes.
