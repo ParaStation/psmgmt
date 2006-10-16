@@ -575,14 +575,17 @@ static void sighandler(int sig)
 	sendMsg(USAGE, (char *) &rusage, sizeof(rusage));
 
 	/* Send ACCOUNT message to daemon; will forward to accounters */
-	{
-	    DDBufferMsg_t msg;
+	if (childTask->group != TG_ADMINTASK) {
+	    DDTypedBufferMsg_t msg;
 	    char *ptr = msg.buf;
 
 	    msg.header.type = PSP_CD_ACCOUNT;
 	    msg.header.dest = PSC_getTID(-1, 0);
 	    msg.header.sender = PSC_getTID(-1, getpid());
 	    msg.header.len = sizeof(msg.header);
+
+	    msg.type = PSP_ACCOUNT_END;
+	    msg.header.len += sizeof(msg.type);
 
 	    /* logger's TID, this identifies a task uniquely */
 	    *(PStask_ID_t *)ptr = childTask->loggertid;

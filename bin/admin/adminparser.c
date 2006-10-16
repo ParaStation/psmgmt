@@ -770,7 +770,7 @@ static keylist_t setShowList[] = {
     {"exclusive", setShowExclusive},
     {"runjobs", setShowRunJobs},
     {"starter", setShowStarter},
-    {"accounter", setShowAccounter},
+    {"accounters", setShowAccounter},
     {NULL, setShowError}
 };
 static parser_t setShowParser = {" \t\n", setShowList};

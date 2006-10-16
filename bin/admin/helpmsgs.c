@@ -342,7 +342,8 @@ static info_t showInfo = {
 	" | rdppktloss | rdpmaxretrans | mcastdebug | master"
 	" | {smallpacketsize|sps} | {resendtimeout|rto} | hnpend | ackpend"
 	" | {freeonsuspend|fos} | {handleoldbins|hob} | starter | runjobs"
-	" | overbook | exclusive | nodessort | adminuser | admingroup}"
+	" | overbook | exclusive | nodessort | adminuser | admingroup"
+	" | accounters}"
 	" <nodes>"
     }},
     .nodes = 1,
@@ -403,6 +404,9 @@ static info_t showInfo = {
 	{ .tag = "show admingroup",
 	  .descr = "Show group allowed to start admin-tasks, i.e. unaccounted"
 	  " tasks." },
+	{ .tag = "show accounters",
+	  .descr = "Show all accounter tasks, i.e. tasks collecting accounting"
+	  " messages." },
 	{ NULL, NULL }
     },
     .comment = NULL

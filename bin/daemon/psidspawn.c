@@ -826,6 +826,48 @@ static int checkRequest(PStask_ID_t sender, PStask_t *task)
 
     PSID_log(PSID_LOG_SPAWN, "%s: request from %s ok\n", __func__,
 	     PSC_printTID(task->ptid));
+
+    if (ptask->group == TG_LOGGER && ptask->partitionSize > 0 && !task->rank) {
+	DDTypedBufferMsg_t msg;
+	char *ptr = msg.buf;
+
+	msg.header.type = PSP_CD_ACCOUNT;
+	msg.header.dest = PSC_getMyTID();
+	msg.header.sender = sender;
+	msg.header.len = sizeof(msg.header);
+
+	msg.type = PSP_ACCOUNT_START;
+	msg.header.len += sizeof(msg.type);
+
+	/* logger's TID, this identifies a task uniquely */
+	*(PStask_ID_t *)ptr = ptask->loggertid;
+	ptr += sizeof(PStask_ID_t);
+	msg.header.len += sizeof(PStask_ID_t);
+
+	/* current rank */
+	*(int32_t *)ptr = ptask->rank;
+	ptr += sizeof(int32_t);
+	msg.header.len += sizeof(int32_t);
+
+	/* childs uid */
+	*(uid_t *)ptr = ptask->uid;
+	ptr += sizeof(uid_t);
+	msg.header.len += sizeof(uid_t);
+
+	/* childs gid */
+	*(gid_t *)ptr = ptask->gid;
+	ptr += sizeof(gid_t);
+	msg.header.len += sizeof(gid_t);
+
+	/* total number of childs */
+	*(int32_t *)ptr = ptask->partitionSize;
+	ptr += sizeof(int32_t);
+	msg.header.len += sizeof(int32_t);
+
+	sendMsg((DDMsg_t *)&msg);
+	
+    }
+
     return 0;
 }
 

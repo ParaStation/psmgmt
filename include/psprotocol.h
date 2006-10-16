@@ -183,7 +183,6 @@ typedef enum {
 #define PSP_CD_SPAWNFINISH       0x0023  /**< Reply after successful end of
 					      spawned process */
 #define PSP_CD_SPAWNREQ          0x0024  /**< Request to spawn a process */
-#define PSP_CD_ACCOUNT           0x0025  /**< Accounting message */
 
 /** Kind of content within #PSP_CD_SPAWNREQ message */
 typedef enum {
@@ -192,6 +191,18 @@ typedef enum {
     PSP_SPAWN_ENV,                /**< Content is chunk of environment */
     PSP_SPAWN_END,                /**< Content is last chunk of environment */
 } PSP_Spawn_t;
+
+/** Accounting messages */
+#define PSP_CD_ACCOUNT           0x0025  /**< Accounting message */
+
+/** Kind of event within #PSP_CD_ACCOUNT message */
+typedef enum {
+    PSP_ACCOUNT_QUEUE = 0x0000,   /**< New task queued */
+    PSP_ACCOUNT_START,            /**< Start of task */
+    PSP_ACCOUNT_DELETE,           /**< Delete of task (end without spawn) */
+    PSP_ACCOUNT_END,              /**< Task ends execution */
+} PSP_Account_t;
+
 
 
 /** All the signal handling stuff. */

@@ -38,7 +38,7 @@
 void loop(void)
 {
     while (1) {
-	DDBufferMsg_t msg;
+	DDTypedBufferMsg_t msg;
 	char *ptr = msg.buf;
 	PStask_ID_t sender, logger;
 	int rank, taskSize;
@@ -74,7 +74,11 @@ void loop(void)
 	memcpy(&rusage, ptr, sizeof(rusage));
 	ptr += sizeof(rusage);
 
-	printf("msg from %s:", PSC_printTID(sender));
+	printf("msg from %s: type %s", PSC_printTID(sender),
+	       msg.type == PSP_ACCOUNT_QUEUE ? "Q" :
+	       msg.type == PSP_ACCOUNT_START ? "S" :
+	       msg.type == PSP_ACCOUNT_DELETE ? "D" :
+	       msg.type == PSP_ACCOUNT_END ? "E" : "?");
 	printf(" job %s rank %d", PSC_printTID(logger), rank);
 	printf(" UID %d GID %d", uid, gid);
 	if (sender == logger) {
