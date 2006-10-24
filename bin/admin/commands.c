@@ -1221,6 +1221,20 @@ void PSIADM_KillProc(PStask_ID_t tid, int sig)
     if (sig < 0) {
 	fprintf(stderr, "Unknown signal %d.\n", sig);
     } else {
-	PSI_kill(tid, sig);
+	char *errstr;
+
+	int ret = PSI_kill(tid, sig, 0);
+
+	switch (ret) {
+	case -2:
+	case -1:
+	case 0:
+	    break;
+	default:
+	    errstr = strerror(ret);
+	    if (!errstr) errstr = "UNKNOWN";
+	    printf("%s(%s, %d): %s\n",
+		   __func__, PSC_printTID(tid), sig, errstr);
+	}
     }
 }

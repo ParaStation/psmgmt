@@ -708,7 +708,7 @@ char *PSI_createMPIhosts(int num, int local)
     return MPIhostsFilename;
 }
 
-int PSI_kill(PStask_ID_t tid, short signal)
+int PSI_kill(PStask_ID_t tid, short signal, int async)
 {
     DDSignalMsg_t msg;
     DDErrorMsg_t answer;
@@ -729,17 +729,21 @@ int PSI_kill(PStask_ID_t tid, short signal)
 	return -1;
     }
 
-    if (PSI_recvMsg(&answer)<0) {
-	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
-	return -1;
+    if (!async) {
+	if (PSI_recvMsg(&answer)<0) {
+	    PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+	    return -1;
+	}
+
+	if (answer.request != tid) {
+	    PSI_log(-1, "%s: answer from wrong task (%s/",
+		    __func__, PSC_printTID(answer.request));
+	    PSI_log(-1, "%s)\n", PSC_printTID(tid));
+	    return -2;
+	}
+
+	return answer.error;
     }
 
-    if (answer.request != tid) {
-	PSI_log(-1, "%s: answer from wrong task (%s/",
-		__func__, PSC_printTID(answer.request));
-	PSI_log(-1, "%s)\n", PSC_printTID(tid));
-	return -2;
-    }
-
-    return answer.error;
+    return 0;
 }

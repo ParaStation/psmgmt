@@ -53,6 +53,12 @@ void handleAcctMsg(DDTypedBufferMsg_t *msg)
     logger = *(PStask_ID_t *)ptr;
     ptr += sizeof(PStask_ID_t);
 
+    {
+	int ret = PSI_kill(logger, 0, 1); /* ping the sender */
+	if (ret == -1) printf("PSI_kill(%s, 0): %s\n",
+			      PSC_printTID(logger), strerror(ret));
+    }
+
     /* current rank */
     rank = *(int32_t *)ptr;
     ptr += sizeof(int32_t);
@@ -73,7 +79,7 @@ void handleAcctMsg(DDTypedBufferMsg_t *msg)
     memcpy(&rusage, ptr, sizeof(rusage));
     ptr += sizeof(rusage);
 
-    printf("msg from %s: type %s", PSC_printTID(sender),
+    printf("%s: msg from %s: type %s", __func__, PSC_printTID(sender),
 	   msg->type == PSP_ACCOUNT_QUEUE ? "Q" :
 	   msg->type == PSP_ACCOUNT_START ? "S" :
 	   msg->type == PSP_ACCOUNT_DELETE ? "D" :
@@ -89,34 +95,31 @@ void handleAcctMsg(DDTypedBufferMsg_t *msg)
     }
 }
 
-void handleSigAns(PStask_ID_t tid, int error)
+void handleSigMsg(DDErrorMsg_t *msg)
 {
-    char *errstr = strerror(error);
+    char *errstr = strerror(msg->error);
 
     if (!errstr) errstr = "UNKNOWN";
 
-    printf("signal to %s ret %d: %s\n", PSC_printTID(tid), error, errstr);
+    printf("%s: msg from %s:", __func__, PSC_printTID(msg->header.sender));
+    printf(" task %s: %s\n", PSC_printTID(msg->request), errstr);
+
+    return;
 }
 
 void loop(void)
 {
     while (1) {
 	DDTypedBufferMsg_t msg;
-	PStask_ID_t sender;
-	int ret;
 
 	PSI_recvMsg(&msg);
-
-	sender = msg.header.sender;
 
 	switch (msg.header.type) {
 	case PSP_CD_ACCOUNT:
 	    handleAcctMsg(&msg);
-
-	    ret = PSI_kill(sender, 0); /* ping the sender */
-	    if (ret == -2) break;
-	    if (ret == -1) ret = errno;
-	    handleSigAns(sender, ret);
+	    break;
+	case PSP_CD_SIGRES:
+	    handleSigMsg((DDErrorMsg_t *)&msg);
 	    break;
 	default:
 	    printf("Unknown message\n");

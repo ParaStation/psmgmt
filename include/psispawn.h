@@ -407,9 +407,17 @@ char *PSI_createMPIhosts(int num, int local);
  * @param signal The signal to send. If @a tid is -1, the signal will
  * be sent to all child tasks of the current task.
  *
- * @return On success 0 is returned or -1, if an error occurred.
+ * @param async Flag to prevent waiting for a corresponding answer
+ * message. The answer message has to be handled explicitely within
+ * the calling function.
+ *
+ * @return On success 0 is returned. If some problem occured, a value
+ * different from 0 is returned. This might be -1 marking problems
+ * sending messages to the local daemon (errno is set appropriately),
+ * -2 if an unappropriate answer from the daemon occured or larger
+ * than 0 representing an errno from within the daemons.
  */
-int PSI_kill(PStask_ID_t tid, short signal);
+int PSI_kill(PStask_ID_t tid, short signal, int async);
 
 #ifdef __cplusplus
 }/* extern "C" */

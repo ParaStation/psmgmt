@@ -83,8 +83,10 @@ int sendMsg(void *amsg)
 	PSID_log(-1, "%s(type %s (len=%d) to %s error: dest not found\n",
 		 __func__, PSDaemonP_printMsg(msg->type),
 		 msg->len, PSC_printTID(msg->dest));
-	errno = EHOSTUNREACH;
 
+	handleDroppedMsg(msg);
+
+	errno = EHOSTUNREACH;
 	return -1;
     }
     
