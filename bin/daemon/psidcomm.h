@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -139,6 +139,21 @@ void msg_SENDSTOP(DDMsg_t *msg);
  * @return No return value.
  */
 void msg_SENDCONT(DDMsg_t *msg);
+
+/**
+ * @brief Handle dropped message
+ *
+ * Handle the dropped message @a msg. This is a service function for
+ * the various transport layers each of which might be forced to drop
+ * messages. Depending on the type of message dropped additional
+ * answer messages might be created to satisfy the sender of the
+ * original message waiting for an answer.
+ *
+ * @param msg Dropped message to handle
+ *
+ * @return No return value.
+ */
+void handleDroppedMsg(DDMsg_t *msg);
 
 #ifdef __cplusplus
 }/* extern "C" */

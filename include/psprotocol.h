@@ -33,7 +33,7 @@ extern "C" {
 #endif
 
 /** Unique version number of the high-level protocol */
-#define PSprotocolVersion 332
+#define PSprotocolVersion 333
 
 /** The location of the UNIX socket used to contact the daemon. */
 #define PSmasterSocketName "/var/run/parastation.sock"
@@ -203,16 +203,14 @@ typedef enum {
     PSP_ACCOUNT_END,              /**< Task ends execution */
 } PSP_Account_t;
 
-
-
 /** All the signal handling stuff. */
 #define PSP_CD_NOTIFYDEAD        0x0040  /**< Register to get a signal */
 #define PSP_CD_NOTIFYDEADRES     0x0041  /**< Reply registration's success */
-#define PSP_CD_RELEASE           0x0042  /**< Cancal the signal */
+#define PSP_CD_RELEASE           0x0042  /**< Cancel the signal */
 #define PSP_CD_RELEASERES        0x0043  /**< Reply cancelation's success */
 #define PSP_CD_SIGNAL            0x0044  /**< Send a signal */
 #define PSP_CD_WHODIED           0x0045  /**< Find out who sent a signal */
-
+#define PSP_CD_SIGRES            0x0046  /**< Any error occured during sending signal? */
 
 /** Messages to steer the daemons. */
 #define PSP_CD_DAEMONSTART       0x0050  /**< Request to start remote daemon */
@@ -346,6 +344,8 @@ typedef struct {
 			      - PSP_CD_SIGNAL: uid of the sender.
 			      - PSP_DD_CHILDDEAD: unused. */
     char pervasive;        /**< flag to send signal to the whole task.
+			      Only used within PSP_CD_SIGNAL messages. */
+    char answer;           /**< flag to send answer on signal delivery.
 			      Only used within PSP_CD_SIGNAL messages. */
 } DDSignalMsg_t;
 

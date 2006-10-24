@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -93,10 +93,12 @@ int PSID_kill(pid_t pid, int sig, uid_t uid);
  * 0, all children of @a tid will be signaled, too. Otherwise, only @a
  * tid will be signaled.
  *
+ * @param answer Flag the creation of an answer message.
+ *
  * @return No return value.
  */
 void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t senderTid,
-		     int sig, int pervasive);
+		     int sig, int pervasive, int answer);
 
 /**
  * @brief Send signals to all tasks which have asked for.

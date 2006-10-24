@@ -46,6 +46,7 @@ static struct {
     { PSP_CD_RELEASERES       , "PSP_CD_RELEASERES"       },
     { PSP_CD_SIGNAL           , "PSP_CD_SIGNAL"           },
     { PSP_CD_WHODIED          , "PSP_CD_WHODIED"          },
+    { PSP_CD_SIGRES           , "PSP_CD_SIGRES"           },
 
     { PSP_CD_DAEMONSTART      , "PSP_CD_DAEMONSTART"      },
     { PSP_CD_DAEMONSTOP       , "PSP_CD_DAEMONSTOP"       },

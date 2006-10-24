@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -338,7 +338,6 @@ void closeConnection(int fd)
 	msgbuf_t *mp = clients[fd].msgs;
 
 	clients[fd].msgs = clients[fd].msgs->next;
-
 	if (PSC_getPID(mp->msg->sender)) {
 	    DDMsg_t contmsg = { .type = PSP_DD_SENDCONT,
 				.sender = mp->msg->dest,
@@ -346,7 +345,7 @@ void closeConnection(int fd)
 				.len = sizeof(DDMsg_t) };
 	    sendMsg(&contmsg);
 	}
-
+	handleDroppedMsg(mp->msg);
 	freeMsg(mp);
     }
 

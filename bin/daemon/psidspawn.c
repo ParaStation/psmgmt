@@ -1169,7 +1169,7 @@ void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
 	/* task not found, it has already died */
 	PSID_log(-1, "%s(%s) with parent(%s) already dead\n",
 		 __func__, PSC_printTID(tid), parent);
-	PSID_sendSignal(tid, 0, ptid, -1, 0);
+	PSID_sendSignal(tid, 0, ptid, -1, 0, 0);
     }
 
     /* send the initiator the success msg */

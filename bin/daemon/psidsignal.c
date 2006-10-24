@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -33,6 +33,8 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 int PSID_kill(pid_t pid, int sig, uid_t uid)
 {
     PSID_log(PSID_LOG_SIGNAL, "%s(%d, %d, %d)\n", __func__, pid, sig, uid);
+
+    if (!sig) return 0;
 
     /*
      * fork to a new process to change the userid
@@ -79,21 +81,32 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 }
 
 void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t senderTid,
-		     int signal, int pervasive)
+		     int signal, int pervasive, int answer)
 {
     if (PSC_getID(tid)==PSC_getMyID()) {
 	/* receiver is on local node, send signal */
 	PStask_t *dest = PStasklist_find(managedTasks, tid);
 	pid_t pid = PSC_getPID(tid);
+	DDErrorMsg_t msg;
+
+	msg.header.type = PSP_CD_SIGRES;
+	msg.header.sender = PSC_getMyID();
+	msg.header.dest = senderTid;
+	msg.header.len = sizeof(msg);
+	msg.request = tid;
 
 	PSID_log(PSID_LOG_SIGNAL, "%s: sending signal %d to %s\n",
 		 __func__, signal, PSC_printTID(tid));
 
 	if (!dest) {
+	    msg.error = ESRCH;
+
 	    /* PSID_log(PSID_LOG_SIGNAL, @todo see how often this happens */
-	    PSID_log(-1, "%s: tried to send sig %d to %s: task not found\n",
-		     __func__, signal, PSC_printTID(tid));
+	    if (signal) PSID_warn(-1, ESRCH, "%s: tried to send sig %d to %s",
+				  __func__, signal, PSC_printTID(tid));
 	} else if (!pid) {
+	    msg.error = EACCES;
+
 	    PSID_log(-1, "%s: Do not send signal to daemon\n", __func__);
 	} else if (pervasive) {
 	    PStask_sig_t *childs = PStask_cloneSigList(dest->childs);
@@ -101,14 +114,16 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t senderTid,
 	    int sig = -1;
 
 	    while ((childTID = PSID_getSignal(&childs, &sig))) {
-		PSID_sendSignal(childTID, uid, senderTid, signal, 1);
+		PSID_sendSignal(childTID, uid, senderTid, signal, 1, 0);
 		sig = -1;
 	    }
 
 	    /* Don't send back to the original sender */
 	    if (senderTid != tid) {
-		PSID_sendSignal(tid, uid, senderTid, signal, 0);
+		PSID_sendSignal(tid, uid, senderTid, signal, 0, 0);
 	    }
+
+	    answer = 0;
 	} else {
 	    int ret, sig = (signal!=-1) ? signal : dest->relativesignal;
 
@@ -132,6 +147,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t senderTid,
 	    }
 
 	    ret = PSID_kill(pid, sig, uid);
+	    msg.error = ret;
 
 	    if (ret) {
 		PSID_warn(-1, errno, "%s: tried to send signal %d to %s",
@@ -142,6 +158,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t senderTid,
 		PSID_setSignal(&dest->signalSender, senderTid, sig);
 	    }
 	}
+	if (answer) sendMsg(&msg);
     } else {
 	/* receiver is on a remote node, send message */
 	DDSignalMsg_t msg;
@@ -153,6 +170,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t senderTid,
 	msg.signal = signal;
 	msg.param = uid;
 	msg.pervasive = pervasive;
+	msg.answer = answer;
 
 	sendMsg(&msg);
 
@@ -167,7 +185,7 @@ void PSID_sendAllSignals(PStask_t *task)
     PStask_ID_t sigtid;
 
     while ((sigtid = PSID_getSignal(&task->signalReceiver, &sig))) {
-	PSID_sendSignal(sigtid, task->uid, task->tid, sig, 0);
+	PSID_sendSignal(sigtid, task->uid, task->tid, sig, 0, 0);
 
 	PSID_log(PSID_LOG_SIGNAL, "%s(%s)", __func__, PSC_printTID(task->tid));
 	PSID_log(PSID_LOG_SIGNAL,
@@ -187,7 +205,7 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
     if (!sigtid) sigtid = PSID_getSignal(&childs, &sig);
 
     while (sigtid) {
-	PSID_sendSignal(sigtid, task->uid, task->tid, -1, 0);
+	PSID_sendSignal(sigtid, task->uid, task->tid, -1, 0, 0);
 
 	PSID_log(PSID_LOG_SIGNAL, "%s(%s)", __func__, PSC_printTID(task->tid));
 	PSID_log(PSID_LOG_SIGNAL, 
@@ -225,6 +243,7 @@ void msg_SIGNAL(DDSignalMsg_t *msg)
 	    newMsg.signal = msg->signal;
 	    newMsg.param = msg->param;
 	    newMsg.pervasive = 0;
+	    newMsg.answer = 0;
 
 	    msg = &newMsg;
 	} else if (sender->protocolVersion < 328
@@ -240,6 +259,23 @@ void msg_SIGNAL(DDSignalMsg_t *msg)
 	    newMsg.signal = msg->signal;
 	    newMsg.param = msg->param;
 	    newMsg.pervasive = *(int *)&msg->pervasive;
+	    newMsg.answer = 0;
+
+	    msg = &newMsg;
+	} else if (sender->protocolVersion < 333
+		   && sender->group != TG_LOGGER) {
+
+	    /* Client uses old protocol. Map to new one. */
+	    static DDSignalMsg_t newMsg;
+
+	    newMsg.header.type = msg->header.type;
+	    newMsg.header.sender = msg->header.sender;
+	    newMsg.header.dest = msg->header.dest;
+	    newMsg.header.len = sizeof(newMsg);
+	    newMsg.signal = msg->signal;
+	    newMsg.param = msg->param;
+	    newMsg.pervasive = msg->pervasive;
+	    newMsg.answer = 0;
 
 	    msg = &newMsg;
 	}
@@ -260,14 +296,14 @@ void msg_SIGNAL(DDSignalMsg_t *msg)
 
 		while ((childTID = PSID_getSignal(&childs, &sig))) {
 		    PSID_sendSignal(childTID, msg->param, msg->header.sender,
-				    msg->signal, 1);
+				    msg->signal, 1, 0);
 		    sig = -1;
 		}
 
 		/* Don't send back to the original sender */
 		if (msg->header.sender != msg->header.dest) {
 		    PSID_sendSignal(msg->header.dest, msg->param,
-				    msg->header.sender, msg->signal, 0);
+				    msg->header.sender, msg->signal, 0, 0);
 		}
 
 		/* Now inform the master, if necessary */
@@ -288,7 +324,7 @@ void msg_SIGNAL(DDSignalMsg_t *msg)
 	    }
 	} else {
 	    PSID_sendSignal(msg->header.dest, msg->param, msg->header.sender,
-			    msg->signal, msg->pervasive);
+			    msg->signal, msg->pervasive, msg->answer);
 	}
     } else {
 	/*

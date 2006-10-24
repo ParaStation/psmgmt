@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -390,7 +390,7 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode)
 		int signal = sig->signal;
 
 		/* Send the signal */
-		PSID_sendSignal(task->tid, task->uid, senderTid, signal, 0);
+		PSID_sendSignal(task->tid, task->uid, senderTid, signal, 0, 0);
 
 		sig = sig->next;
 		/* Remove signal from list */

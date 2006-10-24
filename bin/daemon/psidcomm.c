@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -23,6 +23,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "psidmsgbuf.h"
 #include "psidclient.h"
 #include "psidrdp.h"
+#include "psidstatus.h"
 
 #include "psidcomm.h"
 
@@ -175,6 +176,82 @@ int broadcastMsg(void *amsg)
     }
 
     return count;
+}
+
+void handleDroppedMsg(DDMsg_t *msg)
+{
+    DDErrorMsg_t errmsg;
+    DDSignalMsg_t sigmsg;
+
+    PSID_log(PSID_LOG_COMM, "%s dest %x", __func__, PSC_printTID(msg->dest));
+    PSID_log(PSID_LOG_COMM," source %x type %s\n", PSC_printTID(msg->sender),
+	     PSDaemonP_printMsg(msg->type));
+
+    switch (msg->type) {
+    case PSP_CD_GETOPTION:
+    case PSP_CD_INFOREQUEST:
+	errmsg.header.type = PSP_CD_ERROR;
+	errmsg.header.dest = msg->sender;
+	errmsg.header.sender = PSC_getMyTID();
+	errmsg.header.len = sizeof(errmsg);
+
+	errmsg.error = EHOSTUNREACH;
+	errmsg.request = msg->type;
+
+	sendMsg(&errmsg);
+	break;
+    case PSP_CD_SPAWNREQUEST:
+	errmsg.header.type = PSP_CD_SPAWNFAILED;
+	errmsg.header.dest = msg->sender;
+	errmsg.header.sender = msg->dest;
+	errmsg.header.len = sizeof(errmsg);
+
+	errmsg.error = EHOSTDOWN;
+	errmsg.request = msg->type;
+
+	sendMsg(&errmsg);
+	break;
+    case PSP_CD_RELEASE:
+    case PSP_CD_NOTIFYDEAD:
+	sigmsg.header.type = (msg->type==PSP_CD_RELEASE) ?
+	    PSP_CD_RELEASERES : PSP_CD_NOTIFYDEADRES;
+	sigmsg.header.dest = msg->sender;
+	sigmsg.header.sender = PSC_getMyTID();
+	sigmsg.header.len = msg->len;
+
+	sigmsg.signal = ((DDSignalMsg_t *)msg)->signal;
+	sigmsg.param = EHOSTUNREACH;
+	sigmsg.pervasive = 0;
+
+	sendMsg(&sigmsg);
+	break;
+    case PSP_DD_DAEMONCONNECT:
+	if (!config->useMCast && !knowMaster()) {
+	    PSnodes_ID_t next = PSC_getID(msg->dest) + 1;
+
+	    if (next < PSC_getMyID()) {
+		send_DAEMONCONNECT(next);
+	    } else {
+		declareMaster(PSC_getMyID());
+	    }
+	}
+	break;
+    case PSP_CD_SIGNAL:
+	if (((DDSignalMsg_t *)msg)->answer) {
+	    errmsg.header.type = PSP_CD_SIGRES;
+	    errmsg.header.dest = msg->sender;
+	    errmsg.header.sender = PSC_getMyID();
+	    errmsg.header.len = sizeof(errmsg);
+
+	    errmsg.error = ESRCH;
+	    errmsg.request = msg->dest;
+
+	    sendMsg(&errmsg);
+	    break;
+	}
+    default:
+	break;
+    }
 }
 
 void msg_SENDSTOP(DDMsg_t *msg)

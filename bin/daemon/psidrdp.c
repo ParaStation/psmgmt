@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -55,6 +55,7 @@ void clearRDPMsgs(int node)
 	msgbuf_t *mp = node_bufs[node];
 
 	node_bufs[node] = node_bufs[node]->next;
+	handleDroppedMsg(mp->msg);
 	freeMsg(mp);
     }
 

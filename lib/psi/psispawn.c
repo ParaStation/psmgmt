@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -710,7 +710,8 @@ char *PSI_createMPIhosts(int num, int local)
 
 int PSI_kill(PStask_ID_t tid, short signal)
 {
-    DDSignalMsg_t  msg;
+    DDSignalMsg_t msg;
+    DDErrorMsg_t answer;
 
     PSI_log(PSI_LOG_VERB, "%s(%s, %d)\n", __func__, PSC_printTID(tid), signal);
 
@@ -721,11 +722,24 @@ int PSI_kill(PStask_ID_t tid, short signal)
     msg.signal = signal;
     msg.param = getuid();
     msg.pervasive = 0;
+    msg.answer = 1;
 
     if (PSI_sendMsg(&msg)<0) {
 	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 	return -1;
     }
 
-    return 0;
+    if (PSI_recvMsg(&answer)<0) {
+	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+	return -1;
+    }
+
+    if (answer.request != tid) {
+	PSI_log(-1, "%s: answer from wrong task (%s/",
+		__func__, PSC_printTID(answer.request));
+	PSI_log(-1, "%s)\n", PSC_printTID(tid));
+	return -2;
+    }
+
+    return answer.error;
 }

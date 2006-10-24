@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -223,6 +223,8 @@ static int recvMsg(PSLog_Msg_t *msg)
 	break;
     }
     case PSP_CC_MSG:
+    case PSP_CD_ERROR:
+	/* Ignore */
 	break;
     default:
 	fprintf(stderr, "PSIlogger: %s: Unknown message type %s.\n", __func__,
@@ -321,6 +323,7 @@ void sighandler(int sig)
 	    msg.signal = sig;
 	    msg.param = getuid();
 	    msg.pervasive = 1;
+	    msg.answer = 0;
 
 	    sendDaemonMsg(&msg);
 	}
@@ -339,6 +342,7 @@ void sighandler(int sig)
 	    msg.signal = sig;
 	    msg.param = getuid();
 	    msg.pervasive = 1;
+	    msg.answer = 0;
 
 	    sendDaemonMsg(&msg);
 	}
@@ -370,6 +374,7 @@ void sighandler(int sig)
 	    msg.signal = (sig==SIGTSTP) ? SIGSTOP : sig;
 	    msg.param = getuid();
 	    msg.pervasive = 1;
+	    msg.answer = 0;
 
 	    sendDaemonMsg(&msg);
 	}

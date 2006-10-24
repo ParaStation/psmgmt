@@ -465,7 +465,7 @@ static void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 		}
 	    } else {
 		/* no parent !? kill the task */
-		PSID_sendSignal(task->tid, task->uid, PSC_getMyTID(), -1, 0);
+		PSID_sendSignal(task->tid, task->uid, PSC_getMyTID(), -1, 0,0);
 	    }
 	}
 
@@ -1087,8 +1087,9 @@ int handleMsg(int fd, DDBufferMsg_t *msg)
 	msg_INFOREQUEST((DDTypedBufferMsg_t*)msg);
 	break;
     case PSP_CD_INFORESPONSE:
+    case PSP_CD_SIGRES:
     case PSP_CC_ERROR:
-	sendMsg(msg);	/* just forward this kind of messages */
+	if (msg->header.dest != PSC_getMyID()) sendMsg(msg); /* prevent loop */
 	break;
     case PSP_CD_SPAWNREQUEST:
 	msg_SPAWNREQUEST(msg);
@@ -1352,68 +1353,8 @@ static void RDPCallBack(int msgid, void *buf)
 		 __func__, msg->dest, msg->sender,
 		 PSDaemonP_printMsg(msg->type));
 
-	switch (msg->type) {
-	case PSP_CD_GETOPTION:
-	case PSP_CD_INFOREQUEST:
-	{
-	    /* Sender expects an answer */
-	    DDErrorMsg_t errmsg = {
-		.header = {
-		    .type = PSP_CD_ERROR,
-		    .dest = msg->sender,
-		    .sender = PSC_getMyTID(),
-		    .len = sizeof(errmsg) },
-		.request = msg->type,
-		.error = EHOSTUNREACH };
-	    sendMsg(&errmsg);
-	    break;
-	}
-	case PSP_CD_SPAWNREQUEST:
-	{
-	    DDErrorMsg_t answer = {
-		.header = {
-		    .type = PSP_CD_SPAWNFAILED,
-		    .dest = msg->sender,
-		    .sender = msg->dest,
-		    .len = sizeof(answer) },
-		.request = msg->type,
-		.error = EHOSTDOWN };
-	    sendMsg(&answer);
-	    break;
-	}
-	case PSP_CD_RELEASE:
-	case PSP_CD_NOTIFYDEAD:
-	{
-	    /* Sender expects an answer */
-	    DDSignalMsg_t answer = {
-		.header = {
-		    .type = (msg->type==PSP_CD_RELEASE) ?
-		    PSP_CD_RELEASERES : PSP_CD_NOTIFYDEADRES,
-		    .dest = msg->sender,
-		    .sender = PSC_getMyTID(),
-		    .len = msg->len },
-		.signal = ((DDSignalMsg_t *)msg)->signal,
-		.param = EHOSTUNREACH,
-		.pervasive = 0 };
-	    sendMsg(&answer);
-	    break;
-	}
-	case PSP_DD_DAEMONCONNECT:
-	{
-	    if (!config->useMCast && !knowMaster()) {
-		PSnodes_ID_t next = PSC_getID(msg->dest) + 1;
+	handleDroppedMsg(msg);
 
-		if (next < PSC_getMyID()) {
-		    send_DAEMONCONNECT(next);
-		} else {
-		    declareMaster(PSC_getMyID());
-		}
-	    }
-	    break;
-	}
-	default:
-	    break;
-	}
 	break;
     }
     case RDP_LOST_CONNECTION:
