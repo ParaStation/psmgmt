@@ -712,15 +712,16 @@ static void printSlots(int num, PSnodes_ID_t *nodes, int width, int offset)
     printf(" ");
     while (i < num) {
 	PSnodes_ID_t cur = nodes[i], loopCur;
-	int rep = 0, loopRep;
+	int rep = 0, loopStep=0, loopRep;
 
 	while(i<num && nodes[i] == cur) {
 	    rep++;
 	    i++;
 	}
 	snprintf(range, sizeof(range), "%d", cur);
-	loopCur=cur+1;
+	if (nodes[i] == cur+1 || nodes[i] == cur-1) loopStep = nodes[i] - cur;
 
+	loopCur = cur + loopStep;
 	while (i<num && nodes[i]==loopCur) {
 	    int j=i;
 	    loopRep = 0;
@@ -731,11 +732,11 @@ static void printSlots(int num, PSnodes_ID_t *nodes, int width, int offset)
 	    }
 	    if (loopRep != rep) break;
 	    i=j;
-	    loopCur++;
+	    loopCur += loopStep;
 	}
-	if (loopCur != cur+1) {
+	if (loopCur != cur+loopStep) {
 	    snprintf(range+strlen(range), sizeof(range)-strlen(range),
-		     "-%d", loopCur-1);
+		     "-%d  %d", loopCur-loopStep);
 	}
 	if (rep>1) {
 	    snprintf(range+strlen(range), sizeof(range)-strlen(range),
