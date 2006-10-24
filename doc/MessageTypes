@@ -39,11 +39,14 @@ PSP_DD_ACTIVE_NODES		DDBufferMsg_t		NODES_CHUNK*2 (= 1024)
 PSP_DD_DEAD_NODE		DDBufferMsg_t		2
 PSP_DD_MASTER_IS		DDBufferMsg_t		2
 
+
 PSP_CD_CLIENTCONNECT		DDInitMsg_t		10 (+12 without PEERCRED)
 PSP_CD_CLIENTESTABLISHED	DDTypedBufferMsg_t	4
 PSP_CD_CLIENTREFUSED		DDTypedBufferMsg_t	4 + 4
+
 PSP_CD_SETOPTION		DDOptionMsg_t		1 + 16*8 (= 129)
 PSP_CD_GETOPTION		DDOptionMsg_t		1 + 16*8 (= 129)
+
 PSP_CD_INFOREQUEST		DDTypedBufferMsg_t	4 + max(4, max. length HW name)
 PSP_CD_INFORESPONSE		DDTypedBufferMsg_t	4 + 8 + 32 (from PSpart_encodeReq)
 							4 + NODES_CHUNK*2 (= 1028)
@@ -59,14 +62,17 @@ PSP_CD_SPAWNREQUEST		DDBufferMsg_t		PStask_encode()
 PSP_CD_SPAWNSUCCESS		DDErrorMsg_t		8
 PSP_CD_SPAWNFAILED		DDErrorMsg_t		8
 PSP_CD_SPAWNFINISH		DDErrorMsg_t		8
+PSP_CD_SPAWNREQ			@todo			@todo
 
+PSP_CD_ACCOUNT			@todo			@todo
 
-PSP_CD_NOTIFYDEAD		DDSignalMsg_t		9
-PSP_CD_NOTIFYDEADRES		DDSignalMsg_t		9
-PSP_CD_RELEASE			DDSignalMsg_t		9
-PSP_CD_RELEASERES		DDSignalMsg_t		9
-PSP_CD_SIGNAL			DDSignalMsg_t		9
-PSP_CD_WHODIED			DDSignalMsg_t		9
+PSP_CD_NOTIFYDEAD		DDSignalMsg_t		10
+PSP_CD_NOTIFYDEADRES		DDSignalMsg_t		10
+PSP_CD_RELEASE			DDSignalMsg_t		10
+PSP_CD_RELEASERES		DDSignalMsg_t		10
+PSP_CD_SIGNAL			DDSignalMsg_t		10
+PSP_CD_WHODIED			DDSignalMsg_t		10
+PSP_CD_SIGNAL			DDErrorMsg_t		8
 
 PSP_CD_DAEMONSTART		DDBufferMsg_t		2
 PSP_CD_DAEMONSTOP		DDMsg_t			0
