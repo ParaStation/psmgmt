@@ -363,6 +363,20 @@ char *PSC_parseNodelist(char* descr);
  */
 void PSC_printNodelist(char* nl);
 
+/**
+ * @brief Concatenate strings.
+ *
+ * Concatenate two or more strings and return a pointer to the
+ * resulting string. Memory for the noew string is obtained with
+ * malloc(3), and can be freed with free(3).
+ *
+ * @param str Start of the concatenated string. More strings to follow.
+ *
+ * @return Upon success, a pointer to the concatenated string is
+ * returned, or NULL, if insufficient memory was available.
+ */
+char * PSC_concat(const char *str, ...);
+
 #ifdef __cplusplus
 }/* extern "C" */
 #endif

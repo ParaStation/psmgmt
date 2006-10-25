@@ -38,6 +38,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #include "parser.h"
 #include "psprotocol.h"
+#include "pscommon.h"
 #include "psi.h"
 
 #include "commands.h"
@@ -94,8 +95,8 @@ static char *homedir(void)
     char *env = getenv("HOME");
     struct passwd *pw = getpwuid(getuid());
 
-    if (env != NULL) return strdup(env);
-    else if (pw && pw->pw_dir) return strdup(pw->pw_dir);
+    if (env != NULL) return env;
+    else if (pw && pw->pw_dir) return pw->pw_dir;
 
     return NULL;
 }
@@ -104,38 +105,26 @@ static char *homedir(void)
 
 static int handleRCfile(const char *progname)
 {
-    char rcname[FILENAME_MAX+1];
-    FILE *rcfile = NULL;
+    FILE *rcfile = fopen(RCNAME, "r");
 
-    if (sizeof(rcname) <= strlen(RCNAME)) {
-	fprintf(stderr, "%s: filename '%s' too large\n", progname, rcname);
-	return -1;
-    }	
-    strcpy(rcname, RCNAME);
-    rcfile = fopen(rcname, "r");
     if (!rcfile && errno != ENOENT) {
 	char *errstr = strerror(errno);
 	fprintf(stderr, "%s: %s: %s\n",
-		progname, rcname, errstr ? errstr : "UNKNOWN");
+		progname, RCNAME, errstr ? errstr : "UNKNOWN");
 	return -1;
     }
     if (!rcfile) {
-	char *home = homedir();
+	char *rcname, *home = homedir();
+
 	if (!home) {
 	    fprintf(stderr, "%s: no homedir?\n", progname);
 	    return -1;
 	}
-	if (sizeof(rcname) <= strlen(home) + 1 + strlen(RCNAME)) {
-	    fprintf(stderr, "%s: filename '%s/%s' too large\n",
-		    progname, home, rcname);
-	    return -1;
-	}
-	strcpy(rcname, home);
-	free(home);
-	strcat(rcname, "/");
-	strcat(rcname, RCNAME);
 
+	rcname = PSC_concat(home, "/", RCNAME, NULL);
 	rcfile = fopen(rcname, "r");
+	free(rcname);
+
 	if (!rcfile && errno != ENOENT) {
 	    char *errstr = strerror(errno);
 	    fprintf(stderr, "%s: %s: %s\n",
@@ -174,18 +163,12 @@ int histfilesize = 200;
 
 static int handleHistFile(const char *progname)
 {
-    char name[FILENAME_MAX+1], *env;
+    char *env;
     struct stat statbuf;
     FILE *file = NULL;
 
     if ((env = getenv("PSIADM_HISTFILE"))) {
-	int len = snprintf(name, sizeof(name), "%s", env);
-	if ((size_t)len >= sizeof(name)) {
-	    fprintf(stderr, "%s: filename '%s' too large,", progname, env);
-	    fprintf(stderr, " use default ($HOME/.psiadm_history).\n");
-	} else {
-	    histname = strdup(name);
-	}
+	histname = strdup(env);
     }
 
     if (!histname) {
@@ -194,17 +177,7 @@ static int handleHistFile(const char *progname)
 	    fprintf(stderr, "%s: no homedir?\n", progname);
 	    return -1;
 	}
-	if (sizeof(name) <= strlen(home) + 1 + strlen(HISTNAME)) {
-	    fprintf(stderr, "%s: filename '%s/%s' too large\n",
-		    progname, home, HISTNAME);
-	    return -1;
-	}
-	strcpy(name, home);
-	free(home);
-	strcat(name, "/");
-	strcat(name, HISTNAME);
-
-	histname = strdup(name);
+	histname = PSC_concat(home, "/", HISTNAME, NULL);
     }
 
     if ((env = getenv("PSIADM_HISTFILESIZE"))) {

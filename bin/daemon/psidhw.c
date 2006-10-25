@@ -185,11 +185,7 @@ static int callScript(int hw, char *script)
 
 	    if (!dir) dir = "";
 
-	    command = malloc(strlen(dir) + 1 + strlen(script) + 1);
-
-	    strcpy(command, dir);
-	    strcat(command, "/");
-	    strcat(command, script);
+	    command = PSC_concat(dir, "/", script, NULL);
 	} else {
 	    command = strdup(script);
 	}

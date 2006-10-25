@@ -12,17 +12,16 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <netdb.h>
-#include <unistd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <errno.h>
-#include <string.h>
-#include <stdlib.h>
-#include <sys/stat.h>
 
 #include "logging.h"
 
@@ -219,9 +218,7 @@ char* PSC_lookupInstalldir(void)
     struct stat fstat;
 
     if (!installdir) {
-	name = (char*) malloc(strlen(default_installdir) + strlen(logger) + 1);
-	strcpy(name, default_installdir);
-	strcat(name, logger);
+	name = PSC_concat(default_installdir, logger, NULL);
 
 	if (stat(name, &fstat)==0 && S_ISREG(fstat.st_mode)) {
 	    /* InstallDir found */
@@ -241,9 +238,7 @@ void PSC_setInstalldir(char* dir)
     char *name, logger[] = "/bin/psilogger";
     struct stat fstat;
 
-    name = (char*) malloc(strlen(dir) + strlen(logger) + 1);
-    strcpy(name,dir);
-    strcat(name,logger);
+    name = PSC_concat(dir, logger, NULL);
     if (stat(name, &fstat)) {
 	PSC_warn(-1, errno, "%s: '%s'", __func__, name);
 	free(name);
@@ -372,4 +367,49 @@ void PSC_printNodelist(char* nl)
     }
 
     return;
+}
+
+char * PSC_concat(const char *str, ...)
+{
+    va_list ap;
+    size_t allocated = 100;
+    char *result = (char *) malloc(allocated);
+
+    if (result) {
+	char *newp, *wp;
+	const char *s;
+
+	va_start(ap, str);
+
+	wp = result;
+	for (s = str; s != NULL; s = va_arg(ap, const char *)) {
+	    size_t len = strlen(s);
+
+	    /* Resize the allocated memory if necessary.  */
+	    if (wp + len + 1 > result + allocated) {
+		allocated = (allocated + len) * 2;
+		newp = (char *) realloc(result, allocated);
+		if (!newp) {
+		    free(result);
+		    return NULL;
+		}
+		wp = newp + (wp - result);
+		result = newp;
+	    }
+
+	    memcpy(wp, s, len);
+	    wp += len;
+	}
+
+	/* Terminate the result string.  */
+	*wp++ = '\0';
+
+	/* Resize memory to the optimal size.  */
+	newp = realloc(result, wp - result);
+	if (newp) result = newp;
+
+	va_end(ap);
+    }
+
+    return result;
 }
