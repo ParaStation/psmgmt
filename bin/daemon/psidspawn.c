@@ -133,7 +133,7 @@ static int mystat(char *file_name, struct stat *buf)
  * @brief Actually start the client process.
  *
  * This function actually sets up the client process as described
- * within the task structure @a task.In order to do so, first the UID,
+ * within the task structure @a task. In order to do so, first the UID,
  * GID and the current working directory are set up correctly. If no
  * working directory is provided within @a task, the corresponding
  * user's home directory is used. After setting up the environment and
@@ -141,41 +141,26 @@ static int mystat(char *file_name, struct stat *buf)
  * executable to call, finally the executable is called via @ref
  * myexecv().
  *
- * Since this function is typically called from within a fork()ed
- * process, possible errors cannot be signaled via a return
- * value. Thus the control-channel @a cntrlCh is used, a file
- * descriptor building one end of a pipe. The calling process has to
- * listen to the other end. If some data appears on this channel, it
- * is a strong signal that something failed during setting up the
- * client process. Actually the datum passed back is the current @ref
- * errno within the function set by the failing library call.
- *
- * Furthermore error-messages are sent to stderr. It is the task of
- * the calling function to provide an environment to forward this
- * message to the end-user of this function.
+ * Error-messages are sent to stderr. It is the task of the calling
+ * function to provide an environment to forward this message to the
+ * end-user of this function.
  *
  * @param task The task structure describing the client process to set
  * up.
- *
- * @param cntrlCh The control-channel the calling process should
- * listen to. This file-descriptor has to be one end of a pipe. The
- * calling process listens to the other end in order to detect
- * problems.
  *
  * @return No return value.
  *
  * @see fork(), errno
  */
-static void execClient(PStask_t *task, int cntrlCh)
+static void execClient(PStask_t *task)
 {
     /* logging is done via the forwarder thru stderr! */
     struct stat sb;
-    int i, ret;
+    int i, execFound = 0;
 
     /* change the gid */
     if (setgid(task->gid)<0) {
 	fprintf(stderr, "%s: setgid: %s\n", __func__, get_strerror(errno));
-	ret = write(cntrlCh, &errno, sizeof(errno));
 	exit(0);
     }
 
@@ -185,7 +170,6 @@ static void execClient(PStask_t *task, int cntrlCh)
     /* change the uid */
     if (setuid(task->uid)<0) {
 	fprintf(stderr, "%s: setuid: %s\n", __func__, get_strerror(errno));
-	ret = write(cntrlCh, &errno, sizeof(errno));
 	exit(0);
     }
 
@@ -202,12 +186,10 @@ static void execClient(PStask_t *task, int cntrlCh)
 		fprintf(stderr, "%s: chdir(%s): %s\n", __func__,
 			passwd->pw_dir ? passwd->pw_dir : "",
 			get_strerror(errno));
-		ret = write(cntrlCh, &errno, sizeof(errno));
 		exit(0);
 	    }
 	} else {
 	    fprintf(stderr, "Cannot determine home directory\n");
-	    ret = write(cntrlCh, &errno, sizeof(errno));
 	    exit(0);
 	}	    
     }
@@ -221,12 +203,44 @@ static void execClient(PStask_t *task, int cntrlCh)
 	}
     }
 
-    /* Test if executable is there */
-    if (mystat(task->argv[0], &sb) == -1) {
-	fprintf(stderr, "%s: stat(%s): %s\n", __func__,
-		task->argv[0] ? task->argv[0] : "", get_strerror(errno));
-	ret = write(cntrlCh, &errno, sizeof(errno));
+    if (!task->argv[0]) {
+	fprintf(stderr, "No argv[0] given!\n");
 	exit(0);
+    }	
+
+    /* Test if executable is there */
+    if (task->argv[0][0] != '/' || task->argv[0][0] != '.') {
+	/* Relative path -> let's search in $PATH */
+	char *p = getenv("PATH");
+
+	if (!p) {
+	    fprintf(stderr, "No path?\n");
+	} else {
+	    char *path = strdup(p);
+	    p = strtok(path, ":");
+	    while (p) {
+		char *fn = PSC_concat(p, "/", task->argv[0], NULL);
+
+		if (!stat(fn, &sb)) {
+		    free(task->argv[0]);
+		    task->argv[0] = fn;
+		    execFound = 1;
+		    break;
+		}
+
+		free(fn);
+		p = strtok(NULL, ":");
+	    }
+	    free(path);
+	}
+    }
+    if (!execFound) {
+	/* this might be on NFS -> use mystat */
+	if (mystat(task->argv[0], &sb) == -1) {
+	    fprintf(stderr, "%s: stat(%s): %s\n", __func__,
+		    task->argv[0] ? task->argv[0] : "", get_strerror(errno));
+	    exit(0);
+	}
     }
 
     if (!S_ISREG(sb.st_mode) || !(sb.st_mode & S_IXUSR)) {
@@ -234,8 +248,6 @@ static void execClient(PStask_t *task, int cntrlCh)
 	fprintf(stderr, "%s: stat(): %s\n", __func__,
 		(!S_ISREG(sb.st_mode)) ? "S_ISREG error" :
 		(sb.st_mode & S_IXUSR) ? "" : "S_IXUSR error");
-
-	ret = write(cntrlCh, &errno, sizeof(errno));
 	exit(0);
     }
 
@@ -245,18 +257,13 @@ static void execClient(PStask_t *task, int cntrlCh)
     }
     /* never reached, if execv succesful */
 
-    /*
-     * send the forwarder a sign that the exec wasn't successful.
-     * cntrlCh would have been closed on successful exec.
-     */
-    ret = write(cntrlCh, &errno, sizeof(errno));
     exit(0);
 }
 
 /**
  * @brief Reset signal handlers.
  *
- * Reset all the signal handlers.
+ * Reset all the signal handlers. SIGCHLD needs special handling!
  *
  * @return No return value.
  */
@@ -275,7 +282,6 @@ static void resetSignals(void)
     signal(SIGUSR2  ,SIG_DFL);
     signal(SIGPIPE  ,SIG_DFL);
     signal(SIGTERM  ,SIG_DFL);
-    signal(SIGCHLD  ,SIG_DFL);
     signal(SIGCONT  ,SIG_DFL);
     signal(SIGTSTP  ,SIG_DFL);
     signal(SIGTTIN  ,SIG_DFL);
@@ -386,17 +392,11 @@ static void openChannel(PStask_t *task, int *fds, int fileNo, int cntrlCh)
 static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 {
     pid_t pid;
-    int clientfds[2], stdinfds[2], stdoutfds[2], stderrfds[2];
+    int stdinfds[2], stdoutfds[2], stderrfds[2];
     int ret, buf;
 
     /* Block until the forwarder has handled all output */
     PSID_blockSig(1, SIGCHLD);
-
-    /* create a control channel in order to observe the client */
-    if (pipe(clientfds)<0) {
-	PSID_warn(-1, errno, "%s: pipe()", __func__);
-    }
-    fcntl(clientfds[1], F_SETFD, FD_CLOEXEC);
 
     /* create stdin/stdout/stderr connections between forwarder & client */
     /* don't echo within spawned client */
@@ -456,9 +456,6 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 	/* no direct connection to the daemon */
 	close(daemonfd);
 
-	/* close the reading pipe */
-	close(clientfds[0]);
-
 	/* close the master ttys / sockets */
         close(stdinfds[0]);
         close(stdoutfds[0]);
@@ -469,7 +466,7 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 	dup2(stderrfds[1], STDERR_FILENO);
 
 	if (errno) {
-	    ret = write(clientfds[1], &errno, sizeof(errno));
+	    PSID_warn(-1, errno, "%s: dup2(stderr)", __func__);
 	    exit(1);
 	}
 
@@ -479,13 +476,11 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 	if (dup2(stdinfds[1], STDIN_FILENO) < 0) {
 	    fprintf(stderr, "%s: dup2(%d): [%d] %s\n", __func__,
 		    STDIN_FILENO, errno, get_strerror(errno));
-	    ret = write(clientfds[1], &errno, sizeof(errno));
 	    exit(1);
 	}
 	if (dup2(stdoutfds[1], STDOUT_FILENO) < 0) {
 	    fprintf(stderr, "%s: dup2(%d): [%d] %s\n", __func__,
 		    STDOUT_FILENO, errno, get_strerror(errno));
-	    ret = write(clientfds[1], &errno, sizeof(errno));
 	    exit(1);
 	}
 
@@ -513,16 +508,13 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
         }
 
 	/* try to start the client */
-	execClient(task, clientfds[1]);
+	execClient(task);
     }
 
     /* this is the forwarder process */
 
     /* save errno in case of error */
     ret = errno;
-
-    /* close the writing pipe */
-    close(clientfds[1]);
 
     /* close the slave ttys / sockets */
     close(stdinfds[1]);
@@ -531,7 +523,6 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 
     /* check if fork() was successful */
     if (pid == -1) {
-	close(clientfds[0]);
 	PSID_warn(-1, errno, "%s: fork()", __func__);
 	ret = write(cntrlCh, &ret, sizeof(ret));
 	exit(1);
@@ -540,39 +531,11 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
     /* check for a sign from the client */
     PSID_log(PSID_LOG_SPAWN, "%s: waiting for my child (%d)\n", __func__, pid);
 
- restart:
-    if ((ret=read(clientfds[0], &buf, sizeof(buf))) < 0) {
-	if (errno == EINTR) {
-	    goto restart;
-	}
-    }
-
-    if (!ret) {
-	/*
-	 * the control channel was closed in case of a successful execv
-	 */
-	PSID_log(PSID_LOG_SPAWN, "%s: child exec(): ok\n", __func__);
-
-	/* Tell the parent about the client's pid */
-	buf = 0; /* errno will never be 0, this marks the following pid */
-	ret = write(cntrlCh, &buf, sizeof(buf));
-	buf = pid;
-	ret = write(cntrlCh, &buf, sizeof(buf));
-    } else {
-	/*
-	 * the child sent us a sign that the execv wasn't successful
-	 */
-	char** av= task->argv;
-	PSID_warn(-1, errno, "%s: child exec(\"%s\", argc=%d)", __func__,
-		  av ? (av[0] ? av[0] : "argv[0]=<NULL>") : "<argv=NULL>",
-		  task->argc);
-
-	/* Tell the parent about this */
-	buf=errno;
-	ret = write(cntrlCh, &buf, sizeof(buf));
-	exit(1);
-    }
-    close(clientfds[0]);
+    /* Tell the parent about the client's pid */
+    buf = 0; /* errno will never be 0, this marks the following pid */
+    ret = write(cntrlCh, &buf, sizeof(buf));
+    buf = pid;
+    ret = write(cntrlCh, &buf, sizeof(buf));
 
     closelog();
 

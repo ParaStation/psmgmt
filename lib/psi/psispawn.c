@@ -181,6 +181,8 @@ static char *mygetwd(const char *ext)
  *
  * @param argv The arguments used to spawn the processes.
  *
+ * @param strictArgv Flag to prevent "smart" replacement of argv[0].
+ *
  * @param taskGroup Task-group under which the spawned process shall
  * be started. At the time, TG_ANY and TG_ADMINTASK are good
  * values. The latter is used for admin-tasks, i.e. unaccounted tasks.
@@ -197,7 +199,8 @@ static char *mygetwd(const char *ext)
  * requests.
  */
 static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
-		   int argc, char **argv, PStask_group_t taskGroup,
+		   int argc, char **argv, int strictArgv,
+		   PStask_group_t taskGroup,
 		   unsigned int rank, int *errors, PStask_ID_t *tids)
 {
     int outstanding_answers=0;
@@ -262,7 +265,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     {
 	struct stat statbuf;
 
-	if (stat(argv[0], &statbuf)) {
+	if (stat(argv[0], &statbuf) && !strictArgv) {
 #ifdef __linux__
 	    char myexec[PATH_MAX];
 	    int length;
@@ -472,7 +475,7 @@ int PSI_spawn(int count, char *workdir, int argc, char **argv,
 	PSI_log(PSI_LOG_SPAWN, ".\n");
 	PSI_log(PSI_LOG_SPAWN, "%s: first rank: %d\n", __func__, rank);
 
-	ret = dospawn(chunk, nodes, workdir, argc, argv,
+	ret = dospawn(chunk, nodes, workdir, argc, argv, 0,
 		      TG_ANY, rank, errors, tids);
 	if (ret != chunk) {
 	    free(nodes);
@@ -507,7 +510,7 @@ int PSI_spawnSingle(char *workdir, int argc, char **argv,
     PSI_log(PSI_LOG_SPAWN, "%s: will spawn to: %d  rank %d\n",
 	    __func__, node, rank);
 
-    ret = dospawn(1, &node, workdir, argc, argv, TG_ANY, rank, error, tid);
+    ret = dospawn(1, &node, workdir, argc, argv, 0, TG_ANY, rank, error, tid);
     if (ret != 1) {
 	return -1;
     }
@@ -523,7 +526,7 @@ int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, node);
 
     if (node == -1) node = PSC_getMyID();
-    ret = dospawn(1, &node, workdir, argc, argv,
+    ret = dospawn(1, &node, workdir, argc, argv, 1,
 		  TG_ADMINTASK, rank, error, tid);
     if (ret != 1) {
 	return -1;
@@ -546,7 +549,8 @@ int PSI_spawnService(PSnodes_ID_t node, char *workdir, int argc, char **argv,
     if (!getPSIEnv("__PSI_MASTERPORT"))
 	setPSIEnv("__PSI_MASTERPORT", "4711", 1);
 
-    ret = dospawn(1, &node, workdir, argc, argv, TG_SERVICE, rank, error, tid);
+    ret = dospawn(1, &node, workdir, argc, argv, 0,
+		  TG_SERVICE, rank, error, tid);
     if (ret != 1) {
 	return -1;
     }
@@ -571,7 +575,7 @@ PStask_ID_t PSI_spawnRank(int rank, char *workdir, int argc, char **argv,
 
     PSI_log(PSI_LOG_SPAWN, "%s: will spawn to: %d\n", __func__, node);
 
-    ret = dospawn(1, &node, workdir, argc, argv, TG_ANY, rank, error, &tid);
+    ret = dospawn(1, &node, workdir, argc, argv, 0, TG_ANY, rank, error, &tid);
     if (ret != 1) return 0;
 
     return tid;
@@ -594,7 +598,7 @@ PStask_ID_t PSI_spawnGMSpawner(int np, char *workdir, int argc, char **argv,
 
     PSI_log(PSI_LOG_SPAWN, "%s: will spawn to: %d", __func__, node);
 
-    ret = dospawn(1, &node, workdir, argc, argv, TG_ANY, np, error, &tid);
+    ret = dospawn(1, &node, workdir, argc, argv, 0, TG_ANY, np, error, &tid);
     if (ret != 1) return 0;
 
     return tid;
@@ -620,10 +624,7 @@ char *PSI_createPGfile(int num, const char *prog, int local)
     } else {	
 	/* File open failed, lets try the user's home directory */
 	char *home = getenv("HOME");
-	PIfilename = malloc((strlen(home)+strlen(filename)+2) * sizeof(char));
-	strcpy(PIfilename, home);
-	strcat(PIfilename, "/");
-	strcat(PIfilename, filename);
+	PIfilename = PSC_concat(home, "/", filename, NULL);
 
 	PIfile = fopen(PIfilename, "w+");
 	/* File open failed finally */
@@ -668,11 +669,7 @@ char *PSI_createMPIhosts(int num, int local)
     } else {	
 	/* File open failed, lets try the user's home directory */
 	char *home = getenv("HOME");
-	MPIhostsFilename = malloc((strlen(home) + strlen(filename) + 2)
-				  * sizeof(char));
-	strcpy(MPIhostsFilename, home);
-	strcat(MPIhostsFilename, "/");
-	strcat(MPIhostsFilename, filename);
+	MPIhostsFilename = PSC_concat(home, "/", filename, NULL);
 
 	MPIhostsFile = fopen(MPIhostsFilename, "w+");
 	/* File open failed finally */
