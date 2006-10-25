@@ -51,11 +51,12 @@ int main(int argc, const char *argv[])
     PSnodes_ID_t nodeID;
     int node, version, verbose, rusage;
     const char *host, *envlist, *login;
+    char *cmdLine = NULL;
 
     int i, rc, hostSet;
 
-    int cmd_argc=0;
-    char **cmd_argv;
+    int exec_argc = 1;
+    char *exec_argv[4];
 
     poptContext optCon;   /* context for parsing command-line options */
 
@@ -84,7 +85,7 @@ int main(int argc, const char *argv[])
     /*
      * Split the argv into two parts:
      *  - first one (still in argv) containing the pssh options
-     *  - second one (in cmd_argv) containing the apps argv
+     *  - second one (in cmdLine) containing the app's command and arguments
      */
     node = -1; version = verbose = rusage = 0;
     host = envlist = login = NULL;
@@ -131,11 +132,16 @@ int main(int argc, const char *argv[])
 	}
 
 	/* Unknown argument is apps name. */
-	/* Split cmd_argv from argv and start over */
+	/* Create cmdLine from argv and start over */
 	for (i=0; i<=argc; i++) {
 	    if (unknownArg == argv[i]) {
-		poptDupArgv(argc-i, &argv[i],
-			    &cmd_argc, (const char ***)&cmd_argv);
+		int j, totLen = 2;
+		for (j=i; j<argc; j++) totLen += strlen(argv[j]) + 1;
+		cmdLine = malloc(totLen);
+		cmdLine[0] = '\0';
+		for (j=i; j<argc; j++)
+		    snprintf(cmdLine + strlen(cmdLine), totLen-strlen(cmdLine),
+			     "%s ", argv[j]);
 		argv[i]=NULL;
 		argc = i;
 		break;
@@ -205,11 +211,8 @@ int main(int argc, const char *argv[])
 	printf("\b\n\n");
 
 	printf("The applications command-line is:\n");
-	if (cmd_argc) {
-	    for (i=0; i<cmd_argc; i++) {
-		printf("%s ", cmd_argv[i]);
-	    }
-	    printf("\b\n\n");
+	if (cmdLine) {
+	    printf("%s\b\n\n", cmdLine);
 	} else {
 	    printf(SHELL);
 	}
@@ -249,7 +252,7 @@ int main(int argc, const char *argv[])
 	    fprintf(stderr, "Unknown user '%s'\n", login);
 	} else if (myUid && passwd->pw_uid != myUid) {
 	    fprintf(stderr, "Can't start '%s' as %s\n",
-		    cmd_argc ? cmd_argv[0] : SHELL, login);
+		    cmdLine ? cmdLine : SHELL, login);
 
 	    exit(1);
 	} else {
@@ -292,14 +295,17 @@ int main(int argc, const char *argv[])
     /* Don't irritate the user with logger messages */
     setenv("PSI_NOMSGLOGGERDONE", "", 1);
 
-    if (!cmd_argc) {
-	cmd_argv=malloc(2*sizeof(*cmd_argv));
-	cmd_argv[0]=SHELL;
-	cmd_argv[1]=NULL;
-	cmd_argc=1;
+    exec_argv[0] = SHELL;
+    exec_argv[1] = NULL;
+
+    if (cmdLine) {
+	exec_argv[1] = "-c";
+	exec_argv[2] = cmdLine;
+	exec_argv[3] = NULL;
+	exec_argc = 3;
     }
 
-    PSE_spawnAdmin(nodeID, 0, cmd_argc, cmd_argv);
+    PSE_spawnAdmin(nodeID, 0, exec_argc, exec_argv);
 
     /* Never be here ! */
     exit(1);
