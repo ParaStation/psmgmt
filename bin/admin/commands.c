@@ -736,7 +736,7 @@ static void printSlots(int num, PSnodes_ID_t *nodes, int width, int offset)
 	}
 	if (loopCur != cur+loopStep) {
 	    snprintf(range+strlen(range), sizeof(range)-strlen(range),
-		     "-%d  %d", loopCur-loopStep);
+		     "-%d", loopCur-loopStep);
 	}
 	if (rep>1) {
 	    snprintf(range+strlen(range), sizeof(range)-strlen(range),
