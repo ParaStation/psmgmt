@@ -1732,6 +1732,18 @@ int main(int argc, const char *argv[])
     PSID_blockSig(1,SIGCHLD);
     initSignals();
 
+#define _PATH_TTY "/dev/tty"
+    /* First disconnect from the old controlling tty. */
+    {
+	int fd = open(_PATH_TTY, O_RDWR | O_NOCTTY);
+	if (fd >= 0) {
+	    int ret = ioctl(fd, TIOCNOTTY, NULL);
+	    PSID_warn(-1, errno, "%s: ioctl(TIOCNOTTY)", __func__);
+	    close(fd);
+	}
+    }
+
+
     /*
      * Disable stdin,stdout,stderr and install dummy replacement
      * Take care if stdout/stderr is used for logging

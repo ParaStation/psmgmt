@@ -58,7 +58,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 static char *get_strerror(int eno)
 {
     char *ret = strerror(eno);
-    if (ret) return ret; else return "UNKNOWN";
+    return ret ? ret : "UNKNOWN";
 }
 
 /**
@@ -129,6 +129,112 @@ static int mystat(char *file_name, struct stat *buf)
     return ret; /* return last error */
 }
 
+static void pty_setowner(uid_t uid, gid_t gid, const char *tty)
+{
+    struct group *grp;
+    mode_t mode;
+    struct stat st;
+
+    /* Determine the group to make the owner of the tty. */
+    grp = getgrnam("tty");
+    if (grp) {
+	gid = grp->gr_gid;
+	mode = S_IRUSR | S_IWUSR | S_IWGRP;
+    } else {
+	mode = S_IRUSR | S_IWUSR | S_IWGRP | S_IWOTH;
+    }
+
+    /*
+     * Change owner and mode of the tty as required.
+     * Warn but continue if filesystem is read-only and the uids match/
+     * tty is owned by root.
+     */
+    if (stat(tty, &st)) {
+	PSID_exit(errno, "%s: stat(%s)", __func__, tty);
+	exit(1);
+    }
+
+    if (st.st_uid != uid || st.st_gid != gid) {
+	if (chown(tty, uid, gid) < 0) {
+	    if (errno == EROFS && (st.st_uid == uid || st.st_uid == 0)) {
+		PSID_warn(-1, errno, "%s: chown(%s, %u, %u)", __func__,
+			  tty, (u_int)uid, (u_int)gid);
+	    } else {
+		PSID_exit(errno, "%s: chown(%s, %u, %u)", __func__,
+			  tty, (u_int)uid, (u_int)gid);
+	    }
+	}
+    }
+
+    if ((st.st_mode & (S_IRWXU|S_IRWXG|S_IRWXO)) != mode) {
+	if (chmod(tty, mode) < 0) {
+	    if (errno == EROFS && (st.st_mode & (S_IRGRP | S_IROTH)) == 0) {
+		PSID_warn(-1, errno, "%s: chmod(%s, 0%o)", __func__,
+			  tty, (u_int)mode);
+	    } else {
+		PSID_exit(errno, "%s: chmod(%s, 0%o)", __func__,
+			  tty, (u_int)mode);
+	    }
+	}
+    }
+}
+
+#define _PATH_TTY "/dev/tty"
+
+/* Makes the tty the process's controlling tty and sets it to sane modes. */
+static void pty_make_controlling_tty(int *ttyfd, const char *tty)
+{
+    int fd;
+    void *old;
+
+    /* First disconnect from the old controlling tty. */
+    fd = open(_PATH_TTY, O_RDWR | O_NOCTTY);
+    if (fd >= 0) {
+	if (ioctl(fd, TIOCNOTTY, NULL)<0)
+	    PSID_warn(-1, errno, "%s: ioctl(TIOCNOTTY)", __func__);
+	close(fd);
+    }
+
+    /*
+     * Verify that we are successfully disconnected from the controlling
+     * tty.
+     */
+    fd = open(_PATH_TTY, O_RDWR | O_NOCTTY);
+    if (fd >= 0) {
+	PSID_log(-1, "%s: still connected to controlling tty.\n", __func__);
+	close(fd);
+    }
+
+    /* Make it our controlling tty. */
+#ifdef TIOCSCTTY
+    if (ioctl(*ttyfd, TIOCSCTTY, NULL) < 0)
+	PSID_warn(-1, errno, "%s: ioctl(TIOCSCTTY)", __func__);
+#else
+#error No TIOCSCTTY
+#endif /* TIOCSCTTY */
+
+    old = signal(SIGCONT, SIG_IGN);
+    if (vhangup() < 0) PSID_warn(-1, errno, "%s: vhangup()", __func__);
+    signal(SIGCONT, old);
+
+    fd = open(tty, O_RDWR);
+    if (fd < 0) {
+	PSID_warn(-1, errno, "%s: open(%s)", __func__, tty);
+    } else {
+	close(*ttyfd);
+	*ttyfd = fd;
+    }
+    /* Verify that we now have a controlling tty. */
+    fd = open(_PATH_TTY, O_WRONLY);
+    if (fd < 0) {
+	PSID_warn(-1, errno, "%s: open(%s)", __func__, _PATH_TTY);
+	PSID_log(-1, "%s: unable to set controlling tty: %s\n",
+		 __func__, _PATH_TTY);
+    } else {
+	close(fd);
+    }
+}
+
 /**
  * @brief Actually start the client process.
  *
@@ -157,6 +263,7 @@ static void execClient(PStask_t *task)
     /* logging is done via the forwarder thru stderr! */
     struct stat sb;
     int i, execFound = 0;
+    char *executable;
 
     /* change the gid */
     if (setgid(task->gid)<0) {
@@ -251,8 +358,23 @@ static void execClient(PStask_t *task)
 	exit(0);
     }
 
+    executable = task->argv[0];
+
+    /* Interactive shells */
+    if (!strcmp(executable, "/bin/bash") && !strcmp(task->argv[1], "-i")
+	&& task->argc = 2) {
+	task->argv[0] = "-bash";
+	task->argv[1] = NULL;
+	task->argc = 1;
+    } else if (!strcmp(executable, "/bin/bash") && !strcmp(task->argv[1], "-i")
+	       && task->argc = 2) {
+	task->argv[0] = "-tcsh";
+	task->argv[1] = NULL;
+	task->argc = 1;
+    }
+
     /* execute the image */
-    if (myexecv(task->argv[0], &(task->argv[0]))<0) {
+    if (myexecv(executable, &(task->argv[0]))<0) {
 	fprintf(stderr, "%s: execv: %s", __func__, get_strerror(errno));
     }
     /* never reached, if execv succesful */
@@ -269,6 +391,7 @@ static void execClient(PStask_t *task)
  */
 static void resetSignals(void)
 {
+    signal(SIGHUP   ,SIG_DFL);
     signal(SIGINT   ,SIG_DFL);
     signal(SIGQUIT  ,SIG_DFL);
     signal(SIGILL   ,SIG_DFL);
@@ -398,46 +521,52 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
     /* Block until the forwarder has handled all output */
     PSID_blockSig(1, SIGCHLD);
 
+    if (task->aretty & (1<<STDIN_FILENO)
+	&& task->aretty & (1<<STDOUT_FILENO)
+	&& task->aretty & (1<<STDERR_FILENO)) task->interactive = 1;
+
     /* create stdin/stdout/stderr connections between forwarder & client */
-    /* don't echo within spawned client */
-    task->termios.c_lflag &= ~(ECHO);
-    /* first stdout */
-    openChannel(task, stdoutfds, STDOUT_FILENO, cntrlCh);
-
-    /* then stderr */
-    openChannel(task, stderrfds, STDERR_FILENO, cntrlCh);
-
-    /*
-     * For stdin, use the stdout or stderr connection if the
-     * requested type is available, or open an extra connection.
-     */
-    if (task->aretty & (1<<STDIN_FILENO)) {
-	if (task->aretty & (1<<STDOUT_FILENO)) {
-	    stdinfds[0] = stdoutfds[0];
-	    stdinfds[1] = stdoutfds[1];
-	} else if (task->aretty & (1<<STDERR_FILENO)) {
-	    stdinfds[0] = stderrfds[0];
-	    stdinfds[1] = stderrfds[1];
-	} else {
-	    if (openpty(&stdinfds[0], &stdinfds[1],
-			NULL, &task->termios, &task->winsize)) {
-		PSID_warn(-1, errno, "%s: openpty(stdin)", __func__);
-		ret = write(cntrlCh, &errno, sizeof(errno));
-		exit(1);
-	    }
-	}
+    if (task->interactive) {
+	openChannel(task, stderrfds, STDERR_FILENO, cntrlCh);
     } else {
-	if (!(task->aretty & (1<<STDOUT_FILENO))) {
-	    stdinfds[0] = stdoutfds[0];
-	    stdinfds[1] = stdoutfds[1];
-	} else if (!(task->aretty & (1<<STDERR_FILENO))) {
-	    stdinfds[0] = stderrfds[0];
-	    stdinfds[1] = stderrfds[1];
+	/* first stdout */
+	openChannel(task, stdoutfds, STDOUT_FILENO, cntrlCh);
+
+	/* then stderr */
+	openChannel(task, stderrfds, STDERR_FILENO, cntrlCh);
+
+	/*
+	 * For stdin, use the stdout or stderr connection if the
+	 * requested type is available, or open an extra connection.
+	 */
+	if (task->aretty & (1<<STDIN_FILENO)) {
+	    if (task->aretty & (1<<STDERR_FILENO)) {
+		stdinfds[0] = stderrfds[0];
+		stdinfds[1] = stderrfds[1];
+	    } else if (task->aretty & (1<<STDOUT_FILENO)) {
+		stdinfds[0] = stdoutfds[0];
+		stdinfds[1] = stdoutfds[1];
+	    } else {
+		if (openpty(&stdinfds[0], &stdinfds[1],
+			    NULL, &task->termios, &task->winsize)) {
+		    PSID_warn(-1, errno, "%s: openpty(stdin)", __func__);
+		    ret = write(cntrlCh, &errno, sizeof(errno));
+		    exit(1);
+		}
+	    }
 	} else {
-	    if (socketpair(PF_UNIX, SOCK_STREAM, 0, stdinfds)) {
-		PSID_warn(-1, errno, "%s: socketpair(stdin)", __func__);
-		ret = write(cntrlCh, &errno, sizeof(errno));
-		exit(1);
+	    if (!(task->aretty & (1<<STDERR_FILENO))) {
+		stdinfds[0] = stderrfds[0];
+		stdinfds[1] = stderrfds[1];
+	    } else if (!(task->aretty & (1<<STDOUT_FILENO))) {
+		stdinfds[0] = stdoutfds[0];
+		stdinfds[1] = stdoutfds[1];
+	    } else {
+		if (socketpair(PF_UNIX, SOCK_STREAM, 0, stdinfds)) {
+		    PSID_warn(-1, errno, "%s: socketpair(stdin)", __func__);
+		    ret = write(cntrlCh, &errno, sizeof(errno));
+		    exit(1);
+		}
 	    }
 	}
     }
@@ -451,61 +580,60 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 	 * kills whole process groups. Otherwise the daemon might
 	 * also kill the forwarder by sending a signal to the client.
 	 */
-	setsid();
+	if (setsid() < 0) {
+	    PSID_warn(-1, errno, "%s: setsid()", __func__);
+	}
 
 	/* no direct connection to the daemon */
 	close(daemonfd);
 
 	/* close the master ttys / sockets */
-        close(stdinfds[0]);
-        close(stdoutfds[0]);
-        close(stderrfds[0]);
+	if (task->interactive) {
+	    char *name = ttyname(stderrfds[1]);
 
-	/* redirect stderr */
-	errno = 0;
-	dup2(stderrfds[1], STDERR_FILENO);
+	    close(stderrfds[0]);
+	    task->stdin_fd = stderrfds[1];
+	    task->stdout_fd = stderrfds[1];
+	    task->stderr_fd = stderrfds[1];
 
-	if (errno) {
+	    /* prepare the pty */
+	    pty_setowner(task->uid, task->gid, name);
+	    pty_make_controlling_tty(&task->stderr_fd, name);
+	    tcsetattr(task->stderr_fd, TCSANOW, &task->termios);
+	} else {
+	    close(stdinfds[0]);
+	    task->stdin_fd = stdinfds[1];
+	    close(stdoutfds[0]);
+	    task->stdout_fd = stdoutfds[1];
+	    close(stderrfds[0]);
+	    task->stderr_fd = stderrfds[1];
+	}
+
+    	/* redirect stdin/stdout/stderr */
+	if (dup2(task->stderr_fd, STDERR_FILENO) < 0) {
 	    PSID_warn(-1, errno, "%s: dup2(stderr)", __func__);
 	    exit(1);
 	}
 
 	/* From now on, all logging is done via the forwarder thru stderr */
 
-	/* redirect stdin/stdout */
-	if (dup2(stdinfds[1], STDIN_FILENO) < 0) {
-	    fprintf(stderr, "%s: dup2(%d): [%d] %s\n", __func__,
-		    STDIN_FILENO, errno, get_strerror(errno));
+	if (dup2(task->stderr_fd, STDIN_FILENO) < 0) {
+	    fprintf(stderr, "%s: dup2(stdin): [%d] %s\n", __func__,
+		    errno, get_strerror(errno));
 	    exit(1);
 	}
-	if (dup2(stdoutfds[1], STDOUT_FILENO) < 0) {
-	    fprintf(stderr, "%s: dup2(%d): [%d] %s\n", __func__,
-		    STDOUT_FILENO, errno, get_strerror(errno));
+	if (dup2(task->stderr_fd, STDOUT_FILENO) < 0) {
+	    fprintf(stderr, "%s: dup2(stdout): [%d] %s\n", __func__,
+		    errno, get_strerror(errno));
 	    exit(1);
 	}
 
 	/* close the now useless slave ttys / sockets */
-        close(stdinfds[1]);
-	close(stdoutfds[1]);
-	close(stderrfds[1]);
-
-        /* Setup terminal foreground group */
-        if (task->aretty & (1<<STDERR_FILENO)) {
-            if (ioctl(STDERR_FILENO, TIOCSCTTY, NULL) == -1) {
-                fprintf(stderr, "%s: ioctl(%d, TIOCSCTTY): %s\n",
-                        __func__, STDERR_FILENO, get_strerror(errno));
-            }
-        } else if (task->aretty & (1<<STDOUT_FILENO)) {
-            if (ioctl(STDOUT_FILENO, TIOCSCTTY, NULL) == -1) {
-                fprintf(stderr, "%s: ioctl(%d, TIOCSCTTY): %s\n",
-                        __func__, STDOUT_FILENO, get_strerror(errno));
-            }
-        } else if (task->aretty & (1<<STDIN_FILENO)) {
-            if (ioctl(STDIN_FILENO, TIOCSCTTY, NULL) == -1) {
-                fprintf(stderr, "%s: ioctl(%d, TIOCSCTTY): %s\n",
-                        __func__, STDIN_FILENO, get_strerror(errno));
-            }
-        }
+	close(task->stderr_fd);
+	if (!task->interactive) {
+	    close(task->stdin_fd);
+	    close(task->stdout_fd);
+	}
 
 	/* try to start the client */
 	execClient(task);
@@ -517,9 +645,18 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
     ret = errno;
 
     /* close the slave ttys / sockets */
-    close(stdinfds[1]);
-    close(stdoutfds[1]);
-    close(stderrfds[1]);
+    if (task->interactive) {
+	close(stderrfds[1]);
+	task->stdin_fd = stderrfds[0];
+	task->stdout_fd = stderrfds[0];
+    } else {
+	close(stdinfds[1]);
+	task->stdin_fd = stdinfds[0];
+	close(stdoutfds[1]);
+	task->stdout_fd = stdoutfds[0];
+	close(stderrfds[1]);
+	task->stderr_fd = stderrfds[0];
+    }
 
     /* check if fork() was successful */
     if (pid == -1) {
@@ -549,7 +686,7 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 
     /* Release the waiting daemon and exec forwarder */
     close(cntrlCh);
-    PSID_forwarder(task, daemonfd, stdinfds[0], stdoutfds[0], stderrfds[0]);
+    PSID_forwarder(task, daemonfd);
 
     /* never reached */
     exit(1);

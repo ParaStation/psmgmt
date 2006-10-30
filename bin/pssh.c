@@ -44,18 +44,16 @@ static void printVersion(void)
 
 #define OTHER_OPTIONS_STR "<command> [options]"
 
-#define SHELL "/bin/bash"
-
 int main(int argc, const char *argv[])
 {
     PSnodes_ID_t nodeID;
     int node, version, verbose, rusage;
     const char *host, *envlist, *login;
-    char *cmdLine = NULL;
+    char *cmdLine = NULL, *shell;
 
     int i, rc, hostSet;
 
-    int exec_argc = 1;
+    int exec_argc = 2;
     char *exec_argv[4];
 
     poptContext optCon;   /* context for parsing command-line options */
@@ -198,6 +196,15 @@ int main(int argc, const char *argv[])
     if (PSE_getRank() != -1)
 	fprintf(stderr, "Wrong rank! Spawned by another process?\n");
 
+    {
+	struct passwd *passwd = getpwuid(getuid());
+	if (!passwd) {
+	    poptPrintUsage(optCon, stderr, 0);
+	    perror("getpwuid()");
+	    exit(1);
+	}
+	shell = strdup(passwd->pw_shell);
+    }
     if (verbose) {
 	if (host)
 	    printf("\nStart to host '%s'\n", host);
@@ -214,7 +221,7 @@ int main(int argc, const char *argv[])
 	if (cmdLine) {
 	    printf("%s\b\n\n", cmdLine);
 	} else {
-	    printf(SHELL);
+	    printf("%s\n", shell);
 	}
     }
 
@@ -252,7 +259,7 @@ int main(int argc, const char *argv[])
 	    fprintf(stderr, "Unknown user '%s'\n", login);
 	} else if (myUid && passwd->pw_uid != myUid) {
 	    fprintf(stderr, "Can't start '%s' as %s\n",
-		    cmdLine ? cmdLine : SHELL, login);
+		    cmdLine ? cmdLine : shell, login);
 
 	    exit(1);
 	} else {
@@ -294,9 +301,11 @@ int main(int argc, const char *argv[])
 
     /* Don't irritate the user with logger messages */
     setenv("PSI_NOMSGLOGGERDONE", "", 1);
+    setenv("PSI_LOGGER_RAW_MODE", "", 1);
 
-    exec_argv[0] = SHELL;
-    exec_argv[1] = NULL;
+    exec_argv[0] = shell;
+    exec_argv[1] = "-i";
+    exec_argv[2] = NULL;
 
     if (cmdLine) {
 	exec_argv[1] = "-c";

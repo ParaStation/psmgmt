@@ -203,6 +203,7 @@ void handleDroppedMsg(DDMsg_t *msg)
 	sendMsg(&errmsg);
 	break;
     case PSP_CD_SPAWNREQUEST:
+    case PSP_CD_SPAWNREQ:
 	errmsg.header.type = PSP_CD_SPAWNFAILED;
 	errmsg.header.dest = msg->sender;
 	errmsg.header.sender = msg->dest;

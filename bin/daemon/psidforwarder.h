@@ -47,19 +47,9 @@ extern "C" {
  * @param daemonfd File descriptor connecting the forwarder to the
  * local daemon.
  *
- * @param stdinfd File descriptor connecting the forwarder to the
- * stdin file descriptor of the controlled client process.
- *
- * @param stdoutfd File descriptor connecting the forwarder to the
- * stdout file descriptor of the controlled client process.
- *
- * @param stderrfd File descriptor connecting the forwarder to the
- * stderr file descriptor of the controlled client process.
- *
  * @return No return value.
  */
-void PSID_forwarder(PStask_t *task,
-		    int daemonfd, int stdinfd, int stdoutfd, int stderrfd);
+void PSID_forwarder(PStask_t *task, int daemonfd);
 
 #ifdef __cplusplus
 }/* extern "C" */

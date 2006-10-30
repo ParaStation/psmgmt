@@ -961,8 +961,8 @@ static void loop(void)
     }
 
     FD_ZERO(&readfds);
-    FD_SET(stdoutSock, &readfds);
-    FD_SET(stderrSock, &readfds);
+    if (stdoutSock != -1) FD_SET(stdoutSock, &readfds);
+    if (stderrSock != -1) FD_SET(stderrSock, &readfds);
     FD_SET(daemonSock, &readfds);
     FD_ZERO(&writefds);
 
@@ -1062,16 +1062,16 @@ static void loop(void)
 }
 
 /* see header file for docu */
-void PSID_forwarder(PStask_t *task, int daemonfd,
-		    int stdinfd, int stdoutfd, int stderrfd)
+void PSID_forwarder(PStask_t *task, int daemonfd)
 {
     long flags;
 
     childTask = task;
     daemonSock = daemonfd;
-    stdinSock = stdinfd;
-    stdoutSock = stdoutfd;
-    stderrSock = stderrfd;
+
+    stdinSock = task->stdout_fd;
+    stdoutSock = task->stdout_fd;
+    stderrSock = task->stderr_fd;
 
     /* catch SIGCHLD from client */
     signal(SIGCHLD, sighandler);
