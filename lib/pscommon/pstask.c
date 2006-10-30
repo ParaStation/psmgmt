@@ -59,6 +59,10 @@ int PStask_init(PStask_t* task)
     task->uid = -1;
     task->gid = -1;
     task->aretty = 0;
+    task->interactive = 0;
+    task->stdin_fd = -1;
+    task->stdout_fd = -1;
+    task->stderr_fd = -1;
     task->group = TG_ANY;
     task->loggertid = 0;
     task->forwardertid = 0;
@@ -197,6 +201,10 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->uid = task->uid;
     clone->gid = task->gid;
     clone->aretty = task->aretty;
+    clone->interactive = task->interactive;
+    clone->stdin_fd = task->stdin_fd;
+    clone->stdout_fd = task->stdout_fd;
+    clone->stderr_fd = task->stderr_fd;
     clone->termios = task->termios;
     clone->winsize = task->winsize;
     clone->group = task->group;

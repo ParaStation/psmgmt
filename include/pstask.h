@@ -86,6 +86,10 @@ typedef struct PStask_T{
     /*C*/ uid_t uid;               /**< user id */
     /*C*/ gid_t gid;               /**< group id */
     /*C*/ uint32_t aretty;         /**< flag stdin, stdout & stderr as tty */
+    char interactive;              /**< stdin, stdout and stderr: all ttys */
+    int stdin_fd;                  /**< helper fd during spawn */
+    int stdout_fd;                 /**< helper fd during spawn */
+    int stderr_fd;                 /**< helper fd during spawn */
     /*C*/ struct termios termios;  /**< parameters of the controlling tty */
     /*C*/ struct winsize winsize;  /**< window size of the controlling tty */
     /*C*/ PStask_group_t group;    /**< task group @see PStask_group_t */
