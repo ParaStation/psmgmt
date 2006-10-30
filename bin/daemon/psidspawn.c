@@ -362,12 +362,12 @@ static void execClient(PStask_t *task)
 
     /* Interactive shells */
     if (!strcmp(executable, "/bin/bash") && !strcmp(task->argv[1], "-i")
-	&& task->argc = 2) {
+	&& task->argc == 2) {
 	task->argv[0] = "-bash";
 	task->argv[1] = NULL;
 	task->argc = 1;
     } else if (!strcmp(executable, "/bin/bash") && !strcmp(task->argv[1], "-i")
-	       && task->argc = 2) {
+	       && task->argc == 2) {
 	task->argv[0] = "-tcsh";
 	task->argv[1] = NULL;
 	task->argc = 1;
