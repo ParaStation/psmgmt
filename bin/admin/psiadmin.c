@@ -346,8 +346,8 @@ int main(int argc, const char **argv)
 	    parser_removeComment(line);
 
 	    if (!progfile) {
-		HIST_ENTRY *prev = previous_history();
-		if (!prev || strcmp(prev->line, line)) {
+		HIST_ENTRY *last = history_get(history_length);
+		if (!last || strcmp(last->line, line)) {
 		    add_history(line);
 		}
 	    }
