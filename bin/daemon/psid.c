@@ -1737,8 +1737,9 @@ int main(int argc, const char *argv[])
     {
 	int fd = open(_PATH_TTY, O_RDWR | O_NOCTTY);
 	if (fd >= 0) {
-	    int ret = ioctl(fd, TIOCNOTTY, NULL);
-	    PSID_warn(-1, errno, "%s: ioctl(TIOCNOTTY)", __func__);
+	    if (ioctl(fd, TIOCNOTTY, NULL)) {
+		PSID_warn(-1, errno, "%s: ioctl(TIOCNOTTY)", __func__);
+	    }
 	    close(fd);
 	}
     }

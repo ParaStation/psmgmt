@@ -1069,7 +1069,7 @@ void PSID_forwarder(PStask_t *task, int daemonfd)
     childTask = task;
     daemonSock = daemonfd;
 
-    stdinSock = task->stdout_fd;
+    stdinSock = task->stdin_fd;
     stdoutSock = task->stdout_fd;
     stderrSock = task->stderr_fd;
 

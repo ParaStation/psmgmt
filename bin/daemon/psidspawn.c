@@ -341,6 +341,7 @@ static void execClient(PStask_t *task)
 	    free(path);
 	}
     }
+
     if (!execFound) {
 	/* this might be on NFS -> use mystat */
 	if (mystat(task->argv[0], &sb) == -1) {
@@ -361,13 +362,13 @@ static void execClient(PStask_t *task)
     executable = task->argv[0];
 
     /* Interactive shells */
-    if (!strcmp(executable, "/bin/bash") && !strcmp(task->argv[1], "-i")
-	&& task->argc == 2) {
+    if (task->argc == 2 && (!strcmp(executable, "/bin/bash")
+			     && !strcmp(task->argv[1], "-i"))) {
 	task->argv[0] = "-bash";
 	task->argv[1] = NULL;
 	task->argc = 1;
-    } else if (!strcmp(executable, "/bin/bash") && !strcmp(task->argv[1], "-i")
-	       && task->argc == 2) {
+    } else if (task->argc == 2 && (!strcmp(executable, "/bin/tcsh")
+				   && !strcmp(task->argv[1], "-i"))) {
 	task->argv[0] = "-tcsh";
 	task->argv[1] = NULL;
 	task->argc = 1;
@@ -575,6 +576,9 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
     if (!(pid = fork())) {
 	/* this is the client process */
 
+	/* no direct connection to the daemon */
+	close(daemonfd);
+
 	/*
 	 * Create a new process group. This is needed since the daemon
 	 * kills whole process groups. Otherwise the daemon might
@@ -584,22 +588,21 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 	    PSID_warn(-1, errno, "%s: setsid()", __func__);
 	}
 
-	/* no direct connection to the daemon */
-	close(daemonfd);
-
 	/* close the master ttys / sockets */
 	if (task->interactive) {
 	    char *name = ttyname(stderrfds[1]);
 
 	    close(stderrfds[0]);
-	    task->stdin_fd = stderrfds[1];
-	    task->stdout_fd = stderrfds[1];
 	    task->stderr_fd = stderrfds[1];
 
 	    /* prepare the pty */
 	    pty_setowner(task->uid, task->gid, name);
 	    pty_make_controlling_tty(&task->stderr_fd, name);
 	    tcsetattr(task->stderr_fd, TCSANOW, &task->termios);
+
+	    /* stdin/stdout/stderr share one PTY */
+	    task->stdin_fd = task->stderr_fd;
+	    task->stdout_fd = task->stderr_fd;
 	} else {
 	    close(stdinfds[0]);
 	    task->stdin_fd = stdinfds[1];
@@ -617,12 +620,12 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 
 	/* From now on, all logging is done via the forwarder thru stderr */
 
-	if (dup2(task->stderr_fd, STDIN_FILENO) < 0) {
+	if (dup2(task->stdin_fd, STDIN_FILENO) < 0) {
 	    fprintf(stderr, "%s: dup2(stdin): [%d] %s\n", __func__,
 		    errno, get_strerror(errno));
 	    exit(1);
 	}
-	if (dup2(task->stderr_fd, STDOUT_FILENO) < 0) {
+	if (dup2(task->stdout_fd, STDOUT_FILENO) < 0) {
 	    fprintf(stderr, "%s: dup2(stdout): [%d] %s\n", __func__,
 		    errno, get_strerror(errno));
 	    exit(1);
@@ -854,6 +857,23 @@ static int buildSandbox(PStask_t *forwarder, PStask_t *client)
 
     close(forwarderfds[0]);
     if (ret) close(socketfds[0]);
+
+    /* Fix interactive shell's argv[0] */
+    if (client->argc == 2 && (!strcmp(client->argv[0], "/bin/bash")
+			      && !strcmp(client->argv[1], "-i"))) {
+	free(client->argv[0]);
+	client->argv[0] = strdup("-bash");
+	free(client->argv[1]);
+	client->argv[1] = NULL;
+	client->argc = 1;
+    } else if (client->argc == 2 && (!strcmp(client->argv[0], "/bin/tcsh")
+				     && !strcmp(client->argv[1], "-i"))) {
+	free(client->argv[0]);
+	client->argv[0] = strdup("-tcsh");
+	free(client->argv[1]);
+	client->argv[1] = NULL;
+	client->argc = 1;
+    }
 
     return ret;
 }
