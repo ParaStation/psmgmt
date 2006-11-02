@@ -146,7 +146,7 @@ static void do_print(logger_t* logger, const char* format, va_list ap)
     }
 }
 
-void logger_print(logger_t* logger, long key, const char* format, ...)
+void logger_print(logger_t* logger, int32_t key, const char* format, ...)
 {
     va_list ap;
 
@@ -157,14 +157,16 @@ void logger_print(logger_t* logger, long key, const char* format, ...)
     va_end(ap);
 }
 
-void logger_vprint(logger_t* logger, long key, const char* format, va_list ap)
+void logger_vprint(logger_t* logger, int32_t key,
+		   const char* format, va_list ap)
 {
     if (!logger || ((key != -1) && !(logger->mask & key))) return;
 
     do_print(logger, format, ap);
 }
 
-void logger_warn(logger_t* logger, long key, int eno, const char* format, ...)
+void logger_warn(logger_t* logger, int32_t key, int eno,
+		 const char* format, ...)
 {
     static char* fmt = NULL;
     static int fmtlen = 0;

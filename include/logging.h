@@ -164,7 +164,7 @@ logger_t* logger_init(char* tag, FILE *logfile);
  * @see printf(), logger_print(), logger_vprint(), logger_warn(),
  * logger_exit()
  */
-void logger_print(logger_t* logger, long key, const char* format, ...);
+void logger_print(logger_t* logger, int32_t key, const char* format, ...);
 
 /**
  * @brief Print a log message.
@@ -188,7 +188,8 @@ void logger_print(logger_t* logger, long key, const char* format, ...);
  *
  * @see logger_print()
  */
-void logger_vprint(logger_t* logger, long key, const char* format, va_list ap);
+void logger_vprint(logger_t* logger, int32_t key,
+		   const char* format, va_list ap);
 
 /**
  * @brief Print a warn message.
@@ -209,7 +210,7 @@ void logger_vprint(logger_t* logger, long key, const char* format, va_list ap);
  *
  * @see logger_print(), strerror()
  */
-void logger_warn(logger_t* logger, long key, int errorno,
+void logger_warn(logger_t* logger, int32_t key, int errorno,
 		 const char* format, ...);
 
 /**
