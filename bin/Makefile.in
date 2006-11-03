@@ -35,7 +35,7 @@ TOOLS += psmstart mpirun_chp4 psispawn mpirun_chgm gmspawner
 TOOLS += test_pse test_config mpirun_psc pscspawner pssh
 TOOLS += psaccounter
 
-TARGETS = $(TOOLS) test_config_parsing test_logging
+TARGETS = $(TOOLS) test_logging
 
 LDFLAGS+=-L../lib -Wl,-rpath,/opt/parastation/$(LIB_DIRNAME)
 
@@ -50,10 +50,9 @@ psiadmin psid mlisten test_pse psmstart mpirun_chp4 mpirun_chgm gmspawner \
 test_pse psmstart mpirun_chp4 mpirun_chgm mpirun_psc pssh psaccounter: \
 	LOADLIBES:=$(LOADLIBES) -lpse -lpsi
 
-psiadmin psid test_config test_config_parsing: LOADLIBES:=$(LOADLIBES) -lputil
+psiadmin psid test_config: LOADLIBES:=$(LOADLIBES) -lputil
 
-psid psilogger test_config test_config_parsing test_logging: \
-	LOADLIBES:=$(LOADLIBES) -lpscommon
+psid psilogger test_config test_logging: LOADLIBES:=$(LOADLIBES) -lpscommon
 
 psiadmin psispawn gmspawner pscspawner: LOADLIBES:=$(LOADLIBES) -lpsi
 
@@ -80,8 +79,7 @@ psidinfo.o: CPPFLAGS += -DVERSION_psmgmt='"$(VERSION_psmgmt)"' \
 		-DRELEASE_psmgmt='"$(RELEASE_psmgmt)"'
 psidinfo.o: $(TOP_SRCDIR)/Makefile.version
 
-test_config test_config_parsing: psidnodes.o
-test_config test_config_parsing: LDFLAGS += -Wl,--defsym,sendMsg=0
+test_config: psidnodes.o
 
 # logger
 VPATH += $(SRCDIR)/logger
