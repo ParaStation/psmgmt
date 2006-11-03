@@ -22,11 +22,11 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #include "pscommon.h"
 #include "psprotocol.h"
-#include "psnodes.h"
 #include "hardware.h"
 
 #include "psidutil.h"
 #include "psidcomm.h"
+#include "psidnodes.h"
 #include "psidtask.h"
 #include "psidstatus.h"
 #include "psidpartition.h"
@@ -60,7 +60,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    .request = inmsg->header.type,
 	    .error = 0};
 
-	if (PSnodes_isUp(destID)) {
+	if (PSIDnodes_isUp(destID)) {
 	    DDTypedMsg_t msg = {
 		.header = {
 		    .type = PSP_CD_INFORESPONSE,
@@ -212,7 +212,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    int hw = *(int *) inmsg->buf;
 
 	    *msg.buf = '\0';
-	    if (PSnodes_getHWStatus(PSC_getMyID()) & (1<<hw)) {
+	    if (PSIDnodes_getHWStatus(PSC_getMyID()) & (1<<hw)) {
 		PSID_getCounter(hw, msg.buf, sizeof(msg.buf), header);
 	    } else {
 		snprintf(msg.buf, sizeof(msg.buf), "Not available");
@@ -232,18 +232,18 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    break;
 	case PSP_INFO_HOST:
 	    *(PSnodes_ID_t *)msg.buf =
-		PSnodes_lookupHost(*(unsigned int *) inmsg->buf);
+		PSIDnodes_lookupHost(*(unsigned int *) inmsg->buf);
 	    msg.header.len += sizeof(PSnodes_ID_t);
 	    break;
 	case PSP_INFO_NODE:
 	{
 	    PSnodes_ID_t node = *(PSnodes_ID_t *) inmsg->buf;
 	    if ((node >= 0) && (node < PSC_getNrOfNodes())) {
-		*(unsigned int *)msg.buf = PSnodes_getAddr(node);
+		*(in_addr_t *)msg.buf = PSIDnodes_getAddr(node);
 	    } else {
-		*(unsigned int *)msg.buf = INADDR_ANY;
+		*(in_addr_t *)msg.buf = INADDR_ANY;
 	    }
-	    msg.header.len += sizeof(unsigned int);
+	    msg.header.len += sizeof(in_addr_t);
 	    break;
 	}
 	case PSP_INFO_NODELIST:
@@ -251,7 +251,12 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	{
 	    int i, j;
 	    unsigned int hwType;
-	    PStask_t *requester = NULL;
+	    PStask_t *req = NULL;
+	    static NodelistEntry_t *nodelist = NULL;
+	    static int nodelistlen = 0;
+	    int maxNodes =
+		(256 < PSC_getNrOfNodes()) ? 256 : PSC_getNrOfNodes();
+	    /* Limit these requests to 256 nodes due to message length */
 
 	    if ((! config->useMCast) && (PSC_getMyID() != getMasterID())) {
 		/* Handled by master node -> forward */
@@ -261,10 +266,9 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    }
 
 	    if (PSC_getID(inmsg->header.sender) == PSC_getMyID()) {
-		requester = PStasklist_find(managedTasks,
-					    inmsg->header.sender);
+		req = PStasklist_find(managedTasks, inmsg->header.sender);
 
-		if (!requester) {
+		if (!req) {
 		    PSID_log(-1, "%s: requester %s not found\n",
 			     funcStr, PSC_printTID(inmsg->header.sender));
 		    err = 1;
@@ -272,62 +276,56 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		}
 	    }
 
-	    if (!requester || requester->protocolVersion < 328) {
-		static NodelistEntry_t *nodelist = NULL;
-		static int nodelistlen = 0;
-		int maxNodes =
-		    (256 < PSC_getNrOfNodes()) ? 256 : PSC_getNrOfNodes();
-		/* Limit these requests to 256 nodes due to message length */
+	    if (req && req->protocolVersion >= 328) {
+		msg.type = PSP_INFO_UNKNOWN;
+		break;
+	    }
 
-		if (nodelistlen < maxNodes) {
-		    nodelistlen = maxNodes;
-		    nodelist = realloc(nodelist,
-				       nodelistlen * sizeof(*nodelist));
-		}
+	    if (nodelistlen < maxNodes) {
+		nodelistlen = maxNodes;
+		nodelist = realloc(nodelist, nodelistlen * sizeof(*nodelist));
+	    }
 
-		hwType = *(unsigned int *) inmsg->buf;
+	    hwType = *(unsigned int *) inmsg->buf;
 
-		for (i=0, j=0; i<PSC_getNrOfNodes() && j<maxNodes; i++) {
-		    PSID_NodeStatus_t status = getStatus(i);
+	    for (i=0, j=0; i<PSC_getNrOfNodes() && j<maxNodes; i++) {
+		PSID_NodeStatus_t status = getStatus(i);
 
-		    if ((inmsg->type == PSP_INFO_NODELIST)
-			|| ((!hwType || PSnodes_getHWStatus(i) & hwType)
-			    && (PSnodes_getUser(i) == PSNODES_ANYUSER
-				|| PSnodes_getUser(i) == requester->uid
-				|| !requester->uid)
-			    && (PSnodes_getProcs(i) == PSNODES_ANYPROC
-				|| PSnodes_getProcs(i) > status.jobs.normal)
-			    && (PSnodes_getGroup(i) == PSNODES_ANYGROUP
-				|| PSnodes_getGroup(i) == requester->gid
-				|| !requester->gid)
-			    && PSnodes_runJobs(i))) {
+		if ((inmsg->type == PSP_INFO_NODELIST)
+		    || ((!hwType || PSIDnodes_getHWStatus(i) & hwType)
+			&& (PSIDnodes_testGUID(i, PSIDNODES_USER,
+					       (PSIDnodes_guid_t){.u=req->uid})
+			    || !req->uid)
+			&& (PSIDnodes_getProcs(i) == PSNODES_ANYPROC
+			    || PSIDnodes_getProcs(i) > status.jobs.normal)
+			&& (PSIDnodes_testGUID(i, PSIDNODES_GROUP,
+					       (PSIDnodes_guid_t){.g=req->gid})
+			    || !req->gid)
+			&& PSIDnodes_runJobs(i))) {
 
-			nodelist[j].id = i;
-			nodelist[j].up = PSnodes_isUp(i);
-			nodelist[j].numCPU = PSnodes_getVirtCPUs(i);
-			nodelist[j].hwStatus = PSnodes_getHWStatus(i);
+		    nodelist[j].id = i;
+		    nodelist[j].up = PSIDnodes_isUp(i);
+		    nodelist[j].numCPU = PSIDnodes_getVirtCPUs(i);
+		    nodelist[j].hwStatus = PSIDnodes_getHWStatus(i);
 
-			nodelist[j].load[0] = status.load.load[0];
-			nodelist[j].load[1] = status.load.load[1];
-			nodelist[j].load[2] = status.load.load[2];
-			nodelist[j].totalJobs = status.jobs.total;
-			nodelist[j].normalJobs = status.jobs.normal;
-			nodelist[j].maxJobs = PSnodes_getProcs(i);
+		    nodelist[j].load[0] = status.load.load[0];
+		    nodelist[j].load[1] = status.load.load[1];
+		    nodelist[j].load[2] = status.load.load[2];
+		    nodelist[j].totalJobs = status.jobs.total;
+		    nodelist[j].normalJobs = status.jobs.normal;
+		    nodelist[j].maxJobs = PSIDnodes_getProcs(i);
 
-			j++;
-		    }
-		}
-
-		if (j<maxNodes) {
-		    nodelist[j].id = -1;
 		    j++;
 		}
-
-		memcpy(msg.buf, nodelist, j * sizeof(*nodelist));
-		msg.header.len += j * sizeof(*nodelist);
-	    } else {
-		msg.type = PSP_INFO_UNKNOWN;
 	    }
+
+	    if (j<maxNodes) {
+		nodelist[j].id = -1;
+		j++;
+	    }
+
+	    memcpy(msg.buf, nodelist, j * sizeof(*nodelist));
+	    msg.header.len += j * sizeof(*nodelist);
 
 	    break;
 	}
@@ -473,7 +471,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		switch (inmsg->type) {
 		case PSP_INFO_LIST_HOSTSTATUS:
 		    for (node=0; node<PSC_getNrOfNodes(); node++) {
-			msg.buf[node] = PSnodes_isUp(node);
+			msg.buf[node] = PSIDnodes_isUp(node);
 		    }
 		    msg.header.len += sizeof(*msg.buf) * PSC_getNrOfNodes();
 		    break;
@@ -488,19 +486,22 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		for (node=0; node<PSC_getNrOfNodes(); node++) {
 		    switch (inmsg->type) {
 		    case PSP_INFO_LIST_HOSTSTATUS:
-			((char *)msg.buf)[idx] = PSnodes_isUp(node);
+			((char *)msg.buf)[idx] = PSIDnodes_isUp(node);
 			size = sizeof(char);
 			break;
 		    case PSP_INFO_LIST_VIRTCPUS:
-			((uint16_t *)msg.buf)[idx] = PSnodes_getVirtCPUs(node);
+			((uint16_t *)msg.buf)[idx] =
+			    PSIDnodes_getVirtCPUs(node);
 			size = sizeof(uint16_t);
 			break;
 		    case PSP_INFO_LIST_PHYSCPUS:
-			((uint16_t *)msg.buf)[idx] = PSnodes_getPhysCPUs(node);
+			((uint16_t *)msg.buf)[idx] =
+			    PSIDnodes_getPhysCPUs(node);
 			size = sizeof(uint16_t);
 			break;
 		    case PSP_INFO_LIST_HWSTATUS:
-			((uint32_t *)msg.buf)[idx] = PSnodes_getHWStatus(node);
+			((uint32_t *)msg.buf)[idx] =
+			    PSIDnodes_getHWStatus(node);
 			size = sizeof(uint32_t);
 			break;
 		    case PSP_INFO_LIST_LOAD:

@@ -26,12 +26,12 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "pscommon.h"
 #include "psprotocol.h"
 #include "psdaemonprotocol.h"
-#include "psnodes.h"
 
 #include "mcast.h"
 #include "timer.h"
 
 #include "psidutil.h"
+#include "psidnodes.h"
 #include "psidtask.h"
 #include "psidsignal.h"
 #include "psidoption.h"
@@ -173,7 +173,7 @@ static void handleMasterTasks(void)
     gettimeofday(&tv, NULL);
     mytimersub(&tv, StatusTimeout.tv_sec, StatusTimeout.tv_usec);
     for (node=0; node<PSC_getNrOfNodes(); node++) {
-	if (PSnodes_isUp(node)) {
+	if (PSIDnodes_isUp(node)) {
 	    if (timercmp(&clientStat[node].lastPing, &tv, <)) {
 		/* no ping in the last 'round' */
 		PSID_log(PSID_LOG_STATUS,
@@ -197,7 +197,7 @@ static void handleMasterTasks(void)
 	int count = (nrDownNodes > 10) ? 10 : nrDownNodes;
 	while (count) {
 	    next %= PSC_getNrOfNodes();
-	    if (!PSnodes_isUp(next)) {
+	    if (!PSIDnodes_isUp(next)) {
 		send_DAEMONCONNECT(next);
 		count--;
 	    }
@@ -361,16 +361,16 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode)
 {
     PStask_t *task;
 
-    if (!PSnodes_isUp(id)) return;
+    if (!PSIDnodes_isUp(id)) return;
 
     PSID_log(PSID_LOG_STATUS,
 	     "%s: node %d goes down. Will %ssend PSP_DD_DEAD_NODE messages\n",
 	     __func__, id, sendDeadnode ? "" : "not ");
 
     totalNodes--;
-    PSnodes_bringDown(id);
-    PSnodes_setPhysCPUs(id, 0);
-    PSnodes_setVirtCPUs(id, 0);
+    PSIDnodes_bringDown(id);
+    PSIDnodes_setPhysCPUs(id, 0);
+    PSIDnodes_setVirtCPUs(id, 0);
 
     clearRDPMsgs(id);
 
@@ -421,7 +421,7 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode)
 	PSnodes_ID_t node = id;
 
 	while (node < PSC_getMyID()) {
-	    if (PSnodes_isUp(node)) break;
+	    if (PSIDnodes_isUp(node)) break;
 	    node++;
 	}
 
@@ -444,7 +444,7 @@ static int send_ACTIVENODES(PSnodes_ID_t dest);
 
 void declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs)
 {
-    int wasUp = PSnodes_isUp(id);
+    int wasUp = PSIDnodes_isUp(id);
 
     PSID_log(PSID_LOG_STATUS, "%s: node %d\n", __func__, id);
 
@@ -456,9 +456,9 @@ void declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs)
     if (!wasUp) {
 	totalNodes++;
     }
-    PSnodes_bringUp(id);
-    PSnodes_setPhysCPUs(id, physCPUs);
-    PSnodes_setVirtCPUs(id, virtCPUs);
+    PSIDnodes_bringUp(id);
+    PSIDnodes_setPhysCPUs(id, physCPUs);
+    PSIDnodes_setVirtCPUs(id, virtCPUs);
 
     if (!knowMaster()) {
 	if (id < PSC_getMyID()) {
@@ -502,8 +502,8 @@ int send_DAEMONCONNECT(PSnodes_ID_t id)
 
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, id);
     
-    CPUs[0] = PSnodes_getPhysCPUs(PSC_getMyID());
-    CPUs[1] = PSnodes_getVirtCPUs(PSC_getMyID());
+    CPUs[0] = PSIDnodes_getPhysCPUs(PSC_getMyID());
+    CPUs[1] = PSIDnodes_getVirtCPUs(PSC_getMyID());
     msg.header.len += 2 * sizeof(*CPUs);
 
     return sendMsg(&msg);
@@ -529,8 +529,8 @@ void msg_DAEMONCONNECT(DDBufferMsg_t *msg)
 	.dest = PSC_getTID(id, 0),
 	.len = sizeof(msg->header) };
 
-    CPUs[0] = PSnodes_getPhysCPUs(PSC_getMyID());
-    CPUs[1] = PSnodes_getVirtCPUs(PSC_getMyID());
+    CPUs[0] = PSIDnodes_getPhysCPUs(PSC_getMyID());
+    CPUs[1] = PSIDnodes_getVirtCPUs(PSC_getMyID());
     msg->header.len += 2 * sizeof(*CPUs);
 
     if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
@@ -627,7 +627,7 @@ static int send_ACTIVENODES(PSnodes_ID_t dest)
     if (dest == PSC_getMyID()) return 0;
 
     for (node=0; node<PSC_getNrOfNodes(); node++) {
-	if (PSnodes_isUp(node)) {
+	if (PSIDnodes_isUp(node)) {
 	    nodeBuf[idx] = node;
 	    idx++;
 	    if (idx == NODES_CHUNK) {
@@ -669,7 +669,7 @@ void msg_ACTIVENODES(DDBufferMsg_t *msg)
     for (idx=0; idx<num; idx++) {
 	PSID_log(PSID_LOG_STATUS,
 		 "%s: %d. is %d\n", __func__, idx, nodeBuf[idx]);
-	if (!PSnodes_isUp(nodeBuf[idx])) send_DAEMONCONNECT(nodeBuf[idx]);
+	if (!PSIDnodes_isUp(nodeBuf[idx])) send_DAEMONCONNECT(nodeBuf[idx]);
     }
 }
 

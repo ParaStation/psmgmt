@@ -49,10 +49,9 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "pscommon.h"
 #include "psprotocol.h"
 #include "psdaemonprotocol.h"
-#include "psnodes.h"
-#include "pstask.h"
 
 #include "psidutil.h"
+#include "psidnodes.h"
 #include "psidtask.h"
 #include "psidtimer.h"
 #include "psidspawn.h"
@@ -248,15 +247,15 @@ static void msg_DAEMONSTART(DDBufferMsg_t *msg)
 
     if (starter==PSC_getMyID()) {
 	if (node<PSC_getNrOfNodes()) {
-	    if (!PSnodes_isUp(node)) {
-		unsigned int addr = PSnodes_getAddr(node);
+	    if (!PSIDnodes_isUp(node)) {
+		in_addr_t addr = PSIDnodes_getAddr(node);
 		if (addr != INADDR_ANY)	PSC_startDaemon(addr);
 	    } else {
 		PSID_log(-1, "%s: node %d already up\n", __func__, node);
 	    }
 	}
     } else {
-	if (PSnodes_isUp(starter)) {
+	if (PSIDnodes_isUp(starter)) {
 	    /* forward message */
 	    sendMsg(&msg);
 	} else {
@@ -504,20 +503,16 @@ static void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	outmsg.header.len += sizeof(uint32_t);
     } else if (!task) {
 	outmsg.type = PSP_CONN_ERR_NOSPACE;
-    } else if (uid && PSnodes_getUser(PSC_getMyID()) != PSNODES_ANYUSER
-	       && uid != PSnodes_getUser(PSC_getMyID())) {
+    } else if (uid && !PSIDnodes_testGUID(PSC_getMyID(),PSIDNODES_USER,
+					  (PSIDnodes_guid_t){.u=uid})) {
 	outmsg.type = PSP_CONN_ERR_UIDLIMIT;
-	*(uid_t *)outmsg.buf = PSnodes_getUser(PSC_getMyID());
-	outmsg.header.len += sizeof(uid_t);
-    } else if (gid && PSnodes_getGroup(PSC_getMyID()) != PSNODES_ANYGROUP
-	       && gid != PSnodes_getGroup(PSC_getMyID())) {
+    } else if (gid && !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_GROUP,
+					  (PSIDnodes_guid_t) {.g=gid})) {
 	outmsg.type = PSP_CONN_ERR_GIDLIMIT;
-	*(gid_t *)outmsg.buf = PSnodes_getGroup(PSC_getMyID());
-	outmsg.header.len += sizeof(gid_t);
-    } else if (PSnodes_getProcs(PSC_getMyID()) !=  PSNODES_ANYPROC
-	       && status.jobs.normal > PSnodes_getProcs(PSC_getMyID())) {
+    } else if (PSIDnodes_getProcs(PSC_getMyID()) !=  PSNODES_ANYPROC
+	       && status.jobs.normal > PSIDnodes_getProcs(PSC_getMyID())) {
 	outmsg.type = PSP_CONN_ERR_PROCLIMIT;
-	*(int *)outmsg.buf = PSnodes_getProcs(PSC_getMyID());
+	*(int *)outmsg.buf = PSIDnodes_getProcs(PSC_getMyID());
 	outmsg.header.len += sizeof(int);
     } else if (myStatus & PSID_STATE_NOCONNECT) {
 	outmsg.type = PSP_CONN_ERR_STATENOCONNECT;
@@ -529,13 +524,12 @@ static void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	outmsg.header.type = PSP_CD_CLIENTREFUSED;
 
 	PSID_log(PSID_LOG_CLIENT, "%s: connection refused:"
-		 "group %s task %s version %d vs. %d uid %d %d gid %d %d"
+		 "group %s task %s version %d vs. %d uid %d gid %d"
 		 " jobs %d %d\n",
 		 __func__, PStask_printGrp(msg->group),
 		 PSC_printTID(task->tid), msg->version, PSprotocolVersion,
-		 uid, PSnodes_getUser(PSC_getMyID()),
-		 gid, PSnodes_getGroup(PSC_getMyID()),
-		 status.jobs.normal, PSnodes_getProcs(PSC_getMyID()));
+		 uid, gid,
+		 status.jobs.normal, PSIDnodes_getProcs(PSC_getMyID()));
 
 	sendMsg(&outmsg);
 
@@ -1297,7 +1291,7 @@ static void MCastCallBack(int msgid, void *buf)
 	node = *(int*)buf;
 	PSID_log(PSID_LOG_STATUS | PSID_LOG_MCAST,
 		 "%s(MCAST_NEW_CONNECTION,%d)\n", __func__, node);
-	if (node!=PSC_getMyID() && !PSnodes_isUp(node)) {
+	if (node!=PSC_getMyID() && !PSIDnodes_isUp(node)) {
 	    if (send_DAEMONCONNECT(node)<0) {
 		PSID_warn(PSID_LOG_STATUS, errno,
 			  "%s: send_DAEMONCONNECT()", __func__);
@@ -1337,7 +1331,7 @@ static void RDPCallBack(int msgid, void *buf)
 	int node = *(int*)buf;
 	PSID_log(PSID_LOG_STATUS | PSID_LOG_RDP,
 		 "%s(RDP_NEW_CONNECTION,%d)\n", __func__, node);
-	if (node != PSC_getMyID() && !PSnodes_isUp(node)) {
+	if (node != PSC_getMyID() && !PSIDnodes_isUp(node)) {
 	    if (send_DAEMONCONNECT(node)<0) { // @todo Really necessary ?
 		PSID_warn(PSID_LOG_STATUS, errno,
 			  "%s: send_DAEMONCONNECT()", __func__);
@@ -1780,11 +1774,11 @@ int main(int argc, const char *argv[])
     /* Now we can rely on the config structure */
 
     {
-	unsigned int addr;
+	in_addr_t addr;
 
 	PSID_log(-1, "My ID is %d\n", PSC_getMyID());
 
-	addr = PSnodes_getAddr(PSC_getMyID());
+	addr = PSIDnodes_getAddr(PSC_getMyID());
 	PSID_log(-1, "My IP is %s\n", inet_ntoa(*(struct in_addr *) &addr));
     }
 
@@ -1832,7 +1826,7 @@ int main(int argc, const char *argv[])
     /* Start up all the hardware */
     PSID_log(PSID_LOG_HW, "%s: starting up the hardware\n", __func__);
 
-    PSnodes_setHWStatus(PSC_getMyID(), 0);
+    PSIDnodes_setHWStatus(PSC_getMyID(), 0);
     PSID_startAllHW();
 
     /* Bring node up with correct numbers of CPUs */
@@ -1854,7 +1848,7 @@ int main(int argc, const char *argv[])
      * Prepare hostlist to initialize RDP and MCast
      */
     {
-	unsigned int *hostlist;
+	in_addr_t *hostlist;
 	int i;
 
 	hostlist = malloc(PSC_getNrOfNodes() * sizeof(unsigned int));
@@ -1864,7 +1858,7 @@ int main(int argc, const char *argv[])
 	}
 
 	for (i=0; i<PSC_getNrOfNodes(); i++) {
-	    hostlist[i] = PSnodes_getAddr(i);
+	    hostlist[i] = PSIDnodes_getAddr(i);
 	}
 
 	if (config->useMCast) {

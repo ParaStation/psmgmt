@@ -24,8 +24,11 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <stdio.h>
 #include <popt.h>
 
+#include "logging.h"
 #include "config_parsing.h"
 
+/* needed for logging in psidnodes.c */
+logger_t *PSID_logger = NULL;
 
 /**
  * @brief Print version info.

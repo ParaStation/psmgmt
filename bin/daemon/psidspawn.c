@@ -31,6 +31,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #include "psidutil.h"
 #include "psidforwarder.h"
+#include "psidnodes.h"
 #include "psidtask.h"
 #include "psidcomm.h"
 #include "psidclient.h"
@@ -926,19 +927,19 @@ static int checkRequest(PStask_ID_t sender, PStask_t *task)
 	return EACCES;
     }
 
-    if (!PSnodes_isStarter(PSC_getMyID()) && ( ptask->group == TG_SPAWNER
-					       || ptask->group == TG_PSCSPAWNER
-					       || ptask->group == TG_LOGGER)) {
+    if (!PSIDnodes_isStarter(PSC_getMyID())
+	&& (ptask->group == TG_SPAWNER || ptask->group == TG_PSCSPAWNER
+	    || ptask->group == TG_LOGGER)) {
 	/* starting not allowed */
 	PSID_log(-1, "%s: spawning not allowed\n", __func__);
 	return EACCES;
     }
 
     if (task->group == TG_ADMINTASK
-	&& PSnodes_getAdminUser(PSC_getMyID()) != PSNODES_ANYUSER
-	&& ptask->uid != PSnodes_getAdminUser(PSC_getMyID())
-	&& PSnodes_getAdminGroup(PSC_getMyID()) != PSNODES_ANYGROUP
-	&& ptask->gid != PSnodes_getAdminGroup(PSC_getMyID())) {
+	&& !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMUSER,
+			       (PSIDnodes_guid_t){.u=ptask->uid})
+	&& !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMGROUP,
+			       (PSIDnodes_guid_t){.g=ptask->gid})) {
 	/* no permission to start admin task */
 	PSID_log(-1, "%s: no permission to spawn admintask\n", __func__);
 	return EACCES;
@@ -1126,7 +1127,7 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	sendMsg(&answer);
     } else {
 	/* request for a remote site. */
-	if (!PSnodes_isUp(PSC_getID(msg->header.dest))) {
+	if (!PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
 	    send_DAEMONCONNECT(PSC_getID(msg->header.dest));
 	}
 
@@ -1187,7 +1188,7 @@ void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 
     if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
 	/* request for a remote site. */
-	if (!PSnodes_isUp(PSC_getID(msg->header.dest))) {
+	if (!PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
 	    send_DAEMONCONNECT(PSC_getID(msg->header.dest));
 	}
 

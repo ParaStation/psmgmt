@@ -19,8 +19,6 @@
 #ifndef __PSIDACCOUNT_H
 #define __PSIDACCOUNT_H
 
-#include "list.h"
-
 #include "psprotocol.h"
 #include "pstask.h"
 #include "psnodes.h"

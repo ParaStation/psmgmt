@@ -179,12 +179,11 @@ static int connectDaemon(PStask_group_t taskGroup)
 	    PSI_log(-1, "%s: Daemon has no space available\n", __func__);
 	    break;
 	case PSP_CONN_ERR_UIDLIMIT :
-	    PSI_log(-1, "%s: Node is limited to user id %d\n",
-		    __func__, (int) *(uid_t*) answer.buf);
+	    PSI_log(-1, "%s: Node is reserved for different user\n", __func__);
 	    break;
 	case PSP_CONN_ERR_GIDLIMIT :
-	    PSI_log(-1, "%s: Node is limited to group id %d\n",
-		    __func__, (int) *(gid_t*) answer.buf);
+	    PSI_log(-1, "%s: Node is reserved for different group id %d\n",
+		    __func__);
 	    break;
 	case PSP_CONN_ERR_PROCLIMIT :
 	    PSI_log(-1, "%s: Node is limited to %d processes\n",

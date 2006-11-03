@@ -16,10 +16,10 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <string.h>
 
 #include "pscommon.h"
-#include "psnodes.h"
 #include "psdaemonprotocol.h"
 
 #include "psidutil.h"
+#include "psidnodes.h"
 #include "psidmsgbuf.h"
 #include "psidclient.h"
 #include "psidrdp.h"
@@ -169,7 +169,7 @@ int broadcastMsg(void *amsg)
 
     /* broadcast to every daemon except the sender */
     for (i=0; i<PSC_getNrOfNodes(); i++) {
-	if (PSnodes_isUp(i) && i != PSC_getMyID()) {
+	if (PSIDnodes_isUp(i) && i != PSC_getMyID()) {
 	    msg->dest = PSC_getTID(i, 0);
 	    if (sendMsg(msg)>=0) {
 		count++;

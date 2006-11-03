@@ -22,12 +22,11 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "psprotocol.h"
 #include "psdaemonprotocol.h"
 #include "pspartition.h"
-#include "pstask.h"
-#include "psnodes.h"
 #include "hardware.h"
 
 #include "psidutil.h"
 #include "psidcomm.h"
+#include "psidnodes.h"
 #include "psidtask.h"
 #include "psidstatus.h"
 
@@ -194,7 +193,7 @@ void initPartHandler(void)
 	    .assignedProcs = 0,
 	    .exclusive = 0,
 	    .taskReqPending = 0 };
-	if (PSnodes_isUp(node)) {
+	if (PSIDnodes_isUp(node)) {
 	    if (send_GETTASKS(node)<0) {
 		PSID_warn(-1, errno, "%s: send_GETTASKS(%d)", __func__, node);
 	    }
@@ -605,19 +604,19 @@ static int nodeOK(PSnodes_ID_t node, PSpart_request_t *req)
 	return 0;
     }
 
-    if (! PSnodes_isUp(node)) {
+    if (! PSIDnodes_isUp(node)) {
 	PSID_log(PSID_LOG_PART, "%s: node %d not UP, exclude from partition\n",
 		 __func__, node);
 	return 0;
     }
 
-    if ((!req->hwType || PSnodes_getHWStatus(node) & req->hwType)
-	&& PSnodes_runJobs(node)
-	&& (PSnodes_getUser(node) == PSNODES_ANYUSER
-	    || !req->uid || PSnodes_getUser(node) == req->uid)
-	&& (PSnodes_getGroup(node) == PSNODES_ANYGROUP
-	    || !req->gid || PSnodes_getGroup(node) == req->gid)
-	&& (PSnodes_getVirtCPUs(node))) {
+    if ((!req->hwType || PSIDnodes_getHWStatus(node) & req->hwType)
+	&& PSIDnodes_runJobs(node)
+	&& ( !req->uid || PSIDnodes_testGUID(node, PSIDNODES_USER,
+					     (PSIDnodes_guid_t){.u=req->uid}))
+	&& ( !req->gid || PSIDnodes_testGUID(node, PSIDNODES_GROUP,
+					     (PSIDnodes_guid_t){.g=req->gid}))
+	&& (PSIDnodes_getVirtCPUs(node))) {
 	return 1;
     }
 
@@ -662,22 +661,22 @@ static int nodeFree(PSnodes_ID_t node, PSpart_request_t *req, int procs)
 	return 0;
     }
 
-    if (! PSnodes_isUp(node)) {
+    if (! PSIDnodes_isUp(node)) {
 	PSID_log(PSID_LOG_PART, "%s: node %d not UP, exclude from partition\n",
 		 __func__, node);
 	return 0;
     }
 
     if (!getIsExclusive(node)
-	&& (PSnodes_getProcs(node) == PSNODES_ANYPROC
-	    || (PSnodes_getProcs(node) > procs))
+	&& (PSIDnodes_getProcs(node) == PSNODES_ANYPROC
+	    || (PSIDnodes_getProcs(node) > procs))
 	&& (!(req->options & PART_OPT_OVERBOOK)
-	    || (PSnodes_overbook(node)==OVERBOOK_FALSE
-		&& PSnodes_getVirtCPUs(node) > procs)
-	    || (PSnodes_overbook(node)==OVERBOOK_AUTO)
-	    || (PSnodes_overbook(node)==OVERBOOK_TRUE))
+	    || (PSIDnodes_overbook(node)==OVERBOOK_FALSE
+		&& PSIDnodes_getVirtCPUs(node) > procs)
+	    || (PSIDnodes_overbook(node)==OVERBOOK_AUTO)
+	    || (PSIDnodes_overbook(node)==OVERBOOK_TRUE))
 	&& (!(req->options & PART_OPT_EXCLUSIVE)
-	    || ( PSnodes_exclusive(node) && !procs))) {
+	    || ( PSIDnodes_exclusive(node) && !procs))) {
 
 	return 1;
     }
@@ -734,7 +733,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 
     for (i=0; i<request->num; i++) {
 	PSnodes_ID_t node = request->nodes[i];
-	int cpus = PSnodes_getVirtCPUs(node);
+	int cpus = PSIDnodes_getVirtCPUs(node);
 	int procs = getAssignedJobs(node);
 	PSID_NodeStatus_t status = getStatus(node);
 
@@ -780,26 +779,26 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 	     * if(nodeFree()). We might want to wait for
 	     * (overbooking-)resources to become available!
 	     */
-	    if (PSnodes_getProcs(node) == PSNODES_ANYPROC
-		|| PSnodes_getProcs(node) > cpus) {
+	    if (PSIDnodes_getProcs(node) == PSNODES_ANYPROC
+		|| PSIDnodes_getProcs(node) > cpus) {
 		totCPUs += cpus;
 	    } else {
-		totCPUs += PSnodes_getProcs(node);
+		totCPUs += PSIDnodes_getProcs(node);
 	    }
 
-	    if (PSnodes_overbook(node)==OVERBOOK_TRUE
-		|| PSnodes_overbook(node)==OVERBOOK_AUTO) {
+	    if (PSIDnodes_overbook(node)==OVERBOOK_TRUE
+		|| PSIDnodes_overbook(node)==OVERBOOK_AUTO) {
 		canOverbook = 1;
-		if (PSnodes_getProcs(node) == PSNODES_ANYPROC) {
+		if (PSIDnodes_getProcs(node) == PSNODES_ANYPROC) {
 		    totSlots += request->size;
 		} else {
-		    totSlots += PSnodes_getProcs(node);
+		    totSlots += PSIDnodes_getProcs(node);
 		}
-	    } else if (PSnodes_getProcs(node) == PSNODES_ANYPROC
-		       || PSnodes_getProcs(node) > cpus) {
+	    } else if (PSIDnodes_getProcs(node) == PSNODES_ANYPROC
+		       || PSIDnodes_getProcs(node) > cpus) {
 		totSlots += cpus;
 	    } else {
-		totSlots += PSnodes_getProcs(node);
+		totSlots += PSIDnodes_getProcs(node);
 	    }
 	}
     }
@@ -978,14 +977,14 @@ static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
 	availCPUs = 0;
 	for (cand=0; cand<candidates->size; cand++) {
 	    PSnodes_ID_t cid = candidates->entry[cand].id;
-	    int maxProcs = PSnodes_getProcs(cid);
+	    int maxProcs = PSIDnodes_getProcs(cid);
 	    int oldJobs = candidates->entry[cand].jobs;
 	    unsigned short cpus = (request->options & PART_OPT_EXACT) ?
 		allowedCPUs[cid] : candidates->entry[cand].cpus;
 	    unsigned short procs = cpus * procsPerCPU;
 
 	    if (candSlots[cid] < procs) {
-		switch (PSnodes_overbook(cid)) {
+		switch (PSIDnodes_overbook(cid)) {
 		case OVERBOOK_FALSE:
 		    if (candSlots[cid] < allowedCPUs[cid]) {
 			neededSlots -= allowedCPUs[cid] - candSlots[cid];
@@ -1016,7 +1015,8 @@ static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
 		    }
 		    break;
 		default:
-		    PSID_log(-1,"%s: Unknown value for PSnodes_overbook(%d)\n",
+		    PSID_log(-1,
+			     "%s: Unknown value for PSIDnodes_overbook(%d)\n",
 			     __func__, cid);
 		    return 0;
 		}
@@ -1041,11 +1041,11 @@ static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
 	int maxCPUs = 0;
 	for (cand=0; cand<candidates->size; cand++) {
 	    PSnodes_ID_t cid = candidates->entry[cand].id;
-	    if ((PSnodes_getProcs(cid) == PSNODES_ANYPROC
-		 || candSlots[cid] < PSnodes_getProcs(cid))
-		&& ((PSnodes_overbook(cid) == OVERBOOK_AUTO
+	    if ((PSIDnodes_getProcs(cid) == PSNODES_ANYPROC
+		 || candSlots[cid] < PSIDnodes_getProcs(cid))
+		&& ((PSIDnodes_overbook(cid) == OVERBOOK_AUTO
 		     && !getAssignedJobs(cid))
-		    || PSnodes_overbook(cid) == OVERBOOK_TRUE)) {
+		    || PSIDnodes_overbook(cid) == OVERBOOK_TRUE)) {
 		unsigned short cpus = (request->options & PART_OPT_EXACT) ?
 		    allowedCPUs[cid] : candidates->entry[cand].cpus;
 		if (cpus > maxCPUs) maxCPUs = cpus;
@@ -1055,11 +1055,11 @@ static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
 	while (neededSlots > 0) {
 	    for (cand=0; cand<candidates->size && neededSlots; cand++) {
 		PSnodes_ID_t cid = candidates->entry[cand].id;
-		if ((PSnodes_getProcs(cid) == PSNODES_ANYPROC
-		     || candSlots[cid] < PSnodes_getProcs(cid))
-		    && ((PSnodes_overbook(cid) == OVERBOOK_AUTO
+		if ((PSIDnodes_getProcs(cid) == PSNODES_ANYPROC
+		     || candSlots[cid] < PSIDnodes_getProcs(cid))
+		    && ((PSIDnodes_overbook(cid) == OVERBOOK_AUTO
 			 && !getAssignedJobs(cid))
-			|| PSnodes_overbook(cid) == OVERBOOK_TRUE)) {
+			|| PSIDnodes_overbook(cid) == OVERBOOK_TRUE)) {
 		    unsigned short cpus = (request->options & PART_OPT_EXACT) ?
 			allowedCPUs[cid] : candidates->entry[cand].cpus;
 		    if ((lateProcs[cid]+1)*maxCPUs <= round*cpus) {
@@ -1192,11 +1192,11 @@ static PSnodes_ID_t *createPartition(PSpart_request_t *request,
     for (cand = 0; cand < candidates->size; cand++) {
 	sortentry_t *ce = &candidates->entry[cand];
 	short cpus;
-	if ((PSnodes_getProcs(ce->id) == PSNODES_ANYPROC)
-	    || ce->cpus < PSnodes_getProcs(ce->id)) {
+	if ((PSIDnodes_getProcs(ce->id) == PSNODES_ANYPROC)
+	    || ce->cpus < PSIDnodes_getProcs(ce->id)) {
 	    cpus = ce->cpus;
 	} else {
-	    cpus = PSnodes_getProcs(ce->id);
+	    cpus = PSIDnodes_getProcs(ce->id);
 	}
 	cpus -= ce->jobs + allowedCPUs[ce->id];
 	cpus = (cpus < 0) ? 0 : cpus;
@@ -1256,7 +1256,7 @@ static int sendNodelist(PSnodes_ID_t *nodes, int num, DDBufferMsg_t *msg)
 	return -1;
     }
 
-    while (offset < num && PSnodes_isUp(PSC_getID(msg->header.dest))) {
+    while (offset < num && PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
 	int chunk = (num-offset > NODES_CHUNK) ? NODES_CHUNK : num-offset;
 	char *ptr = msg->buf;
 	msg->header.len = sizeof(msg->header);
@@ -1861,7 +1861,7 @@ int send_GETTASKS(PSnodes_ID_t node)
 	errno = EINVAL;
 	return -1;
     }
-    if (!PSnodes_isUp(node)) {
+    if (!PSIDnodes_isUp(node)) {
 	errno = EHOSTDOWN;
 	return -1;
     }

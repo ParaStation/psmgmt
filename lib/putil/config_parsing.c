@@ -35,6 +35,8 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "hardware.h"
 #include "pspartition.h"
 
+#include "psidnodes.h"
+
 #include "config_parsing.h"
 
 static config_t config = (config_t) {
@@ -61,13 +63,16 @@ static int nodesfound = 0;
 /**
  * @brief Insert a node.
  *
- * Helper function to insert a node.... @todo
+ * Helper function to make a node known to the ParaStation
+ * daemon. Various information concerning this nodes is stored at this
+ * early stage. Some of these informations might be modified at later
+ * stages.
  *
- * @param ipaddr
+ * @param addr IP address of the node to register.
  *
- * @param id
+ * @param id ParaStation ID for this node.
  *
- * @param hwtype
+ * @param hwtype Type of hardware on the current node.
  *
  * @param extraIP Not used.
  *
@@ -97,111 +102,121 @@ static int nodesfound = 0;
  * @return Return -1 if an error occurred or 0 if the node was
  * inserted successfully.
  */
-static int installHost(unsigned int ipaddr, int id, int hwtype, 
+static int installHost(in_addr_t addr, int id, int hwtype, 
 		       unsigned int extraIP, int jobs, int starter,
 		       uid_t uid, gid_t gid, int procs,
 		       PSnodes_overbook_t overbook, int exclusive,
 		       uid_t admuid, gid_t admgid)
 {
-    if (PSnodes_getNum() == -1) { /* NrOfNodes not defined */
+    if (PSIDnodes_getNum() == -1) { /* NrOfNodes not defined */
 	parser_comment(-1, "define NrOfNodes before any host");
 	return -1;
     }
 
-    if ((id<0) || (id >= PSnodes_getNum())) { /* id out of Range */
+    if ((id<0) || (id >= PSIDnodes_getNum())) { /* id out of Range */
 	parser_comment(-1, "node ID <%d> out of range (NrOfNodes = %d)",
-		       id, PSnodes_getNum());
+		       id, PSIDnodes_getNum());
 	return -1;
     }
 
-    if (PSnodes_lookupHost(ipaddr)!=-1) { /* duplicated host */
+    if (PSIDnodes_lookupHost(addr)!=-1) { /* duplicated host */
 	parser_comment(-1, "duplicated host <%s>",
-		       inet_ntoa(* (struct in_addr *) &ipaddr));
-	return -1;
-    }
-
-    if (PSnodes_getAddr(id) != INADDR_ANY) { /* duplicated PSI-ID */
-	unsigned int addr = PSnodes_getAddr(id);
-	parser_comment(-1, "duplicated ID <%d> for hosts <%s> and <%s>",
-		       id, inet_ntoa(* (struct in_addr *) &ipaddr),
 		       inet_ntoa(* (struct in_addr *) &addr));
 	return -1;
     }
 
+    if (PSIDnodes_getAddr(id) != INADDR_ANY) { /* duplicated PSI-ID */
+	in_addr_t other = PSIDnodes_getAddr(id);
+	parser_comment(-1, "duplicated ID <%d> for hosts <%s> and <%s>",
+		       id, inet_ntoa(* (struct in_addr *) &addr),
+		       inet_ntoa(* (struct in_addr *) &other));
+	return -1;
+    }
+
     /* install hostname */
-    if (PSnodes_register(id, ipaddr)) {
-	parser_comment(-1, "PSnodes_register(%d, <%s>) failed",
-		       id, inet_ntoa(* (struct in_addr *) &ipaddr));
+    if (PSIDnodes_register(id, addr)) {
+	parser_comment(-1, "PSIDnodes_register(%d, <%s>) failed",
+		       id, inet_ntoa(*(struct in_addr *)&addr));
 	return -1;
     }
 
-    if (PSnodes_setHWType(id, hwtype)) {
-	parser_comment(-1, "PSnodes_setHWType(%d, %d) failed", id, hwtype);
+    if (PSIDnodes_setHWType(id, hwtype)) {
+	parser_comment(-1, "PSIDnodes_setHWType(%d, %d) failed", id, hwtype);
 	return -1;
     }
 
-    if (PSnodes_setExtraIP(id, extraIP)) {
-	parser_comment(-1, "PSnodes_setExtraIP(%d, %d) failed", id, extraIP);
+    if (PSIDnodes_setExtraIP(id, extraIP)) {
+	parser_comment(-1, "PSIDnodes_setExtraIP(%d, %d) failed", id, extraIP);
 	return -1;
     }
 
-    if (PSnodes_setRunJobs(id, jobs)) {
-	parser_comment(-1, "PSnodes_setRunJobs(%d, %d) failed", id, jobs);
+    if (PSIDnodes_setRunJobs(id, jobs)) {
+	parser_comment(-1, "PSIDnodes_setRunJobs(%d, %d) failed", id, jobs);
 	return -1;
     }
 
-    if (PSnodes_setIsStarter(id, starter)) {
-	parser_comment(-1, "PSnodes_setIsStarter(%d, %d) failed", id, starter);
+    if (PSIDnodes_setIsStarter(id, starter)) {
+	parser_comment(-1, "PSIDnodes_setIsStarter(%d, %d) failed",
+		       id, starter);
 	return -1;
     }
 
-    if (PSnodes_setUser(id, uid)) {
-	parser_comment(-1, "PSnodes_setUser(%d, %d) failed", id, uid);
+    if (PSIDnodes_setGUID(id, PSIDNODES_USER, (PSIDnodes_guid_t){.u=uid})) {
+	parser_comment(-1, "PSIDnodes_setGUID(%d, PSIDNODES_USER, %d) failed",
+		       id, uid);
 	return -1;
     }
 
-    if (PSnodes_setGroup(id, gid)) {
-	parser_comment(-1, "PSnodes_setGroup(%d, %d) failed", id, gid);
+    if (PSIDnodes_setGUID(id, PSIDNODES_GROUP, (PSIDnodes_guid_t){.g=gid})) {
+	parser_comment(-1, "PSIDnodes_setGUID(%d, PSIDNODES_GROUP, %d) failed",
+		       id, gid);
 	return -1;
     }
 
-    if (PSnodes_setProcs(id, procs)) {
-	parser_comment(-1, "PSnodes_setProcs(%d, %d) failed", id, procs);
+    if (PSIDnodes_setProcs(id, procs)) {
+	parser_comment(-1, "PSIDnodes_setProcs(%d, %d) failed", id, procs);
 	return -1;
     }
 
-    if (PSnodes_setOverbook(id, overbook)) {
-	parser_comment(-1, "PSnodes_setOverbook(%d, %d) failed", id, overbook);
+    if (PSIDnodes_setOverbook(id, overbook)) {
+	parser_comment(-1, "PSIDnodes_setOverbook(%d, %d) failed",
+		       id, overbook);
 	return -1;
     }
 
-    if (PSnodes_setExclusive(id, exclusive)) {
-	parser_comment(-1, "PSnodes_setExclusive(%d, %d) failed", id,
+    if (PSIDnodes_setExclusive(id, exclusive)) {
+	parser_comment(-1, "PSIDnodes_setExclusive(%d, %d) failed", id,
 		       exclusive);
 	return -1;
     }
 
-    if (PSnodes_setAdminUser(id, admuid)) {
-	parser_comment(-1, "PSnodes_setAdminUser(%d, %d) failed", id, admuid);
+    if (PSIDnodes_setGUID(id, PSIDNODES_ADMUSER,
+			  (PSIDnodes_guid_t){.u=admuid})) {
+	parser_comment(-1,
+		       "PSIDnodes_setGUID(%d, PSIDNODES_ADMUSER, %d) failed",
+		       id, admuid);
 	return -1;
     }
 
-    if (PSnodes_setAdminGroup(id, admgid)) {
-	parser_comment(-1, "PSnodes_setAdminGroup(%d, %d) failed", id, admgid);
+    if (PSIDnodes_setGUID(id, PSIDNODES_ADMGROUP,
+			  (PSIDnodes_guid_t){.g=admgid})) {
+	parser_comment(-1,
+		       "PSIDnodes_setGUID(%d, PSIDNODES_ADMGROUP, %d) failed",
+		       id, admgid);
 	return -1;
     }
 
     nodesfound++;
 
-    if (nodesfound > PSnodes_getNum()) { /* more hosts than nodes ??? */
+    if (nodesfound > PSIDnodes_getNum()) { /* more hosts than nodes ??? */
 	parser_comment(-1, "NrOfNodes = %d does not match number of"
-		       " hosts in list (%d)", PSnodes_getNum(), nodesfound);
+		       " hosts in list (%d)", PSIDnodes_getNum(), nodesfound);
 	return -1;
     }
 
     parser_comment(PARSER_LOG_VERB,
 		   "%s: host <%s> inserted in hostlist with id=%d.",
-		   __func__, inet_ntoa(* (struct in_addr *) &ipaddr), id);
+		   __func__, inet_ntoa(* (struct in_addr *) &addr), id);
 
     return 0;
 }
@@ -246,7 +261,7 @@ static int getNumNodes(char *token)
 {
     int num, ret;
 
-    if (PSnodes_getNum() != -1) {
+    if (PSIDnodes_getNum() != -1) {
 	/* NrOfNodes already defined */
 	parser_comment(-1, "define NrOfNodes only once");
 	return -1;
@@ -256,10 +271,10 @@ static int getNumNodes(char *token)
 
     if (ret) return ret;
 
-    /* Initialize the PSnodes module */
-    ret = PSnodes_init(num);
+    /* Initialize the PSIDnodes module */
+    ret = PSIDnodes_init(num);
     if (ret) {
-	parser_comment(-1, "PSnodes_init(%d) failed", num);
+	parser_comment(-1, "PSIDnodes_init(%d) failed", num);
     }
 
     return ret;
@@ -1624,7 +1639,7 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     /*
      * Sanity Checks
      */
-    if (PSnodes_getNum()==-1) {
+    if (PSIDnodes_getNum()==-1) {
 	parser_comment(-1, "ERROR: NrOfNodes not defined");
 	return NULL;
     }
@@ -1632,7 +1647,7 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     /*
      * Sanity Checks
      */
-    if (PSnodes_getNum() > nodesfound) { /* hosts missing in hostlist */
+    if (PSIDnodes_getNum() > nodesfound) { /* hosts missing in hostlist */
 	parser_comment(-1, "WARNING: # hosts in hostlist less than NrOfNodes");
     }
     

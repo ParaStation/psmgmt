@@ -20,11 +20,11 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #include "pscommon.h"
 #include "psprotocol.h"
-#include "psnodes.h"
 #include "hardware.h"
 
 #include "psidutil.h"
 #include "psidcomm.h"
+#include "psidnodes.h"
 #include "psidtask.h"
 #include "psidtimer.h"
 #include "psidstatus.h"
@@ -45,34 +45,22 @@ void send_OPTIONS(PSnodes_ID_t destnode)
 	.opt = {{ .option = 0, .value = 0 }} };
 
     msg.opt[(int) msg.count].option = PSP_OP_HWSTATUS;
-    msg.opt[(int) msg.count].value = PSnodes_getHWStatus(PSC_getMyID());
+    msg.opt[(int) msg.count].value = PSIDnodes_getHWStatus(PSC_getMyID());
     msg.count++;
     msg.opt[(int) msg.count].option = PSP_OP_PROCLIMIT;
-    msg.opt[(int) msg.count].value = PSnodes_getProcs(PSC_getMyID());
-    msg.count++;
-    msg.opt[(int) msg.count].option = PSP_OP_UIDLIMIT;
-    msg.opt[(int) msg.count].value = PSnodes_getUser(PSC_getMyID());
-    msg.count++;
-    msg.opt[(int) msg.count].option = PSP_OP_GIDLIMIT;
-    msg.opt[(int) msg.count].value = PSnodes_getGroup(PSC_getMyID());
-    msg.count++;
-    msg.opt[(int) msg.count].option = PSP_OP_ADMINUID;
-    msg.opt[(int) msg.count].value = PSnodes_getAdminUser(PSC_getMyID());
-    msg.count++;
-    msg.opt[(int) msg.count].option = PSP_OP_ADMINGID;
-    msg.opt[(int) msg.count].value = PSnodes_getAdminGroup(PSC_getMyID());
+    msg.opt[(int) msg.count].value = PSIDnodes_getProcs(PSC_getMyID());
     msg.count++;
     msg.opt[(int) msg.count].option = PSP_OP_OVERBOOK;
-    msg.opt[(int) msg.count].value = PSnodes_overbook(PSC_getMyID());
+    msg.opt[(int) msg.count].value = PSIDnodes_overbook(PSC_getMyID());
     msg.count++;
     msg.opt[(int) msg.count].option = PSP_OP_EXCLUSIVE;
-    msg.opt[(int) msg.count].value = PSnodes_exclusive(PSC_getMyID());
+    msg.opt[(int) msg.count].value = PSIDnodes_exclusive(PSC_getMyID());
     msg.count++;
     msg.opt[(int) msg.count].option = PSP_OP_STARTER;
-    msg.opt[(int) msg.count].value = PSnodes_isStarter(PSC_getMyID());
+    msg.opt[(int) msg.count].value = PSIDnodes_isStarter(PSC_getMyID());
     msg.count++;
     msg.opt[(int) msg.count].option = PSP_OP_RUNJOBS;
-    msg.opt[(int) msg.count].value = PSnodes_runJobs(PSC_getMyID());
+    msg.opt[(int) msg.count].value = PSIDnodes_runJobs(PSC_getMyID());
     msg.count++;
 
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
@@ -80,8 +68,58 @@ void send_OPTIONS(PSnodes_ID_t destnode)
     }
 
     send_acct_OPTIONS(PSC_getTID(destnode, 0), 0);
-    /* @todo send_user_OPTIONS(PSC_getTID(destnode, 0)); */
-    /* @todo send_admin_OPTIONS(PSC_getTID(destnode, 0)); */
+    send_GUID_OPTIONS(PSC_getTID(destnode, 0), PSIDNODES_USER, 0);
+    send_GUID_OPTIONS(PSC_getTID(destnode, 0), PSIDNODES_GROUP, 0);
+}
+
+static PSIDnodes_gu_t getGU(PSP_Option_t opt)
+{
+    switch (opt) {
+    case PSP_OP_UID:
+    case PSP_OP_SET_UID:
+    case PSP_OP_ADD_UID:
+    case PSP_OP_REM_UID:
+	return PSIDNODES_USER;
+	break;
+    case PSP_OP_GID:
+    case PSP_OP_SET_GID:
+    case PSP_OP_ADD_GID:
+    case PSP_OP_REM_GID:
+	return PSIDNODES_GROUP;
+	break;
+    case PSP_OP_ADMUID:
+    case PSP_OP_SET_ADMUID:
+    case PSP_OP_ADD_ADMUID:
+    case PSP_OP_REM_ADMUID:
+	return PSIDNODES_ADMUSER;
+	break;
+    case PSP_OP_ADMGID:
+    case PSP_OP_SET_ADMGID:
+    case PSP_OP_ADD_ADMGID:
+    case PSP_OP_REM_ADMGID:
+	return PSIDNODES_ADMGROUP;
+	break;
+    default:
+	return -1;
+    }
+}
+
+static PSIDnodes_guid_t getGUID(PSIDnodes_gu_t type, PSP_Optval_t val)
+{
+    PSIDnodes_guid_t guid;
+
+    switch (type) {
+    case PSIDNODES_USER:
+    case PSIDNODES_ADMUSER:
+	guid.u=val;
+	break;
+    case PSIDNODES_GROUP:
+    case PSIDNODES_ADMGROUP:
+	guid.g=val;
+	break;
+    }
+
+    return guid;
 }
 
 void msg_SETOPTION(DDOptionMsg_t *msg)
@@ -94,6 +132,9 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
     if (msg->header.dest == PSC_getMyTID()) {
 	/* Message is for me */
 	for (i=0; i<msg->count; i++) {
+	    PSIDnodes_gu_t guType;
+	    PSIDnodes_guid_t guid;
+
 	    PSID_log(PSID_LOG_OPTION, "%s: option %d value 0x%x\n",
 		     __func__, msg->opt[i].option, msg->opt[i].value);
 
@@ -132,13 +173,13 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 			.opt = {{ .option = msg->opt[i].option,
 				  .value = msg->opt[i].value }} };
 			    
-		    PSnodes_setProcs(PSC_getMyID(), msg->opt[i].value);
+		    PSIDnodes_setProcs(PSC_getMyID(), msg->opt[i].value);
 
 		    /* Info all nodes about my PROCLIMIT */
 		    broadcastMsg(&info);
 		} else {
-		    PSnodes_setProcs(PSC_getID(msg->header.sender),
-				     msg->opt[i].value);
+		    PSIDnodes_setProcs(PSC_getID(msg->header.sender),
+				       msg->opt[i].value);
 		}
 		break;
 	    case PSP_OP_UIDLIMIT:
@@ -152,14 +193,16 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 			.count = 1,
 			.opt = {{ .option = msg->opt[i].option,
 				  .value = msg->opt[i].value }} };
-			    
-		    PSnodes_setUser(PSC_getMyID(), msg->opt[i].value);
+
+		    PSIDnodes_setGUID(PSC_getMyID(), PSIDNODES_USER,
+				     (PSIDnodes_guid_t){.u=msg->opt[i].value});
 
 		    /* Info all nodes about my UIDLIMIT */
 		    broadcastMsg(&info);
 		} else {
-		    PSnodes_setUser(PSC_getID(msg->header.sender),
-				    msg->opt[i].value);
+		    PSIDnodes_setGUID(PSC_getID(msg->header.sender),
+				      PSIDNODES_USER,
+				     (PSIDnodes_guid_t){.u=msg->opt[i].value});
 		}
 		break;
 	    case PSP_OP_ADMINUID:
@@ -173,14 +216,16 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 			.count = 1,
 			.opt = {{ .option = msg->opt[i].option,
 				  .value = msg->opt[i].value }} };
-			    
-		    PSnodes_setAdminUser(PSC_getMyID(), msg->opt[i].value);
+
+		    PSIDnodes_setGUID(PSC_getMyID(), PSIDNODES_ADMUSER,
+				     (PSIDnodes_guid_t){.u=msg->opt[i].value});
 
 		    /* Info all nodes about my ADMINUID */
 		    broadcastMsg(&info);
 		} else {
-		    PSnodes_setAdminUser(PSC_getID(msg->header.sender),
-					 msg->opt[i].value);
+		    PSIDnodes_setGUID(PSC_getID(msg->header.sender),
+				      PSIDNODES_ADMUSER,
+				     (PSIDnodes_guid_t){.u=msg->opt[i].value});
 		}
 		break;
 	    case PSP_OP_GIDLIMIT:
@@ -195,13 +240,15 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 			.opt = {{ .option = msg->opt[i].option,
 				  .value = msg->opt[i].value }} };
 
-		    PSnodes_setGroup(PSC_getMyID(), msg->opt[i].value);
+		    PSIDnodes_setGUID(PSC_getMyID(), PSIDNODES_GROUP,
+				     (PSIDnodes_guid_t){.g=msg->opt[i].value});
 
 		    /* Info all nodes about my GIDLIMIT */
 		    broadcastMsg(&info);
 		} else {
-		    PSnodes_setGroup(PSC_getID(msg->header.sender),
-				     msg->opt[i].value);
+		    PSIDnodes_setGUID(PSC_getID(msg->header.sender),
+				      PSIDNODES_GROUP,
+				     (PSIDnodes_guid_t){.g=msg->opt[i].value});
 		}
 		break;
 	    case PSP_OP_ADMINGID:
@@ -216,13 +263,90 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 			.opt = {{ .option = msg->opt[i].option,
 				  .value = msg->opt[i].value }} };
 
-		    PSnodes_setAdminGroup(PSC_getMyID(), msg->opt[i].value);
+		    PSIDnodes_setGUID(PSC_getMyID(), PSIDNODES_ADMGROUP,
+				     (PSIDnodes_guid_t){.g=msg->opt[i].value});
 
 		    /* Info all nodes about my ADMINGID */
 		    broadcastMsg(&info);
 		} else {
-		    PSnodes_setAdminGroup(PSC_getID(msg->header.sender),
-					  msg->opt[i].value);
+		    PSIDnodes_setGUID(PSC_getID(msg->header.sender),
+				      PSIDNODES_ADMGROUP,
+				     (PSIDnodes_guid_t){.g=msg->opt[i].value});
+		}
+		break;
+	    case PSP_OP_SET_UID:
+	    case PSP_OP_SET_GID:
+	    case PSP_OP_SET_ADMUID:
+	    case PSP_OP_SET_ADMGID:
+		guType = getGU(msg->opt[i].option);
+		guid = getGUID(guType, msg->opt[i].value);
+
+		if (PSC_getPID(msg->header.sender)) {
+		    DDOptionMsg_t info = {
+			.header = {
+			    .type = PSP_CD_SETOPTION,
+			    .sender = PSC_getMyTID(),
+			    .dest = 0,
+			    .len = sizeof(info) },
+			.count = 1,
+			.opt = {{ .option = msg->opt[i].option,
+				  .value = msg->opt[i].value }} };
+
+		    PSIDnodes_setGUID(PSC_getMyID(), guType, guid);
+		    broadcastMsg(&info);
+		} else {
+		    PSIDnodes_setGUID(PSC_getID(msg->header.sender),
+				      guType, guid);
+		}
+		break;
+	    case PSP_OP_ADD_UID:
+	    case PSP_OP_ADD_GID:
+	    case PSP_OP_ADD_ADMUID:
+	    case PSP_OP_ADD_ADMGID:
+		guType = getGU(msg->opt[i].option);
+		guid = getGUID(guType, msg->opt[i].value);
+
+		if (PSC_getPID(msg->header.sender)) {
+		    DDOptionMsg_t info = {
+			.header = {
+			    .type = PSP_CD_SETOPTION,
+			    .sender = PSC_getMyTID(),
+			    .dest = 0,
+			    .len = sizeof(info) },
+			.count = 1,
+			.opt = {{ .option = msg->opt[i].option,
+				  .value = msg->opt[i].value }} };
+
+		    PSIDnodes_addGUID(PSC_getMyID(), guType, guid);
+		    broadcastMsg(&info);
+		} else {
+		    PSIDnodes_addGUID(PSC_getID(msg->header.sender),
+				      guType, guid);
+		}
+		break;
+	    case PSP_OP_REM_UID:
+	    case PSP_OP_REM_GID:
+	    case PSP_OP_REM_ADMUID:
+	    case PSP_OP_REM_ADMGID:
+		guType = getGU(msg->opt[i].option);
+		guid = getGUID(guType, msg->opt[i].value);
+
+		if (PSC_getPID(msg->header.sender)) {
+		    DDOptionMsg_t info = {
+			.header = {
+			    .type = PSP_CD_SETOPTION,
+			    .sender = PSC_getMyTID(),
+			    .dest = 0,
+			    .len = sizeof(info) },
+			.count = 1,
+			.opt = {{ .option = msg->opt[i].option,
+				  .value = msg->opt[i].value }} };
+
+		    PSIDnodes_remGUID(PSC_getMyID(), guType, guid);
+		    broadcastMsg(&info);
+		} else {
+		    PSIDnodes_remGUID(PSC_getID(msg->header.sender),
+				      guType, guid);
 		}
 		break;
 	    case PSP_OP_OVERBOOK:
@@ -237,13 +361,13 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 			.opt = {{ .option = msg->opt[i].option,
 				  .value = msg->opt[i].value }} };
 			    
-		    PSnodes_setOverbook(PSC_getMyID(), msg->opt[i].value);
+		    PSIDnodes_setOverbook(PSC_getMyID(), msg->opt[i].value);
 
 		    /* Info all nodes about my OVERBOOK */
 		    broadcastMsg(&info);
 		} else {
-		    PSnodes_setOverbook(PSC_getID(msg->header.sender),
-					   msg->opt[i].value);
+		    PSIDnodes_setOverbook(PSC_getID(msg->header.sender),
+					  msg->opt[i].value);
 		}
 		break;
 	    case PSP_OP_EXCLUSIVE:
@@ -258,12 +382,12 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 			.opt = {{ .option = msg->opt[i].option,
 				  .value = msg->opt[i].value }} };
 			    
-		    PSnodes_setExclusive(PSC_getMyID(), msg->opt[i].value);
+		    PSIDnodes_setExclusive(PSC_getMyID(), msg->opt[i].value);
 
 		    /* Info all nodes about my EXCLUSIVE */
 		    broadcastMsg(&info);
 		} else {
-		    PSnodes_setExclusive(PSC_getID(msg->header.sender),
+		    PSIDnodes_setExclusive(PSC_getID(msg->header.sender),
 					   msg->opt[i].value);
 		}
 		break;
@@ -279,12 +403,12 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 			.opt = {{ .option = msg->opt[i].option,
 				  .value = msg->opt[i].value }} };
 			    
-		    PSnodes_setIsStarter(PSC_getMyID(), msg->opt[i].value);
+		    PSIDnodes_setIsStarter(PSC_getMyID(), msg->opt[i].value);
 
 		    /* Info all nodes about my STARTER */
 		    broadcastMsg(&info);
 		} else {
-		    PSnodes_setIsStarter(PSC_getID(msg->header.sender),
+		    PSIDnodes_setIsStarter(PSC_getID(msg->header.sender),
 					   msg->opt[i].value);
 		}
 		break;
@@ -300,18 +424,18 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 			.opt = {{ .option = msg->opt[i].option,
 				  .value = msg->opt[i].value }} };
 			    
-		    PSnodes_setRunJobs(PSC_getMyID(), msg->opt[i].value);
+		    PSIDnodes_setRunJobs(PSC_getMyID(), msg->opt[i].value);
 
 		    /* Info all nodes about my RUNJOBS */
 		    broadcastMsg(&info);
 		} else {
-		    PSnodes_setRunJobs(PSC_getID(msg->header.sender),
-				       msg->opt[i].value);
+		    PSIDnodes_setRunJobs(PSC_getID(msg->header.sender),
+					 msg->opt[i].value);
 		}
 		break;
 	    case PSP_OP_HWSTATUS:
-		PSnodes_setHWStatus(PSC_getID(msg->header.sender),
-				    msg->opt[i].value);
+		PSIDnodes_setHWStatus(PSC_getID(msg->header.sender),
+				      msg->opt[i].value);
 		break;
 	    case PSP_OP_PSIDDEBUG:
 		PSID_setDebugMask(msg->opt[i].value);
@@ -384,7 +508,7 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 	    .error = 0};
 
 	/* a request for a remote daemon */
-	if (PSnodes_isUp(id)) {
+	if (PSIDnodes_isUp(id)) {
 	    /*
 	     * transfer the request to the remote daemon
 	     */
@@ -401,6 +525,8 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
     } else {
 	int in, out;
 	for (in=0, out=0; in<msg->count; in++, out++) {
+	    PSIDnodes_gu_t guType;
+
 	    PSID_log(PSID_LOG_OPTION, "%s: option %d\n",
 		     __func__, msg->opt[in].option);
 
@@ -433,31 +559,48 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		msg->opt[out].value = selectTime.tv_sec;
 		break;
 	    case PSP_OP_PROCLIMIT:
-		msg->opt[out].value = PSnodes_getProcs(PSC_getMyID());
+		msg->opt[out].value = PSIDnodes_getProcs(PSC_getMyID());
 		break;
 	    case PSP_OP_UIDLIMIT:
-		msg->opt[out].value = PSnodes_getUser(PSC_getMyID());
+		send_GUID_OPTIONS(msg->header.sender, PSIDNODES_USER, 1);
+		/* Do not send option again */
+		out--;
 		break;
 	    case PSP_OP_GIDLIMIT:
-		msg->opt[out].value = PSnodes_getGroup(PSC_getMyID());
+		send_GUID_OPTIONS(msg->header.sender, PSIDNODES_GROUP, 1);
+		/* Do not send option again */
+		out--;
 		break;
 	    case PSP_OP_ADMINUID:
-		msg->opt[out].value = PSnodes_getAdminUser(PSC_getMyID());
+		send_GUID_OPTIONS(msg->header.sender, PSIDNODES_ADMUSER, 1);
+		/* Do not send option again */
+		out--;
 		break;
 	    case PSP_OP_ADMINGID:
-		msg->opt[out].value = PSnodes_getAdminGroup(PSC_getMyID());
+		send_GUID_OPTIONS(msg->header.sender, PSIDNODES_ADMGROUP, 1);
+		/* Do not send option again */
+		out--;
+		break;
+	    case PSP_OP_UID:
+	    case PSP_OP_GID:
+	    case PSP_OP_ADMUID:
+	    case PSP_OP_ADMGID:
+		guType = getGU(msg->opt[in].option);
+		send_GUID_OPTIONS(msg->header.sender, guType, 0);
+		/* Do not send option again */
+		out--;
 		break;
 	    case PSP_OP_OVERBOOK:
-		msg->opt[out].value = PSnodes_overbook(PSC_getMyID());
+		msg->opt[out].value = PSIDnodes_overbook(PSC_getMyID());
 		break;
 	    case PSP_OP_EXCLUSIVE:
-		msg->opt[out].value = PSnodes_exclusive(PSC_getMyID());
+		msg->opt[out].value = PSIDnodes_exclusive(PSC_getMyID());
 		break;
 	    case PSP_OP_STARTER:
-		msg->opt[out].value = PSnodes_isStarter(PSC_getMyID());
+		msg->opt[out].value = PSIDnodes_isStarter(PSC_getMyID());
 		break;
 	    case PSP_OP_RUNJOBS:
-		msg->opt[out].value = PSnodes_runJobs(PSC_getMyID());
+		msg->opt[out].value = PSIDnodes_runJobs(PSC_getMyID());
 		break;
 	    case PSP_OP_RDPDEBUG:
 		msg->opt[out].value = getDebugMaskRDP();

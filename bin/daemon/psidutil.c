@@ -26,12 +26,11 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <sys/stat.h>
 #include <sys/file.h>
 
-#include "logging.h"
-
-#include "config_parsing.h"
-#include "psnodes.h"
-
 #include "pscommon.h"
+#include "logging.h"
+#include "config_parsing.h"
+
+#include "psidnodes.h"
 
 #include "psidutil.h"
 
@@ -116,7 +115,7 @@ static int getOwnID(void)
 
 	    PSID_log(PSID_LOG_VERB, "%s: testing address %s\n",
 		     __func__, inet_ntoa(*sin_addr));
-	    if ((ownID=PSnodes_lookupHost(sin_addr->s_addr))!=-1) {
+	    if ((ownID=PSIDnodes_lookupHost(sin_addr->s_addr))!=-1) {
 		/* node is configured */
 		PSID_log(PSID_LOG_VERB, "%s: node has ID %d\n",
 			 __func__, ownID);
@@ -158,7 +157,7 @@ void PSID_readConfigFile(FILE* logfile, char *configfile)
 	exit(1);
     }
 
-    PSC_setNrOfNodes(PSnodes_getNum());
+    PSC_setNrOfNodes(PSIDnodes_getNum());
     PSC_setMyID(ownID);
     PSC_setDaemonFlag(1); /* To get the correct result from PSC_getMyTID() */
 }

@@ -13,6 +13,8 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidaccount.c 3892 2006-01-
 #include <stdlib.h>
 #include <errno.h>
 
+#include "list.h"
+
 #include "pscommon.h"
 
 #include "psidcomm.h"

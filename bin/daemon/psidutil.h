@@ -88,7 +88,7 @@ void PSID_setDebugMask(int32_t mask);
  *
  * @see logger_print()
  */
-#define PSID_log(...) logger_print(PSID_logger, __VA_ARGS__)
+#define PSID_log(...) if (PSID_logger) logger_print(PSID_logger, __VA_ARGS__)
 
 /**
  * Print a warn messages via PSID's logging facility @a PSID_logger .
@@ -97,7 +97,7 @@ void PSID_setDebugMask(int32_t mask);
  *
  * @see logger_warn()
  */
-#define PSID_warn(...) logger_warn(PSID_logger, __VA_ARGS__)
+#define PSID_warn(...) if (PSID_logger) logger_warn(PSID_logger, __VA_ARGS__)
 
 /**
  * Print a warn messages via PSID's logging facility @a PSID_logger
@@ -107,11 +107,15 @@ void PSID_setDebugMask(int32_t mask);
  *
  * @see logger_exit()
  */
-#define PSID_exit(...) logger_exit(PSID_logger, __VA_ARGS__)
+#define PSID_exit(...) if (PSID_logger) logger_exit(PSID_logger, __VA_ARGS__)
 
 /**
  * Various message classes for logging. These define the different
  * bits of the debug-mask set via @ref PSID_setDebugMask().
+ *
+ * The four least signigicant bits are reserved for pscommon.
+ *
+ * The parser's logging facility uses the flags starting with bit 25.
  */
 typedef enum {
     PSID_LOG_SIGNAL = 0x000010, /**< Signal handling stuff */
@@ -130,6 +134,7 @@ typedef enum {
     PSID_LOG_OPTION = 0x020000, /**< Option handling */
     PSID_LOG_INFO =   0x040000, /**< Handling of info request messages */
     PSID_LOG_PART =   0x080000, /**< Partition creation and management */
+    PSID_LOG_NODES =  0x100000, /**< Book keeping on nodes */
 } PSID_log_key_t;
 
 

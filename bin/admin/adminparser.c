@@ -570,6 +570,7 @@ static uid_t uidFromString(char *user)
     long uid;
     struct passwd *passwd = getpwnam(user);
 
+    if (!user) return -2;
     if (strcasecmp(user, "any") == 0) return -1;
     if (!parser_getNumber(user, &uid) && uid > -1) return uid;
     if (passwd) return passwd->pw_uid;
@@ -583,6 +584,7 @@ static gid_t gidFromString(char *group)
     long gid;
     struct group *grp = getgrnam(group);
 
+    if (!group) return -2;
     if (strcasecmp(group, "any") == 0) return -1;
     if (!parser_getNumber(group, &gid) && gid > -1) return gid;
     if (grp) return grp->gr_gid;
@@ -601,25 +603,25 @@ static int setShowMaxProc(char *token)
 
 static int setShowUser(char *token)
 {
-    setShowOpt = PSP_OP_UIDLIMIT;
+    setShowOpt = PSP_OP_UID;
     return 0;
 }
 
 static int setShowGroup(char *token)
 {
-    setShowOpt = PSP_OP_GIDLIMIT;
+    setShowOpt = PSP_OP_GID;
     return 0;
 }
 
 static int setShowAdminUser(char *token)
 {
-    setShowOpt = PSP_OP_ADMINUID;
+    setShowOpt = PSP_OP_ADMUID;
     return 0;
 }
 
 static int setShowAdminGroup(char *token)
 {
-    setShowOpt = PSP_OP_ADMINGID;
+    setShowOpt = PSP_OP_ADMGID;
     return 0;
 }
 
@@ -833,12 +835,7 @@ static int setCommand(char *token)
     char *nl = defaultNL;
     long val;
 
-    if (parser_getString() || !what || !value) goto error;
-
-    if (nl_descr) {
-	nl = getNodeList(nl_descr);
-	if (!nl) return -1;
-    }
+    if (!what || !value) goto error;
 
     setShowOpt = PSP_OP_UNKNOWN;
     if (parser_parseToken(what, &setShowParser)) goto error;
@@ -848,22 +845,48 @@ static int setCommand(char *token)
 	val = procsFromString(value);
 	if (val == -2) goto error;
 	break;
-    case PSP_OP_UIDLIMIT:
+    case PSP_OP_UID:
+    case PSP_OP_ADMUID:
+    {
+	PSP_Option_t opt = setShowOpt;
+	if (*value == '+') {
+	    setShowOpt = (opt==PSP_OP_UID) ? PSP_OP_ADD_UID:PSP_OP_ADD_ADMUID;
+	    value++;
+	} else if (*value == '-') {
+	    setShowOpt = (opt==PSP_OP_UID) ? PSP_OP_REM_UID:PSP_OP_REM_ADMUID;
+	    value++;
+	} else {
+	    setShowOpt = (opt==PSP_OP_UID) ? PSP_OP_SET_UID:PSP_OP_SET_ADMUID;
+	}
+	if (!*value) {
+	    value = nl_descr;
+	    nl_descr = parser_getString();
+	}
 	val = uidFromString(value);
 	if (val == -2) goto error;
 	break;
-    case PSP_OP_GIDLIMIT:
+    }
+    case PSP_OP_GID:
+    case PSP_OP_ADMGID:
+    {
+	PSP_Option_t opt = setShowOpt;
+	if (*value == '+') {
+	    setShowOpt = (opt==PSP_OP_GID) ? PSP_OP_ADD_GID:PSP_OP_ADD_ADMGID;
+	    value++;
+	} else if (*value == '-') {
+	    setShowOpt = (opt==PSP_OP_GID) ? PSP_OP_REM_GID:PSP_OP_REM_ADMGID;
+	    value++;
+	} else {
+	    setShowOpt = (opt==PSP_OP_GID) ? PSP_OP_SET_GID:PSP_OP_SET_ADMGID;
+	}
+	if (!*value) {
+	    value = nl_descr;
+	    nl_descr = parser_getString();
+	}
 	val = gidFromString(value);
 	if (val == -2) goto error;
 	break;
-    case PSP_OP_ADMINUID:
-	val = uidFromString(value);
-	if (val == -2) goto error;
-	break;
-    case PSP_OP_ADMINGID:
-	val = gidFromString(value);
-	if (val == -2) goto error;
-	break;
+    }
     case PSP_OP_PSIDDEBUG:
     case PSP_OP_PSIDSELECTTIME:
     case PSP_OP_RDPDEBUG:
@@ -916,6 +939,14 @@ static int setCommand(char *token)
     default:
 	goto error;
     }
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+	if (!nl) return -1;
+    }
+
+    if (parser_getString()) goto error;
+
     PSIADM_SetParam(setShowOpt, val, nl);
     return 0;
 
@@ -942,10 +973,6 @@ static int showCommand(char *token)
 
     switch (setShowOpt) {
     case PSP_OP_PROCLIMIT:
-    case PSP_OP_UIDLIMIT:
-    case PSP_OP_GIDLIMIT:
-    case PSP_OP_ADMINUID:
-    case PSP_OP_ADMINGID:
     case PSP_OP_PSIDDEBUG:
     case PSP_OP_PSIDSELECTTIME:
     case PSP_OP_RDPDEBUG:
@@ -967,6 +994,10 @@ static int showCommand(char *token)
 	PSIADM_ShowParam(setShowOpt, nl);
 	break;
     case PSP_OP_ACCT:
+    case PSP_OP_UID:
+    case PSP_OP_GID:
+    case PSP_OP_ADMUID:
+    case PSP_OP_ADMGID:
 	PSIADM_ShowParamList(setShowOpt, nl);
 	break;
     default:

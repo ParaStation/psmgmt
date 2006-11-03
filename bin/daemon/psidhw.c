@@ -24,6 +24,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c 3896 2006-01-13 
 #include "psprotocol.h"
 
 #include "psidutil.h"
+#include "psidnodes.h"
 #include "psidcomm.h"
 
 #include "psidhw.h"
@@ -287,22 +288,22 @@ void PSID_startHW(int hw)
 	    PSID_log(-1, "%s: callScript(%s, %s) returned %d: %s\n",
 		     __func__, HW_name(hw), script, res, scriptOut);
 	} else {
-	    unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
+	    unsigned int status = PSIDnodes_getHWStatus(PSC_getMyID());
 
 	    PSID_log(PSID_LOG_HW, "%s: callScript(%s, %s): success\n",
 		     __func__, HW_name(hw), script);
 
-	    PSnodes_setHWStatus(PSC_getMyID(), status | (1<<hw));
+	    PSIDnodes_setHWStatus(PSC_getMyID(), status | (1<<hw));
 
 	}
     } else {
 	/* No script, assume HW runs already */
-	unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
+	unsigned int status = PSIDnodes_getHWStatus(PSC_getMyID());
 
 	PSID_log(PSID_LOG_HW, "%s: assume %s already up\n",
 		 __func__, HW_name(hw));
 
-	PSnodes_setHWStatus(PSC_getMyID(), status | (1<<hw));
+	PSIDnodes_setHWStatus(PSC_getMyID(), status | (1<<hw));
     }
 }
 
@@ -310,7 +311,7 @@ void PSID_startAllHW(void)
 {
     int hw;
     for (hw=0; hw<HW_num(); hw++) {
-	if (PSnodes_getHWType(PSC_getMyID()) & (1<<hw)) PSID_startHW(hw);
+	if (PSIDnodes_getHWType(PSC_getMyID()) & (1<<hw)) PSID_startHW(hw);
     }
 }
 
@@ -330,22 +331,22 @@ void PSID_stopHW(int hw)
 	    PSID_log(-1, "%s: callScript(%s, %s) returned %d: %s\n",
 		     __func__, HW_name(hw), script, res, scriptOut);
 	} else {
-	    unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
+	    unsigned int status = PSIDnodes_getHWStatus(PSC_getMyID());
 
 	    PSID_log(PSID_LOG_HW, "%s: callScript(%s, %s): success\n",
 		     __func__, HW_name(hw), script);
 
-	    PSnodes_setHWStatus(PSC_getMyID(), status & ~(1<<hw));
+	    PSIDnodes_setHWStatus(PSC_getMyID(), status & ~(1<<hw));
 
 	}
     } else {
 	/* No script, assume HW does not run any more */
-	unsigned int status = PSnodes_getHWStatus(PSC_getMyID());
+	unsigned int status = PSIDnodes_getHWStatus(PSC_getMyID());
 
 	PSID_log(PSID_LOG_HW, "%s: assume %s already down\n",
 		 __func__, HW_name(hw));
 
-	PSnodes_setHWStatus(PSC_getMyID(), status & ~(1<<hw));
+	PSIDnodes_setHWStatus(PSC_getMyID(), status & ~(1<<hw));
     }
 }
 
@@ -353,7 +354,7 @@ void PSID_stopAllHW(void)
 {
     int hw;
     for (hw=HW_num()-1; hw>=0; hw--) {
-	if (PSnodes_getHWStatus(PSC_getMyID()) & (1<<hw)) PSID_stopHW(hw);
+	if (PSIDnodes_getHWStatus(PSC_getMyID()) & (1<<hw)) PSID_stopHW(hw);
     }
 }
 
@@ -361,7 +362,7 @@ void PSID_getCounter(int hw, char *buf, size_t size, int header)
 {
     if (!buf) return;
 
-    if (PSnodes_getHWStatus(PSC_getMyID()) & (1<<hw)) {
+    if (PSIDnodes_getHWStatus(PSC_getMyID()) & (1<<hw)) {
 	char *script = HW_getScript(hw, header ? HW_HEADERLINE : HW_COUNTER);
 
 	if (script) {
@@ -494,7 +495,7 @@ static void informOtherNodes(void)
 	.count = 1,
 	.opt = {(DDOption_t) {
 	    .option =  PSP_OP_HWSTATUS,
-	    .value =  PSnodes_getHWStatus(PSC_getMyID()) }
+	    .value =  PSIDnodes_getHWStatus(PSC_getMyID()) }
 	}};
 
     if (broadcastMsg(&msg) == -1 && errno != EWOULDBLOCK) {
@@ -509,14 +510,15 @@ void msg_HWSTART(DDBufferMsg_t *msg)
 
     if (msg->header.dest == PSC_getMyTID()) {
 	int hw = *(int *)msg->buf;
-	int oldStat = PSnodes_getHWStatus(PSC_getMyID());
+	int oldStat = PSIDnodes_getHWStatus(PSC_getMyID());
 
 	if (hw == -1) {
 	    PSID_startAllHW();
 	} else {
 	    PSID_startHW(hw);
 	}
-	if (oldStat != PSnodes_getHWStatus(PSC_getMyID())) informOtherNodes();
+	if (oldStat != PSIDnodes_getHWStatus(PSC_getMyID()))
+	    informOtherNodes();
     } else {
 	sendMsg(msg);
     }
@@ -529,14 +531,15 @@ void msg_HWSTOP(DDBufferMsg_t *msg)
 
     if (msg->header.dest == PSC_getMyTID()) {
 	int hw = *(int *)msg->buf;
-	int oldStat = PSnodes_getHWStatus(PSC_getMyID());
+	int oldStat = PSIDnodes_getHWStatus(PSC_getMyID());
 
 	if (hw == -1) {
 	    PSID_stopAllHW();
 	} else {
 	    PSID_stopHW(hw);
 	}
-	if (oldStat != PSnodes_getHWStatus(PSC_getMyID())) informOtherNodes();
+	if (oldStat != PSIDnodes_getHWStatus(PSC_getMyID()))
+	    informOtherNodes();
     } else {
 	sendMsg(msg);
     }

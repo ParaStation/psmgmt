@@ -162,7 +162,7 @@ char* PSC_printTID(PStask_ID_t tid)
     return taskNumString;
 }
 
-void PSC_startDaemon(unsigned int hostaddr)
+void PSC_startDaemon(in_addr_t hostaddr)
 {
     int sock;
     struct sockaddr_in sa;

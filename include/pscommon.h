@@ -22,6 +22,7 @@
 
 #include <stdio.h>
 #include <sys/types.h>
+#include <netinet/in.h>
 
 #include "logging.h"
 #include "psnodes.h"
@@ -182,7 +183,7 @@ char *PSC_printTID(PStask_ID_t tid);
  *
  * @return No return value.
  */
-void PSC_startDaemon(unsigned int hostaddr);
+void PSC_startDaemon(in_addr_t hostaddr);
 
 /**
  * @brief Initialize the PSC logging facility.

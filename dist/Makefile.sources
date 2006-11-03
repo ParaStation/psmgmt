@@ -24,6 +24,8 @@ bin/daemon/psidinfo.c \
 bin/daemon/psidinfo.h \
 bin/daemon/psidmsgbuf.c \
 bin/daemon/psidmsgbuf.h \
+bin/daemon/psidnodes.c \
+bin/daemon/psidnodes.h \
 bin/daemon/psidoption.c \
 bin/daemon/psidoption.h \
 bin/daemon/psidpartition.c \
@@ -116,7 +118,6 @@ lib/putil/hardware.c \
 lib/putil/mcast.c \
 lib/putil/parser.c \
 lib/putil/psdaemonprotocol.c \
-lib/putil/psnodes.c \
 lib/putil/psstrings.c \
 lib/putil/rdp.c \
 lib/putil/selector.c \

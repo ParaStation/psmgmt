@@ -896,10 +896,18 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
 
     switch (type) {
     case PSP_OP_PROCLIMIT:
-    case PSP_OP_UIDLIMIT:
-    case PSP_OP_GIDLIMIT:
-    case PSP_OP_ADMINUID:
-    case PSP_OP_ADMINGID:
+    case PSP_OP_SET_UID:
+    case PSP_OP_ADD_UID:
+    case PSP_OP_REM_UID:
+    case PSP_OP_SET_GID:
+    case PSP_OP_ADD_GID:
+    case PSP_OP_REM_GID:
+    case PSP_OP_SET_ADMUID:
+    case PSP_OP_ADD_ADMUID:
+    case PSP_OP_REM_ADMUID:
+    case PSP_OP_SET_ADMGID:
+    case PSP_OP_ADD_ADMGID:
+    case PSP_OP_REM_ADMGID:
 	if (value < -1) {
 	    printf(" value must be -1 <= val\n");
 	    return;
@@ -973,32 +981,6 @@ void PSIADM_ShowParam(PSP_Option_t type, char *nl)
 			printf("ANY\n");
 		    else
 			printf("%d\n", value);
-		    break;
-		case PSP_OP_UIDLIMIT:
-		case PSP_OP_ADMINUID:
-		    if (value==-1)
-			printf("ANY\n");
-		    else {
-			struct passwd *passwd = getpwuid(value);
-			if (passwd) {
-			    printf("%s\n", passwd->pw_name);
-			} else {
-			    printf("uid %d\n", value);
-			}
-		    }
-		    break;
-		case PSP_OP_GIDLIMIT:
-		case PSP_OP_ADMINGID:
-		    if (value==-1)
-			printf("ANY\n");
-		    else {
-			struct group *group = getgrgid(value);
-			if (group) {
-			    printf("%s\n", group->gr_name);
-			} else {
-			    printf("gid %d\n", value);
-			}
-		    }
 		    break;
 		case PSP_OP_PSIDDEBUG:
 		case PSP_OP_RDPDEBUG:
@@ -1083,6 +1065,32 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 		switch (type) {
 		case PSP_OP_ACCT:
 		    printf(" %s", PSC_printTID(options[i].value));
+		    break;
+		case PSP_OP_UID:
+		case PSP_OP_ADMUID:
+		    if (options[i].value==-1)
+			printf(" ANY");
+		    else {
+			struct passwd *passwd = getpwuid(options[i].value);
+			if (passwd) {
+			    printf(" %s", passwd->pw_name);
+			} else {
+			    printf(" uid %d", options[i].value);
+			}
+		    }
+		    break;
+		case PSP_OP_GID:
+		case PSP_OP_ADMGID:
+		    if (options[i].value==-1)
+			printf(" ANY");
+		    else {
+			struct group *group = getgrgid(options[i].value);
+			if (group) {
+			    printf(" %s", group->gr_name);
+			} else {
+			    printf(" gid %d\n", options[i].value);
+			}
+		    }
 		    break;
 		case PSP_OP_UNKNOWN:
 		    printf(" unknown option");
