@@ -30,7 +30,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 /* needed for logging in psidnodes.c */
 logger_t *PSID_logger = NULL;
 /* needed for linking against psidnodes.o */
-int sendMsg(void *amsg) {}
+int sendMsg(void *amsg) {return 0;}
 
 /**
  * @brief Print version info.

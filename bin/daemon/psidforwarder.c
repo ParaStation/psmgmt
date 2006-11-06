@@ -64,8 +64,8 @@ fd_set readfds;
 /** Set of fds the forwarder writes to (this is stdinSock) */
 fd_set writefds;
 
-/** Flag marking all controlled fds closed */
-int canend = 0;
+/** Number of currently open file descriptors (except to one to the daemon) */
+int openfds = 0;
 
 /** List of messages waiting to be sent to
  */
@@ -502,70 +502,66 @@ static void sighandler(int sig)
 	    printMsg(STDERR, txt);
 	}
 
-	if (!canend) {
-	    /* Read all the remaining stuff from the controlled fds */
+	/* Read all the remaining stuff from the controlled fds */
+	while (openfds) {
 	    fd_set fds;
-	    struct timeval atv;
 	    int ret;
 
-	    do {
-		memcpy(&fds, &readfds, sizeof(fds));
-		atv = (struct timeval) {0,1000};
+	    memcpy(&fds, &readfds, sizeof(fds));
 
-		ret = select(FD_SETSIZE, &fds, NULL, NULL, &atv);
-		if (ret < 0) {
-		    if (errno != EINTR) {
-			snprintf(txt, sizeof(txt),
-				 "PSID_forwarder: error on select(%d): %s\n",
-				 errno, strerror(errno));
-			printMsg(STDERR, txt);
-		    }
-		    break;
-		} else if (ret > 0) {
-		    int sock, n;
-		    size_t total;
-		    char buf[256];
-		    PSLog_msg_t type;
+	    ret = select(FD_SETSIZE, &fds, NULL, NULL, NULL);
+	    if (ret < 0) {
+		if (errno != EINTR) {
+		    snprintf(txt, sizeof(txt),
+			     "PSID_forwarder: error on select(%d): %s\n",
+			     errno, strerror(errno));
+		    printMsg(STDERR, txt);
+		}
+		break;
+	    } else if (ret > 0) {
+		int sock, n;
+		size_t total;
+		char buf[256];
+		PSLog_msg_t type;
 
-		    for (sock=0; sock<FD_SETSIZE; sock++) {
-			if (FD_ISSET(sock, &fds)) { /* socket ready */
-			    if (sock==stdoutSock) {
-				type=STDOUT;
-			    } else if (sock==stderrSock) {
-				type=STDERR;
-			    } else {
-				/* ignore */
-				ret--;
-				continue;
-			    }
+		for (sock=0; sock<FD_SETSIZE; sock++) {
+		    if (FD_ISSET(sock, &fds)) { /* socket ready */
+			if (sock==stdoutSock) {
+			    type=STDOUT;
+			} else if (sock==stderrSock) {
+			    type=STDERR;
+			} else {
+			    /* ignore */
+			    ret--;
+			    continue;
+			}
 
-			    n = collectRead(sock, buf, sizeof(buf), &total);
-			    if (verbose) {
-				snprintf(txt, sizeof(txt), "PSID_forwarder:"
-					 " got %d bytes on sock %d %d %d\n",
-					 (int) total, sock, n, errno);
-				printMsg(STDERR, txt);
-			    }
-			    if (n==0 || (n<0 && errno==EIO)) {
-				/* socket closed */
-				close(sock);
-				FD_CLR(sock,&readfds);
-			    } else if (n<0
-				       && errno!=ETIME && errno!=ECONNRESET) {
-				/* ignore the error */
-				snprintf(txt, sizeof(txt),
-					 "PSID_forwarder: collectRead():%s\n",
-					 strerror(errno));
-				printMsg(STDERR, txt);
-			    }
-			    if (total) {
-				/* something received. forward it to logger */
-				sendMsg(type, buf, total);
-			    }
+			n = collectRead(sock, buf, sizeof(buf), &total);
+			if (verbose) {
+			    snprintf(txt, sizeof(txt), "PSID_forwarder:"
+				     " got %d bytes on sock %d %d %d\n",
+				     (int) total, sock, n, errno);
+			    printMsg(STDERR, txt);
+			}
+			if (n==0 || (n<0 && errno==EIO)) {
+			    /* socket closed */
+			    close(sock);
+			    FD_CLR(sock,&readfds);
+			    openfds--;
+			} else if (n<0 && errno!=ETIME && errno!=ECONNRESET) {
+			    /* ignore the error */
+			    snprintf(txt, sizeof(txt),
+				     "PSID_forwarder: collectRead():%s\n",
+				     strerror(errno));
+			    printMsg(STDERR, txt);
+			}
+			if (total) {
+			    /* something received. forward it to logger */
+			    sendMsg(type, buf, total);
 			}
 		    }
 		}
-	    } while (ret);
+	    }
 	}
 
 	pid = wait3(&status, WUNTRACED, &rusage);
@@ -662,26 +658,26 @@ static void sighandler(int sig)
  * Detailed checking of the file table on validity after a select()
  * call has failed.
  *
- * @param openfds Set of file descriptors that have to be checked.
+ * @param fds Set of file descriptors that have to be checked.
  *
  * @return No return value.
  *
  */
-static void checkFileTable(fd_set* openfds)
+static void checkFileTable(fd_set *fds)
 {
-    fd_set rfds;
+    fd_set testfds;
     int fd;
     struct timeval tv;
     char *errstr, buf[80];
 
     for (fd=0; fd<FD_SETSIZE;) {
-	if (FD_ISSET(fd, openfds)) {
-	    memset(&rfds, 0, sizeof(rfds));
-	    FD_SET(fd, &rfds);
+	if (FD_ISSET(fd, fds)) {
+	    FD_ZERO(&testfds);
+	    FD_SET(fd, &testfds);
 
 	    tv.tv_sec=0;
 	    tv.tv_usec=0;
-	    if (select(FD_SETSIZE, &rfds, NULL, NULL, &tv) < 0){
+	    if (select(FD_SETSIZE, &testfds, NULL, NULL, &tv) < 0){
 		/* error : check if it is a wrong fd in the table */
 		switch(errno){
 		case EBADF :
@@ -689,7 +685,7 @@ static void checkFileTable(fd_set* openfds)
 			     "%s(%d): EBADF -> close socket\n", __func__, fd);
 		    printMsg(STDERR, buf);
 		    close(fd);
-		    FD_CLR(fd, openfds);
+		    FD_CLR(fd, fds);
 		    fd++;
 		    break;
 		case EINTR:
@@ -702,14 +698,14 @@ static void checkFileTable(fd_set* openfds)
 			     "%s(%d): EINVAL -> close socket\n", __func__, fd);
 		    printMsg(STDERR, buf);
 		    close(fd);
-		    FD_CLR(fd, openfds);
+		    FD_CLR(fd, fds);
 		    break;
 		case ENOMEM:
 		    snprintf(buf , sizeof(buf),
 			     "%s(%d): ENOMEM -> close socket\n", __func__, fd);
 		    printMsg(STDERR, buf);
 		    close(fd);
-		    FD_CLR(fd, openfds);
+		    FD_CLR(fd, fds);
 		    break;
 		default:
 		    errstr=strerror(errno);
@@ -950,7 +946,6 @@ static void loop(void)
     char buf[4000], obuf[120];
     int n;
     size_t total;
-    int openfds = 2;
     PSLog_msg_t type;
 
     if (verbose) {
@@ -961,8 +956,14 @@ static void loop(void)
     }
 
     FD_ZERO(&readfds);
-    if (stdoutSock != -1) FD_SET(stdoutSock, &readfds);
-    if (stderrSock != -1) FD_SET(stderrSock, &readfds);
+    if (stdoutSock != -1) {
+	FD_SET(stdoutSock, &readfds);
+	openfds++;
+    }
+    if (stderrSock != -1) {
+	FD_SET(stderrSock, &readfds);
+	openfds++;
+    }
     FD_SET(daemonSock, &readfds);
     FD_ZERO(&writefds);
 
@@ -1022,7 +1023,7 @@ static void loop(void)
 			printMsg(STDERR, obuf);
 		    }
 
-		    close(sock);
+		    shutdown(sock, SHUT_RD);
 		    FD_CLR(sock, &readfds);
 		    openfds--;
 		    if (!openfds) {
@@ -1032,7 +1033,6 @@ static void loop(void)
 				     "PSID_forwarder: wait for SIGCHLD\n");
 			    printMsg(STDERR, obuf);
 			}
-			canend = 1;
 		    }
 		} else if (n<0 && errno!=ETIME && errno!=ECONNRESET) {
 		    /* ignore the error */

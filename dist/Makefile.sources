@@ -43,7 +43,6 @@ bin/daemon/psidtask.h \
 bin/daemon/psidtimer.h \
 bin/daemon/psidutil.c \
 bin/daemon/psidutil.h \
-bin/daemon/test_config_parsing.c \
 bin/gmspawner.c \
 bin/logger/psilogger.c \
 bin/mlisten.c \
