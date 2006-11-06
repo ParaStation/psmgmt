@@ -1,3 +1,216 @@
+Version psmgmt-4.3.4:
+=====================
+------------------------------------------------------------------------
+r4436 | eicker | 2006-11-06 20:50:48 +0100 (Mon, 06 Nov 2006) | 2 lines
+
+More compatibility with ssh: Give correct return value.
+
+------------------------------------------------------------------------
+r4435 | eicker | 2006-11-06 19:35:13 +0100 (Mon, 06 Nov 2006) | 2 lines
+
+More ssh compatibility: Make slave pty aware of changes in window-size.
+
+------------------------------------------------------------------------
+r4434 | eicker | 2006-11-06 18:09:02 +0100 (Mon, 06 Nov 2006) | 2 lines
+
+Some more ssh compatibility: Don't stop forwarder too early.
+
+------------------------------------------------------------------------
+r4431 | eicker | 2006-11-03 15:59:08 +0100 (Fri, 03 Nov 2006) | 3 lines
+
+Make test_config compile with older gcc on IA64.
+Remove obsolete tool test_config_parsing.
+
+------------------------------------------------------------------------
+r4430 | eicker | 2006-11-03 15:49:36 +0100 (Fri, 03 Nov 2006) | 6 lines
+
+Extension: Allow more than one user/group/admin-user/admin-group to be
+set.
+Move most of psnodes-stuff into the daemon, i.e. psidnodes.[ch].
+  Actually this is the only place where it is used.
+Many minor cleanups.
+
+------------------------------------------------------------------------
+r4424 | eicker | 2006-11-02 15:44:00 +0100 (Thu, 02 Nov 2006) | 2 lines
+
+Fix 64 bit issue in logging facility.
+
+------------------------------------------------------------------------
+r4421 | eicker | 2006-10-30 18:14:23 +0100 (Mon, 30 Oct 2006) | 2 lines
+
+Fix some bugs in last pssh-implementation.
+
+------------------------------------------------------------------------
+r4419 | eicker | 2006-10-30 16:42:54 +0100 (Mon, 30 Oct 2006) | 2 lines
+
+Fix two typos.
+
+------------------------------------------------------------------------
+r4418 | eicker | 2006-10-30 14:55:28 +0100 (Mon, 30 Oct 2006) | 2 lines
+
+Yet more compatibility with ssh.
+
+------------------------------------------------------------------------
+r4417 | eicker | 2006-10-30 14:42:45 +0100 (Mon, 30 Oct 2006) | 2 lines
+
+Store stdin/stdout/stderr fds in task structure.
+
+------------------------------------------------------------------------
+r4416 | eicker | 2006-10-30 14:28:27 +0100 (Mon, 30 Oct 2006) | 2 lines
+
+Improve history handling.
+
+------------------------------------------------------------------------
+r4415 | eicker | 2006-10-25 16:52:35 +0200 (Wed, 25 Oct 2006) | 3 lines
+
+Final changes on pssh. This should enable pssh to be used from within
+psh.
+
+------------------------------------------------------------------------
+r4411 | eicker | 2006-10-25 15:36:07 +0200 (Wed, 25 Oct 2006) | 3 lines
+
+Reorganize task-spawn. Lookup path if no absolute path (or path starting
+with './') is given. This enables pssh to be more complient with ssh.
+
+------------------------------------------------------------------------
+r4410 | eicker | 2006-10-25 15:32:12 +0200 (Wed, 25 Oct 2006) | 4 lines
+
+New helper function PSC_concat(). Concatenate two or more strings into
+one with malloc on the fly. This replaces some common used
+malloc()/strcpy()/strcat() constructs.
+
+------------------------------------------------------------------------
+r4409 | eicker | 2006-10-25 12:58:54 +0200 (Wed, 25 Oct 2006) | 2 lines
+
+Bugfix: Remove debug remains.
+
+------------------------------------------------------------------------
+r4405 | eicker | 2006-10-24 16:50:54 +0200 (Tue, 24 Oct 2006) | 2 lines
+
+Nicer output in psiadmin's 'list jobs slots' directive.
+
+------------------------------------------------------------------------
+r4402 | eicker | 2006-10-24 13:16:12 +0200 (Tue, 24 Oct 2006) | 2 lines
+
+psaccounter needs asnchronous handling of answers to PSI_kill()
+
+------------------------------------------------------------------------
+r4401 | eicker | 2006-10-24 12:13:48 +0200 (Tue, 24 Oct 2006) | 4 lines
+
+Improved handling of dropped messages
+More control on delivery of signals (new msg type PSP_CD_SIGRES)
+Signal 0 now might be used to ping process (as in kill(2))
+
+------------------------------------------------------------------------
+r4400 | eicker | 2006-10-24 12:09:54 +0200 (Tue, 24 Oct 2006) | 2 lines
+
+Minor update, some todos added.
+
+------------------------------------------------------------------------
+r4398 | eicker | 2006-10-24 09:48:38 +0200 (Tue, 24 Oct 2006) | 2 lines
+
+Some collected info on PS message types.
+
+------------------------------------------------------------------------
+r4393 | eicker | 2006-10-17 00:07:59 +0200 (Tue, 17 Oct 2006) | 3 lines
+
+More on accounting: Different accounting messages, also messages on task
+queue, start and delete. logger ping still missing.
+
+------------------------------------------------------------------------
+r4380 | eicker | 2006-10-10 22:40:48 +0200 (Tue, 10 Oct 2006) | 3 lines
+
+More accounting stuff. Still missing the possibility of the accounter to
+request if the logger is still there.
+
+------------------------------------------------------------------------
+r4366 | eicker | 2006-10-05 21:03:24 +0200 (Thu, 05 Oct 2006) | 2 lines
+
+Many hooks for accounting stuff.
+
+------------------------------------------------------------------------
+r4362 | eicker | 2006-10-04 15:15:29 +0200 (Wed, 04 Oct 2006) | 3 lines
+
+New environment 'PSI_HOSTS_UNIQUE'. This eliminates consecutive
+identical entries within a hostfile. Might be useful for benchmarking.
+
+------------------------------------------------------------------------
+r4355 | eicker | 2006-09-15 16:13:30 +0200 (Fri, 15 Sep 2006) | 3 lines
+
+New task-group TG_SERVICE. Will be used within the new PSC startup stuff.
+Add the corresponding PSI_spawnService() routine.
+
+------------------------------------------------------------------------
+r4350 | eicker | 2006-09-14 17:56:33 +0200 (Thu, 14 Sep 2006) | 2 lines
+
+Suppress warning messages from gcc4.
+
+------------------------------------------------------------------------
+r4347 | eicker | 2006-09-14 17:33:52 +0200 (Thu, 14 Sep 2006) | 2 lines
+
+New info PSP_INFO_LIST_PARTITION. We'll need this for PSC startup stuff.
+
+------------------------------------------------------------------------
+r4336 | eicker | 2006-09-05 19:12:28 +0200 (Tue, 05 Sep 2006) | 2 lines
+
+Respect the starter flag even if starting foreign applications.
+
+------------------------------------------------------------------------
+r4335 | eicker | 2006-09-05 19:11:19 +0200 (Tue, 05 Sep 2006) | 2 lines
+
+Remove bogus debug-message.
+
+------------------------------------------------------------------------
+r4322 | hauke | 2006-09-04 10:17:59 +0200 (Mon, 04 Sep 2006) | 2 lines
+
+psh: don't use configfile nodelist, if -n option is used on cmd_line.
+
+------------------------------------------------------------------------
+r4321 | hauke | 2006-09-04 10:00:45 +0200 (Mon, 04 Sep 2006) | 2 lines
+
+psh: default to ssh.
+
+------------------------------------------------------------------------
+r4320 | hauke | 2006-09-04 10:00:10 +0200 (Mon, 04 Sep 2006) | 2 lines
+
+psh: default to ssh.
+
+------------------------------------------------------------------------
+r4319 | hauke | 2006-09-04 09:59:18 +0200 (Mon, 04 Sep 2006) | 2 lines
+
+psh: ask for ~/.psh.d/default.
+
+------------------------------------------------------------------------
+r4318 | hauke | 2006-09-04 09:47:53 +0200 (Mon, 04 Sep 2006) | 2 lines
+
+psh: split comma separated hostlist.
+
+------------------------------------------------------------------------
+r4303 | eicker | 2006-09-01 12:02:01 +0200 (Fri, 01 Sep 2006) | 3 lines
+
+Handle PSP_INFO_NODE requests correctly. Parameter is PSnodes_ID_t, not
+int. This has introduced problems on big endian platforms.
+
+------------------------------------------------------------------------
+r4302 | eicker | 2006-09-01 12:00:07 +0200 (Fri, 01 Sep 2006) | 2 lines
+
+Bugfix: Actually enable 'set starter' and 'set runjobs'.
+
+------------------------------------------------------------------------
+r4268 | eicker | 2006-08-18 22:58:30 +0200 (Fri, 18 Aug 2006) | 2 lines
+
+Extension: New directive 'sleep' within psiadmin.
+
+------------------------------------------------------------------------
+r4260 | eicker | 2006-08-18 12:52:45 +0200 (Fri, 18 Aug 2006) | 2 lines
+
+Fix some problems with terminal process group within spawning processes.
+
+------------------------------------------------------------------------
+r4258 | eicker | 2006-08-17 13:19:24 +0200 (Thu, 17 Aug 2006) | 2 lines
+
+Update ChangeLog
+
 Version psmgmt-4.3.3:
 =====================
 ------------------------------------------------------------------------
