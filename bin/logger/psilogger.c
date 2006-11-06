@@ -767,32 +767,41 @@ static void loop(void)
 
 		break;
 	    case FINALIZE:
-	    {
-		int status = *(int *) msg.buf;
+		leave_raw_mode();
+		if (getenv("PSI_SSH_COMPAT_HOST")) {
+		    char *host = getenv("PSI_SSH_COMPAT_HOST");
+		    int status = *(int *) msg.buf;
+		    fprintf(stderr, "Connection to %s closed.\n", host);
 
-		if (WIFSIGNALED(status)) {
-		    fprintf(stderr, "PSIlogger: "
-			    "Child with rank %d exited on signal %d.\n",
-			    msg.sender, WTERMSIG(status));
-		    signaled = 1;
-		}
+		    if (WIFSIGNALED(status)) retVal = -1;
+		    if (WIFEXITED(status)) retVal = WEXITSTATUS(status);
 
-		if (WIFEXITED(status)) {
-		    if (WEXITSTATUS(status)) {
-			fprintf(stderr, "PSIlogger: "
-				"Child with rank %d exited with status %d.\n",
-				msg.sender, WEXITSTATUS(status));
-			if (!retVal) retVal = WEXITSTATUS(status);
-		    } else if (verbose) {
-			fprintf(stderr, "PSIlogger: "
-				"Child with rank %d exited normally.\n",
-				msg.sender);
+		} else {
+		    int status = *(int *) msg.buf;
+
+		    if (WIFSIGNALED(status)) {
+			fprintf(stderr, "PSIlogger: Child with rank %d"
+				" exited on signal %d.\n", msg.sender,
+				WTERMSIG(status));
+			signaled = 1;
+		    }
+
+		    if (WIFEXITED(status)) {
+			if (WEXITSTATUS(status)) {
+			    fprintf(stderr, "PSIlogger: Child with rank %d"
+				    " exited with status %d.\n", msg.sender,
+				    WEXITSTATUS(status));
+			    if (!retVal) retVal = WEXITSTATUS(status);
+			} else if (verbose) {
+			    fprintf(stderr, "PSIlogger: Child with rank %d"
+				    " exited normally.\n", msg.sender);
+			}
 		    }
 		}
 
 		if (verbose)
-		    fprintf(stderr,
-			    "PSIlogger: closing %s (rank %d) on FINALIZE\n",
+		    fprintf(stderr, "PSIlogger: closing %s (rank %d)"
+			    " on FINALIZE\n",
 			    PSC_printTID(msg.header.sender), msg.sender);
 
 		PSLog_write(msg.header.sender, EXIT, NULL, 0);
@@ -807,7 +816,6 @@ static void loop(void)
 		noClients--;
 
 		break;
-	    }
 	    case STOP:
 		if (msg.sender == InputDest) {
 		    /* rank InputDest wants pause */

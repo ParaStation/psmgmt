@@ -49,7 +49,7 @@ int main(int argc, const char *argv[])
     PSnodes_ID_t nodeID;
     int node, version, verbose, rusage;
     const char *host, *envlist, *login;
-    char *cmdLine = NULL, *shell;
+    char *cmdLine = NULL, *shell, hostStr[30];
 
     int i, rc, hostSet;
 
@@ -297,10 +297,13 @@ int main(int argc, const char *argv[])
 	    exit(1);
 	}
 	nodeID = node;
+
+	snprintf(hostStr, sizeof(hostStr), "node %d", node);
     }
 
     /* Don't irritate the user with logger messages */
     setenv("PSI_NOMSGLOGGERDONE", "", 1);
+    setenv("PSI_SSH_COMPAT_HOST", host ? host : hostStr, 1);
     setenv("PSI_LOGGER_RAW_MODE", "", 1);
 
     exec_argv[0] = shell;
