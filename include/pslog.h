@@ -40,8 +40,10 @@ typedef enum {
     USAGE,      /**< fw -> lg  Resources used by the client. */
     FINALIZE,   /**< fw -> lg  Client has finished. Request to shut down. */
     EXIT,       /**< lg -> fw  FINALIZE ack. */
-    STOP,       /**< fw -> lg (and lg -> fw)  flow control: stop send */
-    CONT,       /**< fw -> lg (and lg -> fw)  flow control: continue send */
+    STOP,       /**< fw -> lg (and lg -> fw) flow control: stop send */
+    CONT,       /**< fw -> lg (and lg -> fw) flow control: continue send */
+    WINCH,      /**< lg -> fw  Changed window-size. */
+    X11,        /**< fw -> lg (and lg -> fw) X11 forwarding */
 } PSLog_msg_t;
 
 /** Untyped Buffer Message. Used for all communication. */

@@ -54,6 +54,11 @@ int PrependSource = 0;
 int InputDest = 0;
 
 /**
+ * Task ID of the process that get's stdin
+ */
+PStask_ID_t forwardInputTID = -1;
+
+/**
  * Verbosity of Forwarders (1=Yes, 0=No)
  *
  * Set in main() to 1 if environment variable PSI_FORWARDERDEBUG is defined.
@@ -354,10 +359,32 @@ void sighandler(int sig)
 	    // usleep(200000);
 	}
 	break;
+    case SIGWINCH:
+	if (forwardInputTID != -1) {
+	    /* Create WINCH-messages and send */
+	    struct winsize ws;
+	    int buf[4];
+	    int len = 0;
+
+	    if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0) break;
+	    buf[len++] = ws.ws_col;
+	    buf[len++] = ws.ws_row;
+	    buf[len++] = ws.ws_xpixel;
+	    buf[len++] = ws.ws_ypixel;
+
+	    sendMsg(forwardInputTID, WINCH, (char *)buf, len*sizeof(*buf));
+
+	    if (verbose) {
+		fprintf(stderr, "PSIlogger: %s: WINCH to col %d row %d",
+			__func__, ws.ws_col, ws.ws_row);
+		fprintf(stderr, " xpixel %d ypixel %d\n",
+			ws.ws_xpixel, ws.ws_ypixel);
+	    }
+	}
+	break;
     case SIGHUP:
     case SIGTSTP:
     case SIGCONT:
-    case SIGWINCH:
     case SIGUSR1:
     case SIGUSR2:
     case SIGQUIT:
@@ -399,7 +426,7 @@ void leave_raw_mode(void)
 {
     if (!_in_raw_mode)
 	return;
-    if (tcsetattr(fileno(stdin), TCSADRAIN, &_saved_tio) == -1)
+    if (tcsetattr(STDIN_FILENO, TCSADRAIN, &_saved_tio) == -1)
 	perror("tcsetattr");
     else
 	_in_raw_mode = 0;
@@ -617,7 +644,6 @@ static void loop(void)
     struct timeval mytv={2,0}, atv;
     PSLog_Msg_t msg;
     int timeoutval;
-    PStask_ID_t forwardInputTID = -1; /* client TID which wants stdin */
 
     FD_ZERO(&myfds);
     FD_SET(daemonSock, &myfds);
@@ -662,7 +688,7 @@ static void loop(void)
 		    if (msg.sender == InputDest) {
 			/* rank InputDest wants the input */
 			forwardInputTID = msg.header.sender;
-			FD_SET(STDIN_FILENO,&myfds);
+			FD_SET(STDIN_FILENO, &myfds);
 			if (verbose) {
 			    fprintf(stderr, "PSIlogger: %s:"
 				    " forward input to %s (rank %d)\n",
@@ -873,7 +899,7 @@ int main( int argc, char**argv)
     signal(SIGHUP,   sighandler);
     signal(SIGTSTP,  sighandler);
     signal(SIGCONT,  sighandler);
-//    signal(SIGWINCH, sighandler);
+    signal(SIGWINCH, sighandler);
     signal(SIGUSR1,  sighandler);
     signal(SIGUSR2,  sighandler);
     signal(SIGQUIT,  sighandler);

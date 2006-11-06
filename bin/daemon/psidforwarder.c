@@ -17,10 +17,11 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/ioctl.h>
+#include <sys/resource.h>
+#include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/resource.h>
 #include <sys/wait.h>
 #include <signal.h>
 
@@ -908,6 +909,36 @@ static int readFromLogger(void)
 		closeDaemonSock();
 
 		exit(0);
+		break;
+	    case WINCH:
+		/* Logger detected change in window-size */
+		if (stdinSock>=0) {
+		    struct winsize w;
+		    int count = msg.header.len - PSLog_headerSize, len = 0;
+		    int *buf = (int *)msg.buf;
+
+		    if (count != 4 * sizeof(*buf)) {
+			snprintf(obuf, sizeof(obuf),
+				 "%s: Corrupted WINCH message\n", __func__);
+			printMsg(STDERR, obuf);
+			break;
+		    }
+
+		    w.ws_col = buf[len++];
+		    w.ws_row = buf[len++];
+		    w.ws_xpixel = buf[len++];
+		    w.ws_ypixel = buf[len++];
+
+		    (void) ioctl(stdinSock, TIOCSWINSZ, &w);
+
+		    if (verbose) {
+			snprintf(obuf, sizeof(obuf), "%s: WINCH to"
+				 " col %d row %d xpixel %d ypixel %d\n",
+				 __func__, w.ws_col, w.ws_row, 
+				 w.ws_xpixel, w.ws_ypixel);
+			printMsg(STDERR, obuf);
+		    }
+		}
 		break;
 	    default:
 		snprintf(obuf, sizeof(obuf),
