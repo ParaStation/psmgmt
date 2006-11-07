@@ -315,6 +315,8 @@ int main(int argc, const char *argv[])
 	exec_argv[2] = cmdLine;
 	exec_argv[3] = NULL;
 	exec_argc = 3;
+    } else {
+	setenv("PSI_SSH_INTERACTIVE", "", 1);
     }
 
     PSE_spawnAdmin(nodeID, 0, exec_argc, exec_argv);

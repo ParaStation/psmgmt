@@ -771,11 +771,12 @@ static void loop(void)
 		if (getenv("PSI_SSH_COMPAT_HOST")) {
 		    char *host = getenv("PSI_SSH_COMPAT_HOST");
 		    int status = *(int *) msg.buf;
-		    fprintf(stderr, "Connection to %s closed.\n", host);
 
 		    if (WIFSIGNALED(status)) retVal = -1;
 		    if (WIFEXITED(status)) retVal = WEXITSTATUS(status);
 
+		    if (getenv("PSI_SSH_INTERACTIVE"))
+			fprintf(stderr, "Connection to %s closed.\n", host);
 		} else {
 		    int status = *(int *) msg.buf;
 
