@@ -196,6 +196,7 @@ typedef enum {
     PSP_INFO_QUEUE_PARTITION,     /**< Queue of partitions */
 
     PSP_INFO_LIST_PARTITION,      /**< Task's list of allocated slots */
+    PSP_INFO_LIST_MEMORY,         /**< List of total/used memory values */
 
 } PSP_Info_t;
 

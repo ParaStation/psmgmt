@@ -74,11 +74,37 @@ static PSID_Load_t getLoad(void)
     return load;
 }
 
+/**
+ * @brief Get memory information from kernel.
+ *
+ * Get memory information from the kernel. The implementation is
+ * platform specific, since POSIX has no mechanism to retrieve this
+ * info.
+ *
+ * @return A @ref PSID_Mem_t structure containing the load info.
+ */
+static PSID_Mem_t getMem(void)
+{
+    PSID_Mem_t mem = {-1, -1};
+#ifdef __linux__
+    struct sysinfo s_info;
+
+    sysinfo(&s_info);
+    mem.total = s_info.totalram * s_info.mem_unit;
+    mem.free = s_info.freeram * s_info.mem_unit;
+#else
+#error BAD OS !!!!
+#endif
+
+    return mem;
+}
+
 /** Structure used to hold status information of all nodes on the master */
 typedef struct {
     struct timeval lastPing;  /**< Timestamp of last received ping */
     PSID_Jobs_t jobs;   /**< Number of jobs on the node */  
     PSID_Load_t load;   /**< Load parameters of node */
+    PSID_Mem_t mem;     /**< Memory parameters of node */
     short missCounter;  /**< Number of consecutively missing status pings */
     short wrongClients; /**< Number of consecutively wrong client numbers */
 } ClientStatus_t;
@@ -118,6 +144,7 @@ static void allocMasterSpace(void)
 	gettimeofday(&clientStat[node].lastPing, NULL);
 	clientStat[node].missCounter = 0;
 	clientStat[node].jobs = (PSID_Jobs_t) { .normal = 0, .total = 0 };
+	clientStat[node].mem = (PSID_Mem_t) { -1, -1 };
     }
 }
 
@@ -239,6 +266,10 @@ static void sendRDPPing(void)
     ptr += sizeof(int);
     msg.header.len += sizeof(int);
 
+    *(PSID_Mem_t *)ptr = getMem();
+    ptr += sizeof(PSID_Mem_t);
+    msg.header.len += sizeof(PSID_Mem_t);
+
     sendMsg(&msg);
     if (getMasterID() == PSC_getMyID()) handleMasterTasks();
 }
@@ -271,7 +302,7 @@ void decJobsHint(PSnodes_ID_t node)
 	clientStat[node].jobs.normal--;
 }
 
-PSID_NodeStatus_t getStatus(PSnodes_ID_t node)
+PSID_NodeStatus_t getStatusInfo(PSnodes_ID_t node)
 {
     PSID_NodeStatus_t status;
 
@@ -300,6 +331,26 @@ PSID_NodeStatus_t getStatus(PSnodes_ID_t node)
     }
 
     return status;
+}
+
+PSID_Mem_t getMemoryInfo(PSnodes_ID_t node)
+{
+    PSID_Mem_t memory;
+
+    if (config->useMCast) {
+	memory = (PSID_Mem_t) { -1, -1 };
+    } else {
+	if (node == PSC_getMyID()) {
+	    memory = getMem();
+	} else if ((PSC_getMyID() != getMasterID())
+	    || (node<0) || (node>PSC_getNrOfNodes()) || !clientStat) {
+	    memory = (PSID_Mem_t) { -1, -1 };
+	} else {
+	    memory = clientStat[node].mem;
+	}
+    }
+
+    return memory;
 }
 
 /**
@@ -731,6 +782,11 @@ void msg_LOAD(DDBufferMsg_t *msg)
 
 	clientNodes = *(int *)ptr;
 	ptr += sizeof(int);
+
+	if (((void *)ptr - (void *)msg) < msg->header.len) {
+	    clientStat[client].mem = *(PSID_Mem_t *)ptr;
+	    ptr += sizeof(PSID_Mem_t);
+	}
 
 	if (clientNodes != totalNodes) {
 	    clientStat[client].wrongClients++;

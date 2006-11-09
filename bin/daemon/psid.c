@@ -482,7 +482,7 @@ static void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
     /*
      * Get the number of processes
      */
-    status = getStatus(PSC_getMyID());
+    status = getStatusInfo(PSC_getMyID());
 
     /*
      * Reject or accept connection

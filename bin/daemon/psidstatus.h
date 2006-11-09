@@ -20,6 +20,8 @@
 #ifndef __PSIDSTATUS_H
 #define __PSIDSTATUS_H
 
+#include <stdint.h>
+
 #include "psprotocol.h"
 #include "psnodes.h"
 
@@ -42,6 +44,11 @@ typedef struct {
 typedef struct {
     double load[3];      /**< The actual load parameters */
 } PSID_Load_t;
+
+typedef struct {
+    uint64_t total;
+    uint64_t free;
+} PSID_Mem_t;
 
 /** Structure used for returning info on node status. */
 typedef struct {
@@ -116,12 +123,36 @@ void decJobsHint(PSnodes_ID_t node);
  * @param node The node information is requested from.
  *
  * @return On success, i.e. if the requested information is available,
- * this info is returned. Otherwise, some dummy information withi
- * negativ jobs numbers is returned. The latter case might occur, if
+ * this info is returned. Otherwise, some dummy information with a
+ * negative jobs numbers is returned. The latter case might occur, if
  * MCast is not used and info on some remote node is requested on a
  * node which is not the master node.
  */
-PSID_NodeStatus_t getStatus(PSnodes_ID_t node);
+PSID_NodeStatus_t getStatusInfo(PSnodes_ID_t node);
+
+/** @brief Get node memory info.
+ *
+ * Get information on the memory status of node @a node. The actual
+ * information returned contains the number of total available bytes
+ * and number of free bytes.
+ *
+ * This is mainly an abstraction layer in order to hide the actual
+ * mechanism used for information distribution within
+ * ParaStation. This might on the one hand be the MCast facility, on
+ * the other hand a autonomous system based on RDP.
+ *
+ * For clusters using the MCast facility memory information is
+ * typically unavailable.
+ *
+ * @param node The node information is requested from.
+ *
+ * @return On success, i.e. if the requested information is available,
+ * this info is returned. Otherwise, some dummy information with both
+ * numbers equal to -1 is returned. The latter case might occur, if
+ * MCast is not used and info on some remote node is requested on a
+ * node which is not the master node or if MCast is used on any node.
+ */
+PSID_Mem_t getMemoryInfo(PSnodes_ID_t node);
 
 /**
  * @brief Declare master node.

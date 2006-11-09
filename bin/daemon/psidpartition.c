@@ -735,7 +735,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 	PSnodes_ID_t node = request->nodes[i];
 	int cpus = PSIDnodes_getVirtCPUs(node);
 	int procs = getAssignedJobs(node);
-	PSID_NodeStatus_t status = getStatus(node);
+	PSID_NodeStatus_t status = getStatusInfo(node);
 
 	if (config->handleOldBins) {
 	    if (status.jobs.normal > procs) procs = status.jobs.normal;

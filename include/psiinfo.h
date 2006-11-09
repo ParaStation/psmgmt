@@ -311,6 +311,11 @@ int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * array containing the 1 minute, 5 minute and 15 minute averages. No
  * further parameters needed.
  *
+ * - PSP_INFO_LIST_MEMORY requests the memory of all nodes within the
+ * ParaStation cluster. A node's memory is provided as a @c
+ * uint64_t[2] array containing the total and free memory. No further
+ * parameters needed.
+ *
  * - PSP_INFO_LIST_ALLJOBS requests the total number of jobs of all
  * nodes within the ParaStation cluster. A node's total number of jobs
  * is provided as a @c uint16_t. No further parameters needed.

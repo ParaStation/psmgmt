@@ -289,7 +289,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    hwType = *(unsigned int *) inmsg->buf;
 
 	    for (i=0, j=0; i<PSC_getNrOfNodes() && j<maxNodes; i++) {
-		PSID_NodeStatus_t status = getStatus(i);
+		PSID_NodeStatus_t status = getStatusInfo(i);
 
 		if ((inmsg->type == PSP_INFO_NODELIST)
 		    || ((!hwType || PSIDnodes_getHWStatus(i) & hwType)
@@ -437,6 +437,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    break;
 	}
 	case PSP_INFO_LIST_LOAD:
+	case PSP_INFO_LIST_MEMORY:
 	case PSP_INFO_LIST_ALLJOBS:
 	case PSP_INFO_LIST_NORMJOBS:
 	case PSP_INFO_LIST_ALLOCJOBS:
@@ -481,6 +482,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    } else {
 		const size_t chunkSize = 1024;
 		PSID_NodeStatus_t status;
+		PSID_Mem_t memory;
 		size_t size = 0;
 		unsigned int idx = 0;
 		for (node=0; node<PSC_getNrOfNodes(); node++) {
@@ -505,19 +507,25 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 			size = sizeof(uint32_t);
 			break;
 		    case PSP_INFO_LIST_LOAD:
-			status = getStatus(node);
+			status = getStatusInfo(node);
 			((float *)msg.buf)[3*idx+0] = status.load.load[0];
 			((float *)msg.buf)[3*idx+1] = status.load.load[1];
 			((float *)msg.buf)[3*idx+2] = status.load.load[2];
 			size = 3*sizeof(float);
 			break;
+		    case PSP_INFO_LIST_MEMORY:
+			memory = getMemoryInfo(node);
+			((uint64_t *)msg.buf)[2*idx+0] = memory.total;
+			((uint64_t *)msg.buf)[2*idx+1] = memory.free;
+			size = 2*sizeof(uint64_t);
+			break;
 		    case PSP_INFO_LIST_ALLJOBS:
-			status = getStatus(node);
+			status = getStatusInfo(node);
 			((uint16_t *)msg.buf)[idx] = status.jobs.total;
 			size = sizeof(uint16_t);
 			break;
 		    case PSP_INFO_LIST_NORMJOBS:
-			status = getStatus(node);
+			status = getStatusInfo(node);
 			((uint16_t *)msg.buf)[idx] = status.jobs.normal;
 			size = sizeof(uint16_t);
 			break;

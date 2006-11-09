@@ -236,6 +236,20 @@ void PSIADM_ProcStat(int count, int full, char *nl);
 void PSIADM_LoadStat(char *nl);
 
 /**
+ * @brief Get memory status.
+ *
+ * Show the memory status of the nodes marked within the nodelist @a
+ * nl. Therefore the corresponding list containing the information is
+ * requested from the local daemon and printed to stdout.
+ *
+ * @param nl The nodelist describing the nodes from which the
+ * information should requested and put out.
+ *
+ * @return No return value.
+ */
+void PSIADM_MemStat(char *nl);
+
+/**
  * @brief Get hardware status.
  *
  * Show the hardware status of the nodes marked within the nodelist @a

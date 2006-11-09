@@ -422,6 +422,25 @@ static int listLoadCommand(char *token)
     return -1;
 }
 
+static int listMemoryCommand(char *token)
+{
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL;
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+	if (!nl) goto error;
+    }
+    if (parser_getString()) goto error; /* trailing garbage */
+
+    PSIADM_MemStat(nl);
+    return 0;
+
+ error:
+    printError(&listInfo);
+    return -1;
+}
+
 static int listHWCommand(char *token)
 {
     char *nl_descr = parser_getString();
@@ -534,6 +553,7 @@ static keylist_t listList[] = {
     {"jobs", listJobsCommand},
     {"load", listLoadCommand},
     {"mcast", listMCastCommand},
+    {"memory", listMemoryCommand},
     {"node", listNodeCommand},
     {"proc", listProcCommand},
     {"rdp", listRDPCommand},

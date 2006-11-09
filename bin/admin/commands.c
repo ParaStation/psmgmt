@@ -174,6 +174,15 @@ static inline int getLoads(void)
     return getFullList(&ldList, PSP_INFO_LIST_LOAD, 3 * sizeof(float));
 }
 
+/** List used for storing of memory informations. */
+static sizedList_t memList = { .actSize = 0, .list = NULL };
+
+/** Simple wrapper for retrieval of memory info */
+static inline int getMem(void)
+{
+    return getFullList(&memList, PSP_INFO_LIST_MEMORY, 2 * sizeof(uint64_t));
+}
+
 /** List used for storing of physical CPU informations. */
 static sizedList_t pcpuList = { .actSize = 0, .list = NULL };
 /** List used for storing of virtual CPU informations. */
@@ -669,6 +678,29 @@ void PSIADM_LoadStat(char *nl)
 		   loads[3*node+0], loads[3*node+1], loads[3*node+2],
 		   taskNumFull[node], taskNumNorm[node], taskNumAlloc[node],
 		   exclusiveFlag[node]);
+	} else {
+	    printf("%4d\t down\n", node);
+	}
+    }
+}
+
+void PSIADM_MemStat(char *nl)
+{
+    PSnodes_ID_t node;
+    uint64_t *memory;
+
+    if (! getHostStatus()) return;
+    if (! getMem()) return;
+    memory = (uint64_t *)memList.list;
+
+    printf("Node\t\t Memory\n");
+    printf("\t   total\t     free\n");
+
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
+	if (hostStatus.list[node]) {
+	    printf("%4d\t%15llu\t%15llu\n",
+		   node, memory[2*node+0], memory[2*node+1]);
 	} else {
 	    printf("%4d\t down\n", node);
 	}

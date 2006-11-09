@@ -232,14 +232,15 @@ static info_t setInfo = {
     .head = " Set command:",
     .syntax = (syntax_t[]) {{
 	.cmd = "set",
-	.arg = "{maxproc {<num>|any} | user {<user>|any} | group {<group>|any}"
-	" | psiddebug <level> | selecttime <timeout> | rdpdebug <level>"
-	" | rdppktloss <rate> | rdpmaxretrans <val> | mcastdebug <level>"
+	.arg = "{maxproc {<num>|any} | user [+|-]{<user>|any}"
+	" | group [+|-]{{<group>|any} | psiddebug <level>"
+	" | selecttime <timeout> | rdpdebug <level> | rdppktloss <rate>"
+	" | rdpmaxretrans <val> | mcastdebug <level>"
 	" | {smallpacketsize|sps} <size> | hnpend <val> | ackpend <val>"
 	" | {freeonsuspend|fos} <bool> | {handleoldbins|hob} <bool>"
 	" | starter <bool> | runjobs <bool> | overbook {<bool>|auto}"
-	" | exclusive <bool> | nodessort <mode> | adminuser {<user>|any}"
-	" | admingroup {<group>|any}} <nodes>"
+	" | exclusive <bool> | nodessort <mode> | adminuser [+|-]{<user>|any}"
+	" | admingroup [+|-]{<group>|any}} <nodes>"
     }},
     .nodes = 1,
     .descr = "Set one of various parameters of the ParaStation system:",
@@ -452,6 +453,8 @@ static info_t listInfo = {
 	{ .tag = "list mcast",
 	  .descr = "Show the status of the MCast facility on the selected"
 	  " nodes." },
+	{ .tag = "list memeory",
+	  .descr = "Show total / free memory on the selected nodes." },
 	{ .tag = "list summary",
 	  .descr = "Print a brief summary of the active and down nodes." },
 	{ .tag = "list versions",
