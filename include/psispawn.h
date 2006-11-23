@@ -284,6 +284,8 @@ int PSI_spawnSingle(char *workdir, int argc, char **argv,
  * @param argv Array of argument strings passed to the resulting
  * execve() call in order to finally spawn the task.
  *
+ * @param strictArgv Flag to prevent "smart" replacement of argv[0].
+ *
  * @param rank The rank of the spawned process. This is mainly used
  * within reconnection to the logger.
  *
@@ -297,7 +299,8 @@ int PSI_spawnSingle(char *workdir, int argc, char **argv,
  * @a error is set appropriately.
  */
 int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
-		   unsigned int rank, int *error, PStask_ID_t *tid);
+		   int strictArgv, unsigned int rank,
+		   int *error, PStask_ID_t *tid);
 
 /**
  * @brief Spawn service task within the cluster.

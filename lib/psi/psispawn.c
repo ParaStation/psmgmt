@@ -519,14 +519,15 @@ int PSI_spawnSingle(char *workdir, int argc, char **argv,
 }
 
 int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
-		   unsigned int rank, int *error, PStask_ID_t *tid)
+		   int strictArgv, unsigned int rank,
+		   int *error, PStask_ID_t *tid)
 {
     int ret;
 
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, node);
 
     if (node == -1) node = PSC_getMyID();
-    ret = dospawn(1, &node, workdir, argc, argv, 1,
+    ret = dospawn(1, &node, workdir, argc, argv, strictArgv,
 		  TG_ADMINTASK, rank, error, tid);
     if (ret != 1) {
 	return -1;

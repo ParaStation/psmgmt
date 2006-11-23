@@ -319,7 +319,7 @@ int main(int argc, const char *argv[])
 	setenv("PSI_SSH_INTERACTIVE", "", 1);
     }
 
-    PSE_spawnAdmin(nodeID, 0, exec_argc, exec_argv);
+    PSE_spawnAdmin(nodeID, 0, exec_argc, exec_argv, 1);
 
     /* Never be here ! */
     exit(1);

@@ -297,25 +297,17 @@ void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
     logger_print(logger, PSE_LOG_SPAWN, "Spawned all processes\n");
 }
 
-void PSE_spawnAdmin(PSnodes_ID_t node, unsigned int rank,
-		    int argc, char *argv[])
+int PSE_spawnAdmin(PSnodes_ID_t node, unsigned int rank,
+		   int argc, char *argv[], int strictArgv)
 {
     PStask_ID_t spawnedProcess = -1;
     int error;
 
     logger_print(logger, PSE_LOG_VERB, "%s(%s)\n", __func__, argv[0]);
 
-    /* client process? */
-    if (PSE_getRank() != -1) {
-	logger_print(logger, -1,
-		     "%s: Don't call if rank is not -1 (rank=%d)\n",
-		     __func__, PSE_getRank());
-	exitAll("Wrong rank", 10);
-    }
-
     /* spawn admin process */
-    if (PSI_spawnAdmin(node, NULL, argc, argv, rank,
-		       &error, &spawnedProcess) < 0 ) {
+    if (PSI_spawnAdmin(node, NULL, argc, argv, strictArgv, rank,
+		       &error, &spawnedProcess) < 0 && PSE_getRank() == -1) {
 	if (error) {
 	    logger_warn(logger, -1, error,
 			"Could not spawn admin process (%s)",argv[0]);
@@ -326,10 +318,14 @@ void PSE_spawnAdmin(PSnodes_ID_t node, unsigned int rank,
     logger_print(logger, PSE_LOG_SPAWN,
 		 "[%d] Spawned admin process\n", PSE_getRank());
 
-    if (defaultUID) setuid(defaultUID);
+    if (PSE_getRank() == -1) {
+	if (defaultUID) setuid(defaultUID);
 
-    /* Switch to psilogger */
-    PSI_execLogger(NULL);
+	/* Switch to psilogger */
+	PSI_execLogger(NULL);
+    }
+
+    return error;
 }
 
 int PSE_getMasterNode(void)

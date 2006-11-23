@@ -407,15 +407,16 @@ int PSE_getMasterPort();
 /**
  * @brief Spawn admin process.
  *
- * Spawn an admin process and become logger. A process with rank =
- * 0 is spawned and the actual process will exec(2) to the
- * psilogger. It will serve the spawned process as an I/O daemon.
+ * Spawn an admin process as describe in @a argc and @a argv to node
+ * @a node. The rank of the spawned process is set as given in @a
+ * rank. If the local rank is -1, the local process will exec(2) to
+ * the psilogger. It will serve the spawned process (and all further
+ * processes spawned by it and its descendents) as an I/O daemon.
  *
  * Spawning is done without allocating a partition. Only selected
  * users are allowed to spawn admin processes.
  *
- * If an error occures, an error message is generated and the process
- * exits.
+ * If an error occures, an error message is generated.
  *
  * @param node ID of the node to spawn to.
  *
@@ -426,16 +427,17 @@ int PSE_getMasterPort();
  *
  * @param argv The argument vector of the task to spawn.
  *
- * @return No return value. Actually, @a PSE_spawnAdmin() never
- * returns but becomes a psilogger process.
+ * @param strictArgv Flag to prevent "smart" replacement of argv[0].
  *
- * @warning Calls to this function from within processes where @ref
- * PSE_getRank() returns a value different from -1 will fail.
+ * @return If the calling process's rank is -1, this function never
+ * returns. Either it becomes logger or it exits after creating an
+ * error message. Otherwise upon success 0 is returned, or and errno
+ * describing the error that occurred.
  *
  * @see PSE_getRank(), exec(2)
  * */
-void PSE_spawnAdmin(PSnodes_ID_t node, unsigned int rank,
-		    int argc, char *argv[]);
+int PSE_spawnAdmin(PSnodes_ID_t node, unsigned int rank,
+		   int argc, char *argv[], int strictArgv);
 
 /**
  * @brief Deprecated form of PSE_spawnMaster() and PSE_spawnTasks()
