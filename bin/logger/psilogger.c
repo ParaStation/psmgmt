@@ -233,8 +233,9 @@ static int recvMsg(PSLog_Msg_t *msg)
 	/* Ignore */
 	break;
     default:
-	fprintf(stderr, "PSIlogger: %s: Unknown message type %s.\n", __func__,
-		PSP_printMsg(msg->header.type));
+	fprintf(stderr, "PSIlogger: %s: Unknown message type %s from %s.\n",
+		__func__, PSP_printMsg(msg->header.type),
+		PSC_printTID(msg->header.sender));
 
 	ret = 0;
     }

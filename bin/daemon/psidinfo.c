@@ -574,12 +574,10 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    if (task->ptid) {
 		PSID_log(PSID_LOG_INFO, "%s: forward to root process %s\n",
 			 funcStr, PSC_printTID(task->ptid));
-		inmsg->header.dest = task->ptid;
-		if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
-		    PSID_warn(-1, errno, "%s: sendMsg()", funcStr);
-		    err=1;
-		    break;
-		}
+		msg.header.type = inmsg->header.type;
+		msg.header.sender = inmsg->header.sender;
+		msg.header.dest = task->ptid;
+		msg_INFOREQUEST(&msg);
 		return;
 	    } else {
 		const size_t chunkSize = 1024;
