@@ -607,12 +607,19 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 		    task->released = 1;
 	    }
 
-	    /* Don't send message if task not TG_(GM)SPAWNER */
-	    if (task->group != TG_SPAWNER && task->group != TG_GMSPAWNER)
+	    switch (task->group) {
+	    case TG_SPAWNER:
+	    case TG_GMSPAWNER:
+		/* Do not send a DD message to a client */
+		msg->header.type = PSP_CD_SPAWNFINISH;
+		break;
+	    case TG_SERVICE:
+		/* TG_SERVICE expects signal, not message */
+		PSID_sendSignal(task->tid, task->uid, msg->request, -1, 0, 0);
+	    default:
+		/* Don't send message if task not TG_(GM)SPAWNER */
 		return;
-
-	    /* Don't send a DD message to a client */
-	    msg->header.type = PSP_CD_SPAWNFINISH;
+	    }
 	}
 	sendMsg(msg);
 
