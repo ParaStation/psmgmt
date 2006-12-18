@@ -236,7 +236,7 @@ static info_t setInfo = {
 	" | group [+|-]{{<group>|any} | psiddebug <level>"
 	" | selecttime <timeout> | rdpdebug <level> | rdppktloss <rate>"
 	" | rdpmaxretrans <val> | mcastdebug <level>"
-	" | {smallpacketsize|sps} <size> | hnpend <val> | ackpend <val>"
+/* 	" | {smallpacketsize|sps} <size> | hnpend <val> | ackpend <val>" */
 	" | {freeonsuspend|fos} <bool> | {handleoldbins|hob} <bool>"
 	" | starter <bool> | runjobs <bool> | overbook {<bool>|auto}"
 	" | exclusive <bool> | nodessort <mode> | adminuser [+|-]{<user>|any}"
@@ -247,13 +247,17 @@ static info_t setInfo = {
     .tags = (taggedInfo_t[]) {
 	{ .tag = "set maxproc {<num>|any}",
 	  .descr = "Set the maximum number of ParaStation processes. If the"
-	"argument is 'any', an unlimited number of processes is allowed." },
-	{ .tag = "set user {<user>|any}",
+	  "argument is 'any', an unlimited number of processes is allowed." },
+	{ .tag = "set user [+|-]{<user>|any}",
 	  .descr = "Grant access to a particular or any user. <user> might be"
-	  "a user name or a numerical UID." },
-	{ .tag = "set group {<group>|any}",
+	  " a user name or a numerical UID. If <user> is preceeded by a '+' or"
+	  " '-', this user is added to or removed from the list of users"
+	  " respectively." },
+	{ .tag = "set group [+|-]{<group>|any}",
 	  .descr = "Grant access to a particular or any group. <group> might"
-	  " be a group name or a numerical GID." },
+	  " be a group name or a numerical GID. If <group> is preceeded by a"
+	  " '+' or '-', this group is added to or removed from the list of"
+	  " groups respectively." },
 	{ .tag = "set psiddebug <level>",
 	  .descr = "Set the ParaStation daemon's verbosity level to <level> on"
 	  " the selected nodes."
@@ -281,12 +285,12 @@ static info_t setInfo = {
 	  " seleceted nodes. Depending on <level> the daemon might log a huge"
 	  " amount of messages to the syslog. Thus do not use large values"
 	  " for <level> for a long time." },
-	{ .tag = "set {smallpacketsize|sps} <size>",
-	  .descr = "Set MCP's maximum size of PIO packets to <size> bytes." },
-	{ .tag = "set ackpend <val>",
-	  .descr = "Set MCP's ACKPend parameter to <val>." },
-	{ .tag = "set hnpend <val>",
-	  .descr = "Set MCP's HNPend parameter to <val>." },
+/* 	{ .tag = "set {smallpacketsize|sps} <size>", */
+/* 	  .descr = "Set MCP's maximum size of PIO packets to <size> bytes." }, */
+/* 	{ .tag = "set ackpend <val>", */
+/* 	  .descr = "Set MCP's ACKPend parameter to <val>." }, */
+/* 	{ .tag = "set hnpend <val>", */
+/* 	  .descr = "Set MCP's HNPend parameter to <val>." }, */
 	{ .tag = "set {freeonsuspend|fos} <bool>",
 	  .descr = "Set flag marking if resources of suspended jobs are freed"
 	  " temporarily to <bool>. Relevant values are 'false', 'true', 'no',"
@@ -319,17 +323,21 @@ static info_t setInfo = {
 	  " attaching them to a partition. Valid values for <mode> are"
 	  " PROC, LOAD1, LOAD5, LOAD15, PROC+LOAD or NONE. This only comes"
 	  " into play, if the user does not define a sorting strategy"
-	  " explicitely via PSI_NODES_SORT. Be aware of the fact that using"
+	  " explicitly via PSI_NODES_SORT. Be aware of the fact that using"
 	  " a batch-system like PBS or LSF *will* set the strategy"
-	  " explicitely, namely to NONE." },
-	{ .tag = "set adminuser {<user>|any}",
-	  .descr = "Grant authorization to start admin-task, i.e. task not"
-	  " accounted to a particular or any user. <user> might be"
-	  "a user name or a numerical UID." },
-	{ .tag = "set admingroup {<group>|any}",
-	  .descr = "Grant authorization to start admin-task, i.e. task not"
-	  " accounted to a particular or any group. <group> might be"
-	  "a group name or a numerical GID." },
+	  " explicitly, namely to NONE." },
+	{ .tag = "set adminuser [+|-]{<user>|any}",
+	  .descr = "Grant authorization to start admin-tasks, i.e. task not"
+	  " accounted, to a particular or any user. <user> might be a user"
+	  " name or a numerical UID. If <user> is preceeded by a '+' or '-',"
+	  " this user is added to or removed from the list of adminusers"
+	  " respectively." },
+	{ .tag = "set admingroup [+|-]{<group>|any}",
+	  .descr = "Grant authorization to start admin-tasks, i.e. task not"
+	  " accounted, to a particular or any group. <group> might be a group"
+	  " name or a numerical GID. If <group> is preceeded by a '+' or '-',"
+	  " this group is added to or removed from the list of admingroups"
+	  " respectively." },
 	{ NULL, NULL }
     },
     .comment = "For more information reffer to 'help set <subcommand>'"
@@ -341,7 +349,7 @@ static info_t showInfo = {
 	.cmd = "show",
 	.arg = "{maxproc | user | group | psiddebug | selecttime | rdpdebug"
 	" | rdppktloss | rdpmaxretrans | mcastdebug | master"
-	" | {smallpacketsize|sps} | {resendtimeout|rto} | hnpend | ackpend"
+/* 	" | {smallpacketsize|sps} | {resendtimeout|rto} | hnpend | ackpend" */
 	" | {freeonsuspend|fos} | {handleoldbins|hob} | starter | runjobs"
 	" | overbook | exclusive | nodessort | adminuser | admingroup"
 	" | accounters}"
@@ -353,9 +361,9 @@ static info_t showInfo = {
 	{ .tag = "show maxproc",
 	  .descr = "Show maximum number of ParaStation processes." },
 	{ .tag = "show user",
-	  .descr = "Show user access is granted to." },
+	  .descr = "Show users access is granted to." },
 	{ .tag = "show group",
-	  .descr = "Show group access is granted to." },
+	  .descr = "Show groups access is granted to." },
 	{ .tag = "show psiddebug",
 	  .descr = "Show daemons verbosity level." },
 	{ .tag = "show selecttime",
@@ -370,14 +378,14 @@ static info_t showInfo = {
 	  .descr = "Show MCast facility's verbosity level." },
 	{ .tag = "show master",
 	  .descr = "Show master handling all the partition requests." },
-	{ .tag = "show {smallpacketsize|sps}",
-	  .descr = "Show MCP's maximum size of PIO packets in bytes." },
-	{ .tag = "show resendtimeout",
-	  .descr = "Show MCP's resend timeout in microseconds." },
-	{ .tag = "show hnpend",
-	  .descr = "Show MCP's HNPend parameter." },
-	{ .tag = "show ackpend",
-	  .descr = "Show MCP's AckPend parameter." },
+/* 	{ .tag = "show {smallpacketsize|sps}", */
+/* 	  .descr = "Show MCP's maximum size of PIO packets in bytes." }, */
+/* 	{ .tag = "show resendtimeout", */
+/* 	  .descr = "Show MCP's resend timeout in microseconds." }, */
+/* 	{ .tag = "show hnpend", */
+/* 	  .descr = "Show MCP's HNPend parameter." }, */
+/* 	{ .tag = "show ackpend", */
+/* 	  .descr = "Show MCP's AckPend parameter." }, */
 	{ .tag = "show {freeonsuspend|fos}",
 	  .descr = "Show flag marking if resources of suspended jobs are freed"
 	  " temporarily. Only the value on the master node really steers the"
@@ -395,15 +403,15 @@ static info_t showInfo = {
 	  " user-request." },
 	{ .tag = "show exclusive",
 	  .descr = "Show flag marking if this nodes can be requested by users"
-	  "exclusively." },
+	  " exclusively." },
 	{ .tag = "show nodessort",
 	  .descr = "Show the default sorting strategy used when attaching"
 	  " nodes to partitions." },
 	{ .tag = "show adminuser",
-	  .descr = "Show user allowed to start admin-tasks, i.e. unaccounted"
+	  .descr = "Show users allowed to start admin-tasks, i.e. unaccounted"
 	  " tasks." },
 	{ .tag = "show admingroup",
-	  .descr = "Show group allowed to start admin-tasks, i.e. unaccounted"
+	  .descr = "Show groups allowed to start admin-tasks, i.e. unaccounted"
 	  " tasks." },
 	{ .tag = "show accounters",
 	  .descr = "Show all accounter tasks, i.e. tasks collecting accounting"
@@ -453,8 +461,8 @@ static info_t listInfo = {
 	{ .tag = "list mcast",
 	  .descr = "Show the status of the MCast facility on the selected"
 	  " nodes." },
-	{ .tag = "list memeory",
-	  .descr = "Show total / free memory on the selected nodes." },
+	{ .tag = "list memory",
+	  .descr = "Show total / free memory for the selected nodes." },
 	{ .tag = "list summary",
 	  .descr = "Print a brief summary of the active and down nodes." },
 	{ .tag = "list versions",
@@ -478,7 +486,7 @@ static info_t sleepInfo = {
 	.arg = "<sec>"
     }},
     .nodes = 0,
-    .descr = "Sleep for <sec> seconds before continueing to parse intput.",
+    .descr = "Sleep for <sec> seconds before continuing to parse intput.",
     .tags = NULL,
     .comment = NULL
 };
@@ -550,12 +558,12 @@ static info_t testInfo = {
     .descr = "All communications links in a ParaStation network are tested.",
     .tags = (taggedInfo_t[]) {
 	{ .tag = "quiet",
-	  .descr = "just a ok is told on success." },
+	  .descr = "just an ok is signaled on success." },
 	{ .tag = "normal",
-	  .descr = "only the coordinator node is telling about his activity."
+	  .descr = "only the coordinator node is telling about its activity."
 	},
 	{ .tag = "verbose",
-	  .descr = "each node is telling about his activity." },
+	  .descr = "each node is telling about its activity." },
 	{ NULL, NULL }
     },
     .comment = NULL

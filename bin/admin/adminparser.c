@@ -687,29 +687,29 @@ static int setShowMCastDebug(char *token)
     return 0;
 }
 
-static int setShowSPS(char *token)
-{
-    setShowOpt = PSP_OP_PSM_SPS;
-    return 0;
-}
+/* static int setShowSPS(char *token) */
+/* { */
+/*     setShowOpt = PSP_OP_PSM_SPS; */
+/*     return 0; */
+/* } */
 
-static int setShowRTO(char *token)
-{
-    setShowOpt = PSP_OP_PSM_RTO;
-    return 0;
-}
+/* static int setShowRTO(char *token) */
+/* { */
+/*     setShowOpt = PSP_OP_PSM_RTO; */
+/*     return 0; */
+/* } */
 
-static int setShowHNPend(char *token)
-{
-    setShowOpt = PSP_OP_PSM_HNPEND;
-    return 0;
-}
+/* static int setShowHNPend(char *token) */
+/* { */
+/*     setShowOpt = PSP_OP_PSM_HNPEND; */
+/*     return 0; */
+/* } */
 
-static int setShowAckPend(char *token)
-{
-    setShowOpt = PSP_OP_PSM_ACKPEND;
-    return 0;
-}
+/* static int setShowAckPend(char *token) */
+/* { */
+/*     setShowOpt = PSP_OP_PSM_ACKPEND; */
+/*     return 0; */
+/* } */
 
 static int setShowFOS(char *token)
 {
@@ -777,12 +777,12 @@ static keylist_t setShowList[] = {
     {"rdpmaxretrans", setShowRDPMaxRetrans},
     {"master", setShowMaster},
     {"mcastdebug", setShowMCastDebug},
-    {"smallpacketsize", setShowSPS},
-    {"sps", setShowSPS},
-    {"resendtimeout", setShowRTO},
-    {"rto", setShowRTO},
-    {"hnpend", setShowHNPend},
-    {"ackpend", setShowAckPend},
+/*     {"smallpacketsize", setShowSPS}, */
+/*     {"sps", setShowSPS}, */
+/*     {"resendtimeout", setShowRTO}, */
+/*     {"rto", setShowRTO}, */
+/*     {"hnpend", setShowHNPend}, */
+/*     {"ackpend", setShowAckPend}, */
     {"freeonsuspend", setShowFOS},
     {"fos", setShowFOS},
     {"handleoldbins", setShowHOB},
@@ -913,10 +913,10 @@ static int setCommand(char *token)
     case PSP_OP_RDPPKTLOSS:
     case PSP_OP_RDPMAXRETRANS:
     case PSP_OP_MCASTDEBUG:
-    case PSP_OP_PSM_SPS:
-    case PSP_OP_PSM_RTO:
-    case PSP_OP_PSM_HNPEND:
-    case PSP_OP_PSM_ACKPEND:
+/*     case PSP_OP_PSM_SPS: */
+/*     case PSP_OP_PSM_RTO: */
+/*     case PSP_OP_PSM_HNPEND: */
+/*     case PSP_OP_PSM_ACKPEND: */
 	if (parser_getNumber(value, &val)) {
 	    printf("Illegal value '%s'\n", value);
 	    goto error;
@@ -1000,10 +1000,10 @@ static int showCommand(char *token)
     case PSP_OP_RDPMAXRETRANS:
     case PSP_OP_MCASTDEBUG:
     case PSP_OP_MASTER:
-    case PSP_OP_PSM_SPS:
-    case PSP_OP_PSM_RTO:
-    case PSP_OP_PSM_HNPEND:
-    case PSP_OP_PSM_ACKPEND:
+/*     case PSP_OP_PSM_SPS: */
+/*     case PSP_OP_PSM_RTO: */
+/*     case PSP_OP_PSM_HNPEND: */
+/*     case PSP_OP_PSM_ACKPEND: */
     case PSP_OP_FREEONSUSP:
     case PSP_OP_HANDLEOLD:
     case PSP_OP_NODESSORT:
@@ -1235,7 +1235,7 @@ static int versionCommand(char *token)
 
     printf("PSIADMIN: ParaStation administration tool\n");
     printf("Copyright (C) 1996-2004 ParTec AG Karlsruhe\n");
-    printf("Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich\n");
+    printf("Copyright (C) 2005-2006 ParTec Cluster Competence Center GmbH, Munich\n");
     printf("\n");
     printf("PSIADMIN:   %s\b/ %s\b/ %s\b \b\b\n", psiadmversion+11,
 	   commandsversion+11, parserversion+11);
