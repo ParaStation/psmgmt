@@ -499,7 +499,7 @@ static list_t * get_GUID_list(PSnodes_ID_t id, PSIDnodes_gu_t what)
 
 
 /**
- * @brief Clear list of QUIDs
+ * @brief Clear list of GUIDs
  *
  * Clear the list of GUIDs @a list, i.e. remove all entries from the
  * list and free() the allocated memory.
@@ -508,7 +508,7 @@ static list_t * get_GUID_list(PSnodes_ID_t id, PSIDnodes_gu_t what)
  *
  * @return No return value.
  */
-static void clear_QUID_list(list_t *list)
+static void clear_GUID_list(list_t *list)
 {
     list_t *pos, *tmp;
 
@@ -530,7 +530,7 @@ int PSIDnodes_setGUID(PSnodes_ID_t id,
 
     if (!list) return -1;
 
-    clear_QUID_list(list);
+    clear_GUID_list(list);
 
     return PSIDnodes_addGUID(id, what, guid);
 }
@@ -557,7 +557,7 @@ int PSIDnodes_addGUID(PSnodes_ID_t id,
 	break;
     }
 
-    if (!cmp_GUID(what, guid, any)) clear_QUID_list(list);
+    if (!cmp_GUID(what, guid, any)) clear_GUID_list(list);
 
     list_for_each_safe(pos, tmp, list) {
         guent = list_entry(pos, PSIDnodes_GUent_t, next);
