@@ -1,3 +1,39 @@
+Version psmgmt-4.3.6:
+=====================
+------------------------------------------------------------------------
+r4491 | eicker | 2007-01-04 12:38:06 +0100 (Thu, 04 Jan 2007) | 2 lines
+
+New version 4.3.6
+
+------------------------------------------------------------------------
+r4490 | eicker | 2007-01-04 12:34:28 +0100 (Thu, 04 Jan 2007) | 3 lines
+
+Rework of the psid's configuration parser in order to allow more than
+ one user/group/adminuser/admingroup in the configration file.
+
+------------------------------------------------------------------------
+r4489 | eicker | 2007-01-02 19:32:31 +0100 (Tue, 02 Jan 2007) | 2 lines
+
+Fix typo (rename clear_QUID_list() to clear_GUID_list()).
+
+------------------------------------------------------------------------
+r4478 | eicker | 2006-12-18 11:20:26 +0100 (Mon, 18 Dec 2006) | 3 lines
+
+Fix some typos in psiadmin's help messages.
+Disable MCP-related (i.e. V3) directives in psiadmin.
+
+------------------------------------------------------------------------
+r4477 | eicker | 2006-12-15 12:44:43 +0100 (Fri, 15 Dec 2006) | 2 lines
+
+Correct signal delivery for TG_SERVICE processes.
+
+------------------------------------------------------------------------
+r4472 | eicker | 2006-12-11 12:19:20 +0100 (Mon, 11 Dec 2006) | 2 lines
+
+Bugfix: Minor problem within startup of InfiniPath jobs.
+
+------------------------------------------------------------------------
+
 Version psmgmt-4.3.5:
 =====================
 ------------------------------------------------------------------------
