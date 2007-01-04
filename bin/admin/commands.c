@@ -700,7 +700,8 @@ void PSIADM_MemStat(char *nl)
 	if (nl && !nl[node]) continue;
 	if (hostStatus.list[node]) {
 	    printf("%4d\t%15llu\t%15llu\n",
-		   node, memory[2*node+0], memory[2*node+1]);
+		   node, (long long unsigned int) memory[2*node+0],
+		   (long long unsigned int) memory[2*node+1]);
 	} else {
 	    printf("%4d\t down\n", node);
 	}
