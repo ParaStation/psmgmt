@@ -283,9 +283,45 @@ void parser_setDebugMask(int32_t mask);
  *
  * @return No return value.
  *
- * @see logger_print(), parser_getDebugLevel(), parser_setDebugLevel()
+ * @see logger_print(), parser_getDebugLevel(),
+ * parser_setDebugLevel(), parser_commentCont()
  */
 void parser_comment(parser_log_key_t key, char* format, ...);
+
+/**
+ * @brief Continue a comment.
+ *
+ * Print out a comment concerning actual parsing. The @a comment will
+ * *not* be prepended by any information, thus this function may act
+ * as an continuation of a comment started via @ref parser_comment().
+ *
+ * This is a wrapper to @ref logger_print().
+ *
+ * The message is only put out if either:
+ *
+ * - the key @a key bitwise or'ed with @a parser's current debug-mask
+ * set via @ref setDebugMask() is different form zero, or
+ *
+ * - the key @a key is -1.
+ *
+ * Thus all messages with @a key set to -1 are put out always,
+ * independently of the choice of @a parser's mask. Therefor critical
+ * messages of general interest should be but out with @a key st to
+ * this value.
+ *
+ * @param key The key to use in order to decide if anything is put out.
+ *
+ * @param format The format to be used in order to produce output. The
+ * syntax used is according to the one defined for the @ref printf()
+ * family of functions from the C standard. This string will also
+ * define the further parameters to be expected.
+ *
+ * @return No return value.
+ *
+ * @see logger_print(), parser_getDebugLevel(),
+ * parser_setDebugLevel(), parser_comment()
+ */
+void parser_commentCont(parser_log_key_t key, char* format, ...);
 
 /*
  * Basic routines to get defined fields

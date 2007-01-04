@@ -44,7 +44,7 @@ static char *nextline(void)
     parseline++;
 
     if (!fgets(line+length, sizeof(line)-length, parsefile)) {
-	parser_comment(PARSER_LOG_FILE, "Got EOF");
+	parser_comment(PARSER_LOG_FILE, "Got EOF\n");
 	line[0] = '\0';
 	return line;
     }
@@ -56,15 +56,15 @@ static char *nextline(void)
 
     if (parser_getDebugMask() & PARSER_LOG_ECHO) {
 	if (line[strlen(line)-1] == '\n') {
-	    parser_comment(PARSER_LOG_ECHO, "parsing '%.*s\\n'",
+	    parser_comment(PARSER_LOG_ECHO, "parsing '%.*s\\n'\n",
 			   strlen(line)-1, line);
 	} else {
-	    parser_comment(PARSER_LOG_ECHO, "parsing '%s'", line);
+	    parser_comment(PARSER_LOG_ECHO, "parsing '%s'\n", line);
 	}
     }
 
     if (strlen(line) == (sizeof(line) - 1)) {
-	parser_comment(-1, "Line too long");
+	parser_comment(-1, "Line too long\n");
 	return NULL;
     }
 
@@ -134,10 +134,10 @@ void parser_removeComment(char *line)
 	    while (*txt==' ' || *txt=='\t') txt++;
 
 	    if (*txt == '\n') {
-		parser_comment(PARSER_LOG_CMNT, "Remove empty comment");
+		parser_comment(PARSER_LOG_CMNT, "Remove empty comment\n");
 	    } else {
 		if (txt[strlen(txt)-1] == '\n') txt[strlen(txt)-1] = '\0';
-		parser_comment(PARSER_LOG_CMNT, "Remove comment: '%s'", txt);
+		parser_comment(PARSER_LOG_CMNT, "Remove comment: '%s'\n", txt);
 	    }
 	}
 
@@ -228,7 +228,7 @@ int parser_parseFile(parser_t *parser)
 
 int parser_error(char *token)
 {
-    parser_comment(-1, "Syntax error at '%s'", token);
+    parser_comment(-1, "Syntax error at '%s'\n", token);
     return -1;
 }
 
@@ -239,7 +239,7 @@ void parser_comment(parser_log_key_t key, char *format, ...)
     va_list ap;
     int len;
 
-    len = snprintf(fmt, fmtlen, "in line %d: %s\n", parseline, format);
+    len = snprintf(fmt, fmtlen, "in line %d: %s", parseline, format);
     if (len >= fmtlen) {
 	fmtlen = len + 80; /* Some extra space */
 	fmt = (char *)realloc(fmt, fmtlen);
@@ -248,6 +248,15 @@ void parser_comment(parser_log_key_t key, char *format, ...)
 
     va_start(ap, format);
     logger_vprint(logger, key, fmt, ap);
+    va_end(ap);
+}
+
+void parser_commentCont(parser_log_key_t key, char *format, ...)
+{
+    va_list ap;
+
+    va_start(ap, format);
+    logger_vprint(logger, key, format, ap);
     va_end(ap);
 }
 
@@ -266,9 +275,9 @@ int parser_getComment(char *token)
     char *line = parser_getLine();
 
     if (line) {
-	parser_comment(PARSER_LOG_CMNT, "Got comment '%s'", line);
+	parser_comment(PARSER_LOG_CMNT, "Got comment '%s'\n", line);
     } else {
-	parser_comment(PARSER_LOG_CMNT, "Got empty comment");
+	parser_comment(PARSER_LOG_CMNT, "Got empty comment\n");
     }
 
     return 0;
@@ -312,7 +321,7 @@ char *parser_getFilename(char *token, char *prefix, char *extradir)
 		return absname;
 	    }
 
-	    parser_comment(PARSER_LOG_VERB, "%s: file '%s' not found",
+	    parser_comment(PARSER_LOG_VERB, "%s: file '%s' not found\n",
 			   __func__, absname);
 	}
 
@@ -326,7 +335,7 @@ char *parser_getFilename(char *token, char *prefix, char *extradir)
     }
 
     parser_comment(PARSER_LOG_VERB,
-		   "%s: file '%s' not found", __func__, absname);
+		   "%s: file '%s' not found\n", __func__, absname);
 
     free(absname);
     absname = NULL;
@@ -342,7 +351,7 @@ unsigned int parser_getHostname(char *token)
     struct hostent *hostinfo;
 
     if (!token) {
-	parser_comment(-1, "%s: token is NULL", __func__);
+	parser_comment(-1, "%s: token is NULL\n", __func__);
 	return 0;
     }
 	
@@ -351,12 +360,12 @@ unsigned int parser_getHostname(char *token)
     hostinfo = gethostbyname(hname);
 
     if (!hostinfo) {
-	parser_comment(-1, "%s: %s", hname, hstrerror(h_errno));
+	parser_comment(-1, "%s: %s\n", hname, hstrerror(h_errno));
 	return 0;
     }
 
     if (hostinfo->h_length != sizeof(in_addr.s_addr)) {
-	parser_comment(-1, "%s: Wrong size of address", hname);
+	parser_comment(-1, "%s: Wrong size of address\n", hname);
 
 	h_errno = NO_ADDRESS;
 
@@ -365,7 +374,7 @@ unsigned int parser_getHostname(char *token)
 
     memcpy(&in_addr.s_addr, hostinfo->h_addr_list[0], sizeof(in_addr.s_addr));
 
-    parser_comment(PARSER_LOG_RES, "Found host '%s' to have address %s",
+    parser_comment(PARSER_LOG_RES, "Found host '%s' to have address %s\n",
 		   hname, inet_ntoa(in_addr));
     
     return in_addr.s_addr;
@@ -376,13 +385,13 @@ int parser_getNumValue(char *token, int *value, char *valname)
     long num;
 
     if (parser_getNumber(token, &num)) {
-	parser_comment(-1, "'%s' is not a valid number for '%s'",
+	parser_comment(-1, "'%s' is not a valid number for '%s'\n",
 		       token, valname);
 
 	return -1;
     }
 
-    parser_comment(PARSER_LOG_RES, "got '%ld' for '%s'", num, valname);
+    parser_comment(PARSER_LOG_RES, "got '%ld' for '%s'\n", num, valname);
 
     *value = num;
 
@@ -392,7 +401,7 @@ int parser_getNumValue(char *token, int *value, char *valname)
 int parser_getBool(char *token, int *value, char *valname)
 {
     if (!token) {
-	parser_comment(-1, "No boolean value given%s%s%s",
+	parser_comment(-1, "No boolean value given%s%s%s\n",
 		       valname ? " for '" : "",
 		       valname ? valname : "", valname ? "'" : "");
 	return -1;
@@ -410,7 +419,7 @@ int parser_getBool(char *token, int *value, char *valname)
 	long num;
 
 	if (parser_getNumber(token, &num)) {
-	    parser_comment(-1, "'%s' is not a valid boolean value%s%s%s",
+	    parser_comment(-1, "'%s' is not a valid boolean value%s%s%s\n",
 			   token, valname ? " for '" : "",
 			   valname ? valname : "", valname ? "'" : "");
 
@@ -420,7 +429,7 @@ int parser_getBool(char *token, int *value, char *valname)
 	*value = !!num;
     }
 
-    parser_comment(PARSER_LOG_RES, "got '%s' for boolean value '%s'",
+    parser_comment(PARSER_LOG_RES, "got '%s' for boolean value '%s'\n",
 		   *value ? "TRUE" : "FALSE", valname);
 
     return 0;

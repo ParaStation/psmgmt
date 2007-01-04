@@ -85,7 +85,7 @@ static void nodeInit(node_t *node)
     node->extraIP = INADDR_ANY;
     node->runJobs = 0;
     node->isStarter = 0;
-    node->uid_list = (list_t) LIST_HEAD_INIT(node->uid_list);
+    node->uid_list = LIST_HEAD_INIT(node->uid_list);
     node->gid_list = LIST_HEAD_INIT(node->gid_list);
     node->admuid_list = LIST_HEAD_INIT(node->admuid_list);
     node->admgid_list = LIST_HEAD_INIT(node->admgid_list);
