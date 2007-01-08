@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -71,7 +71,7 @@ typedef enum {
 typedef enum {
     PSP_OP_UNKNOWN,               /**< Unknown option */
     PSP_OP_HWSTATUS = 0x0001,     /**< Hardware status */
-    /* PSP_OP_CPUS,*/ /* unused *//**< Number of CPUs */
+    PSP_OP_PROTOCOLVERSION,       /**< Node's PSProtocol version */
     PSP_OP_PROCLIMIT = 0x0003,    /**< Maximum number of processes */
     PSP_OP_UIDLIMIT,              /**< uid the node is restricted to
 				     @deprecated */

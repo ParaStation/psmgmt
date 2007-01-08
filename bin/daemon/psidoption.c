@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -46,6 +46,9 @@ void send_OPTIONS(PSnodes_ID_t destnode)
 
     msg.opt[(int) msg.count].option = PSP_OP_HWSTATUS;
     msg.opt[(int) msg.count].value = PSIDnodes_getHWStatus(PSC_getMyID());
+    msg.count++;
+    msg.opt[(int) msg.count].option = PSP_OP_PROTOCOLVERSION;
+    msg.opt[(int) msg.count].value = PSprotocolVersion;
     msg.count++;
     msg.opt[(int) msg.count].option = PSP_OP_PROCLIMIT;
     msg.opt[(int) msg.count].value = PSIDnodes_getProcs(PSC_getMyID());
@@ -437,6 +440,10 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 		PSIDnodes_setHWStatus(PSC_getID(msg->header.sender),
 				      msg->opt[i].value);
 		break;
+	    case PSP_OP_PROTOCOLVERSION:
+		PSIDnodes_setProtocolVersion(PSC_getID(msg->header.sender),
+					     msg->opt[i].value);
+		break;
 	    case PSP_OP_PSIDDEBUG:
 		PSID_setDebugMask(msg->opt[i].value);
 		PSC_setDebugMask(msg->opt[i].value);
@@ -552,6 +559,10 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		}
 		break;
 	    }
+	    case PSP_OP_PROTOCOLVERSION:
+		msg->opt[out].value =
+		    PSIDnodes_getProtocolVersion(PSC_getMyID());
+		break;
 	    case PSP_OP_PSIDDEBUG:
 		msg->opt[out].value = PSID_getDebugMask();
 		break;

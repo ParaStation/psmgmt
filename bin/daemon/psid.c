@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -1833,6 +1833,7 @@ int main(int argc, const char *argv[])
     /* Start up all the hardware */
     PSID_log(PSID_LOG_HW, "%s: starting up the hardware\n", __func__);
 
+    PSIDnodes_setProtocolVersion(PSC_getMyID(), PSprotocolVersion);
     PSIDnodes_setHWStatus(PSC_getMyID(), 0);
     PSID_startAllHW();
 

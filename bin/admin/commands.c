@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -339,7 +339,7 @@ void PSIADM_HWStart(int hw, char *nl)
 	    msg.header.dest = PSC_getTID(node, 0);
 	    PSI_sendMsg(&msg);
 	} else {
-	    printf("%4d down.\n", node);
+	    printf("%4d\tdown\n", node);
 	}
     }
 }
@@ -375,7 +375,7 @@ void PSIADM_HWStop(int hw, char *nl)
 	    msg.header.dest = PSC_getTID(node, 0);
 	    PSI_sendMsg(&msg);
 	} else {
-	    printf("%4d down.\n", node);
+	    printf("%4d\tdown\n", node);
 	}
     }
 }
@@ -390,9 +390,9 @@ void PSIADM_NodeStat(char *nl)
 	if (nl && !nl[node]) continue;
 
 	if (hostStatus.list[node]) {
-	    printf("%4d up.\n", node);
+	    printf("%4d\tup\n", node);
 	} else {
-	    printf("%4d down.\n", node);
+	    printf("%4d\tdown\n", node);
 	}
     }
 }
@@ -449,7 +449,7 @@ void PSIADM_RDPStat(char *nl)
 	    }
 	    printf("\n");
 	} else {
-	    printf("  down\n\n");
+	    printf("\tdown\n\n");
 	}
     }
 }
@@ -527,10 +527,10 @@ void PSIADM_CountStat(int hw, char *nl)
 	for (node=0; node<PSC_getNrOfNodes(); node++) {
 	    if (nl && !nl[node]) continue;
 
-	    printf("%6d ", node);
+	    printf("%4d\t", node);
 	    if (hostStatus.list[node]) {
 		if (! hwStatus[node] & 1<<hw) {
-		    printf("    No card present\n");
+		    printf("No card present\n");
 		} else {
 		    int err = PSI_infoString(node, PSP_INFO_COUNTSTATUS, &hw,
 					     line, sizeof(line), 1);
@@ -542,11 +542,11 @@ void PSIADM_CountStat(int hw, char *nl)
 			    printf("%s\n", line);
 			}
 		    } else {
-			printf("    Counter unavailable\n");
+			printf("Counter unavailable\n");
 		    }
 		}
 	    } else {
-		printf("\tdown\n");
+		printf("down\n");
 	    }
 	}
 	printf("\n");
@@ -570,9 +570,9 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 		    __func__)) return;
     taskInfo = (PSP_taskInfo_t *)tiList.list;
 
-    printf("%4s %22s %22s %3s %9s %.*s\n",
+    printf("%4s\t%22s %22s %3s %9s %.*s\n",
 	   "Node", "TaskId", "ParentTaskId", "Con", "UserId",
-	   (width-65) > 0 ? width-65 : 0, "Cmd");
+	   (width-68) > 0 ? width-68 : 0, "Cmd");
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	int numTasks = 0, task, displdTasks;
 
@@ -615,7 +615,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 	/* Now do the output */
 	displdTasks = (count<0) ? numTasks : (numTasks<count) ? numTasks:count;
 	for (task=0; task < displdTasks; task++) {
-	    printf("%4d ", node);
+	    printf("%4d\t", node);
 	    printf("%22s ", PSC_printTID(taskInfo[task].tid));
 	    printf("%22s ", PSC_printTID(taskInfo[task].ptid));
 	    printf("%2d  ", taskInfo[task].connected);
@@ -679,7 +679,7 @@ void PSIADM_LoadStat(char *nl)
 		   taskNumFull[node], taskNumNorm[node], taskNumAlloc[node],
 		   exclusiveFlag[node]);
 	} else {
-	    printf("%4d\t down\n", node);
+	    printf("%4d\tdown\n", node);
 	}
     }
 }
@@ -703,7 +703,7 @@ void PSIADM_MemStat(char *nl)
 		   node, (long long unsigned int) memory[2*node+0],
 		   (long long unsigned int) memory[2*node+1]);
 	} else {
-	    printf("%4d\t down\n", node);
+	    printf("%4d\tdown\n", node);
 	}
     }
 }
@@ -731,7 +731,7 @@ void PSIADM_HWStat(char *nl)
 		   virtCPUs[node], physCPUs[node],
 		   PSI_printHWType(hwStatus[node]));
 	} else {
-	    printf("%4d\t down\n", node);
+	    printf("%4d\tdown\n", node);
 	}
     }
 }
@@ -888,12 +888,15 @@ void PSIADM_VersionStat(char *nl)
 
     if (! getHostStatus()) return;
 
-    printf("Node\t psid\t RPM\n");
+    printf("Node\t psid\t RPM\t\t Proto\n");
+    printf("%4s\t%8s %16s %5s\n", "Node", "psid", "RPM", "Proto");
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
 	if (hostStatus.list[node]) {
 	    char psidver[100], rpmrev[100];
+	    PSP_Optval_t optVal;
+	    PSP_Option_t optType = PSP_OP_PROTOCOLVERSION;
 	    int err;
 
 	    psidver[0] = rpmrev[0] = '\0';
@@ -903,7 +906,21 @@ void PSIADM_VersionStat(char *nl)
 	    err = PSI_infoString(node, PSP_INFO_RPMREV, NULL,
 				 rpmrev, sizeof(rpmrev), 0);
 	    if (err) strcpy(rpmrev, "unknown");
-	    printf("%4d\t%s\b \t%s\n", node, psidver+11, rpmrev);
+
+	    printf("%4d\t%8s\b  %16s", node, psidver+11, rpmrev);
+
+	    err = PSI_infoOption(node, 1, &optType, &optVal, 1);
+	    if (err != -1) {
+		switch (optType) {
+		case PSP_OP_UNKNOWN:
+		    printf(" unknown option\n");
+		    break;
+		default:
+		    printf(" %5d\n", optVal);
+		}
+	    } else {
+		printf(" error getting info\n");
+	    }
 	} else {
 	    printf("%4d\tdown\n", node);
 	}
@@ -1003,7 +1020,7 @@ void PSIADM_ShowParam(PSP_Option_t type, char *nl)
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
-	printf("%3d:  ", node);
+	printf("%4d\t", node);
 	if (hostStatus.list[node]) {
 	    PSP_Option_t t = type;
 	    ret = PSI_infoOption(node, 1, &t, &value, 1);
@@ -1066,7 +1083,7 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
-	printf("%3d:  ", node);
+	printf("%4d\t", node);
 	if (!hostStatus.list[node]) {
 	    printf("down\n");
 	    continue;
@@ -1082,7 +1099,7 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 
 	    ret = PSI_infoOptionListNext(options, DDOptionMsgMax, 1);
 	    if (ret == -1) {
-		printf(" error getting info");
+		printf("error getting info");
 		break;
 	    }
 
@@ -1091,24 +1108,24 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 		    goto next_node;
 		}
 		if (options[i].option != type) {
-		    printf(" wrong answer");
+		    printf("wrong answer");
 		    goto next_node;
 		}
 
 		switch (type) {
 		case PSP_OP_ACCT:
-		    printf(" %s", PSC_printTID(options[i].value));
+		    printf("%s", PSC_printTID(options[i].value));
 		    break;
 		case PSP_OP_UID:
 		case PSP_OP_ADMUID:
 		    if (options[i].value==-1)
-			printf(" ANY");
+			printf("ANY");
 		    else {
 			struct passwd *passwd = getpwuid(options[i].value);
 			if (passwd) {
-			    printf(" %s", passwd->pw_name);
+			    printf("%s", passwd->pw_name);
 			} else {
-			    printf(" uid %d", options[i].value);
+			    printf("uid %d", options[i].value);
 			}
 		    }
 		    break;
@@ -1119,17 +1136,17 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 		    else {
 			struct group *group = getgrgid(options[i].value);
 			if (group) {
-			    printf(" %s", group->gr_name);
+			    printf("%s", group->gr_name);
 			} else {
-			    printf(" gid %d\n", options[i].value);
+			    printf("gid %d\n", options[i].value);
 			}
 		    }
 		    break;
 		case PSP_OP_UNKNOWN:
-		    printf(" unknown option");
+		    printf("unknown option");
 		    break;
 		default:
-		    printf(" wrong type");
+		    printf("wrong type");
 		}
 	    }
 	    if (options[i].option == PSP_OP_LISTEND

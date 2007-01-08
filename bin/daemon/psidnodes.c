@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -43,6 +43,7 @@ static struct host_t *hosts[256];
 /** Structure holding all known info available concerning a special node */
 typedef struct {
     in_addr_t addr;        /**< IP address of that node */
+    int protocolversion;   /**< Node's PSprotocol version */
     int version;           /**< Version of the config info from that node */
     short physCPU;         /**< Number of physical CPUs in that node */
     short virtCPU;         /**< Number of virtual CPUs in that node */
@@ -76,6 +77,7 @@ static node_t *nodes = NULL;
 static void nodeInit(node_t *node)
 {
     node->addr = INADDR_ANY;
+    node->protocolversion = 0;
     node->version = 0;
     node->physCPU = 0;
     node->virtCPU = 0;
@@ -234,7 +236,7 @@ int PSIDnodes_isUp(PSnodes_ID_t id)
 /**********************************************************************/
 /* @todo This does not really make sense, but is a good start.
    Actually each piece of information needs its own version number */
-int PSIDnodes_setInfoVersion(PSnodes_ID_t id, unsigned int version)
+int PSIDnodes_setInfoVersion(PSnodes_ID_t id, int version)
 {
     if (ID_ok(id)) {
 	nodes[id].version = version;
@@ -248,6 +250,26 @@ int PSIDnodes_getInfoVersion(PSnodes_ID_t id)
 {
     if (ID_ok(id)) {
 	return nodes[id].version;
+    } else {
+	return -1;
+    }
+}
+
+/**********************************************************************/
+int PSIDnodes_setProtocolVersion(PSnodes_ID_t id, int version)
+{
+    if (ID_ok(id)) {
+	nodes[id].protocolversion = version;
+	return 0;
+    } else {
+	return -1;
+    }
+}
+
+int PSIDnodes_getProtocolVersion(PSnodes_ID_t id)
+{
+    if (ID_ok(id)) {
+	return nodes[id].protocolversion;
     } else {
 	return -1;
     }

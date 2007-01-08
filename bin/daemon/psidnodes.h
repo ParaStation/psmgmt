@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -132,6 +132,32 @@ int PSIDnodes_bringDown(PSnodes_ID_t id);
  */
 int PSIDnodes_isUp(PSnodes_ID_t id);
 
+
+/**
+ * @brief Set the protocol version of a node.
+ *
+ * Set the protocol version the node with ParaStation ID @a id talks
+ * to @a version.
+ *
+ * @param id ParaStation ID of the node to be modified.
+ *
+ * @param hwType The protocol version of this node.
+ *
+ * @return On success, 0 is returned or -1, if an error occured.
+ */
+int PSIDnodes_setProtocolVersion(PSnodes_ID_t id, int version);
+
+/**
+ * @brief Get the protocol version of a node.
+ *
+ * Get the protocol version the node with ParaStation ID @a id talks.
+ *
+ * @param id ParaStation ID of the node to look up.
+ *
+ * @return If the node was found, the protocol version is returned. Or
+ * -1, if an error occured.
+ */
+int PSIDnodes_getProtocolVersion(PSnodes_ID_t id);
 
 /**
  * @brief Set the hardware type of a node.
