@@ -720,7 +720,7 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
  * different from 0 is returned. This value might be interpreted as an
  * errno describing the problem that occurred during the spawn.
  */
-static int buildSandbox(PStask_t *forwarder, PStask_t *client)
+static int buildSandboxAndStart(PStask_t *forwarder, PStask_t *client)
 {
     int forwarderfds[2];  /* pipe fds to control forwarders startup */
     int socketfds[2];     /* sockets for communication with forwarder */
@@ -764,8 +764,7 @@ static int buildSandbox(PStask_t *forwarder, PStask_t *client)
 	   the connecting socket */
 	for (i=0; i<getdtablesize(); i++) {
 	    if (i!=STDIN_FILENO && i!=STDOUT_FILENO && i!=STDERR_FILENO
-		&& i!=forwarderfds[1] && i!=socketfds[1]
-		&& i != PSID_lockFD) {
+		&& i!=forwarderfds[1] && i!=socketfds[1]) {
 		close(i);
 	    }
 	}
@@ -1034,7 +1033,7 @@ static int spawnTask(PStask_t *task)
     forwarder->protocolVersion = PSprotocolVersion;
 
     /* now try to start the task */
-    err = buildSandbox(forwarder, task);
+    err = buildSandboxAndStart(forwarder, task);
 
     if (!err) {
 	/*
@@ -1073,7 +1072,7 @@ static int spawnTask(PStask_t *task)
 	    }
 	}
     } else {
-	PSID_warn(PSID_LOG_SPAWN, err, "%s: spawnTask()", __func__);
+	PSID_warn(PSID_LOG_SPAWN, err, "%s: buildSandboxAndStart()", __func__);
 
 	PStask_delete(forwarder);
 	PStask_delete(task);
