@@ -420,8 +420,8 @@ static size_t collectRead(int sock, char *buf, size_t count, size_t *total)
 	    } else {
 		char txt[128];
 		snprintf(txt, sizeof(txt),
-			 "PSID_forwarder: error on select(%d): %s\n",
-			 errno, strerror(errno));
+			 "PSID_forwarder: %s: error on select(): %s\n",
+			 __func__, strerror(errno));
 		printMsg(STDERR, txt);
 		break;
 	    }
@@ -514,8 +514,8 @@ static void sighandler(int sig)
 	    if (ret < 0) {
 		if (errno != EINTR) {
 		    snprintf(txt, sizeof(txt),
-			     "PSID_forwarder: error on select(%d): %s\n",
-			     errno, strerror(errno));
+			     "PSID_forwarder: %s: error on select(): %s\n",
+			     __func__, strerror(errno));
 		    printMsg(STDERR, txt);
 		}
 		break;
@@ -671,56 +671,45 @@ static void checkFileTable(fd_set *fds)
     struct timeval tv;
     char *errstr, buf[80];
 
-    for (fd=0; fd<FD_SETSIZE;) {
-	if (FD_ISSET(fd, fds)) {
-	    FD_ZERO(&testfds);
-	    FD_SET(fd, &testfds);
+    for (fd=0; fd<FD_SETSIZE; fd++) {
+	if (!FD_ISSET(fd, fds)) continue;
 
-	    tv.tv_sec=0;
-	    tv.tv_usec=0;
-	    if (select(FD_SETSIZE, &testfds, NULL, NULL, &tv) < 0){
-		/* error : check if it is a wrong fd in the table */
-		switch(errno){
-		case EBADF :
-		    snprintf(buf, sizeof(buf),
-			     "%s(%d): EBADF -> close socket\n", __func__, fd);
-		    printMsg(STDERR, buf);
-		    close(fd);
-		    FD_CLR(fd, fds);
-		    fd++;
-		    break;
-		case EINTR:
-		    snprintf(buf, sizeof(buf),
-			     "%s(%d): EINTR -> trying again\n", __func__, fd);
-		    printMsg(STDERR, buf);
-		    break;
-		case EINVAL:
-		    snprintf(buf, sizeof(buf),
-			     "%s(%d): EINVAL -> close socket\n", __func__, fd);
-		    printMsg(STDERR, buf);
-		    close(fd);
-		    FD_CLR(fd, fds);
-		    break;
-		case ENOMEM:
-		    snprintf(buf , sizeof(buf),
-			     "%s(%d): ENOMEM -> close socket\n", __func__, fd);
-		    printMsg(STDERR, buf);
-		    close(fd);
-		    FD_CLR(fd, fds);
-		    break;
-		default:
-		    errstr=strerror(errno);
-		    snprintf(buf, sizeof(buf),
-			     "%s(%d): unrecognized error (%d): %s\n", __func__,
-			     fd, errno, errstr ? errstr : "UNKNOWN");
-		    printMsg(STDERR, buf);
-		    fd ++;
-		    break;
-		}
-	    }else
-		fd ++;
-	}else
-	    fd ++;
+	FD_ZERO(&testfds);
+	FD_SET(fd, &testfds);
+
+	tv.tv_sec=0;
+	tv.tv_usec=0;
+
+	if (select(FD_SETSIZE, &testfds, NULL, NULL, &tv) >= 0) continue;
+
+	/* error : check if it's a wrong fd in the table or an interrupt */
+	switch(errno){
+	case EBADF :
+	case EINVAL:
+	case ENOMEM:
+	    snprintf(buf, sizeof(buf), "%s(%d): %s -> close socket\n",
+		     __func__, fd,
+		     (errno==EBADF) ? "EBADF" :
+		     (errno==EINVAL) ? "EINVAL" : "ENOMEM");
+	    printMsg(STDERR, buf);
+	    close(fd);
+	    FD_CLR(fd, fds);
+	    openfds--;
+	    break;
+	case EINTR:
+	    snprintf(buf, sizeof(buf),
+		     "%s(%d): EINTR -> trying again\n", __func__, fd);
+	    printMsg(STDERR, buf);
+	    fd--; /* try again */
+	    break;
+	default:
+	    errstr=strerror(errno);
+	    snprintf(buf, sizeof(buf),
+		     "%s(%d): unrecognized error (%d): %s\n", __func__,
+		     fd, errno, errstr ? errstr : "UNKNOWN");
+	    printMsg(STDERR, buf);
+	    break;
+	}
     }
 }
 
@@ -981,6 +970,10 @@ static void loop(void)
 
     if (verbose) {
 	snprintf(obuf, sizeof(obuf),
+		 "PSID_forwarder: childTask=%s daemon=%d\n",
+		 PSC_printTID(childTask->tid), daemonSock);
+	printMsg(STDERR, obuf);
+	snprintf(obuf, sizeof(obuf),
 		 "PSID_forwarder: stdin=%d stdout=%d stderr=%d\n",
 		 stdinSock, stdoutSock, stderrSock);
 	printMsg(STDERR, obuf);
@@ -1007,8 +1000,8 @@ static void loop(void)
 	if (select(FD_SETSIZE, &rfds, &wfds, NULL, &atv) < 0) {
 	    if (errno != EINTR) {
 		snprintf(obuf, sizeof(obuf),
-			 "PSID_forwarder: error on select(%d): %s\n",
-			 errno, strerror(errno));
+			 "PSID_forwarder: %s: error on select(): %s\n",
+			 __func__, strerror(errno));
 		printMsg(STDERR, obuf);
 		checkFileTable(&readfds);
 	    }

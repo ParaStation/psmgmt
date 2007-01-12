@@ -620,6 +620,7 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 	}
 
 	/* From now on, all logging is done via the forwarder thru stderr */
+	closelog();
 
 	if (dup2(task->stdin_fd, STDIN_FILENO) < 0) {
 	    fprintf(stderr, "%s: dup2(stdin): [%d] %s\n", __func__,
@@ -678,15 +679,10 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
     buf = pid;
     ret = write(cntrlCh, &buf, sizeof(buf));
 
-    closelog();
-
     resetSignals();
 
     /* Pass the client's PID to the forwarder. */
     task->tid = PSC_getTID(-1, pid);
-
-    /* Rename the syslog tag */
-    openlog("psidforwarder", LOG_PID|LOG_CONS, config->logDest);
 
     /* Release the waiting daemon and exec forwarder */
     close(cntrlCh);
@@ -762,12 +758,18 @@ static int buildSandboxAndStart(PStask_t *forwarder, PStask_t *client)
 
 	/* close all fds except the control channel, stdin/stdout/stderr and
 	   the connecting socket */
+	/* Start with connection to syslog */
+	closelog();
+	/* Then all the rest */
 	for (i=0; i<getdtablesize(); i++) {
 	    if (i!=STDIN_FILENO && i!=STDOUT_FILENO && i!=STDERR_FILENO
 		&& i!=forwarderfds[1] && i!=socketfds[1]) {
 		close(i);
 	    }
 	}
+
+	/* Reopen the syslog and rename the tag */
+	openlog("psidforwarder", LOG_PID|LOG_CONS, config->logDest);
 
 	execForwarder(client, socketfds[1], forwarderfds[1]);
     }
