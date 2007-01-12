@@ -1659,7 +1659,7 @@ int main(int argc, const char *argv[])
 
     struct poptOption optionsTable[] = {
         { "debug", 'd', POPT_ARG_INT, &debugMask, 0,
-	  "enble debugging with mask <mask>", "mask"},
+	  "enable debugging with mask <mask>", "mask"},
         { "configfile", 'f', POPT_ARG_STRING, &configfile, 0,
           "use <file> as config-file (default is /etc/parastation.conf)",
           "file"},
