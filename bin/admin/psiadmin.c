@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -304,6 +304,9 @@ int main(int argc, const char **argv)
 	parseLine(copt);
 	return 0;
     }
+
+    /* Initialize the parser */
+    parseLine("");
 
     /*
      * Read the startup file

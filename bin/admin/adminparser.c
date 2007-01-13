@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -1322,8 +1322,6 @@ static int parseCommand(char *command)
 {
     char *token, *line = parser_getLine();
     int ret;
-
-    // printf("Command is '%s'\n", command);
 
     /* Register to new parser */
     token = parser_registerString(command, &commandParser);
