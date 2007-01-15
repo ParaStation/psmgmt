@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id: test_pse.c 3882 2006-01-02 10:24:47Z eicker $
  *
@@ -30,6 +30,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c 4393 2006-10-16
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/wait.h>
 
 #include <popt.h>
 
