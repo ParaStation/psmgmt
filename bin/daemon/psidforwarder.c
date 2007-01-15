@@ -614,6 +614,11 @@ static void sighandler(int sig)
 	    ptr += sizeof(rusage);
 	    msg.header.len += sizeof(rusage);
 
+	    /* child's return status */
+	    *(int32_t *)ptr = status;
+	    ptr += sizeof(int32_t);
+	    msg.header.len += sizeof(int32_t);
+
 	    sendDaemonMsg((DDMsg_t *)&msg);
 	}
 

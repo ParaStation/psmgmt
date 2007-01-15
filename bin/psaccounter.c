@@ -44,7 +44,7 @@ void handleAcctMsg(DDTypedBufferMsg_t *msg)
 {
     char *ptr = msg->buf;
     PStask_ID_t sender = msg->header.sender, logger;
-    int rank, taskSize;
+    int rank, taskSize, status;
     uid_t uid;
     gid_t gid;
     struct rusage rusage;
@@ -79,6 +79,10 @@ void handleAcctMsg(DDTypedBufferMsg_t *msg)
     memcpy(&rusage, ptr, sizeof(rusage));
     ptr += sizeof(rusage);
 
+    /* exit status */
+    status = *(int32_t *)ptr;
+    ptr += sizeof(int32_t);
+
     printf("%s: msg from %s: type %s", __func__, PSC_printTID(sender),
 	   msg->type == PSP_ACCOUNT_QUEUE ? "Q" :
 	   msg->type == PSP_ACCOUNT_START ? "S" :
@@ -89,9 +93,15 @@ void handleAcctMsg(DDTypedBufferMsg_t *msg)
     if (sender == logger) {
 	printf(" size %d\n", taskSize);
     } else {
-	printf(" user %.6f sys %.6f\n",
+	printf(" user %.6f sys %.6f",
 	       rusage.ru_utime.tv_sec + 1.0e-6 * rusage.ru_utime.tv_usec,
 	       rusage.ru_stime.tv_sec + 1.0e-6 * rusage.ru_stime.tv_usec);
+	printf(" exit status %d", WEXITSTATUS(status));
+	if (WIFSIGNALED(status)) {
+	    printf(" on signal %d", WTERMSIG(status));
+	    if (WCOREDUMP(status)) printf(" core dumped");
+	}
+	printf("\n");
     }
 }
 
