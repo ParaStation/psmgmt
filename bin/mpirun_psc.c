@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2006 Cluster Competence Center GmbH, Munich
  *
- * $Id: mpirun_chgm.c 3882 2006-01-02 10:24:47Z eicker $
+ * $Id$
  *
  */
 /**
@@ -11,13 +11,13 @@
  * Pathscale's MPI in order to start such applications within a
  * ParaStation cluster.
  *
- * $Id: mpirun_chgm.c 3882 2006-01-02 10:24:47Z eicker $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chgm.c 3882 2006-01-02 10:24:47Z eicker $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -49,7 +49,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: mpirun_chgm.c 3882 2006-01-
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 3882 $";
+    char revision[] = "$Revision$";
     fprintf(stderr, "mpirun_chgm %s\b \n", revision+11);
 }
 

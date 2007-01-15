@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2006-2007 ParTec Cluster Competence Center GmbH, Munich
  *
- * $Id: test_pse.c 3882 2006-01-02 10:24:47Z eicker $
+ * $Id$
  *
  *
  */
@@ -11,7 +11,7 @@
  * \file
  * psaccounter: ParaStation example accounting daemon
  *
- * $Id: test_pse.c 3882 2006-01-02 10:24:47Z eicker $ 
+ * $Id$ 
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -19,7 +19,7 @@
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidspawn.c 4393 2006-10-16 22:07:59Z eicker $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>

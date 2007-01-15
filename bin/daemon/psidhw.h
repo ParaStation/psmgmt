@@ -3,14 +3,14 @@
  *
  * Copyright (C) 2006 Cluster Competence Center GmbH, Munich
  *
- * $Id: psidutil.h 3892 2006-01-09 18:29:54Z eicker $
+ * $Id$
  *
  */
 /**
  * \file
  * Functions handling the communication hardware
  *
- * $Id: psidutil.h 3892 2006-01-09 18:29:54Z eicker $
+ * $Id$
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>

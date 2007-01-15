@@ -4,20 +4,20 @@
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id: psmstart.c 3882 2006-01-02 10:24:47Z eicker $
+ * $Id$
  *
  */
 /**
  * @file Simple wrapper to allow non ParaStation aware programs to be
  * distributed in a cluster.
  *
- * $Id: psmstart.c 3882 2006-01-02 10:24:47Z eicker $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  * */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c 3882 2006-01-02 10:24:47Z eicker $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
@@ -38,7 +38,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psmstart.c 3882 2006-01-02 
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 3882 $";
+    char revision[] = "$Revision$";
     fprintf(stderr, "psmstart %s\b \n", revision+11);
 }
 

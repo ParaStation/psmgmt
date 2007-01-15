@@ -3,11 +3,11 @@
  *
  * Copyright (C) 2006 Cluster Competence Center GmbH, Munich
  *
- * $Id: psidutil.c 3896 2006-01-13 12:48:05Z eicker $
+ * $Id$
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c 3896 2006-01-13 12:48:05Z eicker $";
+static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>

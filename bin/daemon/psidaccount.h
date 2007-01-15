@@ -3,14 +3,14 @@
  *
  * Copyright (C) 2006 Cluster Competence Center GmbH, Munich
  *
- * $Id: psidstatus.h 3881 2006-01-02 10:20:42Z eicker $
+ * $Id$
  *
  */
 /**
  * @file
  * Helper functions for accounting actions.
  *
- * $Id: psidstatus.h 3881 2006-01-02 10:20:42Z eicker $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
