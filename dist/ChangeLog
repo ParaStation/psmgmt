@@ -1,3 +1,69 @@
+Version psmgmt-4.3.7:
+=====================
+------------------------------------------------------------------------
+r4515 | eicker | 2007-01-15 16:22:29 +0100 (Mon, 15 Jan 2007) | 2 lines
+
+Fix some SVN-properties.
+
+------------------------------------------------------------------------
+r4514 | eicker | 2007-01-15 16:03:37 +0100 (Mon, 15 Jan 2007) | 2 lines
+
+Add one include to make last change working.
+
+------------------------------------------------------------------------
+r4513 | eicker | 2007-01-15 15:40:53 +0100 (Mon, 15 Jan 2007) | 2 lines
+
+Also send exit-status information to accounter.
+
+------------------------------------------------------------------------
+r4511 | eicker | 2007-01-14 00:50:49 +0100 (Sun, 14 Jan 2007) | 2 lines
+
+Bugfix: Initialize psiadmin's parser before removing comments.
+
+------------------------------------------------------------------------
+r4510 | eicker | 2007-01-12 17:55:22 +0100 (Fri, 12 Jan 2007) | 2 lines
+
+Update (C) for last change.
+
+------------------------------------------------------------------------
+r4509 | eicker | 2007-01-12 17:50:31 +0100 (Fri, 12 Jan 2007) | 6 lines
+
+Bugfix: closelog() in execForwarder might close stdout/stderr fd. This
+  was triggered by also closing PSID_lockFD.
+Bugfix: psidforwarder's checkFileTable() might mess up openfds. This
+  might psidforwarder hang in an endless loop.
+Improve psidforwarder logging.
+
+------------------------------------------------------------------------
+r4507 | rauh | 2007-01-12 13:07:14 +0100 (Fri, 12 Jan 2007) | 2 lines
+
+corrected typo
+
+------------------------------------------------------------------------
+r4496 | eicker | 2007-01-08 12:53:30 +0100 (Mon, 08 Jan 2007) | 3 lines
+
+Bugfix: Release lock on /var/lock/subsys/parastation when setting up
+  sandbox.
+
+------------------------------------------------------------------------
+r4495 | eicker | 2007-01-08 12:14:40 +0100 (Mon, 08 Jan 2007) | 3 lines
+
+Enable daemons to handle handle different versions within one cluster.
+psiadmin's 'list version' now also shows the daemons' protocol version.
+
+------------------------------------------------------------------------
+r4494 | eicker | 2007-01-04 13:55:11 +0100 (Thu, 04 Jan 2007) | 2 lines
+
+Suppress one warning.
+
+------------------------------------------------------------------------
+r4492 | eicker | 2007-01-04 12:40:24 +0100 (Thu, 04 Jan 2007) | 2 lines
+
+Update Changelog for 4.3.6
+
+------------------------------------------------------------------------
+
+
 Version psmgmt-4.3.6:
 =====================
 ------------------------------------------------------------------------
