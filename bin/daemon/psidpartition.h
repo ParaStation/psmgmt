@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -78,7 +78,7 @@ void msg_CREATEPARTNL(DDBufferMsg_t *inmsg);
  *
  * If a partition could be allocated successfully, the actual
  * partition will be send to the client's local daemon process via
- * PSP_CD_PROVIDEPART and PSP_CD_PROVIDEPARTNL messages.
+ * PSP_CD_PROVIDEPART and PSP_CD_PROVIDEPARTSL messages.
  *
  * Depending on the actual request, a PSP_DD_GETPART message might
  * be followed by one or more PSP_DD_GETPARTNL messages.
@@ -104,7 +104,7 @@ void msg_GETPART(DDBufferMsg_t *inmsg);
  *
  * If a partition could be allocated successfully, the actual
  * partition will be send to the client's local daemon process via
- * PSP_CD_PROVIDEPART and PSP_CD_PROVIDEPARTNL messages.
+ * PSP_CD_PROVIDEPART and PSP_CD_PROVIDEPARTSL messages.
  *
  * Depending on the actual request, a PSP_DD_GETPARTNL message might
  * be followed by further PSP_DD_GETPARTNL messages.
@@ -123,12 +123,12 @@ void msg_GETPARTNL(DDBufferMsg_t *inmsg);
  * This kind of messages is used by the master process in order to
  * provide actually allocated partitions to the requesting client's
  * local daemon process. This message will be followed by one or more
- * PSP_DD_PROVIDEPARTNL messages containing the partitions actual
- * nodelist.
+ * PSP_DD_PROVIDEPARTSL messages containing the partitions actual
+ * slotlist.
  *
  * The client's local daemon will store the partition to the
  * corresponding task structure and wait for following
- * PSP_DD_PROVIDEPARTNL messages.
+ * PSP_DD_PROVIDEPARTSL messages.
  *
  * Furthermore this message might contain an error message reporting
  * the final failure on the attempt to allocate a partition. In this
@@ -142,21 +142,21 @@ void msg_GETPARTNL(DDBufferMsg_t *inmsg);
 void msg_PROVIDEPART(DDBufferMsg_t *inmsg);
 
 /**
- * @brief Handle a PSP_DD_PROVIDEPARTNL message.
+ * @brief Handle a PSP_DD_PROVIDEPARTSL message.
  *
- * Handle the message @a inmsg of type PSP_DD_PROVIDEPARTNL.
+ * Handle the message @a inmsg of type PSP_DD_PROVIDEPARTSL.
  *
  * Follow up message to a PSP_DD_PROVIDEPART containing the
- * partition's actual nodes. These nodes will be stored to the
+ * partition's actual slots. These slots will be stored to the
  * requesting client's task structure. Upon successful receive of the
- * partitions last node a PSP_CD_PARTITIONRES message is send to the
+ * partition's last slot a PSP_CD_PARTITIONRES message is send to the
  * requesting client.
  *
  * @param inmsg Pointer to the message to handle.
  *
  * @return No return value.
  */
-void msg_PROVIDEPARTNL(DDBufferMsg_t *inmsg);
+void msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg);
 
 /**
  * @brief Handle a PSP_CD_GETNODES message.
@@ -204,7 +204,7 @@ int send_GETTASKS(PSnodes_ID_t node);
  *
  * Send a list of all running processes partition info and pending
  * partition requests to the sending node. While for the running
- * processes PSP_DD_PROVIDETASK and PSP_DD_PROVIDETASKNL messages are
+ * processes PSP_DD_PROVIDETASK and PSP_DD_PROVIDETASKSL messages are
  * used, the latter reuse the PSP_DD_GETPART and PSP_DD_GETPARTNL
  * messages used to forward the original client request
  * messages. Actually for a new master there is no difference if the
@@ -226,14 +226,14 @@ void msg_GETTASKS(DDBufferMsg_t *inmsg);
  * running task whose root process is located on the sending node a
  * PSP_DD_PROVIDETASK message is generated and send to the master
  * process. It provides all the information necessary for the master
- * to handle partition requests despite apart from the list of nodes
+ * to handle partition requests despite apart from the list of slots
  * building the corresponding partition. This message will be followed
- * by one or more PSP_DD_PROVIDETASKNL messages containing this
- * nodelist.
+ * by one or more PSP_DD_PROVIDETASKSL messages containing this
+ * slotlist.
  *
  * The client's local daemon will store the partition to the
  * corresponding partition request structure and wait for following
- * PSP_DD_PROVIDETASKNL messages.
+ * PSP_DD_PROVIDETASKSL messages.
  *
  * @param inmsg Pointer to the message to handle.
  *
@@ -242,19 +242,19 @@ void msg_GETTASKS(DDBufferMsg_t *inmsg);
 void msg_PROVIDETASK(DDBufferMsg_t *inmsg);
 
 /**
- * @brief Handle a PSP_DD_PROVIDETASKNL message.
+ * @brief Handle a PSP_DD_PROVIDETASKSL message.
  *
- * Handle the message @a inmsg of type PSP_DD_PROVIDETASKNL.
+ * Handle the message @a inmsg of type PSP_DD_PROVIDETASKSL.
  *
  * Follow up message to a PSP_DD_PROVIDETASK containing the
- * partition's actual nodes. These nodes will be stored to the
+ * partition's actual slots. These slots will be stored to the
  * client's partition request structure.
  *
  * @param inmsg Pointer to the message to handle.
  *
  * @return No return value.
  */
-void msg_PROVIDETASKNL(DDBufferMsg_t *inmsg);
+void msg_PROVIDETASKSL(DDBufferMsg_t *inmsg);
 
 /**
  * @brief Send a PSP_DD_TASKDEAD message.

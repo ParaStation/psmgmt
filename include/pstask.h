@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -120,7 +120,7 @@ typedef struct PStask_T{
     PSpart_request_t *request;     /**< Pointer to temp. partition request */
     uint32_t partitionSize;        /**< Size of the partition. */
     PSpart_option_t options;       /**< The partition's options. */
-    PSnodes_ID_t *partition;       /**< The actual partition. List of nodes. */
+    PSpart_slot_t *partition;      /**< The actual partition. List of nodes. */
     int nextRank;                  /**< Next rank to start within the task. */
 
     PStask_sig_t *signalSender;    /**< Tasks which sent signals */

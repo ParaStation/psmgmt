@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -28,6 +28,11 @@ extern "C" {
 } /* <- just for emacs indentation */
 #endif
 #endif
+
+typedef struct {
+    PSnodes_ID_t node;
+    int16_t cpu;
+} PSpart_slot_t;
 
 /** Various sort modes for partition creation. */
 typedef enum {
@@ -83,7 +88,9 @@ typedef struct request{
     /*C*/ uint32_t priority;       /**< Priority of the parallel task */
     /*C*/ int32_t num;             /**< Number of nodes within request */
     int numGot;                    /**< Number of nodes currently received */
+    unsigned int sizeGot;          /**< Number of slots currently received */
     PSnodes_ID_t *nodes;           /**< List of partition candidates */
+    PSpart_slot_t *slots;          /**< Partition (list of slots) associated */
     char deleted;                  /**< Flag to mark request for deletion */
     char suspended;                /**< Corresponding task is suspended */
     char freed;                    /**< Resources are freed temporarily */

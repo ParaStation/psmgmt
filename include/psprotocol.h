@@ -33,7 +33,7 @@ extern "C" {
 #endif
 
 /** Unique version number of the high-level protocol */
-#define PSprotocolVersion 333
+#define PSprotocolVersion 334
 
 /** The location of the UNIX socket used to contact the daemon. */
 #define PSmasterSocketName "/var/run/parastation.sock"
@@ -270,8 +270,8 @@ typedef enum {
 #define PSP_RESET_HW              0x0001
 
 /**
- * Chunksize for PSP_CD_GETNODES, PSP_CD_CREATEPARTNL,
- * PSP_DD_GETPARTNL and PSP_DD_PROVIDEPARTNL messages
+ * Chunksize for PSP_CD_GETNODES, PSP_CD_CREATEPARTNL and
+ * PSP_DD_GETPARTNL messages
  */
 #define NODES_CHUNK 512
 

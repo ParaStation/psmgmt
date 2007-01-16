@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -164,7 +164,6 @@ int PStask_delete(PStask_t* task)
     return 1;
 }
 
-/* @todo Test if malloc() fails */
 PStask_sig_t* PStask_cloneSigList(PStask_sig_t* list)
 {
     PStask_sig_t* clone = NULL,* signal = NULL;
@@ -179,11 +178,23 @@ PStask_sig_t* PStask_cloneSigList(PStask_sig_t* list)
 	    signal = signal->next;
 	}
 
+	if (!signal) break;
+
 	signal->tid = list->tid;
 	signal->signal = list->signal;
 	signal->next = NULL;
 
 	list = list->next;
+    }
+
+    if (list) {
+	/* loop interrupted due to memory-shortage */
+	while (clone) {
+	    PStask_sig_t* thissignal = clone;
+	    clone = thissignal->next;
+	    free(thissignal);
+	}
+	PSC_log(-1, "%s(): no memory\n", __func__);
     }
 
     return clone;
@@ -253,32 +264,40 @@ PStask_t* PStask_clone(PStask_t* task)
     return clone;
 }
 
-void PStask_snprintf(char *txt, size_t size, PStask_t * task)
+static void snprintfStruct(char *txt, size_t size, PStask_t * task)
 {
-    int i;
-
-    if (task==NULL)
-	return ;
+    if (!task) return;
 
     snprintf(txt, size, "tid 0x%08x ptid 0x%08x uid %d gid %d group %s"
-	     " rank %d links(%p,%p) loggertid %08x fd %d argc %d ",
+	     " rank %d links(%p,%p) loggertid %08x fd %d argc %d",
 	     task->tid, task->ptid, task->uid, task->gid,
  	     PStask_printGrp(task->group), task->rank,
  	     task->next, task->prev, task->loggertid, task->fd, task->argc);
-    if (strlen(txt)+1 == size) return;
+}
 
-    snprintf(txt+strlen(txt), size-strlen(txt), "dir=\"%s\",command=\"",
+static void snprintfArgv(char *txt, size_t size, PStask_t * task)
+{
+    if (!task) return;
+
+    snprintf(txt, size, "dir=\"%s\",command=\"",
 	     (task->workingdir)?task->workingdir:"");
     if (strlen(txt)+1 == size) return;
 
     if (task->argv) {
+	int i;
 	for (i=0; i<task->argc; i++) {
 	    snprintf(txt+strlen(txt), size-strlen(txt), "%s ", task->argv[i]);
 	    if (strlen(txt)+1 == size) return;
 	}
     }
+    snprintf(txt+strlen(txt), size-strlen(txt), "\"");
+}
 
-    snprintf(txt+strlen(txt), size-strlen(txt), "\" env=");
+static void snprintfEnv(char *txt, size_t size, PStask_t * task)
+{
+    if (!task) return;
+
+    snprintf(txt, size, "env=");
     if (strlen(txt)+1 == size) return;
 
     if (task->environ) {
@@ -289,6 +308,22 @@ void PStask_snprintf(char *txt, size_t size, PStask_t * task)
 	    if (strlen(txt)+1 == size) return;
 	}
     }
+}
+
+
+void PStask_snprintf(char *txt, size_t size, PStask_t * task)
+{
+    if (!task) return;
+
+    snprintfStruct(txt, size, task);
+    if (strlen(txt)+1 == size) return;
+    snprintf(txt+strlen(txt), size-strlen(txt), " ");
+    if (strlen(txt)+1 == size) return;
+    snprintfArgv(txt+strlen(txt), size-strlen(txt), task);
+    if (strlen(txt)+1 == size) return;
+    snprintf(txt+strlen(txt), size-strlen(txt), " ");
+    if (strlen(txt)+1 == size) return;
+    snprintfEnv(txt+strlen(txt), size-strlen(txt), task);
 }
 
 static struct {
@@ -456,7 +491,7 @@ size_t PStask_encodeTask(char *buffer, size_t size, PStask_t *task)
 {
     size_t msglen = sizeof(tmpTask);
 
-    PStask_snprintf(taskString, sizeof(taskString), task);
+    snprintfStruct(taskString, sizeof(taskString), task);
     PSC_log(PSC_LOG_TASK, "%s(%p, %ld, task(%s))\n",
 	    __func__, buffer, (long)size, taskString);
 
@@ -501,7 +536,7 @@ int PStask_decodeTask(char *buffer, PStask_t *task)
 	return 0;
     }
 
-    PStask_snprintf(taskString, sizeof(taskString), task);
+    snprintfStruct(taskString, sizeof(taskString), task);
     PSC_log(PSC_LOG_TASK, "%s(%p, task(%s))\n",
 	    __func__, buffer, taskString);
 
@@ -528,7 +563,7 @@ int PStask_decodeTask(char *buffer, PStask_t *task)
     if (len) task->workingdir = strdup(&buffer[msglen]);
     msglen += len+1;
 
-    PStask_snprintf(taskString, sizeof(taskString), task);
+    snprintfStruct(taskString, sizeof(taskString), task);
     PSC_log(PSC_LOG_TASK, " received task = (%s)\n", taskString);
     PSC_log(PSC_LOG_TASK, "%s returns %d\n", __func__, msglen);
 
@@ -540,9 +575,9 @@ size_t PStask_encodeArgs(char *buffer, size_t size, PStask_t *task)
     size_t msglen = 0;
     int i;
 
-    PStask_snprintf(taskString, sizeof(taskString), task);
-    PSC_log(PSC_LOG_TASK, "%s(%p, %ld, task(%s))\n",
-	    __func__, buffer, (long)size, taskString);
+    snprintfArgv(taskString, sizeof(taskString), task);
+    PSC_log(PSC_LOG_TASK, "%s(%p, %ld, task %s / argv(%s))\n",
+	    __func__, buffer, (long)size, PSC_printTID(task->tid), taskString);
 
     for (i=0; i<task->argc; i++) {
 	if (msglen + strlen(task->argv[i]) < size) {
@@ -566,7 +601,7 @@ int PStask_decodeArgs(char *buffer, PStask_t *task)
 	return 0;
     }
 
-    PStask_snprintf(taskString, sizeof(taskString), task);
+    snprintfStruct(taskString, sizeof(taskString), task);
     PSC_log(PSC_LOG_TASK, "%s(%p, task(%s))\n",
 	    __func__, buffer, taskString);
 
@@ -579,8 +614,8 @@ int PStask_decodeArgs(char *buffer, PStask_t *task)
     }
     task->argv[task->argc] = NULL;
 
-    PStask_snprintf(taskString, sizeof(taskString), task);
-    PSC_log(PSC_LOG_TASK, " received task = (%s)\n", taskString);
+    snprintfArgv(taskString, sizeof(taskString), task);
+    PSC_log(PSC_LOG_TASK, " received argv = (%s)\n", taskString);
     PSC_log(PSC_LOG_TASK, "%s returns %d\n", __func__, msglen);
 
     return msglen;
@@ -591,9 +626,9 @@ size_t PStask_encodeEnv(char *buffer, size_t size, PStask_t *task, int *cur)
     size_t msglen = 0;
     int first=*cur;
 
-    PStask_snprintf(taskString, sizeof(taskString), task);
-    PSC_log(PSC_LOG_TASK, "%s(%p, %ld, task(%s))\n",
-	    __func__, buffer, (long)size, taskString);
+    snprintfEnv(taskString, sizeof(taskString), task);
+    PSC_log(PSC_LOG_TASK, "%s(%p, %ld, task %s / env(%s))\n",
+	    __func__, buffer, (long)size, PSC_printTID(task->tid), taskString);
 
     if (task->environ) {
 	for (; task->environ[*cur]; (*cur)++) {
@@ -630,7 +665,7 @@ int PStask_decodeEnv(char *buffer, PStask_t *task)
 	return 0;
     }
 
-    PStask_snprintf(taskString, sizeof(taskString), task);
+    snprintfStruct(taskString, sizeof(taskString), task);
     PSC_log(PSC_LOG_TASK, "%s(%p, task(%s))\n",
 	    __func__, buffer, taskString);
 
@@ -669,8 +704,8 @@ int PStask_decodeEnv(char *buffer, PStask_t *task)
 	msglen++;
     }
 
-    PStask_snprintf(taskString, sizeof(taskString), task);
-    PSC_log(PSC_LOG_TASK, " received task = (%s)\n", taskString);
+    snprintfEnv(taskString, sizeof(taskString), task);
+    PSC_log(PSC_LOG_TASK, " received env = (%s)\n", taskString);
     PSC_log(PSC_LOG_TASK, "%s returns %d\n", __func__, msglen);
 
     return msglen;

@@ -1195,8 +1195,8 @@ int handleMsg(int fd, DDBufferMsg_t *msg)
     case PSP_DD_PROVIDEPART:
 	msg_PROVIDEPART(msg);
 	break;
-    case PSP_DD_PROVIDEPARTNL:
-	msg_PROVIDEPARTNL(msg);
+    case PSP_DD_PROVIDEPARTSL:
+	msg_PROVIDEPARTSL(msg);
 	break;
     case PSP_CD_GETNODES:
     case PSP_DD_GETNODES:
@@ -1211,8 +1211,8 @@ int handleMsg(int fd, DDBufferMsg_t *msg)
     case PSP_DD_PROVIDETASK:
 	msg_PROVIDETASK(msg);
 	break;
-    case PSP_DD_PROVIDETASKNL:
-	msg_PROVIDETASKNL(msg);
+    case PSP_DD_PROVIDETASKSL:
+	msg_PROVIDETASKSL(msg);
 	break;
     case PSP_DD_CANCELPART:
 	msg_CANCELPART(msg);

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -36,11 +36,11 @@ static struct {
     { PSP_DD_GETPART          , "PSP_DD_GETPART"          },
     { PSP_DD_GETPARTNL        , "PSP_DD_GETPARTNL"        },
     { PSP_DD_PROVIDEPART      , "PSP_DD_PROVIDEPART"      },
-    { PSP_DD_PROVIDEPARTNL    , "PSP_DD_PROVIDEPARTNL"    },
+    { PSP_DD_PROVIDEPARTSL    , "PSP_DD_PROVIDEPARTSL"    },
     { PSP_DD_GETNODES         , "PSP_DD_GETNODES"         },
     { PSP_DD_GETTASKS         , "PSP_DD_GETTASKS"         },
     { PSP_DD_PROVIDETASK      , "PSP_DD_PROVIDETASK"      },
-    { PSP_DD_PROVIDETASKNL    , "PSP_DD_PROVIDETASKNL"    },
+    { PSP_DD_PROVIDETASKSL    , "PSP_DD_PROVIDETASKSL"    },
     { PSP_DD_CANCELPART       , "PSP_DD_CANCELPART"       },
     { PSP_DD_TASKDEAD         , "PSP_DD_TASKDEAD"         },
     { PSP_DD_TASKSUSPEND      , "PSP_DD_TASKSUSPEND"      },

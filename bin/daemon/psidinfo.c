@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -383,15 +383,15 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		    if (msg.type == PSP_INFO_RANKID) {
 			unsigned int rank = *(unsigned int *) inmsg->buf;
 			if (rank >= task->partitionSize) {
-			    /* @todo Think about how to use OVERBOOK */
+			    /* @todo pinning Think about how to use OVERBOOK */
 			    if (task->options & PART_OPT_OVERBOOK) {
 				*(PSnodes_ID_t *)msg.buf =
-				    task->partition[rank%task->partitionSize];
+				    task->partition[rank%task->partitionSize].node;
 			    } else {
 				*(PSnodes_ID_t *)msg.buf = -1;
 			    }
 			} else {
-			    *(PSnodes_ID_t *)msg.buf = task->partition[rank];
+			    *(PSnodes_ID_t *)msg.buf = task->partition[rank].node;
 			}
 			msg.header.len += sizeof(PSnodes_ID_t);
 		    } else {
@@ -583,7 +583,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		const size_t chunkSize = 1024;
 		unsigned int idx = 0, n;
 		for (n=0; n<task->partitionSize; n++) {
-		    ((PSnodes_ID_t *)msg.buf)[idx] = task->partition[n];
+		    ((PSnodes_ID_t *)msg.buf)[idx] = task->partition[n].node;
 		    idx++;
 		    if (idx >= chunkSize/sizeof(PSnodes_ID_t)) {
 			msg.header.len += idx * sizeof(PSnodes_ID_t);
@@ -654,9 +654,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		msg.type = inmsg->type;
 	    }
 
-	    /*
-	     * send a EndOfQueue Sign
-	     */
+	    /* send EndOfQueue */
 	    msg.type = PSP_INFO_QUEUE_SEP;
 	    break;
 	}
@@ -666,13 +664,12 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		inmsg->header.dest = PSC_getTID(getMasterID(), 0);
 		msg_INFOREQUEST(inmsg);
 		return;
+	    } else {
+		sendRequestLists(inmsg->header.sender,
+				 *(PSpart_list_t*)inmsg->buf);
+		/* send EndOfQueue */
+		msg.type = PSP_INFO_QUEUE_SEP;
 	    }
-	    sendRequestLists(inmsg->header.sender,
-			     *(PSpart_list_t*)inmsg->buf);
-	    /*
-	     * send a EndOfQueue Sign
-	     */
-	    msg.type = PSP_INFO_QUEUE_SEP;
 	    break;
 	default:
 	    msg.type = PSP_INFO_UNKNOWN;

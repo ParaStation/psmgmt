@@ -736,7 +736,7 @@ void PSIADM_HWStat(char *nl)
     }
 }
 
-static void printSlots(int num, PSnodes_ID_t *nodes, int width, int offset)
+static void printNodes(int num, PSnodes_ID_t *nodes, int width, int offset)
 {
     int i=0, pos=0;
     int myWidth = (width<20) ? 20 : width;
@@ -773,6 +773,57 @@ static void printSlots(int num, PSnodes_ID_t *nodes, int width, int offset)
 	}
 	if (rep>1) {
 	    snprintf(range+strlen(range), sizeof(range)-strlen(range),
+		     "(#%d)", rep);
+	}
+	pos+=strlen(range)+1;
+	if (pos > myWidth) {
+	    printf("\n%*s", offset, "");
+	    pos = strlen(range)+1;
+	}
+	printf("%s%s", range, (i < num) ? "," : "");
+    }
+}
+
+static void printSlots(int num, PSpart_slot_t *slots, int width, int offset)
+{
+    int i=0, pos=0;
+    int myWidth = (width<20) ? 20 : width;
+    char range[128];
+
+    /* @todo pinning Smarter output: Print which slots to use. */
+
+    printf(" ");
+    while (i < num) {
+	PSnodes_ID_t cur = slots[i].node, loopCur;
+	int rep = 0, loopStep=0, loopRep;
+
+	while(i<num && slots[i].node == cur) {
+	    rep++;
+	    i++;
+	}
+	snprintf(range, sizeof(range), "%d", cur);
+	if (slots[i].node == cur+1 || slots[i].node == cur-1)
+	    loopStep = slots[i].node - cur;
+
+	loopCur = cur + loopStep;
+	while (i<num && slots[i].node==loopCur) {
+	    int j=i;
+	    loopRep = 0;
+
+	    while(j<num && slots[j].node == loopCur) {
+		loopRep++;
+		j++;
+	    }
+	    if (loopRep != rep) break;
+	    i=j;
+	    loopCur += loopStep;
+	}
+	if (loopCur != cur+loopStep) {
+	    snprintf(range+strlen(range), sizeof(range)-strlen(range),
+		     "-%d", loopCur-loopStep);
+	}
+	if (rep>1) {
+	    snprintf(range+strlen(range), sizeof(range)-strlen(range),
 		     "(%d)", rep);
 	}
 	pos+=strlen(range)+1;
@@ -784,19 +835,67 @@ static void printSlots(int num, PSnodes_ID_t *nodes, int width, int offset)
     }
 }
 
+static int getMasterProtocolVersion(void)
+{
+    PSnodes_ID_t master = -1;
+    PSP_Option_t opt = PSP_OP_MASTER;
+    PSP_Optval_t val;
+    int err, pspVersion = 0;
+    
+    /* Identify master */
+    err = PSI_infoOption(-1, 1, &opt, &val, 0);
+    if (err != -1) {
+	switch (opt) {
+	case PSP_OP_MASTER:
+	    master = val;
+	    break;
+	case PSP_OP_UNKNOWN:
+	    printf(" PSP_OP_MASTER unknown\n");
+	    break;
+	default:
+	    printf(" got option type %d\n", opt);
+	}
+    } else {
+	printf(" error getting info\n");
+    }
+
+    if (master < 0) return -1;
+
+    /* Get master's PSprotocol version */
+    opt = PSP_OP_PROTOCOLVERSION;
+    err = PSI_infoOption(master, 1, &opt, &val, 0);
+    if (err != -1) {
+	switch (opt) {
+	case PSP_OP_PROTOCOLVERSION:
+	    pspVersion = val;
+	    break;
+	case PSP_OP_UNKNOWN:
+	    printf(" PSP_OP_PROTOCOLVERSION unknown\n");
+	    break;
+	default:
+	    printf(" got option type %d\n", opt);
+	}
+    } else {
+	printf(" error getting info\n");
+    }
+
+    return pspVersion;
+}
+
 void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 {
     PSP_Info_t what = PSP_INFO_QUEUE_PARTITION;
     char buf[sizeof(PStask_ID_t)
 	     +sizeof(PSpart_list_t)
 	     +sizeof(PSpart_request_t)];
-    int recvd;
+    int recvd, masterPSPversion = getMasterProtocolVersion();
     int found = 0;
     PStask_ID_t rootTID, parentTID;
     PSpart_request_t *req;
 
     int width = getWidth();
 
+    printf("master's PSP version is %d\n", masterPSPversion);
     /* Determine root process of given task */
     rootTID=parentTID=task;
     while (parentTID) {
@@ -813,13 +912,14 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 
     if (PSI_infoQueueReq(-1, what, &opt) < 0) {
 	printf("Error!!\n");
+	return;
     }
 
     req = PSpart_newReq();
 
     while ((recvd=PSI_infoQueueNext(what, buf, sizeof(buf), 1)) > 0) {
-	static PSnodes_ID_t *nodeBuf = NULL;
-	static size_t nodeBufSize = 0;
+	static PSpart_slot_t *slotBuf = NULL;
+	static size_t slotBufSize = 0;
 
 	PStask_ID_t tid;
 	PSpart_list_t flags;
@@ -839,19 +939,23 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 	}
 
 	if (req->num) {
-	    if (req->num * sizeof(*nodeBuf) > nodeBufSize) {
-		nodeBufSize = 2 * req->num * sizeof(*nodeBuf);
-		nodeBuf = realloc(nodeBuf, nodeBufSize);
+	    size_t itemSize = (masterPSPversion < 334) ?
+		sizeof(PSnodes_ID_t) : sizeof(PSpart_slot_t);
+
+	    if (req->num * sizeof(*slotBuf) > slotBufSize) {
+		slotBufSize = 2 * req->num * sizeof(*slotBuf);
+		slotBuf = realloc(slotBuf, slotBufSize);
 	    }
 
-	    if (!nodeBuf) {
+	    if (!slotBuf) {
 		printf("No memory\n");
 		break;
 	    }
 
-	    recvd=PSI_infoQueueNext(what, nodeBuf, nodeBufSize, 1);
+	    recvd=PSI_infoQueueNext(what, slotBuf, slotBufSize, 1);
+	    printf("recvd %d\n", recvd);
 
-	    if ((unsigned int)recvd != req->num * sizeof(*nodeBuf)) {
+	    if ((unsigned int)recvd != req->num * itemSize) {
 		printf("Message lost\n");
 	    }
 	}
@@ -870,7 +974,13 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 	    printf(" %5d", req->size);
 	    printf(" %5d", req->uid);
 	    printf(" %5d", req->gid);
-	    if (req->num) printSlots(req->num, nodeBuf, width-47, 47);
+	    if (req->num) {
+		if (masterPSPversion < 334) {
+		    printNodes(req->num, (PSnodes_ID_t*)slotBuf, width-47, 47);
+		} else {
+		    printSlots(req->num, slotBuf, width-47, 47);
+		}
+	    }
 	    printf("\n");
 
 	    found=1;

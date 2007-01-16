@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -42,7 +42,9 @@ void PSpart_initReq(PSpart_request_t* request)
 	.priority = 0,
 	.num = -1,
 	.numGot = -1,
+	.sizeGot = 0,
 	.nodes = NULL,
+	.slots = NULL,
 	.deleted = 0,
 	.suspended = 0,
 	.freed = 0, };
@@ -56,6 +58,7 @@ void PSpart_reinitReq(PSpart_request_t* request)
     }
 
     if (request->nodes) free(request->nodes);
+    if (request->slots) free(request->slots);
 
     PSpart_initReq(request);
 }
@@ -77,6 +80,7 @@ int PSpart_delReq(PSpart_request_t* request)
 void PSpart_snprintf(char* txt, size_t size, PSpart_request_t* request)
 {
     int i;
+    unsigned int u;
 
     if (!request) {
 	PSC_log(-1, "%s: request is NULL\n", __func__);
@@ -94,10 +98,21 @@ void PSpart_snprintf(char* txt, size_t size, PSpart_request_t* request)
     snprintf(txt+strlen(txt), size-strlen(txt), " candidates (");
     if (strlen(txt)+1 == size) return;
 
-    for (i=0; i<request->numGot; i++) {
-	snprintf(txt+strlen(txt), size-strlen(txt),
-		 "%s%d", i ? " " : "",request->nodes[i]);
-	if (strlen(txt)+1 == size) return;
+    if (request->nodes) {
+	/* raw request (no partition yet) */
+	for (i=0; i<request->numGot; i++) {
+	    snprintf(txt+strlen(txt), size-strlen(txt),
+		     "%s%d", i ? " " : "",request->nodes[i]);
+	    if (strlen(txt)+1 == size) return;
+	}
+    } else if (request->slots) {
+	/* processed request */
+	for (u=0; u<request->sizeGot; u++) {
+	    snprintf(txt+strlen(txt), size-strlen(txt),
+		     "%s%d/%d", u ? " " : "",
+		     request->slots[u].node, request->slots[u].cpu);
+	    if (strlen(txt)+1 == size) return;
+	}
     }
 
     snprintf(txt+strlen(txt), size-strlen(txt), ")");

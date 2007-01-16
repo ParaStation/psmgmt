@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -33,6 +33,12 @@ void PSID_setSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal)
     PStask_sig_t *thissig;
 
     thissig = (PStask_sig_t*) malloc(sizeof(PStask_sig_t));
+
+    if (!thissig) {
+	PSID_log(-1, "%s(%s, %d): no memory\n",
+		 __func__, PSC_printTID(tid), signal);
+	return;
+    }
 
     thissig->signal = signal;
     thissig->tid = tid;
@@ -95,6 +101,8 @@ PStask_ID_t PSID_getSignal(PStask_sig_t **siglist, int *signal)
 {
     PStask_ID_t tid = 0;
     PStask_sig_t *thissig, *prev = NULL;
+
+    if (!siglist) return 0;
 
     thissig = *siglist;
 

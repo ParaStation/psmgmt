@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -55,11 +55,11 @@ extern "C" {
 #define PSP_DD_GETPART             0x0120  /**< Get partition from master */
 #define PSP_DD_GETPARTNL           0x0121  /**< Partition request nodelist */
 #define PSP_DD_PROVIDEPART         0x0122  /**< Reply partition bound */
-#define PSP_DD_PROVIDEPARTNL       0x0123  /**< Partition reply nodelist */
+#define PSP_DD_PROVIDEPARTSL       0x0123  /**< Partition reply slotlist */
 #define PSP_DD_GETNODES            0x0124  /**< Forwarded GETNODES message */
 #define PSP_DD_GETTASKS            0x0125  /**< Get tasks from slaves */
 #define PSP_DD_PROVIDETASK         0x0126  /**< Reply tasks */
-#define PSP_DD_PROVIDETASKNL       0x0127  /**< Task reply nodelist */
+#define PSP_DD_PROVIDETASKSL       0x0127  /**< Task reply slotlist */
 #define PSP_DD_CANCELPART          0x0128  /**< Cancel partition request */
 #define PSP_DD_TASKDEAD            0x0129  /**< Complete task finished */
 #define PSP_DD_TASKSUSPEND         0x012A  /**< Task got SIGTSTP */
