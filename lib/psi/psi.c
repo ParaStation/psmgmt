@@ -372,7 +372,10 @@ int PSI_sendMsg(void* amsg)
 	return -1;
     }
 
+ again:
     ret = write(daemonSock, msg, msg->len);
+
+    if (ret == -1 && errno = EINTR) goto again;
 
     if (ret <= 0) {
 	if (!errno) errno = ENOTCONN;
@@ -411,6 +414,9 @@ int PSI_recvMsg(void* amsg)
 	}
 	if (n>0) {
 	    count+=n;
+	} else if (n == -1 && errno == EINTR) {
+	    PSI_log(PSI_LOG_COMM, "%s: read() interrupted\n", __func__);
+	    continue;
 	} else {
 	    PSI_warn(-1, errno ? errno : ENOTCONN,
 		     "%s: Lost connection to ParaStation daemon", __func__);
