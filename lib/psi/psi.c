@@ -375,7 +375,7 @@ int PSI_sendMsg(void* amsg)
  again:
     ret = write(daemonSock, msg, msg->len);
 
-    if (ret == -1 && errno = EINTR) goto again;
+    if (ret == -1 && errno == EINTR) goto again;
 
     if (ret <= 0) {
 	if (!errno) errno = ENOTCONN;
