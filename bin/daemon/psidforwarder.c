@@ -30,6 +30,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "pstask.h"
 #include "psdaemonprotocol.h"
 #include "psidmsgbuf.h"
+#include "psidnodes.h"
 #include "pslog.h"
 
 #include "psidforwarder.h"
@@ -441,6 +442,8 @@ static size_t collectRead(int sock, char *buf, size_t count, size_t *total)
 }
 
 
+#define NAME_TO_LONG_STR "progname to long"
+
 /**
  * @brief Signal handler
  *
@@ -609,6 +612,11 @@ static void sighandler(int sig)
 	    ptr += sizeof(int32_t);
 	    msg.header.len += sizeof(int32_t);
 
+	    /* my IP address */
+	    *(uint32_t *)ptr = PSIDnodes_getAddr(PSC_getMyID());
+	    ptr += sizeof(uint32_t);
+	    msg.header.len += sizeof(uint32_t);
+
 	    /* actual rusage structure */
 	    memcpy(ptr, &rusage, sizeof(rusage));
 	    ptr += sizeof(rusage);
@@ -618,6 +626,24 @@ static void sighandler(int sig)
 	    *(int32_t *)ptr = status;
 	    ptr += sizeof(int32_t);
 	    msg.header.len += sizeof(int32_t);
+
+	    /* job's name */
+	    if (childTask->argv && childTask->argv[0]) {
+		char *progStr;
+		if (strlen(childTask->argv[0])
+		    < (sizeof(msg)-msg.header.len-1)) {
+		    progStr = childTask->argv[0];
+		} else {
+		    progStr = NAME_TO_LONG_STR;
+		}
+		strcpy(ptr, progStr);
+		ptr += strlen(progStr);
+		msg.header.len += strlen(progStr);
+	    } else {
+		ptr = '\0';
+		ptr++;
+		msg.header.len++;
+	    }
 
 	    sendDaemonMsg((DDMsg_t *)&msg);
 	}

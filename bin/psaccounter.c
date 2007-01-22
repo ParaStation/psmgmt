@@ -27,10 +27,13 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/wait.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include <popt.h>
 
@@ -46,6 +49,7 @@ void handleAcctMsg(DDTypedBufferMsg_t *msg)
     char *ptr = msg->buf;
     PStask_ID_t sender = msg->header.sender, logger;
     int rank, taskSize, status;
+    struct in_addr senderIP;
     uid_t uid;
     gid_t gid;
     struct rusage rusage;
@@ -76,13 +80,9 @@ void handleAcctMsg(DDTypedBufferMsg_t *msg)
     taskSize = *(int32_t *)ptr;
     ptr += sizeof(int32_t);
 
-    /* actual rusage structure */
-    memcpy(&rusage, ptr, sizeof(rusage));
-    ptr += sizeof(rusage);
-
-    /* exit status */
-    status = *(int32_t *)ptr;
-    ptr += sizeof(int32_t);
+    /* sender's IP address */
+    senderIP.s_addr = *(uint32_t *)ptr;
+    ptr += sizeof(uint32_t);
 
     printf("%s: msg from %s: type %s", __func__, PSC_printTID(sender),
 	   msg->type == PSP_ACCOUNT_QUEUE ? "Q" :
@@ -91,9 +91,22 @@ void handleAcctMsg(DDTypedBufferMsg_t *msg)
 	   msg->type == PSP_ACCOUNT_END ? "E" : "?");
     printf(" job %s rank %d", PSC_printTID(logger), rank);
     printf(" UID %d GID %d", uid, gid);
-    if (sender == logger) {
+    printf(" sender at %s", inet_ntoa(senderIP));
+
+    switch (msg->type) {
+    case PSP_ACCOUNT_START:
 	printf(" size %d\n", taskSize);
-    } else {
+	break;
+    case PSP_ACCOUNT_END:
+	/* actual rusage structure */
+	memcpy(&rusage, ptr, sizeof(rusage));
+	ptr += sizeof(rusage);
+
+	/* exit status */
+	status = *(int32_t *)ptr;
+	ptr += sizeof(int32_t);
+
+	printf(" program '%s'", ptr);
 	printf(" user %.6f sys %.6f",
 	       rusage.ru_utime.tv_sec + 1.0e-6 * rusage.ru_utime.tv_usec,
 	       rusage.ru_stime.tv_sec + 1.0e-6 * rusage.ru_stime.tv_usec);
@@ -102,6 +115,7 @@ void handleAcctMsg(DDTypedBufferMsg_t *msg)
 	    printf(" on signal %d", WTERMSIG(status));
 	    if (WCOREDUMP(status)) printf(" core dumped");
 	}
+    default:
 	printf("\n");
     }
 }

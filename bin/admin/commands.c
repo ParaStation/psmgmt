@@ -895,7 +895,6 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 
     int width = getWidth();
 
-    printf("master's PSP version is %d\n", masterPSPversion);
     /* Determine root process of given task */
     rootTID=parentTID=task;
     while (parentTID) {
@@ -953,7 +952,6 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 	    }
 
 	    recvd=PSI_infoQueueNext(what, slotBuf, slotBufSize, 1);
-	    printf("recvd %d\n", recvd);
 
 	    if ((unsigned int)recvd != req->num * itemSize) {
 		printf("Message lost\n");
@@ -998,8 +996,7 @@ void PSIADM_VersionStat(char *nl)
 
     if (! getHostStatus()) return;
 
-    printf("Node\t psid\t RPM\t\t Proto\n");
-    printf("%4s\t%8s %16s %5s\n", "Node", "psid", "RPM", "Proto");
+    printf("%4s\t%8s %16s %5s\n", "Node", "psid  ", "RPM     ", "Proto");
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 

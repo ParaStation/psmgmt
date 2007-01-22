@@ -31,6 +31,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "psidmsgbuf.h"
 #include "psidcomm.h"
 #include "psidaccount.h"
+#include "psidnodes.h"
 
 #include "psidclient.h"
 
@@ -59,7 +60,6 @@ void initClients(void)
 
     timerclear(&killClientsTimer);
 }
-
 
 void registerClient(int fd, PStask_ID_t tid, PStask_t *task)
 {
@@ -104,6 +104,11 @@ void registerClient(int fd, PStask_ID_t tid, PStask_t *task)
 	*(int32_t *)ptr = task->nextRank;
 	ptr += sizeof(int32_t);
 	msg.header.len += sizeof(int32_t);
+
+	/* my IP address */
+	*(uint32_t *)ptr = PSIDnodes_getAddr(PSC_getMyID());
+	ptr += sizeof(uint32_t);
+	msg.header.len += sizeof(uint32_t);
 
 	sendMsg((DDMsg_t *)&msg);
     }
@@ -466,6 +471,11 @@ void deleteClient(int fd)
 	*(int32_t *)ptr = task->nextRank;
 	ptr += sizeof(int32_t);
 	msg.header.len += sizeof(int32_t);
+
+	/* my IP address */
+	*(uint32_t *)ptr = PSIDnodes_getAddr(PSC_getMyID());
+	ptr += sizeof(uint32_t);
+	msg.header.len += sizeof(uint32_t);
 
 	sendMsg((DDMsg_t *)&msg);
 	
