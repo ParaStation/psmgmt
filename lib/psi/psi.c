@@ -633,7 +633,7 @@ static int myexecv( const char *path, char *const argv[])
 void PSI_execLogger(const char *command)
 {
     int i;
-    char* argv[5];
+    char* argv[5], *envStr;
     /*
      * close all open filedesciptor except my std* and the daemonSock
      */
@@ -643,8 +643,13 @@ void PSI_execLogger(const char *command)
 	}
     }
 
-    argv[0] = (char*)malloc(strlen(PSC_lookupInstalldir()) + 20);
-    sprintf(argv[0],"%s/bin/psilogger", PSC_lookupInstalldir());
+    envStr = getenv("__PSI_LOGGERPATH");
+    if (envStr) {
+	argv[0] = strdup(envStr);
+    } else {
+	argv[0] = (char*)malloc(strlen(PSC_lookupInstalldir()) + 20);
+	sprintf(argv[0],"%s/bin/psilogger", PSC_lookupInstalldir());
+    }
     argv[1] = (char*)malloc(10);
     sprintf(argv[1],"%d", daemonSock);
     argv[2] = (char*)malloc(10);
