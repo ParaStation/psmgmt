@@ -237,7 +237,8 @@ static int recvMsg(PSLog_Msg_t *msg)
 		__func__, PSP_printMsg(msg->header.type),
 		PSC_printTID(msg->header.sender));
 
-	ret = 0;
+	errno = EPROTO;
+	ret = -1;
     }
 
     return ret;
@@ -641,7 +642,6 @@ static void forwardInput(int std_in, PStask_ID_t fwTID)
  */
 static void loop(void)
 {
-    fd_set afds;
     struct timeval mytv={2,0}, atv;
     PSLog_Msg_t msg;
     int timeoutval;
@@ -657,7 +657,8 @@ static void loop(void)
      * phase, while no connection exists. Thus wait at least 10 * mytv.
      */
     while ( noClients > 0 || timeoutval < 10 ) {
-	memcpy(&afds, &myfds, daemonSock + 1);
+	fd_set afds;
+	memcpy(&afds, &myfds, sizeof(afds));
 	atv = mytv;
 	if (select(daemonSock + 1, &afds, NULL,NULL,&atv) < 0) {
 	    if (errno == EINTR) {
@@ -949,6 +950,8 @@ int main( int argc, char**argv)
     if (getenv("PSI_LOGGERDEBUG")) {
 	verbose=1;
 	fprintf(stderr, "PSIlogger: Going to be verbose.\n");
+	fprintf(stderr, "PSIlogger: Daemon on %d\n", daemonSock);
+	fprintf(stderr, "PSIlogger: My ID is %d\n", i);
     }
 
     if (getenv("PSI_FORWARDERDEBUG")) {
