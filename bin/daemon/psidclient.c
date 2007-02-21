@@ -241,8 +241,15 @@ int sendClient(DDMsg_t *msg)
 {
     int fd, sent = 0;
 
+    if (PSID_getDebugMask() & PSID_LOG_CLIENT) {
+	PSID_log(PSID_LOG_CLIENT, "%s(type %s (len=%d) to %s\n",
+		 __func__, PSDaemonP_printMsg(msg->type), msg->len,
+		 PSC_printTID(msg->dest));
+    }
+
     if (PSC_getID(msg->dest)!=PSC_getMyID()) {
 	errno = EHOSTUNREACH;
+	PSID_log(-1, "%s: dest not found\n", __func__);
 	return -1;
     }
 
@@ -251,12 +258,14 @@ int sendClient(DDMsg_t *msg)
 
     if (fd==FD_SETSIZE) {
 	errno = EHOSTUNREACH;
+	PSID_log(-1, "%s: no fd to send\n", __func__);
 	return -1;
     }
 
     if (clients[fd].msgs) flushClientMsgs(fd);
 
     if (!clients[fd].msgs) {
+	PSID_log(PSID_LOG_CLIENT, "%s: use fd %d\n", __func__, fd);
 	sent = do_send(fd, msg, 0);
     }
 

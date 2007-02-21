@@ -197,7 +197,10 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 	return ret;
     }
 
-    if (!ret) return ret;
+    if (!ret) {
+	PSID_warn(-1, errno, "%s: nothing received", __func__);
+	return ret;
+    }
 
     switch (msg->header.type) {
     case PSP_CC_ERROR:
