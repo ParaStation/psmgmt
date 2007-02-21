@@ -1219,6 +1219,8 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 		    goto next_node;
 		}
 
+		if (i) printf(", ");
+
 		switch (type) {
 		case PSP_OP_ACCT:
 		    printf("%s", PSC_printTID(options[i].value));
@@ -1245,7 +1247,7 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 			if (group) {
 			    printf("%s", group->gr_name);
 			} else {
-			    printf("gid %d\n", options[i].value);
+			    printf("gid %d", options[i].value);
 			}
 		    }
 		    break;
