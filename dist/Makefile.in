@@ -86,7 +86,8 @@ $(DISTNAME).src.rpm: $(DISTNAME).tar.gz
 
 .PHONY: rpm
 rpm: $(DISTNAME).tar.gz srpm
-	rpmbuild --clean --define="_rpmdir $$PWD" -tb $<
+	rpmbuild --clean --target @target_cpu@-@target_vendor@-@target_os@ \
+		--define="_rpmdir $$PWD" -tb $<
 
 #
 # building stripped libs

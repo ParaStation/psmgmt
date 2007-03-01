@@ -1573,14 +1573,8 @@ x86_64)
 	LIB_DIRNAME=lib64
 	;;
 powerpc64)
-	case $target_vendor in
-	redhat)
-		LIB_DIRNAME=lib64
-		;;
-	suse)
-		LIB_DIRNAME=lib
-		;;
-	esac
+	LIB_DIRNAME=lib
+	target_cpu=ppc
 	;;
 *)
 	LIB_DIRNAME=lib

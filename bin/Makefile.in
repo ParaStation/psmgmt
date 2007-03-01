@@ -39,12 +39,6 @@ TARGETS = $(TOOLS) test_logging
 
 LDFLAGS+=-L../lib -Wl,-rpath,/opt/parastation/$(LIB_DIRNAME)
 
-ifeq (@target_cpu@, powerpc64)
-ifeq (@target_vendor@, redhat)
-LDFLAGS +=  -m64
-endif
-endif
-
 all bin: $(TOOLS)
 
 $(TOOLS): %: %.o

@@ -16,12 +16,6 @@ TARGET_LIBC_PROVIDES_SSP=@TARGET_LIBC_PROVIDES_SSP@
 CFLAGS += -O3 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
 CPPFLAGS += $(LIBINC) @CPPFLAG_MMD@
 
-ifeq (@target_cpu@, powerpc64)
-ifeq (@target_vendor@, redhat)
-LDFLAGS +=  -m elf64ppc
-endif
-endif
-
 _LIBDEPS := $(LIBOBJS:.o=@DEPEXTENSION@)
 
 VPATH += $(LIBVPATH)
