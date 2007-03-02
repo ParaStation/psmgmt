@@ -325,8 +325,9 @@ static void jobFinished(PSpart_request_t *req)
 
     PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(req->tid));
 
-    deregisterReq(req);
-    if (!dequeueRequest(&runReq, req)) {
+    if (!req->freed) deregisterReq(req);
+
+    if (!dequeueRequest(&runReq, req) && !dequeueRequest(&suspReq, req)) {
 	PSID_log(-1, "%s: Unable to dequeue request %s\n",
 		 __func__, PSC_printTID(req->tid));
     }
@@ -463,6 +464,13 @@ void msg_TASKDEAD(DDMsg_t *msg)
     if (!nodeStat) {
 	PSID_log(-1, "%s: not master\n", __func__);
 	return;
+    }
+
+    if (!req) {
+	PSID_log(PSID_LOG_PART, "%s: request %s not runing. Suspended?\n",
+		 __func__, PSC_printTID(msg->sender));
+
+	req = findRequest(suspReq, msg->sender);
     }
 
     if (!req) {
