@@ -224,6 +224,7 @@ typedef enum {
 typedef enum {
     PSP_ACCOUNT_QUEUE = 0x0000,   /**< New task queued */
     PSP_ACCOUNT_START,            /**< Start of task */
+    PSP_ACCOUNT_SLOTS,            /**< Start of task, list of slots part */
     PSP_ACCOUNT_DELETE,           /**< Delete of task (end without spawn) */
     PSP_ACCOUNT_END,              /**< Task ends execution */
 } PSP_Account_t;

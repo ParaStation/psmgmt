@@ -880,6 +880,103 @@ static int buildSandboxAndStart(PStask_t *forwarder, PStask_t *client)
     return ret;
 }
 
+/** Chunksize for PSP_ACCOUNT_SLOTS messages */
+#define ACCT_SLOTS_CHUNK 128
+
+/**
+ * @brief Send accounting info
+ *
+ * Send info on the jobs currently started to the accounter. The job
+ * is described within @a task, all messages are sent as @a sender.
+ *
+ * Actually two types of messages are created. First of all a @a
+ * PSP_ACCOUNT_START message is sent. This is followed by one or more
+ * @a PSP_ACCOUNT_SLOTS containing chunks of slots describing the
+ * allocated partition.
+ *
+ * @param sender Task identity to send as.
+ *
+ * @param task Task structure holding information to send.
+ *
+ * @return No return value.
+ */
+static void sendAcctInfo(PStask_ID_t sender, PStask_t *task)
+{
+    DDTypedBufferMsg_t msg;
+    char *ptr = msg.buf;
+    unsigned int slot;
+
+    msg.header.type = PSP_CD_ACCOUNT;
+    msg.header.dest = PSC_getMyTID();
+    msg.header.sender = sender;
+    msg.header.len = sizeof(msg.header);
+
+    msg.type = PSP_ACCOUNT_START;
+    msg.header.len += sizeof(msg.type);
+
+    /* logger's TID, this identifies a task uniquely */
+    *(PStask_ID_t *)ptr = task->loggertid;
+    ptr += sizeof(PStask_ID_t);
+    msg.header.len += sizeof(PStask_ID_t);
+
+    /* current rank */
+    *(int32_t *)ptr = task->rank;
+    ptr += sizeof(int32_t);
+    msg.header.len += sizeof(int32_t);
+
+    /* childs uid */
+    *(uid_t *)ptr = task->uid;
+    ptr += sizeof(uid_t);
+    msg.header.len += sizeof(uid_t);
+
+    /* childs gid */
+    *(gid_t *)ptr = task->gid;
+    ptr += sizeof(gid_t);
+    msg.header.len += sizeof(gid_t);
+
+    /* total number of childs */
+    *(int32_t *)ptr = task->partitionSize;
+    ptr += sizeof(int32_t);
+    msg.header.len += sizeof(int32_t);
+
+    /* my IP address */
+    *(uint32_t *)ptr = PSIDnodes_getAddr(PSC_getMyID());
+    ptr += sizeof(uint32_t);
+    msg.header.len += sizeof(uint32_t);
+
+    sendMsg((DDMsg_t *)&msg);
+
+    msg.type = PSP_ACCOUNT_SLOTS;
+
+    for (slot = 0; slot < task->partitionSize; slot++) {
+	if (! (slot%ACCT_SLOTS_CHUNK)) {
+	    if (slot) sendMsg((DDMsg_t *)&msg);
+		
+	    msg.header.len = sizeof(msg.header) + sizeof(msg.type);
+
+	    ptr = msg.buf + sizeof(PStask_ID_t);
+	    msg.header.len += sizeof(PStask_ID_t);
+
+	    *(uint16_t *)ptr =
+		(task->partitionSize - slot < ACCT_SLOTS_CHUNK) ?
+		task->partitionSize - slot : ACCT_SLOTS_CHUNK;
+	    ptr += sizeof(uint16_t);
+	    msg.header.len += sizeof(uint16_t);
+	}
+
+	*(uint32_t *)ptr = PSIDnodes_getAddr(task->partition[slot].node);
+	ptr += sizeof(int32_t);
+	msg.header.len += sizeof(uint32_t);
+	*(int16_t *)ptr = task->partition[slot].cpu;
+	ptr += sizeof(uint16_t);
+	msg.header.len += sizeof(int16_t);
+
+    }
+
+    sendMsg((DDMsg_t *)&msg);
+}
+
+
 /**
  * @brief Check spawn request
  *
@@ -888,6 +985,9 @@ static int buildSandboxAndStart(PStask_t *forwarder, PStask_t *client)
  *
  * While checking the request it is assumed that its origin is the
  * task @a sender.
+ *
+ * If the request is determined to be valid, a series of accounting
+ * messages is created via calling @ref sendAcctInfo().
  *
  * @param sender Assumed origin of the spawn request.
  *
@@ -950,49 +1050,7 @@ static int checkRequest(PStask_ID_t sender, PStask_t *task)
 	     PSC_printTID(task->ptid));
 
     if (ptask->group == TG_LOGGER && ptask->partitionSize > 0 && !task->rank) {
-	DDTypedBufferMsg_t msg;
-	char *ptr = msg.buf;
-
-	msg.header.type = PSP_CD_ACCOUNT;
-	msg.header.dest = PSC_getMyTID();
-	msg.header.sender = sender;
-	msg.header.len = sizeof(msg.header);
-
-	msg.type = PSP_ACCOUNT_START;
-	msg.header.len += sizeof(msg.type);
-
-	/* logger's TID, this identifies a task uniquely */
-	*(PStask_ID_t *)ptr = ptask->loggertid;
-	ptr += sizeof(PStask_ID_t);
-	msg.header.len += sizeof(PStask_ID_t);
-
-	/* current rank */
-	*(int32_t *)ptr = ptask->rank;
-	ptr += sizeof(int32_t);
-	msg.header.len += sizeof(int32_t);
-
-	/* childs uid */
-	*(uid_t *)ptr = ptask->uid;
-	ptr += sizeof(uid_t);
-	msg.header.len += sizeof(uid_t);
-
-	/* childs gid */
-	*(gid_t *)ptr = ptask->gid;
-	ptr += sizeof(gid_t);
-	msg.header.len += sizeof(gid_t);
-
-	/* total number of childs */
-	*(int32_t *)ptr = ptask->partitionSize;
-	ptr += sizeof(int32_t);
-	msg.header.len += sizeof(int32_t);
-
-	/* my IP address */
-	*(uint32_t *)ptr = PSIDnodes_getAddr(PSC_getMyID());
-	ptr += sizeof(uint32_t);
-	msg.header.len += sizeof(uint32_t);
-
-	sendMsg((DDMsg_t *)&msg);
-	
+	sendAcctInfo(sender, ptask);
     }
 
     return 0;

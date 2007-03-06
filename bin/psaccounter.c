@@ -44,6 +44,30 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #include "pscommon.h"
 
+void handleSlotsMsg(DDTypedBufferMsg_t *msg)
+{
+    char *ptr = msg->buf + sizeof(PStask_ID_t);
+    unsigned int numSlots = *(uint16_t *)ptr, slot;
+
+    ptr += sizeof(uint16_t);
+
+    for (slot = 0; slot < numSlots; slot++) {
+	struct in_addr slotIP;
+	int cpu;
+
+	if (!slot) printf(": "); else printf(", ");
+
+	slotIP.s_addr = *(uint32_t *)ptr;
+	ptr += sizeof(uint32_t);
+	cpu = *(int16_t *)ptr;
+	ptr += sizeof(int16_t);
+
+	printf("%s/%d", inet_ntoa(slotIP), cpu);
+    }
+
+    printf("\n");
+}
+
 void handleAcctMsg(DDTypedBufferMsg_t *msg)
 {
     char *ptr = msg->buf;
@@ -87,15 +111,22 @@ void handleAcctMsg(DDTypedBufferMsg_t *msg)
     printf("%s: msg from %s: type %s", __func__, PSC_printTID(sender),
 	   msg->type == PSP_ACCOUNT_QUEUE ? "Q" :
 	   msg->type == PSP_ACCOUNT_START ? "S" :
+	   msg->type == PSP_ACCOUNT_SLOTS ? "S-N" :
 	   msg->type == PSP_ACCOUNT_DELETE ? "D" :
 	   msg->type == PSP_ACCOUNT_END ? "E" : "?");
-    printf(" job %s rank %d", PSC_printTID(logger), rank);
-    printf(" UID %d GID %d", uid, gid);
-    printf(" sender at %s", inet_ntoa(senderIP));
+    printf(" job %s", PSC_printTID(logger));
+    if (msg->type != PSP_ACCOUNT_SLOTS) {
+	printf(" rank %d", rank);
+	printf(" UID %d GID %d", uid, gid);
+	printf(" sender at %s", inet_ntoa(senderIP));
+    }
 
     switch (msg->type) {
     case PSP_ACCOUNT_START:
 	printf(" size %d\n", taskSize);
+	break;
+    case PSP_ACCOUNT_SLOTS:
+	handleSlotsMsg(msg);
 	break;
     case PSP_ACCOUNT_END:
 	/* actual rusage structure */

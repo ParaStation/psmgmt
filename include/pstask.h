@@ -120,7 +120,7 @@ typedef struct PStask_T{
     PSpart_request_t *request;     /**< Pointer to temp. partition request */
     uint32_t partitionSize;        /**< Size of the partition. */
     PSpart_option_t options;       /**< The partition's options. */
-    PSpart_slot_t *partition;      /**< The actual partition. List of nodes. */
+    PSpart_slot_t *partition;      /**< The actual partition. List of slots. */
     int nextRank;                  /**< Next rank to start within the task. */
 
     PStask_sig_t *signalSender;    /**< Tasks which sent signals */
