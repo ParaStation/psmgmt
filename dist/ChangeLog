@@ -1,3 +1,93 @@
+Version psmgmt-4.3.8:
+=====================
+------------------------------------------------------------------------
+r4623 | eicker | 2007-03-06 21:36:25 +0100 (Tue, 06 Mar 2007) | 3 lines
+
+Add some more features needed for accounting, mainly a message
+    containing all the nodes involved to run a job.
+
+------------------------------------------------------------------------
+r4620 | eicker | 2007-03-06 11:59:13 +0100 (Tue, 06 Mar 2007) | 3 lines
+
+Remove old startup-code for InfiniPath executables. The new version of
+the helper is in a separate RPM (psipath) now.
+
+------------------------------------------------------------------------
+r4614 | eicker | 2007-03-05 16:37:34 +0100 (Mon, 05 Mar 2007) | 3 lines
+
+Also export psienv.h and psispawn.h. This is needed to build the ipath
+startup stuff.
+
+------------------------------------------------------------------------
+r4606 | eicker | 2007-03-02 15:33:52 +0100 (Fri, 02 Mar 2007) | 2 lines
+
+Bugfix: Free resources of jobs exiting while suspended.
+
+------------------------------------------------------------------------
+r4603 | eicker | 2007-03-01 17:32:44 +0100 (Thu, 01 Mar 2007) | 2 lines
+
+Always build 32-bit stuff on ppc-platforms.
+
+------------------------------------------------------------------------
+r4590 | eicker | 2007-02-21 16:08:02 +0100 (Wed, 21 Feb 2007) | 3 lines
+
+Bugfix: Fix bug preventing logger to talk to local daemon on 64 bit
+   big-endian platforms (aka Fedora on PPC).
+
+------------------------------------------------------------------------
+r4589 | eicker | 2007-02-21 16:05:54 +0100 (Wed, 21 Feb 2007) | 2 lines
+
+Define logger to use via __PSI_LOGGERPATH environment (used for debug).
+
+------------------------------------------------------------------------
+r4588 | eicker | 2007-02-21 15:15:49 +0100 (Wed, 21 Feb 2007) | 2 lines
+
+Improve output of parameter lists.
+
+------------------------------------------------------------------------
+r4587 | eicker | 2007-02-21 14:57:30 +0100 (Wed, 21 Feb 2007) | 2 lines
+
+Improved logging messages.
+
+------------------------------------------------------------------------
+r4528 | eicker | 2007-01-22 16:45:25 +0100 (Mon, 22 Jan 2007) | 2 lines
+
+Fix typo.
+
+------------------------------------------------------------------------
+r4526 | eicker | 2007-01-22 16:34:57 +0100 (Mon, 22 Jan 2007) | 2 lines
+
+Don't quit PSI_send/recvMsg() and close connection to psid on interrupt.
+
+------------------------------------------------------------------------
+r4524 | eicker | 2007-01-22 09:43:32 +0100 (Mon, 22 Jan 2007) | 4 lines
+
+More changes for accounting:
+- Send sender's IP address in every message.
+- Send executed command in 'E' message.
+
+------------------------------------------------------------------------
+r4519 | eicker | 2007-01-17 14:52:17 +0100 (Wed, 17 Jan 2007) | 2 lines
+
+Cell BE port: RedHat actually builds 64bit stuff on PPC.
+
+------------------------------------------------------------------------
+r4518 | eicker | 2007-01-16 19:09:07 +0100 (Tue, 16 Jan 2007) | 8 lines
+
+The first step for process pinning:
+ - This implements some versioning to the daemon-daemon protocol.
+ - Some more infrastructure.
+ - Partitions now stored in slot-lists, not node-lists.
+ - Slot-lists sent to other daemons (depending on version).
+ - Slot-lists sent to psiadmin (depending on version).
+
+
+------------------------------------------------------------------------
+r4516 | eicker | 2007-01-16 18:04:04 +0100 (Tue, 16 Jan 2007) | 2 lines
+
+New version.
+
+
 Version psmgmt-4.3.7:
 =====================
 ------------------------------------------------------------------------
