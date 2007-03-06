@@ -32,7 +32,7 @@ endif
 
 TOOLS:= psiadmin psid psilogger mlisten
 TOOLS += psmstart mpirun_chp4 psispawn mpirun_chgm gmspawner
-TOOLS += test_pse test_config mpirun_psc pscspawner pssh
+TOOLS += test_pse test_config pssh
 TOOLS += psaccounter
 
 TARGETS = $(TOOLS) test_logging
@@ -44,17 +44,17 @@ all bin: $(TOOLS)
 $(TOOLS): %: %.o
 
 psiadmin psid mlisten test_pse psmstart mpirun_chp4 mpirun_chgm gmspawner \
-	test_config mpirun_psc pscspawner pssh psaccounter: \
+	test_config pssh psaccounter: \
 		LOADLIBES:=$(LOADLIBES) -lpopt
 
-test_pse psmstart mpirun_chp4 mpirun_chgm mpirun_psc pssh psaccounter: \
+test_pse psmstart mpirun_chp4 mpirun_chgm pssh psaccounter: \
 	LOADLIBES:=$(LOADLIBES) -lpse -lpsi
 
 psiadmin psid test_config: LOADLIBES:=$(LOADLIBES) -lputil
 
 psid psilogger test_config test_logging: LOADLIBES:=$(LOADLIBES) -lpscommon
 
-psiadmin psispawn gmspawner pscspawner: LOADLIBES:=$(LOADLIBES) -lpsi
+psiadmin psispawn gmspawner: LOADLIBES:=$(LOADLIBES) -lpsi
 
 gmspawner: LOADLIBES:=$(LOADLIBES) -lpthread
 
