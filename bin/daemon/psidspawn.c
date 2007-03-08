@@ -1028,7 +1028,7 @@ static int checkRequest(PStask_ID_t sender, PStask_t *task)
 	return EACCES;
     }
 
-    if (!PSIDnodes_isStarter(PSC_getMyID())
+    if (!PSIDnodes_isStarter(PSC_getMyID()) && task->group != TG_ADMINTASK
 	&& (ptask->group == TG_SPAWNER || ptask->group == TG_PSCSPAWNER
 	    || ptask->group == TG_LOGGER)) {
 	/* starting not allowed */
