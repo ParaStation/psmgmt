@@ -594,6 +594,52 @@ static int sendNodelist(nodelist_t *nodelist, DDBufferMsg_t *msg)
     return 0;
 }
 
+/**
+ * Name of the environment variable used to declare set of hardware
+ * types in a space-separated list. A node has to support these
+ * hardware types in order to be exepted as part of the partition used
+ * to run a job. Keep in mind that for a node it's sufficient to
+ * support at least one of the hardware types requested.
+*/
+#define ENV_HW_TYPE "PSI_HW_TYPE"
+
+/**
+ * @brief Get hardware environment
+ *
+ * Get set of hardware-types used to mask the hardware types requested
+ * within the PSI_createPartition() call. The hardware types are taken
+ * from a space separated list in the environment given by @ref
+ * ENV_HW_TYPE.
+ *
+ * @return On success, i.e. all hardware types given are known, the
+ * hardware-mask is returned. Otherwise 0 is returned.
+ *
+ *
+ */
+static uint32_t getHWEnv(void)
+{
+    uint32_t hwType = 0;
+    char *env = getenv(ENV_HW_TYPE);
+    char *work, *hw;
+
+    if (!env) return 0;
+
+    hw = strtok_r(env, " \f\n\r\t\v", &work);
+    while (hw) {
+	int err, idx;
+	err = PSI_infoInt(-1, PSP_INFO_HWINDEX, hw, &idx, 0);
+	if (!err && (idx >= 0) && (idx < ((int)sizeof(hwType) * 8))) {
+	    hwType |= 1 << idx;
+	} else {
+	    PSI_log(-1, "%s: Unknown hardware type '%s'."
+		    " Ignore environment %s\n", __func__, hw, ENV_HW_TYPE);
+	    return 0;
+	}
+	hw = strtok_r(NULL, " \f\n\r\t\v", &work);
+    }
+    return hwType;
+}
+
 static int alarmCalled = 0;
 static void alarmHandler(int sig)
 {
@@ -604,7 +650,7 @@ static void alarmHandler(int sig)
     PSI_log(-1, "%s -- Waiting for ressources\n", timeStr);
 }
 
-int PSI_createPartition(unsigned int size, unsigned int hwType)
+int PSI_createPartition(unsigned int size, uint32_t hwType)
 {
     DDBufferMsg_t msg = (DDBufferMsg_t) {
 	.header = (DDMsg_t) {
@@ -616,6 +662,7 @@ int PSI_createPartition(unsigned int size, unsigned int hwType)
     PSpart_request_t *request = PSpart_newReq();
     nodelist_t *nodelist;
     size_t len;
+    uint32_t hwEnv;
 
     PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
 
@@ -646,6 +693,13 @@ int PSI_createPartition(unsigned int size, unsigned int hwType)
 	request->num = nodelist->size;
     } else {
 	request->num = 0;
+    }
+
+    hwEnv = getHWEnv();
+    if (hwEnv && !(request->hwType = (hwType ? hwType:0xffffffffU) & hwEnv)) {
+	PSI_log(-1, "%s: no intersection between hwType (%x)"
+		" and environment (%x)\n", __func__, hwType, hwEnv);
+	return -1;
     }
 
     len = PSpart_encodeReq(msg.buf, sizeof(msg.buf), request);

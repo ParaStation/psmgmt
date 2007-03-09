@@ -156,7 +156,7 @@ void PSI_LL(void);
  * @return On success, the number of nodes in the partition is
  * returned or -1 if an error occurred.
  */
-int PSI_createPartition(unsigned int num, unsigned int hwType);
+int PSI_createPartition(unsigned int num, uint32_t hwType);
 
 /**
  * @brief Get nodes to spawn prozesses to.

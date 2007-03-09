@@ -20,6 +20,7 @@
 #ifndef __PSE_H
 #define __PSE_H
 
+#include <stdint.h>
 #include <sys/types.h>
 
 #include "psnodes.h"
@@ -188,7 +189,7 @@ void PSE_setUID(uid_t uid);
  *
  * @see PSE_getPartition() PSE_setHWList()
  * */
-void PSE_setHWType(unsigned int hwType);
+void PSE_setHWType(uint32_t hwType);
 
 
 /**

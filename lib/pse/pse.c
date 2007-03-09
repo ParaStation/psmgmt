@@ -39,7 +39,7 @@ static int masterNode = -1;
 static int masterPort = -1;
 static PStask_ID_t parentTID = -1;
 
-static unsigned int defaultHWType = 0; /* Take any node */
+static uint32_t defaultHWType = 0; /* Take any node */
 
 /** The logger we use inside PSE */
 static logger_t *logger;
@@ -160,14 +160,14 @@ void PSE_init(int NP, int *rank)
     *rank = PSE_getRank();
 }
 
-void PSE_setHWType(unsigned int hwType)
+void PSE_setHWType(uint32_t hwType)
 {
     defaultHWType = hwType;
 }
 
 int PSE_setHWList(char **hwList)
 {
-    unsigned int hwType = 0;
+    uint32_t hwType = 0;
     int ret = 0;
     
     while (hwList && *hwList) {
