@@ -116,7 +116,8 @@ char *HW_dumpEnv(const int idx, const int num)
 
 char *HW_printType(const unsigned int hwType)
 {
-    int hw = hwType, index = 0;
+    unsigned int hw = hwType;
+    int index = 0;
     static char txt[80];
 
     txt[0] = '\0';
