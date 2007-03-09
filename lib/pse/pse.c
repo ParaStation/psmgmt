@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
