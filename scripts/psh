@@ -22,21 +22,12 @@ D_AUTOCD="cd ${PWD/#${HOME}/~} &&"
 TMPTEMPLATE="/tmp/pshout.XXXXXX"
 
 ############################
-# Use psmstart if available
+# Use pssh if available?
 
-PARASTATIONSTART="/opt/parastation/bin/psmstart"
+PARASTATIONSTART="/opt/parastation/bin/pssh"
 #if [ -x "${PARASTATIONSTART}" ] ; then
-#    D_RCMD="psstart";
+#    D_RCMD="${PARASTATIONSTART}";
 #fi
-
-function psstart()
-{
-    # psmstart is not compatible to rsh or ssh :-(
-    export PSI_HOSTS=$1
-    shift
-    # sleep 1: hack around a bug
-    "${PARASTATIONSTART}" "$* ; sleep 1"
-}
 
 #############################
 # create a default template 
@@ -54,7 +45,7 @@ if [ ! -e "${D_CONFIG}" ] ; then
 # node nodename[01-16]
 
 ## default remote command:
-# rcmd psstart
+# rcmd pssh
 # rcmd ssh -x
 
 ## dont start more than 1 remote shell at the same time?
