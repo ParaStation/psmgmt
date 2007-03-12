@@ -3,6 +3,7 @@ Makefile.in \
 Makefile.version \
 LICENSE \
 bin/Makefile.in \
+bin/accounter/psaccounter.c \
 bin/admin/adminparser.c \
 bin/admin/adminparser.h \
 bin/admin/commands.c \
@@ -48,7 +49,7 @@ bin/logger/psilogger.c \
 bin/mlisten.c \
 bin/mpirun_chgm.c \
 bin/mpirun_chp4.c \
-bin/psaccounter.c \
+bin/testacct.c \
 bin/psispawn.c \
 bin/psmstart.c \
 bin/pssh.c \

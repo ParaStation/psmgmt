@@ -33,7 +33,7 @@ endif
 TOOLS:= psiadmin psid psilogger mlisten
 TOOLS += psmstart mpirun_chp4 psispawn mpirun_chgm gmspawner
 TOOLS += test_pse test_config pssh
-TOOLS += psaccounter
+TOOLS += psaccounter testacct
 
 TARGETS = $(TOOLS) test_logging
 
@@ -44,10 +44,10 @@ all bin: $(TOOLS)
 $(TOOLS): %: %.o
 
 psiadmin psid mlisten test_pse psmstart mpirun_chp4 mpirun_chgm gmspawner \
-	test_config pssh psaccounter: \
+	test_config pssh psaccounter testacct: \
 		LOADLIBES:=$(LOADLIBES) -lpopt
 
-test_pse psmstart mpirun_chp4 mpirun_chgm pssh psaccounter: \
+test_pse psmstart mpirun_chp4 mpirun_chgm pssh psaccounter testacct: \
 	LOADLIBES:=$(LOADLIBES) -lpse -lpsi
 
 psiadmin psid test_config: LOADLIBES:=$(LOADLIBES) -lputil
@@ -87,6 +87,9 @@ psilogger: LOADLIBES:=$(LOADLIBES) -lpslog
 
 parastation: $(TOP_SRCDIR)/scripts/parastation@TRU64FILEADD@
 	cp $< $@
+
+# accounter
+VPATH += $(SRCDIR)/accounter
 
 # WARNING!!! if DEPEXTENSION from configure is empty, make clean remove all files!!
 DEPFILES := $(wildcard *@DEPEXTENSION@) dummy.d
