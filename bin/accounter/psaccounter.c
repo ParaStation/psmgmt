@@ -90,11 +90,11 @@ struct t_node
 
 void sig_handler(int sig);
 void handleAccQueueMsg(char *chead, char *ptr, PStask_ID_t logger);
-void handleAccStartMsg(char *chead, char *ptr, PStask_ID_t key);
+void handleAccStartMsg(char *ptr, PStask_ID_t key);
 void handleAccDelteMsg(char *chead, PStask_ID_t key);
 void handleAccEndMsg(char *chead, char *ptr, PStask_ID_t sender, PStask_ID_t logger);
 void handleSlotsMsg(char *chead, DDTypedBufferMsg_t *msg);
-void timer_handler(int signum);
+void timer_handler();
 void printAccEndMsg(char *chead, int TaskId);
 void openAccLogFile(char *arg_logdir);
 
@@ -270,7 +270,7 @@ void sig_handler(int sig)
 
 }
 
-void timer_handler(int signum)
+void timer_handler()
 {
 
     Job_t *job = findJob(deadLoggerId);
@@ -413,7 +413,7 @@ void handleAccQueueMsg(char *chead, char *ptr, PStask_ID_t logger)
 }
 			 
 			 
-void handleAccStartMsg(char *chead, char *ptr, PStask_ID_t key)
+void handleAccStartMsg(char *ptr, PStask_ID_t key)
 {		
 
     Job_t *job = findJob(key);
@@ -602,7 +602,7 @@ void handleAcctMsg(DDTypedBufferMsg_t *msg)
 		    handleAccQueueMsg(chead, ptr, logger);
 		    break;
 	    case PSP_ACCOUNT_START:
-		    handleAccStartMsg(chead, ptr, logger);
+		    handleAccStartMsg(ptr, logger);
 		    break;
 	    case PSP_ACCOUNT_DELETE:
 		    handleAccDeleteMsg(chead, logger);
