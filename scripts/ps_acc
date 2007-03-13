@@ -1,0 +1,31 @@
+#!/bin/sh
+# 
+# Script to get some ethernet statistics
+#
+# Author: Michael Rauh <rauh@par-tec.com>
+#
+# $Id:
+#
+
+case "$1" in
+    start)
+        /opt/parastation/bin/psaccounter -p gzip 
+	;;
+
+    stop)
+        killall psaccounter 2>&1 1>/dev/null	
+	;;
+
+    statusheader)
+	;;
+
+    status)
+	;;
+
+    *)
+	echo "Usage: $0 {start|stop|statusheader|status}"
+	exit 1
+	;;
+esac
+
+exit 0
