@@ -25,6 +25,9 @@ INCDIR := $(DISTPATH)/include
 BINDIR := $(DISTPATH)/bin
 LIBDIR := $(DISTPATH)/$(LIB_DIRNAME)
 
+LOGDIR := var/log/parastation
+ACCLOGDIR:= $(LOGDIR)/accounting
+
 INCLUDES += pse.h
 INCLUDES += psprotocol.h psnodes.h pstask.h pspartition.h pscommon.h
 INCLUDES += psiinfo.h psispawn.h psienv.h psi.h logging.h
@@ -36,7 +39,7 @@ LIBS += libpse.a libpse.so libpsi.a libpsi.so
 
 MISC += VERSION.psmgmt ChangeLog.psmgmt INSTALL LICENSE
 MISC += bin/psh
-MISC += config/PSM_INSTALL config/parastation.conf.tmpl config/ps_gm
+MISC += config/PSM_INSTALL config/parastation.conf.tmpl config/ps_gm config/ps_acc
 MISC += scripts/ps_gmcounters
 
 ######################################################
@@ -139,6 +142,9 @@ $(DISTPATH)/config/parastation.conf.tmpl: $(TOP_SRCDIR)/doc/parastation.conf
 	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
 
 $(DISTPATH)/config/ps_gm: $(TOP_SRCDIR)/scripts/ps_gm
+	$(INSTALL) -D $< $@
+
+$(DISTPATH)/config/ps_acc: $(TOP_SRCDIR)/scripts/ps_acc
 	$(INSTALL) -D $< $@
 
 $(DISTPATH)/scripts/ps_gmcounters: $(TOP_SRCDIR)/scripts/ps_gmcounters
