@@ -398,18 +398,25 @@ void handleAccQueueMsg(char *chead, char *ptr, PStask_ID_t logger)
     /* ip address */
     senderIP.s_addr = *(uint32_t *)ptr;			
     hostName = gethostbyaddr(&senderIP.s_addr,sizeof(senderIP.s_addr),AF_INET);
-    strncpy(job->hostname,hostName->h_name, MAX_HOSTNAME_LEN -1);
+    if(hostName)
+    	strncpy(job->hostname,hostName->h_name, MAX_HOSTNAME_LEN -1);
+    else
+        strcpy(job->hostname,"unknown");
+
     ptr += sizeof(int32_t);
 
     job->queue_time = time(NULL); 
 
     if(!insertJob(job)){
-       alog("Error caching job, exiting");
+       alog("Error caching job, exiting\n");
        exit(1);
     }
     
     if(logTorque)
          fprintf(fp,"%s;queue=batch\n",chead);			
+    
+    if(debug)
+       alog("processed acc queue msg\n");
 }
 			 
 			 
@@ -442,6 +449,9 @@ void handleAccStartMsg(char *ptr, PStask_ID_t key)
 
     job->start_time = time(NULL);
 
+    if(debug)
+       alog("processed acc start msg\n");	
+
 
 }
 
@@ -451,6 +461,9 @@ void handleAccDeleteMsg(char *chead, PStask_ID_t key)
 	 	fprintf(fp,"%s\n",chead);
      if(!deleteJob(key))
         alog("Job could not be deleted:%i\n",key);
+
+     if(debug)
+        alog("processed acc delete msg\n");
 }
 
 
@@ -554,32 +567,38 @@ void handleAccEndMsg(char *chead, char *ptr, PStask_ID_t sender, PStask_ID_t log
       }
 
     }
+    if(debug)
+       alog("processed acc end msg\n");
 }
 
 			 
 void handleAcctMsg(DDTypedBufferMsg_t *msg)
 {
+    if(debug)
+        alog("processing acc msg\n");
+
     char *ptr = msg->buf, *ip_ptr;
     PStask_ID_t sender = msg->header.sender,logger;
     struct in_addr senderIP;
     struct hostent* hostName;
+    char hostname[200];
 
     /* logger's TID, this identifies a task uniquely */
     logger = *(PStask_ID_t *)ptr;
     ptr += sizeof(PStask_ID_t);
 
-	if(debug){
-		alog("Received new acc msg: sender:%s, logger:%s\n",
-				PSC_printTID(sender),PSC_printTID(logger));
-	}
-	
-	/* IP-Adrr */
+    /* IP-Adrr */
     ip_ptr = ptr;
     ip_ptr += sizeof(int32_t) + sizeof(uid_t) + sizeof(gid_t) + sizeof(int32_t);
     senderIP.s_addr = *(uint32_t *)ip_ptr;			
     hostName = gethostbyaddr(&senderIP.s_addr,sizeof(senderIP.s_addr),AF_INET);
+    if(!hostName){
+        alog("Couldn't resolve hostName from ip:%s\n",inet_ntoa(senderIP));
+	strcpy(hostname,inet_ntoa(senderIP));
+    }
+    else
+    	strcpy(hostname,hostName->h_name);
     
-
     /* Create Header for all Msg */ 
     time_t atime;
     struct tm *ptm;
@@ -595,7 +614,12 @@ void handleAcctMsg(DDTypedBufferMsg_t *msg)
     msg->type == PSP_ACCOUNT_SLOTS ? "S" :
     msg->type == PSP_ACCOUNT_DELETE ? "D" :
     msg->type == PSP_ACCOUNT_END ? "E" : "?",
-    PSC_getPID(logger),hostName->h_name);
+    PSC_getPID(logger),hostname);
+    
+    if(debug){
+        alog("Received new acc msg: type:%d, sender:%s, logger:%s\n",
+	msg->type, PSC_printTID(sender),PSC_printTID(logger));
+    }
     
     switch (msg->type) {
 	    case PSP_ACCOUNT_QUEUE:
@@ -674,7 +698,9 @@ void handleSigMsg(DDErrorMsg_t *msg)
 
 void handleSlotsMsg(char *chead, DDTypedBufferMsg_t *msg)
 {
-    
+   
+    if(debug)
+      alog("processing slot msg\n");
     char *ptr = msg->buf;
     
     PStask_ID_t logger = *(PStask_ID_t *)ptr;
@@ -700,22 +726,29 @@ void handleSlotsMsg(char *chead, DDTypedBufferMsg_t *msg)
 	cpu = *(int16_t *)ptr;
 	ptr += sizeof(int16_t);
 
-    	hostName = gethostbyaddr(&slotIP.s_addr,sizeof(slotIP.s_addr),AF_INET);
-	
-	if(strlen(hostName->h_name) + strlen(job->exec_hosts) + 1 > job->exec_hosts_size ){
-	    char *tmpjob = job->exec_hosts;
-	    job->exec_hosts = malloc(job->exec_hosts_size + EXEC_HOST_SIZE);
-	    if(!job->exec_hosts){
-	    	alog("Out of memory, exiting\n");
-		exit(1);
-	    }
-	    job->exec_hosts_size += EXEC_HOST_SIZE;
-	    strcpy(job->exec_hosts, tmpjob);
-	    free(tmpjob);
-	}
-        if(slot) strcpy(sep,"+");	
 	job->countSlotMsg++;
-	sprintf(job->exec_hosts,"%s%s%s/%d",job->exec_hosts, sep, hostName->h_name, job->countSlotMsg);
+    	
+	hostName = gethostbyaddr(&slotIP.s_addr,sizeof(slotIP.s_addr),AF_INET);
+	
+	if(!hostName){
+	   alog("Couldn't resolve hostname from ip\n");
+	   return;
+	}
+        else{ 
+		if(strlen(hostName->h_name) + strlen(job->exec_hosts) + 1 > job->exec_hosts_size ){
+		    char *tmpjob = job->exec_hosts;
+		    job->exec_hosts = malloc(job->exec_hosts_size + EXEC_HOST_SIZE);
+		    if(!job->exec_hosts){
+			alog("Out of memory, exiting\n");
+			exit(1);
+		    }
+		    job->exec_hosts_size += EXEC_HOST_SIZE;
+		    strcpy(job->exec_hosts, tmpjob);
+		    free(tmpjob);
+		}
+		if(slot) strcpy(sep,"+");	
+		sprintf(job->exec_hosts,"%s%s%s/%d",job->exec_hosts, sep, hostName->h_name, (int) job->countSlotMsg);
+	}
     }
 
 
@@ -730,6 +763,8 @@ void handleSlotsMsg(char *chead, DDTypedBufferMsg_t *msg)
 	if(logTorque) 
 	    fprintf(fp,"%s;user=%s group=%s queue=batch ctime=%i qtime=%i etime=%i start=%i exec_host=%s\n",chead 
 	    	,spasswd->pw_name, sgroup->gr_name, job->queue_time, job->queue_time, job->queue_time, job->start_time, job->exec_hosts);
+	if(debug)
+	    alog("handled all slot msgs\n");
     }
 
 }
