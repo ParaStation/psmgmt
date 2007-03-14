@@ -55,7 +55,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #define MAX_HOSTNAME_LEN 64  
 #define EXEC_HOST_SIZE 1024
-#define DEFAULT_LOG_DIR "/var/log/parastation/accouting"
+#define DEFAULT_LOG_DIR "/var/log/parastation/accounting"
 
 typedef struct
 {
