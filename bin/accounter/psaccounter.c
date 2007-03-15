@@ -119,7 +119,7 @@ int debug;
 char *logPostProcessing;
 logger_t* alogger;
 FILE *logfile = NULL;
-
+int edebug = 0;    //extended debugging msg
 
 #define alog(...) if (alogger) logger_print(alogger, -1, __VA_ARGS__)
 
@@ -197,7 +197,9 @@ struct t_node *deleteTNode(PStask_ID_t key, struct t_node *leaf)
    if( leaf->left && leaf->right ){
       tmpleaf = findMin( leaf->right );
       leaf->key = tmpleaf->key;
+      Job_t *tmpjob = leaf->job;
       leaf->job = tmpleaf->job;
+      tmpleaf->job = tmpjob;
       leaf->right = deleteTNode( leaf->key, leaf->right );
    }
    else{
@@ -207,12 +209,12 @@ struct t_node *deleteTNode(PStask_ID_t key, struct t_node *leaf)
       else
       if( !leaf->right )
          leaf = leaf->left;
-      
       if(tmpleaf->job->jobname)
-      	  free( tmpleaf->job->jobname);
-      free( tmpleaf->job );
-      free( tmpleaf );
-      
+      	  free( tmpleaf->job->jobname );
+      if(tmpleaf->job->exec_hosts)
+          free( tmpleaf->job->exec_hosts );
+          free( tmpleaf->job );
+      	  free( tmpleaf );
     }
     return leaf; 
 }
@@ -272,7 +274,6 @@ void sig_handler(int sig)
 
 void timer_handler()
 {
-
     Job_t *job = findJob(deadLoggerId);
 
     if(!job){
@@ -354,7 +355,10 @@ void printAccEndMsg(char *chead, PStask_ID_t key)
      fprintf(fp,"%s;user=%s group=%s %sjobname=%s queue=batch ctime=%i qtime=%i etime=%i start=%i exec_host=%s end=%i Exit_status=%i resources_used.cput=%02i:%02i:%02i %sresources_used.walltime=%02i:%02i:%02i\n",chead, spasswd->pw_name, sgroup->gr_name, info, job->jobname, job->queue_time, job->queue_time, job->queue_time, job->start_time, job->exec_hosts, job->end_time, job->exitStatus, chour, cmin, csec, used_mem, whour, wmin, wsec);
 
 	 fflush(fp);  	   
-     deleteJob(key);
+     if(edebug)
+         printf("Processed acc end msg, deleting job\n");
+     if(!deleteJob(key))
+         printf("Error Deleting Job\n");
 
 }
 
@@ -400,8 +404,10 @@ void handleAccQueueMsg(char *chead, char *ptr, PStask_ID_t logger)
     hostName = gethostbyaddr(&senderIP.s_addr,sizeof(senderIP.s_addr),AF_INET);
     if(hostName)
     	strncpy(job->hostname,hostName->h_name, MAX_HOSTNAME_LEN -1);
-    else
+    else{
         strcpy(job->hostname,"unknown");
+        alog("Couldn't resolve hostName from ip:%s\n",inet_ntoa(senderIP));
+    }
 
     ptr += sizeof(int32_t);
 
@@ -415,7 +421,7 @@ void handleAccQueueMsg(char *chead, char *ptr, PStask_ID_t logger)
     if(logTorque)
          fprintf(fp,"%s;queue=batch\n",chead);			
     
-    if(debug)
+    if(edebug)
        alog("processed acc queue msg\n");
 }
 			 
@@ -449,9 +455,8 @@ void handleAccStartMsg(char *ptr, PStask_ID_t key)
 
     job->start_time = time(NULL);
 
-    if(debug)
+    if(edebug)
        alog("processed acc start msg\n");	
-
 
 }
 
@@ -463,7 +468,7 @@ void handleAccDeleteMsg(char *chead, PStask_ID_t key)
         alog("Job could not be deleted:%i\n",key);
 
      if(debug)
-        alog("processed acc delete msg\n");
+        alog("eprocessed acc delete msg\n");
 }
 
 
@@ -567,14 +572,14 @@ void handleAccEndMsg(char *chead, char *ptr, PStask_ID_t sender, PStask_ID_t log
       }
 
     }
-    if(debug)
+    if(edebug)
        alog("processed acc end msg\n");
 }
 
 			 
 void handleAcctMsg(DDTypedBufferMsg_t *msg)
 {
-    if(debug)
+    if(edebug)
         alog("processing acc msg\n");
 
     char *ptr = msg->buf, *ip_ptr;
@@ -678,7 +683,6 @@ void handleSigMsg(DDErrorMsg_t *msg)
          else
 	    sleep(5);
        }
-     
        
        /* Configure the timer to expire after 30 sec */
        timer.it_value.tv_sec = 30;
@@ -699,7 +703,7 @@ void handleSigMsg(DDErrorMsg_t *msg)
 void handleSlotsMsg(char *chead, DDTypedBufferMsg_t *msg)
 {
    
-    if(debug)
+    if(edebug)
       alog("processing slot msg\n");
     char *ptr = msg->buf;
     
@@ -731,7 +735,7 @@ void handleSlotsMsg(char *chead, DDTypedBufferMsg_t *msg)
 	hostName = gethostbyaddr(&slotIP.s_addr,sizeof(slotIP.s_addr),AF_INET);
 	
 	if(!hostName){
-	   alog("Couldn't resolve hostname from ip\n");
+           alog("Couldn't resolve hostName from ip:%s\n",inet_ntoa(slotIP));
 	   return;
 	}
         else{ 
@@ -744,7 +748,8 @@ void handleSlotsMsg(char *chead, DDTypedBufferMsg_t *msg)
 		    }
 		    job->exec_hosts_size += EXEC_HOST_SIZE;
 		    strcpy(job->exec_hosts, tmpjob);
-		    free(tmpjob);
+		    if(tmpjob)
+		    	free(tmpjob);
 		}
 		if(slot) strcpy(sep,"+");	
 		sprintf(job->exec_hosts,"%s%s%s/%d",job->exec_hosts, sep, hostName->h_name, (int) job->countSlotMsg);
@@ -763,7 +768,7 @@ void handleSlotsMsg(char *chead, DDTypedBufferMsg_t *msg)
 	if(logTorque) 
 	    fprintf(fp,"%s;user=%s group=%s queue=batch ctime=%i qtime=%i etime=%i start=%i exec_host=%s\n",chead 
 	    	,spasswd->pw_name, sgroup->gr_name, job->queue_time, job->queue_time, job->queue_time, job->start_time, job->exec_hosts);
-	if(debug)
+	if(edebug)
 	    alog("handled all slot msgs\n");
     }
 
