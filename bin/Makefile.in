@@ -32,7 +32,7 @@ endif
 
 TOOLS:= psiadmin psid psilogger mlisten
 TOOLS += psmstart mpirun_chp4 psispawn mpirun_chgm gmspawner
-TOOLS += test_pse test_config pssh
+TOOLS += mpirun_openib test_pse test_config pssh
 TOOLS += psaccounter testacct
 
 TARGETS = $(TOOLS) test_logging
@@ -44,11 +44,12 @@ all bin: $(TOOLS)
 $(TOOLS): %: %.o
 
 psiadmin psid mlisten test_pse psmstart mpirun_chp4 mpirun_chgm gmspawner \
-	test_config pssh psaccounter testacct: \
+	mpirun_openib test_config pssh psaccounter testacct: \
 		LOADLIBES:=$(LOADLIBES) -lpopt
 
-test_pse psmstart mpirun_chp4 mpirun_chgm pssh psaccounter testacct: \
-	LOADLIBES:=$(LOADLIBES) -lpse -lpsi
+test_pse psmstart mpirun_chp4 mpirun_chgm mpirun_openib pssh psaccounter \
+	testacct: \
+		LOADLIBES:=$(LOADLIBES) -lpse -lpsi
 
 psiadmin psid test_config: LOADLIBES:=$(LOADLIBES) -lputil
 
@@ -58,13 +59,18 @@ psiadmin psispawn gmspawner: LOADLIBES:=$(LOADLIBES) -lpsi
 
 gmspawner: LOADLIBES:=$(LOADLIBES) -lpthread
 
+# Version info within 
+adminparser.o psidinfo.o mpirun_openib.o: \
+	CPPFLAGS += -DVERSION_psmgmt='"$(VERSION_psmgmt)"' \
+		-DRELEASE_psmgmt='"$(RELEASE_psmgmt)"'
+adminparser.o psidinfo.o mpirun_openib.o: \
+	$(TOP_SRCDIR)/Makefile.version
+
 # psiadmin
 VPATH += $(SRCDIR)/admin
 psiadmin: commands.o adminparser.o
 psiadmin: LOADLIBES:=$(LOADLIBES) -lreadline -lhistory -l@LIBCURSES@
 
-adminparser.o: CPPFLAGS += -DVERSION_psmgmt='"$(VERSION_psmgmt)"' \
-		-DRELEASE_psmgmt='"$(RELEASE_psmgmt)"'
 adminparser.o: $(TOP_SRCDIR)/Makefile.version
 
 # psid
@@ -74,10 +80,6 @@ psid: psidsignal.o psidmsgbuf.o psidrdp.o psidclient.o psidcomm.o
 psid: psidinfo.o psidoption.o psidpartition.o psidstatus.o psidhw.o
 psid: psidaccount.o psidnodes.o
 psid: LOADLIBES:=$(LOADLIBES) -lm -lutil -lpslog
-
-psidinfo.o: CPPFLAGS += -DVERSION_psmgmt='"$(VERSION_psmgmt)"' \
-		-DRELEASE_psmgmt='"$(RELEASE_psmgmt)"'
-psidinfo.o: $(TOP_SRCDIR)/Makefile.version
 
 test_config: psidnodes.o
 

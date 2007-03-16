@@ -32,8 +32,8 @@ INCLUDES += pse.h
 INCLUDES += psprotocol.h psnodes.h pstask.h pspartition.h pscommon.h
 INCLUDES += psiinfo.h psispawn.h psienv.h psi.h logging.h
 
-BINS += gmspawner mlisten mpirun_chgm mpirun_chp4 psiadmin psid psilogger
-BINS += psispawn psmstart test_config test_pse pssh psaccounter
+BINS += gmspawner mlisten mpirun_chgm mpirun_chp4 mpirun_openib psiadmin
+BINS += psid psilogger psispawn psmstart test_config test_pse pssh psaccounter
 
 LIBS += libpse.a libpse.so libpsi.a libpsi.so
 
