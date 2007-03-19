@@ -922,13 +922,19 @@ void openAccLogFile(char *arg_logdir)
 
 }
 
+static void printVersion(void)
+{
+    char revision[] = "$Revision$";
+    fprintf(stderr, "psaccounter %s\b \n", revision+11);
+}
+
 int main(int argc, char *argv[])
 {
     signal(SIGTERM, sig_handler);
     signal(SIGINT, sig_handler);
 
     poptContext optCon;		/* context for parsing command-line options */
-    int rc;
+    int rc, version = 0;
     char *arg_logdir = NULL;
     char *arg_logfile = NULL;
     int arg_nodaemon = 0;
@@ -942,6 +948,8 @@ int main(int argc, char *argv[])
 	 &arg_nodaemon, 0, "don't fork into background", "flag"},
 	{"logdir", 'l', POPT_ARG_STRING, &arg_logdir, 0,
 	 "accouting log dir", "directory"},
+        { "version", 'v', POPT_ARG_NONE, &version, 0,
+          "output version information and exit", NULL},
 	{"logfile", 'f', POPT_ARG_STRING, &arg_logfile, 0,
 	 "log file for debug and error logging", "file"},
 	{"logpro", 'p', POPT_ARG_STRING, &logPostProcessing, 0,
@@ -962,6 +970,10 @@ int main(int argc, char *argv[])
 	return 1;
     }
 
+    if (version) {
+	printVersion();
+	return 0;
+    }
 
     if (!arg_nodaemon) {
 	/* Start as daemon */
