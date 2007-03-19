@@ -66,3 +66,4 @@ fi
 %attr(-,root,root) /etc/profile.d/psmgmt.sh
 %attr(-,root,root) /etc/profile.d/psmgmt.csh
 %attr(-,root,root) /etc/init.d/parastation
+%attr(-,root,root) /var/account
