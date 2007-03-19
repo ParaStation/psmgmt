@@ -56,7 +56,7 @@ static char vcid[] __attribute__ ((unused)) =
 
 #define MAX_HOSTNAME_LEN 64
 #define EXEC_HOST_SIZE 1024
-#define DEFAULT_LOG_DIR "/var/log/parastation/accounting"
+#define DEFAULT_LOG_DIR "/var/account"
 
 typedef struct {
     char hostname[MAX_HOSTNAME_LEN];
@@ -289,7 +289,7 @@ void timer_handler()
 	char ctime[100];
 	strftime(ctime, sizeof(ctime), "%d/%m/%Y %H:%M:%S", ptm);
 	char chead[300];
-	snprintf(chead, 300, "%s;%s;%i.%s", ctime, "E",
+	snprintf(chead, sizeof(chead), "%s;%s;%i.%s", ctime, "E",
 		 PSC_getPID(job->logger), job->hostname);
 
 	/* print the msg */
@@ -317,7 +317,7 @@ void printAccEndMsg(char *chead, PStask_ID_t key)
     char info[500] = { "" };
 
     if (job->incomplete) {
-	snprintf(info, 500, "info=incomplete ");
+	snprintf(info, sizeof(info), "info=incomplete ");
     }
 
     struct passwd *spasswd;
@@ -344,7 +344,7 @@ void printAccEndMsg(char *chead, PStask_ID_t key)
     pagesize = getpagesize();
     rss = (job->rusage.ru_maxrss * pagesize) / 1024;
     if (rss) {
-	snprintf(used_mem, 500, "resources_used.mem=%ldkb ", rss);
+	snprintf(used_mem, sizeof(used_mem), "resources_used.mem=%ldkb ", rss);
     }
 
 
@@ -634,7 +634,7 @@ void handleAcctMsg(DDTypedBufferMsg_t * msg)
     strftime(ctime, sizeof(ctime), "%d/%m/%Y %H:%M:%S", ptm);
     char chead[300];
 
-    snprintf(chead, 300, "%s;%s;%i.%s", ctime,
+    snprintf(chead, sizeof(chead), "%s;%s;%i.%s", ctime,
 	     msg->type == PSP_ACCOUNT_QUEUE ? "Q" :
 	     msg->type == PSP_ACCOUNT_START ? "S" :
 	     msg->type == PSP_ACCOUNT_SLOTS ? "S" :
@@ -878,15 +878,15 @@ void openAccLogFile(char *arg_logdir)
 	fclose(fp);
 	if (logPostProcessing) {
 	    char syscmd[1024];
-	    snprintf(syscmd, 1024, "%s ", logPostProcessing);
+	    snprintf(syscmd, sizeof(syscmd), "%s ", logPostProcessing);
 	    if (arg_logdir) {
-		strncat(syscmd, arg_logdir, 1024 - strlen(syscmd) - 1);
+		strncat(syscmd, arg_logdir, sizeof(syscmd) - strlen(syscmd) - 1);
 	    } else {
 		strncat(syscmd, DEFAULT_LOG_DIR,
-			1024 - strlen(syscmd) - 1);
+			sizeof(syscmd) - strlen(syscmd) - 1);
 	    }
-	    strncat(syscmd, "/", 1024 - strlen(syscmd) - 1);
-	    strncat(syscmd, oldfilename, 1024 - strlen(syscmd) - 1);
+	    strncat(syscmd, "/", sizeof(syscmd) - strlen(syscmd) - 1);
+	    strncat(syscmd, oldfilename, sizeof(syscmd) - strlen(syscmd) - 1);
 	    system(syscmd);
 	}
 
@@ -896,11 +896,11 @@ void openAccLogFile(char *arg_logdir)
 	if (!strcmp(arg_logdir, "-")) {
 	    fp = stdout;	//fdopen(stdout);
 	} else {
-	    snprintf(alogfile, 600, "%s/%s", arg_logdir, filename);
+	    snprintf(alogfile, sizeof(alogfile), "%s/%s", arg_logdir, filename);
 	    fp = fopen(alogfile, "a+");
 	}
     } else {
-	snprintf(alogfile, 600, "%s/%s", DEFAULT_LOG_DIR, filename);
+	snprintf(alogfile, sizeof(alogfile), "%s/%s", DEFAULT_LOG_DIR, filename);
 	fp = fopen(alogfile, "a+");
     }
 
@@ -918,7 +918,7 @@ void openAccLogFile(char *arg_logdir)
 	}
 	exit(1);
     }
-    strncpy(oldfilename, filename, 200);
+    strncpy(oldfilename, filename, sizeof(oldfilename));
 
 }
 
