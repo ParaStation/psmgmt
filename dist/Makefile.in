@@ -39,7 +39,7 @@ LIBS += libpse.a libpse.so libpsi.a libpsi.so
 MISC += VERSION.psmgmt ChangeLog.psmgmt INSTALL LICENSE
 MISC += bin/psh
 MISC += config/PSM_INSTALL config/parastation.conf.tmpl config/ps_gm config/ps_acc
-MISC += scripts/ps_gmcounters
+MISC += scripts/ps_gmcounters bin/psaccview
 
 ######################################################
 MISCEXP := $(patsubst %,$(DISTPATH)/%, $(MISC))
@@ -148,6 +148,9 @@ $(DISTPATH)/config/ps_acc: $(TOP_SRCDIR)/scripts/ps_acc
 	$(INSTALL) -D $< $@
 
 $(DISTPATH)/scripts/ps_gmcounters: $(TOP_SRCDIR)/scripts/ps_gmcounters
+	$(INSTALL) -D $< $@
+
+$(DISTPATH)/bin/psaccview: $(TOP_SRCDIR)/scripts/psaccview
 	$(INSTALL) -D $< $@
 
 $(RPM_BUILD_ROOT)/etc/profile.d/psmgmt.%: $(TOP_SRCDIR)/scripts/psmgmt.%

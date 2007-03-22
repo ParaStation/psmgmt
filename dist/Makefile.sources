@@ -134,6 +134,7 @@ scripts/parastation.init.d \
 scripts/ps_gm \
 scripts/ps_acc \
 scripts/ps_gmcounters \
+scripts/psaccview \
 scripts/psh \
 scripts/rpm_noreq \
 scripts/psmgmt.csh \
