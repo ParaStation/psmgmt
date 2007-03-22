@@ -349,8 +349,8 @@ void printAccEndMsg(char *chead, PStask_ID_t key)
 
 
     fprintf(fp,
-	    "%s;user=%s group=%s %sjobname=%s queue=batch ctime=%i qtime=%i etime=%i start=%i exec_host=%s end=%i Exit_status=%i resources_used.cput=%02i:%02i:%02i %sresources_used.walltime=%02i:%02i:%02i\n",
-	    chead, spasswd->pw_name, sgroup->gr_name, info, job->jobname,
+	    "%s.%s;user=%s group=%s %sjobname=%s queue=batch ctime=%i qtime=%i etime=%i start=%i exec_host=%s end=%i Exit_status=%i resources_used.cput=%02i:%02i:%02i %sresources_used.walltime=%02i:%02i:%02i\n",
+	    chead, job->hostname, spasswd->pw_name, sgroup->gr_name, info, job->jobname,
 	    job->queue_time, job->queue_time, job->queue_time,
 	    job->start_time, job->exec_hosts, job->end_time,
 	    job->exitStatus, chour, cmin, csec, used_mem, whour, wmin,
@@ -375,7 +375,7 @@ void handleAccQueueMsg(char *chead, char *ptr, PStask_ID_t logger)
     job = malloc(sizeof(Job_t));
 
     if (!job) {
-	alog("Out of memory Exiting\n");
+	alog("Out of memory, exiting\n");
 	exit(1);
     }
 
@@ -383,9 +383,12 @@ void handleAccQueueMsg(char *chead, char *ptr, PStask_ID_t logger)
     job->countExitMsg = 0;
     job->countSlotMsg = 0;
     job->incomplete = 0;
-    job->exec_hosts = malloc(EXEC_HOST_SIZE);
     job->exec_hosts_size = EXEC_HOST_SIZE;
-
+    if (!(job->exec_hosts = malloc(EXEC_HOST_SIZE))) {
+        printf("Out of memory, exiting\n");
+    }
+    job->exec_hosts[0] = '\0';   
+    
     /* Task(logger) Id */
     job->logger = logger;
 
@@ -425,7 +428,7 @@ void handleAccQueueMsg(char *chead, char *ptr, PStask_ID_t logger)
     }
 
     if (logTorque) {
-	fprintf(fp, "%s;queue=batch\n", chead);
+	fprintf(fp, "%s.%s;queue=batch\n", chead, job->hostname);
     }
 
     if (edebug) {
@@ -471,8 +474,10 @@ void handleAccStartMsg(char *ptr, PStask_ID_t key)
 
 void handleAccDeleteMsg(char *chead, PStask_ID_t key)
 {
+    Job_t *job = findJob(key);
+    
     if (logTorque) {
-	fprintf(fp, "%s\n", chead);
+	fprintf(fp, "%s.%s\n", chead, job->hostname);
     }
     if (!deleteJob(key)) {
 	alog("Job could not be deleted:%i\n", key);
@@ -600,30 +605,12 @@ void handleAcctMsg(DDTypedBufferMsg_t * msg)
 	alog("processing acc msg\n");
     }
 
-    char *ptr = msg->buf, *ip_ptr;
+    char *ptr = msg->buf;
     PStask_ID_t sender = msg->header.sender, logger;
-    struct in_addr senderIP;
-    struct hostent *hostName;
-    char hostname[200];
 
     /* logger's TID, this identifies a task uniquely */
     logger = *(PStask_ID_t *) ptr;
     ptr += sizeof(PStask_ID_t);
-
-    /* IP-Adrr */
-    ip_ptr = ptr;
-    ip_ptr +=
-	sizeof(int32_t) + sizeof(uid_t) + sizeof(gid_t) + sizeof(int32_t);
-    senderIP.s_addr = *(uint32_t *) ip_ptr;
-    hostName =
-	gethostbyaddr(&senderIP.s_addr, sizeof(senderIP.s_addr), AF_INET);
-    if (!hostName) {
-	alog("Couldn't resolve hostName from ip:%s\n",
-	     inet_ntoa(senderIP));
-	strcpy(hostname, inet_ntoa(senderIP));
-    } else {
-	strcpy(hostname, hostName->h_name);
-    }
 
     /* Create Header for all Msg */
     time_t atime;
@@ -634,13 +621,13 @@ void handleAcctMsg(DDTypedBufferMsg_t * msg)
     strftime(ctime, sizeof(ctime), "%d/%m/%Y %H:%M:%S", ptm);
     char chead[300];
 
-    snprintf(chead, sizeof(chead), "%s;%s;%i.%s", ctime,
+    snprintf(chead, sizeof(chead), "%s;%s;%i", ctime,
 	     msg->type == PSP_ACCOUNT_QUEUE ? "Q" :
 	     msg->type == PSP_ACCOUNT_START ? "S" :
 	     msg->type == PSP_ACCOUNT_SLOTS ? "S" :
 	     msg->type == PSP_ACCOUNT_DELETE ? "D" :
 	     msg->type == PSP_ACCOUNT_END ? "E" : "?",
-	     PSC_getPID(logger), hostname);
+	     PSC_getPID(logger));
 
     if (debug) {
 	alog("Received new acc msg: type:%d, sender:%s, logger:%s\n",
@@ -747,8 +734,8 @@ void handleSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
 
     for (slot = 0; slot < numSlots; slot++) {
 	struct in_addr slotIP;
-	int cpu;
-
+	int cpu, bufleft;
+        
 	slotIP.s_addr = *(uint32_t *) ptr;
 	ptr += sizeof(uint32_t);
 	cpu = *(int16_t *) ptr;
@@ -758,34 +745,41 @@ void handleSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
 
 	hostName =
 	    gethostbyaddr(&slotIP.s_addr, sizeof(slotIP.s_addr), AF_INET);
-
-	if (!hostName) {
-	    alog("Couldn't resolve hostName from ip:%s\n",
-		 inet_ntoa(slotIP));
-	    return;
-	} else {
-	    if (strlen(hostName->h_name) + strlen(job->exec_hosts) + 1 >
-		job->exec_hosts_size) {
-		char *tmpjob = job->exec_hosts;
-		job->exec_hosts =
-		    malloc(job->exec_hosts_size + EXEC_HOST_SIZE);
-		if (!job->exec_hosts) {
-		    alog("Out of memory, exiting\n");
-		    exit(1);
-		}
-		job->exec_hosts_size += EXEC_HOST_SIZE;
-		strcpy(job->exec_hosts, tmpjob);
-		if (tmpjob) {
-		    free(tmpjob);
-		}
-	    }
-	    if (slot) {
-		strcpy(sep, "+");
-	    }
-	    snprintf(job->exec_hosts, job->exec_hosts_size, "%s%s%s/%d",
-		     job->exec_hosts, sep, hostName->h_name,
-		     (int) job->countSlotMsg);
-	}
+        
+        if (strlen(hostName->h_name) + strlen(job->exec_hosts) + 1 >
+            job->exec_hosts_size) {
+            char *tmpjob = job->exec_hosts;
+            job->exec_hosts =
+                malloc(job->exec_hosts_size + EXEC_HOST_SIZE);
+            if (!job->exec_hosts) {
+                alog("Out of memory, exiting\n");
+                exit(1);
+            }
+            job->exec_hosts_size += EXEC_HOST_SIZE;
+            strncpy(job->exec_hosts, tmpjob, job->exec_hosts_size);
+            if (tmpjob) {
+                free(tmpjob);
+            }
+        }
+        bufleft = job->exec_hosts_size - strlen(job->exec_hosts) -1; 
+        
+        if (slot) {
+            strcpy(sep, "+");
+        }
+        if (!hostName) {
+            alog("Couldn't resolve hostName from ip:%s\n",
+                 inet_ntoa(slotIP));
+            char *cptr = job->exec_hosts;
+            cptr += strlen(job->exec_hosts);
+            snprintf(cptr, bufleft, "%s%s/%d",
+                     sep, inet_ntoa(slotIP), (int) job->countSlotMsg);
+        } else {
+                char *cptr = job->exec_hosts;
+                cptr += strlen(job->exec_hosts);
+                snprintf(cptr, bufleft, "%s%s/%d",
+                         sep, hostName->h_name, (int) job->countSlotMsg);
+        }
+        
     }
 
 
@@ -799,8 +793,8 @@ void handleSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
 
 	if (logTorque) {
 	    fprintf(fp,
-		    "%s;user=%s group=%s queue=batch ctime=%i qtime=%i etime=%i start=%i exec_host=%s\n",
-		    chead, spasswd->pw_name, sgroup->gr_name,
+		    "%s.%s;user=%s group=%s queue=batch ctime=%i qtime=%i etime=%i start=%i exec_host=%s\n",
+		    chead, job->hostname, spasswd->pw_name, sgroup->gr_name,
 		    job->queue_time, job->queue_time, job->queue_time,
 		    job->start_time, job->exec_hosts);
 	}
