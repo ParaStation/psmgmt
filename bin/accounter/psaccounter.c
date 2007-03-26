@@ -44,6 +44,7 @@ static char vcid[] __attribute__ ((unused)) =
 #include <syslog.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <bits/sigaction.h>
 
 #include "pse.h"
 #include "psi.h"
@@ -120,7 +121,7 @@ int debug;
 char *logPostProcessing;
 logger_t *alogger;
 FILE *logfile = NULL;
-int edebug = 0;			//extended debugging msg
+int edebug = 0;			/* extended debugging msg */
 
 #define alog(...) if (alogger) logger_print(alogger, -1, __VA_ARGS__)
 
@@ -183,7 +184,6 @@ struct t_node *findMax(struct t_node *leaf)
 struct t_node *deleteTNode(PStask_ID_t key, struct t_node *leaf)
 {
     struct t_node *tmpleaf;
-
     if (!leaf) {
 	return 0;
     } else if (key < leaf->key) {
@@ -191,9 +191,10 @@ struct t_node *deleteTNode(PStask_ID_t key, struct t_node *leaf)
     } else if (key > leaf->key) {
 	leaf->right = deleteTNode(key, leaf->right);
     } else if (leaf->left && leaf->right) {
+        Job_t *tmpjob;
 	tmpleaf = findMin(leaf->right);
 	leaf->key = tmpleaf->key;
-	Job_t *tmpjob = leaf->job;
+	tmpjob = leaf->job;
 	leaf->job = tmpleaf->job;
 	tmpleaf->job = tmpjob;
 	leaf->right = deleteTNode(leaf->key, leaf->right);
@@ -273,28 +274,27 @@ void timer_handler()
 
     if (!job) {
 	alog("Timer AccEndMsg to non existing Job:%i\n", deadLoggerId);
-	//exit(1);
     } else {
-	/* check if all childs terminated */
+	time_t atime;
+	struct tm *ptm;
+	char ctime[100];
+	char chead[300];
+        
+        /* check if all childs terminated */
 	if (job->countExitMsg < job->taskSize) {
 	    job->incomplete = 1;
 	    job->end_time = time(NULL);
 	}
 
 	/* Create Header */
-	time_t atime;
-	struct tm *ptm;
 	atime = time(NULL);
 	ptm = localtime(&atime);
-	char ctime[100];
 	strftime(ctime, sizeof(ctime), "%d/%m/%Y %H:%M:%S", ptm);
-	char chead[300];
 	snprintf(chead, sizeof(chead), "%s;%s;%i.%s", ctime, "E",
 		 PSC_getPID(job->logger), job->hostname);
 
 	/* print the msg */
 	printAccEndMsg(chead, deadLoggerId);
-
 	deadLoggerId = -1;
 
     }
@@ -305,25 +305,23 @@ void printAccEndMsg(char *chead, PStask_ID_t key)
 {
 
     Job_t *job = findJob(key);
+    int ccopy, chour, cmin, csec, wspan, whour, wmin, wsec, pagesize;
+    long rss;
+    char used_mem[500] = { "" };
+    char info[500] = { "" };
+    struct passwd *spasswd;
+    struct group *sgroup;
 
     if (!job) {
 	alog("AccEndMsg to non existing Job:%i\n", key);
 	return;
     }
 
-    int ccopy, chour, cmin, csec, wspan, whour, wmin, wsec, pagesize;
-    long rss;
-    char used_mem[500] = { "" };
-    char info[500] = { "" };
-
     if (job->incomplete) {
 	snprintf(info, sizeof(info), "info=incomplete ");
     }
 
-    struct passwd *spasswd;
     spasswd = getpwuid(job->uid);
-
-    struct group *sgroup;
     sgroup = getgrgid(job->gid);
 
     /* calc cputime */
@@ -441,6 +439,8 @@ void handleAccStartMsg(char *ptr, PStask_ID_t key)
 {
 
     Job_t *job = findJob(key);
+    struct passwd *spasswd;
+    struct group *sgroup;
 
     if (!job) {
 	alog("AccStartMsg to non existing Job:%i\n", key);
@@ -452,12 +452,10 @@ void handleAccStartMsg(char *ptr, PStask_ID_t key)
 
     /* childs uid */
     ptr += sizeof(uid_t);
-    struct passwd *spasswd;
     spasswd = getpwuid(job->uid);
 
     /* childs gid */
     ptr += sizeof(gid_t);
-    struct group *sgroup;
     sgroup = getgrgid(job->gid);
 
     /* total number of childs. Only the logger knows this */
@@ -499,19 +497,18 @@ void handleAccEndMsg(char *chead, char *ptr, PStask_ID_t sender,
 	alog("AccEndMsg to non existing Job:%i\n", logger);
 	return;
     } else {
-
+	struct passwd *spasswd;
+	struct group *sgroup;
 
 	/* current rank */
 	ptr += sizeof(int32_t);
 
 	/* childs uid */
 	ptr += sizeof(uid_t);
-	struct passwd *spasswd;
 	spasswd = getpwuid(job->uid);
 
 	/* childs gid */
 	ptr += sizeof(gid_t);
-	struct group *sgroup;
 	sgroup = getgrgid(job->gid);
 
 	/* total number of childs. Only the logger knows this */
@@ -536,11 +533,11 @@ void handleAccEndMsg(char *chead, char *ptr, PStask_ID_t sender,
 
 	    /* check if all childs terminated */
 	    if (job->countExitMsg < job->taskSize) {
-		job->incomplete = 1;
-		job->end_time = time(NULL);
-
 		struct sigaction sa;
 		struct itimerval timer;
+		
+                job->incomplete = 1;
+		job->end_time = time(NULL);
 
 		/* Install timer_handler as the signal handler for SIGALRM. */
 		memset(&sa, 0, sizeof(sa));
@@ -573,7 +570,6 @@ void handleAccEndMsg(char *chead, char *ptr, PStask_ID_t sender,
 	    }
 
 	} else {
-	    //printf("Norm Process Exited\n");
 	    if (job->countExitMsg == 0) {
 		job->jobname = malloc(strlen(ptr) + 1);
 		strncpy(job->jobname, ptr, strlen(ptr) + 1);
@@ -601,25 +597,25 @@ void handleAccEndMsg(char *chead, char *ptr, PStask_ID_t sender,
 
 void handleAcctMsg(DDTypedBufferMsg_t * msg)
 {
+    char *ptr = msg->buf;
+    time_t atime;
+    struct tm *ptm;
+    char ctime[100];
+    char chead[300];
+    PStask_ID_t sender = msg->header.sender, logger;
+
     if (edebug) {
 	alog("processing acc msg\n");
     }
-
-    char *ptr = msg->buf;
-    PStask_ID_t sender = msg->header.sender, logger;
 
     /* logger's TID, this identifies a task uniquely */
     logger = *(PStask_ID_t *) ptr;
     ptr += sizeof(PStask_ID_t);
 
     /* Create Header for all Msg */
-    time_t atime;
-    struct tm *ptm;
     atime = time(NULL);
     ptm = localtime(&atime);
-    char ctime[100];
     strftime(ctime, sizeof(ctime), "%d/%m/%Y %H:%M:%S", ptm);
-    char chead[300];
 
     snprintf(chead, sizeof(chead), "%s;%s;%i", ctime,
 	     msg->type == PSP_ACCOUNT_QUEUE ? "Q" :
@@ -660,7 +656,7 @@ void handleSigMsg(DDErrorMsg_t * msg)
 
     struct sigaction sa;
     struct itimerval timer;
-
+    Job_t *job;
 
     if (debug) {
 	char *errstr = strerror(msg->error);
@@ -671,8 +667,7 @@ void handleSigMsg(DDErrorMsg_t * msg)
 	     PSC_printTID(msg->header.sender));
 	alog(" task %s: %s\n", PSC_printTID(msg->request), errstr);
     }
-    Job_t *job = findJob(msg->request);
-
+    job = findJob(msg->request);
 
     /* Install timer_handler as the signal handler for SIGALRM. */
     memset(&sa, 0, sizeof(sa));
@@ -712,20 +707,21 @@ void handleSigMsg(DDErrorMsg_t * msg)
 
 void handleSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
 {
+    char *ptr = msg->buf;
+    struct hostent *hostName;
+    char sep[2] = "";
+    unsigned int numSlots = *(uint16_t *) ptr, slot;
+    PStask_ID_t logger = *(PStask_ID_t *) ptr;
+    Job_t *job;
 
     if (edebug) {
 	alog("processing slot msg\n");
     }
-    char *ptr = msg->buf;
 
-    PStask_ID_t logger = *(PStask_ID_t *) ptr;
     ptr += sizeof(PStask_ID_t);
-    unsigned int numSlots = *(uint16_t *) ptr, slot;
     ptr += sizeof(uint16_t);
-    char sep[2] = "";
-    struct hostent *hostName;
 
-    Job_t *job = findJob(logger);
+    job = findJob(logger);
 
     if (!job) {
 	alog("AccSlotMsg to non existing Job:%i\n", logger);
@@ -767,9 +763,9 @@ void handleSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
             strcpy(sep, "+");
         }
         if (!hostName) {
+            char *cptr = job->exec_hosts;
             alog("Couldn't resolve hostName from ip:%s\n",
                  inet_ntoa(slotIP));
-            char *cptr = job->exec_hosts;
             cptr += strlen(job->exec_hosts);
             snprintf(cptr, bufleft, "%s%s/%d",
                      sep, inet_ntoa(slotIP), (int) job->countSlotMsg);
@@ -786,9 +782,9 @@ void handleSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
     if (job->countSlotMsg == job->taskSize) {
 
 	struct passwd *spasswd;
-	spasswd = getpwuid(job->uid);
-
 	struct group *sgroup;
+	
+        spasswd = getpwuid(job->uid);
 	sgroup = getgrgid(job->gid);
 
 	if (logTorque) {
@@ -888,7 +884,7 @@ void openAccLogFile(char *arg_logdir)
 
     if (arg_logdir) {
 	if (!strcmp(arg_logdir, "-")) {
-	    fp = stdout;	//fdopen(stdout);
+	    fp = stdout;
 	} else {
 	    snprintf(alogfile, sizeof(alogfile), "%s/%s", arg_logdir, filename);
 	    fp = fopen(alogfile, "a+");
@@ -924,9 +920,6 @@ static void printVersion(void)
 
 int main(int argc, char *argv[])
 {
-    signal(SIGTERM, sig_handler);
-    signal(SIGINT, sig_handler);
-
     poptContext optCon;		/* context for parsing command-line options */
     int rc, version = 0;
     char *arg_logdir = NULL;
@@ -950,6 +943,9 @@ int main(int argc, char *argv[])
 	 "acc log file post processing cmd", "cmd"},
 	POPT_AUTOHELP {NULL, '\0', 0, NULL, 0, NULL, NULL}
     };
+    
+    signal(SIGTERM, sig_handler);
+    signal(SIGINT, sig_handler);
 
     optCon =
 	poptGetContext(NULL, argc, (const char **) argv, optionsTable, 0);
@@ -970,7 +966,9 @@ int main(int argc, char *argv[])
     }
 
     if (!arg_nodaemon) {
-	/* Start as daemon */
+	int fd, dummy_fd;
+
+        /* Start as daemon */
 	switch (fork()) {
 	case -1:
 	    printf("unable to fork server process");
@@ -986,7 +984,7 @@ int main(int argc, char *argv[])
 
 #define _PATH_TTY "/dev/tty"
 	/* First disconnect from the old controlling tty. */
-	int fd = open(_PATH_TTY, O_RDWR | O_NOCTTY);
+	fd = open(_PATH_TTY, O_RDWR | O_NOCTTY);
 	if (fd >= 0) {
 	    if (ioctl(fd, TIOCNOTTY, NULL)) {
 		printf("%i: ioctl(TIOCNOTTY)", errno);
@@ -1000,7 +998,7 @@ int main(int argc, char *argv[])
 	 * Take care if stdout/stderr is used for logging
 	 */
 
-	int dummy_fd = open("/dev/null", O_WRONLY, 0);
+	dummy_fd = open("/dev/null", O_WRONLY, 0);
 	dup2(dummy_fd, STDIN_FILENO);
 	dup2(dummy_fd, STDOUT_FILENO);
 	dup2(dummy_fd, STDERR_FILENO);
