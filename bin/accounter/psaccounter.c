@@ -44,8 +44,9 @@ static char vcid[] __attribute__ ((unused)) =
 #include <syslog.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#ifdef  ANSIC
-#include <bits/sigaction.h>
+
+#if defined __STDC__ 
+    #include <bits/sigaction.h>
 #endif
 
 #include "pse.h"
