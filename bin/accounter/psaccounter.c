@@ -45,10 +45,6 @@ static char vcid[] __attribute__ ((unused)) =
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#if defined __STDC__ 
-    #include <bits/sigaction.h>
-#endif
-
 #include "pse.h"
 #include "psi.h"
 #include "psiinfo.h"
@@ -536,16 +532,13 @@ void handleAccEndMsg(char *chead, char *ptr, PStask_ID_t sender,
 
 	    /* check if all childs terminated */
 	    if (job->countExitMsg < job->taskSize) {
-		struct sigaction sa;
 		struct itimerval timer;
 		
                 job->incomplete = 1;
 		job->end_time = time(NULL);
 
 		/* Install timer_handler as the signal handler for SIGALRM. */
-		memset(&sa, 0, sizeof(sa));
-		sa.sa_handler = &timer_handler;
-		sigaction(SIGALRM, &sa, NULL);
+                signal(SIGALRM, &timer_handler);
 
 		/* Set the job to wait for */
 		while (1) {
@@ -656,8 +649,6 @@ void handleAcctMsg(DDTypedBufferMsg_t * msg)
 
 void handleSigMsg(DDErrorMsg_t * msg)
 {
-
-    struct sigaction sa;
     struct itimerval timer;
     Job_t *job;
 
@@ -673,9 +664,7 @@ void handleSigMsg(DDErrorMsg_t * msg)
     job = findJob(msg->request);
 
     /* Install timer_handler as the signal handler for SIGALRM. */
-    memset(&sa, 0, sizeof(sa));
-    sa.sa_handler = &timer_handler;
-    sigaction(SIGALRM, &sa, NULL);
+    signal(SIGALRM, &timer_handler);
 
 
     /* check if logger replied */
