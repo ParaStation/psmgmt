@@ -26,6 +26,19 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 %description
 The ParaStation Management Layer.
 
+%package account
+Summary:   ParaStation Cluster Accounting
+Vendor:    ParTec Cluster Competence Center GmbH, Munich, Germany
+Version:   @VERSION_psmgmt@
+Release:   @RELEASE_psmgmt@
+License:   Proprietary
+Group:     Productivity/Clustering/Computing
+Packager:  support@par-tec.de
+
+
+%description account
+The ParaStation Accounting Package.
+
 %prep
 %setup -q -n %{name}-%{version}-%{release}
 #%setup -q
@@ -66,4 +79,10 @@ fi
 %attr(-,root,root) /etc/profile.d/psmgmt.sh
 %attr(-,root,root) /etc/profile.d/psmgmt.csh
 %attr(-,root,root) /etc/init.d/parastation
+
+%files account
 %attr(-,root,root) /var/account
+%attr(-,root,root) /opt/parastation/bin/psaccounter 
+%attr(-,root,root) /opt/parastation/bin/psaccview 
+%attr(-,root,root) /opt/parastation/config/ps_acc 
+
