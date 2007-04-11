@@ -722,7 +722,7 @@ void handleSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
 
     for (slot = 0; slot < numSlots; slot++) {
 	struct in_addr slotIP;
-	int cpu, bufleft;
+	int cpu, bufleft, hostlen;
         
 	slotIP.s_addr = *(uint32_t *) ptr;
 	ptr += sizeof(uint32_t);
@@ -733,8 +733,14 @@ void handleSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
 
 	hostName =
 	    gethostbyaddr(&slotIP.s_addr, sizeof(slotIP.s_addr), AF_INET);
-        
-        if (strlen(hostName->h_name) + strlen(job->exec_hosts) + 1 >
+      
+        if (!hostName) {
+            hostlen = strlen(inet_ntoa(slotIP));
+        } else {
+            hostlen = strlen(hostName->h_name);
+        }
+
+        if (hostlen + strlen(job->exec_hosts) + 1 >
             job->exec_hosts_size) {
             char *tmpjob = job->exec_hosts;
             job->exec_hosts =
