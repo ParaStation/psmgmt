@@ -700,17 +700,20 @@ void handleSigMsg(DDErrorMsg_t * msg)
 void handleSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
 {
     char *ptr = msg->buf;
-    struct hostent *hostName;
+    
+    PStask_ID_t logger;
+    unsigned int numSlots, slot;
     char sep[2] = "";
-    unsigned int numSlots = *(uint16_t *) ptr, slot;
-    PStask_ID_t logger = *(PStask_ID_t *) ptr;
+    struct hostent *hostName;
     Job_t *job;
 
     if (edebug) {
 	alog("processing slot msg\n");
     }
 
+    logger = *(PStask_ID_t *) ptr;
     ptr += sizeof(PStask_ID_t);
+    numSlots = *(uint16_t *) ptr;
     ptr += sizeof(uint16_t);
 
     job = findJob(logger);
