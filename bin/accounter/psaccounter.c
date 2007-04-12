@@ -139,7 +139,8 @@ struct t_node *insertTNode(PStask_ID_t key, Job_t * job,
     if (!leaf) {
 	leaf = malloc(sizeof(struct t_node));
 	if (!leaf) {
-	    return 0;
+	    alog("Out of memory, exiting\n");
+	    exit(1);
 	}
 
 	leaf->key = key;
@@ -344,7 +345,6 @@ void printAccEndMsg(char *chead, PStask_ID_t key)
 	snprintf(used_mem, sizeof(used_mem), "resources_used.mem=%ldkb ", rss);
     }
 
-
     fprintf(fp,
 	    "%s.%s;user=%s group=%s %sjobname=%s queue=batch ctime=%i qtime=%i etime=%i start=%i exec_host=%s end=%i Exit_status=%i resources_used.cput=%02i:%02i:%02i %sresources_used.walltime=%02i:%02i:%02i\n",
 	    chead, job->hostname, spasswd->pw_name, sgroup->gr_name, info, job->jobname,
@@ -358,7 +358,7 @@ void printAccEndMsg(char *chead, PStask_ID_t key)
 	printf("Processed acc end msg, deleting job\n");
     }
     if (!deleteJob(key)) {
-	printf("Error Deleting Job\n");
+	alog("Error Deleting Job: Possible memory leak\n");
     }
 
 }
@@ -369,9 +369,7 @@ void handleAccQueueMsg(char *chead, char *ptr, PStask_ID_t logger)
     struct in_addr senderIP;
     struct hostent *hostName;
 
-    job = malloc(sizeof(Job_t));
-
-    if (!job) {
+    if (!(job = malloc(sizeof(Job_t)))) {
 	alog("Out of memory, exiting\n");
 	exit(1);
     }
@@ -382,7 +380,8 @@ void handleAccQueueMsg(char *chead, char *ptr, PStask_ID_t logger)
     job->incomplete = 0;
     job->exec_hosts_size = EXEC_HOST_SIZE;
     if (!(job->exec_hosts = malloc(EXEC_HOST_SIZE))) {
-        printf("Out of memory, exiting\n");
+        alog("Out of memory, exiting\n");
+	exit(1);
     }
     job->exec_hosts[0] = '\0';   
     
@@ -480,8 +479,8 @@ void handleAccDeleteMsg(char *chead, PStask_ID_t key)
 	alog("Job could not be deleted:%i\n", key);
     }
 
-    if (debug) {
-	alog("eprocessed acc delete msg\n");
+    if (edebug) {
+	alog("processed acc delete msg\n");
     }
 }
 
@@ -566,9 +565,14 @@ void handleAccEndMsg(char *chead, char *ptr, PStask_ID_t sender,
 	    }
 
 	} else {
+	    int joblen = strlen(ptr);	
 	    if (job->countExitMsg == 0) {
-		job->jobname = malloc(strlen(ptr) + 1);
-		strncpy(job->jobname, ptr, strlen(ptr) + 1);
+		if(!(job->jobname = malloc(joblen +1 ))) {
+		    alog("Out of memory, exiting\n");
+		    exit(1);
+		}
+		strncpy(job->jobname, ptr, joblen);
+		job->jobname[joblen] = '\0';
 	    }
 
 	    job->countExitMsg++;
