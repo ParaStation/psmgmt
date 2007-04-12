@@ -380,22 +380,40 @@ if($listtotuser){
 		$maxp = length($user_data{$usr}{'jobs'}) > $maxp ? length($user_data{$usr}{'jobs'}) : $maxp;
 		$maxi = length($user_data{$usr}{'procs'}) > $maxi ? length($user_data{$usr}{'procs'}) : $maxi;
 		if(!$human){
-			$maxw = length($user_data{$usr}{'walltime'}) > $maxw ? length($user_data{$usr}{'walltime'}) : $maxw;
-			$maxc = length($user_data{$usr}{'cputime'}) > $maxc ? length($user_data{$usr}{'cputime'}) : $maxc;
-			$maxq = length($user_data{$usr}{'qtime'}) > $maxq ? length($user_data{$usr}{'qtime'}) : $maxq;
-			$maxm = length($user_data{$usr}{'mem'}) > $maxm ? length($user_data{$usr}{'vmem'}) : $maxm;
-			$maxv = length($user_data{$usr}{'vmem'}) > $maxv ? length($user_data{$usr}{'vmem'}) : $maxv;
-			$maxe = length($user_data{$usr}{'cpuweight'}) > $maxe ? length($user_data{$usr}{'cpuweight'}) : $maxe;
-			$maxa = length(int(($user_data{$usr}{'qtime'}) / ($user_data{$usr}{'jobs'}))) > $maxa ? length(int(($user_data{$usr}{'qtime'}) / ($user_data{$usr}{'jobs'}))) : $maxa;
+			$maxw = length($user_data{$usr}{'walltime'}) 
+				> $maxw ? length($user_data{$usr}{'walltime'}) : $maxw;
+			$maxc = length($user_data{$usr}{'cputime'}) 
+				> $maxc ? length($user_data{$usr}{'cputime'}) : $maxc;
+			$maxq = length($user_data{$usr}{'qtime'}) 
+				> $maxq ? length($user_data{$usr}{'qtime'}) : $maxq;
+			$maxm = length($user_data{$usr}{'mem'}) 
+				> $maxm ? length($user_data{$usr}{'vmem'}) : $maxm;
+			$maxv = length($user_data{$usr}{'vmem'}) 
+				> $maxv ? length($user_data{$usr}{'vmem'}) : $maxv;
+			$maxe = length($user_data{$usr}{'cpuweight'}) 
+				> $maxe ? length($user_data{$usr}{'cpuweight'}) : $maxe;
+			if($user_data{$usr}{'jobs'}) {
+				$maxa = length(int(($user_data{$usr}{'qtime'}) / ($user_data{$usr}{'jobs'}))) 
+					> $maxa ? length(int(($user_data{$usr}{'qtime'}) / ($user_data{$usr}{'jobs'}))) : $maxa;
+			}
 		}
 		else{
-			$maxw = length(formattimep($user_data{$usr}{'walltime'})) > $maxw ? length(formattimep($user_data{$usr}{'walltime'})) : $maxw;
-			$maxc = length(formattimep($user_data{$usr}{'cputime'})) > $maxc ? length(formattimep($user_data{$usr}{'cputime'})) : $maxc;
-			$maxq = length(formattimep($user_data{$usr}{'qtime'})) > $maxq ? length(formattimep($user_data{$usr}{'qtime'})) : $maxq;
-			$maxm = length(formatmem($user_data{$usr}{'mem'})) > $maxm ? length(formatmem($user_data{$usr}{'mem'})) : $maxm;
-			$maxv = length(formatmem($user_data{$usr}{'vmem'})) > $maxv ? length(formatmem($user_data{$usr}{'vmem'})) : $maxv;
-			$maxe = length(formattimep($user_data{$usr}{'cpuweight'})) > $maxe ? length(formattimep($user_data{$usr}{'cpuweight'})) : $maxe;
-			$maxa = length(formattimep(int(($user_data{$usr}{'qtime'}) / ($user_data{$usr}{'jobs'})))) > $maxa ? length(formattimep(int(($user_data{$usr}{'qtime'}) / ($user_data{$usr}{'jobs'})))) : $maxa;
+			$maxw = length(formattimep($user_data{$usr}{'walltime'})) 
+				> $maxw ? length(formattimep($user_data{$usr}{'walltime'})) : $maxw;
+			$maxc = length(formattimep($user_data{$usr}{'cputime'})) 
+				> $maxc ? length(formattimep($user_data{$usr}{'cputime'})) : $maxc;
+			$maxq = length(formattimep($user_data{$usr}{'qtime'})) 
+				> $maxq ? length(formattimep($user_data{$usr}{'qtime'})) : $maxq;
+			$maxm = length(formatmem($user_data{$usr}{'mem'})) 
+				> $maxm ? length(formatmem($user_data{$usr}{'mem'})) : $maxm;
+			$maxv = length(formatmem($user_data{$usr}{'vmem'})) 
+				> $maxv ? length(formatmem($user_data{$usr}{'vmem'})) : $maxv;
+			$maxe = length(formattimep($user_data{$usr}{'cpuweight'})) 
+				> $maxe ? length(formattimep($user_data{$usr}{'cpuweight'})) : $maxe;
+			if($user_data{$usr}{'jobs'}){ 
+				$maxa = length(formattimep(int(($user_data{$usr}{'qtime'}) / ($user_data{$usr}{'jobs'})))) 
+					> $maxa ? length(formattimep(int(($user_data{$usr}{'qtime'}) / ($user_data{$usr}{'jobs'})))) : $maxa;
+			}
 		}	
 		
 	}	
@@ -413,7 +431,6 @@ if($listtotuser){
 	$format .= $pe ? "%".($maxe)."s"." "x$diff : "%s";
 	$format .= $pa ? "%".($maxa)."s"." "x$diff : "%s";
 	$format .= $pf ? "%".($maxf)."s" : "%s";
-  
   
 	if(!$noheader){
 
@@ -448,30 +465,27 @@ if($listtotuser){
 		print "\n";
 	} 
 
-
-
-	my $sfunc;
+	my $sfunc, my $tmpusage, my $tmpaqt;
 	$sfunc = \&sunh;
-	
 	$sfunc = \&snorm if ($usort =~ /user/); 
 
 	foreach my $usr (sort $sfunc (keys %user_data)) {
-			printf($format."\n",
-				$pu ? $usr : "",
-				$pp ? $user_data{$usr}{'jobs'} : "",
-				$pi ? $user_data{$usr}{'procs'} : "",
-				$pw ? formattimep($user_data{$usr}{'walltime'}) : "",
-				$pc ? formattimep($user_data{$usr}{'cputime'}) : "",
-				$pq ? formattimep($user_data{$usr}{'qtime'}) : "" ,
-				$pm ? formatmem($user_data{$usr}{'mem'}) : "" ,
-				$pv ? formatmem($user_data{$usr}{'vmem'}) : "",
-				$pe ? formattimep($user_data{$usr}{'cpuweight'}) : "", 
-				$pa ? formattimep(int(($user_data{$usr}{'qtime'}) / ($user_data{$usr}{'jobs'})))   : "" ,
-				$pf ? int($user_data{$usr}{'walltime'}  / $sum_data{'walltime'}  * 100) . "%" : "", 
-				);
-		}	
-
-	
+		$tmpusage = $sum_data{'walltime'} ? int($user_data{$usr}{'walltime'}  / $sum_data{'walltime'}  * 100) . "%" : "";
+		$tmpaqt = $user_data{$usr}{'jobs'} ? formattimep(int(($user_data{$usr}{'qtime'}) / ($user_data{$usr}{'jobs'}))) : "";
+		printf($format."\n",
+			$pu ? $usr : "",
+			$pp ? $user_data{$usr}{'jobs'} : "",
+			$pi ? $user_data{$usr}{'procs'} : "",
+			$pw ? formattimep($user_data{$usr}{'walltime'}) : "",
+			$pc ? formattimep($user_data{$usr}{'cputime'}) : "",
+			$pq ? formattimep($user_data{$usr}{'qtime'}) : "" ,
+			$pm ? formatmem($user_data{$usr}{'mem'}) : "" ,
+			$pv ? formatmem($user_data{$usr}{'vmem'}) : "",
+			$pe ? formattimep($user_data{$usr}{'cpuweight'}) : "", 
+			$pa ? $tmpaqt   : "", 
+			$pf ? $tmpusage : "", 
+			);
+	}	
 
 	print "\n\n";
 }
@@ -496,24 +510,41 @@ if($listtotgroup){
 		$maxp = length($group_data{$grp}{'jobs'}) > $maxp ? length($group_data{$grp}{'jobs'}) : $maxp;
 		$maxi = length($group_data{$grp}{'procs'}) > $maxi ? length($group_data{$grp}{'procs'}) : $maxi;
 		if(!$human){
-			$maxw = length($group_data{$grp}{'walltime'}) > $maxw ? length($group_data{$grp}{'walltime'}) : $maxw;
-			$maxc = length($group_data{$grp}{'cputime'}) > $maxc ? length($group_data{$grp}{'cputime'}) : $maxc;
-			$maxq = length($group_data{$grp}{'qtime'}) > $maxq ? length($group_data{$grp}{'qtime'}) : $maxq;
-			$maxm = length($group_data{$grp}{'mem'}) > $maxm ? length($group_data{$grp}{'vmem'}) : $maxm;
-			$maxv = length($group_data{$grp}{'vmem'}) > $maxv ? length($group_data{$grp}{'vmem'}) : $maxv;
-			$maxe = length($group_data{$grp}{'cpuweight'}) > $maxe ? length($group_data{$grp}{'cpuweight'}) : $maxe;
-			$maxa = length(int(($group_data{$grp}{'qtime'}) / ($group_data{$grp}{'jobs'}))) > $maxa ? length(int(($group_data{$grp}{'qtime'}) / ($group_data{$grp}{'jobs'}))) : $maxa;
+			$maxw = length($group_data{$grp}{'walltime'}) 
+				> $maxw ? length($group_data{$grp}{'walltime'}) : $maxw;
+			$maxc = length($group_data{$grp}{'cputime'}) 
+				> $maxc ? length($group_data{$grp}{'cputime'}) : $maxc;
+			$maxq = length($group_data{$grp}{'qtime'}) 
+				> $maxq ? length($group_data{$grp}{'qtime'}) : $maxq;
+			$maxm = length($group_data{$grp}{'mem'}) 
+				> $maxm ? length($group_data{$grp}{'vmem'}) : $maxm;
+			$maxv = length($group_data{$grp}{'vmem'}) 
+				> $maxv ? length($group_data{$grp}{'vmem'}) : $maxv;
+			$maxe = length($group_data{$grp}{'cpuweight'}) 
+				> $maxe ? length($group_data{$grp}{'cpuweight'}) : $maxe;
+			if($group_data{$grp}{'jobs'}) {
+				$maxa = length(int(($group_data{$grp}{'qtime'}) / ($group_data{$grp}{'jobs'}))) 
+					> $maxa ? length(int(($group_data{$grp}{'qtime'}) / ($group_data{$grp}{'jobs'}))) : $maxa;
+			}
 		}
 		else{
-			$maxw = length(formattimep($group_data{$grp}{'walltime'})) > $maxw ? length(formattimep($group_data{$grp}{'walltime'})) : $maxw;
-			$maxc = length(formattimep($group_data{$grp}{'cputime'})) > $maxc ? length(formattimep($group_data{$grp}{'cputime'})) : $maxc;
-			$maxq = length(formattimep($group_data{$grp}{'qtime'})) > $maxq ? length(formattimep($group_data{$grp}{'qtime'})) : $maxq;
-			$maxm = length(formatmem($group_data{$grp}{'mem'})) > $maxm ? length(formatmem($group_data{$grp}{'mem'})) : $maxm;
-			$maxv = length(formatmem($group_data{$grp}{'vmem'})) > $maxv ? length(formatmem($group_data{$grp}{'vmem'})) : $maxv;
-			$maxe = length(formattimep($group_data{$grp}{'cpuweight'})) > $maxe ? length(formattimep($group_data{$grp}{'cpuweight'})) : $maxe;
-			$maxa = length(formattimep(int(($group_data{$grp}{'qtime'}) / ($group_data{$grp}{'jobs'})))) > $maxa ? length(formattimep(int(($group_data{$grp}{'qtime'}) / ($group_data{$grp}{'jobs'})))) : $maxa;
+			$maxw = length(formattimep($group_data{$grp}{'walltime'})) 
+				> $maxw ? length(formattimep($group_data{$grp}{'walltime'})) : $maxw;
+			$maxc = length(formattimep($group_data{$grp}{'cputime'})) 
+				> $maxc ? length(formattimep($group_data{$grp}{'cputime'})) : $maxc;
+			$maxq = length(formattimep($group_data{$grp}{'qtime'})) 
+				> $maxq ? length(formattimep($group_data{$grp}{'qtime'})) : $maxq;
+			$maxm = length(formatmem($group_data{$grp}{'mem'})) 
+				> $maxm ? length(formatmem($group_data{$grp}{'mem'})) : $maxm;
+			$maxv = length(formatmem($group_data{$grp}{'vmem'})) 
+				> $maxv ? length(formatmem($group_data{$grp}{'vmem'})) : $maxv;
+			$maxe = length(formattimep($group_data{$grp}{'cpuweight'})) 
+				> $maxe ? length(formattimep($group_data{$grp}{'cpuweight'})) : $maxe;
+			if($group_data{$grp}{'jobs'}) {
+				$maxa = length(formattimep(int(($group_data{$grp}{'qtime'}) / ($group_data{$grp}{'jobs'})))) 
+					> $maxa ? length(formattimep(int(($group_data{$grp}{'qtime'}) / ($group_data{$grp}{'jobs'})))) : $maxa;
+			}
 		}	
-			
 	}
 
 	my $diff = 3;
@@ -565,11 +596,12 @@ if($listtotgroup){
 	} 
 
 	my $sfunc = \&sgh; 
-	
+ 	my $tmpusage, my $tmpjobs;	
 	$sfunc = \&snorm if ($gsort =~ /group/); 
 	
-
 	foreach my $grp (sort $sfunc (keys %group_data)) {
+		$tmpusage = $sum_data{'walltime'} ? int($group_data{$grp}{'walltime'}  /  $sum_data{'walltime'} * 100) . "%" : "";
+		$tmpjobs = $group_data{$grp}{'jobs'} ? formattimep(int(($group_data{$grp}{'qtime'}) / ($group_data{$grp}{'jobs'}))) : "";
 		printf($format."\n",
 			$pg ? $grp : "",
 			$pp ? $group_data{$grp}{'jobs'} : "",
@@ -580,16 +612,12 @@ if($listtotgroup){
 			$pm ? formatmem($group_data{$grp}{'mem'}) : "" ,
 			$pv ? formatmem($group_data{$grp}{'vmem'}) : "",
 			$pe ? formattimep($group_data{$grp}{'cpuweight'}) : "", 
-			$pa ? formattimep(int(($group_data{$grp}{'qtime'}) / ($group_data{$grp}{'jobs'})))   : "" ,
-			$pf ? int($group_data{$grp}{'walltime'}  /  $sum_data{'walltime'} * 100) . "%" : "", 
+			$pa ? $tmpjobs  : "" ,
+			$pf ? $tmpusage : "" 
 			);
-			
-		
-	
 	}
 
 	print "\n\n";
-
 }
 
 
@@ -616,7 +644,10 @@ if($listtotsum){
 		$maxm = length($sum_data{'mem'}) > $maxm ? length($sum_data{'vmem'}) : $maxm;
 		$maxv = length($sum_data{'vmem'}) > $maxv ? length($sum_data{'vmem'}) : $maxv;
 		$maxe = length($sum_data{'cpuweight'}) > $maxe ? length($sum_data{'cpuweight'}) : $maxe;
-		$maxa = length(int(($sum_data{'qtime'}) / ($sum_data{'jobs'}))) > $maxa ? length(int(($sum_data{'qtime'}) / ($sum_data{'jobs'}))) : $maxa;
+		if($sum_data{'jobs'}) {
+			$maxa = length(int(($sum_data{'qtime'}) / ($sum_data{'jobs'}))) 
+				> $maxa ? length(int(($sum_data{'qtime'}) / ($sum_data{'jobs'}))) : $maxa;
+		}
 	}
 	else{
 		$maxw = length(formattimep($sum_data{'walltime'})) > $maxw ? length(formattimep($sum_data{'walltime'})) : $maxw;
@@ -625,7 +656,10 @@ if($listtotsum){
 		$maxm = length(formatmem($sum_data{'mem'})) > $maxm ? length(formatmem($sum_data{'mem'})) : $maxm;
 		$maxv = length(formatmem($sum_data{'vmem'})) > $maxv ? length(formatmem($sum_data{'vmem'})) : $maxv;
 		$maxe = length(formattimep($sum_data{'cpuweight'})) > $maxe ? length(formattimep($sum_data{'cpuweight'})) : $maxe;
-		$maxa = length(formattimep(int(($sum_data{'qtime'}) / ($sum_data{'jobs'})))) > $maxa ? length(formattimep(int(($sum_data{'qtime'}) / ($sum_data{'jobs'})))) : $maxa;
+		if($sum_data{'jobs'}) {
+			$maxa = length(formattimep(int(($sum_data{'qtime'}) / ($sum_data{'jobs'})))) 
+				> $maxa ? length(formattimep(int(($sum_data{'qtime'}) / ($sum_data{'jobs'})))) : $maxa;
+		}
 	}	
 			
 	my $diff = 3;
@@ -642,37 +676,39 @@ if($listtotsum){
 	$format .= $pa ? "%".($maxa)."s"." "x$diff : "%s";
   
   
-  if(!$noheader){
+	if(!$noheader){
 
-	printf($format,
-	"Summary",
-	$pp ? "Jobs" : "",
-	$pi ? "Procs" : "",
-	$pw ? "Walltime" : "",
-	$pc ? "CPUtime" : "",
-	$pq ? "Qtime" : "",
-	$pm ? "Mem" : "",
-	$pv ? "Vmem" : "",
-	$pe ? "CPUweight" : "",
-	$pa ? "Avg Qtime" : "",
-	);
+		printf($format,
+		"Summary",
+		$pp ? "Jobs" : "",
+		$pi ? "Procs" : "",
+		$pw ? "Walltime" : "",
+		$pc ? "CPUtime" : "",
+		$pq ? "Qtime" : "",
+		$pm ? "Mem" : "",
+		$pv ? "Vmem" : "",
+		$pe ? "CPUweight" : "",
+		$pa ? "Avg Qtime" : ""
+		);
 
-	printf("\n".$format,
-	"-------",
-	$pp ? "-"x$maxp : "",
-	$pi ? "-"x$maxi : "",
-	$pw ? "-"x$maxw : "",
-	$pc ? "-"x$maxc : "",
-	$pq ? "-"x$maxq : "",
-	$pm ? "-"x$maxm : "",
-	$pv ? "-"x$maxv : "",
-	$pe ? "-"x$maxe : "",
-	$pa ? "-"x$maxa : "",
-	);
+		printf("\n".$format,
+		"-------",
+		$pp ? "-"x$maxp : "",
+		$pi ? "-"x$maxi : "",
+		$pw ? "-"x$maxw : "",
+		$pc ? "-"x$maxc : "",
+		$pq ? "-"x$maxq : "",
+		$pm ? "-"x$maxm : "",
+		$pv ? "-"x$maxv : "",
+		$pe ? "-"x$maxe : "",
+		$pa ? "-"x$maxa : ""
+		);
 
-	print "\n";
-    } 
+		print "\n";
+	} 
 
+	my $tmpaqt;
+	$tmpaqt = $sum_data{'jobs'} ? formattimep(int(($sum_data{'qtime'}) / ($sum_data{'jobs'}))) : "";
 	printf($format."\n",
 		"TOTAL",
 		$pp ? $sum_data{'jobs'} : "",
@@ -683,7 +719,7 @@ if($listtotsum){
 		$pm ? formatmem($sum_data{'mem'}) : "" ,
 		$pv ? formatmem($sum_data{'vmem'}) : "",
 		$pe ? formattimep($sum_data{'cpuweight'}) : "", 
-		$pa ? formattimep(int(($sum_data{'qtime'}) / ($sum_data{'jobs'})))   : "" ,
+		$pa ? $tmpaqt : ""
 		);
 
 	print "\n\n";
@@ -734,22 +770,34 @@ if($listjobs){
 			$maxm = length($job_data{$jobnum}{'mem'}) > $maxm ? length($job_data{$jobnum}{'vmem'}) : $maxm;
 			$maxv = length($job_data{$jobnum}{'vmem'}) > $maxv ? length($job_data{$jobnum}{'vmem'}) : $maxv;
 			$maxe = length($job_data{$jobnum}{'cpuweight'}) > $maxe ? length($job_data{$jobnum}{'cpuweight'}) : $maxe;
-			$maxa = length(int(($job_data{$jobnum}{'qtime'}) / ($job_data{$jobnum}{'procs'}))) > $maxa ? length(int(($job_data{$jobnum}{'qtime'}) / ($job_data{$jobnum}{'procs'}))) : $maxa;
+			if($job_data{$jobnum}{'procs'}) {
+				$maxa = length(int(($job_data{$jobnum}{'qtime'}) / ($job_data{$jobnum}{'procs'}))) 
+					> $maxa ? length(int(($job_data{$jobnum}{'qtime'}) / ($job_data{$jobnum}{'procs'}))) : $maxa;
+			}
 		}
 		else{
-			$maxw = length(formattimep($job_data{$jobnum}{'walltime'})) > $maxw ? length(formattimep($job_data{$jobnum}{'walltime'})) : $maxw;
-			$maxt = length(formattime($job_data{$jobnum}{'start'})) > $maxt ? length(formattime($job_data{$jobnum}{'start'})) : $maxt;		
-			$maxb = length(formattime($job_data{$jobnum}{'end'})) > $maxb ? length(formattime($job_data{$jobnum}{'end'})) : $maxb;		
-			$maxc = length(formattimep($job_data{$jobnum}{'cputime'})) > $maxc ? length(formattimep($job_data{$jobnum}{'cputime'})) : $maxc;
-			$maxq = length(formattimep($job_data{$jobnum}{'qtime'})) > $maxq ? length(formattimep($job_data{$jobnum}{'qtime'})) : $maxq;
-			$maxm = length(formatmem($job_data{$jobnum}{'mem'})) > $maxm ? length(formatmem($job_data{$jobnum}{'mem'})) : $maxm;
-			$maxv = length(formatmem($job_data{$jobnum}{'vmem'})) > $maxv ? length(formatmem($job_data{$jobnum}{'vmem'})) : $maxv;
-			$maxe = length(formattimep($job_data{$jobnum}{'cpuweight'})) > $maxe ? length(formattimep($job_data{$jobnum}{'cpuweight'})) : $maxe;
-			$maxa = length(formattimep(int(($job_data{$jobnum}{'qtime'}) / ($job_data{$jobnum}{'procs'})))) > $maxa ? length(formattimep(int(($job_data{$jobnum}{'qtime'}) / ($job_data{$jobnum}{'procs'})))) : $maxa;
+			$maxw = length(formattimep($job_data{$jobnum}{'walltime'})) 
+				> $maxw ? length(formattimep($job_data{$jobnum}{'walltime'})) : $maxw;
+			$maxt = length(formattime($job_data{$jobnum}{'start'})) 
+				> $maxt ? length(formattime($job_data{$jobnum}{'start'})) : $maxt;		
+			$maxb = length(formattime($job_data{$jobnum}{'end'})) 
+				> $maxb ? length(formattime($job_data{$jobnum}{'end'})) : $maxb;		
+			$maxc = length(formattimep($job_data{$jobnum}{'cputime'})) 
+				> $maxc ? length(formattimep($job_data{$jobnum}{'cputime'})) : $maxc;
+			$maxq = length(formattimep($job_data{$jobnum}{'qtime'})) 
+				> $maxq ? length(formattimep($job_data{$jobnum}{'qtime'})) : $maxq;
+			$maxm = length(formatmem($job_data{$jobnum}{'mem'})) 
+				> $maxm ? length(formatmem($job_data{$jobnum}{'mem'})) : $maxm;
+			$maxv = length(formatmem($job_data{$jobnum}{'vmem'})) 
+				> $maxv ? length(formatmem($job_data{$jobnum}{'vmem'})) : $maxv;
+			$maxe = length(formattimep($job_data{$jobnum}{'cpuweight'})) 
+				> $maxe ? length(formattimep($job_data{$jobnum}{'cpuweight'})) : $maxe;
+			if($job_data{$jobnum}{'procs'}) {
+				$maxa = length(formattimep(int(($job_data{$jobnum}{'qtime'}) / ($job_data{$jobnum}{'procs'})))) 
+					> $maxa ? length(formattimep(int(($job_data{$jobnum}{'qtime'}) / ($job_data{$jobnum}{'procs'})))) : $maxa;
+			}
 		}	
-			
 	}
-
 
 	my $diff = 3;
 	my $format = "";
@@ -822,7 +870,6 @@ if($listjobs){
 		$sfunc = \&sbh; 
 	} else {
 		$sfunc = \&snh;
-	
 	}
 	   
 	foreach my $jobnum (sort $sfunc (keys %job_data) ) {
