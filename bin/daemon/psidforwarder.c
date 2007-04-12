@@ -641,7 +641,9 @@ static void sighandler(int sig)
 		}
 		strcpy(ptr, progStr);
 		ptr += strlen(progStr);
-		msg.header.len += strlen(progStr);
+		ptr = '\0';
+		ptr++;
+		msg.header.len += strlen(progStr) +1;
 	    } else {
 		ptr = '\0';
 		ptr++;
