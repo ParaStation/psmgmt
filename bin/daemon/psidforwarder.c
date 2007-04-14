@@ -640,12 +640,10 @@ static void sighandler(int sig)
 		    progStr = NAME_TO_LONG_STR;
 		}
 		strcpy(ptr, progStr);
-		ptr += strlen(progStr);
-		ptr = '\0';
-		ptr++;
-		msg.header.len += strlen(progStr) +1;
+		ptr += strlen(progStr) + 1;
+		msg.header.len += strlen(progStr) + 1;
 	    } else {
-		ptr = '\0';
+		*ptr = '\0';
 		ptr++;
 		msg.header.len++;
 	    }
