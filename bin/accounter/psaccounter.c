@@ -317,10 +317,6 @@ void printAccEndMsg(char *chead, PStask_ID_t key)
 	return;
     }
 
-    if (job->incomplete) {
-	snprintf(info, sizeof(info), "info=incomplete ");
-    }
-
     spasswd = getpwuid(job->uid);
     sgroup = getgrgid(job->gid);
 
@@ -332,12 +328,26 @@ void printAccEndMsg(char *chead, PStask_ID_t key)
     csec = ccopy % 60;
 
     /* calc walltime */
-    wspan = job->end_time - job->start_time;
-    whour = wspan / 3600;
-    wspan = wspan % 3600;
-    wmin = wspan / 60;
-    wsec = wspan % 60;
+    if (!job->end_time) {
+	job->end_time = time(NULL);
+    }
+    if (!job->end_time || !job->start_time || job->start_time > job->end_time) {
+	whour = 0;
+	wmin = 0;
+	wsec = 0;
+	job->incomplete = 1;
+    } else {
+	wspan = job->end_time - job->start_time;
+	whour = wspan / 3600;
+	wspan = wspan % 3600;
+	wmin = wspan / 60;
+	wsec = wspan % 60;
+    }
 
+    if (job->incomplete) {
+	snprintf(info, sizeof(info), "info=incomplete ");
+    }
+    
     /* calc used mem */
     pagesize = getpagesize();
     rss = (job->rusage.ru_maxrss * pagesize) / 1024;
@@ -378,6 +388,8 @@ void handleAccQueueMsg(char *chead, char *ptr, PStask_ID_t logger)
     job->countExitMsg = 0;
     job->countSlotMsg = 0;
     job->incomplete = 0;
+    job->start_time = 0;
+    job->end_time = 0;
     job->exec_hosts_size = EXEC_HOST_SIZE;
     if (!(job->exec_hosts = malloc(EXEC_HOST_SIZE))) {
         alog("Out of memory, exiting\n");
@@ -729,25 +741,35 @@ void handleSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
 
     for (slot = 0; slot < numSlots; slot++) {
 	struct in_addr slotIP;
-	int cpu, bufleft, hostlen;
+	int cpu, bufleft;
+	char ctmphost[400];
         
 	slotIP.s_addr = *(uint32_t *) ptr;
 	ptr += sizeof(uint32_t);
 	cpu = *(int16_t *) ptr;
 	ptr += sizeof(int16_t);
 
+        if (job->countSlotMsg) {
+            strcpy(sep, "+");
+        }
+	
 	job->countSlotMsg++;
-
+	
 	hostName =
 	    gethostbyaddr(&slotIP.s_addr, sizeof(slotIP.s_addr), AF_INET);
-      
-        if (!hostName) {
-            hostlen = strlen(inet_ntoa(slotIP));
+        
+	if (!hostName) {
+	    alog("Couldn't resolve hostName from ip:%s\n",
+                 inet_ntoa(slotIP));
+	    snprintf(ctmphost,sizeof(ctmphost),"%s%s/%d",
+		     sep, inet_ntoa(slotIP), (int) job->countSlotMsg);
         } else {
-            hostlen = strlen(hostName->h_name);
-        }
+	    snprintf(ctmphost,sizeof(ctmphost),"%s%s/%d",
+		     sep, hostName->h_name, (int) job->countSlotMsg); 
 
-        if (hostlen + strlen(job->exec_hosts) + 1 >
+        }
+    
+        if (strlen(job->exec_hosts) + strlen(ctmphost) + 1 >
             job->exec_hosts_size) {
             char *tmpjob = job->exec_hosts;
             job->exec_hosts =
@@ -762,25 +784,11 @@ void handleSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
                 free(tmpjob);
             }
         }
-        bufleft = job->exec_hosts_size - strlen(job->exec_hosts) -1; 
-        
-        if (slot) {
-            strcpy(sep, "+");
-        }
-        if (!hostName) {
-            char *cptr = job->exec_hosts;
-            alog("Couldn't resolve hostName from ip:%s\n",
-                 inet_ntoa(slotIP));
-            cptr += strlen(job->exec_hosts);
-            snprintf(cptr, bufleft, "%s%s/%d",
-                     sep, inet_ntoa(slotIP), (int) job->countSlotMsg);
-        } else {
-                char *cptr = job->exec_hosts;
-                cptr += strlen(job->exec_hosts);
-                snprintf(cptr, bufleft, "%s%s/%d",
-                         sep, hostName->h_name, (int) job->countSlotMsg);
-        }
-        
+	
+	bufleft = job->exec_hosts_size - strlen(job->exec_hosts); 
+        char *cptr = job->exec_hosts;
+        cptr += strlen(job->exec_hosts);
+        snprintf(cptr, bufleft, "%s", ctmphost);
     }
 
 
