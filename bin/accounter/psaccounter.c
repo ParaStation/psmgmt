@@ -87,6 +87,12 @@ struct t_node {
     struct t_node *right;
 };
 
+/* struct for non responding jobs */
+typedef struct struct_list {
+    PStask_ID_t job;
+    struct struct_list *next;
+}Joblist;
+
 void sig_handler(int sig);
 void handleAccQueueMsg(char *chead, char *ptr, PStask_ID_t logger);
 void handleAccStartMsg(char *ptr, PStask_ID_t key);
@@ -111,18 +117,85 @@ int insertJob(Job_t * job);
 int deleteJob(PStask_ID_t key);
 Job_t *findJob(PStask_ID_t key);
 
+/* dead jobs functions */
+PStask_ID_t getNextdJob();
+void insertdJob(PStask_ID_t Job);
+int finddJob(PStask_ID_t Job);
+
 /* globals */
 FILE *fp;
 struct t_node *btroot;
-PStask_ID_t deadLoggerId;
 int logTorque;
 int debug;
 char *logPostProcessing;
 logger_t *alogger;
 FILE *logfile = NULL;
 int edebug = 0;			/* extended debugging msg */
+Joblist *dJobs;
 
 #define alog(...) if (alogger) logger_print(alogger, -1, __VA_ARGS__)
+
+void insertdJob(PStask_ID_t Job)
+{
+    if (!dJobs) { /* empty queue */ 
+	if (!(dJobs = malloc(sizeof(Joblist)))) {
+	    alog("Out of memory, Exiting\n");
+	    exit(1);
+	}
+	dJobs->next = NULL;
+	dJobs->job = Job;
+    } else { 
+	Joblist *lastJob;
+	lastJob = dJobs;
+	/* find last job */
+	while (lastJob->next != NULL) {
+	    lastJob = lastJob->next;
+	}
+	if (!(lastJob->next = malloc(sizeof(Joblist)))) {
+	    alog("Out of memory, Exiting\n");
+	    exit(1);
+	}
+	lastJob = lastJob->next;
+	lastJob->next = NULL;
+	lastJob->job = Job;
+    }
+}
+
+int finddJob(PStask_ID_t Job)
+{
+    if (!dJobs) {
+	return 0;
+    } else {
+	Joblist *sJob;
+	sJob = dJobs;
+	if (sJob->job == Job) {
+	    return 1;
+	}
+	while (sJob->next != NULL) {
+	    sJob = sJob->next;
+	    if (sJob->job == Job) {
+		return 1;
+	    }
+	}
+	return 0;
+    }
+}
+
+PStask_ID_t getNextdJob()
+{
+    if (!dJobs) {
+	return 0;
+    } else {
+	Joblist *nextJob;
+	PStask_ID_t jobid;
+
+	nextJob = dJobs;
+	jobid = dJobs->job;
+	dJobs = dJobs->next;
+	free(nextJob);
+	return jobid;
+    }
+}
 
 struct t_node *insertTNode(PStask_ID_t key, Job_t * job,
 			   struct t_node *leaf)
@@ -270,10 +343,18 @@ void sig_handler(int sig)
 
 void timer_handler()
 {
-    Job_t *job = findJob(deadLoggerId);
+    PStask_ID_t tid;
+    struct itimerval timer;
+    
+    if (!(tid = getNextdJob())) {
+	return;
+    }
+    Job_t *job = findJob(tid);
 
     if (!job) {
-	alog("Timer AccEndMsg to non existing Job:%i\n", deadLoggerId);
+	if (debug) {
+	    alog("Timer AccEndMsg to non existing Job:%i\n", tid);
+	}
     } else {
 	time_t atime;
 	struct tm *ptm;
@@ -281,7 +362,7 @@ void timer_handler()
 	char chead[300];
         
         /* check if all childs terminated */
-	if (job->countExitMsg < job->taskSize) {
+	if (job->countExitMsg != job->taskSize) {
 	    job->incomplete = 1;
 	    job->end_time = time(NULL);
 	}
@@ -294,10 +375,22 @@ void timer_handler()
 		 PSC_getPID(job->logger), job->hostname);
 
 	/* print the msg */
-	printAccEndMsg(chead, deadLoggerId);
-	deadLoggerId = -1;
-
+	printAccEndMsg(chead, tid);
     }
+
+    /* start timer if jobs pending */
+    if (dJobs) {
+	/* Configure the timer to expire after 60 sec */
+	timer.it_value.tv_sec = 60;
+	timer.it_value.tv_usec = 0;
+
+	/* ... not anymore after that. */
+	timer.it_interval.tv_sec = 0;
+	timer.it_interval.tv_usec = 0;
+
+	/* Start a timer. */
+	setitimer(ITIMER_REAL, &timer, NULL);
+    }	
 }
 
 
@@ -330,6 +423,7 @@ void printAccEndMsg(char *chead, PStask_ID_t key)
     /* calc walltime */
     if (!job->end_time) {
 	job->end_time = time(NULL);
+	job->incomplete = 1;
     }
     if (!job->end_time || !job->start_time || job->start_time > job->end_time) {
 	whour = 0;
@@ -365,7 +459,7 @@ void printAccEndMsg(char *chead, PStask_ID_t key)
 
     fflush(fp);
     if (edebug) {
-	printf("Processed acc end msg, deleting job\n");
+	alog("Processed acc end msg, deleting job\n");
     }
     if (!deleteJob(key)) {
 	alog("Error Deleting Job: Possible memory leak\n");
@@ -540,37 +634,29 @@ void handleAccEndMsg(char *chead, char *ptr, PStask_ID_t sender,
 
 	if (sender == logger) {
 
-
 	    /* check if all childs terminated */
 	    if (job->countExitMsg < job->taskSize) {
 		struct itimerval timer;
+
+		/* start timer if not yet active */
+		if (!dJobs) {
 		
-                job->incomplete = 1;
-		job->end_time = time(NULL);
+		    /* Configure the timer to expire after 30 sec */
+		    timer.it_value.tv_sec = 60;
+		    timer.it_value.tv_usec = 0;
 
-		/* Install timer_handler as the signal handler for SIGALRM. */
-                signal(SIGALRM, &timer_handler);
+		    /* ... not anymore after that. */
+		    timer.it_interval.tv_sec = 0;
+		    timer.it_interval.tv_usec = 0;
 
-		/* Set the job to wait for */
-		while (1) {
-		    if (deadLoggerId == -1) {
-			deadLoggerId = logger;
-			break;
-		    } else {
-			sleep(5);
-		    }
+		    /* Start a timer. */
+		    setitimer(ITIMER_REAL, &timer, NULL);
+		}	
+		
+		if (!finddJob(logger)) {
+		    insertdJob(logger);
+		    alog("Waiting for all childs to exit on job:%i\n",logger);
 		}
-
-		/* Configure the timer to expire after 30 sec */
-		timer.it_value.tv_sec = 30;
-		timer.it_value.tv_usec = 0;
-
-		/* ... not anymore after that. */
-		timer.it_interval.tv_sec = 0;
-		timer.it_interval.tv_usec = 0;
-
-		/* Start a timer. */
-		setitimer(ITIMER_REAL, &timer, NULL);
 
 	    } else {
 		printAccEndMsg(chead, logger);
@@ -679,37 +765,27 @@ void handleSigMsg(DDErrorMsg_t * msg)
     }
     job = findJob(msg->request);
 
-    /* Install timer_handler as the signal handler for SIGALRM. */
-    signal(SIGALRM, &timer_handler);
-
-
     /* check if logger replied */
     if (msg->error == ESRCH && job) {
 
-	alog("logger died msg error:%i\n", msg->error);
+	if (!dJobs) {
+	    /* Configure the timer to expire after 60 sec */
+	    timer.it_value.tv_sec = 60;
+	    timer.it_value.tv_usec = 0;
 
-	/* Set the job to wait for */
-	while (1) {
-	    if (deadLoggerId == -1) {
-		deadLoggerId = msg->request;
-		break;
-	    } else
-		sleep(5);
+	    /* ... not anymore after that. */
+	    timer.it_interval.tv_sec = 0;
+	    timer.it_interval.tv_usec = 0;
+
+	    /* Start a timer. */
+	    setitimer(ITIMER_REAL, &timer, NULL);
 	}
-
-	/* Configure the timer to expire after 30 sec */
-	timer.it_value.tv_sec = 30;
-	timer.it_value.tv_usec = 0;
-
-	/* ... not anymore after that. */
-	timer.it_interval.tv_sec = 0;
-	timer.it_interval.tv_usec = 0;
-
-	/* Start a timer. */
-	setitimer(ITIMER_REAL, &timer, NULL);
-
+	
+	if (!finddJob(msg->request)) {
+	    insertdJob(msg->request);
+	    alog("logger died, error:%i\n", msg->error);
+	}
     }
-
 }
 
 
@@ -957,6 +1033,7 @@ int main(int argc, char *argv[])
 	POPT_AUTOHELP {NULL, '\0', 0, NULL, 0, NULL, NULL}
     };
     
+    signal(SIGALRM, &timer_handler);
     signal(SIGTERM, sig_handler);
     signal(SIGINT, sig_handler);
 
@@ -1040,8 +1117,8 @@ int main(int argc, char *argv[])
 
     /* init */
     btroot = 0;
-    deadLoggerId = -1;
     fp = 0;
+    dJobs = 0;
 
     /* main loop */
     loop(arg_logdir);
