@@ -29,49 +29,54 @@ use Pod::Usage;
 my $ps_acc_dir="/var/account";
 
 ## Default output options 
-my $noheader  		= "";
-my $human 		= ""; 
-my $listtotuser 	= "true";
-my $listtotgroup 	= "true";
-my $listtotsum  	= "true";
-my $listjobs 		= "true";
-my $timespan		= "year"; 	# today week month year
-my $jsort		= "mem";
-my $usort		= "user";
-my $gsort		= "group";
+our $noheader  		= "";		# display no header information
+our $human 		= "";		# use a human readable format
+our $listtotuser 	= "true";	# show summary per user
+our $listtotgroup 	= "true";	# show summary per group
+our $listtotsum  	= "true";	# show total summary
+our $listjobs 		= "true";	# show single jobs
+our $timespan		= "year"; 	# show timespan :today week month year
+our $jsort		= "start";	# job sort criteria
+our $usort		= "user";	# user sort criteria
+our $gsort		= "group";	# group sort criteria 
+our $clocktime		= "";		# display times in format 00:01:05 instead of 1m 5s 
 
 ## Default total display options
-my $pu = "true";	# user
-my $pg = "true";	# group
-my $pw = "true";	# walltime
-my $pq = "true";	# qtime
-my $pm = "";		# mem
-my $pv = "";		# vmem
-my $pc = "true";	# cputime
-my $pp = "true";	# jobs
-my $pi = "true";	# procs 
-my $pe = "true";	# cpu weight
-my $pa = "true";	# average queue time 
-my $pf = "true";	# usage 
+our $pu = "true";	# user
+our $pg = "true";	# group
+our $pw = "true";	# walltime
+our $pq = "true";	# qtime
+our $pm = "";		# mem
+our $pv = "";		# vmem
+our $pc = "true";	# cputime
+our $pp = "true";	# jobs
+our $pi = "true";	# procs 
+our $pe = "true";	# cpu weight
+our $pa = "true";	# average queue time 
+our $pf = "true";	# usage 
 
 ## Default jobs display options
-my $lu = "true";	# user
-my $lg = "true";	# group
-my $li = "true";	# jobid
-my $ln = "true";	# jobname
-my $lt = "true";	# start time
-my $lb = "true";	# exit time
-my $lw = "true";	# walltime
-my $lq = "true";	# qtime
-my $lm = "";		# mem
-my $lv = "";		# vmem
-my $lh = "true";	# execution hosts
-my $la = "true";	# nodes
-my $lc = "true";	# cpu time
-my $le = "true";	# cpu weight
-my $ld = "true";	# queue
-my $lp = "true";	# processes
-my $ls = "true";	# exit value
+our $lu = "true";	# user
+our $lg = "true";	# group
+our $li = "true";	# jobid
+our $ln = "true";	# jobname
+our $lt = "true";	# start time
+our $lb = "true";	# exit time
+our $lw = "true";	# walltime
+our $lq = "true";	# qtime
+our $lm = "";		# mem
+our $lv = "";		# vmem
+our $lh = "true";	# execution hosts
+our $la = "true";	# nodes
+our $lc = "true";	# cpu time
+our $le = "true";	# cpu weight
+our $ld = "true";	# queue
+our $lp = "true";	# processes
+our $ls = "true";	# exit value
+
+## Include conf file in Users Home
+
+require("$ENV{'HOME'}/.psaccviewrc") if (-r "$ENV{'HOME'}/.psaccviewrc");
 
 #################################################
 ## end of configuration
@@ -105,7 +110,8 @@ GetOptions(
 	   'timespan|t=s' => \$timespan,
 	   'begin|tb=s'	  => \$begin,
 	   'end|te=s'	  => \$end,
-	   'logdir|l=s'  => \$ps_acc_dir,
+	   'clocktime|ct' => \$clocktime,
+	   'logdir|l=s'   => \$ps_acc_dir,
            'version|v'    => \$version
 
 
@@ -125,6 +131,23 @@ if($olistjobs || $olisttotuser || $olisttotgroup || $olisttotsum){
 	$listtotsum     = $olisttotsum   ? $olisttotsum         : "";
 	$listjobs       = $olistjobs     ? $olistjobs           : "";
 }
+
+# check for wrong cmd line options
+my $sortlist = '^(user|group|jobid|jobname|start|end|walltime|qtime|mem|vmem|cputime|queue|procs|exechost|nodes|exit)$'; 
+die "Invalid sort option for job list (-jsort)" if $jsort && $jsort !~ /$sortlist/;
+
+$sortlist = '^(user|jobs|walltime|qtime|mem|vmem|cputime|procs|cpuweight)$';
+die "Invalid sort option for user list (-usort)" if $usort && $usort !~ /$sortlist/;
+
+$sortlist = '^(group|jobs|walltime|qtime|mem|vmem|cputime|procs|cpuweight)$';
+die "Invalid sort option for group list (-gsort)" if $gsort && $gsort !~ /$sortlist/;
+
+my $timespanlist = '^(today|week|month|year)$';
+die "Invalid timespan option (-timespan)" if $timespan && $timespan !~ /$timespanlist/;
+
+die "Invalid begin option (-begin)" if $begin && $begin !~ /^\d{8}$/;
+die "Invalid end option (-end)" if $end && $end !~ /^\d{8}$/;
+
 
 # parse total display options
 if($doptions){ 
@@ -201,6 +224,7 @@ if($joptions){
 	}
 }
 
+my $mestime = time;
 
 # calc time for filename
 my @date = localtime(time);
@@ -225,7 +249,6 @@ $tbegin = 1 if $timespan eq "all";
 #print "start:$tbegin,end:$tend\n";
 
 my $jobnum = 0;
-my $mestime = time;
 my $lbegin = $tend;
 
 my %job_data, my %user_data, my %group_data, my %sum_data; 
@@ -301,7 +324,7 @@ while ( defined (my $filename = readdir(DIR))) {
 					$job_data{$jobnum}{'cpuweight'} = $num_hosts * time_to_sec($walltime);
 					$job_data{$jobnum}{'procs'} = $num_hosts;
 					$job_data{$jobnum}{'nodes'} = $num_nodes;
-					$job_data{$jobnum}{'exec_host'} = $exec_host;
+					$job_data{$jobnum}{'exechost'} = $exec_host;
 				}	
 
 				if($listtotuser){
@@ -762,7 +785,7 @@ if($listjobs){
 	foreach my $jobnum (keys %job_data) {
 		$maxu = length($job_data{$jobnum}{'user'}) > $maxu ? length($job_data{$jobnum}{'user'}) : $maxu;		
 		$maxg = length($job_data{$jobnum}{'group'}) > $maxg ? length($job_data{$jobnum}{'group'}) : $maxg;		
-		$maxh = length($job_data{$jobnum}{'exec_host'}) > $maxh ? length($job_data{$jobnum}{'exec_host'}) : $maxh;		
+		$maxh = length($job_data{$jobnum}{'exechost'}) > $maxh ? length($job_data{$jobnum}{'exechost'}) : $maxh;		
 		$maxi = length($job_data{$jobnum}{'jobid'}) > $maxi ? length($job_data{$jobnum}{'jobid'}) : $maxi;		
 		$maxd = length($job_data{$jobnum}{'queue'}) > $maxd ? length($job_data{$jobnum}{'queue'}) : $maxd;		
 		$maxn = length($job_data{$jobnum}{'jobname'}) > $maxn ? length($job_data{$jobnum}{'jobname'}) : $maxn;		
@@ -796,6 +819,7 @@ if($listjobs){
 			$maxv = length(formatmem($job_data{$jobnum}{'vmem'})) 
 				> $maxv ? length(formatmem($job_data{$jobnum}{'vmem'})) : $maxv;
 			$maxe = length(formattimep($job_data{$jobnum}{'cpuweight'})) 
+				> $maxe ? length(formattimep($job_data{$jobnum}{'cpuweight'})) : $maxe; 
 		}	
 	}
 
@@ -865,7 +889,7 @@ if($listjobs){
 	
 	my $sfunc;
 	if ($jsort =~ /user/ || $jsort =~ /group/ || $jsort =~ /jobname/ 
-	   || $jsort =~ /queue/ ) { 
+	   || $jsort =~ /queue/ || $jsort =~ /exechost/ ) { 
 
 		$sfunc = \&sbh; 
 	} else {
@@ -887,7 +911,7 @@ if($listjobs){
 			$lq ? formattimep($job_data{$jobnum}{'qtime'}) : "" ,
 			$lm ? formatmem($job_data{$jobnum}{'mem'}) : "" ,
 			$lv ? formatmem($job_data{$jobnum}{'vmem'}) : "",
-			$lh ? $job_data{$jobnum}{'exec_host'} : "",
+			$lh ? $job_data{$jobnum}{'exechost'} : "",
 			$la ? $job_data{$jobnum}{'nodes'} : "",
 			$lc ? formattimep($job_data{$jobnum}{'cputime'}) : "",
 			$le ? formattimep($job_data{$jobnum}{'cpuweight'}) : "",
@@ -895,9 +919,7 @@ if($listjobs){
 			);
 		
 	   }	
-
 	   print "\n\n";
-
 }
 
 ## Search functions
@@ -981,27 +1003,36 @@ sub formattimep {
 		$out -= int ($min * 60) if $min >0;
 		my $sec = $out;
 		my $time = "";
-
-		$time .= $days  > 0 ? $days."d "  : "";
 		
-		if($hours > 0 ){
-			$time .= $hours."h ";
-		}
+		if($clocktime) {
+		    if($days > 0) {
+		        $time = "1 day";
+			$time = sprintf("%d days",$days) if $days > 1; 
+		    } else {
+			$time = sprintf("%02d:%02d:%02d",$hours,$min,$sec);    
+		    }
+		} else {
 
-		if($hours <=0 && $days >0){
-			$time .= "0h ";
-		}
+		    $time .= $days  > 0 ? $days."d "  : "";
+		    
+		    if($hours > 0 ){
+			    $time .= $hours."h ";
+		    }
 
-		if($min > 0 ){
-			$time .= $min."m ";
-		}
+		    if($hours <=0 && $days >0){
+			    $time .= "0h ";
+		    }
 
-		if($min <= 0 && $days > 0 && $hours > 0){
-			$time .= "0m ";
-		}
-		
-		$time .= $sec   > 0 ? $sec."s"    : "0s";
-		
+		    if($min > 0 ){
+			    $time .= $min."m ";
+		    }
+
+		    if($min <= 0 && $days > 0 && $hours > 0){
+			    $time .= "0m ";
+		    }
+		    
+		    $time .= $sec   > 0 ? $sec."s"    : "0s";
+		}	
 		return $time;
 	}
 	return $out;
@@ -1037,7 +1068,7 @@ psaccview [options]
   Options:
 	--human --noheader --exit {value} --queue {value}
 	--user {value} --group {value} --jobname {value}
-	--ljobs --ltotuser --ltotgroup --ltotsum 
+	--ljobs --ltotuser --ltotgroup --ltotsum --clocktime 
 	--stotopt {string}  --sjobopt {string} --help 
 	--timespan {today,week,month,year} --logdir {value}
 	--begin {yyyymmdd} --end {yyyymmdd} --version
@@ -1112,6 +1143,11 @@ Lists a summary form all jobs per group.
 Lists a total summary of all jobs.
 
 
+=item B<--clocktime -ct>
+
+Display times in format "00:01:05" instead of "1m 5s"
+
+
 =item B<--stotopt -st> <optstring>
 
 Set which rows should be displayed in the total summary lists. Valid rows are:
@@ -1150,7 +1186,7 @@ Example: -e 20070901
 Defines witch criteria to use for sorting the job list.
 Valid values are:
 'user', 'group', 'jobid', 'jobname', 'start', 'end', 'walltime', 'qtime', 'mem',
-'vmem', 'cputime', 'queue', 'procs', 'exit'
+'vmem', 'cputime', 'queue', 'procs', 'exechost', 'nodes', 'exit'
 
 =item B<--usort> <criteria>
 
