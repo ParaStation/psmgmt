@@ -485,6 +485,7 @@ void handleAccQueueMsg(char *chead, char *ptr, PStask_ID_t logger)
     job->start_time = 0;
     job->end_time = 0;
     job->exec_hosts_size = EXEC_HOST_SIZE;
+    job->jobname = NULL;
     if (!(job->exec_hosts = malloc(EXEC_HOST_SIZE))) {
         alog("Out of memory, exiting\n");
 	exit(1);
