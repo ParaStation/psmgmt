@@ -82,6 +82,9 @@ require("$ENV{'HOME'}/.psaccviewrc") if (-r "$ENV{'HOME'}/.psaccviewrc");
 ## end of configuration
 #################################################
 
+$ENV{PATH} = "/bin";
+$ENV{ENV} = "";
+
 my $fuser, my $fgroup, my $fqueue, my $fjobname, my $fexit;
 my %total, my %acc_data, my $doptions, my $joptions, my $group;
 my $olistjobs, my $olisttotuser, my $olisttotgroup, my $olisttotsum, my $help=0;
@@ -260,12 +263,12 @@ while ( defined (my $filename = readdir(DIR))) {
 	my $show = "cat";
 	if($filename =~ /\.(gz)$/){$show = "gzip -cd"; }
 	if($filename =~ /\.(bz2)$/){$show = "bzip2 -cd"; }
-	my $basename = $filename;
+	(my $basename) = $filename  =~ m/^([A-Z0-9_.-]+)$/ig;
 	$basename =~ s/(\.(gz)$)|(\.(bz2)$)//; 
 	$lbegin = $basename if ($basename =~  /^\d{8}$/ && $basename < $lbegin);
 	if($filename eq ".." || $filename eq "." || $basename !~ /^\d{8}$/ || $basename < $tbegin || $basename > $tend){next;}	
 	#printf "$filename $basename\n";
-	open FILE,"$show " . $ps_acc_dir. "/" . $filename . " |"  or die("Can't open file $filename");
+	open FILE,"$show " . $ps_acc_dir. "/" . $basename . " |"  or die("Can't open file $basename");
 	my @lines = <FILE>;
 	close FILE;
 	foreach my $line (@lines) {
