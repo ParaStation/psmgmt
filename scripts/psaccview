@@ -21,6 +21,7 @@
 use strict;
 use Getopt::Long;
 use Pod::Usage;
+use File::Basename;
 
 #################################################
 ## start of configuration
@@ -40,6 +41,7 @@ our $jsort		= "start";	# job sort criteria
 our $usort		= "user";	# user sort criteria
 our $gsort		= "group";	# group sort criteria 
 our $clocktime		= "";		# display times in format 00:01:05 instead of 1m 5s 
+our $fulljobname	= "";		# Display the full jobname including preceding path
 
 ## Default total display options
 our $pu = "true";	# user
@@ -103,6 +105,7 @@ GetOptions(
 	   'user|u=s'     => \$fuser,
 	   'group|g=s'    => \$fgroup,
 	   'jobname|j=s'  => \$fjobname,
+	   'fulljob|fj'   => \$fulljobname,
 	   'ljobs|lj'     => \$olistjobs,
 	   'ltotuser|lu'  => \$olisttotuser,
 	   'ltotgroup|lg' => \$olisttotgroup,
@@ -313,7 +316,7 @@ while ( defined (my $filename = readdir(DIR))) {
 				if($listjobs){
 					$job_data{$jobnum}{'user'} = $user;
 					$job_data{$jobnum}{'group'} = $group;
-					$job_data{$jobnum}{'jobname'} = $jobname;
+					$job_data{$jobnum}{'jobname'} = $fulljobname ? $jobname : basename($jobname);
 					$job_data{$jobnum}{'jobid'} = $jobid[0];
 					$job_data{$jobnum}{'queue'} = $queue;
 					$job_data{$jobnum}{'cputime'} = time_to_sec($cput);
@@ -455,7 +458,7 @@ if($listtotuser){
 		
 	}	
 
-	my $diff = 3;
+	my $diff = 2;
 	my $format = "";
 	$format .= $pu ? "%-".($maxu+$diff)."s" : "%s";
 	$format .= $pp ? "%".($maxp)."s"." "x$diff : "%s";
@@ -584,7 +587,7 @@ if($listtotgroup){
 		}	
 	}
 
-	my $diff = 3;
+	my $diff = 2;
 	my $format = "";
 	$format .= $pg ? "%-".($maxg+$diff)."s" : "%s";
 	$format .= $pp ? "%".($maxp)."s"." "x$diff : "%s";
@@ -699,7 +702,7 @@ if($listtotsum){
 		}
 	}	
 			
-	my $diff = 3;
+	my $diff = 2;
 	my $format = "";
 	$format .= "%-".(7 + $diff)."s";
 	$format .= $pp ? "%".($maxp)."s"." "x$diff : "%s";
@@ -826,7 +829,7 @@ if($listjobs){
 		}	
 	}
 
-	my $diff = 3;
+	my $diff = 2;
 	my $format = "";
 	$format .= $lu ? "%-".($maxu+$diff)."s" : "%s";
 	$format .= $lg ? "%-".($maxg+$diff)."s" : "%s";
@@ -1071,9 +1074,10 @@ psaccview [options]
   Options:
 	--human --noheader --exit {value} --queue {value}
 	--user {value} --group {value} --jobname {value}
-	--ljobs --ltotuser --ltotgroup --ltotsum --clocktime 
+	--ljobs --ltotuser --ltotgroup --ltotsum  
 	--stotopt {string}  --sjobopt {string} --help 
-	--timespan {today,week,month,year} --logdir {value}
+	--timespan {today,week,month,year} 
+	--logdir {value}  -- fulljob --clocktime
 	--begin {yyyymmdd} --end {yyyymmdd} --version
 	--jsort {value} --usort {value} --gsort {value}
 
@@ -1149,6 +1153,11 @@ Lists a total summary of all jobs.
 =item B<--clocktime -ct>
 
 Display times in format "00:01:05" instead of "1m 5s"
+
+
+=item B<--fulljob -fj>
+
+Display the full jobname including preceding path
 
 
 =item B<--stotopt -st> <optstring>
