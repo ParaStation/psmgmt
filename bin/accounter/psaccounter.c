@@ -806,8 +806,8 @@ void handleSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
 
     logger = *(PStask_ID_t *) ptr;
     ptr += sizeof(PStask_ID_t);
-    numSlots = *(uint16_t *) ptr;
-    ptr += sizeof(uint16_t);
+    numSlots = *(uint32_t *) ptr;
+    ptr += sizeof(uint32_t);
 
     job = findJob(logger);
 
@@ -823,8 +823,8 @@ void handleSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
         
 	slotIP.s_addr = *(uint32_t *) ptr;
 	ptr += sizeof(uint32_t);
-	cpu = *(int16_t *) ptr;
-	ptr += sizeof(int16_t);
+	cpu = *(int32_t *) ptr;
+	ptr += sizeof(int32_t);
 
         if (job->countSlotMsg) {
             strcpy(sep, "+");

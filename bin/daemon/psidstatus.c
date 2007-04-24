@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -239,7 +239,10 @@ static void handleMasterTasks(void)
 /**
  * @brief Send status ping.
  *
- * Send a status ping 
+ * Send a status ping.
+ *
+ * For masters with protocol versions before 334 some entries might be
+ * not correctly aligned. This is fixed in later versions.
  *
  * @return No return value.
  */
@@ -254,21 +257,42 @@ static void sendRDPPing(void)
 	.buf = {'\0'} };
     char *ptr = msg.buf;
 
-    *(PSID_Jobs_t *)ptr = myJobs;
-    ptr += sizeof(PSID_Jobs_t);
-    msg.header.len += sizeof(PSID_Jobs_t);
+    if (PSIDnodes_getProtocolVersion(getMasterID()) < 334) {
+	*(PSID_Jobs_t *)ptr = myJobs;
+	ptr += sizeof(PSID_Jobs_t);
+	msg.header.len += sizeof(PSID_Jobs_t);
 
-    *(PSID_Load_t *)ptr = getLoad();
-    ptr += sizeof(PSID_Load_t);
-    msg.header.len += sizeof(PSID_Load_t);
+	*(PSID_Load_t *)ptr = getLoad();
+	ptr += sizeof(PSID_Load_t);
+	msg.header.len += sizeof(PSID_Load_t);
 
-    *(int *)ptr = totalNodes;
-    ptr += sizeof(int);
-    msg.header.len += sizeof(int);
+	*(int *)ptr = totalNodes;
+	ptr += sizeof(int);
+	msg.header.len += sizeof(int);
 
-    *(PSID_Mem_t *)ptr = getMem();
-    ptr += sizeof(PSID_Mem_t);
-    msg.header.len += sizeof(PSID_Mem_t);
+	*(PSID_Mem_t *)ptr = getMem();
+	ptr += sizeof(PSID_Mem_t);
+	msg.header.len += sizeof(PSID_Mem_t);
+    } else {
+	*(PSID_Jobs_t *)ptr = myJobs;
+	ptr += sizeof(PSID_Jobs_t);
+	msg.header.len += sizeof(PSID_Jobs_t);
+	/* Now we are on a 64-bit boundary */
+
+	*(PSID_Load_t *)ptr = getLoad();
+	ptr += sizeof(PSID_Load_t);
+	msg.header.len += sizeof(PSID_Load_t);
+	/* Load_t contains doubles -> still on 64-bit */
+
+	*(PSID_Mem_t *)ptr = getMem();
+	ptr += sizeof(PSID_Mem_t);
+	msg.header.len += sizeof(PSID_Mem_t);
+	/* Load_t contains uint64_t -> still on 64-bit */
+
+	*(int *)ptr = totalNodes;
+	ptr += sizeof(int);
+	msg.header.len += sizeof(int);
+    }
 
     sendMsg(&msg);
     if (getMasterID() == PSC_getMyID()) handleMasterTasks();
@@ -771,22 +795,36 @@ void msg_LOAD(DDBufferMsg_t *msg)
     } else {
 	int clientNodes;
 
-	clientStat[client].jobs = *(PSID_Jobs_t *)ptr;
-	ptr += sizeof(PSID_Jobs_t);
+	if (PSIDnodes_getProtocolVersion(getMasterID()) < 334) {
+	    clientStat[client].jobs = *(PSID_Jobs_t *)ptr;
+	    ptr += sizeof(PSID_Jobs_t);
 
-	clientStat[client].load = *(PSID_Load_t *)ptr;
-	ptr += sizeof(PSID_Load_t);
+	    clientStat[client].load = *(PSID_Load_t *)ptr;
+	    ptr += sizeof(PSID_Load_t);
+
+	    clientNodes = *(int *)ptr;
+	    ptr += sizeof(int);
+
+	    if (((void *)ptr - (void *)msg) < msg->header.len) {
+		clientStat[client].mem = *(PSID_Mem_t *)ptr;
+		ptr += sizeof(PSID_Mem_t);
+	    }
+	} else {
+	    clientStat[client].jobs = *(PSID_Jobs_t *)ptr;
+	    ptr += sizeof(PSID_Jobs_t);
+
+	    clientStat[client].load = *(PSID_Load_t *)ptr;
+	    ptr += sizeof(PSID_Load_t);
+
+	    clientStat[client].mem = *(PSID_Mem_t *)ptr;
+	    ptr += sizeof(PSID_Mem_t);
+
+	    clientNodes = *(int *)ptr;
+	    ptr += sizeof(int);
+	}
 
 	gettimeofday(&clientStat[client].lastPing, NULL);
 	clientStat[client].missCounter = 0;
-
-	clientNodes = *(int *)ptr;
-	ptr += sizeof(int);
-
-	if (((void *)ptr - (void *)msg) < msg->header.len) {
-	    clientStat[client].mem = *(PSID_Mem_t *)ptr;
-	    ptr += sizeof(PSID_Mem_t);
-	}
 
 	if (clientNodes != totalNodes) {
 	    clientStat[client].wrongClients++;

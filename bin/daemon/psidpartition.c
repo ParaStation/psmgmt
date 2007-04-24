@@ -1377,7 +1377,7 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
 	ptr += sizeof(uint16_t);
 	msg->header.len += sizeof(uint16_t);
 
-	if (destPSPver < 334) {
+	if (destPSPver < 335) {
 	    PSpart_slot_t *mySlots = slots+offset;
 	    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)ptr;
 	    int n;
@@ -1799,7 +1799,7 @@ void msg_GETPARTNL(DDBufferMsg_t *inmsg)
  * chunk. The size of the chunk, i.e. the number of slots, is stored
  * as a int16_t at the beginning of the buffer.
  *
- * If the sender of @a insmg is older than PSPversion 334 the list
+ * If the sender of @a insmg is older than PSPversion 335 the list
  * contained will be a nodelist instead of a slotlist.
  *
  * The structure of the data in @a buf is identical to the one used
@@ -1819,7 +1819,7 @@ static void appendToSlotlist(DDBufferMsg_t *inmsg, PSpart_request_t *request)
     int chunk = *(int16_t *)ptr;
     ptr += sizeof(int16_t);
 
-    if (PSPver < 334) {
+    if (PSPver < 335) {
 	PSpart_slot_t *mySlots = request->slots + request->sizeGot;
 	PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)ptr;
 	int n;
@@ -2338,7 +2338,7 @@ static void sendReqList(PStask_ID_t dest, PSpart_request_t *requests,
 		    (num-offset > SLOTS_CHUNK) ? SLOTS_CHUNK : num-offset;
 		ptr = msg.buf;
 
-		if (PSPver < 334) {
+		if (PSPver < 335) {
 		    PSpart_slot_t *slots = requests->slots+offset;
 		    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)ptr;
 		    int n;

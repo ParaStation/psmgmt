@@ -957,19 +957,19 @@ static void sendAcctInfo(PStask_ID_t sender, PStask_t *task)
 	    ptr = msg.buf + sizeof(PStask_ID_t);
 	    msg.header.len += sizeof(PStask_ID_t);
 
-	    *(uint16_t *)ptr =
+	    *(uint32_t *)ptr =
 		(task->partitionSize - slot < ACCT_SLOTS_CHUNK) ?
 		task->partitionSize - slot : ACCT_SLOTS_CHUNK;
-	    ptr += sizeof(uint16_t);
-	    msg.header.len += sizeof(uint16_t);
+	    ptr += sizeof(uint32_t);
+	    msg.header.len += sizeof(uint32_t);
 	}
 
 	*(uint32_t *)ptr = PSIDnodes_getAddr(task->partition[slot].node);
-	ptr += sizeof(int32_t);
+	ptr += sizeof(uint32_t);
 	msg.header.len += sizeof(uint32_t);
-	*(int16_t *)ptr = task->partition[slot].cpu;
-	ptr += sizeof(uint16_t);
-	msg.header.len += sizeof(int16_t);
+	*(int32_t *)ptr = task->partition[slot].cpu;
+	ptr += sizeof(int32_t);
+	msg.header.len += sizeof(int32_t);
 
     }
 
