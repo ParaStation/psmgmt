@@ -939,6 +939,7 @@ void openAccLogFile(char *arg_logdir)
     char alogfile[600];
     time_t t;
     struct tm *tmp;
+    struct stat statbuf;
 
     t = time(NULL);
     tmp = localtime(&t);
@@ -999,6 +1000,17 @@ void openAccLogFile(char *arg_logdir)
 	}
 	exit(1);
     }
+    
+    /* set gid from accfile to gid from accdir */
+    if (!arg_logdir) {
+	if (!stat(DEFAULT_LOG_DIR,&statbuf)) { 
+	    if (!fchown(fileno(fp),-1,statbuf.st_gid)) {
+		alog("error changing grp on acc_file\n");
+	    }
+	} else {
+	    alog("error stat on dir %s\n",arg_logdir);
+	}
+    }
     strncpy(oldfilename, filename, sizeof(oldfilename));
 
 }
@@ -1057,15 +1069,26 @@ int main(int argc, char *argv[])
 	return 0;
     }
 
+    /* need to be root */
+    if(getuid() != 0) {
+	printf("must be started as root\n");
+	exit(1);
+    }
+
     /* Become a daemon */
     if (!arg_nodaemon) {
 	daemonize("psaccounter");
     }
 
+    /* Set umask */
+    umask(S_IRWXO | S_IWGRP);
+    
+    /* init logger */
+    alogger = logger_init("PSACC", logfile);
 
     /* init PSI */
     if (!PSI_initClient(TG_ACCOUNT)) {
-	printf("%s", "Initialization of PSI failed\n");
+	alog("%s", "Initialization of PSI failed\n");
 	exit(1);
     }
 
@@ -1077,7 +1100,6 @@ int main(int argc, char *argv[])
     if (arg_logfile && !strcmp(arg_logfile, "-")) {
 	logfile = stdout;
     }
-    alogger = logger_init("PSACC", logfile);
 
     /* init */
     btroot = 0;
