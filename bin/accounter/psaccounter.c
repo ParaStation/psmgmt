@@ -93,6 +93,7 @@ typedef struct struct_list {
     struct struct_list *next;
 }Joblist;
 
+void daemonize(const char *cmd);
 void sig_handler(int sig);
 void handleAccQueueMsg(char *chead, char *ptr, PStask_ID_t logger);
 void handleAccStartMsg(char *ptr, PStask_ID_t key);
@@ -1056,47 +1057,9 @@ int main(int argc, char *argv[])
 	return 0;
     }
 
+    /* Become a daemon */
     if (!arg_nodaemon) {
-	int fd, dummy_fd;
-
-        /* Start as daemon */
-	switch (fork()) {
-	case -1:
-	    printf("unable to fork server process");
-	    return 1;
-	    break;
-	case 0:		/* I'm the child (and running further) */
-	    break;
-	default:		/* I'm the parent and exiting */
-	    return 0;
-	    break;
-	}
-
-
-#define _PATH_TTY "/dev/tty"
-	/* First disconnect from the old controlling tty. */
-	fd = open(_PATH_TTY, O_RDWR | O_NOCTTY);
-	if (fd >= 0) {
-	    if (ioctl(fd, TIOCNOTTY, NULL)) {
-		printf("%i: ioctl(TIOCNOTTY)", errno);
-	    }
-	    close(fd);
-	}
-
-
-	/*
-	 * Disable stdin,stdout,stderr and install dummy replacement
-	 * Take care if stdout/stderr is used for logging
-	 */
-
-	dummy_fd = open("/dev/null", O_WRONLY, 0);
-	dup2(dummy_fd, STDIN_FILENO);
-	dup2(dummy_fd, STDOUT_FILENO);
-	dup2(dummy_fd, STDERR_FILENO);
-	close(dummy_fd);
-
-	/* open syslog */
-	openlog("psaccounter", LOG_PID | LOG_CONS, LOG_DAEMON);
+	daemonize("psaccounter");
     }
 
 
@@ -1126,6 +1089,76 @@ int main(int argc, char *argv[])
 
     return 0;
 }
+
+
+void daemonize(const char *cmd)
+{
+    unsigned int i;
+    int pid, fd0, fd1, fd2; 
+    struct sigaction sa;
+    struct rlimit rl;
+
+    /* Clear umask */
+    umask(0);
+
+    /* Become a session leader to lose TTY */
+    if ((pid = fork()) < 0) {
+	printf("unable to fork server process\n");
+	exit(1);
+    } else if (pid != 0) { /* parent */
+	exit(0);
+    }
+    setsid();
+
+    /* Ensure future opens won´t allocate controlling TTYs */
+    sa.sa_handler = SIG_IGN;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    if (sigaction(SIGHUP, &sa, NULL) < 0) {
+	printf("Can´t ignore SIGHUP");
+	exit(1);
+    } 
+    if ((pid = fork()) < 0) {
+	printf("unable to fork server process\n");
+	exit(1);
+    } else if (pid != 0) { /* parent */
+	exit(0);
+    }
+
+    /* Change working dir to root */
+    if (chdir("/") < 0) {
+	printf("Unable to change directory to /\n");
+	exit(1);
+    }
+
+    /* Close all open file descriptors */
+    if (getrlimit(RLIMIT_NOFILE, &rl) < 0) {
+	printf("Can´t get file limit\n");
+	exit(1);
+    }
+    if (rl.rlim_max == RLIM_INFINITY) {
+	rl.rlim_max = 1024;
+    }
+    for (i=0; i < rl.rlim_max; i++) {
+	close(i);
+    }
+
+    /* Attach file descriptors 0, 1, 2 to /dev/null */
+    fd0 = open("/dev/null", O_RDWR);
+    fd1 = dup(0);
+    fd2 = dup(0);
+
+    /* Init log file */
+    openlog(cmd, LOG_PID | LOG_CONS, LOG_DAEMON);
+    if (fd0 != 0 || fd1 != 1 || fd2 != 2) {
+	syslog(LOG_ERR, "unexpected file descriptors %d %d %d",
+		fd0, fd1, fd2);
+	exit(1);
+    }
+
+}
+
+
 
 /*
  * Local Variables:
