@@ -42,6 +42,7 @@ our $usort		= "user";	# user sort criteria
 our $gsort		= "group";	# group sort criteria 
 our $clocktime		= "";		# display times in format 00:01:05 instead of 1m 5s 
 our $fulljobname	= "";		# Display the full jobname including preceding path
+our $nospace		= "";		# Output all information for better parsing without spaces
 
 ## Default total display options
 our $pu = "true";	# user
@@ -118,6 +119,7 @@ GetOptions(
 	   'end|te=s'	  => \$end,
 	   'clocktime|ct' => \$clocktime,
 	   'logdir|l=s'   => \$ps_acc_dir,
+	   'nospace|ns'   => \$nospace,
            'version|v'    => \$version
 
 
@@ -140,19 +142,19 @@ if($olistjobs || $olisttotuser || $olisttotgroup || $olisttotsum){
 
 # check for wrong cmd line options
 my $sortlist = '^(user|group|jobid|jobname|start|end|walltime|qtime|mem|vmem|cputime|queue|procs|exechost|nodes|exit)$'; 
-die "Invalid sort option for job list (-jsort)" if $jsort && $jsort !~ /$sortlist/;
+die "Invalid sort option for job list (--jsort)" if $jsort && $jsort !~ /$sortlist/;
 
 $sortlist = '^(user|jobs|walltime|qtime|mem|vmem|cputime|procs|cpuweight)$';
-die "Invalid sort option for user list (-usort)" if $usort && $usort !~ /$sortlist/;
+die "Invalid sort option for user list (--usort)" if $usort && $usort !~ /$sortlist/;
 
 $sortlist = '^(group|jobs|walltime|qtime|mem|vmem|cputime|procs|cpuweight)$';
-die "Invalid sort option for group list (-gsort)" if $gsort && $gsort !~ /$sortlist/;
+die "Invalid sort option for group list (--gsort)" if $gsort && $gsort !~ /$sortlist/;
 
-my $timespanlist = '^(today|week|month|year)$';
-die "Invalid timespan option (-timespan)" if $timespan && $timespan !~ /$timespanlist/;
+my $timespanlist = '^(today|week|month|year|all)$';
+die "Invalid timespan option (--timespan)" if $timespan && $timespan !~ /$timespanlist/;
 
-die "Invalid begin option (-begin)" if $begin && $begin !~ /^\d{8}$/;
-die "Invalid end option (-end)" if $end && $end !~ /^\d{8}$/;
+die "Invalid begin option (--begin)" if $begin && $begin !~ /^\d{8}$/;
+die "Invalid end option (--end)" if $end && $end !~ /^\d{8}$/;
 
 
 # parse total display options
@@ -989,9 +991,13 @@ sub formattime {
 		my $H=sprintf("%02d",(localtime($NOW))[2]);
 		my $M=sprintf("%02d",(localtime($NOW))[1]);
 		my $S=sprintf("%02d",(localtime($NOW))[0]);
-
-		if($ENV{'LANG'} =~ /en_US/){ return "$Y/$m/$d $H:$M" };
-		return "$d.$m.$Y $H:$M";
+		if($nospace) {
+		    if($ENV{'LANG'} =~ /en_US/){ return "$Y/$m/".$d."_$H:$M" };
+		    return "$d.$m.".$Y."_$H:$M";
+		} else {
+		    if($ENV{'LANG'} =~ /en_US/){ return "$Y/$m/$d $H:$M" };
+		    return "$d.$m.$Y $H:$M";
+		}
 	}
 	return $NOW;
 }
@@ -1012,8 +1018,8 @@ sub formattimep {
 		
 		if($clocktime) {
 		    if($days > 0) {
-		        $time = "1 day";
-			$time = sprintf("%d days",$days) if $days > 1; 
+			    $time = "1 day";
+			    $time = sprintf("%d days",$days) if $days > 1; 
 		    } else {
 			$time = sprintf("%02d:%02d:%02d",$hours,$min,$sec);    
 		    }
@@ -1039,6 +1045,7 @@ sub formattimep {
 		    
 		    $time .= $sec   > 0 ? $sec."s"    : "0s";
 		}	
+		$time =~s/[ ]/_/g if ($nospace); 
 		return $time;
 	}
 	return $out;
@@ -1076,7 +1083,7 @@ psaccview [options]
 	--user {value} --group {value} --jobname {value}
 	--ljobs --ltotuser --ltotgroup --ltotsum  
 	--stotopt {string}  --sjobopt {string} --help 
-	--timespan {today,week,month,year} 
+	--timespan {today,week,month,year} --nospace 
 	--logdir {value}  -- fulljob --clocktime
 	--begin {yyyymmdd} --end {yyyymmdd} --version
 	--jsort {value} --usort {value} --gsort {value}
@@ -1180,6 +1187,10 @@ Example: -sj "user,group,jobname,procs,exit"
 =item B<--timespan -t> <span>
 
 Selects a period of time. Valid values are 'today', 'week', 'month', 'year', 'all'.
+
+=item B<--nospace -ns>
+
+Output all information for better parsing without spaces
 
 =item B<--begin -b> <yyyymmdd>
 
