@@ -8,6 +8,7 @@
 #
 # @author
 #         Thomas Moschny <moschny@ipd.uni-karlsruhe.de>
+#         Norbert Eicker <n.eicker@fz-juelich.de>
 #
 # $Id$
 #
@@ -20,10 +21,15 @@ if ( -d "${_psdir}/bin" ) then
 
     if ( -d "${_psdir}/man" ) then
 	if ( ${?MANPATH} ) then
+	    setenv MANPATH "`(test -x /usr/bin/manpath && manpath)`"
+	endif
+	set _manpath=${MANPATH}
+	if ( ${%_manpath} ) then
 	    setenv MANPATH "${MANPATH}:${_psdir}/man"
 	else
 	    setenv MANPATH "${_psdir}/man"
         endif
+	unset _manpath
     endif
 endif
 
