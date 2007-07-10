@@ -1214,19 +1214,15 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 		if (options[i].option == PSP_OP_LISTEND) {
 		    goto next_node;
 		}
-		if (options[i].option != type) {
-		    printf("wrong answer");
-		    goto next_node;
-		}
 
-		if (i) printf(", ");
-
-		switch (type) {
+		switch (options[i].option) {
 		case PSP_OP_ACCT:
+		    if (i) printf(", ");
 		    printf("%s", PSC_printTID(options[i].value));
 		    break;
 		case PSP_OP_UID:
 		case PSP_OP_ADMUID:
+		    if (i) printf(", ");
 		    if (options[i].value==-1)
 			printf("ANY");
 		    else {
@@ -1240,6 +1236,7 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 		    break;
 		case PSP_OP_GID:
 		case PSP_OP_ADMGID:
+		    if (i) printf(", ");
 		    if (options[i].value==-1)
 			printf(" ANY");
 		    else {
@@ -1251,11 +1248,33 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 			}
 		    }
 		    break;
+		case PSP_OP_RL_AS:
+		case PSP_OP_RL_CORE:
+		case PSP_OP_RL_CPU:
+		case PSP_OP_RL_DATA:
+		case PSP_OP_RL_FSIZE:
+		case PSP_OP_RL_LOCKS:
+		case PSP_OP_RL_MEMLOCK:
+		case PSP_OP_RL_MSGQUEUE:
+		case PSP_OP_RL_NOFILE:
+		case PSP_OP_RL_NPROC:
+		case PSP_OP_RL_RSS:
+		case PSP_OP_RL_SIGPENDING:
+		case PSP_OP_RL_STACK:
+		    if (options[i].value == -1) {
+			printf("unlimited");
+		    } else {
+			printf("%x", options[i].value);
+		    }
+		    if (!i) printf(" / ");
+		    break;
 		case PSP_OP_UNKNOWN:
 		    printf("unknown option");
+		    goto next_node;
 		    break;
 		default:
-		    printf("wrong type");
+		    printf("unknown type %x", options[i].option);
+		    goto next_node;
 		}
 	    }
 	    if (options[i].option == PSP_OP_LISTEND

@@ -12,8 +12,10 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
+#include <unistd.h>
 #include <errno.h>
 #include <sys/time.h>
+#include <sys/resource.h>
 
 #include "rdp.h"
 #include "mcast.h"
@@ -124,6 +126,92 @@ static PSIDnodes_guid_t getGUID(PSIDnodes_gu_t type, PSP_Optval_t val)
 
     return guid;
 }
+
+static void send_rlimit_OPTIONS(PStask_ID_t dest, PSP_Option_t option)
+{
+    DDOptionMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_SETOPTION,
+	    .sender = PSC_getMyTID(),
+	    .dest = dest,
+	    .len = sizeof(msg) },
+	.count = 0,
+	.opt = {{ .option = 0, .value = 0 }} };
+    struct rlimit limit;
+    int unknown=0;
+
+    switch (option) {
+#ifdef RLIMIT_AS
+    case PSP_OP_RL_AS:
+	getrlimit(RLIMIT_AS, &limit);
+	break;
+#endif
+    case PSP_OP_RL_CORE:
+	getrlimit(RLIMIT_CORE, &limit);
+	break;
+    case PSP_OP_RL_CPU:
+	getrlimit(RLIMIT_CPU, &limit);
+	break;
+    case PSP_OP_RL_DATA:
+	getrlimit(RLIMIT_DATA, &limit);
+	break;
+    case PSP_OP_RL_FSIZE:
+	getrlimit(RLIMIT_FSIZE, &limit);
+	break;
+    case PSP_OP_RL_LOCKS:
+	getrlimit(RLIMIT_LOCKS, &limit);
+	break;
+    case PSP_OP_RL_MEMLOCK:
+	getrlimit(RLIMIT_MEMLOCK, &limit);
+	break;
+#ifdef RLIMIT_MSGQUEUE
+    case PSP_OP_RL_MSGQUEUE:
+	getrlimit(RLIMIT_MSGQUEUE, &limit);
+	break;
+#endif
+    case PSP_OP_RL_NOFILE:
+	getrlimit(RLIMIT_NOFILE, &limit);
+	break;
+    case PSP_OP_RL_NPROC:
+	getrlimit(RLIMIT_NPROC, &limit);
+	break;
+    case PSP_OP_RL_RSS:
+	getrlimit(RLIMIT_RSS, &limit);
+	break;
+#ifdef RLIMIT_SIGPENDING
+    case PSP_OP_RL_SIGPENDING:
+	getrlimit(RLIMIT_SIGPENDING, &limit);
+	break;
+#endif
+    case PSP_OP_RL_STACK:
+	getrlimit(RLIMIT_STACK, &limit);
+ 	break;
+    default:
+	unknown=1;
+    }
+
+    if (unknown) {
+	msg.opt[(int) msg.count].option = PSP_OP_UNKNOWN;
+	msg.opt[(int) msg.count].value = -1;
+	msg.count++;
+    } else {	
+	msg.opt[(int) msg.count].option = option;
+	msg.opt[(int) msg.count].value = limit.rlim_cur;
+	msg.count++;
+
+	msg.opt[(int) msg.count].option = option;
+	msg.opt[(int) msg.count].value = limit.rlim_max;
+	msg.count++;
+    }
+
+    msg.opt[(int) msg.count].option = PSP_OP_LISTEND;
+    msg.opt[(int) msg.count].value = 0;
+    msg.count++;
+    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+    }
+}
+
 
 void msg_SETOPTION(DDOptionMsg_t *msg)
 {
@@ -639,6 +727,23 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_ACCT:
 		send_acct_OPTIONS(msg->header.sender, 1);
+		/* Do not send option again */
+		out--;
+		break;
+	    case PSP_OP_RL_AS:
+	    case PSP_OP_RL_CORE:
+	    case PSP_OP_RL_CPU:
+	    case PSP_OP_RL_DATA:
+	    case PSP_OP_RL_FSIZE:
+	    case PSP_OP_RL_LOCKS:
+	    case PSP_OP_RL_MEMLOCK:
+	    case PSP_OP_RL_MSGQUEUE:
+	    case PSP_OP_RL_NOFILE:
+	    case PSP_OP_RL_NPROC:
+	    case PSP_OP_RL_RSS:
+	    case PSP_OP_RL_SIGPENDING:
+	    case PSP_OP_RL_STACK:
+		send_rlimit_OPTIONS(msg->header.sender, msg->opt[in].option);
 		/* Do not send option again */
 		out--;
 		break;

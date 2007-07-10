@@ -133,6 +133,22 @@ typedef enum {
     PSP_OP_ADD_ADMGID,            /**< add a new admin group */
     PSP_OP_REM_ADMGID,            /**< remove an admin group */
     PSP_OP_ADMGID,                /**< list of admin groups */
+
+    PSP_OP_RL_AS = 0x0068,        /**< request RLIMIT_AS (address-space) */
+    PSP_OP_RL_CORE,               /**< request RLIMIT_CORE (max core-size) */
+    PSP_OP_RL_CPU,                /**< request RLIMIT_CPU (cpu-time limit) */
+    PSP_OP_RL_DATA,               /**< request RLIMIT_DATA (max data-segm) */
+    PSP_OP_RL_FSIZE,              /**< request RLIMIT_FSIZE (max file-size) */
+    PSP_OP_RL_LOCKS,              /**< request RLIMIT_LOCKS (# of filelocks) */
+    PSP_OP_RL_MEMLOCK,            /**< request RLIMIT_MEMLOCKS (max vm-size) */
+    PSP_OP_RL_MSGQUEUE,           /**< request RLIMIT_MSGQUEUE (max bytes in
+				     POSIX message queue) */
+    PSP_OP_RL_NOFILE,             /**< request RLIMIT_NOFILE (# open files) */
+    PSP_OP_RL_NPROC,              /**< request RLIMIT_NPROC (# user procs) */
+    PSP_OP_RL_RSS,                /**< request RLIMIT_RSS (???) */
+    PSP_OP_RL_SIGPENDING,         /**< request RLIMIT_SIGPENDING (max pending
+				     signals) */
+    PSP_OP_RL_STACK,              /**< request RLIMIT_STACK (max stack-size) */
 } PSP_Option_t;
 
 /** Messages used for information retrieval */

@@ -352,7 +352,9 @@ static info_t showInfo = {
 /* 	" | {smallpacketsize|sps} | {resendtimeout|rto} | hnpend | ackpend" */
 	" | {freeonsuspend|fos} | {handleoldbins|hob} | starter | runjobs"
 	" | overbook | exclusive | nodessort | adminuser | admingroup"
-	" | accounters}"
+	" | accounters | rl_{addressspace|as} | rl_core | rl_cpu | rl_data"
+	" | rl_fsize | rl_locks | rl_memlock | rl_msgqueue | rl_nofile"
+	" | rl_nproc | rl_rss | rl_sigpending | rl_stack }"
 	" <nodes>"
     }},
     .nodes = 1,
@@ -416,6 +418,32 @@ static info_t showInfo = {
 	{ .tag = "show accounters",
 	  .descr = "Show all accounter tasks, i.e. tasks collecting accounting"
 	  " messages." },
+	{ .tag = "show rl_{addressspace|as}",
+	  .descr = "Show RLIMIT_AS on this node." },
+	{ .tag = "show rl_core",
+	  .descr = "Show RLIMIT_CORE on this node." },
+	{ .tag = "show rl_cpu",
+	  .descr = "Show RLIMIT_CPU on this node." },
+	{ .tag = "show rl_data",
+	  .descr = "Show RLIMIT_DATA on this node." },
+	{ .tag = "show rl_fsize",
+	  .descr = "Show RLIMIT_FSIZE on this node." },
+	{ .tag = "show rl_locks",
+	  .descr = "Show RLIMIT_LOCKS on this node." },
+	{ .tag = "show rl_memlock",
+	  .descr = "Show RLIMIT_MEMLOCK on this node." },
+	{ .tag = "show rl_msgqueue",
+	  .descr = "Show RLIMIT_MSGQUEUE on this node." },
+	{ .tag = "show rl_nofile",
+	  .descr = "Show RLIMIT_NOFILE on this node." },
+	{ .tag = "show rl_nproc",
+	  .descr = "Show RLIMIT_NPROC on this node." },
+	{ .tag = "show rl_rss",
+	  .descr = "Show RLIMIT_RSS on this node." },
+	{ .tag = "show rl_sigpending",
+	  .descr = "Show RLIMIT_SIGPENDING on this node." },
+	{ .tag = "show rl_stack",
+	  .descr = "Show RLIMIT_STACK on this node." },
 	{ NULL, NULL }
     },
     .comment = NULL

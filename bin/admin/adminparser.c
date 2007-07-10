@@ -759,6 +759,84 @@ static int setShowAccounter(char *token)
     return 0;
 }
 
+static int setShowRL_AS(char *token)
+{
+    setShowOpt = PSP_OP_RL_AS;
+    return 0;
+}
+
+static int setShowRL_Core(char *token)
+{
+    setShowOpt = PSP_OP_RL_CORE;
+    return 0;
+}
+
+static int setShowRL_CPU(char *token)
+{
+    setShowOpt = PSP_OP_RL_CPU;
+    return 0;
+}
+
+static int setShowRL_Data(char *token)
+{
+    setShowOpt = PSP_OP_RL_DATA;
+    return 0;
+}
+
+static int setShowRL_FSize(char *token)
+{
+    setShowOpt = PSP_OP_RL_FSIZE;
+    return 0;
+}
+
+static int setShowRL_Locks(char *token)
+{
+    setShowOpt = PSP_OP_RL_LOCKS;
+    return 0;
+}
+
+static int setShowRL_MemLock(char *token)
+{
+    setShowOpt = PSP_OP_RL_MEMLOCK;
+    return 0;
+}
+
+static int setShowRL_MsgQueue(char *token)
+{
+    setShowOpt = PSP_OP_RL_MSGQUEUE;
+    return 0;
+}
+
+static int setShowRL_NoFile(char *token)
+{
+    setShowOpt = PSP_OP_RL_NOFILE;
+    return 0;
+}
+
+static int setShowRL_NProc(char *token)
+{
+    setShowOpt = PSP_OP_RL_NPROC;
+    return 0;
+}
+
+static int setShowRL_RSS(char *token)
+{
+    setShowOpt = PSP_OP_RL_RSS;
+    return 0;
+}
+
+static int setShowRL_SigPending(char *token)
+{
+    setShowOpt = PSP_OP_RL_SIGPENDING;
+    return 0;
+}
+
+static int setShowRL_Stack(char *token)
+{
+    setShowOpt = PSP_OP_RL_STACK;
+    return 0;
+}
+
 static int setShowError(char *token)
 {
     return -1;
@@ -793,6 +871,20 @@ static keylist_t setShowList[] = {
     {"runjobs", setShowRunJobs},
     {"starter", setShowStarter},
     {"accounters", setShowAccounter},
+    {"rl_as", setShowRL_AS},
+    {"rl_addressspace", setShowRL_AS},
+    {"rl_core", setShowRL_Core},
+    {"rl_cpu", setShowRL_CPU},
+    {"rl_data", setShowRL_Data},
+    {"rl_fsize", setShowRL_FSize},
+    {"rl_locks", setShowRL_Locks},
+    {"rl_memlock", setShowRL_MemLock},
+    {"rl_msgqueue", setShowRL_MsgQueue},
+    {"rl_nofile", setShowRL_NoFile},
+    {"rl_nproc", setShowRL_NProc},
+    {"rl_rss", setShowRL_RSS},
+    {"rl_sigpending", setShowRL_SigPending},
+    {"rl_stack", setShowRL_Stack},
     {NULL, setShowError}
 };
 static parser_t setShowParser = {" \t\n", setShowList};
@@ -1018,6 +1110,19 @@ static int showCommand(char *token)
     case PSP_OP_GID:
     case PSP_OP_ADMUID:
     case PSP_OP_ADMGID:
+    case PSP_OP_RL_AS:
+    case PSP_OP_RL_CORE:
+    case PSP_OP_RL_CPU:
+    case PSP_OP_RL_DATA:
+    case PSP_OP_RL_FSIZE:
+    case PSP_OP_RL_LOCKS:
+    case PSP_OP_RL_MEMLOCK:
+    case PSP_OP_RL_MSGQUEUE:
+    case PSP_OP_RL_NOFILE:
+    case PSP_OP_RL_NPROC:
+    case PSP_OP_RL_RSS:
+    case PSP_OP_RL_SIGPENDING:
+    case PSP_OP_RL_STACK:
 	PSIADM_ShowParamList(setShowOpt, nl);
 	break;
     default:
