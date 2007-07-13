@@ -1228,6 +1228,56 @@ static int getExcl(char *token)
     return 0;
 }
 
+static int default_pinProcs = 1;
+
+static int getPinProcs(char *token)
+{
+    int pinProcs, ret;
+
+    ret = parser_getBool(parser_getString(), &pinProcs, "pinProcs");
+    if (ret) return ret;
+
+    if (currentID == DEFAULT_ID) {
+        default_pinProcs = pinProcs;
+	parser_comment(PARSER_LOG_RES, "setting default 'PinProcs' to '%s'\n",
+		       pinProcs ? "TRUE" : "FALSE");
+    } else {
+	if (PSIDnodes_setPinProcs(currentID, pinProcs)) {
+	    parser_comment(-1, "PSIDnodes_setPinProcs(%d, %d) failed\n",
+			   currentID, pinProcs);
+	    return -1;
+	}
+        parser_commentCont(PARSER_LOG_NODE, " processes are%s pinned",
+			   pinProcs ? "":" not");
+    }
+    return 0;
+}
+
+static int default_bindMem = 1;
+
+static int getBindMem(char *token)
+{
+    int bindMem, ret;
+
+    ret = parser_getBool(parser_getString(), &bindMem, "bindMem");
+    if (ret) return ret;
+
+    if (currentID == DEFAULT_ID) {
+        default_bindMem = bindMem;
+	parser_comment(PARSER_LOG_RES, "setting default 'BindMem' to '%s'\n",
+		       bindMem ? "TRUE" : "FALSE");
+    } else {
+	if (PSIDnodes_setBindMem(currentID, bindMem)) {
+	    parser_comment(-1, "PSIDnodes_setBindMem(%d, %d) failed\n",
+			   currentID, bindMem);
+	    return -1;
+	}
+        parser_commentCont(PARSER_LOG_NODE, " memory is%s bound",
+			   bindMem ? "":" not");
+    }
+    return 0;
+}
+
 /*----------------------------------------------------------------------*/
 /**
  * @brief Insert a node.
@@ -1316,6 +1366,18 @@ static int newHost(in_addr_t addr, int id)
 	return -1;
     }
 
+    if (PSIDnodes_setPinProcs(id, default_pinProcs)) {
+	parser_comment(-1, "PSIDnodes_setPinProcs(%d, %d) failed\n",
+		       id, default_pinProcs);
+	return -1;
+    }
+
+    if (PSIDnodes_setBindMem(id, default_bindMem)) {
+	parser_comment(-1, "PSIDnodes_setBindMem(%d, %d) failed\n",
+		       id, default_bindMem);
+	return -1;
+    }
+
     if (pushDefaults(id, PSIDNODES_USER, &defaultUID)) {
 	parser_comment(-1, "pushDefaults(%d, PSIDNODES_USER, %p) failed",
 		       id, &defaultUID);
@@ -1368,6 +1430,8 @@ static keylist_t nodeline_list[] = {
     {"processes", getProcs},
     {"overbook", getOB},
     {"exclusive", getExcl},
+    {"pinprocs", getPinProcs},
+    {"bindmem", getBindMem},
     {NULL, parser_error}
 };
 
@@ -1810,6 +1874,8 @@ static keylist_t config_list[] = {
     {"processes", getProcs},
     {"overbook", getOB},
     {"exclusive", getExcl},
+    {"pinprocs", getPinProcs},
+    {"bindmem", getBindMem},
     {"nodes", getNodes},
     {"licenseserver", getLicServer},
     {"licserver", getLicServer},

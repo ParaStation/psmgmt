@@ -239,7 +239,8 @@ static info_t setInfo = {
 /* 	" | {smallpacketsize|sps} <size> | hnpend <val> | ackpend <val>" */
 	" | {freeonsuspend|fos} <bool> | {handleoldbins|hob} <bool>"
 	" | starter <bool> | runjobs <bool> | overbook {<bool>|auto}"
-	" | exclusive <bool> | nodessort <mode> | adminuser [+|-]{<user>|any}"
+	" | exclusive <bool> | pinprocs <bool> | bindmem <bool> "
+	" | nodessort <mode> | adminuser [+|-]{<user>|any}"
 	" | admingroup [+|-]{<group>|any}} <nodes>"
     }},
     .nodes = 1,
@@ -318,6 +319,14 @@ static info_t setInfo = {
 	  .descr = "Set flag marking if this nodes can be requested by users"
 	  " exclusively to <bool>. Relevant values are 'false', 'true',"
 	  " 'no', 'yes', 0 or different from 0." },
+	{ .tag = "set pinprocs <bool>",
+	  .descr = "Set flag marking if this nodes will use process-pinning"
+	  " to bind processes to cores. Relevant values are 'false', 'true',"
+	  " 'no', 'yes', 0 or different from 0." },
+	{ .tag = "set bindmem <bool>",
+	  .descr = "Set flag marking if this nodes will use memory-binding"
+	  " as NUMA policy. Relevant values are 'false', 'true',"
+	  " 'no', 'yes', 0 or different from 0." },
 	{ .tag = "set nodessort <mode>",
 	  .descr = "Define the default sorting strategy for nodes when"
 	  " attaching them to a partition. Valid values for <mode> are"
@@ -351,10 +360,10 @@ static info_t showInfo = {
 	" | rdppktloss | rdpmaxretrans | mcastdebug | master"
 /* 	" | {smallpacketsize|sps} | {resendtimeout|rto} | hnpend | ackpend" */
 	" | {freeonsuspend|fos} | {handleoldbins|hob} | starter | runjobs"
-	" | overbook | exclusive | nodessort | adminuser | admingroup"
-	" | accounters | rl_{addressspace|as} | rl_core | rl_cpu | rl_data"
-	" | rl_fsize | rl_locks | rl_memlock | rl_msgqueue | rl_nofile"
-	" | rl_nproc | rl_rss | rl_sigpending | rl_stack }"
+	" | overbook | exclusive | pinprocs | bindmem | nodessort | adminuser"
+	" | admingroup | accounters | rl_{addressspace|as} | rl_core | rl_cpu"
+	" | rl_data | rl_fsize | rl_locks | rl_memlock | rl_msgqueue"
+	" | rl_nofile | rl_nproc | rl_rss | rl_sigpending | rl_stack }"
 	" <nodes>"
     }},
     .nodes = 1,
@@ -406,6 +415,11 @@ static info_t showInfo = {
 	{ .tag = "show exclusive",
 	  .descr = "Show flag marking if this nodes can be requested by users"
 	  " exclusively." },
+	{ .tag = "show pinproc",
+	  .descr = "Show flag marking if this nodes uses process pinning." },
+	{ .tag = "show bindmem",
+	  .descr = "Show flag marking if this nodes usue binding as NUMA"
+	  " policy." },
 	{ .tag = "show nodessort",
 	  .descr = "Show the default sorting strategy used when attaching"
 	  " nodes to partitions." },

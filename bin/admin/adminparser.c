@@ -753,6 +753,18 @@ static int setShowStarter(char *token)
     return 0;
 }
 
+static int setShowPinProcs(char *token)
+{
+    setShowOpt = PSP_OP_PINPROCS;
+    return 0;
+}
+
+static int setShowBindMem(char *token)
+{
+    setShowOpt = PSP_OP_BINDMEM;
+    return 0;
+}
+
 static int setShowAccounter(char *token)
 {
     setShowOpt = PSP_OP_ACCT;
@@ -870,6 +882,8 @@ static keylist_t setShowList[] = {
     {"exclusive", setShowExclusive},
     {"runjobs", setShowRunJobs},
     {"starter", setShowStarter},
+    {"pinprocs", setShowPinProcs},
+    {"bindmem", setShowBindMem},
     {"accounters", setShowAccounter},
     {"rl_as", setShowRL_AS},
     {"rl_addressspace", setShowRL_AS},
@@ -1031,6 +1045,8 @@ static int setCommand(char *token)
     case PSP_OP_EXCLUSIVE:
     case PSP_OP_RUNJOBS:
     case PSP_OP_STARTER:
+    case PSP_OP_PINPROCS:
+    case PSP_OP_BINDMEM:
     {
 	int tmp, ret = parser_getBool(value, &tmp, NULL);
 	if (ret==-1) {
@@ -1103,6 +1119,8 @@ static int showCommand(char *token)
     case PSP_OP_EXCLUSIVE:
     case PSP_OP_STARTER:
     case PSP_OP_RUNJOBS:
+    case PSP_OP_PINPROCS:
+    case PSP_OP_BINDMEM:
 	PSIADM_ShowParam(setShowOpt, nl);
 	break;
     case PSP_OP_ACCT:

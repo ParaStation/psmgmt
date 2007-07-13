@@ -112,6 +112,9 @@ typedef enum {
     PSP_OP_ADMINGID,              /**< group allowed starting admin
 				     jobs, i.e. unaccounted jobs @deprecated */
 
+    PSP_OP_PINPROCS = 0x0048,     /**< Process-pinning is used on this node */
+    PSP_OP_BINDMEM,               /**< Memory-binding is used on this node */
+
     PSP_OP_SET_UID = 0x0050,      /**< set an exclusive user
 				     (obsoletes PSP_OP_UIDLIMIT) */
     PSP_OP_ADD_UID,               /**< add a new exclusive user */

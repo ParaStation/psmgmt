@@ -532,6 +532,58 @@ int PSIDnodes_setExclusive(PSnodes_ID_t id, int exclusive);
  */
 int PSIDnodes_exclusive(PSnodes_ID_t id);
 
+/**
+ * @brief Set the process-pinning flag of a node.
+ *
+ * Set the process-pinning flag of the node with ParaStation ID @a id to @a
+ * pinProcs.
+ *
+ * @param id ParaStation ID of the node to be modified.
+ *
+ * @param pinProcs The process-pinning flag to be set to this node.
+ *
+ * @return On success, 0 is returned or -1, if an error occured.
+ */
+int PSIDnodes_setPinProcs(PSnodes_ID_t id, int pinProcs);
+
+/**
+ * @brief Get the process-pinning flag of a node.
+ *
+ * Get the process-pinning flag of the node with ParaStation ID @a id.
+ *
+ * @param id ParaStation ID of the node to look up.
+ *
+ * @return If the node was found, the process-pinning flag is returned. Or
+ * -1, if an error occured.
+ */
+int PSIDnodes_pinProcs(PSnodes_ID_t id);
+
+/**
+ * @brief Set the memory-binding flag of a node.
+ *
+ * Set the memory-binding flag of the node with ParaStation ID @a id to @a
+ * bindMem.
+ *
+ * @param id ParaStation ID of the node to be modified.
+ *
+ * @param bindMem The memory-binding flag to be set to this node.
+ *
+ * @return On success, 0 is returned or -1, if an error occured.
+ */
+int PSIDnodes_setBindMem(PSnodes_ID_t id, int bindMem);
+
+/**
+ * @brief Get the memory-binding flag of a node.
+ *
+ * Get the memory-binding flag of the node with ParaStation ID @a id.
+ *
+ * @param id ParaStation ID of the node to look up.
+ *
+ * @return If the node was found, the memory-binding flag is returned. Or
+ * -1, if an error occured.
+ */
+int PSIDnodes_bindMem(PSnodes_ID_t id);
+
 #ifdef __cplusplus
 }/* extern "C" */
 #endif

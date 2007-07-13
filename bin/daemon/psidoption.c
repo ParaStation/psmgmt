@@ -67,6 +67,12 @@ void send_OPTIONS(PSnodes_ID_t destnode)
     msg.opt[(int) msg.count].option = PSP_OP_RUNJOBS;
     msg.opt[(int) msg.count].value = PSIDnodes_runJobs(PSC_getMyID());
     msg.count++;
+    msg.opt[(int) msg.count].option = PSP_OP_PINPROCS;
+    msg.opt[(int) msg.count].value = PSIDnodes_pinProcs(PSC_getMyID());
+    msg.count++;
+    msg.opt[(int) msg.count].option = PSP_OP_BINDMEM;
+    msg.opt[(int) msg.count].value = PSIDnodes_bindMem(PSC_getMyID());
+    msg.count++;
 
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
@@ -524,6 +530,48 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 					 msg->opt[i].value);
 		}
 		break;
+	    case PSP_OP_PINPROCS:
+		if (PSC_getPID(msg->header.sender)) {
+		    DDOptionMsg_t info = {
+			.header = {
+			    .type = PSP_CD_SETOPTION,
+			    .sender = PSC_getMyTID(),
+			    .dest = 0,
+			    .len = sizeof(info) },
+			.count = 1,
+			.opt = {{ .option = msg->opt[i].option,
+				  .value = msg->opt[i].value }} };
+			    
+		    PSIDnodes_setPinProcs(PSC_getMyID(), msg->opt[i].value);
+
+		    /* Info all nodes about my PINPROCS */
+		    broadcastMsg(&info);
+		} else {
+		    PSIDnodes_setPinProcs(PSC_getID(msg->header.sender),
+					  msg->opt[i].value);
+		}
+		break;
+	    case PSP_OP_BINDMEM:
+		if (PSC_getPID(msg->header.sender)) {
+		    DDOptionMsg_t info = {
+			.header = {
+			    .type = PSP_CD_SETOPTION,
+			    .sender = PSC_getMyTID(),
+			    .dest = 0,
+			    .len = sizeof(info) },
+			.count = 1,
+			.opt = {{ .option = msg->opt[i].option,
+				  .value = msg->opt[i].value }} };
+			    
+		    PSIDnodes_setBindMem(PSC_getMyID(), msg->opt[i].value);
+
+		    /* Info all nodes about my BINDMEM */
+		    broadcastMsg(&info);
+		} else {
+		    PSIDnodes_setBindMem(PSC_getID(msg->header.sender),
+					 msg->opt[i].value);
+		}
+		break;
 	    case PSP_OP_HWSTATUS:
 		PSIDnodes_setHWStatus(PSC_getID(msg->header.sender),
 				      msg->opt[i].value);
@@ -700,6 +748,12 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_RUNJOBS:
 		msg->opt[out].value = PSIDnodes_runJobs(PSC_getMyID());
+		break;
+	    case PSP_OP_PINPROCS:
+		msg->opt[out].value = PSIDnodes_pinProcs(PSC_getMyID());
+		break;
+	    case PSP_OP_BINDMEM:
+		msg->opt[out].value = PSIDnodes_bindMem(PSC_getMyID());
 		break;
 	    case PSP_OP_RDPDEBUG:
 		msg->opt[out].value = getDebugMaskRDP();

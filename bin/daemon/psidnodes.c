@@ -55,6 +55,8 @@ typedef struct {
     char isStarter;        /**< Flag to allow to start jobs from that node */
     char overbooking;      /**< Flag to allow overbooking that node */
     char exclusive;        /**< Flag to assign this node exclusively */
+    char pinProcs;         /**< Flag to mark that node to pin processes */
+    char bindMem;          /**< Flag to mark that node to bind memory */
     list_t uid_list;       /**< Users this node is reserved to */
     list_t gid_list;       /**< Groups this node is reserved to */
     list_t admuid_list;    /**< AdminUser on this node */
@@ -367,6 +369,44 @@ int PSIDnodes_exclusive(PSnodes_ID_t id)
 {
     if (ID_ok(id)) {
 	return nodes[id].exclusive;
+    } else {
+	return -1;
+    }
+}
+
+int PSIDnodes_setPinProcs(PSnodes_ID_t id, int pinProcs)
+{
+    if (ID_ok(id)) {
+	nodes[id].pinProcs = pinProcs;
+	return 0;
+    } else {
+	return -1;
+    }
+}
+
+int PSIDnodes_pinProcs(PSnodes_ID_t id)
+{
+    if (ID_ok(id)) {
+	return nodes[id].pinProcs;
+    } else {
+	return -1;
+    }
+}
+
+int PSIDnodes_setBindMem(PSnodes_ID_t id, int bindMem)
+{
+    if (ID_ok(id)) {
+	nodes[id].bindMem = bindMem;
+	return 0;
+    } else {
+	return -1;
+    }
+}
+
+int PSIDnodes_bindMem(PSnodes_ID_t id)
+{
+    if (ID_ok(id)) {
+	return nodes[id].bindMem;
     } else {
 	return -1;
     }
