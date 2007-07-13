@@ -311,6 +311,13 @@ static void execClient(PStask_t *task)
 	}
     }
 
+    /* @todo Don't set environment but do real pinning */
+    {
+	char cpu[20];
+	snprintf(cpu, sizeof(cpu), "%d", task->cpu);
+	setenv("PSID_CPU_PINNING", cpu, 1);
+    }
+
     if (!task->argv[0]) {
 	fprintf(stderr, "No argv[0] given!\n");
 	exit(0);
@@ -1216,108 +1223,162 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
  */
 static PStask_t *spawnTasks = NULL;
 
-void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
+void msg_SPAWNREQ(DDTypedBufferMsg_t *inmsg)
 {
-    PStask_t *task;
+    PStask_t *task, *ptask = NULL;
     DDErrorMsg_t answer;
     size_t usedBytes;
+    int32_t rank = -1;
 
     char tasktxt[128];
 
     PSID_log(PSID_LOG_SPAWN, "%s: from %s msglen %d\n", __func__,
-	     PSC_printTID(msg->header.sender), msg->header.len);
+	     PSC_printTID(inmsg->header.sender), inmsg->header.len);
 
-    answer.header.dest = msg->header.sender;
+    answer.header.dest = inmsg->header.sender;
     answer.header.sender = PSC_getMyTID();
     answer.header.len = sizeof(answer);
     answer.error = 0;
 
     /* If message is from my node, test if everything is okay */
-    if (PSC_getID(msg->header.sender)==PSC_getMyID()
-	&& msg->type == PSP_SPAWN_TASK) {
+    if (PSC_getID(inmsg->header.sender)==PSC_getMyID()
+	&& inmsg->type == PSP_SPAWN_TASK) {
 	task = PStask_new();
-	PStask_decodeTask(msg->buf, task);
-	answer.error = checkRequest(msg->header.sender, task);
+	PStask_decodeTask(inmsg->buf, task);
+	answer.error = checkRequest(inmsg->header.sender, task);
 
 	if (answer.error) {
 	    PStask_delete(task);
 	    answer.header.type = PSP_CD_SPAWNFAILED;
-	    answer.header.sender = msg->header.dest;
+	    answer.header.sender = inmsg->header.dest;
 	    sendMsg(&answer);
 
 	    return;
 	}
+	if (task->group != TG_SERVICE) rank = task->rank;
 	PStask_delete(task);
+
+	/* Since checkRequest() did not fail, we will find ptask */
+	ptask = PStasklist_find(managedTasks, inmsg->header.sender);
     }
 
-    if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
+
+    if (PSC_getID(inmsg->header.dest) != PSC_getMyID()) {
 	/* request for a remote site. */
-	if (!PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
-	    send_DAEMONCONNECT(PSC_getID(msg->header.dest));
+	if (!PSIDnodes_isUp(PSC_getID(inmsg->header.dest))) {
+	    send_DAEMONCONNECT(PSC_getID(inmsg->header.dest));
 	}
 
 	PSID_log(PSID_LOG_SPAWN, "%s: forwarding to node %d\n",
-		 __func__, PSC_getID(msg->header.dest));
+		 __func__, PSC_getID(inmsg->header.dest));
 
-	if (sendMsg(msg) < 0) {
+	if (sendMsg(inmsg) < 0) {
 	    answer.header.type = PSP_CD_SPAWNFAILED;
-	    answer.header.sender = msg->header.dest;
+	    answer.header.sender = inmsg->header.dest;
 	    answer.error = errno;
 
 	    sendMsg(&answer);
 	}
+
+	if (PSC_getID(inmsg->header.sender)==PSC_getMyID()
+	    && inmsg->type == PSP_SPAWN_TASK) {
+	    if (rank >= 0 && (!ptask->spawnNodes || rank >= ptask->spawnNum)) {
+		PSID_log(-1, "%s: rank %d out of range\n", __func__);
+	    } else {
+		/** Create and send PSP_SPAWN_LOC message */
+		DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
+		    .header = (DDMsg_t) {
+			.type = PSP_CD_SPAWNREQ,
+			.dest = inmsg->header.dest,
+			.sender = inmsg->header.sender,
+			.len = sizeof(msg.header) + sizeof(msg.type)},
+		    .type = PSP_SPAWN_LOC };
+		char *ptr = msg.buf;
+
+		*(int16_t *)ptr = ptask->spawnNodes[rank].cpu;
+		ptr += sizeof(int16_t);
+		msg.header.len += sizeof(int16_t);
+
+		PSID_log(PSID_LOG_SPAWN, "%s: send PSP_SPAWN_LOC to node %d\n",
+			 __func__, PSC_getID(msg.header.dest));
+
+		if (sendMsg(&msg) < 0) {
+		    PSID_warn(-1, errno,
+			      "%s: send PSP_SPAWN_LOC to node %d failed",
+			      __func__, PSC_getID(msg.header.dest));
+		}
+	    }
+	}
 	return;
     }
 
-    task = PStasklist_find(spawnTasks, msg->header.sender);
+    task = PStasklist_find(spawnTasks, inmsg->header.sender);
 
-    switch (msg->type) {
+    switch (inmsg->type) {
     case PSP_SPAWN_TASK:
 	if (task) {
 	    PStask_snprintf(tasktxt, sizeof(tasktxt), task);
 	    PSID_log(-1, "%s: from %s task %s allready there\n",
-		     __func__, PSC_printTID(msg->header.sender), tasktxt);
+		     __func__, PSC_printTID(inmsg->header.sender), tasktxt);
 	    return;
 	}
 	task = PStask_new();
-	PStask_decodeTask(msg->buf, task);
-	task->tid = msg->header.sender;
+	PStask_decodeTask(inmsg->buf, task);
+	task->tid = inmsg->header.sender;
 
 	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
 	PSID_log(PSID_LOG_SPAWN, "%s: create %s\n", __func__, tasktxt);
 
 	PStasklist_enqueue(&spawnTasks, task);
+
+	if (PSC_getID(inmsg->header.sender)==PSC_getMyID()) {
+	    if (rank >= 0 && (!ptask->spawnNodes || rank >= ptask->spawnNum)) {
+		PSID_log(-1, "%s: rank %d out of range\n", __func__);
+	    } else {
+		task->cpu = ptask->spawnNodes[rank].cpu;
+	    }
+	}
 	return;
+	break;
+    case PSP_SPAWN_LOC:
+	if (!task) {
+	    PSID_log(-1, "%s: PSP_SPAWN_LOC from %s: task not found\n",
+		     __func__, PSC_printTID(inmsg->header.sender));
+	    return;
+	}
+	task->cpu = *(int16_t *)inmsg->buf;
+	usedBytes = sizeof(int16_t);
 	break;
     case PSP_SPAWN_ARG:
 	if (!task) {
 	    PSID_log(-1, "%s: PSP_SPAWN_ARG from %s: task not found\n",
-		     __func__, PSC_printTID(msg->header.sender));
+		     __func__, PSC_printTID(inmsg->header.sender));
 	    return;
 	}
-	usedBytes = PStask_decodeArgs(msg->buf, task);
+	usedBytes = PStask_decodeArgs(inmsg->buf, task);
 	break;
     case PSP_SPAWN_ENV:
     case PSP_SPAWN_END:
 	if (!task) {
 	    PSID_log(-1, "%s: PSP_SPAWN_EN[V|D] from %s: task not found\n",
-		     __func__, PSC_printTID(msg->header.sender));
+		     __func__, PSC_printTID(inmsg->header.sender));
 	    return;
 	}
-	usedBytes = PStask_decodeEnv(msg->buf, task);
+	usedBytes = PStask_decodeEnv(inmsg->buf, task);
 	break;
     default:
-	PSID_log(-1, "%s: Unknown type '%d'\n", __func__, msg->type);
+	PSID_log(-1, "%s: Unknown type '%d'\n", __func__, inmsg->type);
 	return;
     }
 
-    if (msg->header.len-sizeof(msg->header)-sizeof(msg->type) != usedBytes) {
+    if (inmsg->header.len-sizeof(inmsg->header)-sizeof(inmsg->type)
+	!= usedBytes) {
 	PSID_log(-1, "%s: problem decoding task %s\n", __func__,
-		 PSC_printTID(msg->header.sender));
+		 PSC_printTID(inmsg->header.sender));
 	return;
     }
 
-    if (msg->type == PSP_SPAWN_END) {
+    if (inmsg->type == PSP_SPAWN_END) {
 	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
 	PSID_log(PSID_LOG_SPAWN, "%s: Spawning %s\n", __func__, tasktxt);
 	

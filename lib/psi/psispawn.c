@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -361,7 +361,10 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    do {
 		len = PStask_encodeEnv(msg.buf, sizeof(msg.buf),task, &envNum);
 		msg.header.len += len;
-		if (!task->environ[envNum]) msg.type = PSP_SPAWN_END;
+		
+		if (!task->environ[envNum])
+		    /* Last environment member encoded */
+		    msg.type = PSP_SPAWN_END;
 
 		if (PSI_sendMsg(&msg)<0) {
 		    PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);

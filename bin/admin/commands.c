@@ -938,7 +938,7 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 	}
 
 	if (req->num) {
-	    size_t itemSize = (masterPSPversion < 335) ?
+	    size_t itemSize = (masterPSPversion < 334) ?
 		sizeof(PSnodes_ID_t) : sizeof(PSpart_slot_t);
 
 	    if (req->num * sizeof(*slotBuf) > slotBufSize) {
@@ -973,7 +973,7 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 	    printf(" %5d", req->uid);
 	    printf(" %5d", req->gid);
 	    if (req->num) {
-		if (masterPSPversion < 335) {
+		if (masterPSPversion < 334) {
 		    printNodes(req->num, (PSnodes_ID_t*)slotBuf, width-47, 47);
 		} else {
 		    printSlots(req->num, slotBuf, width-47, 47);

@@ -71,6 +71,9 @@ extern "C" {
 #define PSP_DD_DEAD_NODE           0x0132  /**< Master's dead node info */
 #define PSP_DD_MASTER_IS           0x0133  /**< Info about correct master */
 
+/** Messages for ressource allocation */
+#define PSP_DD_NODESRES            0x0138  /**< Get nodes from a partition */
+
 /**
  * @brief Generate a string describing the message type.
  *

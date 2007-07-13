@@ -96,6 +96,7 @@ typedef struct PStask_T{
     /*C*/ PStask_ID_t loggertid;   /**< unique identifier of the logger */
     PStask_ID_t forwardertid;      /**< unique identifier of the forwarder */
     /*C*/ int32_t rank;            /**< rank of task within task group */
+    int16_t cpu;                   /**< logical CPU-number to pin to */
     short fd;                      /**< connection fd within psid */
     /*C*/ char *workingdir;        /**< working directory */
     /*C*/ int32_t argc;            /**< num of args, length of @a argv */
@@ -121,7 +122,9 @@ typedef struct PStask_T{
     uint32_t partitionSize;        /**< Size of the partition. */
     PSpart_option_t options;       /**< The partition's options. */
     PSpart_slot_t *partition;      /**< The actual partition. List of slots. */
-    int nextRank;                  /**< Next rank to start within the task. */
+    int32_t nextRank;              /**< Next rank to start within the task. */
+    PSpart_slot_t *spawnNodes;     /**< Node the task can spawn to */
+    int32_t spawnNum;              /**< Current size of @ref spawnNodes */
 
     PStask_sig_t *signalSender;    /**< Tasks which sent signals */
     PStask_sig_t *signalReceiver;  /**< Tasks which want to receive signals */

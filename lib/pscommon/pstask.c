@@ -67,6 +67,7 @@ int PStask_init(PStask_t* task)
     task->loggertid = 0;
     task->forwardertid = 0;
     task->rank = -1;
+    task->cpu = -2;
     task->fd = -1;
     task->workingdir = NULL;
     task->argc = 0;
@@ -89,6 +90,8 @@ int PStask_init(PStask_t* task)
     task->options = 0;
     task->partition = NULL;
     task->nextRank = -1;
+    task->spawnNodes = NULL;
+    task->spawnNum = 0;
 
     task->signalSender = NULL;
     task->signalReceiver = NULL;
@@ -129,6 +132,7 @@ int PStask_reinit(PStask_t* task)
 
     if (task->request) PSpart_delReq(task->request);
     if (task->partition) free(task->partition);
+    if (task->spawnNodes) free(task->spawnNodes);
 
     while (task->signalSender) {
 	PStask_sig_t* thissignal = task->signalSender;
@@ -222,6 +226,7 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->loggertid = task->loggertid;
     clone->forwardertid = task->forwardertid;
     clone->rank = task->rank;
+    clone->cpu = task->cpu;
     /* clone->fd = -1; */
     clone->workingdir = (task->workingdir) ? strdup(task->workingdir) : NULL;
     clone->argc = task->argc;
@@ -252,10 +257,14 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->request = NULL; /* Do not clone requests */
     clone->partitionSize = task->partitionSize;
     clone->options = task->options;
-    clone->partition = malloc(clone->partitionSize * sizeof(short));
+    clone->partition = malloc(task->partitionSize * sizeof(*task->partition));
     memcpy(clone->partition, task->partition,
-	   clone->partitionSize * sizeof(short));
+	   task->partitionSize * sizeof(*task->partition));
     clone->nextRank = task->nextRank;
+    clone->spawnNum = task->spawnNum;
+    clone->spawnNodes = malloc(task->spawnNum * sizeof(*task->spawnNodes));
+    memcpy(clone->spawnNodes, task->spawnNodes,
+	   clone->spawnNum * sizeof(*task->spawnNodes));
  
     clone->signalSender = PStask_cloneSigList(task->signalSender);
     clone->signalReceiver = PStask_cloneSigList(task->signalReceiver);
@@ -269,9 +278,9 @@ static void snprintfStruct(char *txt, size_t size, PStask_t * task)
     if (!task) return;
 
     snprintf(txt, size, "tid 0x%08x ptid 0x%08x uid %d gid %d group %s"
-	     " rank %d links(%p,%p) loggertid %08x fd %d argc %d",
+	     " rank %d cpu %d links(%p,%p) loggertid %08x fd %d argc %d",
 	     task->tid, task->ptid, task->uid, task->gid,
- 	     PStask_printGrp(task->group), task->rank,
+ 	     PStask_printGrp(task->group), task->rank, task->cpu,
  	     task->next, task->prev, task->loggertid, task->fd, task->argc);
 }
 

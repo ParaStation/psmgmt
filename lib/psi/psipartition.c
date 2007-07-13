@@ -777,8 +777,8 @@ int PSI_getNodes(unsigned int num, PSnodes_ID_t *nodes)
 	return -1;
     }
 
-    *(unsigned int*)ptr = num;
-    msg.header.len += sizeof(unsigned int);
+    *(uint32_t*)ptr = num;
+    msg.header.len += sizeof(uint32_t);
 
     if (PSI_sendMsg(&msg)<0) {
 	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
@@ -794,8 +794,8 @@ int PSI_getNodes(unsigned int num, PSnodes_ID_t *nodes)
     case PSP_CD_NODESRES:
     {
 	char *ptr = msg.buf;
-	ret = *(int*)ptr;
-	ptr += sizeof(int);
+	ret = *(int32_t*)ptr;
+	ptr += sizeof(int32_t);
 	if (ret<0) {
 	    PSI_log(-1, "%s: Cannot get %d nodes\n", __func__, num);
 	} else {

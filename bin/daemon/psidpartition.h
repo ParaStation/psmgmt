@@ -174,6 +174,23 @@ void msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg);
 void msg_GETNODES(DDBufferMsg_t *inmsg);
 
 /**
+ * @brief Handle a PSP_DD_NODESRES message.
+ *
+ * Handle the message @a inmsg of type PSP_CD_GETNODES.
+ *
+ * This kind of message is used as an answer to a PSP_CD_GETNODES
+ * message. The daemon of the requesting client will store the answer
+ * in the @ref spawnNodes member of the client's task structure.
+ *
+ * This is needed for transparent process-pinning.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+void msg_NODESRES(DDBufferMsg_t *inmsg);
+
+/**
  * @brief Send a PSP_DD_GETTASKS message.
  *
  * Send a PSP_DD_GETTASKS message to the node with ParaStation ID @a

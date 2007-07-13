@@ -1377,7 +1377,7 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
 	ptr += sizeof(uint16_t);
 	msg->header.len += sizeof(uint16_t);
 
-	if (destPSPver < 335) {
+	if (destPSPver < 334) {
 	    PSpart_slot_t *mySlots = slots+offset;
 	    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)ptr;
 	    int n;
@@ -1799,7 +1799,7 @@ void msg_GETPARTNL(DDBufferMsg_t *inmsg)
  * chunk. The size of the chunk, i.e. the number of slots, is stored
  * as a int16_t at the beginning of the buffer.
  *
- * If the sender of @a insmg is older than PSPversion 335 the list
+ * If the sender of @a insmg is older than PSPversion 334 the list
  * contained will be a nodelist instead of a slotlist.
  *
  * The structure of the data in @a buf is identical to the one used
@@ -1819,7 +1819,7 @@ static void appendToSlotlist(DDBufferMsg_t *inmsg, PSpart_request_t *request)
     int chunk = *(int16_t *)ptr;
     ptr += sizeof(int16_t);
 
-    if (PSPver < 335) {
+    if (PSPver < 334) {
 	PSpart_slot_t *mySlots = request->slots + request->sizeGot;
 	PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)ptr;
 	int n;
@@ -2005,34 +2005,41 @@ void msg_GETNODES(DDBufferMsg_t *inmsg)
 	goto error;
     }
 
-    num = *(unsigned int *)ptr;
-    ptr += sizeof(unsigned int);
+    num = *(uint32_t *)ptr;
+    ptr += sizeof(uint32_t);
 
     PSID_log(PSID_LOG_PART, "%s(%d)\n", __func__, num);
 
     if (task->nextRank + num <= task->partitionSize) {
+	int PSPver = PSIDnodes_getProtocolVersion(PSC_getID(
+						      inmsg->header.sender));
 	DDBufferMsg_t msg = (DDBufferMsg_t) {
 	    .header = (DDMsg_t) {
-		.type = PSP_CD_NODESRES,
+		.type = (PSPver < 335) ? PSP_CD_NODESRES : PSP_DD_NODESRES,
 		.dest = inmsg->header.sender,
 		.sender = PSC_getMyTID(),
 		.len = sizeof(msg.header) },
 	    .buf = { 0 } };
 	PSpart_slot_t *slots = task->partition + task->nextRank;
-	PSnodes_ID_t *nodeBuf;
-	unsigned int n;
 
 	ptr = msg.buf;
 
-	*(int *)ptr = task->nextRank;
+	*(int32_t *)ptr = task->nextRank;
 	ptr += sizeof(task->nextRank);
 	msg.header.len += sizeof(task->nextRank);
 
-	nodeBuf = (PSnodes_ID_t *)ptr;
-	for (n=0; n<num; n++) nodeBuf[n] = slots[n].node;
+	if (PSPver < 335) {
+	    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)ptr;
+	    unsigned int n;
+	    for (n=0; n<num; n++) nodeBuf[n] = slots[n].node;
+	    ptr = (char *)&nodeBuf[num];
+	    msg.header.len += num * sizeof(*nodeBuf);
+	} else {
+	    memcpy(ptr, slots, num * sizeof(*slots));
+	    ptr += num * sizeof(*slots);
+	    msg.header.len += num * sizeof(*slots);
+	}
 
-	ptr = (char *)&nodeBuf[num];
-	msg.header.len += num * sizeof(*nodeBuf);
 	task->nextRank += num;
 
 	sendMsg(&msg);
@@ -2051,6 +2058,49 @@ void msg_GETNODES(DDBufferMsg_t *inmsg)
 	    .type = -1 };
 	sendMsg(&msg);
     }
+}
+
+void msg_NODESRES(DDBufferMsg_t *inmsg)
+{
+    if (PSC_getID(inmsg->header.dest) == PSC_getMyID()) {
+	PStask_t *task = PStasklist_find(managedTasks, inmsg->header.dest);
+	char *ptr = inmsg->buf;
+	int num = (inmsg->header.len - sizeof(inmsg->header)
+		   - sizeof(int32_t)) / sizeof(PSpart_slot_t);
+	int nextRank = *(int32_t *)ptr;
+	ptr += sizeof(int32_t);
+
+	if (!task) {
+	    PSID_log(-1, "%s: Task %s not found\n", __func__,
+		     PSC_printTID(inmsg->header.dest));
+	    return;
+	}
+
+	/* Store assigned slots */
+	if (!task->spawnNodes || task->spawnNum < nextRank+num) {
+	    task->spawnNodes = realloc(task->spawnNodes, (nextRank+num)
+				       * sizeof(*task->spawnNodes));
+	    task->spawnNum = nextRank+num;
+	}
+	memcpy(&task->spawnNodes[nextRank], ptr,
+	       num * sizeof(*task->spawnNodes));
+
+	/* Morph inmsg to CD_NODESRES message */
+	{
+	    PSpart_slot_t *slots = task->spawnNodes + nextRank;
+	    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)ptr;
+	    int n;
+
+	    inmsg->header.type = PSP_CD_NODESRES;
+	    inmsg->header.len = sizeof(inmsg->header) + sizeof(int32_t);
+
+	    for (n=0; n<num; n++) nodeBuf[n] = slots[n].node;
+	    ptr = (char *)&nodeBuf[num];
+	    inmsg->header.len += num * sizeof(*nodeBuf);
+	}
+    }
+
+    sendMsg(inmsg);
 }
 
 int send_GETTASKS(PSnodes_ID_t node)
@@ -2338,7 +2388,7 @@ static void sendReqList(PStask_ID_t dest, PSpart_request_t *requests,
 		    (num-offset > SLOTS_CHUNK) ? SLOTS_CHUNK : num-offset;
 		ptr = msg.buf;
 
-		if (PSPver < 335) {
+		if (PSPver < 334) {
 		    PSpart_slot_t *slots = requests->slots+offset;
 		    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)ptr;
 		    int n;
