@@ -159,13 +159,14 @@ void msg_PROVIDEPART(DDBufferMsg_t *inmsg);
 void msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg);
 
 /**
- * @brief Handle a PSP_CD_GETNODES message.
+ * @brief Handle a PSP_CD_GETNODES/PSP_DD_GETNODES message.
  *
- * Handle the message @a inmsg of type PSP_CD_GETNODES.
+ * Handle the message @a inmsg of type PSP_CD_GETNODES or
+ * PSP_DD_GETNODES.
  *
- * This kind of message is used by clients of the local daemon in
- * order to actually get nodes from the pool of nodes stored within
- * the partition requested from the master node.
+ * This kind of message is used by clients in order to actually get
+ * nodes from the pool of nodes stored within the partition requested
+ * from the master node.
  *
  * @param inmsg Pointer to the message to handle.
  *
@@ -174,13 +175,31 @@ void msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg);
 void msg_GETNODES(DDBufferMsg_t *inmsg);
 
 /**
+ * @brief Handle a PSP_CD_GETRANKNODE/PSP_DD_GETRANKNODE message.
+ *
+ * Handle the message @a inmsg of type PSP_CD_GETRANKNODE or
+ * PSP_DD_GETRANKNODE.
+ *
+ * This kind of message is used by clients in order to actually get
+ * the node of the process which shall act as a destinct rank within
+ * the job from the pool of nodes stored within the partition
+ * requested from the master node.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+void msg_GETRANKNODE(DDBufferMsg_t *inmsg);
+
+/**
  * @brief Handle a PSP_DD_NODESRES message.
  *
- * Handle the message @a inmsg of type PSP_CD_GETNODES.
+ * Handle the message @a inmsg of type PSP_DD_NODESRES.
  *
- * This kind of message is used as an answer to a PSP_CD_GETNODES
- * message. The daemon of the requesting client will store the answer
- * in the @ref spawnNodes member of the client's task structure.
+ * This kind of message is used as an answer to a PSP_CD_GETNODES or
+ * PSP_CD_GETRANKNODE message. The daemon of the requesting client
+ * will store the answer in the @ref spawnNodes member of the client's
+ * task structure.
  *
  * This is needed for transparent process-pinning.
  *

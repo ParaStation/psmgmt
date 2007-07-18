@@ -45,11 +45,14 @@ static struct {
     { PSP_DD_TASKDEAD         , "PSP_DD_TASKDEAD"         },
     { PSP_DD_TASKSUSPEND      , "PSP_DD_TASKSUSPEND"      },
     { PSP_DD_TASKRESUME       , "PSP_DD_TASKRESUME"       },
+    { PSP_DD_GETRANKNODE      , "PSP_DD_GETRANKNODE"      },
 
     { PSP_DD_LOAD             , "PSP_DD_LOAD"             },
     { PSP_DD_ACTIVE_NODES     , "PSP_DD_ACTIVE_NODES"     },
     { PSP_DD_DEAD_NODE        , "PSP_DD_DEAD_NODES"       },
     { PSP_DD_MASTER_IS        , "PSP_DD_MASTER_IS"        },
+
+    { PSP_DD_NODESRES         , "PSP_DD_GETNODESRES"      },
 
     {0,NULL}
 };

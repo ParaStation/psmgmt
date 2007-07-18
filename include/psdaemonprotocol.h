@@ -64,6 +64,7 @@ extern "C" {
 #define PSP_DD_TASKDEAD            0x0129  /**< Complete task finished */
 #define PSP_DD_TASKSUSPEND         0x012A  /**< Task got SIGTSTP */
 #define PSP_DD_TASKRESUME          0x012B  /**< Task got SIGCONT */
+#define PSP_DD_GETRANKNODE         0x012C  /**< Forwarded GETRANKNODE mesg */
 
 /** Messages used to find master */
 #define PSP_DD_LOAD                0x0130  /**< Load message to master */

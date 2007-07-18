@@ -1202,6 +1202,10 @@ int handleMsg(int fd, DDBufferMsg_t *msg)
     case PSP_DD_GETNODES:
 	msg_GETNODES(msg);
 	break;
+    case PSP_CD_GETRANKNODE:
+    case PSP_DD_GETRANKNODE:
+	msg_GETRANKNODE(msg);
+	break;
     case PSP_DD_NODESRES:
 	msg_NODESRES(msg);
 	break;

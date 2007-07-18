@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -59,6 +59,7 @@ static struct {
     { PSP_CD_PARTITIONRES     , "PSP_CD_PARTITIONRES"     },
     { PSP_CD_GETNODES         , "PSP_CD_GETNODES"         },
     { PSP_CD_NODESRES         , "PSP_CD_NODESRES"         },
+    { PSP_CD_GETRANKNODE      , "PSP_CD_GETRANKNODE"      },
 
     { PSP_CC_MSG              , "PSP_CC_MSG"              },
     { PSP_CC_ERROR            , "PSP_CC_ERROR"            },

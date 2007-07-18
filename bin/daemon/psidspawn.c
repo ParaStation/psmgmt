@@ -1229,6 +1229,7 @@ void msg_SPAWNREQ(DDTypedBufferMsg_t *inmsg)
     DDErrorMsg_t answer;
     size_t usedBytes;
     int32_t rank = -1;
+    PStask_group_t group = TG_ANY;
 
     char tasktxt[128];
 
@@ -1255,7 +1256,10 @@ void msg_SPAWNREQ(DDTypedBufferMsg_t *inmsg)
 
 	    return;
 	}
-	if (task->group != TG_SERVICE) rank = task->rank;
+	/* Store some info from task for latter usage */
+	group = task->group;
+	rank = task->rank;
+
 	PStask_delete(task);
 
 	/* Since checkRequest() did not fail, we will find ptask */
@@ -1281,9 +1285,10 @@ void msg_SPAWNREQ(DDTypedBufferMsg_t *inmsg)
 	}
 
 	if (PSC_getID(inmsg->header.sender)==PSC_getMyID()
-	    && inmsg->type == PSP_SPAWN_TASK) {
-	    if (rank >= 0 && (!ptask->spawnNodes || rank >= ptask->spawnNum)) {
-		PSID_log(-1, "%s: rank %d out of range\n", __func__);
+	    && inmsg->type == PSP_SPAWN_TASK
+	    && group != TG_SERVICE && group != TG_ADMINTASK) {
+	    if (!ptask->spawnNodes || rank >= ptask->spawnNum) {
+		PSID_log(-1, "%s: rank %d out of range\n", __func__, rank);
 	    } else {
 		/** Create and send PSP_SPAWN_LOC message */
 		DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
@@ -1331,9 +1336,11 @@ void msg_SPAWNREQ(DDTypedBufferMsg_t *inmsg)
 
 	PStasklist_enqueue(&spawnTasks, task);
 
-	if (PSC_getID(inmsg->header.sender)==PSC_getMyID()) {
-	    if (rank >= 0 && (!ptask->spawnNodes || rank >= ptask->spawnNum)) {
-		PSID_log(-1, "%s: rank %d out of range\n", __func__);
+	if (task->group == TG_SERVICE || task->group == TG_ADMINTASK) {
+	    task->cpu = -1;
+	} else if (PSC_getID(inmsg->header.sender)==PSC_getMyID()) {
+	    if (!ptask->spawnNodes || rank >= ptask->spawnNum) {
+		PSID_log(-1, "%s: rank %d out of range\n", __func__, rank);
 	    } else {
 		task->cpu = ptask->spawnNodes[rank].cpu;
 	    }

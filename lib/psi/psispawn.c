@@ -514,9 +514,7 @@ int PSI_spawnSingle(char *workdir, int argc, char **argv,
 	    __func__, node, rank);
 
     ret = dospawn(1, &node, workdir, argc, argv, 0, TG_ANY, rank, error, tid);
-    if (ret != 1) {
-	return -1;
-    }
+    if (ret != 1) return -1;
 
     return rank;
 }
@@ -532,9 +530,7 @@ int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
     if (node == -1) node = PSC_getMyID();
     ret = dospawn(1, &node, workdir, argc, argv, strictArgv,
 		  TG_ADMINTASK, rank, error, tid);
-    if (ret != 1) {
-	return -1;
-    }
+    if (ret != 1) return -1;
 
     return 1;
 }
@@ -555,9 +551,7 @@ int PSI_spawnService(PSnodes_ID_t node, char *workdir, int argc, char **argv,
 
     ret = dospawn(1, &node, workdir, argc, argv, 0,
 		  TG_SERVICE, rank, error, tid);
-    if (ret != 1) {
-	return -1;
-    }
+    if (ret != 1) return -1;
 
     return 1;
 }
@@ -566,18 +560,18 @@ PStask_ID_t PSI_spawnRank(int rank, char *workdir, int argc, char **argv,
 			  int *error)
 {
     PSnodes_ID_t node;
-    int ret;
+    int ret, rankGot = PSI_getRankNode(rank, &node);
     PStask_ID_t tid;
 
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, rank);
 
-    ret = PSI_infoNodeID(-1, PSP_INFO_RANKID, &rank, &node, 1);
-    if (ret || (node < 0)) {
+    if (rankGot != rank) {
 	*error = ENXIO;
 	return 0;
     }
 
-    PSI_log(PSI_LOG_SPAWN, "%s: will spawn to: %d\n", __func__, node);
+    PSI_log(PSI_LOG_SPAWN, "%s: will spawn to: %d  rank %d\n",
+	    __func__, node, rank);
 
     ret = dospawn(1, &node, workdir, argc, argv, 0, TG_ANY, rank, error, &tid);
     if (ret != 1) return 0;
@@ -589,13 +583,12 @@ PStask_ID_t PSI_spawnGMSpawner(int np, char *workdir, int argc, char **argv,
 			       int *error)
 {
     PSnodes_ID_t node;
-    int ret, rank0 = 0;
+    int ret, rankGot = PSI_getRankNode(0, &node);
     PStask_ID_t tid;
 
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, np);
 
-    ret = PSI_infoNodeID(-1, PSP_INFO_RANKID, &rank0, &node, 1);
-    if (ret || node < 0) {
+    if (rankGot) {
 	*error = ENXIO;
 	return 0;
     }

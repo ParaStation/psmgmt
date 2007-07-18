@@ -2025,7 +2025,7 @@ void msg_GETNODES(DDBufferMsg_t *inmsg)
 	ptr = msg.buf;
 
 	*(int32_t *)ptr = task->nextRank;
-	ptr += sizeof(task->nextRank);
+	ptr += sizeof(int32_t);
 	msg.header.len += sizeof(task->nextRank);
 
 	if (PSPver < 335) {
@@ -2041,6 +2041,85 @@ void msg_GETNODES(DDBufferMsg_t *inmsg)
 	}
 
 	task->nextRank += num;
+
+	sendMsg(&msg);
+
+	return;
+    }
+
+    error:
+    {
+	DDTypedMsg_t msg = (DDTypedMsg_t) {
+	    .header = (DDMsg_t) {
+		.type = PSP_CD_NODESRES,
+		.dest = inmsg->header.sender,
+		.sender = PSC_getMyTID(),
+		.len = sizeof(msg) },
+	    .type = -1 };
+	sendMsg(&msg);
+    }
+}
+
+void msg_GETRANKNODE(DDBufferMsg_t *inmsg)
+{
+    PStask_ID_t target = PSC_getPID(inmsg->header.dest) ?
+	inmsg->header.dest : inmsg->header.sender;
+    PStask_t *task = PStasklist_find(managedTasks, target);
+    char *ptr = inmsg->buf;
+    int rank;
+
+    if (!task) {
+	PSID_log(-1, "%s: Task %s not found\n", __func__,
+		 PSC_printTID(target));
+	goto error;
+    }
+
+    if (task->ptid) {
+	PSID_log(PSID_LOG_PART, "%s: forward to root process %s\n",
+		 __func__, PSC_printTID(task->ptid));
+	inmsg->header.type = PSP_DD_GETRANKNODE;
+	inmsg->header.dest = task->ptid;
+	if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
+	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    goto error;
+	}
+	return;
+    }
+
+    if (!task->partitionSize || !task->partition) {
+	PSID_log(-1, "%s: Create partition first\n", __func__);
+	goto error;
+    }
+
+    if (task->nextRank < 0) {
+	PSID_log(-1, "%s: Partition's creation not yet finished\n", __func__);
+	goto error;
+    }
+
+    rank = *(int32_t *)ptr;
+    ptr += sizeof(int32_t);
+
+    PSID_log(PSID_LOG_PART, "%s(%d)\n", __func__, rank);
+
+    if ((unsigned)rank <= task->partitionSize) {
+	DDBufferMsg_t msg = (DDBufferMsg_t) {
+	    .header = (DDMsg_t) {
+		.type = PSP_DD_NODESRES,
+		.dest = inmsg->header.sender,
+		.sender = PSC_getMyTID(),
+		.len = sizeof(msg.header) },
+	    .buf = { 0 } };
+	PSpart_slot_t *slot = task->partition + rank;
+
+	ptr = msg.buf;
+
+	*(int32_t *)ptr = rank;
+	ptr += sizeof(int32_t);
+	msg.header.len += sizeof(int32_t);
+
+	memcpy(ptr, slot, sizeof(*slot));
+	ptr += sizeof(*slot);
+	msg.header.len += sizeof(*slot);
 
 	sendMsg(&msg);
 

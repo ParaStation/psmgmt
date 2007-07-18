@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -792,8 +792,7 @@ int PSI_getNodes(unsigned int num, PSnodes_ID_t *nodes)
 
     switch (msg.header.type) {
     case PSP_CD_NODESRES:
-    {
-	char *ptr = msg.buf;
+	ptr = msg.buf;
 	ret = *(int32_t*)ptr;
 	ptr += sizeof(int32_t);
 	if (ret<0) {
@@ -802,13 +801,59 @@ int PSI_getNodes(unsigned int num, PSnodes_ID_t *nodes)
 	    memcpy(nodes, ptr, num*sizeof(*nodes));
 	}
 	break;
-    }
     case PSP_CD_ERROR:
-    {
 	PSI_warn(-1, ((DDErrorMsg_t*)&msg)->error, "%s: error in command %s",
 		 __func__, PSP_printMsg(((DDErrorMsg_t*)&msg)->request));
 	break;
+    default:
+	PSI_log(-1, "%s: received unexpected msgtype '%s'\n", __func__,
+		PSP_printMsg(msg.header.type));
     }
+
+    return ret;
+}
+
+int PSI_getRankNode(int rank, PSnodes_ID_t *node)
+{
+    DDBufferMsg_t msg = (DDBufferMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CD_GETRANKNODE,
+	    .dest = PSC_getTID(-1, 0),
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(DDMsg_t) },
+	.buf = { 0 } };
+    char *ptr = msg.buf;
+    int ret = -1;
+
+    *(int32_t*)ptr = rank;
+    ptr += sizeof(int32_t);
+    msg.header.len += sizeof(int32_t);
+
+    if (PSI_sendMsg(&msg)<0) {
+	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+	return -1;
+    }
+
+    if (PSI_recvMsg(&msg)<0) {
+	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+	return -1;
+    }
+
+    switch (msg.header.type) {
+    case PSP_CD_NODESRES:
+	ptr = msg.buf;
+	ret = *(int32_t*)ptr;
+	ptr += sizeof(int32_t);
+	if (ret<0) {
+	    PSI_log(-1, "%s: Cannot get node for rank %d\n", __func__, rank);
+	} else {
+	    memcpy(node, ptr, sizeof(*node));
+	}
+	break;
+    case PSP_CD_ERROR:
+	PSI_warn(-1, ((DDErrorMsg_t*)&msg)->error, "%s: error in command %s",
+		 __func__, PSP_printMsg(((DDErrorMsg_t*)&msg)->request));
+	break;
     default:
 	PSI_log(-1, "%s: received unexpected msgtype '%s'\n", __func__,
 		PSP_printMsg(msg.header.type));

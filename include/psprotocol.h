@@ -94,10 +94,10 @@ typedef enum {
 
     PSP_OP_MCASTDEBUG = 0x0028,   /**< MCast's debug level */
 
-    PSP_OP_PSM_SPS = 0x0030,      /**< */
-    PSP_OP_PSM_RTO,               /**< */
-    PSP_OP_PSM_HNPEND,            /**< */
-    PSP_OP_PSM_ACKPEND,           /**< */
+    PSP_OP_PSM_SPS = 0x0030,      /**< @deprecated */
+    PSP_OP_PSM_RTO,               /**< @deprecated */
+    PSP_OP_PSM_HNPEND,            /**< @deprecated */
+    PSP_OP_PSM_ACKPEND,           /**< @deprecated */
 
     PSP_OP_FREEONSUSP = 0x0038,   /**< Free suspended job's resources? */
     PSP_OP_HANDLEOLD,             /**< Notice old binaries? */
@@ -271,6 +271,7 @@ typedef enum {
 #define PSP_CD_PARTITIONRES      0x0062  /**< Reply partitions bind */
 #define PSP_CD_GETNODES          0x0063  /**< Request nodes from a partition */
 #define PSP_CD_NODESRES          0x0064  /**< Get nodes from a partition */
+#define PSP_CD_GETRANKNODE       0x0065  /**< Req node of rank from partition */
 
 /** Client-client messages. These are fully transparent for the daemons. */
 #define PSP_CC_MSG               0x0080  /**< Message between clients. */

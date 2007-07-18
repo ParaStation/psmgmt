@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -159,7 +159,7 @@ void PSI_LL(void);
 int PSI_createPartition(unsigned int num, uint32_t hwType);
 
 /**
- * @brief Get nodes to spawn prozesses to.
+ * @brief Get nodes to spawn processes to.
  *
  * Get @a num nodes in order to spawn processes to this nodes and
  * store their ParaStation IDs to @a nodes. Nodes may only be
@@ -177,6 +177,23 @@ int PSI_createPartition(unsigned int num, uint32_t hwType);
  * case of an error -1 is returned.
  */
 int PSI_getNodes(unsigned int num, PSnodes_ID_t *nodes);
+
+/**
+ * @brief Get node to spawn process to.
+ *
+ * Get a node in order to spawn the process with rank @a rank to this
+ * node and store their ParaStation ID to @a node. This function will
+ * only request a single node.
+ *
+ * @param rank The rank of process the node is requested for.
+ *
+ * @param node Pointer to memory used to store the ParaStation ID of
+ * the requested node.
+ *
+ * @return On success, the rank of the process (i.e. @a rank) is
+ * returned. In case of an error -1 is returned.
+ */
+int PSI_getRankNode(int rank, PSnodes_ID_t *node);
 
 #ifdef __cplusplus
 }/* extern "C" */
