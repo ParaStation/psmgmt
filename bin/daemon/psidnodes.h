@@ -584,6 +584,64 @@ int PSIDnodes_setBindMem(PSnodes_ID_t id, int bindMem);
  */
 int PSIDnodes_bindMem(PSnodes_ID_t id);
 
+/**
+ * @brief Clear a node's CPU-map.
+ *
+ * Clear the CPU-map of the node with ParaStation ID @a id. The
+ * CPU-map is used to map virtual CPU slots given by the scheduler to
+ * physical cores on the local node.
+ *
+ * @param id ParaStation ID of the node to change.
+ *
+ * @return On success, 0 is returned or -1, if an error occured.
+ */
+int PSIDnodes_clearCPUMap(PSnodes_ID_t id);
+
+/**
+ * @brief Append CPU to a node's CPU-map.
+ *
+ * Append the CPU with number @a cpu to the CPU-map of the node with
+ * ParaStation ID @a id. The CPU-map is used to map virtual CPU slots
+ * given by the scheduler to physical cores on the local node.
+ *
+ * @param id ParaStation ID of the node to change.
+ *
+ * @param cpu The number of the CPU to append to the CPU-map.
+ *
+ * @return On success, 0 is returned or -1, if an error occured.
+ */
+int PSIDnodes_appendCPUMap(PSnodes_ID_t id, short cpu);
+
+/**
+ * @brief Map CPU-slot to pysical core.
+ *
+ * Map the CPU-slot @a cpu to a physical core according CPU-map of the
+ * node with ParaStation ID @a id. The CPU-map is put together by
+ * calling @ref PSIDnodes_appendCPUMap() subsequently.
+ *
+ * @param id ParaStation ID of the CPU-map to use.
+ *
+ * @param cpu Number of the CPU-slot to map on a physical core.
+ *
+ * @return On success, the number of the core the CPU-slot is mapped
+ * to will be returned or -1, if an error occured.
+ */
+short PSIDnodes_mapCPU(PSnodes_ID_t id, short cpu);
+
+/**
+ * @brief Send CPU-map.
+ *
+ * Send the CPU-map of the local daemon to @a dest within one or more
+ * option messages of type PSP_OP_CPUMAP.
+ *
+ * @param dest Task ID of the destination task to send to.
+ *
+ * @return No return value.
+ */
+void send_CPUMap_OPTIONS(PStask_ID_t dest);
+
+
+
 #ifdef __cplusplus
 }/* extern "C" */
 #endif

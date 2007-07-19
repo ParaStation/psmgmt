@@ -57,6 +57,9 @@ typedef struct {
     char exclusive;        /**< Flag to assign this node exclusively */
     char pinProcs;         /**< Flag to mark that node to pin processes */
     char bindMem;          /**< Flag to mark that node to bind memory */
+    short *CPUmap;         /**< Map to match virt. CPU slots to phys. cores */
+    size_t CPUmapSize;     /**< Current size of @ref CPUmap */
+    size_t CPUmapMaxSize;  /**< Allocated size of @ref CPUmap */
     list_t uid_list;       /**< Users this node is reserved to */
     list_t gid_list;       /**< Groups this node is reserved to */
     list_t admuid_list;    /**< AdminUser on this node */
@@ -89,6 +92,11 @@ static void nodeInit(node_t *node)
     node->extraIP = INADDR_ANY;
     node->runJobs = 0;
     node->isStarter = 0;
+    node->pinProcs = 0;
+    node->bindMem = 0;
+    node->CPUmap = NULL;
+    node->CPUmapSize = 0;
+    node->CPUmapMaxSize = 0;
     node->uid_list = LIST_HEAD_INIT(node->uid_list);
     node->gid_list = LIST_HEAD_INIT(node->gid_list);
     node->admuid_list = LIST_HEAD_INIT(node->admuid_list);
@@ -107,6 +115,7 @@ int PSIDnodes_init(PSnodes_ID_t num)
     nodes = malloc(sizeof(*nodes) * numNodes);
 
     if (!nodes) {
+	PSID_warn(-1, ENOMEM, "%s", __func__);
 	return -1;
     }
 
@@ -165,6 +174,7 @@ int PSIDnodes_register(PSnodes_ID_t id, in_addr_t addr)
 
     host = (struct host_t*) malloc(sizeof(struct host_t));
     if (!host) {
+	PSID_warn(-1, ENOMEM, "%s", __func__);
 	return -1;
     }
 
@@ -412,6 +422,87 @@ int PSIDnodes_bindMem(PSnodes_ID_t id)
     }
 }
 
+short PSIDnodes_mapCPU(PSnodes_ID_t id, short cpu)
+{
+    if (ID_ok(id) && cpu >= 0 && (unsigned)cpu<nodes[id].CPUmapSize
+	&& cpu<PSIDnodes_getPhysCPUs(id)) {
+	return nodes[id].CPUmap[cpu];
+    } else {
+	return -1;
+    }
+}
+
+
+int PSIDnodes_clearCPUMap(PSnodes_ID_t id)
+{
+    if (ID_ok(id)) {
+	nodes[id].CPUmapSize = 0;
+	return 0;
+    } else {
+	return -1;
+    }
+}
+
+int PSIDnodes_appendCPUMap(PSnodes_ID_t id, short cpu)
+{
+    if (!ID_ok(id)) {
+	return -1;
+    }
+    if (nodes[id].CPUmapSize == nodes[id].CPUmapMaxSize) {
+	if (nodes[id].CPUmapMaxSize) {
+	    nodes[id].CPUmapMaxSize *= 2;
+	} else {
+	    nodes[id].CPUmapMaxSize = 8;
+	}
+	nodes[id].CPUmap = realloc(nodes[id].CPUmap, nodes[id].CPUmapMaxSize
+				   * sizeof(*nodes[id].CPUmap));
+	if (!nodes[id].CPUmap) PSID_exit(ENOMEM, "%s", __func__);
+    }
+    nodes[id].CPUmap[nodes[id].CPUmapSize] = cpu;
+    nodes[id].CPUmapSize++;
+
+    return 0;
+}
+
+void send_CPUMap_OPTIONS(PStask_ID_t dest)
+{
+    DDOptionMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_SETOPTION,
+	    .sender = PSC_getMyTID(),
+	    .dest = dest,
+	    .len = sizeof(msg) },
+	.count = 0,
+	.opt = {{ .option = 0, .value = 0 }} };
+    node_t *myNode = &nodes[PSC_getMyID()];
+    short *CPUmap = myNode->CPUmap;
+    int i, mapEntries = (int)myNode->CPUmapSize < myNode->physCPU ?
+	(int)myNode->CPUmapSize : myNode->physCPU;
+
+    PSID_log(PSID_LOG_VERB, "%s: %s", __func__, PSC_printTID(dest));
+
+    for (i=0; i<mapEntries; i++) {
+	msg.opt[(int) msg.count].option = PSP_OP_CPUMAP;
+	msg.opt[(int) msg.count].value = CPUmap[i];
+
+	msg.count++;
+	if (msg.count == DDOptionMsgMax) {
+	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+		PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    }
+	    msg.count = 0;
+	}
+    }
+
+    msg.opt[(int) msg.count].option = PSP_OP_LISTEND;
+    msg.opt[(int) msg.count].value = 0;
+    msg.count++;
+    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+    }
+}
+
+
 int PSIDnodes_setExtraIP(PSnodes_ID_t id, in_addr_t addr)
 {
     if (ID_ok(id)) {
@@ -636,6 +727,7 @@ int PSIDnodes_addGUID(PSnodes_ID_t id,
     }
 
     guent = malloc(sizeof(*guent));
+    if (!guent) PSID_exit(ENOMEM, "%s", __func__);
     guent->id = guid;
     list_add_tail(&guent->next, list);
 
@@ -776,8 +868,6 @@ void send_GUID_OPTIONS(PStask_ID_t dest, PSIDnodes_gu_t what, int compat)
 	    }
 	    msg.count = 0;
 	}
-	/* Set next option type */
-	msg.opt[(int) msg.count].option = option;
     }
 
     if (!compat) {

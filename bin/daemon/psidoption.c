@@ -572,6 +572,12 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 					 msg->opt[i].value);
 		}
 		break;
+	    case PSP_OP_CLR_CPUMAP:
+		PSIDnodes_clearCPUMap(PSC_getMyID());
+		break;
+	    case PSP_OP_APP_CPUMAP:
+		PSIDnodes_appendCPUMap(PSC_getMyID(), msg->opt[i].value);
+		break;
 	    case PSP_OP_HWSTATUS:
 		PSIDnodes_setHWStatus(PSC_getID(msg->header.sender),
 				      msg->opt[i].value);
@@ -754,6 +760,11 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_BINDMEM:
 		msg->opt[out].value = PSIDnodes_bindMem(PSC_getMyID());
+		break;
+	    case PSP_OP_CPUMAP:
+		send_CPUMap_OPTIONS(msg->header.sender);
+		/* Do not send option again */
+		out--;
 		break;
 	    case PSP_OP_RDPDEBUG:
 		msg->opt[out].value = getDebugMaskRDP();

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -480,7 +480,7 @@ static int setHWType(int hw)
 {
     if (currentID == DEFAULT_ID) {
 	default_hwtype = hw;
-	parser_comment(PARSER_LOG_RES, "setting default HWType to '%s'\n",
+	parser_comment(PARSER_LOG_NODE, "setting default HWType to '%s'\n",
 		       HW_printType(hw));
     } else {
 	if (PSIDnodes_setHWType(currentID, hw)) {
@@ -573,7 +573,7 @@ static int getCS(char *token)
 
     if (currentID == DEFAULT_ID) {
 	default_canstart = cs;
-	parser_comment(PARSER_LOG_RES, "setting default 'CanStart' to '%s'\n",
+	parser_comment(PARSER_LOG_NODE, "setting default 'CanStart' to '%s'\n",
 		       cs ? "TRUE" : "FALSE");
     } else {
 	if (PSIDnodes_setIsStarter(currentID, cs)) {
@@ -598,7 +598,7 @@ static int getRJ(char *token)
 
     if (currentID == DEFAULT_ID) {
 	default_runjobs = rj;
-	parser_comment(PARSER_LOG_RES, "setting default 'RunJobs' to '%s'\n",
+	parser_comment(PARSER_LOG_NODE, "setting default 'RunJobs' to '%s'\n",
 		       rj ? "TRUE" : "FALSE");
     } else {
 	if (PSIDnodes_setRunJobs(currentID, rj)) {
@@ -876,7 +876,7 @@ static int getSingleUser(char *user)
 
     userName = userFromUID(uid);
     if (currentID == DEFAULT_ID) {
-	parser_comment(PARSER_LOG_RES, "setting default 'User' to '%s%s'\n",
+	parser_comment(PARSER_LOG_NODE, "setting default 'User' to '%s%s'\n",
 		       action, userName);
 	defaultAction(&defaultUID, uid);
     } else {
@@ -943,7 +943,7 @@ static int getSingleGroup(char *group)
 
     groupName = groupFromGID(gid);
     if (currentID == DEFAULT_ID) {
-	parser_comment(PARSER_LOG_RES, "setting default 'Group' to '%s%s'\n",
+	parser_comment(PARSER_LOG_NODE, "setting default 'Group' to '%s%s'\n",
 		       action, groupName);
 	defaultAction(&defaultGID, gid);
     } else {
@@ -1011,7 +1011,7 @@ static int getSingleAdminUser(char *user)
 
     userName = userFromUID(uid);
     if (currentID == DEFAULT_ID) {
-	parser_comment(PARSER_LOG_RES,
+	parser_comment(PARSER_LOG_NODE,
 		       "setting default 'AdminUser' to '%s%s'\n",
 		       action, userName);
 	defaultAction(&defaultAdmUID, uid);
@@ -1080,7 +1080,7 @@ static int getSingleAdminGroup(char *group)
 
     groupName = groupFromGID(gid);
     if (currentID == DEFAULT_ID) {
-	parser_comment(PARSER_LOG_RES,
+	parser_comment(PARSER_LOG_NODE,
 		       "setting default 'AdminGroup' to '%s%s'\n",
 		       action, groupName);
 	defaultAction(&defaultAdmGID, gid);
@@ -1143,13 +1143,13 @@ static int getProcs(char *token)
 
     if (currentID == DEFAULT_ID) {
         default_procs = procs;
-	parser_comment(PARSER_LOG_RES, "setting default 'Processes' to '");
+	parser_comment(PARSER_LOG_NODE, "setting default 'Processes' to '");
 	if (procs == -1) {
-	    parser_commentCont(PARSER_LOG_RES, "ANY");
+	    parser_commentCont(PARSER_LOG_NODE, "ANY");
 	} else {
-	    parser_commentCont(PARSER_LOG_RES, "%d", procs);
+	    parser_commentCont(PARSER_LOG_NODE, "%d", procs);
 	}
-	parser_commentCont(PARSER_LOG_RES, "'\n");
+	parser_commentCont(PARSER_LOG_NODE, "'\n");
     } else {
 	if (PSIDnodes_setProcs(currentID, procs)) {
 	    parser_comment(-1, "PSIDnodes_setProcs(%d, %d) failed\n",
@@ -1180,7 +1180,7 @@ static int getOB(char *token)
     }
     if (strcasecmp(obStr, "auto") == 0) {
 	ob = OVERBOOK_AUTO;
-	parser_comment(PARSER_LOG_RES, "got 'auto' for value 'overbook'\n");
+	parser_comment(PARSER_LOG_NODE, "got 'auto' for value 'overbook'\n");
 	ret = 0;
     } else {
 	ret = parser_getBool(obStr, &ob, "overbook");
@@ -1189,7 +1189,7 @@ static int getOB(char *token)
 
     if (currentID == DEFAULT_ID) {
         default_overbook = ob;
-        parser_comment(PARSER_LOG_RES, "setting default 'Overbook' to '%s'\n",
+        parser_comment(PARSER_LOG_NODE, "setting default 'Overbook' to '%s'\n",
 		       (ob==OVERBOOK_AUTO) ? "auto" : ob ? "TRUE" : "FALSE");
     } else {
 	if (PSIDnodes_setOverbook(currentID, ob)) {
@@ -1214,7 +1214,7 @@ static int getExcl(char *token)
 
     if (currentID == DEFAULT_ID) {
         default_exclusive = excl;
-	parser_comment(PARSER_LOG_RES, "setting default 'Exclusive' to '%s'\n",
+	parser_comment(PARSER_LOG_NODE,"setting default 'Exclusive' to '%s'\n",
 		       excl ? "TRUE" : "FALSE");
     } else {
 	if (PSIDnodes_setExclusive(currentID, excl)) {
@@ -1239,7 +1239,7 @@ static int getPinProcs(char *token)
 
     if (currentID == DEFAULT_ID) {
         default_pinProcs = pinProcs;
-	parser_comment(PARSER_LOG_RES, "setting default 'PinProcs' to '%s'\n",
+	parser_comment(PARSER_LOG_NODE, "setting default 'PinProcs' to '%s'\n",
 		       pinProcs ? "TRUE" : "FALSE");
     } else {
 	if (PSIDnodes_setPinProcs(currentID, pinProcs)) {
@@ -1253,7 +1253,7 @@ static int getPinProcs(char *token)
     return 0;
 }
 
-static int default_bindMem = 1;
+static int default_bindMem = 0;
 
 static int getBindMem(char *token)
 {
@@ -1264,7 +1264,7 @@ static int getBindMem(char *token)
 
     if (currentID == DEFAULT_ID) {
         default_bindMem = bindMem;
-	parser_comment(PARSER_LOG_RES, "setting default 'BindMem' to '%s'\n",
+	parser_comment(PARSER_LOG_NODE, "setting default 'BindMem' to '%s'\n",
 		       bindMem ? "TRUE" : "FALSE");
     } else {
 	if (PSIDnodes_setBindMem(currentID, bindMem)) {
@@ -1276,6 +1276,89 @@ static int getBindMem(char *token)
 			   bindMem ? "":" not");
     }
     return 0;
+}
+
+/* ---------------------------------------------------------------------- */
+
+static short *default_cpumap = NULL;
+static size_t default_cpumap_size, default_cpumap_maxsize = 0;
+
+static int getCPUmapEnt(char *token)
+{
+    long val;
+    int ret;
+
+    ret = parser_getNumber(token, &val);
+    if (ret) return ret;
+
+    if (currentID == DEFAULT_ID) {
+	if (default_cpumap_size == default_cpumap_maxsize) {
+	    if (default_cpumap_maxsize) {
+		default_cpumap_maxsize *= 2;
+	    } else {
+		default_cpumap_maxsize = 8;
+	    }
+	    default_cpumap = realloc(default_cpumap, default_cpumap_maxsize
+				     * sizeof(*default_cpumap));
+	}
+	default_cpumap[default_cpumap_size] = val;
+	default_cpumap_size++;
+    } else {
+	if (PSIDnodes_appendCPUMap(currentID, val)) {
+	    parser_comment(-1, "PSIDnodes_appendCPUMap(%d, %ld) failed\n",
+			   currentID, val);
+	    return -1;
+	}
+    }
+    parser_commentCont(PARSER_LOG_NODE, " %ld", val);
+    return 0;
+}
+
+static int endCPUmapEnv(char *token)
+{
+    return ENV_END;
+}
+
+static keylist_t cpumapenv_list[] = {
+    {"}", endCPUmapEnv},
+    {NULL, getCPUmapEnt}
+};
+
+static parser_t cpumapenv_parser = {" \t\n", cpumapenv_list};
+
+static int getCPUmapEnv(char *token)
+{
+    return parser_parseOn(parser_getString(), &cpumapenv_parser);
+}
+
+static keylist_t cpumap_list[] = {
+    {"{", getCPUmapEnv},
+    {NULL, getCPUmapEnt}
+};
+
+static parser_t cpumap_parser = {" \t\n", cpumap_list};
+
+static int getCPUmap(char *token)
+{
+    int ret;
+
+    if (currentID == DEFAULT_ID) {
+	default_cpumap_size = 0;
+	parser_comment(PARSER_LOG_NODE, "default CPUmap {");
+    } else {
+	PSIDnodes_clearCPUMap(currentID);
+	parser_commentCont(PARSER_LOG_NODE, " CPUMap {");
+    }
+
+    ret = parser_parseToken(parser_getString(), &cpumap_parser);
+    if (ret == ENV_END) ret = 0;
+
+    if (!ret) {
+	parser_commentCont(PARSER_LOG_NODE, " }");
+	if (currentID == DEFAULT_ID) parser_commentCont(PARSER_LOG_NODE, "\n");
+    }
+
+    return ret;
 }
 
 /*----------------------------------------------------------------------*/
@@ -1378,6 +1461,21 @@ static int newHost(in_addr_t addr, int id)
 	return -1;
     }
 
+    if (PSIDnodes_clearCPUMap(id)) {
+	parser_comment(-1, "PSIDnodes_clearCPUMap(%d) failed\n", id);
+	return -1;
+    }
+    if (default_cpumap_size) {
+	size_t i;
+	for (i=0; i<default_cpumap_size; i++) {
+	    if (PSIDnodes_appendCPUMap(id, default_cpumap[i])) {
+		parser_comment(-1, "PSIDnodes_appendCPUMap(%d, %d) failed\n",
+			       id, default_cpumap[i]);
+		return -1;
+	    }
+	}
+    }
+
     if (pushDefaults(id, PSIDNODES_USER, &defaultUID)) {
 	parser_comment(-1, "pushDefaults(%d, PSIDNODES_USER, %p) failed",
 		       id, &defaultUID);
@@ -1432,6 +1530,7 @@ static keylist_t nodeline_list[] = {
     {"exclusive", getExcl},
     {"pinprocs", getPinProcs},
     {"bindmem", getBindMem},
+    {"cpumap", getCPUmap},
     {NULL, parser_error}
 };
 
@@ -1876,6 +1975,7 @@ static keylist_t config_list[] = {
     {"exclusive", getExcl},
     {"pinprocs", getPinProcs},
     {"bindmem", getBindMem},
+    {"cpumap", getCPUmap},
     {"nodes", getNodes},
     {"licenseserver", getLicServer},
     {"licserver", getLicServer},

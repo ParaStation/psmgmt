@@ -1097,7 +1097,7 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
     case PSP_OP_BINDMEM:
 	break;
     default:
-	printf("Cannot handle option type %d.\n", type);
+	printf("%s: cannot handle option type %d.\n", __func__, type);
 	return;
     }
 
@@ -1115,6 +1115,72 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
 	    msg.header.dest = PSC_getTID(node, 0);
 	    PSI_sendMsg(&msg);
 	}
+    }
+}
+
+void PSIADM_SetParamList(PSP_Option_t type, PSIADM_valList_t *val, char *nl)
+{
+    PSnodes_ID_t node;
+    DDOptionMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_SETOPTION,
+	    .sender = PSC_getMyTID(),
+	    .dest = 0,
+	    .len = sizeof(msg) },
+	.count = 0,
+	.opt = { { .option = 0, .value = 0 } } };
+    unsigned int i;
+
+    if (geteuid()) {
+	printf("Insufficient priviledge\n");
+	return;
+    }
+
+    if (!val) {
+	printf("%s: No value-list given.\n", __func__);
+	return;
+    }
+
+    if (! getHostStatus()) return;
+
+    switch (type) {
+    case PSP_OP_CPUMAP:
+	msg.opt[(int) msg.count].option = PSP_OP_CLR_CPUMAP;
+	msg.opt[(int) msg.count].value = 0;
+	msg.count++;
+
+	for (i=0; i<val->num; i++) {
+	    msg.opt[(int) msg.count].option = PSP_OP_APP_CPUMAP;
+	    msg.opt[(int) msg.count].value = val->value[i];
+
+	    msg.count++;
+	    if (msg.count == DDOptionMsgMax) {
+		for (node=0; node<PSC_getNrOfNodes(); node++) {
+		    if (nl && !nl[node]) continue;
+
+		    if (hostStatus.list[node]) {
+			msg.header.dest = PSC_getTID(node, 0);
+			PSI_sendMsg(&msg);
+		    }
+		}
+		msg.count = 0;
+	    }
+	}
+
+	if (msg.count) {
+	    for (node=0; node<PSC_getNrOfNodes(); node++) {
+		if (nl && !nl[node]) continue;
+
+		if (hostStatus.list[node]) {
+		    msg.header.dest = PSC_getTID(node, 0);
+		    PSI_sendMsg(&msg);
+		}
+	    }
+	}
+	break;
+    default:
+	printf("%s: cannot handle option type %d.\n", __func__, type);
+	return;
     }
 }
 
@@ -1192,6 +1258,7 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
     if (! getHostStatus()) return;
 
     for (node=0; node<PSC_getNrOfNodes(); node++) {
+	int total=0;
 	if (nl && !nl[node]) continue;
 
 	printf("%4d\t", node);
@@ -1214,19 +1281,15 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 		break;
 	    }
 
-	    for (i=0; i<ret; i++) {
-		if (options[i].option == PSP_OP_LISTEND) {
-		    goto next_node;
-		}
-
+	    for (i=0; i<ret; i++, total++) {
 		switch (options[i].option) {
 		case PSP_OP_ACCT:
-		    if (i) printf(", ");
+		    if (total) printf(", ");
 		    printf("%s", PSC_printTID(options[i].value));
 		    break;
 		case PSP_OP_UID:
 		case PSP_OP_ADMUID:
-		    if (i) printf(", ");
+		    if (total) printf(", ");
 		    if (options[i].value==-1)
 			printf("ANY");
 		    else {
@@ -1240,7 +1303,7 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 		    break;
 		case PSP_OP_GID:
 		case PSP_OP_ADMGID:
-		    if (i) printf(", ");
+		    if (total) printf(", ");
 		    if (options[i].value==-1)
 			printf(" ANY");
 		    else {
@@ -1265,25 +1328,26 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 		case PSP_OP_RL_RSS:
 		case PSP_OP_RL_SIGPENDING:
 		case PSP_OP_RL_STACK:
+		    if (total) printf(" / ");
 		    if (options[i].value == -1) {
 			printf("unlimited");
 		    } else {
 			printf("%x", options[i].value);
 		    }
-		    if (!i) printf(" / ");
+		    break;
+		case PSP_OP_CPUMAP:
+		    if (total) printf(" ");
+		    printf("%d", options[i].value);
 		    break;
 		case PSP_OP_UNKNOWN:
 		    printf("unknown option");
+		case PSP_OP_LISTEND:
 		    goto next_node;
 		    break;
 		default:
 		    printf("unknown type %x", options[i].option);
 		    goto next_node;
 		}
-	    }
-	    if (options[i].option == PSP_OP_LISTEND
-		|| options[i].option != type) {
-		break;
 	    }
 	} while (1);
     next_node:

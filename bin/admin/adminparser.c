@@ -765,6 +765,12 @@ static int setShowBindMem(char *token)
     return 0;
 }
 
+static int setShowCPUMap(char *token)
+{
+    setShowOpt = PSP_OP_CPUMAP;
+    return 0;
+}
+
 static int setShowAccounter(char *token)
 {
     setShowOpt = PSP_OP_ACCT;
@@ -884,6 +890,7 @@ static keylist_t setShowList[] = {
     {"starter", setShowStarter},
     {"pinprocs", setShowPinProcs},
     {"bindmem", setShowBindMem},
+    {"cpumap", setShowCPUMap},
     {"accounters", setShowAccounter},
     {"rl_as", setShowRL_AS},
     {"rl_addressspace", setShowRL_AS},
@@ -953,13 +960,54 @@ static keylist_t sort_list[] = {
 static parser_t sort_parser = {" \t\n", sort_list};
 
 
+static PSIADM_valList_t *cpusFromString(char *valStr)
+{
+    PSIADM_valList_t *valList = malloc(sizeof(*valList));
+    char *start=valStr, *end;
+    size_t maxCPUs = 32;
+
+    if (!valList) goto error;
+    valList->num = 0;
+    valList->value = malloc(maxCPUs*sizeof(*valList->value));
+    if (!valList->value) goto error;
+
+    if (!valStr) goto error;
+
+    while (*start) {
+	long val;
+
+	val = strtol(start, &end, 10);
+	if (start==end || (*end && !isspace(*end))) goto error;
+	
+	valList->value[valList->num++] = val;
+	if (valList->num == maxCPUs) {
+	    maxCPUs *= 2;
+	    valList->value = realloc(valList->value,
+				     maxCPUs*sizeof(*valList->value));
+	    if (!valList->value) goto error;
+	}
+
+	start=end;
+	while (isspace(*start)) start++;
+    }
+    return valList;
+
+ error:
+    if (valList) {
+	if (valList->value) free(valList->value);
+	free(valList);
+    }
+    return NULL;
+}
+
 static int setCommand(char *token)
 {
     char *what = parser_getString();
-    char *value = parser_getString();
+    char *value = parser_getQuotedString();
     char *nl_descr = parser_getString();
     char *nl = defaultNL;
     long val;
+    PSIADM_valList_t *valList = NULL;
 
     if (!what || !value) goto error;
 
@@ -1064,6 +1112,13 @@ static int setCommand(char *token)
 	}
 	val = sortMode;
 	break;
+    case PSP_OP_CPUMAP:
+	valList = cpusFromString(value);
+	if (!valList) {
+	    printf("Illegal value '%s' for CPU-map\n", value);
+	    goto error;
+	}
+	break;
     default:
 	goto error;
     }
@@ -1075,7 +1130,41 @@ static int setCommand(char *token)
 
     if (parser_getString()) goto error;
 
-    PSIADM_SetParam(setShowOpt, val, nl);
+    switch (setShowOpt) {
+    case PSP_OP_PROCLIMIT:
+    case PSP_OP_UID:
+    case PSP_OP_ADMUID:
+    case PSP_OP_GID:
+    case PSP_OP_ADMGID:
+    case PSP_OP_PSIDDEBUG:
+    case PSP_OP_PSIDSELECTTIME:
+    case PSP_OP_RDPDEBUG:
+    case PSP_OP_RDPPKTLOSS:
+    case PSP_OP_RDPMAXRETRANS:
+    case PSP_OP_MCASTDEBUG:
+    case PSP_OP_OVERBOOK:
+    case PSP_OP_FREEONSUSP:
+    case PSP_OP_HANDLEOLD:
+    case PSP_OP_EXCLUSIVE:
+    case PSP_OP_RUNJOBS:
+    case PSP_OP_STARTER:
+    case PSP_OP_PINPROCS:
+    case PSP_OP_BINDMEM:
+    case PSP_OP_NODESSORT:
+	PSIADM_SetParam(setShowOpt, val, nl);
+	break;
+    case PSP_OP_CPUMAP:
+	PSIADM_SetParamList(setShowOpt, valList, nl);
+	break;
+    default:
+	goto error;
+    }
+
+    if (valList) {
+	if (valList->value) free(valList->value);
+	free(valList);
+    }
+
     return 0;
 
  error:
@@ -1141,6 +1230,7 @@ static int showCommand(char *token)
     case PSP_OP_RL_RSS:
     case PSP_OP_RL_SIGPENDING:
     case PSP_OP_RL_STACK:
+    case PSP_OP_CPUMAP:
 	PSIADM_ShowParamList(setShowOpt, nl);
 	break;
     default:

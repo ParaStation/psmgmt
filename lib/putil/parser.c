@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -263,6 +263,24 @@ void parser_commentCont(parser_log_key_t key, char *format, ...)
 char *parser_getString(void)
 {
     return strtok_r(NULL, " \t\n", &strtok_work);
+}
+
+char *parser_getQuotedString(void)
+{
+    char delim[]=" \t\n";
+    while (*strtok_work==' ' || *strtok_work=='\t' || *strtok_work=='\n') {
+	strtok_work++;
+    }
+    if (*strtok_work=='\"' || *strtok_work=='\'') {
+	delim[0]=*strtok_work; delim[1]='\0';
+	strtok_work++;
+    }
+    /* Test for empty quoted string */
+    if (!isspace(*delim) && *strtok_work==*delim) {
+	strtok_work++;
+	return "";
+    }
+    return strtok_r(NULL, delim, &strtok_work);
 }
 
 char *parser_getLine(void)

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -324,6 +324,35 @@ void PSIADM_VersionStat(char *nl);
  * @return No return value.
  */
 void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl);
+
+/**
+ * Structure for option-values to be send in a series of messages.
+ */
+typedef struct {
+    size_t num;           /**< The number of valid entries in @a value */
+    PSP_Optval_t *value;  /**< The actual option-values to be sent */
+} PSIADM_valList_t;
+
+/**
+ * @brief Set list of parameters
+ *
+ * Set various parameters of type @a type to the values stored within
+ * @a val on the nodes marked within the nodelist @a nl. The
+ * parameters are send in a series of as few messages of type @ref
+ * PSP_CD_SETOPTION as possible.
+ *
+ * This is mainly used to set and modify the cpumaps.
+ *
+ * @param type The parameter type to set.
+ *
+ * @param val The parameter values to set.
+ *
+ * @param nl The nodelist describing the nodes on which the parameter
+ * should be set.
+ *
+ * @return No return value.
+ */
+void PSIADM_SetParamList(PSP_Option_t type, PSIADM_valList_t *val, char *nl);
 
 /**
  * @brief Show parameter

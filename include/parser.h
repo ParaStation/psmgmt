@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -336,6 +336,19 @@ void parser_commentCont(parser_log_key_t key, char* format, ...);
  * @return The result of strtok(NULL, " \t\n") is returned.
  */
 char* parser_getString(void);
+
+/**
+ * @brief Get a quoted of whitespace delemited string.
+ *
+ * Get a quoted or whitespace delemited string from the character
+ * array passed to @ref parser_parseString(). Depending on the first
+ * non-whitespace character this is done via strtok(NULL, " \t\n"),
+ * strtok(NULL, "\"") or strtok(NULL, "\'").
+ *
+ * @return The result of strtok(NULL, " \t\n"), strtok(NULL, "\"") or
+ * strtok(NULL, "\'") is returned.
+ */
+char* parser_getQuotedString(void);
 
 /**
  * @brief Get the rest of the string to parse.
