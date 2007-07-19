@@ -263,7 +263,7 @@ static void execClient(PStask_t *task)
 {
     /* logging is done via the forwarder thru stderr! */
     struct stat sb;
-    int i, execFound = 0;
+    int execFound = 0;
     char *executable;
 
     /* change the gid */
@@ -300,15 +300,6 @@ static void execClient(PStask_t *task)
 	    fprintf(stderr, "Cannot determine home directory\n");
 	    exit(0);
 	}	    
-    }
-
-    /* set some environment variables */
-    setenv("PWD", task->workingdir, 1);
-
-    if (task->environ) {
-	for (i=0; task->environ[i]; i++) {
-	    putenv(strdup(task->environ[i]));
-	}
     }
 
     /* @todo Don't set environment but do real pinning */
@@ -577,6 +568,17 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 		    exit(1);
 		}
 	    }
+	}
+    }
+
+    /* set some environment variables */
+    /* this is done here in order to pass it to the forwarder, too */
+    setenv("PWD", task->workingdir, 1);
+
+    if (task->environ) {
+	int i;
+	for (i=0; task->environ[i]; i++) {
+	    putenv(strdup(task->environ[i]));
 	}
     }
 
