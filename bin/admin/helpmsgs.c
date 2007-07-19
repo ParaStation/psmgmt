@@ -240,7 +240,7 @@ static info_t setInfo = {
 	" | {freeonsuspend|fos} <bool> | {handleoldbins|hob} <bool>"
 	" | starter <bool> | runjobs <bool> | overbook {<bool>|auto}"
 	" | exclusive <bool> | pinprocs <bool> | bindmem <bool> "
-	" | nodessort <mode> | adminuser [+|-]{<user>|any}"
+	" | cpumap <map> | nodessort <mode> | adminuser [+|-]{<user>|any}"
 	" | admingroup [+|-]{<group>|any}} <nodes>"
     }},
     .nodes = 1,
@@ -327,6 +327,14 @@ static info_t setInfo = {
 	  .descr = "Set flag marking if this nodes will use memory-binding"
 	  " as NUMA policy. Relevant values are 'false', 'true',"
 	  " 'no', 'yes', 0 or different from 0." },
+	{ .tag = "set cpumap <map>",
+	  .descr = "Set the map used to assign CPU-slots to physical cores"
+	  " to <map>. <map> is a quoted string containing a space-separated"
+	  " permutation of the number 0 to <Ncore>-1. Here <Ncore> is the"
+	  " number of physical cores available on this node. The number of"
+	  " cores within a distinct node may be determined via 'list hw'."
+	  " The first number in <map> is the number of the physical core the"
+	  " first CPU-slot will be mapped to, and so on." },
 	{ .tag = "set nodessort <mode>",
 	  .descr = "Define the default sorting strategy for nodes when"
 	  " attaching them to a partition. Valid values for <mode> are"
@@ -360,10 +368,11 @@ static info_t showInfo = {
 	" | rdppktloss | rdpmaxretrans | mcastdebug | master"
 /* 	" | {smallpacketsize|sps} | {resendtimeout|rto} | hnpend | ackpend" */
 	" | {freeonsuspend|fos} | {handleoldbins|hob} | starter | runjobs"
-	" | overbook | exclusive | pinprocs | bindmem | nodessort | adminuser"
-	" | admingroup | accounters | rl_{addressspace|as} | rl_core | rl_cpu"
-	" | rl_data | rl_fsize | rl_locks | rl_memlock | rl_msgqueue"
-	" | rl_nofile | rl_nproc | rl_rss | rl_sigpending | rl_stack }"
+	" | overbook | exclusive | pinprocs | bindmem | cpumap | nodessort"
+	" | adminuser | admingroup | accounters | rl_{addressspace|as}"
+	" | rl_core | rl_cpu | rl_data | rl_fsize | rl_locks | rl_memlock"
+	" | rl_msgqueue | rl_nofile | rl_nproc | rl_rss | rl_sigpending"
+	" | rl_stack }"
 	" <nodes>"
     }},
     .nodes = 1,
@@ -418,8 +427,11 @@ static info_t showInfo = {
 	{ .tag = "show pinproc",
 	  .descr = "Show flag marking if this nodes uses process pinning." },
 	{ .tag = "show bindmem",
-	  .descr = "Show flag marking if this nodes usue binding as NUMA"
+	  .descr = "Show flag marking if this nodes uses binding as NUMA"
 	  " policy." },
+	{ .tag = "show cpumap",
+	  .descr = "Show the map assigning CPU-slots to physical cores on"
+	  " this node." },
 	{ .tag = "show nodessort",
 	  .descr = "Show the default sorting strategy used when attaching"
 	  " nodes to partitions." },
