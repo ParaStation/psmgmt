@@ -868,9 +868,12 @@ static int releaseSignal(PStask_ID_t sender, PStask_ID_t receiver, int sig)
  */
 static int releaseTask(DDSignalMsg_t *msg)
 {
-    PStask_ID_t tid = msg->header.sender;
+    PStask_ID_t tid = msg->header.dest;
     PStask_t *task;
     int ret;
+
+    /* sender might have been the forwarder */
+    msg->header.sender = tid;
 
     task = PStasklist_find(managedTasks, tid);
     if (task) {
@@ -882,7 +885,7 @@ static int releaseTask(DDSignalMsg_t *msg)
 	task->released = 1;
 
 	if (task->ptid) {
-	    /* notify parent to released tid there, too */
+	    /* notify parent to release task there, too */
 	    if (PSC_getID(task->ptid) == PSC_getMyID()) {
 		/* parent task is local */
 		ret = releaseSignal(task->ptid, tid, -1);
@@ -972,45 +975,61 @@ static void msg_RELEASE(DDSignalMsg_t *msg)
 
     PSID_log(PSID_LOG_SIGNAL, "%s(%s)\n", __func__, PSC_printTID(tid));
 
-    if (registrarTid==tid) {
-	/* Special case: Whole task wants to get released */
-	PStask_t *task;
-	int ret = releaseTask(msg);
-
-	msg->header.type = PSP_CD_RELEASERES;
-	msg->header.dest = msg->header.sender;
-	msg->header.sender = tid;
-	/* Do not set msg->header.len! Length of DDSignalMsg_t has changed */
-	msg->param = ret;
-
-	task = PStasklist_find(managedTasks, tid);
-
-	if (!msg->param && task && task->pendingReleaseRes) {
-	    /*
-	     * RELEASERES message pending, RELEASERES to initiatior
-	     * will be sent by msg_RELEASERES()
-	     */
-	    return;
-	}
-    } else if (PSC_getID(tid) == PSC_getMyID()) {
-	/* receiving task (task to release) is local */
-	msg->header.type = PSP_CD_RELEASERES;
-	msg->header.dest = msg->header.sender;
-	msg->header.sender = tid;
-	msg->param = releaseSignal(tid, registrarTid, msg->signal);
-    } else {
+    if (PSC_getID(tid) != PSC_getMyID()) {
 	/* receiving task (task to release) is remote, send a message */
 	PSID_log(PSID_LOG_SIGNAL, "%s: forwarding to node %d\n", __func__,
 		 PSC_getID(tid));
-    }
+    } else {
+	PStask_t *task = PStasklist_find(managedTasks, tid);
 
+	if (!task) {
+	    PSID_log(-1, "%s(%s): no task\n", __func__, PSC_printTID(tid));
+
+	    msg->header.type = PSP_CD_RELEASERES;
+	    msg->header.dest = msg->header.sender;
+	    msg->header.sender = tid;
+	    msg->param = ESRCH;
+	} else if (registrarTid==tid
+		   || (registrarTid==task->forwardertid && task->fd==-1)) {
+	    /* Special case: Whole task wants to get released */
+	    int ret = releaseTask(msg);
+
+	    msg->header.type = PSP_CD_RELEASERES;
+	    msg->header.dest = msg->header.sender;
+	    msg->header.sender = tid;
+	    /* Do not set msg->header.len!
+	       Length of DDSignalMsg_t has changed */
+	    msg->param = ret;
+
+	    if (!msg->param && task && task->pendingReleaseRes) {
+		/*
+		 * RELEASERES message pending, RELEASERES to initiatior
+		 * will be sent by msg_RELEASERES()
+		 */
+		return;
+	    }
+	} else if (registrarTid==task->forwardertid && task->fd!=-1) {
+	    /* message from forwarder while client is connected */
+	    msg->header.type = PSP_CD_RELEASERES;
+	    msg->header.dest = msg->header.sender;
+	    msg->header.sender = tid;
+	    /* just ignore and ack this message */
+	    msg->param = 0;
+	} else {
+	    /* receiving task (task to release) is local */
+	    msg->header.type = PSP_CD_RELEASERES;
+	    msg->header.dest = msg->header.sender;
+	    msg->header.sender = tid;
+	    msg->param = releaseSignal(tid, registrarTid, msg->signal);
+	}
+    }
     sendMsg(msg);
 }
 
 /**
  * @brief Handle a PSP_CD_RELEASERES message.
  *
- * Handle the message @a msg of type PSP_CD_RELEASE.
+ * Handle the message @a msg of type PSP_CD_RELEASERES.
  *
  * The message will be forwarded to its final destination, which
  * usually is a client of the local daemon, unless there are pending
