@@ -29,7 +29,9 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #define __USE_GNU
 #include <sched.h>
 #undef __USE_GNU
+#ifdef HAVE_LIBNUMA
 #include <numa.h>
+#endif
 
 #include "pscommon.h"
 
@@ -260,6 +262,7 @@ static void bindToNode(short physCPU)
 	fprintf(stderr, "Mapped CPU %d out of range. No binding\n", physCPU);
 	return;
     }
+#ifdef HAVE_LIBNUMA
     if (!numa_available()) {
 	fprintf(stderr, "NUMA not available. No binding\n");
 	return;
@@ -290,6 +293,9 @@ static void bindToNode(short physCPU)
     nodemask_zero(&nodeset);
     nodemask_set(&nodeset, node);
     numa_bind(&nodeset);
+#else
+    fprintf(stderr, "Daemon not build against libnuma. No binding\n");
+#endif
 }
 
 /**

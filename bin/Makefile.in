@@ -11,8 +11,13 @@
 #         Norbert Eicker <eicker@par-tec.de>
 #############################################################################
 
+NUMALIB=@NUMALIB@
+
 CFLAGS += -O2 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
 CPPFLAGS += -I@top_srcdir@/include -I. @CPPFLAG_MMD@
+ifeq ($(NUMALIB),yes)
+CPPFLAGS += -DHAVE_LIBNUMA
+endif
 LIB_DIRNAME:=@LIB_DIRNAME@
 SRCDIR = @srcdir@
 TOP_SRCDIR = @top_srcdir@
@@ -79,7 +84,10 @@ psid: psidutil.o psidtask.o psidspawn.o psidforwarder.o
 psid: psidsignal.o psidmsgbuf.o psidrdp.o psidclient.o psidcomm.o
 psid: psidinfo.o psidoption.o psidpartition.o psidstatus.o psidhw.o
 psid: psidaccount.o psidnodes.o
-psid: LOADLIBES:=$(LOADLIBES) -lm -lutil -lpslog -lnuma
+psid: LOADLIBES:=$(LOADLIBES) -lm -lutil -lpslog
+ifeq ($(NUMALIB),yes)
+psid: LOADLIBES:=$(LOADLIBES) -lnuma
+endif
 
 test_config: psidnodes.o
 
