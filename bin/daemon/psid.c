@@ -995,7 +995,7 @@ static void msg_RELEASE(DDSignalMsg_t *msg)
 	    int ret = releaseTask(msg);
 
 	    msg->header.type = PSP_CD_RELEASERES;
-	    msg->header.dest = msg->header.sender;
+	    msg->header.dest = registrarTid;
 	    msg->header.sender = tid;
 	    /* Do not set msg->header.len!
 	       Length of DDSignalMsg_t has changed */
@@ -1076,6 +1076,9 @@ static void msg_RELEASERES(DDSignalMsg_t *msg)
 		 "%s: sig %d: sending msg to local parent %s\n", __func__,
 		 msg->signal, PSC_printTID(tid));
     }
+
+    /* If task is not connected, origi of RELEASE message was forwarder */
+    if (task->fd == -1) msg->header.dest = task->forwardertid;
 
     /* send the initiator a result msg */
     sendMsg(msg);
