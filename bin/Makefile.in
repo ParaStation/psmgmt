@@ -79,7 +79,7 @@ psid: psidutil.o psidtask.o psidspawn.o psidforwarder.o
 psid: psidsignal.o psidmsgbuf.o psidrdp.o psidclient.o psidcomm.o
 psid: psidinfo.o psidoption.o psidpartition.o psidstatus.o psidhw.o
 psid: psidaccount.o psidnodes.o
-psid: LOADLIBES:=$(LOADLIBES) -lm -lutil -lpslog
+psid: LOADLIBES:=$(LOADLIBES) -lm -lutil -lpslog -lnuma
 
 test_config: psidnodes.o
 

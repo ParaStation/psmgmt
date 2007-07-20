@@ -26,6 +26,10 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <pty.h>
 #include <signal.h>
 #include <syslog.h>
+#define __USE_GNU
+#include <sched.h>
+#undef __USE_GNU
+#include <numa.h>
 
 #include "pscommon.h"
 
@@ -237,6 +241,114 @@ static void pty_make_controlling_tty(int *ttyfd, const char *tty)
 }
 
 /**
+ * @brief Bind process to node
+ *
+ * Bind the current process to the NUMA node which contains the core
+ * @a physCPU.
+ *
+ * @param physCPU A physical core. The process is bound to the NUMA
+ * node containing this core.
+ *
+ * @return No return value.
+ */
+static void bindToNode(short physCPU)
+{
+    int node;
+    nodemask_t nodeset;
+
+    if (physCPU < 0 || physCPU >= PSIDnodes_getPhysCPUs(PSC_getMyID())) {
+	fprintf(stderr, "Mapped CPU %d out of range. No binding\n", physCPU);
+	return;
+    }
+    if (!numa_available()) {
+	fprintf(stderr, "NUMA not available. No binding\n");
+	return;
+    }
+
+    /* Try to determine the node */
+    for (node=0; node<=numa_max_node(); node++) {
+	cpu_set_t CPUset;
+	int ret = numa_node_to_cpus(node,
+				    (unsigned long*)&CPUset, sizeof(CPUset));
+	if (ret) {
+	    if (errno==ERANGE) {
+		fprintf(stderr, "cpu_set_t to small for numa_node_to_cpus()");
+	    } else {
+		perror("numa_node_to_cpus()");
+	    }
+	    fprintf(stderr, "No binding\n");
+	    return;
+	}
+	if (CPU_ISSET(physCPU, &CPUset)) break;
+    }
+    if (node > numa_max_node()) {
+	fprintf(stderr, "Mapped CPU %d not found within NUMA nodes."
+		" No binding\n", physCPU);
+	return;
+    }
+
+    nodemask_zero(&nodeset);
+    nodemask_set(&nodeset, node);
+    numa_bind(&nodeset);
+}
+
+/**
+ * @brief Pin process to core
+ *
+ * Pin the process to the physical core @a physCPU.
+ *
+ * @param physCPU The physical core the process is pinned to.
+ *
+ * @return No return value.
+ */
+static void pinToCPU(short physCPU)
+{
+    cpu_set_t CPUset;
+
+    if (physCPU < 0 || physCPU >= PSIDnodes_getPhysCPUs(PSC_getMyID())) {
+	fprintf(stderr, "Mapped CPU %d out of range. No pinning\n", physCPU);
+	return;
+    }
+
+    CPU_ZERO(&CPUset);
+    CPU_SET(physCPU, &CPUset);
+    sched_setaffinity(0, sizeof(CPUset), &CPUset);
+}
+
+/**
+ * @brief Do various process clamps.
+ *
+ * Pin process to physical core @a physCPU and bind it to the NUMA
+ * node containing this physical core if demanded on the local
+ * node. Therefore @ref pinToCPU() and @ref bindToNode() are called
+ * respectively.
+ *
+ * @param cpuSlots The physical core to pin and bind to.
+ *
+ * @return No return value.
+ *
+ * @see bindToNode(), pinToCPU()
+ */
+static void doClamps(short cpuSlot)
+{
+    short physCPU;
+
+    switch (cpuSlot) {
+    case -2:
+	fprintf(stderr, "CPU slot not set. Old executable? "
+		"You might want to relink your program.\n");
+	break;
+    case -1:
+	/* No mapping */
+	break;
+    default:
+	physCPU = PSIDnodes_mapCPU(PSC_getMyID(), cpuSlot);
+	if (PSIDnodes_bindMem(PSC_getMyID())) bindToNode(physCPU);
+	if (PSIDnodes_pinProcs(PSC_getMyID())) pinToCPU(physCPU);
+    }
+}
+
+/**
  * @brief Actually start the client process.
  *
  * This function actually sets up the client process as described
@@ -303,11 +415,14 @@ static void execClient(PStask_t *task)
     }
 
     /* @todo Don't set environment but do real pinning */
-    {
+    if (1) {
 	char cpu[20];
 	snprintf(cpu, sizeof(cpu), "%d", task->cpu);
 	setenv("PSID_CPU_PINNING", cpu, 1);
     }
+
+    doClamps(task->cpu);
+
 
     if (!task->argv[0]) {
 	fprintf(stderr, "No argv[0] given!\n");
