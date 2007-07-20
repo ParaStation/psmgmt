@@ -255,8 +255,10 @@ static void pty_make_controlling_tty(int *ttyfd, const char *tty)
  */
 static void bindToNode(short physCPU)
 {
+#ifdef HAVE_LIBNUMA
     int node;
     nodemask_t nodeset;
+#endif
 
     if (physCPU < 0 || physCPU >= PSIDnodes_getPhysCPUs(PSC_getMyID())) {
 	fprintf(stderr, "Mapped CPU %d out of range. No binding\n", physCPU);
