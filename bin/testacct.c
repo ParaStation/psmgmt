@@ -92,11 +92,11 @@ void handleAcctMsg(DDTypedBufferMsg_t *msg)
     rank = *(int32_t *)ptr;
     ptr += sizeof(int32_t);
 
-    /* childs uid */
+    /* child's uid */
     uid = *(uid_t *)ptr;
     ptr += sizeof(uid_t);
 
-    /* childs gid */
+    /* child's gid */
     gid = *(gid_t *)ptr;
     ptr += sizeof(gid_t);
 

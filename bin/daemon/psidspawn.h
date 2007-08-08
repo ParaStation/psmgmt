@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -113,6 +113,23 @@ void msg_SPAWNFAILED(DDErrorMsg_t *msg);
  * @return No return value.
  */
 void msg_SPAWNFINISH(DDMsg_t *msg);
+
+/**
+ * @brief Handle a PSP_DD_CHILDDEAD message.
+ *
+ * Handle the message @a msg of type PSP_DD_CHILDDEAD.
+ *
+ * This type of message is created by the forwarder process to inform
+ * the local daemon on the dead of the controlled client process. This
+ * might result in sending pending signals, deregistering the task,
+ * etc. Additionally the message will be forwarded to the daemon
+ * controlling the parent task in order to take according measures.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+void msg_CHILDDEAD(DDErrorMsg_t *msg);
 
 #ifdef __cplusplus
 }/* extern "C" */

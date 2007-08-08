@@ -51,6 +51,12 @@ extern "C" {
 /** Messages between daemon and the daemon forwarder part */
 #define PSP_DD_CHILDDEAD           0x0110  /**< Tell a child has finished */
 
+/** Messages used to propagate kinship */
+#define PSP_DD_NEWCHILD            0x0118  /**< Tell task about grandchild
+					      inherited from it's child */
+#define PSP_DD_NEWPARENT           0x0119  /**< Tell task about grandparent
+					      since parent died gracefully */
+
 /** Messages between daemon and master */
 #define PSP_DD_GETPART             0x0120  /**< Get partition from master */
 #define PSP_DD_GETPARTNL           0x0121  /**< Partition request nodelist */

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -90,12 +90,12 @@ void registerClient(int fd, PStask_ID_t tid, PStask_t *task)
 	ptr += sizeof(int32_t);
 	msg.header.len += sizeof(int32_t);
 
-	/* childs uid */
+	/* child's uid */
 	*(uid_t *)ptr = task->uid;
 	ptr += sizeof(uid_t);
 	msg.header.len += sizeof(uid_t);
 
-	/* childs gid */
+	/* child's gid */
 	*(gid_t *)ptr = task->gid;
 	ptr += sizeof(gid_t);
 	msg.header.len += sizeof(gid_t);
@@ -466,12 +466,12 @@ void deleteClient(int fd)
 	ptr += sizeof(int32_t);
 	msg.header.len += sizeof(int32_t);
 
-	/* childs uid */
+	/* child's uid */
 	*(uid_t *)ptr = task->uid;
 	ptr += sizeof(uid_t);
 	msg.header.len += sizeof(uid_t);
 
-	/* childs gid */
+	/* child's gid */
 	*(gid_t *)ptr = task->gid;
 	ptr += sizeof(gid_t);
 	msg.header.len += sizeof(gid_t);

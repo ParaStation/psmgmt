@@ -600,12 +600,12 @@ static void sighandler(int sig)
 	    ptr += sizeof(int32_t);
 	    msg.header.len += sizeof(int32_t);
 
-	    /* childs uid */
+	    /* child's uid */
 	    *(uid_t *)ptr = childTask->uid;
 	    ptr += sizeof(uid_t);
 	    msg.header.len += sizeof(uid_t);
 
-	    /* childs gid */
+	    /* child's gid */
 	    *(gid_t *)ptr = childTask->gid;
 	    ptr += sizeof(gid_t);
 	    msg.header.len += sizeof(gid_t);

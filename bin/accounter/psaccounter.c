@@ -14,7 +14,7 @@
  * $Id$ 
  *
  * \author
- * Rauh Michael <rauh@par-tec.com>
+ * Michael Rauh <rauh@par-tec.com>
  * Norbert Eicker <eicker@par-tec.com>
  * Ralph Krotz <krotz@par-tec.com>
  */
@@ -499,11 +499,11 @@ void handleAccQueueMsg(char *chead, char *ptr, PStask_ID_t logger)
     /* current rank */
     ptr += sizeof(int32_t);
 
-    /* childs uid */
+    /* child's uid */
     job->uid = *(uid_t *) ptr;
     ptr += sizeof(uid_t);
 
-    /* childs gid */
+    /* child's gid */
     job->gid = *(gid_t *) ptr;
     ptr += sizeof(gid_t);
 
@@ -556,11 +556,11 @@ void handleAccStartMsg(char *ptr, PStask_ID_t key)
     /* current rank */
     ptr += sizeof(int32_t);
 
-    /* childs uid */
+    /* child's uid */
     ptr += sizeof(uid_t);
     spasswd = getpwuid(job->uid);
 
-    /* childs gid */
+    /* child's gid */
     ptr += sizeof(gid_t);
     sgroup = getgrgid(job->gid);
 
@@ -609,11 +609,11 @@ void handleAccEndMsg(char *chead, char *ptr, PStask_ID_t sender,
 	/* current rank */
 	ptr += sizeof(int32_t);
 
-	/* childs uid */
+	/* child's uid */
 	ptr += sizeof(uid_t);
 	spasswd = getpwuid(job->uid);
 
-	/* childs gid */
+	/* child's gid */
 	ptr += sizeof(gid_t);
 	sgroup = getgrgid(job->gid);
 

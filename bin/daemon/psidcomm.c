@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -238,6 +238,19 @@ void handleDroppedMsg(DDMsg_t *msg)
 		declareMaster(PSC_getMyID());
 	    }
 	}
+	break;
+    case PSP_DD_NEWCHILD:
+    case PSP_DD_NEWPARENT:
+	sigmsg.header.type = PSP_CD_RELEASERES;
+	sigmsg.header.dest = msg->sender;
+	sigmsg.header.sender = PSC_getMyTID();
+	sigmsg.header.len = msg->len;
+
+	sigmsg.signal = -1;
+	sigmsg.param = EHOSTUNREACH;
+	sigmsg.pervasive = 0;
+
+	sendMsg(&sigmsg);
 	break;
     case PSP_CD_SIGNAL:
 	if (((DDSignalMsg_t *)msg)->answer) {

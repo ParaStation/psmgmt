@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -151,11 +151,99 @@ void PSID_sendSignalsToRelatives(PStask_t *task);
  * signal is also forwarded to all child processes of the receiving
  * process, local or remote.
  *
- * @param inmsg Pointer to the message to handle.
+ * @param msg Pointer to the message to handle.
  *
  * @return No return value.
  */
 void msg_SIGNAL(DDSignalMsg_t *msg);
+
+/**
+ * @brief Handle a PSP_CD_NOTIFYDEAD message.
+ *
+ * Handle the message @a msg of type PSP_CD_NOTIFYDEAD.
+ *
+ * With this kind of message the sender requests to get receive the
+ * signal defined within the message as soon as the recipient task
+ * dies. Therefore the corresponding information is store in two
+ * locations, within the controlled task and within the requester
+ * task.
+ *
+ * The result, i.e. if registering the signal was successful, is sent
+ * back to the requester within a answering PSP_CD_NOTIFYDEADRES
+ * message.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+void msg_NOTIFYDEAD(DDSignalMsg_t *msg);
+
+/**
+ * @brief Handle a PSP_CD_NOTIFYDEADRES message.
+ *
+ * Handle the message @a msg of type PSP_CD_NOTIFYDEADRES.
+ *
+ * The message will be forwarded to its final destination, which
+ * usually is a client of the local daemon.
+ *
+ * Furthermore this client task will be marked to expect the
+ * corresponding signal.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+void msg_NOTIFYDEADRES(DDSignalMsg_t *msg);
+
+/**
+ * @brief Handle a PSP_CD_RELEASE message.
+ *
+ * Handle the message @a msg of type PSP_CD_RELEASE.
+ *
+ * The actual task to be done is to release a task, i.e. to tell the
+ * task not to send a signal to the sender upon exit.
+ *
+ * Two different cases have to be distinguished:
+ *
+ * - The releasing task will release a different task, which might be
+ * local or remote. In the latter case, the message @a msg will be
+ * forwarded to the corresponding daemon.
+ * 
+ * - The task to release is identical to the releasing tasks. This
+ * special case tells the local daemon to expect the corresponding
+ * process to disappear, i.e. not to signal the parent task upon exit
+ * as long as no error occured. The corresponding action are
+ * undertaken within the @ref releaseTask() function called.
+ *
+ * In all cases adequate PSP_CD_RELEASERES message are send to the
+ * task requesting the release.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+void msg_RELEASE(DDSignalMsg_t *msg);
+
+/**
+ * @brief Handle a PSP_CD_RELEASERES message.
+ *
+ * Handle the message @a msg of type PSP_CD_RELEASERES.
+ *
+ * The message will be forwarded to its final destination, which
+ * usually is a client of the local daemon, unless there are further
+ * pending PSP_CD_RELEASERES messages to the same client. In this
+ * case, the current message @a msg is thrown away. Only the last
+ * message will be actually delivered to the client requesting for
+ * release.
+ *
+ * Furthermore this client task will be marked to not expect the
+ * corresponding signal any longer.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+void msg_RELEASERES(DDSignalMsg_t *msg);
 
 /**
  * @brief Handle a PSP_CD_WHODIED message.
@@ -168,11 +256,50 @@ void msg_SIGNAL(DDSignalMsg_t *msg);
  * up within this function. The result is sent back to the requester
  * within a answering PSP_CD_WHODIED message.
  *
- * @param inmsg Pointer to the message to handle.
+ * @param msg Pointer to the message to handle.
  *
  * @return No return value.
  */
 void msg_WHODIED(DDSignalMsg_t *msg);
+
+/**
+ * @brief Handle a PSP_DD_NEWPARENT message.
+ *
+ * Handle the message @a msg of type PSP_DD_NEWPARENT.
+ *
+ * This kind of message is send to a task's child in order to update
+ * the information concerning the parent task. From now on the
+ * receiving task will handle its grandparent as its own parent,
+ * i.e. it will send and expect signals if one of the corresponding
+ * processes dies.
+ *
+ * In all cases adequate PSP_CD_RELEASERES message are send to the
+ * task requesting passing over their child.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+void msg_NEWPARENT(DDErrorMsg_t *msg);
+
+/**
+ * @brief Handle a PSP_DD_NEWCHILD message.
+ *
+ * Handle the message @a msg of type PSP_DD_NEWCHILD.
+ *
+ * This kind of message is send to a task's parent task in order to
+ * pass over a child. From now on the receiving task will handle its
+ * grandchild as its own child, i.e. it will send and expect signals
+ * if one of the corresponding processes dies.
+ *
+ * In all cases adequate PSP_CD_RELEASERES message are send to the
+ * task requesting passing over their child.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+void msg_NEWCHILD(DDErrorMsg_t *msg);
 
 #ifdef __cplusplus
 }/* extern "C" */
