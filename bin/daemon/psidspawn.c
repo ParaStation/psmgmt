@@ -1228,7 +1228,7 @@ static int spawnTask(PStask_t *task)
 	forwarder->argc = 0;
     }
     forwarder->group = TG_FORWARDER;
-    forwarder->protocolVersion = PSprotocolVersion;
+    forwarder->protocolVersion = PSProtocolVersion;
 
     /* now try to start the task */
     err = buildSandboxAndStart(forwarder, task);

@@ -33,7 +33,7 @@ extern "C" {
 #endif
 
 /** Unique version number of the high-level protocol */
-#define PSprotocolVersion 335
+#define PSProtocolVersion 335
 
 /** The location of the UNIX socket used to contact the daemon. */
 #define PSmasterSocketName "/var/run/parastation.sock"
@@ -80,6 +80,7 @@ typedef enum {
     PSP_OP_GIDLIMIT,              /**< gid the node is restricted to
 				     @deprecated */
     PSP_OP_MASTER = 0x0008,       /**< current master of the cluster */
+    PSP_OP_DAEMONPROTOVERSION,    /**< Node's PSDaemonProtocol version */
 
     PSP_OP_LISTEND = 0x000f,      /**< no further opts; UID,GID,ACCT,etc. */
 

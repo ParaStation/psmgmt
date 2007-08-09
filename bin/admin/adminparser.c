@@ -1452,7 +1452,7 @@ static int versionCommand(char *token)
     printf("\n");
     printf("PSIADMIN:   %s\b/ %s\b/ %s\b \b\b\n", psiadmversion+11,
 	   commandsversion+11, parserversion+11);
-    printf("PSProtocol: %d\n", PSprotocolVersion);
+    printf("PSProtocol: %d\n", PSProtocolVersion);
     printf("RPM:        %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
 
     err = PSI_infoString(-1, PSP_INFO_DAEMONVER, NULL, tmp, sizeof(tmp), 0);

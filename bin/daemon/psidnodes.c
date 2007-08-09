@@ -43,7 +43,8 @@ static struct host_t *hosts[256];
 /** Structure holding all known info available concerning a special node */
 typedef struct {
     in_addr_t addr;        /**< IP address of that node */
-    int protocolversion;   /**< Node's PSprotocol version */
+    int protoVer;          /**< Node's PSprotocol version */
+    int daemonProtoVer;    /**< Node's PSDaemonprotocol version */
     int version;           /**< Version of the config info from that node */
     short physCPU;         /**< Number of physical CPUs in that node */
     short virtCPU;         /**< Number of virtual CPUs in that node */
@@ -82,7 +83,8 @@ static node_t *nodes = NULL;
 static void nodeInit(node_t *node)
 {
     node->addr = INADDR_ANY;
-    node->protocolversion = 0;
+    node->protoVer = 0;
+    node->daemonProtoVer = 0;
     node->version = 0;
     node->physCPU = 0;
     node->virtCPU = 0;
@@ -268,24 +270,44 @@ int PSIDnodes_getInfoVersion(PSnodes_ID_t id)
 }
 
 /**********************************************************************/
-int PSIDnodes_setProtocolVersion(PSnodes_ID_t id, int version)
+int PSIDnodes_setProtoVersion(PSnodes_ID_t id, int version)
 {
     if (ID_ok(id)) {
-	nodes[id].protocolversion = version;
+	nodes[id].protoVer = version;
 	return 0;
     } else {
 	return -1;
     }
 }
 
-int PSIDnodes_getProtocolVersion(PSnodes_ID_t id)
+int PSIDnodes_getProtoVersion(PSnodes_ID_t id)
 {
     if (ID_ok(id)) {
-	return nodes[id].protocolversion;
+	return nodes[id].protoVer;
     } else {
 	return -1;
     }
 }
+
+int PSIDnodes_setDaemonProtoVersion(PSnodes_ID_t id, int version)
+{
+    if (ID_ok(id)) {
+	nodes[id].daemonProtoVer = version;
+	return 0;
+    } else {
+	return -1;
+    }
+}
+
+int PSIDnodes_getDaemonProtoVersion(PSnodes_ID_t id)
+{
+    if (ID_ok(id)) {
+	return nodes[id].daemonProtoVer;
+    } else {
+	return -1;
+    }
+}
+
 /**********************************************************************/
 
 int PSIDnodes_setHWType(PSnodes_ID_t id, int hwType)

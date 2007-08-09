@@ -22,6 +22,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #include "pscommon.h"
 #include "psprotocol.h"
+#include "psdaemonprotocol.h"
 #include "hardware.h"
 
 #include "psidutil.h"
@@ -50,7 +51,10 @@ void send_OPTIONS(PSnodes_ID_t destnode)
     msg.opt[(int) msg.count].value = PSIDnodes_getHWStatus(PSC_getMyID());
     msg.count++;
     msg.opt[(int) msg.count].option = PSP_OP_PROTOCOLVERSION;
-    msg.opt[(int) msg.count].value = PSprotocolVersion;
+    msg.opt[(int) msg.count].value = PSProtocolVersion;
+    msg.count++;
+    msg.opt[(int) msg.count].option = PSP_OP_DAEMONPROTOVERSION;
+    msg.opt[(int) msg.count].value = PSDaemonProtocolVersion;
     msg.count++;
     msg.opt[(int) msg.count].option = PSP_OP_PROCLIMIT;
     msg.opt[(int) msg.count].value = PSIDnodes_getProcs(PSC_getMyID());
@@ -583,8 +587,12 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 				      msg->opt[i].value);
 		break;
 	    case PSP_OP_PROTOCOLVERSION:
-		PSIDnodes_setProtocolVersion(PSC_getID(msg->header.sender),
+		PSIDnodes_setProtoVersion(PSC_getID(msg->header.sender),
 					     msg->opt[i].value);
+		break;
+	    case PSP_OP_DAEMONPROTOVERSION:
+		PSIDnodes_setDaemonProtoVersion(PSC_getID(msg->header.sender),
+						msg->opt[i].value);
 		break;
 	    case PSP_OP_PSIDDEBUG:
 		PSID_setDebugMask(msg->opt[i].value);
@@ -703,7 +711,11 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 	    }
 	    case PSP_OP_PROTOCOLVERSION:
 		msg->opt[out].value =
-		    PSIDnodes_getProtocolVersion(PSC_getMyID());
+		    PSIDnodes_getProtoVersion(PSC_getMyID());
+		break;
+	    case PSP_OP_DAEMONPROTOVERSION:
+		msg->opt[out].value =
+		    PSIDnodes_getDaemonProtoVersion(PSC_getMyID());
 		break;
 	    case PSP_OP_PSIDDEBUG:
 		msg->opt[out].value = PSID_getDebugMask();

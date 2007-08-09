@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -132,7 +132,7 @@ static int connectDaemon(PStask_group_t taskGroup)
     msg.header.sender = getpid();
     msg.header.dest = 0;
     msg.header.len = sizeof(msg);
-    msg.version = PSprotocolVersion;
+    msg.version = PSProtocolVersion;
     if (taskGroup == TG_SPAWNER || taskGroup == TG_PSCSPAWNER) {
 	msg.ppid = getpgrp();
     }
@@ -173,7 +173,7 @@ static int connectDaemon(PStask_group_t taskGroup)
 	    PSI_log(-1,
 		    "%s: Daemon (%u) does not support library version (%u)."
 		    " Pleases relink program\n",
-		    __func__, *(uint32_t*) answer.buf, PSprotocolVersion);
+		    __func__, *(uint32_t*) answer.buf, PSProtocolVersion);
 	    break;
 	case PSP_CONN_ERR_NOSPACE:
 	    PSI_log(-1, "%s: Daemon has no space available\n", __func__);

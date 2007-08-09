@@ -317,12 +317,28 @@ static void msg_DAEMONRESET(DDBufferMsg_t *msg)
 
 pid_t getpgid(pid_t); /* @todo HACK HACK HACK */
 
-/******************************************
- *  msg_CLIENTCONNECT()
- *   a client trys to connect to the daemon.
- *   accept the connection request if enough resources are available
+/**
+ * @brief Handle a PSP_CD_CLIENTCONNECT message.
+ *
+ * Handle the message @a msg of type PSP_CD_CLIENTCONNECT received
+ * from the file-descriptor @a fd.
+ *
+ * This kind of message is send by a client message in order to
+ * connect to the local daemon. It's should be the first message
+ * received from the client and will be used in order to identify and
+ * authenticate the client process.
+ *
+ * As a result either a PSP_CD_CLIENTESTABLISHED message will be send
+ * back to the client in order to accept the connection. Otherwise a
+ * PSP_CD_CLIENTREFUSED is delivered and the connection to the client
+ * is closed.
+ *
+ * @param fd The file descriptor the message was received from.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
  */
-/** @doctodo */
 static void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 {
     PStask_t *task;
@@ -495,11 +511,11 @@ static void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
     outmsg.type = PSP_CONN_ERR_NONE;
 
     /* Connection refused answer message */
-    if (msg->version < 324 || msg->version > PSprotocolVersion) {
+    if (msg->version < 324 || msg->version > PSProtocolVersion) {
 	/* @todo also handle the old protocol correctly, i.e. send
 	 * PSP_OLDVERSION message */
 	outmsg.type = PSP_CONN_ERR_VERSION;
-	*(uint32_t *)outmsg.buf = PSprotocolVersion;
+	*(uint32_t *)outmsg.buf = PSProtocolVersion;
 	outmsg.header.len += sizeof(uint32_t);
     } else if (!task) {
 	outmsg.type = PSP_CONN_ERR_NOSPACE;
@@ -527,7 +543,7 @@ static void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 		 "group %s task %s version %d vs. %d uid %d gid %d"
 		 " jobs %d %d\n",
 		 __func__, PStask_printGrp(msg->group),
-		 PSC_printTID(task->tid), msg->version, PSprotocolVersion,
+		 PSC_printTID(task->tid), msg->version, PSProtocolVersion,
 		 uid, gid,
 		 status.jobs.normal, PSIDnodes_getProcs(PSC_getMyID()));
 
@@ -1095,7 +1111,8 @@ static void setupMasterSock(void)
     chmod(sa.sun_path, S_IRWXU | S_IRWXG | S_IRWXO);
 
     PSID_log(-1, "Starting ParaStation DAEMON\n");
-    PSID_log(-1, "Protocol Version %d\n", PSprotocolVersion);
+    PSID_log(-1, "Protocol Version %d\n", PSProtocolVersion);
+    PSID_log(-1, "Daemon-Protocol Version %d\n", PSDaemonProtocolVersion);
     PSID_log(-1, " (c) ParTec Cluster Competence Center GmbH "
 	     "(www.par-tec.com)\n");
 
@@ -1330,7 +1347,8 @@ int main(int argc, const char *argv[])
 
 	openlog("psid", LOG_PID|LOG_CONS, config->logDest);
 	PSID_log(-1, "Starting ParaStation DAEMON\n");
-	PSID_log(-1, "Protocol Version %d\n", PSprotocolVersion);
+	PSID_log(-1, "Protocol Version %d\n", PSProtocolVersion);
+	PSID_log(-1, "Daemon-Protocol Version %d\n", PSDaemonProtocolVersion);
 	PSID_log(-1, " (c) ParTec Cluster Competence Center GmbH "
 		 "(www.par-tec.com)\n");
     }
@@ -1358,7 +1376,8 @@ int main(int argc, const char *argv[])
     /* Start up all the hardware */
     PSID_log(PSID_LOG_HW, "%s: starting up the hardware\n", __func__);
 
-    PSIDnodes_setProtocolVersion(PSC_getMyID(), PSprotocolVersion);
+    PSIDnodes_setProtoVersion(PSC_getMyID(), PSProtocolVersion);
+    PSIDnodes_setDaemonProtoVersion(PSC_getMyID(), PSDaemonProtocolVersion);
     PSIDnodes_setHWStatus(PSC_getMyID(), 0);
     PSID_startAllHW();
 

@@ -145,7 +145,7 @@ int PSIDnodes_isUp(PSnodes_ID_t id);
  *
  * @return On success, 0 is returned or -1, if an error occured.
  */
-int PSIDnodes_setProtocolVersion(PSnodes_ID_t id, int version);
+int PSIDnodes_setProtoVersion(PSnodes_ID_t id, int version);
 
 /**
  * @brief Get the protocol version of a node.
@@ -157,7 +157,34 @@ int PSIDnodes_setProtocolVersion(PSnodes_ID_t id, int version);
  * @return If the node was found, the protocol version is returned. Or
  * -1, if an error occured.
  */
-int PSIDnodes_getProtocolVersion(PSnodes_ID_t id);
+int PSIDnodes_getProtoVersion(PSnodes_ID_t id);
+
+/**
+ * @brief Set the daemon-protocol version of a node.
+ *
+ * Set the daemon-protocol version the node with ParaStation ID @a id
+ * talks to @a version.
+ *
+ * @param id ParaStation ID of the node to be modified.
+ *
+ * @param hwType The daemon-protocol version of this node.
+ *
+ * @return On success, 0 is returned or -1, if an error occured.
+ */
+int PSIDnodes_setDaemonProtoVersion(PSnodes_ID_t id, int version);
+
+/**
+ * @brief Get the daemon-protocol version of a node.
+ *
+ * Get the daemon-protocol version the node with ParaStation ID @a id
+ * talks.
+ *
+ * @param id ParaStation ID of the node to look up.
+ *
+ * @return If the node was found, the daemon-protocol version is
+ * returned. Or -1, if an error occured.
+ */
+int PSIDnodes_getDaemonProtoVersion(PSnodes_ID_t id);
 
 /**
  * @brief Set the hardware type of a node.

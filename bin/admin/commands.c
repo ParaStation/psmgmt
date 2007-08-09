@@ -996,14 +996,15 @@ void PSIADM_VersionStat(char *nl)
 
     if (! getHostStatus()) return;
 
-    printf("%4s\t%8s %16s %5s\n", "Node", "psid  ", "RPM     ", "Proto");
+    printf("%4s\t%8s %16s %6s\n", "Node", "psid  ", "RPM     ", "Protocols");
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
 	if (hostStatus.list[node]) {
 	    char psidver[100], rpmrev[100];
-	    PSP_Optval_t optVal;
-	    PSP_Option_t optType = PSP_OP_PROTOCOLVERSION;
+	    PSP_Optval_t optVal[2];
+	    PSP_Option_t optType[] = { PSP_OP_PROTOCOLVERSION,
+				       PSP_OP_DAEMONPROTOVERSION };
 	    int err;
 
 	    psidver[0] = rpmrev[0] = '\0';
@@ -1014,17 +1015,22 @@ void PSIADM_VersionStat(char *nl)
 				 rpmrev, sizeof(rpmrev), 0);
 	    if (err) strcpy(rpmrev, "unknown");
 
-	    printf("%4d\t%8s\b  %16s", node, psidver+11, rpmrev);
+	    printf("%4d\t%8s\b  %16s ", node, psidver+11, rpmrev);
 
-	    err = PSI_infoOption(node, 1, &optType, &optVal, 1);
+	    err = PSI_infoOption(node, 2, optType, optVal, 1);
 	    if (err != -1) {
-		switch (optType) {
-		case PSP_OP_UNKNOWN:
-		    printf(" unknown option\n");
-		    break;
-		default:
-		    printf(" %5d\n", optVal);
+		int i;
+		for (i=0; i<2; i++) {
+		    switch (optType[i]) {
+		    case PSP_OP_UNKNOWN:
+			printf("unknown");
+			break;
+		    default:
+			printf("%3d", optVal[i]);
+		    }
+		    if (i<2-1) printf("/");
 		}
+		printf("\n");
 	    } else {
 		printf(" error getting info\n");
 	    }

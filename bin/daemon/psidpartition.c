@@ -1361,7 +1361,7 @@ static int sendNodelist(PSpart_request_t *request, DDBufferMsg_t *msg)
 static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
 {
     int offset = 0;
-    int destPSPver = PSIDnodes_getProtocolVersion(PSC_getID(msg->header.dest));
+    int destPSPver = PSIDnodes_getProtoVersion(PSC_getID(msg->header.dest));
 
     if (!slots) {
 	PSID_log(-1, "%s: No slots given\n", __func__);
@@ -1814,7 +1814,7 @@ void msg_GETPARTNL(DDBufferMsg_t *inmsg)
  */
 static void appendToSlotlist(DDBufferMsg_t *inmsg, PSpart_request_t *request)
 {
-    int PSPver = PSIDnodes_getProtocolVersion(PSC_getID(inmsg->header.sender));
+    int PSPver = PSIDnodes_getProtoVersion(PSC_getID(inmsg->header.sender));
     char *ptr = inmsg->buf;
     int chunk = *(int16_t *)ptr;
     ptr += sizeof(int16_t);
@@ -2011,7 +2011,7 @@ void msg_GETNODES(DDBufferMsg_t *inmsg)
     PSID_log(PSID_LOG_PART, "%s(%d)\n", __func__, num);
 
     if (task->nextRank + num <= task->partitionSize) {
-	int PSPver = PSIDnodes_getProtocolVersion(PSC_getID(
+	int PSPver = PSIDnodes_getProtoVersion(PSC_getID(
 						      inmsg->header.sender));
 	DDBufferMsg_t msg = (DDBufferMsg_t) {
 	    .header = (DDMsg_t) {
@@ -2453,7 +2453,7 @@ static void sendReqList(PStask_ID_t dest, PSpart_request_t *requests,
 
 	if (num) {
 	    int offset = 0;
-	    int PSPver = PSIDnodes_getProtocolVersion(PSC_getID(dest));
+	    int PSPver = PSIDnodes_getProtoVersion(PSC_getID(dest));
 
 	    msg.type = PSP_INFO_QUEUE_SEP;
 	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
