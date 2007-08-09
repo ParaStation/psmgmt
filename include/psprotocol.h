@@ -79,7 +79,6 @@ typedef enum {
     PSP_OP_PSIDSELECTTIME,        /**< Time (sec) in psid's select() */
     PSP_OP_GIDLIMIT,              /**< gid the node is restricted to
 				     @deprecated */
-
     PSP_OP_MASTER = 0x0008,       /**< current master of the cluster */
 
     PSP_OP_LISTEND = 0x000f,      /**< no further opts; UID,GID,ACCT,etc. */

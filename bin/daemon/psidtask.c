@@ -28,6 +28,17 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 PStask_t *managedTasks = NULL;
 
+static void printList(PStask_sig_t *list)
+{
+    PStask_sig_t *thissig = list;
+
+    while (thissig) {
+	PSID_log(PSID_LOG_SIGDBG, " %s/%d",
+		 PSC_printTID(thissig->tid), thissig->signal);
+	thissig = thissig->next;
+    }
+}
+
 void PSID_setSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal)
 {
     PStask_sig_t *thissig;
@@ -40,20 +51,24 @@ void PSID_setSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal)
 	return;
     }
 
+    if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
+	PSID_log(PSID_LOG_SIGDBG, "%s: signals before (in %p):",
+		 __func__, siglist);
+	printList(*siglist);
+	PSID_log(PSID_LOG_SIGDBG, "\n");
+    }
+
     thissig->signal = signal;
     thissig->tid = tid;
     thissig->next = *siglist;
 
     *siglist = thissig;
-}
 
-static void printList(PStask_sig_t *list)
-{
-    PStask_sig_t *thissig = list;
-
-    while (thissig) {
-	PSID_log(PSID_LOG_SIGDBG, " %s", PSC_printTID(thissig->tid));
-	thissig = thissig->next;
+    if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
+	PSID_log(PSID_LOG_SIGDBG, "%s: childs after (in %p):",
+		 __func__, siglist);
+	printList(*siglist);
+	PSID_log(PSID_LOG_SIGDBG, "\n");
     }
 }
 
@@ -61,11 +76,13 @@ int PSID_removeSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal)
 {
     PStask_sig_t *thissig, *prev = NULL;
 
-    PSID_log(PSID_LOG_SIGDBG, "%s: childs before (for %s):",
-	     __func__, PSC_printTID(tid));
-    printList(*siglist);
-    PSID_log(PSID_LOG_SIGDBG, "\n");
-    
+    if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
+	PSID_log(PSID_LOG_SIGDBG, "%s: signals before (in %p):",
+		 __func__, siglist);
+	printList(*siglist);
+	PSID_log(PSID_LOG_SIGDBG, "\n");
+    }
+
     thissig = *siglist;
     while (thissig && (thissig->tid != tid || thissig->signal != signal)) {
 	prev = thissig;
@@ -84,9 +101,12 @@ int PSID_removeSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal)
 
 	free(thissig);
 
-	PSID_log(PSID_LOG_SIGDBG, "%s: childs after:", __func__);
-	printList(*siglist);
-	PSID_log(PSID_LOG_SIGDBG, "\n");
+	if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
+	    PSID_log(PSID_LOG_SIGDBG, "%s: childs after (in %p):",
+		     __func__, siglist);
+	    printList(*siglist);
+	    PSID_log(PSID_LOG_SIGDBG, "\n");
+	}
 
 	return 1;
     } else {

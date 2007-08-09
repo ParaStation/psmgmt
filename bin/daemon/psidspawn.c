@@ -1265,8 +1265,12 @@ static int spawnTask(PStask_t *task)
 	if (PSC_getID(task->ptid) == PSC_getMyID()) {
 	    PStask_t *parent = PStasklist_find(managedTasks, task->ptid);
 
-	    if (parent) {
+	    if (!parent) {
+		PSID_log(-1, "%s: parent task %s not found\n", __func__,
+			 PSC_printTID(task->ptid));
+	    } else {
 		PSID_setSignal(&parent->childs, task->tid, -1);
+		PSID_setSignal(&parent->assignedSigs, task->tid, -1);
 	    }
 	}
     } else {
