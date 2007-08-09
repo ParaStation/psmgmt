@@ -515,6 +515,18 @@ void msg_NEWPARENT(DDErrorMsg_t *msg)
 	/* parent will send a signal on exit, thus include into assignedSigs */
 	PSID_setSignal(&task->assignedSigs, msg->request, -1);
 
+	/* Also change forwarder's ptid */
+	if (task->forwardertid) {
+	    PS_task_t *forwarder = PStasklist_find(managedTasks,
+						   task->forwardertid);
+	    if (!forwarder) {
+		PSID_log(-1, "%s(%s): no forwarder\n", __func__,
+			 PSC_printTID(msg->header.dest));
+	    } else {
+		forwarder->ptid = msg->request;
+	    }
+	}    
+
 	answer.param = 0;
     }
     msg_RELEASERES(msg);
