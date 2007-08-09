@@ -447,6 +447,12 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 int PSI_spawn(int count, char *workdir, int argc, char **argv,
 	      int *errors, PStask_ID_t *tids)
 {
+    return PSI_spawnStrict(count, workdir, argc, argv, 0, errors, tids);
+}
+
+int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
+		    int strictArgv, int *errors, PStask_ID_t *tids)
+{
     int total = 0;
     PSnodes_ID_t *nodes;
 
@@ -478,7 +484,7 @@ int PSI_spawn(int count, char *workdir, int argc, char **argv,
 	PSI_log(PSI_LOG_SPAWN, ".\n");
 	PSI_log(PSI_LOG_SPAWN, "%s: first rank: %d\n", __func__, rank);
 
-	ret = dospawn(chunk, nodes, workdir, argc, argv, 0,
+	ret = dospawn(chunk, nodes, workdir, argc, argv, strictArgv,
 		      TG_ANY, rank, errors, tids);
 	if (ret != chunk) {
 	    free(nodes);

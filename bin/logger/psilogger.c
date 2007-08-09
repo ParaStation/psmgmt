@@ -244,6 +244,19 @@ static int recvMsg(PSLog_Msg_t *msg)
     return ret;
 }
 
+/**
+ * @brief Send a message to the local daemon.
+ *
+ * Send the message @a msg to the local daemon.
+ *
+ * @param msg The message to send.
+ *
+ * @param daemonSock Socket connected with the local daemon.
+ *
+ * @return On success, the number of bytes send is returned,
+ * i.e. usually @a msg->header.len. Otherwise -1 is returned and errno
+ * is set appropriately.
+ */
 static int sendDaemonMsg(DDSignalMsg_t *msg)
 {
     char *buf = (void *)msg;
@@ -784,8 +797,9 @@ static void loop(void)
 
 		    if (WIFSIGNALED(status)) {
 			fprintf(stderr, "PSIlogger: Child with rank %d"
-				" exited on signal %d.\n", msg.sender,
+				" exited on signal %d", msg.sender,
 				WTERMSIG(status));
+			psignal(WTERMSIG(status), "");
 			signaled = 1;
 		    }
 

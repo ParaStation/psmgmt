@@ -102,6 +102,10 @@ void PSI_RemoteArgs(int Argc,char **Argv,int *RArgc,char ***RArgv);
  * @param argv Array of argument strings passed to the resulting
  * execve() call in order to finally spawn the task.
  *
+ * @param strictArgv Flag to disable pseudo-intelligent determination
+ * of the executable. If set argv[0] will be passed to the final
+ * exec() call as is.
+ *
  * @param errors Errorcodes displaying if an error occurred within
  * PSI_spawn() while spawning the corresponding task.
  *
@@ -112,6 +116,43 @@ void PSI_RemoteArgs(int Argc,char **Argv,int *RArgc,char ***RArgv);
  * if an error occurred. Then errors is set appropriately.
  *
  * @see PSI_createPartition() PSI_getNodes()
+ */
+int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
+		    int strictArgv, int *errors, PStask_ID_t *tids);
+
+/**
+ * @brief Spawn one or more tasks within the cluster.
+ *
+ * This is a wrapper of @ref PSI_spawnStrict() held for compatibility
+ * reasons.
+ *
+ * It is identical with calling @ref PSI_spawnStrict() with all the
+ * arguments plus @a strictArgv set to 0.
+ *
+ * @param count Number of tasks to spawn.
+ *
+ * @param workingdir Present working directory of the spawned tasks on
+ * startup. This might be an absolute or relative path. If @a
+ * workingdir is a relative path, the content of the PWD environment
+ * variable is prepended. If @a workingdir is NULL, the content of the
+ * PWD environment variable is taken.
+ *
+ * @param argc Number of arguments within @a argv used within the
+ * resulting execve() call in order to really spawn the tasks.
+ *
+ * @param argv Array of argument strings passed to the resulting
+ * execve() call in order to finally spawn the task.
+ *
+ * @param errors Errorcodes displaying if an error occurred within
+ * PSI_spawn() while spawning the corresponding task.
+ *
+ * @param tids The task IDs of the spawned processes.
+ *
+ *
+ * @return On success, the number of tasks spawned is returned, or -1
+ * if an error occurred. Then errors is set appropriately.
+ *
+ * @see PSI_spawnStrict()
  */
 int PSI_spawn(int count, char *workingdir, int argc, char **argv,
 	       int *errors, PStask_ID_t *tids);
