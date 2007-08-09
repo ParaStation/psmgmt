@@ -517,7 +517,7 @@ void msg_NEWPARENT(DDErrorMsg_t *msg)
 
 	/* Also change forwarder's ptid */
 	if (task->forwardertid) {
-	    PS_task_t *forwarder = PStasklist_find(managedTasks,
+	    PStask_t *forwarder = PStasklist_find(managedTasks,
 						   task->forwardertid);
 	    if (!forwarder) {
 		PSID_log(-1, "%s(%s): no forwarder\n", __func__,
@@ -529,7 +529,7 @@ void msg_NEWPARENT(DDErrorMsg_t *msg)
 
 	answer.param = 0;
     }
-    msg_RELEASERES(msg);
+    msg_RELEASERES(&answer);
 }
 
 /**
