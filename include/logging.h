@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -164,7 +164,8 @@ logger_t* logger_init(char* tag, FILE *logfile);
  * @see printf(), logger_print(), logger_vprint(), logger_warn(),
  * logger_exit()
  */
-void logger_print(logger_t* logger, int32_t key, const char* format, ...);
+void logger_print(logger_t* logger, int32_t key, const char* format, ...)
+__attribute__((format(printf,3,4)));
 
 /**
  * @brief Print a log message.
@@ -189,7 +190,8 @@ void logger_print(logger_t* logger, int32_t key, const char* format, ...);
  * @see logger_print()
  */
 void logger_vprint(logger_t* logger, int32_t key,
-		   const char* format, va_list ap);
+		   const char* format, va_list ap)
+__attribute__((format(printf,3,0)));
 
 /**
  * @brief Print a warn message.
@@ -211,7 +213,8 @@ void logger_vprint(logger_t* logger, int32_t key,
  * @see logger_print(), strerror()
  */
 void logger_warn(logger_t* logger, int32_t key, int errorno,
-		 const char* format, ...);
+		 const char* format, ...)
+__attribute__((format(printf,4,5)));
 
 /**
  * @brief Print a warn-messages and exit.
@@ -232,7 +235,8 @@ void logger_warn(logger_t* logger, int32_t key, int errorno,
  *
  * @see logger_warn(), exit()
  */
-void logger_exit(logger_t* logger, int errorno, const char* format, ...);
+void logger_exit(logger_t* logger, int errorno, const char* format, ...)
+__attribute__((format(printf,3,4)));
 
 
 #ifdef __cplusplus

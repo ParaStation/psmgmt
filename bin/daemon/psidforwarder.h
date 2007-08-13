@@ -21,6 +21,7 @@
 #define __PSIDFORWARDER_H
 
 #include "pstask.h"
+#include "pslog.h"
 
 #ifdef __cplusplus
 extern "C" {

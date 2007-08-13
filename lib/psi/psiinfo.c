@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -115,8 +115,8 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
 		break;
 	    }
 	    if (*size < s) {
-		PSI_log(-1, "%s: buffer to small (%d/%d/%s)\n",
-			__func__, *size, s, PSP_printInfo(msg.type));
+		PSI_log(-1, "%s: buffer to small (%ld/%ld/%s)\n", __func__,
+			(long)*size, (long)s, PSP_printInfo(msg.type));
 		*size = 0;
 		break;
 	    }

@@ -185,8 +185,8 @@ void handleDroppedMsg(DDMsg_t *msg)
     DDErrorMsg_t errmsg;
     DDSignalMsg_t sigmsg;
 
-    PSID_log(PSID_LOG_COMM, "%s dest %x", __func__, PSC_printTID(msg->dest));
-    PSID_log(PSID_LOG_COMM," source %x type %s\n", PSC_printTID(msg->sender),
+    PSID_log(PSID_LOG_COMM, "%s dest %s", __func__, PSC_printTID(msg->dest));
+    PSID_log(PSID_LOG_COMM," source %s type %s\n", PSC_printTID(msg->sender),
 	     PSDaemonP_printMsg(msg->type));
 
     switch (msg->type) {

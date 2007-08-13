@@ -57,7 +57,7 @@ static char *nextline(void)
     if (parser_getDebugMask() & PARSER_LOG_ECHO) {
 	if (line[strlen(line)-1] == '\n') {
 	    parser_comment(PARSER_LOG_ECHO, "parsing '%.*s\\n'\n",
-			   strlen(line)-1, line);
+			   (int)strlen(line)-1, line);
 	} else {
 	    parser_comment(PARSER_LOG_ECHO, "parsing '%s'\n", line);
 	}

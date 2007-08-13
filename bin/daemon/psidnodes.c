@@ -701,7 +701,7 @@ int PSIDnodes_setGUID(PSnodes_ID_t id,
 {
     list_t *list = get_GUID_list(id, what);
 
-    PSID_log(PSID_LOG_NODES, "%s(%d, %d, %d)\n", __func__, id, what, guid);
+    PSID_log(PSID_LOG_NODES, "%s(%d, %d, %d)\n", __func__, id, what, guid.u);
 
     if (!list) return -1;
 
@@ -717,7 +717,7 @@ int PSIDnodes_addGUID(PSnodes_ID_t id,
     PSIDnodes_guid_t any;
     list_t *list = get_GUID_list(id, what), *pos, *tmp;
 
-    PSID_log(PSID_LOG_NODES, "%s(%d, %d, %d)\n", __func__, id, what, guid);
+    PSID_log(PSID_LOG_NODES, "%s(%d, %d, %d)\n", __func__, id, what, guid.u);
 
     if (!list) return -1;
 
@@ -738,12 +738,12 @@ int PSIDnodes_addGUID(PSnodes_ID_t id,
         guent = list_entry(pos, PSIDnodes_GUent_t, next);
         if (!cmp_GUID(what, guent->id, any)) {
 	    PSID_log(PSID_LOG_NODES, "%s(%d, %d, %d): ANY found\n",
-		     __func__, id, what, guid);
+		     __func__, id, what, guid.u);
 	    return -1;
 	}
         if (!cmp_GUID(what, guent->id, guid)) {
 	    PSID_log(PSID_LOG_NODES, "%s(%d, %d, %d): allready there\n",
-		     __func__, id, what, guid);
+		     __func__, id, what, guid.u);
 	    return -1;
 	}
     }
@@ -761,7 +761,7 @@ int PSIDnodes_remGUID(PSnodes_ID_t id,
 {
     list_t *list = get_GUID_list(id, what), *pos, *tmp;
 
-    PSID_log(PSID_LOG_NODES, "%s(%d, %d, %d)\n", __func__, id, what, guid);
+    PSID_log(PSID_LOG_NODES, "%s(%d, %d, %d)\n", __func__, id, what, guid.u);
 
     list_for_each_safe(pos, tmp, list) {
 	PSIDnodes_GUent_t *guent = list_entry(pos, PSIDnodes_GUent_t, next);
@@ -773,7 +773,7 @@ int PSIDnodes_remGUID(PSnodes_ID_t id,
     }
 
     PSID_log(PSID_LOG_NODES, "%s(%d, %d, %d): not found\n", __func__,
-	     id, what, guid);
+	     id, what, guid.u);
 
     return -1;
 }
@@ -784,7 +784,7 @@ int PSIDnodes_testGUID(PSnodes_ID_t id,
     list_t *list = get_GUID_list(id, what), *pos;
     PSIDnodes_guid_t any;
 
-    PSID_log(PSID_LOG_NODES, "%s(%d, %d, %d)\n", __func__, id, what, guid);
+    PSID_log(PSID_LOG_NODES, "%s(%d, %d, %d)\n", __func__, id, what, guid.u);
 
     switch (what) {
     case PSIDNODES_USER:

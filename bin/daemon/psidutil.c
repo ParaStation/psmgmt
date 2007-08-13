@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -104,7 +104,7 @@ static int getOwnID(void)
 	}
 
 	if (ioctl(skfd, SIOCGIFCONF, &ifc) < 0) {
-	    PSID_exit(errno, "%s: ioctl(SIOCGIFCONF)");
+	    PSID_exit(errno, "%s: ioctl(SIOCGIFCONF)", __func__);
 	}
     } while (ifc.ifc_len == numNICs * (int)sizeof(struct ifreq));
     /* Test the IP-addresses assigned to this NICs */

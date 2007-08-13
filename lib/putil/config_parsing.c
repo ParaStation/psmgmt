@@ -1147,12 +1147,12 @@ static int getProcs(char *token)
 	if (procs == -1) {
 	    parser_commentCont(PARSER_LOG_NODE, "ANY");
 	} else {
-	    parser_commentCont(PARSER_LOG_NODE, "%d", procs);
+	    parser_commentCont(PARSER_LOG_NODE, "%ld", procs);
 	}
 	parser_commentCont(PARSER_LOG_NODE, "'\n");
     } else {
 	if (PSIDnodes_setProcs(currentID, procs)) {
-	    parser_comment(-1, "PSIDnodes_setProcs(%d, %d) failed\n",
+	    parser_comment(-1, "PSIDnodes_setProcs(%d, %ld) failed\n",
 			   currentID, procs);
 	    return -1;
 	}
@@ -1160,7 +1160,7 @@ static int getProcs(char *token)
 	if (procs == -1) {
 	    parser_commentCont(PARSER_LOG_NODE, " any");
 	} else {
-	    parser_commentCont(PARSER_LOG_NODE, " %d", procs);
+	    parser_commentCont(PARSER_LOG_NODE, " %ld", procs);
 	}
 	parser_commentCont(PARSER_LOG_NODE, " procs");
     }

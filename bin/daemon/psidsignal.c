@@ -497,7 +497,7 @@ void msg_NEWPARENT(DDErrorMsg_t *msg)
 		 PSC_printTID(msg->header.dest));
 	answer.param = ESRCH;
     } else if (task->ptid != msg->header.sender) {
-	PSID_log(-1, "%s: sender %d",
+	PSID_log(-1, "%s: sender %s",
 		 __func__, PSC_printTID(msg->header.sender));
 	PSID_log(-1, " not my parent %s\n", PSC_printTID(task->ptid));
 	answer.param = EACCES;

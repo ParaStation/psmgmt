@@ -182,7 +182,7 @@ static int connectDaemon(PStask_group_t taskGroup)
 	    PSI_log(-1, "%s: Node is reserved for different user\n", __func__);
 	    break;
 	case PSP_CONN_ERR_GIDLIMIT :
-	    PSI_log(-1, "%s: Node is reserved for different group id %d\n",
+	    PSI_log(-1, "%s: Node is reserved for different group\n",
 		    __func__);
 	    break;
 	case PSP_CONN_ERR_PROCLIMIT :
@@ -570,7 +570,7 @@ int PSI_recvFinish(int outstanding)
     DDMsg_t msg;
     int error = 0;
 
-    PSI_log(PSI_LOG_VERB, "%s(%s)\n", __func__, outstanding);
+    PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, outstanding);
 
     while (outstanding>0) {
 	if (PSI_recvMsg(&msg)<0) {

@@ -286,7 +286,8 @@ void parser_setDebugMask(int32_t mask);
  * @see logger_print(), parser_getDebugLevel(),
  * parser_setDebugLevel(), parser_commentCont()
  */
-void parser_comment(parser_log_key_t key, char* format, ...);
+void parser_comment(parser_log_key_t key, char* format, ...)
+__attribute__((format(printf,2,3)));
 
 /**
  * @brief Continue a comment.
@@ -321,7 +322,8 @@ void parser_comment(parser_log_key_t key, char* format, ...);
  * @see logger_print(), parser_getDebugLevel(),
  * parser_setDebugLevel(), parser_comment()
  */
-void parser_commentCont(parser_log_key_t key, char* format, ...);
+void parser_commentCont(parser_log_key_t key, char* format, ...)
+__attribute__((format(printf,2,3)));
 
 /*
  * Basic routines to get defined fields
