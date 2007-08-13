@@ -132,25 +132,25 @@ static int sendMsg(PSLog_msg_t type, char *buf, size_t len)
     return ret;
 }
 
-/**
- * @brief Send string to logger.
- *
- * Send the NULL terminated string stored within @a buf as a message
- * of type @a type to the logger. This is done via the PSLog facility.
- *
- * @param type The type of the message to send.
- *
- * @param buf Buffer holding the character string to send.
- *
- * @return On success, the number of bytes written is returned,
- * i.e. usually this is strlen(@a buf). On error, -1 is returned, and
- * errno is set appropriately.
- *
- * @see PSLog_print()
- */
-static int printMsg(PSLog_msg_t type, char *buf)
+int PSIDfwd_printMsg(PSLog_msg_t type, char *buf)
 {
     return sendMsg(type, buf, strlen(buf));
+}
+
+int PSIDfwd_printMsgf(PSLog_msg_t type, const char *format, ...)
+{
+    char buf[PSIDfwd_printMsgf_len];
+    int n;
+
+    va_list ap;
+    va_start(ap, format);
+    n = vsnprintf(buf, sizeof(buf), format, ap);
+    va_end(ap);
+
+    if (n >= 0) {
+	n = sendMsg(type, buf, n);
+    }
+    return n;
 }
 
 /**
@@ -279,7 +279,7 @@ static int sendDaemonMsg(DDMsg_t *msg)
         snprintf(txt, sizeof(txt), "%s type %s (len=%d) to %s\n",
                  __func__, PSDaemonP_printMsg(msg->type),
 		 msg->len, PSC_printTID(msg->dest));
-        printMsg(STDERR, txt);
+        PSIDfwd_printMsg(STDERR, txt);
     }
 
     return msg->len;
@@ -426,7 +426,7 @@ static size_t collectRead(int sock, char *buf, size_t count, size_t *total)
 		snprintf(txt, sizeof(txt),
 			 "PSID_forwarder: %s: error on select(): %s\n",
 			 __func__, strerror(errno));
-		printMsg(STDERR, txt);
+		PSIDfwd_printMsg(STDERR, txt);
 		break;
 	    }
 	}
@@ -485,7 +485,7 @@ static void sighandler(int sig)
 	    }
 	}
 	snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "\n");
-	printMsg(STDERR, txt);
+	PSIDfwd_printMsg(STDERR, txt);
 	for (i=0; i<FD_SETSIZE; i++) {
 	    if (FD_ISSET(i, &readfds) && i != daemonSock) {
 		int n;
@@ -497,8 +497,8 @@ static void sighandler(int sig)
 		buf[sizeof(buf)-1]='\0';
 		snprintf(txt2, sizeof(txt2),
 			 "read(%d) returned %d, errno %d\n", i, n, errno);
-		printMsg(STDERR, txt2);
-		printMsg(STDOUT, buf);
+		PSIDfwd_printMsg(STDERR, txt2);
+		PSIDfwd_printMsg(STDOUT, buf);
 	    }
 	}
 	break;
@@ -506,7 +506,7 @@ static void sighandler(int sig)
 	if (verbose) {
 	    snprintf(txt, sizeof(txt),
 		     "[%d] PSID_forwarder: Got SIGCHLD\n", childTask->rank);
-	    printMsg(STDERR, txt);
+	    PSIDfwd_printMsg(STDERR, txt);
 	}
 
 	/* Read all the remaining stuff from the controlled fds */
@@ -522,7 +522,7 @@ static void sighandler(int sig)
 		    snprintf(txt, sizeof(txt),
 			     "PSID_forwarder: %s: error on select(): %s\n",
 			     __func__, strerror(errno));
-		    printMsg(STDERR, txt);
+		    PSIDfwd_printMsg(STDERR, txt);
 		}
 		break;
 	    } else if (ret > 0) {
@@ -548,7 +548,7 @@ static void sighandler(int sig)
 			    snprintf(txt, sizeof(txt), "PSID_forwarder:"
 				     " got %d bytes on sock %d %d %d\n",
 				     (int) total, sock, n, errno);
-			    printMsg(STDERR, txt);
+			    PSIDfwd_printMsg(STDERR, txt);
 			}
 			if (n==0 || (n<0 && errno==EIO)) {
 			    /* socket closed */
@@ -560,7 +560,7 @@ static void sighandler(int sig)
 			    snprintf(txt, sizeof(txt),
 				     "PSID_forwarder: collectRead():%s\n",
 				     strerror(errno));
-			    printMsg(STDERR, txt);
+			    PSIDfwd_printMsg(STDERR, txt);
 			}
 			if (total) {
 			    /* something received. forward it to logger */
@@ -681,7 +681,7 @@ static void sighandler(int sig)
 	    }
 	}
 	snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "\n");
-	printMsg(STDERR, txt);
+	PSIDfwd_printMsg(STDERR, txt);
     }
 
     signal(sig, sighandler);
@@ -725,7 +725,7 @@ static void checkFileTable(fd_set *fds)
 		     __func__, fd,
 		     (errno==EBADF) ? "EBADF" :
 		     (errno==EINVAL) ? "EINVAL" : "ENOMEM");
-	    printMsg(STDERR, buf);
+	    PSIDfwd_printMsg(STDERR, buf);
 	    close(fd);
 	    FD_CLR(fd, fds);
 	    openfds--;
@@ -733,7 +733,7 @@ static void checkFileTable(fd_set *fds)
 	case EINTR:
 	    snprintf(buf, sizeof(buf),
 		     "%s(%d): EINTR -> trying again\n", __func__, fd);
-	    printMsg(STDERR, buf);
+	    PSIDfwd_printMsg(STDERR, buf);
 	    fd--; /* try again */
 	    break;
 	default:
@@ -741,7 +741,7 @@ static void checkFileTable(fd_set *fds)
 	    snprintf(buf, sizeof(buf),
 		     "%s(%d): unrecognized error (%d): %s\n", __func__,
 		     fd, errno, errstr ? errstr : "UNKNOWN");
-	    printMsg(STDERR, buf);
+	    PSIDfwd_printMsg(STDERR, buf);
 	    break;
 	}
     }
@@ -797,7 +797,7 @@ static void checkFileTable(fd_set *fds)
 		snprintf(obuf, sizeof(obuf),
 			 "%s: got error %d on stdinSock: %s",
 			 __func__, errno, errstr ? errstr : "UNKNOWN");
-		printMsg(STDERR, obuf);
+		PSIDfwd_printMsg(STDERR, obuf);
 		return i;
 	    }
 	    }
@@ -916,12 +916,12 @@ static int readFromLogger(void)
 		    snprintf(obuf, sizeof(obuf),
 			     "%s: %d byte received on STDIN\n", __func__,
 			     msg.header.len - PSLog_headerSize);
-		    printMsg(STDERR, obuf);
+		    PSIDfwd_printMsg(STDERR, obuf);
 		}
 		if (stdinSock<0) {
 		    snprintf(obuf, sizeof(obuf),
 			     "%s: STDIN already closed\n", __func__);
-		    printMsg(STDERR, obuf);
+		    PSIDfwd_printMsg(STDERR, obuf);
 		} else {
 		    writeMsg(&msg);
 		}
@@ -943,7 +943,7 @@ static int readFromLogger(void)
 		    if (count != 4 * sizeof(*buf)) {
 			snprintf(obuf, sizeof(obuf),
 				 "%s: Corrupted WINCH message\n", __func__);
-			printMsg(STDERR, obuf);
+			PSIDfwd_printMsg(STDERR, obuf);
 			break;
 		    }
 
@@ -959,20 +959,20 @@ static int readFromLogger(void)
 				 " col %d row %d xpixel %d ypixel %d\n",
 				 __func__, w.ws_col, w.ws_row, 
 				 w.ws_xpixel, w.ws_ypixel);
-			printMsg(STDERR, obuf);
+			PSIDfwd_printMsg(STDERR, obuf);
 		    }
 		}
 		break;
 	    default:
 		snprintf(obuf, sizeof(obuf),
 			 "%s: Unknown type %d\n", __func__, msg.type);
-		printMsg(STDERR, obuf);
+		PSIDfwd_printMsg(STDERR, obuf);
 	    }
 	    break;
 	default:
 	    snprintf(obuf, sizeof(obuf), "%s: Unexpected msg type %s\n",
 		     __func__, PSP_printMsg(msg.header.type));
-	    printMsg(STDERR, obuf);
+	    PSIDfwd_printMsg(STDERR, obuf);
 	}
     } else if (!ret) {
 	/* The connection to the daemon died. Kill the client the hard way. */
@@ -1006,11 +1006,11 @@ static void loop(void)
 	snprintf(obuf, sizeof(obuf),
 		 "PSID_forwarder: childTask=%s daemon=%d\n",
 		 PSC_printTID(childTask->tid), daemonSock);
-	printMsg(STDERR, obuf);
+	PSIDfwd_printMsg(STDERR, obuf);
 	snprintf(obuf, sizeof(obuf),
 		 "PSID_forwarder: stdin=%d stdout=%d stderr=%d\n",
 		 stdinSock, stdoutSock, stderrSock);
-	printMsg(STDERR, obuf);
+	PSIDfwd_printMsg(STDERR, obuf);
     }
 
     FD_ZERO(&readfds);
@@ -1036,7 +1036,7 @@ static void loop(void)
 		snprintf(obuf, sizeof(obuf),
 			 "PSID_forwarder: %s: error on select(): %s\n",
 			 __func__, strerror(errno));
-		printMsg(STDERR, obuf);
+		PSIDfwd_printMsg(STDERR, obuf);
 		checkFileTable(&readfds);
 	    }
 	    continue;
@@ -1060,7 +1060,7 @@ static void loop(void)
 			     "PSID_forwarder: PANIC: sock %d, which is neither"
 			     " stdout (%d) nor stderr (%d) is active!!\n",
 			     sock, stdoutSock, stderrSock);
-		    printMsg(STDERR, obuf);
+		    PSIDfwd_printMsg(STDERR, obuf);
 		    /* At least, read this stuff and throw it away */
 		    n = read(sock, buf, sizeof(buf));
 		    continue;
@@ -1071,14 +1071,14 @@ static void loop(void)
 		    snprintf(obuf, sizeof(obuf),
 			     "PSID_forwarder: got %ld bytes on sock %d\n",
 			     (long) total, sock);
-		    printMsg(STDERR, obuf);
+		    PSIDfwd_printMsg(STDERR, obuf);
 		}
 		if (n==0 || (n<0 && errno==EIO)) {
 		    /* socket closed */
 		    if (verbose) {
 			snprintf(obuf, sizeof(obuf),
 				 "PSID_forwarder: closing %d\n", sock);
-			printMsg(STDERR, obuf);
+			PSIDfwd_printMsg(STDERR, obuf);
 		    }
 
 		    shutdown(sock, SHUT_RD);
@@ -1089,14 +1089,14 @@ static void loop(void)
 			if (verbose) {
 			    snprintf(obuf, sizeof(obuf),
 				     "PSID_forwarder: wait for SIGCHLD\n");
-			    printMsg(STDERR, obuf);
+			    PSIDfwd_printMsg(STDERR, obuf);
 			}
 		    }
 		} else if (n<0 && errno!=ETIME && errno!=ECONNRESET) {
 		    /* ignore the error */
 		    snprintf(obuf, sizeof(obuf),
 			     "PSID_forwarder: read():%s\n", strerror(errno));
-		    printMsg(STDERR, obuf);
+		    PSIDfwd_printMsg(STDERR, obuf);
 		}
 		if (total) {
 		    /* forward it to logger */
@@ -1109,7 +1109,7 @@ static void loop(void)
 		} else {
 		    snprintf(obuf, sizeof(obuf),
 			     "PSID_forwarder: write to %d?\n", sock);
-		    printMsg(STDERR, obuf);
+		    PSIDfwd_printMsg(STDERR, obuf);
 		}
 	    }
 	}

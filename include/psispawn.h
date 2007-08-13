@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -155,7 +155,7 @@ int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
  * @see PSI_spawnStrict()
  */
 int PSI_spawn(int count, char *workingdir, int argc, char **argv,
-	       int *errors, PStask_ID_t *tids);
+	      int *errors, PStask_ID_t *tids);
 
 /**
  * @brief Spawn a special task within the cluster.
