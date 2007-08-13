@@ -1,3 +1,174 @@
+Version psmgmt-4.3.10:
+======================
+------------------------------------------------------------------------
+r5090 | eicker | 2007-08-13 12:40:10 +0200 (Mon, 13 Aug 2007) | 3 lines
+
+Add 'format(printf)' __attribute__ to various printf-like functions
+Remove all errors in printf-like argument-lists found by __attribute__.
+
+------------------------------------------------------------------------
+r5089 | eicker | 2007-08-13 12:16:13 +0200 (Mon, 13 Aug 2007) | 3 lines
+
+Derive new functions PSIDfwd_printMsg() and PSIDfwd_printMsgf() from
+private printMsg(). These will be needed by PMI stuff.
+
+------------------------------------------------------------------------
+r5081 | eicker | 2007-08-09 16:19:55 +0200 (Thu, 09 Aug 2007) | 5 lines
+
+Backport some features from psmpd branch:
+- Introduce PSI_spawnStrict() in order to suppress pseudo-intelligent
+  executable detection.
+- Print out signal-type on process-crash.
+
+------------------------------------------------------------------------
+r5073 | eicker | 2007-08-09 13:15:28 +0200 (Thu, 09 Aug 2007) | 6 lines
+
+Handle PSDaemonProtocolVersion similar to PSProtocolVersion, i.e.
+- Create option to ask it.
+- Store version for every daemon in the cluster.
+- Enable psiadmin to show version of every node.
+- Update daemon's startup message.
+
+------------------------------------------------------------------------
+r5070 | eicker | 2007-08-09 12:14:46 +0200 (Thu, 09 Aug 2007) | 2 lines
+
+Also change forwarder's ptid if task's parent changes.
+
+------------------------------------------------------------------------
+r5069 | eicker | 2007-08-09 11:52:17 +0200 (Thu, 09 Aug 2007) | 2 lines
+
+BUGFIX: Fix problems introduced by the reorganization of signaling stuff.
+
+------------------------------------------------------------------------
+r5065 | eicker | 2007-08-08 14:05:36 +0200 (Wed, 08 Aug 2007) | 7 lines
+
+Reorganization of signaling stuff:
+- Childs will now be inherited by their grandparent.
+- Two new message types: PSP_DD_NEWCHILD, PSP_DD_NEWPARENT
+- Corresponding handling functions
+
+Add some documentation plus fix some typos.
+
+------------------------------------------------------------------------
+r4975 | eicker | 2007-07-20 16:00:28 +0200 (Fri, 20 Jul 2007) | 3 lines
+
+Bugfix: Fix some minor problems if processes get release by their
+  forwarder.
+
+------------------------------------------------------------------------
+r4974 | eicker | 2007-07-20 13:47:52 +0200 (Fri, 20 Jul 2007) | 2 lines
+
+Bugfix: Fix compile if libnuma not available.
+
+------------------------------------------------------------------------
+r4973 | eicker | 2007-07-20 13:41:29 +0200 (Fri, 20 Jul 2007) | 2 lines
+
+Let configure detect if libnuma is available.
+
+------------------------------------------------------------------------
+r4972 | eicker | 2007-07-20 10:21:07 +0200 (Fri, 20 Jul 2007) | 5 lines
+
+More infrastructure for process-pinning:
+ - Add the actual pinning and binding stuff
+This will become active as soon as partitions contain actual CPU-slot
+infos.
+
+------------------------------------------------------------------------
+r4971 | eicker | 2007-07-19 14:16:40 +0200 (Thu, 19 Jul 2007) | 2 lines
+
+Extension: Pass client-environment to psidforwarder, too.
+
+------------------------------------------------------------------------
+r4970 | eicker | 2007-07-19 11:37:59 +0200 (Thu, 19 Jul 2007) | 3 lines
+
+Extension: Also allow forwarder to release controlled client (if the
+   controlled client is not connected to the daemon by itself).
+
+------------------------------------------------------------------------
+r4969 | eicker | 2007-07-19 10:16:43 +0200 (Thu, 19 Jul 2007) | 2 lines
+
+Add help message for 'set/show cpumap' directive.
+
+------------------------------------------------------------------------
+r4968 | eicker | 2007-07-19 09:56:09 +0200 (Thu, 19 Jul 2007) | 9 lines
+
+More infrastructure for process-pinning:
+ - New directive in psiadmin: 'set/show cpumap'
+ - Config-parser extended to make these option persistent
+ - Corresponding options-messages: PSP_OP_CLR_CPUMAP, PSP_OP_APP_CPUMAP,
+   PSP_OP_CPUMAP
+ - Corresponding functions: PSIDnodes_clearCPUMap(),
+   PSIDnodes_appendCPUMap(), PSIDnodes_mapCPU(), send_CPUMap_OPTIONS()
+Extension of parser: parser_getQuotedString().
+
+------------------------------------------------------------------------
+r4967 | eicker | 2007-07-18 18:47:04 +0200 (Wed, 18 Jul 2007) | 3 lines
+
+Bugfix: Passing the cpu-number for TG_SERVICE and TG_ADMIN processes
+   might result in SEGFAULTing the psid.
+
+------------------------------------------------------------------------
+r4953 | eicker | 2007-07-13 15:50:06 +0200 (Fri, 13 Jul 2007) | 7 lines
+
+More infrastructure for process-pinning:
+ - New directive in psiadmin: 'set/show pinprocs', 'set/show bindmem'
+ - Config-parser extended to make these options persistent
+ - Corresponding options-messages: PSP_OP_PINPROCS, PSP_OP_BINDMEM
+ - Corresponding functions: PSIDnodes_setPinProcs(),
+   PSIDnodes_pinProcs(), PSIDnodes_setBindMem(), PSIDnodes_bindMem()
+
+------------------------------------------------------------------------
+r4952 | eicker | 2007-07-13 14:46:54 +0200 (Fri, 13 Jul 2007) | 7 lines
+
+Some more infrastructure for process pinning:
+ - Info on CPU now bound into SPAWNREQ message (new subtype
+   PSP_SPAWN_LOC).
+ - New message type PSP_DD_NODESRES to push cpu info to GETNODES requesting
+   clients's daemon.
+ - Thus reduce NODES_CHUNK to 256.
+
+------------------------------------------------------------------------
+r4951 | eicker | 2007-07-11 16:18:28 +0200 (Wed, 11 Jul 2007) | 2 lines
+
+Update copyright.
+
+------------------------------------------------------------------------
+r4946 | eicker | 2007-07-10 18:13:42 +0200 (Tue, 10 Jul 2007) | 2 lines
+
+Extension: New psiadmin 'show' directives to view RLIMIT_ settings.
+
+------------------------------------------------------------------------
+r4878 | eicker | 2007-06-14 11:47:52 +0200 (Thu, 14 Jun 2007) | 2 lines
+
+Bugfix: Set correct MANPATH even if not given from OS (as on Fedora).
+
+------------------------------------------------------------------------
+r4858 | rauh | 2007-06-11 12:31:48 +0200 (Mon, 11 Jun 2007) | 2 lines
+
+new option in psaccview for better parsing : --nospace
+
+------------------------------------------------------------------------
+r4856 | rauh | 2007-06-11 12:26:21 +0200 (Mon, 11 Jun 2007) | 2 lines
+
+bugfix and new option for parsing: nospace
+
+------------------------------------------------------------------------
+r4818 | rauh | 2007-05-09 15:26:10 +0200 (Wed, 09 May 2007) | 2 lines
+
+better set of accounting file permissions and security fix
+
+------------------------------------------------------------------------
+r4817 | rauh | 2007-05-09 12:12:52 +0200 (Wed, 09 May 2007) | 2 lines
+
+cleaner function to became a daemon 
+
+------------------------------------------------------------------------
+r4798 | eicker | 2007-04-24 19:23:08 +0200 (Tue, 24 Apr 2007) | 2 lines
+
+New version (psmgmt-4.3.9)
+
+------------------------------------------------------------------------
+
 Version psmgmt-4.3.9:
 =====================
 ------------------------------------------------------------------------
