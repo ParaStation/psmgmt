@@ -768,7 +768,10 @@ void msg_RELEASERES(DDSignalMsg_t *msg)
 	PSID_log(PSID_LOG_SIGNAL, "for %s\n", PSC_printTID(msg->header.dest));
     }
 
-    if (PSC_getID(tid) != PSC_getMyID()) sendMsg(msg);
+    if (PSC_getID(tid) != PSC_getMyID()) {
+	sendMsg(msg);
+	return;
+    }
 
     task = PStasklist_find(managedTasks, tid);
 

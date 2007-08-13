@@ -65,7 +65,7 @@ void PSID_setSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal)
     *siglist = thissig;
 
     if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
-	PSID_log(PSID_LOG_SIGDBG, "%s: childs after (in %p):",
+	PSID_log(PSID_LOG_SIGDBG, "%s: signals after (in %p):",
 		 __func__, siglist);
 	printList(*siglist);
 	PSID_log(PSID_LOG_SIGDBG, "\n");
@@ -102,7 +102,7 @@ int PSID_removeSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal)
 	free(thissig);
 
 	if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
-	    PSID_log(PSID_LOG_SIGDBG, "%s: childs after (in %p):",
+	    PSID_log(PSID_LOG_SIGDBG, "%s: signals after (in %p):",
 		     __func__, siglist);
 	    printList(*siglist);
 	    PSID_log(PSID_LOG_SIGDBG, "\n");
