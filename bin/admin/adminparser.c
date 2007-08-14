@@ -35,7 +35,7 @@ static char lexid[] __attribute__(( unused )) = "$Id$";
 
 #include "helpmsgs.c"
 
-static char parserversion[] = "$Revision$";
+static char parserversion[] = "$Revision: 5073 $";
 
 static char *defaultNL = NULL;
 
@@ -1132,10 +1132,18 @@ static int setCommand(char *token)
 
     switch (setShowOpt) {
     case PSP_OP_PROCLIMIT:
-    case PSP_OP_UID:
-    case PSP_OP_ADMUID:
-    case PSP_OP_GID:
-    case PSP_OP_ADMGID:
+    case PSP_OP_ADD_UID:
+    case PSP_OP_REM_UID:
+    case PSP_OP_SET_UID:
+    case PSP_OP_ADD_ADMUID:
+    case PSP_OP_REM_ADMUID:
+    case PSP_OP_SET_ADMUID:
+    case PSP_OP_ADD_GID:
+    case PSP_OP_REM_GID:
+    case PSP_OP_SET_GID:
+    case PSP_OP_ADD_ADMGID:
+    case PSP_OP_REM_ADMGID:
+    case PSP_OP_SET_ADMGID:
     case PSP_OP_PSIDDEBUG:
     case PSP_OP_PSIDSELECTTIME:
     case PSP_OP_RDPDEBUG:

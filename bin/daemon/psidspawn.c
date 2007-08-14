@@ -733,6 +733,7 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 	    pty_setowner(task->uid, task->gid, name);
 	    pty_make_controlling_tty(&task->stderr_fd, name);
 	    tcsetattr(task->stderr_fd, TCSANOW, &task->termios);
+	    (void) ioctl(task->stderr_fd, TIOCSWINSZ, &task->winsize);
 
 	    /* stdin/stdout/stderr share one PTY */
 	    task->stdin_fd = task->stderr_fd;

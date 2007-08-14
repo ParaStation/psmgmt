@@ -71,7 +71,7 @@ struct timeval selectTime;
 
 static struct timeval shutdownTimer;
 
-char psid_cvsid[] = "$Revision$";
+char psid_cvsid[] = "$Revision: 5073 $";
 
 /**
  * Master socket (type UNIX) for clients to connect. Setup within @ref
@@ -1187,7 +1187,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision$";
+    char revision[] = "$Revision: 5073 $";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 
@@ -1301,6 +1301,10 @@ int main(int argc, const char *argv[])
 	if (logfile!=stderr) dup2(dummy_fd, STDERR_FILENO);
 	close(dummy_fd);
     }
+
+    /* Forget about inherited window sizes */
+    unsetenv("LINES");
+    unsetenv("COLUMNS");
 
     if (debugMask) {
 	PSID_setDebugMask(debugMask);

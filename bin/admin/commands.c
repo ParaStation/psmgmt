@@ -34,7 +34,7 @@ static char lexid[] __attribute__(( unused )) = "$Id$";
 
 #include "commands.h"
 
-char commandsversion[] = "$Revision$";
+char commandsversion[] = "$Revision: 5073 $";
 
 /* @todo PSI_sendMsg(): Wrapper, control if sendMsg was successful or exit */
 
