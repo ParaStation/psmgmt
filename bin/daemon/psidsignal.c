@@ -639,7 +639,7 @@ static int releaseTask(PStask_ID_t tid)
 	    if (PSC_getID(task->ptid) == PSC_getMyID()) {
 		/* parent task is local */
 		ret = releaseSignal(task->ptid, tid, -1);
-		if (ret) return ret;
+		if (ret) task->pendingReleaseErr = ret;
 	    } else {
 		/* parent task is remote, send a message */
 		PSID_log(PSID_LOG_TASK|PSID_LOG_SIGNAL,
@@ -691,7 +691,7 @@ static int releaseTask(PStask_ID_t tid)
 	    if (PSC_getID(senderTid)==PSC_getMyID()) {
 		/* controlled task is local */
 		ret = releaseSignal(senderTid, tid, sig);
-		if (ret) return ret;
+		if (ret) task->pendingReleaseErr = ret;
 	    } else {
 		/* controlled task is remote, send a message */
 		PSID_log(PSID_LOG_SIGNAL, "%s: notify sender %s\n",
@@ -708,7 +708,7 @@ static int releaseTask(PStask_ID_t tid)
 	}
     }
 
-    return 0;
+    return task->pendingReleaseErr;
 }
 
 void msg_RELEASE(DDSignalMsg_t *msg)
@@ -738,7 +738,7 @@ void msg_RELEASE(DDSignalMsg_t *msg)
 	    /* Special case: Whole task wants to get released */
 	    msg->param = releaseTask(tid);
 
-	    if (!msg->param && task && task->pendingReleaseRes) {
+	    if (task->pendingReleaseRes) {
 		/*
 		 * RELEASERES message pending, RELEASERES to initiatior
 		 * will be sent by msg_RELEASERES()
@@ -780,14 +780,16 @@ void msg_RELEASERES(DDSignalMsg_t *msg)
 	return;
     }
 
+    if (msg->param) task->pendingReleaseErr = msg->param;
+
     task->pendingReleaseRes--;
     if (task->pendingReleaseRes) {
 	PSID_log(PSID_LOG_SIGNAL, "%s(%s) sig %d: still %d pending\n",
 		 __func__, PSC_printTID(tid), msg->signal,
 		 task->pendingReleaseRes);
-
 	return;
-    } else if (msg->param) {
+    } else if (task->pendingReleaseErr) {
+	msg->param = task->pendingReleaseErr;
 	PSID_log(-1, "%s: sig %d: error = %d from %s", __func__,
 		 msg->signal, msg->param, PSC_printTID(msg->header.sender));
 	PSID_log(-1, " forward to local %s\n", PSC_printTID(tid));

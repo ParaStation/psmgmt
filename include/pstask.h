@@ -107,6 +107,7 @@ typedef struct PStask_T{
     int relativesignal;            /**< the signal sent when a relative (i.e.
 				      parent or child) dies */
     int pendingReleaseRes;         /**< num of pending RELEASERES messages */
+    int pendingReleaseErr;         /**< set to param!=0 in RELEASERES msg */
     char released;                 /**< flag to mark released task, i.e. don't
 				      send signal to parent on exit */
     char duplicate;                /**< flag to mark duplicate task, i.e. a

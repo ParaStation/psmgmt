@@ -253,9 +253,9 @@ static int startProcs(int i, int np, int argc, char *argv[], int verbose)
 
     setPSIEnv("NOT_USE_TOTALVIEW", "1", 1);
 
-    if (verbose) {
-	printf("spawn rank %d: %s\n", i, argv[0]);
-    } else {
+    if (verbose) printf("spawn rank %d: %s\n", i, argv[0]);
+
+    {
 	PStask_ID_t spawnedProcess = -1;
 	int error;
 

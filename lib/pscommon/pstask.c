@@ -76,6 +76,7 @@ int PStask_init(PStask_t* task)
     task->envSize = 0;
     task->relativesignal = SIGTERM;
     task->pendingReleaseRes = 0;
+    task->pendingReleaseErr = 0;
     task->released = 0;
     task->duplicate = 0;
     task->suspended = 0;
@@ -245,6 +246,7 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->envSize = task->envSize;
     clone->relativesignal = task->relativesignal;
     clone->pendingReleaseRes = task->pendingReleaseRes;
+    clone->pendingReleaseErr = task->pendingReleaseErr;
     clone->released = task->released;
     clone->duplicate = task->duplicate;
     clone->suspended = task->suspended;

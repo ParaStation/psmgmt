@@ -1619,7 +1619,11 @@ void msg_CHILDDEAD(DDErrorMsg_t *msg)
 		break;
 	    case TG_SERVICE:
 		/* TG_SERVICE expects signal, not message */
-		PSID_sendSignal(task->tid, task->uid, msg->request, -1, 0, 0);
+		if (!WIFEXITED(msg->error) || WIFSIGNALED(msg->error)
+		    || !task->childs) {
+		    PSID_sendSignal(task->tid, task->uid,
+				    msg->request, -1, 0, 0);
+		}
 	    default:
 		/* Don't send message if task not TG_(GM)SPAWNER */
 		return;
