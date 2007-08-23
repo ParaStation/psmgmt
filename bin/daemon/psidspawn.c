@@ -266,7 +266,7 @@ static void bindToNode(short physCPU)
 	return;
     }
 #ifdef HAVE_LIBNUMA
-    if (!numa_available()) {
+    if (numa_available()==-1) {
 	fprintf(stderr, "NUMA not available. No binding\n");
 	return;
     }
@@ -312,6 +312,7 @@ static void bindToNode(short physCPU)
  */
 static void pinToCPU(short physCPU)
 {
+#ifdef CPU_ZERO
     cpu_set_t CPUset;
 
     if (physCPU < 0 || physCPU >= PSIDnodes_getPhysCPUs(PSC_getMyID())) {
@@ -322,6 +323,9 @@ static void pinToCPU(short physCPU)
     CPU_ZERO(&CPUset);
     CPU_SET(physCPU, &CPUset);
     sched_setaffinity(0, sizeof(CPUset), &CPUset);
+#else
+    fprintf(stderr, "Daemon has no sched_setaffinity(). No pinning\n");
+#endif
 }
 
 /**
