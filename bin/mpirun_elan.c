@@ -550,7 +550,7 @@ int main(int argc, char *argv[])
     if (getenv("LIBELAN_MACHINES_FILE")) {
 	setPSIEnv("LIBELAN_MACHINES_FILE", getenv("LIBELAN_MACHINES_FILE"), 1);
     }
-    setPSIEnv("LIBELAN_SHMKEY", PSC_printTID(PSC_getMyTID(), 1);
+    setPSIEnv("LIBELAN_SHMKEY", PSC_printTID(PSC_getMyTID()), 1);
 
     /* start all processes */
     alarm(1000);
