@@ -71,7 +71,7 @@ struct timeval selectTime;
 
 static struct timeval shutdownTimer;
 
-char psid_cvsid[] = "$Revision: 5073 $";
+char psid_cvsid[] = "$Revision$";
 
 /**
  * Master socket (type UNIX) for clients to connect. Setup within @ref
@@ -1187,7 +1187,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision: 5073 $";
+    char revision[] = "$Revision$";
     fprintf(stderr, "psid %s\b \n", revision+11);
 }
 

@@ -226,7 +226,11 @@ static char* createMachFile(int np)
 static void createSpawner(int argc, char *argv[], int np, int keep)
 {
     int rank;
-    char *rmString, *machFile;
+    char *rmString, *machFile, *ldpath = getenv("LD_LIBRARY_PATH");
+
+    if (ldpath != NULL) {
+	setPSIEnv("LD_LIBRARY_PATH", ldpath, 1);
+    }
 
     PSE_initialize();
     rank = PSE_getRank();
@@ -297,7 +301,8 @@ static int startProcs(int i, int np, int argc, char *argv[], int verbose)
 	PStask_ID_t spawnedProcess = -1;
 	int error;
 
-	if (PSI_spawn(1, NULL, argc, argv, &error, &spawnedProcess) < 0 ) {
+	if (PSI_spawnStrict(1, NULL, argc, argv, 1,
+			    &error, &spawnedProcess) < 0 ) {
 	    if (error) {
 		perror("Spawn failed!");
 	    }
