@@ -49,6 +49,7 @@ bin/logger/psilogger.c \
 bin/mlisten.c \
 bin/mpirun_chgm.c \
 bin/mpirun_chp4.c \
+bin/mpirun_elan.c \
 bin/mpirun_openib.c \
 bin/testacct.c \
 bin/psispawn.c \

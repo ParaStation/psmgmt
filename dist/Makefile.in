@@ -1,7 +1,7 @@
 ###################################################### -*- Makefile -*- #####
 #                  ParaStation
 #        Copyright (c) 2003 ParTec AG, Karlsruhe
-#        Copyright (c) 2005 Cluster Competence Center GmbH, Munich
+#        Copyright (c) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
 #############################################################################
 #
 # $Id$
@@ -33,6 +33,7 @@ INCLUDES += psiinfo.h psispawn.h psienv.h psi.h logging.h
 
 BINS += gmspawner mlisten mpirun_chgm mpirun_chp4 mpirun_openib psiadmin
 BINS += psid psilogger psispawn psmstart test_config test_pse pssh psaccounter
+BINS += mpirun_elan
 
 LIBS += libpse.a libpse.so libpsi.a libpsi.so
 

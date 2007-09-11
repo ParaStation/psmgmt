@@ -42,6 +42,7 @@ PStask_t* PStask_new(void)
 {
     PStask_t* task;
 
+    PSC_log(PSC_LOG_TASK, "%s()\n", __func__);
     task = (PStask_t*)malloc(sizeof(PStask_t));
 
     if (task) PStask_init(task);
@@ -51,6 +52,8 @@ PStask_t* PStask_new(void)
 
 int PStask_init(PStask_t* task)
 {
+    PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, task);
+
     task->next = NULL;
     task->prev = NULL;
 
@@ -104,6 +107,8 @@ int PStask_init(PStask_t* task)
 int PStask_reinit(PStask_t* task)
 {
     int i;
+
+    PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, task);
 
     if (!task)
 	return 0;
@@ -160,6 +165,8 @@ int PStask_reinit(PStask_t* task)
 
 int PStask_delete(PStask_t* task)
 {
+    PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, task);
+
     if (!task)
 	return 0;
 
@@ -172,6 +179,8 @@ int PStask_delete(PStask_t* task)
 PStask_sig_t* PStask_cloneSigList(PStask_sig_t* list)
 {
     PStask_sig_t* clone = NULL,* signal = NULL;
+
+    PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, list);
 
     while (list) {
 	if (!signal) {
@@ -209,6 +218,8 @@ PStask_t* PStask_clone(PStask_t* task)
 {
     PStask_t *clone;
     int i;
+
+    PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, task);
 
     clone = PStask_new();
 
