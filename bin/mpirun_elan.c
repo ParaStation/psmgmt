@@ -251,90 +251,14 @@ static int prepCapEnv(int np)
     cap.cap_highcontext = cap.cap_lowcontext + nContexts - 1;
 
     capToString(&cap, envStr, sizeof(envStr));
-    printf("envStr is '%s'\n", envStr);
-    printf("size of envStr is %ld\n", strlen(envStr));
+    setPSIEnv(envName(0), envStr, 1);
 
     return 0;
 }
 
-/**
- * @brief Create machine-file.
- *
- * Create an extended machine-file including hostnames and ELAN
- * IDs. The hostname are fetched from the allocated partition.
- *
- * @param np Number of entries to generate within the machine-file.
- *
- * @return On success, the name of the machine-file is returned. Or
- * NULL, if an error occurred.
- */
-static char* createMachFile(int np)
-{
-    FILE *machFile;
-    char *id, *machFileName, fileName[256];
-    int n;
-
-    snprintf(fileName, sizeof(fileName), "machFile%d", getpid());
-    machFile = fopen(fileName, "w");
-
-    if (machFile) {
-	machFileName = strdup(fileName);
-    } else {	
-	/* File open failed, lets try the user's home directory */
-	char *home = getenv("HOME");
-	machFileName = PSC_concat(home, "/", fileName, NULL);
-
-	machFile = fopen(machFileName, "w");
-	/* File open failed finally */
-	if (!machFile) {
-	    fprintf(stderr, "%s: ", __func__);
-	    perror("fopen");
-	    free(machFileName);
-	    return NULL;
-	}
-    }
-
-    for (n=0; n<np; n++) {
-	PSnodes_ID_t node;
-	struct hostent *hp;
-	u_int32_t hostaddr;
-	char *ptr;
-
-	int ret = PSI_infoNodeID(-1, PSP_INFO_RANKID, &n, &node, 1);
-	if (ret || (node < 0)) return NULL;
-
-	ret = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr, 0);
-	if (ret || (hostaddr == INADDR_ANY)) return NULL;
-
-	hp = gethostbyaddr(&hostaddr, sizeof(hostaddr), AF_INET);
-
-	if (!hp) return NULL;
-
-	if ((ptr = strchr (hp->h_name, '.'))) *ptr = '\0';
-
-	id = getEntry(hp->h_name);
-	if (!id) {
-	    printf("%s: No ID found for '%s'\n", __func__, hp->h_name);
-	    fclose(machFile);
-	    return NULL;
-	}
-
-	fprintf(machFile, "%s\t%s\n", hp->h_name, id);
-    }
-
-    fclose(machFile);
-
-    freeNetIDmap();
-
-    return machFileName;
-}
-
-#define RM_BODY "rm -f "
-
 static void createSpawner(int argc, char *argv[], int np, int keep)
 {
     int rank;
-    // char *rmString, *machFile, *ldpath = getenv("LD_LIBRARY_PATH");
     char *ldpath = getenv("LD_LIBRARY_PATH");
 
     if (ldpath != NULL) {
@@ -365,12 +289,8 @@ static void createSpawner(int argc, char *argv[], int np, int keep)
 
 	if (PSE_getPartition(np)<0) exit(1);
 
-	// if (!(machFile = createMachFile(np))) exit(1);
 	if (prepCapEnv(np)<0) exit(1);
 
-	exit(2);
-
-	// setPSIEnv("LIBELAN_MACHINES_FILE", machFile, 1);
 	PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
 		     nds, np*sizeof(*nds), 0);
 
@@ -389,8 +309,6 @@ static void createSpawner(int argc, char *argv[], int np, int keep)
 	setenv("PSI_NOMSGLOGGERDONE", "", 1);
 
 	/* Switch to psilogger */
-	// rmString = malloc(strlen(RM_BODY) + strlen(machFile) + 1);
-	// sprintf(rmString, "%s%s", RM_BODY, machFile);
 	PSI_execLogger(NULL);
 
 	printf("never be here\n");
@@ -406,6 +324,7 @@ static int startProcs(int i, int np, int argc, char *argv[], int verbose)
     u_int32_t hostaddr;
     static ELAN_CAPABILITY *cap = NULL;
     static int *numProcs = NULL;
+    char envStr[8192];
 
     int ret = PSI_infoNodeID(-1, PSP_INFO_RANKID, &i, &node, 1);
     if (ret || (node < 0)) exit(10);
@@ -417,10 +336,13 @@ static int startProcs(int i, int np, int argc, char *argv[], int verbose)
 	cap = malloc(sizeof(*cap));
 	elan_getenvCap(cap, 0);
     }
-    if (!numProcs) numProcs = calloc(1, PSC_getNrOfNodes());
+    if (!numProcs) numProcs = calloc(sizeof(int), PSC_getNrOfNodes());
 
     cap->cap_mycontext = cap->cap_lowcontext + numProcs[node];
     numProcs[node]++;
+
+    capToString(cap, envStr, sizeof(envStr));
+    setPSIEnv(envName(0), envStr, 1);
 
     if (verbose) printf("spawn rank %d: %s\n", i, argv[0]);
 

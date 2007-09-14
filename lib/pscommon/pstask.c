@@ -675,7 +675,7 @@ size_t PStask_encodeEnv(char *buffer, size_t size, PStask_t *task,
 		} else {
 		    /* buffer to small */
 		    *offset = task->environ[*cur];
-		    msglen = size-1;
+		    msglen = size-2;
 		    strncpy(buffer, *offset, msglen);
 		    *offset += msglen;
 		    buffer[msglen] = '\0';
