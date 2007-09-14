@@ -643,7 +643,8 @@ int PStask_decodeArgs(char *buffer, PStask_t *task)
     return msglen;
 }
 
-size_t PStask_encodeEnv(char *buffer, size_t size, PStask_t *task, int *cur)
+size_t PStask_encodeEnv(char *buffer, size_t size, PStask_t *task,
+			int *cur, char **offset)
 {
     size_t msglen = 0;
     int first=*cur;
@@ -653,25 +654,39 @@ size_t PStask_encodeEnv(char *buffer, size_t size, PStask_t *task, int *cur)
 	    __func__, buffer, (long)size, PSC_printTID(task->tid), taskString);
 
     if (task->environ) {
-	for (; task->environ[*cur]; (*cur)++) {
-	    if (msglen + strlen(task->environ[*cur]) + 1 < size) {
-		strcpy(&buffer[msglen], task->environ[*cur]);
-		msglen += strlen(task->environ[*cur])+1;
-	    } else if (*cur > first) {
-		break;
+	if (*offset) {
+	    msglen = strlen(*offset) < size ? strlen(*offset)+1 : size - 1;
+	    strncpy(buffer, *offset, msglen);
+	    if ( strlen(*offset) < size) {
+		*offset = NULL;
+		(*cur)++;
 	    } else {
-		/* buffer to small */
-		return msglen + strlen(task->environ[*cur]) + 1;
+		*offset += msglen;
+		buffer[msglen] = '\0';
+		msglen++;
 	    }
+	} else {
+	    for (; task->environ[*cur]; (*cur)++) {
+		if (msglen + strlen(task->environ[*cur]) < size-1) {
+		    strcpy(&buffer[msglen], task->environ[*cur]);
+		    msglen += strlen(task->environ[*cur])+1;
+		} else if (*cur > first) {
+		    break;
+		} else {
+		    /* buffer to small */
+		    *offset = task->environ[*cur];
+		    msglen = size-1;
+		    strncpy(buffer, *offset, msglen);
+		    *offset += msglen;
+		    buffer[msglen] = '\0';
+		    msglen++;
+		    break;
+		}
+	    }
+	    /* append extra zero byte (marks end of message) */
+	    buffer[msglen] = '\0';
+	    msglen++;
 	}
-    }
-    /* append zero byte */
-    if (msglen < size) {
-	buffer[msglen] = '\0';
-	msglen++;
-    } else {
-	/* buffer to small */
-	return msglen + 1;
     }
 
     return msglen;
@@ -680,7 +695,7 @@ size_t PStask_encodeEnv(char *buffer, size_t size, PStask_t *task, int *cur)
 int PStask_decodeEnv(char *buffer, PStask_t *task)
 {
     int msglen=0, i;
-    int envSize, envNew;
+    int envSize = 0, envNew;
 
     if (!task) {
 	PSC_log(-1, "%s: task is NULL\n", __func__);
@@ -688,13 +703,9 @@ int PStask_decodeEnv(char *buffer, PStask_t *task)
     }
 
     snprintfStruct(taskString, sizeof(taskString), task);
-    PSC_log(PSC_LOG_TASK, "%s(%p, task(%s))\n",
-	    __func__, buffer, taskString);
-
-    if (!task) return 0;
+    PSC_log(PSC_LOG_TASK, "%s(%p, task(%s))\n", __func__, buffer, taskString);
 
     /* Get number of existing environment variables */
-    envSize = 0;
     if (task->environ) {
 	while (task->environ[envSize]) envSize++;
     }
@@ -726,7 +737,41 @@ int PStask_decodeEnv(char *buffer, PStask_t *task)
 	msglen++;
     }
 
-    snprintfEnv(taskString, sizeof(taskString), task);
+    snprintfStruct(taskString, sizeof(taskString), task);
+    PSC_log(PSC_LOG_TASK, " received env = (%s)\n", taskString);
+    PSC_log(PSC_LOG_TASK, "%s returns %d\n", __func__, msglen);
+
+    return msglen;
+}
+
+int PStask_decodeEnvAppend(char *buffer, PStask_t *task)
+{
+    int msglen, envSize = 0;
+    size_t newLen;
+
+    if (!task) {
+	PSC_log(-1, "%s: task is NULL\n", __func__);
+	return 0;
+    }
+
+    snprintfStruct(taskString, sizeof(taskString), task);
+    PSC_log(PSC_LOG_TASK, "%s(%p, task(%s))\n", __func__, buffer, taskString);
+
+    if (!task->environ) {
+	PSC_log(-1, "%s: No environment in task %s\n", __func__, taskString);
+	return 0;
+    }
+
+    /* Find trailing environment variable */
+    while (task->environ[envSize]) envSize++;
+
+    /* Append to environment */
+    newLen = strlen(task->environ[envSize-1]) + strlen(buffer) + 1;
+    task->environ[envSize-1] = realloc(task->environ[envSize-1], newLen);
+    strcpy(task->environ[envSize-1]+strlen(task->environ[envSize-1]), buffer);
+    msglen=strlen(buffer)+1;
+
+    snprintfStruct(taskString, sizeof(taskString), task);
     PSC_log(PSC_LOG_TASK, " received env = (%s)\n", taskString);
     PSC_log(PSC_LOG_TASK, "%s returns %d\n", __func__, msglen);
 

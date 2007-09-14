@@ -42,7 +42,8 @@ else
    TARGET_LIBC_PROVIDES_SSP=no
 fi
 
-AC_CHECK_LIB([numa], [numa_available] , [ NUMALIB=yes ], [ NUMALIB=no ])
+AC_SEARCH_LIBS([numa_available], [numa], [NUMA=yes])
+AC_SEARCH_LIBS([elan_nullcap], [elanctrl], [ELANCTRL=yes])
 
 AC_SUBST([CFLAG_WALL])
 AC_SUBST([CFLAG_G])
@@ -52,7 +53,8 @@ AC_SUBST([DEPEXTENSION])
 AC_SUBST([TRU64FILEADD])
 AC_SUBST([LIBCURSES])
 AC_SUBST([TARGET_LIBC_PROVIDES_SSP])
-AC_SUBST([NUMALIB])
+AC_SUBST([NUMA])
+AC_SUBST([ELANCTRL])
 
 case $target_os in
 linux|linux-gnu)

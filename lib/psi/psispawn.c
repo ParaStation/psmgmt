@@ -212,7 +212,6 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     int ret = 0;    /* return value */
     int error = 0;  /* error flag */
     int fd = 0;
-    int envNum = 0;
     PStask_t* task; /* structure to store the information of the new process */
 
     for (i=0; i<count; i++) {
@@ -309,15 +308,6 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	PSI_log(-1, " Too many/too long arguments?\n");
 	goto error;
     }
-    do {
-	
-	if (PStask_encodeEnv(msg.buf, sizeof(msg.buf),
-			     task, &envNum) > sizeof(msg.buf)) {
-	    PSI_log(-1, "%s: size of task too large.", __func__);
-	    PSI_log(-1, " Environment '%s' too long?\n",task->environ[envNum]);
-	    goto error;
-	}
-    } while (task->environ[envNum]);
 
     /* send actual requests */
     outstanding_answers=0;
@@ -328,6 +318,8 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    tids[i] = -1;
 	} else {
 	    size_t len;
+	    int envNum = 0;
+	    char *envOffset = NULL;
 
 	    msg.header.type = PSP_CD_SPAWNREQ;
 	    msg.header.dest = PSC_getTID(dstnodes[i],0);
@@ -357,9 +349,11 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    msg.header.len -= len;
 
 	    msg.type = PSP_SPAWN_ENV;
-	    envNum=0;
 	    do {
-		len = PStask_encodeEnv(msg.buf, sizeof(msg.buf),task, &envNum);
+		if (envOffset) msg.type = PSP_SPAWN_ENVCNTD;
+
+		len = PStask_encodeEnv(msg.buf, sizeof(msg.buf),task,
+				       &envNum, &envOffset);
 		msg.header.len += len;
 		
 		if (!task->environ[envNum])
@@ -371,6 +365,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 		    goto error;
 		}
 		msg.header.len -= len;
+		msg.type = PSP_SPAWN_ENV;
 	    } while (task->environ[envNum]);
 
 	    outstanding_answers++;

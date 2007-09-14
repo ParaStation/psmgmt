@@ -11,11 +11,12 @@
 #         Norbert Eicker <eicker@par-tec.de>
 #############################################################################
 
-NUMALIB=@NUMALIB@
+NUMA=@NUMA@
+ELANCTRL=@ELANCTRL@
 
 CFLAGS += -O2 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
 CPPFLAGS += -I@top_srcdir@/include -I. @CPPFLAG_MMD@
-ifeq ($(NUMALIB),yes)
+ifeq ($(NUMA),yes)
 CPPFLAGS += -DHAVE_LIBNUMA
 endif
 LIB_DIRNAME:=@LIB_DIRNAME@
@@ -39,6 +40,9 @@ TOOLS:= psiadmin psid psilogger mlisten
 TOOLS += psmstart mpirun_chp4 psispawn mpirun_chgm gmspawner
 TOOLS += mpirun_openib test_pse test_config pssh
 TOOLS += psaccounter testacct mpirun_elan
+ifeq ($(ELANCTRL),yes)
+TOOLS += mpirun_elan
+endif
 
 TARGETS = $(TOOLS) test_logging
 
@@ -55,6 +59,8 @@ psiadmin psid mlisten test_pse psmstart mpirun_chp4 mpirun_chgm gmspawner \
 test_pse psmstart mpirun_chp4 mpirun_chgm mpirun_openib pssh psaccounter \
 	testacct mpirun_elan: \
 		LOADLIBES:=$(LOADLIBES) -lpse -lpsi
+
+mpirun_elan: LOADLIBES:=$(LOADLIBES) -lelanctrl
 
 psiadmin psid test_config: LOADLIBES:=$(LOADLIBES) -lputil
 
@@ -85,7 +91,7 @@ psid: psidsignal.o psidmsgbuf.o psidrdp.o psidclient.o psidcomm.o
 psid: psidinfo.o psidoption.o psidpartition.o psidstatus.o psidhw.o
 psid: psidaccount.o psidnodes.o
 psid: LOADLIBES:=$(LOADLIBES) -lm -lutil -lpslog
-ifeq ($(NUMALIB),yes)
+ifeq ($(NUMA),yes)
 psid: LOADLIBES:=$(LOADLIBES) -lnuma
 endif
 

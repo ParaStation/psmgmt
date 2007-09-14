@@ -33,6 +33,8 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <arpa/inet.h>
 #include <popt.h>
 
+#include <elan/elanctrl.h>
+
 #include <pse.h>
 #include <psi.h>
 #include <psienv.h>
@@ -147,6 +149,114 @@ static void freeNetIDmap(void)
     }
 }
 
+/*----------------------------------------------------------------------*/
+/* Stolen from libelan */
+
+/* environment elan capability name */
+/* LIBELAN_ECAP=...    my segment   (index < 0)  */
+/* LIBELAN_ECAP0=...   segment 0    (index == 0) */
+/* LIBELAN_ECAP1=... segment 1  (index == 1) */
+/* etc... */
+static char *envName (int index)
+{
+    static char name[32];
+
+    if (index < 0)
+	strcpy (name, "LIBELAN_ECAP");
+    else
+	sprintf (name, "LIBELAN_ECAP%d", index);
+
+    return (name);
+}
+
+static char *capToString(ELAN_CAPABILITY *cap, char *str, size_t len)
+{
+    char *cp, *tp = str;
+    
+    for (cp = (char *) (cap + 1); --cp >= (char *)cap; tp += 2)
+	sprintf((char *)tp, "%02x", (*cp) & 0xff);
+
+    return(str);
+}
+
+/*----------------------------------------------------------------------*/
+
+static int prepCapEnv(int np)
+{
+    ELAN_CAPABILITY cap;
+    int procsPerNode[ELAN_MAX_VPS];
+    int n, p, nContexts=1;
+    char *nodesFirst = getenv("PSI_LOOP_NODES_FIRST"), envStr[8192];
+
+    elan_nullcap (&cap);
+    cap.cap_lowcontext = 64;
+    cap.cap_mycontext = 64;
+    cap.cap_highcontext = 64;
+    cap.cap_lownode = ELAN_MAX_VPS;
+    cap.cap_highnode = 0;
+    cap.cap_railmask = 1;
+    cap.cap_type = nodesFirst ? ELAN_CAP_TYPE_CYCLIC : ELAN_CAP_TYPE_BLOCK;
+    cap.cap_type |= ELAN_CAP_TYPE_BROADCASTABLE;
+
+    
+    /* Setup bitmap */
+    getNetIDmap();
+
+    for (n=0; n<np; n++) {
+	PSnodes_ID_t node;
+	struct hostent *hp;
+	u_int32_t hostaddr;
+	char *ptr, *idStr, *end;
+	int id;
+
+	int ret = PSI_infoNodeID(-1, PSP_INFO_RANKID, &n, &node, 1);
+	if (ret || (node < 0)) return -1;
+
+	ret = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr, 0);
+	if (ret || (hostaddr == INADDR_ANY)) return -1;
+
+	hp = gethostbyaddr(&hostaddr, sizeof(hostaddr), AF_INET);
+
+	if (!hp) return -1;
+
+	if ((ptr = strchr (hp->h_name, '.'))) *ptr = '\0';
+
+	idStr = getEntry(hp->h_name);
+	if (!idStr) {
+	    printf("%s: No ID found for '%s'\n", __func__, hp->h_name);
+	    return -1;
+	}
+	id = strtol(idStr, &end, 10);
+	if (end == idStr || *end) {
+	    printf("%s: No ID found in '%s'\n", __func__, idStr);
+	    return -1;
+	}
+	if (id < cap.cap_lownode)
+	    cap.cap_lownode = id;
+	
+	if (id > cap.cap_highnode)
+	    cap.cap_highnode = id;
+	
+	procsPerNode[id]++;
+	if (procsPerNode[id] > nContexts)
+	    nContexts = procsPerNode[id];
+    }
+
+    freeNetIDmap();
+
+    for (n = 0; n < cap.cap_highnode - cap.cap_lownode + 1; n++)
+	for (p = 0; p < procsPerNode[cap.cap_lownode + n]; p++)
+	    BT_SET(cap.cap_bitmap, n*nContexts + p);
+
+    cap.cap_highcontext = cap.cap_lowcontext + nContexts - 1;
+
+    capToString(&cap, envStr, sizeof(envStr));
+    printf("envStr is '%s'\n", envStr);
+    printf("size of envStr is %ld\n", strlen(envStr));
+
+    return 0;
+}
+
 /**
  * @brief Create machine-file.
  *
@@ -163,8 +273,6 @@ static char* createMachFile(int np)
     FILE *machFile;
     char *id, *machFileName, fileName[256];
     int n;
-
-    getNetIDmap();
 
     snprintf(fileName, sizeof(fileName), "machFile%d", getpid());
     machFile = fopen(fileName, "w");
@@ -226,7 +334,8 @@ static char* createMachFile(int np)
 static void createSpawner(int argc, char *argv[], int np, int keep)
 {
     int rank;
-    char *rmString, *machFile, *ldpath = getenv("LD_LIBRARY_PATH");
+    // char *rmString, *machFile, *ldpath = getenv("LD_LIBRARY_PATH");
+    char *ldpath = getenv("LD_LIBRARY_PATH");
 
     if (ldpath != NULL) {
 	setPSIEnv("LD_LIBRARY_PATH", ldpath, 1);
@@ -256,9 +365,12 @@ static void createSpawner(int argc, char *argv[], int np, int keep)
 
 	if (PSE_getPartition(np)<0) exit(1);
 
-	if (!(machFile = createMachFile(np))) exit(1);
+	// if (!(machFile = createMachFile(np))) exit(1);
+	if (prepCapEnv(np)<0) exit(1);
 
-	setPSIEnv("LIBELAN_MACHINES_FILE", machFile, 1);
+	exit(2);
+
+	// setPSIEnv("LIBELAN_MACHINES_FILE", machFile, 1);
 	PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
 		     nds, np*sizeof(*nds), 0);
 
@@ -277,9 +389,9 @@ static void createSpawner(int argc, char *argv[], int np, int keep)
 	setenv("PSI_NOMSGLOGGERDONE", "", 1);
 
 	/* Switch to psilogger */
-	rmString = malloc(strlen(RM_BODY) + strlen(machFile) + 1);
-	sprintf(rmString, "%s%s", RM_BODY, machFile);
-	PSI_execLogger(keep ? NULL : rmString);
+	// rmString = malloc(strlen(RM_BODY) + strlen(machFile) + 1);
+	// sprintf(rmString, "%s%s", RM_BODY, machFile);
+	PSI_execLogger(NULL);
 
 	printf("never be here\n");
 	exit(1);
@@ -290,10 +402,25 @@ static void createSpawner(int argc, char *argv[], int np, int keep)
 
 static int startProcs(int i, int np, int argc, char *argv[], int verbose)
 {
-    char tmp[1024];
+    PSnodes_ID_t node;
+    u_int32_t hostaddr;
+    static ELAN_CAPABILITY *cap = NULL;
+    static int *numProcs = NULL;
 
-    snprintf(tmp, sizeof(tmp), "%d", i);
-    setPSIEnv("SCAMPI_PROCESS_RANK", tmp, 1);
+    int ret = PSI_infoNodeID(-1, PSP_INFO_RANKID, &i, &node, 1);
+    if (ret || (node < 0)) exit(10);
+
+    ret = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr, 0);
+    if (ret || (hostaddr == INADDR_ANY)) exit(10);
+
+    if (!cap) {
+	cap = malloc(sizeof(*cap));
+	elan_getenvCap(cap, 0);
+    }
+    if (!numProcs) numProcs = calloc(1, PSC_getNrOfNodes());
+
+    cap->cap_mycontext = cap->cap_lowcontext + numProcs[node];
+    numProcs[node]++;
 
     if (verbose) printf("spawn rank %d: %s\n", i, argv[0]);
 
@@ -442,7 +569,6 @@ int main(int argc, char *argv[])
     }
 
     if (!argv[dup_argc]) {
-        poptPrintUsage(optCon, stderr, 0);
 	msg = "No <command> specified.";
 	goto errexit;
     }
@@ -552,9 +678,9 @@ int main(int argc, char *argv[])
     PSI_RemoteArgs(argc-dup_argc, &argv[dup_argc], &dup_argc, &dup_argv);
 
     /* Prepare the environment */
-    if (getenv("LIBELAN_MACHINES_FILE")) {
-	setPSIEnv("LIBELAN_MACHINES_FILE", getenv("LIBELAN_MACHINES_FILE"), 1);
-    }
+/*     if (getenv("LIBELAN_MACHINES_FILE")) { */
+/* 	setPSIEnv("LIBELAN_MACHINES_FILE", getenv("LIBELAN_MACHINES_FILE"), 1); */
+/*     } */
     setPSIEnv("LIBELAN_SHMKEY", PSC_printTID(PSC_getMyTID()), 1);
 
     /* start all processes */

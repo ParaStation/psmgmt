@@ -368,7 +368,7 @@ void PSC_printNodelist(char* nl);
  * @brief Concatenate strings.
  *
  * Concatenate two or more strings and return a pointer to the
- * resulting string. Memory for the noew string is obtained with
+ * resulting string. Memory for the new string is obtained with
  * malloc(3), and can be freed with free(3).
  *
  * @param str Start of the concatenated string. More strings to follow.

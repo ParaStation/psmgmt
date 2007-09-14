@@ -33,7 +33,7 @@ extern "C" {
 #endif
 
 /** Unique version number of the high-level protocol */
-#define PSProtocolVersion 335
+#define PSProtocolVersion 336
 
 /** The location of the UNIX socket used to contact the daemon. */
 #define PSmasterSocketName "/var/run/parastation.sock"
@@ -238,6 +238,7 @@ typedef enum {
     PSP_SPAWN_ENV,                /**< Content is chunk of environment */
     PSP_SPAWN_END,                /**< Content is last chunk of environment */
     PSP_SPAWN_LOC,                /**< Content is location to pin to */
+    PSP_SPAWN_ENVCNTD,            /**< Content is continued single env-var */
 } PSP_Spawn_t;
 
 /** Accounting messages */
