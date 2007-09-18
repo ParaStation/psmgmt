@@ -32,6 +32,8 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "psidmsgbuf.h"
 #include "psidnodes.h"
 #include "pslog.h"
+#include "psidpmiprotocol.h"
+#include "psidpmicomm.h"
 
 #include "psidforwarder.h"
 
@@ -50,6 +52,15 @@ PStask_t *childTask = NULL;
 
 /** The socket connecting to the local ParaStation daemon */
 int daemonSock = -1;
+
+/** The socket listening for connection from the pmi client */
+int PMISock = -1;
+
+/** The type of the connection between forwarder and client */
+int pmiType = -1;
+
+/** The socket connected to the pmi client */
+int PMIClientSock = -1;
 
 /** The socket connected to the stdin port of the client */
 int stdinSock = -1;
@@ -91,6 +102,36 @@ static void closeDaemonSock(void)
     loggerTID = -1;
     PSLog_close();
     close(tmp);
+}
+
+/**
+ * @brief Close socket which is connected to the pmi client.
+ *
+ * @return No return value.
+ */
+static void closePMIClientSocket(void)
+{
+    /* close pmi client socket */
+    if (PMIClientSock > 0 ) {
+	FD_CLR(PMIClientSock, &readfds);	
+	close(PMIClientSock);
+	PMIClientSock = -1;
+    }
+}
+
+/**
+ * @brief Close the socket which listens for new pmi connections.
+ *
+ * @return No return value.
+ */
+static void closePMIAcceptSocket(void)
+{
+    /* close pmi accept socket */
+    if (PMISock > 0 ) {
+	FD_CLR(PMISock, &readfds);	
+	close(PMISock);
+	PMISock = -1;
+    }	
 }
 
 /**
@@ -217,6 +258,13 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 	}
 	break;
     case PSP_CC_MSG:
+	break;
+    case PSP_CD_RELEASERES:
+	/* release the pmi client */
+	pmi_finalize();
+
+	/*close connection */
+	closePMIClientSocket();
 	break;
     default:
 	PSID_log(-1, "%s: Unknown message type %s\n",
@@ -665,6 +713,9 @@ static void sighandler(int sig)
 
 	releaseLogger(status);
 
+	/* Release the pmi client */
+	closePMIClientSocket();
+
 	/* Release the daemon */
 	closeDaemonSock();
 
@@ -696,7 +747,6 @@ static void sighandler(int sig)
  * @param fds Set of file descriptors that have to be checked.
  *
  * @return No return value.
- *
  */
 static void checkFileTable(fd_set *fds)
 {
@@ -909,6 +959,8 @@ static int readFromLogger(void)
     ret = recvMsg(&msg, NULL);
     if (ret > 0) {
 	switch (msg.header.type) {
+	case PSP_CD_RELEASERES:
+	    break;
 	case PSP_CC_MSG:
 	    switch (msg.type) {
 	    case STDIN:
@@ -928,10 +980,15 @@ static int readFromLogger(void)
 		break;
 	    case EXIT:
 		/* Logger is going to die */
+		/* Release the pmi client */
+		closePMIClientSocket();
 		/* Release the daemon */
 		closeDaemonSock();
 
 		exit(0);
+		break;
+	    case KVS:
+		pmi_handleKvsRet(msg);
 		break;
 	    case WINCH:
 		/* Logger detected change in window-size */
@@ -983,6 +1040,98 @@ static int readFromLogger(void)
 }
 
 /**
+ * @brief  Accept a new pmi client connection.
+ *
+ * @return No return value. 
+ */
+static void acceptPMIClient(void)
+{
+    unsigned int clientlen;
+    struct sockaddr_in SAddr;
+    char obuf[120];
+
+    /* check if a client is already connected */
+    if (PMIClientSock > 0) {
+	snprintf(obuf, sizeof(obuf),
+		 "%s: error only one pmi connection is allowed\n", __func__);
+	PSIDfwd_printMsg(STDERR, obuf);
+	return;
+    }
+
+    /* accept new pmi connection */
+    clientlen = sizeof(SAddr);
+    if ((PMIClientSock = accept( PMISock, (void *)&SAddr, &clientlen)) == -1) {
+	snprintf(obuf, sizeof(obuf),
+		 "%s: error on accepting new pmi connection\n", __func__);
+	PSIDfwd_printMsg(STDERR, obuf);
+	return;
+    }
+
+    /* init the pmi interface */
+    pmi_init(PMIClientSock, childTask->loggertid, childTask->rank);
+
+    /* close the socket which waits for new connections */
+    closePMIAcceptSocket();
+}
+
+/* @brief  Read pmi message from the client.
+ *
+ * @return Usually the number of bytes received is returned. If an
+ * error occured, -1 is returned and errno is set appropriately.
+ *
+ */
+static int readFromPMIClient(void)
+{
+    char msgBuf[PMIU_MAXLINE], obuf[120];
+    ssize_t len;
+    int ret;
+
+    len = recv(PMIClientSock, msgBuf, sizeof(msgBuf), 0);
+
+    /* no data received from client */
+    if (!len) {
+	snprintf(obuf, sizeof(obuf),
+		 "%s: lost connection to the pmi client\n", __func__);
+	PSIDfwd_printMsg(STDERR, obuf);
+
+	/*close connection */
+	closePMIClientSocket();
+	return -1;
+    }
+
+    /* socket error occured */
+    if (len < 0) {
+	snprintf(obuf, sizeof(obuf),
+		 "%s: error on pmi socket occured\n", __func__);
+	PSIDfwd_printMsg(STDERR, obuf);
+	return -1;
+    }
+
+    /* truncate msg to received bytes */
+    msgBuf[len] = '\0';
+
+    /* parse and handle the pmi msg */
+    ret = pmi_parse_msg(msgBuf);
+
+    /* pmi communication finished */
+    if (ret == PMI_FINALIZED) {
+
+	/* release the child */
+	DDSignalMsg_t msg;
+
+	msg.header.type = PSP_CD_RELEASE;
+	msg.header.sender = PSC_getTID(-1, getpid());
+	msg.header.dest = childTask->tid;
+	msg.header.len = sizeof(msg);
+	msg.signal = -1;
+
+	sendDaemonMsg((DDMsg_t *)&msg);
+    }
+
+    return len;
+}
+
+/**
  * @brief The main loop
  *
  * Does all the forwarding work. A tasks is connected and output forwarded
@@ -1023,6 +1172,12 @@ static void loop(void)
 	openfds++;
     }
     FD_SET(daemonSock, &readfds);
+    if (PMISock != -1) {
+        FD_SET(PMISock, &readfds);
+    }
+    if (PMIClientSock != -1) {
+	FD_SET(PMIClientSock, &readfds);
+    }
     FD_ZERO(&writefds);
 
     /* Loop forever. We exit on SIGCHLD. */
@@ -1050,6 +1205,15 @@ static void loop(void)
 		if (sock==daemonSock) {
 		    /* Read new input */
 		    readFromLogger();
+		    continue;
+		}else if (sock==PMISock) {
+		    /* Accept new pmi connection */
+		    acceptPMIClient();
+		    FD_SET(PMIClientSock, &readfds);
+		    continue;
+		}else if (sock==PMIClientSock) {
+		    /* Read new pmi msg from client */
+		    readFromPMIClient();
 		    continue;
 		} else if (sock==stdoutSock) {
 		    type=STDOUT;
@@ -1120,12 +1284,13 @@ static void loop(void)
 }
 
 /* see header file for docu */
-void PSID_forwarder(PStask_t *task, int daemonfd)
+void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket, int PMIType)
 {
     long flags;
 
     childTask = task;
     daemonSock = daemonfd;
+    pmiType = PMIType;
 
     stdinSock = task->stdin_fd;
     stdoutSock = task->stdout_fd;
@@ -1146,6 +1311,15 @@ void PSID_forwarder(PStask_t *task, int daemonfd)
 	/* There is no logger. Just wait for the client to finish. */
 	PSID_blockSig(0, SIGCHLD);
 	while (1) sleep(10);
+    }
+
+    /* Set up pmi connection */ 
+    if (pmiType) {
+	PMIClientSock = PMISocket;    
+	/* init the pmi interface */
+	pmi_init(PMIClientSock, childTask->loggertid, childTask->rank);
+    } else {
+	PMISock = PMISocket;
     }
 
     /* call the loop which does all the work */

@@ -37,13 +37,30 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "pscommon.h"
 #include "pstask.h"
 #include "pslog.h"
+#include "psiloggerkvs.h"
+#include "psiloggermerge.h"
+
+#include "psilogger.h"
+#include "timer.h"
 
 /**
- * Should source and length of each message be displayed ?  (1=Yes, 0=No)
+ * Shall source and length of each message be displayed ?  (1=Yes, 0=No)
  *
  * Set in main() to 1 if environment variable PSI_SOURCEPRINTF is defined.
  */
 int PrependSource = 0;
+
+/**
+ * Shall output lines of different ranks be merged ?  (1=Yes, 0=No)
+ *
+ * Set in main() to 1 if environment variable PSI_MERGEOUTPUT is defined.
+ */
+int MergeOutput = 0;
+
+/**
+ * Number of maximal processes in this job.
+ */
+int np = 0;
 
 /**
  * The rank of the process all input is forwarded to.
@@ -100,6 +117,9 @@ int retVal = 0;
 /** Flag marking a client got signaled */
 int signaled = 0;
 
+/** Enables kvs support in logger */
+int enable_kvs = 0;
+
 /**
  * @brief Close socket to daemon.
  *
@@ -145,7 +165,7 @@ static void closeDaemonSock(void)
  * i.e. usually this is @a len. On error, -1 is returned, and errno is
  * set appropriately.
  */
-static int sendMsg(PStask_ID_t tid, PSLog_msg_t type, char *buf, size_t len)
+int sendMsg(PStask_ID_t tid, PSLog_msg_t type, char *buf, size_t len)
 {
     int ret = 0;
 
@@ -304,6 +324,33 @@ static int sendDaemonMsg(DDSignalMsg_t *msg)
     }
 
     return msg->header.len;
+}
+
+/**
+ * @brief Callback functions to handle barrier timeouts.
+ * Terminate the job, send all children term signal.
+ *
+ * @return No return value.
+ */
+void handleBarrierTimeout(void)
+{
+    fprintf(stderr,
+		"PSIlogger: Timeout: Not all clients joined the pmi barrier, terminating.\n");
+    
+    {
+	DDSignalMsg_t msg;
+
+	msg.header.type = PSP_CD_SIGNAL;
+	msg.header.sender = PSC_getMyTID();
+	msg.header.dest = PSC_getMyTID();
+	msg.header.len = sizeof(msg);
+	msg.signal = SIGTERM;
+	msg.param = getuid();
+	msg.pervasive = 1;
+	msg.answer = 0;
+
+	sendDaemonMsg(&msg);
+    }
 }
 
 /**
@@ -508,6 +555,10 @@ static int newrequest(PSLog_Msg_t *msg)
 	    exit(1);
 	}	    
 	for (i=maxClients; i<2*msg->sender; i++) clientTID[i] = -1;
+
+	/* realloc output buffer */
+	reallocClientOutBuf(msg);		
+
 	maxClients = 2*msg->sender;
     }
 
@@ -641,6 +692,206 @@ static void forwardInput(int std_in, PStask_ID_t fwTID)
 }
 
 /**
+ * @brief Handle USAGE msg from forwarder.
+ *
+ * @param msg The received msg to handle.
+ *
+ * @return No return value.
+ */
+static void handleUSAGEMsg(PSLog_Msg_t msg)
+{
+    if (usage) {
+	struct rusage usage;
+
+	memcpy(&usage, msg.buf, sizeof(usage));
+
+	fprintf(stderr, "PSIlogger: Child with rank %d used"
+		" %.6f/%.6f sec (user/sys)\n",
+		msg.sender,
+		usage.ru_utime.tv_sec
+		+ usage.ru_utime.tv_usec * 1.0e-6,
+		usage.ru_stime.tv_sec
+		+ usage.ru_stime.tv_usec * 1.0e-6);
+    }
+}
+
+/**
+ * @brief Handle STDOUT/STDERR msgs from forwarder. 
+ *
+ * @param msg The received msg to handle.
+ *
+ * @param outfd The file descriptor to write the output
+ * to.
+ *
+ * @return No return value.
+ */
+static void handleSTDOUTMsg(PSLog_Msg_t msg, int outfd)
+{
+    int ret;
+
+    if (verbose) {
+	fprintf(stderr, "PSIlogger: Got %d bytes from %s\n",
+		msg.header.len - PSLog_headerSize,
+		PSC_printTID(msg.header.sender));
+    }
+    if (PrependSource) { 
+	char prefix[30];
+	char *buf = msg.buf;
+	size_t count = msg.header.len - PSLog_headerSize;
+
+	if (verbose) {
+	    snprintf(prefix, sizeof(prefix), "[%d, %d]:",
+		     msg.sender,
+		     msg.header.len - PSLog_headerSize);
+	} else if (count > 0) {
+	    snprintf(prefix, sizeof(prefix), "[%d]:", msg.sender);
+	}
+
+	while (count>0) {
+	    char *nl = memchr(buf, '\n', count);
+
+	    if (nl) nl++; /* Thus nl points behind the newline */
+
+	    ret = write(outfd, prefix, strlen(prefix));
+	    ret = write(outfd, buf, nl ? (size_t)(nl - buf):count);
+
+	    if (nl) {
+		count -= nl - buf;
+		buf = nl;
+	    } else {
+		count = 0;
+	    }
+	}
+    } else {
+	if (MergeOutput && np > 1) {
+	    /* collect all ouput */ 
+	    cacheOutput(msg, outfd);
+	} else {
+	    ret = write(outfd, msg.buf,
+		    msg.header.len-PSLog_headerSize);
+	}
+    }
+}
+
+/**
+ * @brief Handle FINALIZE msg from forwarder. 
+ *
+ * @param msg The received msg to handle.
+ *
+ * @return No return value.
+ */
+static void handleFINALIZEMsg(PSLog_Msg_t msg)
+{
+    leave_raw_mode();
+    if (getenv("PSI_SSH_COMPAT_HOST")) {
+	char *host = getenv("PSI_SSH_COMPAT_HOST");
+	int status = *(int *) msg.buf;
+
+	if (WIFSIGNALED(status)) retVal = -1;
+	if (WIFEXITED(status)) retVal = WEXITSTATUS(status);
+
+	if (getenv("PSI_SSH_INTERACTIVE"))
+	    fprintf(stderr, "Connection to %s closed.\n", host);
+    } else {
+	int status = *(int *) msg.buf;
+
+	if (WIFSIGNALED(status)) {
+	    fprintf(stderr, "PSIlogger: Child with rank %d"
+		    " exited on signal %d", msg.sender,
+		    WTERMSIG(status));
+	    psignal(WTERMSIG(status), "");
+	    signaled = 1;
+	}
+
+	if (WIFEXITED(status)) {
+	    if (WEXITSTATUS(status)) {
+		fprintf(stderr, "PSIlogger: Child with rank %d"
+			" exited with status %d.\n", msg.sender,
+			WEXITSTATUS(status));
+		if (!retVal) retVal = WEXITSTATUS(status);
+	    } else if (verbose) {
+		fprintf(stderr, "PSIlogger: Child with rank %d"
+			" exited normally.\n", msg.sender);
+	    }
+	}
+    }
+
+    if (verbose)
+	fprintf(stderr, "PSIlogger: closing %s (rank %d) on FINALIZE\n",
+		PSC_printTID(msg.header.sender), msg.sender);
+
+    PSLog_write(msg.header.sender, EXIT, NULL, 0);
+
+    if (msg.header.sender == forwardInputTID) {
+	/* disable input forwarding */
+	FD_CLR(STDIN_FILENO, &myfds);
+	forwardInputTID = -1;
+    }
+
+    clientTID[msg.sender] = -1;
+    noClients--;
+}
+
+/**
+ * @brief Handle STOP msg from forwarder.
+ *
+ * @param msg The received msg to handle.
+ *
+ * @return No return value.
+ */
+static void handleSTOPMsg(PSLog_Msg_t msg)
+{
+    if (msg.sender == InputDest) {
+	/* rank InputDest wants pause */
+	FD_CLR(STDIN_FILENO,&myfds);
+	if (verbose) {
+	    fprintf(stderr, "PSIlogger: forward input is paused\n");
+	}
+    } else {
+	fprintf(stderr, "PSIlogger: STOP from wrong rank: %d\n", msg.sender);
+    }
+}
+
+/**
+ * @brief Handle CONT msg from forwarder.
+ *
+ * @param msg The received msg to handle.
+ *
+ * @return No return value.
+ */
+static void handleCONTMsg(PSLog_Msg_t msg)
+{
+    if (msg.sender == InputDest
+	&& forwardInputTID == msg.header.sender) {
+	/* rank InputDest wants the input again */
+	FD_SET(STDIN_FILENO,&myfds);
+	if (verbose) {
+	    fprintf(stderr, "PSIlogger: forward input continues\n");
+	}
+    } else {
+	fprintf(stderr, "PSIlogger: CONT from wrong rank: %d\n", msg.sender);
+    }
+}
+
+/**
+ * @brief Handle KVS msg from forwarder.
+ *
+ * @param msg The received msg to handle.
+ *
+ * @return No return value.
+ */
+static void handleKVSMsg(PSLog_Msg_t msg)
+{
+    if (enable_kvs) {
+	handleKvsMsg(msg);
+    } else {
+	/* return kvs disabled msg */
+	sendMsg(msg.header.sender, KVS, "cmd=kvs_not_available\n", 
+	    strlen("cmd=kvs_not_available\n"));
+    }
+}
+
+/**
  * @brief The main loop
  *
  * Does all the logging work. All forwarders can connect and log via
@@ -655,7 +906,7 @@ static void forwardInput(int std_in, PStask_ID_t fwTID)
  */
 static void loop(void)
 {
-    struct timeval mytv={2,0}, atv;
+    struct timeval mytv={1,0}, atv;
     PSLog_Msg_t msg;
     int timeoutval;
 
@@ -673,6 +924,8 @@ static void loop(void)
 	fd_set afds;
 	memcpy(&afds, &myfds, sizeof(afds));
 	atv = mytv;
+	Timer_handleSignals();
+	if (MergeOutput && np >1) displayCachedOutput(0);
 	if (select(daemonSock + 1, &afds, NULL,NULL,&atv) < 0) {
 	    if (errno == EINTR) {
                 /* Interrupted syscall, just start again */
@@ -725,140 +978,22 @@ static void loop(void)
 	    case STDERR:
 		outfd = STDERR_FILENO;
 	    case STDOUT:
-	    {
-		if (verbose) {
-		    fprintf(stderr, "PSIlogger: Got %d bytes from %s\n",
-			    msg.header.len - PSLog_headerSize,
-			    PSC_printTID(msg.header.sender));
-		}
-		if (PrependSource) { 
-		    char prefix[30];
-		    char *buf = msg.buf;
-		    size_t count = msg.header.len - PSLog_headerSize;
-
-		    if (verbose) {
-			snprintf(prefix, sizeof(prefix), "[%d, %d]:",
-				 msg.sender,
-				 msg.header.len - PSLog_headerSize);
-		    } else if (count > 0) {
-			snprintf(prefix, sizeof(prefix), "[%d]:", msg.sender);
-		    }
-
-		    while (count>0) {
-			char *nl = memchr(buf, '\n', count);
-
-			if (nl) nl++; /* Thus nl points behind the newline */
-
-			ret = write(outfd, prefix, strlen(prefix));
-			ret = write(outfd, buf, nl ? (size_t)(nl - buf):count);
-
-			if (nl) {
-			    count -= nl - buf;
-			    buf = nl;
-			} else {
-			    count = 0;
-			}
-		    }
-		} else {
-		    ret = write(outfd, msg.buf,
-				msg.header.len-PSLog_headerSize);
-		}
+		handleSTDOUTMsg(msg, outfd);
 		break;
-	    }
 	    case USAGE:
-		if (usage) {
-		    struct rusage usage;
-
-		    memcpy(&usage, msg.buf, sizeof(usage));
-
-		    fprintf(stderr, "PSIlogger: Child with rank %d used"
-			    " %.6f/%.6f sec (user/sys)\n",
-			    msg.sender,
-			    usage.ru_utime.tv_sec
-			    + usage.ru_utime.tv_usec * 1.0e-6,
-			    usage.ru_stime.tv_sec
-			    + usage.ru_stime.tv_usec * 1.0e-6);
-		}
-
+		handleUSAGEMsg(msg);
 		break;
 	    case FINALIZE:
-		leave_raw_mode();
-		if (getenv("PSI_SSH_COMPAT_HOST")) {
-		    char *host = getenv("PSI_SSH_COMPAT_HOST");
-		    int status = *(int *) msg.buf;
-
-		    if (WIFSIGNALED(status)) retVal = -1;
-		    if (WIFEXITED(status)) retVal = WEXITSTATUS(status);
-
-		    if (getenv("PSI_SSH_INTERACTIVE"))
-			fprintf(stderr, "Connection to %s closed.\n", host);
-		} else {
-		    int status = *(int *) msg.buf;
-
-		    if (WIFSIGNALED(status)) {
-			fprintf(stderr, "PSIlogger: Child with rank %d"
-				" exited on signal %d", msg.sender,
-				WTERMSIG(status));
-			psignal(WTERMSIG(status), "");
-			signaled = 1;
-		    }
-
-		    if (WIFEXITED(status)) {
-			if (WEXITSTATUS(status)) {
-			    fprintf(stderr, "PSIlogger: Child with rank %d"
-				    " exited with status %d.\n", msg.sender,
-				    WEXITSTATUS(status));
-			    if (!retVal) retVal = WEXITSTATUS(status);
-			} else if (verbose) {
-			    fprintf(stderr, "PSIlogger: Child with rank %d"
-				    " exited normally.\n", msg.sender);
-			}
-		    }
-		}
-
-		if (verbose)
-		    fprintf(stderr, "PSIlogger: closing %s (rank %d)"
-			    " on FINALIZE\n",
-			    PSC_printTID(msg.header.sender), msg.sender);
-
-		PSLog_write(msg.header.sender, EXIT, NULL, 0);
-
-		if (msg.header.sender == forwardInputTID) {
-		    /* disable input forwarding */
-		    FD_CLR(STDIN_FILENO, &myfds);
-		    forwardInputTID = -1;
-		}
-
-		clientTID[msg.sender] = -1;
-		noClients--;
-
+		handleFINALIZEMsg(msg);
 		break;
 	    case STOP:
-		if (msg.sender == InputDest) {
-		    /* rank InputDest wants pause */
-		    FD_CLR(STDIN_FILENO,&myfds);
-		    if (verbose) {
-			fprintf(stderr,
-				"PSIlogger: forward input is paused\n");
-		    }
-		} else {
-		    fprintf(stderr, "PSIlogger: STOP from wrong rank: %d\n",
-			    msg.sender);
-		}
+		handleSTOPMsg(msg);
 		break;
 	    case CONT:
-		if (msg.sender == InputDest
-		    && forwardInputTID == msg.header.sender) {
-		    /* rank InputDest wants the input again */
-		    FD_SET(STDIN_FILENO,&myfds);
-		    if (verbose) {
-			fprintf(stderr,
-				"PSIlogger: forward input continues\n");
-		    }
-		} else {
-		    fprintf(stderr, "PSIlogger: CONT from wrong rank: %d\n",
-			    msg.sender);
-		}
+		handleCONTMsg(msg);
+		break;
+	    case KVS:
+		handleKVSMsg(msg);
 		break;
 	    default:
 		fprintf(stderr, "PSIlogger: %s: Unknown message type %d!\n",
@@ -870,6 +1005,10 @@ static void loop(void)
 	if ( noClients==0 ) {
 	    timeoutval++;
 	}
+    }
+    if (MergeOutput && np >1) {
+	displayCachedOutput(0);
+	displayCachedOutput(1);
     }
     if ( getenv("PSI_NOMSGLOGGERDONE")==NULL ) {
 	fprintf(stderr,"\nPSIlogger: done\n");
@@ -982,6 +1121,19 @@ int main( int argc, char**argv)
 	}
     }
 
+    if ((envstr = getenv("PSI_NP_INFO"))) {
+	np = atoi(envstr);
+    }
+
+    if (getenv("PSI_MERGEOUTPUT")) {
+	MergeOutput  = 1;
+	if (verbose) {
+	    fprintf(stderr,
+		    "PSIlogger: Will merge the output of all ranks.\n");
+	}
+	outputMergeInit();
+    }
+
     envstr=getenv("PSI_INPUTDEST");
     if (envstr) {
 	InputDest = atoi(envstr);
@@ -1008,6 +1160,11 @@ int main( int argc, char**argv)
 
     PSLog_init(daemonSock, -1, 1);
 
+    /* init the timer structure */
+    if (!Timer_isInitialized()) {
+	Timer_init(stderr);
+    }
+
     clientTID = malloc (sizeof(*clientTID) * maxClients);
     for (i=0; i<maxClients; i++) clientTID[i] = -1;
 
@@ -1016,6 +1173,12 @@ int main( int argc, char**argv)
 	    fprintf(stderr, "PSIlogger: Entering raw-mode\n");
 	}
 	enter_raw_mode();
+    }
+
+    /* enable kvs and pmi */
+    if ((envstr = getenv("KVS_ENABLE"))) {
+	enable_kvs = 1;
+	initLoggerKvs(verbose);
     }
 
     /* call the loop which does all the work */

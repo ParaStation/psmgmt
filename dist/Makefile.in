@@ -35,6 +35,7 @@ INCLUDES += psiinfo.h psispawn.h psienv.h psi.h logging.h
 
 BINS += gmspawner mlisten mpirun_chgm mpirun_chp4 mpirun_openib psiadmin
 BINS += psid psilogger psispawn psmstart test_config test_pse pssh psaccounter
+BINS += mpiexec
 ifeq ($(ELANCTRL),yes)
 BINS += mpirun_elan
 endif

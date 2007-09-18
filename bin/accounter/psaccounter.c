@@ -332,7 +332,7 @@ Job_t *findJob(PStask_ID_t key)
 void sig_handler(int sig)
 {
     if (sig == SIGTERM) {
-	alog("Caught the term signal, exiting\n");
+	if(debug) alog("Caught the term signal, exiting\n");
 	exit(0);
     }
 
@@ -657,7 +657,7 @@ void handleAccEndMsg(char *chead, char *ptr, PStask_ID_t sender,
 		
 		if (!finddJob(logger)) {
 		    insertdJob(logger);
-		    alog("Waiting for all childs to exit on job:%i\n",logger);
+		    if(debug) alog("Waiting for all childs to exit on job:%i\n",logger);
 		}
 
 	    } else {

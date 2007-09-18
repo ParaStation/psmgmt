@@ -106,6 +106,77 @@ static int myexecv(const char *path, char *const argv[])
 }
 
 /**
+ * @brief Set up a new PMI tcp/ip socket and start listing. 
+ *
+ * @param PMISocket the socket to init. 
+ *
+ * @return Returns the initalized and listing socket. 
+ */
+static int init_PMISocket(int PMISocket)
+{
+    int res;
+    struct sockaddr_in saClient;
+
+    PMISocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+    if (PMISocket == 0) {
+	PSID_warn(-1, errno, "%s: create PMIsock failed", __func__);
+	exit(1);
+    }
+
+    /* set up the sockaddr structure */
+    saClient.sin_family = AF_INET;
+    saClient.sin_addr.s_addr = INADDR_ANY;
+    saClient.sin_port = htons(0);
+    bzero(&(saClient.sin_zero), 8);
+
+    /* bind the socket */
+    res = bind(PMISocket, (struct sockaddr *)&saClient, sizeof(saClient));
+
+    if (res == -1) {
+	PSID_warn(-1, errno, "%s: binding PMIsock failed", __func__);
+	exit(1);
+    }
+
+    /* set socket to listen state */
+    res = listen(PMISocket, 5);
+
+    if (res == -1) {
+	PSID_warn(-1, errno, "%s: listen on PMIsock failed", __func__);
+	exit(1);
+    }
+
+    return PMISocket;
+}
+
+/**
+ * @brief Set up the PMI_PORT variable. 
+ *
+ * @param PMISock The PMI socket to get the information from. 
+ *
+ * @param cPMI_PORT The buffer which receives the result.
+ *
+ * @param size The size of the cPMI_PORT buffer.
+ *
+ * @return No return value
+ */
+static void get_PMI_PORT(int PMISock, char *cPMI_PORT, int size )
+{
+    struct sockaddr_in addr;
+    socklen_t len;
+
+    /* get pmi port */
+    len = sizeof(addr);
+    bzero(&(addr), 8);
+    if (getsockname(PMISock,(struct sockaddr*)&addr,&len) == -1) {
+	PSID_warn(-1, errno, "%s: getsockname(pmisock)", __func__);
+	exit(1);
+    }
+
+    snprintf(cPMI_PORT,size,"127.0.0.1:%i", ntohs(addr.sin_port));
+}
+
+/**
  * @brief Frontend to stat(2).
  *
  * Frontend to stat(2). Retry stat() on failure after a delay of
@@ -645,6 +716,12 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
     pid_t pid;
     int stdinfds[2], stdoutfds[2], stderrfds[2];
     int ret, buf;
+    int PMISock = -1;
+    int PMIforwarderSock = -1;
+    int socketfds[2];
+    int pmiEnableTcp = 0;
+    int pmiEnableSockp = 0;
+    char *envstr;
 
     /* Block until the forwarder has handled all output */
     PSID_blockSig(1, SIGCHLD);
@@ -710,9 +787,56 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 	}
     }
 
+    /* check if pmi should be started */
+    if ((envstr = getenv("PMI_ENABLE_TCP"))) {
+	pmiEnableTcp = atoi(envstr);
+    } 
+
+    if ((envstr = getenv("PMI_ENABLE_SOCKP"))) {
+	pmiEnableSockp = atoi(envstr);
+    } 
+
+    /* only one option is allowed */
+    if (pmiEnableSockp && pmiEnableTcp) {
+	PSID_warn(-1, errno,
+		  "%s: only one type of pmi connection allowed", __func__);
+	exit(1);
+    }
+
+    /* open pmi socket for comm. between the pmi client and forwarder */
+    if (pmiEnableTcp) {
+	if (!(PMISock = init_PMISocket(PMISock))) {
+	    PSID_warn(-1, errno, "%s: create PMIsock failed", __func__);
+	    exit(1);
+	}
+	PMIforwarderSock = PMISock;
+    }
+
+    /* create a socketpair for comm. between the pmi client and forwarder */
+    if (pmiEnableSockp) {
+	if (socketpair(PF_UNIX, SOCK_STREAM, 0, socketfds)<0) {
+	    PSID_warn(-1, errno, "%s: socketpair()", __func__);
+	    exit(1);
+	}
+	PMIforwarderSock = socketfds[1];
+    }
+
+    /* set some environment variables */
+    /* this is done here in order to pass it to the forwarder, too */
+    setenv("PWD", task->workingdir, 1);
+
+    if (task->environ) {
+	int i;
+	for (i=0; task->environ[i]; i++) {
+	    putenv(strdup(task->environ[i]));
+	}
+    }
+
     /* fork the client */
     if (!(pid = fork())) {
 	/* this is the client process */
+	char cPMI_PORT[50];
+	char cPMI_FD[50];
 
 	/* no direct connection to the daemon */
 	close(daemonfd);
@@ -778,6 +902,20 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 	    close(task->stdout_fd);
 	}
 
+	/* set the pmi port for the client to connect to the forwarder */
+	if (pmiEnableTcp) {
+	    get_PMI_PORT(PMISock, cPMI_PORT, sizeof(cPMI_PORT)); 
+	    setenv("PMI_PORT", cPMI_PORT, 1);
+	}
+
+	/* set the pmi port for the client to connect to the forwarder */
+	if (pmiEnableSockp) {
+	    /* close forwarder socket */
+	    close(socketfds[1]);
+	    snprintf(cPMI_FD, sizeof(cPMI_FD), "%d", socketfds[0]);
+	    setenv("PMI_FD", cPMI_FD, 1);
+	}
+
 	/* try to start the client */
 	execClient(task);
     }
@@ -824,7 +962,7 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 
     /* Release the waiting daemon and exec forwarder */
     close(cntrlCh);
-    PSID_forwarder(task, daemonfd);
+    PSID_forwarder(task, daemonfd, PMIforwarderSock, pmiEnableSockp);
 
     /* never reached */
     exit(1);
@@ -1696,4 +1834,3 @@ void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	}
     }
 }
-

@@ -48,9 +48,14 @@ extern "C" {
  * @param daemonfd File descriptor connecting the forwarder to the
  * local daemon.
  *
+ * @param PMISocket Socket connecting the forwarder to the pmi client.
+ *
+ * @param PMIType Defines if pmi is connecting over TCP/IP or an UNIX
+ * domain socket.
+ *
  * @return No return value.
  */
-void PSID_forwarder(PStask_t *task, int daemonfd);
+void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket, int PMIType);
 
 /**
  * @brief Send string to logger.

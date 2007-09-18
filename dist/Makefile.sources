@@ -44,8 +44,16 @@ bin/daemon/psidtask.h \
 bin/daemon/psidtimer.h \
 bin/daemon/psidutil.c \
 bin/daemon/psidutil.h \
+bin/daemon/psidpmiprotocol.h \
+bin/daemon/psidpmiprotocol.c \
+bin/mpiexec.c \
 bin/gmspawner.c \
 bin/logger/psilogger.c \
+bin/logger/psilogger.h \
+bin/logger/psiloggerkvs.h \
+bin/logger/psiloggerkvs.c \
+bin/logger/psiloggermerge.h \
+bin/logger/psiloggermerge.c \
 bin/mlisten.c \
 bin/mpirun_chgm.c \
 bin/mpirun_chp4.c \
@@ -68,6 +76,7 @@ doc/INSTALL \
 doc/parastation.conf \
 include/config_parsing.h \
 include/env.h \
+include/kvs.h \
 include/hardware.h \
 include/list.h \
 include/logging.h \
@@ -91,6 +100,7 @@ include/pstask.h \
 include/rdp.h \
 include/selector.h \
 include/timer.h \
+include/psidpmicomm.h \
 lib/Makefile.in \
 lib/Makefile.sharedlib.in \
 lib/Makefile.staticlib.in \
@@ -114,6 +124,8 @@ lib/pslog/pslog.c \
 lib/putil/Makefile.in \
 lib/putil/config_parsing.c \
 lib/putil/env.c \
+lib/putil/kvs.c \
+lib/putil/kvscomm.c \
 lib/putil/hardware.c \
 lib/putil/mcast.c \
 lib/putil/parser.c \
