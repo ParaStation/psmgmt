@@ -39,7 +39,7 @@ endif
 TOOLS:= psiadmin psid psilogger mlisten
 TOOLS += psmstart mpirun_chp4 psispawn mpirun_chgm gmspawner
 TOOLS += mpirun_openib test_pse test_config pssh
-TOOLS += psaccounter testacct mpirun_elan
+TOOLS += psaccounter testacct
 ifeq ($(ELANCTRL),yes)
 TOOLS += mpirun_elan
 endif

@@ -1524,8 +1524,8 @@ void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
     if (msg->header.len-sizeof(msg->header)-sizeof(msg->type) != usedBytes) {
 	PSID_log(-1, "%s: problem decoding task %s type %d used %ld of %ld\n",
 		 __func__, PSC_printTID(msg->header.sender), msg->type,
-		 usedBytes,
-		 msg->header.len-sizeof(msg->header)-sizeof(msg->type));
+		 (long) usedBytes,
+		 (long) msg->header.len-sizeof(msg->header)-sizeof(msg->type));
 	return;
     }
 

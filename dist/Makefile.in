@@ -17,6 +17,8 @@ INSTALL = @INSTALL@
 INSTFLAGS_NOEXEC = -m 644
 LIB_DIRNAME:=@LIB_DIRNAME@
 
+ELANCTRL=@ELANCTRL@
+
 #############################################################################
 #s.o. clean:
 DISTPATH := opt/parastation
@@ -33,7 +35,9 @@ INCLUDES += psiinfo.h psispawn.h psienv.h psi.h logging.h
 
 BINS += gmspawner mlisten mpirun_chgm mpirun_chp4 mpirun_openib psiadmin
 BINS += psid psilogger psispawn psmstart test_config test_pse pssh psaccounter
+ifeq ($(ELANCTRL),yes)
 BINS += mpirun_elan
+endif
 
 LIBS += libpse.a libpse.so libpsi.a libpsi.so
 
