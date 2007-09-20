@@ -935,7 +935,7 @@ static int pmi_extract_cmd(char *msg, char *cmdbuf, int bufsize)
 	    free(msgCopy);
 	    return 1;
 	}
-	cmd = strtok_r(msgCopy,delimiters,&saveptr);
+	cmd = strtok_r(NULL,delimiters,&saveptr);
     }
 
     free(msgCopy);

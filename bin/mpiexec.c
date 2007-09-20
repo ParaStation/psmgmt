@@ -62,12 +62,13 @@ poptContext optCon;
 
 /* Control Environment */
 int overbook, loggerdb, loopnodesfirst;
-int np, dest, source, rusage, exclusive;
+int np, source, rusage, exclusive;
 int forwarderdb, pscomdb, loggerrawmode;
 int wait, schedyield, retry, psidb, mergeout;
 int sndbuf, rcvbuf, readahead, nodelay;
 int sigquit, envall, mergedepth, mergetmout;
-char *plugindir, *envlist;
+int gdb;
+char *plugindir, *envlist, *dest;
 char *nodelist, *hostlist, *hostfile, *sort;
 char *discom, *wdir, *network;
 
@@ -303,7 +304,7 @@ static void setupEnvironment(int verbose)
 {
     char* envstr;
     char tmp[1024];
-    int rank; 
+    int rank;
     
     PSE_initialize();
     rank = PSE_getRank();
@@ -340,12 +341,15 @@ static void setupEnvironment(int verbose)
 	if (verbose) printf("Exporting the whole environment to foreign hosts\n");
     }
 
-    if (dest >= 0) {
-	char val[6];
+    if (gdb) {
+	setenv("PSI_ENABLE_GDB", "1", 1);
+	setenv("PSI_RARG_PRE_0", "gdb", 1);
+	if (verbose) printf("Starting gdb to debug the processes\n");
+    }
 
-	snprintf(val, sizeof(val), "%d", dest);
-	setenv("PSI_INPUTDEST", val, 1);
-	if (verbose) printf("Send all input to node with rank %d.\n", dest);
+    if (dest) {
+	setenv("PSI_INPUTDEST", dest, 1);
+	if (verbose) printf("Send all input to node with rank(s) [%s].\n", dest);
     }
 
     if (source) {
@@ -820,8 +824,8 @@ int main(int argc, char *argv[])
     };
 
     struct poptOption poptDisplayOptions[] = {
-        { "inputdest", 's', POPT_ARG_INT,
-	  &dest, 0, "direction to forward input: dest <unsigned int from 0 to np-1>", NULL},
+        { "inputdest", 's', POPT_ARG_STRING,
+	  &dest, 0, "direction to forward input: dest <1,2,5-10> or <all>", NULL},
         { "sourceprintf", 'l', POPT_ARG_NONE,
 	  &source, 0, "print output-source info", NULL},
         { "rusage", 'R', POPT_ARG_NONE,
@@ -893,6 +897,8 @@ int main(int argc, char *argv[])
     };
 
     struct poptOption poptOtherOptions[] = {
+        { "gdb", '\0', POPT_ARG_NONE,
+	  &gdb, 0, "debug processes with gdb", NULL},
 	{ "extendedhelp", '\0', POPT_ARG_NONE,
 	  &extendedhelp, 0, "display extended help", NULL},
 	{ "extendedusage", '\0', POPT_ARG_NONE,
@@ -946,7 +952,7 @@ int main(int argc, char *argv[])
     while (1) {
 	const char *unknownArg;
 
-	np = dest = -1;
+	np = -1;
 	version = verbose = source = rusage = show = 0;
 	overbook = loggerdb = forwarderdb = psidb = 0;
 	pscomdb = loopnodesfirst = loggerrawmode = 0;
@@ -954,8 +960,10 @@ int main(int argc, char *argv[])
 	mpichcom = hiddenhelp = mergeout = hiddenusage = 0;
 	sndbuf = rcvbuf = readahead = nodelay = sigquit = 0;
 	pmitmout = admin = mergedepth = mergetmout = 0;
+	gdb = 0;
 	nodelist = hostlist = hostfile = sort = envlist = NULL;
 	discom = wdir = network = plugindir = login = NULL;
+	dest = NULL;
 	
 	rc = poptGetNextOpt(optCon);
 
@@ -1037,6 +1045,13 @@ int main(int argc, char *argv[])
 	snprintf(msgstr, sizeof(msgstr), "'-np %d' makes no sense.", np);
 	msg = msgstr;
 	errExit();	
+    }
+
+    if (gdb) {
+	mergeout = 1;
+	if (!dest) {
+	    setenv("PSI_INPUTDEST", "all", 1);
+	}
     }
 
     if (admin) {

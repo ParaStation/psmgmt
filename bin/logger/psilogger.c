@@ -58,6 +58,13 @@ int PrependSource = 0;
 int MergeOutput = 0;
 
 /**
+ * Parse STDIN for special commands changing the input destination.
+ *
+ * Set in main() to 1 if environment variable PSI_ENABLE_GDB is defined.
+ */
+int enableGDB = 0;
+
+/**
  * Number of maximal processes in this job.
  */
 int np = 0;
@@ -68,12 +75,12 @@ int np = 0;
  * Set in main() to the value given by the environment variable
  * PSI_INPUTDEST. Will be set to -1 if no stdin is connected.
  */
-int InputDest = 0;
+int *InputDest;
 
 /**
  * Task ID of the process that get's stdin
  */
-PStask_ID_t forwardInputTID = -1;
+PStask_ID_t *forwardInputTID;
 
 /**
  * Verbosity of Forwarders (1=Yes, 0=No)
@@ -137,6 +144,60 @@ static void closeDaemonSock(void)
     FD_CLR(tmp, &myfds);
     PSLog_close();
     close(tmp);
+}
+
+/**
+ * @brief Parse the string @ref input were STDIN should be
+ * forwarded and save result in @ref InputDest.
+ *
+ * @param input The input string to parse.
+ *
+ * @return No return value.
+ */
+static void setupInputDestList(char *input)
+{
+    const char delimiters[] ="[], \n";
+    char *ranks, *saveptr, *sep;
+    int first, last, i;
+
+    for (i=0; i<maxClients; i++) InputDest[i] = -1;
+
+    if (!input) {
+	InputDest[0] = 0;
+	return;
+    }
+    
+    
+    ranks = strtok_r(input,delimiters,&saveptr);
+    
+    if (!strcmp(ranks, "all")) {
+	for(i=0; i<np; i++) {
+	    InputDest[i] = i;
+	}
+	return;
+    }
+   
+    while (ranks != NULL) {
+	if ((sep = strchr(ranks, '-'))) {
+	    first = last = 0;
+	    sscanf(ranks, "%d-%d", &first, &last);
+	    for(i=first; i<=last; i++) {
+		if (i >= np) {
+		    fprintf(stderr, "PSIlogger: input forward to non existing rank:[%d], valid ranks:[0-%i]\n", i, np -1);
+		    exit(1);
+		}
+		InputDest[i] = i;
+	    }
+	} else {
+	    i = atoi(ranks);
+	    if (i >= np) {
+		fprintf(stderr, "PSIlogger: input forward to non existing rank:[%d], valid ranks:[0-%i]\n", i, np -1);
+		exit(1);
+	    }
+	    InputDest[i] = i;
+	}	
+	ranks = strtok_r(NULL,delimiters,&saveptr);
+    }
 }
 
 /**
@@ -422,25 +483,27 @@ void sighandler(int sig)
 	}
 	break;
     case SIGWINCH:
-	if (forwardInputTID != -1) {
-	    /* Create WINCH-messages and send */
-	    struct winsize ws;
-	    int buf[4];
-	    int len = 0;
+	for (i=0; i < maxClients; i++) {
+	    if (forwardInputTID[i] != -1) {
+		/* Create WINCH-messages and send */
+		struct winsize ws;
+		int buf[4];
+		int len = 0;
 
-	    if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0) break;
-	    buf[len++] = ws.ws_col;
-	    buf[len++] = ws.ws_row;
-	    buf[len++] = ws.ws_xpixel;
-	    buf[len++] = ws.ws_ypixel;
+		if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0) break;
+		buf[len++] = ws.ws_col;
+		buf[len++] = ws.ws_row;
+		buf[len++] = ws.ws_xpixel;
+		buf[len++] = ws.ws_ypixel;
 
-	    sendMsg(forwardInputTID, WINCH, (char *)buf, len*sizeof(*buf));
+		sendMsg(forwardInputTID[i], WINCH, (char *)buf, len*sizeof(*buf));
 
-	    if (verbose) {
-		fprintf(stderr, "PSIlogger: %s: WINCH to col %d row %d",
-			__func__, ws.ws_col, ws.ws_row);
-		fprintf(stderr, " xpixel %d ypixel %d\n",
-			ws.ws_xpixel, ws.ws_ypixel);
+		if (verbose) {
+		    fprintf(stderr, "PSIlogger: %s: WINCH to col %d row %d",
+			    __func__, ws.ws_col, ws.ws_row);
+		    fprintf(stderr, " xpixel %d ypixel %d\n",
+			    ws.ws_xpixel, ws.ws_ypixel);
+		}
 	    }
 	}
 	break;
@@ -549,15 +612,20 @@ static int newrequest(PSLog_Msg_t *msg)
     if (msg->sender >= maxClients) {
 	int i;
 	clientTID = realloc(clientTID, sizeof(*clientTID) * 2 * msg->sender);
-	if (!clientTID) {
+	forwardInputTID = realloc(forwardInputTID, sizeof(*forwardInputTID) * 2 * msg->sender);
+	InputDest = realloc(InputDest, sizeof(*InputDest) * 2 * msg->sender);
+
+	if (!clientTID || !forwardInputTID || !InputDest) {
 	    fprintf(stderr, "PSIlogger: %s: realloc(%ld) failed.\n", __func__,
 		    (long) sizeof(*clientTID) * 2 * msg->sender);
 	    exit(1);
 	}	    
 	for (i=maxClients; i<2*msg->sender; i++) clientTID[i] = -1;
+	for (i=maxClients; i<2*msg->sender; i++) forwardInputTID[i] = -1;
+	for (i=maxClients; i<2*msg->sender; i++) InputDest[i] = -1;
 
 	/* realloc output buffer */
-	reallocClientOutBuf(msg);		
+	if (MergeOutput) reallocClientOutBuf(msg);		
 
 	maxClients = 2*msg->sender;
     }
@@ -651,20 +719,17 @@ static void CheckFileTable(fd_set* openfds)
  * @brief Forward input to client.
  *
  * Read input data from the file descriptor @a std_in and forward it
- * to the forwarder with ParaStation task ID @a fwTID.
- *
+ * to the forwarder(s) with ParaStation task IDs in forwardInputTID.
  *
  * @param std_in File descriptor to read STDIN data from.
- *
- * @param fwTID ParaStation task ID of the forwarder to send data to.
  *
  *
  * @return No return value.
  */
-static void forwardInput(int std_in, PStask_ID_t fwTID)
+static void forwardInput(int std_in)
 {
     char buf[1000];
-    int len;
+    int len, i;
 
     len = read(std_in, buf, sizeof(buf)>SSIZE_MAX ? SSIZE_MAX : sizeof(buf));
     switch (len) {
@@ -684,7 +749,18 @@ static void forwardInput(int std_in, PStask_ID_t fwTID)
 	FD_CLR(std_in, &myfds);
 	close(std_in);
     default:
-	sendMsg(fwTID, STDIN, buf, len);
+	if (enableGDB) {
+	    if (buf[0] == '[' && buf[len -2] == ']') {
+		fprintf(stderr, "Changed input dest to: %s",buf);
+		setupInputDestList(buf);
+		return;
+	    }
+	}
+	for (i=0; i<maxClients; i++) {
+	    if (InputDest[i] != -1 && forwardInputTID[i] != -1) {
+		sendMsg(forwardInputTID[i], STDIN, buf, len);
+	    }
+	}
 	if (verbose) {
 	    fprintf(stderr, "PSIlogger: %s: %d bytes\n", __func__, len);
 	}
@@ -782,6 +858,7 @@ static void handleSTDOUTMsg(PSLog_Msg_t msg, int outfd)
  */
 static void handleFINALIZEMsg(PSLog_Msg_t msg)
 {
+    int i;
     leave_raw_mode();
     if (getenv("PSI_SSH_COMPAT_HOST")) {
 	char *host = getenv("PSI_SSH_COMPAT_HOST");
@@ -822,12 +899,13 @@ static void handleFINALIZEMsg(PSLog_Msg_t msg)
 
     PSLog_write(msg.header.sender, EXIT, NULL, 0);
 
-    if (msg.header.sender == forwardInputTID) {
-	/* disable input forwarding */
-	FD_CLR(STDIN_FILENO, &myfds);
-	forwardInputTID = -1;
+    for (i=0; i < maxClients; i++) {
+	if (msg.header.sender == forwardInputTID[i]) {
+	    /* disable input forwarding */
+	    //FD_CLR(STDIN_FILENO, &myfds);
+	    forwardInputTID[i] = -1;
+	}
     }
-
     clientTID[msg.sender] = -1;
     noClients--;
 }
@@ -841,15 +919,19 @@ static void handleFINALIZEMsg(PSLog_Msg_t msg)
  */
 static void handleSTOPMsg(PSLog_Msg_t msg)
 {
-    if (msg.sender == InputDest) {
-	/* rank InputDest wants pause */
-	FD_CLR(STDIN_FILENO,&myfds);
-	if (verbose) {
-	    fprintf(stderr, "PSIlogger: forward input is paused\n");
-	}
-    } else {
-	fprintf(stderr, "PSIlogger: STOP from wrong rank: %d\n", msg.sender);
+    int i;
+
+    for (i=0; i<maxClients; i++) {
+	if (msg.sender == InputDest[i]) {
+	    /* rank InputDest wants pause */
+	    FD_CLR(STDIN_FILENO,&myfds);
+	    if (verbose) {
+		fprintf(stderr, "PSIlogger: forward input is paused\n");
+	    }
+	    return;
+	} 
     }
+    fprintf(stderr, "PSIlogger: STOP from wrong rank: %d\n", msg.sender);
 }
 
 /**
@@ -861,16 +943,20 @@ static void handleSTOPMsg(PSLog_Msg_t msg)
  */
 static void handleCONTMsg(PSLog_Msg_t msg)
 {
-    if (msg.sender == InputDest
-	&& forwardInputTID == msg.header.sender) {
-	/* rank InputDest wants the input again */
-	FD_SET(STDIN_FILENO,&myfds);
-	if (verbose) {
-	    fprintf(stderr, "PSIlogger: forward input continues\n");
-	}
-    } else {
-	fprintf(stderr, "PSIlogger: CONT from wrong rank: %d\n", msg.sender);
+    int i;
+
+    for (i=0; i<maxClients; i++) {
+	if (msg.sender == InputDest[i]
+	    && forwardInputTID[msg.sender] == msg.header.sender) {
+	    /* rank InputDest wants the input again */
+	    FD_SET(STDIN_FILENO,&myfds);
+	    if (verbose) {
+		fprintf(stderr, "PSIlogger: forward input continues\n");
+	    }
+	    return;
+	} 
     }
+    fprintf(stderr, "PSIlogger: CONT from wrong rank: %d\n", msg.sender);
 }
 
 /**
@@ -952,18 +1038,21 @@ static void loop(void)
 
 	    if (msg.type == INITIALIZE) {
 		if (newrequest(&msg)) {
+		    int i;
 		    timeoutval = 10;
-		    if (msg.sender == InputDest) {
-			/* rank InputDest wants the input */
-			forwardInputTID = msg.header.sender;
-			FD_SET(STDIN_FILENO, &myfds);
-			if (verbose) {
-			    fprintf(stderr, "PSIlogger: %s:"
-				    " forward input to %s (rank %d)\n",
-				    __func__, PSC_printTID(forwardInputTID),
-				    msg.sender);
+		    forwardInputTID[msg.sender] = msg.header.sender;
+		    for (i=0; i<maxClients; i++) {
+			if (msg.sender == InputDest[i]) {
+			    /* rank InputDest wants the input */
+			    FD_SET(STDIN_FILENO, &myfds);
+			    if (verbose) {
+				fprintf(stderr, "PSIlogger: %s:"
+					" forward input to %s (rank %d)\n",
+					__func__, PSC_printTID(forwardInputTID[msg.sender]),
+					msg.sender);
+			    }
 			}
-		    }
+		    }	
 		}
 	    } else if (msg.sender > maxClients) {
 		fprintf(stderr, "PSIlogger: %s:"
@@ -999,8 +1088,8 @@ static void loop(void)
 		fprintf(stderr, "PSIlogger: %s: Unknown message type %d!\n",
 			__func__, msg.type);
 	    }
-	} else if (FD_ISSET(STDIN_FILENO, &afds) && (forwardInputTID != -1)) {
-	    forwardInput(STDIN_FILENO, forwardInputTID);
+	} else if (FD_ISSET(STDIN_FILENO, &afds)) {
+	    forwardInput(STDIN_FILENO);
 	}
 	if ( noClients==0 ) {
 	    timeoutval++;
@@ -1045,7 +1134,7 @@ static void loop(void)
  * @return Always returns 0.  */
 int main( int argc, char**argv)
 {
-    char *envstr, *end;
+    char *envstr, *end, *input;
     int i;
 
     sigset_t set;
@@ -1113,6 +1202,13 @@ int main( int argc, char**argv)
 	    fprintf(stderr, "PSIlogger: Forwarders will be verbose, too.\n");
 	}
     }
+    
+    if (getenv("PSI_ENABLE_GDB")) {
+	enableGDB = 1;
+	if (verbose) {
+	    fprintf(stderr, "PSIlogger: Enabling gdb functions.\n");
+	}
+    }
 
     if (getenv("PSI_SOURCEPRINTF")) {
 	PrependSource = 1;
@@ -1133,14 +1229,34 @@ int main( int argc, char**argv)
 	}
 	outputMergeInit();
     }
+    
+    clientTID = malloc (sizeof(*clientTID) * maxClients);
+    for (i=0; i<maxClients; i++) clientTID[i] = -1;
+    
+    forwardInputTID = malloc (sizeof(*forwardInputTID) * maxClients);
+    for (i=0; i<maxClients; i++) forwardInputTID[i] = -1;
+    
+    InputDest = malloc (sizeof(*InputDest) * maxClients);
 
-    envstr=getenv("PSI_INPUTDEST");
-    if (envstr) {
-	InputDest = atoi(envstr);
+    if (!clientTID || !forwardInputTID || !InputDest) {
+	fprintf(stderr, "PSIlogger: Out of memory.\n");
+	exit(1);
     }
+
+    if ((input = getenv("PSI_INPUTDEST"))) {
+	if (daemonSock && verbose) {
+	    fprintf(stderr, "PSIlogger: Input goes to [%s].\n", input);
+	}
+	setupInputDestList(input);
+    } else {
+	InputDest[0] = 0;
+    }
+
     if (daemonSock) {
 	if (verbose) {
-	    fprintf(stderr, "PSIlogger: Input goes to [%d].\n", InputDest);
+	    if (!input) {
+		fprintf(stderr, "PSIlogger: Input goes to [0].\n");
+	    }	
 	}
     } else {
 	/* daemonSock = 0, this means there is no stdin connected */
@@ -1148,7 +1264,9 @@ int main( int argc, char**argv)
 	    fprintf(stderr, "PSIlogger: No stdin available.\n");
 	}
 	/* Never ever forward input */
-	InputDest = -1;
+	for (i=0; i<maxClients; i++) {
+	    InputDest[i] = -1;
+	}
     }
 
     if (getenv("PSI_RUSAGE")) {
@@ -1164,9 +1282,6 @@ int main( int argc, char**argv)
     if (!Timer_isInitialized()) {
 	Timer_init(stderr);
     }
-
-    clientTID = malloc (sizeof(*clientTID) * maxClients);
-    for (i=0; i<maxClients; i++) clientTID[i] = -1;
 
     if (getenv("PSI_LOGGER_RAW_MODE") && isatty(STDIN_FILENO)) {
 	if (verbose) {

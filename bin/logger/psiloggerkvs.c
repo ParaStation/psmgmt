@@ -734,7 +734,7 @@ static char *getKvsCmd(char *msg)
 	    cmd = cmd +4;
 	    return cmd;
 	}
-	cmd = strtok_r(msg,delimiters,&saveptr);
+	cmd = strtok_r(NULL,delimiters,&saveptr);
     }
     return NULL;
 }
