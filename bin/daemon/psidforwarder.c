@@ -825,8 +825,6 @@ static void sighandler(int sig)
 	    msg.header.len += sizeof(int32_t);
 
 	    /* job's name */
-	    PSID_log(-1, "%s:rank: %i task:%s \n",__func__, childTask->rank, childTask->argv[0]);
-	    
 	    if (childTask->argv && childTask->argv[0]) {
 		char *progStr;
 		if (strlen(childTask->argv[0])
