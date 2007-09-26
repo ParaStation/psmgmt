@@ -1087,6 +1087,9 @@ int main(int argc, char *argv[])
 	if (!dest || admin) {
 	    setenv("PSI_INPUTDEST", "all", 1);
 	}
+	if (gdb) {
+	    pmitmout = -1;
+	}
     }
 
     if (admin) {
@@ -1141,11 +1144,10 @@ int main(int argc, char *argv[])
     /* create spwaner process and switch to logger */
     if (admin) setNP();
     createSpawner(argc, argv, np, admin);
-
+    
     /* catch term singal to wait till all procs are savely spawned*/
     signal(SIGTERM, sighandler);
-    
-    
+
     /* spwan Admin processes */
     if (admin) {
 	if (verbose) {

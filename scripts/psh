@@ -24,13 +24,13 @@ TMPTEMPLATE="/tmp/pshout.XXXXXX"
 ############################
 # Use mpiexec/pssh if available?
 
-if [ -f "/opt/parastation/bin/mpiexec" ] ; then
-    PARASTATIONSTART="/opt/parastation/bin/mpiexec"
-    $PARASTATIONSTART --checkup 1>/dev/null 2>&1 \
-    && USE_MPIEXEC="TRUE" && D_RCMD="$PARASTATIONSTART -A -N"
-else
-    PARASTATIONSTART="/opt/parastation/bin/pssh"
-fi
+#if [ -f "/opt/parastation/bin/mpiexec" ] ; then
+#    PARASTATIONSTART="/opt/parastation/bin/mpiexec"
+#    $PARASTATIONSTART --checkup 1>/dev/null 2>&1 \
+#    && USE_MPIEXEC="TRUE" && D_RCMD="$PARASTATIONSTART -A -N"
+#else
+#    PARASTATIONSTART="/opt/parastation/bin/pssh"
+#fi
 
 #if [ -x "${PARASTATIONSTART}" ] ; then
 #    D_RCMD="${PARASTATIONSTART}";

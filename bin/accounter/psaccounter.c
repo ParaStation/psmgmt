@@ -667,9 +667,10 @@ void handleAccEndMsg(char *chead, char *ptr, PStask_ID_t sender,
 	ptr += sizeof(ulong);
 	
 	/* real start time */
+	/*
 	if (!job->real_start) {
 	    job->real_start = *(ulong *) ptr;
-	}
+	}*/
 	ptr += sizeof(ulong);
 
 	/* if not already printed "guessed" start time use real */
