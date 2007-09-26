@@ -49,8 +49,8 @@ our $pu = "true";	# user
 our $pg = "true";	# group
 our $pw = "true";	# walltime
 our $pq = "true";	# qtime
-our $pm = "";		# mem
-our $pv = "";		# vmem
+our $pm = "true";	# mem
+our $pv = "true";	# vmem
 our $pc = "true";	# cputime
 our $pp = "true";	# jobs
 our $pi = "true";	# processes 
@@ -67,8 +67,8 @@ our $lt = "true";	# start time
 our $lb = "true";	# exit time
 our $lw = "true";	# walltime
 our $lq = "true";	# qtime
-our $lm = "";		# mem
-our $lv = "";		# vmem
+our $lm = "true";	# mem
+our $lv = "true";	# vmem
 our $lh = "true";	# execution host
 our $la = "true";	# nodes
 our $lc = "true";	# cpu time
@@ -76,6 +76,8 @@ our $le = "true";	# cpu weight
 our $ld = "";		# queue
 our $lp = "true";	# processes
 our $ls = "true";	# exit value
+our $lo = "";		# session id
+our $lj = "";	        # job alias
 
 ## Include conf file in Users Home
 
@@ -208,6 +210,8 @@ if($joptions){
 	$ld = "";	# queue
 	$lp = "";	# procs
 	$ls = "";	# exit value
+	$lo = "";	# session id
+	$lj = "";	# job alias
 	
 	my @popts = split(/,/,$joptions);
 	foreach my $popt(@popts){
@@ -229,6 +233,8 @@ if($joptions){
 		$ld = $popt eq "queue"     ? $ld = "true" : $ld;
 		$lp = $popt eq "procs"     ? $lp = "true" : $lp;
 		$ls = $popt eq "exit"      ? $ls = "true" : $ls;
+		$lo = $popt eq "session"   ? $lo = "true" : $lo;
+		$lj = $popt eq "alias"     ? $lj = "true" : $lj;
 	}
 }
 
@@ -282,7 +288,8 @@ while ( defined (my $filename = readdir(DIR))) {
 			my @jobid = split(/\./,$parts[2]);
 			my @subdata = split(/ /,$parts[3]);
 			my $group , my $user, my $qtime ,my $jobname, my $start, my $queue, my $cput; 
-			my $mem, my $vmem, my $walltime, my $exechost, my $exitstatus, my $end;
+			my $mem, my $vmem, my $walltime, my $exechost, my $exitstatus, my $end, my $session;
+			my $alias;
 			foreach my $accline (@subdata) {
 				($user=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^user=/;  
 				($group=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^group=/;  
@@ -297,6 +304,8 @@ while ( defined (my $filename = readdir(DIR))) {
 				($vmem=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^resources_used.vmem=/;  
 				($walltime=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^resources_used.walltime=/;
 				($exechost=$accline)     =~s/(^.+=)(.*)/$2/ if $accline =~ /^exec_host=/;
+				($session=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^session=/;
+				($alias=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^jobid=/;
 			}
 
 			if((!defined($fuser)    || $fuser eq $user) &&
@@ -316,23 +325,25 @@ while ( defined (my $filename = readdir(DIR))) {
                                 my $num_nodes = scalar(keys(%allnodes));
 		
 				if($listjobs){
-					$job_data{$jobnum}{'user'} = $user;
-					$job_data{$jobnum}{'group'} = $group;
-					$job_data{$jobnum}{'jobname'} = $fulljobname ? $jobname : basename($jobname);
-					$job_data{$jobnum}{'jobid'} = $jobid[0];
-					$job_data{$jobnum}{'queue'} = $queue;
-					$job_data{$jobnum}{'cputime'} = time_to_sec($cput);
-					$job_data{$jobnum}{'mem'} = kb_to_num($mem);
-					$job_data{$jobnum}{'vmem'} = kb_to_num($vmem);
-					$job_data{$jobnum}{'walltime'} = time_to_sec($walltime);
-					$job_data{$jobnum}{'qtime'} = $start - $qtime;
-					$job_data{$jobnum}{'start'} = $start;
-					$job_data{$jobnum}{'end'} = $end;
-					$job_data{$jobnum}{'exit'} = $exitstatus;
+					$job_data{$jobnum}{'user'} 	= $user;
+					$job_data{$jobnum}{'group'} 	= $group;
+					$job_data{$jobnum}{'jobname'} 	= $fulljobname ? $jobname : basename($jobname);
+					$job_data{$jobnum}{'jobid'} 	= $jobid[0];
+					$job_data{$jobnum}{'queue'} 	= $queue;
+					$job_data{$jobnum}{'cputime'} 	= time_to_sec($cput);
+					$job_data{$jobnum}{'mem'} 	= kb_to_num($mem);
+					$job_data{$jobnum}{'vmem'} 	= kb_to_num($vmem);
+					$job_data{$jobnum}{'walltime'} 	= time_to_sec($walltime);
+					$job_data{$jobnum}{'qtime'} 	= $start - $qtime;
+					$job_data{$jobnum}{'start'} 	= $start;
+					$job_data{$jobnum}{'end'} 	= $end;
+					$job_data{$jobnum}{'exit'} 	= $exitstatus;
 					$job_data{$jobnum}{'cpuweight'} = $num_hosts * time_to_sec($walltime);
-					$job_data{$jobnum}{'procs'} = $num_hosts;
-					$job_data{$jobnum}{'nodes'} = $num_nodes;
-					$job_data{$jobnum}{'exechost'} = $exec_host;
+					$job_data{$jobnum}{'procs'} 	= $num_hosts ? $num_hosts : "";
+					$job_data{$jobnum}{'nodes'} 	= $num_nodes ? $num_nodes : "";
+					$job_data{$jobnum}{'exechost'} 	= $exec_host ? $exec_host: "";
+					$job_data{$jobnum}{'session'} 	= $session ? $session : "";
+					$job_data{$jobnum}{'alias'} 	= $alias ? $alias : "";
 				}	
 
 				if($listtotuser){
@@ -397,7 +408,7 @@ if(!$noheader){
 	$eM = substr($tend,4,2);
 	$eD = substr($tend,6,2);	
 
-	if($ENV{'LANG'} =~ /en_US/){ print "From $bY/$bM/$bD till $eY/$eM/$eD\n\n";}
+	if($ENV{'LANG'} && $ENV{'LANG'} =~ /en_US/){ print "From $bY/$bM/$bD till $eY/$eM/$eD\n\n";}
 	else { print "From $bD.$bM.$bY till $eD.$eM.$eY\n\n"; }
 	
 }
@@ -789,17 +800,21 @@ if($listjobs){
 	my $maxf = 5;
 	my $maxp = 5;
 	my $maxs = 4;
+	my $maxo = 7;
+	my $maxj = 5;
 
 	foreach my $jobnum (keys %job_data) {
-		$maxu = length($job_data{$jobnum}{'user'}) > $maxu ? length($job_data{$jobnum}{'user'}) : $maxu;		
-		$maxg = length($job_data{$jobnum}{'group'}) > $maxg ? length($job_data{$jobnum}{'group'}) : $maxg;		
-		$maxh = length($job_data{$jobnum}{'exechost'}) > $maxh ? length($job_data{$jobnum}{'exechost'}) : $maxh;		
-		$maxi = length($job_data{$jobnum}{'jobid'}) > $maxi ? length($job_data{$jobnum}{'jobid'}) : $maxi;		
-		$maxd = length($job_data{$jobnum}{'queue'}) > $maxd ? length($job_data{$jobnum}{'queue'}) : $maxd;		
-		$maxn = length($job_data{$jobnum}{'jobname'}) > $maxn ? length($job_data{$jobnum}{'jobname'}) : $maxn;		
-		$maxp = length($job_data{$jobnum}{'procs'}) > $maxp ? length($job_data{$jobnum}{'procs' }) : $maxp;
-		$maxa = length($job_data{$jobnum}{'nodes'}) > $maxp ? length($job_data{$jobnum}{'nodes' }) : $maxp;
-		$maxs = length($job_data{$jobnum}{'exit'}) > $maxs ? length($job_data{$jobnum}{'exit' }) : $maxs;
+		$maxu = length($job_data{$jobnum}{'user'}) 	> $maxu ? length($job_data{$jobnum}{'user'}) : $maxu;		
+		$maxg = length($job_data{$jobnum}{'group'}) 	> $maxg ? length($job_data{$jobnum}{'group'}) : $maxg;		
+		$maxh = length($job_data{$jobnum}{'exechost'}) 	> $maxh ? length($job_data{$jobnum}{'exechost'}) : $maxh;		
+		$maxi = length($job_data{$jobnum}{'jobid'}) 	> $maxi ? length($job_data{$jobnum}{'jobid'}) : $maxi;		
+		$maxd = length($job_data{$jobnum}{'queue'}) 	> $maxd ? length($job_data{$jobnum}{'queue'}) : $maxd;		
+		$maxn = length($job_data{$jobnum}{'jobname'}) 	> $maxn ? length($job_data{$jobnum}{'jobname'}) : $maxn;		
+		$maxp = length($job_data{$jobnum}{'procs'}) 	> $maxp ? length($job_data{$jobnum}{'procs' }) : $maxp;
+		$maxa = length($job_data{$jobnum}{'nodes'}) 	> $maxa ? length($job_data{$jobnum}{'nodes' }) : $maxa;
+		$maxs = length($job_data{$jobnum}{'exit'}) 	> $maxs ? length($job_data{$jobnum}{'exit' }) : $maxs;
+		$maxo = length($job_data{$jobnum}{'session'}) 	> $maxo ? length($job_data{$jobnum}{'session' }) : $maxo;
+		$maxj = length($job_data{$jobnum}{'alias'}) 	> $maxj ? length($job_data{$jobnum}{'alias' }) : $maxj;
 
 		if(!$human){
 			$maxw = length($job_data{$jobnum}{'walltime'}) > $maxw ? length($job_data{$jobnum}{'walltime'}) : $maxw;
@@ -850,6 +865,8 @@ if($listjobs){
 	$format .= $lc ? "%".($maxc)."s"." "x$diff : "%s";
 	$format .= $le ? "%".($maxe)."s"." "x$diff : "%s";
 	$format .= $ls ? "%".($maxs)."s"." "x$diff : "%s";
+	$format .= $lo ? "%".($maxo)."s"." "x$diff : "%s";
+	$format .= $lj ? "%".($maxj)."s"." "x$diff : "%s";
   
   	if(!$noheader){
 	
@@ -870,7 +887,9 @@ if($listjobs){
 		$la ? "Nodes" : "",
 		$lc ? "CPUtime" : "",
 		$le ? "CPUweigth" : "",
-		$ls ? "Exit" : ""
+		$ls ? "Exit" : "",
+		$lo ? "Session" : "",
+		$lj ? "Alias" : ""
 		);
 
 		printf("\n".$format,
@@ -890,14 +909,16 @@ if($listjobs){
 		$la ? "-"x$maxa : "",
 		$lc ? "-"x$maxc : "",
 		$le ? "-"x$maxe : "",
-		$ls ? "-"x$maxs : ""
+		$ls ? "-"x$maxs : "",
+		$lo ? "-"x$maxo : "",
+		$lj ? "-"x$maxj : ""
 		);
 		print "\n";
 	}
 	
 	my $sfunc;
 	if ($jsort =~ /user/ || $jsort =~ /group/ || $jsort =~ /jobname/ 
-	   || $jsort =~ /queue/ || $jsort =~ /exechost/ ) { 
+	   || $jsort =~ /queue/ || $jsort =~ /exechost/ || $jsort =~ /session/ ) { 
 
 		$sfunc = \&sbh; 
 	} else {
@@ -923,7 +944,9 @@ if($listjobs){
 			$la ? $job_data{$jobnum}{'nodes'} : "",
 			$lc ? formattimep($job_data{$jobnum}{'cputime'}) : "",
 			$le ? formattimep($job_data{$jobnum}{'cpuweight'}) : "",
-			$ls ? $job_data{$jobnum}{'exit'} : "" 
+			$ls ? $job_data{$jobnum}{'exit'} : "", 
+			$lo ? $job_data{$jobnum}{'session'} : "",
+			$lj ? $job_data{$jobnum}{'alias'} : "",
 			);
 		
 	   }	
@@ -992,10 +1015,10 @@ sub formattime {
 		my $M=sprintf("%02d",(localtime($NOW))[1]);
 		my $S=sprintf("%02d",(localtime($NOW))[0]);
 		if($nospace) {
-		    if($ENV{'LANG'} =~ /en_US/){ return "$Y/$m/".$d."_$H:$M" };
+		    if($ENV{'LANG'} && $ENV{'LANG'} =~ /en_US/){ return "$Y/$m/".$d."_$H:$M" };
 		    return "$d.$m.".$Y."_$H:$M";
 		} else {
-		    if($ENV{'LANG'} =~ /en_US/){ return "$Y/$m/$d $H:$M" };
+		    if($ENV{'LANG'} && $ENV{'LANG'} =~ /en_US/){ return "$Y/$m/$d $H:$M" };
 		    return "$d.$m.$Y $H:$M";
 		}
 	}
@@ -1180,7 +1203,8 @@ Example: -st "user,group,cputime,usage"
 Set which rows should be displayed in the job list. 
 Valid rows are:
 'user', 'group', 'jobid', 'jobname', 'start', 'end', 'walltime', 'qtime', 'mem', 
-'vmem', 'cputime', 'cpuweight', 'queue', 'procs', 'exechost', 'nodes', 'exit'
+'vmem', 'cputime', 'cpuweight', 'queue', 'procs', 'exechost', 'nodes', 
+'exit', 'session', 'alias'
 
 Example: -sj "user,group,jobname,procs,exit"
 

@@ -22,9 +22,16 @@ D_AUTOCD="cd ${PWD/#${HOME}/~} &&"
 TMPTEMPLATE="/tmp/pshout.XXXXXX"
 
 ############################
-# Use pssh if available?
+# Use mpiexec/pssh if available?
 
-PARASTATIONSTART="/opt/parastation/bin/pssh"
+if [ -f "/opt/parastation/bin/mpiexec" ] ; then
+    PARASTATIONSTART="/opt/parastation/bin/mpiexec"
+    $PARASTATIONSTART --checkup 1>/dev/null 2>&1 \
+    && USE_MPIEXEC="TRUE" && D_RCMD="$PARASTATIONSTART -A -N"
+else
+    PARASTATIONSTART="/opt/parastation/bin/pssh"
+fi
+
 #if [ -x "${PARASTATIONSTART}" ] ; then
 #    D_RCMD="${PARASTATIONSTART}";
 #fi
@@ -440,8 +447,15 @@ COMMAND $COMMAND
 EOF
 fi
 
-trap killcurrent SIGINT
+## Use specal syntax for mpiexec
+if [ "$USE_MPIEXEC" == "TRUE" ] ; then
+    nodes=${NODES[*]}
+    $RCMD "$nodes" $COMMAND
+    exit 0
+fi
 
+
+trap killcurrent SIGINT
 
 #
 # Start remote jobs

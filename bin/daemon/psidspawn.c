@@ -1215,11 +1215,6 @@ static void sendAcctInfo(PStask_ID_t sender, PStask_t *task)
     ptr += sizeof(int32_t);
     msg.header.len += sizeof(int32_t);
 
-    /* my IP address */
-    *(uint32_t *)ptr = PSIDnodes_getAddr(PSC_getMyID());
-    ptr += sizeof(uint32_t);
-    msg.header.len += sizeof(uint32_t);
-
     sendMsg((DDMsg_t *)&msg);
 
     msg.type = PSP_ACCOUNT_SLOTS;
@@ -1325,7 +1320,7 @@ static int checkRequest(PStask_ID_t sender, PStask_t *task)
     PSID_log(PSID_LOG_SPAWN, "%s: request from %s ok\n", __func__,
 	     PSC_printTID(task->ptid));
 
-    if (ptask->group == TG_LOGGER && ptask->partitionSize > 0 && !task->rank) {
+    if (ptask->group == TG_LOGGER && ptask->partitionSize > 0) {
 	sendAcctInfo(sender, ptask);
     }
 

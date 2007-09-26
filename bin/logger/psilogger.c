@@ -180,7 +180,10 @@ static void setupInputDestList(char *input)
     while (ranks != NULL) {
 	if ((sep = strchr(ranks, '-'))) {
 	    first = last = 0;
-	    sscanf(ranks, "%d-%d", &first, &last);
+	    if ((sscanf(ranks, "%d-%d", &first, &last)) != 2) {
+		fprintf(stderr, "PSIlogger: invalid range for input redirection\n");
+		return;
+	    }
 	    for(i=first; i<=last; i++) {
 		if (i >= np) {
 		    fprintf(stderr, "PSIlogger: input forward to non existing rank:[%d], valid ranks:[0-%i]\n", i, np -1);
@@ -730,7 +733,7 @@ static void forwardInput(int std_in)
 {
     char buf[1000];
     int len, i;
-
+    
     len = read(std_in, buf, sizeof(buf)>SSIZE_MAX ? SSIZE_MAX : sizeof(buf));
     switch (len) {
     case -1:
@@ -1045,12 +1048,7 @@ static void loop(void)
 			if (msg.sender == InputDest[i]) {
 			    /* rank InputDest wants the input */
 			    FD_SET(STDIN_FILENO, &myfds);
-			    if (verbose) {
-				fprintf(stderr, "PSIlogger: %s:"
-					" forward input to %s (rank %d)\n",
-					__func__, PSC_printTID(forwardInputTID[msg.sender]),
-					msg.sender);
-			    }
+			    break;
 			}
 		    }	
 		}

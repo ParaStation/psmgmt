@@ -70,7 +70,7 @@ int sigquit, envall, mergedepth, mergetmout;
 int gdb;
 char *plugindir, *envlist, *dest;
 char *nodelist, *hostlist, *hostfile, *sort;
-char *discom, *wdir, *network;
+char *discom, *wdir, *network, *jobid;
 
 static char version[] = "$Revision$";
 
@@ -104,7 +104,7 @@ static void errExit(void)
  *
  * @return No return value.
  */
-static void createSpawner(int argc, char *argv[], int np)
+static void createSpawner(int argc, char *argv[], int np, int admin)
 {
     char *ldpath = getenv("LD_LIBRARY_PATH");
     int rank;
@@ -116,18 +116,19 @@ static void createSpawner(int argc, char *argv[], int np)
 
     PSE_initialize();
     rank = PSE_getRank();
-    
+
     if (rank<0) {
         PSnodes_ID_t *nds;
         int error, spawnedProc;
 
-        nds = malloc(np*sizeof(*nds));
+	nds = malloc(np*sizeof(*nds));
         if (! nds) {
             fprintf(stderr, "%s: No memory\n", argv[0]);
             exit(1);
         }
-
-        if (PSE_getPartition(np)<0) exit(1);
+	if (!admin) { 
+	    if (PSE_getPartition(np)<0) exit(1);
+	}
 
         PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
                      nds, np*sizeof(*nds), 0);
@@ -145,7 +146,7 @@ static void createSpawner(int argc, char *argv[], int np)
 	/* Don't irritate the user with logger messages */
 	setenv("PSI_NOMSGLOGGERDONE", "", 1);
 	
-	if (pmienabletcp || pmienablesockp ) {
+	if (!admin && (pmienabletcp || pmienablesockp) ) {
 	
 	    /* set the size of the job */
 	    snprintf(tmp, sizeof(tmp), "%d", np);
@@ -511,6 +512,10 @@ static void setupEnvironment(int verbose)
 	if (verbose) printf("Switching pscom debug mode on.\n");
     }
 
+    if (jobid) {
+	setPSIEnv("PSP_JOBID", jobid, 1);
+    }	
+
     if (envlist) {
 	char *val = NULL;
 
@@ -647,6 +652,33 @@ static void printHiddenHelp(poptOption opt, int dup_argc, char *dup_argv[], char
 }
 
 /**
+ * @brief Count the number of processes to start.
+ *
+ * @return No return value.
+ */
+static void setNP(void)
+{
+    char *nodeparse, *toksave, *parse;
+    const char delimiters[] =", \n";
+   
+    np = 0;
+
+    if (hostlist) {
+	parse = strdup(hostlist);
+    } else {
+	parse = strdup(nodelist);
+    }
+
+    nodeparse = strtok_r(parse, delimiters, &toksave);
+
+    while (nodeparse != NULL) {
+	np++;	
+	nodeparse = strtok_r(NULL, delimiters, &toksave);
+    }
+    free(parse);
+}
+
+/**
  * @brief Creates admin tasks which are not accounted and can only be
  * run as privileged user.
  *
@@ -671,9 +703,6 @@ static void createAdminTasks(int argc, char *argv[], char *login, int verbose, i
     char *nodeparse, *toksave, *parse;
     const char delimiters[] =", \n";
 
-    if (PSE_getRank() != -1)
-	fprintf(stderr, "Wrong rank! Spawned by another process?\n");
-    
     if (login) {
 	struct passwd *passwd;
 	uid_t myUid = getuid();
@@ -748,15 +777,6 @@ static void createAdminTasks(int argc, char *argv[], char *login, int verbose, i
 	rank++;	
 	nodeparse = strtok_r(NULL, delimiters, &toksave);
     }
-
-    /* Don't irritate the user with logger messages */
-    setenv("PSI_NOMSGLOGGERDONE", "", 1);
-    
-    /* Switch to psilogger */
-    PSI_execLogger(NULL);
-
-    printf("never be here\n");
-    exit(1);
 }
 
 
@@ -768,7 +788,7 @@ int main(int argc, char *argv[])
     int i, rc, hiddenhelp = 0, admin = 0;
     int pmidis = 0, hiddenusage = 0;
     int dup_argc, extendedhelp = 0;
-    int extendedusage = 0;
+    int extendedusage = 0, checkps = 0;
     char **dup_argv;
     char tmp[1024];
     char *login;
@@ -782,10 +802,12 @@ int main(int argc, char *argv[])
 	  &np, 0, "equal to np: number of processes to start", "num"},
         { "exports", 'e', POPT_ARG_STRING,
 	  &envlist, 0, "environment to export to foreign nodes", "envlist"},
-        { "envall", 'a', POPT_ARG_NONE,
+        { "envall", 'n', POPT_ARG_NONE,
 	  &envall, 0, "export all environment variables to foreign nodes", NULL},
         { "bnr", 'b', POPT_ARG_NONE,
 	  &mpichcom, 0, "MPICH1 compatibility mode", "NULL"},
+        { "jobalias", 'a', POPT_ARG_STRING,
+	  &jobid, 0, "assign an alias to the job (used for accouting)", "NULL"},
 	POPT_TABLEEND
     };
 
@@ -856,6 +878,8 @@ int main(int argc, char *argv[])
 	  &pmienablesockp, 0, "connect to the pmi client over unix domain socket (default)", "num"},
         { "pmidisable", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
 	  &pmidis, 0, "disable pmi interface", "num"},
+        { "checkup", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
+	  &checkps, 0, "check if parastation is up and exit", "num"},
 	POPT_TABLEEND
     };
 
@@ -963,7 +987,7 @@ int main(int argc, char *argv[])
 	gdb = 0;
 	nodelist = hostlist = hostfile = sort = envlist = NULL;
 	discom = wdir = network = plugindir = login = NULL;
-	dest = NULL;
+	dest = jobid = NULL;
 	
 	rc = poptGetNextOpt(optCon);
 
@@ -1035,6 +1059,18 @@ int main(int argc, char *argv[])
         return 0;
     }
 
+    /* check if parastation is running */
+    if (checkps) {
+	if (PSI_initClient(TG_ANY)) {
+	    printf("ParaStation is up and running.\n");
+	    exit(0);
+	}
+	else {
+	    exit(1);
+	}
+    }
+
+
     /* some sanity checks */
     if (np == -1 && !admin) {
 	msg = "Give at least the -np argument.";
@@ -1047,9 +1083,9 @@ int main(int argc, char *argv[])
 	errExit();	
     }
 
-    if (gdb) {
+    if (gdb || admin) {
 	mergeout = 1;
-	if (!dest) {
+	if (!dest || admin) {
 	    setenv("PSI_INPUTDEST", "all", 1);
 	}
     }
@@ -1102,36 +1138,39 @@ int main(int argc, char *argv[])
     /* Check for LSF-Parallel */
     PSI_RemoteArgs(argc-dup_argc, &argv[dup_argc], &dup_argc, &dup_argv);
 
-    /* spwan Admin processes and switch to logger, don't returns */
+
+    /* create spwaner process and switch to logger */
+    if (admin) setNP();
+    createSpawner(argc, argv, np, admin);
+
+    /* catch term singal to wait till all procs are savely spawned*/
+    signal(SIGTERM, sighandler);
+    
+    
+    /* spwan Admin processes */
     if (admin) {
 	if (verbose) {
 	    printf("Starting admin task(s)\n");
 	}
 	createAdminTasks(dup_argc, dup_argv, login, verbose, show);
-    }
+    } else {
+	/* generate pmi auth token */
+	if (pmienabletcp || pmienablesockp ) {
 
-    /* create spwaner process and switch to logger */
-    createSpawner(argc, argv, np);
+	    srand(time(0));
+	    srand(rand());
+	    snprintf(tmp, sizeof(tmp), "%i\n", rand());
 
-    /* catch term singal to wait till all procs are savely spawned*/
-    signal(SIGTERM, sighandler);
+	    setPSIEnv("PMI_ID", tmp, 1); 
+	}
 
-    /* generate pmi auth token */
-    if (pmienabletcp || pmienablesockp ) {
-
-	srand(time(0));
-	srand(rand());
-	snprintf(tmp, sizeof(tmp), "%i\n", rand());
-
-	setPSIEnv("PMI_ID", tmp, 1); 
-    }
-
-    /* start all processes */ 
-    for (i = 0; i < np; i++) {
-	if (startProcs(i, np, dup_argc, dup_argv, verbose, show) < 0) {
-	    fprintf(stderr, "Unable to start process %d. Aborting.\n", i);
-	    exit(1);
-	} 
+	/* start all processes */ 
+	for (i = 0; i < np; i++) {
+	    if (startProcs(i, np, dup_argc, dup_argv, verbose, show) < 0) {
+		fprintf(stderr, "Unable to start process %d. Aborting.\n", i);
+		exit(1);
+	    } 
+	}
     }
 
     /* release service process */
