@@ -240,10 +240,10 @@ static void updateAccountData(void)
 	    return;
 	}
 	while (!feof(fd)) {
-	    fscanf(fd, "%s", buf);
+	    res = fscanf(fd, "%s", buf);
 
 	    if (strcmp(buf,"btime")) {
-		fscanf(fd, "%*[^\n]%*c");
+		res = fscanf(fd, "%*[^\n]%*c");
 	    } else {
 		res = fscanf(fd, "%u", &boottime);
 		if (res != 1) {

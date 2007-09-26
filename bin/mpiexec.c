@@ -333,11 +333,10 @@ static void setupEnvironment(int verbose)
 		    exit(1);
 		}
 		strncpy(key,environ[i], len - lenval -1);
-	 	key[strlen(key)] = '\0';
+	 	key[len - lenval -1] = '\0';
 		setPSIEnv(key, val, 1);
 		free(key);
 	    }
-	     
 	}
 	if (verbose) printf("Exporting the whole environment to foreign hosts\n");
     }
@@ -802,7 +801,7 @@ int main(int argc, char *argv[])
 	  &np, 0, "equal to np: number of processes to start", "num"},
         { "exports", 'e', POPT_ARG_STRING,
 	  &envlist, 0, "environment to export to foreign nodes", "envlist"},
-        { "envall", 'n', POPT_ARG_NONE,
+        { "envall", 'x', POPT_ARG_NONE,
 	  &envall, 0, "export all environment variables to foreign nodes", NULL},
         { "bnr", 'b', POPT_ARG_NONE,
 	  &mpichcom, 0, "MPICH1 compatibility mode", "NULL"},
