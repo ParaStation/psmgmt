@@ -31,6 +31,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "psi.h"
 #include "psilog.h"
 #include "psiinfo.h"
+#include "psienv.h"
 
 #include "psipartition.h"
 
@@ -417,13 +418,27 @@ static int nodelistFromHost(char *host, nodelist_t *nodelist)
  */
 static int nodelistFromHostStr(char *hostStr, nodelist_t *nodelist)
 {
+    char buf[1024];
+    char *envstr;
     char *work, *host = strtok_r(hostStr, " \f\n\r\t\v", &work);
     int total = 0;
 
     while (host) {
-	int num = nodelistFromHost(host, nodelist);
-	if (!num) return 0;
-	total += num;
+	if (!(strncmp(host, "ifhn=", 5))) {
+	    host += 5;
+	    if (host && host[0] != '\0') {
+		if ((envstr = getenv("PSP_NETWORK"))) {
+		    snprintf(buf, sizeof(buf), "%s,%s", envstr, host);
+		    setPSIEnv("PSP_NETWORK", buf, 1);
+		} else {
+		    setPSIEnv("PSP_NETWORK", host, 1);
+		}
+	    }
+	} else {
+	    int num = nodelistFromHost(host, nodelist);
+	    if (!num) return 0;
+	    total += num;
+	}
 	host = strtok_r(NULL, " \f\n\r\t\v", &work);
     }
     return total;
@@ -479,6 +494,7 @@ static int nodelistFromHostFile(char *fileName, nodelist_t *nodelist)
 		strcpy(lastline, line);
 	    }
 	}
+	
 	if (nodelistFromHostStr(line, nodelist) != 1) {
 	    PSI_log(-1, "%s: syntax error at: '%s'\n", __func__, line);
 	    fclose(file);

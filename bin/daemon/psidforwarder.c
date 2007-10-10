@@ -24,6 +24,8 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <dirent.h>
+#include <ctype.h>
 
 #include "psidutil.h"
 #include "pscommon.h"
@@ -34,6 +36,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "pslog.h"
 #include "psidpmiprotocol.h"
 #include "psidpmicomm.h"
+#include "psiinfo.h"
 
 #include "psidforwarder.h"
 
@@ -152,6 +155,117 @@ static void closePMIAcceptSocket(void)
     }	
 }
 
+
+/**
+ * @brief Finds all child processes auf @pid and
+ * returns the sum of the used vmem in kb.
+ *
+ * @param pid The pid of the parent process. 
+ *
+ * @param buf Buffer for reading the proc structure.
+ *
+ * @param size The size of the buffer.
+ *
+ * @param dir Handle to directory where to read the
+ * information ("/proc/")
+ *
+ * @return Returns the sum of the used vmem by all childs.
+ */
+static long getAllChildsVMem(int pid, char *buf, int size, DIR *dir)
+{
+    /** Format string of /proc/pid/stat */
+    static char stat_format[] = "%*d %*s %*c %d %*d %*d %*d %*d %*u %*u \
+    %*u %*u %*u %*d %*d %*d %*d %*d %*d %*u \
+    %*u %*u %lu %*ld %*u %*u %*u %*u %*u \
+    %*u %*u %*u %*u %*u %*u %*u %*u %*d %*d";
+    
+    FILE *fd;
+    struct dirent *dent;
+    int newpid, ppid;
+    unsigned long vmem = 0;
+    unsigned long newvmem = 0;
+
+    rewinddir(dir);
+
+    while ((dent = readdir(dir)) != NULL){
+	if (!isdigit(dent->d_name[0])){
+	    continue;
+	}
+	newpid = atoi(dent->d_name);
+
+	snprintf(buf, size, "/proc/%i/stat", newpid);
+	if ((fd = fopen(buf,"r")) == NULL) {
+	    continue;
+	}
+	if ((fscanf(fd, stat_format, &ppid, &newvmem)) != 2) {
+	    fclose(fd);
+	    continue;
+	}
+	fclose(fd);
+	if (ppid == pid) {
+	    vmem += newvmem; 
+	    vmem += getAllChildsVMem(newpid, buf, size, dir);
+	}
+    }
+    return vmem;
+}
+
+/**
+ * @brief Finds all child processes auf @pid and
+ * returns the sum of the used rss(mem).
+ *
+ * @param pid The pid of the parent process. 
+ *
+ * @param buf Buffer for reading the proc structure.
+ *
+ * @param size The size of the buffer.
+ *
+ * @param dir Handle to directory where to read the
+ * information ("/proc/")
+ *
+ * @return Returns the sum of the used rss by all childs.
+ */
+static long getAllChildsMem(int pid, char *buf, int size, DIR *dir)
+{
+    /** Format string of /proc/pid/stat */
+    static char stat_format[] = "%*d %*s %*c %d %*d %*d %*d %*d %*u %*u \
+    %*u %*u %*u %*d %*d %*d %*d %*d %*d %*u \
+    %*u %*u %*lu %ld %*u %*u %*u %*u %*u \
+    %*u %*u %*u %*u %*u %*u %*u %*u %*d %*d";
+    
+    FILE *fd;
+    struct dirent *dent;
+    int newpid, ppid;
+    long mem = 0;
+    long newmem = 0;
+
+    rewinddir(dir);
+
+    while ((dent = readdir(dir)) != NULL){
+	if (!isdigit(dent->d_name[0])){
+	    continue;
+	}
+	newpid = atoi(dent->d_name);
+
+	snprintf(buf, size, "/proc/%i/stat", newpid);
+	if ((fd = fopen(buf,"r")) == NULL) {
+	    continue;
+	}
+	
+	if ((fscanf(fd, stat_format, &ppid, &newmem)) != 2) {
+	    fclose(fd);
+	    continue;
+	}
+	fclose(fd);
+	
+	if (ppid == pid) {
+	    mem += newmem; 
+	    mem += getAllChildsMem(newpid, buf, size, dir);
+	}
+    }
+    return mem;
+}
+
 /**
  * @brief Reads data from /proc/pid/stat and updates the
  * accounting data structure accData. Used for generating
@@ -162,7 +276,7 @@ static void closePMIAcceptSocket(void)
 static void updateAccountData(void)
 {
     /** Format string of /proc/pid/stat */
-    static char stat_fromat[] = "%*d %*s %c %*d %*d %d %*d %*d %u %*u \
+    static char stat_format[] = "%*d %*s %c %*d %*d %d %*d %*d %u %*u \
     %*u %*u %*u %d %d %d %d %*d %*d %*u %*u %u %lu %lu %*u %*u \
     %*u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*d %d";
 
@@ -171,6 +285,7 @@ static void updateAccountData(void)
     ulong vsizenew, newstarttime;
     static char buf[1024];
     FILE *fd;
+    DIR *dir;
     static int	rate = 0;
     static unsigned int	boottime = 0; 
     
@@ -202,7 +317,7 @@ static void updateAccountData(void)
 	}	
     }
 
-    res = fscanf(fd, stat_fromat,
+    res = fscanf(fd, stat_format,
 	    &accData.state,
 	    &accData.session,
 	    &accData.flags,
@@ -219,6 +334,13 @@ static void updateAccountData(void)
 
     if (res != 11) {
 	return;
+    }
+    
+    /* get mem and vmem for all childs  */
+    if ((dir = opendir("/proc/"))) {
+	rssnew += getAllChildsMem(pid, buf, sizeof(buf), dir);
+	vsizenew += getAllChildsVMem(pid, buf, sizeof(buf), dir);
+	closedir(dir);
     }
 
     /* set max rss (resident set size) */
@@ -1311,7 +1433,8 @@ static void loop(void)
     fd_set rfds, wfds;
     struct timeval mytv={2,0}, atv;
     char buf[4000], obuf[120];
-    int n;
+    int n; 
+    time_t timeacc = 0;
     size_t total;
     PSLog_msg_t type;
 
@@ -1360,9 +1483,7 @@ static void loop(void)
 	    }
 	    continue;
 	}
-	/* update Accounting Data*/
-	updateAccountData();
-
+	
 	/*
 	 * check the remaining sockets for any outputs
 	 */
@@ -1444,6 +1565,12 @@ static void loop(void)
 		}
 	    }
 	}
+	/* update Accounting Data*/
+	if(childTask->group != TG_ADMINTASK && (time(0) - timeacc) > 60) {
+	    timeacc = time(0);
+	    updateAccountData();
+	}
+
 	PSID_blockSig(0, SIGCHLD);
     }
 

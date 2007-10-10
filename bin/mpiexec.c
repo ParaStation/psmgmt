@@ -32,6 +32,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <netinet/in.h>
 #include <pwd.h>
 #include <popt.h>
+#include <ctype.h>
 
 #include <pse.h>
 #include <psi.h>
@@ -67,10 +68,21 @@ int forwarderdb, pscomdb, loggerrawmode;
 int wait, schedyield, retry, psidb, mergeout;
 int sndbuf, rcvbuf, readahead, nodelay;
 int sigquit, envall, mergedepth, mergetmout;
-int gdb;
+int gdb, usize;
 char *plugindir, *envlist, *dest;
 char *nodelist, *hostlist, *hostfile, *sort;
 char *discom, *wdir, *network, *jobid;
+char *path, *envopt;
+const char *envvalopt;
+char *login;
+int totalview = 0, ecfn = 0, gdba = 0;
+int hiddenhelp = 0, admin = 0;
+int pmidis = 0, hiddenusage = 0;
+int comphelp = 0, compusage = 0;
+int dup_argc, extendedhelp = 0;
+int show, verbose = 0;
+int extendedusage = 0;
+char **dup_argv;
 
 static char version[] = "$Revision$";
 
@@ -268,7 +280,11 @@ static int startProcs(int i, int np, int argc, char *argv[], int verbose, int sh
 	setPSIEnv("PMI_SIZE", tmp, 1);
 
 	/* set the mpi universe size */
-	snprintf(tmp, sizeof(tmp), "%d", np);
+	if (usize) {
+	    snprintf(tmp, sizeof(tmp), "%d", usize);
+	} else {
+	    snprintf(tmp, sizeof(tmp), "%d", np);
+	}
 	setPSIEnv("PMI_UNIVERSE_SIZE", tmp, 1);
 	
 	/* set the template for the kvs name */
@@ -340,6 +356,14 @@ static void setupEnvironment(int verbose)
 	}
 	if (verbose) printf("Exporting the whole environment to foreign hosts\n");
     }
+    
+    if (envopt) {
+	if (envvalopt) {
+	    setPSIEnv(envopt, envvalopt, 1);
+	} else {
+	    printf("Error setting --env: %s, value is empty\n", envopt);
+	}
+    }
 
     if (gdb) {
 	setenv("PSI_ENABLE_GDB", "1", 1);
@@ -389,7 +413,7 @@ static void setupEnvironment(int verbose)
     }
     
     if (network) {
-	setenv("PSP_NETWORK", network, 1);
+	setPSIEnv("PSP_NETWORK", network, 1);
 	if (verbose) printf("Using networks: %s.\n", network);
     }
     
@@ -431,7 +455,7 @@ static void setupEnvironment(int verbose)
     
     if (retry) {
 	snprintf(tmp, sizeof(tmp), "%d", retry);
-	setenv("PSP_RETRY", tmp, 1);
+	setPSIEnv("PSP_RETRY", tmp, 1);
 	if (verbose) printf("Number of connection retrys set to %d.\n", retry);
     }
     
@@ -439,7 +463,11 @@ static void setupEnvironment(int verbose)
 	setenv("PSI_MERGEOUTPUT", "1", 1);
 	if (verbose) printf("Merging output of all ranks, if possible.\n");
     }
-    
+
+    if (path) {
+	setenv("PATH", path, 1);
+    }
+
     if (mergetmout) {
 	snprintf(tmp, sizeof(tmp), "%d", mergetmout);
 	setenv("PSI_MERGETMOUT", tmp, 1);
@@ -453,7 +481,7 @@ static void setupEnvironment(int verbose)
     }
     
     if (schedyield) {
-	setenv("PSP_SCHED_YIELD", "1", 1);
+	setPSIEnv("PSP_SCHED_YIELD", "1", 1);
 	if (verbose) printf("Use sched_yield system call.\n");
     }
     
@@ -469,29 +497,29 @@ static void setupEnvironment(int verbose)
 
     if (sndbuf) {
 	snprintf(tmp, sizeof(tmp), "%d", sndbuf);
-	setenv("PSP_SO_SNDBUF", tmp, 1);
+	setPSIEnv("PSP_SO_SNDBUF", tmp, 1);
 	if (verbose) printf("Setting TCP send buffer to %d bytes.\n", sndbuf);
     }
     
     if (rcvbuf) {
 	snprintf(tmp, sizeof(tmp), "%d", rcvbuf);
-	setenv("PSP_SO_RCVBUF", tmp, 1);
+	setPSIEnv("PSP_SO_RCVBUF", tmp, 1);
 	if (verbose) printf("Setting TCP receive buffer to %d bytes.\n", rcvbuf);
     }
     
     if (readahead) {
 	snprintf(tmp, sizeof(tmp), "%d", readahead);
-	setenv("PSP_READAHEAD", tmp, 1);
+	setPSIEnv("PSP_READAHEAD", tmp, 1);
 	if (verbose) printf("Setting pscom readahead to  %d.\n", readahead);
     }
 
     if (plugindir) {
-	setenv("PSI_DEBUGMASK", plugindir, 1);
+	setPSIEnv("PSP_PLUGINDIR", plugindir, 1);
 	if (verbose) printf("Setting plugin directory to: %s.\n", plugindir);
     }
 
     if (nodelay) {
-	setenv("PSP_TCP_NODELAY", "0", 1);
+	setPSIEnv("PSP_TCP_NODELAY", "0", 1);
 	if (verbose) printf("Switching TCP nodelay off.\n");
     }
     
@@ -502,7 +530,7 @@ static void setupEnvironment(int verbose)
     }
     
     if (sigquit) {
-	setenv("PSP_SIGQUIT", "1", 1);
+	setPSIEnv("PSP_SIGQUIT", "1", 1);
 	if (verbose) printf("Switching pscom sigquit on.\n");
     }
 
@@ -535,6 +563,7 @@ static void setupEnvironment(int verbose)
     if (!envstr) envstr = getenv("PSI_HOSTFILE");
     /* envstr marks if any of PSI_NODES, PSI_HOSTS or PSI_HOSTFILE is set */
     if (nodelist) {
+	int len=0,i;
 	if (hostlist) {
 	    msg = "Don't use -nodes and -hosts simultatniously.";
 	    errExit();
@@ -545,6 +574,14 @@ static void setupEnvironment(int verbose)
 	    msg = "Don't use -nodes with any of"
 		" PSI_NODES, PSI_HOSTS or PSI_HOSTFILE set.";
 	    errExit();	
+	}
+	envstr = nodelist;
+	len = strlen(envstr);
+	for (i=0; i<len; i++) {
+	    if (isalpha(envstr[i])) {
+		printf("--nodes is a list of numeric node id`s, did you mean host?\n");
+		exit(1);
+	    }
 	}
 	setenv("PSI_NODES", nodelist, 1);
 	if (verbose) printf("PSI_NODES set to '%s'\n", nodelist);
@@ -778,22 +815,177 @@ static void createAdminTasks(int argc, char *argv[], char *login, int verbose, i
     }
 }
 
-
-#define OTHER_OPTIONS_STR "<command> [options]"
-
-int main(int argc, char *argv[])
+/**
+ * @brief Perform some santiy checks to handle common
+ * mistakes.
+ *
+ * @param dup_argc The number of arguments for the new process to spawn.
+ *
+ * @param argv Pointer to the arguments of the new process to spawn.
+ *
+ * @return No return value.
+ */
+static void checkSanity(int dup_argc, char *argv[])
 {
-    int version, verbose, show;
-    int i, rc, hiddenhelp = 0, admin = 0;
-    int pmidis = 0, hiddenusage = 0;
-    int dup_argc, extendedhelp = 0;
-    int extendedusage = 0, checkps = 0;
-    char **dup_argv;
-    char tmp[1024];
-    char *login;
+    if (np == -1 && !admin) {
+	msg = "Give at least the -np argument.";
+	errExit();	
+    }
+
+    if (np < 1 && !admin) {
+	snprintf(msgstr, sizeof(msgstr), "'-np %d' makes no sense.", np);
+	msg = msgstr;
+	errExit();	
+    }
+
+    if (totalview) {
+	fprintf(stderr, "totalview is not yet implemented\n");
+	exit(1);
+    }
+
+    if (ecfn) {
+	printf("ecfn is not yet implemented\n");
+    }
+    
+    if (gdba) {
+	fprintf(stderr, "gdba is not yet implemented\n");
+	exit(1);
+    }
+
+    if (gdb || admin) {
+	mergeout = 1;
+	if (!dest || admin) {
+	    setenv("PSI_INPUTDEST", "all", 1);
+	}
+	if (gdb) {
+	    pmitmout = -1;
+	}
+    }
+
+    if (admin) {
+	if (np != -1) {
+	    snprintf(msgstr, sizeof(msgstr), "Don't use '-np' and '--admin' together");
+	    msg = msgstr;
+	    errExit();	
+	}
+	if (!hostlist && !nodelist) {
+	    snprintf(msgstr, sizeof(msgstr), "You must specify nodes with '--nodes' or '--hosts' to run on.");
+	    msg = msgstr;
+	    errExit();	
+	}
+    }
+
+    if (login && !admin) {
+	printf("the '--login' option is usefull with '--admin' only, ignoring it.\n");
+    }
+
+    if (!argv[dup_argc]) {
+        poptPrintUsage(optCon, stderr, 0);
+	msg = "No <command> specified.";
+	errExit();	
+    }
+
+    if (pmienabletcp && pmienablesockp) {
+	printf("Only one pmi connection type allowed (tcp or unix)\n");
+	exit(1);
+    }
+}
+
+/**
+ * @brief Parse and check the command line options.
+ *
+ * @argc The number of arguments.
+ *
+ * @param argv Pointer to the arguments to parse.
+ * 
+ * @return No return value.
+*/
+static void parseCmdOptions(int argc, char *argv[])
+{
+    #define OTHER_OPTIONS_STR "<command> [options]"
+    int none = 0; 
+    int rc = 0, i;
+    int ver = 0;
 
     /* Set up the popt help tables */
-    
+    struct poptOption poptMpiexecComp[] = {
+        { "bnr", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &mpichcom, 0, "Enable ParaStation4 compatibility mode", NULL},
+        { "machinefile", 'f', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &hostfile, 0, "machinefile to use, equal to hostfile", "<file>"},
+        { "1", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &none, 0, "override default of trying first (ignored)", NULL},
+        { "ifhn", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &network, 0, "override default of trying first", NULL},
+        { "file", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &none, 0, "file with additional information (ignored)", NULL},
+        { "tv", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &totalview, 0, "run procs under totalview (ignored)", NULL},
+        { "tvsu", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &totalview, 0, "totalview startup only (ignored)", NULL},
+        { "gdb", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &gdb, 0, "debug processes with gdb", NULL},
+        { "gdba", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &gdba, 0, "attach to debug processes with gdb (ignored)", NULL},
+        { "ecfn", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &ecfn, 0, "ouput xml exit codes filename", NULL},
+	{ "wdir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &wdir, 0, "working directory to start the processes", "<directory>"},
+	{ "dir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &wdir, 0, "working directory to start the processes", "<directory>"},
+	{ "umask", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &none, 0, "umask for remote process (ignored)", NULL},
+	{ "path", 'p', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &path, 0, "place to look for executables", "<directory>"},
+	{ "host", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &hostlist, 0, "host to start on", NULL},
+	{ "soft", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &none, 0, "giving hints instead of a precise number for the number of processes (ignored)", NULL},
+	{ "arch", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &none, 0, "arch type to start on (ignored)", NULL},
+        { "envall", 'x', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &envall, 0, "export all environment variables to foreign nodes", NULL},
+        { "envnone", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &none, 0, "export no env vars", NULL},
+        { "envlist", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &envlist, 0, "export a list of env vars", NULL},
+        { "usize", 'u', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &usize, 0, "set the universe size", NULL},
+        { "env", 'E', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &envopt, 'E', "export this value of this env var", NULL},
+	POPT_TABLEEND
+    };
+
+    struct poptOption poptMpiexecCompGlobal[] = {
+        { "gnp", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &np, 0, "number of processes to start", "num"},
+        { "gn", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &np, 0, "equal to np: number of processes to start", "num"},
+	{ "gwdir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &wdir, 0, "working directory to start the processes", "<directory>"},
+	{ "gdir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &wdir, 0, "working directory to start the processes", "<directory>"},
+	{ "gumask", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &none, 0, "umask for remote process (ignored)", NULL},
+	{ "gpath", 'p', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &path, 0, "place to look for executables", "<directory>"},
+	{ "ghost", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &hostlist, 0, "host to start on", NULL},
+	{ "gsoft", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &none, 0, "giving hints instead of a precise number for the number of processes (ignored)", NULL},
+	{ "garch", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &none, 0, "arch type to start on (ignored)", NULL},
+        { "genvall", 'x', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &envall, 0, "export all environment variables to foreign nodes", NULL},
+        { "genvnone", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &none, 0, "export no env vars", NULL},
+        { "genvlist", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &envlist, 0, "export a list of env vars", NULL},
+        { "genv", 'E', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+	  &envopt, 'E', "export this value of this env var", NULL},
+	POPT_TABLEEND
+    };
+
     struct poptOption poptCommonOptions[] = {
         { "np", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
 	  &np, 0, "number of processes to start", "num"},
@@ -803,16 +995,20 @@ int main(int argc, char *argv[])
 	  &envlist, 0, "environment to export to foreign nodes", "envlist"},
         { "envall", 'x', POPT_ARG_NONE,
 	  &envall, 0, "export all environment variables to foreign nodes", NULL},
+        { "env", 'E', POPT_ARG_STRING,
+	  &envopt, 'E', "export this value of this env var", NULL},
         { "bnr", 'b', POPT_ARG_NONE,
-	  &mpichcom, 0, "MPICH1 compatibility mode", "NULL"},
+	  &mpichcom, 0, "Enable ParaStation4 compatibility mode", NULL},
         { "jobalias", 'a', POPT_ARG_STRING,
-	  &jobid, 0, "assign an alias to the job (used for accouting)", "NULL"},
+	  &jobid, 0, "assign an alias to the job (used for accouting)", NULL},
+        { "usize", 'u', POPT_ARG_INT,
+	  &usize, 0, "set the universe size", NULL},
 	POPT_TABLEEND
     };
 
     struct poptOption poptPrivilegedOptions[] = {
         { "admin", 'A', POPT_ARG_NONE,
-	  &admin, 0, "start an admin-task which is not accounted", "NULL"},
+	  &admin, 0, "start an admin-task which is not accounted", NULL},
         { "login", 'L', POPT_ARG_STRING,
 	  &login, 0, "remote user used to execute command (with --admin only)", "login_name"},
 	POPT_TABLEEND
@@ -865,20 +1061,18 @@ int main(int argc, char *argv[])
 	  &rcvbuf, 0, "set the TCP receive buffer size", "<default 32k>"},
         { "delay", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
 	  &nodelay, 0, "don't use the NODELAY option for TCP sockets", NULL},
-        { "mergedepth", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-	  &mergedepth, 0, "merge similar output from diffrent ranks", NULL},
-        { "mergetmout", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-	  &mergetmout, 0, "merge similar output from diffrent ranks", NULL},
-        { "pmitmout", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN,
-	  &pmitmout, 0, "set a timeout till all clients have to join the first barrier (disabled=-1) (default=1 min + np*100ms)", "num"},
+        { "mergedepth", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN,
+	  &mergedepth, 0, "set over how many lines should be searched", NULL},
+        { "mergetimeout", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN,
+	  &mergetmout, 0, "set the time how long an output is maximal delayed", NULL},
+        { "pmitimeout", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN,
+	  &pmitmout, 0, "set a timeout till all clients have to join the first barrier (disabled=-1) (default=60sec + np*0,1sec)", "num"},
         { "pmiovertcp", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
 	  &pmienabletcp, 0, "connect to the pmi client over tcp/ip", "num"},
         { "pmioverunix", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
 	  &pmienablesockp, 0, "connect to the pmi client over unix domain socket (default)", "num"},
         { "pmidisable", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
 	  &pmidis, 0, "disable pmi interface", "num"},
-        { "checkup", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-	  &checkps, 0, "check if parastation is up and exit", "num"},
 	POPT_TABLEEND
     };
 
@@ -887,22 +1081,24 @@ int main(int argc, char *argv[])
 	  &nodelist, 0, "list of nodes to use: nodelist <3-5,7,11-17>", NULL},
         { "hosts", 'H', POPT_ARG_STRING,
 	  &hostlist, 0, "list of hosts to use: hostlist <node-01 node-04>", NULL},
-        { "hostfile", 'F', POPT_ARG_STRING,
+        { "hostfile", 'f', POPT_ARG_STRING,
 	  &hostfile, 0, "hostfile to use", "<file>"},
-        { "machinefile", 'M', POPT_ARG_STRING,
+        { "machinefile", 'f', POPT_ARG_STRING,
 	  &hostfile, 0, "machinefile to use, equal to hostfile", "<file>"},
 	{ "wait", 'w', POPT_ARG_NONE,
 	  &wait, 0, "wait for enough resources", NULL},
         { "overbook", 'o', POPT_ARG_NONE,
 	  &overbook, 0, "allow overbooking", NULL},
-        { "loopnodesfirst", 'f', POPT_ARG_NONE,
+        { "loopnodesfirst", 'n', POPT_ARG_NONE,
 	  &loopnodesfirst, 0, "place consecutive processes on different nodes, if possible", NULL},
-        { "exclusive", 'E', POPT_ARG_NONE,
+        { "exclusive", 'X', POPT_ARG_NONE,
 	  &exclusive, 0, "do not allow any other processes on used nodes", NULL},
 	{ "sort", 'S', POPT_ARG_STRING,
 	  &sort, 0, "sorting criterium to use: {proc|load|proc+load|none}", NULL},
 	{ "wdir", 'd', POPT_ARG_STRING,
 	  &wdir, 0, "working directory to start the processes", "<directory>"},
+	{ "path", 'p', POPT_ARG_STRING,
+	  &path, 0, "the path to search for executables", "<directory>"},
 	POPT_TABLEEND
     };
 
@@ -914,8 +1110,8 @@ int main(int argc, char *argv[])
 	  &network, 0, "set a space separeted list of networks enabled", NULL},
         { "schedyield", 'y', POPT_ARG_NONE,
 	  &schedyield, 0, "use sched yield system call", NULL},
-        { "retry", 'r', POPT_ARG_NONE,
-	  &retry, 0, "number of connection retrys", "<directory>"},
+        { "retry", 'r', POPT_ARG_INT,
+	  &retry, 0, "number of connection retries", "num"},
 	POPT_TABLEEND
     };
 
@@ -930,10 +1126,14 @@ int main(int argc, char *argv[])
 	  &hiddenhelp, 0, "display debug help", NULL},
 	{ "debugusage", '\0', POPT_ARG_NONE,
 	  &hiddenusage, 0, "display debug usage", NULL},
+	{ "comphelp", '\0', POPT_ARG_NONE,
+	  &comphelp, 0, "display compatibility help", NULL},
+	{ "compusage", '\0', POPT_ARG_NONE,
+	  &compusage, 0, "display compatibility usage", NULL},
 	{ "verbose", 'v', POPT_ARG_NONE,
 	  &verbose, 0, "verbose mode", NULL},
         { "version", 'V', POPT_ARG_NONE,
-	  & version, -1, "output version information and exit", NULL},
+	  &ver, -1, "output version information and exit", NULL},
 	POPT_TABLEEND
     };
 
@@ -952,16 +1152,21 @@ int main(int argc, char *argv[])
 	  0, NULL , NULL },
 	{ NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptAdvancedOptions, \
 	  0, NULL , NULL },
+	{ NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptMpiexecComp, \
+	  0, NULL , NULL },
+	{ NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptMpiexecCompGlobal, \
+	  0, NULL , NULL },
 	{ NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptOtherOptions, \
 	  0, "Other options:", NULL },
         POPT_AUTOHELP
 	POPT_TABLEEND
     };
-
+    
     /* The duplicated argv will contain the apps commandline */
     poptDupArgv(argc, (const char **)argv,
 		&dup_argc, (const char ***)&dup_argv);
 
+    
     optCon = poptGetContext(NULL, dup_argc, (const char **)dup_argv,
 			    optionsTable, 0);
     poptSetOtherOptionHelp(optCon, OTHER_OPTIONS_STR);
@@ -976,19 +1181,25 @@ int main(int argc, char *argv[])
 	const char *unknownArg;
 
 	np = -1;
-	version = verbose = source = rusage = show = 0;
+	ver = verbose = source = rusage = show = 0;
 	overbook = loggerdb = forwarderdb = psidb = 0;
 	pscomdb = loopnodesfirst = loggerrawmode = 0;
 	exclusive = wait = schedyield = retry = envall = 0;
 	mpichcom = hiddenhelp = mergeout = hiddenusage = 0;
 	sndbuf = rcvbuf = readahead = nodelay = sigquit = 0;
 	pmitmout = admin = mergedepth = mergetmout = 0;
-	gdb = 0;
+	gdb = none = totalview = ecfn = usize = gdba = 0;
+	comphelp = compusage = 0;
 	nodelist = hostlist = hostfile = sort = envlist = NULL;
 	discom = wdir = network = plugindir = login = NULL;
-	dest = jobid = NULL;
+	dest = jobid = path = NULL;
 	
 	rc = poptGetNextOpt(optCon);
+	    
+	if (rc == 'E') {
+	    rc = poptGetNextOpt(optCon);
+	    envvalopt = poptGetArg(optCon);
+	}
 
 	if ((unknownArg=poptGetArg(optCon))) {
 	    /*
@@ -1027,7 +1238,7 @@ int main(int argc, char *argv[])
 	msg = msgstr;
 	errExit();	
     }
-
+    
     /* output extended help */
     if (extendedhelp) {
 	printHiddenHelp(poptAdvancedOptions, dup_argc, dup_argv, "Advanced Options:");
@@ -1051,79 +1262,43 @@ int main(int argc, char *argv[])
 	printHiddenUsage(poptDebugOptions, dup_argc, dup_argv, "Debug Options:");
 	exit(0);
     }
-    
+   
+    /* output compatibility usage */
+    if (compusage) {
+	printHiddenUsage(poptMpiexecComp, dup_argc, dup_argv, "Compatibility Options:");
+	printHiddenUsage(poptMpiexecCompGlobal, dup_argc, dup_argv, "Global Compatibility Options:");
+	exit(0);
+    }
+
+    /* output compatibility help */
+    if (comphelp) {
+	printHiddenHelp(poptMpiexecComp, dup_argc, dup_argv, "Compatibility Options:");
+	printHiddenHelp(poptMpiexecCompGlobal, dup_argc, dup_argv, "Global Compatibility Options:");
+	exit(0);
+
+    }
+
     /* print Version */
-    if (version) {
+    if (ver) {
         printVersion();
-        return 0;
+        exit(0);
     }
+}
 
-    /* check if parastation is running */
-    if (checkps) {
-	if (PSI_initClient(TG_ANY)) {
-	    printf("ParaStation is up and running.\n");
-	    exit(0);
-	}
-	else {
-	    exit(1);
-	}
-    }
-
+int main(int argc, char *argv[])
+{
+    int i;
+    char tmp[1024];
+   
+    parseCmdOptions(argc, argv);
 
     /* some sanity checks */
-    if (np == -1 && !admin) {
-	msg = "Give at least the -np argument.";
-	errExit();	
-    }
-
-    if (np < 1 && !admin) {
-	snprintf(msgstr, sizeof(msgstr), "'-np %d' makes no sense.", np);
-	msg = msgstr;
-	errExit();	
-    }
-
-    if (gdb || admin) {
-	mergeout = 1;
-	if (!dest || admin) {
-	    setenv("PSI_INPUTDEST", "all", 1);
-	}
-	if (gdb) {
-	    pmitmout = -1;
-	}
-    }
-
-    if (admin) {
-	if (np != -1) {
-	    snprintf(msgstr, sizeof(msgstr), "Don't use '-np' and '--admin' together");
-	    msg = msgstr;
-	    errExit();	
-	}
-	if (!hostlist && !nodelist) {
-	    snprintf(msgstr, sizeof(msgstr), "You must specify nodes with '--nodes' or '--hosts' to run on.");
-	    msg = msgstr;
-	    errExit();	
-	}
-    }
-
-    if (login && !admin) {
-	printf("the '--login' option is usefull with '--admin' only, ignoring it.\n");
-    }
-
-    if (!argv[dup_argc]) {
-        poptPrintUsage(optCon, stderr, 0);
-	msg = "No <command> specified.";
-	errExit();	
-    }
-
+    checkSanity(dup_argc, argv);
+    
+    poptFreeContext(optCon);
     free(dup_argv);
 
-    /* check pmi connection type */
-    if (pmienabletcp && pmienablesockp) {
-	printf("Only one pmi connection type allowed (tcp or unix)\n");
-	exit(1);
-    }
-
-    /* set default to unix socket */
+    /* set default pmi connection methode to unix socket */
     if (!pmienabletcp && !pmienablesockp) {
 	pmienablesockp = 1;
     }
@@ -1139,7 +1314,6 @@ int main(int argc, char *argv[])
     
     /* Check for LSF-Parallel */
     PSI_RemoteArgs(argc-dup_argc, &argv[dup_argc], &dup_argc, &dup_argv);
-
 
     /* create spwaner process and switch to logger */
     if (admin) setNP();

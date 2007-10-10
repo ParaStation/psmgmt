@@ -33,6 +33,8 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <sys/resource.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 #include "pscommon.h"
 #include "pstask.h"
@@ -733,6 +735,35 @@ static void forwardInput(int std_in)
 {
     char buf[1000];
     int len, i;
+	
+    if (enableGDB) {
+	char *line;
+	line = readline(">");
+	if (!line || !line[0] != '\0') {
+	    return;
+	}
+	snprintf(buf, sizeof(buf), "%s\n",line);
+	HIST_ENTRY *last = history_get(history_length);
+	if (!last || strcmp(last->line, line)) {
+	    add_history(line);
+	}
+	free(line);
+	len = strlen(buf);	
+	if (buf[0] == '[' && buf[len -2] == ']') {
+	    fprintf(stderr, "Changed input dest to: %s",buf);
+	    setupInputDestList(buf);
+	    return;
+	}
+	for (i=0; i<maxClients; i++) {
+	    if (InputDest[i] != -1 && forwardInputTID[i] != -1) {
+		sendMsg(forwardInputTID[i], STDIN, buf, len);
+	    }
+	}
+	if (verbose) {
+	    fprintf(stderr, "PSIlogger: %s: %d bytes\n", __func__, len);
+	}
+	return; 
+    }
     
     len = read(std_in, buf, sizeof(buf)>SSIZE_MAX ? SSIZE_MAX : sizeof(buf));
     switch (len) {
@@ -752,13 +783,6 @@ static void forwardInput(int std_in)
 	FD_CLR(std_in, &myfds);
 	close(std_in);
     default:
-	if (enableGDB) {
-	    if (buf[0] == '[' && buf[len -2] == ']') {
-		fprintf(stderr, "Changed input dest to: %s",buf);
-		setupInputDestList(buf);
-		return;
-	    }
-	}
 	for (i=0; i<maxClients; i++) {
 	    if (InputDest[i] != -1 && forwardInputTID[i] != -1) {
 		sendMsg(forwardInputTID[i], STDIN, buf, len);
