@@ -1089,7 +1089,7 @@ static void parseCmdOptions(int argc, char *argv[])
 	  &wait, 0, "wait for enough resources", NULL},
         { "overbook", 'o', POPT_ARG_NONE,
 	  &overbook, 0, "allow overbooking", NULL},
-        { "loopnodesfirst", 'n', POPT_ARG_NONE,
+        { "loopnodesfirst", 'F', POPT_ARG_NONE,
 	  &loopnodesfirst, 0, "place consecutive processes on different nodes, if possible", NULL},
         { "exclusive", 'X', POPT_ARG_NONE,
 	  &exclusive, 0, "do not allow any other processes on used nodes", NULL},
