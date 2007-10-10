@@ -39,7 +39,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 static void printVersion(void)
 {
     char revision[] = "$Revision$";
-    fprintf(stderr, "psmstart %s\b \n", revision+11);
+    fprintf(stderr, "pssh %s\b \n", revision+11);
 }
 
 #define OTHER_OPTIONS_STR "<command> [options]"
@@ -211,7 +211,7 @@ int main(int argc, const char *argv[])
 	else
 	    printf("\nStart to node '%d'\n", node);
 
-	printf("\nThe 'psmstart' command-line is:\n");
+	printf("\nThe 'pssh' command-line is:\n");
 	for (i=0; i<argc; i++) {
 	    printf("%s ", argv[i]);
 	}
