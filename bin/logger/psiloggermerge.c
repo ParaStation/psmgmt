@@ -204,13 +204,18 @@ static void findEqualData(int ClientIdx, struct list_head *saveBuf[maxClients], 
 		nval = list_entry(npos, OutputBuffers, list);	 
 		
 		if (!val || !nval || !val->line || !nval->line) {
+		    //fprintf(stderr, "Breaking search for %s, possible error?\n", val->line);
 		    break;
 		}
-		if (val->line == nval->line && val->outfd == nval->outfd) {
-		    saveBuf[*mcount] = npos;
-		    saveBufInd[*mcount] = x; 
-		    (*mcount)++;
-		    break;
+		if (val->line == nval->line ) {
+		    if (val->outfd == nval->outfd) {
+			saveBuf[*mcount] = npos;
+			saveBufInd[*mcount] = x; 
+			(*mcount)++;
+			break;
+		    } else {
+			//fprintf(stderr, "same line diff outfd:val->line, val: %i nval: %i\n", val->outfd, nval->outfd);
+		    }
 		}
 		if (maxMergeDepth > 0 && dcount == maxMergeDepth) break;
 	    }
@@ -484,12 +489,11 @@ void displayCachedOutput(int flush)
 		/* find equal data */
 		findEqualData(i, saveBuf, saveBufInd, &mcount, val);
 
-		//fprintf(stderr, "Analyse=np:%i mcount:%i timediff:%i flush:%i \n", np, mcount, (int )(ltime - val->time), flush);	
+		//fprintf(stderr, "Analyse=np:%i mcount:%i timediff:%i flush:%i val:%s\n", np, mcount, (int )(ltime - val->time), flush, val->line);	
 		if (mcount == np -1 || ltime - val->time > maxMergeWait || flush ) {
-
 		   /* output single msg from tracked rank */
 		   outputSingleCMsg(i, pos, saveBuf, saveBufInd, mcount);
-		   
+	     
 		    for (z=0; z < mcount; z++) {
 			/* ouput single msg from other ranks */
 			outputSingleCMsg(saveBufInd[z], saveBuf[z], saveBuf, saveBufInd, mcount);
@@ -582,58 +586,64 @@ void cacheOutput(PSLog_Msg_t msg, int outfd)
     OutputBuffers *tmp = NULL;
     OutputBuffers *ClientBuf = &ClientOutBuf[sender];
     bMessages *tmpbMsg = NULL;
-    char *buf = msg.buf;
+    char *buf, *bufmem;
     int len;
     int db = 0;
-	    
-    buf[count] = '\0';
+    
+    bufmem = malloc(count +1);
+    strncpy(bufmem, msg.buf, count);
+    bufmem[count] = '\0';
+    buf = bufmem;
+
     while (count>0 && strlen(buf) >0) {
-	char *nl, *bInc, *savep;
+	char *nl, *savep;
 	
-	bInc = BufInc[sender];
 	len = strlen(buf);
 	nl  = strchr(buf, '\n');
 	if (nl) nl++; /* Thus nl points behind the newline */
 
 	/* no newline -> save to tmp buffer */
 	if (!nl) {
-	    if (db) fprintf(stderr, "no newline:\n");
-	    if (!bInc) {
-		if (!(bInc = malloc(len +1))) {
-		    fprintf(stderr, "PSIlogger: %s: out of memory\n", __func__);
+	    if (!BufInc[sender]) {
+		if (db) fprintf(stderr, "from %i: no newline ->newbuf :%s\n", sender, buf);
+		if (!(BufInc[sender] = malloc(len +1))) {
 		}
-		strncpy(bInc, buf, len);
+		strncpy(BufInc[sender], buf, len);
+		BufInc[sender][len] = '\0';
 	    } else {
 		/* buffer is used, append the msg */
-		if (!(bInc = realloc(bInc, strlen(bInc) + len +1))) {
-		    fprintf(stderr, "PSIlogger: %s: out of memory\n", __func__);
+		int leninc = strlen(BufInc[sender]);
+		if (db) fprintf(stderr, "from %i: no newline ->append :%s\n", sender, buf);
+		if (!(BufInc[sender] = realloc(BufInc[sender], leninc + len +1))) {
 		}
-		strncat(bInc, buf, len);
+		strncat(BufInc[sender], buf, len);
+		BufInc[sender][len + leninc] = '\0';
 	    }
-	    bInc[strlen(bInc)] = '\0';
 	    break;
 	}
 	
 	/* complete msg with nl */
 	len = strlen(buf) - strlen(nl);
-	if (bInc) {
-	    if (!(bInc = realloc(bInc, strlen(bInc) + len +1))) {
+	if (BufInc[sender]) {
+	    int leninc = strlen(BufInc[sender]);
+	    if (!(BufInc[sender] = realloc(BufInc[sender], leninc + len +1))) {
 		fprintf(stderr, "PSIlogger: %s: out of memory\n", __func__);
 		exit(1);
 	    }
-	    strncat(bInc, buf, len);
-	    savep = bInc;
-	    bInc = NULL;
+	    strncat(BufInc[sender], buf, len);
+	    savep = BufInc[sender];
+	    savep[leninc + len] = '\0';
+	    BufInc[sender] = NULL;
 	} else {
 	    if (!(savep = malloc(len +1))) {
 		fprintf(stderr, "PSIlogger: %s: out of memory\n", __func__);
 		exit(1);
 	    }
 	    strncpy(savep, buf, len);
+	    savep[len] = '\0';
 	}
 	
-	savep[len] = '\0';
-	if(db) fprintf(stderr, "string to save to global from:%i : %s\n", sender, savep);
+	if (db) fprintf(stderr, "string to save to global from:%i outfd:%i : %s\n", sender, outfd, savep);
 	
 	/* save to client matrix */
 	tmp = (OutputBuffers *)malloc(sizeof(OutputBuffers));
@@ -660,13 +670,14 @@ void cacheOutput(PSLog_Msg_t msg, int outfd)
 	    /* save pointer from client buffer to global buffer */
 	    tmp->line = savep;
 	}
-	if(db) fprintf(stderr,"line:%s hash:%i, count:%i\n",tmpbMsg->line, tmpbMsg->hash, tmpbMsg->counter);
+	if (db) fprintf(stderr,"line:%s hash:%i, count:%i\n",tmpbMsg->line, tmpbMsg->hash, tmpbMsg->counter);
 	list_add_tail(&(tmp->list), &ClientBuf->list);
 	
 	/* next line */	    
 	count -= len;
 	buf = nl;
     }
+    free(bufmem);
 }
 
 

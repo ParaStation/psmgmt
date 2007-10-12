@@ -332,7 +332,7 @@ static void setupEnvironment(int verbose)
     }
 
     /* Setup various environment variables depending on passed arguments */
-    if (envall) {
+    if (rank <0 && envall) {
 	
 	extern char **environ;
 	char *key, *val;
@@ -916,7 +916,7 @@ static void parseCmdOptions(int argc, char *argv[])
         { "1", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
 	  &none, 0, "override default of trying first (ignored)", NULL},
         { "ifhn", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &network, 0, "override default of trying first", NULL},
+	  &network, 0, "set a space separeted list of networks enabled", NULL},
         { "file", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
 	  &none, 0, "file with additional information (ignored)", NULL},
         { "tv", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
@@ -928,7 +928,7 @@ static void parseCmdOptions(int argc, char *argv[])
         { "gdba", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
 	  &gdba, 0, "attach to debug processes with gdb (ignored)", NULL},
         { "ecfn", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &ecfn, 0, "ouput xml exit codes filename", NULL},
+	  &ecfn, 0, "ouput xml exit codes filename (ignored)", NULL},
 	{ "wdir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
 	  &wdir, 0, "working directory to start the processes", "<directory>"},
 	{ "dir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
@@ -952,7 +952,7 @@ static void parseCmdOptions(int argc, char *argv[])
         { "usize", 'u', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
 	  &usize, 0, "set the universe size", NULL},
         { "env", 'E', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &envopt, 'E', "export this value of this env var", NULL},
+	  &envopt, 'E', "export this value of this env var", "<name> <value>"},
 	POPT_TABLEEND
     };
 
@@ -982,7 +982,7 @@ static void parseCmdOptions(int argc, char *argv[])
         { "genvlist", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
 	  &envlist, 0, "export a list of env vars", NULL},
         { "genv", 'E', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &envopt, 'E', "export this value of this env var", NULL},
+	  &envopt, 'E', "export this value of this env var", "<name> <value>"},
 	POPT_TABLEEND
     };
 
@@ -996,7 +996,7 @@ static void parseCmdOptions(int argc, char *argv[])
         { "envall", 'x', POPT_ARG_NONE,
 	  &envall, 0, "export all environment variables to foreign nodes", NULL},
         { "env", 'E', POPT_ARG_STRING,
-	  &envopt, 'E', "export this value of this env var", NULL},
+	  &envopt, 'E', "export this value of this env var", "<name> <value>"},
         { "bnr", 'b', POPT_ARG_NONE,
 	  &mpichcom, 0, "Enable ParaStation4 compatibility mode", NULL},
         { "jobalias", 'a', POPT_ARG_STRING,
@@ -1196,7 +1196,7 @@ static void parseCmdOptions(int argc, char *argv[])
 	
 	rc = poptGetNextOpt(optCon);
 	    
-	if (rc == 'E') {
+	if (rc == 'E' && envopt) {
 	    rc = poptGetNextOpt(optCon);
 	    envvalopt = poptGetArg(optCon);
 	}
@@ -1275,7 +1275,6 @@ static void parseCmdOptions(int argc, char *argv[])
 	printHiddenHelp(poptMpiexecComp, dup_argc, dup_argv, "Compatibility Options:");
 	printHiddenHelp(poptMpiexecCompGlobal, dup_argc, dup_argv, "Global Compatibility Options:");
 	exit(0);
-
     }
 
     /* print Version */
@@ -1294,9 +1293,6 @@ int main(int argc, char *argv[])
 
     /* some sanity checks */
     checkSanity(dup_argc, argv);
-    
-    poptFreeContext(optCon);
-    free(dup_argv);
 
     /* set default pmi connection methode to unix socket */
     if (!pmienabletcp && !pmienablesockp) {
@@ -1311,6 +1307,9 @@ int main(int argc, char *argv[])
     
     /* setup the parastation environment */
     setupEnvironment(verbose); 
+    
+    poptFreeContext(optCon);
+    free(dup_argv);
     
     /* Check for LSF-Parallel */
     PSI_RemoteArgs(argc-dup_argc, &argv[dup_argc], &dup_argc, &dup_argv);
