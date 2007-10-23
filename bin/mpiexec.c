@@ -843,15 +843,17 @@ static void  parseHostfile(char *filename, char *hosts, int size)
  */
 static void setupAdminEnv(void)
 {
-    char *nodeparse, *toksave, *parse;
+    char *nodeparse, *toksave, *parse = NULL;
     const char delimiters[] =", \n";
     char *envnodes, *envhosts, *envhostsfile;
+    char *envadminhosts;
     char hosts[1024];
     
     hosts[0] = '\0';
     envnodes = getenv("PSI_NODES");
     envhosts = getenv("PSI_HOSTS");
     envhostsfile = getenv("PSI_HOSTFILE");
+    envadminhosts = getenv("PSI_ADMIN_HOSTS"); 
    
     if (envnodes) {
 	nodelist = envnodes;
@@ -861,29 +863,41 @@ static void setupAdminEnv(void)
 	hostlist = envhosts;
 	setPSIEnv("PSI_HOSTS", hostlist, 1);
     }
-    if (envhostsfile) {
-	parseHostfile(envhostsfile, hosts, sizeof(hosts));
-	hostlist = hosts;
-	unsetPSIEnv("PSI_HOSTFILE");
-	unsetenv("PSI_HOSTFILE");
-    } else if (hostfile) {
-	parseHostfile(hostfile, hosts, sizeof(hosts));
-	hostlist = hosts;
+    if (envadminhosts) {
+	hostlist = envadminhosts;
 	hostfile = NULL;
+	unsetenv("PSI_ADMIN_HOSTS");
+    }
+    
+    PSE_initialize();
+    if (PSE_getRank() <0) {
+	if (envhostsfile) {
+	    parseHostfile(envhostsfile, hosts, sizeof(hosts));
+	    hostlist = hosts;
+	    unsetPSIEnv("PSI_HOSTFILE");
+	    unsetenv("PSI_HOSTFILE");
+	    setPSIEnv("PSI_ADMIN_HOSTS", hosts, 1);
+	} else if (hostfile) {
+	    parseHostfile(hostfile, hosts, sizeof(hosts));
+	    hostlist = hosts;
+	    hostfile = NULL;
+	    setPSIEnv("PSI_ADMIN_HOSTS", hosts, 1);
+	}
+	parse = strdup(hosts);
+    }
+    
+    if (!parse && hostlist) {
+	parse = strdup(hostlist);
+    } else if (!parse && nodelist) {
+	parse = strdup(nodelist);
     }
 
-    np = 0;
-    if (!hostlist && !nodelist) {
+    if (!parse) {
 	msg = "Don't know where to start, use '--nodes' or '--hosts' or '--hostfile'";
 	errExit();
     }
-
-    if (hostlist) {
-	parse = strdup(hostlist);
-    } else {
-	parse = strdup(nodelist);
-    }
     
+    np = 0;
     nodeparse = strtok_r(parse, delimiters, &toksave);
 
     while (nodeparse != NULL) {
