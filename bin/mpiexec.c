@@ -877,13 +877,14 @@ static void setupAdminEnv(void)
 	    unsetPSIEnv("PSI_HOSTFILE");
 	    unsetenv("PSI_HOSTFILE");
 	    setPSIEnv("PSI_ADMIN_HOSTS", hosts, 1);
+	    parse = strdup(hosts);
 	} else if (hostfile) {
 	    parseHostfile(hostfile, hosts, sizeof(hosts));
 	    hostlist = hosts;
 	    hostfile = NULL;
 	    setPSIEnv("PSI_ADMIN_HOSTS", hosts, 1);
+	    parse = strdup(hosts);
 	}
-	parse = strdup(hosts);
     }
     
     if (!parse && hostlist) {
