@@ -169,10 +169,10 @@ static void setupInputDestList(char *input)
 	return;
     }
     
-    
     ranks = strtok_r(input,delimiters,&saveptr);
-    
-    if (!strcmp(ranks, "all")) {
+
+    /* set input to all ranks */
+    if (!strcmp(ranks, "all") || !strcmp(ranks, "All")) {
 	for(i=0; i<np; i++) {
 	    InputDest[i] = i;
 	}
@@ -202,6 +202,43 @@ static void setupInputDestList(char *input)
 	    InputDest[i] = i;
 	}	
 	ranks = strtok_r(NULL,delimiters,&saveptr);
+    }
+}
+
+/**
+ * @brief This function will be called from
+ * readline if the gdb debugging mode is enabled
+ *
+ * @param line The line read from STDIN.
+ *
+ * @return No return value.
+ */
+static void readGDBInput(char *line)
+{
+    char buf[1000];
+    int len, i;
+    if (!line ) {
+	return;
+    }
+    snprintf(buf, sizeof(buf), "%s\n",line);
+    HIST_ENTRY *last = history_get(history_length);
+    if (line && line[0] != '\0' && (!last || strcmp(last->line, line))) {
+	add_history(line);
+    }
+    
+    len = strlen(buf);	
+    if (buf[0] == '[' && buf[len -2] == ']') {
+	fprintf(stderr, "Changed input dest to: %s",buf);
+	setupInputDestList(buf);
+	return;
+    }
+    for (i=0; i<maxClients; i++) {
+	if (InputDest[i] != -1 && forwardInputTID[i] != -1) {
+	    sendMsg(forwardInputTID[i], STDIN, buf, len);
+	}
+    }
+    if (verbose) {
+	fprintf(stderr, "PSIlogger: %s: %d bytes\n", __func__, len);
     }
 }
 
@@ -736,35 +773,6 @@ static void forwardInput(int std_in)
     char buf[1000];
     int len, i;
 	
-    if (enableGDB) {
-	char *line;
-	line = readline(">");
-	if (!line || !line[0] != '\0') {
-	    return;
-	}
-	snprintf(buf, sizeof(buf), "%s\n",line);
-	HIST_ENTRY *last = history_get(history_length);
-	if (!last || strcmp(last->line, line)) {
-	    add_history(line);
-	}
-	free(line);
-	len = strlen(buf);	
-	if (buf[0] == '[' && buf[len -2] == ']') {
-	    fprintf(stderr, "Changed input dest to: %s",buf);
-	    setupInputDestList(buf);
-	    return;
-	}
-	for (i=0; i<maxClients; i++) {
-	    if (InputDest[i] != -1 && forwardInputTID[i] != -1) {
-		sendMsg(forwardInputTID[i], STDIN, buf, len);
-	    }
-	}
-	if (verbose) {
-	    fprintf(stderr, "PSIlogger: %s: %d bytes\n", __func__, len);
-	}
-	return; 
-    }
-    
     len = read(std_in, buf, sizeof(buf)>SSIZE_MAX ? SSIZE_MAX : sizeof(buf));
     switch (len) {
     case -1:
@@ -1111,7 +1119,11 @@ static void loop(void)
 			__func__, msg.type);
 	    }
 	} else if (FD_ISSET(STDIN_FILENO, &afds)) {
-	    forwardInput(STDIN_FILENO);
+	    if (enableGDB) {
+		rl_callback_read_char();
+	    } else {
+		forwardInput(STDIN_FILENO);
+	    }
 	}
 	if ( noClients==0 ) {
 	    timeoutval++;
@@ -1124,6 +1136,7 @@ static void loop(void)
     if ( getenv("PSI_NOMSGLOGGERDONE")==NULL ) {
 	fprintf(stderr,"\nPSIlogger: done\n");
     }
+    rl_callback_handler_remove();
 
     return;
 }
@@ -1227,6 +1240,8 @@ int main( int argc, char**argv)
     
     if (getenv("PSI_ENABLE_GDB")) {
 	enableGDB = 1;
+	rl_callback_handler_install(NULL,(rl_vcpfunc_t*)readGDBInput);
+	
 	if (verbose) {
 	    fprintf(stderr, "PSIlogger: Enabling gdb functions.\n");
 	}

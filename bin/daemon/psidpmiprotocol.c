@@ -34,6 +34,7 @@
 
 #define SOCKET_ERROR -1
 #define SOCKET int
+#define PMI_RESEND 5
 
 
 typedef struct {
@@ -87,6 +88,57 @@ static void sendKvstoLogger(char *msgbuffer)
     PSLog_write(loggertid, KVS, msgbuffer, strlen(msgbuffer) +1);
 }
 
+/**
+ * @brief Write to pmi socket. 
+ *
+ * Write the message @a msg to the pmi socket file-descriptor,
+ * starting at by @a offset of the message. It is expected that the
+ * previos parts of the message were sent in earlier calls to this
+ * function.
+ *
+ * @param msg The message to transmit.
+ *
+ * @param offset Number of bytes sent in earlier calls.
+ *
+ * @return On success, the total number of bytes written is returned,
+ * i.e. usually this is the length of @a msg. If the @ref stdinSock
+ * file-descriptor blocks, this might also be smaller. In this case
+ * the total number of bytes sent in this and all previous calls is
+ * returned. If an error occurs, -1 or 0 is returned and errno is set
+ * appropriately.
+ */
+static int do_send(char *msg, int offset, int len)
+{
+    int n, i;
+
+    if (!len || !msg) {
+	return 0;
+    }
+
+    for (n=offset, i=1; (n<len) && (i>0);) {
+	i = send(pmisock, &msg[n], len-n, 0);	
+	if (i<=0) {
+	    switch (errno) {
+	    case EINTR:
+		break;
+	    case EAGAIN:
+		return n;
+		break;
+	    default:
+		{
+		char *errstr = strerror(errno);
+		PSIDfwd_printMsgf(STDERR,
+			  "%s: Rank %i: got error %d on pmi socket: %s\n",
+			  __func__, rank, errno, errstr ? errstr : "UNKNOWN");
+		return i;
+		}
+	    }
+	} else
+	    n+=i;
+    }
+    return n;
+}
+
 /**  
  * @brief Send a msg to the connected pmi client.
  *
@@ -96,8 +148,8 @@ static void sendKvstoLogger(char *msgbuffer)
  */
 static int PMI_send(char *msg)
 {
-    ssize_t bsent;
     ssize_t len;
+    int i, written = 0;
     
     len = strlen(msg);
     if (!(len && msg[len - 1] == '\n')) {
@@ -113,18 +165,18 @@ static int PMI_send(char *msg)
 			  __func__, rank, msg);
     }
 
-    if ((bsent = send (pmisock, msg, len, 0)) == SOCKET_ERROR) {
-	PSIDfwd_printMsgf(STDERR,
-			  "%s: Rank %i: socket error while sending pmi msg\n",
-			  __func__, rank);
-	exit(1);
+    /* try to send msg, repeat it PMI_RESEND times */
+    for (i =0; (written < len) && (i< PMI_RESEND); i++) {
+	written = do_send(msg, written, len);	
     }
 
-    if (bsent < len ) {
-	PSIDfwd_printMsgf(STDERR, "%s: Rank %i: pmi msg was truncated\n", 
-			  __func__, rank);
-	return 1;
+    if (written < len) {
+	PSIDfwd_printMsgf(STDERR,
+			  "%s: Rank %i: pmi msg could not be send:%s.\n",
+			  __func__, rank, msg);
+	exit(1);
     }
+    
     return 0;
 }
 

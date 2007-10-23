@@ -85,7 +85,7 @@ static void sendKvsMsg(PStask_ID_t tid, char *msg)
 }
 
 /**
- * @brief Init the global kvs. This function must be called bevor
+ * @brief Init the global kvs. This function must be called before 
  * calling handleKvsMsg.
  *
  * @param verbose Set verbose mode of pmi.

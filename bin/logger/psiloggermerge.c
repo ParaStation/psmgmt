@@ -491,8 +491,9 @@ void displayCachedOutput(int flush)
 
 		//fprintf(stderr, "Analyse=np:%i mcount:%i timediff:%i flush:%i val:%s\n", np, mcount, (int )(ltime - val->time), flush, val->line);	
 		if (mcount == np -1 || ltime - val->time > maxMergeWait || flush ) {
-		   /* output single msg from tracked rank */
-		   outputSingleCMsg(i, pos, saveBuf, saveBufInd, mcount);
+		    
+		    /* output single msg from tracked rank */
+		    outputSingleCMsg(i, pos, saveBuf, saveBufInd, mcount);
 	     
 		    for (z=0; z < mcount; z++) {
 			/* ouput single msg from other ranks */

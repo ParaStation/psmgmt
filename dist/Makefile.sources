@@ -148,6 +148,7 @@ scripts/ps_gm \
 scripts/ps_acc \
 scripts/ps_gmcounters \
 scripts/psaccview \
+scripts/gdb.conf \
 scripts/psh \
 scripts/rpm_noreq \
 scripts/psmgmt.csh \

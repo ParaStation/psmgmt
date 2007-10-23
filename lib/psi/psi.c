@@ -521,6 +521,39 @@ int PSI_release(PStask_ID_t tid)
     return 0;
 }
 
+int PSI_releaseSilent(PStask_ID_t tid)
+{
+    DDSignalMsg_t msg;
+    int ret;
+
+    PSI_log(PSI_LOG_VERB, "%s(%s)\n", __func__, PSC_printTID(tid));
+
+    msg.header.type = PSP_CD_RELEASE;
+    msg.header.sender = PSC_getMyTID();
+    msg.header.dest = tid;
+    msg.header.len = sizeof(msg);
+    msg.signal = -1;
+
+    if (PSI_sendMsg(&msg)<0) {
+	return -1;
+    }
+
+    ret = PSI_recvMsg(&msg);
+    if (ret<0) {
+	return -1;
+    } else if (!ret) {
+	return -1;
+    }
+
+    if (msg.header.type != PSP_CD_RELEASERES) {
+	return -1;
+    } else if (msg.param) {
+	return -1;
+    }
+
+    return 0;
+}
+
 PStask_ID_t PSI_whodied(int sig)
 {
     DDSignalMsg_t msg;

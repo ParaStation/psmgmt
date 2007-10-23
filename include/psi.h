@@ -154,6 +154,29 @@ int PSI_notifydead(PStask_ID_t tid, int sig);
 int PSI_release(PStask_ID_t tid);
 
 /**
+ * @brief Release a process silent, don't print any error msg.
+ *
+ * Release the process with task ID @a tid from sending a signal to me
+ * on its death. This might be used to cancel prior PSI_notifydead()
+ * calls with the same task ID.
+ *
+ * The special case where @a tid is PSC_getMyTID() will release the
+ * local process from receiving any signal and furthermore from
+ * sending a signal to its parent process. Ususally the parent process
+ * will get a special signal if any child will die. A call to this
+ * function will suppress this signal and usually keep the parent
+ * alive.
+ *
+ * This is typically used upon the correct end of a processes being
+ * part of a parallel task.
+ *
+ * @param tid The task ID of the process to get released.
+ *
+ * @return On success, 0 is returned. Or -1, if an error occurred.
+ */
+int PSI_releaseSilent(PStask_ID_t tid);
+
+/**
  * @brief Request signal's sender.
  *
  * Request which local or foreign process sent the signal @a sig to me
