@@ -105,6 +105,8 @@ static void addEntry(char *host, char *id)
     NetIDmap = ent;
 }
 
+#define IDMAPFILE "/etc/elanidmap"
+
 /**
  * @brief Create map of ELAN IDs.
  *
@@ -117,7 +119,13 @@ static void getNetIDmap(void)
     FILE *elanIDfile;
     char line[256];
 
-    elanIDfile = fopen("/etc/elanidmap", "r");
+    elanIDfile = fopen(IDMAPFILE, "r");
+
+    if (!elanIDfile) {
+	fprintf("%s: Could not open '%s':", __func__, IDMAPFILE);
+	perror("");
+	exit(1);
+    }
 
     while (fgets(line, sizeof(line), elanIDfile)) {
 	char *host = strtok(line, " \t\n");
