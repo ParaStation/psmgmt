@@ -36,7 +36,6 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "pslog.h"
 #include "psidpmiprotocol.h"
 #include "psidpmicomm.h"
-#include "psiinfo.h"
 
 #include "psidforwarder.h"
 
@@ -154,7 +153,6 @@ static void closePMIAcceptSocket(void)
 	PMISock = -1;
     }	
 }
-
 
 /**
  * @brief Finds all child processes auf @pid and
@@ -468,7 +466,7 @@ int PSIDfwd_printMsgf(PSLog_msg_t type, const char *format, ...)
 static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 {
     int ret;
-
+   
     if (loggerTID < 0) {
 	PSID_log(-1, "%s: not connected\n", __func__);
 	errno = EPIPE;
@@ -638,6 +636,58 @@ static int connectLogger(PStask_ID_t tid)
 }
 
 /**
+ * @brief Send a signal to the client process.
+ * Try to find to controlling terminal and ask
+ * it for the foreground process group. Then send
+ * a signal to that group or to pid from the client
+ * process.
+ *
+ * @param msg The message with the received signal.
+ *
+ * @return No return value.
+ */
+static void handleSignal(PSLog_Msg_t msg)
+{
+    int signal;
+    int pid = -1;
+    int sock = -1;
+    
+    /* find the socket connected to controlling tty */
+    if (stdinSock) {
+	sock = stdinSock;
+    } else if (stdoutSock) {
+	sock = stdoutSock;
+    } else if (stderrSock) {
+	sock = stderrSock;
+    }
+
+    /* send signal to foreground process group or default pid */
+    if (sock) {
+	pid = tcgetpgrp(sock);
+    }
+    
+    if (pid < 2) {
+	pid = PSC_getPID(childTask->tid);
+    }
+    
+    if (pid < 2) {
+	PSID_log(-1, "%s: error cannot determind pid of my client\n", __func__);
+	return;
+    }
+
+    /* send the signal to process group */
+    signal = (int) *(msg.buf);
+    if (signal) {
+	pid *= -1;
+	if (kill(pid,signal) == -1) {
+	    //PSID_log(-1, "%s: error sending signal:%i to pid:%i, errno:%i\n", __func__, signal, pid, errno);
+	}
+    } else {
+	PSID_log(-1, "%s: error got invalid signal\n", __func__);
+    }
+}
+
+/**
  * @brief Close connection to logger
  *
  * Send a #FINALIZE message to the logger and wait for an #EXIT
@@ -670,11 +720,313 @@ static void releaseLogger(int status)
 	PSID_log(-1, "%s: receive timed out. logger dissapeared\n", __func__);
     } else if (msg.type != EXIT) {
 	if (msg.type == STDIN) goto again; /* Ignore late STDIN messages */
+	if (msg.type == SIGNAL) {
+	    handleSignal(msg);
+	    goto again;
+	}
 	PSID_log(-1, "%s: Protocol messed up (type %d) from %s\n",
 		 __func__, msg.type, PSC_printTID(msg.header.sender));
     }
 
     loggerTID = -1;
+}
+
+/**
+ * @brief Write to @ref stdinSock descriptor
+ *
+ * Write the message @a msg to the @ref stdinSock file-descriptor,
+ * starting at by @a offset of the message. It is expected that the
+ * previos parts of the message were sent in earlier calls to this
+ * function.
+ *
+ * @param msg The message to transmit.
+ *
+ * @param offset Number of bytes sent in earlier calls.
+ *
+ * @return On success, the total number of bytes written is returned,
+ * i.e. usually this is the length of @a msg. If the @ref stdinSock
+ * file-descriptor blocks, this might also be smaller. In this case
+ * the total number of bytes sent in this and all previous calls is
+ * returned. If an error occurs, -1 or 0 is returned and errno is set
+ * appropriately.
+ */
+static int do_write(PSLog_Msg_t *msg, int offset)
+{
+    int n, i;
+    int count = msg->header.len - PSLog_headerSize;
+
+    if (!count) {
+	/* close clients stdin */
+	shutdown(stdinSock, SHUT_WR);
+	FD_CLR(stdinSock, &writefds);
+	stdinSock = -1;
+	return 0;
+    }
+
+    for (n=offset, i=1; (n<count) && (i>0);) {
+	i = write(stdinSock, &msg->buf[n], count-n);
+	if (i<=0) {
+	    switch (errno) {
+	    case EINTR:
+		break;
+	    case EAGAIN:
+		return n;
+		break;
+	    default:
+	    {
+		char obuf[120];
+		char *errstr = strerror(errno);
+
+		snprintf(obuf, sizeof(obuf),
+			 "%s: got error %d on stdinSock: %s",
+			 __func__, errno, errstr ? errstr : "UNKNOWN");
+		PSIDfwd_printMsg(STDERR, obuf);
+		return i;
+	    }
+	    }
+	} else
+	    n+=i;
+    }
+    return n;
+}
+
+static int storeMsg(PSLog_Msg_t *msg, int offset)
+{
+    msgbuf_t *msgbuf = oldMsgs;
+
+    if (msgbuf) {
+        /* Search for end of list */
+        while (msgbuf->next) msgbuf = msgbuf->next;
+        msgbuf->next = getMsg();
+        msgbuf = msgbuf->next;
+    } else {
+        msgbuf = oldMsgs = getMsg();
+    }
+
+    if (!msgbuf) {
+        errno = ENOMEM;
+        return -1;
+    }
+
+    msgbuf->msg = malloc(msg->header.len);
+    if (!msgbuf->msg) {
+        errno = ENOMEM;
+        return -1;
+    }
+    memcpy(msgbuf->msg, msg, msg->header.len);
+
+    msgbuf->offset = offset;
+
+    return 0;
+}
+
+static int flushMsgs(void)
+{
+    while (oldMsgs) {
+	msgbuf_t *msg = oldMsgs;
+	int len = msg->msg->len - PSLog_headerSize;
+	int written = do_write((PSLog_Msg_t *)msg->msg, msg->offset);
+
+	if (written<0) return written;
+	if (written != len) {
+	    msg->offset = written;
+	    break;
+	}
+
+	oldMsgs = msg->next;
+	freeMsg(msg);
+    }
+
+    if (oldMsgs) {
+	errno = EWOULDBLOCK;
+	return -1;
+    } else {
+	if (stdinSock != -1) FD_CLR(stdinSock, &writefds);
+	sendMsg(CONT, NULL, 0);
+    }
+
+    return 0;
+}
+
+static int writeMsg(PSLog_Msg_t *msg)
+{
+    int len = msg->header.len - PSLog_headerSize, written = 0;
+
+    if (oldMsgs) flushMsgs();
+
+    if (!oldMsgs) {
+        written = do_write(msg, 0);
+    }
+
+    if (written<0) return written;
+    if ((written != len) || (oldMsgs && !len)) {
+        if (!storeMsg(msg, written)) errno = EWOULDBLOCK;
+	if (stdinSock != -1) FD_SET(stdinSock, &writefds);
+	sendMsg(STOP, NULL, 0);
+        return -1;
+    }
+
+    return written;
+}
+
+/**
+ * @brief Read input from logger
+ *
+ * Read and handle input from the logger. Usually this will be input
+ * designated to the local client process which will be forwarded. As
+ * an extension this might be an #EXIT message displaying that the
+ * controlling logger is going to die. Thus also the forwarder will
+ * stop execution and exit() which finally will result in the local
+ * daemon killing the client process.
+ *
+ * @return Usually the number of bytes received is returned. If an
+ * error occured, -1 is returned and errno is set appropriately.
+ */
+static int readFromLogger(void)
+{
+    PSLog_Msg_t msg;
+    char obuf[120];
+    int ret;
+
+    ret = recvMsg(&msg, NULL);
+    if (ret > 0) {
+	switch (msg.header.type) {
+	case PSP_CD_RELEASERES:
+	    break;
+	case PSP_CC_MSG:
+	    switch (msg.type) {
+	    case STDIN:
+		if (verbose) {
+		    snprintf(obuf, sizeof(obuf),
+			     "%s: %d byte received on STDIN\n", __func__,
+			     msg.header.len - PSLog_headerSize);
+		    PSIDfwd_printMsg(STDERR, obuf);
+		}
+		if (stdinSock<0) {
+		    snprintf(obuf, sizeof(obuf),
+			     "%s: STDIN already closed\n", __func__);
+		    PSIDfwd_printMsg(STDERR, obuf);
+		} else {
+		    writeMsg(&msg);
+		}
+		break;
+	    case EXIT:
+		/* Logger is going to die */
+		/* Release the pmi client */
+		closePMIClientSocket();
+		/* Release the daemon */
+		closeDaemonSock();
+		exit(0);
+		break;
+	    case KVS:
+		pmi_handleKvsRet(msg);
+		break;
+	    case SIGNAL:
+		handleSignal(msg);
+		break;
+	    case WINCH:
+		/* Logger detected change in window-size */
+		if (stdinSock>=0) {
+		    struct winsize w;
+		    int count = msg.header.len - PSLog_headerSize, len = 0;
+		    int *buf = (int *)msg.buf;
+
+		    if (count != 4 * sizeof(*buf)) {
+			snprintf(obuf, sizeof(obuf),
+				 "%s: Corrupted WINCH message\n", __func__);
+			PSIDfwd_printMsg(STDERR, obuf);
+			break;
+		    }
+
+		    w.ws_col = buf[len++];
+		    w.ws_row = buf[len++];
+		    w.ws_xpixel = buf[len++];
+		    w.ws_ypixel = buf[len++];
+
+		    (void) ioctl(stdinSock, TIOCSWINSZ, &w);
+
+		    if (verbose) {
+			snprintf(obuf, sizeof(obuf), "%s: WINCH to"
+				 " col %d row %d xpixel %d ypixel %d\n",
+				 __func__, w.ws_col, w.ws_row, 
+				 w.ws_xpixel, w.ws_ypixel);
+			PSIDfwd_printMsg(STDERR, obuf);
+		    }
+		}
+		break;
+	    default:
+		snprintf(obuf, sizeof(obuf),
+			 "%s: Unknown type %d\n", __func__, msg.type);
+		PSIDfwd_printMsg(STDERR, obuf);
+	    }
+	    break;
+	default:
+	    snprintf(obuf, sizeof(obuf), "%s: Unexpected msg type %s\n",
+		     __func__, PSP_printMsg(msg.header.type));
+	    PSIDfwd_printMsg(STDERR, obuf);
+	}
+    } else if (!ret) {
+	/* The connection to the daemon died. Kill the client the hard way. */
+	kill(-PSC_getPID(childTask->tid), SIGKILL);
+    }
+	
+    return ret;
+}
+
+/* @brief  Read pmi message from the client.
+ *
+ * @return Usually the number of bytes received is returned. If an
+ * error occured, -1 is returned and errno is set appropriately.
+ *
+ */
+static int readFromPMIClient(void)
+{
+    char msgBuf[PMIU_MAXLINE], obuf[120];
+    ssize_t len;
+    int ret;
+
+    len = recv(PMIClientSock, msgBuf, sizeof(msgBuf), 0);
+
+    /* no data received from client */
+    if (!len) {
+	snprintf(obuf, sizeof(obuf),
+		 "%s: lost connection to the pmi client\n", __func__);
+	PSIDfwd_printMsg(STDERR, obuf);
+
+	/*close connection */
+	closePMIClientSocket();
+	return -1;
+    }
+
+    /* socket error occured */
+    if (len < 0) {
+	snprintf(obuf, sizeof(obuf),
+		 "%s: error on pmi socket occured\n", __func__);
+	PSIDfwd_printMsg(STDERR, obuf);
+	return -1;
+    }
+
+    /* truncate msg to received bytes */
+    msgBuf[len] = '\0';
+
+    /* parse and handle the pmi msg */
+    ret = pmi_parse_msg(msgBuf);
+
+    /* pmi communication finished */
+    if (ret == PMI_FINALIZED) {
+
+	/* release the child */
+	DDSignalMsg_t msg;
+
+	msg.header.type = PSP_CD_RELEASE;
+	msg.header.sender = PSC_getTID(-1, getpid());
+	msg.header.dest = childTask->tid;
+	msg.header.len = sizeof(msg);
+	msg.signal = -1;
+
+	sendDaemonMsg((DDMsg_t *)&msg);
+    }
+    return len;
 }
 
 /**
@@ -739,7 +1091,6 @@ static size_t collectRead(int sock, char *buf, size_t count, size_t *total)
     return n;
 }
 
-
 #define NAME_TO_LONG_STR "progname to long"
 
 /**
@@ -766,7 +1117,7 @@ static void sighandler(int sig)
 {
     int i, status;
     struct rusage rusage;
-    pid_t pid;
+    pid_t pid = 0;
 
     char txt[80];
 
@@ -803,14 +1154,18 @@ static void sighandler(int sig)
 		     "[%d] PSID_forwarder: Got SIGCHLD\n", childTask->rank);
 	    PSIDfwd_printMsg(STDERR, txt);
 	}
-
+	
+	/* if child is stopped, return */
+	pid = wait3(&status, WUNTRACED | WNOHANG, &rusage);
+	if (WIFSTOPPED(status)) break;
+	
 	/* Read all the remaining stuff from the controlled fds */
 	while (openfds) {
 	    fd_set fds;
 	    int ret;
-
+	
 	    memcpy(&fds, &readfds, sizeof(fds));
-
+	    
 	    ret = select(FD_SETSIZE, &fds, NULL, NULL, NULL);
 	    if (ret < 0) {
 		if (errno != EINTR) {
@@ -832,9 +1187,20 @@ static void sighandler(int sig)
 			    type=STDOUT;
 			} else if (sock==stderrSock) {
 			    type=STDERR;
+			} else if (sock==daemonSock) {
+			    /* Read new input */
+			    readFromLogger();
+			    continue;
+			} else if (sock==PMIClientSock) {
+			    /* Read new pmi msg from client */
+			    readFromPMIClient();
+			    continue;
 			} else {
-			    /* ignore */
+			    /* close open sockets so we don't wait infinite */
 			    ret--;
+			    FD_CLR(sock, &readfds);
+			    close(sock);
+			    openfds--;
 			    continue;
 			}
 
@@ -865,10 +1231,11 @@ static void sighandler(int sig)
 		}
 	    }
 	}
-
-	pid = wait3(&status, WUNTRACED, &rusage);
-
-	if (WIFSTOPPED(status)) break;
+	
+	if (pid < 1) {
+	    pid = wait3(&status, WUNTRACED, &rusage);
+	    if (WIFSTOPPED(status)) break;
+	}
 
 	sendMsg(USAGE, (char *) &rusage, sizeof(rusage));
 
@@ -1083,248 +1450,6 @@ static void checkFileTable(fd_set *fds)
     }
 }
 
-
-/**
- * @brief Write to @ref stdinSock descriptor
- *
- * Write the message @a msg to the @ref stdinSock file-descriptor,
- * starting at by @a offset of the message. It is expected that the
- * previos parts of the message were sent in earlier calls to this
- * function.
- *
- * @param msg The message to transmit.
- *
- * @param offset Number of bytes sent in earlier calls.
- *
- * @return On success, the total number of bytes written is returned,
- * i.e. usually this is the length of @a msg. If the @ref stdinSock
- * file-descriptor blocks, this might also be smaller. In this case
- * the total number of bytes sent in this and all previous calls is
- * returned. If an error occurs, -1 or 0 is returned and errno is set
- * appropriately.
- */
- static int do_write(PSLog_Msg_t *msg, int offset)
-{
-    int n, i;
-    int count = msg->header.len - PSLog_headerSize;
-
-    if (!count) {
-	/* close clients stdin */
-	shutdown(stdinSock, SHUT_WR);
-	FD_CLR(stdinSock, &writefds);
-	stdinSock = -1;
-	return 0;
-    }
-
-    for (n=offset, i=1; (n<count) && (i>0);) {
-	i = write(stdinSock, &msg->buf[n], count-n);
-	if (i<=0) {
-	    switch (errno) {
-	    case EINTR:
-		break;
-	    case EAGAIN:
-		return n;
-		break;
-	    default:
-	    {
-		char obuf[120];
-		char *errstr = strerror(errno);
-
-		snprintf(obuf, sizeof(obuf),
-			 "%s: got error %d on stdinSock: %s",
-			 __func__, errno, errstr ? errstr : "UNKNOWN");
-		PSIDfwd_printMsg(STDERR, obuf);
-		return i;
-	    }
-	    }
-	} else
-	    n+=i;
-    }
-    return n;
-}
-
-static int storeMsg(PSLog_Msg_t *msg, int offset)
-{
-    msgbuf_t *msgbuf = oldMsgs;
-
-    if (msgbuf) {
-        /* Search for end of list */
-        while (msgbuf->next) msgbuf = msgbuf->next;
-        msgbuf->next = getMsg();
-        msgbuf = msgbuf->next;
-    } else {
-        msgbuf = oldMsgs = getMsg();
-    }
-
-    if (!msgbuf) {
-        errno = ENOMEM;
-        return -1;
-    }
-
-    msgbuf->msg = malloc(msg->header.len);
-    if (!msgbuf->msg) {
-        errno = ENOMEM;
-        return -1;
-    }
-    memcpy(msgbuf->msg, msg, msg->header.len);
-
-    msgbuf->offset = offset;
-
-    return 0;
-}
-
-static int flushMsgs(void)
-{
-    while (oldMsgs) {
-	msgbuf_t *msg = oldMsgs;
-	int len = msg->msg->len - PSLog_headerSize;
-	int written = do_write((PSLog_Msg_t *)msg->msg, msg->offset);
-
-	if (written<0) return written;
-	if (written != len) {
-	    msg->offset = written;
-	    break;
-	}
-
-	oldMsgs = msg->next;
-	freeMsg(msg);
-    }
-
-    if (oldMsgs) {
-	errno = EWOULDBLOCK;
-	return -1;
-    } else {
-	if (stdinSock != -1) FD_CLR(stdinSock, &writefds);
-	sendMsg(CONT, NULL, 0);
-    }
-
-    return 0;
-}
-
-static int writeMsg(PSLog_Msg_t *msg)
-{
-    int len = msg->header.len - PSLog_headerSize, written = 0;
-
-    if (oldMsgs) flushMsgs();
-
-    if (!oldMsgs) {
-        written = do_write(msg, 0);
-    }
-
-    if (written<0) return written;
-    if ((written != len) || (oldMsgs && !len)) {
-        if (!storeMsg(msg, written)) errno = EWOULDBLOCK;
-	if (stdinSock != -1) FD_SET(stdinSock, &writefds);
-	sendMsg(STOP, NULL, 0);
-        return -1;
-    }
-
-    return written;
-}
-
-	
-/**
- * @brief Read input from logger
- *
- * Read and handle input from the logger. Usually this will be input
- * designated to the local client process which will be forwarded. As
- * an extension this might be an #EXIT message displaying that the
- * controlling logger is going to die. Thus also the forwarder will
- * stop execution and exit() which finally will result in the local
- * daemon killing the client process.
- *
- * @return Usually the number of bytes received is returned. If an
- * error occured, -1 is returned and errno is set appropriately.
- */
-static int readFromLogger(void)
-{
-    PSLog_Msg_t msg;
-    char obuf[120];
-    int ret;
-
-    ret = recvMsg(&msg, NULL);
-    if (ret > 0) {
-	switch (msg.header.type) {
-	case PSP_CD_RELEASERES:
-	    break;
-	case PSP_CC_MSG:
-	    switch (msg.type) {
-	    case STDIN:
-		if (verbose) {
-		    snprintf(obuf, sizeof(obuf),
-			     "%s: %d byte received on STDIN\n", __func__,
-			     msg.header.len - PSLog_headerSize);
-		    PSIDfwd_printMsg(STDERR, obuf);
-		}
-		if (stdinSock<0) {
-		    snprintf(obuf, sizeof(obuf),
-			     "%s: STDIN already closed\n", __func__);
-		    PSIDfwd_printMsg(STDERR, obuf);
-		} else {
-		    writeMsg(&msg);
-		}
-		break;
-	    case EXIT:
-		/* Logger is going to die */
-		/* Release the pmi client */
-		closePMIClientSocket();
-		/* Release the daemon */
-		closeDaemonSock();
-
-		exit(0);
-		break;
-	    case KVS:
-		pmi_handleKvsRet(msg);
-		break;
-	    case WINCH:
-		/* Logger detected change in window-size */
-		if (stdinSock>=0) {
-		    struct winsize w;
-		    int count = msg.header.len - PSLog_headerSize, len = 0;
-		    int *buf = (int *)msg.buf;
-
-		    if (count != 4 * sizeof(*buf)) {
-			snprintf(obuf, sizeof(obuf),
-				 "%s: Corrupted WINCH message\n", __func__);
-			PSIDfwd_printMsg(STDERR, obuf);
-			break;
-		    }
-
-		    w.ws_col = buf[len++];
-		    w.ws_row = buf[len++];
-		    w.ws_xpixel = buf[len++];
-		    w.ws_ypixel = buf[len++];
-
-		    (void) ioctl(stdinSock, TIOCSWINSZ, &w);
-
-		    if (verbose) {
-			snprintf(obuf, sizeof(obuf), "%s: WINCH to"
-				 " col %d row %d xpixel %d ypixel %d\n",
-				 __func__, w.ws_col, w.ws_row, 
-				 w.ws_xpixel, w.ws_ypixel);
-			PSIDfwd_printMsg(STDERR, obuf);
-		    }
-		}
-		break;
-	    default:
-		snprintf(obuf, sizeof(obuf),
-			 "%s: Unknown type %d\n", __func__, msg.type);
-		PSIDfwd_printMsg(STDERR, obuf);
-	    }
-	    break;
-	default:
-	    snprintf(obuf, sizeof(obuf), "%s: Unexpected msg type %s\n",
-		     __func__, PSP_printMsg(msg.header.type));
-	    PSIDfwd_printMsg(STDERR, obuf);
-	}
-    } else if (!ret) {
-	/* The connection to the daemon died. Kill the client the hard way. */
-	kill(-PSC_getPID(childTask->tid), SIGKILL);
-    }
-	
-    return ret;
-}
-
 /**
  * @brief  Accept a new pmi client connection.
  *
@@ -1358,63 +1483,6 @@ static void acceptPMIClient(void)
 
     /* close the socket which waits for new connections */
     closePMIAcceptSocket();
-}
-
-/* @brief  Read pmi message from the client.
- *
- * @return Usually the number of bytes received is returned. If an
- * error occured, -1 is returned and errno is set appropriately.
- *
- */
-static int readFromPMIClient(void)
-{
-    char msgBuf[PMIU_MAXLINE], obuf[120];
-    ssize_t len;
-    int ret;
-
-    len = recv(PMIClientSock, msgBuf, sizeof(msgBuf), 0);
-
-    /* no data received from client */
-    if (!len) {
-	snprintf(obuf, sizeof(obuf),
-		 "%s: lost connection to the pmi client\n", __func__);
-	PSIDfwd_printMsg(STDERR, obuf);
-
-	/*close connection */
-	closePMIClientSocket();
-	return -1;
-    }
-
-    /* socket error occured */
-    if (len < 0) {
-	snprintf(obuf, sizeof(obuf),
-		 "%s: error on pmi socket occured\n", __func__);
-	PSIDfwd_printMsg(STDERR, obuf);
-	return -1;
-    }
-
-    /* truncate msg to received bytes */
-    msgBuf[len] = '\0';
-
-    /* parse and handle the pmi msg */
-    ret = pmi_parse_msg(msgBuf);
-
-    /* pmi communication finished */
-    if (ret == PMI_FINALIZED) {
-
-	/* release the child */
-	DDSignalMsg_t msg;
-
-	msg.header.type = PSP_CD_RELEASE;
-	msg.header.sender = PSC_getTID(-1, getpid());
-	msg.header.dest = childTask->tid;
-	msg.header.len = sizeof(msg);
-	msg.signal = -1;
-
-	sendDaemonMsg((DDMsg_t *)&msg);
-    }
-
-    return len;
 }
 
 /**

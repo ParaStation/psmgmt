@@ -45,6 +45,7 @@ typedef enum {
     WINCH,      /**< lg -> fw  Changed window-size. */
     X11,        /**< fw -> lg (and lg -> fw) X11 forwarding */
     KVS,        /**< fw -> lg (and lg -> fw) Manipulates the loggers kvs */
+    SIGNAL,     /**< lg -> fw Forward signal to client of forwarder */
 } PSLog_msg_t;
 
 /** Untyped Buffer Message. Used for all communication. */

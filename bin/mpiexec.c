@@ -44,6 +44,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #define GDB_COMMAND_FILE "/opt/parastation/config/gdb.conf"
 #define GDB_COMMAND_OPT "-x"
 #define GDB_COMMAND_SILENT "-q"
+#define MPI1_NP_OPT "-np"
 
 /* Space for error messages */
 char msgstr[512]; 
@@ -375,22 +376,11 @@ static void setupPMIEnv(int rank)
  */
 static int startProcs(int i, int np, int argc, char *argv[], int verbose, int show)
 {
-    char cnp[] = "-np";
-    char cnps[10];
-    
     if (verbose || show) {
 	printf("spawn rank %d: %s\n", i, argv[0]);
     } 
 
-    /* forward np argument to mpich 1 application */
-    if (mpichcom) {
-	snprintf(cnps, sizeof(cnps), "%d", np);
-	argv[argc] = cnp;
-	argc++;
-	argv[argc] = cnps;
-	argc++;
-	if (i > 0) return 0;	
-    }
+    if (mpichcom && i>0) return 0; 
 
     /* set up pmi env */
     if (pmienabletcp || pmienablesockp ) {
@@ -545,6 +535,8 @@ static void setupEnvironment(int verbose)
 		setenv("PSP_TCP", "0", 1);
 	    } else if (!strcmp(env,"ELAN") || !strcmp(env,"elan")) {
 		setenv("PSP_ELAN", "0", 1);
+	    } else if (!strcmp(env,"DAPL") || !strcmp(env,"dapl")) {
+		setenv("PSP_DAPL", "0", 1);
 	    } else {
 		printf("Unknown option to discom: %s\n", env);
 		exit(1);
@@ -571,6 +563,7 @@ static void setupEnvironment(int verbose)
 
     if (path) {
 	setenv("PATH", path, 1);
+	setPSIEnv("PATH", path, 1);
     }
 
     if (mergetmout) {
@@ -804,6 +797,7 @@ static void  parseHostfile(char *filename, char *hosts, int size)
 {
     FILE *fp;
     char line[1024];
+    const char delimiters[] =", \f\n\r\t\v";
     char *work, *host;
     int len;
 
@@ -815,7 +809,7 @@ static void  parseHostfile(char *filename, char *hosts, int size)
     while (fgets(line, sizeof(line), fp)) {
 	if (line[0] == '#') continue;
 	
-	host = strtok_r(line, " \f\n\r\t\v", &work);
+	host = strtok_r(line, delimiters, &work);
 	while (host) {
 	    len = strlen(host);
 	    if ((strncmp(host, "ifhn=", 5)) && len) {
@@ -830,7 +824,7 @@ static void  parseHostfile(char *filename, char *hosts, int size)
 		    strcat(hosts, host);
 		}
 	    }
-	    host = strtok_r(NULL, " \f\n\r\t\v", &work);
+	    host = strtok_r(NULL, delimiters, &work);
 	}
     }
 }
@@ -1067,6 +1061,11 @@ static void checkSanity(char *argv[])
 	}
     }
 
+    if (gdb && mpichcom) { 
+	fprintf(stderr, "--gdb is only working with mpi2, don't use it with --bnr\n");
+	exit(1);
+    }
+
     if (admin) {
 	if (np != -1) {
 	    snprintf(msgstr, sizeof(msgstr), "Don't use '-np' and '--admin' together");
@@ -1298,7 +1297,7 @@ static void parseCmdOptions(int argc, char *argv[])
 
     struct poptOption poptCommunicationOptions[] = {
         { "discom", 'c', POPT_ARG_STRING,
-	  &discom, 0, "disable an communication architecture: {SHM,TCP,P4SOCK,GM,MVAPI,OPENIB,ELAN}",
+	  &discom, 0, "disable an communication architecture: {SHM,TCP,P4SOCK,GM,MVAPI,OPENIB,ELAN,DAPL}",
 	  NULL},
         { "network", 't', POPT_ARG_STRING,
 	  &network, 0, "set a space separeted list of networks enabled", NULL},
@@ -1486,21 +1485,61 @@ static void parseCmdOptions(int argc, char *argv[])
  */
 static void setupGDB()
 {
-    int len;	
-    len = strlen(GDB_COMMAND_SILENT);
-    dup_argv[dup_argc] = malloc(len +1);
-    strcpy(dup_argv[dup_argc], GDB_COMMAND_SILENT);
-    dup_argc++;
+    int i;
+    char **tmp;
 
-    len = strlen(GDB_COMMAND_OPT);
-    dup_argv[dup_argc] = malloc(len +1);
-    strcpy(dup_argv[dup_argc], GDB_COMMAND_OPT);
-    dup_argc++;
+    if (!(tmp = malloc((dup_argc + 3 + 1) * sizeof(char *) ))) {
+	fprintf(stderr, "%s: out of memory\n", __func__);
+	exit(1);
+    }
     
-    len = strlen(GDB_COMMAND_FILE);
-    dup_argv[dup_argc] = malloc(len +1);
-    strcpy(dup_argv[dup_argc], GDB_COMMAND_FILE);
+    for (i=0; i<dup_argc; i++) { 
+	tmp[i] = dup_argv[i]; 
+    }
+    dup_argv = tmp;
+    
+    dup_argv[dup_argc] = GDB_COMMAND_SILENT;
     dup_argc++;
+    dup_argv[dup_argc] = GDB_COMMAND_OPT;
+    dup_argc++;
+    dup_argv[dup_argc] = GDB_COMMAND_FILE;
+    dup_argc++;
+    dup_argv[dup_argc] = NULL;
+}
+
+/**
+ * @brief Add the np (number of processes) argument
+ * from mpiexec to the argument list of the mpi-1
+ * application.
+ *
+ * @return No return value.
+ */
+static void setupComp()
+{
+    char *cnp, **tmp;
+    int len = 10,i;
+   
+    if(!(cnp = malloc(len))) {
+	fprintf(stderr, "%s: out of memory\n", __func__);
+	exit(1);
+    }
+    snprintf(cnp, len, "%d", np);
+
+    if (!(tmp = malloc((dup_argc + 2 + 1) * sizeof(char *) ))) {
+	fprintf(stderr, "%s: out of memory\n", __func__);
+	exit(1);
+    }
+    
+    for (i=0; i<dup_argc; i++) { 
+	tmp[i] = dup_argv[i]; 
+    }
+    dup_argv = tmp;
+
+    dup_argv[dup_argc] = MPI1_NP_OPT; 
+    dup_argc++;
+    dup_argv[dup_argc] = cnp;
+    dup_argc++;
+    dup_argv[dup_argc] = NULL;
 }
 
 int main(int argc, char *argv[])
@@ -1543,6 +1582,9 @@ int main(int argc, char *argv[])
     /* add command args for controlling gdb */
     if (gdb)  setupGDB();
 
+    /* add command args for mpi1 mode */
+    if (mpichcom) setupComp();
+    
     /* spwan Admin processes */
     if (admin) {
 	if (verbose) {

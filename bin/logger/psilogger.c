@@ -72,7 +72,7 @@ int enableGDB = 0;
 int np = 0;
 
 /**
- * The rank of the process all input is forwarded to.
+ * The rank(s) of the process(es) all input is forwarded to.
  *
  * Set in main() to the value given by the environment variable
  * PSI_INPUTDEST. Will be set to -1 if no stdin is connected.
@@ -526,7 +526,7 @@ void sighandler(int sig)
 	break;
     case SIGWINCH:
 	for (i=0; i < maxClients; i++) {
-	    if (forwardInputTID[i] != -1) {
+	    if (InputDest[i] != -1 && forwardInputTID[i] != -1) {
 		/* Create WINCH-messages and send */
 		struct winsize ws;
 		int buf[4];
@@ -558,7 +558,6 @@ void sighandler(int sig)
 	if (verbose) {
 	    fprintf(stderr, "PSIlogger: Got signal %d.\n", sig);
 	}
-
 	{
 	    DDSignalMsg_t msg;
 
@@ -662,9 +661,11 @@ static int newrequest(PSLog_Msg_t *msg)
 		    (long) sizeof(*clientTID) * 2 * msg->sender);
 	    exit(1);
 	}	    
-	for (i=maxClients; i<2*msg->sender; i++) clientTID[i] = -1;
-	for (i=maxClients; i<2*msg->sender; i++) forwardInputTID[i] = -1;
-	for (i=maxClients; i<2*msg->sender; i++) InputDest[i] = -1;
+	for (i=maxClients; i<2*msg->sender; i++) {
+	    clientTID[i] = -1;
+	    forwardInputTID[i] = -1;
+	    InputDest[i] = -1;
+	}
 
 	/* realloc output buffer */
 	if (MergeOutput) reallocClientOutBuf(msg);		
@@ -938,7 +939,7 @@ static void handleFINALIZEMsg(PSLog_Msg_t msg)
 	if (msg.header.sender == forwardInputTID[i]) {
 	    /* disable input forwarding */
 	    //FD_CLR(STDIN_FILENO, &myfds);
-	    forwardInputTID[i] = -1;
+	    InputDest[i] = -1;
 	}
     }
     clientTID[msg.sender] = -1;

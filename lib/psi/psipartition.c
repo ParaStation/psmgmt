@@ -420,7 +420,8 @@ static int nodelistFromHostStr(char *hostStr, nodelist_t *nodelist)
 {
     char buf[1024];
     char *envstr;
-    char *work, *host = strtok_r(hostStr, " \f\n\r\t\v", &work);
+    const char delimiters[] =", \f\n\r\t\v";
+    char *work, *host = strtok_r(hostStr, delimiters, &work);
     int total = 0;
 
     while (host) {
@@ -439,7 +440,7 @@ static int nodelistFromHostStr(char *hostStr, nodelist_t *nodelist)
 	    if (!num) return 0;
 	    total += num;
 	}
-	host = strtok_r(NULL, " \f\n\r\t\v", &work);
+	host = strtok_r(NULL, delimiters, &work);
     }
     return total;
 }

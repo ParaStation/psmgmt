@@ -30,12 +30,46 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "psidpartition.h"
 
 #include "psidsignal.h"
+#include "pslog.h"
 
 int PSID_kill(pid_t pid, int sig, uid_t uid)
 {
+    PStask_t *childTask, *forwarderTask;
+    int fpid = pid;
     PSID_log(PSID_LOG_SIGNAL, "%s(%d, %d, %d)\n", __func__, pid, sig, uid);
 
     if (!sig) return 0;
+		    
+    /* Try to find forwarder to send signal to */
+    if (fpid < 1) fpid *= -1;
+		    
+    childTask = PStasklist_find(managedTasks, PSC_getTID(-1, fpid));
+    if (!childTask) {
+	PSID_log(-1, "%s: childTask %d not found\n", __func__, fpid);
+    } else {
+	if (childTask->uid != uid && uid != 0) {
+	    /* Task is not allowed to send singal */
+	    PSID_exit(errno, "%s: not allowed: kill(%d, %d), uid:%d", __func__, pid, sig, uid);
+	} else if (childTask->forwardertid) {
+	    forwarderTask = PStasklist_find(managedTasks, childTask->forwardertid);
+	    if (forwarderTask) {
+		/* Send signal to forwarder */
+		PSLog_Msg_t msg;
+
+		memcpy(msg.buf, &sig, sizeof(sig));
+
+		msg.header.type = PSP_CC_MSG;
+		msg.header.sender = PSC_getTID(-1, getpid());
+		msg.header.dest = childTask->forwardertid;
+		msg.version = 1;
+		msg.type = SIGNAL;
+		msg.sender = 0;
+		msg.header.len = PSLog_headerSize + sizeof(sig);
+		sendMsg(&msg);
+		return 0;
+	    }
+	}
+    }
 
     /*
      * fork to a new process to change the userid
