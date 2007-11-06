@@ -253,6 +253,8 @@ static int startProcs(int i, int np, int argc, char *argv[], int verbose)
 
     setPSIEnv("NOT_USE_TOTALVIEW", "1", 1);
 
+    setPSIEnv("VIADEV_ENABLE_AFFINITY", "0", 1);
+
     if (verbose) printf("spawn rank %d: %s\n", i, argv[0]);
 
     {
