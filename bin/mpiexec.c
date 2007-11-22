@@ -1613,7 +1613,7 @@ int main(int argc, char *argv[])
     }
 
     /* release service process */
-    PSI_releaseSilent(PSC_getMyTID());
+    PSI_release(PSC_getMyTID(), 1);
     
     usleep(100);
     exit(0);

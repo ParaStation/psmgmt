@@ -482,7 +482,7 @@ int PSI_notifydead(PStask_ID_t tid, int sig)
     return 0;
 }
 
-int PSI_release(PStask_ID_t tid)
+int PSI_release(PStask_ID_t tid, int silent)
 {
     DDSignalMsg_t msg;
     int ret;
@@ -514,40 +514,7 @@ int PSI_release(PStask_ID_t tid)
 		__func__, msg.header.type, PSP_printMsg(msg.header.type));
 	return -1;
     } else if (msg.param) {
-	PSI_log(-1, "%s: error = %d\n", __func__, msg.param);
-	return -1;
-    }
-
-    return 0;
-}
-
-int PSI_releaseSilent(PStask_ID_t tid)
-{
-    DDSignalMsg_t msg;
-    int ret;
-
-    PSI_log(PSI_LOG_VERB, "%s(%s)\n", __func__, PSC_printTID(tid));
-
-    msg.header.type = PSP_CD_RELEASE;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.dest = tid;
-    msg.header.len = sizeof(msg);
-    msg.signal = -1;
-
-    if (PSI_sendMsg(&msg)<0) {
-	return -1;
-    }
-
-    ret = PSI_recvMsg(&msg);
-    if (ret<0) {
-	return -1;
-    } else if (!ret) {
-	return -1;
-    }
-
-    if (msg.header.type != PSP_CD_RELEASERES) {
-	return -1;
-    } else if (msg.param) {
+	if (!silent) PSI_log(-1, "%s: error = %d\n", __func__, msg.param);
 	return -1;
     }
 

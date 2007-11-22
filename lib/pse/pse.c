@@ -395,7 +395,7 @@ void PSE_finalize(void)
     }
 
     /* Don't kill parent/logger on exit */
-    PSI_release(PSC_getMyTID());
+    PSI_release(PSC_getMyTID(), 0);
 
     logger_print(logger, PSE_LOG_VERB, "[%d] Quitting program, good bye\n",
 		 PSE_getRank());
