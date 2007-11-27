@@ -83,6 +83,7 @@ include/logging.h \
 include/mcast.h \
 include/parser.h \
 include/pscommon.h \
+include/pscpu.h \
 include/psdaemonprotocol.h \
 include/pse.h \
 include/psi.h \
@@ -107,6 +108,7 @@ lib/Makefile.staticlib.in \
 lib/pscommon/Makefile.in \
 lib/pscommon/logging.c \
 lib/pscommon/pscommon.c \
+lib/pscommon/pscpu.c \
 lib/pscommon/pspartition.c \
 lib/pscommon/psprotocol.c \
 lib/pscommon/pstask.c \
