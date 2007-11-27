@@ -100,7 +100,7 @@ test_config: psidnodes.o
 # logger
 VPATH += $(SRCDIR)/logger
 psilogger: psiloggerkvs.o psiloggermerge.o
-psilogger: LOADLIBES:=$(LOADLIBES) -lputil -lpslog -lm -lreadline
+psilogger: LOADLIBES:=$(LOADLIBES) -lputil -lpslog -lm -lreadline -l@LIBCURSES@
 
 parastation: $(TOP_SRCDIR)/scripts/parastation@TRU64FILEADD@
 	cp $< $@
