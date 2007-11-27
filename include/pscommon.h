@@ -159,7 +159,7 @@ PStask_ID_t PSC_getMyTID(void);
  * leads to a static character array that contains the
  * description. Sequent calls to @ref PSC_printTID() will change the
  * content of this array. Therefore the result is not what you expect
- * if more then one call of this function is made within a single
+ * if more than one call of this function is made within a single
  * argument-list of printf(3) and friends.
  *
  * @param tid The task ID to describe.

@@ -20,7 +20,8 @@ INSTALL = @INSTALL@
 
 export LIBNAME := pscommon
 # Dont forget to change the objectlist also in libpsi!
-export LIBOBJS := logging.o pscommon.o psprotocol.o pstask.o pspartition.o
+export LIBOBJS := logging.o pscommon.o psprotocol.o pstask.o pspartition.o \
+		pscpu.o
 export LIBVPATH := $(SRCDIR)
 export LIBINC = -I$(TOPSRCDIR)/include
 export LIBDSTDIR = ../..
