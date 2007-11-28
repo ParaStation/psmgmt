@@ -1228,7 +1228,7 @@ int main(int argc, const char *argv[])
 	} else if (strcasecmp(logdest, "stdout")==0) {
 	    logfile = stdout;
 	} else {
-	    logfile = fopen(logdest, "w");
+	    logfile = fopen(logdest, "a+");
 	    if (!logfile) {
 		char *errstr = strerror(errno);
 		fprintf(stderr, "Cannot open logfile '%s': %s\n", logdest,
