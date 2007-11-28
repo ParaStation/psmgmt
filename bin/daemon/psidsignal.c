@@ -34,15 +34,16 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 int PSID_kill(pid_t pid, int sig, uid_t uid)
 {
-    PStask_ID_t cTID = PSC_getTID(-1, pid < 0 ? pid : -pid);
-    PStask_t *child = PStasklist_find(managedTasks, cTID);
+    PStask_ID_t childTID = PSC_getTID(-1, pid < 0 ? -pid : pid);
+    PStask_t *child = PStasklist_find(managedTasks, childTID);
 
     PSID_log(PSID_LOG_SIGNAL, "%s(%d, %d, %d)\n", __func__, pid, sig, uid);
 
     if (!sig) return 0;
 
     if (!child) {
-	PSID_log(-1, "%s: child %s not found\n", __func__, PSC_printTID(cTID));
+	PSID_log(PSID_LOG_SIGNAL, "%s: child %s not found\n",
+		 __func__, PSC_printTID(childTID));
     } else {
 	if (uid && child->uid != uid) {
 	    /* Task is not allowed to send signal */
