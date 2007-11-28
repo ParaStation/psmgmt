@@ -636,54 +636,41 @@ static int connectLogger(PStask_ID_t tid)
 }
 
 /**
- * @brief Send a signal to the client process.
- * Try to find to controlling terminal and ask
- * it for the foreground process group. Then send
- * a signal to that group or to pid from the client
- * process.
+ * @brief Deliver signal.
  *
- * @param msg The message with the received signal.
+ * Deliver signal. If the child is interactive, the signal is send to
+ * the forground process group of the controlling tty.
+ *
+ * @param msg Message containing destination and signal to deliver.
  *
  * @return No return value.
  */
 static void handleSignal(PSLog_Msg_t msg)
 {
+    char *ptr = msg.buf;
     int signal;
-    int pid = -1;
-    int sock = -1;
-    
-    /* find the socket connected to controlling tty */
-    if (stdinSock) {
-	sock = stdinSock;
-    } else if (stdoutSock) {
-	sock = stdoutSock;
-    } else if (stderrSock) {
-	sock = stderrSock;
-    }
+    pid_t pid = 0;
 
-    /* send signal to foreground process group or default pid */
-    if (sock) {
-	pid = tcgetpgrp(sock);
-    }
-    
-    if (pid < 2) {
-	pid = PSC_getPID(childTask->tid);
-    }
-    
-    if (pid < 2) {
-	PSID_log(-1, "%s: error cannot determind pid of my client\n", __func__);
-	return;
-    }
-
-    /* send the signal to process group */
-    signal = (int) *(msg.buf);
-    if (signal) {
-	pid *= -1;
-	if (kill(pid,signal) == -1) {
-	    //PSID_log(-1, "%s: error sending signal:%i to pid:%i, errno:%i\n", __func__, signal, pid, errno);
+    /* determine foreground process group for or default pid */
+    if (childTask->interactive) {
+	pid = tcgetpgrp(stderrSock);
+	if (pid == -1) {
+	    PSID_warn(-1, errno, "%s: tcgetpgrp()", __func__);
+	    pid = 0;
 	}
-    } else {
-	PSID_log(-1, "%s: error got invalid signal\n", __func__);
+	/* Send signal to process-group */
+	pid = -pid;
+    }
+    if (!pid) pid = *(int32_t *)ptr;
+    ptr += sizeof(int32_t);
+
+    /* Get signal to send */
+    signal = *(int32_t *)ptr;
+    ptr += sizeof(int32_t);
+
+    /* actually send the signal */
+    if (kill(pid, signal) == -1) {
+	PSID_warn(-1, errno, "%s: kill(%d, %d)", __func__, pid, signal);
     }
 }
 

@@ -34,38 +34,51 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 int PSID_kill(pid_t pid, int sig, uid_t uid)
 {
-    PStask_t *childTask, *forwarderTask;
-    int fpid = pid;
+    PStask_ID_t cTID = PSC_getTID(-1, pid < 0 ? pid : -pid);
+    PStask_t *child = PStasklist_find(managedTasks, cTID);
+
     PSID_log(PSID_LOG_SIGNAL, "%s(%d, %d, %d)\n", __func__, pid, sig, uid);
 
     if (!sig) return 0;
-		    
-    /* Try to find forwarder to send signal to */
-    if (fpid < 1) fpid *= -1;
-		    
-    childTask = PStasklist_find(managedTasks, PSC_getTID(-1, fpid));
-    if (!childTask) {
-	PSID_log(-1, "%s: childTask %d not found\n", __func__, fpid);
+
+    if (!child) {
+	PSID_log(-1, "%s: child %s not found\n", __func__, PSC_printTID(cTID));
     } else {
-	if (childTask->uid != uid && uid != 0) {
-	    /* Task is not allowed to send singal */
-	    PSID_exit(errno, "%s: not allowed: kill(%d, %d), uid:%d", __func__, pid, sig, uid);
-	} else if (childTask->forwardertid) {
-	    forwarderTask = PStasklist_find(managedTasks, childTask->forwardertid);
-	    if (forwarderTask) {
+	if (uid && child->uid != uid) {
+	    /* Task is not allowed to send signal */
+	    PSID_warn(-1, EACCES,
+		      "%s: kill(%d, %d) uid %d", __func__, pid, sig, uid);
+	    return 0;
+	}
+	if (child->forwardertid) {
+	    PStask_t *forwarder = PStasklist_find(managedTasks,
+						  child->forwardertid);
+	    if (!forwarder) {
+		PSID_log(-1, "%s: forwarder %s not found\n", __func__,
+			 PSC_printTID(child->forwardertid));
+	    } else {
 		/* Send signal to forwarder */
 		PSLog_Msg_t msg;
-
-		memcpy(msg.buf, &sig, sizeof(sig));
+		char *ptr = msg.buf;
 
 		msg.header.type = PSP_CC_MSG;
-		msg.header.sender = PSC_getTID(-1, getpid());
-		msg.header.dest = childTask->forwardertid;
+		msg.header.sender = PSC_getMyTID();
+		msg.header.dest = child->forwardertid;
 		msg.version = 1;
 		msg.type = SIGNAL;
 		msg.sender = 0;
-		msg.header.len = PSLog_headerSize + sizeof(sig);
+		msg.header.len = PSLog_headerSize;
+
+		*(int32_t *)ptr = pid;
+		ptr += sizeof(int32_t);
+		msg.header.len = sizeof(int32_t);
+
+		*(int32_t *)ptr = sig;
+		ptr += sizeof(int32_t);
+		msg.header.len = sizeof(int32_t);
+
 		sendMsg(&msg);
+
 		return 0;
 	    }
 	}
