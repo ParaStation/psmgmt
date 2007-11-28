@@ -133,6 +133,7 @@ static void do_print(logger_t* logger, const char* format, va_list ap)
     if (errtxt[strlen(errtxt)-1] == '\n') {
 	if (logger->logfile) {
 	    fprintf(logger->logfile, "%s", logger->trail ? errline : errtxt);
+	    fflush(logger->logfile);
 	} else {
 	    syslog(LOG_ERR, logger->trail ? errline : errtxt);
 	}
