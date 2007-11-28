@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -77,7 +77,7 @@ int32_t PSID_getDebugMask(void);
  *
  * @return No return value.
  *
- * @see PSID_setDebugMask(), logger_setMask()
+ * @see logger_setMask()
  */
 void PSID_setDebugMask(int32_t mask);
 
