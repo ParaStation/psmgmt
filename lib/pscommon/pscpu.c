@@ -54,10 +54,9 @@ int16_t PSCPU_all(PSCPU_set_t set, uint16_t physCPUs)
 
 int16_t PSCPU_first(PSCPU_set_t set, uint16_t physCPUs)
 {
-    PSCPU_mask_t m;
-
-    unsigned int i = 0;
-    int cpu = 0;
+    PSCPU_mask_t m=0;
+    unsigned int i;
+    int cpu=0;
 
     for (i=0; i<PSCPU_MAX/CPUmask_s && cpu<physCPUs; i++) {
 	m = set[i];
