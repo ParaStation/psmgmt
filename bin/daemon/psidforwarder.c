@@ -655,7 +655,8 @@ static void handleSignal(PSLog_Msg_t msg)
     if (childTask->interactive) {
 	pid = tcgetpgrp(stderrSock);
 	if (pid == -1) {
-	    PSID_warn(-1, errno, "%s: tcgetpgrp()", __func__);
+	    PSID_warn((errno==EBADF) ? PSID_LOG_SIGNAL : -1, errno,
+		      "%s: tcgetpgrp()", __func__);
 	    pid = 0;
 	}
 	/* Send signal to process-group */
@@ -670,7 +671,8 @@ static void handleSignal(PSLog_Msg_t msg)
 
     /* actually send the signal */
     if (kill(pid, signal) == -1) {
-	PSID_warn(-1, errno, "%s: kill(%d, %d)", __func__, pid, signal);
+	PSID_warn((errno==ESRCH) ? PSID_LOG_SIGNAL : -1, errno,
+		  "%s: kill(%d, %d)", __func__, pid, signal);
     }
 }
 
