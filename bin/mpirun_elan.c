@@ -122,7 +122,7 @@ static void getNetIDmap(void)
     elanIDfile = fopen(IDMAPFILE, "r");
 
     if (!elanIDfile) {
-	fprintf("%s: Could not open '%s':", __func__, IDMAPFILE);
+	fprintf(stderr, "%s: Could not open '%s':", __func__, IDMAPFILE);
 	perror("");
 	exit(1);
     }
