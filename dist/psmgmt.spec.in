@@ -21,8 +21,8 @@ BuildRequires:  popt-devel
 %define _use_internal_dependency_generator 0
 %define __find_requires %_builddir/%{name}-%{version}-%{release}/scripts/rpm_noreq
 
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
- 
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n) 
+
 %description
 The ParaStation Management Layer.
 
