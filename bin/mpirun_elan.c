@@ -626,7 +626,7 @@ int main(int argc, char *argv[])
     setenv("PSI_NOMSGLOGGERDONE", "", 1);
 
     /* release service process */
-    PSI_release(PSC_getMyTID(), 0);
+    PSI_release(PSC_getMyTID());
 
     return 0;
 

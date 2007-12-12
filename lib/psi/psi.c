@@ -482,7 +482,8 @@ int PSI_notifydead(PStask_ID_t tid, int sig)
     return 0;
 }
 
-int PSI_release(PStask_ID_t tid, int silent)
+static
+int PSI_releaseRaw(PStask_ID_t tid, int silent)
 {
     DDSignalMsg_t msg;
     int ret;
@@ -519,6 +520,16 @@ int PSI_release(PStask_ID_t tid, int silent)
     }
 
     return 0;
+}
+
+int PSI_release(PStask_ID_t tid)
+{
+    return PSI_releaseRaw(tid, 0);
+}
+
+int PSI_releaseSilent(PStask_ID_t tid)
+{
+    return PSI_releaseRaw(tid, 1);
 }
 
 PStask_ID_t PSI_whodied(int sig)

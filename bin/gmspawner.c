@@ -646,7 +646,7 @@ int main(int argc, const char *argv[])
 	    // printf("%d clients left\n", np);
 	}
     }
-    PSI_release(PSC_getMyTID(), 0);
+    PSI_release(PSC_getMyTID());
     PSI_exitClient();
 
     exit(0);
