@@ -250,7 +250,7 @@ int PSID_lockFD = -1;
 
 void PSID_getLock(void)
 {
-    PSID_lockFD = open(LOCKFILENAME, O_CREAT);
+    PSID_lockFD = open(LOCKFILENAME, O_CREAT, 0600);
     if (PSID_lockFD<0) {
 	PSID_warn(-1, errno, "%s: Unable to open lockfile '%s'",
 		  __func__, LOCKFILENAME);
