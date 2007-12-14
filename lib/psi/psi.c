@@ -482,8 +482,7 @@ int PSI_notifydead(PStask_ID_t tid, int sig)
     return 0;
 }
 
-static
-int PSI_releaseRaw(PStask_ID_t tid, int silent)
+int PSI_release(PStask_ID_t tid)
 {
     DDSignalMsg_t msg;
     int ret;
@@ -515,21 +514,13 @@ int PSI_releaseRaw(PStask_ID_t tid, int silent)
 		__func__, msg.header.type, PSP_printMsg(msg.header.type));
 	return -1;
     } else if (msg.param) {
-	if (!silent) PSI_log(-1, "%s: error = %d\n", __func__, msg.param);
+	if (msg.param != ESRCH || tid != PSC_getMyTID())
+	    PSI_warn(-1, msg.param, "%s: releasing %s", __func__,
+		     PSC_printTID(tid));
 	return -1;
     }
 
     return 0;
-}
-
-int PSI_release(PStask_ID_t tid)
-{
-    return PSI_releaseRaw(tid, 0);
-}
-
-int PSI_releaseSilent(PStask_ID_t tid)
-{
-    return PSI_releaseRaw(tid, 1);
 }
 
 PStask_ID_t PSI_whodied(int sig)

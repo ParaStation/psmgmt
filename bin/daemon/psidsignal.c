@@ -701,7 +701,7 @@ static int releaseTask(PStask_ID_t tid)
 	    }
 	    PSID_removeSignal(&task->assignedSigs, task->ptid, -1);
 
-	    /* Reorganize childs. They are ihnerited by the parent task */
+	    /* Reorganize childs. They are inherited by the parent task */
 	    sig = -1;
 	    while ((child = PSID_getSignal(&task->childs, &sig))) {
 		PSID_log(PSID_LOG_TASK|PSID_LOG_SIGNAL,
