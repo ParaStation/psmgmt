@@ -99,7 +99,7 @@ rpm: $(DISTNAME).tar.gz srpm
 		--define="_rpmdir $$PWD" -tb $<
 
 #
-# building stripped libs
+# install librariess
 #
 $(LIBDIR)/%: $(TOP_BUILDDIR)/lib/%
 	$(INSTALL) -D $< $@
@@ -107,10 +107,10 @@ $(LIBDIR)/%: $(TOP_BUILDDIR)/lib/%
 libs: $(patsubst %,$(LIBDIR)/%,$(LIBS))
 
 #
-# building stripped bins
+# install binaries
 #
 $(BINDIR)/%: $(TOP_BUILDDIR)/bin/%
-	$(INSTALL) -D -s $< $@
+	$(INSTALL) -D $< $@
 
 bins: $(patsubst %,$(BINDIR)/%,$(BINS))
 
