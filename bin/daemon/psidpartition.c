@@ -153,15 +153,12 @@ static void clearQueue(PSpart_request_t **queue)
 
 /* ---------------------------------------------------------------------- */
 
-/** Maximum number of CPUs per node. This has to be a multipe of 8 */
-#define MAX_CPUS 32
-
-/** Structure use to hold node stati needed to handle partition requests */
+/** Structure used to hold node stati needed to handle partition requests */
 typedef struct {
     short assignedProcs;  /**< Number of processes assinged to this node */
     char exclusive;       /**< Flag marking node to be used exclusivly */
     char taskReqPending;  /**< Number of pending PSP_DD_GETTASKS messages */
-    char *cpus;           /**< Bit-field for used/free CPUs */
+    PSCPU_set_t CPUset;   /**< Bit-field for used/free CPUs */
 } nodeStat_t;
 
 /**
@@ -169,6 +166,26 @@ typedef struct {
  * requests. Only on master nodes.
  */
 static nodeStat_t *nodeStat = NULL;
+
+/**
+ * Array holding pointer to temporary stati while actually creating
+ * the partitions within @ref getCandidateList(), @ref getNormalPart()
+ * and @ref getOverbookPart().
+ *
+ * This individual pointers will point to the CPU-sets within @ref
+ * tmpSets.
+ */
+static PSCPU_set_t **tmpStat = NULL;
+
+/**
+ * Array holding temporary stati while actually creating the
+ * partitions within @ref getCandidateList(), @ref getNormalPart() and
+ * @ref getOverbookPart().
+ *
+ * The individual entries will not be addresses directly but via an
+ * indirection through @ref tmpStat.
+ */
+static PSCPU_set_t *tmpSets = NULL;
 
 /** Number of nodes with pending tasks requests */
 static int pendingTaskReq = 0;
@@ -182,17 +199,19 @@ static int doCleanup = 0;
 void initPartHandler(void)
 {
     PSnodes_ID_t node;
-    char *cpus = NULL;
 
-    if (!nodeStat) {
-	nodeStat = malloc(PSC_getNrOfNodes() * sizeof(*nodeStat));
-	cpus = malloc(PSC_getNrOfNodes() * MAX_CPUS/8);
-    }
+    if (!nodeStat) nodeStat = malloc(PSC_getNrOfNodes() * sizeof(*nodeStat));
+    if (!tmpStat) tmpStat = malloc(PSC_getNrOfNodes() * sizeof(*tmpStat));
+    if (!tmpSets) tmpSets = malloc(PSC_getNrOfNodes() * sizeof(*tmpSets));
 
-    if (!nodeStat || ! cpus) {
+    if (!nodeStat || !tmpStat || !tmpSets) {
 	PSID_log(-1, "%s: No memory\n", __func__);
 	if (nodeStat) free(nodeStat);
-	if (cpus) free(cpus);
+	nodeStat = NULL;
+	if (tmpStat) free(tmpStat);
+	tmpStat = NULL;
+	if (tmpSets) free(tmpSets);
+	tmpSets = NULL;
 	return;
     }
 
@@ -202,8 +221,8 @@ void initPartHandler(void)
 	nodeStat[node] = (nodeStat_t) {
 	    .assignedProcs = 0,
 	    .exclusive = 0,
-	    .taskReqPending = 0,
-	    .cpus = &cpus[node * MAX_CPUS/8] };
+	    .taskReqPending = 0 };
+	PSCPU_clrAll(nodeStat[node].CPUset);
 	if (PSIDnodes_isUp(node)) {
 	    if (send_GETTASKS(node)<0) {
 		PSID_warn(-1, errno, "%s: send_GETTASKS(%d)", __func__, node);
@@ -220,26 +239,33 @@ void exitPartHandler(void)
     clearQueue(&pendReq);
     clearQueue(&runReq);
     clearQueue(&suspReq);
-    if (nodeStat) {
-	if (nodeStat[0].cpus) free(nodeStat[0].cpus);
-	free(nodeStat);
-    }
+    if (nodeStat) free(nodeStat);
     nodeStat = NULL;
+    if (tmpStat) free(tmpStat);
+    tmpStat = NULL;
+    if (tmpSets) free(tmpSets);
+    tmpSets = NULL;
 }
 
-static void allocCPU(PSnodes_ID_t node, int16_t cpu)
+
+static inline void allocCPUs(PSnodes_ID_t node, PSCPU_set_t set)
 {
-    nodeStat[node].cpus[cpu/8] |= 1 << (cpu%8);
+    PSCPU_addCPUs(nodeStat[node].CPUset, set);
 }
 
-static void freeCPU(PSnodes_ID_t node, int16_t cpu)
+static inline void freeCPUs(PSnodes_ID_t node, PSCPU_set_t set)
 {
-    nodeStat[node].cpus[cpu/8] &= ~(1 << (cpu%8));
+    PSCPU_remCPUs(nodeStat[node].CPUset, set);
 }
 
-static int isUsedCPU(PSnodes_ID_t node, int16_t cpu)
+static inline int getFreeCPUs(PSnodes_ID_t node, PSCPU_set_t free, int tpp)
 {
-    return nodeStat[node].cpus[cpu/8] & (1 << (cpu%8));
+    int checkedCPUs = PSIDnodes_getPhysCPUs(node);
+    int procs = PSIDnodes_getProcs(node);
+
+    if (procs != PSNODES_ANYPROC && procs < checkedCPUs) checkedCPUs = procs;
+
+    return PSCPU_getUnset(nodeStat[node].CPUset, checkedCPUs, free, tpp);
 }
 
 /**
@@ -266,9 +292,8 @@ static void registerReq(PSpart_request_t *req)
     }
     for (i=0; i<req->size; i++) {
 	PSnodes_ID_t node = req->slots[i].node;
-	int16_t cpu = req->slots[i].cpu;
 	nodeStat[node].assignedProcs++;
-	allocCPU(node, cpu);
+	allocCPUs(node, req->slots[i].CPUset);
 	if (req->options & PART_OPT_EXCLUSIVE) nodeStat[node].exclusive = 1;
     }
 }
@@ -297,9 +322,8 @@ static void deregisterReq(PSpart_request_t *req)
     }
     for (i=0; i<req->size; i++) {
 	PSnodes_ID_t node = req->slots[i].node;
-	int16_t cpu = req->slots[i].cpu;
 	nodeStat[node].assignedProcs--;
-	freeCPU(node, cpu);
+	freeCPUs(node, req->slots[i].CPUset);
 	decJobsHint(node);
 	if ((req->options & PART_OPT_EXCLUSIVE)
 	    && !nodeStat[node].assignedProcs) nodeStat[node].exclusive = 0; 
@@ -657,7 +681,7 @@ static int nodeOK(PSnodes_ID_t node, PSpart_request_t *req)
 					     (PSIDnodes_guid_t){.u=req->uid}))
 	&& ( !req->gid || PSIDnodes_testGUID(node, PSIDNODES_GROUP,
 					     (PSIDnodes_guid_t){.g=req->gid}))
-	&& (PSIDnodes_getVirtCPUs(node))) {
+	&& (PSIDnodes_getPhysCPUs(node))) {
 	return 1;
     }
 
@@ -690,7 +714,7 @@ static int nodeOK(PSnodes_ID_t node, PSpart_request_t *req)
  *
  * @param req The request holding all the criteria.
  *
- * @param procs
+ * @param procs The number of jobs currently running on this node.
  *
  * @return If the node is suitable to fulfill the request @a req, 1 is
  * returned. Or 0 otherwise.
@@ -713,7 +737,7 @@ static int nodeFree(PSnodes_ID_t node, PSpart_request_t *req, int procs)
 	    || (PSIDnodes_getProcs(node) > procs))
 	&& (!(req->options & PART_OPT_OVERBOOK)
 	    || (PSIDnodes_overbook(node)==OVERBOOK_FALSE
-		&& PSIDnodes_getVirtCPUs(node) > procs)
+		&& PSIDnodes_getPhysCPUs(node) > procs)
 	    || (PSIDnodes_overbook(node)==OVERBOOK_AUTO)
 	    || (PSIDnodes_overbook(node)==OVERBOOK_TRUE))
 	&& (!(req->options & PART_OPT_EXCLUSIVE)
@@ -732,16 +756,19 @@ static int nodeFree(PSnodes_ID_t node, PSpart_request_t *req, int procs)
 /** Entries of the sortable candidate list */
 typedef struct {
     PSnodes_ID_t id;    /**< ParaStation ID */
-    int cpus;           /**< Number of cpus */
+    int cpus;           /**< Number of cpus available for the job */
     int jobs;           /**< Number of normal jobs running on this node */
+    PSCPU_set_t CPUset; /**< Entry's CPU-set used in PART_OPT_EXACT requests */
     double rating;      /**< The sorting criterium */
-    char *cpuslots;     /**< Keep track of used CPUs @todo pinning needed? */
+    char canPin;        /**< Flag enabled process pinning */
 } sortentry_t;
 
 /** A sortable candidate list */
 typedef struct {
-    unsigned int size;  /**< The actual size of the sortlist */
-    sortentry_t *entry; /**< The actual size of the sortlist */
+    unsigned int size;  /**< The current size of the sortlist */
+    unsigned int freeCPUs; /**< Number of free CPUs within the sortlist */
+    int allPin;         /**< Flag all nodes are able to pin */
+    sortentry_t *entry; /**< The actual entries to sort */
 } sortlist_t;
 
 /**
@@ -761,11 +788,19 @@ typedef struct {
 static sortlist_t *getCandidateList(PSpart_request_t *request)
 {
     static sortlist_t list;
-    int i, canOverbook = 0;
-    unsigned int totCPUs = 0, totSlots = 0;
+    int i, canOverbook = 0, exactPart = request->options & PART_OPT_EXACT;
+
+    unsigned int totSlots = 0, nextSet = 0;
+
+    PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(request->tid));
 
     list.size = 0;
-    list.entry = malloc(request->num * sizeof(*list.entry));
+    list.freeCPUs = 0;
+    list.allPin = 1;
+    list.entry = malloc(request->num * (exactPart ? request->tpp : 1)
+			* sizeof(*list.entry));
+
+    PSID_log(PSID_LOG_PART, "%s: got list.entry %p\n", __func__, list.entry);
 
     if (!list.entry) {
 	PSID_log(-1, "%s: No memory\n", __func__);
@@ -773,10 +808,13 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 	return NULL;
     }
 
+    memset(tmpStat, 0, PSC_getNrOfNodes() * sizeof(*tmpStat));
+
     for (i=0; i<request->num; i++) {
 	PSnodes_ID_t node = request->nodes[i];
-	int cpus = PSIDnodes_getVirtCPUs(node);
+	int cpus = PSIDnodes_getPhysCPUs(node);
 	int procs = getAssignedJobs(node);
+	int canPin = PSIDnodes_pinProcs(node);
 	PSID_NodeStatus_t status = getStatusInfo(node);
 
 	if (config->handleOldBins) {
@@ -784,52 +822,80 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 	}
 
 	if (nodeOK(request->nodes[i], request)) {
-
-	    if (nodeFree(request->nodes[i], request, procs)) {
-		list.entry[list.size].id = node;
-		list.entry[list.size].cpus = cpus;
-		list.entry[list.size].jobs = procs;
-		switch (request->sort) {
-		case PART_SORT_PROC:
-		    list.entry[list.size].rating = (double)procs/cpus;
-		    break;
-		case PART_SORT_LOAD_1:
-		    list.entry[list.size].rating = status.load.load[0]/cpus;
-		    break;
-		case PART_SORT_LOAD_5:
-		    list.entry[list.size].rating = status.load.load[1]/cpus;
-		    break;
-		case PART_SORT_LOAD_15:
-		    list.entry[list.size].rating = status.load.load[2]/cpus;
-		    break;
-		case PART_SORT_PROCLOAD:
-		    list.entry[list.size].rating =
-			(procs + status.load.load[0])/cpus;
-		    break;
-		case PART_SORT_NONE:
-		    break;
-		default:
-		    PSID_log(-1, "%s: Unknown criterium\n", __func__);
-		    free(list.entry);
-		    errno = EINVAL;
-		    return NULL;
+	    int availCPUs;
+	    if (exactPart) {
+		/* We get the actual slots right here */
+		if (!tmpStat[node]) {
+		    tmpStat[node] = &tmpSets[nextSet];
+		    nextSet++;
+		    getFreeCPUs(node, *tmpStat[node], request->tpp);
 		}
+		availCPUs = PSCPU_getCPUs(*tmpStat[node],
+					  list.entry[list.size].CPUset, 1);
+	    } else {
+		availCPUs = getFreeCPUs(node, NULL, request->tpp);
+	    }
+	    if (availCPUs && nodeFree(node, request, procs)) {
+		list.entry[list.size].id = node;
+		list.entry[list.size].cpus = availCPUs;
+		if (exactPart) {
+		    PSCPU_remCPUs(*tmpStat[node],list.entry[list.size].CPUset);
+		}
+		list.entry[list.size].jobs = procs;
+		if (canPin) {
+		    /* prefer nodes able to pin */
+		    list.entry[list.size].rating = 0.0;
+		} else {
+		    list.allPin = 0;
+		    switch (request->sort) {
+		    case PART_SORT_PROC:
+			list.entry[list.size].rating=(double)procs/cpus;
+			break;
+		    case PART_SORT_LOAD_1:
+			list.entry[list.size].rating=status.load.load[0]/cpus;
+			break;
+		    case PART_SORT_LOAD_5:
+			list.entry[list.size].rating=status.load.load[1]/cpus;
+			break;
+		    case PART_SORT_LOAD_15:
+			list.entry[list.size].rating=status.load.load[2]/cpus;
+			break;
+		    case PART_SORT_PROCLOAD:
+			list.entry[list.size].rating =
+			    (procs + status.load.load[0])/cpus;
+			break;
+		    case PART_SORT_NONE:
+			break;
+		    default:
+			PSID_log(-1, "%s: Unknown criterium\n", __func__);
+			free(list.entry);
+			errno = EINVAL;
+			return NULL;
+		    }
+		}
+		list.entry[list.size].canPin = canPin;
 		list.size++;
 	    }
+
+	    /* Don't count CPUs twice */
+	    if (!exactPart) {
+		if (tmpStat[node]) {
+		    continue;
+		} else {
+		    tmpStat[node] = (PSCPU_set_t *)-1;
+		}
+	    }
+
 	    /*
 	     * This has to be inside if(nodeOK()) but outside
 	     * if(nodeFree()). We might want to wait for
 	     * (overbooking-)resources to become available!
 	     */
-	    if (PSIDnodes_getProcs(node) == PSNODES_ANYPROC
-		|| PSIDnodes_getProcs(node) > cpus) {
-		totCPUs += cpus;
-	    } else {
-		totCPUs += PSIDnodes_getProcs(node);
-	    }
+	    list.freeCPUs += availCPUs;
 
 	    if (PSIDnodes_overbook(node)==OVERBOOK_TRUE
-		|| PSIDnodes_overbook(node)==OVERBOOK_AUTO) {
+		|| PSIDnodes_overbook(node)==OVERBOOK_AUTO
+		|| canPin) {
 		canOverbook = 1;
 		if (PSIDnodes_getProcs(node) == PSNODES_ANYPROC) {
 		    totSlots += request->size;
@@ -845,11 +911,19 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 	}
     }
 
-    if (totCPUs < request->size
+    if (list.freeCPUs/request->tpp < request->size
 	&& (!(request->options & PART_OPT_OVERBOOK)
 	    || !canOverbook
 	    || totSlots < request->size)) {
-	PSID_log(-1, "%s: Unable to ever get sufficient resources\n",__func__);
+	PSID_log(-1, "%s: Unable to ever get sufficient resources for %s\n",
+		 __func__, PSC_printTID(request->tid));
+	if (PSID_getDebugMask() & PSID_LOG_PART) {
+	    char txt[1024];
+	    PSpart_snprintf(txt, sizeof(txt), request);
+	    PSID_log(PSID_LOG_PART, "%s\n", txt);
+	}
+	PSID_log(PSID_LOG_PART,
+		 "%s: free list.entry %p\n", __func__, list.entry);
 	free(list.entry);
 	errno = ENOSPC;
 	return NULL;
@@ -913,17 +987,27 @@ static int compareNodes(const void *entry1, const void *entry2)
  */
 static void sortCandidates(sortlist_t *list)
 {
+    PSID_log(PSID_LOG_PART, "%s\n", __func__);
     qsort(list->entry, list->size, sizeof(*list->entry), compareNodes);
 }
 
 /**
  * @brief Get normal partition.
  *
- * Get a normal partition, i.e. a partition, where the @ref
- * PART_OPT_OVERBOOK option is not set. The partition will be created
- * conforming to the request @a request from the nodes described by
- * the sorted list @a candidates. The created partition is stored
- * within @a partition.
+ * Get a normal partition, i.e. a partition, with either the @ref
+ * PART_OPT_OVERBOOK option set in the request or with all nodes
+ * within the list of candidates allow processor-pinning and
+ * overbooking is explicitely requested.
+ *
+ * The partition will be created conforming to the request @a request
+ * from the nodes described by the sorted list @a candidates. The
+ * actual slots of the created partition are stored within @a slots.
+ *
+ * Befor calling this function it has to be assured that either the
+ * list of candidates contains enough CPUs to allocate all the slots
+ * requested or all the candidates allow overbooking and can do
+ * process-pinning. Neither of these requirement will be tested within
+ * this function.
  *
  * @param request The request describing the partition to create.
  *
@@ -933,10 +1017,10 @@ static void sortCandidates(sortlist_t *list)
  * @param slots Array of PSpart_slot_t (a slotlist) to hold the newly
  * formed partition.
  *
- * @param candSlots The process distribution to create. This has to be
- * a array of size @ref PSC_getNrOfNodes() containing the number of
- * processes allocated to each node indexed by the node's ParaStation
- * ID.
+ * @param overbook Flag marking that overbooking is wanted. This
+ * function assumes that process is possible on all nodes within the
+ * list of candidates. Otherwise using this newly created partition
+ * might badly interfere with other jobs already running.
  *
  * @return On success, the size of the newly created partition is
  * returned, which is identical to the requested size given in @a
@@ -945,36 +1029,88 @@ static void sortCandidates(sortlist_t *list)
  */
 static unsigned int getNormalPart(PSpart_request_t *request,
 				  sortlist_t *candidates,
-				  PSpart_slot_t *slots,
-				  unsigned short *candSlots)
+				  PSpart_slot_t *slots, int overbook)
 {
-    unsigned int node = 0, cand;
+    unsigned int node=0, cand=0, nextSet=0;
+    uint16_t tpp = request->tpp;
+    int nodesFirst = request->options & PART_OPT_NODEFIRST;
 
     PSID_log(PSID_LOG_PART, "%s\n", __func__);
 
-    if (request->options & (PART_OPT_NODEFIRST|PART_OPT_EXACT)) {
-	cand = 0;
-	while (node < request->size) {
-	    PSnodes_ID_t cid = candidates->entry[cand].id;
-	    if (candSlots[cid]) {
-		slots[node].node = cid;
-		/* @todo pinning Bind to special CPU. */
-		slots[node].cpu = -1;
-		candSlots[cid]--;
-		node++;
+    memset(tmpStat, 0, PSC_getNrOfNodes() * sizeof(*tmpStat));
+
+    if (request->options & PART_OPT_EXACT) {
+	/* This is a exact partition defined by a batch-system */
+	while (cand < candidates->size && node < request->size) {
+	    sortentry_t *ce = &candidates->entry[cand];
+	    PSnodes_ID_t cid = ce->id;
+	    int curSlots = 0;
+	    PSCPU_clrAll(slots[node].CPUset);
+	    while (cand < candidates->size && curSlots<tpp && cid == ce->id) {
+		PSCPU_addCPUs(slots[node].CPUset, ce->CPUset);
+		curSlots++;
+		cand++;
+		if (cand == candidates->size && overbook) {
+		    /* Let's loop and start to overbook */
+		    cand = 0;
+		} else {
+		    break;
+		}
+		ce = &candidates->entry[cand];
 	    }
-	    cand = (cand+1) % candidates->size;
-	    if (!cand && (request->options & PART_OPT_EXACT)) break;
+	    if (curSlots < tpp) break;
+	    slots[node].node = cid;
+	    PSID_log(PSID_LOG_PART, "%s: add processors %s of node %d"
+		     " in slot %d\n", __func__,
+		     PSCPU_print(slots[node].CPUset), cid, node);
+	    node++;
 	}
     } else {
-	for (cand=0; cand < candidates->size && node < request->size; cand++) {
+	/* Normal partition defined by the user */
+	while (node < request->size) {
 	    PSnodes_ID_t cid = candidates->entry[cand].id;
-	    while (candSlots[cid] && node < request->size) {
-		slots[node].node = cid;
-		/* @todo pinning Bind to special CPU. */
-		slots[node].cpu = -1;
-		candSlots[cid]--;
-		node++;
+	    if (!tmpStat[cid]) {
+		tmpStat[cid] = &tmpSets[nextSet];
+		nextSet++;
+		getFreeCPUs(cid, *tmpStat[cid], tpp);
+	    }
+
+	    if (nodesFirst) { 
+		int n = PSCPU_getCPUs(*tmpStat[cid], slots[node].CPUset, tpp);
+		if (n < tpp && overbook) {
+		    /* Let's start to overbook */
+		    getFreeCPUs(cid, *tmpStat[cid], tpp);
+		    n = PSCPU_getCPUs(*tmpStat[cid], slots[node].CPUset, tpp);
+		}
+		if (n == tpp) {
+		    slots[node].node = cid;
+		    PSCPU_remCPUs(*tmpStat[cid], slots[node].CPUset);
+		    PSID_log(PSID_LOG_PART, "%s: add processors %s of node %d"
+			     " in slot %d\n", __func__,
+			     PSCPU_print(slots[node].CPUset), cid, node);
+		    node++;
+		}
+	    } else {
+		while (node < request->size
+		       && PSCPU_getCPUs(*tmpStat[cid],
+					slots[node].CPUset, tpp) == tpp) {
+		    slots[node].node = cid;
+		    PSCPU_remCPUs(*tmpStat[cid], slots[node].CPUset);
+		    PSID_log(PSID_LOG_PART, "%s: add processors %s of node %d"
+			     " in slot %d\n", __func__,
+			     PSCPU_print(slots[node].CPUset), cid, node);
+		    node++;
+		}
+	    }
+	    cand++;
+	    if (cand == candidates->size) {
+		if (!nodesFirst && !overbook) break;
+
+		cand = 0;
+		if (!nodesFirst) {
+		    /* Let's loop and start to overbook */
+		    memset(tmpStat, 0, PSC_getNrOfNodes() * sizeof(*tmpStat));
+		}
 	    }
 	}
     }
@@ -1013,62 +1149,106 @@ static unsigned int getNormalPart(PSpart_request_t *request,
  * worked well, 1 is returned. Otherwise the return value is 0.
  */
 static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
-			   unsigned short* allowedCPUs,
 			   unsigned short* candSlots)
 {
     unsigned int neededSlots = request->size;
-    unsigned int procsPerCPU = 1, availCPUs, cand;
+    unsigned int procsPerCPU = 1, stillAvail, cand;
+    int tpp = request->tpp;
 
+    unsigned short *allowedSlots;
+
+    /* Generate number of available slots for each node */
+    allowedSlots = calloc(sizeof(unsigned short), PSC_getNrOfNodes());
+    if (!allowedSlots) {
+	PSID_log(-1, "%s: No memory\n", __func__);
+	return 0;
+    }
+    memset(tmpStat, 0, PSC_getNrOfNodes() * sizeof(*tmpStat));
+
+    for (cand = 0; cand < candidates->size; cand++) {
+	sortentry_t *ce = &candidates->entry[cand];
+	PSnodes_ID_t cid = ce->id;
+
+	if (request->options & PART_OPT_EXACT) {
+	    int curCPUs = 0;
+	    while (cand < candidates->size && curCPUs < tpp && cid == ce->id) {
+		curCPUs++;
+		cand++;
+		ce = &candidates->entry[cand];
+	    }
+	    if (curCPUs < tpp) {
+		PSID_log(-1,
+			 "%s: Not enough slots for %d threads on node %d\n",
+			 __func__, tpp, cid);
+		return 0;
+	    };
+	    allowedSlots[ce->id]++;
+	} else {
+	    if (!tmpStat[cid]) {
+		tmpStat[cid] = (PSCPU_set_t *)-1;
+		allowedSlots[ce->id] = getFreeCPUs(cid, NULL, tpp) / tpp;
+	    }
+	}
+    }
+
+    /* Now distribute available slots */
     do {
-	availCPUs = 0;
+	stillAvail = 0;
 	for (cand=0; cand<candidates->size; cand++) {
-	    PSnodes_ID_t cid = candidates->entry[cand].id;
+	    sortentry_t *ce = &candidates->entry[cand];
+	    PSnodes_ID_t cid = ce->id;
 	    int maxProcs = PSIDnodes_getProcs(cid);
-	    int oldJobs = candidates->entry[cand].jobs;
-	    unsigned short cpus = (request->options & PART_OPT_EXACT) ?
-		allowedCPUs[cid] : candidates->entry[cand].cpus;
-	    unsigned short procs = cpus * procsPerCPU;
+	    unsigned short procs = allowedSlots[cid] * procsPerCPU;
 
 	    if (candSlots[cid] < procs) {
-		switch (PSIDnodes_overbook(cid)) {
-		case OVERBOOK_FALSE:
-		    if (candSlots[cid] < allowedCPUs[cid]) {
-			neededSlots -= allowedCPUs[cid] - candSlots[cid];
-			candSlots[cid] = allowedCPUs[cid];
-		    }
-		    break;
-		case OVERBOOK_AUTO:
-		    if (getAssignedJobs(cid)) {
-			if (candSlots[cid] < allowedCPUs[cid]) {
-			    neededSlots -= allowedCPUs[cid] - candSlots[cid];
-			    candSlots[cid] = allowedCPUs[cid];
+		if (ce->canPin) {
+		    stillAvail += allowedSlots[cid];
+		    neededSlots -= procs - candSlots[cid];
+		    candSlots[cid] = procs;
+		} else {
+		    switch (PSIDnodes_overbook(cid)) {
+		    case OVERBOOK_FALSE:
+			if (candSlots[cid] < allowedSlots[cid]) {
+			    neededSlots -= allowedSlots[cid]-candSlots[cid];
+			    candSlots[cid] = allowedSlots[cid];
 			}
 			break;
-		    } /* else let's overbook */
-		case OVERBOOK_TRUE:
-		    if (maxProcs == PSNODES_ANYPROC) {
-			availCPUs += cpus;
-			neededSlots -= procs - candSlots[cid];
-			candSlots[cid] = procs;
-		    } else if (procs < maxProcs-oldJobs) {
-			short tmp = maxProcs-oldJobs - procs;
-			availCPUs += (tmp > cpus) ? cpus : tmp;
-			neededSlots -= procs - candSlots[cid];
-			candSlots[cid] = procs;
-		    } else {
-			neededSlots -= maxProcs-oldJobs - candSlots[cid];
-			candSlots[cid] = maxProcs-oldJobs;
+		    case OVERBOOK_AUTO:
+			if (ce->jobs) {
+			    if (candSlots[cid] < allowedSlots[cid]) {
+				neededSlots -=
+				    allowedSlots[cid]-candSlots[cid];
+				candSlots[cid] = allowedSlots[cid];
+			    }
+			    break;
+			} /* else let's overbook */
+		    case OVERBOOK_TRUE:
+			if (maxProcs == PSNODES_ANYPROC) {
+			    stillAvail += allowedSlots[cid];
+			    neededSlots -= procs - candSlots[cid];
+			    candSlots[cid] = procs;
+			} else if (procs < maxProcs - ce->jobs) {
+			    short tmp = maxProcs - ce->jobs - procs;
+			    stillAvail += (tmp > allowedSlots[cid])
+				? allowedSlots[cid] : tmp;
+			    neededSlots -= procs - candSlots[cid];
+			    candSlots[cid] = procs;
+			} else {
+			    neededSlots -=
+				maxProcs - ce->jobs - candSlots[cid];
+			    candSlots[cid] = maxProcs - ce->jobs;
+			}
+			break;
+		    default:
+			PSID_log(-1, "%s:"
+				 " Unknown value for PSIDnodes_overbook(%d)\n",
+				 __func__, cid);
+			return 0;
 		    }
-		    break;
-		default:
-		    PSID_log(-1,
-			     "%s: Unknown value for PSIDnodes_overbook(%d)\n",
-			     __func__, cid);
-		    return 0;
 		}
 	    }
 	}
-	if (!availCPUs) {
+	if (!stillAvail) {
 	    if (neededSlots) {
 		PSID_log(PSID_LOG_PART, "%s: No more CPUs. still need %d\n",
 			 __func__, neededSlots);
@@ -1077,42 +1257,51 @@ static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
 		return 1;
 	    }
 	}
-	procsPerCPU += neededSlots / availCPUs;
-    } while (neededSlots > availCPUs);
+	procsPerCPU += neededSlots / stillAvail;
+    } while (neededSlots > stillAvail);
 
     if (neededSlots) {
-	/* Determine maximum number of CPUs on available nodes */
 	short *lateProcs = calloc(sizeof(short), PSC_getNrOfNodes());
 	short round = 1;
 	int maxCPUs = 0;
+	/* Determine maximum number of CPUs on available nodes */
 	for (cand=0; cand<candidates->size; cand++) {
-	    PSnodes_ID_t cid = candidates->entry[cand].id;
-	    if ((PSIDnodes_getProcs(cid) == PSNODES_ANYPROC
-		 || candSlots[cid] < PSIDnodes_getProcs(cid))
-		&& ((PSIDnodes_overbook(cid) == OVERBOOK_AUTO
-		     && !getAssignedJobs(cid))
-		    || PSIDnodes_overbook(cid) == OVERBOOK_TRUE)) {
-		unsigned short cpus = (request->options & PART_OPT_EXACT) ?
-		    allowedCPUs[cid] : candidates->entry[cand].cpus;
-		if (cpus > maxCPUs) maxCPUs = cpus;
+	    sortentry_t *ce = &candidates->entry[cand];
+	    PSnodes_ID_t cid = ce->id;
+	    unsigned short cpus = 0;
+
+	    if (ce->canPin) {
+		cpus = 1;
+	    } else if ((PSIDnodes_getProcs(cid) == PSNODES_ANYPROC
+			|| candSlots[cid] < PSIDnodes_getProcs(cid))
+		       && ((PSIDnodes_overbook(cid) == OVERBOOK_AUTO
+			    && !ce->jobs)
+			   || PSIDnodes_overbook(cid) == OVERBOOK_TRUE)) {
+		cpus = allowedSlots[cid];
 	    }
+	    if (cpus > maxCPUs) maxCPUs = cpus;
 	}
 	/* Now increase jobs on nodes in a (hopefully) smart way */
 	while (neededSlots > 0) {
 	    for (cand=0; cand<candidates->size && neededSlots; cand++) {
-		PSnodes_ID_t cid = candidates->entry[cand].id;
-		if ((PSIDnodes_getProcs(cid) == PSNODES_ANYPROC
-		     || candSlots[cid] < PSIDnodes_getProcs(cid))
-		    && ((PSIDnodes_overbook(cid) == OVERBOOK_AUTO
-			 && !getAssignedJobs(cid))
-			|| PSIDnodes_overbook(cid) == OVERBOOK_TRUE)) {
-		    unsigned short cpus = (request->options & PART_OPT_EXACT) ?
-			allowedCPUs[cid] : candidates->entry[cand].cpus;
-		    if ((lateProcs[cid]+1)*maxCPUs <= round*cpus) {
-			neededSlots--;
-			candSlots[cid]++;
-			lateProcs[cid]++;
-		    }
+		sortentry_t *ce = &candidates->entry[cand];
+		PSnodes_ID_t cid = ce->id;
+		unsigned short cpus = 0;
+
+		if (ce->canPin) {
+		    cpus = 1;
+		} else if ((PSIDnodes_getProcs(cid) == PSNODES_ANYPROC
+			    || candSlots[cid] < PSIDnodes_getProcs(cid))
+			   && ((PSIDnodes_overbook(cid) == OVERBOOK_AUTO
+				&& !ce->jobs)
+			       || PSIDnodes_overbook(cid) == OVERBOOK_TRUE)) {
+		    cpus = allowedSlots[cid];
+		}
+
+		if ((lateProcs[cid]+1)*maxCPUs <= round*cpus) {
+		    neededSlots--;
+		    candSlots[cid]++;
+		    lateProcs[cid]++;
 		}
 	    }
 	    round++;
@@ -1140,10 +1329,6 @@ static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
  * @param slots Array of PSpart_slot_t (a slotlist) to hold the newly
  * formed partition.
  *
- * @param allowedCPUs The CPUs allowed to use on the candidate
- * nodes. This has to be a array of size @ref PSC_getNrOfNodes()
- * containing the number of CPUs indexed by the node's ParaStation ID.
- *
  * @return On success, the size of the newly created partition is
  * returned, which is identical to the requested size given in @a
  * request->size. If an error occurred, any number smaller than that
@@ -1151,11 +1336,12 @@ static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
  */
 static unsigned int getOverbookPart(PSpart_request_t *request,
 				    sortlist_t *candidates,
-				    PSpart_slot_t *slots,
-				    unsigned short *allowedCPUs)
+				    PSpart_slot_t *slots)
 {
-    unsigned int node = 0, cand;
+    unsigned int node=0, cand=0, nextSet=0;
+    uint16_t tpp = request->tpp;
     unsigned short *candSlots;
+    int nodesFirst = request->options & PART_OPT_NODEFIRST;
 
     PSID_log(PSID_LOG_PART, "%s\n", __func__);
 
@@ -1165,37 +1351,77 @@ static unsigned int getOverbookPart(PSpart_request_t *request,
 	return 0;
     }
 
-    if (!distributeSlots(request, candidates, allowedCPUs, candSlots)) {
+    if (!distributeSlots(request, candidates, candSlots)) {
 	PSID_log(PSID_LOG_PART, "%s: Not enough nodes\n", __func__);
 	free(candSlots);
 	return 0;
     }
 
-    if (request->options & PART_OPT_NODEFIRST) {
-	cand = 0;
+    memset(tmpStat, 0, PSC_getNrOfNodes() * sizeof(*tmpStat));
+
+    if (request->options & PART_OPT_EXACT) {
+	/* This is a exact partition defined by a batch-system */
 	while (node < request->size) {
-	    PSnodes_ID_t cid = candidates->entry[cand].id;
-	    PSID_log(PSID_LOG_PART, "%s: %d %d %d\n", __func__,
-		     cid, candSlots[cid], node);
+	    sortentry_t *ce = &candidates->entry[cand];
+	    PSnodes_ID_t cid = ce->id;
+	    int curSlots = 0;
+	    PSCPU_clrAll(slots[node].CPUset);
+	    while (curSlots < tpp && cid == ce->id) {
+		PSCPU_addCPUs(slots[node].CPUset, ce->CPUset);
+		curSlots++;
+		cand = (cand + 1) % candidates->size;
+		ce = &candidates->entry[cand];
+	    }
+	    if (curSlots < tpp) break;
 	    if (candSlots[cid]) {
 		slots[node].node = cid;
-		/* @todo pinning Bind to special CPU. */
-		slots[node].cpu = -1;
-		candSlots[cid]--;
+		PSID_log(PSID_LOG_PART, "%s: add processors %s of node %d"
+			 " in slot %d\n", __func__,
+			 PSCPU_print(slots[node].CPUset), cid, node);
 		node++;
+		candSlots[cid]--;
 	    }
-	    cand = (cand+1) % candidates->size;
 	}
     } else {
-	for (cand=0; cand<candidates->size; cand++) {
+	/* Normal partition defined by the user */
+	while (node < request->size) {
 	    PSnodes_ID_t cid = candidates->entry[cand].id;
-	    while (candSlots[cid]) {
-		slots[node].node = cid;
-		/* @todo pinning Bind to special CPU. */
-		slots[node].cpu = -1;
-		candSlots[cid]--;
-		node++;
+	    if (!tmpStat[cid]) {
+		tmpStat[cid] = &tmpSets[nextSet];
+		nextSet++;
+		getFreeCPUs(cid, *tmpStat[cid], tpp);
 	    }
+
+	    if (nodesFirst) {
+		int n = PSCPU_getCPUs(*tmpStat[cid], slots[node].CPUset, tpp);
+		if (n < tpp) {
+		    /* Let's start to overbook */
+		    getFreeCPUs(cid, *tmpStat[cid], tpp);
+		    n = PSCPU_getCPUs(*tmpStat[cid], slots[node].CPUset, tpp);
+		}
+		if (n == tpp) {
+		    slots[node].node = cid;
+		    PSCPU_remCPUs(*tmpStat[cid], slots[node].CPUset);
+		    PSID_log(PSID_LOG_PART, "%s: add processors %s of node %d"
+			     " in slot %d\n", __func__,
+			     PSCPU_print(slots[node].CPUset), cid, node);
+		    node++;
+		    candSlots[cid]--;
+		}
+	    } else {
+		while (candSlots[cid]
+		       && PSCPU_getCPUs(*tmpStat[cid],
+					slots[node].CPUset, tpp) == tpp) {
+		    slots[node].node = cid;
+		    PSCPU_remCPUs(*tmpStat[cid], slots[node].CPUset);
+		    PSID_log(PSID_LOG_PART, "%s: add processors %s of node %d"
+			     " in slot %d\n", __func__,
+			     PSCPU_print(slots[node].CPUset), cid, node);
+		    node++;
+		    candSlots[cid]--;
+		}
+	    }
+	    cand = (cand + 1) % candidates->size;
 	}
     }
     free(candSlots);
@@ -1221,48 +1447,25 @@ static PSpart_slot_t *createPartition(PSpart_request_t *request,
 				      sortlist_t *candidates)
 {
     PSpart_slot_t *slotlist;
-    unsigned short *allowedCPUs;
-    unsigned int slots = 0, avail = 0, cand;
+    unsigned int slots = 0;
+    int overbook = request->options & PART_OPT_OVERBOOK;
 
     PSID_log(PSID_LOG_PART, "%s\n", __func__);
 
+    PSID_log(PSID_LOG_PART, "%s: Prepare for %d slots\n", __func__,
+	     request->size);
     slotlist = malloc(request->size * sizeof(*slotlist));
     if (!slotlist) {
 	PSID_log(-1, "%s: No memory\n", __func__);
 	return NULL;
     }
 
-    allowedCPUs = calloc(sizeof(unsigned short), PSC_getNrOfNodes());
-    if (!allowedCPUs) {
-	PSID_log(-1, "%s: No memory\n", __func__);
-	return NULL;
+    if (candidates->freeCPUs/request->tpp >= request->size
+	|| (overbook && candidates->allPin)) {
+	slots = getNormalPart(request, candidates, slotlist, overbook);
+    } else if (overbook) {
+	slots = getOverbookPart(request, candidates, slotlist);
     }
-
-    /* Determine number of allowed CPUs */
-    for (cand = 0; cand < candidates->size; cand++) {
-	sortentry_t *ce = &candidates->entry[cand];
-	short cpus;
-	if ((PSIDnodes_getProcs(ce->id) == PSNODES_ANYPROC)
-	    || ce->cpus < PSIDnodes_getProcs(ce->id)) {
-	    cpus = ce->cpus;
-	} else {
-	    cpus = PSIDnodes_getProcs(ce->id);
-	}
-	cpus -= ce->jobs + allowedCPUs[ce->id];
-	cpus = (cpus < 0) ? 0 : cpus;
-	if (!cpus) continue;
-
-	avail += (request->options & PART_OPT_EXACT) ? 1 : cpus;
-	allowedCPUs[ce->id] += (request->options & PART_OPT_EXACT) ? 1 : cpus;
-    }
-
-    if (avail >= request->size) {
-	slots = getNormalPart(request, candidates, slotlist, allowedCPUs);
-    } else if (request->options & PART_OPT_OVERBOOK) {
-	slots = getOverbookPart(request, candidates, slotlist, allowedCPUs);
-    }
-
-    free(allowedCPUs);
 
     if (slots < request->size) {
 	PSID_log(PSID_LOG_PART, "%s: Not enough slots\n", __func__);
@@ -1304,6 +1507,9 @@ static int sendNodelist(PSpart_request_t *request, DDBufferMsg_t *msg)
     PSnodes_ID_t *nodes = request->nodes;
     int num = request->numGot, offset = 0;
 
+    PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__,
+	     PSC_printTID(msg->header.dest));
+
     if (!nodes) {
 	PSID_log(-1, "%s: No nodes given\n", __func__);
 	return -1;
@@ -1333,7 +1539,7 @@ static int sendNodelist(PSpart_request_t *request, DDBufferMsg_t *msg)
  * Chunksize for PSP_DD_PROVIDEPARTSL and PSP_DD_PROVIDETASKSL
  * messages
  */
-#define SLOTS_CHUNK 256
+#define SLOTS_CHUNK 128
 
 /**
  * @brief Send a list of slots.
@@ -1362,6 +1568,11 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
 {
     int offset = 0;
     int destPSPver = PSIDnodes_getProtoVersion(PSC_getID(msg->header.dest));
+    int destDaemonPSPver =
+	PSIDnodes_getDaemonProtoVersion(PSC_getID(msg->header.dest));
+
+    PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__,
+	     PSC_printTID(msg->header.dest));
 
     if (!slots) {
 	PSID_log(-1, "%s: No slots given\n", __func__);
@@ -1369,6 +1580,7 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
     }
 
     while (offset < num && PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
+	PSpart_slot_t *mySlots = slots+offset;
 	int chunk = (num-offset > SLOTS_CHUNK) ? SLOTS_CHUNK : num-offset;
 	char *ptr = msg->buf;
 	msg->header.len = sizeof(msg->header);
@@ -1378,16 +1590,28 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
 	msg->header.len += sizeof(uint16_t);
 
 	if (destPSPver < 334) {
-	    PSpart_slot_t *mySlots = slots+offset;
+	    /* Map to nodelist for compatibility reasons */
 	    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)ptr;
 	    int n;
 	    for (n=0; n<chunk; n++) nodeBuf[n] = mySlots[n].node;
 	    msg->header.len += chunk * sizeof(*nodeBuf);
+	} else if (destDaemonPSPver < 401) {
+	    /* Map to old slotlist for compatibility reasons */
+	    PSpart_oldSlot_t *oldSlots = (PSpart_oldSlot_t *)ptr;
+	    int n;
+	    for (n=0; n<chunk; n++) {
+		PSnodes_ID_t node = oldSlots[n].node = mySlots[n].node;
+		oldSlots[n].cpu = PSCPU_first(mySlots[n].CPUset,
+					      PSIDnodes_getPhysCPUs(node));
+	    }
+	    msg->header.len += chunk * sizeof(*oldSlots);
 	} else {
-	    memcpy(ptr, slots+offset, chunk * sizeof(*slots));
+	    memcpy(ptr, mySlots, chunk * sizeof(*slots));
 	    msg->header.len += chunk * sizeof(*slots);
 	}
 	offset += chunk;
+	PSID_log(PSID_LOG_PART, "%s: send chunk of %d (size %d)\n", __func__,
+		 chunk, msg->header.len);
 	if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
 	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
 	    return -1;
@@ -1420,6 +1644,8 @@ static int sendPartition(PSpart_request_t *req)
 	    .len = sizeof(msg.header) },
 	.buf = { '\0' }};
     char *ptr = msg.buf;
+
+    PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(req->tid));
 
     *(uint32_t *)ptr = req->size;
     ptr += sizeof(req->size);
@@ -1595,7 +1821,11 @@ void msg_CREATEPART(DDBufferMsg_t *inmsg)
     PSpart_decodeReq(inmsg->buf, task->request);
     task->request->uid = task->uid;
     task->request->gid = task->gid;
-    PSpart_encodeReq(inmsg->buf, sizeof(inmsg->buf), task->request);
+    if (task->protocolVersion < 337) {
+	task->request->tpp = 1;
+    }
+    inmsg->header.len = sizeof(inmsg->header)
+	+ PSpart_encodeReq(inmsg->buf, sizeof(inmsg->buf), task->request);
 
     if (task->request->num) {
 	task->request->nodes =
@@ -1636,13 +1866,20 @@ void msg_GETPART(DDBufferMsg_t *inmsg)
 
     if (!knowMaster() || PSC_getMyID() != getMasterID()) return;
 
+    PSID_log(PSID_LOG_PART, "%s(%s)\n",
+	     __func__, PSC_printTID(inmsg->header.sender));
+
     if (!req) {
 	PSID_log(-1, "%s: No memory\n", __func__);
 	errno = ENOMEM;
 	goto error;
     }
+
     PSpart_decodeReq(inmsg->buf, req);
     req->tid = inmsg->header.sender;
+    if (PSIDnodes_getDaemonProtoVersion(PSC_getID(inmsg->header.sender))<401) {
+	req->tpp = 1;
+    }
 
     /* Set the default sorting strategy, if necessary */
     if (req->sort == PART_SORT_DEFAULT) {
@@ -1650,6 +1887,7 @@ void msg_GETPART(DDBufferMsg_t *inmsg)
     }
 
     if (req->num) {
+	PSID_log(PSID_LOG_PART, "%s: expects %d nodes\n", __func__, req->num);
 	req->nodes = malloc(req->num * sizeof(*req->nodes));
 	if (!req->nodes) {
 	    PSID_log(-1, "%s: No memory\n", __func__);
@@ -1661,6 +1899,7 @@ void msg_GETPART(DDBufferMsg_t *inmsg)
     enqueueRequest(&pendReq, req);
 
     if (!req->num) {
+	PSID_log(PSID_LOG_PART, "%s: build from default set\n", __func__);
 	if ((req->options & PART_OPT_WAIT) || pendingTaskReq) {
 	    doHandle = 1;
 	} else if (!getPartition(req)) goto error;
@@ -1759,6 +1998,9 @@ void msg_GETPARTNL(DDBufferMsg_t *inmsg)
 
     if (!knowMaster() || PSC_getMyID() != getMasterID()) return;
 
+    PSID_log(PSID_LOG_PART, "%s(%s)\n",
+	     __func__, PSC_printTID(inmsg->header.sender));
+
     if (!req) {
 	PSID_log(-1, "%s: Unable to find request %s\n",
 		 __func__, PSC_printTID(inmsg->header.sender));
@@ -1770,12 +2012,14 @@ void msg_GETPARTNL(DDBufferMsg_t *inmsg)
     if (req->numGot == req->num) {
 	if ((req->options & PART_OPT_WAIT) || pendingTaskReq) {
 	    doHandle = 1;
-	} else if (!getPartition(req)) goto error;
+	} else if (!getPartition(req)) {
+	    dequeueRequest(&pendReq, req);
+	    PSpart_delReq(req);
+	    goto error;
+	}
     }
     return;
  error:
-    dequeueRequest(&pendReq, req);
-    PSpart_delReq(req);
     {
 	DDTypedMsg_t msg = (DDTypedMsg_t) {
 	    .header = (DDMsg_t) {
@@ -1815,21 +2059,33 @@ void msg_GETPARTNL(DDBufferMsg_t *inmsg)
 static void appendToSlotlist(DDBufferMsg_t *inmsg, PSpart_request_t *request)
 {
     int PSPver = PSIDnodes_getProtoVersion(PSC_getID(inmsg->header.sender));
+    int DaemonPSPver =
+	PSIDnodes_getDaemonProtoVersion(PSC_getID(inmsg->header.sender));
+    PSpart_slot_t *slots = request->slots + request->sizeGot;
     char *ptr = inmsg->buf;
     int chunk = *(int16_t *)ptr;
     ptr += sizeof(int16_t);
 
     if (PSPver < 334) {
-	PSpart_slot_t *mySlots = request->slots + request->sizeGot;
 	PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)ptr;
 	int n;
 	for (n=0; n<chunk; n++) {
-	    mySlots[n].node = nodeBuf[n];
-	    mySlots[n].cpu = -1;
+	    slots[n].node = nodeBuf[n];
+	    PSCPU_setAll(slots[n].CPUset);
+	}
+    } else if (DaemonPSPver < 401) {
+	PSpart_oldSlot_t *oldSlots = (PSpart_oldSlot_t *)ptr;
+	int n;
+	for (n=0; n<chunk; n++) {
+	    slots[n].node = oldSlots[n].node;
+	    if (oldSlots[n].cpu == -1) {
+		PSCPU_setAll(slots[n].CPUset);
+	    } else {
+		PSCPU_setCPU(slots[n].CPUset, oldSlots[n].cpu);
+	    }
 	}
     } else {
-	memcpy(request->slots + request->sizeGot, ptr,
-	       chunk * sizeof(*request->slots));
+	memcpy(slots, ptr, chunk * sizeof(*slots));
     }
     request->sizeGot += chunk;
 }
@@ -1839,6 +2095,9 @@ void msg_PROVIDEPART(DDBufferMsg_t *inmsg)
     PStask_t *task = PStasklist_find(managedTasks, inmsg->header.dest);
     PSpart_request_t *req;
     char *ptr = inmsg->buf;
+
+    PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__,
+	     PSC_printTID(inmsg->header.dest));
 
     if (!task) {
 	PSID_log(-1, "%s: Task %s not found\n", __func__,
@@ -1904,6 +2163,9 @@ void msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg)
 {
     PStask_t *task = PStasklist_find(managedTasks, inmsg->header.dest);
     PSpart_request_t *req;
+
+    PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__,
+	     PSC_printTID(inmsg->header.dest));
 
     if (!task) {
 	PSID_log(-1, "%s: Task %s not found\n", __func__,
@@ -2011,8 +2273,10 @@ void msg_GETNODES(DDBufferMsg_t *inmsg)
     PSID_log(PSID_LOG_PART, "%s(%d)\n", __func__, num);
 
     if (task->nextRank + num <= task->partitionSize) {
-	int PSPver = PSIDnodes_getProtoVersion(PSC_getID(
-						      inmsg->header.sender));
+	int PSPver =
+	    PSIDnodes_getProtoVersion(PSC_getID(inmsg->header.sender));
+	int DaemonPSPver =
+	    PSIDnodes_getDaemonProtoVersion(PSC_getID(inmsg->header.sender));
 	DDBufferMsg_t msg = (DDBufferMsg_t) {
 	    .header = (DDMsg_t) {
 		.type = (PSPver < 335) ? PSP_CD_NODESRES : PSP_DD_NODESRES,
@@ -2034,6 +2298,16 @@ void msg_GETNODES(DDBufferMsg_t *inmsg)
 	    for (n=0; n<num; n++) nodeBuf[n] = slots[n].node;
 	    ptr = (char *)&nodeBuf[num];
 	    msg.header.len += num * sizeof(*nodeBuf);
+	} else if (DaemonPSPver < 401) {
+	    PSpart_oldSlot_t *oldSlots = (PSpart_oldSlot_t *)ptr;
+	    unsigned int n;
+	    for (n=0; n<num; n++) {
+		PSnodes_ID_t node = oldSlots[n].node = slots[n].node;
+		oldSlots[n].cpu = PSCPU_first(slots[n].CPUset,
+					      PSIDnodes_getPhysCPUs(node));
+	    }
+	    ptr = (char *)&oldSlots[num];
+	    msg.header.len += num * sizeof(*oldSlots);
 	} else {
 	    memcpy(ptr, slots, num * sizeof(*slots));
 	    ptr += num * sizeof(*slots);
@@ -2142,17 +2416,28 @@ void msg_GETRANKNODE(DDBufferMsg_t *inmsg)
 void msg_NODESRES(DDBufferMsg_t *inmsg)
 {
     if (PSC_getID(inmsg->header.dest) == PSC_getMyID()) {
+	int DaemonPSPver =
+	    PSIDnodes_getDaemonProtoVersion(PSC_getID(inmsg->header.sender));
 	PStask_t *task = PStasklist_find(managedTasks, inmsg->header.dest);
 	char *ptr = inmsg->buf;
-	int num = (inmsg->header.len - sizeof(inmsg->header)
-		   - sizeof(int32_t)) / sizeof(PSpart_slot_t);
+	int num = inmsg->header.len - sizeof(inmsg->header) - sizeof(int32_t);
 	int nextRank = *(int32_t *)ptr;
+	PSpart_slot_t *slots;
 	ptr += sizeof(int32_t);
+
+	PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__,
+		 PSC_printTID(inmsg->header.dest));
 
 	if (!task) {
 	    PSID_log(-1, "%s: Task %s not found\n", __func__,
 		     PSC_printTID(inmsg->header.dest));
 	    return;
+	}
+
+	if (DaemonPSPver < 401) {
+	    num /= sizeof(PSpart_oldSlot_t);
+	} else {
+	    num /= sizeof(PSpart_slot_t);
 	}
 
 	/* Store assigned slots */
@@ -2161,8 +2446,21 @@ void msg_NODESRES(DDBufferMsg_t *inmsg)
 				       * sizeof(*task->spawnNodes));
 	    task->spawnNum = nextRank+num;
 	}
-	memcpy(&task->spawnNodes[nextRank], ptr,
-	       num * sizeof(*task->spawnNodes));
+	slots = task->spawnNodes + nextRank;
+	if (DaemonPSPver < 401) {
+	    PSpart_oldSlot_t *oldSlots = (PSpart_oldSlot_t *)ptr;
+	    int n;
+	    for (n=0; n<num; n++) {
+		slots[n].node = oldSlots[n].node;
+		if (oldSlots[n].cpu == -1) {
+		    PSCPU_setAll(slots[n].CPUset);
+		} else {
+		    PSCPU_setCPU(slots[n].CPUset, oldSlots[n].cpu);
+		}
+	    }
+	} else {
+	    memcpy(slots, ptr, num * sizeof(*slots));
+	}
 
 	/* Morph inmsg to CD_NODESRES message */
 	{
@@ -2420,6 +2718,8 @@ static void sendReqList(PStask_ID_t dest, PSpart_request_t *requests,
 	    .len = sizeof(msg.header) + sizeof(msg.type) },
 	.type = PSP_INFO_QUEUE_PARTITION,
 	.buf = {0}};
+    int PSPver = PSIDnodes_getProtoVersion(PSC_getID(dest));
+    int DaemonPSPver = PSIDnodes_getDaemonProtoVersion(PSC_getID(dest));
 
     while (requests) {
 	size_t len = 0;
@@ -2437,6 +2737,10 @@ static void sendReqList(PStask_ID_t dest, PSpart_request_t *requests,
 	tmp = requests->num;
 	num = requests->num = (opt & PART_LIST_NODES) ? requests->size : 0;
 	len += PSpart_encodeReq(ptr, sizeof(msg.buf)-len, requests);
+	if (DaemonPSPver < 401) {
+	    /* request encoding has changed */
+	    len -= sizeof(uint16_t);
+	}
 	requests->num = tmp;
 
 	if (len > sizeof(msg.buf)) {
@@ -2453,7 +2757,6 @@ static void sendReqList(PStask_ID_t dest, PSpart_request_t *requests,
 
 	if (num) {
 	    int offset = 0;
-	    int PSPver = PSIDnodes_getProtoVersion(PSC_getID(dest));
 
 	    msg.type = PSP_INFO_QUEUE_SEP;
 	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
@@ -2465,18 +2768,26 @@ static void sendReqList(PStask_ID_t dest, PSpart_request_t *requests,
 	    while (offset < num) {
 		int chunk =
 		    (num-offset > SLOTS_CHUNK) ? SLOTS_CHUNK : num-offset;
+		PSpart_slot_t *slots = requests->slots+offset;
 		ptr = msg.buf;
 
 		if (PSPver < 334) {
-		    PSpart_slot_t *slots = requests->slots+offset;
 		    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)ptr;
 		    int n;
 		    for (n=0; n<chunk; n++) nodeBuf[n] = slots[n].node;
 		    len = chunk * sizeof(*nodeBuf);
+		} else if (DaemonPSPver < 401) {
+		    PSpart_oldSlot_t *oldSlots = (PSpart_oldSlot_t *)ptr;
+		    int n;
+		    for (n=0; n<chunk; n++) {
+			PSnodes_ID_t node = oldSlots[n].node = slots[n].node;
+			oldSlots[n].cpu = PSCPU_first(slots[n].CPUset,
+						PSIDnodes_getPhysCPUs(node));
+		    }
+		    len = chunk * sizeof(*oldSlots);
 		} else {
-		    memcpy(ptr, requests->slots+offset,
-			   chunk * sizeof(*requests->slots));
-		    len = chunk * sizeof(*requests->slots);
+		    memcpy(ptr, slots, chunk * sizeof(*slots));
+		    len = chunk * sizeof(*slots);
 		}
 		offset += chunk;
 

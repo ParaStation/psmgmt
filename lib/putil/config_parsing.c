@@ -1280,8 +1280,9 @@ static int getBindMem(char *token)
 
 /* ---------------------------------------------------------------------- */
 
-static short *default_cpumap = NULL;
-static size_t default_cpumap_size, default_cpumap_maxsize = 0;
+static short std_cpumap[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17};
+static short *default_cpumap = std_cpumap;
+static size_t default_cpumap_size = 8, default_cpumap_maxsize;
 
 static int getCPUmapEnt(char *token)
 {
@@ -1292,12 +1293,12 @@ static int getCPUmapEnt(char *token)
     if (ret) return ret;
 
     if (currentID == DEFAULT_ID) {
-	if (default_cpumap_size == default_cpumap_maxsize) {
-	    if (default_cpumap_maxsize) {
-		default_cpumap_maxsize *= 2;
-	    } else {
-		default_cpumap_maxsize = 8;
-	    }
+	if (default_cpumap == std_cpumap) {
+	    default_cpumap_maxsize = 8;
+	    default_cpumap = malloc(default_cpumap_maxsize
+				    * sizeof(*default_cpumap));
+	} else if (default_cpumap_size == default_cpumap_maxsize) {
+	    default_cpumap_maxsize *= 2;
 	    default_cpumap = realloc(default_cpumap, default_cpumap_maxsize
 				     * sizeof(*default_cpumap));
 	}

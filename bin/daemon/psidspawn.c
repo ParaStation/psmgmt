@@ -35,6 +35,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif
 
 #include "pscommon.h"
+#include "pscpu.h"
 
 #include "psidutil.h"
 #include "psidforwarder.h"
@@ -314,37 +315,35 @@ static void pty_make_controlling_tty(int *ttyfd, const char *tty)
     }
 }
 
+#ifdef CPU_ZERO
 /**
  * @brief Bind process to node
  *
- * Bind the current process to the NUMA node which contains the core
- * @a physCPU.
+ * Bind the current process to all the NUMA nodes which contain cores
+ * from within the set @a physSet.
  *
- * @param physCPU A physical core. The process is bound to the NUMA
- * node containing this core.
+ * @param physSet A set of physical cores. The process is bound to the
+ * NUMA nodes containing some of this cores.
  *
  * @return No return value.
  */
-static void bindToNode(short physCPU)
+static void bindToNodes(cpu_set_t *physSet)
 {
 #ifdef HAVE_LIBNUMA
     int node;
     nodemask_t nodeset;
-#endif
 
-    if (physCPU < 0 || physCPU >= PSIDnodes_getPhysCPUs(PSC_getMyID())) {
-	fprintf(stderr, "Mapped CPU %d out of range. No binding\n", physCPU);
-	return;
-    }
-#ifdef HAVE_LIBNUMA
     if (numa_available()==-1) {
 	fprintf(stderr, "NUMA not available. No binding\n");
 	return;
     }
 
-    /* Try to determine the node */
+    nodemask_zero(&nodeset);
+
+    /* Try to determine the nodes */
     for (node=0; node<=numa_max_node(); node++) {
 	cpu_set_t CPUset;
+	short cpu;
 	int ret = numa_node_to_cpus(node,
 				    (unsigned long*)&CPUset, sizeof(CPUset));
 	if (ret) {
@@ -356,79 +355,118 @@ static void bindToNode(short physCPU)
 	    fprintf(stderr, "No binding\n");
 	    return;
 	}
-	if (CPU_ISSET(physCPU, &CPUset)) break;
+	for (cpu=0; cpu<CPU_SETSIZE; cpu++) {
+	    if (CPU_ISSET(cpu, physSet) && CPU_ISSET(cpu, &CPUset)) {
+		nodemask_set(&nodeset, node);
+	    }
+	}		    
     }
-    if (node > numa_max_node()) {
-	fprintf(stderr, "Mapped CPU %d not found within NUMA nodes."
-		" No binding\n", physCPU);
-	return;
-    }
-
-    nodemask_zero(&nodeset);
-    nodemask_set(&nodeset, node);
-    numa_bind(&nodeset);
+    numa_set_membind(&nodeset);
 #else
     fprintf(stderr, "Daemon not build against libnuma. No binding\n");
 #endif
 }
 
 /**
- * @brief Pin process to core
+ * @brief Pin process to cores
  *
- * Pin the process to the physical core @a physCPU.
+ * Pin the process to the set of physical CPUs @a physSet.
  *
- * @param physCPU The physical core the process is pinned to.
+ * @param physSet The physical cores the process is pinned to.
  *
  * @return No return value.
  */
-static void pinToCPU(short physCPU)
+static void pinToCPUs(cpu_set_t *physSet)
 {
-#ifdef CPU_ZERO
-    cpu_set_t CPUset;
+    sched_setaffinity(0, sizeof(*physSet), physSet);
+}
 
-    if (physCPU < 0 || physCPU >= PSIDnodes_getPhysCPUs(PSC_getMyID())) {
-	fprintf(stderr, "Mapped CPU %d out of range. No pinning\n", physCPU);
-	return;
+/**
+ * @brief Map CPUs
+ *
+ * Map the logical CPUs of the CPU-set @a set to physical CPUs and
+ * store them into the returned cpu_set_t as used by @ref
+ * sched_setaffinity(), etc.
+ *
+ * @param set The set of CPUs to map.
+ *
+ * @return A set of physical CPUs is returned as a static set of type
+ * cpu_set_t. Subsequent callls to @ref mapCPUs will modify this set.
+ */
+static cpu_set_t *mapCPUs(PSCPU_set_t set)
+{
+    short cpu, maxCPU = PSIDnodes_getPhysCPUs(PSC_getMyID());
+    static cpu_set_t physSet;
+
+    CPU_ZERO(&physSet);
+    for (cpu=0; cpu<maxCPU; cpu++) {
+	if (PSCPU_isSet(set, cpu)) {
+
+	    short physCPU = PSIDnodes_mapCPU(PSC_getMyID(), cpu);
+	    if (physCPU<0 || physCPU >= PSIDnodes_getVirtCPUs(PSC_getMyID())) {
+		fprintf(stderr,
+			"Mapping CPU %d->%d out of range. No pinning\n",
+			cpu, physCPU);
+		continue;
+	    }
+	    CPU_SET(physCPU, &physSet);
+	}
     }
 
-    CPU_ZERO(&CPUset);
-    CPU_SET(physCPU, &CPUset);
-    sched_setaffinity(0, sizeof(CPUset), &CPUset);
-#else
-    fprintf(stderr, "Daemon has no sched_setaffinity(). No pinning\n");
-#endif
+    {
+	char txt[PSCPU_MAX+2];
+	int i;
+	for (i=maxCPU-1; i>=0; i--) {
+	    if (CPU_ISSET(i, &physSet))
+		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "1");
+	    else
+		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "0");
+	}
+	setenv("__PINNING__", txt, 1);
+    }
+    return &physSet;
 }
+
+#endif
 
 /**
  * @brief Do various process clamps.
  *
- * Pin process to physical core @a physCPU and bind it to the NUMA
- * node containing this physical core if demanded on the local
+ * Pin process to the logical CPU-set @a set and bind it to the NUMA
+ * nodes serving these logical CPUs if demanded on the local
  * node. Therefore @ref pinToCPU() and @ref bindToNode() are called
  * respectively.
  *
- * @param cpuSlots The physical core to pin and bind to.
+ * Befor doing the actual pinning and binding the logical CPUs are
+ * mapped to physical ones via mapCPUs().
+ *
+ * @param set The logical CPUs to pin and bind to.
  *
  * @return No return value.
  *
- * @see bindToNode(), pinToCPU()
+ * @see bindToNode(), pinToCPU(), mapCPUs()
  */
-static void doClamps(short cpuSlot)
+static void doClamps(PSCPU_set_t set)
 {
-    short physCPU;
+    setenv("PSID_CPU_PINNING",  PSCPU_print(set), 1);
 
-    switch (cpuSlot) {
-    case -2:
-	fprintf(stderr, "CPU slot not set. Old executable? "
+    int16_t physCPUs = PSIDnodes_getPhysCPUs(PSC_getMyID());
+
+    if (!PSCPU_any(set, physCPUs)) {
+	fprintf(stderr, "CPU slots not set. Old executable? "
 		"You might want to relink your program.\n");
-	break;
-    case -1:
+    } else if (PSCPU_all(set, physCPUs)) {
 	/* No mapping */
-	break;
-    default:
-	physCPU = PSIDnodes_mapCPU(PSC_getMyID(), cpuSlot);
-	if (PSIDnodes_bindMem(PSC_getMyID())) bindToNode(physCPU);
-	if (PSIDnodes_pinProcs(PSC_getMyID())) pinToCPU(physCPU);
+    } else if (PSIDnodes_pinProcs(PSC_getMyID())
+	       || PSIDnodes_bindMem(PSC_getMyID())) {
+#ifdef CPU_ZERO
+	cpu_set_t *physSet = mapCPUs(set);
+
+	if (PSIDnodes_pinProcs(PSC_getMyID())) pinToCPUs(physSet);
+	if (PSIDnodes_bindMem(PSC_getMyID())) bindToNodes(physSet);
+#else
+	fprintf(stderr, "Daemon has no sched_setaffinity(). No pinning\n");
+#endif
     }
 }
 
@@ -498,15 +536,7 @@ static void execClient(PStask_t *task)
 	}	    
     }
 
-    /* @todo Don't set environment but do real pinning */
-    if (1) {
-	char cpu[20];
-	snprintf(cpu, sizeof(cpu), "%d", task->cpu);
-	setenv("PSID_CPU_PINNING", cpu, 1);
-    }
-
-    doClamps(task->cpu);
-
+    doClamps(task->CPUset);
 
     if (!task->argv[0]) {
 	fprintf(stderr, "No argv[0] given!\n");
@@ -1238,10 +1268,9 @@ static void sendAcctInfo(PStask_ID_t sender, PStask_t *task)
 	*(uint32_t *)ptr = PSIDnodes_getAddr(task->partition[slot].node);
 	ptr += sizeof(uint32_t);
 	msg.header.len += sizeof(uint32_t);
-	*(int32_t *)ptr = task->partition[slot].cpu;
-	ptr += sizeof(int32_t);
-	msg.header.len += sizeof(int32_t);
-
+	memcpy(ptr, task->partition[slot].CPUset, sizeof(PSCPU_set_t));
+	ptr += sizeof(PSCPU_set_t);
+	msg.header.len += sizeof(PSCPU_set_t);
     }
 
     sendMsg((DDMsg_t *)&msg);
@@ -1537,6 +1566,9 @@ void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 
     if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
 	/* request for a remote site. */
+	int destDaemonPSPver =
+	    PSIDnodes_getDaemonProtoVersion(PSC_getID(msg->header.dest));
+
 	if (!PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
 	    send_DAEMONCONNECT(PSC_getID(msg->header.dest));
 	}
@@ -1568,9 +1600,19 @@ void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 		    .type = PSP_SPAWN_LOC };
 		char *ptr = locMsg.buf;
 
-		*(int16_t *)ptr = ptask->spawnNodes[rank].cpu;
-		ptr += sizeof(int16_t);
-		locMsg.header.len += sizeof(int16_t);
+		if (destDaemonPSPver < 401) {
+		    *(int16_t *)ptr =
+			PSCPU_first(ptask->spawnNodes[rank].CPUset,
+				    PSIDnodes_getPhysCPUs(
+					PSC_getID(locMsg.header.dest)));
+		    ptr += sizeof(int16_t);
+		    locMsg.header.len += sizeof(int16_t);
+		} else {
+		    memcpy(ptr, ptask->spawnNodes[rank].CPUset,
+			   sizeof(PSCPU_set_t));
+		    ptr += sizeof(PSCPU_set_t);
+		    locMsg.header.len += sizeof(PSCPU_set_t);
+		}
 
 		PSID_log(PSID_LOG_SPAWN, "%s: send PSP_SPAWN_LOC to node %d\n",
 			 __func__, PSC_getID(locMsg.header.dest));
@@ -1605,25 +1647,36 @@ void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	PStasklist_enqueue(&spawnTasks, task);
 
 	if (task->group == TG_SERVICE || task->group == TG_ADMINTASK) {
-	    task->cpu = -1;
+	    PSCPU_setAll(task->CPUset);
 	} else if (PSC_getID(msg->header.sender)==PSC_getMyID()) {
 	    if (!ptask->spawnNodes || rank >= ptask->spawnNum) {
 		PSID_log(-1, "%s: rank %d out of range\n", __func__, rank);
 	    } else {
-		task->cpu = ptask->spawnNodes[rank].cpu;
+		memcpy(task->CPUset,
+		       ptask->spawnNodes[rank].CPUset, sizeof(task->CPUset));
 	    }
 	}
 	return;
 	break;
     case PSP_SPAWN_LOC:
+    {
+	int srcDaemonPSPver =
+	    PSIDnodes_getDaemonProtoVersion(PSC_getID(msg->header.sender));
+
 	if (!task) {
 	    PSID_log(-1, "%s: PSP_SPAWN_LOC from %s: task not found\n",
 		     __func__, PSC_printTID(msg->header.sender));
 	    return;
 	}
-	task->cpu = *(int16_t *)msg->buf;
-	usedBytes = sizeof(int16_t);
+	if (srcDaemonPSPver < 401) {
+	    PSCPU_setCPU(task->CPUset, *(int16_t *)msg->buf);
+	    usedBytes = sizeof(int16_t);
+	} else {
+	    memcpy(task->CPUset, msg->buf, sizeof(task->CPUset));
+	    usedBytes = sizeof(task->CPUset);
+	}
 	break;
+    }
     case PSP_SPAWN_ARG:
 	if (!task) {
 	    PSID_log(-1, "%s: PSP_SPAWN_ARG from %s: task not found\n",
@@ -1802,7 +1855,8 @@ void msg_CHILDDEAD(DDErrorMsg_t *msg)
 		 PSC_printTID(msg->request));
     } else {
 	/* Check the status */
-	if (WIFEXITED(msg->error) && !WIFSIGNALED(msg->error)) {
+	if (WIFEXITED(msg->error) && !WEXITSTATUS(msg->error)
+	    && !WIFSIGNALED(msg->error)) {
 	    /* and release the task if no error occurred */
 	    task->released = 1;
 	}

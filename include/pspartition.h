@@ -21,6 +21,7 @@
 #define __PSPARTITION_H
 
 #include "pstask.h"
+#include "pscpu.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,6 +33,11 @@ extern "C" {
 typedef struct {
     PSnodes_ID_t node;
     int16_t cpu;
+} PSpart_oldSlot_t;
+
+typedef struct {
+    PSnodes_ID_t node;
+    PSCPU_set_t CPUset;
 } PSpart_slot_t;
 
 /** Various sort modes for partition creation. */
@@ -87,6 +93,7 @@ typedef struct request{
     /*C*/ PSpart_option_t options; /**< Options steering partition creation */
     /*C*/ uint32_t priority;       /**< Priority of the parallel task */
     /*C*/ int32_t num;             /**< Number of nodes within request */
+    /*C*/ uint16_t tpp;            /**< Threads per process requested */
     int numGot;                    /**< Number of nodes currently received */
     unsigned int sizeGot;          /**< Number of slots currently received */
     PSnodes_ID_t *nodes;           /**< List of partition candidates */

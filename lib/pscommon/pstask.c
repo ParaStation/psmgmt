@@ -70,7 +70,7 @@ int PStask_init(PStask_t* task)
     task->loggertid = 0;
     task->forwardertid = 0;
     task->rank = -1;
-    task->cpu = -2;
+    PSCPU_clrAll(task->CPUset);
     task->fd = -1;
     task->workingdir = NULL;
     task->argc = 0;
@@ -238,7 +238,7 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->loggertid = task->loggertid;
     clone->forwardertid = task->forwardertid;
     clone->rank = task->rank;
-    clone->cpu = task->cpu;
+    memcpy(clone->CPUset, task->CPUset, sizeof(clone->CPUset));
     /* clone->fd = -1; */
     clone->workingdir = (task->workingdir) ? strdup(task->workingdir) : NULL;
     clone->argc = task->argc;
@@ -291,9 +291,10 @@ static void snprintfStruct(char *txt, size_t size, PStask_t * task)
     if (!task) return;
 
     snprintf(txt, size, "tid 0x%08x ptid 0x%08x uid %d gid %d group %s"
-	     " rank %d cpu %d links(%p,%p) loggertid %08x fd %d argc %d",
+	     " rank %d cpus %s links(%p,%p) loggertid %08x fd %d argc %d",
 	     task->tid, task->ptid, task->uid, task->gid,
- 	     PStask_printGrp(task->group), task->rank, task->cpu,
+ 	     PStask_printGrp(task->group), task->rank,
+	     PSCPU_print(task->CPUset),
  	     task->next, task->prev, task->loggertid, task->fd, task->argc);
 }
 

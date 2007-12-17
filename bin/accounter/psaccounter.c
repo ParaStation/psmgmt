@@ -51,6 +51,7 @@ static char vcid[] __attribute__ ((unused)) =
 #include "psispawn.h"
 #include "pscommon.h"
 #include "pstask.h"
+#include "pscpu.h"
 #include "psprotocol.h"
 #include "logging.h"
 
@@ -863,6 +864,7 @@ void handleSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
     
     PStask_ID_t logger;
     unsigned int numSlots, slot;
+    size_t slotSize;
     char sep[2] = "";
     struct hostent *hostName;
     Job_t *job;
@@ -876,6 +878,9 @@ void handleSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
     numSlots = *(uint32_t *) ptr;
     ptr += sizeof(uint32_t);
 
+    slotSize = (msg->header.len - sizeof(msg->header) - sizeof(msg->type)
+		- sizeof(PStask_ID_t) - sizeof(uint32_t)) / numSlots;
+
     job = findJob(logger);
 
     if (!job) {
@@ -885,13 +890,22 @@ void handleSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
 
     for (slot = 0; slot < numSlots; slot++) {
 	struct in_addr slotIP;
-	int cpu, bufleft;
+	int bufleft;
+	PSCPU_set_t CPUset;
 	char ctmphost[400];
         
 	slotIP.s_addr = *(uint32_t *) ptr;
 	ptr += sizeof(uint32_t);
-	cpu = *(int32_t *) ptr;
-	ptr += sizeof(int32_t);
+	slotSize -= sizeof(int32_t);
+
+	switch (slotSize) {
+	case sizeof(PSCPU_set_t):
+	    memcpy(CPUset, ptr, sizeof(PSCPU_set_t));
+	    ptr += sizeof(PSCPU_set_t);
+	    break;
+	default:
+	    alog("Unknown slotSize %d\n", slotSize);
+	}
 
         if (job->countSlotMsg) {
             strcpy(sep, "+");

@@ -55,8 +55,8 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 	    PStask_t *forwarder = PStasklist_find(managedTasks,
 						  child->forwardertid);
 	    if (!forwarder) {
-		PSID_log(-1, "%s: forwarder %s not found\n", __func__,
-			 PSC_printTID(child->forwardertid));
+		PSID_log(PSID_LOG_SIGNAL, "%s: forwarder %s not found\n",
+			 __func__, PSC_printTID(child->forwardertid));
 	    } else {
 		/* Send signal to forwarder */
 		PSLog_Msg_t msg;

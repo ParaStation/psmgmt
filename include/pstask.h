@@ -27,6 +27,7 @@
 #include <time.h>
 
 #include "psnodes.h"
+#include "pscpu.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -96,7 +97,7 @@ typedef struct PStask_T{
     /*C*/ PStask_ID_t loggertid;   /**< unique identifier of the logger */
     PStask_ID_t forwardertid;      /**< unique identifier of the forwarder */
     /*C*/ int32_t rank;            /**< rank of task within task group */
-    int16_t cpu;                   /**< logical CPU-number to pin to */
+    PSCPU_set_t CPUset;            /**< set of logical CPUs to pin to */
     short fd;                      /**< connection fd within psid */
     /*C*/ char *workingdir;        /**< working directory */
     /*C*/ int32_t argc;            /**< num of args, length of @a argv */

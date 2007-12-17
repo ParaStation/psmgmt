@@ -41,6 +41,7 @@ void PSpart_initReq(PSpart_request_t* request)
 	.options = 0,
 	.priority = 0,
 	.num = -1,
+	.tpp = 1,
 	.numGot = -1,
 	.sizeGot = 0,
 	.nodes = NULL,
@@ -87,10 +88,10 @@ void PSpart_snprintf(char* txt, size_t size, PSpart_request_t* request)
 	return;
     }
 
-    snprintf(txt, size, "%stid 0x%08x size %d hwType 0x%x uid %d gid %d"
+    snprintf(txt, size, "%stid 0x%08x size %d tpp %d hwType 0x%x uid %d gid %d"
 	     " sort 0x%x options 0x%x priority %d num %d",
 	     request->deleted ? "!DELETED! " : "",
-	     request->tid, request->size, request->hwType,
+	     request->tid, request->size, request->tpp, request->hwType,
 	     request->uid, request->gid,
 	     request->sort, request->options, request->priority, request->num);
     if (strlen(txt)+1 == size) return;
@@ -109,8 +110,9 @@ void PSpart_snprintf(char* txt, size_t size, PSpart_request_t* request)
 	/* processed request */
 	for (u=0; u<request->sizeGot; u++) {
 	    snprintf(txt+strlen(txt), size-strlen(txt),
-		     "%s%d/%d", u ? " " : "",
-		     request->slots[u].node, request->slots[u].cpu);
+		     "%s%d/%s", u ? " " : "",
+		     request->slots[u].node,
+		     PSCPU_print(request->slots[u].CPUset));
 	    if (strlen(txt)+1 == size) return;
 	}
     }
@@ -127,6 +129,7 @@ static struct {
     PSpart_option_t options;
     uint32_t priority;
     int32_t num;
+    uint16_t tpp;
 } tmpRequest;
 
 static char partString[256];
@@ -151,6 +154,7 @@ size_t PSpart_encodeReq(char* buffer, size_t size, PSpart_request_t* request)
 	tmpRequest.options = request->options;
 	tmpRequest.priority = request->priority;
 	tmpRequest.num = request->num;
+	tmpRequest.tpp = request->tpp;
 
 	memcpy(buffer, &tmpRequest, sizeof(tmpRequest));
     } else {
@@ -182,6 +186,7 @@ size_t PSpart_decodeReq(char* buffer, PSpart_request_t* request)
     request->options = tmpRequest.options;
     request->priority = tmpRequest.priority;
     request->num = tmpRequest.num;
+    request->tpp = tmpRequest.tpp;
 
     PSpart_snprintf(partString, sizeof(partString), request);
     PSC_log(PSC_LOG_PART, " received request = (%s)\n", partString);
