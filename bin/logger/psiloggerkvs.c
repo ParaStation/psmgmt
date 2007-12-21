@@ -70,14 +70,18 @@ int timerid = -1;
  */
 static void sendKvsMsg(PStask_ID_t tid, char *msg)
 {
-    
     ssize_t len;
+    
+    if (!msg) {
+	fprintf(stderr, "PSIlogger: %s: invalid kvs message\n", __func__);
+	terminateJob();
+    }
     
     len = strlen(msg);
     if (!(len && msg[len - 1] == '\n')) {
 	/* assert */
 	fprintf(stderr, "PSIlogger: %s: invalid kvs message\n", __func__);
-	exit(1);
+	terminateJob();
     }
 
     /* send the msg */
@@ -98,10 +102,18 @@ void initLoggerKvs(int verbose)
     int i;
     
     clientKvsTID = malloc (sizeof(*clientKvsTID) * maxKvsClients);
-    for (i=0; i<maxKvsClients; i++) clientKvsTID[i] = -1;
-    
     clientKvsTrackTID = malloc (sizeof(*clientKvsTrackTID) * maxKvsClients);
-    for (i=0; i<maxKvsClients; i++) clientKvsTrackTID[i] = -1;
+    
+    if (!clientKvsTID || !clientKvsTrackTID) {
+	fprintf(stderr, "PSIlogger: %s, out of memory\n", __func__);
+	terminateJob();
+	exit(1);
+    }
+    
+    for (i=0; i<maxKvsClients; i++) {
+	clientKvsTID[i] = -1;
+	clientKvsTrackTID[i] = -1;
+    }
     
     /* init the kvs */
     kvs_init();
@@ -116,13 +128,18 @@ void initLoggerKvs(int verbose)
     
     /* create global kvs */
     if((kvs_create(kvs_name))) {
-	fprintf(stderr, "PSIlogger: Failed to create default kvs\n");
-	exit(1);
+	fprintf(stderr,
+		"PSIlogger: %s: Failed to create default kvs\n", __func__);
+	terminateJob();
     }
 
     /* set the init size of the job */
     if ((envstr = getenv("PMI_SIZE"))) {
 	noKvsClients = atoi(envstr);
+    } else {
+	fprintf(stderr,
+		"PSIlogger: %s: PMI_SIZE is not correct set.\n", __func__);
+	terminateJob();
     }
 
     /* init the timer structure */
@@ -135,9 +152,11 @@ void initLoggerKvs(int verbose)
 	barrierTimeout = atoi(envstr);
 	if (verbose) {
 	    if (barrierTimeout == -1) {
-		fprintf(stderr, "PSIlogger: Disabling timeout of pmi barrier.\n");
+		fprintf(stderr,
+			"PSIlogger: Disabling timeout of pmi barrier.\n");
 	    } else {
-		fprintf(stderr, "PSIlogger: Setting timeout of pmi barrier to:%i\n",
+		fprintf(stderr,
+			"PSIlogger: Setting timeout of pmi barrier to:%i\n",
 		        barrierTimeout);
 	    }
 	}
@@ -165,8 +184,7 @@ static void sendMsgToKvsClients(char *msg)
     int i;
 
     if (!msg) {
-	fprintf(stderr, "PSIlogger: %s: error sending msg to all kvs clients\n",
-		__func__);
+	fprintf(stderr, "PSIlogger: %s: error got invalid msg\n", __func__);
     }
 
     for(i=0; i< maxKvsClients; i++) {
@@ -185,7 +203,8 @@ static void sendMsgToKvsClients(char *msg)
  */
 static void handleKvsPut(PSLog_Msg_t msg)
 {
-    char kvsname[KVSNAME_MAX], name[KEYLEN_MAX], value[VALLEN_MAX], retbuf[PMIU_MAXLINE];
+    char kvsname[KVSNAME_MAX], name[KEYLEN_MAX];
+    char value[VALLEN_MAX], retbuf[PMIU_MAXLINE];
     char *ptr = msg.buf;
     
     /* parse arguments */
@@ -194,17 +213,19 @@ static void handleKvsPut(PSLog_Msg_t msg)
     getpmiv("value",ptr,value,sizeof(value));
 
     if (!kvsname || !name || !value) {
-	fprintf(stderr, "PSIlogger: %s: received invalid kvs put cmd\n",
-		    __func__);		
-	snprintf(retbuf, sizeof(retbuf), "cmd=put_result rc=-1 msg=error_invalid_put_msg\n");
+	fprintf(stderr,
+		"PSIlogger: %s: received invalid kvs put cmd\n", __func__);		
+	snprintf(retbuf, sizeof(retbuf),
+		 "cmd=put_result rc=-1 msg=error_invalid_put_msg\n");
     } else {	
 	/* put the value in kvs */
 	if (!(kvs_put(kvsname, name, value))) {
 	    snprintf(retbuf, sizeof(retbuf), "cmd=put_result rc=0\n");
 	} else {
-	    snprintf(retbuf, sizeof(retbuf), "cmd=put_result rc=-1 msg=error_kvs_error\n");
+	    snprintf(retbuf, sizeof(retbuf),
+		     "cmd=put_result rc=-1 msg=error_kvs_error\n");
 	    fprintf(stderr, "PSIlogger: %s: error while saving value to kvs\n",
-			__func__);
+		    __func__);
 	} 
     }
 
@@ -231,14 +252,18 @@ static void handleKvsGet(PSLog_Msg_t msg)
     if (!kvsname || !name) {
 	fprintf(stderr, "PSIlogger: %s: received invalid kvs get cmd\n",
 		__func__);		
-	snprintf(retbuf, sizeof(retbuf), "cmd=get_result rc=-1 msg=error_invalid_get_msg\n");
+	snprintf(retbuf, sizeof(retbuf),
+		 "cmd=get_result rc=-1 msg=error_invalid_get_msg\n");
     } else {
 	/* get the value from kvs */
 	if ((value = kvs_get(kvsname, name))) {
-	    snprintf(retbuf, sizeof(retbuf), "cmd=get_result rc=0 value=%s\n", value);
+	    snprintf(retbuf, sizeof(retbuf),
+		     "cmd=get_result rc=0 value=%s\n", value);
 	} else {
-	    snprintf(retbuf, sizeof(retbuf), "cmd=get_result rc=-1 msg=error_kvs_error\n");
-	    fprintf(stderr, "PSIlogger: %s: error while getting a value from kvs\n",
+	    snprintf(retbuf, sizeof(retbuf),
+		     "cmd=get_result rc=-1 msg=error_kvs_error\n");
+	    fprintf(stderr,
+		    "PSIlogger: %s: error while getting a value from kvs\n",
 		    __func__);
 	} 
     }
@@ -267,7 +292,7 @@ static void handleKvsCreate(PSLog_Msg_t msg)
 	/* create kvs */
 	if (!(kvs_create(kvsname))) {
 	    snprintf(retbuf, sizeof(retbuf), "cmd=newkvs kvsname=%s\n",
-			kvsname);
+		     kvsname);
 	} else {
 	    snprintf(retbuf, sizeof(retbuf), "cmd=newkvs rc=-1\n");
 	} 
@@ -291,7 +316,7 @@ static void handleKvsDestroy(PSLog_Msg_t msg)
     /* parse arguments */
     if (getpmiv("kvsname",ptr,kvsname,sizeof(kvsname))) {
 	fprintf(stderr, "PSIlogger: %s: wrong kvs destroy msg received\n",
-		    __func__);
+		__func__);
 	snprintf(retbuf, sizeof(retbuf), "cmd=kvs_destroyed rc=-1\n");
     } else {
 	/* destroy kvs */
@@ -314,7 +339,8 @@ static void handleKvsDestroy(PSLog_Msg_t msg)
  */
 static void handleKvsGetByIdx(PSLog_Msg_t msg)
 {
-    char idx[VALLEN_MAX], kvsname[KVSNAME_MAX], retbuf[PMIU_MAXLINE], name[KVSNAME_MAX];
+    char idx[VALLEN_MAX], kvsname[KVSNAME_MAX], retbuf[PMIU_MAXLINE];
+    char name[KVSNAME_MAX];
     char *ptr = msg.buf, *ret, *value;
     int index, len;
 
@@ -332,7 +358,11 @@ static void handleKvsGetByIdx(PSLog_Msg_t msg)
 	/* find and return the value */
 	if ((ret = kvs_getbyidx(kvsname,index))) {
 	    value = strchr(ret,'=') + 1;
-	    len = strlen(ret) - strlen(value) - 1; 
+	    if (value) {
+		len = strlen(ret) - strlen(value) - 1; 
+	    } else {
+		len = strlen(ret) -1;
+	    }
 	    strncpy(name, ret, len);
 	    name[len] = '\0';
 	    snprintf(retbuf, sizeof(retbuf),
@@ -362,19 +392,19 @@ static void sendKvsUpdateToClients(void)
     kvsUpdateMsgCount = 0;
     for(i=0; i< kvs_count(); i++) {
 	if (!(kvsname = kvs_getKvsNameByIndex(i))) {
-		fprintf(stderr,"PSIlogger: %s: error finding kvs while update\n",
-			    __func__);
-		exit(1);
+	    fprintf(stderr, "PSIlogger: %s: error finding kvs while update\n",
+		    __func__);
+	    terminateJob();
 	}
 	kvsvalcount = kvs_count_values(kvsname);
 	valup = 0;
 	while (kvsvalcount > valup) {
-	    snprintf(kvsmsg,sizeof(kvsmsg),"cmd=kvs_update_cache kvsname=%s",
-			    kvsname);
+	    snprintf(kvsmsg, sizeof(kvsmsg),
+		     "cmd=kvs_update_cache kvsname=%s", kvsname);
 	    /* add the values to the msg */ 
 	    while (kvsvalcount > valup) {
 		snprintf(nextval, sizeof(nextval), " %s",
-			    kvs_getbyidx(kvsname,valup));
+			 kvs_getbyidx(kvsname,valup));
 		if ((strlen(nextval) + strlen(kvsmsg) + 2 ) > PMIU_MAXLINE) {
 		    break;
 		}
@@ -392,6 +422,23 @@ static void sendKvsUpdateToClients(void)
     /* send update finished msg */
     snprintf(kvsmsg, sizeof(kvsmsg), "cmd=kvs_update_cache_finish\n");
     sendMsgToKvsClients(kvsmsg);
+}
+
+/**
+ * @brief Callback function to handle barrier timeout. 
+ *
+ * Terminate the job, send all children term signal, to
+ * avoid that the job hangs infinite.
+ *
+ * @return No return value.
+ */
+static void handleBarrierTimeout(void)
+{
+    fprintf(stderr, "PSIlogger: Timeout:"
+	    " Not all clients joined the first pmi barrier.\n");
+
+    /* kill all childs */
+    terminateJob();
 }
 
 /**
@@ -437,17 +484,19 @@ static void handleKvsBarrierIn(PSLog_Msg_t msg)
 
     /* check if last barrier ended successfully */
     if (kvsCacheUpdateCount > 0) {
-	fprintf(stderr,"PSIlogger: %s: received barrier_in from %s while waiting for cache update results\n",
+	fprintf(stderr, "PSIlogger: %s: received barrier_in from %s while"
+		" waiting for cache update results\n",
 		__func__, PSC_printTID(msg.header.sender));
-	exit(1);
+	terminateJob();
     }
 
     /* check for double barrier in msg */
     for (i=0; i< maxKvsClients; i++) {
 	if (clientKvsTrackTID[i] == msg.sender) {
-	    fprintf(stderr,"PSIlogger: %s: received barrier_in twice from %s\n",
+	    fprintf(stderr,
+		    "PSIlogger: %s: received barrier_in twice from %s\n",
 		    __func__, PSC_printTID(msg.header.sender));
-	    exit(1);
+	    terminateJob();
 	}
     }
 
@@ -462,8 +511,9 @@ static void handleKvsBarrierIn(PSLog_Msg_t msg)
     
     /* debugging output */
     if (debug_kvs) {
-	fprintf(stderr,"PSIlogger: %s: ->barrier_in, barrierCount:%i, noKvsClients:%i\n",
-		    __func__, kvsBarrierInCount, noKvsClients);
+	fprintf(stderr, "PSIlogger: %s: ->barrier_in, barrierCount:%i,"
+		" noKvsClients:%i\n",
+		__func__, kvsBarrierInCount, noKvsClients);
     }
 
     /* all clients joined barrier */
@@ -493,7 +543,8 @@ static void handleKvsCount(PSLog_Msg_t msg)
     char reply[PMIU_MAXLINE];
     
     /* return result */
-    snprintf(reply,sizeof(reply),"cmd=kvs_count count=%i rc=0\n", kvs_count());
+    snprintf(reply, sizeof(reply),
+	     "cmd=kvs_count count=%i rc=0\n", kvs_count());
     sendKvsMsg(msg.header.sender, reply);
 }
 
@@ -511,13 +562,15 @@ static void handleKvsValueCount(PSLog_Msg_t msg)
     char *ptr = msg.buf;
 
     /* parse arguments */
-    if (getpmiv("kvsname",ptr,kvsname,sizeof(kvsname))) {
-	fprintf(stderr, "PSIlogger: %s: wrong kvs value count msg received\n",
-		    __func__);
+    if (getpmiv("kvsname", ptr,kvsname, sizeof(kvsname))) {
+	fprintf(stderr,	"PSIlogger: %s: wrong kvs value count msg received\n",
+		__func__);
 	snprintf(reply, sizeof(reply), "cmd=kvs_value_count rc=-1\n");
     } else {
         /* return result */
-	snprintf(reply,sizeof(reply),"cmd=kvs_value_count count=%i kvsname=%s rc=0\n", kvs_count_values(kvsname), kvsname);
+	snprintf(reply, sizeof(reply),
+		 "cmd=kvs_value_count count=%i kvsname=%s rc=0\n",
+		 kvs_count_values(kvsname), kvsname);
     }
     sendKvsMsg(msg.header.sender, reply);
 }
@@ -537,17 +590,19 @@ static void handleKvsUpdateCacheResult(PSLog_Msg_t msg)
 
     /* check if barrier_in is finished */
     if (kvsBarrierInCount >0 ) {
-	fprintf(stderr, "PSIlogger: %s: received new barrier_in from %s while waiting for update cache results\n",
-		    __func__, PSC_printTID(msg.header.sender));		    
-	exit(1);
+	fprintf(stderr, "PSIlogger: %s: received new barrier_in from %s while"
+		" waiting for update cache results\n",
+		__func__, PSC_printTID(msg.header.sender));		    
+	terminateJob();
     }
 
     /* check for double update cache msg */
     for (i=0; i< maxKvsClients; i++) {
 	if (clientKvsTrackTID[i] == msg.sender) {
-	    fprintf(stderr,"PSIlogger: %s: received update cache result twice from %s\n",
+	    fprintf(stderr, "PSIlogger: %s: received update cache result"
+		    " twice from %s\n",
 		    __func__, PSC_printTID(msg.header.sender));
-	    exit(1);
+	    terminateJob();
 	}
     }
 
@@ -555,16 +610,17 @@ static void handleKvsUpdateCacheResult(PSLog_Msg_t msg)
     getpmiv("mc",ptr,mc,sizeof(mc));
     
     if (!mc) {
-	fprintf(stderr,"PSIlogger: %s: received invalid kvs update cache reply\n",
-		    __func__);
+	fprintf(stderr,
+		"PSIlogger: %s: received invalid kvs update cache reply\n",
+		__func__);
 	return;
     }
 
     /* check if client got all the updates */
     if (atoi(mc) != kvsUpdateMsgCount) {
-	fprintf(stderr,"PSIlogger: %s: kvs client did not get all the kvs update msgs\n",
-		    __func__);
-	exit(1);
+	fprintf(stderr, "PSIlogger: %s: kvs client did not get all the kvs"
+		" update msgs\n", __func__);
+	terminateJob();
     }
     
     /* Set timeout waiting for all clients to join barrier */
@@ -605,30 +661,29 @@ static void handleKvsJoin(PSLog_Msg_t msg)
     static int count = 0;
 
     if (msg.sender >= maxKvsClients) {
-	/* realloc clientKvsTID */
 	int i;
-	clientKvsTID = realloc(clientKvsTID, sizeof(*clientKvsTID) * 2 * msg.sender);
-	if (!clientKvsTID) {
-	    fprintf(stderr, "PSIlogger: %s: realloc(%ld) failed.\n", __func__,
-		    (long) sizeof(*clientKvsTID) * 2 * msg.sender);
+	
+	clientKvsTID = realloc(clientKvsTID,
+			       sizeof(*clientKvsTID) * 2 * msg.sender);
+	clientKvsTrackTID = realloc(clientKvsTrackTID,
+				    sizeof(*clientKvsTrackTID)*2*msg.sender);
+	
+	if (!clientKvsTID || !clientKvsTrackTID) {
+	    fprintf(stderr, "PSIlogger: %s: realloc failed.\n", __func__);
+	    terminateJob();
 	    exit(1);
 	}	    
-	for (i=maxKvsClients; i<2*msg.sender; i++) clientKvsTID[i] = -1;
 
-	/* realloc clientKvsTrackTID */
-	clientKvsTrackTID = realloc(clientKvsTrackTID, sizeof(*clientKvsTrackTID) * 2 * msg.sender);
-	if (!clientKvsTrackTID) {
-	    fprintf(stderr, "PSIlogger: %s: realloc(%ld) failed.\n", __func__,
-		    (long) sizeof(*clientKvsTrackTID) * 2 * msg.sender);
-	    exit(1);
-	}	    
-	for (i=maxKvsClients; i<2*msg.sender; i++) clientKvsTrackTID[i] = -1;
+	for (i=maxKvsClients; i<2*msg.sender; i++) {
+	    clientKvsTID[i] = -1;
+	    clientKvsTrackTID[i] = -1;
+	}
 
 	maxKvsClients = 2*msg.sender;
     }
     if (clientKvsTID[msg.sender] != -1) {
-	    fprintf(stderr, "PSIlogger: %s: %s (rank %d) already in kvs.\n",
-		    __func__, PSC_printTID(msg.header.sender), msg.sender);
+	fprintf(stderr, "PSIlogger: %s: %s (rank %d) already in kvs.\n",
+		__func__, PSC_printTID(msg.header.sender), msg.sender);
     } else {
 	clientKvsTID[msg.sender] = msg.header.sender;
 	count++;
@@ -654,9 +709,11 @@ static void handleKvsLeave(PSLog_Msg_t msg)
     while ((i < maxKvsClients) && (clientKvsTID[i] != msg.header.sender)) i++;
 
     if (i == maxKvsClients) {
-	fprintf(stderr, "PSIlogger: %s: error invalid leave kvs msg %s.\n",
+	fprintf(stderr,
+		"PSIlogger: %s: error invalid leave kvs msg from: %s.\n",
 		__func__, PSC_printTID(msg.header.sender));
 	errno = EBADMSG;
+	terminateJob();
     }
     clientKvsTID[i] = -1;
 
@@ -700,7 +757,7 @@ static void handleKvsLeave(PSLog_Msg_t msg)
 		clientKvsTrackTID[i] = -1;
 	    }
 	    /* send all Clients barrier_out */
-	    snprintf(reply,sizeof(reply),"cmd=barrier_out\n");
+	    snprintf(reply, sizeof(reply), "cmd=barrier_out\n");
 	    sendMsgToKvsClients(reply);
 	}
 
@@ -757,15 +814,14 @@ void handleKvsMsg(PSLog_Msg_t msg)
    
     /* extract the kvs command */
     if(!(msgCopy = strdup(msg.buf))) {
-	fprintf(stderr, "PSIlogger: %s: out of memmory, exiting\n",
-		    __func__);
+	fprintf(stderr, "PSIlogger: %s: out of memory, exiting\n", __func__);
+	terminateJob();
 	exit(1);
     }
     
     if (!(cmdtmp = getKvsCmd(msgCopy))) {
-	fprintf(stderr, "PSIlogger: %s: unsupported kvs cmd received\n",
-		    __func__);
-	return;
+	fprintf(stderr, "PSIlogger: %s: invalid kvs cmd received\n", __func__);
+	terminateJob();
     } 
     strncpy(cmd, cmdtmp, sizeof(cmd));
     free(msgCopy);
@@ -794,6 +850,8 @@ void handleKvsMsg(PSLog_Msg_t msg)
     } else if (!strcmp(cmd,"leave_kvs")) {
 	handleKvsLeave(msg);
     } else {
-	fprintf(stderr,"%s: Unknown pmi kvs cmd=%s\n", __func__, cmd);
+	fprintf(stderr,	"PSIlogger: %s: got unsupported pmi kvs cmd=%s\n",
+		__func__, cmd);
+	terminateJob();
     }
 }

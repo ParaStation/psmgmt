@@ -668,10 +668,9 @@ void handleAccEndMsg(char *chead, char *ptr, PStask_ID_t sender,
 	ptr += sizeof(ulong);
 	
 	/* real start time */
-	/*
 	if (!job->real_start) {
 	    job->real_start = *(ulong *) ptr;
-	}*/
+	}
 	ptr += sizeof(ulong);
 
 	/* if not already printed "guessed" start time use real */
@@ -750,6 +749,10 @@ void handleAccEndMsg(char *chead, char *ptr, PStask_ID_t sender,
 		1.0e-6 * job->rusage.ru_utime.tv_usec +
 		job->rusage.ru_stime.tv_sec +
 		1.0e-6 * job->rusage.ru_stime.tv_usec;
+
+	    if (job->cput < 0) {
+		job->cput = 0;
+	    }
 
 	    /* all jobs terminated -> set end time */
 	    if (job->countExitMsg == job->taskSize) {
@@ -904,7 +907,7 @@ void handleSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
 	    ptr += sizeof(PSCPU_set_t);
 	    break;
 	default:
-	    alog("Unknown slotSize %d\n", slotSize);
+	    alog("Unknown slotSize %d\n", (int)slotSize);
 	}
 
         if (job->countSlotMsg) {
@@ -1020,6 +1023,7 @@ void openAccLogFile(char *arg_logdir)
     time_t t;
     struct tm *tmp;
     struct stat statbuf;
+    int ret;
 
     t = time(NULL);
     tmp = localtime(&t);
@@ -1049,7 +1053,10 @@ void openAccLogFile(char *arg_logdir)
 	    }
 	    strncat(syscmd, "/", sizeof(syscmd) - strlen(syscmd) - 1);
 	    strncat(syscmd, oldfilename, sizeof(syscmd) - strlen(syscmd) - 1);
-	    system(syscmd);
+	    ret = system(syscmd);
+	    if (ret == -1) {
+		alog("error executing postprocessing cmd:%s\n", syscmd);
+	    }
 	}
 
     }

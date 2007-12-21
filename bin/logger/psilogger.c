@@ -159,47 +159,66 @@ static void closeDaemonSock(void)
 static void setupInputDestList(char *input)
 {
     const char delimiters[] ="[], \n";
-    char *ranks, *saveptr, *sep;
+    char *ranks, *saveptr;
     int first, last, i;
 
-    for (i=0; i<maxClients; i++) InputDest[i] = -1;
-
     if (!input) {
-	InputDest[0] = 0;
 	return;
     }
     
-    ranks = strtok_r(input,delimiters,&saveptr);
+    if (!(ranks = strtok_r(input,delimiters,&saveptr))) {
+	fprintf(stderr, "PSIlogger: empty input destination.\n");
+	return;
+    }
+    
+    /* reset old input destinations */
+    for (i=0; i<maxClients; i++) InputDest[i] = -1;
 
     /* set input to all ranks */
     if (!strcmp(ranks, "all") || !strcmp(ranks, "All")) {
-	for(i=0; i<np; i++) {
+	for (i=0; i<np; i++) {
 	    InputDest[i] = i;
 	}
 	return;
     }
    
     while (ranks != NULL) {
-	if ((sep = strchr(ranks, '-'))) {
+	if (strchr(ranks, '-') != NULL) {
 	    first = last = 0;
 	    if ((sscanf(ranks, "%d-%d", &first, &last)) != 2) {
-		fprintf(stderr, "PSIlogger: invalid range for input redirection\n");
+		fprintf(stderr, "PSIlogger: invalid range for input"
+			" redirection, setting input to Rank 0.\n");
+		InputDest[0] = 0;
+		return;
+	    }
+	    if (first < 0 || last < 0 || last < first || first == last) {
+		fprintf(stderr, "PSIlogger: invalid range for input"
+			" redirection %i-%i, setting input to Rank 0.\n",
+			first, last);
+		InputDest[0] = 0;
 		return;
 	    }
 	    for(i=first; i<=last; i++) {
 		if (i >= np) {
-		    fprintf(stderr, "PSIlogger: input forward to non existing rank:[%d], valid ranks:[0-%i]\n", i, np -1);
-		    exit(1);
+		    fprintf(stderr, "PSIlogger: input forward to non existing"
+			    " rank:[%d], valid ranks:[0-%i]\n", i, np -1);
+		} else {
+		    InputDest[i] = i;
 		}
-		InputDest[i] = i;
 	    }
 	} else {
-	    i = atoi(ranks);
-	    if (i >= np) {
-		fprintf(stderr, "PSIlogger: input forward to non existing rank:[%d], valid ranks:[0-%i]\n", i, np -1);
-		exit(1);
+	    char *end;
+	    i = strtol(ranks, &end, 10);
+	    if (ranks == end || *end) {
+		fprintf(stderr, "PSIlogger: input forward to invalid rank,"
+			" valid ranks:[0-%i]\n", np -1);
 	    }
-	    InputDest[i] = i;
+	    if (i >= np) {
+		fprintf(stderr, "PSIlogger: input forward to non existing"
+			" rank:[%d], valid ranks:[0-%i]\n", i, np -1);
+	    } else {
+		InputDest[i] = i;
+	    }
 	}	
 	ranks = strtok_r(NULL,delimiters,&saveptr);
     }
@@ -217,21 +236,26 @@ static void readGDBInput(char *line)
 {
     char buf[1000];
     int len, i;
-    if (!line ) {
-	return;
-    }
+    
+    if (!line ) return;
+    
+    /* add the newline again */
     snprintf(buf, sizeof(buf), "%s\n",line);
+    
+    /*add to history */
     HIST_ENTRY *last = history_get(history_length);
     if (line && line[0] != '\0' && (!last || strcmp(last->line, line))) {
 	add_history(line);
     }
     
+    /* check for input changing cmd */
     len = strlen(buf);	
-    if (buf[0] == '[' && buf[len -2] == ']') {
-	fprintf(stderr, "Changed input dest to: %s",buf);
+    if (len > 2 && buf[0] == '[' && buf[len -2] == ']') {
+	fprintf(stderr, "Changing input dest to: %s",buf);
 	setupInputDestList(buf);
 	return;
     }
+    
     for (i=0; i<maxClients; i++) {
 	if (InputDest[i] != -1 && forwardInputTID[i] != -1) {
 	    sendMsg(forwardInputTID[i], STDIN, buf, len);
@@ -429,17 +453,12 @@ static int sendDaemonMsg(DDSignalMsg_t *msg)
     return msg->header.len;
 }
 
-/**
- * @brief Callback functions to handle barrier timeouts.
- * Terminate the job, send all children term signal.
- *
- * @return No return value.
- */
-void handleBarrierTimeout(void)
+void terminateJob(void)
 {
     fprintf(stderr,
-		"PSIlogger: Timeout: Not all clients joined the pmi barrier, terminating.\n");
+		"PSIlogger: Terminating the job.\n");
     
+    /* send kill signal to all children */ 
     {
 	DDSignalMsg_t msg;
 
@@ -447,7 +466,7 @@ void handleBarrierTimeout(void)
 	msg.header.sender = PSC_getMyTID();
 	msg.header.dest = PSC_getMyTID();
 	msg.header.len = sizeof(msg);
-	msg.signal = SIGTERM;
+	msg.signal = -1;
 	msg.param = getuid();
 	msg.pervasive = 1;
 	msg.answer = 0;
@@ -526,26 +545,26 @@ void sighandler(int sig)
 	break;
     case SIGWINCH:
 	for (i=0; i < maxClients; i++) {
-	    if (InputDest[i] != -1 && forwardInputTID[i] != -1) {
-		/* Create WINCH-messages and send */
-		struct winsize ws;
-		int buf[4];
-		int len = 0;
+	    if (InputDest[i] == -1 || forwardInputTID[i] == -1) continue;
 
-		if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0) break;
-		buf[len++] = ws.ws_col;
-		buf[len++] = ws.ws_row;
-		buf[len++] = ws.ws_xpixel;
-		buf[len++] = ws.ws_ypixel;
+	    /* Create WINCH-messages and send */
+	    struct winsize ws;
+	    int buf[4];
+	    int len = 0;
 
-		sendMsg(forwardInputTID[i], WINCH, (char *)buf, len*sizeof(*buf));
+	    if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0) break;
+	    buf[len++] = ws.ws_col;
+	    buf[len++] = ws.ws_row;
+	    buf[len++] = ws.ws_xpixel;
+	    buf[len++] = ws.ws_ypixel;
 
-		if (verbose) {
-		    fprintf(stderr, "PSIlogger: %s: WINCH to col %d row %d",
-			    __func__, ws.ws_col, ws.ws_row);
-		    fprintf(stderr, " xpixel %d ypixel %d\n",
-			    ws.ws_xpixel, ws.ws_ypixel);
-		}
+	    sendMsg(forwardInputTID[i], WINCH, (char *)buf, len*sizeof(*buf));
+
+	    if (verbose) {
+		fprintf(stderr, "PSIlogger: %s: WINCH to col %d row %d",
+			__func__, ws.ws_col, ws.ws_row);
+		fprintf(stderr, " xpixel %d ypixel %d\n",
+			ws.ws_xpixel, ws.ws_ypixel);
 	    }
 	}
 	break;
@@ -608,13 +627,13 @@ void enter_raw_mode(void)
     }
     _saved_tio = termios;
     termios.c_iflag |= IGNPAR;
-    termios.c_iflag &= ~(ISTRIP | INLCR | IGNCR | ICRNL | IXON | IXANY | IXOFF);
+    termios.c_iflag &= ~(ISTRIP|INLCR|IGNCR|ICRNL|IXON|IXANY|IXOFF);
 #ifdef IUCLC
     termios.c_iflag &= ~IUCLC;
 #else
 #error no IUCLC
 #endif
-    termios.c_lflag &= ~(ISIG | ICANON | ECHO | ECHOE | ECHOK | ECHONL);
+    termios.c_lflag &= ~(ISIG|ICANON|ECHO|ECHOE|ECHOK|ECHONL);
 #ifdef IEXTEN
     termios.c_lflag &= ~IEXTEN;
 #else
@@ -653,7 +672,8 @@ static int newrequest(PSLog_Msg_t *msg)
     if (msg->sender >= maxClients) {
 	int i;
 	clientTID = realloc(clientTID, sizeof(*clientTID) * 2 * msg->sender);
-	forwardInputTID = realloc(forwardInputTID, sizeof(*forwardInputTID) * 2 * msg->sender);
+	forwardInputTID = realloc(forwardInputTID,
+				  sizeof(*forwardInputTID) * 2 * msg->sender);
 	InputDest = realloc(InputDest, sizeof(*InputDest) * 2 * msg->sender);
 
 	if (!clientTID || !forwardInputTID || !InputDest) {
@@ -1120,6 +1140,7 @@ static void loop(void)
 			__func__, msg.type);
 	    }
 	} else if (FD_ISSET(STDIN_FILENO, &afds)) {
+	    /* if we debug with gdb, use readline callback for sdtin */
 	    if (enableGDB) {
 		rl_callback_read_char();
 	    } else {
@@ -1132,12 +1153,13 @@ static void loop(void)
     }
     if (MergeOutput && np >1) {
 	displayCachedOutput(0);
+	/* flush output */
 	displayCachedOutput(1);
     }
     if ( getenv("PSI_NOMSGLOGGERDONE")==NULL ) {
 	fprintf(stderr,"\nPSIlogger: done\n");
     }
-    rl_callback_handler_remove();
+    if (enableGDB) rl_callback_handler_remove();
 
     return;
 }
@@ -1269,16 +1291,18 @@ int main( int argc, char**argv)
     }
     
     clientTID = malloc (sizeof(*clientTID) * maxClients);
-    for (i=0; i<maxClients; i++) clientTID[i] = -1;
-    
     forwardInputTID = malloc (sizeof(*forwardInputTID) * maxClients);
-    for (i=0; i<maxClients; i++) forwardInputTID[i] = -1;
-    
     InputDest = malloc (sizeof(*InputDest) * maxClients);
-
+    
     if (!clientTID || !forwardInputTID || !InputDest) {
 	fprintf(stderr, "PSIlogger: Out of memory.\n");
 	exit(1);
+    }
+    
+    for (i=0; i<maxClients; i++) {
+	clientTID[i] = -1;
+	forwardInputTID[i] = -1;
+	InputDest[i] = -1;
     }
 
     if ((input = getenv("PSI_INPUTDEST"))) {

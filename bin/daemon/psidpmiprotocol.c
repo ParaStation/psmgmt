@@ -89,6 +89,39 @@ static void sendKvstoLogger(char *msgbuffer)
 }
 
 /**
+ * @brief Handle critical error.
+ *
+ * To handle a critical error close the connection and kill the child. 
+ * If something goes wrong in the startup phase with pmi, the child 
+ * and therefore the whole job can hang infinite. So we have to kill it.
+ *
+ * @return No return value.
+ */
+static int critErr(void)
+{
+    /* close connection */
+    if (pmisock > 0 ) {
+	close(pmisock);
+	pmisock = -1;
+    }
+    
+    /* kill the child */
+    DDSignalMsg_t msg;
+
+    msg.header.type = PSP_CD_SIGNAL;
+    msg.header.sender = PSC_getMyTID();
+    msg.header.dest = PSC_getMyTID();
+    msg.header.len = sizeof(msg);
+    msg.signal = -1;
+    msg.param = getuid();
+    msg.pervasive = 1;
+    msg.answer = 0;
+
+    sendDaemonMsg((DDMsg_t *)&msg);
+    return 1;
+}
+
+/**
  * @brief Write to pmi socket. 
  *
  * Write the message @a msg to the pmi socket file-descriptor,
@@ -130,7 +163,7 @@ static int do_send(char *msg, int offset, int len)
 		PSIDfwd_printMsgf(STDERR,
 			  "%s: Rank %i: got error %d on pmi socket: %s\n",
 			  __func__, rank, errno, errstr ? errstr : "UNKNOWN");
-		return i;
+	    return i;
 		}
 	    }
 	} else
@@ -157,7 +190,7 @@ static int PMI_send(char *msg)
 	PSIDfwd_printMsgf(STDERR,
 			  "%s: Rank %i: Missing '\\n' in pmi msg '%s'\n",
 			  __func__, rank, msg);
-	exit(1);
+	return critErr();
     }
 
     if (debug) {
@@ -174,7 +207,7 @@ static int PMI_send(char *msg)
 	PSIDfwd_printMsgf(STDERR,
 			  "%s: Rank %i: pmi msg could not be send:%s.\n",
 			  __func__, rank, msg);
-	exit(1);
+	return critErr();
     }
     
     return 0;
@@ -200,7 +233,7 @@ static int p_Get_Universe_Size(char *msgBuffer)
 
 /**  
  * @brief Returns the application number which defines the order the
- * app was started
+ * app was started.
  *
  * @return Returns 0 for success. 
  */
@@ -234,7 +267,8 @@ static int p_Barrier_In(char *msgBuffer)
  * @brief Finalize the PMI.
  *
  * @return Returns PMI_FINALIZED to notice the forwarder that the
- * child has finished execution.
+ * child has finished execution. The forwarder will release the child
+ * and then call pmi_finalize() to allow the child to exit.
  */
 static int p_Finalize(void)
 {
@@ -665,7 +699,12 @@ static int p_GetByIdx(char *msgBuffer)
     index = atoi(idx);
     /* find and return the value */
     if ((ret = kvs_getbyidx(kvsname,index))) {
-	value = strchr(ret,'=') + 1;
+	if (!(value = strchr(ret,'=') + 1)) {
+	    PSIDfwd_printMsgf(STDERR, "%s: Rank %i:"
+			      " error in local key value space\n",
+			      __func__, rank);
+	    return critErr();
+	}
 	len = strlen(ret) - strlen(value) - 1; 
 	strncpy(name, ret, len);
 	name[len] = '\0';
@@ -701,7 +740,7 @@ static int p_Init(char *msgBuffer)
 	PSIDfwd_printMsgf(STDERR,
 			  "%s: Rank %i: received invalid pmi init cmd\n",
 			  __func__, rank);
-	return 1;
+	return critErr();
     }
 
     if (atoi(pmiversion) == PMI_VERSION
@@ -720,7 +759,7 @@ static int p_Init(char *msgBuffer)
 			  " version=%i, subversion=%i\n",
 			  __func__, rank, atoi(pmiversion),
 			  atoi(pmisubversion));
-	exit(1);
+	return critErr();
     } 
 
     return 0;
@@ -784,7 +823,7 @@ static int p_InitAck(char *msgBuffer)
 	PSIDfwd_printMsgf(STDERR,
 			  "%s: Rank %i: no PMI_ID is set\n",
 			  __func__, rank);
-	exit(1);
+	return critErr();
     }	
 
     getpmiv("pmiid", msgBuffer, client_id, sizeof(client_id));
@@ -793,14 +832,14 @@ static int p_InitAck(char *msgBuffer)
 	PSIDfwd_printMsgf(STDERR,
 			  "%s: Rank %i: invalid initack from client\n",
 			  __func__, rank);
-	exit(1);
+	return critErr();
     }
 
     if (!(strcmp(pmi_id, client_id))) {
 	PSIDfwd_printMsgf(STDERR,
 			  "%s: Rank %i: invalid pmi_id from client\n",
 			  __func__, rank);
-	exit(1);
+	return critErr();
     }
 
     PMI_send("cmd=initack rc=0\n");
@@ -939,7 +978,7 @@ int pmi_init(int pmisocket, PStask_ID_t loggertaskid, int Rank)
     if (kvs_create(kvsname)) {
 	PSIDfwd_printMsgf(STDERR, "%s: Rank %i: error creating local kvs\n",
 			  __func__, rank);
-	exit(1);
+	return critErr();
     }
 
     /* join kvs space */
@@ -958,36 +997,36 @@ int pmi_init(int pmisocket, PStask_ID_t loggertaskid, int Rank)
  *
  * @param bufsize The size of cmdbuf.
  *
- * @return Returns 0 for success, 1 on errors.
+ * @return Returns 1 for success, 0 on errors.
  */
 static int pmi_extract_cmd(char *msg, char *cmdbuf, int bufsize)
 {
     const char delimiters[] =" \n";
     char *msgCopy, *cmd, *saveptr;
 
-    if (!msg || strlen(msg) < 5 ) {
+    if (!msg || strlen(msg) < 5) {
 	PSIDfwd_printMsgf(STDERR, "%s: Rank %i: invalid pmi msg received\n",
 			  __func__, rank);
-	return 0;
+	return !critErr();
     } 
 
     msgCopy = strdup(msg);
-    cmd = strtok_r(msgCopy,delimiters,&saveptr);
+    cmd = strtok_r(msgCopy, delimiters, &saveptr);
    
     while ( cmd != NULL ) {
-	if( !strncmp(cmd,"cmd=",4) ) {
-	    cmd = cmd +4;
+	if (!strncmp(cmd,"cmd=", 4)) {
+	    cmd += 4;
 	    strncpy(cmdbuf, cmd, bufsize);
 	    free(msgCopy);
 	    return 1;
 	}
-	if( !strncmp(cmd,"mcmd=",5) ) {
-	    cmd = cmd +5;
+	if (!strncmp(cmd,"mcmd=", 5)) {
+	    cmd += 5;
 	    strncpy(cmdbuf, cmd, bufsize);
 	    free(msgCopy);
 	    return 1;
 	}
-	cmd = strtok_r(NULL,delimiters,&saveptr);
+	cmd = strtok_r(NULL, delimiters, &saveptr);
     }
 
     free(msgCopy);
@@ -1007,6 +1046,7 @@ int pmi_parse_msg(char *msg)
 { 
     int i;
     char cmd[VALLEN_MAX];
+    char reply[PMIU_MAXLINE];
 
     if (is_init != 1) {
 	PSIDfwd_printMsgf(STDERR,
@@ -1019,13 +1059,13 @@ int pmi_parse_msg(char *msg)
 	PSIDfwd_printMsgf(STDERR, "%s: Rank %i: pmi msg to long,"
 			  " msg_size=%i and allowed_size=%i\n",
 			  __func__, rank, (int)strlen(msg), PMIU_MAXLINE);
-	return 1;
+	return critErr();
     }
    
     if (!pmi_extract_cmd(msg, cmd, sizeof(cmd)) || !cmd || strlen(cmd) <2) {
 	PSIDfwd_printMsgf(STDERR, "%s: Rank %i: invalid pmi cmd received,"
 			  " msg was:%s\n", __func__, rank, msg);
-	return 1;
+	return critErr();
     }
 
     if (debug) {
@@ -1034,42 +1074,35 @@ int pmi_parse_msg(char *msg)
     }
 
     /* find pmi cmd */
-    for ( i=0; i< pmi_com_count; i++) {
+    for (i=0; i< pmi_com_count; i++) {
 	if (!strcmp(cmd,pmi_commands[i].Name)) {
 		return pmi_commands[i].fpFunc(msg);
 	}
     }
 
     /* find short pmi cmd */
-    for ( i=0; i< pmi_short_com_count; i++) {
+    for (i=0; i< pmi_short_com_count; i++) {
 	if (!strcmp(cmd,pmi_short_commands[i].Name)) {
 		return pmi_short_commands[i].fpFunc();
 	}
     }
 
+    /* cmd not found */
     PSIDfwd_printMsgf(STDERR, "%s: Rank %i: unsupported pmi cmd received:%s\n",
 		      __func__, rank, cmd);
 
-    return 1;
+    snprintf(reply, sizeof(reply),
+	     "cmd=%s rc=%i info=not_supported_cmd\n", cmd, PMI_ERROR);
+    PMI_send(reply);
+    
+    return critErr();
 }
 
-/** 
- * @brief Send finalize ack to the pmi client, this is called from the
- * forwarder if the deamon has released the pmi client. This message
- * allows the pmi client to exit.
- *
- * @return No return value.
- */
 void pmi_finalize(void)
 {
     PMI_send("cmd=finalize_ack\n");
 }
 
-/**  
- * @brief Forward or handle a kvs msg from logger.
- *
- * @return No return value.
- */
 void pmi_handleKvsRet(PSLog_Msg_t msg)
 {
     char cmd[VALLEN_MAX], reply[PMIU_MAXLINE];
@@ -1086,6 +1119,7 @@ void pmi_handleKvsRet(PSLog_Msg_t msg)
     if (!pmi_extract_cmd(msg.buf, cmd, sizeof(cmd)) || !cmd || strlen(cmd) < 2) {
 	PSIDfwd_printMsgf(STDERR, "%s: Rank %i: received invalid kvs msg"
 			  " from logger\n", __func__, rank);
+	critErr();
 	return;
     }
     
@@ -1093,7 +1127,8 @@ void pmi_handleKvsRet(PSLog_Msg_t msg)
     if (!strcmp(cmd, "kvs_not_available")) {
 	PSIDfwd_printMsgf(STDERR, "%s: Rank %i: global kvs is not available,"
 			  " exiting\n", __func__, rank);
-	exit(1);
+	critErr();
+	return;
     }
 
     /* update kvs after barrier_in */
@@ -1102,7 +1137,12 @@ void pmi_handleKvsRet(PSLog_Msg_t msg)
 	nextvalue = strtok_r(NULL, delimiters, &saveptr);
 	while (nextvalue != NULL) {
 	    /* extract next key/value pair */
-	    value = strchr(nextvalue, '=') +1;
+	    if (!(value = strchr(nextvalue, '=') +1)) {
+		PSIDfwd_printMsgf(STDERR, "%s: Rank %i: invalid kvs update received\n",
+				  __func__, rank);
+		critErr();
+		return;
+	    }
 	    len = strlen(nextvalue) - strlen(value) - 1; 
 	    strncpy(vname, nextvalue, len);
 	    vname[len] = '\0';

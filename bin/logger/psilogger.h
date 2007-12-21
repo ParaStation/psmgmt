@@ -53,11 +53,12 @@
 int sendMsg(PStask_ID_t tid, PSLog_msg_t type, char *buf, size_t len);
 
 /**
- * @brief Callback functions to handle barrier timeouts. Terminate
- * the job, send all children term signal.
+ * @brief Terminate the Job.
+ *
+ * Send first TERM and then KILL signal to all the job's processes.
  *
  * @return No return value.
  */
-void handleBarrierTimeout(void);
+void terminateJob(void);
 
 #endif

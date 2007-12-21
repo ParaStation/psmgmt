@@ -270,6 +270,7 @@ my %job_data, my %user_data, my %group_data, my %sum_data;
 my @testa;
 # Read acc log files
 opendir(DIR, $ps_acc_dir) or die("Can't open accounting directory for reading !");
+my $lasterror = "none";
 while ( defined (my $filename = readdir(DIR))) {
 	my $show = "cat";
 	if($filename =~ /\.(gz)$/){$show = "gzip -cd"; }
@@ -307,6 +308,15 @@ while ( defined (my $filename = readdir(DIR))) {
 				($session=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^session=/;
 				($alias=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^jobid=/;
 			}
+                        
+			if (!$user || !$group || !$jobname || !$start || !$end || !$walltime || !$exechost) {
+			    if (!$noheader && $lasterror ne $filename) {
+				$lasterror = $filename; 
+				printf("Skipped invalid account entry(s) in file $ps_acc_dir/$filename\n");
+			    }
+                            next;
+                        }
+
 
 			if((!defined($fuser)    || $fuser eq $user) &&
 			   (!defined($fgroup)   || $fgroup eq $group) &&
@@ -323,6 +333,7 @@ while ( defined (my $filename = readdir(DIR))) {
 					$allnodes{substr($node,0,index($node,'/'))} = 1;
                                 }
                                 my $num_nodes = scalar(keys(%allnodes));
+				my $newqtime = $start - $qtime > 0 ? $start - $qtime : 0;
 		
 				if($listjobs){
 					$job_data{$jobnum}{'user'} 	= $user;
@@ -334,7 +345,7 @@ while ( defined (my $filename = readdir(DIR))) {
 					$job_data{$jobnum}{'mem'} 	= kb_to_num($mem);
 					$job_data{$jobnum}{'vmem'} 	= kb_to_num($vmem);
 					$job_data{$jobnum}{'walltime'} 	= time_to_sec($walltime);
-					$job_data{$jobnum}{'qtime'} 	= $start - $qtime;
+					$job_data{$jobnum}{'qtime'}	= $newqtime;
 					$job_data{$jobnum}{'start'} 	= $start;
 					$job_data{$jobnum}{'end'} 	= $end;
 					$job_data{$jobnum}{'exit'} 	= $exitstatus;
@@ -351,7 +362,7 @@ while ( defined (my $filename = readdir(DIR))) {
 					$user_data{$user}{'mem'} += kb_to_num($mem);
 					$user_data{$user}{'vmem'} += kb_to_num($vmem);
 					$user_data{$user}{'walltime'} += time_to_sec($walltime);
-					$user_data{$user}{'qtime'} += $start - $qtime;
+					$user_data{$user}{'qtime'} += $newqtime;
 					$user_data{$user}{'cpuweight'} += $num_hosts * time_to_sec($walltime);
 					$user_data{$user}{'procs'} += $num_hosts;
 					$user_data{$user}{'nodes'} = $num_nodes;
@@ -363,7 +374,7 @@ while ( defined (my $filename = readdir(DIR))) {
 					$group_data{$group}{'mem'} += kb_to_num($mem);
 					$group_data{$group}{'vmem'}+= kb_to_num($vmem);
 					$group_data{$group}{'walltime'} += time_to_sec($walltime);
-					$group_data{$group}{'qtime'} += $start - $qtime;
+					$group_data{$group}{'qtime'} += $newqtime; 
 					$group_data{$group}{'cpuweight'} += $num_hosts * time_to_sec($walltime);
 					$group_data{$group}{'procs'} += $num_hosts;
 					$group_data{$group}{'nodes'} += $num_nodes;
@@ -376,7 +387,7 @@ while ( defined (my $filename = readdir(DIR))) {
 					$sum_data{'cputime'} += time_to_sec($cput);
 					$sum_data{'mem'} += kb_to_num($mem);
 					$sum_data{'vmem'} += kb_to_num($vmem);
-					$sum_data{'qtime'} += $start - $qtime;
+					$sum_data{'qtime'} += $newqtime;
 					$sum_data{'cpuweight'} += $num_hosts * time_to_sec($walltime);
 					$sum_data{'procs'} += $num_hosts;
 					$sum_data{'nodes'} += $num_nodes;
@@ -817,13 +828,13 @@ if($listjobs){
 		$maxj = length($job_data{$jobnum}{'alias'}) 	> $maxj ? length($job_data{$jobnum}{'alias' }) : $maxj;
 
 		if(!$human){
-			$maxw = length($job_data{$jobnum}{'walltime'}) > $maxw ? length($job_data{$jobnum}{'walltime'}) : $maxw;
-			$maxt = length($job_data{$jobnum}{'start'}) > $maxt ? length($job_data{$jobnum}{'start'}) : $maxt;		
-			$maxb = length($job_data{$jobnum}{'end'}) > $maxb ? length($job_data{$jobnum}{'end'}) : $maxb;		
-			$maxc = length($job_data{$jobnum}{'cputime'}) > $maxc ? length($job_data{$jobnum}{'cputime'}) : $maxc;
-			$maxq = length($job_data{$jobnum}{'qtime'}) > $maxq ? length($job_data{$jobnum}{'qtime'}) : $maxq;
-			$maxm = length($job_data{$jobnum}{'mem'}) > $maxm ? length($job_data{$jobnum}{'vmem'}) : $maxm;
-			$maxv = length($job_data{$jobnum}{'vmem'}) > $maxv ? length($job_data{$jobnum}{'vmem'}) : $maxv;
+			$maxw = length($job_data{$jobnum}{'walltime'})	> $maxw ? length($job_data{$jobnum}{'walltime'}) : $maxw;
+			$maxt = length($job_data{$jobnum}{'start'})	> $maxt ? length($job_data{$jobnum}{'start'}) : $maxt;		
+			$maxb = length($job_data{$jobnum}{'end'})	> $maxb ? length($job_data{$jobnum}{'end'}) : $maxb;		
+			$maxc = length($job_data{$jobnum}{'cputime'})	> $maxc ? length($job_data{$jobnum}{'cputime'}) : $maxc;
+			$maxq = length($job_data{$jobnum}{'qtime'})	> $maxq ? length($job_data{$jobnum}{'qtime'}) : $maxq;
+			$maxm = length($job_data{$jobnum}{'mem'})	> $maxm ? length($job_data{$jobnum}{'vmem'}) : $maxm;
+			$maxv = length($job_data{$jobnum}{'vmem'})	> $maxv ? length($job_data{$jobnum}{'vmem'}) : $maxv;
 			$maxe = length($job_data{$jobnum}{'cpuweight'}) > $maxe ? length($job_data{$jobnum}{'cpuweight'}) : $maxe;
 		}
 		else{
@@ -1015,8 +1026,8 @@ sub formattime {
 		my $M=sprintf("%02d",(localtime($NOW))[1]);
 		my $S=sprintf("%02d",(localtime($NOW))[0]);
 		if($nospace) {
-		    if($ENV{'LANG'} && $ENV{'LANG'} =~ /en_US/){ return "$Y/$m/".$d."_$H:$M" };
-		    return "$d.$m.".$Y."_$H:$M";
+		    if($ENV{'LANG'} && $ENV{'LANG'} =~ /en_US/){ return "\"$Y/$m/$d $H:$M\"" };
+		    return "\"$d.$m.$Y $H:$M\"";
 		} else {
 		    if($ENV{'LANG'} && $ENV{'LANG'} =~ /en_US/){ return "$Y/$m/$d $H:$M" };
 		    return "$d.$m.$Y $H:$M";
@@ -1068,7 +1079,8 @@ sub formattimep {
 		    
 		    $time .= $sec   > 0 ? $sec."s"    : "0s";
 		}	
-		$time =~s/[ ]/_/g if ($nospace); 
+		$time = "\"$time\"" if ($nospace);
+		
 		return $time;
 	}
 	return $out;
@@ -1214,7 +1226,7 @@ Selects a period of time. Valid values are 'today', 'week', 'month', 'year', 'al
 
 =item B<--nospace -ns>
 
-Output all information for better parsing without spaces
+Output all information with spaces quoted for better parsing reasons
 
 =item B<--begin -b> <yyyymmdd>
 

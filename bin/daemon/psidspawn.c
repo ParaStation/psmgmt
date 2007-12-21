@@ -45,6 +45,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "psidclient.h"
 #include "psidstatus.h"
 #include "psidsignal.h"
+#include "psidaccount.h"
 
 #include "psidspawn.h"
 
@@ -992,7 +993,8 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 
     /* Release the waiting daemon and exec forwarder */
     close(cntrlCh);
-    PSID_forwarder(task, daemonfd, PMIforwarderSock, pmiEnableSockp);
+    PSID_forwarder(task, daemonfd, PMIforwarderSock, pmiEnableSockp,
+		   PSID_getNumAcct());
 
     /* never reached */
     exit(1);

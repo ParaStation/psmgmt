@@ -53,9 +53,25 @@ extern "C" {
  * @param PMIType Defines if pmi is connecting over TCP/IP or an UNIX
  * domain socket.
  *
+ * @param doAccounting Set to true if the forwarder should do accouting.
+ *
  * @return No return value.
  */
-void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket, int PMIType);
+void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket, int PMIType,
+		    int doAccounting);
+
+/**
+ * @brief Send a message to the local daemon.
+ *
+ * Send the message @a msg to the local daemon.
+ *
+ * @param msg The message to send.
+ *
+ * @return On success, the number of bytes send is returned,
+ * i.e. usually @a msg->header.len. Otherwise -1 is returned and errno
+ * is set appropriately.
+ */
+int sendDaemonMsg(DDMsg_t *msg);
 
 /**
  * @brief Send string to logger.

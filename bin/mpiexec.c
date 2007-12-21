@@ -116,13 +116,11 @@ static void errExit(void)
 }
 
 /**
- * @brief Retrieve the nodeID for a given host.
+ * @brief Retrieve the nodeID for a given host. Exit on error.
  *
- * @param host The name of the host to retrieve the
- * nodeID for.
+ * @param host The name of the host to retrieve the nodeID for.
  *
- * @param nodeID Pointer to a PSnodes_ID which holds
- * the result.
+ * @param nodeID Pointer to a PSnodes_ID which holds the result.
  *
  * @return No return value.
  */
@@ -153,7 +151,8 @@ static void getNodeIDbyHost(char *host, PSnodes_ID_t *nodeID)
 
 /**
  * @brief Find the first node to start the spawner
- * process on.
+ * process on. If the first node can't be found it 
+ * is set to -1;
  *
  * @param nodeID Pointer to the PSnodes_ID_t structure
  * witch receive the result.
@@ -164,12 +163,15 @@ static void getFirstNodeID(PSnodes_ID_t *nodeID)
 {
     char *nodeparse, *toksave, *parse;
     char *envnodes, *envhosts;
-    const char delimiters[] =", \n";
+    const char delimiters[] ="-, \n";
+    char *end;
     int node;
-    
+
+    *nodeID = -1;
+
     envnodes = getenv("PSI_NODES");
     envhosts = getenv("PSI_HOSTS");
-   
+
     if (envnodes) nodelist = envnodes;
     if (envhosts) hostlist = envhosts;
 
@@ -178,24 +180,31 @@ static void getFirstNodeID(PSnodes_ID_t *nodeID)
     } else {
 	parse = strdup(nodelist);
     }
-    
+
     if (!parse) {
-	msg = "Don't know where to start, use '--nodes' or '--hosts' or '--hostfile'";
+	msg = "Don't know where to start, use '--nodes' or '--hosts' or"
+	    " '--hostfile'";
 	errExit();
     }
 
-    nodeparse = strtok_r(parse, delimiters, &toksave);
+    if (!(nodeparse = strtok_r(parse, delimiters, &toksave))) {
+	free(parse);
+	return;
+    }
+
     if (hostlist) {
 	getNodeIDbyHost(nodeparse, nodeID);
     } else {
-	node = atoi(nodeparse);
+	node = strtol(nodeparse, &end, 10);
+	if (nodeparse == end || *end) {
+	    return;
+	}
 	if (node < 0 || node >= PSC_getNrOfNodes()) {
 	    fprintf(stderr, "Node %d out of range\n", node);
 	    exit(1);
 	}
 	*nodeID = node;
     }
-
     free(parse);
 }
 
@@ -224,7 +233,7 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
         int error, spawnedProc;
 
 	nds = malloc(np*sizeof(*nds));
-        if (! nds) {
+        if (!nds) {
             fprintf(stderr, "%s: No memory\n", argv[0]);
             exit(1);
         }
@@ -237,7 +246,7 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 	    getFirstNodeID(&nodeID); 
 	    nds[0] = nodeID;
 	}
-        
+    
 	PSI_spawnService(nds[0], NULL, argc, argv, np, &error, &spawnedProc);
 
         free(nds);
@@ -317,28 +326,36 @@ static void setupPMIEnv(int rank)
     char tmp[1024];
     
     /* enable pmi tcp port */
-    snprintf(tmp, sizeof(tmp), "%d", pmienabletcp);
-    setPSIEnv("PMI_ENABLE_TCP", tmp, 1);
+    if (pmienabletcp) {
+	setPSIEnv("PMI_ENABLE_TCP", "1", 1);
+    }
 
     /* enable pmi sockpair */
-    snprintf(tmp, sizeof(tmp), "%d", pmienablesockp);
-    setPSIEnv("PMI_ENABLE_SOCKP", tmp, 1);
+    if (pmienablesockp) {
+	setPSIEnv("PMI_ENABLE_SOCKP", "1", 1);
+    }
 
     /* set the rank of the current client to start */
     snprintf(tmp, sizeof(tmp), "%d", rank);
     setPSIEnv("PMI_RANK", tmp, 1);
 
     /* set the pmi debug mode */
-    snprintf(tmp, sizeof(tmp), "%d", pmidebug);
-    setPSIEnv("PMI_DEBUG", tmp, 1);
+    if (pmidebug) {
+	snprintf(tmp, sizeof(tmp), "%d", pmidebug);
+	setPSIEnv("PMI_DEBUG", tmp, 1);
+    }
     
     /* set the pmi debug kvs mode */
-    snprintf(tmp, sizeof(tmp), "%d", pmidebug_kvs);
-    setPSIEnv("PMI_DEBUG_KVS", tmp, 1);
+    if (pmidebug_kvs) {
+	snprintf(tmp, sizeof(tmp), "%d", pmidebug_kvs);
+	setPSIEnv("PMI_DEBUG_KVS", tmp, 1);
+    }
     
     /* set the pmi debug client mode */
-    snprintf(tmp, sizeof(tmp), "%d", pmidebug_client);
-    setPSIEnv("PMI_DEBUG_CLIENT", tmp, 1);
+    if (pmidebug_client) {
+	snprintf(tmp, sizeof(tmp), "%d", pmidebug_client);
+	setPSIEnv("PMI_DEBUG_CLIENT", tmp, 1);
+    }
 
     /* set the init size of the pmi job */
     snprintf(tmp, sizeof(tmp), "%d", np);
@@ -355,6 +372,12 @@ static void setupPMIEnv(int rank)
     /* set the template for the kvs name */
     snprintf(tmp, sizeof(tmp), "pshost");
     setPSIEnv("PMI_KVS_TMP", tmp, 1);
+    
+    if (pmitmout) {
+	snprintf(tmp, sizeof(tmp), "%d", pmitmout);
+	setenv("PMI_BARRIER_TMOUT", tmp, 1);
+	if (verbose) printf("Setting timeout of pmi barrier to %i\n", pmitmout);
+    }
 }
 
 /**
@@ -380,6 +403,7 @@ static int startProcs(int i, int np, int argc, char *argv[], int verbose, int sh
 	printf("spawn rank %d: %s\n", i, argv[0]);
     } 
 
+    /* only start the first process for mpi1 jobs */
     if (mpichcom && i>0) return 0; 
 
     /* set up pmi env */
@@ -387,10 +411,8 @@ static int startProcs(int i, int np, int argc, char *argv[], int verbose, int sh
 	setupPMIEnv(i);
     } 
 
-    if (show) {
-	return 0;
-    }
-
+    if (show) return 0;
+    
     PStask_ID_t spawnedProcess = -1;
     int error;
     
@@ -406,60 +428,122 @@ static int startProcs(int i, int np, int argc, char *argv[], int verbose, int sh
 
 /**
  * @brief Set up the environment to control diffrent options of
- * parastation.
+ * the pscom library.
  *
  * @param verbose Set verbose mode, ouput whats going on.
  *
  * @return No return value. 
  */
-static void setupEnvironment(int verbose)
+static void setupPSCOMEnv(int verbose)
+{
+    char tmp[1024];
+    
+    if (discom) {
+	
+	char *env, *toksave;
+	const char delimiters[] =", \n";
+	env = strtok_r(discom, delimiters, &toksave);
+
+	while (env != NULL) {
+	    if (!strcmp(env,"P4SOCK") || !strcmp(env,"p4sock") || 
+		    !strcmp(env,"P4S") || !strcmp(env,"p4s")) {
+		unsetenv("PSP_P4SOCK");
+		setPSIEnv("PSP_P4SOCK", "0", 1);
+	    } else if (!strcmp(env,"SHM") || !strcmp(env,"shm") ||
+		    !strcmp(env,"SHAREDMEM") || !strcmp(env,"sharedmem")) {
+		unsetenv("PSP_SHAREDMEM");
+		setPSIEnv("PSP_SHAREDMEM", "0", 1);
+	    } else if (!strcmp(env,"GM") || !strcmp(env,"gm")) {
+		unsetenv("PSP_GM");
+		setPSIEnv("PSP_GM", "0", 1);
+	    } else if (!strcmp(env,"MVAPI") || !strcmp(env,"mvapi")) {
+		unsetenv("PSP_MVAPI");
+		setPSIEnv("PSP_MVAPI", "0", 1);
+	    } else if (!strcmp(env,"OPENIB") || !strcmp(env,"openib")) {
+		unsetenv("PSP_OPENIB");
+		setPSIEnv("PSP_OPENIB", "0", 1);
+	    } else if (!strcmp(env,"TCP") || !strcmp(env,"tcp")) {
+		unsetenv("PSP_TCP");
+		setPSIEnv("PSP_TCP", "0", 1);
+	    } else if (!strcmp(env,"DAPL") || !strcmp(env,"dapl")) {
+		unsetenv("PSP_DAPL");
+		setPSIEnv("PSP_DAPL", "0", 1);
+	    } else {
+		printf("Unknown option to discom: %s\n", env);
+		exit(1);
+	    }
+	    env = strtok_r(NULL, delimiters, &toksave);
+	}
+    }
+    
+    if (network) {
+	setPSIEnv("PSP_NETWORK", network, 1);
+	if (verbose) printf("Using networks: %s.\n", network);
+    }
+    
+    if (sigquit) {
+	setPSIEnv("PSP_SIGQUIT", "1", 1);
+	if (verbose) printf("Switching pscom sigquit on.\n");
+    }
+
+    if (pscomdb) {
+	setPSIEnv("PSP_DEBUG", "2", 1);
+	if (verbose) printf("Switching pscom debug mode on.\n");
+    }
+    
+    if (retry) {
+	snprintf(tmp, sizeof(tmp), "%d", retry);
+	setPSIEnv("PSP_RETRY", tmp, 1);
+	if (verbose) printf("Number of connection retrys set to %d.\n", retry);
+    }
+
+    if (schedyield) {
+	setPSIEnv("PSP_SCHED_YIELD", "1", 1);
+	if (verbose) printf("Use sched_yield system call.\n");
+    }
+    
+    if (sndbuf) {
+	snprintf(tmp, sizeof(tmp), "%d", sndbuf);
+	setPSIEnv("PSP_SO_SNDBUF", tmp, 1);
+	if (verbose) printf("Setting TCP send buffer to %d bytes.\n", sndbuf);
+    }
+    
+    if (rcvbuf) {
+	snprintf(tmp, sizeof(tmp), "%d", rcvbuf);
+	setPSIEnv("PSP_SO_RCVBUF", tmp, 1);
+	if (verbose) printf("Setting TCP receive buffer to %d bytes.\n", rcvbuf);
+    }
+    
+    if (readahead) {
+	snprintf(tmp, sizeof(tmp), "%d", readahead);
+	setPSIEnv("PSP_READAHEAD", tmp, 1);
+	if (verbose) printf("Setting pscom readahead to  %d.\n", readahead);
+    }
+
+    if (plugindir) {
+	setPSIEnv("PSP_PLUGINDIR", plugindir, 1);
+	if (verbose) printf("Setting plugin directory to: %s.\n", plugindir);
+    }
+
+    if (nodelay) {
+	setPSIEnv("PSP_TCP_NODELAY", "0", 1);
+	if (verbose) printf("Switching TCP nodelay off.\n");
+    }
+}
+
+/**
+ * @brief Set up the environment to control diffrent options of
+ * the psid/logger.
+ *
+ * @param verbose Set verbose mode, ouput whats going on.
+ *
+ * @return No return value. 
+ */
+static void setupPSIDEnv(int verbose)
 {
     char* envstr;
     char tmp[1024];
-    int rank;
     
-    PSE_initialize();
-    rank = PSE_getRank();
-
-    /* be only verbose if we are the logger */
-    if (rank >0) {
-	verbose = 0;
-    }
-
-    /* Setup various environment variables depending on passed arguments */
-    if (envall) {
-	
-	extern char **environ;
-	char *key, *val;
-	int i, lenval, len;
-
-        for (i=0; environ[i] != NULL; i++) {
-	    val = strchr(environ[i], '=');
-	    if(val) {
-	 	val++;
-	 	lenval = strlen(val);
-	 	len = strlen(environ[i]);
-	 	if (!(key = malloc(len - lenval))) {
-		    printf("out of memory\n");
-		    exit(1);
-		}
-		strncpy(key,environ[i], len - lenval -1);
-	 	key[len - lenval -1] = '\0';
-		setPSIEnv(key, val, 1);
-		free(key);
-	    }
-	}
-	if (verbose) printf("Exporting the whole environment to foreign hosts\n");
-    }
-    
-    if (envopt) {
-	if (envvalopt) {
-	    setPSIEnv(envopt, envvalopt, 1);
-	} else {
-	    printf("Error setting --env: %s, value is empty\n", envopt);
-	}
-    }
-
     if (gdb) {
 	setenv("PSI_ENABLE_GDB", "1", 1);
 	setenv("PSI_RARG_PRE_0", "gdb", 1);
@@ -507,65 +591,16 @@ static void setupEnvironment(int verbose)
 	if (verbose) printf("Setting pse/psi lib debug mask to %d.\n", psidb);
     }
     
-    if (network) {
-	setPSIEnv("PSP_NETWORK", network, 1);
-	if (verbose) printf("Using networks: %s.\n", network);
-    }
-    
-    if (discom) {
-	
-	char *env, *toksave;
-	const char delimiters[] =", \n";
-	env = strtok_r(discom, delimiters, &toksave);
-
-	while (env != NULL) {
-	    if (!strcmp(env,"P4SOCK") || !strcmp(env,"p4sock") || 
-		    !strcmp(env,"P4S") || !strcmp(env,"p4s")) {
-		setenv("PSP_P4SOCK", "0", 1);
-	    } else if (!strcmp(env,"SHM") || !strcmp(env,"shm") ||
-		    !strcmp(env,"SHAREDMEM") || !strcmp(env,"sharedmem")) {
-		setenv("PSP_SHAREDMEM", "0", 1);
-	    } else if (!strcmp(env,"GM") || !strcmp(env,"gm")) {
-		setenv("PSP_GM", "0", 1);
-	    } else if (!strcmp(env,"MVAPI") || !strcmp(env,"mvapi")) {
-		setenv("PSP_MVAPI", "0", 1);
-	    } else if (!strcmp(env,"OPENIB") || !strcmp(env,"openib")) {
-		setenv("PSP_OPENIB", "0", 1);
-	    } else if (!strcmp(env,"TCP") || !strcmp(env,"tcp")) {
-		setenv("PSP_TCP", "0", 1);
-	    } else if (!strcmp(env,"ELAN") || !strcmp(env,"elan")) {
-		setenv("PSP_ELAN", "0", 1);
-	    } else if (!strcmp(env,"DAPL") || !strcmp(env,"dapl")) {
-		setenv("PSP_DAPL", "0", 1);
-	    } else {
-		printf("Unknown option to discom: %s\n", env);
-		exit(1);
-	    }
-	    env = strtok_r(NULL, delimiters, &toksave);
-	}
-    }
-    
     if (loggerdb) {
 	setenv("PSI_LOGGERDEBUG", "", 1);
 	if (verbose) printf("Switching logger debug mode on.\n");
-    }
-    
-    if (retry) {
-	snprintf(tmp, sizeof(tmp), "%d", retry);
-	setPSIEnv("PSP_RETRY", tmp, 1);
-	if (verbose) printf("Number of connection retrys set to %d.\n", retry);
     }
     
     if (mergeout) {
 	setenv("PSI_MERGEOUTPUT", "1", 1);
 	if (verbose) printf("Merging output of all ranks, if possible.\n");
     }
-
-    if (path) {
-	setenv("PATH", path, 1);
-	setPSIEnv("PATH", path, 1);
-    }
-
+    
     if (mergetmout) {
 	snprintf(tmp, sizeof(tmp), "%d", mergetmout);
 	setenv("PSI_MERGETMOUT", tmp, 1);
@@ -578,11 +613,6 @@ static void setupEnvironment(int verbose)
 	if (verbose) printf("Setting the merge depth to  %i.\n", mergetmout);
     }
     
-    if (schedyield) {
-	setPSIEnv("PSP_SCHED_YIELD", "1", 1);
-	if (verbose) printf("Use sched_yield system call.\n");
-    }
-    
     if (loggerrawmode) {
 	setenv("PSI_LOGGER_RAW_MODE", "1", 1);
 	if (verbose) printf("Switching logger to raw mode.\n");
@@ -592,55 +622,11 @@ static void setupEnvironment(int verbose)
 	setenv("PSI_FORWARDERDEBUG", "1", 1);
 	if (verbose) printf("Switching forwarder debug mode on.\n");
     }
-
-    if (sndbuf) {
-	snprintf(tmp, sizeof(tmp), "%d", sndbuf);
-	setPSIEnv("PSP_SO_SNDBUF", tmp, 1);
-	if (verbose) printf("Setting TCP send buffer to %d bytes.\n", sndbuf);
-    }
     
-    if (rcvbuf) {
-	snprintf(tmp, sizeof(tmp), "%d", rcvbuf);
-	setPSIEnv("PSP_SO_RCVBUF", tmp, 1);
-	if (verbose) printf("Setting TCP receive buffer to %d bytes.\n", rcvbuf);
-    }
-    
-    if (readahead) {
-	snprintf(tmp, sizeof(tmp), "%d", readahead);
-	setPSIEnv("PSP_READAHEAD", tmp, 1);
-	if (verbose) printf("Setting pscom readahead to  %d.\n", readahead);
-    }
-
-    if (plugindir) {
-	setPSIEnv("PSP_PLUGINDIR", plugindir, 1);
-	if (verbose) printf("Setting plugin directory to: %s.\n", plugindir);
-    }
-
-    if (nodelay) {
-	setPSIEnv("PSP_TCP_NODELAY", "0", 1);
-	if (verbose) printf("Switching TCP nodelay off.\n");
-    }
-    
-    if (pmitmout) {
-	snprintf(tmp, sizeof(tmp), "%d", pmitmout);
-	setenv("PMI_BARRIER_TMOUT", tmp, 1);
-	if (verbose) printf("Setting timeout of pmi barrier to %i\n", pmitmout);
-    }
-    
-    if (sigquit) {
-	setPSIEnv("PSP_SIGQUIT", "1", 1);
-	if (verbose) printf("Switching pscom sigquit on.\n");
-    }
-
-    if (pscomdb) {
-	setenv("PSP_DEBUG", "2", 1);
-	if (verbose) printf("Switching pscom debug mode on.\n");
-    }
-
     if (jobid) {
-	setPSIEnv("PSP_JOBID", jobid, 1);
+	setPSIEnv("PSI_JOBID", jobid, 1);
     }	
-
+    
     if (envlist) {
 	char *val = NULL;
 
@@ -727,6 +713,71 @@ static void setupEnvironment(int verbose)
 	setenv("PSI_NODES_SORT", val, 1);
 	if (verbose) printf("PSI_NODES_SORT set to '%s'\n", val);
     }
+}
+
+/**
+ * @brief Set up the environment to control diffrent options of
+ * parastation.
+ *
+ * @param verbose Set verbose mode, ouput whats going on.
+ *
+ * @return No return value. 
+ */
+static void setupEnvironment(int verbose)
+{
+    int rank;
+    
+    PSE_initialize();
+    rank = PSE_getRank();
+
+    /* be only verbose if we are the logger */
+    if (rank >0) verbose = 0;
+
+    /* setup environment depending on pscom library */
+    setupPSCOMEnv(verbose);
+
+    /* setup environment depending on psid/logger */
+    setupPSIDEnv(verbose);
+
+    /* Setup various environment variables depending on passed arguments */
+    if (envall) {
+	
+	extern char **environ;
+	char *key, *val;
+	int i, lenval, len;
+
+        for (i=0; environ[i] != NULL; i++) {
+	    val = strchr(environ[i], '=');
+	    if(val) {
+	 	val++;
+	 	lenval = strlen(val);
+	 	len = strlen(environ[i]);
+	 	if (!(key = malloc(len - lenval))) {
+		    printf("out of memory\n");
+		    exit(1);
+		}
+		strncpy(key,environ[i], len - lenval -1);
+	 	key[len - lenval -1] = '\0';
+		setPSIEnv(key, val, 1);
+		free(key);
+	    }
+	}
+	if (verbose) printf("Exporting the whole environment to foreign hosts\n");
+    }
+    
+    if (envopt) {
+	if (envvalopt) {
+	    setPSIEnv(envopt, envvalopt, 1);
+	} else {
+	    printf("Error setting --env: %s, value is empty\n", envopt);
+	}
+    }
+
+    if (path) {
+	setenv("PATH", path, 1);
+	setPSIEnv("PATH", path, 1);
+    }
+
 }
 
 /**
@@ -842,6 +893,7 @@ static void setupAdminEnv(void)
     char *envnodes, *envhosts, *envhostsfile;
     char *envadminhosts;
     char hosts[1024];
+    int first, last, i;
     
     hosts[0] = '\0';
     envnodes = getenv("PSI_NODES");
@@ -850,16 +902,18 @@ static void setupAdminEnv(void)
     envadminhosts = getenv("PSI_ADMIN_HOSTS"); 
    
     if (envnodes) {
-	nodelist = envnodes;
-	setPSIEnv("PSI_NODES", nodelist, 1);
+	parse = strdup(envnodes);
+	setPSIEnv("PSI_NODES", parse, 1);
     }
     if (envhosts) {
-	hostlist = envhosts;
-	setPSIEnv("PSI_HOSTS", hostlist, 1);
+	parse = strdup(envhosts);
+	setPSIEnv("PSI_HOSTS", parse, 1);
     }
     if (envadminhosts) {
-	hostlist = envadminhosts;
+	parse = strdup(envadminhosts);
 	hostfile = NULL;
+	envhostsfile = NULL;
+	hostlist = strdup(envadminhosts);
 	unsetenv("PSI_ADMIN_HOSTS");
     }
     
@@ -871,13 +925,11 @@ static void setupAdminEnv(void)
 	    unsetPSIEnv("PSI_HOSTFILE");
 	    unsetenv("PSI_HOSTFILE");
 	    setPSIEnv("PSI_ADMIN_HOSTS", hosts, 1);
-	    parse = strdup(hosts);
 	} else if (hostfile) {
 	    parseHostfile(hostfile, hosts, sizeof(hosts));
 	    hostlist = hosts;
 	    hostfile = NULL;
 	    setPSIEnv("PSI_ADMIN_HOSTS", hosts, 1);
-	    parse = strdup(hosts);
 	}
     }
     
@@ -893,10 +945,23 @@ static void setupAdminEnv(void)
     }
     
     np = 0;
+    first = last = 0;
     nodeparse = strtok_r(parse, delimiters, &toksave);
 
     while (nodeparse != NULL) {
-	np++;	
+	if (strchr(nodeparse, '-') != NULL) {
+	    if ((sscanf(nodeparse, "%d-%d", &first, &last)) != 2) {
+		fprintf(stderr, "invalid node range\n");
+		exit(1); 
+	    }
+	    if (first < 0 || last < 0 || last < first || first == last) {
+		fprintf(stderr, "invalid node range: %i-%i\n", first, last);
+		exit(1);
+	    }
+	    for(i=first; i<=last; i++) np++;
+	} else {
+	    np++;	
+	}
 	nodeparse = strtok_r(NULL, delimiters, &toksave);
     }
     free(parse);
@@ -931,7 +996,47 @@ static void setupUID(char *argv[])
 }
 
 /**
- * @brief Creates admin tasks which are not accounted and can only be
+ * @brief Spwan admin task.
+ *
+ * Do the actuall spawing and handling of errors.
+ *
+ * @param nodeID The node to spawn to task to.
+ *
+ * @param argc The number of arguments for the new process to spawn.
+ *
+ * @param argv Pointer to the arguments of the new process to spawn.
+ *
+ * @param verbose Set verbose mode, ouput whats going on.
+ *
+ * @param show Only show ouput, but don't spawn anything.
+*/
+static void doAdminSpawn(PSnodes_ID_t nodeID, int argc, char *argv[], 
+						    int verbose, int show)
+{
+    static int rank = 0;
+    int error;
+    PStask_ID_t spawnedProcess = -1;
+    
+    if (verbose) {
+	printf("Spawning Process %i on Node: %i\n", rank, nodeID);
+    }
+    
+    if (show) return;
+
+    PSI_spawnAdmin(nodeID, wdir, argc, argv, 1, rank, &error, &spawnedProcess); 
+    
+    
+    if (error) {
+	fprintf(stderr, "Spawn to node: %i failed!\n", nodeID);
+	exit(10);
+    }
+    rank++;
+}
+
+/**
+ * @brief Creates an admin tasks.
+ *
+ * Creates tasks which are not accounted and can only be
  * run as privileged user.
  *
  * @param argc The number of arguments for the new process to spawn.
@@ -948,18 +1053,14 @@ static void setupUID(char *argv[])
  */
 static void createAdminTasks(int argc, char *argv[], char *login, int verbose, int show)
 {
-    int rank = 0;
-    int error;
-    PStask_ID_t spawnedProcess = -1;
     PSnodes_ID_t nodeID;
-    char *nodeparse, *toksave, *parse;
+    char *nodeparse, *toksave, *parse = NULL;
     const char delimiters[] =", \n";
     char *envnodes, *envhosts;
+    int numNodes = PSC_getNrOfNodes();
 
-    if (login) {
-	setupUID(argv);
-    }
-
+    if (login) setupUID(argv);
+     
     envnodes = getenv("PSI_NODES");
     envhosts = getenv("PSI_HOSTS");
    
@@ -983,27 +1084,40 @@ static void createAdminTasks(int argc, char *argv[], char *login, int verbose, i
 	if (hostlist) {
 	    getNodeIDbyHost(nodeparse, &nodeID);
 	} else {
-	    int node;
-
-	    node = atoi(nodeparse);
-	    if (node < 0 || node >= PSC_getNrOfNodes()) {
-		fprintf(stderr, "Node %d out of range\n", node);
-		exit(1);
+	    int node = 0, first, last, i;
+	    char *end;
+	    if (strchr(nodeparse, '-') != NULL) {
+		first = last = 0;
+		if ((sscanf(nodeparse, "%d-%d", &first, &last)) != 2) {
+		    fprintf(stderr, "invalid node range\n");
+		    exit(1); 
+		}
+		if (first < 0 || last < 0 || last < first || first == last) {
+		    fprintf(stderr, "invalid node range: %i-%i\n", first, last);
+		    exit(1);
+		}
+		if (last >= numNodes) {
+		    fprintf(stderr, "Nodes out of range, exiting\n");
+		    exit(1);
+		}
+		for(i=first; i<=last; i++) {
+		    doAdminSpawn(i, argc, argv, verbose, show);
+		}
+		nodeparse = strtok_r(NULL, delimiters, &toksave);
+		continue;
+	    } else {
+		node = strtol(nodeparse, &end, 10);
+		if (end == nodeparse || *end) {
+			return;
+		}
+		if (node < 0 || node >= numNodes) {
+		    fprintf(stderr, "Node %d out of range\n", node);
+		    exit(1);
+		}
+		nodeID = node;
 	    }
-	    nodeID = node;
-	    //snprintf(hostStr, sizeof(hostStr), "node %d", node);
 	}
-	if (verbose) {
-	    printf("Spawning Process %i on Node: %i\n", rank, nodeID);
-	}
-
-	PSI_spawnAdmin(nodeID, wdir, argc, argv, 1, rank, &error, &spawnedProcess); 
-	
-	if (error) {
-	    fprintf(stderr, "Spawn to node: %i failed!\n", nodeID);
-	    exit(10);
-	}
-	rank++;	
+	doAdminSpawn(nodeID, argc, argv, verbose, show);
 	nodeparse = strtok_r(NULL, delimiters, &toksave);
     }
 }
@@ -1043,7 +1157,7 @@ static void checkSanity(char *argv[])
     }
 
     if (ecfn) {
-	printf("ecfn is not yet implemented\n");
+	printf("ecfn is not yet implemented, ignoring option\n");
     }
     
     if (gdba) {
@@ -1297,7 +1411,7 @@ static void parseCmdOptions(int argc, char *argv[])
 
     struct poptOption poptCommunicationOptions[] = {
         { "discom", 'c', POPT_ARG_STRING,
-	  &discom, 0, "disable an communication architecture: {SHM,TCP,P4SOCK,GM,MVAPI,OPENIB,ELAN,DAPL}",
+	  &discom, 0, "disable an communication architecture: {SHM,TCP,P4SOCK,GM,MVAPI,OPENIB,DAPL}",
 	  NULL},
         { "network", 't', POPT_ARG_STRING,
 	  &network, 0, "set a space separeted list of networks enabled", NULL},
@@ -1508,7 +1622,7 @@ static void setupGDB()
 }
 
 /**
- * @brief Add the np (number of processes) argument
+ * @brief Add the -np (number of processes) argument
  * from mpiexec to the argument list of the mpi-1
  * application.
  *
@@ -1565,22 +1679,20 @@ int main(int argc, char *argv[])
 	pmienabletcp = 0;
 	pmienablesockp = 0;
     }
-    
+
     if (admin) setupAdminEnv();
     
     /* setup the parastation environment */
     setupEnvironment(verbose); 
-    
-    poptFreeContext(optCon);
-    
+
     /* Check for LSF-Parallel */
     PSI_RemoteArgs(argc-dup_argc, &argv[dup_argc], &dup_argc, &dup_argv);
-
+	 
     /* create spwaner process and switch to logger */
     createSpawner(argc, argv, np, admin);
-   
+
     /* add command args for controlling gdb */
-    if (gdb)  setupGDB();
+    if (gdb) setupGDB();
 
     /* add command args for mpi1 mode */
     if (mpichcom) setupComp();

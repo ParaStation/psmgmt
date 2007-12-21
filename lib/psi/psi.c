@@ -725,4 +725,13 @@ void PSI_propEnv(void)
     if ((envStr = getenv("PSP_DEBUG"))) {
 	setPSIEnv("PSP_DEBUG", envStr, 1);
     }
+    if ((envStr = getenv("PSP_DAPL"))) {
+	setPSIEnv("PSP_DAPL", envStr, 1);
+    }
+    if ((envStr = getenv("PSP_ELAN"))) {
+	setPSIEnv("PSP_ELAN", envStr, 1);
+    }
+    if ((envStr = getenv("PSP_TCP"))) {
+	setPSIEnv("PSP_TCP", envStr, 1);
+    }
 }

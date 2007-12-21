@@ -115,13 +115,13 @@ void outputMergeInit(void)
     ClientOutBuf = malloc (sizeof(*ClientOutBuf) * maxClients);
     BufInc = malloc (sizeof(char*) * maxClients);
 
+    if (!ClientOutBuf || !BufInc) {
+	fprintf(stderr, "PSIlogger: %s: malloc) failed.\n", __func__);
+	exit(1);
+    }
+    
     snprintf(npsize, sizeof(npsize), "[0-%i]", np -1);
     prelen = strlen(npsize);
-
-    if (!ClientOutBuf || !BufInc) {
-	    fprintf(stderr, "PSIlogger: %s: malloc) failed.\n", __func__);
-	    exit(1);
-    }
   
     /* Init Output Buffer List */
     for (i=0; i<maxClients; i++) { 
@@ -367,7 +367,10 @@ static void printLine(int outfd, char *line, int mcount, int start, int saveBufI
     int space = 0;
     FILE *out;
 
-    out = fdopen(outfd, "a");
+    if (!(out = fdopen(outfd, "a"))) {
+	fprintf(stderr, "%s: Could not open file deskriptor\n", __func__);
+	exit(1);
+    }
     generatePrefix(prefix, sizeof(prefix), mcount, start, saveBufInd);
     space = prelen - strlen(prefix) - 2;
     if (space >0) {
@@ -680,5 +683,3 @@ void cacheOutput(PSLog_Msg_t msg, int outfd)
     }
     free(bufmem);
 }
-
-

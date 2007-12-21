@@ -40,7 +40,6 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "psidforwarder.h"
 
 typedef struct {
-    char *exe;
     char state;
     int session;
     ulong flags;
@@ -101,7 +100,16 @@ int openfds = 0;
  */
 msgbuf_t *oldMsgs = NULL;
 
-/** Structure which holds the accouting information */
+/** Set to 1 if the forwarder should do accounting */
+int accounting = 0;
+
+/** Set to 1 if the forwarder should poll for detailed acc information e.g. memory */
+int acctPoll = 0;
+
+/** The time in sec how often should be polled for accounting information */
+int acctPollTime = 60;
+
+/** Structure which holds the accounting information */
 AccountData accData;
 
 /**
@@ -190,6 +198,10 @@ static long getAllChildsVMem(int pid, char *buf, int size, DIR *dir)
 	    continue;
 	}
 	newpid = atoi(dent->d_name);
+	
+	if (!isdigit(newpid) || newpid < 0) {
+	    continue;
+	}
 
 	snprintf(buf, size, "/proc/%i/stat", newpid);
 	if ((fd = fopen(buf,"r")) == NULL) {
@@ -244,6 +256,10 @@ static long getAllChildsMem(int pid, char *buf, int size, DIR *dir)
 	    continue;
 	}
 	newpid = atoi(dent->d_name);
+	
+	if (!isdigit(newpid) || newpid < 0) {
+	    continue;
+	}
 
 	snprintf(buf, size, "/proc/%i/stat", newpid);
 	if ((fd = fopen(buf,"r")) == NULL) {
@@ -267,7 +283,7 @@ static long getAllChildsMem(int pid, char *buf, int size, DIR *dir)
 /**
  * @brief Reads data from /proc/pid/stat and updates the
  * accounting data structure accData. Used for generating
- * accouting files and to replace the resmom of torque.
+ * accounting files and to replace the resmom of torque.
  *
  * @return No return value.
  */
@@ -278,7 +294,7 @@ static void updateAccountData(void)
     %*u %*u %*u %d %d %d %d %*d %*d %*u %*u %u %lu %lu %*u %*u \
     %*u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*d %d";
 
-    int pid, res, len;
+    int pid, res;
     long rssnew;
     ulong vsizenew, newstarttime;
     static char buf[1024];
@@ -299,20 +315,6 @@ static void updateAccountData(void)
     snprintf(buf, sizeof(buf), "/proc/%i/stat", pid);
     if ((fd = fopen(buf,"r")) == NULL) {
 	return;
-    }
-
-    /* read executable name */
-    if (accData.exe == NULL) {
-	res = fscanf(fd, "%*d (%[^)])",
-		buf);
-	if (res == 1) {
-	    len = strlen(buf);
-	    if (!(accData.exe = malloc(len +1))) {
-		PSID_log(-1, "%s: out of memory\n", __func__);
-		exit(1);
-	    }
-	    strcpy(accData.exe, buf);
-	}	
     }
 
     res = fscanf(fd, stat_format,
@@ -520,18 +522,7 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
     return ret;
 }
 
-/**
- * @brief Send a message to the local daemon.
- *
- * Send the message @a msg to the local daemon.
- *
- * @param msg The message to send.
- *
- * @return On success, the number of bytes send is returned,
- * i.e. usually @a msg->header.len. Otherwise -1 is returned and errno
- * is set appropriately.
- */
-static int sendDaemonMsg(DDMsg_t *msg)
+int sendDaemonMsg(DDMsg_t *msg)
 {
     char *buf = (void *)msg;
     size_t c = msg->len;
@@ -1081,6 +1072,131 @@ static size_t collectRead(int sock, char *buf, size_t count, size_t *total)
 }
 
 #define NAME_TO_LONG_STR "progname to long"
+	    
+/**
+ * @brief Send accounting information.
+ *
+ * Send the collected accouting information to the corresponding
+ * accounting daemons.
+ *
+ * @param rusage The rusage information received from the child.
+ *
+ * @param status The returned status of the child. 
+ *
+ * @return No return value.
+ */
+static void sendAccoutingData(struct rusage rusage, int status)
+{
+    DDTypedBufferMsg_t msg;
+    char *ptr = msg.buf;
+    char *envstr;
+
+    msg.header.type = PSP_CD_ACCOUNT;
+    msg.header.dest = PSC_getTID(-1, 0);
+    msg.header.sender = PSC_getTID(-1, getpid());
+    msg.header.len = sizeof(msg.header);
+
+    msg.type = PSP_ACCOUNT_END;
+    msg.header.len += sizeof(msg.type);
+
+    /* logger's TID, this identifies a task uniquely */
+    *(PStask_ID_t *)ptr = childTask->loggertid;
+    ptr += sizeof(PStask_ID_t);
+    msg.header.len += sizeof(PStask_ID_t);
+
+    /* current rank */
+    *(int32_t *)ptr = childTask->rank;
+    ptr += sizeof(int32_t);
+    msg.header.len += sizeof(int32_t);
+
+    /* child's uid */
+    *(uid_t *)ptr = childTask->uid;
+    ptr += sizeof(uid_t);
+    msg.header.len += sizeof(uid_t);
+
+    /* child's gid */
+    *(gid_t *)ptr = childTask->gid;
+    ptr += sizeof(gid_t);
+    msg.header.len += sizeof(gid_t);
+
+    /* total number of childs. Only the logger knows this */
+    *(int32_t *)ptr = -1;
+    ptr += sizeof(int32_t);
+    msg.header.len += sizeof(int32_t);
+
+    /* my IP address */
+    *(uint32_t *)ptr = PSIDnodes_getAddr(PSC_getMyID());
+    ptr += sizeof(uint32_t);
+    msg.header.len += sizeof(uint32_t);
+
+    /* actual rusage structure */
+    memcpy(ptr, &rusage, sizeof(rusage));
+    ptr += sizeof(rusage);
+    msg.header.len += sizeof(rusage);
+    
+    /* size of max used mem */
+    *(long *)ptr = accData.maxrss;
+    ptr += sizeof(long);
+    msg.header.len += sizeof(long);
+
+    /* size of max used vmem */
+    *(ulong *)ptr = accData.maxvsize;
+    ptr += sizeof(ulong);
+    msg.header.len += sizeof(ulong);
+    
+    /* real kernel start time */
+    *(ulong *)ptr = accData.starttime;
+    ptr += sizeof(ulong);
+    msg.header.len += sizeof(ulong);
+    
+    /* session id of job */
+    *(int32_t *)ptr = accData.session;
+    ptr += sizeof(int32_t);
+    msg.header.len += sizeof(int32_t);
+
+    /* child's return status */
+    *(int32_t *)ptr = status;
+    ptr += sizeof(int32_t);
+    msg.header.len += sizeof(int32_t);
+
+    /* job's name */
+    if (childTask->argv && childTask->argv[0]) {
+	char *progStr;
+	if (strlen(childTask->argv[0])
+	    < (sizeof(msg)-msg.header.len-1)) {
+	    progStr = childTask->argv[0];
+	} else {
+	    progStr = NAME_TO_LONG_STR;
+	}
+	strcpy(ptr, progStr);
+	ptr += strlen(progStr) + 1;
+	msg.header.len += strlen(progStr) + 1;
+    } else {
+	*ptr = '\0';
+	ptr++;
+	msg.header.len++;
+    }
+
+    /* job id */
+    if ((envstr = getenv("PSI_JOBID"))) {
+	    char *jobStr;
+	    if (strlen(envstr)
+		< (sizeof(msg)-msg.header.len-1)) {
+		jobStr = envstr;
+	    } else {
+		jobStr = "job_alias_to_long";
+	    }
+	    strcpy(ptr, jobStr);
+	    ptr += strlen(jobStr) + 1;
+	    msg.header.len += strlen(jobStr) + 1;
+    } else {
+	*ptr = '\0';
+	ptr++;
+	msg.header.len++;
+    } 
+
+    sendDaemonMsg((DDMsg_t *)&msg);
+}
 
 /**
  * @brief Signal handler
@@ -1229,116 +1345,9 @@ static void sighandler(int sig)
 	sendMsg(USAGE, (char *) &rusage, sizeof(rusage));
 
 	/* Send ACCOUNT message to daemon; will forward to accounters */
-	if (childTask->group != TG_ADMINTASK) {
-	    DDTypedBufferMsg_t msg;
-	    char *ptr = msg.buf;
-	    char *envstr;
-
-	    msg.header.type = PSP_CD_ACCOUNT;
-	    msg.header.dest = PSC_getTID(-1, 0);
-	    msg.header.sender = PSC_getTID(-1, getpid());
-	    msg.header.len = sizeof(msg.header);
-
-	    msg.type = PSP_ACCOUNT_END;
-	    msg.header.len += sizeof(msg.type);
-
-	    /* logger's TID, this identifies a task uniquely */
-	    *(PStask_ID_t *)ptr = childTask->loggertid;
-	    ptr += sizeof(PStask_ID_t);
-	    msg.header.len += sizeof(PStask_ID_t);
-
-	    /* current rank */
-	    *(int32_t *)ptr = childTask->rank;
-	    ptr += sizeof(int32_t);
-	    msg.header.len += sizeof(int32_t);
-
-	    /* child's uid */
-	    *(uid_t *)ptr = childTask->uid;
-	    ptr += sizeof(uid_t);
-	    msg.header.len += sizeof(uid_t);
-
-	    /* child's gid */
-	    *(gid_t *)ptr = childTask->gid;
-	    ptr += sizeof(gid_t);
-	    msg.header.len += sizeof(gid_t);
-
-	    /* total number of childs. Only the logger knows this */
-	    *(int32_t *)ptr = -1;
-	    ptr += sizeof(int32_t);
-	    msg.header.len += sizeof(int32_t);
-
-	    /* my IP address */
-	    *(uint32_t *)ptr = PSIDnodes_getAddr(PSC_getMyID());
-	    ptr += sizeof(uint32_t);
-	    msg.header.len += sizeof(uint32_t);
-
-	    /* actual rusage structure */
-	    memcpy(ptr, &rusage, sizeof(rusage));
-	    ptr += sizeof(rusage);
-	    msg.header.len += sizeof(rusage);
-
-	    /* size of max used mem */
-	    *(long *)ptr = accData.maxrss;
-	    ptr += sizeof(long);
-	    msg.header.len += sizeof(long);
-
-	    /* size of max used vmem */
-	    *(ulong *)ptr = accData.maxvsize;
-	    ptr += sizeof(ulong);
-	    msg.header.len += sizeof(ulong);
-	    
-	    /* real kernel start time */
-	    *(ulong *)ptr = accData.starttime;
-	    ptr += sizeof(ulong);
-	    msg.header.len += sizeof(ulong);
-	    
-	    /* session id of job */
-	    *(int32_t *)ptr = accData.session;
-	    ptr += sizeof(int32_t);
-	    msg.header.len += sizeof(int32_t);
-
-	    /* child's return status */
-	    *(int32_t *)ptr = status;
-	    ptr += sizeof(int32_t);
-	    msg.header.len += sizeof(int32_t);
-
-	    /* job's name */
-	    if (childTask->argv && childTask->argv[0]) {
-		char *progStr;
-		if (strlen(childTask->argv[0])
-		    < (sizeof(msg)-msg.header.len-1)) {
-		    progStr = childTask->argv[0];
-		} else {
-		    progStr = NAME_TO_LONG_STR;
-		}
-		strcpy(ptr, progStr);
-		ptr += strlen(progStr) + 1;
-		msg.header.len += strlen(progStr) + 1;
-	    } else {
-		*ptr = '\0';
-		ptr++;
-		msg.header.len++;
-	    }
-
-	    /* job id */
-	    if ((envstr = getenv("PSP_JOBID"))) {
-		    char *jobStr;
-		    if (strlen(envstr)
-			< (sizeof(msg)-msg.header.len-1)) {
-			jobStr = envstr;
-		    } else {
-			jobStr = "job_alias_to_long";
-		    }
-		    strcpy(ptr, jobStr);
-		    ptr += strlen(jobStr) + 1;
-		    msg.header.len += strlen(jobStr) + 1;
-	    } else {
-		*ptr = '\0';
-		ptr++;
-		msg.header.len++;
-	    } 
-
-	    sendDaemonMsg((DDMsg_t *)&msg);
+	if (accounting && childTask->group != TG_ADMINTASK
+	    && childTask->group != TG_SERVICE) {
+	    sendAccoutingData(rusage, status);
 	}
 
 	/* Send CHILDDEAD message to the daemon */
@@ -1451,7 +1460,7 @@ static void acceptPMIClient(void)
     char obuf[120];
 
     /* check if a client is already connected */
-    if (PMIClientSock > 0) {
+    if (PMIClientSock != -1) {
 	snprintf(obuf, sizeof(obuf),
 		 "%s: error only one pmi connection is allowed\n", __func__);
 	PSIDfwd_printMsg(STDERR, obuf);
@@ -1623,7 +1632,10 @@ static void loop(void)
 	    }
 	}
 	/* update Accounting Data*/
-	if(childTask->group != TG_ADMINTASK && (time(0) - timeacc) > 60) {
+	if (accounting && acctPoll
+		&& childTask->group != TG_ADMINTASK 
+		&& childTask->group != TG_SERVICE 
+		&& (time(0) - timeacc) > acctPollTime) {
 	    timeacc = time(0);
 	    updateAccountData();
 	}
@@ -1635,13 +1647,15 @@ static void loop(void)
 }
 
 /* see header file for docu */
-void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket, int PMIType)
+void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket, int PMIType,
+		    int doAccounting)
 {
     long flags;
 
     childTask = task;
     daemonSock = daemonfd;
     pmiType = PMIType;
+    accounting = doAccounting;
 
     stdinSock = task->stdin_fd;
     stdoutSock = task->stdout_fd;

@@ -147,3 +147,13 @@ void msg_ACCOUNT(DDBufferMsg_t *msg)
 	}
     }
 }
+
+int PSID_getNumAcct(void)
+{
+    struct list_head *pos;
+    int num = 0;
+
+    list_for_each(pos, &PSID_accounters) num++;
+
+    return num;
+}
