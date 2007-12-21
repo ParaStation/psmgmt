@@ -99,7 +99,7 @@ void send_acct_OPTIONS(PStask_ID_t dest, int all);
 void msg_ACCOUNT(DDBufferMsg_t *msg);
 
 /**
- * @brief Return the number of accounters. 
+ * @brief Get number of accounters. 
  *
  * Return the number of accounters currently registered to the set of
  * ParaStation daemons.

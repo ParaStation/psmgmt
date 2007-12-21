@@ -100,21 +100,21 @@ void initLoggerKvs(int verbose)
 {
     char kvs_name[KVSNAME_MAX], *envstr;
     int i;
-    
+
     clientKvsTID = malloc (sizeof(*clientKvsTID) * maxKvsClients);
     clientKvsTrackTID = malloc (sizeof(*clientKvsTrackTID) * maxKvsClients);
-    
+
     if (!clientKvsTID || !clientKvsTrackTID) {
 	fprintf(stderr, "PSIlogger: %s, out of memory\n", __func__);
 	terminateJob();
 	exit(1);
     }
-    
+
     for (i=0; i<maxKvsClients; i++) {
 	clientKvsTID[i] = -1;
 	clientKvsTrackTID[i] = -1;
     }
-    
+
     /* init the kvs */
     kvs_init();
 
@@ -425,10 +425,10 @@ static void sendKvsUpdateToClients(void)
 }
 
 /**
- * @brief Callback function to handle barrier timeout. 
+ * @brief Callback function to handle barrier timeout.
  *
- * Terminate the job, send all children term signal, to
- * avoid that the job hangs infinite.
+ * Terminate the job, send all children term signal, to avoid that the
+ * job hangs infinite.
  *
  * @return No return value.
  */
