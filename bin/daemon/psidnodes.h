@@ -667,6 +667,31 @@ short PSIDnodes_mapCPU(PSnodes_ID_t id, short cpu);
  */
 void send_CPUMap_OPTIONS(PStask_ID_t dest);
 
+/**
+ * @brief Set node's accounter poll interval
+ *
+ * Set the accounter poll interval of node @a id to @a interval. If
+ * set to 0, no polling at all will take place.
+ *
+ * @param id ParaStation ID of the node to change.
+ *
+ * @param interval The polling interval in seconds to be set.
+ *
+ * @return On success, 0 is returned or -1, if an error occured.
+ */
+int PSIDnodes_setAcctPollI(PSnodes_ID_t id, int interval);
+
+/**
+ * @brief Get node's accounter poll interval
+ *
+ * Get the accounter poll interval of node @a id.
+ *
+ * @param id ParaStation ID of the node to look up.
+ *
+ * @return If the node was found, the accounting poll interval is
+ * returned. Or -1, if an error occured.
+ */
+int PSIDnodes_acctPollI(PSnodes_ID_t id);
 
 
 #ifdef __cplusplus

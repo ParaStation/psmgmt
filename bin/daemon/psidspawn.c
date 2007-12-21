@@ -994,7 +994,7 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
     /* Release the waiting daemon and exec forwarder */
     close(cntrlCh);
     PSID_forwarder(task, daemonfd, PMIforwarderSock, pmiEnableSockp,
-		   PSID_getNumAcct());
+		   PSID_getNumAcct(), PSIDnodes_acctPollI(PSC_getMyID()));
 
     /* never reached */
     exit(1);

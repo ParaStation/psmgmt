@@ -777,6 +777,12 @@ static int setShowAccounter(char *token)
     return 0;
 }
 
+static int setShowAcctPoll(char *token)
+{
+    setShowOpt = PSP_OP_ACCTPOLL;
+    return 0;
+}
+
 static int setShowRL_AS(char *token)
 {
     setShowOpt = PSP_OP_RL_AS;
@@ -892,6 +898,7 @@ static keylist_t setShowList[] = {
     {"bindmem", setShowBindMem},
     {"cpumap", setShowCPUMap},
     {"accounters", setShowAccounter},
+    {"accountpoll", setShowAcctPoll},
     {"rl_as", setShowRL_AS},
     {"rl_addressspace", setShowRL_AS},
     {"rl_core", setShowRL_Core},
@@ -1071,6 +1078,7 @@ static int setCommand(char *token)
 /*     case PSP_OP_PSM_RTO: */
 /*     case PSP_OP_PSM_HNPEND: */
 /*     case PSP_OP_PSM_ACKPEND: */
+    case PSP_OP_ACCTPOLL:
 	if (parser_getNumber(value, &val)) {
 	    printf("Illegal value '%s'\n", value);
 	    goto error;
@@ -1159,6 +1167,7 @@ static int setCommand(char *token)
     case PSP_OP_PINPROCS:
     case PSP_OP_BINDMEM:
     case PSP_OP_NODESSORT:
+    case PSP_OP_ACCTPOLL:
 	PSIADM_SetParam(setShowOpt, val, nl);
 	break;
     case PSP_OP_CPUMAP:
@@ -1218,6 +1227,7 @@ static int showCommand(char *token)
     case PSP_OP_RUNJOBS:
     case PSP_OP_PINPROCS:
     case PSP_OP_BINDMEM:
+    case PSP_OP_ACCTPOLL:
 	PSIADM_ShowParam(setShowOpt, nl);
 	break;
     case PSP_OP_ACCT:

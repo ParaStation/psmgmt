@@ -1142,6 +1142,7 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
 	break;
     case PSP_OP_PSIDSELECTTIME:
     case PSP_OP_RDPMAXRETRANS:
+    case PSP_OP_ACCTPOLL:
 	if (value<0) {
 	    printf(" value must be >= 0.\n");
 	    return;

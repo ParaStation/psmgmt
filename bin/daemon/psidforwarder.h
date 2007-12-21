@@ -39,9 +39,15 @@ extern "C" {
  * daemon via which all communication operations of this kind are
  * delivered.
  *
- * Furthermore it's the forwarders tasks to control the client
+ * Additionally it's the forwarders tasks to control the client
  * process' live and to supply post mortem failure and usage
  * information to the parent process.
+ *
+ * Furthermore the forwarder generates accounting messages, if @a
+ * doAccounting is set different from 0. Every @a acctPollInterval
+ * seconds the forwarder will poll on the /proc filesystem in order to
+ * get more detailed information like memory consumption, etc. If @a
+ * acctPollInterval is set to 0, no polling will take place.
  *
  * @param task Task structure describing the client process to control.
  *
@@ -55,10 +61,13 @@ extern "C" {
  *
  * @param doAccounting Set to true if the forwarder should do accouting.
  *
+ * @param acctPollInterval Interval in sec the forwarder will poll the
+ * /proc filesystem for more detailed accounting information.
+ *
  * @return No return value.
  */
 void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket, int PMIType,
-		    int doAccounting);
+		    int doAccounting, int acctPollInterval);
 
 /**
  * @brief Send a message to the local daemon.

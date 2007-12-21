@@ -66,6 +66,7 @@ typedef struct {
     list_t admuid_list;    /**< AdminUser on this node */
     list_t admgid_list;    /**< AdminGroup on this node */
     int maxProcs;          /**< Number of processes this node will handle */
+    int acctPollInterval;  /**< Interval in sec for polling on accnting info */
 } node_t;
 
 /** Array (indexed by node number) to store all known nodes */
@@ -104,6 +105,7 @@ static void nodeInit(node_t *node)
     node->admuid_list = LIST_HEAD_INIT(node->admuid_list);
     node->admgid_list = LIST_HEAD_INIT(node->admgid_list);
     node->maxProcs = -1;
+    node->acctPollInterval = 0;
 }
 
 int PSIDnodes_init(PSnodes_ID_t num)
@@ -916,6 +918,25 @@ int PSIDnodes_getProcs(PSnodes_ID_t id)
 {
     if (ID_ok(id)) {
 	return nodes[id].maxProcs;
+    } else {
+	return -1;
+    }
+}
+
+int PSIDnodes_setAcctPollI(PSnodes_ID_t id, int interval)
+{
+    if (ID_ok(id)) {
+	nodes[id].acctPollInterval = interval;
+	return 0;
+    } else {
+	return -1;
+    }
+}
+
+int PSIDnodes_acctPollI(PSnodes_ID_t id)
+{
+    if (ID_ok(id)) {
+	return nodes[id].acctPollInterval;
     } else {
 	return -1;
     }

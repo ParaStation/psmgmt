@@ -77,6 +77,9 @@ void send_OPTIONS(PSnodes_ID_t destnode)
     msg.opt[(int) msg.count].option = PSP_OP_BINDMEM;
     msg.opt[(int) msg.count].value = PSIDnodes_bindMem(PSC_getMyID());
     msg.count++;
+    msg.opt[(int) msg.count].option = PSP_OP_ACCTPOLL;
+    msg.opt[(int) msg.count].value = PSIDnodes_acctPollI(PSC_getMyID());
+    msg.count++;
 
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
@@ -632,6 +635,27 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 	    case PSP_OP_REM_ACCT:
 		PSID_remAcct(msg->opt[i].value);
 		break;
+	    case PSP_OP_ACCTPOLL:
+		if (PSC_getPID(msg->header.sender)) {
+		    DDOptionMsg_t info = {
+			.header = {
+			    .type = PSP_CD_SETOPTION,
+			    .sender = PSC_getMyTID(),
+			    .dest = 0,
+			    .len = sizeof(info) },
+			.count = 1,
+			.opt = {{ .option = msg->opt[i].option,
+				  .value = msg->opt[i].value }} };
+
+		    PSIDnodes_setAcctPollI(PSC_getMyID(), msg->opt[i].value);
+
+		    /* Info all nodes about my ACCTPOLL */
+		    broadcastMsg(&info);
+		} else {
+		    PSIDnodes_setAcctPollI(PSC_getID(msg->header.sender),
+					   msg->opt[i].value);
+		}
+		break;
 	    case PSP_OP_LISTEND:
 		/* Ignore */
 		break;
@@ -806,6 +830,9 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		send_acct_OPTIONS(msg->header.sender, 1);
 		/* Do not send option again */
 		out--;
+		break;
+	    case PSP_OP_ACCTPOLL:
+		msg->opt[out].value = PSIDnodes_acctPollI(PSC_getMyID());
 		break;
 	    case PSP_OP_RL_AS:
 	    case PSP_OP_RL_CORE:

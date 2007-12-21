@@ -241,7 +241,7 @@ static info_t setInfo = {
 	" | starter <bool> | runjobs <bool> | overbook {<bool>|auto}"
 	" | exclusive <bool> | pinprocs <bool> | bindmem <bool> "
 	" | cpumap <map> | nodessort <mode> | adminuser [+|-]{<user>|any}"
-	" | admingroup [+|-]{<group>|any}} <nodes>"
+	" | admingroup [+|-]{<group>|any} | accountpoll <interval>} <nodes>"
     }},
     .nodes = 1,
     .descr = "Set one of various parameters of the ParaStation system:",
@@ -355,6 +355,11 @@ static info_t setInfo = {
 	  " name or a numerical GID. If <group> is preceeded by a '+' or '-',"
 	  " this group is added to or removed from the list of admingroups"
 	  " respectively." },
+	{ .tag = "set accountpoll <interval>",
+	  .descr = "In order to retrieve more detailed accounting information"
+	  " the forwarders might poll on /proc. This sets the poll interval on"
+	  " the selected nodes to <interval> seconds. If Set to 0, no polling"
+	  " at all will take place." },
 	{ NULL, NULL }
     },
     .comment = "For more information reffer to 'help set <subcommand>'"
@@ -369,10 +374,10 @@ static info_t showInfo = {
 /* 	" | {smallpacketsize|sps} | {resendtimeout|rto} | hnpend | ackpend" */
 	" | {freeonsuspend|fos} | {handleoldbins|hob} | starter | runjobs"
 	" | overbook | exclusive | pinprocs | bindmem | cpumap | nodessort"
-	" | adminuser | admingroup | accounters | rl_{addressspace|as}"
-	" | rl_core | rl_cpu | rl_data | rl_fsize | rl_locks | rl_memlock"
-	" | rl_msgqueue | rl_nofile | rl_nproc | rl_rss | rl_sigpending"
-	" | rl_stack }"
+	" | adminuser | admingroup | accounters | accountpoll"
+	" | rl_{addressspace|as} | rl_core | rl_cpu | rl_data | rl_fsize"
+	" | rl_locks | rl_memlock | rl_msgqueue | rl_nofile | rl_nproc"
+	" | rl_rss | rl_sigpending | rl_stack}"
 	" <nodes>"
     }},
     .nodes = 1,
@@ -444,6 +449,9 @@ static info_t showInfo = {
 	{ .tag = "show accounters",
 	  .descr = "Show all accounter tasks, i.e. tasks collecting accounting"
 	  " messages." },
+	{ .tag = "show accountpoll",
+	  .descr = "Show polling interval in seconds of accounter to retrieve"
+	  " more detailed information." },
 	{ .tag = "show rl_{addressspace|as}",
 	  .descr = "Show RLIMIT_AS on this node." },
 	{ .tag = "show rl_core",

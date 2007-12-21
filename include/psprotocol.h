@@ -87,6 +87,7 @@ typedef enum {
     PSP_OP_ADD_ACCT = 0x0010,     /**< add a new accounting process */
     PSP_OP_REM_ACCT,              /**< sign off accounting process */
     PSP_OP_ACCT,                  /**< list of accounting processes */
+    PSP_OP_ACCTPOLL,              /**< accounter's poll interval */
 
     PSP_OP_RDPDEBUG = 0x0020,     /**< RDP's debug level */
     PSP_OP_RDPPKTLOSS,            /**< Paket loss within RDP (debugging) */

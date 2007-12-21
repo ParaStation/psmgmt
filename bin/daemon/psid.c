@@ -1384,6 +1384,7 @@ int main(int argc, const char *argv[])
     PSIDnodes_setDaemonProtoVersion(PSC_getMyID(), PSDaemonProtocolVersion);
     PSIDnodes_setHWStatus(PSC_getMyID(), 0);
     PSID_startAllHW();
+    PSIDnodes_setAcctPollI(PSC_getMyID(), config->acctPollInterval);
 
     /* Bring node up with correct numbers of CPUs */
     declareNodeAlive(PSC_getMyID(), PSID_getPhysCPUs(), PSID_getVirtCPUs());

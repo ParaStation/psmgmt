@@ -55,6 +55,7 @@ static config_t config = (config_t) {
     .freeOnSuspend = 0,
     .handleOldBins = 0,
     .nodesSort = PART_SORT_PROC,
+    .acctPollInterval = 0,
 };
 
 #define ENV_END 17 /* Some magic value */
@@ -183,6 +184,18 @@ static int getDeadInterval(char *token)
     if (ret) return ret;
 
     config.deadInterval = temp;
+
+    return ret;
+}
+
+static int getAcctPollInterval(char *token)
+{
+    int temp, ret;
+
+    ret = parser_getNumValue(parser_getString(), &temp, "dead interval");
+    if (ret) return ret;
+
+    config.acctPollInterval = temp;
 
     return ret;
 }
@@ -1988,6 +2001,7 @@ static keylist_t config_list[] = {
     {"rdpport", getRDPPort},
     {"selecttime", getSelectTime},
     {"deadinterval", getDeadInterval},
+    {"accountpoll", getAcctPollInterval},
     {"rlimit", getRLimit},
     {"loglevel", getLogMask},
     {"logmask", getLogMask},

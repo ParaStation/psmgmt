@@ -103,11 +103,8 @@ msgbuf_t *oldMsgs = NULL;
 /** Set to 1 if the forwarder should do accounting */
 int accounting = 0;
 
-/** Set to 1 if the forwarder should poll for detailed acc information e.g. memory */
-int acctPoll = 0;
-
-/** The time in sec how often should be polled for accounting information */
-int acctPollTime = 60;
+/** Interval in sec for polling on accounting information, e.g. memory */
+int acctPollTime = 0;
 
 /** Structure which holds the accounting information */
 AccountData accData;
@@ -1500,7 +1497,7 @@ static void loop(void)
     struct timeval mytv={2,0}, atv;
     char buf[4000], obuf[120];
     int n; 
-    time_t timeacc = 0;
+    time_t timeacc = 0, now;
     size_t total;
     PSLog_msg_t type;
 
@@ -1632,11 +1629,11 @@ static void loop(void)
 	    }
 	}
 	/* update Accounting Data*/
-	if (accounting && acctPoll
-		&& childTask->group != TG_ADMINTASK 
-		&& childTask->group != TG_SERVICE 
-		&& (time(0) - timeacc) > acctPollTime) {
-	    timeacc = time(0);
+	if (accounting && acctPollTime
+	    && childTask->group != TG_ADMINTASK
+	    && childTask->group != TG_SERVICE 
+	    && ((now = time(0)) - timeacc) > acctPollTime) {
+	    timeacc = now;
 	    updateAccountData();
 	}
 
@@ -1648,7 +1645,7 @@ static void loop(void)
 
 /* see header file for docu */
 void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket, int PMIType,
-		    int doAccounting)
+		    int doAccounting, int acctPollInterval)
 {
     long flags;
 
@@ -1656,6 +1653,7 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket, int PMIType,
     daemonSock = daemonfd;
     pmiType = PMIType;
     accounting = doAccounting;
+    acctPollTime = acctPollInterval;
 
     stdinSock = task->stdin_fd;
     stdoutSock = task->stdout_fd;

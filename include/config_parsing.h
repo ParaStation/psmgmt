@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -62,6 +62,8 @@ typedef struct {
 			    (prior 4.1.0 should be recognized. */
     int nodesSort;       /**< The default sorting strategy; used if the user
 			    does not declare a different one explicitely. */
+    int acctPollInterval;/**< Interval of forwarder to poll for accounting
+			    info. No polling for 0 (the default). */
 } config_t;
 
 /**
