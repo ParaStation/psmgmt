@@ -320,7 +320,7 @@ char* PSC_parseNodelist(char* descr)
 {
     static char* nl = NULL;
     char* range;
-    char* work;
+    char* work = NULL;
 
     nl = realloc(nl, sizeof(char) * PSC_getNrOfNodes());
     if (!nl) {

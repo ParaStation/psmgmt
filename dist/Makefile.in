@@ -31,7 +31,7 @@ ACCLOGDIR:= var/account
 
 INCLUDES += pse.h
 INCLUDES += psprotocol.h psnodes.h pstask.h pspartition.h pscommon.h
-INCLUDES += psiinfo.h psispawn.h psienv.h psi.h logging.h
+INCLUDES += psiinfo.h psispawn.h psienv.h psi.h logging.h pscpu.h
 
 BINS += gmspawner mlisten mpirun_chgm mpirun_chp4 mpirun_openib psiadmin
 BINS += psid psilogger psispawn psmstart test_config test_pse pssh psaccounter
