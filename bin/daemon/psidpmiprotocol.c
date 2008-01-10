@@ -340,7 +340,7 @@ static int p_Destroy_Kvs(char *msgBuffer)
     /* get parameter from msg */
     getpmiv("kvsname",msgBuffer,kvsname,sizeof(kvsname));
     
-    if (!kvsname) {
+    if (strlen(kvsname) < 1) {
 	PSIDfwd_printMsgf(STDERR,
 			  "%s: Rank %i: received wrong kvs destroy msg\n",
 			  __func__, rank);
@@ -378,7 +378,7 @@ static int p_Put(char *msgBuffer)
     getpmiv("value",msgBuffer,value,sizeof(value));
 
     /* check msg */
-    if (!kvsname || !key || !value) {
+    if (strlen(kvsname) < 1 || strlen(key) < 1 || strlen(value) < 1) {
 	if (debug_kvs) {
 	    PSIDfwd_printMsgf(STDERR,
 			      "%s: Rank %i: received invalid pmi put msg\n",
@@ -422,7 +422,7 @@ static int p_Get(char *msgBuffer)
     getpmiv("key",msgBuffer,key,sizeof(key));
 
     /* check msg */
-    if (!kvsname || !key) {
+    if (strlen(kvsname) < 1 || strlen(key) < 1) {
 	if (debug_kvs) {
 	    PSIDfwd_printMsgf(STDERR,
 			      "%s: Rank %i: received invalid pmi get cmd\n",
@@ -471,7 +471,7 @@ static int p_Publish_Name(char *msgBuffer)
     getpmiv("port",msgBuffer,port,sizeof(port));
     
     /* check msg */
-    if (!port || !service) {
+    if (strlen(port) < 1 || strlen(service) < 1) {
 	PSIDfwd_printMsgf(STDERR,
 			  "%s: Rank %i: received invalid publish_name msg\n",
 			  __func__, rank);
@@ -506,7 +506,7 @@ static int p_Unpublish_Name(char *msgBuffer)
     getpmiv("service",msgBuffer,service,sizeof(service));
 
     /* check msg*/
-    if (!service) {
+    if (strlen(service) < 1) {
 	PSIDfwd_printMsgf(STDERR,
 			  "%s: Rank %i: received invalid unpublish_name msg\n",
 			  __func__, rank);
@@ -539,7 +539,7 @@ static int p_Lookup_Name(char *msgBuffer)
     getpmiv("service",msgBuffer,service,sizeof(service));
     
     /* check msg*/
-    if (!service) {
+    if (strlen(service) < 1) {
 	PSIDfwd_printMsgf(STDERR,
 			  "%s: Rank %i: received invalid lookup_name msg\n",
 			  __func__, rank);
@@ -684,7 +684,7 @@ static int p_GetByIdx(char *msgBuffer)
     getpmiv("kvsname", msgBuffer, kvsname, sizeof(msgBuffer));
 
     /* check msg */
-    if (!idx || !kvsname) {
+    if (strlen(idx) < 1 || strlen(kvsname) < 1) {
 	if (debug_kvs) {
 	    PSIDfwd_printMsgf(STDERR, "%s: Rank %i:"
 			      " received invalid pmi getbiyidx msg\n",
@@ -736,7 +736,7 @@ static int p_Init(char *msgBuffer)
     getpmiv("pmi_subversion",msgBuffer,pmisubversion,sizeof(pmisubversion));
    
     /* check msg */
-    if (!pmiversion || !pmisubversion) {
+    if (strlen(pmiversion) < 1 || strlen(pmisubversion) < 1) {
 	PSIDfwd_printMsgf(STDERR,
 			  "%s: Rank %i: received invalid pmi init cmd\n",
 			  __func__, rank);
@@ -828,7 +828,7 @@ static int p_InitAck(char *msgBuffer)
 
     getpmiv("pmiid", msgBuffer, client_id, sizeof(client_id));
 
-    if (!client_id) {
+    if (strlen(client_id) < 1) {
 	PSIDfwd_printMsgf(STDERR,
 			  "%s: Rank %i: invalid initack from client\n",
 			  __func__, rank);
@@ -868,7 +868,7 @@ static int p_Execution_Problem(char *msgBuffer)
     getpmiv("reason",msgBuffer,exec,sizeof(exec));
     getpmiv("exec",msgBuffer,reason,sizeof(reason));
 
-    if (!exec || !reason) {
+    if (strlen(exec) < 1 || strlen(reason) < 1) {
 	PSIDfwd_printMsgf(STDERR, "%s: Rank %i:"
 			  " received invalid pmi execution problem msg\n",
 			  __func__, rank);
@@ -1062,7 +1062,7 @@ int pmi_parse_msg(char *msg)
 	return critErr();
     }
    
-    if (!pmi_extract_cmd(msg, cmd, sizeof(cmd)) || !cmd || strlen(cmd) <2) {
+    if (!pmi_extract_cmd(msg, cmd, sizeof(cmd)) || strlen(cmd) <2) {
 	PSIDfwd_printMsgf(STDERR, "%s: Rank %i: invalid pmi cmd received,"
 			  " msg was:%s\n", __func__, rank, msg);
 	return critErr();
@@ -1116,7 +1116,7 @@ void pmi_handleKvsRet(PSLog_Msg_t msg)
     }
     
     /* extract cmd from msg */
-    if (!pmi_extract_cmd(msg.buf, cmd, sizeof(cmd)) || !cmd || strlen(cmd) < 2) {
+    if (!pmi_extract_cmd(msg.buf, cmd, sizeof(cmd)) || strlen(cmd) < 2) {
 	PSIDfwd_printMsgf(STDERR, "%s: Rank %i: received invalid kvs msg"
 			  " from logger\n", __func__, rank);
 	critErr();
@@ -1149,7 +1149,7 @@ void pmi_handleKvsRet(PSLog_Msg_t msg)
 	    /* kvsname */
 	    if (!strcmp(vname,"kvsname")) {
 		strncpy(kvsname, value, sizeof(kvsname));
-	    } else if (kvsname) {
+	    } else if (strlen(kvsname) > 1) {
 		/* save key/value to kvs */
 		if (kvs_put(kvsname, vname, value)) {
 		    PSIDfwd_printMsgf(STDERR,
