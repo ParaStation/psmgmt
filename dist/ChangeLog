@@ -1,3 +1,363 @@
+Version psmgmt-5.0.0:
+=====================
+------------------------------------------------------------------------
+r5512 | rauh | 2008-01-11 17:11:50 +0100 (Fri, 11 Jan 2008) | 2 lines
+
+removed duplicate entry
+
+------------------------------------------------------------------------
+r5511 | eicker | 2008-01-11 16:49:40 +0100 (Fri, 11 Jan 2008) | 3 lines
+
+Merge Elan fixes from Michael's mgmt-elan branch.
+Fix whitespace stuff.
+
+------------------------------------------------------------------------
+r5510 | eicker | 2008-01-11 15:29:14 +0100 (Fri, 11 Jan 2008) | 4 lines
+
+Merge some last of Michael's bugfixes from mgmt-fix.
+Cleanup naming and content of kvs-stuff files.
+Make getpmiv() work as expected.
+
+------------------------------------------------------------------------
+r5509 | rauh | 2008-01-11 15:17:17 +0100 (Fri, 11 Jan 2008) | 2 lines
+
+correct bad use of strlen()
+
+------------------------------------------------------------------------
+r5508 | rauh | 2008-01-10 11:19:05 +0100 (Thu, 10 Jan 2008) | 2 lines
+
+fixed warnings on gcc 4.2.X
+
+------------------------------------------------------------------------
+r5503 | eicker | 2008-01-09 11:24:19 +0100 (Wed, 09 Jan 2008) | 3 lines
+
+Bugfix: Add pscpu.h to RPM. This reenable pscom to build.
+Correct one warning.
+
+------------------------------------------------------------------------
+r5484 | eicker | 2007-12-21 17:56:13 +0100 (Fri, 21 Dec 2007) | 2 lines
+
+Minor fix.
+
+------------------------------------------------------------------------
+r5483 | eicker | 2007-12-21 17:35:42 +0100 (Fri, 21 Dec 2007) | 3 lines
+
+Extension: Make accounter polling configurable for both, admin and
+config-file.
+
+------------------------------------------------------------------------
+r5481 | eicker | 2007-12-21 15:29:23 +0100 (Fri, 21 Dec 2007) | 2 lines
+
+Merge some minor whitespace and typo changes from Michaels branch.
+
+------------------------------------------------------------------------
+r5479 | eicker | 2007-12-21 15:07:05 +0100 (Fri, 21 Dec 2007) | 12 lines
+
+Merge changes from Michael's branch:
+ - Some more environment variables to forward: PSP_DAPL, PSP_ELAN,
+   PSP_TCP
+ - Prevent unexpected termination of forwarder processes
+ - Improve input forwarding
+ - Create environment to make accounting configurable (config and admin
+   stuff still missing)
+ - New function to get number of registered accounters:
+   PSID_getNumAcct()
+ - Major cleanup and improvements of mpiexec.
+ - Many minor changes and bugfixes
+
+------------------------------------------------------------------------
+r5459 | eicker | 2007-12-17 15:17:38 +0100 (Mon, 17 Dec 2007) | 2 lines
+
+Process pinning, memory binding and all that.
+
+------------------------------------------------------------------------
+r5457 | eicker | 2007-12-17 14:40:40 +0100 (Mon, 17 Dec 2007) | 2 lines
+
+Don't strip binaries while install. This enables debuginfo RPMs to work.
+
+------------------------------------------------------------------------
+r5436 | eicker | 2007-12-14 11:00:44 +0100 (Fri, 14 Dec 2007) | 4 lines
+
+Undo all changes concerning PSI_releaseSilent(). Instead suppress
+  warning on already disappeared childs and parents when releasing whole
+  task in PSI_release().
+
+------------------------------------------------------------------------
+r5421 | moschny | 2007-12-12 16:02:35 +0100 (Wed, 12 Dec 2007) | 4 lines
+
+Use $(CC) for linking instead of $(LD) to avoid errors of type
+  "ERROR: No build ID note found in"
+on newer systems.
+
+------------------------------------------------------------------------
+r5420 | moschny | 2007-12-12 15:53:08 +0100 (Wed, 12 Dec 2007) | 2 lines
+
+Use a user-dependant buildroot.
+
+------------------------------------------------------------------------
+r5419 | moschny | 2007-12-12 15:24:30 +0100 (Wed, 12 Dec 2007) | 2 lines
+
+Bugfix: open() with O_CREAT needs a mode parameter.
+
+------------------------------------------------------------------------
+r5418 | moschny | 2007-12-12 15:15:31 +0100 (Wed, 12 Dec 2007) | 6 lines
+
+Remove additional parameter for PSI_release() method, as this breaks
+compatibility with other modules.
+
+Instead, introduce PSI_releaseSilent(), which has the wanted
+functionality.
+
+------------------------------------------------------------------------
+r5404 | eicker | 2007-12-01 00:05:51 +0100 (Sat, 01 Dec 2007) | 2 lines
+
+Bugfix: fprintf() needs FILE pointer as first argument.
+
+------------------------------------------------------------------------
+r5403 | eicker | 2007-11-30 23:55:54 +0100 (Fri, 30 Nov 2007) | 3 lines
+
+Bugfix: Also mpirun_elan has to be updated due to changed call of
+PSI_release().
+
+------------------------------------------------------------------------
+r5389 | eicker | 2007-11-29 17:18:49 +0100 (Thu, 29 Nov 2007) | 3 lines
+
+Bugfix: Don't truncate SIGNAL message between psid and forwarder.
+Suppress some superfluous message from forwarder concerning signals.
+
+------------------------------------------------------------------------
+r5385 | eicker | 2007-11-29 10:41:30 +0100 (Thu, 29 Nov 2007) | 2 lines
+
+Prevent a warning when compiling with gcc 4.0.
+
+------------------------------------------------------------------------
+r5384 | eicker | 2007-11-28 19:34:20 +0100 (Wed, 28 Nov 2007) | 2 lines
+
+Bugfix: Don't mess up processes and process-groups.
+
+------------------------------------------------------------------------
+r5383 | eicker | 2007-11-28 19:30:21 +0100 (Wed, 28 Nov 2007) | 2 lines
+
+Minor fix in documentation
+
+------------------------------------------------------------------------
+r5382 | eicker | 2007-11-28 19:29:33 +0100 (Wed, 28 Nov 2007) | 2 lines
+
+Append to logfile if used instead of syslog().
+
+------------------------------------------------------------------------
+r5379 | eicker | 2007-11-28 17:13:40 +0100 (Wed, 28 Nov 2007) | 2 lines
+
+Bugfix: Fix signal-delivery via forwarder.
+
+------------------------------------------------------------------------
+r5377 | eicker | 2007-11-28 17:09:59 +0100 (Wed, 28 Nov 2007) | 2 lines
+
+Flush every line if logging to file.
+
+------------------------------------------------------------------------
+r5372 | eicker | 2007-11-27 16:34:26 +0100 (Tue, 27 Nov 2007) | 3 lines
+
+Add pscpu-stuff to libcommon and libpsi.
+Fix some typos.
+
+------------------------------------------------------------------------
+r5371 | eicker | 2007-11-27 16:32:41 +0100 (Tue, 27 Nov 2007) | 2 lines
+
+Bugfix: libreadline seems to need lib(n)curses on some platforms.
+
+------------------------------------------------------------------------
+r5370 | eicker | 2007-11-27 13:48:52 +0100 (Tue, 27 Nov 2007) | 2 lines
+
+Add library to handle the bitmasks used to store CPU-sets.
+
+------------------------------------------------------------------------
+r5369 | eicker | 2007-11-27 13:47:46 +0100 (Tue, 27 Nov 2007) | 2 lines
+
+Add library to handle the bitmasks used to store CPU-sets.
+
+------------------------------------------------------------------------
+r5359 | eicker | 2007-11-22 23:37:07 +0100 (Thu, 22 Nov 2007) | 2 lines
+
+Remove PSI_releaseSilent() again. We don't want to bloat the source.
+
+------------------------------------------------------------------------
+r5327 | eicker | 2007-11-06 20:20:38 +0100 (Tue, 06 Nov 2007) | 3 lines
+
+Disable processor affinity within OpenFabrics. This fixes some serious
+problems with MPI on Cell.
+
+------------------------------------------------------------------------
+r5321 | rauh | 2007-10-30 15:23:03 +0100 (Tue, 30 Oct 2007) | 4 lines
+
+changed signal handling, no the forwarder sends signals to the clients,
+(should behave now like the shell)
+bugfixes in deamon (on sigchld signal) and mpiexec.
+
+------------------------------------------------------------------------
+r5311 | eicker | 2007-10-25 12:10:35 +0200 (Thu, 25 Oct 2007) | 3 lines
+
+BUGFIX: Make mpirun_elan fail more gracefully if /etc/elanidmap is not
+found.
+
+------------------------------------------------------------------------
+r5304 | rauh | 2007-10-23 16:44:54 +0200 (Tue, 23 Oct 2007) | 2 lines
+
+fixed mpiexec (-f) for admin tasks again
+
+------------------------------------------------------------------------
+r5303 | rauh | 2007-10-23 16:22:05 +0200 (Tue, 23 Oct 2007) | 2 lines
+
+fixed the use of hostfile (-f) for admin tasks
+
+------------------------------------------------------------------------
+r5302 | rauh | 2007-10-23 14:39:50 +0200 (Tue, 23 Oct 2007) | 4 lines
+
+many small fixes
+mpiexec --gdb has now readline support
+fixed mpiexec --admin
+
+------------------------------------------------------------------------
+r5276 | rauh | 2007-10-12 10:27:23 +0200 (Fri, 12 Oct 2007) | 2 lines
+
+fixed bug in merging function
+
+------------------------------------------------------------------------
+r5273 | rauh | 2007-10-10 15:25:46 +0200 (Wed, 10 Oct 2007) | 2 lines
+
+small bugfix: loopnodesfirst is now -F
+
+------------------------------------------------------------------------
+r5272 | rauh | 2007-10-10 15:11:31 +0200 (Wed, 10 Oct 2007) | 6 lines
+
+machinefile now supports interface option ifhn
+mpiexec: more compatibility to mpich mpiexec
+a few little fixes
+accounting: now all childs memory are read
+
+
+------------------------------------------------------------------------
+r5271 | rauh | 2007-10-10 15:04:23 +0200 (Wed, 10 Oct 2007) | 5 lines
+
+machinefile now supports interface option ifhn
+mpiexec: more compatibility to mpich mpiexec
+a few little fixes
+accounting: now all childs memory are read
+
+------------------------------------------------------------------------
+r5265 | eicker | 2007-10-10 11:17:46 +0200 (Wed, 10 Oct 2007) | 2 lines
+
+Replace 'psmstart' strings with 'pssh'.
+
+------------------------------------------------------------------------
+r5234 | rauh | 2007-09-26 14:30:25 +0200 (Wed, 26 Sep 2007) | 2 lines
+
+removed debug output
+
+------------------------------------------------------------------------
+r5233 | rauh | 2007-09-26 14:25:12 +0200 (Wed, 26 Sep 2007) | 3 lines
+
+comment out in psh to use mpiexec
+accounting  
+
+------------------------------------------------------------------------
+r5232 | rauh | 2007-09-26 11:26:44 +0200 (Wed, 26 Sep 2007) | 3 lines
+
+fixed warning
+fixed mpiexec --envall (wrong null termination)
+
+------------------------------------------------------------------------
+r5231 | rauh | 2007-09-26 11:00:25 +0200 (Wed, 26 Sep 2007) | 3 lines
+
+fixed accouting with mpiexec
+accouting is more detailed (mem,vmem,session,jobalias)
+
+------------------------------------------------------------------------
+r5230 | rauh | 2007-09-26 10:55:03 +0200 (Wed, 26 Sep 2007) | 5 lines
+
+fixed accouting with mpiexec
+more detailed accouting information (mem,vmem,session,jodid)
+mipexec: new option jobid
+psh uses as default mpiexec if parastation is up and running
+
+------------------------------------------------------------------------
+r5219 | rauh | 2007-09-20 15:24:56 +0200 (Thu, 20 Sep 2007) | 2 lines
+
+added gdb parallel debugging support.
+
+------------------------------------------------------------------------
+r5218 | eicker | 2007-09-18 22:43:35 +0200 (Tue, 18 Sep 2007) | 2 lines
+
+Merge Michael's branch containing the PMI and mpiexec stuff.
+
+------------------------------------------------------------------------
+r5216 | eicker | 2007-09-18 22:32:58 +0200 (Tue, 18 Sep 2007) | 3 lines
+
+Bugfix: Fix build-system when libelanctrl is not available.
+Suppress to warnings.
+
+------------------------------------------------------------------------
+r5202 | eicker | 2007-09-14 20:30:03 +0200 (Fri, 14 Sep 2007) | 3 lines
+
+New version of mpirun_elan. Hopefully process placement now work
+correctly.
+
+------------------------------------------------------------------------
+r5201 | eicker | 2007-09-14 20:00:38 +0200 (Fri, 14 Sep 2007) | 5 lines
+
+Extension: Allow to distribute environment variables of arbitrary size.
+Improve detection for libnuma.
+Also try to detect libelancntr. This will be needed for mpirun_elan.
+First step to make mpirun_elan working. This one is currently broken.
+
+------------------------------------------------------------------------
+r5180 | eicker | 2007-09-11 18:56:50 +0200 (Tue, 11 Sep 2007) | 4 lines
+
+Minor improvements for mpirun_elan:
+ - Also propagate LD_LIBRARY_PATH
+ - Use PSI_spawnStrict().
+
+------------------------------------------------------------------------
+r5173 | eicker | 2007-09-11 10:48:25 +0200 (Tue, 11 Sep 2007) | 2 lines
+
+Fix one typo introduced in the last change.
+
+------------------------------------------------------------------------
+r5172 | eicker | 2007-09-11 10:43:05 +0200 (Tue, 11 Sep 2007) | 4 lines
+
+Extension: New command mpirun_elan to start apps linked against Quadrics
+   MPI.
+More debugging messages.
+
+------------------------------------------------------------------------
+r5150 | eicker | 2007-08-23 15:11:50 +0200 (Thu, 23 Aug 2007) | 3 lines
+
+Bugfix: numa_available() returns -1 if not available
+Bugfix: Also compile if sched_setaffinity() is not available.
+
+------------------------------------------------------------------------
+r5112 | eicker | 2007-08-20 10:34:59 +0200 (Mon, 20 Aug 2007) | 6 lines
+
+Bugfix: Also spawn processes from mpirun_openib if acting verbose.
+Bugfix: Only send signal to TG_SERVICE task if error occured or last child
+    disappeared.
+Only send RELEASERES message when all pending messages occured. Keep
+    last code describing a problem during release.
+
+------------------------------------------------------------------------
+r5102 | eicker | 2007-08-14 18:54:15 +0200 (Tue, 14 Aug 2007) | 4 lines
+
+Bugfix: Make temporary setting of user, adminuser, etc. from admin
+   working again.
+Improve pssh's behavior on changed window size.
+
+------------------------------------------------------------------------
+r5091 | eicker | 2007-08-13 13:05:16 +0200 (Mon, 13 Aug 2007) | 2 lines
+
+New version (psmgmt-4.3.10)
+
+------------------------------------------------------------------------
+
 Version psmgmt-4.3.10:
 ======================
 ------------------------------------------------------------------------
