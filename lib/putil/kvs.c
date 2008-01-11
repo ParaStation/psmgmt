@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -23,7 +23,7 @@
 #include <string.h>
 
 #include "env.h"
-#include "psidpmicomm.h"
+#include "kvscommon.h"
 
 #include "kvs.h"
 
@@ -80,12 +80,6 @@ static KVS_t *getKvsByName(char *name)
     return 0;
 }
 
-/** 
- * @brief Init the kvs structure. This must be called bevor any other
- * kvs call.
- *
- * @return No return value.
- */
 void kvs_init(void)
 {
     int i;
@@ -96,13 +90,6 @@ void kvs_init(void)
     }
 }
 
-/** 
- * @brief Creates a new kvs with the specifyed name.
- *
- * @param name Name of the kvs to create.
- *
- * @return Returns 0 on success, and 1 if an error occured.
- */
 int kvs_create(char *name)
 {
     int in;
@@ -140,13 +127,6 @@ int kvs_create(char *name)
     return 0;
 }
 
-/** 
- * @brief Destroys a kvs with the specifyed name.
- *
- * @param name The name of the kvs to destroy.
- *
- * @return Returns 0 on success, and 1 if an error occured.
- */
 int kvs_destroy(char *name)
 {
     KVS_t *lkvs; 
@@ -175,17 +155,6 @@ int kvs_destroy(char *name)
     return 0;
 }
 
-/** 
- * @brief Saves a value in the kvs.
- *
- * @param kvsname The name of the kvs.
- *
- * @param name The name of the value to save.
- *
- * @param value The value to save in the kvs.
- *
- * @return Returns 0 on success, and 1 if an error occured.
- */
 int kvs_put(char *kvsname, char *name, char *value)
 {
     KVS_t *lkvs;
@@ -213,15 +182,6 @@ int kvs_put(char *kvsname, char *name, char *value)
     return 0;
 }
 
-/** 
- * @brief Read a value from a kvs.
- *
- * @param kvsname The name of the kvs.
- *
- * @param name The name of the value to read.
- *
- * @return Returns the requested kvs value or 0 if an error occured.
- */
 char *kvs_get(char *kvsname, char *name)
 {
     KVS_t *lkvs;
@@ -242,13 +202,6 @@ char *kvs_get(char *kvsname, char *name)
     return env_get(lkvs->env, name);
 }
 
-/** 
- * @brief Count the values in a kvs.
- *
- * @param The name of the kvs.
- *
- * @return Returns the number of values or -1 if an error occured.
- */
 int kvs_count_values(char *kvsname)
 {
     KVS_t *lkvs;
@@ -269,11 +222,6 @@ int kvs_count_values(char *kvsname)
     return env_size(lkvs->env);
 }
 
-/** 
- * @brief Count the number of kvs created.
- *
- * @return The number of kvs created.
- */
 int kvs_count(void)
 {
     int i, count = 0;
@@ -288,16 +236,6 @@ int kvs_count(void)
 }
 
 
-/** 
- * @brief Read a value by index from kvs.
- *
- * @param kvsname The name of the kvs.
- *
- * @param index The index of the kvs value.
- *
- * @return Returns the value in format name=value or 0 if an error
- * occured.
- */
 char *kvs_getbyidx(char *kvsname, int index)
 {
     KVS_t *lkvs;
@@ -319,13 +257,6 @@ char *kvs_getbyidx(char *kvsname, int index)
 }
 
 
-/** 
- * @brief Read the name of a kvs by index. 
- *
- * @param index The index of the kvs.
- *
- * @return Returns the name of a kvs by index or 0 on error.
- */
 char *kvs_getKvsNameByIndex(int index)
 {
     if(index >= MAX_KVS) {
@@ -334,5 +265,3 @@ char *kvs_getKvsNameByIndex(int index)
 
     return kvs[index].Name;
 }
-
-

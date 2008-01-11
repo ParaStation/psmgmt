@@ -101,7 +101,7 @@ include/pstask.h \
 include/rdp.h \
 include/selector.h \
 include/timer.h \
-include/psidpmicomm.h \
+include/kvscommon.h \
 lib/Makefile.in \
 lib/Makefile.sharedlib.in \
 lib/Makefile.staticlib.in \
@@ -127,7 +127,7 @@ lib/putil/Makefile.in \
 lib/putil/config_parsing.c \
 lib/putil/env.c \
 lib/putil/kvs.c \
-lib/putil/kvscomm.c \
+lib/putil/kvscommon.c \
 lib/putil/hardware.c \
 lib/putil/mcast.c \
 lib/putil/parser.c \

@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -26,11 +26,11 @@
 
 #include "pscommon.h"
 #include "kvs.h"
-#include "psidforwarder.h"
+#include "kvscommon.h"
 #include "pslog.h"
 
+#include "psidforwarder.h"
 #include "psidpmiprotocol.h"
-#include "psidpmicomm.h"
 
 #define SOCKET_ERROR -1
 #define SOCKET int

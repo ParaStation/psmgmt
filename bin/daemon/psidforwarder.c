@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -30,12 +30,12 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "psidutil.h"
 #include "pscommon.h"
 #include "pstask.h"
+#include "kvscommon.h"
 #include "psdaemonprotocol.h"
+#include "pslog.h"
 #include "psidmsgbuf.h"
 #include "psidnodes.h"
-#include "pslog.h"
 #include "psidpmiprotocol.h"
-#include "psidpmicomm.h"
 
 #include "psidforwarder.h"
 

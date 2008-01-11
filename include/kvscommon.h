@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -9,7 +9,7 @@
  */
 /**
  * \file
- * pspmi.h: ParaStation pspmi commen defines
+ * kvscommon.h: ParaStation PMI common defines
  *
  * $Id$ 
  *
@@ -18,8 +18,15 @@
  */
 
 
-#ifndef __PSIDKVSCOMM
-#define __PSIDKVSCOMM
+#ifndef __KVSCOMMON_H
+#define __KVSCOMMON_H
+
+#ifdef __cplusplus
+extern "C" {
+#if 0
+} /* <- just for emacs indentation */
+#endif
+#endif
 
 #define PMI_SUCCESS 0
 #define PMI_ERROR -1
@@ -54,6 +61,10 @@
  *
  * @return On Success 1 is returned, 0 on error. 
  */
-int getpmiv(char *name, char *vbuffer, char *pmivalue, int vallen);
+int getpmiv(char *name, char *vbuffer, char *pmivalue, size_t vallen);
 
+#ifdef __cplusplus
+}/* extern "C" */
 #endif
+
+#endif  /* __KVSCOMMON_H */

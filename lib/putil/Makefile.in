@@ -21,7 +21,7 @@ INSTALL = @INSTALL@
 export LIBNAME := putil
 export LIBOBJS := mcast.o rdp.o timer.o selector.o env.o parser.o \
 		psstrings.o hardware.o config_parsing.o \
-		psdaemonprotocol.o kvs.o kvscomm.o
+		psdaemonprotocol.o kvs.o kvscommon.o
 export LIBVPATH := $(SRCDIR)
 export LIBINC = -I$(TOPSRCDIR)/include -I$(TOPSRCDIR)/bin/daemon
 export LIBDSTDIR = ../..

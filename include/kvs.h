@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -17,8 +17,15 @@
  * Michael Rauh <rauh@par-tec.com>
  */
 
-#ifndef __PSKEYVALUESPACE
-#define __PSKEYVALUESPACE
+#ifndef __KVS_H
+#define __KVS_H
+
+#ifdef __cplusplus
+extern "C" {
+#if 0
+} /* <- just for emacs indentation */
+#endif
+#endif
 
 /** 
  * @brief Init the kvs structure. This must be called 
@@ -107,4 +114,8 @@ int kvs_count(void);
  */
 char *kvs_getKvsNameByIndex(int index);
 
+#ifdef __cplusplus
+}/* extern "C" */
 #endif
+
+#endif  /* __KVS_H */

@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -24,12 +24,12 @@
 #include <errno.h>
 #include <signal.h>
 
-#include "kvs.h"
 #include "pscommon.h"
 #include "pstask.h"
-#include "psilogger.h"
-#include "psidpmicomm.h"
+#include "kvs.h"
+#include "kvscommon.h"
 #include "timer.h"
+#include "psilogger.h"
 
 #include "psiloggerkvs.h"
 

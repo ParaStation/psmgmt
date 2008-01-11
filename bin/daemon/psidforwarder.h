@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -56,8 +56,8 @@ extern "C" {
  *
  * @param PMISocket Socket connecting the forwarder to the pmi client.
  *
- * @param PMIType Defines if pmi is connecting over TCP/IP or an UNIX
- * domain socket.
+ * @param PMIType Defines if pmi is connecting over TCP/IP if PMIType is
+ * set to 0 or over an UNIX domain socket if set to 1 (default).
  *
  * @param doAccounting Set to true if the forwarder should do accouting.
  *
