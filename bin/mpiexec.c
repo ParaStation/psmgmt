@@ -1156,7 +1156,6 @@ static void createAdminTasks(int argc, char *argv[], char *login, int verbose, i
 		    fprintf(stderr, "Node %d out of range\n", node);
 		    exit(1);
 		}
-		nodeID = node;
 	    }
 	    nodeID = node;
 	}
