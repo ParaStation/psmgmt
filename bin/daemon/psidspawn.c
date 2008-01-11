@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -108,11 +108,11 @@ static int myexecv(const char *path, char *const argv[])
 }
 
 /**
- * @brief Set up a new PMI tcp/ip socket and start listing. 
+ * @brief Set up a new PMI tcp/ip socket and start listing.
  *
- * @param PMISocket the socket to init. 
+ * @param PMISocket the socket to init.
  *
- * @return Returns the initalized and listing socket. 
+ * @return Returns the initalized and listing socket.
  */
 static int init_PMISocket(int PMISocket)
 {
@@ -152,9 +152,9 @@ static int init_PMISocket(int PMISocket)
 }
 
 /**
- * @brief Set up the PMI_PORT variable. 
+ * @brief Set up the PMI_PORT variable.
  *
- * @param PMISock The PMI socket to get the information from. 
+ * @param PMISock The PMI socket to get the information from.
  *
  * @param cPMI_PORT The buffer which receives the result.
  *
@@ -360,7 +360,7 @@ static void bindToNodes(cpu_set_t *physSet)
 	    if (CPU_ISSET(cpu, physSet) && CPU_ISSET(cpu, &CPUset)) {
 		nodemask_set(&nodeset, node);
 	    }
-	}		    
+	}
     }
     numa_set_membind(&nodeset);
 #else
@@ -534,7 +534,7 @@ static void execClient(PStask_t *task)
 	} else {
 	    fprintf(stderr, "Cannot determine home directory\n");
 	    exit(0);
-	}	    
+	}
     }
 
     doClamps(task->CPUset);
@@ -542,7 +542,7 @@ static void execClient(PStask_t *task)
     if (!task->argv[0]) {
 	fprintf(stderr, "No argv[0] given!\n");
 	exit(0);
-    }	
+    }
 
     /* Test if executable is there */
     if (task->argv[0][0] != '/' || task->argv[0][0] != '.') {
@@ -700,6 +700,50 @@ static void openChannel(PStask_t *task, int *fds, int fileNo, int cntrlCh)
     }
 }
 
+#define IDMAPFILE "/etc/elanidmap"
+
+/**
+ * @brief Verify if the host we are starting on
+ * is listed in the elan config file.
+ *
+ * @return No return value.
+ */
+static void verifyElanHost(void)
+{
+    FILE *elanIDfile;
+    char line[256];
+    int hostsize = 1024;
+    char localhost[hostsize];
+
+    if ((gethostname(localhost, hostsize)) == -1) {
+	fprintf(stderr, "%s Error determining the local hostname\n", __func__);
+	exit(1);
+    }
+
+    elanIDfile = fopen(IDMAPFILE, "r");
+
+    if (!elanIDfile) {
+	setenv("PSP_ELAN", "0", 1);
+	return;
+    }
+
+    while (fgets(line, sizeof(line), elanIDfile)) {
+	char *elanhost = strtok(line, " \t\n");
+
+	if (!elanhost || *elanhost == '#') continue;
+
+	if (!strcmp(elanhost, localhost)) {
+	    fclose(elanIDfile);
+	    return;
+	}
+
+    }
+
+    setenv("PSP_ELAN", "0", 1);
+
+    fclose(elanIDfile);
+}
+
 /**
  * @brief Create forwarder sandbox
  *
@@ -821,11 +865,11 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
     /* check if pmi should be started */
     if ((envstr = getenv("PMI_ENABLE_TCP"))) {
 	pmiEnableTcp = atoi(envstr);
-    } 
+    }
 
     if ((envstr = getenv("PMI_ENABLE_SOCKP"))) {
 	pmiEnableSockp = atoi(envstr);
-    } 
+    }
 
     /* only one option is allowed */
     if (pmiEnableSockp && pmiEnableTcp) {
@@ -935,7 +979,7 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 
 	/* set the pmi port for the client to connect to the forwarder */
 	if (pmiEnableTcp) {
-	    get_PMI_PORT(PMISock, cPMI_PORT, sizeof(cPMI_PORT)); 
+	    get_PMI_PORT(PMISock, cPMI_PORT, sizeof(cPMI_PORT));
 	    setenv("PMI_PORT", cPMI_PORT, 1);
 	}
 
@@ -945,6 +989,13 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 	    close(socketfds[1]);
 	    snprintf(cPMI_FD, sizeof(cPMI_FD), "%d", socketfds[0]);
 	    setenv("PMI_FD", cPMI_FD, 1);
+	}
+
+	/* check if this node really supports elan */
+	if ((envstr = getenv("PSP_ELAN"))) {
+	    if (atoi(envstr)) {
+		verifyElanHost();
+	    }
 	}
 
 	/* try to start the client */
@@ -1254,7 +1305,7 @@ static void sendAcctInfo(PStask_ID_t sender, PStask_t *task)
     for (slot = 0; slot < task->partitionSize; slot++) {
 	if (! (slot%ACCT_SLOTS_CHUNK)) {
 	    if (slot) sendMsg((DDMsg_t *)&msg);
-		
+
 	    msg.header.len = sizeof(msg.header) + sizeof(msg.type);
 
 	    ptr = msg.buf + sizeof(PStask_ID_t);
@@ -1720,7 +1771,7 @@ void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
     if (msg->type == PSP_SPAWN_END) {
 	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
 	PSID_log(PSID_LOG_SPAWN, "%s: Spawning %s\n", __func__, tasktxt);
-	
+
 	PStasklist_dequeue(&spawnTasks, task->tid);
 	answer.error = spawnTask(task);
 

@@ -47,6 +47,8 @@ bin/daemon/psidutil.h \
 bin/daemon/psidpmiprotocol.h \
 bin/daemon/psidpmiprotocol.c \
 bin/mpiexec.c \
+bin/mpiexec_elan.h \
+bin/mpiexec_elan.c \
 bin/gmspawner.c \
 bin/logger/psilogger.c \
 bin/logger/psilogger.h \
