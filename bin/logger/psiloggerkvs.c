@@ -212,7 +212,7 @@ static void handleKvsPut(PSLog_Msg_t msg)
     getpmiv("key",ptr,name,sizeof(name));
     getpmiv("value",ptr,value,sizeof(value));
 
-    if (strlen(kvsname) < 1 || strlen(name) < 1 || strlen(value) < 1) {
+    if (kvsname[0] == 0 || kvsname[0] == 0 || value[0] == 0) {
 	fprintf(stderr,
 		"PSIlogger: %s: received invalid kvs put cmd\n", __func__);		
 	snprintf(retbuf, sizeof(retbuf),
@@ -249,7 +249,7 @@ static void handleKvsGet(PSLog_Msg_t msg)
     getpmiv("kvsname",ptr,kvsname,sizeof(kvsname));
     getpmiv("key",ptr,name,sizeof(name));
 
-    if (strlen(kvsname) < 1 || strlen(name) < 1) {
+    if (kvsname[0] == 0 || name[0] == 0 ) {
 	fprintf(stderr, "PSIlogger: %s: received invalid kvs get cmd\n",
 		__func__);		
 	snprintf(retbuf, sizeof(retbuf),
@@ -348,7 +348,7 @@ static void handleKvsGetByIdx(PSLog_Msg_t msg)
     getpmiv("idx", ptr,idx,sizeof(idx));
     getpmiv("kvsname", ptr,kvsname,sizeof(kvsname));
     
-    if (strlen(idx) < 1 || strlen(kvsname) < 1) {
+    if (idx[0] == 0 || kvsname[0] == 0) {
 	fprintf(stderr, "PSIlogger: %s: wrong kvs getbyidx msg received\n",
 		    __func__);
 	snprintf(retbuf, sizeof(retbuf),
@@ -609,7 +609,7 @@ static void handleKvsUpdateCacheResult(PSLog_Msg_t msg)
     /* parse arguments */
     getpmiv("mc",ptr,mc,sizeof(mc));
     
-    if (strlen(mc) < 1) {
+    if (mc[0] == 0) {
 	fprintf(stderr,
 		"PSIlogger: %s: received invalid kvs update cache reply\n",
 		__func__);

@@ -50,6 +50,7 @@ int getpmiv(char *name, char *vbuffer, char *pmivalue, int vallen)
     }
     
     const char delimiters[] =" \n";
+    pmivalue = "\0";
     bcopy = strdup(vbuffer);
     cmd = strtok_r(bcopy,delimiters,&toksave);
     nlen = strlen(name);
@@ -58,6 +59,7 @@ int getpmiv(char *name, char *vbuffer, char *pmivalue, int vallen)
 	if (!strncmp(name,cmd,nlen) && cmd[nlen] == '=') {
 	   res = (cmd + nlen + 1); 
 	   strncpy(pmivalue,res,vallen);
+	   pmivalue[vallen -1] = '\0';
 	   free(bcopy);
 	   return 0;
 	}
