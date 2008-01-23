@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -332,7 +332,6 @@ static void initIPTable(void)
 	iptable[i].node = 0;
 	iptable[i].next = NULL;
     }
-    return;
 }
 
 /**
@@ -350,11 +349,18 @@ static void insertIPTable(struct in_addr ipno, int node)
     ipentry_t *ip;
     int idx = ntohl(ipno.s_addr) & 0xff;  /* use last byte of IP addr */
 
+    if (((ipno.s_addr>>24) & 0xff) == IN_LOOPBACKNET) {
+	RDP_log(-1, "%s: address <%s> within loopback range\n",
+		__func__, inet_ntoa(ipno));
+	exit(1);
+    }
+
     if (iptable[idx].ipnr != 0) {
 	/* create new entry */
 	ip = &iptable[idx];
 	while (ip->next) ip = ip->next; /* search end */
 	ip->next = malloc(sizeof(ipentry_t));
+	if (!ip->next) RDP_exit(errno, "%s", __func__);
 	ip = ip->next;
 	ip->next = NULL;
 	ip->ipnr = ipno.s_addr;
@@ -364,7 +370,6 @@ static void insertIPTable(struct in_addr ipno, int node)
 	iptable[idx].ipnr = ipno.s_addr;
 	iptable[idx].node = node;
     }
-    return;
 }
 
 /**
@@ -457,6 +462,7 @@ static void initMsgList(int nodes)
 
     count = nodes * MAX_WINDOW_SIZE;
     buf = malloc(count * sizeof(*buf));
+    if (!buf) RDP_exit(errno, "%s", __func__);
 
     for (i=0; i<count; i++) {
 	buf[i].node = -1;
@@ -471,8 +477,6 @@ static void initMsgList(int nodes)
     buf[count - 1].next = NULL;
 
     MsgFreeList = buf;
-
-    return;
 }
 
 /**
@@ -509,7 +513,6 @@ static void putMsg(msgbuf_t *mp)
 {
     mp->next = MsgFreeList;
     MsgFreeList = mp;
-    return;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -538,14 +541,13 @@ static void initSMsgList(int nodes)
 
     count = nodes * MAX_WINDOW_SIZE;
     sbuf = malloc(count * sizeof(*sbuf));
+    if (!sbuf) RDP_exit(errno, "%s", __func__);
 
     for (i=0; i<count; i++) {
 	sbuf[i].next = &sbuf[i+1];
     }
     sbuf[count - 1].next = NULL;
     SMsgFreeList = sbuf;
-
-    return;
 }
 
 /**
@@ -560,6 +562,7 @@ static Smsg_t *getSMsg(void)
     Smsg_t *mp = SMsgFreeList;
     if (!mp) {
 	RDP_log(-1, "%s: no more elements in SMsgFreeList\n", __func__);
+	errno = ENOMEM;
     } else {
 	SMsgFreeList = SMsgFreeList->next;
     }
@@ -579,7 +582,6 @@ static void putSMsg(Smsg_t *mp)
 {
     mp->next = SMsgFreeList;
     SMsgFreeList = mp;
-    return;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -627,6 +629,7 @@ static void initConntable(int nodes, unsigned int host[], unsigned short port)
 
     if (!conntable) {
 	conntable = malloc(nodes * sizeof(*conntable));
+	if (!conntable) RDP_exit(errno, "%s", __func__);
     }
     initIPTable();
     gettimeofday(&tv, NULL);
@@ -656,7 +659,6 @@ static void initConntable(int nodes, unsigned int host[], unsigned short port)
 	conntable[i].ConnID_out = random();;
 	conntable[i].state = CLOSED;
     }
-    return;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -694,6 +696,8 @@ static void initAckList(int nodes)
      */
     count = nodes * MAX_WINDOW_SIZE;
     ackbuf = malloc(count * sizeof(*ackbuf));
+    if (!ackbuf) RDP_exit(errno, "%s", __func__);
+
     AckListHead = NULL;
     AckListTail = NULL;
     AckFreeList = ackbuf;
@@ -703,7 +707,6 @@ static void initAckList(int nodes)
 	ackbuf[i].bufptr = NULL;
     }
     ackbuf[count - 1].next = NULL;
-    return;
 }
 
 /**
@@ -739,7 +742,6 @@ static void putAckEnt(ackent_t *ap)
     ap->bufptr = NULL;
     ap->next = AckFreeList;
     AckFreeList = ap;
-    return;
 }
 
 /**
@@ -795,7 +797,6 @@ static void deqAck(ackent_t *ap)
 	ap->next->prev = ap->prev;
     }
     putAckEnt(ap);
-    return;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -822,7 +823,6 @@ static void sendSYN(int node)
 	    inet_ntoa(conntable[node].sin.sin_addr), hdr.seqno);
     MYsendto(rdpsock, &hdr, sizeof(hdr), 0,
 	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
-    return;
 }
 
 /**
@@ -847,7 +847,6 @@ static void sendACK(int node)
     MYsendto(rdpsock, &hdr, sizeof(hdr), 0,
 	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
     conntable[node].ackPending = 0;
-    return;
 }
 
 /**
@@ -873,7 +872,6 @@ static void sendSYNACK(int node)
     MYsendto(rdpsock, &hdr, sizeof(hdr), 0,
 	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
     conntable[node].ackPending = 0;
-    return;
 }
 
 /**
@@ -900,7 +898,6 @@ static void sendSYNNACK(int node, int oldseq)
     MYsendto(rdpsock, &hdr, sizeof(hdr), 0,
 	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
     conntable[node].ackPending = 0;
-    return;
 }
 
 /**
@@ -924,7 +921,6 @@ static void sendNACK(int node)
     RDP_log(RDP_LOG_CNTR, "%s: to %d, FE=%x\n", __func__, node, hdr.ackno);
     MYsendto(rdpsock, &hdr, sizeof(hdr), 0,
 	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
-    return;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -1034,8 +1030,6 @@ static void clearMsgQ(int node)
 
     /* Restore blocked timer */
     Timer_block(timerID, blocked);
-
-    return;
 }
 
 /**
@@ -1056,7 +1050,6 @@ static void closeConnection(int node)
     if (RDPCallback) {  /* inform daemon */
 	RDPCallback(RDP_LOST_CONNECTION, &node);
     }
-    return;
 }
 
 /**
@@ -1083,7 +1076,6 @@ static void resendMsgs(int node)
     mp = conntable[node].bufptr;
     if (!mp) {
 	RDP_log(RDP_LOG_ACKS, "%s: no pending messages\n", __func__);
-
 	return;
     }
 
@@ -1487,7 +1479,6 @@ static void handleTimeoutRDP(void)
 	}
 	ap = ap->next; /* try with next buffer */
     }
-    return;
 }
 
 /**
@@ -1582,8 +1573,6 @@ static void doACK(rdphdr_t *hdr, int fromnode)
     if (callback && cp->window && RDPCallback) {
 	RDPCallback(RDP_CAN_CONTINUE, &fromnode);
     }
-
-    return;
 }
 
 /**
@@ -1633,7 +1622,6 @@ static void handleControlPacket(rdphdr_t *hdr, int node)
 	RDP_log(-1, "%s: delete unknown msg", __func__);
 	break;
     }
-    return;
 }
 
 /**
@@ -1934,21 +1922,15 @@ int initRDP(int nodes, unsigned short portno, FILE* logfile,
     initSMsgList(nodes);
     initAckList(nodes);
 
-    if (!portno) {
-	portno = DEFAULT_RDP_PORT;
-    }
-
+    if (!portno) portno = DEFAULT_RDP_PORT;
     initConntable(nodes, hosts, htons(portno));
 
-    if (!Selector_isInitialized()) {
-	Selector_init(logfile);
-    }
+    if (!Selector_isInitialized()) Selector_init(logfile);
+
     rdpsock = initSockRDP(htons(portno), 0);
     Selector_register(rdpsock, handleRDP);
 
-    if (!Timer_isInitialized()) {
-	Timer_init(logfile);
-    }
+    if (!Timer_isInitialized()) Timer_init(logfile);
     timerID = Timer_register(&RDPTimeout, handleTimeoutRDP);
 
     return rdpsock;
@@ -2040,6 +2022,11 @@ int Rsendto(int node, void *buf, size_t len)
 	mp->msg.small = getSMsg();
     } else {
 	mp->msg.large = malloc(sizeof(Lmsg_t));
+    }
+
+    if (!mp->msg.small) {
+	RDP_warn(-1, errno, "%s", __func__);
+	return -1;
     }
 
     /* setup Ack buffer */
@@ -2233,12 +2220,12 @@ int Rrecvfrom(int *node, void *msg, size_t len)
 
 void getStateInfoRDP(int node, char *s, size_t len)
 {
-    snprintf(s, len, "%3d [%s]: ID[%08x|%08x] FTS=%08x AE=%08x FE=%08x"
+    snprintf(s, len, "%3d [%s]: IP=%s ID[%08x|%08x] FTS=%08x AE=%08x FE=%08x"
 	     " AP=%3d MP=%3d Bptr=%p",
 	     node, stateStringRDP(conntable[node].state),
+	     inet_ntoa(conntable[node].sin.sin_addr),
 	     conntable[node].ConnID_in,     conntable[node].ConnID_out,
 	     conntable[node].frameToSend,   conntable[node].ackExpected,
 	     conntable[node].frameExpected, conntable[node].ackPending,
 	     conntable[node].msgPending,    conntable[node].bufptr);
-    return;
 }

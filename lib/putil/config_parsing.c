@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -1380,9 +1380,9 @@ static int getCPUmap(char *token)
  * @brief Insert a node.
  *
  * Helper function to make a node known to the ParaStation
- * daemon. Various information concerning this nodes is stored at this
- * early stage. Some of these informations might be modified at later
- * stages.
+ * daemon. Various default information concerning this nodes is stored
+ * at this early stage. Some of these informations might be modified
+ * at later stages.
  *
  * @param addr IP address of the node to register.
  *
@@ -1401,6 +1401,13 @@ static int newHost(in_addr_t addr, int id)
     if ((id<0) || (id >= PSIDnodes_getNum())) { /* id out of Range */
 	parser_comment(-1, "node ID <%d> out of range (NrOfNodes = %d)\n",
 		       id, PSIDnodes_getNum());
+	return -1;
+    }
+
+    if (((addr>>24) & 0xff) == IN_LOOPBACKNET) {
+	parser_comment(-1, "node ID <%d> resolves to address <%s> within"
+		       " loopback range\n",
+		       id, inet_ntoa(* (struct in_addr *) &addr));
 	return -1;
     }
 
