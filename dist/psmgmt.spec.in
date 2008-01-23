@@ -26,6 +26,10 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 %description
 The ParaStation Management Layer.
 
+%if %buildForSuSE
+%debug_package
+%endif
+
 %prep
 %setup -q -n %{name}-%{version}-%{release}
 #%setup -q
