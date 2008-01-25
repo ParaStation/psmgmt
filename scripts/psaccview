@@ -27,7 +27,7 @@ use File::Basename;
 ## start of configuration
 #################################################
 
-my $ps_acc_dir="/var/account";
+our $ps_acc_dir="/var/account";		# default dir to read the accouting files
 
 ## Default output options 
 our $noheader  		= "";		# display no header information
@@ -79,9 +79,11 @@ our $ls = "true";	# exit value
 our $lo = "";		# session id
 our $lj = "";	        # job alias
 
-## Include conf file in Users Home
+## Include rcfile .psaccviewrc in the users home directory,
+## in this file any option can be set to the users needs 
 
 require("$ENV{'HOME'}/.psaccviewrc") if (-r "$ENV{'HOME'}/.psaccviewrc");
+
 
 #################################################
 ## end of configuration
@@ -144,19 +146,19 @@ if($olistjobs || $olisttotuser || $olisttotgroup || $olisttotsum){
 
 # check for wrong cmd line options
 my $sortlist = '^(user|group|jobid|jobname|start|end|walltime|qtime|mem|vmem|cputime|queue|procs|exechost|nodes|exit)$'; 
-die "Invalid sort option for job list (--jsort)" if $jsort && $jsort !~ /$sortlist/;
+die "Invalid sort option for job list (--jsort)\n" if $jsort && $jsort !~ /$sortlist/;
 
 $sortlist = '^(user|jobs|walltime|qtime|mem|vmem|cputime|procs|cpuweight)$';
-die "Invalid sort option for user list (--usort)" if $usort && $usort !~ /$sortlist/;
+die "Invalid sort option for user list (--usort)\n" if $usort && $usort !~ /$sortlist/;
 
 $sortlist = '^(group|jobs|walltime|qtime|mem|vmem|cputime|procs|cpuweight)$';
-die "Invalid sort option for group list (--gsort)" if $gsort && $gsort !~ /$sortlist/;
+die "Invalid sort option for group list (--gsort)\n" if $gsort && $gsort !~ /$sortlist/;
 
 my $timespanlist = '^(today|week|month|year|all)$';
-die "Invalid timespan option (--timespan)" if $timespan && $timespan !~ /$timespanlist/;
+die "Invalid timespan option (--timespan)\n" if $timespan && $timespan !~ /$timespanlist/;
 
-die "Invalid begin option (--begin)" if $begin && $begin !~ /^\d{8}$/;
-die "Invalid end option (--end)" if $end && $end !~ /^\d{8}$/;
+die "Invalid begin option (--begin)\n" if $begin && $begin !~ /^\d{8}$/;
+die "Invalid end option (--end)\n" if $end && $end !~ /^\d{8}$/;
 
 
 # parse total display options
@@ -269,7 +271,7 @@ my %job_data, my %user_data, my %group_data, my %sum_data;
 
 my @testa;
 # Read acc log files
-opendir(DIR, $ps_acc_dir) or die("Can't open accounting directory for reading !");
+opendir(DIR, $ps_acc_dir) or die("Can't open accounting dir: $ps_acc_dir\n");
 my $lasterror = "none";
 while ( defined (my $filename = readdir(DIR))) {
 	my $show = "cat";
@@ -280,7 +282,7 @@ while ( defined (my $filename = readdir(DIR))) {
 	$lbegin = $basename if ($basename =~  /^\d{8}$/ && $basename < $lbegin);
 	if($filename eq ".." || $filename eq "." || $basename !~ /^\d{8}$/ || $basename < $tbegin || $basename > $tend){next;}	
 	#printf "$filename $basename\n";
-	open FILE,"$show " . $ps_acc_dir. "/" . $basename . " |"  or die("Can't open file $basename");
+	open FILE,"$show " . $ps_acc_dir. "/" . $basename . " |"  or die("Can't open file: $basename\n");
 	my @lines = <FILE>;
 	close FILE;
 	foreach my $line (@lines) {
@@ -358,40 +360,40 @@ while ( defined (my $filename = readdir(DIR))) {
 				}	
 
 				if($listtotuser){
-					$user_data{$user}{'cputime'} += time_to_sec($cput);
-					$user_data{$user}{'mem'} += kb_to_num($mem);
-					$user_data{$user}{'vmem'} += kb_to_num($vmem);
-					$user_data{$user}{'walltime'} += time_to_sec($walltime);
-					$user_data{$user}{'qtime'} += $newqtime;
-					$user_data{$user}{'cpuweight'} += $num_hosts * time_to_sec($walltime);
-					$user_data{$user}{'procs'} += $num_hosts;
-					$user_data{$user}{'nodes'} = $num_nodes;
-					$user_data{$user}{'jobs'} += 1;
+					$user_data{$user}{'cputime'}	+= time_to_sec($cput);
+					$user_data{$user}{'mem'}	+= kb_to_num($mem);
+					$user_data{$user}{'vmem'}	+= kb_to_num($vmem);
+					$user_data{$user}{'walltime'}	+= time_to_sec($walltime);
+					$user_data{$user}{'qtime'}	+= $newqtime;
+					$user_data{$user}{'cpuweight'}	+= $num_hosts * time_to_sec($walltime);
+					$user_data{$user}{'procs'}	+= $num_hosts;
+					$user_data{$user}{'nodes'}	= $num_nodes;
+					$user_data{$user}{'jobs'}	+= 1;
 				}
 
 				if($listtotgroup){
-					$group_data{$group}{'cputime'} += time_to_sec($cput);
-					$group_data{$group}{'mem'} += kb_to_num($mem);
-					$group_data{$group}{'vmem'}+= kb_to_num($vmem);
-					$group_data{$group}{'walltime'} += time_to_sec($walltime);
-					$group_data{$group}{'qtime'} += $newqtime; 
-					$group_data{$group}{'cpuweight'} += $num_hosts * time_to_sec($walltime);
-					$group_data{$group}{'procs'} += $num_hosts;
-					$group_data{$group}{'nodes'} += $num_nodes;
-					$group_data{$group}{'jobs'} += 1;
+					$group_data{$group}{'cputime'}	    += time_to_sec($cput);
+					$group_data{$group}{'mem'}	    += kb_to_num($mem);
+					$group_data{$group}{'vmem'}	    += kb_to_num($vmem);
+					$group_data{$group}{'walltime'}	    += time_to_sec($walltime);
+					$group_data{$group}{'qtime'}	    += $newqtime; 
+					$group_data{$group}{'cpuweight'}    += $num_hosts * time_to_sec($walltime);
+					$group_data{$group}{'procs'}	    += $num_hosts;
+					$group_data{$group}{'nodes'}	    += $num_nodes;
+					$group_data{$group}{'jobs'}	    += 1;
 					
 				}
 				
 				$sum_data{'walltime'} += time_to_sec($walltime);
 				if($listtotsum){
-					$sum_data{'cputime'} += time_to_sec($cput);
-					$sum_data{'mem'} += kb_to_num($mem);
-					$sum_data{'vmem'} += kb_to_num($vmem);
-					$sum_data{'qtime'} += $newqtime;
-					$sum_data{'cpuweight'} += $num_hosts * time_to_sec($walltime);
-					$sum_data{'procs'} += $num_hosts;
-					$sum_data{'nodes'} += $num_nodes;
-					$sum_data{'jobs'} += 1;
+					$sum_data{'cputime'}	+= time_to_sec($cput);
+					$sum_data{'mem'}	+= kb_to_num($mem);
+					$sum_data{'vmem'}	+= kb_to_num($vmem);
+					$sum_data{'qtime'}	+= $newqtime;
+					$sum_data{'cpuweight'}	+= $num_hosts * time_to_sec($walltime);
+					$sum_data{'procs'}	+= $num_hosts;
+					$sum_data{'nodes'}	+= $num_nodes;
+					$sum_data{'jobs'}	+= 1;
 				}
 
 				$jobnum++;
@@ -400,7 +402,6 @@ while ( defined (my $filename = readdir(DIR))) {
 	}
 }
 
-#die;
 close DIR;
 
 # Check if we have data left
