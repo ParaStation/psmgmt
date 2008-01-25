@@ -233,7 +233,7 @@ static void checkForELAN(void)
     }
 #else
     setPSIEnv("PSP_ELAN", "0", 1);
-    fprintf(stderr, "no libelan configured\n");
+    if(verbose) printf("no libelan configured\n");
 #endif
 
 }
@@ -486,12 +486,14 @@ static void setupPSCOMEnv(int verbose)
 	while (env != NULL) {
 	    if (!strcmp(env,"P4SOCK") || !strcmp(env,"p4sock") ||
 		    !strcmp(env,"P4S") || !strcmp(env,"p4s")) {
+		unsetenv("PSP_P4S");
 		unsetenv("PSP_P4SOCK");
-		setPSIEnv("PSP_P4SOCK", "0", 1);
+		setPSIEnv("PSP_P4S", "0", 1);
 	    } else if (!strcmp(env,"SHM") || !strcmp(env,"shm") ||
 		    !strcmp(env,"SHAREDMEM") || !strcmp(env,"sharedmem")) {
+		unsetenv("PSP_SHM");
 		unsetenv("PSP_SHAREDMEM");
-		setPSIEnv("PSP_SHAREDMEM", "0", 1);
+		setPSIEnv("PSP_SHM", "0", 1);
 	    } else if (!strcmp(env,"GM") || !strcmp(env,"gm")) {
 		unsetenv("PSP_GM");
 		setPSIEnv("PSP_GM", "0", 1);
@@ -795,7 +797,7 @@ static void setupEnvironment(int verbose)
 	 	lenval = strlen(val);
 	 	len = strlen(environ[i]);
 	 	if (!(key = malloc(len - lenval))) {
-		    printf("out of memory\n");
+		    fprintf(stderr, "%s: out of memory\n", __func__);
 		    exit(1);
 		}
 		strncpy(key,environ[i], len - lenval -1);
@@ -811,7 +813,7 @@ static void setupEnvironment(int verbose)
 	if (envvalopt) {
 	    setPSIEnv(envopt, envvalopt, 1);
 	} else {
-	    printf("Error setting --env: %s, value is empty\n", envopt);
+	    fprintf(stderr, "Error setting --env: %s, value is empty\n", envopt);
 	}
     }
 
@@ -1199,7 +1201,7 @@ static void checkSanity(char *argv[])
     }
 
     if (ecfn) {
-	printf("ecfn is not yet implemented, ignoring option\n");
+	fprintf(stderr, "ecfn is not yet implemented, ignoring option\n");
     }
 
     if (gdba) {
@@ -1231,7 +1233,7 @@ static void checkSanity(char *argv[])
     }
 
     if (login && !admin) {
-	printf("the '--login' option is usefull with '--admin' only, ignoring it.\n");
+	fprintf(stderr, "the '--login' option is usefull with '--admin' only, ignoring it.\n");
     }
 
     if (pmienabletcp && pmienablesockp) {

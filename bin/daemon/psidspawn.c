@@ -703,8 +703,12 @@ static void openChannel(PStask_t *task, int *fds, int fileNo, int cntrlCh)
 #define IDMAPFILE "/etc/elanidmap"
 
 /**
- * @brief Verify if the host we are starting on
- * is listed in the elan config file.
+ * @brief Verify Elan Host
+ *
+ * Verify if the host we are starting on
+ * is listed in the elan config file. If not than
+ * elan must be disabled, to prevent the libelan
+ * from terminating us.
  *
  * @return No return value.
  */
@@ -740,7 +744,6 @@ static void verifyElanHost(void)
     }
 
     setenv("PSP_ELAN", "0", 1);
-
     fclose(elanIDfile);
 }
 

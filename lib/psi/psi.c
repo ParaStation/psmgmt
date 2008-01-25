@@ -677,7 +677,9 @@ void PSI_execLogger(const char *command)
 
 void PSI_propEnv(void)
 {
-    char *envStr;
+    char *envStr, *key, *val;
+    extern char **environ;
+    int i, lenval, len;
 
     /* Propagate some environment variables */
     if ((envStr = getenv("HOME"))) {
@@ -701,37 +703,24 @@ void PSI_propEnv(void)
     if ((envStr = getenv("MPID_PSP_MAXSMALLMSG"))) {
 	setPSIEnv("MPID_PSP_MAXSMALLMSG", envStr, 1);
     }
-    if ((envStr = getenv("PSP_NETWORK"))) {
-	setPSIEnv("PSP_NETWORK", envStr, 1);
-    }
-    if ((envStr = getenv("PSP_P4SOCK"))) {
-	setPSIEnv("PSP_P4SOCK", envStr, 1);
-    }
-    if ((envStr = getenv("PSP_SHAREDMEM"))) {
-	setPSIEnv("PSP_SHAREDMEM", envStr, 1);
-    }
-    if ((envStr = getenv("PSP_GM"))) {
-	setPSIEnv("PSP_GM", envStr, 1);
-    }
-    if ((envStr = getenv("PSP_MVAPI"))) {
-	setPSIEnv("PSP_MVAPI", envStr, 1);
-    }
-    if ((envStr = getenv("PSP_OPENIB"))) {
-	setPSIEnv("PSP_OPENIB", envStr, 1);
-    }
-    if ((envStr = getenv("PSP_LIB"))) {
-	setPSIEnv("PSP_LIB", envStr, 1);
-    }
-    if ((envStr = getenv("PSP_DEBUG"))) {
-	setPSIEnv("PSP_DEBUG", envStr, 1);
-    }
-    if ((envStr = getenv("PSP_DAPL"))) {
-	setPSIEnv("PSP_DAPL", envStr, 1);
-    }
-    if ((envStr = getenv("PSP_ELAN"))) {
-	setPSIEnv("PSP_ELAN", envStr, 1);
-    }
-    if ((envStr = getenv("PSP_TCP"))) {
-	setPSIEnv("PSP_TCP", envStr, 1);
+
+    /* export all PSP_* vars to the ParaStation environment */
+    for (i=0; environ[i] != NULL; i++) {
+	if (!(strncmp(environ[i], "PSP_", 4))) { 
+	    val = strchr(environ[i], '=');
+	    if(val) {
+		val++;
+		lenval = strlen(val);
+		len = strlen(environ[i]);
+		if (!(key = malloc(len - lenval))) {
+		    fprintf(stderr, "%s: out of memory\n", __func__);
+		    exit(1);
+		}
+		strncpy(key,environ[i], len - lenval -1);
+		key[len - lenval -1] = '\0';
+		setPSIEnv(key, val, 1);
+		free(key);
+	    }
+	}
     }
 }
