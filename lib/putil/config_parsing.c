@@ -1404,7 +1404,7 @@ static int newHost(in_addr_t addr, int id)
 	return -1;
     }
 
-    if (((addr>>24) & 0xff) == IN_LOOPBACKNET) {
+    if ((addr & 0xff) == IN_LOOPBACKNET) {
 	parser_comment(-1, "node ID <%d> resolves to address <%s> within"
 		       " loopback range\n",
 		       id, inet_ntoa(* (struct in_addr *) &addr));

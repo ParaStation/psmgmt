@@ -349,7 +349,7 @@ static void insertIPTable(struct in_addr ipno, int node)
     ipentry_t *ip;
     int idx = ntohl(ipno.s_addr) & 0xff;  /* use last byte of IP addr */
 
-    if (((ipno.s_addr>>24) & 0xff) == IN_LOOPBACKNET) {
+    if ((ipno.s_addr & 0xff) == IN_LOOPBACKNET) {
 	RDP_log(-1, "%s: address <%s> within loopback range\n",
 		__func__, inet_ntoa(ipno));
 	exit(1);
