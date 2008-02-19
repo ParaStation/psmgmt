@@ -23,6 +23,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "psidutil.h"
 #include "psidmsgbuf.h"
 #include "psidcomm.h"
+#include "psidnodes.h"
 
 #include "psidrdp.h"
 
@@ -139,6 +140,11 @@ int sendRDP(DDMsg_t *msg)
 
     if (node<0 || node >= PSC_getNrOfNodes()) {
 	errno = EINVAL;
+	return -1;
+    }
+
+    if (PSIDnodes_getAddr(node) == INADDR_ANY) {
+	errno = EHOSTUNREACH;
 	return -1;
     }
 

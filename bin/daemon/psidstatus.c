@@ -577,6 +577,11 @@ int send_DAEMONCONNECT(PSnodes_ID_t id)
 
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, id);
     
+    if (PSIDnodes_getAddr(id) == INADDR_ANY) {
+	errno = EHOSTUNREACH;
+	return -1;
+    }
+
     CPUs[0] = PSIDnodes_getPhysCPUs(PSC_getMyID());
     CPUs[1] = PSIDnodes_getVirtCPUs(PSC_getMyID());
     msg.header.len += 2 * sizeof(*CPUs);

@@ -266,6 +266,11 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 		    struct sockaddr *to, socklen_t tolen)
 {
     int ret;
+    if (((struct sockaddr_in *)to)->sin_addr.s_addr == INADDR_ANY) {
+	RDP_log(-1, "%s: don't send to INADDR_ANY\n", __func__);
+	errno = EINVAL;
+	return -1;
+    }
  restart:
     ret = sendto(sock, buf, len, flags, to, tolen);
     if (ret < 0) {
@@ -1983,6 +1988,13 @@ int Rsendto(int node, void *buf, size_t len)
     if (((node < 0) || (node >= nrOfNodes))) {
 	/* illegal node number */
 	RDP_log(-1, "%s: illegal node number %d\n", __func__, node);
+	errno = EINVAL;
+	return -1;
+    }
+
+    if (conntable[node].sin.sin_addr.s_addr == INADDR_ANY) {
+	/* no IP configured */
+	RDP_log(RDP_LOG_CONN, "%s: node %d not configured\n", __func__, node);
 	errno = EINVAL;
 	return -1;
     }
