@@ -716,10 +716,9 @@ static void verifyElanHost(void)
 {
     FILE *elanIDfile;
     char line[256];
-    int hostsize = 1024;
-    char localhost[hostsize];
+    char localhost[HOST_NAME_MAX];
 
-    if ((gethostname(localhost, hostsize)) == -1) {
+    if ((gethostname(localhost, HOST_NAME_MAX)) == -1) {
 	fprintf(stderr, "%s Error determining the local hostname\n", __func__);
 	exit(1);
     }
@@ -995,10 +994,8 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 	}
 
 	/* check if this node really supports elan */
-	if ((envstr = getenv("PSP_ELAN"))) {
-	    if (atoi(envstr)) {
-		verifyElanHost();
-	    }
+	if ((envstr = getenv("PSP_ELAN")) && atoi(envstr)) {
+	    verifyElanHost();
 	}
 
 	/* try to start the client */

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -677,9 +677,9 @@ void PSI_execLogger(const char *command)
 
 void PSI_propEnv(void)
 {
-    char *envStr, *key, *val;
     extern char **environ;
-    int i, lenval, len;
+    char *envStr;
+    int i;
 
     /* Propagate some environment variables */
     if ((envStr = getenv("HOME"))) {
@@ -705,22 +705,7 @@ void PSI_propEnv(void)
     }
 
     /* export all PSP_* vars to the ParaStation environment */
-    for (i=0; environ[i] != NULL; i++) {
-	if (!(strncmp(environ[i], "PSP_", 4))) { 
-	    val = strchr(environ[i], '=');
-	    if(val) {
-		val++;
-		lenval = strlen(val);
-		len = strlen(environ[i]);
-		if (!(key = malloc(len - lenval))) {
-		    fprintf(stderr, "%s: out of memory\n", __func__);
-		    exit(1);
-		}
-		strncpy(key,environ[i], len - lenval -1);
-		key[len - lenval -1] = '\0';
-		setPSIEnv(key, val, 1);
-		free(key);
-	    }
-	}
+    for (i=0; environ[i]; i++) {
+	if (!(strncmp(environ[i], "PSP_", 4))) putPSIEnv(environ[i]);
     }
 }
