@@ -118,15 +118,14 @@ AccountData accData;
  */
 static void closeDaemonSock(void)
 {
-    int tmp = daemonSock;
-
     if (daemonSock < 0) return;
 
-    daemonSock = -1;
-    FD_CLR(tmp, &readfds);
-    loggerTID = -1;
     PSLog_close();
-    close(tmp);
+    loggerTID = -1;
+
+    close(daemonSock);
+    FD_CLR(daemonSock, &readfds);
+    daemonSock = -1;
 }
 
 /**
@@ -411,7 +410,7 @@ static int sendMsg(PSLog_msg_t type, char *buf, size_t len)
 
     if (ret < 0) {
 	PSID_warn(-1, errno, "%s: PSLog_write()", __func__);
-	loggerTID = -1;
+	closeDaemonSock();
     }
 
     return ret;
@@ -466,7 +465,7 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 {
     int ret;
    
-    if (loggerTID < 0) {
+    if (daemonSock < 0) {
 	PSID_log(-1, "%s: not connected\n", __func__);
 	errno = EPIPE;
 
@@ -477,7 +476,7 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 
     if (ret < 0) {
 	PSID_warn(-1, errno, "%s: PSLog_read()", __func__);
-	loggerTID = -1;
+	closeDaemonSock();
 
 	return ret;
     }
@@ -497,7 +496,7 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 	    ret = -1;
 	} else {
 	    PSID_log(-1, "%s: CC_ERROR from %s\n",
-		     __func__, PSC_printTID(loggerTID));
+		     __func__, PSC_printTID(msg->header.sender));
 	    ret = 0;
 	}
 	break;
@@ -626,17 +625,20 @@ static int connectLogger(PStask_ID_t tid)
 /**
  * @brief Deliver signal.
  *
- * Deliver signal. If the child is interactive, the signal is send to
- * the forground process group of the controlling tty.
+ * Deliver signal @a signal to controlled process. If the child is
+ * interactive, the signal is send to the forground process group of
+ * the controlling tty. Otherwise it's delivered to process with ID @a
+ * dest.
  *
- * @param msg Message containing destination and signal to deliver.
+ * @param dest Process ID of the process to send signal to. Not used
+ * for interactive childs.
+ *
+ * @param signal The signal to send.
  *
  * @return No return value.
  */
-static void handleSignal(PSLog_Msg_t msg)
+static void sendSignal(pid_t dest, int signal)
 {
-    char *ptr = msg.buf;
-    int signal;
     pid_t pid = 0;
 
     /* determine foreground process group for or default pid */
@@ -650,18 +652,39 @@ static void handleSignal(PSLog_Msg_t msg)
 	/* Send signal to process-group */
 	pid = -pid;
     }
-    if (!pid) pid = *(int32_t *)ptr;
-    ptr += sizeof(int32_t);
-
-    /* Get signal to send */
-    signal = *(int32_t *)ptr;
-    ptr += sizeof(int32_t);
+    if (!pid) pid = dest;
 
     /* actually send the signal */
     if (kill(pid, signal) == -1) {
 	PSID_warn((errno==ESRCH) ? PSID_LOG_SIGNAL : -1, errno,
 		  "%s: kill(%d, %d)", __func__, pid, signal);
     }
+}
+
+/**
+ * @brief Handle signal message.
+ *
+ * Handle the signal message @a msg.
+ *
+ * @param msg Message containing destination and signal to deliver.
+ *
+ * @return No return value.
+ */
+static void handleSignalMsg(PSLog_Msg_t msg)
+{
+    char *ptr = msg.buf;
+    pid_t pid;
+    int signal;
+
+    /* Get destination */
+    pid = *(int32_t *)ptr;
+    ptr += sizeof(int32_t);
+
+    /* Get signal to send */
+    signal = *(int32_t *)ptr;
+    ptr += sizeof(int32_t);
+
+    sendSignal(pid, signal);
 }
 
 /**
@@ -698,7 +721,7 @@ static void releaseLogger(int status)
     } else if (msg.type != EXIT) {
 	if (msg.type == STDIN) goto again; /* Ignore late STDIN messages */
 	if (msg.type == SIGNAL) {
-	    handleSignal(msg);
+	    handleSignalMsg(msg);
 	    goto again;
 	}
 	PSID_log(-1, "%s: Protocol messed up (type %d) from %s\n",
@@ -893,13 +916,15 @@ static int readFromLogger(void)
 		closePMIClientSocket();
 		/* Release the daemon */
 		closeDaemonSock();
+		/* Cleanup child */
+		sendSignal(PSC_getPID(childTask->tid), SIGKILL);
 		exit(0);
 		break;
 	    case KVS:
 		pmi_handleKvsRet(msg);
 		break;
 	    case SIGNAL:
-		handleSignal(msg);
+		handleSignalMsg(msg);
 		break;
 	    case WINCH:
 		/* Logger detected change in window-size */
