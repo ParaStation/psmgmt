@@ -1,3 +1,73 @@
+Version psmgmt-5.0.1:
+=====================
+------------------------------------------------------------------------
+r5681 | eicker | 2008-02-27 18:17:46 +0100 (Wed, 27 Feb 2008) | 5 lines
+
+Merge changes from Michael's branch:
+- bugfix: Suppress error for programs which don't use pmi
+- improved psaccview and psaccounter code
+- more docu
+
+------------------------------------------------------------------------
+r5680 | eicker | 2008-02-27 17:38:56 +0100 (Wed, 27 Feb 2008) | 3 lines
+
+Bugfix: Determination of physical CPUs now works also with multi-core
+IA32 processors..
+
+------------------------------------------------------------------------
+r5641 | eicker | 2008-02-21 18:28:00 +0100 (Thu, 21 Feb 2008) | 6 lines
+
+Bugfix: Deliver signal directly from daemon if sending via forwarder
+fails.
+Bugfix: Differentiate connection to logger and to local daemon within
+forwarder.
+Bugfix: Improve signal forwarding within forwarder.
+
+------------------------------------------------------------------------
+r5629 | eicker | 2008-02-21 14:28:49 +0100 (Thu, 21 Feb 2008) | 2 lines
+
+Simplify some prior changes and make them more standard conform.
+
+------------------------------------------------------------------------
+r5618 | eicker | 2008-02-19 18:23:24 +0100 (Tue, 19 Feb 2008) | 2 lines
+
+Bugfix: Don't try to reach nodes via RDP if no IP address is configured.
+
+------------------------------------------------------------------------
+r5595 | eicker | 2008-02-18 12:43:42 +0100 (Mon, 18 Feb 2008) | 2 lines
+
+Bugfix: Use network-byteorder for loopback detection.
+
+------------------------------------------------------------------------
+r5525 | rauh | 2008-01-25 17:26:59 +0100 (Fri, 25 Jan 2008) | 3 lines
+
+Now the daemon forwards every single "PSP_" variable from the
+environment to the PSI environment for the pscom library.
+
+------------------------------------------------------------------------
+r5524 | rauh | 2008-01-25 11:40:42 +0100 (Fri, 25 Jan 2008) | 3 lines
+
+bugfix: now it is possible to overwrite the accouting dir from
+the .psvaluerc file
+
+------------------------------------------------------------------------
+r5520 | eicker | 2008-01-23 14:53:18 +0100 (Wed, 23 Jan 2008) | 2 lines
+
+Enable build of debuginfo RPM on SUSE.
+
+------------------------------------------------------------------------
+r5519 | eicker | 2008-01-23 11:35:17 +0100 (Wed, 23 Jan 2008) | 3 lines
+
+Prevent use of nodes resolved to loopback address.
+Try to catch more failed malloc() calls in RDP.
+
+------------------------------------------------------------------------
+r5513 | eicker | 2008-01-11 17:17:09 +0100 (Fri, 11 Jan 2008) | 2 lines
+
+New version (psmgmt-5.0.0)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.0:
 =====================
 ------------------------------------------------------------------------
