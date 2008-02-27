@@ -58,7 +58,9 @@ static char vcid[] __attribute__ ((unused)) =
 #define MAX_HOSTNAME_LEN 64
 #define EXEC_HOST_SIZE 1024
 #define DEFAULT_LOG_DIR "/var/account"
+#define ERROR_WAIT_TIME	60
 
+/* job structure */
 typedef struct {
     char hostname[MAX_HOSTNAME_LEN];
     char *jobname;
@@ -68,11 +70,11 @@ typedef struct {
     size_t countSlotMsg;
     PStask_ID_t logger;
     size_t taskSize;
+    size_t startCount;
     int uid;
     int gid;
     int queue_time;
     int start_time;
-    ulong real_start;
     int end_time;
     int session;
     float cput;
@@ -81,11 +83,11 @@ typedef struct {
     struct rusage rusage;
     long maxrss;
     ulong maxvsize;
+    ulong threads;
     int incomplete;
 } Job_t;
 
-
-/* tree structur */
+/* binary tree structur */
 struct t_node {
     PStask_ID_t key;
     Job_t *job;
@@ -99,40 +101,10 @@ typedef struct struct_list {
     struct struct_list *next;
 }Joblist;
 
-void daemonize(const char *cmd);
-void sig_handler(int sig);
-void handleAccQueueMsg(char *chead, char *ptr, PStask_ID_t logger);
-void handleAccStartMsg(char *ptr, PStask_ID_t key);
-void handleAccDelteMsg(char *chead, PStask_ID_t key);
-void handleAccEndMsg(char *chead, char *ptr, PStask_ID_t sender,
-		     PStask_ID_t logger);
-void handleSlotsMsg(char *chead, DDTypedBufferMsg_t * msg);
-void timer_handler();
-void printAccEndMsg(char *chead, int TaskId);
-void openAccLogFile(char *arg_logdir);
-
-/* binary tree */
-struct t_node *insertTNode(PStask_ID_t key, Job_t * job,
-			   struct t_node *leaf);
-struct t_node *deleteTNode(PStask_ID_t key, struct t_node *leaf);
-struct t_node *searchTNode(PStask_ID_t key, struct t_node *leaf);
-struct t_node *findMin(struct t_node *leaf);
-struct t_node *findMax(struct t_node *leaf);
-
-/* job struct fuctions */
-int insertJob(Job_t * job);
-int deleteJob(PStask_ID_t key);
-Job_t *findJob(PStask_ID_t key);
-
-/* dead jobs functions */
-PStask_ID_t getNextdJob();
-void insertdJob(PStask_ID_t Job);
-int finddJob(PStask_ID_t Job);
-
 /* globals */
 FILE *fp;
 struct t_node *btroot;
-int logTorque;
+int extendedLogging;
 int debug;
 char *logPostProcessing;
 logger_t *alogger;
@@ -142,7 +114,7 @@ Joblist *dJobs;
 
 #define alog(...) if (alogger) logger_print(alogger, -1, __VA_ARGS__)
 
-void insertdJob(PStask_ID_t Job)
+static void insertdJob(PStask_ID_t Job)
 {
     if (!dJobs) { /* empty queue */ 
 	if (!(dJobs = malloc(sizeof(Joblist)))) {
@@ -168,7 +140,7 @@ void insertdJob(PStask_ID_t Job)
     }
 }
 
-int finddJob(PStask_ID_t Job)
+static int finddJob(PStask_ID_t Job)
 {
     if (!dJobs) {
 	return 0;
@@ -188,7 +160,7 @@ int finddJob(PStask_ID_t Job)
     }
 }
 
-PStask_ID_t getNextdJob()
+static PStask_ID_t getNextdJob()
 {
     if (!dJobs) {
 	return 0;
@@ -204,7 +176,7 @@ PStask_ID_t getNextdJob()
     }
 }
 
-struct t_node *insertTNode(PStask_ID_t key, Job_t * job,
+static struct t_node *insertTNode(PStask_ID_t key, Job_t * job,
 			   struct t_node *leaf)
 {
     struct t_node test;
@@ -237,8 +209,7 @@ struct t_node *insertTNode(PStask_ID_t key, Job_t * job,
     return leaf;
 }
 
-
-struct t_node *findMin(struct t_node *leaf)
+static struct t_node *findMin(struct t_node *leaf)
 {
     if (!leaf) {
 	return NULL;
@@ -249,8 +220,7 @@ struct t_node *findMin(struct t_node *leaf)
     }
 }
 
-
-struct t_node *findMax(struct t_node *leaf)
+static struct t_node *findMax(struct t_node *leaf)
 {
     if (!leaf) {
 	return NULL;
@@ -261,7 +231,7 @@ struct t_node *findMax(struct t_node *leaf)
     }
 }
 
-struct t_node *deleteTNode(PStask_ID_t key, struct t_node *leaf)
+static struct t_node *deleteTNode(PStask_ID_t key, struct t_node *leaf)
 {
     struct t_node *tmpleaf;
     if (!leaf) {
@@ -300,7 +270,7 @@ struct t_node *deleteTNode(PStask_ID_t key, struct t_node *leaf)
     return leaf;
 }
 
-struct t_node *searchTNode(PStask_ID_t key, struct t_node *leaf)
+static struct t_node *searchTNode(PStask_ID_t key, struct t_node *leaf)
 {
     if (leaf != 0) {
 	if (key == leaf->key) {
@@ -314,20 +284,19 @@ struct t_node *searchTNode(PStask_ID_t key, struct t_node *leaf)
 	return 0;
 }
 
-int insertJob(Job_t * job)
+static int insertJob(Job_t * job)
 {
     btroot = insertTNode(job->logger, job, btroot);
     return 1;
 }
 
-int deleteJob(PStask_ID_t key)
+static int deleteJob(PStask_ID_t key)
 {
     btroot = deleteTNode(key, btroot);
     return 1;
 }
 
-
-Job_t *findJob(PStask_ID_t key)
+static Job_t *findJob(PStask_ID_t key)
 {
     struct t_node *leaf;
     leaf = searchTNode(key, btroot);
@@ -338,20 +307,143 @@ Job_t *findJob(PStask_ID_t key)
     }
 }
 
-void sig_handler(int sig)
+/**
+ * @brief Signal Handler
+ *
+ * @param sig Signal to handle.
+ */
+static void sig_handler(int sig)
 {
+    /* ignore term signals */
     if (sig == SIGTERM) {
-	if(debug) alog("Caught the term signal, exiting\n");
-	exit(0);
+	if(debug) alog("Caught the term signal.\n");
     }
 
     if (sig == SIGINT) {
+	if(debug) alog("Caught the SIGINT.\n");
 	exit(0);
     }
-
 }
 
-void timer_handler()
+/**
+ * @brief Print Account End Messages.
+ *
+ * @param chead Header of the log entry.
+ *
+ * @param key The job id (equals the taskID of the logger).
+ */
+static void printAccEndMsg(char *chead, PStask_ID_t key)
+{
+    Job_t *job = findJob(key);
+    int ccopy, chour, cmin, csec, wspan, whour, wmin, wsec, pagesize;
+    long rss = 0;
+    char used_mem[500] = { "" };
+    char used_vmem[500] = { "" };
+    char used_threads[500] = { "" };
+    char ljobid[500] = { "" };
+    char session[100] = { "" };
+    char info[500] = { "" };
+    struct passwd *spasswd;
+    struct group *sgroup;
+
+    if (!job) {
+	alog("AccEndMsg to non existing Job:%i\n", key);
+	return;
+    }
+
+    if (!(spasswd = getpwuid(job->uid))) {
+	alog("%s: getting username failed, invalid user id:%i\n", __func__, job->uid);
+    }
+    if (!(sgroup = getgrgid(job->gid))) {
+	alog("%s: getting groupname failed, invalid group id:%i\n", __func__, job->gid);
+    }
+
+    /* calc cputime */
+    ccopy = job->cput;
+    chour = ccopy / 3600;
+    ccopy = ccopy % 3600;
+    cmin = ccopy / 60;
+    csec = ccopy % 60;
+
+    /* calc walltime */
+    if (!job->end_time) {
+	job->end_time = time(NULL);
+	job->incomplete = 1;
+    }
+    if (!job->start_time || job->start_time > job->end_time) {
+	whour = 0;
+	wmin = 0;
+	wsec = 0;
+	job->incomplete = 1;
+    } else {
+	wspan = job->end_time - job->start_time;
+	whour = wspan / 3600;
+	wspan = wspan % 3600;
+	wmin = wspan / 60;
+	wsec = wspan % 60;
+    }
+
+    if (job->incomplete) {
+	snprintf(info, sizeof(info), "info=incomplete ");
+    }
+   
+    /* calc used mem */
+    if ((pagesize = getpagesize())) {
+	rss = (job->maxrss * pagesize) / 1024;
+	if (rss) {
+	    snprintf(used_mem, sizeof(used_mem), "resources_used.mem=%ldkb ", rss);
+	}
+    }
+
+    /* calc used vmem */
+    if (job->maxvsize) {
+	snprintf(used_vmem, sizeof(used_vmem), "resources_used.vmem=%ldkb ", 
+		    (job->maxvsize / 1024));
+    }
+
+    /* set number of threads */
+    if (job->threads) {
+	snprintf(used_threads, sizeof(used_threads), " resources_used.threads=%lu ", 
+		    (job->threads));
+    }
+   
+    /* set up session information */
+    if (job->session) {
+	snprintf(session, sizeof(session), "session=%i ", 
+		    job->session);
+    }
+    
+    /* set up job id */
+    if (job->jobid && job->jobid[0] != '\0') {
+	snprintf(ljobid, sizeof(ljobid), "jobid=%s ", 
+		    job->jobid);
+    }
+
+    fprintf(fp,
+	    "%s.%s;user=%s group=%s %sjobname=%s %squeue=batch ctime=%i qtime=%i etime=%i start=%i exec_host=%s %send=%i Exit_status=%i resources_used.cput=%02i:%02i:%02i %s%sresources_used.walltime=%02i:%02i:%02i%s\n",
+	    chead, job->hostname, spasswd->pw_name, sgroup->gr_name, info, job->jobname,
+	    ljobid, job->queue_time, job->queue_time, job->queue_time,
+	    job->start_time, job->exec_hosts, session, job->end_time,
+	    job->exitStatus, chour, cmin, csec, used_mem, used_vmem, whour, wmin,
+	    wsec, used_threads);
+
+    fflush(fp);
+    if (edebug) {
+	alog("Processed acc end msg, deleting job\n");
+    }
+    if (!deleteJob(key)) {
+	alog("Error Deleting Job: Possible memory leak\n");
+    }
+}
+
+/**
+ * @brief Handle a timer event.
+ *
+ * Handle a timer to an incomplete job.
+ *
+ * @return No return value.
+ */
+static void timer_handler()
 {
     PStask_ID_t tid;
     struct itimerval timer;
@@ -390,8 +482,8 @@ void timer_handler()
 
     /* start timer if jobs pending */
     if (dJobs) {
-	/* Configure the timer to expire after 60 sec */
-	timer.it_value.tv_sec = 60;
+	/* Configure the timer to expire */
+	timer.it_value.tv_sec = ERROR_WAIT_TIME;
 	timer.it_value.tv_usec = 0;
 
 	/* ... not anymore after that. */
@@ -403,124 +495,50 @@ void timer_handler()
     }	
 }
 
-
-void printAccEndMsg(char *chead, PStask_ID_t key)
-{
-    Job_t *job = findJob(key);
-    int ccopy, chour, cmin, csec, wspan, whour, wmin, wsec, pagesize;
-    long rss = 0;
-    char used_mem[500] = { "" };
-    char used_vmem[500] = { "" };
-    char ljobid[500] = { "" };
-    char session[100] = { "" };
-    char info[500] = { "" };
-    struct passwd *spasswd;
-    struct group *sgroup;
-
-    if (!job) {
-	alog("AccEndMsg to non existing Job:%i\n", key);
-	return;
-    }
-
-    spasswd = getpwuid(job->uid);
-    sgroup = getgrgid(job->gid);
-
-    /* calc cputime */
-    ccopy = job->cput;
-    chour = ccopy / 3600;
-    ccopy = ccopy % 3600;
-    cmin = ccopy / 60;
-    csec = ccopy % 60;
-
-    /* calc walltime */
-    if (!job->end_time) {
-	job->end_time = time(NULL);
-	job->incomplete = 1;
-    }
-    if (!job->end_time || !job->start_time || job->start_time > job->end_time) {
-	whour = 0;
-	wmin = 0;
-	wsec = 0;
-	job->incomplete = 1;
-    } else {
-	wspan = job->end_time - job->start_time;
-	whour = wspan / 3600;
-	wspan = wspan % 3600;
-	wmin = wspan / 60;
-	wsec = wspan % 60;
-    }
-
-    if (job->incomplete) {
-	snprintf(info, sizeof(info), "info=incomplete ");
-    }
-   
-    /* calc used mem */
-    if ((pagesize = getpagesize())) {
-	rss = (job->maxrss * pagesize) / 1024;
-	if (rss) {
-	    snprintf(used_mem, sizeof(used_mem), "resources_used.mem=%ldkb ", rss);
-	}
-    }
-
-    /* calc used vmem */
-    if (job->maxvsize) {
-	snprintf(used_vmem, sizeof(used_vmem), "resources_used.vmem=%ldkb ", 
-		    (job->maxvsize / 1024));
-    }
-   
-    /* set up session information */
-    if (job->session) {
-	snprintf(session, sizeof(session), "session=%i ", 
-		    job->session);
-    }
-    
-    /* set up job id */
-    if (job->jobid && job->jobid[0] != '\0') {
-	snprintf(ljobid, sizeof(ljobid), "jobid=%s ", 
-		    job->jobid);
-    }
-
-    fprintf(fp,
-	    "%s.%s;user=%s group=%s %sjobname=%s %squeue=batch ctime=%i qtime=%i etime=%i start=%i exec_host=%s %send=%i Exit_status=%i resources_used.cput=%02i:%02i:%02i %s%sresources_used.walltime=%02i:%02i:%02i\n",
-	    chead, job->hostname, spasswd->pw_name, sgroup->gr_name, info, job->jobname,
-	    ljobid, job->queue_time, job->queue_time, job->queue_time,
-	    job->start_time, job->exec_hosts, session, job->end_time,
-	    job->exitStatus, chour, cmin, csec, used_mem, used_vmem, whour, wmin,
-	    wsec);
-
-    fflush(fp);
-    if (edebug) {
-	alog("Processed acc end msg, deleting job\n");
-    }
-    if (!deleteJob(key)) {
-	alog("Error Deleting Job: Possible memory leak\n");
-    }
-}
-
-void handleAccQueueMsg(char *chead, char *ptr, PStask_ID_t logger)
+/**
+ * @brief Handle a PSP_ACCOUNT_QUEUE message.
+ *
+ * Handle the message @a msg of type PSP_ACCOUNT_QUEUE.
+ *
+ * @param chead Header of the log entry.
+ *
+ * @param ptr Pointer to the message to handle.
+ *
+ * @param key The job id (equals the taskID of the logger).
+ *
+ * @return No return value.
+ */
+static void handleAccQueueMsg(char *chead, char *ptr, PStask_ID_t logger)
 {
     Job_t *job;
     struct in_addr senderIP;
     struct hostent *hostName;
+    struct passwd *spasswd;
+    struct group *sgroup;
 
     if (!(job = malloc(sizeof(Job_t)))) {
 	alog("Out of memory, exiting\n");
 	exit(1);
     }
 
+    /* init job structure */
+    job->queue_time = time(NULL);
     job->cput = 0;
+    job->exitStatus = 0;
     job->countExitMsg = 0;
     job->countSlotMsg = 0;
     job->incomplete = 0;
     job->start_time = 0;
     job->end_time = 0;
     job->session = 0;
-    job->real_start = 0;
     job->maxrss = 0;
     job->maxvsize = 0;
     job->exec_hosts_size = EXEC_HOST_SIZE;
     job->jobname = NULL;
     job->jobid = NULL;
+    job->threads = 0;
+    job->startCount = 0;
+    
     if (!(job->exec_hosts = malloc(EXEC_HOST_SIZE))) {
         alog("Out of memory, exiting\n");
 	exit(1);
@@ -558,15 +576,22 @@ void handleAccQueueMsg(char *chead, char *ptr, PStask_ID_t logger)
 
     ptr += sizeof(int32_t);
 
-    job->queue_time = time(NULL);
-
     if (!insertJob(job)) {
 	alog("Error caching job, exiting\n");
 	exit(1);
     }
+    
+    if (!(spasswd = getpwuid(job->uid))) {
+	alog("%s: getting username failed, invalid user id:%i\n", __func__, job->uid);
+    }
+    if (!(sgroup = getgrgid(job->gid))) {
+	alog("%s: getting groupname failed, invalid group id:%i\n", __func__, job->gid);
+    }
 
-    if (logTorque) {
-	fprintf(fp, "%s.%s;queue=batch\n", chead, job->hostname);
+    if (extendedLogging) {
+	fprintf(fp, "%s.%s;queue=batch user=%s group=%s ctime=%i qtime=%i etime=%i\n", chead, job->hostname, 
+		    spasswd->pw_name, sgroup->gr_name,
+		    job->queue_time, job->queue_time, job->queue_time);
     }
 
     if (edebug) {
@@ -574,45 +599,58 @@ void handleAccQueueMsg(char *chead, char *ptr, PStask_ID_t logger)
     }
 }
 
-void handleAccStartMsg(char *ptr, PStask_ID_t key)
+/**
+ * @brief Handle a PSP_ACCOUNT_CHILD_START message.
+ *
+ * Handle the message @a msg of type PSP_ACCOUNT_CHILD_START.
+ *
+ * @param ptr Pointer to the message to handle.
+ *
+ * @param key The job id (equals the taskID of the logger).
+ *
+ * @return No return value.
+ */
+static void handleAccChildStartMsg(char *ptr, PStask_ID_t key)
 {
+    int rank;
+    char *exec_name;
     Job_t *job = findJob(key);
-    struct passwd *spasswd;
-    struct group *sgroup;
 
     if (!job) {
-	alog("AccStartMsg to non existing Job:%i\n", key);
+	alog("AccChildStartMsg to non existing Job:%i\n", key);
 	return;
     }
-
-    /* current rank */
+   
+    /* childs rank */
+    rank = *(int32_t *) ptr;
     ptr += sizeof(int32_t);
 
-    /* child's uid */
-    ptr += sizeof(uid_t);
-    spasswd = getpwuid(job->uid);
+    /* executable name */
+    exec_name = ptr; 
 
-    /* child's gid */
-    ptr += sizeof(gid_t);
-    sgroup = getgrgid(job->gid);
+    job->startCount++;
 
-    /* total number of childs. Only the logger knows this */
-    job->taskSize = *(int32_t *) ptr;
-    ptr += sizeof(int32_t);
-
-    job->start_time = time(NULL);
-
-    if (edebug) {
-	alog("processed acc start msg\n");
+    if (debug) {
+	alog("%s child with rank %d started:%s\n", __func__, rank, exec_name);
     }
-
 }
 
-void handleAccDeleteMsg(char *chead, PStask_ID_t key)
+/**
+ * @brief Handle a PSP_ACCOUNT_DELETE message.
+ *
+ * Handle the message @a msg of type PSP_ACCOUNT_DELETE.
+ *
+ * @param chead Header of the log entry.
+ *
+ * @param key The job id (equals the taskID of the logger).
+ *
+ * @return No return value.
+ */
+static void handleAccDeleteMsg(char *chead, PStask_ID_t key)
 {
     Job_t *job = findJob(key);
     
-    if (logTorque) {
+    if (extendedLogging) {
 	fprintf(fp, "%s.%s\n", chead, job->hostname);
     }
     if (!deleteJob(key)) {
@@ -624,7 +662,22 @@ void handleAccDeleteMsg(char *chead, PStask_ID_t key)
     }
 }
 
-void handleAccEndMsg(char *chead, char *ptr, PStask_ID_t sender,
+/**
+ * @brief Handle a PSP_ACCOUNT_END message.
+ *
+ * Handle the message @a msg of type PSP_ACCOUNT_END.
+ *
+ * @param chead Header of the log entry.
+ *
+ * @param ptr Pointer to the message to handle.
+ *
+ * @param sender The task id of the sender.
+ *
+ * @param logger The job id (equals the taskID of the logger).
+ *
+ * @return No return value.
+ */
+static void handleAccEndMsg(char *chead, char *ptr, PStask_ID_t sender,
 		     PStask_ID_t logger)
 {
     Job_t *job = findJob(logger);
@@ -634,59 +687,51 @@ void handleAccEndMsg(char *chead, char *ptr, PStask_ID_t sender,
 	alog("AccEndMsg to non existing Job:%i\n", logger);
 	return;
     } else {
-	struct passwd *spasswd;
-	struct group *sgroup;
+	/* only account child tasks */
+	if (sender != logger) {
+	    int exitStatus = 0;
+	    
+	    /* current rank */
+	    rank = *(int32_t *) ptr;
+	    ptr += sizeof(int32_t);
 
-	/* current rank */
-	rank = *(int32_t *) ptr;
-	ptr += sizeof(int32_t);
+	    /* child's uid */
+	    ptr += sizeof(uid_t);
 
-	/* child's uid */
-	ptr += sizeof(uid_t);
-	spasswd = getpwuid(job->uid);
+	    /* child's gid */
+	    ptr += sizeof(gid_t);
 
-	/* child's gid */
-	ptr += sizeof(gid_t);
-	sgroup = getgrgid(job->gid);
+	    /* total number of childs. Only the logger knows this */
+	    ptr += sizeof(int32_t);
 
-	/* total number of childs. Only the logger knows this */
-	ptr += sizeof(int32_t);
+	    /* ip address */
+	    ptr += sizeof(int32_t);
 
-	/* ip address */
-	ptr += sizeof(int32_t);
+	    /* actual rusage structure */
+	    memcpy(&(job->rusage), ptr, sizeof(job->rusage));
+	    ptr += sizeof(job->rusage);
+	       
+	    /* size of max used mem */
+	    job->maxrss += *(long *) ptr;
+	    ptr += sizeof(long);
 
-	/* actual rusage structure */
-	memcpy(&(job->rusage), ptr, sizeof(job->rusage));
-	ptr += sizeof(job->rusage);
-	   
-	/* size of max used mem */
-	job->maxrss += *(long *) ptr;
-	ptr += sizeof(long);
+	    /* size of max used vmem */
+	    job->maxvsize += *(ulong *) ptr;
+	    ptr += sizeof(ulong);
+	    
+	    /* number of threads */
+	    job->threads += *(ulong *) ptr; 
+	    ptr += sizeof(ulong);
 
-	/* size of max used vmem */
-	job->maxvsize += *(ulong *) ptr;
-	ptr += sizeof(ulong);
-	
-	/* real start time */
-	if (!job->real_start) {
-	    job->real_start = *(ulong *) ptr;
+	    /* session id */
+	    if (!job->session) job->session = *(int32_t *) ptr;
+	    ptr += sizeof(int32_t);
+	    
+	    /* exit status */
+	    exitStatus = *(int32_t *) ptr;
+	    if (exitStatus != 0) job->exitStatus = exitStatus;
+	    ptr += sizeof(int32_t);
 	}
-	ptr += sizeof(ulong);
-
-	/* if not already printed "guessed" start time use real */
-	if (!logTorque && job->real_start) {
-	    job->start_time = job->real_start;
-	}
-
-	/* session id */
-	if (!job->session) {
-	    job->session = *(int32_t *) ptr;
-	}
-	ptr += sizeof(int32_t);
-
-	/* exit status */
-	job->exitStatus = *(int32_t *) ptr;
-	ptr += sizeof(int32_t);
 
 	/* check if logger is alive */
 	PSI_kill(job->logger, 0, 1);
@@ -700,8 +745,8 @@ void handleAccEndMsg(char *chead, char *ptr, PStask_ID_t sender,
 		/* start timer if not yet active */
 		if (!dJobs) {
 		
-		    /* Configure the timer to expire after 30 sec */
-		    timer.it_value.tv_sec = 60;
+		    /* Configure the timer to expire */
+		    timer.it_value.tv_sec = ERROR_WAIT_TIME;
 		    timer.it_value.tv_usec = 0;
 
 		    /* ... not anymore after that. */
@@ -759,14 +804,195 @@ void handleAccEndMsg(char *chead, char *ptr, PStask_ID_t sender,
 		job->end_time = time(NULL);
 	    }
 	}
-
     }
     if (edebug) {
 	alog("processed acc end msg\n");
     }
 }
 
-void handleAcctMsg(DDTypedBufferMsg_t * msg)
+/**
+ * @brief Handle a PSP_ACCOUNT_START message.
+ *
+ * Handle the message @a msg of type PSP_ACCOUNT_START.
+ *
+ * @param ptr Pointer to the message to handle.
+ *
+ * @param key The job id (equals the taskID of the logger).
+ *
+ * @return No return value.
+ */
+static void handleAccStartMsg(char *ptr, PStask_ID_t key)
+{
+    Job_t *job = findJob(key);
+
+    if (!job) {
+	alog("AccStartMsg to non existing Job:%i\n", key);
+	return;
+    }
+
+    /* current rank */
+    ptr += sizeof(int32_t);
+
+    /* child's uid */
+    ptr += sizeof(uid_t);
+
+    /* child's gid */
+    ptr += sizeof(gid_t);
+
+    /* total number of childs. Only the logger knows this */
+    job->taskSize = *(int32_t *) ptr;
+    ptr += sizeof(int32_t);
+
+    job->start_time = time(NULL);
+
+    if (edebug) {
+	alog("processed acc start msg\n");
+    }
+}
+
+/**
+ * @brief Handle a PSP_ACCOUNT_SLOT message.
+ *
+ * Handle the message @a msg of type PSP_ACCOUNT_SLOT.
+ *
+ * @param chead Header of the log entry.
+ *
+ * @param msg Pointer to the msg to handle.
+ *
+ * @return No return value.
+ */
+static void handleSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
+{
+    char *ptr = msg->buf;
+    
+    PStask_ID_t logger;
+    unsigned int numSlots, slot;
+    size_t slotSize;
+    char sep[2] = "";
+    struct hostent *hostName;
+    Job_t *job;
+
+    if (edebug) {
+	alog("processing slot msg\n");
+    }
+
+    logger = *(PStask_ID_t *) ptr;
+    ptr += sizeof(PStask_ID_t);
+    
+    numSlots = *(uint32_t *) ptr;
+    ptr += sizeof(uint32_t);
+
+    slotSize = (msg->header.len - sizeof(msg->header) - sizeof(msg->type)
+		- sizeof(PStask_ID_t) - sizeof(uint32_t)) / numSlots;
+
+    job = findJob(logger);
+
+    if (!job) {
+	alog("AccSlotMsg to non existing Job:%i\n", logger);
+	return;
+    }
+
+    slotSize -= sizeof(uint32_t);
+
+    for (slot = 0; slot < numSlots; slot++) {
+	struct in_addr slotIP;
+	int bufleft;
+	PSCPU_set_t CPUset;
+	char ctmphost[400];
+        
+	slotIP.s_addr = *(uint32_t *) ptr;
+	ptr += sizeof(uint32_t);
+
+	switch (slotSize) {
+	case sizeof(PSCPU_set_t):
+	    memcpy(CPUset, ptr, sizeof(PSCPU_set_t));
+	    ptr += sizeof(PSCPU_set_t);
+	    break;
+	default:
+	    alog("Unknown slotSize %d or unknown protocoll, exiting\n", (int)slotSize);
+	    exit(1);
+	}
+
+        if (job->countSlotMsg) {
+            strcpy(sep, "+");
+        }
+	
+	/* find hostname */
+	hostName =
+	    gethostbyaddr(&slotIP.s_addr, sizeof(slotIP.s_addr), AF_INET);
+        
+	if (!hostName) {
+	    alog("Couldn't resolve hostname from ip:%s\n",
+                 inet_ntoa(slotIP));
+	    snprintf(ctmphost,sizeof(ctmphost),"%s%s/%d",
+		     sep, inet_ntoa(slotIP), (int) job->countSlotMsg);
+        } else {
+	    snprintf(ctmphost,sizeof(ctmphost),"%s%s/%d",
+		     sep, hostName->h_name, (int) job->countSlotMsg); 
+        }
+	
+	job->countSlotMsg++;
+	
+	/* add hostname to exechosts */ 
+        if (strlen(job->exec_hosts) + strlen(ctmphost) + 1 >
+            job->exec_hosts_size) {
+            char *tmpjob = job->exec_hosts;
+            job->exec_hosts =
+                malloc(job->exec_hosts_size + EXEC_HOST_SIZE);
+            if (!job->exec_hosts) {
+                alog("Out of memory, exiting\n");
+                exit(1);
+            }
+            job->exec_hosts_size += EXEC_HOST_SIZE;
+            strncpy(job->exec_hosts, tmpjob, job->exec_hosts_size);
+            if (tmpjob) {
+                free(tmpjob);
+            }
+        }
+	
+	bufleft = job->exec_hosts_size - strlen(job->exec_hosts); 
+        char *cptr = job->exec_hosts;
+        cptr += strlen(job->exec_hosts);
+        snprintf(cptr, bufleft, "%s", ctmphost);
+    }
+
+    /* log start msg if all slot msgs are received */
+    if (job->countSlotMsg == job->taskSize) {
+
+	struct passwd *spasswd;
+	struct group *sgroup;
+    	
+        if (!(spasswd = getpwuid(job->uid))) {
+	    alog("%s: getting username failed, invalid user id:%i\n", __func__, job->uid);
+	}
+	if (!(sgroup = getgrgid(job->gid))) {
+	    alog("%s: getting groupname failed, invalid group id:%i\n", __func__, job->gid);
+	}
+
+	if (extendedLogging) {
+	    fprintf(fp,
+		    "%s.%s;user=%s group=%s queue=batch ctime=%i qtime=%i etime=%i start=%i exec_host=%s\n",
+		    chead, job->hostname, spasswd->pw_name, sgroup->gr_name,
+		    job->queue_time, job->queue_time, job->queue_time,
+		    job->start_time, job->exec_hosts);
+	}
+	if (edebug) {
+	    alog("handled all slot msgs\n");
+	}
+    }
+}
+
+/**
+ * @brief Message switch for Account Messages.
+ *
+ * Handle all types of PSP_ACCOUNT msgs and forward
+ * them to the appropriate handle function.
+ *
+ * @param msg Pointer to the msg to handle.
+ *
+ * @return No return value.
+ */
+static void handleAcctMsg(DDTypedBufferMsg_t * msg)
 {
     char *ptr = msg->buf;
     time_t atime;
@@ -822,7 +1048,16 @@ void handleAcctMsg(DDTypedBufferMsg_t * msg)
     }
 }
 
-void handleSigMsg(DDErrorMsg_t * msg)
+/**
+ * @brief Handle a PSP_CD_SIGRES message.
+ *
+ * Handle the message @a msg of type PSP_CD_SIGRES.
+ *
+ * @param msg Pointer to the msg to handle.
+ *
+ * @return No return value.
+ */
+static void handleSigMsg(DDErrorMsg_t * msg)
 {
     struct itimerval timer;
     Job_t *job;
@@ -842,8 +1077,8 @@ void handleSigMsg(DDErrorMsg_t * msg)
     if (msg->error == ESRCH && job) {
 
 	if (!dJobs) {
-	    /* Configure the timer to expire after 60 sec */
-	    timer.it_value.tv_sec = 60;
+	    /* Configure the timer to expire */
+	    timer.it_value.tv_sec = ERROR_WAIT_TIME;
 	    timer.it_value.tv_usec = 0;
 
 	    /* ... not anymore after that. */
@@ -861,161 +1096,17 @@ void handleSigMsg(DDErrorMsg_t * msg)
     }
 }
 
-void handleSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
-{
-    char *ptr = msg->buf;
-    
-    PStask_ID_t logger;
-    unsigned int numSlots, slot;
-    size_t slotSize;
-    char sep[2] = "";
-    struct hostent *hostName;
-    Job_t *job;
-
-    if (edebug) {
-	alog("processing slot msg\n");
-    }
-
-    logger = *(PStask_ID_t *) ptr;
-    ptr += sizeof(PStask_ID_t);
-    numSlots = *(uint32_t *) ptr;
-    ptr += sizeof(uint32_t);
-
-    slotSize = (msg->header.len - sizeof(msg->header) - sizeof(msg->type)
-		- sizeof(PStask_ID_t) - sizeof(uint32_t)) / numSlots;
-
-    job = findJob(logger);
-
-    if (!job) {
-	alog("AccSlotMsg to non existing Job:%i\n", logger);
-	return;
-    }
-
-    for (slot = 0; slot < numSlots; slot++) {
-	struct in_addr slotIP;
-	int bufleft;
-	PSCPU_set_t CPUset;
-	char ctmphost[400];
-        
-	slotIP.s_addr = *(uint32_t *) ptr;
-	ptr += sizeof(uint32_t);
-	slotSize -= sizeof(int32_t);
-
-	switch (slotSize) {
-	case sizeof(PSCPU_set_t):
-	    memcpy(CPUset, ptr, sizeof(PSCPU_set_t));
-	    ptr += sizeof(PSCPU_set_t);
-	    break;
-	default:
-	    alog("Unknown slotSize %d\n", (int)slotSize);
-	}
-
-        if (job->countSlotMsg) {
-            strcpy(sep, "+");
-        }
-	
-	hostName =
-	    gethostbyaddr(&slotIP.s_addr, sizeof(slotIP.s_addr), AF_INET);
-        
-	if (!hostName) {
-	    alog("Couldn't resolve hostname from ip:%s\n",
-                 inet_ntoa(slotIP));
-	    snprintf(ctmphost,sizeof(ctmphost),"%s%s/%d",
-		     sep, inet_ntoa(slotIP), (int) job->countSlotMsg);
-        } else {
-	    snprintf(ctmphost,sizeof(ctmphost),"%s%s/%d",
-		     sep, hostName->h_name, (int) job->countSlotMsg); 
-
-        }
-	
-	job->countSlotMsg++;
-    
-        if (strlen(job->exec_hosts) + strlen(ctmphost) + 1 >
-            job->exec_hosts_size) {
-            char *tmpjob = job->exec_hosts;
-            job->exec_hosts =
-                malloc(job->exec_hosts_size + EXEC_HOST_SIZE);
-            if (!job->exec_hosts) {
-                alog("Out of memory, exiting\n");
-                exit(1);
-            }
-            job->exec_hosts_size += EXEC_HOST_SIZE;
-            strncpy(job->exec_hosts, tmpjob, job->exec_hosts_size);
-            if (tmpjob) {
-                free(tmpjob);
-            }
-        }
-	
-	bufleft = job->exec_hosts_size - strlen(job->exec_hosts); 
-        char *cptr = job->exec_hosts;
-        cptr += strlen(job->exec_hosts);
-        snprintf(cptr, bufleft, "%s", ctmphost);
-    }
-
-
-    if (job->countSlotMsg == job->taskSize) {
-
-	struct passwd *spasswd;
-	struct group *sgroup;
-	
-        spasswd = getpwuid(job->uid);
-	sgroup = getgrgid(job->gid);
-
-	if (logTorque) {
-	    fprintf(fp,
-		    "%s.%s;user=%s group=%s queue=batch ctime=%i qtime=%i etime=%i start=%i exec_host=%s\n",
-		    chead, job->hostname, spasswd->pw_name, sgroup->gr_name,
-		    job->queue_time, job->queue_time, job->queue_time,
-		    job->start_time, job->exec_hosts);
-	}
-	if (edebug) {
-	    alog("handled all slot msgs\n");
-	}
-    }
-
-}
-
-
-void loop(char *arg_logdir)
-{
-    while (1) {
-	DDTypedBufferMsg_t msg;
-
-	int ret = PSI_recvMsg(&msg);
-
-	if (ret < 0 && errno == EINTR) {
-	    continue;
-	}
-
-	if (ret < 0 && errno != EINTR) {
-	    /* Problem with daemon */
-	    alog("\nError receiving messages, the daemon died: Exiting Error:%i errno:%i\n", ret, errno);
-	    exit(1);
-	}
-
-	/* open log file */
-	openAccLogFile(arg_logdir);
-
-	switch (msg.header.type) {
-	case PSP_CD_ACCOUNT:
-	    handleAcctMsg(&msg);
-	    break;
-	case PSP_CD_SIGRES:
-	    handleSigMsg((DDErrorMsg_t *) & msg);
-	    break;
-	default:
-	    alog("Unknown message: %x\n", msg.header.type);
-	}
-
-	if (logfile) {
-	    fflush(logfile);
-	}
-    }
-
-    PSE_finalize();
-}
-
-void openAccLogFile(char *arg_logdir)
+/**
+ * @brief Open the account log file.
+ *
+ * This function calculates the new log file name 
+ * (YYYYMMDD), opens it and postprocess the old one. 
+ *
+ * @param arg_logdir The directory to write log files to.
+ *
+ * @return No return value.
+ */
+static void openAccLogFile(char *arg_logdir)
 {
     char filename[200];
     static char oldfilename[200];
@@ -1042,6 +1133,7 @@ void openAccLogFile(char *arg_logdir)
     /* next day, open new log file */
     if (fp && !!strcmp(filename, oldfilename)) {
 	fclose(fp);
+	/* postprocess the old log file */
 	if (logPostProcessing) {
 	    char syscmd[1024];
 	    snprintf(syscmd, sizeof(syscmd), "%s ", logPostProcessing);
@@ -1058,7 +1150,6 @@ void openAccLogFile(char *arg_logdir)
 		alog("error executing postprocessing cmd:%s\n", syscmd);
 	    }
 	}
-
     }
 
     if (arg_logdir) {
@@ -1101,10 +1192,132 @@ void openAccLogFile(char *arg_logdir)
     strncpy(oldfilename, filename, sizeof(oldfilename));
 }
 
+/**
+ * @brief Main process loop.
+ *
+ * Using the PSI interface this loop waits for new
+ * account messages from the psid and forwards it
+ * to the appropriate handle functions.
+ *
+ * @param arg_logdir The directory to write log files to.
+ */
+static void loop(char *arg_logdir)
+{
+    while (1) {
+	DDTypedBufferMsg_t msg;
+
+	int ret = PSI_recvMsg(&msg);
+
+	if (ret < 0 && errno == EINTR) {
+	    continue;
+	}
+
+	if (ret < 0 && errno != EINTR) {
+	    /* Problem with daemon */
+	    alog("\nError receiving messages, the daemon died: Exiting Error:%i errno:%i\n", ret, errno);
+	    exit(1);
+	}
+
+	/* open log file */
+	openAccLogFile(arg_logdir);
+
+	switch (msg.header.type) {
+	case PSP_CD_ACCOUNT:
+	    handleAcctMsg(&msg);
+	    break;
+	case PSP_CD_SIGRES:
+	    handleSigMsg((DDErrorMsg_t *) & msg);
+	    break;
+	default:
+	    alog("Unknown message: %x\n", msg.header.type);
+	}
+
+	if (logfile) {
+	    fflush(logfile);
+	}
+    }
+
+    PSE_finalize();
+}
+
 static void printVersion(void)
 {
     char revision[] = "$Revision$";
     fprintf(stderr, "psaccounter %s\b \n", revision+11);
+}
+
+/**
+ * @brief Become a daemon.
+ *
+ * Do some necessary steps to become a deamon
+ * process.
+ *
+ * @param cmd The identifier of the syslog entry.
+ */
+static void daemonize(const char *cmd)
+{
+    unsigned int i;
+    int pid, fd0, fd1, fd2; 
+    struct sigaction sa;
+    struct rlimit rl;
+
+    /* Clear umask */
+    umask(0);
+
+    /* Become a session leader to lose TTY */
+    if ((pid = fork()) < 0) {
+	printf("unable to fork server process\n");
+	exit(1);
+    } else if (pid != 0) { /* parent */
+	exit(0);
+    }
+    setsid();
+
+    /* Ensure future opens won´t allocate controlling TTYs */
+    sa.sa_handler = SIG_IGN;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    if (sigaction(SIGHUP, &sa, NULL) < 0) {
+	printf("Can´t ignore SIGHUP");
+	exit(1);
+    } 
+    if ((pid = fork()) < 0) {
+	printf("unable to fork server process\n");
+	exit(1);
+    } else if (pid != 0) { /* parent */
+	exit(0);
+    }
+
+    /* Change working dir to root */
+    if (chdir("/") < 0) {
+	printf("Unable to change directory to /\n");
+	exit(1);
+    }
+
+    /* Close all open file descriptors */
+    if (getrlimit(RLIMIT_NOFILE, &rl) < 0) {
+	printf("Can´t get file limit\n");
+	exit(1);
+    }
+    if (rl.rlim_max == RLIM_INFINITY) {
+	rl.rlim_max = 1024;
+    }
+    for (i=0; i < rl.rlim_max; i++) {
+	close(i);
+    }
+
+    /* Attach file descriptors 0, 1, 2 to /dev/null */
+    fd0 = open("/dev/null", O_RDWR);
+    fd1 = dup(0);
+    fd2 = dup(0);
+
+    /* Init log file */
+    openlog(cmd, LOG_PID | LOG_CONS, LOG_DAEMON);
+    if (fd0 != 0 || fd1 != 1 || fd2 != 2) {
+	syslog(LOG_ERR, "unexpected file descriptors %d %d %d",
+		fd0, fd1, fd2);
+	exit(1);
+    }
 }
 
 int main(int argc, char *argv[])
@@ -1117,7 +1330,7 @@ int main(int argc, char *argv[])
 
     struct poptOption optionsTable[] = {
 	{"extend", 'e', POPT_ARG_NONE,
-	 &logTorque, 0, "extended logging", "flag"},
+	 &extendedLogging, 0, "extended logging", "flag"},
 	{"debug", 'd', POPT_ARG_NONE,
 	 &debug, 0, "output debug messages", "flag"},
 	{"foreground", 'F', POPT_ARG_NONE,
@@ -1197,76 +1410,6 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-
-
-void daemonize(const char *cmd)
-{
-    unsigned int i;
-    int pid, fd0, fd1, fd2; 
-    struct sigaction sa;
-    struct rlimit rl;
-
-    /* Clear umask */
-    umask(0);
-
-    /* Become a session leader to lose TTY */
-    if ((pid = fork()) < 0) {
-	printf("unable to fork server process\n");
-	exit(1);
-    } else if (pid != 0) { /* parent */
-	exit(0);
-    }
-    setsid();
-
-    /* Ensure future opens won´t allocate controlling TTYs */
-    sa.sa_handler = SIG_IGN;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    if (sigaction(SIGHUP, &sa, NULL) < 0) {
-	printf("Can´t ignore SIGHUP");
-	exit(1);
-    } 
-    if ((pid = fork()) < 0) {
-	printf("unable to fork server process\n");
-	exit(1);
-    } else if (pid != 0) { /* parent */
-	exit(0);
-    }
-
-    /* Change working dir to root */
-    if (chdir("/") < 0) {
-	printf("Unable to change directory to /\n");
-	exit(1);
-    }
-
-    /* Close all open file descriptors */
-    if (getrlimit(RLIMIT_NOFILE, &rl) < 0) {
-	printf("Can´t get file limit\n");
-	exit(1);
-    }
-    if (rl.rlim_max == RLIM_INFINITY) {
-	rl.rlim_max = 1024;
-    }
-    for (i=0; i < rl.rlim_max; i++) {
-	close(i);
-    }
-
-    /* Attach file descriptors 0, 1, 2 to /dev/null */
-    fd0 = open("/dev/null", O_RDWR);
-    fd1 = dup(0);
-    fd2 = dup(0);
-
-    /* Init log file */
-    openlog(cmd, LOG_PID | LOG_CONS, LOG_DAEMON);
-    if (fd0 != 0 || fd1 != 1 || fd2 != 2) {
-	syslog(LOG_ERR, "unexpected file descriptors %d %d %d",
-		fd0, fd1, fd2);
-	exit(1);
-    }
-
-}
-
-
 
 /*
  * Local Variables:

@@ -47,8 +47,10 @@ typedef struct {
     int (*fpFunc)(void);
 } PMI_shortMsg;
 
-/** Flag to check if the pmi was initialized */
+/** Flag to check if the pmi_init() was called successful */
 int is_init = 0;
+/** Flag to check if initialisation between us and client was ok */
+int pmi_init_client = 0;
 /** Prefix of the next kvs name */
 int kvs_next;
 /** If set debug output is generated */
@@ -300,7 +302,7 @@ static int p_Get_My_Kvsname(void)
 }
 
 /**  
- * @brief Creates a new kvs. 
+ * @brief Creates a new key value space. 
  *
  * @return Returns 0 for success and 1 on error.
  */
@@ -327,7 +329,7 @@ static int p_Create_Kvs(void)
 }
 
 /**  
- * @brief Deletes a specific kvs.
+ * @brief Deletes a specific key values space.
  *
  * @param msgBuffer The buffer which contains the pmi msg to handle.
  *
@@ -761,6 +763,7 @@ static int p_Init(char *msgBuffer)
 			  atoi(pmisubversion));
 	return critErr();
     } 
+    pmi_init_client = 1;
 
     return 0;
 }
@@ -1100,7 +1103,9 @@ int pmi_parse_msg(char *msg)
 
 void pmi_finalize(void)
 {
-    PMI_send("cmd=finalize_ack\n");
+    if (pmi_init_client) {
+	PMI_send("cmd=finalize_ack\n");
+    }
 }
 
 void pmi_handleKvsRet(PSLog_Msg_t msg)

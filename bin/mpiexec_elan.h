@@ -40,9 +40,11 @@ void closeELAN(void);
  * @param np The number of process to start over
  * libelan.
  *
+ * @param verbose Set verbose mode, ouput whats going on.
+ *
  * @return Returns 1 on success and 0 on error.
  */
-int setupELANEnv(int np);
+int setupELANEnv(int np, int verbose);
 
 /**
  * @brief Setup the environment for the given rank.

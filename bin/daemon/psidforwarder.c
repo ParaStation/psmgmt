@@ -42,15 +42,15 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 typedef struct {
     char state;
     int session;
-    ulong flags;
-    ulong utime;
-    ulong stime;
-    ulong cutime;
-    ulong cstime;
-    ulong starttime;
-    ulong maxvsize;
+    unsigned long flags;
+    unsigned long utime;
+    unsigned long stime;
+    unsigned long cutime;
+    unsigned long cstime;
+    unsigned long threads;
+    unsigned long starttime;
+    unsigned long maxvsize;
     long maxrss;
-    int processor;
 } AccountData;
 
 /**
@@ -287,29 +287,32 @@ static void updateAccountData(void)
 {
     /** Format string of /proc/pid/stat */
     static char stat_format[] = "%*d %*s %c %*d %*d %d %*d %*d %u %*u \
-    %*u %*u %*u %d %d %d %d %*d %*d %*u %*u %u %lu %lu %*u %*u \
-    %*u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*d %d";
+    %*u %*u %*u %d %d %d %d %*d %*d %lu %*u %u %lu %lu %*u %*u \
+    %*u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*d %*d %*lu %*lu %*llu";
 
     int pid, res;
     long rssnew;
-    ulong vsizenew, newstarttime;
+    unsigned long vsizenew = 0, newstarttime = 0, newthreads = 0;
     static char buf[1024];
     FILE *fd;
     DIR *dir;
-    static int	rate = 0;
-    static unsigned int	boottime = 0; 
+    static int rate = 0;
     
     pid = PSC_getPID(childTask->tid);
 
     if (rate <= 0) {
 	rate = sysconf(_SC_CLK_TCK);
-	if (rate <= 0) {
+	if (rate < 0) {
+	    PSID_warn(-1, errno, "%s: sysconf(_SC_CLK_TCK) failed", __func__);
+	    acctPollTime = 0; 
 	    return;
 	}
     }
     
     snprintf(buf, sizeof(buf), "/proc/%i/stat", pid);
-    if ((fd = fopen(buf,"r")) == NULL) {
+    if (!(fd = fopen(buf,"r"))) {
+	PSID_warn(-1, errno, "%s: fopen(/proc/%i/stat) failed", __func__, pid);
+	acctPollTime = 0; 
 	return;
     }
 
@@ -321,14 +324,17 @@ static void updateAccountData(void)
 	    &accData.stime,
 	    &accData.cutime,
 	    &accData.cstime,
+	    &newthreads,
 	    &newstarttime,
 	    &vsizenew,
-	    &rssnew,
-	    &accData.processor);
+	    &rssnew);
 
     fclose(fd);
 
     if (res != 11) {
+	PSID_log(-1, "%s: error reading accounting data,"
+		 " invalid kernel version?\n", __func__);
+	acctPollTime = 0; 
 	return;
     }
     
@@ -342,16 +348,20 @@ static void updateAccountData(void)
     /* set max rss (resident set size) */
     if (rssnew > accData.maxrss) accData.maxrss = rssnew;
    
+    /* set max threads */
+    if (newthreads > accData.threads) accData.threads = newthreads;
+
     /* set max vmem */
     if (vsizenew > accData.maxvsize) accData.maxvsize = vsizenew;
 
     /* calc real times */
-    accData.utime /=  rate;
+    /*accData.utime /=  rate;
     accData.stime /=  rate;
     accData.cutime /=  rate;
-    accData.cstime /=  rate;
+    accData.cstime /=  rate;*/
 
     /* set starttime */
+    /*
     if (!boottime) {
 	accData.starttime = 0;
 	if ((fd = fopen("/proc/stat","r")) == NULL) {
@@ -375,6 +385,7 @@ static void updateAccountData(void)
     if (!accData.starttime && boottime){ 
 	accData.starttime = boottime + ( newstarttime / rate );
     }
+    */
 }
 
 /**
@@ -503,11 +514,14 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
     case PSP_CC_MSG:
 	break;
     case PSP_CD_RELEASERES:
-	/* release the pmi client */
-	pmi_finalize();
+	/* finaly release the pmi client */
+	if (pmiType != -1) {	
+	    /* release the pmi client */
+	    pmi_finalize();
 
-	/*close connection */
-	closePMIClientSocket();
+	    /*close connection */
+	    closePMIClientSocket();
+	}
 	break;
     default:
 	PSID_log(-1, "%s: Unknown message type %s\n",
@@ -1162,14 +1176,14 @@ static void sendAccoutingData(struct rusage rusage, int status)
     msg.header.len += sizeof(long);
 
     /* size of max used vmem */
-    *(ulong *)ptr = accData.maxvsize;
-    ptr += sizeof(ulong);
-    msg.header.len += sizeof(ulong);
+    *(unsigned long *)ptr = accData.maxvsize;
+    ptr += sizeof(unsigned long);
+    msg.header.len += sizeof(unsigned long);
     
-    /* real kernel start time */
-    *(ulong *)ptr = accData.starttime;
-    ptr += sizeof(ulong);
-    msg.header.len += sizeof(ulong);
+    /* number of threads */
+    *(unsigned long *)ptr = accData.threads;
+    ptr += sizeof(unsigned long);
+    msg.header.len += sizeof(unsigned long);
     
     /* session id of job */
     *(int32_t *)ptr = accData.session;
@@ -1676,7 +1690,6 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket, int PMIType,
 
     childTask = task;
     daemonSock = daemonfd;
-    pmiType = PMIType;
     accounting = doAccounting;
     acctPollTime = acctPollInterval;
 
@@ -1702,12 +1715,15 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket, int PMIType,
     }
 
     /* Set up pmi connection */ 
-    if (pmiType) {
-	PMIClientSock = PMISocket;    
-	/* init the pmi interface */
-	pmi_init(PMIClientSock, childTask->loggertid, childTask->rank);
-    } else {
-	PMISock = PMISocket;
+    if (PMISocket != -1) { 
+	pmiType = PMIType;
+	if (pmiType) {
+	    PMIClientSock = PMISocket;    
+	    /* init the pmi interface */
+	    pmi_init(PMIClientSock, childTask->loggertid, childTask->rank);
+	} else {
+	    PMISock = PMISocket;
+	}
     }
 
     /* call the loop which does all the work */

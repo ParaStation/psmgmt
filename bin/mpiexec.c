@@ -7,7 +7,7 @@
  *
  */
 /**
- * @file Replacement for the standard mpiexec command provided by
+ * @file mpiexec.c Replacement for the standard mpiexec command provided by
  * MPIch in order to start such applications within a ParaStation
  * cluster.
  *
@@ -76,7 +76,7 @@ int overbook, loggerdb, loopnodesfirst;
 int np, source, rusage, exclusive;
 int forwarderdb, pscomdb, loggerrawmode;
 int wait, schedyield, retry, psidb, mergeout;
-int sndbuf, rcvbuf, readahead, nodelay;
+int sndbuf, rcvbuf, nodelay;
 int sigquit, envall, mergedepth, mergetmout;
 int gdb, usize;
 char *plugindir, *envlist, *dest;
@@ -92,6 +92,7 @@ int comphelp = 0, compusage = 0;
 int dup_argc, extendedhelp = 0;
 int show, verbose = 0;
 int extendedusage = 0;
+int useElan = 1;
 char **dup_argv;
 
 static char version[] = "$Revision$";
@@ -230,10 +231,12 @@ static void checkForELAN(void)
 	if(verbose) printf("failed loading libelan\n");
 	/* disable elan support in pscom */
 	setPSIEnv("PSP_ELAN", "0", 1);
+	useElan = 0;
     }
 #else
     setPSIEnv("PSP_ELAN", "0", 1);
     if(verbose) printf("no libelan configured\n");
+    useElan = 0;
 #endif
 
 }
@@ -279,7 +282,12 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 
 #ifdef ELANCTRL
 	/* setup elan environment */
-	setupELANEnv(np);
+	if (useElan) {
+	    if (!setupELANEnv(np, verbose)) {
+		setPSIEnv("PSP_ELAN", "0", 1);
+		useElan = 0;
+	    }
+	}
 #endif
 
 	PSI_spawnService(nds[0], NULL, argc, argv, np, &error, &spawnedProc);
@@ -416,7 +424,10 @@ static void setupPMIEnv(int rank)
 }
 
 /**
- * @brief Set up the environment and spawn all processes
+ * @brief Spawn compute processes. 
+ *
+ * Set up the environment including pmi and elan stuff
+ * and spawn all processes.
  *
  * @param i Rank of the process to spawn.
  *
@@ -449,7 +460,7 @@ static int startProcs(int i, int np, int argc, char *argv[], int verbose, int sh
     if (show) return 0;
 
 #ifdef ELANCTRL
-    setupELANProcsEnv(i);
+    if (useElan) setupELANProcsEnv(i);
 #endif
 
     PStask_ID_t spawnedProcess = -1;
@@ -556,12 +567,6 @@ static void setupPSCOMEnv(int verbose)
 	snprintf(tmp, sizeof(tmp), "%d", rcvbuf);
 	setPSIEnv("PSP_SO_RCVBUF", tmp, 1);
 	if (verbose) printf("Setting TCP receive buffer to %d bytes.\n", rcvbuf);
-    }
-
-    if (readahead) {
-	snprintf(tmp, sizeof(tmp), "%d", readahead);
-	setPSIEnv("PSP_READAHEAD", tmp, 1);
-	if (verbose) printf("Setting pscom readahead to  %d.\n", readahead);
     }
 
     if (plugindir) {
@@ -821,7 +826,6 @@ static void setupEnvironment(int verbose)
 	setenv("PATH", path, 1);
 	setPSIEnv("PATH", path, 1);
     }
-
 }
 
 /**
@@ -1386,8 +1390,6 @@ static void parseCmdOptions(int argc, char *argv[])
 	  &loggerrawmode, 0, "set raw mode of the logger", "num"},
         { "sigquit", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
 	  &sigquit, 0, "ouput debug information on signal sigquit", NULL},
-        { "readahead", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN,
-	  &readahead, 0, "set the how much to read ahead", NULL},
 	POPT_TABLEEND
     };
 
@@ -1537,7 +1539,7 @@ static void parseCmdOptions(int argc, char *argv[])
 	pscomdb = loopnodesfirst = loggerrawmode = 0;
 	exclusive = wait = schedyield = retry = envall = 0;
 	mpichcom = hiddenhelp = mergeout = hiddenusage = 0;
-	sndbuf = rcvbuf = readahead = nodelay = sigquit = 0;
+	sndbuf = rcvbuf = nodelay = sigquit = 0;
 	pmitmout = admin = mergedepth = mergetmout = 0;
 	gdb = none = totalview = ecfn = usize = gdba = 0;
 	comphelp = compusage = 0;

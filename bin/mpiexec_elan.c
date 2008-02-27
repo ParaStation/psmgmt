@@ -183,7 +183,7 @@ static char *capToString(ELAN_CAPABILITY *cap, char *str, size_t len)
 
 /*----------------------------------------------------------------------*/
 
-static int prepCapEnv(int np)
+static int prepCapEnv(int np, int verbose)
 {
     ELAN_CAPABILITY cap;
     int procsPerNode[ELAN_MAX_VPS];
@@ -224,12 +224,16 @@ static int prepCapEnv(int np)
 
 	idStr = getEntry(hp->h_name);
 	if (!idStr) {
-	    printf("%s: No ID found for '%s'\n", __func__, hp->h_name);
+	    if (verbose) { 
+		printf("%s: No ID found for '%s'\n", __func__, hp->h_name);
+	    }
 	    return -1;
 	}
 	id = strtol(idStr, &end, 10);
 	if (end == idStr || *end) {
-	    printf("%s: No ID found in '%s'\n", __func__, idStr);
+	    if (verbose) { 
+		printf("%s: No ID found in '%s'\n", __func__, idStr);
+	    }
 	    return -1;
 	}
 	if (id < cap.cap_lownode)
@@ -349,22 +353,16 @@ int setupELANProcsEnv(int rank)
     return 1;
 }
 
-/**
- * @brief Prepare the elan environment.
- *
- * @param np The number of process to start over
- * libelan.
- *
- * @return Returns 1 on success and 0 on error.
- */
-int setupELANEnv(int np)
+int setupELANEnv(int np, int verbose)
 {
     /* Check if loading libelan was successful */
     if (!isLoaded) {
 	return 0;
     }
 
-    if (prepCapEnv(np)<0) exit(1);
+    if (prepCapEnv(np, verbose)<0) {
+	return 0; 
+    }
 
     return 1;
 }

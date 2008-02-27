@@ -54,7 +54,8 @@ extern "C" {
  * @param daemonfd File descriptor connecting the forwarder to the
  * local daemon.
  *
- * @param PMISocket Socket connecting the forwarder to the pmi client.
+ * @param PMISocket Socket connecting the forwarder to the pmi client. If
+ * the socket is -1 than pmi is disabled.
  *
  * @param PMIType Defines if pmi is connecting over TCP/IP if PMIType is
  * set to 0 or over an UNIX domain socket if set to 1 (default).

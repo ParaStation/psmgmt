@@ -9,7 +9,7 @@
 
 case "$1" in
     start)
-        /opt/parastation/bin/psaccounter -p gzip 
+        /opt/parastation/bin/psaccounter -p gzip -e
 	;;
 
     stop)
