@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -31,6 +31,8 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "config_parsing.h"
 
 #include "psidnodes.h"
+#include "psidamd.h"
+#include "psidintel.h"
 
 #include "psidutil.h"
 
@@ -169,76 +171,18 @@ long PSID_getVirtCPUs(void)
 
 long PSID_getPhysCPUs(void)
 {
-    int buf[8];
-    char filename[80] = { "/dev/cpu/0/cpuid" };
-    int fd, got, i;
-
-    int intelMagic[3] = { 0x756e6547, 0x6c65746e, 0x49656e69 };
-    long virtCPUs = PSID_getVirtCPUs(), physCPUs = 0;
-    int virtCount, virtMask, APIC_ID;
+    long virtCPUs = PSID_getVirtCPUs(), physCPUs;
 
     PSID_log(PSID_LOG_VERB, "%s: got %ld virtual CPUs\n", __func__, virtCPUs);
 
-    fd = open(filename, 0);
-    if (fd==-1) {
-#ifdef __i386__
-	if (errno == ENODEV) {
-	    PSID_log(-1, "%s: No CPUID support\n", __func__);
-	} else {
-	    PSID_warn(-1, errno, "%s: unable to open '%s'", __func__,filename);
-	}
-#endif
-	return virtCPUs;
-    }
-
-    got = read(fd, buf, sizeof(buf));
-    close(fd);
-    if (got != sizeof(buf)) {
-	PSID_log(-1, "%s: Got only %d/%ld bytes\n",
-		 __func__, got, (long)sizeof(buf));
-	return virtCPUs;
-    }
-
-    for (i=0; i<3; i++) {
-	if (buf[i+1] != intelMagic[i]) {
-	    PSID_log(PSID_LOG_VERB, "%s: No Intel CPU\n", __func__);
-	    return virtCPUs;
-	}
-    }
-    PSID_log(PSID_LOG_VERB, "%s: Intel CPU\n", __func__);
-
-    if (! (buf[7] & 0x10000000)) {
-	PSID_log(PSID_LOG_VERB, "%s: No Hyper-Threading Technology\n",
-		 __func__);
-	return virtCPUs;
-    }
-    PSID_log(PSID_LOG_VERB, "%s: With Hyper-Threading Technology\n", __func__);
-    virtCount =  (buf[5] & 0x00ff0000) >> 16;
-    PSID_log(PSID_LOG_VERB, "%s: CPU supports %d virtual CPUs\n",
-	     __func__, virtCount);
-    virtMask = virtCount-1;
-
-    for (i=0; i<virtCPUs; i++) {
-	snprintf(filename, sizeof(filename), "/dev/cpu/%d/cpuid", i);
-	fd = open(filename, 0);
-	if (fd==-1) {
-	    PSID_warn(-1, errno, "%s: Unable to open '%s'",
-		      __func__, filename);
-	    return virtCPUs;
-	}
-	got = read(fd, buf, sizeof(buf));
-	close(fd);
-	if (got != sizeof(buf)) {
-	    PSID_log(-1, "%s: Got only %d/%ld bytes\n",
-		     __func__, got, (long)sizeof(buf));
-	    return virtCPUs;
-	}
-
-	APIC_ID = (buf[5] & 0xff000000) >> 24;
-	PSID_log(PSID_LOG_VERB, "%s: APIC ID %d -> %s CPU\n", __func__,
-		 APIC_ID, APIC_ID & virtMask ? "virtual" : "physical");
-
-	if ( ! (APIC_ID & virtMask)) physCPUs++;
+    if (PSID_GenuineIntel()) {
+	physCPUs = PSID_getPhysCPUs_IA32();
+    } else if (PSID_AuthenticAMD()) {
+	physCPUs = PSID_getPhysCPUs_AMD();
+    } else {
+	/* generic case (assume no SMT) @todo handle PPC (Cell) */
+	PSID_log(-1, "%s: Generic case for # of physical CPUs.\n", __func__);
+	physCPUs = virtCPUs;
     }
 
     return physCPUs;

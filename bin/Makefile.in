@@ -1,7 +1,7 @@
 ###################################################### -*- Makefile -*- #####
 #                  ParaStation
 #        Copyright (c) 2002-2003 ParTec AG, Karlsruhe
-#        Copyright (c) 2005-2008 Cluster Competence Center GmbH, Munich
+#        Copyright (c) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
 #############################################################################
 #
 # $Id$
@@ -53,7 +53,8 @@ all bin: $(TOOLS)
 $(TOOLS): %: %.o
 
 psiadmin psid mlisten test_pse psmstart mpirun_chp4 mpirun_chgm gmspawner \
-	mpirun_openib test_config pssh psaccounter testacct mpirun_elan mpiexec: \
+	mpirun_openib test_config pssh psaccounter testacct mpirun_elan \
+	mpiexec: \
 		LOADLIBES:=$(LOADLIBES) -lpopt
 
 test_pse psmstart mpirun_chp4 mpirun_chgm mpirun_openib pssh psaccounter \
@@ -95,7 +96,7 @@ VPATH += $(SRCDIR)/daemon
 psid: psidutil.o psidtask.o psidspawn.o psidforwarder.o psidpmiprotocol.o
 psid: psidsignal.o psidmsgbuf.o psidrdp.o psidclient.o psidcomm.o
 psid: psidinfo.o psidoption.o psidpartition.o psidstatus.o psidhw.o
-psid: psidaccount.o psidnodes.o
+psid: psidaccount.o psidnodes.o psidintel.o psidamd.o
 psid: LOADLIBES:=$(LOADLIBES) -lm -lutil -lpslog
 ifeq ($(NUMA),yes)
 psid: LOADLIBES:=$(LOADLIBES) -lnuma
