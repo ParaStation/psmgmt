@@ -33,6 +33,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "psidnodes.h"
 #include "psidamd.h"
 #include "psidintel.h"
+#include "psidppc.h"
 
 #include "psidutil.h"
 
@@ -179,8 +180,10 @@ long PSID_getPhysCPUs(void)
 	physCPUs = PSID_getPhysCPUs_IA32();
     } else if (PSID_AuthenticAMD()) {
 	physCPUs = PSID_getPhysCPUs_AMD();
+    } else if (PSID_PPC()) {
+	physCPUs = PSID_getPhysCPUs_PPC();
     } else {
-	/* generic case (assume no SMT) @todo handle PPC (Cell) */
+	/* generic case (assume no SMT) */
 	PSID_log(-1, "%s: Generic case for # of physical CPUs.\n", __func__);
 	physCPUs = virtCPUs;
     }

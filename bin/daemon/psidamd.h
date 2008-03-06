@@ -41,19 +41,17 @@ int PSID_AuthenticAMD(void);
  * @brief Get number of physical CPUs on Intel IA-32.
  *
  * Determine the number of physical CPUs. The number of physical CPUs
- * might differ from the number of virtual CPUs e.g. on newer Pentium
- * platforms which support the Hyper-Threading Technology.
+ * might differ from the number of virtual CPUs. Until now AMD has not
+ * implemented the SMT Technology, thus the current implementation s
+ * quite simple.
  *
- * This function only supports the Intel IA32 platform. For other
- * platforms, similar functionality has to be implemented. Be aware of
- * the fact that detecting the underlying hardware structure is
- * massively hardware dependant.
- *
- * The implementation assumes that all physical processors (i.e. the
- * device sitting within the socket of a motherboard) are identical.
+ * This function only supports the AMD platform. For other platforms,
+ * similar functionality has to be implemented. Be aware of the fact
+ * that detecting the underlying hardware structure is massively
+ * hardware dependant.
  *
  * @return On success, the number of physical CPUs is returned. If an
- * error occurred, e.g. the current platform is no Genuine Intel, the
+ * error occurred, e.g. the current platform is not Authentic AMD, the
  * number of virtual CPUs is returned.
  */
 long PSID_getPhysCPUs_AMD(void);

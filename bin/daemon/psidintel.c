@@ -27,7 +27,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c 5419 2007-12-12 
 
 int PSID_GenuineIntel(void)
 {
-#if defined __i386__ || defined(__x86_64__)
+#if defined __i386__ || defined __x86_64__
     unsigned int Regebx = 0, Regedx = 0, Regecx = 0;
     char* IntelID = "GenuineIntel";
 
@@ -49,7 +49,7 @@ int PSID_GenuineIntel(void)
 #endif
 }
 
-#if defined __i386__ || defined(__x86_64__)
+#if defined __i386__ || defined __x86_64__
 /**
  * @brief Get maximum argument of CPUID instruction
  *
@@ -273,7 +273,7 @@ static unsigned char getSubset(unsigned char full, unsigned char maxVal)
 
 long PSID_getPhysCPUs_IA32(void)
 {
-#if defined __i386__ || defined(__x86_64__)
+#if defined __i386__ || defined __x86_64__
     long virtCPUs = PSID_getVirtCPUs(), physCPUs = 0;
     cpu_set_t allowedCPUs, currentCPU;
     int i;

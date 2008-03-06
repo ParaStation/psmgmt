@@ -15,7 +15,7 @@ static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c 5419 2007-12-12 
 
 int PSID_AuthenticAMD(void)
 {
-#if defined __i386__ || defined(__x86_64__)
+#if defined __i386__ || defined __x86_64__
     unsigned int Regebx = 0, Regedx = 0, Regecx = 0;
     char* AMDID = "AuthenticAMD";
 

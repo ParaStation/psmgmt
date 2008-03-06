@@ -35,6 +35,8 @@ bin/daemon/psidoption.c \
 bin/daemon/psidoption.h \
 bin/daemon/psidpartition.c \
 bin/daemon/psidpartition.h \
+bin/daemon/psidppc.h \
+bin/daemon/psidppc.c \
 bin/daemon/psidrdp.c \
 bin/daemon/psidrdp.h \
 bin/daemon/psidsignal.c \
