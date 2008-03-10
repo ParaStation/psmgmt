@@ -399,7 +399,7 @@ int PSI_recvMsg(void* amsg)
 {
     DDMsg_t *msg = (DDMsg_t*)amsg;
     int n;
-    int count = 0;
+    int count = 0, expected = sizeof(DDMsg_t);
 
     if (daemonSock == -1) {
 	errno = ENOTCONN;
@@ -407,11 +407,7 @@ int PSI_recvMsg(void* amsg)
     }
 
     do {
-	if (!count) {
-	    n = read(daemonSock, msg, sizeof(*msg));
-	} else {
-	    n = read(daemonSock, &((char*)msg)[count], msg->len-count);
-	}
+	n = read(daemonSock, &((char*)msg)[count], expected-count);
 	if (n>0) {
 	    count+=n;
 	} else if (n == -1 && errno == EINTR) {
@@ -428,7 +424,8 @@ int PSI_recvMsg(void* amsg)
 	    close(daemonSock);
 	    daemonSock = -1;
 	}
-    } while (msg->len>count && n>0);
+	if (count >= expected) expected = msg->len;
+    } while (expected>count && n>0);
 
     if (count > (int) sizeof(*msg)) {
 	PSI_log(PSI_LOG_COMM, "%s: type %s (len=%d) from %s\n", __func__,
@@ -507,6 +504,11 @@ int PSI_release(PStask_ID_t tid)
     } else if (!ret) {
 	PSI_log(-1, "%s: PSI_recvMsg() returned 0\n", __func__);
 	return -1;
+    }
+
+    if (ret != msg.header.len || ret != sizeof(msg)) {
+	PSI_log(-1, "%s: PSI_recvMsg() got just %d/%d bytes (%d expected)\n",
+		__func__, ret, msg.header.len, sizeof(msg));
     }
 
     if (msg.header.type != PSP_CD_RELEASERES) {
