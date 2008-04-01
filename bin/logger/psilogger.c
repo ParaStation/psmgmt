@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -797,9 +797,11 @@ static void forwardInput(int std_in)
     len = read(std_in, buf, sizeof(buf)>SSIZE_MAX ? SSIZE_MAX : sizeof(buf));
     switch (len) {
     case -1:
-	if (errno != EIO) {
+	if (errno == EBADF) {
+	    FD_CLR(std_in, &myfds);
+	} else if (errno != EIO) {
 	    char *errstr = strerror(errno);
-	    fprintf(stderr, "PSIlogger: %s: read() failed with errno %d: %s",
+	    fprintf(stderr, "PSIlogger: %s: read() failed with errno %d: %s\n",
 		    __func__, errno, errstr ? errstr : "UNKNOWN");
 
 	    FD_CLR(std_in, &myfds);
