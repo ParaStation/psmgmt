@@ -1291,6 +1291,31 @@ static int getBindMem(char *token)
     return 0;
 }
 
+static int default_supplGrps = 0;
+
+static int getSupplGrps(char *token)
+{
+    int supplGrps, ret;
+
+    ret = parser_getBool(parser_getString(), &supplGrps, "supplGrps");
+    if (ret) return ret;
+
+    if (currentID == DEFAULT_ID) {
+        default_supplGrps = supplGrps;
+	parser_comment(PARSER_LOG_NODE, "setting default 'supplGrps' to '%s'\n",
+		       supplGrps ? "TRUE" : "FALSE");
+    } else {
+	if (PSIDnodes_setSupplGrps(currentID, supplGrps)) {
+	    parser_comment(-1, "PSIDnodes_setSupplGrps(%d, %d) failed\n",
+			   currentID, supplGrps);
+	    return -1;
+	}
+        parser_commentCont(PARSER_LOG_NODE, " supplementary groups are%s set",
+			   supplGrps ? "":" not");
+    }
+    return 0;
+}
+
 /* ---------------------------------------------------------------------- */
 
 static short std_cpumap[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17};
@@ -1476,9 +1501,9 @@ static int newHost(in_addr_t addr, int id)
 	return -1;
     }
 
-    if (PSIDnodes_setBindMem(id, default_bindMem)) {
-	parser_comment(-1, "PSIDnodes_setBindMem(%d, %d) failed\n",
-		       id, default_bindMem);
+    if (PSIDnodes_setSupplGrps(id, default_supplGrps)) {
+	parser_comment(-1, "PSIDnodes_setSupplGrps(%d, %d) failed\n",
+		       id, default_supplGrps);
 	return -1;
     }
 
@@ -1551,6 +1576,7 @@ static keylist_t nodeline_list[] = {
     {"exclusive", getExcl},
     {"pinprocs", getPinProcs},
     {"bindmem", getBindMem},
+    {"supplGrps", getSupplGrps},
     {"cpumap", getCPUmap},
     {NULL, parser_error}
 };
@@ -1996,6 +2022,7 @@ static keylist_t config_list[] = {
     {"exclusive", getExcl},
     {"pinprocs", getPinProcs},
     {"bindmem", getBindMem},
+    {"supplGrps", getSupplGrps},
     {"cpumap", getCPUmap},
     {"nodes", getNodes},
     {"licenseserver", getLicServer},

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -783,6 +783,12 @@ static int setShowAcctPoll(char *token)
     return 0;
 }
 
+static int setShowSupplGrps(char *token)
+{
+    setShowOpt = PSP_OP_SUPPL_GRPS;
+    return 0;
+}
+
 static int setShowRL_AS(char *token)
 {
     setShowOpt = PSP_OP_RL_AS;
@@ -899,6 +905,7 @@ static keylist_t setShowList[] = {
     {"cpumap", setShowCPUMap},
     {"accounters", setShowAccounter},
     {"accountpoll", setShowAcctPoll},
+    {"supplementarygroups", setShowSupplGrps},
     {"rl_as", setShowRL_AS},
     {"rl_addressspace", setShowRL_AS},
     {"rl_core", setShowRL_Core},
@@ -1103,6 +1110,7 @@ static int setCommand(char *token)
     case PSP_OP_STARTER:
     case PSP_OP_PINPROCS:
     case PSP_OP_BINDMEM:
+    case PSP_OP_SUPPL_GRPS:
     {
 	int tmp, ret = parser_getBool(value, &tmp, NULL);
 	if (ret==-1) {
@@ -1168,6 +1176,7 @@ static int setCommand(char *token)
     case PSP_OP_BINDMEM:
     case PSP_OP_NODESSORT:
     case PSP_OP_ACCTPOLL:
+    case PSP_OP_SUPPL_GRPS:
 	PSIADM_SetParam(setShowOpt, val, nl);
 	break;
     case PSP_OP_CPUMAP:
@@ -1228,6 +1237,7 @@ static int showCommand(char *token)
     case PSP_OP_PINPROCS:
     case PSP_OP_BINDMEM:
     case PSP_OP_ACCTPOLL:
+    case PSP_OP_SUPPL_GRPS:
 	PSIADM_ShowParam(setShowOpt, nl);
 	break;
     case PSP_OP_ACCT:

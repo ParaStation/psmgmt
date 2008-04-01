@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -1166,6 +1166,7 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
     case PSP_OP_EXCLUSIVE:
     case PSP_OP_PINPROCS:
     case PSP_OP_BINDMEM:
+    case PSP_OP_SUPPL_GRPS:
 	break;
     default:
 	printf("%s: cannot handle option type %d.\n", __func__, type);
@@ -1303,6 +1304,7 @@ void PSIADM_ShowParam(PSP_Option_t type, char *nl)
 		case PSP_OP_STARTER:
 		case PSP_OP_PINPROCS:
 		case PSP_OP_BINDMEM:
+		case PSP_OP_SUPPL_GRPS:
 		    printf("%s\n", value ? "TRUE" : "FALSE");
 		    break;
 		case PSP_OP_UNKNOWN:

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -692,6 +692,39 @@ int PSIDnodes_setAcctPollI(PSnodes_ID_t id, int interval);
  * returned. Or -1, if an error occured.
  */
 int PSIDnodes_acctPollI(PSnodes_ID_t id);
+
+/**
+ * @brief Set the supplementary groups flag of a node.
+ *
+ * Set the supplementary groups flag of the node with ParaStation ID
+ * @a id to @a supplGrps.
+ *
+ * The supplementary groups flags marks if the node will set all the
+ * user's supplementary groups while spawning a new process.
+ *
+ * @param id ParaStation ID of the node to be modified.
+ *
+ * @param supplGrps The supplementary groups flag to be set to this node.
+ *
+ * @return On success, 0 is returned or -1, if an error occured.
+ */
+int PSIDnodes_setSupplGrps(PSnodes_ID_t id, int supplGrps);
+
+/**
+ * @brief Get the supplementary groups flag of a node.
+ *
+ * Get the supplementary groups flag of the node with ParaStation ID
+ * @a id.
+ *
+ * The supplementary groups flags marks if the node will set all the
+ * user's supplementary groups while spawning a new process.
+ *
+ * @param id ParaStation ID of the node to look up.
+ *
+ * @return If the node was found, the supplementary groups flag is
+ * returned. Or -1, if an error occured.
+ */
+int PSIDnodes_supplGrps(PSnodes_ID_t id);
 
 
 #ifdef __cplusplus

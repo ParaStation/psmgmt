@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -67,6 +67,7 @@ typedef struct {
     list_t admgid_list;    /**< AdminGroup on this node */
     int maxProcs;          /**< Number of processes this node will handle */
     int acctPollInterval;  /**< Interval in sec for polling on accnting info */
+    char supplGrps;        /**< Set supplementary groups for new tasks */
 } node_t;
 
 /** Array (indexed by node number) to store all known nodes */
@@ -106,6 +107,7 @@ static void nodeInit(node_t *node)
     node->admgid_list = LIST_HEAD_INIT(node->admgid_list);
     node->maxProcs = -1;
     node->acctPollInterval = 0;
+    node->supplGrps = 0;
 }
 
 int PSIDnodes_init(PSnodes_ID_t num)
@@ -941,3 +943,23 @@ int PSIDnodes_acctPollI(PSnodes_ID_t id)
 	return -1;
     }
 }
+
+int PSIDnodes_setSupplGrps(PSnodes_ID_t id, int supplGrps)
+{
+    if (ID_ok(id)) {
+	nodes[id].supplGrps = supplGrps;
+	return 0;
+    } else {
+	return -1;
+    }
+}
+
+int PSIDnodes_supplGrps(PSnodes_ID_t id)
+{
+    if (ID_ok(id)) {
+	return nodes[id].supplGrps;
+    } else {
+	return -1;
+    }
+}
+

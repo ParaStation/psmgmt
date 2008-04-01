@@ -510,6 +510,17 @@ static void execClient(PStask_t *task)
     /* remove psid's group memberships */
     setgroups(0, NULL);
 
+    /* set supplementary groups if requested */
+    if (PSIDnodes_supplGrps(PSC_getMyID())) {
+	struct passwd *pw;
+	if ((pw = getpwuid(task->uid)) && pw->pw_name) {
+	    if (initgroups(pw->pw_name, task->gid) < 0) {
+		fprintf(stderr, "%s: Cannot set supplementary groups: %s\n",
+			__func__,  get_strerror(errno));
+	    }
+	}
+    }
+
     /* change the uid */
     if (setuid(task->uid)<0) {
 	fprintf(stderr, "%s: setuid: %s\n", __func__, get_strerror(errno));

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -156,6 +156,8 @@ typedef enum {
     PSP_OP_RL_SIGPENDING,         /**< request RLIMIT_SIGPENDING (max pending
 				     signals) */
     PSP_OP_RL_STACK,              /**< request RLIMIT_STACK (max stack-size) */
+
+    PSP_OP_SUPPL_GRPS = 0x0078,   /**< (Dis-)Enable setting suppl. groups */
 } PSP_Option_t;
 
 /** Messages used for information retrieval */

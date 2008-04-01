@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -79,6 +79,9 @@ void send_OPTIONS(PSnodes_ID_t destnode)
     msg.count++;
     msg.opt[(int) msg.count].option = PSP_OP_ACCTPOLL;
     msg.opt[(int) msg.count].value = PSIDnodes_acctPollI(PSC_getMyID());
+    msg.count++;
+    msg.opt[(int) msg.count].option = PSP_OP_SUPPL_GRPS;
+    msg.opt[(int) msg.count].value = PSIDnodes_supplGrps(PSC_getMyID());
     msg.count++;
 
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
@@ -656,6 +659,27 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 					   msg->opt[i].value);
 		}
 		break;
+	    case PSP_OP_SUPPL_GRPS:
+		if (PSC_getPID(msg->header.sender)) {
+		    DDOptionMsg_t info = {
+			.header = {
+			    .type = PSP_CD_SETOPTION,
+			    .sender = PSC_getMyTID(),
+			    .dest = 0,
+			    .len = sizeof(info) },
+			.count = 1,
+			.opt = {{ .option = msg->opt[i].option,
+				  .value = msg->opt[i].value }} };
+			    
+		    PSIDnodes_setSupplGrps(PSC_getMyID(), msg->opt[i].value);
+
+		    /* Info all nodes about my SUPPL_GRPS */
+		    broadcastMsg(&info);
+		} else {
+		    PSIDnodes_setSupplGrps(PSC_getID(msg->header.sender),
+					  msg->opt[i].value);
+		}
+		break;
 	    case PSP_OP_LISTEND:
 		/* Ignore */
 		break;
@@ -833,6 +857,9 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_ACCTPOLL:
 		msg->opt[out].value = PSIDnodes_acctPollI(PSC_getMyID());
+		break;
+	    case PSP_OP_SUPPL_GRPS:
+		msg->opt[out].value = PSIDnodes_supplGrps(PSC_getMyID());
 		break;
 	    case PSP_OP_RL_AS:
 	    case PSP_OP_RL_CORE:

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -240,6 +240,7 @@ static info_t setInfo = {
 	" | {freeonsuspend|fos} <bool> | {handleoldbins|hob} <bool>"
 	" | starter <bool> | runjobs <bool> | overbook {<bool>|auto}"
 	" | exclusive <bool> | pinprocs <bool> | bindmem <bool> "
+	" | supplementaryGroups <bool> "
 	" | cpumap <map> | nodessort <mode> | adminuser [+|-]{<user>|any}"
 	" | admingroup [+|-]{<group>|any} | accountpoll <interval>} <nodes>"
     }},
@@ -327,6 +328,10 @@ static info_t setInfo = {
 	  .descr = "Set flag marking if this nodes will use memory-binding"
 	  " as NUMA policy. Relevant values are 'false', 'true',"
 	  " 'no', 'yes', 0 or different from 0." },
+	{ .tag = "set supplementaryGroups <bool>",
+	  .descr = "Set flag marking if this nodes will set the user's"
+	  " supplementary groups while spawning new processes. Relevant"
+	  " values are 'false', 'true', 'no', 'yes', 0 or different from 0." },
 	{ .tag = "set cpumap <map>",
 	  .descr = "Set the map used to assign CPU-slots to physical cores"
 	  " to <map>. <map> is a quoted string containing a space-separated"
