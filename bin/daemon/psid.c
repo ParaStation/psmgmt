@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -20,8 +20,6 @@
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
-/* #define DUMP_CORE */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1052,9 +1050,6 @@ static void initSignals(void)
     signal(SIGBUS   ,sighandler);
     signal(SIGFPE   ,sighandler);
     signal(SIGUSR1  ,sighandler);
-#ifndef DUMP_CORE
-    signal(SIGSEGV  ,sighandler);
-#endif
     signal(SIGUSR2  ,sighandler);
     signal(SIGPIPE  ,sighandler);
     signal(SIGTERM  ,sighandler);
@@ -1357,25 +1352,9 @@ int main(int argc, const char *argv[])
 		 "(www.par-tec.com)\n");
     }
 
-#ifdef DUMP_CORE
-    {
-	struct rlimit rlimit;
-	int ret=0;
-
-        getrlimit(RLIMIT_CORE, &rlimit);
-        PSID_log(-1, "core: %ld/%ld\n", rlimit.rlim_cur, rlimit.rlim_max);
-
-	rlimit.rlim_cur = RLIM_INFINITY;
- 	rlimit.rlim_max = RLIM_INFINITY;
-	ret = setrlimit(RLIMIT_CORE, &rlimit);
-	if (ret) {
-	    PSID_log(-1, "setrlimit() returns %d\n", ret);
-	}
-
-        getrlimit(RLIMIT_CORE, &rlimit);
-        PSID_log(-1, "core: %ld/%ld\n", rlimit.rlim_cur, rlimit.rlim_max);
-    }
-#endif
+    /* Catch SIGSEGV if core dumps are suppressed */
+    getrlimit(RLIMIT_CORE, &rlimit);
+    if (!rlimit.rlim_cur) signal(SIGSEGV ,sighandler);
 
     /* Start up all the hardware */
     PSID_log(PSID_LOG_HW, "%s: starting up the hardware\n", __func__);
