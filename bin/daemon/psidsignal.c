@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -676,6 +676,9 @@ static int releaseTask(PStask_ID_t tid)
 
 	task->released = 1;
 
+	/* Prevent sending premature RELEASERES messages to initiator */
+	task->pendingReleaseRes++;
+
 	if (task->ptid) {
 	    DDErrorMsg_t inheritMsg;
 	    inheritMsg.header.sender = tid;
@@ -752,6 +755,9 @@ static int releaseTask(PStask_ID_t tid)
 	    }
 	    sig = -1;
 	}
+
+	/* Now RELEASERES messages might be sent to initiator */
+	task->pendingReleaseRes--;
     }
 
     return task->pendingReleaseErr;
