@@ -578,7 +578,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 
 	if (nl && !nl[node]) continue;
 
-	printf("%.*s\n", (width-2) > 0 ? width-2 : 0,
+	printf("%.*s\n", (width) > 0 ? width : 0,
 	       "---------------------------------------------------------"
 	       "---------------------------------------------------------");
 	if (!hostStatus.list[node]) {
@@ -638,7 +638,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 		char cmdline[8096] = { '\0' };
 		PSI_infoString(node, PSP_INFO_CMDLINE, &pid,
 			       cmdline, sizeof(cmdline), 0);
-		printf(" %.*s", (width-67) > 0 ? width-67 : 0, cmdline);
+		printf(" %.*s", (width-68) > 0 ? width-68 : 0, cmdline);
 	    }
 	    printf("\n");
 	}
