@@ -1,3 +1,61 @@
+Version psmgmt-5.0.2:
+=====================
+------------------------------------------------------------------------
+r5881 | eicker | 2008-04-08 18:40:26 +0200 (Tue, 08 Apr 2008) | 2 lines
+
+Bugfix: Fix possible segfault while hard killing obstinate tasks.
+
+------------------------------------------------------------------------
+r5876 | eicker | 2008-04-08 15:08:59 +0200 (Tue, 08 Apr 2008) | 2 lines
+
+Fix problems introduced within last checkins.
+
+------------------------------------------------------------------------
+r5875 | eicker | 2008-04-08 14:55:20 +0200 (Tue, 08 Apr 2008) | 2 lines
+
+Improve psiadmin's 'list ap' output.
+
+------------------------------------------------------------------------
+r5873 | eicker | 2008-04-07 11:40:04 +0200 (Mon, 07 Apr 2008) | 2 lines
+
+Suppress premature RELEASERES messages on purely local parallel jobs.
+
+------------------------------------------------------------------------
+r5872 | eicker | 2008-04-07 11:32:28 +0200 (Mon, 07 Apr 2008) | 3 lines
+
+Generation of psid's core dumps now steered by 'RLimit Core' directive
+  within configuration file.
+
+------------------------------------------------------------------------
+r5848 | eicker | 2008-04-01 16:35:51 +0200 (Tue, 01 Apr 2008) | 3 lines
+
+Suppress confusing warning message if stdin is not available within
+  psilogger.
+
+------------------------------------------------------------------------
+r5847 | eicker | 2008-04-01 11:07:56 +0200 (Tue, 01 Apr 2008) | 2 lines
+
+Add support for supplementary groups.
+
+------------------------------------------------------------------------
+r5765 | eicker | 2008-03-10 16:12:58 +0100 (Mon, 10 Mar 2008) | 4 lines
+
+Fix possible flaw in PSI_recvMsg() (read might be interrupted befor
+  header is fully received).
+More warning messages in PSI_release()
+
+------------------------------------------------------------------------
+r5731 | eicker | 2008-03-06 14:47:57 +0100 (Thu, 06 Mar 2008) | 2 lines
+
+Extension: Implement SMT detection on Power (needed on Cell).
+
+------------------------------------------------------------------------
+r5682 | eicker | 2008-02-27 18:22:23 +0100 (Wed, 27 Feb 2008) | 2 lines
+
+New version (psmgmt-5.0.1)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.1:
 =====================
 ------------------------------------------------------------------------
