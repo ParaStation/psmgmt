@@ -1546,6 +1546,11 @@ int main(int argc, const char *argv[])
 	    time_t now = time(NULL);
 
 	    while (task) {
+		/*
+		 * Determine next task here since task itself might
+		 * get removed during PSID_kill()
+		 */
+		PStask_t *next = task->next;
 		if (task->killat && now > task->killat) {
 		    if (task->group != TG_LOGGER) {
 			/* Send the signal to the whole process group */
@@ -1555,7 +1560,7 @@ int main(int argc, const char *argv[])
 			PSID_kill(PSC_getPID(task->tid), SIGKILL, task->uid);
 		    }
 		}
-		task = task->next;
+		task = next;
 	    }
 	}
 
