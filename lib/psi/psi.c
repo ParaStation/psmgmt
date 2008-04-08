@@ -507,8 +507,8 @@ int PSI_release(PStask_ID_t tid)
     }
 
     if (ret != msg.header.len || ret != sizeof(msg)) {
-	PSI_log(-1, "%s: PSI_recvMsg() got just %d/%d bytes (%d expected)\n",
-		__func__, ret, msg.header.len, sizeof(msg));
+	PSI_log(-1, "%s: PSI_recvMsg() got just %d/%d bytes (%ld expected)\n",
+		__func__, ret, msg.header.len, (long)sizeof(msg));
     }
 
     if (msg.header.type != PSP_CD_RELEASERES) {

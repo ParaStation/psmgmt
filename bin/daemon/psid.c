@@ -1193,6 +1193,7 @@ int main(int argc, const char *argv[])
     int rc, version = 0, debugMask = 0;
     char *logdest = NULL, *configfile = "/etc/parastation.conf";
     FILE *logfile = NULL;
+    struct rlimit rlimit;
 
     struct poptOption optionsTable[] = {
         { "debug", 'd', POPT_ARG_INT, &debugMask, 0,
