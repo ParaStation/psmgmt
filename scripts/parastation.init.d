@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 #
-# Copyright (c) 2005 Cluster Competence Center GmbH, Munich.
+# Copyright (c) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
 # All rights reserved.
 #
 # @author
@@ -27,52 +27,148 @@
 #	starts and monitors processes.
 ### END INIT INFO
 
-PSID=/opt/parastation/bin/psid
+PSID="/opt/parastation/bin/psid"
+PSIDNAME=`basename $PSID`
+LOCKFILE="/var/lock/subsys/psid"
 DESC="psid for ParaStation"
+RETVAL=0
+
 [ -x $PSID ] || { echo "$PSID not installed";
     if [ "$1" = "stop" ]; then exit 0;
     else exit 5; fi; }
 
-RETVAL=0
+# Source lsb functions 
+if [ -f /lib/lsb/init-functions ]
+then
+    . /lib/lsb/init-functions
+    IS_LSB=yes
+fi
 
 umask 077
 
-start() {
-    echo -n "Starting ${DESC}: "
+p_warn() {
+    if [ "$IS_LSB" == "yes" ]; then
+	log_warning_msg "$@"
+    else
+	echo "$@"
+    fi
+}
+
+p_error() {
+    if [ "$IS_LSB" == "yes" ]; then
+	log_failure_msg "$@"
+    else
+	echo "$@"
+    fi
+}
+
+p_success() {
+    if [ "$IS_LSB" == "yes" ]; then
+	log_success_msg "$@"
+    else
+	echo "$@"
+    fi
+}
+
+set_lock() {
+    if [ "$1" == 1 ]; then
+	touch $LOCKFILE
+    else
+	rm -f $LOCKFILE 2>/dev/null
+    fi
+}
+
+is_running() {
     PID=`pidof $PSID`
-    [ ! -z "$PID" ] && echo "already running." && exit 0
+    if [ -z "$PID" ] && [ -f $LOCKFILE ]; then
+	set_lock 0
+	return 1;
+    fi
+
+    if [ -z "$PID" ] && [ ! -f $LOCKFILE ]; then
+	return 1; 
+    else
+	return 0;
+    fi
+}
+
+stop_daemon() {
+    killall $PSID 2>/dev/null
+    RETVAL=$?
+    if [ $RETVAL -eq 0 ]; then
+	PID=`pidof $PSID`
+	cnt=0
+	while [ ! -z "$PID" ]; do
+	    cnt=$(expr $cnt + 1) 	    
+	    if [ $cnt -gt 30 ]; then
+		killall -9 $PSID 2>/dev/null
+		sleep 1
+		PID=`pidof $PSID`
+		if [ ! -z "$PID" ]; then
+		    return 0
+		else
+		    return 1
+		fi
+	    fi
+	    echo -n "."
+	    sleep 1
+	    PID=`pidof $PSID`
+	done
+	return 1
+    else
+	return 0	
+    fi
+}
+
+start() {
+    is_running && {
+	p_warn "$PSIDNAME already running." 
+	exit 0
+    }
+
+    echo -n "Starting ${DESC}: "
     $PSID
     RETVAL=$?
     if [ $RETVAL -eq 0 ]; then
-	touch /var/lock/subsys/psid
-	echo `basename $PSID`
+	set_lock 1
+	p_success "started."
     else
 	echo
     fi
     return $RETVAL
 }	
+
 stop() {
+    is_running || {
+	p_warn "$PSIDNAME already stopped."
+	exit 0
+    }
+    
     echo -n "Stopping ${DESC}: "
-    killall $PSID
-    RETVAL=$?
-    if [ $RETVAL -eq 0 ]; then
-	rm -f /var/lock/subsys/psid
-	echo `basename $PSID`
+    if stop_daemon; then
+	p_error " failed."
+	exit 1
     else
-	echo
+	set_lock 0
+	p_success " stopped."
     fi
 }
+
 restart() {
-    stop
+    if is_running; then
+	stop
+    else
+	p_warn "$PSIDNAME not running."
+    fi
     start
 }	
+
 status() {
-    echo -n `basename $PSID`
     PID=`pidof $PSID`
-    if [ ! -z "$PID" ]; then 
-	echo " (pid ${PID}) is running..."
+    if is_running; then
+	p_success "$PSIDNAME (pid ${PID}) is running."
     else
-	echo " is stopped"
+	p_success "$PSIDNAME is stopped."
     fi
 }
 
@@ -86,14 +182,14 @@ case "$1" in
     status)
 	status
 	;;
-    restart|reload)
+    restart|reload|force-reload)
 	restart
 	;;
     condrestart)
-	[ -f /var/lock/subsys/psid ] && restart || :
+	[ -f $LOCKFILE ] && restart || :
 	;;
     *)
-	echo $"Usage: $0 {start|stop|restart|status|condrestart}"
+	echo $"Usage: $0 {start|stop|restart|status|condrestart|force-reload}"
 	exit 1
 esac
 
