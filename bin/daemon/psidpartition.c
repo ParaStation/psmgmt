@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -2512,6 +2512,7 @@ static void sendRequests(void)
     PStask_t *task = managedTasks;
 
     while (task) {
+	PStask_t *next = task->next;
 	if (task->request) {
 	    DDBufferMsg_t msg = {
 		.header = {
@@ -2536,7 +2537,7 @@ static void sendRequests(void)
 		PSID_warn(-1, errno, "%s: sendNodelist()", __func__);
 	    }
 	}
-	task = task->next;
+	task = next;
     }
 }
 
@@ -2553,6 +2554,7 @@ static void sendExistingPartitions(PStask_ID_t dest)
 	.buf = { '\0' }};
 
     while (task) {
+	PStask_t *next = task->next;
 	if (task->partition && task->partitionSize) {
 	    char *ptr = msg.buf;
 
@@ -2579,7 +2581,7 @@ static void sendExistingPartitions(PStask_ID_t dest)
 		PSID_warn(-1, errno, "%s: sendSlotlist()", __func__);
 	    }
 	}
-	task = task->next;
+	task = next;
     }
 }
 

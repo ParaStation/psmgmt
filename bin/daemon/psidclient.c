@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -523,6 +523,7 @@ int killAllClients(int phase)
     task=managedTasks;
     /* loop over all tasks */
     while (task) {
+	PStask_t *next = task->next;
 	if (task->group != TG_MONITOR
 	    && (phase==1 || phase==3 || task->group!=TG_ADMIN)) {
 	    /* TG_MONITOR never */
@@ -537,7 +538,7 @@ int killAllClients(int phase)
 	if (phase>2 && task->fd>=0) {
 	    deleteClient(task->fd);
 	}
-	task = task->next;
+	task = next;
     }
 
     PSID_log(PSID_LOG_CLIENT, "%s(%d) done\n", __func__, phase);

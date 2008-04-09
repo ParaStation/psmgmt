@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -150,8 +150,9 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		}
 	    } else {
 		/* request info for all tasks */
-		PStask_t *task;
-		for (task=managedTasks; task; task=task->next) {
+		PStask_t *task = managedTasks;
+		while (task) {
+		    PStask_t *next = task->next;
 		    PSP_taskInfo_t *taskinfo = (PSP_taskInfo_t *)msg.buf;
 		    taskinfo->tid = task->tid;
 		    taskinfo->ptid = task->ptid;
@@ -164,6 +165,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		    msg.header.len += sizeof(PSP_taskInfo_t);
 		    sendMsg(&msg);
 		    msg.header.len -= sizeof(PSP_taskInfo_t);
+		    task = next;
 		}
 	    }
 
@@ -176,9 +178,10 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	case PSP_INFO_LIST_ALLTASKS:
 	{
 	    /* request info for all normal tasks */
-	    PStask_t *task;
+	    PStask_t *task = managedTasks;
 	    PSP_taskInfo_t *taskinfo = (PSP_taskInfo_t *)msg.buf;
-	    for (task=managedTasks; task; task=task->next) {
+	    while (task) {
+		PStask_t *next = task->next;
 		if ((PSP_Info_t) inmsg->type == PSP_INFO_LIST_NORMTASKS && (
 			task->group == TG_FORWARDER
 			|| task->group == TG_SPAWNER
@@ -197,6 +200,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		msg.header.len += sizeof(PSP_taskInfo_t);
 		sendMsg(&msg);
 		msg.header.len -= sizeof(PSP_taskInfo_t);
+		task = next;
 	    }
 
 	    /*
@@ -626,9 +630,10 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	case PSP_INFO_QUEUE_ALLTASK:
 	{
 	    /* request info for all normal tasks */
-	    PStask_t *task;
+	    PStask_t *task = managedTasks;
 	    PSP_taskInfo_t *taskinfo = (PSP_taskInfo_t *)msg.buf;
-	    for (task=managedTasks; task; task=task->next) {
+	    while (task) {
+		PStask_t *next = task->next;
 		if ((PSP_Info_t) inmsg->type == PSP_INFO_QUEUE_NORMTASK && (
 			task->group == TG_FORWARDER
 			|| task->group == TG_SPAWNER
@@ -652,6 +657,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		msg.type = PSP_INFO_QUEUE_SEP;
 		sendMsg(&msg);
 		msg.type = inmsg->type;
+		task = next;
 	    }
 
 	    /* send EndOfQueue */
