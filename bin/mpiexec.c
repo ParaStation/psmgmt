@@ -253,6 +253,7 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
     int rank;
     char tmp[1024];
     PSnodes_ID_t nodeID;
+    char *pwd = NULL;
 
     if (ldpath != NULL) {
         setPSIEnv("LD_LIBRARY_PATH", ldpath, 1);
@@ -289,8 +290,21 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 	    }
 	}
 #endif
+	/* get absolute path to myself */
+	if ((readlink("/proc/self/exe", tmp, sizeof(tmp))) == -1) {
+	    fprintf(stderr, "%s: failed reading my absolute path\n", __func__); 
+	} else {
+	    /* change argv[0] relative path to absolute path */
+	    argv[0] = strdup(tmp); 
+	}
 
-	PSI_spawnService(nds[0], NULL, argc, argv, np, &error, &spawnedProc);
+	/* get current working directory */
+	/* NULL is ok for pwd */
+	if ((pwd = getcwd(tmp, sizeof(tmp))) != NULL) {
+	    setPSIEnv("PWD", pwd, 1);
+	}
+
+	PSI_spawnService(nds[0], pwd, argc, argv, np, &error, &spawnedProc);
 
         free(nds);
 
@@ -441,10 +455,14 @@ static void setupPMIEnv(int rank)
  *
  * @param show Only show ouput, but don't spawn anything.
  *
+ * @param cwd Current working directory. 
+ *
  * @return Returns 0 on success, or errorcode on error.
  */
-static int startProcs(int i, int np, int argc, char *argv[], int verbose, int show)
+static int startProcs(int i, int np, int argc, char *argv[], int verbose, int show, char *cwd)
 {
+    char *pwd = wdir;
+
     if (verbose || show) {
 	printf("spawn rank %d: %s\n", i, argv[0]);
     }
@@ -466,8 +484,14 @@ static int startProcs(int i, int np, int argc, char *argv[], int verbose, int sh
     PStask_ID_t spawnedProcess = -1;
     int error;
 
+    /* set correct working dir */
+    if (!pwd) {
+	pwd = cwd;
+    } 
+    setPSIEnv("PWD", pwd, 1);
+
     /* start compute processes */
-    if (PSI_spawnStrict(1, wdir, argc, argv, 1, &error, &spawnedProcess)<0 ) {
+    if (PSI_spawnStrict(1, pwd, argc, argv, 1, &error, &spawnedProcess)<0 ) {
 	if (error) {
 	    perror("Spawn failed!\n");
 	}
@@ -1764,9 +1788,12 @@ int main(int argc, char *argv[])
 	    setPSIEnv("PMI_ID", tmp, 1);
 	}
 
+	/* get current working dir, NULL is ok */
+	getcwd(tmp, sizeof(tmp));
+
 	/* start all processes */
 	for (i = 0; i < np; i++) {
-	    if (startProcs(i, np, dup_argc, dup_argv, verbose, show) < 0) {
+	    if (startProcs(i, np, dup_argc, dup_argv, verbose, show, tmp) < 0) {
 		fprintf(stderr, "Unable to start process %d. Aborting.\n", i);
 		exit(1);
 	    }
