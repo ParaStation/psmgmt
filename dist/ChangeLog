@@ -1,3 +1,30 @@
+Version psmgmt-5.0.3:
+=====================
+------------------------------------------------------------------------
+r5890 | eicker | 2008-04-09 16:11:38 +0200 (Wed, 09 Apr 2008) | 4 lines
+
+Bugfix: Make init-script to wait until psid has actually shut down.
+Make init-script more LSB complient.
+  These is merged from Michael's mgmt-restart branch.
+
+------------------------------------------------------------------------
+r5889 | eicker | 2008-04-09 15:59:14 +0200 (Wed, 09 Apr 2008) | 3 lines
+
+Bugfix: Make sure the correct mpiexec is started as the service process.
+  Merge from Michael's mgmt-fix branch.
+
+------------------------------------------------------------------------
+r5888 | eicker | 2008-04-09 15:56:26 +0200 (Wed, 09 Apr 2008) | 2 lines
+
+Bugfix: Eliminate more possible source of SEGFAULTS.
+
+------------------------------------------------------------------------
+r5882 | eicker | 2008-04-08 18:57:00 +0200 (Tue, 08 Apr 2008) | 2 lines
+
+New version (psmgmt-5.0.2)
+
+------------------------------------------------------------------------
+	
 Version psmgmt-5.0.2:
 =====================
 ------------------------------------------------------------------------
