@@ -463,7 +463,7 @@ static void timer_handler()
 	char ctime[100];
 	char chead[300];
         
-        /* check if all childs terminated */
+        /* check if all children terminated */
 	if (job->countExitMsg != job->taskSize) {
 	    job->incomplete = 1;
 	    job->end_time = time(NULL);
@@ -559,7 +559,7 @@ static void handleAccQueueMsg(char *chead, char *ptr, PStask_ID_t logger)
     job->gid = *(gid_t *) ptr;
     ptr += sizeof(gid_t);
 
-    /* total number of childs. Only the logger knows this */
+    /* total number of children. Only the logger knows this */
     ptr += sizeof(int32_t);
 
     /* ip address */
@@ -621,7 +621,7 @@ static void handleAccChildStartMsg(char *ptr, PStask_ID_t key)
 	return;
     }
    
-    /* childs rank */
+    /* child's rank */
     rank = *(int32_t *) ptr;
     ptr += sizeof(int32_t);
 
@@ -701,7 +701,7 @@ static void handleAccEndMsg(char *chead, char *ptr, PStask_ID_t sender,
 	    /* child's gid */
 	    ptr += sizeof(gid_t);
 
-	    /* total number of childs. Only the logger knows this */
+	    /* total number of children. Only the logger knows this */
 	    ptr += sizeof(int32_t);
 
 	    /* ip address */
@@ -738,7 +738,7 @@ static void handleAccEndMsg(char *chead, char *ptr, PStask_ID_t sender,
 
 	if (sender == logger) {
 
-	    /* check if all childs terminated */
+	    /* check if all children terminated */
 	    if (job->countExitMsg < job->taskSize) {
 		struct itimerval timer;
 
@@ -759,7 +759,7 @@ static void handleAccEndMsg(char *chead, char *ptr, PStask_ID_t sender,
 		
 		if (!finddJob(logger)) {
 		    insertdJob(logger);
-		    if(debug) alog("Waiting for all childs to exit on job:%i\n",logger);
+		    if(debug) alog("Waiting for all children to exit on job:%i\n",logger);
 		}
 
 	    } else {
@@ -839,7 +839,7 @@ static void handleAccStartMsg(char *ptr, PStask_ID_t key)
     /* child's gid */
     ptr += sizeof(gid_t);
 
-    /* total number of childs. Only the logger knows this */
+    /* total number of children. Only the logger knows this */
     job->taskSize = *(int32_t *) ptr;
     ptr += sizeof(int32_t);
 
