@@ -2526,6 +2526,7 @@ static void sendRequests(void)
 	    len = PSpart_encodeReq(msg.buf, sizeof(msg.buf), task->request);
 	    if (len > sizeof(msg.buf)) {
 		PSID_log(-1, "%s: PSpart_encodeReq() failed\n", __func__);
+		task = next;
 		continue;
 	    }
 	    msg.header.len += len;
