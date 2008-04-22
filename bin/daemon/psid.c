@@ -1356,6 +1356,12 @@ int main(int argc, const char *argv[])
     /* Catch SIGSEGV if core dumps are suppressed */
     getrlimit(RLIMIT_CORE, &rlimit);
     if (!rlimit.rlim_cur) signal(SIGSEGV ,sighandler);
+    if (config->coreDir) {
+	if (chdir(config->coreDir) < 0) {
+	    PSID_warn(-1, errno, "Unable to chdir() to coreDirectory '%s'",
+		      config->coreDir);
+	}
+    }
 
     /* Start up all the hardware */
     PSID_log(PSID_LOG_HW, "%s: starting up the hardware\n", __func__);

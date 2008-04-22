@@ -42,7 +42,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "config_parsing.h"
 
 static config_t config = (config_t) {
-    .instDir = NULL,
+    .coreDir = "/tmp",
     .selectTime = 2,
     .deadInterval = 10,
     .RDPPort = 886,
@@ -98,6 +98,38 @@ static int getInstDir(char *token)
 	parser_comment(-1, "'%s' seems to be no valid installdir\n", dname);
 	return -1;
     }
+
+    return 0;
+}
+
+static int getCoreDir(char *token)
+{
+    static char *usedDir = NULL;
+    char *dname;
+    struct stat fstat;
+
+    dname = parser_getString();
+    /* test if dir is a valid directory */
+    if (!dname) {
+	parser_comment(-1, "directory name is empty\n");
+	return -1;
+    }
+
+    if (stat(dname, &fstat)) {
+	parser_comment(-1, "%s: %s\n", dname, strerror(errno));
+	return -1;
+    }
+
+    if (!S_ISDIR(fstat.st_mode)) {
+	parser_comment(-1, "'%s' is not a directory\n", dname);
+	return -1;
+    }
+
+    config.coreDir = strdup(dname);
+    if (usedDir) free(usedDir);
+    usedDir = config.coreDir;
+
+    parser_comment(PARSER_LOG_RES, "set coreDir to '%s'\n", dname);
 
     return 0;
 }
@@ -2006,8 +2038,9 @@ static int getPSINodesSort(char *token)
 /* ---------------------------------------------------------------------- */
 
 static keylist_t config_list[] = {
-    {"installationdir", getInstDir},
-    {"installdir", getInstDir},
+    {"installationdirectory", getInstDir},
+    {"installdirectory", getInstDir},
+    {"coredirectory", getCoreDir},
     {"hardware", getHardware},
     {"nrofnodes", getNumNodes},
     {"hwtype", getHW},

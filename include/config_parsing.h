@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -33,8 +33,9 @@ extern "C" {
  * directly stored into the PSnodes-database and further databases.
  */
 typedef struct {
-    char* instDir;       /**< PS installation directory.
-			    Result of 'InstallDir'. Default is NULL. */
+    char* coreDir;       /**< psid's current working directory. In the
+			    improbable case of a core-dump the core-file
+			    will be deposited here. */
     int selectTime;      /**< Time spent within psid's central select().
 			    Result of 'SelectTime'. Default is 2. */
     int deadInterval;    /**< Declare node dead after this # missing pings.
