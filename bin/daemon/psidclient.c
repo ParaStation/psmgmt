@@ -67,51 +67,6 @@ void registerClient(int fd, PStask_ID_t tid, PStask_t *task)
     clients[fd].task = task;
     clients[fd].flags |= INITIALCONTACT;
     clients[fd].msgs = NULL;
-
-    if (task && task->group == TG_LOGGER) {
-	DDTypedBufferMsg_t msg;
-	char *ptr = msg.buf;
-
-	msg.header.type = PSP_CD_ACCOUNT;
-	msg.header.dest = PSC_getMyTID();
-	msg.header.sender = task->tid;
-	msg.header.len = sizeof(msg.header);
-
-	msg.type = PSP_ACCOUNT_QUEUE;
-	msg.header.len += sizeof(msg.type);
-
-	/* logger's TID, this identifies a task uniquely */
-	*(PStask_ID_t *)ptr = task->tid;
-	ptr += sizeof(PStask_ID_t);
-	msg.header.len += sizeof(PStask_ID_t);
-
-	/* current rank */
-	*(int32_t *)ptr = task->rank;
-	ptr += sizeof(int32_t);
-	msg.header.len += sizeof(int32_t);
-
-	/* child's uid */
-	*(uid_t *)ptr = task->uid;
-	ptr += sizeof(uid_t);
-	msg.header.len += sizeof(uid_t);
-
-	/* child's gid */
-	*(gid_t *)ptr = task->gid;
-	ptr += sizeof(gid_t);
-	msg.header.len += sizeof(gid_t);
-
-	/* total number of childs */
-	*(int32_t *)ptr = task->nextRank;
-	ptr += sizeof(int32_t);
-	msg.header.len += sizeof(int32_t);
-
-	/* my IP address */
-	*(uint32_t *)ptr = PSIDnodes_getAddr(PSC_getMyID());
-	ptr += sizeof(uint32_t);
-	msg.header.len += sizeof(uint32_t);
-
-	sendMsg((DDMsg_t *)&msg);
-    }
 }
 
 PStask_ID_t getClientTID(int fd)
@@ -476,18 +431,14 @@ void deleteClient(int fd)
 	ptr += sizeof(gid_t);
 	msg.header.len += sizeof(gid_t);
 
-	/* total number of childs */
-	*(int32_t *)ptr = task->nextRank;
-	ptr += sizeof(int32_t);
-	msg.header.len += sizeof(int32_t);
-
-	/* my IP address */
-	*(uint32_t *)ptr = PSIDnodes_getAddr(PSC_getMyID());
-	ptr += sizeof(uint32_t);
-	msg.header.len += sizeof(uint32_t);
+	if (task->nextRank > 0) {
+	    /* total number of childs */
+	    *(int32_t *)ptr = task->nextRank;
+	    ptr += sizeof(int32_t);
+	    msg.header.len += sizeof(int32_t);
+	}
 
 	sendMsg((DDMsg_t *)&msg);
-	
     }
 
     PSID_log(PSID_LOG_CLIENT, "%s: closing connection to %s\n",

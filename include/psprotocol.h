@@ -254,6 +254,7 @@ typedef enum {
     PSP_ACCOUNT_SLOTS,            /**< Start of task, list of slots part */
     PSP_ACCOUNT_DELETE,           /**< Delete of task (end without spawn) */
     PSP_ACCOUNT_END,              /**< Task ends execution */
+    PSP_ACCOUNT_CHILD,            /**< Another child is spawned */
 } PSP_Account_t;
 
 /** All the signal handling stuff. */

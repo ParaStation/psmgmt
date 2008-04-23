@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -25,6 +25,7 @@
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <time.h>
+#include <sys/time.h>
 
 #include "psnodes.h"
 #include "pscpu.h"
@@ -118,6 +119,7 @@ typedef struct PStask_T{
 				      soon as all childs are released). */
     time_t killat;                 /**< flag a killed task, i.e. the time when
 				      the task should really go away. */
+    struct timeval started;        /**< Time the task structure was created. */
     uint16_t protocolVersion;      /**< Protocol version the task speaks. */
     PStask_sig_t *childs;          /**< Childs of the task. Signal not used. */
     PSpart_request_t *request;     /**< Pointer to temp. partition request */

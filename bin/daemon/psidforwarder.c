@@ -1125,7 +1125,7 @@ static void sendAccoutingData(struct rusage rusage, int status)
 {
     DDTypedBufferMsg_t msg;
     char *ptr = msg.buf;
-    char *envstr;
+    struct timeval now, walltime;
 
     msg.header.type = PSP_CD_ACCOUNT;
     msg.header.dest = PSC_getTID(-1, 0);
@@ -1155,35 +1155,37 @@ static void sendAccoutingData(struct rusage rusage, int status)
     ptr += sizeof(gid_t);
     msg.header.len += sizeof(gid_t);
 
-    /* total number of childs. Only the logger knows this */
-    *(int32_t *)ptr = -1;
-    ptr += sizeof(int32_t);
-    msg.header.len += sizeof(int32_t);
-
-    /* my IP address */
-    *(uint32_t *)ptr = PSIDnodes_getAddr(PSC_getMyID());
-    ptr += sizeof(uint32_t);
-    msg.header.len += sizeof(uint32_t);
-
     /* actual rusage structure */
     memcpy(ptr, &rusage, sizeof(rusage));
     ptr += sizeof(rusage);
     msg.header.len += sizeof(rusage);
-    
+
     /* size of max used mem */
-    *(long *)ptr = accData.maxrss;
-    ptr += sizeof(long);
-    msg.header.len += sizeof(long);
+    *(uint64_t *)ptr = (uint64_t)accData.maxrss;
+    ptr += sizeof(uint64_t);
+    msg.header.len += sizeof(uint64_t);
 
     /* size of max used vmem */
-    *(unsigned long *)ptr = accData.maxvsize;
-    ptr += sizeof(unsigned long);
-    msg.header.len += sizeof(unsigned long);
+    *(uint64_t *)ptr = (uint64_t)accData.maxvsize;
+    ptr += sizeof(uint64_t);
+    msg.header.len += sizeof(uint64_t);
     
+    /* walltime used by child */
+    gettimeofday(&now, NULL);
+    timersub(&now, &childTask->started, &walltime);
+    memcpy(ptr, &walltime, sizeof(walltime));
+    ptr += sizeof(walltime);
+    msg.header.len += sizeof(walltime);
+
+    /* pagesize */
+    *(int32_t *)ptr = getpagesize();
+    ptr += sizeof(int32_t);
+    msg.header.len += sizeof(int32_t);
+
     /* number of threads */
-    *(unsigned long *)ptr = accData.threads;
-    ptr += sizeof(unsigned long);
-    msg.header.len += sizeof(unsigned long);
+    *(uint32_t *)ptr = accData.threads;
+    ptr += sizeof(uint32_t);
+    msg.header.len += sizeof(uint32_t);
     
     /* session id of job */
     *(int32_t *)ptr = accData.session;
@@ -1194,42 +1196,6 @@ static void sendAccoutingData(struct rusage rusage, int status)
     *(int32_t *)ptr = status;
     ptr += sizeof(int32_t);
     msg.header.len += sizeof(int32_t);
-
-    /* job's name */
-    if (childTask->argv && childTask->argv[0]) {
-	char *progStr;
-	if (strlen(childTask->argv[0])
-	    < (sizeof(msg)-msg.header.len-1)) {
-	    progStr = childTask->argv[0];
-	} else {
-	    progStr = NAME_TO_LONG_STR;
-	}
-	strcpy(ptr, progStr);
-	ptr += strlen(progStr) + 1;
-	msg.header.len += strlen(progStr) + 1;
-    } else {
-	*ptr = '\0';
-	ptr++;
-	msg.header.len++;
-    }
-
-    /* job id */
-    if ((envstr = getenv("PSI_JOBID"))) {
-	    char *jobStr;
-	    if (strlen(envstr)
-		< (sizeof(msg)-msg.header.len-1)) {
-		jobStr = envstr;
-	    } else {
-		jobStr = "job_alias_to_long";
-	    }
-	    strcpy(ptr, jobStr);
-	    ptr += strlen(jobStr) + 1;
-	    msg.header.len += strlen(jobStr) + 1;
-    } else {
-	*ptr = '\0';
-	ptr++;
-	msg.header.len++;
-    } 
 
     sendDaemonMsg((DDMsg_t *)&msg);
 }

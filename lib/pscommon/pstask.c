@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -85,6 +85,7 @@ int PStask_init(PStask_t* task)
     task->suspended = 0;
     task->removeIt = 0;
     task->killat = 0;
+    gettimeofday(&task->started, NULL);
     task->protocolVersion = -1;
 
     task->childs = NULL;
@@ -263,6 +264,7 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->suspended = task->suspended;
     clone->removeIt = task->removeIt;
     clone->killat = task->killat;
+    gettimeofday(&clone->started, NULL);
     clone->protocolVersion = task->protocolVersion;
 
     clone->childs = PStask_cloneSigList(task->childs);

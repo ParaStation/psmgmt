@@ -1230,6 +1230,63 @@ static int buildSandboxAndStart(PStask_t *forwarder, PStask_t *client)
     close(forwarderfds[0]);
     if (ret) close(socketfds[0]);
 
+    if (!ret && client->group != TG_ADMINTASK) {
+	DDTypedBufferMsg_t msg;
+	char *ptr = msg.buf;
+
+	msg.header.type = PSP_CD_ACCOUNT;
+	msg.header.dest = PSC_getMyTID();
+	msg.header.sender = client->tid;
+	msg.header.len = sizeof(msg.header);
+
+	msg.type = PSP_ACCOUNT_CHILD;
+	msg.header.len += sizeof(msg.type);
+
+	/* logger's TID, this identifies a task uniquely */
+	*(PStask_ID_t *)ptr = client->loggertid;
+	ptr += sizeof(PStask_ID_t);
+	msg.header.len += sizeof(PStask_ID_t);
+
+	/* current rank */
+	*(int32_t *)ptr = client->rank;
+	ptr += sizeof(int32_t);
+	msg.header.len += sizeof(int32_t);
+
+	/* child's uid */
+	*(uid_t *)ptr = client->uid;
+	ptr += sizeof(uid_t);
+	msg.header.len += sizeof(uid_t);
+
+	/* child's gid */
+	*(gid_t *)ptr = client->gid;
+	ptr += sizeof(gid_t);
+	msg.header.len += sizeof(gid_t);
+
+#define MAXARGV0 128
+	/* job's name */
+	if (client->argv && client->argv[0]) {
+	    size_t len = strlen(client->argv[0]);
+
+	    if (len > MAXARGV0) {
+		strcpy(ptr, "...");
+		ptr += 3;
+		msg.header.len += 3;
+		strcpy(ptr, &client->argv[0][len-MAXARGV0+3]);
+		ptr += MAXARGV0-3;
+		msg.header.len += MAXARGV0-3;
+	    } else {
+		strcpy(ptr, client->argv[0]);
+		ptr += len;
+		msg.header.len += len;
+	    }
+	}
+        *ptr = '\0';
+        ptr++;
+        msg.header.len++;
+
+	sendMsg((DDMsg_t *)&msg);
+    }
+
     /* Fix interactive shell's argv[0] */
     if (client->argc == 2 && (!strcmp(client->argv[0], "/bin/bash")
 			      && !strcmp(client->argv[1], "-i"))) {
@@ -1329,9 +1386,9 @@ static void sendAcctInfo(PStask_ID_t sender, PStask_t *task)
 	    msg.header.len += sizeof(uint32_t);
 	}
 
-	*(uint32_t *)ptr = PSIDnodes_getAddr(task->partition[slot].node);
-	ptr += sizeof(uint32_t);
-	msg.header.len += sizeof(uint32_t);
+	memcpy(ptr, &task->partition[slot].node, sizeof(PSnodes_ID_t));
+	ptr += sizeof(PSnodes_ID_t);
+	msg.header.len += sizeof(PSnodes_ID_t);
 	memcpy(ptr, task->partition[slot].CPUset, sizeof(PSCPU_set_t));
 	ptr += sizeof(PSCPU_set_t);
 	msg.header.len += sizeof(PSCPU_set_t);
