@@ -456,7 +456,7 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode)
     /* loop over all tasks */
     while (task) {
 	PStask_sig_t *sig = task->assignedSigs;
-	PStask_t *next;
+	PStask_t *next = task->next;
 	/* loop over all controlled tasks */
 	while (sig) {
 	    if (PSC_getID(sig->tid)==id) {
@@ -464,21 +464,19 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode)
 		PStask_ID_t senderTid = sig->tid;
 		int signal = sig->signal;
 
-		/* Send the signal */
-		PSID_sendSignal(task->tid, task->uid, senderTid, signal, 0, 0);
-
 		sig = sig->next;
+
 		/* Remove signal from list */
 		PSID_removeSignal(&task->assignedSigs, senderTid, signal);
-		if (signal == -1 && senderTid != task->ptid) {
-		    /* This might have been a child */
-		    PSID_removeSignal(&task->childs, senderTid, -1);
-		}
+		PSID_removeSignal(&task->childs, senderTid, signal);
+		if (task->removeIt && !task->childs) break;
+
+		/* Send the signal */
+		PSID_sendSignal(task->tid, task->uid, senderTid, signal, 0, 0);
 	    } else {
 		sig = sig->next;
 	    }
 	}
-	next = task->next;
 	if (task->removeIt && ! task->childs) {
 	    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
 	    PStask_cleanup(task->tid);

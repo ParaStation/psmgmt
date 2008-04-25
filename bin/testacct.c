@@ -112,6 +112,7 @@ char *handleQueueMsg(DDTypedBufferMsg_t *msg)
 char *handleEndMsg(DDTypedBufferMsg_t *msg)
 {
     char *ptr = handleCommonMsg(msg);
+    struct timeval walltime;
 
     if (msg->header.sender == *(PStask_ID_t *)msg->buf) {
 	/* end message from logger process */
@@ -120,11 +121,15 @@ char *handleEndMsg(DDTypedBufferMsg_t *msg)
 	/* total number of childs. Only the logger knows this */
 	numChilds = *(int32_t *)ptr;
 	ptr += sizeof(int32_t);
+	/* walltime used by logger */
+	memcpy(&walltime, ptr, sizeof(walltime));
+	ptr += sizeof(walltime);
+
 	printf(" num childs %d", numChilds);
+	printf(" wall %.6f", walltime.tv_sec + 1.0e-6*walltime.tv_usec);
     } else {
 	struct rusage rusage;
 	int status;
-	struct timeval walltime;
 
 	memcpy(&rusage, ptr, sizeof(rusage));
 	ptr += sizeof(rusage);
@@ -184,16 +189,12 @@ void handleStartMsg(DDTypedBufferMsg_t *msg)
 void handleChildMsg(DDTypedBufferMsg_t *msg)
 {
     char *ptr = handleCommonMsg(msg);
-    int pnlen = 0; // @todo
     char *progname;
-
-/*     pnlen = *(int32_t *)ptr; */
-/*     ptr += sizeof(int32_t); */
 
     progname = ptr;
     ptr += strlen(ptr);
 
-    printf(" prog (%d) '%s' (%d)", pnlen, progname, msg->header.len);
+    printf(" prog '%s'", progname);
 }
 
 void handleAcctMsg(DDTypedBufferMsg_t *msg)

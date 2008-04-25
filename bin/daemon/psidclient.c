@@ -432,10 +432,19 @@ void deleteClient(int fd)
 	msg.header.len += sizeof(gid_t);
 
 	if (task->nextRank > 0) {
+	    struct timeval now, walltime;
+
 	    /* total number of childs */
 	    *(int32_t *)ptr = task->nextRank;
 	    ptr += sizeof(int32_t);
 	    msg.header.len += sizeof(int32_t);
+
+	    /* walltime used by logger */
+	    gettimeofday(&now, NULL);
+	    timersub(&now, &task->started, &walltime);
+	    memcpy(ptr, &walltime, sizeof(walltime));
+	    ptr += sizeof(walltime);
+	    msg.header.len += sizeof(walltime);
 	}
 
 	sendMsg((DDMsg_t *)&msg);

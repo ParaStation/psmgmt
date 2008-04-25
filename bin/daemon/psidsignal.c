@@ -165,8 +165,8 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t senderTid,
 		sig = -1;
 	    }
 
-	    /* Don't send back to the original sender */
-	    if (senderTid != tid) {
+	    /* Deliver signal, if tid not the original sender */
+	    if (tid != senderTid) {
 		PSID_sendSignal(tid, uid, senderTid, signal, 0, 0);
 	    }
 

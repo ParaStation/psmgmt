@@ -39,7 +39,7 @@ void initRDPMsgs(void)
 {
     int i;
 
-    node_bufs = malloc(sizeof(msgbuf_t) * PSC_getNrOfNodes());
+    node_bufs = malloc(sizeof(*node_bufs) * PSC_getNrOfNodes());
     if (!node_bufs) {
 	PSID_log(-1, "%s: no memory\n", __func__);
 	exit(0);
