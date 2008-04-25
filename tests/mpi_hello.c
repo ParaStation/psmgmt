@@ -9,8 +9,8 @@ int main(int argc,char **argv)
     int rank, size, i,j;
     char host[16];
 
-    srandom(getpid());
-    usleep(random() % 2500000);
+    /* srandom(getpid()); */
+    /* usleep(random() % 500000); */
 
     MPI_Init(&argc,&argv);
 
@@ -20,9 +20,9 @@ int main(int argc,char **argv)
     MPI_Comm_size( MPI_COMM_WORLD, &size);
     printf("Hi from rank %d %s\n",rank, host);
 
-    for(j = 0; j < 100; j++) {
+    for(j = 0; j < 1; j++) {
 	for (i = 0; i < size; i++) {
-	    if (i == rank && j % 1000 == 0) {
+	    if (i == rank && j % 100 == 0) {
 		printf("Hello World from rank %d %s (%d)\n",rank, host, j);
 	    }
 	    MPI_Barrier(MPI_COMM_WORLD);

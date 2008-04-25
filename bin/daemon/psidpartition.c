@@ -912,11 +912,13 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
     }
 
     if (list.freeCPUs/request->tpp < request->size
-	&& (!(request->options & PART_OPT_OVERBOOK)
-	    || !canOverbook
-	    || totSlots < request->size)) {
-	PSID_log(-1, "%s: Unable to ever get sufficient resources for %s\n",
+	&& totSlots < request->size
+	&& (!(request->options & PART_OPT_OVERBOOK) || !canOverbook)) {
+	PSID_log(-1, "%s: Unable to ever get sufficient resources for %s",
 		 __func__, PSC_printTID(request->tid));
+	PSID_log(-1,
+		 " freeCPUs %d totSlots %d request->tpp %d request->size %d\n",
+		 list.freeCPUs, totSlots, request->tpp, request->size);
 	if (PSID_getDebugMask() & PSID_LOG_PART) {
 	    char txt[1024];
 	    PSpart_snprintf(txt, sizeof(txt), request);

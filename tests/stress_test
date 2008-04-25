@@ -12,7 +12,7 @@ echo "log to $log"
 i=0
 while true; do
 
-./mpi_hello -np 10 2>&1 | \
+mpiexec -np 15 mpi_hello 2>&1 | \
     grep -E -v '(Hello World from )|(Hi from rank)|(PSIlogger: done)|(^$)' >&8
 
 if ((i%1000==0)); then
