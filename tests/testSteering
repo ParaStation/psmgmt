@@ -1,0 +1,22 @@
+#!/bin/bash
+
+log=log.`hostname`
+exec 8> $log 
+echo "log to $log"
+
+ssh n1  'cd '`pwd`'; su eicker -c "./stressTester 15"' >& 8 &
+ssh n5  'cd '`pwd`'; su eicker -c "./stressTester 15"' >& 8 &
+ssh n12 'cd '`pwd`'; su eicker -c "./stressTester 15"' >& 8 &
+ssh n14 'cd '`pwd`'; su eicker -c "./stressTester 14"' >& 8 &
+ssh n6  'cd '`pwd`'; ./psidKiller 30 60' >& 8 &
+
+while true; do
+
+    if [ -f stopIt ]; then
+	echo `date` Stopping >&8
+	exit 0
+    fi
+
+    sleep 30
+
+done

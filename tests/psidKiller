@@ -1,0 +1,58 @@
+#!/bin/bash
+
+if [ $USER != "root" ]; then
+    echo $0 must be run as root
+    exit 1
+fi
+
+if [ $# -ne 2 ]; then
+    echo Usage: ${0} \<disabledSec\> \<sleepSec\>
+    exit 1
+fi
+
+disabled=${1}
+sleep=${2}
+
+log=log.killer@`hostname`
+exec 8> $log 
+echo "log to $log"
+
+i=0
+while true; do
+
+    if [ -f stopIt ]; then
+	echo `date` Stopping after $i >&8
+	exit 0
+    fi
+
+    pidList=`pidof psid`
+
+    rootPSIDs=0
+    for pid in ${pidList}; do
+	parent=`ps ho ppid ${pid}`
+	if [ "${parent}" == 1 ]; then
+	    ((rootPSIDs++))
+	    pidToKill=${pid}
+	fi
+    done
+
+    if [ ${rootPSIDs} -ne 1 ]; then
+	echo `date` Wrong number of ParaStation daemons found >&8
+	exit 1
+    fi
+
+    kill -9 ${pidToKill}
+
+    sleep ${disabled}
+
+    psiadmin -c quit
+
+    sleep ${sleep}
+
+    if ((i%100==0)); then
+	echo `date`  $i >&8
+    fi
+
+    ((i++));
+done
+
