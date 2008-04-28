@@ -102,41 +102,6 @@ static int getInstDir(char *token)
     return 0;
 }
 
-static rlimitCoreWasSet = 0;
-
-static int getCoreDir(char *token)
-{
-    static char *usedDir = NULL;
-    char *dname;
-    struct stat fstat;
-
-    dname = parser_getString();
-    /* test if dir is a valid directory */
-    if (!dname) {
-	parser_comment(-1, "directory name is empty\n");
-	return -1;
-    }
-
-    if (stat(dname, &fstat)) {
-	parser_comment(-1, "%s: %s\n", dname, strerror(errno));
-	return -1;
-    }
-
-    if (!S_ISDIR(fstat.st_mode)) {
-	parser_comment(-1, "'%s' is not a directory\n", dname);
-	return -1;
-    }
-
-    config.coreDir = strdup(dname);
-    if (usedDir) free(usedDir);
-    usedDir = config.coreDir;
-    if (!rlimitCoreWasSet) setLimit(RLIMIT_CORE, RLIM_INFINITY);
-
-    parser_comment(PARSER_LOG_RES, "set coreDir to '%s'\n", dname);
-
-    return 0;
-}
-
 static int getNumNodes(char *token)
 {
     int num, ret;
@@ -458,6 +423,8 @@ static int getRLimitMemLock(char *token)
     return 0;
 }
 
+static char rlimitCoreGiven = 0;
+
 static int getRLimitCore(char *token)
 {
     rlim_t value;
@@ -467,7 +434,7 @@ static int getRLimitCore(char *token)
     if (ret) return ret;
 
     setLimit(RLIMIT_CORE, (value == RLIM_INFINITY) ? value : value*1024);
-    rlimitCoreSet = 1;
+    rlimitCoreGiven = 1;
 
     return 0;
 }
@@ -522,6 +489,39 @@ static int getRLimit(char *token)
 }
 
 /* ---------------------------------------------------------------------- */
+
+static int getCoreDir(char *token)
+{
+    static char *usedDir = NULL;
+    char *dname;
+    struct stat fstat;
+
+    dname = parser_getString();
+    /* test if dir is a valid directory */
+    if (!dname) {
+	parser_comment(-1, "directory name is empty\n");
+	return -1;
+    }
+
+    if (stat(dname, &fstat)) {
+	parser_comment(-1, "%s: %s\n", dname, strerror(errno));
+	return -1;
+    }
+
+    if (!S_ISDIR(fstat.st_mode)) {
+	parser_comment(-1, "'%s' is not a directory\n", dname);
+	return -1;
+    }
+
+    config.coreDir = strdup(dname);
+    if (usedDir) free(usedDir);
+    usedDir = config.coreDir;
+    if (!rlimitCoreGiven) setLimit(RLIMIT_CORE, RLIM_INFINITY);
+
+    parser_comment(PARSER_LOG_RES, "set coreDir to '%s'\n", dname);
+
+    return 0;
+}
 
 static int default_hwtype = 0, hwtype;
 

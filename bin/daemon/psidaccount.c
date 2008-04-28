@@ -98,11 +98,11 @@ void send_acct_OPTIONS(PStask_ID_t dest, int all)
 	.count = 0,
 	.opt = {{ .option = 0, .value = 0 }} };
     PSP_Option_t option = all ? PSP_OP_ACCT : PSP_OP_ADD_ACCT;
-    struct list_head *pos;
+    struct list_head *pos, *tmp;
 	
     PSID_log(PSID_LOG_VERB, "%s: %s %d\n", __func__, PSC_printTID(dest), all);
 
-    list_for_each(pos, &PSID_accounters) {
+    list_for_each_safe(pos, tmp, &PSID_accounters) {
         PSID_acct_t *acct = list_entry(pos, PSID_acct_t, next);
         if (all || PSC_getID(acct->acct) == PSC_getMyID()) {
 	    msg.opt[(int) msg.count].option = option;
@@ -132,8 +132,8 @@ void msg_ACCOUNT(DDBufferMsg_t *msg)
 
     if (msg->header.dest == PSC_getMyTID()) {
 	/* message for me, let's forward to all known accounters */
-	struct list_head *pos;
-	list_for_each(pos, &PSID_accounters) {
+	struct list_head *pos, *tmp;
+	list_for_each_safe(pos, tmp, &PSID_accounters) {
 	    PSID_acct_t *acct = list_entry(pos, PSID_acct_t, next);
 	    msg->header.dest = acct->acct;
 	    if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
