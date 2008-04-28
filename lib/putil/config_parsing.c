@@ -102,6 +102,8 @@ static int getInstDir(char *token)
     return 0;
 }
 
+static rlimitCoreWasSet = 0;
+
 static int getCoreDir(char *token)
 {
     static char *usedDir = NULL;
@@ -128,6 +130,7 @@ static int getCoreDir(char *token)
     config.coreDir = strdup(dname);
     if (usedDir) free(usedDir);
     usedDir = config.coreDir;
+    if (!rlimitCoreWasSet) setLimit(RLIMIT_CORE, RLIM_INFINITY);
 
     parser_comment(PARSER_LOG_RES, "set coreDir to '%s'\n", dname);
 
@@ -464,6 +467,7 @@ static int getRLimitCore(char *token)
     if (ret) return ret;
 
     setLimit(RLIMIT_CORE, (value == RLIM_INFINITY) ? value : value*1024);
+    rlimitCoreSet = 1;
 
     return 0;
 }
