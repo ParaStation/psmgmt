@@ -51,6 +51,9 @@ void PSID_setSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal)
 	return;
     }
 
+    PSID_log(PSID_LOG_SIGNAL, "%s(%s, %d)\n",
+	     __func__, PSC_printTID(tid), signal);
+    
     if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
 	PSID_log(PSID_LOG_SIGDBG, "%s: signals before (in %p):",
 		 __func__, siglist);
@@ -83,6 +86,9 @@ int PSID_removeSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal)
 	PSID_log(PSID_LOG_SIGDBG, "\n");
     }
 
+    PSID_log(PSID_LOG_SIGNAL, "%s(%s, %d)",
+	     __func__, PSC_printTID(tid), signal);
+
     thissig = *siglist;
     while (thissig && (thissig->tid != tid || thissig->signal != signal)) {
 	prev = thissig;
@@ -101,6 +107,7 @@ int PSID_removeSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal)
 
 	free(thissig);
 
+	PSID_log(PSID_LOG_SIGNAL, "\n");
 	if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
 	    PSID_log(PSID_LOG_SIGDBG, "%s: signals after (in %p):",
 		     __func__, siglist);
@@ -110,8 +117,7 @@ int PSID_removeSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal)
 
 	return 1;
     } else {
-	PSID_log(PSID_LOG_SIGNAL, "%s(%s, %d): Not found\n",
-		 __func__, PSC_printTID(tid), signal);
+	PSID_log(PSID_LOG_SIGNAL, ": Not found\n");
     }
 
     return 0;
