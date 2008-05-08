@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# List of hostnames. On these nodes the stressTester script is started.
+nodeList="n1 n5 n12 n16"
+# The userID used to run the stressTester script.
+user=eicker
+# Environment passed to the stressTester script. The stressTester
+# script uses ParaStation's mpirun command, if USE_MPI1 is
+# set. Otherwise ParaStation's mpiexec command is used.
+envStr="PSI_NODES=1-8,10-14 USE_MPI1="
+# Argument passed to the stressTester script. This will be interpreted
+# as the number of processes argument passed to MPI's starter command.
+num=15
+
+
+# List of hostnames. On these nodes the psidKiller script is started.
+killerList="n6"
+# First argument passed to the psidKiller script. This will be
+# interpreted as the number of seconds the ParaStation daemon is
+# disabled on this node.
+disabled=30
+# Second argument passed to the psidKiller script. This will be
+# interpreted as the number of seconds the ParaStation daemon is
+# running on this node until it will get disabled again.
+sleep=60

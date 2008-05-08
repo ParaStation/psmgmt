@@ -15,6 +15,12 @@ log=log.`hostname`
 exec 8> $log 
 echo "log to $log"
 
+printenv USE_MPI1 > /dev/null 2>&1
+if [ ${?} != 1 ]; then
+    mpi_starter=/opt/parastation/mpich/bin/mpirun
+else
+    mpi_starter=mpiexec
+fi
 
 i=0
 while true; do
@@ -24,7 +30,7 @@ while true; do
 	exit 0
     fi
 
-    mpiexec -np ${np} mpi_hello 2>&1 | \
+    ${mpi_starter} -np ${np} mpi_hello 2>&1 | \
 	grep -E -v '(Hello World from )|(Hi from rank)' | \
 	grep -E -v '(PSIlogger: done)|(^$)' >&8
 

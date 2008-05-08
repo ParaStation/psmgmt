@@ -4,11 +4,17 @@ log=log.`hostname`
 exec 8> $log 
 echo "log to $log"
 
-ssh n1  'cd '`pwd`'; su eicker -c "./stressTester 15"' >& 8 &
-ssh n5  'cd '`pwd`'; su eicker -c "./stressTester 15"' >& 8 &
-ssh n12 'cd '`pwd`'; su eicker -c "./stressTester 15"' >& 8 &
-ssh n14 'cd '`pwd`'; su eicker -c "./stressTester 14"' >& 8 &
-ssh n6  'cd '`pwd`'; ./psidKiller 30 60' >& 8 &
+. config
+
+cmd='cd '`pwd`'; su '${user}' -c "env '${envStr}' ./stressTester '${num:-1}'"'
+
+for node in ${nodeList}; do
+    ssh ${node} ${cmd} >&8 &
+done
+
+for node in ${killerList}; do
+    ssh ${node} 'cd '`pwd`'; ./psidKiller '${disabled:-30}' '${sleep:-60} >&8 &
+done
 
 while true; do
 
