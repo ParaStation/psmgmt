@@ -912,17 +912,17 @@ Selects a period of time. Valid values are 'today', 'week', 'month', 'year', 'al
 
 Output all information with spaces quoted for better parsing reasons
 
-=item B<--begin -b> <yyyymmdd>
+=item B<--begin -tb> <yyyymmdd>
 
 Selects the begin time of the log.
 
-Example: -b 20070501
+Example: -tb 20070501
 
-=item B<--end -e> <yyyymmdd>
+=item B<--end -te> <yyyymmdd>
 
 Selects the end time of the log. If not set the end time is always today.
 
-Example: -e 20070901
+Example: -te 20070901
 
 =item B<--jobsort> <criteria>
 
