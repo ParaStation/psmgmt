@@ -1,3 +1,65 @@
+Version psmgmt-5.0.5:
+=====================
+------------------------------------------------------------------------
+r5967 | rauh | 2008-05-08 17:04:53 +0200 (Thu, 08 May 2008) | 2 lines
+
+fixed: wrong help message of psaccview for --begin --end
+
+------------------------------------------------------------------------
+r5963 | eicker | 2008-05-08 13:30:53 +0200 (Thu, 08 May 2008) | 3 lines
+
+Make test-configuration more flexible. Put all parameters in a separate
+  configuration-file.
+
+------------------------------------------------------------------------
+r5954 | eicker | 2008-05-07 11:51:29 +0200 (Wed, 07 May 2008) | 3 lines
+
+Bugfix: Redirect PSP_CD_RELEASE messages if child was inherited.
+Add more debug info in daemon's signal handling.
+
+------------------------------------------------------------------------
+r5936 | eicker | 2008-04-28 22:58:05 +0200 (Mon, 28 Apr 2008) | 3 lines
+
+Improve and fix changes from r5935.
+Fix yet another potential SEGFAULT.
+
+------------------------------------------------------------------------
+r5935 | eicker | 2008-04-28 16:46:22 +0200 (Mon, 28 Apr 2008) | 2 lines
+
+Set 'RLimit Core' to unlimited if 'coreDir' is given explicitely.
+
+------------------------------------------------------------------------
+r5934 | eicker | 2008-04-28 16:44:33 +0200 (Mon, 28 Apr 2008) | 3 lines
+
+Extend psmgmt's test suite. Now also effects of crashing daemon on the
+  remaining cluster are examined.
+
+------------------------------------------------------------------------
+r5932 | eicker | 2008-04-25 22:02:11 +0200 (Fri, 25 Apr 2008) | 4 lines
+
+Bugfix: Correct detection of insufficient resources in
+  getCandidateList()
+Improve stress-test settings
+
+------------------------------------------------------------------------
+r5931 | eicker | 2008-04-25 21:07:13 +0200 (Fri, 25 Apr 2008) | 2 lines
+
+Add first version of psmgmt stress test.
+
+------------------------------------------------------------------------
+r5930 | eicker | 2008-04-25 20:00:17 +0200 (Fri, 25 Apr 2008) | 4 lines
+
+Bugfix: Yet another possible SEGFAULT removed from declareNodeDead().
+Add walltime to logger's PSP_ACCOUNT_END messages.
+Minor cleanup.
+
+------------------------------------------------------------------------
+r5919 | eicker | 2008-04-23 16:34:34 +0200 (Wed, 23 Apr 2008) | 2 lines
+
+New version (psmgmt-5.0.4)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.4:
 =====================
 ------------------------------------------------------------------------
