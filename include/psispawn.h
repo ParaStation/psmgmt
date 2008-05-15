@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -70,6 +70,27 @@ void PSI_setUID(uid_t uid);
  * @return No return value.
  */
 void PSI_RemoteArgs(int Argc,char **Argv,int *RArgc,char ***RArgv);
+
+/**
+ * @brief Register per rank environment creator
+ *
+ * Register a the function that is called during spawning of processes
+ * in order to create a per rank environment. This environment is
+ * appended to the default environment propagated to each process
+ * spawned.
+ *
+ * The registered function is called for each process spawned. The
+ * argument is the process's rank. It is expected to return an
+ * environment as used internally within libpsi. This is an
+ * NULL-terminated array of pointers to char arrays. Each
+ * '\0'-terminated character array storing a single environment
+ * variable is expected to be of the form <name>=<value>.
+ * 
+ * @param func The function to register.
+ *
+ * @return No return value.
+ */
+void PSI_registerRankEnvFunc(char **(*func)(int));
 
 /**
  * @brief Spawn one or more tasks within the cluster.

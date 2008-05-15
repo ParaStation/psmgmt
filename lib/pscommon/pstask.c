@@ -288,7 +288,7 @@ PStask_t* PStask_clone(PStask_t* task)
     return clone;
 }
 
-static void snprintfStruct(char *txt, size_t size, PStask_t * task)
+static void snprintfStruct(char *txt, size_t size, PStask_t *task)
 {
     if (!task) return;
 
@@ -300,7 +300,7 @@ static void snprintfStruct(char *txt, size_t size, PStask_t * task)
  	     task->next, task->prev, task->loggertid, task->fd, task->argc);
 }
 
-static void snprintfArgv(char *txt, size_t size, PStask_t * task)
+static void snprintfArgv(char *txt, size_t size, PStask_t *task)
 {
     if (!task) return;
 
@@ -318,25 +318,22 @@ static void snprintfArgv(char *txt, size_t size, PStask_t * task)
     snprintf(txt+strlen(txt), size-strlen(txt), "\"");
 }
 
-static void snprintfEnv(char *txt, size_t size, PStask_t * task)
+static void snprintfEnv(char *txt, size_t size, char **env)
 {
-    if (!task) return;
-
     snprintf(txt, size, "env=");
     if (strlen(txt)+1 == size) return;
 
-    if (task->environ) {
+    if (env) {
 	int i;
-	for (i=0; task->environ[i]; i++) {
-	    snprintf(txt+strlen(txt), size-strlen(txt), "%s ",
-		     task->environ[i]);
+	for (i=0; env[i]; i++) {
+	    snprintf(txt+strlen(txt), size-strlen(txt), "%s ", env[i]);
 	    if (strlen(txt)+1 == size) return;
 	}
     }
 }
 
 
-void PStask_snprintf(char *txt, size_t size, PStask_t * task)
+void PStask_snprintf(char *txt, size_t size, PStask_t *task)
 {
     if (!task) return;
 
@@ -348,7 +345,7 @@ void PStask_snprintf(char *txt, size_t size, PStask_t * task)
     if (strlen(txt)+1 == size) return;
     snprintf(txt+strlen(txt), size-strlen(txt), " ");
     if (strlen(txt)+1 == size) return;
-    snprintfEnv(txt+strlen(txt), size-strlen(txt), task);
+    snprintfEnv(txt+strlen(txt), size-strlen(txt), task->environ);
 }
 
 static struct {
@@ -646,53 +643,72 @@ int PStask_decodeArgs(char *buffer, PStask_t *task)
     return msglen;
 }
 
-size_t PStask_encodeEnv(char *buffer, size_t size, PStask_t *task,
+size_t PStask_encodeEnv(char *buffer, size_t size, char **env,
 			int *cur, char **offset)
 {
     size_t msglen = 0;
     int first=*cur;
 
-    snprintfEnv(taskString, sizeof(taskString), task);
-    PSC_log(PSC_LOG_TASK, "%s(%p, %ld, task %s / env(%s))\n",
-	    __func__, buffer, (long)size, PSC_printTID(task->tid), taskString);
+    if (!env) {
+	PSC_log(-1, "%s: env is NULL\n", __func__);
+	return 0;
+    }
 
-    if (task->environ) {
-	if (*offset) {
-	    msglen = strlen(*offset) < size ? strlen(*offset)+1 : size - 1;
-	    strncpy(buffer, *offset, msglen);
-	    if ( strlen(*offset) < size) {
-		*offset = NULL;
-		(*cur)++;
-	    } else {
-		*offset += msglen;
-		buffer[msglen] = '\0';
-		msglen++;
-	    }
+    if (PSC_getDebugMask() & PSC_LOG_TASK) {
+	snprintfEnv(taskString, sizeof(taskString), env);
+	PSC_log(PSC_LOG_TASK, "%s(%p, %ld, %s, %d, %p)\n", __func__,
+		buffer, (long)size, taskString, *cur, *offset);
+    }
+
+    if (*offset) {
+	msglen = strlen(*offset) < size ? strlen(*offset)+1 : size - 1;
+	strncpy(buffer, *offset, msglen);
+	if (strlen(*offset) < size) {
+	    *offset = NULL;
+	    (*cur)++;
 	} else {
-	    for (; task->environ[*cur]; (*cur)++) {
-		if (msglen + strlen(task->environ[*cur]) < size-1) {
-		    strcpy(&buffer[msglen], task->environ[*cur]);
-		    msglen += strlen(task->environ[*cur])+1;
-		} else if (*cur > first) {
-		    break;
-		} else {
-		    /* buffer to small */
-		    *offset = task->environ[*cur];
-		    msglen = size-2;
-		    strncpy(buffer, *offset, msglen);
-		    *offset += msglen;
-		    buffer[msglen] = '\0';
-		    msglen++;
-		    break;
-		}
-	    }
-	    /* append extra zero byte (marks end of message) */
+	    *offset += msglen;
 	    buffer[msglen] = '\0';
 	    msglen++;
 	}
+    } else {
+	for (; env[*cur]; (*cur)++) {
+	    if (msglen + strlen(env[*cur]) < size-1) {
+		strcpy(&buffer[msglen], env[*cur]);
+		msglen += strlen(env[*cur])+1;
+	    } else if (*cur > first) {
+		break;
+	    } else {
+		/* buffer to small */
+		*offset = env[*cur];
+		msglen = size-2;
+		strncpy(buffer, *offset, msglen);
+		*offset += msglen;
+		buffer[msglen] = '\0';
+		msglen++;
+		break;
+	    }
+	}
+	/* append extra zero byte (marks end of message) */
+	buffer[msglen] = '\0';
+	msglen++;
     }
 
     return msglen;
+}
+
+size_t PStask_encodeTaskEnv(char *buffer, size_t size, PStask_t *task,
+			    int *cur, char **offset)
+{
+    if (!task) {
+	PSC_log(-1, "%s: task is NULL\n", __func__);
+	return 0;
+    }
+
+    PSC_log(PSC_LOG_TASK, "%s(%p, %ld, task %s)\n", __func__,
+	    buffer, (long)size, PSC_printTID(task->tid));
+
+    return PStask_encodeEnv(buffer, size, task->environ, cur, offset);
 }
 
 int PStask_decodeEnv(char *buffer, PStask_t *task)

@@ -371,28 +371,33 @@ size_t PStask_encodeArgs(char *buffer, size_t size, PStask_t *task);
 int PStask_decodeArgs(char *buffer, PStask_t *task);
 
 /**
- * @brief Encode environment part of task structure.
+ * @brief Encode environment.
  *
- * Encode the environment-part of a task structure @a task into the
- * the buffer @a buffer of size @a size. This enables the task to be
- * sent to a remote node where it can be decoded using the
- * PStask_decodeEnv() and PStask_decodeEnvAppend() functions.
+ * Encode the environment @a env e.g. as stored within task structures
+ * into the the buffer @a buffer of size @a size. This enables the
+ * environement to be sent to a remote node where it can be decoded
+ * using the PStask_decodeEnv() and PStask_decodeEnvAppend()
+ * functions.
  *
  * The actual task structure might be encoded using the @ref
- * PStask_encodeTask() function.
+ * PStask_encodeTask() function. If the environment to be sent is
+ * actually stored within a task structure, @ref
+ * PStask_encodeTaskEnv() might be used alternatively. In fact, @ref
+ * PStask_encodeTaskEnv() is just a wrapper that calls @ref
+ * PStask_encodeEnv().
  *
- * Since the environment-part of a task structure might be
- * substantially larger than the buffer's size @a size, it might be
- * splitted into more than one messages and thus buffer contents. To
- * support this feature, a pointer to an integer within the calling
- * context @a cur has to be provided. The integer @a cur points to has
- * to be set to 0 before calling this function for the first time on a
- * given structure @a task. The same is true for the pointer @a offset
- * points to. During consecutive calls with the same @a task they has
- * to be left untouched.
+ * Since the environment might be substantially larger than the
+ * buffer's size @a size, it might be splitted into more than one
+ * messages and thus buffer contents. To support this feature, a
+ * pointer to an integer within the calling context @a cur has to be
+ * provided. The integer @a cur points to has to be set to 0 before
+ * calling this function for the first time on a given environment @a
+ * env. The same is true for the pointer @a offset points to. During
+ * consecutive calls with the same @a env they have to be left
+ * untouched.
  *
  * In order to make correct use of this function the chunk of the
- * environment have to be send using different message types. The type
+ * environment have to be sent using different message types. The type
  * of message is determined by the @a offset parameter. If it is
  * different from NULL after a call, there will exists trailing parts
  * of the current environment which can be accessed by further calls
@@ -404,6 +409,43 @@ int PStask_decodeArgs(char *buffer, PStask_t *task);
  *
  * In the current implementation of the protocol the messages are
  * flagged as PSP_SPAWN_ENV and PSP_SPAWN_ENVCNTD respectively.
+ *
+ * @param buffer The buffer used to encode the task structure.
+ *
+ * @param size The size of the buffer.
+ *
+ * @param env The environment to encode.
+ *
+ * @param cur Pointer to an integer holding the internal status in
+ * between consecutive calls. Do not modify between consecutive call.
+ *
+ * @param offset Pointer to an char pointer holding an offset for
+ * trailing chunks of an environment variable. Do not modify between
+ * consecutive call.
+ *
+ * @return On success, the number of bytes written to the buffer are
+ * returned. If the return value is larger than @a size, the buffer is
+ * to small in order to encode the whole task.
+ *
+ * @see PStask_encodeTaskEnv() PStask_decodeEnv() PStask_decodeEnvAppend()
+ */
+size_t PStask_encodeEnv(char *buffer, size_t size, char **env,
+		      int *cur, char **offset);
+
+
+/**
+ * @brief Encode environment part of task structure.
+ *
+ * Encode the environment-part of a task structure @a task into the
+ * the buffer @a buffer of size @a size. This enables the task to be
+ * sent to a remote node where it can be decoded using the
+ * PStask_decodeEnv() and PStask_decodeEnvAppend() functions.
+ *
+ * The actual task structure might be encoded using the @ref
+ * PStask_encodeTask() function.
+ *
+ * This is mainly a wrapper around @ref PStask_packEnv(). For further
+ * details refer to the description there.
  *
  * @param buffer The buffer used to encode the task structure.
  *
@@ -422,10 +464,12 @@ int PStask_decodeArgs(char *buffer, PStask_t *task);
  * returned. If the return value is larger than @a size, the buffer is
  * to small in order to encode the whole task.
  *
- * @see PStask_encodeTask() PStask_decodeEnv()
+ * @see PStask_encodeTask() PStask_decodeEnv() PStask_encodeEnv()
+ * PStask_decodeEnvAppend()
  */
-size_t PStask_encodeEnv(char *buffer, size_t size, PStask_t *task,
-			int *cur, char **offset);
+size_t PStask_encodeTaskEnv(char *buffer, size_t size, PStask_t *task,
+			    int *cur, char **offset);
+
 
 /**
  * @brief Decode environment part of task structure.

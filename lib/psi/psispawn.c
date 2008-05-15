@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -155,6 +155,65 @@ static char *mygetwd(const char *ext)
  error:
     errno = ENOMEM;
     return NULL;
+}
+
+/** Function called to create per rank environment */
+char **(*extraEnvFunc)(int) = NULL;
+
+void PSI_registerRankEnvFunc(char **(*func)(int))
+{
+    PSI_log(PSI_LOG_SPAWN, "%s(%p)\n", __func__, func);
+
+    extraEnvFunc = func;
+}
+
+/**
+ * @brief Send environment
+ *
+ * Send the environment stored within @a env using the message
+ * template @a msg. Within @a msg the destination address is already
+ * filled in.
+ *
+ * @param msg Message template prepared to send the environment
+ *
+ * @param env The environment to send
+ *
+ * @param len Pointer to current length of @a msg's buffer.
+ *
+ * @return If an error occurred, -1 is return. On success this
+ * function returns 0. In the latter case, @a msg will point to the
+ * last message still to be sent to the destination. The current
+ * length of the message's buffer is given back in @a len.
+ */
+static int sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len)
+{
+    char *off = NULL;
+    int num = 0;
+
+    *len = 0;
+
+    if (!env) return 0;
+
+    msg->header.len = sizeof(msg->header) + sizeof(msg->type);
+
+    while (1) {
+	if (off) msg->type = PSP_SPAWN_ENVCNTD;
+
+	*len = PStask_encodeEnv(msg->buf, sizeof(msg->buf), env, &num, &off);
+	msg->header.len += *len;
+
+	if (!env[num]) return 0;
+
+	if (PSI_sendMsg(msg)<0) {
+	    PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+	    return -1;
+	}
+	msg->header.len -= *len;
+	msg->type = PSP_SPAWN_ENV;
+    }
+
+    PSI_log(-1, "%s: Never be here\n", __func__);
+    return -1;
 }
 
 /**
@@ -318,8 +377,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    tids[i] = -1;
 	} else {
 	    size_t len;
-	    int envNum = 0;
-	    char *envOffset = NULL;
+	    int ret;
 
 	    msg.header.type = PSP_CD_SPAWNREQ;
 	    msg.header.dest = PSC_getTID(dstnodes[i],0);
@@ -349,24 +407,35 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    msg.header.len -= len;
 
 	    msg.type = PSP_SPAWN_ENV;
-	    do {
-		if (envOffset) msg.type = PSP_SPAWN_ENVCNTD;
 
-		len = PStask_encodeEnv(msg.buf, sizeof(msg.buf),task,
-				       &envNum, &envOffset);
-		msg.header.len += len;
-		
-		if (!task->environ[envNum])
-		    /* Last environment member encoded */
-		    msg.type = PSP_SPAWN_END;
+	    /* Send the static part of the environment */
+	    ret = sendEnv(&msg, task->environ, &len);
+	    if (ret < 0) goto error;
 
-		if (PSI_sendMsg(&msg)<0) {
-		    PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
-		    goto error;
+	    /* Maybe some variable stuff shall also be sent */
+	    if (extraEnvFunc) {
+		char **extraEnv = extraEnvFunc(rank);
+
+		if (extraEnv) {
+		    if (len) {
+			if (PSI_sendMsg(&msg)<0) {
+			    PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+			    goto error;
+			}
+			msg.header.len -= len;
+		    }
+
+		    ret = sendEnv(&msg, extraEnv, &len);
 		}
-		msg.header.len -= len;
-		msg.type = PSP_SPAWN_ENV;
-	    } while (task->environ[envNum]);
+	    }
+	    if (ret < 0) goto error;
+
+	    msg.type = PSP_SPAWN_END;
+	    if (PSI_sendMsg(&msg)<0) {
+		PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+		goto error;
+	    }
+	    msg.header.len -= len;
 
 	    outstanding_answers++;
 	}
