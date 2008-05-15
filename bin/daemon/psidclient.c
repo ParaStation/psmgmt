@@ -213,7 +213,8 @@ int sendClient(DDMsg_t *msg)
 
     if (fd==FD_SETSIZE) {
 	errno = EHOSTUNREACH;
-	PSID_log(-1, "%s: no fd to send\n", __func__);
+	PSID_log(-1, "%s: no fd for task %s to send\n", __func__,
+		 PSC_printTID(msg->dest));
 	return -1;
     }
 

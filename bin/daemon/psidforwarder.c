@@ -726,12 +726,14 @@ static void releaseLogger(int status)
 
     if (ret < 0) {
 	if (errno == EPIPE) {
-	    PSID_log(-1, "%s: logger already disappeared\n", __func__);
+	    PSID_log(-1, "%s: logger %s already disappeared\n", __func__,
+		     PSC_printTID(childTask->loggertid));
 	} else {
 	    PSID_warn(-1, errno, "%s: recvMsg()", __func__);
 	}
     } else if (!ret) {
-	PSID_log(-1, "%s: receive timed out. logger disappeared\n", __func__);
+	PSID_log(-1, "%s: receive timed out. logger %s disappeared\n", __func__,
+		 PSC_printTID(childTask->loggertid));
     } else if (msg.type != EXIT) {
 	if (msg.type == STDIN) goto again; /* Ignore late STDIN messages */
 	if (msg.type == SIGNAL) {
