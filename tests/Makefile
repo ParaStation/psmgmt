@@ -1,12 +1,18 @@
-MPICC = /opt/parastation/mpi2/bin/mpicc
+MPICC1 = /opt/parastation/mpich/bin/mpicc
+MPICC2 = /opt/parastation/mpi2/bin/mpicc
 
 CFLAGS = -Wall
 
-TARGETS = mpi_hello
+TARGETS = mpi_hello.1 mpi_hello.2
 
 all: $(TARGETS)
 
-mpi_hello: CC = ${MPICC}
+%.1: %.c
+	$(MPICC1) $(CFLAGS) $(CPPFLAGS) -o $@ $<
+
+%.2: %.c
+	$(MPICC2) $(CFLAGS) $(CPPFLAGS) -o $@ $<
+
 
 .PHONY: clean realclean
 

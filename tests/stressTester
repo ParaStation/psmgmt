@@ -1,11 +1,21 @@
 #!/bin/bash
+#
+# Copyright (c) 2008 ParTec Cluster Competence Center GmbH, Munich
+# All rights reserved.
+#
+# This script starts some test programs as fast as possible
+#
+# Author: Norbert Eicker <eicker@par-tec.com>
+#
+# $Id: ps_acc 5681 2008-02-27 17:17:46Z eicker $
+#
 
-if [ $# -ne 1 ]; then
-    echo Usage: ${0} \<np\>
+if [ -z "${NUM}" ]; then
+    echo Usage: Set the NUM environment to give number of MPI-processes
     exit 1
 fi
 
-np=${1}
+np=${NUM}
 
 export PSP_DEBUG=0
 unset PSI_LOOP_NODES_FIRST
@@ -18,8 +28,10 @@ echo "log to $log"
 printenv USE_MPI1 > /dev/null 2>&1
 if [ ${?} != 1 ]; then
     mpi_starter=/opt/parastation/mpich/bin/mpirun
+    mpi_hello=mpi_hello.1
 else
     mpi_starter=mpiexec
+    mpi_hello=mpi_hello.2
 fi
 
 i=0
@@ -30,9 +42,15 @@ while true; do
 	exit 0
     fi
 
-    ${mpi_starter} -np ${np} mpi_hello 2>&1 | \
+    ${mpi_starter} -np ${np} ${mpi_hello} ${SLEEP} 2>&1 | \
 	grep -E -v '(Hello World from )|(Hi from rank)' | \
-	grep -E -v '(PSIlogger: done)|(^$)' >&8
+	grep -E -v '(PSIlogger: done)|(^$)' >&8 &
+
+    if [ -n "${SLEEP}" ]; then
+	sleep $((SLEEP / 2))
+	kill -9 %1 > /dev/null 2>&1
+    fi
+    wait %1 > /dev/null 2>&1
 
     if ((i%1000==0)); then
 	echo `date`  $i >&8

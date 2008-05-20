@@ -1,20 +1,39 @@
 #!/bin/bash
+#
+# Copyright (c) 2008 ParTec Cluster Competence Center GmbH, Munich
+# All rights reserved.
+#
+# Script to configure the orchestrating scripts for stress-testing
+#
+# Author: Norbert Eicker <eicker@par-tec.com>
+#
+# $Id: ps_acc 5681 2008-02-27 17:17:46Z eicker $
+#
 
 # List of hostnames. On these nodes the stressTester script is started.
 nodeList="n1 n5 n12 n16"
 # The userID used to run the stressTester script.
 user=eicker
-# Environment passed to the stressTester script. The stressTester
-# script uses ParaStation's mpirun command, if USE_MPI1 is
-# set. Otherwise ParaStation's mpiexec command is used.
-envStr="PSI_NODES=1-8,10-14 USE_MPI1="
-# Argument passed to the stressTester script. This will be interpreted
-# as the number of processes argument passed to MPI's starter command.
-num=15
-
+# Environment passed to the stressTester script.
+#
+# NUM will be interpreted as the number of processes argument passed
+# to MPI's starter command.
+#
+# The stressTester script uses ParaStation's mpirun command, if
+# USE_MPI1 is set. Otherwise ParaStation's mpiexec command is used.
+#
+# If SLEEP is given, mpi_hello will sleep the given number of seconds
+# after execution (before calling MPI_Finalize()). After half of that
+# time the stressTester script will kill mpi_hello using signal 9
+# (SIGKILL).
+envStr="PSI_NODES=1-8,10-14 NUM=17"
+envStr_n1="NUM=19"
+envStr_n5="USE_MPI1="
+#envStr_n12="SLEEP=5"
+envStr_n16="USE_MPI1="
 
 # List of hostnames. On these nodes the psidKiller script is started.
-killerList="n6"
+# killerList="n6"
 # First argument passed to the psidKiller script. This will be
 # interpreted as the number of seconds the ParaStation daemon is
 # disabled on this node.

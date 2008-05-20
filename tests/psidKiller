@@ -1,4 +1,14 @@
 #!/bin/bash
+#
+# Copyright (c) 2008 ParTec Cluster Competence Center GmbH, Munich
+# All rights reserved.
+#
+# This script repeatedly kills and restarts the local ParaStation daemon psid.
+#
+# Author: Norbert Eicker <eicker@par-tec.com>
+#
+# $Id: ps_acc 5681 2008-02-27 17:17:46Z eicker $
+#
 
 if [ $USER != "root" ]; then
     echo $0 must be run as root
