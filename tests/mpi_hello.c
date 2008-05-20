@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2008 ParTec Cluster Competence Center GmbH, Munich
  *
- * $Id: psid.c 6029 2008-05-20 17:44:28Z eicker $
+ * $Id$
  *
  */
 /**
@@ -11,7 +11,7 @@
  * mpi_hello: Simple MPI 'hello world' program. This is started
  * repeatedly as a work-load within the stress-testing scripts.
  *
- * $Id: psid.c 6029 2008-05-20 17:44:28Z eicker $ 
+ * $Id$ 
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>

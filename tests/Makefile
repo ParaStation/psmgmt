@@ -1,3 +1,14 @@
+###################################################### -*- Makefile -*- #####
+#                  ParaStation
+#        Copyright (c) 2008 ParTec Cluster Competence Center GmbH, Munich
+#############################################################################
+#
+# $Id$
+#
+# @author
+#         Norbert Eicker <eicker@par-tec.de>
+#############################################################################
+
 MPICC1 = /opt/parastation/mpich/bin/mpicc
 MPICC2 = /opt/parastation/mpi2/bin/mpicc
 

@@ -7,7 +7,7 @@
 #
 # Author: Norbert Eicker <eicker@par-tec.com>
 #
-# $Id: ps_acc 5681 2008-02-27 17:17:46Z eicker $
+# $Id$
 #
 
 if [ -z "${NUM}" ]; then
