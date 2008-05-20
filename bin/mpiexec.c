@@ -311,6 +311,7 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
         free(nds);
 
         if (error) {
+	    errno=error;
             fprintf(stderr, "Could not spawn master process (%s)",argv[0]);
             perror("");
             exit(1);
