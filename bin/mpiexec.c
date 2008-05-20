@@ -94,6 +94,8 @@ int show, verbose = 0;
 int extendedusage = 0;
 int useElan = 1;
 char **dup_argv;
+int none = 0;
+int ver = 0;
 
 static char version[] = "$Revision$";
 
@@ -1270,6 +1272,260 @@ static void checkSanity(char *argv[])
     }
 }
 
+
+/* Set up the popt help tables */
+struct poptOption poptMpiexecComp[] = {
+    { "bnr", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &mpichcom, 0, "Enable ParaStation4 compatibility mode", NULL},
+    { "machinefile", 'f', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &hostfile, 0, "machinefile to use, equal to hostfile", "<file>"},
+    { "1", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &none, 0, "override default of trying first (ignored)", NULL},
+    { "ifhn", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &network, 0, "set a space separeted list of networks enabled", NULL},
+    { "file", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &none, 0, "file with additional information (ignored)", NULL},
+    { "tv", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &totalview, 0, "run procs under totalview (ignored)", NULL},
+    { "tvsu", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &totalview, 0, "totalview startup only (ignored)", NULL},
+    { "gdb", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &gdb, 0, "debug processes with gdb", NULL},
+    { "gdba", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &gdba, 0, "attach to debug processes with gdb (ignored)", NULL},
+    { "ecfn", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &ecfn, 0, "ouput xml exit codes filename (ignored)", NULL},
+    { "wdir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &wdir, 0, "working directory to start the processes", "<directory>"},
+    { "dir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &wdir, 0, "working directory to start the processes", "<directory>"},
+    { "umask", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &none, 0, "umask for remote process (ignored)", NULL},
+    { "path", 'p', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &path, 0, "place to look for executables", "<directory>"},
+    { "host", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &hostlist, 0, "host to start on", NULL},
+    { "soft", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &none, 0, "giving hints instead of a precise number for the number of processes (ignored)", NULL},
+    { "arch", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &none, 0, "arch type to start on (ignored)", NULL},
+    { "envall", 'x', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &envall, 0, "export all environment variables to foreign nodes", NULL},
+    { "envnone", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &none, 0, "export no env vars", NULL},
+    { "envlist", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &envlist, 0, "export a list of env vars", NULL},
+    { "usize", 'u', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &usize, 0, "set the universe size", NULL},
+    { "env", 'E', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &envopt, 'E', "export this value of this env var", "<name> <value>"},
+    POPT_TABLEEND
+};
+
+struct poptOption poptMpiexecCompGlobal[] = {
+    { "gnp", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &np, 0, "number of processes to start", "num"},
+    { "gn", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &np, 0, "equal to np: number of processes to start", "num"},
+    { "gwdir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &wdir, 0, "working directory to start the processes", "<directory>"},
+    { "gdir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &wdir, 0, "working directory to start the processes", "<directory>"},
+    { "gumask", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &none, 0, "umask for remote process (ignored)", NULL},
+    { "gpath", 'p', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &path, 0, "place to look for executables", "<directory>"},
+    { "ghost", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &hostlist, 0, "host to start on", NULL},
+    { "gsoft", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &none, 0, "giving hints instead of a precise number for the number of processes (ignored)", NULL},
+    { "garch", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &none, 0, "arch type to start on (ignored)", NULL},
+    { "genvall", 'x', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &envall, 0, "export all environment variables to foreign nodes", NULL},
+    { "genvnone", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &none, 0, "export no env vars", NULL},
+    { "genvlist", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &envlist, 0, "export a list of env vars", NULL},
+    { "genv", 'E', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &envopt, 'E', "export this value of this env var", "<name> <value>"},
+    POPT_TABLEEND
+};
+
+struct poptOption poptCommonOptions[] = {
+    { "np", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
+      &np, 0, "number of processes to start", "num"},
+    { "n", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
+      &np, 0, "equal to np: number of processes to start", "num"},
+    { "exports", 'e', POPT_ARG_STRING,
+      &envlist, 0, "environment to export to foreign nodes", "envlist"},
+    { "envall", 'x', POPT_ARG_NONE,
+      &envall, 0, "export all environment variables to all processes", NULL},
+    { "env", 'E', POPT_ARG_STRING,
+      &envopt, 'E', "export this value of this env var", "<name> <value>"},
+    { "bnr", 'b', POPT_ARG_NONE,
+      &mpichcom, 0, "Enable ParaStation4 compatibility mode", NULL},
+    { "jobalias", 'a', POPT_ARG_STRING,
+      &jobid, 0, "assign an alias to the job (used for accouting)", NULL},
+    { "usize", 'u', POPT_ARG_INT,
+      &usize, 0, "set the universe size", NULL},
+    POPT_TABLEEND
+};
+
+struct poptOption poptPrivilegedOptions[] = {
+    { "admin", 'A', POPT_ARG_NONE,
+      &admin, 0, "start an admin-task which is not accounted", NULL},
+    { "login", 'L', POPT_ARG_STRING,
+      &login, 0, "remote user used to execute command (with --admin only)", "login_name"},
+    POPT_TABLEEND
+};
+
+struct poptOption poptDebugOptions[] = {
+    { "loggerdb", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
+      &loggerdb, 0, "set debug mode of the logger", "num"},
+    { "forwarderdb", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
+      &forwarderdb, 0, "set debug mode of the forwarder", "num"},
+    { "pscomdb", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
+      &pscomdb, 0, "set debug mode of the pscom lib", "num"},
+    { "psidb", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
+      &psidb, 0, "set debug mode of the pse/psi lib", "num"},
+    { "pmidb", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
+      &pmidebug, 0, "set debug mode of pmi", "num"},
+    { "pmidbclient", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
+      &pmidebug_client, 0, "set debug mode of pmi client only", "num"},
+    { "pmidbkvs", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
+      &pmidebug_kvs, 0, "set debug mode of pmi kvs only", "num"},
+    { "show", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
+      &show, 0, "show command for remote execution but dont run it", NULL},
+    { "loggerrawmode", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
+      &loggerrawmode, 0, "set raw mode of the logger", "num"},
+    { "sigquit", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
+      &sigquit, 0, "ouput debug information on signal sigquit", NULL},
+    POPT_TABLEEND
+};
+
+struct poptOption poptDisplayOptions[] = {
+    { "inputdest", 's', POPT_ARG_STRING,
+      &dest, 0, "direction to forward input: dest <1,2,5-10> or <all>", NULL},
+    { "sourceprintf", 'l', POPT_ARG_NONE,
+      &source, 0, "print output-source info", NULL},
+    { "rusage", 'R', POPT_ARG_NONE,
+      &rusage, 0, "print consumed sys/user time", NULL},
+    { "merge", 'm', POPT_ARG_NONE,
+      &mergeout, 0, "merge similar output from diffrent ranks", NULL},
+    POPT_TABLEEND
+};
+
+struct poptOption poptAdvancedOptions[] = {
+    { "plugindir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_DOC_HIDDEN,
+      &plugindir, 0, "set the directory to search for plugins", NULL},
+    { "sndbuf", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN,
+      &sndbuf, 0, "set the TCP send buffer size", "<default 32k>"},
+    { "rcvbuf", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN,
+      &rcvbuf, 0, "set the TCP receive buffer size", "<default 32k>"},
+    { "delay", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
+      &nodelay, 0, "don't use the NODELAY option for TCP sockets", NULL},
+    { "mergedepth", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN,
+      &mergedepth, 0, "set over how many lines should be searched", NULL},
+    { "mergetimeout", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN,
+      &mergetmout, 0, "set the time how long an output is maximal delayed", NULL},
+    { "pmitimeout", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN,
+      &pmitmout, 0, "set a timeout till all clients have to join the first barrier (disabled=-1) (default=60sec + np*0,1sec)", "num"},
+    { "pmiovertcp", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
+      &pmienabletcp, 0, "connect to the pmi client over tcp/ip", "num"},
+    { "pmioverunix", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
+      &pmienablesockp, 0, "connect to the pmi client over unix domain socket (default)", "num"},
+    { "pmidisable", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
+      &pmidis, 0, "disable pmi interface", "num"},
+    POPT_TABLEEND
+};
+
+struct poptOption poptExecutionOptions[] = {
+    { "nodes", 'N', POPT_ARG_STRING,
+      &nodelist, 0, "list of nodes to use: nodelist <3-5,7,11-17>", NULL},
+    { "hosts", 'H', POPT_ARG_STRING,
+      &hostlist, 0, "list of hosts to use: hostlist <node-01 node-04>", NULL},
+    { "hostfile", 'f', POPT_ARG_STRING,
+      &hostfile, 0, "hostfile to use", "<file>"},
+    { "machinefile", 'f', POPT_ARG_STRING,
+      &hostfile, 0, "machinefile to use, equal to hostfile", "<file>"},
+    { "wait", 'w', POPT_ARG_NONE,
+      &wait, 0, "wait for enough resources", NULL},
+    { "overbook", 'o', POPT_ARG_NONE,
+      &overbook, 0, "allow overbooking", NULL},
+    { "loopnodesfirst", 'F', POPT_ARG_NONE,
+      &loopnodesfirst, 0, "place consecutive processes on different nodes, if possible", NULL},
+    { "exclusive", 'X', POPT_ARG_NONE,
+      &exclusive, 0, "do not allow any other processes on used nodes", NULL},
+    { "sort", 'S', POPT_ARG_STRING,
+      &sort, 0, "sorting criterium to use: {proc|load|proc+load|none}", NULL},
+    { "wdir", 'd', POPT_ARG_STRING,
+      &wdir, 0, "working directory to start the processes", "<directory>"},
+    { "path", 'p', POPT_ARG_STRING,
+      &path, 0, "the path to search for executables", "<directory>"},
+    POPT_TABLEEND
+};
+
+struct poptOption poptCommunicationOptions[] = {
+    { "discom", 'c', POPT_ARG_STRING,
+      &discom, 0, "disable an communication architecture: {SHM,TCP,P4SOCK,GM,MVAPI,OPENIB,DAPL}",
+      NULL},
+    { "network", 't', POPT_ARG_STRING,
+      &network, 0, "set a space separeted list of networks enabled", NULL},
+    { "schedyield", 'y', POPT_ARG_NONE,
+      &schedyield, 0, "use sched yield system call", NULL},
+    { "retry", 'r', POPT_ARG_INT,
+      &retry, 0, "number of connection retries", "num"},
+    POPT_TABLEEND
+};
+
+struct poptOption poptOtherOptions[] = {
+    { "gdb", '\0', POPT_ARG_NONE,
+      &gdb, 0, "debug processes with gdb", NULL},
+    { "extendedhelp", '\0', POPT_ARG_NONE,
+      &extendedhelp, 0, "display extended help", NULL},
+    { "extendedusage", '\0', POPT_ARG_NONE,
+      &extendedusage, 0, "display extended usage", NULL},
+    { "debughelp", '\0', POPT_ARG_NONE,
+      &hiddenhelp, 0, "display debug help", NULL},
+    { "debugusage", '\0', POPT_ARG_NONE,
+      &hiddenusage, 0, "display debug usage", NULL},
+    { "comphelp", '\0', POPT_ARG_NONE,
+      &comphelp, 0, "display compatibility help", NULL},
+    { "compusage", '\0', POPT_ARG_NONE,
+      &compusage, 0, "display compatibility usage", NULL},
+    { "verbose", 'v', POPT_ARG_NONE,
+      &verbose, 0, "verbose mode", NULL},
+    { "version", 'V', POPT_ARG_NONE,
+      &ver, -1, "output version information and exit", NULL},
+    POPT_TABLEEND
+};
+
+struct poptOption optionsTable[] = {
+    { NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptCommonOptions, \
+      0, "Common options:", NULL },
+    { NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptExecutionOptions, \
+      0, "Job placement options:", NULL },
+    { NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptCommunicationOptions, \
+      0, "Communication options:", NULL },
+    { NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptDisplayOptions, \
+      0, "I/O forwarding options:", NULL },
+    { NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptPrivilegedOptions, \
+      0, "Privileged options:", NULL },
+    { NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptDebugOptions, \
+      0, NULL , NULL },
+    { NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptAdvancedOptions, \
+      0, NULL , NULL },
+    { NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptMpiexecComp, \
+      0, NULL , NULL },
+    { NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptMpiexecCompGlobal, \
+      0, NULL , NULL },
+    { NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptOtherOptions, \
+      0, "Other options:", NULL },
+    POPT_AUTOHELP
+    POPT_TABLEEND
+};
+
 /**
  * @brief Parse and check the command line options.
  *
@@ -1282,262 +1538,8 @@ static void checkSanity(char *argv[])
 static void parseCmdOptions(int argc, char *argv[])
 {
     #define OTHER_OPTIONS_STR "<command> [options]"
-    int none = 0;
     int rc = 0, i;
-    int ver = 0;
 
-    /* Set up the popt help tables */
-    struct poptOption poptMpiexecComp[] = {
-        { "bnr", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &mpichcom, 0, "Enable ParaStation4 compatibility mode", NULL},
-        { "machinefile", 'f', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &hostfile, 0, "machinefile to use, equal to hostfile", "<file>"},
-        { "1", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &none, 0, "override default of trying first (ignored)", NULL},
-        { "ifhn", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &network, 0, "set a space separeted list of networks enabled", NULL},
-        { "file", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &none, 0, "file with additional information (ignored)", NULL},
-        { "tv", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &totalview, 0, "run procs under totalview (ignored)", NULL},
-        { "tvsu", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &totalview, 0, "totalview startup only (ignored)", NULL},
-        { "gdb", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &gdb, 0, "debug processes with gdb", NULL},
-        { "gdba", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &gdba, 0, "attach to debug processes with gdb (ignored)", NULL},
-        { "ecfn", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &ecfn, 0, "ouput xml exit codes filename (ignored)", NULL},
-	{ "wdir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &wdir, 0, "working directory to start the processes", "<directory>"},
-	{ "dir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &wdir, 0, "working directory to start the processes", "<directory>"},
-	{ "umask", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &none, 0, "umask for remote process (ignored)", NULL},
-	{ "path", 'p', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &path, 0, "place to look for executables", "<directory>"},
-	{ "host", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &hostlist, 0, "host to start on", NULL},
-	{ "soft", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &none, 0, "giving hints instead of a precise number for the number of processes (ignored)", NULL},
-	{ "arch", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &none, 0, "arch type to start on (ignored)", NULL},
-        { "envall", 'x', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &envall, 0, "export all environment variables to foreign nodes", NULL},
-        { "envnone", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &none, 0, "export no env vars", NULL},
-        { "envlist", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &envlist, 0, "export a list of env vars", NULL},
-        { "usize", 'u', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &usize, 0, "set the universe size", NULL},
-        { "env", 'E', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &envopt, 'E', "export this value of this env var", "<name> <value>"},
-	POPT_TABLEEND
-    };
-
-    struct poptOption poptMpiexecCompGlobal[] = {
-        { "gnp", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &np, 0, "number of processes to start", "num"},
-        { "gn", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &np, 0, "equal to np: number of processes to start", "num"},
-	{ "gwdir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &wdir, 0, "working directory to start the processes", "<directory>"},
-	{ "gdir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &wdir, 0, "working directory to start the processes", "<directory>"},
-	{ "gumask", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &none, 0, "umask for remote process (ignored)", NULL},
-	{ "gpath", 'p', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &path, 0, "place to look for executables", "<directory>"},
-	{ "ghost", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &hostlist, 0, "host to start on", NULL},
-	{ "gsoft", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &none, 0, "giving hints instead of a precise number for the number of processes (ignored)", NULL},
-	{ "garch", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &none, 0, "arch type to start on (ignored)", NULL},
-        { "genvall", 'x', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &envall, 0, "export all environment variables to foreign nodes", NULL},
-        { "genvnone", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &none, 0, "export no env vars", NULL},
-        { "genvlist", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &envlist, 0, "export a list of env vars", NULL},
-        { "genv", 'E', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-	  &envopt, 'E', "export this value of this env var", "<name> <value>"},
-	POPT_TABLEEND
-    };
-
-    struct poptOption poptCommonOptions[] = {
-        { "np", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
-	  &np, 0, "number of processes to start", "num"},
-        { "n", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
-	  &np, 0, "equal to np: number of processes to start", "num"},
-        { "exports", 'e', POPT_ARG_STRING,
-	  &envlist, 0, "environment to export to foreign nodes", "envlist"},
-        { "envall", 'x', POPT_ARG_NONE,
-	  &envall, 0, "export all environment variables to all processes", NULL},
-        { "env", 'E', POPT_ARG_STRING,
-	  &envopt, 'E', "export this value of this env var", "<name> <value>"},
-        { "bnr", 'b', POPT_ARG_NONE,
-	  &mpichcom, 0, "Enable ParaStation4 compatibility mode", NULL},
-        { "jobalias", 'a', POPT_ARG_STRING,
-	  &jobid, 0, "assign an alias to the job (used for accouting)", NULL},
-        { "usize", 'u', POPT_ARG_INT,
-	  &usize, 0, "set the universe size", NULL},
-	POPT_TABLEEND
-    };
-
-    struct poptOption poptPrivilegedOptions[] = {
-        { "admin", 'A', POPT_ARG_NONE,
-	  &admin, 0, "start an admin-task which is not accounted", NULL},
-        { "login", 'L', POPT_ARG_STRING,
-	  &login, 0, "remote user used to execute command (with --admin only)", "login_name"},
-	POPT_TABLEEND
-    };
-
-    struct poptOption poptDebugOptions[] = {
-        { "loggerdb", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-	  &loggerdb, 0, "set debug mode of the logger", "num"},
-        { "forwarderdb", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-	  &forwarderdb, 0, "set debug mode of the forwarder", "num"},
-        { "pscomdb", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-	  &pscomdb, 0, "set debug mode of the pscom lib", "num"},
-        { "psidb", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-	  &psidb, 0, "set debug mode of the pse/psi lib", "num"},
-        { "pmidb", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-	  &pmidebug, 0, "set debug mode of pmi", "num"},
-        { "pmidbclient", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-	  &pmidebug_client, 0, "set debug mode of pmi client only", "num"},
-        { "pmidbkvs", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-	  &pmidebug_kvs, 0, "set debug mode of pmi kvs only", "num"},
-        { "show", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-	  &show, 0, "show command for remote execution but dont run it", NULL},
-        { "loggerrawmode", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-	  &loggerrawmode, 0, "set raw mode of the logger", "num"},
-        { "sigquit", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-	  &sigquit, 0, "ouput debug information on signal sigquit", NULL},
-	POPT_TABLEEND
-    };
-
-    struct poptOption poptDisplayOptions[] = {
-        { "inputdest", 's', POPT_ARG_STRING,
-	  &dest, 0, "direction to forward input: dest <1,2,5-10> or <all>", NULL},
-        { "sourceprintf", 'l', POPT_ARG_NONE,
-	  &source, 0, "print output-source info", NULL},
-        { "rusage", 'R', POPT_ARG_NONE,
-	  &rusage, 0, "print consumed sys/user time", NULL},
-        { "merge", 'm', POPT_ARG_NONE,
-	  &mergeout, 0, "merge similar output from diffrent ranks", NULL},
-	POPT_TABLEEND
-    };
-
-    struct poptOption poptAdvancedOptions[] = {
-        { "plugindir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_DOC_HIDDEN,
-	  &plugindir, 0, "set the directory to search for plugins", NULL},
-        { "sndbuf", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN,
-	  &sndbuf, 0, "set the TCP send buffer size", "<default 32k>"},
-        { "rcvbuf", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN,
-	  &rcvbuf, 0, "set the TCP receive buffer size", "<default 32k>"},
-        { "delay", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-	  &nodelay, 0, "don't use the NODELAY option for TCP sockets", NULL},
-        { "mergedepth", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN,
-	  &mergedepth, 0, "set over how many lines should be searched", NULL},
-        { "mergetimeout", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN,
-	  &mergetmout, 0, "set the time how long an output is maximal delayed", NULL},
-        { "pmitimeout", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN,
-	  &pmitmout, 0, "set a timeout till all clients have to join the first barrier (disabled=-1) (default=60sec + np*0,1sec)", "num"},
-        { "pmiovertcp", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-	  &pmienabletcp, 0, "connect to the pmi client over tcp/ip", "num"},
-        { "pmioverunix", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-	  &pmienablesockp, 0, "connect to the pmi client over unix domain socket (default)", "num"},
-        { "pmidisable", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-	  &pmidis, 0, "disable pmi interface", "num"},
-	POPT_TABLEEND
-    };
-
-    struct poptOption poptExecutionOptions[] = {
-        { "nodes", 'N', POPT_ARG_STRING,
-	  &nodelist, 0, "list of nodes to use: nodelist <3-5,7,11-17>", NULL},
-        { "hosts", 'H', POPT_ARG_STRING,
-	  &hostlist, 0, "list of hosts to use: hostlist <node-01 node-04>", NULL},
-        { "hostfile", 'f', POPT_ARG_STRING,
-	  &hostfile, 0, "hostfile to use", "<file>"},
-        { "machinefile", 'f', POPT_ARG_STRING,
-	  &hostfile, 0, "machinefile to use, equal to hostfile", "<file>"},
-	{ "wait", 'w', POPT_ARG_NONE,
-	  &wait, 0, "wait for enough resources", NULL},
-        { "overbook", 'o', POPT_ARG_NONE,
-	  &overbook, 0, "allow overbooking", NULL},
-        { "loopnodesfirst", 'F', POPT_ARG_NONE,
-	  &loopnodesfirst, 0, "place consecutive processes on different nodes, if possible", NULL},
-        { "exclusive", 'X', POPT_ARG_NONE,
-	  &exclusive, 0, "do not allow any other processes on used nodes", NULL},
-	{ "sort", 'S', POPT_ARG_STRING,
-	  &sort, 0, "sorting criterium to use: {proc|load|proc+load|none}", NULL},
-	{ "wdir", 'd', POPT_ARG_STRING,
-	  &wdir, 0, "working directory to start the processes", "<directory>"},
-	{ "path", 'p', POPT_ARG_STRING,
-	  &path, 0, "the path to search for executables", "<directory>"},
-	POPT_TABLEEND
-    };
-
-    struct poptOption poptCommunicationOptions[] = {
-        { "discom", 'c', POPT_ARG_STRING,
-	  &discom, 0, "disable an communication architecture: {SHM,TCP,P4SOCK,GM,MVAPI,OPENIB,DAPL}",
-	  NULL},
-        { "network", 't', POPT_ARG_STRING,
-	  &network, 0, "set a space separeted list of networks enabled", NULL},
-        { "schedyield", 'y', POPT_ARG_NONE,
-	  &schedyield, 0, "use sched yield system call", NULL},
-        { "retry", 'r', POPT_ARG_INT,
-	  &retry, 0, "number of connection retries", "num"},
-	POPT_TABLEEND
-    };
-
-    struct poptOption poptOtherOptions[] = {
-        { "gdb", '\0', POPT_ARG_NONE,
-	  &gdb, 0, "debug processes with gdb", NULL},
-	{ "extendedhelp", '\0', POPT_ARG_NONE,
-	  &extendedhelp, 0, "display extended help", NULL},
-	{ "extendedusage", '\0', POPT_ARG_NONE,
-	  &extendedusage, 0, "display extended usage", NULL},
-	{ "debughelp", '\0', POPT_ARG_NONE,
-	  &hiddenhelp, 0, "display debug help", NULL},
-	{ "debugusage", '\0', POPT_ARG_NONE,
-	  &hiddenusage, 0, "display debug usage", NULL},
-	{ "comphelp", '\0', POPT_ARG_NONE,
-	  &comphelp, 0, "display compatibility help", NULL},
-	{ "compusage", '\0', POPT_ARG_NONE,
-	  &compusage, 0, "display compatibility usage", NULL},
-	{ "verbose", 'v', POPT_ARG_NONE,
-	  &verbose, 0, "verbose mode", NULL},
-        { "version", 'V', POPT_ARG_NONE,
-	  &ver, -1, "output version information and exit", NULL},
-	POPT_TABLEEND
-    };
-
-    struct poptOption optionsTable[] = {
-	{ NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptCommonOptions, \
-	  0, "Common options:", NULL },
-	{ NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptExecutionOptions, \
-	  0, "Job placement options:", NULL },
-	{ NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptCommunicationOptions, \
-	  0, "Communication options:", NULL },
-	{ NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptDisplayOptions, \
-	  0, "I/O forwarding options:", NULL },
-	{ NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptPrivilegedOptions, \
-	  0, "Privileged options:", NULL },
-	{ NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptDebugOptions, \
-	  0, NULL , NULL },
-	{ NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptAdvancedOptions, \
-	  0, NULL , NULL },
-	{ NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptMpiexecComp, \
-	  0, NULL , NULL },
-	{ NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptMpiexecCompGlobal, \
-	  0, NULL , NULL },
-	{ NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptOtherOptions, \
-	  0, "Other options:", NULL },
-        POPT_AUTOHELP
-	POPT_TABLEEND
-    };
 
     /* The duplicated argv will contain the apps commandline */
     poptDupArgv(argc, (const char **)argv,
