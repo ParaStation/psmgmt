@@ -153,6 +153,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		PStask_t *task;
 		for (task=managedTasks; task; task=task->next) {
 		    PSP_taskInfo_t *taskinfo = (PSP_taskInfo_t *)msg.buf;
+		    if (task->deleted) continue;
 		    taskinfo->tid = task->tid;
 		    taskinfo->ptid = task->ptid;
 		    taskinfo->loggertid = task->loggertid;
@@ -179,6 +180,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    PSP_taskInfo_t *taskinfo = (PSP_taskInfo_t *)msg.buf;
 	    PStask_t *task;
 	    for (task=managedTasks; task; task=task->next) {
+		if (task->deleted) continue;
 		if ((PSP_Info_t) inmsg->type == PSP_INFO_LIST_NORMTASKS && (
 			task->group == TG_FORWARDER
 			|| task->group == TG_SPAWNER
@@ -629,6 +631,7 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    PSP_taskInfo_t *taskinfo = (PSP_taskInfo_t *)msg.buf;
 	    PStask_t *task;
 	    for (task=managedTasks; task; task=task->next) {
+		if (task->deleted) continue;
 		if ((PSP_Info_t) inmsg->type == PSP_INFO_QUEUE_NORMTASK && (
 			task->group == TG_FORWARDER
 			|| task->group == TG_SPAWNER

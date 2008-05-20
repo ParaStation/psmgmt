@@ -483,6 +483,7 @@ int killAllClients(int phase)
 
     /* loop over all tasks */
     for (task=managedTasks; task; task=task->next) {
+	if (task->deleted) continue;
 	if (task->group != TG_MONITOR
 	    && (phase==1 || phase==3 || task->group!=TG_ADMIN)) {
 	    /* TG_MONITOR never */

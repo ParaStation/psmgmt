@@ -176,8 +176,8 @@ void PStasklist_delete(PStask_t **list)
 
 int PStasklist_enqueue(PStask_t **list, PStask_t *task)
 {
-    PSID_log(PSID_LOG_TASK, "%s(%p[%lx],%s(%p))\n", __func__,
-	     list, *list ? (long)*list : -1, PSC_printTID(task->tid), task);
+    PSID_log(PSID_LOG_TASK, "%s(%p[%p],%s(%p))\n", __func__,
+	     list, *list, PSC_printTID(task->tid), task);
 
     task->prev=NULL;
     task->next = *list;
@@ -189,12 +189,13 @@ int PStasklist_enqueue(PStask_t **list, PStask_t *task)
 
 PStask_t *PStasklist_dequeue(PStask_t **list, PStask_ID_t tid)
 {
-    PStask_t *task = NULL;
+    PStask_t *task;
 
-    PSID_log(PSID_LOG_TASK, "%s(%p[%lx], %s)\n", __func__,
-	     list, *list ? (long)*list : -1, PSC_printTID(tid));
+    PSID_log(PSID_LOG_TASK, "%s(%p[%p], %s)\n", __func__,
+	     list, *list, PSC_printTID(tid));
 
-    task = PStasklist_find(*list, tid);
+    /* Don't use PStasklist_find here since task *is* deleted */
+    for (task=*list; task && task->tid!=tid; task=task->next);
 
     if (task) {
 	if (task->next) task->next->prev = task->prev;
@@ -223,7 +224,7 @@ PStask_t *PStasklist_find(PStask_t *list, PStask_ID_t tid)
 	return NULL;
     }
     
-    PSID_log(PSID_LOG_TASK, "\n");
+    PSID_log(PSID_LOG_TASK, " is at %p\n", task);
     return task;
 }
 

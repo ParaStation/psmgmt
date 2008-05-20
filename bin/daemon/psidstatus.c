@@ -452,11 +452,9 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode)
     if (config->useMCast) declareNodeDeadMCast(id);
 
     /* Send signals to all processes that controlled task on the dead node */
-    task=managedTasks;
-    /* loop over all tasks */
-    while (task) {
+    for (task=managedTasks; task; task=task->next) {
 	PStask_sig_t *sig = task->assignedSigs;
-	PStask_t *next = task->next;
+	if (task->deleted) continue;
 	/* loop over all controlled tasks */
 	while (sig) {
 	    if (PSC_getID(sig->tid)==id) {
@@ -481,7 +479,6 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode)
 	    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
 	    PStask_cleanup(task->tid);
 	}
-	task=next;
     }
 
     /* Disable accounters located on dead node */

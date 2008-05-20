@@ -2566,6 +2566,7 @@ static void sendRequests(void)
     PStask_t *task;
 
     for (task=managedTasks; task; task=task->next) {
+	if (task->deleted) continue;
 	if (task->request) {
 	    DDBufferMsg_t msg = {
 		.header = {
@@ -2605,6 +2606,7 @@ static void sendExistingPartitions(PStask_ID_t dest)
 	.buf = { '\0' }};
 
     for (task=managedTasks; task; task=task->next) {
+	if (task->deleted) continue;
 	if (task->partition && task->partitionSize) {
 	    char *ptr = msg.buf;
 

@@ -1174,6 +1174,46 @@ static void checkFileTable(fd_set *controlfds)
 }
 
 /**
+ * @brief Check for obstinate tasks
+ *
+ * The purpose of this function is twice; one the one hand it checks
+ * for obstinate tasks and sends SIGKILL signales until the task
+ * disappears. On the other hand it garbage-collects all deleted task
+ * structures within the list of managed tasks and frees them.
+ *
+ * @return No return value.
+ */
+void checkObstinate(void)
+{
+    PStask_t *task=managedTasks;
+    time_t now = time(NULL);
+
+    while (task) {
+	PStask_t *next=task->next;
+
+	if (task->deleted) {
+	    PStask_t *t = PStasklist_dequeue(&managedTasks, task->tid);
+	    if (t != task) {
+		PSID_log(-1, "%s: wrong task dequeued: %p(%s) != %p\n",
+			 __func__, task, PSC_printTID(task->tid), t);
+	    } else {
+		PStask_delete(task);
+	    }
+	} else if (task->killat && now > task->killat) {
+	    if (task->group != TG_LOGGER) {
+		/* Send the signal to the whole process group */
+		PSID_kill(-PSC_getPID(task->tid), SIGKILL, task->uid);
+	    } else {
+		/* Unless it's a logger, which will never fork() */
+		PSID_kill(PSC_getPID(task->tid), SIGKILL, task->uid);
+	    }
+	}
+	task = next;
+    }
+}
+
+
+/**
  * @brief Print version info.
  *
  * Print version infos of the current psid.c CVS revision number to stderr.
@@ -1544,31 +1584,8 @@ int main(int argc, const char *argv[])
 	/* Check for partition requests */
 	handlePartRequests();
 
-	/*
-	 * Check for obstinate tasks
-	 */
-	{
-	    PStask_t *task=managedTasks;
-	    time_t now = time(NULL);
-
-	    while (task) {
-		PStask_t *next=task->next;
-
-		if (task->deleted) {
-		    PStasklist_dequeue(&managedTasks, task->tid);
-		    PStask_delete(task);
-		} else if (task->killat && now > task->killat) {
-		    if (task->group != TG_LOGGER) {
-			/* Send the signal to the whole process group */
-			PSID_kill(-PSC_getPID(task->tid), SIGKILL, task->uid);
-		    } else {
-			/* Unless it's a logger, which will never fork() */
-			PSID_kill(PSC_getPID(task->tid), SIGKILL, task->uid);
-		    }
-		}
-		task = next;
-	    }
-	}
+	/* Check for obstinate tasks */
+	 checkObstinate();
 
 	/*
 	 * Check for reset state
