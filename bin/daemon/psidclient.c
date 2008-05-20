@@ -481,10 +481,8 @@ int killAllClients(int phase)
     gettimeofday(&killClientsTimer, NULL);
     mytimeradd(&killClientsTimer, 0, 200000);
 
-    task=managedTasks;
     /* loop over all tasks */
-    while (task) {
-	PStask_t *next = task->next;
+    for (task=managedTasks; task; task=task->next) {
 	if (task->group != TG_MONITOR
 	    && (phase==1 || phase==3 || task->group!=TG_ADMIN)) {
 	    /* TG_MONITOR never */
@@ -499,7 +497,6 @@ int killAllClients(int phase)
 	if (phase>2 && task->fd>=0) {
 	    deleteClient(task->fd);
 	}
-	task = next;
     }
 
     PSID_log(PSID_LOG_CLIENT, "%s(%d) done\n", __func__, phase);

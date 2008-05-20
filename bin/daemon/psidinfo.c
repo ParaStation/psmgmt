@@ -150,9 +150,8 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		}
 	    } else {
 		/* request info for all tasks */
-		PStask_t *task = managedTasks;
-		while (task) {
-		    PStask_t *next = task->next;
+		PStask_t *task;
+		for (task=managedTasks; task; task=task->next) {
 		    PSP_taskInfo_t *taskinfo = (PSP_taskInfo_t *)msg.buf;
 		    taskinfo->tid = task->tid;
 		    taskinfo->ptid = task->ptid;
@@ -165,7 +164,6 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		    msg.header.len += sizeof(PSP_taskInfo_t);
 		    sendMsg(&msg);
 		    msg.header.len -= sizeof(PSP_taskInfo_t);
-		    task = next;
 		}
 	    }
 
@@ -178,20 +176,16 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	case PSP_INFO_LIST_ALLTASKS:
 	{
 	    /* request info for all normal tasks */
-	    PStask_t *task = managedTasks;
 	    PSP_taskInfo_t *taskinfo = (PSP_taskInfo_t *)msg.buf;
-	    while (task) {
-		PStask_t *next = task->next;
+	    PStask_t *task;
+	    for (task=managedTasks; task; task=task->next) {
 		if ((PSP_Info_t) inmsg->type == PSP_INFO_LIST_NORMTASKS && (
 			task->group == TG_FORWARDER
 			|| task->group == TG_SPAWNER
 			|| task->group == TG_GMSPAWNER
 			|| task->group == TG_PSCSPAWNER
 			|| task->group == TG_MONITOR
-			|| task->group == TG_SERVICE )) {
-		    task = next;
-		    continue;
-		}
+			|| task->group == TG_SERVICE )) continue;
 		taskinfo->tid = task->tid;
 		taskinfo->ptid = task->ptid;
 		taskinfo->loggertid = task->loggertid;
@@ -203,7 +197,6 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		msg.header.len += sizeof(PSP_taskInfo_t);
 		sendMsg(&msg);
 		msg.header.len -= sizeof(PSP_taskInfo_t);
-		task = next;
 	    }
 
 	    /*
@@ -633,20 +626,16 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	case PSP_INFO_QUEUE_ALLTASK:
 	{
 	    /* request info for all normal tasks */
-	    PStask_t *task = managedTasks;
 	    PSP_taskInfo_t *taskinfo = (PSP_taskInfo_t *)msg.buf;
-	    while (task) {
-		PStask_t *next = task->next;
+	    PStask_t *task;
+	    for (task=managedTasks; task; task=task->next) {
 		if ((PSP_Info_t) inmsg->type == PSP_INFO_QUEUE_NORMTASK && (
 			task->group == TG_FORWARDER
 			|| task->group == TG_SPAWNER
 			|| task->group == TG_GMSPAWNER
 			|| task->group == TG_PSCSPAWNER
 			|| task->group == TG_MONITOR
-			|| task->group == TG_SERVICE )) {
-		    task = next;
-		    continue;
-		}
+			|| task->group == TG_SERVICE )) continue;
 		taskinfo->tid = task->tid;
 		taskinfo->ptid = task->ptid;
 		taskinfo->loggertid = task->loggertid;
@@ -663,7 +652,6 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		msg.type = PSP_INFO_QUEUE_SEP;
 		sendMsg(&msg);
 		msg.type = inmsg->type;
-		task = next;
 	    }
 
 	    /* send EndOfQueue */

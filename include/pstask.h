@@ -117,6 +117,10 @@ typedef struct PStask_T{
     char suspended;                /**< flag to mark suspended tasks. */
     char removeIt;                 /**< flag to mark task to be removed (as
 				      soon as all childs are released). */
+    char deleted;                  /**< flag to mark deleted tasks. It
+				      will be removed from the list of
+				      managed tasks in the next round
+				      of the main loop */
     time_t killat;                 /**< flag a killed task, i.e. the time when
 				      the task should really go away. */
     struct timeval started;        /**< Time the task structure was created. */

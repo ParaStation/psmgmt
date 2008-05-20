@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -179,16 +179,10 @@ int PStasklist_enqueue(PStask_t **list, PStask_t *task)
     PSID_log(PSID_LOG_TASK, "%s(%p[%lx],%s(%p))\n", __func__,
 	     list, *list ? (long)*list : -1, PSC_printTID(task->tid), task);
 
-    if (*list) {
-	task->next = (*list)->next;
-	task->prev = (*list);
-	(*list)->next = task;
-	if (task->next) {
-	    task->next->prev = task;
-	}
-    } else {
-	(*list) = task;
-    }
+    task->prev=NULL;
+    task->next = *list;
+    if (*list) (*list)->prev = task;
+    *list = task;
 
     return 0;
 }
@@ -203,15 +197,13 @@ PStask_t *PStasklist_dequeue(PStask_t **list, PStask_ID_t tid)
     task = PStasklist_find(*list, tid);
 
     if (task) {
+	if (task->next) task->next->prev = task->prev;
 	if (task->prev) {
 	    /* found in the middle of the list */
 	    task->prev->next = task->next;
 	} else {
 	    /* the task was the head of the list */
 	    *list = task->next;
-	}
-	if (task->next) {
-	    task->next->prev = task->prev;
 	}
     }
 
@@ -222,14 +214,16 @@ PStask_t *PStasklist_find(PStask_t *list, PStask_ID_t tid)
 {
     PStask_t *task;
 
-    PSID_log(PSID_LOG_TASK, "%s(%p, %s)\n", __func__, list, PSC_printTID(tid));
+    PSID_log(PSID_LOG_TASK, "%s(%p, %s)", __func__, list, PSC_printTID(tid));
 
-    task = list;
+    for (task=list; task && task->tid!=tid; task=task->next);
 
-    while (task && task->tid!=tid) {
-	task = task->next;
+    if (task && task->deleted) {
+	PSID_log(PSID_LOG_TASK, " found but deleted\n");
+	return NULL;
     }
-
+    
+    PSID_log(PSID_LOG_TASK, "\n");
     return task;
 }
 
@@ -308,8 +302,8 @@ void PStask_cleanup(PStask_ID_t tid)
     }
 
     if (!task->childs) {
-	task = PStasklist_dequeue(&managedTasks, tid);
-	PStask_delete(task);
+	/* Mark task as deleted; will be actually removed in main loop */
+	task->deleted = 1;
     }
 
 }

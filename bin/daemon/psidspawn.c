@@ -1063,6 +1063,75 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 }
 
 /**
+ * @brief Send accounting info on start of child
+ *
+ * Send info on the child currently started to the accounter. The
+ * child is described within @a task.
+ *
+ * Actually a single messages of type @a PSP_ACCOUNT_CHILD is created.
+ *
+ * @param task Task structure holding information to send.
+ *
+ * @return No return value.
+ */
+static void sendAcctChild(PStask_t *task)
+{
+	DDTypedBufferMsg_t msg;
+	char *ptr = msg.buf;
+
+	msg.header.type = PSP_CD_ACCOUNT;
+	msg.header.dest = PSC_getMyTID();
+	msg.header.sender = task->tid;
+	msg.header.len = sizeof(msg.header);
+
+	msg.type = PSP_ACCOUNT_CHILD;
+	msg.header.len += sizeof(msg.type);
+
+	/* logger's TID, this identifies a task uniquely */
+	*(PStask_ID_t *)ptr = task->loggertid;
+	ptr += sizeof(PStask_ID_t);
+	msg.header.len += sizeof(PStask_ID_t);
+
+	/* current rank */
+	*(int32_t *)ptr = task->rank;
+	ptr += sizeof(int32_t);
+	msg.header.len += sizeof(int32_t);
+
+	/* child's uid */
+	*(uid_t *)ptr = task->uid;
+	ptr += sizeof(uid_t);
+	msg.header.len += sizeof(uid_t);
+
+	/* child's gid */
+	*(gid_t *)ptr = task->gid;
+	ptr += sizeof(gid_t);
+	msg.header.len += sizeof(gid_t);
+
+#define MAXARGV0 128
+	/* job's name */
+	if (task->argv && task->argv[0]) {
+	    size_t len = strlen(task->argv[0]), offset=0;
+
+	    if (len > MAXARGV0) {
+		strcpy(ptr, "...");
+		ptr += 3;
+		msg.header.len += 3;
+
+		offset = len-MAXARGV0+3;
+		len = MAXARGV0-3;
+	    }
+	    strcpy(ptr, &task->argv[0][offset]);
+	    ptr += len;
+	    msg.header.len += len;
+	}
+        *ptr = '\0';
+        ptr++;
+        msg.header.len++;
+
+	sendMsg((DDMsg_t *)&msg);
+}
+
+/**
  * @brief Build sandbox and spawn process within.
  *
  * Build a new sandbox and spawn the process described by @a client
@@ -1230,62 +1299,8 @@ static int buildSandboxAndStart(PStask_t *forwarder, PStask_t *client)
     close(forwarderfds[0]);
     if (ret) close(socketfds[0]);
 
-    if (!ret && client->group != TG_ADMINTASK) {
-	DDTypedBufferMsg_t msg;
-	char *ptr = msg.buf;
-
-	msg.header.type = PSP_CD_ACCOUNT;
-	msg.header.dest = PSC_getMyTID();
-	msg.header.sender = client->tid;
-	msg.header.len = sizeof(msg.header);
-
-	msg.type = PSP_ACCOUNT_CHILD;
-	msg.header.len += sizeof(msg.type);
-
-	/* logger's TID, this identifies a task uniquely */
-	*(PStask_ID_t *)ptr = client->loggertid;
-	ptr += sizeof(PStask_ID_t);
-	msg.header.len += sizeof(PStask_ID_t);
-
-	/* current rank */
-	*(int32_t *)ptr = client->rank;
-	ptr += sizeof(int32_t);
-	msg.header.len += sizeof(int32_t);
-
-	/* child's uid */
-	*(uid_t *)ptr = client->uid;
-	ptr += sizeof(uid_t);
-	msg.header.len += sizeof(uid_t);
-
-	/* child's gid */
-	*(gid_t *)ptr = client->gid;
-	ptr += sizeof(gid_t);
-	msg.header.len += sizeof(gid_t);
-
-#define MAXARGV0 128
-	/* job's name */
-	if (client->argv && client->argv[0]) {
-	    size_t len = strlen(client->argv[0]);
-
-	    if (len > MAXARGV0) {
-		strcpy(ptr, "...");
-		ptr += 3;
-		msg.header.len += 3;
-		strcpy(ptr, &client->argv[0][len-MAXARGV0+3]);
-		ptr += MAXARGV0-3;
-		msg.header.len += MAXARGV0-3;
-	    } else {
-		strcpy(ptr, client->argv[0]);
-		ptr += len;
-		msg.header.len += len;
-	    }
-	}
-        *ptr = '\0';
-        ptr++;
-        msg.header.len++;
-
-	sendMsg((DDMsg_t *)&msg);
-    }
+    /* Accounting info */
+    if (!ret && client->group != TG_ADMINTASK) sendAcctChild(client);
 
     /* Fix interactive shell's argv[0] */
     if (client->argc == 2 && (!strcmp(client->argv[0], "/bin/bash")
@@ -1311,7 +1326,7 @@ static int buildSandboxAndStart(PStask_t *forwarder, PStask_t *client)
 #define ACCT_SLOTS_CHUNK 128
 
 /**
- * @brief Send accounting info
+ * @brief Send accounting info on start of job
  *
  * Send info on the jobs currently started to the accounter. The job
  * is described within @a task, all messages are sent as @a sender.
@@ -1327,7 +1342,7 @@ static int buildSandboxAndStart(PStask_t *forwarder, PStask_t *client)
  *
  * @return No return value.
  */
-static void sendAcctInfo(PStask_ID_t sender, PStask_t *task)
+static void sendAcctStart(PStask_ID_t sender, PStask_t *task)
 {
     DDTypedBufferMsg_t msg;
     char *ptr = msg.buf;
@@ -1408,7 +1423,7 @@ static void sendAcctInfo(PStask_ID_t sender, PStask_t *task)
  * task @a sender.
  *
  * If the request is determined to be valid, a series of accounting
- * messages is created via calling @ref sendAcctInfo().
+ * messages is created via calling @ref sendAcctStart().
  *
  * @param sender Assumed origin of the spawn request.
  *
@@ -1470,9 +1485,9 @@ static int checkRequest(PStask_ID_t sender, PStask_t *task)
     PSID_log(PSID_LOG_SPAWN, "%s: request from %s ok\n", __func__,
 	     PSC_printTID(task->ptid));
 
-    if (ptask->group == TG_LOGGER && ptask->partitionSize > 0) {
-	sendAcctInfo(sender, ptask);
-    }
+    /* Accounting info */
+    if (ptask->group == TG_LOGGER && ptask->partitionSize > 0)
+	sendAcctStart(sender, ptask);
 
     return 0;
 }
@@ -1522,10 +1537,14 @@ static int spawnTask(PStask_t *task)
     err = buildSandboxAndStart(forwarder, task);
 
     if (!err) {
-	/*
-	 * Mark the spawned task as the forwarder's child. Thus the task
-	 * will get a signal if the forwarder dies unexpectedly.
-	 */
+	/* Task will get signal from parent. Thus add ptid to assignedSigs */
+	PSID_setSignal(&task->assignedSigs, task->ptid, -1);
+	/* Enqueue the task */
+	PStasklist_enqueue(&managedTasks, task);
+	/* Tell everybody about the new task */
+	incJobs(1, (task->group==TG_ANY));
+
+	/* Spawned task will get signal if the forwarder dies unexpectedly. */
 	PSID_setSignal(&forwarder->childs, task->tid, -1);
 	/* Enqueue the forwarder */
 	PStasklist_enqueue(&managedTasks, forwarder);
@@ -1535,16 +1554,6 @@ static int spawnTask(PStask_t *task)
 	FD_SET(forwarder->fd, &PSID_readfds);
 	/* Tell everybody about the new forwarder task */
 	incJobs(1, (forwarder->group==TG_ANY));
-
-	/*
-	 * The task will get a signal from its parent. Thus add ptid
-	 * to assignedSigs
-	 */
-	PSID_setSignal(&task->assignedSigs, task->ptid, -1);
-	/* Enqueue the task */
-	PStasklist_enqueue(&managedTasks, task);
-	/* Tell everybody about the new task */
-	incJobs(1, (task->group==TG_ANY));
 
 	/*
 	 * The answer will be sent directly to the initiator if he is on

@@ -84,6 +84,7 @@ int PStask_init(PStask_t* task)
     task->duplicate = 0;
     task->suspended = 0;
     task->removeIt = 0;
+    task->deleted = 0;
     task->killat = 0;
     gettimeofday(&task->started, NULL);
     task->protocolVersion = -1;
@@ -263,6 +264,7 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->duplicate = task->duplicate;
     clone->suspended = task->suspended;
     clone->removeIt = task->removeIt;
+    clone->deleted = task->deleted;
     clone->killat = task->killat;
     gettimeofday(&clone->started, NULL);
     clone->protocolVersion = task->protocolVersion;

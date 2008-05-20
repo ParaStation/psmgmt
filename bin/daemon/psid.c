@@ -1548,16 +1548,16 @@ int main(int argc, const char *argv[])
 	 * Check for obstinate tasks
 	 */
 	{
-	    PStask_t *task = managedTasks;
+	    PStask_t *task=managedTasks;
 	    time_t now = time(NULL);
 
 	    while (task) {
-		/*
-		 * Determine next task here since task itself might
-		 * get removed during PSID_kill()
-		 */
-		PStask_t *next = task->next;
-		if (task->killat && now > task->killat) {
+		PStask_t *next=task->next;
+
+		if (task->deleted) {
+		    PStasklist_dequeue(&managedTasks, task->tid);
+		    PStask_delete(task);
+		} else if (task->killat && now > task->killat) {
 		    if (task->group != TG_LOGGER) {
 			/* Send the signal to the whole process group */
 			PSID_kill(-PSC_getPID(task->tid), SIGKILL, task->uid);

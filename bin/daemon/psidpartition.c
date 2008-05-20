@@ -2563,10 +2563,9 @@ int send_GETTASKS(PSnodes_ID_t node)
 
 static void sendRequests(void)
 {
-    PStask_t *task = managedTasks;
+    PStask_t *task;
 
-    while (task) {
-	PStask_t *next = task->next;
+    for (task=managedTasks; task; task=task->next) {
 	if (task->request) {
 	    DDBufferMsg_t msg = {
 		.header = {
@@ -2580,7 +2579,6 @@ static void sendRequests(void)
 	    len = PSpart_encodeReq(msg.buf, sizeof(msg.buf), task->request);
 	    if (len > sizeof(msg.buf)) {
 		PSID_log(-1, "%s: PSpart_encodeReq() failed\n", __func__);
-		task = next;
 		continue;
 	    }
 	    msg.header.len += len;
@@ -2592,14 +2590,12 @@ static void sendRequests(void)
 		PSID_warn(-1, errno, "%s: sendNodelist()", __func__);
 	    }
 	}
-	task = next;
     }
 }
 
 static void sendExistingPartitions(PStask_ID_t dest)
 {
-    PStask_t *task = managedTasks;
-
+    PStask_t *task;
     DDBufferMsg_t msg = {
 	.header = {
 	    .type = PSP_DD_PROVIDETASK,
@@ -2608,8 +2604,7 @@ static void sendExistingPartitions(PStask_ID_t dest)
 	    .len = sizeof(msg.header) },
 	.buf = { '\0' }};
 
-    while (task) {
-	PStask_t *next = task->next;
+    for (task=managedTasks; task; task=task->next) {
 	if (task->partition && task->partitionSize) {
 	    char *ptr = msg.buf;
 
@@ -2636,7 +2631,6 @@ static void sendExistingPartitions(PStask_ID_t dest)
 		PSID_warn(-1, errno, "%s: sendSlotlist()", __func__);
 	    }
 	}
-	task = next;
     }
 }
 
