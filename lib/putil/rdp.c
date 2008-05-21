@@ -1452,6 +1452,7 @@ static void handleTimeoutRDP(void)
     ap = AckListHead;
 
     while (ap) {
+	ackent_t *next = ap->next;
 	mp = ap->bufptr;
 	if (!mp) {
 	    RDP_log(-1, "%s: mp is NULL for ap %p\n", __func__, ap);
@@ -1463,26 +1464,16 @@ static void handleTimeoutRDP(void)
 	    gettimeofday(&tv, NULL);
 	    if (timercmp(&mp->tv, &tv, <)) { /* msg has a timeout */
 		/*
-		 * ap may become invalid due to closeConnection(),
-		 * therefore we store the predecessor.
+		 * ap (and also next) may become invalid due to a call
+		 * of closeConnection(), therefore look for the first
+		 * ap pointing to a different node (which is save).
 		 */
-		ackent_t *tmp, *pre = ap->prev;
+		while (next && next->bufptr->node == node) next = next->next;
 
 		resendMsgs(node);
-
-		/*
-		 * If the ap (and thus ap->next) was removed due to a
-		 * closeConnection(), we now get a valid successor.
-		 */
-		tmp = (pre) ? pre->next : AckListHead;
-		if (tmp != ap) {
-		    /* ap was removed, next ap allready in tmp */
-		    ap = tmp;
-		    continue;
-		}
 	    }
 	}
-	ap = ap->next; /* try with next buffer */
+	ap = next; /* try with next buffer */
     }
 }
 
