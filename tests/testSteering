@@ -10,12 +10,21 @@
 # $Id$
 #
 
+if [ -f stopIt ]; then
+    echo \'stopIt\' exists -- starting prohibited
+    exit 1
+fi
+
 log=log.`hostname`
 exec 8> $log 
 echo "log to $log"
 
-. config
+if [ ! -s config ]; then
+    echo "No configuration file \(\'config\'\) found"
+    exit 1
+fi
 
+. config
 
 for node in ${nodeList}; do
     envName="envStr_"${node}

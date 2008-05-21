@@ -28,12 +28,12 @@ user=eicker
 # (SIGKILL).
 envStr="PSI_NODES=1-8,10-14 NUM=17"
 envStr_n1="NUM=19"
-envStr_n5="USE_MPI1="
+envStr_n5="USE_MPI1= SLEEP=4"
 #envStr_n12="SLEEP=5"
 envStr_n16="USE_MPI1="
 
 # List of hostnames. On these nodes the psidKiller script is started.
-# killerList="n6"
+killerList="n6"
 # First argument passed to the psidKiller script. This will be
 # interpreted as the number of seconds the ParaStation daemon is
 # disabled on this node.
@@ -41,4 +41,4 @@ disabled=30
 # Second argument passed to the psidKiller script. This will be
 # interpreted as the number of seconds the ParaStation daemon is
 # running on this node until it will get disabled again.
-sleep=60
+sleep=30

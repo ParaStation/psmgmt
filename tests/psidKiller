@@ -40,14 +40,14 @@ while true; do
     rootPSIDs=0
     for pid in ${pidList}; do
 	parent=`ps ho ppid ${pid}`
-	if [ "${parent}" == 1 ]; then
+	if [ ${parent:-0} -eq 1 ]; then
 	    ((rootPSIDs++))
 	    pidToKill=${pid}
 	fi
     done
 
     if [ ${rootPSIDs} -ne 1 ]; then
-	echo `date` Wrong number of ParaStation daemons found >&8
+	echo `date` Wrong number ${rootPSIDs} of ParaStation daemons found >&8
 	exit 1
     fi
 
