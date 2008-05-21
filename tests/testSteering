@@ -20,7 +20,7 @@ exec 8> $log
 echo "log to $log"
 
 if [ ! -s config ]; then
-    echo "No configuration file \(\'config\'\) found"
+    echo "No configuration file ('config') found"
     exit 1
 fi
 
