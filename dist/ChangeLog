@@ -1,3 +1,76 @@
+Version psmgmt-5.0.6:
+=====================
+------------------------------------------------------------------------
+r6038 | eicker | 2008-05-21 16:55:39 +0200 (Wed, 21 May 2008) | 3 lines
+
+Bugfix: Fix one possible list corruption within RDP. This might lead to
+   unpredictable results when a node went down unexpectedly.
+
+------------------------------------------------------------------------
+r6037 | eicker | 2008-05-21 16:52:39 +0200 (Wed, 21 May 2008) | 2 lines
+
+Move configuration into template. Ignore local configuration.
+
+------------------------------------------------------------------------
+r6036 | eicker | 2008-05-21 16:48:49 +0200 (Wed, 21 May 2008) | 2 lines
+
+Minor improvements in stress-test suite.
+
+------------------------------------------------------------------------
+r6031 | eicker | 2008-05-20 20:41:28 +0200 (Tue, 20 May 2008) | 2 lines
+
+Add keyword-handling etc. to stress-test suite.
+
+------------------------------------------------------------------------
+r6030 | eicker | 2008-05-20 20:35:08 +0200 (Tue, 20 May 2008) | 2 lines
+
+Add some more features to the stress-testing suite.
+
+------------------------------------------------------------------------
+r6029 | eicker | 2008-05-20 19:44:28 +0200 (Tue, 20 May 2008) | 2 lines
+
+Correct handling of deleted tasks. Fix problems introduced in r6025.
+
+------------------------------------------------------------------------
+r6026 | eicker | 2008-05-20 16:26:14 +0200 (Tue, 20 May 2008) | 2 lines
+
+Fix error message in mpiexec, if spawn of master process fails.
+
+------------------------------------------------------------------------
+r6025 | eicker | 2008-05-20 12:15:07 +0200 (Tue, 20 May 2008) | 8 lines
+
+Bugfix: Yet another possible SEGFAULT. This fix requires reorganization
+  of internal handling of task-structures. I.e. PStask_t structures will
+  be removed from the list of managedTasks only in the main loop.
+  Beforehand they are marked as deleted and ignored.
+Put generation of PSP_ACCOUNT_CHILD message into sendAcctChild()
+Rename sendAcctInfo() to sendAcctStart().
+Improve PSIDtasklist_enqueue(), reorganize enqueueing childs.
+
+------------------------------------------------------------------------
+r6024 | hauke | 2008-05-20 11:19:30 +0200 (Tue, 20 May 2008) | 3 lines
+
+Bugfix: 'struct poptOption' created on stack und used with global
+'poptContext optCon'. Fix Ticket #71.
+
+------------------------------------------------------------------------
+r5999 | eicker | 2008-05-15 22:00:29 +0200 (Thu, 15 May 2008) | 3 lines
+
+Prepare for faster startup of MPI2 jobs: PSI_spawn*() is now able to
+  create a per rank environment.
+
+------------------------------------------------------------------------
+r5998 | eicker | 2008-05-15 20:56:55 +0200 (Thu, 15 May 2008) | 2 lines
+
+Improved debugging and error messages.
+
+------------------------------------------------------------------------
+r5968 | eicker | 2008-05-09 11:51:14 +0200 (Fri, 09 May 2008) | 2 lines
+
+New version (psmgmt-5.0.5)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.5:
 =====================
 ------------------------------------------------------------------------
