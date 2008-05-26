@@ -35,7 +35,7 @@ typedef struct {
     time_t time;
     char *line;
     struct list_head list;
-    int outfd;
+    FILE* outfp;
 } OutputBuffers;
 
 /**
@@ -208,13 +208,13 @@ static void findEqualData(int ClientIdx, struct list_head *saveBuf[maxClients], 
 		    break;
 		}
 		if (val->line == nval->line ) {
-		    if (val->outfd == nval->outfd) {
+		    if (val->outfp == nval->outfp) {
 			saveBuf[*mcount] = npos;
 			saveBufInd[*mcount] = x; 
 			(*mcount)++;
 			break;
 		    } else {
-			//fprintf(stderr, "same line diff outfd:val->line, val: %i nval: %i\n", val->outfd, nval->outfd);
+			//fprintf(stderr, "same line diff outfp:val->line, val: %i nval: %i\n", val->outfp, nval->outfp);
 		    }
 		}
 		if (maxMergeDepth > 0 && dcount == maxMergeDepth) break;
@@ -269,11 +269,11 @@ static void delCachedMsg(OutputBuffers *nval, struct list_head *npos)
     (val->counter)--;
     if (val->counter == 0) {
 	free(val->line);
-	free(val);
 	list_del(pos);
+	free(val);
     }
-    free(nval);
     list_del(npos);
+    free(nval);
 }
 
 /**
@@ -346,7 +346,7 @@ static void generatePrefix(char *prefix, int size, int mcount, int start, int sa
 /**
  * @brief Print a single line with correct formating. 
  *
- * @param outfd The filedescriptor to write to.
+ * @param outfp The file descriptor to write to.
  *
  * @param line The line to print.
  *
@@ -360,25 +360,20 @@ static void generatePrefix(char *prefix, int size, int mcount, int start, int sa
  *
  * @return No return value.
  */
-static void printLine(int outfd, char *line, int mcount, int start, int saveBufInd[maxClients])
+static void printLine(FILE *outfp, char *line, int mcount, int start, int saveBufInd[maxClients])
 {
     char format[50];
     char prefix[100]; 
     int space = 0;
-    FILE *out;
 
-    if (!(out = fdopen(outfd, "a"))) {
-	fprintf(stderr, "%s: Could not open file deskriptor\n", __func__);
-	exit(1);
-    }
     generatePrefix(prefix, sizeof(prefix), mcount, start, saveBufInd);
     space = prelen - strlen(prefix) - 2;
     if (space >0) {
 	snprintf(format, sizeof(format), "%%%is[%%s]: %%s", space);  
-	fprintf(out, format, " ", prefix, line);
+	fprintf(outfp, format, " ", prefix, line);
     } else {
 	snprintf(format, sizeof(format), "[%%s]: %%s");  
-	fprintf(out, format, prefix, line);
+	fprintf(outfp, format, prefix, line);
     }
 }
 
@@ -420,7 +415,7 @@ static void outputSingleCMsg(int client, struct list_head *pos, struct list_head
 		    if (tmpother != saveBuf[i]) {
 			oval = list_entry(tmpother, OutputBuffers, list);
 			if (!oval || !oval->line) break;
-			if (oval->line == nval->line && oval->outfd == nval->outfd) {
+			if (oval->line == nval->line && oval->outfp == nval->outfp) {
 			    savelocInd[lcount] = i;
 			    lcount++;
 			    delCachedMsg(oval, tmpother);
@@ -430,7 +425,7 @@ static void outputSingleCMsg(int client, struct list_head *pos, struct list_head
 		    }
 		}
 	    }
-	    printLine(nval->outfd, nval->line, lcount, client, savelocInd);	    
+	    printLine(nval->outfp, nval->line, lcount, client, savelocInd);
 	    delCachedMsg(nval,tmppos);
 	} else {
 	    break;
@@ -473,7 +468,6 @@ void displayCachedOutput(int flush)
     int saveBufInd[maxClients];
     time_t ltime = time(0); 
     char prefix[100]; 
-    FILE *out;
     
     /* reset tracking array */
     for (u=0; u<maxClients; u++) saveBuf[u] = NULL; 
@@ -508,11 +502,10 @@ void displayCachedOutput(int flush)
 		    }
 		    
 		    if (mcount != np -1) {
-			printLine(val->outfd, val->line, mcount, i, saveBufInd);	    
+			printLine(val->outfp, val->line, mcount, i, saveBufInd);
 		    } else {
 			snprintf(prefix, sizeof(prefix), "[0-%i]", np -1);
-			out = fdopen(val->outfd, "a");
-			fprintf(out, "%s: %s", prefix, val->line);
+			fprintf(val->outfp, "%s: %s", prefix, val->line);
 		    }
 		    delCachedMsg(val, pos);
 		} 
@@ -652,7 +645,11 @@ void cacheOutput(PSLog_Msg_t msg, int outfd)
 	/* save to client matrix */
 	tmp = (OutputBuffers *)malloc(sizeof(OutputBuffers));
 	tmp->time = time(0); 
-	tmp->outfd = outfd;
+	if (outfd == STDERR_FILENO) {
+	    tmp->outfp = stderr;
+	} else {
+	    tmp->outfp = stdout;
+	}
 	
 	/* check if already in global buffer */
 	if ((tmpbMsg = isSaved(savep))) {
