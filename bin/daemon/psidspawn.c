@@ -556,7 +556,7 @@ static void execClient(PStask_t *task)
     }
 
     /* Test if executable is there */
-    if (task->argv[0][0] != '/' || task->argv[0][0] != '.') {
+    if (task->argv[0][0] != '/' && task->argv[0][0] != '.') {
 	/* Relative path -> let's search in $PATH */
 	char *p = getenv("PATH");
 
