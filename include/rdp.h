@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -281,6 +281,18 @@ int Rrecvfrom(int* node, void* buf, size_t len);
  * @see printf(3)
  */
 void getStateInfoRDP(int node, char* string, size_t len);
+
+/**
+ * @brief Shutdown connection.
+ *
+ * Shutdown the connection to node @a node. This will remove all
+ * pending messages from this connection and reset it completely.
+ *
+ * @param node Connection to this node will be closed.
+ *
+ * @return No return value.
+ */
+void closeConnRDP(int node);
 
 #ifdef __cplusplus
 }/* extern "C" */

@@ -28,6 +28,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "psdaemonprotocol.h"
 
 #include "mcast.h"
+#include "rdp.h"
 #include "timer.h"
 
 #include "psidutil.h"
@@ -643,8 +644,11 @@ int send_DAEMONSHUTDOWN(void)
 
 void msg_DAEMONSHUTDOWN(DDMsg_t *msg)
 {
-    PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, PSC_getID(msg->sender));
-    declareNodeDead(PSC_getID(msg->sender), 0);
+    PSnodes_ID_t id = PSC_getID(msg->sender);
+
+    PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, id);
+    declareNodeDead(id, 0);
+    closeConnRDP(id);
 }
 
 int send_MASTERIS(PSnodes_ID_t dest)

@@ -161,11 +161,11 @@ int shutdownNode(int phase)
 		closeConnection(i);
 	    }
 	}
-	send_DAEMONSHUTDOWN();
 	if (!config->useMCast) releaseStatusTimer();
     }
     if (phase == 3) {
 	if (config->useMCast) exitMCast();
+	send_DAEMONSHUTDOWN();
 	exitRDP();
 	PSID_stopAllHW();
 	PSID_log(-1, "%s: good bye\n", __func__);

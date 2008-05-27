@@ -661,7 +661,7 @@ static void initConntable(int nodes, unsigned int host[], unsigned short port)
 	conntable[i].frameExpected = random();
 	RDP_log(RDP_LOG_INIT, "%s: FE from %d set to %x\n",
 		__func__, i, conntable[i].frameExpected);
-	conntable[i].ConnID_out = random();;
+	conntable[i].ConnID_out = random();
 	conntable[i].state = CLOSED;
     }
 }
@@ -1040,19 +1040,29 @@ static void clearMsgQ(int node)
 /**
  * @brief Close a connection.
  *
- * Close the RDP connection to node @a node and inform the calling program.
+ * Close the RDP connection to node @a node and inform the calling
+ * program. The last step will be performed only if the @a callback
+ * flag is set.
+ *
+ * @param node Connection to this node will be brought down.
+ *
+ * @param callback Flag, if the RDP-callback shall be performed.
  *
  * @return No return value.
  */
-static void closeConnection(int node)
+static void closeConnection(int node, int callback)
 {
     RDP_log((conntable[node].state != ACTIVE) ? RDP_LOG_CONN : -1, "%s(%d)\n",
 	    __func__, node);
+
     conntable[node].state = CLOSED;
     conntable[node].ackPending = 0;
     conntable[node].msgPending = 0;
+    conntable[node].ConnID_in = -1;
+    conntable[node].ConnID_out = random();
+
     clearMsgQ(node);
-    if (RDPCallback) {  /* inform daemon */
+    if (callback && RDPCallback) {  /* inform daemon */
 	RDPCallback(RDP_LOST_CONNECTION, &node);
     }
 }
@@ -1097,7 +1107,7 @@ static void resendMsgs(int node)
 		"%s: Retransmission count exceeds limit"
 		" [seqno=%x], closing connection to %d\n",
 		__func__, mp->msg.small->header.seqno, node);
-	closeConnection(node);
+	closeConnection(node, 1);
 	return;
     }
 
@@ -1311,7 +1321,7 @@ static void updateState(rdphdr_t *hdr, int node)
 	    RDP_log(RDP_LOG_CNTR, "%s: new connection from %d, FE=%x, seqno=%x"
 		    " in ACTIVE State [%d:%d]\n", __func__, node,
 		    cp->frameExpected, hdr->seqno, hdr->connid, cp->ConnID_in);
-	    closeConnection(node);
+	    closeConnection(node, 1);
 	    switch (hdr->type) {
 	    case RDP_SYN:
 	    case RDP_SYNNACK:
@@ -1338,7 +1348,7 @@ static void updateState(rdphdr_t *hdr, int node)
 	} else { /* SYN Packet on OLD Connection (probably lost answers) */
 	    switch (hdr->type) {
 	    case RDP_SYN:
-		closeConnection(node);
+		closeConnection(node, 1);
 	        cp->state = SYN_RECVD;
 		cp->frameExpected = hdr->seqno; /* Accept new seqno */
 		RDP_log(RDP_LOG_CNTR,
@@ -1732,7 +1742,7 @@ static int handleErr(void)
 	RDP_log(RDP_LOG_CONN, "%s: CONNREFUSED from %s(%d) port %d\n",
 		__func__, inet_ntoa(sinp->sin_addr), node,
 		ntohs(sinp->sin_port));
-	closeConnection(node);
+	closeConnection(node, 1);
 	break;
     case EHOSTUNREACH:
 	RDP_log(RDP_LOG_CONN, "%s: HOSTUNREACH from %s(%d) port %d\n",
@@ -2231,4 +2241,9 @@ void getStateInfoRDP(int node, char *s, size_t len)
 	     conntable[node].frameToSend,   conntable[node].ackExpected,
 	     conntable[node].frameExpected, conntable[node].ackPending,
 	     conntable[node].msgPending,    conntable[node].bufptr);
+}
+
+void closeConnRDP(int node)
+{
+    closeConnection(node, 0);
 }
