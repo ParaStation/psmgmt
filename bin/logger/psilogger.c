@@ -105,8 +105,11 @@ int verbose = 0;
  */
 int usage = 0;
 
-/** Number of connected forwarders */
+/** Number of currently connected forwarders */
 int noClients;
+
+/** Number of maximum connected forwarders during runtime */
+int maxConnected;
 
 /** Set of fds, the logger listens to. This is mainly STDIN and daemonSock. */
 fd_set myfds;
@@ -404,10 +407,10 @@ static int recvMsg(PSLog_Msg_t *msg)
  * i.e. usually @a msg->header.len. Otherwise -1 is returned and errno
  * is set appropriately.
  */
-static int sendDaemonMsg(DDSignalMsg_t *msg)
+static int sendDaemonMsg(DDMsg_t *msg)
 {
     char *buf = (void *)msg;
-    size_t c = msg->header.len;
+    size_t c = msg->len;
     int n;
 
     if (daemonSock < 0) {
@@ -446,17 +449,15 @@ static int sendDaemonMsg(DDSignalMsg_t *msg)
 
     if (verbose) {
         fprintf(stderr, "PSIlogger: %s type %s (len=%d) to %s\n", __func__,
-		PSP_printMsg(msg->header.type), msg->header.len,
-		PSC_printTID(msg->header.dest));
+		PSP_printMsg(msg->type), msg->len, PSC_printTID(msg->dest));
     }
 
-    return msg->header.len;
+    return msg->len;
 }
 
 void terminateJob(void)
 {
-    fprintf(stderr,
-		"PSIlogger: Terminating the job.\n");
+    fprintf(stderr, "PSIlogger: Terminating the job.\n");
     
     /* send kill signal to all children */ 
     {
@@ -471,7 +472,7 @@ void terminateJob(void)
 	msg.pervasive = 1;
 	msg.answer = 0;
 
-	sendDaemonMsg(&msg);
+	sendDaemonMsg((DDMsg_t *)&msg);
     }
 }
 
@@ -515,7 +516,7 @@ void sighandler(int sig)
 	    msg.pervasive = 1;
 	    msg.answer = 0;
 
-	    sendDaemonMsg(&msg);
+	    sendDaemonMsg((DDMsg_t *)&msg);
 	}
 	break;
     case SIGINT:
@@ -534,7 +535,7 @@ void sighandler(int sig)
 	    msg.pervasive = 1;
 	    msg.answer = 0;
 
-	    sendDaemonMsg(&msg);
+	    sendDaemonMsg((DDMsg_t *)&msg);
 	}
 	break;
     case SIGTTIN:
@@ -589,7 +590,7 @@ void sighandler(int sig)
 	    msg.pervasive = 1;
 	    msg.answer = 0;
 
-	    sendDaemonMsg(&msg);
+	    sendDaemonMsg((DDMsg_t *)&msg);
 	}
 	if (sig == SIGTSTP) raise(SIGSTOP);
 	break;
@@ -710,6 +711,7 @@ static int newrequest(PSLog_Msg_t *msg)
 
 	clientTID[msg->sender] = msg->header.sender;
 	noClients++;
+	maxConnected++;
 	if (verbose) {
 	    fprintf(stderr, "PSIlogger: new connection from %s (%d)\n",
 		    PSC_printTID(msg->header.sender), msg->sender);
@@ -1033,6 +1035,99 @@ static void handleKVSMsg(PSLog_Msg_t msg)
 	sendMsg(msg.header.sender, KVS, "cmd=kvs_not_available\n", 
 	    strlen("cmd=kvs_not_available\n"));
     }
+}
+
+/**
+ * @brief Determine job-ID
+ *
+ * Determine if the current job is started within a batch
+ * environment. If a batch-system is detected, return a string
+ * describing the current job.
+ *
+ * @return If a batch system is found, a string containing the
+ * corresponding job-ID is returned. Otherwise NULL is returned.
+ */
+static char * getIDstr(void)
+{
+    char *IDstr;
+
+    IDstr = getenv("PBS_JOBID");
+    if (IDstr) return IDstr;
+
+    /* @todo Add support for other batch-systems */
+
+    return NULL;
+}
+
+/**
+ * @brief Send accounting info
+ *
+ * Generate accounting information only known to the logger process
+ * and send this information to the local daemon. From there it will
+ * be distributed to all registered accounters.
+ *
+ * @return No return value.
+ */
+static void sendAcctData(void)
+{
+    DDTypedBufferMsg_t msg;
+    char *ptr = msg.buf, *IDstr;
+
+    msg.header.type = PSP_CD_ACCOUNT;
+    msg.header.dest = PSC_getTID(-1, 0);
+    msg.header.sender = PSC_getMyTID();
+    msg.header.len = sizeof(msg.header);
+
+    msg.type = PSP_ACCOUNT_LOG;
+    msg.header.len += sizeof(msg.type);
+
+    /* logger's TID, this identifies a task uniquely */
+    *(PStask_ID_t *)ptr = PSC_getMyTID();
+    ptr += sizeof(PStask_ID_t);
+    msg.header.len += sizeof(PStask_ID_t);
+
+    /* current rank */
+    *(int32_t *)ptr = -1;
+    ptr += sizeof(int32_t);
+    msg.header.len += sizeof(int32_t);
+
+    /* child's uid */
+    *(uid_t *)ptr = getuid();
+    ptr += sizeof(uid_t);
+    msg.header.len += sizeof(uid_t);
+
+    /* child's gid */
+    *(gid_t *)ptr = getgid();
+    ptr += sizeof(gid_t);
+    msg.header.len += sizeof(gid_t);
+
+    /* maximum connected childs */
+    *(int32_t *)ptr = maxConnected;
+    ptr += sizeof(int32_t);
+    msg.header.len += sizeof(int32_t);
+
+    /* job id */
+    if ((IDstr = getIDstr())) {
+	size_t len = strlen(IDstr), offset=0;
+	size_t maxLen = sizeof(msg)-msg.header.len-1;
+
+	if (len > maxLen) {
+	    strcpy(ptr, "...");
+	    ptr += 3;
+	    msg.header.len += 3;
+
+	    offset = len-maxLen+3;
+	    len = maxLen-3;
+	}
+	strcpy(ptr, &IDstr[offset]);
+	ptr += len;
+	msg.header.len += len;
+    }
+    *ptr = '\0';
+    ptr++;
+    msg.header.len++;
+
+    sendDaemonMsg((DDMsg_t *)&msg);
 }
 
 /**
@@ -1364,6 +1459,8 @@ int main( int argc, char**argv)
     loop();
 
     leave_raw_mode();
+
+    sendAcctData();
 
     closeDaemonSock();
 

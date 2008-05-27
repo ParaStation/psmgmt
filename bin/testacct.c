@@ -179,7 +179,7 @@ void handleStartMsg(DDTypedBufferMsg_t *msg)
     char *ptr = handleCommonMsg(msg);
     int possChilds;
 
-    /* total number of possible childs. */
+    /* total number of possible childs */
     possChilds = *(int32_t *)ptr;
     ptr += sizeof(int32_t);
 
@@ -192,9 +192,31 @@ void handleChildMsg(DDTypedBufferMsg_t *msg)
     char *progname;
 
     progname = ptr;
-    ptr += strlen(ptr);
+    ptr += strlen(ptr)+1;
 
     printf(" prog '%s'", progname);
+}
+
+void handleLogMsg(DDTypedBufferMsg_t *msg)
+{
+    char *ptr = handleCommonMsg(msg);
+    int maxConnected;
+    char *jobID;
+
+    /* total number of childs connected to logger */
+    maxConnected = *(int32_t *)ptr;
+    ptr += sizeof(int32_t);
+    printf(" logger conn childs %d", maxConnected);
+
+    /* job ID (if available) */
+    jobID = ptr;
+    ptr += strlen(ptr)+1;
+
+    if (*jobID) {
+	printf(" jobID '%s'", jobID);
+    } else {
+	printf(" no jobID");
+    }	
 }
 
 void handleAcctMsg(DDTypedBufferMsg_t *msg)
@@ -235,6 +257,10 @@ void handleAcctMsg(DDTypedBufferMsg_t *msg)
     case PSP_ACCOUNT_CHILD:
 	printf("S-C");
 	handleChildMsg(msg);
+	break;
+    case PSP_ACCOUNT_LOG:
+	printf("L");
+	handleLogMsg(msg);
 	break;
     case PSP_ACCOUNT_END:
 	printf("E");
