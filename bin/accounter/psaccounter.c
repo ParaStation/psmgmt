@@ -1676,9 +1676,9 @@ static void getNodeInformation()
 		 accNodes[n].hostname, inet_ntoa(senderIP), n, val);
 	}
 
-	/* make sure we have at least protocol version 402 */
-	if (val < 402) {
-	    alog("%s: need deamon protocol >= 402, please update "
+	/* make sure we have at least protocol version 401 */
+	if (val < 401) {
+	    alog("%s: need deamon protocol >= 401, please update "
 		 "node:%i\n", __func__, n);
 	    exit(EXIT_FAILURE);
 	}
