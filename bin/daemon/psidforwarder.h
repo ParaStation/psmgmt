@@ -30,6 +30,13 @@ extern "C" {
 #endif
 #endif
 
+/** Connection Type of PMI */
+typedef enum {
+    PMI_DISABLED = 0,
+    PMI_OVER_TCP,
+    PMI_OVER_UNIX,
+} PMItype_t;
+
 /**
  * @brief The forwarder process.
  *
@@ -54,11 +61,10 @@ extern "C" {
  * @param daemonfd File descriptor connecting the forwarder to the
  * local daemon.
  *
- * @param PMISocket Socket connecting the forwarder to the pmi client. If
- * the socket is -1 than pmi is disabled.
+ * @param PMISocket Socket connecting the forwarder to the pmi client.
  *
- * @param PMIType Defines if pmi is connecting over TCP/IP if PMIType is
- * set to 0 or over an UNIX domain socket if set to 1 (default).
+ * @param PMItype Defines if the pmi client is connected over tcp/ip or
+ * over an unix domain socket which is the default.
  *
  * @param doAccounting Set to true if the forwarder should do accouting.
  *
@@ -67,8 +73,8 @@ extern "C" {
  *
  * @return No return value.
  */
-void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket, int PMIType,
-		    int doAccounting, int acctPollInterval);
+void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket,
+		    PMItype_t PMItype, int doAccounting, int acctPollInterval);
 
 /**
  * @brief Send a message to the local daemon.

@@ -26,6 +26,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <signal.h>
 #include <dirent.h>
 #include <ctype.h>
+#include <sys/utsname.h>
 
 #include "psidutil.h"
 #include "pscommon.h"
@@ -40,15 +41,12 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "psidforwarder.h"
 
 typedef struct {
-    char state;
     int session;
-    unsigned long flags;
     unsigned long utime;
     unsigned long stime;
     unsigned long cutime;
     unsigned long cstime;
     unsigned long threads;
-    unsigned long starttime;
     unsigned long maxvsize;
     long maxrss;
 } AccountData;
@@ -69,11 +67,11 @@ PStask_t *childTask = NULL;
 /** The socket connecting to the local ParaStation daemon */
 int daemonSock = -1;
 
-/** The socket listening for connection from the pmi client */
+/** The socket listening for connection from the pmi client (tcp/ip only) */
 int PMISock = -1;
 
 /** The type of the connection between forwarder and client */
-int pmiType = -1;
+PMItype_t pmiType = -1;
 
 /** The socket connected to the pmi client */
 int PMIClientSock = -1;
@@ -277,22 +275,61 @@ static long getAllChildsMem(int pid, char *buf, int size, DIR *dir)
 }
 
 /**
- * @brief Reads data from /proc/pid/stat and updates the
+ * @brief Update Accounting Data.
+ *
+ * Reads data from /proc/pid/stat and updates the
  * accounting data structure accData. Used for generating
  * accounting files and to replace the resmom of torque.
+ * For accounting the memory usage the rss and vsize or monitored.
+ *
+ * VSIZE (Virtual memory SIZE) - The amount of memory the process is
+ * currently using. This includes the amount in RAM and the amount in
+ * swap.
+ *
+ * RSS (Resident Set Size) - The portion of a process that exists in
+ * physical memory (RAM). The rest of the program exists in swap. If
+ * the computer has not used swap, this number will be equal to VSIZE.
  *
  * @return No return value.
  */
 static void updateAccountData(void)
 {
     /** Format string of /proc/pid/stat */
-    static char stat_format[] = "%*d %*s %c %*d %*d %d %*d %*d %u %*u \
-    %*u %*u %*u %d %d %d %d %*d %*d %lu %*u %u %lu %lu %*u %*u \
-    %*u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*d %*d %*lu %*lu %*llu";
-
+    static char stat_format[] = 
+		    "%*d "	    /* pid */
+		    "%*s "	    /* comm */
+		    "%*c "	    /* state */
+		    "%*d %*d "	    /* ppid pgrp */
+		    "%d "	    /* session */
+		    "%*d "	    /* tty_nr */
+		    "%*d "	    /* tpgid */
+		    "%*u "	    /* flags */
+		    "%*lu %*lu "    /* minflt cminflt */
+		    "%*lu %*lu "    /* majflt cmajflt */ 
+		    "%lu %lu "	    /* utime stime */
+		    "%lu %lu "	    /* cutime cstime */
+		    "%*d "	    /* priority */
+		    "%*d "	    /* nice */
+		    "%lu "	    /* num_threads */
+		    "%*u "	    /* itrealvalue */
+		    "%*u "	    /* starttime */
+		    "%lu %lu "	    /* vsize rss*/
+		    "%*u "	    /* rlim */
+		    "%*u %*u "	    /* startcode endcode startstack */
+		    "%*u "	    /* startstack */
+		    "%*u %*u "	    /* kstkesp kstkeip */
+		    "%*u %*u "	    /* signal blocked */
+		    "%*u %*u "	    /* sigignore sigcatch */
+		    "%*u "	    /* wchan */
+		    "%*u %*u "	    /* nswap cnswap */
+		    "%*d "	    /* exit_signal (kernel 2.1.22) */
+		    "%*d "	    /* processor  (kernel 2.2.8) */
+		    "%*lu "	    /* rt_priority (kernel 2.5.19) */
+		    "%*lu "	    /* policy (kernel 2.5.19) */
+		    "%*llu";	    /* delayacct_blkio_ticks (kernel 2.6.18) */
     int pid, res;
     long rssnew;
-    unsigned long vsizenew = 0, newstarttime = 0, newthreads = 0;
+    unsigned long vsizenew = 0, newthreads = 0;
     static char buf[1024];
     FILE *fd;
     DIR *dir;
@@ -317,27 +354,24 @@ static void updateAccountData(void)
     }
 
     res = fscanf(fd, stat_format,
-	    &accData.state,
 	    &accData.session,
-	    &accData.flags,
 	    &accData.utime,
 	    &accData.stime,
 	    &accData.cutime,
 	    &accData.cstime,
 	    &newthreads,
-	    &newstarttime,
 	    &vsizenew,
 	    &rssnew);
 
     fclose(fd);
 
-    if (res != 11) {
+    if (res != 8) {
 	PSID_log(-1, "%s: error reading accounting data,"
 		 " invalid kernel version?\n", __func__);
 	acctPollTime = 0; 
 	return;
     }
-    
+
     /* get mem and vmem for all childs  */
     if ((dir = opendir("/proc/"))) {
 	rssnew += getAllChildsMem(pid, buf, sizeof(buf), dir);
@@ -347,45 +381,12 @@ static void updateAccountData(void)
 
     /* set max rss (resident set size) */
     if (rssnew > accData.maxrss) accData.maxrss = rssnew;
-   
+
     /* set max threads */
     if (newthreads > accData.threads) accData.threads = newthreads;
 
     /* set max vmem */
     if (vsizenew > accData.maxvsize) accData.maxvsize = vsizenew;
-
-    /* calc real times */
-    /*accData.utime /=  rate;
-    accData.stime /=  rate;
-    accData.cutime /=  rate;
-    accData.cstime /=  rate;*/
-
-    /* set starttime */
-    /*
-    if (!boottime) {
-	accData.starttime = 0;
-	if ((fd = fopen("/proc/stat","r")) == NULL) {
-	    return;
-	}
-	while (!feof(fd)) {
-	    res = fscanf(fd, "%s", buf);
-
-	    if (strcmp(buf,"btime")) {
-		res = fscanf(fd, "%*[^\n]%*c");
-	    } else {
-		res = fscanf(fd, "%u", &boottime);
-		if (res != 1) {
-		    fclose(fd);
-		    return;
-		}
-	    }
-	}
-	fclose(fd);
-    }	
-    if (!accData.starttime && boottime){ 
-	accData.starttime = boottime + ( newstarttime / rate );
-    }
-    */
 }
 
 /**
@@ -515,7 +516,7 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 	break;
     case PSP_CD_RELEASERES:
 	/* finaly release the pmi client */
-	if (pmiType != -1) {	
+	if (pmiType != PMI_DISABLED) {	
 	    /* release the pmi client */
 	    pmi_finalize();
 
@@ -1109,8 +1110,6 @@ static size_t collectRead(int sock, char *buf, size_t count, size_t *total)
     return n;
 }
 
-#define NAME_TO_LONG_STR "progname to long"
-	    
 /**
  * @brief Send accounting information.
  *
@@ -1128,6 +1127,7 @@ static void sendAccoutingData(struct rusage rusage, int status)
     DDTypedBufferMsg_t msg;
     char *ptr = msg.buf;
     struct timeval now, walltime;
+    long pagesize;
 
     msg.header.type = PSP_CD_ACCOUNT;
     msg.header.dest = PSC_getTID(-1, 0);
@@ -1162,6 +1162,14 @@ static void sendAccoutingData(struct rusage rusage, int status)
     ptr += sizeof(rusage);
     msg.header.len += sizeof(rusage);
 
+    /* pagesize */
+    if ((pagesize = sysconf(_SC_PAGESIZE)) < 1) {
+	pagesize = 0;
+    }
+    *(uint64_t *)ptr = pagesize;
+    ptr += sizeof(uint64_t);
+    msg.header.len += sizeof(uint64_t);
+
     /* size of max used mem */
     *(uint64_t *)ptr = (uint64_t)accData.maxrss;
     ptr += sizeof(uint64_t);
@@ -1178,11 +1186,6 @@ static void sendAccoutingData(struct rusage rusage, int status)
     memcpy(ptr, &walltime, sizeof(walltime));
     ptr += sizeof(walltime);
     msg.header.len += sizeof(walltime);
-
-    /* pagesize */
-    *(int32_t *)ptr = getpagesize();
-    ptr += sizeof(int32_t);
-    msg.header.len += sizeof(int32_t);
 
     /* number of threads */
     *(uint32_t *)ptr = accData.threads;
@@ -1651,10 +1654,11 @@ static void loop(void)
 }
 
 /* see header file for docu */
-void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket, int PMIType,
-		    int doAccounting, int acctPollInterval)
+void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket,
+		    PMItype_t PMItype, int doAccounting, int acctPollInterval)
 {
     long flags;
+    struct utsname uts;
 
     childTask = task;
     daemonSock = daemonfd;
@@ -1683,17 +1687,46 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket, int PMIType,
     }
 
     /* Set up pmi connection */ 
-    if (PMISocket != -1) { 
-	pmiType = PMIType;
-	if (pmiType) {
-	    PMIClientSock = PMISocket;    
-	    /* init the pmi interface */
-	    pmi_init(PMIClientSock, childTask->loggertid, childTask->rank);
-	} else {
-	    PMISock = PMISocket;
+    pmiType = PMItype;
+    switch (pmiType) {
+    case PMI_OVER_UNIX:
+	PMIClientSock = PMISocket;    
+	/* init the pmi interface */
+	pmi_init(PMIClientSock, childTask->loggertid, childTask->rank);
+	break;
+    case PMI_OVER_TCP:
+	PMISock = PMISocket;
+	break;
+    case PMI_DISABLED:	
+	break;
+    default:
+	PSID_log(-1, "%s: wrong pmi type: %i\n", __func__, pmiType);
+	pmiType = PMI_DISABLED;
+    }
+   
+    /* read plattform version */
+    if (uname(&uts)) {
+	PSID_log(-1, "%s: uname failed\n", __func__);
+    } else {
+	if (!!strcmp(uts.sysname, "Linux")) {
+	    /* disable extended accouting if we are not running on linux */
+	    accounting = 0;
 	}
     }
 
+    /* init accouting */
+    if (accounting && acctPollTime) {
+	/* accouting data structure */
+	accData.session = 0;
+	accData.utime = 0;
+	accData.stime = 0;
+	accData.cutime = 0;
+	accData.cstime = 0;
+	accData.threads = 0;
+	accData.maxvsize = 0;
+	accData.maxrss = 0;
+    }
+    
     /* call the loop which does all the work */
     loop();
 }

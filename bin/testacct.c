@@ -137,13 +137,13 @@ char *handleEndMsg(DDTypedBufferMsg_t *msg)
 	/* skip some stuff */
 	/* size of max used mem */
 	ptr += sizeof(uint64_t);
+	/* pagesize */
+	ptr += sizeof(int64_t);
 	/* size of max used vmem */
 	ptr += sizeof(uint64_t);
 	/* walltime used by child */
 	memcpy(&walltime, ptr, sizeof(walltime));
 	ptr += sizeof(walltime);
-	/* pagesize */
-	ptr += sizeof(int32_t);
 	/* number of threads */
 	ptr += sizeof(uint32_t);
 	/* session id of job */

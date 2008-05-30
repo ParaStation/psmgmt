@@ -73,7 +73,9 @@ SOCKET pmisock;
 PStask_ID_t loggertid;
 	
 /** 
- * @brief Send a PSP_CD_KVS msg to the logger to manipulte the global kvs.
+ * @brief Send a PSP_CD_KVS messages.
+ *
+ * Send a PSP_CD_KVS messages to the logger to manipulte the global kvs.
  *
  * @param msgbuffer The buffer which contains the kvs msg to send to
  * the logger.
@@ -175,7 +177,9 @@ static int do_send(char *msg, int offset, int len)
 }
 
 /**  
- * @brief Send a msg to the connected pmi client.
+ * @brief Send PMI Client message.
+ *
+ * Send a message to the connected pmi client.
  *
  * @param msg Buffer with the pmi message to send.
  *
@@ -216,7 +220,9 @@ static int PMI_send(char *msg)
 }
 
 /**  
- * @brief Returns the size of the mpi universe.
+ * @brief Return mpi universe size.
+ *
+ * Return the size of the mpi universe.
  *
  * @param msgBuffer The buffer which contains the pmi msg to handle.
  *  
@@ -234,8 +240,10 @@ static int p_Get_Universe_Size(char *msgBuffer)
 }
 
 /**  
- * @brief Returns the application number which defines the order the
- * app was started.
+ * @brief Return application number. 
+ *
+ * Returns the application number which defines the order the
+ * application was started.
  *
  * @return Returns 0 for success. 
  */
@@ -250,7 +258,9 @@ static int p_Get_Appnum(void)
 }
 
 /**  
- * @brief Set a new barrier. The pmi client has to wait till all
+ * @brief Set a new barrier. 
+ *
+ * Sets a new mpi barrier. The pmi client has to wait till all
  * clients have entered barrier.
  *
  * @param msgBuffer The buffer which contains the pmi msg to handle.
@@ -268,10 +278,12 @@ static int p_Barrier_In(char *msgBuffer)
 /**  
  * @brief Finalize the PMI.
  *
- * @return Returns PMI_FINALIZED to notice the forwarder that the
+ * Returns PMI_FINALIZED to notice the forwarder that the
  * child has finished execution. The forwarder will release the child
  * and then call pmi_finalize() to allow the child to exit.
- */
+ *
+ * @return Returns PMI_FINALIZED.  
+ * */
 static int p_Finalize(void)
 {
     char kvsmsg[PMIU_MAXLINE];
@@ -283,9 +295,10 @@ static int p_Finalize(void)
     return PMI_FINALIZED;
 }
 
-
 /**  
- * @brief Return the default(_0) kvs name.
+ * @brief Return the default kvs name.
+ *
+ * Returns the default(_0) kvs name.
  *
  * @return Returns 0 for success. 
  */
@@ -302,7 +315,9 @@ static int p_Get_My_Kvsname(void)
 }
 
 /**  
- * @brief Creates a new key value space. 
+ * @brief Creates a new kvs. 
+ *
+ * Creates a new key value space. 
  *
  * @return Returns 0 for success and 1 on error.
  */
@@ -329,7 +344,9 @@ static int p_Create_Kvs(void)
 }
 
 /**  
- * @brief Deletes a specific key values space.
+ * @brief Delete a kvs.
+ *
+ * Deletes the specific key values space.
  *
  * @param msgBuffer The buffer which contains the pmi msg to handle.
  *
@@ -365,7 +382,9 @@ static int p_Destroy_Kvs(char *msgBuffer)
 }
 
 /**  
- * @brief Put a new key into a specific kvs.
+ * @brief Put a key into kvs.
+ *
+ * Puts a new key into a specific key value space.
  *
  * @param msgBuffer The buffer which contains the pmi msg to handle.
  *
@@ -408,7 +427,9 @@ static int p_Put(char *msgBuffer)
 }
 
 /**
- * @brief Read a value from the specific kvs.
+ * @brief Read a kvs value.
+ *
+ * Reads a value from the specific key value space.
  *
  * @param msgBuffer The buffer which contains the pmi msg to handle.
  *
@@ -457,7 +478,9 @@ static int p_Get(char *msgBuffer)
 }
 
 /**  
- * @brief Make a service public even for processes which are not
+ * @brief Publish a service.
+ *
+ * Make a service public even for processes which are not
  * connected over pmi.
  *
  * @param msgBuffer The buffer which contains the pmi msg to handle.
@@ -669,7 +692,9 @@ static int p_Spawn(char *msgBuffer)
 }
 
 /**  
- * @brief Get a key-value pair by specific index.
+ * @brief Get key-value pair by index. 
+ *
+ * Get a key-value pair by specific index from key value space.
  *
  * @param msgBuffer The buffer which contains the pmi msg to handle.
  *
@@ -724,7 +749,10 @@ static int p_GetByIdx(char *msgBuffer)
 }
 
 /**  
- * @brief Pmi init, mainly to be sure both sides speaks the same protocol.
+ * @brief Init PMI Communication.
+ *
+ * Init the PMI Communication, mainly to be sure both sides 
+ * speaks the same protocol.
  *
  * @param msgBuffer The buffer which contains the pmi msg to handle.
  *
@@ -769,7 +797,9 @@ static int p_Init(char *msgBuffer)
 }
 
 /**
- * @brief Get the max size of the kvsname, keylen and values.
+ * @brief Get kvs maxes.
+ *
+ * Get the max size of the kvsname, keylen and values.
  *
  * @return Returns 0 for success and 1 on error.
  */
@@ -785,7 +815,9 @@ static int p_Get_Maxes(void)
 }
 
 /**
- * @brief PMI extension in Intel MPI 3.0, just to recognize it. 
+ * @brief Intel MPI 3.0 Extension.
+ *
+ * PMI extension in Intel MPI 3.0, just to recognize it. 
  *
  * @return Returns 0 for success and 1 on error.
  */
@@ -805,7 +837,9 @@ static int p_Get_Rank2Hosts(void)
 }
 
 /**  
- * @brief Use handshake to authenticate the client. 
+ * @brief Authenticate client.
+ *
+ * Use handshake to authenticate the client. 
  *
  * @param msgBuffer The buffer which contains the pmi 
  * msg to handle.
@@ -857,8 +891,10 @@ static int p_InitAck(char *msgBuffer)
 }
 
 /**  
- * @brief This is sent BEFORE client actually starts, so even before
- * PMIinit.
+ * @brief Handle execution problem message. 
+ *
+ * The execution problem message  is sent BEFORE client actually 
+ * starts, so even before PMIinit.
  *
  * @param msgBuffer The buffer which contains the pmi msg to handle.
  *
@@ -917,7 +953,9 @@ const int pmi_com_count = sizeof(pmi_commands)/sizeof(pmi_commands[0]);
 const int pmi_short_com_count = sizeof(pmi_short_commands)/sizeof(pmi_short_commands[0]);
 
 /** 
- * @brief Init the PMI interface, this must be the first call before
+ * @brief Init the PMI interface.
+ *
+ * Init the PMI interface, this must be the first call before
  * everything else.
  *
  * @param pmisocket The socket witch is connect to the pmi client.
@@ -992,7 +1030,9 @@ int pmi_init(int pmisocket, PStask_ID_t loggertaskid, int Rank)
 }
 
 /**  
- * @brief Parse a pmi msg and return the cmd.
+ * @brief Extract PMI command. 
+ *
+ * Parse a pmi message and return the command.
  *		 
  * @param msg The message to parse.
  *
@@ -1038,7 +1078,9 @@ static int pmi_extract_cmd(char *msg, char *cmdbuf, int bufsize)
 }
 
 /**  
- * @brief Parse a pmi msg and call the appropriate protocol handler
+ * @brief PMI message switch.
+ *
+ * Parse a pmi msg and call the appropriate protocol handler
  * function
  *
  * @param msg The pmi message to parse.
@@ -1101,6 +1143,13 @@ int pmi_parse_msg(char *msg)
     return critErr();
 }
 
+/**
+* @brief Release the PMI client.
+*
+* Finalize the pmi connection and release the pmi client.
+* 
+* @return No return value.
+*/
 void pmi_finalize(void)
 {
     if (pmi_init_client) {
@@ -1108,6 +1157,13 @@ void pmi_finalize(void)
     }
 }
 
+/**
+* @brief Handle kvs reply from logger.
+*
+* Handle a key value space message reply send from the logger.
+* 
+* @return No return value.
+*/
 void pmi_handleKvsRet(PSLog_Msg_t msg)
 {
     char cmd[VALLEN_MAX], reply[PMIU_MAXLINE];

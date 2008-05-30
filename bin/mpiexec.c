@@ -21,6 +21,7 @@
 static char vcid[] __attribute__(( unused )) = "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -51,53 +52,117 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #define GDB_COMMAND_SILENT "-q"
 #define MPI1_NP_OPT "-np"
 
-/* Space for error messages */
+/** Space for error messages */
 char msgstr[512];
-
-/* control pmi */
-int pmidebug = 0;
-int pmidebug_kvs = 0;
-int pmidebug_client = 0;
-int pmienabletcp = 0;
-int pmienablesockp = 0;
-int pmitmout = 0;
-
+/** pointer to error msg */
+char *msg;
+/** context for parsing command-line options */
+poptContext optCon;
+/** duplicated argv for parsing command-line options */
+char **dup_argv;
+/** duplicated argc for parsing command-line options */
+int dup_argc;
+/** start admin task which are not accounted */
+int admin = 0;
+/** set debugging mode and np * gdb to controll child processes */
+int gdb = 0;
+/** just print output, don't run anything */ 
+int show = 0; 
+/** flag to set verbose mode */
+int verbose = 0;
+/** flag to determine if we are using quadrics lib elan */
+bool useElan = 1;
 /* set mpich 1 compatible mode */
 int mpichcom = 0;
 
-/* pointer to error msg */
-char *msg;
+/* pmi options */
+int pmienabletcp = 0;
+int pmienablesockp = 0;
+int pmitmout = 0;
+int pmidebug = 0;
+int pmidebug_client = 0;
+int pmidebug_kvs = 0;
+int pmidis = 0;
 
-/* context for parsing command-line options */
-poptContext optCon;
-
-/* Control Environment */
-int overbook, loggerdb, loopnodesfirst;
-int np, source, rusage, exclusive;
-int forwarderdb, pscomdb, loggerrawmode;
-int wait, schedyield, retry, psidb, mergeout;
-int sndbuf, rcvbuf, nodelay;
-int sigquit, envall, mergedepth, mergetmout;
-int gdb, usize;
-char *plugindir, *envlist, *dest;
-char *nodelist, *hostlist, *hostfile, *sort;
-char *discom, *wdir, *network, *jobid;
-char *path, *envopt;
+/* process options */
+int np = 0;
+int envall = 0;
+int usize = 0;
+char *wdir = NULL;
+char *jobid = NULL;
+char *nodelist = NULL; 
+char *hostlist = NULL; 
+char *hostfile = NULL; 
+char *envlist = NULL; 
+char *envopt = NULL;
+char *path = NULL;
 const char *envvalopt;
-char *login;
-int totalview = 0, ecfn = 0, gdba = 0;
-int hiddenhelp = 0, admin = 0;
-int pmidis = 0, hiddenusage = 0;
-int comphelp = 0, compusage = 0;
-int dup_argc, extendedhelp = 0;
-int show, verbose = 0;
-int extendedusage = 0;
-int useElan = 1;
-char **dup_argv;
-int none = 0;
-int ver = 0;
 
-static char version[] = "$Revision$";
+/* compability options from other mpiexec commands*/
+int totalview = 0;
+int ecfn = 0; 
+int gdba = 0;
+
+/* options for parastation (psid/logger/forwarder) */
+int source = 0;
+int overbook = 0; 
+int exclusive = 0;
+int wait = 0;
+int loopnodesfirst = 0;
+int mergeout = 0;
+int mergedepth = 0;
+int mergetmout = 0;
+int rusage = 0;
+char *sort = NULL;
+char *login = NULL;
+char *dest = NULL;
+
+/* debug options */
+int loggerdb = 0; 
+int forwarderdb = 0;
+int pscomdb = 0; 
+int loggerrawmode = 0;
+int psidb = 0;
+
+/* options for the pscom library */
+int sndbuf = 0; 
+int rcvbuf = 0; 
+int nodelay = 0;
+int schedyield = 0;
+int retry = 0;
+int sigquit = 0;
+char *plugindir = NULL; 
+char *discom = NULL;
+char *network = NULL;
+    
+/* help option flags */  
+int help = 0, usage = 0;
+int debughelp = 0, debugusage = 0;
+int extendedhelp = 0, extendedusage = 0;
+int comphelp = 0, compusage = 0;
+    
+int none = 0;
+int version = 0;
+
+static char versionstring[] = "$Revision$";
+
+/**
+ * @brief Malloc with error handling.
+ *
+ * @param size Size in bytes to allocate.
+ *
+ * @return Returned is a pointer to the allocated memory. 
+ */
+static void *umalloc(size_t size, const char *func)
+{
+    void *ptr;
+
+    if (!(ptr = malloc(size))) {
+	fprintf(stderr, "%s: memory allocation failed\n", func);
+	exit(EXIT_FAILURE);
+    }
+    return ptr;
+}
 
 /**
  * @brief Print version info.
@@ -108,7 +173,7 @@ static void printVersion(void)
 {
     fprintf(stderr,
 	    "mpiexec (rev. %s\b\b) \n",
-	      version+11);
+	      versionstring+11);
 }
 
 /**
@@ -120,7 +185,7 @@ static void errExit(void)
 {
     poptPrintUsage(optCon, stderr, 0);
     fprintf(stderr, "\n%s\n\n", msg);
-    exit(1);
+    exit(EXIT_FAILURE);
 }
 
 /**
@@ -141,7 +206,7 @@ static void getNodeIDbyHost(char *host, PSnodes_ID_t *nodeID)
     hp = gethostbyname(host);
     if (!hp) {
 	fprintf(stderr, "Unknown host '%s'\n", host);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     memcpy(&sin_addr, hp->h_addr_list[0], hp->h_length);
@@ -149,11 +214,11 @@ static void getNodeIDbyHost(char *host, PSnodes_ID_t *nodeID)
 
     if (err || *nodeID < 0) {
 	fprintf(stderr, "Cannot get PS_ID for host '%s'\n", host);
-	exit(1);
+	exit(EXIT_FAILURE);
     } else if (*nodeID >= PSC_getNrOfNodes()) {
 	fprintf(stderr, "PS_ID %d for node '%s' out of range\n",
 		*nodeID, host);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 }
 
@@ -209,7 +274,7 @@ static void getFirstNodeID(PSnodes_ID_t *nodeID)
 	}
 	if (node < 0 || node >= PSC_getNrOfNodes()) {
 	    fprintf(stderr, "Node %d out of range\n", node);
-	    exit(1);
+	    exit(EXIT_FAILURE);
 	}
 	*nodeID = node;
     }
@@ -237,7 +302,6 @@ static void checkForELAN(void)
     }
 #else
     setPSIEnv("PSP_ELAN", "0", 1);
-    if(verbose) printf("no libelan configured\n");
     useElan = 0;
 #endif
 
@@ -268,14 +332,10 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
         PSnodes_ID_t *nds;
         int error, spawnedProc;
 
-	nds = malloc(np*sizeof(*nds));
-        if (!nds) {
-            fprintf(stderr, "%s: No memory\n", argv[0]);
-            exit(1);
-        }
-
+	nds = umalloc(np*sizeof(nds), __func__);
+	
 	if (!admin) {
-	    if (PSE_getPartition(np)<0) exit(1);
+	    if (PSE_getPartition(np)<0) exit(EXIT_FAILURE);
 	    PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
                      nds, np*sizeof(*nds), 0);
 	} else {
@@ -314,7 +374,7 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 	    errno=error;
             fprintf(stderr, "Could not spawn master process (%s)",argv[0]);
             perror("");
-            exit(1);
+            exit(EXIT_FAILURE);
         }
 
 	/* Don't irritate the user with logger messages */
@@ -339,10 +399,17 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 	setenv("PSI_NP_INFO", tmp, 1);
 
         /* Switch to psilogger */
-        PSI_execLogger(NULL);
+	if (verbose) {
+	    printf("starting logger process, pid:%i\n", getpid());
+        }
+	PSI_execLogger(NULL);
 
         printf("never be here\n");
-        exit(1);
+        exit(EXIT_FAILURE);
+    }
+
+    if (verbose) {
+	printf("service process started, pid:%i\n", getpid());
     }
     return;
 }
@@ -361,9 +428,10 @@ static void sighandler(int sig)
 {
     switch(sig) {
     case SIGTERM:
+	if (verbose) fprintf(stderr, "Got sigterm\n");
 	break;
     default:
-	fprintf(stderr, "Got signal %d.\n", sig);
+	if (verbose) fprintf(stderr, "Got signal %d.\n", sig);
     }
 
     fflush(stdout);
@@ -462,13 +530,12 @@ static void setupPMIEnv(int rank)
  *
  * @return Returns 0 on success, or errorcode on error.
  */
-static int startProcs(int i, int np, int argc, char *argv[], int verbose, int show, char *cwd)
+static int startProcs(int i, int np, int argc, char *argv[], int verbose, 
+		      int show, char *cwd)
 {
     char *pwd = wdir;
-
-    if (verbose || show) {
-	printf("spawn rank %d: %s\n", i, argv[0]);
-    }
+    PStask_ID_t spawnedProcess = -1;
+    int error;
 
     /* only start the first process for mpi1 jobs */
     if (mpichcom && i>0) return 0;
@@ -478,26 +545,28 @@ static int startProcs(int i, int np, int argc, char *argv[], int verbose, int sh
 	setupPMIEnv(i);
     }
 
-    if (show) return 0;
-
 #ifdef ELANCTRL
     if (useElan) setupELANProcsEnv(i);
 #endif
-
-    PStask_ID_t spawnedProcess = -1;
-    int error;
-
+   
     /* set correct working dir */
     if (!pwd) {
 	pwd = cwd;
     } 
     setPSIEnv("PWD", pwd, 1);
-
+    
+    if (verbose || show) {
+	printf("spawn rank %d: cmd=%s wdir=%s\n", i, argv[0], pwd);
+	if (show) return 0;
+    }
+    
     /* start compute processes */
     if (PSI_spawnStrict(1, pwd, argc, argv, 1, &error, &spawnedProcess)<0 ) {
 	if (error) {
-	    perror("Spawn failed!\n");
-	}
+	    perror("spawn failed!\n");
+	} else {
+	    fprintf(stderr, "%s: spawn failed\n", __func__); 
+	}   
 	exit(10);
     }
     return (0);
@@ -552,7 +621,7 @@ static void setupPSCOMEnv(int verbose)
 		setPSIEnv("PSP_DAPL", "0", 1);
 	    } else {
 		printf("Unknown option to discom: %s\n", env);
-		exit(1);
+		exit(EXIT_FAILURE);
 	    }
 	    env = strtok_r(NULL, delimiters, &toksave);
 	}
@@ -628,7 +697,8 @@ static void setupPSIDEnv(int verbose)
 
     if (dest) {
 	setenv("PSI_INPUTDEST", dest, 1);
-	if (verbose) printf("Send all input to node with rank(s) [%s].\n", dest);
+	if (verbose) printf("Send all input to node with rank(s) [%s].\n", 
+			    dest);
     }
 
     if (source) {
@@ -643,7 +713,8 @@ static void setupPSIDEnv(int verbose)
 
     if (wait) {
 	setenv("PSI_WAIT", "1", 1);
-	if (verbose) printf("Will wait if not enough resources are available.\n");
+	if (verbose) printf("Will wait if not enough resources are available."
+			    "\n");
     }
 
     if (overbook) {
@@ -658,7 +729,8 @@ static void setupPSIDEnv(int verbose)
 
     if (exclusive) {
 	setenv("PSI_EXCLUSIVE", "1", 1);
-	if (verbose) printf("Setting exclusive mode: no further processes are allowed on the used nodes.\n");
+	if (verbose) printf("Setting exclusive mode: no further processes are "
+			    "allowed on the used nodes.\n");
     }
 
     if (psidb) {
@@ -701,6 +773,7 @@ static void setupPSIDEnv(int verbose)
 
     if (jobid) {
 	setPSIEnv("PSI_JOBID", jobid, 1);
+	setenv("PSI_JOBID", jobid, 1);
     }
 
     if (envlist) {
@@ -708,7 +781,7 @@ static void setupPSIDEnv(int verbose)
 
 	envstr = getenv("PSI_EXPORTS");
 	if (envstr) {
-	    val = malloc(strlen(envstr) + strlen(envlist) + 2);
+	    val = umalloc(strlen(envstr) + strlen(envlist) + 2, __func__);
 	    sprintf(val, "%s,%s", envstr, envlist);
 	} else {
 	    val = strdup(envlist);
@@ -739,8 +812,10 @@ static void setupPSIDEnv(int verbose)
 	len = strlen(envstr);
 	for (i=0; i<len; i++) {
 	    if (isalpha(envstr[i])) {
-		printf("--nodes is a list of numeric node id`s, did you mean host?\n");
-		exit(1);
+		fprintf(stderr, 
+			"--nodes is a list of numeric node id`s, did you mean "
+			"host?\n");
+		exit(EXIT_FAILURE);
 	    }
 	}
 	setenv("PSI_NODES", nodelist, 1);
@@ -828,24 +903,24 @@ static void setupEnvironment(int verbose)
 	 	val++;
 	 	lenval = strlen(val);
 	 	len = strlen(environ[i]);
-	 	if (!(key = malloc(len - lenval))) {
-		    fprintf(stderr, "%s: out of memory\n", __func__);
-		    exit(1);
-		}
+		key = umalloc(len - lenval, __func__);
 		strncpy(key,environ[i], len - lenval -1);
 	 	key[len - lenval -1] = '\0';
 		setPSIEnv(key, val, 1);
 		free(key);
 	    }
 	}
-	if (verbose) printf("Exporting the whole environment to foreign hosts\n");
+	if (verbose) {
+	    printf("Exporting the whole environment to foreign hosts\n");
+	}
     }
 
     if (envopt) {
 	if (envvalopt) {
 	    setPSIEnv(envopt, envvalopt, 1);
 	} else {
-	    fprintf(stderr, "Error setting --env: %s, value is empty\n", envopt);
+	    fprintf(stderr, "Error setting --env: %s, value is empty\n", 
+			     envopt);
 	}
     }
 
@@ -867,7 +942,8 @@ static void setupEnvironment(int verbose)
  *
  * @return No return value.
  */
-static void printHiddenUsage(poptOption opt, int dup_argc, char *dup_argv[], char *headline)
+static void printHiddenUsage(poptOption opt, int dup_argc, char *dup_argv[], 
+			     char *headline)
 {
     poptOption opt2 = opt;
 
@@ -895,7 +971,8 @@ static void printHiddenUsage(poptOption opt, int dup_argc, char *dup_argv[], cha
  *
  * @return No return value.
  */
-static void printHiddenHelp(poptOption opt, int dup_argc, char *dup_argv[], char *headline)
+static void printHiddenHelp(poptOption opt, int dup_argc, char *dup_argv[], 
+			    char *headline)
 {
     poptOption opt2 = opt;
 
@@ -929,7 +1006,7 @@ static void  parseHostfile(char *filename, char *hosts, int size)
 
     if (!(fp = fopen(filename, "r"))) {
 	fprintf(stderr, "%s: cannot open file <%s>\n", __func__, filename);
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     while (fgets(line, sizeof(line), fp)) {
@@ -941,7 +1018,7 @@ static void  parseHostfile(char *filename, char *hosts, int size)
 	    if ((strncmp(host, "ifhn=", 5)) && len) {
 		if (size - len -1 -1 <0) {
 		    fprintf(stderr, "%s hostfile to large\n", __func__);
-		    exit(1);
+		    exit(EXIT_FAILURE);
 		}
 		if (hosts[0] == '\0') {
 		    strcpy(hosts, host);
@@ -1015,7 +1092,8 @@ static void setupAdminEnv(void)
     }
 
     if (!parse) {
-	msg = "Don't know where to start, use '--nodes' or '--hosts' or '--hostfile'";
+	msg = "Don't know where to start, use '--nodes' or '--hosts' or "
+	       "'--hostfile'";
 	errExit();
     }
 
@@ -1027,11 +1105,11 @@ static void setupAdminEnv(void)
 	if (strchr(nodeparse, '-') != NULL) {
 	    if ((sscanf(nodeparse, "%d-%d", &first, &last)) != 2) {
 		fprintf(stderr, "invalid node range\n");
-		exit(1);
+		exit(EXIT_FAILURE);
 	    }
 	    if (first < 0 || last < 0 || last < first || first == last) {
 		fprintf(stderr, "invalid node range: %i-%i\n", first, last);
-		exit(1);
+		exit(EXIT_FAILURE);
 	    }
 	    for(i=first; i<=last; i++) np++;
 	} else {
@@ -1062,7 +1140,7 @@ static void setupUID(char *argv[])
     } else if (myUid && passwd->pw_uid != myUid) {
 	fprintf(stderr, "Can't start '%s' as %s\n",
 		argv[0], login);
-	exit(1);
+	exit(EXIT_FAILURE);
     } else {
 	PSE_setUID(passwd->pw_uid);
 	if (verbose) printf("Run as user '%s' UID %d\n",
@@ -1093,13 +1171,12 @@ static void doAdminSpawn(PSnodes_ID_t nodeID, int argc, char *argv[],
     PStask_ID_t spawnedProcess = -1;
 
     if (verbose) {
-	printf("Spawning Process %i on Node: %i\n", rank, nodeID);
+	printf("Spawning process %i on node: %i\n", rank, nodeID);
     }
 
     if (show) return;
 
     PSI_spawnAdmin(nodeID, wdir, argc, argv, 1, rank, &error, &spawnedProcess);
-
 
     if (error) {
 	fprintf(stderr, "Spawn to node: %i failed!\n", nodeID);
@@ -1126,7 +1203,8 @@ static void doAdminSpawn(PSnodes_ID_t nodeID, int argc, char *argv[],
  *
  * @return Returns 0 on success, or errorcode on error.
  */
-static void createAdminTasks(int argc, char *argv[], char *login, int verbose, int show)
+static void createAdminTasks(int argc, char *argv[], char *login, int verbose, 
+			     int show)
 {
     PSnodes_ID_t nodeID;
     char *nodeparse, *toksave, *parse = NULL;
@@ -1149,7 +1227,8 @@ static void createAdminTasks(int argc, char *argv[], char *login, int verbose, i
     }
 
     if (!parse) {
-	msg = "Don't know where to start, use '--nodes' or '--hosts' or '--hostfile'";
+	msg = "Don't know where to start, use '--nodes' or '--hosts' or "
+	      "'--hostfile'";
 	errExit();
     }
 
@@ -1165,15 +1244,15 @@ static void createAdminTasks(int argc, char *argv[], char *login, int verbose, i
 		first = last = 0;
 		if ((sscanf(nodeparse, "%d-%d", &first, &last)) != 2) {
 		    fprintf(stderr, "invalid node range\n");
-		    exit(1);
+		    exit(EXIT_FAILURE);
 		}
 		if (first < 0 || last < 0 || last < first || first == last) {
 		    fprintf(stderr, "invalid node range: %i-%i\n", first, last);
-		    exit(1);
+		    exit(EXIT_FAILURE);
 		}
 		if (last >= numNodes) {
 		    fprintf(stderr, "Nodes out of range, exiting\n");
-		    exit(1);
+		    exit(EXIT_FAILURE);
 		}
 		for(i=first; i<=last; i++) {
 		    doAdminSpawn(i, argc, argv, verbose, show);
@@ -1187,7 +1266,7 @@ static void createAdminTasks(int argc, char *argv[], char *login, int verbose, i
 		}
 		if (node < 0 || node >= numNodes) {
 		    fprintf(stderr, "Node %d out of range\n", node);
-		    exit(1);
+		    exit(EXIT_FAILURE);
 		}
 	    }
 	    nodeID = node;
@@ -1198,7 +1277,9 @@ static void createAdminTasks(int argc, char *argv[], char *login, int verbose, i
 }
 
 /**
- * @brief Perform some santiy checks to handle common
+ * @brief Check Sanity.
+ *
+ * Perform some santiy checks to handle common
  * mistakes.
  *
  * @param dup_argc The number of arguments for the new process to spawn.
@@ -1228,7 +1309,7 @@ static void checkSanity(char *argv[])
 
     if (totalview) {
 	fprintf(stderr, "totalview is not yet implemented\n");
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     if (ecfn) {
@@ -1237,7 +1318,7 @@ static void checkSanity(char *argv[])
 
     if (gdba) {
 	fprintf(stderr, "gdba is not yet implemented\n");
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     if (gdb || admin) {
@@ -1251,26 +1332,104 @@ static void checkSanity(char *argv[])
     }
 
     if (gdb && mpichcom) {
-	fprintf(stderr, "--gdb is only working with mpi2, don't use it with --bnr\n");
-	exit(1);
+	fprintf(stderr, 
+		"--gdb is only working with mpi2, don't use it with --bnr\n");
+	exit(EXIT_FAILURE);
     }
 
     if (admin) {
 	if (np != -1) {
-	    snprintf(msgstr, sizeof(msgstr), "Don't use '-np' and '--admin' together");
+	    snprintf(msgstr, sizeof(msgstr), 
+		     "Don't use '-np' and '--admin' together");
 	    msg = msgstr;
 	    errExit();
 	}
     }
 
     if (login && !admin) {
-	fprintf(stderr, "the '--login' option is usefull with '--admin' only, ignoring it.\n");
+	fprintf(stderr, "the '--login' option is usefull with '--admin' only, "
+			"ignoring it.\n");
     }
 
     if (pmienabletcp && pmienablesockp) {
 	msg = "Only one pmi connection type allowed (tcp or unix)";
 	errExit();
     }
+}
+
+static void resetPOPTValues()
+{
+    /* reset help flags */
+    debughelp = debugusage = 0;
+    extendedusage = extendedhelp = 0;
+    comphelp = compusage = 0;
+    help = usage = 0;
+    none = version = 0;
+
+    /* pmi options */
+    pmienabletcp = 0;
+    pmienablesockp = 0;
+    pmitmout = 0;
+    pmidebug = 0;
+    pmidebug_client = 0;
+    pmidebug_kvs = 0;
+    pmidis = 0;
+
+    /* compability options from other mpiexec commands*/
+    totalview = 0;
+    ecfn = 0; 
+    gdba = 0;
+
+    /* options for parastation (psid/logger/forwarder) */
+    source = 0;
+    overbook = 0; 
+    exclusive = 0;
+    wait = 0;
+    loopnodesfirst = 0;
+    mergeout = 0;
+    mergedepth = 0;
+    mergetmout = 0;
+    rusage = 0;
+    sort = NULL;
+    login = NULL;
+    dest = NULL;
+
+    /* debug options */
+    loggerdb = 0; 
+    forwarderdb = 0;
+    pscomdb = 0; 
+    loggerrawmode = 0;
+    psidb = 0;
+
+    /* options for the pscom library */
+    sndbuf = 0; 
+    rcvbuf = 0; 
+    nodelay = 0;
+    schedyield = 0;
+    retry = 0;
+    sigquit = 0;
+    plugindir = NULL; 
+    discom = NULL;
+    network = NULL;
+
+    /* mpiexec options */
+    admin = 0;
+    gdb = 0;
+    show = 0; 
+    verbose = 0;
+    mpichcom = 0;
+
+    /* process options */
+    envall = 0;
+    usize = 0;
+    wdir = NULL;
+    jobid = NULL;
+    nodelist = NULL; 
+    hostlist = NULL; 
+    hostfile = NULL; 
+    envlist = NULL; 
+    envopt = NULL;
+    path = NULL;
 }
 
 
@@ -1297,9 +1456,9 @@ struct poptOption poptMpiexecComp[] = {
     { "ecfn", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &ecfn, 0, "ouput xml exit codes filename (ignored)", NULL},
     { "wdir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &wdir, 0, "working directory to start the processes", "<directory>"},
+      &wdir, 0, "working directory for remote process(es)", "<directory>"},
     { "dir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &wdir, 0, "working directory to start the processes", "<directory>"},
+      &wdir, 0, "working directory for remote process(es)", "<directory>"},
     { "umask", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &none, 0, "umask for remote process (ignored)", NULL},
     { "path", 'p', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
@@ -1329,9 +1488,9 @@ struct poptOption poptMpiexecCompGlobal[] = {
     { "gn", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &np, 0, "equal to np: number of processes to start", "num"},
     { "gwdir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &wdir, 0, "working directory to start the processes", "<directory>"},
+      &wdir, 0, "working directory for remote process(es)", "<directory>"},
     { "gdir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &wdir, 0, "working directory to start the processes", "<directory>"},
+      &wdir, 0, "working directory for remote process(es)", "<directory>"},
     { "gumask", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &none, 0, "umask for remote process (ignored)", NULL},
     { "gpath", 'p', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
@@ -1377,7 +1536,8 @@ struct poptOption poptPrivilegedOptions[] = {
     { "admin", 'A', POPT_ARG_NONE,
       &admin, 0, "start an admin-task which is not accounted", NULL},
     { "login", 'L', POPT_ARG_STRING,
-      &login, 0, "remote user used to execute command (with --admin only)", "login_name"},
+      &login, 0, "remote user used to execute command (with --admin only)", 
+      "login_name"},
     POPT_TABLEEND
 };
 
@@ -1396,12 +1556,12 @@ struct poptOption poptDebugOptions[] = {
       &pmidebug_client, 0, "set debug mode of pmi client only", "num"},
     { "pmidbkvs", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
       &pmidebug_kvs, 0, "set debug mode of pmi kvs only", "num"},
-    { "show", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-      &show, 0, "show command for remote execution but dont run it", NULL},
     { "loggerrawmode", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
       &loggerrawmode, 0, "set raw mode of the logger", "num"},
     { "sigquit", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
       &sigquit, 0, "ouput debug information on signal sigquit", NULL},
+    { "show", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
+      &show, 0, "show command for remote execution but don`t run it", NULL},
     POPT_TABLEEND
 };
 
@@ -1431,11 +1591,13 @@ struct poptOption poptAdvancedOptions[] = {
     { "mergetimeout", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN,
       &mergetmout, 0, "set the time how long an output is maximal delayed", NULL},
     { "pmitimeout", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN,
-      &pmitmout, 0, "set a timeout till all clients have to join the first barrier (disabled=-1) (default=60sec + np*0,1sec)", "num"},
+      &pmitmout, 0, "set a timeout till all clients have to join the first "
+      "barrier (disabled=-1) (default=60sec + np*0,1sec)", "num"},
     { "pmiovertcp", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
       &pmienabletcp, 0, "connect to the pmi client over tcp/ip", "num"},
     { "pmioverunix", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-      &pmienablesockp, 0, "connect to the pmi client over unix domain socket (default)", "num"},
+      &pmienablesockp, 0, "connect to the pmi client over unix domain "
+      "socket (default)", "num"},
     { "pmidisable", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
       &pmidis, 0, "disable pmi interface", "num"},
     POPT_TABLEEND
@@ -1455,13 +1617,14 @@ struct poptOption poptExecutionOptions[] = {
     { "overbook", 'o', POPT_ARG_NONE,
       &overbook, 0, "allow overbooking", NULL},
     { "loopnodesfirst", 'F', POPT_ARG_NONE,
-      &loopnodesfirst, 0, "place consecutive processes on different nodes, if possible", NULL},
+      &loopnodesfirst, 0, "place consecutive processes on different nodes, "
+      "if possible", NULL},
     { "exclusive", 'X', POPT_ARG_NONE,
-      &exclusive, 0, "do not allow any other processes on used nodes", NULL},
+      &exclusive, 0, "do not allow any other processes on used node(s)", NULL},
     { "sort", 'S', POPT_ARG_STRING,
       &sort, 0, "sorting criterium to use: {proc|load|proc+load|none}", NULL},
     { "wdir", 'd', POPT_ARG_STRING,
-      &wdir, 0, "working directory to start the processes", "<directory>"},
+      &wdir, 0, "working directory for remote process(es)", "<directory>"},
     { "path", 'p', POPT_ARG_STRING,
       &path, 0, "the path to search for executables", "<directory>"},
     POPT_TABLEEND
@@ -1469,8 +1632,8 @@ struct poptOption poptExecutionOptions[] = {
 
 struct poptOption poptCommunicationOptions[] = {
     { "discom", 'c', POPT_ARG_STRING,
-      &discom, 0, "disable an communication architecture: {SHM,TCP,P4SOCK,GM,MVAPI,OPENIB,DAPL}",
-      NULL},
+      &discom, 0, "disable an communication architecture: {SHM,TCP,P4SOCK,"
+      "GM,MVAPI,OPENIB,DAPL}", NULL},
     { "network", 't', POPT_ARG_STRING,
       &network, 0, "set a space separeted list of networks enabled", NULL},
     { "schedyield", 'y', POPT_ARG_NONE,
@@ -1483,22 +1646,30 @@ struct poptOption poptCommunicationOptions[] = {
 struct poptOption poptOtherOptions[] = {
     { "gdb", '\0', POPT_ARG_NONE,
       &gdb, 0, "debug processes with gdb", NULL},
+    { "verbose", 'v', POPT_ARG_NONE,
+      &verbose, 0, "set verbose mode", NULL},
+    { "version", 'V', POPT_ARG_NONE,
+      &version, -1, "output version information and exit", NULL},
+    POPT_TABLEEND
+};
+
+struct poptOption poptStandardHelpOptions[] = {
     { "extendedhelp", '\0', POPT_ARG_NONE,
       &extendedhelp, 0, "display extended help", NULL},
     { "extendedusage", '\0', POPT_ARG_NONE,
-      &extendedusage, 0, "display extended usage", NULL},
+      &extendedusage, 0, "print extended usage", NULL},
     { "debughelp", '\0', POPT_ARG_NONE,
-      &hiddenhelp, 0, "display debug help", NULL},
+      &debughelp, 0, "display debug help", NULL},
     { "debugusage", '\0', POPT_ARG_NONE,
-      &hiddenusage, 0, "display debug usage", NULL},
+      &debugusage, 0, "print debug usage", NULL},
     { "comphelp", '\0', POPT_ARG_NONE,
       &comphelp, 0, "display compatibility help", NULL},
     { "compusage", '\0', POPT_ARG_NONE,
-      &compusage, 0, "display compatibility usage", NULL},
-    { "verbose", 'v', POPT_ARG_NONE,
-      &verbose, 0, "verbose mode", NULL},
-    { "version", 'V', POPT_ARG_NONE,
-      &ver, -1, "output version information and exit", NULL},
+      &compusage, 0, "print compatibility usage", NULL},
+    { "help", 'h', POPT_ARG_NONE,
+      &help, 0, "show help message", NULL},
+    { "usage", '?', POPT_ARG_NONE,
+      &usage, 0, "print usage", NULL},
     POPT_TABLEEND
 };
 
@@ -1523,7 +1694,8 @@ struct poptOption optionsTable[] = {
       0, NULL , NULL },
     { NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptOtherOptions, \
       0, "Other options:", NULL },
-    POPT_AUTOHELP
+    { NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptStandardHelpOptions, \
+      0, "Help options:", NULL },
     POPT_TABLEEND
 };
 
@@ -1540,8 +1712,7 @@ static void parseCmdOptions(int argc, char *argv[])
 {
     #define OTHER_OPTIONS_STR "<command> [options]"
     int rc = 0, i;
-
-
+    
     /* The duplicated argv will contain the apps commandline */
     poptDupArgv(argc, (const char **)argv,
 		&dup_argc, (const char ***)&dup_argv);
@@ -1561,18 +1732,9 @@ static void parseCmdOptions(int argc, char *argv[])
 	const char *unknownArg;
 
 	np = -1;
-	ver = verbose = source = rusage = show = 0;
-	overbook = loggerdb = forwarderdb = psidb = 0;
-	pscomdb = loopnodesfirst = loggerrawmode = 0;
-	exclusive = wait = schedyield = retry = envall = 0;
-	mpichcom = hiddenhelp = mergeout = hiddenusage = 0;
-	sndbuf = rcvbuf = nodelay = sigquit = 0;
-	pmitmout = admin = mergedepth = mergetmout = 0;
-	gdb = none = totalview = ecfn = usize = gdba = 0;
-	comphelp = compusage = 0;
-	nodelist = hostlist = hostfile = sort = envlist = NULL;
-	discom = wdir = network = plugindir = login = NULL;
-	dest = jobid = path = NULL;
+	
+	/* reset global values */
+	resetPOPTValues();
 
 	rc = poptGetNextOpt(optCon);
 
@@ -1602,7 +1764,7 @@ static void parseCmdOptions(int argc, char *argv[])
 	    }
 	    if (i==0) {
 		fprintf(stderr, "unknownArg '%s' not found !?\n", unknownArg);
-		exit(1);
+		exit(EXIT_FAILURE);
 	    }
 	} else {
 	    /* No unknownArg left, we are done */
@@ -1619,48 +1781,67 @@ static void parseCmdOptions(int argc, char *argv[])
 	errExit();
     }
 
+    /* output help */
+    if (help) {
+	poptPrintHelp(optCon, stdout, 0);
+	exit(EXIT_SUCCESS);
+    }
+
+    /* output usage */
+    if (usage) {
+	poptPrintUsage(optCon, stdout, 0);
+	exit(EXIT_SUCCESS);
+    }
+
     /* output extended help */
     if (extendedhelp) {
-	printHiddenHelp(poptAdvancedOptions, dup_argc, dup_argv, "Advanced Options:");
-	exit(0);
+	printHiddenHelp(poptAdvancedOptions, dup_argc, dup_argv, 
+			"Advanced Options:");
+	exit(EXIT_SUCCESS);
     }
 
     /* output extended usage */
     if (extendedusage) {
-	printHiddenUsage(poptAdvancedOptions, dup_argc, dup_argv, "Advanced Options:");
-	exit(0);
+	printHiddenUsage(poptAdvancedOptions, dup_argc, dup_argv, 
+			 "Advanced Options:");
+	exit(EXIT_SUCCESS);
     }
 
     /* output debug help */
-    if (hiddenhelp) {
+    if (debughelp) {
 	printHiddenHelp(poptDebugOptions, dup_argc, dup_argv, "Debug Options:");
-	exit(0);
+	exit(EXIT_SUCCESS);
     }
 
     /* output debug usage */
-    if (hiddenusage) {
-	printHiddenUsage(poptDebugOptions, dup_argc, dup_argv, "Debug Options:");
-	exit(0);
+    if (debugusage) {
+	printHiddenUsage(poptDebugOptions, dup_argc, dup_argv, 
+			 "Debug Options:");
+	exit(EXIT_SUCCESS);
     }
 
     /* output compatibility usage */
     if (compusage) {
-	printHiddenUsage(poptMpiexecComp, dup_argc, dup_argv, "Compatibility Options:");
-	printHiddenUsage(poptMpiexecCompGlobal, dup_argc, dup_argv, "Global Compatibility Options:");
-	exit(0);
+	printHiddenUsage(poptMpiexecComp, dup_argc, dup_argv, 
+			 "Compatibility Options:");
+	printHiddenUsage(poptMpiexecCompGlobal, dup_argc, dup_argv, 
+			 "Global Compatibility Options:");
+	exit(EXIT_SUCCESS);
     }
 
     /* output compatibility help */
     if (comphelp) {
-	printHiddenHelp(poptMpiexecComp, dup_argc, dup_argv, "Compatibility Options:");
-	printHiddenHelp(poptMpiexecCompGlobal, dup_argc, dup_argv, "Global Compatibility Options:");
-	exit(0);
+	printHiddenHelp(poptMpiexecComp, dup_argc, dup_argv, 
+			"Compatibility Options:");
+	printHiddenHelp(poptMpiexecCompGlobal, dup_argc, dup_argv, 
+			"Global Compatibility Options:");
+	exit(EXIT_SUCCESS);
     }
 
     /* print Version */
-    if (ver) {
+    if (version) {
         printVersion();
-        exit(0);
+        exit(EXIT_SUCCESS);
     }
 }
 
@@ -1675,11 +1856,8 @@ static void setupGDB()
     int i;
     char **tmp;
 
-    if (!(tmp = malloc((dup_argc + 3 + 1) * sizeof(char *) ))) {
-	fprintf(stderr, "%s: out of memory\n", __func__);
-	exit(1);
-    }
-
+    tmp = umalloc((dup_argc + 3 + 1) * sizeof(char *), __func__);
+    
     for (i=0; i<dup_argc; i++) {
 	tmp[i] = dup_argv[i];
     }
@@ -1706,16 +1884,11 @@ static void setupComp()
     char *cnp, **tmp;
     int len = 10,i;
 
-    if(!(cnp = malloc(len))) {
-	fprintf(stderr, "%s: out of memory\n", __func__);
-	exit(1);
-    }
+    cnp = umalloc(len, __func__); 
+    
     snprintf(cnp, len, "%d", np);
 
-    if (!(tmp = malloc((dup_argc + 2 + 1) * sizeof(char *) ))) {
-	fprintf(stderr, "%s: out of memory\n", __func__);
-	exit(1);
-    }
+    tmp = umalloc((dup_argc + 2 + 1) * sizeof(char *), __func__ );
 
     for (i=0; i<dup_argc; i++) {
 	tmp[i] = dup_argv[i];
@@ -1729,14 +1902,39 @@ static void setupComp()
     dup_argv[dup_argc] = NULL;
 }
 
+/**
+* @brief signal handling
+*
+* Install singal handlers for various signals. 
+* 
+* @return No return value.
+*/
+static void setSigHandlers()
+{
+    /* install sig handlers */
+    signal(SIGTERM, sighandler);
+    signal(SIGINT,  sighandler);
+    signal(SIGQUIT, sighandler);
+    signal(SIGSEGV, sighandler);
+    signal(SIGCHLD, sighandler);
+    signal(SIGHUP,  sighandler);
+    signal(SIGSTOP, sighandler);
+    signal(SIGTSTP, sighandler);
+    signal(SIGCONT, sighandler);
+    signal(SIGPIPE, sighandler);
+    signal(SIGABRT, sighandler);
+    signal(SIGFPE,  sighandler);
+}
+
 int main(int argc, char *argv[])
 {
-    int i;
+    int i, ret;
     char tmp[1024];
 
-    /* catch term singal to wait till all procs are savely spawned*/
-    signal(SIGTERM, sighandler);
-
+    /* set sighandlers */
+    setSigHandlers();
+    
+    /* parse command line options */
     parseCmdOptions(argc, argv);
 
     /* some sanity checks */
@@ -1753,12 +1951,13 @@ int main(int argc, char *argv[])
 	pmienablesockp = 0;
     }
 
+    /* setup the environment for admin tasks */
     if (admin) setupAdminEnv();
 
     /* setup the parastation environment */
     setupEnvironment(verbose);
 
-    /* Check for LSF-Parallel */
+    /* check for LSF-Parallel */
     PSI_RemoteArgs(argc-dup_argc, &argv[dup_argc], &dup_argc, &dup_argv);
 
     /* load libelan if available */
@@ -1773,7 +1972,7 @@ int main(int argc, char *argv[])
     /* add command args for mpi1 mode */
     if (mpichcom) setupComp();
 
-    /* spwan Admin processes */
+    /* spwan admin processes */
     if (admin) {
 	if (verbose) {
 	    printf("Starting admin task(s)\n");
@@ -1798,7 +1997,7 @@ int main(int argc, char *argv[])
 	for (i = 0; i < np; i++) {
 	    if (startProcs(i, np, dup_argc, dup_argv, verbose, show, tmp) < 0) {
 		fprintf(stderr, "Unable to start process %d. Aborting.\n", i);
-		exit(1);
+		exit(EXIT_FAILURE);
 	    }
 	}
     }
@@ -1806,9 +2005,15 @@ int main(int argc, char *argv[])
 #ifdef ELANCTRL
     closeELAN();
 #endif
-
+    
     /* release service process */
-    PSI_release(PSC_getMyTID());
-
+    ret = PSI_release(PSC_getMyTID());
+    if (ret == -1) {
+	fprintf(stderr, "Error releasing service process\n");
+    }
+    
+    if (verbose) {
+	printf("service process finished, pid:%i\n", getpid());
+    }
     return 0;
 }

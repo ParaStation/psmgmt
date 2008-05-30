@@ -92,8 +92,52 @@ int maxMergeDepth = 300;
 int maxMergeWait = 2;
 
 /**
+ * @brief Malloc with error handling.
+ *
+ * Call malloc() and handle errors.
+ *
+ * @param size Size in bytes to allocate.
+ *
+ * @param func Name of function that called. Used for error message.
+ *
+ * @return Returned is a pointer to the allocated memory. 
+ */
+static void *umalloc(size_t size, const char *func)
+{
+    void *ptr = malloc(size);
+
+    if (!ptr) {
+	fprintf(stderr, "PSIlogger: %s: malloc() failed.\n", func);
+	exit(EXIT_FAILURE);
+    }
+    return ptr;
+}
+
+/**
+ * @brief Realloc with error handling.
+ *
+ * Call realloc() and handle errors.
+ *
+ * @param size Size in bytes to allocate.
+ *
+ * @param func Name of function that called. Used for error message.
+ *
+ * @return Returned is a pointer to the allocated memory. 
+ */
+static void *urealloc(void *old ,size_t size, const char *func)
+{
+    void *ptr = realloc(old, size);
+
+    if (!ptr) {
+	fprintf(stderr, "PSIlogger: %s: realloc) failed.\n", func);
+	exit(EXIT_FAILURE);
+    }
+    return ptr;
+}
+
+/**
  * @brief Init the merge structures/functions of the logger. 
- * This function must be called bevor any other merge function.
+ * This function must be called before any other merge function.
  * 
  * @return No return value.
  */
@@ -103,7 +147,6 @@ void outputMergeInit(void)
     char npsize[50];
     char *envstr;
     
-    
     if ((envstr = getenv("PSI_MERGETMOUT"))) {
 	maxMergeWait = atoi(envstr);
     }
@@ -112,14 +155,9 @@ void outputMergeInit(void)
 	maxMergeDepth = atoi(envstr);
     }
 
-    ClientOutBuf = malloc (sizeof(*ClientOutBuf) * maxClients);
-    BufInc = malloc (sizeof(char*) * maxClients);
+    ClientOutBuf = umalloc ((sizeof(*ClientOutBuf) * maxClients), __func__);
+    BufInc = umalloc ((sizeof(char*) * maxClients), __func__);
 
-    if (!ClientOutBuf || !BufInc) {
-	fprintf(stderr, "PSIlogger: %s: malloc) failed.\n", __func__);
-	exit(1);
-    }
-    
     snprintf(npsize, sizeof(npsize), "[0-%i]", np -1);
     prelen = strlen(npsize);
   
@@ -147,14 +185,9 @@ void reallocClientOutBuf(PSLog_Msg_t *msg)
 {
     int i;
 
-    ClientOutBuf = realloc(ClientOutBuf, sizeof(*ClientOutBuf) * 2 * msg->sender);
-    BufInc = realloc(BufInc, sizeof(char*) * 2 * msg->sender);
-
-    if (!ClientOutBuf || !BufInc) {
-	fprintf(stderr, "PSIlogger: %s: realloc(%ld) failed.\n", __func__,
-		(long) sizeof(*ClientOutBuf) * 2 * msg->sender);
-	exit(1);
-    }	    
+    ClientOutBuf = urealloc(ClientOutBuf, sizeof(*ClientOutBuf) * 
+			    2 * msg->sender, __func__);
+    BufInc = urealloc(BufInc, sizeof(char*) * 2 * msg->sender, __func__);
 
     for (i=0; i<2*msg->sender; i++) {
 	INIT_LIST_HEAD(&ClientOutBuf[i].list);
@@ -185,7 +218,9 @@ void reallocClientOutBuf(PSLog_Msg_t *msg)
  *
  * @return No return value.
  */
-static void findEqualData(int ClientIdx, struct list_head *saveBuf[maxClients], int saveBufInd[maxClients], int *mcount, OutputBuffers *val)
+static void findEqualData(int ClientIdx, struct list_head *saveBuf[maxClients], 
+			  int saveBufInd[maxClients], int *mcount, 
+			  OutputBuffers *val)
 {
     int dcount = 0;
     int x;
@@ -204,7 +239,8 @@ static void findEqualData(int ClientIdx, struct list_head *saveBuf[maxClients], 
 		nval = list_entry(npos, OutputBuffers, list);	 
 		
 		if (!val || !nval || !val->line || !nval->line) {
-		    //fprintf(stderr, "Breaking search for %s, possible error?\n", val->line);
+		    //fprintf(stderr, "Breaking search for %s, possible error?\n", 
+		    //val->line);
 		    break;
 		}
 		if (val->line == nval->line ) {
@@ -214,7 +250,8 @@ static void findEqualData(int ClientIdx, struct list_head *saveBuf[maxClients], 
 			(*mcount)++;
 			break;
 		    } else {
-			//fprintf(stderr, "same line diff outfp:val->line, val: %i nval: %i\n", val->outfp, nval->outfp);
+			//fprintf(stderr, "same line diff outfp:val->line, val:"
+			//"%i nval: %i\n", val->outfp, nval->outfp);
 		    }
 		}
 		if (maxMergeDepth > 0 && dcount == maxMergeDepth) break;
@@ -227,7 +264,7 @@ static void findEqualData(int ClientIdx, struct list_head *saveBuf[maxClients], 
 /**
  * @brief Deletes a entry from the client buffer and reduces the
  * counter in the global buffer, or delete the entry from the
- * global buffer is counter is 0.
+ * global buffer, if counter is 0.
  *
  * @param nval The element of the client buffer to delete. 
  *
@@ -255,15 +292,18 @@ static void delCachedMsg(OutputBuffers *nval, struct list_head *npos)
 	    }
 	}
     } else {
-	fprintf(stderr, "%s: list empty: possible error in ouput buffer\n", __func__);
+	fprintf(stderr, "%s: list empty: possible error in ouput buffer\n", 
+		__func__);
 	return;
     }
     if (!found) {
-	    fprintf(stderr, "%s: line not found: possible error in ouput buffer\n", __func__);
-	    return;
+	fprintf(stderr, "%s: line not found: possible error in ouput buffer\n",
+		__func__);
+	return;
     }
     if (!val) {
-	fprintf(stderr, "%s: empty result: possible error in ouput buffer\n", __func__);
+	fprintf(stderr, "%s: empty result: possible error in ouput buffer\n", 
+		__func__);
 	return;
     }
     (val->counter)--;
@@ -293,7 +333,8 @@ static void delCachedMsg(OutputBuffers *nval, struct list_head *npos)
  *
  * @return No return value.
  */
-static void generatePrefix(char *prefix, int size, int mcount, int start, int saveBufInd[maxClients])
+static void generatePrefix(char *prefix, int size, int mcount, int start, 
+			   int saveBufInd[maxClients])
 {
     int nextRank, firstRank, z;	   
     char tmp[40];
@@ -360,7 +401,8 @@ static void generatePrefix(char *prefix, int size, int mcount, int start, int sa
  *
  * @return No return value.
  */
-static void printLine(FILE *outfp, char *line, int mcount, int start, int saveBufInd[maxClients])
+static void printLine(FILE *outfp, char *line, int mcount, int start, 
+		      int saveBufInd[maxClients])
 {
     char format[50];
     char prefix[100]; 
@@ -397,7 +439,9 @@ static void printLine(FILE *outfp, char *line, int mcount, int start, int saveBu
  *
  * @return No return value.
  */
-static void outputSingleCMsg(int client, struct list_head *pos, struct list_head *saveBuf[maxClients], int saveBufInd[maxClients], int mcount)
+static void outputSingleCMsg(int client, struct list_head *pos, 
+			     struct list_head *saveBuf[maxClients], 
+			     int saveBufInd[maxClients], int mcount)
 {
     struct list_head *tmppos, *tmpother;
     OutputBuffers *nval, *oval;
@@ -415,7 +459,8 @@ static void outputSingleCMsg(int client, struct list_head *pos, struct list_head
 		    if (tmpother != saveBuf[i]) {
 			oval = list_entry(tmpother, OutputBuffers, list);
 			if (!oval || !oval->line) break;
-			if (oval->line == nval->line && oval->outfp == nval->outfp) {
+			if (oval->line == nval->line && 
+			    oval->outfp == nval->outfp) {
 			    savelocInd[lcount] = i;
 			    lcount++;
 			    delCachedMsg(oval, tmpother);
@@ -444,10 +489,10 @@ static void outputSingleCMsg(int client, struct list_head *pos, struct list_head
  */
 static void outputHalfMsg(int client)
 {
- if (BufInc[client] != NULL)  {   
-   fprintf(stderr, "[%i]: %s\n", client, BufInc[client]); 
-   BufInc[client] = NULL;
- }
+    if (BufInc[client] != NULL)  {   
+       fprintf(stderr, "[%i]: %s\n", client, BufInc[client]); 
+       BufInc[client] = NULL;
+    }
 }
 
 /**
@@ -486,15 +531,19 @@ void displayCachedOutput(int flush)
 		/* find equal data */
 		findEqualData(i, saveBuf, saveBufInd, &mcount, val);
 
-		//fprintf(stderr, "Analyse=np:%i mcount:%i timediff:%i flush:%i val:%s\n", np, mcount, (int )(ltime - val->time), flush, val->line);	
-		if (mcount == np -1 || ltime - val->time > maxMergeWait || flush ) {
+		//fprintf(stderr, "Analyse=np:%i mcount:%i timediff:%i flush:%i"
+		//"val:%s\n", np, mcount, (int )(ltime - val->time), flush, 
+		//val->line);	
+		if (mcount == np -1 || ltime - val->time > maxMergeWait || 
+		    flush ) {
 		    
 		    /* output single msg from tracked rank */
 		    outputSingleCMsg(i, pos, saveBuf, saveBufInd, mcount);
 	     
 		    for (z=0; z < mcount; z++) {
 			/* ouput single msg from other ranks */
-			outputSingleCMsg(saveBufInd[z], saveBuf[z], saveBuf, saveBufInd, mcount);
+			outputSingleCMsg(saveBufInd[z], saveBuf[z], saveBuf, 
+					 saveBufInd, mcount);
 			
 			/* remove already displayed msg from all other ranks */
 			nval = list_entry(saveBuf[z], OutputBuffers, list);
@@ -587,7 +636,7 @@ void cacheOutput(PSLog_Msg_t msg, int outfd)
     int len;
     int db = 0;
     
-    bufmem = malloc(count +1);
+    bufmem = umalloc((count +1), __func__);
     strncpy(bufmem, msg.buf, count);
     bufmem[count] = '\0';
     buf = bufmem;
@@ -602,17 +651,19 @@ void cacheOutput(PSLog_Msg_t msg, int outfd)
 	/* no newline -> save to tmp buffer */
 	if (!nl) {
 	    if (!BufInc[sender]) {
-		if (db) fprintf(stderr, "from %i: no newline ->newbuf :%s\n", sender, buf);
-		if (!(BufInc[sender] = malloc(len +1))) {
-		}
+		if (db) fprintf(stderr, "from %i: no newline ->newbuf :%s\n", 
+				sender, buf);
+		BufInc[sender] = umalloc((len +1), __func__);
+		
 		strncpy(BufInc[sender], buf, len);
 		BufInc[sender][len] = '\0';
 	    } else {
 		/* buffer is used, append the msg */
 		int leninc = strlen(BufInc[sender]);
-		if (db) fprintf(stderr, "from %i: no newline ->append :%s\n", sender, buf);
-		if (!(BufInc[sender] = realloc(BufInc[sender], leninc + len +1))) {
-		}
+		if (db) fprintf(stderr, "from %i: no newline ->append :%s\n", 
+				sender, buf);
+		BufInc[sender] = urealloc(BufInc[sender], leninc + len +1, 
+					  __func__);
 		strncat(BufInc[sender], buf, len);
 		BufInc[sender][len + leninc] = '\0';
 	    }
@@ -623,27 +674,23 @@ void cacheOutput(PSLog_Msg_t msg, int outfd)
 	len = strlen(buf) - strlen(nl);
 	if (BufInc[sender]) {
 	    int leninc = strlen(BufInc[sender]);
-	    if (!(BufInc[sender] = realloc(BufInc[sender], leninc + len +1))) {
-		fprintf(stderr, "PSIlogger: %s: out of memory\n", __func__);
-		exit(1);
-	    }
+	    BufInc[sender] = urealloc(BufInc[sender], leninc + len +1,
+				     __func__);
 	    strncat(BufInc[sender], buf, len);
 	    savep = BufInc[sender];
 	    savep[leninc + len] = '\0';
 	    BufInc[sender] = NULL;
 	} else {
-	    if (!(savep = malloc(len +1))) {
-		fprintf(stderr, "PSIlogger: %s: out of memory\n", __func__);
-		exit(1);
-	    }
+	    savep = umalloc((len +1), __func__);
 	    strncpy(savep, buf, len);
 	    savep[len] = '\0';
 	}
 	
-	if (db) fprintf(stderr, "string to save to global from:%i outfd:%i : %s\n", sender, outfd, savep);
+	if (db) fprintf(stderr, "string to save to global from:%i "
+			"outfd:%i : %s\n", sender, outfd, savep);
 	
 	/* save to client matrix */
-	tmp = (OutputBuffers *)malloc(sizeof(OutputBuffers));
+	tmp = (OutputBuffers *)umalloc(sizeof(OutputBuffers), __func__);
 	tmp->time = time(0); 
 	if (outfd == STDERR_FILENO) {
 	    tmp->outfp = stderr;
@@ -662,7 +709,7 @@ void cacheOutput(PSLog_Msg_t msg, int outfd)
 	    if(db) fprintf(stderr, "saving to matrix: savep=%s\n",savep);
 
 	    /* save to global buffer */	
-	    tmpbMsg = (bMessages *)malloc(sizeof(bMessages));
+	    tmpbMsg = (bMessages *)umalloc(sizeof(bMessages), __func__);
 	    tmpbMsg->line = savep;
 	    tmpbMsg->hash = calcHash(savep);
 	    tmpbMsg->counter = 1;
@@ -671,7 +718,8 @@ void cacheOutput(PSLog_Msg_t msg, int outfd)
 	    /* save pointer from client buffer to global buffer */
 	    tmp->line = savep;
 	}
-	if (db) fprintf(stderr,"line:%s hash:%i, count:%i\n",tmpbMsg->line, tmpbMsg->hash, tmpbMsg->counter);
+	if (db) fprintf(stderr,"line:%s hash:%i, count:%i\n",
+			tmpbMsg->line, tmpbMsg->hash, tmpbMsg->counter);
 	list_add_tail(&(tmp->list), &ClientBuf->list);
 	
 	/* next line */	    

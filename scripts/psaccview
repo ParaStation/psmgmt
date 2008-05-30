@@ -67,6 +67,7 @@ $conf{'sum'}{'walltime'}	= "yes";
 $conf{'sum'}{'qtime'}		= "yes";
 $conf{'sum'}{'mem'}		= "no";
 $conf{'sum'}{'vmem'}		= "no";
+$conf{'sum'}{'swap'}		= "no";
 $conf{'sum'}{'cputime'}		= "yes";
 $conf{'sum'}{'jobs'}		= "yes";
 $conf{'sum'}{'procs'}		= "no";
@@ -80,6 +81,7 @@ $conf{'avg'}{'walltime'}	= "yes";
 $conf{'avg'}{'qtime'}		= "no";
 $conf{'avg'}{'mem'}		= "yes";
 $conf{'avg'}{'vmem'}		= "yes";
+$conf{'avg'}{'swap'}		= "yes";
 $conf{'avg'}{'cputime'}		= "yes";
 $conf{'avg'}{'jobs'}		= "no";
 $conf{'avg'}{'procs'}		= "yes";
@@ -95,8 +97,9 @@ $conf{'job'}{'starttime'}	= "yes";
 $conf{'job'}{'endtime'}		= "yes";
 $conf{'job'}{'walltime'}	= "no";
 $conf{'job'}{'qtime'}		= "no";
-$conf{'job'}{'mem'}		= "no";
-$conf{'job'}{'vmem'}		= "no";
+$conf{'job'}{'mem'}		= "yes";
+$conf{'job'}{'vmem'}		= "yes";
+$conf{'job'}{'swap'}		= "yes";
 $conf{'job'}{'exechost'}	= "yes";
 $conf{'job'}{'nodes'}		= "yes";
 $conf{'job'}{'cputime'}		= "yes";
@@ -167,7 +170,7 @@ if($version) {
 # Setup arrays for data formating 
 my @time_values = ('walltime', 'cputime', 'qtime', 'cpuweight');
 my @clocktime_values = ('starttime', 'endtime');
-my @mem_values = ('mem', 'vmem');
+my @mem_values = ('mem', 'vmem', 'swap');
 
 # push all generated avarage values to formating arrays
 # and to normal config
@@ -359,6 +362,7 @@ while ( defined (my $filename = readdir(DIR))) {
 		my $walltime_sec = time_to_sec($walltime);
 		my $mem_kb = kb_to_num($mem);
 		my $vmem_kb = kb_to_num($vmem);
+		my $swap_kb = (defined($vmem) && defined($mem)) ? kb_to_num($vmem) - kb_to_num($mem) : 0;
 		my $cpuweight = $num_hosts * time_to_sec($walltime);
 
 		# set up job array
@@ -371,6 +375,7 @@ while ( defined (my $filename = readdir(DIR))) {
 		    $job_data{$jobnum}{'cputime'} 	= $cput_sec;
 		    $job_data{$jobnum}{'mem'}		= $mem_kb;
 		    $job_data{$jobnum}{'vmem'}		= $vmem_kb;
+		    $job_data{$jobnum}{'swap'}		= $swap_kb;
 		    $job_data{$jobnum}{'walltime'} 	= $walltime_sec;
 		    $job_data{$jobnum}{'qtime'}		= $newqtime;
 		    $job_data{$jobnum}{'starttime'} 	= $start;
@@ -390,6 +395,7 @@ while ( defined (my $filename = readdir(DIR))) {
 		    $user_data{$user}{'cputime'}	+= $cput_sec;
 		    $user_data{$user}{'mem'}		+= $mem_kb;
 		    $user_data{$user}{'vmem'}		+= $vmem_kb;
+		    $user_data{$user}{'swap'}		+= $swap_kb;
 		    $user_data{$user}{'walltime'}	+= $walltime_sec;
 		    $user_data{$user}{'qtime'}		+= $newqtime;
 		    $user_data{$user}{'cpuweight'}	+= $cpuweight;
@@ -403,6 +409,7 @@ while ( defined (my $filename = readdir(DIR))) {
 		    $group_data{$group}{'cputime'}	+= $cput_sec;
 		    $group_data{$group}{'mem'}		+= $mem_kb;
 		    $group_data{$group}{'vmem'}		+= $vmem_kb;
+		    $group_data{$group}{'swap'}		+= $swap_kb;
 		    $group_data{$group}{'walltime'}	+= $walltime_sec;
 		    $group_data{$group}{'qtime'}	+= $newqtime; 
 		    $group_data{$group}{'cpuweight'}    += $cpuweight;
@@ -417,6 +424,7 @@ while ( defined (my $filename = readdir(DIR))) {
 		    $sum_data{'all'}{'cputime'}	+= $cput_sec;
 		    $sum_data{'all'}{'mem'}		+= $mem_kb;
 		    $sum_data{'all'}{'vmem'}		+= $vmem_kb;
+		    $sum_data{'all'}{'swap'}		+= $swap_kb;
 		    $sum_data{'all'}{'qtime'}		+= $newqtime;
 		    $sum_data{'all'}{'cpuweight'}	+= $cpuweight;
 		    $sum_data{'all'}{'procs'}		+= $num_hosts;

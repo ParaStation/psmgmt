@@ -809,6 +809,7 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
     int socketfds[2];
     int pmiEnableTcp = 0;
     int pmiEnableSockp = 0;
+    PMItype_t pmiType = PMI_DISABLED;
     char *envstr;
 
     /* Block until the forwarder has handled all output */
@@ -894,10 +895,11 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
     /* open pmi socket for comm. between the pmi client and forwarder */
     if (pmiEnableTcp) {
 	if (!(PMISock = init_PMISocket(PMISock))) {
-	    PSID_warn(-1, errno, "%s: create PMIsock failed", __func__);
+	    PSID_warn(-1, errno, "%s: create PMI tcp socket failed", __func__);
 	    exit(1);
 	}
 	PMIforwarderSock = PMISock;
+	pmiType = PMI_OVER_TCP;
     }
 
     /* create a socketpair for comm. between the pmi client and forwarder */
@@ -907,6 +909,7 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 	    exit(1);
 	}
 	PMIforwarderSock = socketfds[1];
+	pmiType = PMI_OVER_UNIX;
     }
 
     /* set some environment variables */
@@ -1055,7 +1058,7 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 
     /* Release the waiting daemon and exec forwarder */
     close(cntrlCh);
-    PSID_forwarder(task, daemonfd, PMIforwarderSock, pmiEnableSockp,
+    PSID_forwarder(task, daemonfd, PMIforwarderSock, pmiType,
 		   PSID_getNumAcct(), PSIDnodes_acctPollI(PSC_getMyID()));
 
     /* never reached */
@@ -1300,7 +1303,9 @@ static int buildSandboxAndStart(PStask_t *forwarder, PStask_t *client)
     if (ret) close(socketfds[0]);
 
     /* Accounting info */
-    if (!ret && client->group != TG_ADMINTASK) sendAcctChild(client);
+    if (!ret && client->group != TG_ADMINTASK && client->group != TG_SERVICE) {
+	sendAcctChild(client);
+    }
 
     /* Fix interactive shell's argv[0] */
     if (client->argc == 2 && (!strcmp(client->argv[0], "/bin/bash")

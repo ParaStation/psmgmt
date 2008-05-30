@@ -1,6 +1,6 @@
 #!/bin/sh
 # 
-# Script to get some ethernet statistics
+# Pseudo hardware-type skript to start the psaccounter.
 #
 # Author: Michael Rauh <rauh@par-tec.com>
 #
@@ -9,7 +9,7 @@
 
 case "$1" in
     start)
-        /opt/parastation/bin/psaccounter -p gzip -e
+        su -s "/bin/sh" -c "/opt/parastation/bin/psaccounter -p gzip -e" nobody
 	;;
 
     stop)

@@ -64,7 +64,9 @@ int barrierTimeout = 0;
 int timerid = -1;
 
 /**
- * @brief Wrapper of SendMsg functions with error handling for kvs msg
+ * @brief Wrapper for send kvs messages.
+ *
+ * Wrapper of SendMsg functions with error handling for key value space messages.
  *
  * @return No return value.
  */
@@ -89,7 +91,9 @@ static void sendKvsMsg(PStask_ID_t tid, char *msg)
 }
 
 /**
- * @brief Init the global kvs. This function must be called before 
+ * @brief Init the global kvs. 
+ *
+ * Init the global key value space. This function must be called before 
  * calling handleKvsMsg.
  *
  * @param verbose Set verbose mode of pmi.
@@ -107,7 +111,7 @@ void initLoggerKvs(int verbose)
     if (!clientKvsTID || !clientKvsTrackTID) {
 	fprintf(stderr, "PSIlogger: %s, out of memory\n", __func__);
 	terminateJob();
-	exit(1);
+	exit(EXIT_FAILURE);
     }
 
     for (i=0; i<maxKvsClients; i++) {
@@ -171,7 +175,9 @@ void initLoggerKvs(int verbose)
 }
 
 /**
- * @brief Send a kvs mesagge to all clients which joined the kvs.
+ * @brief Send kvs message to all clients.
+ *
+ * Send a key value space message to all pmi clients which joined the kvs.
  *
  * @param msg The kvs message received from the forwarder.
  *
@@ -379,7 +385,9 @@ static void handleKvsGetByIdx(PSLog_Msg_t msg)
 }
 
 /**
- * @brief Send the updated kvs after barrier_in to all clients.
+ * @brief Distribute kvs update.
+ *
+ * Send the updated key value space after barrier_in to all clients.
  *
  * @return No return value.
  */
@@ -425,7 +433,9 @@ static void sendKvsUpdateToClients(void)
 }
 
 /**
- * @brief Callback function to handle barrier timeout.
+ * @brief Handle barrier timeouts.
+ *
+ * Callback function to handle barrier timeouts.
  *
  * Terminate the job, send all children term signal, to avoid that the
  * job hangs infinite.
@@ -671,7 +681,7 @@ static void handleKvsJoin(PSLog_Msg_t msg)
 	if (!clientKvsTID || !clientKvsTrackTID) {
 	    fprintf(stderr, "PSIlogger: %s: realloc failed.\n", __func__);
 	    terminateJob();
-	    exit(1);
+	    exit(EXIT_FAILURE);
 	}	    
 
 	for (i=maxKvsClients; i<2*msg.sender; i++) {
@@ -816,7 +826,7 @@ void handleKvsMsg(PSLog_Msg_t msg)
     if(!(msgCopy = strdup(msg.buf))) {
 	fprintf(stderr, "PSIlogger: %s: out of memory, exiting\n", __func__);
 	terminateJob();
-	exit(1);
+	exit(EXIT_FAILURE);
     }
     
     if (!(cmdtmp = getKvsCmd(msgCopy))) {
