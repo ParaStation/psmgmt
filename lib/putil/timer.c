@@ -93,7 +93,9 @@ void Timer_handleSignals(void)
 
     while (timer) {
 	if (timer->sigPending && !timer->sigBlocked && timer->timeoutHandler) {
+	    timer->sigBlocked = 1;
 	    timer->timeoutHandler();
+	    timer->sigBlocked = 0;
 	    timer->sigPending = 0;
 	}
 	timer = timer->next;

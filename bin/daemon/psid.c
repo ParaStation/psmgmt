@@ -1076,6 +1076,25 @@ static void initSignals(void)
 }
 
 /**
+ * @brief Print welcome
+ *
+ * Print a welcome message to the current log destination.
+ *
+ * @return No return value
+ */
+static void printWelcome(void)
+{
+    PSID_log(-1, "Starting ParaStation DAEMON\n");
+    PSID_log(-1, "RPM Version %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
+    PSID_log(-1, "Protocol Version %d\n", PSProtocolVersion);
+    PSID_log(-1, "Daemon-Protocol Version %d\n", PSDaemonProtocolVersion);
+    PSID_log(-1, " (c) ParTec Cluster Competence Center GmbH "
+	     "(www.par-tec.com)\n");
+
+    return;
+}
+
+/**
  * @brief Setup master socket.
  *
  * Create and initialize the daemons master socket.
@@ -1104,12 +1123,6 @@ static void setupMasterSock(void)
 	PSID_exit(errno, "Daemon already running?");
     }
     chmod(sa.sun_path, S_IRWXU | S_IRWXG | S_IRWXO);
-
-    PSID_log(-1, "Starting ParaStation DAEMON\n");
-    PSID_log(-1, "Protocol Version %d\n", PSProtocolVersion);
-    PSID_log(-1, "Daemon-Protocol Version %d\n", PSDaemonProtocolVersion);
-    PSID_log(-1, " (c) ParTec Cluster Competence Center GmbH "
-	     "(www.par-tec.com)\n");
 
     if (listen(masterSock, 20) < 0) {
 	PSID_exit(errno, "Error while trying to listen");
@@ -1280,6 +1293,8 @@ int main(int argc, const char *argv[])
     PSID_initLog(logfile);
     PSC_initLog(logfile);
 
+    printWelcome();
+
     if (rc < -1) {
         /* an error occurred during option processing */
         poptPrintUsage(optCon, stderr, 0);
@@ -1386,11 +1401,7 @@ int main(int argc, const char *argv[])
 	closelog();
 
 	openlog("psid", LOG_PID|LOG_CONS, config->logDest);
-	PSID_log(-1, "Starting ParaStation DAEMON\n");
-	PSID_log(-1, "Protocol Version %d\n", PSProtocolVersion);
-	PSID_log(-1, "Daemon-Protocol Version %d\n", PSDaemonProtocolVersion);
-	PSID_log(-1, " (c) ParTec Cluster Competence Center GmbH "
-		 "(www.par-tec.com)\n");
+	printWelcome();
     }
 
     /* Catch SIGSEGV if core dumps are suppressed */

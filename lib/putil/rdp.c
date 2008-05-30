@@ -1087,6 +1087,7 @@ static void resendMsgs(int node)
 {
     msgbuf_t *mp;
     struct timeval tv;
+    int ret = 0;
 
     mp = conntable[node].bufptr;
     if (!mp) {
@@ -1128,17 +1129,18 @@ static void resendMsgs(int node)
 	break;
     case ACTIVE:
 	/* First one not sent twice */
-	while (mp) {
+	while (mp && ret>=0) {
+	    msgbuf_t *next = mp->next;
 	    RDP_log(RDP_LOG_ACKS, "%s: %d to %d\n",
 		    __func__, mp->msg.small->header.seqno, mp->node);
 	    mp->tv = tv;
 	    /* update ackinfo */
 	    mp->msg.small->header.ackno = conntable[node].frameExpected-1;
-	    MYsendto(rdpsock, &mp->msg.small->header,
+	    ret = MYsendto(rdpsock, &mp->msg.small->header,
 		     mp->len + sizeof(rdphdr_t), 0,
 		     (struct sockaddr *)&conntable[node].sin,
 		     sizeof(struct sockaddr));
-	    mp = mp->next;
+	    mp = next;
 	}
 	conntable[node].ackPending = 0;
 	break;
@@ -1526,7 +1528,7 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 	    fromnode, hdr->type, hdr->seqno, cp->ackExpected, hdr->ackno);
 
     if (hdr->connid != cp->ConnID_in) { /* New Connection */
-	RDP_log(-1, "unable to process ACK's for new connections %x vs. %x\n",
+	RDP_log(-1, "unable to process ACK for new connections %x vs. %x\n",
 		hdr->connid, cp->ConnID_in);
 	return;
     }
@@ -1607,8 +1609,12 @@ static void handleControlPacket(rdphdr_t *hdr, int node)
 	break;
     case RDP_NACK:
 	RDP_log(RDP_LOG_CNTR, "%s: got NACK from %d\n", __func__, node);
-	doACK(hdr, node);
-	resendMsgs(node);
+	if (conntable[node].state != ACTIVE) {
+	    updateState(hdr, node);
+	} else {
+	    doACK(hdr, node);
+	}
+	if (conntable[node].state == ACTIVE) resendMsgs(node);
 	break;
     case RDP_SYN:
 	RDP_log(RDP_LOG_CNTR, "%s: got SYN from %d\n", __func__, node);
