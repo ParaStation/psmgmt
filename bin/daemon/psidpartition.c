@@ -282,20 +282,25 @@ static void registerReq(PSpart_request_t *req)
 {
     unsigned int i;
 
-    PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(req->tid));
+    PSID_log(PSID_LOG_PART, "%s(%s)", __func__, PSC_printTID(req->tid));
 
     if (!req->size || !req->slots) return;
 
     if (!nodeStat) {
-	PSID_log(-1, "%s: No status array\n", __func__);
+	PSID_log(PSID_LOG_PART, "\n");
+	PSID_log(-1, "\n%s: No status array\n", __func__);
 	return;
     }
+    PSID_log(PSID_LOG_PART, " size %d:", req->size);
     for (i=0; i<req->size; i++) {
 	PSnodes_ID_t node = req->slots[i].node;
+	PSID_log(PSID_LOG_PART, " %d/%s",
+		 node, PSCPU_print(req->slots[i].CPUset));
 	nodeStat[node].assignedProcs++;
 	allocCPUs(node, req->slots[i].CPUset);
 	if (req->options & PART_OPT_EXCLUSIVE) nodeStat[node].exclusive = 1;
     }
+    PSID_log(PSID_LOG_PART, "\n");
 }
 
 /**
@@ -312,22 +317,27 @@ static void deregisterReq(PSpart_request_t *req)
 {
     unsigned int i;
 
-    PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(req->tid));
+    PSID_log(PSID_LOG_PART, "%s(%s)", __func__, PSC_printTID(req->tid));
 
     if (!req->size || !req->slots) return;
 
     if (!nodeStat) {
+	PSID_log(PSID_LOG_PART, "\n");
 	PSID_log(-1, "%s: No status array\n", __func__);
 	return;
     }
+    PSID_log(PSID_LOG_PART, " size %d:", req->size);
     for (i=0; i<req->size; i++) {
 	PSnodes_ID_t node = req->slots[i].node;
+	PSID_log(PSID_LOG_PART, " %d/%s",
+		 node, PSCPU_print(req->slots[i].CPUset));
 	nodeStat[node].assignedProcs--;
 	freeCPUs(node, req->slots[i].CPUset);
 	decJobsHint(node);
 	if ((req->options & PART_OPT_EXCLUSIVE)
 	    && !nodeStat[node].assignedProcs) nodeStat[node].exclusive = 0; 
     }
+    PSID_log(PSID_LOG_PART, "\n");
     doHandle = 1; /* Trigger handler in next round */
 }
 
@@ -1110,8 +1120,9 @@ static unsigned int getNormalPart(PSpart_request_t *request,
 
 		cand = 0;
 		if (!nodesFirst) {
-		    /* Let's loop and start to overbook */
+		    /* Let's start over to overbook */
 		    memset(tmpStat, 0, PSC_getNrOfNodes() * sizeof(*tmpStat));
+		    nextSet = 0;
 		}
 	    }
 	}

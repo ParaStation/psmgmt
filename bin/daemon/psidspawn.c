@@ -1250,6 +1250,7 @@ static int buildSandboxAndStart(PStask_t *forwarder, PStask_t *client)
 	if (errno == EINTR) {
 	    goto restart;
 	}
+	PSID_warn(-1, errno, "%s: read() failed", __func__);
     }
 
     if (!ret) {
@@ -1285,9 +1286,7 @@ static int buildSandboxAndStart(PStask_t *forwarder, PStask_t *client)
 		PSID_log(-1, "%s: pipe closed unexpectedly\n", __func__);
 		ret = EBADMSG;
 	    } else {
-
 		client->tid = PSC_getTID(-1, buf);
-
 		goto restart;
 	    }
 	} else {
