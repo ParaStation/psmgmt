@@ -1980,6 +1980,8 @@ int main(int argc, char *argv[])
 	usleep(200);
 	createAdminTasks(dup_argc, dup_argv, login, verbose, show);
     } else {
+	char *pwd;
+
 	/* generate pmi auth token */
 	if (pmienabletcp || pmienablesockp ) {
 
@@ -1990,8 +1992,12 @@ int main(int argc, char *argv[])
 	    setPSIEnv("PMI_ID", tmp, 1);
 	}
 
-	/* get current working dir, NULL is ok */
-	getcwd(tmp, sizeof(tmp));
+	/* get current working dir */
+	pwd = getcwd(tmp, sizeof(tmp));
+	if (!pwd) {
+	    perror("Unable to determine working directory");
+	    exit(EXIT_FAILURE);
+	}
 
 	/* start all processes */
 	for (i = 0; i < np; i++) {

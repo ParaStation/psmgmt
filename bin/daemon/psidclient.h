@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -222,25 +222,19 @@ void deleteClient(int fd);
 /**
  * @brief Kill all clients
  *
- * Kill all clients depending on the @a phase of shutting down the
- * daemon. The following phases are known:
+ * Send signal @a sig to all managed client. Members of the task-group
+ * TG_MONITOR will never receive this signal. Members of the
+ * task-groups TG_ADMIN and TG_FORWARDER will only receive this
+ * signal, if the flag @a killAdminTasks is set.
  *
- *  - phase 0: send SIGTERM signal to clients not in group TG_ADMIN
+ * @param sig The signal to send.
  *
- * - phase 1: send SIGTERM signal to all remaining clieant. Hopefully
- * all end until phase 2 reached
+ * @param killAdminTask Flag delivery of the signal @a sig to
+ * administrative tasks.
  *
- * - phase 2: send SIGKILL signal to clients not in group TG_ADMIN
- *
- * - phase 3: send SIGKILL signal and clean up all open connections.
- *
- * @param phase The shutdown phase of the daemon.
- *
- * @return If this function is called to frequently, i.e. if the last
- * call was less than 200 msec in the past, 0 is returned. Otherwise 1
- * is given back.
+ * @return The number of clients the signal was delivered to.
  */
-int killAllClients(int phase);
+int killAllClients(int sig, int killAdminTasks);
 
 #ifdef __cplusplus
 }/* extern "C" */

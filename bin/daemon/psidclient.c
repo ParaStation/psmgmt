@@ -45,8 +45,6 @@ static struct {
     msgbuf_t *msgs;      /**< Chain of undelivered messages */
 } clients[FD_SETSIZE];
 
-static struct timeval killClientsTimer;
-
 void initClients(void)
 {
     int fd;
@@ -57,8 +55,6 @@ void initClients(void)
 	clients[fd].flags = 0;
 	clients[fd].msgs = NULL;
     }
-
-    timerclear(&killClientsTimer);
 }
 
 void registerClient(int fd, PStask_ID_t tid, PStask_t *task)
@@ -460,46 +456,35 @@ void deleteClient(int fd)
     return;
 }
 
-int killAllClients(int phase)
+int killAllClients(int sig, int killAdminTasks)
 {
     PStask_t *task;
+    int ret = 0;
 
-    PSID_log(PSID_LOG_CLIENT, "%s(%d)", __func__, phase);
-
-    if (timercmp(&mainTimer, &killClientsTimer, <)) {
-	PSID_log(PSID_LOG_CLIENT, " timer not ready [%ld:%ld] < [%ld:%ld]\n",
-		 mainTimer.tv_sec, mainTimer.tv_usec,
-		 killClientsTimer.tv_sec, killClientsTimer.tv_usec);
-	return 0;
-    }
-
-    PSID_log(PSID_LOG_CLIENT, 
-	     " timers are main[%ld:%ld] and killclients[%ld:%ld]\n",
-	     mainTimer.tv_sec, mainTimer.tv_usec,
-	     killClientsTimer.tv_sec, killClientsTimer.tv_usec);
-
-    gettimeofday(&killClientsTimer, NULL);
-    mytimeradd(&killClientsTimer, 0, 200000);
+    PSID_log(PSID_LOG_CLIENT, "%s(%d, %d)\n", __func__, sig, killAdminTasks);
 
     /* loop over all tasks */
     for (task=managedTasks; task; task=task->next) {
+	pid_t pid = PSC_getPID(task->tid);
+
 	if (task->deleted) continue;
-	if (task->group != TG_MONITOR
-	    && (phase==1 || phase==3 || task->group!=TG_ADMIN)) {
-	    /* TG_MONITOR never */
-	    /* in phase 1 and 3 all other */
-	    /* in phase 0 and 2 all other not in TG_ADMIN group */
-	    pid_t pid = PSC_getPID(task->tid);
-	    PSID_log(PSID_LOG_CLIENT, "%s: sending %s to %s pid %d fd %d\n",
-		     __func__, (phase<2) ? "SIGTERM" : "SIGKILL",
-		     PSC_printTID(task->tid), pid, task->fd);
-	    if (pid > 0) kill(pid, (phase<2) ? SIGTERM : SIGKILL);
+	if (task->group==TG_MONITOR) continue;
+	if ((task->group==TG_ADMIN || task->group==TG_FORWARDER)
+	    && !killAdminTasks) continue;
+
+	PSID_log(PSID_LOG_CLIENT, "%s: sending %s to %s pid %d fd %d\n",
+		 __func__, sys_siglist[sig],
+		 PSC_printTID(task->tid), pid, task->fd);
+
+	if (pid > 0) {
+	    kill(pid, sig);
+	    ret++;
 	}
-	if (phase>2 && task->fd>=0) {
+
+	if (sig==SIGKILL && killAdminTasks && task->fd>=0) {
 	    deleteClient(task->fd);
 	}
     }
 
-    PSID_log(PSID_LOG_CLIENT, "%s(%d) done\n", __func__, phase);
-    return 1;
+    return ret;
 }

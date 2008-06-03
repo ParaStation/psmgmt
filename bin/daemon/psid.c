@@ -67,8 +67,6 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 struct timeval mainTimer;
 struct timeval selectTime;
 
-static struct timeval shutdownTimer;
-
 char psid_cvsid[] = "$Revision$";
 
 /**
@@ -84,141 +82,210 @@ static int myStatus;
 /* states of the daemons                                                */
 /*----------------------------------------------------------------------*/
 #define PSID_STATE_RESET_HW              0x0001
-#define PSID_STATE_DORESET               0x0002
+#define PSID_STATE_RESET                 0x0002
 #define PSID_STATE_SHUTDOWN              0x0004
-#define PSID_STATE_SHUTDOWN2             0x0008
 
-#define PSID_STATE_NOCONNECT (PSID_STATE_DORESET \
-			      | PSID_STATE_SHUTDOWN | PSID_STATE_SHUTDOWN2)
+#define PSID_STATE_NOCONNECT (PSID_STATE_RESET | PSID_STATE_SHUTDOWN)
 
 /**
- * @brief Shutdown node.
+ * @brief Shutdown local node.
  *
- * Shutdown the local node, i.e. stop daemons operation.
- * @doctodo More info about phases.
+ * Shutdown the local node, i.e. stop daemon's operation. This will
+ * happen in different phases.
  *
- * @param phase
+ * Once this function was called for the first time,
+ * PSID_STATE_SHUTDOWN is added to the daemons state @ref
+ * myStatus. This has to trigger repeated calls to this function from
+ * the main loop. A timer inside this functions assures that each
+ * phase lasts at least one second.
  *
- * @return 
+ * The different phases used to shutdown the local daemon are
+ * organized as follows:
+ *
+ *  phase 0:
+ *     - switch to PSID_STATE_SHUTDOWN
+ *     - close master socket, i.e. don't except new connections
+ *     - kill all client processes
+ *
+ *  phase 1:
+ *     - kill clients again where killing wasn't sucessful, yet
+ *
+ *  phase 2:
+ *     - hardly kill (SIGKILL) clients where killing wasn't sucessful, yet.
+ *
+ *  phase 3:
+ *     - kill all remaining processes (forwarder, admin, etc.)
+ *
+ *  phase 4:
+ *     - hardly kill (SIGKILL) all remaining processes (forwarder, admin, etc.)
+ *     - close connections to local clients
+ *     - close connections to other nodes
+ *     - exit
+ *
+ * @return No return value
  */
-/******************************************
- *  shutdownNode()
- *
- * shut down my node:
- *  - phase 1: killing client processes and switch to DSTATE_SHUTDOWN
- *  - phase 2: kill all clients, where killing wasn't sucessful,
- *             Close connection to other nodes
- *             Close my own Master socket
- *  - phase 3: exit
- */
-int shutdownNode(int phase)
+static void shutdownNode(void)
 {
+    static int phase = 0;
+    static struct timeval shutdownTimer;
     int i;
 
+    if (!phase) timerclear(&shutdownTimer);
+
     if (timercmp(&mainTimer, &shutdownTimer, <)) {
-	PSID_log(PSID_LOG_TIMER,
-		 "%s(%d): timer not ready [%ld:%ld] < [%ld:%ld]\n", __func__,
-		 phase, mainTimer.tv_sec, mainTimer.tv_usec,
+	PSID_log(PSID_LOG_TIMER, "%s: not ready: [%ld:%ld]<[%ld:%ld]\n",
+		 __func__, mainTimer.tv_sec, mainTimer.tv_usec,
 		 shutdownTimer.tv_sec, shutdownTimer.tv_usec);
-	return 0;
+	return;
     }
 
     PSID_log(-1, "%s(%d)\n", __func__, phase);
 
-    PSID_log(PSID_LOG_TIMER,
-	     "timers are main[%ld:%ld] and shutdown[%ld:%ld]\n",
-	     mainTimer.tv_sec, mainTimer.tv_usec,
+    PSID_log(PSID_LOG_TIMER, "%s: main[%ld:%ld], shutdown[%ld:%ld]\n",
+	     __func__, mainTimer.tv_sec, mainTimer.tv_usec,
 	     shutdownTimer.tv_sec, shutdownTimer.tv_usec);
 
     gettimeofday(&shutdownTimer, NULL);
     mytimeradd(&shutdownTimer, 1, 0);
 
-    myStatus |= PSID_STATE_SHUTDOWN;
 
-    if (phase > 1) {
-	myStatus |= PSID_STATE_SHUTDOWN2;
-
-	/*
-	 * close the Master socket -> no new connections
-	 */
+    switch (phase) {
+    case 0:
+	myStatus |= PSID_STATE_SHUTDOWN;
+	/* close the Master socket */
 	shutdown(masterSock, SHUT_RDWR);
 	close(masterSock);
 	unlink(PSmasterSocketName);
 	FD_CLR(masterSock, &PSID_readfds);
-    }
-    /*
-     * kill all clients
-     */
-    killAllClients(phase);
-
-    if (phase == 2) {
-	/*
-	 * close all sockets to the clients
-	 */
+    case 1:
+	killAllClients(SIGTERM, 0);
+	break;
+    case 2:
+	killAllClients(SIGKILL, 0);
+	break;
+    case 3:
+	killAllClients(SIGTERM, 1);
+	if (!config->useMCast) releaseStatusTimer();
+	break;
+    case 4:
+	killAllClients(SIGKILL, 1);
+	/* close all sockets to clients */
 	for (i=0; i<FD_SETSIZE; i++) {
-	    if (FD_ISSET(i, &PSID_readfds)
-		&& i!=masterSock && i!=RDPSocket) {
+	    if (FD_ISSET(i, &PSID_readfds) && i!=masterSock && i!=RDPSocket) {
 		closeConnection(i);
 	    }
 	}
-	if (!config->useMCast) releaseStatusTimer();
-    }
-    if (phase == 3) {
 	if (config->useMCast) exitMCast();
 	send_DAEMONSHUTDOWN();
 	exitRDP();
 	PSID_stopAllHW();
 	PSID_log(-1, "%s: good bye\n", __func__);
 	exit(0);
+    default:
+	PSID_log(-1, "%s: unknown phase %d\n", __func__, phase);
     }
-    return 1;
+
+    phase++;
 }
 
-/******************************************
- *  doReset()
+/**
+ * @brief Reset local node.
+ *
+ * Reset the local node, i.e. kill all client processes. This will
+ * happen in different phases. If PSID_STATE_RESET_HW is set within
+ * the daemons state @ref myStatus, all local communicaton hardware
+ * will be reseted after all clients are gone. Reseting the
+ * communication hardware is done via calling @ref PSID_stopAllHW()
+ * and @ref PSID_startAllHW().
+ *
+ * Once this function was called for the first time, PSID_STATE_RESET
+ * is added to the daemons state @ref myStatus. This has to trigger
+ * repeated calls to this function from the main loop. A timer inside
+ * this functions assures that each phase lasts at least one second.
+ *
+ * The different phases used to reset the local daemon are organized
+ * as follows:
+ *
+ *  phase 0:
+ *     - switch to PSID_STATE_RESET
+ *     - kill all client processes
+ *
+ *  phase 1:
+ *     - kill clients again where killing wasn't sucessful, yet
+ *
+ *  phase 2:
+ *     - hardly kill (SIGKILL) clients where killing wasn't sucessful, yet.
+ *
+ *  phase 3:
+ *     - kill all remaining processes (forwarder, admin, etc.)
+ *
+ *  phase 4:
+ *     - hardly kill (SIGKILL) all remaining processes (forwarder, admin, etc.)
+ *     - close connections to local clients
+ *     - close connections to other nodes
+ *     - exit
+ *
+ * @return No return value
  */
-/** @doctodo */
-static int doReset(void)
+static void doReset(void)
 {
-    PSID_log(PSID_LOG_RESET, "%s: status %s\n", __func__,
-	     (myStatus & PSID_STATE_RESET_HW) ? "Hardware" : "");
-    /*
-     * Check if there are clients
-     * If there are clients, first kill them with phase 0
-     *   and set a state to return back to DORESET
-     *   When already returned, kill them with phase 2
-     *   After that They are no more existent
-     */
-    if (myStatus & PSID_STATE_DORESET) {
-	if (! killAllClients(2)) {
-	    return 0; /* kill client with error: try again. */
+    static int phase = 0;
+    static struct timeval resetTimer;
+    int num = 1;
+
+    if (!phase) timerclear(&resetTimer);
+
+    if (timercmp(&mainTimer, &resetTimer, <)) {
+	PSID_log(PSID_LOG_TIMER, "%s: not ready: [%ld:%ld]<[%ld:%ld]\n",
+		 __func__, mainTimer.tv_sec, mainTimer.tv_usec,
+		 resetTimer.tv_sec, resetTimer.tv_usec);
+	return;
+    }
+
+    PSID_log(-1, "%s(%d)\n", __func__, phase);
+
+    PSID_log(PSID_LOG_TIMER, "%s: main[%ld:%ld], reset[%ld:%ld]\n",
+	     __func__, mainTimer.tv_sec, mainTimer.tv_usec,
+	     resetTimer.tv_sec, resetTimer.tv_usec);
+
+    gettimeofday(&resetTimer, NULL);
+    mytimeradd(&resetTimer, 1, 0);
+
+    switch (phase) {
+    case 0:
+	myStatus |= PSID_STATE_RESET;
+    case 1:
+	num = killAllClients(SIGTERM, 0);
+	break;
+    case 2:
+	num = killAllClients(SIGKILL, 0);
+	break;
+    case 3:
+	num = killAllClients(SIGTERM, 0);
+	if (num) {
+	    PSID_log(-1, "%s: still %d clients in phase %d. Continue\n",
+		     __func__, num, phase);
 	}
-    } else {
-	killAllClients((myStatus & PSID_STATE_RESET_HW) ? 1 : 0);
-	myStatus |= PSID_STATE_DORESET;
-	usleep(200000); /* sleep for a while to let the clients react */
-	return 0;
+	num = 0;
+	break;
+    default:
+	PSID_log(-1, "%s: unknown phase %d\n", __func__, phase);
     }
 
-    /*
-     * reset the hardware if demanded
-     *--------------------------------
-     */
-    if (myStatus & PSID_STATE_RESET_HW) {
-	PSID_log(PSID_LOG_HW, "%s: resetting the hardware\n", __func__);
+    phase++;
 
-	PSID_stopAllHW();
-	PSID_startAllHW();
+    if (!num) {
+	/* reset the hardware if demanded */
+	if (myStatus & PSID_STATE_RESET_HW) {
+	    PSID_log(-1, "%s: resetting hardware", __func__);
+	    PSID_stopAllHW();
+	    PSID_startAllHW();
+	}
+	/* reset the state */
+	myStatus &= ~(PSID_STATE_RESET | PSID_STATE_RESET_HW);
+	phase = 0;
+	PSID_log(-1, "%s: done\n", __func__);
     }
-    /*
-     * change the state
-     *----------------------------
-     */
-    myStatus &= ~(PSID_STATE_DORESET | PSID_STATE_RESET_HW);
-
-    PSID_log(PSID_LOG_RESET, "%s: returns successfully\n", __func__);
-
-    return 1;
 }
 
 /**
@@ -278,7 +345,7 @@ static void msg_DAEMONSTART(DDBufferMsg_t *msg)
 static void msg_DAEMONSTOP(DDMsg_t *msg)
 {
     if (PSC_getID(msg->dest) == PSC_getMyID()) {
-	shutdownNode(1);
+	shutdownNode();
     } else {
 	sendMsg(msg);
     }
@@ -301,11 +368,7 @@ static void msg_DAEMONRESET(DDBufferMsg_t *msg)
 {
 
     if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
-	/* reset and change my state to new value */
-	myStatus &= ~(PSID_STATE_DORESET | PSID_STATE_RESET_HW);
-	if (*(int *)msg->buf & PSP_RESET_HW) {
-	    myStatus |= PSID_STATE_RESET_HW;
-	}
+	if (*(int *)msg->buf & PSP_RESET_HW) myStatus |= PSID_STATE_RESET_HW;
 	/* Resetting my node */
 	doReset();
     } else {
@@ -550,10 +613,7 @@ static void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
 	/* clean up */
 	deleteClient(fd);
 
-	if (msg->group==TG_RESET && !uid) {
-	    myStatus &= ~(PSID_STATE_DORESET | PSID_STATE_RESET_HW);
-	    doReset();
-	}
+	if (msg->group==TG_RESET && !uid) doReset();
     } else {
 	setEstablishedClient(fd);
 	task->protocolVersion = msg->version;
@@ -923,30 +983,12 @@ static void sighandler(int sig)
 {
     switch(sig){
     case SIGSEGV:
-	PSID_log(-1, "Received SEGFAULT signal. Shut down.\n");
-	if (myStatus & PSID_STATE_SHUTDOWN) {
-	    if (myStatus & PSID_STATE_SHUTDOWN2) {
-		shutdownNode(3);
-	    } else {
-		shutdownNode(2);
-	    }
-	} else {
-	    shutdownNode(1);
-	}
+	PSID_log(-1, "Received SEGFAULT signal. Shut down hardly.\n");
 	exit(-1);
 	break;
     case SIGTERM:
 	PSID_log(-1, "Received SIGTERM signal. Shut down.\n");
-	if (myStatus & PSID_STATE_SHUTDOWN) {
-	    if (myStatus & PSID_STATE_SHUTDOWN2) {
-		shutdownNode(3);
-	    } else {
-		shutdownNode(2);
-	    }
-	} else {
-	    shutdownNode(1);
-	}
-	signal(SIGTERM, sighandler);
+	shutdownNode();
 	break;
     case SIGCHLD:
     {
@@ -978,8 +1020,6 @@ static void sighandler(int sig)
 	    if (task && (task->fd == -1)) PStask_cleanup(tid);
 	}
     }
-    /* reset the sighandler */
-    signal(SIGCHLD,sighandler);
     break;
 
     case  SIGHUP:    /* hangup, generated when terminal disconnects */
@@ -1023,19 +1063,12 @@ static void sighandler(int sig)
     case  SIGUSR2:   /* user defined signal 2 */
     default:
 	PSID_log(-1, "Received signal %d. Shut down\n", sig);
-
-	if (myStatus & PSID_STATE_SHUTDOWN) {
-	    if (myStatus & PSID_STATE_SHUTDOWN2) {
-		shutdownNode(3);
-	    } else {
-		shutdownNode(2);
-	    }
-	} else {
-	    shutdownNode(1);
-	}
-	signal(sig,sighandler);
+	shutdownNode();
 	break;
     }
+
+    /* reset the sighandler */
+    signal(sig, sighandler);
 }
 
 /** @doctodo */
@@ -1169,12 +1202,12 @@ static void checkFileTable(fd_set *controlfds)
 		case EINVAL:
 		    PSID_log(-1, "%s(%d): wrong filenumber -> exit\n",
 			     __func__, fd);
-		    shutdownNode(1);
+		    shutdownNode();
 		    break;
 		case ENOMEM:
 		    PSID_log(-1, "%s(%d): not enough memory. exit\n",
 			     __func__, fd);
-		    shutdownNode(1);
+		    shutdownNode();
 		    break;
 		default:
 		    PSID_warn(-1, errno, "%s(%d): unrecognized error (%d)\n",
@@ -1427,7 +1460,6 @@ int main(int argc, const char *argv[])
     declareNodeAlive(PSC_getMyID(), PSID_getPhysCPUs(), PSID_getVirtCPUs());
 
     /* Initialize timers */
-    timerclear(&shutdownTimer);
     selectTime.tv_sec = config->selectTime;
     selectTime.tv_usec = 0;
     gettimeofday(&mainTimer, NULL);
@@ -1596,23 +1628,12 @@ int main(int argc, const char *argv[])
 	handlePartRequests();
 
 	/* Check for obstinate tasks */
-	 checkObstinate();
+	checkObstinate();
 
-	/*
-	 * Check for reset state
-	 */
-	if (myStatus & PSID_STATE_DORESET) {
-	    doReset();
-	}
-	/*
-	 * Check if any operation forced me to shutdown
-	 */
-	if (myStatus & PSID_STATE_SHUTDOWN) {
-	    if (myStatus & PSID_STATE_SHUTDOWN2) {
-		shutdownNode(3);
-	    } else {
-		shutdownNode(2);
-	    }
-	}
+	/* Check for reset state */
+	if (myStatus & PSID_STATE_RESET) doReset();
+
+	/* Check for shutdown state */
+	if (myStatus & PSID_STATE_SHUTDOWN) shutdownNode();
     }
 }
