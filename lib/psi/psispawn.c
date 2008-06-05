@@ -25,6 +25,10 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 
+#ifdef __linux__
+#include <linux/limits.h>
+#endif
+
 #include "pscommon.h"
 #include "psprotocol.h"
 #include "pstask.h"
