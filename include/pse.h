@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -112,13 +112,10 @@ int PSE_getRank(void);
  * Initializes PSE, the ParaStation Programming Environment. You have
  * to call this function before using any other function contained in
  * PSE. Otherwise the behavior of any other PSE function is
- * undetermined. You have to use this function instead of @ref
- * PSE_initialize() if you want to call the deprecated @ref
- * PSE_spawn().
+ * undetermined.
  *
  * PSE is initialized and the aspired size of the process group is set
- * to @a NP. A sequent call of @ref PSE_spawn() with argument @a rank
- * = 0 will spawn @a NP-1 tasks.
+ * to @a NP.
  *
  * @param NP The aspired size of the process group.
  *
@@ -130,12 +127,12 @@ int PSE_getRank(void);
  * @deprecated Better use @ref PSE_initialize() to initialize and @ref
  * PSE_getRank() to get the actual rank.
  *
- * @see PSE_initialize(), PSE_getRank(), PSE_spawn()
+ * @see PSE_initialize(), PSE_getRank()
  * */
 void PSE_init(int NP, int *rank);
 
 /**
- * @brief Register to the parents task.
+ * @brief Register to the parents task. Deprecated!
  *
  * Register the actual process to the parents task, so it's notified
  * thru a SIGTERM when the parent dies.
@@ -145,7 +142,15 @@ void PSE_init(int NP, int *rank);
  * process exits.
  *
  * @return No return value.
- * */
+ *
+ * @warning All registration actions are done automatically within the
+ * daemon processes now. Thus the current implementation this function
+ * does nothing and the use of this function is deprecated.
+ *
+ * @deprecated All registration actions are done automatically within
+ * the daemon processes now. Thus calling this function is not
+ * necessary any longer.
+ */
 void PSE_registerToParent(void);
 
 /**
@@ -439,63 +444,6 @@ int PSE_getMasterPort();
  * */
 int PSE_spawnAdmin(PSnodes_ID_t node, unsigned int rank,
 		   int argc, char *argv[], int strictArgv);
-
-/**
- * @brief Deprecated form of PSE_spawnMaster() and PSE_spawnTasks()
- *
- * Spawns the master process if @a rank is -1, spawns further tasks if
- * @a rank is 0 and gets info about @a node and @a port if @a rank >
- * 0.
- *
- * If @a rank is 0 tasks are spawned until the total number of tasks
- * including the master process (i.e. @a rank = 0) but excluding the
- * logger process (i.e. @a rank = -1) is equal to the parameter @a NP of
- * @ref PSE_init().
-
- * After @a PSE_spawn() has returned, a task group consisting of @a NP
- * processes plus a logger process will exist. Furthermore all
- * processes have the same info about @a node and @a port.
- *
- * If an error occures, an error message is generated and the process
- * exits.
- *
- * You have to use the deprecated @ref PSE_init() instead of @ref
- * PSE_initialize() if you want to use this function.
- *
- * @param argc The size of @a argv. This is usually equal to the argc
- * argument to main() of the actual process.
- *
- * @param argv The argument vector of the task to spawn. This is
- * usually equal to the argv argument to main() of the actual process.
- *
- * @param node If @a rank = 0, the node number to pass to spawned
- * processes. Usually this is the node ID returned by the PSPort
- * library using @ref PSP_GetNodeID(). If @a rank > 0, on return the @a
- * node passed by the spawning process.
- *
- * @param port If @a rank = 0, the port number to pass to spawned
- * processes. Usually this is the port number returned by the PSPort
- * library using @ref PSP_GetPortNo(). If @a rank > 0, on return the @a
- * port passed by the spawning process.
- *
- * @param rank The rank of the calling process. This has to be the
- * result of @ref PSE_getRank().
- *
- * @return No return value.
- *
- * @warning Deprecated form of @ref PSE_spawnMaster() and @ref
- * PSE_spawnTasks(). Don't use this.
- *
- * @deprecated Better use @ref PSE_spawnMaster() to spawn the master
- * task, @ref PSE_spawnTasks() to spawn further task, @ref
- * PSE_registerToParent() to register to the parents task and @ref
- * PSE_getMasterNode() and @ref PSE_getMasterPort() to get the
- * required info.
- *
- * @see PSE_spawnMaster(), PSE_spawnTasks(), PSE_getMasterNode(),
- * PSE_getMasterPort(), PSE_init()
- * */
-/* void PSE_spawn(int argc, char *argv[], int *node, int *port, int rank); */
 
 /**
  * @brief Finish the actual process.

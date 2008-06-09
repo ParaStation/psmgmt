@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -216,7 +216,8 @@ void msg_NOTIFYDEADRES(DDSignalMsg_t *msg);
  * undertaken within the @ref releaseTask() function called.
  *
  * In all cases adequate PSP_CD_RELEASERES message are send to the
- * task requesting the release.
+ * task requesting the release, if the answer flag withing the message
+ * @a msg is set.
  *
  * @param msg Pointer to the message to handle.
  *

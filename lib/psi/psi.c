@@ -491,6 +491,7 @@ int PSI_release(PStask_ID_t tid)
     msg.header.dest = tid;
     msg.header.len = sizeof(msg);
     msg.signal = -1;
+    msg.answer = 1;
 
     if (PSI_sendMsg(&msg)<0) {
 	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
@@ -519,6 +520,7 @@ int PSI_release(PStask_ID_t tid)
 	if (msg.param != ESRCH || tid != PSC_getMyTID())
 	    PSI_warn(-1, msg.param, "%s: releasing %s", __func__,
 		     PSC_printTID(tid));
+	errno=msg.param;
 	return -1;
     }
 

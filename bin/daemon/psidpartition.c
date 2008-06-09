@@ -2440,7 +2440,7 @@ void msg_GETRANKNODE(DDBufferMsg_t *inmsg)
 
     PSID_log(PSID_LOG_PART, "%s(%d)\n", __func__, rank);
 
-    if ((unsigned)rank <= task->partitionSize) {
+    if (rank >=0 && (unsigned)rank <= task->partitionSize) {
 	DDBufferMsg_t msg = (DDBufferMsg_t) {
 	    .header = (DDMsg_t) {
 		.type = PSP_DD_NODESRES,

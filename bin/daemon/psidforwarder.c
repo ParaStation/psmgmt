@@ -1042,6 +1042,7 @@ static int readFromPMIClient(void)
 	msg.header.dest = childTask->tid;
 	msg.header.len = sizeof(msg);
 	msg.signal = -1;
+	msg.answer = 1;
 
 	sendDaemonMsg((DDMsg_t *)&msg);
     }

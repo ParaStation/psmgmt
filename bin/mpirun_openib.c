@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -101,7 +101,7 @@ static void createSpawner(int argc, char *argv[], int np)
     PSE_initialize();
     rank = PSE_getRank();
 
-    if (rank<0) {
+    if (rank == -1) {
         PSnodes_ID_t *nds;
         int error, spawnedProc;
         char* hwList[] = { "openib", NULL };
@@ -125,7 +125,7 @@ static void createSpawner(int argc, char *argv[], int np)
         PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
                      nds, np*sizeof(*nds), 0);
 
-        PSI_spawnService(nds[0], NULL, argc, argv, np, &error, &spawnedProc);
+        PSI_spawnService(nds[0], NULL, argc, argv, &error, &spawnedProc);
 
         free(nds);
 

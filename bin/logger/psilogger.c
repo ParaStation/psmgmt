@@ -117,6 +117,9 @@ fd_set myfds;
 /** Array to store the forwarder TIDs indexed by the clients rank. */
 PStask_ID_t *clientTID;
 
+/** The minimal client rank (might be negative for TG_SERVICE) */
+const int minRank = -2;
+
 /** The actual size of #clientTID. */
 int maxClients = 64;
 
@@ -356,7 +359,7 @@ static int recvMsg(PSLog_Msg_t *msg)
     case PSP_CC_ERROR:
     {
 	/* Try to find the corresponding client */
-	int i = 0;
+	int i = minRank;
 
 	while ((i < maxClients) && (clientTID[i] != msg->header.sender)) i++;
 
@@ -499,7 +502,7 @@ void sighandler(int sig)
 	if (verbose) {
 	    fprintf(stderr,
 		    "PSIlogger: No of clients: %d open logs:", noClients);
-	    for (i=0; i<maxClients; i++)
+	    for (i=minRank; i<maxClients; i++)
 		if (clientTID[i] != -1)
 		    fprintf(stderr, "%d (%s) ", i, PSC_printTID(clientTID[i]));
 	    fprintf(stderr, "\b\n");
@@ -672,7 +675,10 @@ static int newrequest(PSLog_Msg_t *msg)
 
     if (msg->sender >= maxClients) {
 	int i;
-	clientTID = realloc(clientTID, sizeof(*clientTID) * 2 * msg->sender);
+	PStask_ID_t *tmp = clientTID + minRank;
+
+	tmp = realloc(tmp, sizeof(*clientTID) * (2*msg->sender - minRank));
+	clientTID = tmp - minRank;
 	forwardInputTID = realloc(forwardInputTID,
 				  sizeof(*forwardInputTID) * 2 * msg->sender);
 	InputDest = realloc(InputDest, sizeof(*InputDest) * 2 * msg->sender);
@@ -694,6 +700,12 @@ static int newrequest(PSLog_Msg_t *msg)
 	maxClients = 2*msg->sender;
     }
 
+    if (msg->sender < minRank) {
+	fprintf(stderr,
+		"PSIlogger: %s: rank %d from %s not supported. Ignoring...\n",
+		__func__, msg->sender, PSC_printTID(msg->header.sender));
+	return 0;
+    }
     if (clientTID[msg->sender] != -1) {
 	if (clientTID[msg->sender] == msg->header.sender) {
 	    fprintf(stderr, "PSIlogger: %s: %s (rank %d) already connected.\n",
@@ -1193,7 +1205,9 @@ static void loop(void)
 		if (newrequest(&msg)) {
 		    int i;
 		    timeoutval = 10;
-		    forwardInputTID[msg.sender] = msg.header.sender;
+		    if (msg.sender >= 0) {
+			forwardInputTID[msg.sender] = msg.header.sender;
+		    }
 		    for (i=0; i<maxClients; i++) {
 			if (msg.sender == InputDest[i]) {
 			    /* rank InputDest wants the input */
@@ -1387,7 +1401,8 @@ int main( int argc, char**argv)
 	outputMergeInit();
     }
     
-    clientTID = malloc (sizeof(*clientTID) * maxClients);
+    clientTID = malloc (sizeof(*clientTID) * (maxClients - minRank));
+    clientTID -= minRank;
     forwardInputTID = malloc (sizeof(*forwardInputTID) * maxClients);
     InputDest = malloc (sizeof(*InputDest) * maxClients);
     
@@ -1396,8 +1411,10 @@ int main( int argc, char**argv)
 	exit(1);
     }
     
-    for (i=0; i<maxClients; i++) {
+    for (i=minRank; i<maxClients; i++) {
 	clientTID[i] = -1;
+    }
+    for (i=0; i<maxClients; i++) {
 	forwardInputTID[i] = -1;
 	InputDest[i] = -1;
     }

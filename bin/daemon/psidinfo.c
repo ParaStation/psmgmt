@@ -383,8 +383,10 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		    return;
 		} else {
 		    if (msg.type == PSP_INFO_RANKID) {
-			unsigned int rank = *(unsigned int *) inmsg->buf;
-			if (rank >= task->partitionSize) {
+			int rank = *(int32_t *) inmsg->buf;
+			if (rank < 0) {
+			    *(PSnodes_ID_t *)msg.buf = -1;
+			} else if (rank >= (int)task->partitionSize) {
 			    /* @todo pinning Think about how to use OVERBOOK */
 			    if (task->options & PART_OPT_OVERBOOK) {
 				*(PSnodes_ID_t *)msg.buf =

@@ -561,7 +561,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
     PSnodes_ID_t node;
     PSP_Info_t what = full ? PSP_INFO_QUEUE_ALLTASK : PSP_INFO_QUEUE_NORMTASK;
     PSP_taskInfo_t *taskInfo;
-    int width = getWidth();
+    int width = getWidth(), usedWidth;
 
     if (! getHostStatus()) return;
 
@@ -570,9 +570,9 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 		    __func__)) return;
     taskInfo = (PSP_taskInfo_t *)tiList.list;
 
-    printf("%4s\t%22s %22s %3s %9s %.*s\n",
-	   "Node", "TaskId", "ParentTaskId", "Con", "UserId",
-	   (width-68) > 0 ? width-68 : 0, "Cmd");
+    usedWidth = printf("%4s %22s %22s %3s %5s %5s %3s ", "Node", "TaskId",
+		       "ParentTaskId", "Con", "UID", "rank", "Cls");
+    printf("%.*s\n", (width-usedWidth) > 0 ? width-usedWidth : 0, "Cmd");
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	int numTasks = 0, task, displdTasks;
 
@@ -615,12 +615,13 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 	/* Now do the output */
 	displdTasks = (count<0) ? numTasks : (numTasks<count) ? numTasks:count;
 	for (task=0; task < displdTasks; task++) {
-	    printf("%4d\t", node);
-	    printf("%22s ", PSC_printTID(taskInfo[task].tid));
-	    printf("%22s ", PSC_printTID(taskInfo[task].ptid));
-	    printf("%2d  ", taskInfo[task].connected);
-	    printf("%5d ", taskInfo[task].uid);
-	    printf("%s",
+	    usedWidth = printf("%4d ", node);
+	    usedWidth += printf("%22s ", PSC_printTID(taskInfo[task].tid));
+	    usedWidth += printf("%22s ", PSC_printTID(taskInfo[task].ptid));
+	    usedWidth += printf("%2d  ", taskInfo[task].connected);
+	    usedWidth += printf("%5d ", taskInfo[task].uid);
+	    usedWidth += printf("%5d ", taskInfo[task].rank);
+	    usedWidth += printf("%s",
 		   taskInfo[task].group==TG_ADMIN ? "(A)" :
 		   taskInfo[task].group==TG_LOGGER ? "(L)" :
 		   taskInfo[task].group==TG_FORWARDER ? "(F)" :
@@ -638,7 +639,8 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 		char cmdline[8096] = { '\0' };
 		PSI_infoString(node, PSP_INFO_CMDLINE, &pid,
 			       cmdline, sizeof(cmdline), 0);
-		printf(" %.*s", (width-68) > 0 ? width-68 : 0, cmdline);
+		printf(" %.*s",
+		       (width-usedWidth) > 0 ? width-usedWidth : 0, cmdline);
 	    }
 	    printf("\n");
 	}

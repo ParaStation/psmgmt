@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -244,7 +244,7 @@ int PSI_infoTaskID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  *
  * - PSP_INFO_RANKID request the ParaStation ID of the node on which
  * the process with a destinct rank within the actual task will be
- * running on. @a param has to point to a @c uint32_t datum holding
+ * running on. @a param has to point to a @c int32_t datum holding
  * the requested rank.
  *
  * -PSP_INFO_HOST request the ParaStation ID corresponding to an IP

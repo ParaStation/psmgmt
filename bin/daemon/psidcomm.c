@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -184,6 +184,7 @@ void handleDroppedMsg(DDMsg_t *msg)
 {
     DDErrorMsg_t errmsg;
     DDSignalMsg_t sigmsg;
+    int PSPver = PSIDnodes_getProtoVersion(PSC_getID(msg->sender));
 
     PSID_log(PSID_LOG_COMM, "%s dest %s", __func__, PSC_printTID(msg->dest));
     PSID_log(PSID_LOG_COMM," source %s type %s\n", PSC_printTID(msg->sender),
@@ -226,7 +227,9 @@ void handleDroppedMsg(DDMsg_t *msg)
 	sigmsg.param = EHOSTUNREACH;
 	sigmsg.pervasive = 0;
 
-	sendMsg(&sigmsg);
+	if (msg->type==PSP_CD_NOTIFYDEAD
+	    || PSPver < 338 || ((DDSignalMsg_t *)msg)->answer)
+	    sendMsg(&sigmsg);
 	break;
     case PSP_DD_DAEMONCONNECT:
 	if (!config->useMCast && !knowMaster()) {

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -841,6 +841,12 @@ int PSI_getRankNode(int rank, PSnodes_ID_t *node)
 	.buf = { 0 } };
     char *ptr = msg.buf;
     int ret = -1;
+
+    if (rank < 0) {
+	PSI_log(-1, "%s: Rank %d not allowed.\n", __func__, rank);
+	errno = EINVAL;
+	return -1;
+    }
 
     *(int32_t*)ptr = rank;
     ptr += sizeof(int32_t);

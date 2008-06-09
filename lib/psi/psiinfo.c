@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -372,8 +372,8 @@ int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     switch (what) {
     case PSP_INFO_RANKID:
 	if (param) {
-	    *(uint32_t*)msg.buf = *(const uint32_t*)param;
-	    msg.header.len += sizeof(uint32_t);
+	    *(int32_t*)msg.buf = *(const int32_t*)param;
+	    msg.header.len += sizeof(int32_t);
 	} else {
 	    PSI_log(-1, "%s: %s request needs parameter\n", __func__,
 		    PSP_printInfo(what));

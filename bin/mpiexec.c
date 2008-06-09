@@ -328,7 +328,7 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
     PSE_initialize();
     rank = PSE_getRank();
 
-    if (rank<0) {
+    if (rank==-1) {
         PSnodes_ID_t *nds;
         int error, spawnedProc;
 
@@ -366,7 +366,7 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 	    setPSIEnv("PWD", pwd, 1);
 	}
 
-	PSI_spawnService(nds[0], pwd, argc, argv, np, &error, &spawnedProc);
+	PSI_spawnService(nds[0], pwd, argc, argv, &error, &spawnedProc);
 
         free(nds);
 
@@ -882,7 +882,7 @@ static void setupEnvironment(int verbose)
     rank = PSE_getRank();
 
     /* be only verbose if we are the logger */
-    if (rank >0) verbose = 0;
+    if (rank != -1) verbose = 0;
 
     /* setup environment depending on pscom library */
     setupPSCOMEnv(verbose);
@@ -1070,7 +1070,7 @@ static void setupAdminEnv(void)
     }
 
     PSE_initialize();
-    if (PSE_getRank() <0) {
+    if (PSE_getRank() == -1) {
 	if (envhostsfile) {
 	    parseHostfile(envhostsfile, hosts, sizeof(hosts));
 	    hostlist = hosts;
@@ -2014,10 +2014,10 @@ int main(int argc, char *argv[])
     
     /* release service process */
     ret = PSI_release(PSC_getMyTID());
-    if (ret == -1) {
+    if (ret == -1 && errno != ESRCH) {
 	fprintf(stderr, "Error releasing service process\n");
     }
-    
+
     if (verbose) {
 	printf("service process finished, pid:%i\n", getpid());
     }

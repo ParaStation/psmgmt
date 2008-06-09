@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -149,7 +149,8 @@ int PSI_notifydead(PStask_ID_t tid, int sig);
  *
  * @param tid The task ID of the process to get released.
  *
- * @return On success, 0 is returned. Or -1, if an error occurred.
+ * @return On success, 0 is returned. In case of an error -1 is
+ * returned, and errno is set appropriately.
  */
 int PSI_release(PStask_ID_t tid);
 

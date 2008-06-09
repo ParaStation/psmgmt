@@ -1486,6 +1486,12 @@ static int checkRequest(PStask_ID_t sender, PStask_t *task)
 	return EACCES;
     }
 
+    if (task->group == TG_SERVICE && task->rank != -2) {
+	/* wrong rank for service task */
+	PSID_log(-1, "%s: rank %d for service task\n", __func__, task->rank);
+	return EINVAL;
+    }
+
     PSID_log(PSID_LOG_SPAWN, "%s: request from %s ok\n", __func__,
 	     PSC_printTID(task->ptid));
 
@@ -1912,6 +1918,92 @@ void msg_SPAWNFINISH(DDMsg_t *msg)
     sendMsg(msg);
 }
 
+/**
+ * @brief Peak into CHILDDEAD message
+ *
+ * Peak into the CHILDDEAD message @a msg and do some tweaking on
+ * local signals, generate extra messages, etc. The message to analyze
+ * @a msg might be modified. The calling function is signaled via the
+ * return value, if @a msg has to be sent upon return from this
+ * function.
+ *
+ * @param msg The message to analyze. Might be modified upon return.
+ *
+ * @return If the local consideration were sufficient, 1 is
+ * returned. In this case the calling function can ignore @a msg. If 0
+ * is returned, the calling function is expected to send @a msg using
+ * the @ref sendMsg() function.
+ */
+static int peakInto_CHILDDEAD(DDErrorMsg_t *msg)
+{
+    PStask_t *task = PStasklist_find(managedTasks, msg->header.dest);
+
+    if (PSC_getID(msg->header.dest) != PSC_getMyID()) return 0;
+
+    if (!task) return 1;
+
+    /* Remove dead child from list of childs */
+    PSID_removeSignal(&task->assignedSigs, msg->request, -1);
+    if (!PSID_removeSignal(&task->childs, msg->request, -1)) {
+	/* No child found. Might already be inherited by parent */
+	if (task->ptid) {
+	    DDSignalMsg_t fwdMsg;
+
+	    fwdMsg.header.type = PSP_CD_RELEASE;
+	    fwdMsg.header.dest = task->ptid;
+	    fwdMsg.header.sender = msg->request;
+	    fwdMsg.header.len = sizeof(msg);
+	    fwdMsg.signal = -1;
+	    fwdMsg.pervasive = 0;
+	    fwdMsg.answer = 0;
+
+	    PSID_log(PSID_LOG_SPAWN, "%s: forward PSP_CD_CHILDDEAD from %s",
+		     __func__, PSC_printTID(msg->request));
+	    PSID_log(PSID_LOG_SPAWN, " dest %s", PSC_printTID(task->tid));
+	    PSID_log(PSID_LOG_SPAWN, "->%s\n", PSC_printTID(task->ptid));
+
+	    msg_RELEASE(&fwdMsg);
+
+	    return 1;
+	} else {
+	    PSID_log(-1, "%s: %s not child of", __func__,
+		     PSC_printTID(msg->request));
+	    PSID_log(-1, " %s and no known parent\n", PSC_printTID(task->tid));
+	}
+    }
+
+    if (task->removeIt && !task->childs) {
+	PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
+	PStask_cleanup(task->tid);
+	return 1;
+    }
+
+    /* Release a TG_(PSC)SPAWNER if child died in a fine way */
+    if (WIFEXITED(msg->error) && !WIFSIGNALED(msg->error)) {
+	if (task->group == TG_SPAWNER || task->group == TG_PSCSPAWNER)
+	    task->released = 1;
+    }
+
+    switch (task->group) {
+    case TG_SPAWNER:
+    case TG_GMSPAWNER:
+	/* Do not send a DD message to a client */
+	msg->header.type = PSP_CD_SPAWNFINISH;
+	break;
+    case TG_SERVICE:
+	/* TG_SERVICE expects signal, not message */
+	if (!WIFEXITED(msg->error) || WIFSIGNALED(msg->error)
+	    || !task->childs) {
+	    PSID_sendSignal(task->tid, task->uid, msg->request, -1, 0, 0);
+	}
+    default:
+	/* Don't send message if task not TG_(GM)SPAWNER */
+	return 1;
+    }
+
+    return 0;
+}
+
 void msg_CHILDDEAD(DDErrorMsg_t *msg)
 {
     PStask_t *task, *forwarder;
@@ -1923,47 +2015,7 @@ void msg_CHILDDEAD(DDErrorMsg_t *msg)
 
     if (msg->header.dest != PSC_getMyTID()) {
 	/* Not for me, thus forward it. But first take a peek */
-	if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
-	    /* dest is on my node */
-	    task = PStasklist_find(managedTasks, msg->header.dest);
-
-	    if (!task) return;
-
-	    /* Remove dead child from list of childs */
-	    PSID_removeSignal(&task->assignedSigs, msg->request, -1);
-	    PSID_removeSignal(&task->childs, msg->request, -1);
-
-	    if (task->removeIt && !task->childs) {
-		PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
-		PStask_cleanup(task->tid);
-		return;
-	    }
-
-	    /* Release a TG_(PSC)SPAWNER if child died in a fine way */
-	    if (WIFEXITED(msg->error) && !WIFSIGNALED(msg->error)) {
-		if (task->group == TG_SPAWNER || task->group == TG_PSCSPAWNER)
-		    task->released = 1;
-	    }
-
-	    switch (task->group) {
-	    case TG_SPAWNER:
-	    case TG_GMSPAWNER:
-		/* Do not send a DD message to a client */
-		msg->header.type = PSP_CD_SPAWNFINISH;
-		break;
-	    case TG_SERVICE:
-		/* TG_SERVICE expects signal, not message */
-		if (!WIFEXITED(msg->error) || WIFSIGNALED(msg->error)
-		    || !task->childs) {
-		    PSID_sendSignal(task->tid, task->uid,
-				    msg->request, -1, 0, 0);
-		}
-	    default:
-		/* Don't send message if task not TG_(GM)SPAWNER */
-		return;
-	    }
-	}
-	sendMsg(msg);
+	if (!peakInto_CHILDDEAD(msg)) sendMsg(msg);
 
 	return;
     }

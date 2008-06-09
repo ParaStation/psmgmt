@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -33,8 +33,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "pse.h"
 
 static int myWorldSize = -1;
-static int worldSize = -1;  /* @deprecated: only used within such functions */
-static int worldRank = -2;
+static int worldRank = -42;
 static int masterNode = -1;
 static int masterPort = -1;
 static PStask_ID_t parentTID = -1;
@@ -154,8 +153,6 @@ int PSE_getPartition(unsigned int num)
 void PSE_init(int NP, int *rank)
 {
     PSE_initialize();
-
-    worldSize = NP;
 
     *rank = PSE_getRank();
 }
@@ -337,39 +334,6 @@ int PSE_getMasterPort(void)
 {
     return masterPort;
 }
-
-/* @deprecated */
-/*
-void PSE_spawn(int argc, char *argv[], int *node, int *port, int rank)
-{
-    if (rank != PSE_getRank()) {
-	logger_print(logger, -1, "[%d] %s: rank is %d\n",
-		     PSE_getRank(), __func__, rank);
-	exitAll("Wrong rank", 10);
-    }
-
-    if (worldSize == -1) {
-	logger_print(logger, -1, "[%d] %s: Use PSE_init() to set worldSize\n",
-		     PSE_getRank(), __func__);
-	exitAll("Wrong worldsize", 10);
-    }
-
-    switch (PSE_getRank()) {
-    case -1:
-	if (PSE_getPartition(worldSize)!=worldSize) exit(1);
-	PSE_spawnMaster(argc, argv);
-	break;
-    case 0:
-	PSE_registerToParent();
-	PSE_spawnTasks(worldSize-1, *node, *port, argc, argv);
-	break;
-    default:
-	PSE_registerToParent();
-	*node = PSE_getMasterNode();
-	*port = PSE_getMasterPort();
-    }
-}
-*/
 
 void PSE_finalize(void)
 {

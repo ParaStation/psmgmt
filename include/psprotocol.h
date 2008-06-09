@@ -33,7 +33,7 @@ extern "C" {
 #endif
 
 /** Unique version number of the high-level protocol */
-#define PSProtocolVersion 337
+#define PSProtocolVersion 338
 
 /** The location of the UNIX socket used to contact the daemon. */
 #define PSmasterSocketName "/var/run/parastation.sock"
@@ -401,8 +401,10 @@ typedef struct {
 			      - PSP_DD_CHILDDEAD: unused. */
     char pervasive;        /**< flag to send signal to the whole task.
 			      Only used within PSP_CD_SIGNAL messages. */
-    char answer;           /**< flag to send answer on signal delivery.
-			      Only used within PSP_CD_SIGNAL messages. */
+    char answer;           /**< flag to send answer on signal delivery
+			      or release.  Only used within
+			      PSP_CD_SIGNAL and PSP_CD_RELEASE
+			      messages. */
 } DDSignalMsg_t;
 
 /**

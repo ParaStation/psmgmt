@@ -27,6 +27,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include "psidtask.h"
 #include "psidutil.h"
 #include "psidcomm.h"
+#include "psidnodes.h"
 #include "psidpartition.h"
 
 #include "psidsignal.h"
@@ -542,7 +543,7 @@ void msg_NEWPARENT(DDErrorMsg_t *msg)
     answer.signal = -1;
 
     if (!task) {
-	PSID_log(-1, "%s(%s): no task\n", __func__,
+	PSID_log(PSID_LOG_SIGNAL, "%s(%s): no task\n", __func__,
 		 PSC_printTID(msg->header.dest));
 	answer.param = ESRCH;
     } else if (task->ptid != msg->header.sender) {
@@ -638,7 +639,7 @@ static int releaseSignal(PStask_ID_t sender, PStask_ID_t receiver, int sig)
 		msg.header.len = sizeof(msg);
 		msg.signal = -1;
 		msg.pervasive = 0;
-		msg.answer = 0;
+		msg.answer = 1;
 
 		PSID_log(PSID_LOG_SIGNAL, "%s: forward PSP_CD_RELEASE from %s",
 			 __func__, PSC_printTID(receiver));
@@ -708,6 +709,7 @@ static int releaseTask(PStask_ID_t tid)
 	sigMsg.header.sender = tid;
 	sigMsg.header.len = sizeof(sigMsg);
 	sigMsg.signal = -1;
+	sigMsg.answer = 1;
 
 	PSID_log(PSID_LOG_TASK|PSID_LOG_SIGNAL, "%s(%s): release\n", __func__,
 		 PSC_printTID(tid));
@@ -805,6 +807,7 @@ void msg_RELEASE(DDSignalMsg_t *msg)
 {
     PStask_ID_t registrarTid = msg->header.sender;
     PStask_ID_t tid = msg->header.dest;
+    int PSPver = PSIDnodes_getProtoVersion(PSC_getID(msg->header.sender));
 
     PSID_log(PSID_LOG_SIGNAL, "%s(%s)", __func__, PSC_printTID(tid));
     PSID_log(PSID_LOG_SIGNAL, " registrar %s\n", PSC_printTID(registrarTid));
@@ -847,6 +850,7 @@ void msg_RELEASE(DDSignalMsg_t *msg)
 		return;
 	    }
 	}
+	if (PSPver > 337 && !msg->answer) return;
     }
     sendMsg(msg);
 }
@@ -855,6 +859,7 @@ void msg_RELEASERES(DDSignalMsg_t *msg)
 {
     PStask_ID_t tid = msg->header.dest;
     PStask_t *task;
+    int dbgMask = (msg->param == ESRCH) ? PSID_LOG_SIGNAL : -1;
 
     if (PSID_getDebugMask() & PSID_LOG_SIGNAL) {
 	PSID_log(PSID_LOG_SIGNAL, "%s(%s)", __func__,
@@ -875,7 +880,14 @@ void msg_RELEASERES(DDSignalMsg_t *msg)
 	return;
     }
 
-    if (msg->param) task->pendingReleaseErr = msg->param;
+    if (msg->param) {
+	if (task->pendingReleaseErr && msg->param != ESRCH) {
+	    task->pendingReleaseErr = msg->param;
+	}
+	PSID_log(dbgMask, "%s: sig %d: error = %d from %s", __func__,
+		 msg->signal, msg->param, PSC_printTID(msg->header.sender));
+	PSID_log(dbgMask, " for local %s\n", PSC_printTID(tid));
+    }
 
     task->pendingReleaseRes--;
     if (task->pendingReleaseRes) {
@@ -885,6 +897,7 @@ void msg_RELEASERES(DDSignalMsg_t *msg)
 	return;
     } else if (task->pendingReleaseErr) {
 	msg->param = task->pendingReleaseErr;
+	dbgMask = (msg->param == ESRCH) ? PSID_LOG_SIGNAL : -1;
 	PSID_log(-1, "%s: sig %d: error = %d from %s", __func__,
 		 msg->signal, msg->param, PSC_printTID(msg->header.sender));
 	PSID_log(-1, " forward to local %s\n", PSC_printTID(tid));

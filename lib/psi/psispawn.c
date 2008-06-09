@@ -227,12 +227,17 @@ static int sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len)
  * dstnodes. The spawned processes will be started within @a
  * workingdir as the current working directory. The @a argc arguments
  * used in order to start the processes are stored within @a argv. The
- * first process spawned will get the unique rank @a rank, all further
- * processes will get successive ranks. Upon return the array @a
- * errors will hold @a count error codes indicating if the
- * corresponding spawn was successful and if not, what cause the
- * failure. The array @a tids will hold the unique task ID of the
- * started processes.
+ * first process spawned -- if not a service process -- will get the
+ * unique rank @a rank, all further processes will get successive
+ * ranks.
+ *
+ * Service processes always get rank -2. Only a single service-process
+ * is allowed to be spawned.
+ *
+ * Upon return the array @a errors will hold @a count error codes
+ * indicating if the corresponding spawn was successful and if not,
+ * what cause the failure. The array @a tids will hold the unique task
+ * ID of the started processes.
  *
  * @param count The number of processes to spawn.
  *
@@ -276,6 +281,12 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     int error = 0;  /* error flag */
     int fd = 0;
     PStask_t* task; /* structure to store the information of the new process */
+
+    if (taskGroup == TG_SERVICE && count != 1) {
+	PSI_log(-1, "%s: spawn %d SERVICE tasks not allowed\n",
+		__func__, count);
+	return -1;
+    }
 
     for (i=0; i<count; i++) {
 	errors[i] = 0;
@@ -391,6 +402,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
 	    /* set correct rank */
 	    task->rank = rank++;
+	    if (taskGroup == TG_SERVICE) task->rank = -2;
 
 	    /* pack the task information in the msg */
 	    len = PStask_encodeTask(msg.buf, sizeof(msg.buf), task);
@@ -610,7 +622,7 @@ int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
 }
 
 int PSI_spawnService(PSnodes_ID_t node, char *workdir, int argc, char **argv,
-		     unsigned int rank, int *error, PStask_ID_t *tid)
+		     int *error, PStask_ID_t *tid)
 {
     int ret;
 
@@ -618,13 +630,8 @@ int PSI_spawnService(PSnodes_ID_t node, char *workdir, int argc, char **argv,
 
     if (node == -1) node = PSC_getMyID();
 
-    if (!getPSIEnv("__PSI_MASTERNODE"))
-	setPSIEnv("__PSI_MASTERNODE", "42", 1);
-    if (!getPSIEnv("__PSI_MASTERPORT"))
-	setPSIEnv("__PSI_MASTERPORT", "4711", 1);
-
     ret = dospawn(1, &node, workdir, argc, argv, 0,
-		  TG_SERVICE, rank, error, tid);
+		  TG_SERVICE, 0, error, tid);
     if (ret != 1) return -1;
 
     return 1;
