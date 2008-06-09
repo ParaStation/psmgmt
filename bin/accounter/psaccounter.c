@@ -1666,21 +1666,25 @@ static void getNodeInformation()
 	
 	/* get daemon protocoll version */
 	if ((PSI_infoOption(n, 1, &opt, &val, 0)) == -1 ) {
-	    alog("%s: error getting protocol version\n", __func__);
-	    exit(EXIT_FAILURE);
-	}
-	accNodes[n].protoVersion = val;
+	    if (debug & 0x010) {
+		alog("%s: error getting protocol version for node:%s\n", 
+		     __func__, accNodes[n].hostname);
+	    }
+	    val = 0;
+	} else {
+	    accNodes[n].protoVersion = val;
 
+	    /* make sure we have at least protocol version 401 */
+	    if (val < 401) {
+		alog("%s: need deamon protocol >= 401, please update "
+		     "node:%i\n", __func__, n);
+		exit(EXIT_FAILURE);
+	    }
+	}
+	
 	if (debug & 0x100) {
 	    alog("%s: hostname:%s ip:%s nodeid:%i protocol:%i\n", __func__,
 		 accNodes[n].hostname, inet_ntoa(senderIP), n, val);
-	}
-
-	/* make sure we have at least protocol version 401 */
-	if (val < 401) {
-	    alog("%s: need deamon protocol >= 401, please update "
-		 "node:%i\n", __func__, n);
-	    exit(EXIT_FAILURE);
 	}
     }
 }
