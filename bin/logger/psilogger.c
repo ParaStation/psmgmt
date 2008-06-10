@@ -695,7 +695,7 @@ static int newrequest(PSLog_Msg_t *msg)
 	}
 
 	/* realloc output buffer */
-	if (MergeOutput) reallocClientOutBuf(msg);		
+	if (MergeOutput) reallocClientOutBuf(2*msg->sender);		
 
 	maxClients = 2*msg->sender;
     }

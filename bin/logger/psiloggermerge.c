@@ -70,7 +70,7 @@ OutputBuffers *ClientOutBuf;
 /**
  * List of received output msgs (the actual buffer).
  */
-bMessages BufMsgs;
+bMessages bufGlobal;
 
 /**
  * Buffer for incomplete lines.
@@ -90,6 +90,11 @@ int maxMergeDepth = 300;
  * will maximal be hold back.
  */
 int maxMergeWait = 2;
+
+/**
+ * Enable debbuging messages.
+ */
+int db = 0;
 
 /**
  * @brief Malloc with error handling.
@@ -136,6 +141,69 @@ static void *urealloc(void *old ,size_t size, const char *func)
 }
 
 /**
+ * @brief Dump global buffer.
+ *
+ * Just for debbuging purpose, print the global message buffer.
+ *
+ * @return No return value.
+ */
+static void dumpGlobalBuffer()
+{
+    struct list_head *npos;
+    bMessages *nval;
+
+    fprintf(stdout, "\nDumping output buffer:\n");
+    if (!list_empty(&bufGlobal.list)) {
+	list_for_each(npos, &bufGlobal.list) {
+	    nval = list_entry(npos, bMessages, list);	 
+	    if (!nval) {
+		break;
+	    }
+	    if (nval->line) {
+		fprintf(stdout, "counter:%i hash:%i line:%s", nval->counter, 
+				nval->hash, nval->line);
+	    }
+	}
+    }
+    fprintf(stdout, "dump end\n\n");
+}
+
+/**
+ * @brief Dump client buffer.
+ *
+ * Just for debbuging purpose, print the client message buffer.
+ *
+ * @return No return value.
+ */
+static void dumpClientBuffer()
+{
+    struct list_head *npos;
+    OutputBuffers *nval;
+    int x;
+
+    fprintf(stdout, "\nDumping client buffer:\n");
+    
+    for(x=0; x< maxClients; x++) {
+	
+	if (!list_empty(&ClientOutBuf[x].list)) {
+	    list_for_each(npos, &ClientOutBuf[x].list) {
+		/* get data to compare */
+		nval = list_entry(npos, OutputBuffers, list);	 
+		
+		if (!nval) {
+		    break;
+		}
+		if (nval->line) {
+		    fprintf(stdout, "client:%i outfd:%i line:%s", x, (int) 
+				     nval->outfp, nval->line);
+		}
+	    }
+	}
+    }
+    fprintf(stdout, "dump end\n\n");
+}
+
+/**
  * @brief Init the merge structures/functions of the logger. 
  * This function must be called before any other merge function.
  * 
@@ -168,7 +236,7 @@ void outputMergeInit(void)
 	BufInc[i] = NULL;
     }
 
-    INIT_LIST_HEAD(&BufMsgs.list);
+    INIT_LIST_HEAD(&bufGlobal.list);
 }
 
 /**
@@ -176,34 +244,45 @@ void outputMergeInit(void)
  * the caches have to be reallocated so all new clients can be
  * handled.
  *
- * @param msg The msg from the client which is greater than
- * maxClients.
+ * @param newSize The new size of the next max client.
  *
  * @return No return value.
  */
-void reallocClientOutBuf(PSLog_Msg_t *msg)
+void reallocClientOutBuf(int newSize)
 {
     int i;
-
-    ClientOutBuf = urealloc(ClientOutBuf, sizeof(*ClientOutBuf) * 
-			    2 * msg->sender, __func__);
-    BufInc = urealloc(BufInc, sizeof(char*) * 2 * msg->sender, __func__);
-
-    for (i=0; i<2*msg->sender; i++) {
-	INIT_LIST_HEAD(&ClientOutBuf[i].list);
-    }
+    OutputBuffers *OutBufNew;
     
-    for (i=maxClients; i<2*msg->sender; i++) {
-	ClientOutBuf[i].line = NULL;
+    if (db) {
+	dumpGlobalBuffer();
+	dumpClientBuffer();
+	fprintf(stderr, "%s: realloc buffers, newSize:%i maxClients:%i \n", 
+			    __func__, newSize, maxClients);
+    }
+
+    OutBufNew = umalloc(sizeof(*OutBufNew) * newSize, __func__);
+    BufInc = urealloc(BufInc, sizeof(char*) * newSize, __func__);
+
+    for (i=0; i<newSize; i++) {
+	INIT_LIST_HEAD(&OutBufNew[i].list);
+    }
+
+    for (i=0; i<maxClients; i++) {
+	list_splice(&ClientOutBuf[i].list, &OutBufNew[i].list);
+    }
+
+    for (i=maxClients; i<newSize; i++) {
+	OutBufNew[i].line = NULL;
 	BufInc[i] = NULL;
     }
 
-    maxClients = 2*msg->sender;
+    ClientOutBuf = OutBufNew;
+    maxClients = newSize;
 }
 
 /**
  * @brief Searches the client structure and builds up a new array 
- * with of equal lines.
+ * of equal lines.
  *
  * @param ClientIdx The id of the first client which buffer should be 
  * compared against all other clients.
@@ -229,22 +308,24 @@ static void findEqualData(int ClientIdx, struct list_head *saveBuf[maxClients],
 
     *mcount = 0;
     for(x=0; x< maxClients; x++) {
+	
+	/* skip myself */
 	if (x == ClientIdx) continue;
-
+	
 	if (!list_empty(&ClientOutBuf[x].list)) {
-	    /*found next rank */
 	    list_for_each(npos, &ClientOutBuf[x].list) {
 		dcount++;
 		/* get data to compare */
 		nval = list_entry(npos, OutputBuffers, list);	 
 		
 		if (!val || !nval || !val->line || !nval->line) {
-		    //fprintf(stderr, "Breaking search for %s, possible error?\n", 
+		    //fprintf(stderr, "Breaking search for %s, possible error?\n",
 		    //val->line);
 		    break;
 		}
 		if (val->line == nval->line ) {
 		    if (val->outfp == nval->outfp) {
+			//printf("client: %i np:%i mcount:%i\n", x, np, *mcount);
 			saveBuf[*mcount] = npos;
 			saveBufInd[*mcount] = x; 
 			(*mcount)++;
@@ -278,8 +359,8 @@ static void delCachedMsg(OutputBuffers *nval, struct list_head *npos)
     bMessages *val;
     int found = 0;
     val = NULL;
-    if (!list_empty(&BufMsgs.list)) {
-	list_for_each(pos, &BufMsgs.list) {
+    if (!list_empty(&bufGlobal.list)) {
+	list_for_each(pos, &bufGlobal.list) {
 	    /* get element to compare */
 	    val = list_entry(pos, bMessages, list); 
 	    
@@ -407,6 +488,9 @@ static void printLine(FILE *outfp, char *line, int mcount, int start,
     char format[50];
     char prefix[100]; 
     int space = 0;
+    
+    if (db) fprintf(stderr, "%s: count:%i, start:%i, line:%s\n", __func__, 
+		     mcount, start, line);
 
     generatePrefix(prefix, sizeof(prefix), mcount, start, saveBufInd);
     space = prelen - strlen(prefix) - 2;
@@ -531,11 +615,13 @@ void displayCachedOutput(int flush)
 		/* find equal data */
 		findEqualData(i, saveBuf, saveBufInd, &mcount, val);
 
-		//fprintf(stderr, "Analyse=np:%i mcount:%i timediff:%i flush:%i"
-		//"val:%s\n", np, mcount, (int )(ltime - val->time), flush, 
-		//val->line);	
 		if (mcount == np -1 || ltime - val->time > maxMergeWait || 
 		    flush ) {
+		    
+		    /*
+		    fprintf(stderr, "Analyse np:%i mcount:%i timediff:%i flush:%i "
+		    "val:%s\n", np, mcount, (int )(ltime - val->time), flush, 
+		    val->line);*/
 		    
 		    /* output single msg from tracked rank */
 		    outputSingleCMsg(i, pos, saveBuf, saveBufInd, mcount);
@@ -591,23 +677,20 @@ static int calcHash(char *line)
  * @return If the message is found a pointer to that message
  * is returned. If not found NULL is returned.
  */
-static bMessages *isSaved(char *msg)
+static bMessages *isSaved(char *msg, int hash)
 {
     struct list_head *pos;
     bMessages *val;
-    int msgHash;
     
-    msgHash = calcHash(msg);
-    
-    if (!list_empty(&BufMsgs.list)) {
-	list_for_each(pos, &BufMsgs.list) {
+    if (!list_empty(&bufGlobal.list)) {
+	list_for_each(pos, &bufGlobal.list) {
 	    /* get element to compare */
 	    val = list_entry(pos, bMessages, list); 
 	    
 	    if(!val || !val->line) {
 		break;
 	    }
-	    if (val->hash == msgHash && (!strcmp(val->line, msg))) {
+	    if (val->hash == hash && (!strcmp(val->line, msg))) {
 		return val;
 	    }
 	}
@@ -629,13 +712,13 @@ void cacheOutput(PSLog_Msg_t msg, int outfd)
 {
     size_t count = msg.header.len - PSLog_headerSize;
     int sender = msg.sender;
-    OutputBuffers *tmp = NULL;
+    OutputBuffers *newMsg = NULL;
     OutputBuffers *ClientBuf = &ClientOutBuf[sender];
-    bMessages *tmpbMsg = NULL;
+    bMessages *globalMsg = NULL;
     char *buf, *bufmem;
     int len;
-    int db = 0;
-    
+    int hash;
+   
     bufmem = umalloc((count +1), __func__);
     strncpy(bufmem, msg.buf, count);
     bufmem[count] = '\0';
@@ -651,7 +734,7 @@ void cacheOutput(PSLog_Msg_t msg, int outfd)
 	/* no newline -> save to tmp buffer */
 	if (!nl) {
 	    if (!BufInc[sender]) {
-		if (db) fprintf(stderr, "from %i: no newline ->newbuf :%s\n", 
+		if (db) fprintf(stderr, "sender:%i no newline ->newbuf :%s\n", 
 				sender, buf);
 		BufInc[sender] = umalloc((len +1), __func__);
 		
@@ -660,7 +743,7 @@ void cacheOutput(PSLog_Msg_t msg, int outfd)
 	    } else {
 		/* buffer is used, append the msg */
 		int leninc = strlen(BufInc[sender]);
-		if (db) fprintf(stderr, "from %i: no newline ->append :%s\n", 
+		if (db) fprintf(stderr, "sender:%i no newline ->append :%s\n", 
 				sender, buf);
 		BufInc[sender] = urealloc(BufInc[sender], leninc + len +1, 
 					  __func__);
@@ -670,7 +753,7 @@ void cacheOutput(PSLog_Msg_t msg, int outfd)
 	    break;
 	}
 	
-	/* complete msg with nl */
+	/* complete msg with newline (\n) */
 	len = strlen(buf) - strlen(nl);
 	if (BufInc[sender]) {
 	    int leninc = strlen(BufInc[sender]);
@@ -686,43 +769,48 @@ void cacheOutput(PSLog_Msg_t msg, int outfd)
 	    savep[len] = '\0';
 	}
 	
-	if (db) fprintf(stderr, "string to save to global from:%i "
+	if (db) fprintf(stderr, "string to global sender:%i "
 			"outfd:%i : %s\n", sender, outfd, savep);
 	
-	/* save to client matrix */
-	tmp = (OutputBuffers *)umalloc(sizeof(OutputBuffers), __func__);
-	tmp->time = time(0); 
+	/* setup new client list item */
+	newMsg = (OutputBuffers *)umalloc(sizeof(OutputBuffers), __func__);
+	newMsg->time = time(0); 
 	if (outfd == STDERR_FILENO) {
-	    tmp->outfp = stderr;
+	    newMsg->outfp = stderr;
 	} else {
-	    tmp->outfp = stdout;
+	    newMsg->outfp = stdout;
 	}
 	
 	/* check if already in global buffer */
-	if ((tmpbMsg = isSaved(savep))) {
-	    (tmpbMsg->counter)++;
-	    /* save pointer from client buffer to global buffer */
-	    tmp->line = tmpbMsg->line;
-	    if(db) fprintf(stderr, "adding pointer to matrix: savep=%s\n",savep);
+	hash = calcHash(savep);
+
+	if ((globalMsg = isSaved(savep, hash))) {
+	    /* string is already in global msg cache, just save ref to it */
+	    (globalMsg->counter)++;
+	    newMsg->line = globalMsg->line;
+	    if(db) fprintf(stderr, "pointer to matrix count:%i hash:%i "
+				   "savep=%s", globalMsg->counter, 
+				   globalMsg->hash, savep);
 	    free(savep);
 	} else {
-	    if(db) fprintf(stderr, "saving to matrix: savep=%s\n",savep);
-
-	    /* save to global buffer */	
-	    tmpbMsg = (bMessages *)umalloc(sizeof(bMessages), __func__);
-	    tmpbMsg->line = savep;
-	    tmpbMsg->hash = calcHash(savep);
-	    tmpbMsg->counter = 1;
-	    list_add_tail(&(tmpbMsg->list), &BufMsgs.list);
+	    /* new message, save it to global msg cache */
+	    globalMsg = (bMessages *)umalloc(sizeof(bMessages), __func__);
+	    globalMsg->line = savep;
+	    globalMsg->hash = hash;
+	    globalMsg->counter = 1;
+	    list_add_tail(&(globalMsg->list), &bufGlobal.list);
 	    
-	    /* save pointer from client buffer to global buffer */
-	    tmp->line = savep;
+	    newMsg->line = savep;
+	    
+	    if(db) fprintf(stderr, "string to matrix  count:%i hash:%i "
+				   "savep=%s", globalMsg->counter, 
+				   globalMsg->hash, savep);
 	}
-	if (db) fprintf(stderr,"line:%s hash:%i, count:%i\n",
-			tmpbMsg->line, tmpbMsg->hash, tmpbMsg->counter);
-	list_add_tail(&(tmp->list), &ClientBuf->list);
 	
-	/* next line */	    
+	/* save the message to the client list */
+	list_add_tail(&(newMsg->list), &ClientBuf->list);
+	
+	/* goto next line */	    
 	count -= len;
 	buf = nl;
     }

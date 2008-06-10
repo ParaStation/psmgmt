@@ -482,6 +482,8 @@ static Job_t *initNewJob(PStask_ID_t logger)
     job->walltime.tv_sec = 0;
     job->walltime.tv_usec = 0;
     job->loggerChildren = 0;
+    job->user[0] = '\0';
+    job->group[0] = '\0';
    
     job->exec_hosts = umalloc(EXEC_HOST_SIZE, __func__);
     job->exec_hosts[0] = '\0';   
@@ -536,7 +538,7 @@ static Job_t *handleComHeader(char **newptr, const char *func, int *rank)
     ptr += sizeof(uid_t);
 
     /* set uid and username of job */
-    if (!job->uid) {
+    if (job->user[0] == '\0') {
 	int maxlen = MAX_USERNAME_LEN - 1;
 	struct passwd *spasswd;
 	
@@ -550,13 +552,13 @@ static Job_t *handleComHeader(char **newptr, const char *func, int *rank)
 	}
 	job->user[maxlen] = '\0';
     }
-
+    
     /* child's gid */
     gid = *(gid_t *)ptr;
     ptr += sizeof(gid_t);
 
     /* set gid and groupname of job*/
-    if (!job->gid) {
+    if (job->group[0] == '\0') {
 	int maxlen = MAX_GROUPNAME_LEN - 1;
 	struct group *sgroup;
 	

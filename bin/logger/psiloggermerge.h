@@ -53,14 +53,14 @@ void cacheOutput(PSLog_Msg_t msg, int outfd);
 void outputMergeInit(void);
 
 /**
- * @brief If more clients are connected than maxClients, the caches
- * have to be reallocated so all new clients can be handled.
+ * @brief If more clients are connected than maxClients,
+ * the caches have to be reallocated so all new clients can be
+ * handled.
  *
- * @param msg The msg from the client which is greater than
- * maxClients.
+ * @param newSize The new size of the next max client.
  *
  * @return No return value.
  */
-void reallocClientOutBuf(PSLog_Msg_t *msg);
+void reallocClientOutBuf(int newSize);
 
 #endif
