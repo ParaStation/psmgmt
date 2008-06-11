@@ -194,7 +194,7 @@ static void dumpClientBuffer()
 		    break;
 		}
 		if (nval->line) {
-		    fprintf(stdout, "client:%i outfd:%i line:%s", x, (int) 
+		    fprintf(stdout, "client:%i outfd:%li line:%s", x, (long)
 				     nval->outfp, nval->line);
 		}
 	    }
