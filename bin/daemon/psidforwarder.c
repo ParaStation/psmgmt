@@ -94,6 +94,12 @@ fd_set writefds;
 /** Number of currently open file descriptors (except to one to the daemon) */
 int openfds = 0;
 
+static enum {
+    IDLE,
+    CONNECTED,
+    CLOSED,
+} pmiStatus = IDLE;
+
 /** List of messages waiting to be sent to
  */
 msgbuf_t *oldMsgs = NULL;
@@ -1028,6 +1034,8 @@ static int readFromPMIClient(void)
     /* truncate msg to received bytes */
     msgBuf[len] = '\0';
 
+    pmiStatus = CONNECTED;
+
     /* parse and handle the pmi msg */
     ret = pmi_parse_msg(msgBuf);
 
@@ -1045,6 +1053,8 @@ static int readFromPMIClient(void)
 	msg.answer = 1;
 
 	sendDaemonMsg((DDMsg_t *)&msg);
+
+	pmiStatus = CLOSED;
     }
     return len;
 }
@@ -1351,6 +1361,19 @@ static void sighandler(int sig)
 	}
 
 	sendMsg(USAGE, (char *) &rusage, sizeof(rusage));
+
+	/* Release, if no error occurred and not already done */
+	if (pmiStatus == IDLE && WIFEXITED(status) && !WIFSIGNALED(status)) {
+	    /* release the child */
+	    DDSignalMsg_t msg;
+	    msg.header.type = PSP_CD_RELEASE;
+	    msg.header.sender = PSC_getTID(-1, getpid());
+	    msg.header.dest = childTask->tid;
+	    msg.header.len = sizeof(msg);
+	    msg.signal = -1;
+	    msg.answer = 0;  /* Don't expect answer in this late stage */
+	    sendDaemonMsg((DDMsg_t *)&msg);
+	}
 
 	/* Send ACCOUNT message to daemon; will forward to accounters */
 	if (accounting && childTask->group != TG_ADMINTASK

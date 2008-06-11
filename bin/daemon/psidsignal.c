@@ -160,6 +160,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 
 	    PSID_log(-1, "%s: Do not send signal to daemon\n", __func__);
 	} else if (pervasive) {
+	    /* @todo Duplicated code in msg_SIGNAL(). Remove other one */
 	    PStask_sig_t *childs = PStask_cloneSigList(dest->childs);
 	    PStask_ID_t childTID;
 	    int sig = -1;
@@ -197,6 +198,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 		}
 	    }
 
+	    PSID_removeSignal(&dest->assignedSigs, sender, signal);
 	    ret = PSID_kill(pid, sig, uid);
 	    msg.error = ret;
 
@@ -339,6 +341,7 @@ void msg_SIGNAL(DDSignalMsg_t *msg)
 		 __func__, msg->signal, PSC_printTID(msg->header.dest));
 
 	if (msg->pervasive) {
+	    /* @todo Duplicated code in PSID_sendSignal(). Remove this one */
 	    PStask_t *dest = PStasklist_find(managedTasks, msg->header.dest);
 	    if (dest) {
 		PStask_sig_t *childs = PStask_cloneSigList(dest->childs);
@@ -678,26 +681,31 @@ static int releaseSignal(PStask_ID_t sender, PStask_ID_t receiver, int sig)
 /**
  * @brief Release a task.
  *
- * Release the task with ID @a tid. Thus the daemon expects this task
- * to disappear and will not send the standard signal to the parent
- * task.
+ * Release the task described by the structure @a task. Thus the
+ * daemon expects this task to disappear and will not send the
+ * standard signals to the parent task and the child tasks.
  *
  * Nevertheless explicitly registered signal will be sent.
  *
- * @param tid ID of the task to release.
+ * Usually this results in deregeristing from the parent and
+ * inheriting all the childs to the parent. This is done by sending an
+ * amount of PSP_CD_RELEASE, PSP_CD_NEWPARENT and PSP_CD_NEWCHILD
+ * messages and expecting the corresponding answers. However, if the
+ * @ref releaseAnswer flag within the task-structure @a task is not
+ * set, no answers are expected.
+ *
+ * @param task Task structure of the task to release.
  *
  * @return On success, 0 is returned or an @a errno on error.
  *
  * @see errno(3)
  */
-static int releaseTask(PStask_ID_t tid)
+static int releaseTask(PStask_t *task)
 {
-    PStask_t *task;
     int ret;
 
-    task = PStasklist_find(managedTasks, tid);
     if (!task) {
-	PSID_log(-1, "%s(%s): no task\n", __func__, PSC_printTID(tid));
+	PSID_log(-1, "%s(): no task\n", __func__);
 
 	return ESRCH;
     } else {
@@ -706,13 +714,13 @@ static int releaseTask(PStask_ID_t tid)
 	int sig;
 
 	sigMsg.header.type = PSP_CD_RELEASE;
-	sigMsg.header.sender = tid;
+	sigMsg.header.sender = task->tid;
 	sigMsg.header.len = sizeof(sigMsg);
 	sigMsg.signal = -1;
-	sigMsg.answer = 1;
+	sigMsg.answer = task->releaseAnswer;
 
 	PSID_log(PSID_LOG_TASK|PSID_LOG_SIGNAL, "%s(%s): release\n", __func__,
-		 PSC_printTID(tid));
+		 PSC_printTID(task->tid));
 
 	task->released = 1;
 
@@ -721,13 +729,13 @@ static int releaseTask(PStask_ID_t tid)
 
 	if (task->ptid) {
 	    DDErrorMsg_t inheritMsg;
-	    inheritMsg.header.sender = tid;
+	    inheritMsg.header.sender = task->tid;
 	    inheritMsg.header.len = sizeof(inheritMsg);
 
 	    /* notify parent to release task there, too */
 	    if (PSC_getID(task->ptid) == PSC_getMyID()) {
 		/* parent task is local */
-		ret = releaseSignal(task->ptid, tid, -1);
+		ret = releaseSignal(task->ptid, task->tid, -1);
 		if (ret > 0) task->pendingReleaseErr = ret;
 	    } else {
 		/* parent task is remote, send a message */
@@ -738,7 +746,7 @@ static int releaseTask(PStask_ID_t tid)
 		sigMsg.header.dest = task->ptid;
 		sendMsg(&sigMsg);
 
-		task->pendingReleaseRes++;
+		task->pendingReleaseRes += task->releaseAnswer;
 	    }
 	    PSID_removeSignal(&task->assignedSigs, task->ptid, -1);
 
@@ -779,7 +787,7 @@ static int releaseTask(PStask_ID_t tid)
 		     sig, PSC_printTID(sender));
 	    if (PSC_getID(sender)==PSC_getMyID()) {
 		/* controlled task is local */
-		ret = releaseSignal(sender, tid, sig);
+		ret = releaseSignal(sender, task->tid, sig);
 		if (ret > 0) task->pendingReleaseErr = ret;
 	    } else {
 		/* controlled task is remote, send a message */
@@ -791,7 +799,7 @@ static int releaseTask(PStask_ID_t tid)
 
 		sendMsg(&sigMsg);
 
-		task->pendingReleaseRes++;
+		task->pendingReleaseRes += task->releaseAnswer;
 	    }
 	    sig = -1;
 	}
@@ -825,12 +833,15 @@ void msg_RELEASE(DDSignalMsg_t *msg)
 	/* Do not set msg->header.len! Length of DDSignalMsg_t has changed */
 
 	if (!task) {
-	    PSID_log(-1, "%s(%s): no task\n", __func__, PSC_printTID(tid));
+	    /* Task not found, maybe was connected and has self released */
 	    msg->param = ESRCH;
 	} else if (registrarTid==tid
 		   || (registrarTid==task->forwardertid && task->fd==-1)) {
 	    /* Special case: Whole task wants to get released */
-	    msg->param = releaseTask(tid);
+	    /* Find out, if answer is required */
+	    if (PSPver > 337) task->releaseAnswer = msg->answer;
+
+	    msg->param = releaseTask(task);
 
 	    if (task->pendingReleaseRes) {
 		/* RELEASERES message pending, RELEASERES to initiatior
@@ -850,7 +861,7 @@ void msg_RELEASE(DDSignalMsg_t *msg)
 		return;
 	    }
 	}
-	if (PSPver > 337 && !msg->answer) return;
+	if (!task || (PSPver > 337 && !task->releaseAnswer)) return;
     }
     sendMsg(msg);
 }
@@ -911,7 +922,7 @@ void msg_RELEASERES(DDSignalMsg_t *msg)
     if (task->fd == -1) msg->header.dest = task->forwardertid;
 
     /* send the initiator a result msg */
-    sendMsg(msg);
+    if (task->releaseAnswer) sendMsg(msg);
 }
 
 void msg_WHODIED(DDSignalMsg_t *msg)

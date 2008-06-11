@@ -14,7 +14,7 @@ MPICC2 = /opt/parastation/mpi2/bin/mpicc
 
 CFLAGS = -Wall
 
-TARGETS = mpi_hello.1 mpi_hello.2
+TARGETS = mpi_hello.1 mpi_hello.2 mpi_startup.1 mpi_startup.2
 
 all: $(TARGETS)
 

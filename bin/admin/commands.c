@@ -632,14 +632,14 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 		   taskInfo[task].group==TG_ADMINTASK ? "(*)" :
 		   taskInfo[task].group==TG_SERVICE ? "(S)" :
 		   taskInfo[task].group==TG_ACCOUNT ? "(C)" :
-		   "   ");
+		   " ");
 
 	    {
 		pid_t pid = PSC_getPID(taskInfo[task].tid);
 		char cmdline[8096] = { '\0' };
 		PSI_infoString(node, PSP_INFO_CMDLINE, &pid,
 			       cmdline, sizeof(cmdline), 0);
-		printf(" %.*s",
+		printf("%.*s",
 		       (width-usedWidth) > 0 ? width-usedWidth : 0, cmdline);
 	    }
 	    printf("\n");
