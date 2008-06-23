@@ -67,7 +67,6 @@ $conf{'sum'}{'walltime'}	= "yes";
 $conf{'sum'}{'qtime'}		= "yes";
 $conf{'sum'}{'mem'}		= "no";
 $conf{'sum'}{'vmem'}		= "no";
-$conf{'sum'}{'swap'}		= "no";
 $conf{'sum'}{'cputime'}		= "yes";
 $conf{'sum'}{'jobs'}		= "yes";
 $conf{'sum'}{'procs'}		= "no";
@@ -81,7 +80,6 @@ $conf{'avg'}{'walltime'}	= "yes";
 $conf{'avg'}{'qtime'}		= "no";
 $conf{'avg'}{'mem'}		= "yes";
 $conf{'avg'}{'vmem'}		= "yes";
-$conf{'avg'}{'swap'}		= "yes";
 $conf{'avg'}{'cputime'}		= "yes";
 $conf{'avg'}{'jobs'}		= "no";
 $conf{'avg'}{'procs'}		= "yes";
@@ -99,7 +97,6 @@ $conf{'job'}{'walltime'}	= "no";
 $conf{'job'}{'qtime'}		= "no";
 $conf{'job'}{'mem'}		= "yes";
 $conf{'job'}{'vmem'}		= "yes";
-$conf{'job'}{'swap'}		= "yes";
 $conf{'job'}{'exechost'}	= "yes";
 $conf{'job'}{'nodes'}		= "yes";
 $conf{'job'}{'cputime'}		= "yes";
@@ -170,7 +167,21 @@ if($version) {
 # Setup arrays for data formating 
 my @time_values = ('walltime', 'cputime', 'qtime', 'cpuweight');
 my @clocktime_values = ('starttime', 'endtime');
-my @mem_values = ('mem', 'vmem', 'swap');
+my @mem_values = ('mem', 'vmem');
+
+# switch average options on from cmd selection --selectsum
+if ($conf{'sel'}{'sum'}) {
+    my $sub;
+    my @popts = split(/,/,$conf{'sel'}{'sum'});
+    foreach my $opt (@popts) {
+	if ($opt && length($opt) >4) {
+	    $sub = substr($opt, 4);
+	    if (defined $conf{'avg'}{$sub}) {
+		$conf{'avg'}{$sub} = "yes"; 
+	    }
+	}
+    }
+}
 
 # push all generated avarage values to formating arrays
 # and to normal config
@@ -362,20 +373,22 @@ while ( defined (my $filename = readdir(DIR))) {
 		my $walltime_sec = time_to_sec($walltime);
 		my $mem_kb = kb_to_num($mem);
 		my $vmem_kb = kb_to_num($vmem);
-		my $swap_kb = (defined($vmem) && defined($mem)) ? kb_to_num($vmem) - kb_to_num($mem) : 0;
 		my $cpuweight = $num_hosts * time_to_sec($walltime);
+		$jobname = ($conf{'all'}{'fulljobname'} eq "yes" ) ? $jobname : basename($jobname);
+		$threads = $threads ? $threads : ($conf{'all'}{'nospace'} eq "yes") ? "\"\"" : "";
+		$session = $session ? $session : ($conf{'all'}{'nospace'} eq "yes") ? "\"\"" : "";
+		my $job_id = $jobid[0] ? $jobid[0] : ($conf{'all'}{'nospace'} eq "yes") ? "\"\"" : "";
 
 		# set up job array
 		if ($conf{'list'}{'jobs'} eq "yes") {
 		    $job_data{$jobnum}{'user'}		= $user;
 		    $job_data{$jobnum}{'group'} 	= $group;
-		    $job_data{$jobnum}{'jobname'} 	= ($conf{'all'}{'fulljobname'} eq "yes" ) ? $jobname : basename($jobname);
-		    $job_data{$jobnum}{'jobid'} 	= $jobid[0];
+		    $job_data{$jobnum}{'jobname'} 	= $jobname; 
+		    $job_data{$jobnum}{'jobid'} 	= $job_id;
 		    $job_data{$jobnum}{'queue'} 	= $queue;
 		    $job_data{$jobnum}{'cputime'} 	= $cput_sec;
 		    $job_data{$jobnum}{'mem'}		= $mem_kb;
 		    $job_data{$jobnum}{'vmem'}		= $vmem_kb;
-		    $job_data{$jobnum}{'swap'}		= $swap_kb;
 		    $job_data{$jobnum}{'walltime'} 	= $walltime_sec;
 		    $job_data{$jobnum}{'qtime'}		= $newqtime;
 		    $job_data{$jobnum}{'starttime'} 	= $start;
@@ -385,9 +398,9 @@ while ( defined (my $filename = readdir(DIR))) {
 		    $job_data{$jobnum}{'procs'} 	= $num_hosts ? $num_hosts : "";
 		    $job_data{$jobnum}{'nodes'} 	= $num_nodes ? $num_nodes : "";
 		    $job_data{$jobnum}{'exechost'} 	= $exec_host ? $exec_host: "";
-		    $job_data{$jobnum}{'session'} 	= $session ? $session : "";
+		    $job_data{$jobnum}{'session'} 	= $session;
 		    $job_data{$jobnum}{'jobalias'} 	= $alias ? $alias : "";
-		    $job_data{$jobnum}{'threads'} 	= $threads ? $threads : "";
+		    $job_data{$jobnum}{'threads'} 	= $threads; 
 		}	
 
 		# set up user summary
@@ -395,7 +408,6 @@ while ( defined (my $filename = readdir(DIR))) {
 		    $user_data{$user}{'cputime'}	+= $cput_sec;
 		    $user_data{$user}{'mem'}		+= $mem_kb;
 		    $user_data{$user}{'vmem'}		+= $vmem_kb;
-		    $user_data{$user}{'swap'}		+= $swap_kb;
 		    $user_data{$user}{'walltime'}	+= $walltime_sec;
 		    $user_data{$user}{'qtime'}		+= $newqtime;
 		    $user_data{$user}{'cpuweight'}	+= $cpuweight;
@@ -409,7 +421,6 @@ while ( defined (my $filename = readdir(DIR))) {
 		    $group_data{$group}{'cputime'}	+= $cput_sec;
 		    $group_data{$group}{'mem'}		+= $mem_kb;
 		    $group_data{$group}{'vmem'}		+= $vmem_kb;
-		    $group_data{$group}{'swap'}		+= $swap_kb;
 		    $group_data{$group}{'walltime'}	+= $walltime_sec;
 		    $group_data{$group}{'qtime'}	+= $newqtime; 
 		    $group_data{$group}{'cpuweight'}    += $cpuweight;
@@ -424,7 +435,6 @@ while ( defined (my $filename = readdir(DIR))) {
 		    $sum_data{'all'}{'cputime'}	+= $cput_sec;
 		    $sum_data{'all'}{'mem'}		+= $mem_kb;
 		    $sum_data{'all'}{'vmem'}		+= $vmem_kb;
-		    $sum_data{'all'}{'swap'}		+= $swap_kb;
 		    $sum_data{'all'}{'qtime'}		+= $newqtime;
 		    $sum_data{'all'}{'cpuweight'}	+= $cpuweight;
 		    $sum_data{'all'}{'procs'}		+= $num_hosts;
@@ -748,8 +758,8 @@ sub formattime {
     
     if($conf{'all'}{'clocktime'} eq "yes") {
 	if($days > 0) {
-		$time = "1 day";
-		$time = sprintf("%d days",$days) if $days > 1; 
+	    $time = "1 day";
+	    $time = sprintf("%d days",$days) if $days > 1; 
 	} else {
 	    $time = sprintf("%02d:%02d:%02d",$hours,$min,$sec);    
 	}
@@ -776,8 +786,11 @@ sub formattime {
 sub formatmem {
     my $mem = $_[0];
     if($conf{'all'}{'human'} eq "yes") {
-	    $mem = int($mem/1024);
-	    return $mem." MB";
+	$mem = int($mem/1024);
+	if($conf{'all'}{'nospace'} eq "yes") {
+	    return "\"$mem MB\"";
+	}
+	return $mem." MB";
     }
     return $mem;
 }
