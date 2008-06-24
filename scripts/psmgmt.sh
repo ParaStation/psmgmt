@@ -21,7 +21,7 @@ if test -d "${_psdir}/bin" ; then
     
     if test -d "${_psdir}/man" ; then
 	if test -z "${MANPATH}" ; then
-	    export MANPATH="`test -x /usr/bin/manpath && /usr/bin/manpath`"
+	    export MANPATH="`test -x /usr/bin/manpath && /usr/bin/manpath -q`"
 	fi
 	if test -z "${MANPATH}" ; then
 	    export MANPATH="${_psdir}/man"

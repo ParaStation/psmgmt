@@ -21,7 +21,7 @@ if ( -d "${_psdir}/bin" ) then
 
     if ( -d "${_psdir}/man" ) then
 	if ( ${?MANPATH} ) then
-	    setenv MANPATH "`(test -x /usr/bin/manpath && manpath)`"
+	    setenv MANPATH "`(test -x /usr/bin/manpath && manpath -q)`"
 	endif
 	set _manpath=${MANPATH}
 	if ( ${%_manpath} ) then
