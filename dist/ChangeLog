@@ -1,3 +1,133 @@
+Version psmgmt-5.0.7:
+=====================
+------------------------------------------------------------------------
+r6163 | moschny | 2008-06-24 17:05:12 +0200 (Tue, 24 Jun 2008) | 2 lines
+
+Suppress warnings about existing MANPATH emitted by manpath.
+
+------------------------------------------------------------------------
+r6158 | rauh | 2008-06-23 16:36:27 +0200 (Mon, 23 Jun 2008) | 3 lines
+
+removed stupid value swap space
+bugfix: nospace option now quotes more values
+
+------------------------------------------------------------------------
+r6139 | rauh | 2008-06-11 15:03:19 +0200 (Wed, 11 Jun 2008) | 2 lines
+
+fixed conversion warning
+
+------------------------------------------------------------------------
+r6138 | eicker | 2008-06-11 14:27:59 +0200 (Wed, 11 Jun 2008) | 10 lines
+
+Reorganize signaling stuff:
+ - Forwarder releases child even if PMI is not used.
+ - Adapt CHILDDEAD message-handling once more.
+ - Remove signal from assignedSigs within PSID_sendSignal().
+ - PSID_releaseTask() now expects a task-structure as argument.
+ - Fix problem in determining, if release-answer is expected.
+Fix psiadmin's output. Lines might be too long.
+Add some @todos
+New tests for startup timing.
+
+------------------------------------------------------------------------
+r6132 | rauh | 2008-06-10 16:57:29 +0200 (Tue, 10 Jun 2008) | 3 lines
+
+Bugfix: merging is now working again after changes intruduced in r6127
+Bugfix: fixed bug in accounter (missing username/groupname in logfiles)
+
+------------------------------------------------------------------------
+r6127 | eicker | 2008-06-09 17:29:11 +0200 (Mon, 09 Jun 2008) | 15 lines
+
+Bugfix: Solve problems with hanging loggers if child runs too short.
+    This was due to problem with CHILDDEAD messages sent during child
+    inheritance.
+Processes with TG_SERVICE now always have rank -2. Thus
+    PSI_spawnService() no longer needs the 'rank' argument.
+Make logger handling negative ranks.
+PSI_infoNodeID() now expect int32_t argument for PSP_INFO_RANKID.
+Send PSP_CD_RELEASERES message only if answer is set in PSP_CD_RELEASE
+    request.
+Make PSI_release() set errno appropriately on error.
+Show task's rank in psiadmin's 'list proc'.
+Suppress some warnings.
+Cleanup: Remove deprecated PSE_spawn().
+Cleanup: Mark PSE_registerToParent() as deprecated.
+
+------------------------------------------------------------------------
+r6126 | rauh | 2008-06-09 15:49:48 +0200 (Mon, 09 Jun 2008) | 2 lines
+
+Bugfix: psaccounter was exiting if a node was not available at startup
+
+------------------------------------------------------------------------
+r6110 | moschny | 2008-06-05 17:42:19 +0200 (Thu, 05 Jun 2008) | 2 lines
+
+Fix compile problem on Fedora 9.
+
+------------------------------------------------------------------------
+r6096 | eicker | 2008-06-03 20:12:39 +0200 (Tue, 03 Jun 2008) | 3 lines
+
+Reorganize daemon's shutdown and reset strategy.
+Eliminate one compile-warning from mpiexec.
+
+------------------------------------------------------------------------
+r6095 | eicker | 2008-06-03 14:19:49 +0200 (Tue, 03 Jun 2008) | 4 lines
+
+Bugfix: Fix possible memory violation in constructing overbooked
+  partitions.
+More debug info within psid's partition building.
+
+------------------------------------------------------------------------
+r6091 | eicker | 2008-05-30 21:29:53 +0200 (Fri, 30 May 2008) | 2 lines
+
+Fix one regression in accounter.
+
+------------------------------------------------------------------------
+r6090 | eicker | 2008-05-30 21:26:19 +0200 (Fri, 30 May 2008) | 5 lines
+
+Merge from Michael's branch:
+- Make accounter compatible to daemon's messages, again.
+- Many minor cleanup changes.
+- Many new and improved documentation-comments.
+
+------------------------------------------------------------------------
+r6089 | eicker | 2008-05-30 20:39:26 +0200 (Fri, 30 May 2008) | 5 lines
+
+Bugfix: Block handler while handling signals.
+Bugfix: Remove yet another possible SEGFAULT in RDP.
+Don't handle ACKs in RDP, if connection not ACTIVE.
+Improve psid's welcome message.
+
+------------------------------------------------------------------------
+r6059 | eicker | 2008-05-27 19:05:51 +0200 (Tue, 27 May 2008) | 4 lines
+
+Explicitely shutdown RDP connection when receiving DAEMONSHUTDOWN
+   message. For this sending the DAEMONSHUTDOWN messages is delayed to
+   phase 3.
+
+------------------------------------------------------------------------
+r6058 | eicker | 2008-05-27 18:19:32 +0200 (Tue, 27 May 2008) | 3 lines
+
+Add accounting message from logger. From here we might get info
+  concerning the batch-system's job ID.
+
+------------------------------------------------------------------------
+r6052 | eicker | 2008-05-27 15:20:02 +0200 (Tue, 27 May 2008) | 2 lines
+
+Bugfix: Correct detection when to search the PATH for executable.
+
+------------------------------------------------------------------------
+r6042 | rauh | 2008-05-26 16:20:18 +0200 (Mon, 26 May 2008) | 3 lines
+
+bugfix: output merging was crippled when no tty was available
+bugfix: possible segfault in output buffer list
+
+------------------------------------------------------------------------
+r6040 | eicker | 2008-05-22 23:58:17 +0200 (Thu, 22 May 2008) | 2 lines
+
+New version (psmgmt-5.0.6)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.6:
 =====================
 ------------------------------------------------------------------------

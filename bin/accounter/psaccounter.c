@@ -1818,5 +1818,5 @@ int main(int argc, char *argv[])
 /*
  * Local Variables:
  *  compile-command: "make psaccounter"
- * End
+ * End:
  */

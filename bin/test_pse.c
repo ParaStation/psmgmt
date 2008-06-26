@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
 /*
  * Local Variables:
  *  compile-command: "make test_pse"
- * End
+ * End:
  */
 
 /*
