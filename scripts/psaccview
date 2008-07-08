@@ -112,11 +112,26 @@ $conf{'job'}{'threads'}		= "yes";
 ## end of configuration
 ####################################################
 
+my $norcfile = 0;
+foreach my $arg (0 .. $#ARGV) {
+    $norcfile = 1 if ($ARGV[$arg] eq "--norcfile");
+}
+
+if(!$norcfile) {
+    ## Include rcfile .psaccviewrc to set global defaults 
+    ## which can be overriden by the user.
+    require("/opt/parastation/config/psaccviewrc") if (-r "/opt/parastation/config/psaccviewrc");
+
+    ## Include the rcfile .psaccviewrc in the users home directory,
+    ## in this file any option can be set to the users needs 
+    require("$ENV{'HOME'}/.psaccviewrc") if (-r "$ENV{'HOME'}/.psaccviewrc");
+}
+
 $ENV{PATH} = "/bin";
 $ENV{ENV} = "";
 
 my $confptr = \%conf;
-my $help=0; my $version; my $rev = '$Revision$'; my $norcfile;
+my $help=0; my $version; my $rev = '$Revision$';
 my $human; ; my $nospace; my $noheader; my $fulljobname; my $clocktime; my $pedantic;
 my $listjobs; my $listuser; my $listgroup; my $listtotal;
 
@@ -151,16 +166,6 @@ GetOptions(
            'version|v'    => \$version
 )or pod2usage(2);
 pod2usage(1) if $help;
-
-if(!$norcfile) {
-    ## Include rcfile .psaccviewrc to set global defaults 
-    ## which can be overriden by the user.
-    require("/opt/parastation/config/psaccviewrc") if (-r "/opt/parastation/config/psaccviewrc");
-
-    ## Include the rcfile .psaccviewrc in the users home directory,
-    ## in this file any option can be set to the users needs 
-    require("$ENV{'HOME'}/.psaccviewrc") if (-r "$ENV{'HOME'}/.psaccviewrc");
-}
 
 if($version) {
     my $ver;
