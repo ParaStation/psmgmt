@@ -1133,7 +1133,7 @@ static size_t collectRead(int sock, char *buf, size_t count, size_t *total)
  *
  * @return No return value.
  */
-static void sendAccoutingData(struct rusage rusage, int status)
+static void sendAcctData(struct rusage rusage, int status)
 {
     DDTypedBufferMsg_t msg;
     char *ptr = msg.buf;
@@ -1378,7 +1378,7 @@ static void sighandler(int sig)
 	/* Send ACCOUNT message to daemon; will forward to accounters */
 	if (accounting && childTask->group != TG_ADMINTASK
 	    && childTask->group != TG_SERVICE) {
-	    sendAccoutingData(rusage, status);
+	    sendAcctData(rusage, status);
 	}
 
 	/* Send CHILDDEAD message to the daemon */

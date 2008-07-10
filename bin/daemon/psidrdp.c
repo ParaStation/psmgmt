@@ -52,6 +52,8 @@ void initRDPMsgs(void)
 
 void clearRDPMsgs(int node)
 {
+    int blocked = RDP_blockTimer(1);
+
     while (node_bufs[node]) {
 	msgbuf_t *mp = node_bufs[node];
 
@@ -59,7 +61,7 @@ void clearRDPMsgs(int node)
 	handleDroppedMsg(mp->msg);
 	freeMsg(mp);
     }
-
+    RDP_blockTimer(blocked);
 }
 
 /**
@@ -77,6 +79,7 @@ void clearRDPMsgs(int node)
  */
 static int storeMsgRDP(int node, DDMsg_t *msg)
 {
+    int blocked = RDP_blockTimer(1), ret = 0;
     msgbuf_t *msgbuf = node_bufs[node];
 
     if (msgbuf) {
@@ -90,47 +93,60 @@ static int storeMsgRDP(int node, DDMsg_t *msg)
 
     if (!msgbuf) {
 	errno = ENOMEM;
-	return -1;
+	ret = -1;
+	goto end;
     }
 
     msgbuf->msg = malloc(msg->len);
     if (!msgbuf->msg) {
 	errno = ENOMEM;
-	return -1;
+	ret = -1;
+	goto end;
     }
     memcpy(msgbuf->msg, msg, msg->len);
 
     msgbuf->offset = 0;
 
-    return 0;
+ end:
+    RDP_blockTimer(blocked);
+    return ret;
 }
 
 int flushRDPMsgs(int node)
 {
+    int blocked, ret = 0;
+
     if (node<0 || node >= PSC_getNrOfNodes()) {
 	errno = EINVAL;
 	return -1;
     }
 
+    blocked = RDP_blockTimer(1);
     while (node_bufs[node]) {
-	msgbuf_t *oldmsg = node_bufs[node];
-	DDMsg_t *msg = oldmsg->msg;
-	int sent = Rsendto(PSC_getID(msg->dest), msg, msg->len);
+	msgbuf_t *msgbuf = node_bufs[node];
+	DDMsg_t *msg = msgbuf->msg;
+	PStask_ID_t sender = msg->sender, dest = msg->dest;
+	int sent = Rsendto(PSC_getID(dest), msg, msg->len);
 
-	if (sent<0) return sent;
+	if (sent<0 || !	node_bufs[node]) {
+	    ret = sent;
+	    goto end;
+	}
 
-	node_bufs[node] = oldmsg->next;
-	if (PSC_getPID(oldmsg->msg->sender)) {
+	if (PSC_getPID(sender)) {
 	    DDMsg_t contmsg = { .type = PSP_DD_SENDCONT,
-				.sender = oldmsg->msg->dest,
-				.dest = oldmsg->msg->sender,
+				.sender = dest,
+				.dest = sender,
 				.len = sizeof(DDMsg_t) };
-
 	    sendMsg(&contmsg);
 	}
-	freeMsg(oldmsg);
+
+	node_bufs[node] = msgbuf->next;
+	freeMsg(msgbuf);
     }
-    return 0;
+ end:
+    RDP_blockTimer(blocked);
+    return ret;
 }
 
 int sendRDP(DDMsg_t *msg)

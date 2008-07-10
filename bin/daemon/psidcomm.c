@@ -20,6 +20,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 
 #include "psidutil.h"
 #include "psidnodes.h"
+#include "psidtask.h"
 #include "psidmsgbuf.h"
 #include "psidclient.h"
 #include "psidrdp.h"
@@ -91,12 +92,21 @@ int sendMsg(void *amsg)
     }
     
     if (ret==-1) {
-	PSID_warn((errno==EWOULDBLOCK) ? PSID_LOG_COMM : -1, errno,
-		  "%s(type=%s, len=%d) to %s in %s",
+	int32_t key = -1;
+
+	if (errno==EWOULDBLOCK
+	    || (msg->type == PSP_CC_MSG && errno == EHOSTUNREACH)
+	    || (msg->type == PSP_CC_ERROR && errno == EHOSTUNREACH)) {
+	    /* suppress message unless explicitely requested */
+	    key = PSID_LOG_COMM;
+	}
+	
+	PSID_warn(key, errno, "%s(type=%s, len=%d) to %s in %s",
 		  __func__, PSDaemonP_printMsg(msg->type), msg->len,
 		  PSC_printTID(msg->dest), sender);
 
-	if (errno==EWOULDBLOCK && PSC_getPID(msg->sender)) {
+	if (errno==EWOULDBLOCK && PSC_getPID(msg->sender)
+	    && msg->type != PSP_DD_SENDSTOP) {
 	    DDMsg_t stopmsg = { .type = PSP_DD_SENDSTOP,
 				.sender = msg->dest,
 				.dest = msg->sender,
@@ -275,6 +285,7 @@ void handleDroppedMsg(DDMsg_t *msg)
 
 void msg_SENDSTOP(DDMsg_t *msg)
 {
+    PStask_t *task = PStasklist_find(managedTasks, msg->dest);
     int fd = getClientFD(msg->dest);
 
     PSID_log(PSID_LOG_COMM, "%s: from %s\n", __func__,
@@ -285,14 +296,15 @@ void msg_SENDSTOP(DDMsg_t *msg)
 		 "%s: client %s at %d removed from PSID_readfds\n", __func__,
 		 PSC_printTID(msg->dest), fd);
 	FD_CLR(fd, &PSID_readfds);
-    } else {
-	PSID_log(-1, "%s: No fd for task %s\n",
-		 __func__, PSC_printTID(msg->dest));
+    } else if (task && task->fd != -1) {
+	PSID_log(-1, "%s: task %s fd is %d but not found\n", __func__,
+		 PSC_printTID(msg->dest), task->fd);
     }
 }
 
 void msg_SENDCONT(DDMsg_t *msg)
 {
+    PStask_t *task = PStasklist_find(managedTasks, msg->dest);
     int fd = getClientFD(msg->dest);
 
     PSID_log(PSID_LOG_COMM, "%s: from %s\n", __func__,
@@ -303,8 +315,8 @@ void msg_SENDCONT(DDMsg_t *msg)
 		 "%s: client %s at %d readded to PSID_readfds\n", __func__,
 		 PSC_printTID(msg->dest), fd);
 	FD_SET(fd, &PSID_readfds);
-    } else {
-	PSID_log(-1, "%s: No fd for task %s\n",
-		 __func__, PSC_printTID(msg->dest));
+    } else if (task && task->fd != -1) {
+	PSID_log(-1, "%s: task %s fd is %d but not found\n", __func__,
+		 PSC_printTID(msg->dest), task->fd);
     }
 }

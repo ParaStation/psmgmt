@@ -158,6 +158,71 @@ PStask_ID_t PSID_getSignal(PStask_sig_t **siglist, int *signal)
     return tid;
 }
 
+
+PStask_ID_t PSID_getSignalByID(PStask_sig_t **siglist,
+			       PSnodes_ID_t id, int *signal)
+{
+    PStask_ID_t tid = 0;
+    PStask_sig_t *thissig, *prev = NULL;
+
+    if (!siglist) return 0;
+
+    thissig = *siglist;
+
+    while (thissig && PSC_getID(thissig->tid) != id) {
+	prev = thissig;
+	thissig = thissig->next;
+    }
+
+    if (thissig) {
+	/* Signal found */
+	*signal = thissig->signal;
+	tid = thissig->tid;
+	if (thissig == *siglist) {
+	    /* First element in siglist */
+	    *siglist = thissig->next;
+	} else {
+	    /* Somewhere in the middle */
+	    prev->next = thissig->next;
+	}
+
+	free(thissig);
+    }
+
+    return tid;
+}
+
+int PSID_getSignalByTID(PStask_sig_t **siglist, PStask_ID_t tid)
+{
+    PStask_sig_t *thissig, *prev = NULL;
+    int ret = 0;
+
+    if (!siglist) return 0;
+
+    thissig = *siglist;
+
+    while (thissig && thissig->tid != tid) {
+	prev = thissig;
+	thissig = thissig->next;
+    }
+
+    if (thissig) {
+	/* Signal found */
+	ret = thissig->signal;
+	if (thissig == *siglist) {
+	    /* First element in siglist */
+	    *siglist = thissig->next;
+	} else {
+	    /* Somewhere in the middle */
+	    prev->next = thissig->next;
+	}
+
+	free(thissig);
+    }
+
+    return ret;
+}
+
 /****************** TAKSLIST MANIPULATING ROUTINES **********************/
 
 void PStasklist_delete(PStask_t **list)
@@ -279,25 +344,21 @@ void PStask_cleanup(PStask_ID_t tid)
 
 	if (task->group==TG_FORWARDER && !task->released) {
 	    /* cleanup childs */
-	    PStask_sig_t *child, *childlist = task->childs;
+	    PStask_ID_t childTID;
+	    int sig = -1;
 
-	    for (child = childlist; child; child=child->next) {
-		PStask_ID_t childTID = child->tid;
+	    while ((childTID = PSID_getSignal(&task->childs, &sig))) {
+		PStask_t *child = PStasklist_find(managedTasks, childTID);
 
-		if (childTID) {
-		    PStask_t *child = PStasklist_find(managedTasks, childTID);
+		if (child && child->fd == -1) {
+		    PSID_log(-1, "%s: forwarder kills child %s\n",
+			     __func__, PSC_printTID(child->tid));
 
-		    if (child && child->fd == -1) {
-			PSID_log(-1, "%s: forwarder kills child %s\n",
-				 __func__, PSC_printTID(child->tid));
-
-			PSID_kill(-PSC_getPID(childTID), SIGKILL, child->uid);
-			PSID_removeSignal(&task->childs, childTID, -1);
-			PStask_cleanup(child->tid);
-		    }
+		    PSID_kill(-PSC_getPID(childTID), SIGKILL, child->uid);
+		    PStask_cleanup(child->tid);
 		}
+		sig = -1;
 	    }
-
 	}
 	task->removeIt = 1;
     }

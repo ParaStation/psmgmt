@@ -160,24 +160,27 @@ int flushClientMsgs(int fd)
     }
 
     while (clients[fd].msgs) {
-	msgbuf_t *oldmsg = clients[fd].msgs;
-	int sent = do_send(fd, oldmsg->msg, oldmsg->offset);
+	msgbuf_t *msgbuf = clients[fd].msgs;
+	DDMsg_t *msg = msgbuf->msg;
+	PStask_ID_t sender = msg->sender, dest = msg->dest;
+	int sent = do_send(fd, msg, msgbuf->offset);
 
-	if (sent<0) return sent;
-	if (sent != oldmsg->msg->len) {
-	    oldmsg->offset = sent;
+	if (sent<0 || !clients[fd].msgs) return sent;
+	if (sent != msg->len) {
+	    msgbuf->offset = sent;
 	    break;
 	}
 
-	clients[fd].msgs = oldmsg->next;
-	if (PSC_getPID(oldmsg->msg->sender)) {
+	if (PSC_getPID(sender)) {
 	    DDMsg_t contmsg = { .type = PSP_DD_SENDCONT,
-				.sender = oldmsg->msg->dest,
-				.dest = oldmsg->msg->sender,
+				.sender = dest,
+				.dest = sender,
 				.len = sizeof(DDMsg_t) };
 	    sendMsg(&contmsg);
 	}
-	freeMsg(oldmsg);
+
+	clients[fd].msgs = msgbuf->next;
+	freeMsg(msgbuf);
     }
 
     if (clients[fd].msgs) {
@@ -190,6 +193,7 @@ int flushClientMsgs(int fd)
 
 int sendClient(DDMsg_t *msg)
 {
+    PStask_t *task = PStasklist_find(managedTasks, msg->dest);
     int fd, sent = 0;
 
     if (PSID_getDebugMask() & PSID_LOG_CLIENT) {
@@ -204,15 +208,14 @@ int sendClient(DDMsg_t *msg)
 	return -1;
     }
 
-    /* my own node */
-    fd = getClientFD(msg->dest);
-
-    if (fd==FD_SETSIZE) {
-	errno = EHOSTUNREACH;
-	PSID_log(-1, "%s: no fd for task %s to send\n", __func__,
+    if (!task || task->fd==-1) {
+	PSID_log(task ? -1 : PSID_LOG_CLIENT,
+		 "%s: no fd for task %s to send\n", __func__,
 		 PSC_printTID(msg->dest));
+	errno = EHOSTUNREACH;
 	return -1;
     }
+    fd = task->fd;
 
     if (clients[fd].msgs) flushClientMsgs(fd);
 

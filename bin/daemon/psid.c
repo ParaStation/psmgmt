@@ -1015,9 +1015,19 @@ static void sighandler(int sig)
 
 	    tid = PSC_getTID(-1, pid);
 
-	    /* If task not connected, remove from tasklist */
 	    task = PStasklist_find(managedTasks, tid);
-	    if (task && (task->fd == -1)) PStask_cleanup(tid);
+	    if (task) {
+		if (!task->killat) {
+		    task->killat = time(NULL) + 10;
+		}
+		if (task->fd != -1) {
+		    /* Make sure we get all pending messages */
+		    FD_SET(task->fd, &PSID_readfds);
+		} else {
+		    /* task not connected, remove from tasklist */
+		    PStask_cleanup(tid);
+		}
+	    }
 	}
     }
     break;
@@ -1246,12 +1256,20 @@ void checkObstinate(void)
 		PStask_delete(task);
 	    }
 	} else if (task->killat && now > task->killat) {
+	    int ret;
 	    if (task->group != TG_LOGGER) {
 		/* Send the signal to the whole process group */
-		PSID_kill(-PSC_getPID(task->tid), SIGKILL, task->uid);
+		ret = PSID_kill(-PSC_getPID(task->tid), SIGKILL, task->uid);
 	    } else {
 		/* Unless it's a logger, which will never fork() */
-		PSID_kill(PSC_getPID(task->tid), SIGKILL, task->uid);
+		ret = PSID_kill(PSC_getPID(task->tid), SIGKILL, task->uid);
+	    }
+	    if (ret && errno == ESRCH) {
+		if (!task->removeIt) {
+		    PStask_cleanup(task->tid);
+		} else {
+		    task->deleted = 1;
+		}
 	    }
 	}
 	task = next;
@@ -1567,6 +1585,12 @@ int main(int argc, const char *argv[])
 	    ssock = accept(masterSock, NULL, 0);
 	    if (ssock < 0) {
 		PSID_warn(-1, errno, "Error while accept");
+
+		continue;
+	    } else if (ssock >= FD_SETSIZE) {
+		PSID_log(-1, "Error while accept, ssock (%d) out of mask\n",
+			 ssock);
+		close(ssock);
 
 		continue;
 	    } else {

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -69,12 +69,10 @@ int PSID_removeSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal);
  * @brief Get a signal from signal list.
  *
  * Get the first occurrence of the signal @a signal from the signal
- * list @a signlist and return the associated unique task ID. If @a
- * signal is -1, any signal will be returned and signal will be set
- * appropriately.
- *
- * If a appropriate signal was found within the signal list @a
- * siglist, the returned signal will be removed from the signal list.
+ * list @a siglist and return the associated unique task ID. If @a
+ * signal is -1, any signal will be returned and @a signal will be set
+ * appropriately. The signal found will be removed from the signal
+ * list @a siglist.
  *
  * @param siglist The signal list to search for the signal.
  *
@@ -82,9 +80,47 @@ int PSID_removeSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal);
  * will be returned.
  *
  * @return If a signal was found, the unique task ID of the associated
- * task will be returned. Or 0, if no task was found.
+ * task will be returned. Or 0, if no signal was found.
  */
 PStask_ID_t PSID_getSignal(PStask_sig_t **siglist, int *signal);
+
+
+/**
+ * @brief Get a signal by ID from signal list.
+ *
+ * Get the first occurrence of a signal associated with the unique
+ * node ID @a id from the signal list @a siglist. If a signal is found
+ * the associated unique task ID is returned and @a signal will be set
+ * appropriately. The signal found will be removed from the signal
+ * list @a siglist.
+ *
+ * @param siglist The signal list to search for the signal.
+ *
+ * @param id The unique node ID to search for.
+ *
+ * @param signal The signal found.
+ *
+ * @return If a signal was found, the unique task ID of the associated
+ * task will be returned. Or 0, if no signal was found.
+ */
+PStask_ID_t PSID_getSignalByID(PStask_sig_t **siglist,
+			       PSnodes_ID_t id, int *signal);
+
+/**
+ * @brief Get a signal by task ID from signal list.
+ *
+ * Get the a signal associated with unique task ID @a tid from the
+ * signal list @a siglist and return the associated signal. The signal
+ * found will be removed from the signal list @a siglist.
+ *
+ * @param siglist The signal list to search for the signal.
+ *
+ * @param tid The unique task ID to search for.
+ *
+ * @return If a signal was found, the associated signal will be
+ * returned. Or 0, if no signal was found.
+ */
+int PSID_getSignalByTID(PStask_sig_t **siglist,	PStask_ID_t tid);
 /*\@}*/
 
 /** @defgroup taskliststuff Tasklist routines */

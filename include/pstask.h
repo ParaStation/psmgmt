@@ -127,6 +127,7 @@ typedef struct PStask_T{
     struct timeval started;        /**< Time the task structure was created. */
     uint16_t protocolVersion;      /**< Protocol version the task speaks. */
     PStask_sig_t *childs;          /**< Childs of the task. Signal not used. */
+    PStask_sig_t *preReleased;     /**< released childs to be inherited */
     PSpart_request_t *request;     /**< Pointer to temp. partition request */
     uint32_t partitionSize;        /**< Size of the partition. */
     PSpart_option_t options;       /**< The partition's options. */

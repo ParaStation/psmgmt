@@ -91,6 +91,7 @@ int PStask_init(PStask_t* task)
     task->protocolVersion = -1;
 
     task->childs = NULL;
+    task->preReleased = NULL;
 
     task->request = NULL;
     task->partitionSize = 0;
@@ -136,6 +137,11 @@ int PStask_reinit(PStask_t* task)
     while (task->childs) {
 	PStask_sig_t* thissignal = task->childs;
 	task->childs = thissignal->next;
+	free(thissignal);
+    }
+    while (task->preReleased) {
+	PStask_sig_t* thissignal = task->preReleased;
+	task->preReleased = thissignal->next;
 	free(thissignal);
     }
 
@@ -272,6 +278,7 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->protocolVersion = task->protocolVersion;
 
     clone->childs = PStask_cloneSigList(task->childs);
+    clone->preReleased = PStask_cloneSigList(task->preReleased);
 
     clone->request = NULL; /* Do not clone requests */
     clone->partitionSize = task->partitionSize;

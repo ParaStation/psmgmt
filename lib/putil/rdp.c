@@ -1672,6 +1672,7 @@ static int handleErr(void)
     iov.iov_base = NULL;
     iov.iov_len = 0;
     if (recvmsg(rdpsock, &errmsg, MSG_ERRQUEUE) == -1) {
+	if (errno == EAGAIN) return 0;
 	RDP_warn(-1, errno, "%s: recvmsg", __func__);
 	return -1;
     }
@@ -2252,4 +2253,9 @@ void getStateInfoRDP(int node, char *s, size_t len)
 void closeConnRDP(int node)
 {
     closeConnection(node, 0);
+}
+
+int RDP_blockTimer(int block)
+{
+    return Timer_block(timerID, block);
 }

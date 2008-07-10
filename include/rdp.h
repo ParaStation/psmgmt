@@ -294,6 +294,22 @@ void getStateInfoRDP(int node, char* string, size_t len);
  */
 void closeConnRDP(int node);
 
+/**
+ * @brief Block RDP timer
+ *
+ * Block or unblock the timer used within the RDP module. This wrapper
+ * will call @ref Timer_block() from the Timer module with the
+ * corresponding unique timer ID.
+ *
+ * @param block On 0, the timer will be unblocked. On other values, it
+ * will be blocked.
+ *
+ * @return If the timer was blocked before, 1 will be returned. If the timer
+ * was not blocked, 0 will be returned. If an error occurred, -1 will be
+ * returned.
+ */
+int RDP_blockTimer();
+
 #ifdef __cplusplus
 }/* extern "C" */
 #endif

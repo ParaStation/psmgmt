@@ -454,27 +454,19 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode)
 
     /* Send signals to all processes that controlled task on the dead node */
     for (task=managedTasks; task; task=task->next) {
-	PStask_sig_t *sig = task->assignedSigs;
+	PStask_ID_t sender;
+	int sig;
 	if (task->deleted) continue;
 	/* loop over all controlled tasks */
-	while (sig) {
-	    if (PSC_getID(sig->tid)==id) {
-		/* controlled task was on dead node */
-		PStask_ID_t senderTid = sig->tid;
-		int signal = sig->signal;
+	while ((sender = PSID_getSignalByID(& task->assignedSigs, id, &sig))) {
+	    /* controlled task was on dead node */
 
-		sig = sig->next;
+	    /* This might have been a child */
+	    if (sig == -1) PSID_removeSignal(&task->childs, sender, sig);
+	    if (task->removeIt && !task->childs) break;
 
-		/* Remove signal from list */
-		PSID_removeSignal(&task->assignedSigs, senderTid, signal);
-		PSID_removeSignal(&task->childs, senderTid, signal);
-		if (task->removeIt && !task->childs) break;
-
-		/* Send the signal */
-		PSID_sendSignal(task->tid, task->uid, senderTid, signal, 0, 0);
-	    } else {
-		sig = sig->next;
-	    }
+	    /* Send the signal */
+	    PSID_sendSignal(task->tid, task->uid, sender, sig, 0, 0);
 	}
 	if (task->removeIt && ! task->childs) {
 	    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);

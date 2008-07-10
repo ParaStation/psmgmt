@@ -1162,7 +1162,7 @@ static int buildSandboxAndStart(PStask_t *forwarder, PStask_t *client)
 {
     int forwarderfds[2];  /* pipe fds to control forwarders startup */
     int socketfds[2];     /* sockets for communication with forwarder */
-    int pid;              /* pid of the forwarder */
+    pid_t pid;              /* pid of the forwarder */
     int buf;              /* buffer for communication with forwarder */
     int i, ret;
 
@@ -1185,6 +1185,16 @@ static int buildSandboxAndStart(PStask_t *forwarder, PStask_t *client)
 	close(forwarderfds[0]);
 	close(forwarderfds[1]);
 	return errno;
+    }
+    if (socketfds[0] >= FD_SETSIZE) {
+	PSID_log(-1, "%s: socketfd (%d) out of mask\n", __func__,
+		 socketfds[0]);
+	close(forwarderfds[0]);
+	close(forwarderfds[1]);
+	close(socketfds[0]);
+	close(socketfds[1]);
+
+	return EOVERFLOW;
     }
 
     /* fork the forwarder */
