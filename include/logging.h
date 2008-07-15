@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -41,6 +41,7 @@ typedef struct {
 		      logger_setTag()/logger_getTag() or logger_init(). */
     char* trail;   /**< Remnants from the last messages that did not
 		      had a closing '\n' character. */
+    char timeFlag; /**< Flag if current time shall be given within tag */
 } logger_t;
 
 /**
@@ -102,6 +103,39 @@ char* logger_getTag(logger_t* logger);
  * logger_warn(), logger_exit()
  */
 void logger_setTag(logger_t* logger, char* tag);
+
+/**
+ * @brief Query the time-flag.
+ *
+ * Get the current time-flag of the logger module @a logger.
+ *
+ * @param logger The logger to ask.
+ *
+ * @return The current time-flag is returned.
+ *
+ * @see logger_setTimeFlag()
+ */
+char logger_getTimeFlag(logger_t* logger);
+
+/**
+ * @brief Set the time-flag.
+ *
+ * Set the time-flag of the logger module @a logger. If the time-flag
+ * is set, a time-stamp is appended to the tag of each message put out
+ * via @ref logger_print(), @ref logger_vprint(), @ref logger_warn()
+ * or @ref logger_exit().
+ *
+ * @param logger The logger to manipulate.
+ *
+ * @param flag The flag's value to be set.
+ *
+ * @return No return value.
+ *
+ * @see logger_getTimeFlag(), logger_print(), logger_vprint(),
+ * logger_warn(), logger_exit()
+ */
+void logger_setTimeFlag(logger_t* logger, char flag);
+
 
 /**
  * @brief Initialize logger facility

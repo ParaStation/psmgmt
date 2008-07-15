@@ -9,9 +9,9 @@
  */
 /**
  * \file
- * psiloggermerge.h: ParaStation functions for output merging 
+ * psiloggermerge.h: ParaStation functions for output merging
  *
- * $Id$ 
+ * $Id$
  *
  * \author
  * Michael Rauh <rauh@par-tec.com>
@@ -47,7 +47,7 @@ void cacheOutput(PSLog_Msg_t msg, int outfd);
 /**
  * @brief Init the merge structures/functions of the logger. This
  * function must be called bevor any other merge function.
- * 
+ *
  * @return No return value.
  */
 void outputMergeInit(void);

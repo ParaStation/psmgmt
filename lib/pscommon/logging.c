@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -15,6 +15,8 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <stdarg.h>
 #include <string.h>
 #include <syslog.h>
+#include <time.h>
+#include <sys/time.h>
 
 #include "logging.h"
 
@@ -44,6 +46,16 @@ void logger_setTag(logger_t* logger, char* tag)
     }
 }
 
+char logger_getTimeFlag(logger_t* logger)
+{
+    return logger->timeFlag;
+}
+
+void logger_setTimeFlag(logger_t* logger, char flag)
+{
+    logger->timeFlag = flag;
+}
+
 logger_t* logger_init(char* tag, FILE* logfile)
 {
     logger_t* logger = malloc(sizeof(*logger));
@@ -53,8 +65,42 @@ logger_t* logger_init(char* tag, FILE* logfile)
     logger->tag = NULL;
     logger_setTag(logger, tag);
     logger->trail = NULL;
+    logger->timeFlag = 0;
 
     return logger;
+}
+
+/**
+ * @brief Create time-stamp
+ *
+ * Create a time-stamp for the logger @a logger. If the logger's
+ * timeFlag is set, a real time-stamp is created. Otherwise the
+ * time-stamp will be empty.
+ *
+ * The character-array returned is a static array within this
+ * function. Thus calling the function multiple time might lead to
+ * unexpected results.
+ *
+ * @param logger The logger the time-stamp is created for.
+ *
+ * @return Return a pointer to a static character array containing the
+ * time-stamp created.
+ */
+static inline char *getTimeStr(logger_t *logger)
+{
+    static char timeStr[40];
+    struct timeval time; 
+
+    if (!logger || !logger->timeFlag) return "";
+
+    gettimeofday(&time, NULL);
+
+    strftime(timeStr, sizeof(timeStr), "[%H:%M:%S", localtime(&time.tv_sec));
+    
+    snprintf(timeStr+strlen(timeStr), sizeof(timeStr)-strlen(timeStr),
+	    ".%ld]", (long)time.tv_usec);
+    
+    return timeStr;
 }
 
 /**
@@ -93,57 +139,66 @@ logger_t* logger_init(char* tag, FILE* logfile)
  */
 static void do_print(logger_t* logger, const char* format, va_list ap)
 {
-    static char *errfmt = NULL, *errtxt = NULL, *errline = NULL;
-    static int fmtlen = 0, txtlen = 0, linelen = 0;
+    static char *prefix = NULL, *text = NULL, *line = NULL;
+    static int prfxlen = 0, txtlen = 0, linelen = 0;
     va_list aq;
-    char* tag;
+    char *tag;
     int len;
 
     if (!logger) return;
     tag = logger->tag;
-
-    len = snprintf(errfmt, fmtlen, "%s%s%s",
-		   (tag && !logger->trail) ? tag : "",
-		   (tag && !logger->trail) ? ": " : "", format);
-    if (len >= fmtlen) {
-	fmtlen = len + 80; /* Some extra space */
-	errfmt = (char*)realloc(errfmt, fmtlen);
-	sprintf(errfmt, "%s%s%s", (tag && !logger->trail) ? tag : "",
-		(tag && !logger->trail) ? ": " : "", format);
+    
+    if (!logger->trail) {
+	char *timeStr = getTimeStr(logger);
+	len = snprintf(prefix, prfxlen, "%s%s%s", tag ? tag : "", timeStr,
+		       (tag || logger->timeFlag) ? ": " : "");
+	if (len >= prfxlen) {
+	    prfxlen = len + 80; /* Some extra space */
+	    prefix = (char*)realloc(prefix, prfxlen);
+	    sprintf(prefix, "%s%s%s", tag ? tag : "", timeStr,
+		    (tag || logger->timeFlag) ? ": " : "");
+	}
     }
 
     va_copy(aq, ap);
-    len = vsnprintf(errtxt, txtlen, errfmt, ap);
+    len = vsnprintf(text, txtlen, format, ap);
     if (len >= txtlen) {
 	txtlen = len + 80; /* Some extra space */
-	errtxt = (char*)realloc(errtxt, txtlen);
-	vsprintf(errtxt, errfmt, aq);
+	text = (char*)realloc(text, txtlen);
+	vsprintf(text, format, aq);
     }
     va_end(aq);
 
     if (logger->trail) {
-	len = snprintf(errline, linelen, "%s%s", logger->trail, errtxt);
+	len = snprintf(line, linelen, "%s%s", logger->trail, text);
 	if (len >= linelen) {
 	    linelen = len + 80; /* Some extra space */
-	    errline = (char*)realloc(errline, linelen);
-	    sprintf(errline, "%s%s", logger->trail, errtxt);
+	    line = (char*)realloc(line, linelen);
+	    sprintf(line, "%s%s", logger->trail, text);
+	}
+    } else {
+	len = snprintf(line, linelen, "%s%s", prefix, text);
+	if (len >= linelen) {
+	    linelen = len + 80; /* Some extra space */
+	    line = (char*)realloc(line, linelen);
+	    sprintf(line, "%s%s", prefix, text);
 	}
     }
 
-    if (errtxt[strlen(errtxt)-1] == '\n') {
-	if (logger->logfile) {
-	    fprintf(logger->logfile, "%s", logger->trail ? errline : errtxt);
-	    fflush(logger->logfile);
-	} else {
-	    syslog(LOG_ERR, logger->trail ? errline : errtxt);
-	}
+    if (logger->logfile) {
+	fprintf(logger->logfile, "%s", logger->trail ? text : line);
+	fflush(logger->logfile);
+    }
+
+    if (text[strlen(text)-1] == '\n') {
+	if (!logger->logfile) syslog(LOG_ERR, line);
 	if (logger->trail) {
 	    free(logger->trail);
 	    logger->trail = NULL;
 	}
     } else {
 	if (logger->trail) free(logger->trail);
-	logger->trail = strdup(logger->trail ? errline : errtxt);
+	logger->trail = strdup(line);
     }
 }
 

@@ -11,7 +11,7 @@
  * \file
  * psid: ParaStation Daemon
  *
- * $Id$ 
+ * $Id$
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>

@@ -308,7 +308,7 @@ void closeConnRDP(int node);
  * was not blocked, 0 will be returned. If an error occurred, -1 will be
  * returned.
  */
-int RDP_blockTimer();
+int RDP_blockTimer(int block);
 
 #ifdef __cplusplus
 }/* extern "C" */
