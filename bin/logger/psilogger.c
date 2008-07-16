@@ -35,6 +35,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #include <signal.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <limits.h>
 
 #include "pscommon.h"
 #include "pstask.h"
