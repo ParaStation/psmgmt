@@ -33,6 +33,7 @@ static char vcid[] __attribute__(( unused )) = "$Id$";
 #ifdef HAVE_LIBNUMA
 #include <numa.h>
 #endif
+#include <limits.h>
 
 #include "pscommon.h"
 #include "pscpu.h"
