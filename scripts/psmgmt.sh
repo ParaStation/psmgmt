@@ -21,7 +21,8 @@ if test -d "${_psdir}/bin" ; then
     
     if test -d "${_psdir}/man" ; then
 	if test -z "${MANPATH}" ; then
-	    export MANPATH="`test -x /usr/bin/manpath && /usr/bin/manpath -q`"
+            #rkr# RH manpath does not know about -q option
+	    export MANPATH="`test -x /usr/bin/manpath && /usr/bin/manpath 2>/dev/null`"
 	fi
 	if test -z "${MANPATH}" ; then
 	    export MANPATH="${_psdir}/man"
