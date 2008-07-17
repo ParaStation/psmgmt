@@ -288,17 +288,6 @@ static struct t_node *findMin(struct t_node *leaf)
     }
 }
 
-static struct t_node *findMax(struct t_node *leaf)
-{
-    if (!leaf) {
-	return NULL;
-    } else if (!leaf->right) {
-	return leaf;
-    } else {
-	return findMax(leaf->right);
-    }
-}
-
 static struct t_node *deleteTNode(PStask_ID_t key, struct t_node *leaf)
 {
     struct t_node *tmpleaf;
