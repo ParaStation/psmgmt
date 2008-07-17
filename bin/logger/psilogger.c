@@ -1374,7 +1374,7 @@ int main( int argc, char**argv)
 	PSIlog_log(PSILOG_LOG_VERB, "Forwarders will be verbose, too.\n");
     }
 
-    if (getenv("PSI_OUTTIMES")) {
+    if (getenv("PSI_TIMESTAMPS")) {
 	PSIlog_log(PSILOG_LOG_VERB, "Print detailed time-marks.\n");
 	PSIlog_setTimeFlag(1);
     }
