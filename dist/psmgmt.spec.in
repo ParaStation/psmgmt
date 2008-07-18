@@ -55,7 +55,6 @@ if [ "$1" -gt 1 ]; then  # Thats an update
 	/opt/parastation/config/PSM_INSTALL -U
 	if [ -f /opt/parastation/config/parastation.conf ]; then
 	    cp -a /opt/parastation/config/parastation.conf /etc
-	    rm -f /opt/parastation/config/parastation.conf 2> /dev/null
 	fi
     fi
 fi
