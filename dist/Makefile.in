@@ -44,7 +44,7 @@ LIBS += libpse.a libpse.so libpsi.a libpsi.so
 
 MISC += VERSION.psmgmt ChangeLog.psmgmt INSTALL LICENSE
 MISC += bin/psh
-MISC += config/PSM_INSTALL config/parastation.conf.tmpl config/ps_gm config/ps_acc
+MISC += config/parastation.conf.tmpl config/ps_gm config/ps_acc
 MISC += scripts/ps_gmcounters bin/psaccview config/gdb.conf
 
 ######################################################
@@ -52,6 +52,8 @@ MISCEXP := $(patsubst %,$(DISTPATH)/%, $(MISC))
 MISCEXP += $(RPM_BUILD_ROOT)/etc/profile.d/psmgmt.csh
 MISCEXP += $(RPM_BUILD_ROOT)/etc/profile.d/psmgmt.sh
 MISCEXP += $(RPM_BUILD_ROOT)/etc/init.d/parastation
+MISCEXP += $(RPM_BUILD_ROOT)/etc/xinetd.d/psidstarter
+MISCEXP += $(RPM_BUILD_ROOT)/etc/parastation.conf
 MISCEXP += $(ACCLOGDIR)
 
 all: tar
@@ -141,9 +143,6 @@ $(DISTPATH)/LICENSE: $(TOP_SRCDIR)/LICENSE
 $(DISTPATH)/bin/psh: $(TOP_SRCDIR)/scripts/psh
 	$(INSTALL) -D $< $@
 
-$(DISTPATH)/config/PSM_INSTALL: $(TOP_SRCDIR)/scripts/PSM_INSTALL
-	$(INSTALL) -D $< $@
-
 $(DISTPATH)/config/parastation.conf.tmpl: $(TOP_SRCDIR)/doc/parastation.conf
 	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
 
@@ -165,8 +164,16 @@ $(DISTPATH)/bin/psaccview: $(TOP_SRCDIR)/scripts/psaccview
 $(RPM_BUILD_ROOT)/etc/profile.d/psmgmt.%: $(TOP_SRCDIR)/scripts/psmgmt.%
 	$(INSTALL) -D $< $@
 
-$(RPM_BUILD_ROOT)/etc/init.d/parastation: $(TOP_SRCDIR)/scripts/parastation.init.d
+$(RPM_BUILD_ROOT)/etc/init.d/parastation: \
+				$(TOP_SRCDIR)/scripts/parastation.init.d
 	$(INSTALL) -D $< $@
+
+$(RPM_BUILD_ROOT)/etc/xinetd.d/psidstarter: \
+				$(TOP_SRCDIR)/scripts/parastation.xinetd
+	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
+
+$(RPM_BUILD_ROOT)/etc/parastation.conf: $(TOP_SRCDIR)/doc/parastation.conf
+	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
 
 $(ACCLOGDIR):
 	$(INSTALL) -d $(RPM_BUILD_ROOT)/$@

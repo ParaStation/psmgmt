@@ -49,26 +49,55 @@ The ParaStation Management Layer.
 %{__rm} -rf %{buildroot}
 
 %pre
-if [ "$1" = "2" ] ; then  # Thats an update
+if [ "$1" -gt 1 ]; then  # Thats an update
     if [ -x /opt/parastation/config/PSM_INSTALL ]; then
-	# Call the OLD uninstall script.
+	# Upgrade from old version, call the OLD uninstall script.
 	/opt/parastation/config/PSM_INSTALL -U
+	if [ -f /opt/parastation/config/parastation.conf ]; then
+	    cp -a /opt/parastation/config/parastation.conf /etc
+	    rm -f /opt/parastation/config/parastation.conf 2> /dev/null
+	fi
     fi
 fi
+exit 0
 
 %post
-/opt/parastation/config/PSM_INSTALL -i
+if [ "$1" = 1 ]; then
+    # first install
+    /sbin/chkconfig --add parastation
+    /sbin/chkconfig psidstarter on
+    /sbin/service xinetd restart
+    echo "******************************************************"
+    echo "* Please, prepare and mantain the configuration file *"
+    echo "* /etc/parastation.conf                              *"
+    echo "******************************************************"
+fi
+exit 0
 
 %preun
-if [ "$1" = "0" ] ; then  # Thats NOT an update
-    # Call the uninstall script only, if this is NOT an update.
-    /opt/parastation/config/PSM_INSTALL -U
+if [ "$1" = 0 ]; then
+    # final de-install
+    /sbin/service parastation stop
+    /sbin/chkconfig psidstarter off
+    /sbin/chkconfig --del parastation
+    /sbin/service xinetd reload
 fi
+exit 0
+
+%postun
+if [ "$1" -ge 1 ]; then
+    /sbin/service parastation condrestart
+fi
+exit 0
+
 
 %files
-%attr(-,root,root) /opt/parastation
-%attr(-,root,root) /etc/profile.d/psmgmt.sh
-%attr(-,root,root) /etc/profile.d/psmgmt.csh
-%attr(-,root,root) /etc/init.d/parastation
+%defattr(-,root,root)
+/opt/parastation
+/etc/profile.d/psmgmt.sh
+/etc/profile.d/psmgmt.csh
+/etc/init.d/parastation
+/etc/xinetd.d/psidstarter
+%config(noreplace) /etc/parastation.conf
 %attr(770,root,nobody) /var/account
 
