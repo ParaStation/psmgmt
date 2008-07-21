@@ -93,12 +93,17 @@ tar: $(DISTNAME).tar.gz
 srpm: $(DISTNAME).src.rpm
 
 $(DISTNAME).src.rpm: $(DISTNAME).tar.gz
-	rpmbuild --define="_srcrpmdir $$PWD" -ts $<
+	rpmbuild --define="_specdir $$PWD" --define="_srcrpmdir $$PWD" -ts $<
 
 .PHONY: rpm
 rpm: $(DISTNAME).tar.gz srpm
+	BUILDDIR=/var/tmp/$(DISTNAME)-$(USER); \
+	test -e "$$BUILDDIR" -a ! -d "$$BUILDDIR" && $(RM) -r $$BUILDDIR; \
+	mkdir $$BUILDDIR; \
 	rpmbuild --clean --target @target_cpu@-@target_vendor@-@target_os@ \
-		--define="_rpmdir $$PWD" -tb $<
+		--define="_specdir $$PWD" --define="_builddir $$BUILDDIR" \
+		--define="_rpmdir $$PWD" -tb $<; \
+	rmdir $$BUILDDIR
 
 #
 # install librariess
