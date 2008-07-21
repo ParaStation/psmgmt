@@ -60,17 +60,6 @@ int sendMsg(void *amsg)
 	if (msg->type < 0x0100) {          /* PSP_CD_* message */
 	    sender="sendClient";
 	    ret = sendClient(amsg);
-
-	    if (ret==-1 && errno==EWOULDBLOCK) {
-		int fd = getClientFD(msg->dest);
-
-		if (fd<FD_SETSIZE) {
-		    FD_SET(fd, &PSID_writefds);
-		} else {
-		    PSID_log(-1, "%s: No fd for task %s\n",
-			     __func__, PSC_printTID(msg->dest));
-		}
-	    }
 	} else {                           /* PSP_DD_* message */
 	    /* Daemon message */
 	    sender="handleMsg";
@@ -286,37 +275,34 @@ void handleDroppedMsg(DDMsg_t *msg)
 void msg_SENDSTOP(DDMsg_t *msg)
 {
     PStask_t *task = PStasklist_find(managedTasks, msg->dest);
-    int fd = getClientFD(msg->dest);
 
-    PSID_log(PSID_LOG_COMM, "%s: from %s\n", __func__,
-	     PSC_printTID(msg->sender));
+    if (!task) return;
 
-    if (fd<FD_SETSIZE) {
+    PSID_log(PSID_LOG_COMM, "%s: from %s\n",
+	     __func__, PSC_printTID(msg->sender));
+
+    if (task->fd != -1) {
 	PSID_log(PSID_LOG_COMM,
 		 "%s: client %s at %d removed from PSID_readfds\n", __func__,
-		 PSC_printTID(msg->dest), fd);
-	FD_CLR(fd, &PSID_readfds);
-    } else if (task && task->fd != -1) {
-	PSID_log(-1, "%s: task %s fd is %d but not found\n", __func__,
 		 PSC_printTID(msg->dest), task->fd);
+	FD_CLR(task->fd, &PSID_readfds);
     }
 }
 
 void msg_SENDCONT(DDMsg_t *msg)
 {
     PStask_t *task = PStasklist_find(managedTasks, msg->dest);
-    int fd = getClientFD(msg->dest);
 
-    PSID_log(PSID_LOG_COMM, "%s: from %s\n", __func__,
-	     PSC_printTID(msg->sender));
+    if (!task) return;
 
-    if (fd<FD_SETSIZE) {
+    PSID_log(PSID_LOG_COMM, "%s: from %s\n",
+	     __func__, PSC_printTID(msg->sender));
+
+
+    if (task->fd != -1) {
 	PSID_log(PSID_LOG_COMM, 
-		 "%s: client %s at %d readded to PSID_readfds\n", __func__,
-		 PSC_printTID(msg->dest), fd);
-	FD_SET(fd, &PSID_readfds);
-    } else if (task && task->fd != -1) {
-	PSID_log(-1, "%s: task %s fd is %d but not found\n", __func__,
+		 "%s: client %s at %d re-added to PSID_readfds\n", __func__,
 		 PSC_printTID(msg->dest), task->fd);
+	FD_SET(task->fd, &PSID_readfds);
     }
 }

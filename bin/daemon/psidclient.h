@@ -87,19 +87,6 @@ PStask_ID_t getClientTID(int fd);
 PStask_t *getClientTask(int fd);
 
 /**
- * @brief Get a clients file descriptor
- *
- * Get the file descriptor connecting the client with unique task ID
- * @a tid to the daemon.
- *
- * @param tid The unique task ID of the client.
- *
- * @return On success, the file descriptor is returned. If no valid
- * file descriptor is found, FD_SETSIZE is returned.
- */
-int getClientFD(PStask_ID_t tid);
-
-/**
  * @brief Establish client's connection.
  *
  * Declare the client's connection via file descriptor @a fd to be

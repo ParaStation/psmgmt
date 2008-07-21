@@ -75,18 +75,6 @@ PStask_t *getClientTask(int fd)
     return clients[fd].task;
 }
 
-int getClientFD(PStask_ID_t tid)
-{
-    int fd;
-
-    for (fd=0; fd<FD_SETSIZE; fd++) {
-	/* find the FD for the dest */
-	if (clients[fd].tid==tid) break;
-    }
-
-    return fd;
-}
-
 void setEstablishedClient(int fd)
 {
     clients[fd].flags &= ~INITIALCONTACT;
@@ -226,7 +214,10 @@ int sendClient(DDMsg_t *msg)
 
     if (sent<0) return sent;
     if (sent != msg->len) {
-	if (!storeMsgClient(fd, msg, sent)) errno = EWOULDBLOCK;
+	if (!storeMsgClient(fd, msg, sent)) {
+	    FD_SET(fd, &PSID_writefds);
+	    errno = EWOULDBLOCK;
+	}
 	return -1;
     }
 
