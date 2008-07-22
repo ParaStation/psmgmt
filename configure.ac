@@ -79,8 +79,8 @@ x86_64)
 	LIB_DIRNAME=lib64
 	;;
 powerpc64)
-	LIB_DIRNAME=lib
-	target_cpu=ppc
+	LIB_DIRNAME=lib64
+	target_cpu=ppc64
 	;;
 *)
 	LIB_DIRNAME=lib
