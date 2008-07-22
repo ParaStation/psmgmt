@@ -7,15 +7,6 @@
  *
  *
  */
-/**
- * \file
- * kvscommon.c: ParaStation key value space common functions
- *
- * $Id$ 
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- */
 
 #include <stdio.h>
 #include <stdlib.h>

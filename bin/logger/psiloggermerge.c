@@ -7,15 +7,11 @@
  *
  *
  */
-/**
- * \file
- * psiloggermerge.c: ParaStation functions for output merging
- *
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+static char vcid[] __attribute__((used)) =
+    "$Id$";
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
 
 #include <stdio.h>
 #include <stdlib.h>

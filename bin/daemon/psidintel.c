@@ -7,11 +7,12 @@
  * Copyright (c) 2005 Intel Corporation
  * All Rights Reserved
  *
- * $Id: psidutil.c 5419 2007-12-12 14:24:30Z moschny $
+ * $Id$
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__(( unused )) = "$Id: psidutil.c 5419 2007-12-12 14:24:30Z moschny $";
+static char vcid[] __attribute__((used)) =
+    "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #define _GNU_SOURCE

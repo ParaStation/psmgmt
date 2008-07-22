@@ -3,14 +3,14 @@
  *
  * Copyright (C) 2008 ParTec Cluster Competence Center GmbH, Munich
  *
- * $Id: psidutil.h 5383 2007-11-28 18:30:21Z eicker $
+ * $Id$
  *
  */
 /**
  * \file
  * Utilities for SMT detection on AMD x86
  *
- * $Id: psidutil.h 5383 2007-11-28 18:30:21Z eicker $
+ * $Id$
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>

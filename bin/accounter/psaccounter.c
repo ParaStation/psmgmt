@@ -19,9 +19,9 @@
  * Ralph Krotz <krotz@par-tec.com>
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__ ((unused)) =
+static char vcid[] __attribute__ ((used)) =
     "$Id$";
-#endif				/* DOXYGEN_SHOULD_SKIP_THIS */
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdbool.h>
 #include <stdio.h>

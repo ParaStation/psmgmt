@@ -9,7 +9,7 @@
  */
 /**
  * \file
- * psiloggerkvs.h: ParaStation global key value space header
+ * ParaStation global key value space -- logger part
  *
  * $Id$
  *

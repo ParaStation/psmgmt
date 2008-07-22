@@ -9,7 +9,7 @@
  */
 /**
  * \file
- * psiloggermerge.h: ParaStation functions for output merging
+ * ParaStation functions for output merging in logger
  *
  * $Id$
  *

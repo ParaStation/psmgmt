@@ -9,7 +9,7 @@
  */
 /**
  * \file
- * kvs.h: ParaStation kvs header
+ * ParaStation key value space -- client part
  *
  * $Id$ 
  *

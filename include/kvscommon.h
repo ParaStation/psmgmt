@@ -9,7 +9,7 @@
  */
 /**
  * \file
- * kvscommon.h: ParaStation PMI common defines
+ * ParaStation PMI common defines
  *
  * $Id$ 
  *

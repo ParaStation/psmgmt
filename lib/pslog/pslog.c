@@ -2,13 +2,14 @@
  *               ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
  */
 
-static char vcid[] __attribute__ (( unused )) = "$Id$";
+static char vcid[] __attribute__ ((used)) =
+    "$Id$";
 
 #include <stdio.h>
 #include <unistd.h>
