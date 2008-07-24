@@ -84,7 +84,6 @@ dist/Makefile \
 dist/Makefile.sources \
 dist/psmgmt.spec.templ \
 doc/Makefile.in \
-doc/INSTALL \
 doc/parastation.conf \
 include/Makefile.in \
 include/config_parsing.h \
@@ -152,7 +151,6 @@ lib/putil/timer.c \
 scripts/Makefile.in \
 scripts/config.guess \
 scripts/config.sub \
-scripts/findmodule \
 scripts/install-sh \
 scripts/lsf/README \
 scripts/lsf/esub \

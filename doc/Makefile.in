@@ -32,11 +32,6 @@ DIST_all += $(DISTDIR)/config/parastation.conf.tmpl
 $(DISTDIR)/config/parastation.conf.tmpl: parastation.conf
 	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
 
-# Keep that ??
-DIST_all += $(DISTDIR)/INSTALL
-$(DISTDIR)/INSTALL: INSTALL
-	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
-
 #
 # extra stuff
 #
