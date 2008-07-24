@@ -1,0 +1,69 @@
+###################################################### -*- Makefile -*- #####
+#                  ParaStation
+#        Copyright (c) 2008 ParTec Cluster Competence Center GmbH, Munich
+#############################################################################
+#
+# $Id$
+#
+# @author
+#         Norbert Eicker <eicker@par-tec.de>
+#############################################################################
+
+.PHONY: all
+all: 
+
+SRCDIR = @srcdir@
+VPATH += $(SRCDIR)
+TOP_SRCDIR = @top_srcdir@
+
+#
+# install binaries
+#
+INSTALL = @INSTALL@
+INSTFLAGS_NOEXEC = -m 644
+
+DISTDIR := $(DESTDIR)$(DISTPATH)
+
+DIST_all := $(DESTDIR)/etc/parastation.conf
+$(DESTDIR)/etc/parastation.conf: parastation.conf
+	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
+
+DIST_all += $(DISTDIR)/config/parastation.conf.tmpl
+$(DISTDIR)/config/parastation.conf.tmpl: parastation.conf
+	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
+
+# Keep that ??
+DIST_all += $(DISTDIR)/INSTALL
+$(DISTDIR)/INSTALL: INSTALL
+	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
+
+#
+# extra stuff
+#
+DIST_all += $(DISTDIR)/VERSION.psmgmt
+.PHONY: $(DISTDIR)/VERSION.psmgmt
+$(DISTDIR)/VERSION.psmgmt:
+	@echo "ParaStation Management $(VERSION_psmgmt)-$(RELEASE_psmgmt) ($(shell date))" > $@
+
+DIST_all += $(DISTDIR)/ChangeLog.psmgmt
+$(DISTDIR)/ChangeLog.psmgmt: $(TOP_SRCDIR)/dist/ChangeLog
+	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
+
+DIST_all += $(DISTDIR)/LICENSE
+$(DISTDIR)/LICENSE: $(TOP_SRCDIR)/LICENSE
+	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
+
+DIST_all += $(DESTDIR)/var/account
+$(DESTDIR)/var/account:
+	$(INSTALL) -d $@
+
+.PHONY: install
+install: $(DIST_all)
+
+
+.PHONY: clean distclean
+clean:
+	$(RM) $(EXTRACLEAN) *.o
+
+distclean: clean
+	$(RM) $(TARGETS)

@@ -1,3 +1,6 @@
+
+PKG_NAME=psmgmt
+
 SOURCE_FILES= \
 Makefile.in \
 Makefile.version \
@@ -77,11 +80,13 @@ bin/test_pse.c \
 configure \
 configure.ac \
 dist/ChangeLog \
-dist/Makefile.in \
+dist/Makefile \
 dist/Makefile.sources \
-dist/psmgmt.spec.in \
+dist/psmgmt.spec.templ \
+doc/Makefile.in \
 doc/INSTALL \
 doc/parastation.conf \
+include/Makefile.in \
 include/config_parsing.h \
 include/env.h \
 include/kvs.h \
@@ -144,6 +149,7 @@ lib/putil/psstrings.c \
 lib/putil/rdp.c \
 lib/putil/selector.c \
 lib/putil/timer.c \
+scripts/Makefile.in \
 scripts/config.guess \
 scripts/config.sub \
 scripts/findmodule \

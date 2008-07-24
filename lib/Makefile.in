@@ -13,17 +13,29 @@
 
 SUBDIRS := pse pscommon psi putil pslog
 
-.PHONY: all $(SUBDIRS)
+.PHONY: all clean distclean
+all clean distclean: $(SUBDIRS)
 
-all: $(SUBDIRS)
-
+.PHONY: $(SUBDIRS)
 $(SUBDIRS): 
-	$(MAKE) -C $@ all
+	$(MAKE) -C $@ $(TARGET)
 
+#
+# install libraries
+#
+LIB_DIRNAME:=@LIB_DIRNAME@
+INSTALL = @INSTALL@
+INSTFLAGS_NOEXEC = -m 644
 
-.PHONY: clean distclean
+DISTDIR := $(DESTDIR)$(DISTPATH)
+LIBDIR := $(DISTDIR)/$(LIB_DIRNAME)
+DIST_lib := libpse.a libpse.so libpsi.a libpsi.so
 
-clean distclean:
-	@for i in $(SUBDIRS) ; do \
-		$(MAKE) -C $$i $@; \
-	done
+$(LIBDIR)/%.so: %.so
+	$(INSTALL) -D $< $@
+
+$(LIBDIR)/%.a: %.a
+	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
+
+.PHONY: install
+install: $(patsubst %,$(LIBDIR)/%,$(DIST_lib))

@@ -1,0 +1,41 @@
+###################################################### -*- Makefile -*- #####
+#                  ParaStation
+#        Copyright (c) 2008 ParTec Cluster Competence Center GmbH, Munich
+#############################################################################
+#
+# $Id$
+#
+# @author
+#         Norbert Eicker <eicker@par-tec.de>
+#############################################################################
+
+.PHONY: all
+all:
+
+SRCDIR = @srcdir@
+VPATH += $(SRCDIR)
+
+#
+# install include-headers
+#
+INSTALL = @INSTALL@
+INSTFLAGS_NOEXEC = -m 644
+
+DISTDIR := $(DESTDIR)$(DISTPATH)
+INCDIR := $(DISTDIR)/include
+DIST_includes := pse.h
+DIST_includes += psprotocol.h psnodes.h pstask.h pspartition.h pscommon.h
+DIST_includes += psiinfo.h psispawn.h psienv.h psi.h logging.h pscpu.h
+
+$(INCDIR)/%: %
+	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
+
+.PHONY: install
+install: $(patsubst %,$(INCDIR)/%,$(DIST_includes))
+
+.PHONY: clean distclean
+clean:
+	$(RM) $(EXTRACLEAN) *.o
+
+distclean: clean
+	$(RM) $(TARGETS)

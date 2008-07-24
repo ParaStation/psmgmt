@@ -88,6 +88,9 @@ powerpc64)
 esac
 
 AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([bin/Makefile])
+AC_CONFIG_FILES([doc/Makefile])
+AC_CONFIG_FILES([include/Makefile])
 AC_CONFIG_FILES([lib/Makefile])
 AC_CONFIG_FILES([lib/Makefile.sharedlib])
 AC_CONFIG_FILES([lib/Makefile.staticlib])
@@ -96,8 +99,7 @@ AC_CONFIG_FILES([lib/psi/Makefile])
 AC_CONFIG_FILES([lib/pscommon/Makefile])
 AC_CONFIG_FILES([lib/pslog/Makefile])
 AC_CONFIG_FILES([lib/putil/Makefile])
-AC_CONFIG_FILES([bin/Makefile])
-AC_CONFIG_FILES([dist/Makefile])
+AC_CONFIG_FILES([scripts/Makefile])
 
 
 AC_OUTPUT

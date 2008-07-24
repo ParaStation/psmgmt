@@ -3177,6 +3177,12 @@ esac
 
 ac_config_files="$ac_config_files Makefile"
 
+ac_config_files="$ac_config_files bin/Makefile"
+
+ac_config_files="$ac_config_files doc/Makefile"
+
+ac_config_files="$ac_config_files include/Makefile"
+
 ac_config_files="$ac_config_files lib/Makefile"
 
 ac_config_files="$ac_config_files lib/Makefile.sharedlib"
@@ -3193,9 +3199,7 @@ ac_config_files="$ac_config_files lib/pslog/Makefile"
 
 ac_config_files="$ac_config_files lib/putil/Makefile"
 
-ac_config_files="$ac_config_files bin/Makefile"
-
-ac_config_files="$ac_config_files dist/Makefile"
+ac_config_files="$ac_config_files scripts/Makefile"
 
 
 
@@ -3768,6 +3772,9 @@ for ac_config_target in $ac_config_targets
 do
   case $ac_config_target in
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
+    "bin/Makefile") CONFIG_FILES="$CONFIG_FILES bin/Makefile" ;;
+    "doc/Makefile") CONFIG_FILES="$CONFIG_FILES doc/Makefile" ;;
+    "include/Makefile") CONFIG_FILES="$CONFIG_FILES include/Makefile" ;;
     "lib/Makefile") CONFIG_FILES="$CONFIG_FILES lib/Makefile" ;;
     "lib/Makefile.sharedlib") CONFIG_FILES="$CONFIG_FILES lib/Makefile.sharedlib" ;;
     "lib/Makefile.staticlib") CONFIG_FILES="$CONFIG_FILES lib/Makefile.staticlib" ;;
@@ -3776,8 +3783,7 @@ do
     "lib/pscommon/Makefile") CONFIG_FILES="$CONFIG_FILES lib/pscommon/Makefile" ;;
     "lib/pslog/Makefile") CONFIG_FILES="$CONFIG_FILES lib/pslog/Makefile" ;;
     "lib/putil/Makefile") CONFIG_FILES="$CONFIG_FILES lib/putil/Makefile" ;;
-    "bin/Makefile") CONFIG_FILES="$CONFIG_FILES bin/Makefile" ;;
-    "dist/Makefile") CONFIG_FILES="$CONFIG_FILES dist/Makefile" ;;
+    "scripts/Makefile") CONFIG_FILES="$CONFIG_FILES scripts/Makefile" ;;
 
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}

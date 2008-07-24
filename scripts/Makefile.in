@@ -1,0 +1,67 @@
+###################################################### -*- Makefile -*- #####
+#                  ParaStation
+#        Copyright (c) 2008 ParTec Cluster Competence Center GmbH, Munich
+#############################################################################
+#
+# $Id$
+#
+# @author
+#         Norbert Eicker <eicker@par-tec.de>
+#############################################################################
+
+.PHONY: all
+all: 
+
+SRCDIR = @srcdir@
+VPATH += $(SRCDIR)
+
+#
+# install scripts
+#
+INSTALL = @INSTALL@
+INSTFLAGS_NOEXEC = -m 644
+
+DISTDIR := $(DESTDIR)$(DISTPATH)
+
+BINDIR := $(DISTDIR)/bin
+DIST_bin := psh psaccview
+$(BINDIR)/%: %
+	$(INSTALL) -D $< $@
+
+SCRIPTSDIR := $(DISTDIR)/scripts
+DIST_scripts := ps_gmcounters
+$(SCRIPTSDIR)/%: %
+	$(INSTALL) -D $< $@
+
+CONFIGDIR := $(DISTDIR)/config
+DIST_config := ps_gm ps_acc gdb.conf
+$(CONFIGDIR)/%: %
+	$(INSTALL) -D $< $@
+
+ETCDIR := $(DESTDIR)/etc
+DIST_etc := profile.d/psmgmt.sh profile.d/psmgmt.csh
+DIST_etc += init.d/parastation xinetd.d/psidstarter
+$(ETCDIR)/profile.d/psmgmt.%: psmgmt.%
+	$(INSTALL) -D $< $@
+
+$(ETCDIR)/init.d/parastation: parastation.init.d
+	$(INSTALL) -D $< $@
+
+$(ETCDIR)/xinetd.d/psidstarter: parastation.xinetd
+	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
+
+DIST_all = $(patsubst %,$(BINDIR)/%,$(DIST_bin))
+DIST_all += $(patsubst %,$(SCRIPTSDIR)/%,$(DIST_scripts))
+DIST_all += $(patsubst %,$(CONFIGDIR)/%,$(DIST_config))
+DIST_all += $(patsubst %,$(ETCDIR)/%,$(DIST_etc))
+
+.PHONY: install
+install: $(DIST_all)
+
+
+.PHONY: clean distclean
+clean:
+	$(RM) $(EXTRACLEAN) *.o
+
+distclean: clean
+	$(RM) $(TARGETS)

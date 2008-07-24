@@ -11,28 +11,26 @@
 #         Norbert Eicker <eicker@par-tec.de>
 #############################################################################
 
-SUBDIRS := lib bin dist
+export TOP_SRCDIR = $(shell cd @srcdir@;pwd)
+export TARGETARGS := --target @target_cpu@-@target_vendor@-@target_os@
 
-.PHONY: all $(SUBDIRS)
-all: lib bin
+SUBDIRS := lib bin include scripts doc
 
+.PHONY: all install clean distclean
+all install clean distclean: $(SUBDIRS)
+
+export TARGET
+install: TARGET=install
+clean: TARGET=clean
+distclean: TARGET=distclean
+
+.PHONY: $(SUBDIRS)
 $(SUBDIRS):
-	$(MAKE) -C $@
+	$(MAKE) -C $@ $(TARGET)
 
-.PHONY: install
-install:
-	$(MAKE) -C dist install DISTPATH=$(RPM_BUILD_ROOT)/opt/parastation
+install: export DISTPATH=/opt/parastation
 
-.PHONY: rpm srpm
-rpm srpm:
-	$(MAKE) -C dist $@
-
-.PHONY: tar
-tar: dist
-
-.PHONY:clean distclean
-
-clean distclean:
-	@for i in $(SUBDIRS) ; do \
-		$(MAKE) -C $$i $@; \
-	done
+.PHONY: tar rpm srpm tag version
+tar rpm srpm tag version:
+	mkdir -p dist
+	$(MAKE) -C dist -f $(TOP_SRCDIR)/dist/Makefile $@

@@ -40,15 +40,16 @@ endif
 TOOLS:= psiadmin psid psilogger mlisten
 TOOLS += psmstart mpirun_chp4 psispawn mpirun_chgm gmspawner
 TOOLS += mpirun_openib test_pse test_config pssh
-TOOLS += psaccounter testacct mpiexec
+TOOLS += psaccounter mpiexec
 ifeq ($(ELANCTRL),yes)
 TOOLS += mpirun_elan
 endif
 
-TARGETS = $(TOOLS) test_logging
+TARGETS = $(TOOLS) test_logging testacct
 
 LDFLAGS+=-L../lib -Wl,-rpath,/opt/parastation/$(LIB_DIRNAME)
 
+.PHONY: all bin
 all bin: $(TOOLS)
 
 $(TOOLS): %: %.o
@@ -110,11 +111,25 @@ VPATH += $(SRCDIR)/logger
 psilogger: psiloggerkvs.o psiloggermerge.o
 psilogger: LOADLIBES:=$(LOADLIBES) -lputil -lpslog -lm -lreadline -l@LIBCURSES@
 
-parastation: $(TOP_SRCDIR)/scripts/parastation@TRU64FILEADD@
-	cp $< $@
-
 # accounter
 VPATH += $(SRCDIR)/accounter
+
+
+#
+# install binaries
+#
+INSTALL = @INSTALL@
+
+DISTDIR := $(DESTDIR)$(DISTPATH)
+BINDIR := $(DISTDIR)/bin
+DIST_bin := $(TOOLS)
+
+$(BINDIR)/%: %
+	$(INSTALL) -D $< $@
+
+.PHONY: install
+install: bin $(patsubst %,$(BINDIR)/%,$(DIST_bin))
+
 
 # WARNING!!! if DEPEXTENSION from configure is empty, make clean remove all files!!
 DEPFILES := $(wildcard *@DEPEXTENSION@) dummy.d
