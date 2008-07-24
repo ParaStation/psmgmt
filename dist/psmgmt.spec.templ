@@ -43,7 +43,7 @@ The ParaStation Management Layer.
 
 %install
 %{__rm} -rf %{buildroot}
-%makeinstall
+make DESTDIR=%{buildroot} install
 
 %clean
 %{__rm} -rf %{buildroot}
