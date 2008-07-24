@@ -15,12 +15,6 @@ BuildRequires:	ncurses-devel, readline-devel
 BuildRequires:  popt-devel
 %endif
 
-
-# Dont use internal find_requires, because we dont want dependencies
-# to the infiniband libs. (Searching for a clean solution!)
-%define _use_internal_dependency_generator 0
-%define __find_requires %_builddir/%{name}-%{version}-%{release}/scripts/rpm_noreq
-
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n) 
 
 %description

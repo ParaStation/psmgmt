@@ -1,5 +1,0 @@
-#!/bin/sh
-while read x;do 
-   echo;
-done;
-echo "/bin/sh"

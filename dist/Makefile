@@ -24,9 +24,6 @@ DISTNAME=$(PKG_NAME)-$(VERSION_$(PKG_NAME))-$(RELEASE_$(PKG_NAME))
 $(DISTNAME)/configure: $(TOP_SRCDIR)/configure
 	install -D $< $@
 
-$(DISTNAME)/scripts/rpm_noreq: $(TOP_SRCDIR)/scripts/rpm_noreq
-	install -D $< $@
-
 $(DISTNAME)/%: $(TOP_SRCDIR)/%
 	install -m 644 -D $< $@
 
