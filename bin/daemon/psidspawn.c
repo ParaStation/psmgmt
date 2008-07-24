@@ -523,6 +523,32 @@ static void execClient(PStask_t *task)
 	}
     }
 
+    {
+	/* set priority */
+	/* This is a temporary fix for St. Graf (s.graf@fz-juelich.de). */
+	char *prioStr;
+	int policy;
+	if ((prioStr = getenv("__SCHED_FIFO"))) {
+	    policy = SCHED_FIFO;
+	} else if ((prioStr = getenv("__SCHED_RR"))) {
+	    policy = SCHED_RR;
+	}
+	if (prioStr) {
+	    char *end;
+	    int priority = strtol(prioStr, &end, 0);
+
+	    if (end && !*end) {
+		struct sched_param params;
+
+		params.sched_priority = priority;
+		sched_setscheduler(0, policy, &params);
+	    } else {
+		fprintf(stderr, "%s: unknown priority '%s'\n",
+			__func__, prioStr);
+	    }
+	}
+    }
+
     /* change the uid */
     if (setuid(task->uid)<0) {
 	fprintf(stderr, "%s: setuid: %s\n", __func__, get_strerror(errno));
