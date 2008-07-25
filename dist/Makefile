@@ -21,11 +21,10 @@ all: rpm
 
 DISTNAME=$(PKG_NAME)-$(VERSION_$(PKG_NAME))-$(RELEASE_$(PKG_NAME))
 
-$(DISTNAME)/configure: $(TOP_SRCDIR)/configure
-	install -D $< $@
+$(patsubst %,$(DISTNAME)/%,$(SOURCE_FILES)): INSTALL_FLAGS+=-m 644
 
 $(DISTNAME)/%: $(TOP_SRCDIR)/%
-	install -m 644 -D $< $@
+	install $(INSTALL_FLAGS) -D $< $@
 
 $(DISTNAME):
 	install -d $@

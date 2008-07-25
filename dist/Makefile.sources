@@ -1,6 +1,24 @@
 
 PKG_NAME=psmgmt
 
+SCRIPT_FILES= \
+configure \
+scripts/config.guess \
+scripts/config.sub \
+scripts/install-sh \
+scripts/lsf/esub \
+scripts/lsf/psm_lsf_wrapper \
+scripts/mpirun_java \
+scripts/parastation.init.d \
+scripts/ps_acc \
+scripts/ps_gm \
+scripts/ps_gmcounters \
+scripts/psaccview \
+scripts/mpirun_java \
+scripts/psh \
+scripts/psmgmt.csh \
+scripts/psmgmt.sh
+
 SOURCE_FILES= \
 Makefile.in \
 Makefile.version \
@@ -77,7 +95,6 @@ bin/pssh.c \
 bin/test_config.c \
 bin/test_logging.c \
 bin/test_pse.c \
-configure \
 configure.ac \
 dist/ChangeLog \
 dist/Makefile \
@@ -149,20 +166,6 @@ lib/putil/rdp.c \
 lib/putil/selector.c \
 lib/putil/timer.c \
 scripts/Makefile.in \
-scripts/config.guess \
-scripts/config.sub \
-scripts/install-sh \
 scripts/lsf/README \
-scripts/lsf/esub \
-scripts/lsf/psm_lsf_wrapper \
-scripts/mpirun_java \
-scripts/parastation.init.d \
 scripts/parastation.xinetd \
-scripts/ps_gm \
-scripts/ps_acc \
-scripts/ps_gmcounters \
-scripts/psaccview \
-scripts/gdb.conf \
-scripts/psh \
-scripts/psmgmt.csh \
-scripts/psmgmt.sh
+scripts/gdb.conf
