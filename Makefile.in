@@ -28,7 +28,7 @@ distclean: TARGET=distclean
 $(SUBDIRS):
 	$(MAKE) -C $@ $(TARGET)
 
-install: export DISTPATH=/opt/parastation
+export DISTPATH=/opt/parastation
 
 .PHONY: tar rpm srpm tag version
 tar rpm srpm tag version:
