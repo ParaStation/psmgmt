@@ -1,4 +1,3 @@
-#! /usr/bin/csh -f
 #
 # Script to set paths for ParaStation for each user at login time, to
 # be put in /etc/profile.d/.
