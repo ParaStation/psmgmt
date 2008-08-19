@@ -280,7 +280,7 @@ long PSID_getPhysCPUs_IA32(void)
     int i;
 
     if (!PSID_GenuineIntel()) {
-	PSID_log(-1, "%s: Processor not 'GenuineIntel'!", __func__);
+	PSID_log(-1, "%s: Processor not 'GenuineIntel'!\n", __func__);
 	return virtCPUs;
     }
 

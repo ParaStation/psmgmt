@@ -95,6 +95,8 @@ adminparser.o: $(TOP_SRCDIR)/Makefile.version
 
 # psid
 VPATH += $(SRCDIR)/daemon
+psidintel.o: CFLAGS+=-O1
+
 psid: psidutil.o psidtask.o psidspawn.o psidforwarder.o psidpmiprotocol.o
 psid: psidsignal.o psidmsgbuf.o psidrdp.o psidclient.o psidcomm.o
 psid: psidinfo.o psidoption.o psidpartition.o psidstatus.o psidhw.o
