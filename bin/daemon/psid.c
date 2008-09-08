@@ -32,7 +32,9 @@ static char vcid[] __attribute__((used)) =
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
+#define __USE_GNU
 #include <sys/socket.h>
+#undef __USE_GNU
 #include <sys/un.h>
 #include <sys/wait.h>
 #include <netinet/in.h>
