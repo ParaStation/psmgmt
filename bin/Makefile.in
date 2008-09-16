@@ -29,7 +29,10 @@ VPATH += $(SRCDIR)
 
 LIBDIR := ../lib
 
+# Makefile.sources have to define $(PKG_NAME) and $(SOURCE_FILES)
+include $(TOP_SRCDIR)/dist/Makefile.sources
 include $(TOP_SRCDIR)/Makefile.version
+######################################################
 
 ifeq ("$(TARGET_OS)","linux")
 .LIBPATTERNS+= $(LIBDIR)/lib%.a
@@ -81,8 +84,8 @@ gmspawner: LOADLIBES:=$(LOADLIBES) -lpthread
 
 # Version info within
 adminparser.o psidinfo.o mpirun_openib.o mpirun_elan.o psid.o: \
-	CPPFLAGS += -DVERSION_psmgmt='"$(VERSION_psmgmt)"' \
-		-DRELEASE_psmgmt='"$(RELEASE_psmgmt)"'
+	CPPFLAGS += -DVERSION_$(PKG_NAME)='"$(VERSION_$(PKG_NAME))"' \
+		-DRELEASE_$(PKG_NAME)='"$(RELEASE_$(PKG_NAME))"'
 adminparser.o psidinfo.o mpirun_openib.o mpirun_elan.o psid.o: \
 	$(TOP_SRCDIR)/Makefile.version
 
@@ -90,8 +93,6 @@ adminparser.o psidinfo.o mpirun_openib.o mpirun_elan.o psid.o: \
 VPATH += $(SRCDIR)/admin
 psiadmin: commands.o adminparser.o
 psiadmin: LOADLIBES:=$(LOADLIBES) -lreadline -lhistory -l@LIBCURSES@
-
-adminparser.o: $(TOP_SRCDIR)/Makefile.version
 
 # psid
 VPATH += $(SRCDIR)/daemon

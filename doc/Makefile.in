@@ -16,6 +16,11 @@ SRCDIR = @srcdir@
 VPATH += $(SRCDIR)
 TOP_SRCDIR = @top_srcdir@
 
+# Makefile.sources have to define $(PKG_NAME) and $(SOURCE_FILES)
+include $(TOP_SRCDIR)/dist/Makefile.sources
+include $(TOP_SRCDIR)/Makefile.version
+######################################################
+
 #
 # install binaries
 #
@@ -35,13 +40,13 @@ $(DISTDIR)/config/parastation.conf.tmpl: parastation.conf
 #
 # extra stuff
 #
-DIST_all += $(DISTDIR)/VERSION.psmgmt
-.PHONY: $(DISTDIR)/VERSION.psmgmt
-$(DISTDIR)/VERSION.psmgmt:
-	@echo "ParaStation Management $(VERSION_psmgmt)-$(RELEASE_psmgmt) ($(shell date))" > $@
+DIST_all += $(DISTDIR)/VERSION.$(PKG_NAME)
+.PHONY: $(DISTDIR)/VERSION.$(PKG_NAME)
+$(DISTDIR)/VERSION.$(PKG_NAME):
+	@echo "ParaStation Management $(VERSION_$(PKG_NAME))-$(RELEASE_$(PKG_NAME)) ($(shell date))" > $@
 
-DIST_all += $(DISTDIR)/ChangeLog.psmgmt
-$(DISTDIR)/ChangeLog.psmgmt: $(TOP_SRCDIR)/dist/ChangeLog
+DIST_all += $(DISTDIR)/ChangeLog.$(PKG_NAME)
+$(DISTDIR)/ChangeLog.$(PKG_NAME): $(TOP_SRCDIR)/dist/ChangeLog
 	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
 
 DIST_all += $(DISTDIR)/LICENSE
