@@ -6,7 +6,5 @@ How to prepare a new release:
 	the list of changes.
 4. Tag the new release using:
 
-svn copy http://svn.ipd.uka.de/repos/ParaStation/trunk/mgmt \
-	http://svn.ipd.uka.de/repos/ParaStation/tags/psmgmt-version \
-	-m "Tagging the x.x.x release of psmgmt"
+svn copy http://svn.ipd.uka.de/repos/ParaStation/trunk/mgmt http://svn.ipd.uka.de/repos/ParaStation/tags/psmgmt-version -m "Tagging the x.x.x release of psmgmt"
 

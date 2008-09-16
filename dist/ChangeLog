@@ -1,3 +1,176 @@
+Version psmgmt-5.0.8:
+=====================
+------------------------------------------------------------------------
+r6483 | moschny | 2008-09-08 17:36:01 +0200 (Mon, 08 Sep 2008) | 1 line
+
+Temporarily fix for #111, to enable building on Fedora 9.
+------------------------------------------------------------------------
+r6477 | eicker | 2008-09-04 10:13:14 +0200 (Thu, 04 Sep 2008) | 2 lines
+
+Change some SVN properties within build system.
+
+------------------------------------------------------------------------
+r6447 | eicker | 2008-08-19 11:13:15 +0200 (Tue, 19 Aug 2008) | 3 lines
+
+Bugfix: Processor detection on IA32 might fail due to aggressive
+    compiler-optimizations.
+
+------------------------------------------------------------------------
+r6401 | eicker | 2008-07-25 17:03:44 +0200 (Fri, 25 Jul 2008) | 2 lines
+
+Adapt method to put some files with x-bit into tar (and srpm).
+
+------------------------------------------------------------------------
+r6400 | moschny | 2008-07-25 14:49:05 +0200 (Fri, 25 Jul 2008) | 3 lines
+
+Remove shebang lines, as they drag in unwanted dependencies in the
+final rpms. Also, these scripts are not meant to be run stand-alone.
+
+------------------------------------------------------------------------
+r6397 | moschny | 2008-07-25 11:19:01 +0200 (Fri, 25 Jul 2008) | 1 line
+
+Compatibility with make 3.80 on SLES10.
+------------------------------------------------------------------------
+r6392 | eicker | 2008-07-24 17:02:34 +0200 (Thu, 24 Jul 2008) | 3 lines
+
+Add support for special scheduler setting. This is for Stephan Graf's
+   tests with realtime-support for the JuRoPA system.
+
+------------------------------------------------------------------------
+r6391 | eicker | 2008-07-24 14:47:04 +0200 (Thu, 24 Jul 2008) | 2 lines
+
+Fix depency check during build of RPM.
+
+------------------------------------------------------------------------
+r6389 | eicker | 2008-07-24 14:31:11 +0200 (Thu, 24 Jul 2008) | 3 lines
+
+Fix bug in the new make mechanism which prevents from building RPMs.
+Cleanup: remove INSTALL and PSM_INSTALL
+
+------------------------------------------------------------------------
+r6388 | moschny | 2008-07-24 14:26:54 +0200 (Thu, 24 Jul 2008) | 3 lines
+
+%makeinstall doesn't set DESTDIR (at least on some systems). It is
+deprecated anyway.
+
+------------------------------------------------------------------------
+r6386 | eicker | 2008-07-24 13:33:09 +0200 (Thu, 24 Jul 2008) | 2 lines
+
+Complete rework of psmgmt's make process.
+
+------------------------------------------------------------------------
+r6376 | eicker | 2008-07-22 15:55:07 +0200 (Tue, 22 Jul 2008) | 2 lines
+
+Fix problem introduced within last checkin.
+
+------------------------------------------------------------------------
+r6375 | eicker | 2008-07-22 15:41:26 +0200 (Tue, 22 Jul 2008) | 4 lines
+
+Switch vcid's attribute from 'unused' to 'used'. This will make them
+    appear even in the stripped executables.
+Fixes in quite some copyright messages.
+
+------------------------------------------------------------------------
+r6368 | eicker | 2008-07-22 12:35:01 +0200 (Tue, 22 Jul 2008) | 2 lines
+
+Fix build system for ppc64 builds.
+
+------------------------------------------------------------------------
+r6364 | eicker | 2008-07-21 17:39:04 +0200 (Mon, 21 Jul 2008) | 2 lines
+
+Get rid of getClientFD(). Better find task and use task->fd.
+
+------------------------------------------------------------------------
+r6352 | eicker | 2008-07-21 14:31:53 +0200 (Mon, 21 Jul 2008) | 2 lines
+
+Make sure that building RPMs does not use the /usr tree.
+
+------------------------------------------------------------------------
+r6347 | eicker | 2008-07-18 17:46:31 +0200 (Fri, 18 Jul 2008) | 2 lines
+
+Don't remove old configuration file on update.
+
+------------------------------------------------------------------------
+r6346 | eicker | 2008-07-18 17:38:10 +0200 (Fri, 18 Jul 2008) | 2 lines
+
+Rework the installation mechanism; get rid of the PSM_INSTALL script.
+
+------------------------------------------------------------------------
+r6345 | eicker | 2008-07-17 17:11:40 +0200 (Thu, 17 Jul 2008) | 2 lines
+
+Rename PSI_OUTTIMES to PSI_TIMESTAMPS.
+
+------------------------------------------------------------------------
+r6339 | rauh | 2008-07-17 10:53:21 +0200 (Thu, 17 Jul 2008) | 2 lines
+
+removed unsed function to prevent warning
+
+------------------------------------------------------------------------
+r6337 | moschny | 2008-07-16 17:23:07 +0200 (Wed, 16 Jul 2008) | 2 lines
+
+Add `#include <limits.h>` to get `SSIZE_MAX`.
+
+------------------------------------------------------------------------
+r6336 | moschny | 2008-07-16 17:22:37 +0200 (Wed, 16 Jul 2008) | 2 lines
+
+Add `#include <limits.h>` to get `HOST_NAME_MAX`.
+
+------------------------------------------------------------------------
+r6331 | rkr | 2008-07-16 10:07:06 +0200 (Wed, 16 Jul 2008) | 2 lines
+
+psmgmt.sh: unknown option -q of RH manpath replaced
+
+------------------------------------------------------------------------
+r6315 | eicker | 2008-07-15 11:05:35 +0200 (Tue, 15 Jul 2008) | 8 lines
+
+Extension: Enable the logging facility to print time-stamps.
+Reorganize logging output: Direct print to fd even without newline.
+Use logging facilities in psilogger instead directly printing to
+   stdout/stderr.
+psilogger prints high-resolution time-stamps, if PSI_OUTTIMES is set.
+Fix RDP_blockTimer()'s prototype.
+Major white-space cleanup.
+
+------------------------------------------------------------------------
+r6305 | eicker | 2008-07-10 20:11:55 +0200 (Thu, 10 Jul 2008) | 19 lines
+
+Bugfix: This collection of changes fixes bug #125
+Bugfix: Yet another possible SEGFAULT fixed. Reorganize flushing
+    client-messages. Another list to fix.
+Enable to block RDP's timer from outside via RDP_blockTimer()
+Block RDP's timer while fiddling around with list of stored RDP-messages
+    within daemon.
+Store RELEASE messages for possible grand-childs.
+Don't send SENDSTOP message back if original SENDSTOP message cannot be
+    delivered. This suppresses an infinite loop.
+Bugfix: Collect pending messages from dead childs (SIGCHLD received) and
+    cleanup task afterwards.
+Bugfix: Test newly created file-descriptors to fit into select-mask.
+New functions PSID_getSignalByID() and PSID_getSignalByTID(). Used for
+    saver handling of signal lists.
+Make PSID_kill() work as described in docu, i.e. return correct errno.
+Reorganize handling of pervasive signals.
+Suppress many error-messages that might flood the syslog.
+Rename sendAccoutingData() (typo!!) to sendAcctData()
+
+------------------------------------------------------------------------
+r6224 | rauh | 2008-07-08 10:14:08 +0200 (Tue, 08 Jul 2008) | 2 lines
+
+fixed --norcfile option
+
+------------------------------------------------------------------------
+r6223 | rauh | 2008-07-07 14:40:47 +0200 (Mon, 07 Jul 2008) | 3 lines
+
+added new option norcfile to prevent manipulating the output, if
+we want to parse it later
+
+------------------------------------------------------------------------
+r6168 | eicker | 2008-06-26 10:49:01 +0200 (Thu, 26 Jun 2008) | 2 lines
+
+New version (psmgmt-5.0.7)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.7:
 =====================
 ------------------------------------------------------------------------
