@@ -614,13 +614,14 @@ int main(int argc, char *argv[])
     setPSIEnv("LIBELAN_SHMKEY", PSC_printTID(PSC_getMyTID()), 1);
 
     /* start all processes */
-    alarm(1000);
+    alarm(120); /* 2 minutes should be enough */
     for (i = 0; i < np; i++) {
 	if (startProcs(i, np, dup_argc, dup_argv, verbose||show) < 0) {
 	    fprintf(stderr, "Unable to start process %d. Aborting.\n", i);
 	    exit(1);
 	} 
     }
+    alarm(0);
 
     /* Don't irritate the user with logger messages */
     setenv("PSI_NOMSGLOGGERDONE", "", 1);

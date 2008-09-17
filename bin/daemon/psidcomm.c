@@ -96,6 +96,7 @@ int sendMsg(void *amsg)
 		  PSC_printTID(msg->dest), sender);
 
 	if (errno==EWOULDBLOCK && PSC_getPID(msg->sender)
+	    && msg->type != PSP_CD_ACCOUNT
 	    && msg->type != PSP_DD_SENDSTOP) {
 	    DDMsg_t stopmsg = { .type = PSP_DD_SENDSTOP,
 				.sender = msg->dest,
