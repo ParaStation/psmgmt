@@ -1538,6 +1538,12 @@ static int newHost(in_addr_t addr, int id)
 	return -1;
     }
 
+    if (PSIDnodes_setBindMem(id, default_bindMem)) {
+	parser_comment(-1, "PSIDnodes_setBindMem(%d, %d) failed\n",
+		       id, default_bindMem);
+	return -1;
+    }
+
     if (PSIDnodes_setSupplGrps(id, default_supplGrps)) {
 	parser_comment(-1, "PSIDnodes_setSupplGrps(%d, %d) failed\n",
 		       id, default_supplGrps);
