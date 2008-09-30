@@ -1,3 +1,29 @@
+Version psmgmt-5.0.9:
+=====================
+------------------------------------------------------------------------
+r6514 | eicker | 2008-09-29 15:04:00 +0200 (Mon, 29 Sep 2008) | 2 lines
+
+Bugfix: Enable 'bindMem' directive in configuration file.
+
+------------------------------------------------------------------------
+r6499 | eicker | 2008-09-17 13:53:32 +0200 (Wed, 17 Sep 2008) | 4 lines
+
+Prevent sending SENDSTOP message if accounter is in autistic state.
+Cancel alarm() call after spawning child processes in mpirun_elan.
+Some minor changes to the build-system.
+
+------------------------------------------------------------------------
+r6494 | eicker | 2008-09-16 21:04:10 +0200 (Tue, 16 Sep 2008) | 2 lines
+
+Minor changes to the build-system.
+
+------------------------------------------------------------------------
+r6491 | eicker | 2008-09-16 11:31:10 +0200 (Tue, 16 Sep 2008) | 2 lines
+
+New version (psmgmt-5.0.8)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.8:
 =====================
 ------------------------------------------------------------------------
