@@ -251,15 +251,15 @@ if($conf{'sel'}{'job'}){
 
 # parse sort options
 if (!defined($conf{'job'}{$conf{'sort'}{'job'}})) {
-    die "\nInvalid sort option for job list (--jobsort): ".$conf{'sort'}{'job'}."\n";
+    die "\nInvalid sort option for job list (--sortjob): ".$conf{'sort'}{'job'}."\n";
 }
 
 if (!defined($conf{'sum'}{$conf{'sort'}{'user'}})) {
-    die "\nInvalid sort option for user list (--usersort): ".$conf{'sort'}{'user'}."\n";
+    die "\nInvalid sort option for user list (--sortuser): ".$conf{'sort'}{'user'}."\n";
 }
 
 if (!defined($conf{'sum'}{$conf{'sort'}{'group'}})) {
-    die "\nInvalid sort option for group list (--groupsort): ".$conf{'sort'}{'group'}."\n";
+    die "\nInvalid sort option for group list (--sortgroup): ".$conf{'sort'}{'group'}."\n";
 }
 
 # apply list view options
@@ -830,7 +830,7 @@ psaccview [options]
 	--timespan {today,week,month,year} --nospace 
 	--accountdir {value}  -- fulljob --clocktime
 	--begin {yyyymmdd} --end {yyyymmdd} --version
-	--jobsort {value} --usersort {value} --groupsort {value}
+	--sortjob {value} --sortuser {value} --sortgroup {value}
 
 
 =head1 OPTIONS
@@ -955,20 +955,20 @@ Selects the end time of the log. If not set the end time is always today.
 
 Example: -te 20070901
 
-=item B<--jobsort> <criteria>
+=item B<--sortjob> <criteria>
 
 Defines witch criteria to use for sorting the job list.
 Valid values are:
 'user', 'group', 'jobid', 'jobname', 'start', 'end', 'walltime', 'qtime', 'mem',
 'vmem', 'cputime', 'queue', 'procs', 'exechost', 'nodes', 'exit'
 
-=item B<--usersort> <criteria>
+=item B<--sortuser> <criteria>
 
 Defines witch criteria to use for sorting the jobs per user list. 
 Valid values are:
 'user', 'jobs', 'walltime', 'qtime', 'mem', 'vmem', 'cputime', 'procs', 'cpuweight'
      
-=item B<--groupsort> <criteria>
+=item B<--sortgroup> <criteria>
 
 Defines witch criteria to use for sorting the jobs per group list.
 Valid values are:
