@@ -959,7 +959,7 @@ Example: -te 20070901
 
 Defines witch criteria to use for sorting the job list.
 Valid values are:
-'user', 'group', 'jobid', 'jobname', 'start', 'end', 'walltime', 'qtime', 'mem',
+'user', 'group', 'jobid', 'jobname', 'starttime', 'endtime', 'walltime', 'qtime', 'mem',
 'vmem', 'cputime', 'queue', 'procs', 'exechost', 'nodes', 'exit'
 
 =item B<--sortuser> <criteria>
