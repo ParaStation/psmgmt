@@ -224,7 +224,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 
 	    if (signal == -1) {
 		/* Kill using SIGKILL in 10 seconds */
-		if (!dest->killat) {
+		if (sig == SIGTERM && !dest->killat) {
 		    dest->killat = time(NULL) + 10;
 		    if (dest->group == TG_LOGGER) dest->killat++;
 		}
@@ -246,7 +246,8 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	    msg.error = ret;
 
 	    if (ret) {
-		PSID_warn(-1, errno, "%s: tried to send signal %d to %s",
+		PSID_warn((errno == ESRCH) ? PSID_LOG_SIGNAL : -1,
+			  errno, "%s: tried to send signal %d to %s",
 			  __func__, sig, PSC_printTID(tid));
 	    } else {
 		PSID_log(PSID_LOG_SIGNAL, "%s: sent signal %d to %s\n",
