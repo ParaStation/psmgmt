@@ -47,7 +47,7 @@ fi
 umask 077
 
 p_warn() {
-    if [ "$IS_LSB" == "yes" ]; then
+    if [ "$IS_LSB" = "yes" ]; then
 	log_warning_msg "$@"
     else
 	echo "$@"
@@ -55,7 +55,7 @@ p_warn() {
 }
 
 p_error() {
-    if [ "$IS_LSB" == "yes" ]; then
+    if [ "$IS_LSB" = "yes" ]; then
 	log_failure_msg "$@"
     else
 	echo "$@"
@@ -63,7 +63,7 @@ p_error() {
 }
 
 p_success() {
-    if [ "$IS_LSB" == "yes" ]; then
+    if [ "$IS_LSB" = "yes" ]; then
 	log_success_msg "$@"
     else
 	echo "$@"
@@ -71,7 +71,7 @@ p_success() {
 }
 
 set_lock() {
-    if [ "$1" == 1 ]; then
+    if [ "$1" = 1 ]; then
 	touch $LOCKFILE
     else
 	rm -f $LOCKFILE 2>/dev/null
