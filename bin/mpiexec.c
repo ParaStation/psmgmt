@@ -114,6 +114,7 @@ int mergeout = 0;
 int mergedepth = 0;
 int mergetmout = 0;
 int rusage = 0;
+int timestamp = 0;
 char *sort = NULL;
 char *login = NULL;
 char *dest = NULL;
@@ -694,6 +695,11 @@ static void setupPSIDEnv(int verbose)
 	setenv("PSI_ENABLE_GDB", "1", 1);
 	setenv("PSI_RARG_PRE_0", "gdb", 1);
 	if (verbose) printf("Starting gdb to debug the processes\n");
+    }
+
+    if (timestamp) {
+	setenv("PSI_TIMESTAMPS", "1", 1);
+	if (verbose) printf("Printing detailed time-marks\n");
     }
 
     if (dest) {
@@ -1391,6 +1397,7 @@ static void resetPOPTValues()
     mergedepth = 0;
     mergetmout = 0;
     rusage = 0;
+    timestamp = 0;
     sort = NULL;
     login = NULL;
     dest = NULL;
@@ -1575,6 +1582,8 @@ struct poptOption poptDisplayOptions[] = {
       &rusage, 0, "print consumed sys/user time", NULL},
     { "merge", 'm', POPT_ARG_NONE,
       &mergeout, 0, "merge similar output from diffrent ranks", NULL},
+    { "timestamp", 'T', POPT_ARG_NONE,
+      &timestamp, 0, "print detailed time-marks", NULL},
     POPT_TABLEEND
 };
 
@@ -1682,7 +1691,7 @@ struct poptOption optionsTable[] = {
     { NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptCommunicationOptions, \
       0, "Communication options:", NULL },
     { NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptDisplayOptions, \
-      0, "I/O forwarding options:", NULL },
+      0, "I/O options:", NULL },
     { NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptPrivilegedOptions, \
       0, "Privileged options:", NULL },
     { NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptDebugOptions, \
