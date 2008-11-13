@@ -141,6 +141,8 @@ void msg_ACCOUNT(DDBufferMsg_t *msg)
 		PSID_warn(-1, errno, "%s: sendMsg()", __func__);
 	    }
 	}
+	/* Restore original dest to allow re-use of msg */
+	msg->header.dest = PSC_getMyTID();
     } else if (PSC_getPID(msg->header.dest)) {
 	/* forward to accounter */
 	if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
