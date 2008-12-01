@@ -276,7 +276,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
     if (readfds) {
 	selector = selectorList;
 	while (selector && (retval>0)) {
-	    if (!selector->requested && FD_ISSET(selector->fd, readfds)) {
+	    if (!selector->requested && FD_ISSET(selector->fd, &rfds)) {
 		FD_CLR(selector->fd, &rfds);
 		retval--;
 	    }

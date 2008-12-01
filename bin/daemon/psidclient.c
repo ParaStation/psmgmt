@@ -503,7 +503,7 @@ static void msg_CLIENTCONNECT(DDBufferMsg_t *bufmsg)
 {
     size_t off = bufmsg->header.len - sizeof(bufmsg->header);
     int fd = *(int *) (bufmsg->buf + off);
-    DDInitMsg_t *msg =(DDInitMsg_t *)msg;
+    DDInitMsg_t *msg = (DDInitMsg_t *)bufmsg;
 
     PStask_t *task;
     DDTypedBufferMsg_t outmsg;
@@ -759,11 +759,6 @@ static void msg_CLIENTCONNECT(DDBufferMsg_t *bufmsg)
  * @param msg Pointer to the message to handle.
  *
  * @return No return value.
- */
-/**
- * @brief
- *
- *
  */
 static void msg_CC_MSG(DDBufferMsg_t *msg)
 {

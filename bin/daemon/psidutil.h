@@ -237,9 +237,6 @@ extern int PSID_lockFD;
  */
 void PSID_getLock(void);
 
-/* @doctodo This might soon be obsolete */
-int PSID_getMasterSock(void);
-
 /**
  * @brief Setup master socket.
  *
@@ -250,17 +247,25 @@ int PSID_getMasterSock(void);
  * order to connect their local daemon instead of being directly
  * connected during spawn.
  *
+ * The master socket is registered within the selector facility in
+ * order to automatically handle connection requests.
+ *
+ * @param logfile Daemon's master logfile to be passed to the selector
+ * facility if this is not yet initialized.
+ *
  * @return No return value.
  *
  * @see PSID_shutdownMasterSock()
  */
-void PSID_setupMasterSock(void);
+void PSID_setupMasterSock(FILE *logfile);
 
 /**
  * @brief Shutdown master socket.
  *
  * Shutdown the daemon's master socket. The daemon will no longer
- * listen on this UNIX-socket for new clients trying to connect.
+ * listen on this UNIX-socket for new clients trying to connect. The
+ * includes de-registration of the master-socket from the selector
+ * facility.
  *
  * @return No return value.
  *

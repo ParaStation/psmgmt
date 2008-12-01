@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -14,7 +14,7 @@
  * ParaStation this is used by the MCast, RDP and PSIDstatus modules.
  *
  * $Id$
- *
+ *     
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
@@ -117,11 +117,11 @@ void Selector_setDebugMask(int32_t mask);
  * @param selectHandler If data on @a fd is pending during a call to
  * Sselect(), this functions is called. @a fd is passed as an
  * argument. Sselect() expects the return values as follows:
- *  - -1 If an error occured and Tselect is expected to stop.
+ *  - -1 If an error occured and Sselect() is expected to stop.
  *  - 0  If no pending data on @a fd remained. Sselect() will continue watching
  *       its descriptor-set then.
  *  - 1  If there is still pending data on @a fd. This forces Sselect() to
- *       pass @a fd to the caller.
+ *       pass @a fd to its own caller.
  *
  * @return On success, 0 is returned. On error, e.g. if a selector on
  * @a fd is already registered, -1 is returned.

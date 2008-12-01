@@ -64,6 +64,8 @@ bin/daemon/psidsignal.c \
 bin/daemon/psidsignal.h \
 bin/daemon/psidspawn.c \
 bin/daemon/psidspawn.h \
+bin/daemon/psidstate.c \
+bin/daemon/psidstate.h \
 bin/daemon/psidstatus.c \
 bin/daemon/psidstatus.h \
 bin/daemon/psidtask.c \

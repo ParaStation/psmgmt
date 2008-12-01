@@ -50,33 +50,26 @@ PSID_DaemonState_t PSID_getDaemonState(void)
     return daemonState;
 }
 
-/** ParaStation's main timer. */
-static struct timeval mainTimer;
-
-void PSID_updateMainTimer(void)
-{
-    gettimeofday(&mainTimer, NULL);
-}
-
 void PSID_shutdown(void)
 {
     static int phase = 0;
-    static struct timeval shutdownTimer;
-    int i, masterSock;
+    static struct timeval shutdownTimer, now;
+    int i;
 
     if (!phase) timerclear(&shutdownTimer);
 
-    if (timercmp(&mainTimer, &shutdownTimer, <)) {
+    gettimeofday(&now, NULL);
+    if (timercmp(&now, &shutdownTimer, <)) {
 	PSID_log(PSID_LOG_TIMER, "%s: not ready: [%ld:%ld]<[%ld:%ld]\n",
-		 __func__, mainTimer.tv_sec, mainTimer.tv_usec,
+		 __func__, now.tv_sec, now.tv_usec,
 		 shutdownTimer.tv_sec, shutdownTimer.tv_usec);
 	return;
     }
 
     PSID_log(-1, "%s(%d)\n", __func__, phase);
 
-    PSID_log(PSID_LOG_TIMER, "%s: main[%ld:%ld], shutdown[%ld:%ld]\n",
-	     __func__, mainTimer.tv_sec, mainTimer.tv_usec,
+    PSID_log(PSID_LOG_TIMER, "%s: now[%ld:%ld], shutdown[%ld:%ld]\n",
+	     __func__, now.tv_sec, now.tv_usec,
 	     shutdownTimer.tv_sec, shutdownTimer.tv_usec);
 
     gettimeofday(&shutdownTimer, NULL);
@@ -101,7 +94,7 @@ void PSID_shutdown(void)
 	killAllClients(SIGKILL, 1);
 	/* close all sockets to clients */
 	for (i=0; i<FD_SETSIZE; i++) {
-	    if (FD_ISSET(i, &PSID_readfds) && i!=masterSock && i!=RDPSocket) {
+	    if (FD_ISSET(i, &PSID_readfds) && i!=RDPSocket) {
 		closeConnection(i);
 	    }
 	}
@@ -121,22 +114,23 @@ void PSID_shutdown(void)
 void PSID_reset(void)
 {
     static int phase = 0;
-    static struct timeval resetTimer;
+    static struct timeval resetTimer, now;
     int num = 1;
 
     if (!phase) timerclear(&resetTimer);
 
-    if (timercmp(&mainTimer, &resetTimer, <)) {
+    gettimeofday(&now, NULL);
+    if (timercmp(&now, &resetTimer, <)) {
 	PSID_log(PSID_LOG_TIMER, "%s: not ready: [%ld:%ld]<[%ld:%ld]\n",
-		 __func__, mainTimer.tv_sec, mainTimer.tv_usec,
+		 __func__, now.tv_sec, now.tv_usec,
 		 resetTimer.tv_sec, resetTimer.tv_usec);
 	return;
     }
 
     PSID_log(-1, "%s(%d)\n", __func__, phase);
 
-    PSID_log(PSID_LOG_TIMER, "%s: main[%ld:%ld], reset[%ld:%ld]\n",
-	     __func__, mainTimer.tv_sec, mainTimer.tv_usec,
+    PSID_log(PSID_LOG_TIMER, "%s: now[%ld:%ld], reset[%ld:%ld]\n",
+	     __func__, now.tv_sec, now.tv_usec,
 	     resetTimer.tv_sec, resetTimer.tv_usec);
 
     gettimeofday(&resetTimer, NULL);

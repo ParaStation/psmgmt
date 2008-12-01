@@ -64,21 +64,6 @@ typedef enum {
 PSID_DaemonState_t PSID_getDaemonState(void);
 
 /**
- * @brief Update daemon's main timer
- *
- * Update the daemon's internal main timer. This timer is mainly used
- * to steer the various phases of a daemon's shutdown or reset. This
- * functions has to be called regularly from the main daemon's main
- * loop.
- *
- * @todo: We might want to get rit of this. As an alternative, a
- * special timer might be registered to the daemon's timer facility.
- *
- * @return No return value.
- */
-void PSID_updateMainTimer(void);
-
-/**
  * @brief Shutdown local node.
  *
  * Shutdown the local node, i.e. stop daemon's operation. This will

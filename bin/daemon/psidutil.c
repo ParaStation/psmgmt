@@ -31,6 +31,7 @@ static char vcid[] __attribute__((used)) =
 
 #include "pscommon.h"
 #include "logging.h"
+#include "selector.h"
 #include "config_parsing.h"
 
 #include "psidnodes.h"
@@ -38,6 +39,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidintel.h"
 #include "psidppc.h"
 #include "psidcomm.h"
+#include "psidclient.h"
 
 #include "psidutil.h"
 
@@ -220,17 +222,82 @@ void PSID_getLock(void)
 }
 
 /**
- * Master socket (type UNIX) for clients to connect. Setup within @ref
+ * Master socket (type UNIX) for clients to connect. Set up within @ref
  * setupMasterSock().
  */
 static int masterSock = -1;
 
-int PSID_getMasterSock(void)
+/**
+ * @brief Handle master socket
+ *
+ * Handle the master socket @a fd, i.e. accept requests for connecting
+ * the daemon from new clients. This will only register the new
+ * client's file-descriptor. The client has to send a
+ * PSP_CD_CLIENTCONNECT message in order to actually get accepted by
+ * the daemon.
+ *
+ * This function is expected to be registered to the selector facility.
+ *
+ * This function will return 1 in order the make the calling Sselect()
+ * function return. This enables the daemon's main-loop to update the
+ * PSID_readfds set of file-descriptors passed to the Sselect()
+ * function of the selector facility.
+ *
+ * @param fd The file-descriptor from which the new connection might
+ * be accepted.
+ *
+ * @return On success 1 is returned. Otherwise -1 is returned and
+ * errno is set appropriately.
+ */
+static int handleMasterSock(int fd)
 {
-    return masterSock;
+    struct linger linger;
+    socklen_t size;
+    int ssock;
+
+    if (fd != masterSock) {
+	PSID_log(-1, "%s: wrong fd %d, %d expected\n",
+		 __func__, fd, masterSock);
+	return -1;
+    }
+
+    PSID_log(PSID_LOG_CLIENT | PSID_LOG_VERB,
+	     "%s: accepting new connection\n", __func__);
+
+    ssock = accept(fd, NULL, 0);
+    if (ssock < 0) {
+	PSID_warn(-1, errno, "%s: error while accept", __func__);
+	return -1;
+    }
+
+    if (ssock >= FD_SETSIZE) {
+	PSID_log(-1, "%s: error while accept(), ssock %d out of mask\n",
+		 __func__, ssock);
+	close(ssock);
+	return -1;
+    }
+
+    registerClient(ssock, -1, NULL);
+    FD_SET(ssock, &PSID_readfds);
+
+    PSID_log(PSID_LOG_CLIENT | PSID_LOG_VERB,
+	     "%s: new socket is %d\n", __func__, ssock);
+
+    size = sizeof(linger);
+    getsockopt(ssock, SOL_SOCKET, SO_LINGER, &linger, &size);
+
+    PSID_log(PSID_LOG_VERB, "%s: linger was (%d,%d), setting it to (1,1)\n",
+	     __func__, linger.l_onoff, linger.l_linger);
+
+    linger.l_onoff=1;
+    linger.l_linger=1;
+    size = sizeof(linger);
+    setsockopt(ssock, SOL_SOCKET, SO_LINGER, &linger, size);
+
+    return 1; /* return 1 to allow main-loop updating PSID_readfds */
 }
 
-void PSID_setupMasterSock(void)
+void PSID_setupMasterSock(FILE *logfile)
 {
     struct sockaddr_un sa;
 
@@ -253,7 +320,8 @@ void PSID_setupMasterSock(void)
 	PSID_exit(errno, "Error while trying to listen");
     }
 
-    FD_SET(masterSock, &PSID_readfds);
+    if (!Selector_isInitialized()) Selector_init(logfile);
+    Selector_register(masterSock, handleMasterSock);
 
     PSID_log(-1, "Local Service Port (%d) initialized.\n", masterSock);
 }
@@ -266,6 +334,8 @@ void PSID_shutdownMasterSock(void)
 	PSID_log(-1, "%s: master sock already down\n", __func__);
 	return;
     }
+
+    Selector_remove(masterSock);
 
     if (shutdown(masterSock, SHUT_RDWR)) {
 	action = "shutdown()";
@@ -281,6 +351,5 @@ exit:
 	action = "unlink()";
     }
     if (action) PSID_warn(-1, errno, "%s: %s", __func__, action);
-    FD_CLR(masterSock, &PSID_readfds);
     masterSock = -1;
 }

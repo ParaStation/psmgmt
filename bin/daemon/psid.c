@@ -680,8 +680,6 @@ int main(int argc, const char *argv[])
     selectTime.tv_sec = config->selectTime;
     selectTime.tv_usec = 0;
 
-    PSID_updateMainTimer();
-
     /* initialize various modules */
     initComm();  /* This has to be first since it gives msgHandler hash */
 
@@ -697,8 +695,7 @@ int main(int argc, const char *argv[])
     initInfo();
 
     /* create the socket to listen for clients */
-    PSID_setupMasterSock();
-
+    PSID_setupMasterSock(logfile);
 
     /*
      * Prepare hostlist to initialize RDP and MCast
@@ -784,54 +781,6 @@ int main(int argc, const char *argv[])
 	    continue;
 	}
 
-	PSID_updateMainTimer(); /* @todo try to get rid of this */
-
-	/*
-	 * check the master socket for new requests
-	 *
-	 * @todo we should register that to the selector facility, too
-	 */
-	if (FD_ISSET(PSID_getMasterSock(), &rfds)) {
-	    int ssock;  /* slave server socket */
-
-	    PSID_log(PSID_LOG_CLIENT | PSID_LOG_VERB,
-		     "accepting new connection\n");
-
-	    ssock = accept(PSID_getMasterSock(), NULL, 0);
-	    if (ssock < 0) {
-		PSID_warn(-1, errno, "Error while accept");
-
-		continue;
-	    } else if (ssock >= FD_SETSIZE) {
-		PSID_log(-1, "Error while accept, ssock (%d) out of mask\n",
-			 ssock);
-		close(ssock);
-
-		continue;
-	    } else {
-		struct linger linger;
-		socklen_t size;
-
-		registerClient(ssock, -1, NULL);
-		FD_SET(ssock, &PSID_readfds);
-
-		PSID_log(PSID_LOG_CLIENT | PSID_LOG_VERB,
-			 "accepting: new socket(%d)\n", ssock);
-
-		size = sizeof(linger);
-		getsockopt(ssock, SOL_SOCKET, SO_LINGER, &linger, &size);
-
-		PSID_log(PSID_LOG_VERB,
-			 "linger was (%d,%d), setting it to (1,1)\n",
-			 linger.l_onoff, linger.l_linger);
-
-		linger.l_onoff=1;
-		linger.l_linger=1;
-		size = sizeof(linger);
-		setsockopt(ssock, SOL_SOCKET, SO_LINGER, &linger, size);
-	    }
-	    FD_CLR(PSID_getMasterSock(), &rfds);
-	}
 	/*
 	 * check the client sockets for any closing connections
 	 * or control msgs
@@ -869,6 +818,9 @@ int main(int argc, const char *argv[])
 	/* Check for obstinate tasks */
 	checkObstinate();
 
+	/* @todo: We might want to get rit of this. As an alternative, a
+	 * special timer might be registered to the daemon's timer facility.
+	 */
 	/* Check for reset state */
 	if (PSID_getDaemonState() & PSID_STATE_RESET) PSID_reset();
 
