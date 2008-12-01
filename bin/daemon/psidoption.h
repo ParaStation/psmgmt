@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -31,6 +31,16 @@ extern "C" {
 #endif
 
 /**
+ * @brief Initialize option stuff
+ *
+ * Initialize the options framework. This registers the necessary
+ * message handlers.
+ *
+ * @return No return value.
+ */
+void initOptions(void);
+
+/**
  * @brief Send some options.
  *
  * Send some options upon startup of a daemon-daemon connection to @a
@@ -41,41 +51,6 @@ extern "C" {
  * @return No return value.
  */
 void send_OPTIONS(PSnodes_ID_t destnode);
-
-/**
- * @brief Handle a PSP_CD_SETOPTION message.
- *
- * Handle the message @a inmsg of type PSP_CD_SETOPTION.
- *
- * If the final destination of @a msg is the local daemon, the options
- * provided within this message are set to the corresponding
- * values. Otherwise this message es forwarded, either to the
- * corresponding local or remote client process or a remote daemon.
- *
- * PSP_CD_SETOPTION messages to client processes are usually responses
- * to PSP_CD_GETOPTION request of this processes.
- *
- * @param inmsg Pointer to the message to handle.
- *
- * @return No return value.
- */
-void msg_SETOPTION(DDOptionMsg_t *msg);
-
-/**
- * @brief Handle a PSP_CD_GETOPTION message.
- *
- * Handle the message @a inmsg of type PSP_CD_GETOPTION.
- *
- * If the final destination of @a msg is the local daemon, the
- * requested options within this message are determined and send
- * within a PSP_CD_SETOPTION to the requestor. Otherwise this message
- * es forwarded to the corresponding remote daemon.
- *
- * @param inmsg Pointer to the message to handle.
- *
- * @return No return value.
- */
-void msg_GETOPTION(DDOptionMsg_t *msg);
 
 #ifdef __cplusplus
 }/* extern "C" */

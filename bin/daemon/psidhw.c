@@ -229,7 +229,7 @@ static int callScript(int hw, char *script)
 
     close(controlfds[1]);
     close(iofds[1]);
-        
+
     /* check if fork() was successful */
     if (pid == -1) {
         char *errstr = strerror(ret);
@@ -504,7 +504,21 @@ static void informOtherNodes(void)
     }
 }
 
-void msg_HWSTART(DDBufferMsg_t *msg)
+/**
+ * @brief Handle PSP_CD_HWSTART message
+ *
+ * Handle the message @a msg of type PSP_CD_HWSTART.
+ *
+ * Start the communication hardware as described within @a msg. If
+ * starting succeeded and the corresponding hardware was down before,
+ * all other nodes are informed on the change hardware situation on
+ * the local node.
+ *
+ * @param msg Pointer to message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_HWSTART(DDBufferMsg_t *msg)
 {
     PSID_log(PSID_LOG_HW, "%s: requester %s\n",
 	     __func__, PSC_printTID(msg->header.sender));
@@ -525,7 +539,21 @@ void msg_HWSTART(DDBufferMsg_t *msg)
     }
 }
 
-void msg_HWSTOP(DDBufferMsg_t *msg)
+/**
+ * @brief Handle PSP_CD_HWSTOP message
+ *
+ * Handle the message @a msg of type PSP_CD_HWSTOP.
+ *
+ * Stop the communication hardware as described within @a msg. If
+ * stopping succeeded and the corresponding hardware was up before,
+ * all other nodes are informed on the change hardware situation on
+ * the local node.
+ *
+ * @param msg Pointer to message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_HWSTOP(DDBufferMsg_t *msg)
 {
     PSID_log(PSID_LOG_HW, "%s: requester %s\n",
 	     __func__, PSC_printTID(msg->header.sender));
@@ -544,4 +572,12 @@ void msg_HWSTOP(DDBufferMsg_t *msg)
     } else {
 	sendMsg(msg);
     }
+}
+
+void initHW(void)
+{
+    PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
+
+    PSID_registerMsg(PSP_CD_HWSTART, msg_HWSTART);
+    PSID_registerMsg(PSP_CD_HWSTOP,msg_HWSTOP );
 }

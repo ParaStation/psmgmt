@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -29,6 +29,16 @@ extern "C" {
 } /* <- just for emacs indentation */
 #endif
 #endif
+
+/**
+ * @brief Initialize accounting stuff
+ *
+ * Initialize the accounting framework. This registers the necessary
+ * message handlers.
+ *
+ * @return No return value.
+ */
+void initAccount(void);
 
 /**
  * @brief Register accounter.
@@ -84,22 +94,7 @@ void PSID_cleanAcctFromNode(PSnodes_ID_t node);
 void send_acct_OPTIONS(PStask_ID_t dest, int all);
 
 /**
- * @brief Handle PSP_CD_ACCOUNT message.
- *
- * Handle the message @a msg of type PSP_CD_ACCOUNT. If the message is
- * destined to the local daemon it will be forwarded to all registered
- * accounter tasks. I.e. the message will be multiplexed if more than
- * one accounter is registered through the corresponding @ref
- * PSID_addAcct() calls.
- *
- * @param msg Pointer to the message to handle.
- *
- * @return No return value.
- */
-void msg_ACCOUNT(DDBufferMsg_t *msg);
-
-/**
- * @brief Get number of accounters. 
+ * @brief Get number of accounters.
  *
  * Return the number of accounters currently registered to the set of
  * ParaStation daemons.

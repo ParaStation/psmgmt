@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -108,37 +108,63 @@ int recvMsg(int fd, DDMsg_t *msg, size_t size);
  */
 int broadcastMsg(void *msg);
 
-/**
- * @brief Handle PSP_DD_SENDSTOP message
- *
- * Handle the PSP_DD_SENDSTOP message @a msg.
- *
- * Stop receiving messages from the messages destination process. This
- * is used in order to implement a flow control on the communication
- * path between client processes or a client process and a remote
- * daemon process.
- *
- * @param msg The message to handle.
- *
- * @return No return value.
- */
-void msg_SENDSTOP(DDMsg_t *msg);
+/** Handler type for ParaStation messages. */
+typedef void(*handlerFunc_t)(DDBufferMsg_t *);
 
 /**
- * @brief Handle PSP_DD_SENDCONT message
+ * @brief Register message handler function
  *
- * Handle the PSP_DD_SENDCONT message @a msg.
+ * Register the function @a handler to handle all messages of type @a
+ * msgType sent to the local daemon. If @a handler is NULL, all
+ * messages of type @a msgType will be silently ignored in the future.
  *
- * Continue receiving messages from the messages destination
- * process. This is used in order to implement a flow control on the
- * communication path between client processes or a client process and
- * a remote daemon process.
+ * @param msgType The message-type to handle.
+ *
+ * @param handler The function to call whenever a message of type @a
+ * msgType has to be handled.
+ *
+ * @return If a handler for this message-type was registered before,
+ * the corresponding function pointer is returned. If this is the
+ * first handler registered for this message-type, NULL is returned.
+ *
+ * @see PSID_clearMsg(), PSID_handleMsg()
+ */
+handlerFunc_t PSID_registerMsg(int msgType, handlerFunc_t handler);
+
+/**
+ * @brief Unregister message handler function
+ *
+ * Unregister the message-type @a msgType to be handled in the
+ * future. This includes end of silent ignore of this message-type. In
+ * the future, @ref PSID_handleMsg() will lament on on unknown
+ * messages.
+ *
+ * @param msgType The message-type not to handle any longer.
+ *
+ * @return If a handler for this message-type was registered before,
+ * the corresponding function pointer is returned. If no handler was
+ * registered or the message-type was unknown before, NULL is
+ * returned.
+ *
+ * @see PSID_registerMsg(), PSID_handleMsg()
+ */
+handlerFunc_t PSID_clearMsg(int msgType);
+
+/**
+ * @brief Central protocol switch.
+ *
+ * Handle the message @a msg corresponding to its message-type. The
+ * handler associated to the message-type might be registered via @ref
+ * PSID_registerMsg() and unregistered via @ref PSID_clearMsg().
  *
  * @param msg The message to handle.
  *
- * @return No return value.
+ * @return On success, i.e. if it was possible to handle the message,
+ * 1 is returned, or 0 otherwise.
+ *
+ * @see PSID_registerMsg(), PSID_clearMsg()
  */
-void msg_SENDCONT(DDMsg_t *msg);
+int PSID_handleMsg(DDBufferMsg_t *msg);
 
 /**
  * @brief Handle dropped message

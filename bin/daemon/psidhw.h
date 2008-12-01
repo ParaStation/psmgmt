@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -25,6 +25,16 @@ extern "C" {
 } /* <- just for emacs indentation */
 #endif
 #endif
+
+/**
+ * @brief Initialize hardware stuff
+ *
+ * Initialize the communication hardware framework. This registers the
+ * necessary message handlers.
+ *
+ * @return No return value.
+ */
+void initHW(void);
 
 /**
  * @brief Init all communication hardware.
@@ -116,7 +126,7 @@ void PSID_getCounter(int hw, char *buf, size_t size, int header);
 /**
  * @brief Set hardware parameter.
  *
- * Set parameter described by @a option of the hardware @a hw to @a value. 
+ * Set parameter described by @a option of the hardware @a hw to @a value.
  *
  * @param hw The hardware type the parameter is connected to.
  *
@@ -141,39 +151,6 @@ void PSID_setParam(int hw, PSP_Option_t option, PSP_Optval_t value);
  * out is returned. Otherwise -1 is returned.
  */
 PSP_Optval_t PSID_getParam(int hw, PSP_Option_t option);
-
-/**
- * @brief Handle PSP_CD_HWSTART message
- *
- * Handle the message @a msg of type PSP_CD_HWSTART.
- *
- * Start the communication hardware as described within @a msg. If
- * starting succeeded and the corresponding hardware was down before,
- * all other nodes are informed on the change hardware situation on
- * the local node.
- *
- * @param msg Pointer to message to handle.
- *
- * @return No return value.
- */
-void msg_HWSTART(DDBufferMsg_t *msg);
-
-/**
- * @brief Handle PSP_CD_HWSTOP message
- *
- * Handle the message @a msg of type PSP_CD_HWSTOP.
- *
- * Stop the communication hardware as described within @a msg. If
- * stopping succeeded and the corresponding hardware was up before,
- * all other nodes are informed on the change hardware situation on
- * the local node.
- *
- * @param msg Pointer to message to handle.
- *
- * @return No return value.
- */
-void msg_HWSTOP(DDBufferMsg_t *msg);
-
 
 #ifdef __cplusplus
 }/* extern "C" */

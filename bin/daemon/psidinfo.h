@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -30,24 +30,14 @@ extern "C" {
 #endif
 
 /**
- * @brief Handle a PSP_CD_INFOREQUEST message.
+ * @brief Initialize info stuff
  *
- * Handle the message @a inmsg of type PSP_CD_INFOREQUEST.
- *
- * This kind of messages is used by client processes (actually most of
- * the time psiadmin processes) in order to get information on the
- * cluster and its current state. After retrieving the requested
- * information one or more PSP_CD_INFORESPONSE messages are generated
- * and send to the client process.
- *
- * Since some information is not available on every node of the
- * cluster, @a inmsg might be forwarded to further nodes.
- *
- * @param inmsg Pointer to the message to handle.
+ * Initialize the info request framework. This registers the necessary
+ * message handlers.
  *
  * @return No return value.
  */
-void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg);
+void initInfo(void);
 
 #ifdef __cplusplus
 }/* extern "C" */

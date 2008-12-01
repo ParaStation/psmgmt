@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -55,6 +55,16 @@ typedef struct {
     PSID_Load_t load;    /**< The load info of the node @see PSID_Load_t */
     PSID_Jobs_t jobs;    /**< The job info of the node @see PSID_Jobs_t */
 } PSID_NodeStatus_t;
+
+/**
+ * @brief Initialize status stuff
+ *
+ * Initialize the master-node detection and status framework. This
+ * registers the necessary message handlers.
+ *
+ * @return No return value.
+ */
+void initStatus(void);
 
 /**
  * @brief Set job info.
@@ -277,42 +287,6 @@ void declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs);
 int send_DAEMONCONNECT(PSnodes_ID_t id);
 
 /**
- * @brief Handle a PSP_DD_DAEMONCONNECT message.
- *
- * Handle the message @a msg of type PSP_DD_DAEMONCONNECT.
- *
- * A PSP_DD_DAEMONCONNECT message is sent whenever a daemon detects a
- * node it is not connected to. Receiving this message provides
- * information on the setup and status of the sending node.
- *
- * This message is answered by a PSP_DD_DAEMONESTABLISHED message
- * providing the corresponding information to the connecting node.
- *
- * @param msg Pointer to the message to handle.
- *
- * @return No return value.
- */
-void msg_DAEMONCONNECT(DDBufferMsg_t *msg);
-
-/**
- * @brief Handle a PSP_DD_DAEMONESTABLISHED message.
- *
- * Handle the message @a msg of type PSP_DD_DAEMONESTABLISHED.
- *
- * Receiving this answer on a PSP_DD_DAEMONCONNECT message sent to the
- * sending node provides the local daemon with the information on the
- * setup and status of this other node.
- *
- * With the receive of this message the setup of the daemon-daemon
- * connection is finished and the other node is marked to be up now.
- *
- * @param msg Pointer to the message to handle.
- *
- * @return No return value.
- */
-void msg_DAEMONESTABLISHED(DDBufferMsg_t *msg);
-
-/**
  * @brief Broadcast a PSP_DD_DAEMONSHUTDOWN message.
  *
  * Broadcast a PSP_DD_DAEMONSHUTDOWN message to all active nodes. This
@@ -328,41 +302,6 @@ void msg_DAEMONESTABLISHED(DDBufferMsg_t *msg);
 int send_DAEMONSHUTDOWN(void);
 
 /**
- * @brief Handle a PSP_DD_DAEMONSHUTDOWN message.
- *
- * Handle the message @a msg of type PSP_DD_DAEMONSHUTDOWN.
- *
- * This kind of messages tells the receiver that the sending node will
- * go down soon and no longer accepts messages for receive. Thus this
- * node should be marked to be down now.
- *
- * @param msg Pointer to the message to handle.
- *
- * @return No return value.
- */
-void msg_DAEMONSHUTDOWN(DDMsg_t *msg);
-
-/**
- * @brief Handle a PSP_DD_LOAD message.
- *
- * Handle the message @a msg of type PSP_DD_LOAD.
- *
- * PSP_DD_LOAD messages are send by each node to the current master
- * process. Thus upon receive of this kind of message by a node not
- * acting as the master, a PSP_DD_MASTER_IS message will be initiated
- * in order to inform the sending node about the actual master
- * process.
- *
- * The master process will handle this message by storing the
- * information contained to the local status arrays.
- *
- * @param msg Pointer to the message to handle.
- *
- * @return No return value.
- */
-void msg_LOAD(DDBufferMsg_t *msg);
-
-/**
  * @brief Send a PSP_DD_MASTER_IS message.
  *
  * Send a PSP_DD_MASTER_IS message to node @a dest. This gives a hint
@@ -375,62 +314,6 @@ void msg_LOAD(DDBufferMsg_t *msg);
  * returned and errno is set appropriately.
  */
 int send_MASTERIS(PSnodes_ID_t dest);
-
-/**
- * @brief Handle a PSP_DD_MASTER_IS message.
- *
- * Handle the message @a msg of type PSP_DD_MASTER_IS.
- *
- * The sending node give a hint on the correct master. If the local
- * information differs from the information provided, one of two
- * measures will be taken:
- *
- * - If the master provided has a node number smaller than the current
- * master, it will be tried to contact this new master via @ref
- * send_DAEMONCONNECT().
- *
- * - Otherwise a PSP_DD_MASTER_IS message is sent to the sender in
- * order to inform on the actual master node.
- *
- * @param msg Pointer to the message to handle.
- *
- * @return No return value.
- */
-void msg_MASTERIS(DDBufferMsg_t *msg);
-
-/**
- * @brief Handle a PSP_DD_ACTIVE_NODES message.
- *
- * Handle the message @a msg of type PSP_DD_ACTIVE_NODES.
- *
- * Whenever a daemon node connects to a new node, one or more
- * PSP_DD_ACTIVE_NODES messages are sent the this node in order to
- * inform about the active nodes currently known to the master. The
- * receiving node will try to contact each of this nodes provided in
- * order to setup a working connection.
- *
- * @param msg Pointer to the message to handle.
- *
- * @return No return value.
- */
-void msg_ACTIVENODES(DDBufferMsg_t *msg);
-
-/**
- * @brief Handle a PSP_DD_DEAD_NODE message.
- *
- * Handle the message @a msg of type PSP_DD_DEAD_NODE.
- *
- * Whenever a daemon node detects a node to be down all other nodes
- * will be informed about this fact via a PSP_DD_DEAD_NODE
- * message. Each node receiving this kind of message will try contact
- * the according node and usually mark this node as dead via a
- * callback from daemon's the RDP facility.
- *
- * @param msg Pointer to the message to handle.
- *
- * @return No return value.
- */
-void msg_DEADNODE(DDBufferMsg_t *msg);
 
 #ifdef __cplusplus
 }/* extern "C" */

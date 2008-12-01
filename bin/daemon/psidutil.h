@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -236,6 +236,37 @@ extern int PSID_lockFD;
  * @see PSID_lockFD
  */
 void PSID_getLock(void);
+
+/* @doctodo This might soon be obsolete */
+int PSID_getMasterSock(void);
+
+/**
+ * @brief Setup master socket.
+ *
+ * Create and initialize the daemon's master socket. The daemon will
+ * listen on this UNIX-socket for new clients trying to connect.
+ *
+ * Also clients spawned by the local daemon will use this channel in
+ * order to connect their local daemon instead of being directly
+ * connected during spawn.
+ *
+ * @return No return value.
+ *
+ * @see PSID_shutdownMasterSock()
+ */
+void PSID_setupMasterSock(void);
+
+/**
+ * @brief Shutdown master socket.
+ *
+ * Shutdown the daemon's master socket. The daemon will no longer
+ * listen on this UNIX-socket for new clients trying to connect.
+ *
+ * @return No return value.
+ *
+ * @see PSID_setupMasterSock()
+ */
+void PSID_shutdownMasterSock(void);
 
 #ifdef __cplusplus
 }/* extern "C" */

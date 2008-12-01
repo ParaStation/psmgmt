@@ -30,13 +30,10 @@ static char vcid[] __attribute__((used)) =
 #include <signal.h>
 #include <syslog.h>
 #include <fcntl.h>
-#include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/resource.h>
-#define __USE_GNU
-#include <sys/socket.h>
-#undef __USE_GNU
-#include <sys/un.h>
 #include <sys/wait.h>
+#include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
@@ -66,787 +63,12 @@ static char vcid[] __attribute__((used)) =
 #include "psidstatus.h"
 #include "psidhw.h"
 #include "psidaccount.h"
+#include "psidstate.h"
 
-struct timeval mainTimer;
 struct timeval selectTime;
 
 char psid_cvsid[] = "$Revision$";
 
-/**
- * Master socket (type UNIX) for clients to connect. Setup within @ref
- * setupMasterSock().
- */
-static int masterSock;
-
-/** Another helper status. This one is for reset/shutdown */
-static int myStatus;
-
-/*----------------------------------------------------------------------*/
-/* states of the daemons                                                */
-/*----------------------------------------------------------------------*/
-#define PSID_STATE_RESET_HW              0x0001
-#define PSID_STATE_RESET                 0x0002
-#define PSID_STATE_SHUTDOWN              0x0004
-
-#define PSID_STATE_NOCONNECT (PSID_STATE_RESET | PSID_STATE_SHUTDOWN)
-
-/**
- * @brief Shutdown local node.
- *
- * Shutdown the local node, i.e. stop daemon's operation. This will
- * happen in different phases.
- *
- * Once this function was called for the first time,
- * PSID_STATE_SHUTDOWN is added to the daemons state @ref
- * myStatus. This has to trigger repeated calls to this function from
- * the main loop. A timer inside this functions assures that each
- * phase lasts at least one second.
- *
- * The different phases used to shutdown the local daemon are
- * organized as follows:
- *
- *  phase 0:
- *     - switch to PSID_STATE_SHUTDOWN
- *     - close master socket, i.e. don't except new connections
- *     - kill all client processes
- *
- *  phase 1:
- *     - kill clients again where killing wasn't sucessful, yet
- *
- *  phase 2:
- *     - hardly kill (SIGKILL) clients where killing wasn't sucessful, yet.
- *
- *  phase 3:
- *     - kill all remaining processes (forwarder, admin, etc.)
- *
- *  phase 4:
- *     - hardly kill (SIGKILL) all remaining processes (forwarder, admin, etc.)
- *     - close connections to local clients
- *     - close connections to other nodes
- *     - exit
- *
- * @return No return value
- */
-static void shutdownNode(void)
-{
-    static int phase = 0;
-    static struct timeval shutdownTimer;
-    int i;
-
-    if (!phase) timerclear(&shutdownTimer);
-
-    if (timercmp(&mainTimer, &shutdownTimer, <)) {
-	PSID_log(PSID_LOG_TIMER, "%s: not ready: [%ld:%ld]<[%ld:%ld]\n",
-		 __func__, mainTimer.tv_sec, mainTimer.tv_usec,
-		 shutdownTimer.tv_sec, shutdownTimer.tv_usec);
-	return;
-    }
-
-    PSID_log(-1, "%s(%d)\n", __func__, phase);
-
-    PSID_log(PSID_LOG_TIMER, "%s: main[%ld:%ld], shutdown[%ld:%ld]\n",
-	     __func__, mainTimer.tv_sec, mainTimer.tv_usec,
-	     shutdownTimer.tv_sec, shutdownTimer.tv_usec);
-
-    gettimeofday(&shutdownTimer, NULL);
-    mytimeradd(&shutdownTimer, 1, 0);
-
-
-    switch (phase) {
-    case 0:
-	myStatus |= PSID_STATE_SHUTDOWN;
-	/* close the Master socket */
-	shutdown(masterSock, SHUT_RDWR);
-	close(masterSock);
-	unlink(PSmasterSocketName);
-	FD_CLR(masterSock, &PSID_readfds);
-    case 1:
-	killAllClients(SIGTERM, 0);
-	break;
-    case 2:
-	killAllClients(SIGKILL, 0);
-	break;
-    case 3:
-	killAllClients(SIGTERM, 1);
-	if (!config->useMCast) releaseStatusTimer();
-	break;
-    case 4:
-	killAllClients(SIGKILL, 1);
-	/* close all sockets to clients */
-	for (i=0; i<FD_SETSIZE; i++) {
-	    if (FD_ISSET(i, &PSID_readfds) && i!=masterSock && i!=RDPSocket) {
-		closeConnection(i);
-	    }
-	}
-	if (config->useMCast) exitMCast();
-	send_DAEMONSHUTDOWN();
-	exitRDP();
-	PSID_stopAllHW();
-	PSID_log(-1, "%s: good bye\n", __func__);
-	exit(0);
-    default:
-	PSID_log(-1, "%s: unknown phase %d\n", __func__, phase);
-    }
-
-    phase++;
-}
-
-/**
- * @brief Reset local node.
- *
- * Reset the local node, i.e. kill all client processes. This will
- * happen in different phases. If PSID_STATE_RESET_HW is set within
- * the daemons state @ref myStatus, all local communicaton hardware
- * will be reseted after all clients are gone. Reseting the
- * communication hardware is done via calling @ref PSID_stopAllHW()
- * and @ref PSID_startAllHW().
- *
- * Once this function was called for the first time, PSID_STATE_RESET
- * is added to the daemons state @ref myStatus. This has to trigger
- * repeated calls to this function from the main loop. A timer inside
- * this functions assures that each phase lasts at least one second.
- *
- * The different phases used to reset the local daemon are organized
- * as follows:
- *
- *  phase 0:
- *     - switch to PSID_STATE_RESET
- *     - kill all client processes
- *
- *  phase 1:
- *     - kill clients again where killing wasn't sucessful, yet
- *
- *  phase 2:
- *     - hardly kill (SIGKILL) clients where killing wasn't sucessful, yet.
- *
- *  phase 3:
- *     - kill all remaining processes (forwarder, admin, etc.)
- *
- *  phase 4:
- *     - hardly kill (SIGKILL) all remaining processes (forwarder, admin, etc.)
- *     - close connections to local clients
- *     - close connections to other nodes
- *     - exit
- *
- * @return No return value
- */
-static void doReset(void)
-{
-    static int phase = 0;
-    static struct timeval resetTimer;
-    int num = 1;
-
-    if (!phase) timerclear(&resetTimer);
-
-    if (timercmp(&mainTimer, &resetTimer, <)) {
-	PSID_log(PSID_LOG_TIMER, "%s: not ready: [%ld:%ld]<[%ld:%ld]\n",
-		 __func__, mainTimer.tv_sec, mainTimer.tv_usec,
-		 resetTimer.tv_sec, resetTimer.tv_usec);
-	return;
-    }
-
-    PSID_log(-1, "%s(%d)\n", __func__, phase);
-
-    PSID_log(PSID_LOG_TIMER, "%s: main[%ld:%ld], reset[%ld:%ld]\n",
-	     __func__, mainTimer.tv_sec, mainTimer.tv_usec,
-	     resetTimer.tv_sec, resetTimer.tv_usec);
-
-    gettimeofday(&resetTimer, NULL);
-    mytimeradd(&resetTimer, 1, 0);
-
-    switch (phase) {
-    case 0:
-	myStatus |= PSID_STATE_RESET;
-    case 1:
-	num = killAllClients(SIGTERM, 0);
-	break;
-    case 2:
-	num = killAllClients(SIGKILL, 0);
-	break;
-    case 3:
-	num = killAllClients(SIGTERM, 0);
-	if (num) {
-	    PSID_log(-1, "%s: still %d clients in phase %d. Continue\n",
-		     __func__, num, phase);
-	}
-	num = 0;
-	break;
-    default:
-	PSID_log(-1, "%s: unknown phase %d\n", __func__, phase);
-    }
-
-    phase++;
-
-    if (!num) {
-	/* reset the hardware if demanded */
-	if (myStatus & PSID_STATE_RESET_HW) {
-	    PSID_log(-1, "%s: resetting hardware", __func__);
-	    PSID_stopAllHW();
-	    PSID_startAllHW();
-	}
-	/* reset the state */
-	myStatus &= ~(PSID_STATE_RESET | PSID_STATE_RESET_HW);
-	phase = 0;
-	PSID_log(-1, "%s: done\n", __func__);
-    }
-}
-
-/**
- * @brief Handle a PSP_CD_DAEMONSTART message.
- *
- * Handle the message @a msg of type PSP_CD_DAEMONSTART.
- *
- * @doctodo
- *
- * @param msg Pointer to the message to handle.
- *
- * @return No return value.
- */
-static void msg_DAEMONSTART(DDBufferMsg_t *msg)
-{
-    PSnodes_ID_t starter = PSC_getID(msg->header.dest);
-    PSnodes_ID_t node = *(PSnodes_ID_t *) msg->buf;
-
-    /*
-     * contact the other node if no connection already exist
-     */
-    PSID_log(PSID_LOG_STATUS, "%s: received (starter=%d node=%d)\n",
-		__func__, starter, node);
-
-    if (starter==PSC_getMyID()) {
-	if (node<PSC_getNrOfNodes()) {
-	    if (!PSIDnodes_isUp(node)) {
-		in_addr_t addr = PSIDnodes_getAddr(node);
-		if (addr != INADDR_ANY)	PSC_startDaemon(addr);
-	    } else {
-		PSID_log(-1, "%s: node %d already up\n", __func__, node);
-	    }
-	}
-    } else {
-	if (PSIDnodes_isUp(starter)) {
-	    /* forward message */
-	    sendMsg(&msg);
-	} else {
-	    PSID_log(-1, "%s: starter %d is down\n", __func__, starter);
-	}
-    }
-}
-
-/**
- * @brief Handle a PSP_CD_DAEMONSTOP message.
- *
- * Handle the message @a msg of type PSP_CD_DAEMONSTOP.
- *
- * If the local node is the final destination of the message, it will
- * be stopped using @ref shutdownNode(). Otherwise @a msg will be
- * forwarded to the correct destination.
- *
- * @param msg Pointer to the message to handle.
- *
- * @return No return value.
- */
-static void msg_DAEMONSTOP(DDMsg_t *msg)
-{
-    if (PSC_getID(msg->dest) == PSC_getMyID()) {
-	shutdownNode();
-    } else {
-	sendMsg(msg);
-    }
-}
-
-/**
- * @brief Handle a PSP_CD_DAEMONRESET message.
- *
- * Handle the message @a msg of type PSP_CD_DAEMONRESET.
- *
- * If the local node is the final destination of the message, it will
- * be reseted using @ref doReset(). Otherwise @a msg will be forwarded
- * to the correct destination.
- *
- * @param msg Pointer to the message to handle.
- *
- * @return No return value.
- */
-static void msg_DAEMONRESET(DDBufferMsg_t *msg)
-{
-
-    if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
-	if (*(int *)msg->buf & PSP_RESET_HW) myStatus |= PSID_STATE_RESET_HW;
-	/* Resetting my node */
-	doReset();
-    } else {
-	sendMsg(msg);
-    }
-}
-
-pid_t getpgid(pid_t); /* @todo HACK HACK HACK */
-
-/**
- * @brief Handle a PSP_CD_CLIENTCONNECT message.
- *
- * Handle the message @a msg of type PSP_CD_CLIENTCONNECT received
- * from the file-descriptor @a fd.
- *
- * This kind of message is send by a client message in order to
- * connect to the local daemon. It's should be the first message
- * received from the client and will be used in order to identify and
- * authenticate the client process.
- *
- * As a result either a PSP_CD_CLIENTESTABLISHED message will be send
- * back to the client in order to accept the connection. Otherwise a
- * PSP_CD_CLIENTREFUSED is delivered and the connection to the client
- * is closed.
- *
- * @param fd The file descriptor the message was received from.
- *
- * @param msg Pointer to the message to handle.
- *
- * @return No return value.
- */
-static void msg_CLIENTCONNECT(int fd, DDInitMsg_t *msg)
-{
-    PStask_t *task;
-    DDTypedBufferMsg_t outmsg;
-    PSID_NodeStatus_t status;
-    pid_t pid;
-    uid_t uid;
-    gid_t gid;
-    PStask_ID_t tid;
-
-#ifdef SO_PEERCRED
-    socklen_t size;
-    struct ucred cred;
-
-    size = sizeof(cred);
-    getsockopt(fd, SOL_SOCKET, SO_PEERCRED, (void*) &cred, &size);
-    pid = cred.pid;
-    uid = cred.uid;
-    gid = cred.gid;
-#else
-    pid = PSC_getPID(msg->header.sender);
-    uid = msg->uid;
-    gid = msg->gid;
-#endif
-    tid = PSC_getTID(-1, pid);
-
-    PSID_log(PSID_LOG_CLIENT,
-	     "%s: from %s at fd %d, group=%s, version=%d, uid=%d\n",
-	     __func__, PSC_printTID(tid), fd, PStask_printGrp(msg->group),
-	     msg->version, uid);
-    /*
-     * first check if it is a reconnection
-     * this can happen due to a exec call.
-     */
-    task = PStasklist_find(managedTasks, tid);
-    if (!task && msg->group != TG_SPAWNER && msg->group != TG_PSCSPAWNER) {
-	PStask_ID_t pgtid = PSC_getTID(-1, getpgid(pid));
-
-	task = PStasklist_find(managedTasks, pgtid);
-
-	if (task && (task->group == TG_LOGGER || task->group == TG_ADMIN)) {
-	    /*
-	     * Logger never fork. This is another executable started from
-	     * within a shell script. Forget about this task.
-	     */
-	    task = NULL;
-	}
-
-	if (task) {
-	    /* Spawned process has changed pid */
-	    /* This might happen due to stuff in PSI_RARG_PRE_0 */
-	    PStask_t *child = PStask_clone(task);
-
-	    if (child) {
-		child->tid = tid;
-		child->duplicate = 1;
-		PStasklist_enqueue(&managedTasks, child);
-
-		if (task->forwardertid) {
-		    PStask_t *forwarder = PStasklist_find(managedTasks,
-							  task->forwardertid);
-		    if (forwarder) {
-			/* Register new child to its forwarder */
-			PSID_setSignal(&forwarder->childs, child->tid, -1);
-		    } else {
-			PSID_log(-1, "%s: forwarder %s not found\n",
-				 __func__, PSC_printTID(task->forwardertid));
-		    }
-		} else {
-		    PSID_log(-1, "%s: task %s has no forwarder\n",
-			     __func__, PSC_printTID(task->tid));
-		}
-
-		/* We want to handle the reconnected child now */
-		task = child;
-	    }
-	}
-    }
-    if (task) {
-	/* reconnection */
-	/* use the old task struct but close the old fd */
-	PSID_log(PSID_LOG_CLIENT, "%s: reconnection, old/new fd = %d/%d\n",
-		 __func__, task->fd, fd);
-
-	/* close the previous socket */
-	if (task->fd > 0) {
-	    closeConnection(task->fd);
-	}
-	task->fd = fd;
-
-	/* This is needed for gmspawner */
-	if (msg->group == TG_GMSPAWNER) {
-	    task->group = msg->group;
-
-	    /* Fix the info about the spawner task */
-	    decJobs(1, 1);
-	    incJobs(1, 0);
-	}
-    } else {
-	char tasktxt[128];
-	task = PStask_new();
-	task->tid = tid;
-	task->fd = fd;
-	task->uid = uid;
-	task->gid = gid;
-	/* New connection, this task will become logger */
-	if (msg->group == TG_ANY) {
-	    task->group = TG_LOGGER;
-	    task->loggertid = tid;
-	} else {
-	    task->group = msg->group;
-	}
-
-	/* TG_(PSC)SPAWNER have to get a special handling */
-	if (task->group == TG_SPAWNER || task->group == TG_PSCSPAWNER) {
-	    PStask_t *parent;
-	    PStask_ID_t ptid;
-
-	    ptid = PSC_getTID(-1, msg->ppid);
-
-	    parent = PStasklist_find(managedTasks, ptid);
-
-	    if (parent) {
-		/* register the child */
-		PSID_setSignal(&parent->childs, task->tid, -1);
-
-		task->ptid = ptid;
-
-		switch (task->group) {
-		case TG_SPAWNER:
-		    task->loggertid = parent->loggertid;
-		    break;
-		case TG_PSCSPAWNER:
-		    task->loggertid = tid;
-		    break;
-		default:
-		    PSID_log(-1, "%s: group %s not handled\n",
-			     __func__, PStask_printGrp(msg->group));
-		}
-	    } else {
-		/* no parent !? kill the task */
-		PSID_sendSignal(task->tid, task->uid, PSC_getMyTID(), -1, 0,0);
-	    }
-	}
-
-	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
-	PSID_log(PSID_LOG_CLIENT, "%s: request from: %s\n", __func__, tasktxt);
-
-	PStasklist_enqueue(&managedTasks, task);
-
-	/* Tell everybody about the new task */
-	incJobs(1, (task->group==TG_ANY));
-    }
-
-    registerClient(fd, tid, task);
-
-    /*
-     * Get the number of processes
-     */
-    status = getStatusInfo(PSC_getMyID());
-
-    /*
-     * Reject or accept connection
-     */
-    outmsg.header.type = PSP_CD_CLIENTESTABLISHED;
-    outmsg.header.dest = tid;
-    outmsg.header.sender = PSC_getMyTID();
-    outmsg.header.len = sizeof(outmsg.header) + sizeof(outmsg.type);
-
-    outmsg.type = PSP_CONN_ERR_NONE;
-
-    /* Connection refused answer message */
-    if (msg->version < 324 || msg->version > PSProtocolVersion) {
-	/* @todo also handle the old protocol correctly, i.e. send
-	 * PSP_OLDVERSION message */
-	outmsg.type = PSP_CONN_ERR_VERSION;
-	*(uint32_t *)outmsg.buf = PSProtocolVersion;
-	outmsg.header.len += sizeof(uint32_t);
-    } else if (!task) {
-	outmsg.type = PSP_CONN_ERR_NOSPACE;
-    } else if (uid && !PSIDnodes_testGUID(PSC_getMyID(),PSIDNODES_USER,
-					  (PSIDnodes_guid_t){.u=uid})) {
-	outmsg.type = PSP_CONN_ERR_UIDLIMIT;
-    } else if (gid && !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_GROUP,
-					  (PSIDnodes_guid_t) {.g=gid})) {
-	outmsg.type = PSP_CONN_ERR_GIDLIMIT;
-    } else if (PSIDnodes_getProcs(PSC_getMyID()) !=  PSNODES_ANYPROC
-	       && status.jobs.normal > PSIDnodes_getProcs(PSC_getMyID())) {
-	outmsg.type = PSP_CONN_ERR_PROCLIMIT;
-	*(int *)outmsg.buf = PSIDnodes_getProcs(PSC_getMyID());
-	outmsg.header.len += sizeof(int);
-    } else if (myStatus & PSID_STATE_NOCONNECT) {
-	outmsg.type = PSP_CONN_ERR_STATENOCONNECT;
-	PSID_log(-1, "%s: daemon state problems: myStatus %x\n",
-		 __func__, myStatus);
-    }
-
-    if ((outmsg.type != PSP_CONN_ERR_NONE) || (msg->group == TG_RESET)) {
-	outmsg.header.type = PSP_CD_CLIENTREFUSED;
-
-	PSID_log(PSID_LOG_CLIENT, "%s: connection refused:"
-		 "group %s task %s version %d vs. %d uid %d gid %d"
-		 " jobs %d %d\n",
-		 __func__, PStask_printGrp(msg->group),
-		 PSC_printTID(task->tid), msg->version, PSProtocolVersion,
-		 uid, gid,
-		 status.jobs.normal, PSIDnodes_getProcs(PSC_getMyID()));
-
-	sendMsg(&outmsg);
-
-	/* clean up */
-	deleteClient(fd);
-
-	if (msg->group==TG_RESET && !uid) doReset();
-    } else {
-	setEstablishedClient(fd);
-	task->protocolVersion = msg->version;
-
-	outmsg.type = PSC_getMyID();
-
-	sendMsg(&outmsg);
-
-	if (task->group == TG_ACCOUNT) {
-	    /* Register accounter */
-	    DDOptionMsg_t acctmsg = {
-		.header = {
-		    .type = PSP_CD_SETOPTION,
-		    .sender = PSC_getMyTID(),
-		    .dest = 0,
-		    .len = sizeof(acctmsg) },
-		.count = 0,
-		.opt = {{ .option = 0, .value = 0 }} };
-	    acctmsg.opt[(int) acctmsg.count].option = PSP_OP_ADD_ACCT;
-	    acctmsg.opt[(int) acctmsg.count].value = task->tid;
-	    acctmsg.count++;
-
-	    broadcastMsg(&acctmsg);
-
-	    PSID_addAcct(task->tid);
-	}
-
-    }
-}
-
-/**
- * @brief Central protocol switch.
- *
- * @doctodo
- *
- * @param fd The file descriptor the message was received from. This
- * info is used in order to be passed to @ref msg_CLIENTCONNECT() for
- * the corresponding message.
- *
- * @param msg The message to handle.
- *
- * @return On success, i.e. if it was possible to handle the message,
- * 1 is returned, or 0 otherwise.
- */
-int handleMsg(int fd, DDBufferMsg_t *msg)
-{
-    switch (msg->header.type) {
-    case PSP_CD_CLIENTCONNECT:
-	msg_CLIENTCONNECT(fd, (DDInitMsg_t *)msg);
-	break;
-    case PSP_CD_SETOPTION:
-	msg_SETOPTION((DDOptionMsg_t*)msg);
-	break;
-    case PSP_CD_GETOPTION:
-	msg_GETOPTION((DDOptionMsg_t*)msg);
-	break;
-    case PSP_CD_INFOREQUEST:
-	msg_INFOREQUEST((DDTypedBufferMsg_t*)msg);
-	break;
-    case PSP_CD_INFORESPONSE:
-    case PSP_CD_SIGRES:
-    case PSP_CC_ERROR:
-	if (msg->header.dest != PSC_getMyID()) sendMsg(msg); /* prevent loop */
-	break;
-    case PSP_CD_SPAWNREQUEST:
-	msg_SPAWNREQUEST(msg);
-	break;
-    case PSP_CD_SPAWNREQ:
-	msg_SPAWNREQ((DDTypedBufferMsg_t*)msg);
-	break;
-    case PSP_CD_SPAWNSUCCESS:
-	msg_SPAWNSUCCESS((DDErrorMsg_t*)msg);
-	break;
-    case PSP_CD_SPAWNFAILED:
-	msg_SPAWNFAILED((DDErrorMsg_t*)msg);
-	break;
-    case PSP_CD_SPAWNFINISH:
-	msg_SPAWNFINISH((DDMsg_t*)msg);
-	break;
-    case PSP_CD_NOTIFYDEAD:
-	msg_NOTIFYDEAD((DDSignalMsg_t*)msg);
-	break;
-    case PSP_CD_NOTIFYDEADRES:
-	msg_NOTIFYDEADRES((DDSignalMsg_t*)msg);
-	break;
-    case PSP_CD_RELEASE:
-	msg_RELEASE((DDSignalMsg_t*)msg);
-	break;
-    case PSP_CD_RELEASERES:
-	msg_RELEASERES((DDSignalMsg_t*)msg);
-	break;
-    case PSP_CD_SIGNAL:
-	msg_SIGNAL((DDSignalMsg_t*)msg);
-	break;
-    case PSP_CD_WHODIED:
-	msg_WHODIED((DDSignalMsg_t*)msg);
-	break;
-    case PSP_CD_DAEMONSTART:
-	msg_DAEMONSTART(msg);
-	break;
-    case PSP_CD_DAEMONSTOP:
-	msg_DAEMONSTOP((DDMsg_t *)msg);
-	break;
-    case PSP_CD_DAEMONRESET:
-	msg_DAEMONRESET(msg);
-	break;
-    case PSP_CD_HWSTART:
-	msg_HWSTART(msg);
-	break;
-    case PSP_CD_HWSTOP:
-	msg_HWSTOP(msg);
-	break;
-    case PSP_CC_MSG:
-	/* Forward this message. If this fails, send an error message. */
-	if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
-	    PStask_ID_t temp = msg->header.dest;
-
-	    msg->header.type = PSP_CC_ERROR;
-	    msg->header.dest = msg->header.sender;
-	    msg->header.sender = temp;
-	    msg->header.len = sizeof(msg->header);
-
-	    sendMsg(msg);
-	}
-	break;
-    case PSP_CD_ERROR:
-	/* Ignore */
-	break;
-    case PSP_DD_DAEMONCONNECT:
-	msg_DAEMONCONNECT(msg);
-	break;
-    case PSP_DD_DAEMONESTABLISHED:
-	msg_DAEMONESTABLISHED(msg);
-	break;
-    case PSP_DD_DAEMONSHUTDOWN:
-	msg_DAEMONSHUTDOWN((DDMsg_t *)msg);
-	break;
-    case PSP_DD_CHILDDEAD:
-	msg_CHILDDEAD((DDErrorMsg_t*)msg);
-	break;
-    case PSP_CD_ACCOUNT:
-	msg_ACCOUNT(msg);
-	break;
-    case PSP_DD_SENDSTOP:
-	msg_SENDSTOP((DDMsg_t *)msg);
-	break;
-    case PSP_DD_SENDCONT:
-	msg_SENDCONT((DDMsg_t *)msg);
-	break;
-    case PSP_CD_CREATEPART:
-	msg_CREATEPART(msg);
-	break;
-    case PSP_CD_CREATEPARTNL:
-	msg_CREATEPARTNL(msg);
-	break;
-    case PSP_CD_PARTITIONRES:
-	sendMsg(msg);
-	break;
-    case PSP_DD_GETPART:
-	msg_GETPART(msg);
-	break;
-    case PSP_DD_GETPARTNL:
-	msg_GETPARTNL(msg);
-	break;
-    case PSP_DD_PROVIDEPART:
-	msg_PROVIDEPART(msg);
-	break;
-    case PSP_DD_PROVIDEPARTSL:
-	msg_PROVIDEPARTSL(msg);
-	break;
-    case PSP_CD_GETNODES:
-    case PSP_DD_GETNODES:
-	msg_GETNODES(msg);
-	break;
-    case PSP_CD_GETRANKNODE:
-    case PSP_DD_GETRANKNODE:
-	msg_GETRANKNODE(msg);
-	break;
-    case PSP_DD_NODESRES:
-	msg_NODESRES(msg);
-	break;
-    case PSP_CD_NODESRES:
-	sendMsg(msg);
-	break;
-    case PSP_DD_GETTASKS:
-	msg_GETTASKS(msg);
-	break;
-    case PSP_DD_PROVIDETASK:
-	msg_PROVIDETASK(msg);
-	break;
-    case PSP_DD_PROVIDETASKSL:
-	msg_PROVIDETASKSL(msg);
-	break;
-    case PSP_DD_CANCELPART:
-	msg_CANCELPART(msg);
-	break;
-    case PSP_DD_TASKDEAD:
-	msg_TASKDEAD((DDMsg_t *)msg);
-	break;
-    case PSP_DD_TASKSUSPEND:
-	msg_TASKSUSPEND((DDMsg_t *)msg);
-	break;
-    case PSP_DD_TASKRESUME:
-	msg_TASKRESUME((DDMsg_t *)msg);
-	break;
-    case PSP_DD_LOAD:
-	msg_LOAD(msg);
-	break;
-    case PSP_DD_MASTER_IS:
-	msg_MASTERIS(msg);
-	break;
-    case PSP_DD_ACTIVE_NODES:
-	msg_ACTIVENODES(msg);
-	break;
-    case PSP_DD_DEAD_NODE:
-	msg_DEADNODE(msg);
-	break;
-    case PSP_DD_NEWCHILD:
-	msg_NEWCHILD((DDErrorMsg_t *)msg);
-	break;
-    case PSP_DD_NEWPARENT:
-	msg_NEWPARENT((DDErrorMsg_t *)msg);
-	break;
-    default:
-	PSID_log(-1, "%s: Wrong msgtype %d (%s) from %d\n", __func__,
-		 msg->header.type, PSDaemonP_printMsg(msg->header.type), fd);
-	return 0;
-    }
-    return 1;
-}
 
 /******************************************
  *  psicontrol(int fd)
@@ -876,8 +98,16 @@ static void psicontrol(int fd)
 	if ((fd != RDPSocket) || (errno != EAGAIN)) {
 	    PSID_warn(-1, errno, "%s(%d): recvMsg()", __func__, fd);
 	}
-    } else if (!handleMsg(fd, &msg)) {
-	PSID_log(-1, "%s: Problem on socket %d\n", __func__, fd);
+    } else {
+
+	if (msg.header.type == PSP_CD_CLIENTCONNECT) {
+	    size_t off = msg.header.len - sizeof(msg.header);
+	    *(int *) (msg.buf+off) = fd;
+	}
+
+	if (!PSID_handleMsg(&msg)) {
+	    PSID_log(-1, "%s: Problem on socket %d\n", __func__, fd);
+	}
     }
 }
 
@@ -991,7 +221,7 @@ static void sighandler(int sig)
 	break;
     case SIGTERM:
 	PSID_log(-1, "Received SIGTERM signal. Shut down.\n");
-	shutdownNode();
+	PSID_shutdown();
 	break;
     case SIGCHLD:
     {
@@ -1076,7 +306,7 @@ static void sighandler(int sig)
     case  SIGUSR2:   /* user defined signal 2 */
     default:
 	PSID_log(-1, "Received signal %d. Shut down\n", sig);
-	shutdownNode();
+	PSID_shutdown();
 	break;
     }
 
@@ -1084,8 +314,14 @@ static void sighandler(int sig)
     signal(sig, sighandler);
 }
 
-/** @doctodo */
-static void initSignals(void)
+/**
+ * @brief Initialize signal handlers
+ *
+ * Initialize all the signal handlers needed within the daemon.
+ *
+ * @return No return value.
+ */
+static void initSigHandlers(void)
 {
     signal(SIGINT   ,sighandler);
     signal(SIGQUIT  ,sighandler);
@@ -1141,43 +377,6 @@ static void printWelcome(void)
 }
 
 /**
- * @brief Setup master socket.
- *
- * Create and initialize the daemons master socket.
- *
- * @doctodo
- *
- * @return No return value.
- *
- * @see masterSock
- */
-static void setupMasterSock(void)
-{
-    struct sockaddr_un sa;
-
-    masterSock = socket(PF_UNIX, SOCK_STREAM, 0);
-
-    memset(&sa, 0, sizeof(sa));
-    sa.sun_family = AF_UNIX;
-    strncpy(sa.sun_path, PSmasterSocketName, sizeof(sa.sun_path));
-
-    /*
-     * bind the socket to the right address
-     */
-    unlink(PSmasterSocketName);
-    if (bind(masterSock, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
-	PSID_exit(errno, "Daemon already running?");
-    }
-    chmod(sa.sun_path, S_IRWXU | S_IRWXG | S_IRWXO);
-
-    if (listen(masterSock, 20) < 0) {
-	PSID_exit(errno, "Error while trying to listen");
-    }
-
-    FD_SET(masterSock, &PSID_readfds);
-}
-
-/**
  * @brief Checks file table after select has failed.
  *
  * Detailed checking of the file table on validity after a select(2)
@@ -1215,12 +414,12 @@ static void checkFileTable(fd_set *controlfds)
 		case EINVAL:
 		    PSID_log(-1, "%s(%d): wrong filenumber -> exit\n",
 			     __func__, fd);
-		    shutdownNode();
+		    PSID_shutdown();
 		    break;
 		case ENOMEM:
 		    PSID_log(-1, "%s(%d): not enough memory. exit\n",
 			     __func__, fd);
-		    shutdownNode();
+		    PSID_shutdown();
 		    break;
 		default:
 		    PSID_warn(-1, errno, "%s(%d): unrecognized error (%d)\n",
@@ -1378,7 +577,7 @@ int main(int argc, const char *argv[])
     }
 
     PSID_blockSig(1,SIGCHLD);
-    initSignals();
+    initSigHandlers();
 
 #define _PATH_TTY "/dev/tty"
     /* First disconnect from the old controlling tty. */
@@ -1423,9 +622,6 @@ int main(int argc, const char *argv[])
 
     /* Try to get a lock. This will guarantee exlusiveness */
     PSID_getLock();
-
-    /* create the socket to listen for clients */
-    setupMasterSock();
 
     /* read the config file */
     PSID_readConfigFile(logfile, configfile);
@@ -1483,13 +679,26 @@ int main(int argc, const char *argv[])
     /* Initialize timers */
     selectTime.tv_sec = config->selectTime;
     selectTime.tv_usec = 0;
-    gettimeofday(&mainTimer, NULL);
 
-    /* Initialize the clients structure */
+    PSID_updateMainTimer();
+
+    /* initialize various modules */
+    initComm();  /* This has to be first since it gives msgHandler hash */
+
     initClients();
-    initComm();
+    initState();
+    initOptions();
+    initStatus();
+    initSignal();
+    initSpawn();
+    initPartition();
+    initHW();
+    initAccount();
+    initInfo();
 
-    PSID_log(-1, "Local Service Port (%d) initialized.\n", masterSock);
+    /* create the socket to listen for clients */
+    PSID_setupMasterSock();
+
 
     /*
      * Prepare hostlist to initialize RDP and MCast
@@ -1575,17 +784,20 @@ int main(int argc, const char *argv[])
 	    continue;
 	}
 
-	gettimeofday(&mainTimer, NULL);
+	PSID_updateMainTimer(); /* @todo try to get rid of this */
+
 	/*
 	 * check the master socket for new requests
+	 *
+	 * @todo we should register that to the selector facility, too
 	 */
-	if (FD_ISSET(masterSock, &rfds)) {
+	if (FD_ISSET(PSID_getMasterSock(), &rfds)) {
 	    int ssock;  /* slave server socket */
 
 	    PSID_log(PSID_LOG_CLIENT | PSID_LOG_VERB,
 		     "accepting new connection\n");
 
-	    ssock = accept(masterSock, NULL, 0);
+	    ssock = accept(PSID_getMasterSock(), NULL, 0);
 	    if (ssock < 0) {
 		PSID_warn(-1, errno, "Error while accept");
 
@@ -1618,19 +830,19 @@ int main(int argc, const char *argv[])
 		size = sizeof(linger);
 		setsockopt(ssock, SOL_SOCKET, SO_LINGER, &linger, size);
 	    }
+	    FD_CLR(PSID_getMasterSock(), &rfds);
 	}
 	/*
 	 * check the client sockets for any closing connections
 	 * or control msgs
 	 */
 	for (fd=0; fd<FD_SETSIZE; fd++) {
-	    if (fd != masterSock && fd != RDPSocket  /* both handled below */
-		&& FD_ISSET(fd, &rfds)){
+	    if (FD_ISSET(fd, &rfds) && fd != RDPSocket /* handled below */) {
 		psicontrol(fd);
 	    }
 	}
 	for (fd=0; fd<FD_SETSIZE; fd++) {
-	    if (FD_ISSET(fd, &wfds)){
+	    if (FD_ISSET(fd, &wfds)) {
 		if (!flushClientMsgs(fd)) FD_CLR(fd, &PSID_writefds);
 	    }
 	}
@@ -1658,9 +870,9 @@ int main(int argc, const char *argv[])
 	checkObstinate();
 
 	/* Check for reset state */
-	if (myStatus & PSID_STATE_RESET) doReset();
+	if (PSID_getDaemonState() & PSID_STATE_RESET) PSID_reset();
 
 	/* Check for shutdown state */
-	if (myStatus & PSID_STATE_SHUTDOWN) shutdownNode();
+	if (PSID_getDaemonState() & PSID_STATE_SHUTDOWN) PSID_shutdown();
     }
 }

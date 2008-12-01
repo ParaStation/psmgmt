@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -31,11 +31,6 @@ extern "C" {
 } /* <- just for emacs indentation */
 #endif
 #endif
-
-/**
- * ParaStations main timer. Defined within psid.c.
- */
-extern struct timeval mainTimer;
 
 /**
  * The standard time spent within the main select. Defined within

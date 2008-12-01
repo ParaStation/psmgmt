@@ -33,6 +33,9 @@ static char vcid[] __attribute__((used)) =
 #include "psidcomm.h"
 #include "psidaccount.h"
 #include "psidnodes.h"
+#include "psidstatus.h"
+#include "psidsignal.h"
+#include "psidstate.h"
 
 #include "psidclient.h"
 
@@ -45,18 +48,6 @@ static struct {
     unsigned int flags;  /**< Special flags. Up to now only INITIALCONTACT */
     msgbuf_t *msgs;      /**< Chain of undelivered messages */
 } clients[FD_SETSIZE];
-
-void initClients(void)
-{
-    int fd;
-
-    for (fd=0; fd<FD_SETSIZE; fd++) {
-	clients[fd].tid = -1;
-	clients[fd].task = NULL;
-	clients[fd].flags = 0;
-	clients[fd].msgs = NULL;
-    }
-}
 
 void registerClient(int fd, PStask_ID_t tid, PStask_t *task)
 {
@@ -250,7 +241,7 @@ int recvClient(int fd, DDMsg_t *msg, size_t size)
 	n = count = read(fd, msg, sizeof(DDInitMsg_t));
 	if (!count) {
 	    /* Socket close before initial message was sent */
-	    PSID_log(PSID_LOG_CLIENT, 
+	    PSID_log(PSID_LOG_CLIENT,
 		     "%s(%d) socket already closed\n", __func__, fd);
 	} else if (count!=msg->len) {
 	    /* if wrong msg format initiate a disconnect */
@@ -482,4 +473,324 @@ int killAllClients(int sig, int killAdminTasks)
     }
 
     return ret;
+}
+
+pid_t getpgid(pid_t); /* @todo HACK HACK HACK */
+
+/**
+ * @brief Handle a PSP_CD_CLIENTCONNECT message.
+ *
+ * Handle the message @a bufmsg of type PSP_CD_CLIENTCONNECT. For
+ * compatibility the file-descriptor @a fd the message was received
+ * from is not passed explicitely. Instead this file-descriptor has to
+ * be appended to the actual message by the calling function.
+ *
+ * This kind of message is send by a client message in order to
+ * connect to the local daemon. It's should be the first message
+ * received from the client and will be used in order to identify and
+ * authenticate the client process.
+ *
+ * As a result either a PSP_CD_CLIENTESTABLISHED message will be send
+ * back to the client in order to accept the connection. Otherwise a
+ * PSP_CD_CLIENTREFUSED is delivered and the connection to the client
+ * is closed.
+ *
+ * @param bufmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_CLIENTCONNECT(DDBufferMsg_t *bufmsg)
+{
+    size_t off = bufmsg->header.len - sizeof(bufmsg->header);
+    int fd = *(int *) (bufmsg->buf + off);
+    DDInitMsg_t *msg =(DDInitMsg_t *)msg;
+
+    PStask_t *task;
+    DDTypedBufferMsg_t outmsg;
+    PSID_NodeStatus_t status;
+    pid_t pid;
+    uid_t uid;
+    gid_t gid;
+    PStask_ID_t tid;
+
+#ifdef SO_PEERCRED
+    socklen_t size;
+    struct ucred cred;
+
+    size = sizeof(cred);
+    getsockopt(fd, SOL_SOCKET, SO_PEERCRED, (void*) &cred, &size);
+    pid = cred.pid;
+    uid = cred.uid;
+    gid = cred.gid;
+#else
+    pid = PSC_getPID(msg->header.sender);
+    uid = msg->uid;
+    gid = msg->gid;
+#endif
+    tid = PSC_getTID(-1, pid);
+
+    PSID_log(PSID_LOG_CLIENT,
+	     "%s: from %s at fd %d, group=%s, version=%d, uid=%d\n",
+	     __func__, PSC_printTID(tid), fd, PStask_printGrp(msg->group),
+	     msg->version, uid);
+    /*
+     * first check if it is a reconnection
+     * this can happen due to a exec call.
+     */
+    task = PStasklist_find(managedTasks, tid);
+    if (!task && msg->group != TG_SPAWNER && msg->group != TG_PSCSPAWNER) {
+	PStask_ID_t pgtid = PSC_getTID(-1, getpgid(pid));
+
+	task = PStasklist_find(managedTasks, pgtid);
+
+	if (task && (task->group == TG_LOGGER || task->group == TG_ADMIN)) {
+	    /*
+	     * Logger never fork. This is another executable started from
+	     * within a shell script. Forget about this task.
+	     */
+	    task = NULL;
+	}
+
+	if (task) {
+	    /* Spawned process has changed pid */
+	    /* This might happen due to stuff in PSI_RARG_PRE_0 */
+	    PStask_t *child = PStask_clone(task);
+
+	    if (child) {
+		child->tid = tid;
+		child->duplicate = 1;
+		PStasklist_enqueue(&managedTasks, child);
+
+		if (task->forwardertid) {
+		    PStask_t *forwarder = PStasklist_find(managedTasks,
+							  task->forwardertid);
+		    if (forwarder) {
+			/* Register new child to its forwarder */
+			PSID_setSignal(&forwarder->childs, child->tid, -1);
+		    } else {
+			PSID_log(-1, "%s: forwarder %s not found\n",
+				 __func__, PSC_printTID(task->forwardertid));
+		    }
+		} else {
+		    PSID_log(-1, "%s: task %s has no forwarder\n",
+			     __func__, PSC_printTID(task->tid));
+		}
+
+		/* We want to handle the reconnected child now */
+		task = child;
+	    }
+	}
+    }
+    if (task) {
+	/* reconnection */
+	/* use the old task struct but close the old fd */
+	PSID_log(PSID_LOG_CLIENT, "%s: reconnection, old/new fd = %d/%d\n",
+		 __func__, task->fd, fd);
+
+	/* close the previous socket */
+	if (task->fd > 0) {
+	    closeConnection(task->fd);
+	}
+	task->fd = fd;
+
+	/* This is needed for gmspawner */
+	if (msg->group == TG_GMSPAWNER) {
+	    task->group = msg->group;
+
+	    /* Fix the info about the spawner task */
+	    decJobs(1, 1);
+	    incJobs(1, 0);
+	}
+    } else {
+	char tasktxt[128];
+	task = PStask_new();
+	task->tid = tid;
+	task->fd = fd;
+	task->uid = uid;
+	task->gid = gid;
+	/* New connection, this task will become logger */
+	if (msg->group == TG_ANY) {
+	    task->group = TG_LOGGER;
+	    task->loggertid = tid;
+	} else {
+	    task->group = msg->group;
+	}
+
+	/* TG_(PSC)SPAWNER have to get a special handling */
+	if (task->group == TG_SPAWNER || task->group == TG_PSCSPAWNER) {
+	    PStask_t *parent;
+	    PStask_ID_t ptid;
+
+	    ptid = PSC_getTID(-1, msg->ppid);
+
+	    parent = PStasklist_find(managedTasks, ptid);
+
+	    if (parent) {
+		/* register the child */
+		PSID_setSignal(&parent->childs, task->tid, -1);
+
+		task->ptid = ptid;
+
+		switch (task->group) {
+		case TG_SPAWNER:
+		    task->loggertid = parent->loggertid;
+		    break;
+		case TG_PSCSPAWNER:
+		    task->loggertid = tid;
+		    break;
+		default:
+		    PSID_log(-1, "%s: group %s not handled\n",
+			     __func__, PStask_printGrp(msg->group));
+		}
+	    } else {
+		/* no parent !? kill the task */
+		PSID_sendSignal(task->tid, task->uid, PSC_getMyTID(), -1, 0,0);
+	    }
+	}
+
+	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
+	PSID_log(PSID_LOG_CLIENT, "%s: request from: %s\n", __func__, tasktxt);
+
+	PStasklist_enqueue(&managedTasks, task);
+
+	/* Tell everybody about the new task */
+	incJobs(1, (task->group==TG_ANY));
+    }
+
+    registerClient(fd, tid, task);
+
+    /*
+     * Get the number of processes
+     */
+    status = getStatusInfo(PSC_getMyID());
+
+    /*
+     * Reject or accept connection
+     */
+    outmsg.header.type = PSP_CD_CLIENTESTABLISHED;
+    outmsg.header.dest = tid;
+    outmsg.header.sender = PSC_getMyTID();
+    outmsg.header.len = sizeof(outmsg.header) + sizeof(outmsg.type);
+
+    outmsg.type = PSP_CONN_ERR_NONE;
+
+    /* Connection refused answer message */
+    if (msg->version < 324 || msg->version > PSProtocolVersion) {
+	outmsg.type = PSP_CONN_ERR_VERSION;
+	*(uint32_t *)outmsg.buf = PSProtocolVersion;
+	outmsg.header.len += sizeof(uint32_t);
+    } else if (!task) {
+	outmsg.type = PSP_CONN_ERR_NOSPACE;
+    } else if (uid && !PSIDnodes_testGUID(PSC_getMyID(),PSIDNODES_USER,
+					  (PSIDnodes_guid_t){.u=uid})) {
+	outmsg.type = PSP_CONN_ERR_UIDLIMIT;
+    } else if (gid && !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_GROUP,
+					  (PSIDnodes_guid_t) {.g=gid})) {
+	outmsg.type = PSP_CONN_ERR_GIDLIMIT;
+    } else if (PSIDnodes_getProcs(PSC_getMyID()) !=  PSNODES_ANYPROC
+	       && status.jobs.normal > PSIDnodes_getProcs(PSC_getMyID())) {
+	outmsg.type = PSP_CONN_ERR_PROCLIMIT;
+	*(int *)outmsg.buf = PSIDnodes_getProcs(PSC_getMyID());
+	outmsg.header.len += sizeof(int);
+    } else if (PSID_getDaemonState() & PSID_STATE_NOCONNECT) {
+	outmsg.type = PSP_CONN_ERR_STATENOCONNECT;
+	PSID_log(-1, "%s: daemon state problems: state is %x\n",
+		 __func__, PSID_getDaemonState());
+    }
+
+    if ((outmsg.type != PSP_CONN_ERR_NONE) || (msg->group == TG_RESET)) {
+	outmsg.header.type = PSP_CD_CLIENTREFUSED;
+
+	PSID_log(PSID_LOG_CLIENT, "%s: connection refused:"
+		 "group %s task %s version %d vs. %d uid %d gid %d"
+		 " jobs %d %d\n",
+		 __func__, PStask_printGrp(msg->group),
+		 PSC_printTID(task->tid), msg->version, PSProtocolVersion,
+		 uid, gid,
+		 status.jobs.normal, PSIDnodes_getProcs(PSC_getMyID()));
+
+	sendMsg(&outmsg);
+
+	/* clean up */
+	deleteClient(fd);
+
+	if (msg->group==TG_RESET && !uid) PSID_reset();
+    } else {
+	setEstablishedClient(fd);
+	task->protocolVersion = msg->version;
+
+	outmsg.type = PSC_getMyID();
+
+	sendMsg(&outmsg);
+
+	if (task->group == TG_ACCOUNT) {
+	    /* Register accounter */
+	    DDOptionMsg_t acctmsg = {
+		.header = {
+		    .type = PSP_CD_SETOPTION,
+		    .sender = PSC_getMyTID(),
+		    .dest = 0,
+		    .len = sizeof(acctmsg) },
+		.count = 0,
+		.opt = {{ .option = 0, .value = 0 }} };
+	    acctmsg.opt[(int) acctmsg.count].option = PSP_OP_ADD_ACCT;
+	    acctmsg.opt[(int) acctmsg.count].value = task->tid;
+	    acctmsg.count++;
+
+	    broadcastMsg(&acctmsg);
+
+	    PSID_addAcct(task->tid);
+	}
+
+    }
+}
+
+/**
+ * @brief Handle a PSP_CC_MSG message.
+ *
+ * Handle the message @a msg of type PSP_CC_MSG.
+ *
+ * This kind of message is used for communication between clients and
+ * might have some internal types. In order to not break this type of
+ * communication, a PSP_CC_ERROR message has to be passed to the
+ * original sender, if something went wrong during passing the
+ * original message towards its final destination.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+/**
+ * @brief
+ *
+ *
+ */
+static void msg_CC_MSG(DDBufferMsg_t *msg)
+{
+    /* Forward this message. If this fails, send an error message. */
+    if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
+	PStask_ID_t temp = msg->header.dest;
+
+	msg->header.type = PSP_CC_ERROR;
+	msg->header.dest = msg->header.sender;
+	msg->header.sender = temp;
+	msg->header.len = sizeof(msg->header);
+
+	sendMsg(msg);
+    }
+}
+
+void initClients(void)
+{
+    int fd;
+
+    for (fd=0; fd<FD_SETSIZE; fd++) {
+	clients[fd].tid = -1;
+	clients[fd].task = NULL;
+	clients[fd].flags = 0;
+	clients[fd].msgs = NULL;
+    }
+
+    PSID_registerMsg(PSP_CD_CLIENTCONNECT, msg_CLIENTCONNECT);
+    PSID_registerMsg(PSP_CC_MSG, msg_CC_MSG);
 }

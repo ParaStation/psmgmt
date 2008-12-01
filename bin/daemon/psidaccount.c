@@ -100,7 +100,7 @@ void send_acct_OPTIONS(PStask_ID_t dest, int all)
 	.opt = {{ .option = 0, .value = 0 }} };
     PSP_Option_t option = all ? PSP_OP_ACCT : PSP_OP_ADD_ACCT;
     struct list_head *pos, *tmp;
-	
+
     PSID_log(PSID_LOG_VERB, "%s: %s %d\n", __func__, PSC_printTID(dest), all);
 
     list_for_each_safe(pos, tmp, &PSID_accounters) {
@@ -126,7 +126,20 @@ void send_acct_OPTIONS(PStask_ID_t dest, int all)
     }
 }
 
-void msg_ACCOUNT(DDBufferMsg_t *msg)
+/**
+ * @brief Handle PSP_CD_ACCOUNT message.
+ *
+ * Handle the message @a msg of type PSP_CD_ACCOUNT. If the message is
+ * destined to the local daemon it will be forwarded to all registered
+ * accounter tasks. I.e. the message will be multiplexed if more than
+ * one accounter is registered through the corresponding @ref
+ * PSID_addAcct() calls.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_ACCOUNT(DDBufferMsg_t *msg)
 {
     PSID_log(PSID_LOG_VERB, "%s: from %s\n", __func__,
 	     PSC_printTID(msg->header.sender));
@@ -159,4 +172,11 @@ int PSID_getNumAcct(void)
     list_for_each(pos, &PSID_accounters) num++;
 
     return num;
+}
+
+void initAccount(void)
+{
+    PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
+
+    PSID_registerMsg(PSP_CD_ACCOUNT, msg_ACCOUNT);
 }

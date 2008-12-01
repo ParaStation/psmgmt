@@ -37,7 +37,25 @@ static char vcid[] __attribute__((used)) =
 
 extern char psid_cvsid[];
 
-void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
+/**
+ * @brief Handle a PSP_CD_INFOREQUEST message.
+ *
+ * Handle the message @a inmsg of type PSP_CD_INFOREQUEST.
+ *
+ * This kind of messages is used by client processes (actually most of
+ * the time psiadmin processes) in order to get information on the
+ * cluster and its current state. After retrieving the requested
+ * information one or more PSP_CD_INFORESPONSE messages are generated
+ * and send to the client process.
+ *
+ * Since some information is not available on every node of the
+ * cluster, @a inmsg might be forwarded to further nodes.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 {
     int destID = PSC_getID(inmsg->header.dest);
     int header = 0;
@@ -682,4 +700,11 @@ void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	}
 	if (!err) sendMsg(&msg);
     }
+}
+
+void initInfo(void)
+{
+    PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
+
+    PSID_registerMsg(PSP_CD_INFOREQUEST, (handlerFunc_t) msg_INFOREQUEST);
 }

@@ -305,7 +305,7 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
 	PSID_sendSignal(sigtid, task->uid, task->tid, -1, 0, 0);
 
 	PSID_log(PSID_LOG_SIGNAL, "%s(%s)", __func__, PSC_printTID(task->tid));
-	PSID_log(PSID_LOG_SIGNAL, 
+	PSID_log(PSID_LOG_SIGNAL,
 		 " sent signal -1 to %s\n", PSC_printTID(sigtid));
 
 	sig = -1;
@@ -314,7 +314,25 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
     }
 }
 
-void msg_SIGNAL(DDSignalMsg_t *msg)
+/**
+ * @brief Handle a PSP_CD_SIGNAL message.
+ *
+ * Handle the message @a msg of type PSP_CD_SIGNAL.
+ *
+ * With this kind of message signals might be send to remote
+ * processes. On the receiving node a process is fork()ed in order to
+ * set up the requested user and group IDs and than to actually send
+ * the signal to the receiving process.
+ *
+ * Furthermore if the signal sent is marked to be pervasive, this
+ * signal is also forwarded to all child processes of the receiving
+ * process, local or remote.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_SIGNAL(DDSignalMsg_t *msg)
 {
     if (msg->header.dest == -1) {
 	PSID_log(-1, "%s: no broadcast\n", __func__);
@@ -394,7 +412,26 @@ void msg_SIGNAL(DDSignalMsg_t *msg)
     }
 }
 
-void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
+/**
+ * @brief Handle a PSP_CD_NOTIFYDEAD message.
+ *
+ * Handle the message @a msg of type PSP_CD_NOTIFYDEAD.
+ *
+ * With this kind of message the sender requests to get receive the
+ * signal defined within the message as soon as the recipient task
+ * dies. Therefore the corresponding information is store in two
+ * locations, within the controlled task and within the requester
+ * task.
+ *
+ * The result, i.e. if registering the signal was successful, is sent
+ * back to the requester within a answering PSP_CD_NOTIFYDEADRES
+ * message.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 {
     PStask_ID_t registrarTid = msg->header.sender;
     PStask_ID_t tid = msg->header.dest;
@@ -474,7 +511,22 @@ void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
     sendMsg(msg);
 }
 
-void msg_NOTIFYDEADRES(DDSignalMsg_t *msg)
+/**
+ * @brief Handle a PSP_CD_NOTIFYDEADRES message.
+ *
+ * Handle the message @a msg of type PSP_CD_NOTIFYDEADRES.
+ *
+ * The message will be forwarded to its final destination, which
+ * usually is a client of the local daemon.
+ *
+ * Furthermore this client task will be marked to expect the
+ * corresponding signal.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_NOTIFYDEADRES(DDSignalMsg_t *msg)
 {
     PStask_ID_t controlledTid = msg->header.sender;
     PStask_ID_t registrarTid = msg->header.dest;
@@ -505,7 +557,26 @@ void msg_NOTIFYDEADRES(DDSignalMsg_t *msg)
     sendMsg(msg);
 }
 
-void msg_NEWCHILD(DDErrorMsg_t *msg)
+static void msg_RELEASERES(DDSignalMsg_t *msg);
+
+/**
+ * @brief Handle a PSP_DD_NEWCHILD message.
+ *
+ * Handle the message @a msg of type PSP_DD_NEWCHILD.
+ *
+ * This kind of message is send to a task's parent task in order to
+ * pass over a child. From now on the receiving task will handle its
+ * grandchild as its own child, i.e. it will send and expect signals
+ * if one of the corresponding processes dies.
+ *
+ * In all cases adequate PSP_CD_RELEASERES message are send to the
+ * task requesting passing over their child.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_NEWCHILD(DDErrorMsg_t *msg)
 {
     PStask_t *task = PStasklist_find(managedTasks, msg->header.dest);
     DDSignalMsg_t answer;
@@ -541,7 +612,25 @@ void msg_NEWCHILD(DDErrorMsg_t *msg)
     msg_RELEASERES(&answer);
 }
 
-void msg_NEWPARENT(DDErrorMsg_t *msg)
+/**
+ * @brief Handle a PSP_DD_NEWPARENT message.
+ *
+ * Handle the message @a msg of type PSP_DD_NEWPARENT.
+ *
+ * This kind of message is send to a task's child in order to update
+ * the information concerning the parent task. From now on the
+ * receiving task will handle its grandparent as its own parent,
+ * i.e. it will send and expect signals if one of the corresponding
+ * processes dies.
+ *
+ * In all cases adequate PSP_CD_RELEASERES message are send to the
+ * task requesting passing over their child.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_NEWPARENT(DDErrorMsg_t *msg)
 {
     PStask_t *task = PStasklist_find(managedTasks, msg->header.dest);
     DDSignalMsg_t answer;
@@ -586,12 +675,14 @@ void msg_NEWPARENT(DDErrorMsg_t *msg)
 	    } else {
 		forwarder->ptid = msg->request;
 	    }
-	}    
+	}
 
 	answer.param = 0;
     }
     msg_RELEASERES(&answer);
 }
+
+static void msg_RELEASE(DDSignalMsg_t *msg);
 
 /**
  * @brief Remove signal from task.
@@ -823,7 +914,35 @@ static int releaseTask(PStask_t *task)
     return task->pendingReleaseErr;
 }
 
-void msg_RELEASE(DDSignalMsg_t *msg)
+/**
+ * @brief Handle a PSP_CD_RELEASE message.
+ *
+ * Handle the message @a msg of type PSP_CD_RELEASE.
+ *
+ * The actual task to be done is to release a task, i.e. to tell the
+ * task not to send a signal to the sender upon exit.
+ *
+ * Two different cases have to be distinguished:
+ *
+ * - The releasing task will release a different task, which might be
+ * local or remote. In the latter case, the message @a msg will be
+ * forwarded to the corresponding daemon.
+ *
+ * - The task to release is identical to the releasing tasks. This
+ * special case tells the local daemon to expect the corresponding
+ * process to disappear, i.e. not to signal the parent task upon exit
+ * as long as no error occured. The corresponding action are
+ * undertaken within the @ref releaseTask() function called.
+ *
+ * In all cases adequate PSP_CD_RELEASERES message are send to the
+ * task requesting the release, if the answer flag withing the message
+ * @a msg is set.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_RELEASE(DDSignalMsg_t *msg)
 {
     PStask_ID_t registrarTid = msg->header.sender;
     PStask_ID_t tid = msg->header.dest;
@@ -883,7 +1002,26 @@ void msg_RELEASE(DDSignalMsg_t *msg)
     sendMsg(msg);
 }
 
-void msg_RELEASERES(DDSignalMsg_t *msg)
+/**
+ * @brief Handle a PSP_CD_RELEASERES message.
+ *
+ * Handle the message @a msg of type PSP_CD_RELEASERES.
+ *
+ * The message will be forwarded to its final destination, which
+ * usually is a client of the local daemon, unless there are further
+ * pending PSP_CD_RELEASERES messages to the same client. In this
+ * case, the current message @a msg is thrown away. Only the last
+ * message will be actually delivered to the client requesting for
+ * release.
+ *
+ * Furthermore this client task will be marked to not expect the
+ * corresponding signal any longer.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_RELEASERES(DDSignalMsg_t *msg)
 {
     PStask_ID_t tid = msg->header.dest;
     PStask_t *task;
@@ -942,7 +1080,22 @@ void msg_RELEASERES(DDSignalMsg_t *msg)
     if (task->releaseAnswer) sendMsg(msg);
 }
 
-void msg_WHODIED(DDSignalMsg_t *msg)
+/**
+ * @brief Handle a PSP_CD_WHODIED message.
+ *
+ * Handle the message @a msg of type PSP_CD_WHODIED.
+ *
+ * With this kind of message a client to the local daemon might
+ * request the sender of a signal received. Therefor all signals send
+ * to local clients are stored to the corresponding task ID and looked
+ * up within this function. The result is sent back to the requester
+ * within a answering PSP_CD_WHODIED message.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_WHODIED(DDSignalMsg_t *msg)
 {
     PStask_t *task;
 
@@ -965,4 +1118,18 @@ void msg_WHODIED(DDSignalMsg_t *msg)
     }
 
     sendMsg(msg);
+}
+
+void initSignal(void)
+{
+    PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
+
+    PSID_registerMsg(PSP_CD_NOTIFYDEAD, (handlerFunc_t) msg_NOTIFYDEAD);
+    PSID_registerMsg(PSP_CD_NOTIFYDEADRES, (handlerFunc_t) msg_NOTIFYDEADRES);
+    PSID_registerMsg(PSP_CD_RELEASE, (handlerFunc_t) msg_RELEASE);
+    PSID_registerMsg(PSP_CD_RELEASERES, (handlerFunc_t) msg_RELEASERES);
+    PSID_registerMsg(PSP_CD_SIGNAL, (handlerFunc_t) msg_SIGNAL);
+    PSID_registerMsg(PSP_CD_WHODIED, (handlerFunc_t) msg_WHODIED);
+    PSID_registerMsg(PSP_DD_NEWCHILD, (handlerFunc_t) msg_NEWCHILD);
+    PSID_registerMsg(PSP_DD_NEWPARENT, (handlerFunc_t) msg_NEWPARENT);
 }

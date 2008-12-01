@@ -211,7 +211,7 @@ static void send_rlimit_OPTIONS(PStask_ID_t dest, PSP_Option_t option)
 	msg.opt[(int) msg.count].option = PSP_OP_UNKNOWN;
 	msg.opt[(int) msg.count].value = -1;
 	msg.count++;
-    } else {	
+    } else {
 	msg.opt[(int) msg.count].option = option;
 	msg.opt[(int) msg.count].value = limit.rlim_cur;
 	msg.count++;
@@ -230,7 +230,24 @@ static void send_rlimit_OPTIONS(PStask_ID_t dest, PSP_Option_t option)
 }
 
 
-void msg_SETOPTION(DDOptionMsg_t *msg)
+/**
+ * @brief Handle a PSP_CD_SETOPTION message.
+ *
+ * Handle the message @a inmsg of type PSP_CD_SETOPTION.
+ *
+ * If the final destination of @a msg is the local daemon, the options
+ * provided within this message are set to the corresponding
+ * values. Otherwise this message es forwarded, either to the
+ * corresponding local or remote client process or a remote daemon.
+ *
+ * PSP_CD_SETOPTION messages to client processes are usually responses
+ * to PSP_CD_GETOPTION request of this processes.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_SETOPTION(DDOptionMsg_t *msg)
 {
     int i;
 
@@ -280,7 +297,7 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 			.count = 1,
 			.opt = {{ .option = msg->opt[i].option,
 				  .value = msg->opt[i].value }} };
-			    
+
 		    PSIDnodes_setProcs(PSC_getMyID(), msg->opt[i].value);
 
 		    /* Info all nodes about my PROCLIMIT */
@@ -468,7 +485,7 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 			.count = 1,
 			.opt = {{ .option = msg->opt[i].option,
 				  .value = msg->opt[i].value }} };
-			    
+
 		    PSIDnodes_setOverbook(PSC_getMyID(), msg->opt[i].value);
 
 		    /* Info all nodes about my OVERBOOK */
@@ -489,7 +506,7 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 			.count = 1,
 			.opt = {{ .option = msg->opt[i].option,
 				  .value = msg->opt[i].value }} };
-			    
+
 		    PSIDnodes_setExclusive(PSC_getMyID(), msg->opt[i].value);
 
 		    /* Info all nodes about my EXCLUSIVE */
@@ -510,7 +527,7 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 			.count = 1,
 			.opt = {{ .option = msg->opt[i].option,
 				  .value = msg->opt[i].value }} };
-			    
+
 		    PSIDnodes_setIsStarter(PSC_getMyID(), msg->opt[i].value);
 
 		    /* Info all nodes about my STARTER */
@@ -531,7 +548,7 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 			.count = 1,
 			.opt = {{ .option = msg->opt[i].option,
 				  .value = msg->opt[i].value }} };
-			    
+
 		    PSIDnodes_setRunJobs(PSC_getMyID(), msg->opt[i].value);
 
 		    /* Info all nodes about my RUNJOBS */
@@ -552,7 +569,7 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 			.count = 1,
 			.opt = {{ .option = msg->opt[i].option,
 				  .value = msg->opt[i].value }} };
-			    
+
 		    PSIDnodes_setPinProcs(PSC_getMyID(), msg->opt[i].value);
 
 		    /* Info all nodes about my PINPROCS */
@@ -573,7 +590,7 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 			.count = 1,
 			.opt = {{ .option = msg->opt[i].option,
 				  .value = msg->opt[i].value }} };
-			    
+
 		    PSIDnodes_setBindMem(PSC_getMyID(), msg->opt[i].value);
 
 		    /* Info all nodes about my BINDMEM */
@@ -671,7 +688,7 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 			.count = 1,
 			.opt = {{ .option = msg->opt[i].option,
 				  .value = msg->opt[i].value }} };
-			    
+
 		    PSIDnodes_setSupplGrps(PSC_getMyID(), msg->opt[i].value);
 
 		    /* Info all nodes about my SUPPL_GRPS */
@@ -696,7 +713,21 @@ void msg_SETOPTION(DDOptionMsg_t *msg)
 
 }
 
-void msg_GETOPTION(DDOptionMsg_t *msg)
+/**
+ * @brief Handle a PSP_CD_GETOPTION message.
+ *
+ * Handle the message @a inmsg of type PSP_CD_GETOPTION.
+ *
+ * If the final destination of @a msg is the local daemon, the
+ * requested options within this message are determined and send
+ * within a PSP_CD_SETOPTION to the requestor. Otherwise this message
+ * es forwarded to the corresponding remote daemon.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_GETOPTION(DDOptionMsg_t *msg)
 {
     int id = PSC_getID(msg->header.dest);
 
@@ -737,7 +768,7 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 		     __func__, msg->opt[in].option);
 
 	    msg->opt[out].option = msg->opt[in].option;
-	    
+
 	    switch (msg->opt[in].option) {
 	    case PSP_OP_PSM_SPS:
 	    case PSP_OP_PSM_RTO:
@@ -897,4 +928,12 @@ void msg_GETOPTION(DDOptionMsg_t *msg)
 
 	if (msg->count) sendMsg(msg);
     }
+}
+
+void initOptions(void)
+{
+    PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
+
+    PSID_registerMsg(PSP_CD_SETOPTION, (handlerFunc_t) msg_SETOPTION);
+    PSID_registerMsg(PSP_CD_GETOPTION, (handlerFunc_t) msg_GETOPTION);
 }

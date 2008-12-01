@@ -18,6 +18,7 @@ static char vcid[] __attribute__((used)) =
 #include <string.h>
 #include <errno.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
@@ -26,6 +27,7 @@ static char vcid[] __attribute__((used)) =
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>
+#include <sys/stat.h>
 
 #include "pscommon.h"
 #include "logging.h"
@@ -35,6 +37,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidamd.h"
 #include "psidintel.h"
 #include "psidppc.h"
+#include "psidcomm.h"
 
 #include "psidutil.h"
 
@@ -214,4 +217,70 @@ void PSID_getLock(void)
 	PSID_warn(-1, errno, "%s: Unable to get lock", __func__);
 	exit (1);
     }
+}
+
+/**
+ * Master socket (type UNIX) for clients to connect. Setup within @ref
+ * setupMasterSock().
+ */
+static int masterSock = -1;
+
+int PSID_getMasterSock(void)
+{
+    return masterSock;
+}
+
+void PSID_setupMasterSock(void)
+{
+    struct sockaddr_un sa;
+
+    masterSock = socket(PF_UNIX, SOCK_STREAM, 0);
+
+    memset(&sa, 0, sizeof(sa));
+    sa.sun_family = AF_UNIX;
+    strncpy(sa.sun_path, PSmasterSocketName, sizeof(sa.sun_path));
+
+    /*
+     * bind the socket to the right address
+     */
+    unlink(PSmasterSocketName);
+    if (bind(masterSock, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
+	PSID_exit(errno, "Daemon already running?");
+    }
+    chmod(sa.sun_path, S_IRWXU | S_IRWXG | S_IRWXO);
+
+    if (listen(masterSock, 20) < 0) {
+	PSID_exit(errno, "Error while trying to listen");
+    }
+
+    FD_SET(masterSock, &PSID_readfds);
+
+    PSID_log(-1, "Local Service Port (%d) initialized.\n", masterSock);
+}
+
+void PSID_shutdownMasterSock(void)
+{
+    char *action = NULL;
+
+    if (masterSock == -1) {
+	PSID_log(-1, "%s: master sock already down\n", __func__);
+	return;
+    }
+
+    if (shutdown(masterSock, SHUT_RDWR)) {
+	action = "shutdown()";
+	goto exit;
+    }
+    if (close(masterSock)) {
+	action = "close()";
+	goto exit;
+    }
+
+exit:
+    if (unlink(PSmasterSocketName)) {
+	action = "unlink()";
+    }
+    if (action) PSID_warn(-1, errno, "%s: %s", __func__, action);
+    FD_CLR(masterSock, &PSID_readfds);
+    masterSock = -1;
 }

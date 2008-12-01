@@ -37,6 +37,8 @@ static char vcid[] __attribute__((used)) =
 #include <limits.h>
 
 #include "pscommon.h"
+#include "psprotocol.h"
+#include "psdaemonprotocol.h"
 #include "pscpu.h"
 
 #include "psidutil.h"
@@ -1628,7 +1630,25 @@ static int spawnTask(PStask_t *task)
     return err;
 }
 
-void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
+/**
+ * @brief Handle a PSP_CD_SPAWNREQUEST message.
+ *
+ * Handle the message @a msg of type PSP_CD_SPAWNREQUEST. These are
+ * replaced by PSP_CD_SPAWNREQ messages in later versions of the
+ * protocol. For reasons of compatibility the old requests are still
+ * supported.
+ *
+ * Spawn a process as described with @a msg. Therefor a @ref PStask_t
+ * structure is extracted from @a msg. If called on the node of the
+ * initiating task, various tests are undertaken in order to determine
+ * the spawn to be allowed. If all tests pass, the message is
+ * forwarded to the target-node where the process to spawn is created.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 {
     PStask_t *task;
     DDErrorMsg_t answer;
@@ -1698,7 +1718,29 @@ void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
  */
 static PStask_t *spawnTasks = NULL;
 
-void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
+/**
+ * @brief Handle a PSP_CD_SPAWNREQ message.
+ *
+ * Handle the message @a msg of type PSP_CD_SPAWNREQ. These replace
+ * the PSP_CD_SPAWNREQUEST messages of earlier protocol versions.
+ *
+ * Spawn a process as described within a series of messages. Depending
+ * on the subtype of the current message @a msg, either the @ref
+ * PStask_t structure contained is extracted or the argv or
+ * environment parts are decoded and added to the corresponding task
+ * structure. After receiving the last part of the environment the
+ * actual task is created.
+ *
+ * If called on the node of the initiating task, various
+ * tests are undertaken in order to determine the spawn to be
+ * allowed. If all tests pass, the message is forwarded to the
+ * target-node where the process to spawn is created.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 {
     PStask_t *task, *ptask = NULL;
     DDErrorMsg_t answer;
@@ -1909,7 +1951,19 @@ void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
     }
 }
 
-void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
+/**
+ * @brief Handle a PSP_CD_SPAWNSUCCESS message.
+ *
+ * Handle the message @a msg of type PSP_CD_SPAWNSUCCESS.
+ *
+ * Register the spawned process to its parent task and forward the
+ * message to the initiating process.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
 {
     PStask_ID_t tid = msg->header.sender;
     PStask_ID_t ptid = msg->header.dest;
@@ -1938,7 +1992,18 @@ void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
     free(parent);
 }
 
-void msg_SPAWNFAILED(DDErrorMsg_t *msg)
+/**
+ * @brief Handle a PSP_CD_SPAWNFAILED message.
+ *
+ * Handle the message @a msg of type PSP_CD_SPAWNFAILED.
+ *
+ * This just forwards the message to the initiating process.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_SPAWNFAILED(DDErrorMsg_t *msg)
 {
     PSID_log(PSID_LOG_SPAWN, "%s: error = %d sending to local parent %s\n",
 	     __func__, msg->error, PSC_printTID(msg->header.dest));
@@ -1947,7 +2012,18 @@ void msg_SPAWNFAILED(DDErrorMsg_t *msg)
     sendMsg(msg);
 }
 
-void msg_SPAWNFINISH(DDMsg_t *msg)
+/**
+ * @brief Handle a PSP_CD_SPAWNFINISH message.
+ *
+ * Handle the message @a msg of type PSP_CD_SPAWNFINISH.
+ *
+ * This just forwards the message to the initiating process.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_SPAWNFINISH(DDMsg_t *msg)
 {
     PSID_log(PSID_LOG_SPAWN, "%s: sending to local parent %s\n",
 	     __func__, PSC_printTID(msg->dest));
@@ -1956,7 +2032,22 @@ void msg_SPAWNFINISH(DDMsg_t *msg)
     sendMsg(msg);
 }
 
-void msg_CHILDDEAD(DDErrorMsg_t *msg)
+/**
+ * @brief Handle a PSP_DD_CHILDDEAD message.
+ *
+ * Handle the message @a msg of type PSP_DD_CHILDDEAD.
+ *
+ * This type of message is created by the forwarder process to inform
+ * the local daemon on the dead of the controlled client process. This
+ * might result in sending pending signals, deregistering the task,
+ * etc. Additionally the message will be forwarded to the daemon
+ * controlling the parent task in order to take according measures.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 {
     PStask_t *task, *forwarder;
 
@@ -2060,4 +2151,16 @@ void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	/* Send CHILDDEAD to parent (a TG_(GM)SPAWNER might wait for it) */
 	msg_CHILDDEAD(msg);
     }
+}
+
+void initSpawn(void)
+{
+    PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
+
+    PSID_registerMsg(PSP_CD_SPAWNREQUEST, msg_SPAWNREQUEST);
+    PSID_registerMsg(PSP_CD_SPAWNREQ, (handlerFunc_t) msg_SPAWNREQ);
+    PSID_registerMsg(PSP_CD_SPAWNSUCCESS, (handlerFunc_t) msg_SPAWNSUCCESS);
+    PSID_registerMsg(PSP_CD_SPAWNFAILED, (handlerFunc_t) msg_SPAWNFAILED);
+    PSID_registerMsg(PSP_CD_SPAWNFINISH, (handlerFunc_t) msg_SPAWNFINISH);
+    PSID_registerMsg(PSP_DD_CHILDDEAD, (handlerFunc_t) msg_CHILDDEAD);
 }

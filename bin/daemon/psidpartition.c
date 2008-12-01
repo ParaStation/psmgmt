@@ -336,7 +336,7 @@ static void deregisterReq(PSpart_request_t *req)
 	freeCPUs(node, req->slots[i].CPUset);
 	decJobsHint(node);
 	if ((req->options & PART_OPT_EXCLUSIVE)
-	    && !nodeStat[node].assignedProcs) nodeStat[node].exclusive = 0; 
+	    && !nodeStat[node].assignedProcs) nodeStat[node].exclusive = 0;
     }
     PSID_log(PSID_LOG_PART, "\n");
     doHandle = 1; /* Trigger handler in next round */
@@ -492,7 +492,20 @@ int send_TASKDEAD(PStask_ID_t tid)
     return sendMsg(&msg);
 }
 
-void msg_TASKDEAD(DDMsg_t *msg)
+/**
+ * @brief Handle a PSP_DD_TASKDEAD message.
+ *
+ * Handle the message @a msg of type PSP_DD_TASKDEAD.
+ *
+ * A PSP_DD_TASKDEAD message informs the master process upon exit of
+ * the tasks root process. This enables the master to free the
+ * resources allocated by the corresponding task.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_TASKDEAD(DDMsg_t *msg)
 {
     PSpart_request_t *req = findRequest(runReq, msg->sender);
 
@@ -533,7 +546,28 @@ int send_TASKSUSPEND(PStask_ID_t tid)
     return sendMsg(&msg);
 }
 
-void msg_TASKSUSPEND(DDMsg_t *msg)
+/**
+ * @brief Handle a PSP_DD_TASKSUSPEND message.
+ *
+ * Handle the message @a msg of type PSP_DD_TASKSUSPEND.
+ *
+ * A PSP_DD_TASKSUSPEND message informs the master process upon
+ * suspension of the tasks root process. This enables the master to
+ * temporarily free the resources allocated by the corresponding task
+ * if requested.
+ *
+ * If the resources of a task are actually freed upon suspension is
+ * steered by the @ref freeOnSuspend member of the @ref config
+ * structure. This can be modified on the one hand by the
+ * 'freeOnSuspend' keyword within the daemon's configuration file or
+ * on the other hand during run-time by the 'set freeOnSuspend'
+ * directive of the ParaStation administration tool psiadmin.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_TASKSUSPEND(DDMsg_t *msg)
 {
     PSpart_request_t *req = findRequest(runReq, msg->sender);
 
@@ -567,7 +601,28 @@ int send_TASKRESUME(PStask_ID_t tid)
     return sendMsg(&msg);
 }
 
-void msg_TASKRESUME(DDMsg_t *msg)
+/**
+ * @brief Handle a PSP_DD_TASKRESUME message.
+ *
+ * Handle the message @a msg of type PSP_DD_TASKRESUME.
+ *
+ * A PSP_DD_TASKRESUME message informs the master process upon
+ * continuation of the suspended tasks root process. This enables the
+ * master to realloc the temporarily freed resources allocated by the
+ * corresponding task during startup.
+ *
+ * If the resources of a task were actually freed upon suspension is
+ * steered by the @ref freeOnSuspend member of the @ref config
+ * structure. This can be modified on the one hand by the
+ * 'freeOnSuspend' keyword within the daemon's configuration file or
+ * on the other hand during run-time by the 'set freeOnSuspend'
+ * directive of the ParaStation administration tool psiadmin.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_TASKRESUME(DDMsg_t *msg)
 {
     PSpart_request_t *req = findRequest(suspReq, msg->sender);
 
@@ -601,7 +656,21 @@ int send_CANCELPART(PStask_ID_t tid)
     return sendMsg(&msg);
 }
 
-void msg_CANCELPART(DDBufferMsg_t *inmsg)
+/**
+ * @brief Handle a PSP_CD_CANCELPART message.
+ *
+ * Handle the message @a inmsg of type PSP_CD_CANCELPART.
+ *
+ * A PSP_CD_CANCELPART message informs the master process upon exit of
+ * the tasks root process. This enables the master to remove partition
+ * requests sent from this task from the queue of pending partition
+ * requests.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_CANCELPART(DDBufferMsg_t *inmsg)
 {
     PSpart_request_t *req = findRequest(pendReq, inmsg->header.sender);
 
@@ -1088,7 +1157,7 @@ static unsigned int getNormalPart(PSpart_request_t *request,
 		getFreeCPUs(cid, *tmpStat[cid], tpp);
 	    }
 
-	    if (nodesFirst) { 
+	    if (nodesFirst) {
 		int n = PSCPU_getCPUs(*tmpStat[cid], slots[node].CPUset, tpp);
 		if (n < tpp && overbook) {
 		    /* Let's start to overbook */
@@ -1713,7 +1782,7 @@ static int sendPartition(PSpart_request_t *req)
 static int getPartition(PSpart_request_t *request)
 {
     int ret=0;
-    sortlist_t *candidates = NULL; 
+    sortlist_t *candidates = NULL;
 
     PSID_log(PSID_LOG_PART, "%s([%s], %d)\n",
 	     __func__, HW_printType(request->hwType), request->size);
@@ -1862,7 +1931,24 @@ static void sendAcctQueueMsg(PStask_t *task)
     sendMsg((DDMsg_t *)&msg);
 }
 
-void msg_CREATEPART(DDBufferMsg_t *inmsg)
+/**
+ * @brief Handle a PSP_CD_CREATEPART message.
+ *
+ * Handle the message @a inmsg of type PSP_CD_CREATEPART.
+ *
+ * With this kind of message a client will request for a partition of
+ * nodes. Besides forwarding this kind of message to the master node
+ * as a PSP_DD_GETPART message it will be stored locally in order to
+ * allow resending it, if the master changes.
+ *
+ * Depending on the acutal request, a PSP_CD_CREATEPART message might
+ * be followed by one or more PSP_CD_CREATEPARTNL messages.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_CREATEPART(DDBufferMsg_t *inmsg)
 {
     PStask_t *task = PStasklist_find(managedTasks, inmsg->header.sender);
 
@@ -1926,7 +2012,31 @@ void msg_CREATEPART(DDBufferMsg_t *inmsg)
     }
 }
 
-void msg_GETPART(DDBufferMsg_t *inmsg)
+/**
+ * @brief Handle a PSP_DD_GETPART message.
+ *
+ * Handle the message @a inmsg of type PSP_DD_GETPART.
+ *
+ * PSP_DD_GETPART messages are the daemon-daemon version of the
+ * original PSP_CD_CREATEPART message of the client sent to its local
+ * daemon.
+ *
+ * Depending on the actual request the master waits for following
+ * PSP_DD_GETPARTNL messages, tries to immediately allocate a
+ * partition or enqueues the request to the queue of pending requests.
+ *
+ * If a partition could be allocated successfully, the actual
+ * partition will be send to the client's local daemon process via
+ * PSP_CD_PROVIDEPART and PSP_CD_PROVIDEPARTSL messages.
+ *
+ * Depending on the actual request, a PSP_DD_GETPART message might
+ * be followed by one or more PSP_DD_GETPARTNL messages.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_GETPART(DDBufferMsg_t *inmsg)
 {
     PSpart_request_t *req = PSpart_newReq();
 
@@ -2017,7 +2127,22 @@ static void appendToNodelist(char *buf, PSpart_request_t *request)
     request->numGot += chunk;
 }
 
-void msg_CREATEPARTNL(DDBufferMsg_t *inmsg)
+/**
+ * @brief Handle a PSP_CD_CREATEPARTNL message.
+ *
+ * Handle the message @a inmsg of type PSP_CD_CREATEPARTNL.
+ *
+ * This follow up message contains (part of) the nodelist connected to
+ * the partition request in the leading PSP_CD_CREATEPART message.
+ *
+ * Depending on the actual request, a PSP_CD_CREATEPART message might
+ * be followed by further PSP_CD_CREATEPARTNL messages.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_CREATEPARTNL(DDBufferMsg_t *inmsg)
 {
     PStask_t *task = PStasklist_find(managedTasks, inmsg->header.sender);
 
@@ -2058,7 +2183,31 @@ void msg_CREATEPARTNL(DDBufferMsg_t *inmsg)
     }
 }
 
-void msg_GETPARTNL(DDBufferMsg_t *inmsg)
+/**
+ * @brief Handle a PSP_DD_GETPARTNL message.
+ *
+ * Handle the message @a inmsg of type PSP_DD_GETPARTNL.
+ *
+ * PSP_DD_GETPARTNL messages are the daemon-daemon version of the
+ * original PSP_CD_CREATEPARTNL message of the client sent to its
+ * local daemon.
+ *
+ * Depending on the actual request the master waits for further
+ * PSP_DD_GETPARTNL messages, tries to immediately allocate a
+ * partition or enqueues the request to the queue of pending requests.
+ *
+ * If a partition could be allocated successfully, the actual
+ * partition will be send to the client's local daemon process via
+ * PSP_CD_PROVIDEPART and PSP_CD_PROVIDEPARTSL messages.
+ *
+ * Depending on the actual request, a PSP_DD_GETPARTNL message might
+ * be followed by further PSP_DD_GETPARTNL messages.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_GETPARTNL(DDBufferMsg_t *inmsg)
 {
     PSpart_request_t *req = findRequest(pendReq, inmsg->header.sender);
 
@@ -2156,7 +2305,31 @@ static void appendToSlotlist(DDBufferMsg_t *inmsg, PSpart_request_t *request)
     request->sizeGot += chunk;
 }
 
-void msg_PROVIDEPART(DDBufferMsg_t *inmsg)
+/**
+ * @brief Handle a PSP_DD_PROVIDEPART message.
+ *
+ * Handle the message @a inmsg of type PSP_DD_PROVIDEPART.
+ *
+ * This kind of messages is used by the master process in order to
+ * provide actually allocated partitions to the requesting client's
+ * local daemon process. This message will be followed by one or more
+ * PSP_DD_PROVIDEPARTSL messages containing the partitions actual
+ * slotlist.
+ *
+ * The client's local daemon will store the partition to the
+ * corresponding task structure and wait for following
+ * PSP_DD_PROVIDEPARTSL messages.
+ *
+ * Furthermore this message might contain an error message reporting
+ * the final failure on the attempt to allocate a partition. In this
+ * case a PSP_CD_PARTITIONRES message reporting this error to the
+ * requesting client is generated.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_PROVIDEPART(DDBufferMsg_t *inmsg)
 {
     PStask_t *task = PStasklist_find(managedTasks, inmsg->header.dest);
     PSpart_request_t *req;
@@ -2225,7 +2398,22 @@ void msg_PROVIDEPART(DDBufferMsg_t *inmsg)
     }
 }
 
-void msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg)
+/**
+ * @brief Handle a PSP_DD_PROVIDEPARTSL message.
+ *
+ * Handle the message @a inmsg of type PSP_DD_PROVIDEPARTSL.
+ *
+ * Follow up message to a PSP_DD_PROVIDEPART containing the
+ * partition's actual slots. These slots will be stored to the
+ * requesting client's task structure. Upon successful receive of the
+ * partition's last slot a PSP_CD_PARTITIONRES message is send to the
+ * requesting client.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg)
 {
     PStask_t *task = PStasklist_find(managedTasks, inmsg->header.dest);
     PSpart_request_t *req;
@@ -2297,7 +2485,21 @@ void msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg)
     }
 }
 
-void msg_GETNODES(DDBufferMsg_t *inmsg)
+/**
+ * @brief Handle a PSP_CD_GETNODES/PSP_DD_GETNODES message.
+ *
+ * Handle the message @a inmsg of type PSP_CD_GETNODES or
+ * PSP_DD_GETNODES.
+ *
+ * This kind of message is used by clients in order to actually get
+ * nodes from the pool of nodes stored within the partition requested
+ * from the master node.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_GETNODES(DDBufferMsg_t *inmsg)
 {
     PStask_ID_t target = PSC_getPID(inmsg->header.dest) ?
 	inmsg->header.dest : inmsg->header.sender;
@@ -2400,7 +2602,22 @@ void msg_GETNODES(DDBufferMsg_t *inmsg)
     }
 }
 
-void msg_GETRANKNODE(DDBufferMsg_t *inmsg)
+/**
+ * @brief Handle a PSP_CD_GETRANKNODE/PSP_DD_GETRANKNODE message.
+ *
+ * Handle the message @a inmsg of type PSP_CD_GETRANKNODE or
+ * PSP_DD_GETRANKNODE.
+ *
+ * This kind of message is used by clients in order to actually get
+ * the node of the process which shall act as a destinct rank within
+ * the job from the pool of nodes stored within the partition
+ * requested from the master node.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_GETRANKNODE(DDBufferMsg_t *inmsg)
 {
     PStask_ID_t target = PSC_getPID(inmsg->header.dest) ?
 	inmsg->header.dest : inmsg->header.sender;
@@ -2479,7 +2696,23 @@ void msg_GETRANKNODE(DDBufferMsg_t *inmsg)
     }
 }
 
-void msg_NODESRES(DDBufferMsg_t *inmsg)
+/**
+ * @brief Handle a PSP_DD_NODESRES message.
+ *
+ * Handle the message @a inmsg of type PSP_DD_NODESRES.
+ *
+ * This kind of message is used as an answer to a PSP_CD_GETNODES or
+ * PSP_CD_GETRANKNODE message. The daemon of the requesting client
+ * will store the answer in the @ref spawnNodes member of the client's
+ * task structure.
+ *
+ * This is needed for transparent process-pinning.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_NODESRES(DDBufferMsg_t *inmsg)
 {
     if (PSC_getID(inmsg->header.dest) == PSC_getMyID()) {
 	int DaemonPSPver =
@@ -2648,7 +2881,25 @@ static void sendExistingPartitions(PStask_ID_t dest)
     }
 }
 
-void msg_GETTASKS(DDBufferMsg_t *inmsg)
+/**
+ * @brief Handle a PSP_DD_GETTASKS message.
+ *
+ * Handle the message @a inmsg of type PSP_DD_GETTASKS.
+ *
+ * Send a list of all running processes partition info and pending
+ * partition requests to the sending node. While for the running
+ * processes PSP_DD_PROVIDETASK and PSP_DD_PROVIDETASKSL messages are
+ * used, the latter reuse the PSP_DD_GETPART and PSP_DD_GETPARTNL
+ * messages used to forward the original client request
+ * messages. Actually for a new master there is no difference if the
+ * message is directly from the requesting client or if it was
+ * buffered within the client's local daemon.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_GETTASKS(DDBufferMsg_t *inmsg)
 {
     DDMsg_t msg = {
 	.type = PSP_DD_PROVIDETASK,
@@ -2670,7 +2921,29 @@ void msg_GETTASKS(DDBufferMsg_t *inmsg)
     sendMsg(&msg);
 }
 
-void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
+/**
+ * @brief Handle a PSP_DD_PROVIDETASK message.
+ *
+ * Handle the message @a inmsg of type PSP_DD_PROVIDETASK.
+ *
+ * This is part of the answer to a PSP_DD_GETTASKS message. For each
+ * running task whose root process is located on the sending node a
+ * PSP_DD_PROVIDETASK message is generated and send to the master
+ * process. It provides all the information necessary for the master
+ * to handle partition requests despite apart from the list of slots
+ * building the corresponding partition. This message will be followed
+ * by one or more PSP_DD_PROVIDETASKSL messages containing this
+ * slotlist.
+ *
+ * The client's local daemon will store the partition to the
+ * corresponding partition request structure and wait for following
+ * PSP_DD_PROVIDETASKSL messages.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
 {
     PSpart_request_t *request;
     char *ptr = inmsg->buf;
@@ -2719,7 +2992,20 @@ void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
     }
 }
 
-void msg_PROVIDETASKSL(DDBufferMsg_t *inmsg)
+/**
+ * @brief Handle a PSP_DD_PROVIDETASKSL message.
+ *
+ * Handle the message @a inmsg of type PSP_DD_PROVIDETASKSL.
+ *
+ * Follow up message to a PSP_DD_PROVIDETASK containing the
+ * partition's actual slots. These slots will be stored to the
+ * client's partition request structure.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_PROVIDETASKSL(DDBufferMsg_t *inmsg)
 {
     PSpart_request_t *req = findRequest(pendReq, inmsg->header.sender);
 
@@ -2893,4 +3179,30 @@ void sendRequestLists(PStask_ID_t requester, PSpart_list_t opt)
 	sendReqList(requester, runReq, PART_LIST_RUN | nodes );
     if (opt & PART_LIST_SUSP)
 	sendReqList(requester, suspReq, PART_LIST_SUSP | nodes);
+}
+
+void initPartition(void)
+{
+    PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
+
+    PSID_registerMsg(PSP_CD_CREATEPART, msg_CREATEPART);
+    PSID_registerMsg(PSP_CD_CREATEPARTNL, msg_CREATEPARTNL);
+    PSID_registerMsg(PSP_CD_PARTITIONRES, (handlerFunc_t) sendMsg);
+    PSID_registerMsg(PSP_DD_GETPART, msg_GETPART);
+    PSID_registerMsg(PSP_DD_GETPARTNL, msg_GETPARTNL);
+    PSID_registerMsg(PSP_DD_PROVIDEPART, msg_PROVIDEPART);
+    PSID_registerMsg(PSP_DD_PROVIDEPARTSL, msg_PROVIDEPARTSL);
+    PSID_registerMsg(PSP_CD_GETNODES, msg_GETNODES);
+    PSID_registerMsg(PSP_DD_GETNODES, msg_GETNODES);
+    PSID_registerMsg(PSP_CD_GETRANKNODE, msg_GETRANKNODE);
+    PSID_registerMsg(PSP_DD_GETRANKNODE, msg_GETRANKNODE);
+    PSID_registerMsg(PSP_DD_NODESRES, msg_NODESRES);
+    PSID_registerMsg(PSP_CD_NODESRES, (handlerFunc_t) sendMsg);
+    PSID_registerMsg(PSP_DD_GETTASKS, msg_GETTASKS);
+    PSID_registerMsg(PSP_DD_PROVIDETASK, msg_PROVIDETASK);
+    PSID_registerMsg(PSP_DD_PROVIDETASKSL, msg_PROVIDETASKSL);
+    PSID_registerMsg(PSP_DD_CANCELPART, msg_CANCELPART);
+    PSID_registerMsg(PSP_DD_TASKDEAD, (handlerFunc_t) msg_TASKDEAD);
+    PSID_registerMsg(PSP_DD_TASKSUSPEND, (handlerFunc_t) msg_TASKSUSPEND);
+    PSID_registerMsg(PSP_DD_TASKRESUME, (handlerFunc_t) msg_TASKRESUME);
 }
