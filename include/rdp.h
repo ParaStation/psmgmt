@@ -27,6 +27,7 @@ extern "C" {
 #endif
 #endif
 
+#include <stdio.h>
 #include <stdint.h>
 #include <sys/types.h>
 
@@ -116,7 +117,7 @@ void exitRDP(void);
 /**
  * Various message classes for logging. These define the different
  * bits of the debug-mask set via @ref setDebugMaskRDP().
- */ 
+ */
 typedef enum {
     RDP_LOG_CONN = 0x0001, /**< Uncritical errors on connection loss */
     RDP_LOG_INIT = 0x0002, /**< Info from initialization (IP, FE, NFTS etc.) */

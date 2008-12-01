@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -27,6 +27,7 @@ extern "C" {
 #endif
 #endif
 
+#include <stdio.h>
 #include <stdint.h>
 
 /** Possible MCast states of a node */
@@ -125,7 +126,7 @@ void declareNodeDeadMCast(int node);
 /**
  * Various message classes for logging. These define the different
  * bits of the debug-mask set via @ref setDebugMaskMCast().
- */ 
+ */
 typedef enum {
     MCAST_LOG_INIT = 0x0001, /**< Info from initialization (IP etc.) */
     MCAST_LOG_INTR = 0x0002, /**< Interrupted syscalls */
