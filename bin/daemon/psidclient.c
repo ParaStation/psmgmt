@@ -19,7 +19,9 @@ static char vcid[] __attribute__((used)) =
 #include <errno.h>
 #include <signal.h>
 #include <sys/types.h>
+#define __USE_GNU
 #include <sys/socket.h>
+#undef __USE_GNU
 
 #include "pscommon.h"
 #include "psprotocol.h"
