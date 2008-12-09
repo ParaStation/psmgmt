@@ -670,8 +670,6 @@ int main(int argc, const char *argv[])
     PSIDnodes_setProtoVersion(PSC_getMyID(), PSProtocolVersion);
     PSIDnodes_setDaemonProtoVersion(PSC_getMyID(), PSDaemonProtocolVersion);
     PSIDnodes_setHWStatus(PSC_getMyID(), 0);
-    PSID_startAllHW();
-    PSIDnodes_setAcctPollI(PSC_getMyID(), config->acctPollInterval);
 
     /* Bring node up with correct numbers of CPUs */
     declareNodeAlive(PSC_getMyID(), PSID_getPhysCPUs(), PSID_getVirtCPUs());
@@ -696,6 +694,10 @@ int main(int argc, const char *argv[])
 
     /* create the socket to listen for clients */
     PSID_setupMasterSock(logfile);
+
+    /* Now we start all the hardware -- this might include the accounter */
+    PSID_startAllHW();
+    PSIDnodes_setAcctPollI(PSC_getMyID(), config->acctPollInterval);
 
     /*
      * Prepare hostlist to initialize RDP and MCast
