@@ -15,13 +15,24 @@ static char vcid[] __attribute__((used)) =
 #include <stdio.h>
 #include <unistd.h>
 
+#include "pscommon.h"
+
 #include "psilog.h"
 
-logger_t* PSI_logger;
+logger_t* PSI_logger = NULL;
 
 void PSI_initLog(FILE* logfile)
 {
+    if (! PSC_logInitialized()) PSC_initLog(logfile);
+
     PSI_logger = logger_init("PSI", logfile);
+}
+
+int PSI_logInitialized(void)
+{
+    if (PSI_logger) return 1;
+
+    return 0;
 }
 
 int32_t PSI_getDebugMask(void)

@@ -40,9 +40,29 @@ extern logger_t* PSI_logger;
  * If @a logfile is NULL, syslog() will be used for any
  * output. Otherwise @a logfile will be used.
  *
- * @see logger_init(), syslog(3)
+ * If the PSC logging facility is not yet initialized, it will be
+ * initialized, too. In this case @a logfile is also passed to the PSC
+ * logging facility.
+ *
+ * @ref PSI_logInitialized() might be used in order to test, if the
+ * PSI logging facility is already initialized.
+ *
+ * @see logger_init(), syslog(3), PSI_logInitialized()
  */
 void PSI_initLog(FILE* logfile);
+
+/**
+ * @brief Test initialization of PSI logging facility.
+ *
+ * Test, if the PSI logging facility was initialized by calling @ref
+ * PSI_initLog(). 
+ *
+ * @return If PSI_initLog() was called before, 1 is
+ * returned. Otherwise 0 is returned.
+ *
+ * @see PSI_initLog()
+ */
+int PSI_logInitialized(void);
 
 /**
  * @brief Get the log-mask of the PSI logging facility.

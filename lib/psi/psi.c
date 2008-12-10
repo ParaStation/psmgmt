@@ -255,9 +255,8 @@ static int connectDaemon(PStask_group_t taskGroup)
 int PSI_initClient(PStask_group_t taskGroup)
 {
     char* envStr;
-
-    PSI_initLog(stderr);
-    PSC_initLog(stderr);
+    
+    if (! PSI_logInitialized()) PSI_initLog(stderr);
 
     envStr = getenv("PSI_DEBUGMASK");
     if (!envStr) envStr = getenv("PSI_DEBUGLEVEL"); /* Backward compat. */

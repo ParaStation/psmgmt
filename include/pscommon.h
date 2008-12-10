@@ -198,9 +198,25 @@ void PSC_startDaemon(in_addr_t hostaddr);
  * If @a logfile is NULL, syslog() will be used for any
  * output. Otherwise @a logfile will be used.
  *
+ * @ref PSC_logInitialized() might be used in order to test, if the
+ * PSC logging facility is already initialized.
+ *
  * @see logger_init(), syslog(3)
  */
 void PSC_initLog(FILE *logfile);
+
+/**
+ * @brief Test initialization of PSC logging facility.
+ *
+ * Test, if the PSC logging facility was initialized by calling @ref
+ * PSC_initLog(). 
+ *
+ * @return If PSC_initLog() was called before, 1 is
+ * returned. Otherwise 0 is returned.
+ *
+ * @see PSC_initLog()
+ */
+int PSC_logInitialized(void);
 
 /**
  * @brief Get the log-mask of the PSC logging facility.

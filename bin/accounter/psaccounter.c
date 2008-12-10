@@ -50,6 +50,7 @@ static char vcid[] __attribute__ ((used)) =
 #include "psi.h"
 #include "psiinfo.h"
 #include "psispawn.h"
+#include "psilog.h"
 #include "pscommon.h"
 #include "pstask.h"
 #include "pscpu.h"
@@ -1603,6 +1604,8 @@ static void daemonize(const char *cmd)
 		__func__, fd0, fd1, fd2);
 	exit(EXIT_FAILURE);
     }
+    /* Let PSI and PSC log via syslog. Call it before PSI_initClient() */
+    PSI_initLog(NULL);
 }
 /**
 * @brief Retrive node information.

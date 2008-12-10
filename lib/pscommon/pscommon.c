@@ -28,7 +28,7 @@ static char vcid[] __attribute__((used)) =
 
 #include "pscommon.h"
 
-logger_t* PSC_logger;
+logger_t* PSC_logger = NULL;
 
 static PSnodes_ID_t nrOfNodes = -1;
 static PSnodes_ID_t myID = -1;
@@ -39,6 +39,13 @@ static PStask_ID_t myTID = -1;
 void PSC_initLog(FILE* logfile)
 {
     PSC_logger = logger_init("PSC", logfile);
+}
+
+int PSC_logInitialized(void)
+{
+    if (PSC_logger) return 1;
+
+    return 0;
 }
 
 int32_t PSC_getDebugMask(void)
