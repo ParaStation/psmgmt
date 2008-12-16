@@ -284,6 +284,18 @@ static void getFirstNodeID(PSnodes_ID_t *nodeID)
 }
 
 /**
+ * @brief Disable elan support in pscom library 
+ *
+ * @return No return value.
+ * */
+static void disableElan(void)
+{
+    setPSIEnv("PSP_ELAN", "0", 1);
+    setenv("PSP_ELAN", "0", 1);
+    useElan = 0;
+}
+
+/**
  * @brief Check if we were compiled with elan support,
  * and try to load and init libelan.
  *
@@ -291,6 +303,12 @@ static void getFirstNodeID(PSnodes_ID_t *nodeID)
  */
 static void checkForELAN(void)
 {
+    char *envstr = getenv("PSP_ELAN");
+    
+    if (!strcmp(envstr,"0")) {
+	disableElan();
+	return;
+    }
 
 #ifdef ELANCTRL
     if (initELAN()) {
@@ -298,13 +316,10 @@ static void checkForELAN(void)
 	setPSIEnv("PSP_ELAN", "1", 1);
     } else {
 	if(verbose) printf("failed loading libelan\n");
-	/* disable elan support in pscom */
-	setPSIEnv("PSP_ELAN", "0", 1);
-	useElan = 0;
+	disableElan();
     }
 #else
-    setPSIEnv("PSP_ELAN", "0", 1);
-    useElan = 0;
+    disableElan();
 #endif
 
 }
@@ -349,8 +364,7 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 	/* setup elan environment */
 	if (useElan) {
 	    if (!setupELANEnv(np, verbose)) {
-		setPSIEnv("PSP_ELAN", "0", 1);
-		useElan = 0;
+		disableElan();
 	    }
 	}
 #endif
@@ -617,7 +631,7 @@ static void setupPSCOMEnv(int verbose)
 		setPSIEnv("PSP_TCP", "0", 1);
 	    } else if (!strcmp(env,"ELAN") || !strcmp(env,"elan")) {
 		unsetenv("PSP_ELAN");
-		setPSIEnv("PSP_ELAN", "0", 1);
+		disableElan();
 	    } else if (!strcmp(env,"DAPL") || !strcmp(env,"dapl")) {
 		unsetenv("PSP_DAPL");
 		setPSIEnv("PSP_DAPL", "0", 1);

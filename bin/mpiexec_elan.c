@@ -106,9 +106,9 @@ static void addEntry(char *host, char *id)
  *
  * Create a map of hostnames and ELAN IDs from the file "/etc/elanidmap".
  *
- * @return No return value.
+ * @return Returns 1 on success, 0 on error.
  */
-static void getNetIDmap(void)
+static int getNetIDmap(int verbose)
 {
     FILE *elanIDfile;
     char line[256];
@@ -116,9 +116,8 @@ static void getNetIDmap(void)
     elanIDfile = fopen(IDMAPFILE, "r");
 
     if (!elanIDfile) {
-	fprintf(stderr, "%s: Could not open '%s':", __func__, IDMAPFILE);
-	perror("");
-	exit(1);
+	if (verbose) fprintf(stderr, "%s: Could not open '%s':", __func__, IDMAPFILE);
+	return 0;
     }
 
     while (fgets(line, sizeof(line), elanIDfile)) {
@@ -130,6 +129,7 @@ static void getNetIDmap(void)
 	addEntry(host, id);
     }
     fclose(elanIDfile);
+    return 1;
 }
 
 /**
@@ -201,7 +201,9 @@ static int prepCapEnv(int np, int verbose)
     cap.cap_type |= ELAN_CAP_TYPE_BROADCASTABLE;
 
     /* Setup bitmap */
-    getNetIDmap();
+    if (!getNetIDmap(verbose)) {
+	return -1;
+    }
 
     for (n=0; n<np; n++) {
 	PSnodes_ID_t node;
