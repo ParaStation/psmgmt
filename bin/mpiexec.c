@@ -305,7 +305,7 @@ static void checkForELAN(void)
 {
     char *envstr = getenv("PSP_ELAN");
     
-    if (!strcmp(envstr,"0")) {
+    if (envstr && !strcmp(envstr,"0")) {
 	disableElan();
 	return;
     }
