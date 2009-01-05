@@ -42,7 +42,7 @@ void displayCachedOutput(int flush);
  *
  * @return No return value.
  */
-void cacheOutput(PSLog_Msg_t msg, int outfd);
+void cacheOutput(PSLog_Msg_t *msg, int outfd);
 
 /**
  * @brief Init the merge structures/functions of the logger. This

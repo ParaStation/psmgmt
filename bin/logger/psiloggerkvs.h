@@ -28,7 +28,7 @@
  *
  * @return No return value.
  */
-void handleKvsMsg(PSLog_Msg_t msg);
+void handleKvsMsg(PSLog_Msg_t *msg);
 
 
 /**

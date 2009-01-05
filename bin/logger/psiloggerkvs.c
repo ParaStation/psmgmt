@@ -186,11 +186,11 @@ static void sendMsgToKvsClients(char *msg)
  *
  * @return No return value.
  */
-static void handleKvsPut(PSLog_Msg_t msg)
+static void handleKvsPut(PSLog_Msg_t *msg)
 {
     char kvsname[KVSNAME_MAX], name[KEYLEN_MAX];
     char value[VALLEN_MAX], retbuf[PMIU_MAXLINE];
-    char *ptr = msg.buf;
+    char *ptr = msg->buf;
 
     /* parse arguments */
     getpmiv("kvsname",ptr,kvsname,sizeof(kvsname));
@@ -213,7 +213,7 @@ static void handleKvsPut(PSLog_Msg_t msg)
     }
 
     /* return result to forwarder */
-    sendKvsMsg(msg.header.sender, retbuf);
+    sendKvsMsg(msg->header.sender, retbuf);
 }
 
 /**
@@ -223,10 +223,10 @@ static void handleKvsPut(PSLog_Msg_t msg)
  *
  * @return No return value.
  */
-static void handleKvsGet(PSLog_Msg_t msg)
+static void handleKvsGet(PSLog_Msg_t *msg)
 {
     char kvsname[KVSNAME_MAX], name[KEYLEN_MAX], *value, retbuf[PMIU_MAXLINE];
-    char *ptr = msg.buf;
+    char *ptr = msg->buf;
 
     /* parse arguments */
     getpmiv("kvsname",ptr,kvsname,sizeof(kvsname));
@@ -248,7 +248,7 @@ static void handleKvsGet(PSLog_Msg_t msg)
 	}
     }
     /* return result to forwarder */
-    sendKvsMsg(msg.header.sender, retbuf);
+    sendKvsMsg(msg->header.sender, retbuf);
 }
 
 /**
@@ -258,10 +258,10 @@ static void handleKvsGet(PSLog_Msg_t msg)
  *
  * @return No return value.
  */
-static void handleKvsCreate(PSLog_Msg_t msg)
+static void handleKvsCreate(PSLog_Msg_t *msg)
 {
     char kvsname[KVSNAME_MAX], retbuf[PMIU_MAXLINE];
-    char *ptr = msg.buf;
+    char *ptr = msg->buf;
 
     /* parse arguments */
     if (getpmiv("kvsname", ptr,kvsname, sizeof(kvsname))) {
@@ -277,7 +277,7 @@ static void handleKvsCreate(PSLog_Msg_t msg)
 	}
     }
     /* return result to forwarder */
-    sendKvsMsg(msg.header.sender, retbuf);
+    sendKvsMsg(msg->header.sender, retbuf);
 }
 
 /**
@@ -287,10 +287,10 @@ static void handleKvsCreate(PSLog_Msg_t msg)
  *
  * @return No return value.
  */
-static void handleKvsDestroy(PSLog_Msg_t msg)
+static void handleKvsDestroy(PSLog_Msg_t *msg)
 {
     char kvsname[KVSNAME_MAX], retbuf[PMIU_MAXLINE];
-    char *ptr = msg.buf;
+    char *ptr = msg->buf;
 
     /* parse arguments */
     if (getpmiv("kvsname",ptr,kvsname,sizeof(kvsname))) {
@@ -305,7 +305,7 @@ static void handleKvsDestroy(PSLog_Msg_t msg)
 	}
     }
     /* return result to forwarder */
-    sendKvsMsg(msg.header.sender, retbuf);
+    sendKvsMsg(msg->header.sender, retbuf);
 }
 
 /**
@@ -315,11 +315,11 @@ static void handleKvsDestroy(PSLog_Msg_t msg)
  *
  * @return No return value.
  */
-static void handleKvsGetByIdx(PSLog_Msg_t msg)
+static void handleKvsGetByIdx(PSLog_Msg_t *msg)
 {
     char idx[VALLEN_MAX], kvsname[KVSNAME_MAX], retbuf[PMIU_MAXLINE];
     char name[KVSNAME_MAX];
-    char *ptr = msg.buf, *ret, *value;
+    char *ptr = msg->buf, *ret, *value;
     int index, len;
 
     /* parse arguments */
@@ -352,7 +352,7 @@ static void handleKvsGetByIdx(PSLog_Msg_t msg)
     }
 
     /* return result to forwarder */
-    sendKvsMsg(msg.header.sender, retbuf);
+    sendKvsMsg(msg->header.sender, retbuf);
 }
 
 /**
@@ -457,7 +457,7 @@ static void setBarrierTimeout(void)
  *
  * @return No return value.
  */
-static void handleKvsBarrierIn(PSLog_Msg_t msg)
+static void handleKvsBarrierIn(PSLog_Msg_t *msg)
 {
     int i;
 
@@ -465,15 +465,15 @@ static void handleKvsBarrierIn(PSLog_Msg_t msg)
     if (kvsCacheUpdateCount > 0) {
 	PSIlog_log(-1, "%s: received barrier_in from %s while"
 		   " waiting for cache update results\n",
-		   __func__, PSC_printTID(msg.header.sender));
+		   __func__, PSC_printTID(msg->header.sender));
 	terminateJob();
     }
 
     /* check for double barrier in msg */
     for (i=0; i< maxKvsClients; i++) {
-	if (clientKvsTrackTID[i] == msg.sender) {
+	if (clientKvsTrackTID[i] == msg->sender) {
 	    PSIlog_log(-1, "%s: received barrier_in twice from %s\n",
-		       __func__, PSC_printTID(msg.header.sender));
+		       __func__, PSC_printTID(msg->header.sender));
 	    terminateJob();
 	}
     }
@@ -484,7 +484,7 @@ static void handleKvsBarrierIn(PSLog_Msg_t msg)
     }
 
     /* save sender to array */
-    clientKvsTrackTID[kvsBarrierInCount] = msg.header.sender;
+    clientKvsTrackTID[kvsBarrierInCount] = msg->header.sender;
     kvsBarrierInCount++;
 
     /* debugging output */
@@ -516,14 +516,14 @@ static void handleKvsBarrierIn(PSLog_Msg_t msg)
  *
  * @return No return value.
  */
-static void handleKvsCount(PSLog_Msg_t msg)
+static void handleKvsCount(PSLog_Msg_t *msg)
 {
     char reply[PMIU_MAXLINE];
 
     /* return result */
     snprintf(reply, sizeof(reply),
 	     "cmd=kvs_count count=%i rc=0\n", kvs_count());
-    sendKvsMsg(msg.header.sender, reply);
+    sendKvsMsg(msg->header.sender, reply);
 }
 
 /**
@@ -533,11 +533,11 @@ static void handleKvsCount(PSLog_Msg_t msg)
  *
  * @return No return value.
  */
-static void handleKvsValueCount(PSLog_Msg_t msg)
+static void handleKvsValueCount(PSLog_Msg_t *msg)
 {
     char reply[PMIU_MAXLINE];
     char kvsname[KVSNAME_MAX];
-    char *ptr = msg.buf;
+    char *ptr = msg->buf;
 
     /* parse arguments */
     if (getpmiv("kvsname", ptr,kvsname, sizeof(kvsname))) {
@@ -549,7 +549,7 @@ static void handleKvsValueCount(PSLog_Msg_t msg)
 		 "cmd=kvs_value_count count=%i kvsname=%s rc=0\n",
 		 kvs_count_values(kvsname), kvsname);
     }
-    sendKvsMsg(msg.header.sender, reply);
+    sendKvsMsg(msg->header.sender, reply);
 }
 
 /**
@@ -559,9 +559,9 @@ static void handleKvsValueCount(PSLog_Msg_t msg)
  *
  * @return No return value.
  */
-static void handleKvsUpdateCacheResult(PSLog_Msg_t msg)
+static void handleKvsUpdateCacheResult(PSLog_Msg_t *msg)
 {
-    char *ptr = msg.buf;
+    char *ptr = msg->buf;
     char mc[VALLEN_MAX], reply[PMIU_MAXLINE];
     int i;
 
@@ -569,15 +569,15 @@ static void handleKvsUpdateCacheResult(PSLog_Msg_t msg)
     if (kvsBarrierInCount >0 ) {
 	PSIlog_log(-1, "%s: received new barrier_in from %s while"
 		   " waiting for update cache results\n",
-		   __func__, PSC_printTID(msg.header.sender));
+		   __func__, PSC_printTID(msg->header.sender));
 	terminateJob();
     }
 
     /* check for double update cache msg */
     for (i=0; i< maxKvsClients; i++) {
-	if (clientKvsTrackTID[i] == msg.sender) {
+	if (clientKvsTrackTID[i] == msg->sender) {
 	    PSIlog_log(-1, "%s: received update cache result twice from %s\n",
-		       __func__, PSC_printTID(msg.header.sender));
+		       __func__, PSC_printTID(msg->header.sender));
 	    terminateJob();
 	}
     }
@@ -604,7 +604,7 @@ static void handleKvsUpdateCacheResult(PSLog_Msg_t msg)
 
     /* save sender to array */
     kvsCacheUpdateCount++;
-    clientKvsTrackTID[kvsBarrierInCount] = msg.header.sender;
+    clientKvsTrackTID[kvsBarrierInCount] = msg->header.sender;
 
     /* received all update requests */
     if (kvsCacheUpdateCount == noKvsClients) {
@@ -630,17 +630,17 @@ static void handleKvsUpdateCacheResult(PSLog_Msg_t msg)
  *
  * @return No return value.
  */
-static void handleKvsJoin(PSLog_Msg_t msg)
+static void handleKvsJoin(PSLog_Msg_t *msg)
 {
     static int count = 0;
 
-    if (msg.sender >= maxKvsClients) {
+    if (msg->sender >= maxKvsClients) {
 	int i;
 
 	clientKvsTID = realloc(clientKvsTID,
-			       sizeof(*clientKvsTID) * 2 * msg.sender);
+			       sizeof(*clientKvsTID) * 2 * msg->sender);
 	clientKvsTrackTID = realloc(clientKvsTrackTID,
-				    sizeof(*clientKvsTrackTID)*2*msg.sender);
+				    sizeof(*clientKvsTrackTID)*2*msg->sender);
 
 	if (!clientKvsTID || !clientKvsTrackTID) {
 	    PSIlog_log(-1, "%s: realloc() failed.\n", __func__);
@@ -648,18 +648,18 @@ static void handleKvsJoin(PSLog_Msg_t msg)
 	    exit(EXIT_FAILURE);
 	}
 
-	for (i=maxKvsClients; i<2*msg.sender; i++) {
+	for (i=maxKvsClients; i<2*msg->sender; i++) {
 	    clientKvsTID[i] = -1;
 	    clientKvsTrackTID[i] = -1;
 	}
 
-	maxKvsClients = 2*msg.sender;
+	maxKvsClients = 2*msg->sender;
     }
-    if (clientKvsTID[msg.sender] != -1) {
+    if (clientKvsTID[msg->sender] != -1) {
 	PSIlog_log(-1, "%s: %s (rank %d) already in kvs.\n", __func__,
-		   PSC_printTID(msg.header.sender), msg.sender);
+		   PSC_printTID(msg->header.sender), msg->sender);
     } else {
-	clientKvsTID[msg.sender] = msg.header.sender;
+	clientKvsTID[msg->sender] = msg->header.sender;
 	count++;
 	if (count > noKvsClients) {
 	    noKvsClients++;
@@ -674,17 +674,17 @@ static void handleKvsJoin(PSLog_Msg_t msg)
  *
  * @return No return value.
  */
-static void handleKvsLeave(PSLog_Msg_t msg)
+static void handleKvsLeave(PSLog_Msg_t *msg)
 {
     /* Try to find the corresponding client */
     int i = 0;
     char reply[PMIU_MAXLINE];
 
-    while ((i < maxKvsClients) && (clientKvsTID[i] != msg.header.sender)) i++;
+    while ((i < maxKvsClients) && (clientKvsTID[i] != msg->header.sender)) i++;
 
     if (i == maxKvsClients) {
 	PSIlog_log(-1, "%s: error invalid leave kvs msg from: %s.\n",
-		   __func__, PSC_printTID(msg.header.sender));
+		   __func__, PSC_printTID(msg->header.sender));
 	errno = EBADMSG;
 	terminateJob();
     }
@@ -693,7 +693,7 @@ static void handleKvsLeave(PSLog_Msg_t msg)
     /* Remove client from barrier_in waiting */
     if (kvsBarrierInCount > 0) {
 	for (i=0; i< maxKvsClients; i++) {
-	    if (clientKvsTrackTID[i] == msg.header.sender) {
+	    if (clientKvsTrackTID[i] == msg->header.sender) {
 		clientKvsTrackTID[i] = -1;
 		kvsBarrierInCount--;
 		noKvsClients--;
@@ -714,7 +714,7 @@ static void handleKvsLeave(PSLog_Msg_t msg)
 
     } else if (kvsCacheUpdateCount > 0) {
 	for (i=0; i< maxKvsClients; i++) {
-	    if (clientKvsTrackTID[i] == msg.header.sender) {
+	    if (clientKvsTrackTID[i] == msg->header.sender) {
 		clientKvsTrackTID[i] = -1;
 		kvsCacheUpdateCount--;
 		noKvsClients--;
@@ -776,16 +776,16 @@ static char *getKvsCmd(char *msg)
  *
  * @return No return value.
  */
-void handleKvsMsg(PSLog_Msg_t msg)
+void handleKvsMsg(PSLog_Msg_t *msg)
 {
     char cmd[VALLEN_MAX], *cmdtmp, *msgCopy;
 
     if (debug_kvs) {
-        PSIlog_log(-1, "%s: new pmi kvs msg: '%s'\n", __func__, msg.buf);
+        PSIlog_log(-1, "%s: new pmi kvs msg: '%s'\n", __func__, msg->buf);
     }
 
     /* extract the kvs command */
-    if(!(msgCopy = strdup(msg.buf))) {
+    if(!(msgCopy = strdup(msg->buf))) {
 	PSIlog_log(-1, "%s: out of memory, exiting\n", __func__);
 	terminateJob();
 	exit(EXIT_FAILURE);

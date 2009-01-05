@@ -457,6 +457,71 @@ int PSIDfwd_printMsgf(PSLog_msg_t type, const char *format, ...)
 }
 
 /**
+ * @brief Deliver signal.
+ *
+ * Deliver signal @a signal to controlled process. If the child is
+ * interactive, the signal is send to the forground process group of
+ * the controlling tty. Otherwise it's delivered to process with ID @a
+ * dest.
+ *
+ * @param dest Process ID of the process to send signal to. Not used
+ * for interactive childs.
+ *
+ * @param signal The signal to send.
+ *
+ * @return No return value.
+ */
+static void sendSignal(pid_t dest, int signal)
+{
+    pid_t pid = 0;
+
+    /* determine foreground process group for or default pid */
+    if (childTask->interactive) {
+	pid = tcgetpgrp(stderrSock);
+	if (pid == -1) {
+	    PSID_warn((errno==EBADF) ? PSID_LOG_SIGNAL : -1, errno,
+		      "%s: tcgetpgrp()", __func__);
+	    pid = 0;
+	}
+	/* Send signal to process-group */
+	pid = -pid;
+    }
+    if (!pid) pid = dest;
+
+    /* actually send the signal */
+    if (kill(pid, signal) == -1) {
+	PSID_warn((errno==ESRCH) ? PSID_LOG_SIGNAL : -1, errno,
+		  "%s: kill(%d, %d)", __func__, pid, signal);
+    }
+}
+
+/**
+ * @brief Handle signal message.
+ *
+ * Handle the signal message @a msg.
+ *
+ * @param msg Message containing destination and signal to deliver.
+ *
+ * @return No return value.
+ */
+static void handleSignalMsg(PSLog_Msg_t *msg)
+{
+    char *ptr = msg->buf;
+    pid_t pid;
+    int signal;
+
+    /* Get destination */
+    pid = *(int32_t *)ptr;
+    ptr += sizeof(int32_t);
+
+    /* Get signal to send */
+    signal = *(int32_t *)ptr;
+    ptr += sizeof(int32_t);
+
+    sendSignal(pid, signal);
+}
+
+/**
  * @brief Receive message from logger.
  *
  * Receive a message from the logger and store it to @a msg. If @a
@@ -491,6 +556,7 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 	return -1;
     }
 
+again:
     ret = PSLog_read(msg, timeout);
 
     if (ret < 0) {
@@ -520,6 +586,16 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 	}
 	break;
     case PSP_CC_MSG:
+	switch (msg->type) {
+	case SIGNAL:
+	    handleSignalMsg(msg);
+	    if (timeout) goto again;
+	    errno = EINTR;
+	    ret = -1;
+	    break;
+	default:
+	    break;
+	}
 	break;
     case PSP_CD_RELEASERES:
 	/* finaly release the pmi client */
@@ -619,9 +695,8 @@ static int connectLogger(PStask_ID_t tid)
 	return -1;
     }
 
-    if (msg.header.len != PSLog_headerSize + (int) sizeof(int)) {
-	PSID_log(-1, "%s(%s): Message to short\n",
-		 __func__, PSC_printTID(tid));
+    if (msg.header.len < PSLog_headerSize + (int) sizeof(int)) {
+	PSID_log(-1, "%s(%s): Message to short\n", __func__, PSC_printTID(tid));
 	errno = ECONNREFUSED;
 	return -1;
     } else if (msg.type != INITIALIZE) {
@@ -645,71 +720,6 @@ static int connectLogger(PStask_ID_t tid)
 }
 
 /**
- * @brief Deliver signal.
- *
- * Deliver signal @a signal to controlled process. If the child is
- * interactive, the signal is send to the forground process group of
- * the controlling tty. Otherwise it's delivered to process with ID @a
- * dest.
- *
- * @param dest Process ID of the process to send signal to. Not used
- * for interactive childs.
- *
- * @param signal The signal to send.
- *
- * @return No return value.
- */
-static void sendSignal(pid_t dest, int signal)
-{
-    pid_t pid = 0;
-
-    /* determine foreground process group for or default pid */
-    if (childTask->interactive) {
-	pid = tcgetpgrp(stderrSock);
-	if (pid == -1) {
-	    PSID_warn((errno==EBADF) ? PSID_LOG_SIGNAL : -1, errno,
-		      "%s: tcgetpgrp()", __func__);
-	    pid = 0;
-	}
-	/* Send signal to process-group */
-	pid = -pid;
-    }
-    if (!pid) pid = dest;
-
-    /* actually send the signal */
-    if (kill(pid, signal) == -1) {
-	PSID_warn((errno==ESRCH) ? PSID_LOG_SIGNAL : -1, errno,
-		  "%s: kill(%d, %d)", __func__, pid, signal);
-    }
-}
-
-/**
- * @brief Handle signal message.
- *
- * Handle the signal message @a msg.
- *
- * @param msg Message containing destination and signal to deliver.
- *
- * @return No return value.
- */
-static void handleSignalMsg(PSLog_Msg_t msg)
-{
-    char *ptr = msg.buf;
-    pid_t pid;
-    int signal;
-
-    /* Get destination */
-    pid = *(int32_t *)ptr;
-    ptr += sizeof(int32_t);
-
-    /* Get signal to send */
-    signal = *(int32_t *)ptr;
-    ptr += sizeof(int32_t);
-
-    sendSignal(pid, signal);
-}
-
-/**
  * @brief Close connection to logger
  *
  * Send a #FINALIZE message to the logger and wait for an #EXIT
@@ -726,6 +736,8 @@ static void releaseLogger(int status)
     PSLog_Msg_t msg;
     int ret;
     struct timeval timeout = {10, 0};
+
+    if (loggerTID < 0) return;
 
     sendMsg(FINALIZE, (char *)&status, sizeof(status));
 
@@ -744,10 +756,6 @@ static void releaseLogger(int status)
 		 PSC_printTID(childTask->loggertid));
     } else if (msg.type != EXIT) {
 	if (msg.type == STDIN) goto again; /* Ignore late STDIN messages */
-	if (msg.type == SIGNAL) {
-	    handleSignalMsg(msg);
-	    goto again;
-	}
 	PSID_log(-1, "%s: Protocol messed up (type %d) from %s\n",
 		 __func__, msg.type, PSC_printTID(msg.header.sender));
     }
@@ -946,9 +954,6 @@ static int readFromLogger(void)
 		break;
 	    case KVS:
 		pmi_handleKvsRet(msg);
-		break;
-	    case SIGNAL:
-		handleSignalMsg(msg);
 		break;
 	    case WINCH:
 		/* Logger detected change in window-size */

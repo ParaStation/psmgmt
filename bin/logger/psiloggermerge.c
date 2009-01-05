@@ -692,10 +692,10 @@ static bMessages *isSaved(char *msg, int hash)
  *
  * @return No return value.
  */
-void cacheOutput(PSLog_Msg_t msg, int outfd)
+void cacheOutput(PSLog_Msg_t *msg, int outfd)
 {
-    size_t count = msg.header.len - PSLog_headerSize;
-    int sender = msg.sender;
+    size_t count = msg->header.len - PSLog_headerSize;
+    int sender = msg->sender;
     OutputBuffers *newMsg = NULL;
     OutputBuffers *ClientBuf = &ClientOutBuf[sender];
     bMessages *globalMsg = NULL;
@@ -704,7 +704,7 @@ void cacheOutput(PSLog_Msg_t msg, int outfd)
     int hash;
 
     bufmem = umalloc((count +1), __func__);
-    strncpy(bufmem, msg.buf, count);
+    strncpy(bufmem, msg->buf, count);
     bufmem[count] = '\0';
     buf = bufmem;
 

@@ -208,12 +208,12 @@ static void setupInputDestList(char *input)
     }
 
     /* reset old input destinations */
-    for (i=0; i<maxClients; i++) InputDest[i] = -1;
+    for (i=0; i<maxClients; i++) InputDest[i] = 0;
 
     /* set input to all ranks */
     if (!strcmp(ranks, "all") || !strcmp(ranks, "All")) {
 	for (i=0; i<np; i++) {
-	    InputDest[i] = i;
+	    InputDest[i] = 1;
 	}
 	return;
     }
@@ -224,13 +224,13 @@ static void setupInputDestList(char *input)
 	    if ((sscanf(ranks, "%d-%d", &first, &last)) != 2) {
 		PSIlog_log(-1, "invalid range for input redirection,"
 			   " setting input to Rank 0.\n");
-		InputDest[0] = 0;
+		InputDest[0] = 1;
 		return;
 	    }
 	    if (first < 0 || last < 0 || last < first || first == last) {
 		PSIlog_log(-1, "invalid range for input redirection"
 			   " %i-%i, setting input to Rank 0.\n", first, last);
-		InputDest[0] = 0;
+		InputDest[0] = 1;
 		return;
 	    }
 	    for(i=first; i<=last; i++) {
@@ -238,7 +238,7 @@ static void setupInputDestList(char *input)
 		    PSIlog_log(-1, "input forward to non existing"
 			       " rank:[%d], valid ranks:[0-%i]\n", i, np-1);
 		} else {
-		    InputDest[i] = i;
+		    InputDest[i] = 1;
 		}
 	    }
 	} else {
@@ -252,7 +252,7 @@ static void setupInputDestList(char *input)
 		PSIlog_log(-1, "input forward to non existing"
 			   " rank:[%d], valid ranks:[0-%i]\n", i, np-1);
 	    } else {
-		InputDest[i] = i;
+		InputDest[i] = 1;
 	    }
 	}
 	ranks = strtok_r(NULL,delimiters,&saveptr);
@@ -292,7 +292,7 @@ static void readGDBInput(char *line)
     }
 
     for (i=0; i<maxClients; i++) {
-	if (InputDest[i] != -1 && forwardInputTID[i] != -1) {
+	if (InputDest[i] && forwardInputTID[i] != -1) {
 	    sendMsg(forwardInputTID[i], STDIN, buf, len);
 	}
     }
@@ -458,13 +458,13 @@ static int sendDaemonMsg(DDMsg_t *msg)
     if (n < 0) {
 	PSIlog_warn(-1, errno, "%s: error (%d)", __func__, errno);
 
-        closeDaemonSock();
+	closeDaemonSock();
 
 	return n;
     } else if (!n) {
 	PSIlog_log(-1, "%s(): Daemon connection lost\n", __func__);
 
-        closeDaemonSock();
+	closeDaemonSock();
 
 	return n;
     }
@@ -560,7 +560,7 @@ void sighandler(int sig)
 	break;
     case SIGWINCH:
 	for (i=0; i < maxClients; i++) {
-	    if (InputDest[i] == -1 || forwardInputTID[i] == -1) continue;
+	    if (!InputDest[i] || forwardInputTID[i] == -1) continue;
 
 	    /* Create WINCH-messages and send */
 	    struct winsize ws;
@@ -698,7 +698,7 @@ static int newrequest(PSLog_Msg_t *msg)
 	for (i=maxClients; i<2*msg->sender; i++) {
 	    clientTID[i] = -1;
 	    forwardInputTID[i] = -1;
-	    InputDest[i] = -1;
+	    InputDest[i] = 0;
 	}
 
 	/* realloc output buffer */
@@ -828,7 +828,7 @@ static void forwardInput(int std_in)
 	close(std_in);
     default:
 	for (i=0; i<maxClients; i++) {
-	    if (InputDest[i] != -1 && forwardInputTID[i] != -1) {
+	    if (InputDest[i] && forwardInputTID[i] != -1) {
 		sendMsg(forwardInputTID[i], STDIN, buf, len);
 	    }
 	}
@@ -843,15 +843,15 @@ static void forwardInput(int std_in)
  *
  * @return No return value.
  */
-static void handleUSAGEMsg(PSLog_Msg_t msg)
+static void handleUSAGEMsg(PSLog_Msg_t *msg)
 {
     if (usage) {
 	struct rusage usage;
 
-	memcpy(&usage, msg.buf, sizeof(usage));
+	memcpy(&usage, msg->buf, sizeof(usage));
 
 	PSIlog_log(-1, "Child with rank %d used %.6f/%.6f sec (user/sys)\n",
-		   msg.sender,
+		   msg->sender,
 		   usage.ru_utime.tv_sec + usage.ru_utime.tv_usec * 1.0e-6,
 		   usage.ru_stime.tv_sec + usage.ru_stime.tv_usec * 1.0e-6);
     }
@@ -868,26 +868,26 @@ static void handleUSAGEMsg(PSLog_Msg_t msg)
  *
  * @return No return value.
  */
-static void handleOutMsg(PSLog_Msg_t msg, int outfd)
+static void handleOutMsg(PSLog_Msg_t *msg, int outfd)
 {
     PSIlog_log(PSILOG_LOG_VERB, "Got %d bytes from %s\n",
-	       msg.header.len - PSLog_headerSize,
-	       PSC_printTID(msg.header.sender));
-    
+	       msg->header.len - PSLog_headerSize,
+	       PSC_printTID(msg->header.sender));
+
     if (MergeOutput && np > 1) {
 	/* collect all ouput */
 	cacheOutput(msg, outfd);
     } else if (PrependSource) {
 	static int lastSender = lastSenderMagic;
 	char prefix[30];
-	char *buf = msg.buf;
-	size_t count = msg.header.len - PSLog_headerSize;
-	
+	char *buf = msg->buf;
+	size_t count = msg->header.len - PSLog_headerSize;
+
 	if (PSIlog_getDebugMask() & PSILOG_LOG_VERB) {
-	    snprintf(prefix, sizeof(prefix), "[%d, %d]: ", msg.sender,
-		     msg.header.len - PSLog_headerSize);
+	    snprintf(prefix, sizeof(prefix), "[%d, %d]: ", msg->sender,
+		     msg->header.len - PSLog_headerSize);
 	} else if (count > 0) {
-	    snprintf(prefix, sizeof(prefix), "[%d]: ", msg.sender);
+	    snprintf(prefix, sizeof(prefix), "[%d]: ", msg->sender);
 	}
 
 	while (count>0) {
@@ -899,11 +899,11 @@ static void handleOutMsg(PSLog_Msg_t msg, int outfd)
 	    switch (outfd) {
 	    case STDOUT_FILENO:
 		PSIlog_stdout(-1, "%s%.*s",
-			      (lastSender==msg.sender) ? "" : prefix, num, buf);
+			      (lastSender==msg->sender) ? "":prefix, num, buf);
 		break;
 	    case STDERR_FILENO:
 		PSIlog_stderr(-1, "%s%.*s",
-			      (lastSender==msg.sender) ? "" : prefix, num, buf);
+			      (lastSender==msg->sender) ? "":prefix, num, buf);
 		break;
 	    default:
 		PSIlog_log(-1, "%s: unknown outfd %d\n", __func__, outfd);
@@ -915,16 +915,18 @@ static void handleOutMsg(PSLog_Msg_t msg, int outfd)
 		lastSender = lastSenderMagic;
 	    } else {
 		count = 0;
-		lastSender = msg.sender;
+		lastSender = msg->sender;
 	    }
 	}
     } else {
 	switch (outfd) {
 	case STDOUT_FILENO:
-	    PSIlog_stdout(-1, "%.*s", msg.header.len-PSLog_headerSize, msg.buf);
+	    PSIlog_stdout(-1, "%.*s",
+			  msg->header.len-PSLog_headerSize, msg->buf);
 	    break;
 	case STDERR_FILENO:
-	    PSIlog_stderr(-1, "%.*s", msg.header.len-PSLog_headerSize, msg.buf);
+	    PSIlog_stderr(-1, "%.*s",
+			  msg->header.len-PSLog_headerSize, msg->buf);
 	    break;
 	default:
 	    PSIlog_log(-1, "%s: unknown outfd %d\n", __func__, outfd);
@@ -939,13 +941,13 @@ static void handleOutMsg(PSLog_Msg_t msg, int outfd)
  *
  * @return No return value.
  */
-static void handleFINALIZEMsg(PSLog_Msg_t msg)
+static void handleFINALIZEMsg(PSLog_Msg_t *msg)
 {
     int i;
     leave_raw_mode();
     if (getenv("PSI_SSH_COMPAT_HOST")) {
 	char *host = getenv("PSI_SSH_COMPAT_HOST");
-	int status = *(int *) msg.buf;
+	int status = *(int *) msg->buf;
 
 	if (WIFSIGNALED(status)) retVal = -1;
 	if (WIFEXITED(status)) retVal = WEXITSTATUS(status);
@@ -953,12 +955,12 @@ static void handleFINALIZEMsg(PSLog_Msg_t msg)
 	if (getenv("PSI_SSH_INTERACTIVE"))
 	    PSIlog_log(-1, "Connection to %s closed.\n", host);
     } else {
-	int status = *(int *) msg.buf;
+	int status = *(int *) msg->buf;
 
 	if (WIFSIGNALED(status)) {
 	    const char *sigStr = sys_siglist[WTERMSIG(status)];
 	    PSIlog_log(-1, "Child with rank %d exited on signal %d",
-		       msg.sender, WTERMSIG(status));
+		       msg->sender, WTERMSIG(status));
 	    PSIlog_log(-1, ": %s\n", sigStr ? sigStr : "Unknown signal");
 	    signaled = 1;
 	}
@@ -966,30 +968,33 @@ static void handleFINALIZEMsg(PSLog_Msg_t msg)
 	if (WIFEXITED(status)) {
 	    if (WEXITSTATUS(status)) {
 		PSIlog_log(-1, "Child with rank %d exited with status %d.\n",
-			   msg.sender, WEXITSTATUS(status));
+			   msg->sender, WEXITSTATUS(status));
 		if (!retVal) retVal = WEXITSTATUS(status);
 	    } else {
 		PSIlog_log(PSILOG_LOG_VERB,
-			   "Child with rank %d exited normally.\n", msg.sender);
+			   "Child with rank %d exited normally.\n",
+			   msg->sender);
 	    }
 	}
     }
 
     PSIlog_log(PSILOG_LOG_VERB, "closing %s (rank %d) on FINALIZE\n",
-	       PSC_printTID(msg.header.sender), msg.sender);
+	       PSC_printTID(msg->header.sender), msg->sender);
 
-    PSLog_write(msg.header.sender, EXIT, NULL, 0);
+    PSLog_write(msg->header.sender, EXIT, NULL, 0);
 
     for (i=0; i < maxClients; i++) {
-	if (msg.header.sender == forwardInputTID[i]) {
+	if (msg->header.sender == forwardInputTID[i]) {
 	    /* disable input forwarding */
 	    //FD_CLR(STDIN_FILENO, &myfds);
-	    InputDest[i] = -1;
+	    InputDest[i] = 0;
 	}
     }
-    clientTID[msg.sender] = -1;
+    clientTID[msg->sender] = -1;
     noClients--;
 }
+
+static int activeSTOPs = 0;
 
 /**
  * @brief Handle STOP msg from forwarder.
@@ -998,19 +1003,23 @@ static void handleFINALIZEMsg(PSLog_Msg_t msg)
  *
  * @return No return value.
  */
-static void handleSTOPMsg(PSLog_Msg_t msg)
+static void handleSTOPMsg(PSLog_Msg_t *msg)
 {
-    int i;
+    /* rank InputDest wants pause */
+    if (!InputDest[msg->sender]) {
+	PSIlog_log(-1, "STOP from wrong rank: %d\n", msg->sender);
+	return;
+    }
 
-    for (i=0; i<maxClients; i++) {
-	if (msg.sender == InputDest[i]) {
-	    /* rank InputDest wants pause */
+    if (forwardInputTID[msg->sender] == msg->header.sender) {
+	if (!activeSTOPs) {
 	    FD_CLR(STDIN_FILENO,&myfds);
 	    PSIlog_log(PSILOG_LOG_VERB, "forward input is paused\n");
-	    return;
 	}
+	activeSTOPs++;
+	forwardInputTID[msg->sender] = -1; /* This marks sender as STOPped
+					      @todo this is a ugly HACK */
     }
-    PSIlog_log(-1, "STOP from wrong rank: %d\n", msg.sender);
 }
 
 /**
@@ -1020,20 +1029,23 @@ static void handleSTOPMsg(PSLog_Msg_t msg)
  *
  * @return No return value.
  */
-static void handleCONTMsg(PSLog_Msg_t msg)
+static void handleCONTMsg(PSLog_Msg_t *msg)
 {
-    int i;
+    if (!InputDest[msg->sender]) {
+	PSIlog_log(-1, "CONT from wrong rank: %d\n", msg->sender);
+	return;
+    }
 
-    for (i=0; i<maxClients; i++) {
-	if (msg.sender == InputDest[i]
-	    && forwardInputTID[msg.sender] == msg.header.sender) {
-	    /* rank InputDest wants the input again */
+    if (forwardInputTID[msg->sender] == -1) {
+	/* sender is marked as STOPped @todo this is a ugly HACK */
+	forwardInputTID[msg->sender] = msg->header.sender;
+	activeSTOPs--;
+
+	if (!activeSTOPs) {
 	    FD_SET(STDIN_FILENO,&myfds);
 	    PSIlog_log(PSILOG_LOG_VERB, "forward input continues\n");
-	    return;
 	}
     }
-    PSIlog_log(-1, "CONT from wrong rank: %d\n", msg.sender);
 }
 
 /**
@@ -1043,13 +1055,13 @@ static void handleCONTMsg(PSLog_Msg_t msg)
  *
  * @return No return value.
  */
-static void handleKVSMsg(PSLog_Msg_t msg)
+static void handleKVSMsg(PSLog_Msg_t *msg)
 {
     if (enable_kvs) {
 	handleKvsMsg(msg);
     } else {
 	/* return kvs disabled msg */
-	sendMsg(msg.header.sender, KVS, "cmd=kvs_not_available\n",
+	sendMsg(msg->header.sender, KVS, "cmd=kvs_not_available\n",
 	    strlen("cmd=kvs_not_available\n"));
     }
 }
@@ -1118,7 +1130,7 @@ static void sendAcctData(void)
     ptr += sizeof(gid_t);
     msg.header.len += sizeof(gid_t);
 
-    /* maximum connected childs */
+    /* maximum number of connected childs */
     *(int32_t *)ptr = maxConnected;
     ptr += sizeof(int32_t);
     msg.header.len += sizeof(int32_t);
@@ -1147,6 +1159,9 @@ static void sendAcctData(void)
     sendDaemonMsg((DDMsg_t *)&msg);
 }
 
+/** Minimum amount of time (in seconds) to wait for clients */
+#define MIN_WAIT 5
+
 /**
  * @brief The main loop
  *
@@ -1165,18 +1180,19 @@ static void loop(void)
     struct timeval mytv={1,0}, atv;
     PSLog_Msg_t msg;
     int timeoutval;
+    static int serviceClients = 0;
 
     FD_ZERO(&myfds);
     FD_SET(daemonSock, &myfds);
 
     noClients = 0;
-    timeoutval=0;
+    timeoutval = 0;
 
     /*
      * Loop until there is no connection left. Pay attention to the startup
      * phase, while no connection exists. Thus wait at least 10 * mytv.
      */
-    while ( noClients > 0 || timeoutval < 10 ) {
+    while ( noClients > 0 || timeoutval < MIN_WAIT ) {
 	fd_set afds;
 	memcpy(&afds, &myfds, sizeof(afds));
 	atv = mytv;
@@ -1184,8 +1200,8 @@ static void loop(void)
 	if (MergeOutput && np >1) displayCachedOutput(0);
 	if (select(daemonSock + 1, &afds, NULL,NULL,&atv) < 0) {
 	    if (errno == EINTR) {
-                /* Interrupted syscall, just start again */
-                continue;
+		/* Interrupted syscall, just start again */
+		continue;
 	    }
 	    PSIlog_warn(-1, errno, "select()");
 	    CheckFileTable(&myfds);
@@ -1207,17 +1223,18 @@ static void loop(void)
 
 	    if (msg.type == INITIALIZE) {
 		if (newrequest(&msg)) {
-		    int i;
-		    timeoutval = 10;
+		    if (msg.sender < 0) serviceClients++;
+
+		    if (maxConnected - serviceClients >= np) /* @todo always get correct np */
+			timeoutval = MIN_WAIT;
+
 		    if (msg.sender >= 0) {
 			forwardInputTID[msg.sender] = msg.header.sender;
 		    }
-		    for (i=0; i<maxClients; i++) {
-			if (msg.sender == InputDest[i]) {
-			    /* rank InputDest wants the input */
-			    FD_SET(STDIN_FILENO, &myfds);
-			    break;
-			}
+
+		    if (InputDest[msg.sender]) {
+			/* rank InputDest wants the input */
+			FD_SET(STDIN_FILENO, &myfds);
 		    }
 		}
 	    } else if (msg.sender > maxClients) {
@@ -1232,28 +1249,30 @@ static void loop(void)
 	    case STDERR:
 		outfd = STDERR_FILENO;
 	    case STDOUT:
-		handleOutMsg(msg, outfd);
+		handleOutMsg(&msg, outfd);
 		break;
 	    case USAGE:
-		handleUSAGEMsg(msg);
+		handleUSAGEMsg(&msg);
 		break;
 	    case FINALIZE:
-		handleFINALIZEMsg(msg);
+		handleFINALIZEMsg(&msg);
 		break;
 	    case STOP:
-		handleSTOPMsg(msg);
+		handleSTOPMsg(&msg);
+		continue; /* Don't handle STDIN now */
 		break;
 	    case CONT:
-		handleCONTMsg(msg);
+		handleCONTMsg(&msg);
 		break;
 	    case KVS:
-		handleKVSMsg(msg);
+		handleKVSMsg(&msg);
 		break;
 	    default:
 		PSIlog_log(-1, "%s: Unknown message type %d!\n", __func__,
 			   msg.type);
 	    }
-	} else if (FD_ISSET(STDIN_FILENO, &afds)) {
+	}
+	if (FD_ISSET(STDIN_FILENO, &afds)) {
 	    /* if we debug with gdb, use readline callback for sdtin */
 	    if (enableGDB) {
 		rl_callback_read_char();
@@ -1415,14 +1434,14 @@ int main( int argc, char**argv)
     }
     for (i=0; i<maxClients; i++) {
 	forwardInputTID[i] = -1;
-	InputDest[i] = -1;
+	InputDest[i] = 0;
     }
 
     if ((input = getenv("PSI_INPUTDEST"))) {
 	if (daemonSock) PSIlog_log(PSILOG_LOG_VERB, "Input to [%s].\n", input);
 	setupInputDestList(input);
     } else {
-	InputDest[0] = 0;
+	InputDest[0] = 1;
     }
 
     if (daemonSock) {
@@ -1432,7 +1451,7 @@ int main( int argc, char**argv)
 	PSIlog_log(PSILOG_LOG_VERB, "No stdin available.\n");
 	/* Never ever forward input */
 	for (i=0; i<maxClients; i++) {
-	    InputDest[i] = -1;
+	    InputDest[i] = 0;
 	}
     }
 
