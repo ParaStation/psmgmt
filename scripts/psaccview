@@ -31,11 +31,11 @@ our %conf;
 ## start of default configuration
 ####################################################
 ## any changes will be overwritten in new versions
-## use .psaccviewrc to define custom values ! 
+## use .psaccviewrc to define custom values !
 ####################################################
 
 # dir to read the accouting files
-$conf{'all'}{'account_dir'} = "/var/account";		
+$conf{'all'}{'account_dir'} = "/var/account";
 
 # check if the log entry are complete
 $conf{'all'}{'pedantic'} = "no";
@@ -46,9 +46,9 @@ $conf{'list'}{'group'}		= "yes";
 $conf{'list'}{'total'}		= "yes";
 $conf{'list'}{'jobs'}		= "yes";
 
-# sorting creteria for the diffrent views
-$conf{'sort'}{'job'}		= "cputime";
-$conf{'sort'}{'user'}		= "avg_procs";
+# sorting criteria for the diffrent views
+$conf{'sort'}{'job'}		= "user";
+$conf{'sort'}{'user'}		= "user";
 $conf{'sort'}{'group'}		= "group";
 
 # general display options
@@ -71,10 +71,12 @@ $conf{'sum'}{'cputime'}		= "yes";
 $conf{'sum'}{'jobs'}		= "yes";
 $conf{'sum'}{'procs'}		= "no";
 $conf{'sum'}{'cpuweight'}	= "yes";
-$conf{'sum'}{'nodes'}		= "yes";
+$conf{'sum'}{'nodes'}		= "no";
 $conf{'sum'}{'usage'}		= "no";
+$conf{'sum'}{'a_mem'}		= "no";
+$conf{'sum'}{'a_vmem'}		= "no";
 
-# calculate and display average 
+# calculate and display average
 # values in summary view
 $conf{'avg'}{'walltime'}	= "yes";
 $conf{'avg'}{'qtime'}		= "no";
@@ -85,28 +87,33 @@ $conf{'avg'}{'jobs'}		= "no";
 $conf{'avg'}{'procs'}		= "yes";
 $conf{'avg'}{'cpuweight'}	= "yes";
 $conf{'avg'}{'nodes'}		= "yes";
+$conf{'avg'}{'a_mem'}		= "no";
+$conf{'avg'}{'a_vmem'}		= "no";
 
-# display options for job view 
+# display options for job view
 $conf{'job'}{'user'}		= "yes";
 $conf{'job'}{'group'}		= "yes";
-$conf{'job'}{'jobid'}		= "yes";
+$conf{'job'}{'jobid'}		= "no";
 $conf{'job'}{'jobname'}		= "yes";
 $conf{'job'}{'starttime'}	= "yes";
-$conf{'job'}{'endtime'}		= "yes";
-$conf{'job'}{'walltime'}	= "no";
+$conf{'job'}{'endtime'}		= "no";
+$conf{'job'}{'walltime'}	= "yes";
 $conf{'job'}{'qtime'}		= "no";
 $conf{'job'}{'mem'}		= "yes";
 $conf{'job'}{'vmem'}		= "yes";
-$conf{'job'}{'exechost'}	= "yes";
+$conf{'job'}{'a_mem'}		= "no";
+$conf{'job'}{'a_vmem'}		= "no";
+$conf{'job'}{'exechost'}	= "no";
 $conf{'job'}{'nodes'}		= "yes";
 $conf{'job'}{'cputime'}		= "yes";
 $conf{'job'}{'cpuweight'}	= "yes";
 $conf{'job'}{'queue'}		= "no";
 $conf{'job'}{'procs'}		= "yes";
 $conf{'job'}{'exit'}		= "yes";
-$conf{'job'}{'session'}		= "yes";
+$conf{'job'}{'session'}		= "no";
 $conf{'job'}{'jobalias'}	= "no";
-$conf{'job'}{'threads'}		= "yes";
+$conf{'job'}{'threads'}		= "no";
+$conf{'job'}{'a_threads'}	= "no";
 
 ####################################################
 ## end of configuration
@@ -118,12 +125,12 @@ foreach my $arg (0 .. $#ARGV) {
 }
 
 if(!$norcfile) {
-    ## Include rcfile .psaccviewrc to set global defaults 
+    ## Include rcfile .psaccviewrc to set global defaults
     ## which can be overriden by the user.
     require("/opt/parastation/config/psaccviewrc") if (-r "/opt/parastation/config/psaccviewrc");
 
     ## Include the rcfile .psaccviewrc in the users home directory,
-    ## in this file any option can be set to the users needs 
+    ## in this file any option can be set to the users needs
     require("$ENV{'HOME'}/.psaccviewrc") if (-r "$ENV{'HOME'}/.psaccviewrc");
 }
 
@@ -132,12 +139,12 @@ $ENV{ENV} = "";
 
 my $confptr = \%conf;
 my $help=0; my $version; my $rev = '$Revision$';
-my $human; ; my $nospace; my $noheader; my $fulljobname; my $clocktime; my $pedantic;
-my $listjobs; my $listuser; my $listgroup; my $listtotal;
+my $human; ; my $nospace; my $noheader; my $fulljobname; my $clocktime;
+my $pedantic; my $listjobs; my $listuser; my $listgroup; my $listtotal;
 
 ## parse argv
 GetOptions(
-	   'sortjob=s' 	  => \$conf{'sort'}{'job'},
+	   'sortjob=s'    => \$conf{'sort'}{'job'},
 	   'sortuser=s'   => \$conf{'sort'}{'user'},
 	   'sortgroup=s'  => \$conf{'sort'}{'group'},
 	   'human|h'      => \$human,
@@ -155,6 +162,7 @@ GetOptions(
 	   'user|u=s'     => \$conf{'crit'}{'user'},
 	   'group|g=s'    => \$conf{'crit'}{'group'},
 	   'jobname|j=s'  => \$conf{'crit'}{'jobname'},
+	   'node|n=s'	  => \$conf{'crit'}{'node'},
 	   'listjobs|lj'  => \$listjobs,
 	   'listuser|lu'  => \$listuser,
 	   'listgroup|lg' => \$listgroup,
@@ -163,21 +171,21 @@ GetOptions(
 	   'selectjob|sj=s'=> \$conf{'sel'}{'job'},
 	   'norcfile'	  => \$norcfile,
 	   'help|?'	  => \$help,
-           'version|v'    => \$version
+	   'version|v'    => \$version
 )or pod2usage(2);
 pod2usage(1) if $help;
 
 if($version) {
     my $ver;
-    ($ver=$rev)  =~s/(^.+: )([0-9]+)(.*)/$2/; 
+    ($ver=$rev)  =~s/(^.+: )([0-9]+)(.*)/$2/;
     printf("\npsaccview version: $ver\n\n");
     exit(0);
 }
 
-# Setup arrays for data formating 
+# Setup arrays for data formating
 my @time_values = ('walltime', 'cputime', 'qtime', 'cpuweight');
 my @clocktime_values = ('starttime', 'endtime');
-my @mem_values = ('mem', 'vmem');
+my @mem_values = ('mem', 'vmem', 'a_mem', 'a_vmem');
 
 # switch average options on from cmd selection --selectsum
 if ($conf{'sel'}{'sum'}) {
@@ -187,7 +195,7 @@ if ($conf{'sel'}{'sum'}) {
 	if ($opt && length($opt) >4) {
 	    $sub = substr($opt, 4);
 	    if (defined $conf{'avg'}{$sub}) {
-		$conf{'avg'}{$sub} = "yes"; 
+		$conf{'avg'}{$sub} = "yes";
 	    }
 	}
     }
@@ -196,7 +204,7 @@ if ($conf{'sel'}{'sum'}) {
 # push all generated avarage values to formating arrays
 # and to normal config
 foreach my $avg ( keys %{$confptr->{'avg'}} ) {
-    if ($conf{'avg'}{$avg} eq "yes") { 
+    if ($conf{'avg'}{$avg} eq "yes") {
 	$conf{'sum'}{'avg_'.$avg} = "yes";
 	my @newtime; my @newmem;
 	foreach my $time ( @time_values ) {
@@ -212,10 +220,12 @@ foreach my $avg ( keys %{$confptr->{'avg'}} ) {
 
 # check for wrong cmd line options
 my $timespanlist = '^(today|week|month|year|all)$';
-die "Invalid timespan option (--timespan)\n" if $conf{'crit'}{'timespan'} && $conf{'crit'}{'timespan'} !~ /$timespanlist/;
-
-die "Invalid begin option (--begin)\n" if $conf{'crit'}{'begin'} && $conf{'crit'}{'begin'} !~ /^\d{8}$/;
-die "Invalid end option (--end)\n" if $conf{'crit'}{'end'} && $conf{'crit'}{'end'} !~ /^\d{8}$/;
+die "Invalid timespan option (--timespan)\n" if $conf{'crit'}{'timespan'} &&
+    $conf{'crit'}{'timespan'} !~ /$timespanlist/;
+die "Invalid begin option (--begin)\n" if $conf{'crit'}{'begin'} &&
+    $conf{'crit'}{'begin'} !~ /^\d{8}$/;
+die "Invalid end option (--end)\n" if $conf{'crit'}{'end'} &&
+    $conf{'crit'}{'end'} !~ /^\d{8}$/;
 
 # parse and apply summary select options
 if ($conf{'sel'}{'sum'}) {
@@ -226,25 +236,25 @@ if ($conf{'sel'}{'sum'}) {
     my @popts = split(/,/,$conf{'sel'}{'sum'});
     foreach my $opt (@popts) {
 	if (defined $conf{'sum'}{$opt}) {
-	    $conf{'sum'}{$opt} = "yes"; 
+	    $conf{'sum'}{$opt} = "yes";
 	} else {
-	    die "Invalid selection for summary lists (--selectsum): $opt\n"; 
+	    die "Invalid selection for summary lists (--selectsum): $opt\n";
 	}
     }
 }
 
 # parse and apply job display options
-if($conf{'sel'}{'job'}){ 
+if($conf{'sel'}{'job'}){
     foreach my $key ( keys %{$confptr->{'job'}} ) {
 	$conf{'job'}{$key} = "no";
     }
-    
+
     my @popts = split(/,/,$conf{'sel'}{'job'});
     foreach my $opt (@popts) {
 	if (defined $conf{'job'}{$opt}) {
-	    $conf{'job'}{$opt} = "yes"; 
+	    $conf{'job'}{$opt} = "yes";
 	} else {
-	    die "Invalid selection for job list (--selectjob): $opt\n"; 
+	    die "Invalid selection for job list (--selectjob): $opt\n";
 	}
     }
 }
@@ -285,10 +295,10 @@ $conf{'all'}{'pedantic'} = "yes" if $pedantic;
 my $meastime = time;
 
 # calc time for filename
-my $tbegin, my $tend; 
+my $tbegin, my $tend;
 calcTimeRange(\$tbegin, \$tend);
 
-my %job_data, my %user_data, my %group_data, my %sum_data, my %track_data; 
+my %job_data, my %user_data, my %group_data, my %sum_data, my %track_data;
 my $jobnum = 1;
 my $lbegin = $tend;
 my $ps_acc_dir = $conf{'all'}{'account_dir'};
@@ -301,9 +311,10 @@ while ( defined (my $filename = readdir(DIR))) {
     if($filename =~ /\.(gz)$/){$show = "gzip -cd"; }
     if($filename =~ /\.(bz2)$/){$show = "bzip2 -cd"; }
     (my $basename) = $filename  =~ m/^([A-Z0-9_.-]+)$/ig;
-    $basename =~ s/(\.(gz)$)|(\.(bz2)$)//; 
+    $basename =~ s/(\.(gz)$)|(\.(bz2)$)//;
     $lbegin = $basename if ($basename =~  /^\d{8}$/ && $basename < $lbegin);
-    if($filename eq ".." || $filename eq "." || $basename !~ /^\d{8}$/ || $basename < $tbegin || $basename > $tend){next;}	
+    if($filename eq ".." || $filename eq "." || $basename !~ /^\d{8}$/ ||
+	$basename < $tbegin || $basename > $tend){next;}
     #printf "$filename $basename\n";
     open FILE,"$show " . $ps_acc_dir. "/" . $basename . " |"  or die("Can't open file: $basename\n");
     my @lines = <FILE>;
@@ -313,111 +324,131 @@ while ( defined (my $filename = readdir(DIR))) {
 	if ( !$parts[1] ) {
 	    next;
 	}
-	
+
 	# create track array of found msgs if we are in pedantic mode
-	if ($conf{'all'}{'pedantic'} eq "yes") { 
+	if ($conf{'all'}{'pedantic'} eq "yes") {
 	    my @subdata = split(/ /,$parts[3]) if $parts[3];
 	    my $user, my $group;
 	    $track_data{$parts[2]}{$parts[1]} = 1;
 	    foreach my $accline (@subdata) {
-		($user=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^user=/;  
-		($group=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^group=/;  
+		($user=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^user=/;
+		($group=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^group=/;
 	    }
 	    $track_data{$parts[2]}{'user'} = $user if $user;
 	    $track_data{$parts[2]}{'group'} = $group if $group;
 	}
-	
+
 	# create data arrays
 	if ( $parts[1] eq "E" ) {
 	    my @jobid = split(/\./,$parts[2]);
 	    my @subdata = split(/ /,$parts[3]);
-	    my $group , my $user, my $qtime ,my $jobname, my $start, my $queue, my $cput; 
+	    my $group , my $user, my $qtime ,my $jobname, my $start, my $queue, my $cput;
 	    my $mem, my $vmem, my $walltime = 0, my $exechost, my $exitstatus, my $end, my $session;
-	    my $alias, my $threads;
+	    my $alias, my $threads; my $a_threads; my $a_mem; my $a_vmem;
+	    my $node_in_job = 0;
 	    foreach my $accline (@subdata) {
-		($user=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^user=/;  
-		($group=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^group=/;  
-		($jobname=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^jobname=/; 
-		($queue=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^queue=/;  
-		($qtime=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^qtime=/; 
-		($start=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^start=/; 
-		($end=$accline)	 	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^end=/; 
-		($exitstatus=$accline) 	 =~s/(^.+=)(-?[0-9]+)(\n*)/$2/ if $accline =~ /^Exit_status=/;
-		($cput=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^resources_used.cput=/;  
-		($mem=$accline)	 	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^resources_used.mem=/;  
-		($vmem=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^resources_used.vmem=/;  
+		($user=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^user=/;
+		($group=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^group=/;
+		($jobname=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^jobname=/;
+		($queue=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^queue=/;
+		($qtime=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^qtime=/;
+		($start=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^start=/;
+		($end=$accline)          =~s/(^.+=)(.*)/$2/ if $accline =~ /^end=/;
+		($exitstatus=$accline)   =~s/(^.+=)(-?[0-9]+)(\n*)/$2/ if $accline =~ /^Exit_status=/;
+		($cput=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^resources_used.cput=/;
+		($mem=$accline)          =~s/(^.+=)(.*)/$2/ if $accline =~ /^resources_used.mem=/;
+		($vmem=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^resources_used.vmem=/;
 		($walltime=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^resources_used.walltime=/;
 		($threads=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^resources_used.threads=/;
+		($a_threads=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^resources_used.avg_threads=/;
+		($a_mem=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^resources_used.avg_mem=/;
+		($a_vmem=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^resources_used.avg_vmem=/;
 		($exechost=$accline)     =~s/(^.+=)(.*)/$2/ if $accline =~ /^exec_host=/;
 		($session=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^session=/;
 		($alias=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^jobid=/;
 	    }
-		
+
 	    if (!$user || !$group || !$jobname || !$start || !$end || !$exechost) {
 		if (!($conf{'all'}{'noheader'} eq "yes") && $lasterror ne $filename) {
-		    $lasterror = $filename; 
+		    $lasterror = $filename;
 		    printf("Skipped invalid account entry(s) in file $ps_acc_dir/$filename\n");
 		}
 		next;
 	    }
 
-	    if ((!defined($conf{'crit'}{'user'}) || $conf{'crit'}{'user'} eq $user) &&
-		(!defined($conf{'crit'}{'group'}) || $conf{'crit'}{'group'} eq $group) &&
-		(!defined($conf{'crit'}{'queue'}) || $conf{'crit'}{'queue'} eq $queue) &&
-		(!defined($conf{'crit'}{'exit'}) || ($conf{'crit'}{'exit'} eq $exitstatus)
+	    if ((!defined($conf{'crit'}{'user'}) || $user =~ /$conf{'crit'}{'user'}/) &&
+		(!defined($conf{'crit'}{'group'}) || $group =~ /$conf{'crit'}{'group'}/) &&
+		(!defined($conf{'crit'}{'queue'}) || $queue =~ /$conf{'crit'}{'queue'}/) &&
+		(!defined($conf{'crit'}{'exit'}) || ($exitstatus =~ /$conf{'crit'}{'exit'}/)
 		 || ($conf{'crit'}{'exit'} eq "false" && $exitstatus != 0)) &&
-		(!defined($conf{'crit'}{'jobname'}) || $conf{'crit'}{'jobname'} eq $jobname)) { 
-		
+		(!defined($conf{'crit'}{'jobname'}) || $jobname =~ /$conf{'crit'}{'jobname'}/)) {
+
 		# precalc some values
 		my @exec_hosts = split(/\+/,$exechost);
 		my $num_hosts = scalar(@exec_hosts);
 		my $exec_host = substr($exec_hosts[0],0,index($exec_hosts[0],'/'));
 		my %allnodes;
-		
+
 		foreach my $node (@exec_hosts) {
-			$allnodes{substr($node,0,index($node,'/'))} = 1;
+		    if (defined($conf{'crit'}{'node'})) {
+			my $n_name = substr($node,0,index($node,'/'));
+			if ($n_name =~ /$conf{'crit'}{'node'}/) {
+			    $node_in_job = 1;
+			}
+		    }
+		    $allnodes{substr($node,0,index($node,'/'))} = 1;
 		}
+		next if (defined($conf{'crit'}{'node'}) && !$node_in_job);
+
 		my $num_nodes = scalar(keys(%allnodes));
 		my $newqtime = $start - $qtime > 0 ? $start - $qtime : 0;
 		my $cput_sec = time_to_sec($cput);
 		my $walltime_sec = time_to_sec($walltime);
 		my $mem_kb = kb_to_num($mem);
 		my $vmem_kb = kb_to_num($vmem);
+		my $a_mem_kb = kb_to_num($a_mem);
+		my $a_vmem_kb = kb_to_num($a_vmem);
 		my $cpuweight = $num_hosts * time_to_sec($walltime);
 		$jobname = ($conf{'all'}{'fulljobname'} eq "yes" ) ? $jobname : basename($jobname);
 		$threads = $threads ? $threads : ($conf{'all'}{'nospace'} eq "yes") ? "\"\"" : "";
+		$a_threads = $a_threads ? $a_threads : ($conf{'all'}{'nospace'} eq "yes") ? "\"\"" : "";
 		$session = $session ? $session : ($conf{'all'}{'nospace'} eq "yes") ? "\"\"" : "";
 		my $job_id = $jobid[0] ? $jobid[0] : ($conf{'all'}{'nospace'} eq "yes") ? "\"\"" : "";
 
 		# set up job array
 		if ($conf{'list'}{'jobs'} eq "yes") {
 		    $job_data{$jobnum}{'user'}		= $user;
-		    $job_data{$jobnum}{'group'} 	= $group;
-		    $job_data{$jobnum}{'jobname'} 	= $jobname; 
-		    $job_data{$jobnum}{'jobid'} 	= $job_id;
-		    $job_data{$jobnum}{'queue'} 	= $queue;
-		    $job_data{$jobnum}{'cputime'} 	= $cput_sec;
+		    $job_data{$jobnum}{'group'}         = $group;
+		    $job_data{$jobnum}{'jobname'}       = $jobname;
+		    $job_data{$jobnum}{'jobid'}         = $job_id;
+		    $job_data{$jobnum}{'queue'}         = $queue;
+		    $job_data{$jobnum}{'cputime'}       = $cput_sec;
 		    $job_data{$jobnum}{'mem'}		= $mem_kb;
 		    $job_data{$jobnum}{'vmem'}		= $vmem_kb;
-		    $job_data{$jobnum}{'walltime'} 	= $walltime_sec;
+		    $job_data{$jobnum}{'a_mem'}		= $a_mem_kb;
+		    $job_data{$jobnum}{'a_vmem'}	= $a_vmem_kb;
+		    $job_data{$jobnum}{'walltime'}      = $walltime_sec;
 		    $job_data{$jobnum}{'qtime'}		= $newqtime;
-		    $job_data{$jobnum}{'starttime'} 	= $start;
+		    $job_data{$jobnum}{'starttime'}     = $start;
 		    $job_data{$jobnum}{'endtime'}	= $end;
 		    $job_data{$jobnum}{'exit'}		= $exitstatus;
 		    $job_data{$jobnum}{'cpuweight'}	= $cpuweight;
-		    $job_data{$jobnum}{'procs'} 	= $num_hosts ? $num_hosts : "";
-		    $job_data{$jobnum}{'nodes'} 	= $num_nodes ? $num_nodes : "";
-		    $job_data{$jobnum}{'exechost'} 	= $exec_host ? $exec_host: "";
-		    $job_data{$jobnum}{'session'} 	= $session;
-		    $job_data{$jobnum}{'jobalias'} 	= $alias ? $alias : "";
-		    $job_data{$jobnum}{'threads'} 	= $threads; 
-		}	
+		    $job_data{$jobnum}{'procs'}         = $num_hosts ? $num_hosts : "";
+		    $job_data{$jobnum}{'nodes'}         = $num_nodes ? $num_nodes : "";
+		    $job_data{$jobnum}{'exechost'}      = $exec_host ? $exec_host: "";
+		    $job_data{$jobnum}{'session'}       = $session;
+		    $job_data{$jobnum}{'jobalias'}      = $alias ? $alias : "";
+		    $job_data{$jobnum}{'threads'}       = $threads;
+		    $job_data{$jobnum}{'a_threads'}     = $a_threads;
+		}
 
 		# set up user summary
 		if ($conf{'list'}{'user'} eq "yes") {
 		    $user_data{$user}{'cputime'}	+= $cput_sec;
 		    $user_data{$user}{'mem'}		+= $mem_kb;
+		    $user_data{$user}{'a_mem'}		+= $a_mem_kb;
 		    $user_data{$user}{'vmem'}		+= $vmem_kb;
+		    $user_data{$user}{'a_vmem'}		+= $a_vmem_kb;
 		    $user_data{$user}{'walltime'}	+= $walltime_sec;
 		    $user_data{$user}{'qtime'}		+= $newqtime;
 		    $user_data{$user}{'cpuweight'}	+= $cpuweight;
@@ -430,21 +461,25 @@ while ( defined (my $filename = readdir(DIR))) {
 		if ($conf{'list'}{'group'} eq "yes") {
 		    $group_data{$group}{'cputime'}	+= $cput_sec;
 		    $group_data{$group}{'mem'}		+= $mem_kb;
+		    $group_data{$group}{'a_mem'}	+= $a_mem_kb;
 		    $group_data{$group}{'vmem'}		+= $vmem_kb;
+		    $group_data{$group}{'a_vmem'}	+= $a_vmem_kb;
 		    $group_data{$group}{'walltime'}	+= $walltime_sec;
-		    $group_data{$group}{'qtime'}	+= $newqtime; 
+		    $group_data{$group}{'qtime'}	+= $newqtime;
 		    $group_data{$group}{'cpuweight'}    += $cpuweight;
 		    $group_data{$group}{'procs'}	+= $num_hosts;
 		    $group_data{$group}{'nodes'}	+= $num_nodes;
 		    $group_data{$group}{'jobs'}		+= 1;
 		}
-    	
+
 		# set up total summary
 		$sum_data{'all'}{'walltime'}		+= $walltime_sec;
 		if ($conf{'list'}{'total'} eq "yes") {
 		    $sum_data{'all'}{'cputime'}	+= $cput_sec;
 		    $sum_data{'all'}{'mem'}		+= $mem_kb;
+		    $sum_data{'all'}{'a_mem'}		+= $a_mem_kb;
 		    $sum_data{'all'}{'vmem'}		+= $vmem_kb;
+		    $sum_data{'all'}{'a_vmem'}		+= $a_vmem_kb;
 		    $sum_data{'all'}{'qtime'}		+= $newqtime;
 		    $sum_data{'all'}{'cpuweight'}	+= $cpuweight;
 		    $sum_data{'all'}{'procs'}		+= $num_hosts;
@@ -464,18 +499,18 @@ if(!($conf{'all'}{'noheader'} eq "yes")){
     print "\nParaStation accouting statistics\n--------------------------------\n\n";
 
     my $bY, my $bM, my $bD, my $eY, my $eM, my $eD;
-    $tbegin = $lbegin if $tbegin == 1;	
+    $tbegin = $lbegin if $tbegin == 1;
     $bY = substr($tbegin,0,4);
     $bM = substr($tbegin,4,2);
-    $bD = substr($tbegin,6,2);	
+    $bD = substr($tbegin,6,2);
     $eY = substr($tend,0,4);
     $eM = substr($tend,4,2);
-    $eD = substr($tend,6,2);	
+    $eD = substr($tend,6,2);
 
     if($ENV{'LANG'} && $ENV{'LANG'} =~ /en_US/){ print "From $bY/$bM/$bD till $eY/$eM/$eD\n\n";}
     else { print "From $bD.$bM.$bY till $eD.$eM.$eY\n\n"; }
 }
-    
+
 # Check if we have data left to display
 if($jobnum <= 1){ die "No accounting data is matching your search criteria\n"; }
 
@@ -505,12 +540,12 @@ if ($conf{'list'}{'jobs'} eq "yes") {
 if ($conf{'all'}{'pedantic'} eq "yes") {
     my $trackptr = \%track_data;
     foreach my $id ( keys %track_data) {
-	#print $id . keys (%{$trackptr->{$id}}) . "\n"; 
+	#print $id . keys (%{$trackptr->{$id}}) . "\n";
 	my $user =  $track_data{$id}{'user'} ?  $track_data{$id}{'user'} : "unknown";
 	my $group = $track_data{$id}{'group'} ? $track_data{$id}{'group'} : "unknown";
-	
+
 	if (!defined($track_data{$id}{'E'}) && !defined($track_data{$id}{'D'})) {
-	    
+
 	    if (defined($track_data{$id}{'Q'}) && !defined($track_data{$id}{'S'})) {
 		print "Found single queue msg for Job Id:$id User:$user Group:$group\n";
 	    } elsif (defined($track_data{$id}{'Q'}) &&  defined($track_data{$id}{'S'})) {
@@ -539,30 +574,37 @@ sub display_acc_data {
 	$hlen = length($key) > $hlen ? length($key) : $hlen;
     }
 
-    # display header 
+    # display header
     if (!($conf{'all'}{'noheader'} eq "yes")) {
 	printf "%".$hlen."s", $head;
 	# setup format for print
 	foreach my $key ( keys %$data ) {
 	    foreach my $subkey ( keys %{$data->{$key}} ) {
-		printf "%".($row{'len'}{$subkey}+$diff)."s",$subkey if ($$opt{$subkey} eq "yes");
+		if ($$opt{$subkey} && $$opt{$subkey} eq "yes") {
+		    printf "%".($row{'len'}{$subkey}+$diff)."s",$subkey;
+		}
 	    }
 	    last;
 	}
-	printf "\n%s", "-"x$hlen; 
+	printf "\n%s", "-"x$hlen;
 	foreach my $key ( keys %$data ) {
 	    foreach my $subkey ( keys %{$data->{$key}} ) {
-		printf "%".($row{'len'}{$subkey}+$diff)."s","-"x$row{'len'}{$subkey} if ($$opt{$subkey} eq "yes");
+		if ($$opt{$subkey} && $$opt{$subkey} eq "yes") {
+		    printf "%".($row{'len'}{$subkey}+$diff)."s","-"x$row{'len'}{$subkey};
+		}
 	    }
 	    last;
 	}
-	print "\n"; 
+	print "\n";
     }
-    
+
+    # display data
     foreach my $key ( @$sortptr ) {
 	printf "%".$hlen."s", $key;
 	foreach my $subkey (  (keys %{$data->{$key}} )) {
-	    printf "%".($row{'len'}{$subkey}+$diff)."s", $$data{$key}{$subkey} if ($$opt{$subkey} eq "yes");
+	    if ($$opt{$subkey} && $$opt{$subkey} eq "yes") {
+		printf "%".($row{'len'}{$subkey}+$diff)."s", $$data{$key}{$subkey};
+	    }
 	}
 	print "\n";
     }
@@ -575,7 +617,7 @@ sub calcTimeRange {
     my $timespan = $conf{'crit'}{'timespan'};
     $date[4]++;
     $date[5] += 1900;
-       
+
     $tend = sprintf("%04d%02d%02d",$date[5],$date[4],$date[3]);
     $tbegin = $tend if $timespan eq "today";
     $tbegin = sprintf("%04d%02d01",$date[5],$date[4]) if $timespan eq "month";
@@ -602,20 +644,20 @@ sub process_acc_data {
     my %data = %$dataptr;
     my $len;
     my $sortnum = 0;
-	
+
     # calc all average values
     foreach my $key ( keys %data ) {
 	if ($data{$key}{'jobs'}) {
 	    foreach my $avg ( keys %{$confptr->{'avg'}} ) {
-		if ($conf{'avg'}{$avg} eq "yes") {
+		if ($conf{'avg'}{$avg} eq "yes" && $data{$key}{$avg}) {
 		    #print "avg values $avg:".formattime($data{$key}{$avg})."\n";
 		    $data{$key}{"avg_".$avg} = int(($data{$key}{$avg}) / ($data{$key}{'jobs'}));
 		}
 	    }
 	}
     }
-    
-    # find sorting type 
+
+    # find sorting type
     foreach my $key ( keys %data ) {
 	$sortnum = 1 if isNumeric($data{$key}{$sort});
 	last;
@@ -625,32 +667,32 @@ sub process_acc_data {
     my $sfunc = $sortnum ? \&sortnum : \&sortstring;
     $sfunc = \&sortnorm if ($sumview && ($sort eq "user" || $sort eq "group"));
     @$sortptr = sort $sfunc (keys %data);
-   
+
     # call formating functions
     foreach my $key ( keys %data ) {
 	# format all times
 	foreach my $time ( @time_values ) {
 	    if (defined($data{$key}{$time})) {
 		#print "formating $time: ".$data{$key}{$time}." formated: ".formattime($data{$key}{$time})."\n";
-		$data{$key}{$time} = formattime($data{$key}{$time}); 
+		$data{$key}{$time} = formattime($data{$key}{$time});
 	    }
 	}
 	# format all clocktimes
 	foreach my $time ( @clocktime_values ) {
 	    if (defined($data{$key}{$time})) {
 		#print "formating $time: ".$data{$key}{$time}." formated: ".formattime($data{$key}{$time})."\n";
-		$data{$key}{$time} = formatclocktime($data{$key}{$time}); 
+		$data{$key}{$time} = formatclocktime($data{$key}{$time});
 	    }
 	}
 	# format all memory values
 	foreach my $mem ( @mem_values ) {
 	    if (defined($data{$key}{$mem})) {
 		#print "formating $mem:".formatmem($data{$key}{$mem})."\n";
-		$data{$key}{$mem} = formatmem($data{$key}{$mem}); 
+		$data{$key}{$mem} = formatmem($data{$key}{$mem});
 	    }
 	}
     }
-    
+
     # init row length
     foreach my $key ( keys %data ) {
 	foreach my $subkey ( keys %{$dataptr->{$key}} ) {
@@ -659,13 +701,13 @@ sub process_acc_data {
 	}
 	last;
     }
-    
+
     # calc row length
     foreach my $key ( keys %data ) {
 	foreach my $subkey ( keys %{$dataptr->{$key}} ) {
 	    $len = length($data{$key}{$subkey});
 	    #print "key: $key subkey: $subkey, len: $len subkeylen: ".$row{'len'}{$subkey}."\n";
-	    $row{'len'}{$subkey} = ($len > $row{'len'}{$subkey} )? $len : $row{'len'}{$subkey}; 
+	    $row{'len'}{$subkey} = ($len > $row{'len'}{$subkey} )? $len : $row{'len'}{$subkey};
 	}
     }
 }
@@ -698,15 +740,15 @@ sub isNumeric {
     my $SIGN   = qr{ [+-] }xms;
     my $NUMBER = qr{ ($SIGN?) ($DIGITS) }xms;
     if ( $val !~ /^${NUMBER}$/ ) {
-        return 0;
+	return 0;
     } else {
-        return 1;
+	return 1;
     }
-} 
+}
 
 ## Format helper functions
 sub kb_to_num {
-    if (!$_[0]) { 
+    if (!$_[0]) {
 	return 0;
     }
     (my $out = $_[0]) =~ s/kb//;
@@ -714,7 +756,7 @@ sub kb_to_num {
 }
 
 sub time_to_sec {
-    if (!$_[0]) { 
+    if (!$_[0]) {
 	return 0;
     }
     my $hours = "";
@@ -738,13 +780,13 @@ sub formatclocktime {
 	my $M=sprintf("%02d",(localtime($NOW))[1]);
 	my $S=sprintf("%02d",(localtime($NOW))[0]);
 	if($conf{'all'}{'nospace'} eq "yes") {
-	    if($ENV{'LANG'} && $ENV{'LANG'} =~ /en_US/){ 
+	    if($ENV{'LANG'} && $ENV{'LANG'} =~ /en_US/){
 		return "\"$Y/$m/$d $H:$M\"";
 	    }
 	    return "\"$d.$m.$Y $H:$M\"";
 	} else {
-	    if($ENV{'LANG'} && $ENV{'LANG'} =~ /en_US/){ 
-		return "$Y/$m/$d $H:$M"; 
+	    if($ENV{'LANG'} && $ENV{'LANG'} =~ /en_US/){
+		return "$Y/$m/$d $H:$M";
 	    }
 	    return "$d.$m.$Y $H:$M";
 	}
@@ -765,13 +807,13 @@ sub formattime {
     $out -= int ($min * 60) if $min >0;
     my $sec = $out;
     my $time = "";
-    
+
     if($conf{'all'}{'clocktime'} eq "yes") {
 	if($days > 0) {
 	    $time = "1 day";
-	    $time = sprintf("%d days",$days) if $days > 1; 
+	    $time = sprintf("%d days",$days) if $days > 1;
 	} else {
-	    $time = sprintf("%02d:%02d:%02d",$hours,$min,$sec);    
+	    $time = sprintf("%02d:%02d:%02d",$hours,$min,$sec);
 	}
     } else {
 	$time .= $days  > 0 ? $days."d "  : "";
@@ -788,7 +830,7 @@ sub formattime {
 	    $time .= "0m ";
 	}
 	$time .= $sec   > 0 ? $sec."s"    : "0s";
-    }	
+    }
     $time = "\"$time\"" if ($conf{'all'}{'nospace'} eq "yes");
     return $time;
 }
@@ -825,12 +867,14 @@ psaccview [options]
   Options:
 	--human --noheader --exit {value} --queue {value}
 	--user {value} --group {value} --jobname {value}
-	--listjobs --listuser --listgroup --listtotal  
-	--selectsum {string}  --selectjob {string} --help 
-	--timespan {today,week,month,year} --nospace 
+	--listjobs --listuser --listgroup --listtotal
+	--selectsum {string}  --selectjob {string}
+	--timespan {today,week,month,year} --nospace
+	--node {nodename} --norcfile --help
 	--accountdir {value}  -- fulljob --clocktime
 	--begin {yyyymmdd} --end {yyyymmdd} --version
-	--sortjob {value} --sortuser {value} --sortgroup {value}
+	--sortjob {value} --sortuser {value}
+	--sortgroup {value}
 
 
 =head1 OPTIONS
@@ -848,38 +892,45 @@ Displays the output human readable.
 
 =item B<--noheader -nh>
 
-Outputs the data without any header information. Usefull for 
+Output the data without any header information. Usefull for
 further parsing.
 
 
 =item B<--exit -e> <exitcode>
 
-Shows only results with the given exit code. You can use "false" as exit
-code to get all jobs where the exit code is not 0.
+Show only results with the given exit code (regular expression).
+You can use "false" as exit code to get all jobs where the exit code is not 0.
 
 
 =item B<--queue -q> <queue>
 
-Shows only results from the given queue.
+Show only results from the given queue (regular expression).
 
 
 =item B<--user -u> <user>
 
-Shows only results from the given user name.
+Show only results from the given user name (regular expression).
 
 
 =item B<--group -g> <group>
 
-Shows only results from the given group.
+Show only results from the given group (regular expression).
 
 
 =item B<--jobname -j> <jobname>
 
-Show only results form the given jobname.
+Show only results from the given jobname (regular expression).
+
+
+=item B<--node -n> <nodename>
+
+Show only jobs were the given node (regular expression) was participating.
+
 
 =item B<--accountdir -l>
 
 Set directory to read the accouting log files from.
+
 
 =item B<--listjobs -lj>
 
@@ -914,24 +965,24 @@ Display the full jobname including preceding path
 
 Set which rows should be displayed in the summary lists. Valid rows are:
 
-'user', 'group', 'walltime', 'qtime', 'mem', 'vmem', 'cputime', 'jobs', 'procs', 'cpuweight',
-'nodes', 'usage'
+'user', 'group', 'walltime', 'qtime', 'mem', 'vmem', 'cputime', 'jobs', 'procs',
+'cpuweight', 'nodes', 'usage', 'a_mem', 'a_vmem'
 
 and computed average values like:
 
-avg_walltime, avg_qtime, avg_mem, avg_vmem, avg_cputime, avg_jobs, avg_procs, avg_cpuweight,
-avg_nodes
+avg_walltime, avg_qtime, avg_mem, avg_vmem, avg_cputime, avg_jobs, avg_procs,
+avg_cpuweight, avg_nodes, avg_a_mem, avg_a_vmem
 
 Example: -ss "user,group,cputime,usage"
 
 =item B<--selectjob -sj> <optstring>
 
-Set which rows should be displayed in the job list. 
+Set which rows should be displayed in the job list.
 Valid rows are:
 
-'user', 'group', 'jobid', 'jobname', 'starttime', 'endtime', 'walltime', 'qtime', 'mem', 
-'vmem', 'cputime', 'cpuweight', 'queue', 'procs', 'exechost', 'nodes', 
-'exit', 'session', 'jobalias', 'threads'
+'user', 'group', 'jobid', 'jobname', 'starttime', 'endtime', 'walltime', 'qtime',
+'mem', 'vmem', 'cputime', 'cpuweight', 'queue', 'procs', 'exechost', 'nodes',
+'exit', 'session', 'jobalias', 'threads', 'a_mem', 'a_vmem', 'a_threads'
 
 Example: -sj "user,group,jobname,procs,exit"
 
@@ -959,15 +1010,16 @@ Example: -te 20070901
 
 Defines witch criteria to use for sorting the job list.
 Valid values are:
-'user', 'group', 'jobid', 'jobname', 'starttime', 'endtime', 'walltime', 'qtime', 'mem',
-'vmem', 'cputime', 'queue', 'procs', 'exechost', 'nodes', 'exit'
+'user', 'group', 'jobid', 'jobname', 'starttime', 'endtime', 'walltime', 'qtime',
+'mem', 'vmem', 'cputime', 'queue', 'procs', 'exechost', 'nodes', 'exit',
+'a_mem', 'a_vmem', 'a_threads'
 
 =item B<--sortuser> <criteria>
 
-Defines witch criteria to use for sorting the jobs per user list. 
+Defines witch criteria to use for sorting the jobs per user list.
 Valid values are:
 'user', 'jobs', 'walltime', 'qtime', 'mem', 'vmem', 'cputime', 'procs', 'cpuweight'
-     
+
 =item B<--sortgroup> <criteria>
 
 Defines witch criteria to use for sorting the jobs per group list.

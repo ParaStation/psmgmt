@@ -43,13 +43,15 @@ static char vcid[] __attribute__((used)) =
 
 typedef struct {
     int session;
-    unsigned long utime;
-    unsigned long stime;
-    unsigned long cutime;
-    unsigned long cstime;
-    unsigned long threads;
-    unsigned long maxvsize;
-    long maxrss;
+    unsigned long maxThreads;
+    uint64_t avgThreads;
+    uint64_t avgThreadsCount;
+    unsigned long maxVsize;
+    long maxRss;
+    uint64_t avgVsize;
+    uint64_t avgVsizeCount;
+    uint64_t avgRss;
+    uint64_t avgRssCount;
 } AccountData;
 
 /**
@@ -142,7 +144,7 @@ static void closePMIClientSocket(void)
 {
     /* close pmi client socket */
     if (PMIClientSock > 0 ) {
-	FD_CLR(PMIClientSock, &readfds);	
+	FD_CLR(PMIClientSock, &readfds);
 	close(PMIClientSock);
 	PMIClientSock = -1;
     }
@@ -157,17 +159,17 @@ static void closePMIAcceptSocket(void)
 {
     /* close pmi accept socket */
     if (PMISock > 0 ) {
-	FD_CLR(PMISock, &readfds);	
+	FD_CLR(PMISock, &readfds);
 	close(PMISock);
 	PMISock = -1;
-    }	
+    }
 }
 
 /**
  * @brief Finds all child processes auf @pid and
  * returns the sum of the used vmem in kb.
  *
- * @param pid The pid of the parent process. 
+ * @param pid The pid of the parent process.
  *
  * @param buf Buffer for reading the proc structure.
  *
@@ -185,7 +187,7 @@ static long getAllChildsVMem(int pid, char *buf, int size, DIR *dir)
     %*u %*u %*u %*d %*d %*d %*d %*d %*d %*u \
     %*u %*u %lu %*ld %*u %*u %*u %*u %*u \
     %*u %*u %*u %*u %*u %*u %*u %*u %*d %*d";
-    
+
     FILE *fd;
     struct dirent *dent;
     int newpid, ppid;
@@ -199,7 +201,7 @@ static long getAllChildsVMem(int pid, char *buf, int size, DIR *dir)
 	    continue;
 	}
 	newpid = atoi(dent->d_name);
-	
+
 	if (!isdigit(newpid) || newpid < 0) {
 	    continue;
 	}
@@ -214,7 +216,7 @@ static long getAllChildsVMem(int pid, char *buf, int size, DIR *dir)
 	}
 	fclose(fd);
 	if (ppid == pid) {
-	    vmem += newvmem; 
+	    vmem += newvmem;
 	    vmem += getAllChildsVMem(newpid, buf, size, dir);
 	}
     }
@@ -225,7 +227,7 @@ static long getAllChildsVMem(int pid, char *buf, int size, DIR *dir)
  * @brief Finds all child processes auf @pid and
  * returns the sum of the used rss(mem).
  *
- * @param pid The pid of the parent process. 
+ * @param pid The pid of the parent process.
  *
  * @param buf Buffer for reading the proc structure.
  *
@@ -243,7 +245,7 @@ static long getAllChildsMem(int pid, char *buf, int size, DIR *dir)
     %*u %*u %*u %*d %*d %*d %*d %*d %*d %*u \
     %*u %*u %*lu %ld %*u %*u %*u %*u %*u \
     %*u %*u %*u %*u %*u %*u %*u %*u %*d %*d";
-    
+
     FILE *fd;
     struct dirent *dent;
     int newpid, ppid;
@@ -257,7 +259,7 @@ static long getAllChildsMem(int pid, char *buf, int size, DIR *dir)
 	    continue;
 	}
 	newpid = atoi(dent->d_name);
-	
+
 	if (!isdigit(newpid) || newpid < 0) {
 	    continue;
 	}
@@ -266,15 +268,15 @@ static long getAllChildsMem(int pid, char *buf, int size, DIR *dir)
 	if ((fd = fopen(buf,"r")) == NULL) {
 	    continue;
 	}
-	
+
 	if ((fscanf(fd, stat_format, &ppid, &newmem)) != 2) {
 	    fclose(fd);
 	    continue;
 	}
 	fclose(fd);
-	
+
 	if (ppid == pid) {
-	    mem += newmem; 
+	    mem += newmem;
 	    mem += getAllChildsMem(newpid, buf, size, dir);
 	}
     }
@@ -302,7 +304,7 @@ static long getAllChildsMem(int pid, char *buf, int size, DIR *dir)
 static void updateAccountData(void)
 {
     /** Format string of /proc/pid/stat */
-    static char stat_format[] = 
+    static char stat_format[] =
 		    "%*d "	    /* pid */
 		    "%*s "	    /* comm */
 		    "%*c "	    /* state */
@@ -312,9 +314,9 @@ static void updateAccountData(void)
 		    "%*d "	    /* tpgid */
 		    "%*u "	    /* flags */
 		    "%*lu %*lu "    /* minflt cminflt */
-		    "%*lu %*lu "    /* majflt cmajflt */ 
-		    "%lu %lu "	    /* utime stime */
-		    "%lu %lu "	    /* cutime cstime */
+		    "%*lu %*lu "    /* majflt cmajflt */
+		    "%*lu %*lu "    /* utime stime */
+		    "%*lu %*lu "    /* cutime cstime */
 		    "%*d "	    /* priority */
 		    "%*d "	    /* nice */
 		    "%lu "	    /* num_threads */
@@ -341,41 +343,37 @@ static void updateAccountData(void)
     FILE *fd;
     DIR *dir;
     static int rate = 0;
-    
+
     pid = PSC_getPID(childTask->tid);
 
     if (rate <= 0) {
 	rate = sysconf(_SC_CLK_TCK);
 	if (rate < 0) {
 	    PSID_warn(-1, errno, "%s: sysconf(_SC_CLK_TCK) failed", __func__);
-	    acctPollTime = 0; 
+	    acctPollTime = 0;
 	    return;
 	}
     }
-    
+
     snprintf(buf, sizeof(buf), "/proc/%i/stat", pid);
     if (!(fd = fopen(buf,"r"))) {
 	PSID_warn(-1, errno, "%s: fopen(/proc/%i/stat) failed", __func__, pid);
-	acctPollTime = 0; 
+	acctPollTime = 0;
 	return;
     }
 
     res = fscanf(fd, stat_format,
 	    &accData.session,
-	    &accData.utime,
-	    &accData.stime,
-	    &accData.cutime,
-	    &accData.cstime,
 	    &newthreads,
 	    &vsizenew,
 	    &rssnew);
 
     fclose(fd);
 
-    if (res != 8) {
+    if (res != 4) {
 	PSID_log(-1, "%s: error reading accounting data,"
 		 " invalid kernel version?\n", __func__);
-	acctPollTime = 0; 
+	acctPollTime = 0;
 	return;
     }
 
@@ -386,14 +384,20 @@ static void updateAccountData(void)
 	closedir(dir);
     }
 
-    /* set max rss (resident set size) */
-    if (rssnew > accData.maxrss) accData.maxrss = rssnew;
+    /* set rss (resident set size) */
+    if (rssnew > accData.maxRss) accData.maxRss = rssnew;
+    accData.avgRss += rssnew;
+    accData.avgRssCount++;
+
+    /* set virtual mem */
+    if (vsizenew > accData.maxVsize) accData.maxVsize = vsizenew;
+    accData.avgVsize += vsizenew;
+    accData.avgVsizeCount++;
 
     /* set max threads */
-    if (newthreads > accData.threads) accData.threads = newthreads;
-
-    /* set max vmem */
-    if (vsizenew > accData.maxvsize) accData.maxvsize = vsizenew;
+    if (newthreads > accData.maxThreads) accData.maxThreads = newthreads;
+    accData.avgThreads += newthreads;
+    accData.avgThreadsCount++;
 }
 
 /**
@@ -548,7 +552,7 @@ static void handleSignalMsg(PSLog_Msg_t *msg)
 static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 {
     int ret;
-   
+
     if (daemonSock < 0) {
 	PSID_log(-1, "%s: not connected\n", __func__);
 	errno = EPIPE;
@@ -599,7 +603,7 @@ again:
 	break;
     case PSP_CD_RELEASERES:
 	/* finaly release the pmi client */
-	if (pmiType != PMI_DISABLED) {	
+	if (pmiType != PMI_DISABLED) {
 	    /* release the pmi client */
 	    pmi_finalize();
 
@@ -654,10 +658,10 @@ int sendDaemonMsg(DDMsg_t *msg)
 
     if (verbose) {
 	char txt[128];
-        snprintf(txt, sizeof(txt), "%s type %s (len=%d) to %s\n",
-                 __func__, PSDaemonP_printMsg(msg->type),
+	snprintf(txt, sizeof(txt), "%s type %s (len=%d) to %s\n",
+		 __func__, PSDaemonP_printMsg(msg->type),
 		 msg->len, PSC_printTID(msg->dest));
-        PSIDfwd_printMsg(STDERR, txt);
+	PSIDfwd_printMsg(STDERR, txt);
     }
 
     return msg->len;
@@ -827,23 +831,23 @@ static int storeMsg(PSLog_Msg_t *msg, int offset)
     msgbuf_t *msgbuf = oldMsgs;
 
     if (msgbuf) {
-        /* Search for end of list */
-        while (msgbuf->next) msgbuf = msgbuf->next;
-        msgbuf->next = getMsg();
-        msgbuf = msgbuf->next;
+	/* Search for end of list */
+	while (msgbuf->next) msgbuf = msgbuf->next;
+	msgbuf->next = getMsg();
+	msgbuf = msgbuf->next;
     } else {
-        msgbuf = oldMsgs = getMsg();
+	msgbuf = oldMsgs = getMsg();
     }
 
     if (!msgbuf) {
-        errno = ENOMEM;
-        return -1;
+	errno = ENOMEM;
+	return -1;
     }
 
     msgbuf->msg = malloc(msg->header.len);
     if (!msgbuf->msg) {
-        errno = ENOMEM;
-        return -1;
+	errno = ENOMEM;
+	return -1;
     }
     memcpy(msgbuf->msg, msg, msg->header.len);
 
@@ -887,15 +891,15 @@ static int writeMsg(PSLog_Msg_t *msg)
     if (oldMsgs) flushMsgs();
 
     if (!oldMsgs) {
-        written = do_write(msg, 0);
+	written = do_write(msg, 0);
     }
 
     if (written<0) return written;
     if ((written != len) || (oldMsgs && !len)) {
-        if (!storeMsg(msg, written)) errno = EWOULDBLOCK;
+	if (!storeMsg(msg, written)) errno = EWOULDBLOCK;
 	if (stdinSock != -1) FD_SET(stdinSock, &writefds);
 	sendMsg(STOP, NULL, 0);
-        return -1;
+	return -1;
     }
 
     return written;
@@ -979,7 +983,7 @@ static int readFromLogger(void)
 		    if (verbose) {
 			snprintf(obuf, sizeof(obuf), "%s: WINCH to"
 				 " col %d row %d xpixel %d ypixel %d\n",
-				 __func__, w.ws_col, w.ws_row, 
+				 __func__, w.ws_col, w.ws_row,
 				 w.ws_xpixel, w.ws_ypixel);
 			PSIDfwd_printMsg(STDERR, obuf);
 		    }
@@ -1000,7 +1004,7 @@ static int readFromLogger(void)
 	/* The connection to the daemon died. Kill the client the hard way. */
 	kill(-PSC_getPID(childTask->tid), SIGKILL);
     }
-	
+
     return ret;
 }
 
@@ -1135,7 +1139,7 @@ static size_t collectRead(int sock, char *buf, size_t count, size_t *total)
  *
  * @param rusage The rusage information received from the child.
  *
- * @param status The returned status of the child. 
+ * @param status The returned status of the child.
  *
  * @return No return value.
  */
@@ -1145,6 +1149,9 @@ static void sendAcctData(struct rusage rusage, int status)
     char *ptr = msg.buf;
     struct timeval now, walltime;
     long pagesize;
+    uint64_t avgRss;
+    uint64_t avgVsize;
+    uint64_t avgThreads;
 
     msg.header.type = PSP_CD_ACCOUNT;
     msg.header.dest = PSC_getTID(-1, 0);
@@ -1188,15 +1195,15 @@ static void sendAcctData(struct rusage rusage, int status)
     msg.header.len += sizeof(uint64_t);
 
     /* size of max used mem */
-    *(uint64_t *)ptr = (uint64_t)accData.maxrss;
+    *(uint64_t *)ptr = (uint64_t)accData.maxRss;
     ptr += sizeof(uint64_t);
     msg.header.len += sizeof(uint64_t);
 
     /* size of max used vmem */
-    *(uint64_t *)ptr = (uint64_t)accData.maxvsize;
+    *(uint64_t *)ptr = (uint64_t)accData.maxVsize;
     ptr += sizeof(uint64_t);
     msg.header.len += sizeof(uint64_t);
-    
+
     /* walltime used by child */
     gettimeofday(&now, NULL);
     timersub(&now, &childTask->started, &walltime);
@@ -1204,11 +1211,11 @@ static void sendAcctData(struct rusage rusage, int status)
     ptr += sizeof(walltime);
     msg.header.len += sizeof(walltime);
 
-    /* number of threads */
-    *(uint32_t *)ptr = accData.threads;
+    /* number of max threads */
+    *(uint32_t *)ptr = accData.maxThreads;
     ptr += sizeof(uint32_t);
     msg.header.len += sizeof(uint32_t);
-    
+
     /* session id of job */
     *(int32_t *)ptr = accData.session;
     ptr += sizeof(int32_t);
@@ -1218,6 +1225,36 @@ static void sendAcctData(struct rusage rusage, int status)
     *(int32_t *)ptr = status;
     ptr += sizeof(int32_t);
     msg.header.len += sizeof(int32_t);
+
+    /* size of average used mem */
+    if (accData.avgRss < 1 || accData.avgRssCount < 1) {
+	avgRss = 0;
+    } else {
+	avgRss = (accData.avgRss / accData.avgRssCount);
+    }
+    *(uint64_t *)ptr = (uint64_t) avgRss;
+    ptr += sizeof(uint64_t);
+    msg.header.len += sizeof(uint64_t);
+
+    /* size of average used vmem */
+    if (accData.avgVsize < 1 || accData.avgVsizeCount < 1) {
+	avgVsize = 0;
+    } else {
+	avgVsize = (accData.avgVsize / accData.avgVsizeCount);
+    }
+    *(uint64_t *)ptr = (uint64_t) avgVsize;
+    ptr += sizeof(uint64_t);
+    msg.header.len += sizeof(uint64_t);
+
+    /* number of average threads */
+    if (accData.avgThreads < 1 || accData.avgThreadsCount < 1) {
+	avgThreads = 0;
+    } else {
+	avgThreads = (accData.avgThreads / accData.avgThreadsCount);
+    }
+    *(uint64_t *)ptr = (uint64_t) avgThreads;
+    ptr += sizeof(uint64_t);
+    msg.header.len += sizeof(uint64_t);
 
     sendDaemonMsg((DDMsg_t *)&msg);
 }
@@ -1283,18 +1320,18 @@ static void sighandler(int sig)
 		     "[%d] PSID_forwarder: Got SIGCHLD\n", childTask->rank);
 	    PSIDfwd_printMsg(STDERR, txt);
 	}
-	
+
 	/* if child is stopped, return */
 	pid = wait3(&status, WUNTRACED | WNOHANG, &rusage);
 	if (WIFSTOPPED(status)) break;
-	
+
 	/* Read all the remaining stuff from the controlled fds */
 	while (openfds) {
 	    fd_set fds;
 	    int ret;
-	
+
 	    memcpy(&fds, &readfds, sizeof(fds));
-	    
+
 	    ret = select(FD_SETSIZE, &fds, NULL, NULL, NULL);
 	    if (ret < 0) {
 		if (errno != EINTR) {
@@ -1360,7 +1397,7 @@ static void sighandler(int sig)
 		}
 	    }
 	}
-	
+
 	if (pid < 1) {
 	    pid = wait3(&status, WUNTRACED, &rusage);
 	    if (WIFSTOPPED(status)) break;
@@ -1488,7 +1525,7 @@ static void checkFileTable(fd_set *fds)
 /**
  * @brief  Accept a new pmi client connection.
  *
- * @return No return value. 
+ * @return No return value.
  */
 static void acceptPMIClient(void)
 {
@@ -1536,7 +1573,7 @@ static void loop(void)
     fd_set rfds, wfds;
     struct timeval mytv={2,0}, atv;
     char buf[4000], obuf[120];
-    int n; 
+    int n;
     time_t timeacc = 0, now;
     size_t total;
     PSLog_msg_t type;
@@ -1563,7 +1600,7 @@ static void loop(void)
     }
     FD_SET(daemonSock, &readfds);
     if (PMISock != -1) {
-        FD_SET(PMISock, &readfds);
+	FD_SET(PMISock, &readfds);
     }
     if (PMIClientSock != -1) {
 	FD_SET(PMIClientSock, &readfds);
@@ -1586,7 +1623,7 @@ static void loop(void)
 	    }
 	    continue;
 	}
-	
+
 	/*
 	 * check the remaining sockets for any outputs
 	 */
@@ -1671,7 +1708,7 @@ static void loop(void)
 	/* update Accounting Data*/
 	if (accounting && acctPollTime
 	    && childTask->group != TG_ADMINTASK
-	    && childTask->group != TG_SERVICE 
+	    && childTask->group != TG_SERVICE
 	    && ((now = time(0)) - timeacc) > acctPollTime) {
 	    timeacc = now;
 	    updateAccountData();
@@ -1716,24 +1753,24 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket,
 	while (1) sleep(10);
     }
 
-    /* Set up pmi connection */ 
+    /* Set up pmi connection */
     pmiType = PMItype;
     switch (pmiType) {
     case PMI_OVER_UNIX:
-	PMIClientSock = PMISocket;    
+	PMIClientSock = PMISocket;
 	/* init the pmi interface */
 	pmi_init(PMIClientSock, childTask->loggertid, childTask->rank);
 	break;
     case PMI_OVER_TCP:
 	PMISock = PMISocket;
 	break;
-    case PMI_DISABLED:	
+    case PMI_DISABLED:
 	break;
     default:
 	PSID_log(-1, "%s: wrong pmi type: %i\n", __func__, pmiType);
 	pmiType = PMI_DISABLED;
     }
-   
+
     /* read plattform version */
     if (uname(&uts)) {
 	PSID_log(-1, "%s: uname failed\n", __func__);
@@ -1748,15 +1785,15 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket,
     if (accounting && acctPollTime) {
 	/* accouting data structure */
 	accData.session = 0;
-	accData.utime = 0;
-	accData.stime = 0;
-	accData.cutime = 0;
-	accData.cstime = 0;
-	accData.threads = 0;
-	accData.maxvsize = 0;
-	accData.maxrss = 0;
+	accData.maxThreads = 0;
+	accData.maxVsize = 0;
+	accData.maxRss = 0;
+	accData.avgRss = 0;
+	accData.avgRssCount = 0;
+	accData.avgVsize = 0;
+	accData.avgVsizeCount = 0;
     }
-    
+
     /* call the loop which does all the work */
     loop();
 }

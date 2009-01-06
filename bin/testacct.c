@@ -11,7 +11,7 @@
  * \file
  * psaccounter: ParaStation example accounting daemon
  *
- * $Id$ 
+ * $Id$
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -154,6 +154,8 @@ char *handleEndMsg(DDTypedBufferMsg_t *msg)
 	status = *(int32_t *)ptr;
 	ptr += sizeof(int32_t);
 
+	/* ignore all trailing info, too */
+
 	printf(" user %.6f sys %.6f",
 	       rusage.ru_utime.tv_sec + 1.0e-6 * rusage.ru_utime.tv_usec,
 	       rusage.ru_stime.tv_sec + 1.0e-6 * rusage.ru_stime.tv_usec);
@@ -217,7 +219,7 @@ void handleLogMsg(DDTypedBufferMsg_t *msg)
 	printf(" jobID '%s'", jobID);
     } else {
 	printf(" no jobID");
-    }	
+    }
 }
 
 void handleAcctMsg(DDTypedBufferMsg_t *msg)
@@ -301,7 +303,7 @@ void loop(void)
 	    break;
 	default:
 	    printf("Unknown message\n");
-	}	    
+	}
     }
 
     PSE_finalize();
@@ -314,7 +316,7 @@ int main(int argc, char *argv[])
     int arg_np, rc;
 
     struct poptOption optionsTable[] = {
-        { "np", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
+	{ "np", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
 	  &arg_np, 0, "number of processes to start", "num"},
 	POPT_AUTOHELP
 	{ NULL, '\0', 0, NULL, 0, NULL, NULL}
