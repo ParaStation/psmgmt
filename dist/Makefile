@@ -69,7 +69,7 @@ rpm: $(DISTNAME)/$(DISTNAME).spec $(DISTNAME).tar.gz
 SVN_VERSION = $(shell cd $(TOP_SRCDIR) && svnversion -n | tr -c [:alnum:] "_")
 
 version:
-	echo -e "s/RELEASE_\$$(PKG_NAME)=.*/RELEASE_\$$(PKG_NAME)=r$(SVN_VERSION)/\nwq" | ed -s $(TOP_SRCDIR)/Makefile.version
+	echo -e "s/RELEASE_\$$(PKG_NAME)=.*/RELEASE_\$$(PKG_NAME)=0.0.r$(SVN_VERSION)/\nwq" | ed -s $(TOP_SRCDIR)/Makefile.version
 
 
 # xmlstarlet sel -C -t -o 'SVN_URL=' -v '//url' -n -o 'SVN_ROOT=' -v '//root'
