@@ -669,20 +669,23 @@ static void printAccEndMsg(char *chead, PStask_ID_t key)
 
 	/* show max vmem */
 	if (job->maxvsize) {
-	    snprintf(used_vmem, sizeof(used_vmem), "resources_used.vmem=%lldkb ",
-		     (job->maxvsize / 1024));
+	    snprintf(used_vmem, sizeof(used_vmem),
+		     "resources_used.vmem=%llukb ",
+		     (unsigned long long)(job->maxvsize / 1024));
 	}
 
 	/* show avg vmem */
 	if (job->avgvsize) {
-	    snprintf(used_avgvmem, sizeof(used_avgvmem), "resources_used.avg_vmem=%lldkb ",
-		     (job->avgvsize / 1024));
+	    snprintf(used_avgvmem, sizeof(used_avgvmem),
+		     "resources_used.avg_vmem=%llukb ",
+		     (unsigned long long)(job->avgvsize / 1024));
 	}
 
 	/* show avg threads */
 	if (job->avgthreads) {
 	    snprintf(used_avgthreads, sizeof(used_avgthreads),
-		"resources_used.avg_threads=%lld ", job->avgthreads);
+		     "resources_used.avg_threads=%llu ",
+		     (unsigned long long)job->avgthreads);
 	}
 
 	/* set number of threads */
