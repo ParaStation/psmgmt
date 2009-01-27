@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -571,7 +571,12 @@ again:
     }
 
     if (!ret) {
-	PSID_warn(-1, errno, "%s: nothing received", __func__);
+	if (!timeout) {
+	    PSID_log(-1, "%s: logger closed connection", __func__);
+	    closeDaemonSock();
+	} else {
+	    PSID_warn(-1, errno, "%s: nothing received", __func__);
+	}
 	return ret;
     }
 
@@ -671,17 +676,20 @@ int sendDaemonMsg(DDMsg_t *msg)
  * @brief Connect to the logger.
  *
  * Connect to the logger described by the unique task ID @a tid. Wait
- * for #INITIALIZE message and set #loggerTID and #verbose correctly.
+ * @a timeout seconds for #INITIALIZE answer and set #loggerTID and
+ * #verbose accordingly.
  *
  * @param tid The logger's ParaStation task ID.
+ *
+ * @param timeout Number of seconds to wait for #INITIALIZE answer.
  *
  * @return On success, 0 is returned. Simultaneously #loggerTID is
  * set. On error, -1 is returned, and errno is set appropriately.
  */
-static int connectLogger(PStask_ID_t tid)
+static int connectLogger(PStask_ID_t tid, long timeoutSec)
 {
     PSLog_Msg_t msg;
-    struct timeval timeout = {10, 0};
+    struct timeval timeout = {timeoutSec, 0};
     int ret;
 
     loggerTID = tid; /* Only set for the first sendMsg()/recvMsg() pair */
@@ -700,7 +708,8 @@ static int connectLogger(PStask_ID_t tid)
     }
 
     if (msg.header.len < PSLog_headerSize + (int) sizeof(int)) {
-	PSID_log(-1, "%s(%s): Message to short\n", __func__, PSC_printTID(tid));
+	PSID_log(-1, "%s(%s): Message too short\n", __func__,
+		 PSC_printTID(tid));
 	errno = ECONNREFUSED;
 	return -1;
     } else if (msg.type != INITIALIZE) {
@@ -709,8 +718,8 @@ static int connectLogger(PStask_ID_t tid)
 	errno = ECONNREFUSED;
 	return -1;
     } else if (msg.header.sender != tid) {
-	PSID_log(-1, "%s(%s): Got INITIALIZE not from logger\n",
-		 __func__, PSC_printTID(tid));
+	PSID_log(-1, "%s(%s): Got INITIALIZE", __func__, PSC_printTID(tid));
+	PSID_log(-1, " from %s\n", PSC_printTID(msg.header.sender));
 	errno = ECONNREFUSED;
 	return -1;
     } else {
@@ -739,14 +748,13 @@ static void releaseLogger(int status)
 {
     PSLog_Msg_t msg;
     int ret;
-    struct timeval timeout = {10, 0};
 
     if (loggerTID < 0) return;
 
     sendMsg(FINALIZE, (char *)&status, sizeof(status));
 
  again:
-    ret = recvMsg(&msg, &timeout);
+    ret = recvMsg(&msg, NULL);
 
     if (ret < 0) {
 	if (errno == EPIPE) {
@@ -1724,7 +1732,8 @@ static void loop(void)
 void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket,
 		    PMItype_t PMItype, int doAccounting, int acctPollInterval)
 {
-    long flags;
+    char *timeoutStr;
+    long flags, val, loggerTimeout = 10;
     struct utsname uts;
 
     childTask = task;
@@ -1747,11 +1756,23 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket,
     flags |= O_NONBLOCK;
     fcntl(stdinSock, F_SETFL, flags);
 
-    if (connectLogger(childTask->loggertid) != 0) {
+    val = loggerTimeout;
+    timeoutStr = getenv("__PSI_LOGGER_TIMEOUT");
+    if (timeoutStr) {
+	char *end;
+	val = strtol(timeoutStr, &end, 0);
+	if (*timeoutStr && !*end && val>0) loggerTimeout = val;
+    }
+
+    if (connectLogger(childTask->loggertid, loggerTimeout) != 0) {
 	/* There is no logger. Just wait for the client to finish. */
 	PSID_blockSig(0, SIGCHLD);
 	while (1) sleep(10);
     }
+
+    if (loggerTimeout != val)
+	PSIDfwd_printMsgf(STDERR, "PSID_forwarder: Illegal value"
+			  " '%s' for __PSI_LOGGER_TIMEOUT\n", timeoutStr);
 
     /* Set up pmi connection */
     pmiType = PMItype;

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -996,7 +996,7 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 	    task->stderr_fd = stderrfds[1];
 	}
 
-    	/* redirect stdin/stdout/stderr */
+	/* redirect stdin/stdout/stderr */
 	if (dup2(task->stderr_fd, STDERR_FILENO) < 0) {
 	    PSID_warn(-1, errno, "%s: dup2(stderr)", __func__);
 	    exit(1);
@@ -1157,9 +1157,9 @@ static void sendAcctChild(PStask_t *task)
 	    ptr += len;
 	    msg.header.len += len;
 	}
-        *ptr = '\0';
-        ptr++;
-        msg.header.len++;
+	*ptr = '\0';
+	ptr++;
+	msg.header.len++;
 
 	sendMsg((DDMsg_t *)&msg);
 }
