@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -38,6 +38,9 @@ static char vcid[] __attribute__((used)) =
 
 /** Flag used to mark environment originating from batch-system */
 static int batchPartition = 0;
+
+/** Flag used to mark ENV_PART_WAIT was set */
+static int waitForPartition = 0;
 
 /**
  * The name of the environment variable defining a nodelist from a
@@ -270,8 +273,8 @@ static int addNode(PSnodes_ID_t node, nodelist_t *nl)
 	nl->maxsize += 128;
 	nl->nodes = realloc(nl->nodes, nl->maxsize * sizeof(*nl->nodes));
 	if (!nl->nodes) {
-            PSI_log(-1, "%s: no memory\n", __func__);
-            return 0;
+	    PSI_log(-1, "%s: no memory\n", __func__);
+	    return 0;
 	}
     }
 
@@ -309,19 +312,19 @@ static int nodelistFromRange(char *range, nodelist_t *nodelist)
     first = strtol(start, &end, 0);
     if (*end != '\0') return 0;
     if (first < 0 || first >= PSC_getNrOfNodes()) {
-        PSI_log(-1, "%s: node %ld out of range\n", __func__, first);
-        return 0;
+	PSI_log(-1, "%s: node %ld out of range\n", __func__, first);
+	return 0;
     }
 
     if (range) {
-        last = strtol(range, &end, 0);
-        if (*end != '\0') return 0;
-        if (last < 0 || last >= PSC_getNrOfNodes()) {
-            PSI_log(-1, "%s: node %ld out of range\n", __func__, last);
-            return 0;
-        }
+	last = strtol(range, &end, 0);
+	if (*end != '\0') return 0;
+	if (last < 0 || last >= PSC_getNrOfNodes()) {
+	    PSI_log(-1, "%s: node %ld out of range\n", __func__, last);
+	    return 0;
+	}
     } else {
-        last = first;
+	last = first;
     }
 
     /* Now put the range into the nodelist */
@@ -350,8 +353,8 @@ static int nodelistFromNodeStr(char *nodeStr, nodelist_t *nodelist)
     char *work, *range = strtok_r(nodeStr, ",", &work);
 
     while (range) {
-        if (!nodelistFromRange(range, nodelist)) return 0;
-        range = strtok_r(NULL, ",", &work);
+	if (!nodelistFromRange(range, nodelist)) return 0;
+	range = strtok_r(NULL, ",", &work);
     }
     return nodelist->size;
 }
@@ -496,7 +499,7 @@ static int nodelistFromHostFile(char *fileName, nodelist_t *nodelist)
 		strcpy(lastline, line);
 	    }
 	}
-	
+
 	if (nodelistFromHostStr(line, nodelist) != 1) {
 	    PSI_log(-1, "%s: syntax error at: '%s'\n", __func__, line);
 	    fclose(file);
@@ -661,11 +664,16 @@ static uint32_t getHWEnv(void)
 static int alarmCalled = 0;
 static void alarmHandler(int sig)
 {
-    time_t now = time(NULL);
-    char *timeStr = ctime(&now);
-    alarmCalled = 1;
-    timeStr[strlen(timeStr)-1] = '\0';
-    PSI_log(-1, "%s -- Waiting for ressources\n", timeStr);
+    if (waitForPartition) {
+	time_t now = time(NULL);
+	char *timeStr = ctime(&now);
+	alarmCalled = 1;
+	timeStr[strlen(timeStr)-1] = '\0';
+	PSI_log(-1, "%s -- Waiting for ressources\n", timeStr);
+    } else {
+	PSI_log(-1, "Wait for ressources timed out. Exiting...");
+	exit(1);
+    }
 }
 
 int PSI_createPartition(unsigned int size, uint32_t hwType)
@@ -741,8 +749,13 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
     }
     freeNodelist(nodelist);
 
+    if (request->options & PART_OPT_WAIT) {
+	waitForPartition = 1;
+	alarm(2);
+    } else {
+	alarm(10);
+    }
     signal(SIGALRM, alarmHandler);
-    alarm(2);
     if (PSI_recvMsg(&msg)<0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
