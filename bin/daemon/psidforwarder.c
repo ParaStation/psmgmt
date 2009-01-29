@@ -757,10 +757,15 @@ static void releaseLogger(int status)
     ret = recvMsg(&msg, NULL);
 
     if (ret < 0) {
-	if (errno == EPIPE) {
+	switch (errno) {
+	case EINTR:
+	    goto again;
+	    break;
+	case EPIPE:
 	    PSID_log(-1, "%s: logger %s already disappeared\n", __func__,
 		     PSC_printTID(childTask->loggertid));
-	} else {
+	    break;
+	default:
 	    PSID_warn(-1, errno, "%s: recvMsg()", __func__);
 	}
     } else if (!ret) {

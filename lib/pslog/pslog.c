@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -130,11 +130,11 @@ int PSLog_read(PSLog_Msg_t *msg, struct timeval *timeout)
 	FD_ZERO(&rfds);
 	FD_SET(daemonsock, &rfds);
 	n = select(daemonsock+1, &rfds, NULL, NULL, timeout);
-        if (n < 0) {
-            if (errno == EINTR) {
-                /* Interrupted syscall, just start again */
-                goto restart;
-            } else {
+	if (n < 0) {
+	    if (errno == EINTR) {
+		/* Interrupted syscall, just start again */
+		goto restart;
+	    } else {
 		return n;
 	    }
 	}
