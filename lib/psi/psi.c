@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -242,7 +242,7 @@ static int connectDaemon(PStask_group_t taskGroup)
     default :
 	PSI_log(-1, "%s: unexpected return code %d (%s)\n", __func__,
 		answer.header.type, PSP_printMsg(answer.header.type));
- 	break;
+	break;
     }
 
     close(daemonSock);
@@ -255,7 +255,7 @@ static int connectDaemon(PStask_group_t taskGroup)
 int PSI_initClient(PStask_group_t taskGroup)
 {
     char* envStr;
-    
+
     if (! PSI_logInitialized()) PSI_initLog(stderr);
 
     envStr = getenv("PSI_DEBUGMASK");
@@ -706,6 +706,9 @@ void PSI_propEnv(void)
     }
     if ((envStr = getenv("MPID_PSP_MAXSMALLMSG"))) {
 	setPSIEnv("MPID_PSP_MAXSMALLMSG", envStr, 1);
+    }
+    if ((envStr = getenv("__PSI_LOGGER_TIMEOUT"))) {
+	setPSIEnv("__PSI_LOGGER_TIMEOUT", envStr, 1);
     }
 
     /* export all PSP_* vars to the ParaStation environment */
