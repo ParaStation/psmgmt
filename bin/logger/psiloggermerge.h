@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -45,12 +45,29 @@ void displayCachedOutput(int flush);
 void cacheOutput(PSLog_Msg_t *msg, int outfd);
 
 /**
- * @brief Init the merge structures/functions of the logger. This
- * function must be called bevor any other merge function.
+ * @brief Init the merge structures/functions of the logger.
+ *
+ * Initialize the merge structures and functions of the logger. After
+ * calling this function, the merger is prepared to handle clients
+ * with a maximum rank of @a maxRank.
+ *
+ * This function must be called bevor any other merge function.
+ *
+ * @param maxRank The maximum rank to handle.
  *
  * @return No return value.
  */
-void outputMergeInit(void);
+void outputMergeInit(int maxRank);
+
+/**
+ * @brief Determine maximum rank.
+ *
+ * Determine the current maximum rank allowed to be implicitely passed
+ * to the @ref cacheOutput() function.
+ *
+ * @return Returns to current maximum rank.
+ */
+int getMaxOutRank(void);
 
 /**
  * @brief If more clients are connected than maxClients,

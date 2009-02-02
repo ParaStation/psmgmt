@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -502,18 +502,18 @@ int main(int argc, const char *argv[])
     struct rlimit rlimit;
 
     struct poptOption optionsTable[] = {
-        { "debug", 'd', POPT_ARG_INT, &debugMask, 0,
+	{ "debug", 'd', POPT_ARG_INT, &debugMask, 0,
 	  "enable debugging with mask <mask>", "mask"},
-        { "configfile", 'f', POPT_ARG_STRING, &configfile, 0,
-          "use <file> as config-file (default is /etc/parastation.conf)",
-          "file"},
+	{ "configfile", 'f', POPT_ARG_STRING, &configfile, 0,
+	  "use <file> as config-file (default is /etc/parastation.conf)",
+	  "file"},
 	{ "logfile", 'l', POPT_ARG_STRING, &logdest, 0,
 	  "use <file> for logging (default is syslog(3))."
 	  " <file> may be 'stderr' or 'stdout'", "file"},
-        { "version", 'v', POPT_ARG_NONE, &version, 0,
-          "output version information and exit", NULL},
-        POPT_AUTOHELP
-        { NULL, '\0', 0, NULL, 0, NULL, NULL}
+	{ "version", 'v', POPT_ARG_NONE, &version, 0,
+	  "output version information and exit", NULL},
+	POPT_AUTOHELP
+	{ NULL, '\0', 0, NULL, 0, NULL, NULL}
     };
 
     optCon = poptGetContext(NULL, argc, argv, optionsTable, 0);
@@ -549,31 +549,31 @@ int main(int argc, const char *argv[])
     printWelcome();
 
     if (rc < -1) {
-        /* an error occurred during option processing */
-        poptPrintUsage(optCon, stderr, 0);
-        PSID_log(-1, "%s: %s\n",
+	/* an error occurred during option processing */
+	poptPrintUsage(optCon, stderr, 0);
+	PSID_log(-1, "%s: %s\n",
 		 poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
 		 poptStrerror(rc));
-        if (!logfile)
+	if (!logfile)
 	    fprintf(stderr, "%s: %s\n",
 		    poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
 		    poptStrerror(rc));
 
-        return 1;
+	return 1;
     }
 
     if (!debugMask || (logfile!=stderr && logfile!=stdout)) {
 	/* Start as daemon */
-        switch (fork()) {
-        case -1:
-            PSID_exit(errno, "unable to fork server process");
-            break;
-        case 0: /* I'm the child (and running further) */
-            break;
-        default: /* I'm the parent and exiting */
-            return 0;
-            break;
-        }
+	switch (fork()) {
+	case -1:
+	    PSID_exit(errno, "unable to fork server process");
+	    break;
+	case 0: /* I'm the child (and running further) */
+	    break;
+	default: /* I'm the parent and exiting */
+	    return 0;
+	    break;
+       }
     }
 
     PSID_blockSig(1,SIGCHLD);

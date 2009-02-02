@@ -1,7 +1,7 @@
 ###################################################### -*- Makefile -*- #####
 #                  ParaStation
 #        Copyright (c) 2002-2003 ParTec AG, Karlsruhe
-#        Copyright (c) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+#        Copyright (c) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
 #############################################################################
 #
 # $Id$
@@ -111,7 +111,7 @@ test_config: psidnodes.o
 
 # logger
 VPATH += $(SRCDIR)/logger
-psilogger: psiloggerkvs.o psiloggermerge.o
+psilogger: psiloggerkvs.o psiloggermerge.o psiloggerclient.o
 psilogger: LOADLIBES:=$(LOADLIBES) -lputil -lpslog -lm -lreadline -l@LIBCURSES@
 
 # accounter

@@ -117,6 +117,12 @@ int acctPollTime = 0;
 AccountData accData;
 
 /**
+ * Timeout for connecting and releasing logger. Might be overruled via
+ * __PSI_LOGGER_TIMEOUT environment
+ */
+int loggerTimeout = 10;
+
+/**
  * @brief Close socket to daemon.
  *
  * Close the socket connecting the forwarder with the local daemon.
@@ -574,8 +580,6 @@ again:
 	if (!timeout) {
 	    PSID_log(-1, "%s: logger closed connection", __func__);
 	    closeDaemonSock();
-	} else {
-	    PSID_warn(-1, errno, "%s: nothing received", __func__);
 	}
 	return ret;
     }
@@ -686,10 +690,10 @@ int sendDaemonMsg(DDMsg_t *msg)
  * @return On success, 0 is returned. Simultaneously #loggerTID is
  * set. On error, -1 is returned, and errno is set appropriately.
  */
-static int connectLogger(PStask_ID_t tid, long timeoutSec)
+static int connectLogger(PStask_ID_t tid)
 {
     PSLog_Msg_t msg;
-    struct timeval timeout = {timeoutSec, 0};
+    struct timeval timeout = {loggerTimeout, 0};
     int ret;
 
     loggerTID = tid; /* Only set for the first sendMsg()/recvMsg() pair */
@@ -747,14 +751,18 @@ static int connectLogger(PStask_ID_t tid, long timeoutSec)
 static void releaseLogger(int status)
 {
     PSLog_Msg_t msg;
+    struct timeval timeout;
     int ret;
 
     if (loggerTID < 0) return;
 
+ send_again:
     sendMsg(FINALIZE, (char *)&status, sizeof(status));
 
+    timeout = (struct timeval) {loggerTimeout, 0};
+
  again:
-    ret = recvMsg(&msg, NULL);
+    ret = recvMsg(&msg, &timeout);
 
     if (ret < 0) {
 	switch (errno) {
@@ -769,8 +777,8 @@ static void releaseLogger(int status)
 	    PSID_warn(-1, errno, "%s: recvMsg()", __func__);
 	}
     } else if (!ret) {
-	PSID_log(-1, "%s: receive timed out. logger %s disappeared\n", __func__,
-		 PSC_printTID(childTask->loggertid));
+	PSID_log(-1, "%s: receive timed out. Send again\n", __func__);
+	goto send_again;
     } else if (msg.type != EXIT) {
 	if (msg.type == STDIN) goto again; /* Ignore late STDIN messages */
 	PSID_log(-1, "%s: Protocol messed up (type %d) from %s\n",
@@ -1311,21 +1319,7 @@ static void sighandler(int sig)
 	}
 	snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "\n");
 	PSIDfwd_printMsg(STDERR, txt);
-	for (i=0; i<FD_SETSIZE; i++) {
-	    if (FD_ISSET(i, &readfds) && i != daemonSock) {
-		int n;
-		char buf[128], txt2[128];
-
-		/* Try to read from fd */
-		errno=0;
-		n = read(i, buf, sizeof(buf)-1);
-		buf[sizeof(buf)-1]='\0';
-		snprintf(txt2, sizeof(txt2),
-			 "read(%d) returned %d, errno %d\n", i, n, errno);
-		PSIDfwd_printMsg(STDERR, txt2);
-		PSIDfwd_printMsg(STDOUT, buf);
-	    }
-	}
+	PSID_log(-1, "%s: %s", __func__, txt);
 	break;
     case SIGCHLD:
 	if (verbose) {
@@ -1738,7 +1732,7 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket,
 		    PMItype_t PMItype, int doAccounting, int acctPollInterval)
 {
     char *timeoutStr;
-    long flags, val, loggerTimeout = 10;
+    long flags, val;
     struct utsname uts;
 
     childTask = task;
@@ -1769,12 +1763,13 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket,
 	if (*timeoutStr && !*end && val>0) loggerTimeout = val;
     }
 
-    if (connectLogger(childTask->loggertid, loggerTimeout) != 0) {
+    if (connectLogger(childTask->loggertid) != 0) {
 	/* There is no logger. Just wait for the client to finish. */
 	PSID_blockSig(0, SIGCHLD);
 	while (1) sleep(10);
     }
 
+    /* Send this message late. No connection to logger before */
     if (loggerTimeout != val)
 	PSIDfwd_printMsgf(STDERR, "PSID_forwarder: Illegal value"
 			  " '%s' for __PSI_LOGGER_TIMEOUT\n", timeoutStr);

@@ -81,6 +81,8 @@ bin/mpiexec_elan.c \
 bin/gmspawner.c \
 bin/logger/psilogger.c \
 bin/logger/psilogger.h \
+bin/logger/psiloggerclient.h \
+bin/logger/psiloggerclient.c \
 bin/logger/psiloggerkvs.h \
 bin/logger/psiloggerkvs.c \
 bin/logger/psiloggermerge.h \

@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2007-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -22,6 +22,7 @@ static char vcid[] __attribute__((used)) =
 #include "list.h"
 #include "pslog.h"
 #include "psilogger.h"
+#include "psiloggerclient.h"
 
 #include "psiloggermerge.h"
 
@@ -46,8 +47,8 @@ typedef struct {
     struct list_head list;
 } bMessages;
 
-/** The actual size of #OutputBuffers. */
-extern int maxClients;
+/** The current size of #OutputBuffers. */
+int maxClients;
 
 /**
  * Maximum number of processes in this job.
@@ -57,7 +58,7 @@ extern int np;
 /**
  * Len of the prefix if all ranks do the same output.
  */
-int prelen;
+static int prelen;
 
 /**
  * Structure for each client which holds the pointers to the
@@ -200,13 +201,7 @@ static void dumpClientBuffer()
     PSIlog_log(-1, "dump end\n");
 }
 
-/**
- * @brief Init the merge structures/functions of the logger.
- * This function must be called before any other merge function.
- *
- * @return No return value.
- */
-void outputMergeInit(void)
+void outputMergeInit(int maxRank)
 {
     int i;
     char npsize[50];
@@ -220,6 +215,7 @@ void outputMergeInit(void)
 	maxMergeDepth = atoi(envstr);
     }
 
+    maxClients = maxRank;
     ClientOutBuf = umalloc ((sizeof(*ClientOutBuf) * maxClients), __func__);
     BufInc = umalloc ((sizeof(char*) * maxClients), __func__);
 
@@ -236,15 +232,6 @@ void outputMergeInit(void)
     INIT_LIST_HEAD(&bufGlobal.list);
 }
 
-/**
- * @brief If more clients are connected than maxClients,
- * the caches have to be reallocated so all new clients can be
- * handled.
- *
- * @param newSize The new size of the next max client.
- *
- * @return No return value.
- */
 void reallocClientOutBuf(int newSize)
 {
     int i;
@@ -275,6 +262,11 @@ void reallocClientOutBuf(int newSize)
 
     ClientOutBuf = OutBufNew;
     maxClients = newSize;
+}
+
+int getMaxOutRank(void)
+{
+    return maxClients;
 }
 
 /**
@@ -563,7 +555,7 @@ static void outputSingleCMsg(int client, struct list_head *pos,
 static void outputHalfMsg(int client)
 {
     if (!BufInc[client]) return;
-    
+
     PSIlog_stderr(-1, "[%i]: %s\n", client, BufInc[client]);
     BufInc[client] = NULL;
 }

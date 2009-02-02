@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -43,6 +43,7 @@ static char vcid[] __attribute__((used)) =
 #include "pslog.h"
 #include "psiloggerkvs.h"
 #include "psiloggermerge.h"
+#include "psiloggerclient.h"
 
 #include "psilogger.h"
 #include "timer.h"
@@ -52,39 +53,26 @@ static char vcid[] __attribute__((used)) =
  *
  * Set in main() to 1 if environment variable PSI_SOURCEPRINTF is defined.
  */
-int PrependSource = 0;
+static int prependSource = 0;
 
 /**
  * Shall output lines of different ranks be merged ?  (1=Yes, 0=No)
  *
  * Set in main() to 1 if environment variable PSI_MERGEOUTPUT is defined.
  */
-int MergeOutput = 0;
+static int mergeOutput = 0;
 
 /**
  * Parse STDIN for special commands changing the input destination.
  *
  * Set in main() to 1 if environment variable PSI_ENABLE_GDB is defined.
  */
-int enableGDB = 0;
+static int enableGDB = 0;
 
 /**
  * Maximum number of processes in this job.
  */
 int np = 0;
-
-/**
- * The rank(s) of the process(es) all input is forwarded to.
- *
- * Set in main() to the value given by the environment variable
- * PSI_INPUTDEST. Will be set to -1 if no stdin is connected.
- */
-int *InputDest;
-
-/**
- * Task ID of the process that get's stdin
- */
-PStask_ID_t *forwardInputTID;
 
 /**
  * Verbosity of Forwarders (1=Yes, 0=No)
@@ -98,28 +86,16 @@ int forw_verbose = 0;
  *
  * Set in main() to 1 if environment variable PSI_USAGE is defined.
  */
-int usage = 0;
-
-/** Number of currently connected forwarders */
-int noClients;
+static int showUsage = 0;
 
 /** Number of maximum connected forwarders during runtime */
 int maxConnected;
 
 /** Set of fds, the logger listens to. This is mainly STDIN and daemonSock. */
-fd_set myfds;
-
-/** Array to store the forwarder TIDs indexed by the clients rank. */
-PStask_ID_t *clientTID;
-
-/** The minimal client rank (might be negative for TG_SERVICE) */
-const int minRank = -2;
-
-/** The actual size of #clientTID. */
-int maxClients = 64;
+static fd_set myfds;
 
 /** The socket connecting to the local ParaStation daemon */
-int daemonSock;
+static int daemonSock;
 
 /** The value which will be returned when the logger stops execution */
 int retVal = 0;
@@ -164,6 +140,15 @@ void PSIlog_setTimeFlag(char flag)
     logger_setTimeFlag(PSIlog_stderrLogger, flag);
 }
 
+void addToFDSet(int fd)
+{
+    FD_SET(fd, &myfds);
+}
+
+void remFromFDSet(int fd)
+{
+    FD_CLR(fd, &myfds);
+}
 
 /**
  * @brief Close socket to daemon.
@@ -179,84 +164,9 @@ static void closeDaemonSock(void)
     if (daemonSock < 0) return;
 
     daemonSock=-1;
-    FD_CLR(tmp, &myfds);
+    remFromFDSet(tmp);
     PSLog_close();
     close(tmp);
-}
-
-/**
- * @brief Parse the string @ref input were STDIN should be
- * forwarded and save result in @ref InputDest.
- *
- * @param input The input string to parse.
- *
- * @return No return value.
- */
-static void setupInputDestList(char *input)
-{
-    const char delimiters[] ="[], \n";
-    char *ranks, *saveptr;
-    int first, last, i;
-
-    if (!input) {
-	return;
-    }
-
-    if (!(ranks = strtok_r(input,delimiters,&saveptr))) {
-	PSIlog_log(-1, "empty input destination.\n");
-	return;
-    }
-
-    /* reset old input destinations */
-    for (i=0; i<maxClients; i++) InputDest[i] = 0;
-
-    /* set input to all ranks */
-    if (!strcmp(ranks, "all") || !strcmp(ranks, "All")) {
-	for (i=0; i<np; i++) {
-	    InputDest[i] = 1;
-	}
-	return;
-    }
-
-    while (ranks != NULL) {
-	if (strchr(ranks, '-') != NULL) {
-	    first = last = 0;
-	    if ((sscanf(ranks, "%d-%d", &first, &last)) != 2) {
-		PSIlog_log(-1, "invalid range for input redirection,"
-			   " setting input to Rank 0.\n");
-		InputDest[0] = 1;
-		return;
-	    }
-	    if (first < 0 || last < 0 || last < first || first == last) {
-		PSIlog_log(-1, "invalid range for input redirection"
-			   " %i-%i, setting input to Rank 0.\n", first, last);
-		InputDest[0] = 1;
-		return;
-	    }
-	    for(i=first; i<=last; i++) {
-		if (i >= np) {
-		    PSIlog_log(-1, "input forward to non existing"
-			       " rank:[%d], valid ranks:[0-%i]\n", i, np-1);
-		} else {
-		    InputDest[i] = 1;
-		}
-	    }
-	} else {
-	    char *end;
-	    i = strtol(ranks, &end, 10);
-	    if (ranks == end || *end) {
-		PSIlog_log(-1, "input forward to invalid rank,"
-			   " valid ranks:[0-%i]\n", np-1);
-	    }
-	    if (i >= np) {
-		PSIlog_log(-1, "input forward to non existing"
-			   " rank:[%d], valid ranks:[0-%i]\n", i, np-1);
-	    } else {
-		InputDest[i] = 1;
-	    }
-	}
-	ranks = strtok_r(NULL,delimiters,&saveptr);
-    }
 }
 
 /**
@@ -270,7 +180,7 @@ static void setupInputDestList(char *input)
 static void readGDBInput(char *line)
 {
     char buf[1000];
-    int len, i;
+    size_t len;
 
     if (!line ) return;
 
@@ -287,16 +197,13 @@ static void readGDBInput(char *line)
     len = strlen(buf);
     if (len > 2 && buf[0] == '[' && buf[len -2] == ']') {
 	PSIlog_log(-1, "Changing input dest to: %s",buf);
-	setupInputDestList(buf);
+	setupDestList(buf);
 	return;
     }
 
-    for (i=0; i<maxClients; i++) {
-	if (InputDest[i] && forwardInputTID[i] != -1) {
-	    sendMsg(forwardInputTID[i], STDIN, buf, len);
-	}
-    }
-    PSIlog_log(PSILOG_LOG_VERB, "%s: %d bytes\n", __func__, len);
+    forwardInputStr(buf, len);
+
+    PSIlog_log(PSILOG_LOG_VERB, "%s: %zd bytes\n", __func__, len);
 }
 
 /**
@@ -381,21 +288,18 @@ static int recvMsg(PSLog_Msg_t *msg)
     case PSP_CC_ERROR:
     {
 	/* Try to find the corresponding client */
-	int i = minRank;
+	int rank = getClientRank(msg->header.sender);
 
-	while ((i < maxClients) && (clientTID[i] != msg->header.sender)) i++;
-
-	if (i == maxClients) {
+	if (rank > getMaxRank()) {
 	    PSIlog_log(-1, "%s: CC_ERROR from unknown task %s.\n",
 		       __func__, PSC_printTID(msg->header.sender));
 	    errno = EBADMSG;
 	    ret = -1;
 	} else {
 	    PSIlog_log(-1, "%s: forwarder %s (rank %d) disappeared.\n",
-		       __func__, PSC_printTID(msg->header.sender), i);
+		       __func__, PSC_printTID(msg->header.sender), rank);
 
-	    clientTID[i] = -1;
-	    noClients--;
+	    deregisterClient(rank);
 
 	    errno = EPIPE;
 	    ret = -1;
@@ -516,11 +420,12 @@ void sighandler(int sig)
 	    PSIlog_log(PSILOG_LOG_VERB, "Got SIGTERM. Problem with child?\n");
 	    firstTERM = 0;
 	}
-	PSIlog_log(PSILOG_LOG_VERB, "No of clients: %d open logs:", noClients);
-	for (i=minRank; i<maxClients; i++) {
-	    if (clientTID[i] == -1) continue;
-	    PSIlog_log(PSILOG_LOG_VERB, "%d (%s) ",
-		       i, PSC_printTID(clientTID[i]));
+	PSIlog_log(PSILOG_LOG_VERB,
+		   "No of clients: %d open logs:", getNoClients());
+	for (i=getMinRank(); i<=getMaxRank(); i++) {
+	    PStask_ID_t tid = getClientTID(i);
+	    if (tid == -1) continue;
+	    PSIlog_log(PSILOG_LOG_VERB, "%d (%s) ", i, PSC_printTID(tid));
 	}
 	PSIlog_log(PSILOG_LOG_VERB, "\b\n");
 	{
@@ -559,8 +464,9 @@ void sighandler(int sig)
 	PSIlog_log(PSILOG_LOG_VERB, "Got SIGTTIN.\n");
 	break;
     case SIGWINCH:
-	for (i=0; i < maxClients; i++) {
-	    if (!InputDest[i] || forwardInputTID[i] == -1) continue;
+	for (i=getMinRank(); i <= getMaxRank(); i++) {
+	    PStask_ID_t tid = getClientTID(i);
+	    if (!clientIsActive(i) || tid == -1) continue;
 
 	    /* Create WINCH-messages and send */
 	    struct winsize ws;
@@ -573,7 +479,7 @@ void sighandler(int sig)
 	    buf[len++] = ws.ws_xpixel;
 	    buf[len++] = ws.ws_ypixel;
 
-	    sendMsg(forwardInputTID[i], WINCH, (char *)buf, len*sizeof(*buf));
+	    sendMsg(tid, WINCH, (char *)buf, len*sizeof(*buf));
 
 	    PSIlog_log(PSILOG_LOG_VERB, "%s: WINCH to col %d row %d",
 		       __func__, ws.ws_col, ws.ws_row);
@@ -581,10 +487,19 @@ void sighandler(int sig)
 		       ws.ws_xpixel, ws.ws_ypixel);
 	}
 	break;
+    case SIGUSR1:
+	PSIlog_log(-1, "No of clients: %d open logs:", getNoClients());
+	for (i=getMinRank(); i<=getMaxRank(); i++) {
+	    PStask_ID_t tid = getClientTID(i);
+	    if (tid == -1) continue;
+	    PSIlog_log(-1, "%d (%s) ", i, PSC_printTID(tid));
+	}
+	PSIlog_log(-1, "\b\n");
+	PSIlog_log(-1, "allActiveThere is %d\n", allActiveThere());
+	break;
     case SIGHUP:
     case SIGTSTP:
     case SIGCONT:
-    case SIGUSR1:
     case SIGUSR2:
     case SIGQUIT:
 	PSIlog_log(PSILOG_LOG_VERB, "Got signal %d.\n", sig);
@@ -618,7 +533,7 @@ void sighandler(int sig)
 static struct termios _saved_tio;
 static int _in_raw_mode = 0;
 
-void leave_raw_mode(void)
+static void leaveRawMode(void)
 {
     if (!_in_raw_mode) return;
     if (tcsetattr(STDIN_FILENO, TCSADRAIN, &_saved_tio) == -1) {
@@ -628,7 +543,7 @@ void leave_raw_mode(void)
     }
 }
 
-void enter_raw_mode(void)
+static void enterRawMode(void)
 {
     struct termios termios;
 
@@ -664,70 +579,24 @@ void enter_raw_mode(void)
  *
  * Handles connection requests from new forwarder. In order to
  * connect, the forwarder has sent a INITIALIZE PSLog message. After
- * some testing, if everything is okay, the connection is accepted and
- * a INITIALIZE reply is sent to the forwarder. The new client will be
- * registered within the #clientTID array which was expanded if the
- * actual size was not sufficient.
- *
+ * some testing, if everything is okay, the new client will be
+ * registered and a INITIALIZE reply is sent to the forwarder.
  *
  * @param msg INITIALIZE message used to contact the logger.
  *
- * @return On success, 1 is returned. On error, 0 is returned, if the
- * error was not fatal. If a fatal error occurred, i.e. if the
- * expansion of #clientTID failed, the logger is ceased using exit().
+ * @return On success, 1 is returned. On error, 0 is returned.
  */
 static int newrequest(PSLog_Msg_t *msg)
 {
     int ret=0;
-
-    if (msg->sender >= maxClients) {
-	int i;
-	PStask_ID_t *tmp = clientTID + minRank;
-
-	tmp = realloc(tmp, sizeof(*clientTID) * (2*msg->sender - minRank));
-	clientTID = tmp - minRank;
-	forwardInputTID = realloc(forwardInputTID,
-				  sizeof(*forwardInputTID) * 2 * msg->sender);
-	InputDest = realloc(InputDest, sizeof(*InputDest) * 2 * msg->sender);
-
-	if (!clientTID || !forwardInputTID || !InputDest) {
-	    PSIlog_log(-1, "%s: realloc(%ld) failed.\n", __func__,
-		       (long) sizeof(*clientTID) * 2 * msg->sender);
-	    exit(1);
-	}
-	for (i=maxClients; i<2*msg->sender; i++) {
-	    clientTID[i] = -1;
-	    forwardInputTID[i] = -1;
-	    InputDest[i] = 0;
-	}
-
+    if (mergeOutput && msg->sender >= getMaxOutRank()) {
 	/* realloc output buffer */
-	if (MergeOutput) reallocClientOutBuf(2*msg->sender);
-
-	maxClients = 2*msg->sender;
+	reallocClientOutBuf(2*msg->sender);
     }
 
-    if (msg->sender < minRank) {
-	PSIlog_log(-1, "%s: rank %d from %s not supported. Ignoring...\n",
-		   __func__, msg->sender, PSC_printTID(msg->header.sender));
-	return 0;
-    }
-    if (clientTID[msg->sender] != -1) {
-	if (clientTID[msg->sender] == msg->header.sender) {
-	    PSIlog_log(-1, "%s: %s (rank %d) already connected.\n",
-		    __func__, PSC_printTID(msg->header.sender), msg->sender);
-	} else {
-	    PSIlog_log(-1, "%s: %s (rank %d)", __func__,
-		       PSC_printTID(clientTID[msg->sender]), msg->sender);
-	    PSIlog_log(-1, " connects as %s.\n",
-		       PSC_printTID(msg->header.sender));
-	}
-    } else {
+    if (registerClient(msg->sender, msg->header.sender)) {
 	sendMsg(msg->header.sender, INITIALIZE,
 		(char *) &forw_verbose, sizeof(forw_verbose));
-
-	clientTID[msg->sender] = msg->header.sender;
-	noClients++;
 	maxConnected++;
 	PSIlog_log(PSILOG_LOG_VERB, "new connection from %s (%d)\n",
 		   PSC_printTID(msg->header.sender), msg->sender);
@@ -808,31 +677,28 @@ static void CheckFileTable(fd_set* openfds)
 static void forwardInput(int std_in)
 {
     char buf[1000];
-    int len, i;
+    size_t len;
 
     len = read(std_in, buf, sizeof(buf)>SSIZE_MAX ? SSIZE_MAX : sizeof(buf));
     switch (len) {
     case -1:
 	if (errno == EBADF) {
-	    FD_CLR(std_in, &myfds);
+	    remFromFDSet(std_in);
 	} else if (errno != EIO) {
 	    PSIlog_warn(-1, errno, "%s: read()", __func__);
-	    FD_CLR(std_in, &myfds);
+	    remFromFDSet(std_in);
 	    close(std_in);
 	} else {
 	    /* ignore */
 	}
 	break;
     case 0:
-	FD_CLR(std_in, &myfds);
+	remFromFDSet(std_in);
 	close(std_in);
     default:
-	for (i=0; i<maxClients; i++) {
-	    if (InputDest[i] && forwardInputTID[i] != -1) {
-		sendMsg(forwardInputTID[i], STDIN, buf, len);
-	    }
-	}
-	PSIlog_log(PSILOG_LOG_VERB, "%s: %d bytes\n", __func__, len);
+	forwardInputStr(buf, len);
+
+	PSIlog_log(PSILOG_LOG_VERB, "%s: %zd bytes\n", __func__, len);
     }
 }
 
@@ -845,7 +711,7 @@ static void forwardInput(int std_in)
  */
 static void handleUSAGEMsg(PSLog_Msg_t *msg)
 {
-    if (usage) {
+    if (showUsage) {
 	struct rusage usage;
 
 	memcpy(&usage, msg->buf, sizeof(usage));
@@ -874,10 +740,10 @@ static void handleOutMsg(PSLog_Msg_t *msg, int outfd)
 	       msg->header.len - PSLog_headerSize,
 	       PSC_printTID(msg->header.sender));
 
-    if (MergeOutput && np > 1) {
+    if (mergeOutput && np > 1) {
 	/* collect all ouput */
 	cacheOutput(msg, outfd);
-    } else if (PrependSource) {
+    } else if (prependSource) {
 	static int lastSender = lastSenderMagic;
 	char prefix[30];
 	char *buf = msg->buf;
@@ -943,8 +809,7 @@ static void handleOutMsg(PSLog_Msg_t *msg, int outfd)
  */
 static void handleFINALIZEMsg(PSLog_Msg_t *msg)
 {
-    int i;
-    leave_raw_mode();
+    leaveRawMode();
     if (getenv("PSI_SSH_COMPAT_HOST")) {
 	char *host = getenv("PSI_SSH_COMPAT_HOST");
 	int status = *(int *) msg->buf;
@@ -983,69 +848,7 @@ static void handleFINALIZEMsg(PSLog_Msg_t *msg)
 
     PSLog_write(msg->header.sender, EXIT, NULL, 0);
 
-    for (i=0; i < maxClients; i++) {
-	if (msg->header.sender == forwardInputTID[i]) {
-	    /* disable input forwarding */
-	    //FD_CLR(STDIN_FILENO, &myfds);
-	    InputDest[i] = 0;
-	}
-    }
-    clientTID[msg->sender] = -1;
-    noClients--;
-}
-
-static int activeSTOPs = 0;
-
-/**
- * @brief Handle STOP msg from forwarder.
- *
- * @param msg The received msg to handle.
- *
- * @return No return value.
- */
-static void handleSTOPMsg(PSLog_Msg_t *msg)
-{
-    /* rank InputDest wants pause */
-    if (!InputDest[msg->sender]) {
-	PSIlog_log(-1, "STOP from wrong rank: %d\n", msg->sender);
-	return;
-    }
-
-    if (forwardInputTID[msg->sender] == msg->header.sender) {
-	if (!activeSTOPs) {
-	    FD_CLR(STDIN_FILENO,&myfds);
-	    PSIlog_log(PSILOG_LOG_VERB, "forward input is paused\n");
-	}
-	activeSTOPs++;
-	forwardInputTID[msg->sender] = -1; /* This marks sender as STOPped
-					      @todo this is a ugly HACK */
-    }
-}
-
-/**
- * @brief Handle CONT msg from forwarder.
- *
- * @param msg The received msg to handle.
- *
- * @return No return value.
- */
-static void handleCONTMsg(PSLog_Msg_t *msg)
-{
-    if (!InputDest[msg->sender]) {
-	PSIlog_log(-1, "CONT from wrong rank: %d\n", msg->sender);
-	return;
-    }
-
-    if (forwardInputTID[msg->sender] == -1) {
-	/* sender is marked as STOPped @todo this is a ugly HACK */
-	forwardInputTID[msg->sender] = msg->header.sender;
-	activeSTOPs--;
-
-	if (!activeSTOPs) {
-	    FD_SET(STDIN_FILENO,&myfds);
-	    PSIlog_log(PSILOG_LOG_VERB, "forward input continues\n");
-	}
-    }
+    deregisterClient(msg->sender);
 }
 
 /**
@@ -1183,21 +986,20 @@ static void loop(void)
     static int serviceClients = 0;
 
     FD_ZERO(&myfds);
-    FD_SET(daemonSock, &myfds);
+    addToFDSet(daemonSock);
 
-    noClients = 0;
     timeoutval = 0;
 
     /*
      * Loop until there is no connection left. Pay attention to the startup
      * phase, while no connection exists. Thus wait at least 10 * mytv.
      */
-    while ( noClients > 0 || timeoutval < MIN_WAIT ) {
+    while (getNoClients() > 0 || timeoutval < MIN_WAIT) {
 	fd_set afds;
 	memcpy(&afds, &myfds, sizeof(afds));
 	atv = mytv;
 	Timer_handleSignals();
-	if (MergeOutput && np >1) displayCachedOutput(0);
+	if (mergeOutput && np >1) displayCachedOutput(0);
 	if (select(daemonSock + 1, &afds, NULL,NULL,&atv) < 0) {
 	    if (errno == EINTR) {
 		/* Interrupted syscall, just start again */
@@ -1225,26 +1027,20 @@ static void loop(void)
 		if (newrequest(&msg)) {
 		    if (msg.sender < 0) serviceClients++;
 
-		    if (maxConnected - serviceClients >= np) /* @todo always get correct np */
+		    if (maxConnected - serviceClients >= np) {/* @todo always get correct np */
 			timeoutval = MIN_WAIT;
-
-		    if (msg.sender >= 0) {
-			forwardInputTID[msg.sender] = msg.header.sender;
-		    }
-
-		    if (InputDest[msg.sender]) {
-			/* rank InputDest wants the input */
-			FD_SET(STDIN_FILENO, &myfds);
+			if (allActiveThere()) addToFDSet(STDIN_FILENO);
 		    }
 		}
-	    } else if (msg.sender > maxClients) {
+	    } else if (msg.sender > getMaxRank()) {
 		PSIlog_log(-1, "%s: sender %s (rank %d) out of range.\n",
 			   __func__, PSC_printTID(msg.header.sender),
 			   msg.sender);
-	    } else if (clientTID[msg.sender] != msg.header.sender) {
-		PSIlog_log(-1, "%s: client %s (rank %d) sends as %s.\n",
-			   __func__, PSC_printTID(clientTID[msg.sender]),
-			   msg.sender, PSC_printTID(msg.header.sender));
+	    } else if (getClientTID(msg.sender) != msg.header.sender) {
+		int rank = msg.sender;
+		PSIlog_log(-1, "%s: %s sends as rank %d ", __func__,
+			   PSC_printTID(msg.header.sender), rank);
+		PSIlog_log(-1, "(%s).\n", PSC_printTID(getClientTID(rank)));
 	    } else switch(msg.type) {
 	    case STDERR:
 		outfd = STDERR_FILENO;
@@ -1280,11 +1076,9 @@ static void loop(void)
 		forwardInput(STDIN_FILENO);
 	    }
 	}
-	if ( noClients==0 ) {
-	    timeoutval++;
-	}
+	if (!getNoClients()) timeoutval++;
     }
-    if (MergeOutput && np > 1) {
+    if (mergeOutput && np > 1) {
 	displayCachedOutput(0);
 	/* flush output */
 	displayCachedOutput(1);
@@ -1303,7 +1097,7 @@ static void loop(void)
  *
  * After registering several signals gets global variables @ref
  * daemonSock and local ParaStation ID from arguments. Furthermore the
- * global variables @ref forw_verbose, @ref PrependSource @ref
+ * global variables @ref forw_verbose, @ref prependSource @ref
  * InputDest and @ref usage are set from environment. After setting up
  * logging finally @ref loop() is called. Upon return from this
  * central loop, all further arguments to the two allready evaluated
@@ -1400,7 +1194,7 @@ int main( int argc, char**argv)
     }
 
     if (getenv("PSI_SOURCEPRINTF")) {
-	PrependSource = 1;
+	prependSource = 1;
 	PSIlog_log(PSILOG_LOG_VERB, "Will print source-info.\n");
     }
 
@@ -1414,49 +1208,28 @@ int main( int argc, char**argv)
 	np = atoi(envstr);
     }
 
-    if (getenv("PSI_MERGEOUTPUT")) {
-	MergeOutput  = 1;
-	PSIlog_log(PSILOG_LOG_VERB, "Will merge the output of all ranks.\n");
-	outputMergeInit();
-    }
-
-    clientTID = malloc (sizeof(*clientTID) * (maxClients - minRank));
-    clientTID -= minRank;
-    forwardInputTID = malloc (sizeof(*forwardInputTID) * maxClients);
-    InputDest = malloc (sizeof(*InputDest) * maxClients);
-
-    if (!clientTID || !forwardInputTID || !InputDest) {
-	PSIlog_exit(ENOMEM, " ");
-    }
-
-    for (i=minRank; i<maxClients; i++) {
-	clientTID[i] = -1;
-    }
-    for (i=0; i<maxClients; i++) {
-	forwardInputTID[i] = -1;
-	InputDest[i] = 0;
-    }
-
-    if ((input = getenv("PSI_INPUTDEST"))) {
-	if (daemonSock) PSIlog_log(PSILOG_LOG_VERB, "Input to [%s].\n", input);
-	setupInputDestList(input);
-    } else {
-	InputDest[0] = 1;
-    }
-
+    /* Destination list has to be set before initClients() */
     if (daemonSock) {
-	if (!input) PSIlog_log(PSILOG_LOG_VERB, "Input goes to [0].\n");
+	input = getenv("PSI_INPUTDEST");
+	if (!input) input = "0";
+
+	PSIlog_log(PSILOG_LOG_VERB, "Input goes to [%s].\n", input);
     } else {
 	/* daemonSock = 0, this means there is no stdin connected */
 	PSIlog_log(PSILOG_LOG_VERB, "No stdin available.\n");
-	/* Never ever forward input */
-	for (i=0; i<maxClients; i++) {
-	    InputDest[i] = 0;
-	}
+	input = "";
+    }
+    setupDestList(input);
+
+    initClients(-2, 16);
+    if (getenv("PSI_MERGEOUTPUT")) {
+	mergeOutput = 1;
+	PSIlog_log(PSILOG_LOG_VERB, "Will merge the output of all ranks.\n");
+	outputMergeInit(16);
     }
 
     if (getenv("PSI_RUSAGE")) {
-	usage=1;
+	showUsage=1;
 	PSIlog_log(PSILOG_LOG_VERB, "Going to show resource usage.\n");
     }
 
@@ -1469,7 +1242,7 @@ int main( int argc, char**argv)
 
     if (getenv("PSI_LOGGER_RAW_MODE") && isatty(STDIN_FILENO)) {
 	PSIlog_log(PSILOG_LOG_VERB, "Entering raw-mode\n");
-	enter_raw_mode();
+	enterRawMode();
     }
 
     /* enable kvs and pmi */
@@ -1481,7 +1254,7 @@ int main( int argc, char**argv)
     /* call the loop which does all the work */
     loop();
 
-    leave_raw_mode();
+    leaveRawMode();
 
     sendAcctData();
 

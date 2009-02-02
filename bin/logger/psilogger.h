@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2007-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -212,6 +212,30 @@ int sendMsg(PStask_ID_t tid, PSLog_msg_t type, char *buf, size_t len);
  * @return No return value.
  */
 void terminateJob(void);
+
+/**
+ * @brief Add a file-descriptor
+ *
+ * Add the file-descriptor @a fd to the set of file-descriptors
+ * observed by the central select().
+ *
+ * @param fd File-descriptor to add
+ *
+ * @return No return value.
+ */
+void addToFDSet(int fd);
+
+/**
+ * @brief Remove a file-descriptor
+ *
+ * Remove the file-descriptor @a fd from the set of file-descriptors
+ * observed by the central select().
+ *
+ * @param fd File-descriptor to remove
+ *
+ * @return No return value.
+ */
+void remFromFDSet(int fd);
 
 #ifdef __cplusplus
 }/* extern "C" */
