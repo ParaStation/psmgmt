@@ -57,27 +57,6 @@ void cacheOutput(PSLog_Msg_t *msg, int outfd);
  *
  * @return No return value.
  */
-void outputMergeInit(int maxRank);
-
-/**
- * @brief Determine maximum rank.
- *
- * Determine the current maximum rank allowed to be implicitely passed
- * to the @ref cacheOutput() function.
- *
- * @return Returns to current maximum rank.
- */
-int getMaxOutRank(void);
-
-/**
- * @brief If more clients are connected than maxClients,
- * the caches have to be reallocated so all new clients can be
- * handled.
- *
- * @param newSize The new size of the next max client.
- *
- * @return No return value.
- */
-void reallocClientOutBuf(int newSize);
+void outputMergeInit(void);
 
 #endif

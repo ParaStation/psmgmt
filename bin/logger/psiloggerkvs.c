@@ -1,10 +1,12 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2007-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
+ * @author
+ * Michael Rauh <rauh@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
@@ -414,7 +416,9 @@ static void sendKvsUpdateToClients(void)
  */
 static void handleBarrierTimeout(void)
 {
-    PSIlog_log(-1, "Timeout: Not all clients joined the first pmi barrier.\n");
+    PSIlog_log(-1, "Timeout: Not all clients joined the first pmi barrier: "
+		   "joined=%i left=%i\n", kvsBarrierInCount,
+		    noKvsClients - kvsBarrierInCount);
 
     /* kill all childs */
     terminateJob();
@@ -544,7 +548,7 @@ static void handleKvsValueCount(PSLog_Msg_t *msg)
 	PSIlog_log(-1, "%s: bad kvs value count msg\n", __func__);
 	snprintf(reply, sizeof(reply), "cmd=kvs_value_count rc=-1\n");
     } else {
-        /* return result */
+	/* return result */
 	snprintf(reply, sizeof(reply),
 		 "cmd=kvs_value_count count=%i kvsname=%s rc=0\n",
 		 kvs_count_values(kvsname), kvsname);
@@ -781,7 +785,7 @@ void handleKvsMsg(PSLog_Msg_t *msg)
     char cmd[VALLEN_MAX], *cmdtmp, *msgCopy;
 
     if (debug_kvs) {
-        PSIlog_log(-1, "%s: new pmi kvs msg: '%s'\n", __func__, msg->buf);
+	PSIlog_log(-1, "%s: new pmi kvs msg: '%s'\n", __func__, msg->buf);
     }
 
     /* extract the kvs command */

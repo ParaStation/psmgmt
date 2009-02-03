@@ -1,10 +1,12 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2007-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
+ * @author
+ * Michael Rauh <rauh@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
@@ -683,6 +685,10 @@ static int p_Spawn(char *msgBuffer)
 
     PMI_send("cmd=spwan_result rc=-1\n");
 
+    PSIDfwd_printMsgf(STDERR, "%s: Rank: %i: received unsupported pmi spwan"
+		      " request:%s\n", __func__, rank, msgBuffer);
+    critErr();
+
     return 0;
 }
 
@@ -812,7 +818,21 @@ static int p_Get_Maxes(void)
 /**
  * @brief Intel MPI 3.0 Extension.
  *
- * PMI extension in Intel MPI 3.0, just to recognize it.
+ * PMI extension in Intel MPI since version 3.0, just to recognize it.
+ *
+ * response msg put_ranks2hosts:
+ *
+ * 1. msg-> put_ranks2hosts <msglen> <num_of_hosts>
+ *  <msglen>: the number of characters in the next msg + 1
+ *  <num_of_hosts>: total number of the non-recurring
+ *	host names that are in the set
+ *
+ * 2. msg-> <hnlen> <hostname> <rank1,rank2,...,rankN,>
+ *  <hnlen> number of characters in the next <hostname> field
+ *  <hostname> the node name
+ *  <rank1,rank2,..,rankN> a comma seperated list of ranks executed on the
+ *	<hostname> node; if the list is the last in the response, it must be
+ *	followed a blank space
  *
  * @return Returns 0 for success and 1 on error.
  */
@@ -824,6 +844,7 @@ static int p_Get_Rank2Hosts(void)
 			  "%s: Rank %i: received pmi get_rank2hosts request\n",
 			  __func__, rank);
     }
+
     snprintf(reply, sizeof(reply),
 	     "cmd=put_ranks2hosts 0 0\n");
     PMI_send(reply);
@@ -929,7 +950,7 @@ const PMI_Msg pmi_commands[] =
 	{ "init",			&p_Init			},
 	{ "execution_problem",		&p_Execution_Problem	},
 	{ "getbyidx",			&p_GetByIdx		},
-	{ "get_universe_size",		&p_Get_Universe_Size  	},
+	{ "get_universe_size",		&p_Get_Universe_Size	},
 	{ "initack",			&p_InitAck		},
 };
 
@@ -945,7 +966,8 @@ const PMI_shortMsg pmi_short_commands[] =
 
 
 const int pmi_com_count = sizeof(pmi_commands)/sizeof(pmi_commands[0]);
-const int pmi_short_com_count = sizeof(pmi_short_commands)/sizeof(pmi_short_commands[0]);
+const int pmi_short_com_count =
+    sizeof(pmi_short_commands)/sizeof(pmi_short_commands[0]);
 
 /**
  * @brief Init the PMI interface.
@@ -1076,7 +1098,7 @@ static int pmi_extract_cmd(char *msg, char *cmdbuf, int bufsize)
  * @brief PMI message switch.
  *
  * Parse a pmi msg and call the appropriate protocol handler
- * function
+ * function.
  *
  * @param msg The pmi message to parse.
  *
@@ -1194,8 +1216,8 @@ void pmi_handleKvsRet(PSLog_Msg_t msg)
 	while (nextvalue != NULL) {
 	    /* extract next key/value pair */
 	    if (!(value = strchr(nextvalue, '=') +1)) {
-		PSIDfwd_printMsgf(STDERR, "%s: Rank %i: invalid kvs update received\n",
-				  __func__, rank);
+		PSIDfwd_printMsgf(STDERR, "%s: Rank %i: invalid kvs update"
+				  " received\n", __func__, rank);
 		critErr();
 		return;
 	    }

@@ -201,7 +201,7 @@ static void dumpClientBuffer()
     PSIlog_log(-1, "dump end\n");
 }
 
-void outputMergeInit(int maxRank)
+void outputMergeInit(void)
 {
     int i;
     char npsize[50];

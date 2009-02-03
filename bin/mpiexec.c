@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2007-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -67,8 +67,8 @@ int dup_argc;
 int admin = 0;
 /** set debugging mode and np * gdb to controll child processes */
 int gdb = 0;
-/** just print output, don't run anything */ 
-int show = 0; 
+/** just print output, don't run anything */
+int show = 0;
 /** flag to set verbose mode */
 int verbose = 0;
 /** flag to determine if we are using quadrics lib elan */
@@ -91,22 +91,22 @@ int envall = 0;
 int usize = 0;
 char *wdir = NULL;
 char *jobid = NULL;
-char *nodelist = NULL; 
-char *hostlist = NULL; 
-char *hostfile = NULL; 
-char *envlist = NULL; 
+char *nodelist = NULL;
+char *hostlist = NULL;
+char *hostfile = NULL;
+char *envlist = NULL;
 char *envopt = NULL;
 char *path = NULL;
 const char *envvalopt;
 
 /* compability options from other mpiexec commands*/
 int totalview = 0;
-int ecfn = 0; 
+int ecfn = 0;
 int gdba = 0;
 
 /* options for parastation (psid/logger/forwarder) */
 int source = 0;
-int overbook = 0; 
+int overbook = 0;
 int exclusive = 0;
 int wait = 0;
 int loopnodesfirst = 0;
@@ -120,29 +120,29 @@ char *login = NULL;
 char *dest = NULL;
 
 /* debug options */
-int loggerdb = 0; 
+int loggerdb = 0;
 int forwarderdb = 0;
-int pscomdb = 0; 
+int pscomdb = 0;
 int loggerrawmode = 0;
 int psidb = 0;
 
 /* options for the pscom library */
-int sndbuf = 0; 
-int rcvbuf = 0; 
+int sndbuf = 0;
+int rcvbuf = 0;
 int nodelay = 0;
 int schedyield = 0;
 int retry = 0;
 int sigquit = 0;
-char *plugindir = NULL; 
+char *plugindir = NULL;
 char *discom = NULL;
 char *network = NULL;
-    
-/* help option flags */  
+
+/* help option flags */
 int help = 0, usage = 0;
 int debughelp = 0, debugusage = 0;
 int extendedhelp = 0, extendedusage = 0;
 int comphelp = 0, compusage = 0;
-    
+
 int none = 0;
 int version = 0;
 
@@ -153,7 +153,7 @@ static char versionstring[] = "$Revision$";
  *
  * @param size Size in bytes to allocate.
  *
- * @return Returned is a pointer to the allocated memory. 
+ * @return Returned is a pointer to the allocated memory.
  */
 static void *umalloc(size_t size, const char *func)
 {
@@ -284,7 +284,7 @@ static void getFirstNodeID(PSnodes_ID_t *nodeID)
 }
 
 /**
- * @brief Disable elan support in pscom library 
+ * @brief Disable elan support in pscom library
  *
  * @return No return value.
  * */
@@ -304,7 +304,7 @@ static void disableElan(void)
 static void checkForELAN(void)
 {
     char *envstr = getenv("PSP_ELAN");
-    
+
     if (envstr && !strcmp(envstr,"0")) {
 	disableElan();
 	return;
@@ -339,22 +339,22 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
     char *pwd = NULL;
 
     if (ldpath != NULL) {
-        setPSIEnv("LD_LIBRARY_PATH", ldpath, 1);
+	setPSIEnv("LD_LIBRARY_PATH", ldpath, 1);
     }
 
     PSE_initialize();
     rank = PSE_getRank();
 
     if (rank==-1) {
-        PSnodes_ID_t *nds;
-        int error, spawnedProc;
+	PSnodes_ID_t *nds;
+	int error, spawnedProc;
 
 	nds = umalloc(np*sizeof(nds), __func__);
-	
+
 	if (!admin) {
 	    if (PSE_getPartition(np)<0) exit(EXIT_FAILURE);
 	    PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
-                     nds, np*sizeof(*nds), 0);
+			 nds, np*sizeof(*nds), 0);
 	} else {
 	    getFirstNodeID(&nodeID);
 	    nds[0] = nodeID;
@@ -370,10 +370,10 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 #endif
 	/* get absolute path to myself */
 	if ((readlink("/proc/self/exe", tmp, sizeof(tmp))) == -1) {
-	    fprintf(stderr, "%s: failed reading my absolute path\n", __func__); 
+	    fprintf(stderr, "%s: failed reading my absolute path\n", __func__);
 	} else {
 	    /* change argv[0] relative path to absolute path */
-	    argv[0] = strdup(tmp); 
+	    argv[0] = strdup(tmp);
 	}
 
 	/* get current working directory */
@@ -384,14 +384,14 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 
 	PSI_spawnService(nds[0], pwd, argc, argv, &error, &spawnedProc);
 
-        free(nds);
+	free(nds);
 
-        if (error) {
+	if (error) {
 	    errno=error;
-            fprintf(stderr, "Could not spawn master process (%s)",argv[0]);
-            perror("");
-            exit(EXIT_FAILURE);
-        }
+	    fprintf(stderr, "Could not spawn master process (%s)",argv[0]);
+	    perror("");
+	    exit(EXIT_FAILURE);
+	}
 
 	/* Don't irritate the user with logger messages */
 	setenv("PSI_NOMSGLOGGERDONE", "", 1);
@@ -414,14 +414,14 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 	snprintf(tmp, sizeof(tmp), "%d", np);
 	setenv("PSI_NP_INFO", tmp, 1);
 
-        /* Switch to psilogger */
+	/* Switch to psilogger */
 	if (verbose) {
 	    printf("starting logger process, pid:%i\n", getpid());
-        }
+	}
 	PSI_execLogger(NULL);
 
-        printf("never be here\n");
-        exit(EXIT_FAILURE);
+	printf("never be here\n");
+	exit(EXIT_FAILURE);
     }
 
     if (verbose) {
@@ -525,7 +525,7 @@ static void setupPMIEnv(int rank)
 }
 
 /**
- * @brief Spawn compute processes. 
+ * @brief Spawn compute processes.
  *
  * Set up the environment including pmi and elan stuff
  * and spawn all processes.
@@ -542,11 +542,11 @@ static void setupPMIEnv(int rank)
  *
  * @param show Only show ouput, but don't spawn anything.
  *
- * @param cwd Current working directory. 
+ * @param cwd Current working directory.
  *
  * @return Returns 0 on success, or errorcode on error.
  */
-static int startProcs(int i, int np, int argc, char *argv[], int verbose, 
+static int startProcs(int i, int np, int argc, char *argv[], int verbose,
 		      int show, char *cwd)
 {
     char *pwd = wdir;
@@ -564,25 +564,25 @@ static int startProcs(int i, int np, int argc, char *argv[], int verbose,
 #ifdef ELANCTRL
     if (useElan) setupELANProcsEnv(i);
 #endif
-   
+
     /* set correct working dir */
     if (!pwd) {
 	pwd = cwd;
-    } 
+    }
     setPSIEnv("PWD", pwd, 1);
-    
+
     if (verbose || show) {
 	printf("spawn rank %d: cmd=%s wdir=%s\n", i, argv[0], pwd);
 	if (show) return 0;
     }
-    
+
     /* start compute processes */
     if (PSI_spawnStrict(1, pwd, argc, argv, 1, &error, &spawnedProcess)<0 ) {
 	if (error) {
 	    perror("spawn failed!\n");
 	} else {
-	    fprintf(stderr, "%s: spawn failed\n", __func__); 
-	}   
+	    fprintf(stderr, "%s: spawn failed\n", __func__);
+	}
 	exit(10);
     }
     return (0);
@@ -718,7 +718,7 @@ static void setupPSIDEnv(int verbose)
 
     if (dest) {
 	setenv("PSI_INPUTDEST", dest, 1);
-	if (verbose) printf("Send all input to node with rank(s) [%s].\n", 
+	if (verbose) printf("Send all input to node with rank(s) [%s].\n",
 			    dest);
     }
 
@@ -833,7 +833,7 @@ static void setupPSIDEnv(int verbose)
 	len = strlen(envstr);
 	for (i=0; i<len; i++) {
 	    if (isalpha(envstr[i])) {
-		fprintf(stderr, 
+		fprintf(stderr,
 			"--nodes is a list of numeric node id`s, did you mean "
 			"host?\n");
 		exit(EXIT_FAILURE);
@@ -918,15 +918,15 @@ static void setupEnvironment(int verbose)
 	char *key, *val;
 	int i, lenval, len;
 
-        for (i=0; environ[i] != NULL; i++) {
+	for (i=0; environ[i] != NULL; i++) {
 	    val = strchr(environ[i], '=');
 	    if(val) {
-	 	val++;
-	 	lenval = strlen(val);
-	 	len = strlen(environ[i]);
+		val++;
+		lenval = strlen(val);
+		len = strlen(environ[i]);
 		key = umalloc(len - lenval, __func__);
 		strncpy(key,environ[i], len - lenval -1);
-	 	key[len - lenval -1] = '\0';
+		key[len - lenval -1] = '\0';
 		setPSIEnv(key, val, 1);
 		free(key);
 	    }
@@ -940,7 +940,7 @@ static void setupEnvironment(int verbose)
 	if (envvalopt) {
 	    setPSIEnv(envopt, envvalopt, 1);
 	} else {
-	    fprintf(stderr, "Error setting --env: %s, value is empty\n", 
+	    fprintf(stderr, "Error setting --env: %s, value is empty\n",
 			     envopt);
 	}
     }
@@ -963,7 +963,7 @@ static void setupEnvironment(int verbose)
  *
  * @return No return value.
  */
-static void printHiddenUsage(poptOption opt, int dup_argc, char *dup_argv[], 
+static void printHiddenUsage(poptOption opt, int dup_argc, char *dup_argv[],
 			     char *headline)
 {
     poptOption opt2 = opt;
@@ -992,7 +992,7 @@ static void printHiddenUsage(poptOption opt, int dup_argc, char *dup_argv[],
  *
  * @return No return value.
  */
-static void printHiddenHelp(poptOption opt, int dup_argc, char *dup_argv[], 
+static void printHiddenHelp(poptOption opt, int dup_argc, char *dup_argv[],
 			    char *headline)
 {
     poptOption opt2 = opt;
@@ -1224,7 +1224,7 @@ static void doAdminSpawn(PSnodes_ID_t nodeID, int argc, char *argv[],
  *
  * @return Returns 0 on success, or errorcode on error.
  */
-static void createAdminTasks(int argc, char *argv[], char *login, int verbose, 
+static void createAdminTasks(int argc, char *argv[], char *login, int verbose,
 			     int show)
 {
     PSnodes_ID_t nodeID;
@@ -1323,7 +1323,7 @@ static void checkSanity(char *argv[])
     }
 
     if (!argv[dup_argc]) {
-        poptPrintUsage(optCon, stderr, 0);
+	poptPrintUsage(optCon, stderr, 0);
 	msg = "No <command> specified.";
 	errExit();
     }
@@ -1353,14 +1353,14 @@ static void checkSanity(char *argv[])
     }
 
     if (gdb && mpichcom) {
-	fprintf(stderr, 
+	fprintf(stderr,
 		"--gdb is only working with mpi2, don't use it with --bnr\n");
 	exit(EXIT_FAILURE);
     }
 
     if (admin) {
 	if (np != -1) {
-	    snprintf(msgstr, sizeof(msgstr), 
+	    snprintf(msgstr, sizeof(msgstr),
 		     "Don't use '-np' and '--admin' together");
 	    msg = msgstr;
 	    errExit();
@@ -1398,12 +1398,12 @@ static void resetPOPTValues()
 
     /* compability options from other mpiexec commands*/
     totalview = 0;
-    ecfn = 0; 
+    ecfn = 0;
     gdba = 0;
 
     /* options for parastation (psid/logger/forwarder) */
     source = 0;
-    overbook = 0; 
+    overbook = 0;
     exclusive = 0;
     wait = 0;
     loopnodesfirst = 0;
@@ -1417,27 +1417,27 @@ static void resetPOPTValues()
     dest = NULL;
 
     /* debug options */
-    loggerdb = 0; 
+    loggerdb = 0;
     forwarderdb = 0;
-    pscomdb = 0; 
+    pscomdb = 0;
     loggerrawmode = 0;
     psidb = 0;
 
     /* options for the pscom library */
-    sndbuf = 0; 
-    rcvbuf = 0; 
+    sndbuf = 0;
+    rcvbuf = 0;
     nodelay = 0;
     schedyield = 0;
     retry = 0;
     sigquit = 0;
-    plugindir = NULL; 
+    plugindir = NULL;
     discom = NULL;
     network = NULL;
 
     /* mpiexec options */
     admin = 0;
     gdb = 0;
-    show = 0; 
+    show = 0;
     verbose = 0;
     mpichcom = 0;
 
@@ -1446,10 +1446,10 @@ static void resetPOPTValues()
     usize = 0;
     wdir = NULL;
     jobid = NULL;
-    nodelist = NULL; 
-    hostlist = NULL; 
-    hostfile = NULL; 
-    envlist = NULL; 
+    nodelist = NULL;
+    hostlist = NULL;
+    hostfile = NULL;
+    envlist = NULL;
     envopt = NULL;
     path = NULL;
 }
@@ -1558,7 +1558,7 @@ struct poptOption poptPrivilegedOptions[] = {
     { "admin", 'A', POPT_ARG_NONE,
       &admin, 0, "start an admin-task which is not accounted", NULL},
     { "login", 'L', POPT_ARG_STRING,
-      &login, 0, "remote user used to execute command (with --admin only)", 
+      &login, 0, "remote user used to execute command (with --admin only)",
       "login_name"},
     POPT_TABLEEND
 };
@@ -1736,7 +1736,7 @@ static void parseCmdOptions(int argc, char *argv[])
 {
     #define OTHER_OPTIONS_STR "<command> [options]"
     int rc = 0, i;
-    
+   
     /* The duplicated argv will contain the apps commandline */
     poptDupArgv(argc, (const char **)argv,
 		&dup_argc, (const char ***)&dup_argv);
@@ -1819,14 +1819,14 @@ static void parseCmdOptions(int argc, char *argv[])
 
     /* output extended help */
     if (extendedhelp) {
-	printHiddenHelp(poptAdvancedOptions, dup_argc, dup_argv, 
+	printHiddenHelp(poptAdvancedOptions, dup_argc, dup_argv,
 			"Advanced Options:");
 	exit(EXIT_SUCCESS);
     }
 
     /* output extended usage */
     if (extendedusage) {
-	printHiddenUsage(poptAdvancedOptions, dup_argc, dup_argv, 
+	printHiddenUsage(poptAdvancedOptions, dup_argc, dup_argv,
 			 "Advanced Options:");
 	exit(EXIT_SUCCESS);
     }
@@ -1839,25 +1839,25 @@ static void parseCmdOptions(int argc, char *argv[])
 
     /* output debug usage */
     if (debugusage) {
-	printHiddenUsage(poptDebugOptions, dup_argc, dup_argv, 
+	printHiddenUsage(poptDebugOptions, dup_argc, dup_argv,
 			 "Debug Options:");
 	exit(EXIT_SUCCESS);
     }
 
     /* output compatibility usage */
     if (compusage) {
-	printHiddenUsage(poptMpiexecComp, dup_argc, dup_argv, 
+	printHiddenUsage(poptMpiexecComp, dup_argc, dup_argv,
 			 "Compatibility Options:");
-	printHiddenUsage(poptMpiexecCompGlobal, dup_argc, dup_argv, 
+	printHiddenUsage(poptMpiexecCompGlobal, dup_argc, dup_argv,
 			 "Global Compatibility Options:");
 	exit(EXIT_SUCCESS);
     }
 
     /* output compatibility help */
     if (comphelp) {
-	printHiddenHelp(poptMpiexecComp, dup_argc, dup_argv, 
+	printHiddenHelp(poptMpiexecComp, dup_argc, dup_argv,
 			"Compatibility Options:");
-	printHiddenHelp(poptMpiexecCompGlobal, dup_argc, dup_argv, 
+	printHiddenHelp(poptMpiexecCompGlobal, dup_argc, dup_argv,
 			"Global Compatibility Options:");
 	exit(EXIT_SUCCESS);
     }
@@ -1881,7 +1881,7 @@ static void setupGDB()
     char **tmp;
 
     tmp = umalloc((dup_argc + 3 + 1) * sizeof(char *), __func__);
-    
+   
     for (i=0; i<dup_argc; i++) {
 	tmp[i] = dup_argv[i];
     }
@@ -1908,8 +1908,8 @@ static void setupComp()
     char *cnp, **tmp;
     int len = 10,i;
 
-    cnp = umalloc(len, __func__); 
-    
+    cnp = umalloc(len, __func__);
+   
     snprintf(cnp, len, "%d", np);
 
     tmp = umalloc((dup_argc + 2 + 1) * sizeof(char *), __func__ );
@@ -1929,15 +1929,14 @@ static void setupComp()
 /**
 * @brief signal handling
 *
-* Install singal handlers for various signals. 
-* 
+* Install singal handlers for various signals.
+*
 * @return No return value.
 */
 static void setSigHandlers()
 {
     /* install sig handlers */
     signal(SIGTERM, sighandler);
-    signal(SIGINT,  sighandler);
     signal(SIGQUIT, sighandler);
     signal(SIGSEGV, sighandler);
     signal(SIGCHLD, sighandler);
@@ -1957,7 +1956,7 @@ int main(int argc, char *argv[])
 
     /* set sighandlers */
     setSigHandlers();
-    
+   
     /* parse command line options */
     parseCmdOptions(argc, argv);
 
@@ -1987,7 +1986,7 @@ int main(int argc, char *argv[])
     /* load libelan if available */
     checkForELAN();
 
-    /* create spwaner process and switch to logger */
+    /* create spawner process and switch to logger */
     createSpawner(argc, argv, np, admin);
 
     /* add command args for controlling gdb */
@@ -1996,7 +1995,7 @@ int main(int argc, char *argv[])
     /* add command args for mpi1 mode */
     if (mpichcom) setupComp();
 
-    /* spwan admin processes */
+    /* spawn admin processes */
     if (admin) {
 	if (verbose) {
 	    printf("Starting admin task(s)\n");
@@ -2035,7 +2034,7 @@ int main(int argc, char *argv[])
 #ifdef ELANCTRL
     closeELAN();
 #endif
-    
+
     /* release service process */
     ret = PSI_release(PSC_getMyTID());
     if (ret == -1 && errno != ESRCH) {

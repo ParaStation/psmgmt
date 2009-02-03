@@ -1221,7 +1221,7 @@ int main( int argc, char**argv)
     if (getenv("PSI_MERGEOUTPUT")) {
 	mergeOutput = 1;
 	PSIlog_log(PSILOG_LOG_VERB, "Will merge the output of all ranks.\n");
-	outputMergeInit(16);
+	outputMergeInit();
     }
 
     if (getenv("PSI_RUSAGE")) {
