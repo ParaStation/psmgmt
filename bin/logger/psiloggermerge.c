@@ -5,6 +5,8 @@
  *
  * $Id$
  *
+ * @author
+ * Michael Rauh <rauh@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
@@ -28,13 +30,14 @@ static char vcid[] __attribute__((used)) =
 
 /**
  * Structure for each client which holds the pointers to the
- * cached message.
+ * cached messages.
  */
 typedef struct {
     time_t time;
     char *line;
     struct list_head list;
     int outfd;
+    int *counter;
 } OutputBuffers;
 
 /**
@@ -46,9 +49,6 @@ typedef struct {
     int counter;
     struct list_head list;
 } bMessages;
-
-/** The current size of #OutputBuffers. */
-int maxClients;
 
 /**
  * Maximum number of processes in this job.
@@ -62,17 +62,17 @@ static int prelen;
 
 /**
  * Structure for each client which holds the pointers to the
- * cached message.
+ * cached messages (points into messageCache).
  */
 OutputBuffers *ClientOutBuf;
 
 /**
- * List of received output msgs (the actual buffer).
+ * All received messages are cached in this structure.
  */
-bMessages bufGlobal;
+bMessages messageCache;
 
 /**
- * Buffer for incomplete lines.
+ * Cache for incomplete lines.
  */
 char **BufInc;
 
@@ -82,7 +82,7 @@ char **BufInc;
  *
  * in the matrix. -1 for infinit depth.
  */
-int maxMergeDepth = 300;
+int maxMergeDepth = 200;
 
 /**
  * Set the time in seconds who long a received output msg
@@ -153,8 +153,8 @@ static void dumpGlobalBuffer()
 
     PSIlog_stderr(-1, "\n");
     PSIlog_log(-1, "Dumping output buffer:\n");
-    if (!list_empty(&bufGlobal.list)) {
-	list_for_each(npos, &bufGlobal.list) {
+    if (!list_empty(&messageCache.list)) {
+	list_for_each(npos, &messageCache.list) {
 	    nval = list_entry(npos, bMessages, list);
 	    if (!nval) {
 		break;
@@ -183,7 +183,7 @@ static void dumpClientBuffer()
 
     PSIlog_stderr(-1, "\n");
     PSIlog_log(-1, "Dumping output buffer:\n");
-    for(x=0; x< maxClients; x++) {
+    for(x=0; x< np; x++) {
 
 	if (!list_empty(&ClientOutBuf[x].list)) {
 	    list_for_each(npos, &ClientOutBuf[x].list) {
@@ -215,58 +215,20 @@ void outputMergeInit(int maxRank)
 	maxMergeDepth = atoi(envstr);
     }
 
-    maxClients = maxRank;
-    ClientOutBuf = umalloc ((sizeof(*ClientOutBuf) * maxClients), __func__);
-    BufInc = umalloc ((sizeof(char*) * maxClients), __func__);
+    ClientOutBuf = umalloc ((sizeof(*ClientOutBuf) * np), __func__);
+    BufInc = umalloc ((sizeof(char*) * np), __func__);
 
     snprintf(npsize, sizeof(npsize), "[0-%i]", np-1);
     prelen = strlen(npsize);
 
     /* Init Output Buffer List */
-    for (i=0; i<maxClients; i++) {
+    for (i=0; i<np; i++) {
 	ClientOutBuf[i].line = NULL;
 	INIT_LIST_HEAD(&ClientOutBuf[i].list);
 	BufInc[i] = NULL;
     }
 
-    INIT_LIST_HEAD(&bufGlobal.list);
-}
-
-void reallocClientOutBuf(int newSize)
-{
-    int i;
-    OutputBuffers *OutBufNew;
-
-    if (db) {
-	dumpGlobalBuffer();
-	dumpClientBuffer();
-	PSIlog_log(-1, "%s: realloc buffers, newSize:%i maxClients:%i\n",
-		   __func__, newSize, maxClients);
-    }
-
-    OutBufNew = umalloc(sizeof(*OutBufNew) * newSize, __func__);
-    BufInc = urealloc(BufInc, sizeof(char*) * newSize, __func__);
-
-    for (i=0; i<newSize; i++) {
-	INIT_LIST_HEAD(&OutBufNew[i].list);
-    }
-
-    for (i=0; i<maxClients; i++) {
-	list_splice(&ClientOutBuf[i].list, &OutBufNew[i].list);
-    }
-
-    for (i=maxClients; i<newSize; i++) {
-	OutBufNew[i].line = NULL;
-	BufInc[i] = NULL;
-    }
-
-    ClientOutBuf = OutBufNew;
-    maxClients = newSize;
-}
-
-int getMaxOutRank(void)
-{
-    return maxClients;
+    INIT_LIST_HEAD(&messageCache.list);
 }
 
 /**
@@ -288,8 +250,8 @@ int getMaxOutRank(void)
  *
  * @return No return value.
  */
-static void findEqualData(int ClientIdx, struct list_head *saveBuf[maxClients],
-			  int saveBufInd[maxClients], int *mcount,
+static void findEqualData(int ClientIdx, struct list_head *saveBuf[np],
+			  int saveBufInd[np], int *mcount,
 			  OutputBuffers *val)
 {
     int dcount = 0;
@@ -297,8 +259,12 @@ static void findEqualData(int ClientIdx, struct list_head *saveBuf[maxClients],
     struct list_head *npos;
     OutputBuffers *nval;
 
+    if (!val || !val->line) {
+	return;
+    }
+
     *mcount = 0;
-    for(x=0; x < maxClients; x++) {
+    for(x=0; x < np; x++) {
 	/* skip myself or empty list */
 	if (x == ClientIdx || list_empty(&ClientOutBuf[x].list)) continue;
 
@@ -307,7 +273,7 @@ static void findEqualData(int ClientIdx, struct list_head *saveBuf[maxClients],
 	    /* get data to compare */
 	    nval = list_entry(npos, OutputBuffers, list);
 
-	    if (!val || !nval || !val->line || !nval->line) break;
+	    if (!nval || !nval->line) break;
 
 	    if (val->line == nval->line ) {
 		if (val->outfd == nval->outfd) {
@@ -340,8 +306,8 @@ static void delCachedMsg(OutputBuffers *nval, struct list_head *npos)
     bMessages *val;
     int found = 0;
     val = NULL;
-    if (!list_empty(&bufGlobal.list)) {
-	list_for_each(pos, &bufGlobal.list) {
+    if (!list_empty(&messageCache.list)) {
+	list_for_each(pos, &messageCache.list) {
 	    /* get element to compare */
 	    val = list_entry(pos, bMessages, list);
 
@@ -394,7 +360,7 @@ static void delCachedMsg(OutputBuffers *nval, struct list_head *npos)
  * @return No return value.
  */
 static void generatePrefix(char *prefix, int size, int mcount, int start,
-			   int saveBufInd[maxClients])
+			   int saveBufInd[np])
 {
     int nextRank, firstRank, z;
     char tmp[40];
@@ -463,7 +429,7 @@ static void generatePrefix(char *prefix, int size, int mcount, int start,
  * @return No return value.
  */
 static void printLine(int outfd, char *line, int mcount, int start,
-		      int saveBufInd[maxClients])
+		      int saveBufInd[np])
 {
     char prefix[100];
     int space = 0;
@@ -509,8 +475,8 @@ static void printLine(int outfd, char *line, int mcount, int start,
  * @return No return value.
  */
 static void outputSingleCMsg(int client, struct list_head *pos,
-			     struct list_head *saveBuf[maxClients],
-			     int saveBufInd[maxClients], int mcount)
+			     struct list_head *saveBuf[np],
+			     int saveBufInd[np], int mcount)
 {
     struct list_head *tmppos, *tmpother;
     OutputBuffers *nval, *oval;
@@ -574,14 +540,15 @@ void displayCachedOutput(int flush)
     struct list_head *pos;
     OutputBuffers *val, *nval;
     int i, z, mcount = 0;
-    struct list_head *saveBuf[maxClients];
-    int saveBufInd[maxClients];
+    struct list_head *saveBuf[np];
+    int saveBufInd[np];
     time_t ltime = time(0);
+    int countMode = 1;
 
     /* reset tracking array */
-    for (i=0; i<maxClients; i++) saveBuf[i] = NULL;
+    for (i=0; i<np; i++) saveBuf[i] = NULL;
 
-    for (i=0; i < maxClients; i++) {
+    for (i=0; i < np; i++) {
 	if (list_empty(&ClientOutBuf[i].list)) continue;
 
 	list_for_each(pos, &ClientOutBuf[i].list) {
@@ -589,10 +556,24 @@ void displayCachedOutput(int flush)
 	    val = list_entry(pos, OutputBuffers, list);
 
 	    if (!val || !val->line) break;
+
+	    if (ltime - val->time > maxMergeWait || flush) {
+		countMode = 0;
+	    } else {
+		if (*(val->counter) < np -1) {
+		    break;
+		}
+	    }
+
 	    /* find equal data */
 	    findEqualData(i, saveBuf, saveBufInd, &mcount, val);
 
-	    if (mcount == np-1 || ltime - val->time > maxMergeWait || flush ) {
+	    /* output the message if
+	     * - we hit the timeout
+	     * - we exit and flush all left data
+	     * - all ranks have output the same msg
+	     */
+	    if (mcount == np-1 || countMode == 0) {
 		/* output single msg from tracked rank */
 		outputSingleCMsg(i, pos, saveBuf, saveBufInd, mcount);
 
@@ -660,8 +641,8 @@ static bMessages *isSaved(char *msg, int hash)
     struct list_head *pos;
     bMessages *val;
 
-    if (!list_empty(&bufGlobal.list)) {
-	list_for_each(pos, &bufGlobal.list) {
+    if (!list_empty(&messageCache.list)) {
+	list_for_each(pos, &messageCache.list) {
 	    /* get element to compare */
 	    val = list_entry(pos, bMessages, list);
 
@@ -699,6 +680,21 @@ void cacheOutput(PSLog_Msg_t *msg, int outfd)
     strncpy(bufmem, msg->buf, count);
     bufmem[count] = '\0';
     buf = bufmem;
+
+    /* don't try to merge output from special ranks e.g. service processes */
+    if (sender < 0) {
+	switch (outfd) {
+	case STDOUT_FILENO:
+	    PSIlog_stdout(-1, "[%i]: %s", sender, buf);
+	    break;
+	case STDERR_FILENO:
+	    PSIlog_stderr(-1, "[%i]: %s", sender, buf);
+	    break;
+	default:
+	    PSIlog_log(-1, "%s: unknown outfd %d\n", __func__, outfd);
+	}
+	return;
+    }
 
     while (count>0 && strlen(buf) >0) {
 	char *nl, *savep;
@@ -761,6 +757,8 @@ void cacheOutput(PSLog_Msg_t *msg, int outfd)
 	    /* string is already in global msg cache, just save ref to it */
 	    (globalMsg->counter)++;
 	    newMsg->line = globalMsg->line;
+	    newMsg->counter = &(globalMsg->counter);
+
 	    if (db)
 		PSIlog_log(-1,
 			   "pointer to matrix count:%i hash:%i savep:'%s'\n",
@@ -772,9 +770,10 @@ void cacheOutput(PSLog_Msg_t *msg, int outfd)
 	    globalMsg->line = savep;
 	    globalMsg->hash = hash;
 	    globalMsg->counter = 1;
-	    list_add_tail(&(globalMsg->list), &bufGlobal.list);
+	    list_add_tail(&(globalMsg->list), &messageCache.list);
 
 	    newMsg->line = savep;
+	    newMsg->counter = &(globalMsg->counter);
 
 	    if (db)
 		PSIlog_log(-1,
@@ -790,4 +789,10 @@ void cacheOutput(PSLog_Msg_t *msg, int outfd)
 	buf = nl;
     }
     free(bufmem);
+
+    /* just for debugging */
+    if (db) {
+	dumpGlobalBuffer();
+	dumpClientBuffer();
+    }
 }

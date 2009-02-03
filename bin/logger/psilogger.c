@@ -589,10 +589,6 @@ static void enterRawMode(void)
 static int newrequest(PSLog_Msg_t *msg)
 {
     int ret=0;
-    if (mergeOutput && msg->sender >= getMaxOutRank()) {
-	/* realloc output buffer */
-	reallocClientOutBuf(2*msg->sender);
-    }
 
     if (registerClient(msg->sender, msg->header.sender)) {
 	sendMsg(msg->header.sender, INITIALIZE,
