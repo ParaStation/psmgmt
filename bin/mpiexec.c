@@ -888,7 +888,7 @@ static void setupPSIDEnv(int verbose)
 }
 
 /**
- * @brief Set up the environment to control diffrent options of
+ * @brief Set up the environment to control different options of
  * parastation.
  *
  * @param verbose Set verbose mode, ouput whats going on.
@@ -1595,7 +1595,7 @@ struct poptOption poptDisplayOptions[] = {
     { "rusage", 'R', POPT_ARG_NONE,
       &rusage, 0, "print consumed sys/user time", NULL},
     { "merge", 'm', POPT_ARG_NONE,
-      &mergeout, 0, "merge similar output from diffrent ranks", NULL},
+      &mergeout, 0, "merge similar output from different ranks", NULL},
     { "timestamp", 'T', POPT_ARG_NONE,
       &timestamp, 0, "print detailed time-marks", NULL},
     POPT_TABLEEND
