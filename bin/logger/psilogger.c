@@ -539,6 +539,7 @@ static void leaveRawMode(void)
     if (tcsetattr(STDIN_FILENO, TCSADRAIN, &_saved_tio) == -1) {
 	PSIlog_warn(-1, errno, "%s: tcsetattr()", __func__);
     } else {
+	PSIlog_log(PSILOG_LOG_VERB, "Leaving raw-mode\n");
 	_in_raw_mode = 0;
     }
 }
@@ -547,6 +548,7 @@ static void enterRawMode(void)
 {
     struct termios termios;
 
+    PSIlog_log(PSILOG_LOG_VERB, "Entering raw-mode\n");
     if (tcgetattr(STDIN_FILENO, &termios) == -1) {
 	PSIlog_warn(-1, errno, "%s: tcgetattr()", __func__);
 	return;
@@ -805,7 +807,7 @@ static void handleOutMsg(PSLog_Msg_t *msg, int outfd)
  */
 static void handleFINALIZEMsg(PSLog_Msg_t *msg)
 {
-    leaveRawMode();
+    if (msg->sender >= 0) leaveRawMode();
     if (getenv("PSI_SSH_COMPAT_HOST")) {
 	char *host = getenv("PSI_SSH_COMPAT_HOST");
 	int status = *(int *) msg->buf;
@@ -1237,7 +1239,6 @@ int main( int argc, char**argv)
     }
 
     if (getenv("PSI_LOGGER_RAW_MODE") && isatty(STDIN_FILENO)) {
-	PSIlog_log(PSILOG_LOG_VERB, "Entering raw-mode\n");
 	enterRawMode();
     }
 
