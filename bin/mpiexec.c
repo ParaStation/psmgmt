@@ -141,6 +141,7 @@ int schedyield = 0;
 int retry = 0;
 int sigquit = 0;
 int ondemand = 0;
+int no_ondemand = 0;
 int collectives = 0;
 char *plugindir = NULL;
 char *discom = NULL;
@@ -692,6 +693,12 @@ static void setupPSCOMEnv(int verbose)
     if (ondemand) {
 	setPSIEnv("PSP_ONDEMAND", "1", 1);
 	if (verbose) printf("PSP_ONDEMAND=1 : Using psmpi2 ondemand "
+	    "connections.\n");
+    }
+
+    if (no_ondemand) {
+	setPSIEnv("PSP_ONDEMAND", "0", 1);
+	if (verbose) printf("PSP_ONDEMAND=0 : Disabling psmpi2 ondemand "
 	    "connections.\n");
     }
 
@@ -1408,6 +1415,11 @@ static void checkSanity(char *argv[])
 	msg = "Only one pmi connection type allowed (tcp or unix)";
 	errExit();
     }
+
+    if (ondemand && no_ondemand) {
+	msg = "The options --ondemand and --no_ondemand or mutual exclusive";
+	errExit();
+    }
 }
 
 static void resetPOPTValues()
@@ -1464,6 +1476,7 @@ static void resetPOPTValues()
     sigquit = 0;
     collectives = 0;
     ondemand = 0;
+    no_ondemand = 0;
     plugindir = NULL;
     discom = NULL;
     network = NULL;
@@ -1699,6 +1712,8 @@ struct poptOption poptCommunicationOptions[] = {
       &collectives, 0, "enable psmpi2 collectives", NULL},  
     { "ondemand", 'O', POPT_ARG_NONE,
       &ondemand, 0, "use psmpi2 \"on demand/dynamic\" connections", NULL},
+    { "no_ondemand", '\0', POPT_ARG_NONE,
+      &no_ondemand, 0, "disable psmpi2 \"on demand/dynamic\" connections", NULL},
     POPT_TABLEEND
 };
 
