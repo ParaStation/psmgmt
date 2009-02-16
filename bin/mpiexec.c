@@ -1362,7 +1362,6 @@ static void checkSanity(char *argv[])
     }
 
     if (!argv[dup_argc]) {
-	poptPrintUsage(optCon, stderr, 0);
 	msg = "No <command> specified.";
 	errExit();
     }
