@@ -48,9 +48,11 @@ static char vcid[] __attribute__((used)) =
 #include "mpiexec_elan.h"
 #endif
 
+#define GDB_COMMAND_EXE "gdb"
 #define GDB_COMMAND_FILE "/opt/parastation/config/gdb.conf"
 #define GDB_COMMAND_OPT "-x"
 #define GDB_COMMAND_SILENT "-q"
+#define GDB_COMMAND_ARGS "--args"
 #define MPI1_NP_OPT "-np"
 
 /** Space for error messages */
@@ -72,6 +74,8 @@ int filter_argc;
 int admin = 0;
 /** set debugging mode and np * gdb to controll child processes */
 int gdb = 0;
+/** don't call gdb with --args option */
+int gdb_noargs = 0;
 /** just print output, don't run anything */
 int show = 0;
 /** flag to set verbose mode */
@@ -95,7 +99,6 @@ int np = 0;
 int envall = 0;
 int usize = 0;
 char *wdir = NULL;
-char *jobid = NULL;
 char *nodelist = NULL;
 char *hostlist = NULL;
 char *hostfile = NULL;
@@ -595,8 +598,10 @@ static int startProcs(int i, int np, int argc, char *argv[], int verbose,
 }
 
 /**
- * @brief Set up the environment to control diffrent options of
- * the pscom library.
+ * @brief Set pscom/mpi environment.
+ *
+ * Set up the environment to control diffrent options of
+ * the pscom/mpi library.
  *
  * @param verbose Set verbose mode, ouput whats going on.
  *
@@ -618,29 +623,37 @@ static void setupPSCOMEnv(int verbose)
 		unsetenv("PSP_P4S");
 		unsetenv("PSP_P4SOCK");
 		setPSIEnv("PSP_P4S", "0", 1);
+		if (verbose) printf("PSP_P4S=0\n");
 	    } else if (!strcmp(env,"SHM") || !strcmp(env,"shm") ||
 		    !strcmp(env,"SHAREDMEM") || !strcmp(env,"sharedmem")) {
 		unsetenv("PSP_SHM");
 		unsetenv("PSP_SHAREDMEM");
 		setPSIEnv("PSP_SHM", "0", 1);
+		if (verbose) printf("PSP_SHM=0\n");
 	    } else if (!strcmp(env,"GM") || !strcmp(env,"gm")) {
 		unsetenv("PSP_GM");
 		setPSIEnv("PSP_GM", "0", 1);
+		if (verbose) printf("PSP_GM=0\n");
 	    } else if (!strcmp(env,"MVAPI") || !strcmp(env,"mvapi")) {
 		unsetenv("PSP_MVAPI");
 		setPSIEnv("PSP_MVAPI", "0", 1);
+		if (verbose) printf("PSP_MVAPI=0\n");
 	    } else if (!strcmp(env,"OPENIB") || !strcmp(env,"openib")) {
 		unsetenv("PSP_OPENIB");
 		setPSIEnv("PSP_OPENIB", "0", 1);
+		if (verbose) printf("PSP_OPENIB=0\n");
 	    } else if (!strcmp(env,"TCP") || !strcmp(env,"tcp")) {
 		unsetenv("PSP_TCP");
 		setPSIEnv("PSP_TCP", "0", 1);
+		if (verbose) printf("PSP_TCP=0\n");
 	    } else if (!strcmp(env,"ELAN") || !strcmp(env,"elan")) {
 		unsetenv("PSP_ELAN");
 		disableElan();
+		if (verbose) printf("PSP_ELAN=0\n");
 	    } else if (!strcmp(env,"DAPL") || !strcmp(env,"dapl")) {
 		unsetenv("PSP_DAPL");
 		setPSIEnv("PSP_DAPL", "0", 1);
+		if (verbose) printf("PSP_DAPL=0\n");
 	    } else {
 		printf("Unknown option to discom: %s\n", env);
 		exit(EXIT_FAILURE);
@@ -651,60 +664,66 @@ static void setupPSCOMEnv(int verbose)
 
     if (network) {
 	setPSIEnv("PSP_NETWORK", network, 1);
-	if (verbose) printf("Using networks: %s.\n", network);
+	if (verbose) printf("PSP_NETWORK=%s\n", network);
     }
 
     if (sigquit) {
 	setPSIEnv("PSP_SIGQUIT", "1", 1);
-	if (verbose) printf("Switching pscom sigquit on.\n");
+	if (verbose) printf("PSP_SIGQUIT=1 : Switching pscom sigquit on.\n");
     }
 
     if (pscomdb) {
 	setPSIEnv("PSP_DEBUG", "2", 1);
-	if (verbose) printf("Switching pscom debug mode on.\n");
+	if (verbose) printf("PSP_DEBUG=2 : Switching pscom debug mode on.\n");
     }
 
     if (retry) {
 	snprintf(tmp, sizeof(tmp), "%d", retry);
 	setPSIEnv("PSP_RETRY", tmp, 1);
-	if (verbose) printf("Number of connection retrys set to %d.\n", retry);
+	if (verbose) printf("PSP_RETRY=%d : Number of connection retrys set "
+	    "to %d.\n", retry, retry);
     }
 
     if (collectives) {
 	setPSIEnv("PSP_COLLECTIVES", "1", 1);
-	if (verbose) printf("Using pscom collectives.\n");
+	if (verbose) printf("PSP_COLLECTIVES=1 : Using psmpi2 collectives.\n");
     }
     
     if (ondemand) {
 	setPSIEnv("PSP_ONDEMAND", "1", 1);
-	if (verbose) printf("Using pscom ondemand connections.\n");
+	if (verbose) printf("PSP_ONDEMAND=1 : Using psmpi2 ondemand "
+	    "connections.\n");
     }
 
     if (schedyield) {
 	setPSIEnv("PSP_SCHED_YIELD", "1", 1);
-	if (verbose) printf("Using sched_yield system call.\n");
+	if (verbose) printf("PSP_SCHED_YIELD=1 : Using sched_yield "
+	    "system call.\n");
     }
 
     if (sndbuf) {
 	snprintf(tmp, sizeof(tmp), "%d", sndbuf);
 	setPSIEnv("PSP_SO_SNDBUF", tmp, 1);
-	if (verbose) printf("Setting TCP send buffer to %d bytes.\n", sndbuf);
+	if (verbose) printf("PSP_SO_SNDBUF=%d : Setting TCP send buffer to %d "
+	    "bytes.\n", sndbuf, sndbuf);
     }
 
     if (rcvbuf) {
 	snprintf(tmp, sizeof(tmp), "%d", rcvbuf);
 	setPSIEnv("PSP_SO_RCVBUF", tmp, 1);
-	if (verbose) printf("Setting TCP receive buffer to %d bytes.\n", rcvbuf);
+	if (verbose) printf("PSP_SO_RCVBUF=%d : Setting TCP receive buffer "
+	    "to %d bytes.\n", rcvbuf, rcvbuf);
     }
 
     if (plugindir) {
 	setPSIEnv("PSP_PLUGINDIR", plugindir, 1);
-	if (verbose) printf("Setting plugin directory to: %s.\n", plugindir);
+	if (verbose) printf("PSP_PLUGINDIR=%s : Setting plugin directory to:"
+	    "%s.\n", plugindir, plugindir);
     }
 
     if (nodelay) {
 	setPSIEnv("PSP_TCP_NODELAY", "0", 1);
-	if (verbose) printf("Switching TCP nodelay off.\n");
+	if (verbose) printf("PSP_TCP_NODELAY=0 : Switching TCP nodelay off.\n");
     }
 }
 
@@ -723,94 +742,99 @@ static void setupPSIDEnv(int verbose)
 
     if (gdb) {
 	setenv("PSI_ENABLE_GDB", "1", 1);
-	setenv("PSI_RARG_PRE_0", "gdb", 1);
-	if (verbose) printf("Starting gdb to debug the processes\n");
+	if (verbose) printf("PSI_ENABLE_GDB=1 : Starting gdb to debug "
+	    "the processes\n");
     }
 
     if (timestamp) {
 	setenv("PSI_TIMESTAMPS", "1", 1);
-	if (verbose) printf("Printing detailed time-marks\n");
+	if (verbose) printf("PSI_TIMESTAMPS=1 : Printing detailed "
+	    "time-marks\n");
     }
 
     if (dest) {
 	setenv("PSI_INPUTDEST", dest, 1);
-	if (verbose) printf("Send all input to node with rank(s) [%s].\n",
-			    dest);
+	if (verbose) printf("PSI_INPUTDEST=%s : Send all input to node with "
+	    "rank(s) [%s].\n", dest, dest);
     }
 
     if (source) {
 	setenv("PSI_SOURCEPRINTF", "1", 1);
-	if (verbose) printf("Print output sources.\n");
+	if (verbose) printf("PSI_SOURCEPRINTF=1 : Print output sources.\n");
     }
 
     if (rusage) {
 	setenv("PSI_RUSAGE", "1", 1);
-	if (verbose) printf("Will print info on consumed sys/user time.\n");
+	if (verbose) printf("PSI_RUSAGE=1 : Will print info on consumed "
+	    "sys/user time.\n");
     }
 
     if (wait) {
 	setenv("PSI_WAIT", "1", 1);
-	if (verbose) printf("Will wait if not enough resources are available."
-			    "\n");
+	if (verbose) printf("PSI_WAIT=1 : Will wait if not enough resources "
+	    "are available.\n");
     }
 
     if (overbook) {
 	setenv("PSI_OVERBOOK", "1", 1);
-	if (verbose) printf("Allowing overbooking.\n");
+	if (verbose) printf("PSI_OVERBOOK=1 : Allowing overbooking.\n");
     }
 
     if (loopnodesfirst) {
 	setenv("PSI_LOOP_NODES_FIRST", "1", 1);
-	if (verbose) printf("Looping nodes first.\n");
+	if (verbose) printf("PSI_LOOP_NODES_FIRST=1 : Placing consecutive "
+	    "processes on different nodes.\n");
     }
 
     if (exclusive) {
 	setenv("PSI_EXCLUSIVE", "1", 1);
-	if (verbose) printf("Setting exclusive mode: no further processes are "
-			    "allowed on the used nodes.\n");
+	if (verbose) printf("PSI_EXCLUSIVE=1 : Setting exclusive mode, no "
+	    "further processes are allowed on the used nodes.\n");
     }
 
     if (psidb) {
 	snprintf(tmp, sizeof(tmp), "%d", psidb);
 	setenv("PSI_DEBUGMASK", tmp, 1);
-	if (verbose) printf("Setting pse/psi lib debug mask to %d.\n", psidb);
+	if (verbose) printf("PSI_DEBUGMASK=%d : Setting pse/psi lib debug mask."
+	    "\n", psidb);
     }
 
     if (loggerdb) {
-	setenv("PSI_LOGGERDEBUG", "", 1);
-	if (verbose) printf("Switching logger debug mode on.\n");
+	setenv("PSI_LOGGERDEBUG", "1", 1);
+	if (verbose) printf("PSI_LOGGERDEBUG=1 : Switching logger debug "
+	    "mode on.\n");
     }
 
     if (mergeout) {
 	setenv("PSI_MERGEOUTPUT", "1", 1);
-	if (verbose) printf("Merging output of all ranks, if possible.\n");
+	if (verbose) printf("PSI_MERGEOUTPUT=1 : Merging output of all ranks, "
+	    "if possible.\n");
     }
 
     if (mergetmout) {
 	snprintf(tmp, sizeof(tmp), "%d", mergetmout);
 	setenv("PSI_MERGETMOUT", tmp, 1);
-	if (verbose) printf("Setting the merge timeout to %i.\n", mergetmout);
+	if (verbose) printf("PSI_MERGETMOUT=%d : Setting the merge timeout.\n", 
+	    mergetmout);
     }
 
     if (mergedepth) {
 	snprintf(tmp, sizeof(tmp), "%d", mergedepth);
 	setenv("PSI_MERGEDEPTH", tmp, 1);
-	if (verbose) printf("Setting the merge depth to  %i.\n", mergetmout);
+	if (verbose) printf("PSI_MERGEDEPTH=%d : Setting the merge depth.\n", 
+	    mergetmout);
     }
 
     if (loggerrawmode) {
 	setenv("PSI_LOGGER_RAW_MODE", "1", 1);
-	if (verbose) printf("Switching logger to raw mode.\n");
+	if (verbose) printf("PSI_LOGGER_RAW_MODE=1 : Switching logger "
+	    "to raw mode.\n");
     }
 
     if (forwarderdb) {
 	setenv("PSI_FORWARDERDEBUG", "1", 1);
-	if (verbose) printf("Switching forwarder debug mode on.\n");
-    }
-
-    if (jobid) {
-	setPSIEnv("PSI_JOBID", jobid, 1);
-	setenv("PSI_JOBID", jobid, 1);
+	if (verbose) printf("PSI_FORWARDERDEBUG=1 : Switching forwarder "
+	    "debug mode on.\n");
     }
 
     if (envlist) {
@@ -831,6 +855,7 @@ static void setupPSIDEnv(int verbose)
     envstr = getenv("PSI_NODES");
     if (!envstr) envstr = getenv("PSI_HOSTS");
     if (!envstr) envstr = getenv("PSI_HOSTFILE");
+    
     /* envstr marks if any of PSI_NODES, PSI_HOSTS or PSI_HOSTFILE is set */
     if (nodelist) {
 	int len=0,i;
@@ -856,7 +881,7 @@ static void setupPSIDEnv(int verbose)
 	    }
 	}
 	setenv("PSI_NODES", nodelist, 1);
-	if (verbose) printf("PSI_NODES set to '%s'\n", nodelist);
+	if (verbose) printf("PSI_NODES='%s'\n", nodelist);
     } else if (hostlist) {
 	if (hostfile) {
 	    msg = "Don't use -hosts and -hostfile simultatniously.";
@@ -867,7 +892,7 @@ static void setupPSIDEnv(int verbose)
 	    errExit();
 	}
 	setenv("PSI_HOSTS", hostlist, 1);
-	if (verbose) printf("PSI_HOSTS set to '%s'\n", hostlist);
+	if (verbose) printf("PSI_HOSTS='%s'\n", hostlist);
     } else if (hostfile) {
 	if (envstr) {
 	    msg = "Don't use -hostfile with any of"
@@ -875,7 +900,7 @@ static void setupPSIDEnv(int verbose)
 	    errExit();
 	}
 	setenv("PSI_HOSTFILE", hostfile, 1);
-	if (verbose) printf("PSI_HOSTFILE set to '%s'\n", hostfile);
+	if (verbose) printf("PSI_HOSTFILE='%s'\n", hostfile);
     }
 
     envstr = getenv("PSI_NODES_SORT");
@@ -899,7 +924,7 @@ static void setupPSIDEnv(int verbose)
 	    errExit();
 	}
 	setenv("PSI_NODES_SORT", val, 1);
-	if (verbose) printf("PSI_NODES_SORT set to '%s'\n", val);
+	if (verbose) printf("PSI_NODES_SORT='%s'\n", val);
     }
 }
 
@@ -1430,13 +1455,15 @@ static void resetPOPTValues()
     loggerrawmode = 0;
     psidb = 0;
 
-    /* options for the pscom library */
+    /* options for the pscom/mpi2 library */
     sndbuf = 0;
     rcvbuf = 0;
     nodelay = 0;
     schedyield = 0;
     retry = 0;
     sigquit = 0;
+    collectives = 0;
+    ondemand = 0;
     plugindir = NULL;
     discom = NULL;
     network = NULL;
@@ -1444,6 +1471,7 @@ static void resetPOPTValues()
     /* mpiexec options */
     admin = 0;
     gdb = 0;
+    gdb_noargs = 0;
     show = 0;
     verbose = 0;
     mpichcom = 0;
@@ -1452,7 +1480,6 @@ static void resetPOPTValues()
     envall = 0;
     usize = 0;
     wdir = NULL;
-    jobid = NULL;
     nodelist = NULL;
     hostlist = NULL;
     hostfile = NULL;
@@ -1460,7 +1487,6 @@ static void resetPOPTValues()
     envopt = NULL;
     path = NULL;
 }
-
 
 /* Set up the popt help tables */
 struct poptOption poptMpiexecComp[] = {
@@ -1554,8 +1580,6 @@ struct poptOption poptCommonOptions[] = {
       &envopt, 'E', "export this value of this env var", "<name> <value>"},
     { "bnr", 'b', POPT_ARG_NONE,
       &mpichcom, 0, "Enable ParaStation4 compatibility mode", NULL},
-    { "jobalias", 'a', POPT_ARG_STRING,
-      &jobid, 0, "assign an alias to the job (used for accouting)", NULL},
     { "usize", 'u', POPT_ARG_INT,
       &usize, 0, "set the universe size", NULL},
     POPT_TABLEEND
@@ -1671,16 +1695,18 @@ struct poptOption poptCommunicationOptions[] = {
       &schedyield, 0, "use sched yield system call", NULL},
     { "retry", 'r', POPT_ARG_INT,
       &retry, 0, "number of connection retries", "num"},
-    { "collectives", 'C', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-      &collectives, 0, "enable pscom collectives", NULL},  
-    { "ondemand", 'O', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-      &ondemand, 0, "use \"on demand/dynamic\" connections", NULL},
+    { "collectives", 'C', POPT_ARG_NONE,
+      &collectives, 0, "enable psmpi2 collectives", NULL},  
+    { "ondemand", 'O', POPT_ARG_NONE,
+      &ondemand, 0, "use psmpi2 \"on demand/dynamic\" connections", NULL},
     POPT_TABLEEND
 };
 
 struct poptOption poptOtherOptions[] = {
     { "gdb", '\0', POPT_ARG_NONE,
       &gdb, 0, "debug processes with gdb", NULL},
+    { "noargs", '\0', POPT_ARG_NONE,
+      &gdb_noargs, 0, "don't call gdb with --args", NULL},
     { "verbose", 'v', POPT_ARG_NONE,
       &verbose, 0, "set verbose mode", NULL},
     { "version", 'V', POPT_ARG_NONE,
@@ -1746,11 +1772,12 @@ static void filterCmdOptions(int argc, char *argv[])
     int i, count = 0;
     const char *envName, *envVal;
 
-    filter_argv = umalloc((argc + 2 + 1) * sizeof(char *), __func__ );
+    filter_argv = umalloc((argc + 1) * sizeof(char *), __func__ );
     
     for (i=0; i<argc; i++) {
-	/* filter out env option */
-	if (!(strcmp("-env", argv[i])) || !(strcmp("--env", argv[i]))) {
+	/* filter out env and genv options */
+	if (!(strcmp("-env", argv[i])) || !(strcmp("--env", argv[i])) ||
+	    !(strcmp("-genv", argv[i])) || !(strcmp("--genv", argv[i]))) {
 	    envName = argv[i+1];
 	    envVal = argv[i+2];
 	    
@@ -1911,30 +1938,32 @@ static void parseCmdOptions(int argc, char *argv[])
 }
 
 /**
- * @brief Add some command arguments to control the
- * gdb behavior.
+ * @brief Start the debugger gdb in front of the computing processes.
  *
  * @return No return value.
  */
 static void setupGDB()
 {
-    int i;
-    char **tmp;
+    int i, new_argc = 0;
+    char **new_argv;
 
-    tmp = umalloc((dup_argc + 3 + 1) * sizeof(char *), __func__);
-   
-    for (i=0; i<dup_argc; i++) {
-	tmp[i] = dup_argv[i];
+    new_argv = umalloc((dup_argc + 5 + 1) * sizeof(char *), __func__);
+
+    new_argv[new_argc++] = GDB_COMMAND_EXE;
+    new_argv[new_argc++] = GDB_COMMAND_SILENT;
+    new_argv[new_argc++] = GDB_COMMAND_OPT;
+    new_argv[new_argc++] = GDB_COMMAND_FILE;
+    if (!gdb_noargs) {
+	new_argv[new_argc++] = GDB_COMMAND_ARGS;
     }
-    dup_argv = tmp;
-
-    dup_argv[dup_argc] = GDB_COMMAND_SILENT;
-    dup_argc++;
-    dup_argv[dup_argc] = GDB_COMMAND_OPT;
-    dup_argc++;
-    dup_argv[dup_argc] = GDB_COMMAND_FILE;
-    dup_argc++;
-    dup_argv[dup_argc] = NULL;
+    
+    for (i=0; i<dup_argc; i++) {
+	new_argv[new_argc++] = dup_argv[i];
+    }
+    
+    new_argv[new_argc] = NULL;
+    dup_argv = new_argv;
+    dup_argc = new_argc;
 }
 
 /**
@@ -1950,9 +1979,7 @@ static void setupComp()
     int len = 10,i;
 
     cnp = umalloc(len, __func__);
-   
     snprintf(cnp, len, "%d", np);
-
     tmp = umalloc((dup_argc + 2 + 1) * sizeof(char *), __func__ );
 
     for (i=0; i<dup_argc; i++) {
@@ -1960,10 +1987,8 @@ static void setupComp()
     }
     dup_argv = tmp;
 
-    dup_argv[dup_argc] = MPI1_NP_OPT;
-    dup_argc++;
-    dup_argv[dup_argc] = cnp;
-    dup_argc++;
+    dup_argv[dup_argc++] = MPI1_NP_OPT;
+    dup_argv[dup_argc++] = cnp;
     dup_argv[dup_argc] = NULL;
 }
 
@@ -2025,7 +2050,8 @@ int main(int argc, char *argv[])
     setupEnvironment(verbose);
 
     /* check for LSF-Parallel */
-    PSI_RemoteArgs(filter_argc-dup_argc, &filter_argv[dup_argc], &dup_argc, &dup_argv);
+    PSI_RemoteArgs(filter_argc-dup_argc, &filter_argv[dup_argc], &dup_argc, 
+	&dup_argv);
 
     /* load libelan if available */
     checkForELAN();
