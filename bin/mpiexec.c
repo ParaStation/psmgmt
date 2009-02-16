@@ -689,7 +689,7 @@ static void setupPSCOMEnv(int verbose)
 	setPSIEnv("PSP_COLLECTIVES", "1", 1);
 	if (verbose) printf("PSP_COLLECTIVES=1 : Using psmpi2 collectives.\n");
     }
-    
+
     if (ondemand) {
 	setPSIEnv("PSP_ONDEMAND", "1", 1);
 	if (verbose) printf("PSP_ONDEMAND=1 : Using psmpi2 ondemand "
@@ -821,14 +821,14 @@ static void setupPSIDEnv(int verbose)
     if (mergetmout) {
 	snprintf(tmp, sizeof(tmp), "%d", mergetmout);
 	setenv("PSI_MERGETMOUT", tmp, 1);
-	if (verbose) printf("PSI_MERGETMOUT=%d : Setting the merge timeout.\n", 
+	if (verbose) printf("PSI_MERGETMOUT=%d : Setting the merge timeout.\n",
 	    mergetmout);
     }
 
     if (mergedepth) {
 	snprintf(tmp, sizeof(tmp), "%d", mergedepth);
 	setenv("PSI_MERGEDEPTH", tmp, 1);
-	if (verbose) printf("PSI_MERGEDEPTH=%d : Setting the merge depth.\n", 
+	if (verbose) printf("PSI_MERGEDEPTH=%d : Setting the merge depth.\n",
 	    mergetmout);
     }
 
@@ -862,7 +862,7 @@ static void setupPSIDEnv(int verbose)
     envstr = getenv("PSI_NODES");
     if (!envstr) envstr = getenv("PSI_HOSTS");
     if (!envstr) envstr = getenv("PSI_HOSTFILE");
-    
+
     /* envstr marks if any of PSI_NODES, PSI_HOSTS or PSI_HOSTFILE is set */
     if (nodelist) {
 	int len=0,i;
@@ -1708,7 +1708,7 @@ struct poptOption poptCommunicationOptions[] = {
     { "retry", 'r', POPT_ARG_INT,
       &retry, 0, "number of connection retries", "num"},
     { "collectives", 'C', POPT_ARG_NONE,
-      &collectives, 0, "enable psmpi2 collectives", NULL},  
+      &collectives, 0, "enable psmpi2 collectives", NULL},
     { "ondemand", 'O', POPT_ARG_NONE,
       &ondemand, 0, "use psmpi2 \"on demand/dynamic\" connections", NULL},
     { "no_ondemand", '\0', POPT_ARG_NONE,
@@ -1787,19 +1787,19 @@ static void filterCmdOptions(int argc, char *argv[])
     const char *envName, *envVal;
 
     filter_argv = umalloc((argc + 1) * sizeof(char *), __func__ );
-    
+
     for (i=0; i<argc; i++) {
 	/* filter out env and genv options */
 	if (!(strcmp("-env", argv[i])) || !(strcmp("--env", argv[i])) ||
 	    !(strcmp("-genv", argv[i])) || !(strcmp("--genv", argv[i]))) {
 	    envName = argv[i+1];
 	    envVal = argv[i+2];
-	    
+
 	    if (!(envName ) || !(envVal)) {
 		fprintf(stderr, "Option --env needs two arguments.\n");
 		exit(1);
 	    }
-		
+
 	    setPSIEnv(envName, envVal, 1);
 	    i += 2;
 	    continue;
@@ -1808,7 +1808,7 @@ static void filterCmdOptions(int argc, char *argv[])
     }
     filter_argc = count;
     filter_argv[count] = NULL;
-}    
+}
 
 /**
  * @brief Parse and check the command line options.
@@ -1823,9 +1823,9 @@ static void parseCmdOptions(int argc, char *argv[])
 {
     #define OTHER_OPTIONS_STR "<command> [options]"
     int rc = 0, i;
-    
+
     /* The duplicated argv will contain the apps commandline */
-    
+
     poptDupArgv(argc, (const char **)argv,
 		&dup_argc, (const char ***)&dup_argv);
 
@@ -1843,7 +1843,7 @@ static void parseCmdOptions(int argc, char *argv[])
 	const char *unknownArg;
 
 	np = -1;
-	
+
 	/* reset global values */
 	resetPOPTValues();
 
@@ -1879,8 +1879,8 @@ static void parseCmdOptions(int argc, char *argv[])
     }
 
     if (rc < -1) {
-        /* an error occurred during option processing */
-        snprintf(msgstr, sizeof(msgstr), "%s: %s",
+	/* an error occurred during option processing */
+	snprintf(msgstr, sizeof(msgstr), "%s: %s",
 		 poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
 		 poptStrerror(rc));
 	msg = msgstr;
@@ -1946,8 +1946,8 @@ static void parseCmdOptions(int argc, char *argv[])
 
     /* print Version */
     if (version) {
-        printVersion();
-        exit(EXIT_SUCCESS);
+	printVersion();
+	exit(EXIT_SUCCESS);
     }
 }
 
@@ -1970,11 +1970,11 @@ static void setupGDB()
     if (!gdb_noargs) {
 	new_argv[new_argc++] = GDB_COMMAND_ARGS;
     }
-    
+
     for (i=0; i<dup_argc; i++) {
 	new_argv[new_argc++] = dup_argv[i];
     }
-    
+
     new_argv[new_argc] = NULL;
     dup_argv = new_argv;
     dup_argc = new_argc;
@@ -2036,13 +2036,13 @@ int main(int argc, char *argv[])
 
     /* set sighandlers */
     setSigHandlers();
-    
+
     /* filter unsupportert popt options */
     filterCmdOptions(argc, argv);
 
     /* parse command line options */
     parseCmdOptions(filter_argc, filter_argv);
-	
+
     /* some sanity checks */
     checkSanity(filter_argv);
 
@@ -2064,8 +2064,8 @@ int main(int argc, char *argv[])
     setupEnvironment(verbose);
 
     /* check for LSF-Parallel */
-    PSI_RemoteArgs(filter_argc-dup_argc, &filter_argv[dup_argc], &dup_argc, 
-	&dup_argv);
+    PSI_RemoteArgs(filter_argc-dup_argc, &filter_argv[dup_argc], &dup_argc,
+		   &dup_argv);
 
     /* load libelan if available */
     checkForELAN();
@@ -2105,7 +2105,7 @@ int main(int argc, char *argv[])
 	    perror("Unable to determine working directory");
 	    exit(EXIT_FAILURE);
 	}
-	
+
 	/* start all processes */
 	for (i = 0; i < np; i++) {
 	    if (startProcs(i, np, dup_argc, dup_argv, verbose, show, tmp) < 0) {

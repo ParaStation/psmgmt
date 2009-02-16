@@ -182,7 +182,7 @@ static void readGDBInput(char *line)
     char buf[1000];
     size_t len;
 
-    if (!line ) return;
+    if (!line) return;
 
     /* add the newline again */
     snprintf(buf, sizeof(buf), "%s\n",line);
@@ -1025,7 +1025,7 @@ static void loop(void)
 		if (newrequest(&msg)) {
 		    if (msg.sender < 0) serviceClients++;
 
-		    if (maxConnected - serviceClients >= np) {/* @todo always get correct np */
+		    if (maxConnected - serviceClients >= np) {
 			timeoutval = MIN_WAIT;
 			if (allActiveThere()) addToFDSet(STDIN_FILENO);
 		    }
@@ -1219,7 +1219,7 @@ int main( int argc, char**argv)
     }
     setupDestList(input);
 
-    initClients(-2, 16);
+    initClients(-2, np ? np-1 : 0);
     if (getenv("PSI_MERGEOUTPUT")) {
 	mergeOutput = 1;
 	PSIlog_log(PSILOG_LOG_VERB, "Will merge the output of all ranks.\n");
