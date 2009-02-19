@@ -65,10 +65,6 @@ poptContext optCon;
 char **dup_argv;
 /** duplicated argc for parsing command-line options */
 int dup_argc;
-/** filtered argv for parsing command-line options */
-char **filter_argv;
-/** filtered argc for parsing command-line options */
-int filter_argc;
 
 /** start admin task which are not accounted */
 int admin = 0;
@@ -104,6 +100,7 @@ char *hostlist = NULL;
 char *hostfile = NULL;
 char *envlist = NULL;
 char *envopt = NULL;
+char *envval = NULL;
 char *path = NULL;
 
 /* compability options from other mpiexec commands*/
@@ -1411,7 +1408,7 @@ static void checkSanity(char *argv[])
     }
 
     if (pmienabletcp && pmienablesockp) {
-	msg = "Only one pmi connection type allowed (tcp or unix)";
+	msg = "Only one pmi connection type allowed (tcp or unix socket)";
 	errExit();
     }
 
@@ -1419,85 +1416,6 @@ static void checkSanity(char *argv[])
 	msg = "The options --ondemand and --no_ondemand or mutual exclusive";
 	errExit();
     }
-}
-
-static void resetPOPTValues()
-{
-    /* reset help flags */
-    debughelp = debugusage = 0;
-    extendedusage = extendedhelp = 0;
-    comphelp = compusage = 0;
-    help = usage = 0;
-    none = version = 0;
-
-    /* pmi options */
-    pmienabletcp = 0;
-    pmienablesockp = 0;
-    pmitmout = 0;
-    pmidebug = 0;
-    pmidebug_client = 0;
-    pmidebug_kvs = 0;
-    pmidis = 0;
-
-    /* compability options from other mpiexec commands*/
-    totalview = 0;
-    ecfn = 0;
-    gdba = 0;
-
-    /* options for parastation (psid/logger/forwarder) */
-    source = 0;
-    overbook = 0;
-    exclusive = 0;
-    wait = 0;
-    loopnodesfirst = 0;
-    mergeout = 0;
-    mergedepth = 0;
-    mergetmout = 0;
-    rusage = 0;
-    timestamp = 0;
-    sort = NULL;
-    login = NULL;
-    dest = NULL;
-
-    /* debug options */
-    loggerdb = 0;
-    forwarderdb = 0;
-    pscomdb = 0;
-    loggerrawmode = 0;
-    psidb = 0;
-
-    /* options for the pscom/mpi2 library */
-    sndbuf = 0;
-    rcvbuf = 0;
-    nodelay = 0;
-    schedyield = 0;
-    retry = 0;
-    sigquit = 0;
-    collectives = 0;
-    ondemand = 0;
-    no_ondemand = 0;
-    plugindir = NULL;
-    discom = NULL;
-    network = NULL;
-
-    /* mpiexec options */
-    admin = 0;
-    gdb = 0;
-    gdb_noargs = 0;
-    show = 0;
-    verbose = 0;
-    mpichcom = 0;
-
-    /* process options */
-    envall = 0;
-    usize = 0;
-    wdir = NULL;
-    nodelist = NULL;
-    hostlist = NULL;
-    hostfile = NULL;
-    envlist = NULL;
-    envopt = NULL;
-    path = NULL;
 }
 
 /* Set up the popt help tables */
@@ -1544,7 +1462,7 @@ struct poptOption poptMpiexecComp[] = {
       &envlist, 0, "export a list of env vars", NULL},
     { "usize", 'u', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &usize, 0, "set the universe size", NULL},
-    { "env", 'E', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "env", 'E', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &envopt, 'E', "export this value of this env var", "<name> <value>"},
     POPT_TABLEEND
 };
@@ -1574,7 +1492,7 @@ struct poptOption poptMpiexecCompGlobal[] = {
       &none, 0, "export no env vars", NULL},
     { "genvlist", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &envlist, 0, "export a list of env vars", NULL},
-    { "genv", 'E', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "genv", 'E', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &envopt, 'E', "export this value of this env var", "<name> <value>"},
     POPT_TABLEEND
 };
@@ -1588,8 +1506,10 @@ struct poptOption poptCommonOptions[] = {
       &envlist, 0, "environment to export to foreign nodes", "envlist"},
     { "envall", 'x', POPT_ARG_NONE,
       &envall, 0, "export all environment variables to all processes", NULL},
-    { "env", 'E', POPT_ARG_NONE,
+    { "env", 'E', POPT_ARG_STRING,
       &envopt, 'E', "export this value of this env var", "<name> <value>"},
+    { "envval", 0, POPT_ARG_STRING | POPT_ARGFLAG_DOC_HIDDEN,
+      &envval, 'e', "", ""},
     { "bnr", 'b', POPT_ARG_NONE,
       &mpichcom, 0, "Enable ParaStation4 compatibility mode", NULL},
     { "usize", 'u', POPT_ARG_INT,
@@ -1775,42 +1695,6 @@ struct poptOption optionsTable[] = {
 };
 
 /**
- * @brief Filter out options unsupportet by popt.
- *
- * Filter and execute special options like the --env option.
- *
- * @return No return value.
- */
-static void filterCmdOptions(int argc, char *argv[])
-{
-    int i, count = 0;
-    const char *envName, *envVal;
-
-    filter_argv = umalloc((argc + 1) * sizeof(char *), __func__ );
-
-    for (i=0; i<argc; i++) {
-	/* filter out env and genv options */
-	if (!(strcmp("-env", argv[i])) || !(strcmp("--env", argv[i])) ||
-	    !(strcmp("-genv", argv[i])) || !(strcmp("--genv", argv[i]))) {
-	    envName = argv[i+1];
-	    envVal = argv[i+2];
-
-	    if (!(envName ) || !(envVal)) {
-		fprintf(stderr, "Option --env needs two arguments.\n");
-		exit(1);
-	    }
-
-	    setPSIEnv(envName, envVal, 1);
-	    i += 2;
-	    continue;
-	}
-	filter_argv[count++] = strdup(argv[i]);
-    }
-    filter_argc = count;
-    filter_argv[count] = NULL;
-}
-
-/**
  * @brief Parse and check the command line options.
  *
  * @argc The number of arguments.
@@ -1822,7 +1706,8 @@ static void filterCmdOptions(int argc, char *argv[])
 static void parseCmdOptions(int argc, char *argv[])
 {
     #define OTHER_OPTIONS_STR "<command> [options]"
-    int rc = 0, i;
+    int rc = 0;
+    const char *nextArg;
 
     /* The duplicated argv will contain the apps commandline */
 
@@ -1830,7 +1715,7 @@ static void parseCmdOptions(int argc, char *argv[])
 		&dup_argc, (const char ***)&dup_argv);
 
     optCon = poptGetContext(NULL, dup_argc, (const char **)dup_argv,
-			    optionsTable, 0);
+			    optionsTable, POPT_CONTEXT_POSIXMEHARDER);
     poptSetOtherOptionHelp(optCon, OTHER_OPTIONS_STR);
 
     /*
@@ -1839,45 +1724,27 @@ static void parseCmdOptions(int argc, char *argv[])
      *  - second one containing the apps argv
      * The first one is already parsed while splitting
      */
-    while (1) {
-	const char *unknownArg;
+    while ((rc = poptGetNextOpt(optCon)) >= 0) {
+	const char *av[] = { "--envval", NULL };
 
-	np = -1;
-
-	/* reset global values */
-	resetPOPTValues();
-
-	rc = poptGetNextOpt(optCon);
-
-	if ((unknownArg=poptGetArg(optCon))) {
-	    /*
-	     * Find the first unknown argument (which is the apps
-	     * name) within dup_argv. Start searching from dup_argv's end
-	     * since the apps name might be used within another
-	     * options argument.
-	     */
-	    for (i=argc-1; i>0; i--) {
-		if (strcmp(dup_argv[i], unknownArg)==0) {
-		    dup_argc = i;
-		    dup_argv[dup_argc] = NULL;
-		    poptFreeContext(optCon);
-		    optCon = poptGetContext(NULL,
-					    dup_argc, (const char **)dup_argv,
-					    optionsTable, 0);
-		    poptSetOtherOptionHelp(optCon, OTHER_OPTIONS_STR);
-		    break;
-		}
-	    }
-	    if (i==0) {
-		fprintf(stderr, "unknownArg '%s' not found !?\n", unknownArg);
-		exit(EXIT_FAILURE);
-	    }
-	} else {
-	    /* No unknownArg left, we are done */
-	    break;
+	/* handle special env option */
+	switch (rc) {
+	    case 'E': 
+		poptStuffArgs(optCon, av);
+		break;
+	    case 'e':
+		setPSIEnv(envopt, envval, 1);
+		break;
 	}
     }
 
+    dup_argc = 0; 
+    
+    while ((nextArg = poptGetArg(optCon)) != NULL) {  
+	dup_argv[dup_argc++] = strdup(nextArg);
+    }
+    dup_argv[dup_argc] = NULL;
+	
     if (rc < -1) {
 	/* an error occurred during option processing */
 	snprintf(msgstr, sizeof(msgstr), "%s: %s",
@@ -1898,6 +1765,8 @@ static void parseCmdOptions(int argc, char *argv[])
 	poptPrintUsage(optCon, stdout, 0);
 	exit(EXIT_SUCCESS);
     }
+
+    poptFreeContext(optCon);
 
     /* output extended help */
     if (extendedhelp) {
@@ -2037,14 +1906,11 @@ int main(int argc, char *argv[])
     /* set sighandlers */
     setSigHandlers();
 
-    /* filter unsupportert popt options */
-    filterCmdOptions(argc, argv);
-
     /* parse command line options */
-    parseCmdOptions(filter_argc, filter_argv);
+    parseCmdOptions(argc, argv);
 
     /* some sanity checks */
-    checkSanity(filter_argv);
+    checkSanity(argv);
 
     /* set default pmi connection methode to unix socket */
     if (!pmienabletcp && !pmienablesockp) {
@@ -2062,10 +1928,6 @@ int main(int argc, char *argv[])
 
     /* setup the parastation environment */
     setupEnvironment(verbose);
-
-    /* check for LSF-Parallel */
-    PSI_RemoteArgs(filter_argc-dup_argc, &filter_argv[dup_argc], &dup_argc,
-		   &dup_argv);
 
     /* load libelan if available */
     checkForELAN();
