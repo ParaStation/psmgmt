@@ -631,21 +631,27 @@ static void execClient(PStask_t *task)
 
     executable = task->argv[0];
 
-    /* Interactive shells */
-    if (task->argc == 2 && (!strcmp(executable, "/bin/bash")
-			     && !strcmp(task->argv[1], "-i"))) {
-	task->argv[0] = "-bash";
-	task->argv[1] = NULL;
-	task->argc = 1;
-    } else if (task->argc == 2 && (!strcmp(executable, "/bin/tcsh")
-				   && !strcmp(task->argv[1], "-i"))) {
-	task->argv[0] = "-tcsh";
-	task->argv[1] = NULL;
-	task->argc = 1;
+    /* shells */
+    if (!strcmp(executable, "/bin/bash")) {
+	if (task->argc == 2 && !strcmp(task->argv[1], "-i")) {
+	    task->argv[0] = "-bash";
+	    task->argv[1] = NULL;
+	    task->argc = 1;
+	} else {
+	    task->argv[0] = "bash";
+	}
+    } else if (!strcmp(executable, "/bin/tcsh")) {
+	if (task->argc == 2 && !strcmp(task->argv[1], "-i")) {
+	    task->argv[0] = "-tcsh";
+	    task->argv[1] = NULL;
+	    task->argc = 1;
+	} else {
+	    task->argv[0] = "tcsh";
+	}
     }
 
     /* execute the image */
-    if (myexecv(executable, &(task->argv[0]))<0) {
+    if (myexecv(executable, task->argv)<0) {
 	fprintf(stderr, "%s: execv: %s", __func__, get_strerror(errno));
     }
     /* never reached, if execv succesful */
@@ -845,6 +851,16 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
     /* Block until the forwarder has handled all output */
     PSID_blockSig(1, SIGCHLD);
 
+    /* set the environment; done here to pass it to forwarder, too */
+    setenv("PWD", task->workingdir, 1);
+
+    if (task->environ) {
+	int i;
+	for (i=0; task->environ[i]; i++) {
+	    putenv(strdup(task->environ[i]));
+	}
+    }
+
     if (task->aretty & (1<<STDIN_FILENO)
 	&& task->aretty & (1<<STDOUT_FILENO)
 	&& task->aretty & (1<<STDERR_FILENO)) task->interactive = 1;
@@ -892,17 +908,6 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 		    exit(1);
 		}
 	    }
-	}
-    }
-
-    /* set some environment variables */
-    /* this is done here in order to pass it to the forwarder, too */
-    setenv("PWD", task->workingdir, 1);
-
-    if (task->environ) {
-	int i;
-	for (i=0; task->environ[i]; i++) {
-	    putenv(strdup(task->environ[i]));
 	}
     }
 

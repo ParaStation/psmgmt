@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -317,7 +317,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	task->aretty |= (1 << STDOUT_FILENO);
 	fd = STDOUT_FILENO;
     }
-    if (isatty(STDIN_FILENO)) {
+    if (isatty(STDIN_FILENO) && !getenv("__PSI_NO_TERM")) {
 	task->aretty |= (1 << STDIN_FILENO);
 	fd = STDIN_FILENO;
     }
@@ -571,7 +571,7 @@ int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
 	    free(nodes);
 	    return -1;
 	}
-	    
+
 	count -= chunk;
 	total += chunk;
     }
@@ -700,7 +700,7 @@ char *PSI_createPGfile(int num, const char *prog, int local)
 
     if (PIfile) {
 	PIfilename = strdup(filename);
-    } else {	
+    } else {
 	/* File open failed, lets try the user's home directory */
 	char *home = getenv("HOME");
 	PIfilename = PSC_concat(home, "/", filename, NULL);
@@ -745,7 +745,7 @@ char *PSI_createMPIhosts(int num, int local)
 
     if (MPIhostsFile) {
 	MPIhostsFilename = strdup(filename);
-    } else {	
+    } else {
 	/* File open failed, lets try the user's home directory */
 	char *home = getenv("HOME");
 	MPIhostsFilename = PSC_concat(home, "/", filename, NULL);

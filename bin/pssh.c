@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2006-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -32,6 +32,7 @@ static char vcid[] __attribute__((used)) =
 
 #include <pse.h>
 #include <psiinfo.h>
+#include <psienv.h>
 #include <pscommon.h>
 
 /*
@@ -60,22 +61,22 @@ int main(int argc, const char *argv[])
     poptContext optCon;   /* context for parsing command-line options */
 
     struct poptOption optionsTable[] = {
-        { "node", 'n', POPT_ARG_INT,
+	{ "node", 'n', POPT_ARG_INT,
 	  &node, 0, "node to access", "node"},
-        { "host", 'h', POPT_ARG_STRING,
+	{ "host", 'h', POPT_ARG_STRING,
 	  &host, 0, "host to access", "host"},
-        { "rusage", 'r', POPT_ARG_NONE,
+	{ "rusage", 'r', POPT_ARG_NONE,
 	  &rusage, 0, "print consumed sys/user time", NULL},
-        { "exports", 'e', POPT_ARG_STRING,
+	{ "exports", 'e', POPT_ARG_STRING,
 	  &envlist, 0, "environment to export to foreign node", "envlist"},
-        { "login", 'l', POPT_ARG_STRING,
+	{ "login", 'l', POPT_ARG_STRING,
 	  &login, 0, "remote user used to execute command", "login_name"},
 	{ "verbose", 'v', POPT_ARG_NONE,
 	  &verbose, 0, "verbose mode", NULL},
-        { "version", 'V', POPT_ARG_NONE,
+	{ "version", 'V', POPT_ARG_NONE,
 	  &version, -1, "output version information and exit", NULL},
-        POPT_AUTOHELP
-        { NULL, '\0', 0, NULL, 0, NULL, NULL}
+	POPT_AUTOHELP
+	{ NULL, '\0', 0, NULL, 0, NULL, NULL}
     };
 
     optCon = poptGetContext(NULL, argc, (const char **)argv, optionsTable, 0);
@@ -166,27 +167,27 @@ int main(int argc, const char *argv[])
     }
 
     if (rc < -1) {
-        /* an error occurred during option processing */
-        poptPrintUsage(optCon, stderr, 0);
-        fprintf(stderr, "%s: %s\n",
-                poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
-                poptStrerror(rc));
-        exit(1);
+	/* an error occurred during option processing */
+	poptPrintUsage(optCon, stderr, 0);
+	fprintf(stderr, "%s: %s\n",
+		poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
+		poptStrerror(rc));
+	exit(1);
     }
 
     if (version) {
-        printVersion();
-        return 0;
+	printVersion();
+	return 0;
     }
 
     if (node<0 && !host) {
-        poptPrintUsage(optCon, stderr, 0);
+	poptPrintUsage(optCon, stderr, 0);
 	fprintf(stderr, "Give <node> or <host> for destination.\n");
 	exit(1);
     }
 
     if (node>=0 && host) {
-        poptPrintUsage(optCon, stderr, 0);
+	poptPrintUsage(optCon, stderr, 0);
 	fprintf(stderr, "Don't give <node> and <host> concurrently.\n");
 	exit(1);
     }
@@ -305,18 +306,20 @@ int main(int argc, const char *argv[])
     /* Don't irritate the user with logger messages */
     setenv("PSI_NOMSGLOGGERDONE", "", 1);
     setenv("PSI_SSH_COMPAT_HOST", host ? host : hostStr, 1);
-    setenv("PSI_LOGGER_RAW_MODE", "", 1);
 
     exec_argv[0] = shell;
     exec_argv[1] = "-i";
     exec_argv[2] = NULL;
 
     if (cmdLine) {
+	/* prevent other side from setting up a terminal */
+	setenv("__PSI_NO_TERM", "", 1);
 	exec_argv[1] = "-c";
 	exec_argv[2] = cmdLine;
 	exec_argv[3] = NULL;
 	exec_argc = 3;
     } else {
+	setenv("PSI_LOGGER_RAW_MODE", "", 1);
 	setenv("PSI_SSH_INTERACTIVE", "", 1);
     }
 

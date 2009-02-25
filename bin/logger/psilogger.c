@@ -445,6 +445,8 @@ void sighandler(int sig)
 	break;
     case SIGINT:
 	PSIlog_log(PSILOG_LOG_VERB, "Got SIGINT.\n");
+	if (getenv("PSI_SSH_COMPAT_HOST"))
+	    fprintf(stderr, "Killed by signal 2\n");
 	{
 	    DDSignalMsg_t msg;
 

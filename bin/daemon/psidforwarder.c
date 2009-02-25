@@ -471,8 +471,9 @@ int PSIDfwd_printMsgf(PSLog_msg_t type, const char *format, ...)
  *
  * Deliver signal @a signal to controlled process. If the child is
  * interactive, the signal is send to the forground process group of
- * the controlling tty. Otherwise it's delivered to process with ID @a
- * dest.
+ * the controlling tty. Otherwise it's first tried to delivered to the
+ * process-group with ID @a dest. If this failes, the process with ID
+ * @a dest gets the signal.
  *
  * @param dest Process ID of the process to send signal to. Not used
  * for interactive childs.
@@ -483,25 +484,31 @@ int PSIDfwd_printMsgf(PSLog_msg_t type, const char *format, ...)
  */
 static void sendSignal(pid_t dest, int signal)
 {
-    pid_t pid = 0;
+    pid_t pid = (dest > 0) ? -dest : dest;
 
     /* determine foreground process group for or default pid */
-    if (childTask->interactive) {
+    if (childTask->interactive && dest > 0) {
 	pid = tcgetpgrp(stderrSock);
 	if (pid == -1) {
 	    PSID_warn((errno==EBADF) ? PSID_LOG_SIGNAL : -1, errno,
 		      "%s: tcgetpgrp()", __func__);
-	    pid = 0;
+	    pid = -dest;
+	} else {
+	    /* Send signal to process-group */
+	    PSID_log(PSID_LOG_SIGNAL, "%s: got from tcgetpgrp()\n", __func__);
+	    pid = -pid;
 	}
-	/* Send signal to process-group */
-	pid = -pid;
     }
-    if (!pid) pid = dest;
 
     /* actually send the signal */
     if (kill(pid, signal) == -1) {
 	PSID_warn((errno==ESRCH) ? PSID_LOG_SIGNAL : -1, errno,
 		  "%s: kill(%d, %d)", __func__, pid, signal);
+	/* Maybe try again, now to the single process */
+	if ((errno==ESRCH) && dest > 0 && kill(dest, signal) == -1) {
+	    PSID_warn((errno==ESRCH) ? PSID_LOG_SIGNAL : -1, errno,
+		      "%s: kill(%d, %d)", __func__, dest, signal);
+	}
     }
 }
 
