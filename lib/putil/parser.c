@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -261,6 +261,30 @@ void parser_commentCont(parser_log_key_t key, char *format, ...)
     va_end(ap);
 }
 
+void parser_exit(int eno, char *format, ...)
+{
+    static char* fmt = NULL;
+    static int fmtlen = 0;
+    char* errstr = strerror(eno);
+    va_list ap;
+    int len;
+
+    if (eno) {
+	len = snprintf(fmt, fmtlen,
+		       "%s: %s\n", format, errstr ? errstr : "UNKNOWN");
+	fmt = malloc(len+80);
+	sprintf(fmt, "%s: %s\n", format, errstr ? errstr : "UNKNOWN");
+    } else {
+	fmt = format;
+    }
+
+    va_start(ap, format);
+    logger_vprint(logger, -1, format, ap);
+    va_end(ap);
+
+    exit(-1);
+}
+
 char *parser_getString(void)
 {
     return strtok_r(NULL, " \t\n", &strtok_work);
@@ -355,14 +379,12 @@ char *parser_getFilename(char *token, char *prefix, char *extradir)
 
     parser_comment(PARSER_LOG_VERB,
 		   "%s: file '%s' not found\n", __func__, absname);
-
     free(absname);
-    absname = NULL;
 
     return NULL;
 }
 
-unsigned int parser_getHostname(char *token)
+in_addr_t parser_getHostname(char *token)
 {
     char *hname;
     struct in_addr in_addr;
@@ -373,7 +395,7 @@ unsigned int parser_getHostname(char *token)
 	parser_comment(-1, "%s: token is NULL\n", __func__);
 	return 0;
     }
-	
+
     hname = token;
 
     hostinfo = gethostbyname(hname);
@@ -395,7 +417,7 @@ unsigned int parser_getHostname(char *token)
 
     parser_comment(PARSER_LOG_RES, "Found host '%s' to have address %s\n",
 		   hname, inet_ntoa(in_addr));
-    
+
     return in_addr.s_addr;
 }
 

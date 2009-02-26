@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -19,10 +19,6 @@ static char vcid[] __attribute__((used)) =
 #include <errno.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/ioctl.h>
-#include <net/if.h>
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -75,76 +71,9 @@ void PSID_blockSig(int block, int sig)
     }
 }
 
-/**
- * @brief Determine local node ID
- *
- * Determine the local ParaStation ID. This is done by investigating
- * the IP address of each local ethernet device and trying to resolve
- * these to a valid ParaStation ID. Thus the hostnames within the
- * ParaStation configuration file have to be resolved to correct IP
- * addresses.
- *
- * @return Upon success, i.e. if the local ParaStation ID could be
- * determined, this ID is returned. Otherwise -1 is returned.
- */
-static int getOwnID(void)
-{
-    struct in_addr *sin_addr;
-
-    int numNICs = 1;
-    int skfd, n, ownID = -1;
-    struct ifconf ifc;
-    struct ifreq *ifr;
-
-    /* Get any socket */
-    skfd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (skfd<0) {
-	PSID_exit(errno, "%s: socket()", __func__);
-    }
-    PSID_log(PSID_LOG_VERB, "%s: get list of NICs\n", __func__);
-    /* Get list of NICs */
-    ifc.ifc_buf = NULL;
-    do {
-	numNICs *= 2; /* double the number of expected NICs */
-	ifc.ifc_len = numNICs * sizeof(struct ifreq);
-	ifc.ifc_buf = (char *)realloc(ifc.ifc_buf, ifc.ifc_len);
-	if (!ifc.ifc_buf) {
-	    PSID_exit(errno, "%s: realloc()", __func__);
-	}
-
-	if (ioctl(skfd, SIOCGIFCONF, &ifc) < 0) {
-	    PSID_exit(errno, "%s: ioctl(SIOCGIFCONF)", __func__);
-	}
-    } while (ifc.ifc_len == numNICs * (int)sizeof(struct ifreq));
-    /* Test the IP-addresses assigned to this NICs */
-    ifr = ifc.ifc_req;
-    for (n = 0; n < ifc.ifc_len; n += sizeof(struct ifreq)) {
-	if (ifr->ifr_addr.sa_family == AF_INET) {
-	    sin_addr = &((struct sockaddr_in *)&ifr->ifr_addr)->sin_addr;
-
-	    PSID_log(PSID_LOG_VERB, "%s: testing address %s\n",
-		     __func__, inet_ntoa(*sin_addr));
-	    if ((ownID=PSIDnodes_lookupHost(sin_addr->s_addr))!=-1) {
-		/* node is configured */
-		PSID_log(PSID_LOG_VERB, "%s: node has ID %d\n",
-			 __func__, ownID);
-		break;
-	    }
-	}
-	ifr++;
-    }
-    /* Clean up */
-    free(ifc.ifc_buf);
-    close(skfd);
-
-    return ownID;
-}
-
 /* Reading and basic handling of the configuration */
 void PSID_readConfigFile(FILE* logfile, char *configfile)
 {
-    int ownID;
-
     /* Parse the configfile */
     config = parseConfig(logfile, PSID_getDebugMask(), configfile);
     if (! config) {
@@ -160,14 +89,12 @@ void PSID_readConfigFile(FILE* logfile, char *configfile)
     }
 
     /* Try to find out if node is configured */
-    ownID = getOwnID();
-    if (ownID == -1) {
+    if (PSC_getMyID() == -1) {
 	PSID_log(-1, "%s: Node not configured\n", __func__);
 	exit(1);
     }
 
     PSC_setNrOfNodes(PSIDnodes_getNum());
-    PSC_setMyID(ownID);
     PSC_setDaemonFlag(1); /* To get the correct result from PSC_getMyTID() */
 }
 

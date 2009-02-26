@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -23,12 +23,15 @@ static char vcid[] __attribute__((used)) =
 #include <unistd.h>
 #include <netdb.h>
 #include <syslog.h>
+#include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
 #include <libgen.h>
 #include <pwd.h>
 #include <grp.h>
- 
+
 #include "list.h"
 
 #include "parser.h"
@@ -62,10 +65,112 @@ static config_t config = (config_t) {
 #define ENV_END 17 /* Some magic value */
 
 #define DEFAULT_ID -1
+#define GENERATE_ID -2
 
 static int currentID = DEFAULT_ID;
 
 static int nodesfound = 0;
+
+/*----------------------------------------------------------------------*/
+
+/** List type to store IP-address entries */
+typedef struct {
+    struct list_head next;
+    in_addr_t addr;
+} IPent_t;
+
+static LIST_HEAD(localIPs);
+
+/**
+ * @brief Determine local IP addresses
+ *
+ * Create a list of local IP addresses @ref localIPs. This is used
+ * from within @ref isLocalNode() in order to determine, if the
+ * current node to be registered is the local one.
+ *
+ * @return No return value.
+ */
+static void getLocalIPs(void)
+{
+    int numNICs = 1;
+    int skfd, n;
+    struct ifconf ifc;
+    struct ifreq *ifr;
+
+    /* Get a IPv4 socket */
+    skfd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (skfd<0) {
+	parser_exit(errno, "%s: socket()", __func__);
+    }
+    parser_comment(PARSER_LOG_VERB, "%s: get list of NICs\n", __func__);
+    /* Get list of NICs */
+    ifc.ifc_buf = NULL;
+    do {
+	numNICs *= 2; /* double the number of expected NICs */
+	ifc.ifc_len = numNICs * sizeof(struct ifreq);
+	ifc.ifc_buf = (char *)realloc(ifc.ifc_buf, ifc.ifc_len);
+	if (!ifc.ifc_buf) {
+	    parser_exit(errno, "%s: realloc()", __func__);
+	}
+
+	if (ioctl(skfd, SIOCGIFCONF, &ifc) < 0) {
+	    parser_exit(errno, "%s: ioctl(SIOCGIFCONF)", __func__);
+	}
+    } while (ifc.ifc_len == numNICs * (int)sizeof(struct ifreq));
+
+    /* Register the IP-addresses assigned to this NICs */
+    ifr = ifc.ifc_req;
+    for (n = 0; n < ifc.ifc_len; ifr++, n += sizeof(struct ifreq)) {
+	if (ifr->ifr_addr.sa_family == AF_INET) {
+	    struct in_addr *sin_addr =
+		&((struct sockaddr_in *)&ifr->ifr_addr)->sin_addr;
+	    IPent_t *newEnt;
+
+	    if ((sin_addr->s_addr & 0xff) == IN_LOOPBACKNET) continue;
+
+	    newEnt = malloc(sizeof(*newEnt));
+	    if (!newEnt) parser_exit(errno, "%s", __func__);
+
+	    parser_comment(PARSER_LOG_VERB, "%s: register address %s\n",
+			   __func__, inet_ntoa(*sin_addr));
+	    newEnt->addr = sin_addr->s_addr;
+	    list_add_tail(&newEnt->next, &localIPs);
+	}
+    }
+    /* Clean up */
+    free(ifc.ifc_buf);
+    close(skfd);
+
+    if (list_empty(&localIPs))
+	parser_exit(0, "%s: No devices configured\n", __func__);
+}
+
+/**
+ * @brief Test if IP address is local
+ *
+ * Test, if the IP address @a ipaddr is configured on one of the local
+ * devices. Therefore, a list of corresponding IP addresses is created
+ * on demand during the first call to this function.
+ *
+ * @param ipaddr The IP address to search for.
+ *
+ * @return If one of the local devices is configured to have the IP
+ * address @a ipaddr, 1 is returned. Or 0, if the address is not found
+ * locally.
+ */
+static int isLocalNode(in_addr_t ipaddr)
+{
+    list_t *pos;
+
+    if (list_empty(&localIPs)) getLocalIPs();
+
+    list_for_each(pos, &localIPs) {
+	IPent_t *ent = list_entry(pos, IPent_t, next);
+	if (ent->addr == ipaddr) return 1;
+    }
+
+    return 0;
+}
 
 /*----------------------------------------------------------------------*/
 
@@ -524,7 +629,7 @@ static int getCoreDir(char *token)
     return 0;
 }
 
-static int default_hwtype = 0, hwtype;
+static int default_hwtype = 0, node_hwtype, hwtype;
 
 static int setHWType(int hw)
 {
@@ -533,12 +638,7 @@ static int setHWType(int hw)
 	parser_comment(PARSER_LOG_NODE, "setting default HWType to '%s'\n",
 		       HW_printType(hw));
     } else {
-	if (PSIDnodes_setHWType(currentID, hw)) {
-	    parser_comment(-1, "PSIDnodes_setHWType(%d, %d) failed\n",
-			   currentID, hw);
-	    return -1;
-	}
-
+	node_hwtype = hw;
 	parser_commentCont(PARSER_LOG_NODE, " HW '%s'", HW_printType(hw));
     }
     return 0;
@@ -571,7 +671,6 @@ static int getHWsingle(char *token)
 
     return setHWType(hwtype);
 }
-
 
 static int endHWEnv(char *token)
 {
@@ -612,7 +711,7 @@ static int getHW(char *token)
     return ret;
 }
 
-static int default_canstart = 1;
+static int default_canstart = 1, node_canstart;
 
 static int getCS(char *token)
 {
@@ -626,18 +725,14 @@ static int getCS(char *token)
 	parser_comment(PARSER_LOG_NODE, "setting default 'CanStart' to '%s'\n",
 		       cs ? "TRUE" : "FALSE");
     } else {
-	if (PSIDnodes_setIsStarter(currentID, cs)) {
-	    parser_comment(-1, "PSIDnodes_setIsStarter(%d, %d) failed\n",
-			   currentID, cs);
-	    return -1;
-	}
+	node_canstart = cs;
 	parser_commentCont(PARSER_LOG_NODE, " starting%s allowed",
 			   cs ? "":" not");
     }
     return 0;
 }
 
-static int default_runjobs = 1;
+static int default_runjobs = 1, node_runjobs;
 
 static int getRJ(char *token)
 {
@@ -651,11 +746,7 @@ static int getRJ(char *token)
 	parser_comment(PARSER_LOG_NODE, "setting default 'RunJobs' to '%s'\n",
 		       rj ? "TRUE" : "FALSE");
     } else {
-	if (PSIDnodes_setRunJobs(currentID, rj)) {
-	    parser_comment(-1, "PSIDnodes_setRunJobs(%d, %d) failed\n",
-			   currentID, rj);
-	    return -1;
-	}
+	node_runjobs = rj;
 	parser_commentCont(PARSER_LOG_NODE, " jobs%s allowed", rj ? "":" not");
     }
     return 0;
@@ -752,10 +843,14 @@ typedef struct {
     unsigned int id;
 } GUent_t;
 
-LIST_HEAD(defaultUID);
-LIST_HEAD(defaultGID);
-LIST_HEAD(defaultAdmUID);
-LIST_HEAD(defaultAdmGID);
+static LIST_HEAD(defaultUID);
+static LIST_HEAD(nodeUID);
+static LIST_HEAD(defaultGID);
+static LIST_HEAD(nodeGID);
+static LIST_HEAD(defaultAdmUID);
+static LIST_HEAD(nodeAdmUID);
+static LIST_HEAD(defaultAdmGID);
+static LIST_HEAD(nodeAdmGID);
 
 /**
  * @brief Clear list of GUIDs
@@ -767,7 +862,7 @@ LIST_HEAD(defaultAdmGID);
  *
  * @return No return value.
  */
-static void clear_list(list_t *list)
+static void clear_GUIDlist(list_t *list)
 {
     list_t *pos, *tmp;
 
@@ -778,13 +873,45 @@ static void clear_list(list_t *list)
     }
 }
 
+/**
+ * @brief Copy list of GUIDs
+ *
+ * Create a copy of the list of GUIDs @a src, and store it to the
+ * corresponding list @a dest. @a dest will be cleared using @ref
+ * clear_GUIDlist() before using it.
+ *
+ * @param src The list to copy.
+ *
+ * @param src The destination of the copied list-items.
+ *
+ * @return On success, 0 is returned. Or -1, if any error occurred.
+ */
+static int copy_GUIDlist(list_t *src, list_t *dest)
+{
+    list_t *pos;
+
+    clear_GUIDlist(dest);
+
+    list_for_each(pos, src) {
+	GUent_t *old = list_entry(pos, GUent_t, next);
+	GUent_t *new = malloc(sizeof(*new));
+	if (!new) {
+	    parser_comment(-1, "%s: No memory\n", __func__);
+	    return -1;
+	}
+	new->id = old->id;
+	list_add_tail(&new->next, dest);
+    }
+    return 0;
+}
+
 static int addID(list_t *list, unsigned int id);
 
 static int setID(list_t *list, unsigned int id)
 {
     if (!list) return -1;
 
-    clear_list(list);
+    clear_GUIDlist(list);
 
     return addID(list, id);
 }
@@ -798,10 +925,10 @@ static int addID(list_t *list, unsigned int id)
     if (!list) return -1;
 
     if (list==&defaultGID || list==&defaultAdmGID) any = PSNODES_ANYGROUP;
-    if (id == any) clear_list(list);
+    if (id == any) clear_GUIDlist(list);
 
     list_for_each_safe(pos, tmp, list) {
-        guent = list_entry(pos, GUent_t, next);
+	guent = list_entry(pos, GUent_t, next);
 	if (guent->id == any) {
 	    parser_comment(-1, "%s(%p, %d): ANY found\n", __func__, list, id);
 	    return -1;
@@ -814,6 +941,10 @@ static int addID(list_t *list, unsigned int id)
     }
 
     guent = malloc(sizeof(*guent));
+    if (!guent) {
+	parser_comment(-1, "%s: No memory\n", __func__);
+	return -1;
+    }
     guent->id = id;
     list_add_tail(&guent->next, list);
 
@@ -826,17 +957,17 @@ static int remID(list_t *list, unsigned int id)
 
     list_for_each_safe(pos, tmp, list) {
 	GUent_t *guent = list_entry(pos, GUent_t, next);
-        if (guent->id == id) {
+	if (guent->id == id) {
 	    list_del(pos);
 	    free(guent);
 	    return 0;
-        }
+	}
     }
     parser_comment(-1, "%s(%p, %d): not found\n", __func__, list, id);
     return -1;
 }
 
-static int pushDefaults(PSnodes_ID_t id, PSIDnodes_gu_t what, list_t *list)
+static int pushGUID(PSnodes_ID_t id, PSIDnodes_gu_t what, list_t *list)
 {
     list_t *pos;
     PSIDnodes_guid_t any;
@@ -878,28 +1009,24 @@ static int pushDefaults(PSnodes_ID_t id, PSIDnodes_gu_t what, list_t *list)
     return 0;
 }
 
-static int (*defaultAction)(list_t *, unsigned int);
-static int (*nodeAction)(PSnodes_ID_t, PSIDnodes_gu_t, PSIDnodes_guid_t);
+static int (*GUIDaction)(list_t *, unsigned int);
 
-static void setAction(char **token, char **action)
+static void setAction(char **token, char **actionStr)
 {
     switch (**token) {
     case '+':
-	defaultAction = addID;
-	nodeAction = PSIDnodes_addGUID;
-	*action = "+";
+	GUIDaction = addID;
+	*actionStr = "+";
 	(*token)++;
 	break;
     case '-':
-	defaultAction = remID;
-	nodeAction = PSIDnodes_remGUID;
-	*action = "-";
+	GUIDaction = remID;
+	*actionStr = "-";
 	(*token)++;
 	break;
     default:
-	defaultAction = setID;
-	nodeAction = PSIDnodes_setGUID;
-	*action = "";
+	GUIDaction = setID;
+	*actionStr = "";
 	break;
     }
 }
@@ -908,7 +1035,7 @@ static void setAction(char **token, char **action)
 
 static int getSingleUser(char *user)
 {
-    char *action, *userName;
+    char *actStr, *uStr;
     uid_t uid;
 
     if (!user) {
@@ -916,7 +1043,7 @@ static int getSingleUser(char *user)
 	return -1;
     }
 
-    setAction(&user, &action);
+    setAction(&user, &actStr);
 
     uid = uidFromString(user);
     if ((int)uid < -1) {
@@ -924,17 +1051,16 @@ static int getSingleUser(char *user)
 	return -1;
     }
 
-    userName = userFromUID(uid);
+    uStr = userFromUID(uid);
     if (currentID == DEFAULT_ID) {
-	parser_comment(PARSER_LOG_NODE, "setting default 'User' to '%s%s'\n",
-		       action, userName);
-	defaultAction(&defaultUID, uid);
+	parser_comment(PARSER_LOG_NODE,
+		       "setting default 'User' to '%s%s'\n", actStr, uStr);
+	GUIDaction(&defaultUID, uid);
     } else {
-	PSIDnodes_guid_t guid = { .u = uid };
-	parser_commentCont(PARSER_LOG_NODE, " user '%s%s'", action, userName);
-	nodeAction(currentID, PSIDNODES_USER, guid);
+	parser_commentCont(PARSER_LOG_NODE, " user '%s%s'", actStr, uStr);
+	GUIDaction(&nodeUID, uid);
     }
-    free(userName);
+    free(uStr);
     return 0;
 }
 
@@ -975,7 +1101,7 @@ static int getUser(char *token)
 
 static int getSingleGroup(char *group)
 {
-    char *action, *groupName;
+    char *actStr, *gStr;
     gid_t gid;
 
     if (!group) {
@@ -983,7 +1109,7 @@ static int getSingleGroup(char *group)
 	return -1;
     }
 
-    setAction(&group, &action);
+    setAction(&group, &actStr);
 
     gid = gidFromString(group);
     if ((int)gid < -1) {
@@ -991,18 +1117,16 @@ static int getSingleGroup(char *group)
 	return -1;
     }
 
-    groupName = groupFromGID(gid);
+    gStr = groupFromGID(gid);
     if (currentID == DEFAULT_ID) {
-	parser_comment(PARSER_LOG_NODE, "setting default 'Group' to '%s%s'\n",
-		       action, groupName);
-	defaultAction(&defaultGID, gid);
+	parser_comment(PARSER_LOG_NODE,
+		       "setting default 'Group' to '%s%s'\n", actStr, gStr);
+	GUIDaction(&defaultGID, gid);
     } else {
-	PSIDnodes_guid_t guid = { .g = gid };
-	parser_commentCont(PARSER_LOG_NODE,
-			   " group '%s%s'", action, groupName);
-	nodeAction(currentID, PSIDNODES_GROUP, guid);
+	parser_commentCont(PARSER_LOG_NODE, " group '%s%s'", actStr, gStr);
+	GUIDaction(&nodeGID, gid);
     }
-    free(groupName);
+    free(gStr);
     return 0;
 }
 
@@ -1043,7 +1167,7 @@ static int getGroup(char *token)
 
 static int getSingleAdminUser(char *user)
 {
-    char *action, *userName;
+    char *actStr, *uStr;
     uid_t uid;
 
     if (!user) {
@@ -1051,7 +1175,7 @@ static int getSingleAdminUser(char *user)
 	return -1;
     }
 
-    setAction(&user, &action);
+    setAction(&user, &actStr);
 
     uid = uidFromString(user);
     if ((int)uid < -1) {
@@ -1059,19 +1183,16 @@ static int getSingleAdminUser(char *user)
 	return -1;
     }
 
-    userName = userFromUID(uid);
+    uStr = userFromUID(uid);
     if (currentID == DEFAULT_ID) {
 	parser_comment(PARSER_LOG_NODE,
-		       "setting default 'AdminUser' to '%s%s'\n",
-		       action, userName);
-	defaultAction(&defaultAdmUID, uid);
+		       "setting default 'AdminUser' to '%s%s'\n", actStr, uStr);
+	GUIDaction(&defaultAdmUID, uid);
     } else {
-	PSIDnodes_guid_t guid = { .u = uid };
-	parser_commentCont(PARSER_LOG_NODE,
-			   " adminuser '%s%s'", action, userName);
-	nodeAction(currentID, PSIDNODES_ADMUSER, guid);
+	parser_commentCont(PARSER_LOG_NODE, " adminuser '%s%s'", actStr, uStr);
+	GUIDaction(&nodeAdmUID, uid);
     }
-    free(userName);
+    free(uStr);
     return 0;
 }
 
@@ -1112,7 +1233,7 @@ static int getAdminUser(char *token)
 
 static int getSingleAdminGroup(char *group)
 {
-    char *action, *groupName;
+    char *actStr, *gStr;
     gid_t gid;
 
     if (!group) {
@@ -1120,7 +1241,7 @@ static int getSingleAdminGroup(char *group)
 	return -1;
     }
 
-    setAction(&group, &action);
+    setAction(&group, &actStr);
 
     gid = gidFromString(group);
     if ((int)gid < -1) {
@@ -1128,19 +1249,16 @@ static int getSingleAdminGroup(char *group)
 	return -1;
     }
 
-    groupName = groupFromGID(gid);
+    gStr = groupFromGID(gid);
     if (currentID == DEFAULT_ID) {
 	parser_comment(PARSER_LOG_NODE,
-		       "setting default 'AdminGroup' to '%s%s'\n",
-		       action, groupName);
-	defaultAction(&defaultAdmGID, gid);
+		       "setting default 'AdminGroup' to '%s%s'\n", actStr,gStr);
+	GUIDaction(&defaultAdmGID, gid);
     } else {
-	PSIDnodes_guid_t guid = { .g = gid };
-	parser_commentCont(PARSER_LOG_NODE,
-			   " admingroup '%s%s'", action, groupName);
-	nodeAction(currentID, PSIDNODES_ADMGROUP, guid);
+	parser_commentCont(PARSER_LOG_NODE, " admingroup '%s%s'", actStr, gStr);
+	GUIDaction(&nodeAdmGID, gid);
     }
-    free(groupName);
+    free(gStr);
     return 0;
 }
 
@@ -1179,7 +1297,7 @@ static int getAdminGroup(char *token)
 
 /* ---------------------------------------------------------------------- */
 
-static int default_procs = -1;
+static long default_procs = -1, node_procs;
 
 static int getProcs(char *token)
 {
@@ -1192,7 +1310,7 @@ static int getProcs(char *token)
     }
 
     if (currentID == DEFAULT_ID) {
-        default_procs = procs;
+	default_procs = procs;
 	parser_comment(PARSER_LOG_NODE, "setting default 'Processes' to '");
 	if (procs == -1) {
 	    parser_commentCont(PARSER_LOG_NODE, "ANY");
@@ -1201,12 +1319,7 @@ static int getProcs(char *token)
 	}
 	parser_commentCont(PARSER_LOG_NODE, "'\n");
     } else {
-	if (PSIDnodes_setProcs(currentID, procs)) {
-	    parser_comment(-1, "PSIDnodes_setProcs(%d, %ld) failed\n",
-			   currentID, procs);
-	    return -1;
-	}
-
+	node_procs = procs;
 	if (procs == -1) {
 	    parser_commentCont(PARSER_LOG_NODE, " any");
 	} else {
@@ -1217,7 +1330,7 @@ static int getProcs(char *token)
     return 0;
 }
 
-static PSnodes_overbook_t default_overbook = OVERBOOK_FALSE;
+static PSnodes_overbook_t default_overbook = OVERBOOK_FALSE, node_overbook;
 
 static int getOB(char *token)
 {
@@ -1238,22 +1351,18 @@ static int getOB(char *token)
     if (ret) return ret;
 
     if (currentID == DEFAULT_ID) {
-        default_overbook = ob;
-        parser_comment(PARSER_LOG_NODE, "setting default 'Overbook' to '%s'\n",
+	default_overbook = ob;
+	parser_comment(PARSER_LOG_NODE, "setting default 'Overbook' to '%s'\n",
 		       (ob==OVERBOOK_AUTO) ? "auto" : ob ? "TRUE" : "FALSE");
     } else {
-	if (PSIDnodes_setOverbook(currentID, ob)) {
-	    parser_comment(-1, "PSIDnodes_setOverbook(%d, %d) failed\n",
-			   currentID, ob);
-	    return -1;
-	}
-        parser_commentCont(PARSER_LOG_NODE, " overbooking is '%s'",
+	node_overbook = ob;
+	parser_commentCont(PARSER_LOG_NODE, " overbooking is '%s'",
 			   ob==OVERBOOK_AUTO ? "auto" : ob ? "TRUE" : "FALSE");
     }
     return 0;
 }
 
-static int default_exclusive = 1;
+static int default_exclusive = 1, node_exclusive;
 
 static int getExcl(char *token)
 {
@@ -1263,22 +1372,18 @@ static int getExcl(char *token)
     if (ret) return ret;
 
     if (currentID == DEFAULT_ID) {
-        default_exclusive = excl;
+	default_exclusive = excl;
 	parser_comment(PARSER_LOG_NODE,"setting default 'Exclusive' to '%s'\n",
 		       excl ? "TRUE" : "FALSE");
     } else {
-	if (PSIDnodes_setExclusive(currentID, excl)) {
-	    parser_comment(-1, "PSIDnodes_setExclusive(%d, %d) failed\n",
-			   currentID, excl);
-	    return -1;
-	}
-        parser_commentCont(PARSER_LOG_NODE, " exclusive assign%s allowed",
+	node_exclusive = excl;
+	parser_commentCont(PARSER_LOG_NODE, " exclusive assign%s allowed",
 			   excl ? "":" not");
     }
     return 0;
 }
 
-static int default_pinProcs = 1;
+static int default_pinProcs = 1, node_pinProcs;
 
 static int getPinProcs(char *token)
 {
@@ -1288,22 +1393,18 @@ static int getPinProcs(char *token)
     if (ret) return ret;
 
     if (currentID == DEFAULT_ID) {
-        default_pinProcs = pinProcs;
+	default_pinProcs = pinProcs;
 	parser_comment(PARSER_LOG_NODE, "setting default 'PinProcs' to '%s'\n",
 		       pinProcs ? "TRUE" : "FALSE");
     } else {
-	if (PSIDnodes_setPinProcs(currentID, pinProcs)) {
-	    parser_comment(-1, "PSIDnodes_setPinProcs(%d, %d) failed\n",
-			   currentID, pinProcs);
-	    return -1;
-	}
-        parser_commentCont(PARSER_LOG_NODE, " processes are%s pinned",
+	node_pinProcs = pinProcs;
+	parser_commentCont(PARSER_LOG_NODE, " processes are%s pinned",
 			   pinProcs ? "":" not");
     }
     return 0;
 }
 
-static int default_bindMem = 0;
+static int default_bindMem = 0, node_bindMem;
 
 static int getBindMem(char *token)
 {
@@ -1313,22 +1414,18 @@ static int getBindMem(char *token)
     if (ret) return ret;
 
     if (currentID == DEFAULT_ID) {
-        default_bindMem = bindMem;
+	default_bindMem = bindMem;
 	parser_comment(PARSER_LOG_NODE, "setting default 'BindMem' to '%s'\n",
 		       bindMem ? "TRUE" : "FALSE");
     } else {
-	if (PSIDnodes_setBindMem(currentID, bindMem)) {
-	    parser_comment(-1, "PSIDnodes_setBindMem(%d, %d) failed\n",
-			   currentID, bindMem);
-	    return -1;
-	}
-        parser_commentCont(PARSER_LOG_NODE, " memory is%s bound",
+	node_bindMem = bindMem;
+	parser_commentCont(PARSER_LOG_NODE, " memory is%s bound",
 			   bindMem ? "":" not");
     }
     return 0;
 }
 
-static int default_supplGrps = 0;
+static int default_supplGrps = 0, node_supplGrps;
 
 static int getSupplGrps(char *token)
 {
@@ -1338,16 +1435,12 @@ static int getSupplGrps(char *token)
     if (ret) return ret;
 
     if (currentID == DEFAULT_ID) {
-        default_supplGrps = supplGrps;
+	default_supplGrps = supplGrps;
 	parser_comment(PARSER_LOG_NODE, "setting default 'supplGrps' to '%s'\n",
 		       supplGrps ? "TRUE" : "FALSE");
     } else {
-	if (PSIDnodes_setSupplGrps(currentID, supplGrps)) {
-	    parser_comment(-1, "PSIDnodes_setSupplGrps(%d, %d) failed\n",
-			   currentID, supplGrps);
-	    return -1;
-	}
-        parser_commentCont(PARSER_LOG_NODE, " supplementary groups are%s set",
+	node_supplGrps = supplGrps;
+	parser_commentCont(PARSER_LOG_NODE, " supplementary groups are%s set",
 			   supplGrps ? "":" not");
     }
     return 0;
@@ -1358,6 +1451,8 @@ static int getSupplGrps(char *token)
 static short std_cpumap[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
 static short *default_cpumap = std_cpumap;
 static size_t default_cpumap_size = 16, default_cpumap_maxsize;
+static short *node_cpumap = NULL;
+static size_t node_cpumap_size = 0, node_cpumap_maxsize = 0;
 
 static int getCPUmapEnt(char *token)
 {
@@ -1377,14 +1472,24 @@ static int getCPUmapEnt(char *token)
 	    default_cpumap = realloc(default_cpumap, default_cpumap_maxsize
 				     * sizeof(*default_cpumap));
 	}
+	if (!default_cpumap) {
+	    parser_comment(-1, "%s: No memory for default_cpumap\n", __func__);
+	    return -1;
+	}
 	default_cpumap[default_cpumap_size] = val;
 	default_cpumap_size++;
     } else {
-	if (PSIDnodes_appendCPUMap(currentID, val)) {
-	    parser_comment(-1, "PSIDnodes_appendCPUMap(%d, %ld) failed\n",
-			   currentID, val);
+	if (node_cpumap_size == node_cpumap_maxsize) {
+	    node_cpumap_maxsize *= 2;
+	    node_cpumap = realloc(node_cpumap, node_cpumap_maxsize
+				  * sizeof(*node_cpumap));
+	}
+	if (!node_cpumap) {
+	    parser_comment(-1, "%s: No memory for node_cpumap\n", __func__);
 	    return -1;
 	}
+	node_cpumap[node_cpumap_size] = val;
+	node_cpumap_size++;
     }
     parser_commentCont(PARSER_LOG_NODE, " %ld", val);
     return 0;
@@ -1422,7 +1527,7 @@ static int getCPUmap(char *token)
 	default_cpumap_size = 0;
 	parser_comment(PARSER_LOG_NODE, "default CPUmap {");
     } else {
-	PSIDnodes_clearCPUMap(currentID);
+	node_cpumap_size = 0;
 	parser_commentCont(PARSER_LOG_NODE, " CPUMap {");
     }
 
@@ -1437,23 +1542,214 @@ static int getCPUmap(char *token)
     return ret;
 }
 
+/* ---------------------------------------------------------------------- */
+
+/** List type to store environment entries */
+typedef struct {
+    struct list_head next;
+    char *name;
+    char *value;
+} EnvEnt_t;
+
+/** List to collect environments that might be used locally */
+static LIST_HEAD(envList);
+
+static int envActive = 0;
+
+static int getEnvLine(char *token)
+{
+    char *value;
+    EnvEnt_t *envent;
+
+    if (!token) {
+	parser_comment(-1, "syntax error\n");
+	return -1;
+    }
+
+    value = parser_getQuotedString();
+    if (!value) {
+	parser_comment(-1, "no value for %s\n", token);
+	return -1;
+    }
+
+    /* store environment */
+    envent = malloc(sizeof(*envent));
+    if (!envent) {
+	parser_comment(-1, "%s: No memory\n", __func__);
+	return -1;
+    }
+
+    envent->name = strdup(token);
+    envent->value = strdup(value);
+
+    list_add_tail(&envent->next, &envList);
+
+    if (currentID == DEFAULT_ID) {
+	parser_comment(PARSER_LOG_RES, "got environment: %s='%s'\n",
+		       token, value);
+    } else {
+	parser_commentCont(PARSER_LOG_NODE, " env %s='%s'", token, value);
+    }
+
+    return envActive ? 0 : ENV_END;
+}
+
+static int endEnvEnv(char *token)
+{
+    envActive = 0;
+    return ENV_END;
+}
+
+static keylist_t envenv_list[] = {
+    {"}", endEnvEnv},
+    {NULL, getEnvLine}
+};
+
+static parser_t envenv_parser = {" \t\n", envenv_list};
+
+static int getEnvEnv(char *token)
+{
+    envActive = 1;
+    return parser_parseOn(parser_getString(), &envenv_parser);
+}
+
+static keylist_t env_list[] = {
+    {"{", getEnvEnv},
+    {NULL, getEnvLine}
+};
+
+static parser_t env_parser = {" \t\n", env_list};
+
+static int getEnv(char *token)
+{
+    int ret;
+
+    ret = parser_parseString(parser_getString(), &env_parser);
+
+    if (ret == ENV_END) {
+	return 0;
+    }
+
+    return ret;
+}
+
+/**
+ * @brief Store environment
+ *
+ * Store the current list of environments collected in @ref envList to
+ * the actual environment. At the same time, @ref envList is cleared.
+ *
+ * @return No return value.
+ */
+static void pushAndClearEnv(void)
+{
+    list_t *pos, *tmp;
+
+    list_for_each_safe(pos, tmp, &envList) {
+	EnvEnt_t *env = list_entry(pos, EnvEnt_t, next);
+	list_del(pos);
+	if (env->name && env->value) {
+	    parser_comment(PARSER_LOG_NODE, "set environment %s to '%s'\n",
+			   env->name, env->value);
+	    setenv(env->name, env->value, 1);
+	}
+	if (env->name) free(env->name);
+	if (env->value) free(env->value);
+
+	free(env);
+    }
+}
+
+/**
+ * @brief Clear environment
+ *
+ * Clear the current list of environments collected in @ref envList.
+ *
+ * @return No return value.
+ */
+static void clearEnv(void)
+{
+    list_t *pos, *tmp;
+
+    list_for_each_safe(pos, tmp, &envList) {
+	EnvEnt_t *env = list_entry(pos, EnvEnt_t, next);
+	list_del(pos);
+	if (env->name) free(env->name);
+	if (env->value) free(env->value);
+
+	free(env);
+    }
+}
+
 /*----------------------------------------------------------------------*/
+/** @brief Setup node settings
+ *
+ * Create a snapshot for node-settings from the various defaults
+ * defined before. The node settings might be modified by directives
+ * from the configuration-file before they are actually used to
+ * register the node via @ref newHost().
+ *
+ * @return On success, 0 is returned. Or -1, if any error occurred.
+ */
+int setupNodeFromDefault(void)
+{
+    int ret;
+
+    node_hwtype = default_hwtype;
+    node_canstart = default_canstart;
+    node_runjobs = default_runjobs;
+    node_procs = default_procs;
+    node_overbook = default_overbook;
+    node_exclusive = default_exclusive;
+    node_pinProcs = default_pinProcs;
+    node_bindMem = default_bindMem;
+    node_supplGrps = default_supplGrps;
+
+    if (default_cpumap_size) {
+	size_t i;
+	if (default_cpumap_size > node_cpumap_maxsize) {
+	    node_cpumap_maxsize = default_cpumap_size;
+	    node_cpumap = realloc(node_cpumap, node_cpumap_maxsize
+				  * sizeof(*node_cpumap));
+	}
+	if (!node_cpumap) {
+	    parser_comment(-1, "%s: No memory\n", __func__);
+	    return -1;
+	}
+	for (i=0; i<default_cpumap_size; i++) {
+	    node_cpumap[i] = default_cpumap[i];
+	}
+	node_cpumap_size = default_cpumap_size;
+    }
+
+    ret = copy_GUIDlist(&defaultUID, &nodeUID);
+    if (ret) return ret;
+    ret = copy_GUIDlist(&defaultGID, &nodeGID);
+    if (ret) return ret;
+    ret = copy_GUIDlist(&defaultAdmUID, &nodeAdmUID);
+    if (ret) return ret;
+    return copy_GUIDlist(&defaultAdmGID, &nodeAdmGID);
+}
+
 /**
  * @brief Insert a node.
  *
- * Helper function to make a node known to the ParaStation
- * daemon. Various default information concerning this nodes is stored
- * at this early stage. Some of these informations might be modified
- * at later stages.
+ * Helper function to make a node known to the ParaStation daemon. All
+ * other information besides the node's ParaStation ID @a id and its
+ * IP address @a addr are passed implicitely via the node_* variables.
  *
- * @param addr IP address of the node to register.
+ * The node_* variables are pre-set from the current default settings
+ * by @ref setupNodeFromDefault() and might be modified by directives
+ * from the configuration file.
  *
  * @param id ParaStation ID for this node.
+ *
+ * @param addr IP address of the node to register.
  *
  * @return Return -1 if an error occurred or 0 if the node was
  * inserted successfully.
  */
-static int newHost(in_addr_t addr, int id)
+static int newHost(int id, in_addr_t addr)
 {
     if (PSIDnodes_getNum() == -1) { /* NrOfNodes not defined */
 	parser_comment(-1, "define NrOfNodes before any host\n");
@@ -1494,98 +1790,93 @@ static int newHost(in_addr_t addr, int id)
 	return -1;
     }
 
-    /* setup default settings here */
-
-    if (PSIDnodes_setHWType(id, default_hwtype)) {
+    /* setup further settings */
+    if (PSIDnodes_setHWType(id, node_hwtype)) {
 	parser_comment(-1, "PSIDnodes_setHWType(%d, %d) failed\n",
-		       id, default_hwtype);
+		       id, node_hwtype);
 	return -1;
     }
 
-    if (PSIDnodes_setIsStarter(id, default_canstart)) {
+    if (PSIDnodes_setIsStarter(id, node_canstart)) {
 	parser_comment(-1, "PSIDnodes_setIsStarter(%d, %d) failed\n",
-		       id, default_canstart);
+		       id, node_canstart);
 	return -1;
     }
 
-    if (PSIDnodes_setRunJobs(id, default_runjobs)) {
+    if (PSIDnodes_setRunJobs(id, node_runjobs)) {
 	parser_comment(-1, "PSIDnodes_setRunJobs(%d, %d) failed\n",
-		       id, default_runjobs);
+		       id, node_runjobs);
 	return -1;
     }
 
-    if (PSIDnodes_setProcs(id, default_procs)) {
-	parser_comment(-1, "PSIDnodes_setProcs(%d, %d) failed\n",
-		       id, default_procs);
+    if (PSIDnodes_setProcs(id, node_procs)) {
+	parser_comment(-1, "PSIDnodes_setProcs(%d, %ld) failed\n",
+		       id, node_procs);
 	return -1;
     }
 
-    if (PSIDnodes_setOverbook(id, default_overbook)) {
+    if (PSIDnodes_setOverbook(id, node_overbook)) {
 	parser_comment(-1, "PSIDnodes_setOverbook(%d, %d) failed\n",
-		       id, default_overbook);
+		       id, node_overbook);
 	return -1;
     }
 
-    if (PSIDnodes_setExclusive(id, default_exclusive)) {
+    if (PSIDnodes_setExclusive(id, node_exclusive)) {
 	parser_comment(-1, "PSIDnodes_setExclusive(%d, %d) failed\n",
-		       id, default_exclusive);
+		       id, node_exclusive);
 	return -1;
     }
 
-    if (PSIDnodes_setPinProcs(id, default_pinProcs)) {
+    if (PSIDnodes_setPinProcs(id, node_pinProcs)) {
 	parser_comment(-1, "PSIDnodes_setPinProcs(%d, %d) failed\n",
-		       id, default_pinProcs);
+		       id, node_pinProcs);
 	return -1;
     }
 
-    if (PSIDnodes_setBindMem(id, default_bindMem)) {
+    if (PSIDnodes_setBindMem(id, node_bindMem)) {
 	parser_comment(-1, "PSIDnodes_setBindMem(%d, %d) failed\n",
-		       id, default_bindMem);
+		       id, node_bindMem);
 	return -1;
     }
 
-    if (PSIDnodes_setSupplGrps(id, default_supplGrps)) {
+    if (PSIDnodes_setSupplGrps(id, node_supplGrps)) {
 	parser_comment(-1, "PSIDnodes_setSupplGrps(%d, %d) failed\n",
-		       id, default_supplGrps);
+		       id, node_supplGrps);
 	return -1;
     }
 
-    if (PSIDnodes_clearCPUMap(id)) {
-	parser_comment(-1, "PSIDnodes_clearCPUMap(%d) failed\n", id);
-	return -1;
-    }
-    if (default_cpumap_size) {
+    if (node_cpumap_size) {
 	size_t i;
-	for (i=0; i<default_cpumap_size; i++) {
-	    if (PSIDnodes_appendCPUMap(id, default_cpumap[i])) {
+	for (i=0; i<node_cpumap_size; i++) {
+	    if (PSIDnodes_appendCPUMap(id, node_cpumap[i])) {
 		parser_comment(-1, "PSIDnodes_appendCPUMap(%d, %d) failed\n",
-			       id, default_cpumap[i]);
+			       id, node_cpumap[i]);
 		return -1;
 	    }
 	}
     }
 
-    if (pushDefaults(id, PSIDNODES_USER, &defaultUID)) {
-	parser_comment(-1, "pushDefaults(%d, PSIDNODES_USER, %p) failed",
-		       id, &defaultUID);
+    if (pushGUID(id, PSIDNODES_USER, &nodeUID)) {
+	parser_comment(-1, "pushGUID(%d, PSIDNODES_USER, %p) failed",
+		       id, &nodeUID);
 	return -1;
     }
 
-    if (pushDefaults(id, PSIDNODES_GROUP, &defaultGID)) {
-	parser_comment(-1, "pushDefaults(%d, PSIDNODES_GROUP, %p) failed",
-		       id, &defaultGID);
-	return -1;
-    }
-    
-    if (pushDefaults(id, PSIDNODES_ADMUSER, &defaultAdmUID)) {
-	parser_comment(-1, "pushDefaults(%d, PSIDNODES_ADMUSER, %p) failed",
-		       id, &defaultAdmUID);
+    if (pushGUID(id, PSIDNODES_GROUP, &nodeGID)) {
+	parser_comment(-1, "pushGUID(%d, PSIDNODES_GROUP, %p) failed",
+		       id, &nodeGID);
 	return -1;
     }
 
-    if (pushDefaults(id, PSIDNODES_ADMGROUP, &defaultAdmGID)) {
-	parser_comment(-1, "pushDefaults(%d, PSIDNODES_ADMGROUP, %p) failed",
-		       id, &defaultAdmGID);
+    if (pushGUID(id, PSIDNODES_ADMUSER, &nodeAdmUID)) {
+	parser_comment(-1, "pushGUID(%d, PSIDNODES_ADMUSER, %p) failed",
+		       id, &nodeAdmUID);
+	return -1;
+    }
+
+    if (pushGUID(id, PSIDNODES_ADMGROUP, &nodeAdmGID)) {
+	parser_comment(-1, "pushGUID(%d, PSIDNODES_ADMGROUP, %p) failed",
+		       id, &nodeAdmGID);
 	return -1;
     }
 
@@ -1621,6 +1912,7 @@ static keylist_t nodeline_list[] = {
     {"bindmem", getBindMem},
     {"supplGrps", getSupplGrps},
     {"cpumap", getCPUmap},
+    {"environment", getEnv},
     {NULL, parser_error}
 };
 
@@ -1628,12 +1920,11 @@ static parser_t nodeline_parser = {" \t\n", nodeline_list};
 
 static int getNodeLine(char *token)
 {
-    unsigned int ipaddr;
+    in_addr_t ipaddr;
     int nodenum, ret;
     char *hostname;
 
     ipaddr = parser_getHostname(token);
-
     if (!ipaddr) return -1;
 
     hostname = strdup(token);
@@ -1641,18 +1932,250 @@ static int getNodeLine(char *token)
     ret = parser_getNumValue(parser_getString(), &nodenum, "node number");
     if (ret) return ret;
 
-    newHost(ipaddr, nodenum);
-    currentID = nodenum;
+    ret = setupNodeFromDefault();
+    if (ret) return ret;
 
     parser_comment(PARSER_LOG_NODE, "Register '%s' as %d", hostname, nodenum);
     free(hostname);
 
+    currentID = nodenum;
+
     ret = parser_parseString(parser_getString(), &nodeline_parser);
+    parser_commentCont(PARSER_LOG_NODE, "\n");
+    if (ret) return ret;
+
     currentID = DEFAULT_ID;
 
-    parser_commentCont(PARSER_LOG_NODE, "\n");
+    ret = newHost(nodenum, ipaddr);
+    if (ret) return ret;
+
+    if (isLocalNode(ipaddr)) {
+	pushAndClearEnv();
+	PSC_setMyID(nodenum);
+    } else {
+	clearEnv();
+    }
 
     return ret;
+}
+
+/**
+ * @brief Analyze range string
+ *
+ * Analyze the range string @a range and extract the @a first and @a
+ * last element. If an optional @a step is also given, this is
+ * extracted, too. Otherwise @a step will be set to 1.
+ *
+ * The range has to be of the form first-last[/step]. If the string @a
+ * range does not conform to this syntax, a error is detected and -1
+ * is returned.
+ *
+ * @param range String to analyze
+ *
+ * @param first First element detected
+ *
+ * @param last Last element detected
+ *
+ * @param step Step-size detected in @a range. If no range is given,
+ * will be set to 1.
+ *
+ * @return If @a range conforms to the syntax described above, 0 is
+ * returned. Otherwise -1 is given back.
+ */
+static int analyzeRange(char *range, long *first, long *last, long *step)
+{
+    char *minus, *slash, *rangeStr = strdup(range);
+    int ret = -1;
+
+    if (!rangeStr) {
+	parser_comment(-1, "%s: Out of mem\n", __func__);
+	return -1;
+    }
+
+    minus = strchr(rangeStr, '-');
+    slash = strchr(rangeStr, '/');
+
+    if (!minus) goto end;
+    *minus = '\0';
+    if (! *rangeStr) goto end;
+
+    ret = parser_getNumber(rangeStr, first);
+    if (ret) goto end;
+
+    minus++;
+    if (slash) *slash = '\0';
+    if (! *minus) {
+	ret = -1;
+	goto end;
+    }
+
+    ret = parser_getNumber(minus, last);
+    if (ret) goto end;
+
+    if (slash) {
+	slash++;
+	ret = parser_getNumber(slash, step);
+	if (ret) goto end;
+    } else {
+	*step = 1;
+    }
+
+    if (*last < *first) {
+	ret = -1;
+	goto end;
+    }
+
+end:
+    free(rangeStr);
+    if (ret) parser_comment(-1, "%s: broken range '%s'\n", __func__, range);
+    return ret;
+}
+
+static int handleGenStr(long val, char *in, char **out, size_t *size)
+{
+    char *inStr, *dollar = strchr(in, '$'), *rec;
+    size_t len;
+    int ret = -1;
+
+    if (!dollar) {
+	/* Nothing to replace */
+	len = strlen(in)+1;
+
+	if (len > *size) {
+	    *size = len;
+	    *out = realloc(*out, *size);
+	}
+	if (!out) {
+	    parser_comment(-1, "%s: Out of mem\n", __func__);
+	    return -1;
+	}
+	sprintf(*out, "%s", inStr);
+
+	return 0;
+    } else {
+	char *start, *end, base = 'd', fmt[32];
+	long off = 0, width = 1;
+
+	inStr = strdup(in);
+	if (!inStr) {
+	    parser_comment(-1, "%s: Out of mem\n", __func__);
+	    return -1;
+	}
+
+	/* Now handle inStr */
+	dollar = strchr(inStr, '$');
+	*dollar = '\0';
+	start = dollar+1;
+	if (*start != '{') {
+	    end = start;
+	} else {
+	    rec = start+1;
+	    end = strchr(rec, '}');
+	    if (!end) goto end;
+
+	    *end = '\0';
+	    off = strtol(rec, &end, 0);
+	    if (end == rec) goto end;
+
+	    if (*end == ',') {
+		start = end+1;
+		width = strtol(start, &end, 0);
+		if (end == start) goto end;
+		if (*end == ',') {
+		    start = end+1;
+		    if (! *start || (*start!='d' && *start!='o' &&
+				     *start!='x' && *start!='X')) goto end;
+		    base = *start;
+		    end = start+1;
+		}
+	    }
+	    if (*end) goto end;
+	    end++;
+	}
+
+	snprintf(fmt, sizeof(fmt), "%%s%%.%ld%c%%s", width, base);
+
+	len = snprintf(*out, *size, fmt, inStr, val+off, end);
+	if (len >= *size) {
+	    *size = len+80; /* some extra space */
+	    *out = realloc(*out, *size);
+	    if (!out) {
+		parser_comment(-1, "%s: Out of mem\n", __func__);
+		free(inStr);
+		return -1;
+	    }
+	    sprintf(*out, fmt, inStr, val+off, end);
+	}
+    }
+
+    ret = 0;
+end:
+    if (inStr) free(inStr);
+    if (ret) parser_comment(-1, "%s: broken record ${%s}\n", __func__, rec);
+    return ret;
+}
+
+static int getMultiNodes(char *token)
+{
+    int ret;
+    long n, first, last, step;
+    char *rangeStr, *hostStr, *idStr;
+
+    rangeStr = parser_getString();
+    if (!rangeStr) {
+	parser_comment(-1, "%s: Out of mem\n", __func__);
+	return -1;
+    }
+
+    ret = analyzeRange(rangeStr, &first, &last, &step);
+    if (ret) return ret;
+
+    hostStr = parser_getString();
+    if (!hostStr) return -1;
+    idStr = parser_getString();
+    if (!idStr) return -1;
+
+    ret = setupNodeFromDefault();
+    if (ret) return ret;
+
+    parser_comment(PARSER_LOG_NODE, "Register '%s' as %s [%s]",
+		   hostStr, idStr, rangeStr);
+
+    currentID = GENERATE_ID;
+
+    ret = parser_parseString(parser_getString(), &nodeline_parser);
+    parser_commentCont(PARSER_LOG_NODE, "\n");
+    if (ret) return ret;
+
+    currentID = DEFAULT_ID;
+
+    for (n=first; n<=last; n+=step) {
+	in_addr_t ipaddr;
+	static char *realHost = NULL, *realID = NULL;
+	static size_t realHostSize = 0, realIDSize = 0;
+	int nodenum;
+
+	ret = handleGenStr(n, hostStr, &realHost, &realHostSize);
+	if (ret) return ret;
+	ipaddr = parser_getHostname(realHost);
+	if (!ipaddr) return -1;
+
+	handleGenStr(n, idStr, &realID, &realIDSize);
+	ret = parser_getNumValue(realID, &nodenum, "node number");
+	if (ret) return ret;
+
+	ret = newHost(nodenum, ipaddr);
+	if (ret) return ret;
+
+	if (isLocalNode(ipaddr)) {
+	    pushAndClearEnv();
+	    PSC_setMyID(nodenum);
+	}
+    }
+
+    clearEnv();
+
+    return 0;
 }
 
 static int endNodeEnv(char *token)
@@ -1661,6 +2184,7 @@ static int endNodeEnv(char *token)
 }
 
 static keylist_t nodeenv_list[] = {
+    {"$generate", getMultiNodes},
     {"}", endNodeEnv},
     {NULL, getNodeLine}
 };
@@ -1685,136 +2209,9 @@ static int getNodes(char *token)
 {
     int ret;
 
+    pushAndClearEnv();
+
     ret = parser_parseString(parser_getString(), &node_parser);
-
-    if (ret == ENV_END) {
-	return 0;
-    }
-
-    return ret;
-}
-
-/* ---------------------------------------------------------------------- */
-
-char *getQuotedString(char *line)
-{
-    char *end, *value = NULL;
-
-    if (!line) {
-	parser_comment(-1, "empty line\n");
-	return NULL;
-    }
-
-    /* Remove leading whitespace */
-    while (*line==' ' || *line=='\t') line++;
-
-    if (*line == '"' || *line == '\'') {
-	/* value is protected by quotes or double quotes */
-	char quote = *line;
-
-	end = strchr(line+1, quote);
-
-	if (end) {
-	    *end = '\0';
-	    value = strdup(line+1);
-	    end++;
-	}
-    } else {
-	/* search for end of string */
-	end = line;
-	while (*end!=' ' && *end!='\t' && *end!='\0') end++;
-
-	if (end != line) {
-	    char bak = *end;
-	    *end = '\0';
-	    value = strdup(line);
-	    *end = bak;
-	}
-    }
-
-    if (!value) {
-	parser_comment(-1, "no string found within '%s'\n", line);
-	return NULL;
-    }
-
-    /* Skip trailing whitespace */
-    while (*end==' ' || *end=='\t') end++;
-    if (*end) {
-	parser_comment(-1, "found trailing garbage '%s' %d\n", end, *end);
-	if (value) free(value);
-	return NULL;
-    }
-
-    return value;
-
-}
-/* ---------------------------------------------------------------------- */
-
-static int getEnvLine(char *token)
-{
-    char *name, *line, *value;
-
-    if (token) {
-	name = strdup(token);
-    } else {
-	parser_comment(-1, "syntax error\n");
-	return -1;
-    }
-
-    line = parser_getLine();
-
-    if (!line) {
-	parser_comment(-1, "premature end of line\n");
-	return -1;
-    }
-
-    value = getQuotedString(line);
-
-    if (!value) {
-	parser_comment(-1, "no value for %s\n", name);
-	return -1;
-    }
-
-    /* store environment */
-    setenv(name, value, 1);
-
-    parser_comment(PARSER_LOG_RES, "got environment: %s='%s'\n", name , value);
-
-    free(name);
-    free(value);
-
-    return 0;
-}
-
-static int endEnvEnv(char *token)
-{
-    return ENV_END;
-}
-
-static keylist_t envenv_list[] = {
-    {"}", endEnvEnv},
-    {NULL, getEnvLine}
-};
-
-static parser_t envenv_parser = {" \t\n", envenv_list};
-
-static int getEnvEnv(char *token)
-{
-    return parser_parseOn(parser_getString(), &envenv_parser);
-}
-
-static keylist_t env_list[] = {
-    {"{", getEnvEnv},
-    {NULL, getEnvLine}
-};
-
-static parser_t env_parser = {" \t\n", env_list};
-
-static int getEnv(char *token)
-{
-    int ret;
-
-    ret = parser_parseString(parser_getString(), &env_parser);
 
     if (ret == ENV_END) {
 	return 0;
@@ -1829,7 +2226,7 @@ static int actHW = -1;
 
 static int getHardwareScript(char *token)
 {
-    char *name, *line, *value;
+    char *name, *value;
 
     if (strcasecmp(token, "startscript")==0) {
 	name = HW_STARTER;
@@ -1846,15 +2243,7 @@ static int getHardwareScript(char *token)
 	return -1;
     }
 
-    line = parser_getLine();
-
-    if (!line) {
-	parser_comment(-1, "premature end of line\n");
-	return -1;
-    }
-
-    value = getQuotedString(line);
-
+    value = parser_getQuotedString();
     if (!value) {
 	parser_comment(-1, "no value for %s\n", name);
 	return -1;
@@ -1869,48 +2258,32 @@ static int getHardwareScript(char *token)
     parser_comment(PARSER_LOG_RES, "got hardware script: %s='%s'\n",
 		   name, value);
 
-    free(value);
-
     return 0;
 }
 
 static int getHardwareEnvLine(char *token)
 {
-    char *line;
-    char *name, *value = NULL;
+    char *value;
 
-    if (token) {
-	name = strdup(token);
-    } else {
+    if (!token) {
 	parser_comment(-1, "syntax error\n");
 	return -1;
     }
 
-    line = parser_getLine();
-
-    if (!line) {
-	parser_comment(-1, "premature end of line\n");
-	return -1;
-    }
-
-    value = getQuotedString(line);
-
+    value = parser_getQuotedString();
     if (!value) {
-	parser_comment(-1, "no value for %s\n", name);
+	parser_comment(-1, "no value for %s\n", token);
 	return -1;
     }
 
     /* store environment */
-    if (HW_getEnv(actHW, name)) {
-	parser_comment(-1, "redefineing hardware environment: %s\n", name);
+    if (HW_getEnv(actHW, token)) {
+	parser_comment(-1, "redefineing hardware environment: %s\n", token);
     }
-    HW_setEnv(actHW, name, value);
+    HW_setEnv(actHW, token, value);
 
     parser_comment(PARSER_LOG_RES, "got hardware environment: %s='%s'\n",
-		   name , value);
-
-    free(name);
-    free(value);
+		   token, value);
 
     return 0;
 }
@@ -1973,7 +2346,7 @@ static int getFreeOnSusp(char *token)
     parser_comment(-1, "suspended jobs will free their resources\n");
     return 0;
 }
-    
+
 static int getHandleOldBins(char *token)
 {
     config.handleOldBins = 1;
@@ -2045,7 +2418,7 @@ static int getPSINodesSort(char *token)
     }
     return ret;
 }
-    
+
 /* ---------------------------------------------------------------------- */
 
 static keylist_t config_list[] = {
@@ -2104,7 +2477,7 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 	parser_comment(-1, "no configuration file defined\n");
 	return NULL;
     }
- 
+
     if (!(cfd = fopen(configfile,"r"))) {
 	parser_comment(-1, "unable to locate file <%s>\n", configfile);
 	return NULL;
@@ -2128,6 +2501,8 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 
     fclose(cfd);
 
+    pushAndClearEnv();
+
     /*
      * Sanity Checks
      */
@@ -2142,6 +2517,6 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     if (PSIDnodes_getNum() > nodesfound) { /* hosts missing in hostlist */
 	parser_comment(-1, "WARNING: # to few hosts in hostlist\n");
     }
-    
+
     return &config;
 }

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -28,6 +28,7 @@ extern "C" {
 #endif
 
 #include <stdio.h>
+#include <netinet/in.h>
 
 /**
  * Information container for parser calls.
@@ -325,6 +326,27 @@ __attribute__((format(printf,2,3)));
 void parser_commentCont(parser_log_key_t key, char* format, ...)
 __attribute__((format(printf,2,3)));
 
+/**
+ * @brief Print a warn-messages and exit.
+ *
+ * Print a message like from @ref logger_warn(), but gives this
+ * message always, i.e no comparison to @a logger's mask. Furthermore
+ * calls exit() afterwards.
+ *
+ * This is mainly a wrapper to @ref logger_exit().
+ *
+ * @param errorno Error code describing the error string to append to
+ * the message. If set to 0, no string is appended.
+ *
+ * @param format The format to be used in order to produce output.
+ *
+ * @return No return value.
+ *
+ * @see logger_exit(), exit()
+ */
+void parser_exit(int errorno, char* format, ...)
+__attribute__((format(printf,2,3)));
+
 /*
  * Basic routines to get defined fields
  */
@@ -421,10 +443,10 @@ char* parser_getFilename(char* token, char* prefix, char* extradir);
  * @param token The character array that contains the hostname.
  *
  * @return On success, the resolved IP address of the hostname is
- * returned, or 0 otherwise. On error, the @a h_errno variable holds
- * an error number.
+ * returned. On error, 0 is given back and the @a h_errno variable
+ * holds an error number.
  */
-unsigned int parser_getHostname(char* token);
+in_addr_t parser_getHostname(char* token);
 
 /**
  * @brief Get a numerical value.
@@ -442,7 +464,7 @@ unsigned int parser_getHostname(char* token);
  * @param valname The symbolic name of the value to get.
  *
  *
- * @return On success 0 is returned, or -1 otherwise. 
+ * @return On success 0 is returned, or -1 otherwise.
  */
 int parser_getNumValue(char* token, int* value, char* valname);
 
