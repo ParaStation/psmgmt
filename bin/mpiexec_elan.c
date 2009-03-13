@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2007-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -226,14 +226,14 @@ static int prepCapEnv(int np, int verbose)
 
 	idStr = getEntry(hp->h_name);
 	if (!idStr) {
-	    if (verbose) { 
+	    if (verbose) {
 		printf("%s: No ID found for '%s'\n", __func__, hp->h_name);
 	    }
 	    return -1;
 	}
 	id = strtol(idStr, &end, 10);
 	if (end == idStr || *end) {
-	    if (verbose) { 
+	    if (verbose) {
 		printf("%s: No ID found in '%s'\n", __func__, idStr);
 	    }
 	    return -1;
@@ -258,7 +258,6 @@ static int prepCapEnv(int np, int verbose)
     cap.cap_highcontext = cap.cap_lowcontext + nContexts - 1;
 
     capToString(&cap, envStr, sizeof(envStr));
-    //fprintf(stderr, "%s: setting elan env: %s to %s \n", __func__, envName(0), envStr);
     setPSIEnv(envName(0), envStr, 1);
 
     return 0;
@@ -329,10 +328,6 @@ int setupELANProcsEnv(int rank)
     /* Prepare the environment */
     setPSIEnv("LIBELAN_SHMKEY", PSC_printTID(PSC_getMyTID()), 1);
 
-/*  if (getenv("LIBELAN_MACHINES_FILE")) { */
-/*	setPSIEnv("LIBELAN_MACHINES_FILE", getenv("LIBELAN_MACHINES_FILE"), 1); */
-/*  } */
-
     int ret = PSI_infoNodeID(-1, PSP_INFO_RANKID, &rank, &node, 1);
     if (ret || (node < 0)) exit(10);
 
@@ -349,7 +344,6 @@ int setupELANProcsEnv(int rank)
     numProcs[node]++;
 
     capToString(cap, envStr, sizeof(envStr));
-    //fprintf(stderr, "%s: setting elan env: %s to %s \n", __func__, envName(0), envStr);
     setPSIEnv(envName(0), envStr, 1);
 
     return 1;
@@ -363,7 +357,7 @@ int setupELANEnv(int np, int verbose)
     }
 
     if (prepCapEnv(np, verbose)<0) {
-	return 0; 
+	return 0;
     }
 
     return 1;
