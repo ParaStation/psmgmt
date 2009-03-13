@@ -335,38 +335,53 @@ static void pty_make_controlling_tty(int *ttyfd, const char *tty)
 static void bindToNodes(cpu_set_t *physSet)
 {
 #ifdef HAVE_LIBNUMA
-    int node;
-    nodemask_t nodeset;
+    int node, ret = 1;
+    struct bitmask *nodemask = NULL, *cpumask = NULL;
 
     if (numa_available()==-1) {
-	fprintf(stderr, "NUMA not available. No binding\n");
-	return;
+	fprintf(stderr, "NUMA not available.");
+	goto end;
     }
 
-    nodemask_zero(&nodeset);
+    nodemask = numa_allocate_nodemask();
+    if (!nodemask) {
+	fprintf(stderr, "Allocation of nodemask failed. No binding\n");
+	goto end;
+    }
+
+    cpumask = numa_allocate_cpumask();
+    if (!cpumask) {
+	fprintf(stderr, "Allocation of nodemask failed. No binding\n");
+	goto end;
+    }
 
     /* Try to determine the nodes */
-    for (node=0; node<=numa_max_node(); node++) {
-	cpu_set_t CPUset;
-	short cpu;
-	int ret = numa_node_to_cpus(node,
-				    (unsigned long*)&CPUset, sizeof(CPUset));
+    for (node=0; node<=numa_num_configured_nodes(); node++) {
+	unsigned int cpu;
+	ret = numa_node_to_cpus(node, cpumask);
 	if (ret) {
 	    if (errno==ERANGE) {
-		fprintf(stderr, "cpu_set_t to small for numa_node_to_cpus()");
+		fprintf(stderr, "cpumask to small for numa_node_to_cpus()");
 	    } else {
 		perror("numa_node_to_cpus()");
 	    }
-	    fprintf(stderr, "No binding\n");
-	    return;
+	    goto end;
 	}
 	for (cpu=0; cpu<CPU_SETSIZE; cpu++) {
-	    if (CPU_ISSET(cpu, physSet) && CPU_ISSET(cpu, &CPUset)) {
-		nodemask_set(&nodeset, node);
+	    if (CPU_ISSET(cpu, physSet)
+		&& numa_bitmask_isbitset(cpumask, cpu)) {
+		numa_bitmask_setbit(nodemask, node);
 	    }
 	}
     }
-    numa_set_membind(&nodeset);
+
+    numa_set_membind(nodemask);
+
+end:
+    if (nodemask) numa_free_nodemask(nodemask);
+    if (cpumask) numa_free_cpumask(cpumask);
+
+    if (ret) fprintf(stderr, " No binding\n");
 #else
     fprintf(stderr, "Daemon not build against libnuma. No binding\n");
 #endif
