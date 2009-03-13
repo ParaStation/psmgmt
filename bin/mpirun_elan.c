@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2007-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -110,7 +110,7 @@ static void addEntry(char *host, char *id)
 /**
  * @brief Create map of ELAN IDs.
  *
- * Create a map of hostnames and ELAN IDs from the file "/etc/elanidmap". 
+ * Create a map of hostnames and ELAN IDs from the file "/etc/elanidmap".
  *
  * @return No return value.
  */
@@ -180,7 +180,7 @@ static char *envName (int index)
 static char *capToString(ELAN_CAPABILITY *cap, char *str, size_t len)
 {
     char *cp, *tp = str;
-    
+
     for (cp = (char *) (cap + 1); --cp >= (char *)cap; tp += 2)
 	sprintf((char *)tp, "%02x", (*cp) & 0xff);
 
@@ -206,7 +206,6 @@ static int prepCapEnv(int np)
     cap.cap_type = nodesFirst ? ELAN_CAP_TYPE_CYCLIC : ELAN_CAP_TYPE_BLOCK;
     cap.cap_type |= ELAN_CAP_TYPE_BROADCASTABLE;
 
-    
     /* Setup bitmap */
     getNetIDmap();
 
@@ -241,10 +240,10 @@ static int prepCapEnv(int np)
 	}
 	if (id < cap.cap_lownode)
 	    cap.cap_lownode = id;
-	
+
 	if (id > cap.cap_highnode)
 	    cap.cap_highnode = id;
-	
+
 	procsPerNode[id]++;
 	if (procsPerNode[id] > nContexts)
 	    nContexts = procsPerNode[id];
@@ -374,7 +373,7 @@ static int startProcs(int i, int np, int argc, char *argv[], int verbose)
 
 int main(int argc, char *argv[])
 {
-    int np, dest, version, verbose, source, keep, rusage, show;
+    int np, dest, version, verbose, source, keep, rusage;
     int i, rc;
     char *nodelist, *hostlist, *hostfile, *sort, *envlist;
     char *envstr, *msg;
@@ -391,34 +390,32 @@ int main(int argc, char *argv[])
     poptContext optCon;   /* context for parsing command-line options */
 
     struct poptOption optionsTable[] = {
-        { "np", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
+	{ "np", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
 	  &np, 0, "number of processes to start", "num"},
-        { "nodes", 'n', POPT_ARG_STRING,
+	{ "nodes", 'n', POPT_ARG_STRING,
 	  &nodelist, 0, "list of nodes to use", "nodelist"},
-        { "hosts", 'h', POPT_ARG_STRING,
+	{ "hosts", 'h', POPT_ARG_STRING,
 	  &hostlist, 0, "list of hosts to use", "hostlist"},
-        { "hostfile", '\0', POPT_ARG_STRING,
+	{ "hostfile", '\0', POPT_ARG_STRING,
 	  &hostfile, 0, "hostfile to use", "hostfile"},
-        { "sort", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
+	{ "sort", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
 	  &sort, 0, "sorting criterium to use", "{proc|load|proc+load|none}"},
-        { "inputdest", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
+	{ "inputdest", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
 	  &dest, 0, "direction to forward input", "dest"},
-        { "sourceprintf", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH,
+	{ "sourceprintf", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH,
 	  &source, 0, "print output-source info", NULL},
-        { "rusage", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH,
+	{ "rusage", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH,
 	  &rusage, 0, "print consumed sys/user time", NULL},
-        { "exports", 'e', POPT_ARG_STRING,
+	{ "exports", 'e', POPT_ARG_STRING,
 	  &envlist, 0, "environment to export to foreign nodes", "envlist"},
-        { "keep", 'k', POPT_ARG_NONE,
+	{ "keep", 'k', POPT_ARG_NONE,
 	  &keep, 0, "don't remove machine file upon exit", NULL},
-        { "show", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH,
-	  &show, 0, "show command for remote execution but dont run it", NULL},
 	{ "verbose", 'v', POPT_ARG_NONE,
 	  &verbose, 0, "verbose mode", NULL},
-        { "version", 'V', POPT_ARG_NONE,
+	{ "version", 'V', POPT_ARG_NONE,
 	  &version, -1, "output version information and exit", NULL},
-        POPT_AUTOHELP
-        { NULL, '\0', 0, NULL, 0, NULL, NULL}
+	POPT_AUTOHELP
+	{ NULL, '\0', 0, NULL, 0, NULL, NULL}
     };
 
     /* The duplicated argv will contain the apps commandline */
@@ -439,7 +436,7 @@ int main(int argc, char *argv[])
 	const char *unknownArg;
 
 	np = dest = -1;
-	version = verbose = source = rusage = show = keep = 0;
+	version = verbose = source = rusage = keep = 0;
 	nodelist = hostlist = hostfile = sort = envlist = NULL;
 
 	rc = poptGetNextOpt(optCon);
@@ -455,7 +452,7 @@ int main(int argc, char *argv[])
 		if (strcmp(dup_argv[i], unknownArg)==0) {
 		    dup_argc = i;
 		    dup_argv[dup_argc] = NULL;
-		    poptFreeContext(optCon);	
+		    poptFreeContext(optCon);
 		    optCon = poptGetContext(NULL,
 					    dup_argc, (const char **)dup_argv,
 					    optionsTable, 0);
@@ -474,17 +471,17 @@ int main(int argc, char *argv[])
     }
 
     if (rc < -1) {
-        /* an error occurred during option processing */
-        snprintf(msgstr, sizeof(msgstr), "%s: %s",
+	/* an error occurred during option processing */
+	snprintf(msgstr, sizeof(msgstr), "%s: %s",
 		 poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
 		 poptStrerror(rc));
 	msg = msgstr;
-        goto errexit;
+	goto errexit;
     }
 
     if (version) {
-        printVersion();
-        return 0;
+	printVersion();
+	return 0;
     }
 
     if (np == -1) {
@@ -608,23 +605,15 @@ int main(int argc, char *argv[])
     PSI_RemoteArgs(argc-dup_argc, &argv[dup_argc], &dup_argc, &dup_argv);
 
     /* Prepare the environment */
-/*     if (getenv("LIBELAN_MACHINES_FILE")) { */
-/* 	setPSIEnv("LIBELAN_MACHINES_FILE", getenv("LIBELAN_MACHINES_FILE"), 1); */
-/*     } */
     setPSIEnv("LIBELAN_SHMKEY", PSC_printTID(PSC_getMyTID()), 1);
 
     /* start all processes */
-    alarm(120); /* 2 minutes should be enough */
     for (i = 0; i < np; i++) {
-	if (startProcs(i, np, dup_argc, dup_argv, verbose||show) < 0) {
+	if (startProcs(i, np, dup_argc, dup_argv, verbose) < 0) {
 	    fprintf(stderr, "Unable to start process %d. Aborting.\n", i);
 	    exit(1);
-	} 
+	}
     }
-    alarm(0);
-
-    /* Don't irritate the user with logger messages */
-    setenv("PSI_NOMSGLOGGERDONE", "", 1);
 
     /* release service process */
     PSI_release(PSC_getMyTID());
