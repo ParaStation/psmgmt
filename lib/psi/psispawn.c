@@ -238,7 +238,7 @@ static int sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len)
  * Upon return the array @a errors will hold @a count error codes
  * indicating if the corresponding spawn was successful and if not,
  * what cause the failure. The array @a tids will hold the unique task
- * ID of the started processes.
+ * ID of the started processes, if @a tids was different from NULL.
  *
  * @param count The number of processes to spawn.
  *
@@ -260,7 +260,8 @@ static int sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len)
  *
  * @param errors Array holding error codes upon return.
  *
- * @param tids Array holding unique task IDs upon return.
+ * @param tids Array holding unique task IDs upon return. If this is
+ * NULL, no such information will be stored.
  *
  * @return Upon success, the number of processes spawned is returned,
  * i.e. usually this is @a count. Otherwise a negativ value is
@@ -289,10 +290,9 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	return -1;
     }
 
-    for (i=0; i<count; i++) {
-	errors[i] = 0;
-	tids[i] = 0;
-    }
+    for (i=0; i<count; i++) errors[i] = 0;
+
+    if (tids) for (i=0; i<count; i++) tids[i] = 0;
 
     /* setup task structure */
     task = PStask_new();
@@ -390,7 +390,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	/* check if dstnode is ok */
 	if (dstnodes[i] < 0 || dstnodes[i] >= PSC_getNrOfNodes()) {
 	    errors[i] = ENETUNREACH;
-	    tids[i] = -1;
+	    if (tids) tids[i] = -1;
 	} else {
 	    size_t len;
 	    int ret;
@@ -473,13 +473,13 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    /* find the right task request */
 	    for (i=0; i<count; i++) {
 		if (dstnodes[i]==PSC_getID(answer.header.sender)
-		    && !tids[i] && !errors[i]) {
+		    && (!tids || !tids[i]) && !errors[i]) {
 		    /*
 		     * We have to test for !errors[i], since daemon on node 0
 		     * (which has tid 0) might have returned an error.
 		     */
 		    errors[i] = answer.error;
-		    tids[i] = answer.header.sender;
+		    if (tids) tids[i] = answer.header.sender;
 		    ret++;
 		    break;
 		}
@@ -490,7 +490,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 		    && answer.error==EACCES && count==1) {
 		    /* This might be due to 'starting not allowed' here */
 		    errors[0] = answer.error;
-		    tids[0] = answer.header.sender;
+		    if (tids) tids[0] = answer.header.sender;
 		    ret++;
 		} else {
 		    PSI_log(-1, "%s: %s from unknown node %d\n", __func__,
