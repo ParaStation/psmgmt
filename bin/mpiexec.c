@@ -57,8 +57,6 @@ static char vcid[] __attribute__((used)) =
 
 /** Space for error messages */
 char msgstr[512];
-/** pointer to error msg */
-char *msg;
 /** context for parsing command-line options */
 poptContext optCon;
 /** duplicated argv for parsing command-line options */
@@ -190,10 +188,10 @@ static void printVersion(void)
  *
  * @return No return value.
  */
-static void errExit(void)
+static void errExit(char *msg)
 {
     poptPrintUsage(optCon, stderr, 0);
-    fprintf(stderr, "\n%s\n\n", msg);
+    fprintf(stderr, "\n%s\n\n", msg ? msg : "Exit for unknown reason");
     exit(EXIT_FAILURE);
 }
 
@@ -264,9 +262,8 @@ static void getFirstNodeID(PSnodes_ID_t *nodeID)
     }
 
     if (!parse) {
-	msg = "Don't know where to start, use '--nodes' or '--hosts' or"
-	    " '--hostfile'";
-	errExit();
+	errExit("Don't know where to start, use '--nodes' or '--hosts' or"
+		" '--hostfile'");
     }
 
     if (!(nodeparse = strtok_r(parse, delimiters, &toksave))) {
@@ -864,15 +861,12 @@ static void setupPSIDEnv(int verbose)
     if (nodelist) {
 	int len=0,i;
 	if (hostlist) {
-	    msg = "Don't use -nodes and -hosts simultatniously.";
-	    errExit();
+	    errExit("Don't use -nodes and -hosts simultatniously.");
 	} else if (hostfile) {
-	    msg = "Don't use -nodes and -hostfile simultatniously.";
-	    errExit();
+	    errExit("Don't use -nodes and -hostfile simultatniously.");
 	} else if (envstr) {
-	    msg = "Don't use -nodes with any of"
-		" PSI_NODES, PSI_HOSTS or PSI_HOSTFILE set.";
-	    errExit();
+	    errExit("Don't use -nodes with any of"
+		    " PSI_NODES, PSI_HOSTS or PSI_HOSTFILE set.");
 	}
 	envstr = nodelist;
 	len = strlen(envstr);
@@ -888,20 +882,17 @@ static void setupPSIDEnv(int verbose)
 	if (verbose) printf("PSI_NODES='%s'\n", nodelist);
     } else if (hostlist) {
 	if (hostfile) {
-	    msg = "Don't use -hosts and -hostfile simultatniously.";
-	    errExit();
+	    errExit("Don't use -hosts and -hostfile simultatniously.");
 	} else if (envstr) {
-	    msg = "Don't use -hosts with any of"
-		" PSI_NODES, PSI_HOSTS or PSI_HOSTFILE set.";
-	    errExit();
+	    errExit("Don't use -hosts with any of"
+		    " PSI_NODES, PSI_HOSTS or PSI_HOSTFILE set.");
 	}
 	setenv("PSI_HOSTS", hostlist, 1);
 	if (verbose) printf("PSI_HOSTS='%s'\n", hostlist);
     } else if (hostfile) {
 	if (envstr) {
-	    msg = "Don't use -hostfile with any of"
-		" PSI_NODES, PSI_HOSTS or PSI_HOSTFILE set.";
-	    errExit();
+	    errExit("Don't use -hostfile with any of"
+		    " PSI_NODES, PSI_HOSTS or PSI_HOSTFILE set.");
 	}
 	setenv("PSI_HOSTFILE", hostfile, 1);
 	if (verbose) printf("PSI_HOSTFILE='%s'\n", hostfile);
@@ -911,8 +902,7 @@ static void setupPSIDEnv(int verbose)
     if (sort) {
 	char *val = NULL;
 	if (envstr) {
-	    msg = "Don't use -sort with PSI_NODES_SORT set.";
-	    errExit();
+	    errExit("Don't use -sort with PSI_NODES_SORT set.");
 	}
 	if (!strcmp(sort, "proc")) {
 	    val = "PROC";
@@ -924,8 +914,7 @@ static void setupPSIDEnv(int verbose)
 	    val = "NONE";
 	} else {
 	    snprintf(msgstr, sizeof(msgstr), "Unknown -sort value: %s", sort);
-	    msg = msgstr;
-	    errExit();
+	    errExit(msgstr);
 	}
 	setenv("PSI_NODES_SORT", val, 1);
 	if (verbose) printf("PSI_NODES_SORT='%s'\n", val);
@@ -1149,9 +1138,8 @@ static void setupAdminEnv(void)
     }
 
     if (!parse) {
-	msg = "Don't know where to start, use '--nodes' or '--hosts' or "
-	       "'--hostfile'";
-	errExit();
+	errExit("Don't know where to start, use '--nodes' or '--hosts' or "
+		"'--hostfile'");
     }
 
     np = 0;
@@ -1284,9 +1272,8 @@ static void createAdminTasks(int argc, char *argv[], char *login, int verbose,
     }
 
     if (!parse) {
-	msg = "Don't know where to start, use '--nodes' or '--hosts' or "
-	      "'--hostfile'";
-	errExit();
+	errExit("Don't know where to start, use '--nodes' or '--hosts' or "
+		"'--hostfile'");
     }
 
     nodeparse = strtok_r(parse, delimiters, &toksave);
@@ -1348,19 +1335,16 @@ static void createAdminTasks(int argc, char *argv[], char *login, int verbose,
 static void checkSanity(char *argv[])
 {
     if (np == -1 && !admin) {
-	msg = "Give at least the -np argument.";
-	errExit();
+	errExit("Give at least the -np argument.");
     }
 
     if (np < 1 && !admin) {
 	snprintf(msgstr, sizeof(msgstr), "'-np %d' makes no sense.", np);
-	msg = msgstr;
-	errExit();
+	errExit(msgstr);
     }
 
     if (!argv[dup_argc]) {
-	msg = "No <command> specified.";
-	errExit();
+	errExit("No <command> specified.");
     }
 
     if (totalview) {
@@ -1395,10 +1379,7 @@ static void checkSanity(char *argv[])
 
     if (admin) {
 	if (np != -1) {
-	    snprintf(msgstr, sizeof(msgstr),
-		     "Don't use '-np' and '--admin' together");
-	    msg = msgstr;
-	    errExit();
+	    errExit("Don't use '-np' and '--admin' together");
 	}
     }
 
@@ -1408,13 +1389,11 @@ static void checkSanity(char *argv[])
     }
 
     if (pmienabletcp && pmienablesockp) {
-	msg = "Only one pmi connection type allowed (tcp or unix socket)";
-	errExit();
+	errExit("Only one pmi connection type allowed (tcp or unix)");
     }
 
     if (ondemand && no_ondemand) {
-	msg = "The options --ondemand and --no_ondemand or mutual exclusive";
-	errExit();
+	errExit("Options --ondemand and --no_ondemand are mutually exclusive");
     }
 }
 
@@ -1729,7 +1708,7 @@ static void parseCmdOptions(int argc, char *argv[])
 
 	/* handle special env option */
 	switch (rc) {
-	    case 'E': 
+	    case 'E':
 		poptStuffArgs(optCon, av);
 		break;
 	    case 'e':
@@ -1738,20 +1717,19 @@ static void parseCmdOptions(int argc, char *argv[])
 	}
     }
 
-    dup_argc = 0; 
-    
-    while ((nextArg = poptGetArg(optCon)) != NULL) {  
+    dup_argc = 0;
+
+    while ((nextArg = poptGetArg(optCon)) != NULL) {
 	dup_argv[dup_argc++] = strdup(nextArg);
     }
     dup_argv[dup_argc] = NULL;
-	
+
     if (rc < -1) {
 	/* an error occurred during option processing */
 	snprintf(msgstr, sizeof(msgstr), "%s: %s",
 		 poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
 		 poptStrerror(rc));
-	msg = msgstr;
-	errExit();
+	errExit(msgstr);
     }
 
     /* output help */
