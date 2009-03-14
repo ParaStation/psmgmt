@@ -1,3 +1,301 @@
+Version psmgmt-5.0.10:
+======================
+------------------------------------------------------------------------
+r7329 | eicker | 2009-03-14 02:05:42 +0100 (Sat, 14 Mar 2009) | 2 lines
+
+Also convert mpirun_elan to use a single spawn for compute-processes.
+
+------------------------------------------------------------------------
+r7328 | eicker | 2009-03-14 01:12:49 +0100 (Sat, 14 Mar 2009) | 3 lines
+
+Modify mpiexec so that all client processes get spawned by a single call
+    to PSI_spawnStrict().
+
+------------------------------------------------------------------------
+r7327 | eicker | 2009-03-14 01:04:17 +0100 (Sat, 14 Mar 2009) | 3 lines
+
+Bugfix: Don't increment rank before per-node environment is set.
+Bugfix: Instantiate environment only once.
+
+------------------------------------------------------------------------
+r7325 | eicker | 2009-03-13 17:00:38 +0100 (Fri, 13 Mar 2009) | 2 lines
+
+Cleanup ELAN-part of mpiexec.
+
+------------------------------------------------------------------------
+r7321 | eicker | 2009-03-13 13:07:06 +0100 (Fri, 13 Mar 2009) | 2 lines
+
+Make mpirun_elan's code somewhat cleaner.
+
+------------------------------------------------------------------------
+r7320 | eicker | 2009-03-13 12:50:42 +0100 (Fri, 13 Mar 2009) | 2 lines
+
+Make mpiexec's code somewhat cleaner.
+
+------------------------------------------------------------------------
+r7319 | eicker | 2009-03-13 12:24:11 +0100 (Fri, 13 Mar 2009) | 4 lines
+
+Extension: Make PSI_spawn*() family work even if no tid-pointer given.
+Make mpirun_openib work with single PSI_spawnStrict() call.
+Major whitespace cleanup.
+
+------------------------------------------------------------------------
+r7318 | eicker | 2009-03-13 11:43:13 +0100 (Fri, 13 Mar 2009) | 2 lines
+
+Bugfix: Adapt membinding-code to changed API of newer libnuma.
+
+------------------------------------------------------------------------
+r7282 | eicker | 2009-02-26 14:48:40 +0100 (Thu, 26 Feb 2009) | 4 lines
+
+Extension: Allow node entries with $GENERATE syntax as known from bind.
+    This fixes #30.
+Extension: Allow per node environment. This fixes #66.
+
+------------------------------------------------------------------------
+r7273 | eicker | 2009-02-25 10:56:18 +0100 (Wed, 25 Feb 2009) | 2 lines
+
+Make pssh's interactive behavior more compatible with ssh.
+
+------------------------------------------------------------------------
+r7248 | rauh | 2009-02-19 11:01:14 +0100 (Thu, 19 Feb 2009) | 2 lines
+
+bugfix: mpiexec --env should now finally work as espected, ticket #224
+
+------------------------------------------------------------------------
+r7238 | eicker | 2009-02-16 16:00:07 +0100 (Mon, 16 Feb 2009) | 4 lines
+
+Bugfix: Some debugging adjustment prevented 'mpiexec -gdb' from correct
+    functionality for less than 16 clients.
+Cleanup (again) whitespace-junk.
+
+------------------------------------------------------------------------
+r7237 | rauh | 2009-02-16 15:27:58 +0100 (Mon, 16 Feb 2009) | 2 lines
+
+bugfix: mpiexec, removed duplicate error ouput
+
+------------------------------------------------------------------------
+r7236 | rauh | 2009-02-16 13:47:42 +0100 (Mon, 16 Feb 2009) | 2 lines
+
+added mpiexec --no_ondemand option
+
+------------------------------------------------------------------------
+r7235 | rauh | 2009-02-16 12:52:28 +0100 (Mon, 16 Feb 2009) | 3 lines
+
+enhancement: mpiexec --gdb is using now the --args option as default, requested in ticket #222
+enhancement: better verbose output
+
+------------------------------------------------------------------------
+r7234 | rauh | 2009-02-16 10:35:30 +0100 (Mon, 16 Feb 2009) | 2 lines
+
+bugfix: mpiexec --env is now compatible to mpich, fixing ticket #219 and ticket #223
+
+------------------------------------------------------------------------
+r7232 | eicker | 2009-02-12 19:39:01 +0100 (Thu, 12 Feb 2009) | 3 lines
+
+Improve raw-mode handling in logger, if remote process started via
+    mpiexec.
+
+------------------------------------------------------------------------
+r7219 | hauke | 2009-02-11 15:28:09 +0100 (Wed, 11 Feb 2009) | 1 line
+
+Add .gitignore
+------------------------------------------------------------------------
+r7217 | moschny | 2009-02-11 14:36:04 +0100 (Wed, 11 Feb 2009) | 2 lines
+
+Fix #170.
+
+------------------------------------------------------------------------
+r7169 | eicker | 2009-02-03 14:17:49 +0100 (Tue, 03 Feb 2009) | 8 lines
+
+Merge changes from Michael's branch:
+- mpiexec: corrected spelling, dont catch SIGINT so we can be kill by
+  ctrl-c
+- pmi: docu for intel pmi extension, die on unsupported spwan-multi
+  request, better output
+Some cleanup from r7168
+Cleanup whitespace waste.
+
+------------------------------------------------------------------------
+r7168 | eicker | 2009-02-03 11:31:37 +0100 (Tue, 03 Feb 2009) | 7 lines
+
+Merge changes from Michael's branch:
+- strongly optimized merge code
+- bugfix: don`t try to merge output from special ranks e.g. service process
+- bugfix: just allocate all the memory we need in advanced, dont waste
+  time with reallocation
+
+
+------------------------------------------------------------------------
+r7167 | eicker | 2009-02-02 22:14:29 +0100 (Mon, 02 Feb 2009) | 5 lines
+
+Bugfix: Complete rework client-managment and input-forwarding in
+    psilogger. This makes mpiexec --gdb working for -np > 64.
+Bugifx: Make process cleanup working again, if logger disappears in a
+    nasty way, i.e. receiving but not answering FINALIZE.
+
+------------------------------------------------------------------------
+r7152 | eicker | 2009-01-29 18:51:18 +0100 (Thu, 29 Jan 2009) | 2 lines
+
+Forward environment '__PSI_LOGGER_TIMEOUT' automatically.
+
+------------------------------------------------------------------------
+r7151 | eicker | 2009-01-29 18:47:10 +0100 (Thu, 29 Jan 2009) | 2 lines
+
+Bugfix: Fix bug introduced in r7132.
+
+------------------------------------------------------------------------
+r7135 | eicker | 2009-01-28 19:32:20 +0100 (Wed, 28 Jan 2009) | 2 lines
+
+Timeout waiting for partition if PSI_WAIT is not set.
+
+------------------------------------------------------------------------
+r7132 | eicker | 2009-01-27 10:14:50 +0100 (Tue, 27 Jan 2009) | 8 lines
+
+Bugfix: Close forwarder's connection to local daemon on receiving
+    message of length 0. This should fix #205.
+Bugfix: Let forwarder wait ad infinitum for answering FINALIZE message.
+    This should help with #186.
+Extension: Make forwarder's timeout on connection to the logger
+    configurable via __PSI_LOGGER_TIMEOUT. This should also help with
+    #186.
+
+------------------------------------------------------------------------
+r7125 | eicker | 2009-01-23 09:35:22 +0100 (Fri, 23 Jan 2009) | 2 lines
+
+Remove some warning concerning output conversions.
+
+------------------------------------------------------------------------
+r7070 | moschny | 2009-01-07 15:49:11 +0100 (Wed, 07 Jan 2009) | 2 lines
+
+Use 0.0.rNNNN for the release number of trunk builds.
+
+------------------------------------------------------------------------
+r7066 | eicker | 2009-01-06 16:53:51 +0100 (Tue, 06 Jan 2009) | 7 lines
+
+Merge changes from Michael's branch:
+ added average memory values to accouting
+ added change options user,group,jobname to match regular expressions
+ added option to search for jobs which were run on a specific node
+Adapt testacct to changes
+Fix all the whitespace-errors in the edited files.
+
+------------------------------------------------------------------------
+r7065 | eicker | 2009-01-05 21:56:08 +0100 (Mon, 05 Jan 2009) | 4 lines
+
+Bugfix: Try to fix #192. Seems that the logger sometimes ends
+   prematurely and that the forwarder gets stuck by SIGNAL messages.
+Start to rework the forwarding code in psilogger. Just some hacks, yet.
+
+------------------------------------------------------------------------
+r7050 | rauh | 2008-12-17 14:46:44 +0100 (Wed, 17 Dec 2008) | 2 lines
+
+Bugfix: fixed rookie segfault in mpiexec
+
+------------------------------------------------------------------------
+r7049 | rauh | 2008-12-16 14:53:44 +0100 (Tue, 16 Dec 2008) | 3 lines
+
+make mpiexec more independent if it was complied with elan support
+ticket #168
+
+------------------------------------------------------------------------
+r7036 | eicker | 2008-12-10 21:10:28 +0100 (Wed, 10 Dec 2008) | 2 lines
+
+Update copyrights according to last change.
+
+------------------------------------------------------------------------
+r7035 | eicker | 2008-12-10 21:06:51 +0100 (Wed, 10 Dec 2008) | 3 lines
+
+Improve logging of psaccounter. For this, additional functionality had to
+    be added to the PSC and PSI logging facilities.
+
+------------------------------------------------------------------------
+r7016 | eicker | 2008-12-09 13:51:49 +0100 (Tue, 09 Dec 2008) | 3 lines
+
+Bugfix: Start hardware reasonably late in order to allow the accounter
+  connecting the local daemon.
+
+------------------------------------------------------------------------
+r7009 | eicker | 2008-12-02 22:35:31 +0100 (Tue, 02 Dec 2008) | 2 lines
+
+Try to fix #111 again.
+
+------------------------------------------------------------------------
+r7007 | eicker | 2008-12-01 21:40:42 +0100 (Mon, 01 Dec 2008) | 8 lines
+
+Bugfix: Sselect() might return pending entries in the readfds set of
+  file-descriptors never requested.
+Get rid of the daemon's mainTimer.
+The daemon's master socket (used for clients to connect) is now handled
+  by the selector facility.
+Bugfix: Fix bug in msg_CLIENTCONNECT() introduced in r7005/7006.
+Bugfix: Add new files psidstate.[ch] to Makefile.sources.
+
+------------------------------------------------------------------------
+r7006 | eicker | 2008-12-01 19:10:22 +0100 (Mon, 01 Dec 2008) | 2 lines
+
+The remaining part of the r7005 change.
+
+------------------------------------------------------------------------
+r7005 | eicker | 2008-12-01 19:07:26 +0100 (Mon, 01 Dec 2008) | 4 lines
+
+Major refactoring of the daemon's message handling. The handling of the
+  various message types is now much more flexible and even dynamic. This
+  will be interestion once the daemon has dynamic plugins.
+
+------------------------------------------------------------------------
+r6975 | eicker | 2008-11-13 13:08:34 +0100 (Thu, 13 Nov 2008) | 3 lines
+
+Bugfix: Send PSP_ACCOUNT_SLOTS messages to all accounters. Due to a bug
+   in msg_ACCOUNT() a PSP_CD_ACCOUNT message was not re-usable.
+
+------------------------------------------------------------------------
+r6972 | rauh | 2008-11-06 13:51:22 +0100 (Thu, 06 Nov 2008) | 2 lines
+
+added option (-T --timestamp) enabling PSI_TIMESTAMPS to mpiexec
+
+------------------------------------------------------------------------
+r6957 | hauke | 2008-10-31 12:16:44 +0100 (Fri, 31 Oct 2008) | 3 lines
+
+Be strict POSIX compliance in "test"/[] calls. (No == use = instead!).
+An alternative would be to use bash instead of /bin/sh.
+
+------------------------------------------------------------------------
+r6955 | eicker | 2008-10-29 17:15:51 +0100 (Wed, 29 Oct 2008) | 3 lines
+
+Don't send SIGKILL if child-signal is no the default.
+Suppress some warnings.
+
+------------------------------------------------------------------------
+r6558 | eicker | 2008-10-13 16:10:53 +0200 (Mon, 13 Oct 2008) | 2 lines
+
+Update instructions on how to release a new version.
+
+------------------------------------------------------------------------
+r6556 | moschny | 2008-10-13 15:33:32 +0200 (Mon, 13 Oct 2008) | 2 lines
+
+Add emacs mode identifier.
+
+------------------------------------------------------------------------
+r6553 | moschny | 2008-10-13 13:26:35 +0200 (Mon, 13 Oct 2008) | 1 line
+
+Add missing file.
+------------------------------------------------------------------------
+r6526 | rauh | 2008-10-06 10:51:26 +0200 (Mon, 06 Oct 2008) | 2 lines
+
+fixed wrong usage information
+
+------------------------------------------------------------------------
+r6525 | rauh | 2008-10-06 10:22:41 +0200 (Mon, 06 Oct 2008) | 2 lines
+
+fixed wrong usage information
+
+------------------------------------------------------------------------
+r6523 | eicker | 2008-09-30 13:58:26 +0200 (Tue, 30 Sep 2008) | 2 lines
+
+New version (psmgmt-5.0.9)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.9:
 =====================
 ------------------------------------------------------------------------
