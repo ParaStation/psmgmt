@@ -47,10 +47,19 @@ void closeELAN(void);
 int setupELANEnv(int np, int verbose);
 
 /**
- * @brief Setup the environment for the given rank.
+ * @brief Setup per rank environment
  *
- * @param rank The rank of the process to setup.
+ * Setup the rank-specific ELAN environment for the rank @a rank.
  *
- * @return Returns 1 on success and 0 on error.
+ * This function returns a pointer to a statuc character-array. Upon
+ * return it contains a environment of the form "name=value". It might
+ * be used within a function registered via @ref
+ * PSI_registerRankEnvFunc() in order to prepare a per rank
+ * environement within a PSI_spawn*() function.
+ *
+ * @param rank Rank of the process the environment is prepared for.
+ *
+ * @return A pointer to a static character-array is returned. Thus the
+ * value might get changed by subsequent calls this function.
  */
-int setupELANProcsEnv(int rank);
+char * setupELANNodeEnv(int rank);

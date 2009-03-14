@@ -329,6 +329,56 @@ static void checkForELAN(void)
 }
 
 /**
+ * @brief Setup global environment
+ *
+ * Setup global environment also shared with the logger -- i.e. the
+ * PMI master. The @a admin flag marks admin processes disabling most
+ * of the environment. It is assumed that the PMI-part of the logger
+ * has to expoect @a np clients.
+ *
+ * @param admin Flag for admin processes
+ *
+ * @param np Number of clients the PMI-part of the logger expects
+ *
+ * @return No return value.
+ */
+void setupGlobalEnv(int admin, int np)
+{
+    char tmp[32];
+
+    if (!admin && (pmienabletcp || pmienablesockp) ) {
+	/* generate pmi auth token */
+	snprintf(tmp, sizeof(tmp), "%i", PSC_getMyTID());
+	setPSIEnv("PMI_ID", tmp, 1);
+	setenv("PMI_ID", tmp, 1);
+
+	/* set the size of the job */
+	snprintf(tmp, sizeof(tmp), "%d", np);
+	setPSIEnv("PMI_SIZE", tmp, 1);
+	setenv("PMI_SIZE", tmp, 1);
+
+	/* set the template for the kvs name */
+	setPSIEnv("PMI_KVS_TMP", "pshost", 1);
+	setenv("PMI_KVS_TMP", "pshost", 1);
+
+	/* enable kvs support (within logger) */
+	setenv("KVS_ENABLE", "true", 1);
+
+	if (pmitmout) {
+	    snprintf(tmp, sizeof(tmp), "%d", pmitmout);
+	    setenv("PMI_BARRIER_TMOUT", tmp, 1);
+	    if (verbose)
+		printf("Setting timeout of pmi barrier to %i\n", pmitmout);
+	}
+    }
+
+    /* set the size of the job */
+    snprintf(tmp, sizeof(tmp), "%d", np);
+    setPSIEnv("PSI_NP_INFO", tmp, 1);
+    setenv("PSI_NP_INFO", tmp, 1);
+}
+
+/**
  * @brief Create service process that spawns all other processes and
  * switch to logger.
  *
@@ -364,14 +414,9 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 	    nds[0] = nodeID;
 	}
 
-#ifdef ELANCTRL
-	/* setup elan environment */
-	if (useElan) {
-	    if (!setupELANEnv(np, verbose)) {
-		disableElan();
-	    }
-	}
-#endif
+	/* setup the global environment also shared by logger for PMI */
+	setupGlobalEnv(admin, np);
+
 	/* get absolute path to myself */
 	if ((readlink("/proc/self/exe", tmp, sizeof(tmp))) == -1) {
 	    fprintf(stderr, "%s: failed reading my absolute path\n", __func__);
@@ -399,24 +444,6 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 
 	/* Don't irritate the user with logger messages */
 	setenv("PSI_NOMSGLOGGERDONE", "", 1);
-
-	if (!admin && (pmienabletcp || pmienablesockp) ) {
-
-	    /* set the size of the job */
-	    snprintf(tmp, sizeof(tmp), "%d", np);
-	    setenv("PMI_SIZE", tmp, 1);
-
-	    /* set the template for the kvs name */
-	    snprintf(tmp, sizeof(tmp), "pshost");
-	    setenv("PMI_KVS_TMP", tmp, 1);
-
-	    /* enable kvs support */
-	    setenv("KVS_ENABLE", "true", 1);
-	}
-
-	/* set the size of the job */
-	snprintf(tmp, sizeof(tmp), "%d", np);
-	setenv("PSI_NP_INFO", tmp, 1);
 
 	/* Switch to psilogger */
 	if (verbose) {
@@ -461,82 +488,133 @@ static void sighandler(int sig)
 }
 
 /**
- * @brief Set some varibles in the ParaStation
- * environment which are needed by the
- * Process Manager Interface.
+ * @brief Setup common environment
  *
- * @param rank Rank of the process to spawn.
+ * Setup the general environment needed by the Process Manager
+ * Interface. Additional variables are needed on a per rank
+ * basis. These are setup via @ref setupPMINodeEnv().
+ *
+ * @param np Total number of processes intended to be spawn.
  *
  * @return No return value.
  */
-static void setupPMIEnv(int rank)
+static void setupCommonEnv(int np)
 {
-    char tmp[1024];
+    char *env, tmp[32];
 
-    /* enable pmi tcp port */
-    if (pmienabletcp) {
-	setPSIEnv("PMI_ENABLE_TCP", "1", 1);
+    if (pmienabletcp || pmienablesockp ) {
+
+	/* propagate pmi auth token */
+	env = getenv("PMI_ID");
+	if (!env) errExit("No PMI_ID given.");
+	setPSIEnv("PMI_ID", env, 1);
+
+	/* enable pmi tcp port */
+	if (pmienabletcp) {
+	    setPSIEnv("PMI_ENABLE_TCP", "1", 1);
+	}
+
+	/* enable pmi sockpair */
+	if (pmienablesockp) {
+	    setPSIEnv("PMI_ENABLE_SOCKP", "1", 1);
+	}
+
+	/* set the pmi debug mode */
+	if (pmidebug) {
+	    snprintf(tmp, sizeof(tmp), "%d", pmidebug);
+	    setPSIEnv("PMI_DEBUG", tmp, 1);
+	}
+
+	/* set the pmi debug kvs mode */
+	if (pmidebug_kvs) {
+	    snprintf(tmp, sizeof(tmp), "%d", pmidebug_kvs);
+	    setPSIEnv("PMI_DEBUG_KVS", tmp, 1);
+	}
+
+	/* set the pmi debug client mode */
+	if (pmidebug_client) {
+	    snprintf(tmp, sizeof(tmp), "%d", pmidebug_client);
+	    setPSIEnv("PMI_DEBUG_CLIENT", tmp, 1);
+	}
+
+	/* set the init size of the pmi job */
+	env = getenv("PMI_SIZE");
+	if (!env) errExit("No PMI_SIZE given.");
+	setPSIEnv("PMI_SIZE", env, 1);
+
+	/* set the mpi universe size */
+	if (usize) {
+	    snprintf(tmp, sizeof(tmp), "%d", usize);
+	    env = tmp;
+	}
+	setPSIEnv("PMI_UNIVERSE_SIZE", env, 1);
+
+	/* set the template for the kvs name */
+	env = getenv("PMI_KVS_TMP");
+	if (!env) errExit("No PMI_KVS_TMP given.");
+	setPSIEnv("PMI_KVS_TMP", env, 1);
     }
 
-    /* enable pmi sockpair */
-    if (pmienablesockp) {
-	setPSIEnv("PMI_ENABLE_SOCKP", "1", 1);
-    }
+#ifdef ELANCTRL
+    /* setup elan environment */
+    if (useElan && !setupELANEnv(np, verbose)) disableElan();
+#endif
+
+    /* set the size of the job */
+    env = getenv("PSI_NP_INFO");
+    if (!env) errExit("No PSI_NP_INFO given.");
+    setPSIEnv("PSI_NP_INFO", env, 1);
+}
+
+static char * setupPMINodeEnv(int rank)
+{
+    static char pmiItem[32];
 
     /* set the rank of the current client to start */
-    snprintf(tmp, sizeof(tmp), "%d", rank);
-    setPSIEnv("PMI_RANK", tmp, 1);
+    snprintf(pmiItem, sizeof(pmiItem), "PMI_RANK=%d", rank);
 
-    /* set the pmi debug mode */
-    if (pmidebug) {
-	snprintf(tmp, sizeof(tmp), "%d", pmidebug);
-	setPSIEnv("PMI_DEBUG", tmp, 1);
+    return pmiItem;
+}
+
+/* Flag, if verbose-option is set */
+static int verboseRankMsg = 0;
+
+static char ** setupNodeEnv(int rank)
+{
+    static char *env[4];
+    int cur = 0;
+
+    /* setup PMI env */
+    if (pmienabletcp || pmienablesockp ) {
+	env[cur++] = setupPMINodeEnv(rank);
     }
 
-    /* set the pmi debug kvs mode */
-    if (pmidebug_kvs) {
-	snprintf(tmp, sizeof(tmp), "%d", pmidebug_kvs);
-	setPSIEnv("PMI_DEBUG_KVS", tmp, 1);
-    }
+#ifdef ELANCTRL
+    if (useElan) env[cur++] = setupELANNodeEnv(rank);
+#endif
 
-    /* set the pmi debug client mode */
-    if (pmidebug_client) {
-	snprintf(tmp, sizeof(tmp), "%d", pmidebug_client);
-	setPSIEnv("PMI_DEBUG_CLIENT", tmp, 1);
-    }
+    env[cur++] = NULL;
 
-    /* set the init size of the pmi job */
-    snprintf(tmp, sizeof(tmp), "%d", np);
-    setPSIEnv("PMI_SIZE", tmp, 1);
+    if (verboseRankMsg) printf("spawn rank %d\n", rank);
 
-    /* set the mpi universe size */
-    if (usize) {
-	snprintf(tmp, sizeof(tmp), "%d", usize);
-    } else {
-	snprintf(tmp, sizeof(tmp), "%d", np);
-    }
-    setPSIEnv("PMI_UNIVERSE_SIZE", tmp, 1);
-
-    /* set the template for the kvs name */
-    snprintf(tmp, sizeof(tmp), "pshost");
-    setPSIEnv("PMI_KVS_TMP", tmp, 1);
-
-    if (pmitmout) {
-	snprintf(tmp, sizeof(tmp), "%d", pmitmout);
-	setenv("PMI_BARRIER_TMOUT", tmp, 1);
-	if (verbose) printf("Setting timeout of pmi barrier to %i\n", pmitmout);
-    }
+    return env;
 }
 
 /**
  * @brief Spawn compute processes.
  *
- * Set up the environment including pmi and elan stuff
- * and spawn all processes.
+ * Start the user processes building the job. In total @a np processes
+ * shall be spawned. Each process spawned get the @a argv as the
+ * argument vector containing @a argc entries. It is started with @a
+ * wd as the working directory. If the @a verbose flag is set, some
+ * additional messages describing what is done will be created.
  *
- * @param i Rank of the process to spawn.
+ * Before processes are actually spawned, the environment including
+ * pmi and elan stuff is set up.
  *
  * @param np Size of the job.
+ *
+ * @param wd The working directory of the spawned processes.
  *
  * @param argc The number of arguments for the new process to spawn.
  *
@@ -544,52 +622,47 @@ static void setupPMIEnv(int rank)
  *
  * @param verbose Set verbose mode, ouput whats going on.
  *
- * @param show Only show ouput, but don't spawn anything.
- *
- * @param cwd Current working directory.
- *
  * @return Returns 0 on success, or errorcode on error.
  */
-static int startProcs(int i, int np, int argc, char *argv[], int verbose,
-		      int show, char *cwd)
+static int startProcs(int np, char *wd, int argc, char *argv[], int verbose)
 {
-    char *pwd = wdir;
-    PStask_ID_t spawnedProcess = -1;
-    int error;
+    int i, ret, *errors;
+
+    setupCommonEnv(np);
+
+    verboseRankMsg = verbose;
+    PSI_registerRankEnvFunc(setupNodeEnv);
 
     /* only start the first process for mpi1 jobs */
-    if (mpichcom && i>0) return 0;
+    if (mpichcom) np = 1;
 
-    /* set up pmi env */
-    if (pmienabletcp || pmienablesockp ) {
-	setupPMIEnv(i);
+    errors = malloc(sizeof(int) * np);
+    if (!errors) {
+	fprintf(stderr, "%s: malloc() failed\n", __func__);
+	return -1;
     }
 
-#ifdef ELANCTRL
-    if (useElan) setupELANProcsEnv(i);
-#endif
-
-    /* set correct working dir */
-    if (!pwd) {
-	pwd = cwd;
-    }
-    setPSIEnv("PWD", pwd, 1);
-
-    if (verbose || show) {
-	printf("spawn rank %d: cmd=%s wdir=%s\n", i, argv[0], pwd);
-	if (show) return 0;
-    }
-
-    /* start compute processes */
-    if (PSI_spawnStrict(1, pwd, argc, argv, 1, &error, &spawnedProcess)<0 ) {
-	if (error) {
-	    perror("spawn failed!\n");
-	} else {
-	    fprintf(stderr, "%s: spawn failed\n", __func__);
+    /* spawn client processes */
+    ret = PSI_spawnStrict(np, wd, argc, argv, 1, errors, NULL);
+    /* Analyze result, if necessary */
+    if (ret<0) {
+	for (i=0; i<np; i++) {
+	    if (verbose || errors[i]) {
+		fprintf(stderr, "Could%s spawn '%s' process %d",
+			errors[i] ? " not" : "", argv[0], i+1);
+		if (errors[i]) {
+		    char* errstr = strerror(errors[i]);
+		    fprintf(stderr, ": %s", errstr ? errstr : "UNKNOWN");
+		}
+		fprintf(stderr, "\n");
+	    }
 	}
-	exit(10);
+	fprintf(stderr, "%s: PSI_spawn() failed.\n", __func__);
     }
-    return (0);
+
+    free(errors);
+
+    return ret;
 }
 
 /**
@@ -1878,8 +1951,7 @@ static void setSigHandlers()
 
 int main(int argc, char *argv[])
 {
-    int i, ret;
-    char tmp[1024];
+    int ret;
 
     /* set sighandlers */
     setSigHandlers();
@@ -1910,6 +1982,11 @@ int main(int argc, char *argv[])
     /* load libelan if available */
     checkForELAN();
 
+    /* Propagate PSI_RARG_PRE_* / check for LSF-Parallel */
+/*     PSI_RemoteArgs(filter_argc-dup_argc, &filter_argv[dup_argc], &dup_argc, */
+/*	   &dup_argv); */
+/*     @todo Enable PSI_RARG_PRE correctly !! */
+
     /* create spawner process and switch to logger */
     createSpawner(argc, argv, np, admin);
 
@@ -1919,39 +1996,18 @@ int main(int argc, char *argv[])
     /* add command args for mpi1 mode */
     if (mpichcom) setupComp();
 
-    /* spawn admin processes */
     if (admin) {
+	/* spawn admin processes */
 	if (verbose) {
 	    printf("Starting admin task(s)\n");
 	}
 	usleep(200);
 	createAdminTasks(dup_argc, dup_argv, login, verbose, show);
     } else {
-	char *pwd;
-
-	/* generate pmi auth token */
-	if (pmienabletcp || pmienablesockp ) {
-
-	    srand(time(0));
-	    srand(rand());
-	    snprintf(tmp, sizeof(tmp), "%i\n", rand());
-
-	    setPSIEnv("PMI_ID", tmp, 1);
-	}
-
-	/* get current working dir */
-	pwd = getcwd(tmp, sizeof(tmp));
-	if (!pwd) {
-	    perror("Unable to determine working directory");
-	    exit(EXIT_FAILURE);
-	}
-
 	/* start all processes */
-	for (i = 0; i < np; i++) {
-	    if (startProcs(i, np, dup_argc, dup_argv, verbose, show, tmp) < 0) {
-		fprintf(stderr, "Unable to start process %d. Aborting.\n", i);
-		exit(EXIT_FAILURE);
-	    }
+	if (startProcs(np, wdir, dup_argc, dup_argv, verbose) < 0) {
+	    fprintf(stderr, "Unable to start all processes. Aborting.\n");
+	    exit(EXIT_FAILURE);
 	}
     }
 

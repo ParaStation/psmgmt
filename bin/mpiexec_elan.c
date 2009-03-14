@@ -183,12 +183,55 @@ static char *capToString(ELAN_CAPABILITY *cap, char *str, size_t len)
 
 /*----------------------------------------------------------------------*/
 
+/**
+ * @brief Load the libelan and init the
+ * function pointer into it.
+ *
+ * @return Returns 1 on success and 0 on error.
+ */
+int initELAN(void)
+{
+    libh = dlopen("libelanctrl.so", RTLD_NOW | RTLD_GLOBAL);
+    if (!libh) {
+	return 0;
+    }
+
+    dym_elan_nullcap = dlsym(libh, "elan_nullcap");
+    dym_elan_getenvCap = dlsym(libh, "elan_getenvCap");
+
+    if (!dym_elan_nullcap || !dym_elan_getenvCap) {
+	return 0;
+    }
+
+    isLoaded = 1;
+
+    return 1;
+}
+
+/**
+ * @brief Unload libelan.
+ *
+ * @return Returns 1 on success and 0 on error.
+ */
+void closeELAN(void)
+{
+    if (!isLoaded) {
+	return;
+    }
+
+    if (libh) dlclose(libh);
+    dym_elan_nullcap = NULL;
+    dym_elan_getenvCap = NULL;
+    isLoaded = 0;
+}
+
+static ELAN_CAPABILITY cap;
+
 static int prepCapEnv(int np, int verbose)
 {
-    ELAN_CAPABILITY cap;
     int procsPerNode[ELAN_MAX_VPS];
     int n, p, nContexts=1;
-    char *nodesFirst = getenv("PSI_LOOP_NODES_FIRST"), envStr[8192];
+    char *nodesFirst = getenv("PSI_LOOP_NODES_FIRST");
 
     dym_elan_nullcap (&cap);
     cap.cap_lowcontext = 64;
@@ -257,96 +300,7 @@ static int prepCapEnv(int np, int verbose)
 
     cap.cap_highcontext = cap.cap_lowcontext + nContexts - 1;
 
-    capToString(&cap, envStr, sizeof(envStr));
-    setPSIEnv(envName(0), envStr, 1);
-
     return 0;
-}
-
-/**
- * @brief Load the libelan and init the
- * function pointer into it.
- *
- * @return Returns 1 on success and 0 on error.
- */
-int initELAN(void)
-{
-    libh = dlopen("libelanctrl.so", RTLD_NOW | RTLD_GLOBAL);
-    if (!libh) {
-	return 0;
-    }
-
-    dym_elan_nullcap = dlsym(libh, "elan_nullcap");
-    dym_elan_getenvCap = dlsym(libh, "elan_getenvCap");
-
-    if (!dym_elan_nullcap || !dym_elan_getenvCap) {
-	return 0;
-    }
-
-    isLoaded = 1;
-
-    return 1;
-}
-
-/**
- * @brief Unload libelan.
- *
- * @return Returns 1 on success and 0 on error.
- */
-void closeELAN(void)
-{
-    if (!isLoaded) {
-	return;
-    }
-
-    if (libh) dlclose(libh);
-    dym_elan_nullcap = NULL;
-    dym_elan_getenvCap = NULL;
-    isLoaded = 0;
-}
-
-/**
- * @brief Setup the environment for the given rank.
- *
- * @param rank The rank of the process to setup.
- *
- * @return Returns 1 on success and 0 on error.
- */
-int setupELANProcsEnv(int rank)
-{
-    PSnodes_ID_t node;
-    u_int32_t hostaddr;
-    static ELAN_CAPABILITY *cap = NULL;
-    static int *numProcs = NULL;
-    char envStr[8192];
-
-    /* Loading shared library failed */
-    if (!isLoaded) {
-	return 0;
-    }
-
-    /* Prepare the environment */
-    setPSIEnv("LIBELAN_SHMKEY", PSC_printTID(PSC_getMyTID()), 1);
-
-    int ret = PSI_infoNodeID(-1, PSP_INFO_RANKID, &rank, &node, 1);
-    if (ret || (node < 0)) exit(10);
-
-    ret = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr, 0);
-    if (ret || (hostaddr == INADDR_ANY)) exit(10);
-
-    if (!cap) {
-	cap = malloc(sizeof(*cap));
-	(*dym_elan_getenvCap)(cap, 0);
-    }
-    if (!numProcs) numProcs = calloc(sizeof(int), PSC_getNrOfNodes());
-
-    cap->cap_mycontext = cap->cap_lowcontext + numProcs[node];
-    numProcs[node]++;
-
-    capToString(cap, envStr, sizeof(envStr));
-    setPSIEnv(envName(0), envStr, 1);
-
-    return 1;
 }
 
 int setupELANEnv(int np, int verbose)
@@ -360,5 +314,34 @@ int setupELANEnv(int np, int verbose)
 	return 0;
     }
 
+    /* Prepare the environment */
+    setPSIEnv("LIBELAN_SHMKEY", PSC_printTID(PSC_getMyTID()), 1);
+
     return 1;
+}
+
+char * setupELANNodeEnv(int rank)
+{
+    PSnodes_ID_t node;
+    static int *numProcs = NULL;
+    static char envStr[8192];
+
+    /* Loading shared library failed */
+    if (!isLoaded) {
+	return 0;
+    }
+
+    /* Prepare the environment */
+    int ret = PSI_infoNodeID(-1, PSP_INFO_RANKID, &rank, &node, 1);
+    if (ret || (node < 0)) exit(10);
+
+    if (!numProcs) numProcs = calloc(sizeof(int), PSC_getNrOfNodes());
+
+    cap.cap_mycontext = cap.cap_lowcontext + numProcs[node];
+    numProcs[node]++;
+
+    snprintf(envStr, sizeof(envStr), "%s=", envName(0));
+    capToString(&cap, envStr+strlen(envStr), sizeof(envStr)-strlen(envStr));
+
+    return envStr;
 }
