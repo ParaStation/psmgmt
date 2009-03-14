@@ -189,12 +189,73 @@ static char *capToString(ELAN_CAPABILITY *cap, char *str, size_t len)
 
 /*----------------------------------------------------------------------*/
 
+static void createSpawner(int argc, char *argv[], int np, int keep)
+{
+    int rank;
+    char *ldpath = getenv("LD_LIBRARY_PATH");
+
+    if (ldpath != NULL) {
+	setPSIEnv("LD_LIBRARY_PATH", ldpath, 1);
+    }
+
+    PSE_initialize();
+    rank = PSE_getRank();
+
+    if (rank == -1) {
+	PSnodes_ID_t *nds;
+	int error, spawnedProc;
+	char* hwList[] = { "elan", NULL };
+
+	nds = malloc(np*sizeof(*nds));
+	if (! nds) {
+	    fprintf(stderr, "%s: No memory\n", argv[0]);
+	    exit(1);
+	}
+
+	/* Set default HW to elan: */
+	if (PSE_setHWList(hwList) < 0) {
+	    fprintf(stderr,
+		    "%s: Unknown hardware type '%s'. Please configure...\n",
+		    __func__, hwList[0]);
+	    exit(1);
+	}
+
+	if (PSE_getPartition(np)<0) exit(1);
+
+	PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
+		     nds, np*sizeof(*nds), 0);
+
+	PSI_spawnService(nds[0], NULL, argc, argv, &error, &spawnedProc);
+
+	free(nds);
+
+	if (error) {
+	    errno=error;
+	    fprintf(stderr, "Could not spawn master process (%s): ",argv[0]);
+	    perror("");
+	    exit(1);
+	}
+
+	/* Don't irritate the user with logger messages */
+	setenv("PSI_NOMSGLOGGERDONE", "", 1);
+
+	/* Switch to psilogger */
+	PSI_execLogger(NULL);
+
+	printf("never be here\n");
+	exit(1);
+    }
+
+    return;
+}
+
+static ELAN_CAPABILITY cap;
+
 static int prepCapEnv(int np)
 {
-    ELAN_CAPABILITY cap;
     int procsPerNode[ELAN_MAX_VPS];
     int n, p, nContexts=1;
-    char *nodesFirst = getenv("PSI_LOOP_NODES_FIRST"), envStr[8192];
+    char *nodesFirst = getenv("PSI_LOOP_NODES_FIRST");
 
     elan_nullcap (&cap);
     cap.cap_lowcontext = 64;
@@ -257,116 +318,101 @@ static int prepCapEnv(int np)
 
     cap.cap_highcontext = cap.cap_lowcontext + nContexts - 1;
 
-    capToString(&cap, envStr, sizeof(envStr));
-    setPSIEnv(envName(0), envStr, 1);
-
     return 0;
 }
 
-static void createSpawner(int argc, char *argv[], int np, int keep)
+static void setupCommonEnv(int np)
 {
-    int rank;
-    char *ldpath = getenv("LD_LIBRARY_PATH");
+    if (prepCapEnv(np)<0) exit(1);
 
-    if (ldpath != NULL) {
-	setPSIEnv("LD_LIBRARY_PATH", ldpath, 1);
-    }
-
-    PSE_initialize();
-    rank = PSE_getRank();
-
-    if (rank == -1) {
-	PSnodes_ID_t *nds;
-	int error, spawnedProc;
-	char* hwList[] = { "elan", NULL };
-
-	nds = malloc(np*sizeof(*nds));
-	if (! nds) {
-	    fprintf(stderr, "%s: No memory\n", argv[0]);
-	    exit(1);
-	}
-
-	/* Set default HW to elan: */
-	if (PSE_setHWList(hwList) < 0) {
-	    fprintf(stderr,
-		    "%s: Unknown hardware type '%s'. Please configure...\n",
-		    __func__, hwList[0]);
-	    exit(1);
-	}
-
-	if (PSE_getPartition(np)<0) exit(1);
-
-	if (prepCapEnv(np)<0) exit(1);
-
-	PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
-		     nds, np*sizeof(*nds), 0);
-
-	PSI_spawnService(nds[0], NULL, argc, argv, &error, &spawnedProc);
-
-	free(nds);
-
-	if (error) {
-	    errno=error;
-	    fprintf(stderr, "Could not spawn master process (%s): ",argv[0]);
-	    perror("");
-	    exit(1);
-	}
-
-	/* Don't irritate the user with logger messages */
-	setenv("PSI_NOMSGLOGGERDONE", "", 1);
-
-	/* Switch to psilogger */
-	PSI_execLogger(NULL);
-
-	printf("never be here\n");
-	exit(1);
-    }
-
-    return;
+    /* Prepare the environment */
+    setPSIEnv("LIBELAN_SHMKEY", PSC_printTID(PSC_getMyTID()), 1);
 }
 
-static int startProcs(int i, int np, int argc, char *argv[], int verbose)
+/* Flag, if verbose-option is set */
+static int verboseRankMsg = 0;
+
+static char ** setupNodeEnv(int rank)
 {
     PSnodes_ID_t node;
-    u_int32_t hostaddr;
-    static ELAN_CAPABILITY *cap = NULL;
+    static char rankItem[8192];
+    static char *env[] = {rankItem, NULL};
+
     static int *numProcs = NULL;
-    char envStr[8192];
 
-    int ret = PSI_infoNodeID(-1, PSP_INFO_RANKID, &i, &node, 1);
-    if (ret || (node < 0)) exit(10);
-
-    ret = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr, 0);
-    if (ret || (hostaddr == INADDR_ANY)) exit(10);
-
-    if (!cap) {
-	cap = malloc(sizeof(*cap));
-	elan_getenvCap(cap, 0);
-    }
     if (!numProcs) numProcs = calloc(sizeof(int), PSC_getNrOfNodes());
 
-    cap->cap_mycontext = cap->cap_lowcontext + numProcs[node];
+    int ret = PSI_infoNodeID(-1, PSP_INFO_RANKID, &rank, &node, 1);
+    if (ret || (node < 0)) exit(10);
+
+    cap.cap_mycontext = cap.cap_lowcontext + numProcs[node];
     numProcs[node]++;
 
-    capToString(cap, envStr, sizeof(envStr));
-    setPSIEnv(envName(0), envStr, 1);
+    snprintf(rankItem, sizeof(rankItem), "%s=", envName(0));
+    capToString(&cap, rankItem+strlen(rankItem),
+		sizeof(rankItem)-strlen(rankItem));
 
-    if (verbose) printf("spawn rank %d: %s\n", i, argv[0]);
+    if (verboseRankMsg) printf("spawn rank %d\n", rank);
 
-    {
-	PStask_ID_t spawnedProcess = -1;
-	int error;
+    return env;
+}
 
-	if (PSI_spawnStrict(1, NULL, argc, argv, 1,
-			    &error, &spawnedProcess) < 0 ) {
-	    if (error) {
-		perror("Spawn failed!");
-	    }
-	    exit(10);
-	}
+/**
+ * @brief Start user processes
+ *
+ * Start the user processes building the job. In total @a np processes
+ * shall be spawned. Each process spawned get the @a argv as the
+ * argument vector containing @a argc entries. If the @a verbose flag
+ * is set, some additional messages describing what is done will be
+ * created.
+ *
+ * @param np Number of processes to spawn
+ *
+ * @param argc Number of entries in @a argv vector
+ *
+ * @param argv Actual argument vector
+ *
+ * @param verbose Flag to create additional output.
+ *
+ * @return On success, the number of processes spawned is returned. Or
+ * -1, if an error occurred.
+ */
+static int startProcs(int np, int argc, char *argv[], int verbose)
+{
+    int i, ret, *errors;
+
+    setupCommonEnv(np);
+
+    verboseRankMsg = verbose;
+    PSI_registerRankEnvFunc(setupNodeEnv);
+
+    errors = malloc(sizeof(int) * np);
+    if (!errors) {
+	fprintf(stderr, "%s: malloc() failed\n", __func__);
+	return -1;
     }
 
-    return (0);
+    /* spawn client processes */
+    ret = PSI_spawnStrict(np, ".", argc, argv, 1, errors, NULL);
+    /* Analyze result, if necessary */
+    if (ret<0) {
+	for (i=0; i<np; i++) {
+	    if (verbose || errors[i]) {
+		fprintf(stderr, "Could%s spawn '%s' process %d",
+			errors[i] ? " not" : "", argv[0], i+1);
+		if (errors[i]) {
+		    char* errstr = strerror(errors[i]);
+		    fprintf(stderr, ": %s", errstr ? errstr : "UNKNOWN");
+		}
+		fprintf(stderr, "\n");
+	    }
+	}
+	fprintf(stderr, "%s: PSI_spawn() failed.\n", __func__);
+    }
+
+    free(errors);
+
+    return ret;
 }
 
 #define OTHER_OPTIONS_STR "<command> [options]"
@@ -599,20 +645,15 @@ int main(int argc, char *argv[])
 	if (verbose) printf("PSI_NODES_SORT set to '%s'\n", val);
     }
 
-    createSpawner(argc, argv, np, keep);
-
-    /* Check for LSF-Parallel */
+    /* Propagate PSI_RARG_PRE_* / check for LSF-Parallel */
     PSI_RemoteArgs(argc-dup_argc, &argv[dup_argc], &dup_argc, &dup_argv);
 
-    /* Prepare the environment */
-    setPSIEnv("LIBELAN_SHMKEY", PSC_printTID(PSC_getMyTID()), 1);
+    createSpawner(argc, argv, np, keep);
 
     /* start all processes */
-    for (i = 0; i < np; i++) {
-	if (startProcs(i, np, dup_argc, dup_argv, verbose) < 0) {
-	    fprintf(stderr, "Unable to start process %d. Aborting.\n", i);
-	    exit(1);
-	}
+    if (startProcs(np, dup_argc, dup_argv, verbose) < 0) {
+	fprintf(stderr, "Unable to start all processes. Aborting.\n");
+	exit(1);
     }
 
     /* release service process */
