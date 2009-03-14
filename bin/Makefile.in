@@ -96,7 +96,7 @@ psiadmin: LOADLIBES:=$(LOADLIBES) -lreadline -lhistory -l@LIBCURSES@
 
 # psid
 VPATH += $(SRCDIR)/daemon
-psidintel.o: CFLAGS+=-O1
+psidintel.o: CFLAGS+=-O0
 
 psid: psidutil.o psidtask.o psidspawn.o psidforwarder.o psidpmiprotocol.o
 psid: psidsignal.o psidmsgbuf.o psidrdp.o psidclient.o psidcomm.o
