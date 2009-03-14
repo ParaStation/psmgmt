@@ -402,7 +402,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    msg.type = PSP_SPAWN_TASK;
 
 	    /* set correct rank */
-	    task->rank = rank++;
+	    task->rank = rank;
 	    if (taskGroup == TG_SERVICE) task->rank = -2;
 
 	    /* pack the task information in the msg */
@@ -454,6 +454,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    }
 	    msg.header.len -= len;
 
+	    rank++;
 	    outstanding_answers++;
 	}
     }/* for all new processes */

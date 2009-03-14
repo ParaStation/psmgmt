@@ -966,13 +966,6 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
     /* this is done here in order to pass it to the forwarder, too */
     setenv("PWD", task->workingdir, 1);
 
-    if (task->environ) {
-	int i;
-	for (i=0; task->environ[i]; i++) {
-	    putenv(strdup(task->environ[i]));
-	}
-    }
-
     /* fork the client */
     if (!(pid = fork())) {
 	/* this is the client process */
