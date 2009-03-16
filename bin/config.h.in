@@ -1,0 +1,18 @@
+/*
+ *               ParaStation
+ *
+ * Copyright (C) 2009 ParTec Cluster Competence Center GmbH, Munich
+ *
+ * $Id$
+ *
+ * config.h.in - config.h template for configure
+ */
+
+/*
+ * Presence/absence of any paths or functions.
+ */
+#undef HAVE_LIBNUMA
+
+#undef HAVE_NUMA_ALLOCATE_NODEMASK
+
+#undef HAVE_ELANCTRL

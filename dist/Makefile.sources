@@ -31,6 +31,7 @@ bin/admin/commands.c \
 bin/admin/commands.h \
 bin/admin/helpmsgs.c \
 bin/admin/psiadmin.c \
+bin/config.h.in \
 bin/daemon/psid.c \
 bin/daemon/psidaccount.c \
 bin/daemon/psidaccount.h \

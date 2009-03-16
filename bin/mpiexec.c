@@ -44,7 +44,8 @@ static char vcid[] __attribute__((used)) =
 #include <pscommon.h>
 
 /* libelan support */
-#ifdef ELANCTRL
+#include "config.h"
+#ifdef HAVE_ELANCTRL
 #include "mpiexec_elan.h"
 #endif
 
@@ -314,7 +315,7 @@ static void checkForELAN(void)
 	return;
     }
 
-#ifdef ELANCTRL
+#ifdef HAVE_ELANCTRL
     if (initELAN()) {
 	if(verbose) printf("successfully loaded libelan\n");
 	setPSIEnv("PSP_ELAN", "1", 1);
@@ -555,7 +556,7 @@ static void setupCommonEnv(int np)
 	setPSIEnv("PMI_KVS_TMP", env, 1);
     }
 
-#ifdef ELANCTRL
+#ifdef HAVE_ELANCTRL
     /* setup elan environment */
     if (useElan && !setupELANEnv(np, verbose)) disableElan();
 #endif
@@ -589,7 +590,7 @@ static char ** setupNodeEnv(int rank)
 	env[cur++] = setupPMINodeEnv(rank);
     }
 
-#ifdef ELANCTRL
+#ifdef HAVE_ELANCTRL
     if (useElan) env[cur++] = setupELANNodeEnv(rank);
 #endif
 
@@ -2011,7 +2012,7 @@ int main(int argc, char *argv[])
 	}
     }
 
-#ifdef ELANCTRL
+#ifdef HAVE_ELANCTRL
     closeELAN();
 #endif
 

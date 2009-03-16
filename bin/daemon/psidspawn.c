@@ -31,6 +31,7 @@ static char vcid[] __attribute__((used)) =
 #define __USE_GNU
 #include <sched.h>
 #undef __USE_GNU
+#include "../config.h"
 #ifdef HAVE_LIBNUMA
 #include <numa.h>
 #endif
@@ -336,13 +337,18 @@ static void bindToNodes(cpu_set_t *physSet)
 {
 #ifdef HAVE_LIBNUMA
     int node, ret = 1;
+#ifdef HAVE_NUMA_ALLOCATE_NODEMASK
     struct bitmask *nodemask = NULL, *cpumask = NULL;
+#else
+    nodemask_t nodeset;
+#endif
 
     if (numa_available()==-1) {
 	fprintf(stderr, "NUMA not available.");
 	goto end;
     }
 
+#ifdef HAVE_NUMA_ALLOCATE_NODEMASK
     nodemask = numa_allocate_nodemask();
     if (!nodemask) {
 	fprintf(stderr, "Allocation of nodemask failed. No binding\n");
@@ -354,11 +360,19 @@ static void bindToNodes(cpu_set_t *physSet)
 	fprintf(stderr, "Allocation of nodemask failed. No binding\n");
 	goto end;
     }
+#else
+    nodemask_zero(&nodeset);
+#endif
 
     /* Try to determine the nodes */
-    for (node=0; node<=numa_num_configured_nodes(); node++) {
+    for (node=0; node<=numa_max_node(); node++) {
 	unsigned int cpu;
+#ifdef HAVE_NUMA_ALLOCATE_NODEMASK
 	ret = numa_node_to_cpus(node, cpumask);
+#else
+	cpu_set_t CPUset;
+	ret = numa_node_to_cpus(node, (unsigned long*)&CPUset, sizeof(CPUset));
+#endif
 	if (ret) {
 	    if (errno==ERANGE) {
 		fprintf(stderr, "cpumask to small for numa_node_to_cpus()");
@@ -368,18 +382,29 @@ static void bindToNodes(cpu_set_t *physSet)
 	    goto end;
 	}
 	for (cpu=0; cpu<CPU_SETSIZE; cpu++) {
+#ifdef HAVE_NUMA_ALLOCATE_NODEMASK
 	    if (CPU_ISSET(cpu, physSet)
 		&& numa_bitmask_isbitset(cpumask, cpu)) {
 		numa_bitmask_setbit(nodemask, node);
 	    }
+#else
+	    if (CPU_ISSET(cpu, physSet) && CPU_ISSET(cpu, &CPUset)) {
+		nodemask_set(&nodeset, node);
+	    }
+#endif
 	}
     }
-
+#ifdef HAVE_NUMA_ALLOCATE_NODEMASK
     numa_set_membind(nodemask);
+#else
+    numa_set_membind(&nodeset);
+#endif
 
 end:
+#ifdef HAVE_NUMA_ALLOCATE_NODEMASK
     if (nodemask) numa_free_nodemask(nodemask);
     if (cpumask) numa_free_cpumask(cpumask);
+#endif
 
     if (ret) fprintf(stderr, " No binding\n");
 #else

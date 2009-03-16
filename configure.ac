@@ -5,10 +5,10 @@ AC_PREREQ(2.59)
 AC_INIT(["psmgmt"],[""],["eicker@par-tec.com"])
 AC_CONFIG_AUX_DIR(["scripts"])
 
-AC_CANONICAL_TARGET([]) 
+AC_CANONICAL_TARGET([])
 
 AC_PROG_INSTALL
-AC_PROG_RANLIB 
+AC_PROG_RANLIB
 
 # Test for stack protector support in target C library.
 case "$target" in
@@ -42,8 +42,11 @@ else
    TARGET_LIBC_PROVIDES_SSP=no
 fi
 
-AC_SEARCH_LIBS([numa_available], [numa], [NUMA=yes])
-AC_SEARCH_LIBS([elan_nullcap], [elanctrl], [ELANCTRL=yes])
+AC_SEARCH_LIBS([numa_available], [numa], [HAVE_LIBNUMA=yes;
+					 AC_DEFINE([HAVE_LIBNUMA],[1])])
+AC_CHECK_FUNCS_ONCE([numa_allocate_nodemask])
+AC_SEARCH_LIBS([elan_nullcap], [elanctrl], [HAVE_ELANCTRL=yes;
+					   AC_DEFINE([HAVE_ELANCTRL][1])])
 
 AC_SUBST([CFLAG_WALL])
 AC_SUBST([CFLAG_G])
@@ -53,8 +56,9 @@ AC_SUBST([DEPEXTENSION])
 AC_SUBST([TRU64FILEADD])
 AC_SUBST([LIBCURSES])
 AC_SUBST([TARGET_LIBC_PROVIDES_SSP])
-AC_SUBST([NUMA])
-AC_SUBST([ELANCTRL])
+AC_SUBST([HAVE_LIBNUMA])
+AC_SUBST([HAVE_NUMA_ALLOCATE_NODEMASK])
+AC_SUBST([HAVE_ELANCTRL])
 
 case $target_os in
 linux|linux-gnu)
@@ -101,6 +105,7 @@ AC_CONFIG_FILES([lib/pslog/Makefile])
 AC_CONFIG_FILES([lib/putil/Makefile])
 AC_CONFIG_FILES([scripts/Makefile])
 
+AC_CONFIG_HEADER(bin/config.h)
 
 AC_OUTPUT
 
