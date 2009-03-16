@@ -2049,7 +2049,7 @@ static int handleGenStr(long val, char *in, char **out, size_t *size)
 	    parser_comment(-1, "%s: Out of mem\n", __func__);
 	    return -1;
 	}
-	sprintf(*out, "%s", inStr);
+	sprintf(*out, "%s", in);
 
 	return 0;
     } else {
