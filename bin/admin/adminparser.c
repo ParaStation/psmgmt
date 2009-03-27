@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -59,7 +59,7 @@ static char *getNodeList(char *nl_descr)
 
 	return nl;
     } else {
-        char *tmp = strdup(nl_descr);
+	char *tmp = strdup(nl_descr);
 	char *ret = PSC_parseNodelist(tmp);
 
 	free(tmp);
@@ -76,7 +76,7 @@ static char *getNodeList(char *nl_descr)
 
 	memcpy(&sa.sin_addr, *hp->h_addr_list, sizeof(sa.sin_addr));
 	err = PSI_infoNodeID(-1, PSP_INFO_HOST, &sa.sin_addr.s_addr, &node, 1);
-	
+
 	if (err || node==-1) goto error;
 
 	nl = realloc(nl, PSC_getNrOfNodes());
@@ -609,7 +609,7 @@ static gid_t gidFromString(char *group)
     if (strcasecmp(group, "any") == 0) return -1;
     if (!parser_getNumber(group, &gid) && gid > -1) return gid;
     if (grp) return grp->gr_gid;
-    
+
     printf("Unknown group '%s'\n", group);
     return -2;
 }
@@ -687,30 +687,6 @@ static int setShowMCastDebug(char *token)
     setShowOpt = PSP_OP_MCASTDEBUG;
     return 0;
 }
-
-/* static int setShowSPS(char *token) */
-/* { */
-/*     setShowOpt = PSP_OP_PSM_SPS; */
-/*     return 0; */
-/* } */
-
-/* static int setShowRTO(char *token) */
-/* { */
-/*     setShowOpt = PSP_OP_PSM_RTO; */
-/*     return 0; */
-/* } */
-
-/* static int setShowHNPend(char *token) */
-/* { */
-/*     setShowOpt = PSP_OP_PSM_HNPEND; */
-/*     return 0; */
-/* } */
-
-/* static int setShowAckPend(char *token) */
-/* { */
-/*     setShowOpt = PSP_OP_PSM_ACKPEND; */
-/*     return 0; */
-/* } */
 
 static int setShowFOS(char *token)
 {
@@ -886,12 +862,6 @@ static keylist_t setShowList[] = {
     {"rdpmaxretrans", setShowRDPMaxRetrans},
     {"master", setShowMaster},
     {"mcastdebug", setShowMCastDebug},
-/*     {"smallpacketsize", setShowSPS}, */
-/*     {"sps", setShowSPS}, */
-/*     {"resendtimeout", setShowRTO}, */
-/*     {"rto", setShowRTO}, */
-/*     {"hnpend", setShowHNPend}, */
-/*     {"ackpend", setShowAckPend}, */
     {"freeonsuspend", setShowFOS},
     {"fos", setShowFOS},
     {"handleoldbins", setShowHOB},
@@ -993,7 +963,7 @@ static PSIADM_valList_t *cpusFromString(char *valStr)
 
 	val = strtol(start, &end, 10);
 	if (start==end || (*end && !isspace(*end))) goto error;
-	
+
 	valList->value[valList->num++] = val;
 	if (valList->num == maxCPUs) {
 	    maxCPUs *= 2;
@@ -1082,10 +1052,6 @@ static int setCommand(char *token)
     case PSP_OP_RDPPKTLOSS:
     case PSP_OP_RDPMAXRETRANS:
     case PSP_OP_MCASTDEBUG:
-/*     case PSP_OP_PSM_SPS: */
-/*     case PSP_OP_PSM_RTO: */
-/*     case PSP_OP_PSM_HNPEND: */
-/*     case PSP_OP_PSM_ACKPEND: */
     case PSP_OP_ACCTPOLL:
 	if (parser_getNumber(value, &val)) {
 	    printf("Illegal value '%s'\n", value);
@@ -1224,10 +1190,6 @@ static int showCommand(char *token)
     case PSP_OP_RDPMAXRETRANS:
     case PSP_OP_MCASTDEBUG:
     case PSP_OP_MASTER:
-/*     case PSP_OP_PSM_SPS: */
-/*     case PSP_OP_PSM_RTO: */
-/*     case PSP_OP_PSM_HNPEND: */
-/*     case PSP_OP_PSM_ACKPEND: */
     case PSP_OP_FREEONSUSP:
     case PSP_OP_HANDLEOLD:
     case PSP_OP_NODESSORT:
@@ -1313,7 +1275,7 @@ static int testCommand(char *token)
 	} else if (!strcasecmp(option, "normal")) {
 	} else goto error;
     }
-    
+
     PSIADM_TestNetwork(verbose);
     return 0;
 
@@ -1407,6 +1369,12 @@ static int helpTest(char *token)
     return 0;
 }
 
+static int helpResolve(char *token)
+{
+    printInfo(&resolveInfo);
+    return 0;
+}
+
 static int helpSleep(char *token)
 {
     printInfo(&sleepInfo);
@@ -1441,6 +1409,7 @@ static keylist_t helpList[] = {
     {"show", helpShow},
     {"kill", helpKill},
     {"test", helpTest},
+    {"resolve", helpResolve},
     {"sleep", helpSleep},
     {"nodes", helpNodes},
     {NULL, helpNotFound}
@@ -1516,6 +1485,22 @@ static int sleepCommand(char *token)
     return -1;
 }
 
+static int resolveCommand(char *token)
+{
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL;
+
+    if (nl_descr) nl = getNodeList(nl_descr);
+    if (!nl) goto error;
+
+    PSIADM_Resolve(nl);
+    return 0;
+
+ error:
+    printError(&resolveInfo);
+    return -1;
+}
+
 /** Magic value returned by the parser function to show 'quit' was reached. */
 #define quitMagic 17
 
@@ -1554,6 +1539,7 @@ static keylist_t commandList[] = {
     {"help", helpCommand},
     {"version", versionCommand},
     {"sleep", sleepCommand},
+    {"resolve", resolveCommand},
     {"exit", quitCommand},
     {"quit", quitCommand},
     {NULL, error}

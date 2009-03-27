@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -23,6 +23,8 @@ static char vcid[] __attribute__((used)) =
 #include <signal.h>
 #include <pwd.h>
 #include <grp.h>
+#include <netdb.h>
+#include <sys/socket.h>
 
 #include "pscommon.h"
 #include "parser.h"
@@ -669,7 +671,6 @@ void PSIADM_LoadStat(char *nl)
     taskNumAlloc = (uint16_t *) tnaList.list;
     if (! getExclusiveFlags()) return;
     exclusiveFlag = (uint8_t *) exclList.list;
-    
 
     printf("Node\t\t Load\t\t     Jobs\n");
     printf("\t 1 min\t 5 min\t15 min\t tot.\tnorm.\talloc.\texclusive\n");
@@ -894,7 +895,7 @@ static int getMasterProtocolVersion(int daemonProto)
     PSP_Option_t opt = PSP_OP_MASTER;
     PSP_Optval_t val;
     int err, protoVersion = 0;
-    
+
     /* Identify master */
     err = PSI_infoOption(-1, 1, &opt, &val, 0);
     if (err != -1) {
@@ -1454,7 +1455,7 @@ void PSIADM_sighandler(int sig)
 	if (!PSI_initClient(TG_ADMIN)) {
 	    fprintf(stderr, "can't contact my own daemon.\n");
 	    exit(-1);
-        }
+	}
 	doRestart = 0;
 	signal(SIGTERM, PSIADM_sighandler);
 
@@ -1567,5 +1568,35 @@ void PSIADM_KillProc(PStask_ID_t tid, int sig)
 	    printf("%s(%s, %d): %s\n",
 		   __func__, PSC_printTID(tid), sig, errstr);
 	}
+    }
+}
+
+void PSIADM_Resolve(char *nl)
+{
+    PSnodes_ID_t node;
+
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	u_int32_t hostaddr;
+	struct hostent *hp;
+	char *ptr;
+	int err;
+
+	if ((nl && !nl[node])) continue;
+
+	printf("%4d\t", node);
+	err = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr, 0);
+	if (err || (hostaddr == INADDR_ANY)) {
+	    printf("<unknown>\n");
+	    continue;
+	}
+
+	hp = gethostbyaddr(&hostaddr, sizeof(hostaddr), AF_INET);
+	if (!hp) {
+	    printf("<unknown>\n");
+	    continue;
+	}
+
+	if ((ptr = strchr (hp->h_name, '.'))) *ptr = '\0';
+	printf("%s\n", hp->h_name);
     }
 }

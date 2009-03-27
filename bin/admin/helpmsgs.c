@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -74,6 +74,8 @@ static info_t helpInfo = {
 	  .descr = "Show control parameters." },
 	{ .tag = "list",
 	  .descr = "List information." },
+	{ .tag = "resolve",
+	  .descr = "Resolve hostname to nodeID mapping." },
 	{ .tag = "sleep",
 	  .descr = "Sleep for a given period." },
 	{ .tag = "version",
@@ -237,7 +239,6 @@ static info_t setInfo = {
 	" | group [+|-]{{<group>|any} | psiddebug <level>"
 	" | selecttime <timeout> | rdpdebug <level> | rdppktloss <rate>"
 	" | rdpmaxretrans <val> | mcastdebug <level>"
-/* 	" | {smallpacketsize|sps} <size> | hnpend <val> | ackpend <val>" */
 	" | {freeonsuspend|fos} <bool> | {handleoldbins|hob} <bool>"
 	" | starter <bool> | runjobs <bool> | overbook {<bool>|auto}"
 	" | exclusive <bool> | pinprocs <bool> | bindmem <bool> "
@@ -288,12 +289,6 @@ static info_t setInfo = {
 	  " seleceted nodes. Depending on <level> the daemon might log a huge"
 	  " amount of messages to the syslog. Thus do not use large values"
 	  " for <level> for a long time." },
-/* 	{ .tag = "set {smallpacketsize|sps} <size>", */
-/* 	  .descr = "Set MCP's maximum size of PIO packets to <size> bytes." }, */
-/* 	{ .tag = "set ackpend <val>", */
-/* 	  .descr = "Set MCP's ACKPend parameter to <val>." }, */
-/* 	{ .tag = "set hnpend <val>", */
-/* 	  .descr = "Set MCP's HNPend parameter to <val>." }, */
 	{ .tag = "set {freeonsuspend|fos} <bool>",
 	  .descr = "Set flag marking if resources of suspended jobs are freed"
 	  " temporarily to <bool>. Relevant values are 'false', 'true', 'no',"
@@ -377,7 +372,6 @@ static info_t showInfo = {
 	.cmd = "show",
 	.arg = "{maxproc | user | group | psiddebug | selecttime | rdpdebug"
 	" | rdppktloss | rdpmaxretrans | mcastdebug | master"
-/* 	" | {smallpacketsize|sps} | {resendtimeout|rto} | hnpend | ackpend" */
 	" | {freeonsuspend|fos} | {handleoldbins|hob} | starter | runjobs"
 	" | overbook | exclusive | pinprocs | bindmem | cpumap | nodessort"
 	" | adminuser | admingroup | accounters | accountpoll"
@@ -409,14 +403,6 @@ static info_t showInfo = {
 	  .descr = "Show MCast facility's verbosity level." },
 	{ .tag = "show master",
 	  .descr = "Show master handling all the partition requests." },
-/* 	{ .tag = "show {smallpacketsize|sps}", */
-/* 	  .descr = "Show MCP's maximum size of PIO packets in bytes." }, */
-/* 	{ .tag = "show resendtimeout", */
-/* 	  .descr = "Show MCP's resend timeout in microseconds." }, */
-/* 	{ .tag = "show hnpend", */
-/* 	  .descr = "Show MCP's HNPend parameter." }, */
-/* 	{ .tag = "show ackpend", */
-/* 	  .descr = "Show MCP's AckPend parameter." }, */
 	{ .tag = "show {freeonsuspend|fos}",
 	  .descr = "Show flag marking if resources of suspended jobs are freed"
 	  " temporarily. Only the value on the master node really steers the"
@@ -544,6 +530,19 @@ static info_t listInfo = {
 	  " <tid> is connected to is displayed." },
 	{ NULL, NULL }
     },
+    .comment = NULL
+};
+
+static info_t resolveInfo = {
+    .head = "Resolve command:",
+    .syntax = (syntax_t[]) {{
+	.cmd = "resolve",
+	.arg = "<nodes>"
+    }},
+    .nodes = 1,
+    .descr = "Resolve mapping of ParaStation ID to hostname on all selected"
+    " nodes.",
+    .tags = NULL,
     .comment = NULL
 };
 
@@ -762,7 +761,7 @@ static void printDescr(const char *tag, char *descr)
  * up with whitespace to reach the maximum taglength. This yields to
  * the effect, that each description starts at the same
  * column. i.e. all descriptions are equally indented.
- * 
+ *
  * @return No return value.
  *
  * @see printDescr()

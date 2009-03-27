@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -56,7 +56,7 @@ void PSIADM_sighandler(int signal);
  * cluster. Therefore the local ParaStation daemon is requested to
  * start the corresponding daemons on the remote nodes, if this did
  * not already happen.
- * 
+ *
  * @param nl The nodelist describing the nodes on which the action
  * should take effect.
  *
@@ -432,6 +432,19 @@ void PSIADM_TestNetwork(int mode);
  * @return No return value.
  */
 void PSIADM_KillProc(PStask_ID_t tid, int sig);
+
+/**
+ * @brief Resolve nodes.
+ *
+ * Resolve the nodes marked within the nodelist @a nl. For each node a
+ * line giving the node ID and the hostname is printed.
+ *
+ * @param nl The nodelist describing the node on which the action
+ * should take effect.
+ *
+ * @return No return value.
+ */
+void PSIADM_Resolve(char *nl);
 
 /**
  * @brief Get screen width.
