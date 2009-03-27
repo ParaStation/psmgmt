@@ -31,7 +31,7 @@ static char vcid[] __attribute__((used)) =
 #define __USE_GNU
 #include <sched.h>
 #undef __USE_GNU
-#include "../config.h"
+#include "config.h"
 #ifdef HAVE_LIBNUMA
 #include <numa.h>
 #endif
