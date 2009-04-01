@@ -90,7 +90,7 @@ int pmidebug_kvs = 0;
 int pmidis = 0;
 
 /* process options */
-int np = 0;
+int np = -1;
 int envall = 0;
 int usize = 0;
 char *wdir = NULL;
@@ -1417,7 +1417,7 @@ static void checkSanity(char *argv[])
 	errExit(msgstr);
     }
 
-    if (!argv[dup_argc]) {
+    if (!dup_argc) {
 	errExit("No <command> specified.");
     }
 
