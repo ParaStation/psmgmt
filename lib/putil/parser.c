@@ -162,6 +162,12 @@ int parser_parseToken(char *token, parser_t *parser)
 
     for (i=0; parser->keylist[i].key; i++) {
 	if (strncasecmp(token, parser->keylist[i].key, tokLen)==0) {
+	    if (strlen(parser->keylist[i].key) == tokLen) {
+		/* exact match */
+		candidate = &parser->keylist[i];
+		mismatch = 0;
+		break;
+	    }
 	    if (!candidate) {
 		candidate = &parser->keylist[i];
 	    } else if (parser->keylist[i].action != candidate->action) {
