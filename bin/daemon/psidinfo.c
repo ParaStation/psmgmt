@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -32,6 +32,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidstatus.h"
 #include "psidpartition.h"
 #include "psidhw.h"
+#include "psidplugin.h"
 
 #include "psidinfo.h"
 
@@ -226,7 +227,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    msg.type = PSP_INFO_LIST_END;
 	    break;
 	}
- 	case PSP_INFO_COUNTHEADER:
+	case PSP_INFO_COUNTHEADER:
 	    header = 1;
 	case PSP_INFO_COUNTSTATUS:
 	{
@@ -351,7 +352,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    break;
 	}
 	case PSP_INFO_INSTDIR:
-	    strncpy(msg.buf, PSC_lookupInstalldir(), sizeof(msg.buf));
+	    strncpy(msg.buf, PSC_lookupInstalldir(NULL), sizeof(msg.buf));
 	    msg.buf[sizeof(msg.buf)-1] = '\0';
 	    msg.header.len += strlen(msg.buf)+1;
 	    break;
@@ -694,6 +695,11 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		/* send EndOfQueue */
 		msg.type = PSP_INFO_QUEUE_SEP;
 	    }
+	    break;
+	case PSP_INFO_QUEUE_PLUGINS:
+	    PSID_sendPluginLists(inmsg->header.sender);
+	    /* send EndOfQueue */
+	    msg.type = PSP_INFO_QUEUE_SEP;
 	    break;
 	default:
 	    msg.type = PSP_INFO_UNKNOWN;

@@ -57,6 +57,8 @@ bin/daemon/psidoption.c \
 bin/daemon/psidoption.h \
 bin/daemon/psidpartition.c \
 bin/daemon/psidpartition.h \
+bin/daemon/psidplugin.c \
+bin/daemon/psidplugin.h \
 bin/daemon/psidppc.h \
 bin/daemon/psidppc.c \
 bin/daemon/psidrdp.c \
@@ -132,6 +134,7 @@ include/pspartition.h \
 include/psprotocol.h \
 include/psstrings.h \
 include/pstask.h \
+include/plugin.h \
 include/rdp.h \
 include/selector.h \
 include/timer.h \

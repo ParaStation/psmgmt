@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2006-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -54,15 +54,15 @@ static size_t writeall(int fd, const void *buf, size_t count)
     size_t c = count;
 
     while (c > 0) {
-        len = write(fd, cbuf, c);
-        if (len < 0) {
-            if ((errno == EINTR) || (errno == EAGAIN))
-                continue;
+	len = write(fd, cbuf, c);
+	if (len < 0) {
+	    if ((errno == EINTR) || (errno == EAGAIN))
+		continue;
 	    else
-                return -1;
-        }
-        c -= len;
-        cbuf += len;
+		return -1;
+	}
+	c -= len;
+	cbuf += len;
     }
 
     return count;
@@ -94,7 +94,7 @@ static size_t readall(int fd, void *buf, size_t count)
     size_t c = count;
 
     while (c > 0) {
-        len = read(fd, cbuf, c);
+	len = read(fd, cbuf, c);
 	if (len < 0) {
 	    if ((errno == EINTR) || (errno == EAGAIN))
 		continue;
@@ -103,8 +103,8 @@ static size_t readall(int fd, void *buf, size_t count)
 	} else if (len == 0) {
 	    return count-c;
 	}
-        c -= len;
-        cbuf += len;
+	c -= len;
+	cbuf += len;
     }
 
     return count;
@@ -139,51 +139,51 @@ static int callScript(int hw, char *script)
 
     /* Don't SEGFAULT */
     if (!script) {
-        snprintf(scriptOut, sizeof(scriptOut), "%s: script=NULL\n", __func__);
-        return -1;
+	snprintf(scriptOut, sizeof(scriptOut), "%s: script=NULL\n", __func__);
+	return -1;
     }
 
     /* create a control channel in order to observe the script */
     if (pipe(controlfds)<0) {
-        char *errstr = strerror(errno);
-        snprintf(scriptOut, sizeof(scriptOut), "%s: pipe(): %s\n",
-                 __func__, errstr ? errstr : "UNKNOWN");
+	char *errstr = strerror(errno);
+	snprintf(scriptOut, sizeof(scriptOut), "%s: pipe(): %s\n",
+		 __func__, errstr ? errstr : "UNKNOWN");
 
-        return -1;
+	return -1;
     }
 
     /* create a io channel in order to get script's output */
     if (pipe(iofds)<0) {
-        char *errstr = strerror(errno);
-        snprintf(scriptOut, sizeof(scriptOut), "%s: pipe(): %s\n",
-                 __func__, errstr ? errstr : "UNKNOWN");
+	char *errstr = strerror(errno);
+	snprintf(scriptOut, sizeof(scriptOut), "%s: pipe(): %s\n",
+		 __func__, errstr ? errstr : "UNKNOWN");
 
-        return -1;
+	return -1;
     }
 
     if (!(pid=fork())) {
-        /* This part calls the script and returns results to the parent */
-        int i, fd;
-        char *command;
-        char buf[20];
+	/* This part calls the script and returns results to the parent */
+	int i, fd;
+	char *command;
+	char buf[20];
 
 	for (fd=0; fd<getdtablesize(); fd++) {
 	    if (fd != controlfds[1] && fd != iofds[1]) close(fd);
 	}
 
-        /* Put the hardware's environment into the real one */
+	/* Put the hardware's environment into the real one */
 	for (i=0; i<HW_getEnvSize(hw); i++) {
 	    putenv(HW_dumpEnv(hw, i));
 	}
 
-        snprintf(buf, sizeof(buf), "%d", PSC_getMyID());
-        setenv("PS_ID", buf, 1);
+	snprintf(buf, sizeof(buf), "%d", PSC_getMyID());
+	setenv("PS_ID", buf, 1);
 
-        setenv("PS_INSTALLDIR", PSC_lookupInstalldir(), 1);
+	setenv("PS_INSTALLDIR", PSC_lookupInstalldir(NULL), 1);
 
 	while (*script==' ' || *script=='\t') script++;
 	if (*script != '/') {
-	    char *dir = PSC_lookupInstalldir();
+	    char *dir = PSC_lookupInstalldir(NULL);
 
 	    if (!dir) dir = "";
 
@@ -192,13 +192,13 @@ static int callScript(int hw, char *script)
 	    command = strdup(script);
 	}
 
-        /* redirect stdout and stderr */
-        dup2(iofds[1], STDOUT_FILENO);
-        dup2(iofds[1], STDERR_FILENO);
+	/* redirect stdout and stderr */
+	dup2(iofds[1], STDOUT_FILENO);
+	dup2(iofds[1], STDERR_FILENO);
 	close(iofds[1]);
 
 	{
-	    char *dir = PSC_lookupInstalldir();
+	    char *dir = PSC_lookupInstalldir(NULL);
 
 	    if (dir && (chdir(dir)<0)) {
 		fprintf(stderr, "%s: cannot change to directory '%s'",
@@ -207,19 +207,19 @@ static int callScript(int hw, char *script)
 	    }
 	}
 
-        ret = system(command);
+	ret = system(command);
 
-        /* Send results to controlling daemon */
-        if (ret < 0) {
-            fprintf(stderr, "%s: system(%s) failed : %s",
+	/* Send results to controlling daemon */
+	if (ret < 0) {
+	    fprintf(stderr, "%s: system(%s) failed : %s",
 		    __func__, command, strerror(errno));
-        } else {
-            ret = WEXITSTATUS(ret);
-        }
+	} else {
+	    ret = WEXITSTATUS(ret);
+	}
 	writeall(controlfds[1], &ret, sizeof(ret));
 
-        free(command);
-        exit(0);
+	free(command);
+	exit(0);
     }
 
     /* This part receives results from the script */
@@ -232,15 +232,15 @@ static int callScript(int hw, char *script)
 
     /* check if fork() was successful */
     if (pid == -1) {
-        char *errstr = strerror(ret);
+	char *errstr = strerror(ret);
 
-        close(controlfds[0]);
-        close(iofds[0]);
+	close(controlfds[0]);
+	close(iofds[0]);
 
-        snprintf(scriptOut, sizeof(scriptOut), "%s: fork(): %s\n",
-                 __func__, errstr ? errstr : "UNKNOWN");
+	snprintf(scriptOut, sizeof(scriptOut), "%s: fork(): %s\n",
+		 __func__, errstr ? errstr : "UNKNOWN");
 
-        return -1;
+	return -1;
     }
 
     ret = readall(iofds[0], scriptOut, sizeof(scriptOut));
@@ -250,9 +250,9 @@ static int callScript(int hw, char *script)
     if (ret == sizeof(scriptOut)) {
 	strcpy(&scriptOut[sizeof(scriptOut)-4], "...");
     } else if (ret<0) {
-        snprintf(scriptOut, sizeof(scriptOut),
+	snprintf(scriptOut, sizeof(scriptOut),
 		 "%s: read(iofd) failed : %s", __func__, strerror(errno));
-        return -1;
+	return -1;
     } else {
 	scriptOut[ret]='\0';
     }
@@ -261,13 +261,13 @@ static int callScript(int hw, char *script)
     close(controlfds[0]);
 
     if (!ret) {
-        /* control channel closed without telling result of system() call. */
-        snprintf(scriptOut, sizeof(scriptOut), "%s: no answer\n", __func__);
-        return -1;
+	/* control channel closed without telling result of system() call. */
+	snprintf(scriptOut, sizeof(scriptOut), "%s: no answer\n", __func__);
+	return -1;
     } else if (ret<0) {
-        snprintf(scriptOut, sizeof(scriptOut),
+	snprintf(scriptOut, sizeof(scriptOut),
 		 "%s: read(controlfd) failed : %s", __func__, strerror(errno));
-        return -1;
+	return -1;
     }
 
     return result;

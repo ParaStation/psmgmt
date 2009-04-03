@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -128,7 +128,7 @@ pid_t PSC_getPID(PStask_ID_t tid)
     /* But this would limit us to 4096 nodes! *NE* */
     /* Tru64 V5.1 use 19 bit for PID's, we reserve 24 bits */
     return (tid & 0xFFFFF);
-#endif    
+#endif
 }
 
 static int daemonFlag = 0;
@@ -216,57 +216,34 @@ void PSC_startDaemon(in_addr_t hostaddr)
     exit(0);
 }
 
-static char default_installdir[] = "/opt/parastation";
+#define DEFAULT_INSTDIR "/opt/parastation"
+#define LOGGER "/bin/psilogger"
 
-static char* installdir = NULL;
-
-char* PSC_lookupInstalldir(void)
+char* PSC_lookupInstalldir(char *hint)
 {
-    char *name = NULL, logger[] = "/bin/psilogger";
+    static char* installdir = NULL;
     struct stat fstat;
 
-    if (!installdir) {
-	name = PSC_concat(default_installdir, logger, NULL);
+    if (hint || !installdir) {
+	char *name = PSC_concat(hint ? hint : DEFAULT_INSTDIR, LOGGER, NULL);
 
-	if (stat(name, &fstat)==0 && S_ISREG(fstat.st_mode)) {
-	    /* InstallDir found */
-	    installdir = strdup(default_installdir);
+	installdir = NULL;
+
+	if (stat(name, &fstat)) {
+	    PSC_warn(-1, errno, "%s: '%s'", __func__, name);
+	} else if (!S_ISREG(fstat.st_mode)) {
+	    PSC_log(-1, "%s: '%s' not a regular file\n", __func__, name);
+	} else {
+	    installdir = strdup(hint ? hint : DEFAULT_INSTDIR);
 	}
+
 	free(name);
     }
 
-    if (installdir)
-	return installdir;
-    else
-	return "";
+    if (!installdir) return "";
+
+    return installdir;
 }
-
-void PSC_setInstalldir(char* dir)
-{
-    char *name, logger[] = "/bin/psilogger";
-    struct stat fstat;
-
-    name = PSC_concat(dir, logger, NULL);
-    if (stat(name, &fstat)) {
-	PSC_warn(-1, errno, "%s: '%s'", __func__, name);
-	free(name);
-	return;
-    }
-
-    if (!S_ISREG(fstat.st_mode)) {
-	PSC_log(-1, "%s: '%s' not a regular file\n", __func__, name);
-	free(name);
-
-	return;
-    }
-	    
-    if (installdir) free(installdir);
-    installdir = strdup(dir);
-    free(name);
-
-    return;
-}
-
 
 int PSC_getServicePort(char* name , int def)
 {

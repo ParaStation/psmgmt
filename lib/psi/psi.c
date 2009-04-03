@@ -228,8 +228,7 @@ static int connectDaemon(PStask_group_t taskGroup)
 	    PSI_log(-1, "%s:  Cannot determine instdir\n", __func__);
 	    break;
 	} else {
-	    PSC_setInstalldir(instdir);
-	    if (strcmp(instdir, PSC_lookupInstalldir())) {
+	    if (strcmp(instdir, PSC_lookupInstalldir(instdir))) {
 		PSI_log(-1, "%s: Installation directory '%s' not correct\n",
 			__func__, instdir);
 		break;
@@ -653,8 +652,8 @@ void PSI_execLogger(const char *command)
     if (envStr) {
 	argv[0] = strdup(envStr);
     } else {
-	argv[0] = (char*)malloc(strlen(PSC_lookupInstalldir()) + 20);
-	sprintf(argv[0],"%s/bin/psilogger", PSC_lookupInstalldir());
+	argv[0] = (char*)malloc(strlen(PSC_lookupInstalldir(NULL)) + 20);
+	sprintf(argv[0],"%s/bin/psilogger", PSC_lookupInstalldir(NULL));
     }
     argv[1] = (char*)malloc(10);
     sprintf(argv[1],"%d", daemonSock);

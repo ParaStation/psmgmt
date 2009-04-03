@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -19,6 +19,8 @@
  */
 #ifndef __PARSE_H
 #define __PARSE_H
+
+#include "list.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -43,7 +45,7 @@ typedef struct {
     int RDPPort;         /**< The UDP port to use for RDP messages.
 			    Result of 'RDPPort'. Default is 886. */
     int useMCast;        /**< Flag if MCast should be used for status controll.
-			    Result of 'UseMCast'. Default is 1 (use MCast). */ 
+			    Result of 'UseMCast'. Default is 1 (use MCast). */
     int MCastGroup;      /**< The MCast group to use.
 			    Result of 'MCastGroup'. Default is 237. */
     int MCastPort;       /**< The UDP port to use for MCast messages.
@@ -65,7 +67,15 @@ typedef struct {
 			    does not declare a different one explicitely. */
     int acctPollInterval;/**< Interval of forwarder to poll for accounting
 			    info. No polling for 0 (the default). */
+    list_t plugins;      /**< Names of plugins scheduled to be loaded on
+			    startup */
 } config_t;
+
+/** Structure to store lists of name. Used e.g. for the list of plugins. */
+typedef struct {
+    char *name;          /**< The name to store */
+    list_t next;         /**< Actual list entry */
+} nameList_t;
 
 /**
  * @brief Parse the configuration file.

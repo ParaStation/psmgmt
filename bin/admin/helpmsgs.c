@@ -59,7 +59,12 @@ typedef struct {
 
 static info_t helpInfo = {
     .head = "ParaStation Admin: available commands:",
-    .syntax = NULL,
+    .syntax = (syntax_t[]) {{
+	.cmd = "help",
+	.arg = "{ add | help | hwstart | hwstop | kill | list | plugins | range"
+	" | reset | resolve | restart | set | show | shutdown | sleep | test"
+	" | version | quit }"
+    }},
     .nodes = 0,
     .descr = NULL,
     .tags = (taggedInfo_t[]) {
@@ -68,14 +73,14 @@ static info_t helpInfo = {
 	{ .tag = "kill",
 	  .descr = "Terminate processes controlled by ParaStation on any node."
 	},
-	{ .tag = "range",
-	  .descr = "Set or show the default node-range." },
-	{ .tag = "show",
-	  .descr = "Show control parameters." },
 	{ .tag = "list",
 	  .descr = "List information." },
+	{ .tag = "range",
+	  .descr = "Set or show the default node-range." },
 	{ .tag = "resolve",
 	  .descr = "Resolve hostname to nodeID mapping." },
+	{ .tag = "show",
+	  .descr = "Show control parameters." },
 	{ .tag = "sleep",
 	  .descr = "Sleep for a given period." },
 	{ .tag = "version",
@@ -102,6 +107,8 @@ static info_t privilegedInfo = {
 	  .descr = "Enable communication channels." },
 	{ .tag = "hwstop",
 	  .descr = "Disable communication channels." },
+	{ .tag = "plugins",
+	  .descr = "Handle ParaStation daemon plugins." },
 	{ .tag = "reset",
 	  .descr = "Reset the daemons or network." },
 	{ .tag = "restart",
@@ -479,9 +486,9 @@ static info_t listInfo = {
     .head = "List command:",
     .syntax = (syntax_t[]) {{
 	.cmd = "list",
-	.arg = "{{[node] | count [hw <hw>] | proc [cnt <cnt>]"
-	" | aproc [cnt <cnt>] | {hardware|hw}"
-	" | load | rdp | mcast | summary | versions} <nodes> |"
+	.arg = "{{[node] | count [hw <hw>] | {p|processes} [cnt <cnt>]"
+	" | {aproc|allprocesses} [cnt <cnt>] | {hardware|hw}"
+	" | load | rdp | mcast | plugins | summary | versions} <nodes> |"
 	" jobs [state {r[unning] | p[ending] | s[uspended]}] [slots] [<tid>]}"
     }},
     .nodes = 1,
@@ -517,6 +524,8 @@ static info_t listInfo = {
 	  " nodes." },
 	{ .tag = "list memory",
 	  .descr = "Show total / free memory for the selected nodes." },
+	{ .tag = "list plugins",
+	  .descr = "Show the currently loaded plugins on the selected nodes." },
 	{ .tag = "list summary",
 	  .descr = "Print a brief summary of the active and down nodes." },
 	{ .tag = "list versions",
@@ -579,6 +588,32 @@ static info_t exitInfo = {
     .nodes = 0,
     .descr = "Exit the ParaStation administration tool.",
     .tags = NULL,
+    .comment = NULL
+};
+
+static info_t pluginInfo = {
+    .head = "Plugins command (privileged):",
+    .syntax = (syntax_t[]) {{
+	.cmd = "plugins",
+	.arg = "{ list | {add|load | delete|remove|rm|unload} <plugin> }"
+	" <nodes>"
+    }},
+    .nodes = 1,
+    .descr = "Handle plugins on the selected nodes.",
+    .tags = (taggedInfo_t[]) {
+	{ .tag = "plugins list",
+	  .descr = "Show the currently loaded plugins on the selected nodes."
+	  " The info displayed includes name and verion of the plugin plus a"
+	  " list of plugins requiring the plugin to be loaded." },
+	{ .tag = "plugins {add|load} <plugin>",
+	  .descr = "Load plugin named <plugin> on the selected nodes. This"
+	  " might trigger more plugins required by <plugin> to be loaded." },
+	{ .tag = "plugins {delete|remove|rm|unload} <plugin>",
+	  .descr = "Unload plugin named <plugin> on the selected nodes. The"
+	  " plugin might still be loaded afterwards, if it is used by another"
+	  " depending plugin." },
+	{ NULL, NULL}
+    },
     .comment = NULL
 };
 

@@ -697,8 +697,8 @@ void PSIADM_MemStat(char *nl)
     if (! getMem()) return;
     memory = (uint64_t *)memList.list;
 
-    printf("Node\t\t Memory\n");
-    printf("\t   total\t     free\n");
+    printf("Node\t\t\tMemory\n");
+    printf("\t\t total\t\t free\n");
 
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
@@ -736,6 +736,50 @@ void PSIADM_HWStat(char *nl)
 		   PSI_printHWType(hwStatus[node]));
 	} else {
 	    printf("%4d\tdown\n", node);
+	}
+    }
+}
+
+void PSIADM_PluginStat(char *nl)
+{
+    PSnodes_ID_t node;
+    PSP_Info_t what = PSP_INFO_QUEUE_PLUGINS;
+    int width = getWidth(), usedWidth;
+    char line[512];
+
+    if (! getHostStatus()) return;
+    if (width < 20) return;
+
+    usedWidth = printf("%4s %16s %3s   ", "Node", "Plugin", "Ver");
+    printf("%.*s\n", (width-usedWidth) > 0 ? width-usedWidth : 0, "Used by");
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	int firstline = 1;
+
+	if (nl && !nl[node]) continue;
+
+	printf("%.*s\n", (width) > 0 ? width : 0,
+	       "---------------------------------------------------------"
+	       "---------------------------------------------------------");
+	if (!hostStatus.list[node]) {
+	    printf("%4d\tdown\n", node);
+	    continue;
+	}
+
+	if (PSI_infoQueueReq(node, what, NULL) < 0) {
+	    printf("Error!!\n");
+	}
+
+	/* Receive full queue, no output yet */
+	/* This has to be splitted from the actual output due to
+	 * PSI_infoString() calls there */
+	while (PSI_infoQueueNext(what, line, sizeof(line), 1) > 0) {
+	    if (firstline) {
+		usedWidth = printf("%4d ", node);
+		firstline = 0;
+	    } else {
+		usedWidth = printf("%*s", usedWidth, "");
+	    }
+	    printf("%.*s\n", width-usedWidth, line);
 	}
     }
 }
@@ -1514,7 +1558,7 @@ void PSIADM_TestNetwork(int mode)
     pid_t childPID;
     int status;
 
-    dir = PSC_lookupInstalldir();
+    dir = PSC_lookupInstalldir(NULL);
     if (dir) {
 	if (chdir(dir)<0) {
 	    printf("Cannot change to directory '%s'.\n", dir);

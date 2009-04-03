@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -428,6 +428,12 @@ int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  *   (pending, running or suspended) might requested. Furthermore it
  *   can be flaged of the list of scheduled nodes should be provided.
  *
+ * - PSP_INFO_QUEUE_PLUGINS requests a list of all plugins currently
+ *   loaded on the designated node @a node. All information about a
+ *   single plugin (i.e. name, version, and triggering plugins) is
+ *   given back in a character string. The size is limited by the
+ *   underlying communication protocol, i.e. the size of
+ *   PSP_BufferMsg_t's buffer. No further parameters needed.
  *
  * @param node The ParaStation ID of the node to ask.
  *

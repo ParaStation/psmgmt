@@ -309,6 +309,23 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt);
 void PSIADM_VersionStat(char *nl);
 
 /**
+ * @brief Show plugins.
+ *
+ * Show the plugins loaded by the daemons of the nodes marked within
+ * the nodelist @a nl. Therefore the corresponding information is
+ * requested from the daemons and printed to stdout.
+ *
+ * For each plugin a line is printed containing the plugin's name, its
+ * version and a list of plugins depending on this plugin.
+ *
+ * @param nl The nodelist describing the nodes from which the
+ * information should requested and put out.
+ *
+ * @return No return value.
+ */
+void PSIADM_PluginStat(char *nl);
+
+/**
  * @brief Set parameter
  *
  * Set the parameter @a type to the value @a value on the nodes marked

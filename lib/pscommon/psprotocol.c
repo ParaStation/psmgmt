@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -116,9 +116,9 @@ static struct {
 
     { PSP_INFO_HWNUM,            "PSP_INFO_HWNUM" },
     { PSP_INFO_HWINDEX,          "PSP_INFO_HWINDEX" },
-    { PSP_INFO_HWNAME,           "PSP_INFO_HWNAME" }, 
+    { PSP_INFO_HWNAME,           "PSP_INFO_HWNAME" },
 
-    { PSP_INFO_RANKID,           "PSP_INFO_RANKID" }, 
+    { PSP_INFO_RANKID,           "PSP_INFO_RANKID" },
     { PSP_INFO_TASKSIZE,         "PSP_INFO_TASKSIZE" },
     { PSP_INFO_TASKRANK,         "PSP_INFO_TASKRANK" },
 
@@ -146,6 +146,8 @@ static struct {
 
     { PSP_INFO_LIST_PARTITION,   "PSP_INFO_LIST_PARTITION" },
     { PSP_INFO_LIST_MEMORY,      "PSP_INFO_LIST_MEMORY" },
+
+    { PSP_INFO_QUEUE_PLUGINS,    "PSP_INFO_QUEUE_PLUGINS" },
     {0,NULL}
 };
 

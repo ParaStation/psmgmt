@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -209,7 +209,7 @@ void PSC_initLog(FILE *logfile);
  * @brief Test initialization of PSC logging facility.
  *
  * Test, if the PSC logging facility was initialized by calling @ref
- * PSC_initLog(). 
+ * PSC_initLog().
  *
  * @return If PSC_initLog() was called before, 1 is
  * returned. Otherwise 0 is returned.
@@ -290,36 +290,20 @@ typedef enum {
  * Get the ParaStation installation directory, i.e. the directory
  * containing all the ParaStation stuff. This function might try to
  * lookup the installation directory by itself -- in which case it
- * tests '/opt/parastation' -- or it might get a hint via @ref
- * PSC_setInstalldir().
+ * tests '/opt/parastation' -- or it might get a @a hint. In the
+ * latter case any previous installation directory is discarded.
  *
  * In any case it tries to find the 'bin/psilogger' which is used as a
  * landmark in order to identify the actual presence of ParaStation
  * within this directory.
  *
- * On success, i.e. if ParaStation was found, the ParaStation
+ * @param hint Hint for the location to search for 'bin/psilogger'
+ *
+ * @return On success, i.e. if ParaStation was found, the ParaStation
  * installation directory is returned. Otherwise an empty string is
  * returned.
  */
-char *PSC_lookupInstalldir(void);
-
-/**
- * @brief Set the ParaStation installation directory.
- *
- * Set the ParaStation installation directory to @a installdir. This
- * gives a hint towards @ref PSC_lookupInstalldir() in order to find
- * the installation directory.
- *
- * In order to test, if @a installdir is actually the ParaStation
- * installation directory, i.e. if ParaStation is present within this
- * directory, this function tries to find the 'bin/psilogger'
- * executable.
- *
- * @param installdir The installation directory to register.
- *
- * @return No return value.
- */
-void PSC_setInstalldir(char* installdir);
+char *PSC_lookupInstalldir(char *hint);
 
 /**
  * @brief Get a port entry

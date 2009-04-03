@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -101,25 +101,25 @@ int main(int argc, const char *argv[])
     poptContext optCon;   /* context for parsing command-line options */
 
     struct poptOption optionsTable[] = {
-        { "np", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
+	{ "np", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
 	  &np, 0, "number of processes to start", "num"},
-        { "nodes", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
-	  &nodelist, 0, "list of nodes to use", "nodelist"},
-        { "hosts", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
+	{ "nodes", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
+	 &nodelist, 0, "list of nodes to use", "nodelist"},
+	{ "hosts", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
 	  &hostlist, 0, "list of hosts to use", "hostlist"},
-        { "hostfile", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
+	{ "hostfile", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
 	  &hostfile, 0, "hostfile to use", "hostfile"},
-        { "sort", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
+	{ "sort", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
 	  &sort, 0, "sorting criterium to use", "{proc|load|proc+load|none}"},
-        { "all-local", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH,
+	{ "all-local", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH,
 	  &local, 0, "local execution", NULL},
-        { "inputdest", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
+	{ "inputdest", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
 	  &dest, 0, "direction to forward input", "dest"},
-        { "sourceprintf", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH,
+	{ "sourceprintf", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH,
 	  &source, 0, "print output-source info", NULL},
-        { "rusage", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH,
+	{ "rusage", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH,
 	  &rusage, 0, "print consumed sys/user time", NULL},
-        { "exports", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
+	{ "exports", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
 	  &envlist, 0, "environment to export to foreign nodes", "envlist"},
 	{ "gm-no-shmem", '\0', POPT_ARG_VAL,
 	  &gm_shmem, 0, "Disable the shared memory support"
@@ -140,10 +140,10 @@ int main(int argc, const char *argv[])
 	  " or <hybrid>, <polling> is the default", "mode"},
 	{ "verbose", 'v', POPT_ARG_NONE,
 	  &verbose, 0, "verbose mode", NULL},
-        { "version", 'V', POPT_ARG_NONE,
+	{ "version", 'V', POPT_ARG_NONE,
 	  &version, -1, "output version information and exit", NULL},
-        POPT_AUTOHELP
-        { NULL, '\0', 0, NULL, 0, NULL, NULL}
+	POPT_AUTOHELP
+	{ NULL, '\0', 0, NULL, 0, NULL, NULL}
     };
 
     /* The duplicated argv will contain the apps commandline */
@@ -182,7 +182,7 @@ int main(int argc, const char *argv[])
 		if (strcmp(dup_argv[i], unknownArg)==0) {
 		    dup_argc = i;
 		    dup_argv[dup_argc] = NULL;
-		    poptFreeContext(optCon);	
+		    poptFreeContext(optCon);
 		    optCon = poptGetContext(NULL,
 					    dup_argc, (const char **)dup_argv,
 					    optionsTable, 0);
@@ -201,21 +201,21 @@ int main(int argc, const char *argv[])
     }
 
     if (rc < -1) {
-        /* an error occurred during option processing */
-        poptPrintUsage(optCon, stderr, 0);
-        fprintf(stderr, "%s: %s\n",
-                poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
-                poptStrerror(rc));
-        exit(1);
+	/* an error occurred during option processing */
+	poptPrintUsage(optCon, stderr, 0);
+	fprintf(stderr, "%s: %s\n",
+		poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
+		poptStrerror(rc));
+	exit(1);
     }
 
     if (version) {
-        printVersion();
-        return 0;
+	printVersion();
+	return 0;
     }
 
     if (np == -1) {
-        poptPrintUsage(optCon, stderr, 0);
+	poptPrintUsage(optCon, stderr, 0);
 	fprintf(stderr, "You have to give at least the -np argument.\n");
 	exit(1);
     }
@@ -228,7 +228,7 @@ int main(int argc, const char *argv[])
     }
 
     if (!argv[dup_argc]) {
-        poptPrintUsage(optCon, stderr, 0);
+	poptPrintUsage(optCon, stderr, 0);
 	fprintf(stderr, "No <command> specified.\n");
 	exit(1);
     }
@@ -377,7 +377,7 @@ int main(int argc, const char *argv[])
 	    exit(1);
 	}
     }
-    
+
     /* Don't irritate the user with logger messages */
     setenv("PSI_NOMSGLOGGERDONE", "", 1);
 
@@ -425,13 +425,13 @@ int main(int argc, const char *argv[])
 #define SPAWNER "bin/gmspawner"
     arg=0;
 
-    dup_argv[arg] = malloc(strlen(PSC_lookupInstalldir())
+    dup_argv[arg] = malloc(strlen(PSC_lookupInstalldir(NULL))
 			   + strlen(SPAWNER) + 2);
     if (!dup_argv[arg]) {
 	fprintf(stderr, "%s: no memory", argv[0]);
 	exit(1);
     } else {
-	sprintf(dup_argv[arg], "%s/%s", PSC_lookupInstalldir(), SPAWNER);
+	sprintf(dup_argv[arg], "%s/%s", PSC_lookupInstalldir(NULL), SPAWNER);
     }
 
     dup_argv[++arg] = "-np";

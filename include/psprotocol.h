@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -223,6 +223,8 @@ typedef enum {
     PSP_INFO_LIST_PARTITION,      /**< Task's list of allocated slots */
     PSP_INFO_LIST_MEMORY,         /**< List of total/used memory values */
 
+    PSP_INFO_QUEUE_PLUGINS,       /**< Queue of plugins */
+
 } PSP_Info_t;
 
 /** Messages concerning spawning of tasks. */
@@ -315,7 +317,7 @@ typedef enum {
 typedef struct {
     int16_t type;          /**< msg type */
     int16_t len;           /**< total length of the message */
-    PStask_ID_t sender;    /**< sender of the message */ 
+    PStask_ID_t sender;    /**< sender of the message */
     PStask_ID_t dest;      /**< final destination of the message */
 } DDMsg_t;
 

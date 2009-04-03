@@ -64,6 +64,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidhw.h"
 #include "psidaccount.h"
 #include "psidstate.h"
+#include "psidplugin.h"
 
 struct timeval selectTime;
 
@@ -691,6 +692,7 @@ int main(int argc, const char *argv[])
     initHW();
     initAccount();
     initInfo();
+    initPlugins();
 
     /* create the socket to listen for clients */
     PSID_setupMasterSock(logfile);

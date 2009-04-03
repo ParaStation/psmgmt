@@ -32,8 +32,6 @@ static char vcid[] __attribute__((used)) =
 #include <pwd.h>
 #include <grp.h>
 
-#include "list.h"
-
 #include "parser.h"
 #include "psnodes.h"
 
@@ -199,8 +197,7 @@ static int getInstDir(char *token)
 	return -1;
     }
 
-    PSC_setInstalldir(dname);
-    if (strcmp(dname, PSC_lookupInstalldir())) {
+    if (strcmp(dname, PSC_lookupInstalldir(dname))) {
 	parser_comment(-1, "'%s' seems to be no valid installdir\n", dname);
 	return -1;
     }
@@ -2421,6 +2418,63 @@ static int getPSINodesSort(char *token)
 
 /* ---------------------------------------------------------------------- */
 
+static int getPluginEnt(char *token)
+{
+    nameList_t *new;
+
+    parser_comment(PARSER_LOG_RES, "Scheduled plugin for loading: '%s'\n",
+		   token);
+
+    new = malloc(sizeof(*new));
+    if (!new) parser_exit(errno, "%s", __func__);
+
+    new->name = strdup(token);
+    list_add_tail(&new->next, &config.plugins);
+
+    return 0;
+}
+
+static int getPluginSingle(char *token)
+{
+    if (parser_getString()) return -1;
+    return getPluginEnt(token);
+}
+
+static int endPluginEnv(char *token)
+{
+    return ENV_END;
+}
+
+static keylist_t pluginenv_list[] = {
+    {"}", endPluginEnv},
+    {NULL, getPluginEnt}
+};
+
+static parser_t pluginenv_parser = {" \t\n", pluginenv_list};
+
+static int getPluginEnv(char *token)
+{
+    return parser_parseOn(parser_getString(), &pluginenv_parser);
+}
+
+static keylist_t plugin_list[] = {
+    {"{", getPluginEnv},
+    {NULL, getPluginSingle}
+};
+
+static parser_t plugin_parser = {" \t\n", plugin_list};
+
+static int getPlugins(char *token)
+{
+    int ret = parser_parseToken(parser_getString(), &plugin_parser);
+
+    if (ret == ENV_END) ret = 0;
+
+    return ret;
+}
+
+/* ---------------------------------------------------------------------- */
+
 static keylist_t config_list[] = {
     {"installationdirectory", getInstDir},
     {"installdirectory", getInstDir},
@@ -2461,6 +2515,7 @@ static keylist_t config_list[] = {
     {"freeOnSuspend", getFreeOnSusp},
     {"handleOldBins", getHandleOldBins},
     {"psiNodesSort", getPSINodesSort},
+    {"plugins", getPlugins},
     {NULL, parser_error}
 };
 
@@ -2470,6 +2525,8 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 {
     FILE *cfd;
     int ret;
+
+    INIT_LIST_HEAD(&config.plugins);
 
     parser_init(logfile, NULL);
 

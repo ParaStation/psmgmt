@@ -98,10 +98,12 @@ psid: psidutil.o psidtask.o psidspawn.o psidforwarder.o psidpmiprotocol.o
 psid: psidsignal.o psidmsgbuf.o psidrdp.o psidclient.o psidcomm.o
 psid: psidinfo.o psidoption.o psidpartition.o psidstatus.o psidhw.o
 psid: psidaccount.o psidnodes.o psidintel.o psidamd.o psidppc.o psidstate.o
-psid: LOADLIBES:=$(LOADLIBES) -lm -lutil -lpslog
+psid: psidplugin.o
+psid: LOADLIBES:=$(LOADLIBES) -lm -lutil -lpslog -ldl
 ifeq ($(HAVE_LIBNUMA),yes)
 psid: LOADLIBES:=$(LOADLIBES) -lnuma
 endif
+psid: LDFLAGS+=-rdynamic
 
 test_config: psidnodes.o
 
