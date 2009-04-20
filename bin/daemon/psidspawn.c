@@ -1731,8 +1731,15 @@ static void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	sendMsg(&answer);
     } else {
 	/* request for a remote site. */
+	PStask_delete(task);
+
 	if (!PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
-	    send_DAEMONCONNECT(PSC_getID(msg->header.dest));
+	    answer.header.type = PSP_CD_SPAWNFAILED;
+	    answer.header.sender = msg->header.dest;
+	    answer.error = EHOSTDOWN;
+	    sendMsg(&answer);
+
+	    return;
 	}
 
 	PSID_log(PSID_LOG_SPAWN, "%s: forwarding to node %d\n",
@@ -1746,7 +1753,6 @@ static void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	    sendMsg(&answer);
 	}
 
-	PStask_delete(task);
     }
 }
 
@@ -1828,18 +1834,23 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    PSIDnodes_getDaemonProtoVersion(PSC_getID(msg->header.dest));
 
 	if (!PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
-	    send_DAEMONCONNECT(PSC_getID(msg->header.dest));
+	    answer.header.type = PSP_CD_SPAWNFAILED;
+	    answer.header.sender = msg->header.dest;
+	    answer.error = EHOSTDOWN;
+	    sendMsg(&answer);
+
+	    return;
 	}
 
 	PSID_log(PSID_LOG_SPAWN, "%s: forwarding to node %d\n",
 		 __func__, PSC_getID(msg->header.dest));
-
 	if (sendMsg(msg) < 0) {
 	    answer.header.type = PSP_CD_SPAWNFAILED;
 	    answer.header.sender = msg->header.dest;
 	    answer.error = errno;
-
 	    sendMsg(&answer);
+
+	    return;
 	}
 
 	if (PSC_getID(msg->header.sender)==PSC_getMyID()
