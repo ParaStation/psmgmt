@@ -1,7 +1,7 @@
 *
 *               ParaStation
 *
-* Copyright (C) 2006-2008 ParTec Cluster Competence Center GmbH, Munich
+* Copyright (C) 2006-2009 ParTec Cluster Competence Center GmbH, Munich
 *
 * $Id$
 *
@@ -13,14 +13,76 @@
 * @author
 * Norbert Eicker <eicker@par-tec.com>
 *
+
+Structure of IP message:
+struct iphdr {
+        __u8    ihl:4,			1/2
+                version:4;		1/2
+        __u8    tos;			1
+        __be16  tot_len;		2
+        __be16  id;			2
+        __be16  frag_off;		2
+        __u8    ttl;			1
+        __u8    protocol;		1
+        __sum16 check;			2
+        __be32  saddr;			4
+        __be32  daddr;			4
+};
++payload
+
+Overhead: 20 Byte
+
+
+Structure of UDP message:
+struct udphdr {
+        __be16  source;			2
+        __be16  dest;			2
+        __be16  len;			2
+        __sum16 check;			2
+};
++payload
+
+Overhead: 8 Byte
+
+
+Overhead (TCP): 20 Byte
+
+
+Structure of RDP message:
+typedef struct {
+    short type;           /**< packet type */			2
+    unsigned short len;   /**< message length */		2
+    int seqno;            /**< Sequence number of packet */	4
+    int ackno;            /**< Sequence number of ack */ 	4
+    int connid;           /**< Connection Identifier */		4
+} rdphdr_t;
++ payload
+
+Overhead: 16 Byte
+
+
+Structure of DDMsg*_t:
+typedef struct {
+    int16_t type;          /**< msg type */				2
+    int16_t len;           /**< total length of the message */		2
+    PStask_ID_t sender;    /**< sender of the message */    		4
+    PStask_ID_t dest;      /**< final destination of the message */	4
+} DDMsg_t;
++ payload
+
+Overhead: 16 Byte
+
+
    Message ID			Type			Size (- header length)
 
 PSP_DD_DAEMONCONNECT		DDBufferMsg_t		8
 PSP_DD_DAEMONESTABLISHED	DDBufferMsg_t		8
 PSP_DD_DAEMONREFUSED		not used		-
 PSP_DD_DAEMONSHUTDOWN		DDMsg_t			0
+
 PSP_DD_SENDSTOP			DDMsg_t			0
 PSP_DD_SENDCONT			DDMsg_t			0
+
 PSP_DD_CHILDDEAD		DDErrorMsg_t		8
 PSP_DD_GETPART			DDBufferMsg_t		32 (same as PSP_CD_CREATEPART)
 PSP_DD_GETPARTNL		DDBufferMsg_t		1026 (same as PSP_CD_CREATEPARTNL)
@@ -34,10 +96,14 @@ PSP_DD_CANCELPART		DDMsg_t			0
 PSP_DD_TASKDEAD			DDMsg_t			0
 PSP_DD_TASKSUSPEND		DDMsg_t			0
 PSP_DD_TASKRESUME		DDMsg_t			0
+PSP_DD_GETRANKNODE		DDBufferMsg_t		4 (same as PSP_CD_GETRANKNODE)
+
 PSP_DD_LOAD			DDBufferMsg_t		32 (2*2+3*8+4)
 PSP_DD_ACTIVE_NODES		DDBufferMsg_t		NODES_CHUNK*2 (= 1024)
 PSP_DD_DEAD_NODE		DDBufferMsg_t		2
 PSP_DD_MASTER_IS		DDBufferMsg_t		2
+
+PSP_DD_NODESRES			@todo			@todo
 
 
 PSP_CD_CLIENTCONNECT		DDInitMsg_t		10 (+12 without PEERCRED)
@@ -72,19 +138,22 @@ PSP_CD_RELEASE			DDSignalMsg_t		10
 PSP_CD_RELEASERES		DDSignalMsg_t		10
 PSP_CD_SIGNAL			DDSignalMsg_t		10
 PSP_CD_WHODIED			DDSignalMsg_t		10
-PSP_CD_SIGNAL			DDErrorMsg_t		8
+PSP_CD_SIGRES			DDErrorMsg_t		8
 
 PSP_CD_DAEMONSTART		DDBufferMsg_t		2
 PSP_CD_DAEMONSTOP		DDMsg_t			0
 PSP_CD_DAEMONRESET		DDBufferMsg_t		4
 PSP_CD_HWSTART			DDBufferMsg_t		4
 PSP_CD_HWSTOP			DDBufferMsg_t		4
+PSP_CD_PLUGIN			DDTypedBufferMsg_t	4 + (pluginname string)
+PSP_CD_PLUGINRES		DDTypedMsg_t		4
 
 PSP_CD_CREATEPART		DDBufferMsg_t		32 (from PSpart_encodeReq)
 PSP_CD_CREATEPARTNL		DDBufferMsg_t		2 + NODES_CHUNK*2 (= 1026)
 PSP_CD_PARTITIONRES		DDTypedMsg_t		4		
 PSP_CD_GETNODES			DDBufferMsg_t		4
 PSP_CD_NODESRES			DDBufferMsg_t		4 + NODES_CHUNK*2 (= 1028)
+PSP_CD_GETRANKNODE		DDBufferMsg_t		4
 
 PSP_CC_MSG			PSLog_Msg_T		1060 (maximum)
 PSP_CC_ERROR			DDMsg_t			0
