@@ -1,6 +1,6 @@
 ###################################################### -*- Makefile -*- #####
 #                  ParaStation
-#        Copyright (c) 2008 ParTec Cluster Competence Center GmbH, Munich
+#        Copyright (c) 2008-2009 ParTec Cluster Competence Center GmbH, Munich
 #############################################################################
 #
 # $Id$
@@ -10,7 +10,7 @@
 #############################################################################
 
 .PHONY: all
-all: 
+all:
 
 SRCDIR = @srcdir@
 VPATH += $(SRCDIR)
@@ -43,7 +43,7 @@ $(DISTDIR)/config/parastation.conf.tmpl: parastation.conf
 DIST_all += $(DISTDIR)/VERSION.$(PKG_NAME)
 .PHONY: $(DISTDIR)/VERSION.$(PKG_NAME)
 $(DISTDIR)/VERSION.$(PKG_NAME):
-	@echo "ParaStation Management $(VERSION_$(PKG_NAME))-$(RELEASE_$(PKG_NAME)) ($(shell date))" > $@
+	@echo "ParaStation Management $(VERSION_$(PKG_NAME))-$(RELEASE_$(PKG_NAME)) ($(shell date)) $(PKG_NAME)" > $@
 
 DIST_all += $(DISTDIR)/ChangeLog.$(PKG_NAME)
 $(DISTDIR)/ChangeLog.$(PKG_NAME): $(TOP_SRCDIR)/dist/ChangeLog
