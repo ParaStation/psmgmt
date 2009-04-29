@@ -1644,3 +1644,55 @@ void PSIADM_Resolve(char *nl)
 	printf("%s\n", hp->h_name);
     }
 }
+
+void PSIADM_Plugin(char *nl, char *name, PSP_Plugin_t action)
+{
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_PLUGIN,
+	    .sender = PSC_getMyTID(),
+	    .dest = 0,
+	    .len = sizeof(msg.header) + sizeof(msg.type) },
+	.buf = { 0 } };
+    DDTypedMsg_t answer;
+    PSnodes_ID_t node;
+
+    if (geteuid()) {
+	printf("Insufficient priviledge\n");
+	return;
+    }
+
+    msg.type = action;
+    if (name) {
+	size_t strLen = snprintf(msg.buf, sizeof(msg.buf), "%s", name);
+	if (strLen > sizeof(msg.buf)) {
+	    printf("plugin name '%s' too long\n", name);
+	    return;
+	}
+	msg.header.len += strLen;
+    }
+
+    if (! getHostStatus()) return;
+
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
+
+	if (hostStatus.list[node]) {
+	    msg.header.dest = PSC_getTID(node, 0);
+	    PSI_sendMsg(&msg);
+	    if (PSI_recvMsg(&answer) < 0) {
+		printf("%soading plugin '%s' on node %d failed\n",
+		       action ? "Unl" : "L", name, node);
+	    }
+	    if (answer.type == -1) {
+		printf("Cannot %sload plugin '%s' on node %d\n",
+		       action ? "un" : "", name, node);
+	    } else if (answer.type) {
+		printf("Cannot %sload plugin '%s' on node %d: %s\n",
+		       action ? "un" : "", name, node, strerror(answer.type));
+	    }
+	} else {
+	    printf("%4d\tdown\n", node);
+	}
+    }
+}

@@ -26,6 +26,8 @@ static char vcid[] __attribute__((used)) =
 #include "config_parsing.h"
 #include "psidutil.h"
 #include "psidcomm.h"
+#include "psidtask.h"
+#include "psidnodes.h"
 
 #include "psidplugin.h"
 
@@ -136,7 +138,8 @@ static plugin_t * remTrigger(plugin_t *plugin, plugin_t *trigger)
 
     ref = findTrigger(plugin, trigger);
     if (!ref) {
-	PSID_log(-1, "%s: trigger '%s' not found in '%s'\n",
+	PSID_log(plugin == trigger ? PSID_LOG_PLUGIN : -1,
+		 "%s: trigger '%s' not found in '%s'\n",
 		 __func__, trigger->name, plugin->name);
 	return NULL;
     }
@@ -520,8 +523,9 @@ static int unloadPlugin(plugin_t *plugin)
 	    printTriggerList(line, sizeof(line), &plugin->triggers);
 	    PSID_log(PSID_LOG_PLUGIN, "%s: '%s' still triggered by: %s\n",
 		     __func__, plugin->name, line);
+	    return 0;
 	}
-	return 0;
+	return 1;
     }
 
     /* Remove triggers from plugins we depend on */
@@ -593,32 +597,102 @@ void PSID_sendPluginLists(PStask_ID_t dest)
     return;
 }
 
-
-
-
-/*
- * @todo really needed?
- * - Loading at startup during initPlugins()
- * - (Un-)Loading during runtime via registered message type.
+/**
+ * @brief Handle a PSP_CD_PLUGIN message.
+ *
+ * Handle the message @a inmsg of type PSP_CD_PLUGIN.
+ *
+ * With this kind of message a administrator will request to load or
+ * remove a plugin. The action is encrypted in the type-part of @a
+ * inmsg. The buf-part will hold the name of the plugin.
+ *
+ * An answer will be sent as an PSP_CD_PLUGINRES message.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
  */
-int PSID_loadPlugin(char *name)
+static void msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
 {
-    return !loadPlugin(name, 0, NULL);
-}
+    PStask_t *task = PStasklist_find(managedTasks, inmsg->header.sender);
+    int destID = PSC_getID(inmsg->header.dest), ret = 0;
 
-int PSID_unloadPlugin(char *name)
-{
-    plugin_t *plugin = findPlugin(name);
+    PSID_log(PSID_LOG_PLUGIN, "%s(%s, %s)\n", __func__,
+	     PSC_printTID(inmsg->header.sender), inmsg->buf);
 
-    if (!plugin) return 0;
+    if (PSC_getID(inmsg->header.sender) == PSC_getMyID()) {
+	if (!task) {
+	    PSID_log(-1, "%s: task %s not found\n",
+		     __func__, PSC_printTID(inmsg->header.sender));
+	    ret = EACCES;
+	    goto end;
+	} else if (task->uid) {
+	    PSID_log(-1, "%s: Only root is allowed to load plugins\n",
+		     __func__);
+	    ret = EACCES;
+	    goto end;
+	}
+    }
 
-    return unloadPlugin(plugin);
+    if (destID != PSC_getMyID()) {
+	if (!PSIDnodes_isUp(destID)) {
+	    ret = EHOSTDOWN;
+	    goto end;
+	}
+	if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
+	    ret = errno;
+	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    goto end;
+	}
+    } else {
+	switch (inmsg->type) {
+	case PSP_PLUGIN_LOAD:
+	    if (!loadPlugin(inmsg->buf, 0, NULL)) {
+		ret = -1;
+		goto end;
+	    }
+	    break;
+	case PSP_PLUGIN_REMOVE:
+	{
+	    plugin_t *plugin = findPlugin(inmsg->buf);
+
+	    if (!plugin) {
+		ret = ENODEV;
+		goto end;
+	    } else if (!unloadPlugin(plugin)) {
+		ret = -1;
+		goto end;
+	    }
+	    break;
+	}
+	default:
+	    PSID_log(-1, "%s: Unknown message type %d\n", __func__,
+		     inmsg->type);
+	    ret = -1;
+	    goto end;
+	}
+    }
+
+end:
+    {
+	DDTypedMsg_t msg = (DDTypedMsg_t) {
+	    .header = (DDMsg_t) {
+		.type = PSP_CD_PLUGINRES,
+		.dest = inmsg->header.sender,
+		.sender = PSC_getMyTID(),
+		.len = sizeof(msg) },
+	    .type = ret};
+	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	}
+    }
 }
 
 void initPlugins(void)
 {
     /* Register msg-handlers for plugin load/unload */
-    /* @todo */
+    PSID_registerMsg(PSP_CD_PLUGIN, (handlerFunc_t)msg_PLUGIN);
+    PSID_registerMsg(PSP_CD_PLUGINRES, (handlerFunc_t)sendMsg);
 
     /* Handle list of plugins found in the configuration file */
     if (!list_empty(&config->plugins)) {

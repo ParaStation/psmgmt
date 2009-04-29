@@ -275,6 +275,14 @@ typedef enum {
 #define PSP_CD_DAEMONRESET       0x0052  /**< Request to reset daemon */
 #define PSP_CD_HWSTART           0x0053  /**< Request to start comm hardware */
 #define PSP_CD_HWSTOP            0x0054  /**< Request to stop comm hardware */
+#define PSP_CD_PLUGIN            0x0055  /**< Request to (un-)load a plugin */
+#define PSP_CD_PLUGINRES         0x0056  /**< Result of the last plugin msg */
+
+/** Kind of action within #PSP_CD_PLUGIN message */
+typedef enum {
+    PSP_PLUGIN_LOAD = 0x0000,     /**< Load a new plugin */
+    PSP_PLUGIN_REMOVE,            /**< Unload plugin */
+} PSP_Plugin_t;
 
 /** Creation and handling of partitions. */
 #define PSP_CD_CREATEPART        0x0060  /**< Bind a partition to a job */

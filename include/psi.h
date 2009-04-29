@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -100,7 +100,7 @@ int PSI_sendMsg(void *msg);
  *
  * @param msg Pointer to the place the message to store at.
  *
- * @return On success, the number of bytes written are returned. On
+ * @return On success, the number of bytes received is returned. On
  * error, -1 is returned, and errno is set appropriately.
  */
 int PSI_recvMsg(void *msg);

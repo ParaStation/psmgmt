@@ -54,6 +54,8 @@ static struct {
     { PSP_CD_DAEMONRESET      , "PSP_CD_DAEMONRESET"      },
     { PSP_CD_HWSTART          , "PSP_CD_HWSTART"          },
     { PSP_CD_HWSTOP           , "PSP_CD_HWSTOP"           },
+    { PSP_CD_PLUGIN           , "PSP_CD_PLUGIN"           },
+    { PSP_CD_PLUGINRES        , "PSP_CD_PLUGINRES"        },
 
     { PSP_CD_CREATEPART       , "PSP_CD_CREATEPART"       },
     { PSP_CD_CREATEPARTNL     , "PSP_CD_CREATEPARTNL"     },

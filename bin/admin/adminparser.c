@@ -1336,7 +1336,7 @@ static int pluginAddCommand(char *token)
 	if (!nl) return -1;
     }
 
-    if (printf("Load plugin '%s'\n", plugin) < 0) goto error;
+    PSIADM_Plugin(nl, plugin, PSP_PLUGIN_LOAD);
 
     return 0;
 
@@ -1359,7 +1359,7 @@ static int pluginRmCommand(char *token)
 	if (!nl) return -1;
     }
 
-    if (printf("Unload plugin '%s'\n", plugin) < 0) goto error;
+    PSIADM_Plugin(nl, plugin, PSP_PLUGIN_REMOVE);
 
     return 0;
 

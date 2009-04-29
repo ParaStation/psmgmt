@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -276,6 +276,7 @@ void handleDroppedMsg(DDMsg_t *msg)
 {
     DDErrorMsg_t errmsg;
     DDSignalMsg_t sigmsg;
+    DDTypedMsg_t typmsg;
     int PSPver = PSIDnodes_getProtoVersion(PSC_getID(msg->sender));
 
     PSID_log(PSID_LOG_COMM, "%s dest %s", __func__, PSC_printTID(msg->dest));
@@ -358,8 +359,17 @@ void handleDroppedMsg(DDMsg_t *msg)
 	    errmsg.request = msg->dest;
 
 	    sendMsg(&errmsg);
-	    break;
 	}
+	break;
+    case PSP_CD_PLUGIN:
+	typmsg.header.type = PSP_CD_PLUGINRES;
+	typmsg.header.dest = msg->sender;
+	typmsg.header.sender = PSC_getMyTID();
+	typmsg.header.len = msg->len;
+	typmsg.type = -1;
+
+	sendMsg(&typmsg);
+	break;
     default:
 	break;
     }

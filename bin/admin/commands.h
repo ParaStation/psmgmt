@@ -464,6 +464,24 @@ void PSIADM_KillProc(PStask_ID_t tid, int sig);
 void PSIADM_Resolve(char *nl);
 
 /**
+ * @brief Handle plugins.
+ *
+ * Handle the plugin @a name on the nodes selected within the nodelist
+ * @a nl. Depending on the @a action, the plugin is loaded
+ * (PSP_PLUGIN_LOAD) or unloaded (PSP_PLUGIN_REMOVE).
+ *
+ * @param nl The nodelist describing the node on which the action
+ * should take effect.
+ *
+ * @param name Name of the plugin to handle
+ *
+ * @param action The action to apply on the requested plugin
+ *
+ * @return No return value.
+ */
+void PSIADM_Plugin(char *nl, char *name, PSP_Plugin_t action);
+
+/**
  * @brief Get screen width.
  *
  * Get the screen width of the terminal stdout is connected to.
