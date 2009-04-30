@@ -121,7 +121,7 @@ function parse()
 	    ;;
 	-n|${prearg}node)
 	    if [ "${cmd_line_nodes-0}" = 0 ];then
-		NODES=(${NODES[*]} $(nameexpand "$2"))
+		NODES=(${NODES[*]} $(NameExpand "$2"))
 		nopts=2
 	    fi
 	    ;;
@@ -142,7 +142,7 @@ function parse()
 	    nopts=2
 	    ;;
 	-x|${prearg}xnode)
-	    XNODES=(${XNODES[*]} $(nameexpand "$2"))
+	    XNODES=(${XNODES[*]} $(NameExpand "$2"))
 	    nopts=2
 	    ;;
 	${prearg}autocd)
@@ -181,142 +181,273 @@ function cleanup
 #
 # merge hostnames (e.g. host001 host002 to host[001-002])
 #
-function namemerge()
+###=== fg functions start ===
+# $1: name expression
+# $2: width (optional)
+function SingleNameExpand()
 {
-    echo "$*"|awk '
-BEGIN{ RS=" " }
-function nprint(key1,key2)
+	local prefix
+	local rangelist
+	local suffix
+#	local rangefrom 		# required if using printf with $format
+#	local rangeto
+#	local -i width
+#	local format
+	local nlist=""
+	local name
+	local -i gwidth=${2:-0}
+	local range
+
+	prefix=${1%%\[*\]*}; 
+	rangelist=${1##$prefix}; 
+	suffix=${rangelist#*\]}; 
+	rangelist=${rangelist%"$suffix"};
+	rangelist=${rangelist/\[/}
+	rangelist=${rangelist/\]/}
+	[[ $range =~ [^0-9-] ]] && return 1
+#	rangefrom=${rangelist%-*}; 	# required if using printf with $format
+#	rangeto=${rangelist#*-};
+#	width=${#rangefrom}
+
+#	Empty prefix is allowed, return a list of numbers (ids)
+#	[ -z "$prefix" ] && { return 1; }
+
+	[ -z "$rangelist" ] && { 	# there is no range at all
+		echo $prefix$suffix; 
+		return 0; 
+	}
+
+	[[ "$suffix" =~ \[*\] ]] && {
+		suffix=$(SingleNameExpand $suffix)
+		[ $? -gt 0 ] && return 1
+	}
+
+	for range in ${rangelist//","/" "}
+	do
+		[[ $range =~ [^0-9-] ]] && return 1
+		local rangefromstr=${range%-*}; 
+		[ -z "$rangefromstr" ] && return 1
+		local -i rangefrom=10#${rangefromstr}
+		local -i rangeto=10#${range#*-};
+		local -i width=${#rangefromstr}
+
+		(( width < gwidth )) && width=$gwidth
+		(( gwidth == 0 )) && gwidth=$width
+#		local format="%s%0${width}d%s"
+
+		(( rangefrom > rangeto )) && { return 1; }
+
+		while (( rangefrom <= rangeto ))
+		do
+			for suf in ${suffix}X	# add X to handle empty list
+			do
+# 				don't use printf, it's slow!!!
+#				name=$(printf ${format} "$prefix" "$rangefrom" "$suf")
+				local leadin=""
+				local -i n
+				let n=$width-${#rangefrom};
+				while (( n > 0 ))
+				do
+					leadin="${leadin}0"
+					let n--
+				done
+				name=$prefix$leadin$rangefrom$suf
+				name=${name%X}
+				# check for duplicate nodes
+#				[[ $nlist =~ "[ ]+$name[ ]+" ]] && {
+#					return 1
+#				}
+				nlist="${nlist}${name} "
+			done
+			let rangefrom++
+			
+		done
+	done
+	echo $nlist
+	return
+}
+
+# $1: name list expression, like jj[01-3]c[08-10,12],jf02c[02-3]s
+# $2: width (optional)
+function NameExpand()
 {
-   result="";
-   elements=0;
-   delete f;
-   for (j = 0; j < hostmcnt[key1,key2]; j++) {
-       f[hostmno[key1,key2,j] + 0]= hostmno[key1,key2,j];
-   }
+	local nlist=""
+	local name
+	local pattern
 
-   while (1) {
-       min = 999999;
-       for ( j in f ) {
-           if (j + 0 < min) min = j + 0; # force min to be nummeric!
-       }
-       if ( min == 999999 ) break;
-       j=min;
-       from=f[j];
-       until=f[j];
-       delete f[j];
-       while ((j + 1) in f) {
-           j++;
-           until=f[j];
-           delete f[j];
-       }
+	# bash lacks of the ability to match these patterns
+	for i in $(echo $1 | sed -e 's/\([]a-zA-Z_]\),/\1 /g' -e 's/,\([a-zA-Z_]\)/ \1/g')
+	do
+		local list="$(SingleNameExpand $i $2)"
+		[ $? -gt 0 ] && return 1
+		for name in $list
+		do
+			# check for duplicate nodes
+			pattern="^${name} | ${name} "
+			[[ $nlist =~ $pattern ]] && {
+				return 1
+			}
+		done
+		# new list is valid, append it to already known list of nodes
+		nlist="$nlist$list "
+	done
+	echo $nlist
 
-       if (elements++) result=result",";
-       if (from + 0 == until + 0) {
-           result=result from;
-       } else if (from + 1 == until + 0) {
-           result=result from "," until;
-           elements++;
-       } else {
-           result=result from "-" until;
-           elements++;
-       }
-   } 
-   if (elements == 1) {
-       return result;
-   } else {
-       return "[" result "]";
-   }
+	return
 }
 
-
+# $1: eat count
+# $2-: names
+function NameCompressLevel()
 {
-   hostname=$1;
+	local x1=$@
+	local -i eatcount=$1; shift
+	local suffix=${1##*[][0-9]}
+	local name=${1%$suffix}; shift
+	# rip off all aa[1-2] as indicated by eatcount
+	local -i i=$eatcount
+	while [[ $name =~ [a-z]*[][0-9,-]+$ ]]
+	do
+		(( i-- <= 0 )) && break
+		ripoff=${BASH_REMATCH[0]}
+		suffix=$ripoff$suffix
+		ripoff=${ripoff/[/\\[}
+		ripoff=${ripoff/]/\\]}
+		name=${name%$ripoff}
+	done
 
-   match(hostname, "([^0-9]*)([0-9]*)(.*)", s);
-#   print $1," 1:"s[0]" 2:"s[1]" 3:"s[2]" 4:"s[3];
-   # ToDo search rightmost match of digit, not leftmost
-   bname=s[1] s[2]+0 s[3]
-#   print "Bname: "bname
-   if (!bnames[bname]) {
-       bnames[bname]=1;
-       hostm1[s[1],s[3]] = s[1];
-       hostm3[s[1],s[3]] = s[3];
-       cnt=hostmcnt[s[1],s[3]] * 1;
-       hostmno[s[1],s[3],cnt] = s[2];
-       hostmcnt[s[1],s[3]]++;
-   } else {
-       doubles=doubles", "hostname;
-   }
+	local numstr=${name}; 
+	numstr=${numstr##*[a-zA-Z_]}
+	local -i num=10#${numstr}
+	local prefix=${name%$numstr}
+
+	local suffix2="" prefix2="" name2="" numstr2
+	local -i num2
+	local -i rangefrom=10#$num
+	local -i rangeto=10#$num
+	local nlist=""
+	local width=${#numstr}
+	local range=""
+
+	while [ $# -gt 0 ]
+	do
+		local x2=$1
+		suffix2=${1##*[][0-9]} 
+		name2=${1%$suffix2}; shift
+		# rip off all aa[1-2] as indicated by eatcount
+		i=$eatcount
+		while [[ $name2 =~ [a-z]*[][0-9,-]+$ ]]
+		do
+			(( i-- <= 0 )) && break
+			ripoff=${BASH_REMATCH[0]}
+			suffix2=$ripoff$suffix2
+			ripoff=${ripoff/[/\\[}
+			ripoff=${ripoff/]/\\]}
+			name2=${name2%$ripoff}
+		done
+
+		numstr2=${name2}; 
+		numstr2=${numstr2##*[a-zA-Z_]}
+		prefix2=${name2%$numstr2}
+		num2=10#${numstr2}
+
+		[ "$suffix" == "$suffix2" -a "$prefix" == "$prefix2" ] && {
+			if (( num2 == rangeto )) 
+			then
+				return 1
+			fi
+			if (( num2 == rangeto+1 ))
+			then
+				let rangeto++
+				continue;
+			fi
+		}
+
+		# found a hole
+		rangefromstring=$rangefrom
+		if [ -z "$range" ]
+		then
+			while (( ${#rangefromstring} < width ))
+			do
+				rangefromstring="0$rangefromstring"
+			done
+#			range="["
+		else
+			range="$range,"
+		fi
+		if (( rangefrom == rangeto ))
+		then
+			range="$range$numstr"
+		else
+			range="$range$rangefromstring-$rangeto"
+		fi
+		if [ "$suffix" != "$suffix2" -o "$prefix" != "$prefix2" ]
+		then
+			[ "$range" != "$numstr" ] && range="[$range]"
+			# found a 'big' hole!
+			nlist="$nlist$prefix$range$suffix "
+			range=""
+		fi
+		rangefrom=$num2
+		rangeto=$num2
+		suffix=$suffix2
+		prefix=$prefix2
+		num=$num2
+		numstr=$numstr2
+	done
+	rangefromstring=$rangefrom
+	if [ -z "$range" ]
+	then
+		while (( ${#rangefromstring} < width ))
+		do
+			rangefromstring="0$rangefromstring"
+		done
+#		range="["
+	else
+		range="$range,"
+	fi
+	if [ $rangefrom == $rangeto ]
+	then
+		range="$range$numstr"
+	else
+		range="$range$rangefromstring-$rangeto"
+	fi
+	[ "$range" != "$numstr" ] && range="[$range]"
+	nlist="$nlist$prefix$range$suffix "
+	echo $nlist
+	return
 }
 
-END{
-   _first=1;
-   for (i in hostm1) {
-       if (_first == 0) printf ", ";
-       _first=0;
-       printf "%s", hostm1[i] nprint(hostm1[i], hostm3[i]) hostm3[i];
-   }
-   print doubles;
-}
-'
-}
-
-function nameexpand()
+function NameCompress()
 {
-    echo "$*"| awk '
-BEGIN{ RS=" " }
+	local -ir maxloops=5
+	local -i loop=1
+	local list
+	local previouslist
 
-function expand(name,pat)
-{
-    el = split(pat, sp, ",");
-    for (i=1;i<=el;i++) {
-      eel = split(sp[i], ssp, "-");
-      if (eel<=1) { /* one or no value */
-          x=name;
-          sub("\\["pat"\\]",ssp[1],x);
-          print x;
-      } else { /* range */
-          if (substr(ssp[1],1,1) == "0") {
-              /* leading 0s */
-              for (j = ssp[1] + 0; j <= ssp[2] + 0; j++) {
-                  x=name;
-                  sub("\\["pat"\\]",sprintf("%0"length(ssp[1])"d", j),x);
-                  print x;
-              } 
-          } else {
-              for (j = ssp[1] + 0; j <= ssp[2] + 0; j++) {
-                  x=name;
-                  sub("\\["pat"\\]",sprintf("%"length(ssp[1])"d", j),x);
-                  print x;
-              } 
-           }
-      }
-    }
+#	previouslist=$(echo $* | tr ' ,' '\n' | sort -n | tr '\n' ' ')
+	previouslist=$(echo $* | 
+		sed -e 's/,/\n/g' -e 's/ /\n/g' -e 's/\([0-9]\+\)/:\1:/g' |
+		sort -t \: -n -k 1 -k 2 -k 3 -k 4 -k 5 | 
+		sed -e 's/://g' | tr '\n' ' '
+		)
+	[[ "$previouslist" =~ [^a-zA-Z0-9_\ ] ]] && {
+		return 1
+	}
+
+	list=$(NameCompressLevel 0 $previouslist)
+	while [ "$list" != "$previouslist" ]
+	do 
+		previouslist=$list
+ 		[[ "$list" =~ " "  ]]  &&
+			list=$(NameCompressLevel $loop $previouslist) || break
+		
+		(( ++loop > maxloops )) && break
+	done
+	echo ${list//" "/","}
 }
 
-{
-   hostname=$1;
-   n = split(hostname, hs, ","); /* comma sep list */
-   for (ii=1; ii<=n;ii++) {
-       if (hs[ii] ~ /\[/ ) {
-           h=hs[ii];
-           while ((ii+1<=n) && !(h ~ /\]/)) {
-               ii++;
-               h=h","hs[ii]; /* merge splited [,]*/
-           }
-           match(h, "\\[([^[]*)\\]", s);
-           if (s[0] != "") {
-               expand(h, s[1]);
-           } else {
-               print h;
-           }
-       } else {
-               print hs[ii];
-       }
-   }
-}
-'
-}
+###=== fg functions end ===
 
 #
 # remove $1 from nodelist
@@ -441,7 +572,7 @@ if [ "$VERBOSE" = 1 ];then
 cat <<EOF
 CONFIG  ${D_CONFIG}
 NODES   ${NODES[*]}
-NODESSHORT $(namemerge ${NODES[*]})
+NODESSHORT $(NameCompress ${NODES[*]})
 RCMD    $RCMD
 COMMAND $COMMAND
 EOF
@@ -498,7 +629,7 @@ for ((i = 0; i < ${#NODES[*]} ; i++)); do
 		fi
 	    fi
 	done
-	echo "=== $(namemerge $hosts)"
+	echo "=== $(NameCompress $hosts)"
 	cat ${OUTPUTS[$i]}
     fi
 done

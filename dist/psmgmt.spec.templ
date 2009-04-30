@@ -91,7 +91,7 @@ exit 0
 /etc/profile.d/psmgmt.sh
 /etc/profile.d/psmgmt.csh
 /etc/init.d/parastation
-/etc/xinetd.d/psidstarter
+%config(noreplace) /etc/xinetd.d/psidstarter
 %config(noreplace) /etc/parastation.conf
 %attr(770,root,nobody) /var/account
 
