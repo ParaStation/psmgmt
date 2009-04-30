@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2006-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -1539,7 +1539,7 @@ static void loop(char *arg_logdir)
     while (1) {
 	DDTypedBufferMsg_t msg;
 
-	int ret = PSI_recvMsg(&msg);
+	int ret = PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg));
 
 	if (ret < 0 && errno == EINTR) {
 	    continue;

@@ -756,7 +756,7 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
 	alarm(10);
     }
     signal(SIGALRM, alarmHandler);
-    if (PSI_recvMsg(&msg)<0) {
+    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
     }
@@ -816,7 +816,7 @@ int PSI_getNodes(unsigned int num, PSnodes_ID_t *nodes)
 	return -1;
     }
 
-    if (PSI_recvMsg(&msg)<0) {
+    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
     }
@@ -871,7 +871,7 @@ int PSI_getRankNode(int rank, PSnodes_ID_t *node)
 	return -1;
     }
 
-    if (PSI_recvMsg(&msg)<0) {
+    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
     }

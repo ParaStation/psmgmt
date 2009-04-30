@@ -1680,7 +1680,7 @@ void PSIADM_Plugin(char *nl, char *name, PSP_Plugin_t action)
 	if (hostStatus.list[node]) {
 	    msg.header.dest = PSC_getTID(node, 0);
 	    PSI_sendMsg(&msg);
-	    if (PSI_recvMsg(&answer) < 0) {
+	    if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
 		printf("%soading plugin '%s' on node %d failed\n",
 		       action ? "Unl" : "L", name, node);
 	    }

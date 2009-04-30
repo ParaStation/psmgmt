@@ -22,6 +22,7 @@
 
 #include <sys/types.h>
 #include "pstask.h"
+#include "psprotocol.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -83,27 +84,30 @@ char *PSI_getPsidVersion(void);
  * @brief Send a message.
  *
  * Send the message @a amsg to the destination defined therein. This
- * is done by sending it to the local ParaStation daemon.
+ * is done by sending it to the local ParaStation daemon. @a amsg is
+ * expected to point to a message compliant to a @ref DDMsg_t message.
  *
- * @param msg Pointer to the message to send.
+ * @param amsg Pointer to the message to send.
  *
  * @return On success, the number of bytes written are returned. On
  * error, -1 is returned, and errno is set appropriately.
  */
-int PSI_sendMsg(void *msg);
+int PSI_sendMsg(void *amsg);
 
 /**
  * @brief Receive a message.
  *
- * Receive a message and store it to the place @a amsg points to. This
- * is done by receiving it from the local ParaStation daemon.
+ * Receive a message from the local ParaStation daemon and store it to
+ * @a msg. At most @a size bytes are written to @a msg.
  *
- * @param msg Pointer to the place the message to store at.
+ * @param msg Buffer to store the message in.
+ *
+ * @param size The maximum length of the message, i.e. the size of @a msg.
  *
  * @return On success, the number of bytes received is returned. On
  * error, -1 is returned, and errno is set appropriately.
  */
-int PSI_recvMsg(void *msg);
+int PSI_recvMsg(DDMsg_t *msg, size_t size);
 
 /**
  * @brief Register for notification of foreign processes death.

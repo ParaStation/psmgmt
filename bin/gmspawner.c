@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -92,7 +92,7 @@ static void collectInfo(int listensock, unsigned int np, unsigned int magic,
 	    close (sock);
 	    continue;
 	}
-	    
+
 	ret = sscanf(buf, "<<<%u:%u:%u:%u:%u:%u:%u::%hu>>>\n", &thismagic,
 		     &rank, &port, &board, &node, &numanode, &pid,
 		     &slave_port);
@@ -217,7 +217,7 @@ static void distributeInfo(unsigned int np, int verbose)
 		ret = write(sock, entry, strlen(entry));
 	    }
 	}
- 	token="]]]";
+	token="]]]";
 	ret = write(sock, token, strlen(token));
 
 	close (sock);
@@ -465,7 +465,7 @@ int main(int argc, const char *argv[])
 		if (strcmp(dup_argv[i], unknownArg)==0) {
 		    dup_argc = i;
 		    dup_argv[dup_argc] = NULL;
-		    poptFreeContext(optCon);	
+		    poptFreeContext(optCon);
 		    optCon = poptGetContext(NULL,
 					    dup_argc, (const char **)dup_argv,
 					    optionsTable, 0);
@@ -484,22 +484,22 @@ int main(int argc, const char *argv[])
     }
 
     if (rc < -1) {
-        /* an error occurred during option processing */
-        poptPrintUsage(optCon, stderr, 0);
-        fprintf(stderr, "%s: %s\n",
-                poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
-                poptStrerror(rc));
-        exit(1);
+	/* an error occurred during option processing */
+	poptPrintUsage(optCon, stderr, 0);
+	fprintf(stderr, "%s: %s\n",
+		poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
+		poptStrerror(rc));
+	exit(1);
     }
 
     if (np == -1) {
-        poptPrintUsage(optCon, stderr, 0);
+	poptPrintUsage(optCon, stderr, 0);
 	fprintf(stderr, "You have to give at least the -np argument.\n");
 	exit(1);
     }
 
     if (!argv[dup_argc]) {
-        poptPrintUsage(optCon, stderr, 0);
+	poptPrintUsage(optCon, stderr, 0);
 	fprintf(stderr, "No <command> specified.\n");
 	exit(1);
     }
@@ -594,7 +594,7 @@ int main(int argc, const char *argv[])
 			    rank);
 		    exit(1);
 		}
-		    
+
 		err = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &ip.s_addr, 1);
 		if (err) {
 		    fprintf(stderr,
@@ -608,7 +608,7 @@ int main(int argc, const char *argv[])
 
 		setPSIEnv("GMPI_SLAVE", slavestring, 1);
 	    }
-	    
+
 	    /* spawn the process */
 	    if (!PSI_spawnRank(rank, ".", dup_argc, dup_argv, &error)) {
 		if (error) {
@@ -628,7 +628,7 @@ int main(int argc, const char *argv[])
 	DDErrorMsg_t msg;
 	int ret;
 
-	ret = PSI_recvMsg(&msg);
+	ret = PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg));
 	if (msg.header.type != PSP_CD_SPAWNFINISH || ret != sizeof(msg)) {
 	    fprintf(stderr, "got strange message type %s\n",
 		    PSP_printMsg(msg.header.type));

@@ -463,7 +463,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
     /* receive answers */
     while (outstanding_answers>0) {
-	if (PSI_recvMsg(&answer)<0) {
+	if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer))<0) {
 	    PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	    ret = -1;
 	    break;
@@ -807,7 +807,7 @@ int PSI_kill(PStask_ID_t tid, short signal, int async)
     }
 
     if (!async) {
-	if (PSI_recvMsg(&answer)<0) {
+	if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer))<0) {
 	    PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	    return -1;
 	}

@@ -149,7 +149,7 @@ static int connectDaemon(PStask_group_t taskGroup)
 	return 0;
     }
 
-    ret = PSI_recvMsg(&answer);
+    ret = PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer));
     if (ret<=0) {
 	if (!ret) {
 	    PSI_log(-1, "%s: unexpected message length 0\n", __func__);
@@ -361,9 +361,9 @@ char* PSI_getPsidVersion(void)
     return vStr;
 }
 
-int PSI_sendMsg(void* amsg)
+int PSI_sendMsg(void *amsg)
 {
-    DDMsg_t *msg = (DDMsg_t*)amsg;
+    DDMsg_t *msg = (DDMsg_t *)amsg;
     int ret = 0;
 
     if (daemonSock == -1) {
@@ -394,9 +394,8 @@ int PSI_sendMsg(void* amsg)
     return ret;
 }
 
-int PSI_recvMsg(void* amsg)
+int PSI_recvMsg(DDMsg_t *msg, size_t size)
 {
-    DDMsg_t *msg = (DDMsg_t*)amsg;
     int n;
     int count = 0, expected = sizeof(DDMsg_t);
 
@@ -416,22 +415,31 @@ int PSI_recvMsg(void* amsg)
 	    PSI_warn(-1, errno ? errno : ENOTCONN,
 		     "%s: Lost connection to ParaStation daemon", __func__);
 	    if (!errno) {
-		PSI_log(-1, " Maybe daemon/library versions do not match\n");
+		PSI_log(-1, "%s: Possible version mismatch between"
+			" daemon and library\n", __func__);
 		errno = ENOTCONN;
 	    }
 
 	    close(daemonSock);
 	    daemonSock = -1;
 	}
-	if (count >= expected) expected = msg->len;
+	if (count >= expected) {
+	    if (msg->len > (int)size) {
+		errno = ENOBUFS;
+		PSI_warn(-1, errno, "%s", __func__);
+		n = -1;
+	    } else {
+		expected = msg->len;
+	    }
+	}
     } while (expected>count && n>0);
 
-    if (count > (int) sizeof(*msg)) {
+    if (count>(int)sizeof(*msg) && count==msg->len) {
 	PSI_log(PSI_LOG_COMM, "%s: type %s (len=%d) from %s\n", __func__,
 		PSP_printMsg(msg->type), msg->len, PSC_printTID(msg->sender));
     }
 
-    if (count==msg->len) {
+    if (count>(int)sizeof(*msg) && count==msg->len) {
 	return msg->len;
     } else {
 	return n;
@@ -457,7 +465,7 @@ int PSI_notifydead(PStask_ID_t tid, int sig)
 	return -1;
     }
 
-    ret = PSI_recvMsg(&msg);
+    ret = PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg));
     if (ret<0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
@@ -497,7 +505,7 @@ int PSI_release(PStask_ID_t tid)
 	return -1;
     }
 
-    ret = PSI_recvMsg(&msg);
+    ret = PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg));
     if (ret<0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
@@ -543,7 +551,7 @@ PStask_ID_t PSI_whodied(int sig)
 	return -1;
     }
 
-    if (PSI_recvMsg(&msg)<0) {
+    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return(-1);
     }
@@ -578,7 +586,7 @@ int PSI_recvFinish(int outstanding)
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, outstanding);
 
     while (outstanding>0) {
-	if (PSI_recvMsg(&msg)<0) {
+	if (PSI_recvMsg(&msg, sizeof(msg))<0) {
 	    PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	    error = 1;
 	    break;

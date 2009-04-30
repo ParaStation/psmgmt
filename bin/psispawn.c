@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
 
     /* We will use PSI instead of PSE since our task is more low-level */
     if (!PSI_initClient(TG_SPAWNER)) {
-        fprintf(stderr, "Initialization of PSI failed.");
+	fprintf(stderr, "Initialization of PSI failed.");
 	exit(1);
     }
 
@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
 	int ret;
 	DDErrorMsg_t msg;
 
-	ret = PSI_recvMsg(&msg);
+	ret = PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg));
 	if (msg.header.type != PSP_CD_SPAWNFINISH || ret != sizeof(msg)) {
 	    fprintf(stderr, "[%d] got strange message type %s\n",
 		    rank, PSP_printMsg(msg.header.type));

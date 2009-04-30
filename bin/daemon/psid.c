@@ -77,7 +77,7 @@ char psid_cvsid[] = "$Revision$";
 /** @doctodo */
 static void psicontrol(int fd)
 {
-    DDBufferMsg_t msg;
+    DDHugeMsg_t msg;
 
     int msglen;
 
@@ -106,7 +106,7 @@ static void psicontrol(int fd)
 	    *(int *) (msg.buf+off) = fd;
 	}
 
-	if (!PSID_handleMsg(&msg)) {
+	if (!PSID_handleMsg((DDBufferMsg_t *)&msg)) {
 	    PSID_log(-1, "%s: Problem on socket %d\n", __func__, fd);
 	}
     }

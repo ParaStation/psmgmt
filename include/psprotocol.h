@@ -33,7 +33,7 @@ extern "C" {
 #endif
 
 /** Unique version number of the high-level protocol */
-#define PSProtocolVersion 338
+#define PSProtocolVersion 339
 
 /** The location of the UNIX socket used to contact the daemon. */
 #define PSmasterSocketName "/var/run/parastation.sock"
@@ -335,13 +335,37 @@ typedef struct {
     int32_t type;          /**< message (sub-)type */
 } DDTypedMsg_t;
 
-/** Buffer size (and thus maximum message size) */
-#define BufMsgSize 8000
+/** Buffer size of DDHugeMsg_t */
+#define HugeMsgSize 8000
+
+/**
+ * Special message type used for compatibility with older versions. In
+ * former days DDBufferMsg_t's buffer had 8000 bytes. This forced the
+ * kernel's IP layer to split long UDP-messages into fragments --
+ * which is undesirable.
+ *
+ * This is the largest message ever possible. I.e. receiving a message
+ * of this type saves from segmentation faults as long as the protocol
+ * is not messed up.
+ */
+typedef struct {
+    DDMsg_t header;        /**< message header */
+    char buf[HugeMsgSize]; /**< message buffer */
+} DDHugeMsg_t;
+
+/**
+ * Buffer size (and thus maximum message size). 1472 is derived
+ * from 1500 (MTU) - 20 (IP header) - 8 (UDP header)
+ */
+#define BufMsgSize (1472-sizeof(DDMsg_t))
 
 /**
  * Untyped buffer message. This is the largest message
  * possible. I.e. receiving a message of this type saves from
  * segmentation faults as long as the protocol is not messed up.
+ *
+ * For compatibility with former version actually @ref DDHugeMsg_t
+ * should be received.
  */
 typedef struct {
     DDMsg_t header;        /**< message header */

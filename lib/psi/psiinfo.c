@@ -58,7 +58,7 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
     DDTypedBufferMsg_t msg;
     PSP_Info_t ret;
 
-    if (PSI_recvMsg(&msg)<0) {
+    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	*size = 0;
 	return PSP_INFO_UNKNOWN;
@@ -584,7 +584,7 @@ int PSI_infoOption(PSnodes_ID_t node, int num, PSP_Option_t option[],
 	return -1;
     }
 
-    if (PSI_recvMsg(&msg)<0) {
+    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
     }
@@ -641,7 +641,7 @@ int PSI_infoOptionListNext(DDOption_t opts[], int num, int verbose)
     DDOptionMsg_t msg;
     int i;
 
-    if (PSI_recvMsg(&msg)<0) {
+    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
     }
