@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -14,6 +14,7 @@ static char vcid[] __attribute__((used)) =
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <errno.h>
 #include <syslog.h>
 #include <unistd.h>
@@ -38,6 +39,7 @@ static char vcid[] __attribute__((used)) =
 #include "logging.h"
 #include "selector.h"
 #include "timer.h"
+#include "psbyteorder.h"
 
 #include "rdp.h"
 
@@ -89,11 +91,11 @@ typedef enum {
 
 /** The RDP Packet Header */
 typedef struct {
-    short type;           /**< packet type */
-    unsigned short len;   /**< message length */
-    int seqno;            /**< Sequence number of packet */
-    int ackno;            /**< Sequence number of ack */
-    int connid;           /**< Connection Identifier */
+    int16_t type;         /**< packet type */
+    uint16_t len;         /**< message length *not* including header */
+    int32_t seqno;        /**< Sequence number of packet */
+    int32_t ackno;        /**< Sequence number of ack */
+    int32_t connid;       /**< Connection Identifier */
 } rdphdr_t;
 
 /** Up to this size predefined buffers are use to store the message. */
@@ -175,7 +177,7 @@ static int handleErr(void);
  * @see recvfrom(2)
  */
 static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
-                      struct sockaddr *from, socklen_t *fromlen)
+		      struct sockaddr *from, socklen_t *fromlen)
 {
     int ret;
  restart:
@@ -231,6 +233,18 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
 	    RDP_warn(-1, errno, "%s", __func__);
 	}
     }
+    if (ret < (int)sizeof(rdphdr_t)) {
+	RDP_log(-1, "%s: incomplete RDP message received\n", __func__);
+    } else {
+	/* message on the wire not in host-byteorder */
+	rdphdr_t *msg = buf;
+
+	msg->type = psntoh16(msg->type);
+	msg->len = psntoh16(msg->len);
+	msg->seqno = psntoh32(msg->seqno);
+	msg->ackno = psntoh32(msg->ackno);
+	msg->connid = psntoh32(msg->connid);
+    }
     return ret;
 }
 
@@ -238,13 +252,16 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
 /**
  * @brief Send a message
  *
- * My version of sendto(), which restarts on EINTR.
- * EINTR is mostly caused by the interval timer. Send a message stored in
- * @a buf via @a sock to address @a to.
+ * My version of sendto(), which restarts on EINTR.  EINTR is mostly
+ * caused by the interval timer. Send a message of length @a len
+ * stored in @a buf via @a sock to address @a to. If the flag @a hton
+ * is set, the message's header is converted to ParaStation's
+ * network-byteorder beforehand.
  *
  * On platforms supporting extended reliable error messages, these
  * type of messages are handled upon occurence. This should not touch
  * the sending of a message since automatic retries a triggered.
+ *
  *
  * @param sock The socket to send to.
  *
@@ -264,13 +281,23 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
  * @see sendto(2)
  */
 static int MYsendto(int sock, void *buf, size_t len, int flags,
-		    struct sockaddr *to, socklen_t tolen)
+		    struct sockaddr *to, socklen_t tolen, int hton)
 {
     int ret;
     if (((struct sockaddr_in *)to)->sin_addr.s_addr == INADDR_ANY) {
 	RDP_log(-1, "%s: don't send to INADDR_ANY\n", __func__);
 	errno = EINVAL;
 	return -1;
+    }
+    if (hton) {
+	/* message on the wire shall be in network-byteorder */
+	rdphdr_t *msg = buf;
+
+	msg->type = pshton16(msg->type);
+	msg->len = pshton16(msg->len);
+	msg->seqno = pshton32(msg->seqno);
+	msg->ackno = pshton32(msg->ackno);
+	msg->connid = pshton32(msg->connid);
     }
  restart:
     ret = sendto(sock, buf, len, flags, to, tolen);
@@ -828,7 +855,8 @@ static void sendSYN(int node)
     RDP_log(RDP_LOG_CNTR, "%s: to %d (%s), NFTS=%x\n", __func__, node,
 	    inet_ntoa(conntable[node].sin.sin_addr), hdr.seqno);
     MYsendto(rdpsock, &hdr, sizeof(hdr), 0,
-	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
+	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr),
+	     1);
 }
 
 /**
@@ -851,7 +879,8 @@ static void sendACK(int node)
     hdr.connid = conntable[node].ConnID_out;
     RDP_log(RDP_LOG_ACKS, "%s: to %d, FE=%x\n", __func__, node, hdr.ackno);
     MYsendto(rdpsock, &hdr, sizeof(hdr), 0,
-	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
+	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr),
+	     1);
     conntable[node].ackPending = 0;
 }
 
@@ -876,7 +905,8 @@ static void sendSYNACK(int node)
     RDP_log(RDP_LOG_CNTR, "%s: to %d, NFTS=%x, FE=%x\n", __func__, node,
 	    hdr.seqno, hdr.ackno);
     MYsendto(rdpsock, &hdr, sizeof(hdr), 0,
-	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
+	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr),
+	     1);
     conntable[node].ackPending = 0;
 }
 
@@ -902,7 +932,8 @@ static void sendSYNNACK(int node, int oldseq)
     RDP_log(RDP_LOG_CNTR, "%s: to %d, NFTS=%x, FE=%x\n", __func__, node,
 	    hdr.seqno, hdr.ackno);
     MYsendto(rdpsock, &hdr, sizeof(hdr), 0,
-	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
+	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr),
+	     1);
     conntable[node].ackPending = 0;
 }
 
@@ -926,7 +957,8 @@ static void sendNACK(int node)
     hdr.connid = conntable[node].ConnID_out;
     RDP_log(RDP_LOG_CNTR, "%s: to %d, FE=%x\n", __func__, node, hdr.ackno);
     MYsendto(rdpsock, &hdr, sizeof(hdr), 0,
-	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr));
+	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr),
+	     1);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -1022,7 +1054,7 @@ static void clearMsgQ(int node)
 	    RDPCallback(RDP_PKT_UNDELIVERABLE, &deadbuf);
 	}
 	RDP_log(RDP_LOG_DROP, "%s: drop msg %x to %d\n",
-		__func__, mp->msg.small->header.seqno, node);
+		__func__, psntoh32(mp->msg.small->header.seqno), node);
 	if (mp->len > RDP_SMALL_DATA_SIZE) {    /* release msg frame */
 	    free(mp->msg.large);                /* free memory */
 	} else {
@@ -1108,7 +1140,7 @@ static void resendMsgs(int node)
 	RDP_log((conntable[node].state != ACTIVE) ? RDP_LOG_CONN : -1,
 		"%s: Retransmission count exceeds limit"
 		" [seqno=%x], closing connection to %d\n",
-		__func__, mp->msg.small->header.seqno, node);
+		__func__, psntoh32(mp->msg.small->header.seqno), node);
 	closeConnection(node, 1);
 	return;
     }
@@ -1133,14 +1165,15 @@ static void resendMsgs(int node)
 	while (mp && ret>=0) {
 	    msgbuf_t *next = mp->next;
 	    RDP_log(RDP_LOG_ACKS, "%s: %d to %d\n",
-		    __func__, mp->msg.small->header.seqno, mp->node);
+		    __func__, psntoh32(mp->msg.small->header.seqno), mp->node);
 	    mp->tv = tv;
 	    /* update ackinfo */
-	    mp->msg.small->header.ackno = conntable[node].frameExpected-1;
+	    mp->msg.small->header.ackno =
+		pshton32(conntable[node].frameExpected-1);
 	    ret = MYsendto(rdpsock, &mp->msg.small->header,
-		     mp->len + sizeof(rdphdr_t), 0,
-		     (struct sockaddr *)&conntable[node].sin,
-		     sizeof(struct sockaddr));
+			   mp->len + sizeof(rdphdr_t), 0,
+			   (struct sockaddr *)&conntable[node].sin,
+			   sizeof(struct sockaddr), 0);
 	    mp = next;
 	}
 	conntable[node].ackPending = 0;
@@ -1328,7 +1361,7 @@ static void updateState(rdphdr_t *hdr, int node)
 	    switch (hdr->type) {
 	    case RDP_SYN:
 	    case RDP_SYNNACK:
-	        cp->state = SYN_RECVD;
+		cp->state = SYN_RECVD;
 		cp->frameExpected = hdr->seqno; /* Accept initial seqno */
 		cp->ConnID_in = hdr->connid;    /* Accept connection ID */
 		RDP_log(RDP_LOG_CNTR,
@@ -1337,7 +1370,7 @@ static void updateState(rdphdr_t *hdr, int node)
 		sendSYNACK(node);
 		break;
 	    case RDP_SYNACK:
-	        cp->state = SYN_RECVD;
+		cp->state = SYN_RECVD;
 		cp->frameExpected = hdr->seqno; /* Accept initial seqno */
 		cp->ConnID_in = hdr->connid;    /* Accept connection ID */
 		RDP_log(RDP_LOG_CNTR,
@@ -1352,7 +1385,7 @@ static void updateState(rdphdr_t *hdr, int node)
 	    switch (hdr->type) {
 	    case RDP_SYN:
 		closeConnection(node, 1);
-	        cp->state = SYN_RECVD;
+		cp->state = SYN_RECVD;
 		cp->frameExpected = hdr->seqno; /* Accept new seqno */
 		RDP_log(RDP_LOG_CNTR,
 			"%s: state(%d): ACTIVE -> SYN_RECVD, FE=%x\n",
@@ -1405,7 +1438,7 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
     Timer_block(timerID, 1);
 
     while (mp) { /* still a message there */
-	if (RSEQCMP(mp->msg.small->header.seqno, newSend) < 0) {
+	if (RSEQCMP(psntoh32(mp->msg.small->header.seqno), newSend) < 0) {
 	    /* current msg precedes NACKed msg */
 	    if (RDPCallback) { /* give msg back to upper layer */
 		deadbuf.dst = node;
@@ -1414,7 +1447,7 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
 		RDPCallback(RDP_PKT_UNDELIVERABLE, &deadbuf);
 	    }
 	    RDP_log(RDP_LOG_DROP, "%s: drop msg %d to %d\n",
-		    __func__, mp->msg.small->header.seqno, node);
+		    __func__, psntoh32(mp->msg.small->header.seqno), node);
 	    /* release msg frame */
 	    if (mp->len > RDP_SMALL_DATA_SIZE) {
 		free(mp->msg.large);       /* free memory */
@@ -1428,9 +1461,9 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
 	    cp->window++;                  /* another packet allowed to send */
 	} else {
 	    /* resequence outstanding mgs's */
-	    RDP_log(RDP_LOG_CNTR, "%s: SeqNo: %x -> %x\n",
-		    __func__, mp->msg.small->header.seqno, newSend + count);
-	    mp->msg.small->header.seqno = newSend + count;
+	    RDP_log(RDP_LOG_CNTR, "%s: SeqNo: %x -> %x\n", __func__,
+		    psntoh32(mp->msg.small->header.seqno), newSend + count);
+	    mp->msg.small->header.seqno = pshton32(newSend + count);
 	    mp = mp->next;                 /* next message */
 	    count++;
 	}
@@ -1549,18 +1582,18 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 
     while (mp) {
 	RDP_log(RDP_LOG_ACKS, "%s: compare seqno %d with %d\n",
-		__func__, mp->msg.small->header.seqno, hdr->ackno);
-	if (RSEQCMP(mp->msg.small->header.seqno, hdr->ackno) <= 0) {
+		__func__, psntoh32(mp->msg.small->header.seqno), hdr->ackno);
+	if (RSEQCMP(psntoh32(mp->msg.small->header.seqno), hdr->ackno) <= 0) {
 	    /* ACK this buffer */
-	    if (mp->msg.small->header.seqno != cp->ackExpected) {
+	    if (psntoh32(mp->msg.small->header.seqno) != cp->ackExpected) {
 		RDP_log(-1, "%s: strange things happen: msg.seqno = %x,"
 			" AE=%x from %d\n", __func__,
-			mp->msg.small->header.seqno,
+			psntoh32(mp->msg.small->header.seqno),
 			cp->ackExpected, fromnode);
 	    }
 	    /* release msg frame */
 	    RDP_log(RDP_LOG_ACKS, "%s: release buffer seqno=%x to %d\n",
-		    __func__, mp->msg.small->header.seqno, fromnode);
+		    __func__, psntoh32(mp->msg.small->header.seqno), fromnode);
 	    if (mp->len > RDP_SMALL_DATA_SIZE) {
 		free(mp->msg.large);       /* free memory */
 	    } else {
@@ -2057,13 +2090,16 @@ int Rsendto(int node, void *buf, size_t len)
     timeradd(&mp->tv, &RESEND_TIMEOUT, &mp->tv);
     mp->len = len;
 
-    /* setup msg header */
-    mp->msg.small->header.type = RDP_DATA;
-    mp->msg.small->header.len = len;
+    /*
+     * setup msg header -- we use network-byteorder since this goes
+     * into the list of pending messages
+     */
+    mp->msg.small->header.type = pshton16(RDP_DATA);
+    mp->msg.small->header.len = pshton16(len);
     mp->msg.small->header.seqno =
-	conntable[node].frameToSend + conntable[node].msgPending;
-    mp->msg.small->header.ackno = conntable[node].frameExpected-1;
-    mp->msg.small->header.connid = conntable[node].ConnID_out;
+	pshton32(conntable[node].frameToSend + conntable[node].msgPending);
+    mp->msg.small->header.ackno = pshton32(conntable[node].frameExpected-1);
+    mp->msg.small->header.connid = pshton32(conntable[node].ConnID_out);
     conntable[node].ackPending = 0;
 
     /* copy msg data */
@@ -2102,7 +2138,7 @@ int Rsendto(int node, void *buf, size_t len)
 	retval = MYsendto(rdpsock, &mp->msg.small->header,
 			  len + sizeof(rdphdr_t), 0,
 			  (struct sockaddr *)&conntable[node].sin,
-			  sizeof(struct sockaddr));
+			  sizeof(struct sockaddr), 0);
 
 	conntable[node].frameToSend++;
 
