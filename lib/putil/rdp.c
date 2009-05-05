@@ -468,7 +468,6 @@ typedef struct {
     int node;                       /**< ID of connection */
     list_t next;                    /**< Use to put into @ref MsgFreeList etc.*/
     struct ackent_ *ackptr;         /**< Pointer to ACK buffer */
-    int retrans;                    /**< Number of retransmissions */
     int len;                        /**< Length of body */
     union {
 	Smsg_t *small;              /**< Pointer to a small msg */
@@ -505,7 +504,6 @@ static void initMsgList(int nodes)
     for (i=0; i<count; i++) {
 	buf[i].node = -1;
 	buf[i].ackptr = NULL;
-	buf[i].retrans = 0;
 	buf[i].len = -1;
 	buf[i].msg.small = NULL;
 	list_add_tail(&buf[i].next, &MsgFreeList);
@@ -533,7 +531,6 @@ static msgbuf_t *getMsg(void)
 	}
 	list_del(&mp->next);
 	mp->node = -1;
-	mp->retrans = 0;
 
 	return mp;
     }
@@ -642,6 +639,7 @@ typedef struct {
     RDPState_t state;        /**< State of connection to host */
     list_t pendList;         /**< List of pending message buffers */
     struct timeval tv;       /**< Timeout timer */
+    int retrans;             /**< Number of retransmissions */
 } Rconninfo_t;
 
 /**
@@ -700,6 +698,7 @@ static void initConntable(int nodes, unsigned int host[], unsigned short port)
 	conntable[i].state = CLOSED;
 	conntable[i].tv.tv_sec = 0;
 	conntable[i].tv.tv_usec = 0;
+	conntable[i].retrans = 0;
     }
 }
 
@@ -1024,8 +1023,8 @@ RDPDeadbuf deadbuf;
  */
 static void clearMsgQ(int node)
 {
-    Rconninfo_t *cp;
-    list_t oldMsgs, *m, *tmp;
+    Rconninfo_t *cp = &conntable[node];
+    list_t *m, *tmp;
     int blocked;
 
     /*
@@ -1034,15 +1033,8 @@ static void clearMsgQ(int node)
      */
     blocked = Timer_block(timerID, 1);
 
-    cp = &conntable[node];
-    oldMsgs = cp->pendList;                     /* messages to decline */
-
-    INIT_LIST_HEAD(&cp->pendList);
-    cp->ackExpected = cp->frameToSend;          /* restore initial setting */
-    cp->window = MAX_WINDOW_SIZE;               /* restore window size */
-
-    /* Now decline all pending messages */
-    list_for_each_safe(m, tmp, &oldMsgs) {
+    /* Decline all pending messages */
+    list_for_each_safe(m, tmp, &cp->pendList) {
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
 
 	if (RDPCallback) { /* give msg back to upper layer */
@@ -1062,6 +1054,9 @@ static void clearMsgQ(int node)
 	list_del(&mp->next);                    /* remove msgbuf from list */
 	putMsg(mp);                             /* back to freelist */
     }
+
+    cp->ackExpected = cp->frameToSend;          /* restore initial setting */
+    cp->window = MAX_WINDOW_SIZE;               /* restore window size */
 
     /* Restore blocked timer */
     Timer_block(timerID, blocked);
@@ -1116,7 +1111,6 @@ static void closeConnection(int node, int callback)
 static void resendMsgs(int node)
 {
     struct timeval tv;
-    int first = 1, ret = 0;
     list_t *m, *tmp;
 
     if (list_empty(&conntable[node].pendList)) {
@@ -1128,6 +1122,17 @@ static void resendMsgs(int node)
     if (timercmp(&conntable[node].tv, &tv, >=)) return;    /* no timeout */
 
     timeradd(&conntable[node].tv, &RESEND_TIMEOUT, &tv);
+
+    if (conntable[node].retrans > RDPMaxRetransCount) {
+	RDP_log((conntable[node].state != ACTIVE) ? RDP_LOG_CONN : -1,
+		"%s: Retransmission count exceeds limit"
+		" [seqno=%x], closing connection to %d\n",
+		__func__, conntable[node].ackExpected, node);
+	closeConnection(node, 1);
+	return;
+    }
+
+    conntable[node].retrans++;
 
     switch (conntable[node].state) {
     case CLOSED:
@@ -1143,21 +1148,8 @@ static void resendMsgs(int node)
 	break;
     case ACTIVE:
 	list_for_each_safe(m, tmp, &conntable[node].pendList) {
+	    int ret;
 	    msgbuf_t *mp = list_entry(m, msgbuf_t, next);
-
-	    if (first && mp->retrans > RDPMaxRetransCount) {
-		RDP_log((conntable[node].state != ACTIVE) ? RDP_LOG_CONN : -1,
-			"%s: Retransmission count exceeds limit"
-			" [seqno=%x], closing connection to %d\n",
-			__func__, psntoh32(mp->msg.small->header.seqno), node);
-		closeConnection(node, 1);
-		return;
-	    }
-	    if (first) {
-		first = 0;
-		mp->retrans++;
-	    }
-
 	    RDP_log(RDP_LOG_ACKS, "%s: %d to %d\n",
 		    __func__, psntoh32(mp->msg.small->header.seqno), mp->node);
 	    /* update ackinfo */
@@ -1595,6 +1587,7 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 	    deqAck(mp->ackptr);            /* dequeue ack */
 	    list_del(&mp->next);           /* remove msgbuf from list */
 	    putMsg(mp);                    /* back to freelist */
+	    cp->retrans = 0;               /* start new retransmission count */
 	} else {
 	    break;  /* everything done */
 	}
@@ -1929,10 +1922,10 @@ static char *stateStringRDP(RDPState_t state)
 	return "CLOSED";
 	break;
     case SYN_SENT:
-	return "SYN_SENT";
+	return "SYNSNT";
 	break;
     case SYN_RECVD:
-	return "SYN_RECVD";
+	return "SYNRCV";
 	break;
     case ACTIVE:
 	return "ACTIVE";
@@ -2078,6 +2071,7 @@ int Rsendto(int node, void *buf, size_t len)
     if (list_empty(&conntable[node].pendList)) {
 	gettimeofday(&tv, NULL);
 	timeradd(&conntable[node].tv, &RESEND_TIMEOUT, &tv);
+	conntable[node].retrans = 0;
     }
     list_add_tail(&mp->next, &conntable[node].pendList);
 
@@ -2273,14 +2267,14 @@ int Rrecvfrom(int *node, void *msg, size_t len)
 
 void getStateInfoRDP(int node, char *s, size_t len)
 {
-    snprintf(s, len, "%3d [%s]: IP=%s ID[%08x|%08x] FTS=%08x AE=%08x FE=%08x"
-	     " AP=%3d MP=%3d PL=%p",
+    snprintf(s, len, "%3d [%s]: IP=%15s ID[%08x|%08x] FTS=%08x AE=%08x"
+	     " FE=%08x AP=%3d MP=%3d",
 	     node, stateStringRDP(conntable[node].state),
 	     inet_ntoa(conntable[node].sin.sin_addr),
 	     conntable[node].ConnID_in,     conntable[node].ConnID_out,
 	     conntable[node].frameToSend,   conntable[node].ackExpected,
 	     conntable[node].frameExpected, conntable[node].ackPending,
-	     conntable[node].msgPending,    &conntable[node].pendList);
+	     conntable[node].msgPending);
 }
 
 void closeConnRDP(int node)
