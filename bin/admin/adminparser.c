@@ -712,6 +712,12 @@ static int setShowRDPMaxRetrans(char *token)
     return 0;
 }
 
+static int setShowRDPMaxACKPend(char *token)
+{
+    setShowOpt = PSP_OP_RDPMAXACKPEND;
+    return 0;
+}
+
 static int setShowMaster(char *token)
 {
     setShowOpt = PSP_OP_MASTER;
@@ -896,6 +902,7 @@ static keylist_t setShowList[] = {
     {"rdpdebug", setShowRDPDebug},
     {"rdppktloss", setShowRDPPktLoss},
     {"rdpmaxretrans", setShowRDPMaxRetrans},
+    {"rdpmaxackpend", setShowRDPMaxACKPend},
     {"master", setShowMaster},
     {"mcastdebug", setShowMCastDebug},
     {"freeonsuspend", setShowFOS},
@@ -1087,6 +1094,7 @@ static int setCommand(char *token)
     case PSP_OP_RDPDEBUG:
     case PSP_OP_RDPPKTLOSS:
     case PSP_OP_RDPMAXRETRANS:
+    case PSP_OP_RDPMAXACKPEND:
     case PSP_OP_MCASTDEBUG:
     case PSP_OP_ACCTPOLL:
 	if (parser_getNumber(value, &val)) {
@@ -1168,6 +1176,7 @@ static int setCommand(char *token)
     case PSP_OP_RDPDEBUG:
     case PSP_OP_RDPPKTLOSS:
     case PSP_OP_RDPMAXRETRANS:
+    case PSP_OP_RDPMAXACKPEND:
     case PSP_OP_MCASTDEBUG:
     case PSP_OP_OVERBOOK:
     case PSP_OP_FREEONSUSP:
@@ -1224,6 +1233,7 @@ static int showCommand(char *token)
     case PSP_OP_RDPDEBUG:
     case PSP_OP_RDPPKTLOSS:
     case PSP_OP_RDPMAXRETRANS:
+    case PSP_OP_RDPMAXACKPEND:
     case PSP_OP_MCASTDEBUG:
     case PSP_OP_MASTER:
     case PSP_OP_FREEONSUSP:

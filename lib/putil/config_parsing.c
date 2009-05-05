@@ -38,6 +38,7 @@ static char vcid[] __attribute__((used)) =
 #include "pscommon.h"
 #include "hardware.h"
 #include "pspartition.h"
+#include "rdp.h"
 
 #include "psidnodes.h"
 
@@ -265,6 +266,32 @@ static int getMCastPort(char *token)
 static int getRDPPort(char *token)
 {
     return parser_getNumValue(parser_getString(), &config.RDPPort, "RDP port");
+}
+
+static int getRDPMaxRetrans(char *token)
+{
+    int ret, tmp;
+
+    ret = parser_getNumValue(parser_getString(), &tmp,
+			     "RDP maximum retransmissions");
+    if (ret) return ret;
+
+    setMaxRetransRDP(tmp);
+
+    return ret;
+}
+
+static int getRDPMaxACKPend(char *token)
+{
+    int ret, tmp;
+
+    ret = parser_getNumValue(parser_getString(), &tmp,
+			     "RDP maximum pending ACKs");
+    if (ret) return ret;
+
+    setMaxAckPendRDP(tmp);
+
+    return ret;
 }
 
 static int getSelectTime(char *token)
@@ -2504,6 +2531,8 @@ static keylist_t config_list[] = {
     {"mcastgroup", getMCastGroup},
     {"mcastport", getMCastPort},
     {"rdpport", getRDPPort},
+    {"rdpmaxretrans", getRDPMaxRetrans},
+    {"rdpmaxackpending", getRDPMaxACKPend},
     {"selecttime", getSelectTime},
     {"deadinterval", getDeadInterval},
     {"accountpoll", getAcctPollInterval},

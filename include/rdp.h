@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -217,6 +217,41 @@ int getMaxRetransRDP(void);
  * @see getMaxRetransRDP()
  */
 void setMaxRetransRDP(int count);
+
+/**
+ * @brief Get RDP maximum pending ACKs.
+ *
+ * Get the maximum pending ACK count of the RDP module. After @a count
+ * messages are received from a remote node without retransmissions, an
+ * explicit ACK message is sent.
+ *
+ * @return The actual maximum pending ACK count is returned.
+ *
+ * @see setMaxAckPendRDP()
+ */
+int getMaxAckPendRDP(void);
+
+/**
+ * @brief Set RDP maximum pending ACKs count.
+ *
+ * Set the maximum pending ACK count of the RDP module.  After @a count
+ * messages are received from a remote node without retransmissions, an
+ * explicit ACK message is sent.
+ *
+ * Explicit ACK messages might also be sent for various reasons e.g.,
+ * if a retransmission occurred.
+ *
+ * Setting this to 1 or smaller forces the RDP module to explicitely
+ * acknowledge each message received.
+ *
+ * @param count The maximum pending ACK count to be set.
+ *
+ * @return No return value.
+ *
+ * @see getMaxAckPendRDP()
+ */
+void setMaxAckPendRDP(int limit);
+
 
 /**
  * @brief Send a RDP packet.

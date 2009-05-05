@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -202,7 +202,7 @@ static void send_rlimit_OPTIONS(PStask_ID_t dest, PSP_Option_t option)
 #endif
     case PSP_OP_RL_STACK:
 	getrlimit(RLIMIT_STACK, &limit);
- 	break;
+	break;
     default:
 	unknown=1;
     }
@@ -638,6 +638,9 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 	    case PSP_OP_RDPMAXRETRANS:
 		setMaxRetransRDP(msg->opt[i].value);
 		break;
+	    case PSP_OP_RDPMAXACKPEND:
+		setMaxAckPendRDP(msg->opt[i].value);
+		break;
 	    case PSP_OP_MCASTDEBUG:
 		setDebugMaskMCast(msg->opt[i].value);
 		break;
@@ -866,6 +869,9 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_RDPMAXRETRANS:
 		msg->opt[out].value = getMaxRetransRDP();
+		break;
+	    case PSP_OP_RDPMAXACKPEND:
+		msg->opt[out].value = getMaxAckPendRDP();
 		break;
 	    case PSP_OP_MCASTDEBUG:
 		msg->opt[out].value = getDebugMaskMCast();

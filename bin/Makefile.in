@@ -105,6 +105,7 @@ psid: LOADLIBES:=$(LOADLIBES) -lnuma
 endif
 psid: LDFLAGS+=-rdynamic
 
+test_config: LOADLIBES:=$(LOADLIBES) -lm
 test_config: psidnodes.o
 
 # logger

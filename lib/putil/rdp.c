@@ -109,11 +109,16 @@ typedef struct {
  * Rsendto() will return -1 with errno set to EAGAIN.
  */
 #define MAX_WINDOW_SIZE 64
+
 /**
- * The maximum number of pending ACKs on a connection. If @a MAX_ACK_PENDING
- * ACKs are pending on a connection, a explicit ACK is send.
+ * The maximum number of pending ACKs on a connection. If @a
+ * RDPMaxAckPending ACKs are pending on a connection, a explicit ACK
+ * is send. I.e., if set to 1, each packet is acknowledged by an
+ * explicit ACK.
+ *
+ * Get/set via getMaxAckPendRDP()/setMaxAckPendRDP()
  */
-#define MAX_ACK_PENDING  4
+static int RDPMaxAckPending = 4;
 
 /** Timeout for retransmission = 300msec */
 struct timeval RESEND_TIMEOUT = {0, 300000}; /* sec, usec */
@@ -2022,6 +2027,16 @@ void setMaxRetransRDP(int limit)
     if (limit > 0) RDPMaxRetransCount = limit;
 }
 
+int getMaxAckPendRDP(void)
+{
+    return RDPMaxAckPending;
+}
+
+void setMaxAckPendRDP(int limit)
+{
+    RDPMaxAckPending = limit;
+}
+
 int Rsendto(int node, void *buf, size_t len)
 {
     msgbuf_t *mp;
@@ -2249,7 +2264,7 @@ int Rrecvfrom(int *node, void *msg, size_t len)
 	RDP_log(RDP_LOG_COMM, "%s: increase FE for %d to %x\n",
 		__func__, fromnode, conntable[fromnode].frameExpected);
 	conntable[fromnode].ackPending++;
-	if (conntable[fromnode].ackPending >= MAX_ACK_PENDING) {
+	if (conntable[fromnode].ackPending >= RDPMaxAckPending) {
 	    sendACK(fromnode);
 	}
 
