@@ -1085,6 +1085,7 @@ static void closeConnection(int node, int callback)
     conntable[node].msgPending = 0;
     conntable[node].ConnID_in = -1;
     conntable[node].ConnID_out = random();
+    conntable[node].retrans = 0;
 
     clearMsgQ(node);
     if (callback && RDPCallback) {  /* inform daemon */
@@ -2268,13 +2269,13 @@ int Rrecvfrom(int *node, void *msg, size_t len)
 void getStateInfoRDP(int node, char *s, size_t len)
 {
     snprintf(s, len, "%3d [%s]: IP=%15s ID[%08x|%08x] FTS=%08x AE=%08x"
-	     " FE=%08x AP=%3d MP=%3d",
+	     " FE=%08x AP=%2d MP=%2d RTR=%2d",
 	     node, stateStringRDP(conntable[node].state),
 	     inet_ntoa(conntable[node].sin.sin_addr),
 	     conntable[node].ConnID_in,     conntable[node].ConnID_out,
 	     conntable[node].frameToSend,   conntable[node].ackExpected,
 	     conntable[node].frameExpected, conntable[node].ackPending,
-	     conntable[node].msgPending);
+	     conntable[node].msgPending,    conntable[node].retrans);
 }
 
 void closeConnRDP(int node)
