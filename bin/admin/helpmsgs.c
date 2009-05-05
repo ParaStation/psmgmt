@@ -245,7 +245,7 @@ static info_t setInfo = {
 	.arg = "{maxproc {<num>|any} | user [+|-]{<user>|any}"
 	" | group [+|-]{{<group>|any} | psiddebug <level>"
 	" | selecttime <timeout> | rdpdebug <level> | rdppktloss <rate>"
-	" | rdpmaxretrans <val> | mcastdebug <level>"
+	" | rdpmaxretrans <val> | rdpmaxackpend <val> | mcastdebug <level>"
 	" | {freeonsuspend|fos} <bool> | {handleoldbins|hob} <bool>"
 	" | starter <bool> | runjobs <bool> | overbook {<bool>|auto}"
 	" | exclusive <bool> | pinprocs <bool> | bindmem <bool> "
@@ -291,6 +291,8 @@ static info_t setInfo = {
 	  " connections between ParaStation daemons" },
 	{ .tag = "set rdpmaxretrans <val>",
 	  .descr = "Set RDP protocol's maximum retransmission count." },
+	{ .tag = "set rdpmaxackpend <val>",
+	  .descr = "Set RDP protocol's maximum pending ACK count." },
 	{ .tag = "set mcastdebug <level>",
 	  .descr = "Set MCast facility's debugging level to <level> on the"
 	  " seleceted nodes. Depending on <level> the daemon might log a huge"
@@ -378,7 +380,7 @@ static info_t showInfo = {
     .syntax = (syntax_t[]) {{
 	.cmd = "show",
 	.arg = "{maxproc | user | group | psiddebug | selecttime | rdpdebug"
-	" | rdppktloss | rdpmaxretrans | mcastdebug | master"
+	" | rdppktloss | rdpmaxretrans | rdpmaxackpend| mcastdebug | master"
 	" | {freeonsuspend|fos} | {handleoldbins|hob} | starter | runjobs"
 	" | overbook | exclusive | pinprocs | bindmem | cpumap | nodessort"
 	" | adminuser | admingroup | accounters | accountpoll"
@@ -406,6 +408,8 @@ static info_t showInfo = {
 	  .descr = "Show RDP protocol's packet-loss rate." },
 	{ .tag = "show rdpmaxretrans",
 	  .descr = "Show RDP protocol's maximum retransmission count." },
+	{ .tag = "show rdpmaxackpend",
+	  .descr = "Show RDP protocol's maximum pending ACK count." },
 	{ .tag = "show mcastdebug",
 	  .descr = "Show MCast facility's verbosity level." },
 	{ .tag = "show master",
