@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -18,6 +18,7 @@ static char vcid[] __attribute__((used)) =
 #include <string.h>
 #include <sys/select.h>
 
+#include "list.h"
 #include "timer.h"
 #include "logging.h"
 
@@ -32,8 +33,8 @@ static char vcid[] __attribute__((used)) =
     (result)->tv_sec = (a)->tv_sec + (b)->tv_sec;                     \
     (result)->tv_usec = (a)->tv_usec + (b)->tv_usec;                  \
     if ((result)->tv_usec >= 1000000) {                               \
-        ++(result)->tv_sec;                                           \
-        (result)->tv_usec -= 1000000;                                 \
+	++(result)->tv_sec;                                           \
+	(result)->tv_usec -= 1000000;                                 \
     }                                                                 \
   } while (0)
 #endif
@@ -61,18 +62,18 @@ static int initialized = 0;
 /**
  * Structure to hold all info about each selector
  */
-typedef struct Selector_t_ {
-    int fd;                        /**< The corresponding file-descriptor. */
+typedef struct {
+    list_t next;                   /**< Use to put into @ref selectorList. */
     int (*selectHandler)(int);     /**< Handler called within Sselect(). */
+    int fd;                        /**< The corresponding file-descriptor. */
     int requested;                 /**< Flag used within Sselect(). */
-    struct Selector_t_ *next;      /**< Pointer to next selector. */
 } Selector_t;
 
 /** The logger used by the Selector facility */
 static logger_t *logger = NULL;
 
 /** List of all registered selectors. */
-static Selector_t *selectorList = NULL;
+static LIST_HEAD(selectorList);
 
 int32_t Selector_getDebugMask(void)
 {
@@ -86,19 +87,17 @@ void Selector_setDebugMask(int32_t mask)
 
 void Selector_init(FILE* logfile)
 {
-    Selector_t *selector;
+    list_t *s, *tmp;
 
     logger = logger_init("Selector", logfile);
 
     /* Free all old selectors, if any */
-    selector = selectorList;
-    while (selector) {
-	Selector_t *s = selector;
-	selector = selector->next;
-	free(s);
+    list_for_each_safe(s, tmp, &selectorList) {
+	Selector_t *selector = list_entry(s, Selector_t, next);
+	list_del(&selector->next);
+	free(selector);
     }
 
-    selectorList = NULL;
     initialized = 1;
 }
 
@@ -107,17 +106,33 @@ int Selector_isInitialized(void)
     return initialized;
 }
 
-int Selector_register(int fd, int (*selectHandler)(int))
+/**
+ * @brief Find selector
+ *
+ * Find the selector handling the file-descriptor @a fd.
+ *
+ * @param fd The file-descriptor handled by the searched selector.
+ *
+ * @return If a selector handling @a fd is found, a pointer to this
+ * selector is returned. Or NULL otherwise.
+ */
+static Selector_t * findSelector(int fd)
 {
-    Selector_t *selector;
+    list_t *s;
 
-    /* Test if a selector is allready registered on fd */
-    selector = selectorList;
-    while (selector) {
-	if (selector->fd==fd) break;
-	selector = selector->next;
+    list_for_each(s, &selectorList) {
+	Selector_t *selector = list_entry(s, Selector_t, next);
+	if (selector->fd == fd) return selector;
     }
 
+    return NULL;
+}
+
+int Selector_register(int fd, int (*selectHandler)(int))
+{
+    Selector_t *selector = findSelector(fd);
+
+    /* Test if a selector is allready registered on fd */
     if (selector) {
 	logger_print(logger, -1,
 		     "%s: found selector for fd %d\n", __func__, fd);
@@ -134,24 +149,16 @@ int Selector_register(int fd, int (*selectHandler)(int))
     *selector = (Selector_t) {
 	.fd = fd,
 	.selectHandler = selectHandler,
-	.requested = 0,
-	.next = selectorList };
-    selectorList = selector;
+	.requested = 0 };
+
+    list_add_tail(&selector->next, &selectorList);
 
     return 0;
 }
 
 int Selector_remove(int fd)
 {
-    Selector_t *selector, *prev = NULL;
-
-    /* Find timer to remove */
-    selector = selectorList;
-    while (selector) {
-	if (selector->fd==fd) break;
-	prev = selector;
-	selector = selector->next;
-    }
+    Selector_t *selector = findSelector(fd);
 
     if (!selector) {
 	logger_print(logger, -1,
@@ -159,12 +166,7 @@ int Selector_remove(int fd)
 	return -1;
     }
 
-    /* Remove selector from selectorList */
-    if (!prev) {
-	selectorList = selector->next;
-    } else {
-	prev->next = selector->next;
-    }
+    list_del(&selector->next);
 
     /* Release allocated memory for removed selector */
     free(selector);
@@ -178,26 +180,20 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
     int retval;
     struct timeval start, end = { .tv_sec = 0, .tv_usec = 0 }, stv;
     fd_set rfds, wfds, efds;
-    Selector_t *selector;
+    list_t *s;
 
     if (timeout) {
 	gettimeofday(&start, NULL);                   /* get starttime */
 	timeradd(&start, timeout, &end);              /* add given timeout */
     }
 
-    selector = selectorList;
-    while (selector) {
-	if (readfds) {
-	    selector->requested = FD_ISSET(selector->fd, readfds);
-	} else {
-	    selector->requested = 0;
-	}
+    list_for_each(s, &selectorList) {
+	Selector_t *selector = list_entry(s, Selector_t, next);
+	selector->requested = (readfds) ? FD_ISSET(selector->fd, readfds) : 0;
 	if (selector->fd >= n) n = selector->fd + 1;
-	selector = selector->next;
     }
 
     do {
-
 	if (readfds) {
 	    memcpy(&rfds, readfds, sizeof(fd_set));   /* clone readfds */
 	} else {
@@ -216,10 +212,9 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	    FD_ZERO(&efds);
 	}
 
-	selector = selectorList;
-	while (selector) {
+	list_for_each(s, &selectorList) {
+	    Selector_t *selector = list_entry(s, Selector_t, next);
 	    FD_SET(selector->fd, &rfds);              /* activate port */
-	    selector = selector->next;
 	}
 
 	if (timeout) {
@@ -243,8 +238,8 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	    }
 	}
 
-	selector = selectorList;
-	while (selector && (retval>0)) {
+	list_for_each(s, &selectorList) {
+	    Selector_t *selector = list_entry(s, Selector_t, next);
 	    if (FD_ISSET(selector->fd, &rfds) && selector->selectHandler) {
 		/* Got message on handled fd */
 		int ret = selector->selectHandler(selector->fd);
@@ -264,7 +259,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 				 __func__, selector->fd, ret);
 		}
 	    }
-	    selector = selector->next;
+	    if (retval<=0) break;
 	}
 
 	if (retval) break;
@@ -274,13 +269,13 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
     } while (!timeout || timercmp(&start, &end, <));
 
     if (readfds) {
-	selector = selectorList;
-	while (selector && (retval>0)) {
+	list_for_each(s, &selectorList) {
+	    Selector_t *selector = list_entry(s, Selector_t, next);
 	    if (!selector->requested && FD_ISSET(selector->fd, &rfds)) {
 		FD_CLR(selector->fd, &rfds);
 		retval--;
 	    }
-	    selector = selector->next;
+	    if (!retval) break;
 	}
     }
 
