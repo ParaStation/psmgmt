@@ -45,7 +45,9 @@ extern "C" {
  * psiadmin(1) process, it will be first tried to contact the
  * daemon. If this fails, the attempt to start the daemon via the
  * (x)inetd(8) and to contact it again will be made for 5 times. If
- * there is finally no contact, an error is returned.
+ * there is finally no contact, an error is returned. This behavior
+ * might be switched off by setting the __PSI_DONT_START_DAEMON
+ * environment variable before calling this function.
  *
  * For all other values of @a taskgroup only one attempt to contact
  * the local daemon is made without trying to start the daemon.

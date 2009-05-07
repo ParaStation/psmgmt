@@ -76,17 +76,21 @@ static int daemonSocket(void)
  * type @a taskGroup. During registration various compatibility checks
  * are made in order to secure the correct function of the connection.
  *
- * Depending on the @a taskGroup to act as (i.e. if acting as
- * @ref TG_ADMIN), several attempts are made in order to start the local
- * daemon if it was impossible to establish a working connection.
+ * Depending on the @a taskGroup to act as (i.e. if acting as @ref
+ * TG_ADMIN), several attempts are made in order to start the local
+ * daemon, if it was impossible to establish a working
+ * connection. This behavior might be switched via the @a tryStart
+ * flag.
  *
  * @param taskGroup The task group to act as when talking to the local
  * daemon.
  *
+ * @param tryStart Flag attempt to start the local daemon.
+ *
  * @return On success, i.e. if connection and registration to the
  * local daemon worked, 1 is returned. Otherwise 0 is returned.
  */
-static int connectDaemon(PStask_group_t taskGroup)
+static int connectDaemon(PStask_group_t taskGroup, int tryStart)
 {
     DDInitMsg_t msg;
     DDTypedBufferMsg_t answer;
@@ -112,7 +116,7 @@ static int connectDaemon(PStask_group_t taskGroup)
 
     daemonSock=daemonSocket();
 
-    if (taskGroup != TG_ADMIN && daemonSock==-1) return 0;
+    if (daemonSock==-1 && (taskGroup != TG_ADMIN || !tryStart)) return 0;
 
     while (daemonSock==-1) {
 	/*
@@ -284,7 +288,7 @@ int PSI_initClient(PStask_group_t taskGroup)
     /*
      * contact the local PSI daemon
      */
-    if (!connectDaemon(taskGroup)) {
+    if (!connectDaemon(taskGroup, !getenv("__PSI_DONT_START_DAEMON"))) {
 	if (taskGroup!=TG_RESET) {
 	    PSI_log( (taskGroup == TG_MONITOR) ? PSI_LOG_VERB : -1,
 		     "%s: cannot contact local daemon\n", __func__);

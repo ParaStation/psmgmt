@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -241,7 +241,7 @@ static int saveHistFile(const char *progname)
 int main(int argc, const char **argv)
 {
     char *copt = NULL, *progfile = NULL;
-    int echo=0, noinit=0, quiet=0, reset=0, start_all=0, version=0;
+    int echo=0, noinit=0, quiet=0, reset=0, no_start=0, start_all=0, version=0;
     int rc, done=0;
 
     poptContext optCon;   /* context for parsing command-line options */
@@ -259,9 +259,11 @@ int main(int argc, const char **argv)
 	  "Don't print a prompt while waiting for commands", NULL},
 	{ "reset", 'r', POPT_ARG_NONE, &reset, 0,
 	  "do a reset of the ParaStation daemons on startup", NULL},
+	{ "dont-start", 'd', POPT_ARG_NONE, &no_start, 0,
+	  "don't try to start the local daemon, just try to connect", NULL},
 	{ "start-all", 's', POPT_ARG_NONE, &start_all, 0,
 	  "startup all daemons of the cluster, not only the local one", NULL},
-  	{ "version", 'v', POPT_ARG_NONE, &version, -1,
+	{ "version", 'v', POPT_ARG_NONE, &version, -1,
 	  "output version information and exit", NULL},
 	POPT_AUTOHELP
 	{ NULL, '\0', 0, NULL, 0, NULL, NULL}
@@ -285,6 +287,8 @@ int main(int argc, const char **argv)
     }
 
     if (reset) doReset();
+
+    if (no_start) setenv("__PSI_DONT_START_DAEMON", "", 1);
 
     if (!PSI_initClient(TG_ADMIN)) {
 	fprintf(stderr,"can't contact my own daemon.\n");
