@@ -32,6 +32,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidstatus.h"
 #include "psidhw.h"
 #include "psidnodes.h"
+#include "psidtask.h"
 
 #include "psidstate.h"
 
@@ -230,6 +231,20 @@ static void msg_DAEMONSTART(DDBufferMsg_t *msg)
  */
 static void msg_DAEMONSTOP(DDMsg_t *msg)
 {
+    PStask_ID_t senderID = msg->sender;
+
+    if (PSC_getID(senderID) == PSC_getMyID()) {
+	PStask_t *sender = PStasklist_find(managedTasks, senderID);
+	if (sender->uid && sender->gid
+	    && !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMUSER,
+				   (PSIDnodes_guid_t){.u=sender->uid})
+	    && !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMGROUP,
+				   (PSIDnodes_guid_t){.g=sender->gid})) {
+	    PSID_log(-1, "%s: task %s not allowed to stop daemons\n", __func__,
+		     PSC_printTID(senderID));
+	}
+    }
+
     if (PSC_getID(msg->dest) == PSC_getMyID()) {
 	PSID_shutdown();
     } else {
