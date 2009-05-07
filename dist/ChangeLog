@@ -1,3 +1,146 @@
+Version psmgmt-5.0.11:
+======================
+------------------------------------------------------------------------
+r7448 | eicker | 2009-05-07 10:10:28 +0200 (Thu, 07 May 2009) | 3 lines
+
+Enhancement: New option for psiadmin '-d' prevents starting local
+    daemon.
+
+------------------------------------------------------------------------
+r7447 | eicker | 2009-05-07 10:07:05 +0200 (Thu, 07 May 2009) | 2 lines
+
+Check permissions on DAEMONSTOP message.
+
+------------------------------------------------------------------------
+r7443 | eicker | 2009-05-05 23:45:22 +0200 (Tue, 05 May 2009) | 3 lines
+
+Reset retransmission-counter on closeConnection().
+Add retransmission-counter to psiadmin's 'list rdp' output.
+
+------------------------------------------------------------------------
+r7442 | eicker | 2009-05-05 23:28:29 +0200 (Tue, 05 May 2009) | 3 lines
+
+Fix bugs introduced in r7441.
+Cleanup psiadmin's 'list rdp' output.
+
+------------------------------------------------------------------------
+r7441 | eicker | 2009-05-05 20:33:53 +0200 (Tue, 05 May 2009) | 2 lines
+
+Replace various self-coded list-structures with list_t from list.h.
+
+------------------------------------------------------------------------
+r7440 | eicker | 2009-05-05 19:13:11 +0200 (Tue, 05 May 2009) | 2 lines
+
+Update PSP_DD_LOAD's information.
+
+------------------------------------------------------------------------
+r7439 | eicker | 2009-05-05 19:11:05 +0200 (Tue, 05 May 2009) | 2 lines
+
+Document changes introduced in r7438 in psiadmin's online help.
+
+------------------------------------------------------------------------
+r7438 | eicker | 2009-05-05 17:45:53 +0200 (Tue, 05 May 2009) | 8 lines
+
+Make maximum pending ACKs in RDP configurable.
+Thus, the new option PSP_OP_RDPMAXACKPEND is invented.
+Additionally, the new functions getMaxAckPendRDP()/setMaxAckPendRDP()
+   are required.
+psiadmin needs new directives 'set/show rdpmaxackpend'
+New directives withing parastation.conf 'RDPMaxACKPending' and
+   'RDPMaxRetrans' to allow persistent settings.
+
+------------------------------------------------------------------------
+r7437 | eicker | 2009-05-04 18:04:09 +0200 (Mon, 04 May 2009) | 3 lines
+
+Make RDP platform independent. For this some helper functions handling
+    byte-order related stuff in psbyteorder.h are added.
+
+------------------------------------------------------------------------
+r7431 | eicker | 2009-04-30 22:15:25 +0200 (Thu, 30 Apr 2009) | 6 lines
+
+Limit maximum size of messages sent to 1500 byte. Thus, each message
+    sent fits into an Ethernet frame and splitting into fragments within
+    the IP layer is not required.
+Add size argument to PSI_recvMsg(). This prevents possible seqmentation
+    faults.
+
+------------------------------------------------------------------------
+r7429 | eicker | 2009-04-30 16:28:28 +0200 (Thu, 30 Apr 2009) | 5 lines
+
+Replace psh's awk-based functions for name expansion and merging with
+    more powerful bash-functions developed by Ferdinand.
+Mark xinetd configuration file for psidstarter as config-file. Thus, it
+    will not be replaced during RPM updates.
+
+------------------------------------------------------------------------
+r7428 | eicker | 2009-04-29 23:46:05 +0200 (Wed, 29 Apr 2009) | 2 lines
+
+Enable loading and unloading of plugins during runtime.
+
+------------------------------------------------------------------------
+r7426 | eicker | 2009-04-29 23:05:35 +0200 (Wed, 29 Apr 2009) | 2 lines
+
+Add package name to VERSION.package file. This fixes #296.
+
+------------------------------------------------------------------------
+r7422 | eicker | 2009-04-28 17:41:35 +0200 (Tue, 28 Apr 2009) | 2 lines
+
+Update information about various messages used by ParaStation.
+
+------------------------------------------------------------------------
+r7412 | eicker | 2009-04-20 12:35:27 +0200 (Mon, 20 Apr 2009) | 3 lines
+
+Bugfix: Don't try to start psid during spawn, if remote daemon is down.
+    This should fix #266.
+
+------------------------------------------------------------------------
+r7383 | eicker | 2009-04-03 15:15:13 +0200 (Fri, 03 Apr 2009) | 14 lines
+
+Extension: Prepare for daemon-plugins. Right now the daemon might load
+    plugins on startup and the admin is abe to show the plugins.
+    (Un-)loading plugins during runtime is not yet supported.
+Remove PSC_setInstalldir(). Functionality now provided via hint to
+    PSC_lookupInstalldir().
+New message type PSP_INFO_QUEUE_PLUGINS. Used by psiadmin to fetch
+    information about plugins.
+Parser for configuration file now suppert plugins directive.
+psiadmin's parser supports 'plugins' directive. No funtionality for
+    (un-)loading plugins yet.
+Minor improvements in psiadmin's syntax check.
+Minor improvements in psiadmin's help messages.
+Many whitespace cleanups
+
+------------------------------------------------------------------------
+r7381 | eicker | 2009-04-02 19:06:36 +0200 (Thu, 02 Apr 2009) | 4 lines
+
+Allow exact matching shortcuts. E.g. in psiadmin 'list p' is allowed,
+    even if 'list' might be followed by both, 'processes' and 'plugins'.
+    The shortcut has to be added explicitely to the parser's keylist.
+
+------------------------------------------------------------------------
+r7368 | rauh | 2009-04-01 12:34:11 +0200 (Wed, 01 Apr 2009) | 2 lines
+
+Bugfix: mpiexec didn't recognize of no cmd was given.
+
+------------------------------------------------------------------------
+r7361 | eicker | 2009-03-27 18:14:49 +0100 (Fri, 27 Mar 2009) | 4 lines
+
+Extension: New directive 'resolve' in psiadmin.
+Remove some obsolete code.
+More whitespace cleanup.
+
+------------------------------------------------------------------------
+r7360 | eicker | 2009-03-27 18:09:03 +0100 (Fri, 27 Mar 2009) | 2 lines
+
+Bugfix: Fix manual build. psidspawn.o has to find config.h.
+
+------------------------------------------------------------------------
+r7340 | eicker | 2009-03-16 11:47:40 +0100 (Mon, 16 Mar 2009) | 2 lines
+
+New release (psmgmt-5.0.10-2)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.10-2:
 ========================
 ------------------------------------------------------------------------
@@ -23,7 +166,7 @@ r7330 | eicker | 2009-03-14 02:08:29 +0100 (Sat, 14 Mar 2009) | 2 lines
 New version (psmgmt-5.0.10)
 
 ------------------------------------------------------------------------
-	
+
 Version psmgmt-5.0.10:
 ======================
 ------------------------------------------------------------------------
@@ -852,7 +995,7 @@ r5882 | eicker | 2008-04-08 18:57:00 +0200 (Tue, 08 Apr 2008) | 2 lines
 New version (psmgmt-5.0.2)
 
 ------------------------------------------------------------------------
-	
+
 Version psmgmt-5.0.2:
 =====================
 ------------------------------------------------------------------------
@@ -1241,7 +1384,7 @@ removed debug output
 r5233 | rauh | 2007-09-26 14:25:12 +0200 (Wed, 26 Sep 2007) | 3 lines
 
 comment out in psh to use mpiexec
-accounting  
+accounting
 
 ------------------------------------------------------------------------
 r5232 | rauh | 2007-09-26 11:26:44 +0200 (Wed, 26 Sep 2007) | 3 lines
@@ -1503,7 +1646,7 @@ better set of accounting file permissions and security fix
 ------------------------------------------------------------------------
 r4817 | rauh | 2007-05-09 12:12:52 +0200 (Wed, 09 May 2007) | 2 lines
 
-cleaner function to became a daemon 
+cleaner function to became a daemon
 
 ------------------------------------------------------------------------
 r4798 | eicker | 2007-04-24 19:23:08 +0200 (Tue, 24 Apr 2007) | 2 lines
@@ -2268,15 +2411,15 @@ Extension: Add 'adminuser' and 'admingroup' attribute to nodes. This
 r4195 | eicker | 2006-07-19 16:58:42 +0200 (Wed, 19 Jul 2006) | 4 lines
 
 Bugfix: Enable PSI_spawn() and relatives to handle much larger
-        environments. Now we might reduce the maximum size of
-        DDBufferMsg_t and DDTypedBufferMsg_t significantly.
+    environments. Now we might reduce the maximum size of
+    DDBufferMsg_t and DDTypedBufferMsg_t significantly.
 
 ------------------------------------------------------------------------
 r4194 | eicker | 2006-07-19 15:34:25 +0200 (Wed, 19 Jul 2006) | 4 lines
 
 Bugfix: Interprete PSI_DEBUGMASK correct even when given as hex.
 Bugfix: Exit from PSE_spawnMaster() even if PSI_spawn gives no error
-        code.
+    code.
 
 ------------------------------------------------------------------------
 r4180 | eicker | 2006-07-11 23:55:32 +0200 (Tue, 11 Jul 2006) | 2 lines
@@ -2373,9 +2516,9 @@ Bugfix: Prevent calling free() more than once on task->argv[i].
 r4006 | eicker | 2006-03-02 15:49:58 +0100 (Thu, 02 Mar 2006) | 5 lines
 
 Extension: New info-type PSP_INFO_QUEUE_*. This make info-retrival more
-        flexible.
+    flexible.
 Refactor PSIADM_ProcStat() in order to make use of the new info-retrival
-        mechanism.
+    mechanism.
 
 
 Version psmgmt-4.3.1:
@@ -2480,7 +2623,7 @@ to support all the batch-systems.
 r3925 | eicker | 2006-01-20 13:34:23 +0100 (Fri, 20 Jan 2006) | 3 lines
 
 Bugfix: Use PSE_getPartition() instead of PSI_createPartition() in order
-to support all the batch-systems. 
+to support all the batch-systems.
 
 ------------------------------------------------------------------------
 r3924 | eicker | 2006-01-20 13:32:30 +0100 (Fri, 20 Jan 2006) | 3 lines
@@ -3428,7 +3571,7 @@ Version psmgmt-4.0.6:
 2004-01-09  Norbert Eicker  <eicker@par-tec.com>
 
 	* Bugfix: Always handle the extended error messages under
-	Linux. Otherwise spurious exits from the daemon complaining on RDP 
+	Linux. Otherwise spurious exits from the daemon complaining on RDP
 	ERRORS might happen. This is merged from the main trunk.
 
 	* Bugfix: Tselect will not return on timeout if timeout is longer
@@ -3450,7 +3593,7 @@ Version psmgmt-4.0.6:
 	- Add help messages for hwstart/hwstop commands.
 	- Bugfixes to RDP.
 	- OpenPBS/PBSPro detection and handling.
-	
+
 	* Extension: Add some compatibility dummy calls for 4.1.x.
 
 	* Bugfix: Merge changes from main trunk concerning PSM_INSTALL,
@@ -3467,7 +3610,7 @@ Version psmgmt-4.0.5 (internal version):
 ========================================
 
   Note: This was a kind of internal psmgmt-4.1 preview. Most of the stuff
-        in this revision did not made it into psmgmt-4.0.6 which was
+	in this revision did not made it into psmgmt-4.0.6 which was
 	released in a normal fashion.
 
 2003-10-13  Jens Hauke  <hauke@par-tec.com>
@@ -3503,7 +3646,7 @@ Version psmgmt-4.0.5 (internal version):
 
 	* Bugfix: Also detect PSI_NODES_SORT=NONE. Extract nodelist
 	sending from PSI_createPartition() into sendNodelist().
-	
+
 	* Extension: PSI_PBS() function analog to PSI_LSF(). (Transparent
 	Batchsystem support)
 
@@ -3513,7 +3656,7 @@ Version psmgmt-4.0.5 (internal version):
 	New functions PSI_spawn(), PSI_spawnRank() and
 	PSI_spawnGMSpawner() enabeling the new partition and spawning
 	mechanism. New functions PSE_getPartition() and PSE_getSize().
-	
+
 	* Extension: Complete redesign of spawning stuff:
 	- Remove PSI_spawnM() function.
 	- Add PSI_spawnRank() and PSI_spawnGMSpawner() functions.
@@ -3660,4 +3803,3 @@ Version psmgmt-4.0.1:
 2003-04-04  Jens Hauke  <hauke@par-tec.com>
 
 	* Release: psmgmt-4.0.0 released.
-
