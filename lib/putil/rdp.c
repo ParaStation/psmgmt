@@ -497,7 +497,7 @@ static void initMsgList(int nodes)
     int i, count;
     msgbuf_t *buf;
 
-    count = (nodes > 128) ? nodes / 8 : nodes * MAX_WINDOW_SIZE;
+    count = ((nodes > 128) ? nodes / 8 : nodes) * MAX_WINDOW_SIZE;
     buf = malloc(count * sizeof(*buf));
     if (!buf) RDP_exit(errno, "%s", __func__);
 
@@ -522,13 +522,9 @@ static msgbuf_t *getMsg(void)
     if (list_empty(&MsgFreeList)) {
 	RDP_log(-1, "%s: no more elements in MsgFreeList\n", __func__);
     } else {
-	list_t *m;
 	msgbuf_t *mp;
 	/* get list's first element */
-	list_for_each(m, &MsgFreeList) {
-	    mp = list_entry(m, msgbuf_t, next);
-	    break;
-	}
+	mp = list_entry(&MsgFreeList.next, msgbuf_t, next);
 	list_del(&mp->next);
 	mp->node = -1;
 
@@ -575,7 +571,7 @@ static void initSMsgList(int nodes)
     int i, count;
     Smsg_t *sbuf;
 
-    count = (nodes > 128) ? nodes / 8 : nodes * MAX_WINDOW_SIZE;
+    count = ((nodes > 128) ? nodes / 8 : nodes) * MAX_WINDOW_SIZE;
     sbuf = malloc(count * sizeof(*sbuf));
     if (!sbuf) RDP_exit(errno, "%s", __func__);
 
@@ -734,7 +730,7 @@ static void initAckList(int nodes)
     /*
      * Max set size is nodes * MAX_WINDOW_SIZE !!
      */
-    count = (nodes > 128) ? nodes / 8 : nodes * MAX_WINDOW_SIZE;
+    count = ((nodes > 128) ? nodes / 8 : nodes) * MAX_WINDOW_SIZE;
     ackbuf = malloc(count * sizeof(*ackbuf));
     if (!ackbuf) RDP_exit(errno, "%s", __func__);
 
@@ -756,13 +752,9 @@ static ackent_t *getAckEnt(void)
     if (list_empty(&AckFreeList)) {
 	RDP_log(-1, "%s: no more elements in AckFreeList\n", __func__);
     } else {
-	list_t *a;
 	ackent_t *ap;
 	/* get list's first element */
-	list_for_each(a, &AckFreeList) {
-	    ap = list_entry(a, ackent_t, next);
-	    break;
-	}
+	ap = list_entry(&AckFreeList.next, ackent_t, next);
 	list_del(&ap->next);
 
 	return ap;
@@ -2076,6 +2068,12 @@ int Rsendto(int node, void *buf, size_t len)
 
     /* setup msg buffer */
     mp = getMsg();
+    if (!mp) {
+	RDP_log(-1, "%s: Unable to get msg buffer\n", __func__);
+	errno = EAGAIN;
+	return -1;
+    }
+
     if (len <= RDP_SMALL_DATA_SIZE) {
 	mp->msg.small = getSMsg();
     } else {
