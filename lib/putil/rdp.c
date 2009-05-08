@@ -1424,7 +1424,7 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
 
     list_for_each_safe(m, tmp, &cp->pendList) {
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
-	if (RSEQCMP(psntoh32(mp->msg.small->header.seqno), newSend) < 0) {
+	if (RSEQCMP((int)psntoh32(mp->msg.small->header.seqno), newSend) < 0) {
 	    /* current msg precedes NACKed msg */
 	    if (RDPCallback) { /* give msg back to upper layer */
 		deadbuf.dst = node;
@@ -1569,7 +1569,7 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 		__func__, psntoh32(mp->msg.small->header.seqno), hdr->ackno);
 	if (RSEQCMP(psntoh32(mp->msg.small->header.seqno), hdr->ackno) <= 0) {
 	    /* ACK this buffer */
-	    if (psntoh32(mp->msg.small->header.seqno) != cp->ackExpected) {
+	    if ((int)psntoh32(mp->msg.small->header.seqno) != cp->ackExpected) {
 		RDP_log(-1, "%s: strange things happen: msg.seqno = %x,"
 			" AE=%x from %d\n", __func__,
 			psntoh32(mp->msg.small->header.seqno),
