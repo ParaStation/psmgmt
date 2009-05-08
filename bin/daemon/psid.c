@@ -624,6 +624,13 @@ int main(int argc, const char *argv[])
     /* Try to get a lock. This will guarantee exlusiveness */
     PSID_getLock();
 
+    /*
+     * Create the Local Service Port as early as possible. Actual
+     * handling is enabled later. This gives psiadmin the chance to
+     * connect.
+     */
+    PSID_createMasterSock();
+
     /* read the config file */
     PSID_readConfigFile(logfile, configfile);
     /* Now we can rely on the config structure */
@@ -694,9 +701,6 @@ int main(int argc, const char *argv[])
     initInfo();
     initPlugins();
 
-    /* create the socket to listen for clients */
-    PSID_setupMasterSock(logfile);
-
     /* Now we start all the hardware -- this might include the accounter */
     PSID_startAllHW();
     PSIDnodes_setAcctPollI(PSC_getMyID(), config->acctPollInterval);
@@ -745,6 +749,9 @@ int main(int argc, const char *argv[])
 
 	free(hostlist);
     }
+
+    /* Now start to listen for clients */
+    PSID_enableMasterSock();
 
     PSID_log(-1, "SelectTime=%d sec    DeadInterval=%d\n",
 	     config->selectTime, config->deadInterval);

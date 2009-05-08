@@ -248,17 +248,30 @@ void PSID_getLock(void);
  * order to connect their local daemon instead of being directly
  * connected during spawn.
  *
- * The master socket is registered within the selector facility in
- * order to automatically handle connection requests.
- *
- * @param logfile Daemon's master logfile to be passed to the selector
- * facility if this is not yet initialized.
+ * Be aware of the fact that this function does not initialize any
+ * actual handling of the master socket. In order to really enable
+ * this use @ref PSID_enableMasterSock().
  *
  * @return No return value.
  *
- * @see PSID_shutdownMasterSock()
+ * @see PSID_enableMasterSock(), PSID_shutdownMasterSock()
  */
-void PSID_setupMasterSock(FILE *logfile);
+void PSID_createMasterSock(void);
+
+/**
+ * @brief Enable master socket.
+ *
+ * Register the master socket within the selector facility in order to
+ * automatically handle connection requests.
+ *
+ * It is expected that the master socket is created via @ref
+ * PSID_createMasterSock() beforehand.
+ *
+ * @return No return value.
+ *
+ * @see PSID_createMasterSock, PSID_shutdownMasterSock()
+ */
+void PSID_enableMasterSock(void);
 
 /**
  * @brief Shutdown master socket.
@@ -270,7 +283,7 @@ void PSID_setupMasterSock(FILE *logfile);
  *
  * @return No return value.
  *
- * @see PSID_setupMasterSock()
+ * @see PSID_createMasterSock(), PSID_enableMasterSock()
  */
 void PSID_shutdownMasterSock(void);
 

@@ -224,7 +224,7 @@ static int handleMasterSock(int fd)
     return 1; /* return 1 to allow main-loop updating PSID_readfds */
 }
 
-void PSID_setupMasterSock(FILE *logfile)
+void PSID_createMasterSock(void)
 {
     struct sockaddr_un sa;
 
@@ -247,10 +247,23 @@ void PSID_setupMasterSock(FILE *logfile)
 	PSID_exit(errno, "Error while trying to listen");
     }
 
-    if (!Selector_isInitialized()) Selector_init(logfile);
+    PSID_log(-1, "Local Service Port (%d) created.\n", masterSock);
+}
+
+void PSID_enableMasterSock(void)
+{
+    if (masterSock < 0) {
+	PSID_log(-1, "%s: Local Service Port not yet opened\n", __func__);
+	PSID_createMasterSock();
+    }
+    if (!Selector_isInitialized()) {
+	PSID_log(-1, "%s: Local Service Port needs running Selector\n",
+		 __func__);
+	exit(-1);
+    }
     Selector_register(masterSock, handleMasterSock);
 
-    PSID_log(-1, "Local Service Port (%d) initialized.\n", masterSock);
+    PSID_log(-1, "Local Service Port (%d) enabled.\n", masterSock);
 }
 
 void PSID_shutdownMasterSock(void)
