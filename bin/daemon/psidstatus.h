@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -240,13 +240,19 @@ void releaseStatusTimer(void);
  * master, a PSP_DD_DEAD_NODE message is sent to all node known to be
  * up in order to inform them about the dead node.
  *
+ * If @a silent is different from 0, no message concerning the lost
+ * connection is created within the logs -- unless PSID_LOG_STATUS is
+ * part of the debug-mask.
+ *
  * @param id The ParaStation ID of the node declared to be dead.
  *
  * @param sendDeadnode Flag triggering PSP_DD_DEAD_NODE messages.
  *
+ * @param silent Flag triggering log-suppression of lost connection
+ *
  * @return No return value.
  */
-void declareNodeDead(PSnodes_ID_t id, int sendDeadnode);
+void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent);
 
 /** @brief Declare a node alive.
  *

@@ -100,7 +100,7 @@ typedef struct {
 } rdphdr_t;
 
 /** Up to this size predefined buffers are use to store the message. */
-#define RDP_SMALL_DATA_SIZE 32
+#define RDP_SMALL_DATA_SIZE 64
 /** The maximum size of a RDP message. May decrease in future.*/
 #define RDP_MAX_DATA_SIZE 8192
 
@@ -497,7 +497,7 @@ static void initMsgList(int nodes)
     int i, count;
     msgbuf_t *buf;
 
-    count = nodes * MAX_WINDOW_SIZE;
+    count = (nodes > 128) ? nodes / 8 : nodes * MAX_WINDOW_SIZE;
     buf = malloc(count * sizeof(*buf));
     if (!buf) RDP_exit(errno, "%s", __func__);
 
@@ -575,7 +575,7 @@ static void initSMsgList(int nodes)
     int i, count;
     Smsg_t *sbuf;
 
-    count = nodes * MAX_WINDOW_SIZE;
+    count = (nodes > 128) ? nodes / 8 : nodes * MAX_WINDOW_SIZE;
     sbuf = malloc(count * sizeof(*sbuf));
     if (!sbuf) RDP_exit(errno, "%s", __func__);
 
@@ -734,7 +734,7 @@ static void initAckList(int nodes)
     /*
      * Max set size is nodes * MAX_WINDOW_SIZE !!
      */
-    count = nodes * MAX_WINDOW_SIZE;
+    count = (nodes > 128) ? nodes / 8 : nodes * MAX_WINDOW_SIZE;
     ackbuf = malloc(count * sizeof(*ackbuf));
     if (!ackbuf) RDP_exit(errno, "%s", __func__);
 
@@ -1025,13 +1025,6 @@ static void clearMsgQ(int node)
 {
     Rconninfo_t *cp = &conntable[node];
     list_t *m, *tmp;
-    int blocked;
-
-    /*
-     * A blocked timer needs to be restored since clearMsgQ() can be called
-     * from within handleTimeoutRDP().
-     */
-    blocked = Timer_block(timerID, 1);
 
     /* Decline all pending messages */
     list_for_each_safe(m, tmp, &cp->pendList) {
@@ -1057,9 +1050,6 @@ static void clearMsgQ(int node)
 
     cp->ackExpected = cp->frameToSend;          /* restore initial setting */
     cp->window = MAX_WINDOW_SIZE;               /* restore window size */
-
-    /* Restore blocked timer */
-    Timer_block(timerID, blocked);
 }
 
 /**
@@ -1069,16 +1059,30 @@ static void clearMsgQ(int node)
  * program. The last step will be performed only if the @a callback
  * flag is set.
  *
+ * If @a silent is different from 0, no message concerning the lost
+ * connection is created within the logs -- unless RDP_LOG_CONN is
+ * part of the debug-mask.
+ *
  * @param node Connection to this node will be brought down.
  *
  * @param callback Flag, if the RDP-callback shall be performed.
  *
  * @return No return value.
  */
-static void closeConnection(int node, int callback)
+static void closeConnection(int node, int callback, int silent)
 {
-    RDP_log((conntable[node].state != ACTIVE) ? RDP_LOG_CONN : -1, "%s(%d)\n",
-	    __func__, node);
+    int blocked;
+
+    RDP_log((conntable[node].state == ACTIVE && !silent) ? -1 : RDP_LOG_CONN,
+	    "%s(%d)\n", __func__, node);
+
+    /*
+     * A blocked timer needs to be restored since closeConnection()
+     * can be called from within handleTimeoutRDP().
+     */
+    blocked = Timer_block(timerID, 1);
+
+    clearMsgQ(node);
 
     conntable[node].state = CLOSED;
     conntable[node].ackPending = 0;
@@ -1087,7 +1091,9 @@ static void closeConnection(int node, int callback)
     conntable[node].ConnID_out = random();
     conntable[node].retrans = 0;
 
-    clearMsgQ(node);
+    /* Restore blocked timer */
+    Timer_block(timerID, blocked);
+
     if (callback && RDPCallback) {  /* inform daemon */
 	RDPCallback(RDP_LOST_CONNECTION, &node);
     }
@@ -1128,7 +1134,7 @@ static void resendMsgs(int node)
 		"%s: Retransmission count exceeds limit"
 		" [seqno=%x], closing connection to %d\n",
 		__func__, conntable[node].ackExpected, node);
-	closeConnection(node, 1);
+	closeConnection(node, 1, 0);
 	return;
     }
 
@@ -1342,7 +1348,7 @@ static void updateState(rdphdr_t *hdr, int node)
 	    RDP_log(RDP_LOG_CNTR, "%s: new connection from %d, FE=%x, seqno=%x"
 		    " in ACTIVE State [%d:%d]\n", __func__, node,
 		    cp->frameExpected, hdr->seqno, hdr->connid, cp->ConnID_in);
-	    closeConnection(node, 1);
+	    closeConnection(node, 1, 0);
 	    switch (hdr->type) {
 	    case RDP_SYN:
 	    case RDP_SYNNACK:
@@ -1369,7 +1375,7 @@ static void updateState(rdphdr_t *hdr, int node)
 	} else { /* SYN Packet on OLD Connection (probably lost answers) */
 	    switch (hdr->type) {
 	    case RDP_SYN:
-		closeConnection(node, 1);
+		closeConnection(node, 1, 0);
 		cp->state = SYN_RECVD;
 		cp->frameExpected = hdr->seqno; /* Accept new seqno */
 		RDP_log(RDP_LOG_CNTR,
@@ -1544,8 +1550,8 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 	    fromnode, hdr->type, hdr->seqno, cp->ackExpected, hdr->ackno);
 
     if (hdr->connid != cp->ConnID_in) { /* New Connection */
-	RDP_log(-1, "unable to process ACK for new connections %x vs. %x\n",
-		hdr->connid, cp->ConnID_in);
+	RDP_log(-1, "unable to process ACK for new conn to %d (%x vs. %x)\n",
+		fromnode, hdr->connid, cp->ConnID_in);
 	return;
     }
 
@@ -1766,7 +1772,7 @@ static int handleErr(void)
 	RDP_log(RDP_LOG_CONN, "%s: CONNREFUSED from %s(%d) port %d\n",
 		__func__, inet_ntoa(sinp->sin_addr), node,
 		ntohs(sinp->sin_port));
-	closeConnection(node, 1);
+	closeConnection(node, 1, 0);
 	break;
     case EHOSTUNREACH:
 	RDP_log(RDP_LOG_CONN, "%s: HOSTUNREACH from %s(%d) port %d\n",
@@ -2292,7 +2298,7 @@ void getStateInfoRDP(int node, char *s, size_t len)
 
 void closeConnRDP(int node)
 {
-    closeConnection(node, 0);
+    closeConnection(node, 0, 1);
 }
 
 int RDP_blockTimer(int block)

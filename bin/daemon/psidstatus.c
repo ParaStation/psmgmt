@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -434,7 +434,7 @@ void releaseStatusTimer(void)
 /* Prototype forward declaration. */
 static int send_DEADNODE(PSnodes_ID_t deadnode);
 
-void declareNodeDead(PSnodes_ID_t id, int sendDeadnode)
+void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
 {
     PStask_t *task;
 
@@ -478,7 +478,8 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode)
     /* Disable accounters located on dead node */
     PSID_cleanAcctFromNode(id);
 
-    PSID_log(-1, "%s: connection lost to node %d\n", __func__, id);
+    PSID_log(silent ? PSID_LOG_STATUS : -1, "%s: connection lost to node %d\n",
+	     __func__, id);
 
     if (id == getMasterID()) {
 	/* Dead node was master, find new one */
@@ -685,7 +686,7 @@ static void msg_DAEMONSHUTDOWN(DDMsg_t *msg)
     PSnodes_ID_t id = PSC_getID(msg->sender);
 
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, id);
-    declareNodeDead(id, 0);
+    declareNodeDead(id, 0, 1);
     closeConnRDP(id);
 }
 
@@ -698,8 +699,12 @@ int send_MASTERIS(PSnodes_ID_t dest)
 	    .dest = PSC_getTID(dest, 0),
 	    .len = sizeof(msg.header) },
 	.buf = {'\0'} };
-
     *(PSnodes_ID_t *)msg.buf = getMasterID();
+    msg.header.len += sizeof(PSnodes_ID_t);
+
+    PSID_log(PSID_LOG_STATUS, "%s: tell %s master is %d\n",
+	     __func__, PSC_printTID(msg.header.dest), getMasterID());
+
     return sendMsg(&msg);
 }
 
@@ -726,6 +731,9 @@ int send_MASTERIS(PSnodes_ID_t dest)
 static void msg_MASTERIS(DDBufferMsg_t *msg)
 {
     PSnodes_ID_t newMaster = *(PSnodes_ID_t *)msg->buf;
+
+    PSID_log(PSID_LOG_STATUS, "%s: %s says master is %d\n", __func__,
+	     PSC_printTID(msg->header.sender), newMaster);
 
     if (newMaster != getMasterID()) {
 	if (newMaster < getMasterID()) {
@@ -814,14 +822,26 @@ static void msg_ACTIVENODES(DDBufferMsg_t *msg)
 {
     int num = (msg->header.len - sizeof(msg->header)) / sizeof(PSnodes_ID_t);
     PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)msg->buf;
+    PSnodes_ID_t senderNode = PSC_getID(msg->header.sender);
+    static PSnodes_ID_t firstUntested = 0;
     int idx;
 
     PSID_log(PSID_LOG_STATUS, "%s: num is %d\n", __func__, num);
 
     for (idx=0; idx<num; idx++) {
+	PSnodes_ID_t currentNode = nodeBuf[idx];
 	PSID_log(PSID_LOG_STATUS,
 		 "%s: %d. is %d\n", __func__, idx, nodeBuf[idx]);
-	if (!PSIDnodes_isUp(nodeBuf[idx])) send_DAEMONCONNECT(nodeBuf[idx]);
+	if (currentNode == senderNode) {
+	    /* Sender is first active node, all previous nodes are down */
+	    firstUntested = 0;
+	}
+	PSnodes_ID_t n;
+	for (n=firstUntested; n<currentNode; n++) {
+	    if (PSIDnodes_isUp(n)) send_DAEMONCONNECT(n);
+	}
+	if (!PSIDnodes_isUp(currentNode)) send_DAEMONCONNECT(currentNode);
+	firstUntested = currentNode+1;
     }
 }
 
@@ -905,7 +925,7 @@ static void msg_LOAD(DDBufferMsg_t *msg)
     } else {
 	int clientNodes;
 
-	if (PSIDnodes_getProtoVersion(getMasterID()) < 334) {
+	if (PSIDnodes_getProtoVersion(client) < 334) {
 	    clientStat[client].jobs = *(PSID_Jobs_t *)ptr;
 	    ptr += sizeof(PSID_Jobs_t);
 

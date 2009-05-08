@@ -143,7 +143,7 @@ static void MCastCallBack(int msgid, void *buf)
 	PSID_log(PSID_LOG_STATUS | PSID_LOG_MCAST,
 		 "%s(MCAST_LOST_CONNECTION,%d)\n",
 		 __func__, node);
-	if (node != PSC_getMyID()) declareNodeDead(node, 0);
+	if (node != PSC_getMyID()) declareNodeDead(node, 0, 0);
 	/*
 	 * Send CONNECT msg via RDP. This should timeout and tell RDP that
 	 * the connection is down.
@@ -197,7 +197,7 @@ static void RDPCallBack(int msgid, void *buf)
 	PSID_log(PSID_LOG_STATUS | PSID_LOG_RDP,
 		 "%s(RDP_LOST_CONNECTION,%d)\n", __func__, node);
 
-	declareNodeDead(node, 1);
+	declareNodeDead(node, 1, 0);
 
 	break;
     }
