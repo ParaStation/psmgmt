@@ -140,8 +140,15 @@ void PSIlog_setTimeFlag(char flag)
     logger_setTimeFlag(PSIlog_stderrLogger, flag);
 }
 
+/**
+ * If STDIN get's closed, don't re-add it to the fd-set. This stores
+ * our STDIN-fd.
+ */
+static int unavailSTDIN = -1;
+
 void addToFDSet(int fd)
 {
+    if (fd == unavailSTDIN) return;
     FD_SET(fd, &myfds);
 }
 
@@ -695,6 +702,7 @@ static void forwardInput(int std_in)
     case 0:
 	remFromFDSet(std_in);
 	close(std_in);
+	unavailSTDIN = std_in;
     default:
 	forwardInputStr(buf, len);
 
