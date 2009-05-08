@@ -524,7 +524,7 @@ static msgbuf_t *getMsg(void)
     } else {
 	msgbuf_t *mp;
 	/* get list's first element */
-	mp = list_entry(&MsgFreeList.next, msgbuf_t, next);
+	mp = list_entry(MsgFreeList.next, msgbuf_t, next);
 	list_del(&mp->next);
 	mp->node = -1;
 
@@ -754,7 +754,7 @@ static ackent_t *getAckEnt(void)
     } else {
 	ackent_t *ap;
 	/* get list's first element */
-	ap = list_entry(&AckFreeList.next, ackent_t, next);
+	ap = list_entry(AckFreeList.next, ackent_t, next);
 	list_del(&ap->next);
 
 	return ap;
