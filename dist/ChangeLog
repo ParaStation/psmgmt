@@ -1,3 +1,25 @@
+Version psmgmt-5.0.12-1:
+========================
+------------------------------------------------------------------------
+r7468 | eicker | 2009-05-08 15:06:17 +0200 (Fri, 08 May 2009) | 10 lines
+
+Bugfix: Eliminate possible list-confusion in RDP during conn. close.
+Bugfix: Really send new master in DD_MASTER_IS message.
+Bugfix: Increase cross-version compatibility of DD_LOAD messages.
+Enhancement: Suppress error-logs, if daemon shuts down gracefully.
+Enhancement: Make RDP's 'unable to process ACK' log more meaningful.
+Enhancement: Smarter analysis of DD_ACTIVE_NODES messages.
+Increase RDP's RDP_SMALL_DATA_SIZE to 64 byte, thus DD_LOAD messages now
+    fitting.
+Reduce RDP's number of allocated message-frames on huge clusters.
+
+------------------------------------------------------------------------
+r7462 | eicker | 2009-05-08 10:47:37 +0200 (Fri, 08 May 2009) | 2 lines
+
+New version (psmgmt-5.0.12)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.12:
 ======================
 ------------------------------------------------------------------------
