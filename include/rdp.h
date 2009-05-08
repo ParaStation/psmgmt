@@ -191,11 +191,11 @@ int getPktLossRDP(void);
 void setPktLossRDP(int rate);
 
 /**
- * @brief Get RDP maximum retransmission count.
+ * @brief Get maximum retransmission count.
  *
- * Get the maximum retransmission count of the RDP module. After @a count
- * consecutively failed retries to send a RDP message, the receiving node
- * is declared to be dead.
+ * Get the maximum retransmission count of the RDP module. After this
+ * number of consecutively failed retries to send a RDP message, the
+ * receiving node is declared to be dead.
  *
  * @return The actual maximum retransmission count is returned.
  *
@@ -204,7 +204,7 @@ void setPktLossRDP(int rate);
 int getMaxRetransRDP(void);
 
 /**
- * @brief Set RDP maximum retransmission count.
+ * @brief Set maximum retransmission count.
  *
  * Set the maximum retransmission count of the RDP module. After @a count
  * consecutively failed retries to send a RDP message, the receiving node
@@ -219,11 +219,11 @@ int getMaxRetransRDP(void);
 void setMaxRetransRDP(int count);
 
 /**
- * @brief Get RDP maximum pending ACKs.
+ * @brief Get maximum pending ACKs.
  *
- * Get the maximum pending ACK count of the RDP module. After @a count
- * messages are received from a remote node without retransmissions, an
- * explicit ACK message is sent.
+ * Get the maximum pending ACK count of the RDP module. After this
+ * number of messages are received from a remote node without
+ * retransmissions, an explicit ACK message is sent.
  *
  * @return The actual maximum pending ACK count is returned.
  *
@@ -232,11 +232,11 @@ void setMaxRetransRDP(int count);
 int getMaxAckPendRDP(void);
 
 /**
- * @brief Set RDP maximum pending ACKs count.
+ * @brief Set maximum pending ACKs count.
  *
- * Set the maximum pending ACK count of the RDP module.  After @a count
- * messages are received from a remote node without retransmissions, an
- * explicit ACK message is sent.
+ * Set the maximum pending ACK count of the RDP module.  After @a
+ * limit messages are received from a remote node without
+ * retransmissions, an explicit ACK message is sent.
  *
  * Explicit ACK messages might also be sent for various reasons e.g.,
  * if a retransmission occurred.
@@ -251,6 +251,38 @@ int getMaxAckPendRDP(void);
  * @see getMaxAckPendRDP()
  */
 void setMaxAckPendRDP(int limit);
+
+/**
+ * @brief Get resend timeout.
+ *
+ * Get the resend timeout of the RDP module. After this number of
+ * milli-seconds a pending packet is sent again to the remote
+ * node. Retransmissions occur unless a corresponding ACK is received
+ * or the maximum number of retransmissions for this packet is
+ * reached.
+ *
+ * @return The actual resend timeout is returned.
+ *
+ * @see setRsndTmOutRDP(), getMaxRetransRDP(), setMaxRetransRDP()
+ */
+int getRsndTmOutRDP(void);
+
+/**
+ * @brief Set RDP maximum pending ACKs count.
+ *
+ * Set the resend timeout of the RDP module to @a timeout
+ * milli-seconds. After this number of milli-seconds a pending packet
+ * is sent again to the remote node. Retransmissions occur unless a
+ * corresponding ACK is received or the maximum number of
+ * retransmissions for this packet is reached.
+ *
+ * @param timeout The resend timeout in milli-seconds to be set.
+ *
+ * @return No return value.
+ *
+ * @see getRsndTmOutRDP(), getMaxRetransRDP(), setMaxRetransRDP()
+ */
+void setRsndTmOutRDP(int timeout);
 
 
 /**

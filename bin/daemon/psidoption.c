@@ -641,6 +641,9 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 	    case PSP_OP_RDPMAXACKPEND:
 		setMaxAckPendRDP(msg->opt[i].value);
 		break;
+	    case PSP_OP_RDPRSNDTMOUT:
+		setRsndTmOutRDP(msg->opt[i].value);
+		break;
 	    case PSP_OP_MCASTDEBUG:
 		setDebugMaskMCast(msg->opt[i].value);
 		break;
@@ -872,6 +875,9 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_RDPMAXACKPEND:
 		msg->opt[out].value = getMaxAckPendRDP();
+		break;
+	    case PSP_OP_RDPRSNDTMOUT:
+		msg->opt[out].value = getRsndTmOutRDP();
 		break;
 	    case PSP_OP_MCASTDEBUG:
 		msg->opt[out].value = getDebugMaskMCast();

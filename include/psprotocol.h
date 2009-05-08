@@ -93,6 +93,7 @@ typedef enum {
     PSP_OP_RDPPKTLOSS,            /**< Paket loss within RDP (debugging) */
     PSP_OP_RDPMAXRETRANS,         /**< Max. retransmissions in RDP */
     PSP_OP_RDPMAXACKPEND,         /**< Max. pending ACKs in RDP */
+    PSP_OP_RDPRSNDTMOUT,          /**< RDP's resend-timeout */
 
     PSP_OP_MCASTDEBUG = 0x0028,   /**< MCast's debug level */
 

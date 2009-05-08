@@ -281,6 +281,19 @@ static int getRDPMaxRetrans(char *token)
     return ret;
 }
 
+static int getRDPResendTimeout(char *token)
+{
+    int ret, tmp;
+
+    ret = parser_getNumValue(parser_getString(), &tmp,
+			     "RDP resend timeout");
+    if (ret) return ret;
+
+    setRsndTmOutRDP(tmp);
+
+    return ret;
+}
+
 static int getRDPMaxACKPend(char *token)
 {
     int ret, tmp;
@@ -2532,6 +2545,7 @@ static keylist_t config_list[] = {
     {"mcastport", getMCastPort},
     {"rdpport", getRDPPort},
     {"rdpmaxretrans", getRDPMaxRetrans},
+    {"rdpresendtimeout", getRDPResendTimeout},
     {"rdpmaxackpending", getRDPMaxACKPend},
     {"selecttime", getSelectTime},
     {"deadinterval", getDeadInterval},

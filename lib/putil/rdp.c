@@ -1120,9 +1120,8 @@ static void resendMsgs(int node)
     }
 
     gettimeofday(&tv, NULL);
-    if (timercmp(&conntable[node].tv, &tv, >=)) return;    /* no timeout */
-
-    timeradd(&conntable[node].tv, &RESEND_TIMEOUT, &tv);
+    if (!timercmp(&conntable[node].tv, &tv, <)) return;    /* no timeout */
+    timeradd(&tv, &RESEND_TIMEOUT, &conntable[node].tv);
 
     if (conntable[node].retrans > RDPMaxRetransCount) {
 	RDP_log((conntable[node].state != ACTIVE) ? RDP_LOG_CONN : -1,
@@ -2006,6 +2005,19 @@ void setMaxRetransRDP(int limit)
     if (limit > 0) RDPMaxRetransCount = limit;
 }
 
+int getRsndTmOutRDP(void)
+{
+    return RESEND_TIMEOUT.tv_sec * 1000 + RESEND_TIMEOUT.tv_usec / 1000;
+}
+
+void setRsndTmOutRDP(int timeout)
+{
+    if (timeout > 0) {
+	RESEND_TIMEOUT.tv_sec = timeout / 1000;
+	RESEND_TIMEOUT.tv_usec = (timeout%1000) * 1000;
+    }
+}
+
 int getMaxAckPendRDP(void)
 {
     return RDPMaxAckPending;
@@ -2071,7 +2083,7 @@ int Rsendto(int node, void *buf, size_t len)
 
     if (list_empty(&conntable[node].pendList)) {
 	gettimeofday(&tv, NULL);
-	timeradd(&conntable[node].tv, &RESEND_TIMEOUT, &tv);
+	timeradd(&tv, &RESEND_TIMEOUT, &conntable[node].tv);
 	conntable[node].retrans = 0;
     }
     list_add_tail(&mp->next, &conntable[node].pendList);
