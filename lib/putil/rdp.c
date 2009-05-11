@@ -148,198 +148,6 @@ static int RDPMaxRetransCount = 32;
 #define RSEQCMP(a,b) ( (a) - (b) )
 
 /* ---------------------------------------------------------------------- */
-
-static int handleErr(void);
-
-/**
- * @brief Recv a message
- *
- * My version of recvfrom(), which restarts on EINTR.  EINTR is mostly
- * caused by the interval timer. Receives a message from @a sock and
- * stores it to @a buf. The sender-address is stored in @a from.
- *
- * On platforms supporting extended reliable error messages, these
- * type of messages are handled upon occurence. This may result in a
- * return value of 0 in the special case, where only such an extended
- * message is pending without any other "normal" message.
- *
- * @param sock The socket to read from.
- *
- * @param buf Buffer the message is stored to.
- *
- * @param len Length of @a buf.
- *
- * @param flags Flags passed to recvfrom().
- *
- * @param from The address of the message-sender.
- *
- * @param fromlen Length of @a from.
- *
- * @return On success, the number of bytes received is returned, or -1
- * if an error occured. Be aware of return values of 0 triggered by
- * the special situation, where only a extended error message is
- * pending on the socket.
- *
- * @see recvfrom(2)
- */
-static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
-		      struct sockaddr *from, socklen_t *fromlen)
-{
-    int ret;
- restart:
-    ret = recvfrom(sock, buf, len, flags, from, fromlen);
-    if (ret < 0) {
-	switch (errno) {
-	case EINTR:
-	    RDP_log(RDP_LOG_INTR, "%s: recvfrom() interrupted\n", __func__);
-	    goto restart;
-	    break;
-	case ECONNREFUSED:
-	case EHOSTUNREACH:
-#ifdef __linux__
-	{
-	    int eno = errno;
-	    RDP_warn(RDP_LOG_CONN, eno, "%s: handle this", __func__);
-	    /* Handle extended error */
-	    ret = handleErr();
-	    if (ret < 0) {
-		RDP_warn(-1, eno, "%s", __func__);
-		return ret;
-	    }
-	    /* Another packet pending ? */
-	select_cont:
-	    {
-		struct timeval tv = {.tv_sec = 0, .tv_usec = 0};
-		fd_set fds;
-
-		FD_ZERO(&fds);
-		FD_SET(sock, &fds);
-
-		ret = select(sock+1, &fds, NULL, NULL, &tv);
-		if (ret < 0) {
-		    if (errno == EINTR) {
-			/* Interrupted syscall, just start again */
-			RDP_log(RDP_LOG_INTR,
-				"%s: select() interrupted\n", __func__);
-			ret = 0;
-			goto select_cont;
-		    } else {
-			RDP_warn(-1, errno, "%s: select", __func__);
-			break;
-		    }
-		}
-		if (ret) goto restart;
-
-		return 0;
-	    }
-	    break;
-	}
-#endif
-	default:
-	    RDP_warn(-1, errno, "%s", __func__);
-	}
-    }
-    if (ret < (int)sizeof(rdphdr_t)) {
-	RDP_log(-1, "%s: incomplete RDP message received\n", __func__);
-    } else {
-	/* message on the wire not in host-byteorder */
-	rdphdr_t *msg = buf;
-
-	msg->type = psntoh16(msg->type);
-	msg->len = psntoh16(msg->len);
-	msg->seqno = psntoh32(msg->seqno);
-	msg->ackno = psntoh32(msg->ackno);
-	msg->connid = psntoh32(msg->connid);
-    }
-    return ret;
-}
-
-
-/**
- * @brief Send a message
- *
- * My version of sendto(), which restarts on EINTR.  EINTR is mostly
- * caused by the interval timer. Send a message of length @a len
- * stored in @a buf via @a sock to address @a to. If the flag @a hton
- * is set, the message's header is converted to ParaStation's
- * network-byteorder beforehand.
- *
- * On platforms supporting extended reliable error messages, these
- * type of messages are handled upon occurence. This should not touch
- * the sending of a message since automatic retries a triggered.
- *
- *
- * @param sock The socket to send to.
- *
- * @param buf Buffer the message is stored in.
- *
- * @param len Length of the message.
- *
- * @param flags Flags passed to sendto().
- *
- * @param to The address the message is send to.
- *
- * @param tolen Length of @a to.
- *
- * @return On success, the number of bytes sent is returned, or -1 if an error
- * occured.
- *
- * @see sendto(2)
- */
-static int MYsendto(int sock, void *buf, size_t len, int flags,
-		    struct sockaddr *to, socklen_t tolen, int hton)
-{
-    int ret;
-    if (((struct sockaddr_in *)to)->sin_addr.s_addr == INADDR_ANY) {
-	RDP_log(-1, "%s: don't send to INADDR_ANY\n", __func__);
-	errno = EINVAL;
-	return -1;
-    }
-    if (hton) {
-	/* message on the wire shall be in network-byteorder */
-	rdphdr_t *msg = buf;
-
-	msg->type = pshton16(msg->type);
-	msg->len = pshton16(msg->len);
-	msg->seqno = pshton32(msg->seqno);
-	msg->ackno = pshton32(msg->ackno);
-	msg->connid = pshton32(msg->connid);
-    }
- restart:
-    ret = sendto(sock, buf, len, flags, to, tolen);
-    if (ret < 0) {
-	switch (errno) {
-	case EINTR:
-	    RDP_log(RDP_LOG_INTR, "%s: sendto() interrupted\n", __func__);
-	    goto restart;
-	    break;
-	case ECONNREFUSED:
-	case EHOSTUNREACH:
-#ifdef __linux__
-	{
-	    int eno = errno;
-	    RDP_warn(RDP_LOG_CONN, eno, "%s: to %s, handle this", __func__,
-		     inet_ntoa(((struct sockaddr_in *)to)->sin_addr));
-	    /* Handle extended error */
-	    ret = handleErr();
-	    if (ret < 0) {
-		RDP_warn(-1, eno, "%s to %s", __func__,
-			 inet_ntoa(((struct sockaddr_in *)to)->sin_addr));
-		return ret;
-	    }
-	    /* Try to send again */
-	    goto restart;
-	    break;
-	}
-#endif
-	default:
-	    RDP_warn(-1, errno, "%s to %s", __func__,
-		     inet_ntoa(((struct sockaddr_in *)to)->sin_addr));
-	}
-    }
-    return ret;
-}
-
 /* ---------------------------------------------------------------------- */
 /**
  * One entry for each node we want to connect with
@@ -698,6 +506,211 @@ static void initConntable(int nodes, unsigned int host[], unsigned short port)
     }
 }
 
+
+static int handleErr(void);
+
+/**
+ * @brief Recv a message
+ *
+ * My version of recvfrom(), which restarts on EINTR.  EINTR is mostly
+ * caused by the interval timer. Receives a message from @a sock and
+ * stores it to @a buf. The sender-address is stored in @a from.
+ *
+ * On platforms supporting extended reliable error messages, these
+ * type of messages are handled upon occurence. This may result in a
+ * return value of 0 in the special case, where only such an extended
+ * message is pending without any other "normal" message.
+ *
+ * @param sock The socket to read from.
+ *
+ * @param buf Buffer the message is stored to.
+ *
+ * @param len Length of @a buf.
+ *
+ * @param flags Flags passed to recvfrom().
+ *
+ * @param from The address of the message-sender.
+ *
+ * @param fromlen Length of @a from.
+ *
+ * @return On success, the number of bytes received is returned, or -1
+ * if an error occured. Be aware of return values of 0 triggered by
+ * the special situation, where only a extended error message is
+ * pending on the socket.
+ *
+ * @see recvfrom(2)
+ */
+static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
+		      struct sockaddr *from, socklen_t *fromlen)
+{
+    int ret;
+ restart:
+    ret = recvfrom(sock, buf, len, flags, from, fromlen);
+    if (ret < 0) {
+	switch (errno) {
+	case EINTR:
+	    RDP_log(RDP_LOG_INTR, "%s: recvfrom() interrupted\n", __func__);
+	    goto restart;
+	    break;
+	case ECONNREFUSED:
+	case EHOSTUNREACH:
+#ifdef __linux__
+	{
+	    int eno = errno;
+	    RDP_warn(RDP_LOG_CONN, eno, "%s: handle this", __func__);
+	    /* Handle extended error */
+	    ret = handleErr();
+	    if (ret < 0) {
+		RDP_warn(-1, eno, "%s", __func__);
+		return ret;
+	    }
+	    /* Another packet pending ? */
+	select_cont:
+	    {
+		struct timeval tv = {.tv_sec = 0, .tv_usec = 0};
+		fd_set fds;
+
+		FD_ZERO(&fds);
+		FD_SET(sock, &fds);
+
+		ret = select(sock+1, &fds, NULL, NULL, &tv);
+		if (ret < 0) {
+		    if (errno == EINTR) {
+			/* Interrupted syscall, just start again */
+			RDP_log(RDP_LOG_INTR,
+				"%s: select() interrupted\n", __func__);
+			ret = 0;
+			goto select_cont;
+		    } else {
+			RDP_warn(-1, errno, "%s: select", __func__);
+			break;
+		    }
+		}
+		if (ret) goto restart;
+
+		return 0;
+	    }
+	    break;
+	}
+#endif
+	default:
+	    RDP_warn(-1, errno, "%s", __func__);
+	}
+    }
+    if (ret < (int)sizeof(rdphdr_t)) {
+	RDP_log(-1, "%s: incomplete RDP message received\n", __func__);
+    } else {
+	/* message on the wire not in host-byteorder */
+	rdphdr_t *msg = buf;
+
+	msg->type = psntoh16(msg->type);
+	msg->len = psntoh16(msg->len);
+	msg->seqno = psntoh32(msg->seqno);
+	msg->ackno = psntoh32(msg->ackno);
+	msg->connid = psntoh32(msg->connid);
+    }
+    return ret;
+}
+
+
+/**
+ * @brief Send a message
+ *
+ * My version of sendto(), which resolves the internal node ID @a node
+ * to the corresponding inet address and restarts on EINTR.  EINTR is
+ * mostly caused by the interval timer. Send a message of length @a
+ * len stored in @a buf via @a sock to node @a node. If the flag @a
+ * hton is set, the message's header is converted to ParaStation's
+ * network-byteorder beforehand.
+ *
+ * On platforms supporting extended reliable error messages, these
+ * type of messages are handled upon occurence. This should not touch
+ * the sending of a message since automatic retries a triggered.
+ *
+ *
+ * @param sock The socket to send to.
+ *
+ * @param buf Buffer the message is stored in.
+ *
+ * @param len Length of the message.
+ *
+ * @param flags Flags passed to sendto().
+ *
+ * @param node The node ID of the node to send to.
+ *
+ * @param hton
+ *
+ * @return On success, the number of bytes sent is returned, or -1 if an error
+ * occured.
+ *
+ * @see sendto(2)
+ */
+static int MYsendto(int sock, void *buf, size_t len, int flags,
+		    int node, int hton)
+{
+    int ret;
+    struct sockaddr *to = (struct sockaddr *)&conntable[node].sin;
+    socklen_t tolen = sizeof(struct sockaddr);
+
+    if (((struct sockaddr_in *)to)->sin_addr.s_addr == INADDR_ANY) {
+	RDP_log(-1, "%s: don't send to INADDR_ANY\n", __func__);
+	errno = EINVAL;
+	return -1;
+    }
+    if (hton) {
+	/* message on the wire shall be in network-byteorder */
+	rdphdr_t *msg = buf;
+
+	msg->type = pshton16(msg->type);
+	msg->len = pshton16(msg->len);
+	msg->seqno = pshton32(msg->seqno);
+	msg->ackno = pshton32(msg->ackno);
+	msg->connid = pshton32(msg->connid);
+    }
+ restart:
+    ret = sendto(sock, buf, len, flags, to, tolen);
+    if (ret < 0) {
+	switch (errno) {
+	case EINTR:
+	    RDP_log(RDP_LOG_INTR, "%s: sendto() interrupted\n", __func__);
+	    goto restart;
+	    break;
+	case ECONNREFUSED:
+	case EHOSTUNREACH:
+#ifdef __linux__
+	{
+	    int eno = errno;
+	    RDP_warn(RDP_LOG_CONN, eno, "%s: to %s, handle this", __func__,
+		     inet_ntoa(((struct sockaddr_in *)to)->sin_addr));
+	    /* Handle extended error */
+	    ret = handleErr();
+	    if (ret < 0) {
+		RDP_warn(-1, eno, "%s to %s", __func__,
+			 inet_ntoa(((struct sockaddr_in *)to)->sin_addr));
+		return ret;
+	    }
+	    if (conntable[node].state == CLOSED) {
+		/*
+		 * conn changed state (closeConnection() in handleErr()):
+		 *   - no second send necessary
+		 *   - tell calling layer
+		 */
+		errno = eno;
+		return -1;
+	    }
+	    /* Try to send again */
+	    goto restart;
+	    break;
+	}
+#endif
+	default:
+	    RDP_warn(-1, errno, "%s to %s", __func__,
+		     inet_ntoa(((struct sockaddr_in *)to)->sin_addr));
+	}
+    }
+    return ret;
+}
+
 /* ---------------------------------------------------------------------- */
 
 /** Double linked list of messages with pending ACK */
@@ -842,9 +855,7 @@ static void sendSYN(int node)
     hdr.connid = conntable[node].ConnID_out;
     RDP_log(RDP_LOG_CNTR, "%s: to %d (%s), NFTS=%x\n", __func__, node,
 	    inet_ntoa(conntable[node].sin.sin_addr), hdr.seqno);
-    MYsendto(rdpsock, &hdr, sizeof(hdr), 0,
-	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr),
-	     1);
+    MYsendto(rdpsock, &hdr, sizeof(hdr), 0, node, 1);
 }
 
 /**
@@ -866,9 +877,7 @@ static void sendACK(int node)
     hdr.ackno = conntable[node].frameExpected-1;   /* ACK Expected - 1 */
     hdr.connid = conntable[node].ConnID_out;
     RDP_log(RDP_LOG_ACKS, "%s: to %d, FE=%x\n", __func__, node, hdr.ackno);
-    MYsendto(rdpsock, &hdr, sizeof(hdr), 0,
-	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr),
-	     1);
+    MYsendto(rdpsock, &hdr, sizeof(hdr), 0, node, 1);
     conntable[node].ackPending = 0;
 }
 
@@ -892,9 +901,7 @@ static void sendSYNACK(int node)
     hdr.connid = conntable[node].ConnID_out;
     RDP_log(RDP_LOG_CNTR, "%s: to %d, NFTS=%x, FE=%x\n", __func__, node,
 	    hdr.seqno, hdr.ackno);
-    MYsendto(rdpsock, &hdr, sizeof(hdr), 0,
-	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr),
-	     1);
+    MYsendto(rdpsock, &hdr, sizeof(hdr), 0, node, 1);
     conntable[node].ackPending = 0;
 }
 
@@ -919,9 +926,7 @@ static void sendSYNNACK(int node, int oldseq)
     hdr.connid = conntable[node].ConnID_out;
     RDP_log(RDP_LOG_CNTR, "%s: to %d, NFTS=%x, FE=%x\n", __func__, node,
 	    hdr.seqno, hdr.ackno);
-    MYsendto(rdpsock, &hdr, sizeof(hdr), 0,
-	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr),
-	     1);
+    MYsendto(rdpsock, &hdr, sizeof(hdr), 0, node, 1);
     conntable[node].ackPending = 0;
 }
 
@@ -944,9 +949,7 @@ static void sendNACK(int node)
     hdr.ackno = conntable[node].frameExpected-1;   /* The frame I expect */
     hdr.connid = conntable[node].ConnID_out;
     RDP_log(RDP_LOG_CNTR, "%s: to %d, FE=%x\n", __func__, node, hdr.ackno);
-    MYsendto(rdpsock, &hdr, sizeof(hdr), 0,
-	     (struct sockaddr *)&conntable[node].sin, sizeof(struct sockaddr),
-	     1);
+    MYsendto(rdpsock, &hdr, sizeof(hdr), 0, node, 1);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -1154,9 +1157,7 @@ static void resendMsgs(int node)
 	    mp->msg.small->header.ackno =
 		pshton32(conntable[node].frameExpected-1);
 	    ret = MYsendto(rdpsock, &mp->msg.small->header,
-			   mp->len + sizeof(rdphdr_t), 0,
-			   (struct sockaddr *)&conntable[node].sin,
-			   sizeof(struct sockaddr), 0);
+			   mp->len + sizeof(rdphdr_t), 0, node, 0);
 	    if (ret < 0) break;
 	}
 	conntable[node].ackPending = 0;
@@ -1772,8 +1773,9 @@ static int handleErr(void)
 		ntohs(sinp->sin_port));
 	break;
     default:
-	RDP_log(-1, "%s: UNKNOWN from %s(%d) port %d\n", __func__,
-		inet_ntoa(sinp->sin_addr), node, ntohs(sinp->sin_port));
+	RDP_warn(-1, handleErrno, "%s: UNKNOWN errno %d from %s(%d) port %d\n",
+		 __func__, handleErrno, inet_ntoa(sinp->sin_addr), node,
+		 ntohs(sinp->sin_port));
     }
 #endif
 
@@ -2143,9 +2145,7 @@ int Rsendto(int node, void *buf, size_t len)
 		conntable[node].frameExpected);
 
 	retval = MYsendto(rdpsock, &mp->msg.small->header,
-			  len + sizeof(rdphdr_t), 0,
-			  (struct sockaddr *)&conntable[node].sin,
-			  sizeof(struct sockaddr), 0);
+			  len + sizeof(rdphdr_t), 0, node, 0);
 
 	conntable[node].frameToSend++;
 
