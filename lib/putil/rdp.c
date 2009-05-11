@@ -680,13 +680,13 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 #ifdef __linux__
 	{
 	    int eno = errno;
-	    RDP_warn(RDP_LOG_CONN, eno, "%s: to %s, handle this", __func__,
-		     inet_ntoa(((struct sockaddr_in *)to)->sin_addr));
+	    RDP_warn(RDP_LOG_CONN, eno, "%s: to %s (%d), handle this", __func__,
+		     inet_ntoa(((struct sockaddr_in *)to)->sin_addr), node);
 	    /* Handle extended error */
 	    ret = handleErr();
 	    if (ret < 0) {
-		RDP_warn(-1, eno, "%s to %s", __func__,
-			 inet_ntoa(((struct sockaddr_in *)to)->sin_addr));
+		RDP_warn(-1, eno, "%s: to %s (%d)", __func__,
+			 inet_ntoa(((struct sockaddr_in *)to)->sin_addr), node);
 		return ret;
 	    }
 	    if (conntable[node].state == CLOSED) {
@@ -704,8 +704,8 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 	}
 #endif
 	default:
-	    RDP_warn(-1, errno, "%s to %s", __func__,
-		     inet_ntoa(((struct sockaddr_in *)to)->sin_addr));
+	    RDP_warn(-1, errno, "%s to %s(%d)", __func__,
+		     inet_ntoa(((struct sockaddr_in *)to)->sin_addr), node);
 	}
     }
     return ret;
