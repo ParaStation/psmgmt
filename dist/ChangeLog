@@ -1,3 +1,19 @@
+Version psmgmt-5.0.12-4:
+========================
+------------------------------------------------------------------------
+r7483 | eicker | 2009-05-11 13:17:27 +0200 (Mon, 11 May 2009) | 4 lines
+
+Bugfix: Fix potential segfault in RDP. In rare cases RDP's list-handling
+    might get confused. Seen on JuRoPA under heavy message load due to
+    other psid's running amok.
+
+------------------------------------------------------------------------
+r7479 | eicker | 2009-05-08 21:49:01 +0200 (Fri, 08 May 2009) | 2 lines
+
+New release (psmgmt-5.0.12-3)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.12-3:
 ========================
 ------------------------------------------------------------------------
