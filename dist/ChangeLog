@@ -1,3 +1,41 @@
+Version psmgmt-5.0.13:
+======================
+------------------------------------------------------------------------
+r7494 | eicker | 2009-05-12 22:07:09 +0200 (Tue, 12 May 2009) | 3 lines
+
+Bugfix: Fix problems with CD_GETNODES messages due to reduced
+    maximum message-size.
+
+------------------------------------------------------------------------
+r7493 | eicker | 2009-05-12 22:05:05 +0200 (Tue, 12 May 2009) | 2 lines
+
+Update some outdated information on message-types.
+
+------------------------------------------------------------------------
+r7492 | eicker | 2009-05-12 21:58:35 +0200 (Tue, 12 May 2009) | 5 lines
+
+Implement RDP's closed-timeout. On freshly closed connections all
+    messages are ignored during this period.
+Make RDP's closed-timeout configurable during runtime via psiadmin.
+Make RDP's closed-timeout persistently configurable via parastation.conf.
+
+------------------------------------------------------------------------
+r7490 | eicker | 2009-05-12 18:12:36 +0200 (Tue, 12 May 2009) | 2 lines
+
+Increase (again) number of preallocated buffers on huge clusters.
+
+------------------------------------------------------------------------
+r7489 | eicker | 2009-05-11 20:43:50 +0200 (Mon, 11 May 2009) | 2 lines
+
+Improved logging in RDP's MYsendto.
+
+------------------------------------------------------------------------
+r7484 | eicker | 2009-05-11 13:19:35 +0200 (Mon, 11 May 2009) | 2 lines
+
+New release (psmgmt-5.0.12-4)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.12-4:
 ========================
 ------------------------------------------------------------------------
