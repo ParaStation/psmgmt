@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -1630,7 +1630,10 @@ static int sendNodelist(PSpart_request_t *request, DDBufferMsg_t *msg)
  * Send a list of @a num slots stored within @a slots to the
  * destination stored in @a msg. The message @a msg furthermore
  * contains the sender and the message type used to send one or more
- * messages containing the list of nodes.
+ * messages containing the list of nodes. Additionally @a msg's buffer
+ * might contain some preset content. Thus, its internally stored
+ * length (in the .len field) has to correctly represent the messages
+ * preset content.
  *
  * In order to send the list of slots, it is split into chunks of @ref
  * SLOTS_CHUNK entries. Each chunk is copied into the message and send
@@ -1653,6 +1656,7 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
     int destPSPver = PSIDnodes_getProtoVersion(PSC_getID(msg->header.dest));
     int destDaemonPSPver =
 	PSIDnodes_getDaemonProtoVersion(PSC_getID(msg->header.dest));
+    int bufOffset = msg->header.len - sizeof(msg->header);
 
     PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__,
 	     PSC_printTID(msg->header.dest));
@@ -1665,8 +1669,8 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
     while (offset < num && PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
 	PSpart_slot_t *mySlots = slots+offset;
 	int chunk = (num-offset > SLOTS_CHUNK) ? SLOTS_CHUNK : num-offset;
-	char *ptr = msg->buf;
-	msg->header.len = sizeof(msg->header);
+	char *ptr = msg->buf + bufOffset;
+	msg->header.len = sizeof(msg->header) + bufOffset;
 
 	*(uint16_t *)ptr = chunk;
 	ptr += sizeof(uint16_t);
@@ -1690,6 +1694,7 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
 	    msg->header.len += chunk * sizeof(*oldSlots);
 	} else {
 	    memcpy(ptr, mySlots, chunk * sizeof(*slots));
+	    ptr += chunk * sizeof(*slots);
 	    msg->header.len += chunk * sizeof(*slots);
 	}
 	offset += chunk;
@@ -1744,6 +1749,7 @@ static int sendPartition(PSpart_request_t *req)
     }
 
     msg.header.type = PSP_DD_PROVIDEPARTSL;
+    msg.header.len = sizeof(msg.header);
     if (sendSlotlist(req->slots, req->size, &msg) < 0) {
 	PSID_warn(-1, errno, "%s: sendSlotlist()", __func__);
 	return 0;
@@ -2456,15 +2462,15 @@ static void msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg)
 	    .type = 0};
 
 	task->partitionSize = task->request->size;
- 	task->options = task->request->options;
- 	task->partition = task->request->slots;
+	task->options = task->request->options;
+	task->partition = task->request->slots;
 	task->request->slots = NULL;
 	task->nextRank = 0;
 
 	PSpart_delReq(task->request);
 	task->request = NULL;
 
-    	sendMsg(&msg);
+	sendMsg(&msg);
     }
     return;
  error:
@@ -2558,7 +2564,9 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 
 	*(int32_t *)ptr = task->nextRank;
 	ptr += sizeof(int32_t);
-	msg.header.len += sizeof(task->nextRank);
+	msg.header.len += sizeof(int32_t);
+
+	task->nextRank += num;
 
 	if (PSPver < 335) {
 	    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)ptr;
@@ -2576,13 +2584,19 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 	    }
 	    ptr = (char *)&oldSlots[num];
 	    msg.header.len += num * sizeof(*oldSlots);
-	} else {
+	} else if (DaemonPSPver < 401) {
+	    if (num > SLOTS_CHUNK) goto error;
 	    memcpy(ptr, slots, num * sizeof(*slots));
 	    ptr += num * sizeof(*slots);
 	    msg.header.len += num * sizeof(*slots);
-	}
+	} else {
+	    *(int16_t *)ptr = num;
+	    ptr += sizeof(int16_t);
+	    msg.header.len += sizeof(int16_t);
 
-	task->nextRank += num;
+	    sendSlotlist(slots, num, &msg);
+	    return;
+	}
 
 	sendMsg(&msg);
 
@@ -2667,12 +2681,23 @@ static void msg_GETRANKNODE(DDBufferMsg_t *inmsg)
 		.len = sizeof(msg.header) },
 	    .buf = { 0 } };
 	PSpart_slot_t *slot = task->partition + rank;
+	int DaemonPSPver =
+	    PSIDnodes_getDaemonProtoVersion(PSC_getID(inmsg->header.sender));
 
 	ptr = msg.buf;
 
 	*(int32_t *)ptr = rank;
 	ptr += sizeof(int32_t);
 	msg.header.len += sizeof(int32_t);
+
+	if (DaemonPSPver >= 402) {
+	    *(int16_t *)ptr = 1; /* requested */
+	    ptr += sizeof(int16_t);
+	    msg.header.len += sizeof(int16_t);
+	    *(int16_t *)ptr = 1; /* num */
+	    ptr += sizeof(int16_t);
+	    msg.header.len += sizeof(int16_t);
+	}
 
 	memcpy(ptr, slot, sizeof(*slot));
 	ptr += sizeof(*slot);
@@ -2720,7 +2745,7 @@ static void msg_NODESRES(DDBufferMsg_t *inmsg)
 	PStask_t *task = PStasklist_find(managedTasks, inmsg->header.dest);
 	char *ptr = inmsg->buf;
 	int num = inmsg->header.len - sizeof(inmsg->header) - sizeof(int32_t);
-	int nextRank = *(int32_t *)ptr;
+	int nextRank = *(int32_t *)ptr, requested = 0;
 	PSpart_slot_t *slots;
 	ptr += sizeof(int32_t);
 
@@ -2735,17 +2760,31 @@ static void msg_NODESRES(DDBufferMsg_t *inmsg)
 
 	if (DaemonPSPver < 401) {
 	    num /= sizeof(PSpart_oldSlot_t);
-	} else {
+	} else if (DaemonPSPver < 402) {
 	    num /= sizeof(PSpart_slot_t);
+	} else {
+	    requested = *(int16_t *)ptr;
+	    ptr += sizeof(int16_t);
+	    num = *(int16_t *)ptr;
+	    ptr += sizeof(int16_t);
 	}
+	if (!requested) requested = num;
 
 	/* Store assigned slots */
-	if (!task->spawnNodes || task->spawnNum < nextRank+num) {
-	    task->spawnNodes = realloc(task->spawnNodes, (nextRank+num)
+	if (!task->spawnNodes || task->spawnNodesSize < nextRank+requested) {
+	    task->spawnNodes = realloc(task->spawnNodes, (nextRank+requested)
 				       * sizeof(*task->spawnNodes));
-	    task->spawnNum = nextRank+num;
+	    task->spawnNodesSize = nextRank+requested;
 	}
-	slots = task->spawnNodes + nextRank;
+	if (num == requested) {
+	    task->spawnNum = nextRank;
+	} else {
+	    /* slots come in chunks */
+	    if (task->spawnNum < nextRank)
+		task->spawnNum = nextRank; /* first chunk */
+	}
+	slots = task->spawnNodes + task->spawnNum;
+
 	if (DaemonPSPver < 401) {
 	    PSpart_oldSlot_t *oldSlots = (PSpart_oldSlot_t *)ptr;
 	    int n;
@@ -2757,22 +2796,28 @@ static void msg_NODESRES(DDBufferMsg_t *inmsg)
 		    PSCPU_setCPU(slots[n].CPUset, oldSlots[n].cpu);
 		}
 	    }
+	} else if (DaemonPSPver < 402) {
+	    memcpy(slots, ptr, num * sizeof(*slots));
 	} else {
 	    memcpy(slots, ptr, num * sizeof(*slots));
 	}
+	task->spawnNum += num;
 
 	/* Morph inmsg to CD_NODESRES message */
-	{
+	if (task->spawnNum >= nextRank+requested) {
 	    PSpart_slot_t *slots = task->spawnNodes + nextRank;
-	    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)ptr;
+	    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)(inmsg->buf
+						     + sizeof(int32_t));
 	    int n;
 
 	    inmsg->header.type = PSP_CD_NODESRES;
 	    inmsg->header.len = sizeof(inmsg->header) + sizeof(int32_t);
 
-	    for (n=0; n<num; n++) nodeBuf[n] = slots[n].node;
+	    for (n=0; n<requested; n++) nodeBuf[n] = slots[n].node;
 	    ptr = (char *)&nodeBuf[num];
-	    inmsg->header.len += num * sizeof(*nodeBuf);
+	    inmsg->header.len += requested * sizeof(*nodeBuf);
+	} else {
+	    return;
 	}
     }
 
@@ -2874,6 +2919,7 @@ static void sendExistingPartitions(PStask_ID_t dest)
 	    sendMsg(&msg);
 
 	    msg.header.type = PSP_DD_PROVIDETASKSL;
+	    msg.header.len = sizeof(msg.header);
 	    if (sendSlotlist(task->partition, task->partitionSize, &msg)<0) {
 		PSID_warn(-1, errno, "%s: sendSlotlist()", __func__);
 	    }

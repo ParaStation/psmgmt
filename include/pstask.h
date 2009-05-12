@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -134,7 +134,8 @@ typedef struct PStask_T{
     PSpart_slot_t *partition;      /**< The actual partition. List of slots. */
     int32_t nextRank;              /**< Next rank to start within the task. */
     PSpart_slot_t *spawnNodes;     /**< Node the task can spawn to */
-    int32_t spawnNum;              /**< Current size of @ref spawnNodes */
+    int32_t spawnNodesSize;        /**< Current size of @ref spawnNodes */
+    int32_t spawnNum;              /**< Amount of content of @ref spawnNodes */
 
     PStask_sig_t *signalSender;    /**< Tasks which sent signals */
     PStask_sig_t *signalReceiver;  /**< Tasks which want to receive signals */

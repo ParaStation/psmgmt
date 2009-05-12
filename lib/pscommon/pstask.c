@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -100,6 +100,7 @@ int PStask_init(PStask_t* task)
     task->partition = NULL;
     task->nextRank = -1;
     task->spawnNodes = NULL;
+    task->spawnNodesSize = 0;
     task->spawnNum = 0;
 
     task->signalSender = NULL;
@@ -167,7 +168,7 @@ int PStask_reinit(PStask_t* task)
 	task->assignedSigs = thissignal->next;
 	free(thissignal);
     }
-    
+
     PStask_init(task);
 
     return 1;
@@ -288,11 +289,12 @@ PStask_t* PStask_clone(PStask_t* task)
     memcpy(clone->partition, task->partition,
 	   task->partitionSize * sizeof(*task->partition));
     clone->nextRank = task->nextRank;
-    clone->spawnNum = task->spawnNum;
-    clone->spawnNodes = malloc(task->spawnNum * sizeof(*task->spawnNodes));
+    clone->spawnNodesSize = task->spawnNodesSize;
+    clone->spawnNodes = malloc(task->spawnNodesSize*sizeof(*task->spawnNodes));
     memcpy(clone->spawnNodes, task->spawnNodes,
-	   clone->spawnNum * sizeof(*task->spawnNodes));
- 
+	   clone->spawnNodesSize * sizeof(*task->spawnNodes));
+    clone->spawnNum = task->spawnNum;
+
     clone->signalSender = PStask_cloneSigList(task->signalSender);
     clone->signalReceiver = PStask_cloneSigList(task->signalReceiver);
     clone->assignedSigs = PStask_cloneSigList(task->assignedSigs);
@@ -307,9 +309,9 @@ static void snprintfStruct(char *txt, size_t size, PStask_t *task)
     snprintf(txt, size, "tid 0x%08x ptid 0x%08x uid %d gid %d group %s"
 	     " rank %d cpus %s links(%p,%p) loggertid %08x fd %d argc %d",
 	     task->tid, task->ptid, task->uid, task->gid,
- 	     PStask_printGrp(task->group), task->rank,
+	     PStask_printGrp(task->group), task->rank,
 	     PSCPU_print(task->CPUset),
- 	     task->next, task->prev, task->loggertid, task->fd, task->argc);
+	     task->next, task->prev, task->loggertid, task->fd, task->argc);
 }
 
 static void snprintfArgv(char *txt, size_t size, PStask_t *task)
