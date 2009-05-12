@@ -305,7 +305,7 @@ static void initMsgList(int nodes)
     int i, count;
     msgbuf_t *buf;
 
-    count = ((nodes > 128) ? nodes / 8 : nodes) * MAX_WINDOW_SIZE;
+    count = ((nodes > 128) ? nodes / 4 : nodes) * MAX_WINDOW_SIZE;
     buf = malloc(count * sizeof(*buf));
     if (!buf) RDP_exit(errno, "%s", __func__);
 
@@ -379,7 +379,7 @@ static void initSMsgList(int nodes)
     int i, count;
     Smsg_t *sbuf;
 
-    count = ((nodes > 128) ? nodes / 8 : nodes) * MAX_WINDOW_SIZE;
+    count = ((nodes > 128) ? nodes / 4 : nodes) * MAX_WINDOW_SIZE;
     sbuf = malloc(count * sizeof(*sbuf));
     if (!sbuf) RDP_exit(errno, "%s", __func__);
 
@@ -743,7 +743,7 @@ static void initAckList(int nodes)
     /*
      * Max set size is nodes * MAX_WINDOW_SIZE !!
      */
-    count = ((nodes > 128) ? nodes / 8 : nodes) * MAX_WINDOW_SIZE;
+    count = ((nodes > 128) ? nodes / 4 : nodes) * MAX_WINDOW_SIZE;
     ackbuf = malloc(count * sizeof(*ackbuf));
     if (!ackbuf) RDP_exit(errno, "%s", __func__);
 
