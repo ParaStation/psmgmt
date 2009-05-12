@@ -124,6 +124,9 @@ static int RDPMaxAckPending = 4;
 /** Timeout for retransmission = 300msec */
 struct timeval RESEND_TIMEOUT = {0, 300000}; /* sec, usec */
 
+/** Timeout for closed connections = 2sec */
+struct timeval CLOSED_TIMEOUT = {2, 0}; /* sec, usec */
+
 /**
  * The timeout used for RDP timer = 100 msec. The is a const for now
  * and can only changed in the sources.
@@ -442,7 +445,8 @@ typedef struct {
     int ConnID_out;          /**< Connection ID to node */
     RDPState_t state;        /**< State of connection to host */
     list_t pendList;         /**< List of pending message buffers */
-    struct timeval tv;       /**< Timeout timer */
+    struct timeval tmout;    /**< Timer for resend timeout */
+    struct timeval closed;   /**< Timer for closed connection timeout */
     int retrans;             /**< Number of retransmissions */
 } Rconninfo_t;
 
@@ -500,8 +504,10 @@ static void initConntable(int nodes, unsigned int host[], unsigned short port)
 		__func__, i, conntable[i].frameExpected);
 	conntable[i].ConnID_out = random();
 	conntable[i].state = CLOSED;
-	conntable[i].tv.tv_sec = 0;
-	conntable[i].tv.tv_usec = 0;
+	conntable[i].tmout.tv_sec = 0;
+	conntable[i].tmout.tv_usec = 0;
+	conntable[i].closed.tv_sec = 0;
+	conntable[i].closed.tv_usec = 0;
 	conntable[i].retrans = 0;
     }
 }
@@ -1121,8 +1127,8 @@ static void resendMsgs(int node)
     }
 
     gettimeofday(&tv, NULL);
-    if (!timercmp(&conntable[node].tv, &tv, <)) return;    /* no timeout */
-    timeradd(&tv, &RESEND_TIMEOUT, &conntable[node].tv);
+    if (!timercmp(&conntable[node].tmout, &tv, <)) return;    /* no timeout */
+    timeradd(&tv, &RESEND_TIMEOUT, &conntable[node].tmout);
 
     if (conntable[node].retrans > RDPMaxRetransCount) {
 	RDP_log((conntable[node].state != ACTIVE) ? RDP_LOG_CONN : -1,
@@ -1488,7 +1494,7 @@ static void handleTimeoutRDP(void)
 	    break;
 	}
 	node = mp->node;
-	if (timercmp(&conntable[node].tv, &tv, <)) { /* msg has a timeout */
+	if (timercmp(&conntable[node].tmout, &tv, <)) { /* msg has a timeout */
 	    /*
 	     * ap (and also next) may become invalid due to a call
 	     * of closeConnection(), therefore look for the first
@@ -1863,6 +1869,29 @@ static int handleRDP(int fd)
 	return -1;
     }
 
+    if (conntable[fromnode].closed.tv_sec) {
+	/* Test, if connection was closed recently */
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+
+	if (timercmp(&tv, &conntable[fromnode].closed, <)) {
+	    /* really get the msg */
+	    if (MYrecvfrom(fd, &msg, sizeof(msg), 0,
+			   (struct sockaddr *) &sin, &slen)<0) {
+		RDP_exit(errno, "%s/CLOSED: MYrecvfrom", __func__);
+	    } else if (!ret) {
+		RDP_log(-1, "%s/CLOSED: MYrecvfrom() returns 0\n", __func__);
+	    }
+
+	    /* Throw it away */
+	    return 0;
+	} else {
+	    /* Clear timer */
+	    conntable[fromnode].closed.tv_sec = 0;
+	    conntable[fromnode].closed.tv_usec = 0;
+	}
+    }
+
     if (msg.header.type != RDP_DATA) {
 	/* This is a control message */
 
@@ -2018,6 +2047,19 @@ void setRsndTmOutRDP(int timeout)
     }
 }
 
+int getClsdTmOutRDP(void)
+{
+    return CLOSED_TIMEOUT.tv_sec * 1000 + CLOSED_TIMEOUT.tv_usec / 1000;
+}
+
+void setClsdTmOutRDP(int timeout)
+{
+    if (timeout >= 0) {
+	CLOSED_TIMEOUT.tv_sec = timeout / 1000;
+	CLOSED_TIMEOUT.tv_usec = (timeout%1000) * 1000;
+    }
+}
+
 int getMaxAckPendRDP(void)
 {
     return RDPMaxAckPending;
@@ -2062,6 +2104,23 @@ int Rsendto(int node, void *buf, size_t len)
 	return -1;
     }
 
+    if (conntable[node].state == CLOSED && conntable[node].closed.tv_sec) {
+	/* Test, if connection was closed recently */
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+
+	if (timercmp(&tv, &conntable[node].closed, <)) {
+	    /* Drop message */
+	    RDP_log(RDP_LOG_CONN, "%s: node %d just closed\n", __func__, node);
+	    errno = ECONNRESET;
+	    return -1;
+	} else {
+	    /* Clear timer */
+	    conntable[node].closed.tv_sec = 0;
+	    conntable[node].closed.tv_usec = 0;
+	}
+    }
+
     /*
      * A blocked timer needs to be restored since Rsendto() can be called
      * from within the callback function.
@@ -2089,7 +2148,7 @@ int Rsendto(int node, void *buf, size_t len)
 
     if (list_empty(&conntable[node].pendList)) {
 	gettimeofday(&tv, NULL);
-	timeradd(&tv, &RESEND_TIMEOUT, &conntable[node].tv);
+	timeradd(&tv, &RESEND_TIMEOUT, &conntable[node].tmout);
 	conntable[node].retrans = 0;
     }
     list_add_tail(&mp->next, &conntable[node].pendList);
@@ -2296,7 +2355,11 @@ void getStateInfoRDP(int node, char *s, size_t len)
 
 void closeConnRDP(int node)
 {
+    struct timeval tv;
+
     closeConnection(node, 0, 1);
+    gettimeofday(&tv, NULL);
+    timeradd(&tv, &CLOSED_TIMEOUT, &conntable[node].tmout);
 }
 
 int RDP_blockTimer(int block)

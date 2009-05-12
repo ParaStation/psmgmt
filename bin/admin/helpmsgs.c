@@ -246,7 +246,7 @@ static info_t setInfo = {
 	" | group [+|-]{{<group>|any} | psiddebug <level>"
 	" | selecttime <timeout> | rdpdebug <level> | rdppktloss <rate>"
 	" | rdpmaxretrans <val> | rdpresendtimeout <val>"
-	" | rdpmaxackpend <val> | mcastdebug <level>"
+	" | rdpclosedtimeout <val> | rdpmaxackpend <val> | mcastdebug <level>"
 	" | {freeonsuspend|fos} <bool> | {handleoldbins|hob} <bool>"
 	" | starter <bool> | runjobs <bool> | overbook {<bool>|auto}"
 	" | exclusive <bool> | pinprocs <bool> | bindmem <bool> "
@@ -294,6 +294,8 @@ static info_t setInfo = {
 	  .descr = "Set RDP protocol's maximum retransmission count." },
 	{ .tag = "set rdpresendtimeout <val>",
 	  .descr = "Set RDP protocol's resend timeout in milli-seconds." },
+	{ .tag = "set rdpclosedtimeout <val>",
+	  .descr = "Set RDP protocol's closed timeout in milli-seconds." },
 	{ .tag = "set rdpmaxackpend <val>",
 	  .descr = "Set RDP protocol's maximum pending ACK count." },
 	{ .tag = "set mcastdebug <level>",
@@ -383,8 +385,8 @@ static info_t showInfo = {
     .syntax = (syntax_t[]) {{
 	.cmd = "show",
 	.arg = "{maxproc | user | group | psiddebug | selecttime | rdpdebug"
-	" | rdppktloss | rdpmaxretrans | rdpresendtimeout | rdpmaxackpend"
-	" | mcastdebug | master"
+	" | rdppktloss | rdpmaxretrans | rdpresendtimeout | rdpclosedtimeout"
+	" | rdpmaxackpend | mcastdebug | master"
 	" | {freeonsuspend|fos} | {handleoldbins|hob} | starter | runjobs"
 	" | overbook | exclusive | pinprocs | bindmem | cpumap | nodessort"
 	" | adminuser | admingroup | accounters | accountpoll"
@@ -414,6 +416,8 @@ static info_t showInfo = {
 	  .descr = "Show RDP protocol's maximum retransmission count." },
 	{ .tag = "show rdpresendtimeout",
 	  .descr = "Show RDP protocol's resend timeout in milli-seconds." },
+	{ .tag = "show rdpclosedtimeout",
+	  .descr = "Show RDP protocol's closed timeout in milli-seconds." },
 	{ .tag = "show rdpmaxackpend",
 	  .descr = "Show RDP protocol's maximum pending ACK count." },
 	{ .tag = "show mcastdebug",

@@ -284,6 +284,38 @@ int getRsndTmOutRDP(void);
  */
 void setRsndTmOutRDP(int timeout);
 
+/**
+ * @brief Get closed timeout.
+ *
+ * Get the closed timeout of the RDP module. During this number of
+ * milli-seconds all messages on a closed connection are
+ * ignored. Thus, all messages received from the corresponding remote
+ * node are thrown away. This deals with packets still on the wire
+ * when a closing connection is detected.
+ *
+ * @return The actual closed timeout is returned.
+ *
+ * @see setClsdTmOutRDP
+ */
+int getClsdTmOutRDP(void);
+
+/**
+ * @brief Set RDP maximum pending ACKs count.
+ *
+ * Set the resend timeout of the RDP module to @a timeout
+ * milli-seconds. During this number of milli-seconds all messages on
+ * a closed connection are ignored. Thus, all messages received from
+ * the corresponding remote node are thrown away. This deals with
+ * packets still on the wire when a closing connection is detected.
+ *
+ * @param timeout The closed timeout in milli-seconds to be set.
+ *
+ * @return No return value.
+ *
+ * @see getClsdTmOutRDP()
+ */
+void setClsdTmOutRDP(int timeout);
+
 
 /**
  * @brief Send a RDP packet.
