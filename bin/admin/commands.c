@@ -1198,9 +1198,16 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
 	    return;
 	}
 	break;
+    case PSP_OP_STATUS_DEADLMT:
     case PSP_OP_RDPRSNDTMOUT:
 	if (value<1) {
 	    printf(" value must be > 0.\n");
+	    return;
+	}
+	break;
+    case PSP_OP_STATUS_TMOUT:
+	if (value<100) {
+	    printf(" value must be >= 100.\n");
 	    return;
 	}
 	break;

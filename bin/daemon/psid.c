@@ -734,6 +734,9 @@ int main(int argc, const char *argv[])
 	    setDeadLimitMCast(config->deadInterval);
 
 	    PSID_log(-1, "MCast and ");
+	} else {
+	    setStatusTimeout(config->statusTimeout);
+	    setDeadLimit(config->deadLimit);
 	}
 
 	/* Initialize RDP */

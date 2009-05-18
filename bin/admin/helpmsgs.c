@@ -244,7 +244,8 @@ static info_t setInfo = {
 	.cmd = "set",
 	.arg = "{maxproc {<num>|any} | user [+|-]{<user>|any}"
 	" | group [+|-]{{<group>|any} | psiddebug <level>"
-	" | selecttime <timeout> | rdpdebug <level> | rdppktloss <rate>"
+	" | selecttime <timeout> | statustimeout <timeout> | deadlimit <limit>"
+	" | rdpdebug <level> | rdppktloss <rate>"
 	" | rdpmaxretrans <val> | rdpresendtimeout <val>"
 	" | rdpclosedtimeout <val> | rdpmaxackpend <val> | mcastdebug <level>"
 	" | {freeonsuspend|fos} <bool> | {handleoldbins|hob} <bool>"
@@ -278,7 +279,13 @@ static info_t setInfo = {
 	  " for a long time." },
 	{ .tag = "set selecttime <timeout>",
 	  .descr = "Set the ParaStation daemon's select timeout to <timeout>"
-	  " on the selected nodes." },
+	  " seconds on the selected nodes." },
+	{ .tag = "set statustimeout <timeout>",
+	  .descr = "Set the ParaStation daemon's status timeout to <timeout>"
+	  " milli-seconds on the selected nodes." },
+	{ .tag = "set deadlimit <limit>",
+	  .descr = "Set the ParaStation daemon's dead-limit to <limit> on the"
+	  " selected nodes." },
 	{ .tag = "set rdpdebug <level>",
 	  .descr = "Set RDP protocol's debugging level to <level> on the"
 	  " seleceted nodes."
@@ -384,7 +391,8 @@ static info_t showInfo = {
     .head = "Show command:",
     .syntax = (syntax_t[]) {{
 	.cmd = "show",
-	.arg = "{maxproc | user | group | psiddebug | selecttime | rdpdebug"
+	.arg = "{maxproc | user | group | psiddebug | selecttime"
+	" | statustimeout | deadlimit | rdpdebug"
 	" | rdppktloss | rdpmaxretrans | rdpresendtimeout | rdpclosedtimeout"
 	" | rdpmaxackpend | mcastdebug | master"
 	" | {freeonsuspend|fos} | {handleoldbins|hob} | starter | runjobs"
@@ -405,9 +413,13 @@ static info_t showInfo = {
 	{ .tag = "show group",
 	  .descr = "Show groups access is granted to." },
 	{ .tag = "show psiddebug",
-	  .descr = "Show daemons verbosity level." },
+	  .descr = "Show daemon's verbosity level." },
 	{ .tag = "show selecttime",
-	  .descr = "Show daemons select timeout." },
+	  .descr = "Show daemon's select timeout." },
+	{ .tag = "show statustimeout",
+	  .descr = "Show daemon's status timeout." },
+	{ .tag = "show deadlimit",
+	  .descr = "Show daemon's dead-limit." },
 	{ .tag = "show rdpdebug",
 	  .descr = "Show RDP protocol's verbosity level." },
 	{ .tag = "show rdppktloss",

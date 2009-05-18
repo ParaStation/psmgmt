@@ -179,7 +179,17 @@ static struct timeval StatusTimeout = { .tv_sec = 2, .tv_usec = 0 };
  * Number of consecutive status pings allowed to miss before a node is
  * declared to be dead.
 */
-static const int DeadLimit = 5;
+static int DeadLimit = 5;
+
+int getDeadLimit(void)
+{
+    return DeadLimit;
+}
+
+void setDeadLimit(int limit)
+{
+    if (limit > 0) DeadLimit = limit;
+}
 
 /**
  * @brief Master handling routine.
@@ -198,6 +208,8 @@ static void handleMasterTasks(void)
     static int round = 0;
     int nrDownNodes = 0;
     struct timeval tv;
+
+    PSID_log(PSID_LOG_STATUS, "%s\n", __func__);
 
     gettimeofday(&tv, NULL);
     mytimersub(&tv, StatusTimeout.tv_sec, StatusTimeout.tv_usec);
@@ -259,6 +271,8 @@ static void sendRDPPing(void)
 	.buf = {'\0'} };
     char *ptr = msg.buf;
 
+    PSID_log(PSID_LOG_STATUS, "%s to %d\n", __func__, getMasterID());
+
     if (PSIDnodes_getProtoVersion(getMasterID()) < 334) {
 	*(PSID_Jobs_t *)ptr = myJobs;
 	ptr += sizeof(PSID_Jobs_t);
@@ -298,6 +312,36 @@ static void sendRDPPing(void)
 
     sendMsg(&msg);
     if (getMasterID() == PSC_getMyID()) handleMasterTasks();
+}
+
+/**
+ * ID of the timer used for status control. We need to store this in
+ * order to be able to release the timer again.
+ *
+ * Furthermore this is used for identifying, if the master is already
+ * known.
+ */
+static int timerID = -1;
+
+int getStatusTimeout(void)
+{
+    return StatusTimeout.tv_sec * 1000 + StatusTimeout.tv_usec / 1000;
+}
+
+void setStatusTimeout(int timeout)
+{
+    if (timeout > 0) {
+	StatusTimeout.tv_sec = timeout / 1000;
+	StatusTimeout.tv_usec = (timeout%1000) * 1000;
+    }
+    if (timerID > 0) {
+	Timer_block(timerID, 1);
+	releaseStatusTimer();
+	timerID = Timer_register(&StatusTimeout, sendRDPPing);
+	if (timerID < 0) {
+	    PSID_log(-1, "%s: Failed to re-register status timer\n", __func__);
+	}
+    }
 }
 
 void incJobs(int total, int normal)
@@ -379,15 +423,6 @@ PSID_Mem_t getMemoryInfo(PSnodes_ID_t node)
     return memory;
 }
 
-/**
- * ID of the timer used for status control. We need to store this in
- * order to be able to release the timer again.
- *
- * Furthermore this is used for identifying, if the master is already
- * known.
- */
-static int timerID = -1;
-
 /** The actual master node. */
 static PSnodes_ID_t masterNode = 0;
 
@@ -428,7 +463,8 @@ PSnodes_ID_t getMasterID(void)
 
 void releaseStatusTimer(void)
 {
-    if (knowMaster()) Timer_remove(timerID);
+    if (timerID > 0) Timer_remove(timerID);
+    timerID = -1;
 }
 
 /* Prototype forward declaration. */

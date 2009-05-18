@@ -182,12 +182,12 @@ void Timer_init(FILE* logfile)
 
     rescaleActPeriods(&timeout);
 
-    nextID = 0;
+    nextID = 1;
 }
 
 int Timer_isInitialized(void)
 {
-    return (nextID >= 0);
+    return (nextID > 0);
 }
 
 int Timer_register(struct timeval *timeout, void (*timeoutHandler)(void))

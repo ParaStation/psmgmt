@@ -119,7 +119,8 @@ void decJobs(int total, int normal);
  */
 void decJobsHint(PSnodes_ID_t node);
 
-/** @brief Get node status info.
+/**
+ * @brief Get node status info.
  *
  * Get information on the status of node @a node. The actual
  * information returned contains number concerning the number of jobs
@@ -140,7 +141,8 @@ void decJobsHint(PSnodes_ID_t node);
  */
 PSID_NodeStatus_t getStatusInfo(PSnodes_ID_t node);
 
-/** @brief Get node memory info.
+/**
+ * @brief Get node memory info.
  *
  * Get information on the memory status of node @a node. The actual
  * information returned contains the number of total available bytes
@@ -229,7 +231,66 @@ PSnodes_ID_t getMasterID(void);
  */
 void releaseStatusTimer(void);
 
-/** @brief Declare a node dead.
+/**
+ * @brief Get status-timeout.
+ *
+ * Get the status-timeout in milli-seconds.
+ *
+ * Every time the status timeout is elapsed each node sends a
+ * keep-alive ping into the fabric. On the master node additionally
+ * the arrival of all ping messages is tested.
+ *
+ * @return The current status-timeout in milli-seconds is returned.
+ */
+int getStatusTimeout(void);
+
+/**
+ * @brief Set status-timeout.
+ *
+ * Set the status-timeout in milli-seconds to @a timeout.
+ *
+ * Every time the status timeout is elapsed each node sends a
+ * keep-alive ping into the fabric. On the master node additionally
+ * the arrival of all ping messages is tested.
+ *
+ * @param timeout The new timeout to be set in milli-seconds.
+ *
+ * @return No return value.
+ */
+void setStatusTimeout(int timeout);
+
+/**
+ * @brief Get dead-limit
+ *
+ * Get the daemon's dead limit.
+ *
+ * After this number of consecutively missing RDP-pings from a node
+ * the master declares this node to be dead.
+ *
+ * @return The actual dead-limit of the local node. This might be
+ * different from the effective value which is only stored on the
+ * current master node.
+ */
+int getDeadLimit(void);
+
+/**
+ * @brief Set dead-limit
+ *
+ * Set the daemon's dead limit to @a limit.
+ *
+ * After this number of consecutively missing RDP-pings from a node
+ * the master declares this node to be dead.
+ *
+ * @param limit The new limit to be set. The effective limit might be
+ * untouched since only the value on the current master node takes any
+ * effect.
+ *
+ * @return No return value.
+ */
+void setDeadLimit(int limit);
+
+/**
+ * @brief Declare a node dead.
  *
  * Declare the node with ParaStation ID @a id to be dead. Therefore
  * various internal and external (e.g. within PSnodes or MCast)
@@ -254,7 +315,8 @@ void releaseStatusTimer(void);
  */
 void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent);
 
-/** @brief Declare a node alive.
+/**
+ * @brief Declare a node alive.
  *
  * Declare the node with ParaStation ID @a id to be alive. Therefore
  * various internal and externel (e.g. within PSnodes or MCast)

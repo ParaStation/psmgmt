@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -59,7 +59,7 @@ int Timer_isInitialized(void);
 /**
  * Various message classes for logging. These define the different
  * bits of the debug-mask set via @ref Timer_setDebugMask().
- */ 
+ */
 typedef enum {
     TIMER_LOG_DUMMY = 0x0000, /**< No non fatal messages yet */
 } Timer_log_key_t;
@@ -118,8 +118,8 @@ void Timer_setDebugMask(int32_t mask);
  *
  *
  * @return On success, the unique ID of the newly registered timer is
- * returned. This Id is a positive number or 0. On error, -1 is
- * returned.
+ * returned. This Id is a positive number i.e. not including 0. On
+ * error, -1 is returned.
  */
 int Timer_register(struct timeval* timeout, void (*timeoutHandler)(void));
 

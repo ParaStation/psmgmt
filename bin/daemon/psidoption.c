@@ -285,7 +285,17 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 		if (msg->opt[i].value > 0) {
 		    selectTime.tv_sec = msg->opt[i].value;
 		}
-	    break;
+		break;
+	    case PSP_OP_STATUS_TMOUT:
+		if (msg->opt[i].value > 0) {
+		    setStatusTimeout(msg->opt[i].value);
+		}
+		break;
+	    case PSP_OP_STATUS_DEADLMT:
+		if (msg->opt[i].value > 0) {
+		    setDeadLimit(msg->opt[i].value);
+		}
+		break;
 	    case PSP_OP_PROCLIMIT:
 		if (PSC_getPID(msg->header.sender)) {
 		    DDOptionMsg_t info = {
@@ -811,6 +821,12 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_PSIDSELECTTIME:
 		msg->opt[out].value = selectTime.tv_sec;
+		break;
+	    case PSP_OP_STATUS_TMOUT:
+		msg->opt[out].value = getStatusTimeout();
+		break;
+	    case PSP_OP_STATUS_DEADLMT:
+		msg->opt[out].value = getDeadLimit();
 		break;
 	    case PSP_OP_PROCLIMIT:
 		msg->opt[out].value = PSIDnodes_getProcs(PSC_getMyID());

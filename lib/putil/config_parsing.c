@@ -41,6 +41,7 @@ static char vcid[] __attribute__((used)) =
 #include "rdp.h"
 
 #include "psidnodes.h"
+#include "psidstatus.h"
 
 #include "config_parsing.h"
 
@@ -48,6 +49,8 @@ static config_t config = (config_t) {
     .coreDir = "/tmp",
     .selectTime = 2,
     .deadInterval = 10,
+    .statusTimeout = 2000,
+    .deadLimit = 5,
     .RDPPort = 886,
     .useMCast = 0,
     .MCastGroup = 237,
@@ -344,11 +347,39 @@ static int getDeadInterval(char *token)
     return ret;
 }
 
+static int getStatTmout(char *token)
+{
+    int temp, ret;
+
+    ret = parser_getNumValue(parser_getString(), &temp, "status timeout");
+    if (ret) return ret;
+
+    if (temp < 100) {
+	parser_comment(-1, "status timeout %d too small. Ignoring...\n", temp);
+    } else {
+	config.statusTimeout = temp;
+    }
+
+    return ret;
+}
+
+static int getDeadLmt(char *token)
+{
+    int temp, ret;
+
+    ret = parser_getNumValue(parser_getString(), &temp, "dead limit");
+    if (ret) return ret;
+
+    config.deadLimit = temp;
+
+    return ret;
+}
+
 static int getAcctPollInterval(char *token)
 {
     int temp, ret;
 
-    ret = parser_getNumValue(parser_getString(), &temp, "dead interval");
+    ret = parser_getNumValue(parser_getString(), &temp, "accnt poll interval");
     if (ret) return ret;
 
     config.acctPollInterval = temp;
@@ -2563,6 +2594,8 @@ static keylist_t config_list[] = {
     {"rdpmaxackpending", getRDPMaxACKPend},
     {"selecttime", getSelectTime},
     {"deadinterval", getDeadInterval},
+    {"statustimeout", getStatTmout},
+    {"deadlimit", getDeadLmt},
     {"accountpoll", getAcctPollInterval},
     {"rlimit", getRLimit},
     {"loglevel", getLogMask},

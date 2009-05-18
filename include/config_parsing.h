@@ -40,8 +40,15 @@ typedef struct {
 			    will be deposited here. */
     int selectTime;      /**< Time spent within psid's central select().
 			    Result of 'SelectTime'. Default is 2. */
-    int deadInterval;    /**< Declare node dead after this # missing pings.
-			    Result of 'DeadInterval'. Default is 10. */
+    int deadInterval;    /**< Declare node dead after this # missing
+			    MCAST-pings.  Result of
+			    'DeadInterval'. Default is 10. */
+    int statusTimeout;   /**< Timeout of status-handling via RDP in
+			    msec. Result of 'StatusTimeout'. Default
+			    is 2000.*/
+    int deadLimit;       /**< Declare node dead after this # missing
+			    RDP-pings.  Result of 'DeadLimit'. Default
+			    is 5.*/
     int RDPPort;         /**< The UDP port to use for RDP messages.
 			    Result of 'RDPPort'. Default is 886. */
     int useMCast;        /**< Flag if MCast should be used for status controll.
