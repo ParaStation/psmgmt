@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -97,6 +97,17 @@ PSnodes_ID_t PSIDnodes_lookupHost(in_addr_t addr);
  * INADDR_ANY, if an error occured.
  */
 in_addr_t PSIDnodes_getAddr(PSnodes_ID_t id);
+
+/**
+ * @brief Test ParaStation ID
+ *
+ * Test the validity of the ParaStation ID @a id.
+ *
+ * @param id The ParaStation ID to evaluate.
+ *
+ * @return If @a id is valid, 1 is returned. Or 0 if the ID is out of range.
+ */
+int PSIDnodes_validID(PSnodes_ID_t id);
 
 /**
  * @brief Declare a node to be up.

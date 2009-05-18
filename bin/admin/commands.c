@@ -1213,7 +1213,13 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
 	break;
     case PSP_OP_RDPPKTLOSS:
 	if (value<0 || value>100) {
-	    printf(" value must be 0 <= val <=100.\n");
+	    printf(" value must be 0 <= val <= 100.\n");
+	    return;
+	}
+	break;
+    case PSP_OP_MASTER:
+	if (value<0 || value>=PSC_getNrOfNodes()) {
+	    printf(" value must be 0 <= val < %d.\n", PSC_getNrOfNodes());
 	    return;
 	}
 	break;

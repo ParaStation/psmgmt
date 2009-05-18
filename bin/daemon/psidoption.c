@@ -296,6 +296,14 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 		    setDeadLimit(msg->opt[i].value);
 		}
 		break;
+	    case PSP_OP_MASTER:
+	    {
+		PSnodes_ID_t id = msg->opt[i].value;
+		if (PSIDnodes_validID(id) && !PSIDnodes_isUp(id)) {
+		    send_DAEMONCONNECT(id);
+		}
+		break;
+	    }
 	    case PSP_OP_PROCLIMIT:
 		if (PSC_getPID(msg->header.sender)) {
 		    DDOptionMsg_t info = {

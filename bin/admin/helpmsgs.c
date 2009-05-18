@@ -243,7 +243,7 @@ static info_t setInfo = {
     .syntax = (syntax_t[]) {{
 	.cmd = "set",
 	.arg = "{maxproc {<num>|any} | user [+|-]{<user>|any}"
-	" | group [+|-]{{<group>|any} | psiddebug <level>"
+	" | group [+|-]{{<group>|any} | psiddebug <level> | master <id>"
 	" | selecttime <timeout> | statustimeout <timeout> | deadlimit <limit>"
 	" | rdpdebug <level> | rdppktloss <rate>"
 	" | rdpmaxretrans <val> | rdpresendtimeout <val>"
@@ -277,6 +277,10 @@ static info_t setInfo = {
 	  " Depending on <level> the daemon might log a huge amount of"
 	  " messages to the syslog. Thus do not use large values for <level>"
 	  " for a long time." },
+	{ .tag = "set master <id>",
+	  .descr = "Give the ParaStation daemon's some hints concerning the"
+	  " master node. This will actually trigger the daemon to connect the"
+	  " node with ParaStation ID <id>."},
 	{ .tag = "set selecttime <timeout>",
 	  .descr = "Set the ParaStation daemon's select timeout to <timeout>"
 	  " seconds on the selected nodes." },

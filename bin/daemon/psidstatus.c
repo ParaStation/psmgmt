@@ -865,16 +865,18 @@ static void msg_ACTIVENODES(DDBufferMsg_t *msg)
     PSID_log(PSID_LOG_STATUS, "%s: num is %d\n", __func__, num);
 
     for (idx=0; idx<num; idx++) {
-	PSnodes_ID_t currentNode = nodeBuf[idx];
+	PSnodes_ID_t currentNode = nodeBuf[idx], n;
 	PSID_log(PSID_LOG_STATUS,
 		 "%s: %d. is %d\n", __func__, idx, nodeBuf[idx]);
 	if (currentNode == senderNode) {
 	    /* Sender is first active node, all previous nodes are down */
-	    firstUntested = 0;
+	    for (n=0; n<currentNode; n++) {
+		if (PSIDnodes_isUp(n)) send_DAEMONCONNECT(n);
+	    }
+	    firstUntested = currentNode+1;
 	}
-	PSnodes_ID_t n;
 	for (n=firstUntested; n<currentNode; n++) {
-	    if (PSIDnodes_isUp(n)) send_DAEMONCONNECT(n);
+	    if (PSIDnodes_isUp(n)) send_MASTERIS(n);
 	}
 	if (!PSIDnodes_isUp(currentNode)) send_DAEMONCONNECT(currentNode);
 	firstUntested = currentNode+1;

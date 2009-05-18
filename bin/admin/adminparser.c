@@ -1129,6 +1129,7 @@ static int setCommand(char *token)
     case PSP_OP_RDPCLSDTMOUT:
     case PSP_OP_MCASTDEBUG:
     case PSP_OP_ACCTPOLL:
+    case PSP_OP_MASTER:
 	if (parser_getNumber(value, &val)) {
 	    printf("Illegal value '%s'\n", value);
 	    goto error;
@@ -1225,6 +1226,7 @@ static int setCommand(char *token)
     case PSP_OP_NODESSORT:
     case PSP_OP_ACCTPOLL:
     case PSP_OP_SUPPL_GRPS:
+    case PSP_OP_MASTER:
 	PSIADM_SetParam(setShowOpt, val, nl);
 	break;
     case PSP_OP_CPUMAP:
