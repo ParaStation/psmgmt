@@ -191,6 +191,34 @@ int getPktLossRDP(void);
 void setPktLossRDP(int rate);
 
 /**
+ * @brief Get RDP's timeout.
+ *
+ * Get the central timeout of the RDP module. After this number of
+ * milli-seconds the central timer elapses and calls
+ * handleTimeoutRDP(). There all necessary resends are handled.
+ *
+ * @return The actual timeout is returned.
+ *
+ * @see setTmOutRDP()
+ */
+int getTmOutRDP(void);
+
+/**
+ * @brief Set RDP's timeout.
+ *
+ * Set the central timeout of the RDP module. After @a timeout number
+ * of milli-seconds the central timer elapses and calls
+ * handleTimeoutRDP(). There all necessary resends are handled.
+ *
+ * @param timeout RDP's central timeout in milli-seconds to be set.
+ *
+ * @return No return value.
+ *
+ * @see getTmOutRDP()
+ */
+void setTmOutRDP(int timeout);
+
+/**
  * @brief Get maximum retransmission count.
  *
  * Get the maximum retransmission count of the RDP module. After this

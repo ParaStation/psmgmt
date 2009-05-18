@@ -33,6 +33,11 @@ extern "C" {
 #endif
 
 /**
+ * The minimum timeout handled by this module in milli-seconds.
+ */
+#define MIN_TIMEOUT_MSEC 100
+
+/**
  * @brief Initializes the Timer module.
  *
  * Initialization of the Timer machinery. If any timer is registered,

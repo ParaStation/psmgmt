@@ -2024,6 +2024,32 @@ void setPktLossRDP(int rate)
     }
 }
 
+int getTmOutRDP(void)
+{
+    return RDPTimeout.tv_sec * 1000 + RDPTimeout.tv_usec / 1000;
+}
+
+void setTmOutRDP(int timeout)
+{
+    if (timeout < MIN_TIMEOUT_MSEC) return;
+
+    RDPTimeout.tv_sec = timeout / 1000;
+    RDPTimeout.tv_usec = (timeout%1000) * 1000;
+
+    if (!nrOfNodes) return;
+
+    if (timerID > 0) {
+	Timer_block(timerID, 1);
+	Timer_remove(timerID);
+	timerID = -1;
+    }
+    timerID = Timer_register(&RDPTimeout, handleTimeoutRDP);
+    if (timerID < 0) {
+	RDP_log(-1, "%s: Failed to (re-)register RDP timer\n",__func__);
+	exit(1);
+    }
+}
+
 int getMaxRetransRDP(void)
 {
     return RDPMaxRetransCount;

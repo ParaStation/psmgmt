@@ -245,7 +245,7 @@ static info_t setInfo = {
 	.arg = "{maxproc {<num>|any} | user [+|-]{<user>|any}"
 	" | group [+|-]{{<group>|any} | psiddebug <level> | master <id>"
 	" | selecttime <timeout> | statustimeout <timeout> | deadlimit <limit>"
-	" | rdpdebug <level> | rdppktloss <rate>"
+	" | rdpdebug <level> | rdptimeout <timeout> | rdppktloss <rate>"
 	" | rdpmaxretrans <val> | rdpresendtimeout <val>"
 	" | rdpclosedtimeout <val> | rdpmaxackpend <val> | mcastdebug <level>"
 	" | {freeonsuspend|fos} <bool> | {handleoldbins|hob} <bool>"
@@ -296,6 +296,10 @@ static info_t setInfo = {
 	  " Depending on <level> the daemon might log a huge amount of"
 	  " messages to the syslog. Thus do not use large values for <level>"
 	  " for a long time." },
+	{ .tag = "set rdptimeout <timeout>",
+	  .descr = "Set the RDP's central timeout to <timeout> milli-seconds"
+	  " on the selected nodes. This will modify the actual timer registered"
+	  " by RDP. This should be smaller than RDP's resend-timeout." },
 	{ .tag = "set rdppktloss <rate>",
 	  .descr = "Set RDP protocol's paket loss to <rate> on the seleceted"
 	  " nodes. <rate> is given in percent and therefore in between 0 and"
@@ -396,7 +400,7 @@ static info_t showInfo = {
     .syntax = (syntax_t[]) {{
 	.cmd = "show",
 	.arg = "{maxproc | user | group | psiddebug | selecttime"
-	" | statustimeout | deadlimit | rdpdebug"
+	" | statustimeout | deadlimit | rdpdebug | rdptimeout"
 	" | rdppktloss | rdpmaxretrans | rdpresendtimeout | rdpclosedtimeout"
 	" | rdpmaxackpend | mcastdebug | master"
 	" | {freeonsuspend|fos} | {handleoldbins|hob} | starter | runjobs"
@@ -426,6 +430,8 @@ static info_t showInfo = {
 	  .descr = "Show daemon's dead-limit." },
 	{ .tag = "show rdpdebug",
 	  .descr = "Show RDP protocol's verbosity level." },
+	{ .tag = "show rdptimeout",
+	  .descr = "Show RDP protocol's registered timer's timout." },
 	{ .tag = "show rdppktloss",
 	  .descr = "Show RDP protocol's packet-loss rate." },
 	{ .tag = "show rdpmaxretrans",

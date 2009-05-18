@@ -98,6 +98,7 @@ typedef enum {
     PSP_OP_RDPMAXACKPEND,         /**< Max. pending ACKs in RDP */
     PSP_OP_RDPRSNDTMOUT,          /**< RDP's resend-timeout */
     PSP_OP_RDPCLSDTMOUT,          /**< RDP's closed-timeout */
+    PSP_OP_RDPTMOUT,              /**< RDP's registered timeout */
 
     PSP_OP_MCASTDEBUG = 0x0028,   /**< MCast's debug level */
 

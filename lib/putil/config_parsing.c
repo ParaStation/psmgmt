@@ -38,6 +38,7 @@ static char vcid[] __attribute__((used)) =
 #include "pscommon.h"
 #include "hardware.h"
 #include "pspartition.h"
+#include "timer.h"
 #include "rdp.h"
 
 #include "psidnodes.h"
@@ -52,6 +53,7 @@ static config_t config = (config_t) {
     .statusTimeout = 2000,
     .deadLimit = 5,
     .RDPPort = 886,
+    .RDPTimeout = 100,
     .useMCast = 0,
     .MCastGroup = 237,
     .MCastPort = 1889,
@@ -271,6 +273,22 @@ static int getRDPPort(char *token)
     return parser_getNumValue(parser_getString(), &config.RDPPort, "RDP port");
 }
 
+static int getRDPTimeout(char *token)
+{
+    int temp, ret;
+
+    ret = parser_getNumValue(parser_getString(), &temp, "RDP timeout");
+    if (ret) return ret;
+
+    if (temp < MIN_TIMEOUT_MSEC) {
+	parser_comment(-1, "RDP timeout %d too small. Ignoring...\n", temp);
+    } else {
+	config.RDPTimeout = temp;
+    }
+
+    return ret;
+}
+
 static int getRDPMaxRetrans(char *token)
 {
     int ret, tmp;
@@ -354,7 +372,7 @@ static int getStatTmout(char *token)
     ret = parser_getNumValue(parser_getString(), &temp, "status timeout");
     if (ret) return ret;
 
-    if (temp < 100) {
+    if (temp < MIN_TIMEOUT_MSEC) {
 	parser_comment(-1, "status timeout %d too small. Ignoring...\n", temp);
     } else {
 	config.statusTimeout = temp;
@@ -2588,6 +2606,7 @@ static keylist_t config_list[] = {
     {"mcastgroup", getMCastGroup},
     {"mcastport", getMCastPort},
     {"rdpport", getRDPPort},
+    {"rdptimeout", getRDPTimeout},
     {"rdpmaxretrans", getRDPMaxRetrans},
     {"rdpresendtimeout", getRDPResendTimeout},
     {"rdpclosedtimeout", getRDPClosedTimeout},

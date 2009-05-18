@@ -51,6 +51,8 @@ typedef struct {
 			    is 5.*/
     int RDPPort;         /**< The UDP port to use for RDP messages.
 			    Result of 'RDPPort'. Default is 886. */
+    int RDPTimeout;      /**< Timeout of RDP in msec. Result of
+			    'RDPTimeout'. Default is 100.*/
     int useMCast;        /**< Flag if MCast should be used for status controll.
 			    Result of 'UseMCast'. Default is 1 (use MCast). */
     int MCastGroup;      /**< The MCast group to use.

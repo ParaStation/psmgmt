@@ -712,6 +712,12 @@ static int setShowRDPDebug(char *token)
     return 0;
 }
 
+static int setShowRDPTmOut(char *token)
+{
+    setShowOpt = PSP_OP_RDPTMOUT;
+    return 0;
+}
+
 static int setShowRDPPktLoss(char *token)
 {
     setShowOpt = PSP_OP_RDPPKTLOSS;
@@ -926,6 +932,7 @@ static keylist_t setShowList[] = {
     {"statustimeout", setShowStatusTimeout},
     {"deadlimit", setShowDeadLimit},
     {"rdpdebug", setShowRDPDebug},
+    {"rdptimeout", setShowRDPTmOut},
     {"rdppktloss", setShowRDPPktLoss},
     {"rdpmaxretrans", setShowRDPMaxRetrans},
     {"rdpmaxackpend", setShowRDPMaxACKPend},
@@ -1122,6 +1129,7 @@ static int setCommand(char *token)
     case PSP_OP_STATUS_TMOUT:
     case PSP_OP_STATUS_DEADLMT:
     case PSP_OP_RDPDEBUG:
+    case PSP_OP_RDPTMOUT:
     case PSP_OP_RDPPKTLOSS:
     case PSP_OP_RDPMAXRETRANS:
     case PSP_OP_RDPMAXACKPEND:
@@ -1209,6 +1217,7 @@ static int setCommand(char *token)
     case PSP_OP_STATUS_TMOUT:
     case PSP_OP_STATUS_DEADLMT:
     case PSP_OP_RDPDEBUG:
+    case PSP_OP_RDPTMOUT:
     case PSP_OP_RDPPKTLOSS:
     case PSP_OP_RDPMAXRETRANS:
     case PSP_OP_RDPMAXACKPEND:
@@ -1271,6 +1280,7 @@ static int showCommand(char *token)
     case PSP_OP_STATUS_TMOUT:
     case PSP_OP_STATUS_DEADLMT:
     case PSP_OP_RDPDEBUG:
+    case PSP_OP_RDPTMOUT:
     case PSP_OP_RDPPKTLOSS:
     case PSP_OP_RDPMAXRETRANS:
     case PSP_OP_RDPMAXACKPEND:

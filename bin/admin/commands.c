@@ -30,6 +30,7 @@ static char vcid[] __attribute__((used)) =
 #include "parser.h"
 #include "psprotocol.h"
 #include "pstask.h"
+#include "timer.h"
 
 #include "psi.h"
 #include "psiinfo.h"
@@ -1206,8 +1207,9 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
 	}
 	break;
     case PSP_OP_STATUS_TMOUT:
-	if (value<100) {
-	    printf(" value must be >= 100.\n");
+    case PSP_OP_RDPTMOUT:
+	if (value<MIN_TIMEOUT_MSEC) {
+	    printf(" value must be >= %d.\n", MIN_TIMEOUT_MSEC);
 	    return;
 	}
 	break;

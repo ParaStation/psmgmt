@@ -737,6 +737,7 @@ int main(int argc, const char *argv[])
 	} else {
 	    setStatusTimeout(config->statusTimeout);
 	    setDeadLimit(config->deadLimit);
+	    setTmOutRDP(config->RDPTimeout);
 	}
 
 	/* Initialize RDP */

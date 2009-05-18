@@ -653,6 +653,9 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 	    case PSP_OP_RDPPKTLOSS:
 		setPktLossRDP(msg->opt[i].value);
 		break;
+	    case PSP_OP_RDPTMOUT:
+		setTmOutRDP(msg->opt[i].value);
+		break;
 	    case PSP_OP_RDPMAXRETRANS:
 		setMaxRetransRDP(msg->opt[i].value);
 		break;
@@ -896,6 +899,9 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_RDPPKTLOSS:
 		msg->opt[out].value = getPktLossRDP();
+		break;
+	    case PSP_OP_RDPTMOUT:
+		msg->opt[out].value = getTmOutRDP();
 		break;
 	    case PSP_OP_RDPMAXRETRANS:
 		msg->opt[out].value = getMaxRetransRDP();

@@ -330,10 +330,11 @@ int getStatusTimeout(void)
 
 void setStatusTimeout(int timeout)
 {
-    if (timeout > 0) {
-	StatusTimeout.tv_sec = timeout / 1000;
-	StatusTimeout.tv_usec = (timeout%1000) * 1000;
-    }
+    if (timeout < MIN_TIMEOUT_MSEC) return;
+
+    StatusTimeout.tv_sec = timeout / 1000;
+    StatusTimeout.tv_usec = (timeout%1000) * 1000;
+
     if (timerID > 0) {
 	Timer_block(timerID, 1);
 	releaseStatusTimer();

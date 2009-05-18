@@ -55,7 +55,7 @@ static logger_t *logger = NULL;
 static LIST_HEAD(timerList);
 
 /** The minimum timer period. */
-static const struct timeval minPeriod = {0,100000};
+static const struct timeval minPeriod = {0, MIN_TIMEOUT_MSEC*1000};
 
 /** The actual timer period. */
 static struct timeval actPeriod = {0,0};
