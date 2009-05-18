@@ -701,8 +701,21 @@ int send_DAEMONSHUTDOWN(void)
 	.sender = PSC_getMyTID(),
 	.dest = 0,
 	.len = sizeof(msg) };
+    int count=1, i;
 
-    return broadcastMsg(&msg);
+    /* broadcast to every daemon except the sender */
+    for (i=0; i<PSC_getNrOfNodes(); i++) {
+	if (PSIDnodes_isUp(i) && i != PSC_getMyID()) {
+	    msg.dest = PSC_getTID(i, 0);
+	    if (sendMsg(&msg)>=0) {
+		count++;
+	    }
+	    /* Close RDP connection immediately after send */
+	    closeConnRDP(i);
+	}
+    }
+
+    return count;
 }
 
 /**
