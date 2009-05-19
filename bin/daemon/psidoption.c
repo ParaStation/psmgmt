@@ -296,6 +296,11 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 		    setDeadLimit(msg->opt[i].value);
 		}
 		break;
+	    case PSP_OP_STATUS_BCASTS:
+		if (msg->opt[i].value >= 0) {
+		    setMaxStatBCast(msg->opt[i].value);
+		}
+		break;
 	    case PSP_OP_MASTER:
 	    {
 		PSnodes_ID_t id = msg->opt[i].value;
@@ -838,6 +843,9 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_STATUS_DEADLMT:
 		msg->opt[out].value = getDeadLimit();
+		break;
+	    case PSP_OP_STATUS_BCASTS:
+		msg->opt[out].value = getMaxStatBCast();
 		break;
 	    case PSP_OP_PROCLIMIT:
 		msg->opt[out].value = PSIDnodes_getProcs(PSC_getMyID());

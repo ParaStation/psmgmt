@@ -192,6 +192,32 @@ void setDeadLimit(int limit)
 }
 
 /**
+ * Counter for status broadcasts per round. This is used to limit the
+ * number of status broadcasts per status iteration. Too many
+ * broadcast might lead to running out of message-buffers within RDP
+ * on huge clusters.
+ */
+static int statusBcasts = 0;
+
+/**
+ * Maximum number of status broadcasts per round. This is used to limit the
+ * number of status broadcasts per status iteration. Too many
+ * broadcast might lead to running out of message-buffers within RDP
+ * on huge clusters.
+ */
+static int maxStatusBcasts = 8;
+
+int getMaxStatBCast(void)
+{
+    return maxStatusBcasts;
+}
+
+void setMaxStatBCast(int limit)
+{
+    if (limit >= 0) maxStatusBcasts = limit;
+}
+
+/**
  * @brief Master handling routine.
  *
  * All the stuff the master has to handle when @ref StatusTimeout is
@@ -232,6 +258,9 @@ static void handleMasterTasks(void)
 	    nrDownNodes++;
 	}
     }
+
+    /* Re-enable DD_DEADNODE broadcasts */
+    statusBcasts = 0;
 
     round %= 10;
     if (!round) {
@@ -921,6 +950,8 @@ static int send_DEADNODE(PSnodes_ID_t deadnode)
     msg.header.len += sizeof(PSnodes_ID_t);
 
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, deadnode);
+
+    if (statusBcasts++ > maxStatusBcasts) return 0;
 
     return broadcastMsg(&msg);
 }

@@ -51,6 +51,7 @@ static config_t config = (config_t) {
     .selectTime = 2,
     .deadInterval = 10,
     .statusTimeout = 2000,
+    .statusBroadcasts = 8,
     .deadLimit = 5,
     .RDPPort = 886,
     .RDPTimeout = 100,
@@ -376,6 +377,22 @@ static int getStatTmout(char *token)
 	parser_comment(-1, "status timeout %d too small. Ignoring...\n", temp);
     } else {
 	config.statusTimeout = temp;
+    }
+
+    return ret;
+}
+
+static int getStatBcast(char *token)
+{
+    int temp, ret;
+
+    ret = parser_getNumValue(parser_getString(), &temp, "status broadcasts");
+    if (ret) return ret;
+
+    if (temp < 0) {
+	parser_comment(-1, "status broadcasts must be positive. Ignoring...\n");
+    } else {
+	config.statusBroadcasts = temp;
     }
 
     return ret;
@@ -2614,6 +2631,7 @@ static keylist_t config_list[] = {
     {"selecttime", getSelectTime},
     {"deadinterval", getDeadInterval},
     {"statustimeout", getStatTmout},
+    {"statusbroadcasts", getStatBcast},
     {"deadlimit", getDeadLmt},
     {"accountpoll", getAcctPollInterval},
     {"rlimit", getRLimit},

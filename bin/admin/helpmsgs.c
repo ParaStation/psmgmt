@@ -244,7 +244,8 @@ static info_t setInfo = {
 	.cmd = "set",
 	.arg = "{maxproc {<num>|any} | user [+|-]{<user>|any}"
 	" | group [+|-]{{<group>|any} | psiddebug <level> | master <id>"
-	" | selecttime <timeout> | statustimeout <timeout> | deadlimit <limit>"
+	" | selecttime <timeout> | statustimeout <timeout>"
+	" | statusbroadcasts <limit> | deadlimit <limit>"
 	" | rdpdebug <level> | rdptimeout <timeout> | rdppktloss <rate>"
 	" | rdpmaxretrans <val> | rdpresendtimeout <val>"
 	" | rdpclosedtimeout <val> | rdpmaxackpend <val> | mcastdebug <level>"
@@ -287,6 +288,9 @@ static info_t setInfo = {
 	{ .tag = "set statustimeout <timeout>",
 	  .descr = "Set the ParaStation daemon's status timeout to <timeout>"
 	  " milli-seconds on the selected nodes." },
+	{ .tag = "set statusbroadcasts <limit>",
+	  .descr = "Set the ParaStation daemon's limit on status-broadcasts"
+	  " to <limit> on the selected nodes." },
 	{ .tag = "set deadlimit <limit>",
 	  .descr = "Set the ParaStation daemon's dead-limit to <limit> on the"
 	  " selected nodes." },
@@ -400,9 +404,9 @@ static info_t showInfo = {
     .syntax = (syntax_t[]) {{
 	.cmd = "show",
 	.arg = "{maxproc | user | group | psiddebug | selecttime"
-	" | statustimeout | deadlimit | rdpdebug | rdptimeout"
-	" | rdppktloss | rdpmaxretrans | rdpresendtimeout | rdpclosedtimeout"
-	" | rdpmaxackpend | mcastdebug | master"
+	" | statustimeout | statusbroadcasts | deadlimit | rdpdebug"
+	" | rdptimeout | rdppktloss | rdpmaxretrans | rdpresendtimeout"
+	" | rdpclosedtimeout | rdpmaxackpend | mcastdebug | master"
 	" | {freeonsuspend|fos} | {handleoldbins|hob} | starter | runjobs"
 	" | overbook | exclusive | pinprocs | bindmem | cpumap | nodessort"
 	" | adminuser | admingroup | accounters | accountpoll"
@@ -426,6 +430,8 @@ static info_t showInfo = {
 	  .descr = "Show daemon's select timeout." },
 	{ .tag = "show statustimeout",
 	  .descr = "Show daemon's status timeout." },
+	{ .tag = "show statusbroadcasts",
+	  .descr = "Show daemon's limit on status-broadcasts." },
 	{ .tag = "show deadlimit",
 	  .descr = "Show daemon's dead-limit." },
 	{ .tag = "show rdpdebug",

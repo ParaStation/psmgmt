@@ -736,6 +736,7 @@ int main(int argc, const char *argv[])
 	    PSID_log(-1, "MCast and ");
 	} else {
 	    setStatusTimeout(config->statusTimeout);
+	    setMaxStatBCast(config->statusBroadcasts);
 	    setDeadLimit(config->deadLimit);
 	    setTmOutRDP(config->RDPTimeout);
 	}

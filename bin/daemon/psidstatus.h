@@ -290,6 +290,59 @@ int getDeadLimit(void);
 void setDeadLimit(int limit);
 
 /**
+ * @brief Get maximum status-broadcasts
+ *
+ * Get the maximum number of status-broadcasts per round. This is used
+ * to limit the number of status-broadcasts per status-iteration. Too
+ * many broadcast might lead to running out of message-buffers within
+ * RDP on huge clusters.
+ *
+ * If more than this number of broadcasts are triggered during one
+ * status-iteration, all future broadcasts will be ignored. The
+ * corresponding counter is reset upon start of the next
+ * status-iteration.
+ *
+ * The lengt of the status-iteration is steered via the @ref
+ * setStatusTimeout() function.
+ *
+ * @return The number of allowed status-broadcast per status-iteration
+ * is returned.
+ *
+ * @see setMaxStatBCast(), getStatusTimeout(), setStatusTimeout()
+ */
+int getMaxStatBCast(void);
+
+/**
+ * @brief Set maximum status-broadcasts
+ *
+ * Set the maximum number of status-broadcasts per round to @a
+ * limit. This is used to limit the number of status-broadcasts per
+ * status-iteration. Too many broadcast might lead to running out of
+ * message-buffers within RDP on huge clusters.
+ *
+ * If more than @a limit broadcasts are triggered during one
+ * status-iteration, all future broadcasts will be ignored. The
+ * corresponding counter is reset upon start of the next
+ * status-iteration.
+ *
+ * A value of 0 will completly suppress sending of
+ * status-broadcasts. In this case information on dead nodes will be
+ * propagated by sending ACTIVENODES messages upon receive of too many
+ * wrong LOAD messages, only.
+ *
+ * The lengt of the status-iteration is steered via the @ref
+ * setStatusTimeout() function.
+ *
+ * @param limit The new limit on the status-broadcasts per
+ * status-iteration.
+ *
+ * @return No return value.
+ *
+ * @see getMaxStatBCast(), getStatusTimeout(), setStatusTimeout()
+ */
+void setMaxStatBCast(int limit);
+
+/**
  * @brief Declare a node dead.
  *
  * Declare the node with ParaStation ID @a id to be dead. Therefore

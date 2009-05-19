@@ -89,8 +89,9 @@ typedef enum {
     PSP_OP_ACCT,                  /**< list of accounting processes */
     PSP_OP_ACCTPOLL,              /**< accounter's poll interval */
 
-    PSP_OP_STATUS_TMOUT = 0x0018, /**< status timeout (in milli-seconds) */
-    PSP_OP_STATUS_DEADLMT,        /**< status dead-limit */
+    PSP_OP_STATUS_TMOUT = 0x0018, /**< status' timeout (in milli-seconds) */
+    PSP_OP_STATUS_DEADLMT,        /**< status' dead-limit */
+    PSP_OP_STATUS_BCASTS,         /**< status-broadcast limit */
 
     PSP_OP_RDPDEBUG = 0x0020,     /**< RDP's debug level */
     PSP_OP_RDPPKTLOSS,            /**< Paket loss within RDP (debugging) */

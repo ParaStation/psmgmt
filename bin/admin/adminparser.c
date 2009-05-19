@@ -706,6 +706,12 @@ static int setShowDeadLimit(char *token)
     return 0;
 }
 
+static int setShowStatBCast(char *token)
+{
+    setShowOpt = PSP_OP_STATUS_BCASTS;
+    return 0;
+}
+
 static int setShowRDPDebug(char *token)
 {
     setShowOpt = PSP_OP_RDPDEBUG;
@@ -930,6 +936,7 @@ static keylist_t setShowList[] = {
     {"psiddebug", setShowPSIDDebug},
     {"selecttime", setShowSelectTime},
     {"statustimeout", setShowStatusTimeout},
+    {"statusbroadcasts", setShowStatBCast},
     {"deadlimit", setShowDeadLimit},
     {"rdpdebug", setShowRDPDebug},
     {"rdptimeout", setShowRDPTmOut},
@@ -1128,6 +1135,7 @@ static int setCommand(char *token)
     case PSP_OP_PSIDSELECTTIME:
     case PSP_OP_STATUS_TMOUT:
     case PSP_OP_STATUS_DEADLMT:
+    case PSP_OP_STATUS_BCASTS:
     case PSP_OP_RDPDEBUG:
     case PSP_OP_RDPTMOUT:
     case PSP_OP_RDPPKTLOSS:
@@ -1216,6 +1224,7 @@ static int setCommand(char *token)
     case PSP_OP_PSIDSELECTTIME:
     case PSP_OP_STATUS_TMOUT:
     case PSP_OP_STATUS_DEADLMT:
+    case PSP_OP_STATUS_BCASTS:
     case PSP_OP_RDPDEBUG:
     case PSP_OP_RDPTMOUT:
     case PSP_OP_RDPPKTLOSS:
@@ -1279,6 +1288,7 @@ static int showCommand(char *token)
     case PSP_OP_PSIDSELECTTIME:
     case PSP_OP_STATUS_TMOUT:
     case PSP_OP_STATUS_DEADLMT:
+    case PSP_OP_STATUS_BCASTS:
     case PSP_OP_RDPDEBUG:
     case PSP_OP_RDPTMOUT:
     case PSP_OP_RDPPKTLOSS:
