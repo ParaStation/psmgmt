@@ -205,7 +205,7 @@ static int statusBcasts = 0;
  * broadcast might lead to running out of message-buffers within RDP
  * on huge clusters.
  */
-static int maxStatusBcasts = 8;
+static int maxStatusBcasts = 4;
 
 int getMaxStatBCast(void)
 {
@@ -951,7 +951,10 @@ static int send_DEADNODE(PSnodes_ID_t deadnode)
 
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, deadnode);
 
-    if (statusBcasts++ > maxStatusBcasts) return 0;
+    if (statusBcasts++ > maxStatusBcasts) {
+	PSID_log(-1, "%s: dropping broadcast\n", __func__);
+	return 0;
+    }
 
     return broadcastMsg(&msg);
 }

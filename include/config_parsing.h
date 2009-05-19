@@ -47,7 +47,7 @@ typedef struct {
 			    msec. Result of 'StatusTimeout'. Default
 			    is 2000.*/
     int statusBroadcasts;/**< Number of status-broadcasts per round.
-			    Result of 'StatusBroadcasts'. Default 8.*/
+			    Result of 'StatusBroadcasts'. Default 4.*/
     int deadLimit;       /**< Declare node dead after this # missing
 			    RDP-pings.  Result of 'DeadLimit'. Default
 			    is 5.*/
