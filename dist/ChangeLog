@@ -1,3 +1,53 @@
+Version psmgmt-5.0.14:
+======================
+------------------------------------------------------------------------
+r7527 | eicker | 2009-05-19 14:55:55 +0200 (Tue, 19 May 2009) | 3 lines
+
+Limit maximum number of status-broadcasts again, now to 4 per iteration.
+Add additional problem reporting.
+
+------------------------------------------------------------------------
+r7525 | eicker | 2009-05-19 11:16:29 +0200 (Tue, 19 May 2009) | 6 lines
+
+Limit the number of status-broadcast per status iteration. Excessive
+    status-broadcasts due to lost connections might make RDP run out of
+    pre-allocated buffers.
+Also make this status-broadcast limit configurable. Both ways are
+    supported, runtime (via psiadmin) and persistent (via parastation.conf).
+
+------------------------------------------------------------------------
+r7524 | eicker | 2009-05-18 22:08:04 +0200 (Mon, 18 May 2009) | 3 lines
+
+Close RDP-connection immediately after sending SHUTDOWN message. This
+    should prevent excessive resends on huge clusters.
+
+------------------------------------------------------------------------
+r7523 | eicker | 2009-05-18 21:47:14 +0200 (Mon, 18 May 2009) | 4 lines
+
+Enhancement: Also make timeout of RDP's central timer configurable.
+    Both ways are supported, runtime (via psiadmin) and persistent (via
+    parastation.conf).
+
+------------------------------------------------------------------------
+r7522 | eicker | 2009-05-18 20:50:56 +0200 (Mon, 18 May 2009) | 3 lines
+
+Enhancement: Implement psiadmin's 'set master <id>' directive to give
+    the ParaStation daemon hints about the real master.
+
+------------------------------------------------------------------------
+r7519 | eicker | 2009-05-18 13:34:05 +0200 (Mon, 18 May 2009) | 4 lines
+
+Enhancement: Make both, the RDP-ping's status-timeout and dead-limit
+    configurable. Both ways of configuration are supported: During
+    run-time via psiadmin and persistently in parastation.conf.
+
+------------------------------------------------------------------------
+r7495 | eicker | 2009-05-12 22:10:21 +0200 (Tue, 12 May 2009) | 2 lines
+
+New version (psmgmt-5.0.13)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.13:
 ======================
 ------------------------------------------------------------------------
