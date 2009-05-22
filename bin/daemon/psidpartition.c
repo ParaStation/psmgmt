@@ -2912,6 +2912,16 @@ static void sendExistingPartitions(PStask_ID_t dest)
 	    ptr += sizeof(task->partitionSize);
 	    msg.header.len += sizeof(task->partitionSize);
 
+	    if (PSIDnodes_getDaemonProtoVersion(PSC_getID(dest)) > 402) {
+		*(uint32_t *)ptr = task->uid;
+		ptr += sizeof(uint32_t);
+		msg.header.len += sizeof(uint32_t);
+
+		*(uint32_t *)ptr = task->gid;
+		ptr += sizeof(uint32_t);
+		msg.header.len += sizeof(uint32_t);
+	    }
+
 	    *(uint8_t *)ptr = task->suspended;
 	    ptr += sizeof(uint8_t);
 	    msg.header.len += sizeof(uint8_t);
@@ -3018,6 +3028,14 @@ static void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
 
     request->size = *(uint32_t *)ptr;
     ptr += sizeof(uint32_t);
+
+    if (PSIDnodes_getDaemonProtoVersion(PSC_getID(request->tid)) > 402) {
+	request->uid = *(uint32_t *)ptr;
+	ptr += sizeof(uint32_t);
+
+	request->gid = *(uint32_t *)ptr;
+	ptr += sizeof(uint32_t);
+    }
 
     request->suspended = *(uint8_t *)ptr;
     ptr += sizeof(uint8_t);

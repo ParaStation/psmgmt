@@ -30,7 +30,7 @@ extern "C" {
 #endif
 
 /** Unique version number of the high-level protocol */
-#define PSDaemonProtocolVersion  402
+#define PSDaemonProtocolVersion  403
 
 /** IDs of the various message types */
 
