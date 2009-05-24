@@ -661,6 +661,36 @@ static uint32_t getHWEnv(void)
     return hwType;
 }
 
+/**
+ * @brief Get TPP environment
+ *
+ * Get the threads per processes requested within the
+ * PSI_createPartition() call. This is taken as a number from the
+ * PSI_TPP environment.
+ *
+ * @return On success, the requested number of threads per process is
+ * returned. In case of an error detected a warning message is printed
+ * and 1 is returned.
+ */
+static uint16_t getTPPEnv(void)
+{
+    char *env = getenv("PSI_TPP"), *end;
+    uint16_t tpp;
+
+    if (!env) return 1;
+    /* @todo Test further environments like OMP_NUMTHREADS */
+
+    tpp = strtoul(env, &end, 0);
+    if (*end) {
+	PSI_log(-1, "%s: Unable to determine threads per process from '%s'\n",
+		__func__, env);
+	return 1;
+    }
+
+    return tpp;
+}
+
+
 static int alarmCalled = 0;
 static void alarmHandler(int sig)
 {
@@ -727,6 +757,8 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
 		" and environment (%x)\n", __func__, hwType, hwEnv);
 	return -1;
     }
+
+    request->tpp = getTPPEnv();
 
     len = PSpart_encodeReq(msg.buf, sizeof(msg.buf), request);
     PSpart_delReq(request);

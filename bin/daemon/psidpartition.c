@@ -1119,8 +1119,6 @@ static unsigned int getNormalPart(PSpart_request_t *request,
 
     PSID_log(PSID_LOG_PART, "%s\n", __func__);
 
-    memset(tmpStat, 0, PSC_getNrOfNodes() * sizeof(*tmpStat));
-
     if (request->options & PART_OPT_EXACT) {
 	/* This is a exact partition defined by a batch-system */
 	while (cand < candidates->size && node < request->size) {
@@ -1132,11 +1130,13 @@ static unsigned int getNormalPart(PSpart_request_t *request,
 		PSCPU_addCPUs(slots[node].CPUset, ce->CPUset);
 		curSlots++;
 		cand++;
-		if (cand == candidates->size && overbook) {
-		    /* Let's loop and start to overbook */
-		    cand = 0;
-		} else {
-		    break;
+		if (cand == candidates->size) {
+		    if (overbook) {
+			/* Let's loop and start to overbook */
+			cand = 0;
+		    } else {
+			break;
+		    }
 		}
 		ce = &candidates->entry[cand];
 	    }
@@ -1148,7 +1148,9 @@ static unsigned int getNormalPart(PSpart_request_t *request,
 	    node++;
 	}
     } else {
-	/* Normal partition defined by the user */
+	/* Standard partition defined by the user */
+	memset(tmpStat, 0, PSC_getNrOfNodes() * sizeof(*tmpStat));
+
 	while (node < request->size) {
 	    PSnodes_ID_t cid = candidates->entry[cand].id;
 	    if (!tmpStat[cid]) {
@@ -1239,6 +1241,8 @@ static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
     int tpp = request->tpp;
 
     unsigned short *allowedSlots;
+
+    PSID_log(PSID_LOG_PART, "%s\n", __func__);
 
     /* Generate number of available slots for each node */
     allowedSlots = calloc(sizeof(unsigned short), PSC_getNrOfNodes());
