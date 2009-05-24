@@ -1939,7 +1939,6 @@ static void setSigHandlers()
     /* install sig handlers */
     signal(SIGTERM, sighandler);
     signal(SIGQUIT, sighandler);
-    signal(SIGSEGV, sighandler);
     signal(SIGCHLD, sighandler);
     signal(SIGHUP,  sighandler);
     signal(SIGSTOP, sighandler);
