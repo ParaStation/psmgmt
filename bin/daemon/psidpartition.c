@@ -261,7 +261,7 @@ static inline void freeCPUs(PSnodes_ID_t node, PSCPU_set_t set)
 
 static inline int getFreeCPUs(PSnodes_ID_t node, PSCPU_set_t free, int tpp)
 {
-    int checkedCPUs = PSIDnodes_getPhysCPUs(node);
+    int checkedCPUs = PSIDnodes_getVirtCPUs(node);
     int procs = PSIDnodes_getProcs(node);
 
     if (procs != PSNODES_ANYPROC && procs < checkedCPUs) checkedCPUs = procs;
@@ -761,7 +761,7 @@ static int nodeOK(PSnodes_ID_t node, PSpart_request_t *req)
 					     (PSIDnodes_guid_t){.u=req->uid}))
 	&& ( !req->gid || PSIDnodes_testGUID(node, PSIDNODES_GROUP,
 					     (PSIDnodes_guid_t){.g=req->gid}))
-	&& (PSIDnodes_getPhysCPUs(node))) {
+	&& (PSIDnodes_getVirtCPUs(node))) {
 	return 1;
     }
 
@@ -817,7 +817,7 @@ static int nodeFree(PSnodes_ID_t node, PSpart_request_t *req, int procs)
 	    || (PSIDnodes_getProcs(node) > procs))
 	&& (!(req->options & PART_OPT_OVERBOOK)
 	    || (PSIDnodes_overbook(node)==OVERBOOK_FALSE
-		&& PSIDnodes_getPhysCPUs(node) > procs)
+		&& PSIDnodes_getVirtCPUs(node) > procs)
 	    || (PSIDnodes_overbook(node)==OVERBOOK_AUTO)
 	    || (PSIDnodes_overbook(node)==OVERBOOK_TRUE))
 	&& (!(req->options & PART_OPT_EXCLUSIVE)
@@ -892,7 +892,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 
     for (i=0; i<request->num; i++) {
 	PSnodes_ID_t node = request->nodes[i];
-	int cpus = PSIDnodes_getPhysCPUs(node);
+	int cpus = PSIDnodes_getVirtCPUs(node);
 	int procs = getAssignedJobs(node);
 	int canPin = PSIDnodes_pinProcs(node);
 	PSID_NodeStatus_t status = getStatusInfo(node);

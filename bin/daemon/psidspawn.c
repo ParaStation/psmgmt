@@ -440,7 +440,7 @@ static void pinToCPUs(cpu_set_t *physSet)
  */
 static cpu_set_t *mapCPUs(PSCPU_set_t set)
 {
-    short cpu, maxCPU = PSIDnodes_getPhysCPUs(PSC_getMyID());
+    short cpu, maxCPU = PSIDnodes_getVirtCPUs(PSC_getMyID());
     static cpu_set_t physSet;
 
     CPU_ZERO(&physSet);
@@ -495,7 +495,7 @@ static void doClamps(PStask_t *task)
 {
     setenv("PSID_CPU_PINNING",  PSCPU_print(task->CPUset), 1);
 
-    int16_t physCPUs = PSIDnodes_getPhysCPUs(PSC_getMyID());
+    int16_t physCPUs = PSIDnodes_getVirtCPUs(PSC_getMyID());
 
     if (!PSCPU_any(task->CPUset, physCPUs)) {
 	fprintf(stderr, "CPU slots not set. Old executable? "

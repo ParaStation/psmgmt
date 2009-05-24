@@ -442,7 +442,7 @@ int PSIDnodes_bindMem(PSnodes_ID_t id)
 short PSIDnodes_mapCPU(PSnodes_ID_t id, short cpu)
 {
     if (PSIDnodes_validID(id) && cpu >= 0 && (unsigned)cpu<nodes[id].CPUmapSize
-	&& cpu<PSIDnodes_getPhysCPUs(id)) {
+	&& cpu<PSIDnodes_getVirtCPUs(id)) {
 	return nodes[id].CPUmap[cpu];
     } else {
 	return -1;
@@ -493,8 +493,8 @@ void send_CPUMap_OPTIONS(PStask_ID_t dest)
 	.opt = {{ .option = 0, .value = 0 }} };
     node_t *myNode = &nodes[PSC_getMyID()];
     short *CPUmap = myNode->CPUmap;
-    int i, mapEntries = (int)myNode->CPUmapSize < myNode->physCPU ?
-	(int)myNode->CPUmapSize : myNode->physCPU;
+    int i, mapEntries = (int)myNode->CPUmapSize < myNode->virtCPU ?
+	(int)myNode->CPUmapSize : myNode->virtCPU;
 
     PSID_log(PSID_LOG_VERB, "%s: %s", __func__, PSC_printTID(dest));
 
