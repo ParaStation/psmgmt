@@ -710,7 +710,7 @@ static uint16_t getTPPEnv(void)
  *
  * @return On success, 1 is returned, or 0, if an error occurred.
  */
-static int getFullList(void **list, PSP_Info_t what, size_t itemSize)
+static int getFullList(void *list, PSP_Info_t what, size_t itemSize)
 {
     int recv, hosts;
     size_t listSize = itemSize*PSC_getNrOfNodes();
