@@ -1,3 +1,69 @@
+Version psmgmt-5.0.15:
+======================
+------------------------------------------------------------------------
+r7551 | eicker | 2009-05-25 00:33:32 +0200 (Mon, 25 May 2009) | 2 lines
+
+Remove some compiler-warnings introduced lately.
+
+------------------------------------------------------------------------
+r7550 | eicker | 2009-05-25 00:24:36 +0200 (Mon, 25 May 2009) | 3 lines
+
+Enhancement: Provide some error analysis, if an application cannot
+    create a partition even in the presence of a batch-system
+
+------------------------------------------------------------------------
+r7549 | eicker | 2009-05-25 00:22:51 +0200 (Mon, 25 May 2009) | 2 lines
+
+Don't catch SIGSEGV within mpiexec.
+
+------------------------------------------------------------------------
+r7548 | eicker | 2009-05-24 21:38:56 +0200 (Sun, 24 May 2009) | 3 lines
+
+Use virtual processors for scheduling instead of physical ones. This
+    enable the use of SMT.
+
+------------------------------------------------------------------------
+r7547 | eicker | 2009-05-24 20:50:49 +0200 (Sun, 24 May 2009) | 3 lines
+
+Bugfix: Fix error preventing cross-version compatibility. This was
+    introduced in r7494.
+
+------------------------------------------------------------------------
+r7546 | eicker | 2009-05-24 19:55:11 +0200 (Sun, 24 May 2009) | 4 lines
+
+Enhancement: Enable more than 1 thread per process for multi-threaded
+    applications. Define the PSI_TPP environment to enable.
+Bugfix: Make tpp-feature in partition-requests really working.
+
+------------------------------------------------------------------------
+r7545 | eicker | 2009-05-24 15:27:59 +0200 (Sun, 24 May 2009) | 3 lines
+
+Bugfix: Fix race-condition in client-client flow-control. This might
+    lead to autistic forwarders.
+
+------------------------------------------------------------------------
+r7544 | eicker | 2009-05-24 15:04:03 +0200 (Sun, 24 May 2009) | 2 lines
+
+More debug information for CC-msg handling.
+
+------------------------------------------------------------------------
+r7543 | eicker | 2009-05-24 15:03:28 +0200 (Sun, 24 May 2009) | 3 lines
+
+Enhancement: Allow user to use environment to suppress process-pinning
+    (__PSI_NO_PINPROC) and memory-binding (__PSI_NO_BINDMEM)
+
+------------------------------------------------------------------------
+r7541 | eicker | 2009-05-22 14:42:06 +0200 (Fri, 22 May 2009) | 2 lines
+
+Bugfix: Also send UID/GID in PROVIDETASK messages. This should fix #320.
+
+------------------------------------------------------------------------
+r7535 | eicker | 2009-05-20 15:25:05 +0200 (Wed, 20 May 2009) | 2 lines
+
+New version (psmgmt-5.0.14)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.14:
 ======================
 ------------------------------------------------------------------------
