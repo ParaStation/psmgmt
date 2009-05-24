@@ -690,6 +690,118 @@ static uint16_t getTPPEnv(void)
     return tpp;
 }
 
+/**
+ * @brief Get a full list.
+ *
+ * Get a full list from the daemon. Therefore a list of type @a what is
+ * stored to @a list. Each item of the list is expected to have size
+ * @a itemSize. In order to provide this function with the correct @a
+ * itemSize, please refer to the documentation within psiinfo.h.
+ *
+ * This function expects the list to be of length returned by @ref
+ * PSC_getNrOfNodes().
+ *
+ *
+ * @param list The buffer to store the result to.
+ *
+ * @param what The type of information to retrieve.
+ *
+ * @param itemSize The size of each item within @a list.
+ *
+ * @return On success, 1 is returned, or 0, if an error occurred.
+ */
+static int getFullList(void **list, PSP_Info_t what, size_t itemSize)
+{
+    int recv, hosts;
+    size_t listSize = itemSize*PSC_getNrOfNodes();
+    char **myList = list;
+
+    if (!*myList) *myList = malloc(listSize);
+    if (!*myList) {
+	PSI_log(-1, "%s(%s): out of memory\n", __func__, PSP_printInfo(what));
+	return 0;
+    }
+
+    recv = PSI_infoList(-1, what, NULL, *myList, listSize, 1);
+    hosts = recv/itemSize;
+
+    if (hosts != PSC_getNrOfNodes()) {
+	printf("%s(%s): failed\n", __func__, PSP_printInfo(what));
+	return 0;
+    }
+
+    return 1;
+}
+
+static void analyzeError(PSpart_request_t *request, nodelist_t *nodelist)
+{
+    char *nStat = NULL;
+    uint32_t *hwStat = NULL;
+    uint16_t *allocJobs = NULL;
+    uint16_t *numThreads = NULL;
+    int n;
+
+    if (!request || !nodelist || !nodelist->nodes) return;
+
+    if (!getFullList(&nStat, PSP_INFO_LIST_HOSTSTATUS, sizeof(*nStat))) {
+	PSI_log(-1, "%s: Unable to retrieve node-states\n", __func__);
+	goto end;
+    }
+    if (!getFullList(&hwStat, PSP_INFO_LIST_HWSTATUS, sizeof(*hwStat))) {
+	PSI_log(-1, "%s: Unable to retrieve hardware-states\n", __func__);
+	goto end;
+    }
+    if (!getFullList(&allocJobs, PSP_INFO_LIST_ALLOCJOBS, sizeof(*allocJobs))) {
+	PSI_log(-1, "%s: Unable to retrieve allocated jobs\n", __func__);
+	goto end;
+    }
+    if (!(numThreads = calloc(PSC_getNrOfNodes(), sizeof(*numThreads)))) {
+	PSI_log(-1, "%s: Unable to get memory for thread counting\n", __func__);
+	goto end;
+    }
+
+    for (n=0; n < nodelist->size; n++) {
+	PSnodes_ID_t node = nodelist->nodes[n];
+
+	/* Test for down nodes */
+	if (!nStat[node]) {
+	    PSI_log(-1, "node %d is down\n", node);
+	    nStat[node] = 1; /* Only report once */
+	}
+	/* Test for overloaded nodes */
+	if (allocJobs[node]) {
+	    PSI_log(-1, "node %d has %d allocated jobs\n", node,
+		    allocJobs[node]);
+	    allocJobs[node] = 0; /* Only report once */
+	}
+	/* Test for nodes with wrong hardware */
+	if (request->hwType && !(hwStat[node] & request->hwType)) {
+	    PSI_log(-1, "node %d does not support requested hardware\n", node);
+	    hwStat[node] = (uint32_t) -1; /* Only report once */
+	}
+	numThreads[node]++;
+    }
+
+    /* More analysis in case of tpp */
+    if (request->tpp > 1) {
+	for (n=0; n < nodelist->size; n++) {
+	    PSnodes_ID_t node = nodelist->nodes[n];
+
+	    /* Test for correct tpp */
+	    if (numThreads[node] && (numThreads[node] % request->tpp)) {
+		PSI_log(-1, "num threads %d on node %d does not match"
+			" tpp %d\n", numThreads[node], node, request->tpp);
+		numThreads[node] = 0; /* Only report once */
+	    }
+	}
+    }
+
+end:
+    if (nStat) free(nStat);
+    if (hwStat) free(hwStat);
+    if (allocJobs) free(allocJobs);
+    if (numThreads) free(numThreads);
+}
 
 static int alarmCalled = 0;
 static void alarmHandler(int sig)
@@ -716,15 +828,21 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
 	    .len = sizeof(msg.header)},
 	.buf = {0}};
     PSpart_request_t *request = PSpart_newReq();
-    nodelist_t *nodelist;
+    nodelist_t *nodelist =  NULL;
     size_t len;
     uint32_t hwEnv;
+    int ret = -1;
 
     PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
 
+    if (!request) {
+	PSI_log(-1, "%s: No memory for request\n", __func__);
+	goto end;
+    }
+
     if (size <= 0) {
 	PSI_log(-1, "%s: size %d to small\n", __func__, size);
-	return -1;
+	goto end;
     }
 
     request->size = size;
@@ -733,7 +851,7 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
     request->options = getPartitionOptions();
     request->priority = 0; /* Not used */
 
-    if (request->sort == PART_SORT_UNKNOWN) return -1;
+    if (request->sort == PART_SORT_UNKNOWN) goto end;
 
     PSI_log(PSI_LOG_PART,
 	    "%s: size %d hwType %x sort %x options %x priority %d\n",
@@ -742,10 +860,7 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
 
     nodelist = getNodelist();
     if (nodelist) {
-	if (nodelist->size < 0) {
-	    free(nodelist);
-	    return -1;
-	}
+	if (nodelist->size < 0) goto end;
 	request->num = nodelist->size;
     } else {
 	request->num = 0;
@@ -755,31 +870,29 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
     if (hwEnv && !(request->hwType = (hwType ? hwType:0xffffffffU) & hwEnv)) {
 	PSI_log(-1, "%s: no intersection between hwType (%x)"
 		" and environment (%x)\n", __func__, hwType, hwEnv);
-	return -1;
+	goto end;
     }
 
     request->tpp = getTPPEnv();
 
     len = PSpart_encodeReq(msg.buf, sizeof(msg.buf), request);
-    PSpart_delReq(request);
     if (len > sizeof(msg.buf)) {
 	PSI_log(-1, "%s: PSpart_encodeReq\n", __func__);
-	freeNodelist(nodelist);
-	return -1;
+	goto end;
     }
     msg.header.len += len;
 
     if (PSI_sendMsg(&msg)<0) {
 	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
-	freeNodelist(nodelist);
-	return -1;
+	goto end;
     }
 
     if (nodelist) {
-	int ret = sendNodelist(nodelist, &msg);
-	if (ret) return ret;
+	ret = sendNodelist(nodelist, &msg);
+	if (ret) goto end;
+	/* reset ret */
+	ret = -1;
     }
-    freeNodelist(nodelist);
 
     if (request->options & PART_OPT_WAIT) {
 	waitForPartition = 1;
@@ -790,7 +903,7 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
     signal(SIGALRM, alarmHandler);
     if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
-	return -1;
+	goto end;
     }
     alarm(0);
 
@@ -798,18 +911,19 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
     case PSP_CD_PARTITIONRES:
 	if (*(int*)msg.buf) {
 	    PSI_warn(-1, *(int*)msg.buf, "%s", __func__);
-	    return -1;
+	    if (batchPartition) analyzeError(request, nodelist);
+	    goto end;
 	}
 	break;
     case PSP_CD_ERROR:
 	PSI_warn(-1, ((DDErrorMsg_t*)&msg)->error, "%s: error in command %s",
 		 __func__, PSP_printMsg(((DDErrorMsg_t*)&msg)->request));
-	return -1;
+	goto end;
 	break;
     default:
 	PSI_log(-1, "%s: received unexpected msgtype '%s'\n",
 		__func__, PSP_printMsg(msg.header.type));
-	return -1;
+	goto end;
     }
 
     if (alarmCalled) {
@@ -819,7 +933,13 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
 	PSI_log(-1, "%s -- Starting now...\n", timeStr);
     }
 
-    return size;
+    ret = size;
+
+end:
+    if (nodelist) freeNodelist(nodelist);
+    if (request) PSpart_delReq(request);
+
+    return ret;
 }
 
 int PSI_getNodes(unsigned int num, PSnodes_ID_t *nodes)
