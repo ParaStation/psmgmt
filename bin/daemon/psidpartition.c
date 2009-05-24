@@ -901,7 +901,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 	    if (status.jobs.normal > procs) procs = status.jobs.normal;
 	}
 
-	if (nodeOK(request->nodes[i], request)) {
+	if (nodeOK(node, request)) {
 	    int availCPUs;
 	    if (exactPart) {
 		/* We get the actual slots right here */
@@ -2588,7 +2588,7 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 	    }
 	    ptr = (char *)&oldSlots[num];
 	    msg.header.len += num * sizeof(*oldSlots);
-	} else if (DaemonPSPver < 401) {
+	} else if (DaemonPSPver < 402) {
 	    if (num > SLOTS_CHUNK) goto error;
 	    memcpy(ptr, slots, num * sizeof(*slots));
 	    ptr += num * sizeof(*slots);
