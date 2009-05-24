@@ -491,24 +491,36 @@ static cpu_set_t *mapCPUs(PSCPU_set_t set)
  *
  * @see bindToNode(), pinToCPU(), mapCPUs()
  */
-static void doClamps(PSCPU_set_t set)
+static void doClamps(PStask_t *task)
 {
-    setenv("PSID_CPU_PINNING",  PSCPU_print(set), 1);
+    setenv("PSID_CPU_PINNING",  PSCPU_print(task->CPUset), 1);
 
     int16_t physCPUs = PSIDnodes_getPhysCPUs(PSC_getMyID());
 
-    if (!PSCPU_any(set, physCPUs)) {
+    if (!PSCPU_any(task->CPUset, physCPUs)) {
 	fprintf(stderr, "CPU slots not set. Old executable? "
 		"You might want to relink your program.\n");
-    } else if (PSCPU_all(set, physCPUs)) {
+    } else if (PSCPU_all(task->CPUset, physCPUs)) {
 	/* No mapping */
     } else if (PSIDnodes_pinProcs(PSC_getMyID())
 	       || PSIDnodes_bindMem(PSC_getMyID())) {
 #ifdef CPU_ZERO
-	cpu_set_t *physSet = mapCPUs(set);
+	cpu_set_t *physSet = mapCPUs(task->CPUset);
 
-	if (PSIDnodes_pinProcs(PSC_getMyID())) pinToCPUs(physSet);
-	if (PSIDnodes_bindMem(PSC_getMyID())) bindToNodes(physSet);
+	if (PSIDnodes_pinProcs(PSC_getMyID())) {
+	    if (getenv("__PSI_NO_PINPROC")) {
+		fprintf(stderr, "Pinning suppressed for rank %d\n", task->rank);
+	    } else {
+		pinToCPUs(physSet);
+	    }
+	}
+	if (PSIDnodes_bindMem(PSC_getMyID())) {
+	    if (getenv("__PSI_NO_MEMBIND")) {
+		fprintf(stderr, "Binding suppressed for rank %d\n", task->rank);
+	    } else {
+		bindToNodes(physSet);
+	    }
+	}
 #else
 	fprintf(stderr, "Daemon has no sched_setaffinity(). No pinning\n");
 #endif
@@ -618,7 +630,7 @@ static void execClient(PStask_t *task)
 	}
     }
 
-    doClamps(task->CPUset);
+    doClamps(task);
 
     if (!task->argv[0]) {
 	fprintf(stderr, "No argv[0] given!\n");
@@ -986,10 +998,6 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 	PMIforwarderSock = socketfds[1];
 	pmiType = PMI_OVER_UNIX;
     }
-
-    /* set some environment variables */
-    /* this is done here in order to pass it to the forwarder, too */
-    setenv("PWD", task->workingdir, 1);
 
     /* fork the client */
     if (!(pid = fork())) {

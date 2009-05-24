@@ -721,6 +721,12 @@ void PSI_propEnv(void)
     if ((envStr = getenv("__PSI_LOGGER_TIMEOUT"))) {
 	setPSIEnv("__PSI_LOGGER_TIMEOUT", envStr, 1);
     }
+    if ((envStr = getenv("__PSI_NO_PINPROC"))) {
+	setPSIEnv("__PSI_NO_PINPROC", envStr, 1);
+    }
+    if ((envStr = getenv("__PSI_NO_MEMBIND"))) {
+	setPSIEnv("__PSI_NO_MEMBIND", envStr, 1);
+    }
 
     /* export all PSP_* vars to the ParaStation environment */
     for (i=0; environ[i]; i++) {
