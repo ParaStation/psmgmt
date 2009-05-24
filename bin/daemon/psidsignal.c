@@ -67,6 +67,11 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 		PSLog_Msg_t msg;
 		char *ptr = msg.buf;
 
+		/* Make sure to listen to the forwarder */
+		if (forwarder->fd != -1) {
+		    FD_SET(forwarder->fd, &PSID_readfds);
+		}
+
 		msg.header.type = PSP_CC_MSG;
 		msg.header.sender = PSC_getMyTID();
 		msg.header.dest = child->forwardertid;
