@@ -764,9 +764,14 @@ static void msg_CLIENTCONNECT(DDBufferMsg_t *bufmsg)
  */
 static void msg_CC_MSG(DDBufferMsg_t *msg)
 {
+    PSID_log(PSID_LOG_CLIENT, "%s: from %s", __func__,
+	     PSC_printTID(msg->header.sender));
+    PSID_log(PSID_LOG_CLIENT, "to %s", PSC_printTID(msg->header.dest));
+
     /* Forward this message. If this fails, send an error message. */
     if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
 	PStask_ID_t temp = msg->header.dest;
+	PSID_log(PSID_LOG_CLIENT, "failed");
 
 	msg->header.type = PSP_CC_ERROR;
 	msg->header.dest = msg->header.sender;
@@ -775,6 +780,7 @@ static void msg_CC_MSG(DDBufferMsg_t *msg)
 
 	sendMsg(msg);
     }
+    PSID_log(PSID_LOG_CLIENT, "\n");
 }
 
 void initClients(void)
