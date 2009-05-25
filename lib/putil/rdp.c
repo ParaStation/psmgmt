@@ -109,7 +109,7 @@ typedef struct {
  * @a MAX_WINDOW_SIZE messages are pending on a connection, calls to
  * Rsendto() will return -1 with errno set to EAGAIN.
  */
-#define MAX_WINDOW_SIZE 64
+#define MAX_WINDOW_SIZE 32
 
 /**
  * The maximum number of pending ACKs on a connection. If @a
@@ -308,7 +308,7 @@ static void initMsgList(int nodes)
     int i, count;
     msgbuf_t *buf;
 
-    count = ((nodes > 128) ? nodes / 4 : nodes) * MAX_WINDOW_SIZE;
+    count = nodes * MAX_WINDOW_SIZE;
     buf = malloc(count * sizeof(*buf));
     if (!buf) RDP_exit(errno, "%s", __func__);
 
@@ -382,7 +382,7 @@ static void initSMsgList(int nodes)
     int i, count;
     Smsg_t *sbuf;
 
-    count = ((nodes > 128) ? nodes / 4 : nodes) * MAX_WINDOW_SIZE;
+    count = nodes * MAX_WINDOW_SIZE;
     sbuf = malloc(count * sizeof(*sbuf));
     if (!sbuf) RDP_exit(errno, "%s", __func__);
 
@@ -746,10 +746,8 @@ static void initAckList(int nodes)
     int i;
     int count;
 
-    /*
-     * Max set size is nodes * MAX_WINDOW_SIZE !!
-     */
-    count = ((nodes > 128) ? nodes / 4 : nodes) * MAX_WINDOW_SIZE;
+    /* Max set size is nodes * MAX_WINDOW_SIZE !! */
+    count = nodes * MAX_WINDOW_SIZE;
     ackbuf = malloc(count * sizeof(*ackbuf));
     if (!ackbuf) RDP_exit(errno, "%s", __func__);
 
@@ -2164,7 +2162,7 @@ int Rsendto(int node, void *buf, size_t len)
     if (len <= RDP_SMALL_DATA_SIZE) {
 	mp->msg.small = getSMsg();
     } else {
-	mp->msg.large = malloc(sizeof(Lmsg_t));
+	mp->msg.large = malloc(sizeof(rdphdr_t) + len);
     }
 
     if (!mp->msg.small) {
