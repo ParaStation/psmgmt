@@ -1,3 +1,24 @@
+Version psmgmt-5.0.15-2:
+========================
+------------------------------------------------------------------------
+r7564 | eicker | 2009-05-25 17:14:36 +0200 (Mon, 25 May 2009) | 4 lines
+
+Reducing RDP's number of preallocated buffers on huge clusters seem to
+    be no good idea. Set to full window-size, again.
+Instead, reduce window-size from 64 to 32.
+
+------------------------------------------------------------------------
+r7558 | eicker | 2009-05-25 16:49:07 +0200 (Mon, 25 May 2009) | 2 lines
+
+Replace various self-coded list-structures with list_t from list.h.
+
+------------------------------------------------------------------------
+r7552 | eicker | 2009-05-25 00:38:08 +0200 (Mon, 25 May 2009) | 2 lines
+
+New version (psmgmt-5.0.15)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.15:
 ======================
 ------------------------------------------------------------------------
