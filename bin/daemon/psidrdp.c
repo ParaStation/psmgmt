@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -34,7 +34,7 @@ int RDPSocket = -1;
  * Array used to temporarily hold message that could not yet be
  * delivered to their final destination.
  */
-static msgbuf_t **node_bufs;
+static list_t *node_bufs;
 
 void initRDPMsgs(void)
 {
@@ -47,18 +47,19 @@ void initRDPMsgs(void)
     }
 
     for (i=0; i<PSC_getNrOfNodes(); i++) {
-	node_bufs[i] = NULL;
+	INIT_LIST_HEAD(&node_bufs[i]);
     }
 }
 
 void clearRDPMsgs(int node)
 {
     int blocked = RDP_blockTimer(1);
+    list_t *m, *tmp;
 
-    while (node_bufs[node]) {
-	msgbuf_t *mp = node_bufs[node];
+    list_for_each_safe(m, tmp, &node_bufs[node]) {
+	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
 
-	node_bufs[node] = node_bufs[node]->next;
+	list_del(&mp->next);
 	handleDroppedMsg(mp->msg);
 	freeMsg(mp);
     }
@@ -81,16 +82,7 @@ void clearRDPMsgs(int node)
 static int storeMsgRDP(int node, DDMsg_t *msg)
 {
     int blocked = RDP_blockTimer(1), ret = 0;
-    msgbuf_t *msgbuf = node_bufs[node];
-
-    if (msgbuf) {
-	/* Search for end of list */
-	while (msgbuf->next) msgbuf = msgbuf->next;
-	msgbuf->next = getMsg();
-	msgbuf = msgbuf->next;
-    } else {
-	msgbuf = node_bufs[node] = getMsg();
-    }
+    msgbuf_t *msgbuf = getMsg();
 
     if (!msgbuf) {
 	errno = ENOMEM;
@@ -100,13 +92,15 @@ static int storeMsgRDP(int node, DDMsg_t *msg)
 
     msgbuf->msg = malloc(msg->len);
     if (!msgbuf->msg) {
+	putMsg(msgbuf);
 	errno = ENOMEM;
 	ret = -1;
 	goto end;
     }
     memcpy(msgbuf->msg, msg, msg->len);
-
     msgbuf->offset = 0;
+
+    list_add_tail(&msgbuf->next, &node_bufs[node]);
 
  end:
     RDP_blockTimer(blocked);
@@ -116,6 +110,7 @@ static int storeMsgRDP(int node, DDMsg_t *msg)
 int flushRDPMsgs(int node)
 {
     int blocked, ret = 0;
+    list_t *m, *tmp;
 
     if (node<0 || node >= PSC_getNrOfNodes()) {
 	errno = EINVAL;
@@ -123,13 +118,14 @@ int flushRDPMsgs(int node)
     }
 
     blocked = RDP_blockTimer(1);
-    while (node_bufs[node]) {
-	msgbuf_t *msgbuf = node_bufs[node];
+
+    list_for_each_safe(m, tmp, &node_bufs[node]) {
+	msgbuf_t *msgbuf = list_entry(m, msgbuf_t, next);
 	DDMsg_t *msg = msgbuf->msg;
 	PStask_ID_t sender = msg->sender, dest = msg->dest;
 	int sent = Rsendto(PSC_getID(dest), msg, msg->len);
 
-	if (sent<0 || !	node_bufs[node]) {
+	if (sent<0 || list_empty(&node_bufs[node])) {
 	    ret = sent;
 	    goto end;
 	}
@@ -142,7 +138,7 @@ int flushRDPMsgs(int node)
 	    sendMsg(&contmsg);
 	}
 
-	node_bufs[node] = msgbuf->next;
+	list_del(&msgbuf->next);
 	freeMsg(msgbuf);
     }
  end:
@@ -165,13 +161,12 @@ int sendRDP(DDMsg_t *msg)
 	return -1;
     }
 
-    if (node_bufs[node]) flushRDPMsgs(node);
-
-    if (!node_bufs[node]) {
+    if (!list_empty(&node_bufs[node])) flushRDPMsgs(node);
+    if (list_empty(&node_bufs[node])) {
 	ret = Rsendto(node, msg, msg->len);
     }
 
-    if (node_bufs[node] || (ret==-1 && errno==EAGAIN)) {
+    if (!list_empty(&node_bufs[node]) || (ret==-1 && errno==EAGAIN)) {
 	if (!storeMsgRDP(node, msg)) errno = EWOULDBLOCK;
 	return -1;
     }

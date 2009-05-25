@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -48,7 +48,7 @@ static struct {
     PStask_ID_t tid;     /**< Clients task ID */
     PStask_t *task;      /**< Clients task structure */
     unsigned int flags;  /**< Special flags. Up to now only INITIALCONTACT */
-    msgbuf_t *msgs;      /**< Chain of undelivered messages */
+    list_t msgs;         /**< Chain of undelivered messages */
 } clients[FD_SETSIZE];
 
 void registerClient(int fd, PStask_ID_t tid, PStask_t *task)
@@ -56,7 +56,7 @@ void registerClient(int fd, PStask_ID_t tid, PStask_t *task)
     clients[fd].tid = tid;
     clients[fd].task = task;
     clients[fd].flags |= INITIALCONTACT;
-    clients[fd].msgs = NULL;
+    INIT_LIST_HEAD(&clients[fd].msgs);
 }
 
 PStask_ID_t getClientTID(int fd)
@@ -106,16 +106,7 @@ static int do_send(int fd, DDMsg_t *msg, int offset)
 
 static int storeMsgClient(int fd, DDMsg_t *msg, int offset)
 {
-    msgbuf_t *msgbuf = clients[fd].msgs;
-
-    if (msgbuf) {
-	/* Search for end of list */
-	while (msgbuf->next) msgbuf = msgbuf->next;
-	msgbuf->next = getMsg();
-	msgbuf = msgbuf->next;
-    } else {
-	msgbuf = clients[fd].msgs = getMsg();
-    }
+    msgbuf_t *msgbuf = getMsg();
 
     if (!msgbuf) {
 	errno = ENOMEM;
@@ -124,30 +115,34 @@ static int storeMsgClient(int fd, DDMsg_t *msg, int offset)
 
     msgbuf->msg = malloc(msg->len);
     if (!msgbuf->msg) {
+	putMsg(msgbuf);
 	errno = ENOMEM;
 	return -1;
     }
     memcpy(msgbuf->msg, msg, msg->len);
-
     msgbuf->offset = offset;
+
+    list_add_tail(&msgbuf->next, &clients[fd].msgs);
 
     return 0;
 }
 
 int flushClientMsgs(int fd)
 {
+    list_t *m, *tmp;
+
     if (fd<0 || fd >= FD_SETSIZE) {
 	errno = EINVAL;
 	return -1;
     }
 
-    while (clients[fd].msgs) {
-	msgbuf_t *msgbuf = clients[fd].msgs;
+    list_for_each_safe(m, tmp, &clients[fd].msgs) {
+	msgbuf_t *msgbuf = list_entry(m, msgbuf_t, next);
 	DDMsg_t *msg = msgbuf->msg;
 	PStask_ID_t sender = msg->sender, dest = msg->dest;
 	int sent = do_send(fd, msg, msgbuf->offset);
 
-	if (sent<0 || !clients[fd].msgs) return sent;
+	if (sent<0 || list_empty(&clients[fd].msgs)) return sent;
 	if (sent != msg->len) {
 	    msgbuf->offset = sent;
 	    break;
@@ -161,11 +156,11 @@ int flushClientMsgs(int fd)
 	    sendMsg(&contmsg);
 	}
 
-	clients[fd].msgs = msgbuf->next;
+	list_del(&msgbuf->next);
 	freeMsg(msgbuf);
     }
 
-    if (clients[fd].msgs) {
+    if (!list_empty(&clients[fd].msgs)) {
 	errno = EWOULDBLOCK;
 	return -1;
     }
@@ -199,9 +194,9 @@ int sendClient(DDMsg_t *msg)
     }
     fd = task->fd;
 
-    if (clients[fd].msgs) flushClientMsgs(fd);
+    if (!list_empty(&clients[fd].msgs)) flushClientMsgs(fd);
 
-    if (!clients[fd].msgs) {
+    if (list_empty(&clients[fd].msgs)) {
 	PSID_log(PSID_LOG_CLIENT, "%s: use fd %d\n", __func__, fd);
 	sent = do_send(fd, msg, 0);
     }
@@ -280,6 +275,9 @@ int recvClient(int fd, DDMsg_t *msg, size_t size)
 
 void closeConnection(int fd)
 {
+    list_t *m, *tmp;
+    PStask_ID_t tid = clients[fd].tid;
+
     if (fd<0) {
 	PSID_log(-1, "%s(%d): fd < 0\n", __func__, fd);
 	return;
@@ -288,16 +286,18 @@ void closeConnection(int fd)
     clients[fd].tid = -1;
     if (clients[fd].task) clients[fd].task->fd = -1;
     clients[fd].task = NULL;
-    while (clients[fd].msgs) {
-	msgbuf_t *mp = clients[fd].msgs;
 
-	clients[fd].msgs = clients[fd].msgs->next;
+    list_for_each_safe(m, tmp, &clients[fd].msgs) {
+	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
+
+	list_del(&mp->next);
+
 	if (PSC_getPID(mp->msg->sender)) {
 	    DDMsg_t contmsg = { .type = PSP_DD_SENDCONT,
 				.sender = mp->msg->dest,
 				.dest = mp->msg->sender,
 				.len = sizeof(DDMsg_t) };
-	    sendMsg(&contmsg);
+	    if (contmsg.dest != tid) sendMsg(&contmsg);
 	}
 	handleDroppedMsg(mp->msg);
 	freeMsg(mp);
@@ -791,7 +791,7 @@ void initClients(void)
 	clients[fd].tid = -1;
 	clients[fd].task = NULL;
 	clients[fd].flags = 0;
-	clients[fd].msgs = NULL;
+	INIT_LIST_HEAD(&clients[fd].msgs);
     }
 
     PSID_registerMsg(PSP_CD_CLIENTCONNECT, msg_CLIENTCONNECT);

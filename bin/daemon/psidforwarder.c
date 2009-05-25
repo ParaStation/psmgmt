@@ -103,9 +103,8 @@ static enum {
     CLOSED,
 } pmiStatus = IDLE;
 
-/** List of messages waiting to be sent to
- */
-msgbuf_t *oldMsgs = NULL;
+/** List of messages waiting to be sent */
+LIST_HEAD(oldMsgs);
 
 /** Set to 1 if the forwarder should do accounting */
 int accounting = 0;
@@ -856,16 +855,7 @@ static int do_write(PSLog_Msg_t *msg, int offset)
 
 static int storeMsg(PSLog_Msg_t *msg, int offset)
 {
-    msgbuf_t *msgbuf = oldMsgs;
-
-    if (msgbuf) {
-	/* Search for end of list */
-	while (msgbuf->next) msgbuf = msgbuf->next;
-	msgbuf->next = getMsg();
-	msgbuf = msgbuf->next;
-    } else {
-	msgbuf = oldMsgs = getMsg();
-    }
+    msgbuf_t *msgbuf =  getMsg();
 
     if (!msgbuf) {
 	errno = ENOMEM;
@@ -875,19 +865,23 @@ static int storeMsg(PSLog_Msg_t *msg, int offset)
     msgbuf->msg = malloc(msg->header.len);
     if (!msgbuf->msg) {
 	errno = ENOMEM;
+	putMsg(msgbuf);
 	return -1;
     }
     memcpy(msgbuf->msg, msg, msg->header.len);
-
     msgbuf->offset = offset;
+
+    list_add_tail(&msgbuf->next, &oldMsgs);
 
     return 0;
 }
 
 static int flushMsgs(void)
 {
-    while (oldMsgs) {
-	msgbuf_t *msg = oldMsgs;
+    list_t *m, *tmp;
+
+    list_for_each_safe(m, tmp, &oldMsgs) {
+	msgbuf_t *msg = list_entry(m, msgbuf_t, next);
 	int len = msg->msg->len - PSLog_headerSize;
 	int written = do_write((PSLog_Msg_t *)msg->msg, msg->offset);
 
@@ -896,12 +890,11 @@ static int flushMsgs(void)
 	    msg->offset = written;
 	    break;
 	}
-
-	oldMsgs = msg->next;
+	list_del(&msg->next);
 	freeMsg(msg);
     }
 
-    if (oldMsgs) {
+    if (!list_empty(&oldMsgs)) {
 	errno = EWOULDBLOCK;
 	return -1;
     } else {
@@ -916,17 +909,14 @@ static int writeMsg(PSLog_Msg_t *msg)
 {
     int len = msg->header.len - PSLog_headerSize, written = 0;
 
-    if (oldMsgs) flushMsgs();
-
-    if (!oldMsgs) {
-	written = do_write(msg, 0);
-    }
+    if (!list_empty(&oldMsgs)) flushMsgs();
+    if (list_empty(&oldMsgs)) written = do_write(msg, 0);
 
     if (written<0) return written;
-    if ((written != len) || (oldMsgs && !len)) {
+    if ((written != len) || (!list_empty(&oldMsgs))) {
 	if (!storeMsg(msg, written)) errno = EWOULDBLOCK;
 	if (stdinSock != -1) FD_SET(stdinSock, &writefds);
-	sendMsg(STOP, NULL, 0);
+	if (len) sendMsg(STOP, NULL, 0);
 	return -1;
     }
 

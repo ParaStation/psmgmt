@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -21,6 +21,7 @@
 #define __PSIDMSGBUF_H
 
 #include "psprotocol.h"
+#include "list.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,7 +38,7 @@ extern "C" {
 typedef struct msgbuf {
     DDMsg_t *msg;          /**< The actual message to store */
     int offset;            /**< Number of bytes allready sent */
-    struct msgbuf *next;   /**< Pointer to the next message buffer */
+    list_t next;           /**< Pointer to the next message buffer */
 } msgbuf_t;
 
 /**
