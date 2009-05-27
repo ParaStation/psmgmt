@@ -1418,11 +1418,11 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
 
     callback = !cp->window;
 
+    Timer_block(timerID, 1);
+
     cp->frameExpected = newExpected;     /* Accept initial seqno */
     cp->frameToSend = newSend;
     cp->ackExpected = newSend;
-
-    Timer_block(timerID, 1);
 
     list_for_each_safe(m, tmp, &cp->pendList) {
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
@@ -2383,7 +2383,7 @@ void closeConnRDP(int node)
 
     closeConnection(node, 0, 1);
     gettimeofday(&tv, NULL);
-    timeradd(&tv, &CLOSED_TIMEOUT, &conntable[node].tmout);
+    timeradd(&tv, &CLOSED_TIMEOUT, &conntable[node].close);
 }
 
 int RDP_blockTimer(int block)
