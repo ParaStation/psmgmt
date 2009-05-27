@@ -2383,7 +2383,7 @@ void closeConnRDP(int node)
 
     closeConnection(node, 0, 1);
     gettimeofday(&tv, NULL);
-    timeradd(&tv, &CLOSED_TIMEOUT, &conntable[node].close);
+    timeradd(&tv, &CLOSED_TIMEOUT, &conntable[node].closed);
 }
 
 int RDP_blockTimer(int block)
