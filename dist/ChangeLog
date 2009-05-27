@@ -1,3 +1,40 @@
+Version psmgmt-5.0.15-6:
+========================
+------------------------------------------------------------------------
+r7578 | eicker | 2009-05-27 17:57:03 +0200 (Wed, 27 May 2009) | 3 lines
+
+Fix flow-control: sendMsg() should not fail, if message was stored and
+    just a SENDSTOP was initiated.
+
+------------------------------------------------------------------------
+r7577 | eicker | 2009-05-27 12:31:20 +0200 (Wed, 27 May 2009) | 2 lines
+
+Try to work around a scalabitlity problem in message spawn.
+
+------------------------------------------------------------------------
+r7576 | eicker | 2009-05-27 11:53:56 +0200 (Wed, 27 May 2009) | 2 lines
+
+Try to make dospawn more scalable by handling answer on availability.
+
+------------------------------------------------------------------------
+r7575 | eicker | 2009-05-27 11:51:32 +0200 (Wed, 27 May 2009) | 2 lines
+
+Fix typo introduced in r7574.
+
+------------------------------------------------------------------------
+r7574 | eicker | 2009-05-27 10:41:40 +0200 (Wed, 27 May 2009) | 4 lines
+
+Bugfix: Really activate RDP's close timeout.
+Bugfix: Try to fix possible race-condition that might lead to annoying 'doACK:
+    strange things happen' messages
+
+------------------------------------------------------------------------
+r7565 | eicker | 2009-05-25 17:46:54 +0200 (Mon, 25 May 2009) | 2 lines
+
+New release (psmgmt-5.0.15-2)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.15-2:
 ========================
 ------------------------------------------------------------------------
