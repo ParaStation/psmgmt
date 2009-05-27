@@ -222,6 +222,70 @@ static int sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len)
 }
 
 /**
+ * @brief @doctodo
+ *
+ * @return Return might have 4 different values: -1: fatal error, 0:
+ * general error, but answer from known node, 1: no error, 2: message
+ * from unknown node.
+ */
+int handleAnswer(int count, PSnodes_ID_t *dstnodes, int *errors,
+		  PStask_ID_t *tids)
+{
+    DDErrorMsg_t answer;
+    int i;
+
+    if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer))<0) {
+	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+	return -1;
+    }
+    switch (answer.header.type) {
+    case PSP_CD_SPAWNFAILED:
+    case PSP_CD_SPAWNSUCCESS:
+	/* find the right task request */
+	for (i=0; i<count; i++) {
+	    if (dstnodes[i]==PSC_getID(answer.header.sender)
+		&& (!tids || !tids[i]) && !errors[i]) {
+		/*
+		 * We have to test for !errors[i], since daemon on node 0
+		 * (which has tid 0) might have returned an error.
+		 */
+		errors[i] = answer.error;
+		if (tids) tids[i] = answer.header.sender;
+		break;
+	    }
+	}
+
+	if (i==count) {
+	    if (PSC_getID(answer.header.sender)==PSC_getMyID()
+		&& answer.error==EACCES && count==1) {
+		/* This might be due to 'starting not allowed' here */
+		errors[0] = answer.error;
+		if (tids) tids[0] = answer.header.sender;
+	    } else {
+		PSI_log(-1, "%s: %s from unknown node %d\n", __func__,
+			PSP_printMsg(answer.header.type),
+			PSC_getID(answer.header.sender));
+		return 2; /* Ignore answer */
+	    }
+	}
+
+	if (answer.header.type==PSP_CD_SPAWNFAILED) {
+	    PSI_warn(-1, answer.error,
+		     "%s: spawn to node %d failed", __func__,
+		     PSC_getID(answer.header.sender));
+	    return 0;
+	}
+	break;
+    default:
+	PSI_log(-1, "%s: UNKNOWN answer (%s)\n", __func__,
+		PSP_printMsg(answer.header.type));
+	errors[0] = 0;
+	return 2; /* Ignore answer */
+    }
+    return 1;
+}
+
+/**
  * @brief Actually spawn processes.
  *
  * Actually spawn @a count processes on the nodes stored within @a
@@ -275,7 +339,6 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 {
     int outstanding_answers=0;
     DDTypedBufferMsg_t msg;
-    DDErrorMsg_t answer;
     char *mywd;
 
     int i;          /* count variable */
@@ -393,7 +456,6 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    if (tids) tids[i] = -1;
 	} else {
 	    size_t len;
-	    int ret;
 
 	    msg.header.type = PSP_CD_SPAWNREQ;
 	    msg.header.dest = PSC_getTID(dstnodes[i],0);
@@ -426,8 +488,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    msg.type = PSP_SPAWN_ENV;
 
 	    /* Send the static part of the environment */
-	    ret = sendEnv(&msg, task->environ, &len);
-	    if (ret < 0) goto error;
+	    if (sendEnv(&msg, task->environ, &len) < 0) goto error;
 
 	    /* Maybe some variable stuff shall also be sent */
 	    if (extraEnvFunc) {
@@ -442,10 +503,9 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 			msg.header.len -= len;
 		    }
 
-		    ret = sendEnv(&msg, extraEnv, &len);
+		    if (sendEnv(&msg, extraEnv, &len) < 0) goto error;
 		}
 	    }
-	    if (ret < 0) goto error;
 
 	    msg.type = PSP_SPAWN_END;
 	    if (PSI_sendMsg(&msg)<0) {
@@ -456,63 +516,52 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
 	    rank++;
 	    outstanding_answers++;
+
+	    while (PSI_availMsg() > 0) {
+		int r = handleAnswer(count, dstnodes, errors, tids);
+
+		if (r == -1) {
+		    error = 0;
+		    ret = -1;
+		    break;
+		} else if (r == 0) {
+		    error = 1;
+		    ret++;
+		    break;
+		} else if (r == 1) {
+		    ret++;
+		} else if (r == 2) {
+		    /* just ignore */
+		} else {
+		    PSI_log(-1, "%s: unknown return %d, from handleAnswer()\n",
+			    __func__, r);
+		}
+		outstanding_answers--;
+	    }
 	}
     }/* for all new processes */
 
     PStask_delete(task);
 
     /* receive answers */
-    while (outstanding_answers>0) {
-	if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer))<0) {
-	    PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+    while (outstanding_answers>0 && ret != -1) {
+	int r = handleAnswer(count, dstnodes, errors, tids);
+	switch (r) {
+	case -1:
+	    error = 0;
 	    ret = -1;
 	    break;
-	}
-	switch (answer.header.type) {
-	case PSP_CD_SPAWNFAILED:
-	case PSP_CD_SPAWNSUCCESS:
-	    /* find the right task request */
-	    for (i=0; i<count; i++) {
-		if (dstnodes[i]==PSC_getID(answer.header.sender)
-		    && (!tids || !tids[i]) && !errors[i]) {
-		    /*
-		     * We have to test for !errors[i], since daemon on node 0
-		     * (which has tid 0) might have returned an error.
-		     */
-		    errors[i] = answer.error;
-		    if (tids) tids[i] = answer.header.sender;
-		    ret++;
-		    break;
-		}
-	    }
-
-	    if (i==count) {
-		if (PSC_getID(answer.header.sender)==PSC_getMyID()
-		    && answer.error==EACCES && count==1) {
-		    /* This might be due to 'starting not allowed' here */
-		    errors[0] = answer.error;
-		    if (tids) tids[0] = answer.header.sender;
-		    ret++;
-		} else {
-		    PSI_log(-1, "%s: %s from unknown node %d\n", __func__,
-			    PSP_printMsg(answer.header.type),
-			    PSC_getID(answer.header.sender));
-		}
-	    }
-
-	    if (answer.header.type==PSP_CD_SPAWNFAILED) {
-		PSI_warn(-1, answer.error,
-			"%s: spawn to node %d failed", __func__,
-			PSC_getID(answer.header.sender));
-		error = 1;
-	    }
+	case 0:
+	    error = 1;
+	case 1:
+	    ret++;
+	    break;
+	case 2:
+	    /* just ignore */
 	    break;
 	default:
-	    PSI_log(-1, "%s: UNKNOWN answer (%s)\n", __func__,
-		    PSP_printMsg(answer.header.type));
-	    errors[0] = 0;
-	    error = 1;
-	    break;
+	    PSI_log(-1, "%s: unknown return %d, from handleAnswer()\n",
+		    __func__, r);
 	}
 	outstanding_answers--;
     }

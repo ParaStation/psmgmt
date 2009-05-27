@@ -97,6 +97,19 @@ char *PSI_getPsidVersion(void);
 int PSI_sendMsg(void *amsg);
 
 /**
+ * @brief Test for available message.
+ *
+ * Test, if a message is available from the local ParaStation
+ * daemon. For this, select() is called with a zero timeout on the
+ * connection to the local daemon.
+ *
+ * @return The return value of the select call. This might be 1, if a
+ * message is available, or 0 without any available message. In case
+ * of an error -1 is returned and errno is set appropriately.
+ */
+int PSI_availMsg(void);
+
+/**
  * @brief Receive a message.
  *
  * Receive a message from the local ParaStation daemon and store it to

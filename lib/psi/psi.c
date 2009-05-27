@@ -398,6 +398,22 @@ int PSI_sendMsg(void *amsg)
     return ret;
 }
 
+int PSI_availMsg(void)
+{
+    fd_set rfds;
+    struct timeval tmout = {0,0};
+
+    if (daemonSock == -1) {
+	errno = ENOTCONN;
+	return -1;
+    }
+
+    FD_ZERO(&rfds);
+    FD_SET(daemonSock, &rfds);
+
+    return select(daemonSock+1, &rfds, NULL, NULL, &tmout);
+}
+
 int PSI_recvMsg(DDMsg_t *msg, size_t size)
 {
     int n;
