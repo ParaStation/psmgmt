@@ -183,6 +183,7 @@ int sendMsg(void *amsg)
 	    PSID_log(PSID_LOG_COMM, "%s: SENDSTOP for %s triggered\n",
 		     __func__, PSC_printTID(stopmsg.dest));
 	    sendMsg(&stopmsg);
+	    ret = 0;
 	}
     }
     return ret;

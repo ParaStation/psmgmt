@@ -167,12 +167,13 @@ int sendRDP(DDMsg_t *msg)
     }
 
     if (!list_empty(&node_bufs[node]) || (ret==-1 && errno==EAGAIN)) {
-	if (!storeMsgRDP(node, msg)) {
-	    PSID_log(-1, "%s: Failed to store message\n", __func__);
+	if (storeMsgRDP(node, msg)) {
+	    PSID_warn(-1, errno, "%s: Failed to store message", __func__);
+	    errno = ENOBUFS;
+	} else {
 	    errno = EWOULDBLOCK;
-	    return -1;
 	}
-	ret = 0;
+	ret = -1;
     }
 
     return ret;
