@@ -344,6 +344,34 @@ int getClsdTmOutRDP(void);
  */
 void setClsdTmOutRDP(int timeout);
 
+/**
+ * @brief Get total retransmission count.
+ *
+ * Get the total number of retransmissions of the RDP module. This
+ * counts the number of retransmissions within the modules lifetime
+ * unless it was reset via setRetransRDP().
+ *
+ * @return The actual total retransmission count is returned.
+ *
+ * @see setRetransRDP()
+ */
+int getRetransRDP(void);
+
+/**
+ * @brief Set total retransmission count.
+ *
+ * Set the total number of retransmissionx of the RDP module. This
+ * should mainly be used to reset the counter. Resetting the total
+ * number of retransmissions should show no side-effects.
+ *
+ * @param newCount The total retransmission count to be set.
+ *
+ * @return No return value.
+ *
+ * @see getRetransRDP()
+ */
+void setRetransRDP(unsigned int newCount);
+
 
 /**
  * @brief Send a RDP packet.

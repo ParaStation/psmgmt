@@ -1193,6 +1193,7 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
     case PSP_OP_RDPMAXRETRANS:
     case PSP_OP_RDPMAXACKPEND:
     case PSP_OP_RDPCLSDTMOUT:
+    case PSP_OP_RDPRETRANS:
     case PSP_OP_STATUS_BCASTS:
     case PSP_OP_ACCTPOLL:
 	if (value<0) {

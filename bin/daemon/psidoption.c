@@ -673,6 +673,9 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 	    case PSP_OP_RDPCLSDTMOUT:
 		setClsdTmOutRDP(msg->opt[i].value);
 		break;
+	    case PSP_OP_RDPRETRANS:
+		setRetransRDP(msg->opt[i].value);
+		break;
 	    case PSP_OP_MCASTDEBUG:
 		setDebugMaskMCast(msg->opt[i].value);
 		break;
@@ -922,6 +925,9 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_RDPCLSDTMOUT:
 		msg->opt[out].value = getClsdTmOutRDP();
+		break;
+	    case PSP_OP_RDPRETRANS:
+		msg->opt[out].value = getRetransRDP();
 		break;
 	    case PSP_OP_MCASTDEBUG:
 		msg->opt[out].value = getDebugMaskMCast();

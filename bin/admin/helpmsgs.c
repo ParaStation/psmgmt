@@ -247,7 +247,7 @@ static info_t setInfo = {
 	" | selecttime <timeout> | statustimeout <timeout>"
 	" | statusbroadcasts <limit> | deadlimit <limit>"
 	" | rdpdebug <level> | rdptimeout <timeout> | rdppktloss <rate>"
-	" | rdpmaxretrans <val> | rdpresendtimeout <val>"
+	" | rdpmaxretrans <val> | rdpresendtimeout <val>| rdpretrans <val> "
 	" | rdpclosedtimeout <val> | rdpmaxackpend <val> | mcastdebug <level>"
 	" | {freeonsuspend|fos} <bool> | {handleoldbins|hob} <bool>"
 	" | starter <bool> | runjobs <bool> | overbook {<bool>|auto}"
@@ -313,6 +313,9 @@ static info_t setInfo = {
 	  .descr = "Set RDP protocol's maximum retransmission count." },
 	{ .tag = "set rdpresendtimeout <val>",
 	  .descr = "Set RDP protocol's resend timeout in milli-seconds." },
+	{ .tag = "set rdpretrans <val>",
+	  .descr = "Set RDP protocol's total retransmission count. Most"
+	  " probably you want to reset this to 0." },
 	{ .tag = "set rdpclosedtimeout <val>",
 	  .descr = "Set RDP protocol's closed timeout in milli-seconds." },
 	{ .tag = "set rdpmaxackpend <val>",
@@ -406,7 +409,7 @@ static info_t showInfo = {
 	.arg = "{maxproc | user | group | psiddebug | selecttime"
 	" | statustimeout | statusbroadcasts | deadlimit | rdpdebug"
 	" | rdptimeout | rdppktloss | rdpmaxretrans | rdpresendtimeout"
-	" | rdpclosedtimeout | rdpmaxackpend | mcastdebug | master"
+	" | rdpretrans | rdpclosedtimeout | rdpmaxackpend | mcastdebug | master"
 	" | {freeonsuspend|fos} | {handleoldbins|hob} | starter | runjobs"
 	" | overbook | exclusive | pinprocs | bindmem | cpumap | nodessort"
 	" | adminuser | admingroup | accounters | accountpoll"
@@ -444,6 +447,8 @@ static info_t showInfo = {
 	  .descr = "Show RDP protocol's maximum retransmission count." },
 	{ .tag = "show rdpresendtimeout",
 	  .descr = "Show RDP protocol's resend timeout in milli-seconds." },
+	{ .tag = "show rdpretrans",
+	  .descr = "Show RDP protocol's total retransmission count." },
 	{ .tag = "show rdpclosedtimeout",
 	  .descr = "Show RDP protocol's closed timeout in milli-seconds." },
 	{ .tag = "show rdpmaxackpend",

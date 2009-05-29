@@ -142,6 +142,9 @@ static int RDPPktLoss = 0;
  */
 static int RDPMaxRetransCount = 32;
 
+/** Actual number of retransmissions done */
+static unsigned int retransCount = 0;
+
 /**
  * Compare two sequence numbers. The sign of the result represents the
  * relationship in sequence space similar to the result of
@@ -448,6 +451,7 @@ typedef struct {
     struct timeval tmout;    /**< Timer for resend timeout */
     struct timeval closed;   /**< Timer for closed connection timeout */
     int retrans;             /**< Number of retransmissions */
+    unsigned int totRetrans; /**< Total number of retransmissions */
 } Rconninfo_t;
 
 /**
@@ -509,6 +513,7 @@ static void initConntable(int nodes, unsigned int host[], unsigned short port)
 	conntable[i].closed.tv_sec = 0;
 	conntable[i].closed.tv_usec = 0;
 	conntable[i].retrans = 0;
+	conntable[i].totRetrans = 0;
     }
 }
 
@@ -1089,6 +1094,7 @@ static void closeConnection(int node, int callback, int silent)
     conntable[node].ConnID_in = -1;
     conntable[node].ConnID_out = random();
     conntable[node].retrans = 0;
+    conntable[node].totRetrans = 0;
 
     /* Restore blocked timer */
     Timer_block(timerID, blocked);
@@ -1138,6 +1144,8 @@ static void resendMsgs(int node)
     }
 
     conntable[node].retrans++;
+    conntable[node].totRetrans++;
+    retransCount++;
 
     switch (conntable[node].state) {
     case CLOSED:
@@ -2048,6 +2056,16 @@ void setTmOutRDP(int timeout)
     }
 }
 
+int getRetransRDP(void)
+{
+    return retransCount;
+}
+
+void setRetransRDP(unsigned int newCount)
+{
+    retransCount = newCount;
+}
+
 int getMaxRetransRDP(void)
 {
     return RDPMaxRetransCount;
@@ -2367,14 +2385,15 @@ int Rrecvfrom(int *node, void *msg, size_t len)
 
 void getStateInfoRDP(int node, char *s, size_t len)
 {
-    snprintf(s, len, "%3d [%s]: IP=%15s ID[%08x|%08x] FTS=%08x AE=%08x"
-	     " FE=%08x AP=%2d MP=%2d RTR=%2d",
+    snprintf(s, len, "%3d [%s]: IP=%10s ID[%08x|%08x] FTS=%08x AE=%08x"
+	     " FE=%08x AP=%2d MP=%2d RTR=%2d TOTRET=%4d",
 	     node, stateStringRDP(conntable[node].state),
 	     inet_ntoa(conntable[node].sin.sin_addr),
 	     conntable[node].ConnID_in,     conntable[node].ConnID_out,
 	     conntable[node].frameToSend,   conntable[node].ackExpected,
 	     conntable[node].frameExpected, conntable[node].ackPending,
-	     conntable[node].msgPending,    conntable[node].retrans);
+	     conntable[node].msgPending,    conntable[node].retrans,
+	     conntable[node].totRetrans);
 }
 
 void closeConnRDP(int node)
