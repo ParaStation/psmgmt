@@ -424,6 +424,7 @@ static void handleBarrierTimeout(void)
     terminateJob();
 }
 
+#define USEC_PER_CLIENT 100
 /**
  * @brief Set the timeout for the barrier/update msgs.
  *
@@ -442,9 +443,9 @@ static void setBarrierTimeout(void)
 	timer.tv_sec = barrierTimeout;
 	timer.tv_usec = 0;
     } else {
-	/* timeout after 1 min + n * 100 ms */
-	timer.tv_sec = 60;
-	timer.tv_usec = noKvsClients * 100;
+	/* timeout after 1 min + n * USEC_PER_CLIENT ms */
+	timer.tv_sec = 60 + noKvsClients/(1000000/USEC_PER_CLIENT);
+	timer.tv_usec = noKvsClients%(1000000/USEC_PER_CLIENT)*USEC_PER_CLIENT;
     }
 
     timerid = Timer_register(&timer, handleBarrierTimeout);
