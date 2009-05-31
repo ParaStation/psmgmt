@@ -555,7 +555,7 @@ static void execClient(PStask_t *task)
     /* logging is done via the forwarder thru stderr! */
     struct stat sb;
     int execFound = 0;
-    char *executable;
+    char *executable, *envStr;
 
     /* change the gid */
     if (setgid(task->gid)<0) {
@@ -607,6 +607,22 @@ static void execClient(PStask_t *task)
     if (setuid(task->uid)<0) {
 	fprintf(stderr, "%s: setuid: %s\n", __func__, get_strerror(errno));
 	exit(0);
+    }
+
+    /* restore core settings */
+    envStr = getenv("__PSI_CORESIZE");
+    if (envStr) {
+	struct rlimit rlim;
+	getrlimit(RLIMIT_CORE, &rlim);
+	if (!strcmp("infinity", envStr)) {
+	    rlim.rlim_cur = rlim.rlim_max;
+	} else {
+	    int ret = sscanf(envStr, "%lx", &rlim.rlim_cur);
+	    if (ret < 1) rlim.rlim_cur = 0;
+	    rlim.rlim_cur =
+		(rlim.rlim_max > rlim.rlim_cur) ? rlim.rlim_cur : rlim.rlim_max;
+	}
+	setrlimit(RLIMIT_CORE, &rlim);
     }
 
     /* change to the appropriate directory */

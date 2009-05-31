@@ -24,6 +24,7 @@ static char vcid[] __attribute__((used)) =
 #include <sys/un.h>
 #include <netinet/in.h>
 #include <sys/stat.h>
+#include <sys/resource.h>
 
 #include "pscommon.h"
 
@@ -709,7 +710,8 @@ void PSI_execLogger(const char *command)
 void PSI_propEnv(void)
 {
     extern char **environ;
-    char *envStr;
+    struct rlimit rlim;
+    char *envStr, valStr[64];
     int i;
 
     /* Propagate some environment variables */
@@ -743,6 +745,14 @@ void PSI_propEnv(void)
     if ((envStr = getenv("__PSI_NO_MEMBIND"))) {
 	setPSIEnv("__PSI_NO_MEMBIND", envStr, 1);
     }
+
+    getrlimit(RLIMIT_CORE, &rlim);
+    if (rlim.rlim_cur == RLIM_INFINITY) {
+	snprintf(valStr, sizeof(valStr), "infinity");
+    } else {
+	snprintf(valStr, sizeof(valStr), "%lx", rlim.rlim_cur);
+    }
+    setPSIEnv("__PSI_CORESIZE", envStr, 1);
 
     /* export all PSP_* vars to the ParaStation environment */
     for (i=0; environ[i]; i++) {
