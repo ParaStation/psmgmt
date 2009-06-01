@@ -1428,6 +1428,12 @@ static void sighandler(int sig)
 	    sendAcctData(rusage, status);
 	}
 
+	/*
+	 * first release logger -- otherwise forwarder might remain,
+	 * if CC_MSG get's lost due to closed connection
+	 */
+	releaseLogger(status);
+
 	/* Send CHILDDEAD message to the daemon */
 	{
 	    DDErrorMsg_t msg;
@@ -1439,8 +1445,6 @@ static void sighandler(int sig)
 	    msg.header.len = sizeof(msg);
 	    sendDaemonMsg((DDMsg_t *)&msg);
 	}
-
-	releaseLogger(status);
 
 	/* Release the pmi client */
 	closePMIClientSocket();

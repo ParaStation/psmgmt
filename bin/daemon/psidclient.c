@@ -203,7 +203,10 @@ int sendClient(DDMsg_t *msg)
 
     if (sent<0) return sent;
     if (sent != msg->len) {
-	if (!storeMsgClient(fd, msg, sent)) {
+	if (storeMsgClient(fd, msg, sent)) {
+	    PSID_warn(-1, errno, "%s: Failed to store message", __func__);
+	    errno = ENOBUFS;
+	} else {
 	    FD_SET(fd, &PSID_writefds);
 	    errno = EWOULDBLOCK;
 	}

@@ -371,6 +371,13 @@ void handleDroppedMsg(DDMsg_t *msg)
 
 	sendMsg(&typmsg);
 	break;
+    case PSP_CC_MSG:
+	errmsg.header.type = PSP_CC_ERROR;
+	errmsg.header.dest = msg->sender;
+	errmsg.header.sender = msg->dest;
+	errmsg.header.len = sizeof(errmsg.header);
+
+	sendMsg(&errmsg);
     default:
 	break;
     }
