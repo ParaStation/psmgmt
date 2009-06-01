@@ -1,4 +1,47 @@
-Version psmgmt-5.0.15-6:
+Version psmgmt-5.0.16:
+======================
+------------------------------------------------------------------------
+r7607 | eicker | 2009-06-02 01:43:38 +0200 (Tue, 02 Jun 2009) | 2 lines
+
+Also present OTHER_OPTIONS string on --help in mpiexec.
+
+------------------------------------------------------------------------
+r7606 | eicker | 2009-06-02 01:35:22 +0200 (Tue, 02 Jun 2009) | 2 lines
+
+Bugfix: Fix mpiexec's help and usage messages.
+
+------------------------------------------------------------------------
+r7605 | eicker | 2009-06-02 01:13:58 +0200 (Tue, 02 Jun 2009) | 2 lines
+
+Bugfix: Prevent mpiexec from SEGFAULTing on error-message.
+
+------------------------------------------------------------------------
+r7604 | eicker | 2009-06-02 00:38:54 +0200 (Tue, 02 Jun 2009) | 2 lines
+
+Bugfix: Fix SEGFAULT introduced in r7602.
+
+------------------------------------------------------------------------
+r7603 | eicker | 2009-06-02 00:27:30 +0200 (Tue, 02 Jun 2009) | 5 lines
+
+Bugfix: Fix problems that might lead to orphaned forwarder-processes.
+    Thus, childs are declared dead towards local daemon *after*
+    releasing the logger and dropped CC_MSG packets create CC_ERROR
+    answers.
+
+------------------------------------------------------------------------
+r7602 | eicker | 2009-05-31 15:41:44 +0200 (Sun, 31 May 2009) | 3 lines
+
+Enhancement: Propagate the setting of 'ulimit -c' to parallel jobs. This
+    should fix #206.
+
+------------------------------------------------------------------------
+r7598 | eicker | 2009-05-29 22:27:07 +0200 (Fri, 29 May 2009) | 2 lines
+
+New release (psmgmt-5.0.15-8)
+
+------------------------------------------------------------------------
+
+Version psmgmt-5.0.15-8:
 ========================
 ------------------------------------------------------------------------
 r7597 | eicker | 2009-05-29 22:00:13 +0200 (Fri, 29 May 2009) | 2 lines
