@@ -752,7 +752,7 @@ void PSI_propEnv(void)
     } else {
 	snprintf(valStr, sizeof(valStr), "%lx", rlim.rlim_cur);
     }
-    setPSIEnv("__PSI_CORESIZE", envStr, 1);
+    setPSIEnv("__PSI_CORESIZE", valStr, 1);
 
     /* export all PSP_* vars to the ParaStation environment */
     for (i=0; environ[i]; i++) {
