@@ -1758,7 +1758,7 @@ struct poptOption optionsTable[] = {
 */
 static void parseCmdOptions(int argc, char *argv[])
 {
-    #define OTHER_OPTIONS_STR "<command> [options]"
+    #define OTHER_OPTIONS_STR "[OPTION...] <command> [cmd_options]"
     int rc = 0;
     const char *nextArg;
 
@@ -1798,10 +1798,11 @@ static void parseCmdOptions(int argc, char *argv[])
     }
     dup_argv[dup_argc] = NULL;
 
-    /* restore original contex for further usage messages */    
+    /* restore original contex for further usage messages */
     poptFreeContext(optCon);
     optCon = poptGetContext(NULL, argc, (const char **)argv,
 			    optionsTable, POPT_CONTEXT_POSIXMEHARDER);
+    poptSetOtherOptionHelp(optCon, OTHER_OPTIONS_STR);
 
     if (rc < -1) {
 	/* an error occurred during option processing */
