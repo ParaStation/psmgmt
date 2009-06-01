@@ -1058,13 +1058,13 @@ static void setupEnvironment(int verbose)
  *
  * @param opt Table which holds all hidden options.
  *
- * @param dup_argc The number of arguments to mpiexec.
+ * @param argc The number of arguments to mpiexec.
  *
- * @param dup_argv The vektor which holds the arguments to mpiexec.
+ * @param argv The vector holding the arguments to mpiexec.
  *
  * @return No return value.
  */
-static void printHiddenUsage(poptOption opt, int dup_argc, char *dup_argv[],
+static void printHiddenUsage(poptOption opt, int argc, char *argv[],
 			     char *headline)
 {
     poptOption opt2 = opt;
@@ -1075,7 +1075,7 @@ static void printHiddenUsage(poptOption opt, int dup_argc, char *dup_argv[],
     }
 
     poptFreeContext(optCon);
-    optCon = poptGetContext(NULL, dup_argc, (const char **)dup_argv, opt2, 0);
+    optCon = poptGetContext(NULL, argc, (const char **)argv, opt2, 0);
     printf("\n%s\n", headline);
     poptPrintUsage(optCon, stderr, 0);
 }
@@ -1086,13 +1086,13 @@ static void printHiddenUsage(poptOption opt, int dup_argc, char *dup_argv[],
  *
  * @param opt Table which holds all hidden options.
  *
- * @param dup_argc The number of arguments to mpiexec.
+ * @param argc The number of arguments to mpiexec.
  *
- * @param dup_argv The vektor which holds the arguments to mpiexec.
+ * @param argv The vector holding the arguments to mpiexec.
  *
  * @return No return value.
  */
-static void printHiddenHelp(poptOption opt, int dup_argc, char *dup_argv[],
+static void printHiddenHelp(poptOption opt, int argc, char *argv[],
 			    char *headline)
 {
     poptOption opt2 = opt;
@@ -1103,7 +1103,7 @@ static void printHiddenHelp(poptOption opt, int dup_argc, char *dup_argv[],
     }
 
     poptFreeContext(optCon);
-    optCon = poptGetContext(NULL, dup_argc, (const char **)dup_argv, opt2, 0);
+    optCon = poptGetContext(NULL, argc, (const char **)argv, opt2, 0);
     printf("\n%s\n", headline);
     poptPrintHelp(optCon, stderr, 0);
 }
@@ -1798,6 +1798,11 @@ static void parseCmdOptions(int argc, char *argv[])
     }
     dup_argv[dup_argc] = NULL;
 
+    /* restore original contex for further usage messages */    
+    poptFreeContext(optCon);
+    optCon = poptGetContext(NULL, argc, (const char **)argv,
+			    optionsTable, POPT_CONTEXT_POSIXMEHARDER);
+
     if (rc < -1) {
 	/* an error occurred during option processing */
 	snprintf(msgstr, sizeof(msgstr), "%s: %s",
@@ -1820,45 +1825,40 @@ static void parseCmdOptions(int argc, char *argv[])
 
     /* output extended help */
     if (extendedhelp) {
-	printHiddenHelp(poptAdvancedOptions, dup_argc, dup_argv,
-			"Advanced Options:");
+	printHiddenHelp(poptAdvancedOptions, argc, argv, "Advanced Options:");
 	exit(EXIT_SUCCESS);
     }
 
     /* output extended usage */
     if (extendedusage) {
-	printHiddenUsage(poptAdvancedOptions, dup_argc, dup_argv,
-			 "Advanced Options:");
+	printHiddenUsage(poptAdvancedOptions, argc, argv, "Advanced Options:");
 	exit(EXIT_SUCCESS);
     }
 
     /* output debug help */
     if (debughelp) {
-	printHiddenHelp(poptDebugOptions, dup_argc, dup_argv, "Debug Options:");
+	printHiddenHelp(poptDebugOptions, argc, argv, "Debug Options:");
 	exit(EXIT_SUCCESS);
     }
 
     /* output debug usage */
     if (debugusage) {
-	printHiddenUsage(poptDebugOptions, dup_argc, dup_argv,
-			 "Debug Options:");
+	printHiddenUsage(poptDebugOptions, argc, argv, "Debug Options:");
 	exit(EXIT_SUCCESS);
     }
 
     /* output compatibility usage */
     if (compusage) {
-	printHiddenUsage(poptMpiexecComp, dup_argc, dup_argv,
-			 "Compatibility Options:");
-	printHiddenUsage(poptMpiexecCompGlobal, dup_argc, dup_argv,
+	printHiddenUsage(poptMpiexecComp, argc, argv, "Compatibility Options:");
+	printHiddenUsage(poptMpiexecCompGlobal, argc, argv,
 			 "Global Compatibility Options:");
 	exit(EXIT_SUCCESS);
     }
 
     /* output compatibility help */
     if (comphelp) {
-	printHiddenHelp(poptMpiexecComp, dup_argc, dup_argv,
-			"Compatibility Options:");
-	printHiddenHelp(poptMpiexecCompGlobal, dup_argc, dup_argv,
+	printHiddenHelp(poptMpiexecComp, argc, argv, "Compatibility Options:");
+	printHiddenHelp(poptMpiexecCompGlobal, argc, argv,
 			"Global Compatibility Options:");
 	exit(EXIT_SUCCESS);
     }
