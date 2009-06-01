@@ -443,6 +443,8 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 	    exit(EXIT_FAILURE);
 	}
 
+	poptFreeContext(optCon);
+
 	/* Don't irritate the user with logger messages */
 	setenv("PSI_NOMSGLOGGERDONE", "", 1);
 
@@ -1068,13 +1070,12 @@ static void printHiddenUsage(poptOption opt, int dup_argc, char *dup_argv[],
     poptOption opt2 = opt;
 
     while(opt->longName || opt->shortName || opt->arg) {
-	opt->argInfo = opt->argInfo = opt->argInfo ^ POPT_ARGFLAG_DOC_HIDDEN;
+	opt->argInfo = opt->argInfo ^ POPT_ARGFLAG_DOC_HIDDEN;
 	opt++;
     }
 
-    optCon = poptGetContext(NULL,
-				  dup_argc, (const char **)dup_argv,
-				  opt2, 0);
+    poptFreeContext(optCon);
+    optCon = poptGetContext(NULL, dup_argc, (const char **)dup_argv, opt2, 0);
     printf("\n%s\n", headline);
     poptPrintUsage(optCon, stderr, 0);
 }
@@ -1097,13 +1098,12 @@ static void printHiddenHelp(poptOption opt, int dup_argc, char *dup_argv[],
     poptOption opt2 = opt;
 
     while(opt->longName || opt->shortName || opt->arg) {
-	opt->argInfo = opt->argInfo = opt->argInfo ^ POPT_ARGFLAG_DOC_HIDDEN;
+	opt->argInfo = opt->argInfo ^ POPT_ARGFLAG_DOC_HIDDEN;
 	opt++;
     }
 
-    optCon = poptGetContext(NULL,
-				  dup_argc, (const char **)dup_argv,
-				  opt2, 0);
+    poptFreeContext(optCon);
+    optCon = poptGetContext(NULL, dup_argc, (const char **)dup_argv, opt2, 0);
     printf("\n%s\n", headline);
     poptPrintHelp(optCon, stderr, 0);
 }
@@ -1818,8 +1818,6 @@ static void parseCmdOptions(int argc, char *argv[])
 	exit(EXIT_SUCCESS);
     }
 
-    poptFreeContext(optCon);
-
     /* output extended help */
     if (extendedhelp) {
 	printHiddenHelp(poptAdvancedOptions, dup_argc, dup_argv,
@@ -2010,6 +2008,8 @@ int main(int argc, char *argv[])
 	    exit(EXIT_FAILURE);
 	}
     }
+
+    poptFreeContext(optCon);
 
 #ifdef HAVE_ELANCTRL
     closeELAN();
