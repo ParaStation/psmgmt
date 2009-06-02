@@ -83,7 +83,7 @@ static void sendKvstoLogger(char *msgbuffer)
 {
     if (debug_kvs) {
 	PSIDfwd_printMsgf(STDERR,
-			  "%s: Rank %i: Sending KVS msg to logger: %s\n",
+			  "%s: rank %i: %s\n",
 			  __func__, rank, msgbuffer);
     }
     PSLog_write(loggertid, KVS, msgbuffer, strlen(msgbuffer) +1);
@@ -162,7 +162,7 @@ static int do_send(char *msg, int offset, int len)
 		{
 		char *errstr = strerror(errno);
 		PSIDfwd_printMsgf(STDERR,
-			  "%s: Rank %i: got error %d on pmi socket: %s\n",
+			  "%s: rank %i: got error %d on pmi socket: %s\n",
 			  __func__, rank, errno, errstr ? errstr : "UNKNOWN");
 	    return i;
 		}
@@ -191,13 +191,13 @@ static int PMI_send(char *msg)
     if (!(len && msg[len - 1] == '\n')) {
 	/* assert */
 	PSIDfwd_printMsgf(STDERR,
-			  "%s: Rank %i: Missing '\\n' in pmi msg '%s'\n",
+			  "%s: rank %i: missing '\\n' in pmi msg '%s'\n",
 			  __func__, rank, msg);
 	return critErr();
     }
 
     if (debug) {
-	PSIDfwd_printMsgf(STDERR, "%s: Rank %i: sending pmi msg:%s",
+	PSIDfwd_printMsgf(STDERR, "%s: rank %i: %s",
 			  __func__, rank, msg);
     }
 
@@ -208,7 +208,7 @@ static int PMI_send(char *msg)
 
     if (written < len) {
 	PSIDfwd_printMsgf(STDERR,
-			  "%s: Rank %i: pmi msg could not be send:%s.\n",
+			  "%s: rank %i: failed sending %s\n",
 			  __func__, rank, msg);
 	return critErr();
     }
@@ -327,7 +327,7 @@ static int p_Create_Kvs(void)
 
     /* create local kvs */
     if (!kvs_create(kvsname)) {
-	PSIDfwd_printMsgf(STDERR, "%s: Rank %i: error creating local kvs %s\n",
+	PSIDfwd_printMsgf(STDERR, "%s: rank %i: create kvs %s failed\n",
 			  __func__, rank, kvsname);
 	PMI_send("cmd=newkvs rc=-1\n");
 	return 1;
@@ -358,7 +358,7 @@ static int p_Destroy_Kvs(char *msgBuffer)
 
     if (kvsname[0] == 0) {
 	PSIDfwd_printMsgf(STDERR,
-			  "%s: Rank %i: received wrong kvs destroy msg\n",
+			  "%s: rank %i: got invalid msg\n",
 			  __func__, rank);
 	PMI_send("cmd=kvs_destroyed rc=-1\n");
 	return 1;
@@ -366,7 +366,7 @@ static int p_Destroy_Kvs(char *msgBuffer)
 
     /* destroy kvs */
     if (kvs_destroy(kvsname)) {
-	PSIDfwd_printMsgf(STDERR, "%s: Rank %i: error destroying kvs %s\n",
+	PSIDfwd_printMsgf(STDERR, "%s: rank %i: error destroying kvs %s\n",
 			  __func__, rank, kvsname);
 	PMI_send("cmd=kvs_destroyed rc=-1\n");
 	return 1;
@@ -399,7 +399,7 @@ static int p_Put(char *msgBuffer)
     if (kvsname[0] == 0 || key[0] == 0 || value[0] == 0) {
 	if (debug_kvs) {
 	    PSIDfwd_printMsgf(STDERR,
-			      "%s: Rank %i: received invalid pmi put msg\n",
+			      "%s: rank %i: received invalid pmi put msg\n",
 			      __func__, rank);
 	}
 	PMI_send("cmd=put_result rc=-1 msg=error_invalid_put_msg\n");
@@ -409,7 +409,7 @@ static int p_Put(char *msgBuffer)
     /* save to local kvs */
     if (kvs_put(kvsname, key, value)) {
 	if (debug_kvs) {
-	    PSIDfwd_printMsgf(STDERR, "%s: Rank %i:"
+	    PSIDfwd_printMsgf(STDERR, "%s: rank %i:"
 			      " error while put key:%s value:%s to kvs:%s \n",
 			      __func__, rank, key, value, kvsname);
 	}
@@ -445,7 +445,7 @@ static int p_Get(char *msgBuffer)
     if (kvsname[0] == 0 || key[0] == 0) {
 	if (debug_kvs) {
 	    PSIDfwd_printMsgf(STDERR,
-			      "%s: Rank %i: received invalid pmi get cmd\n",
+			      "%s: rank %i: received invalid pmi get cmd\n",
 			      __func__, rank);
 	}
 	PMI_send("cmd=get_result rc=-1 msg=error_invalid_get_msg\n");
@@ -456,7 +456,7 @@ static int p_Get(char *msgBuffer)
     if (!(value = kvs_get(kvsname, key))) {
 	if (debug_kvs) {
 	    PSIDfwd_printMsgf(STDERR,
-			      "%s: Rank %i: get on non exsisting kvs key:%s\n",
+			      "%s: rank %i: get on non exsisting kvs key:%s\n",
 			      __func__, rank, key);
 	}
 	snprintf(reply, sizeof(reply),
@@ -495,13 +495,13 @@ static int p_Publish_Name(char *msgBuffer)
     /* check msg */
     if (port[0] == 0 || service[0] == 0) {
 	PSIDfwd_printMsgf(STDERR,
-			  "%s: Rank %i: received invalid publish_name msg\n",
+			  "%s: rank %i: received invalid publish_name msg\n",
 			  __func__, rank);
 	return 1;
     }
 
     if (debug) {
-	PSIDfwd_printMsgf(STDERR, "%s: Rank %i: received publish name request"
+	PSIDfwd_printMsgf(STDERR, "%s: rank %i: received publish name request"
 			  " for service:%s, port:%s\n",
 			  __func__, rank, service, port);
     }
@@ -530,12 +530,12 @@ static int p_Unpublish_Name(char *msgBuffer)
     /* check msg*/
     if (service[0] == 0) {
 	PSIDfwd_printMsgf(STDERR,
-			  "%s: Rank %i: received invalid unpublish_name msg\n",
+			  "%s: rank %i: received invalid unpublish_name msg\n",
 			  __func__, rank);
     }
 
     if (debug) {
-	PSIDfwd_printMsgf(STDERR, "%s: Rank %i: received unpublish name"
+	PSIDfwd_printMsgf(STDERR, "%s: rank %i: received unpublish name"
 			  " request for service:%s\n",
 			  __func__, rank, service);
     }
@@ -563,12 +563,12 @@ static int p_Lookup_Name(char *msgBuffer)
     /* check msg*/
     if (service[0] == 0) {
 	PSIDfwd_printMsgf(STDERR,
-			  "%s: Rank %i: received invalid lookup_name msg\n",
+			  "%s: rank %i: received invalid lookup_name msg\n",
 			  __func__, rank);
     }
 
     if (debug) {
-	PSIDfwd_printMsgf(STDERR, "%s: Rank %i: received lookup name request"
+	PSIDfwd_printMsgf(STDERR, "%s: rank %i: received lookup name request"
 			  " for service:%s\n",
 			  __func__, rank, service);
     }
@@ -679,13 +679,13 @@ static int p_Spawn(char *msgBuffer)
 
     if (debug) {
 	PSIDfwd_printMsgf(STDERR,
-			  "%s: Rank %i: received pmi spawn msg request:%s\n",
+			  "%s: rank %i: received pmi spawn msg request:%s\n",
 			  __func__, rank, msgBuffer);
     }
 
     PMI_send("cmd=spwan_result rc=-1\n");
 
-    PSIDfwd_printMsgf(STDERR, "%s: Rank: %i: received unsupported pmi spwan"
+    PSIDfwd_printMsgf(STDERR, "%s: rank %i: received unsupported pmi spwan"
 		      " request:%s\n", __func__, rank, msgBuffer);
     critErr();
 
@@ -714,7 +714,7 @@ static int p_GetByIdx(char *msgBuffer)
     /* check msg */
     if (idx[0] == 0 || kvsname[0] == 0) {
 	if (debug_kvs) {
-	    PSIDfwd_printMsgf(STDERR, "%s: Rank %i:"
+	    PSIDfwd_printMsgf(STDERR, "%s: rank %i:"
 			      " received invalid pmi getbiyidx msg\n",
 			      __func__, rank);
 	}
@@ -728,7 +728,7 @@ static int p_GetByIdx(char *msgBuffer)
     /* find and return the value */
     if ((ret = kvs_getbyidx(kvsname,index))) {
 	if (!(value = strchr(ret,'=') + 1)) {
-	    PSIDfwd_printMsgf(STDERR, "%s: Rank %i:"
+	    PSIDfwd_printMsgf(STDERR, "%s: rank %i:"
 			      " error in local key value space\n",
 			      __func__, rank);
 	    return critErr();
@@ -769,7 +769,7 @@ static int p_Init(char *msgBuffer)
     /* check msg */
     if (pmiversion[0] == 0 || pmisubversion[0] == 0) {
 	PSIDfwd_printMsgf(STDERR,
-			  "%s: Rank %i: received invalid pmi init cmd\n",
+			  "%s: rank %i: received invalid pmi init cmd\n",
 			  __func__, rank);
 	return critErr();
     }
@@ -785,7 +785,7 @@ static int p_Init(char *msgBuffer)
 		 " pmi_version=%i pmi_subversion=%i rc=%i\n",
 		 PMI_VERSION, PMI_SUBVERSION, PMI_ERROR);
 	PMI_send(reply);
-	PSIDfwd_printMsgf(STDERR, "%s: Rank %i:"
+	PSIDfwd_printMsgf(STDERR, "%s: rank %i:"
 			  " unsupported pmi version received:"
 			  " version=%i, subversion=%i\n",
 			  __func__, rank, atoi(pmiversion),
@@ -841,7 +841,7 @@ static int p_Get_Rank2Hosts(void)
     char reply[PMIU_MAXLINE];
     if (debug) {
 	PSIDfwd_printMsgf(STDERR,
-			  "%s: Rank %i: received pmi get_rank2hosts request\n",
+			  "%s: rank %i: got get_rank2hosts request\n",
 			  __func__, rank);
     }
 
@@ -868,13 +868,13 @@ static int p_InitAck(char *msgBuffer)
 
     if (debug) {
 	PSIDfwd_printMsgf(STDERR,
-			  "%s: Rank %i: received pmi initack msg:%s\n",
+			  "%s: rank %i: received pmi initack msg:%s\n",
 			  __func__, rank, msgBuffer);
     }
 
     if (!(pmi_id = getenv("PMI_ID"))) {
 	PSIDfwd_printMsgf(STDERR,
-			  "%s: Rank %i: no PMI_ID is set\n",
+			  "%s: rank %i: no PMI_ID is set\n",
 			  __func__, rank);
 	return critErr();
     }
@@ -883,14 +883,14 @@ static int p_InitAck(char *msgBuffer)
 
     if (client_id[0] == 0) {
 	PSIDfwd_printMsgf(STDERR,
-			  "%s: Rank %i: invalid initack from client\n",
+			  "%s: rank %i: invalid initack from client\n",
 			  __func__, rank);
 	return critErr();
     }
 
     if (!(strcmp(pmi_id, client_id))) {
 	PSIDfwd_printMsgf(STDERR,
-			  "%s: Rank %i: invalid pmi_id from client\n",
+			  "%s: rank %i: invalid pmi_id from client\n",
 			  __func__, rank);
 	return critErr();
     }
@@ -924,14 +924,14 @@ static int p_Execution_Problem(char *msgBuffer)
     getpmiv("exec",msgBuffer,reason,sizeof(reason));
 
     if (exec[0] == 0 || reason[0] == 0) {
-	PSIDfwd_printMsgf(STDERR, "%s: Rank %i:"
+	PSIDfwd_printMsgf(STDERR, "%s: rank %i:"
 			  " received invalid pmi execution problem msg\n",
 			  __func__, rank);
 	return 1;
     }
 
     PSIDfwd_printMsgf(STDERR,
-		      "%s: Rank %i: execution problem: exec=%s, reason=%s\n",
+		      "%s: rank %i: execution problem: exec=%s, reason=%s\n",
 		      __func__, rank, exec, reason);
 
     return 0;
@@ -983,17 +983,17 @@ const int pmi_short_com_count =
  *
  * @return Returns 0 on success and 1 on errors.
  */
-int pmi_init(int pmisocket, PStask_ID_t loggertaskid, int Rank)
+int pmi_init(int pmisocket, PStask_ID_t loggertaskid, int pRank)
 {
     char *env_debug, *env_kvs_name;
     char kvsmsg[PMIU_MAXLINE], kvsname[KVSNAME_MAX];
 
-    rank = Rank;
+    rank = pRank;
     loggertid = loggertaskid;
     pmisock = pmisocket;
 
     if (pmisocket < 1) {
-	PSIDfwd_printMsgf(STDERR, "%s: Rank %i: invalid pmi socket\n",
+	PSIDfwd_printMsgf(STDERR, "%s: rank %i: invalid pmi socket\n",
 			  __func__, rank);
 	return 1;
     }
@@ -1034,7 +1034,7 @@ int pmi_init(int pmisocket, PStask_ID_t loggertaskid, int Rank)
     /* create local kvs space */
     kvs_init();
     if (kvs_create(kvsname)) {
-	PSIDfwd_printMsgf(STDERR, "%s: Rank %i: error creating local kvs\n",
+	PSIDfwd_printMsgf(STDERR, "%s: rank %i: error creating local kvs\n",
 			  __func__, rank);
 	return critErr();
     }
@@ -1065,7 +1065,7 @@ static int pmi_extract_cmd(char *msg, char *cmdbuf, int bufsize)
     char *msgCopy, *cmd, *saveptr;
 
     if (!msg || strlen(msg) < 5) {
-	PSIDfwd_printMsgf(STDERR, "%s: Rank %i: invalid pmi msg received\n",
+	PSIDfwd_printMsgf(STDERR, "%s: rank %i: invalid pmi msg received\n",
 			  __func__, rank);
 	return !critErr();
     }
@@ -1112,26 +1112,26 @@ int pmi_parse_msg(char *msg)
 
     if (is_init != 1) {
 	PSIDfwd_printMsgf(STDERR,
-			  "%s: Rank %i: you must call pmi_init first\n",
+			  "%s: rank %i: you must call pmi_init first\n",
 			  __func__, rank);
 	return 1;
     }
 
     if (strlen(msg) > PMIU_MAXLINE ) {
-	PSIDfwd_printMsgf(STDERR, "%s: Rank %i: pmi msg to long,"
+	PSIDfwd_printMsgf(STDERR, "%s: rank %i: pmi msg to long,"
 			  " msg_size=%i and allowed_size=%i\n",
 			  __func__, rank, (int)strlen(msg), PMIU_MAXLINE);
 	return critErr();
     }
 
     if (!pmi_extract_cmd(msg, cmd, sizeof(cmd)) || strlen(cmd) <2) {
-	PSIDfwd_printMsgf(STDERR, "%s: Rank %i: invalid pmi cmd received,"
+	PSIDfwd_printMsgf(STDERR, "%s: rank %i: invalid pmi cmd received,"
 			  " msg was:%s\n", __func__, rank, msg);
 	return critErr();
     }
 
     if (debug) {
-	PSIDfwd_printMsgf(STDERR, "%s: Rank %i: received pmi msg:%s\n",
+	PSIDfwd_printMsgf(STDERR, "%s: rank %i: received pmi msg:%s\n",
 			  __func__, rank, msg);
     }
 
@@ -1150,7 +1150,7 @@ int pmi_parse_msg(char *msg)
     }
 
     /* cmd not found */
-    PSIDfwd_printMsgf(STDERR, "%s: Rank %i: unsupported pmi cmd received:%s\n",
+    PSIDfwd_printMsgf(STDERR, "%s: rank %i: unsupported pmi cmd received:%s\n",
 		      __func__, rank, cmd);
 
     snprintf(reply, sizeof(reply),
@@ -1189,13 +1189,13 @@ void pmi_handleKvsRet(PSLog_Msg_t msg)
     int len;
 
     if (debug_kvs) {
-	PSIDfwd_printMsgf(STDERR, "%s: Rank %i: new kvs msg from logger:%s\n",
+	PSIDfwd_printMsgf(STDERR, "%s: rank %i: %s\n",
 			  __func__, rank, msg.buf);
     }
 
     /* extract cmd from msg */
     if (!pmi_extract_cmd(msg.buf, cmd, sizeof(cmd)) || strlen(cmd) < 2) {
-	PSIDfwd_printMsgf(STDERR, "%s: Rank %i: received invalid kvs msg"
+	PSIDfwd_printMsgf(STDERR, "%s: rank %i: received invalid kvs msg"
 			  " from logger\n", __func__, rank);
 	critErr();
 	return;
@@ -1203,7 +1203,7 @@ void pmi_handleKvsRet(PSLog_Msg_t msg)
 
     /* kvs is disabled */
     if (!strcmp(cmd, "kvs_not_available")) {
-	PSIDfwd_printMsgf(STDERR, "%s: Rank %i: global kvs is not available,"
+	PSIDfwd_printMsgf(STDERR, "%s: rank %i: global kvs is not available,"
 			  " exiting\n", __func__, rank);
 	critErr();
 	return;
@@ -1216,7 +1216,7 @@ void pmi_handleKvsRet(PSLog_Msg_t msg)
 	while (nextvalue != NULL) {
 	    /* extract next key/value pair */
 	    if (!(value = strchr(nextvalue, '=') +1)) {
-		PSIDfwd_printMsgf(STDERR, "%s: Rank %i: invalid kvs update"
+		PSIDfwd_printMsgf(STDERR, "%s: rank %i: invalid kvs update"
 				  " received\n", __func__, rank);
 		critErr();
 		return;
@@ -1231,13 +1231,13 @@ void pmi_handleKvsRet(PSLog_Msg_t msg)
 		/* save key/value to kvs */
 		if (kvs_put(kvsname, vname, value)) {
 		    PSIDfwd_printMsgf(STDERR,
-				      "%s: Rank %i: error saving kvs update:"
+				      "%s: rank %i: error saving kvs update:"
 				      " kvsname:%s, key:%s, value:%s\n",
 				      __func__, rank, kvsname, vname, value);
 		    return;
 		}
 	    } else {
-		PSIDfwd_printMsgf(STDERR, "%s: Rank %i: received invalid"
+		PSIDfwd_printMsgf(STDERR, "%s: rank %i: received invalid"
 				  " update kvs request from logger\n",
 				  __func__, rank);
 		return;

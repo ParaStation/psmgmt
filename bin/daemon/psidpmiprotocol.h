@@ -48,7 +48,7 @@ int pmi_parse_msg(char *msg);
  *
  * @return Returns 0 on success and 1 on errors.
  */
-int pmi_init(int pmisocket, PStask_ID_t loggertaskid, int Rank);
+int pmi_init(int pmisocket, PStask_ID_t loggertaskid, int pRank);
 
 /**
  * @brief Forward or handle a kvs msg from logger.

@@ -61,6 +61,9 @@ int barrierTimeout = 0;
 /** Id of the barrier timer */
 int timerid = -1;
 
+/** track if we need to distribute an update */
+int kvsChanged = 0;
+
 /**
  * @brief Wrapper for send kvs messages.
  *
@@ -207,6 +210,7 @@ static void handleKvsPut(PSLog_Msg_t *msg)
 	/* put the value in kvs */
 	if (!(kvs_put(kvsname, name, value))) {
 	    snprintf(retbuf, sizeof(retbuf), "cmd=put_result rc=0\n");
+	    kvsChanged = 1;
 	} else {
 	    snprintf(retbuf, sizeof(retbuf),
 		     "cmd=put_result rc=-1 msg=error_kvs_error\n");
@@ -399,6 +403,9 @@ static void sendKvsUpdateToClients(void)
 	}
     }
 
+    /* we are up to date now */
+    kvsChanged = 0;
+
     /* send update finished msg */
     snprintf(kvsmsg, sizeof(kvsmsg), "cmd=kvs_update_cache_finish\n");
     sendMsgToKvsClients(kvsmsg);
@@ -424,7 +431,7 @@ static void handleBarrierTimeout(void)
     terminateJob();
 }
 
-#define USEC_PER_CLIENT 100
+#define USEC_PER_CLIENT 500
 /**
  * @brief Set the timeout for the barrier/update msgs.
  *
@@ -464,6 +471,7 @@ static void setBarrierTimeout(void)
  */
 static void handleKvsBarrierIn(PSLog_Msg_t *msg)
 {
+    char reply[PMIU_MAXLINE];
     int i;
 
     /* check if last barrier ended successfully */
@@ -509,8 +517,16 @@ static void handleKvsBarrierIn(PSLog_Msg_t *msg)
 	}
 
 	kvsBarrierInCount = 0;
-	/* send kvs update to all clients */
-	sendKvsUpdateToClients();
+
+	if (kvsChanged) {
+	    /* distribute kvs update */
+	    sendKvsUpdateToClients();
+	} else {
+	    /* send all Clients barrier_out */
+	    snprintf(reply, sizeof(reply), "cmd=barrier_out\n");
+	    sendMsgToKvsClients(reply);
+	}
+
     }
 }
 
