@@ -447,7 +447,8 @@ int PSI_recvMsg(DDMsg_t *msg, size_t size)
 	if (count >= expected) {
 	    if (msg->len > (int)size) {
 		errno = ENOBUFS;
-		PSI_warn(-1, errno, "%s", __func__);
+		PSI_warn(-1, errno, "%s: type %s", __func__,
+			 PSP_printMsg(msg->type));
 		n = -1;
 	    } else {
 		expected = msg->len;

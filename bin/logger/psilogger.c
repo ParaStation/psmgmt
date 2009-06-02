@@ -611,7 +611,7 @@ static void trySendInitAnswer(int rank)
     succ = (rank == getNumKvsClients()-1) ? PSC_getMyTID():getClientTID(rank+1);
 
     /* Check, if current request can be answered */
-    if (pred != -1 && succ != -1) {
+    if (task != -1 && pred != -1 && succ != -1) {
 	char buf[sizeof(forw_verbose) + 2*sizeof(PStask_ID_t)], *ptr = buf;
 
 	*(int *)ptr = forw_verbose;
@@ -647,7 +647,7 @@ static int newrequest(PSLog_Msg_t *msg)
     if (!registerClient(rank, msg->header.sender)) return 0;
 
     maxConnected++;
-    PSIlog_log(PSILOG_LOG_VERB, "new connection from %s (%d)\n",
+    PSIlog_log(PSILOG_LOG_VERB, "%s: new connection from %s (%d)\n", __func__,
 	       PSC_printTID(msg->header.sender), rank);
 
     if (msg->version < 2) triggerOld = 1;

@@ -337,7 +337,7 @@ int registerClient(int rank, PStask_ID_t tid)
 	nRecvClnts++;
     }
 
-    PSIlog_log(PSILOG_LOG_VERB, "new connection from %s (%d)\n",
+    PSIlog_log(PSILOG_LOG_VERB, "%s: new connection from %s (%d)\n", __func__,
 	       PSC_printTID(tid), rank);
 
     return 1;
