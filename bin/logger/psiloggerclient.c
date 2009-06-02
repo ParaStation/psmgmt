@@ -155,19 +155,7 @@ int clientIsActive(int rank)
     return clients[rank].flags & CLIENT_ACTIVE;
 }
 
-/**
- * @brief Test, if client is gone
- *
- * Test, if the client with rank @a rank is gone. A client is marked
- * es gone, if it was registered in the past but in the meantime
- * de-registered.
- *
- * @param rank Rank of the client to be tested.
- *
- * @return If the client is marked as gone, a value different from
- * 0 is returned. Otherwise 0 is returned.
- */
-static int clientIsGone(int rank)
+int clientIsGone(int rank)
 {
     if (!clients) {
 	PSIlog_log(-1, "%s: Not initialized", __func__);

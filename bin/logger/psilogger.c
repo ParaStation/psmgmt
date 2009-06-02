@@ -611,7 +611,9 @@ static void trySendInitAnswer(int rank)
     succ = (rank == getNumKvsClients()-1) ? PSC_getMyTID():getClientTID(rank+1);
 
     /* Check, if current request can be answered */
-    if (task != -1 && pred != -1 && succ != -1) {
+    if (task != -1
+	&& (pred != -1 || clientIsGone(rank-1))
+	&& (succ != -1 || clientIsGone(rank+1))) {
 	char buf[sizeof(forw_verbose) + 2*sizeof(PStask_ID_t)], *ptr = buf;
 
 	*(int *)ptr = forw_verbose;
@@ -660,7 +662,7 @@ static int newrequest(PSLog_Msg_t *msg)
 
 	if (rank-1 > 0) trySendInitAnswer(rank - 1);
 	if (rank > 0) trySendInitAnswer(rank);
-	trySendInitAnswer(msg->sender + 1);
+	trySendInitAnswer(rank + 1);
 
 	kvsConnected++;
     }
@@ -668,7 +670,9 @@ static int newrequest(PSLog_Msg_t *msg)
     if (enable_kvs && kvsConnected == getNumKvsClients()) {
 	/* All clients there, answer to rank 0 */
 	if (triggerOld) {
-	    sendMsg(msg->header.sender, INITIALIZE,
+	    PSIlog_log(PSILOG_LOG_VERB, "%s: old triggered at %s\n", __func__,
+		       PSC_printTID(getClientTID(0)));
+	    sendMsg(getClientTID(0), INITIALIZE,
 		    (char *) &forw_verbose, sizeof(forw_verbose));
 	} else {
 	    trySendInitAnswer(0);

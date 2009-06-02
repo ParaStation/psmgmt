@@ -2200,16 +2200,6 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	PSID_log(PSID_LOG_SPAWN, "%s: task %s not found\n", __func__,
 		 PSC_printTID(msg->request));
     } else {
-	/*
-	 * Send a SIGKILL to the process group in order to stop fork()ed childs
-	 *
-	 * Don't send to logger. These might share their process group
-	 * with other processes. Furthermore logger never fork().
-	 */
-	if (task->group != TG_LOGGER) {
-	    PSID_kill(-PSC_getPID(task->tid), SIGKILL, task->uid);
-	}
-
 	/* Prepare CHILDDEAD msg here. Task might be removed in next step */
 	msg->header.dest = task->ptid;
 	msg->header.sender = PSC_getMyTID();

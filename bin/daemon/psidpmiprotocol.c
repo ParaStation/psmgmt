@@ -1291,10 +1291,10 @@ void pmi_handleKvsRet(PSLog_Msg_t *msg)
 	}
 	updateMsgCount++;
 	if (msg->header.sender == predtid && succtid != -1
-	    && msgCopy) {
+	    && succtid != loggertid && msgCopy) {
 	    sendKvstoSucc(msgCopy);
-	    free(msgCopy);
 	}
+	if (msgCopy) free(msgCopy);
 	return;
     }
 
@@ -1314,7 +1314,8 @@ void pmi_handleKvsRet(PSLog_Msg_t *msg)
 	return;
     }
     if (!strcmp(cmd, "barrier_out")) {
-	if (msg->header.sender == predtid && succtid != -1) {
+	if (msg->header.sender == predtid && succtid != -1
+	    && succtid != loggertid) {
 	    /* forward to next client */
 	    sendKvstoSucc(msg->buf);
 	}

@@ -1461,6 +1461,11 @@ static void sighandler(int sig)
 	    sendDaemonMsg((DDMsg_t *)&msg);
 	}
 
+	/*
+	 * Send a SIGKILL to the process group in order to stop fork()ed childs
+	 */
+	sendSignal(-PSC_getPID(childTask->tid), SIGKILL);
+
 	/* Release the pmi client */
 	closePMIClientSocket();
 
