@@ -44,18 +44,48 @@ int pmi_parse_msg(char *msg);
  *
  * @param loggertaskid The task id of the logger.
  *
- * @param rank The rank of the pmi client.
+ * @param pRank The rank of the pmi client.
  *
  * @return Returns 0 on success and 1 on errors.
  */
 int pmi_init(int pmisocket, PStask_ID_t loggertaskid, int pRank);
 
 /**
+ * @brief Set predecessor task.
+ *
+ * Set the task ID of the current task's predecessor to @a pred. This
+ * implicitely enables daisy-chain broadcasts within PMI, if the
+ * successor process is disclosed at the same time.
+ *
+ * @param pred The task ID of the predecessor to be set.
+ *
+ * @return No return value.
+ *
+ * @see pmi_set_succ()
+ */
+void pmi_set_pred(PStask_ID_t pred);
+
+/**
+ * @brief Set successor task.
+ *
+ * Set the task ID of the current task's successor to @a succ. This
+ * implicitely enables daisy-chain broadcasts within PMI, if the
+ * predecessor process is disclosed at the same time.
+ *
+ * @param pred The task ID of the successor to be set.
+ *
+ * @return No return value.
+ *
+ * @see pmi_set_pred()
+ */
+void pmi_set_succ(PStask_ID_t succ);
+
+/**
  * @brief Forward or handle a kvs msg from logger.
  *
  * @return No return value.
  */
-void pmi_handleKvsRet(PSLog_Msg_t msg);
+void pmi_handleKvsRet(PSLog_Msg_t *msg);
 
 /**
  * @brief Send finalize ack to the pmi client, this is called from the

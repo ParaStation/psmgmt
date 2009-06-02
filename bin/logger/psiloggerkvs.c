@@ -32,37 +32,40 @@ static char vcid[] __attribute__((used)) =
 #include "psiloggerkvs.h"
 
 /** Array to store the forwarder TIDs joined to kvs. */
-PStask_ID_t *clientKvsTID;
+static PStask_ID_t *clientKvsTID;
 
 /** Array to store the received TIDs for tracking the barrier/cache updates. */
-PStask_ID_t *clientKvsTrackTID;
+static PStask_ID_t *clientKvsTrackTID;
 
 /** The actual size of clientKvsTID */
-int maxKvsClients = 64;
+static int maxKvsClients = 64;
 
 /** Number of clients joined to kvs */
-int noKvsClients = 0;
+static int noKvsClients = 0;
 
 /** The number of received kvs barrier_in */
-int kvsBarrierInCount = 0;
+static int kvsBarrierInCount = 0;
 
 /** The number of received kvs cache updates */
-int kvsCacheUpdateCount = 0;
+static int kvsCacheUpdateCount = 0;
 
 /** The number of kvs update msgs sends */
-int kvsUpdateMsgCount = 0;
+static int kvsUpdateMsgCount = 0;
 
 /** Outputs kvs debug msg if set */
-int debug_kvs = 0;
+static int debug_kvs = 0;
 
 /** Set the timeout of the barrier */
-int barrierTimeout = 0;
+static int barrierTimeout = 0;
 
 /** Id of the barrier timer */
-int timerid = -1;
+static int timerid = -1;
 
 /** track if we need to distribute an update */
-int kvsChanged = 0;
+static int kvsChanged = 0;
+
+/** flag enabling the daisy-chain broadcast */
+static int useDaisyChain =0;
 
 /**
  * @brief Wrapper for send kvs messages.
@@ -159,6 +162,11 @@ void initLoggerKvs(void)
     }
 }
 
+void switchDaisyChain(int val)
+{
+    useDaisyChain = val;
+}
+
 /**
  * @brief Send kvs message to all clients.
  *
@@ -179,8 +187,17 @@ static void sendMsgToKvsClients(char *msg)
 	return;
     }
 
-    for (i=0; i< maxKvsClients; i++) {
-	if (clientKvsTID[i] != -1) sendKvsMsg(clientKvsTID[i], msg);
+    if (useDaisyChain) {
+	if (clientKvsTID[0] != -1) {
+	    sendKvsMsg(clientKvsTID[0], msg);
+	} else {
+	    PSIlog_log(-1, "%s: daisy-chain enabled but unusable\n", __func__);
+	    return;
+	}
+    } else {
+	for (i=0; i< maxKvsClients; i++) {
+	    if (clientKvsTID[i] != -1) sendKvsMsg(clientKvsTID[i], msg);
+	}
     }
 }
 
@@ -758,6 +775,11 @@ static void handleKvsLeave(PSLog_Msg_t *msg)
     } else {
 	noKvsClients--;
     }
+}
+
+int getNumKvsClients(void)
+{
+    return noKvsClients;
 }
 
 /**

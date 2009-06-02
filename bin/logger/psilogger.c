@@ -89,7 +89,7 @@ int forw_verbose = 0;
 static int showUsage = 0;
 
 /** Number of maximum connected forwarders during runtime */
-int maxConnected;
+int maxConnected = 0;
 
 /** Set of fds, the logger listens to. This is mainly STDIN and daemonSock. */
 static fd_set myfds;
@@ -586,6 +586,48 @@ static void enterRawMode(void)
 }
 
 /**
+ * @brief Try to send answer to INITIALIZE message
+ *
+ * Try to send an answer to an INITIALIZE message to rank @a
+ * rank. This type of send is used in order to enable the daisy-chain
+ * broadcasts. Therefore, it is tested, if the both, predecessing and
+ * successing rank are already known. If one neighbor is still
+ * unknown, no message is send. Otherwise, an extended INITIALIZE
+ * answer is delivered containing information on the neighboring
+ * processes.
+ *
+ * @param rank Rank of the client the response is send to
+ *
+ * @return No return value.
+ */
+static void trySendInitAnswer(int rank)
+{
+    PStask_ID_t task, pred, succ;
+
+    if (rank < 0 || rank >= getNumKvsClients()) return;
+
+    pred = (rank) ? getClientTID(rank-1) : PSC_getMyTID();
+    task = getClientTID(rank);
+    succ = (rank == getNumKvsClients()-1) ? PSC_getMyTID():getClientTID(rank+1);
+
+    /* Check, if current request can be answered */
+    if (pred != -1 && succ != -1) {
+	char buf[sizeof(forw_verbose) + 2*sizeof(PStask_ID_t)], *ptr = buf;
+
+	*(int *)ptr = forw_verbose;
+	ptr += sizeof(int);
+	*(PStask_ID_t *)ptr = pred;
+	ptr += sizeof(PStask_ID_t);
+	*(PStask_ID_t *)ptr = succ;
+	ptr += sizeof(PStask_ID_t);
+
+	sendMsg(task, INITIALIZE, buf, sizeof(buf));
+	PSIlog_log(PSILOG_LOG_VERB, "%s: send answer to %s (%d)\n", __func__,
+		   PSC_printTID(task), rank);
+    }
+}
+
+/**
  * @brief Handle connection requests from new forwarders.
  *
  * Handles connection requests from new forwarder. In order to
@@ -599,18 +641,42 @@ static void enterRawMode(void)
  */
 static int newrequest(PSLog_Msg_t *msg)
 {
-    int ret=0;
+    int rank = msg->sender;
+    static int triggerOld = 0, kvsConnected = 0;
 
-    if (registerClient(msg->sender, msg->header.sender)) {
+    if (!registerClient(rank, msg->header.sender)) return 0;
+
+    maxConnected++;
+    PSIlog_log(PSILOG_LOG_VERB, "new connection from %s (%d)\n",
+	       PSC_printTID(msg->header.sender), rank);
+
+    if (msg->version < 2) triggerOld = 1;
+
+    if (rank < 0 || !enable_kvs) {
+	/* not part of kvs, answer immediately */
 	sendMsg(msg->header.sender, INITIALIZE,
 		(char *) &forw_verbose, sizeof(forw_verbose));
-	maxConnected++;
-	PSIlog_log(PSILOG_LOG_VERB, "new connection from %s (%d)\n",
-		   PSC_printTID(msg->header.sender), msg->sender);
-	ret = 1;
+    } else {
+
+	if (rank-1 > 0) trySendInitAnswer(rank - 1);
+	if (rank > 0) trySendInitAnswer(rank);
+	trySendInitAnswer(msg->sender + 1);
+
+	kvsConnected++;
     }
 
-    return ret;
+    if (enable_kvs && kvsConnected == getNumKvsClients()) {
+	/* All clients there, answer to rank 0 */
+	if (triggerOld) {
+	    sendMsg(msg->header.sender, INITIALIZE,
+		    (char *) &forw_verbose, sizeof(forw_verbose));
+	} else {
+	    trySendInitAnswer(0);
+	    switchDaisyChain(1);
+	}
+    }
+
+    return 1;
 }
 
 /**
@@ -1241,7 +1307,7 @@ int main( int argc, char**argv)
 	PSIlog_log(PSILOG_LOG_VERB, "Going to show resource usage.\n");
     }
 
-    PSLog_init(daemonSock, -1, 1);
+    PSLog_init(daemonSock, -1, 2);
 
     /* init the timer structure */
     if (!Timer_isInitialized()) {

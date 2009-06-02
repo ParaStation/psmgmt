@@ -66,13 +66,20 @@ int updateMsgCount;
 char kvs_name_tmp[KVSNAME_MAX];
 /** The socket which is connected to the pmi client */
 SOCKET pmisock;
-/** The logger Task ID of the current job */
-PStask_ID_t loggertid;
+
+/** The logger task ID of the current job */
+static PStask_ID_t loggertid;
+
+/** The predecessor task ID of the current job */
+static PStask_ID_t predtid = -1;
+
+/** The successor task ID of the current job */
+static PStask_ID_t succtid = -1;
 
 /**
- * @brief Send a PSP_CD_KVS messages.
+ * @brief Send KVS message to logger.
  *
- * Send a PSP_CD_KVS messages to the logger to manipulte the global kvs.
+ * Send a KVS messages to the logger to manipulate the global kvs.
  *
  * @param msgbuffer The buffer which contains the kvs msg to send to
  * the logger.
@@ -87,6 +94,29 @@ static void sendKvstoLogger(char *msgbuffer)
 			  __func__, rank, msgbuffer);
     }
     PSLog_write(loggertid, KVS, msgbuffer, strlen(msgbuffer) +1);
+}
+
+/**
+ * @brief Send KVS messages to successor
+ *
+ * Send a KVS messages to the successor, i.e. the process with the
+ * next rank. If the current process is the on with the highest rank,
+ * the message will be send to the logger in order to signal
+ * successful delivery to all clients.
+ *
+ * @param msgbuffer The buffer which contains the kvs msg to send to
+ * the sucessor.
+ *
+ * @return No return value.
+ */
+static void sendKvstoSucc(char *msgbuffer)
+{
+    if (debug_kvs) {
+	PSIDfwd_printMsgf(STDERR,
+			  "%s: rank %i: %s\n",
+			  __func__, rank, msgbuffer);
+    }
+    PSLog_write(succtid, KVS, msgbuffer, strlen(msgbuffer) +1);
 }
 
 /**
@@ -1046,6 +1076,16 @@ int pmi_init(int pmisocket, PStask_ID_t loggertaskid, int pRank)
     return 0;
 }
 
+void pmi_set_pred(PStask_ID_t pred)
+{
+    predtid = pred;
+}
+
+void pmi_set_succ(PStask_ID_t succ)
+{
+    succtid = succ;
+}
+
 /**
  * @brief Extract PMI command.
  *
@@ -1181,7 +1221,7 @@ void pmi_finalize(void)
 *
 * @return No return value.
 */
-void pmi_handleKvsRet(PSLog_Msg_t msg)
+void pmi_handleKvsRet(PSLog_Msg_t *msg)
 {
     char cmd[VALLEN_MAX], reply[PMIU_MAXLINE];
     char *nextvalue, *saveptr, *value, vname[KEYLEN_MAX], kvsname[KEYLEN_MAX];
@@ -1190,11 +1230,11 @@ void pmi_handleKvsRet(PSLog_Msg_t msg)
 
     if (debug_kvs) {
 	PSIDfwd_printMsgf(STDERR, "%s: rank %i: %s\n",
-			  __func__, rank, msg.buf);
+			  __func__, rank, msg->buf);
     }
 
     /* extract cmd from msg */
-    if (!pmi_extract_cmd(msg.buf, cmd, sizeof(cmd)) || strlen(cmd) < 2) {
+    if (!pmi_extract_cmd(msg->buf, cmd, sizeof(cmd)) || strlen(cmd) < 2) {
 	PSIDfwd_printMsgf(STDERR, "%s: rank %i: received invalid kvs msg"
 			  " from logger\n", __func__, rank);
 	critErr();
@@ -1211,7 +1251,12 @@ void pmi_handleKvsRet(PSLog_Msg_t msg)
 
     /* update kvs after barrier_in */
     if (!strcmp(cmd, "kvs_update_cache")) {
-	nextvalue = strtok_r(msg.buf, delimiters, &saveptr);
+	char *msgCopy = NULL;
+	if (msg->header.sender == predtid && succtid != -1) {
+	    msgCopy = strdup(msg->buf);
+	}
+
+	nextvalue = strtok_r(msg->buf, delimiters, &saveptr);
 	nextvalue = strtok_r(NULL, delimiters, &saveptr);
 	while (nextvalue != NULL) {
 	    /* extract next key/value pair */
@@ -1245,18 +1290,36 @@ void pmi_handleKvsRet(PSLog_Msg_t msg)
 	    nextvalue = strtok_r( NULL, delimiters, &saveptr);
 	}
 	updateMsgCount++;
+	if (msg->header.sender == predtid && succtid != -1
+	    && msgCopy) {
+	    sendKvstoSucc(msgCopy);
+	    free(msgCopy);
+	}
 	return;
     }
 
     /* cache update finished */
     if (!strcmp(cmd, "kvs_update_cache_finish")) {
-	snprintf(reply, sizeof(reply), "cmd=kvs_update_cache_result mc=%i\n",
-		 updateMsgCount);
+	if (msg->header.sender == predtid && succtid != -1
+	    && succtid != loggertid) {
+	    /* forward to next client */
+	    sendKvstoSucc(msg->buf);
+	}
+	/* acknowledge to logger */
+	snprintf(reply, sizeof(reply),
+		 "cmd=kvs_update_cache_result mc=%i\n", updateMsgCount);
 	sendKvstoLogger(reply);
+
 	updateMsgCount = 0;
 	return;
     }
+    if (!strcmp(cmd, "barrier_out")) {
+	if (msg->header.sender == predtid && succtid != -1) {
+	    /* forward to next client */
+	    sendKvstoSucc(msg->buf);
+	}
+    }
 
     /* Forward msg from logger to client */
-    PMI_send(msg.buf);
+    PMI_send(msg->buf);
 }

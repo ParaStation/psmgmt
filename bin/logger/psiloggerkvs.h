@@ -39,4 +39,26 @@ void handleKvsMsg(PSLog_Msg_t *msg);
  */
 void initLoggerKvs(void);
 
+/**
+ * @brief Switch daisy-chain mode.
+ *
+ * Set the broadcast messages within kvs to daisy-chain mode, if @a
+ * val is different from 0.
+ *
+ * @param val If 1, daisy-chain mode will be switched on. Otherwise it
+ * will be left off.
+ *
+ * @return No return value.
+ */
+void switchDaisyChain(int val);
+
+/**
+ * @brief Number of kvs clients.
+ *
+ * Get the number of kvs-clients currently expected.
+ *
+ * @return The number of kvs-clients to be expected.
+ */
+int getNumKvsClients(void);
+
 #endif

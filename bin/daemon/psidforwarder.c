@@ -119,7 +119,7 @@ AccountData accData;
  * Timeout for connecting and releasing logger. Might be overruled via
  * __PSI_LOGGER_TIMEOUT environment
  */
-int loggerTimeout = 10;
+int loggerTimeout = 60;
 
 /**
  * @brief Close socket to daemon.
@@ -733,10 +733,25 @@ static int connectLogger(PStask_ID_t tid)
 	errno = ECONNREFUSED;
 	return -1;
     } else {
+	char *ptr = msg.buf;
+
 	loggerTID = tid;
-	verbose = *(int *) msg.buf;
-	PSID_log(PSID_LOG_SPAWN, "%s(%s): Connected\n",
-		 __func__, PSC_printTID(tid));
+	verbose = *(int *)ptr;
+	ptr += sizeof(int);
+	PSID_log(PSID_LOG_SPAWN, "%s(%s): Connected", __func__,
+		 PSC_printTID(tid));
+
+	if (msg.header.len >=
+	    PSLog_headerSize + (int)(sizeof(int)+2*sizeof(PStask_ID_t))) {
+	    PStask_ID_t pred, succ;
+	    pred = *(PStask_ID_t *) ptr;
+	    ptr += sizeof(PStask_ID_t);
+	    succ = *(PStask_ID_t *) ptr;
+	    ptr += sizeof(PStask_ID_t);
+
+	    pmi_set_pred(pred);
+	    pmi_set_succ(succ);
+	}
     }
 
     return 0;
@@ -975,7 +990,7 @@ static int readFromLogger(void)
 		exit(0);
 		break;
 	    case KVS:
-		pmi_handleKvsRet(msg);
+		pmi_handleKvsRet(&msg);
 		break;
 	    case WINCH:
 		/* Logger detected change in window-size */
@@ -1749,7 +1764,7 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket,
     signal(SIGCHLD, sighandler);
     signal(SIGUSR1, sighandler);
 
-    PSLog_init(daemonSock, childTask->rank, 1);
+    PSLog_init(daemonSock, childTask->rank, 2);
 
     /* Make stdin nonblocking for us */
     flags = fcntl(stdinSock, F_GETFL);
