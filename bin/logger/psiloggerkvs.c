@@ -544,7 +544,41 @@ static void handleKvsBarrierIn(PSLog_Msg_t *msg)
 	    snprintf(reply, sizeof(reply), "cmd=barrier_out\n");
 	    sendMsgToKvsClients(reply);
 	}
+    }
+}
 
+static void handleKvsDaisyBarrierIn(PSLog_Msg_t *msg)
+{
+    char reply[PMIU_MAXLINE];
+    int i, rank = getClientRank(msg->header.sender);
+
+    /* check if last barrier ended successfully */
+    if (kvsCacheUpdateCount > 0) {
+	PSIlog_log(-1, "%s: received daisybarrier_in from %s while"
+		   " waiting for cache update results\n",
+		   __func__, PSC_printTID(msg->header.sender));
+	terminateJob();
+    }
+
+    /* debugging output */
+    if (debug_kvs) {
+	PSIlog_log(-1, "%s\n", __func__);
+    }
+
+    /* check if we got the msg from the last client in chain */
+    if (rank != noKvsClients -1) {
+	PSIlog_log(-1, "%s: barrier from wrong rank:%i expected from %i\n",
+		   __func__, rank, noKvsClients -1);
+	terminateJob();
+    }
+
+    if (kvsChanged) {
+	/* distribute kvs update */
+	sendKvsUpdateToClients();
+    } else {
+	/* send all Clients barrier_out */
+	snprintf(reply, sizeof(reply), "cmd=barrier_out\n");
+	sendMsgToKvsClients(reply);
     }
 }
 
@@ -876,6 +910,8 @@ void handleKvsMsg(PSLog_Msg_t *msg)
 	handleKvsDestroy(msg);
     } else if (!strcmp(cmd,"barrier_in")) {
 	handleKvsBarrierIn(msg);
+    } else if (!strcmp(cmd,"daisy_barrier_in")) {
+	handleKvsDaisyBarrierIn(msg);
     } else if (!strcmp(cmd,"get_kvs_count")) {
 	handleKvsCount(msg);
     } else if (!strcmp(cmd,"get_kvs_value_count")) {

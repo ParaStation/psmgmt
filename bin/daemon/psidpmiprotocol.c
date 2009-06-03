@@ -45,27 +45,37 @@ typedef struct {
 } PMI_shortMsg;
 
 /** Flag to check if the pmi_init() was called successful */
-int is_init = 0;
+static int is_init = 0;
+
 /** Flag to check if initialisation between us and client was ok */
-int pmi_init_client = 0;
+static int pmi_init_client = 0;
+
 /** Prefix of the next kvs name */
-int kvs_next;
+static int kvs_next;
+
 /** If set debug output is generated */
-int debug = 0;
+static int debug = 0;
+
 /** If set kvs debug output is generated */
-int debug_kvs = 0;
+static int debug_kvs = 0;
+
 /** The application number of the connected pmi client */
-int appnum = 0;
+static int appnum = 0;
+
 /** The size of the mpi universe set from mpiexec */
-int universe_size = 0;
+static int universe_size = 0;
+
 /** The rank of the connected pmi client */
-int rank = 0;
+static int rank = 0;
+
 /** Counts update kvs msg from logger to make sure all msg were received */
-int updateMsgCount;
+static int updateMsgCount;
+
 /** Suffix of the kvs name */
-char kvs_name_tmp[KVSNAME_MAX];
+static char kvs_name_tmp[KVSNAME_MAX];
+
 /** The socket which is connected to the pmi client */
-SOCKET pmisock;
+static SOCKET pmisock;
 
 /** The logger task ID of the current job */
 static PStask_ID_t loggertid;
@@ -75,6 +85,15 @@ static PStask_ID_t predtid = -1;
 
 /** The successor task ID of the current job */
 static PStask_ID_t succtid = -1;
+
+/** Flag to indicate if we use a dasiy chain */
+int useDaisyChain = 0;
+
+/** Flag to check if we got the local barrier_in msg */
+static int gotBarrierIn = 0;
+
+/** Flag to check if we got the daisy barrier_in msg */
+static int gotDaisyBarrierIn = 0;
 
 /**
  * @brief Send KVS message to logger.
@@ -116,6 +135,7 @@ static void sendKvstoSucc(char *msgbuffer)
 			  "%s: rank %i: %s\n",
 			  __func__, rank, msgbuffer);
     }
+    useDaisyChain = 1;
     PSLog_write(succtid, KVS, msgbuffer, strlen(msgbuffer) +1);
 }
 
@@ -285,6 +305,26 @@ static int p_Get_Appnum(void)
 }
 
 /**
+ * @brief Check if we can forward the daisy barrier.
+ *
+ * Check if we can forward the barrier if we are using daisy chain,
+ * we have to wait for the barrier from the previous rank and from
+ * the local mpi process
+ */
+static void checkDaisyBarrier()
+{
+    char kvsmsg[PMIU_MAXLINE];
+	
+    if (gotBarrierIn == 1 && gotDaisyBarrierIn == 1) {
+	gotBarrierIn = 0;
+	gotDaisyBarrierIn = 0;
+
+	snprintf(kvsmsg, sizeof(kvsmsg), "cmd=daisy_barrier_in\n");
+	sendKvstoSucc(kvsmsg);
+    }
+}
+
+/**
  * @brief Set a new barrier.
  *
  * Sets a new mpi barrier. The pmi client has to wait till all
@@ -296,8 +336,43 @@ static int p_Get_Appnum(void)
  */
 static int p_Barrier_In(char *msgBuffer)
 {
-    /* forward to logger */
-    sendKvstoLogger(msgBuffer);
+    char kvsmsg[PMIU_MAXLINE];
+    
+    if (useDaisyChain) {
+	/* if we are the first in chain, send starting barrier msg */
+	if (predtid == loggertid) {	
+	    snprintf(kvsmsg, sizeof(kvsmsg), "cmd=daisy_barrier_in\n");
+	    sendKvstoSucc(kvsmsg);
+	} else {
+	    gotBarrierIn = 1;
+	    checkDaisyBarrier();
+	}
+    } else {
+	/* forward to logger */
+	sendKvstoLogger(msgBuffer);
+    }
+
+    return 0;
+}
+
+/**
+ * @brief Set a new daisy barrier.
+ *
+ * @param msgBuffer The buffer which contains the pmi msg to handle.
+ *
+ * @return Returns 0 for success.
+ */
+static int p_Daisy_Barrier_In(char *msgBuffer)
+{
+    if (useDaisyChain) {
+	if (predtid != loggertid) {	
+	   gotDaisyBarrierIn = 1; 
+	   checkDaisyBarrier();
+	}
+    } else {
+	/* forward to logger */
+	sendKvstoLogger(msgBuffer);
+    }
 
     return 0;
 }
@@ -1314,10 +1389,13 @@ void pmi_handleKvsRet(PSLog_Msg_t *msg)
 	if (msg->header.sender == predtid && succtid != -1
 	    && succtid == loggertid) {
 	    sendKvstoLogger(reply);	
+	    useDaisyChain = 1;
 	}
 	
 	/* no daisy chain, everbody has to acknowledge the logger  */
-	if (msg->header.sender == loggertid && (predtid == -1 || succtid == -1)) { 
+	if (msg->header.sender == loggertid && 
+	    (predtid == -1 || succtid == -1)) { 
+	    useDaisyChain = 0;
 	    sendKvstoLogger(reply);
 	}
 
@@ -1331,6 +1409,11 @@ void pmi_handleKvsRet(PSLog_Msg_t *msg)
 	    /* forward to next client */
 	    sendKvstoSucc(msg->buf);
 	}
+    }
+
+    if (!strcmp(cmd, "daisy_barrier_in")) {
+	p_Daisy_Barrier_In(cmd);
+	return;
     }
 
     /* Forward msg from logger to client */
