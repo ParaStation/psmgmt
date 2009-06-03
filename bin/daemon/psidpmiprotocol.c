@@ -1300,19 +1300,31 @@ void pmi_handleKvsRet(PSLog_Msg_t *msg)
 
     /* cache update finished */
     if (!strcmp(cmd, "kvs_update_cache_finish")) {
+	
+	/* forward to next client */
 	if (msg->header.sender == predtid && succtid != -1
 	    && succtid != loggertid) {
-	    /* forward to next client */
 	    sendKvstoSucc(msg->buf);
 	}
-	/* acknowledge to logger */
+	
 	snprintf(reply, sizeof(reply),
 		 "cmd=kvs_update_cache_result mc=%i\n", updateMsgCount);
-	sendKvstoLogger(reply);
+	
+	/* if we are last in daisy chain, send update result to logger */
+	if (msg->header.sender == predtid && succtid != -1
+	    && succtid == loggertid) {
+	    sendKvstoLogger(reply);	
+	}
+	
+	/* no daisy chain, everbody has to acknowledge the logger  */
+	if (msg->header.sender == loggertid && (predtid == -1 || succtid == -1)) { 
+	    sendKvstoLogger(reply);
+	}
 
 	updateMsgCount = 0;
 	return;
     }
+    
     if (!strcmp(cmd, "barrier_out")) {
 	if (msg->header.sender == predtid && succtid != -1
 	    && succtid != loggertid) {

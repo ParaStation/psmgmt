@@ -28,6 +28,7 @@ static char vcid[] __attribute__((used)) =
 #include "kvscommon.h"
 #include "timer.h"
 #include "psilogger.h"
+#include "psiloggerclient.h"
 
 #include "psiloggerkvs.h"
 
@@ -601,7 +602,7 @@ static void handleKvsUpdateCacheResult(PSLog_Msg_t *msg)
 {
     char *ptr = msg->buf;
     char mc[VALLEN_MAX], reply[PMIU_MAXLINE];
-    int i;
+    int i, rank = getClientRank(msg->header.sender);
 
     /* check if barrier_in is finished */
     if (kvsBarrierInCount >0 ) {
@@ -640,24 +641,45 @@ static void handleKvsUpdateCacheResult(PSLog_Msg_t *msg)
 	setBarrierTimeout();
     }
 
-    /* save sender to array */
-    kvsCacheUpdateCount++;
-    clientKvsTrackTID[kvsBarrierInCount] = msg->header.sender;
-
-    /* received all update requests */
-    if (kvsCacheUpdateCount == noKvsClients) {
+    /* last forward send us an reply, so everything is ok */
+    if (useDaisyChain) {
 	if (timerid != -1) Timer_remove(timerid);
 	timerid=-1;
 	barrierTimeout = -1;
 	kvsCacheUpdateCount = 0;
-	kvsUpdateMsgCount = 0;
-	/* reset tracking array */
-	for (i=0; i< maxKvsClients; i++) {
-	    clientKvsTrackTID[i] = -1;
+
+	/* check if the result msg came from the last client in chain */
+	if (rank != noKvsClients -1) {
+	    PSIlog_log(-1, "%s: update from wrong rank:%i expected from %i\n",
+		       __func__, rank, noKvsClients -1);
+	    terminateJob();
 	}
+	    
 	/* send all Clients barrier_out */
 	snprintf(reply,sizeof(reply),"cmd=barrier_out\n");
 	sendMsgToKvsClients(reply);
+    } else {
+	/* no daisy chain, we have to track who got the update */
+	kvsCacheUpdateCount++;
+	clientKvsTrackTID[kvsBarrierInCount] = msg->header.sender;
+
+	/* received all update requests */
+	if (kvsCacheUpdateCount == noKvsClients) {
+	    if (timerid != -1) Timer_remove(timerid);
+	    timerid=-1;
+	    barrierTimeout = -1;
+	    kvsCacheUpdateCount = 0;
+	    kvsUpdateMsgCount = 0;
+	    
+	    /* reset tracking array */
+	    for (i=0; i< maxKvsClients; i++) {
+		clientKvsTrackTID[i] = -1;
+	    }
+	    
+	    /* send all Clients barrier_out */
+	    snprintf(reply,sizeof(reply),"cmd=barrier_out\n");
+	    sendMsgToKvsClients(reply);
+	}
     }
 }
 
