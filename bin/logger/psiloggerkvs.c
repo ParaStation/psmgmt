@@ -550,7 +550,7 @@ static void handleKvsBarrierIn(PSLog_Msg_t *msg)
 static void handleKvsDaisyBarrierIn(PSLog_Msg_t *msg)
 {
     char reply[PMIU_MAXLINE];
-    int i, rank = getClientRank(msg->header.sender);
+    int rank = getClientRank(msg->header.sender);
 
     /* check if last barrier ended successfully */
     if (kvsCacheUpdateCount > 0) {
