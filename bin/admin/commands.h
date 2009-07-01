@@ -134,15 +134,37 @@ void PSIADM_NodeStat(char *nl);
  * nl. Therefore the corresponding list containing the information is
  * requested from the local daemon and printed to stdout in a
  * compressed fashion only giving the number of up and down nodes. In
- * the special case where less than 20 nodes are down also the IDs of
- * the down nodes are printed in a further line.
+ * the special case where less than @a max nodes are down also the IDs
+ * of the down nodes are printed in a additional line.
  *
  * @param nl The nodelist describing the nodes from which the
  * information should requested and put out.
  *
+ * @param max Maximum number of down nodes displayed in a separate
+ * list.
+ *
  * @return No return value.
  */
-void PSIADM_SummaryStat(char *nl);
+void PSIADM_SummaryStat(char *nl, int max);
+
+/**
+ * @brief Show some nodes.
+ *
+ * Show the nodes in the nodelist @a nl that are marked to
+ * be up or down. The type of nodes to show is selected via @a
+ * mode. The nodes are listed as a newline separated list of hostnames
+ * enabling the output to serve as an input within shell-scripts.
+ *
+ * @param nl The nodelist describing the nodes from which the
+ * information should requested and put out.
+ *
+ * @param mode If 'u', up nodes are printed. If 'd', down node are
+ * printed. Otherwise some error message is generated and no further
+ * actions applys.
+ *
+ * @return No return value.
+ */
+void PSIADM_SomeStat(char *nl, char mode);
 
 /**
  * @brief Show RDP status.

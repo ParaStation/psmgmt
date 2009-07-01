@@ -534,8 +534,9 @@ static info_t listInfo = {
     .syntax = (syntax_t[]) {{
 	.cmd = "list",
 	.arg = "{{[node] | count [hw <hw>] | {p|processes} [cnt <cnt>]"
-	" | {aproc|allprocesses} [cnt <cnt>] | {hardware|hw}"
-	" | load | rdp | mcast | plugins | summary | versions} <nodes> |"
+	" | {aproc|allprocesses} [cnt <cnt>] | {hardware|hw} | down | up"
+	" | load | rdp | mcast | plugins | summary [max <max>] | versions}"
+	" <nodes> |"
 	" jobs [state {r[unning] | p[ending] | s[uspended]}] [slots] [<tid>]}"
     }},
     .nodes = 1,
@@ -561,6 +562,10 @@ static info_t listInfo = {
 	{ .tag = "list {hardware|hw}",
 	  .descr = "Show the available communcation hardware on the selected"
 	  " nodes." },
+	{ .tag = "list down",
+	  .descr = "List hostnames of down nodes within the selected ones." },
+	{ .tag = "list up",
+	  .descr = "List hostnames of up nodes within the selected ones." },
 	{ .tag = "list load",
 	  .descr = "Show the load on the selected nodes." },
 	{ .tag = "list rdp",
@@ -573,8 +578,10 @@ static info_t listInfo = {
 	  .descr = "Show total / free memory for the selected nodes." },
 	{ .tag = "list plugins",
 	  .descr = "Show the currently loaded plugins on the selected nodes." },
-	{ .tag = "list summary",
-	  .descr = "Print a brief summary of the active and down nodes." },
+	{ .tag = "list summary [max <max>]",
+	  .descr = "Print a brief summary of the active and down nodes. If less"
+	  " than <max> nodes are down, a range specification of these nodes is"
+	  " printed, too." },
 	{ .tag = "list versions",
 	  .descr = "Show the daemon's version and the revision of the"
 	  " corresponding RPM on the selected nodes." },

@@ -372,7 +372,7 @@ static int listNodeCommand(char *token)
     return -1;
 }
 
-static int listSummaryCommand(char *token)
+static int listSomeCommand(char *token)
 {
     char *nl_descr = parser_getString();
     char *nl = defaultNL;
@@ -384,7 +384,38 @@ static int listSummaryCommand(char *token)
 	if (!nl) return -1;
     }
 
-    PSIADM_SummaryStat(nl);
+    PSIADM_SomeStat(nl, token[0]);
+    return 0;
+
+ error:
+    printError(&listInfo);
+    return -1;
+}
+
+static int listSummaryCommand(char *token)
+{
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL;
+    long max = 20;
+
+    while (nl_descr) {
+	int tokLen = strlen(nl_descr);
+	if (!strncasecmp(nl_descr, "max", tokLen)) {
+	    char *maxStr = parser_getString();
+	    if (!maxStr || parser_getNumber(maxStr, &max)) goto error;
+	    nl_descr = parser_getString();
+	    continue;
+	} else break;
+    }
+
+    if (parser_getString()) goto error;
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+	if (!nl) return -1;
+    }
+
+    PSIADM_SummaryStat(nl, max);
     return 0;
 
  error:
@@ -583,6 +614,7 @@ static keylist_t listList[] = {
     {"aproc", listProcCommand},
     {"allprocesses", listProcCommand},
     {"count", listCountCommand},
+    {"down", listSomeCommand},
     {"hardware", listHWCommand},
     {"hw", listHWCommand},
     {"jobs", listJobsCommand},
@@ -595,6 +627,7 @@ static keylist_t listList[] = {
     {"plugins", listPluginCommand},
     {"rdp", listRDPCommand},
     {"summary", listSummaryCommand},
+    {"up", listSomeCommand},
     {"versions", listVersionCommand},
     {NULL, listSpecialCommand}
 };

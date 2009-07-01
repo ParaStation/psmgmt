@@ -401,10 +401,20 @@ void PSIADM_NodeStat(char *nl)
     }
 }
 
-void PSIADM_SummaryStat(char *nl)
+void PSIADM_SummaryStat(char *nl, int max)
 {
+    static char *nlDown = NULL;
     PSnodes_ID_t node;
     int upNodes = 0, downNodes = 0;
+
+    if (!nlDown) {
+	nlDown = malloc(PSC_getNrOfNodes());
+	if (!nlDown) {
+	    printf("%s: No memory\n", __func__);
+	    exit(1);
+	}
+    }
+    memset(nlDown, 0, PSC_getNrOfNodes());
 
     if (! getHostStatus()) return;
 
@@ -414,6 +424,7 @@ void PSIADM_SummaryStat(char *nl)
 	if (hostStatus.list[node]) {
 	    upNodes++;
 	} else {
+	    nlDown[node] = 1;
 	    downNodes++;
 	}
     }
@@ -421,18 +432,57 @@ void PSIADM_SummaryStat(char *nl)
 	   upNodes, downNodes, upNodes+downNodes);
 
     /* Also print list of down nodes if sufficiently less */
-    if (downNodes && (downNodes < 20)) {
-	printf("Down nodes are:");
-	for (node=0; node<PSC_getNrOfNodes(); node++) {
-	    if (nl && !nl[node]) continue;
-
-	    if (!hostStatus.list[node]) {
-		printf(" %d", node);
-	    }
-	}
+    if (downNodes && (downNodes < max)) {
+	printf("Down nodes are: ");
+	PSC_printNodelist(nlDown);
 	printf("\n");
     }
 }
+
+void PSIADM_SomeStat(char *nl, char mode)
+{
+    PSnodes_ID_t node;
+
+    if (! getHostStatus()) return;
+
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	int printIt = 0;
+
+	if (nl && !nl[node]) continue;
+
+	switch (mode) {
+	case 'u':
+	    if (hostStatus.list[node]) printIt = 1;
+	    break;
+	case 'd':
+	    if (!hostStatus.list[node]) printIt = 1;
+	    break;
+	default:
+	    printf("Unknown mode '%c'\n", mode);
+	    return;
+	}
+	if (printIt) {
+	    u_int32_t hostaddr;
+	    struct hostent *hp;
+	    char *ptr;
+	    int err = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr, 0);
+	    if (err || (hostaddr == INADDR_ANY)) {
+		printf(" <unknown>(id %d)", node);
+		continue;
+	    }
+
+	    hp = gethostbyaddr(&hostaddr, sizeof(hostaddr), AF_INET);
+	    if (!hp) {
+		printf(" <unknown>(id %d)", node);
+		continue;
+	    }
+
+	    if ((ptr = strchr (hp->h_name, '.'))) *ptr = '\0';
+	    printf("%s\n", hp->h_name);
+	}
+    }
+}
+
 
 static char line[1024];
 
@@ -1057,7 +1107,7 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 	    }
 
 	    if (!slotBuf) {
-		printf("No memory\n");
+ 		printf("No memory\n");
 		break;
 	    }
 
