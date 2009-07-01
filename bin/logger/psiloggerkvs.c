@@ -66,12 +66,13 @@ static int timerid = -1;
 static int kvsChanged = 0;
 
 /** flag enabling the daisy-chain broadcast */
-static int useDaisyChain =0;
+static int useDaisyChain = 0;
 
 /**
  * @brief Wrapper for send kvs messages.
  *
- * Wrapper of SendMsg functions with error handling for key value space messages.
+ * Wrapper of SendMsg functions with error handling for key value
+ * space messages.
  *
  * @return No return value.
  */
@@ -552,7 +553,15 @@ static void handleKvsDaisyBarrierIn(PSLog_Msg_t *msg)
     char reply[PMIU_MAXLINE];
     int rank = getClientRank(msg->header.sender);
 
-    /* check if last barrier ended successfully */
+    /* check, if daisy-chaining is enabled at all */
+    if (!useDaisyChain) {
+	PSIlog_log(-1, "%s: received daisybarrier_in from %s while"
+		   " daisy-chain is disabled\n",
+		   __func__, PSC_printTID(msg->header.sender));
+	terminateJob();
+    }
+
+    /* check, if last barrier ended successfully */
     if (kvsCacheUpdateCount > 0) {
 	PSIlog_log(-1, "%s: received daisybarrier_in from %s while"
 		   " waiting for cache update results\n",
@@ -639,20 +648,11 @@ static void handleKvsUpdateCacheResult(PSLog_Msg_t *msg)
     int i, rank = getClientRank(msg->header.sender);
 
     /* check if barrier_in is finished */
-    if (kvsBarrierInCount >0 ) {
-	PSIlog_log(-1, "%s: received new barrier_in from %s while"
-		   " waiting for update cache results\n",
+    if (kvsBarrierInCount > 0 ) {
+	PSIlog_log(-1, "%s: received update cache result from %s while"
+		   " waiting for barrier_in\n",
 		   __func__, PSC_printTID(msg->header.sender));
 	terminateJob();
-    }
-
-    /* check for double update cache msg */
-    for (i=0; i< maxKvsClients; i++) {
-	if (clientKvsTrackTID[i] == msg->sender) {
-	    PSIlog_log(-1, "%s: received update cache result twice from %s\n",
-		       __func__, PSC_printTID(msg->header.sender));
-	    terminateJob();
-	}
     }
 
     /* parse arguments */
@@ -670,46 +670,50 @@ static void handleKvsUpdateCacheResult(PSLog_Msg_t *msg)
 	terminateJob();
     }
 
-    /* Set timeout waiting for all clients to join barrier */
-    if (kvsCacheUpdateCount == 0) {
-	setBarrierTimeout();
-    }
-
     /* last forward send us an reply, so everything is ok */
     if (useDaisyChain) {
-	if (timerid != -1) Timer_remove(timerid);
-	timerid=-1;
-	barrierTimeout = -1;
-	kvsCacheUpdateCount = 0;
-
 	/* check if the result msg came from the last client in chain */
 	if (rank != noKvsClients -1) {
 	    PSIlog_log(-1, "%s: update from wrong rank:%i expected from %i\n",
 		       __func__, rank, noKvsClients -1);
 	    terminateJob();
 	}
-	    
+
 	/* send all Clients barrier_out */
 	snprintf(reply,sizeof(reply),"cmd=barrier_out\n");
 	sendMsgToKvsClients(reply);
     } else {
 	/* no daisy chain, we have to track who got the update */
+	/* Set timeout waiting for all clients to send results */
+	if (kvsCacheUpdateCount == 0) {
+	    setBarrierTimeout();
+	}
+
+	/* check for double update cache msg */
+	for (i=0; i< maxKvsClients; i++) {
+	    if (clientKvsTrackTID[i] == msg->sender) {
+		PSIlog_log(-1,
+			   "%s: received update cache result twice from %s\n",
+			   __func__, PSC_printTID(msg->header.sender));
+		terminateJob();
+	    }
+	}
+
+	clientKvsTrackTID[kvsCacheUpdateCount] = msg->header.sender;
 	kvsCacheUpdateCount++;
-	clientKvsTrackTID[kvsBarrierInCount] = msg->header.sender;
 
 	/* received all update requests */
 	if (kvsCacheUpdateCount == noKvsClients) {
 	    if (timerid != -1) Timer_remove(timerid);
 	    timerid=-1;
-	    barrierTimeout = -1;
-	    kvsCacheUpdateCount = 0;
-	    kvsUpdateMsgCount = 0;
-	    
+
 	    /* reset tracking array */
 	    for (i=0; i< maxKvsClients; i++) {
 		clientKvsTrackTID[i] = -1;
 	    }
-	    
+
+	    kvsCacheUpdateCount = 0;
+
 	    /* send all Clients barrier_out */
 	    snprintf(reply,sizeof(reply),"cmd=barrier_out\n");
 	    sendMsgToKvsClients(reply);
@@ -783,6 +787,7 @@ static void handleKvsLeave(PSLog_Msg_t *msg)
 	terminateJob();
     }
     clientKvsTID[i] = -1;
+    noKvsClients--;
 
     /* Remove client from barrier_in waiting */
     if (kvsBarrierInCount > 0) {
@@ -790,46 +795,55 @@ static void handleKvsLeave(PSLog_Msg_t *msg)
 	    if (clientKvsTrackTID[i] == msg->header.sender) {
 		clientKvsTrackTID[i] = -1;
 		kvsBarrierInCount--;
-		noKvsClients--;
+		break;
 	    }
 	}
 
 	/* all clients joined barrier */
 	if (kvsBarrierInCount == noKvsClients) {
+	    if (timerid != -1) Timer_remove(timerid);
+	    timerid = -1;
 	    /* reset tracking array */
 	    for (i=0; i< maxKvsClients; i++) {
 		clientKvsTrackTID[i] = -1;
 	    }
 
 	    kvsBarrierInCount = 0;
-	    /* send kvs update to all clients */
-	    sendKvsUpdateToClients();
-	}
 
+	    if (kvsChanged) {
+		/* distribute kvs update */
+		sendKvsUpdateToClients();
+	    } else {
+		/* send all Clients barrier_out */
+		snprintf(reply, sizeof(reply), "cmd=barrier_out\n");
+		sendMsgToKvsClients(reply);
+	    }
+	}
     } else if (kvsCacheUpdateCount > 0) {
 	for (i=0; i< maxKvsClients; i++) {
 	    if (clientKvsTrackTID[i] == msg->header.sender) {
 		clientKvsTrackTID[i] = -1;
 		kvsCacheUpdateCount--;
-		noKvsClients--;
+		break;
 	    }
 	}
 
 	/* received all update requests */
 	if (kvsCacheUpdateCount == noKvsClients) {
-	    kvsCacheUpdateCount = 0;
-	    kvsUpdateMsgCount = 0;
+	    if (timerid != -1) Timer_remove(timerid);
+	    timerid=-1;
+
 	    /* reset tracking array */
 	    for (i=0; i< maxKvsClients; i++) {
 		clientKvsTrackTID[i] = -1;
 	    }
+
+	    kvsCacheUpdateCount = 0;
+
 	    /* send all Clients barrier_out */
-	    snprintf(reply, sizeof(reply), "cmd=barrier_out\n");
+	    snprintf(reply,sizeof(reply),"cmd=barrier_out\n");
 	    sendMsgToKvsClients(reply);
 	}
-
-    } else {
-	noKvsClients--;
     }
 }
 

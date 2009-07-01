@@ -131,11 +131,9 @@ static void sendKvstoLogger(char *msgbuffer)
 static void sendKvstoSucc(char *msgbuffer)
 {
     if (debug_kvs) {
-	PSIDfwd_printMsgf(STDERR,
-			  "%s: rank %i: %s\n",
-			  __func__, rank, msgbuffer);
+	PSIDfwd_printMsgf(STDERR, "%s: rank %i: %s\n", __func__, rank,
+			  msgbuffer);
     }
-    useDaisyChain = 1;
     PSLog_write(succtid, KVS, msgbuffer, strlen(msgbuffer) +1);
 }
 
@@ -314,8 +312,8 @@ static int p_Get_Appnum(void)
 static void checkDaisyBarrier()
 {
     char kvsmsg[PMIU_MAXLINE];
-	
-    if (gotBarrierIn == 1 && gotDaisyBarrierIn == 1) {
+
+    if (gotBarrierIn && gotDaisyBarrierIn) {
 	gotBarrierIn = 0;
 	gotDaisyBarrierIn = 0;
 
@@ -327,7 +325,7 @@ static void checkDaisyBarrier()
 /**
  * @brief Set a new barrier.
  *
- * Sets a new mpi barrier. The pmi client has to wait till all
+ * Sets a new mpi barrier. The pmi client has to wait until all
  * clients have entered barrier.
  *
  * @param msgBuffer The buffer which contains the pmi msg to handle.
@@ -337,10 +335,10 @@ static void checkDaisyBarrier()
 static int p_Barrier_In(char *msgBuffer)
 {
     char kvsmsg[PMIU_MAXLINE];
-    
+
     if (useDaisyChain) {
-	/* if we are the first in chain, send starting barrier msg */
-	if (predtid == loggertid) {	
+	if (predtid == loggertid) {
+	    /* if we are the first in chain, send starting barrier msg */
 	    snprintf(kvsmsg, sizeof(kvsmsg), "cmd=daisy_barrier_in\n");
 	    sendKvstoSucc(kvsmsg);
 	} else {
@@ -365,13 +363,16 @@ static int p_Barrier_In(char *msgBuffer)
 static int p_Daisy_Barrier_In(char *msgBuffer)
 {
     if (useDaisyChain) {
-	if (predtid != loggertid) {	
-	   gotDaisyBarrierIn = 1; 
+	if (predtid == loggertid) {
+	    PSIDfwd_printMsgf(STDERR, "%s: rank %i: received"
+			      " daisy_barrier_in\n", __func__, rank);
+	} else {
+	   gotDaisyBarrierIn = 1;
 	   checkDaisyBarrier();
 	}
     } else {
-	/* forward to logger */
-	sendKvstoLogger(msgBuffer);
+	PSIDfwd_printMsgf(STDERR, "%s: rank %i: received daisy_barrier_in"
+			  " without daisy-chaining\n", __func__, rank);
     }
 
     return 0;
@@ -1365,57 +1366,48 @@ void pmi_handleKvsRet(PSLog_Msg_t *msg)
 	    nextvalue = strtok_r( NULL, delimiters, &saveptr);
 	}
 	updateMsgCount++;
-	if (msg->header.sender == predtid && succtid != -1
-	    && succtid != loggertid && msgCopy) {
-	    sendKvstoSucc(msgCopy);
+	if (msg->header.sender == predtid && succtid != -1) {
+	    useDaisyChain = 1;
+	    if (succtid != loggertid && msgCopy) sendKvstoSucc(msgCopy);
 	}
 	if (msgCopy) free(msgCopy);
-	return;
-    }
-
-    /* cache update finished */
-    if (!strcmp(cmd, "kvs_update_cache_finish")) {
-	
+    } else if (!strcmp(cmd, "kvs_update_cache_finish")) {
 	/* forward to next client */
-	if (msg->header.sender == predtid && succtid != -1
-	    && succtid != loggertid) {
-	    sendKvstoSucc(msg->buf);
-	}
-	
-	snprintf(reply, sizeof(reply),
-		 "cmd=kvs_update_cache_result mc=%i\n", updateMsgCount);
-	
-	/* if we are last in daisy chain, send update result to logger */
-	if (msg->header.sender == predtid && succtid != -1
-	    && succtid == loggertid) {
-	    sendKvstoLogger(reply);	
+	if (msg->header.sender == predtid && succtid != -1) {
 	    useDaisyChain = 1;
-	}
-	
-	/* no daisy chain, everbody has to acknowledge the logger  */
-	if (msg->header.sender == loggertid && 
-	    (predtid == -1 || succtid == -1)) { 
+	    if (succtid != loggertid) {
+		/* forward to next client */
+		sendKvstoSucc(msg->buf);
+	    } else {
+		/* we are last in daisy chain, send logger update result */
+		snprintf(reply, sizeof(reply),
+			 "cmd=kvs_update_cache_result mc=%i\n", updateMsgCount);
+		sendKvstoLogger(reply);
+	    }
+	} else if (msg->header.sender == loggertid
+		   && (predtid != loggertid || succtid == -1)) {
+	    /* no daisy chain, everbody has to acknowledge the logger  */
 	    useDaisyChain = 0;
 	    sendKvstoLogger(reply);
 	}
 
 	updateMsgCount = 0;
-	return;
-    }
-    
-    if (!strcmp(cmd, "barrier_out")) {
-	if (msg->header.sender == predtid && succtid != -1
-	    && succtid != loggertid) {
-	    /* forward to next client */
-	    sendKvstoSucc(msg->buf);
+    } else if (!strcmp(cmd, "barrier_out")) {
+	if (msg->header.sender == predtid && succtid != -1) {
+	    useDaisyChain = 1;
+	    if (succtid != loggertid) {
+		/* forward to next client */
+		sendKvstoSucc(msg->buf);
+	    }
+	} else if (msg->header.sender == loggertid
+		   && (predtid != loggertid || succtid == -1)) {
+	    /* no daisy chain */
+	    useDaisyChain = 0;
 	}
-    }
-
-    if (!strcmp(cmd, "daisy_barrier_in")) {
+    } else if (!strcmp(cmd, "daisy_barrier_in")) {
 	p_Daisy_Barrier_In(cmd);
-	return;
+    } else {
+	/* Forward msg from logger to client */
+	PMI_send(msg->buf);
     }
-
-    /* Forward msg from logger to client */
-    PMI_send(msg->buf);
 }
