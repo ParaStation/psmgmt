@@ -35,6 +35,7 @@ static char vcid[] __attribute__((used)) =
 #include <pwd.h>
 #include <popt.h>
 #include <ctype.h>
+#include <sys/stat.h>
 
 #include <pse.h>
 #include <psi.h>
@@ -93,6 +94,7 @@ int pmidis = 0;
 int np = -1;
 int envall = 0;
 int usize = 0;
+mode_t u_mask;
 char *wdir = NULL;
 char *nodelist = NULL;
 char *hostlist = NULL;
@@ -1009,6 +1011,12 @@ static void setupEnvironment(int verbose)
 {
     int rank;
 
+    /* set umask */
+    if (u_mask) {
+	if (verbose) printf("setting umask to '%o'\n", u_mask);
+	umask(u_mask);
+    }
+
     PSE_initialize();
     rank = PSE_getRank();
 
@@ -1498,7 +1506,7 @@ struct poptOption poptMpiexecComp[] = {
     { "dir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &wdir, 0, "working directory for remote process(es)", "<directory>"},
     { "umask", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &none, 0, "umask for remote process (ignored)", NULL},
+      &u_mask, 0, "umask for remote process", NULL},
     { "path", 'p', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &path, 0, "place to look for executables", "<directory>"},
     { "host", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
@@ -1530,7 +1538,7 @@ struct poptOption poptMpiexecCompGlobal[] = {
     { "gdir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &wdir, 0, "working directory for remote process(es)", "<directory>"},
     { "gumask", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &none, 0, "umask for remote process (ignored)", NULL},
+      &u_mask, 0, "umask for remote process", NULL},
     { "gpath", 'p', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &path, 0, "place to look for executables", "<directory>"},
     { "ghost", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
@@ -1665,6 +1673,8 @@ struct poptOption poptExecutionOptions[] = {
       &sort, 0, "sorting criterium to use: {proc|load|proc+load|none}", NULL},
     { "wdir", 'd', POPT_ARG_STRING,
       &wdir, 0, "working directory for remote process(es)", "<directory>"},
+    { "umask", '\0', POPT_ARG_INT,
+      &u_mask, 0, "umask for remote process", NULL},
     { "path", 'p', POPT_ARG_STRING,
       &path, 0, "the path to search for executables", "<directory>"},
     POPT_TABLEEND
@@ -1937,15 +1947,6 @@ static void setSigHandlers()
 {
     /* install sig handlers */
     signal(SIGTERM, sighandler);
-    signal(SIGQUIT, sighandler);
-    signal(SIGCHLD, sighandler);
-    signal(SIGHUP,  sighandler);
-    signal(SIGSTOP, sighandler);
-    signal(SIGTSTP, sighandler);
-    signal(SIGCONT, sighandler);
-    signal(SIGPIPE, sighandler);
-    signal(SIGABRT, sighandler);
-    signal(SIGFPE,  sighandler);
 }
 
 int main(int argc, char *argv[])
