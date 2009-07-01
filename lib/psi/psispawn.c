@@ -449,11 +449,12 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
     /* send actual requests */
     outstanding_answers=0;
-    for (i=0; i<count; i++) {
+    for (i=0; i<count && !error; i++) {
 	/* check if dstnode is ok */
 	if (dstnodes[i] < 0 || dstnodes[i] >= PSC_getNrOfNodes()) {
 	    errors[i] = ENETUNREACH;
 	    if (tids) tids[i] = -1;
+	    error = 1; /* don't continue spawning processes */
 	} else {
 	    size_t len;
 
@@ -517,43 +518,42 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    rank++;
 	    outstanding_answers++;
 
-	    while (PSI_availMsg() > 0) {
+	    while ((PSI_availMsg() > 0) && outstanding_answers) {
 		int r = handleAnswer(count, dstnodes, errors, tids);
-
-		if (r == -1) {
-		    error = 0;
-		    ret = -1;
+		switch (r) {
+		case -1:
+		    goto error;
 		    break;
-		} else if (r == 0) {
+		case 0:
 		    error = 1;
+		case 1:
+		    outstanding_answers--;
 		    ret++;
 		    break;
-		} else if (r == 1) {
-		    ret++;
-		} else if (r == 2) {
+		case 2:
 		    /* just ignore */
-		} else {
+		    break;
+		default:
 		    PSI_log(-1, "%s: unknown return %d, from handleAnswer()\n",
 			    __func__, r);
 		}
-		outstanding_answers--;
 	    }
 	}
     }/* for all new processes */
 
     PStask_delete(task);
 
-    /* receive answers */
-    while (outstanding_answers>0 && ret != -1) {
+    /* collect outstanding answers */
+    while (outstanding_answers) {
 	int r = handleAnswer(count, dstnodes, errors, tids);
 	switch (r) {
 	case -1:
-	    error = 0;
-	    ret = -1;
+	    return -1;
 	    break;
 	case 0:
 	    error = 1;
 	case 1:
+	    outstanding_answers--;
 	    ret++;
 	    break;
 	case 2:
@@ -563,7 +563,6 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    PSI_log(-1, "%s: unknown return %d, from handleAnswer()\n",
 		    __func__, r);
 	}
-	outstanding_answers--;
     }
 
     if (error) ret = -ret;
