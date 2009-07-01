@@ -624,6 +624,13 @@ static void execClient(PStask_t *task)
 	}
 	setrlimit(RLIMIT_CORE, &rlim);
     }
+    /* restore umask settings */
+    envStr = getenv("__PSI_UMASK");
+    if (envStr) {
+	mode_t mask;
+	int ret = sscanf(envStr, "%o", &mask);
+	if (ret > 0) umask(mask);
+    }
 
     /* change to the appropriate directory */
     if (chdir(task->workingdir)<0) {
