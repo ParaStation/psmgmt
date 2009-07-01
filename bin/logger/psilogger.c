@@ -822,7 +822,7 @@ static void handleOutMsg(PSLog_Msg_t *msg, int outfd)
 	/* collect all ouput */
 	cacheOutput(msg, outfd);
     } else if (prependSource) {
-	static int lastSender = lastSenderMagic;
+	static int lastSender = lastSenderMagic, nlAtEnd = 1;
 	char prefix[30];
 	char *buf = msg->buf;
 	size_t count = msg->header.len - PSLog_headerSize;
@@ -842,10 +842,16 @@ static void handleOutMsg(PSLog_Msg_t *msg, int outfd)
 
 	    switch (outfd) {
 	    case STDOUT_FILENO:
+		if (lastSender!=msg->sender && !nlAtEnd) {
+		    PSIlog_stdout(-1, "\\\n");
+		}
 		PSIlog_stdout(-1, "%s%.*s",
 			      (lastSender==msg->sender) ? "":prefix, num, buf);
 		break;
 	    case STDERR_FILENO:
+		if (lastSender!=msg->sender && !nlAtEnd) {
+		    PSIlog_stderr(-1, "\\\n");
+		}
 		PSIlog_stderr(-1, "%s%.*s",
 			      (lastSender==msg->sender) ? "":prefix, num, buf);
 		break;
@@ -857,9 +863,11 @@ static void handleOutMsg(PSLog_Msg_t *msg, int outfd)
 		count -= nl - buf;
 		buf = nl;
 		lastSender = lastSenderMagic;
+		nlAtEnd = 1;
 	    } else {
 		count = 0;
 		lastSender = msg->sender;
+		nlAtEnd = 0;
 	    }
 	}
     } else {
