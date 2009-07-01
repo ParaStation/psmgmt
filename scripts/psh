@@ -15,7 +15,7 @@
 
 D_CONFIG_D="${HOME}/.psh.d"
 D_CONFIG="${D_CONFIG_D}/default"
-D_RCMD="ssh -x"
+D_RCMD="ssh -x -oConnectTimeout=10"
 D_MAXRCMD=32
 D_DIFFCMD="diff -q"
 D_AUTOCD="cd ${PWD/#${HOME}/~} &&"
