@@ -51,7 +51,7 @@ static char vcid[] __attribute__((used)) =
 #endif
 
 #define GDB_COMMAND_EXE "gdb"
-#define GDB_COMMAND_FILE "/opt/parastation/config/gdb.conf"
+#define GDB_COMMAND_FILE "/opt/parastation/config/mpiexec.gdb"
 #define GDB_COMMAND_OPT "-x"
 #define GDB_COMMAND_SILENT "-q"
 #define GDB_COMMAND_ARGS "--args"

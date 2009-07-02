@@ -177,4 +177,4 @@ lib/putil/timer.c \
 scripts/Makefile.in \
 scripts/lsf/README \
 scripts/parastation.xinetd \
-scripts/gdb.conf
+scripts/mpiexec.gdb

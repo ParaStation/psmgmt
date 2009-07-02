@@ -34,7 +34,7 @@ $(SCRIPTSDIR)/%: %
 	$(INSTALL) -D $< $@
 
 CONFIGDIR := $(DISTDIR)/config
-DIST_config := ps_gm ps_acc gdb.conf
+DIST_config := ps_gm ps_acc mpiexec.gdb
 $(CONFIGDIR)/%: %
 	$(INSTALL) -D $< $@
 
