@@ -14,6 +14,7 @@ static char vcid[] __attribute__((used)) =
     "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
+#define _GNU_SOURCE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,6 +52,14 @@ typedef struct {
 } bMessages;
 
 /**
+ * Structure for temp buffer
+ */
+typedef struct {
+    time_t time[3];
+    char *line[3];
+} TempBuffers;
+
+/**
  * Maximum number of processes in this job.
  */
 extern int np;
@@ -64,17 +73,23 @@ static int prelen;
  * Structure for each client which holds the pointers to the
  * cached messages (points into messageCache).
  */
-OutputBuffers *ClientOutBuf;
+OutputBuffers *clientOutBuf;
 
 /**
- * All received messages are cached in this structure.
+ * Structure for each client which holds incomplete
+ * messages.
+ */
+TempBuffers *clientTmpBuf;
+
+/**
+ * All received complete messages are cached in this structure.
  */
 bMessages messageCache;
 
 /**
- * Cache for incomplete lines.
+ * All received incomplete messages are cached in this structure.
  */
-char **BufInc;
+bMessages msgTmpCache;
 
 /**
  * Set the maxima depth (rows) for searching for equal
@@ -114,28 +129,7 @@ static void *umalloc(size_t size, const char *func)
 	PSIlog_log(-1, "%s: malloc() failed.\n", func);
 	exit(EXIT_FAILURE);
     }
-    return ptr;
-}
 
-/**
- * @brief Realloc with error handling.
- *
- * Call realloc() and handle errors.
- *
- * @param size Size in bytes to allocate.
- *
- * @param func Name of function that called. Used for error message.
- *
- * @return Returned is a pointer to the allocated memory.
- */
-static void *urealloc(void *old ,size_t size, const char *func)
-{
-    void *ptr = realloc(old, size);
-
-    if (!ptr) {
-	PSIlog_log(-1, "PSIlogger: %s: realloc) failed.\n", func);
-	exit(EXIT_FAILURE);
-    }
     return ptr;
 }
 
@@ -169,9 +163,9 @@ static void dumpGlobalBuffer()
 }
 
 /**
- * @brief Dump client buffer.
+ * @brief Dump client output buffer.
  *
- * Just for debbuging purpose, print the client message buffer.
+ * Just for debbuging purpose, print the client message buffers.
  *
  * @return No return value.
  */
@@ -185,8 +179,8 @@ static void dumpClientBuffer()
     PSIlog_log(-1, "Dumping output buffer:\n");
     for(x=0; x< np; x++) {
 
-	if (!list_empty(&ClientOutBuf[x].list)) {
-	    list_for_each(npos, &ClientOutBuf[x].list) {
+	if (!list_empty(&clientOutBuf[x].list)) {
+	    list_for_each(npos, &clientOutBuf[x].list) {
 		/* get data to compare */
 		nval = list_entry(npos, OutputBuffers, list);
 
@@ -201,6 +195,14 @@ static void dumpClientBuffer()
     PSIlog_log(-1, "dump end\n");
 }
 
+/**
+ * @brief Init the merge layer.
+ *
+ * This init function have to be called before any other
+ * merge function.
+ *
+ * @return No return value.
+ */
 void outputMergeInit(void)
 {
     int i;
@@ -215,20 +217,23 @@ void outputMergeInit(void)
 	maxMergeDepth = atoi(envstr);
     }
 
-    ClientOutBuf = umalloc ((sizeof(*ClientOutBuf) * np), __func__);
-    BufInc = umalloc ((sizeof(char*) * np), __func__);
+    clientOutBuf = umalloc ((sizeof(*clientOutBuf) * np), __func__);
+    clientTmpBuf = umalloc ((sizeof(*clientTmpBuf) * np), __func__);
 
     snprintf(npsize, sizeof(npsize), "[0-%i]", np-1);
     prelen = strlen(npsize);
 
     /* Init Output Buffer List */
     for (i=0; i<np; i++) {
-	ClientOutBuf[i].line = NULL;
-	INIT_LIST_HEAD(&ClientOutBuf[i].list);
-	BufInc[i] = NULL;
+	clientOutBuf[i].line = NULL;
+	clientTmpBuf[i].line[0] = NULL;
+	clientTmpBuf[i].line[1] = NULL;
+	clientTmpBuf[i].line[2] = NULL;
+	INIT_LIST_HEAD(&clientOutBuf[i].list);
     }
 
     INIT_LIST_HEAD(&messageCache.list);
+    INIT_LIST_HEAD(&msgTmpCache.list);
 }
 
 /**
@@ -264,11 +269,11 @@ static void findEqualData(int ClientIdx, struct list_head *saveBuf[np],
     }
 
     *mcount = 0;
-    for(x=0; x < np; x++) {
+    for(x=0; x<np; x++) {
 	/* skip myself or empty list */
-	if (x == ClientIdx || list_empty(&ClientOutBuf[x].list)) continue;
+	if (x == ClientIdx || list_empty(&clientOutBuf[x].list)) continue;
 
-	list_for_each(npos, &ClientOutBuf[x].list) {
+	list_for_each(npos, &clientOutBuf[x].list) {
 	    dcount++;
 	    /* get data to compare */
 	    nval = list_entry(npos, OutputBuffers, list);
@@ -290,7 +295,9 @@ static void findEqualData(int ClientIdx, struct list_head *saveBuf[np],
 }
 
 /**
- * @brief Deletes a entry from the client buffer and reduces the
+ * @brief Delete a entry form the client buffer.
+ *
+ * Deletes a entry from the client buffer and reduces the
  * counter in the global buffer, or delete the entry from the
  * global buffer, if counter is 0.
  *
@@ -343,7 +350,7 @@ static void delCachedMsg(OutputBuffers *nval, struct list_head *npos)
 }
 
 /**
- * @brief Generate a intelligent prefix.
+ * @brief Generate an intelligent prefix.
  *
  * @param prefix The buffer which receives the prefix.
  *
@@ -369,7 +376,7 @@ static void generatePrefix(char *prefix, int size, int mcount, int start,
     firstRank = start;
     nextRank = start;
 
-    for (z=0; z < mcount; z++) {
+    for (z=0; z<mcount; z++) {
 	if (saveBufInd[z] == nextRank+1) {
 	    nextRank++;
 	    continue;
@@ -434,8 +441,7 @@ static void printLine(int outfd, char *line, int mcount, int start,
     char prefix[100];
     int space = 0;
 
-    if (db)
-	PSIlog_log(-1, "%s: count:%i, start:%i, line:%s\n", __func__,
+    if (db) PSIlog_log(-1, "%s: count:%i, start:%i, line:%s\n", __func__,
 		   mcount, start, line);
 
     generatePrefix(prefix, sizeof(prefix), mcount, start, saveBufInd);
@@ -483,7 +489,7 @@ static void outputSingleCMsg(int client, struct list_head *pos,
     int i, lcount;
     int savelocInd[mcount];
 
-    list_for_each(tmppos, &ClientOutBuf[client].list) {
+    list_for_each(tmppos, &clientOutBuf[client].list) {
 	lcount = 0;
 	if (tmppos == pos) break;
 
@@ -492,7 +498,7 @@ static void outputSingleCMsg(int client, struct list_head *pos,
 
 	for (i=0; i<=mcount; i++) {
 	    if (i == client) continue;
-	    list_for_each(tmpother, &ClientOutBuf[i].list) {
+	    list_for_each(tmpother, &clientOutBuf[i].list) {
 		if (tmpother == saveBuf[i]) break;
 
 		oval = list_entry(tmpother, OutputBuffers, list);
@@ -510,31 +516,341 @@ static void outputSingleCMsg(int client, struct list_head *pos,
 }
 
 /**
- * @brief Output a cached message which has
- * no new line if we flush all messages.
+ * @brief Calculate a simple hash by summing up all
+ * characters.
  *
- * @param client The client to output the
- * half message from.
+ * @param line The string to calculate the hash from.
  *
- * @return No return value.
+ * @return Returns the calculated hash value.
  */
-static void outputHalfMsg(int client)
+static int calcHash(char *line)
 {
-    if (!BufInc[client]) return;
+    unsigned int hash, i;
 
-    PSIlog_stderr(-1, "[%i]: %s\n", client, BufInc[client]);
-    BufInc[client] = NULL;
+    for (i=0,hash=0; i<strlen(line); i++) {
+	hash += line[i];
+    }
+    return hash;
 }
 
 /**
- * @brief Print all collected output which is already merged,
- * or a timeout is reached.
+ * @brief Checks if a message is already saved in the global
+ * msg cache.
  *
- * @param flush If set to 1 any output is flushed without
- * waiting for a timeout.
+ * @param msg The message which should be checked.
+ *
+ * @return If the message is found a pointer to that message
+ * is returned. If not found NULL is returned.
+ */
+static bMessages *isSaved(bMessages *msgCache, char *msg, int hash)
+{
+    struct list_head *pos;
+    bMessages *val;
+
+    if (!msgCache || !msg) {
+	PSIlog_log(-1, "%s: invalid msg or msgCache\n", __func__);
+	return NULL;
+    }
+
+    if (!list_empty(&msgCache->list)) {
+	list_for_each(pos, &msgCache->list) {
+	    /* get element to compare */
+	    val = list_entry(pos, bMessages, list);
+
+	    if (!val || !val->line) break;
+	    if (val->hash == hash && (!strcmp(val->line, msg))) {
+		return val;
+	    }
+	}
+    }
+    return NULL;
+}
+
+/**
+ * @brief Save msg in temporarly buffer.
+ *
+ * @param sender The sender of the message.
+ *
+ * @param newmsg The buffer which holds the message.
+ *
+ * @param len The len of the message.
+ */
+static void appendTmpBuffer(int sender, char *newmsg, size_t len, int outfd)
+{
+    bMessages *globalMsg = NULL;
+    TempBuffers *tmpBuf = &clientTmpBuf[sender];
+    char *tmpLine = tmpBuf->line[outfd];
+    char *savebuf = NULL;
+    int hash;
+    
+    if (outfd > 2) {
+	PSIlog_log(-1, "%s: unsupported outfd %d\n", __func__, outfd);
+	return;
+    }
+
+    if (!newmsg || len > strlen(newmsg)) {
+	PSIlog_log(-1, "%s: error in buffer\n", __func__);
+	return;
+    }
+    
+    if (!tmpLine) {
+	if (db) PSIlog_log(-1, "sender:%i no '\\n' ->newbuf :%s\n",
+			   sender, newmsg);
+	tmpBuf->time[outfd] = time(0);
+	savebuf = strndup(newmsg, len);
+    } else {
+	int leninc = strlen(tmpLine);
+	int newlen = strlen(newmsg);
+
+	if (db) PSIlog_log(-1, "sender:%i no '\\n' ->append :%s\n",
+			   sender, newmsg);
+	
+	savebuf = umalloc((len + leninc + 1), __func__);
+	strcpy(savebuf, tmpLine);
+	strncat(savebuf, newmsg, len);
+	savebuf[len + leninc] = '\0';
+    }
+
+    if (!savebuf) {
+	PSIlog_log(-1, "%s: invalid message to save\n", __func__);
+	return;
+    }
+    
+    /* insert into tmp msg cache */
+    hash = calcHash(savebuf);
+    if ((globalMsg = isSaved(&msgTmpCache, savebuf, hash))) {
+	(globalMsg->counter)++;
+	free(savebuf);
+    } else {
+	globalMsg = (bMessages *)umalloc(sizeof(bMessages), __func__);
+	globalMsg->line = savebuf;
+	globalMsg->hash = hash;
+	globalMsg->counter = 1;
+	list_add_tail(&(globalMsg->list), &msgTmpCache.list);
+    }
+    tmpBuf->line[outfd] = globalMsg->line;
+}
+
+/**
+ * @brief Delete a msg from the tmp cache.
+ *
+ * @param tmpLine The pointer to the msg to delete.
  *
  * @return No return value.
  */
+static void delCachedTmpMsg(char *tmpLine)
+{
+    struct list_head *pos;
+    bMessages *val;
+    int found = 0;
+    val = NULL;
+    
+    if (!list_empty(&msgTmpCache.list)) {
+	list_for_each(pos, &msgTmpCache.list) {
+	    /* get element to compare */
+	    val = list_entry(pos, bMessages, list);
+
+	    if (!val || !val->line) break;
+	    if (val->line == tmpLine) {
+		found = 1;
+		break;
+	    }
+	}
+    } else {
+	PSIlog_log(-1, "%s: list empty: possible error in tmp msg cache\n",
+		   __func__);
+	return;
+    }
+
+    if (!found) {
+	PSIlog_log(-1, "%s: line not found: possible error in tmp msg cache\n",
+		   __func__);
+	return;
+    }
+    
+    if (!val) {
+	PSIlog_log(-1, "%s: empty result: possible error in tmp msg cache\n",
+		   __func__);
+	return;
+    }
+
+    (val->counter)--;
+    if (val->counter == 0) {
+	free(val->line);
+	list_del(pos);
+	free(val);
+    }
+}
+
+/**
+ * @brief Save msg in rank specific output buffer.
+ *
+ * @param sender The sender of the message.
+ *
+ * @param buf The buffer which holds the message.
+ *
+ * @param len The len of the message.
+ *
+ * @param outfd The file descriptor for output the msg.
+ */
+static void insertOutputBuffer(int sender, char *buf, size_t len, int outfd)
+{
+    OutputBuffers *newMsg = NULL;
+    OutputBuffers *ClientBuf = &clientOutBuf[sender];
+    TempBuffers *tmpBuf = &clientTmpBuf[sender];
+    char *tmpLine = tmpBuf->line[outfd];
+    bMessages *globalMsg = NULL;
+    char *savep = NULL;
+    int hash;
+
+    if (!buf || len > strlen(buf)) {
+	PSIlog_log(-1, "%s: error in buffer\n", __func__);
+	return;
+    }
+    
+    if (!tmpLine) {
+	savep = strndup(buf, len);
+    } else {
+	savep = strndup(buf, len);
+	int leninc = strlen(tmpLine);
+	savep = umalloc((len + leninc + 1), __func__);
+	strncpy(savep, tmpLine, leninc);
+	savep[leninc] = '\0';
+	strncat(savep, buf, len);
+	savep[len + leninc] = '\0';
+	delCachedTmpMsg(tmpLine);
+	tmpBuf->line[outfd] = NULL;
+    }
+
+    if (!savep) {
+	PSIlog_log(-1, "%s: invalid message to save\n", __func__);
+	return;
+    }
+    
+    if (db)
+	PSIlog_log(-1, "string to global sender:%i outfd:%i savep:' %s'\n",
+		   sender, outfd, savep);
+
+    /* check if already in global buffer */
+    hash = calcHash(savep);
+
+    if ((globalMsg = isSaved(&messageCache, savep, hash))) {
+	/* string is already in global msg cache, just save ref to it */
+	(globalMsg->counter)++;
+
+	if (db)
+	    PSIlog_log(-1,
+		       "pointer to matrix count:%i hash:%i savep:'%s'\n",
+		       globalMsg->counter, globalMsg->hash, savep);
+	free(savep);
+    } else {
+	/* new message, save it to global msg cache */
+	globalMsg = (bMessages *)umalloc(sizeof(bMessages), __func__);
+	globalMsg->line = savep;
+	globalMsg->hash = hash;
+	globalMsg->counter = 1;
+	list_add_tail(&(globalMsg->list), &messageCache.list);
+
+	if (db)
+	    PSIlog_log(-1,
+		       "string to matrix count:%i hash:%i savep:'%s'\n",
+		       globalMsg->counter, globalMsg->hash, savep);
+    }
+    
+    /* setup new client list item */
+    newMsg = (OutputBuffers *)umalloc(sizeof(OutputBuffers), __func__);
+    newMsg->time = time(0);
+    newMsg->outfd = outfd;
+    newMsg->line = globalMsg->line;
+    newMsg->counter = &(globalMsg->counter);
+
+    /* save the message to the client list */
+    list_add_tail(&(newMsg->list), &ClientBuf->list);
+}
+
+/**
+ * @brief Move all msg in tmp cache to client cache.
+ *
+ * @return No return value.
+ */
+static void moveTmpToClientBuf()
+{
+    TempBuffers *tmpBuf;
+    int i,z;
+    char slash[] = "\\\n";
+    
+    for (i=0; i<np; i++) {
+	tmpBuf = &clientTmpBuf[i];
+	for (z=0; z<3; z++) {
+	    if (tmpBuf->line[z]) {
+		insertOutputBuffer(i, slash, strlen(slash), z);
+	    }
+	}
+   } 
+}
+
+void cacheOutput(PSLog_Msg_t *msg, int outfd)
+{
+    size_t count = msg->header.len - PSLog_headerSize;
+    int sender = msg->sender;
+    char *buf, *bufmem;
+    int len;
+
+    bufmem = umalloc((count +1), __func__);
+    strncpy(bufmem, msg->buf, count);
+    bufmem[count] = '\0';
+    buf = bufmem;
+
+    /* don't try to merge output from special ranks e.g. service processes */
+    if (sender < 0) {
+	switch (outfd) {
+	case STDOUT_FILENO:
+	    PSIlog_stdout(-1, "[%i]: %s", sender, buf);
+	    break;
+	case STDERR_FILENO:
+	    PSIlog_stderr(-1, "[%i]: %s", sender, buf);
+	    break;
+	default:
+	    PSIlog_log(-1, "%s: unknown outfd %d\n", __func__, outfd);
+	}
+	return;
+    }
+
+    if (sender >= np) {
+	PSIlog_log(-1, "%s: msg from unexpected rank:%i\n", __func__, sender);
+	return;
+    }
+
+    while (count>0 && strlen(buf) >0) {
+	char *nl;
+
+	len = strlen(buf);
+	nl  = strchr(buf, '\n');
+	if (nl) nl++; /* Thus nl points behind the newline */
+
+	/* no newline -> save whole msg in tmp buffer */
+	if (!nl) {
+	    appendTmpBuffer(sender, buf, len, outfd);
+	    break;
+	}
+
+	/* complete msg with newline (\n) */
+	len = strlen(buf) - strlen(nl);
+	insertOutputBuffer(sender, buf, len, outfd);
+
+	/* goto next line */
+	count -= len;
+	buf = nl;
+    }
+    free(bufmem);
+
+    /* just for debugging */
+    if (db) {
+	dumpGlobalBuffer();
+	dumpClientBuffer();
+    }
+}
+
 void displayCachedOutput(int flush)
 {
     struct list_head *pos;
@@ -548,10 +864,15 @@ void displayCachedOutput(int flush)
     /* reset tracking array */
     for (i=0; i<np; i++) saveBuf[i] = NULL;
 
-    for (i=0; i < np; i++) {
-	if (list_empty(&ClientOutBuf[i].list)) continue;
+    /* add all the leftovers in tmp buffer to normal buffer */
+    if (flush) {
+	moveTmpToClientBuf();
+    }
 
-	list_for_each(pos, &ClientOutBuf[i].list) {
+    for (i=0; i<np; i++) {
+	if (list_empty(&clientOutBuf[i].list)) continue;
+
+	list_for_each(pos, &clientOutBuf[i].list) {
 	    /* get element to compare */
 	    val = list_entry(pos, OutputBuffers, list);
 
@@ -577,7 +898,7 @@ void displayCachedOutput(int flush)
 		/* output single msg from tracked rank */
 		outputSingleCMsg(i, pos, saveBuf, saveBufInd, mcount);
 
-		for (z=0; z < mcount; z++) {
+		for (z=0; z<mcount; z++) {
 		    /* output single msg from other ranks */
 		    outputSingleCMsg(saveBufInd[z], saveBuf[z], saveBuf,
 				     saveBufInd, mcount);
@@ -605,194 +926,6 @@ void displayCachedOutput(int flush)
 		delCachedMsg(val, pos);
 	    }
 	}
-	if (flush) outputHalfMsg(i);
     }
 }
 
-/**
- * @brief Calculate a simple hash by summing up all
- * characters.
- *
- * @param line The string to calculate the hash from.
- *
- * @return Returns the calculated hash value.
- */
-static int calcHash(char *line)
-{
-    unsigned int hash, i;
-
-    for (i=0,hash=0; i <strlen(line); i++) {
-	hash += line[i];
-    }
-    return hash;
-}
-
-/**
- * @brief Checks if a message is already saved in the global
- * msg cache.
- *
- * @param msg The message which should be checked.
- *
- * @return If the message is found a pointer to that message
- * is returned. If not found NULL is returned.
- */
-static bMessages *isSaved(char *msg, int hash)
-{
-    struct list_head *pos;
-    bMessages *val;
-
-    if (!list_empty(&messageCache.list)) {
-	list_for_each(pos, &messageCache.list) {
-	    /* get element to compare */
-	    val = list_entry(pos, bMessages, list);
-
-	    if (!val || !val->line) break;
-	    if (val->hash == hash && (!strcmp(val->line, msg))) {
-		return val;
-	    }
-	}
-    }
-    return NULL;
-}
-
-/**
- * @brief Cache the received output msg.
- *
- * @param msg The received msg which holds
- * the buffer to cache.
- *
- * @param outfd The file descriptor to write the msgs to.
- *
- * @return No return value.
- */
-void cacheOutput(PSLog_Msg_t *msg, int outfd)
-{
-    size_t count = msg->header.len - PSLog_headerSize;
-    int sender = msg->sender;
-    OutputBuffers *newMsg = NULL;
-    OutputBuffers *ClientBuf = &ClientOutBuf[sender];
-    bMessages *globalMsg = NULL;
-    char *buf, *bufmem;
-    int len;
-    int hash;
-
-    bufmem = umalloc((count +1), __func__);
-    strncpy(bufmem, msg->buf, count);
-    bufmem[count] = '\0';
-    buf = bufmem;
-
-    /* don't try to merge output from special ranks e.g. service processes */
-    if (sender < 0) {
-	switch (outfd) {
-	case STDOUT_FILENO:
-	    PSIlog_stdout(-1, "[%i]: %s", sender, buf);
-	    break;
-	case STDERR_FILENO:
-	    PSIlog_stderr(-1, "[%i]: %s", sender, buf);
-	    break;
-	default:
-	    PSIlog_log(-1, "%s: unknown outfd %d\n", __func__, outfd);
-	}
-	return;
-    }
-
-    while (count>0 && strlen(buf) >0) {
-	char *nl, *savep;
-
-	len = strlen(buf);
-	nl  = strchr(buf, '\n');
-	if (nl) nl++; /* Thus nl points behind the newline */
-
-	/* no newline -> save to tmp buffer */
-	if (!nl) {
-	    if (!BufInc[sender]) {
-		if (db) PSIlog_log(-1, "sender:%i no newline ->newbuf :%s\n",
-				   sender, buf);
-		BufInc[sender] = umalloc((len +1), __func__);
-
-		strncpy(BufInc[sender], buf, len);
-		BufInc[sender][len] = '\0';
-	    } else {
-		/* buffer is used, append the msg */
-		int leninc = strlen(BufInc[sender]);
-		if (db) PSIlog_log(-1, "sender:%i no newline ->append :%s\n",
-				   sender, buf);
-		BufInc[sender] = urealloc(BufInc[sender], leninc + len +1,
-					  __func__);
-		strncat(BufInc[sender], buf, len);
-		BufInc[sender][len + leninc] = '\0';
-	    }
-	    break;
-	}
-
-	/* complete msg with newline (\n) */
-	len = strlen(buf) - strlen(nl);
-	if (BufInc[sender]) {
-	    int leninc = strlen(BufInc[sender]);
-	    BufInc[sender] = urealloc(BufInc[sender], leninc + len +1,
-				     __func__);
-	    strncat(BufInc[sender], buf, len);
-	    savep = BufInc[sender];
-	    savep[leninc + len] = '\0';
-	    BufInc[sender] = NULL;
-	} else {
-	    savep = umalloc((len +1), __func__);
-	    strncpy(savep, buf, len);
-	    savep[len] = '\0';
-	}
-
-	if (db)
-	    PSIlog_log(-1, "string to global sender:%i outfd:%i savep:' %s'\n",
-		       sender, outfd, savep);
-
-	/* setup new client list item */
-	newMsg = (OutputBuffers *)umalloc(sizeof(OutputBuffers), __func__);
-	newMsg->time = time(0);
-	newMsg->outfd = outfd;
-
-	/* check if already in global buffer */
-	hash = calcHash(savep);
-
-	if ((globalMsg = isSaved(savep, hash))) {
-	    /* string is already in global msg cache, just save ref to it */
-	    (globalMsg->counter)++;
-	    newMsg->line = globalMsg->line;
-	    newMsg->counter = &(globalMsg->counter);
-
-	    if (db)
-		PSIlog_log(-1,
-			   "pointer to matrix count:%i hash:%i savep:'%s'\n",
-			   globalMsg->counter, globalMsg->hash, savep);
-	    free(savep);
-	} else {
-	    /* new message, save it to global msg cache */
-	    globalMsg = (bMessages *)umalloc(sizeof(bMessages), __func__);
-	    globalMsg->line = savep;
-	    globalMsg->hash = hash;
-	    globalMsg->counter = 1;
-	    list_add_tail(&(globalMsg->list), &messageCache.list);
-
-	    newMsg->line = savep;
-	    newMsg->counter = &(globalMsg->counter);
-
-	    if (db)
-		PSIlog_log(-1,
-			   "string to matrix count:%i hash:%i savep:'%s'\n",
-			   globalMsg->counter, globalMsg->hash, savep);
-	}
-
-	/* save the message to the client list */
-	list_add_tail(&(newMsg->list), &ClientBuf->list);
-
-	/* goto next line */
-	count -= len;
-	buf = nl;
-    }
-    free(bufmem);
-
-    /* just for debugging */
-    if (db) {
-	dumpGlobalBuffer();
-	dumpClientBuffer();
-    }
-}
