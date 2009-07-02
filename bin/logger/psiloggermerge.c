@@ -582,7 +582,7 @@ static void appendTmpBuffer(int sender, char *newmsg, size_t len, int outfd)
     char *tmpLine = tmpBuf->line[outfd];
     char *savebuf = NULL;
     int hash;
-    
+
     if (outfd > 2) {
 	PSIlog_log(-1, "%s: unsupported outfd %d\n", __func__, outfd);
 	return;
@@ -592,7 +592,7 @@ static void appendTmpBuffer(int sender, char *newmsg, size_t len, int outfd)
 	PSIlog_log(-1, "%s: error in buffer\n", __func__);
 	return;
     }
-    
+
     if (!tmpLine) {
 	if (db) PSIlog_log(-1, "sender:%i no '\\n' ->newbuf :%s\n",
 			   sender, newmsg);
@@ -600,11 +600,9 @@ static void appendTmpBuffer(int sender, char *newmsg, size_t len, int outfd)
 	savebuf = strndup(newmsg, len);
     } else {
 	int leninc = strlen(tmpLine);
-	int newlen = strlen(newmsg);
-
 	if (db) PSIlog_log(-1, "sender:%i no '\\n' ->append :%s\n",
 			   sender, newmsg);
-	
+
 	savebuf = umalloc((len + leninc + 1), __func__);
 	strcpy(savebuf, tmpLine);
 	strncat(savebuf, newmsg, len);
@@ -615,7 +613,7 @@ static void appendTmpBuffer(int sender, char *newmsg, size_t len, int outfd)
 	PSIlog_log(-1, "%s: invalid message to save\n", __func__);
 	return;
     }
-    
+
     /* insert into tmp msg cache */
     hash = calcHash(savebuf);
     if ((globalMsg = isSaved(&msgTmpCache, savebuf, hash))) {
@@ -644,7 +642,7 @@ static void delCachedTmpMsg(char *tmpLine)
     bMessages *val;
     int found = 0;
     val = NULL;
-    
+
     if (!list_empty(&msgTmpCache.list)) {
 	list_for_each(pos, &msgTmpCache.list) {
 	    /* get element to compare */
@@ -667,7 +665,7 @@ static void delCachedTmpMsg(char *tmpLine)
 		   __func__);
 	return;
     }
-    
+
     if (!val) {
 	PSIlog_log(-1, "%s: empty result: possible error in tmp msg cache\n",
 		   __func__);
@@ -707,7 +705,7 @@ static void insertOutputBuffer(int sender, char *buf, size_t len, int outfd)
 	PSIlog_log(-1, "%s: error in buffer\n", __func__);
 	return;
     }
-    
+
     if (!tmpLine) {
 	savep = strndup(buf, len);
     } else {
@@ -726,7 +724,7 @@ static void insertOutputBuffer(int sender, char *buf, size_t len, int outfd)
 	PSIlog_log(-1, "%s: invalid message to save\n", __func__);
 	return;
     }
-    
+
     if (db)
 	PSIlog_log(-1, "string to global sender:%i outfd:%i savep:' %s'\n",
 		   sender, outfd, savep);
@@ -756,7 +754,7 @@ static void insertOutputBuffer(int sender, char *buf, size_t len, int outfd)
 		       "string to matrix count:%i hash:%i savep:'%s'\n",
 		       globalMsg->counter, globalMsg->hash, savep);
     }
-    
+
     /* setup new client list item */
     newMsg = (OutputBuffers *)umalloc(sizeof(OutputBuffers), __func__);
     newMsg->time = time(0);
@@ -778,7 +776,7 @@ static void moveTmpToClientBuf()
     TempBuffers *tmpBuf;
     int i,z;
     char slash[] = "\\\n";
-    
+
     for (i=0; i<np; i++) {
 	tmpBuf = &clientTmpBuf[i];
 	for (z=0; z<3; z++) {
@@ -786,7 +784,7 @@ static void moveTmpToClientBuf()
 		insertOutputBuffer(i, slash, strlen(slash), z);
 	    }
 	}
-   } 
+   }
 }
 
 void cacheOutput(PSLog_Msg_t *msg, int outfd)
