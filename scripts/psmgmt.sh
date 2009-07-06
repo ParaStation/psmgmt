@@ -17,11 +17,10 @@ _psdir="/opt/parastation"
 if test -d "${_psdir}/bin" ; then
 
     export PATH="${PATH}:${_psdir}/bin"
-    
+
     if test -d "${_psdir}/man" ; then
 	if test -z "${MANPATH}" ; then
-            #rkr# RH manpath does not know about -q option
-	    export MANPATH="`test -x /usr/bin/manpath && /usr/bin/manpath 2>/dev/null`"
+	    export MANPATH="`test -x /usr/bin/manpath && /usr/bin/manpath 2> /dev/null`"
 	fi
 	if test -z "${MANPATH}" ; then
 	    export MANPATH="${_psdir}/man"

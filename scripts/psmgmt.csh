@@ -15,20 +15,18 @@
 set _psdir="/opt/parastation"
 
 if ( -d "${_psdir}/bin" ) then
-    
+
     set path = ( ${path} "${_psdir}/bin" )
 
     if ( -d "${_psdir}/man" ) then
-	if ( ${?MANPATH} ) then
-	    setenv MANPATH "`(test -x /usr/bin/manpath && manpath -q)`"
+	if ( ! ${?MANPATH} ) then
+	    setenv MANPATH "`(test -x /usr/bin/manpath && ( /usr/bin/manpath > /dev/tty ) >& /dev/null)`"
 	endif
-	set _manpath=${MANPATH}
-	if ( ${%_manpath} ) then
+	if ( ${?MANPATH} ) then
 	    setenv MANPATH "${MANPATH}:${_psdir}/man"
 	else
 	    setenv MANPATH "${_psdir}/man"
-        endif
-	unset _manpath
+	endif
     endif
 endif
 
