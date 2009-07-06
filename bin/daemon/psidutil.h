@@ -287,6 +287,50 @@ void PSID_enableMasterSock(void);
  */
 void PSID_shutdownMasterSock(void);
 
+/**
+ * @brief Hook callback
+ *
+ * Callback used by @ref PSID_execHook() to handle the file-descriptor
+ * registered into the Selector. This file-descriptor is expected to
+ * deliver information concerning the result of the hook-script.
+ *
+ * The first argument is the file-descriptor to handle. The second
+ * argument might be used to pass extra information to the
+ * handler. This information has to be previded to @ref
+ * PSID_execHook() as the last argument.
+ */
+typedef int PSID_hookCB_t(int, void *);
+
+/**
+ * @brief Hook environment setup
+ *
+ * Function used to setup the environment which is used to run the
+ * hook-script. The pointer argument might be used to pass extra
+ * information to this function. This information has to be provieded
+ * to @ref PSID_execHook() as the last argument.
+ */
+typedef int PSID_hookEnv_t(void *);
+
+/**
+ * @brief Execute a hook-script and register for result.
+ *
+ * Execute a hook defined by @a script and register the
+ * callback-function @a cb to handle the output results. @a info might
+ * be used to pass extra information to the callback-function.
+ *
+ * @param script The script to be executed as the hook.
+ *
+ * @param cb Callback to register in the Selector facility. This will
+ * handle information passed back from the hook-script.
+ *
+ * @param info Extra information to be passed to the environmant setup
+ * and callback functions.
+ *
+ * @return @doctodo
+ */
+int PSID_execHook(char *script, PSID_hookEnv_t env, PSID_hookCB_t cb,
+		  void *info);
+
 #ifdef __cplusplus
 }/* extern "C" */
 #endif

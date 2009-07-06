@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -14,7 +14,7 @@
  * ParaStation this is used by the MCast, RDP and PSIDstatus modules.
  *
  * $Id$
- *     
+ *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
  *
@@ -61,7 +61,7 @@ int Selector_isInitialized(void);
 /**
  * Various message classes for logging. These define the different
  * bits of the debug-mask set via @ref Selector_setDebugMask().
- */ 
+ */
 typedef enum {
     SELECTOR_LOG_DUMMY = 0x0000, /**< No non fatal messages yet */
 } Selector_log_key_t;
@@ -105,12 +105,24 @@ int32_t Selector_getDebugMask(void);
 void Selector_setDebugMask(int32_t mask);
 
 /**
+ * @brief Selector callback
+ *
+ * Callback used by Sselect(), if data on the corresponding
+ * file-descriptor is pending. This file-descriptor is passed as the
+ * first argument. The second argument is used to hand-over additional
+ * information to the callback-handler.
+ */
+typedef int Selector_CB_t (int, void *);
+
+/**
  * @brief Register a new selector.
  *
- * Registration of a new selector. The selector will be identified by its
- * corresponding file-descriptor @a fd. Only one selector per file-descriptor
- * can be registered. The @a selecHandler will be called, if data on @a fd is
- * pending during a call to @ref Sselect().
+ * Registration of a new selector. The selector will be identified by
+ * its corresponding file-descriptor @a fd. Only one selector per
+ * file-descriptor can be registered. The @a selecHandler will be
+ * called, if data on @a fd is pending during a call to @ref
+ * Sselect(). Additional information might be passed to @a
+ * selectHandler via the pointer @a info.
  *
  * @param fd The file-descriptor, the selector is registered on.
  *
@@ -123,10 +135,13 @@ void Selector_setDebugMask(int32_t mask);
  *  - 1  If there is still pending data on @a fd. This forces Sselect() to
  *       pass @a fd to its own caller.
  *
+ * @param info Pointer to additional information passed to @a
+ * selectHandler in cae of pending data on the file-descriptor.
+ *
  * @return On success, 0 is returned. On error, e.g. if a selector on
  * @a fd is already registered, -1 is returned.
  */
-int Selector_register(int fd, int (*selectHandler)(int));
+int Selector_register(int fd, Selector_CB_t selectHandler, void *info);
 
 /**
  * @brief Remove a selector.
@@ -169,10 +184,10 @@ int Selector_remove(int fd);
  * errno is set appropriately; the file-descriptor sets and @a timeout
  * become undefined, so do not rely on their contents after an error.
  *
- * @see select(2) 
+ * @see select(2)
  */
 int Sselect(int n, fd_set* readfds, fd_set* writefds, fd_set* exceptfds,
-            struct timeval* timeout);
+	    struct timeval* timeout);
 
 #ifdef __cplusplus
 }/* extern "C" */

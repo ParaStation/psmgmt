@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -140,7 +140,7 @@ static MCastJobs_t jobsMCast = {0, 0};
  * @see recvfrom(2)
  */
 static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
-                      struct sockaddr *from, socklen_t *fromlen)
+		      struct sockaddr *from, socklen_t *fromlen)
 {
     int retval;
  restart:
@@ -268,7 +268,7 @@ static void insertIPTable(unsigned int ip_addr, int node)
 	iptable[idx].ipnr = ip_addr;
 	iptable[idx].node = node;
     }
- 
+
     return;
 }
 
@@ -413,7 +413,7 @@ static int initSockMCast(int group, unsigned short port)
     reuse = 1; /* 0 = disable (default), 1 = enable */
     if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse,
 		   sizeof(reuse)) == -1) {
-        MCast_exit(errno, "%s: setsockopt(SO_REUSEADDR)", __func__);
+	MCast_exit(errno, "%s: setsockopt(SO_REUSEADDR)", __func__);
     }
 
 #ifndef __linux__
@@ -437,7 +437,7 @@ static int initSockMCast(int group, unsigned short port)
 
     /* Do the bind */
     if (bind(sock, (struct sockaddr *)&msin, sizeof(msin)) < 0) {
-        MCast_exit(errno, "%s: bind(%s)", __func__, inet_ntoa(msin.sin_addr));
+	MCast_exit(errno, "%s: bind(%s)", __func__, inet_ntoa(msin.sin_addr));
     }
 
     MCast_log(MCAST_LOG_INIT, "%s: I'm node %d, using addr %s port: %d\n",
@@ -609,9 +609,11 @@ static char *stateStringMCast(MCastState_t state)
  *
  * @param fd The file-descriptor from which the ping message is read.
  *
+ * @param info Extra info. Currently ignored.
+ *
  * @return On success, 0 is returned, or -1 if an error occurred.
  */
-static int handleMCast(int fd)
+static int handleMCast(int fd, void *info)
 {
     MCastMsg_t msg;
     struct sockaddr_in sin;
@@ -721,12 +723,12 @@ int initMCast(int nodes, int mcastgroup, unsigned short portno, FILE* logfile,
 	Selector_init(logfile);
     }
     mcastsock = initSockMCast(mcastgroup, htons(portno));
-    Selector_register(mcastsock, handleMCast);
+    Selector_register(mcastsock, handleMCast, NULL);
 
     if (!Timer_isInitialized()) {
 	Timer_init(logfile);
     }
-    timerID = Timer_register(&MCastTimeout, handleTimeoutMCast); 
+    timerID = Timer_register(&MCastTimeout, handleTimeoutMCast);
 
     return mcastsock;
 }

@@ -1819,13 +1819,15 @@ static int handleErr(void)
  *
  * @param fd The file-descriptor on which a RDP message is pending.
  *
+ * @param info Extra info. Currently ignored.
+ *
  * @return If an error occurs, -1 is returned. Otherwise the return
  * value depends on the type of message pending. If it is a control
  * message and can thus be handled completely within this function, 0
  * is passed to the calling function. If a RDP_DATA message containing
  * payload data was pending, 1 is returned.
  */
-static int handleRDP(int fd)
+static int handleRDP(int fd, void *info)
 {
     Lmsg_t msg;
     struct sockaddr_in sin;
@@ -1993,7 +1995,7 @@ int initRDP(int nodes, unsigned short portno, FILE* logfile,
     if (!Selector_isInitialized()) Selector_init(logfile);
 
     rdpsock = initSockRDP(htons(portno), 0);
-    Selector_register(rdpsock, handleRDP);
+    Selector_register(rdpsock, handleRDP, NULL);
 
     if (!Timer_isInitialized()) Timer_init(logfile);
     timerID = Timer_register(&RDPTimeout, handleTimeoutRDP);

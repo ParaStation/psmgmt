@@ -24,6 +24,7 @@ static char vcid[] __attribute__((used)) =
 #include <sys/stat.h>
 #include <sys/file.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 
 #include "pscommon.h"
 #include "logging.h"
@@ -173,10 +174,12 @@ static int masterSock = -1;
  * @param fd The file-descriptor from which the new connection might
  * be accepted.
  *
+ * @param info Extra info. Currently ignored.
+ *
  * @return On success 1 is returned. Otherwise -1 is returned and
  * errno is set appropriately.
  */
-static int handleMasterSock(int fd)
+static int handleMasterSock(int fd, void *info)
 {
     struct linger linger;
     socklen_t size;
@@ -261,7 +264,7 @@ void PSID_enableMasterSock(void)
 		 __func__);
 	exit(-1);
     }
-    Selector_register(masterSock, handleMasterSock);
+    Selector_register(masterSock, handleMasterSock, NULL);
 
     PSID_log(-1, "Local Service Port (%d) enabled.\n", masterSock);
 }
@@ -293,3 +296,216 @@ exit:
     if (action) PSID_warn(-1, errno, "%s: %s", __func__, action);
     masterSock = -1;
 }
+
+/* /\** */
+/*  * @brief Write complete buffer. */
+/*  * */
+/*  * Write the complete buffer @a buf of size @a count to the file */
+/*  * descriptor @a fd. Even if one or more trials to write to @a fd */
+/*  * fails due to e.g. timeouts, further writing attempts are made until */
+/*  * either a fatal error occurred or the whole buffer is sent. */
+/*  * */
+/*  * @param fd The file descriptor to send the buffer to. */
+/*  * */
+/*  * @param buf The buffer to send. */
+/*  * */
+/*  * @param count The number of bytes within @a buf to send. */
+/*  * */
+/*  * @return Upon success the number of bytes sent is returned, */
+/*  * i.e. usually this is @a count. Otherwise -1 is returned. */
+/*  *\/ */
+/* static size_t writeall(int fd, const void *buf, size_t count) */
+/* { */
+/*     int len; */
+/*     char *cbuf = (char *)buf; */
+/*     size_t c = count; */
+
+/*     while (c > 0) { */
+/* 	len = write(fd, cbuf, c); */
+/* 	if (len < 0) { */
+/* 	    if ((errno == EINTR) || (errno == EAGAIN)) */
+/* 		continue; */
+/* 	    else */
+/* 		return -1; */
+/* 	} */
+/* 	c -= len; */
+/* 	cbuf += len; */
+/*     } */
+
+/*     return count; */
+/* } */
+
+/* /\** */
+/*  * @brief Read complete buffer. */
+/*  * */
+/*  * Read the complete buffer @a buf of size @a count from the file */
+/*  * descriptor @a fd. Even if one or more trials to read to @a fd fails */
+/*  * due to e.g. timeouts, further reading attempts are made until */
+/*  * either a fatal error occurred, an EOF is received or the whole */
+/*  * buffer is read. */
+/*  * */
+/*  * @param fd The file descriptor to read the buffer from. */
+/*  * */
+/*  * @param buf The buffer to read. */
+/*  * */
+/*  * @param count The maximum number of bytes to read. */
+/*  * */
+/*  * @return Upon success the number of bytes read is returned, */
+/*  * i.e. usually this is @a count if no EOF occurred. Otherwise -1 is */
+/*  * returned. */
+/*  *\/ */
+/* static size_t readall(int fd, void *buf, size_t count) */
+/* { */
+/*     int len; */
+/*     char *cbuf = (char *)buf; */
+/*     size_t c = count; */
+
+/*     while (c > 0) { */
+/* 	len = read(fd, cbuf, c); */
+/* 	if (len < 0) { */
+/* 	    if ((errno == EINTR) || (errno == EAGAIN)) */
+/* 		continue; */
+/* 	    else */
+/* 		return -1; */
+/* 	} else if (len == 0) { */
+/* 	    return count-c; */
+/* 	} */
+/* 	c -= len; */
+/* 	cbuf += len; */
+/*     } */
+
+/*     return count; */
+/* } */
+
+/* static int defaultHandler(int fd, void *info) */
+/* { */
+/*     return 0; */
+/* } */
+
+/* int PSID_execHook(char *script, PSID_hookEnv_t env, PSID_hookCB_t cb, */
+/* 		  void *info) */
+/* { */
+/*     int controlfds[2], iofds[2]; */
+/*     int ret, result; */
+/*     pid_t pid; */
+
+/*     /\* Don't SEGFAULT *\/ */
+/*     if (!script) { */
+/* 	PSID_log(-1, "%s: script is NULL\n", __func__); */
+/* 	return -1; */
+/*     } */
+
+/*     /\* create a control channel in order to observe the script *\/ */
+/*     if (pipe(controlfds)<0) { */
+/* 	PSID_warn(-1, errno, "%s: pipe(controlfds)", __func__); */
+/* 	return -1; */
+/*     } */
+
+/*     /\* create a io channel in order to get script's output *\/ */
+/*     if (pipe(iofds)<0) { */
+/* 	PSID_warn(-1, errno, "%s: pipe(iofds)", __func__); */
+/* 	return -1; */
+/*     } */
+
+/*     if (!(pid=fork())) { */
+/* 	/\* This part calls the script and returns results to the parent *\/ */
+/* 	int fd; */
+/* 	char *command; */
+
+/* 	for (fd=0; fd<getdtablesize(); fd++) { */
+/* 	    if (fd != controlfds[1] && fd != iofds[1]) close(fd); */
+/* 	} */
+
+/* 	/\* setup the environment *\/ */
+/* 	if (env) env(info); */
+
+/* 	while (*script==' ' || *script=='\t') script++; */
+/* 	if (*script != '/') { */
+/* 	    char *dir = PSC_lookupInstalldir(NULL); */
+
+/* 	    if (!dir) dir = ""; */
+
+/* 	    command = PSC_concat(dir, "/", script, NULL); */
+/* 	} else { */
+/* 	    command = strdup(script); */
+/* 	} */
+
+/* 	/\* redirect stdout and stderr *\/ */
+/* 	dup2(iofds[1], STDOUT_FILENO); */
+/* 	dup2(iofds[1], STDERR_FILENO); */
+/* 	close(iofds[1]); */
+
+/* 	{ */
+/* 	    char *dir = PSC_lookupInstalldir(NULL); */
+
+/* 	    if (dir && (chdir(dir)<0)) { */
+/* 		fprintf(stderr, "%s: cannot change to directory '%s'", */
+/* 			__func__, dir); */
+/* 		exit(0); */
+/* 	    } */
+/* 	} */
+
+/* 	ret = system(command); */
+
+/* 	/\* Send results to controlling daemon *\/ */
+/* 	if (ret < 0) { */
+/* 	    PSID_warn(-1, errno, "%s: system(%s)", __func__, command); */
+/* 	} else { */
+/* 	    ret = WEXITSTATUS(ret); */
+/* 	} */
+/* 	writeall(controlfds[1], &ret, sizeof(ret)); */
+
+/* 	free(command); */
+/* 	exit(0); */
+/*     } */
+
+/*     /\* This part receives results from the script *\/ */
+
+/*     /\* save errno in case of error *\/ */
+/*     ret = errno; */
+
+/*     close(controlfds[1]); */
+/*     close(iofds[1]); */
+
+/*     /\* check if fork() was successful *\/ */
+/*     if (pid == -1) { */
+/* 	char *errstr = strerror(ret); */
+
+/* 	close(controlfds[0]); */
+/* 	close(iofds[0]); */
+
+/* 	snprintf(scriptOut, sizeof(scriptOut), "%s: fork(): %s\n", */
+/* 		 __func__, errstr ? errstr : "UNKNOWN"); */
+
+/* 	return -1; */
+/*     } */
+
+/*     ret = readall(iofds[0], scriptOut, sizeof(scriptOut)); */
+/*     /\* Discard further output *\/ */
+/*     close(iofds[0]); */
+
+/*     if (ret == sizeof(scriptOut)) { */
+/* 	strcpy(&scriptOut[sizeof(scriptOut)-4], "..."); */
+/*     } else if (ret<0) { */
+/* 	snprintf(scriptOut, sizeof(scriptOut), */
+/* 		 "%s: read(iofd) failed : %s", __func__, strerror(errno)); */
+/* 	return -1; */
+/*     } else { */
+/* 	scriptOut[ret]='\0'; */
+/*     } */
+
+/*     ret = readall(controlfds[0], &result, sizeof(result)); */
+/*     close(controlfds[0]); */
+
+/*     if (!ret) { */
+/* 	/\* control channel closed without telling result of system() call. *\/ */
+/* 	snprintf(scriptOut, sizeof(scriptOut), "%s: no answer\n", __func__); */
+/* 	return -1; */
+/*     } else if (ret<0) { */
+/* 	snprintf(scriptOut, sizeof(scriptOut), */
+/* 		 "%s: read(controlfd) failed : %s", __func__, strerror(errno)); */
+/* 	return -1; */
+/*     } */
+
+/*     return result; */
+/* } */

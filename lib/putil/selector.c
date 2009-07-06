@@ -64,7 +64,8 @@ static int initialized = 0;
  */
 typedef struct {
     list_t next;                   /**< Use to put into @ref selectorList. */
-    int (*selectHandler)(int);     /**< Handler called within Sselect(). */
+    Selector_CB_t *selectHandler;  /**< Handler called within Sselect(). */
+    void *info;                    /**< Extra info to be passed to handler */
     int fd;                        /**< The corresponding file-descriptor. */
     int requested;                 /**< Flag used within Sselect(). */
 } Selector_t;
@@ -128,7 +129,7 @@ static Selector_t * findSelector(int fd)
     return NULL;
 }
 
-int Selector_register(int fd, int (*selectHandler)(int))
+int Selector_register(int fd, Selector_CB_t selectHandler, void *info)
 {
     Selector_t *selector = findSelector(fd);
 
@@ -148,6 +149,7 @@ int Selector_register(int fd, int (*selectHandler)(int))
 
     *selector = (Selector_t) {
 	.fd = fd,
+	.info = info,
 	.selectHandler = selectHandler,
 	.requested = 0 };
 
@@ -180,7 +182,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
     int retval;
     struct timeval start, end = { .tv_sec = 0, .tv_usec = 0 }, stv;
     fd_set rfds, wfds, efds;
-    list_t *s;
+    list_t *s, *tmp;
 
     if (timeout) {
 	gettimeofday(&start, NULL);                   /* get starttime */
@@ -238,11 +240,11 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	    }
 	}
 
-	list_for_each(s, &selectorList) {
+	list_for_each_safe(s, tmp, &selectorList) {
 	    Selector_t *selector = list_entry(s, Selector_t, next);
 	    if (FD_ISSET(selector->fd, &rfds) && selector->selectHandler) {
 		/* Got message on handled fd */
-		int ret = selector->selectHandler(selector->fd);
+		int ret = selector->selectHandler(selector->fd, selector->info);
 		switch (ret) {
 		case -1:
 		    retval = -1;
