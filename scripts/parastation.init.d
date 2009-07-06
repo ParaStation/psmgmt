@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (c) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
 # All rights reserved.
 #
 # @author
@@ -29,7 +29,6 @@
 
 PSID="/opt/parastation/bin/psid"
 PSIDNAME=`basename $PSID`
-LOCKFILE="/var/lock/subsys/psid"
 DESC="psid for ParaStation"
 RETVAL=0
 
@@ -37,7 +36,7 @@ RETVAL=0
     if [ "$1" = "stop" ]; then exit 0;
     else exit 5; fi; }
 
-# Source lsb functions 
+# Source lsb functions
 if [ -f /lib/lsb/init-functions ]
 then
     . /lib/lsb/init-functions
@@ -70,23 +69,10 @@ p_success() {
     fi
 }
 
-set_lock() {
-    if [ "$1" = 1 ]; then
-	touch $LOCKFILE
-    else
-	rm -f $LOCKFILE 2>/dev/null
-    fi
-}
-
 is_running() {
     PID=`pidof $PSID`
-    if [ -z "$PID" ] && [ -f $LOCKFILE ]; then
-	set_lock 0
+    if [ -z "$PID" ]; then
 	return 1;
-    fi
-
-    if [ -z "$PID" ] && [ ! -f $LOCKFILE ]; then
-	return 1; 
     else
 	return 0;
     fi
@@ -99,7 +85,7 @@ stop_daemon() {
 	PID=`pidof $PSID`
 	cnt=0
 	while [ ! -z "$PID" ]; do
-	    cnt=$(expr $cnt + 1) 	    
+	    cnt=$(expr $cnt + 1)
 	    if [ $cnt -gt 30 ]; then
 		killall -9 $PSID 2>/dev/null
 		sleep 1
@@ -116,13 +102,13 @@ stop_daemon() {
 	done
 	return 1
     else
-	return 0	
+	return 0
     fi
 }
 
 start() {
     is_running && {
-	p_warn "$PSIDNAME already running." 
+	p_warn "$PSIDNAME already running."
 	exit 0
     }
 
@@ -130,26 +116,24 @@ start() {
     $PSID
     RETVAL=$?
     if [ $RETVAL -eq 0 ]; then
-	set_lock 1
 	p_success "started."
     else
 	echo
     fi
     return $RETVAL
-}	
+}
 
 stop() {
     is_running || {
 	p_warn "$PSIDNAME already stopped."
 	exit 0
     }
-    
+
     echo -n "Stopping ${DESC}: "
     if stop_daemon; then
 	p_error " failed."
 	exit 1
     else
-	set_lock 0
 	p_success " stopped."
     fi
 }
@@ -161,7 +145,7 @@ restart() {
 	p_warn "$PSIDNAME not running."
     fi
     start
-}	
+}
 
 status() {
     PID=`pidof $PSID`
@@ -186,7 +170,7 @@ case "$1" in
 	restart
 	;;
     condrestart)
-	[ -f $LOCKFILE ] && restart || :
+	is_running && restart || :
 	;;
     *)
 	echo $"Usage: $0 {start|stop|restart|status|condrestart|force-reload}"
@@ -194,4 +178,3 @@ case "$1" in
 esac
 
 exit $?
-
