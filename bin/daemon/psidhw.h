@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2006-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -46,26 +46,13 @@ void initHW(void);
  * source code.
  *
  * The actual initialization of the various hardware types defined is
- * done via calls to the PSID_startHW() function.
+ * done via calls to the internal switchHW() function.
  *
  * @return No return value.
  *
- * @see PSID_readConfigFile(), PSID_startHW()
+ * @see PSID_readConfigFile()
  */
 void PSID_startAllHW(void);
-
-/**
- * @brief Init distinct communciation hardware.
- *
- * Initialize the distinct communication hardware @a hw. @a hw is a
- * unique number describing the hardware and is defined from the
- * configuration file.
- *
- * @param hw A unique number of the communication hardware to start.
- *
- * @return No return value.
- */
-void PSID_startHW(int hw);
 
 /**
  * @brief Stop all communication hardware.
@@ -77,62 +64,44 @@ void PSID_startHW(int hw);
  * details take a look on the source code.
  *
  * The actual stopping of the various hardware types defined is done
- * via calls to the PSID_stopHW() function.
+ * via calls to the internal switchHW() function.
  *
  * @return No return value.
  *
- * @see PSID_readConfigFile(), PSID_stopHW()
+ * @see PSID_readConfigFile()
  */
 void PSID_stopAllHW(void);
 
 /**
- * @brief Stop distinct communciation hardware.
- *
- * Stop and bring down the distinct communication hardware @a hw. @a
- * hw is a unique number describing the hardware and is defined from
- * the configuration file.
- *
- * @param hw A unique number of the communication hardware to start.
- *
- * @return No return value.
- */
-void PSID_stopHW(int hw);
-
-/**
  * @brief Get hardware counters.
  *
- * Read out the hardware counters of the hardware @a hw. The value of
- * the counter is determined via calling the script registered to this
- * hardware. The output of this script is stored to the buffer @a buf
- * with size @a size.
+ * Read out the hardware counters of the hardware corresponding to the
+ * information in the requesting message @a inmsg. The value of the
+ * counter is determined via calling the script registered to this
+ * hardware. The answering message is created within the script's
+ * callback-function and sent back to the requester.
  *
- * Depending on the value of @a header, either a header line
+ * Depending on the type-value of @a insmsg, either a header line
  * describing the different values of the counter line is created (@a
- * header = 1) or the actual counter line is generated.
+ * type = PSP_INFO_COUNTHEADER) or the actual counter line is
+ * generated.
  *
- * @param hw The hardware type of the counters to read out.
- *
- * @param buf The buffer to store the headerline to.
- *
- * @param size The actual size of @a buf.
- *
- * @param header Flag marking, if a headerline or a counterline should
- * be generated.
+ * @param insmsg The requesting message containig the hardwre, the
+ * actual type of information, the requester, etc.
  *
  * @return No return value.
  */
-void PSID_getCounter(int hw, char *buf, size_t size, int header);
+void PSID_getCounter(DDTypedBufferMsg_t *inmsg);
 
 /**
  * @brief Set hardware parameter.
  *
- * Set parameter described by @a option of the hardware @a hw to @a value.
+ * This function is actually doing nothing.
  *
- * @param hw The hardware type the parameter is connected to.
+ * @warning Deprecated. Was used for Myrinet-support within
+ * ParaStation 3. Don't use this.
  *
- * @param option The hardware parameter to be set.
- *
- * @param value The value to be set.
+ * @deprecated Was used for Myrinet-support within ParaStation 3.
  *
  * @return No return value.
  */
@@ -141,14 +110,12 @@ void PSID_setParam(int hw, PSP_Option_t option, PSP_Optval_t value);
 /**
  * @brief Get hardware parameter.
  *
- * Read out the parameter described by @a option of the hardware @a hw.
+ * @warning Deprecated. Was used for Myrinet-support within
+ * ParaStation 3. Don't use this.
  *
- * @param hw The hardware type the parameter is connected to.
+ * @deprecated Was used for Myrinet-support within ParaStation 3.
  *
- * @param option The hardware parameter to be read out.
- *
- * @return If no error occurred, the value of the parameter to read
- * out is returned. Otherwise -1 is returned.
+ * @return Will always return -1.
  */
 PSP_Optval_t PSID_getParam(int hw, PSP_Option_t option);
 

@@ -20,6 +20,7 @@ static char vcid[] __attribute__((used)) =
 #include <sys/wait.h>
 
 #include "hardware.h"
+#include "selector.h"
 
 #include "pscommon.h"
 #include "psprotocol.h"
@@ -30,252 +31,138 @@ static char vcid[] __attribute__((used)) =
 
 #include "psidhw.h"
 
-/**
- * @brief Write complete buffer.
- *
- * Write the complete buffer @a buf of size @a count to the file
- * descriptor @a fd. Even if one or more trials to write to @a fd
- * fails due to e.g. timeouts, further writing attempts are made until
- * either a fatal error occurred or the whole buffer is sent.
- *
- * @param fd The file descriptor to send the buffer to.
- *
- * @param buf The buffer to send.
- *
- * @param count The number of bytes within @a buf to send.
- *
- * @return Upon success the number of bytes sent is returned,
- * i.e. usually this is @a count. Otherwise -1 is returned.
- */
-static size_t writeall(int fd, const void *buf, size_t count)
-{
-    int len;
-    char *cbuf = (char *)buf;
-    size_t c = count;
-
-    while (c > 0) {
-	len = write(fd, cbuf, c);
-	if (len < 0) {
-	    if ((errno == EINTR) || (errno == EAGAIN))
-		continue;
-	    else
-		return -1;
-	}
-	c -= len;
-	cbuf += len;
-    }
-
-    return count;
-}
+/** Info to be passed to @ref prepSwitchEnv() and @ref switchHWCB(). */
+typedef struct {
+    int hw;    /**< Hardware-type to prepare for. */
+    int on;    /**< Switch-mode, i.e. on (1) or off (0). */
+} switchInfo_t;
 
 /**
- * @brief Read complete buffer.
+ * @brief Prepare for switch-scripts
  *
- * Read the complete buffer @a buf of size @a count from the file
- * descriptor @a fd. Even if one or more trials to read to @a fd fails
- * due to e.g. timeouts, further reading attempts are made until
- * either a fatal error occurred, an EOF is received or the whole
- * buffer is read.
+ * Prepare the environment for executing switchHW scripts. @a info
+ * contains extra-information packed into a @ref switchInfo_t
+ * structure.
  *
- * @param fd The file descriptor to read the buffer from.
+ * @param info Extra information within a @ref switchInfo_t structure.
  *
- * @param buf The buffer to read.
- *
- * @param count The maximum number of bytes to read.
- *
- * @return Upon success the number of bytes read is returned,
- * i.e. usually this is @a count if no EOF occurred. Otherwise -1 is
- * returned.
+ * @return Always return 0.
  */
-static size_t readall(int fd, void *buf, size_t count)
+static int prepSwitchEnv(void *info)
 {
-    int len;
-    char *cbuf = (char *)buf;
-    size_t c = count;
+    int hw = -1;
 
-    while (c > 0) {
-	len = read(fd, cbuf, c);
-	if (len < 0) {
-	    if ((errno == EINTR) || (errno == EAGAIN))
-		continue;
-	    else
-		return -1;
-	} else if (len == 0) {
-	    return count-c;
-	}
-	c -= len;
-	cbuf += len;
+    if (info) {
+	switchInfo_t *i = (switchInfo_t *)info;
+	hw = i->hw;
     }
 
-    return count;
-}
-
-static char scriptOut[1024];  /**< String for output from @ref callScript() */
-
-
-/**
- * @brief Call a script.
- *
- * Call the script named @a script using the environment defined for
- * the hardware @a hw. In order to do so, a new process is fork(2)ed
- * which then will run the script using the system(3) call.
- *
- * The output of the script will be collected and stored within the
- * string @ref scriptOut.
- *
- * @param hw The hardware whose environment should be used when
- * calling the script.
- *
- * @param script The actual script to call.
- *
- * @return If an error occures, -1 is returned. Otherwise the script's
- * return value is returned, which also might be -1.
- */
-static int callScript(int hw, char *script)
-{
-    int controlfds[2], iofds[2];
-    int ret, result;
-    pid_t pid;
-
-    /* Don't SEGFAULT */
-    if (!script) {
-	snprintf(scriptOut, sizeof(scriptOut), "%s: script=NULL\n", __func__);
-	return -1;
-    }
-
-    /* create a control channel in order to observe the script */
-    if (pipe(controlfds)<0) {
-	char *errstr = strerror(errno);
-	snprintf(scriptOut, sizeof(scriptOut), "%s: pipe(): %s\n",
-		 __func__, errstr ? errstr : "UNKNOWN");
-
-	return -1;
-    }
-
-    /* create a io channel in order to get script's output */
-    if (pipe(iofds)<0) {
-	char *errstr = strerror(errno);
-	snprintf(scriptOut, sizeof(scriptOut), "%s: pipe(): %s\n",
-		 __func__, errstr ? errstr : "UNKNOWN");
-
-	return -1;
-    }
-
-    if (!(pid=fork())) {
-	/* This part calls the script and returns results to the parent */
-	int i, fd;
-	char *command;
+    if (hw > -1) {
+	/* Put the hardware's environment into the real one */
+	int i;
 	char buf[20];
 
-	for (fd=0; fd<getdtablesize(); fd++) {
-	    if (fd != controlfds[1] && fd != iofds[1]) close(fd);
-	}
-
-	/* Put the hardware's environment into the real one */
-	for (i=0; i<HW_getEnvSize(hw); i++) {
-	    putenv(HW_dumpEnv(hw, i));
-	}
-
-	snprintf(buf, sizeof(buf), "%d", PSC_getMyID());
-	setenv("PS_ID", buf, 1);
-
-	setenv("PS_INSTALLDIR", PSC_lookupInstalldir(NULL), 1);
-
-	while (*script==' ' || *script=='\t') script++;
-	if (*script != '/') {
-	    char *dir = PSC_lookupInstalldir(NULL);
-
-	    if (!dir) dir = "";
-
-	    command = PSC_concat(dir, "/", script, NULL);
-	} else {
-	    command = strdup(script);
-	}
-
-	/* redirect stdout and stderr */
-	dup2(iofds[1], STDOUT_FILENO);
-	dup2(iofds[1], STDERR_FILENO);
-	close(iofds[1]);
-
-	{
-	    char *dir = PSC_lookupInstalldir(NULL);
-
-	    if (dir && (chdir(dir)<0)) {
-		fprintf(stderr, "%s: cannot change to directory '%s'",
-			__func__, dir);
-		exit(0);
-	    }
-	}
-
-	ret = system(command);
-
-	/* Send results to controlling daemon */
-	if (ret < 0) {
-	    fprintf(stderr, "%s: system(%s) failed : %s",
-		    __func__, command, strerror(errno));
-	} else {
-	    ret = WEXITSTATUS(ret);
-	}
-	writeall(controlfds[1], &ret, sizeof(ret));
-
-	free(command);
-	exit(0);
+	for (i=0; i<HW_getEnvSize(hw); i++) putenv(HW_dumpEnv(hw, i));
     }
 
-    /* This part receives results from the script */
+    snprintf(buf, sizeof(buf), "%d", PSC_getMyID());
+    setenv("PS_ID", buf, 1);
 
-    /* save errno in case of error */
-    ret = errno;
+    setenv("PS_INSTALLDIR", PSC_lookupInstalldir(NULL), 1);
 
-    close(controlfds[1]);
-    close(iofds[1]);
-
-    /* check if fork() was successful */
-    if (pid == -1) {
-	char *errstr = strerror(ret);
-
-	close(controlfds[0]);
-	close(iofds[0]);
-
-	snprintf(scriptOut, sizeof(scriptOut), "%s: fork(): %s\n",
-		 __func__, errstr ? errstr : "UNKNOWN");
-
-	return -1;
-    }
-
-    ret = readall(iofds[0], scriptOut, sizeof(scriptOut));
-    /* Discard further output */
-    close(iofds[0]);
-
-    if (ret == sizeof(scriptOut)) {
-	strcpy(&scriptOut[sizeof(scriptOut)-4], "...");
-    } else if (ret<0) {
-	snprintf(scriptOut, sizeof(scriptOut),
-		 "%s: read(iofd) failed : %s", __func__, strerror(errno));
-	return -1;
-    } else {
-	scriptOut[ret]='\0';
-    }
-
-    ret = readall(controlfds[0], &result, sizeof(result));
-    close(controlfds[0]);
-
-    if (!ret) {
-	/* control channel closed without telling result of system() call. */
-	snprintf(scriptOut, sizeof(scriptOut), "%s: no answer\n", __func__);
-	return -1;
-    } else if (ret<0) {
-	snprintf(scriptOut, sizeof(scriptOut),
-		 "%s: read(controlfd) failed : %s", __func__, strerror(errno));
-	return -1;
-    }
-
-    return result;
+    return 0;
 }
 
-void PSID_startHW(int hw)
+/**
+ * @brief Callback for switch-scripts
+ *
+ * Callback used by switchHW scripts. @a fd is the file-descriptor
+ * containing the exit-status of the script. @a info contains
+ * extra-information packed into a @ref switchInfo_t structure.
+ *
+ * @param fd File-descriptor containing script's exit-status.
+ *
+ * @param info Extra information within a @ref switchInfo_t structure.
+ *
+ * @return Always return 0.
+ */
+static int switchHWCB(int fd, PSID_scriptCBInfo_t *info)
 {
-    char *script = HW_getScript(hw, HW_STARTER);
+    int result, hw = -1, iofd = -1, on = 0;
+    char *hwName, *hwScript;
+
+    if (!info) {
+	PSID_log(-1, "%s: No extra info\n", __func__);
+    } else {
+	if (info->info) {
+	    switchInfo_t *i = (switchInfo_t *)info->info;
+	    hw = i->hw;
+	    on = i->on;
+	    free(info->info);
+	}
+	iofd = info->iofd;
+	free(info);
+    }
+    if (hw > -1) {
+	hwName = HW_name(hw);
+	hwScript = HW_getScript(hw, on ? HW_STARTER : HW_STOPPER);
+    } else {
+	hwName = hwScript = "unknown";
+    }
+
+    PSID_readall(fd, &result, sizeof(result));
+    close(fd);
+    if (result) {
+	char line[128] = "<not connected>";
+	if (iofd > -1) {
+	    int num = PSID_readall(iofd, line, sizeof(line));
+	    int eno = errno;
+	    close(iofd); /* Discard further output */
+	    if (num < 0) {
+		PSID_warn(-1, eno, "%s: read(iofd)", __func__);
+		line[0] = '\0';
+	    } else if (num == sizeof(line)) {
+		strcpy(&line[sizeof(line)-4], "...");
+	    } else {
+		line[num]='\0';
+	    }
+	}
+	PSID_log(-1, "%s: script(%s, %s) returned %d: '%s'\n", __func__,
+		 hwName, hwScript, result, line);
+    } else if (hw > -1) {
+	unsigned int status = PSIDnodes_getHWStatus(PSC_getMyID());
+	PSID_log(PSID_LOG_HW, "%s: script(%s, %s): success\n", __func__,
+		 hwName, hwScript);
+	if (on) {
+	    PSIDnodes_setHWStatus(PSC_getMyID(), status | (1<<hw));
+	} else {
+	    PSIDnodes_setHWStatus(PSC_getMyID(), status & ~(1<<hw));
+	}
+    }
+
+    Selector_remove(fd);
+
+    return 0;
+}
+
+/**
+ * @brief Switch distinct communciation hardware.
+ *
+ * Switch the distinct communication hardware @a hw on or off
+ * depending on the value of @a on. @a hw is a unique number
+ * describing the hardware and is defined from the configuration
+ * file. If the flag @a on is different from 0, the hardware is
+ * switched on. Otherwise it's switched off.
+ *
+ * @param hw A unique number of the communication hardware to start.
+ *
+ * @param on Flag marking the hardware to be brought up or down.
+ *
+ * @return No return value.
+ */
+static void switchHW(int hw, int on)
+{
+    char *script = HW_getScript(hw, on ? HW_STARTER : HW_STOPPER);
 
     if (hw<0 || hw>HW_num()) {
 	PSID_log(-1, "%s: hw = %d out of range\n", __func__, hw);
@@ -283,28 +170,29 @@ void PSID_startHW(int hw)
     }
 
     if (script) {
-	int res = callScript(hw, script);
+	switchInfo_t *info = malloc(sizeof(*info));
+	if (!info) {
+	    PSID_warn(-1, errno, "%s: malloc()", __func__);
+	    return;
+	}
+	info->hw = hw;
+	info->on = on;
 
-	if (res) {
-	    PSID_log(-1, "%s: callScript(%s, %s) returned %d: %s\n",
-		     __func__, HW_name(hw), script, res, scriptOut);
-	} else {
-	    unsigned int status = PSIDnodes_getHWStatus(PSC_getMyID());
-
-	    PSID_log(PSID_LOG_HW, "%s: callScript(%s, %s): success\n",
-		     __func__, HW_name(hw), script);
-
-	    PSIDnodes_setHWStatus(PSC_getMyID(), status | (1<<hw));
-
+	if (PSID_execScript(script, prepSwitchEnv, switchHWCB, info)) {
+	    PSID_log(-1, "%s: Failed to execute '%s' for hw '%s'\n",
+		     __func__, script, HW_name(hw));
 	}
     } else {
-	/* No script, assume HW runs already */
+	/* No script, assume HW is switched anyhow */
 	unsigned int status = PSIDnodes_getHWStatus(PSC_getMyID());
 
-	PSID_log(PSID_LOG_HW, "%s: assume %s already up\n",
-		 __func__, HW_name(hw));
-
-	PSIDnodes_setHWStatus(PSC_getMyID(), status | (1<<hw));
+	PSID_log(PSID_LOG_HW, "%s: assume %s already %s\n",
+		 __func__, HW_name(hw), on ? "up" : "down");
+	if (on) {
+	    PSIDnodes_setHWStatus(PSC_getMyID(), status | (1<<hw));
+	} else {
+	    PSIDnodes_setHWStatus(PSC_getMyID(), status & ~(1<<hw));
+	}
     }
 }
 
@@ -312,42 +200,7 @@ void PSID_startAllHW(void)
 {
     int hw;
     for (hw=0; hw<HW_num(); hw++) {
-	if (PSIDnodes_getHWType(PSC_getMyID()) & (1<<hw)) PSID_startHW(hw);
-    }
-}
-
-void PSID_stopHW(int hw)
-{
-    char *script = HW_getScript(hw, HW_STOPPER);
-
-    if (hw<0 || hw>HW_num()) {
-	PSID_log(-1, "%s: hw = %d out of range\n", __func__, hw);
-	return;
-    }
-
-    if (script) {
-	int res = callScript(hw, script);
-
-	if (res) {
-	    PSID_log(-1, "%s: callScript(%s, %s) returned %d: %s\n",
-		     __func__, HW_name(hw), script, res, scriptOut);
-	} else {
-	    unsigned int status = PSIDnodes_getHWStatus(PSC_getMyID());
-
-	    PSID_log(PSID_LOG_HW, "%s: callScript(%s, %s): success\n",
-		     __func__, HW_name(hw), script);
-
-	    PSIDnodes_setHWStatus(PSC_getMyID(), status & ~(1<<hw));
-
-	}
-    } else {
-	/* No script, assume HW does not run any more */
-	unsigned int status = PSIDnodes_getHWStatus(PSC_getMyID());
-
-	PSID_log(PSID_LOG_HW, "%s: assume %s already down\n",
-		 __func__, HW_name(hw));
-
-	PSIDnodes_setHWStatus(PSC_getMyID(), status & ~(1<<hw));
+	if (PSIDnodes_getHWType(PSC_getMyID()) & (1<<hw)) switchHW(hw, 1);
     }
 }
 
@@ -355,124 +208,200 @@ void PSID_stopAllHW(void)
 {
     int hw;
     for (hw=HW_num()-1; hw>=0; hw--) {
-	if (PSIDnodes_getHWStatus(PSC_getMyID()) & (1<<hw)) PSID_stopHW(hw);
+	if (PSIDnodes_getHWStatus(PSC_getMyID()) & (1<<hw)) switchHW(hw, 0);
     }
 }
 
-void PSID_getCounter(int hw, char *buf, size_t size, int header)
+/**
+ * @brief Prepare for counter-scripts
+ *
+ * Prepare the environment for executing getCounter scripts. @a info
+ * contains extra-information in a @ref DDTypedBufferMsg_t
+ * structure, actually the original message requesting counter
+ * information.
+ *
+ * @param info Extra information within a @ref DDTypedBufferMsg_t
+ * structure.
+ *
+ * @return Always return 0.
+ */
+static int prepCounterEnv(void *info)
 {
-    if (!buf) return;
+    int hw = -1;
+
+    if (info) {
+	DDTypedBufferMsg_t *inmsg = info;
+	hw = *(int *) inmsg->buf;
+    }
+
+    if (hw > -1) {
+	/* Put the hardware's environment into the real one */
+	int i;
+	char buf[20];
+
+	for (i=0; i<HW_getEnvSize(hw); i++) putenv(HW_dumpEnv(hw, i));
+
+	snprintf(buf, sizeof(buf), "%d", PSC_getMyID());
+	setenv("PS_ID", buf, 1);
+
+	setenv("PS_INSTALLDIR", PSC_lookupInstalldir(NULL), 1);
+    }
+
+    return 0;
+}
+
+/**
+ * @brief Callback for counter-scripts
+ *
+ * Callback used by getCounter scripts. @a fd is the file-descriptor
+ * containing the exit-status of the script. @a info contains
+ * extra-information in a @ref DDTypedBufferMsg_t structure, actually
+ * the original message requesting counter information.
+ *
+ * @param fd File-descriptor containing script's exit-status.
+ *
+ * @param info Extra information within a @ref DDTypedBufferMsg_t
+ * structure.
+ *
+ * @return Always return 0.
+ */
+static int getCounterCB(int fd, PSID_scriptCBInfo_t *info)
+{
+    PStask_ID_t dest = 0;
+    PSP_Info_t type = 0;
+    int result, hw = -1, iofd = -1, num, eno = 0;
+    char *hwName, *hwScript;
+    DDTypedBufferMsg_t msg;
+
+    if (!info) {
+	PSID_log(-1, "%s: No extra info\n", __func__);
+    } else {
+	if (info->info) {
+	    DDTypedBufferMsg_t *inmsg = info->info;
+	    hw = *(int *) inmsg->buf;
+	    dest = inmsg->header.sender;
+	    type = inmsg->type;
+	    free(info->info);
+	}
+	iofd = info->iofd;
+	free(info);
+    }
+    if (hw > -1) {
+	int header = type == PSP_INFO_COUNTHEADER;
+	hwName = HW_name(hw);
+	hwScript = HW_getScript(hw, header ? HW_HEADERLINE : HW_COUNTER);
+	if (!hwScript) hwScript = "unknown";
+    } else {
+	hwName = hwScript = "unknown";
+    }
+
+    msg = (DDTypedBufferMsg_t) {
+	.header = { .type = PSP_CD_INFORESPONSE,
+		    .sender = PSC_getMyTID(),
+		    .dest = dest,
+		    .len = sizeof(msg.header) + sizeof(msg.type) },
+	.type = type,
+	.buf = { 0 } };
+
+    PSID_readall(fd, &result, sizeof(result));
+    close(fd);
+    if (iofd == -1) {
+	PSID_log(-1, "%s: %s\n", __func__, msg.buf);
+	num = snprintf(msg.buf, sizeof(msg.buf), "<not connected>");
+    } else {
+	num = PSID_readall(iofd, msg.buf, sizeof(msg.buf));
+	eno = errno;
+	close(iofd); /* Discard further output */
+    }
+    if (num < 0) {
+	PSID_warn(-1, eno, "%s: read(iofd)", __func__);
+	num = snprintf(msg.buf, sizeof(msg.buf),
+		       "%s: read(iofd) failed\n", __func__) + 1;
+    } else if (num == sizeof(msg.buf)) {
+	strcpy(&msg.buf[sizeof(msg.buf)-4], "...");
+    } else {
+	msg.buf[num]='\0';
+	num++;
+    }
+    msg.header.len += num;
+
+    if (result) {
+	PSID_log(-1, "%s: script(%s, %s) returned %d: %s\n",
+		 __func__, hwName, hwScript, result, msg.buf);
+    } else {
+	PSID_log(PSID_LOG_HW, "%s: callScript(%s, %s): success\n",
+		 __func__, hwName, hwScript);
+    }
+
+    if (dest) sendMsg(&msg);
+
+    Selector_remove(fd);
+
+    return 0;
+}
+
+void PSID_getCounter(DDTypedBufferMsg_t *inmsg)
+{
+    int hw = *(int *) inmsg->buf;
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_INFORESPONSE,
+	    .sender = PSC_getMyTID(),
+	    .dest = inmsg->header.sender,
+	    .len = sizeof(msg.header) + sizeof(msg.type) },
+	.type = inmsg->type,
+	.buf = { 0 } };
 
     if (PSIDnodes_getHWStatus(PSC_getMyID()) & (1<<hw)) {
+	int header = (PSP_Info_t) inmsg->type == PSP_INFO_COUNTHEADER;
 	char *script = HW_getScript(hw, header ? HW_HEADERLINE : HW_COUNTER);
 
 	if (script) {
-	    int res = callScript(hw, script);
+	    DDTypedBufferMsg_t *info = malloc(inmsg->header.len);
 
-	    if (res) {
-		PSID_log(-1, "%s: callScript(%s, %s) returned %d: %s\n",
-			 __func__, HW_name(hw), script, res, scriptOut);
-		snprintf(buf, size, "%s: callScript(%s, %s) returned %d: %s",
-			 __func__, HW_name(hw), script, res, scriptOut);
+	    if (!info) {
+		PSID_warn(-1, errno, "%s: malloc()", __func__);
+		return;
+	    }
+	    memcpy(info, inmsg, inmsg->header.len);
+
+	    if (PSID_execScript(script, prepCounterEnv, getCounterCB, info)) {
+		PSID_log(PSID_LOG_HW,
+			 "%s: Failed to execute '%s' for hw '%s'\n",
+			 __func__, script, HW_name(hw));
+		snprintf(msg.buf, sizeof(msg.buf),
+			 "%s: Failed to execute '%s' for hw '%s'\n",
+			 __func__, script, HW_name(hw));
 	    } else {
-		PSID_log(PSID_LOG_HW, "%s: callScript(%s, %s): success\n",
-			 __func__, HW_name(hw), script);
-		strncpy(buf, scriptOut, size);
+		/* answer created within callback */
+		return;
 	    }
 	} else {
 	    /* No script, cannot get counter */
 	    PSID_log(PSID_LOG_HW, "%s: no %s-script for %s available\n",
 		     __func__, header ? "header" : "counter", HW_name(hw));
-	    snprintf(buf, size, "%s: no %s-script for %s available",
-		     __func__, header ? "header" : "counter", HW_name(hw));
+	    snprintf(msg.buf, sizeof(msg.buf),
+		     "%s: no %s-script for %s available", __func__,
+		     header ? "header" : "counter", HW_name(hw));
 	}
     } else {
 	/* No HW, cannot get counter */
 	PSID_log(-1, "%s: no %s hardware available\n", __func__, HW_name(hw));
-	snprintf(buf, size, "%s: no %s hardware available",
+	snprintf(msg.buf, sizeof(msg.buf), "%s: no %s hardware available",
 		 __func__, HW_name(hw));
     }
+
+    sendMsg(&msg);
 }
 
 void PSID_setParam(int hw, PSP_Option_t type, PSP_Optval_t value)
 {
-    char *script = NULL, *option = NULL;
-
-    if (hw == -1) return;
-
-    if (hw == HW_index("myrinet")) {
-	script = HW_getScript(hw, HW_SETUP);
-	if (script) {
-	    switch (type) {
-	    case PSP_OP_PSM_SPS:
-		option = "-p 0";
-		break;
-	    case PSP_OP_PSM_RTO:
-		option = "-p 1";
-		break;
-	    case PSP_OP_PSM_HNPEND:
-		option = "-p 4";
-		break;
-	    case PSP_OP_PSM_ACKPEND:
-		option = "-p 5";
-		break;
-	    default:
-		break;
-	    }
-	}
-    }
-
-    if (script && option) {
-	char command[128];
-
-	snprintf(command, sizeof(command), "%s %s %d", script, option, value);
-	callScript(hw, command);
-    }
+    return;
 }
 
 PSP_Optval_t PSID_getParam(int hw, PSP_Option_t type)
 {
-    char *script = NULL, *option = NULL;
-
-    if (hw == -1) return -1;
-
-    if (hw == HW_index("myrinet")) {
-	script = HW_getScript(hw, HW_SETUP);
-	if (script) {
-	    switch (type) {
-	    case PSP_OP_PSM_SPS:
-		option=" -qp | grep SPS | tr -s ' ' | cut -d ' ' -f4";
-		break;
-	    case PSP_OP_PSM_RTO:
-		option=" -qp | grep RTO | tr -s ' ' | cut -d ' ' -f4";
-		break;
-	    case PSP_OP_PSM_HNPEND:
-		option=" -qp | grep HNPEND | tr -s ' ' | cut -d ' ' -f4";
-		break;
-	    case PSP_OP_PSM_ACKPEND:
-		option=" -qp | grep ACKPEND | tr -s ' ' | cut -d ' ' -f4";
-		break;
-	    default:
-		break;
-	    }
-	}
-    }
-
-    if (script && option) {
-	char command[128], *end;
-	PSP_Optval_t val;
-
-	snprintf(command, sizeof(command), "%s %s", script, option);
-	callScript(hw, command);
-
-	val = strtol(scriptOut, &end, 10);
-	while (*end == ' ' || *end == '\t' || *end == '\n') end++;
-	if (*end != '\0') val = -1;
-
-	return val;
-    } else {
-	return -1;
-    }
+    return -1;
 }
 
 /**
@@ -530,7 +459,7 @@ static void msg_HWSTART(DDBufferMsg_t *msg)
 	if (hw == -1) {
 	    PSID_startAllHW();
 	} else {
-	    PSID_startHW(hw);
+	    switchHW(hw, 1);
 	}
 	if (oldStat != PSIDnodes_getHWStatus(PSC_getMyID()))
 	    informOtherNodes();
@@ -565,7 +494,7 @@ static void msg_HWSTOP(DDBufferMsg_t *msg)
 	if (hw == -1) {
 	    PSID_stopAllHW();
 	} else {
-	    PSID_stopHW(hw);
+	    switchHW(hw, 0);
 	}
 	if (oldStat != PSIDnodes_getHWStatus(PSC_getMyID()))
 	    informOtherNodes();
@@ -579,5 +508,5 @@ void initHW(void)
     PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
 
     PSID_registerMsg(PSP_CD_HWSTART, msg_HWSTART);
-    PSID_registerMsg(PSP_CD_HWSTOP,msg_HWSTOP );
+    PSID_registerMsg(PSP_CD_HWSTOP, msg_HWSTOP);
 }

@@ -245,13 +245,15 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	    if (FD_ISSET(selector->fd, &rfds) && selector->selectHandler) {
 		/* Got message on handled fd */
 		int ret = selector->selectHandler(selector->fd, selector->info);
+		int sfd = selector->fd; /* store this since selector might get
+					   removed within handler */
 		switch (ret) {
 		case -1:
 		    retval = -1;
 		    break;
 		case 0:
 		    retval--;
-		    FD_CLR(selector->fd, &rfds);
+		    FD_CLR(sfd, &rfds);
 		    break;
 		case 1:
 		    break;

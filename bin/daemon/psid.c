@@ -689,6 +689,7 @@ int main(int argc, const char *argv[])
     /* initialize various modules */
     initComm();  /* This has to be first since it gives msgHandler hash */
 
+    if (!Selector_isInitialized()) Selector_init(logfile);
     initClients();
     initState();
     initOptions();

@@ -59,7 +59,6 @@ extern char psid_cvsid[];
 static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 {
     int destID = PSC_getID(inmsg->header.dest);
-    int header = 0;
     char funcStr[80];
 
     PSID_log(PSID_LOG_INFO, "%s: type %s for %d from requester %s\n",
@@ -148,7 +147,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    .buf = { 0 } };
 	int err=0;
 
-	switch((PSP_Info_t) inmsg->type){
+	switch((PSP_Info_t) inmsg->type) {
 	case PSP_INFO_LIST_TASKS:
 	    if (PSC_getPID(inmsg->header.dest)) {
 		/* request info for a special task */
@@ -228,20 +227,10 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    break;
 	}
 	case PSP_INFO_COUNTHEADER:
-	    header = 1;
 	case PSP_INFO_COUNTSTATUS:
-	{
-	    int hw = *(int *) inmsg->buf;
-
-	    *msg.buf = '\0';
-	    if (PSIDnodes_getHWStatus(PSC_getMyID()) & (1<<hw)) {
-		PSID_getCounter(hw, msg.buf, sizeof(msg.buf), header);
-	    } else {
-		snprintf(msg.buf, sizeof(msg.buf), "Not available");
-	    }
-	    msg.header.len += strlen(msg.buf) + 1;
+	    PSID_getCounter(inmsg);
+	    return;
 	    break;
-	}
 	case PSP_INFO_RDPSTATUS:
 	    getStateInfoRDP(*(PSnodes_ID_t *) inmsg->buf,
 			    msg.buf, sizeof(msg.buf));
