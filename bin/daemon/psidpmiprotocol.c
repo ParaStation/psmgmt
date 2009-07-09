@@ -1404,6 +1404,8 @@ void pmi_handleKvsRet(PSLog_Msg_t *msg)
 	    /* no daisy chain */
 	    useDaisyChain = 0;
 	}
+	/* Forward msg from logger to client */
+	PMI_send(msg->buf);
     } else if (!strcmp(cmd, "daisy_barrier_in")) {
 	p_Daisy_Barrier_In(cmd);
     } else {
