@@ -37,7 +37,7 @@ TMPTEMPLATE="/tmp/pshout.XXXXXX"
 #fi
 
 #############################
-# create a default template 
+# create a default template
 if [ ! -e "${D_CONFIG}" ] ; then
     read -n 1 -p "Create ${D_CONFIG} [y/N]? " q
     echo
@@ -71,7 +71,7 @@ fi
 tmp=$(hostname -s)
 if [ -e "${D_CONFIG_D}/${tmp}" ] ; then
     D_CONFIG=${D_CONFIG_D}/${tmp}
-else 
+else
     tmp=${tmp//[0-9]/}
     if [ -e "${D_CONFIG_D}/${tmp}" ] ; then
 	D_CONFIG=${D_CONFIG_D}/${tmp}
@@ -88,9 +88,9 @@ Usage: psh [OPTION]... command
        psh [OPTION]... -sync dirname...
 
 Options:
-   -g|-group {group}      : Use group defined in $D_CONFIG_D 
+   -g|-group {group}      : Use group defined in $D_CONFIG_D
                             (default "default")
-   -c|-configfile {cfile} : Set configuration file 
+   -c|-configfile {cfile} : Set configuration file
                             (default "$D_CONFIG").
    -n|-node {node,...}    : Append {node} to nodelist.
    -x|-xnode {node,...}   : Exclude {node} from nodelist.
@@ -98,7 +98,7 @@ Options:
    -rcmd {rcmd}           : set remote shell (default "$D_RCMD").
    -max {nmax}            : dont start more than {nmax} remote shells
                             at the same time (default $D_MAXRCMD).
-   -diff {cmd}            : Program which compares the outputs 
+   -diff {cmd}            : Program which compares the outputs
                             (default "$D_DIFFCMD")
    -autocd                : remote dir (default "cd \${PWD/\${HOME}/~};")
                             use -autocd "" to disable autocd.
@@ -115,7 +115,7 @@ function parse()
             CONFIG="${CONFIG_D}/$2"
 	    nopts=2
 	    ;;
-	-c|${prearg}configfile) 
+	-c|${prearg}configfile)
 	    CONFIG="$2"
 	    nopts=2
 	    ;;
@@ -189,7 +189,7 @@ function SingleNameExpand()
 	local prefix
 	local rangelist
 	local suffix
-#	local rangefrom 		# required if using printf with $format
+#	local rangefrom		# required if using printf with $format
 #	local rangeto
 #	local -i width
 #	local format
@@ -198,23 +198,23 @@ function SingleNameExpand()
 	local -i gwidth=${2:-0}
 	local range
 
-	prefix=${1%%\[*\]*}; 
-	rangelist=${1##$prefix}; 
-	suffix=${rangelist#*\]}; 
+	prefix=${1%%\[*\]*};
+	rangelist=${1##$prefix};
+	suffix=${rangelist#*\]};
 	rangelist=${rangelist%"$suffix"};
 	rangelist=${rangelist/\[/}
 	rangelist=${rangelist/\]/}
 	[[ $range =~ [^0-9-] ]] && return 1
-#	rangefrom=${rangelist%-*}; 	# required if using printf with $format
+#	rangefrom=${rangelist%-*};	# required if using printf with $format
 #	rangeto=${rangelist#*-};
 #	width=${#rangefrom}
 
 #	Empty prefix is allowed, return a list of numbers (ids)
 #	[ -z "$prefix" ] && { return 1; }
 
-	[ -z "$rangelist" ] && { 	# there is no range at all
-		echo $prefix$suffix; 
-		return 0; 
+	[ -z "$rangelist" ] && {	# there is no range at all
+		echo $prefix$suffix;
+		return 0;
 	}
 
 	[[ "$suffix" =~ \[*\] ]] && {
@@ -225,7 +225,7 @@ function SingleNameExpand()
 	for range in ${rangelist//","/" "}
 	do
 		[[ $range =~ [^0-9-] ]] && return 1
-		local rangefromstr=${range%-*}; 
+		local rangefromstr=${range%-*};
 		[ -z "$rangefromstr" ] && return 1
 		local -i rangefrom=10#${rangefromstr}
 		local -i rangeto=10#${range#*-};
@@ -241,7 +241,7 @@ function SingleNameExpand()
 		do
 			for suf in ${suffix}X	# add X to handle empty list
 			do
-# 				don't use printf, it's slow!!!
+#				don't use printf, it's slow!!!
 #				name=$(printf ${format} "$prefix" "$rangefrom" "$suf")
 				local leadin=""
 				local -i n
@@ -260,7 +260,7 @@ function SingleNameExpand()
 				nlist="${nlist}${name} "
 			done
 			let rangefrom++
-			
+
 		done
 	done
 	echo $nlist
@@ -316,7 +316,7 @@ function NameCompressLevel()
 		name=${name%$ripoff}
 	done
 
-	local numstr=${name}; 
+	local numstr=${name};
 	numstr=${numstr##*[a-zA-Z_]}
 	local -i num=10#${numstr}
 	local prefix=${name%$numstr}
@@ -332,7 +332,7 @@ function NameCompressLevel()
 	while [ $# -gt 0 ]
 	do
 		local x2=$1
-		suffix2=${1##*[][0-9]} 
+		suffix2=${1##*[][0-9]}
 		name2=${1%$suffix2}; shift
 		# rip off all aa[1-2] as indicated by eatcount
 		i=$eatcount
@@ -346,13 +346,13 @@ function NameCompressLevel()
 			name2=${name2%$ripoff}
 		done
 
-		numstr2=${name2}; 
+		numstr2=${name2};
 		numstr2=${numstr2##*[a-zA-Z_]}
 		prefix2=${name2%$numstr2}
 		num2=10#${numstr2}
 
 		[ "$suffix" == "$suffix2" -a "$prefix" == "$prefix2" ] && {
-			if (( num2 == rangeto )) 
+			if (( num2 == rangeto ))
 			then
 				return 1
 			fi
@@ -426,9 +426,9 @@ function NameCompress()
 	local previouslist
 
 #	previouslist=$(echo $* | tr ' ,' '\n' | sort -n | tr '\n' ' ')
-	previouslist=$(echo $* | 
+	previouslist=$(echo $* |
 		sed -e 's/,/\n/g' -e 's/ /\n/g' -e 's/\([0-9]\+\)/:\1:/g' |
-		sort -t \: -n -k 1 -k 2 -k 3 -k 4 -k 5 | 
+		sort -t \: -n -k 1 -k 2 -k 3 -k 4 -k 5 |
 		sed -e 's/://g' | tr '\n' ' '
 		)
 	[[ "$previouslist" =~ [^a-zA-Z0-9_\ ] ]] && {
@@ -437,11 +437,11 @@ function NameCompress()
 
 	list=$(NameCompressLevel 0 $previouslist)
 	while [ "$list" != "$previouslist" ]
-	do 
+	do
 		previouslist=$list
- 		[[ "$list" =~ " "  ]]  &&
+		[[ "$list" =~ " "  ]]  &&
 			list=$(NameCompressLevel $loop $previouslist) || break
-		
+
 		(( ++loop > maxloops )) && break
 	done
 	echo ${list//" "/","}
@@ -633,4 +633,3 @@ for ((i = 0; i < ${#NODES[*]} ; i++)); do
 	cat ${OUTPUTS[$i]}
     fi
 done
-
