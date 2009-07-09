@@ -17,7 +17,6 @@ D_CONFIG_D="${HOME}/.psh.d"
 D_CONFIG="${D_CONFIG_D}/default"
 D_RCMD="ssh -x -oConnectTimeout=10"
 D_MAXRCMD=32
-D_DIFFCMD="diff -q"
 D_AUTOCD="cd ${PWD/#${HOME}/~} &&"
 TMPTEMPLATE="/tmp/pshout.XXXXXX"
 
@@ -98,8 +97,6 @@ Options:
    -rcmd {rcmd}           : set remote shell (default "$D_RCMD").
    -max {nmax}            : dont start more than {nmax} remote shells
                             at the same time (default $D_MAXRCMD).
-   -diff {cmd}            : Program which compares the outputs
-                            (default "$D_DIFFCMD")
    -autocd                : remote dir (default "cd \${PWD/\${HOME}/~};")
                             use -autocd "" to disable autocd.
    -v|-verbose            : Be verbose
@@ -135,10 +132,6 @@ function parse()
 	    ;;
 	${prearg}max)
 	    MAXRCMD=${MAXRCMD-"$2"}
-	    nopts=2
-	    ;;
-	${prearg}diff)
-	    DIFFCMD=${DIFFCMD-"$2"}
 	    nopts=2
 	    ;;
 	-x|${prearg}xnode)
@@ -543,7 +536,6 @@ done
 
 RCMD="${RCMD-$D_RCMD}"
 MAXRCMD="${MAXRCMD-$D_MAXRCMD}"
-DIFFCMD="${DIFFCMD-$D_DIFFCMD}"
 AUTOCD="${AUTOCD-$D_AUTOCD}"
 
 if [ "${SYNC}" = 1 ]; then
@@ -616,6 +608,13 @@ done
 #
 # Merge outputs
 #
+
+# calculate all md5 sums
+for ((i = 0; i < ${#OUTPUTS[*]} ; i++)); do
+    out="${OUTPUTS[$i]}"
+    MD5S[$i]=$(md5sum $out|(read a b && echo $a))
+done
+
 for ((i = 0; i < ${#NODES[*]} ; i++)); do
     hosts=${NODES[$i]}
     if [ "${DISPLAYED[$i]}" != "1" ]; then
@@ -623,7 +622,7 @@ for ((i = 0; i < ${#NODES[*]} ; i++)); do
 	for ((ii = $i + 1; ii < ${#NODES[*]} ; ii++)); do
 	    if [ "${DISPLAYED[$ii]}" != "1" ]; then
       #	    echo Compare ${OUTPUTS[$i]} ${OUTPUTS[$ii]}
-		if ${DIFFCMD} ${OUTPUTS[$i]} ${OUTPUTS[$ii]} > /dev/null; then
+		if [ "${MD5S[$i]}" = "${MD5S[$ii]}" ]; then
 		    hosts="$hosts ${NODES[$ii]}"
 		    DISPLAYED[$ii]="1";
 		fi
