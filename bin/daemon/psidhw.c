@@ -51,6 +51,7 @@ typedef struct {
 static int prepSwitchEnv(void *info)
 {
     int hw = -1;
+    char buf[20];
 
     if (info) {
 	switchInfo_t *i = (switchInfo_t *)info;
@@ -58,10 +59,7 @@ static int prepSwitchEnv(void *info)
     }
 
     if (hw > -1) {
-	/* Put the hardware's environment into the real one */
 	int i;
-	char buf[20];
-
 	for (i=0; i<HW_getEnvSize(hw); i++) putenv(HW_dumpEnv(hw, i));
     }
 
