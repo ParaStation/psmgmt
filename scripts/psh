@@ -167,7 +167,8 @@ function cleanup
 {
 #    echo Cleanup called
     if [ x"$TMPFILES" != x ]; then
-	rm $TMPFILES
+	# clenaup in background:
+	rm $TMPFILES &
     fi
 }
 
