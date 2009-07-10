@@ -1,3 +1,151 @@
+Version psmgmt-5.0.17:
+======================
+------------------------------------------------------------------------
+r7677 | eicker | 2009-07-10 00:16:14 +0200 (Fri, 10 Jul 2009) | 2 lines
+
+Bugfix: Fix flaw introduced in r7659.
+
+------------------------------------------------------------------------
+r7676 | eicker | 2009-07-09 19:20:39 +0200 (Thu, 09 Jul 2009) | 2 lines
+
+Bugfix: Fix broken variable declaration introduced in r7671.
+
+------------------------------------------------------------------------
+r7675 | hauke | 2009-07-09 13:22:27 +0200 (Thu, 09 Jul 2009) | 1 line
+
+psh: Change the maxrcmd default to 128.
+------------------------------------------------------------------------
+r7674 | hauke | 2009-07-09 13:22:26 +0200 (Thu, 09 Jul 2009) | 1 line
+
+psh: Do the cleanup in backgroud.
+------------------------------------------------------------------------
+r7673 | hauke | 2009-07-09 13:22:25 +0200 (Thu, 09 Jul 2009) | 2 lines
+
+psh: compare output files via md5sum's. Remove old "diff"
+compare. This speedup the merge a lot!
+------------------------------------------------------------------------
+r7672 | hauke | 2009-07-09 13:22:23 +0200 (Thu, 09 Jul 2009) | 1 line
+
+psh: whitespace cleanup.
+------------------------------------------------------------------------
+r7671 | eicker | 2009-07-08 16:33:14 +0200 (Wed, 08 Jul 2009) | 3 lines
+
+Enhancement: Make execution of external scripts more asynchronuous.
+Mark PSID_setParam() and PSID_getParam() as deprecated.
+
+------------------------------------------------------------------------
+r7668 | eicker | 2009-07-06 23:41:25 +0200 (Mon, 06 Jul 2009) | 2 lines
+
+Enhancement: Prepare for general hook functions.
+
+------------------------------------------------------------------------
+r7667 | eicker | 2009-07-06 22:59:15 +0200 (Mon, 06 Jul 2009) | 3 lines
+
+Get rid of '/sbin/service parastation condrestart' on RPM update. This
+    should fix #325.
+
+------------------------------------------------------------------------
+r7666 | eicker | 2009-07-06 22:57:36 +0200 (Mon, 06 Jul 2009) | 3 lines
+
+Get rid of ambiguous LOCKFILE.
+Whitespace cleanup.
+
+------------------------------------------------------------------------
+r7665 | eicker | 2009-07-06 22:55:57 +0200 (Mon, 06 Jul 2009) | 3 lines
+
+Bugfix: Get rid of 'manpath -q' also for (t)csh
+Whitespace cleanup.
+
+------------------------------------------------------------------------
+r7663 | rauh | 2009-07-03 11:15:59 +0200 (Fri, 03 Jul 2009) | 2 lines
+
+added missing mpiexec.gdb to svn
+
+------------------------------------------------------------------------
+r7662 | rauh | 2009-07-02 17:12:07 +0200 (Thu, 02 Jul 2009) | 2 lines
+
+Enhancement: better filename for /opt/parastation/config/gdb.conf -> mpiexec.gdb (ticket #236)
+
+------------------------------------------------------------------------
+r7661 | rauh | 2009-07-02 17:06:54 +0200 (Thu, 02 Jul 2009) | 2 lines
+
+removed whitespace errors and warning in psiloggermerge.c
+
+------------------------------------------------------------------------
+r7660 | rauh | 2009-07-02 16:58:03 +0200 (Thu, 02 Jul 2009) | 3 lines
+
+Bugfix: Ticket #351, mpiexec with merge should now output lines with missing '\n'.
+some cleanup of code, typo
+
+------------------------------------------------------------------------
+r7659 | eicker | 2009-07-01 21:53:05 +0200 (Wed, 01 Jul 2009) | 2 lines
+
+Streamline the daisy-chaining stuff. Fix some possible race-conditions.
+
+------------------------------------------------------------------------
+r7658 | eicker | 2009-07-01 19:05:42 +0200 (Wed, 01 Jul 2009) | 3 lines
+
+Enhancement: New directives in psiadmin: 'list up' and 'list down'
+Enhancement: Extended directive in psiadmin: 'list summary [max <max>]'.
+
+------------------------------------------------------------------------
+r7657 | rauh | 2009-07-01 15:40:14 +0200 (Wed, 01 Jul 2009) | 3 lines
+
+Enhancement: added umask option to mpiexec
+Bugfix: removed unnecessary/dangerous catching of many signals
+
+------------------------------------------------------------------------
+r7652 | eicker | 2009-07-01 14:40:29 +0200 (Wed, 01 Jul 2009) | 3 lines
+
+Enhancemment: More readable output from logger, if output-source is
+    printed. This fixes #350.
+
+------------------------------------------------------------------------
+r7651 | eicker | 2009-07-01 14:20:15 +0200 (Wed, 01 Jul 2009) | 3 lines
+
+Bugfix: Don't receive more answers on spawn-messages than expected. This
+    should fix #349.
+
+------------------------------------------------------------------------
+r7649 | eicker | 2009-07-01 12:01:54 +0200 (Wed, 01 Jul 2009) | 2 lines
+
+Enhancement: Propagate umask setting to child tasks.
+
+------------------------------------------------------------------------
+r7648 | eicker | 2009-07-01 12:01:06 +0200 (Wed, 01 Jul 2009) | 2 lines
+
+Fix on compile-warning.
+
+------------------------------------------------------------------------
+r7647 | eicker | 2009-07-01 12:00:37 +0200 (Wed, 01 Jul 2009) | 3 lines
+
+Bugfix: Fix nodelist '-1' syntax in psiadmin, if only one node is
+    defined.
+
+------------------------------------------------------------------------
+r7643 | hauke | 2009-07-01 10:31:40 +0200 (Wed, 01 Jul 2009) | 2 lines
+
+psh: new rcmd default with ConnectTimeout: "ssh -x -oConnectTimeout=10"
+
+------------------------------------------------------------------------
+r7622 | rauh | 2009-06-03 12:16:07 +0200 (Wed, 03 Jun 2009) | 3 lines
+
+Enhancement: if we use a daisy chain in pmi, now all the barrier_in message (except the first one)
+will be distributed over the daisy chain too.
+
+------------------------------------------------------------------------
+r7621 | rauh | 2009-06-03 10:40:10 +0200 (Wed, 03 Jun 2009) | 3 lines
+
+Enhancement: if we use daisy chain in pmi, now the kvs_update_cache_result is 
+only send from the last rank in the chain.
+
+------------------------------------------------------------------------
+r7616 | eicker | 2009-06-02 22:42:27 +0200 (Tue, 02 Jun 2009) | 2 lines
+
+New release (psmgmt-5.0.16-2)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.16-2:
 ========================
 ------------------------------------------------------------------------
