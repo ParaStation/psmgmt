@@ -81,14 +81,14 @@ static void sendKvsMsg(PStask_ID_t tid, char *msg)
     ssize_t len;
 
     if (!msg) {
-	PSIlog_log(-1, "%s: invalid kvs message\n", __func__);
+	PSIlog_log(-1, "%s: invalid kvs message: 'null'\n", __func__);
 	terminateJob();
     }
 
     len = strlen(msg);
     if (!(len && msg[len - 1] == '\n')) {
 	/* assert */
-	PSIlog_log(-1, "%s: invalid kvs message\n", __func__);
+	PSIlog_log(-1, "%s: invalid kvs message: '%s'\n", __func__, msg);
 	terminateJob();
     }
 
@@ -185,7 +185,7 @@ static void sendMsgToKvsClients(char *msg)
     int i;
 
     if (!msg) {
-	PSIlog_log(-1, "%s: invalid msg\n", __func__);
+	PSIlog_log(-1, "%s: invalid kvs msg: 'null'\n", __func__);
 	return;
     }
 
@@ -222,7 +222,7 @@ static void handleKvsPut(PSLog_Msg_t *msg)
     getpmiv("value",ptr,value,sizeof(value));
 
     if (kvsname[0] == 0 || kvsname[0] == 0 || value[0] == 0) {
-	PSIlog_log(-1, "%s: invalid kvs put cmd\n", __func__);
+	PSIlog_log(-1, "%s: invalid kvs put cmd: '%s'\n", __func__, ptr);
 	snprintf(retbuf, sizeof(retbuf),
 		 "cmd=put_result rc=-1 msg=error_invalid_put_msg\n");
     } else {
@@ -258,7 +258,7 @@ static void handleKvsGet(PSLog_Msg_t *msg)
     getpmiv("key",ptr,name,sizeof(name));
 
     if (kvsname[0] == 0 || name[0] == 0 ) {
-	PSIlog_log(-1, "%s: invalid kvs get cmd\n", __func__);
+	PSIlog_log(-1, "%s: invalid kvs get cmd: '%s'\n", __func__, msg->buf);
 	snprintf(retbuf, sizeof(retbuf),
 		 "cmd=get_result rc=-1 msg=error_invalid_get_msg\n");
     } else {
@@ -905,7 +905,7 @@ void handleKvsMsg(PSLog_Msg_t *msg)
     }
 
     if (!(cmdtmp = getKvsCmd(msgCopy))) {
-	PSIlog_log(-1, "%s: invalid kvs cmd\n", __func__);
+	PSIlog_log(-1, "%s: invalid kvs cmd: '%s'\n", __func__, msg->buf);
 	terminateJob();
     }
     strncpy(cmd, cmdtmp, sizeof(cmd));
