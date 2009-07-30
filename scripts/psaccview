@@ -93,7 +93,7 @@ $conf{'avg'}{'a_vmem'}		= "no";
 # display options for job view
 $conf{'job'}{'user'}		= "yes";
 $conf{'job'}{'group'}		= "yes";
-$conf{'job'}{'jobid'}		= "no";
+$conf{'job'}{'jobid'}		= "yes";
 $conf{'job'}{'jobname'}		= "yes";
 $conf{'job'}{'starttime'}	= "yes";
 $conf{'job'}{'endtime'}		= "no";
@@ -162,6 +162,7 @@ GetOptions(
 	   'user|u=s'     => \$conf{'crit'}{'user'},
 	   'group|g=s'    => \$conf{'crit'}{'group'},
 	   'jobname|j=s'  => \$conf{'crit'}{'jobname'},
+	   'jobid|i=s'    => \$conf{'crit'}{'jobid'},
 	   'node|n=s'	  => \$conf{'crit'}{'node'},
 	   'listjobs|lj'  => \$listjobs,
 	   'listuser|lu'  => \$listuser,
@@ -368,7 +369,7 @@ while ( defined (my $filename = readdir(DIR))) {
 		($alias=$accline)	 =~s/(^.+=)(.*)/$2/ if $accline =~ /^jobid=/;
 	    }
 
-	    if (!$user || !$group || !$jobname || !$start || !$end || !$exechost) {
+	    if (!$user || !$group || !$start || !$end || !$exechost) {
 		if (!($conf{'all'}{'noheader'} eq "yes") && $lasterror ne $filename) {
 		    $lasterror = $filename;
 		    printf("Skipped invalid account entry(s) in file $ps_acc_dir/$filename\n");
@@ -381,7 +382,8 @@ while ( defined (my $filename = readdir(DIR))) {
 		(!defined($conf{'crit'}{'queue'}) || $queue =~ /$conf{'crit'}{'queue'}/) &&
 		(!defined($conf{'crit'}{'exit'}) || ($exitstatus =~ /$conf{'crit'}{'exit'}/)
 		 || ($conf{'crit'}{'exit'} eq "false" && $exitstatus != 0)) &&
-		(!defined($conf{'crit'}{'jobname'}) || $jobname =~ /$conf{'crit'}{'jobname'}/)) {
+		(!defined($conf{'crit'}{'jobname'}) || $jobname =~ /$conf{'crit'}{'jobname'}/) &&
+		(!defined($conf{'crit'}{'jobid'}) || $jobid[0] =~ /$conf{'crit'}{'jobid'}/)) {
 
 		# precalc some values
 		my @exec_hosts = split(/\+/,$exechost);
@@ -916,6 +918,9 @@ Show only results from the given user name (regular expression).
 
 Show only results from the given group (regular expression).
 
+=item B<--jobid -i> <jobid>
+
+Show only results from the given jobid (regular expression).
 
 =item B<--jobname -j> <jobname>
 
