@@ -70,7 +70,7 @@ $conf{'sum'}{'vmem'}		= "no";
 $conf{'sum'}{'cputime'}		= "yes";
 $conf{'sum'}{'jobs'}		= "yes";
 $conf{'sum'}{'procs'}		= "no";
-$conf{'sum'}{'cpuweight'}	= "yes";
+$conf{'sum'}{'cpuweight'}	= "no";
 $conf{'sum'}{'nodes'}		= "no";
 $conf{'sum'}{'usage'}		= "no";
 $conf{'sum'}{'a_mem'}		= "no";
@@ -649,11 +649,13 @@ sub process_acc_data {
 
     # calc all average values
     foreach my $key ( keys %data ) {
-	if ($data{$key}{'jobs'}) {
-	    foreach my $avg ( keys %{$confptr->{'avg'}} ) {
-		if ($conf{'avg'}{$avg} eq "yes" && $data{$key}{$avg}) {
+	foreach my $avg ( keys %{$confptr->{'avg'}} ) {
+	    if ($conf{'avg'}{$avg} eq "yes") {
+		if ($data{$key}{'jobs'} && $data{$key}{$avg}) {
 		    #print "avg values $avg:".formattime($data{$key}{$avg})."\n";
 		    $data{$key}{"avg_".$avg} = int(($data{$key}{$avg}) / ($data{$key}{'jobs'}));
+		} else {
+		    $data{$key}{"avg_".$avg} = int(0);
 		}
 	    }
 	}
