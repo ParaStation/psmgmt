@@ -200,7 +200,7 @@ int sendMsg(void *amsg)
  */
 static void condSendMsg(DDBufferMsg_t *msg)
 {
-    if (msg->header.dest != PSC_getMyID()) sendMsg(msg);
+    if (msg->header.dest != PSC_getMyTID()) sendMsg(msg);
 }
 
 int recvMsg(int fd, DDMsg_t *msg, size_t size)
