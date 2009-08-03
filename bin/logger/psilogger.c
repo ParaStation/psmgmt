@@ -298,7 +298,7 @@ static int recvMsg(PSLog_Msg_t *msg)
 	int rank = getClientRank(msg->header.sender);
 
 	if (rank > getMaxRank()) {
-	    PSIlog_log(-1, "%s: CC_ERROR from unknown task %s.\n",
+	    PSIlog_log(PSILOG_LOG_VERB, "%s: CC_ERROR from unknown task %s.\n",
 		       __func__, PSC_printTID(msg->header.sender));
 	    errno = EBADMSG;
 	    ret = -1;
