@@ -898,7 +898,7 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
 	waitForPartition = 1;
 	alarm(2);
     } else {
-	alarm(10);
+	alarm(60);
     }
     signal(SIGALRM, alarmHandler);
     if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
