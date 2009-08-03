@@ -1,3 +1,46 @@
+Version psmgmt-5.0.18:
+======================
+
+------------------------------------------------------------------------
+r7714 | eicker | 2009-08-03 18:36:27 +0200 (Mon, 03 Aug 2009) | 3 lines
+
+Make logger less verbose. Don't irritate users with 'CC_ERROR from
+    unknown task' messages.
+
+------------------------------------------------------------------------
+r7713 | eicker | 2009-08-03 18:34:04 +0200 (Mon, 03 Aug 2009) | 3 lines
+
+libpsi: From now on wait for 60 seconds (instead of 10) to get the
+requested resources within PSI_createPartition().
+
+------------------------------------------------------------------------
+r7712 | eicker | 2009-08-02 23:07:54 +0200 (Sun, 02 Aug 2009) | 3 lines
+
+Bugfix: Discard messages to the local daemon in condSendMsg(). This
+    should fix #391.
+
+------------------------------------------------------------------------
+r7708 | rauh | 2009-07-30 13:35:44 +0200 (Thu, 30 Jul 2009) | 2 lines
+
+bugfix: always calculate avg_value columns or the output will be messed up
+
+------------------------------------------------------------------------
+r7707 | rauh | 2009-07-30 12:25:51 +0200 (Thu, 30 Jul 2009) | 2 lines
+
+added option --jobid to search for an specific job id
+
+------------------------------------------------------------------------
+r7682 | rauh | 2009-07-13 12:20:25 +0200 (Mon, 13 Jul 2009) | 2 lines
+
+Enhancement: more verbose output on pmi errors
+
+------------------------------------------------------------------------
+r7678 | eicker | 2009-07-10 02:54:34 +0200 (Fri, 10 Jul 2009) | 2 lines
+
+New version (psmgmt-5.0.17)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.17:
 ======================
 ------------------------------------------------------------------------
