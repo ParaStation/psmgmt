@@ -1369,8 +1369,9 @@ static void updateState(rdphdr_t *hdr, int node)
 		cp->state = SYN_RECVD;
 		cp->frameExpected = hdr->seqno; /* Accept initial seqno */
 		cp->ConnID_in = hdr->connid;    /* Accept connection ID */
-		RDP_log(RDP_LOG_CNTR,
-			"%s: state(%d): ACTIVE -> SYN_RECVD, FE=%x\n",
+		/* RDP_log(RDP_LOG_CNTR, @todo test with -1 */
+		RDP_log(-1,
+			"%s: state(%d): ACTIVE -> SYN_RECVD on SYNACK, FE=%x\n",
 			__func__, node, cp->frameExpected);
 		sendSYN(node);
 		break;
@@ -1934,7 +1935,11 @@ static int handleRDP(int fd, void *info)
 		    __func__, fromnode, msg.header.seqno,
 		    conntable[fromnode].frameExpected);
 
-	    doACK(&msg.header, fromnode);
+	    if (conntable[fromnode].state == ACTIVE) {
+		doACK(&msg.header, fromnode);
+	    } else {
+		updateState(&msg.header, fromnode);
+	    }
 	}
 	return 0;
     }
