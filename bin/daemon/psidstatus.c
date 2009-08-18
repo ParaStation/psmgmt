@@ -42,6 +42,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidtimer.h"
 #include "psidpartition.h"
 #include "psidaccount.h"
+#include "psidstate.h"
 
 #include "psidstatus.h"
 
@@ -142,6 +143,8 @@ static void allocMasterSpace(void)
     PSnodes_ID_t node;
 
     clientStat = realloc(clientStat, PSC_getNrOfNodes() * sizeof(*clientStat));
+    if (!clientStat) PSID_exit(errno, "%s", __func__);
+
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	gettimeofday(&clientStat[node].lastPing, NULL);
 	clientStat[node].missCounter = 0;
@@ -236,6 +239,8 @@ static void handleMasterTasks(void)
     struct timeval tv;
 
     PSID_log(PSID_LOG_STATUS, "%s\n", __func__);
+
+    if (PSID_getDaemonState() & PSID_STATE_SHUTDOWN) return;
 
     gettimeofday(&tv, NULL);
     mytimersub(&tv, StatusTimeout.tv_sec, StatusTimeout.tv_usec);
@@ -464,9 +469,11 @@ void declareMaster(PSnodes_ID_t newMaster)
 
     if (knowMaster() && getMasterID() == PSC_getMyID()) freeMasterSpace();
 
-    if (newMaster == PSC_getMyID()) allocMasterSpace();
-
     masterNode = newMaster;
+
+    if (PSID_getDaemonState() & PSID_STATE_SHUTDOWN) return;
+
+    if (newMaster == PSC_getMyID()) allocMasterSpace();
 
     if (config->useMCast) {
 	timerID = 0;

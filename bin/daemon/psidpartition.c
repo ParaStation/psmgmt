@@ -427,7 +427,7 @@ void cleanupRequests(PSnodes_ID_t node)
 	req = req->next;
     }
 
-    if (nodeStat[node].taskReqPending) {
+    if (nodeStat && nodeStat[node].taskReqPending) {
 	pendingTaskReq -= nodeStat[node].taskReqPending;
 	nodeStat[node].taskReqPending = 0;
     }

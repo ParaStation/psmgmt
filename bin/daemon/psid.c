@@ -167,18 +167,18 @@ static void RDPCallBack(int msgid, void *buf)
 {
     switch(msgid) {
     case RDP_NEW_CONNECTION:
-    {
-	int node = *(int*)buf;
-	PSID_log(PSID_LOG_STATUS | PSID_LOG_RDP,
-		 "%s(RDP_NEW_CONNECTION,%d)\n", __func__, node);
-	if (node != PSC_getMyID() && !PSIDnodes_isUp(node)) {
-	    if (send_DAEMONCONNECT(node)<0) { // @todo Really necessary ?
-		PSID_warn(PSID_LOG_STATUS, errno,
-			  "%s: send_DAEMONCONNECT()", __func__);
+	if (! (PSID_getDaemonState() & PSID_STATE_SHUTDOWN)) {
+	    int node = *(int*)buf;
+	    PSID_log(PSID_LOG_STATUS | PSID_LOG_RDP,
+		     "%s(RDP_NEW_CONNECTION,%d)\n", __func__, node);
+	    if (node != PSC_getMyID() && !PSIDnodes_isUp(node)) {
+		if (send_DAEMONCONNECT(node)<0) { // @todo Really necessary ?
+		    PSID_warn(PSID_LOG_STATUS, errno,
+			      "%s: send_DAEMONCONNECT()", __func__);
+		}
 	    }
 	}
 	break;
-    }
     case RDP_PKT_UNDELIVERABLE:
     {
 	DDMsg_t *msg = (DDMsg_t*)((RDPDeadbuf*)buf)->buf;
@@ -188,19 +188,17 @@ static void RDPCallBack(int msgid, void *buf)
 		 PSDaemonP_printMsg(msg->type));
 
 	handleDroppedMsg(msg);
-
 	break;
     }
     case RDP_LOST_CONNECTION:
-    {
-	int node = *(int*)buf;
-	PSID_log(PSID_LOG_STATUS | PSID_LOG_RDP,
-		 "%s(RDP_LOST_CONNECTION,%d)\n", __func__, node);
+	if (! (PSID_getDaemonState() & PSID_STATE_SHUTDOWN)) {
+	    int node = *(int*)buf;
+	    PSID_log(PSID_LOG_STATUS | PSID_LOG_RDP,
+		     "%s(RDP_LOST_CONNECTION,%d)\n", __func__, node);
 
-	declareNodeDead(node, 1, 0);
-
+	    declareNodeDead(node, 1, 0);
+	}
 	break;
-    }
     case RDP_CAN_CONTINUE:
     {
 	int node = *(int*)buf;
@@ -762,7 +760,7 @@ int main(int argc, const char *argv[])
     PSID_log(-1, "SelectTime=%d sec    DeadInterval=%d\n",
 	     config->selectTime, config->deadInterval);
 
-    /* Trigger status stuff if necessary */
+    /* Trigger status stuff, if necessary */
     if (config->useMCast) {
 	declareMaster(PSC_getMyID());
     } else {

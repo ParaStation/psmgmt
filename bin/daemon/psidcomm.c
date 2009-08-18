@@ -29,6 +29,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidclient.h"
 #include "psidrdp.h"
 #include "psidstatus.h"
+#include "psidstate.h"
 
 #include "psidcomm.h"
 
@@ -326,12 +327,13 @@ void handleDroppedMsg(DDMsg_t *msg)
 	    sendMsg(&sigmsg);
 	break;
     case PSP_DD_DAEMONCONNECT:
-	if (!config->useMCast && !knowMaster()) {
+	if (!config->useMCast && !knowMaster()
+	    && ! (PSID_getDaemonState() & PSID_STATE_SHUTDOWN)) {
 	    PSnodes_ID_t next = PSC_getID(msg->dest) + 1;
 
 	    if (next < PSC_getMyID()) {
 		send_DAEMONCONNECT(next);
-	    } else {
+	    } else if (next == PSC_getMyID()) {
 		declareMaster(PSC_getMyID());
 	    }
 	}
