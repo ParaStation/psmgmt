@@ -743,6 +743,12 @@ static void analyzeError(PSpart_request_t *request, nodelist_t *nodelist)
 
     if (!request || !nodelist || !nodelist->nodes) return;
 
+    if (nodelist->size < (int) (request->size * request->tpp)) {
+	PSI_log(-1, "%d nodes requested but only %d in nodelist\n",
+		request->size * request->tpp, nodelist->size);
+	goto end;
+    }
+
     if (!getFullList(&nStat, PSP_INFO_LIST_HOSTSTATUS, sizeof(*nStat))) {
 	PSI_log(-1, "%s: Unable to retrieve node-states\n", __func__);
 	goto end;
