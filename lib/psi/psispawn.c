@@ -207,7 +207,17 @@ static int sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len)
 	*len = PStask_encodeEnv(msg->buf, sizeof(msg->buf), env, &num, &off);
 	msg->header.len += *len;
 
-	if (!env[num]) return 0;
+	if (!env[num]) {
+	    if (msg->type == PSP_SPAWN_ENVCNTD) {
+		if (PSI_sendMsg(msg)<0) {
+		    PSI_warn(-1, errno, "%s: PSI_sendMsg(CNTD)", __func__);
+		    return -1;
+		}
+		msg->header.len -= *len;
+		*len = 0;
+	    }
+	    return 0;
+	}
 
 	if (PSI_sendMsg(msg)<0) {
 	    PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
@@ -479,6 +489,11 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
 	    msg.type = PSP_SPAWN_ARG;
 	    len = PStask_encodeArgs(msg.buf, sizeof(msg.buf), task);
+	    if (len > sizeof(msg.buf)) {
+		PSI_log(-1, "%s: PStask_encodeArgs: msg too small", __func__);
+		goto error;
+	    }
+
 	    msg.header.len += len;
 	    if (PSI_sendMsg(&msg)<0) {
 		PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
