@@ -15,6 +15,7 @@ static char vcid[] __attribute__((used)) =
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include <termios.h>
 #include <signal.h>
 #include <sys/ioctl.h>
@@ -251,17 +252,56 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->rank = task->rank;
     memcpy(clone->CPUset, task->CPUset, sizeof(clone->CPUset));
     /* clone->fd = -1; */
-    clone->workingdir = (task->workingdir) ? strdup(task->workingdir) : NULL;
-    clone->argc = task->argc;
-    clone->argv = (char**)malloc(sizeof(char*)*(task->argc+1));
-    for (i=0; i<task->argc; i++) clone->argv[i] = strdup(task->argv[i]);
-    clone->argv[clone->argc] = NULL;
-    if (task->envSize)
-	clone->environ = (char**)malloc(task->envSize*sizeof(char*));
 
-    if (clone->environ) {
+    clone->workingdir = (task->workingdir) ? strdup(task->workingdir) : NULL;
+    if (task->workingdir && !clone->workingdir) {
+	PSC_warn(-1, errno, "%s: strdup(workingdir)", __func__);
+	goto error;
+    }
+
+    clone->argc = task->argc;
+    if (!task->argv) {
+	PSC_log(-1, "%s: argv is NULL\n", __func__);
+	goto error;
+    }
+    clone->argv = (char**)malloc(sizeof(char*)*(task->argc+1));
+    if (!clone->argv) {
+	PSC_warn(-1, errno, "%s: malloc(argv)", __func__);
+	goto error;
+    }
+    for (i=0; i<task->argc; i++) {
+	if (!task->argv[i]) {
+	    PSC_log(-1, "%s: argv[%d] is NULL\n", __func__, i);
+	    goto error;
+	}
+	clone->argv[i] = strdup(task->argv[i]);
+	if (!clone->argv[i]) {
+	    PSC_warn(-1, errno, "%s: strdup(argv[%d])", __func__, i);
+	    goto error;
+	}
+    }
+    clone->argv[clone->argc] = NULL;
+
+    if (task->envSize) {
+	if (!task->environ) {
+	    PSC_log(-1, "%s: environ is NULL\n", __func__);
+	    goto error;
+	}
+	clone->environ = (char**)malloc(task->envSize*sizeof(char*));
+	if (!clone->environ) {
+	    PSC_warn(-1, errno, "%s: malloc(environ)", __func__);
+	    goto error;
+	}
 	for (i=0; task->environ[i]; i++) {
+	    if (!task->environ[i]) {
+		PSC_log(-1, "%s: environ[%d] is NULL\n", __func__, i);
+		goto error;
+	    }
 	    clone->environ[i] = strdup(task->environ[i]);
+	    if (!clone->environ[i]) {
+		PSC_warn(-1, errno, "%s: strdup(environ[%d])", __func__, i);
+		goto error;
+	    }
 	}
 	clone->environ[i] = NULL;
     }
@@ -286,11 +326,19 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->partitionSize = task->partitionSize;
     clone->options = task->options;
     clone->partition = malloc(task->partitionSize * sizeof(*task->partition));
+    if (!clone->partition) {
+	PSC_warn(-1, errno, "%s: malloc(partition)", __func__);
+	goto error;
+    }
     memcpy(clone->partition, task->partition,
 	   task->partitionSize * sizeof(*task->partition));
     clone->nextRank = task->nextRank;
     clone->spawnNodesSize = task->spawnNodesSize;
     clone->spawnNodes = malloc(task->spawnNodesSize*sizeof(*task->spawnNodes));
+    if (!clone->spawnNodes) {
+	PSC_warn(-1, errno, "%s: malloc(spawnNodes)", __func__);
+	goto error;
+    }
     memcpy(clone->spawnNodes, task->spawnNodes,
 	   clone->spawnNodesSize * sizeof(*task->spawnNodes));
     clone->spawnNum = task->spawnNum;
@@ -300,6 +348,10 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->assignedSigs = PStask_cloneSigList(task->assignedSigs);
 
     return clone;
+
+error:
+    PStask_delete(clone);
+    return NULL;
 }
 
 static void snprintfStruct(char *txt, size_t size, PStask_t *task)
@@ -644,8 +696,16 @@ int PStask_decodeArgs(char *buffer, PStask_t *task)
 
     /* Get the arguments */
     task->argv = (char**)malloc(sizeof(char*)*(task->argc+1));
+    if (! task->argv) {
+	PSC_warn(-1, errno, "%s: malloc()", __func__);
+	return 0;
+    }
     for (i=0; i<task->argc; i++) {
 	task->argv[i] = strdup(&buffer[msglen]);
+	if (! task->argv[i]) {
+	    PSC_warn(-1, errno, "%s: strdup(%d)", __func__, i);
+	    return 0;
+	}
 	msglen += strlen(&buffer[msglen])+1;
     }
     task->argv[task->argc] = NULL;
@@ -755,6 +815,10 @@ int PStask_decodeEnv(char *buffer, PStask_t *task)
 	task->environ = realloc(task->environ,
 				(envSize+envNew+1)*sizeof(char*));
 	task->envSize = envSize+envNew+1;
+	if (!task->environ) {
+	    PSC_warn(-1, errno, "%s: malloc()", __func__);
+	    return 0;
+	}
     }
 
     /* Unpack new environment */
@@ -763,6 +827,10 @@ int PStask_decodeEnv(char *buffer, PStask_t *task)
 	i = envSize;
 	while (strlen(&buffer[msglen])) {
 	    task->environ[i] = strdup(&buffer[msglen]);
+	    if (! task->environ[i]) {
+		PSC_warn(-1, errno, "%s: strdup(%d)", __func__, i);
+		return 0;
+	    }
 	    msglen += strlen(&buffer[msglen])+1;
 	    i++;
 	}
@@ -801,6 +869,10 @@ int PStask_decodeEnvAppend(char *buffer, PStask_t *task)
     /* Append to environment */
     newLen = strlen(task->environ[envSize-1]) + strlen(buffer) + 1;
     task->environ[envSize-1] = realloc(task->environ[envSize-1], newLen);
+    if (! task->environ[envSize-1]) {
+	PSC_warn(-1, errno, "%s: strdup(%d)", __func__, envSize-1);
+	return 0;
+    }
     strcpy(task->environ[envSize-1]+strlen(task->environ[envSize-1]), buffer);
     msglen=strlen(buffer)+1;
 
