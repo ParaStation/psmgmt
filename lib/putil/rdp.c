@@ -2222,8 +2222,12 @@ int Rsendto(int node, void *buf, size_t len)
     /* copy msg data */
     memcpy(mp->msg.small->data, buf, len);
 
-    /* Restore blocked timer */
-    Timer_block(timerID, blocked);
+    /*
+     * counters (window, msgPending, frameToSend) have to be updated
+     * before MYsendto(). sendto() might fail, close a connection and
+     * call Rsendto() again via the callback
+     */
+    conntable[node].window--;
 
     switch (conntable[node].state) {
     case CLOSED:
@@ -2231,42 +2235,37 @@ int Rsendto(int node, void *buf, size_t len)
     case SYN_SENT:
 	RDP_log(RDP_LOG_CNTR, "%s: no connection to %d yet\n", __func__, node);
 
-	sendSYN(node);
 	conntable[node].msgPending++;
+	sendSYN(node);
 
 	retval = len + sizeof(rdphdr_t);
 	break;
     case SYN_RECVD:
 	RDP_log(RDP_LOG_CNTR, "%s: no connection to %d yet\n", __func__, node);
 
-	sendSYNACK(node);
 	conntable[node].msgPending++;
+	sendSYNACK(node);
 
 	retval = len + sizeof(rdphdr_t);
 	break;
     case ACTIVE:
-	/* connection already established */
-	/* send the data */
+	/* connection established, send data right now */
 	RDP_log(RDP_LOG_COMM,
 		"%s: send DATA[len=%ld] to %d (seq=%x, ack=%x)\n",
 		__func__, (long) len, node, conntable[node].frameToSend,
 		conntable[node].frameExpected);
 
+	conntable[node].frameToSend++;
 	retval = MYsendto(rdpsock, &mp->msg.small->header,
 			  len + sizeof(rdphdr_t), 0, node, 0);
-
-	conntable[node].frameToSend++;
-
 	break;
     default:
 	RDP_log(-1, "%s: unknown state %d for %d\n",
 		__func__, conntable[node].state, node);
     }
 
-    /*
-     * update counter
-     */
-    conntable[node].window--;
+    /* Restore blocked timer */
+    Timer_block(timerID, blocked);
 
     if (retval==-1) {
 	RDP_warn(-1, errno, "%s",  __func__);
