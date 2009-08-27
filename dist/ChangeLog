@@ -1,3 +1,63 @@
+Version psmgmt-5.0.19:
+======================
+------------------------------------------------------------------------
+r7734 | eicker | 2009-08-27 12:53:50 +0200 (Thu, 27 Aug 2009) | 6 lines
+
+Bugfix: Clean-up tasks to be spawned upon connection breakdown. This
+    should be to prevent daemon crashes, if a connection gets reseted
+    during receive of a SPAWNREQ message.
+Enhancement: Set errno correctly if PStask_clone() fails.
+Bugfix: Report correct answer, if spawn request fails.
+
+------------------------------------------------------------------------
+r7733 | eicker | 2009-08-27 12:29:48 +0200 (Thu, 27 Aug 2009) | 4 lines
+
+Explicitely reset timer-counter upon finish of the corresponding
+    timeout-handler. This should reduce the frequency of potentially
+    long-running timeout-handlers as the RDP's handler.
+
+------------------------------------------------------------------------
+r7732 | eicker | 2009-08-27 01:57:47 +0200 (Thu, 27 Aug 2009) | 2 lines
+
+Bugfix: More robustness on log environments or argument-vectors.
+
+------------------------------------------------------------------------
+r7731 | eicker | 2009-08-27 01:56:30 +0200 (Thu, 27 Aug 2009) | 3 lines
+
+Bugfix: Test much more (allocated) pointers on validity. This should
+    prevent the psid from catching a segfault (see #751 in JuRoPA TRAC).
+
+------------------------------------------------------------------------
+r7730 | eicker | 2009-08-27 01:51:52 +0200 (Thu, 27 Aug 2009) | 3 lines
+
+Bugfix: Fix some race-conditions that might lead to annoying
+    'doACK: strange things happen' messages (see #327).
+
+------------------------------------------------------------------------
+r7729 | eicker | 2009-08-27 01:48:52 +0200 (Thu, 27 Aug 2009) | 3 lines
+
+Enhancement: More verbose message, if user requested more processors
+    than given by the batch-system.
+
+------------------------------------------------------------------------
+r7722 | eicker | 2009-08-18 20:24:16 +0200 (Tue, 18 Aug 2009) | 3 lines
+
+Bugfix: Make psids faster aware of single-sided closed RDP-connections.
+    Hopefully this helps with #386 and #385.
+
+------------------------------------------------------------------------
+r7721 | eicker | 2009-08-18 13:05:56 +0200 (Tue, 18 Aug 2009) | 3 lines
+
+Bugfix: Prevent psid from segfaulting during shutdown
+Bugfix: Prevent psid from generating packet-storms during shutdown
+
+------------------------------------------------------------------------
+r7715 | eicker | 2009-08-03 18:38:29 +0200 (Mon, 03 Aug 2009) | 2 lines
+
+New version (psmgmt-5.0.18)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.18:
 ======================
 
