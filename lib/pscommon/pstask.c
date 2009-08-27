@@ -262,6 +262,7 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->argc = task->argc;
     if (!task->argv) {
 	PSC_log(-1, "%s: argv is NULL\n", __func__);
+	errno = EINVAL;
 	goto error;
     }
     clone->argv = (char**)malloc(sizeof(char*)*(task->argc+1));
@@ -272,6 +273,7 @@ PStask_t* PStask_clone(PStask_t* task)
     for (i=0; i<task->argc; i++) {
 	if (!task->argv[i]) {
 	    PSC_log(-1, "%s: argv[%d] is NULL\n", __func__, i);
+	    errno = EINVAL;
 	    goto error;
 	}
 	clone->argv[i] = strdup(task->argv[i]);
@@ -285,6 +287,7 @@ PStask_t* PStask_clone(PStask_t* task)
     if (task->envSize) {
 	if (!task->environ) {
 	    PSC_log(-1, "%s: environ is NULL\n", __func__);
+	    errno = EINVAL;
 	    goto error;
 	}
 	clone->environ = (char**)malloc(task->envSize*sizeof(char*));
@@ -295,6 +298,7 @@ PStask_t* PStask_clone(PStask_t* task)
 	for (i=0; task->environ[i]; i++) {
 	    if (!task->environ[i]) {
 		PSC_log(-1, "%s: environ[%d] is NULL\n", __func__, i);
+		errno = EINVAL;
 		goto error;
 	    }
 	    clone->environ[i] = strdup(task->environ[i]);

@@ -475,6 +475,8 @@ void checkObstinate(void)
 	}
 	task = next;
     }
+
+    cleanupSpawnTasks();
 }
 
 

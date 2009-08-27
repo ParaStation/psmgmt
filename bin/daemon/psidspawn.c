@@ -1640,6 +1640,10 @@ static int spawnTask(PStask_t *task)
 
     /* prepare forwarder task */
     forwarder = PStask_clone(task);
+    if (!forwarder) {
+	PSID_warn(-1, errno, "%s: PStask_clone()", __func__);
+	return errno;
+    }
     if (forwarder->argv) {
 	int i;
 	for (i=0; i<forwarder->argc; i++) {
@@ -1990,6 +1994,11 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	if (!task) {
 	    PSID_log(-1, "%s: PSP_SPAWN_EN[V|D] from %s: task not found\n",
 		     __func__, PSC_printTID(msg->header.sender));
+	    if (msg->type == PSP_SPAWN_END) {
+		answer.header.type = PSP_CD_SPAWNFAILED;
+		answer.error = ECHILD;
+		sendMsg(&answer);
+	    }
 	    return;
 	}
 	usedBytes = PStask_decodeEnv(msg->buf, task);
@@ -2020,7 +2029,11 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	PSID_log(PSID_LOG_SPAWN, "%s: Spawning %s\n", __func__, tasktxt);
 
 	PStasklist_dequeue(&spawnTasks, task->tid);
-	answer.error = spawnTask(task);
+	if (task->deleted) {
+	    answer.error = ECHILD;
+	} else {
+	    answer.error = spawnTask(task);
+	}
 
 	answer.header.type =
 	    (answer.error ? PSP_CD_SPAWNFAILED : PSP_CD_SPAWNSUCCESS);
@@ -2028,6 +2041,40 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 
 	/* send the existence or failure of the request */
 	sendMsg(&answer);
+    }
+}
+
+void deleteSpawnTasks(PSnodes_ID_t node)
+{
+    PStask_t *task = spawnTasks;
+
+    PSID_log(PSID_LOG_SPAWN, "%s(%d)", __func__, node);
+
+    while (task) {
+	if (PSC_getID(task->tid) == node) task->deleted = 1;
+	task = task->next;
+    }
+}
+
+void cleanupSpawnTasks(void)
+{
+    PStask_t *task = spawnTasks;
+
+    PSID_log(PSID_LOG_SPAWN, "%s()", __func__);
+
+    while (task) {
+	PStask_t *next=task->next;
+
+	if (task->deleted) {
+	    PStask_t *t = PStasklist_dequeue(&spawnTasks, task->tid);
+	    if (t != task) {
+		PSID_log(-1, "%s: wrong task dequeued: %p(%s) != %p\n",
+			 __func__, task, PSC_printTID(task->tid), t);
+	    } else {
+		PStask_delete(task);
+	    }
+	}
+	task = next;
     }
 }
 

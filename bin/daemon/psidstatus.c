@@ -43,6 +43,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidpartition.h"
 #include "psidaccount.h"
 #include "psidstate.h"
+#include "psidspawn.h"
 
 #include "psidstatus.h"
 
@@ -547,6 +548,8 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
 	    PStask_cleanup(task->tid);
 	}
     }
+
+    deleteSpawnTasks(id);
 
     /* Disable accounters located on dead node */
     PSID_cleanAcctFromNode(id);
