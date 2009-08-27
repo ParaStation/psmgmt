@@ -99,6 +99,7 @@ void Timer_handleSignals(void)
 	    timer->timeoutHandler();
 	    timer->sigBlocked = 0;
 	    timer->sigPending = 0;
+	    timer->calls = 0;
 	}
     }
 }
