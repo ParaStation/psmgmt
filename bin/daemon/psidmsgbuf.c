@@ -84,5 +84,6 @@ void putMsg(msgbuf_t *mp)
 void freeMsg(msgbuf_t *mp)
 {
     if (mp->msg) free(mp->msg);
+    mp->msg = NULL;
     putMsg(mp);
 }

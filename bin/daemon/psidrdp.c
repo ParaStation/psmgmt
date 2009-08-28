@@ -34,7 +34,10 @@ int RDPSocket = -1;
  * Array used to temporarily hold message that could not yet be
  * delivered to their final destination.
  */
-static list_t *node_bufs;
+static struct {
+    list_t list;
+    int clearing;
+} *node_bufs;
 
 void initRDPMsgs(void)
 {
@@ -47,7 +50,8 @@ void initRDPMsgs(void)
     }
 
     for (i=0; i<PSC_getNrOfNodes(); i++) {
-	INIT_LIST_HEAD(&node_bufs[i]);
+	INIT_LIST_HEAD(&node_bufs[i].list);
+	node_bufs[i].clearing = 0;
     }
 }
 
@@ -56,13 +60,19 @@ void clearRDPMsgs(int node)
     int blocked = RDP_blockTimer(1);
     list_t *m, *tmp;
 
-    list_for_each_safe(m, tmp, &node_bufs[node]) {
+    /* prevent recursive clearing of node_bufs[node].list */
+    if (node_bufs[node].clearing) return;
+    node_bufs[node].clearing = 1;
+
+    list_for_each_safe(m, tmp, &node_bufs[node].list) {
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
 
 	list_del(&mp->next);
 	handleDroppedMsg(mp->msg);
 	freeMsg(mp);
     }
+
+    node_bufs[node].clearing = 0;
     RDP_blockTimer(blocked);
 }
 
@@ -100,7 +110,7 @@ static int storeMsgRDP(int node, DDMsg_t *msg)
     memcpy(msgbuf->msg, msg, msg->len);
     msgbuf->offset = 0;
 
-    list_add_tail(&msgbuf->next, &node_bufs[node]);
+    list_add_tail(&msgbuf->next, &node_bufs[node].list);
 
  end:
     RDP_blockTimer(blocked);
@@ -119,13 +129,13 @@ int flushRDPMsgs(int node)
 
     blocked = RDP_blockTimer(1);
 
-    list_for_each_safe(m, tmp, &node_bufs[node]) {
+    list_for_each_safe(m, tmp, &node_bufs[node].list) {
 	msgbuf_t *msgbuf = list_entry(m, msgbuf_t, next);
 	DDMsg_t *msg = msgbuf->msg;
 	PStask_ID_t sender = msg->sender, dest = msg->dest;
 	int sent = Rsendto(PSC_getID(dest), msg, msg->len);
 
-	if (sent<0 || list_empty(&node_bufs[node])) {
+	if (sent<0 || list_empty(&node_bufs[node].list)) {
 	    ret = sent;
 	    goto end;
 	}
@@ -161,12 +171,14 @@ int sendRDP(DDMsg_t *msg)
 	return -1;
     }
 
-    if (!list_empty(&node_bufs[node])) flushRDPMsgs(node);
-    if (list_empty(&node_bufs[node])) {
+    if (node_bufs[node].clearing) return 0; /* No Rsendto during cleanup */
+
+    if (!list_empty(&node_bufs[node].list)) flushRDPMsgs(node);
+    if (list_empty(&node_bufs[node].list)) {
 	ret = Rsendto(node, msg, msg->len);
     }
 
-    if (!list_empty(&node_bufs[node]) || (ret==-1 && errno==EAGAIN)) {
+    if (!list_empty(&node_bufs[node].list) || (ret==-1 && errno==EAGAIN)) {
 	if (storeMsgRDP(node, msg)) {
 	    PSID_warn(-1, errno, "%s: Failed to store message", __func__);
 	    errno = ENOBUFS;
