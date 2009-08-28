@@ -422,7 +422,7 @@ int PSID_handleMsg(DDBufferMsg_t *msg)
  */
 static void msg_SENDSTOP(DDMsg_t *msg)
 {
-    PStask_t *task = PStasklist_find(managedTasks, msg->dest);
+    PStask_t *task = PStasklist_find(&managedTasks, msg->dest);
 
     if (!task) return;
 
@@ -453,7 +453,7 @@ static void msg_SENDSTOP(DDMsg_t *msg)
  */
 static void msg_SENDCONT(DDMsg_t *msg)
 {
-    PStask_t *task = PStasklist_find(managedTasks, msg->dest);
+    PStask_t *task = PStasklist_find(&managedTasks, msg->dest);
 
     if (!task) return;
 

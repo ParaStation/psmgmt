@@ -90,7 +90,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 
 	    if (PSC_getID(inmsg->header.sender) == PSC_getMyID()) {
 		/* Test for correct protocol version */
-		PStask_t *requester = PStasklist_find(managedTasks,
+		PStask_t *requester = PStasklist_find(&managedTasks,
 						      inmsg->header.sender);
 		if (!requester) {
 		    PSID_log(-1, "%s: requester %s not found\n",
@@ -151,7 +151,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	case PSP_INFO_LIST_TASKS:
 	    if (PSC_getPID(inmsg->header.dest)) {
 		/* request info for a special task */
-		PStask_t *task = PStasklist_find(managedTasks,
+		PStask_t *task = PStasklist_find(&managedTasks,
 						 inmsg->header.dest);
 		if (task) {
 		    PSP_taskInfo_t *taskinfo = (PSP_taskInfo_t *)msg.buf;
@@ -169,8 +169,9 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		}
 	    } else {
 		/* request info for all tasks */
-		PStask_t *task;
-		for (task=managedTasks; task; task=task->next) {
+		list_t *t;
+		list_for_each(t, &managedTasks) {
+		    PStask_t *task = list_entry(t, PStask_t, next);
 		    PSP_taskInfo_t *taskinfo = (PSP_taskInfo_t *)msg.buf;
 		    if (task->deleted) continue;
 		    taskinfo->tid = task->tid;
@@ -197,8 +198,9 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	{
 	    /* request info for all normal tasks */
 	    PSP_taskInfo_t *taskinfo = (PSP_taskInfo_t *)msg.buf;
-	    PStask_t *task;
-	    for (task=managedTasks; task; task=task->next) {
+	    list_t *t;
+	    list_for_each(t, &managedTasks) {
+		PStask_t *task = list_entry(t, PStask_t, next);
 		if (task->deleted) continue;
 		if ((PSP_Info_t) inmsg->type == PSP_INFO_LIST_NORMTASKS && (
 			task->group == TG_FORWARDER
@@ -277,7 +279,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    }
 
 	    if (PSC_getID(inmsg->header.sender) == PSC_getMyID()) {
-		req = PStasklist_find(managedTasks, inmsg->header.sender);
+		req = PStasklist_find(&managedTasks, inmsg->header.sender);
 
 		if (!req) {
 		    PSID_log(-1, "%s: requester %s not found\n",
@@ -378,7 +380,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	{
 	    PStask_ID_t tid = PSC_getPID(inmsg->header.dest) ?
 		inmsg->header.dest : inmsg->header.sender;
-	    PStask_t *task = PStasklist_find(managedTasks, tid);
+	    PStask_t *task = PStasklist_find(&managedTasks, tid);
 	    if (task) {
 		if (task->ptid) {
 		    msg.header.type = inmsg->header.type;
@@ -424,7 +426,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	{
 	    PStask_ID_t tid = PSC_getPID(inmsg->header.dest) ?
 		inmsg->header.dest : inmsg->header.sender;
-	    PStask_t *task=PStasklist_find(managedTasks, tid);
+	    PStask_t *task=PStasklist_find(&managedTasks, tid);
 
 	    if (!task) {
 		PSID_log(-1, "%s: task %s not found\n",
@@ -470,7 +472,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    PSnodes_ID_t node;
 
 	    if (PSC_getID(inmsg->header.sender) == PSC_getMyID()) {
-		requester = PStasklist_find(managedTasks,
+		requester = PStasklist_find(&managedTasks,
 					    inmsg->header.sender);
 
 		if (!requester) {
@@ -575,7 +577,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	{
 	    PStask_ID_t target = PSC_getPID(inmsg->header.dest) ?
 		inmsg->header.dest : inmsg->header.sender;
-	    PStask_t *task = PStasklist_find(managedTasks, target);
+	    PStask_t *task = PStasklist_find(&managedTasks, target);
 
 	    if (!task) {
 		PSID_log(-1, "%s: task %s not found\n",
@@ -616,7 +618,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	}
 	case PSP_INFO_CMDLINE:
 	{
-	    PStask_t *task = PStasklist_find(managedTasks, inmsg->header.dest);
+	    PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.dest);
 	    if (task) {
 		int i;
 		for (i=0; i<task->argc; i++) {
@@ -640,8 +642,9 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	{
 	    /* request info for all normal tasks */
 	    PSP_taskInfo_t *taskinfo = (PSP_taskInfo_t *)msg.buf;
-	    PStask_t *task;
-	    for (task=managedTasks; task; task=task->next) {
+	    list_t *t;
+	    list_for_each(t, &managedTasks) {
+		PStask_t *task = list_entry(t, PStask_t, next);
 		if (task->deleted) continue;
 		if ((PSP_Info_t) inmsg->type == PSP_INFO_QUEUE_NORMTASK && (
 			task->group == TG_FORWARDER

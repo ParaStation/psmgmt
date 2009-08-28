@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2008-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -234,7 +234,7 @@ static void msg_DAEMONSTOP(DDMsg_t *msg)
     PStask_ID_t senderID = msg->sender;
 
     if (PSC_getID(senderID) == PSC_getMyID()) {
-	PStask_t *sender = PStasklist_find(managedTasks, senderID);
+	PStask_t *sender = PStasklist_find(&managedTasks, senderID);
 	if (sender->uid && sender->gid
 	    && !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMUSER,
 				   (PSIDnodes_guid_t){.u=sender->uid})

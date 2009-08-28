@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -128,47 +128,32 @@ int PSID_getSignalByTID(PStask_sig_t **siglist,	PStask_ID_t tid);
 
 /** List of all managed tasks (i.e. tasks that have connected or were
     spawned). Further tasklists might be defined. */
-extern PStask_t *managedTasks;
+extern list_t managedTasks;
 
 /**
- * @brief Remove complete tasklist
- *
- * Remove the complete tasklist @a list including all tasks contained
- * within the list.
- *
- * @param list The list to remove.
- *
- * @return No return value.
- * */
-void PStasklist_delete(PStask_t **list);
-
-/**
- * @brief Enqueue a task to a tasklist.
+ * @brief Enqueue task in tasklist.
  *
  * Enqueue the task @a task to the tasklist @a list.
  *
- * @param list The list to enqueue the task to.
+ * @param list The list to enqueue @a task to.
  *
- * @param task The task to enqueue to the list.
+ * @param task The task to enqueue to @a list.
  *
  * @return On success, 0 is returned or -1 if an error occurred.
  * */
-int PStasklist_enqueue(PStask_t **list, PStask_t *task);
+int PStasklist_enqueue(list_t *list, PStask_t *task);
 
 /**
- * @brief Remove a task from a tasklist.
+ * @brief Remove task from tasklist.
  *
- * Find and remove the task with the TID @a tid from the tasklist @a
- * list.  The removed task-structure is returned.
+ * Remove the task structure @a task from the tasklist it is enqueued
+ * in. If @a task is not enqueued in any list, nothing happens.
  *
- * @param list The tasklist from which to find and remove the task.
+ * @param task The task to dequeue from its list.
  *
- * @param tid The TID of the task to find and remove.
- *
- * @return On success, a pointer to the removed task is returned, or
- * NULL if a corresponding task could not be found within @a list.
+ * @return No return value.
  * */
-PStask_t *PStasklist_dequeue(PStask_t **list, PStask_ID_t tid);
+void PStasklist_dequeue(PStask_t *task);
 
 /**
  * @brief Find a task within a tasklist.
@@ -182,7 +167,7 @@ PStask_t *PStasklist_dequeue(PStask_t **list, PStask_ID_t tid);
  * @return On success, a pointer to the found task is returned, or
  * NULL if no task with TID @a tid was found within @a list.
  * */
-PStask_t *PStasklist_find(PStask_t *list, PStask_ID_t tid);
+PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid);
 /*\@}*/
 
 /**

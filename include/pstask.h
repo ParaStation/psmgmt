@@ -27,6 +27,8 @@
 #include <time.h>
 #include <sys/time.h>
 
+#include "list.h"
+
 #include "psnodes.h"
 #include "pscpu.h"
 
@@ -79,10 +81,8 @@ typedef struct PSsig_T{
 
 /** Task structure */
 /* Members marked with C are (un)packed by PStask_encode()/PStask_decode() */
-typedef struct PStask_T{
-    struct PStask_T *next;         /**< link to the next task */
-    struct PStask_T *prev;         /**< link to the previous task */
-
+typedef struct {
+    list_t next;                   /**< used to put into managedTasks, etc. */
     /*C*/ PStask_ID_t tid;         /**< unique task identifier */
     /*C*/ PStask_ID_t ptid;        /**< unique identifier of parent task */
     /*C*/ uid_t uid;               /**< user id */

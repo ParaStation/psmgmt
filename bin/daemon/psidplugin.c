@@ -614,7 +614,7 @@ void PSID_sendPluginLists(PStask_ID_t dest)
  */
 static void msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
 {
-    PStask_t *task = PStasklist_find(managedTasks, inmsg->header.sender);
+    PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.sender);
     int destID = PSC_getID(inmsg->header.dest), ret = 0;
 
     PSID_log(PSID_LOG_PLUGIN, "%s(%s, %s)\n", __func__,

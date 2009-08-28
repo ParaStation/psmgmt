@@ -510,7 +510,7 @@ static int send_DEADNODE(PSnodes_ID_t deadnode);
 
 void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
 {
-    PStask_t *task;
+    list_t *t;
 
     if (!PSIDnodes_isUp(id)) return;
 
@@ -528,7 +528,8 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
     if (config->useMCast) declareNodeDeadMCast(id);
 
     /* Send signals to all processes that controlled task on the dead node */
-    for (task=managedTasks; task; task=task->next) {
+    list_for_each(t, &managedTasks) {
+	PStask_t *task = list_entry(t, PStask_t, next);
 	PStask_ID_t sender;
 	int sig;
 	if (task->deleted) continue;

@@ -247,7 +247,7 @@ static void sighandler(int sig)
 
 	    tid = PSC_getTID(-1, pid);
 
-	    task = PStasklist_find(managedTasks, tid);
+	    task = PStasklist_find(&managedTasks, tid);
 	    if (task) {
 		if (!task->killat) {
 		    task->killat = time(NULL) + 10;
@@ -442,20 +442,15 @@ static void checkFileTable(fd_set *controlfds)
  */
 void checkObstinate(void)
 {
-    PStask_t *task=managedTasks;
     time_t now = time(NULL);
+    list_t *t, *tmp;
 
-    while (task) {
-	PStask_t *next=task->next;
+    list_for_each_safe(t, tmp, &managedTasks) {
+	PStask_t *task = list_entry(t, PStask_t, next);
 
 	if (task->deleted) {
-	    PStask_t *t = PStasklist_dequeue(&managedTasks, task->tid);
-	    if (t != task) {
-		PSID_log(-1, "%s: wrong task dequeued: %p(%s) != %p\n",
-			 __func__, task, PSC_printTID(task->tid), t);
-	    } else {
-		PStask_delete(task);
-	    }
+	    PStasklist_dequeue(task);
+	    PStask_delete(task);
 	} else if (task->killat && now > task->killat) {
 	    int ret;
 	    if (task->group != TG_LOGGER) {
@@ -473,7 +468,6 @@ void checkObstinate(void)
 		}
 	    }
 	}
-	task = next;
     }
 
     cleanupSpawnTasks();

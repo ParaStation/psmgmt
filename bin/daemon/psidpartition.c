@@ -1960,7 +1960,7 @@ static void sendAcctQueueMsg(PStask_t *task)
  */
 static void msg_CREATEPART(DDBufferMsg_t *inmsg)
 {
-    PStask_t *task = PStasklist_find(managedTasks, inmsg->header.sender);
+    PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.sender);
 
     if (!task || (task && task->ptid)) {
 	PSID_log(-1, "%s: task %s not root process\n",
@@ -2154,7 +2154,7 @@ static void appendToNodelist(char *buf, PSpart_request_t *request)
  */
 static void msg_CREATEPARTNL(DDBufferMsg_t *inmsg)
 {
-    PStask_t *task = PStasklist_find(managedTasks, inmsg->header.sender);
+    PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.sender);
 
     if (!task || (task && task->ptid)) {
 	PSID_log(-1, "%s: task %s not root process\n",
@@ -2341,7 +2341,7 @@ static void appendToSlotlist(DDBufferMsg_t *inmsg, PSpart_request_t *request)
  */
 static void msg_PROVIDEPART(DDBufferMsg_t *inmsg)
 {
-    PStask_t *task = PStasklist_find(managedTasks, inmsg->header.dest);
+    PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.dest);
     PSpart_request_t *req;
     char *ptr = inmsg->buf;
 
@@ -2425,7 +2425,7 @@ static void msg_PROVIDEPART(DDBufferMsg_t *inmsg)
  */
 static void msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg)
 {
-    PStask_t *task = PStasklist_find(managedTasks, inmsg->header.dest);
+    PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.dest);
     PSpart_request_t *req;
 
     PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__,
@@ -2513,7 +2513,7 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 {
     PStask_ID_t target = PSC_getPID(inmsg->header.dest) ?
 	inmsg->header.dest : inmsg->header.sender;
-    PStask_t *task = PStasklist_find(managedTasks, target);
+    PStask_t *task = PStasklist_find(&managedTasks, target);
     char *ptr = inmsg->buf;
     unsigned int num;
 
@@ -2639,7 +2639,7 @@ static void msg_GETRANKNODE(DDBufferMsg_t *inmsg)
 {
     PStask_ID_t target = PSC_getPID(inmsg->header.dest) ?
 	inmsg->header.dest : inmsg->header.sender;
-    PStask_t *task = PStasklist_find(managedTasks, target);
+    PStask_t *task = PStasklist_find(&managedTasks, target);
     char *ptr = inmsg->buf;
     int rank;
 
@@ -2746,7 +2746,7 @@ static void msg_NODESRES(DDBufferMsg_t *inmsg)
     if (PSC_getID(inmsg->header.dest) == PSC_getMyID()) {
 	int DaemonPSPver =
 	    PSIDnodes_getDaemonProtoVersion(PSC_getID(inmsg->header.sender));
-	PStask_t *task = PStasklist_find(managedTasks, inmsg->header.dest);
+	PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.dest);
 	char *ptr = inmsg->buf;
 	int num = inmsg->header.len - sizeof(inmsg->header) - sizeof(int32_t);
 	int nextRank = *(int32_t *)ptr, requested = 0;
@@ -2857,9 +2857,10 @@ int send_GETTASKS(PSnodes_ID_t node)
 
 static void sendRequests(void)
 {
-    PStask_t *task;
+    list_t *t;
 
-    for (task=managedTasks; task; task=task->next) {
+    list_for_each(t, &managedTasks) {
+	PStask_t *task = list_entry(t, PStask_t, next);
 	if (task->deleted) continue;
 	if (task->request) {
 	    DDBufferMsg_t msg = {
@@ -2890,7 +2891,6 @@ static void sendRequests(void)
 
 static void sendExistingPartitions(PStask_ID_t dest)
 {
-    PStask_t *task;
     DDBufferMsg_t msg = {
 	.header = {
 	    .type = PSP_DD_PROVIDETASK,
@@ -2898,8 +2898,10 @@ static void sendExistingPartitions(PStask_ID_t dest)
 	    .dest = dest,
 	    .len = sizeof(msg.header) },
 	.buf = { '\0' }};
+    list_t *t;
 
-    for (task=managedTasks; task; task=task->next) {
+    list_for_each(t, &managedTasks) {
+	PStask_t *task = list_entry(t, PStask_t, next);
 	if (task->deleted) continue;
 	if (task->partition && task->partitionSize) {
 	    char *ptr = msg.buf;

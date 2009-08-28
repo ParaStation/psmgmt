@@ -170,7 +170,7 @@ int flushClientMsgs(int fd)
 
 int sendClient(DDMsg_t *msg)
 {
-    PStask_t *task = PStasklist_find(managedTasks, msg->dest);
+    PStask_t *task = PStasklist_find(&managedTasks, msg->dest);
     int fd, sent = 0;
 
     if (PSID_getDebugMask() & PSID_LOG_CLIENT) {
@@ -330,7 +330,7 @@ void deleteClient(int fd)
 
     if (tid==-1) return;
 
-    task = PStasklist_find(managedTasks, tid);
+    task = PStasklist_find(&managedTasks, tid);
     if (!task) {
 	PSID_log(-1, "%s: Task %s not found\n", __func__, PSC_printTID(tid));
 	return;
@@ -352,7 +352,7 @@ void deleteClient(int fd)
 
     /* Deregister TG_(PSC)SPAWNER from parent process */
     if (task->group == TG_SPAWNER || task->group == TG_PSCSPAWNER) {
-	PStask_t *parent = PStasklist_find(managedTasks, task->ptid);
+	PStask_t *parent = PStasklist_find(&managedTasks, task->ptid);
 
 	if (parent) {
 	    /* Remove dead spawner from list of childs */
@@ -449,13 +449,14 @@ void deleteClient(int fd)
 
 int killAllClients(int sig, int killAdminTasks)
 {
-    PStask_t *task;
+    list_t *t;
     int ret = 0;
 
     PSID_log(PSID_LOG_CLIENT, "%s(%d, %d)\n", __func__, sig, killAdminTasks);
 
     /* loop over all tasks */
-    for (task=managedTasks; task; task=task->next) {
+    list_for_each(t, &managedTasks) {
+	PStask_t *task = list_entry(t, PStask_t, next);
 	pid_t pid = PSC_getPID(task->tid);
 
 	if (task->deleted) continue;
@@ -542,11 +543,11 @@ static void msg_CLIENTCONNECT(DDBufferMsg_t *bufmsg)
      * first check if it is a reconnection
      * this can happen due to a exec call.
      */
-    task = PStasklist_find(managedTasks, tid);
+    task = PStasklist_find(&managedTasks, tid);
     if (!task && msg->group != TG_SPAWNER && msg->group != TG_PSCSPAWNER) {
 	PStask_ID_t pgtid = PSC_getTID(-1, getpgid(pid));
 
-	task = PStasklist_find(managedTasks, pgtid);
+	task = PStasklist_find(&managedTasks, pgtid);
 
 	if (task && (task->group == TG_LOGGER || task->group == TG_ADMIN)) {
 	    /*
@@ -567,7 +568,7 @@ static void msg_CLIENTCONNECT(DDBufferMsg_t *bufmsg)
 		PStasklist_enqueue(&managedTasks, child);
 
 		if (task->forwardertid) {
-		    PStask_t *forwarder = PStasklist_find(managedTasks,
+		    PStask_t *forwarder = PStasklist_find(&managedTasks,
 							  task->forwardertid);
 		    if (forwarder) {
 			/* Register new child to its forwarder */
@@ -628,7 +629,7 @@ static void msg_CLIENTCONNECT(DDBufferMsg_t *bufmsg)
 
 	    ptid = PSC_getTID(-1, msg->ppid);
 
-	    parent = PStasklist_find(managedTasks, ptid);
+	    parent = PStasklist_find(&managedTasks, ptid);
 
 	    if (parent) {
 		/* register the child */

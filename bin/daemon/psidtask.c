@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -27,7 +27,7 @@ static char vcid[] __attribute__((used)) =
 
 #include "psidtask.h"
 
-PStask_t *managedTasks = NULL;
+LIST_HEAD(managedTasks);
 
 static void printList(PStask_sig_t *list)
 {
@@ -54,7 +54,7 @@ void PSID_setSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal)
 
     PSID_log(PSID_LOG_SIGNAL, "%s(%s, %d)\n",
 	     __func__, PSC_printTID(tid), signal);
-    
+
     if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
 	PSID_log(PSID_LOG_SIGDBG, "%s: signals before (in %p):",
 		 __func__, siglist);
@@ -226,70 +226,45 @@ int PSID_getSignalByTID(PStask_sig_t **siglist, PStask_ID_t tid)
 
 /****************** TAKSLIST MANIPULATING ROUTINES **********************/
 
-void PStasklist_delete(PStask_t **list)
+int PStasklist_enqueue(list_t *list, PStask_t *task)
 {
-    PStask_t *task;
+    PSID_log(PSID_LOG_TASK, "%s(%p,%s(%p))\n", __func__,
+	     list, PSC_printTID(task->tid), task);
 
-    PSID_log(PSID_LOG_TASK,
-	     "%s(%p[%lx])\n", __func__, list, *list ? (long)*list : -1);
-
-    while (*list) {
-	task = (*list);
-	(*list) = (*list)->next;
-	PStask_delete(task);
-    }
-}
-
-int PStasklist_enqueue(PStask_t **list, PStask_t *task)
-{
-    PSID_log(PSID_LOG_TASK, "%s(%p[%p],%s(%p))\n", __func__,
-	     list, *list, PSC_printTID(task->tid), task);
-
-    task->prev=NULL;
-    task->next = *list;
-    if (*list) (*list)->prev = task;
-    *list = task;
+    list_add_tail(list, &task->next);
 
     return 0;
 }
 
-PStask_t *PStasklist_dequeue(PStask_t **list, PStask_ID_t tid)
+void PStasklist_dequeue(PStask_t *task)
 {
-    PStask_t *task;
+    PSID_log(PSID_LOG_TASK, "%s(%p, %s)\n", __func__, task,
+	     task ? PSC_printTID(task->tid) : "");
 
-    PSID_log(PSID_LOG_TASK, "%s(%p[%p], %s)\n", __func__,
-	     list, *list, PSC_printTID(tid));
-
-    /* Don't use PStasklist_find here since task *is* deleted */
-    for (task=*list; task && task->tid!=tid; task=task->next);
-
-    if (task) {
-	if (task->next) task->next->prev = task->prev;
-	if (task->prev) {
-	    /* found in the middle of the list */
-	    task->prev->next = task->next;
-	} else {
-	    /* the task was the head of the list */
-	    *list = task->next;
-	}
-    }
-
-    return task;
+    if (!task || list_empty(&task->next)) return;
+    list_del_init(&task->next);
 }
 
-PStask_t *PStasklist_find(PStask_t *list, PStask_ID_t tid)
+PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid)
 {
-    PStask_t *task;
+    list_t *t;
+    PStask_t *task = NULL;
 
     PSID_log(PSID_LOG_TASK, "%s(%p, %s)", __func__, list, PSC_printTID(tid));
 
-    for (task=list; task && task->tid!=tid; task=task->next);
+    list_for_each(t, list) {
+	PStask_t *tt = list_entry(t, PStask_t, next);
+	if (tt->tid == tid) {
+	    task = tt;
+	    break;
+	}
+    }
 
     if (task && task->deleted) {
 	PSID_log(PSID_LOG_TASK, " found but deleted\n");
 	return NULL;
     }
-    
+
     PSID_log(PSID_LOG_TASK, " is at %p\n", task);
     return task;
 }
@@ -300,7 +275,7 @@ void PStask_cleanup(PStask_ID_t tid)
 
     PSID_log(PSID_LOG_TASK, "%s(%s)\n", __func__, PSC_printTID(tid));
 
-    task = PStasklist_find(managedTasks, tid);
+    task = PStasklist_find(&managedTasks, tid);
     if (!task) {
 	PSID_log(-1, "%s: %s not in my tasklist\n",
 		 __func__, PSC_printTID(tid));
@@ -328,7 +303,7 @@ void PStask_cleanup(PStask_ID_t tid)
 
 	/* Detach from forwarder */
 	if (task->forwardertid) {
-	    PStask_t *forwarder = PStasklist_find(managedTasks,
+	    PStask_t *forwarder = PStasklist_find(&managedTasks,
 						  task->forwardertid);
 	    if (forwarder) {
 		PSID_removeSignal(&forwarder->childs, task->tid, -1);
@@ -349,7 +324,7 @@ void PStask_cleanup(PStask_ID_t tid)
 	    int sig = -1;
 
 	    while ((childTID = PSID_getSignal(&task->childs, &sig))) {
-		PStask_t *child = PStasklist_find(managedTasks, childTID);
+		PStask_t *child = PStasklist_find(&managedTasks, childTID);
 
 		if (child && child->fd == -1) {
 		    PSID_log(-1, "%s: forwarder kills child %s\n",

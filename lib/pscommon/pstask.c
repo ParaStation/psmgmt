@@ -56,9 +56,7 @@ int PStask_init(PStask_t* task)
 {
     PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, task);
 
-    task->next = NULL;
-    task->prev = NULL;
-
+    INIT_LIST_HEAD(&task->next);
     task->tid = 0;
     task->ptid = 0;
     task->uid = -1;
@@ -119,6 +117,8 @@ int PStask_reinit(PStask_t* task)
 
     if (!task)
 	return 0;
+
+    if (!list_empty(&task->next)) list_del_init(&task->next);
 
     if (task->workingdir)
 	free(task->workingdir);
@@ -363,11 +363,10 @@ static void snprintfStruct(char *txt, size_t size, PStask_t *task)
     if (!task) return;
 
     snprintf(txt, size, "tid 0x%08x ptid 0x%08x uid %d gid %d group %s"
-	     " rank %d cpus %s links(%p,%p) loggertid %08x fd %d argc %d",
+	     " rank %d cpus %s loggertid %08x fd %d argc %d",
 	     task->tid, task->ptid, task->uid, task->gid,
 	     PStask_printGrp(task->group), task->rank,
-	     PSCPU_print(task->CPUset),
-	     task->next, task->prev, task->loggertid, task->fd, task->argc);
+	     PSCPU_print(task->CPUset), task->loggertid, task->fd, task->argc);
 }
 
 static void snprintfArgv(char *txt, size_t size, PStask_t *task)

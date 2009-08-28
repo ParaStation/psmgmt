@@ -1555,7 +1555,7 @@ static int checkRequest(PStask_ID_t sender, PStask_t *task)
 	return EACCES;
     }
 
-    ptask = PStasklist_find(managedTasks, task->ptid);
+    ptask = PStasklist_find(&managedTasks, task->ptid);
 
     if (!ptask) {
 	/* Parent not found */
@@ -1683,7 +1683,7 @@ static int spawnTask(PStask_t *task)
 	 * the same node. Thus register directly as his child.
 	 */
 	if (PSC_getID(task->ptid) == PSC_getMyID()) {
-	    PStask_t *parent = PStasklist_find(managedTasks, task->ptid);
+	    PStask_t *parent = PStasklist_find(&managedTasks, task->ptid);
 
 	    if (!parent) {
 		PSID_log(-1, "%s: parent task %s not found\n", __func__,
@@ -1795,7 +1795,7 @@ static void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
  * List of all tasks waiting to get spawned, i.e. waiting for last
  * environment packets to come in.
  */
-static PStask_t *spawnTasks = NULL;
+static LIST_HEAD(spawnTasks);
 
 /**
  * @brief Handle a PSP_CD_SPAWNREQ message.
@@ -1859,7 +1859,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	PStask_delete(task);
 
 	/* Since checkRequest() did not fail, we will find ptask */
-	ptask = PStasklist_find(managedTasks, msg->header.sender);
+	ptask = PStasklist_find(&managedTasks, msg->header.sender);
     }
 
 
@@ -1931,7 +1931,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	return;
     }
 
-    task = PStasklist_find(spawnTasks, msg->header.sender);
+    task = PStasklist_find(&spawnTasks, msg->header.sender);
 
     switch (msg->type) {
     case PSP_SPAWN_TASK:
@@ -2028,7 +2028,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
 	PSID_log(PSID_LOG_SPAWN, "%s: Spawning %s\n", __func__, tasktxt);
 
-	PStasklist_dequeue(&spawnTasks, task->tid);
+	PStasklist_dequeue(task);
 	if (task->deleted) {
 	    answer.error = ECHILD;
 	} else {
@@ -2046,35 +2046,29 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 
 void deleteSpawnTasks(PSnodes_ID_t node)
 {
-    PStask_t *task = spawnTasks;
+    list_t *t;
 
     PSID_log(PSID_LOG_SPAWN, "%s(%d)", __func__, node);
 
-    while (task) {
+    list_for_each(t, &spawnTasks) {
+	PStask_t *task = list_entry(t, PStask_t, next);
 	if (PSC_getID(task->tid) == node) task->deleted = 1;
-	task = task->next;
     }
 }
 
 void cleanupSpawnTasks(void)
 {
-    PStask_t *task = spawnTasks;
+    list_t *t, *tmp;
 
     PSID_log(PSID_LOG_SPAWN, "%s()", __func__);
 
-    while (task) {
-	PStask_t *next=task->next;
+    list_for_each_safe(t, tmp, &spawnTasks) {
+	PStask_t *task = list_entry(t, PStask_t, next);
 
 	if (task->deleted) {
-	    PStask_t *t = PStasklist_dequeue(&spawnTasks, task->tid);
-	    if (t != task) {
-		PSID_log(-1, "%s: wrong task dequeued: %p(%s) != %p\n",
-			 __func__, task, PSC_printTID(task->tid), t);
-	    } else {
-		PStask_delete(task);
-	    }
+	    PStasklist_dequeue(task);
+	    PStask_delete(task);
 	}
-	task = next;
     }
 }
 
@@ -2100,7 +2094,7 @@ static void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
     PSID_log(PSID_LOG_SPAWN, "%s(%s) with parent(%s)\n",
 	     __func__, PSC_printTID(tid), parent);
 
-    task = PStasklist_find(managedTasks, ptid);
+    task = PStasklist_find(&managedTasks, ptid);
     if (task) {
 	/* register the child */
 	PSID_setSignal(&task->childs, tid, -1);
@@ -2190,7 +2184,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	    return;
 	}
 	/* Destination on my node, let's take a peek */
-	task = PStasklist_find(managedTasks, msg->header.dest);
+	task = PStasklist_find(&managedTasks, msg->header.dest);
 	if (!task) return;
 
 	if (PSID_removeSignal(&task->assignedSigs, msg->request, -1)) {
@@ -2235,7 +2229,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
     }
 
     /* Release the corresponding forwarder */
-    forwarder = PStasklist_find(managedTasks, msg->header.sender);
+    forwarder = PStasklist_find(&managedTasks, msg->header.sender);
     if (forwarder) {
 	forwarder->released = 1;
 	PSID_removeSignal(&forwarder->childs, msg->request, -1);
@@ -2246,7 +2240,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
     }
 
     /* Try to find the task */
-    task = PStasklist_find(managedTasks, msg->request);
+    task = PStasklist_find(&managedTasks, msg->request);
 
     if (!task) {
 	/* task not found */
