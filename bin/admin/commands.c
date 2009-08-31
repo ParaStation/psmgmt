@@ -1739,7 +1739,7 @@ void PSIADM_Plugin(char *nl, char *name, PSP_Plugin_t action)
 
     msg.type = action;
     if (name) {
-	size_t strLen = snprintf(msg.buf, sizeof(msg.buf), "%s", name);
+	size_t strLen = snprintf(msg.buf, sizeof(msg.buf), "%s", name) + 1;
 	if (strLen > sizeof(msg.buf)) {
 	    printf("plugin name '%s' too long\n", name);
 	    return;
