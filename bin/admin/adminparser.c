@@ -1497,7 +1497,6 @@ static keylist_t pluginList[] = {
     {"delete", pluginRmCommand},
     {"remove", pluginRmCommand},
     {"rm", pluginRmCommand},
-    {"unload", pluginRmCommand},
     {NULL, pluginError}
 };
 static parser_t pluginParser = {" \t\n", pluginList};
