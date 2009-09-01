@@ -90,8 +90,8 @@ int PStask_init(PStask_t* task)
     gettimeofday(&task->started, NULL);
     task->protocolVersion = -1;
 
-    task->childs = NULL;
-    task->preReleased = NULL;
+    INIT_LIST_HEAD(&task->childs);
+    INIT_LIST_HEAD(&task->preReleased);
 
     task->request = NULL;
     task->partitionSize = 0;
@@ -102,11 +102,22 @@ int PStask_init(PStask_t* task)
     task->spawnNodesSize = 0;
     task->spawnNum = 0;
 
-    task->signalSender = NULL;
-    task->signalReceiver = NULL;
-    task->assignedSigs = NULL;
+    INIT_LIST_HEAD(&task->signalSender);
+    INIT_LIST_HEAD(&task->signalReceiver);
+    INIT_LIST_HEAD(&task->assignedSigs);
 
     return 1;
+}
+
+static void delSigList(list_t *list)
+{
+    list_t *s, *tmp;
+
+    list_for_each_safe(s, tmp, list) {
+	PStask_sig_t *signal = list_entry(s, PStask_sig_t, next);
+	list_del(&signal->next);
+	free(signal);
+    }
 }
 
 int PStask_reinit(PStask_t* task)
@@ -137,38 +148,16 @@ int PStask_reinit(PStask_t* task)
 	task->environ = NULL;
     }
 
-    while (task->childs) {
-	PStask_sig_t* thissignal = task->childs;
-	task->childs = thissignal->next;
-	free(thissignal);
-    }
-    while (task->preReleased) {
-	PStask_sig_t* thissignal = task->preReleased;
-	task->preReleased = thissignal->next;
-	free(thissignal);
-    }
+    delSigList(&task->childs);
+    delSigList(&task->preReleased);
 
     if (task->request) PSpart_delReq(task->request);
     if (task->partition) free(task->partition);
     if (task->spawnNodes) free(task->spawnNodes);
 
-    while (task->signalSender) {
-	PStask_sig_t* thissignal = task->signalSender;
-	task->signalSender = thissignal->next;
-	free(thissignal);
-    }
-
-    while (task->signalReceiver) {
-	PStask_sig_t* thissignal = task->signalReceiver;
-	task->signalReceiver = thissignal->next;
-	free(thissignal);
-    }
-
-    while (task->assignedSigs) {
-	PStask_sig_t* thissignal = task->assignedSigs;
-	task->assignedSigs = thissignal->next;
-	free(thissignal);
-    }
+    delSigList(&task->signalSender);
+    delSigList(&task->signalReceiver);
+    delSigList(&task->assignedSigs);
 
     PStask_init(task);
 
@@ -188,42 +177,28 @@ int PStask_delete(PStask_t* task)
     return 1;
 }
 
-PStask_sig_t* PStask_cloneSigList(PStask_sig_t* list)
+static void cloneSigList(list_t *cloneList, list_t *origList)
 {
-    PStask_sig_t* clone = NULL,* signal = NULL;
+    list_t *s;
 
-    PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, list);
+    PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, origList);
 
-    while (list) {
-	if (!signal) {
-	    /* First item */
-	    signal = (PStask_sig_t*) malloc(sizeof(PStask_sig_t));
-	    clone = signal;
-	} else {
-	    signal->next = (PStask_sig_t*) malloc(sizeof(PStask_sig_t));
-	    signal = signal->next;
+    delSigList(cloneList);
+
+    list_for_each(s, origList) {
+	PStask_sig_t *origSig = list_entry(s, PStask_sig_t, next);
+	PStask_sig_t *cloneSig = malloc(sizeof(PStask_sig_t));
+
+	if (!cloneSig) {
+	    delSigList(cloneList);
+	    PSC_warn(-1, ENOMEM, "%s()", __func__);
+	    break;
 	}
 
-	if (!signal) break;
-
-	signal->tid = list->tid;
-	signal->signal = list->signal;
-	signal->next = NULL;
-
-	list = list->next;
+	cloneSig->tid = origSig->tid;
+	cloneSig->signal = origSig->signal;
+	list_add_tail(&cloneSig->next, cloneList);
     }
-
-    if (list) {
-	/* loop interrupted due to memory-shortage */
-	while (clone) {
-	    PStask_sig_t* thissignal = clone;
-	    clone = thissignal->next;
-	    free(thissignal);
-	}
-	PSC_log(-1, "%s(): no memory\n", __func__);
-    }
-
-    return clone;
 }
 
 PStask_t* PStask_clone(PStask_t* task)
@@ -323,8 +298,8 @@ PStask_t* PStask_clone(PStask_t* task)
     gettimeofday(&clone->started, NULL);
     clone->protocolVersion = task->protocolVersion;
 
-    clone->childs = PStask_cloneSigList(task->childs);
-    clone->preReleased = PStask_cloneSigList(task->preReleased);
+    cloneSigList(&clone->childs, &task->childs);
+    cloneSigList(&clone->preReleased, &task->preReleased);
 
     clone->request = NULL; /* Do not clone requests */
     clone->partitionSize = task->partitionSize;
@@ -347,9 +322,9 @@ PStask_t* PStask_clone(PStask_t* task)
 	   clone->spawnNodesSize * sizeof(*task->spawnNodes));
     clone->spawnNum = task->spawnNum;
 
-    clone->signalSender = PStask_cloneSigList(task->signalSender);
-    clone->signalReceiver = PStask_cloneSigList(task->signalReceiver);
-    clone->assignedSigs = PStask_cloneSigList(task->assignedSigs);
+    cloneSigList(&clone->signalSender, &task->signalSender);
+    cloneSigList(&clone->signalReceiver, &task->signalReceiver);
+    cloneSigList(&clone->assignedSigs, &task->assignedSigs);
 
     return clone;
 

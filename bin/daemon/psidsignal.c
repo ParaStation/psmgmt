@@ -198,15 +198,14 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 
 	    PSID_log(-1, "%s: Do not send signal to daemon\n", __func__);
 	} else if (pervasive) {
-	    PStask_sig_t *childs = PStask_cloneSigList(dest->childs);
-	    PStask_ID_t childTID;
-	    int sig = -1;
+	    list_t *s;
 
 	    answer = 0;
 
-	    while ((childTID = PSID_getSignal(&childs, &sig))) {
-		PSID_sendSignal(childTID, uid, sender, signal, 1, answer);
-		sig = -1;
+	    list_for_each(s, &dest->childs) {
+		PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
+
+		PSID_sendSignal(sig->tid, uid, sender, signal, 1, answer);
 	    }
 
 	    /* Deliver signal, if tid not the original sender */
@@ -239,7 +238,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 		}
 		/* This might have been a child */
 		PSID_removeSignal(&dest->childs, sender, -1);
-		if (dest->removeIt && !dest->childs) {
+		if (dest->removeIt && list_empty(&dest->childs)) {
 		    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n",__func__);
 		    PStask_cleanup(dest->tid);
 		    return;
@@ -298,24 +297,22 @@ void PSID_sendAllSignals(PStask_t *task)
 
 void PSID_sendSignalsToRelatives(PStask_t *task)
 {
-    PStask_ID_t sigtid;
-    int sig = -1;
-    PStask_sig_t *childs = PStask_cloneSigList(task->childs);
-
-    sigtid = task->ptid;
-
-    if (!sigtid) sigtid = PSID_getSignal(&childs, &sig);
-
-    while (sigtid) {
-	PSID_sendSignal(sigtid, task->uid, task->tid, -1, 0, 0);
-
+    list_t *s;
+    
+    if (task->ptid) {
+	PSID_sendSignal(task->ptid, task->uid, task->tid, -1, 0, 0);
 	PSID_log(PSID_LOG_SIGNAL, "%s(%s)", __func__, PSC_printTID(task->tid));
-	PSID_log(PSID_LOG_SIGNAL,
-		 " sent signal -1 to %s\n", PSC_printTID(sigtid));
+	PSID_log(PSID_LOG_SIGNAL, " sent signal -1 to parent %s\n",
+		 PSC_printTID(task->ptid));
+    }
 
-	sig = -1;
+    list_for_each(s, &task->childs) {
+	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
 
-	sigtid = PSID_getSignal(&childs, &sig);
+	PSID_sendSignal(sig->tid, task->uid, task->tid, -1, 0, 0);
+	PSID_log(PSID_LOG_SIGNAL, "%s(%s)", __func__, PSC_printTID(task->tid));
+	PSID_log(PSID_LOG_SIGNAL, " sent signal -1 to %s\n",
+		 PSC_printTID(sig->tid));
     }
 }
 
@@ -772,7 +769,7 @@ static int releaseSignal(PStask_ID_t sender, PStask_ID_t receiver, int sig,
 		PSID_setSignal(&task->preReleased, receiver, -1);
 	    }
 	}
-	if (task->removeIt && !task->childs) {
+	if (task->removeIt && list_empty(&task->childs)) {
 	    PSID_log(PSID_LOG_TASK, "%s: sig %d to %s", __func__,
 		     sig, PSC_printTID(receiver));
 	    PSID_log(PSID_LOG_TASK, " from %s: PStask_cleanup()\n",

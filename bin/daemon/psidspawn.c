@@ -2196,7 +2196,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	    PSID_sendSignal(task->tid, task->uid, msg->request, -1, 0, 0);
 	}
 
-	if (task->removeIt && !task->childs) {
+	if (task->removeIt && list_empty(&task->childs)) {
 	    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
 	    PStask_cleanup(task->tid);
 	    return;
@@ -2217,7 +2217,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	case TG_SERVICE:
 	    /* TG_SERVICE expects signal, not message */
 	    if (!WIFEXITED(msg->error) || WIFSIGNALED(msg->error)
-		|| !task->childs) {
+		|| list_empty(&task->childs)) {
 		PSID_sendSignal(task->tid, task->uid, msg->request, -1, 0, 0);
 	    }
 	default:

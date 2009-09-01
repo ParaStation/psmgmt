@@ -35,10 +35,10 @@ extern "C" {
  * @brief Register signal.
  *
  * Register the signal @a signal associated with the task @a tid into
- * another tasks signal list @a siglist. The actual meaning of the
+ * another tasks signal list @a sigList. The actual meaning of the
  * registered signal depends on the signal list it is stored to.
  *
- * @param siglist The signal list the signal is stored to.
+ * @param sigList The signal list the signal is stored to.
  *
  * @param tid The unique task ID the signal is associated with
  *
@@ -46,15 +46,15 @@ extern "C" {
  *
  * @return No return value.
  */
-void PSID_setSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal);
+void PSID_setSignal(list_t *sigList, PStask_ID_t tid, int signal);
 
 /**
  * @brief Unregister signal.
  *
  * Unregister the signal @a signal associated with the task @a tid from
- * another tasks signal list @a siglist.
+ * another tasks signal list @a sigList.
  *
- * @param siglist The signal list the signal was stored to.
+ * @param sigList The signal list the signal was stored to.
  *
  * @param tid The unique task ID the signal is associated with.
  *
@@ -63,18 +63,18 @@ void PSID_setSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal);
  * @return On success, i.e. if the corresponding signal was found
  * within the signal list, 1 is returned, otherwise 0 is given back.
  */
-int PSID_removeSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal);
+int PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal);
 
 /**
  * @brief Get a signal from signal list.
  *
  * Get the first occurrence of the signal @a signal from the signal
- * list @a siglist and return the associated unique task ID. If @a
+ * list @a sigList and return the associated unique task ID. If @a
  * signal is -1, any signal will be returned and @a signal will be set
  * appropriately. The signal found will be removed from the signal
- * list @a siglist.
+ * list @a sigList.
  *
- * @param siglist The signal list to search for the signal.
+ * @param sigList The signal list to search for the signal.
  *
  * @param signal The signal to search for. If this is -1, any signal
  * will be returned.
@@ -82,19 +82,19 @@ int PSID_removeSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal);
  * @return If a signal was found, the unique task ID of the associated
  * task will be returned. Or 0, if no signal was found.
  */
-PStask_ID_t PSID_getSignal(PStask_sig_t **siglist, int *signal);
+PStask_ID_t PSID_getSignal(list_t *sigList, int *signal);
 
 
 /**
  * @brief Get a signal by ID from signal list.
  *
  * Get the first occurrence of a signal associated with the unique
- * node ID @a id from the signal list @a siglist. If a signal is found
+ * node ID @a id from the signal list @a sigList. If a signal is found
  * the associated unique task ID is returned and @a signal will be set
  * appropriately. The signal found will be removed from the signal
- * list @a siglist.
+ * list @a sigList.
  *
- * @param siglist The signal list to search for the signal.
+ * @param sigList The signal list to search for the signal.
  *
  * @param id The unique node ID to search for.
  *
@@ -103,24 +103,24 @@ PStask_ID_t PSID_getSignal(PStask_sig_t **siglist, int *signal);
  * @return If a signal was found, the unique task ID of the associated
  * task will be returned. Or 0, if no signal was found.
  */
-PStask_ID_t PSID_getSignalByID(PStask_sig_t **siglist,
+PStask_ID_t PSID_getSignalByID(list_t *sigList,
 			       PSnodes_ID_t id, int *signal);
 
 /**
  * @brief Get a signal by task ID from signal list.
  *
  * Get the a signal associated with unique task ID @a tid from the
- * signal list @a siglist and return the associated signal. The signal
- * found will be removed from the signal list @a siglist.
+ * signal list @a sigList and return the associated signal. The signal
+ * found will be removed from the signal list @a sigList.
  *
- * @param siglist The signal list to search for the signal.
+ * @param sigList The signal list to search for the signal.
  *
  * @param tid The unique task ID to search for.
  *
  * @return If a signal was found, the associated signal will be
  * returned. Or 0, if no signal was found.
  */
-int PSID_getSignalByTID(PStask_sig_t **siglist,	PStask_ID_t tid);
+int PSID_getSignalByTID(list_t *sigList, PStask_ID_t tid);
 /*\@}*/
 
 /** @defgroup taskliststuff Tasklist routines */

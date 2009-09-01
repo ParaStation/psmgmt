@@ -15,6 +15,7 @@ static char vcid[] __attribute__((used)) =
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include <signal.h>
 
 #include "pstask.h"
@@ -29,26 +30,23 @@ static char vcid[] __attribute__((used)) =
 
 LIST_HEAD(managedTasks);
 
-static void printList(PStask_sig_t *list)
+static void printList(list_t *sigList)
 {
-    PStask_sig_t *thissig = list;
+    list_t *s;
 
-    while (thissig) {
+    list_for_each(s, sigList) {
+	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
 	PSID_log(PSID_LOG_SIGDBG, " %s/%d",
-		 PSC_printTID(thissig->tid), thissig->signal);
-	thissig = thissig->next;
+		 PSC_printTID(sig->tid), sig->signal);
     }
 }
 
-void PSID_setSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal)
+void PSID_setSignal(list_t *sigList, PStask_ID_t tid, int signal)
 {
-    PStask_sig_t *thissig;
-
-    thissig = (PStask_sig_t*) malloc(sizeof(PStask_sig_t));
+    PStask_sig_t *thissig = malloc(sizeof(PStask_sig_t));
 
     if (!thissig) {
-	PSID_log(-1, "%s(%s, %d): no memory\n",
-		 __func__, PSC_printTID(tid), signal);
+	PSID_warn(-1, errno, "%s(%s,%d)", __func__, PSC_printTID(tid), signal);
 	return;
     }
 
@@ -57,62 +55,57 @@ void PSID_setSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal)
 
     if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
 	PSID_log(PSID_LOG_SIGDBG, "%s: signals before (in %p):",
-		 __func__, siglist);
-	printList(*siglist);
+		 __func__, sigList);
+	printList(sigList);
 	PSID_log(PSID_LOG_SIGDBG, "\n");
     }
 
     thissig->signal = signal;
     thissig->tid = tid;
-    thissig->next = *siglist;
 
-    *siglist = thissig;
+    list_add_tail(sigList, &thissig->next);
 
     if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
 	PSID_log(PSID_LOG_SIGDBG, "%s: signals after (in %p):",
-		 __func__, siglist);
-	printList(*siglist);
+		 __func__, sigList);
+	printList(sigList);
 	PSID_log(PSID_LOG_SIGDBG, "\n");
     }
 }
 
-int PSID_removeSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal)
+int PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal)
 {
-    PStask_sig_t *thissig, *prev = NULL;
+    list_t *s;
+    PStask_sig_t *thissig = NULL;
 
     if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
 	PSID_log(PSID_LOG_SIGDBG, "%s: signals before (in %p):",
-		 __func__, siglist);
-	printList(*siglist);
+		 __func__, sigList);
+	printList(sigList);
 	PSID_log(PSID_LOG_SIGDBG, "\n");
     }
 
     PSID_log(PSID_LOG_SIGNAL, "%s(%s, %d)",
 	     __func__, PSC_printTID(tid), signal);
 
-    thissig = *siglist;
-    while (thissig && (thissig->tid != tid || thissig->signal != signal)) {
-	prev = thissig;
-	thissig = thissig->next;
+    list_for_each(s, sigList) {
+	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
+	if (sig->tid == tid && sig->signal == signal) {
+	    thissig = sig;
+	    break;
+	}
     }
 
     if (thissig) {
 	/* Signal found */
-	if (thissig == *siglist) {
-	    /* First element in siglist */
-	    *siglist = thissig->next;
-	} else {
-	    /* Somewhere in the middle */
-	    prev->next = thissig->next;
-	}
-
+	list_del(&thissig->next);
 	free(thissig);
 
 	PSID_log(PSID_LOG_SIGNAL, "\n");
 	if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
 	    PSID_log(PSID_LOG_SIGDBG, "%s: signals after (in %p):",
-		     __func__, siglist);
-	    printList(*siglist);
+		     __func__, sigList);
+	    printList(sigList);
 	    PSID_log(PSID_LOG_SIGDBG, "\n");
 	}
 
@@ -124,20 +117,18 @@ int PSID_removeSignal(PStask_sig_t **siglist, PStask_ID_t tid, int signal)
     return 0;
 }
 
-PStask_ID_t PSID_getSignal(PStask_sig_t **siglist, int *signal)
+PStask_ID_t PSID_getSignal(list_t *sigList, int *signal)
 {
+    list_t *s;
     PStask_ID_t tid = 0;
-    PStask_sig_t *thissig, *prev = NULL;
+    PStask_sig_t *thissig = NULL;
 
-    if (!siglist) return 0;
-
-    thissig = *siglist;
-
-    /* Take any signal if *signal==-1, i.e. first entry */
-    if (*signal!=-1) {
-	while (thissig && thissig->signal != *signal) {
-	    prev = thissig;
-	    thissig = thissig->next;
+    /* Search signal or take any signal if *signal==-1, i.e. first entry */
+    list_for_each(s, sigList) {
+	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
+	if (*signal == -1 || sig->signal == *signal) {
+	    thissig = sig;
+	    break;
 	}
     }
 
@@ -145,83 +136,64 @@ PStask_ID_t PSID_getSignal(PStask_sig_t **siglist, int *signal)
 	/* Signal found */
 	*signal = thissig->signal;
 	tid = thissig->tid;
-	if (thissig == *siglist) {
-	    /* First element in siglist */
-	    *siglist = thissig->next;
-	} else {
-	    /* Somewhere in the middle */
-	    prev->next = thissig->next;
-	}
 
+	list_del(&thissig->next);
 	free(thissig);
     }
 
     return tid;
 }
 
-
-PStask_ID_t PSID_getSignalByID(PStask_sig_t **siglist,
+PStask_ID_t PSID_getSignalByID(list_t *sigList,
 			       PSnodes_ID_t id, int *signal)
 {
+    list_t *s;
     PStask_ID_t tid = 0;
-    PStask_sig_t *thissig, *prev = NULL;
+    PStask_sig_t *thissig = NULL;
 
-    if (!siglist) return 0;
-
-    thissig = *siglist;
-
-    while (thissig && PSC_getID(thissig->tid) != id) {
-	prev = thissig;
-	thissig = thissig->next;
+    list_for_each(s, sigList) {
+	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
+	if (PSC_getID(sig->tid) == id) {
+	    thissig = sig;
+	    break;
+	}
     }
 
     if (thissig) {
 	/* Signal found */
 	*signal = thissig->signal;
 	tid = thissig->tid;
-	if (thissig == *siglist) {
-	    /* First element in siglist */
-	    *siglist = thissig->next;
-	} else {
-	    /* Somewhere in the middle */
-	    prev->next = thissig->next;
-	}
 
+	list_del(&thissig->next);
 	free(thissig);
     }
 
     return tid;
 }
 
-int PSID_getSignalByTID(PStask_sig_t **siglist, PStask_ID_t tid)
+int PSID_getSignalByTID(list_t *sigList, PStask_ID_t tid)
 {
-    PStask_sig_t *thissig, *prev = NULL;
-    int ret = 0;
+    list_t *s;
+    int signal;
+    PStask_sig_t *thissig = NULL;
 
-    if (!siglist) return 0;
-
-    thissig = *siglist;
-
-    while (thissig && thissig->tid != tid) {
-	prev = thissig;
-	thissig = thissig->next;
+    list_for_each(s, sigList) {
+	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
+	if (sig->tid == tid) {
+	    thissig = sig;
+	    break;
+	}
     }
 
     if (thissig) {
 	/* Signal found */
-	ret = thissig->signal;
-	if (thissig == *siglist) {
-	    /* First element in siglist */
-	    *siglist = thissig->next;
-	} else {
-	    /* Somewhere in the middle */
-	    prev->next = thissig->next;
-	}
+	signal = thissig->signal;
 
+	list_del(&thissig->next);
 	free(thissig);
     }
 
-    return ret;
+    return signal;
 }
 
 /****************** TAKSLIST MANIPULATING ROUTINES **********************/
@@ -308,7 +280,7 @@ void PStask_cleanup(PStask_ID_t tid)
 	    if (forwarder) {
 		PSID_removeSignal(&forwarder->childs, task->tid, -1);
 
-		if (forwarder->removeIt && !forwarder->childs) {
+		if (forwarder->removeIt && list_empty(&forwarder->childs)) {
 		    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n",__func__);
 		    PStask_cleanup(forwarder->tid);
 		}
@@ -320,26 +292,28 @@ void PStask_cleanup(PStask_ID_t tid)
 
 	if (task->group==TG_FORWARDER && !task->released) {
 	    /* cleanup childs */
-	    PStask_ID_t childTID;
-	    int sig = -1;
+	    list_t *s, *tmp;
 
-	    while ((childTID = PSID_getSignal(&task->childs, &sig))) {
-		PStask_t *child = PStasklist_find(&managedTasks, childTID);
+	    list_for_each_safe(s, tmp, &task->childs) {
+		PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
+		PStask_t *child = PStasklist_find(&managedTasks, sig->tid);
 
 		if (child && child->fd == -1) {
 		    PSID_log(-1, "%s: forwarder kills child %s\n",
 			     __func__, PSC_printTID(child->tid));
 
-		    PSID_kill(-PSC_getPID(childTID), SIGKILL, child->uid);
+		    PSID_kill(-PSC_getPID(child->tid), SIGKILL, child->uid);
 		    PStask_cleanup(child->tid);
 		}
-		sig = -1;
+
+		list_del(&sig->next);
+		free(sig);
 	    }
 	}
 	task->removeIt = 1;
     }
 
-    if (!task->childs) {
+    if (list_empty(&task->childs)) {
 	/* Mark task as deleted; will be actually removed in main loop */
 	task->deleted = 1;
     }

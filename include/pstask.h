@@ -71,10 +71,10 @@ char *PStask_printGrp(PStask_group_t taskgroup);
 
 
 /** Signal structure */
-typedef struct PSsig_T{
+typedef struct {
+    list_t next;              /**< used to put into signal-lists */
     PStask_ID_t tid;          /**< unique task identifier */
     int32_t signal;           /**< signal to send, or -1 for childsignal */
-    struct PSsig_T *next;     /**< link to the next signal */
 } PStask_sig_t;
 
 #include "pspartition.h"
@@ -126,8 +126,8 @@ typedef struct {
 				      the task should really go away. */
     struct timeval started;        /**< Time the task structure was created. */
     uint16_t protocolVersion;      /**< Protocol version the task speaks. */
-    PStask_sig_t *childs;          /**< Childs of the task. Signal not used. */
-    PStask_sig_t *preReleased;     /**< released childs to be inherited */
+    list_t childs;                 /**< Childs of the task. Signal not used. */
+    list_t preReleased;            /**< released childs to be inherited */
     PSpart_request_t *request;     /**< Pointer to temp. partition request */
     uint32_t partitionSize;        /**< Size of the partition. */
     PSpart_option_t options;       /**< The partition's options. */
@@ -137,9 +137,9 @@ typedef struct {
     int32_t spawnNodesSize;        /**< Current size of @ref spawnNodes */
     int32_t spawnNum;              /**< Amount of content of @ref spawnNodes */
 
-    PStask_sig_t *signalSender;    /**< Tasks which sent signals */
-    PStask_sig_t *signalReceiver;  /**< Tasks which want to receive signals */
-    PStask_sig_t *assignedSigs;    /**< Tasks assigned to send signals */
+    list_t signalSender;           /**< Tasks which sent signals */
+    list_t signalReceiver;         /**< Tasks which want to receive signals */
+    list_t assignedSigs;           /**< Tasks assigned to send signals */
 } PStask_t;
 
 /**

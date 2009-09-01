@@ -539,12 +539,12 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
 
 	    /* This might have been a child */
 	    if (sig == -1) PSID_removeSignal(&task->childs, sender, sig);
-	    if (task->removeIt && !task->childs) break;
+	    if (task->removeIt && list_empty(&task->childs)) break;
 
 	    /* Send the signal */
 	    PSID_sendSignal(task->tid, task->uid, sender, sig, 0, 0);
 	}
-	if (task->removeIt && ! task->childs) {
+	if (task->removeIt && list_empty(&task->childs)) {
 	    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
 	    PStask_cleanup(task->tid);
 	}
