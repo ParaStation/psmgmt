@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2008-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -21,7 +21,7 @@ int PSID_AuthenticAMD(void)
     char* AMDID = "AuthenticAMD";
 
     asm (
-	"xorl %%eax, %%eax\n\t"			
+	"xorl %%eax, %%eax\n\t"
 	"cpuid\n\t"
 	:       "=b" (Regebx),
 		"=d" (Regedx),

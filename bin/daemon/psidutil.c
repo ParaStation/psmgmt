@@ -99,28 +99,61 @@ void PSID_readConfigFile(FILE* logfile, char *configfile)
     PSC_setDaemonFlag(1); /* To get the correct result from PSC_getMyTID() */
 }
 
+#define RETRY_SLEEP 5
+#define MAX_RETRY 12
+
 long PSID_getVirtCPUs(void)
 {
-    return sysconf(_SC_NPROCESSORS_CONF);
+    long virtCPUs = 0, retry = 0;
+
+    while (!virtCPUs) {
+	virtCPUs = sysconf(_SC_NPROCESSORS_CONF);
+	if (virtCPUs) break;
+
+	retry++;
+	if (retry > MAX_RETRY) {
+	    PSID_log(-1 ,"%s: Found no CPU for %d sec. This most probably is"
+		     " not true. Exiting\n", __func__, RETRY_SLEEP * MAX_RETRY);
+	    exit(1);
+	}
+	PSID_log(-1, "%s: found no CPU. sleep(%d)...\n", __func__, RETRY_SLEEP);
+	sleep(RETRY_SLEEP);
+    }
+
+    PSID_log(PSID_LOG_VERB, "%s: got %ld virtual CPUs\n", __func__, virtCPUs);
+
+    return virtCPUs;
 }
 
 long PSID_getPhysCPUs(void)
 {
-    long virtCPUs = PSID_getVirtCPUs(), physCPUs;
+    long physCPUs = 0, retry = 0;
 
-    PSID_log(PSID_LOG_VERB, "%s: got %ld virtual CPUs\n", __func__, virtCPUs);
+    while (!physCPUs) {
+	if (PSID_GenuineIntel()) {
+	    physCPUs = PSID_getPhysCPUs_IA32();
+	} else if (PSID_AuthenticAMD()) {
+	    physCPUs = PSID_getPhysCPUs_AMD();
+	} else if (PSID_PPC()) {
+	    physCPUs = PSID_getPhysCPUs_PPC();
+	} else {
+	    /* generic case (assume no SMT) */
+	    PSID_log(-1, "%s: Generic case.\n", __func__);
+	    physCPUs = PSID_getVirtCPUs();
+	}
+	if (physCPUs) break;
 
-    if (PSID_GenuineIntel()) {
-	physCPUs = PSID_getPhysCPUs_IA32();
-    } else if (PSID_AuthenticAMD()) {
-	physCPUs = PSID_getPhysCPUs_AMD();
-    } else if (PSID_PPC()) {
-	physCPUs = PSID_getPhysCPUs_PPC();
-    } else {
-	/* generic case (assume no SMT) */
-	PSID_log(-1, "%s: Generic case for # of physical CPUs.\n", __func__);
-	physCPUs = virtCPUs;
+	retry++;
+	if (retry > MAX_RETRY) {
+	    PSID_log(-1 ,"%s: Found no CPU for %d sec. This most probably is"
+		     " not true. Exiting\n", __func__, RETRY_SLEEP * MAX_RETRY);
+	    exit(1);
+	}
+	PSID_log(-1, "%s: found no CPU. sleep(%d)...\n", __func__, RETRY_SLEEP);
+	sleep(RETRY_SLEEP);
     }
+
+    PSID_log(PSID_LOG_VERB, "%s: got %ld physical CPUs\n", __func__, physCPUs);
 
     return physCPUs;
 }

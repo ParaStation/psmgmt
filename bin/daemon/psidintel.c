@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2008-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * Part of this code is based on examples with:
  * Copyright (c) 2005 Intel Corporation
@@ -33,7 +33,7 @@ int PSID_GenuineIntel(void)
     char* IntelID = "GenuineIntel";
 
     asm (
-	"xorl %%eax, %%eax\n\t"			
+	"xorl %%eax, %%eax\n\t"
 	"cpuid\n\t"
 	:       "=b" (Regebx),
 		"=d" (Regedx),
@@ -64,13 +64,13 @@ static unsigned int CpuIDSupported(void)
 {
     unsigned int maxInputValue = 0;
 
-    asm (	
+    asm (
 	"xorl %%eax,%%eax\n\t"
 	"cpuid\n\t"
 	: "=a" (maxInputValue)
-	: 
+	:
 	: "%ebx", "%ecx", "%edx"
-	);		
+	);
 
     return maxInputValue;
 }
@@ -105,7 +105,7 @@ static unsigned int HWD_MTSupported(void)
 	: "%eax","%ebx","%ecx"
 	);
 
-    return (Regedx & HWD_MT_BIT);  
+    return (Regedx & HWD_MT_BIT);
 }
 
 /**
@@ -145,13 +145,13 @@ static unsigned int corePerPhysical(void)
 	: "=a" (Regeax)
 	:
 	: "%ebx", "%ecx", "%edx"
-	);		
+	);
     asm (
 	"jmp .multi_core\n"
 	".single_core:\n\t"
 	"xor %eax, %eax\n"
 	".multi_core:"
-	);		
+	);
 
     return ((Regeax & NUM_CORE_BITS) >> 26)+1;
 }
@@ -212,11 +212,11 @@ static unsigned char getAPIC_ID(void)
     unsigned int Regebx = 0;
 
     asm (
-	"movl $1, %%eax\n\t"	
+	"movl $1, %%eax\n\t"
 	"cpuid"
-	: "=b" (Regebx) 
+	: "=b" (Regebx)
 	:
-	: "%eax","%ecx","%edx" 
+	: "%eax","%ecx","%edx"
 	);
 
     return (unsigned char) ((Regebx & INITIAL_APIC_ID_BITS) >> 24);

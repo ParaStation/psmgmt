@@ -180,8 +180,12 @@ void PSID_blockSig(int block, int sig);
  * Determine the number of virtual CPUs. This is done via a call to
  * sysconfig(_SC_NPROCESSORS_CONF).
  *
+ * If for some reason the number of virtual CPUs cannot be determined,
+ * i.e. the number reported is 0, after some seconds of sleep() the
+ * determination is repeated. If this fails finally, exit() is called.
+ *
  * @return On success, the number of virtual processors is
- * returned. Or -1, if an error occurred.
+ * returned.
  */
 long PSID_getVirtCPUs(void);
 
@@ -192,12 +196,12 @@ long PSID_getVirtCPUs(void);
  * might differ from the number of virtual CPUs e.g. on newer Pentium
  * platforms which support the Hyper-Threading Technology.
  *
- * In order to be able to detect the correct number of physical CPUs,
- * the cpuid support of the Linux kernel is required.
+ * If for some reason the number of physical CPUs cannot be
+ * determined, i.e. the number reported is 0, after some seconds of
+ * sleep() the determination is repeated. If this fails finally,
+ * exit() is called.
  *
- * @return On success, the number of physical CPUs is returned. If an
- * error occurred, e.g. if the cpuid support of the kernel is not
- * available, the number of virtual CPUs is returned.
+ * @return On success, the number of physical CPUs is returned.
  */
 long PSID_getPhysCPUs(void);
 
