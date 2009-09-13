@@ -63,7 +63,7 @@ void PSID_setSignal(list_t *sigList, PStask_ID_t tid, int signal)
     thissig->signal = signal;
     thissig->tid = tid;
 
-    list_add_tail(sigList, &thissig->next);
+    list_add_tail(&thissig->next, sigList);
 
     if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
 	PSID_log(PSID_LOG_SIGDBG, "%s: signals after (in %p):",
