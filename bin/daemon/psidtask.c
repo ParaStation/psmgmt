@@ -203,7 +203,7 @@ int PStasklist_enqueue(list_t *list, PStask_t *task)
     PSID_log(PSID_LOG_TASK, "%s(%p,%s(%p))\n", __func__,
 	     list, PSC_printTID(task->tid), task);
 
-    list_add_tail(list, &task->next);
+    list_add_tail(&task->next, list);
 
     return 0;
 }
