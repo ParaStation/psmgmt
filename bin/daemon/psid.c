@@ -70,11 +70,17 @@ struct timeval selectTime;
 
 char psid_cvsid[] = "$Revision$";
 
-
-/******************************************
- *  psicontrol(int fd)
+/**
+ * @brief Handle message on file-descriptor
+ *
+ * Handle an incoming messages on file-descriptor @a fd. It is
+ * expected that a message is actually available on @a fd, i.e. that
+ * select() was called on the descriptor beforehand.
+ *
+ * @param fd File-descriptor to handle.
+ *
+ * @return No return value.
  */
-/** @doctodo */
 static void psicontrol(int fd)
 {
     DDHugeMsg_t msg;
@@ -100,8 +106,8 @@ static void psicontrol(int fd)
 	    PSID_warn(-1, errno, "%s(%d): recvMsg()", __func__, fd);
 	}
     } else {
-
 	if (msg.header.type == PSP_CD_CLIENTCONNECT) {
+	    /* pass the (new) fd to corresponding handler function */
 	    size_t off = msg.header.len - sizeof(msg.header);
 	    *(int *) (msg.buf+off) = fd;
 	}
@@ -112,16 +118,26 @@ static void psicontrol(int fd)
     }
 }
 
-/******************************************
- * MCastCallBack()
- * this function is called by MCast if
- * - a new daemon connects
- * - a daemon is declared as dead
- * - the license-server is not needed any longer
- * - the license-server is missing
- * - the license-server is going down
+/**
+ * @brief MCast callback handler
+ *
+ * Handle a callback from the MCast facility. The callback-type is
+ * passed within @a msgid. @a buf might hold additional information
+ * related to the callback. Currently two types of callback are
+ * handled:
+ *
+ * - MCAST_NEW_CONNECTION: a new partner unaccessible before was detected.
+ *
+ * - MCAST_LOST_CONNECTION: a partner that was recently accessible
+ *   disappeared.
+ *
+ * @param msgid Type of callback to handle
+ *
+ * @param buf Buffer holding extra information related to the
+ * callback.
+ *
+ * @return No return value.
  */
-/** @doctodo */
 static void MCastCallBack(int msgid, void *buf)
 {
     int node;
@@ -155,14 +171,33 @@ static void MCastCallBack(int msgid, void *buf)
     }
 }
 
-/******************************************
- *  RDPCallBack()
- * this function is called by RDP if
- * - a new daemon connects
- * - a msg could not be sent
- * - a daemon is declared as dead
+/**
+ * @brief RDP callback handler
+ *
+ * Handle a callback from the RDP facility. The callback-type is
+ * passed within @a msgid. @a buf might hold additional information
+ * related to the callback. Currently four types of callback are
+ * handled:
+ *
+ * - RDP_NEW_CONNECTION: a new partner unaccessible before was detected.
+ *
+ * - RDP_LOST_CONNECTION: a partner that was recently accessible
+ *   disappeared.
+ *
+ * - RDP_PKT_UNDELIVERABLE: RDP was not able to deliver a packet
+ *   originating on the local node. The actual packet is passed back
+ *   within @a buf in order to create a suitable answer.
+ *
+ * - RDP_CAN_CONTINUE: RDP's flow control signals the possibility to
+ *   send further packets to the destination indicated in @a buf.
+ *
+ * @param msgid Type of callback to handle
+ *
+ * @param buf Buffer holding extra information related to the
+ * callback.
+ *
+ * @return No return value.
  */
-/** @doctodo */
 static void RDPCallBack(int msgid, void *buf)
 {
     switch(msgid) {
@@ -210,7 +245,17 @@ static void RDPCallBack(int msgid, void *buf)
     }
 }
 
-/** @doctodo */
+/**
+ * @brief Signal handler
+ *
+ * Handle signals catched by the local daemon. Most prominent all
+ * SIGCHILD signals originating from processes fork()ed from the local
+ * daemon are handled here.
+ *
+ * @param sig Signale to handle.
+ *
+ * @return No return value.
+ */
 static void sighandler(int sig)
 {
     switch(sig){

@@ -249,15 +249,14 @@ void outputMergeInit(void)
  * @param saveBufInd The id's of the client has equal output to the
  * searched one.
  *
- * @param mcount @doctodo
+ * @param mcount Upon return number of identical lines found.
  *
  * @param val The buffer of the client to compare against.
  *
  * @return No return value.
  */
 static void findEqualData(int ClientIdx, struct list_head *saveBuf[np],
-			  int saveBufInd[np], int *mcount,
-			  OutputBuffers *val)
+			  int saveBufInd[np], int *mcount, OutputBuffers *val)
 {
     int dcount = 0;
     int x;
@@ -926,4 +925,3 @@ void displayCachedOutput(int flush)
 	}
     }
 }
-
