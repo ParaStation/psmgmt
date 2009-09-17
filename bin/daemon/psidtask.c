@@ -174,7 +174,7 @@ PStask_ID_t PSID_getSignalByID(list_t *sigList,
 int PSID_getSignalByTID(list_t *sigList, PStask_ID_t tid)
 {
     list_t *s;
-    int signal;
+    int signal = 0;
     PStask_sig_t *thissig = NULL;
 
     list_for_each(s, sigList) {

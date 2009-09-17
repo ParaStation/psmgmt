@@ -626,6 +626,9 @@ again:
 	    closePMIClientSocket();
 	}
 	break;
+    case PSP_DD_CHILDACK:
+    case PSP_DD_CHILDDEAD:
+	break;
     default:
 	PSID_log(-1, "%s: Unknown message type %s\n",
 		 __func__, PSDaemonP_printMsg(msg->type));
@@ -1089,7 +1092,7 @@ static int readFromPMIClient(void)
 	DDSignalMsg_t msg;
 
 	msg.header.type = PSP_CD_RELEASE;
-	msg.header.sender = PSC_getTID(-1, getpid());
+	msg.header.sender = PSC_getMyTID();
 	msg.header.dest = childTask->tid;
 	msg.header.len = sizeof(msg);
 	msg.signal = -1;
@@ -1188,7 +1191,7 @@ static void sendAcctData(struct rusage rusage, int status)
 
     msg.header.type = PSP_CD_ACCOUNT;
     msg.header.dest = PSC_getTID(-1, 0);
-    msg.header.sender = PSC_getTID(-1, getpid());
+    msg.header.sender = PSC_getMyTID();
     msg.header.len = sizeof(msg.header);
 
     msg.type = PSP_ACCOUNT_END;
@@ -1429,7 +1432,7 @@ static void sighandler(int sig)
 	    /* release the child */
 	    DDSignalMsg_t msg;
 	    msg.header.type = PSP_CD_RELEASE;
-	    msg.header.sender = PSC_getTID(-1, getpid());
+	    msg.header.sender = PSC_getMyTID();
 	    msg.header.dest = childTask->tid;
 	    msg.header.len = sizeof(msg);
 	    msg.signal = -1;
@@ -1454,7 +1457,7 @@ static void sighandler(int sig)
 	    DDErrorMsg_t msg;
 	    msg.header.type = PSP_DD_CHILDDEAD;
 	    msg.header.dest = PSC_getTID(-1, 0);
-	    msg.header.sender = PSC_getTID(-1, getpid());
+	    msg.header.sender = PSC_getMyTID();
 	    msg.error = status;
 	    msg.request = PSC_getTID(-1, pid);
 	    msg.header.len = sizeof(msg);
@@ -1586,6 +1589,109 @@ static void acceptPMIClient(void)
 }
 
 /**
+ * @brief Send PSP_CD_SPAWNFAILED message
+ *
+ * Send a PSP_CD_SPAWNFAILED message. This signals the local daemon
+ * that something went wrong during the actual spawn of the child
+ * process.
+ *
+ * @param task Structure describing the child-process failed to be spawned.
+ *
+ * @param eno Error-number (i.e. errno) describing the problem
+ * preventing the child-process from being spawned.
+ *
+ * @return No return value.
+ */
+static void sendSpawnFailed(PStask_t *task, int eno)
+{
+    DDBufferMsg_t answer;
+    DDErrorMsg_t *errMsg = (DDErrorMsg_t *)&answer;
+    char *ptr;
+    size_t bufUsed, bufAvail, read;
+
+    answer.header.type = PSP_CD_SPAWNFAILED;
+    answer.header.dest = task->ptid;
+    answer.header.sender = PSC_getMyTID();
+    answer.header.len = sizeof(*errMsg);
+
+    errMsg->request = task->tid;
+    errMsg->error = eno;
+
+    bufUsed = answer.header.len - sizeof(answer.header);
+    ptr = answer.buf + bufUsed;
+    bufAvail = sizeof(answer.buf) - bufUsed;
+
+    do {
+	collectRead(stderrSock, ptr, bufAvail, &read);
+	bufAvail -= read;
+	answer.header.len += read;
+	ptr += read;
+    } while (read && bufAvail);
+
+    if (!bufAvail) {
+	answer.buf[sizeof(answer.buf) - 5] = '.';
+	answer.buf[sizeof(answer.buf) - 4] = '.';
+	answer.buf[sizeof(answer.buf) - 3] = '.';
+	answer.buf[sizeof(answer.buf) - 2] = '\n';
+	answer.buf[sizeof(answer.buf) - 1] = '\0';
+    }
+    sendDaemonMsg((DDMsg_t *)&answer);
+    bufUsed = answer.header.len - sizeof(answer.header);
+
+    exit(0);
+}
+
+/**
+ * @brief Send PSP_DD_CHILDBORN message
+ *
+ * Send a PSP_DD_CHILDBORN message. This signals the local daemon that
+ * the actual spawn of the child-process was successful and the
+ * forwarder will switch to normal operations.
+ *
+ * @param task Structure describing the child-process that was
+ * successfully spawned.
+ *
+ * @return No return value.
+ */
+static void sendChildBorn(PStask_t *task)
+{
+    DDErrorMsg_t msg;
+    PSLog_Msg_t answer;
+
+    msg.header.type = PSP_DD_CHILDBORN;
+    msg.header.dest = task->ptid;
+    msg.header.sender = PSC_getMyTID();
+    msg.header.len = sizeof(msg);
+
+    msg.request = task->tid;
+    msg.error = 0;
+
+    sendDaemonMsg((DDMsg_t *)&msg);
+
+    recvMsg(&answer, NULL);
+    if (answer.header.type == PSP_DD_CHILDACK) {
+	if (childTask->fd > -1) {
+	    close(childTask->fd);
+	    childTask->fd = -1;
+	} else {
+	    PSID_log(-1, "%s: cannot start child", __func__);
+	}
+    } else {
+	ssize_t ret = 0;
+	PSID_log(-1, "%s: wrong answer type %s, don't execve() child\n",
+		 __func__, PSDaemonP_printMsg(answer.header.type));
+	if (childTask->fd > -1) {
+	    ret = write(childTask->fd, "x", 1);
+	    close(childTask->fd);
+	}
+	if (ret != 1) {
+	    PSID_log(-1, "%s: cannot stop child, try to kill", __func__);
+	    sendSignal(childTask->tid, SIGKILL);
+	}
+    }
+}
+
+/**
  * @brief The main loop
  *
  * Does all the forwarding work. A tasks is connected and output forwarded
@@ -1622,7 +1728,7 @@ static void loop(void)
 	FD_SET(stdoutSock, &readfds);
 	openfds++;
     }
-    if (stderrSock != -1) {
+    if (stderrSock != -1 && stderrSock != stdoutSock) {
 	FD_SET(stderrSock, &readfds);
 	openfds++;
     }
@@ -1749,7 +1855,7 @@ static void loop(void)
 }
 
 /* see header file for docu */
-void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket,
+void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
 		    PMItype_t PMItype, int doAccounting, int acctPollInterval)
 {
     char *timeoutStr;
@@ -1770,6 +1876,13 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket,
     signal(SIGUSR1, sighandler);
 
     PSLog_init(daemonSock, childTask->rank, 2);
+
+    if (eno) {
+	sendSpawnFailed(childTask, eno);
+	exit(1);
+    } else {
+	sendChildBorn(childTask);
+    }
 
     /* Make stdin nonblocking for us */
     flags = fcntl(stdinSock, F_GETFL);

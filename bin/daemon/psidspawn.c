@@ -113,22 +113,26 @@ static int myexecv(const char *path, char *const argv[])
 }
 
 /**
- * @brief Set up a new PMI tcp/ip socket and start listing.
+ * @brief Set up a new PMI TCP socket and start listening.
  *
- * @param PMISocket the socket to init.
+ * Setup and start to listen to a TCP socket that clients can connect
+ * to for PMI requests.
  *
- * @return Returns the initalized and listing socket.
+ * @return Upon success the fd of the initalized socket is
+ * returned. In case of an error, -1 is returned and errno is set
+ * appropriately.
  */
-static int init_PMISocket(int PMISocket)
+static int init_PMISocket(void)
 {
-    int res;
+    int res, sock;
     struct sockaddr_in saClient;
 
-    PMISocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-    if (PMISocket == 0) {
-	PSID_warn(-1, errno, "%s: create PMIsock failed", __func__);
-	exit(1);
+    sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sock < 0) {
+	int eno = errno;
+	PSID_warn(-1, eno, "%s: create PMIsock failed", __func__);
+	errno = eno;
+	return -1;
     }
 
     /* set up the sockaddr structure */
@@ -138,22 +142,24 @@ static int init_PMISocket(int PMISocket)
     bzero(&(saClient.sin_zero), 8);
 
     /* bind the socket */
-    res = bind(PMISocket, (struct sockaddr *)&saClient, sizeof(saClient));
-
+    res = bind(sock, (struct sockaddr *)&saClient, sizeof(saClient));
     if (res == -1) {
+	int eno = errno;
 	PSID_warn(-1, errno, "%s: binding PMIsock failed", __func__);
-	exit(1);
+	errno = eno;
+	return -1;
     }
 
     /* set socket to listen state */
-    res = listen(PMISocket, 5);
-
+    res = listen(sock, 5);
     if (res == -1) {
-	PSID_warn(-1, errno, "%s: listen on PMIsock failed", __func__);
-	exit(1);
+	int eno = errno;
+	PSID_warn(-1, eno, "%s: listen on PMIsock failed", __func__);
+	errno = eno;
+	return -1;
     }
 
-    return PMISocket;
+    return sock;
 }
 
 /**
@@ -183,6 +189,8 @@ static void get_PMI_PORT(int PMISock, char *cPMI_PORT, int size )
     snprintf(cPMI_PORT,size,"127.0.0.1:%i", ntohs(addr.sin_port));
 }
 
+#define MAX_STAT_TRY 1 // @todo make this configurable
+
 /**
  * @brief Frontend to stat(2).
  *
@@ -207,7 +215,7 @@ static int mystat(char *file_name, struct stat *buf)
     int cnt;
 
     /* Try 5 times with delay 400ms = 2 sec overall */
-    for (cnt=0;cnt<5;cnt++){
+    for (cnt=0; cnt<MAX_STAT_TRY; cnt++){
 	ret = stat(file_name, buf);
 	if (!ret) return 0; /* No error */
 	usleep(1000 * 400);
@@ -271,7 +279,7 @@ static void pty_setowner(uid_t uid, gid_t gid, const char *tty)
 static void pty_make_controlling_tty(int *ttyfd, const char *tty)
 {
     int fd;
-    void *old;
+    void *oldCONT, *oldHUP;
 
     /* First disconnect from the old controlling tty. */
     fd = open(_PATH_TTY, O_RDWR | O_NOCTTY);
@@ -299,9 +307,11 @@ static void pty_make_controlling_tty(int *ttyfd, const char *tty)
 #error No TIOCSCTTY
 #endif /* TIOCSCTTY */
 
-    old = signal(SIGCONT, SIG_IGN);
+    oldCONT = signal(SIGCONT, SIG_IGN);
+    oldHUP = signal(SIGHUP, SIG_IGN);
     if (vhangup() < 0) PSID_warn(-1, errno, "%s: vhangup()", __func__);
-    signal(SIGCONT, old);
+    signal(SIGCONT, oldCONT);
+    signal(SIGHUP, oldHUP);
 
     fd = open(tty, O_RDWR);
     if (fd < 0) {
@@ -344,20 +354,20 @@ static void bindToNodes(cpu_set_t *physSet)
 #endif
 
     if (numa_available()==-1) {
-	fprintf(stderr, "NUMA not available.");
+	fprintf(stderr, "NUMA not available:");
 	goto end;
     }
 
 #ifdef HAVE_NUMA_ALLOCATE_NODEMASK
     nodemask = numa_allocate_nodemask();
     if (!nodemask) {
-	fprintf(stderr, "Allocation of nodemask failed. No binding\n");
+	fprintf(stderr, "Allocation of nodemask failed:");
 	goto end;
     }
 
     cpumask = numa_allocate_cpumask();
     if (!cpumask) {
-	fprintf(stderr, "Allocation of nodemask failed. No binding\n");
+	fprintf(stderr, "Allocation of nodemask failed:");
 	goto end;
     }
 #else
@@ -375,7 +385,7 @@ static void bindToNodes(cpu_set_t *physSet)
 #endif
 	if (ret) {
 	    if (errno==ERANGE) {
-		fprintf(stderr, "cpumask to small for numa_node_to_cpus()");
+		fprintf(stderr, "cpumask to small for numa_node_to_cpus():");
 	    } else {
 		perror("numa_node_to_cpus()");
 	    }
@@ -475,6 +485,79 @@ static cpu_set_t *mapCPUs(PSCPU_set_t set)
 #endif
 
 /**
+ * @brief Setup RT-priority
+ *
+ * Setup realtime-priorities for the client process.
+ *
+ * This is a temporary fix for St. Graf (s.graf@fz-juelich.de).
+ *
+ * @return No return value
+ */
+static void adaptPriority(void)
+{
+    char *prioStr;
+    int policy;
+
+    if ((prioStr = getenv("__SCHED_FIFO"))) {
+	policy = SCHED_FIFO;
+    } else if ((prioStr = getenv("__SCHED_RR"))) {
+	policy = SCHED_RR;
+    }
+    if (prioStr) {
+	char *end;
+	int priority = strtol(prioStr, &end, 0);
+
+	if (end && !*end) {
+	    struct sched_param params;
+
+	    params.sched_priority = priority;
+	    sched_setscheduler(0, policy, &params);
+	} else {
+	    fprintf(stderr, "%s: unknown priority '%s'\n", __func__, prioStr);
+	}
+    }
+}
+
+/**
+ * @brief Change into working directory
+ *
+ Try to change into the client-task's @a task working directory. If
+ this fails, changing into the corresponding user's home-directory is
+ attempted.
+ *
+ * @param task Structure describing the client-task.
+ *
+ * @return Upon success 0 is returned. If an error occurred, an
+ * error-code (i.e. an errno) different from 0 is returned.
+ */
+static int changeToWorkDir(PStask_t *task)
+{
+    /* @todo add timeout here */
+    if (chdir(task->workingdir)<0) {
+	struct passwd *passwd;
+	fprintf(stderr, "%s: chdir(%s): %s\n", __func__,
+		task->workingdir ? task->workingdir : "", get_strerror(errno));
+	fprintf(stderr, "Will use user's home directory\n");
+
+	passwd = getpwuid(getuid());
+	if (passwd) {
+	    if (chdir(passwd->pw_dir)<0) {
+		int eno = errno;
+		fprintf(stderr, "%s: chdir(%s): %s\n", __func__,
+			passwd->pw_dir ? passwd->pw_dir : "",
+			get_strerror(eno));
+		return eno;
+	    }
+	} else {
+	    fprintf(stderr, "Cannot determine home directory\n");
+	    return ENOENT;
+	}
+    }
+
+    return 0;
+}
+
+/**
  * @brief Do various process clamps.
  *
  * Pin process to the logical CPU-set @a set and bind it to the NUMA
@@ -528,136 +611,34 @@ static void doClamps(PStask_t *task)
 }
 
 /**
- * @brief Actually start the client process.
+ * @brief Test, if tasks executable is there
  *
- * This function actually sets up the client process as described
- * within the task structure @a task. In order to do so, first the UID,
- * GID and the current working directory are set up correctly. If no
- * working directory is provided within @a task, the corresponding
- * user's home directory is used. After setting up the environment and
- * doing some tests on the existence and accessability of the
- * executable to call, finally the executable is called via @ref
- * myexecv().
+ * Test, if the child-task's @a task executable is available. If the
+ * task's argv[0] contains an absolute path, only this is
+ * search. Otherwise all paths listed in the PATH environment
+ * variables are searched for the executable.
  *
- * Error-messages are sent to stderr. It is the task of the calling
- * function to provide an environment to forward this message to the
- * end-user of this function.
+ * If the executable is found, it's accessibility is tested.
  *
- * @param task The task structure describing the client process to set
- * up.
+ * If all tests are passed, @a executable is set accordingly. Future
+ * calls to execv() might get @a executable as the first argument.
  *
- * @return No return value.
+ * @param task Structure describing the client-task.
  *
- * @see fork(), errno
+ * @param executable The actual executable identified. This might be
+ * passed to execv().
+ *
+ * @return Upon success 0 is returned. If an error occurred, an
+ * error-code (i.e. an errno) different from 0 is returned.
  */
-static void execClient(PStask_t *task)
+static int testExecutable(PStask_t *task, char **executable)
 {
-    /* logging is done via the forwarder thru stderr! */
     struct stat sb;
     int execFound = 0;
-    char *executable, *envStr;
-
-    /* change the gid */
-    if (setgid(task->gid)<0) {
-	fprintf(stderr, "%s: setgid: %s\n", __func__, get_strerror(errno));
-	exit(0);
-    }
-
-    /* remove psid's group memberships */
-    setgroups(0, NULL);
-
-    /* set supplementary groups if requested */
-    if (PSIDnodes_supplGrps(PSC_getMyID())) {
-	struct passwd *pw;
-	if ((pw = getpwuid(task->uid)) && pw->pw_name) {
-	    if (initgroups(pw->pw_name, task->gid) < 0) {
-		fprintf(stderr, "%s: Cannot set supplementary groups: %s\n",
-			__func__,  get_strerror(errno));
-	    }
-	}
-    }
-
-    {
-	/* set priority */
-	/* This is a temporary fix for St. Graf (s.graf@fz-juelich.de). */
-	char *prioStr;
-	int policy;
-	if ((prioStr = getenv("__SCHED_FIFO"))) {
-	    policy = SCHED_FIFO;
-	} else if ((prioStr = getenv("__SCHED_RR"))) {
-	    policy = SCHED_RR;
-	}
-	if (prioStr) {
-	    char *end;
-	    int priority = strtol(prioStr, &end, 0);
-
-	    if (end && !*end) {
-		struct sched_param params;
-
-		params.sched_priority = priority;
-		sched_setscheduler(0, policy, &params);
-	    } else {
-		fprintf(stderr, "%s: unknown priority '%s'\n",
-			__func__, prioStr);
-	    }
-	}
-    }
-
-    /* change the uid */
-    if (setuid(task->uid)<0) {
-	fprintf(stderr, "%s: setuid: %s\n", __func__, get_strerror(errno));
-	exit(0);
-    }
-
-    /* restore core settings */
-    envStr = getenv("__PSI_CORESIZE");
-    if (envStr) {
-	struct rlimit rlim;
-	getrlimit(RLIMIT_CORE, &rlim);
-	if (!strcmp("infinity", envStr)) {
-	    rlim.rlim_cur = rlim.rlim_max;
-	} else {
-	    int ret = sscanf(envStr, "%lx", &rlim.rlim_cur);
-	    if (ret < 1) rlim.rlim_cur = 0;
-	    rlim.rlim_cur =
-		(rlim.rlim_max > rlim.rlim_cur) ? rlim.rlim_cur : rlim.rlim_max;
-	}
-	setrlimit(RLIMIT_CORE, &rlim);
-    }
-    /* restore umask settings */
-    envStr = getenv("__PSI_UMASK");
-    if (envStr) {
-	mode_t mask;
-	int ret = sscanf(envStr, "%o", &mask);
-	if (ret > 0) umask(mask);
-    }
-
-    /* change to the appropriate directory */
-    if (chdir(task->workingdir)<0) {
-	struct passwd *passwd;
-	fprintf(stderr, "%s: chdir(%s): %s\n", __func__,
-		task->workingdir ? task->workingdir : "", get_strerror(errno));
-	fprintf(stderr, "Will use user's home directory\n");
-
-	passwd = getpwuid(getuid());
-	if (passwd) {
-	    if (chdir(passwd->pw_dir)<0) {
-		fprintf(stderr, "%s: chdir(%s): %s\n", __func__,
-			passwd->pw_dir ? passwd->pw_dir : "",
-			get_strerror(errno));
-		exit(0);
-	    }
-	} else {
-	    fprintf(stderr, "Cannot determine home directory\n");
-	    exit(0);
-	}
-    }
-
-    doClamps(task);
-
+    /* @todo add timeout here */
     if (!task->argv[0]) {
 	fprintf(stderr, "No argv[0] given!\n");
-	exit(0);
+	return ENOENT;
     }
 
     /* Test if executable is there */
@@ -690,24 +671,24 @@ static void execClient(PStask_t *task)
     if (!execFound) {
 	/* this might be on NFS -> use mystat */
 	if (mystat(task->argv[0], &sb) == -1) {
+	    int eno = errno;
 	    fprintf(stderr, "%s: stat(%s): %s\n", __func__,
-		    task->argv[0] ? task->argv[0] : "", get_strerror(errno));
-	    exit(0);
+		    task->argv[0] ? task->argv[0] : "", get_strerror(eno));
+	    return eno;
 	}
     }
 
     if (!S_ISREG(sb.st_mode) || !(sb.st_mode & S_IXUSR)) {
-	errno = EACCES;
 	fprintf(stderr, "%s: stat(): %s\n", __func__,
 		(!S_ISREG(sb.st_mode)) ? "S_ISREG error" :
 		(sb.st_mode & S_IXUSR) ? "" : "S_IXUSR error");
-	exit(0);
+	return EACCES;
     }
 
-    executable = task->argv[0];
+    *executable = task->argv[0];
 
     /* shells */
-    if (!strcmp(executable, "/bin/bash")) {
+    if (!strcmp(*executable, "/bin/bash")) {
 	if (task->argc == 2 && !strcmp(task->argv[1], "-i")) {
 	    task->argv[0] = "-bash";
 	    task->argv[1] = NULL;
@@ -715,7 +696,7 @@ static void execClient(PStask_t *task)
 	} else {
 	    task->argv[0] = "bash";
 	}
-    } else if (!strcmp(executable, "/bin/tcsh")) {
+    } else if (!strcmp(*executable, "/bin/tcsh")) {
 	if (task->argc == 2 && !strcmp(task->argv[1], "-i")) {
 	    task->argv[0] = "-tcsh";
 	    task->argv[1] = NULL;
@@ -725,13 +706,130 @@ static void execClient(PStask_t *task)
 	}
     }
 
+    return 0;
+}
+
+/**
+ * @brief Actually start the client process.
+ *
+ * This function actually sets up the client process as described
+ * within the task structure @a task. In order to do so, first the
+ * UID, GID and the current working directory are set up correctly. If
+ * no working directory is provided within @a task, the corresponding
+ * user's home directory is used. After some tests on the existence
+ * and accessability of the executable to call the forwarder is
+ * signaled via the control-channel passwd withing task->fd to
+ * register the child process within the local daemon. As soon as the
+ * forwarder acknowleges the registration finally the executable is
+ * called via @ref myexecv().
+ *
+ * Error-messages are sent to stderr. It is the task of the calling
+ * function to provide an environment to forward this message to the
+ * end-user of this function.
+ *
+ * @param task The task structure describing the client process to set
+ * up.
+ *
+ * @return No return value.
+ *
+ * @see fork(), errno
+ */
+static void execClient(PStask_t *task)
+{
+    /* logging is done via the forwarder thru stderr! */
+    int ret, eno = 0;
+    char *executable = NULL, *envStr;
+
+    /* change the gid */
+    if (setgid(task->gid)<0) {
+	eno = errno;
+	fputc(eno, stderr);
+	fprintf(stderr, "%s: setgid: %s\n", __func__, get_strerror(eno));
+	exit(1);
+    }
+
+    /* remove psid's group memberships */
+    setgroups(0, NULL);
+
+    /* set supplementary groups if requested */
+    if (PSIDnodes_supplGrps(PSC_getMyID())) {
+	struct passwd *pw;
+	if ((pw = getpwuid(task->uid)) && pw->pw_name) {
+	    if (initgroups(pw->pw_name, task->gid) < 0) {
+		fprintf(stderr, "%s: Cannot set supplementary groups: %s\n",
+			__func__,  get_strerror(errno));
+	    }
+	}
+    }
+
+    /* This is a temporary fix for St. Graf (s.graf@fz-juelich.de). */
+    adaptPriority();
+
+    /* change the uid */
+    if (setuid(task->uid)<0) {
+	eno = errno;
+	fputc(eno, stderr);
+	fprintf(stderr, "%s: setuid: %s\n", __func__, get_strerror(eno));
+	exit(1);
+    }
+
+    /* restore core settings */
+    envStr = getenv("__PSI_CORESIZE");
+    if (envStr) {
+	struct rlimit rlim;
+	getrlimit(RLIMIT_CORE, &rlim);
+	if (!strcmp("infinity", envStr)) {
+	    rlim.rlim_cur = rlim.rlim_max;
+	} else {
+	    int ret = sscanf(envStr, "%lx", &rlim.rlim_cur);
+	    if (ret < 1) rlim.rlim_cur = 0;
+	    rlim.rlim_cur =
+		(rlim.rlim_max > rlim.rlim_cur) ? rlim.rlim_cur : rlim.rlim_max;
+	}
+	setrlimit(RLIMIT_CORE, &rlim);
+    }
+    /* restore umask settings */
+    envStr = getenv("__PSI_UMASK");
+    if (envStr) {
+	mode_t mask;
+	int ret = sscanf(envStr, "%o", &mask);
+	if (ret > 0) umask(mask);
+    }
+
+    if ((eno = changeToWorkDir(task))) {
+	ret = write(task->fd, &eno, sizeof(eno));
+	exit(1);
+    }
+
+    if ((eno = testExecutable(task, &executable))) {
+	ret = write(task->fd, &eno, sizeof(eno));
+	exit(1);
+    }
+
+    doClamps(task);
+
+    /* Signal forwarder we're ready for execve() */
+    ret = write(task->fd, &eno, sizeof(eno));
+
+    if (read(task->fd, &eno, sizeof(eno)) < 0) {
+	eno = errno;
+	PSID_warn(-1, eno, "%s: read() failed. eno is %d", __func__, eno);
+	exit(1);
+    }
+
+    if (eno) {
+	PSID_log(-1, "%s: DD_CHILDBORN failed\n", __func__);
+	exit(1);
+    }
+
     /* execute the image */
     if (myexecv(executable, task->argv)<0) {
-	fprintf(stderr, "%s: execv: %s", __func__, get_strerror(errno));
+	PSID_warn(-1, errno, "%s: execv(%s)", __func__, executable);
+	exit(1);
     }
-    /* never reached, if execv succesful */
 
-    exit(0);
+    /* never reached, if execv succesful */
+    exit(2);
 }
 
 /**
@@ -785,8 +883,10 @@ static void resetSignals(void)
  * structure @a task determines in the member @a aretty if openpty()
  * or socketpair() is used to create the file-descriptor-pair. @a
  * fileNo is either STDOUT_FILENO or STDERR_FILENO and steers creation
- * of the corresponding channels. The file-descriptor @a cntrlCh is
- * used for flagging possible errors to a calling process.
+ * of the corresponding channels.
+ *
+ * If any error occurres during this process, the corresponding errno
+ * is returned.
  *
  * @param task Task structure determining the use of either openpty()
  * or socketpair().
@@ -795,42 +895,46 @@ static void resetSignals(void)
  *
  * @param fileNo Either STDOUT_FILENO or STDERR_FILENO.
  *
- * @param cntrlCh Possible errnos are send to this file-descriptor
- *
- * @return No return value.
+ * @return Upon success, 0 is returned. Otherwise a value different
+ * from 0 is returned representing an errno.
  *
  * @see openpty(), socketpair()
  */
-static void openChannel(PStask_t *task, int *fds, int fileNo, int cntrlCh)
+static int openChannel(PStask_t *task, int *fds, int fileNo)
 {
-    int ret;
     char *fdName = (fileNo == STDOUT_FILENO) ? "stdout" :
 	(fileNo == STDERR_FILENO) ? "stderr" : "unknown";
 
     if (task->aretty & (1<<fileNo)) {
 	if (openpty(&fds[0], &fds[1], NULL, &task->termios, &task->winsize)) {
+	    int eno = errno;
 	    PSID_warn(-1, errno, "%s: openpty(%s)", __func__, fdName);
-	    ret = write(cntrlCh, &errno, sizeof(errno));
-	    exit(1);
+	    return eno;
 	}
     } else {
 	if (socketpair(PF_UNIX, SOCK_STREAM, 0, fds)) {
+	    int eno = errno;
 	    PSID_warn(-1, errno, "%s: socketpair(%s)", __func__, fdName);
-	    ret = write(cntrlCh, &errno, sizeof(errno));
-	    exit(1);
+	    return eno;
 	}
     }
+
+    return 0;
 }
 
 #define IDMAPFILE "/etc/elanidmap"
 
 /**
- * @brief Verify Elan Host
+ * @brief Verify ELAN Host
  *
- * Verify if the host we are starting on
- * is listed in the elan config file. If not than
- * elan must be disabled, to prevent the libelan
- * from terminating us.
+ * Verify if the host we are starting on is listed in the ELAN
+ * configuration file. If not, ELAN will be disabled in order to
+ * prevent libelan from terminating us.
+ *
+ * If this function was successful, i.e. the host is identified within
+ * the ELAN configuration file, or ELAN was disabled, 0 is
+ * returned. Otherwise this function will create some error state and
+ * exit() the calling process.
  *
  * @return No return value.
  */
@@ -841,6 +945,8 @@ static void verifyElanHost(void)
     char localhost[HOST_NAME_MAX];
 
     if ((gethostname(localhost, HOST_NAME_MAX)) == -1) {
+	int eno = errno;
+	fputc(eno, stderr);
 	fprintf(stderr, "%s Error determining the local hostname\n", __func__);
 	exit(1);
     }
@@ -866,6 +972,85 @@ static void verifyElanHost(void)
 
     setenv("PSP_ELAN", "0", 1);
     fclose(elanIDfile);
+
+    return;
+}
+
+/**
+ * @brief Prepare PMI
+ *
+ * Prepare PMI environment presented to the client process that will
+ * be handeled by the forwarder. For further use within the calling
+ * function, @a forwarderSock will hold the file-descriptor of this
+ * socket upon return.
+ *
+ * This function will evaluate various environment variables in order
+ * to determine which type of socket to open:
+ *
+ * - PMI_ENABLE_TCP will trigger an TCP socekt.
+ *
+ * - PMI_ENABLE_SOCKP will trigger an AF_UNIX socketpair.
+ *
+ * @return Depending on the socket-type created PMI_OVER_TCP or
+ * PMI_OVER_UNIX will be returned. If both environment variables
+ * discussed above are set or an error occurred PMI_FAILED will be
+ * returned. If no socket is created due to missing environment
+ * variables PMI_DISABLED is returned.
+ */
+PMItype_t preparePMI(int *forwarderSock)
+{
+    PMItype_t pmiType = PMI_DISABLED;
+    int pmiEnableTcp = 0;
+    int pmiEnableSockp = 0;
+    char *envstr;
+
+    /* check if pmi should be started */
+    if ((envstr = getenv("PMI_ENABLE_TCP"))) {
+	pmiEnableTcp = atoi(envstr);
+    }
+
+    if ((envstr = getenv("PMI_ENABLE_SOCKP"))) {
+	pmiEnableSockp = atoi(envstr);
+    }
+
+    /* only one option is allowed */
+    if (pmiEnableSockp && pmiEnableTcp) {
+	PSID_warn(-1, EINVAL,
+		  "%s: only one type of pmi connection allowed", __func__);
+	return PMI_FAILED;
+    }
+
+    /* open pmi socket for comm. between the pmi client and forwarder */
+    if (pmiEnableTcp) {
+	char cPMI_PORT[50];
+
+	if ((*forwarderSock = init_PMISocket()) < 0) {
+	    PSID_warn(-1, errno, "%s: create PMI/TCP socket failed", __func__);
+	    return PMI_FAILED;
+	}
+	pmiType = PMI_OVER_TCP;
+
+	get_PMI_PORT(*forwarderSock, cPMI_PORT, sizeof(cPMI_PORT));
+	setenv("PMI_PORT", cPMI_PORT, 1);
+    }
+
+    /* create a socketpair for comm. between the pmi client and forwarder */
+    if (pmiEnableSockp) {
+	int socketfds[2];
+	char cPMI_FD[50];
+
+	if (socketpair(PF_UNIX, SOCK_STREAM, 0, socketfds)<0) {
+	    PSID_warn(-1, errno, "%s: socketpair()", __func__);
+	    return PMI_FAILED;
+	}
+	*forwarderSock = socketfds[1];
+	pmiType = PMI_OVER_UNIX;
+
+	snprintf(cPMI_FD, sizeof(cPMI_FD), "%d", socketfds[0]);
+	setenv("PMI_FD", cPMI_FD, 1);
+    }
+
+    return pmiType;
 }
 
 /**
@@ -910,23 +1095,18 @@ static void verifyElanHost(void)
  *
  * @see fork(), errno
  */
-static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
+static void execForwarder(PStask_t *task, int daemonfd)
 {
     pid_t pid;
-    int stdinfds[2], stdoutfds[2], stderrfds[2];
-    int ret, buf;
-    int PMISock = -1;
+    int stdinfds[2], stdoutfds[2], stderrfds[2] = {-1, -1}, controlfds[2];
+    int ret, eno = 0;
     int PMIforwarderSock = -1;
-    int socketfds[2];
-    int pmiEnableTcp = 0;
-    int pmiEnableSockp = 0;
-    PMItype_t pmiType = PMI_DISABLED;
-    char *envstr;
+    PMItype_t pmiType;
 
     /* Block until the forwarder has handled all output */
     PSID_blockSig(1, SIGCHLD);
 
-    /* set the environment; done here to pass it to forwarder, too */
+    /* setup the environment; done here to pass it to forwarder, too */
     setenv("PWD", task->workingdir, 1);
 
     if (task->environ) {
@@ -936,19 +1116,26 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 	}
     }
 
+    /* create a socketpair for communication between forwarder and client */
+    if (socketpair(PF_UNIX, SOCK_STREAM, 0, controlfds)<0) {
+	eno = errno;
+	PSID_warn(-1, eno, "%s: socketpair()", __func__);
+	goto error;
+    }
+
     if (task->aretty & (1<<STDIN_FILENO)
 	&& task->aretty & (1<<STDOUT_FILENO)
 	&& task->aretty & (1<<STDERR_FILENO)) task->interactive = 1;
 
     /* create stdin/stdout/stderr connections between forwarder & client */
     if (task->interactive) {
-	openChannel(task, stderrfds, STDERR_FILENO, cntrlCh);
+	if ((eno = openChannel(task, stderrfds, STDERR_FILENO))) goto error;
     } else {
 	/* first stdout */
-	openChannel(task, stdoutfds, STDOUT_FILENO, cntrlCh);
+	if ((eno = openChannel(task, stdoutfds, STDOUT_FILENO))) goto error;
 
 	/* then stderr */
-	openChannel(task, stderrfds, STDERR_FILENO, cntrlCh);
+	if ((eno = openChannel(task, stderrfds, STDERR_FILENO))) goto error;
 
 	/*
 	 * For stdin, use the stdout or stderr connection if the
@@ -964,9 +1151,9 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 	    } else {
 		if (openpty(&stdinfds[0], &stdinfds[1],
 			    NULL, &task->termios, &task->winsize)) {
-		    PSID_warn(-1, errno, "%s: openpty(stdin)", __func__);
-		    ret = write(cntrlCh, &errno, sizeof(errno));
-		    exit(1);
+		    eno = errno;
+		    PSID_warn(-1, eno, "%s: openpty(stdin)", __func__);
+		    goto error;
 		}
 	    }
 	} else {
@@ -978,58 +1165,35 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 		stdinfds[1] = stdoutfds[1];
 	    } else {
 		if (socketpair(PF_UNIX, SOCK_STREAM, 0, stdinfds)) {
-		    PSID_warn(-1, errno, "%s: socketpair(stdin)", __func__);
-		    ret = write(cntrlCh, &errno, sizeof(errno));
-		    exit(1);
+		    eno = errno;
+		    PSID_warn(-1, eno, "%s: socketpair(stdin)", __func__);
+		    goto error;
 		}
 	    }
 	}
     }
 
-    /* check if pmi should be started */
-    if ((envstr = getenv("PMI_ENABLE_TCP"))) {
-	pmiEnableTcp = atoi(envstr);
-    }
-
-    if ((envstr = getenv("PMI_ENABLE_SOCKP"))) {
-	pmiEnableSockp = atoi(envstr);
-    }
-
-    /* only one option is allowed */
-    if (pmiEnableSockp && pmiEnableTcp) {
-	PSID_warn(-1, errno,
-		  "%s: only one type of pmi connection allowed", __func__);
-	exit(1);
-    }
-
-    /* open pmi socket for comm. between the pmi client and forwarder */
-    if (pmiEnableTcp) {
-	if (!(PMISock = init_PMISocket(PMISock))) {
-	    PSID_warn(-1, errno, "%s: create PMI tcp socket failed", __func__);
-	    exit(1);
-	}
-	PMIforwarderSock = PMISock;
-	pmiType = PMI_OVER_TCP;
-    }
-
-    /* create a socketpair for comm. between the pmi client and forwarder */
-    if (pmiEnableSockp) {
-	if (socketpair(PF_UNIX, SOCK_STREAM, 0, socketfds)<0) {
-	    PSID_warn(-1, errno, "%s: socketpair()", __func__);
-	    exit(1);
-	}
-	PMIforwarderSock = socketfds[1];
-	pmiType = PMI_OVER_UNIX;
+    pmiType = preparePMI(&PMIforwarderSock);
+    if (pmiType == PMI_FAILED) {
+	eno = EINVAL;
+	goto error;
     }
 
     /* fork the client */
     if (!(pid = fork())) {
 	/* this is the client process */
-	char cPMI_PORT[50];
-	char cPMI_FD[50];
+	char *envstr;
 
 	/* no direct connection to the daemon */
 	close(daemonfd);
+
+	/* prepare connection to forwarder */
+	task->fd = controlfds[1];
+	close(controlfds[0]);
+
+	/* Reset connection to syslog */
+	closelog();
+	openlog("psid_client", LOG_PID|LOG_CONS, config->logDest);
 
 	/*
 	 * Create a new process group. This is needed since the daemon
@@ -1067,21 +1231,26 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 
 	/* redirect stdin/stdout/stderr */
 	if (dup2(task->stderr_fd, STDERR_FILENO) < 0) {
-	    PSID_warn(-1, errno, "%s: dup2(stderr)", __func__);
+	    eno = errno;
+	    PSID_warn(-1, eno, "%s: dup2(stderr)", __func__);
+	    ret = write(task->fd, &eno, sizeof(eno));
 	    exit(1);
 	}
 
 	/* From now on, all logging is done via the forwarder thru stderr */
-	closelog();
 
 	if (dup2(task->stdin_fd, STDIN_FILENO) < 0) {
+	    eno = errno;
 	    fprintf(stderr, "%s: dup2(stdin): [%d] %s\n", __func__,
-		    errno, get_strerror(errno));
+		    eno, get_strerror(eno));
+	    ret = write(task->fd, &eno, sizeof(eno));
 	    exit(1);
 	}
 	if (dup2(task->stdout_fd, STDOUT_FILENO) < 0) {
+	    eno = errno;
 	    fprintf(stderr, "%s: dup2(stdout): [%d] %s\n", __func__,
-		    errno, get_strerror(errno));
+		    eno, get_strerror(eno));
+	    ret = write(task->fd, &eno, sizeof(eno));
 	    exit(1);
 	}
 
@@ -1092,39 +1261,34 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 	    close(task->stdout_fd);
 	}
 
-	/* set the pmi port for the client to connect to the forwarder */
-	if (pmiEnableTcp) {
-	    get_PMI_PORT(PMISock, cPMI_PORT, sizeof(cPMI_PORT));
-	    setenv("PMI_PORT", cPMI_PORT, 1);
-	}
-
-	/* set the pmi port for the client to connect to the forwarder */
-	if (pmiEnableSockp) {
-	    /* close forwarder socket */
-	    close(socketfds[1]);
-	    snprintf(cPMI_FD, sizeof(cPMI_FD), "%d", socketfds[0]);
-	    setenv("PMI_FD", cPMI_FD, 1);
-	}
+	/* close forwarder socket */
+	if (pmiType == PMI_OVER_UNIX) close(PMIforwarderSock);
 
 	/* check if this node really supports elan */
-	if ((envstr = getenv("PSP_ELAN")) && atoi(envstr)) {
-	    verifyElanHost();
-	}
+	if ((envstr = getenv("PSP_ELAN")) && atoi(envstr)) verifyElanHost();
 
 	/* try to start the client */
 	execClient(task);
+
+	/* Never be here */
+	exit(0);
     }
 
     /* this is the forwarder process */
 
     /* save errno in case of error */
-    ret = errno;
+    eno = errno;
+
+    /* prepare connection to child */
+    task->fd = controlfds[0];
+    close(controlfds[1]);
 
     /* close the slave ttys / sockets */
     if (task->interactive) {
 	close(stderrfds[1]);
 	task->stdin_fd = stderrfds[0];
 	task->stdout_fd = stderrfds[0];
+	task->stderr_fd = stderrfds[0]; /* req. by SPAWNFAILED extension */
     } else {
 	close(stdinfds[1]);
 	task->stdin_fd = stdinfds[0];
@@ -1136,32 +1300,35 @@ static void execForwarder(PStask_t *task, int daemonfd, int cntrlCh)
 
     /* check if fork() was successful */
     if (pid == -1) {
-	PSID_warn(-1, ret, "%s: fork()", __func__);
-	ret = write(cntrlCh, &ret, sizeof(ret));
-	exit(1);
+	PSID_warn(-1, eno, "%s: fork()", __func__);
+	goto error;
     }
 
     /* check for a sign from the client */
     PSID_log(PSID_LOG_SPAWN, "%s: waiting for my child (%d)\n", __func__, pid);
 
-    /* Tell the parent about the client's pid */
-    buf = 0; /* errno will never be 0, this marks the following pid */
-    ret = write(cntrlCh, &buf, sizeof(buf));
-    buf = pid;
-    ret = write(cntrlCh, &buf, sizeof(buf));
-
-    resetSignals();
-
     /* Pass the client's PID to the forwarder. */
     task->tid = PSC_getTID(-1, pid);
 
+restart:
+    if ((ret=read(task->fd, &eno, sizeof(eno))) < 0) {
+	if (errno == EINTR) {
+	    goto restart;
+	}
+	eno = errno;
+	PSID_warn(-1, eno, "%s: read() failed. eno is %d", __func__, eno);
+	goto error;
+    }
+
+    if (!ret || eno) goto error;
+
+error:
     /* Release the waiting daemon and exec forwarder */
-    close(cntrlCh);
-    PSID_forwarder(task, daemonfd, PMIforwarderSock, pmiType,
+    PSID_forwarder(task, daemonfd, eno, PMIforwarderSock, pmiType,
 		   PSID_getNumAcct(), PSIDnodes_acctPollI(PSC_getMyID()));
 
     /* never reached */
-    exit(1);
+    exit(0);
 }
 
 /**
@@ -1257,39 +1424,27 @@ static void sendAcctChild(PStask_t *task)
  * different from 0 is returned. This value might be interpreted as an
  * errno describing the problem that occurred during the spawn.
  */
-static int buildSandboxAndStart(PStask_t *forwarder, PStask_t *client)
+static int buildSandboxAndStart(PStask_t *task)
 {
-    int forwarderfds[2];  /* pipe fds to control forwarders startup */
     int socketfds[2];     /* sockets for communication with forwarder */
-    pid_t pid;              /* pid of the forwarder */
-    int buf;              /* buffer for communication with forwarder */
-    int i, ret;
+    pid_t pid;            /* forwarder's pid */
+    int i, ret = 0;
 
     if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
 	char tasktxt[128];
-	PStask_snprintf(tasktxt, sizeof(tasktxt), client);
+	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
 	PSID_log(PSID_LOG_TASK, "%s: task=%s\n", __func__, tasktxt);
     }
 
-    /* create a control channel in order to observe the forwarder */
-    if (pipe(forwarderfds)<0) {
-	PSID_warn(-1, errno, "%s: pipe()", __func__);
-	return errno;
-    }
-    fcntl(forwarderfds[1], F_SETFD, FD_CLOEXEC);
-
     /* create a socketpair for communication between daemon and forwarder */
     if (socketpair(PF_UNIX, SOCK_STREAM, 0, socketfds)<0) {
-	PSID_warn(-1, errno, "%s: socketpair()", __func__);
-	close(forwarderfds[0]);
-	close(forwarderfds[1]);
-	return errno;
+	int eno = errno;
+	PSID_warn(-1, eno, "%s: socketpair()", __func__);
+	return eno;
     }
     if (socketfds[0] >= FD_SETSIZE) {
 	PSID_log(-1, "%s: socketfd (%d) out of mask\n", __func__,
 		 socketfds[0]);
-	close(forwarderfds[0]);
-	close(forwarderfds[1]);
 	close(socketfds[0]);
 	close(socketfds[1]);
 
@@ -1314,7 +1469,7 @@ static int buildSandboxAndStart(PStask_t *forwarder, PStask_t *client)
 	/* Then all the rest */
 	for (i=0; i<getdtablesize(); i++) {
 	    if (i!=STDIN_FILENO && i!=STDOUT_FILENO && i!=STDERR_FILENO
-		&& i!=forwarderfds[1] && i!=socketfds[1]) {
+		&& i!=socketfds[1]) {
 		close(i);
 	    }
 	}
@@ -1322,7 +1477,12 @@ static int buildSandboxAndStart(PStask_t *forwarder, PStask_t *client)
 	/* Reopen the syslog and rename the tag */
 	openlog("psidforwarder", LOG_PID|LOG_CONS, config->logDest);
 
-	execForwarder(client, socketfds[1], forwarderfds[1]);
+	resetSignals();
+
+	PSC_setDaemonFlag(0);
+	PSC_resetMyTID();
+
+	execForwarder(task, socketfds[1]);
     }
 
     /* this is the parent process */
@@ -1330,15 +1490,11 @@ static int buildSandboxAndStart(PStask_t *forwarder, PStask_t *client)
     /* save errno in case of error */
     ret = errno;
 
-    /* close the writing pipe */
-    close(forwarderfds[1]);
-
     /* close forwarders end of the socketpair */
     close(socketfds[1]);
 
     /* check if fork() was successful */
     if (pid == -1) {
-	close(forwarderfds[0]);
 	close(socketfds[0]);
 
 	PSID_warn(-1, errno, "%s: fork()", __func__);
@@ -1346,93 +1502,12 @@ static int buildSandboxAndStart(PStask_t *forwarder, PStask_t *client)
 	return ret;
     }
 
-    forwarder->tid = PSC_getTID(-1, pid);
-    forwarder->fd = socketfds[0];
+    task->tid = PSC_getTID(-1, pid);
+    task->fd = socketfds[0];
     /* check for a sign of the forwarder */
     PSID_log(PSID_LOG_SPAWN, "%s: waiting for my child (%d)\n", __func__, pid);
 
-    client->forwardertid = forwarder->tid;
-    client->tid = 0;
-
- restart:
-    if ((ret=read(forwarderfds[0], &buf, sizeof(buf))) < 0) {
-	if (errno == EINTR) {
-	    goto restart;
-	}
-	PSID_warn(-1, errno, "%s: read() failed", __func__);
-    }
-
-    if (!ret) {
-	if (client->tid) {
-	    /*
-	     * the control channel was closed in case of a successful execv
-	     * after telling the client pid.
-	     */
-	    PSID_log(PSID_LOG_SPAWN, "%s: child %s spawned successfully\n",
-		     __func__, PSC_printTID(client->tid));
-	} else {
-	    /*
-	     * the control channel was closed without telling the client's pid.
-	     */
-	    PSID_log(-1, "%s: haven't got child's pid\n", __func__);
-	    ret = EBADMSG;
-	}
-    } else {
-	if (!buf) {
-	    /*
-	     * the forwarder want's to tell about the client's pid
-	     */
-	restart2:
-	    if ((ret=read(forwarderfds[0], &buf, sizeof(buf))) < 0) {
-		if (errno == EINTR) {
-		    goto restart2;
-		}
-	    }
-	    if (!ret) {
-		/*
-		 * the control channel was closed during message.
-		 */
-		PSID_log(-1, "%s: pipe closed unexpectedly\n", __func__);
-		ret = EBADMSG;
-	    } else {
-		client->tid = PSC_getTID(-1, buf);
-		goto restart;
-	    }
-	} else {
-	    /*
-	     * the child sent us a sign that the execv wasn't successful
-	     */
-	    ret = buf;
-	    PSID_warn(-1, buf, "%s: child exec()", __func__);
-	}
-    }
-
-    close(forwarderfds[0]);
-    if (ret) close(socketfds[0]);
-
-    /* Accounting info */
-    if (!ret && client->group != TG_ADMINTASK && client->group != TG_SERVICE) {
-	sendAcctChild(client);
-    }
-
-    /* Fix interactive shell's argv[0] */
-    if (client->argc == 2 && (!strcmp(client->argv[0], "/bin/bash")
-			      && !strcmp(client->argv[1], "-i"))) {
-	free(client->argv[0]);
-	client->argv[0] = strdup("-bash");
-	free(client->argv[1]);
-	client->argv[1] = NULL;
-	client->argc = 1;
-    } else if (client->argc == 2 && (!strcmp(client->argv[0], "/bin/tcsh")
-				     && !strcmp(client->argv[1], "-i"))) {
-	free(client->argv[0]);
-	client->argv[0] = strdup("-tcsh");
-	free(client->argv[1]);
-	client->argv[1] = NULL;
-	client->argc = 1;
-    }
-
-    return ret;
+    return 0;
 }
 
 /** Chunksize for PSP_ACCOUNT_SLOTS messages */
@@ -1633,70 +1708,29 @@ static int checkRequest(PStask_ID_t sender, PStask_t *task)
  */
 static int spawnTask(PStask_t *task)
 {
-    PStask_t *forwarder;
     int err;
 
     if (!task) return EINVAL;
 
-    /* prepare forwarder task */
-    forwarder = PStask_clone(task);
-    if (!forwarder) {
-	PSID_warn(-1, errno, "%s: PStask_clone()", __func__);
-	return errno;
-    }
-    if (forwarder->argv) {
-	int i;
-	for (i=0; i<forwarder->argc; i++) {
-	    if (forwarder->argv[i]) free(forwarder->argv[i]);
-	}
-	free(forwarder->argv);
-	forwarder->argv = NULL;
-	forwarder->argc = 0;
-    }
-    forwarder->group = TG_FORWARDER;
-    forwarder->protocolVersion = PSProtocolVersion;
-
     /* now try to start the task */
-    err = buildSandboxAndStart(forwarder, task);
+    err = buildSandboxAndStart(task);
 
     if (!err) {
-	/* Task will get signal from parent. Thus add ptid to assignedSigs */
-	PSID_setSignal(&task->assignedSigs, task->ptid, -1);
-	/* Enqueue the task */
-	PStasklist_enqueue(&managedTasks, task);
-	/* Tell everybody about the new task */
-	incJobs(1, (task->group==TG_ANY));
-
-	/* Spawned task will get signal if the forwarder dies unexpectedly. */
-	PSID_setSignal(&forwarder->childs, task->tid, -1);
+	/* prepare forwarder task */
+	task->childGroup = task->group;
+	task->group = TG_FORWARDER;
+	task->protocolVersion = PSProtocolVersion;
 	/* Enqueue the forwarder */
-	PStasklist_enqueue(&managedTasks, forwarder);
+	PStasklist_enqueue(&managedTasks, task);
 	/* The forwarder is already connected and established */
-	registerClient(forwarder->fd, forwarder->tid, forwarder);
-	setEstablishedClient(forwarder->fd);
-	FD_SET(forwarder->fd, &PSID_readfds);
+	registerClient(task->fd, task->tid, task);
+	setEstablishedClient(task->fd);
+	FD_SET(task->fd, &PSID_readfds);
 	/* Tell everybody about the new forwarder task */
-	incJobs(1, (forwarder->group==TG_ANY));
-
-	/*
-	 * The answer will be sent directly to the initiator if he is on
-	 * the same node. Thus register directly as his child.
-	 */
-	if (PSC_getID(task->ptid) == PSC_getMyID()) {
-	    PStask_t *parent = PStasklist_find(&managedTasks, task->ptid);
-
-	    if (!parent) {
-		PSID_log(-1, "%s: parent task %s not found\n", __func__,
-			 PSC_printTID(task->ptid));
-	    } else {
-		PSID_setSignal(&parent->childs, task->tid, -1);
-		PSID_setSignal(&parent->assignedSigs, task->tid, -1);
-	    }
-	}
+	incJobs(1, 0);
     } else {
 	PSID_warn(PSID_LOG_SPAWN, err, "%s: buildSandboxAndStart()", __func__);
 
-	PStask_delete(forwarder);
 	PStask_delete(task);
     }
 
@@ -1758,12 +1792,11 @@ static void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
     if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
 	answer.error = spawnTask(task);
 
-	answer.header.type =
-	    (answer.error ? PSP_CD_SPAWNFAILED : PSP_CD_SPAWNSUCCESS);
-	if (!answer.error) answer.header.sender = task->tid;
-
-	/* send the existence or failure of the request */
-	sendMsg(&answer);
+	if (answer.error) {
+	    /* send only on failure. success reported by forwarder */
+	    answer.header.type = PSP_CD_SPAWNFAILED;
+	    sendMsg(&answer);
+	}
     } else {
 	/* request for a remote site. */
 	PStask_delete(task);
@@ -2035,12 +2068,11 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    answer.error = spawnTask(task);
 	}
 
-	answer.header.type =
-	    (answer.error ? PSP_CD_SPAWNFAILED : PSP_CD_SPAWNSUCCESS);
-	if (!answer.error) answer.header.sender = task->tid;
-
-	/* send the existence or failure of the request */
-	sendMsg(&answer);
+	if (answer.error) {
+	    /* send only on failure. success reported by forwarder */
+	    answer.header.type = PSP_CD_SPAWNFAILED;
+	    sendMsg(&answer);
+	}
     }
 }
 
@@ -2060,7 +2092,7 @@ void cleanupSpawnTasks(void)
 {
     list_t *t, *tmp;
 
-    PSID_log(PSID_LOG_SPAWN, "%s()", __func__);
+    PSID_log(PSID_LOG_VERB, "%s()", __func__);
 
     list_for_each_safe(t, tmp, &spawnTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
@@ -2118,7 +2150,8 @@ static void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
  *
  * Handle the message @a msg of type PSP_CD_SPAWNFAILED.
  *
- * This just forwards the message to the initiating process.
+ * This might have been created by a local forwarder. Thus, release
+ * this forwarder and forwards the message to the initiating process.
  *
  * @param msg Pointer to the message to handle.
  *
@@ -2126,10 +2159,31 @@ static void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
  */
 static void msg_SPAWNFAILED(DDErrorMsg_t *msg)
 {
-    PSID_log(PSID_LOG_SPAWN, "%s: error = %d sending to local parent %s\n",
-	     __func__, msg->error, PSC_printTID(msg->header.dest));
+    PSID_log(PSID_LOG_SPAWN, "%s: %s", __func__,
+	     PSC_printTID(msg->header.sender));
+    PSID_log(PSID_LOG_SPAWN, " reports on %s", PSC_printTID(msg->request));
+    PSID_log(PSID_LOG_SPAWN, " error = %d sending to parent %s\n", msg->error,
+	     PSC_printTID(msg->header.dest));
 
-    /* send the initiator the failure msg */
+    /* Make sure an old initiator does not get extended messages */
+    if (PSIDnodes_getDaemonProtoVersion(PSC_getID(msg->header.dest)) < 404) {
+	msg->header.len = sizeof(*msg);
+    }
+
+    if (PSC_getID(msg->header.sender) == PSC_getMyID()) {
+	/* Forwader will disappear immediately, release it. */
+	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
+
+	if (!task) {
+	    PSID_log(-1, "%s: task %s not found\n", __func__,
+		     PSC_printTID(msg->header.sender));
+	} else {
+	    task->released = 1;
+	    deleteClient(task->fd);
+	}
+    }
+
+    /* send failure msg to initiator */
     sendMsg(msg);
 }
 
@@ -2150,6 +2204,137 @@ static void msg_SPAWNFINISH(DDMsg_t *msg)
 	     __func__, PSC_printTID(msg->dest));
 
     /* send the initiator a finish msg */
+    sendMsg(msg);
+}
+
+/**
+ * @brief Handle a PSP_DD_CHILDBORN message.
+ *
+ * Handle the message @a msg of type PSP_DD_CHILDBORN.
+ *
+ * This type of message is created by the forwarder process to inform
+ * the local daemon on the creation of the controlled client
+ * process. This will result in setting up the daemon's
+ * control-structures for tracing the child. Additionally the message
+ * will be forwarded to the parent task in order to take according
+ * measures.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_CHILDBORN(DDErrorMsg_t *msg)
+{
+    PStask_t *forwarder = PStasklist_find(&managedTasks, msg->header.sender);
+    PStask_t *child;
+
+    PSID_log(PSID_LOG_SPAWN, "%s: from %s\n", __func__,
+	     PSC_printTID(msg->header.sender));
+    if (!forwarder) {
+	PSID_log(-1, "%s: forwarder %s not found.\n", __func__,
+		 PSC_printTID(msg->header.sender));
+	return;
+    }
+
+    /* prepare child task */
+    child = PStask_clone(forwarder);
+    if (!child) {
+	PSID_warn(-1, errno, "%s: PStask_clone()", __func__);
+
+	/* Tell forwarder to kill child */
+	msg->header.type = PSP_DD_CHILDDEAD;
+	msg->header.dest = msg->header.sender;
+	msg->header.sender = PSC_getMyTID();
+	sendMsg(msg);
+
+	/* Tell parent about failure */
+	msg->header.type = PSP_CD_SPAWNFAILED;
+	msg->header.sender = msg->request;
+	msg->header.dest = forwarder->ptid;
+	msg->error = ENOMEM;
+	msg->request = 0;
+	sendMsg(msg);
+
+	return;
+    }
+
+    if (forwarder->argv) {
+	int i;
+	for (i=0; i<forwarder->argc; i++) {
+	    if (forwarder->argv[i]) free(forwarder->argv[i]);
+	}
+	free(forwarder->argv);
+	forwarder->argv = NULL;
+	forwarder->argc = 0;
+    }
+
+    child->tid = msg->request;
+    child->fd = -1;
+    child->group = forwarder->childGroup;
+    child->forwardertid = forwarder->tid;
+
+    /* Accounting info */
+    if (child->group != TG_ADMINTASK && child->group != TG_SERVICE) {
+	sendAcctChild(child);
+    }
+
+    /* Fix interactive shell's argv[0] */
+    if (child->argc == 2 && (!strcmp(child->argv[0], "/bin/bash")
+			     && !strcmp(child->argv[1], "-i"))) {
+	free(child->argv[0]);
+	child->argv[0] = strdup("-bash");
+	free(child->argv[1]);
+	child->argv[1] = NULL;
+	child->argc = 1;
+    } else if (child->argc == 2 && (!strcmp(child->argv[0], "/bin/tcsh")
+				     && !strcmp(child->argv[1], "-i"))) {
+	free(child->argv[0]);
+	child->argv[0] = strdup("-tcsh");
+	free(child->argv[1]);
+	child->argv[1] = NULL;
+	child->argc = 1;
+    }
+
+    /* Child will get signal from parent. Thus add ptid to assignedSigs */
+    PSID_setSignal(&child->assignedSigs, child->ptid, -1);
+    /* Enqueue the task */
+    PStasklist_enqueue(&managedTasks, child);
+    /* Tell everybody about the new task */
+    incJobs(1, (child->group==TG_ANY));
+
+    /* Spawned task will get signal if the forwarder dies unexpectedly. */
+    PSID_setSignal(&forwarder->childs, child->tid, -1);
+
+    /*
+     * The answer will be sent directly to the initiator if he is on
+     * the same node. Thus register directly as his child.
+     */
+    if (PSC_getID(child->ptid) == PSC_getMyID()) {
+	PStask_t *parent = PStasklist_find(&managedTasks, child->ptid);
+
+	if (!parent) {
+	    PSID_log(-1, "%s: parent task %s not found\n", __func__,
+		     PSC_printTID(child->ptid));
+	} else {
+	    PSID_setSignal(&parent->childs, child->tid, -1);
+	    PSID_setSignal(&parent->assignedSigs, child->tid, -1);
+	}
+    }
+
+    /* Tell forwarder to actually execv() client */
+    msg->header.type = PSP_DD_CHILDACK;
+    msg->header.dest = msg->header.sender;
+    msg->header.sender = PSC_getMyTID();
+    sendMsg(msg);
+
+    /* Tell parent about success */
+    msg->header.type = PSP_CD_SPAWNSUCCESS;
+    msg->header.sender = child->tid;
+    msg->header.dest = child->ptid;
+
+    msg->error = 0;
+    msg->request = 0;
+
     sendMsg(msg);
 }
 
@@ -2274,4 +2459,6 @@ void initSpawn(void)
     PSID_registerMsg(PSP_CD_SPAWNFAILED, (handlerFunc_t) msg_SPAWNFAILED);
     PSID_registerMsg(PSP_CD_SPAWNFINISH, (handlerFunc_t) msg_SPAWNFINISH);
     PSID_registerMsg(PSP_DD_CHILDDEAD, (handlerFunc_t) msg_CHILDDEAD);
+    PSID_registerMsg(PSP_DD_CHILDBORN, (handlerFunc_t) msg_CHILDBORN);
+    PSID_registerMsg(PSP_DD_CHILDACK, (handlerFunc_t) sendClient);
 }

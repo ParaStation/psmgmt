@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -35,6 +35,7 @@ typedef enum {
     PMI_DISABLED = 0,
     PMI_OVER_TCP,
     PMI_OVER_UNIX,
+    PMI_FAILED,
 } PMItype_t;
 
 /**
@@ -56,10 +57,19 @@ typedef enum {
  * get more detailed information like memory consumption, etc. If @a
  * acctPollInterval is set to 0, no polling will take place.
  *
+ * If @a eno is different from 0, the forwarder expects that something
+ * went wrong during creation of the child process. Thus, a
+ * PSP_CD_SPAWNFAILED message will be sent to the parent process. For
+ * that, everything accessible via the tasks stderr_fd will be
+ * appended to the corresponding message.
+ *
  * @param task Task structure describing the client process to control.
  *
  * @param daemonfd File descriptor connecting the forwarder to the
  * local daemon.
+ *
+ * @param eno Error-number (i.e. errno) describing the problem
+ * preventing the child-process from being spawned.
  *
  * @param PMISocket Socket connecting the forwarder to the pmi client.
  *
@@ -73,7 +83,7 @@ typedef enum {
  *
  * @return No return value.
  */
-void PSID_forwarder(PStask_t *task, int daemonfd, int PMISocket,
+void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
 		    PMItype_t PMItype, int doAccounting, int acctPollInterval);
 
 /**

@@ -91,7 +91,7 @@ static int showUsage = 0;
 /** Number of maximum connected forwarders during runtime */
 int maxConnected = 0;
 
-/** Set of fds, the logger listens to. This is mainly STDIN and daemonSock. */
+/** Set of fds, the logger listens to. This is mainly STDIN and daemonSock */
 static fd_set myfds;
 
 /** The socket connecting to the local ParaStation daemon */
@@ -367,17 +367,10 @@ static int sendDaemonMsg(DDMsg_t *msg)
     } while (c > 0);
 
     if (n < 0) {
-	PSIlog_warn(-1, errno, "%s: error (%d)", __func__, errno);
-
-	closeDaemonSock();
-
-	return n;
+	PSIlog_exit(errno, "%s: send()", __func__);
     } else if (!n) {
 	PSIlog_log(-1, "%s(): Daemon connection lost\n", __func__);
-
-	closeDaemonSock();
-
-	return n;
+	exit(1);
     }
 
     PSIlog_log(PSILOG_LOG_VERB, "%s type %s (len=%d) to %s\n", __func__,
@@ -891,10 +884,13 @@ static void handleOutMsg(PSLog_Msg_t *msg, int outfd)
  *
  * @param msg The received msg to handle.
  *
- * @return No return value.
+ * @return If service-process (with rank -2) has exited with
+ * non-trivial status, 1 is returned. Otherwise 0 is returned.
  */
-static void handleFINALIZEMsg(PSLog_Msg_t *msg)
+static int handleFINALIZEMsg(PSLog_Msg_t *msg)
 {
+    int ret = 0;
+
     if (msg->sender >= 0) leaveRawMode();
     if (getenv("PSI_SSH_COMPAT_HOST")) {
 	char *host = getenv("PSI_SSH_COMPAT_HOST");
@@ -918,7 +914,13 @@ static void handleFINALIZEMsg(PSLog_Msg_t *msg)
 
 	if (WIFEXITED(status)) {
 	    if (WEXITSTATUS(status)) {
-		PSIlog_log(-1, "Child with rank %d exited with status %d.\n",
+		int logLevel = -1;
+		if (msg->sender == -2) {
+		    ret = 1;
+		    logLevel = PSILOG_LOG_VERB;
+		}
+		PSIlog_log(logLevel,
+			   "Child with rank %d exited with status %d.\n",
 			   msg->sender, WEXITSTATUS(status));
 		if (!retVal) retVal = WEXITSTATUS(status);
 	    } else {
@@ -935,6 +937,8 @@ static void handleFINALIZEMsg(PSLog_Msg_t *msg)
     PSLog_write(msg->header.sender, EXIT, NULL, 0);
 
     deregisterClient(msg->sender);
+
+    return ret;
 }
 
 /**
@@ -1095,7 +1099,7 @@ static void loop(void)
 	    CheckFileTable(&myfds);
 	    continue;
 	}
-	if ( FD_ISSET(daemonSock, &afds) ) {
+	if (FD_ISSET(daemonSock, &afds)) {
 	    /* message from the daemon */
 	    int ret;
 	    int outfd = STDOUT_FILENO;
@@ -1137,7 +1141,7 @@ static void loop(void)
 		handleUSAGEMsg(&msg);
 		break;
 	    case FINALIZE:
-		handleFINALIZEMsg(&msg);
+		if (handleFINALIZEMsg(&msg)) timeoutval = MIN_WAIT;
 		break;
 	    case STOP:
 		handleSTOPMsg(&msg);
@@ -1248,6 +1252,10 @@ int main( int argc, char**argv)
 		   " inside an application.\n");
 	PSIlog_log(-1, "'%s' is not a socket number.\n", argv[1]);
 
+	exit(1);
+    }
+    if (daemonSock < 0) {
+	PSIlog_log(-1, "Not connected to local daemon. Exiting.\n");
 	exit(1);
     }
 

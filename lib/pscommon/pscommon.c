@@ -138,6 +138,11 @@ void PSC_setDaemonFlag(int flag)
     daemonFlag = flag;
 }
 
+void PSC_resetMyTID(void)
+{
+    myTID = -1;
+}
+
 PStask_ID_t PSC_getMyTID(void)
 {
     PStask_ID_t tmp;

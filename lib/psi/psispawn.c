@@ -232,7 +232,22 @@ static int sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len)
 }
 
 /**
- * @brief @doctodo
+ * @brief Handle answer on spawn requests
+ *
+ * Handle pending answers sent by the remote side on spawn
+ * requests. The original spawn request asked for spawning @a count
+ * processes on the nodes listed in @a dstnodes. Errors are logged
+ * within @a errors, the resulting task IDs will be stored within @a
+ * tids.
+ *
+ * @param count The number of processes to spawn.
+ *
+ * @param dstnodes The nodes used in order to spawn processes.
+ *
+ * @param errors Array holding error codes upon return.
+ *
+ * @param tids Array holding unique task IDs upon return. If this is
+ * NULL, no such information will be stored.
  *
  * @return Return might have 4 different values: -1: fatal error, 0:
  * general error, but answer from known node, 1: no error, 2: message
@@ -241,7 +256,8 @@ static int sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len)
 int handleAnswer(int count, PSnodes_ID_t *dstnodes, int *errors,
 		  PStask_ID_t *tids)
 {
-    DDErrorMsg_t answer;
+    DDBufferMsg_t answer;
+    DDErrorMsg_t *errMsg = (DDErrorMsg_t *)&answer;
     int i;
 
     if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer))<0) {
@@ -259,7 +275,7 @@ int handleAnswer(int count, PSnodes_ID_t *dstnodes, int *errors,
 		 * We have to test for !errors[i], since daemon on node 0
 		 * (which has tid 0) might have returned an error.
 		 */
-		errors[i] = answer.error;
+		errors[i] = errMsg->error;
 		if (tids) tids[i] = answer.header.sender;
 		break;
 	    }
@@ -267,9 +283,9 @@ int handleAnswer(int count, PSnodes_ID_t *dstnodes, int *errors,
 
 	if (i==count) {
 	    if (PSC_getID(answer.header.sender)==PSC_getMyID()
-		&& answer.error==EACCES && count==1) {
+		&& errMsg->error==EACCES && count==1) {
 		/* This might be due to 'starting not allowed' here */
-		errors[0] = answer.error;
+		errors[0] = errMsg->error;
 		if (tids) tids[0] = answer.header.sender;
 	    } else {
 		PSI_log(-1, "%s: %s from unknown node %d\n", __func__,
@@ -280,9 +296,19 @@ int handleAnswer(int count, PSnodes_ID_t *dstnodes, int *errors,
 	}
 
 	if (answer.header.type==PSP_CD_SPAWNFAILED) {
-	    PSI_warn(-1, answer.error,
-		     "%s: spawn to node %d failed", __func__,
-		     PSC_getID(answer.header.sender));
+	    if ((size_t)answer.header.len > sizeof(*errMsg)) {
+		size_t bufUsed = sizeof(*errMsg) - sizeof(answer.header);
+		char *note = answer.buf + bufUsed;
+
+		if (note[strlen(note)-1] == '\n') note[strlen(note)-1] = '\0';
+		if (note[strlen(note)-1] == '\r') note[strlen(note)-1] = '\0';
+
+		PSI_log(-1, "%s: spawn to node %d failed: \"%s\"\n",
+			__func__, PSC_getID(answer.header.sender), note);
+	    } else {
+		PSI_warn(-1, errMsg->error, "%s: spawn to node %d failed",
+			 __func__, PSC_getID(answer.header.sender));
+	    }
 	    return 0;
 	}
 	break;

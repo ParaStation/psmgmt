@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -24,15 +24,17 @@ static struct {
     int id;
     char *message;
 } ctrlmessages[] = {
-    { PSP_DD_DAEMONCONNECT    , "PSP_DD_DAEMONCONNECT"    }, 
-    { PSP_DD_DAEMONESTABLISHED, "PSP_DD_DAEMONESTABLISHED"}, 
-    { PSP_DD_DAEMONREFUSED    , "PSP_DD_DAEMONREFUSED"    }, 
-    { PSP_DD_DAEMONSHUTDOWN   , "PSP_DD_DAEMONSHUTDOWN"   }, 
+    { PSP_DD_DAEMONCONNECT    , "PSP_DD_DAEMONCONNECT"    },
+    { PSP_DD_DAEMONESTABLISHED, "PSP_DD_DAEMONESTABLISHED"},
+    { PSP_DD_DAEMONREFUSED    , "PSP_DD_DAEMONREFUSED"    },
+    { PSP_DD_DAEMONSHUTDOWN   , "PSP_DD_DAEMONSHUTDOWN"   },
 
-    { PSP_DD_SENDSTOP         , "PSP_DD_SENDSTOP"         }, 
-    { PSP_DD_SENDCONT         , "PSP_DD_SENDCONT"         }, 
+    { PSP_DD_SENDSTOP         , "PSP_DD_SENDSTOP"         },
+    { PSP_DD_SENDCONT         , "PSP_DD_SENDCONT"         },
 
     { PSP_DD_CHILDDEAD        , "PSP_DD_CHILDDEAD"        },
+    { PSP_DD_CHILDBORN        , "PSP_DD_CHILDBORN"        },
+    { PSP_DD_CHILDACK         , "PSP_DD_CHILDACK"         },
 
     { PSP_DD_NEWCHILD         , "PSP_DD_NEWCHILD"         },
     { PSP_DD_NEWPARENT        , "PSP_DD_NEWPARENT"        },

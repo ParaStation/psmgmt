@@ -67,6 +67,7 @@ int PStask_init(PStask_t* task)
     task->stdout_fd = -1;
     task->stderr_fd = -1;
     task->group = TG_ANY;
+    task->childGroup = TG_ANY;
     task->loggertid = 0;
     task->forwardertid = 0;
     task->rank = -1;
@@ -222,6 +223,7 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->termios = task->termios;
     clone->winsize = task->winsize;
     clone->group = task->group;
+    clone->childGroup = task->childGroup;
     clone->loggertid = task->loggertid;
     clone->forwardertid = task->forwardertid;
     clone->rank = task->rank;
@@ -338,10 +340,11 @@ static void snprintfStruct(char *txt, size_t size, PStask_t *task)
     if (!task) return;
 
     snprintf(txt, size, "tid 0x%08x ptid 0x%08x uid %d gid %d group %s"
-	     " rank %d cpus %s loggertid %08x fd %d argc %d",
+	     " childGroup %s rank %d cpus %s loggertid %08x fd %d argc %d",
 	     task->tid, task->ptid, task->uid, task->gid,
-	     PStask_printGrp(task->group), task->rank,
-	     PSCPU_print(task->CPUset), task->loggertid, task->fd, task->argc);
+	     PStask_printGrp(task->group), PStask_printGrp(task->childGroup),
+	     task->rank, PSCPU_print(task->CPUset), task->loggertid, task->fd,
+	     task->argc);
 }
 
 static void snprintfArgv(char *txt, size_t size, PStask_t *task)

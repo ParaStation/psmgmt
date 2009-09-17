@@ -153,6 +153,22 @@ void PSC_setDaemonFlag(int flag);
 PStask_ID_t PSC_getMyTID(void);
 
 /**
+ * @brief Reset MyTID.
+ *
+ * MyTID, i.e. the value returned by PSC_getMyTID() is cashed withing
+ * that function. Thus, whenever a fork happened, this cashed value
+ * has to be reseted. This is done by calling this function.
+ *
+ * Afterwards the cashed value is deleted and will be renewed with the
+ * now correct values during the next call of PSC_getMyTID().
+ *
+ * @return No return value.
+ *
+ * @see PSC_getMyTID()
+ */
+void PSC_resetMyTID(void);
+
+/**
  * @brief Get string describing the task ID.
  *
  * Get a string describing the task ID @a tid. The returned pointer
