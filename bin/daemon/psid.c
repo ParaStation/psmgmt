@@ -258,13 +258,20 @@ static void RDPCallBack(int msgid, void *buf)
  */
 static void sighandler(int sig)
 {
-    switch(sig){
+    char sigStr[10];
+
+    snprintf(sigStr, sizeof(sigStr), "%d", sig);
+
+    switch (sig) {
+    case SIGABRT:
     case SIGSEGV:
-	PSID_log(-1, "Received SEGFAULT signal. Shut down hardly.\n");
+	PSID_log(-1, "Received signal %s. Shut down hardly.\n",
+		 sys_siglist[sig] ? sys_siglist[sig] : sigStr);
 	exit(-1);
 	break;
     case SIGTERM:
-	PSID_log(-1, "Received SIGTERM signal. Shut down.\n");
+	PSID_log(-1, "Received signal %s. Shut down.\n",
+		 sys_siglist[sig] ? sys_siglist[sig] : sigStr);
 	PSID_shutdown();
 	break;
     case SIGCHLD:
@@ -319,12 +326,11 @@ static void sighandler(int sig)
     case  SIGWINCH:  /* (+) window size changed */
     case  SIGALRM:   /* alarm clock timeout */
     case  SIGPIPE:   /* write on a pipe with no one to read it */
-	PSID_log(-1, "Received  signal %d. Continue\n", sig);
-	signal(sig,sighandler);
+	PSID_log(-1, "Received signal %s. Continue\n",
+		 sys_siglist[sig] ? sys_siglist[sig] : sigStr);
 	break;
     case  SIGILL:    /* (*) illegal instruction (not reset when caught)*/
     case  SIGTRAP:   /* (*) trace trap (not reset when caught) */
-    case  SIGABRT:   /* (*) abort process */
     case  SIGFPE:    /* (*) floating point exception */
     case  SIGBUS:    /* (*) bus error (specification exception) */
 #ifdef SIGEMT
@@ -349,7 +355,8 @@ static void sighandler(int sig)
     case  SIGUSR1:   /* user defined signal 1 */
     case  SIGUSR2:   /* user defined signal 2 */
     default:
-	PSID_log(-1, "Received signal %d. Shut down\n", sig);
+	PSID_log(-1, "Received signal %s. Shut down\n",
+		 sys_siglist[sig] ? sys_siglist[sig] : sigStr);
 	PSID_shutdown();
 	break;
     }
@@ -371,7 +378,6 @@ static void initSigHandlers(void)
     signal(SIGQUIT  ,sighandler);
     signal(SIGILL   ,sighandler);
     signal(SIGTRAP  ,sighandler);
-    signal(SIGABRT  ,sighandler);
     signal(SIGIOT   ,sighandler);
     signal(SIGBUS   ,sighandler);
     signal(SIGFPE   ,sighandler);
@@ -701,9 +707,12 @@ int main(int argc, const char *argv[])
 	printWelcome();
     }
 
-    /* Catch SIGSEGV if core dumps are suppressed */
+    /* Catch SIGSEGV and SIGABRT if core dumps are suppressed */
     getrlimit(RLIMIT_CORE, &rlimit);
-    if (!rlimit.rlim_cur) signal(SIGSEGV ,sighandler);
+    if (!rlimit.rlim_cur) {
+	signal(SIGSEGV ,sighandler);
+	signal(SIGABRT ,sighandler);
+    }
     if (config->coreDir) {
 	if (chdir(config->coreDir) < 0) {
 	    PSID_warn(-1, errno, "Unable to chdir() to coreDirectory '%s'",
