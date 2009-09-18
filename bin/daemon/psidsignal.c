@@ -62,7 +62,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 	    if (!forwarder) {
 		PSID_log(PSID_LOG_SIGNAL, "%s: forwarder %s not found\n",
 			 __func__, PSC_printTID(child->forwardertid));
-	    } else if (forwarder->tid != -1) {
+	    } else if (forwarder->fd != -1) {
 		/* Send signal via forwarder */
 		PSLog_Msg_t msg;
 		char *ptr = msg.buf;
@@ -296,7 +296,7 @@ void PSID_sendAllSignals(PStask_t *task)
 void PSID_sendSignalsToRelatives(PStask_t *task)
 {
     list_t *s;
-    
+
     if (task->ptid) {
 	PSID_sendSignal(task->ptid, task->uid, task->tid, -1, 0, 0);
 	PSID_log(PSID_LOG_SIGNAL, "%s(%s)", __func__, PSC_printTID(task->tid));
