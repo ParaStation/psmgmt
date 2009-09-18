@@ -298,6 +298,13 @@ void PStask_cleanup(PStask_ID_t tid)
 		PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
 		PStask_t *child = PStasklist_find(&managedTasks, sig->tid);
 
+		/* Remove from list before PSID_kill(). Might get
+		 * removed therein, too. Save to remove here since
+		 * each forwarder has just a single child, i.e. this
+		 * list is empty afterwards. */
+		list_del(&sig->next);
+		free(sig);
+
 		if (child && child->fd == -1) {
 		    PSID_log(-1, "%s: forwarder kills child %s\n",
 			     __func__, PSC_printTID(child->tid));
@@ -305,9 +312,6 @@ void PStask_cleanup(PStask_ID_t tid)
 		    PSID_kill(-PSC_getPID(child->tid), SIGKILL, child->uid);
 		    PStask_cleanup(child->tid);
 		}
-
-		list_del(&sig->next);
-		free(sig);
 	    }
 	}
 	task->removeIt = 1;

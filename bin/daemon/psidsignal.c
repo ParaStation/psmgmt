@@ -62,15 +62,13 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 	    if (!forwarder) {
 		PSID_log(PSID_LOG_SIGNAL, "%s: forwarder %s not found\n",
 			 __func__, PSC_printTID(child->forwardertid));
-	    } else {
-		/* Send signal to forwarder */
+	    } else if (forwarder->tid != -1) {
+		/* Send signal via forwarder */
 		PSLog_Msg_t msg;
 		char *ptr = msg.buf;
 
 		/* Make sure to listen to the forwarder */
-		if (forwarder->fd != -1) {
-		    FD_SET(forwarder->fd, &PSID_readfds);
-		}
+		FD_SET(forwarder->fd, &PSID_readfds);
 
 		msg.header.type = PSP_CC_MSG;
 		msg.header.sender = PSC_getMyTID();
