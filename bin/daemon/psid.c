@@ -378,7 +378,6 @@ static void initSigHandlers(void)
     signal(SIGQUIT  ,sighandler);
     signal(SIGILL   ,sighandler);
     signal(SIGTRAP  ,sighandler);
-    signal(SIGIOT   ,sighandler);
     signal(SIGBUS   ,sighandler);
     signal(SIGFPE   ,sighandler);
     signal(SIGUSR1  ,sighandler);
