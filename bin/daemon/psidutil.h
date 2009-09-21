@@ -21,6 +21,7 @@
 #define __PSIDUTIL_H
 
 #include <stdio.h>
+#include <time.h>
 
 #include "psprotocol.h"
 #include "logging.h"
@@ -393,6 +394,31 @@ typedef int PSID_scriptPrep_t(void *);
  */
 int PSID_execScript(char *script, PSID_scriptPrep_t prep, PSID_scriptCB_t cb,
 		    void *info);
+
+
+/**
+ * @brief Set daemon's start-time
+ *
+ * Upon first call to this function the current time will be fixed as
+ * the daemon's start-time. I.e. thes function shall be called as soon
+ * as possible during the daemon's startup.
+ *
+ * @return No return value
+ */
+void PSID_initStarttime(void);
+
+/**
+ * @brief Get daemon's start-time
+ *
+ * Get the daemon's start-time as fixed via @ref
+ * PSID_initStarttime(). If @ref PSID_initStarttime() was not called
+ * before or the determination of the start-time failed than, -1. is
+ * returned.
+ *
+ * @return Upon success the actual start-time is returned as the
+ * number of seconds since the epoch. Otherwise -1 is returned.
+*/
+time_t PSID_getStarttime(void);
 
 #ifdef __cplusplus
 }/* extern "C" */

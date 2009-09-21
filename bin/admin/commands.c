@@ -439,6 +439,32 @@ void PSIADM_SummaryStat(char *nl, int max)
     }
 }
 
+void PSIADM_StarttimeStat(char *nl)
+{
+    PSnodes_ID_t node;
+
+    if (! getHostStatus()) return;
+
+    printf("%4s\t%16s\n", "Node", "Start-time ");
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
+
+	if (hostStatus.list[node]) {
+	    int64_t secs;
+	    int err;
+
+	    printf("%4d\t", node);
+	    err = PSI_infoInt64(node, PSP_INFO_STARTTIME, NULL,	&secs, 0);
+	    if (!err) {
+		time_t startTime = (time_t) secs;
+		printf("%s", ctime(&startTime));
+	    }
+	} else {
+	    printf("%4d\tdown\n", node);
+	}
+    }
+}
+
 void PSIADM_SomeStat(char *nl, char mode)
 {
     PSnodes_ID_t node;
@@ -1107,7 +1133,7 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 	    }
 
 	    if (!slotBuf) {
- 		printf("No memory\n");
+		printf("No memory\n");
 		break;
 	    }
 

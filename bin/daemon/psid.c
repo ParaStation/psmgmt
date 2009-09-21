@@ -732,6 +732,7 @@ int main(int argc, const char *argv[])
     /* Initialize timers */
     selectTime.tv_sec = config->selectTime;
     selectTime.tv_usec = 0;
+    PSID_initStarttime();
 
     /* initialize various modules */
     initComm();  /* This has to be first since it gives msgHandler hash */

@@ -234,6 +234,7 @@ typedef enum {
 
     PSP_INFO_QUEUE_PLUGINS,       /**< Queue of plugins */
 
+    PSP_INFO_STARTTIME,           /**< Nodes start-time (sec since the epoch) */
 } PSP_Info_t;
 
 /** Messages concerning spawning of tasks. */

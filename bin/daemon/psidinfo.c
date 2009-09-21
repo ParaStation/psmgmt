@@ -693,6 +693,10 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    /* send EndOfQueue */
 	    msg.type = PSP_INFO_QUEUE_SEP;
 	    break;
+	case PSP_INFO_STARTTIME:
+	    *(int64_t *)msg.buf = (int64_t) PSID_getStarttime();
+	    msg.header.len += sizeof(int64_t);
+	    break;
 	default:
 	    msg.type = PSP_INFO_UNKNOWN;
 	}

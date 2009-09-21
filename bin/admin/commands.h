@@ -148,6 +148,19 @@ void PSIADM_NodeStat(char *nl);
 void PSIADM_SummaryStat(char *nl, int max);
 
 /**
+ * @brief Show node's start-time.
+ *
+ * Show the ParaStation daemon's start-time of the nodes marked within
+ * the nodelist @a nl.
+ *
+ * @param nl The nodelist describing the nodes from which the
+ * information should be requested and put out.
+ *
+ * @return No return value.
+ */
+void PSIADM_StarttimeStat(char *nl);
+
+/**
  * @brief Show some nodes.
  *
  * Show the nodes in the nodelist @a nl that are marked to

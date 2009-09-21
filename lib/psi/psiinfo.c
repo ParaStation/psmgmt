@@ -32,8 +32,9 @@ static char vcid[] __attribute__((used)) =
  *
  * Receive and handle info messages and store the content into @a
  * buf. This is a helper function for the @ref PSI_infoInt(), @ref
- * PSI_infoString(), @ref PSI_infoTaskID(), @ref PSI_infoNodeID() and
- * @ref PSI_infoList() functions.
+ * PSI_infoInt64(), PSI_infoUInt(), PSI_infoString(), @ref
+ * PSI_infoTaskID(), @ref PSI_infoNodeID() and @ref PSI_infoList()
+ * functions.
  *
  * If the size @a size of the buffer @a buf is sufficiently large, the
  * content of the received indo message will be stored within @a
@@ -109,6 +110,7 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
 	case PSP_INFO_QUEUE_NORMTASK:
 	case PSP_INFO_QUEUE_PARTITION:
 	case PSP_INFO_QUEUE_PLUGINS:
+	case PSP_INFO_STARTTIME:
 	{
 	    size_t s = msg.header.len - sizeof(msg.header) - sizeof(msg.type);
 	    if (!buf) {
@@ -190,6 +192,40 @@ int PSI_infoInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     case PSP_INFO_NROFNODES:
     case PSP_INFO_HWNUM:
     case PSP_INFO_TASKRANK:
+	break;
+    default:
+	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,
+		PSP_printInfo(what));
+	errno = EINVAL;
+	return -1;
+    }
+
+    if (PSI_sendMsg(&msg)<0) {
+	PSI_warn(-1, errno, "%s(%s): PSI_sendMsg", __func__,
+		 PSP_printInfo(what));
+	return -1;
+    }
+
+    if (receiveInfo(val, &size, verbose) == what && size) return 0;
+
+    return -1;
+}
+
+int PSI_infoInt64(PSnodes_ID_t node, PSP_Info_t what, const void *param,
+		  int64_t *val, int verbose)
+{
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_INFOREQUEST,
+	    .dest = PSC_getTID(node, 0),
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg.header)+sizeof(msg.type) },
+	.type = what,
+	.buf = { 0 } };
+    size_t size = sizeof(*val);
+
+    switch (what) {
+    case PSP_INFO_STARTTIME:
 	break;
     default:
 	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,

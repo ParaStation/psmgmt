@@ -514,3 +514,15 @@ int PSID_execScript(char *script, PSID_scriptPrep_t prep, PSID_scriptCB_t cb,
 
     return 0;
 }
+
+static time_t startTime = -1;
+
+void PSID_initStarttime(void)
+{
+    if (startTime == -1) startTime = time(NULL);
+}
+
+time_t PSID_getStarttime(void)
+{
+    return startTime;
+}

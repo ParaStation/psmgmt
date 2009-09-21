@@ -535,7 +535,8 @@ static info_t listInfo = {
 	.cmd = "list",
 	.arg = "{{[node] | count [hw <hw>] | {p|processes} [cnt <cnt>]"
 	" | {aproc|allprocesses} [cnt <cnt>] | {hardware|hw} | down | up"
-	" | load | rdp | mcast | plugins | summary [max <max>] | versions}"
+	" | load | rdp | mcast | plugins | summary [max <max>] | starttime"
+	" | versions}"
 	" <nodes> |"
 	" jobs [state {r[unning] | p[ending] | s[uspended]}] [slots] [<tid>]}"
     }},
@@ -582,6 +583,8 @@ static info_t listInfo = {
 	  .descr = "Print a brief summary of the active and down nodes. If less"
 	  " than <max> nodes are down, a range specification of these nodes is"
 	  " printed, too." },
+	{ .tag = "list starttime",
+	  .descr = "Show the daemon's start-time on the selected nodes." },
 	{ .tag = "list versions",
 	  .descr = "Show the daemon's version and the revision of the"
 	  " corresponding RPM on the selected nodes." },
