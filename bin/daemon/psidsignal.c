@@ -196,11 +196,11 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 
 	    PSID_log(-1, "%s: Do not send signal to daemon\n", __func__);
 	} else if (pervasive) {
-	    list_t *s;
+	    list_t *s, *tmp;
 
 	    answer = 0;
 
-	    list_for_each(s, &dest->childs) {
+	    list_for_each_safe(s, tmp, &dest->childs) {
 		PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
 
 		PSID_sendSignal(sig->tid, uid, sender, signal, 1, answer);
