@@ -252,7 +252,7 @@ static info_t setInfo = {
 	" | {freeonsuspend|fos} <bool> | {handleoldbins|hob} <bool>"
 	" | starter <bool> | runjobs <bool> | overbook {<bool>|auto}"
 	" | exclusive <bool> | pinprocs <bool> | bindmem <bool> "
-	" | supplementaryGroups <bool> "
+	" | supplementaryGroups <bool> | maxStatTry <num>"
 	" | cpumap <map> | nodessort <mode> | adminuser [+|-]{<user>|any}"
 	" | admingroup [+|-]{<group>|any} | accountpoll <interval>} <nodes>"
     }},
@@ -364,6 +364,10 @@ static info_t setInfo = {
 	  .descr = "Set flag marking if this nodes will set the user's"
 	  " supplementary groups while spawning new processes. Relevant"
 	  " values are 'false', 'true', 'no', 'yes', 0 or different from 0." },
+	{ .tag = "set maxStatTry <num>",
+	  .descr = "Set the maximum number of tries to stat() an executable"
+	  " while spawning new processes to <num>. All numbers larger than 0"
+	  " are allowed." },
 	{ .tag = "set cpumap <map>",
 	  .descr = "Set the map used to assign CPU-slots to physical cores"
 	  " to <map>. <map> is a quoted string containing a space-separated"
@@ -412,6 +416,7 @@ static info_t showInfo = {
 	" | rdpretrans | rdpclosedtimeout | rdpmaxackpend | mcastdebug | master"
 	" | {freeonsuspend|fos} | {handleoldbins|hob} | starter | runjobs"
 	" | overbook | exclusive | pinprocs | bindmem | cpumap | nodessort"
+	" | supplementaryGroups | maxStatTry"
 	" | adminuser | admingroup | accounters | accountpoll"
 	" | rl_{addressspace|as} | rl_core | rl_cpu | rl_data | rl_fsize"
 	" | rl_locks | rl_memlock | rl_msgqueue | rl_nofile | rl_nproc"
@@ -480,6 +485,12 @@ static info_t showInfo = {
 	{ .tag = "show bindmem",
 	  .descr = "Show flag marking if this nodes uses binding as NUMA"
 	  " policy." },
+	{ .tag = "show supplementaryGroups",
+	  .descr = "Show flag marking if this nodes will set the user's"
+	  " supplementary groups while spawning new processes." },
+	{ .tag = "show maxStatTry",
+	  .descr = "Show the maximum number of tries to stat() an executable"
+	  " while spawning new processes to <num>." },
 	{ .tag = "show cpumap",
 	  .descr = "Show the map assigning CPU-slots to physical cores on"
 	  " this node." },

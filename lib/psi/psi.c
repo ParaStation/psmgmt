@@ -738,15 +738,6 @@ void PSI_propEnv(void)
     if ((envStr = getenv("MPID_PSP_MAXSMALLMSG"))) {
 	setPSIEnv("MPID_PSP_MAXSMALLMSG", envStr, 1);
     }
-    if ((envStr = getenv("__PSI_LOGGER_TIMEOUT"))) {
-	setPSIEnv("__PSI_LOGGER_TIMEOUT", envStr, 1);
-    }
-    if ((envStr = getenv("__PSI_NO_PINPROC"))) {
-	setPSIEnv("__PSI_NO_PINPROC", envStr, 1);
-    }
-    if ((envStr = getenv("__PSI_NO_MEMBIND"))) {
-	setPSIEnv("__PSI_NO_MEMBIND", envStr, 1);
-    }
 
     getrlimit(RLIMIT_CORE, &rlim);
     if (rlim.rlim_cur == RLIM_INFINITY) {
@@ -764,5 +755,9 @@ void PSI_propEnv(void)
     /* export all PSP_* vars to the ParaStation environment */
     for (i=0; environ[i]; i++) {
 	if (!(strncmp(environ[i], "PSP_", 4))) putPSIEnv(environ[i]);
+    }
+    /* export all __PSI_* vars to the ParaStation environment */
+    for (i=0; environ[i]; i++) {
+	if (!(strncmp(environ[i], "__PSI_", 6))) putPSIEnv(environ[i]);
     }
 }

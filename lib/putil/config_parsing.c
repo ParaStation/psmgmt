@@ -1562,6 +1562,26 @@ static int getSupplGrps(char *token)
     return 0;
 }
 
+static int default_maxStatTry = 1, node_maxStatTry;
+
+static int getMaxStatTry(char *token)
+{
+    int try, ret;
+
+    ret = parser_getNumValue(parser_getString(), &try, "maxStatTry");
+    if (ret) return ret;
+
+    if (currentID == DEFAULT_ID) {
+	default_maxStatTry = try;
+	parser_comment(PARSER_LOG_NODE,
+		       "setting default 'maxStatTry' to %d\n", try);
+    } else {
+	node_maxStatTry = try;
+	parser_commentCont(PARSER_LOG_NODE, " maxStatTry are '%d'", try);
+    }
+    return 0;
+}
+
 /* ---------------------------------------------------------------------- */
 
 static short std_cpumap[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
@@ -1820,6 +1840,7 @@ int setupNodeFromDefault(void)
     node_pinProcs = default_pinProcs;
     node_bindMem = default_bindMem;
     node_supplGrps = default_supplGrps;
+    node_maxStatTry = default_maxStatTry;
 
     if (default_cpumap_size) {
 	size_t i;
@@ -1961,6 +1982,12 @@ static int newHost(int id, in_addr_t addr)
 	return -1;
     }
 
+    if (PSIDnodes_setMaxStatTry(id, node_maxStatTry)) {
+	parser_comment(-1, "PSIDnodes_setMaxStatTry(%d, %d) failed\n",
+		       id, node_maxStatTry);
+	return -1;
+    }
+
     if (node_cpumap_size) {
 	size_t i;
 	for (i=0; i<node_cpumap_size; i++) {
@@ -2027,6 +2054,7 @@ static keylist_t nodeline_list[] = {
     {"pinprocs", getPinProcs},
     {"bindmem", getBindMem},
     {"supplGrps", getSupplGrps},
+    {"maxStatTry", getMaxStatTry},
     {"cpumap", getCPUmap},
     {"environment", getEnv},
     {NULL, parser_error}
@@ -2613,6 +2641,7 @@ static keylist_t config_list[] = {
     {"pinprocs", getPinProcs},
     {"bindmem", getBindMem},
     {"supplGrps", getSupplGrps},
+    {"maxStatTry", getMaxStatTry},
     {"cpumap", getCPUmap},
     {"nodes", getNodes},
     {"licenseserver", getLicServer},

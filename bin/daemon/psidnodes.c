@@ -69,6 +69,7 @@ typedef struct {
     int maxProcs;          /**< Number of processes this node will handle */
     int acctPollInterval;  /**< Interval in sec for polling on accnting info */
     char supplGrps;        /**< Set supplementary groups for new tasks */
+    char maxStatTry;       /**< Number of tries to stat() executable to spawn */
 } node_t;
 
 /** Array (indexed by node number) to store all known nodes */
@@ -109,6 +110,7 @@ static void nodeInit(node_t *node)
     node->maxProcs = -1;
     node->acctPollInterval = 0;
     node->supplGrps = 0;
+    node->maxStatTry = 1;
 }
 
 int PSIDnodes_init(PSnodes_ID_t num)
@@ -949,6 +951,25 @@ int PSIDnodes_supplGrps(PSnodes_ID_t id)
 {
     if (PSIDnodes_validID(id)) {
 	return nodes[id].supplGrps;
+    } else {
+	return -1;
+    }
+}
+
+int PSIDnodes_setMaxStatTry(PSnodes_ID_t id, int tries)
+{
+    if (PSIDnodes_validID(id)) {
+	nodes[id].maxStatTry = tries;
+	return 0;
+    } else {
+	return -1;
+    }
+}
+
+int PSIDnodes_maxStatTry(PSnodes_ID_t id)
+{
+    if (PSIDnodes_validID(id)) {
+	return nodes[id].maxStatTry;
     } else {
 	return -1;
     }

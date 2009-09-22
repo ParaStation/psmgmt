@@ -905,6 +905,12 @@ static int setShowSupplGrps(char *token)
     return 0;
 }
 
+static int setShowMaxStatTry(char *token)
+{
+    setShowOpt = PSP_OP_MAXSTATTRY;
+    return 0;
+}
+
 static int setShowRL_AS(char *token)
 {
     setShowOpt = PSP_OP_RL_AS;
@@ -1024,6 +1030,7 @@ static keylist_t setShowList[] = {
     {"accounters", setShowAccounter},
     {"accountpoll", setShowAcctPoll},
     {"supplementarygroups", setShowSupplGrps},
+    {"maxstattry", setShowMaxStatTry},
     {"rl_as", setShowRL_AS},
     {"rl_addressspace", setShowRL_AS},
     {"rl_core", setShowRL_Core},
@@ -1209,6 +1216,7 @@ static int setCommand(char *token)
     case PSP_OP_MCASTDEBUG:
     case PSP_OP_ACCTPOLL:
     case PSP_OP_MASTER:
+    case PSP_OP_MAXSTATTRY:
 	if (parser_getNumber(value, &val)) {
 	    printf("Illegal value '%s'\n", value);
 	    goto error;
@@ -1308,6 +1316,7 @@ static int setCommand(char *token)
     case PSP_OP_NODESSORT:
     case PSP_OP_ACCTPOLL:
     case PSP_OP_SUPPL_GRPS:
+    case PSP_OP_MAXSTATTRY:
     case PSP_OP_MASTER:
 	PSIADM_SetParam(setShowOpt, val, nl);
 	break;
@@ -1374,6 +1383,7 @@ static int showCommand(char *token)
     case PSP_OP_BINDMEM:
     case PSP_OP_ACCTPOLL:
     case PSP_OP_SUPPL_GRPS:
+    case PSP_OP_MAXSTATTRY:
 	PSIADM_ShowParam(setShowOpt, nl);
 	break;
     case PSP_OP_ACCT:

@@ -736,6 +736,9 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 					  msg->opt[i].value);
 		}
 		break;
+	    case PSP_OP_MAXSTATTRY:
+		PSIDnodes_setMaxStatTry(PSC_getMyID(), msg->opt[i].value);
+		break;
 	    case PSP_OP_LISTEND:
 		/* Ignore */
 		break;
@@ -954,6 +957,9 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_SUPPL_GRPS:
 		msg->opt[out].value = PSIDnodes_supplGrps(PSC_getMyID());
+		break;
+	    case PSP_OP_MAXSTATTRY:
+		msg->opt[out].value = PSIDnodes_maxStatTry(PSC_getMyID());
 		break;
 	    case PSP_OP_RL_AS:
 	    case PSP_OP_RL_CORE:

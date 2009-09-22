@@ -737,6 +737,43 @@ int PSIDnodes_setSupplGrps(PSnodes_ID_t id, int supplGrps);
  */
 int PSIDnodes_supplGrps(PSnodes_ID_t id);
 
+/**
+ * @brief Set the maximum of stat() tries of a node.
+ *
+ * Set the maximum number of tries to stat() an executable to spawn of
+ * the node with ParaStation ID @a id to @a tries.
+ *
+ * Whenever a process is spawned, before actually starting the
+ * executable via eaecv() stat() is applied in order to find out, if
+ * the executable is accessible. This gives the maximum number of
+ * retries before failing this operation.
+ *
+ * @param id ParaStation ID of the node to be modified.
+ *
+ * @param tries The number of tries to be set to this node.
+ *
+ * @return On success, 0 is returned or -1, if an error occured.
+ */
+int PSIDnodes_setMaxStatTry(PSnodes_ID_t id, int tries);
+
+/**
+ * @brief Get the supplementary groups flag of a node.
+ *
+ * Get the maximum number of tries to stat() an executable to spawn of
+ * the node with ParaStation ID @a id.
+ *
+ * Whenever a process is spawned, before actually starting the
+ * executable via eaecv() stat() is applied in order to find out, if
+ * the executable is accessible. This gives the maximum number of
+ * retries before failing this operation.
+ *
+ * @param id ParaStation ID of the node to look up.
+ *
+ * @return If the node was found, the maximum number of tries is
+ * returned. Or -1, if an error occured.
+ */
+int PSIDnodes_maxStatTry(PSnodes_ID_t id);
+
 
 #ifdef __cplusplus
 }/* extern "C" */

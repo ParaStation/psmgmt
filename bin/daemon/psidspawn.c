@@ -76,6 +76,36 @@ static char *get_strerror(int eno)
     return ret ? ret : "UNKNOWN";
 }
 
+/** File-descriptort used by the alarm-handler to write its errno */
+static int alarmFD = -1;
+
+/** Function interrupted. This will be reported by the alarm-handler */
+static const char *alarmFunc = NULL;
+
+/**
+ * @brief Alarm handler
+ *
+ * Handles expired alarms. This might happen due to hanging
+ * file-systems during spawn of new processes.
+ *
+ * @param sig Signal to be handled. Should always by SIGALRM.
+ *
+ * @return No return value
+ */
+static void alarmHandler(int sig)
+{
+    int ret, eno = ETIME;
+
+    if (!alarmFunc) alarmFunc = "UNKNOWN";
+
+    PSID_warn(-1, eno, "%s: %s()", __func__, alarmFunc);
+    fprintf(stderr, "%s: %s(): %s\n", __func__, alarmFunc, get_strerror(eno));
+
+    if (alarmFD >= 0) ret = write(alarmFD, &eno, sizeof(eno));
+
+    exit(1);
+}
+
 /**
  * @brief Frontend to execv(3).
  *
@@ -189,8 +219,6 @@ static void get_PMI_PORT(int PMISock, char *cPMI_PORT, int size )
     snprintf(cPMI_PORT,size,"127.0.0.1:%i", ntohs(addr.sin_port));
 }
 
-#define MAX_STAT_TRY 1 // @todo make this configurable
-
 /**
  * @brief Frontend to stat(2).
  *
@@ -215,7 +243,7 @@ static int mystat(char *file_name, struct stat *buf)
     int cnt;
 
     /* Try 5 times with delay 400ms = 2 sec overall */
-    for (cnt=0; cnt<MAX_STAT_TRY; cnt++){
+    for (cnt=0; cnt<PSIDnodes_maxStatTry(PSC_getMyID()); cnt++){
 	ret = stat(file_name, buf);
 	if (!ret) return 0; /* No error */
 	usleep(1000 * 400);
@@ -532,7 +560,7 @@ static void adaptPriority(void)
  */
 static int changeToWorkDir(PStask_t *task)
 {
-    /* @todo add timeout here */
+    alarmFunc = __func__;
     if (chdir(task->workingdir)<0) {
 	struct passwd *passwd;
 	fprintf(stderr, "%s: chdir(%s): %s\n", __func__,
@@ -635,7 +663,8 @@ static int testExecutable(PStask_t *task, char **executable)
 {
     struct stat sb;
     int execFound = 0;
-    /* @todo add timeout here */
+
+    alarmFunc = __func__;
     if (!task->argv[0]) {
 	fprintf(stderr, "No argv[0] given!\n");
 	return ENOENT;
@@ -737,13 +766,13 @@ static int testExecutable(PStask_t *task, char **executable)
 static void execClient(PStask_t *task)
 {
     /* logging is done via the forwarder thru stderr! */
-    int ret, eno = 0;
+    int ret, eno = 0, timeout = 30;
     char *executable = NULL, *envStr;
 
     /* change the gid */
     if (setgid(task->gid)<0) {
 	eno = errno;
-	fputc(eno, stderr);
+	ret = write(task->fd, &eno, sizeof(eno));
 	fprintf(stderr, "%s: setgid: %s\n", __func__, get_strerror(eno));
 	exit(1);
     }
@@ -763,12 +792,13 @@ static void execClient(PStask_t *task)
     }
 
     /* This is a temporary fix for St. Graf (s.graf@fz-juelich.de). */
+    /* It requires root permissions */
     adaptPriority();
 
     /* change the uid */
     if (setuid(task->uid)<0) {
 	eno = errno;
-	fputc(eno, stderr);
+	ret = write(task->fd, &eno, sizeof(eno));
 	fprintf(stderr, "%s: setuid: %s\n", __func__, get_strerror(eno));
 	exit(1);
     }
@@ -796,6 +826,14 @@ static void execClient(PStask_t *task)
 	if (ret > 0) umask(mask);
     }
 
+    alarmFD = task->fd;
+    signal(SIGALRM, alarmHandler);
+    envStr = getenv("__PSI_ALARM_TMOUT");
+    if (envStr) {
+	int tmout, ret = sscanf(envStr, "%d", &tmout);
+	if (ret > 0) timeout = tmout;
+    }
+    alarm(timeout);
     if ((eno = changeToWorkDir(task))) {
 	ret = write(task->fd, &eno, sizeof(eno));
 	exit(1);
@@ -805,6 +843,7 @@ static void execClient(PStask_t *task)
 	ret = write(task->fd, &eno, sizeof(eno));
 	exit(1);
     }
+    alarm(0);
 
     doClamps(task);
 
@@ -927,14 +966,9 @@ static int openChannel(PStask_t *task, int *fds, int fileNo)
 /**
  * @brief Verify ELAN Host
  *
- * Verify if the host we are starting on is listed in the ELAN
+ * Verify that the host we are starting on is listed in the ELAN
  * configuration file. If not, ELAN will be disabled in order to
  * prevent libelan from terminating us.
- *
- * If this function was successful, i.e. the host is identified within
- * the ELAN configuration file, or ELAN was disabled, 0 is
- * returned. Otherwise this function will create some error state and
- * exit() the calling process.
  *
  * @return No return value.
  */
@@ -946,14 +980,15 @@ static void verifyElanHost(void)
 
     if ((gethostname(localhost, HOST_NAME_MAX)) == -1) {
 	int eno = errno;
-	fputc(eno, stderr);
-	fprintf(stderr, "%s Error determining the local hostname\n", __func__);
-	exit(1);
+	fprintf(stderr, "%s: gethostname(): %s\n", __func__, get_strerror(eno));
+	setenv("PSP_ELAN", "0", 1);
+	return;
     }
 
     elanIDfile = fopen(IDMAPFILE, "r");
-
     if (!elanIDfile) {
+	int eno = errno;
+	fprintf(stderr, "%s: fopen(): %s\n", __func__, get_strerror(eno));
 	setenv("PSP_ELAN", "0", 1);
 	return;
     }
@@ -969,9 +1004,10 @@ static void verifyElanHost(void)
 	}
 
     }
-
-    setenv("PSP_ELAN", "0", 1);
     fclose(elanIDfile);
+
+    fprintf(stderr, "%s: local hostname '%s' not found\n", __func__, localhost);
+    setenv("PSP_ELAN", "0", 1);
 
     return;
 }
@@ -1301,6 +1337,19 @@ static void execForwarder(PStask_t *task, int daemonfd)
     /* check if fork() was successful */
     if (pid == -1) {
 	PSID_warn(-1, eno, "%s: fork()", __func__);
+	goto error;
+    }
+
+    /* change the gid */
+    if (setgid(task->gid)<0) {
+	eno = errno;
+	PSID_warn(-1, eno, "%s: setgid()", __func__);
+	goto error;
+    }
+    /* change the uid */
+    if (setuid(task->uid)<0) {
+	eno = errno;
+	PSID_warn(-1, eno, "%s: setuid()", __func__);
 	goto error;
     }
 

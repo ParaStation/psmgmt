@@ -167,6 +167,7 @@ typedef enum {
     PSP_OP_RL_STACK,              /**< request RLIMIT_STACK (max stack-size) */
 
     PSP_OP_SUPPL_GRPS = 0x0078,   /**< (Dis-)Enable setting suppl. groups */
+    PSP_OP_MAXSTATTRY,            /**< Maximum stat() tries during spawn */
 } PSP_Option_t;
 
 /** Messages used for information retrieval */
