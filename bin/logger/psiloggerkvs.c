@@ -59,6 +59,12 @@ static int debug_kvs = 0;
 /** Set the timeout of the barrier */
 static int barrierTimeout = 0;
 
+/** Set the number of rounds for the barrier */
+static int barrierRounds = 1;
+
+/** Counter of barrier-rounds */
+static int barrierCount;
+
 /** Id of the barrier timer */
 static int timerid = -1;
 
@@ -154,6 +160,13 @@ void initLoggerKvs(void)
 	    PSIlog_log(PSILOG_LOG_VERB,	"pmi barrier timeout: %i\n",
 		       barrierTimeout);
 	}
+    }
+
+    /* identify number of rounds for barrier */
+    if ((envstr = getenv("PMI_BARRIER_ROUNDS"))) {
+	barrierRounds = atoi(envstr);
+	if (barrierRounds < 1) barrierRounds = 1;
+	PSIlog_log(PSILOG_LOG_VERB, "pmi barrier rounds: %i\n", barrierRounds);
     }
 
     /* set kvs debug mode */
@@ -443,8 +456,9 @@ static void sendKvsUpdateToClients(void)
 static void handleBarrierTimeout(void)
 {
     PSIlog_log(-1, "Timeout: Not all clients joined the first pmi barrier: "
-		   "joined=%i left=%i\n", kvsBarrierInCount,
-		    noKvsClients - kvsBarrierInCount);
+	       "joined=%i left=%i round=%i", kvsBarrierInCount,
+	       noKvsClients - kvsBarrierInCount, barrierRounds-barrierCount+1);
+    if (--barrierCount) return;
 
     /* kill all childs */
     terminateJob();
@@ -474,6 +488,7 @@ static void setBarrierTimeout(void)
 	timer.tv_usec = noKvsClients%(1000000/USEC_PER_CLIENT)*USEC_PER_CLIENT;
     }
 
+    barrierCount = barrierRounds;
     timerid = Timer_register(&timer, handleBarrierTimeout);
 
     if (timerid == -1) {
