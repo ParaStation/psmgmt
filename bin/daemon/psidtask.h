@@ -49,10 +49,28 @@ extern "C" {
 void PSID_setSignal(list_t *sigList, PStask_ID_t tid, int signal);
 
 /**
+ * @brief Find signal.
+ *
+ * Find the signal @a signal associated with the task @a tid within
+ * another task's signal list @a sigList.
+ *
+ * @param sigList The signal list the signal was stored to.
+ *
+ * @param tid The unique task ID the signal is associated with.
+ *
+ * @param signal The signal to find.
+ *
+ * @return On success, i.e. if the corresponding signal was found
+ * within the signal list, a pointer to the signal is
+ * returned. Otherwise NULL is given back.
+ */
+PStask_sig_t *PSID_findSignal(list_t *sigList, PStask_ID_t tid, int signal);
+
+/**
  * @brief Unregister signal.
  *
  * Unregister the signal @a signal associated with the task @a tid from
- * another tasks signal list @a sigList.
+ * another task's signal list @a sigList.
  *
  * @param sigList The signal list the signal was stored to.
  *

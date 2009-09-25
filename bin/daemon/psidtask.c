@@ -73,10 +73,26 @@ void PSID_setSignal(list_t *sigList, PStask_ID_t tid, int signal)
     }
 }
 
-int PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal)
+PStask_sig_t *PSID_findSignal(list_t *sigList, PStask_ID_t tid, int signal)
 {
     list_t *s;
-    PStask_sig_t *thissig = NULL;
+
+    PSID_log(PSID_LOG_SIGNAL, "%s(%s, %d)",
+	     __func__, PSC_printTID(tid), signal);
+
+    list_for_each(s, sigList) {
+	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
+	if (sig->tid == tid && sig->signal == signal) {
+	    return sig;
+	}
+    }
+
+    return NULL;
+}
+
+int PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal)
+{
+    PStask_sig_t *sig;
 
     if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
 	PSID_log(PSID_LOG_SIGDBG, "%s: signals before (in %p):",
@@ -88,18 +104,12 @@ int PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal)
     PSID_log(PSID_LOG_SIGNAL, "%s(%s, %d)",
 	     __func__, PSC_printTID(tid), signal);
 
-    list_for_each(s, sigList) {
-	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
-	if (sig->tid == tid && sig->signal == signal) {
-	    thissig = sig;
-	    break;
-	}
-    }
+    sig = PSID_findSignal(sigList, tid, signal);
 
-    if (thissig) {
+    if (sig) {
 	/* Signal found */
-	list_del(&thissig->next);
-	free(thissig);
+	list_del(&sig->next);
+	free(sig);
 
 	PSID_log(PSID_LOG_SIGNAL, "\n");
 	if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
