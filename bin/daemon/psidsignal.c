@@ -733,7 +733,7 @@ static int releaseSignal(PStask_ID_t sender, PStask_ID_t receiver, int sig,
     if (sig==-1) {
 	/* Release a child */
 	PSID_removeSignal(&task->assignedSigs, receiver, sig);
-	if (!PSID_removeSignal(&task->childs, receiver, sig)) {
+	if (!PSID_findSignal(&task->childs, receiver, sig)) {
 	    /* No child found. Might already be inherited by parent */
 	    if (task->ptid) {
 		DDSignalMsg_t msg;
@@ -851,7 +851,6 @@ static int releaseTask(PStask_t *task)
 
 		task->pendingReleaseRes += task->releaseAnswer;
 	    }
-	    PSID_removeSignal(&task->assignedSigs, task->ptid, -1);
 
 	    /* Reorganize childs. They are inherited by the parent task */
 	    sig = -1;

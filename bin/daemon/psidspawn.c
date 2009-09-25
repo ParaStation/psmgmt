@@ -2428,12 +2428,13 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	    PSID_log(-1, " from %s. Sending signal now.\n",
 		     PSC_printTID(msg->request));
 	    PSID_sendSignal(task->tid, task->uid, msg->request, -1, 0, 0);
-	}
-
-	if (task->removeIt && list_empty(&task->childs)) {
-	    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
-	    PStask_cleanup(task->tid);
-	    return;
+	} else {
+	    PSID_removeSignal(&task->childs, msg->request, -1);
+	    if (task->removeIt && list_empty(&task->childs)) {
+		PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
+		PStask_cleanup(task->tid);
+		return;
+	    }
 	}
 
 	/* Release a TG_(PSC)SPAWNER if child died in a fine way */
@@ -2485,6 +2486,9 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	/* Prepare CHILDDEAD msg here. Task might be removed in next step */
 	msg->header.dest = task->ptid;
 	msg->header.sender = PSC_getMyTID();
+
+	/* child is dead now; thus, remove parent from assignedSigs */
+	PSID_removeSignal(&task->assignedSigs, task->ptid, -1);
 
 	/* If child not connected, remove task from tasklist. This
 	 * will also send all signals */

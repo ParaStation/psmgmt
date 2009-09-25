@@ -441,8 +441,11 @@ void deleteClient(int fd)
     PSID_log(PSID_LOG_CLIENT, "%s: closing connection to %s\n",
 	     __func__, PSC_printTID(tid));
 
-    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
-    PStask_cleanup(tid);
+    /* Cleanup, if no forwarder available; otherwise wait for CHILDDEAD */
+    if (!task->forwardertid) {
+	PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
+	PStask_cleanup(tid);
+    }
 
     return;
 }
