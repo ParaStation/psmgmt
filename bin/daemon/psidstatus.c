@@ -775,7 +775,8 @@ static void msg_DAEMONSHUTDOWN(DDMsg_t *msg)
 {
     PSnodes_ID_t id = PSC_getID(msg->sender);
 
-    PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, id);
+    PSID_log(id != PSC_getMyID() ? PSID_LOG_STATUS : -1,
+	     "%s(%d)\n", __func__, id);
     declareNodeDead(id, 0, 1);
     closeConnRDP(id);
 }

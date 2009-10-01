@@ -228,7 +228,7 @@ static void RDPCallBack(int msgid, void *buf)
     case RDP_LOST_CONNECTION:
 	if (! (PSID_getDaemonState() & PSID_STATE_SHUTDOWN)) {
 	    int node = *(int*)buf;
-	    PSID_log(PSID_LOG_STATUS | PSID_LOG_RDP,
+	    PSID_log(node != PSC_getMyID() ? PSID_LOG_STATUS|PSID_LOG_RDP : -1,
 		     "%s(RDP_LOST_CONNECTION,%d)\n", __func__, node);
 
 	    declareNodeDead(node, 1, 0);
