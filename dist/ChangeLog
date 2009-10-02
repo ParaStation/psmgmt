@@ -1,3 +1,143 @@
+Version psmgmt-5.0.20:
+======================
+------------------------------------------------------------------------
+r7805 | eicker | 2009-10-01 21:02:44 +0200 (Thu, 01 Oct 2009) | 2 lines
+
+Verbose logging, if declareNodeDead() is called with local ID. See #442.
+
+------------------------------------------------------------------------
+r7802 | eicker | 2009-09-25 15:03:30 +0200 (Fri, 25 Sep 2009) | 3 lines
+
+Bugfix: Also kill such processes that have released itself upon dead of
+    root-process. Otherwise they might survive the job they belong to.
+
+------------------------------------------------------------------------
+r7801 | eicker | 2009-09-25 14:39:37 +0200 (Fri, 25 Sep 2009) | 3 lines
+
+New function PSID_findSignal() searching for signal without removing it
+    from signal-list.
+
+------------------------------------------------------------------------
+r7800 | eicker | 2009-09-25 14:35:22 +0200 (Fri, 25 Sep 2009) | 3 lines
+
+Bugfix: Also include list.h into RPM since pstask.h refers to it. This
+    might revent pscom's RPM from building
+
+------------------------------------------------------------------------
+r7799 | eicker | 2009-09-23 15:22:01 +0200 (Wed, 23 Sep 2009) | 3 lines
+
+Enhancement: Add PMI_BARRIER_ROUNDS environment. If set to value larger
+    that 1 more than a single barrier-timeout message is created.
+
+------------------------------------------------------------------------
+r7798 | eicker | 2009-09-22 10:11:14 +0200 (Tue, 22 Sep 2009) | 2 lines
+
+Bugfix: Prevent segfault due to looping over modifying list.
+
+------------------------------------------------------------------------
+r7797 | eicker | 2009-09-22 09:56:10 +0200 (Tue, 22 Sep 2009) | 5 lines
+
+Enhancement: Add timeout during chdir(), stat(), etc.
+Enhancement: forwarders now run under user's UID
+Enhancement: Make number of stat() tries configurable
+Enhancement: Automatically export all __PSI_* environments
+
+------------------------------------------------------------------------
+r7796 | eicker | 2009-09-21 21:34:18 +0200 (Mon, 21 Sep 2009) | 2 lines
+
+Enhancement: New psiadmin directive 'list starttime'.
+
+------------------------------------------------------------------------
+r7795 | eicker | 2009-09-18 22:23:28 +0200 (Fri, 18 Sep 2009) | 2 lines
+
+Fix typo introduced in r7794.
+
+------------------------------------------------------------------------
+r7794 | eicker | 2009-09-18 22:11:35 +0200 (Fri, 18 Sep 2009) | 2 lines
+
+Bugfix: Prevent double free() on forwarder's child-list.
+
+------------------------------------------------------------------------
+r7793 | eicker | 2009-09-18 21:12:13 +0200 (Fri, 18 Sep 2009) | 2 lines
+
+Bugfix: Don't catch SIGIOT since this is just a synonym for SIGABRT.
+
+------------------------------------------------------------------------
+r7792 | eicker | 2009-09-18 20:40:16 +0200 (Fri, 18 Sep 2009) | 2 lines
+
+Enhancement: Nicer ordering of tasks.
+
+------------------------------------------------------------------------
+r7791 | eicker | 2009-09-18 20:26:09 +0200 (Fri, 18 Sep 2009) | 3 lines
+
+Bugfix: Don't catch SIGABRT since it might bring the daemon into a
+    strange state. Create core-dump, if possible.
+
+------------------------------------------------------------------------
+r7790 | eicker | 2009-09-17 14:21:03 +0200 (Thu, 17 Sep 2009) | 2 lines
+
+Fix some @doctodos.
+
+------------------------------------------------------------------------
+r7789 | eicker | 2009-09-17 13:27:34 +0200 (Thu, 17 Sep 2009) | 4 lines
+
+Enhancement: Complete rework of spawn-mechanism. This makes spawning
+    much more asynchronously and should prevent unaccessible psids due
+    to hanging file-systems.
+
+------------------------------------------------------------------------
+r7788 | eicker | 2009-09-13 17:50:22 +0200 (Sun, 13 Sep 2009) | 3 lines
+
+Bugfix: Fix bug introduced in r7760 by calling list_add_tail with wrong
+    order of arguments.
+
+------------------------------------------------------------------------
+r7787 | eicker | 2009-09-13 02:16:58 +0200 (Sun, 13 Sep 2009) | 3 lines
+
+Bugfix: Fix bug introduced in r7741 by calling list_add_tail with wrong
+    order of arguments.
+
+------------------------------------------------------------------------
+r7780 | eicker | 2009-09-04 16:31:54 +0200 (Fri, 04 Sep 2009) | 4 lines
+
+Enhancement: If psid finds no CPU during startup, retry after some
+    seconds.
+Fix whitespace stuff.
+
+------------------------------------------------------------------------
+r7760 | eicker | 2009-09-01 19:30:51 +0200 (Tue, 01 Sep 2009) | 2 lines
+
+Replace PStask_sig_t's DIY list by list_t.
+
+------------------------------------------------------------------------
+r7743 | eicker | 2009-08-31 13:58:49 +0200 (Mon, 31 Aug 2009) | 3 lines
+
+Bugfix: Make psiadmin's 'plugins load <name>' directive actually work.
+    psiadmin missed to send the trailing \0 in the message to psid.
+
+------------------------------------------------------------------------
+r7742 | eicker | 2009-08-31 13:34:57 +0200 (Mon, 31 Aug 2009) | 2 lines
+
+Remove doubled registration of psiadmin's 'plugins unload' directive.
+
+------------------------------------------------------------------------
+r7741 | eicker | 2009-08-29 00:28:34 +0200 (Sat, 29 Aug 2009) | 2 lines
+
+Replace PStask_t's double-linked list by list_t.
+
+------------------------------------------------------------------------
+r7740 | eicker | 2009-08-28 22:50:03 +0200 (Fri, 28 Aug 2009) | 3 lines
+
+Bugfix: Prevent clearing recursive clearing of psid's RDP message list.
+    This might lead to multiple calls to free() on the same memory.
+
+------------------------------------------------------------------------
+r7735 | eicker | 2009-08-27 13:27:24 +0200 (Thu, 27 Aug 2009) | 2 lines
+
+New version (psmgmt-5.0.19)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.19:
 ======================
 ------------------------------------------------------------------------
