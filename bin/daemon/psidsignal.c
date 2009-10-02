@@ -174,7 +174,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	DDErrorMsg_t msg;
 
 	msg.header.type = PSP_CD_SIGRES;
-	msg.header.sender = PSC_getMyID();
+	msg.header.sender = PSC_getMyTID();
 	msg.header.dest = sender;
 	msg.header.len = sizeof(msg);
 	msg.request = tid;

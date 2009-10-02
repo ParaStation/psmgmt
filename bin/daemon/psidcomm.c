@@ -355,7 +355,7 @@ void handleDroppedMsg(DDMsg_t *msg)
 	if (((DDSignalMsg_t *)msg)->answer) {
 	    errmsg.header.type = PSP_CD_SIGRES;
 	    errmsg.header.dest = msg->sender;
-	    errmsg.header.sender = PSC_getMyID();
+	    errmsg.header.sender = PSC_getMyTID();
 	    errmsg.header.len = sizeof(errmsg);
 
 	    errmsg.error = ESRCH;
