@@ -47,6 +47,12 @@ AC_SEARCH_LIBS([numa_available], [numa], [HAVE_LIBNUMA=yes;
 AC_CHECK_FUNCS_ONCE([numa_allocate_nodemask])
 AC_SEARCH_LIBS([elan_nullcap], [elanctrl], [HAVE_ELANCTRL=yes;
 					   AC_DEFINE([HAVE_ELANCTRL][1])])
+AC_SEARCH_LIBS([poptGetContext], [popt], [],
+			    [ echo "Please install 'popt-devel' package";
+			      exit 1 ])
+AC_SEARCH_LIBS([readline], [readline], [],
+			    [ echo "Please install 'readline-devel' package";
+			      exit 1 ])
 
 AC_SUBST([CFLAG_WALL])
 AC_SUBST([CFLAG_G])
