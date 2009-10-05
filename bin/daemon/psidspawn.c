@@ -239,8 +239,7 @@ static void get_PMI_PORT(int PMISock, char *cPMI_PORT, int size )
  */
 static int mystat(char *file_name, struct stat *buf)
 {
-    int ret;
-    int cnt;
+    int cnt, ret = 0;
 
     /* Try 5 times with delay 400ms = 2 sec overall */
     for (cnt=0; cnt<PSIDnodes_maxStatTry(PSC_getMyID()); cnt++){
@@ -1137,7 +1136,7 @@ static void execForwarder(PStask_t *task, int daemonfd)
     int stdinfds[2], stdoutfds[2], stderrfds[2] = {-1, -1}, controlfds[2];
     int ret, eno = 0;
     int PMIforwarderSock = -1;
-    PMItype_t pmiType;
+    PMItype_t pmiType = PMI_DISABLED;
 
     /* Block until the forwarder has handled all output */
     PSID_blockSig(1, SIGCHLD);
