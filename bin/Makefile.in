@@ -88,7 +88,7 @@ adminparser.o psidinfo.o mpirun_openib.o mpirun_elan.o psid.o: \
 # psiadmin
 VPATH += $(SRCDIR)/admin
 psiadmin: commands.o adminparser.o
-psiadmin: LOADLIBES:=$(LOADLIBES) -lreadline -lhistory -l@LIBCURSES@
+psiadmin: LOADLIBES:=$(LOADLIBES) @LIBS@
 
 # psid
 VPATH += $(SRCDIR)/daemon
@@ -111,7 +111,7 @@ test_config: psidnodes.o
 # logger
 VPATH += $(SRCDIR)/logger
 psilogger: psiloggerkvs.o psiloggermerge.o psiloggerclient.o
-psilogger: LOADLIBES:=$(LOADLIBES) -lputil -lpslog -lm -lreadline -l@LIBCURSES@
+psilogger: LOADLIBES:=$(LOADLIBES) -lputil -lpslog -lm @LIBS@
 
 # accounter
 VPATH += $(SRCDIR)/accounter

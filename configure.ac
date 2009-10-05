@@ -47,10 +47,16 @@ AC_SEARCH_LIBS([numa_available], [numa], [HAVE_LIBNUMA=yes;
 AC_CHECK_FUNCS_ONCE([numa_allocate_nodemask])
 AC_SEARCH_LIBS([elan_nullcap], [elanctrl], [HAVE_ELANCTRL=yes;
 					   AC_DEFINE([HAVE_ELANCTRL][1])])
+AC_SEARCH_LIBS([initscr], [ncurses curses], [],
+			    [ echo "Please install a curses package";
+			      exit 1 ])
 AC_SEARCH_LIBS([poptGetContext], [popt], [],
 			    [ echo "Please install 'popt-devel' package";
 			      exit 1 ])
 AC_SEARCH_LIBS([readline], [readline], [],
+			    [ echo "Please install 'readline-devel' package";
+			      exit 1 ])
+AC_SEARCH_LIBS([using_history], [history], [],
 			    [ echo "Please install 'readline-devel' package";
 			      exit 1 ])
 
@@ -59,8 +65,8 @@ AC_SUBST([CFLAG_G])
 AC_SUBST([CFLAG_COMPAT])
 AC_SUBST([CPPFLAG_MMD])
 AC_SUBST([DEPEXTENSION])
+AC_SUBST([LIBS])
 AC_SUBST([TRU64FILEADD])
-AC_SUBST([LIBCURSES])
 AC_SUBST([TARGET_LIBC_PROVIDES_SSP])
 AC_SUBST([HAVE_LIBNUMA])
 AC_SUBST([HAVE_NUMA_ALLOCATE_NODEMASK])
@@ -74,7 +80,6 @@ linux|linux-gnu)
 	CPPFLAG_MMD=-MMD
 	DEPEXTENSION=.d
 	TRU64FILEADD=
-	LIBCURSES=ncurses
 	;;
 *)
 	echo "Unknown os ($target_os)"
