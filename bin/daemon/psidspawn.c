@@ -2411,8 +2411,8 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
     PSID_log(PSID_LOG_SPAWN, " concerning %s\n", PSC_printTID(msg->request));
 
     if (msg->header.dest != PSC_getMyTID()) {
-	/* Destination on foreign node. Forward */
 	if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
+	    /* Destination on foreign node. Forward */
 	    sendMsg(msg);
 	    return;
 	}
@@ -2428,7 +2428,28 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 		     PSC_printTID(msg->request));
 	    PSID_sendSignal(task->tid, task->uid, msg->request, -1, 0, 0);
 	} else {
-	    PSID_removeSignal(&task->childs, msg->request, -1);
+	    if (!PSID_removeSignal(&task->childs, msg->request, -1)) {
+		/* No child found. Might already be inherited by parent */
+		if (task->ptid) {
+		    msg->header.dest = task->ptid;
+
+		    PSID_log(PSID_LOG_SPAWN,
+			     "%s: forward PSP_DD_CHILDDEAD from %s",
+			     __func__, PSC_printTID(msg->request));
+		    PSID_log(PSID_LOG_SPAWN, " dest %s",
+			     PSC_printTID(task->tid));
+		    PSID_log(PSID_LOG_SPAWN, "->%s\n",
+			     PSC_printTID(task->ptid));
+
+		    sendMsg(msg);
+		}
+		/* To be sure, mark child as released */
+		PSID_log(PSID_LOG_SPAWN, "%s: %s not (yet?) child of",
+			 __func__, PSC_printTID(msg->request));
+		PSID_log(PSID_LOG_SPAWN, " %s\n", PSC_printTID(task->tid));
+		PSID_setSignal(&task->deadBefore, msg->request, -1);
+	    }
+
 	    if (task->removeIt && list_empty(&task->childs)) {
 		PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
 		PStask_cleanup(task->tid);

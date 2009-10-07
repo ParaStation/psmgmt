@@ -336,18 +336,36 @@ void deleteClient(int fd)
 	return;
     }
 
-    /* Tell logger about unreleased forwarders */
     if (task->group == TG_FORWARDER && !task->released) {
-	DDMsg_t msg;
+	DDErrorMsg_t msg;
+	PStask_ID_t child;
+	int sig;
 
 	PSID_log(-1, "%s: Unreleased forwarder %s\n",
 		 __func__, PSC_printTID(tid));
 
-	msg.type = PSP_CC_ERROR;
-	msg.dest = task->loggertid;
-	msg.sender = task->tid;
-	msg.len = sizeof(msg);
+	/* Tell logger about unreleased forwarders */
+	msg.header.type = PSP_CC_ERROR;
+	msg.header.dest = task->loggertid;
+	msg.header.sender = task->tid;
+	msg.header.len = sizeof(msg.header);
 	sendMsg(&msg);
+
+	while ((child = PSID_getSignal(&task->childs, &sig))) {
+	    /* Try to kill the child, again */
+	    PSID_kill(-child, SIGKILL, 0);
+
+	    /* Assume child is dead */
+	    msg.header.type = PSP_DD_CHILDDEAD;
+	    msg.header.dest = task->ptid;
+	    msg.header.sender = task->tid;
+	    msg.error = 0;
+	    msg.request = child;
+	    msg.header.len = sizeof(msg);
+	    sendMsg(&msg);
+	};
+
+	task->released = 1;
     }
 
     /* Deregister TG_(PSC)SPAWNER from parent process */

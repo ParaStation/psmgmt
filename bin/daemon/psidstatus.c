@@ -533,8 +533,8 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
 	PStask_ID_t sender;
 	int sig;
 	if (task->deleted) continue;
-	/* loop over all controlled tasks */
-	while ((sender = PSID_getSignalByID(& task->assignedSigs, id, &sig))) {
+	/* deliver all assigned signals */
+	while ((sender = PSID_getSignalByID(&task->assignedSigs, id, &sig))) {
 	    /* controlled task was on dead node */
 
 	    /* This might have been a child */
@@ -544,6 +544,9 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
 	    /* Send the signal */
 	    PSID_sendSignal(task->tid, task->uid, sender, sig, 0, 0);
 	}
+	/* remove remote childs, even if signals already delivered */
+	while (PSID_getSignalByID(&task->childs, id, &sig));
+
 	if (task->removeIt && list_empty(&task->childs)) {
 	    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
 	    PStask_cleanup(task->tid);

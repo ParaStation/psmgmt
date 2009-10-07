@@ -128,7 +128,8 @@ typedef struct {
     struct timeval started;        /**< Time the task structure was created. */
     uint16_t protocolVersion;      /**< Protocol version the task speaks. */
     list_t childs;                 /**< Childs of the task. Signal not used. */
-    list_t preReleased;            /**< released childs to be inherited */
+    list_t releasedBefore;         /**< released childs to be inherited */
+    list_t deadBefore;             /**< dead childs to be inherited */
     PSpart_request_t *request;     /**< Pointer to temp. partition request */
     uint32_t partitionSize;        /**< Size of the partition. */
     PSpart_option_t options;       /**< The partition's options. */

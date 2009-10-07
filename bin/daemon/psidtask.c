@@ -266,6 +266,8 @@ void PStask_cleanup(PStask_ID_t tid)
 
     if (!task->removeIt) {
 	/* first call for this task */
+	task->removeIt = 1;
+
 	/* send all tasks the signals they have requested */
 	PSID_sendAllSignals(task);
 
@@ -324,7 +326,6 @@ void PStask_cleanup(PStask_ID_t tid)
 		}
 	    }
 	}
-	task->removeIt = 1;
     }
 
     if (list_empty(&task->childs)) {

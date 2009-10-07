@@ -92,7 +92,8 @@ int PStask_init(PStask_t* task)
     task->protocolVersion = -1;
 
     INIT_LIST_HEAD(&task->childs);
-    INIT_LIST_HEAD(&task->preReleased);
+    INIT_LIST_HEAD(&task->releasedBefore);
+    INIT_LIST_HEAD(&task->deadBefore);
 
     task->request = NULL;
     task->partitionSize = 0;
@@ -150,7 +151,8 @@ int PStask_reinit(PStask_t* task)
     }
 
     delSigList(&task->childs);
-    delSigList(&task->preReleased);
+    delSigList(&task->releasedBefore);
+    delSigList(&task->deadBefore);
 
     if (task->request) PSpart_delReq(task->request);
     if (task->partition) free(task->partition);
@@ -301,7 +303,8 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->protocolVersion = task->protocolVersion;
 
     cloneSigList(&clone->childs, &task->childs);
-    cloneSigList(&clone->preReleased, &task->preReleased);
+    cloneSigList(&clone->releasedBefore, &task->releasedBefore);
+    cloneSigList(&clone->deadBefore, &task->deadBefore);
 
     clone->request = NULL; /* Do not clone requests */
     clone->partitionSize = task->partitionSize;

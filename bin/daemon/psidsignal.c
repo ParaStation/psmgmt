@@ -234,13 +234,6 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 		if (dest->fd != -1) {
 		    FD_SET(dest->fd, &PSID_readfds);
 		}
-		/* This might have been a child */
-		PSID_removeSignal(&dest->childs, sender, -1);
-		if (dest->removeIt && list_empty(&dest->childs)) {
-		    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n",__func__);
-		    PStask_cleanup(dest->tid);
-		    return;
-		}
 	    }
 
 	    PSID_removeSignal(&dest->assignedSigs, sender, signal);
@@ -597,14 +590,19 @@ static void msg_NEWCHILD(DDErrorMsg_t *msg)
 	PSID_log(PSID_LOG_SIGNAL, " inherited from %s\n",
 		 PSC_printTID(msg->header.sender));
 
-	if (PSID_getSignalByTID(&task->preReleased, msg->request)) {
+	if (PSID_getSignalByTID(&task->releasedBefore, msg->request)) {
 	    /* RELEASE already received */
 	    PSID_log(PSID_LOG_SIGNAL, "%s: inherit released child %s\n",
 		     __func__, PSC_printTID(msg->request));
 	} else {
-	    /* register the new child */
-	    PSID_setSignal(&task->childs, msg->request, -1);
 	    PSID_setSignal(&task->assignedSigs, msg->request, -1);
+	}
+	if (PSID_getSignalByTID(&task->deadBefore, msg->request)) {
+	    /* CHILDDEAD already received */
+	    PSID_log(PSID_LOG_SIGNAL, "%s: inherit dead child %s\n",
+		     __func__, PSC_printTID(msg->request));
+	} else {
+	    PSID_setSignal(&task->childs, msg->request, -1);
 	}
 
 	answer.param = 0;
@@ -759,20 +757,12 @@ static int releaseSignal(PStask_ID_t sender, PStask_ID_t receiver, int sig,
 		msg_RELEASE(&msg);
 
 		return -1;
-	    } else {
-		PSID_log(PSID_LOG_SIGNAL, "%s: %s not child of", __func__,
-			 PSC_printTID(receiver));
-		PSID_log(PSID_LOG_SIGNAL, " %s and no known parent\n",
-			 PSC_printTID(sender));
-		PSID_setSignal(&task->preReleased, receiver, -1);
 	    }
-	}
-	if (task->removeIt && list_empty(&task->childs)) {
-	    PSID_log(PSID_LOG_TASK, "%s: sig %d to %s", __func__,
-		     sig, PSC_printTID(receiver));
-	    PSID_log(PSID_LOG_TASK, " from %s: PStask_cleanup()\n",
-		     PSC_printTID(sender));
-	    PStask_cleanup(sender);
+	    /* To be sure, mark child as released */
+	    PSID_log(PSID_LOG_SIGNAL, "%s: %s not (yet?) child of",
+		     __func__, PSC_printTID(receiver));
+	    PSID_log(PSID_LOG_SIGNAL, " %s\n", PSC_printTID(sender));
+	    PSID_setSignal(&task->releasedBefore, receiver, -1);
 	}
     } else {
 	PSID_removeSignal(&task->signalReceiver, receiver, sig);
