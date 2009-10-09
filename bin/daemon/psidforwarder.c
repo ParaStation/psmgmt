@@ -808,7 +808,10 @@ static void releaseLogger(int status)
 	PSID_log(-1, "%s: receive timed out. Send again\n", __func__);
 	goto send_again;
     } else if (msg.type != EXIT) {
-	if (msg.type == STDIN) goto again; /* Ignore late STDIN messages */
+	if (msg.type == STDIN || msg.type == KVS) {
+	     /* Ignore late STDIN / KVS messages */
+	    goto again;
+	}
 	PSID_log(-1, "%s: Protocol messed up (type %d) from %s\n",
 		 __func__, msg.type, PSC_printTID(msg.header.sender));
     }
@@ -1432,7 +1435,9 @@ static void sighandler(int sig)
 	sendMsg(USAGE, (char *) &rusage, sizeof(rusage));
 
 	/* Release, if no error occurred and not already done */
-	if (pmiStatus == IDLE && WIFEXITED(status) && !WIFSIGNALED(status)) {
+	if (pmiStatus == IDLE
+	    && (WIFEXITED(status) && !WEXITSTATUS(status))
+	    && !WIFSIGNALED(status)) {
 	    /* release the child */
 	    DDSignalMsg_t msg;
 	    msg.header.type = PSP_CD_RELEASE;
@@ -1901,9 +1906,10 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
 	if (*timeoutStr && !*end && val>0) loggerTimeout = val;
     }
 
+    PSID_blockSig(0, SIGCHLD);
+
     if (connectLogger(childTask->loggertid) != 0) {
 	/* There is no logger. Just wait for the client to finish. */
-	PSID_blockSig(0, SIGCHLD);
 	while (1) sleep(10);
     }
 
