@@ -428,7 +428,7 @@ static int sendMsg(PSLog_msg_t type, char *buf, size_t len)
     int ret = 0;
 
     if (loggerTID < 0) {
-	PSID_log(-1, "%s:  not connected\n", __func__);
+	PSID_log(-1, "%s(%d):  not connected\n", __func__, type);
 	errno = EPIPE;
 
 	return -1;
@@ -709,17 +709,18 @@ static int connectLogger(PStask_ID_t tid)
     struct timeval timeout = {loggerTimeout, 0};
     int ret;
 
+    PSID_blockSig(1, SIGCHLD);
     loggerTID = tid; /* Only set for the first sendMsg()/recvMsg() pair */
 
     sendMsg(INITIALIZE, NULL, 0);
+    PSID_blockSig(0, SIGCHLD);
 
     ret = recvMsg(&msg, &timeout);
-
-    loggerTID = -1;
 
     if (ret <= 0) {
 	PSID_log(-1, "%s(%s): Connection refused\n",
 		 __func__, PSC_printTID(tid));
+	loggerTID = -1;
 	errno = ECONNREFUSED;
 	return -1;
     }
@@ -727,22 +728,24 @@ static int connectLogger(PStask_ID_t tid)
     if (msg.header.len < PSLog_headerSize + (int) sizeof(int)) {
 	PSID_log(-1, "%s(%s): Message too short\n", __func__,
 		 PSC_printTID(tid));
+	loggerTID = -1;
 	errno = ECONNREFUSED;
 	return -1;
     } else if (msg.type != INITIALIZE) {
 	PSID_log(-1 ,"%s(%s): Protocol messed up\n",
 		 __func__, PSC_printTID(tid));
+	loggerTID = -1;
 	errno = ECONNREFUSED;
 	return -1;
     } else if (msg.header.sender != tid) {
 	PSID_log(-1, "%s(%s): Got INITIALIZE", __func__, PSC_printTID(tid));
 	PSID_log(-1, " from %s\n", PSC_printTID(msg.header.sender));
+	loggerTID = -1;
 	errno = ECONNREFUSED;
 	return -1;
     } else {
 	char *ptr = msg.buf;
 
-	loggerTID = tid;
 	verbose = *(int *)ptr;
 	ptr += sizeof(int);
 	PSID_log(PSID_LOG_SPAWN, "%s(%s): Connected", __func__,
@@ -808,7 +811,7 @@ static void releaseLogger(int status)
 	PSID_log(-1, "%s: receive timed out. Send again\n", __func__);
 	goto send_again;
     } else if (msg.type != EXIT) {
-	if (msg.type == STDIN || msg.type == KVS) {
+	if (msg.type == INITIALIZE || msg.type == STDIN || msg.type == KVS) {
 	     /* Ignore late STDIN / KVS messages */
 	    goto again;
 	}
@@ -1905,8 +1908,6 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
 	val = strtol(timeoutStr, &end, 0);
 	if (*timeoutStr && !*end && val>0) loggerTimeout = val;
     }
-
-    PSID_blockSig(0, SIGCHLD);
 
     if (connectLogger(childTask->loggertid) != 0) {
 	/* There is no logger. Just wait for the client to finish. */
