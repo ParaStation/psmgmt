@@ -492,10 +492,14 @@ static void sendSignal(pid_t dest, int signal)
 	    PSID_warn((errno==EBADF) ? PSID_LOG_SIGNAL : -1, errno,
 		      "%s: tcgetpgrp()", __func__);
 	    pid = -dest;
-	} else {
+	} else if (pid) {
 	    /* Send signal to process-group */
 	    PSID_log(PSID_LOG_SIGNAL, "%s: got from tcgetpgrp()\n", __func__);
 	    pid = -pid;
+	} else {
+	    pid = (dest > 0) ? -dest : dest;
+	    PSID_log(PSID_LOG_SIGNAL, "%s: tcgetpgrp() said 0, try %d\n",
+		     __func__, pid);
 	}
     }
 
