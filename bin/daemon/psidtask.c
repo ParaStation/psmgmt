@@ -20,11 +20,13 @@ static char vcid[] __attribute__((used)) =
 
 #include "pstask.h"
 #include "pscommon.h"
+#include "psdaemonprotocol.h"
 
 #include "psidutil.h"
 #include "psidsignal.h"
 #include "psidstatus.h"
 #include "psidpartition.h"
+#include "psidcomm.h"
 
 #include "psidtask.h"
 
@@ -285,23 +287,6 @@ void PStask_cleanup(PStask_ID_t tid)
 	if (task->request) send_CANCELPART(tid);
 	if (task->partition && task->partitionSize) send_TASKDEAD(tid);
 
-	/* Detach from forwarder */
-	if (task->forwardertid) {
-	    PStask_t *forwarder = PStasklist_find(&managedTasks,
-						  task->forwardertid);
-	    if (forwarder) {
-		PSID_removeSignal(&forwarder->childs, task->tid, -1);
-
-		if (forwarder->removeIt && list_empty(&forwarder->childs)) {
-		    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n",__func__);
-		    PStask_cleanup(forwarder->tid);
-		}
-	    } else {
-		PSID_log(-1, "%s: forwarder %s not found\n",
-			 __func__, PSC_printTID(task->forwardertid));
-	    }
-	}
-
 	if (task->group==TG_FORWARDER && !task->released) {
 	    /* cleanup childs */
 	    list_t *s, *tmp;
@@ -309,6 +294,7 @@ void PStask_cleanup(PStask_ID_t tid)
 	    list_for_each_safe(s, tmp, &task->childs) {
 		PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
 		PStask_t *child = PStasklist_find(&managedTasks, sig->tid);
+		DDErrorMsg_t msg;
 
 		/* Remove from list before PSID_kill(). Might get
 		 * removed therein, too. Save to remove here since
@@ -316,6 +302,19 @@ void PStask_cleanup(PStask_ID_t tid)
 		 * list is empty afterwards. */
 		list_del(&sig->next);
 		free(sig);
+
+		/* somehow we must have missed the CHILDDEAD message */
+		/* how are we called here ? */
+		PSID_log(-1, "%s: report child %s of unreleased forwarder\n",
+			 __func__, PSC_printTID(child->tid));
+
+		msg.header.type = PSP_DD_CHILDDEAD;
+		msg.header.dest = child->ptid;
+		msg.header.sender = task->tid;
+		msg.error = 0;
+		msg.request = child->tid;
+		msg.header.len = sizeof(msg);
+		sendMsg(&msg);
 
 		if (child && child->fd == -1) {
 		    PSID_log(-1, "%s: forwarder kills child %s\n",

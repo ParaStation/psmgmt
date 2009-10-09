@@ -2517,7 +2517,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	    PStask_cleanup(msg->request);
 	}
 
-	/* Send CHILDDEAD to parent (a TG_(GM)SPAWNER might wait for it) */
+	/* Send CHILDDEAD to parent */
 	msg_CHILDDEAD(msg);
     }
 }

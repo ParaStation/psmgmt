@@ -62,7 +62,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 	    if (!forwarder) {
 		PSID_log(PSID_LOG_SIGNAL, "%s: forwarder %s not found\n",
 			 __func__, PSC_printTID(child->forwardertid));
-	    } else if (forwarder->fd != -1) {
+	    } else if (forwarder->fd != -1 && !forwarder->killat) {
 		/* Send signal via forwarder */
 		PSLog_Msg_t msg;
 		char *ptr = msg.buf;
@@ -594,7 +594,8 @@ static void msg_NEWCHILD(DDErrorMsg_t *msg)
 	    /* RELEASE already received */
 	    PSID_log(PSID_LOG_SIGNAL, "%s: inherit released child %s\n",
 		     __func__, PSC_printTID(msg->request));
-	} else {
+	} else if (msg->error || PSIDnodes_getDaemonProtoVersion(
+		       PSC_getID(msg->header.sender)) < 405) {
 	    PSID_setSignal(&task->assignedSigs, msg->request, -1);
 	}
 	if (PSID_getSignalByTID(&task->deadBefore, msg->request)) {
@@ -861,6 +862,10 @@ static int releaseTask(PStask_t *task)
 		inheritMsg.header.type = PSP_DD_NEWCHILD;
 		inheritMsg.header.dest = task->ptid;
 		inheritMsg.request = child;
+		inheritMsg.error = 0;
+		if (PSID_findSignal(&task->assignedSigs, child, -1)) {
+		    inheritMsg.error = -1;
+		}
 		task->pendingReleaseRes++;
 
 		sendMsg(&inheritMsg);

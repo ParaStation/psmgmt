@@ -163,8 +163,8 @@ int sendMsg(void *amsg)
 	int32_t key = -1;
 
 	if (errno==EWOULDBLOCK
-	    || (msg->type == PSP_CC_MSG && errno == EHOSTUNREACH)
-	    || (msg->type == PSP_CC_ERROR && errno == EHOSTUNREACH)) {
+	    || ((errno == EHOSTUNREACH || errno == EPIPE )
+		&& (msg->type == PSP_CC_MSG || msg->type == PSP_CC_ERROR))) {
 	    /* suppress message unless explicitely requested */
 	    key = PSID_LOG_COMM;
 	}
