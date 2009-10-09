@@ -316,6 +316,9 @@ static void sighandler(int sig)
     }
     break;
 
+    case  SIGPIPE:   /* write on a pipe with no one to read it */
+	/* Ignore silently */
+	break;
     case  SIGHUP:    /* hangup, generated when terminal disconnects */
 //  case  SIGINT:    /* interrupt, generated from terminal special char */
     case  SIGQUIT:   /* (*) quit, generated from terminal special char */
@@ -325,7 +328,6 @@ static void sighandler(int sig)
     case  SIGPROF:   /* profiling time alarm (see setitimer) */
     case  SIGWINCH:  /* (+) window size changed */
     case  SIGALRM:   /* alarm clock timeout */
-    case  SIGPIPE:   /* write on a pipe with no one to read it */
 	PSID_log(-1, "Received signal %s. Continue\n",
 		 sys_siglist[sig] ? sys_siglist[sig] : sigStr);
 	break;
