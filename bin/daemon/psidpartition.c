@@ -1962,6 +1962,12 @@ static void msg_CREATEPART(DDBufferMsg_t *inmsg)
 {
     PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.sender);
 
+    if (!PSIDnodes_isStarter(PSC_getMyID())) {
+	PSID_log(-1, "%s: Node is not starter\n", __func__);
+	errno = EACCES;
+	goto error;
+    }
+
     if (!task || (task && task->ptid)) {
 	PSID_log(-1, "%s: task %s not root process\n",
 		 __func__, PSC_printTID(inmsg->header.sender));
@@ -2155,6 +2161,8 @@ static void appendToNodelist(char *buf, PSpart_request_t *request)
 static void msg_CREATEPARTNL(DDBufferMsg_t *inmsg)
 {
     PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.sender);
+
+    if (!PSIDnodes_isStarter(PSC_getMyID())) return; /* drop silently */
 
     if (!task || (task && task->ptid)) {
 	PSID_log(-1, "%s: task %s not root process\n",
