@@ -905,10 +905,13 @@ static int handleFINALIZEMsg(PSLog_Msg_t *msg)
 	int status = *(int *) msg->buf;
 
 	if (WIFSIGNALED(status)) {
-	    const char *sigStr = sys_siglist[WTERMSIG(status)];
-	    PSIlog_log(-1, "Child with rank %d exited on signal %d",
+	    int sig = WTERMSIG(status);
+	    int key = (sig == SIGTERM) ? PSILOG_LOG_TERM|PSILOG_LOG_VERB : -1;
+	    const char *sigStr = sys_siglist[sig];
+
+	    PSIlog_log(key, "Child with rank %d exited on signal %d",
 		       msg->sender, WTERMSIG(status));
-	    PSIlog_log(-1, ": %s\n", sigStr ? sigStr : "Unknown signal");
+	    PSIlog_log(key, ": %s\n", sigStr ? sigStr : "Unknown signal");
 	    signaled = 1;
 	}
 
@@ -1275,6 +1278,11 @@ int main( int argc, char**argv)
 	PSIlog_log(PSILOG_LOG_VERB, "Going to be verbose.\n");
 	PSIlog_log(PSILOG_LOG_VERB, "Daemon on %d\n", daemonSock);
 	PSIlog_log(PSILOG_LOG_VERB, "My ID is %d\n", i);
+    }
+
+    if (getenv("PSI_TERMINATED")) {
+	PSIlog_setDebugMask(PSIlog_getDebugMask() | PSILOG_LOG_TERM);
+	PSIlog_log(PSILOG_LOG_VERB, "Going to show terminated processes.\n");
     }
 
     if (getenv("PSI_FORWARDERDEBUG")) {

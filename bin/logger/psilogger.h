@@ -173,7 +173,8 @@ void PSIlog_setTimeFlag(char flag);
  * The parser's logging facility uses the flags starting with bit 25.
  */
 typedef enum {
-    PSILOG_LOG_VERB = 0x000001, /**< Signal handling stuff */
+    PSILOG_LOG_VERB = 0x000001,       /**< All verbose messages */
+    PSILOG_LOG_TERM = 0x000002,       /**< Report terminated childs */
 } PSIlog_log_key_t;
 
 /**
