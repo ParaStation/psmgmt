@@ -81,7 +81,8 @@ int isEstablishedClient(int fd)
 
 static int do_send(int fd, DDMsg_t *msg, int offset)
 {
-    int n, i;
+    PStask_t *task;
+    int n, i, eno;
 
     for (n=offset, i=1; (n<msg->len) && (i>0);) {
 	i = send(fd, &(((char*)msg)[n]), msg->len-n, MSG_DONTWAIT);
@@ -93,9 +94,22 @@ static int do_send(int fd, DDMsg_t *msg, int offset)
 		return n;
 		break;
 	    default:
-		PSID_warn((errno==EPIPE) ? PSID_LOG_CLIENT : -1, errno,
+		eno = errno;
+		PSID_warn((eno==EPIPE) ? PSID_LOG_CLIENT : -1, eno,
 			  "%s: error on socket %d", __func__, fd);
-		deleteClient(fd);
+		task = getClientTask(fd);
+		if (task) {
+		    if (!task->killat) {
+			task->killat = time(NULL) + 10;
+		    }
+		    /* Make sure we get all pending messages */
+		    FD_SET(task->fd, &PSID_readfds);
+		} else {
+		    PSID_log(-1, "%s: No task\n", __func__);
+		    deleteClient(fd);
+		}
+		errno = eno;
+
 		return i;
 	    }
 	} else
@@ -228,6 +242,14 @@ int recvClient(int fd, DDMsg_t *msg, size_t size)
     int n;
     int count = 0;
 
+    if (!msg || size < sizeof(*msg)) {
+	PSID_log(-1, "%s: invalid msg\n", __func__);
+	errno = EINVAL;
+	return -1;
+    }
+
+    msg->len = sizeof(*msg);
+
     if (!isEstablishedClient(fd)) {
 	/*
 	 * if this is the first contact of the client, the client may
@@ -279,7 +301,7 @@ int recvClient(int fd, DDMsg_t *msg, size_t size)
 void closeConnection(int fd)
 {
     list_t *m, *tmp;
-    PStask_ID_t tid = clients[fd].tid;
+    PStask_ID_t tid = getClientTID(fd);
 
     if (fd<0) {
 	PSID_log(-1, "%s(%d): fd < 0\n", __func__, fd);
@@ -316,33 +338,27 @@ void closeConnection(int fd)
 void deleteClient(int fd)
 {
     PStask_t *task;
-    PStask_ID_t tid;
 
-    if (fd<0) {
-	PSID_log(-1, "%s(%d): fd < 0\n", __func__, fd);
-	return;
-    }
+    PSID_log(fd<0 ? -1 : PSID_LOG_CLIENT, "%s(%d)\n", __func__, fd);
+    if (fd<0) return;
 
-    PSID_log(PSID_LOG_CLIENT, "%s(%d)\n", __func__, fd);
-
-    tid = clients[fd].tid;
+    task = getClientTask(fd);
     closeConnection(fd);
 
-    if (tid==-1) return;
-
-    task = PStasklist_find(&managedTasks, tid);
+    if (!task) task = PStasklist_find(&managedTasks,  getClientTID(fd));
     if (!task) {
-	PSID_log(-1, "%s: Task %s not found\n", __func__, PSC_printTID(tid));
+	PSID_log(-1, "%s: Task %s not found\n", __func__,
+		 PSC_printTID(getClientTID(fd)));
 	return;
     }
 
     if (task->group == TG_FORWARDER && !task->released) {
 	DDErrorMsg_t msg;
 	PStask_ID_t child;
-	int sig;
+	int sig = -1;
 
 	PSID_log(-1, "%s: Unreleased forwarder %s\n",
-		 __func__, PSC_printTID(tid));
+		 __func__, PSC_printTID(task->tid));
 
 	/* Tell logger about unreleased forwarders */
 	msg.header.type = PSP_CC_ERROR;
@@ -352,6 +368,7 @@ void deleteClient(int fd)
 	sendMsg(&msg);
 
 	while ((child = PSID_getSignal(&task->childs, &sig))) {
+	    PSID_log(-1, "%s: kill child %s\n", __func__, PSC_printTID(child));
 	    /* Try to kill the child, again */
 	    PSID_kill(-child, SIGKILL, 0);
 
@@ -363,6 +380,8 @@ void deleteClient(int fd)
 	    msg.request = child;
 	    msg.header.len = sizeof(msg);
 	    sendMsg(&msg);
+
+	    sig = -1;
 	};
 
 	task->released = 1;
@@ -374,7 +393,7 @@ void deleteClient(int fd)
 
 	if (parent) {
 	    /* Remove dead spawner from list of childs */
-	    PSID_removeSignal(&parent->childs, tid, -1);
+	    PSID_removeSignal(&parent->childs, task->tid, -1);
 
 	    if (parent->removeIt && list_empty(&parent->childs)) {
 		PSID_log(PSID_LOG_TASK,
@@ -457,12 +476,12 @@ void deleteClient(int fd)
     }
 
     PSID_log(PSID_LOG_CLIENT, "%s: closing connection to %s\n",
-	     __func__, PSC_printTID(tid));
+	     __func__, PSC_printTID(task->tid));
 
     /* Cleanup, if no forwarder available; otherwise wait for CHILDDEAD */
     if (!task->forwardertid) {
 	PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
-	PStask_cleanup(tid);
+	PStask_cleanup(task->tid);
     }
 
     return;
@@ -494,7 +513,8 @@ int killAllClients(int sig, int killAdminTasks)
 	    ret++;
 	}
 
-	if (sig==SIGKILL && killAdminTasks && task->fd>=0) {
+	if (sig==SIGKILL && killAdminTasks && task->fd != -1) {
+	    PSID_log(-1, "%s: deleteClient()\n", __func__);
 	    deleteClient(task->fd);
 	}
     }
@@ -739,6 +759,7 @@ static void msg_CLIENTCONNECT(DDBufferMsg_t *bufmsg)
 	sendMsg(&outmsg);
 
 	/* clean up */
+	PSID_log(-1, "%s: deleteClient()\n", __func__);
 	deleteClient(fd);
 
 	if (msg->group==TG_RESET && !uid) PSID_reset();
