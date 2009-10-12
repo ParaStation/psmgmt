@@ -369,6 +369,7 @@ void deleteClient(int fd)
 	sendMsg(&msg);
 
 	while ((child = PSID_getSignal(&task->childs, &sig))) {
+	    PStask_t *childTask = PStasklist_find(&managedTasks, child);
 	    PSID_log(-1, "%s: kill child %s\n", __func__, PSC_printTID(child));
 	    /* Try to kill the child, again */
 	    PSID_kill(-child, SIGKILL, 0);
@@ -381,6 +382,8 @@ void deleteClient(int fd)
 	    msg.request = child;
 	    msg.header.len = sizeof(msg);
 	    sendMsg(&msg);
+
+	    if (childTask && childTask->fd == -1) PStask_cleanup(child);
 
 	    sig = -1;
 	};
