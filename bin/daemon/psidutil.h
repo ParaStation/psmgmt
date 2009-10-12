@@ -137,6 +137,7 @@ typedef enum {
     PSID_LOG_PART =   0x080000, /**< Partition creation and management */
     PSID_LOG_NODES =  0x100000, /**< Book keeping on nodes */
     PSID_LOG_PLUGIN = 0x200000, /**< Plugin handling */
+    PSID_LOG_MSGDUMP =0x400000, /**< Dump info on dropped messages */
 } PSID_log_key_t;
 
 
@@ -419,6 +420,19 @@ void PSID_initStarttime(void);
  * number of seconds since the epoch. Otherwise -1 is returned.
 */
 time_t PSID_getStarttime(void);
+
+/**
+ * @brief Dump message info
+ *
+ * Dump information on message @a msg. Output is only produced, if the
+ * PSID_LOG_MSGDUMP flag is set within psid's debug-mask. This is
+ * mainly useful for debugging purposes.
+ *
+ * @param msg Message to dump.
+ *
+ * @return No return value.
+ */
+void PSID_dumpMsg(DDMsg_t *msg);
 
 #ifdef __cplusplus
 }/* extern "C" */

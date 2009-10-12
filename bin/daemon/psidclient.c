@@ -203,6 +203,7 @@ int sendClient(DDMsg_t *msg)
 	PSID_log(task ? -1 : PSID_LOG_CLIENT,
 		 "%s: no fd for task %s to send\n", __func__,
 		 PSC_printTID(msg->dest));
+	if (PSID_getDebugMask() & PSID_LOG_MSGDUMP) PSID_dumpMsg(msg);
 	errno = EHOSTUNREACH;
 	return -1;
     }

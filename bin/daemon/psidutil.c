@@ -30,6 +30,8 @@ static char vcid[] __attribute__((used)) =
 #include "logging.h"
 #include "selector.h"
 #include "config_parsing.h"
+#include "psdaemonprotocol.h"
+#include "pslog.h"
 
 #include "psidnodes.h"
 #include "psidamd.h"
@@ -525,4 +527,22 @@ void PSID_initStarttime(void)
 time_t PSID_getStarttime(void)
 {
     return startTime;
+}
+
+void PSID_dumpMsg(DDMsg_t *msg)
+{
+    PSID_log(PSID_LOG_MSGDUMP, "%s: type %s sender %s", __func__,
+	     PSDaemonP_printMsg(msg->type), PSC_printTID(msg->sender));
+    PSID_log(PSID_LOG_MSGDUMP, " destination %s size %d",
+	     PSC_printTID(msg->dest), msg->len);
+
+    switch (msg->type) {
+    case PSP_CC_MSG:
+	PSID_log(PSID_LOG_MSGDUMP, " type %d", ((PSLog_Msg_t *)msg)->type);
+	break;
+    default:
+	break;
+    }
+
+    PSID_log(PSID_LOG_MSGDUMP, "\n");
 }

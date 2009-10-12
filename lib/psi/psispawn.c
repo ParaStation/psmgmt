@@ -716,8 +716,26 @@ int PSI_spawnService(PSnodes_ID_t node, char *workdir, int argc, char **argv,
 		     int *error, PStask_ID_t *tid)
 {
     int ret;
+    char *envStr = getenv(ENV_NUM_SERVICE_PROCS);
 
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, node);
+
+    /* tell logger about service process */
+    if (envStr) {
+	char *end, newStr[32];
+	long oldNum = strtol(envStr, &end, 10);
+
+	if (*end) {
+	    PSI_log(-1, "%s: unknown value '%s' in environment '%s'\n",
+		    __func__, envStr, ENV_NUM_SERVICE_PROCS);
+	    oldNum = 0;
+	}
+
+	snprintf(newStr, sizeof(newStr), "%ld", oldNum+1);
+	setenv("__PSI_SERVICE_PROCS", newStr, 1);
+    } else {
+	setenv("__PSI_SERVICE_PROCS", "1", 1);
+    }
 
     if (node == -1) node = PSC_getMyID();
 

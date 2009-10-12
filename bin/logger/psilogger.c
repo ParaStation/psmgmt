@@ -40,6 +40,7 @@ static char vcid[] __attribute__((used)) =
 
 #include "pscommon.h"
 #include "pstask.h"
+#include "psprotocol.h"
 #include "pslog.h"
 #include "psiloggerkvs.h"
 #include "psiloggermerge.h"
@@ -73,6 +74,11 @@ static int enableGDB = 0;
  * Maximum number of processes in this job.
  */
 int np = 0;
+
+/**
+ * Maximum number of service-processes in this job.
+ */
+int numService = 0;
 
 /**
  * Verbosity of Forwarders (1=Yes, 0=No)
@@ -1076,7 +1082,6 @@ static void loop(void)
     struct timeval mytv={1,0}, atv;
     PSLog_Msg_t msg;
     int timeoutval;
-    static int serviceClients = 0;
 
     FD_ZERO(&myfds);
     addToFDSet(daemonSock);
@@ -1117,13 +1122,9 @@ static void loop(void)
 	    }
 
 	    if (msg.type == INITIALIZE) {
-		if (newrequest(&msg)) {
-		    if (msg.sender < 0) serviceClients++;
-
-		    if (maxConnected - serviceClients >= np) {
-			timeoutval = MIN_WAIT;
-			if (allActiveThere()) addToFDSet(STDIN_FILENO);
-		    }
+		if (newrequest(&msg) && maxConnected >= np + numService) {
+		    timeoutval = MIN_WAIT;
+		    if (allActiveThere()) addToFDSet(STDIN_FILENO);
 		}
 	    } else if (msg.sender > getMaxRank()) {
 		PSIlog_log(-1, "%s: sender %s (rank %d) out of range.\n",
@@ -1308,6 +1309,10 @@ int main( int argc, char**argv)
 
     if ((envstr = getenv("PSI_NP_INFO"))) {
 	np = atoi(envstr);
+    }
+
+    if ((envstr = getenv(ENV_NUM_SERVICE_PROCS))) {
+	numService = atoi(envstr);
     }
 
     /* Destination list has to be set before initClients() */
