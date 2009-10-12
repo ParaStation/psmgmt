@@ -284,6 +284,7 @@ void handleDroppedMsg(DDMsg_t *msg)
     PSID_log(PSID_LOG_COMM, "%s dest %s", __func__, PSC_printTID(msg->dest));
     PSID_log(PSID_LOG_COMM," source %s type %s\n", PSC_printTID(msg->sender),
 	     PSDaemonP_printMsg(msg->type));
+    if (PSID_getDebugMask() & PSID_LOG_MSGDUMP) PSID_dumpMsg(msg);
 
     switch (msg->type) {
     case PSP_CD_GETOPTION:
