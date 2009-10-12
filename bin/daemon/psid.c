@@ -816,11 +816,12 @@ int main(int argc, const char *argv[])
     if (config->useMCast) {
 	declareMaster(PSC_getMyID());
     } else {
-	if (PSC_getMyID()) {
-	    send_DAEMONCONNECT(0);
-	} else {
-	    declareMaster(0);
+	int id = 0;
+	while (id < PSC_getMyID()
+	       && (send_DAEMONCONNECT(id) < 0 && errno == EHOSTUNREACH)) {
+	    id++;
 	}
+	if (id == PSC_getMyID()) declareMaster(id);
     }
 
     /*

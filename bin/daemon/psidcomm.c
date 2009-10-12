@@ -331,11 +331,11 @@ void handleDroppedMsg(DDMsg_t *msg)
 	    && ! (PSID_getDaemonState() & PSID_STATE_SHUTDOWN)) {
 	    PSnodes_ID_t next = PSC_getID(msg->dest) + 1;
 
-	    if (next < PSC_getMyID()) {
-		send_DAEMONCONNECT(next);
-	    } else if (next == PSC_getMyID()) {
-		declareMaster(PSC_getMyID());
+	    while (next < PSC_getMyID()
+		   && (send_DAEMONCONNECT(next) < 0 && errno == EHOSTUNREACH)) {
+		next++;
 	    }
+	    if (next == PSC_getMyID()) declareMaster(next);
 	}
 	break;
     case PSP_DD_NEWCHILD:
