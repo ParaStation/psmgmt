@@ -1368,7 +1368,7 @@ restart:
 	goto error;
     }
 
-    if (!ret || eno) goto error;
+    if (!ret) eno = EBADMSG;
 
 error:
     /* Release the waiting daemon and exec forwarder */
