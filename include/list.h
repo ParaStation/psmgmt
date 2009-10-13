@@ -11,11 +11,7 @@
  * using the generic single-entry routines.
  */
 
-struct list_head {
-    struct list_head *next, *prev;
-};
-
-typedef struct list_head list_t;
+#include "list_t.h"
 
 #define LIST_HEAD_INIT(name) (list_t) { &(name), &(name) }
 

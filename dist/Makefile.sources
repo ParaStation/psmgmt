@@ -115,6 +115,7 @@ include/env.h \
 include/kvs.h \
 include/hardware.h \
 include/list.h \
+include/list_t.h \
 include/logging.h \
 include/mcast.h \
 include/parser.h \

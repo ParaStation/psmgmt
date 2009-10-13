@@ -26,7 +26,7 @@ INCDIR := $(DISTDIR)/include
 DIST_includes := pse.h
 DIST_includes += psprotocol.h psnodes.h pstask.h pspartition.h pscommon.h
 DIST_includes += psiinfo.h psispawn.h psienv.h psi.h logging.h pscpu.h
-DIST_includes += list.h
+DIST_includes += list_t.h
 
 $(INCDIR)/%: %
 	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@

@@ -21,6 +21,7 @@ static char vcid[] __attribute__((used)) =
 #include <sys/ioctl.h>
 
 #include "pscommon.h"
+#include "list.h"
 
 #include "pstask.h"
 

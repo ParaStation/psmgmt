@@ -27,7 +27,7 @@
 #include <time.h>
 #include <sys/time.h>
 
-#include "list.h"
+#include "list_t.h"
 
 #include "psnodes.h"
 #include "pscpu.h"
