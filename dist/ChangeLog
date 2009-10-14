@@ -1,3 +1,120 @@
+Version psmgmt-5.0.21:
+======================
+------------------------------------------------------------------------
+r7841 | eicker | 2009-10-13 15:21:17 +0200 (Tue, 13 Oct 2009) | 3 lines
+
+Split list.h into internal part and public part (list_t.h) just defining
+    the list_t type. This should help with #446.
+
+------------------------------------------------------------------------
+r7839 | eicker | 2009-10-12 13:29:13 +0200 (Mon, 12 Oct 2009) | 2 lines
+
+Bugfix: Prevent remaining task-info within psid while task is dead.
+
+------------------------------------------------------------------------
+r7838 | eicker | 2009-10-12 13:16:19 +0200 (Mon, 12 Oct 2009) | 2 lines
+
+More debug-info on dropped messages.
+
+------------------------------------------------------------------------
+r7837 | eicker | 2009-10-12 12:23:04 +0200 (Mon, 12 Oct 2009) | 2 lines
+
+Improve master's determination, if some nodes are not defined.
+
+------------------------------------------------------------------------
+r7836 | eicker | 2009-10-12 11:53:35 +0200 (Mon, 12 Oct 2009) | 3 lines
+
+Enhancement: Make sure mpiexec waits for all service-processes, too.
+Enhancement: Add debug-facility PSID_LOG_MSGDUMP to dump dropped packets.
+
+------------------------------------------------------------------------
+r7835 | eicker | 2009-10-12 08:22:47 +0200 (Mon, 12 Oct 2009) | 2 lines
+
+Some additional warning.
+
+------------------------------------------------------------------------
+r7834 | eicker | 2009-10-09 17:13:54 +0200 (Fri, 09 Oct 2009) | 2 lines
+
+Don't allow ressource-allocation, if node is not starter.
+
+------------------------------------------------------------------------
+r7833 | eicker | 2009-10-09 17:13:07 +0200 (Fri, 09 Oct 2009) | 2 lines
+
+Improve handling of short-running (i.e. non-MPI) jobs.
+
+------------------------------------------------------------------------
+r7832 | eicker | 2009-10-09 12:49:50 +0200 (Fri, 09 Oct 2009) | 2 lines
+
+Significant improvement in signal-handling and child-tracking.
+
+------------------------------------------------------------------------
+r7831 | eicker | 2009-10-09 12:38:27 +0200 (Fri, 09 Oct 2009) | 7 lines
+
+Bugfix: Improve errno-handling in sendClient(). Sporadicly wrong errnos
+    were reported before.
+Bugfix: Receive remaining messages after client passed away.
+Bugfix: Ensure all childs are handled in deleteClient().
+Enhancement: Ensure complete header is received in recvClient().
+Minor improvements.
+
+------------------------------------------------------------------------
+r7830 | eicker | 2009-10-09 12:28:13 +0200 (Fri, 09 Oct 2009) | 2 lines
+
+Daemon now ignores SIGPIPE silently.
+
+------------------------------------------------------------------------
+r7829 | eicker | 2009-10-09 12:26:15 +0200 (Fri, 09 Oct 2009) | 5 lines
+
+Various minor enhancements of forwarder:
+- Handle (non-PMI) childs exiting via exit(<val not 0>) as failed.
+- Ignore late KVS messages.
+- Don't suppress SIGCHLD during loggerConnect.
+
+------------------------------------------------------------------------
+r7828 | eicker | 2009-10-09 12:22:33 +0200 (Fri, 09 Oct 2009) | 3 lines
+
+Enhancement: Suppress logger-messages on terminated child. Might be
+    explicitely requestest via PSI_TERMINETED environment.
+
+------------------------------------------------------------------------
+r7827 | eicker | 2009-10-09 10:52:56 +0200 (Fri, 09 Oct 2009) | 3 lines
+
+Bugfix: Prevent forwarder from commiting suicide. In rare cases
+    tcgetpgrp() -- dissentient from the man-page -- might return 0.
+
+------------------------------------------------------------------------
+r7822 | eicker | 2009-10-07 09:12:56 +0200 (Wed, 07 Oct 2009) | 2 lines
+
+Further improvements of signal/CHILDDEAD handling.
+
+------------------------------------------------------------------------
+r7821 | eicker | 2009-10-05 15:19:50 +0200 (Mon, 05 Oct 2009) | 2 lines
+
+Fix some compiler versions on uninitialize variables.
+
+------------------------------------------------------------------------
+r7820 | eicker | 2009-10-05 14:48:21 +0200 (Mon, 05 Oct 2009) | 2 lines
+
+Further reorganization of configure. Test for curses and history, too.
+
+------------------------------------------------------------------------
+r7819 | eicker | 2009-10-02 23:55:09 +0200 (Fri, 02 Oct 2009) | 3 lines
+
+Bugfix: Fix sender information in PSP_CD_SIGRES messages. This might
+    lead to stuck daemons, if message was stored within psidrdp-layer.
+
+------------------------------------------------------------------------
+r7810 | eicker | 2009-10-02 12:54:05 +0200 (Fri, 02 Oct 2009) | 2 lines
+
+Explicitely test for libreadline.so and libpopt.so during configure.
+
+------------------------------------------------------------------------
+r7806 | eicker | 2009-10-02 12:30:25 +0200 (Fri, 02 Oct 2009) | 2 lines
+
+New version (psmgmt-5.0.20)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.20:
 ======================
 ------------------------------------------------------------------------
