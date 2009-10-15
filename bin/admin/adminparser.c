@@ -52,23 +52,29 @@ static int setupDefaultNL(void)
 static char *getNodeList(char *nl_descr)
 {
     static char *nl = NULL;
+    char *host, *work = NULL;
 
+    if (!nl) nl = realloc(nl, sizeof(char) * PSC_getNrOfNodes());
+    if (!nl) {
+	PSC_log(-1, "%s: no memory\n", __func__);
+	return NULL;
+    }
+
+    memset(nl, 0, sizeof(char) * PSC_getNrOfNodes());
     if (!strcasecmp(nl_descr, "all")) {
-	nl = realloc(nl, PSC_getNrOfNodes());
 	memset(nl, 1, PSC_getNrOfNodes());
-
 	return nl;
     } else {
-	char *tmp = strdup(nl_descr);
-	char *ret = PSC_parseNodelist(tmp);
-
-	free(tmp);
+	host = strdup(nl_descr);
+	char *ret = PSC_parseNodelist(host);
+	free(host);
 	if (ret) return ret;
     }
 
-    {
+    host = strtok_r(nl_descr, ",", &work);
+    while (host) {
 	PSnodes_ID_t node;
-	struct hostent *hp = gethostbyname(nl_descr);
+	struct hostent *hp = gethostbyname(host);
 	struct sockaddr_in sa;
 	int err;
 
@@ -76,18 +82,15 @@ static char *getNodeList(char *nl_descr)
 
 	memcpy(&sa.sin_addr, *hp->h_addr_list, sizeof(sa.sin_addr));
 	err = PSI_infoNodeID(-1, PSP_INFO_HOST, &sa.sin_addr.s_addr, &node, 1);
-
 	if (err || node==-1) goto error;
 
-	nl = realloc(nl, PSC_getNrOfNodes());
-	memset(nl, 0, PSC_getNrOfNodes());
-
 	nl[node] = 1;
-	return nl;
+	host = strtok_r(NULL, ",", &work);
     }
+    return nl;
 
- error:
-    printf("Illegal nodename '%s'\n", nl_descr);
+error:
+    printf("Illegal nodename '%s'\n", host);
     return NULL;
 }
 

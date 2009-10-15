@@ -348,8 +348,8 @@ int PSC_getServicePort(char* name , int def);
  * corresponding nodes was found within @a descr. The char set to 1
  * means the nodes is described, the char is set to 0 otherwise.
  *
- * The nodelist is returned returned in a statically allocated buffer,
- * which subsequent calls will overwrite.
+ * The nodelist is returned in a statically allocated buffer, which
+ * subsequent calls will overwrite.
  *
  * @param descr The string desribing a list of nodes. The string is of
  * the form n[-m]{,o[-p]}*, where n, m, o and p are numbers. Each

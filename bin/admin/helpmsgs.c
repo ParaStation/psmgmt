@@ -142,7 +142,8 @@ static info_t nodeInfo = {
 	  " empty, the node range preselected via the 'range' command is used."
 	  " The default preselected node range contains all nodes of the"
 	  " ParaStation cluster. As an extension <nodes> might also be a"
-	  " hostname that can be resolved into a valid ParaStation ID." },
+	  " comma-separated list of hostnames that can be resolved into a"
+	  " valid ParaStation ID." },
 	{ NULL, NULL }
     },
     .comment = NULL
