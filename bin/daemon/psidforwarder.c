@@ -1048,7 +1048,7 @@ static int readFromLogger(void)
 	}
     } else if (!ret) {
 	/* The connection to the daemon died. Kill the client the hard way. */
-	kill(-PSC_getPID(childTask->tid), SIGKILL);
+	sendSignal(PSC_getPID(childTask->tid), SIGKILL);
     }
 
     return ret;
@@ -1698,7 +1698,7 @@ static void sendChildBorn(PStask_t *task)
 	}
 	if (ret != 1) {
 	    PSID_log(-1, "%s: cannot stop child, try to kill", __func__);
-	    sendSignal(childTask->tid, SIGKILL);
+	    sendSignal(PSC_getPID(childTask->tid), SIGKILL);
 	}
     }
 }
@@ -1910,8 +1910,12 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
     }
 
     if (connectLogger(childTask->loggertid) != 0) {
-	/* There is no logger. Just wait for the client to finish. */
-	while (1) sleep(10);
+	/* There is no logger. Just kill and wait for the client to finish. */
+	sendSignal(PSC_getPID(childTask->tid), SIGTERM);
+	while (1) {
+	    sleep(10);
+	    sendSignal(PSC_getPID(childTask->tid), SIGKILL);
+	}
     }
 
     /* Send this message late. No connection to logger before */
