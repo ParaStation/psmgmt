@@ -1135,7 +1135,8 @@ static void resendMsgs(int node)
     timeradd(&tv, &RESEND_TIMEOUT, &conntable[node].tmout);
 
     if (conntable[node].retrans > RDPMaxRetransCount) {
-	RDP_log((conntable[node].state != ACTIVE) ? RDP_LOG_CONN : -1,
+	// RDP_log((conntable[node].state != ACTIVE) ? RDP_LOG_CONN : -1, @todo
+	RDP_log(-1,
 		"%s: Retransmission count exceeds limit"
 		" [seqno=%x], closing connection to %d\n",
 		__func__, conntable[node].ackExpected, node);
@@ -1350,7 +1351,8 @@ static void updateState(rdphdr_t *hdr, int node)
 	break;
     case ACTIVE:
 	if (hdr->connid != cp->ConnID_in) { /* New Connection */
-	    RDP_log(RDP_LOG_CNTR, "%s: new connection from %d, FE=%x, seqno=%x"
+	    // RDP_log(RDP_LOG_CNTR, "%s: new connection from %d, FE=%x, seqno=%x" @todo
+	    RDP_log(-1, "%s: new connection from %d, FE=%x, seqno=%x"
 		    " in ACTIVE State [%d:%d]\n", __func__, node,
 		    cp->frameExpected, hdr->seqno, hdr->connid, cp->ConnID_in);
 	    closeConnection(node, 1, 0);
@@ -1381,6 +1383,7 @@ static void updateState(rdphdr_t *hdr, int node)
 	} else { /* SYN Packet on OLD Connection (probably lost answers) */
 	    switch (hdr->type) {
 	    case RDP_SYN:
+		RDP_log(-1, "%s: ACTIVE -> SYNRECVD\n", __func__); // @todo
 		closeConnection(node, 1, 0);
 		cp->state = SYN_RECVD;
 		cp->frameExpected = hdr->seqno; /* Accept new seqno */
@@ -1775,7 +1778,8 @@ static int handleErr(void)
 
     switch (handleErrno) {
     case ECONNREFUSED:
-	RDP_log(RDP_LOG_CONN, "%s: CONNREFUSED from %s(%d) port %d\n",
+	// RDP_log(RDP_LOG_CONN, "%s: CONNREFUSED from %s(%d) port %d\n", @todo
+	RDP_log(-1, "%s: CONNREFUSED from %s(%d) port %d\n",
 		__func__, inet_ntoa(sinp->sin_addr), node,
 		ntohs(sinp->sin_port));
 	closeConnection(node, 1, 0);

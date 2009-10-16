@@ -135,6 +135,15 @@ int flushRDPMsgs(int node)
 	PStask_ID_t sender = msg->sender, dest = msg->dest;
 	int sent = Rsendto(PSC_getID(dest), msg, msg->len);
 
+	if (PSC_getID(dest) == PSC_getMyID()) {
+	    int32_t mask = PSID_getDebugMask();
+
+	    PSID_log(-1, "%s: dest is own node\n", __func__);
+	    PSID_setDebugMask(mask | PSID_LOG_MSGDUMP);
+	    PSID_dumpMsg(msg);
+	    PSID_setDebugMask(mask);
+	}
+
 	if (sent<0 || list_empty(&node_bufs[node].list)) {
 	    ret = sent;
 	    goto end;
@@ -169,6 +178,15 @@ int sendRDP(DDMsg_t *msg)
     if (PSIDnodes_getAddr(node) == INADDR_ANY) {
 	errno = EHOSTUNREACH;
 	return -1;
+    }
+
+    if (node == PSC_getMyID()) {
+	int32_t mask = PSID_getDebugMask();
+
+	PSID_log(-1, "%s: dest is own node\n", __func__);
+	PSID_setDebugMask(mask | PSID_LOG_MSGDUMP);
+	PSID_dumpMsg(msg);
+	PSID_setDebugMask(mask);
     }
 
     if (node_bufs[node].clearing) return 0; /* No Rsendto during cleanup */
