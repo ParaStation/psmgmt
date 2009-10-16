@@ -1911,9 +1911,17 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
 
     if (connectLogger(childTask->loggertid) != 0) {
 	/* There is no logger. Just kill and wait for the client to finish. */
-	sendSignal(PSC_getPID(childTask->tid), SIGTERM);
 	while (1) {
-	    sleep(10);
+	    PSLog_Msg_t msg;
+	    struct timeval timeout = {10, 0};
+	    int ret;
+
+	    ret = recvMsg(&msg, &timeout); /* sleep in recvMsg */
+	    if (ret > 0) {
+		PSID_log(-1, "%s: recvMsg type %s from %s len %d\n", __func__,
+			 PSDaemonP_printMsg(msg.header.type),
+			 PSC_printTID(msg.header.sender), msg.header.len);
+	    }
 	    sendSignal(PSC_getPID(childTask->tid), SIGKILL);
 	}
     }
