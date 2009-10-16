@@ -296,25 +296,26 @@ void PStask_cleanup(PStask_ID_t tid)
 		PStask_t *child = PStasklist_find(&managedTasks, sig->tid);
 		DDErrorMsg_t msg;
 
+		/* somehow we must have missed the CHILDDEAD message */
+		/* how are we called here ? */
+		PSID_log(-1, "%s: report child %s of unreleased forwarder%s\n",
+			 __func__, PSC_printTID(sig->tid),
+			 !child ? " but child is gone" : "");
+
+		msg.header.type = PSP_DD_CHILDDEAD;
+		msg.header.dest = task->ptid;
+		msg.header.sender = task->tid;
+		msg.error = 0;
+		msg.request = sig->tid;
+		msg.header.len = sizeof(msg);
+		sendMsg(&msg);
+
 		/* Remove from list before PSID_kill(). Might get
 		 * removed therein, too. Save to remove here since
 		 * each forwarder has just a single child, i.e. this
 		 * list is empty afterwards. */
 		list_del(&sig->next);
 		free(sig);
-
-		/* somehow we must have missed the CHILDDEAD message */
-		/* how are we called here ? */
-		PSID_log(-1, "%s: report child %s of unreleased forwarder\n",
-			 __func__, PSC_printTID(child->tid));
-
-		msg.header.type = PSP_DD_CHILDDEAD;
-		msg.header.dest = child->ptid;
-		msg.header.sender = task->tid;
-		msg.error = 0;
-		msg.request = child->tid;
-		msg.header.len = sizeof(msg);
-		sendMsg(&msg);
 
 		if (child && child->fd == -1) {
 		    PSID_log(-1, "%s: forwarder kills child %s\n",
