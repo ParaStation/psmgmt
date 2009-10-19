@@ -298,7 +298,8 @@ void PStask_cleanup(PStask_ID_t tid)
 
 		/* somehow we must have missed the CHILDDEAD message */
 		/* how are we called here ? */
-		PSID_log(-1, "%s: report child %s of unreleased forwarder%s\n",
+		PSID_log(child ? -1 : PSID_LOG_TASK,
+			 "%s: report child %s of unreleased forwarder%s\n",
 			 __func__, PSC_printTID(sig->tid),
 			 !child ? " but child is gone" : "");
 
