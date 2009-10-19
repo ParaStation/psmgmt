@@ -1,6 +1,46 @@
 Version psmgmt-5.0.21:
 ======================
 ------------------------------------------------------------------------
+r7851 | eicker | 2009-10-19 08:52:55 +0200 (Mon, 19 Oct 2009) | 2 lines
+
+Suppress some logs, if childs was not yet registered.
+
+------------------------------------------------------------------------
+r7850 | eicker | 2009-10-16 18:57:18 +0200 (Fri, 16 Oct 2009) | 2 lines
+
+More verbose logging to catch #442.
+
+------------------------------------------------------------------------
+r7849 | eicker | 2009-10-16 15:53:58 +0200 (Fri, 16 Oct 2009) | 2 lines
+
+Bugfix: Forwarder ignored SIG-messages, if connectLogger() failed.
+
+------------------------------------------------------------------------
+r7848 | eicker | 2009-10-16 15:13:10 +0200 (Fri, 16 Oct 2009) | 2 lines
+
+Bugfix: Fix some occasions where forwarder might want to kill its child.
+
+------------------------------------------------------------------------
+r7847 | eicker | 2009-10-16 14:51:43 +0200 (Fri, 16 Oct 2009) | 2 lines
+
+Bugfix: Prevent possible segfault, if child-task was not found.
+
+------------------------------------------------------------------------
+r7846 | eicker | 2009-10-15 18:55:22 +0200 (Thu, 15 Oct 2009) | 3 lines
+
+Enhancement: Allow comma-separated hostnames as nodelists in psiadmin.
+    This should implement #450.
+
+------------------------------------------------------------------------
+r7842 | eicker | 2009-10-14 08:10:34 +0200 (Wed, 14 Oct 2009) | 2 lines
+
+New version (psmgmt-5.0.21)
+
+------------------------------------------------------------------------
+
+Version psmgmt-5.0.21:
+======================
+------------------------------------------------------------------------
 r7841 | eicker | 2009-10-13 15:21:17 +0200 (Tue, 13 Oct 2009) | 3 lines
 
 Split list.h into internal part and public part (list_t.h) just defining
