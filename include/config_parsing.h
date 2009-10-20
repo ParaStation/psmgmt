@@ -80,6 +80,9 @@ typedef struct {
 			    info. No polling for 0 (the default). */
     list_t plugins;      /**< Names of plugins scheduled to be loaded on
 			    startup */
+    char *startupScript; /**< Script called during daemon's startup */
+    char *nodeUpScript;  /**< Script called, if node connects to master */
+    char *nodeDownScript;/**< Script called, if node disconnects from master */
 } config_t;
 
 /** Structure to store lists of name. Used e.g. for the list of plugins. */

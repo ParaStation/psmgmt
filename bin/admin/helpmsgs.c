@@ -548,7 +548,7 @@ static info_t listInfo = {
 	.arg = "{{[node] | count [hw <hw>] | {p|processes} [cnt <cnt>]"
 	" | {aproc|allprocesses} [cnt <cnt>] | {hardware|hw} | down | up"
 	" | load | rdp | mcast | plugins | summary [max <max>] | starttime"
-	" | versions}"
+	" | startupscript | nodeupscript | nodedownscript | versions}"
 	" <nodes> |"
 	" jobs [state {r[unning] | p[ending] | s[uspended]}] [slots] [<tid>]}"
     }},
@@ -597,6 +597,15 @@ static info_t listInfo = {
 	  " printed, too." },
 	{ .tag = "list starttime",
 	  .descr = "Show the daemon's start-time on the selected nodes." },
+	{ .tag = "list startupscript",
+	  .descr = "Show the daemon's script called during startup in order to"
+	  " test the local situation on the selected nodes." },
+	{ .tag = "list nodeupscript",
+	  .descr = "Show the daemon's script called on the master node whenever"
+	  " a daemon connects after being down before on the selected nodes." },
+	{ .tag = "list nodedownscript",
+	  .descr = "Show the daemon's script called on the master node whenever"
+	  " a daemon disconnects on the selected nodes." },
 	{ .tag = "list versions",
 	  .descr = "Show the daemon's version and the revision of the"
 	  " corresponding RPM on the selected nodes." },

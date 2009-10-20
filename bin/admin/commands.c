@@ -454,10 +454,46 @@ void PSIADM_StarttimeStat(char *nl)
 	    int err;
 
 	    printf("%4d\t", node);
-	    err = PSI_infoInt64(node, PSP_INFO_STARTTIME, NULL,	&secs, 0);
+	    err = PSI_infoInt64(node, PSP_INFO_STARTTIME, NULL, &secs, 0);
 	    if (!err) {
 		time_t startTime = (time_t) secs;
 		printf("%s", ctime(&startTime));
+	    }
+	} else {
+	    printf("%4d\tdown\n", node);
+	}
+    }
+}
+
+void PSIADM_ScriptStat(PSP_Info_t type, char *nl)
+{
+    PSnodes_ID_t node;
+    char scriptName[1500];
+    size_t scriptWidth = getWidth()-8;
+
+    if (! getHostStatus()) return;
+
+    printf("%4s\t%s\n", "Node", "Script");
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
+
+	if (hostStatus.list[node]) {
+	    int err;
+
+	    printf("%4d\t", node);
+	    err = PSI_infoString(node, type, NULL, scriptName,
+				 sizeof(scriptName), 1);
+	    if (!err) {
+		size_t len = strlen(scriptName);
+		if (len) {
+		    if (len <= scriptWidth) {
+			printf("%s\n", scriptName);
+		    } else {
+			printf("...%s\n", scriptName+len-(scriptWidth-3));
+		    }
+		} else {
+		    printf("<none>\n");
+		}
 	    }
 	} else {
 	    printf("%4d\tdown\n", node);

@@ -65,6 +65,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidaccount.h"
 #include "psidstate.h"
 #include "psidplugin.h"
+#include "psidscripts.h"
 
 struct timeval selectTime;
 
@@ -706,6 +707,18 @@ int main(int argc, const char *argv[])
 
 	openlog("psid", LOG_PID|LOG_CONS, config->logDest);
 	printWelcome();
+    }
+
+    /* call startupScript, if any */
+    if (config->startupScript && *config->startupScript) {
+	int ret = PSID_execScript(config->startupScript, NULL, NULL, NULL);
+
+	if (ret > 1) {
+	    PSID_log(-1, "startup script '%s' failed. Exiting...\n",
+		     config->startupScript);
+
+	    exit(1);
+	}
     }
 
     /* Catch SIGSEGV and SIGABRT if core dumps are suppressed */

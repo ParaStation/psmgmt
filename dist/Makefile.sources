@@ -63,6 +63,8 @@ bin/daemon/psidppc.h \
 bin/daemon/psidppc.c \
 bin/daemon/psidrdp.c \
 bin/daemon/psidrdp.h \
+bin/daemon/psidscripts.c \
+bin/daemon/psidscripts.h \
 bin/daemon/psidsignal.c \
 bin/daemon/psidsignal.h \
 bin/daemon/psidspawn.c \

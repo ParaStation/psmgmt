@@ -697,6 +697,33 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    *(int64_t *)msg.buf = (int64_t) PSID_getStarttime();
 	    msg.header.len += sizeof(int64_t);
 	    break;
+	case PSP_INFO_STARTUPSCRIPT:
+	    if (config->startupScript) {
+		strncpy(msg.buf, config->startupScript, sizeof(msg.buf));
+		msg.buf[sizeof(msg.buf)-1] = '\0';
+	    } else {
+		*msg.buf = '\0';
+	    }
+	    msg.header.len += strlen(msg.buf)+1;
+	    break;
+	case PSP_INFO_NODEUPSCRIPT:
+	    if (config->nodeUpScript) {
+		strncpy(msg.buf, config->nodeUpScript, sizeof(msg.buf));
+		msg.buf[sizeof(msg.buf)-1] = '\0';
+	    } else {
+		*msg.buf = '\0';
+	    }
+	    msg.header.len += strlen(msg.buf)+1;
+	    break;
+	case PSP_INFO_NODEDOWNSCRIPT:
+	    if (config->nodeDownScript) {
+		strncpy(msg.buf, config->nodeDownScript, sizeof(msg.buf));
+		msg.buf[sizeof(msg.buf)-1] = '\0';
+	    } else {
+		*msg.buf = '\0';
+	    }
+	    msg.header.len += strlen(msg.buf)+1;
+	    break;
 	default:
 	    msg.type = PSP_INFO_UNKNOWN;
 	}

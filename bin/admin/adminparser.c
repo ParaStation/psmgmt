@@ -446,6 +446,38 @@ static int listStarttimeCommand(char *token)
     return -1;
 }
 
+static int listScriptCommand(char *token)
+{
+    PSP_Info_t info;
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL;
+
+    if (parser_getString()) goto error;
+
+    if (!strcasecmp(token, "startupscript")) {
+	info = PSP_INFO_STARTUPSCRIPT;
+    } else if (!strcasecmp(token, "nodeupscript")) {
+	info = PSP_INFO_NODEUPSCRIPT;
+    } else if (!strcasecmp(token, "nodedownscript")) {
+	info = PSP_INFO_NODEDOWNSCRIPT;
+    } else {
+	printf("Unknown info '%s' to list\n", token);
+	goto error;
+    }
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+	if (!nl) return -1;
+    }
+
+    PSIADM_ScriptStat(info, nl);
+    return 0;
+
+ error:
+    printError(&listInfo);
+    return -1;
+}
+
 static int listRDPCommand(char *token)
 {
     char *nl_descr = parser_getString();
@@ -652,6 +684,9 @@ static keylist_t listList[] = {
     {"summary", listSummaryCommand},
     {"s", listSummaryCommand},
     {"starttime", listStarttimeCommand},
+    {"startupscript", listScriptCommand},
+    {"nodeupscript", listScriptCommand},
+    {"nodedownscript", listScriptCommand},
     {"up", listSomeCommand},
     {"versions", listVersionCommand},
     {NULL, listSpecialCommand}

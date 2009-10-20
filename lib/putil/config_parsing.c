@@ -43,6 +43,7 @@ static char vcid[] __attribute__((used)) =
 
 #include "psidnodes.h"
 #include "psidstatus.h"
+#include "psidscripts.h"
 
 #include "config_parsing.h"
 
@@ -65,6 +66,10 @@ static config_t config = (config_t) {
     .handleOldBins = 0,
     .nodesSort = PART_SORT_PROC,
     .acctPollInterval = 0,
+    .startupScript = NULL,
+    .nodeUpScript = NULL,
+    .nodeDownScript = NULL,
+
 };
 
 #define ENV_END 17 /* Some magic value */
@@ -2622,6 +2627,27 @@ static int getPlugins(char *token)
 
 /* ---------------------------------------------------------------------- */
 
+static int getDaemonScript(char *token)
+{
+    char *value;
+
+    value = parser_getQuotedString();
+    if (!value) {
+	parser_comment(-1, "no value for %s\n", token);
+	return -1;
+    }
+
+    if (PSID_registerScript(&config, token, value)) {
+	parser_comment(-1, "failed to register script '%s' to type '%s'\n",
+		       value, token);
+	return -1;
+    }
+
+    return 0;
+}
+
+/* ---------------------------------------------------------------------- */
+
 static keylist_t config_list[] = {
     {"installationdirectory", getInstDir},
     {"installdirectory", getInstDir},
@@ -2672,6 +2698,9 @@ static keylist_t config_list[] = {
     {"handleOldBins", getHandleOldBins},
     {"psiNodesSort", getPSINodesSort},
     {"plugins", getPlugins},
+    {"startupScript", getDaemonScript},
+    {"nodeUpScript", getDaemonScript},
+    {"nodeDownScript", getDaemonScript},
     {NULL, parser_error}
 };
 

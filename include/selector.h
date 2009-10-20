@@ -22,6 +22,7 @@
 #ifndef __SELECTOR_H
 #define __SELECTOR_H
 
+#include <stdio.h>
 #include <stdint.h>
 #include <sys/types.h>
 #include <sys/time.h>

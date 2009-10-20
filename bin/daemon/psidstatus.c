@@ -14,8 +14,11 @@ static char vcid[] __attribute__((used)) =
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <netdb.h>
+#include <sys/socket.h>
 
 /* Extra includes for load-determination */
 #ifdef __linux__
@@ -31,6 +34,7 @@ static char vcid[] __attribute__((used)) =
 #include "mcast.h"
 #include "rdp.h"
 #include "timer.h"
+#include "selector.h"
 
 #include "psidutil.h"
 #include "psidnodes.h"
@@ -44,6 +48,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidaccount.h"
 #include "psidstate.h"
 #include "psidspawn.h"
+#include "psidscripts.h"
 
 #include "psidstatus.h"
 
@@ -508,6 +513,91 @@ void releaseStatusTimer(void)
 /* Prototype forward declaration. */
 static int send_DEADNODE(PSnodes_ID_t deadnode);
 
+typedef struct {
+    int id;
+    char *script;
+} stateChangeInfo_t;
+
+static int stateChangeEnv(void *info)
+{
+    int nID = -1;
+    in_addr_t nAddr;
+    char *nName;
+    char val[16];
+
+    if (info) {
+	stateChangeInfo_t *i = info;
+	nID = i->id;
+    }
+    if (nID < 0 || nID >= PSC_getNrOfNodes()) nID = -1;
+
+    snprintf(val, sizeof(val), "%d", nID);
+    setenv("NODE_ID", val, 1);
+
+    if (nID < 0) return 0;
+
+    /* identify and set hostname */
+    nAddr = PSIDnodes_getAddr(nID);
+    if (nAddr == INADDR_ANY) {
+	nName = "<unknown>";
+    } else {
+	struct hostent *hp = gethostbyaddr(&nAddr, sizeof(nAddr), AF_INET);
+
+	if (!hp) {
+	    nName = "<unknown>";
+	} else {
+	    nName = hp->h_name;
+	}
+    }
+    setenv("NODE_NAME", nName, 1);
+
+    return 0;
+}
+
+static int stateChangeCB(int fd, PSID_scriptCBInfo_t *cbInfo)
+{
+    int nID = -1, result = -13, iofd = -1;
+    char *sName = "<unknown>";
+
+    if (!cbInfo) {
+	PSID_log(-1, "%s: No extra info\n", __func__);
+    } else {
+	if (cbInfo->info) {
+	    stateChangeInfo_t *i = cbInfo->info;
+	    nID = i->id;
+	    sName = i->script;
+	    free(cbInfo->info);
+	}
+	iofd = cbInfo->iofd;
+	free(cbInfo);
+    }
+
+    PSID_readall(fd, &result, sizeof(result));
+    close(fd);
+    if (result) {
+	char line[128] = { '\0' };
+	if (iofd > -1) {
+	    int num = PSID_readall(iofd, line, sizeof(line));
+	    int eno = errno;
+	    close(iofd); /* Discard further output */
+	    if (num < 0) {
+		PSID_warn(-1, eno, "%s: read(iofd)", __func__);
+		line[0] = '\0';
+	    } else if (num == sizeof(line)) {
+		strcpy(&line[sizeof(line)-4], "...");
+	    } else {
+		line[num]='\0';
+	    }
+	}
+	PSID_log(-1, "%s: script '%s' returned %d: '%s'\n", __func__,
+		 sName, result, line);
+    }
+
+    Selector_remove(fd);
+
+    return 0;
+}
+
 void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
 {
     list_t *t;
@@ -574,7 +664,18 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
 
 	declareMaster(node);
     } else if (PSC_getMyID() == getMasterID()) {
+	int *idInfo = malloc(sizeof(*idInfo));
+	if (!idInfo) {
+	    PSID_warn(-1, errno, "%s", __func__);
+	} else {
+	    *idInfo = id;
+	}
+
 	cleanupRequests(id);
+	if (config->nodeDownScript && *config->nodeDownScript) {
+	    PSID_execScript(config->nodeDownScript, stateChangeEnv,
+			    stateChangeCB, &idInfo);
+	}
     }
 
     if (config->useMCast) return;
@@ -626,7 +727,18 @@ void declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs)
     }
 
     if (!config->useMCast && getMasterID() == PSC_getMyID() && !wasUp) {
+	int *idInfo = malloc(sizeof(*idInfo));
+	if (!idInfo) {
+	    PSID_warn(-1, errno, "%s", __func__);
+	} else {
+	    *idInfo = id;
+	}
+
 	send_ACTIVENODES(id);
+	if (config->nodeUpScript && *config->nodeUpScript) {
+	    PSID_execScript(config->nodeUpScript, stateChangeEnv,
+			    stateChangeCB, &idInfo);
+	}
     }
 
     if (getMasterID() == PSC_getMyID() && !wasUp) {

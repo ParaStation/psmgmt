@@ -161,6 +161,35 @@ void PSIADM_SummaryStat(char *nl, int max);
 void PSIADM_StarttimeStat(char *nl);
 
 /**
+ * @brief Show node's script info.
+ *
+ * Show the ParaStation daemon's scripts of the nodes marked within
+ * the nodelist @a nl. Depending on the @a type argument, different
+ * information is listed:
+ *
+ * - PSP_INFO_STARTUPSCRIPT request the name of the script run during
+ * startup of the daemon in order to test local features and stati.
+ * This information is used to decide, if the local node is capable to
+ * take part in the cluster-action.
+ *
+ * - PSP_INFO_NODEUPSCRIPT request the name of the script called by
+ * the master daemon whenever a node becomes active in the concert of
+ * daemons within a cluster.
+ *
+ * - PSP_INFO_NODEDOWNSCRIPT request the name of the script called by
+ * the master daemon whenever a node disappeares from the concert of
+ * daemons within a cluster.
+ *
+ * @param type The type of scripts to display.
+ *
+ * @param nl The nodelist describing the nodes from which the
+ * information should be requested and put out.
+ *
+ * @return No return value.
+ */
+void PSIADM_ScriptStat(PSP_Info_t type, char *nl);
+
+/**
  * @brief Show some nodes.
  *
  * Show the nodes in the nodelist @a nl that are marked to

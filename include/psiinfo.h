@@ -201,6 +201,19 @@ int PSI_infoUInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * ID. The maximum size of the returned commandline is about 8000
  * byte.
  *
+ * - PSP_INFO_STARTUPSCRIPT request the name of the script run during
+ * startup of the daemon in order to test local features and stati
+ * used to decide, if the local node is capable to take part in the
+ * cluster-action.
+ *
+ * - PSP_INFO_NODEUPSCRIPT request the name of the script called by
+ * the master daemon whenever a node becomes active in the concert of
+ * daemons within a cluster.
+ *
+ * - PSP_INFO_NODEDOWNSCRIPT request the name of the script called by
+ * the master daemon whenever a node disappeares from the concert of
+ * daemons within a cluster.
+ *
  * @param node The ParaStation ID of the node to ask.
  *
  * @param what The type of information to request as described above.

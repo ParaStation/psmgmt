@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -11,7 +11,7 @@
  * \file
  * test_config: ParaStation configuration validator
  *
- * $Id$ 
+ * $Id$
  *
  * \author
  * Norbert Eicker <eicker@par-tec.com>
@@ -55,34 +55,35 @@ int main(int argc, const char *argv[])
     config_t *config;
 
     struct poptOption optionsTable[] = {
-        { "debug", 'd', POPT_ARG_INT, &debugmask, 0,
-          "enble debugging with mask <mask>", "mask"},
-        { "file", 'f', POPT_ARG_STRING, &file, 0,
-          "use <file> as config-file (default is /etc/parastation.conf)",
-          "file"},
-        { "version", 'v', POPT_ARG_NONE, &version, 0,
-          "output version information and exit", NULL},
-        POPT_AUTOHELP
-        { NULL, '\0', 0, NULL, 0, NULL, NULL}
+	{ "debug", 'd', POPT_ARG_INT, &debugmask, 0,
+	  "enble debugging with mask <mask>", "mask"},
+	{ "file", 'f', POPT_ARG_STRING, &file, 0,
+	  "use <file> as config-file (default is /etc/parastation.conf)",
+	  "file"},
+	{ "version", 'v', POPT_ARG_NONE, &version, 0,
+	  "output version information and exit", NULL},
+	POPT_AUTOHELP
+	{ NULL, '\0', 0, NULL, 0, NULL, NULL}
     };
 
     optCon = poptGetContext(NULL, argc, argv, optionsTable, 0);
     rc = poptGetNextOpt(optCon);
 
     if (version) {
-        printVersion();
-        return 0;
+	printVersion();
+	return 0;
     }
 
     if (rc < -1) {
-        /* an error occurred during option processing */
-        poptPrintUsage(optCon, stderr, 0);
-        printf("%s: %s", poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
+	/* an error occurred during option processing */
+	poptPrintUsage(optCon, stderr, 0);
+	printf("%s: %s", poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
 	       poptStrerror(rc));
 
-        return 1;
+	return 1;
     }
 
+    PSID_logger = logger_init(NULL, stderr);
     config = parseConfig(stderr, debugmask, file);
     if (!config) return 1;
 
