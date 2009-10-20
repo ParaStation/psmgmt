@@ -677,7 +677,7 @@ static uint16_t getTPPEnv(void)
     char *env = getenv("PSI_TPP"), *end;
     uint16_t tpp;
 
-    if (!env) getenv("OMP_NUM_THREADS");
+    if (!env) env = getenv("OMP_NUM_THREADS");
     if (!env) return 1;
 
     /* @todo Test further environments (are there further OMP_* variables?) */
