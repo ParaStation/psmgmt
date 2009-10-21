@@ -566,7 +566,7 @@ static int stateChangeCB(int fd, PSID_scriptCBInfo_t *cbInfo)
 	    stateChangeInfo_t *i = cbInfo->info;
 	    nID = i->id;
 	    sName = i->script;
-	    free(cbInfo->info);
+	    free(i);
 	}
 	iofd = cbInfo->iofd;
 	free(cbInfo);
@@ -664,17 +664,17 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
 
 	declareMaster(node);
     } else if (PSC_getMyID() == getMasterID()) {
-	int *idInfo = malloc(sizeof(*idInfo));
-	if (!idInfo) {
-	    PSID_warn(-1, errno, "%s", __func__);
-	} else {
-	    *idInfo = id;
-	}
-
 	cleanupRequests(id);
 	if (config->nodeDownScript && *config->nodeDownScript) {
+	    stateChangeInfo_t *info = malloc(sizeof(*info));
+	    if (!info) {
+		PSID_warn(-1, errno, "%s", __func__);
+	    } else {
+		info->id = id;
+		info->script = config->nodeDownScript;
+	    }
 	    PSID_execScript(config->nodeDownScript, stateChangeEnv,
-			    stateChangeCB, &idInfo);
+			    stateChangeCB, info);
 	}
     }
 
@@ -727,17 +727,17 @@ void declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs)
     }
 
     if (!config->useMCast && getMasterID() == PSC_getMyID() && !wasUp) {
-	int *idInfo = malloc(sizeof(*idInfo));
-	if (!idInfo) {
-	    PSID_warn(-1, errno, "%s", __func__);
-	} else {
-	    *idInfo = id;
-	}
-
 	send_ACTIVENODES(id);
 	if (config->nodeUpScript && *config->nodeUpScript) {
+	    stateChangeInfo_t *info = malloc(sizeof(*info));
+	    if (!info) {
+		PSID_warn(-1, errno, "%s", __func__);
+	    } else {
+		info->id = id;
+		info->script = config->nodeUpScript;
+	    }
 	    PSID_execScript(config->nodeUpScript, stateChangeEnv,
-			    stateChangeCB, &idInfo);
+			    stateChangeCB, info);
 	}
     }
 

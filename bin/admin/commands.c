@@ -476,13 +476,10 @@ void PSIADM_ScriptStat(PSP_Info_t type, char *nl)
     printf("%4s\t%s\n", "Node", "Script");
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
-
+	printf("%4d\t", node);
 	if (hostStatus.list[node]) {
-	    int err;
-
-	    printf("%4d\t", node);
-	    err = PSI_infoString(node, type, NULL, scriptName,
-				 sizeof(scriptName), 1);
+	    int err = PSI_infoString(node, type, NULL, scriptName,
+				     sizeof(scriptName), 1);
 	    if (!err) {
 		size_t len = strlen(scriptName);
 		if (len) {
@@ -494,9 +491,11 @@ void PSIADM_ScriptStat(PSP_Info_t type, char *nl)
 		} else {
 		    printf("<none>\n");
 		}
+	    } else {
+		printf("\n");
 	    }
 	} else {
-	    printf("%4d\tdown\n", node);
+	    printf("down\n");
 	}
     }
 }
