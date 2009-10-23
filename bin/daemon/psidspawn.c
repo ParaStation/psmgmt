@@ -2175,7 +2175,7 @@ static void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
 	     __func__, PSC_printTID(tid), parent);
 
     task = PStasklist_find(&managedTasks, ptid);
-    if (task) {
+    if (task && task->fd > -1) {
 	/* register the child */
 	PSID_setSignal(&task->childs, tid, -1);
 
@@ -2274,13 +2274,25 @@ static void msg_SPAWNFINISH(DDMsg_t *msg)
 static void msg_CHILDBORN(DDErrorMsg_t *msg)
 {
     PStask_t *forwarder = PStasklist_find(&managedTasks, msg->header.sender);
-    PStask_t *child;
+    PStask_t *child = PStasklist_find(&managedTasks, msg->request);
 
     PSID_log(PSID_LOG_SPAWN, "%s: from %s\n", __func__,
 	     PSC_printTID(msg->header.sender));
     if (!forwarder) {
 	PSID_log(-1, "%s: forwarder %s not found.\n", __func__,
 		 PSC_printTID(msg->header.sender));
+	return;
+    }
+
+    if (child) {
+	PSID_log(-1, "%s: child %s", __func__, PSC_printTID(msg->request));
+	PSID_log(-1, " already there. forwarder %s missed a message\n",
+		 PSC_printTID(msg->header.sender));
+	msg->header.type = PSP_DD_CHILDACK;
+	msg->header.dest = msg->header.sender;
+	msg->header.sender = PSC_getMyTID();
+	sendMsg(msg);
+
 	return;
     }
 

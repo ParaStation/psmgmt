@@ -715,6 +715,7 @@ static int connectLogger(PStask_ID_t tid)
     sendMsg(INITIALIZE, NULL, 0);
     PSID_blockSig(0, SIGCHLD);
 
+again:
     ret = recvMsg(&msg, &timeout);
 
     if (ret <= 0) {
@@ -731,6 +732,10 @@ static int connectLogger(PStask_ID_t tid)
 	loggerTID = -1;
 	errno = ECONNREFUSED;
 	return -1;
+    } else if (msg.header.type != PSP_CC_MSG) {
+	PSID_log(-1 ,"%s(%s): Protocol messed up, got %s message\n", __func__,
+		 PSC_printTID(tid), PSDaemonP_printMsg(msg.header.type));
+	goto again;
     } else if (msg.type != INITIALIZE) {
 	PSID_log(-1 ,"%s(%s): Protocol messed up\n",
 		 __func__, PSC_printTID(tid));
@@ -810,6 +815,10 @@ static void releaseLogger(int status)
     } else if (!ret) {
 	PSID_log(-1, "%s: receive timed out. Send again\n", __func__);
 	goto send_again;
+    } else if (msg.header.type != PSP_CC_MSG) {
+	PSID_log(-1 ,"%s: Protocol messed up, got %s message\n", __func__,
+		 PSDaemonP_printMsg(msg.header.type));
+	goto again;
     } else if (msg.type != EXIT) {
 	if (msg.type == INITIALIZE || msg.type == STDIN || msg.type == KVS) {
 	     /* Ignore late STDIN / KVS messages */
@@ -1663,12 +1672,15 @@ static void sendSpawnFailed(PStask_t *task, int eno)
  * @param task Structure describing the child-process that was
  * successfully spawned.
  *
- * @return No return value.
+ * @return On success, 0 is returned. Or -1, if an error
+ * occurred. Then errno is set appropriately.
  */
-static void sendChildBorn(PStask_t *task)
+static int sendChildBorn(PStask_t *task)
 {
     DDErrorMsg_t msg;
     PSLog_Msg_t answer;
+    struct timeval timeout;
+    int ret, eno;
 
     msg.header.type = PSP_DD_CHILDBORN;
     msg.header.dest = task->ptid;
@@ -1678,15 +1690,35 @@ static void sendChildBorn(PStask_t *task)
     msg.request = task->tid;
     msg.error = 0;
 
+send_again:
     sendDaemonMsg((DDMsg_t *)&msg);
 
-    recvMsg(&answer, NULL);
-    if (answer.header.type == PSP_DD_CHILDACK) {
+    timeout = (struct timeval) {loggerTimeout, 0};
+again:
+    ret = recvMsg(&answer, &timeout);
+
+    if (ret < 0) {
+	switch (errno) {
+	case EINTR:
+	    goto again;
+	    break;
+	default:
+	    eno = errno;
+	    PSID_warn(-1, eno, "%s: recvMsg()", __func__);
+	    errno = eno;
+	    return -1;
+	}
+    } else if (!ret) {
+	PSID_log(-1, "%s: receive timed out. Send again\n", __func__);
+	goto send_again;
+    } else if (answer.header.type == PSP_DD_CHILDACK) {
 	if (childTask->fd > -1) {
 	    close(childTask->fd);
 	    childTask->fd = -1;
 	} else {
 	    PSID_log(-1, "%s: cannot start child", __func__);
+	    errno = EPIPE;
+	    return -1;
 	}
     } else {
 	ssize_t ret = 0;
@@ -1700,7 +1732,11 @@ static void sendChildBorn(PStask_t *task)
 	    PSID_log(-1, "%s: cannot stop child, try to kill", __func__);
 	    sendSignal(PSC_getPID(childTask->tid), SIGKILL);
 	}
+	errno = ECHILD;
+	return -1;
     }
+
+    return 0;
 }
 
 /**
@@ -1866,6 +1902,23 @@ static void loop(void)
     return;
 }
 
+static void waitForChildsDead(void)
+{
+    while (1) {
+	PSLog_Msg_t msg;
+	struct timeval timeout = {10, 0};
+	int ret;
+
+	ret = recvMsg(&msg, &timeout); /* sleep in recvMsg */
+	if (ret > 0) {
+	    PSID_log(-1, "%s: recvMsg type %s from %s len %d\n", __func__,
+		     PSDaemonP_printMsg(msg.header.type),
+		     PSC_printTID(msg.header.sender), msg.header.len);
+	}
+	sendSignal(PSC_getPID(childTask->tid), SIGKILL);
+    }
+}
+
 /* see header file for docu */
 void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
 		    PMItype_t PMItype, int doAccounting, int acctPollInterval)
@@ -1889,18 +1942,6 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
 
     PSLog_init(daemonSock, childTask->rank, 2);
 
-    if (eno) {
-	sendSpawnFailed(childTask, eno);
-	exit(1);
-    } else {
-	sendChildBorn(childTask);
-    }
-
-    /* Make stdin nonblocking for us */
-    flags = fcntl(stdinSock, F_GETFL);
-    flags |= O_NONBLOCK;
-    fcntl(stdinSock, F_SETFL, flags);
-
     val = loggerTimeout;
     timeoutStr = getenv("__PSI_LOGGER_TIMEOUT");
     if (timeoutStr) {
@@ -1909,22 +1950,19 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
 	if (*timeoutStr && !*end && val>0) loggerTimeout = val;
     }
 
-    if (connectLogger(childTask->loggertid) != 0) {
-	/* There is no logger. Just kill and wait for the client to finish. */
-	while (1) {
-	    PSLog_Msg_t msg;
-	    struct timeval timeout = {10, 0};
-	    int ret;
-
-	    ret = recvMsg(&msg, &timeout); /* sleep in recvMsg */
-	    if (ret > 0) {
-		PSID_log(-1, "%s: recvMsg type %s from %s len %d\n", __func__,
-			 PSDaemonP_printMsg(msg.header.type),
-			 PSC_printTID(msg.header.sender), msg.header.len);
-	    }
-	    sendSignal(PSC_getPID(childTask->tid), SIGKILL);
-	}
+    if (eno) {
+	sendSpawnFailed(childTask, eno);
+	exit(1);
+    } else {
+	if (sendChildBorn(childTask) != 0) waitForChildsDead();
     }
+
+    /* Make stdin nonblocking for us */
+    flags = fcntl(stdinSock, F_GETFL);
+    flags |= O_NONBLOCK;
+    fcntl(stdinSock, F_SETFL, flags);
+
+    if (connectLogger(childTask->loggertid) != 0) waitForChildsDead();
 
     /* Send this message late. No connection to logger before */
     if (loggerTimeout != val)
