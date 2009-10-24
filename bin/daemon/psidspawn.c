@@ -2454,34 +2454,33 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	    PSID_log(-1, " from %s. Sending signal now.\n",
 		     PSC_printTID(msg->request));
 	    PSID_sendSignal(task->tid, task->uid, msg->request, -1, 0, 0);
-	} else {
-	    if (!PSID_removeSignal(&task->childs, msg->request, -1)) {
-		/* No child found. Might already be inherited by parent */
-		if (task->ptid) {
-		    msg->header.dest = task->ptid;
+	}
+	if (!PSID_removeSignal(&task->childs, msg->request, -1)) {
+	    /* No child found. Might already be inherited by parent */
+	    if (task->ptid) {
+		msg->header.dest = task->ptid;
 
-		    PSID_log(PSID_LOG_SPAWN,
-			     "%s: forward PSP_DD_CHILDDEAD from %s",
-			     __func__, PSC_printTID(msg->request));
-		    PSID_log(PSID_LOG_SPAWN, " dest %s",
-			     PSC_printTID(task->tid));
-		    PSID_log(PSID_LOG_SPAWN, "->%s\n",
-			     PSC_printTID(task->ptid));
-
-		    sendMsg(msg);
-		}
-		/* To be sure, mark child as released */
-		PSID_log(PSID_LOG_SPAWN, "%s: %s not (yet?) child of",
+		PSID_log(PSID_LOG_SPAWN,
+			 "%s: forward PSP_DD_CHILDDEAD from %s",
 			 __func__, PSC_printTID(msg->request));
-		PSID_log(PSID_LOG_SPAWN, " %s\n", PSC_printTID(task->tid));
-		PSID_setSignal(&task->deadBefore, msg->request, -1);
-	    }
+		PSID_log(PSID_LOG_SPAWN, " dest %s",
+			 PSC_printTID(task->tid));
+		PSID_log(PSID_LOG_SPAWN, "->%s\n",
+			 PSC_printTID(task->ptid));
 
-	    if (task->removeIt && list_empty(&task->childs)) {
-		PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
-		PStask_cleanup(task->tid);
-		return;
+		sendMsg(msg);
 	    }
+	    /* To be sure, mark child as released */
+	    PSID_log(PSID_LOG_SPAWN, "%s: %s not (yet?) child of",
+		     __func__, PSC_printTID(msg->request));
+	    PSID_log(PSID_LOG_SPAWN, " %s\n", PSC_printTID(task->tid));
+	    PSID_setSignal(&task->deadBefore, msg->request, -1);
+	}
+
+	if (task->removeIt && list_empty(&task->childs)) {
+	    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
+	    PStask_cleanup(task->tid);
+	    return;
 	}
 
 	/* Release a TG_(PSC)SPAWNER if child died in a fine way */
