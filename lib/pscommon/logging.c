@@ -90,17 +90,17 @@ logger_t* logger_init(char* tag, FILE* logfile)
 static inline char *getTimeStr(logger_t *logger)
 {
     static char timeStr[40];
-    struct timeval time; 
+    struct timeval time;
 
     if (!logger || !logger->timeFlag) return "";
 
     gettimeofday(&time, NULL);
 
     strftime(timeStr, sizeof(timeStr), "[%H:%M:%S", localtime(&time.tv_sec));
-    
+
     snprintf(timeStr+strlen(timeStr), sizeof(timeStr)-strlen(timeStr),
 	    ".%ld]", (long)time.tv_usec);
-    
+
     return timeStr;
 }
 
@@ -148,7 +148,7 @@ static void do_print(logger_t* logger, const char* format, va_list ap)
 
     if (!logger) return;
     tag = logger->tag;
-    
+
     if (!logger->trail) {
 	char *timeStr = getTimeStr(logger);
 	len = snprintf(prefix, prfxlen, "%s%s%s", tag ? tag : "", timeStr,
