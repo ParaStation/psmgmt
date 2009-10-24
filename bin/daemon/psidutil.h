@@ -172,9 +172,10 @@ void PSID_readConfigFile(FILE* logfile, char *configfile);
  *
  * @param sig The signal to block or unblock.
  *
- * @return No return value.
+ * @return Flag, if signal was blocked before. I.e. return 1, if
+ * signal was blocked or 0 otherwise.
  */
-void PSID_blockSig(int block, int sig);
+int PSID_blockSig(int block, int sig);
 
 /**
  * @brief Get number of virtual CPUs.

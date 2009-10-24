@@ -62,16 +62,18 @@ void PSID_setDebugMask(int32_t mask)
     logger_setMask(PSID_logger, mask);
 }
 
-void PSID_blockSig(int block, int sig)
+int PSID_blockSig(int block, int sig)
 {
-    sigset_t set;
+    sigset_t set, oldset;
 
     sigemptyset(&set);
     sigaddset(&set, sig);
 
-    if (sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &set, NULL)) {
+    if (sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &set, &oldset)) {
 	PSID_log(-1, "%s: sigprocmask()\n", __func__);
     }
+
+    return sigismember(&oldset, sig);
 }
 
 /* Reading and basic handling of the configuration */
