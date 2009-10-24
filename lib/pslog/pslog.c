@@ -96,9 +96,11 @@ static int dorecv(char *buf, size_t count)
     while(count > 0) {      /* Complete message */
 	n = recv(daemonsock, buf, count, 0);
 	if (n < 0) {
-	    if (errno == EAGAIN) {
+	    switch (errno) {
+	    case EAGAIN:
 		continue;
-	    } else {
+		break;
+	    default:
 		return n;             /* error, return < 0 */
 	    }
 	} else if (n == 0) {
@@ -131,10 +133,12 @@ int PSLog_read(PSLog_Msg_t *msg, struct timeval *timeout)
 	FD_SET(daemonsock, &rfds);
 	n = select(daemonsock+1, &rfds, NULL, NULL, timeout);
 	if (n < 0) {
-	    if (errno == EINTR) {
+	    switch (errno) {
+	    case EINTR:
 		/* Interrupted syscall, just start again */
 		goto restart;
-	    } else {
+		break;
+	    default:
 		return n;
 	    }
 	}
