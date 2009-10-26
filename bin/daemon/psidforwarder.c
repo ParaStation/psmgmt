@@ -567,7 +567,7 @@ static void handleSignalMsg(PSLog_Msg_t *msg)
  */
 static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 {
-    int ret;
+    int ret, blocked;
 
     if (daemonSock < 0) {
 	PSID_log(-1, "%s: not connected\n", __func__);
@@ -579,66 +579,76 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 again:
     ret = PSLog_read(msg, timeout);
 
+    blocked = PSID_blockSig(1, SIGCHLD);
+
     if (ret < 0) {
-	PSID_warn(-1, errno, "%s: PSLog_read()", __func__);
-	closeDaemonSock();
-
-	return ret;
-    }
-
-    if (!ret) {
+	switch (errno) {
+	case EOPNOTSUPP:
+	    if (timeout) {
+		PSID_blockSig(blocked, SIGCHLD);
+		goto again;
+	    }
+	    break;
+	default:
+	    PSID_warn(-1, errno, "%s: PSLog_read()", __func__);
+	    closeDaemonSock();
+	}
+    } else if (!ret) {
 	if (!timeout) {
 	    PSID_log(-1, "%s: logger closed connection", __func__);
 	    closeDaemonSock();
 	}
-	return ret;
-    }
+    } else {
+	switch (msg->header.type) {
+	case PSP_CC_ERROR:
+	    if (msg->header.sender == loggerTID) {
+		PSID_log(-1, "%s: logger %s disappeared\n",
+			 __func__, PSC_printTID(loggerTID));
+		loggerTID = -1;
+		errno = EPIPE;
+		ret = -1;
+	    } else {
+		PSID_log(-1, "%s: CC_ERROR from %s\n",
+			 __func__, PSC_printTID(msg->header.sender));
+		ret = 0;
+	    }
+	    break;
+	case PSP_CC_MSG:
+	    switch (msg->type) {
+	    case SIGNAL:
+		handleSignalMsg(msg);
+		if (timeout) {
+		    PSID_blockSig(blocked, SIGCHLD);
+		    goto again;
+		}
+		errno = EINTR;
+		ret = -1;
+		break;
+	    default:
+		break;
+	    }
+	    break;
+	case PSP_CD_RELEASERES:
+	    /* finaly release the pmi client */
+	    if (pmiType != PMI_DISABLED) {
+		/* release the pmi client */
+		pmi_finalize();
 
-    switch (msg->header.type) {
-    case PSP_CC_ERROR:
-	if (msg->header.sender == loggerTID) {
-	    PSID_log(-1, "%s: logger %s disappeared\n",
-		     __func__, PSC_printTID(loggerTID));
-	    loggerTID = -1;
-	    errno = EPIPE;
-	    ret = -1;
-	} else {
-	    PSID_log(-1, "%s: CC_ERROR from %s\n",
-		     __func__, PSC_printTID(msg->header.sender));
-	    ret = 0;
-	}
-	break;
-    case PSP_CC_MSG:
-	switch (msg->type) {
-	case SIGNAL:
-	    handleSignalMsg(msg);
-	    if (timeout) goto again;
-	    errno = EINTR;
-	    ret = -1;
+		/*close connection */
+		closePMIClientSocket();
+	    }
+	    break;
+	case PSP_DD_CHILDACK:
+	case PSP_DD_CHILDDEAD:
 	    break;
 	default:
-	    break;
+	    PSID_log(-1, "%s: Unknown message type %s\n",
+		     __func__, PSDaemonP_printMsg(msg->type));
+	    ret = 0;
 	}
-	break;
-    case PSP_CD_RELEASERES:
-	/* finaly release the pmi client */
-	if (pmiType != PMI_DISABLED) {
-	    /* release the pmi client */
-	    pmi_finalize();
-
-	    /*close connection */
-	    closePMIClientSocket();
-	}
-	break;
-    case PSP_DD_CHILDACK:
-    case PSP_DD_CHILDDEAD:
-	break;
-    default:
-	PSID_log(-1, "%s: Unknown message type %s\n",
-		 __func__, PSDaemonP_printMsg(msg->type));
-	ret = 0;
     }
 
+    PSID_blockSig(blocked, SIGCHLD);
     return ret;
 }
 
@@ -709,14 +719,14 @@ static int connectLogger(PStask_ID_t tid)
     struct timeval timeout = {loggerTimeout, 0};
     int ret;
 
-    PSID_blockSig(1, SIGCHLD);
     loggerTID = tid; /* Only set for the first sendMsg()/recvMsg() pair */
 
     sendMsg(INITIALIZE, NULL, 0);
-    PSID_blockSig(0, SIGCHLD);
 
 again:
+    PSID_blockSig(0, SIGCHLD);
     ret = recvMsg(&msg, &timeout);
+    PSID_blockSig(1, SIGCHLD);
 
     if (ret <= 0) {
 	PSID_log(-1, "%s(%s): Connection refused\n",
@@ -795,7 +805,7 @@ static void releaseLogger(int status)
  send_again:
     sendMsg(FINALIZE, (char *)&status, sizeof(status));
 
-    timeout = (struct timeval) {loggerTimeout, 0};
+    timeout = (struct timeval) {10, 0};
 
  again:
     ret = recvMsg(&msg, &timeout);
@@ -1043,6 +1053,9 @@ static int readFromLogger(void)
 			PSIDfwd_printMsg(STDERR, obuf);
 		    }
 		}
+		break;
+	    case INITIALIZE:
+		/* ignore late INITIALIZE answer */
 		break;
 	    default:
 		snprintf(obuf, sizeof(obuf),
@@ -1354,6 +1367,9 @@ static void sighandler(int sig)
 	snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "\n");
 	PSIDfwd_printMsg(STDERR, txt);
 	PSID_log(-1, "%s: %s", __func__, txt);
+	break;
+    case SIGTTIN:
+	PSIDfwd_printMsg(STDERR, "got SIGTTIN\n");
 	break;
     case SIGCHLD:
 	if (verbose) {
@@ -1693,7 +1709,7 @@ static int sendChildBorn(PStask_t *task)
 send_again:
     sendDaemonMsg((DDMsg_t *)&msg);
 
-    timeout = (struct timeval) {loggerTimeout, 0};
+    timeout = (struct timeval) {10, 0};
 again:
     ret = recvMsg(&answer, &timeout);
 
@@ -1739,6 +1755,27 @@ again:
     return 0;
 }
 
+static void prepareFdSets(void)
+{
+    FD_ZERO(&readfds);
+    if (stdoutSock != -1) {
+	FD_SET(stdoutSock, &readfds);
+	openfds++;
+    }
+    if (stderrSock != -1 && stderrSock != stdoutSock) {
+	FD_SET(stderrSock, &readfds);
+	openfds++;
+    }
+    FD_SET(daemonSock, &readfds);
+    if (PMISock != -1) {
+	FD_SET(PMISock, &readfds);
+    }
+    if (PMIClientSock != -1) {
+	FD_SET(PMIClientSock, &readfds);
+    }
+    FD_ZERO(&writefds);
+}
+
 /**
  * @brief The main loop
  *
@@ -1770,24 +1807,6 @@ static void loop(void)
 		 stdinSock, stdoutSock, stderrSock);
 	PSIDfwd_printMsg(STDERR, obuf);
     }
-
-    FD_ZERO(&readfds);
-    if (stdoutSock != -1) {
-	FD_SET(stdoutSock, &readfds);
-	openfds++;
-    }
-    if (stderrSock != -1 && stderrSock != stdoutSock) {
-	FD_SET(stderrSock, &readfds);
-	openfds++;
-    }
-    FD_SET(daemonSock, &readfds);
-    if (PMISock != -1) {
-	FD_SET(PMISock, &readfds);
-    }
-    if (PMIClientSock != -1) {
-	FD_SET(PMIClientSock, &readfds);
-    }
-    FD_ZERO(&writefds);
 
     /* Loop forever. We exit on SIGCHLD. */
     PSID_blockSig(0, SIGCHLD);
@@ -1904,18 +1923,21 @@ static void loop(void)
 
 static void waitForChildsDead(void)
 {
+    PSID_blockSig(0, SIGCHLD);
     while (1) {
 	PSLog_Msg_t msg;
 	struct timeval timeout = {10, 0};
 	int ret;
 
 	ret = recvMsg(&msg, &timeout); /* sleep in recvMsg */
+	PSID_blockSig(1, SIGCHLD);
 	if (ret > 0) {
 	    PSID_log(-1, "%s: recvMsg type %s from %s len %d\n", __func__,
 		     PSDaemonP_printMsg(msg.header.type),
 		     PSC_printTID(msg.header.sender), msg.header.len);
 	}
 	sendSignal(PSC_getPID(childTask->tid), SIGKILL);
+	PSID_blockSig(0, SIGCHLD);
     }
 }
 
@@ -1937,8 +1959,10 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
     stderrSock = task->stderr_fd;
 
     /* catch SIGCHLD from client */
+    PSID_blockSig(1, SIGCHLD);
     signal(SIGCHLD, sighandler);
     signal(SIGUSR1, sighandler);
+    signal(SIGTTIN, sighandler);
 
     PSLog_init(daemonSock, childTask->rank, 2);
 
@@ -1962,20 +1986,11 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
     flags |= O_NONBLOCK;
     fcntl(stdinSock, F_SETFL, flags);
 
-    if (connectLogger(childTask->loggertid) != 0) waitForChildsDead();
-
-    /* Send this message late. No connection to logger before */
-    if (loggerTimeout != val)
-	PSIDfwd_printMsgf(STDERR, "PSID_forwarder: Illegal value"
-			  " '%s' for __PSI_LOGGER_TIMEOUT\n", timeoutStr);
-
     /* Set up pmi connection */
     pmiType = PMItype;
     switch (pmiType) {
     case PMI_OVER_UNIX:
 	PMIClientSock = PMISocket;
-	/* init the pmi interface */
-	pmi_init(PMIClientSock, childTask->loggertid, childTask->rank);
 	break;
     case PMI_OVER_TCP:
 	PMISock = PMISocket;
@@ -1985,6 +2000,22 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
     default:
 	PSID_log(-1, "%s: wrong pmi type: %i\n", __func__, pmiType);
 	pmiType = PMI_DISABLED;
+    }
+
+    prepareFdSets();
+
+    if (connectLogger(childTask->loggertid) != 0) waitForChildsDead();
+
+    /* Send this message late. No connection to logger before */
+    if (loggerTimeout != val)
+	PSIDfwd_printMsgf(STDERR, "PSID_forwarder: Illegal value"
+			  " '%s' for __PSI_LOGGER_TIMEOUT\n", timeoutStr);
+
+    /* Set up pmi connection */
+    pmiType = PMItype;
+    if (pmiType == PMI_OVER_UNIX) {
+	/* init the pmi interface */
+	pmi_init(PMIClientSock, childTask->loggertid, childTask->rank);
     }
 
     /* read plattform version */
