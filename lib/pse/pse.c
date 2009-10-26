@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -46,7 +46,7 @@ static logger_t *logger;
 
 typedef enum {
     PSE_LOG_SPAWN = PSI_LOG_SPAWN,
-    PSE_LOG_VERB = PSI_LOG_VERB, 
+    PSE_LOG_VERB = PSI_LOG_VERB,
 } PSE_log_key_t;
 
 static void exitAll(char *reason, int code)
@@ -136,7 +136,12 @@ int PSE_getSize(void)
 
 int PSE_getRank(void)
 {
-   return worldRank;
+    if (worldRank == -42) {
+	logger_print(logger, -1, "%s: not initialized\n", __func__);
+
+	exit(1);
+    }
+    return worldRank;
 }
 
 int PSE_getPartition(unsigned int num)
@@ -167,7 +172,7 @@ int PSE_setHWList(char **hwList)
 {
     uint32_t hwType = 0;
     int ret = 0;
-    
+
     while (hwList && *hwList) {
 	int err, idx;
 	err = PSI_infoInt(-1, PSP_INFO_HWINDEX, *hwList, &idx, 0);

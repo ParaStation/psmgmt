@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -100,7 +100,8 @@ int PSE_getSize(void);
  * parallel task.
  *
  * @return On success, the actual rank of the process within the group
- * is returned, or -2, if an error occurred.
+ * is returned. If PSE is not yet initialized, some error-message is
+ * created and exit() is called.
  *
  * @see PSE_getSize(), PSE_spawnMaster(), PSE_spawnTasks()
  * */
