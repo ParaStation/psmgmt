@@ -390,7 +390,7 @@ void setupGlobalEnv(int admin, int np)
 static void createSpawner(int argc, char *argv[], int np, int admin)
 {
     char *ldpath = getenv("LD_LIBRARY_PATH");
-    int rank;
+    int rank = PSE_getRank();
     char tmp[1024];
     PSnodes_ID_t nodeID;
     char *pwd = NULL;
@@ -398,9 +398,6 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
     if (ldpath != NULL) {
 	setPSIEnv("LD_LIBRARY_PATH", ldpath, 1);
     }
-
-    PSE_initialize();
-    rank = PSE_getRank();
 
     if (rank==-1) {
 	PSnodes_ID_t *nds;
@@ -916,8 +913,8 @@ static void setupPSIDEnv(int verbose)
 	    "debug mode on.\n");
     }
 
-    if (envlist) {
-	char *val = NULL;
+    if (envlist && !getenv("__PSI_CORESIZE")) { /* HACK: this determines, if */
+	char *val = NULL;			/* we are the root-process */
 
 	envstr = getenv("PSI_EXPORTS");
 	if (envstr) {
@@ -927,8 +924,8 @@ static void setupPSIDEnv(int verbose)
 	    val = strdup(envlist);
 	}
 	setenv("PSI_EXPORTS", val, 1);
-	free(val);
 	if (verbose) printf("Environment variables to be exported: %s\n", val);
+	free(val);
     }
 
     envstr = getenv("PSI_NODES");
@@ -1017,6 +1014,10 @@ static void setupEnvironment(int verbose)
 	umask(u_mask);
     }
 
+    /* setup environment depending on psid/logger */
+    /* This has to be called *before* PSE_initialize */
+    setupPSIDEnv(verbose);
+
     PSE_initialize();
     rank = PSE_getRank();
 
@@ -1025,9 +1026,6 @@ static void setupEnvironment(int verbose)
 
     /* setup environment depending on pscom library */
     setupPSCOMEnv(verbose);
-
-    /* setup environment depending on psid/logger */
-    setupPSIDEnv(verbose);
 
     /* Setup various environment variables depending on passed arguments */
     if (envall) {
@@ -1197,7 +1195,6 @@ static void setupAdminEnv(void)
 	unsetenv("PSI_ADMIN_HOSTS");
     }
 
-    PSE_initialize();
     if (PSE_getRank() == -1) {
 	if (envhostsfile) {
 	    parseHostfile(envhostsfile, hosts, sizeof(hosts));
@@ -1973,11 +1970,11 @@ int main(int argc, char *argv[])
 	pmienablesockp = 0;
     }
 
-    /* setup the environment for admin tasks */
-    if (admin) setupAdminEnv();
-
     /* setup the parastation environment */
     setupEnvironment(verbose);
+
+    /* setup the environment for admin tasks */
+    if (admin) setupAdminEnv();
 
     /* load libelan if available */
     checkForELAN();
