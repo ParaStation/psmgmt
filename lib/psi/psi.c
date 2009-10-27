@@ -776,4 +776,8 @@ void PSI_propEnv(void)
     for (i=0; environ[i]; i++) {
 	if (!(strncmp(environ[i], "__PSI_", 6))) putPSIEnv(environ[i]);
     }
+    /* export all OMP_* vars to the ParaStation environment */
+    for (i=0; environ[i]; i++) {
+	if (!(strncmp(environ[i], "OMP_", 4))) putPSIEnv(environ[i]);
+    }
 }
