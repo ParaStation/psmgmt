@@ -755,6 +755,14 @@ void PSI_propEnv(void)
     }
     setPSIEnv("__PSI_DATASIZE", valStr, 1);
 
+    getrlimit(RLIMIT_AS, &rlim);
+    if (rlim.rlim_cur == RLIM_INFINITY) {
+	snprintf(valStr, sizeof(valStr), "infinity");
+    } else {
+	snprintf(valStr, sizeof(valStr), "%lx", rlim.rlim_cur);
+    }
+    setPSIEnv("__PSI_ASSIZE", valStr, 1);
+
     mask = umask(0);
     umask(mask);
     snprintf(valStr, sizeof(valStr), "%o", mask);
