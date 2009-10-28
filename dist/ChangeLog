@@ -1,4 +1,109 @@
-Version psmgmt-5.0.21:
+Version psmgmt-5.0.23:
+======================
+------------------------------------------------------------------------
+r7893 | eicker | 2009-10-28 22:40:31 +0100 (Wed, 28 Oct 2009) | 2 lines
+
+Bugfix: Clear possible garbage before creating __PINNING__ environment.
+
+------------------------------------------------------------------------
+r7892 | eicker | 2009-10-27 22:18:50 +0100 (Tue, 27 Oct 2009) | 2 lines
+
+Enhancement: Propagate all OMP_* environment to spawned processes.
+
+------------------------------------------------------------------------
+r7891 | eicker | 2009-10-27 18:49:16 +0100 (Tue, 27 Oct 2009) | 3 lines
+
+Enhancement: Also propagate limits on the address-space to spawned
+    processes.
+
+------------------------------------------------------------------------
+r7889 | eicker | 2009-10-26 09:54:25 +0100 (Mon, 26 Oct 2009) | 2 lines
+
+Bugfix: Forwarders might miss some output of childs running very shortly.
+
+------------------------------------------------------------------------
+r7888 | eicker | 2009-10-26 09:34:34 +0100 (Mon, 26 Oct 2009) | 2 lines
+
+Bugfix: Make mpiexec's --exports, -envlist, etc. options actually work.
+
+------------------------------------------------------------------------
+r7887 | eicker | 2009-10-26 09:31:49 +0100 (Mon, 26 Oct 2009) | 2 lines
+
+Let PSE_getRank() exit(), if PSE_initialize was not called before.
+
+------------------------------------------------------------------------
+r7886 | eicker | 2009-10-25 01:15:28 +0200 (Sun, 25 Oct 2009) | 2 lines
+
+Bugfix: Always remove child from child-list in case of CHILDDEAD message.
+
+------------------------------------------------------------------------
+r7885 | eicker | 2009-10-25 01:14:12 +0200 (Sun, 25 Oct 2009) | 2 lines
+
+Enhancement: Let PSID_blockSig() return the old blocking status.
+
+------------------------------------------------------------------------
+r7884 | eicker | 2009-10-25 01:12:34 +0200 (Sun, 25 Oct 2009) | 2 lines
+
+Use switch() instead of if-chains.
+
+------------------------------------------------------------------------
+r7883 | eicker | 2009-10-24 23:42:47 +0200 (Sat, 24 Oct 2009) | 2 lines
+
+Fix whitespace problems.
+
+------------------------------------------------------------------------
+r7882 | eicker | 2009-10-23 21:26:52 +0200 (Fri, 23 Oct 2009) | 3 lines
+
+Enhancement: Also propagate limits on the data segment to spawned
+    processes.
+
+------------------------------------------------------------------------
+r7881 | eicker | 2009-10-23 21:16:08 +0200 (Fri, 23 Oct 2009) | 2 lines
+
+Bugfix: Close two more holes that might lead to left-over processes.
+
+------------------------------------------------------------------------
+r7878 | eicker | 2009-10-21 13:24:51 +0200 (Wed, 21 Oct 2009) | 4 lines
+
+Bugfix: Make script-hooks triggered by node-status actually woring. This
+    fixed a bug introduced in r7875
+Fix some glitches in psiadmin's output of 'list <script>'.
+
+------------------------------------------------------------------------
+r7877 | eicker | 2009-10-21 12:35:04 +0200 (Wed, 21 Oct 2009) | 2 lines
+
+Prevent master-psid from spoiling the syslog.
+
+------------------------------------------------------------------------
+r7876 | eicker | 2009-10-20 21:26:49 +0200 (Tue, 20 Oct 2009) | 3 lines
+
+Bugfix: Actually look into OMP_NUM_THREADS. This makes r7856 really
+    working.
+
+------------------------------------------------------------------------
+r7875 | eicker | 2009-10-20 21:23:40 +0200 (Tue, 20 Oct 2009) | 8 lines
+
+Enhancement: Implement various script-hooks:
+ - script called during startup (#378)
+ - script called on master-node, if nodes goes down (#340)
+ - script called on master-node, if nodes comes up (extension of #340)
+Scripts can only be configured during startup, i.e. in the config-file
+Scripts configured can be requested via node list-directives in
+    psiadmin.
+
+------------------------------------------------------------------------
+r7856 | eicker | 2009-10-19 12:12:40 +0200 (Mon, 19 Oct 2009) | 2 lines
+
+Enhancement: Look into OMP_NUM_THREADS, if PSI_TPP is not set.
+
+------------------------------------------------------------------------
+r7852 | eicker | 2009-10-19 09:20:07 +0200 (Mon, 19 Oct 2009) | 2 lines
+
+New version (psmgmt-5.0.22)
+
+------------------------------------------------------------------------
+
+Version psmgmt-5.0.22:
 ======================
 ------------------------------------------------------------------------
 r7851 | eicker | 2009-10-19 08:52:55 +0200 (Mon, 19 Oct 2009) | 2 lines
