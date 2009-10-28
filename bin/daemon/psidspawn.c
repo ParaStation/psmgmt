@@ -496,7 +496,7 @@ static cpu_set_t *mapCPUs(PSCPU_set_t set)
     }
 
     {
-	char txt[PSCPU_MAX+2];
+	char txt[PSCPU_MAX+2] = { '\0' };
 	int i;
 	for (i=maxCPU-1; i>=0; i--) {
 	    if (CPU_ISSET(i, &physSet))
