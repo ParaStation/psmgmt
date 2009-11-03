@@ -478,6 +478,22 @@ static void sighandler(int sig)
     switch(sig) {
     case SIGTERM:
 	if (verbose) fprintf(stderr, "Got sigterm\n");
+	{
+	  DDSignalMsg_t msg;
+
+	  msg.header.type = PSP_CD_WHODIED;
+	  msg.header.sender = PSC_getMyTID();
+	  msg.header.dest = 0;
+	  msg.header.len = sizeof(msg);
+	  msg.signal = sig;
+
+	  if (PSI_sendMsg(&msg)<0) {
+	    int eno = errno;
+	    fprintf(stderr, "%s: PSI_sendMsg()", __func__);
+	    errno = eno;
+	    perror("");
+	  }
+	}
 	break;
     default:
 	if (verbose) fprintf(stderr, "Got signal %d.\n", sig);

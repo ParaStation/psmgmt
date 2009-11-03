@@ -258,6 +258,7 @@ int handleAnswer(int count, PSnodes_ID_t *dstnodes, int *errors,
 {
     DDBufferMsg_t answer;
     DDErrorMsg_t *errMsg = (DDErrorMsg_t *)&answer;
+    DDSignalMsg_t *sigMsg = (DDSignalMsg_t *)&answer;
     int i;
 
     if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer))<0) {
@@ -312,8 +313,12 @@ int handleAnswer(int count, PSnodes_ID_t *dstnodes, int *errors,
 	    return 0;
 	}
 	break;
+    case PSP_CD_WHODIED:
+	PSI_log(-1, "Got signal %d from %s\n", sigMsg->signal,
+		PSC_printTID(sigMsg->header.sender));
+	break;
     default:
-	PSI_log(-1, "%s: UNKNOWN answer (%s)\n", __func__,
+	PSI_log(-1, "%s: unexpected answer %s\n", __func__,
 		PSP_printMsg(answer.header.type));
 	errors[0] = 0;
 	return 2; /* Ignore answer */

@@ -456,7 +456,7 @@ static void sendKvsUpdateToClients(void)
 static void handleBarrierTimeout(void)
 {
     PSIlog_log(-1, "Timeout: Not all clients joined the first pmi barrier: "
-	       "joined=%i left=%i round=%i", kvsBarrierInCount,
+	       "joined=%i left=%i round=%i\n", kvsBarrierInCount,
 	       noKvsClients - kvsBarrierInCount, barrierRounds-barrierCount+1);
     if (--barrierCount) return;
 
