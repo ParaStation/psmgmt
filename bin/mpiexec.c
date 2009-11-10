@@ -1031,17 +1031,16 @@ static void setupEnvironment(int verbose)
     }
 
     /* setup environment depending on psid/logger */
-    /* This has to be called *before* PSE_initialize */
     setupPSIDEnv(verbose);
+    /* setup environment depending on pscom library */
+    setupPSCOMEnv(verbose);
+    /* Both have to be called *before* PSE_initialize */
 
     PSE_initialize();
     rank = PSE_getRank();
 
     /* be only verbose if we are the logger */
     if (rank != -1) verbose = 0;
-
-    /* setup environment depending on pscom library */
-    setupPSCOMEnv(verbose);
 
     /* Setup various environment variables depending on passed arguments */
     if (envall) {
