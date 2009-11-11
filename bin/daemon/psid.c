@@ -231,8 +231,7 @@ static void RDPCallBack(int msgid, void *buf)
 	    int node = *(int*)buf;
 	    PSID_log(node != PSC_getMyID() ? PSID_LOG_STATUS|PSID_LOG_RDP : -1,
 		     "%s(RDP_LOST_CONNECTION,%d)\n", __func__, node);
-	    // if (node == PSC_getMyID()) break;
-	    declareNodeDead(node, 1, 0);
+	    if (node != PSC_getMyID()) declareNodeDead(node, 1, 0);
 	}
 	break;
     case RDP_CAN_CONTINUE:
