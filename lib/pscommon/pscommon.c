@@ -31,7 +31,9 @@ static char vcid[] __attribute__((used)) =
 logger_t* PSC_logger = NULL;
 
 static PSnodes_ID_t nrOfNodes = -1;
-static PSnodes_ID_t myID = -1;
+/* @todo HACK HACK HACK needed for special debug in rdp */
+//static PSnodes_ID_t myID = -1;
+PSnodes_ID_t myID = -1;
 
 static PStask_ID_t myTID = -1;
 

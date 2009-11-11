@@ -624,6 +624,9 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
 }
 
 
+/* @todo HACK HACK HACK needed for special debug in rdp */
+extern int16_t myID;
+
 /**
  * @brief Send a message
  *
@@ -677,6 +680,12 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 	msg->seqno = pshton32(msg->seqno);
 	msg->ackno = pshton32(msg->ackno);
 	msg->connid = pshton32(msg->connid);
+    }
+    {
+	/* @todo special debug to hunt #442 */
+	rdphdr_t *msg = buf;
+	if (node == myID) RDP_log(-1, "%s: send message type %d to myself\n",
+				  __func__, psntoh16(msg->type));
     }
  restart:
     ret = sendto(sock, buf, len, flags, to, tolen);
