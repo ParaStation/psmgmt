@@ -1144,8 +1144,7 @@ static void resendMsgs(int node)
     timeradd(&tv, &RESEND_TIMEOUT, &conntable[node].tmout);
 
     if (conntable[node].retrans > RDPMaxRetransCount) {
-	// RDP_log((conntable[node].state != ACTIVE) ? RDP_LOG_CONN : -1, @todo
-	RDP_log(-1,
+	RDP_log((conntable[node].state != ACTIVE) ? RDP_LOG_CONN : -1,
 		"%s: Retransmission count exceeds limit"
 		" [seqno=%x], closing connection to %d\n",
 		__func__, conntable[node].ackExpected, node);
