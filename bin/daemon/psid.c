@@ -501,8 +501,11 @@ void checkObstinate(void)
 	PStask_t *task = list_entry(t, PStask_t, next);
 
 	if (task->deleted) {
-	    PStasklist_dequeue(task);
-	    PStask_delete(task);
+	    /* If task is still connected, wait for connection closed */
+	    if (task->fd == -1) {
+		PStasklist_dequeue(task);
+		PStask_delete(task);
+	    }
 	} else if (task->killat && now > task->killat) {
 	    int ret;
 	    if (task->group != TG_LOGGER) {
