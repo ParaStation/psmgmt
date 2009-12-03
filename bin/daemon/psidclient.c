@@ -371,7 +371,12 @@ void deleteClient(int fd)
 	while ((child = PSID_getSignal(&task->childs, &sig))) {
 	    PStask_t *childTask = PStasklist_find(&managedTasks, child);
 	    PSID_log(-1, "%s: kill child %s\n", __func__, PSC_printTID(child));
+
 	    /* Try to kill the child, again */
+	    if (childTask && childTask->fd == -1) {
+		/* since forwarder is gone prevent PSID_kill() from using it */
+		childTask->forwardertid = 0;
+	    }
 	    PSID_kill(-child, SIGKILL, 0);
 
 	    /* Assume child is dead */
