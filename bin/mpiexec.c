@@ -120,6 +120,7 @@ int mergedepth = 0;
 int mergetmout = 0;
 int rusage = 0;
 int timestamp = 0;
+int interactive = 0;
 char *sort = NULL;
 char *login = NULL;
 char *dest = NULL;
@@ -917,6 +918,13 @@ static void setupPSIDEnv(int verbose)
 	    mergetmout);
     }
 
+    if (interactive) {
+	setenv("PSI_LOGGER_RAW_MODE", "1", 1);
+	setenv("PSI_SSH_INTERACTIVE", "1", 1);
+	if (verbose) printf("PSI_LOGGER_RAW_MODE=1 & PSI_SSH_INTERACTIVE=1 :"
+	    " Switching to interactive mode.\n");
+    }
+
     if (loggerrawmode) {
 	setenv("PSI_LOGGER_RAW_MODE", "1", 1);
 	if (verbose) printf("PSI_LOGGER_RAW_MODE=1 : Switching logger "
@@ -1623,7 +1631,9 @@ struct poptOption poptDebugOptions[] = {
     POPT_TABLEEND
 };
 
-struct poptOption poptDisplayOptions[] = {
+struct poptOption popt_IO_Options[] = {
+    { "interactive", 'i', POPT_ARG_NONE,
+      &interactive, 0, "set interactive mode (similar to ssh -t)", NULL},
     { "inputdest", 's', POPT_ARG_STRING,
       &dest, 0, "direction to forward input: dest <1,2,5-10> or <all>", NULL},
     { "sourceprintf", 'l', POPT_ARG_NONE,
@@ -1750,7 +1760,7 @@ struct poptOption optionsTable[] = {
       0, "Job placement options:", NULL },
     { NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptCommunicationOptions, \
       0, "Communication options:", NULL },
-    { NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptDisplayOptions, \
+    { NULL, '\0', POPT_ARG_INCLUDE_TABLE, popt_IO_Options, \
       0, "I/O options:", NULL },
     { NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptPrivilegedOptions, \
       0, "Privileged options:", NULL },
