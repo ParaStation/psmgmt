@@ -49,7 +49,7 @@ static void printVersion(void)
 int main(int argc, const char *argv[])
 {
     PSnodes_ID_t nodeID;
-    int node, version, verbose, rusage;
+    int interactive, node, version, verbose, rusage;
     const char *host, *envlist, *login;
     char *cmdLine = NULL, *shell, hostStr[30];
 
@@ -65,8 +65,10 @@ int main(int argc, const char *argv[])
 	  &node, 0, "node to access", "node"},
 	{ "host", 'h', POPT_ARG_STRING,
 	  &host, 0, "host to access", "host"},
-	{ "rusage", 'r', POPT_ARG_NONE,
-	  &rusage, 0, "print consumed sys/user time", NULL},
+	{ "host", 'h', POPT_ARG_STRING,
+	  &host, 0, "host to access", "host"},
+	{ NULL, 't', POPT_ARG_NONE,
+	  &interactive, 0, "force pseudo-tty allocation like in ssh", NULL},
 	{ "exports", 'e', POPT_ARG_STRING,
 	  &envlist, 0, "environment to export to foreign node", "envlist"},
 	{ "login", 'l', POPT_ARG_STRING,
@@ -87,7 +89,7 @@ int main(int argc, const char *argv[])
      *  - first one (still in argv) containing the pssh options
      *  - second one (in cmdLine) containing the app's command and arguments
      */
-    node = -1; version = verbose = rusage = 0;
+    node = -1; interactive = version = verbose = rusage = 0;
     host = envlist = login = NULL;
 
     rc = poptGetNextOpt(optCon);
@@ -311,16 +313,19 @@ int main(int argc, const char *argv[])
     exec_argv[1] = "-i";
     exec_argv[2] = NULL;
 
-    if (cmdLine) {
+    if (interactive || !cmdLine) {
+	setenv("PSI_LOGGER_RAW_MODE", "", 1);
+	setenv("PSI_SSH_INTERACTIVE", "", 1);
+    } else {
 	/* prevent other side from setting up a terminal */
 	setenv("__PSI_NO_TERM", "", 1);
+    }
+
+    if (cmdLine) {
 	exec_argv[1] = "-c";
 	exec_argv[2] = cmdLine;
 	exec_argv[3] = NULL;
 	exec_argc = 3;
-    } else {
-	setenv("PSI_LOGGER_RAW_MODE", "", 1);
-	setenv("PSI_SSH_INTERACTIVE", "", 1);
     }
 
     PSE_spawnAdmin(nodeID, 0, exec_argc, exec_argv, 1);
