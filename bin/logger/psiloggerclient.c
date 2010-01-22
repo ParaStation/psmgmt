@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -415,8 +415,8 @@ static inline void destListError(void)
 {
     int r, minRank = getMinRank();
 
-    PSIlog_log(-1, " for input redirection. Valid ranks: [%i-%i]. Setting"
-	       " input destination to rank 0.\n", getMinRank(), getMaxRank());
+    PSIlog_log(-1, " for input redirection. Valid ranks: [0-%i]. Setting"
+	       " input destination to rank 0.\n", getMaxRank());
 
     /* reset input destinations */
     for (r=minRank; r<=getMaxRank(); r++) remClnt(r);
@@ -523,6 +523,41 @@ void setupDestList(char *input)
 	addToFDSet(STDIN_FILENO);
 	PSIlog_log(PSILOG_LOG_VERB, "input-forward continues\n");
     }
+}
+
+static char destDescr[1024];
+
+char *getDestStr(size_t maxLen)
+{
+    int r = 0, first, last;
+
+    if (maxLen > sizeof(destDescr)) maxLen = sizeof(destDescr);
+    destDescr[0] = '\0';
+
+    /* find start of first range */
+    while (r <= getMaxRank() && !clientIsActive(r)) r++;
+
+    while (r <= getMaxRank()) {
+	first=r;
+
+	/* find last in range */
+	while (r <= getMaxRank() && clientIsActive(r)) r++;
+	last=r-1;
+
+	/* find start of next range */
+	while (r <= getMaxRank() && !clientIsActive(r)) r++;
+
+	snprintf(destDescr + strlen(destDescr), maxLen - strlen(destDescr),
+		 "%d", first);
+	if (last != first) {
+	    snprintf(destDescr + strlen(destDescr), maxLen - strlen(destDescr),
+		     "-%d", last);
+	}
+	snprintf(destDescr + strlen(destDescr), maxLen - strlen(destDescr),
+		 "%s", (r > getMaxRank()) ? "" : ",");
+    } while (r<=getMaxRank());
+
+    return destDescr;
 }
 
 int forwardInputStr(char *buf, size_t len)

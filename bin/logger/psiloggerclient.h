@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -222,6 +222,23 @@ void handleCONTMsg(PSLog_Msg_t *msg);
  * @return No return value
  */
 void setupDestList(char *input);
+
+/**
+ * @brief Create description string for input destinations
+ *
+ * Print a string describing the current input destinations used by
+ * calls to forwardInputStr(). The maximum size of the returned string
+ * is silently limited to @a maxLen or 1024 whatever is smaller.
+ *
+ * The description string returned is a static character array. Thus,
+ * repeated calls to this function will invalidate results returned
+ * before.
+ *
+ * @param maxLen Maximum length of the string returned.
+ *
+ * @return The Strings created.
+ */
+char *getDestStr(size_t maxLen);
 
 /**
  * @brief Forward input

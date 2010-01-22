@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -68,7 +68,7 @@ static int mergeOutput = 0;
  *
  * Set in main() to 1 if environment variable PSI_ENABLE_GDB is defined.
  */
-static int enableGDB = 0;
+int enableGDB = 0;
 
 /**
  * Maximum number of processes in this job.
@@ -182,6 +182,11 @@ static void closeDaemonSock(void)
     close(tmp);
 }
 
+int GDBcmdEcho = 0;
+
+char GDBprompt[128];
+
+
 /**
  * @brief This function will be called from
  * readline if the gdb debugging mode is enabled
@@ -198,7 +203,7 @@ static void readGDBInput(char *line)
     if (!line) return;
 
     /* add the newline again */
-    snprintf(buf, sizeof(buf), "%s\n",line);
+    snprintf(buf, sizeof(buf), "%s\n", line);
 
     /*add to history */
     HIST_ENTRY *last = history_get(history_length);
@@ -209,12 +214,24 @@ static void readGDBInput(char *line)
     /* check for input changing cmd */
     len = strlen(buf);
     if (len > 2 && buf[0] == '[' && buf[len -2] == ']') {
-	PSIlog_log(-1, "Changing input dest to: %s",buf);
+	/* remove trailing garbage */
+	buf[len-1] = '\0';
+
+	PSIlog_log(-1, "Changing input dest to: %s", buf);
+
 	setupDestList(buf);
+	PSIlog_log(-1, " -> [%s]\n", getDestStr(128));
+
+	/* modify readline's prompt */
+	snprintf(GDBprompt, sizeof(GDBprompt), "[%s]: (gdb) ", getDestStr(128));
+	rl_set_prompt(GDBprompt);
 	return;
     }
 
     forwardInputStr(buf, len);
+    /* Expect command's echo */
+    GDBcmdEcho = 1;
+    rl_set_prompt("");
 
     PSIlog_log(PSILOG_LOG_VERB, "%s: %zd bytes\n", __func__, len);
 }
@@ -646,6 +663,11 @@ static int newrequest(PSLog_Msg_t *msg)
     static int triggerOld = 0, kvsConnected = 0;
 
     if (!registerClient(rank, msg->header.sender)) return 0;
+
+    if (enableGDB) {
+	snprintf(GDBprompt, sizeof(GDBprompt), "[%s]: (gdb) ", getDestStr(128));
+	rl_set_prompt(GDBprompt);
+    }
 
     maxConnected++;
     PSIlog_log(PSILOG_LOG_VERB, "%s: new connection from %s (%d)\n", __func__,
@@ -1163,7 +1185,7 @@ static void loop(void)
 	    }
 	}
 	if (FD_ISSET(STDIN_FILENO, &afds)) {
-	    /* if we debug with gdb, use readline callback for sdtin */
+	    /* if we debug with gdb, use readline callback for stdin */
 	    if (enableGDB) {
 		rl_callback_read_char();
 	    } else {
@@ -1301,12 +1323,6 @@ int main( int argc, char**argv)
 	PSIlog_log(PSILOG_LOG_VERB, "Will print source-info.\n");
     }
 
-    if (getenv("PSI_ENABLE_GDB")) {
-	enableGDB = 1;
-	rl_callback_handler_install(NULL, (rl_vcpfunc_t*)readGDBInput);
-	PSIlog_log(PSILOG_LOG_VERB, "Enabling gdb functions.\n");
-    }
-
     if ((envstr = getenv("PSI_NP_INFO"))) {
 	np = atoi(envstr);
     }
@@ -1327,6 +1343,14 @@ int main( int argc, char**argv)
 	input = "";
     }
     setupDestList(input);
+
+    if (getenv("PSI_ENABLE_GDB")) {
+	enableGDB = 1;
+	rl_callback_handler_install(NULL, (rl_vcpfunc_t*)readGDBInput);
+	PSIlog_log(PSILOG_LOG_VERB, "Enabling gdb functions.\n");
+	snprintf(GDBprompt, sizeof(GDBprompt), "[%s]: (gdb) ", getDestStr(128));
+	rl_set_prompt(GDBprompt);
+    }
 
     initClients(-2, np ? np-1 : 0);
     if (getenv("PSI_MERGEOUTPUT")) {

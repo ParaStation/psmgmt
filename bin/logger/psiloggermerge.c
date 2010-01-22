@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2007-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -21,6 +21,7 @@ static char vcid[] __attribute__((used)) =
 #include <string.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <readline/readline.h>
 
 #include "list.h"
 #include "pslog.h"
@@ -446,6 +447,19 @@ static void printLine(int outfd, char *line, int mcount, int start,
     generatePrefix(prefix, sizeof(prefix), mcount, start, saveBufInd);
     space = prelen - strlen(prefix) - 2;
     if (space < 0) space = 0;
+
+    if (enableGDB) {
+	if (!strncmp(line, "(gdb)\r", 6)) {
+	    rl_set_prompt(GDBprompt);
+	    rl_forced_update_display();
+	    GDBcmdEcho = 0;
+	    return;
+	}
+	if (GDBcmdEcho) {
+	    GDBcmdEcho = 0;
+	    return;
+	}
+    }
 
     switch (outfd) {
     case STDOUT_FILENO:
@@ -908,16 +922,24 @@ void displayCachedOutput(int flush)
 		if (mcount != np-1) {
 		    printLine(val->outfd, val->line, mcount, i, saveBufInd);
 		} else {
-		    switch (val->outfd) {
-		    case STDOUT_FILENO:
-			PSIlog_stdout(-1, "[0-%i]: %s", np-1, val->line);
-			break;
-		    case STDERR_FILENO:
-			PSIlog_stderr(-1, "[0-%i]: %s", np-1, val->line);
-			break;
-		    default:
-			PSIlog_log(-1, "%s: unknown outfd %d\n", __func__,
-				   val->outfd);
+		    if (enableGDB && !strncmp(val->line, "(gdb)\r", 6)) {
+			rl_set_prompt(GDBprompt);
+			rl_forced_update_display();
+			GDBcmdEcho = 0;
+		    } else if (enableGDB && GDBcmdEcho) {
+			GDBcmdEcho = 0;
+		    } else {
+			switch (val->outfd) {
+			case STDOUT_FILENO:
+			    PSIlog_stdout(-1, "[0-%i]: %s", np-1, val->line);
+			    break;
+			case STDERR_FILENO:
+			    PSIlog_stderr(-1, "[0-%i]: %s", np-1, val->line);
+			    break;
+			default:
+			    PSIlog_log(-1, "%s: unknown outfd %d\n", __func__,
+				       val->outfd);
+			}
 		    }
 		}
 		delCachedMsg(val, pos);

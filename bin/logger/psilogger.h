@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2007-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -39,6 +39,19 @@ extern logger_t *PSIlog_stderrLogger;
 
 /** A logger used within psilogger. This one is used for error messages */
 extern logger_t *PSIlog_logger;
+
+/** Flag to show that special handling for parallel GDB is enabled */
+extern int enableGDB;
+
+/** The prompt used by parallel GDB mode's readline routines */
+extern char GDBprompt[128];
+
+/**
+ * Flag used by GDB mode to ignore the next output line since it's
+ * expected to contain just the echo of the last command passed to the
+ * gdbs
+ */
+extern int GDBcmdEcho;
 
 /**
  * @brief Initialize the psilogger logging facility.
