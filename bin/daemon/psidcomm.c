@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -392,6 +392,18 @@ int PSID_handleMsg(DDBufferMsg_t *msg)
 
     if (! hashInitialized)
 	PSID_exit(EPERM, "%s: hash not initialized", __func__);
+
+    if (!msg) {
+	PSID_log(-1, "%s: msg is NULL\n", __func__);
+	errno = EINVAL;
+	return 0;
+    }
+
+    if(msg->header.type < 0) {
+	PSID_log(-1, "%s: Illegal msgtype %d\n", __func__, msg->header.type);
+	errno = EINVAL;
+	return 0;
+    }
 
     list_for_each (h, &msgHash[msg->header.type%HASH_SIZE]) {
 	msgHandler_t *msgHandler = list_entry(h, msgHandler_t, next);
