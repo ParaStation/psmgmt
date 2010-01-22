@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -192,7 +192,7 @@ static void do_print(logger_t* logger, const char* format, va_list ap)
     }
 
     if (text[strlen(text)-1] == '\n') {
-	if (!logger->logfile) syslog(LOG_ERR, line);
+	if (!logger->logfile) syslog(LOG_ERR, "%s", line);
 	if (logger->trail) {
 	    free(logger->trail);
 	    logger->trail = NULL;
