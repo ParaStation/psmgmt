@@ -1039,16 +1039,24 @@ static void setupEnvironment(int verbose)
     }
 
     /* setup environment depending on psid/logger */
-    setupPSIDEnv(verbose);
+    setupPSIDEnv(0);
     /* setup environment depending on pscom library */
-    setupPSCOMEnv(verbose);
-    /* Both have to be called *before* PSE_initialize */
+    setupPSCOMEnv(0);
+    /* Both have to be called *before* PSE_initialize, because of certain
+     * options like (--exports). The verbose message(s) must be suppressed here,
+     * or all ranks will output them, not only the logger. */
 
     PSE_initialize();
     rank = PSE_getRank();
 
     /* be only verbose if we are the logger */
     if (rank != -1) verbose = 0;
+
+    /* now only the logger will be verbose */
+    /* setup environment depending on psid/logger */
+    setupPSIDEnv(verbose);
+    /* setup environment depending on pscom library */
+    setupPSCOMEnv(verbose);
 
     /* Setup various environment variables depending on passed arguments */
     if (envall) {
