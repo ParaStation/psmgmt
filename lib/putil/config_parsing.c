@@ -136,7 +136,7 @@ static void getLocalIPs(void)
 		&((struct sockaddr_in *)&ifr->ifr_addr)->sin_addr;
 	    IPent_t *newEnt;
 
-	    if ((sin_addr->s_addr & 0xff) == IN_LOOPBACKNET) continue;
+	    if ((ntohl(sin_addr->s_addr) >> 24) == IN_LOOPBACKNET) continue;
 
 	    newEnt = malloc(sizeof(*newEnt));
 	    if (!newEnt) parser_exit(errno, "%s", __func__);
@@ -1904,7 +1904,7 @@ static int newHost(int id, in_addr_t addr)
 	return -1;
     }
 
-    if ((addr & 0xff) == IN_LOOPBACKNET) {
+    if ((ntohl(addr) >> 24) == IN_LOOPBACKNET) {
 	parser_comment(-1, "node ID <%d> resolves to address <%s> within"
 		       " loopback range\n",
 		       id, inet_ntoa(* (struct in_addr *) &addr));

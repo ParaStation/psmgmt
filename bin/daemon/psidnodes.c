@@ -192,7 +192,7 @@ PSnodes_ID_t PSIDnodes_lookupHost(in_addr_t addr)
     struct host_t *host;
 
     /* loopback address */
-    if ((ntohl(addr) >> 24 ) == 0x7f)
+    if ((ntohl(addr) >> 24 ) == IN_LOOPBACKNET)
 	return PSC_getMyID();
 
     /* other addresses */
