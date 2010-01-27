@@ -1,3 +1,90 @@
+Version psmgmt-5.0.25:
+======================
+------------------------------------------------------------------------
+r7980 | eicker | 2010-01-27 18:18:21 +0100 (Wed, 27 Jan 2010) | 3 lines
+
+Bugfix: Prevent jobs/daemon from crashing due to empty environment
+    variables.
+
+------------------------------------------------------------------------
+r7979 | eicker | 2010-01-27 17:11:26 +0100 (Wed, 27 Jan 2010) | 2 lines
+
+Finally fix mpiexec's problems, if verbosity is requested.
+
+------------------------------------------------------------------------
+r7978 | rauh | 2010-01-27 12:19:01 +0100 (Wed, 27 Jan 2010) | 4 lines
+
+Bugfix: fix bug introduced in r7972, options --nodes --hosts were broken
+Enhancement: remove dispensable empty env vars like PSI_NODES, causing bad effects
+Typo: improved error messages
+
+------------------------------------------------------------------------
+r7977 | eicker | 2010-01-26 19:28:18 +0100 (Tue, 26 Jan 2010) | 2 lines
+
+Bugfix: Fix problems with host/network byteorder on big-endian machines.
+
+------------------------------------------------------------------------
+r7972 | rauh | 2010-01-25 10:28:19 +0100 (Mon, 25 Jan 2010) | 2 lines
+
+Bugfix: Verbose messages should only be output by the logger, not all ranks.
+
+------------------------------------------------------------------------
+r7971 | eicker | 2010-01-22 18:47:31 +0100 (Fri, 22 Jan 2010) | 2 lines
+
+Fix one compiler-warning in more recent versions of gcc.
+
+------------------------------------------------------------------------
+r7970 | eicker | 2010-01-22 18:38:10 +0100 (Fri, 22 Jan 2010) | 2 lines
+
+Bugfix: Prevent psid from assassination via sending RDP-packet of type -1.
+
+------------------------------------------------------------------------
+r7969 | eicker | 2010-01-22 18:34:15 +0100 (Fri, 22 Jan 2010) | 2 lines
+
+Improve mpiexec's prompt-behavior, if GDB-mode is enabled.
+
+------------------------------------------------------------------------
+r7966 | eicker | 2010-01-22 15:04:00 +0100 (Fri, 22 Jan 2010) | 2 lines
+
+Enhancement: Implement -t option for pssh in analogy to ssh.
+
+------------------------------------------------------------------------
+r7965 | rauh | 2010-01-21 15:04:42 +0100 (Thu, 21 Jan 2010) | 2 lines
+
+mpiexec: added interactive mode (-i --interactive), fixing ticket #220 #221
+
+------------------------------------------------------------------------
+r7952 | moschny | 2010-01-12 13:24:52 +0100 (Tue, 12 Jan 2010) | 1 line
+
+Repository cleanup.
+------------------------------------------------------------------------
+r7926 | eicker | 2009-12-03 17:12:30 +0100 (Thu, 03 Dec 2009) | 2 lines
+
+Bugfix: Make sure child actually gets KILL signal, if forwarder is gone.
+
+------------------------------------------------------------------------
+r7916 | eicker | 2009-11-14 15:57:22 +0100 (Sat, 14 Nov 2009) | 3 lines
+
+Bugfix: Fix possible segfault. Might be triggered, if task-structure
+    marked as deleted is removed before connection is closed.
+
+------------------------------------------------------------------------
+r7915 | eicker | 2009-11-12 11:34:55 +0100 (Thu, 12 Nov 2009) | 2 lines
+
+Disable some #442 debug. This lets the master spoil the syslog.
+
+------------------------------------------------------------------------
+r7911 | eicker | 2009-11-11 23:11:38 +0100 (Wed, 11 Nov 2009) | 2 lines
+
+New version (psmgmt-5.0.24)
+
+------------------------------------------------------------------------
+r7910 | eicker | 2009-11-11 23:08:09 +0100 (Wed, 11 Nov 2009) | 2 lines
+
+Add some more debug for #442.
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.24:
 ======================
 ------------------------------------------------------------------------
