@@ -563,6 +563,10 @@ static nodelist_t *getNodelist(void)
 	nodelist->nodes = NULL;
     }
     nodelist->size = -1;
+    PSI_log(-1, "%s: failed from %s '%s': Please check your enviroment\n",
+	    __func__, nodeStr ? ENV_NODE_NODES :
+	    hostStr ? ENV_NODE_HOSTS : ENV_NODE_HOSTFILE,
+	    nodeStr ? nodeStr : hostStr ? hostStr : hostfileStr);
     return nodelist;
 }
 
@@ -681,6 +685,11 @@ static uint16_t getTPPEnv(void)
     if (!env) return 1;
 
     /* @todo Test further environments (are there further OMP_* variables?) */
+
+    if (!*env) {
+	PSI_log(-1, "%s: empty PSI_TPP / OMP_NUM_THREADS\n", __func__);
+	return 1;
+    }
 
     tpp = strtoul(env, &end, 0);
     if (*end) {

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -1988,6 +1988,11 @@ static void msg_CREATEPART(DDBufferMsg_t *inmsg)
     task->request->gid = task->gid;
     if (task->protocolVersion < 337) {
 	task->request->tpp = 1;
+    }
+    if (task->request->tpp < 1) {
+	PSID_log(-1, "%s: Invalid TPP %d\n", __func__, task->request->tpp);
+	errno = EINVAL;
+	goto error;
     }
     inmsg->header.len = sizeof(inmsg->header)
 	+ PSpart_encodeReq(inmsg->buf, sizeof(inmsg->buf), task->request);
