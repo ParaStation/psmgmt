@@ -687,16 +687,21 @@ static int startProcs(int np, char *wd, int argc, char *argv[], int verbose)
 /**
  * @brief Set pscom/mpi environment.
  *
- * Set up the environment to control diffrent options of
- * the pscom/mpi library.
+ * Set up the environment to control diffrent options of the pscom/mpi
+ * library.
  *
- * @param verbose Set verbose mode, ouput whats going on.
+ * @param verbose Set verbose mode (effects only, if called within
+ * root-process)
  *
  * @return No return value.
  */
 static void setupPSCOMEnv(int verbose)
 {
     char tmp[1024];
+    /* HACK: this determines, if we are the root-process */
+    int isRoot = !getenv("__PSI_CORESIZE");
+
+    verbose = verbose && isRoot;
 
     if (discom) {
 
@@ -829,30 +834,28 @@ static void setupPSCOMEnv(int verbose)
  */
 static void cleanEnv(char *var)
 {
-    char *envstr;
+    char *envstr = getenv(var);
 
-    if ((envstr = getenv(var))) {
-	if (!(strlen(envstr))) {
-	    unsetenv(var);
-	}
-    }
+    if (envstr && !strlen(envstr)) unsetenv(var);
 }
 
 /**
  * @brief Set up the environment to control diffrent options of
  * the psid/logger.
  *
- * @param verbose Set verbose mode, ouput whats going on.
- *
- * @param errorChecking Set error checking if true, else no
- *  sanity checks are performed.
+ * @param verbose Set verbose mode (effects only, if called within
+ * root-process)
  *
  * @return No return value.
  */
-static void setupPSIDEnv(int verbose, int errorChecking)
+static void setupPSIDEnv(int verbose)
 {
     char* envstr;
     char tmp[1024];
+    /* HACK: this determines, if we are the root-process */
+    int isRoot = !getenv("__PSI_CORESIZE");
+
+    verbose = verbose && isRoot;
 
     /* clean the environment from dispensable empty vars */
     cleanEnv("PSI_HOSTS");
@@ -968,8 +971,8 @@ static void setupPSIDEnv(int verbose, int errorChecking)
 	    "debug mode on.\n");
     }
 
-    if (envlist && !getenv("__PSI_CORESIZE")) { /* HACK: this determines, if */
-	char *val = NULL;			/* we are the root-process */
+    if (envlist && isRoot) {
+	char *val = NULL;
 
 	envstr = getenv("PSI_EXPORTS");
 	if (envstr) {
@@ -990,46 +993,39 @@ static void setupPSIDEnv(int verbose, int errorChecking)
     /* envstr marks if any of PSI_NODES, PSI_HOSTS or PSI_HOSTFILE is set */
     if (nodelist) {
 	int len=0,i;
-	if (errorChecking) {
-	    if (hostlist) {
-		errExit("Don't use --nodes and --hosts simultatniously.");
-	    } else if (hostfile) {
-		errExit("Don't use --nodes and --hostfile simultatniously.");
-	    } else if (envstr) {
-		errExit("Don't use --nodes with any of"
-			" PSI_NODES, PSI_HOSTS or PSI_HOSTFILE set.");
-	    }
+	if (hostlist) {
+	    errExit("Don't use --nodes and --hosts simultaneously.");
+	} else if (hostfile) {
+	    errExit("Don't use --nodes and --hostfile simultaneously.");
+	} else if (envstr) {
+	    errExit("Don't use --nodes with any of"
+		    " PSI_NODES, PSI_HOSTS or PSI_HOSTFILE set.");
 	}
 	envstr = nodelist;
 	len = strlen(envstr);
 	for (i=0; i<len; i++) {
 	    if (isalpha(envstr[i])) {
-		fprintf(stderr,
-			"--nodes is a list of numeric node id`s, did you mean "
-			"host?\n");
+		fprintf(stderr, "--nodes is a list of numeric node id`s,"
+			" did you mean --hosts?\n");
 		exit(EXIT_FAILURE);
 	    }
 	}
 	setenv("PSI_NODES", nodelist, 1);
 	if (verbose) printf("PSI_NODES='%s'\n", nodelist);
     } else if (hostlist) {
-	if (errorChecking) {
-	    if (hostfile) {
-		errExit("Don't use --hosts and --hostfile simultatniously.");
-	    } else if (envstr) {
-		errExit("Don't use --hosts with any of"
-			" PSI_NODES, PSI_HOSTS or PSI_HOSTFILE set.");
-	    }
+	if (hostfile) {
+	    errExit("Don't use --hosts and --hostfile simultaneously.");
+	} else if (envstr) {
+	    errExit("Don't use --hosts with any of"
+		    " PSI_NODES, PSI_HOSTS or PSI_HOSTFILE set.");
 	}
+
 	setenv("PSI_HOSTS", hostlist, 1);
 	if (verbose) printf("PSI_HOSTS='%s'\n", hostlist);
     } else if (hostfile) {
-	if (errorChecking) {
-	    if (envstr) {
-		errExit("Don't use --hostfile with any of"
-			" PSI_NODES, PSI_HOSTS or PSI_HOSTFILE set.");
-	    }
-	}
+	if (envstr) errExit("Don't use --hostfile with any of"
+			    " PSI_NODES, PSI_HOSTS or PSI_HOSTFILE set.");
+
 	setenv("PSI_HOSTFILE", hostfile, 1);
 	if (verbose) printf("PSI_HOSTFILE='%s'\n", hostfile);
     }
@@ -1037,11 +1033,8 @@ static void setupPSIDEnv(int verbose, int errorChecking)
     envstr = getenv("PSI_NODES_SORT");
     if (sort) {
 	char *val = NULL;
-	if (errorChecking) {
-	    if (envstr) {
-		errExit("Don't use --sort with PSI_NODES_SORT set.");
-	    }
-	}
+	if (envstr) errExit("Don't use --sort with PSI_NODES_SORT set.");
+
 	if (!strcmp(sort, "proc")) {
 	    val = "PROC";
 	} else if (!strcmp(sort, "load")) {
@@ -1072,24 +1065,16 @@ static void setupEnvironment(int verbose)
     int rank;
 
     /* setup environment depending on psid/logger */
-    setupPSIDEnv(0, 1);
+    setupPSIDEnv(verbose);
     /* setup environment depending on pscom library */
-    setupPSCOMEnv(0);
-    /* Both have to be called *before* PSE_initialize, because of certain
-     * options like (--exports). The verbose message(s) must be suppressed here,
-     * or all ranks will output them, not only the logger. */
+    setupPSCOMEnv(verbose);
+    /* Both *before* PSE_initialize() for environment propagation */
 
     PSE_initialize();
     rank = PSE_getRank();
 
     /* be only verbose if we are the logger */
     if (rank != -1) verbose = 0;
-
-    /* now only the logger will be verbose */
-    /* setup environment depending on psid/logger */
-    setupPSIDEnv(verbose, 0);
-    /* setup environment depending on pscom library */
-    setupPSCOMEnv(verbose);
 
     /* Setup various environment variables depending on passed arguments */
     if (envall) {
