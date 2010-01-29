@@ -250,8 +250,8 @@ static int sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len)
  * NULL, no such information will be stored.
  *
  * @return Return might have 4 different values: -1: fatal error, 0:
- * general error, but answer from known node, 1: no error, 2: message
- * from unknown node.
+ * general error, but answer from known node, 1: no error, 2: ignore
+ * message, e.g. from unknown node or answer on "who died" question.
  */
 int handleAnswer(int count, PSnodes_ID_t *dstnodes, int *errors,
 		  PStask_ID_t *tids)
@@ -316,6 +316,7 @@ int handleAnswer(int count, PSnodes_ID_t *dstnodes, int *errors,
     case PSP_CD_WHODIED:
 	PSI_log(-1, "Got signal %d from %s\n", sigMsg->signal,
 		PSC_printTID(sigMsg->header.sender));
+	return 2; /* Ignore answer */
 	break;
     default:
 	PSI_log(-1, "%s: unexpected answer %s\n", __func__,

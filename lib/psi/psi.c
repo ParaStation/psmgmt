@@ -527,6 +527,7 @@ int PSI_release(PStask_ID_t tid)
 	return -1;
     }
 
+restart:
     ret = PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg));
     if (ret<0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
@@ -536,24 +537,35 @@ int PSI_release(PStask_ID_t tid)
 	return -1;
     }
 
-    if (ret != msg.header.len || ret != sizeof(msg)) {
+    if (ret != msg.header.len) {
 	PSI_log(-1, "%s: PSI_recvMsg() got just %d/%d bytes (%ld expected)\n",
 		__func__, ret, msg.header.len, (long)sizeof(msg));
     }
 
-    if (msg.header.type != PSP_CD_RELEASERES) {
+    ret = 0;
+
+    switch (msg.header.type) {
+    case PSP_CD_RELEASERES:
+	if (msg.param) {
+	    if (msg.param != ESRCH || tid != PSC_getMyTID())
+		PSI_warn(-1, msg.param, "%s: releasing %s", __func__,
+			 PSC_printTID(tid));
+	    errno=msg.param;
+	    ret = -1;
+	}
+	break;
+    case PSP_CD_WHODIED:
+	PSI_log(-1, "Got signal %d from %s\n", msg.signal,
+		PSC_printTID(msg.header.sender));
+	goto restart;
+	break;
+    default:
 	PSI_log(-1, "%s: wrong message type %d (%s)\n",
 		__func__, msg.header.type, PSP_printMsg(msg.header.type));
-	return -1;
-    } else if (msg.param) {
-	if (msg.param != ESRCH || tid != PSC_getMyTID())
-	    PSI_warn(-1, msg.param, "%s: releasing %s", __func__,
-		     PSC_printTID(tid));
-	errno=msg.param;
-	return -1;
+	ret = -1;
     }
 
-    return 0;
+    return ret;
 }
 
 PStask_ID_t PSI_whodied(int sig)
