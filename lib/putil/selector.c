@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -244,9 +244,10 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	    Selector_t *selector = list_entry(s, Selector_t, next);
 	    if (FD_ISSET(selector->fd, &rfds) && selector->selectHandler) {
 		/* Got message on handled fd */
-		int ret = selector->selectHandler(selector->fd, selector->info);
 		int sfd = selector->fd; /* store this since selector might get
 					   removed within handler */
+		int ret = selector->selectHandler(sfd, selector->info);
+
 		switch (ret) {
 		case -1:
 		    retval = -1;
@@ -260,7 +261,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 		default:
 		    logger_print(logger, -1,
 				 "%s: selectHander for fd=%d returns %d\n",
-				 __func__, selector->fd, ret);
+				 __func__, sfd, ret);
 		}
 	    }
 	    if (retval<=0) break;
