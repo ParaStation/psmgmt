@@ -72,7 +72,6 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
     if (!pid) {
 	/* This part calls the script/func and returns results to the parent */
 	int fd, ret = 0;
-	char *command, *dir = func ? NULL : PSC_lookupInstalldir(NULL);
 
 	for (fd=0; fd<getdtablesize(); fd++) {
 	    if (fd != controlfds[1] && fd != iofds[1]) close(fd);
@@ -81,7 +80,17 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	/* setup the environment */
 	if (prep) prep(info);
 
-	if (!func) {
+	/* redirect stdout and stderr */
+	dup2(iofds[1], STDOUT_FILENO);
+	dup2(iofds[1], STDERR_FILENO);
+	close(iofds[1]);
+
+	PSID_resetSigs();
+	if (func) {
+	    ret = func(info);
+	} else {
+	    char *command, *dir = PSC_lookupInstalldir(NULL);
+
 	    while (*script==' ' || *script=='\t') script++;
 	    if (*script != '/') {
 		if (!dir) dir = "";
@@ -89,25 +98,15 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	    } else {
 		command = strdup(script);
 	    }
-	}
 
-	/* redirect stdout and stderr */
-	dup2(iofds[1], STDOUT_FILENO);
-	dup2(iofds[1], STDERR_FILENO);
-	close(iofds[1]);
+	    if (dir && (chdir(dir)<0)) {
+		PSID_warn(-1, errno, "%s: chdir(%s)", caller, dir);
+		fprintf(stderr, "%s: cannot change to directory '%s'",
+			caller, dir);
+		ret = -1;
+	    }
 
-	if (dir && (chdir(dir)<0)) {
-	    PSID_warn(-1, errno, "%s: chdir(%s)", caller, dir);
-	    fprintf(stderr, "%s: cannot change to directory '%s'",
-		    caller, dir);
-	    ret = -1;
-	}
-
-	if (!ret) {
-	    PSID_resetSigs();
-	    if (func) {
-		ret = func(info);
-	    } else {
+	    if (!ret) {
 		ret = system(command);
 		if (ret < 0) {
 		    PSID_warn(-1, errno, "%s: system(%s)", caller, command);
