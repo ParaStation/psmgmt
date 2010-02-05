@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2008-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2008-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * Part of this code is based on examples with:
  * Copyright (c) 2005 Intel Corporation
@@ -24,6 +24,7 @@ static char vcid[] __attribute__((used)) =
 #include <unistd.h>
 
 #include "psidutil.h"
+#include "psidhw.h"
 
 
 int PSID_GenuineIntel(void)

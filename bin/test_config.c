@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -28,10 +28,14 @@ static char vcid[] __attribute__((used)) =
 #include "logging.h"
 #include "config_parsing.h"
 
-/* needed for logging in psidnodes.c */
+/* stub required for logging in psidnodes.c */
 logger_t *PSID_logger = NULL;
-/* needed for linking against psidnodes.o */
+/* stub required to link against psidnodes.o */
 int sendMsg(void *amsg) {return 0;}
+/* stub required to link against psidutil.o */
+int PSID_readfds;
+/* stub required to link against psidutil.o */
+void registerClient(int fd, int tid, void *task) {}
 
 /**
  * @brief Print version info.

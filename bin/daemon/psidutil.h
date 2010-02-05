@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -162,6 +162,46 @@ extern config_t *config;
 void PSID_readConfigFile(FILE* logfile, char *configfile);
 
 /**
+ * @brief Write complete buffer.
+ *
+ * Write the complete buffer @a buf of size @a count to the file
+ * descriptor @a fd. Even if one or more trials to write to @a fd
+ * fails due to e.g. timeouts, further writing attempts are made until
+ * either a fatal error occurred or the whole buffer is sent.
+ *
+ * @param fd The file descriptor to send the buffer to.
+ *
+ * @param buf The buffer to send.
+ *
+ * @param count The number of bytes within @a buf to send.
+ *
+ * @return Upon success the number of bytes sent is returned,
+ * i.e. usually this is @a count. Otherwise -1 is returned.
+ */
+int PSID_writeall(int fd, const void *buf, size_t count);
+
+/**
+ * @brief Read complete buffer.
+ *
+ * Read the complete buffer @a buf of size @a count from the file
+ * descriptor @a fd. Even if one or more trials to read to @a fd fails
+ * due to e.g. timeouts, further reading attempts are made until
+ * either a fatal error occurred, an EOF is received or the whole
+ * buffer is read.
+ *
+ * @param fd The file descriptor to read the buffer from.
+ *
+ * @param buf The buffer to read.
+ *
+ * @param count The maximum number of bytes to read.
+ *
+ * @return Upon success the number of bytes read is returned,
+ * i.e. usually this is @a count if no EOF occurred. Otherwise -1 is
+ * returned.
+ */
+int PSID_readall(int fd, void *buf, size_t count);
+
+/**
  * @brief (Un-)Block signal.
  *
  * Block or unblock the signal @a sig depending on the value of @a
@@ -178,35 +218,17 @@ void PSID_readConfigFile(FILE* logfile, char *configfile);
 int PSID_blockSig(int block, int sig);
 
 /**
- * @brief Get number of virtual CPUs.
+ * @brief Reset signal handlers.
  *
- * Determine the number of virtual CPUs. This is done via a call to
- * sysconfig(_SC_NPROCESSORS_CONF).
+ * Reset all the signal handlers distorted by the daemon to
+ * SIG_DFL. SIGCHLD needs special handling here in order to catch
+ * corresponding signals while setting up forwarder's sand-box. Thus,
+ * SIGCHLD will not be touched within this function and has to be
+ * handled explicitely outside this function.
  *
- * If for some reason the number of virtual CPUs cannot be determined,
- * i.e. the number reported is 0, after some seconds of sleep() the
- * determination is repeated. If this fails finally, exit() is called.
- *
- * @return On success, the number of virtual processors is
- * returned.
+ * @return No return value.
  */
-long PSID_getVirtCPUs(void);
-
-/**
- * @brief Get number of physical CPUs.
- *
- * Determine the number of physical CPUs. The number of physical CPUs
- * might differ from the number of virtual CPUs e.g. on newer Pentium
- * platforms which support the Hyper-Threading Technology.
- *
- * If for some reason the number of physical CPUs cannot be
- * determined, i.e. the number reported is 0, after some seconds of
- * sleep() the determination is repeated. If this fails finally,
- * exit() is called.
- *
- * @return On success, the number of physical CPUs is returned.
- */
-long PSID_getPhysCPUs(void);
+void PSID_resetSigs(void);
 
 /**
  * @brief File-descriptor holding lock

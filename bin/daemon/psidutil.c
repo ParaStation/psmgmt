@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -34,9 +34,6 @@ static char vcid[] __attribute__((used)) =
 #include "pslog.h"
 
 #include "psidnodes.h"
-#include "psidamd.h"
-#include "psidintel.h"
-#include "psidppc.h"
 #include "psidcomm.h"
 #include "psidclient.h"
 
@@ -76,6 +73,43 @@ int PSID_blockSig(int block, int sig)
     return sigismember(&oldset, sig);
 }
 
+void PSID_resetSigs(void)
+{
+    signal(SIGHUP   ,SIG_DFL);
+    signal(SIGALRM  ,SIG_DFL);
+    signal(SIGINT   ,SIG_DFL);
+    signal(SIGQUIT  ,SIG_DFL);
+    signal(SIGILL   ,SIG_DFL);
+    signal(SIGTRAP  ,SIG_DFL);
+    signal(SIGABRT  ,SIG_DFL);
+    signal(SIGIOT   ,SIG_DFL);
+    signal(SIGBUS   ,SIG_DFL);
+    signal(SIGFPE   ,SIG_DFL);
+    signal(SIGUSR1  ,SIG_DFL);
+    signal(SIGSEGV  ,SIG_DFL);
+    signal(SIGUSR2  ,SIG_DFL);
+    signal(SIGPIPE  ,SIG_DFL);
+    signal(SIGTERM  ,SIG_DFL);
+    signal(SIGCONT  ,SIG_DFL);
+    signal(SIGTSTP  ,SIG_DFL);
+    signal(SIGTTIN  ,SIG_DFL);
+    signal(SIGTTOU  ,SIG_DFL);
+    signal(SIGURG   ,SIG_DFL);
+    signal(SIGXCPU  ,SIG_DFL);
+    signal(SIGXFSZ  ,SIG_DFL);
+    signal(SIGVTALRM,SIG_DFL);
+    signal(SIGPROF  ,SIG_DFL);
+    signal(SIGWINCH ,SIG_DFL);
+    signal(SIGIO    ,SIG_DFL);
+#if defined(__alpha)
+    /* Linux on Alpha*/
+    signal( SIGSYS  ,SIG_DFL);
+    signal( SIGINFO ,SIG_DFL);
+#else
+    signal(SIGSTKFLT,SIG_DFL);
+#endif
+}
+
 /* Reading and basic handling of the configuration */
 void PSID_readConfigFile(FILE* logfile, char *configfile)
 {
@@ -103,63 +137,48 @@ void PSID_readConfigFile(FILE* logfile, char *configfile)
     PSC_setDaemonFlag(1); /* To get the correct result from PSC_getMyTID() */
 }
 
-#define RETRY_SLEEP 5
-#define MAX_RETRY 12
-
-long PSID_getVirtCPUs(void)
+int PSID_writeall(int fd, const void *buf, size_t count)
 {
-    long virtCPUs = 0, retry = 0;
+    int len;
+    char *cbuf = (char *)buf;
+    size_t c = count;
 
-    while (!virtCPUs) {
-	virtCPUs = sysconf(_SC_NPROCESSORS_CONF);
-	if (virtCPUs) break;
-
-	retry++;
-	if (retry > MAX_RETRY) {
-	    PSID_log(-1 ,"%s: Found no CPU for %d sec. This most probably is"
-		     " not true. Exiting\n", __func__, RETRY_SLEEP * MAX_RETRY);
-	    exit(1);
+    while (c > 0) {
+	len = write(fd, cbuf, c);
+	if (len < 0) {
+	    if ((errno == EINTR) || (errno == EAGAIN))
+		continue;
+	    else
+		return -1;
 	}
-	PSID_log(-1, "%s: found no CPU. sleep(%d)...\n", __func__, RETRY_SLEEP);
-	sleep(RETRY_SLEEP);
+	c -= len;
+	cbuf += len;
     }
 
-    PSID_log(PSID_LOG_VERB, "%s: got %ld virtual CPUs\n", __func__, virtCPUs);
-
-    return virtCPUs;
+    return count;
 }
 
-long PSID_getPhysCPUs(void)
+int PSID_readall(int fd, void *buf, size_t count)
 {
-    long physCPUs = 0, retry = 0;
+    int len;
+    char *cbuf = (char *)buf;
+    size_t c = count;
 
-    while (!physCPUs) {
-	if (PSID_GenuineIntel()) {
-	    physCPUs = PSID_getPhysCPUs_IA32();
-	} else if (PSID_AuthenticAMD()) {
-	    physCPUs = PSID_getPhysCPUs_AMD();
-	} else if (PSID_PPC()) {
-	    physCPUs = PSID_getPhysCPUs_PPC();
-	} else {
-	    /* generic case (assume no SMT) */
-	    PSID_log(-1, "%s: Generic case.\n", __func__);
-	    physCPUs = PSID_getVirtCPUs();
+    while (c > 0) {
+	len = read(fd, cbuf, c);
+	if (len < 0) {
+	    if ((errno == EINTR) || (errno == EAGAIN))
+		continue;
+	    else
+		return -1;
+	} else if (len == 0) {
+	    return count-c;
 	}
-	if (physCPUs) break;
-
-	retry++;
-	if (retry > MAX_RETRY) {
-	    PSID_log(-1 ,"%s: Found no CPU for %d sec. This most probably is"
-		     " not true. Exiting\n", __func__, RETRY_SLEEP * MAX_RETRY);
-	    exit(1);
-	}
-	PSID_log(-1, "%s: found no CPU. sleep(%d)...\n", __func__, RETRY_SLEEP);
-	sleep(RETRY_SLEEP);
+	c -= len;
+	cbuf += len;
     }
 
-    PSID_log(PSID_LOG_VERB, "%s: got %ld physical CPUs\n", __func__, physCPUs);
-
-    return physCPUs;
+    return count;
 }
 
 #define LOCKFILENAME "/var/lock/subsys/parastation"

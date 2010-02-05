@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -371,6 +371,9 @@ static void sighandler(int sig)
  * @brief Initialize signal handlers
  *
  * Initialize all the signal handlers needed within the daemon.
+ *
+ * Additionally, SIGALRM's handler might be tweaked within the Timer
+ * module.
  *
  * @return No return value.
  */

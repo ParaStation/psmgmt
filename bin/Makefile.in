@@ -106,7 +106,7 @@ endif
 psid: LDFLAGS+=-rdynamic
 
 test_config: LOADLIBES:=$(LOADLIBES) -lm
-test_config: psidnodes.o psidscripts.o
+test_config: psidnodes.o psidscripts.o psidutil.o
 
 # logger
 VPATH += $(SRCDIR)/logger

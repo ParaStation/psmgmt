@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2008-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -21,6 +21,7 @@ static char vcid[] __attribute__((used)) =
 #include <sys/stat.h>
 
 #include "psidutil.h"
+#include "psidhw.h"
 
 
 int PSID_PPC(void)

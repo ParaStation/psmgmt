@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -901,49 +901,6 @@ static void execClient(PStask_t *task)
 }
 
 /**
- * @brief Reset signal handlers.
- *
- * Reset all the signal handlers. SIGCHLD needs special handling!
- *
- * @return No return value.
- */
-static void resetSignals(void)
-{
-    signal(SIGHUP   ,SIG_DFL);
-    signal(SIGINT   ,SIG_DFL);
-    signal(SIGQUIT  ,SIG_DFL);
-    signal(SIGILL   ,SIG_DFL);
-    signal(SIGTRAP  ,SIG_DFL);
-    signal(SIGABRT  ,SIG_DFL);
-    signal(SIGIOT   ,SIG_DFL);
-    signal(SIGBUS   ,SIG_DFL);
-    signal(SIGFPE   ,SIG_DFL);
-    signal(SIGUSR1  ,SIG_DFL);
-    signal(SIGSEGV  ,SIG_DFL);
-    signal(SIGUSR2  ,SIG_DFL);
-    signal(SIGPIPE  ,SIG_DFL);
-    signal(SIGTERM  ,SIG_DFL);
-    signal(SIGCONT  ,SIG_DFL);
-    signal(SIGTSTP  ,SIG_DFL);
-    signal(SIGTTIN  ,SIG_DFL);
-    signal(SIGTTOU  ,SIG_DFL);
-    signal(SIGURG   ,SIG_DFL);
-    signal(SIGXCPU  ,SIG_DFL);
-    signal(SIGXFSZ  ,SIG_DFL);
-    signal(SIGVTALRM,SIG_DFL);
-    signal(SIGPROF  ,SIG_DFL);
-    signal(SIGWINCH ,SIG_DFL);
-    signal(SIGIO    ,SIG_DFL);
-#if defined(__alpha)
-    /* Linux on Alpha*/
-    signal( SIGSYS  ,SIG_DFL);
-    signal( SIGINFO ,SIG_DFL);
-#else
-    signal(SIGSTKFLT,SIG_DFL);
-#endif
-}
-
-/**
  * @brief Create fd pair
  *
  * Create a pair of file-descriptors @a fds acting as forwarder's
@@ -1555,7 +1512,7 @@ static int buildSandboxAndStart(PStask_t *task)
 	/* Reopen the syslog and rename the tag */
 	openlog("psidforwarder", LOG_PID|LOG_CONS, config->logDest);
 
-	resetSignals();
+	PSID_resetSigs();
 
 	PSC_setDaemonFlag(0);
 	PSC_resetMyTID();

@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2006-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -18,6 +18,8 @@
  */
 #ifndef __PSIDHW_H
 #define __PSIDHW_H
+
+#include "psprotocol.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -118,6 +120,37 @@ void PSID_setParam(int hw, PSP_Option_t option, PSP_Optval_t value);
  * @return Will always return -1.
  */
 PSP_Optval_t PSID_getParam(int hw, PSP_Option_t option);
+
+/**
+ * @brief Get number of virtual CPUs.
+ *
+ * Determine the number of virtual CPUs. This is done via a call to
+ * sysconfig(_SC_NPROCESSORS_CONF).
+ *
+ * If for some reason the number of virtual CPUs cannot be determined,
+ * i.e. the number reported is 0, after some seconds of sleep() the
+ * determination is repeated. If this fails finally, exit() is called.
+ *
+ * @return On success, the number of virtual processors is
+ * returned.
+ */
+long PSID_getVirtCPUs(void);
+
+/**
+ * @brief Get number of physical CPUs.
+ *
+ * Determine the number of physical CPUs. The number of physical CPUs
+ * might differ from the number of virtual CPUs e.g. on newer Pentium
+ * platforms which support the Hyper-Threading Technology.
+ *
+ * If for some reason the number of physical CPUs cannot be
+ * determined, i.e. the number reported is 0, after some seconds of
+ * sleep() the determination is repeated. If this fails finally,
+ * exit() is called.
+ *
+ * @return On success, the number of physical CPUs is returned.
+ */
+long PSID_getPhysCPUs(void);
 
 #ifdef __cplusplus
 }/* extern "C" */

@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2008-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2008-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -12,6 +12,7 @@ static char vcid[] __attribute__((used)) =
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include "psidutil.h"
+#include "psidhw.h"
 
 
 int PSID_AuthenticAMD(void)
