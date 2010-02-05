@@ -163,6 +163,7 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 		PSID_log(-1, "%s: function wrote: %s", caller, line);
 	    } else {
 		PSID_log(-1, "%s: script '%s' wrote: %s", caller, script, line);
+	    }
 	    if (num == sizeof(line)) PSID_log(-1, "...");
 	    if (line[strlen(line)-1] != '\n') PSID_log(-1, "\n");
 	}
