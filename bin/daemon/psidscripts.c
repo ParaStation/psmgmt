@@ -42,24 +42,24 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 
     if (cb) {
 	if (!Selector_isInitialized()) {
-	    PSID_log(-1, "%s: '%s' needs running Selector\n", caller, script);
+	    PSID_log(-1, "%s: needs running Selector\n", caller);
 	    return -1;
 	}
 	cbInfo = malloc(sizeof(*cbInfo));
 	if (!cbInfo) {
-	    PSID_warn(-1, errno, "%s: '%s': malloc()", caller, script);
+	    PSID_warn(-1, errno, "%s: malloc()", caller);
 	    return -1;
 	}
     }
 
-    /* create a control channel in order to observe the script */
+    /* create a control channel in order to observe the forked process */
     if (pipe(controlfds)<0) {
 	PSID_warn(-1, errno, "%s: pipe(controlfds)", caller);
 	if (cbInfo) free(cbInfo);
 	return -1;
     }
 
-    /* create a io channel in order to get script's output */
+    /* create a io channel in order to get forked process' output */
     if (pipe(iofds)<0) {
 	PSID_warn(-1, errno, "%s: pipe(iofds)", caller);
 	close(controlfds[0]);
@@ -70,7 +70,7 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 
     pid = fork();
     if (!pid) {
-	/* This part calls the script and returns results to the parent */
+	/* This part calls the script/func and returns results to the parent */
 	int fd, ret = 0;
 	char *command, *dir = func ? NULL : PSC_lookupInstalldir(NULL);
 
@@ -159,7 +159,10 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	if (num < 0) {
 	    PSID_warn(-1, eno, "%s: read(iofd)", caller);
 	} else if (ret) {
-	    PSID_log(-1, "%s: script '%s' wrote: %s", caller, script, line);
+	    if (func) {
+		PSID_log(-1, "%s: function wrote: %s", caller, line);
+	    } else {
+		PSID_log(-1, "%s: script '%s' wrote: %s", caller, script, line);
 	    if (num == sizeof(line)) PSID_log(-1, "...");
 	    if (line[strlen(line)-1] != '\n') PSID_log(-1, "\n");
 	}
