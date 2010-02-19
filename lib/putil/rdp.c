@@ -441,11 +441,11 @@ typedef struct {
     int ackPending;          /**< Flag, that a ACK to node is pending */
     int msgPending;          /**< Outstanding msgs during reconnect */
     struct sockaddr_in sin;  /**< Pre-built descriptor for sendto */
-    int frameToSend;         /**< Seq Nr for next frame going to host */
-    int ackExpected;         /**< Expected ACK for msgs pending to hosts */
-    int frameExpected;       /**< Expected Seq Nr for msg coming from host */
-    int ConnID_in;           /**< Connection ID to recognize node */
-    int ConnID_out;          /**< Connection ID to node */
+    int32_t frameToSend;     /**< Seq Nr for next frame going to host */
+    int32_t ackExpected;     /**< Expected ACK for msgs pending to hosts */
+    int32_t frameExpected;   /**< Expected Seq Nr for msg coming from host */
+    int32_t ConnID_in;       /**< Connection ID to recognize node */
+    int32_t ConnID_out;      /**< Connection ID to node */
     RDPState_t state;        /**< State of connection to host */
     list_t pendList;         /**< List of pending message buffers */
     struct timeval tmout;    /**< Timer for resend timeout */
@@ -1589,7 +1589,7 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
 	RDP_log(RDP_LOG_ACKS, "%s: compare seqno %d with %d\n",
 		__func__, psntoh32(mp->msg.small->header.seqno), hdr->ackno);
-	if (RSEQCMP(psntoh32(mp->msg.small->header.seqno), hdr->ackno) <= 0) {
+	if (RSEQCMP((int)psntoh32(mp->msg.small->header.seqno), hdr->ackno) <= 0) {
 	    /* ACK this buffer */
 	    if ((int)psntoh32(mp->msg.small->header.seqno) != cp->ackExpected) {
 		RDP_log(-1, "%s: strange things happen: msg.seqno = %x,"
