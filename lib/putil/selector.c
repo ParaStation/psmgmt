@@ -68,6 +68,7 @@ typedef struct {
     void *info;                    /**< Extra info to be passed to handler */
     int fd;                        /**< The corresponding file-descriptor. */
     int requested;                 /**< Flag used within Sselect(). */
+    int deleted;                   /**< Flag used for asynchronous delete. */
 } Selector_t;
 
 /** The logger used by the Selector facility */
@@ -151,7 +152,9 @@ int Selector_register(int fd, Selector_CB_t selectHandler, void *info)
 	.fd = fd,
 	.info = info,
 	.selectHandler = selectHandler,
-	.requested = 0 };
+	.requested = 0,
+	.deleted = 0,
+    };
 
     list_add_tail(&selector->next, &selectorList);
 
@@ -168,12 +171,22 @@ int Selector_remove(int fd)
 	return -1;
     }
 
+    selector->deleted = 1;
+
+    return 0;
+}
+
+static void doRemove(Selector_t *selector)
+{
+    if (!selector) {
+	logger_print(logger, -1, "%s: no selector given\n", __func__);
+	return;
+    }
+
     list_del(&selector->next);
 
     /* Release allocated memory for removed selector */
     free(selector);
-
-    return 0;
 }
 
 int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
@@ -214,8 +227,12 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	    FD_ZERO(&efds);
 	}
 
-	list_for_each(s, &selectorList) {
+	list_for_each_safe(s, tmp, &selectorList) {
 	    Selector_t *selector = list_entry(s, Selector_t, next);
+	    if (selector->deleted) {
+		doRemove(selector);
+		continue;
+	    }
 	    FD_SET(selector->fd, &rfds);              /* activate port */
 	}
 
@@ -240,28 +257,26 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	    }
 	}
 
-	list_for_each_safe(s, tmp, &selectorList) {
+	list_for_each(s, &selectorList) {
 	    Selector_t *selector = list_entry(s, Selector_t, next);
+	    if (selector->deleted) continue;
 	    if (FD_ISSET(selector->fd, &rfds) && selector->selectHandler) {
 		/* Got message on handled fd */
-		int sfd = selector->fd; /* store this since selector might get
-					   removed within handler */
-		int ret = selector->selectHandler(sfd, selector->info);
-
+		int ret = selector->selectHandler(selector->fd, selector->info);
 		switch (ret) {
 		case -1:
 		    retval = -1;
 		    break;
 		case 0:
 		    retval--;
-		    FD_CLR(sfd, &rfds);
+		    FD_CLR(selector->fd, &rfds);
 		    break;
 		case 1:
 		    break;
 		default:
 		    logger_print(logger, -1,
 				 "%s: selectHander for fd=%d returns %d\n",
-				 __func__, sfd, ret);
+				 __func__, selector->fd, ret);
 		}
 	    }
 	    if (retval<=0) break;
@@ -274,12 +289,13 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
     } while (!timeout || timercmp(&start, &end, <));
 
     if (readfds) {
-	list_for_each(s, &selectorList) {
+	list_for_each_safe(s, tmp, &selectorList) {
 	    Selector_t *selector = list_entry(s, Selector_t, next);
 	    if (!selector->requested && FD_ISSET(selector->fd, &rfds)) {
 		FD_CLR(selector->fd, &rfds);
 		retval--;
 	    }
+	    if (selector->deleted) doRemove(selector);
 	    if (!retval) break;
 	}
     }
