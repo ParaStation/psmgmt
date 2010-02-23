@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (c) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
 # All rights reserved.
 #
 # @author
@@ -16,8 +16,8 @@
 # config: /etc/parastation.conf
 ### BEGIN INIT INFO
 # Provides:          parastation
-# Required-Start:    $syslog $network
-# Should-Start: $time
+# Required-Start:    $syslog $network $named
+# Should-Start: $time nscd
 # Required-Stop:     $syslog
 # Should-Stop: $time
 # Default-Start:     3 5
