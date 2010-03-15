@@ -73,6 +73,8 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	/* This part calls the script/func and returns results to the parent */
 	int fd, ret = 0;
 
+	PSID_resetSigs();
+
 	for (fd=0; fd<getdtablesize(); fd++) {
 	    if (fd != controlfds[1] && fd != iofds[1]) close(fd);
 	}
@@ -85,7 +87,6 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	dup2(iofds[1], STDERR_FILENO);
 	close(iofds[1]);
 
-	PSID_resetSigs();
 	if (func) {
 	    ret = func(info);
 	} else {

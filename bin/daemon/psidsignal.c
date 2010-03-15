@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -104,6 +104,8 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
     if (!(forkPid = fork())) {
 	/* the killing process */
 	int error;
+
+	PSID_resetSigs();
 
 	/* close the reading pipe */
 	close(cntrlfds[0]);

@@ -1490,6 +1490,8 @@ static int buildSandboxAndStart(PStask_t *task)
     if (!(pid = fork())) {
 	/* this is the forwarder process */
 
+	PSID_resetSigs();
+
 	/*
 	 * Create a new process group. This is needed since the daemon
 	 * kills whole process groups. Otherwise the daemon might
@@ -1511,8 +1513,6 @@ static int buildSandboxAndStart(PStask_t *task)
 
 	/* Reopen the syslog and rename the tag */
 	openlog("psidforwarder", LOG_PID|LOG_CONS, config->logDest);
-
-	PSID_resetSigs();
 
 	PSC_setDaemonFlag(0);
 	PSC_resetMyTID();
