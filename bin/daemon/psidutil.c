@@ -336,10 +336,6 @@ void PSID_shutdownMasterSock(void)
 
     Selector_remove(masterSock);
 
-    if (shutdown(masterSock, SHUT_RDWR)) {
-	action = "shutdown()";
-	goto exit;
-    }
     if (close(masterSock)) {
 	action = "close()";
 	goto exit;
