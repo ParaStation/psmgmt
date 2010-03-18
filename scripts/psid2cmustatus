@@ -1,0 +1,26 @@
+#!/bin/bash
+#
+# (c) 2010-03-18 Jens Hauke <hauke@par-tec.com>
+#
+# Translate the ParaStation up/down status of all nodes to a cmu
+# usable status file. (Alternativ for the cmustatus service)
+# 
+# This script could be triggerd by psid:
+#
+# /etc/parastation.conf:
+# nodeUpScript  "/opt/parastation/scripts/psid2cmustatus"
+# nodeDownScript "/opt/parastation/scripts/psid2cmustatus"
+#
+
+cmu_statfile="${1-/opt/cmu/log/cmustatus.log}"
+
+/opt/parastation/bin/psiadmin -c "resolve;status" | gawk '
+$1==0	{ sec++ }
+
+sec==1	{ nname[$1] = $2 }
+sec==2	{ print nname[$1], $2=="up" ? "1" : "0"}
+' > "$cmu_statfile"
+
+# Local Variables:
+#  compile-command: "./psid2cmustatus /dev/stdout"
+# End:
