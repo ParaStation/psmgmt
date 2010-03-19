@@ -970,7 +970,8 @@ static int handleFINALIZEMsg(PSLog_Msg_t *msg)
 	}
 
 	if (WIFEXITED(status)) {
-	    if (WEXITSTATUS(status)) {
+	    int exitStatus = WEXITSTATUS(status);
+	    if (exitStatus) {
 		int logLevel = -1;
 		if (msg->sender == -2) {
 		    ret = 1;
@@ -978,8 +979,8 @@ static int handleFINALIZEMsg(PSLog_Msg_t *msg)
 		}
 		PSIlog_log(logLevel,
 			   "Child with rank %d exited with status %d.\n",
-			   msg->sender, WEXITSTATUS(status));
-		if (!retVal) retVal = WEXITSTATUS(status);
+			   msg->sender, exitStatus);
+		if (retVal < exitStatus) retVal = exitStatus;
 	    } else {
 		PSIlog_log(PSILOG_LOG_VERB,
 			   "Child with rank %d exited normally.\n",
