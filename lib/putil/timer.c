@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -46,6 +46,7 @@ typedef struct {
     int sigBlocked;                /**< Flag to block this timer.
 				      Set by blockTimer(). */
     int sigPending;                /**< A blocked signal is pending. */
+    int deleted;                   /**< Timer is actually deleted */
 } Timer_t;
 
 /** The logger used by the Timer facility */
@@ -62,57 +63,6 @@ static struct timeval actPeriod = {0,0};
 
 /** The maximum timer period -- one day should be large enough */
 static struct timeval maxPeriod = {86400,0};
-
-/**
- * @brief Handles received signals
- *
- * Does all the signal-handling work. When a SIGALRM is received, sigHandler()
- * updates the counter @ref calls for each timer and calls the specific
- * @ref timeoutHandler(), if necessary.
- *
- * @param sig The signal send to the process. Ignored, since only SIGALRM is
- * handled.
- *
- * @return No return value.
- */
-static void sigHandler(int sig)
-{
-    list_t *t;
-
-    list_for_each(t, &timerList) {
-	Timer_t *timer = list_entry(t, Timer_t, next);
-	timer->calls = ++timer->calls % timer->period;
-	if (!timer->calls) {
-	    timer->sigPending = 1;
-	}
-    }
-}
-
-void Timer_handleSignals(void)
-{
-    list_t *t;
-
-    list_for_each(t, &timerList) {
-	Timer_t *timer = list_entry(t, Timer_t, next);
-	if (timer->sigPending && !timer->sigBlocked && timer->timeoutHandler) {
-	    timer->sigBlocked = 1;
-	    timer->timeoutHandler();
-	    timer->sigBlocked = 0;
-	    timer->sigPending = 0;
-	    timer->calls = 0;
-	}
-    }
-}
-
-int32_t Timer_getDebugMask(void)
-{
-    return logger_getMask(logger);
-}
-
-void Timer_setDebugMask(int32_t mask)
-{
-    logger_setMask(logger, mask);
-}
 
 static int timerdiv(struct timeval *tv1, struct timeval *tv2)
 {
@@ -144,6 +94,7 @@ static void rescaleActPeriods(struct timeval *newTimeout)
     list_for_each(t, &timerList) {
 	Timer_t *timer = list_entry(t, Timer_t, next);
 	int old_period = timer->period;
+	if (timer->deleted) continue;
 	timer->period = timerdiv(&timer->timeout, &actPeriod);
 	timer->calls = timer->calls * timer->period / old_period;
     }
@@ -155,6 +106,138 @@ static void rescaleActPeriods(struct timeval *newTimeout)
 	logger_exit(logger, errno, "%s: unable to set itimer to %ld.%.6ld",
 		    __func__, actPeriod.tv_sec, actPeriod.tv_usec);
     }
+}
+
+/**
+ * @brief Handles received signals
+ *
+ * Does all the signal-handling work. When a SIGALRM is received, sigHandler()
+ * updates the counter @ref calls for each timer and calls the specific
+ * @ref timeoutHandler(), if necessary.
+ *
+ * @param sig The signal send to the process. Ignored, since only SIGALRM is
+ * handled.
+ *
+ * @return No return value.
+ */
+static void sigHandler(int sig)
+{
+    list_t *t;
+
+    list_for_each(t, &timerList) {
+	Timer_t *timer = list_entry(t, Timer_t, next);
+	if (timer->deleted) continue;
+	timer->calls = ++timer->calls % timer->period;
+	if (!timer->calls) {
+	    timer->sigPending = 1;
+	}
+    }
+}
+
+static int deleteTimer(Timer_t *timer)
+{
+    sigset_t sigset;
+
+    if (!timer) {
+	logger_print(logger, -1, "%s: timer is NULL\n", __func__);
+	return -1;
+    }
+
+    /* Block SIGALRM, while we fiddle around with the timers */
+    sigemptyset(&sigset);
+    sigaddset(&sigset, SIGALRM);
+    sigprocmask(SIG_BLOCK, &sigset, NULL);
+
+    /* Remove timer from timerList */
+    list_del(&timer->next);
+
+    if (list_empty(&timerList)) {
+	/* list empty, i.e. last timer removed */
+	struct timeval timeout = { .tv_sec = 0, .tv_usec = 0 };
+	struct sigaction sa;
+
+	/* Set sigaction to default */
+	sa.sa_handler = SIG_DFL;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+	if (sigaction(SIGALRM, &sa, 0)==-1) {
+	    logger_exit(logger, errno, "%s: unable to set SIG_DFL", __func__);
+	}
+
+	rescaleActPeriods(&timeout);
+    } else if (timercmp(&timer->timeout, &actPeriod, ==)) {
+	/* timer with actPeriod removed, search and set new one */
+	list_t *t;
+	struct timeval oldActPeriod;
+
+	memcpy(&oldActPeriod, &actPeriod, sizeof(oldActPeriod));
+
+	/* search new actPeriod */
+	memcpy(&actPeriod, &maxPeriod, sizeof(actPeriod));
+
+	list_for_each(t, &timerList) {
+	    Timer_t *timer = list_entry(t, Timer_t, next);
+	    if (timer->deleted) continue;
+	    if (timercmp(&timer->timeout, &actPeriod, <)) {
+		memcpy(&actPeriod, &timer->timeout, sizeof(actPeriod));
+	    }
+	}
+
+	if (timercmp(&oldActPeriod, &actPeriod, !=)) {
+	    /*
+	     * Only change period, if actPeriod != oldActPeriod
+	     * Two timer may have been registered with equal timeout !
+	     */
+	    rescaleActPeriods(&actPeriod);
+	}
+    }
+
+    /* Release allocated memory for removed timer */
+    free(timer);
+
+    /* Unblock SIGALRM, again */
+    sigemptyset(&sigset);
+    sigaddset(&sigset, SIGALRM);
+    sigprocmask(SIG_UNBLOCK, &sigset, NULL);
+
+    return 0;
+}
+
+/** Flag set while in Timer_handleSignals() */
+static int inTimerHandling = 0;
+
+void Timer_handleSignals(void)
+{
+    list_t *t, *tmp;
+
+    inTimerHandling = 1;
+
+    list_for_each_safe(t, tmp, &timerList) {
+	Timer_t *timer = list_entry(t, Timer_t, next);
+	if (timer->sigPending && !timer->deleted
+	    && !timer->sigBlocked && timer->timeoutHandler) {
+	    timer->sigBlocked = 1;
+	    timer->timeoutHandler();
+	    timer->sigBlocked = 0;
+	    timer->sigPending = 0;
+	    timer->calls = 0;
+	}
+	if (timer->deleted) {
+	    deleteTimer(timer);
+	}
+    }
+
+    inTimerHandling = 0;
+}
+
+int32_t Timer_getDebugMask(void)
+{
+    return logger_getMask(logger);
+}
+
+void Timer_setDebugMask(int32_t mask)
+{
+    logger_setMask(logger, mask);
 }
 
 void Timer_init(FILE* logfile)
@@ -275,6 +358,7 @@ static Timer_t * findTimer(int id)
 
     list_for_each(t, &timerList) {
 	Timer_t *timer = list_entry(t, Timer_t, next);
+	if (timer->deleted) continue;
 	if (timer->id == id) return timer;
     }
 
@@ -285,68 +369,15 @@ static Timer_t * findTimer(int id)
 int Timer_remove(int id)
 {
     Timer_t *timer = findTimer(id);
-    sigset_t sigset;
 
     if (!timer) {
 	logger_print(logger, -1, "%s: no timer found id=%d\n", __func__, id);
 	return -1;
     }
 
-    /* Block SIGALRM, while we fiddle around with the timers */
-    sigemptyset(&sigset);
-    sigaddset(&sigset, SIGALRM);
-    sigprocmask(SIG_BLOCK, &sigset, NULL);
+    timer->deleted = 1;
 
-    /* Remove timer from timerList */
-    list_del(&timer->next);
-
-    if (list_empty(&timerList)) {
-	/* list empty, i.e. last timer removed */
-	struct timeval timeout = { .tv_sec = 0, .tv_usec = 0 };
-	struct sigaction sa;
-
-	/* Set sigaction to default */
-	sa.sa_handler = SIG_DFL;
-	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = 0;
-	if (sigaction(SIGALRM, &sa, 0)==-1) {
-	    logger_exit(logger, errno, "%s: unable to set SIG_DFL", __func__);
-	}
-
-	rescaleActPeriods(&timeout);
-    } else if (timercmp(&timer->timeout, &actPeriod, ==)) {
-	/* timer with actPeriod removed, search and set new one */
-	list_t *t;
-	struct timeval oldActPeriod;
-
-	memcpy(&oldActPeriod, &actPeriod, sizeof(oldActPeriod));
-
-	/* search new actPeriod */
-	memcpy(&actPeriod, &maxPeriod, sizeof(actPeriod));
-
-	list_for_each(t, &timerList) {
-	    Timer_t *timer = list_entry(t, Timer_t, next);
-	    if (timercmp(&timer->timeout, &actPeriod, <)) {
-		memcpy(&actPeriod, &timer->timeout, sizeof(actPeriod));
-	    }
-	}
-
-	if (timercmp(&oldActPeriod, &actPeriod, !=)) {
-	    /*
-	     * Only change period, if actPeriod != oldActPeriod
-	     * Two timer may have been registered with equal timeout !
-	     */
-	    rescaleActPeriods(&actPeriod);
-	}
-    }
-
-    /* Release allocated memory for removed timer */
-    free(timer);
-
-    /* Unblock SIGALRM, again */
-    sigemptyset(&sigset);
-    sigaddset(&sigset, SIGALRM);
-    sigprocmask(SIG_UNBLOCK, &sigset, NULL);
+    if (!inTimerHandling) return deleteTimer(timer);
 
     return 0;
 }
