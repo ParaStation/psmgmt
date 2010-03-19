@@ -103,6 +103,12 @@ static fd_set myfds;
 /** The socket connecting to the local ParaStation daemon */
 static int daemonSock;
 
+/** Maximum runtime of the job allowed by user */
+static long maxTime = 0;
+
+/** Timer used to control maximum run-time */
+static int maxTimeID = -1;
+
 /** The value which will be returned when the logger stops execution */
 int retVal = 0;
 
@@ -552,6 +558,26 @@ void sighandler(int sig)
     fflush(stderr);
 
     signal(sig, sighandler);
+}
+
+static void handleMaxTime(void)
+{
+    DDSignalMsg_t msg;
+
+    PSIlog_log(-1, "Maximum runtime of %ld seconds elapsed.\n", maxTime);
+
+    msg.header.type = PSP_CD_SIGNAL;
+    msg.header.sender = PSC_getMyTID();
+    msg.header.dest = PSC_getMyTID();
+    msg.header.len = sizeof(msg);
+    msg.signal = -1;
+    msg.param = getuid();
+    msg.pervasive = 1;
+    msg.answer = 0;
+
+    sendDaemonMsg((DDMsg_t *)&msg);
+
+    if (maxTimeID != -1) Timer_remove(maxTimeID);
 }
 
 /* Raw mode handling. raw mode is needed for correct functioning of pssh */
@@ -1376,9 +1402,33 @@ int main( int argc, char**argv)
     }
 
     /* enable kvs and pmi */
-    if ((envstr = getenv("KVS_ENABLE"))) {
+    if (getenv("KVS_ENABLE")) {
 	enable_kvs = 1;
 	initLoggerKvs();
+    }
+
+    if ((envstr = getenv("PSI_MAXTIME"))) {
+	if (!*envstr) {
+	    PSIlog_log(-1, "PSI_MAXTIME is empty.\n");
+	} else {
+	    char *end;
+
+	    maxTime = strtol(envstr, &end, 10);
+	    if (*end) {
+		PSIlog_log(-1, "PSI_MAXTIME '%s' is invalid.\n", envstr);
+	    } else {
+		struct timeval timer;
+
+		/* timeout from user */
+		timer.tv_sec = maxTime;
+		timer.tv_usec = 0;
+
+		maxTimeID = Timer_register(&timer, handleMaxTime);
+
+		PSIlog_log(PSILOG_LOG_VERB,
+			   "Runtime limited to %ld seconds.\n", maxTime);
+	    }
+	}
     }
 
     /* call the loop which does all the work */
