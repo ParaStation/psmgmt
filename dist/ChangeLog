@@ -1,3 +1,116 @@
+Version psmgmt-5.0.26:
+======================
+------------------------------------------------------------------------
+r8048 | rauh | 2010-03-24 13:28:05 +0100 (Wed, 24 Mar 2010) | 3 lines
+
+Enhancement: cmd line options (like --maxtime, --usize) will overwrite environment variables like MPIEXEC_TIMEOUT.
+Additionally MPIEXEC_TIMEOUT will overwrite PSI_MAXTIME variable.
+
+------------------------------------------------------------------------
+r8047 | rauh | 2010-03-24 11:38:25 +0100 (Wed, 24 Mar 2010) | 3 lines
+
+Enhancement: added support for -maxtime, MPIEXEC_TIMEOUT and various other compatibility
+options for mpiexec fixing #526.
+
+------------------------------------------------------------------------
+r8039 | eicker | 2010-03-19 19:48:24 +0100 (Fri, 19 Mar 2010) | 4 lines
+
+Enhancement: Make mpiexec's return value more predictive. From now on
+    the maximum return-value of all child-processes will be returned.
+    This implements #244.
+
+------------------------------------------------------------------------
+r8038 | eicker | 2010-03-19 19:27:37 +0100 (Fri, 19 Mar 2010) | 5 lines
+
+Enhancement: Implement maximum allowed time for MPI applications. For
+    that, if the PSI_MAXTIME environment is given, an parallel
+    application is terminated after this number of seconds. This
+    implements #529.
+
+------------------------------------------------------------------------
+r8037 | eicker | 2010-03-19 19:24:07 +0100 (Fri, 19 Mar 2010) | 3 lines
+
+Enhancement: Allow timers to get unregistered any time, even during
+    timer-handling.
+
+------------------------------------------------------------------------
+r8036 | hauke | 2010-03-18 13:22:47 +0100 (Thu, 18 Mar 2010) | 5 lines
+
+psid2cmustatus: Implementation
+
+Translate the ParaStation up/down status of all nodes to a cmu
+usable status file.
+
+------------------------------------------------------------------------
+r8035 | eicker | 2010-03-15 13:36:37 +0100 (Mon, 15 Mar 2010) | 2 lines
+
+Don't send useless shutdown() immediately before close().
+
+------------------------------------------------------------------------
+r8034 | eicker | 2010-03-15 13:25:13 +0100 (Mon, 15 Mar 2010) | 3 lines
+
+Bugfix: Fix one race-condition: psid might get in an unusable state, if
+    child-process used to send signals to clients catches SIGTERM.
+
+------------------------------------------------------------------------
+r8025 | eicker | 2010-02-23 11:04:17 +0100 (Tue, 23 Feb 2010) | 3 lines
+
+Enhancement: Add dependency on $named and nscd to ParaStation's SysV
+    init script. This should fix #496.
+
+------------------------------------------------------------------------
+r8022 | eicker | 2010-02-21 22:11:46 +0100 (Sun, 21 Feb 2010) | 4 lines
+
+Enhancement: Make Selector_remove() asynchronuos enough that *any*
+    selector might be removed during selector-handling. This was
+    requested by Michael for psmom.
+
+------------------------------------------------------------------------
+r8021 | eicker | 2010-02-19 22:01:42 +0100 (Fri, 19 Feb 2010) | 2 lines
+
+Bugfix: Fix problem with RDP's ACKs on big-endian machines.
+
+------------------------------------------------------------------------
+r8006 | eicker | 2010-02-05 18:31:31 +0100 (Fri, 05 Feb 2010) | 2 lines
+
+More re-organization to prevent one compiler-warning.
+
+------------------------------------------------------------------------
+r8005 | eicker | 2010-02-05 18:19:05 +0100 (Fri, 05 Feb 2010) | 2 lines
+
+Fix fatal bug from r8004.
+
+------------------------------------------------------------------------
+r8004 | eicker | 2010-02-05 18:15:57 +0100 (Fri, 05 Feb 2010) | 3 lines
+
+Bugfix: Fix possible segfault in doExec() when called from
+    PSID_execFunc(). This was just introduced in r8003.
+
+------------------------------------------------------------------------
+r8003 | eicker | 2010-02-05 18:09:19 +0100 (Fri, 05 Feb 2010) | 3 lines
+
+Enhancement: New function PSID_execFunc(). This is required by Michael's psmom.
+Some re-organization of functions.
+
+------------------------------------------------------------------------
+r8002 | eicker | 2010-02-05 13:41:01 +0100 (Fri, 05 Feb 2010) | 3 lines
+
+Bugfix: Daemon might segfault, if selector-handler de-registers during
+    handling. Merged from Michael's branch.
+
+------------------------------------------------------------------------
+r7993 | eicker | 2010-01-29 23:34:36 +0100 (Fri, 29 Jan 2010) | 3 lines
+
+Bugfix: Expect WHODIED messages even while waiting for RELEASERES.
+Bugfix: Don't count WHODIED message as SPAWNSUCCESS/FAILED.
+
+------------------------------------------------------------------------
+r7981 | eicker | 2010-01-27 18:22:07 +0100 (Wed, 27 Jan 2010) | 2 lines
+
+New version (psmgmt-5.0.25)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.25:
 ======================
 ------------------------------------------------------------------------
