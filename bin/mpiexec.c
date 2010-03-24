@@ -108,9 +108,16 @@ char *path = NULL;
 int totalview = 0;
 int ecfn = 0;
 int gdba = 0;
+int noprompt = 0;
+int localroot = 0;
+int exitinfo = 0;
+int exitcode = 0;
+int port = 0;
+char *phrase = 0;
+char *smpdfile = 0;
 
 /* options for parastation (psid/logger/forwarder) */
-int source = 0;
+int sourceprintf = 0;
 int overbook = 0;
 int exclusive = 0;
 int wait = 0;
@@ -121,6 +128,7 @@ int mergetmout = 0;
 int rusage = 0;
 int timestamp = 0;
 int interactive = 0;
+int maxtime = 0;
 char *sort = NULL;
 char *login = NULL;
 char *dest = NULL;
@@ -850,7 +858,7 @@ static void cleanEnv(char *var)
  */
 static void setupPSIDEnv(int verbose)
 {
-    char* envstr;
+    char *envstr, *envstr2;
     char tmp[1024];
     /* HACK: this determines, if we are the root-process */
     int isRoot = !getenv("__PSI_CORESIZE");
@@ -861,6 +869,32 @@ static void setupPSIDEnv(int verbose)
     cleanEnv("PSI_HOSTS");
     cleanEnv("PSI_NODES");
     cleanEnv("PSI_HOSTFILE");
+
+    envstr = getenv("MPIEXEC_TIMEOUT");
+    envstr2 = getenv("PSI_MAXTIME");
+    if (maxtime) {
+	if (envstr) {
+	    errExit("Don't use --maxtime and MPIEXEC_TIMEOUT simultaneously.");
+	} else if (envstr2) {
+	    errExit("Don't use --maxtime and PSI_MAXTIME simultaneously.");
+	}
+	snprintf(tmp, sizeof(tmp), "%d", maxtime);
+	setenv("PSI_MAXTIME", tmp, 1);
+	if (verbose) {
+	    printf("PSI_MAXTIME=%i : setting maximum job runtime to "
+		"'%i' seconds\n", maxtime, maxtime);
+	}
+    } else if (envstr) {
+	if (envstr2) {
+	    errExit("Don't use MPIEXEC_TIMEOUT and PSI_MAXTIME simultaneously.");
+	}
+	setenv("PSI_MAXTIME", envstr, 1);
+	if (verbose) {
+	    printf("PSI_MAXTIME=%s : setting maximum job runtime to "
+		"'%s' seconds\n", envstr, envstr);
+	}
+	unsetenv("MPIEXEC_TIMEOUT");
+    }
 
     if (u_mask) {
 	if (verbose) printf("setting umask to '%o'\n", u_mask);
@@ -885,7 +919,7 @@ static void setupPSIDEnv(int verbose)
 	    "rank(s) [%s].\n", dest, dest);
     }
 
-    if (source) {
+    if (sourceprintf || getenv("MPIEXEC_PREFIX_DEFAULT")) {
 	setenv("PSI_SOURCEPRINTF", "1", 1);
 	if (verbose) printf("PSI_SOURCEPRINTF=1 : Print output sources.\n");
     }
@@ -1062,6 +1096,7 @@ static void setupPSIDEnv(int verbose)
  */
 static void setupEnvironment(int verbose)
 {
+    char *envstr;
     int rank;
 
     /* setup environment depending on psid/logger */
@@ -1104,6 +1139,21 @@ static void setupEnvironment(int verbose)
     if (path) {
 	setenv("PATH", path, 1);
 	setPSIEnv("PATH", path, 1);
+    }
+
+    /* set the universe size */
+    envstr = getenv("MPIEXEC_UNIVERSE_SIZE");
+    if (usize) {
+	if (envstr) {
+	    errExit("Don't use --usize and MPIEXEC_UNIVERSE_SIZE"
+		    " simultaneously.");
+	}
+	if (verbose) {
+	    printf("Setting universe size to '%i'\n", usize);
+	}
+    } else if (envstr) {
+	usize = atoi(envstr);
+	printf("Setting universe size to '%i'\n", usize);
     }
 }
 
@@ -1480,10 +1530,6 @@ static void checkSanity(char *argv[])
 	exit(EXIT_FAILURE);
     }
 
-    if (ecfn) {
-	fprintf(stderr, "ecfn is not yet implemented, ignoring option\n");
-    }
-
     if (gdba) {
 	fprintf(stderr, "gdba is not yet implemented\n");
 	exit(EXIT_FAILURE);
@@ -1497,6 +1543,10 @@ static void checkSanity(char *argv[])
 	if (gdb) {
 	    pmitmout = -1;
 	}
+    }
+
+    if (getenv("MPIEXEC_BNR")) {
+	mpichcom = 1;
     }
 
     if (gdb && mpichcom) {
@@ -1522,6 +1572,67 @@ static void checkSanity(char *argv[])
 
     if (ondemand && no_ondemand) {
 	errExit("Options --ondemand and --no_ondemand are mutually exclusive");
+    }
+
+    /* display warnings for not supported env variables/options */
+    if (getenv("MPIEXEC_PORT_RANGE")) {
+	fprintf(stderr, "MPIEXEC_PORT_RANGE is not supported, ignoring it\n");
+    }
+
+    if (getenv("MPD_CON_EXT")) {
+	fprintf(stderr, "MPD_CON_EXT is not supported, ignoring it\n");
+    }
+
+    if (getenv("MPIEXEC_PREFIX_STDOUT")) {
+	fprintf(stderr, "MPIEXEC_PREFIX_STDOUT is not supported, use "
+	    "--sourceprintf instead\n");
+    }
+
+    if (getenv("MPIEXEC_PREFIX_STDERR")) {
+	fprintf(stderr, "MPIEXEC_PREFIX_STDERR is not supported, use "
+	    "--sourceprintf instead\n");
+    }
+
+    if (getenv("MPIEXEC_STDOUTBUF")) {
+	fprintf(stderr, "MPIEXEC_STDOUTBUF is not supported, use "
+	    "--merge instead\n");
+    }
+
+    if (getenv("MPIEXEC_STDERRBUF")) {
+	fprintf(stderr, "MPIEXEC_STDERRBUF is not supported, use "
+	    "--merge instead\n");
+    }
+
+    if (ecfn) {
+	fprintf(stderr, "ecfn is not yet implemented, ignoring option\n");
+    }
+
+    if (noprompt) {
+	fprintf(stderr, "-noprompt is not supported, ignoring option\n");
+    }
+
+    if (localroot) {
+	fprintf(stderr, "-localroot is not supported, ignoring option\n");
+    }
+
+    if (exitinfo) {
+	fprintf(stderr, "-exitinfo is not supported, ignoring option\n");
+    }
+
+    if (exitcode) {
+	fprintf(stderr, "-exitcode is not supported, use --loggerdb instead\n");
+    }
+
+    if (port) {
+	fprintf(stderr, "-port is not supported, ignoring option\n");
+    }
+
+    if (phrase) {
+	fprintf(stderr, "-phrase is not supported, ignoring option\n");
+    }
+
+    if (smpdfile) {
+	fprintf(stderr, "-smpdfile is not supported, ignoring option\n");
     }
 }
 
@@ -1571,6 +1682,24 @@ struct poptOption poptMpiexecComp[] = {
       &usize, 0, "set the universe size", NULL},
     { "env", 'E', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &envopt, 'E', "export this value of this env var", "<name> <value>"},
+    { "maxtime", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &maxtime, 0, "maximum number of seconds the job is permitted to run", "INT"},
+    { "timeout", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &maxtime, 0, "maximum number of seconds the job is permitted to run", "INT"},
+    { "noprompt", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &noprompt, 0, "not supported, will be ignored", NULL},
+    { "localroot", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &localroot, 0, "not supported, will be ignored", NULL},
+    { "exitinfo", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &exitinfo, 0, "not supported, will be ignored", NULL},
+    { "exitcode", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &exitcode, 0, "not supported, will be ignored", NULL},
+    { "port", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &port, 0, "not supported, will be ignored", NULL},
+    { "phrase", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &phrase, 0, "not supported, will be ignored", NULL},
+    { "smpdfile", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &smpdfile, 0, "not supported, will be ignored", NULL},
     POPT_TABLEEND
 };
 
@@ -1663,7 +1792,7 @@ struct poptOption popt_IO_Options[] = {
     { "inputdest", 's', POPT_ARG_STRING,
       &dest, 0, "direction to forward input: dest <1,2,5-10> or <all>", NULL},
     { "sourceprintf", 'l', POPT_ARG_NONE,
-      &source, 0, "print output-source info", NULL},
+      &sourceprintf, 0, "print output-source info", NULL},
     { "rusage", 'R', POPT_ARG_NONE,
       &rusage, 0, "print consumed sys/user time", NULL},
     { "merge", 'm', POPT_ARG_NONE,
@@ -1725,6 +1854,8 @@ struct poptOption poptExecutionOptions[] = {
       &u_mask, 0, "umask for remote process", NULL},
     { "path", 'p', POPT_ARG_STRING,
       &path, 0, "the path to search for executables", "<directory>"},
+    { "maxtime", '\0', POPT_ARG_INT,
+      &maxtime, 0, "maximum number of seconds the job is permitted to run", "INT"},
     POPT_TABLEEND
 };
 
