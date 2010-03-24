@@ -872,28 +872,23 @@ static void setupPSIDEnv(int verbose)
 
     envstr = getenv("MPIEXEC_TIMEOUT");
     envstr2 = getenv("PSI_MAXTIME");
-    if (maxtime) {
-	if (envstr) {
-	    errExit("Don't use --maxtime and MPIEXEC_TIMEOUT simultaneously.");
-	} else if (envstr2) {
-	    errExit("Don't use --maxtime and PSI_MAXTIME simultaneously.");
+    if (maxtime || envstr || envstr2) {
+	char *time;
+
+	if (maxtime) {
+	    snprintf(tmp, sizeof(tmp), "%d", maxtime);
+	    time = tmp;
+	} else if (envstr) {
+	    time = envstr;
+	} else {
+	    time = envstr2;
 	}
-	snprintf(tmp, sizeof(tmp), "%d", maxtime);
-	setenv("PSI_MAXTIME", tmp, 1);
-	if (verbose) {
-	    printf("PSI_MAXTIME=%i : setting maximum job runtime to "
-		"'%i' seconds\n", maxtime, maxtime);
-	}
-    } else if (envstr) {
-	if (envstr2) {
-	    errExit("Don't use MPIEXEC_TIMEOUT and PSI_MAXTIME simultaneously.");
-	}
-	setenv("PSI_MAXTIME", envstr, 1);
+	setenv("PSI_MAXTIME", time, 1);
+
 	if (verbose) {
 	    printf("PSI_MAXTIME=%s : setting maximum job runtime to "
-		"'%s' seconds\n", envstr, envstr);
+		"'%s' seconds\n", time, time);
 	}
-	unsetenv("MPIEXEC_TIMEOUT");
     }
 
     if (u_mask) {
@@ -1143,17 +1138,13 @@ static void setupEnvironment(int verbose)
 
     /* set the universe size */
     envstr = getenv("MPIEXEC_UNIVERSE_SIZE");
-    if (usize) {
-	if (envstr) {
-	    errExit("Don't use --usize and MPIEXEC_UNIVERSE_SIZE"
-		    " simultaneously.");
+    if (envstr || usize) {
+	if (!usize) {
+	    usize = atoi(envstr);
 	}
 	if (verbose) {
 	    printf("Setting universe size to '%i'\n", usize);
 	}
-    } else if (envstr) {
-	usize = atoi(envstr);
-	printf("Setting universe size to '%i'\n", usize);
     }
 }
 
