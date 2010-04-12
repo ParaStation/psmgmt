@@ -135,14 +135,19 @@ int Selector_register(int fd, Selector_CB_t selectHandler, void *info)
     Selector_t *selector = findSelector(fd);
 
     /* Test if a selector is allready registered on fd */
-    if (selector) {
+    if (selector && !selector->deleted) {
 	logger_print(logger, -1,
 		     "%s: found selector for fd %d\n", __func__, fd);
 	return -1;
     }
 
-    /* Create new selector */
-    selector = malloc(sizeof(Selector_t));
+    if (selector) {
+	/* enable deleted selector for reuse */
+	list_del(&selector->next);
+    } else {
+	/* Create new selector */
+	selector = malloc(sizeof(Selector_t));
+    }
     if (!selector) {
 	logger_print(logger, -1, "%s: No memory\n", __func__);
 	return -1;
