@@ -74,6 +74,8 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	int fd, ret = 0;
 
 	PSID_resetSigs();
+	signal(SIGCHLD, SIG_DFL);
+	PSID_blockSig(0, SIGCHLD);
 
 	for (fd=0; fd<getdtablesize(); fd++) {
 	    if (fd != controlfds[1] && fd != iofds[1]) close(fd);
