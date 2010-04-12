@@ -1135,7 +1135,7 @@ static void msg_LOAD(DDBufferMsg_t *msg)
 
     if (PSC_getMyID() != getMasterID()) {
 	send_MASTERIS(PSC_getID(msg->header.sender));
-    } else {
+    } else if (clientStat) { /* Ignore msg during on-going shutdown */
 	int clientNodes;
 
 	if (PSIDnodes_getProtoVersion(client) < 334) {
