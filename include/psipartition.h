@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -32,10 +32,12 @@ extern "C" {
 /**
  * @brief Handle LSF environment variables.
  *
- * Handle LSF environment variables. Thus @a ENV_NODES_HOSTS is set to
- * the value of the LSB_HOSTS environment variable, if
- * available. Furthermore all other environment variables steering the
- * partition are cleared and any sorting of nodes is switched off.
+ * Handle LSF environment variables. Thus, @a ENV_NODES_HOSTFILE is
+ * set to the value of LSB_DJOB_HOSTFILE, if available. Otherwise @a
+ * ENV_NODES_HOSTS is set to the value of the LSB_HOSTS environment
+ * variable, if available. Furthermore all other environment variables
+ * steering the partition are cleared and any sorting of nodes is
+ * switched off.
  *
  * @return No return value.
  */
