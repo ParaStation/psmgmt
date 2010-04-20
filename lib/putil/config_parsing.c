@@ -81,6 +81,8 @@ static int currentID = DEFAULT_ID;
 
 static int nodesfound = 0;
 
+static int nrOfNodesGiven = 0;
+
 /*----------------------------------------------------------------------*/
 
 /** List type to store IP-address entries */
@@ -232,9 +234,11 @@ static int getNumNodes(char *token)
 
     /* Initialize the PSIDnodes module */
     ret = PSIDnodes_init(num);
+    nrOfNodesGiven = 1;
     if (ret) {
 	parser_comment(-1, "PSIDnodes_init(%d) failed\n", num);
     }
+    parser_comment(-1, "definition of NrOfNodes is obsolete\n");
 
     return ret;
 }
@@ -1893,14 +1897,8 @@ int setupNodeFromDefault(void)
  */
 static int newHost(int id, in_addr_t addr)
 {
-    if (PSIDnodes_getNum() == -1) { /* NrOfNodes not defined */
-	parser_comment(-1, "define NrOfNodes before any host\n");
-	return -1;
-    }
-
-    if ((id<0) || (id >= PSIDnodes_getNum())) { /* id out of Range */
-	parser_comment(-1, "node ID <%d> out of range (NrOfNodes = %d)\n",
-		       id, PSIDnodes_getNum());
+    if (id < 0) { /* id out of Range */
+	parser_comment(-1, "node ID <%d> out of range\n", id);
 	return -1;
     }
 
@@ -1919,9 +1917,10 @@ static int newHost(int id, in_addr_t addr)
 
     if (PSIDnodes_getAddr(id) != INADDR_ANY) { /* duplicated PSI-ID */
 	in_addr_t other = PSIDnodes_getAddr(id);
-	parser_comment(-1, "duplicated ID <%d> for hosts <%s> and <%s>\n",
-		       id, inet_ntoa(* (struct in_addr *) &addr),
-		       inet_ntoa(* (struct in_addr *) &other));
+	parser_comment(-1, "duplicated ID <%d> for hosts <%s>",
+		       id, inet_ntoa(* (struct in_addr *) &addr));
+	parser_commentCont(-1, " and <%s>\n",
+			   inet_ntoa(* (struct in_addr *) &other));
 	return -1;
     }
 
@@ -2756,7 +2755,8 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     /*
      * Sanity Checks
      */
-    if (PSIDnodes_getNum() > nodesfound) { /* hosts missing in hostlist */
+    if (PSIDnodes_getNum() > nodesfound && nrOfNodesGiven) {
+	/* hosts missing in hostlist */
 	parser_comment(-1, "WARNING: # to few hosts in hostlist\n");
     }
 

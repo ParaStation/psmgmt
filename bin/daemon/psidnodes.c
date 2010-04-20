@@ -113,25 +113,113 @@ static void nodeInit(node_t *node)
     node->maxStatTry = 1;
 }
 
-int PSIDnodes_init(PSnodes_ID_t num)
+static void initHash(void)
 {
+    unsigned int i;
+
+    for (i=0; i < sizeof(hosts)/sizeof(*hosts); i++) hosts[i] = NULL;
+}
+
+int PSIDnodes_grow(PSnodes_ID_t num)
+{
+    PSnodes_ID_t oldNum = PSIDnodes_getNum();
+    list_t *listBackups = NULL;
+    node_t *oldNodes = nodes;
     int i;
 
-    if (nodes) free(nodes);
+    if (PSIDnodes_getNum() >= num) return 0; /* don't shrink */
+
+    if (PSIDnodes_getNum() < 0) {
+	initHash();
+	oldNum = 0;
+    }
+
+    /* Backup lists in case nodes will get relocated */
+    if (oldNum > 0) {
+	listBackups = malloc(4 * oldNum * sizeof(*listBackups));
+	if (! listBackups) {
+	    PSID_warn(-1, ENOMEM, "%s", __func__);
+	    return -1;
+	}
+	for (i=0; i<oldNum; i++) {
+	    if (list_empty(&nodes[i].uid_list)) {
+		INIT_LIST_HEAD(&listBackups[4*i + 0]);
+	    } else {
+		listBackups[4*i + 0] = nodes[i].uid_list;
+	    }
+	    if (list_empty(&nodes[i].gid_list)) {
+		INIT_LIST_HEAD(&listBackups[4*i + 1]);
+	    } else {
+		listBackups[4*i + 1] = nodes[i].gid_list;
+	    }
+	    if (list_empty(&nodes[i].admuid_list)) {
+		INIT_LIST_HEAD(&listBackups[4*i + 2]);
+	    } else {
+		listBackups[4*i + 2] = nodes[i].admuid_list;
+	    }
+	    if (list_empty(&nodes[i].admgid_list)) {
+		INIT_LIST_HEAD(&listBackups[4*i + 3]);
+	    } else {
+		listBackups[4*i + 3] = nodes[i].admgid_list;
+	    }
+	}
+    }
 
     numNodes = num;
 
-    nodes = malloc(sizeof(*nodes) * numNodes);
-
+    nodes = realloc(nodes, sizeof(*nodes) * numNodes);
     if (!nodes) {
 	PSID_warn(-1, ENOMEM, "%s", __func__);
+	if (listBackups) free(listBackups);
 	return -1;
     }
 
-    /* Clear nodes */
-    for (i=0; i<numNodes; i++) nodeInit(&nodes[i]);
+    /* Restore old lists */
+    if (nodes != oldNodes && listBackups) {
+	for (i=0; i<oldNum; i++) {
+	    if (list_empty(&listBackups[4*i + 0])) {
+		INIT_LIST_HEAD(&nodes[i].uid_list);
+	    } else {
+		nodes[i].uid_list = listBackups[4*i + 0];
+		nodes[i].uid_list.next->prev = &nodes[i].uid_list;
+		nodes[i].uid_list.prev->next = &nodes[i].uid_list;
+	    }
+	    if (list_empty(&listBackups[4*i + 1])) {
+		INIT_LIST_HEAD(&nodes[i].gid_list);
+	    } else {
+		nodes[i].gid_list = listBackups[4*i + 1];
+		nodes[i].gid_list.next->prev = &nodes[i].gid_list;
+		nodes[i].gid_list.prev->next = &nodes[i].gid_list;
+	    }
+	    if (list_empty(&listBackups[4*i + 2])) {
+		INIT_LIST_HEAD(&nodes[i].admuid_list);
+	    } else {
+		nodes[i].admuid_list = listBackups[4*i + 2];
+		nodes[i].admuid_list.next->prev = &nodes[i].admuid_list;
+		nodes[i].admuid_list.prev->next = &nodes[i].admuid_list;
+	    }
+	    if (list_empty(&listBackups[4*i + 3])) {
+		INIT_LIST_HEAD(&nodes[i].admgid_list);
+	    } else {
+		nodes[i].admgid_list = listBackups[4*i + 3];
+		nodes[i].admgid_list.next->prev = &nodes[i].admgid_list;
+		nodes[i].admgid_list.prev->next = &nodes[i].admgid_list;
+	    }
+	}
+    }
+    if (listBackups) free(listBackups);
+
+    /* Initialize new nodes */
+    for (i=oldNum; i<numNodes; i++) {
+	nodeInit(&nodes[i]);
+    }
 
     return 0;
+}
+
+int PSIDnodes_init(PSnodes_ID_t num)
+{
+    return PSIDnodes_grow(num);
 }
 
 PSnodes_ID_t PSIDnodes_getNum(void)
@@ -154,7 +242,7 @@ int PSIDnodes_register(PSnodes_ID_t id, in_addr_t addr)
     unsigned int hostno;
     struct host_t *host;
 
-    if (! PSIDnodes_validID(id)) {
+    if (id < 0) {
 	return -1;
     }
 
@@ -164,6 +252,12 @@ int PSIDnodes_register(PSnodes_ID_t id, in_addr_t addr)
     }
 
     if (PSIDnodes_getAddr(id) != INADDR_ANY) { /* duplicated PS-ID */
+	return -1;
+    }
+
+    if (id >= PSIDnodes_getNum() && PSIDnodes_grow(128*(id/128 + 1)) == -1) {
+	/* failed to grow nodes */		\
+	PSID_log(-1, "%s(id=%d): failed to grow nodes\n", __func__, id);
 	return -1;
     }
 
@@ -191,6 +285,8 @@ PSnodes_ID_t PSIDnodes_lookupHost(in_addr_t addr)
     unsigned int hostno;
     struct host_t *host;
 
+    if (PSIDnodes_getNum() < 0) return -1;
+
     /* loopback address */
     if ((ntohl(addr) >> 24 ) == IN_LOOPBACKNET)
 	return PSC_getMyID();
@@ -211,7 +307,7 @@ in_addr_t PSIDnodes_getAddr(PSnodes_ID_t id)
     if (PSIDnodes_validID(id)) {
 	return nodes[id].addr;
     } else {
-	return -1;
+	return INADDR_ANY;
     }
 }
 

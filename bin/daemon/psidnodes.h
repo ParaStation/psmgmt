@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -39,6 +39,8 @@ extern "C" {
  * Initialize the PSIDnodes module. It will be prepared to handle @a
  * numNodes nodes.
  *
+ * This is mainly a wrapper of @ref PSIDnodes_grow().
+ *
  * @param numNodes Number of nodes the PSIDnodes module is capable to
  * handle after successful returnd of this function.
  *
@@ -47,10 +49,29 @@ extern "C" {
 int PSIDnodes_init(PSnodes_ID_t numNodes);
 
 /**
+ * @brief Grow PSIDnodes module.
+ *
+ * Re-initialize the PSIDnodes module and enable it to handle up to @a
+ * numNodes nodes.
+ *
+ * Usually this function is called implicitely as soon as @ref
+ * PSIDnodes_register() is called to register a new node which ID will
+ * be out of the current range. @ref PSIDnodes_register() will grow
+ * the number of nodes in steps of 128 nodes.
+ *
+ * @param numNodes Number of nodes the PSIDnodes module is capable to
+ * handle after successful returnd of this function.
+ *
+ * @return On success, 0 is returned or -1, if an error occured.
+ */
+int PSIDnodes_grow(PSnodes_ID_t numNodes);
+
+/**
  * @brief Get the number of nodes.
  *
  * Get the actual number of nodes the PSIDnodes module is currently
- * capable to handle after the last call of PSIDnodes_init().
+ * capable to handle after the last call of PSIDnodes_init() or
+ * PSIDnodes_grow().
  *
  * @return The actual number of nodes.
  */
