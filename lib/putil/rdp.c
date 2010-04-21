@@ -624,7 +624,7 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
 }
 
 
-/* @todo HACK HACK HACK needed for special debug in rdp */
+/* @todo HACK HACK HACK needed for special debug in rdp #442 */
 extern int16_t myID;
 
 /**
@@ -1359,7 +1359,7 @@ static void updateState(rdphdr_t *hdr, int node)
 	break;
     case ACTIVE:
 	if (hdr->connid != cp->ConnID_in) { /* New Connection */
-	    // RDP_log(RDP_LOG_CNTR, "%s: new connection from %d, FE=%x, seqno=%x" @todo
+	    // RDP_log(RDP_LOG_CNTR, "%s: new connection from %d, FE=%x, seqno=%x" @todo #442
 	    RDP_log(-1, "%s: new connection from %d, FE=%x, seqno=%x"
 		    " in ACTIVE State [%d:%d]\n", __func__, node,
 		    cp->frameExpected, hdr->seqno, hdr->connid, cp->ConnID_in);
@@ -1391,7 +1391,7 @@ static void updateState(rdphdr_t *hdr, int node)
 	} else { /* SYN Packet on OLD Connection (probably lost answers) */
 	    switch (hdr->type) {
 	    case RDP_SYN:
-		RDP_log(-1, "%s: ACTIVE -> SYNRECVD\n", __func__); // @todo
+		RDP_log(-1, "%s: ACTIVE -> SYNRECVD\n", __func__); // @todo #442
 		closeConnection(node, 1, 0);
 		cp->state = SYN_RECVD;
 		cp->frameExpected = hdr->seqno; /* Accept new seqno */
@@ -1759,7 +1759,7 @@ static int handleErr(void)
     }
 
     extErr = (struct sock_extended_err *)CMSG_DATA(cmsg);
-    if (!cmsg) {
+    if (!extErr) {
 	RDP_log(-1, "%s: extErr is NULL\n", __func__);
 	return -1;
     }
@@ -1784,9 +1784,19 @@ static int handleErr(void)
 	return -1;
     }
 
+    /* @todo extra debug for #442 */
+    if (node == myID) {
+	RDP_log(-1, "%s: L sock_extended_err: ee_errno = %u, ee_origin = %hhu,"
+		" ee_type = %hhu, ee_code = %hhu, ee_pad = %hhu, ee_info = %u,"
+		" ee_data = %u\n", __func__, extErr->ee_errno,
+		extErr->ee_origin, extErr->ee_type, extErr->ee_code,
+		extErr->ee_pad, extErr->ee_info, extErr->ee_data);
+    }
+
     switch (handleErrno) {
     case ECONNREFUSED:
-	RDP_log(RDP_LOG_CONN, "%s: CONNREFUSED from %s(%d) port %d\n",
+	// RDP_log(RDP_LOG_CONN, "%s: CONNREFUSED from %s(%d) port %d\n", @todo #442
+	RDP_log((node == myID) ? -1 : RDP_LOG_CONN, "%s: CONNREFUSED from %s(%d) port %d\n",
 		__func__, inet_ntoa(sinp->sin_addr), node,
 		ntohs(sinp->sin_port));
 	closeConnection(node, 1, 0);
