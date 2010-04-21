@@ -57,7 +57,7 @@ int PSIDnodes_init(PSnodes_ID_t numNodes);
  * Usually this function is called implicitely as soon as @ref
  * PSIDnodes_register() is called to register a new node which ID will
  * be out of the current range. @ref PSIDnodes_register() will grow
- * the number of nodes in steps of 128 nodes.
+ * the number of nodes in chunks of 64 nodes.
  *
  * @param numNodes Number of nodes the PSIDnodes module is capable to
  * handle after successful returnd of this function.
@@ -76,6 +76,20 @@ int PSIDnodes_grow(PSnodes_ID_t numNodes);
  * @return The actual number of nodes.
  */
 PSnodes_ID_t PSIDnodes_getNum(void);
+
+/**
+ * @brief Get the maximum ID used.
+ *
+ * Get the maximum ID of the nodes currently registered within the
+ * PSIDnodes module. This only reflects nodes registered via @ref
+ * PSIDnodes_register().
+ *
+ * Typically this number is smaller than the one reported by @ref
+ * PSIDnodes_getNum().
+ *
+ * @return The maximum ID of registered nodes.
+ */
+PSnodes_ID_t PSIDnodes_getMaxID(void);
 
 /**
  * @brief Register a new node.

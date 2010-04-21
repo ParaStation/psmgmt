@@ -133,7 +133,7 @@ void PSID_readConfigFile(FILE* logfile, char *configfile)
 	exit(1);
     }
 
-    PSC_setNrOfNodes(PSIDnodes_getNum());
+    PSC_setNrOfNodes(PSIDnodes_getMaxID()+1);
     PSC_setDaemonFlag(1); /* To get the correct result from PSC_getMyTID() */
 }
 

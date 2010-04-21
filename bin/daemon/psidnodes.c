@@ -28,8 +28,11 @@ static char vcid[] __attribute__((used)) =
 #include "psidnodes.h"
 
 
-/** Number of nodes currently handled. Set within PSIDnodes_init() */
+/** Number of nodes currently handled. Adapted within PSIDnodes_grow() */
 static PSnodes_ID_t numNodes = -1;
+
+/** Maximum ID currently in use, i.e. registered via PSIDnodes_register() */
+static PSnodes_ID_t maxID = -1;
 
 /** Hashed host table for reverse lookup (ip-addr given, determine id) */
 struct host_t {
@@ -227,6 +230,11 @@ PSnodes_ID_t PSIDnodes_getNum(void)
     return numNodes;
 }
 
+PSnodes_ID_t PSIDnodes_getMaxID(void)
+{
+    return maxID;
+}
+
 int PSIDnodes_validID(PSnodes_ID_t id)
 {
     if (PSIDnodes_getNum() == -1 || id < 0 || id >= PSIDnodes_getNum()) {
@@ -236,6 +244,8 @@ int PSIDnodes_validID(PSnodes_ID_t id)
 
     return 1;
 }
+
+#define GROW_CHUNK 64
 
 int PSIDnodes_register(PSnodes_ID_t id, in_addr_t addr)
 {
@@ -255,14 +265,12 @@ int PSIDnodes_register(PSnodes_ID_t id, in_addr_t addr)
 	return -1;
     }
 
-    if (id >= PSIDnodes_getNum() && PSIDnodes_grow(128*(id/128 + 1)) == -1) {
+    if (id >= PSIDnodes_getNum()
+	&& PSIDnodes_grow(GROW_CHUNK*(id/GROW_CHUNK + 1)) == -1) {
 	/* failed to grow nodes */		\
 	PSID_log(-1, "%s(id=%d): failed to grow nodes\n", __func__, id);
 	return -1;
     }
-
-    /* install hostname */
-    nodes[id].addr = addr;
 
     hostno = ntohl(addr) & 0xff;
 
@@ -276,6 +284,11 @@ int PSIDnodes_register(PSnodes_ID_t id, in_addr_t addr)
     host->id = id;
     host->next = hosts[hostno];
     hosts[hostno] = host;
+
+    /* install hostname */
+    nodes[id].addr = addr;
+
+    if (id > PSIDnodes_getMaxID()) maxID = id;
 
     return 0;
 }
