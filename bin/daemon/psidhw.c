@@ -178,7 +178,6 @@ static int switchHWCB(int fd, PSID_scriptCBInfo_t *info)
 	if (iofd > -1) {
 	    int num = PSID_readall(iofd, line, sizeof(line));
 	    int eno = errno;
-	    close(iofd); /* Discard further output */
 	    if (num < 0) {
 		PSID_warn(-1, eno, "%s: read(iofd)", __func__);
 		line[0] = '\0';
@@ -200,6 +199,7 @@ static int switchHWCB(int fd, PSID_scriptCBInfo_t *info)
 	    PSIDnodes_setHWStatus(PSC_getMyID(), status & ~(1<<hw));
 	}
     }
+    if (iofd > -1) close(iofd); /* Discard further output */
 
     Selector_remove(fd);
 

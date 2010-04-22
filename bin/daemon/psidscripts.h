@@ -54,6 +54,13 @@ typedef struct {
  * optional pointer to extra information is included. This information
  * has to be provided to @ref PSID_execScript() or @ref
  * PSID_execFunc() as the last argument.
+ *
+ * The callback is responsible for cleaning up both file-descriptors
+ * passed, i.e. the one passed as the first argument *and* the one
+ * serving stdout/stderr within the @ref PSID_scriptCBInfo_t structure
+ * the second argument is pointing to. Otherwise calling @ref
+ * PSID_execScript() or @ref PSID_execFunc() with a callback
+ * repeatedly might eat up the daemon's available file-descriptors.
  */
 typedef int PSID_scriptCB_t(int, PSID_scriptCBInfo_t *);
 

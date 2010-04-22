@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -592,6 +592,7 @@ static int stateChangeCB(int fd, PSID_scriptCBInfo_t *cbInfo)
 	PSID_log(-1, "%s: script '%s' returned %d: '%s'\n", __func__,
 		 sName, result, line);
     }
+    if (iofd > -1) close(iofd); /* Discard further output */
 
     Selector_remove(fd);
 
