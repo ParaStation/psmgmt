@@ -239,7 +239,7 @@ static void switchHW(int hw, int on)
 	info->hw = hw;
 	info->on = on;
 
-	if (PSID_execScript(script, prepSwitchEnv, switchHWCB, info)) {
+	if (PSID_execScript(script, prepSwitchEnv, switchHWCB, info) < 0) {
 	    PSID_log(-1, "%s: Failed to execute '%s' for hw '%s'\n",
 		     __func__, script, HW_name(hw));
 	}
@@ -426,7 +426,7 @@ void PSID_getCounter(DDTypedBufferMsg_t *inmsg)
 	    }
 	    memcpy(info, inmsg, inmsg->header.len);
 
-	    if (PSID_execScript(script, prepCounterEnv, getCounterCB, info)) {
+	    if (PSID_execScript(script, prepCounterEnv, getCounterCB, info)<0) {
 		PSID_log(PSID_LOG_HW,
 			 "%s: Failed to execute '%s' for hw '%s'\n",
 			 __func__, script, HW_name(hw));
