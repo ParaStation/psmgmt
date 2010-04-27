@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -116,8 +116,10 @@ int acctPollTime = 0;
 AccountData accData;
 
 /**
- * Timeout for connecting and releasing logger. Might be overruled via
- * __PSI_LOGGER_TIMEOUT environment
+ * Timeout for connecting to logger. This will be set according to the
+ * number of childs the logger has to handle within @ref
+ * PSID_forwarder(). Might be overruled via __PSI_LOGGER_TIMEOUT
+ * environment
  */
 int loggerTimeout = 60;
 
@@ -1945,7 +1947,7 @@ static void waitForChildsDead(void)
 void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
 		    PMItype_t PMItype, int doAccounting, int acctPollInterval)
 {
-    char *timeoutStr;
+    char *envStr, *timeoutStr;
     long flags, val;
     struct utsname uts;
 
@@ -1965,6 +1967,12 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
     signal(SIGTTIN, sighandler);
 
     PSLog_init(daemonSock, childTask->rank, 2);
+
+    /* scale logger's timeout according to number of clients */
+    if ((envStr = getenv("PSI_NP_INFO"))) {
+	int np = atoi(envStr);
+	if (np > 0) loggerTimeout += np / 200; /* add 5 millisec per client */
+    }
 
     val = loggerTimeout;
     timeoutStr = getenv("__PSI_LOGGER_TIMEOUT");
