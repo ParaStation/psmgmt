@@ -765,7 +765,7 @@ again:
 
 	verbose = *(int *)ptr;
 	ptr += sizeof(int);
-	PSID_log(PSID_LOG_SPAWN, "%s(%s): Connected", __func__,
+	PSID_log(PSID_LOG_SPAWN, "%s(%s): Connected\n", __func__,
 		 PSC_printTID(tid));
 
 	if (msg.header.len >=

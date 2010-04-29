@@ -79,7 +79,7 @@ PStask_sig_t *PSID_findSignal(list_t *sigList, PStask_ID_t tid, int signal)
 {
     list_t *s;
 
-    PSID_log(PSID_LOG_SIGNAL, "%s(%s, %d)",
+    PSID_log(PSID_LOG_SIGNAL, "%s(%s, %d)\n",
 	     __func__, PSC_printTID(tid), signal);
 
     list_for_each(s, sigList) {
@@ -94,7 +94,7 @@ PStask_sig_t *PSID_findSignal(list_t *sigList, PStask_ID_t tid, int signal)
 
 int PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal)
 {
-    PStask_sig_t *sig;
+    PStask_sig_t *sig = PSID_findSignal(sigList, tid, signal);
 
     if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
 	PSID_log(PSID_LOG_SIGDBG, "%s: signals before (in %p):",
@@ -105,8 +105,6 @@ int PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal)
 
     PSID_log(PSID_LOG_SIGNAL, "%s(%s, %d)",
 	     __func__, PSC_printTID(tid), signal);
-
-    sig = PSID_findSignal(sigList, tid, signal);
 
     if (sig) {
 	/* Signal found */
