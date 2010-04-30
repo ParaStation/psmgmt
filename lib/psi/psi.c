@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -417,11 +417,16 @@ int PSI_availMsg(void)
 
 int PSI_recvMsg(DDMsg_t *msg, size_t size)
 {
+    char *buf = (char*)msg, dump[sizeof(DDHugeMsg_t)];
     int n;
     int count = 0, expected = sizeof(DDMsg_t);
 
     if (daemonSock == -1) {
 	errno = ENOTCONN;
+	return -1;
+    }
+    if (size < sizeof(DDMsg_t)) {
+	errno = EINVAL;
 	return -1;
     }
 
@@ -444,15 +449,22 @@ int PSI_recvMsg(DDMsg_t *msg, size_t size)
 	    close(daemonSock);
 	    daemonSock = -1;
 	}
-	if (count >= expected) {
-	    if (msg->len > (int)size) {
+	if (count == sizeof(DDMsg_t)) {
+	    /* initial header received */
+	    if (msg->len > (int16_t)sizeof(DDHugeMsg_t)) {
+		/* even dump is too small */
 		errno = ENOBUFS;
 		PSI_warn(-1, errno, "%s: type %s", __func__,
 			 PSP_printMsg(msg->type));
 		n = -1;
 	    } else {
-		expected = msg->len;
+		expected = (msg->len > (int16_t)size) ? (int)size : msg->len;
 	    }
+	}
+	if (count == (int16_t)size && msg->len > (int16_t)size) {
+	    /* dump message's remainder */
+	    expected = msg->len;
+	    buf = dump;
 	}
     } while (expected>count && n>0);
 
@@ -461,11 +473,17 @@ int PSI_recvMsg(DDMsg_t *msg, size_t size)
 		PSP_printMsg(msg->type), msg->len, PSC_printTID(msg->sender));
     }
 
-    if (count>(int)sizeof(*msg) && count==msg->len) {
-	return msg->len;
-    } else {
-	return n;
+    if (count >= (int)sizeof(*msg)) {
+	/* At least the header was received and is valid */
+	if (count > (int)size) {
+	    errno = ENOBUFS;
+	    return -1;
+	} else if (count==msg->len) {
+	    return msg->len;
+	}
     }
+
+    return n;
 }
 
 
