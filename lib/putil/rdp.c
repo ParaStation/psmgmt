@@ -1695,11 +1695,12 @@ static int handleErr(void)
 #ifdef __linux__
     struct msghdr errmsg;
     struct sockaddr_in sin;
-    struct sockaddr_in * sinp;
+    struct sockaddr_in *sinp;
     struct iovec iov;
     struct cmsghdr *cmsg;
     struct sock_extended_err *extErr;
     int node, handleErrno;
+    int offenderNode; // @todo required for #442 debug
     char cbuf[256];
 
     handleErrno = errno;
@@ -1776,7 +1777,16 @@ static int handleErr(void)
 	return -1;
     }
 
-    node = lookupIPTable(sinp->sin_addr);
+    node = lookupIPTable(sin.sin_addr);
+    if (node < 0) {
+	RDP_log(-1, "%s: unable to resolve %s\n", __func__,
+		inet_ntoa(sin.sin_addr));
+	errno = ELNRNG;
+	return -1;
+    }
+
+    /* @todo extra debug for #442 */
+    offenderNode = lookupIPTable(sinp->sin_addr);
     if (node < 0) {
 	RDP_log(-1, "%s: unable to resolve %s\n", __func__,
 		inet_ntoa(sinp->sin_addr));
@@ -1785,7 +1795,7 @@ static int handleErr(void)
     }
 
     /* @todo extra debug for #442 */
-    if (node == myID) {
+    if (offenderNode == myID && handleErrno == ECONNREFUSED) {
 	RDP_log(-1, "%s: L sock_extended_err: ee_errno = %u, ee_origin = %hhu,"
 		" ee_type = %hhu, ee_code = %hhu, ee_pad = %hhu, ee_info = %u,"
 		" ee_data = %u\n", __func__, extErr->ee_errno,
@@ -1796,20 +1806,19 @@ static int handleErr(void)
     switch (handleErrno) {
     case ECONNREFUSED:
 	// RDP_log(RDP_LOG_CONN, "%s: CONNREFUSED from %s(%d) port %d\n", @todo #442
-	RDP_log((node == myID) ? -1 : RDP_LOG_CONN, "%s: CONNREFUSED from %s(%d) port %d\n",
-		__func__, inet_ntoa(sinp->sin_addr), node,
-		ntohs(sinp->sin_port));
+	RDP_log((node == myID) ? -1 : RDP_LOG_CONN, "%s: CONNREFUSED to %s(%d) port %d",
+		__func__, inet_ntoa(sin.sin_addr), node, ntohs(sin.sin_port));
+	RDP_log((node == myID) ? -1 : RDP_LOG_CONN, "from %s", inet_ntoa(sinp->sin_addr)); // @todo #442
 	closeConnection(node, 1, 0);
 	break;
     case EHOSTUNREACH:
 	RDP_log(RDP_LOG_CONN, "%s: HOSTUNREACH from %s(%d) port %d\n",
-		__func__, inet_ntoa(sinp->sin_addr), node,
-		ntohs(sinp->sin_port));
+		__func__, inet_ntoa(sin.sin_addr), node, ntohs(sin.sin_port));
 	break;
     default:
 	RDP_warn(-1, handleErrno, "%s: UNKNOWN errno %d from %s(%d) port %d\n",
-		 __func__, handleErrno, inet_ntoa(sinp->sin_addr), node,
-		 ntohs(sinp->sin_port));
+		 __func__, handleErrno, inet_ntoa(sin.sin_addr), node,
+		 ntohs(sin.sin_port));
     }
 #endif
 
