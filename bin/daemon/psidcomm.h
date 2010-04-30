@@ -134,10 +134,10 @@ handlerFunc_t PSID_registerMsg(int msgType, handlerFunc_t handler);
 /**
  * @brief Unregister message handler function
  *
- * Unregister the message-type @a msgType to be handled in the
- * future. This includes end of silent ignore of this message-type. In
- * the future, @ref PSID_handleMsg() will lament on on unknown
- * messages.
+ * Unregister the message-type @a msgType such that it will not be
+ * handled in the future. This includes end of silent ignore of this
+ * message-type. In the future, @ref PSID_handleMsg() will lament on
+ * on unknown messages.
  *
  * @param msgType The message-type not to handle any longer.
  *

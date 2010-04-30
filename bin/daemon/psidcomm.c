@@ -109,10 +109,11 @@ handlerFunc_t PSID_clearMsg(int msgType)
 	msgHandler_t *msgHandler = list_entry(h, msgHandler_t, next);
 
 	if (msgHandler->msgType == msgType) {
-	    /* found old handler */
-	    handlerFunc_t oldHandler = msgHandler->handler;
+	    /* found handler */
+	    handlerFunc_t handler = msgHandler->handler;
+	    list_del(&msgHandler->next);
 	    free(msgHandler);
-	    return oldHandler;
+	    return handler;
 	}
     }
 
