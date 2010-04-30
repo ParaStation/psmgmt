@@ -747,6 +747,7 @@ int main(int argc, const char *argv[])
     PSIDnodes_setHWStatus(PSC_getMyID(), 0);
 
     /* Bring node up with correct numbers of CPUs */
+    if (!Selector_isInitialized()) Selector_init(logfile);
     declareNodeAlive(PSC_getMyID(), PSID_getPhysCPUs(), PSID_getVirtCPUs());
 
     /* Initialize timers */
@@ -757,7 +758,6 @@ int main(int argc, const char *argv[])
     /* initialize various modules */
     initComm();  /* This has to be first since it gives msgHandler hash */
 
-    if (!Selector_isInitialized()) Selector_init(logfile);
     initClients();
     initState();
     initOptions();

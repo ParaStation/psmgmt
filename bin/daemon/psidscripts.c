@@ -42,7 +42,8 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 
     if (cb) {
 	if (!Selector_isInitialized()) {
-	    PSID_log(-1, "%s: needs running Selector\n", caller);
+	    PSID_log(-1, "%s(%s): needs running Selector\n", caller,
+		     script ? script : "");
 	    return -1;
 	}
 	cbInfo = malloc(sizeof(*cbInfo));
