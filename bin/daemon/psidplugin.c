@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -644,6 +644,7 @@ static void msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
 	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
 	    goto end;
 	}
+	return; /* destination node will send PLUGINRES message */
     } else {
 	switch (inmsg->type) {
 	case PSP_PLUGIN_LOAD:

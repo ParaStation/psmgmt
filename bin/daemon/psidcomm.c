@@ -370,7 +370,7 @@ void handleDroppedMsg(DDMsg_t *msg)
 	typmsg.header.type = PSP_CD_PLUGINRES;
 	typmsg.header.dest = msg->sender;
 	typmsg.header.sender = PSC_getMyTID();
-	typmsg.header.len = msg->len;
+	typmsg.header.len = sizeof(typmsg);
 	typmsg.type = -1;
 
 	sendMsg(&typmsg);
