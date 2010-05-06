@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -644,9 +644,7 @@ void PSIADM_CountStat(int hw, char *nl)
 
 	    printf("%4d\t", node);
 	    if (hostStatus.list[node]) {
-		if (! hwStatus[node] & 1<<hw) {
-		    printf("No card present\n");
-		} else {
+		if (hwStatus[node] & 1<<hw) {
 		    int err = PSI_infoString(node, PSP_INFO_COUNTSTATUS, &hw,
 					     line, sizeof(line), 1);
 		    if (!err) {
@@ -659,6 +657,8 @@ void PSIADM_CountStat(int hw, char *nl)
 		    } else {
 			printf("Counter unavailable\n");
 		    }
+		} else {
+		    printf("No card present\n");
 		}
 	    } else {
 		printf("down\n");
