@@ -34,7 +34,7 @@ static char vcid[] __attribute__((used)) =
 /** Structure holding all information concerning a plugin */
 typedef struct {
     list_t next;       /**< Used to put into @ref pluginList */
-    list_t triggers;   /**< List of plugins triggering the this */
+    list_t triggers;   /**< List of plugins triggering this one */
     list_t depends;    /**< List of plugins this one depends on */
     void *handle;      /**< Handle created by dlopen() */
     char *name;        /**< Actual name */
