@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -231,23 +231,30 @@ PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid)
 {
     list_t *t;
     PStask_t *task = NULL;
+    int foundDeleted = 0;
 
     PSID_log(PSID_LOG_TASK, "%s(%p, %s)", __func__, list, PSC_printTID(tid));
 
     list_for_each(t, list) {
 	PStask_t *tt = list_entry(t, PStask_t, next);
 	if (tt->tid == tid) {
-	    task = tt;
-	    break;
+	    if (tt->deleted) {
+		/* continue to search since we migth have duplicates
+		 * of PID due to some problems in flow-control */
+		PSID_log(PSID_LOG_TASK, " found but deleted\n");
+		foundDeleted = 1;
+	    } else {
+		task = tt;
+		break;
+	    }
 	}
     }
 
-    if (task && task->deleted) {
-	PSID_log(PSID_LOG_TASK, " found but deleted\n");
-	return NULL;
-    }
+    if (task) PSID_log(PSID_LOG_TASK, " is at %p\n", task);
 
-    PSID_log(PSID_LOG_TASK, " is at %p\n", task);
+    if (task && foundDeleted) PSID_log(-1, "%s(%p, %s): found twice!!\n",
+				       __func__, list, PSC_printTID(tid));
+
     return task;
 }
 
@@ -313,6 +320,9 @@ void PStask_cleanup(PStask_ID_t tid)
 		 * removed therein, too. Save to remove here since
 		 * each forwarder has just a single child, i.e. this
 		 * list is empty afterwards. */
+		/* @todo This is not true. See code in
+		 * msg_CLIENTCONNECT() concerning re-connected
+		 * processes and duplicate tasks */
 		list_del(&sig->next);
 		free(sig);
 
@@ -326,6 +336,9 @@ void PStask_cleanup(PStask_ID_t tid)
 	    }
 	}
     }
+
+    /* Make sure we get all pending messages */
+    if (task->fd != -1) FD_SET(task->fd, &PSID_readfds);
 
     if (list_empty(&task->childs)) {
 	/* Mark task as deleted; will be actually removed in main loop */
