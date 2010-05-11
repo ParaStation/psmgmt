@@ -2123,7 +2123,16 @@ void deleteSpawnTasks(PSnodes_ID_t node)
     }
 }
 
-void cleanupSpawnTasks(void)
+/**
+ * @brief Cleanup spawning task marked as deleted
+ *
+ * Actually destroy task-structure waiting to be spawned but marked as
+ * deleted. These tasks are expected to be marked via @ref
+ * deleteSpawnTasks().
+ *
+ * @return No return value
+ */
+static void cleanupSpawnTasks(void)
 {
     list_t *t, *tmp;
 
@@ -2520,6 +2529,51 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
     }
 }
 
+/**
+ * @brief Check for obstinate tasks
+ *
+ * The purpose of this function is twice; one the one hand it checks
+ * for obstinate tasks and sends SIGKILL signales until the task
+ * disappears. On the other hand it garbage-collects all deleted task
+ * structures within the list of managed tasks and frees them.
+ *
+ * @return No return value.
+ */
+static void checkObstinateTasks(void)
+{
+    time_t now = time(NULL);
+    list_t *t, *tmp;
+
+    list_for_each_safe(t, tmp, &managedTasks) {
+	PStask_t *task = list_entry(t, PStask_t, next);
+
+	if (task->deleted) {
+	    /* If task is still connected, wait for connection closed */
+	    if (task->fd == -1) {
+		PStasklist_dequeue(task);
+		PStask_delete(task);
+	    }
+	} else if (task->killat && now > task->killat) {
+	    int ret;
+	    if (task->group != TG_LOGGER) {
+		/* Send the signal to the whole process group */
+		ret = PSID_kill(-PSC_getPID(task->tid), SIGKILL, task->uid);
+	    } else {
+		/* Unless it's a logger, which will never fork() */
+		ret = PSID_kill(PSC_getPID(task->tid), SIGKILL, task->uid);
+	    }
+	    if (ret && errno == ESRCH) {
+		if (!task->removeIt) {
+		    PStask_cleanup(task->tid);
+		} else {
+		    task->deleted = 1;
+		}
+	    }
+	}
+    }
+}
+
+
 void initSpawn(void)
 {
     PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
@@ -2532,4 +2586,7 @@ void initSpawn(void)
     PSID_registerMsg(PSP_DD_CHILDDEAD, (handlerFunc_t) msg_CHILDDEAD);
     PSID_registerMsg(PSP_DD_CHILDBORN, (handlerFunc_t) msg_CHILDBORN);
     PSID_registerMsg(PSP_DD_CHILDACK, (handlerFunc_t) sendClient);
+
+    PSID_registerLoopAct(checkObstinateTasks);
+    PSID_registerLoopAct(cleanupSpawnTasks);
 }

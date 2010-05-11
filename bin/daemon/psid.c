@@ -249,7 +249,7 @@ static void RDPCallBack(int msgid, void *buf)
  * @brief Signal handler
  *
  * Handle signals catched by the local daemon. Most prominent all
- * SIGCHILD signals originating from processes fork()ed from the local
+ * SIGCHLD signals originating from processes fork()ed from the local
  * daemon are handled here.
  *
  * @param sig Signale to handle.
@@ -412,6 +412,23 @@ static void initSigHandlers(void)
 }
 
 /**
+ * @brief Handle signals from childs
+ *
+ * Handling of SIGCHILD is suppressed most of the time in order to
+ * prevent various race-conditions. Thus, periodically this has to be
+ * released in order to actually handle the signals send by the
+ * deceased child processes.
+ *
+ * This should happen within the main-loop. Thus, this function should
+ * be registered via @ref PSID_registerLoopAct().
+ */
+static void handleChilds(void)
+{
+    PSID_blockSig(0, SIGCHLD);
+    PSID_blockSig(1, SIGCHLD);
+}
+
+/**
  * @brief Print welcome
  *
  * Print a welcome message to the current log destination.
@@ -484,53 +501,6 @@ static void checkFileTable(fd_set *controlfds)
 	}
     }
 }
-
-/**
- * @brief Check for obstinate tasks
- *
- * The purpose of this function is twice; one the one hand it checks
- * for obstinate tasks and sends SIGKILL signales until the task
- * disappears. On the other hand it garbage-collects all deleted task
- * structures within the list of managed tasks and frees them.
- *
- * @return No return value.
- */
-void checkObstinate(void)
-{
-    time_t now = time(NULL);
-    list_t *t, *tmp;
-
-    list_for_each_safe(t, tmp, &managedTasks) {
-	PStask_t *task = list_entry(t, PStask_t, next);
-
-	if (task->deleted) {
-	    /* If task is still connected, wait for connection closed */
-	    if (task->fd == -1) {
-		PStasklist_dequeue(task);
-		PStask_delete(task);
-	    }
-	} else if (task->killat && now > task->killat) {
-	    int ret;
-	    if (task->group != TG_LOGGER) {
-		/* Send the signal to the whole process group */
-		ret = PSID_kill(-PSC_getPID(task->tid), SIGKILL, task->uid);
-	    } else {
-		/* Unless it's a logger, which will never fork() */
-		ret = PSID_kill(PSC_getPID(task->tid), SIGKILL, task->uid);
-	    }
-	    if (ret && errno == ESRCH) {
-		if (!task->removeIt) {
-		    PStask_cleanup(task->tid);
-		} else {
-		    task->deleted = 1;
-		}
-	    }
-	}
-    }
-
-    cleanupSpawnTasks();
-}
-
 
 /**
  * @brief Print version info.
@@ -631,6 +601,7 @@ int main(int argc, const char *argv[])
 
     PSID_blockSig(1,SIGCHLD);
     initSigHandlers();
+    PSID_registerLoopAct(handleChilds);
 
 #define _PATH_TTY "/dev/tty"
     /* First disconnect from the old controlling tty. */
@@ -852,8 +823,6 @@ int main(int argc, const char *argv[])
 	int fd;
 
 	timerset(&tv, &selectTime);
-	PSID_blockSig(0, SIGCHLD); /* Handle deceased child processes */
-	PSID_blockSig(1, SIGCHLD);
 	memcpy(&rfds, &PSID_readfds, sizeof(rfds));
 	memcpy(&wfds, &PSID_writefds, sizeof(wfds));
 
@@ -898,19 +867,7 @@ int main(int argc, const char *argv[])
 	    }
 	}
 
-	/* Check for partition requests */
-	handlePartRequests();
-
-	/* Check for obstinate tasks */
-	checkObstinate();
-
-	/* @todo: We might want to get rit of this. As an alternative, a
-	 * special timer might be registered to the daemon's timer facility.
-	 */
-	/* Check for reset state */
-	if (PSID_getDaemonState() & PSID_STATE_RESET) PSID_reset();
-
-	/* Check for shutdown state */
-	if (PSID_getDaemonState() & PSID_STATE_SHUTDOWN) PSID_shutdown();
+	/* Handle actions registered to main-loop */
+	PSID_handleLoopActions();
     }
 }

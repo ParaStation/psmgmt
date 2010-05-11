@@ -353,6 +353,70 @@ time_t PSID_getStarttime(void);
  */
 void PSID_dumpMsg(DDMsg_t *msg);
 
+/**
+ * @brief Main-loop action
+ *
+ * A loop-action funtion called repeatedly from within the daemon's
+ * main-loop.
+ */
+typedef void PSID_loopAction_t(void);
+
+/**
+ * @brief Register main-loop action
+ *
+ * Register the main-loop action @a action to be executed repeatedly
+ * from within the main loop.
+ *
+ * Basically the ParaStation daemon sleeps all the time in Sselect()
+ * waiting for new messages coming in to be handled. After a period
+ * defined by either by the SelectTime parameter in the
+ * parastation.conf configuration file or psiadmin's 'set selecttime'
+ * directive Sselect() returns and allows periodic actions. These type
+ * of actions might be registered here.
+ *
+ * @return On success, 0 is returned. On error, -1 is returned, and
+ * errno is set appropriately.
+ */
+int PSID_registerLoopAct(PSID_loopAction_t action);
+
+/**
+ * @brief Un-register main-loop action
+ *
+ * Un-register the main-loop action @a action registered before via
+ * @ref PSID_registerLoopAct().
+ *
+ * This function might be called from within the actual main-loop
+ * action. Thus, a action is allowed to un-register itself.
+ *
+ * @warn It is disallowed to unregister any other main-loop action
+ * besides the action currently executed from within a main-loop
+ * action.
+ *
+ * @return On success, 0 is returned. On error, -1 is returned, and
+ * errno is set appropriately.
+ */
+int PSID_unregisterLoopAct(PSID_loopAction_t);
+
+/**
+ * @brief Call main-loop action
+ *
+ * Call all main-loop actions registered via PSID_registerLoopAct().
+ *
+ * Basically the ParaStation daemon sleeps all the time in Sselect()
+ * waiting for new messages coming in to be handled. After a period
+ * defined by either by the SelectTime parameter in the
+ * parastation.conf configuration file or psiadmin's 'set selecttime'
+ * directive Sselect() returns and allows periodic actions. These type
+ * of actions might be registered via @ref PSID_registerLoopAct().
+ *
+ * This function will actually call all actions registered. Thus, it
+ * only makes sense to call this function from within psid's
+ * main-loop.
+ *
+ * @return No return value.
+ */
+void PSID_handleLoopActions(void);
+
 #ifdef __cplusplus
 }/* extern "C" */
 #endif

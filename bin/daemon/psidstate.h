@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2008-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -49,7 +49,7 @@ typedef enum {
     PSID_STATE_RESET_HW  = 0x0002, /**< also reset communication hardware */
     PSID_STATE_SHUTDOWN  = 0x0004, /**< daemon shutdown in progress */
     PSID_STATE_NOCONNECT = (PSID_STATE_RESET | PSID_STATE_SHUTDOWN),
-                                   /**< do not allow to connect during
+				   /**< do not allow to connect during
 				    * shutdown or reset */
 } PSID_DaemonState_t;
 

@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2008-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2008-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -80,6 +80,7 @@ void PSID_shutdown(void)
     switch (phase) {
     case 0:
 	daemonState |= PSID_STATE_SHUTDOWN;
+	PSID_registerLoopAct(PSID_shutdown);
 	PSID_shutdownMasterSock();
     case 1:
 	killAllClients(SIGTERM, 0);
@@ -103,6 +104,7 @@ void PSID_shutdown(void)
 	send_DAEMONSHUTDOWN();
 	exitRDP();
 	PSID_stopAllHW();
+	PSID_unregisterLoopAct(PSID_shutdown);
 	PSID_log(-1, "%s: good bye\n", __func__);
 	exit(0);
     default:
@@ -140,6 +142,7 @@ void PSID_reset(void)
     switch (phase) {
     case 0:
 	daemonState |= PSID_STATE_RESET;
+	PSID_registerLoopAct(PSID_reset);
     case 1:
 	num = killAllClients(SIGTERM, 0);
 	break;
@@ -170,6 +173,7 @@ void PSID_reset(void)
 	/* reset the state */
 	daemonState &= ~(PSID_STATE_RESET | PSID_STATE_RESET_HW);
 	phase = 0;
+	PSID_unregisterLoopAct(PSID_reset);
 	PSID_log(-1, "%s: done\n", __func__);
     }
 }

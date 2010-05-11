@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -41,17 +41,6 @@ extern "C" {
  * @return No return value
  */
 void deleteSpawnTasks(PSnodes_ID_t node);
-
-/**
- * @brief Cleanup spawning task marked as deleted
- *
- * Actually destroy task-structure waiting to be spawned but marked as
- * deleted. These tasks are expected to be marked via @ref
- * deleteSpawnTasks().
- *
- * @return No return value
- */
-void cleanupSpawnTasks(void);
 
 /**
  * @brief Initialize spawning stuff

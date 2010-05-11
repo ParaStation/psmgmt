@@ -1850,7 +1850,17 @@ static int getPartition(PSpart_request_t *request)
     return ret;
 }
 
-void handlePartRequests(void)
+/**
+ * @brief Handle partition requests.
+ *
+ * Actually handle partition requests stored within in the queue of
+ * pending requests. Furthermore the requests queue will be cleaned up
+ * in order to remove requests marked to get deleted from within the
+ * @ref cleanupRequests() function.
+ *
+ * @return No return value.
+ */
+static void handlePartRequests(void)
 {
     PSpart_request_t *req;
 
@@ -3288,4 +3298,6 @@ void initPartition(void)
     PSID_registerMsg(PSP_DD_TASKDEAD, (handlerFunc_t) msg_TASKDEAD);
     PSID_registerMsg(PSP_DD_TASKSUSPEND, (handlerFunc_t) msg_TASKSUSPEND);
     PSID_registerMsg(PSP_DD_TASKRESUME, (handlerFunc_t) msg_TASKRESUME);
+
+    PSID_registerLoopAct(handlePartRequests);
 }

@@ -378,3 +378,55 @@ void PSID_dumpMsg(DDMsg_t *msg)
 
     PSID_log(PSID_LOG_MSGDUMP, "\n");
 }
+
+/** All main-loop actions registered */
+static LIST_HEAD(loopActions);
+
+/** Structure holding all information concerning a plugin */
+typedef struct {
+    list_t next;               /**< Used to put into @ref loopActions */
+    PSID_loopAction_t *action; /**< Actual loop-action to be called */
+} action_t;
+
+int PSID_registerLoopAct(PSID_loopAction_t action)
+{
+    action_t *newAction = malloc(sizeof(*newAction));
+
+    if (!newAction) return -1;
+
+    newAction->action = action;
+
+    list_add_tail(&newAction->next, &loopActions);
+
+    return 0;
+}
+
+int PSID_unregisterLoopAct(PSID_loopAction_t action)
+{
+    list_t *a;
+
+    list_for_each(a, &loopActions) {
+	action_t *curAct = list_entry(a, action_t, next);
+
+	if (curAct->action == action) {
+	    list_del(&curAct->next);
+	    free(curAct);
+
+	    return 0;
+	}
+    }
+
+    errno = ENOKEY;
+    return -1;
+}
+
+void PSID_handleLoopActions(void)
+{
+    list_t *a, *tmp;
+
+    list_for_each_safe(a, tmp, &loopActions) {
+	action_t *action = list_entry(a, action_t, next);
+
+	if (action->action) action->action();
+    }
+}

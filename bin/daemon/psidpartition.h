@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -138,18 +138,6 @@ int send_CANCELPART(PStask_ID_t tid);
  * @return No return value.
  */
 void initPartHandler(void);
-
-/**
- * @brief Handle partition requests.
- *
- * Actually handle partition requests stored within in the queue of
- * pending requests. Furthermore the requests queue will be cleaned up
- * in order to remove requests marked to get deleted from within the
- * @ref cleanupRequests() function.
- *
- * @return No return value.
- */
-void handlePartRequests(void);
 
 /**
  * @brief Remove requests.
