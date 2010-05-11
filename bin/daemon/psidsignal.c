@@ -119,6 +119,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 	}
 
 	/* Send signal */
+	if (sig == SIGKILL) kill(pid, SIGCONT);
 	error = kill(pid, sig);
 	myErrno = errno;
 	ret = write(cntrlfds[1], &myErrno, sizeof(myErrno));

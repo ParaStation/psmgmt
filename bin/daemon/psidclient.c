@@ -518,6 +518,7 @@ int killAllClients(int sig, int killAdminTasks)
 		 PSC_printTID(task->tid), pid, task->fd);
 
 	if (pid > 0) {
+	    if (sig == SIGKILL) kill(pid, SIGCONT);
 	    kill(pid, sig);
 	    ret++;
 	}

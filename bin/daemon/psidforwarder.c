@@ -506,6 +506,7 @@ static void sendSignal(pid_t dest, int signal)
     }
 
     /* actually send the signal */
+    if (signal == SIGKILL) kill(pid, SIGCONT);
     if (kill(pid, signal) == -1) {
 	PSID_warn((errno==ESRCH) ? PSID_LOG_SIGNAL : -1, errno,
 		  "%s: kill(%d, %d)", __func__, pid, signal);
