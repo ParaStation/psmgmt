@@ -60,7 +60,7 @@ static int debug_kvs = 0;
 static int barrierTimeout = 0;
 
 /** Set the number of rounds for the barrier */
-static int barrierRounds = 1;
+static int barrierRounds = 2;
 
 /** Counter of barrier-rounds */
 static int barrierCount;
