@@ -1,3 +1,150 @@
+Version psmgmt-5.0.27:
+======================
+------------------------------------------------------------------------
+r8160 | eicker | 2010-05-18 10:34:27 +0200 (Tue, 18 May 2010) | 3 lines
+
+Increase rounds in initial PMI_Barrier to 2. Try to collect more
+    statistics.
+
+------------------------------------------------------------------------
+r8159 | eicker | 2010-05-11 20:48:16 +0200 (Tue, 11 May 2010) | 5 lines
+
+Enhancement: Allow dynamic registration of functions to be called from
+    the main-loop. This might be useful for plugins.
+Make use of this functionality for various calls made from the
+    main-loop.
+
+------------------------------------------------------------------------
+r8158 | eicker | 2010-05-11 15:29:40 +0200 (Tue, 11 May 2010) | 3 lines
+
+Enhancement: Send SIGCONT before sending any SIGKILL in order to wakeup
+    receiver for signal delivery.
+
+------------------------------------------------------------------------
+r8153 | eicker | 2010-05-06 17:29:27 +0200 (Thu, 06 May 2010) | 2 lines
+
+Fix one compiler-warning.
+
+------------------------------------------------------------------------
+r8152 | eicker | 2010-05-06 17:28:59 +0200 (Thu, 06 May 2010) | 2 lines
+
+Fix one typo in comment.
+
+------------------------------------------------------------------------
+r8151 | eicker | 2010-05-06 17:09:23 +0200 (Thu, 06 May 2010) | 6 lines
+
+Bugfix: Due to some bugs in the flow-control between forwarder and
+    logger there might be duplicated task-structures preventing
+    PStasklist_find() from working as expected. At the end this might
+    lead to hanging psiadmins. See jt:#2194
+Bugfix: Try to fix the bug mentioned above. 
+
+------------------------------------------------------------------------
+r8133 | eicker | 2010-04-30 15:41:14 +0200 (Fri, 30 Apr 2010) | 4 lines
+
+Bugfix: Start selector early enough such that first call to node-script
+    actually works.
+Improved log-messages on failed scripts.
+
+------------------------------------------------------------------------
+r8132 | eicker | 2010-04-30 14:00:20 +0200 (Fri, 30 Apr 2010) | 3 lines
+
+Enhancement: Make PSI_recvMsg() more robust, if an unexpected message or
+    an message of wrong size is received. This should implement #509.
+
+------------------------------------------------------------------------
+r8131 | eicker | 2010-04-30 12:07:37 +0200 (Fri, 30 Apr 2010) | 5 lines
+
+Bugfix: Problematic node is reported in msg_name instead of
+    SO_EE_OFFENDER within the extended reliable error message. This
+    should fix #442.
+Some additional debug for #442. Keep under investigation.
+
+------------------------------------------------------------------------
+r8130 | eicker | 2010-04-30 12:02:09 +0200 (Fri, 30 Apr 2010) | 4 lines
+
+Bugfix: Prevent double sending of PLUGINRES messages. This should fix
+    #510.
+Bugfix: Send PLUGINRES messages of correct size upon message drop.
+
+------------------------------------------------------------------------
+r8129 | eicker | 2010-04-30 11:58:19 +0200 (Fri, 30 Apr 2010) | 2 lines
+
+Bugfix: Ensure that re-registration of messages is actually possible.
+
+------------------------------------------------------------------------
+r8128 | eicker | 2010-04-29 20:23:53 +0200 (Thu, 29 Apr 2010) | 2 lines
+
+Improve some of the daemon's debug-logs.
+
+------------------------------------------------------------------------
+r8125 | eicker | 2010-04-27 20:12:28 +0200 (Tue, 27 Apr 2010) | 4 lines
+
+Bugfix: Make forwarder's timeout waiting for logger's answer to
+    INITIALIZE-message dependant on total number of childs. This should
+    fix #480.
+
+------------------------------------------------------------------------
+r8124 | eicker | 2010-04-26 15:26:39 +0200 (Mon, 26 Apr 2010) | 3 lines
+
+Bugfix: Suppress faulty problem-messages due to wrong interpretation of
+    PSID_execScript()'s return value.
+
+------------------------------------------------------------------------
+r8123 | eicker | 2010-04-22 15:20:57 +0200 (Thu, 22 Apr 2010) | 4 lines
+
+Add remark concerning file-descriptors in PSID_execFunc()'s and
+    PSID_execScript()' callback-function. See #613.
+Bugfix: Fix possible leak of file-descriptors.
+
+------------------------------------------------------------------------
+r8122 | eicker | 2010-04-21 18:14:56 +0200 (Wed, 21 Apr 2010) | 2 lines
+
+Add some more extra debug for #442.
+
+------------------------------------------------------------------------
+r8116 | eicker | 2010-04-21 11:47:28 +0200 (Wed, 21 Apr 2010) | 3 lines
+
+Enhancement: Use number of actually defined nodes as NrOfNodes. This
+    should complete the implementation of #489.
+
+------------------------------------------------------------------------
+r8115 | eicker | 2010-04-20 20:57:32 +0200 (Tue, 20 Apr 2010) | 4 lines
+
+Enhancement: Make NrOfNodes statement in parastation.conf obsolete. For
+    this, PSIDnodes_grow() allows to dynamically grow the structures
+    used to manage node-information. This implements #489.
+
+------------------------------------------------------------------------
+r8106 | eicker | 2010-04-16 19:55:42 +0200 (Fri, 16 Apr 2010) | 3 lines
+
+Enhancement: Consider LSF's LSB_DJOB_HOSTFILE environment introduced by
+    Platform in the meantime. This fixes #585.
+
+------------------------------------------------------------------------
+r8101 | eicker | 2010-04-12 13:26:01 +0200 (Mon, 12 Apr 2010) | 2 lines
+
+Bugfix: psid might catch SIGSEGV, if it becomes master during shutdown.
+
+------------------------------------------------------------------------
+r8100 | eicker | 2010-04-12 09:58:47 +0200 (Mon, 12 Apr 2010) | 3 lines
+
+Enhancement: Don't block SIGCHLD within scripts executed via
+    PSID_execFunc(). This fixes #578.
+
+------------------------------------------------------------------------
+r8099 | eicker | 2010-04-12 09:18:20 +0200 (Mon, 12 Apr 2010) | 3 lines
+
+Bugfix: Enable file-descriptor to be usable as a selector, if it was
+relesased via Selector_remove() recently. This fixes #577.
+
+------------------------------------------------------------------------
+r8049 | eicker | 2010-03-24 16:35:54 +0100 (Wed, 24 Mar 2010) | 2 lines
+
+New version (psmgmt-5.0.26)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.26:
 ======================
 ------------------------------------------------------------------------
