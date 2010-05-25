@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -85,7 +85,7 @@ void PSI_RemoteArgs(int Argc,char **Argv,int *RArgc,char ***RArgv);
  * NULL-terminated array of pointers to char arrays. Each
  * '\0'-terminated character array storing a single environment
  * variable is expected to be of the form <name>=<value>.
- * 
+ *
  * @param func The function to register.
  *
  * @return No return value.
@@ -394,6 +394,10 @@ int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
  * @param argv Array of argument strings passed to the resulting
  * execve() call in order to finally spawn the task.
  *
+ * @param getSignals Flag, if signals are sent to the spawned
+ * service-process for each child that has finished operation. This is
+ * mainly used by mpirun_openib.
+ *
  * @param error Errorcode displaying if an error occurred within
  * PSI_spawnAdmin() while spawning the corresponding task.
  *
@@ -404,7 +408,7 @@ int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
  * @a error is set appropriately.
  */
 int PSI_spawnService(PSnodes_ID_t node, char *workdir, int argc, char **argv,
-		     int *error, PStask_ID_t *tid);
+		     int getSignals, int *error, PStask_ID_t *tid);
 
 /**
  * @brief Create a pg (process group) file for MPIch/P4

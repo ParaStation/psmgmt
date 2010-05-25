@@ -716,6 +716,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 	    if (taskInfo[numTasks].group==TG_PSCSPAWNER && !full) continue;
 	    if (taskInfo[numTasks].group==TG_MONITOR && !full) continue;
 	    if (taskInfo[numTasks].group==TG_SERVICE && !full) continue;
+	    if (taskInfo[numTasks].group==TG_SERVICE_SIG && !full) continue;
 	    if (taskInfo[numTasks].group==TG_ACCOUNT && !full) continue;
 	    numTasks++;
 	    if (numTasks*sizeof(*taskInfo) >= tiList.actSize) {
@@ -746,6 +747,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 		   taskInfo[task].group==TG_MONITOR ? "(M)" :
 		   taskInfo[task].group==TG_ADMINTASK ? "(*)" :
 		   taskInfo[task].group==TG_SERVICE ? "(S)" :
+		   taskInfo[task].group==TG_SERVICE_SIG ? "(S)" :
 		   taskInfo[task].group==TG_ACCOUNT ? "(C)" :
 		   " ");
 

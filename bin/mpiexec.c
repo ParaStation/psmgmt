@@ -440,7 +440,7 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 	    setPSIEnv("PWD", pwd, 1);
 	}
 
-	PSI_spawnService(nds[0], pwd, argc, argv, &error, &spawnedProc);
+	PSI_spawnService(nds[0], pwd, argc, argv, 0, &error, &spawnedProc);
 
 	free(nds);
 

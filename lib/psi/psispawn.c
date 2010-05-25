@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -389,7 +389,8 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     int fd = 0;
     PStask_t* task; /* structure to store the information of the new process */
 
-    if (taskGroup == TG_SERVICE && count != 1) {
+    if ((taskGroup == TG_SERVICE || taskGroup == TG_SERVICE_SIG)
+	&& count != 1) {
 	PSI_log(-1, "%s: spawn %d SERVICE tasks not allowed\n",
 		__func__, count);
 	return -1;
@@ -508,7 +509,9 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
 	    /* set correct rank */
 	    task->rank = rank;
-	    if (taskGroup == TG_SERVICE) task->rank = -2;
+	    if (taskGroup == TG_SERVICE || taskGroup == TG_SERVICE_SIG) {
+		task->rank = -2;
+	    }
 
 	    /* pack the task information in the msg */
 	    len = PStask_encodeTask(msg.buf, sizeof(msg.buf), task);
@@ -719,7 +722,7 @@ int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
 }
 
 int PSI_spawnService(PSnodes_ID_t node, char *workdir, int argc, char **argv,
-		     int *error, PStask_ID_t *tid)
+		     int getSignals, int *error, PStask_ID_t *tid)
 {
     int ret;
     char *envStr = getenv(ENV_NUM_SERVICE_PROCS);
@@ -746,7 +749,7 @@ int PSI_spawnService(PSnodes_ID_t node, char *workdir, int argc, char **argv,
     if (node == -1) node = PSC_getMyID();
 
     ret = dospawn(1, &node, workdir, argc, argv, 0,
-		  TG_SERVICE, 0, error, tid);
+		  getSignals ? TG_SERVICE_SIG : TG_SERVICE, 0, error, tid);
     if (ret != 1) return -1;
 
     return 1;

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -208,7 +208,8 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 			|| task->group == TG_GMSPAWNER
 			|| task->group == TG_PSCSPAWNER
 			|| task->group == TG_MONITOR
-			|| task->group == TG_SERVICE )) continue;
+			|| task->group == TG_SERVICE
+			|| task->group == TG_SERVICE_SIG )) continue;
 		taskinfo->tid = task->tid;
 		taskinfo->ptid = task->ptid;
 		taskinfo->loggertid = task->loggertid;
@@ -652,7 +653,8 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 			|| task->group == TG_GMSPAWNER
 			|| task->group == TG_PSCSPAWNER
 			|| task->group == TG_MONITOR
-			|| task->group == TG_SERVICE )) continue;
+			|| task->group == TG_SERVICE
+			|| task->group == TG_SERVICE_SIG )) continue;
 		taskinfo->tid = task->tid;
 		taskinfo->ptid = task->ptid;
 		taskinfo->loggertid = task->loggertid;

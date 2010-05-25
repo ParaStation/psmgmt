@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -41,18 +41,21 @@ extern "C" {
 
 /** Task Group constants */
 typedef enum {
-    TG_ANY,       /**< normal task */
-    TG_ADMIN,     /**< taskgroup for psiadmin (and GUI client) */
-    TG_RESET,     /**< normal task */
-    TG_LOGGER,    /**< special task, the logger */
-    TG_FORWARDER, /**< special task, the forwarder */
-    TG_SPAWNER,   /**< special task, the spawner (helper to spawn p4 jobs) */
-    TG_GMSPAWNER, /**< special task, the gmspawner (helper to spawn GM) */
-    TG_MONITOR,   /**< special task that monitors the daemon. Don't kill */
-    TG_PSCSPAWNER,/**< special task, the pscspawner (helper to spawn PSC) @deprecated */
-    TG_ADMINTASK, /**< admin-task, i.e. unaccounted task */
-    TG_SERVICE,   /**< special task, used to spawn new PSC tasks */
-    TG_ACCOUNT,   /**< accounter, will receive and log accounting info */
+    TG_ANY,         /**< normal task */
+    TG_ADMIN,       /**< taskgroup for psiadmin (and GUI client) */
+    TG_RESET,       /**< normal task */
+    TG_LOGGER,      /**< special task, the logger */
+    TG_FORWARDER,   /**< special task, the forwarder */
+    TG_SPAWNER,     /**< special task, the spawner (helper to spawn p4 jobs) */
+    TG_GMSPAWNER,   /**< special task, the gmspawner (helper to spawn GM) */
+    TG_MONITOR,     /**< special task that monitors the daemon. Don't kill */
+    TG_PSCSPAWNER,  /**< special task, the pscspawner (helper to spawn
+		     * PSC) @deprecated */
+    TG_ADMINTASK,   /**< admin-task, i.e. unaccounted task */
+    TG_SERVICE,     /**< service task, e.g. used by mpiexec to spawn procs */
+    TG_ACCOUNT,     /**< accounter, will receive and log accounting info */
+    TG_SERVICE_SIG, /**< service task, used by mpirun_openib to spawn
+		     * procs; will receive SIGTERM on childs termination */
 } PStask_group_t;
 
 /** Type to store unique task IDs in */

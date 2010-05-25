@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2007-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -126,7 +126,7 @@ static void createSpawner(int argc, char *argv[], int np)
 	PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
 		     nds, np*sizeof(*nds), 0);
 
-	PSI_spawnService(nds[0], NULL, argc, argv, &error, &spawnedProc);
+	PSI_spawnService(nds[0], NULL, argc, argv, 1, &error, &spawnedProc);
 
 	free(nds);
 

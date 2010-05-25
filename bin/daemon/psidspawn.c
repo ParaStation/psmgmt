@@ -1705,7 +1705,8 @@ static int checkRequest(PStask_ID_t sender, PStask_t *task)
 	return EACCES;
     }
 
-    if (task->group == TG_SERVICE && task->rank != -2) {
+    if ((task->group == TG_SERVICE || task->group == TG_SERVICE_SIG)
+	&& task->rank != -2) {
 	/* wrong rank for service task */
 	PSID_log(-1, "%s: rank %d for service task\n", __func__, task->rank);
 	return EINVAL;
@@ -1957,8 +1958,8 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	}
 
 	if (PSC_getID(msg->header.sender)==PSC_getMyID()
-	    && msg->type == PSP_SPAWN_TASK
-	    && group != TG_SERVICE && group != TG_ADMINTASK) {
+	    && msg->type == PSP_SPAWN_TASK && group != TG_SERVICE
+	    && group != TG_SERVICE_SIG && group != TG_ADMINTASK) {
 	    if (!ptask->spawnNodes || rank >= ptask->spawnNum) {
 		PSID_log(-1, "%s: rank %d out of range\n", __func__, rank);
 	    } else {
@@ -2018,7 +2019,8 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 
 	PStasklist_enqueue(&spawnTasks, task);
 
-	if (task->group == TG_SERVICE || task->group == TG_ADMINTASK) {
+	if (task->group == TG_SERVICE || task->group == TG_SERVICE_SIG
+	    || task->group == TG_ADMINTASK) {
 	    PSCPU_setAll(task->CPUset);
 	} else if (PSC_getID(msg->header.sender)==PSC_getMyID()) {
 	    if (!ptask->spawnNodes || rank >= ptask->spawnNum) {
@@ -2330,7 +2332,8 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
     child->forwardertid = forwarder->tid;
 
     /* Accounting info */
-    if (child->group != TG_ADMINTASK && child->group != TG_SERVICE) {
+    if (child->group != TG_ADMINTASK && child->group != TG_SERVICE
+	&& child->group != TG_SERVICE_SIG) {
 	sendAcctChild(child);
     }
 
@@ -2475,18 +2478,19 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	case TG_GMSPAWNER:
 	    /* Do not send a DD message to a client */
 	    msg->header.type = PSP_CD_SPAWNFINISH;
+	    sendMsg(msg);
 	    break;
-	case TG_SERVICE:
-	    /* TG_SERVICE expects signal, not message */
+	case TG_SERVICE_SIG:
+	    /* service task requested signal */
 	    if (!WIFEXITED(msg->error) || WIFSIGNALED(msg->error)
 		|| list_empty(&task->childs)) {
 		PSID_sendSignal(task->tid, task->uid, msg->request, -1, 0, 0);
 	    }
+	    break;
 	default:
-	    /* Don't send message if task not TG_(GM)SPAWNER */
-	    return;
+	    /* Do nothing */
+	    break;
 	}
-	sendMsg(msg);
 	return;
     }
 

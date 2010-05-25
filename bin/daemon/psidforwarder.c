@@ -1482,7 +1482,8 @@ static void sighandler(int sig)
 
 	/* Send ACCOUNT message to daemon; will forward to accounters */
 	if (accounting && childTask->group != TG_ADMINTASK
-	    && childTask->group != TG_SERVICE) {
+	    && childTask->group != TG_SERVICE
+	    && childTask->group != TG_SERVICE_SIG) {
 	    sendAcctData(rusage, status);
 	}
 
@@ -1913,6 +1914,7 @@ static void loop(void)
 	if (accounting && acctPollTime
 	    && childTask->group != TG_ADMINTASK
 	    && childTask->group != TG_SERVICE
+	    && childTask->group != TG_SERVICE_SIG
 	    && ((now = time(0)) - timeacc) > acctPollTime) {
 	    timeacc = now;
 	    updateAccountData();

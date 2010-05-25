@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -38,6 +38,7 @@ char* PStask_printGrp(PStask_group_t tg)
 	(tg==TG_PSCSPAWNER) ? "TG_PSCSPAWNER" :
 	(tg==TG_ADMINTASK) ? "TG_ADMINTASK" :
 	(tg==TG_SERVICE) ? "TG_SERVICE" :
+	(tg==TG_SERVICE_SIG) ? "TG_SERVICE_SIG" :
 	"UNKNOWN";
 }
 
