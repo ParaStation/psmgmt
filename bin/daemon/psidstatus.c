@@ -238,7 +238,6 @@ void setMaxStatBCast(int limit)
  */
 static void handleMasterTasks(void)
 {
-    static PSnodes_ID_t next = 0;
     PSnodes_ID_t node;
     static int round = 0;
     int nrDownNodes = 0;
@@ -275,7 +274,15 @@ static void handleMasterTasks(void)
 
     round %= 10;
     if (!round) {
+	static PSnodes_ID_t next;
+	static int firstCall = 1;
 	int count = (nrDownNodes > 10) ? 10 : nrDownNodes;
+
+	if (firstCall) {
+	    firstCall = 0;
+	    next = PSC_getMyID();
+	}
+
 	while (count) {
 	    next %= PSC_getNrOfNodes();
 	    if (!PSIDnodes_isUp(next)) {
