@@ -1814,6 +1814,7 @@ static int handleErr(void)
     case EHOSTUNREACH:
 	RDP_log(RDP_LOG_CONN, "%s: HOSTUNREACH from %s(%d) port %d\n",
 		__func__, inet_ntoa(sin.sin_addr), node, ntohs(sin.sin_port));
+	closeConnection(node, 1, 0);
 	break;
     default:
 	RDP_warn(-1, handleErrno, "%s: UNKNOWN errno %d from %s(%d) port %d\n",

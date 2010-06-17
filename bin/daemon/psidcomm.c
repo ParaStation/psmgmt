@@ -281,6 +281,7 @@ void handleDroppedMsg(DDMsg_t *msg)
     DDSignalMsg_t sigmsg;
     DDTypedMsg_t typmsg;
     int PSPver = PSIDnodes_getProtoVersion(PSC_getID(msg->sender));
+    static int block = 0;
 
     PSID_log(PSID_LOG_COMM, "%s dest %s", __func__, PSC_printTID(msg->dest));
     PSID_log(PSID_LOG_COMM," source %s type %s\n", PSC_printTID(msg->sender),
@@ -329,14 +330,17 @@ void handleDroppedMsg(DDMsg_t *msg)
 	    sendMsg(&sigmsg);
 	break;
     case PSP_DD_DAEMONCONNECT:
-	if (!config->useMCast && !knowMaster()
+	if (!block && !config->useMCast && !knowMaster()
 	    && ! (PSID_getDaemonState() & PSID_STATE_SHUTDOWN)) {
 	    PSnodes_ID_t next = PSC_getID(msg->dest) + 1;
 
+	    block = 1;
 	    while (next < PSC_getMyID()
-		   && (send_DAEMONCONNECT(next) < 0 && errno == EHOSTUNREACH)) {
+		   && (send_DAEMONCONNECT(next) < 0
+		       && (errno == EHOSTUNREACH || errno == ECONNREFUSED))) {
 		next++;
 	    }
+	    block = 0;
 	    if (next == PSC_getMyID()) declareMaster(next);
 	}
 	break;
