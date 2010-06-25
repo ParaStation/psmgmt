@@ -1104,6 +1104,8 @@ static void closeConnection(int node, int callback, int silent)
     conntable[node].ConnID_out = random();
     conntable[node].retrans = 0;
     conntable[node].totRetrans = 0;
+    conntable[node].tmout.tv_sec = 0;
+    conntable[node].tmout.tv_usec = 0;
 
     /* Restore blocked timer */
     Timer_block(timerID, blocked);
@@ -1475,6 +1477,9 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
 	}
     }
 
+    /* Update this before callback. New messages might be sent within callback. */
+    cp->msgPending = count;
+
     Timer_block(timerID, 0);
 
     if (callback && cp->window && RDPCallback) {
@@ -1666,9 +1671,8 @@ static void handleControlPacket(rdphdr_t *hdr, int node)
 	break;
     case RDP_SYNNACK:
 	RDP_log(RDP_LOG_CNTR, "%s: got SYNNACK from %d\n", __func__, node);
-	conntable[node].msgPending =
-	    resequenceMsgQ(node, hdr->seqno, hdr->ackno);
 	updateState(hdr, node);
+	resequenceMsgQ(node, hdr->seqno, hdr->ackno);
 	break;
     default:
 	RDP_log(-1, "%s: delete unknown msg", __func__);
@@ -2226,7 +2230,7 @@ int Rsendto(int node, void *buf, size_t len)
 	return -1;
     }
 
-    if (list_empty(&conntable[node].pendList)) {
+    if (list_empty(&conntable[node].pendList) && conntable[node].state == ACTIVE) {
 	gettimeofday(&tv, NULL);
 	timeradd(&tv, &RESEND_TIMEOUT, &conntable[node].tmout);
 	conntable[node].retrans = 0;
