@@ -256,6 +256,10 @@ static int lookupIPTable(struct in_addr ipno)
 
 /* ---------------------------------------------------------------------- */
 
+static LIST_HEAD(AckList);     /**< List of pending ACKs */
+
+/* ---------------------------------------------------------------------- */
+
 /**
  * Prototype of a small RDP message.
  */
@@ -264,104 +268,6 @@ typedef struct Smsg_ {
     char data[RDP_SMALL_DATA_SIZE]; /**< Body for small pakets */
     struct Smsg_ *next;             /**< Pointer to next Smsg buffer */
 } Smsg_t;
-
-/**
- * Prototype of a large (or normal) RDP message.
- */
-typedef struct {
-    rdphdr_t header;                /**< Message header */
-    char data[RDP_MAX_DATA_SIZE];   /**< Body for large pakets */
-} Lmsg_t;
-
-struct ackent_; /* forward declaration */
-
-/**
- * Control info for each message buffer
- */
-typedef struct {
-    int node;                       /**< ID of connection */
-    list_t next;                    /**< Use to put into @ref MsgFreeList etc.*/
-    struct ackent_ *ackptr;         /**< Pointer to ACK buffer */
-    int len;                        /**< Length of body */
-    union {
-	Smsg_t *small;              /**< Pointer to a small msg */
-	Lmsg_t *large;              /**< Pointer to a large msg */
-    } msg;                          /**< The actual message */
-} msgbuf_t;
-
-/**
- * Pool of message buffers ready to use. Initialized by initMsgList().
- * To get a buffer from this pool, use getMsg(), to put it back into
- * it use putMsg().
- */
-static LIST_HEAD(MsgFreeList);
-
-/**
- * @brief Initialize the message pool.
- *
- * Initialize the pool of message buffers @ref MsgFreeList for @a nodes nodes.
- * For now @ref MAX_WINDOW_SIZE * @a nodes message buffer will be allocated.
- *
- * @param nodes The number of nodes the message buffer pool has to serve.
- *
- * @return No return value.
- */
-static void initMsgList(int nodes)
-{
-    int i, count;
-    msgbuf_t *buf;
-
-    count = nodes * MAX_WINDOW_SIZE;
-    buf = malloc(count * sizeof(*buf));
-    if (!buf) RDP_exit(errno, "%s", __func__);
-
-    for (i=0; i<count; i++) {
-	buf[i].node = -1;
-	buf[i].ackptr = NULL;
-	buf[i].len = -1;
-	buf[i].msg.small = NULL;
-	list_add_tail(&buf[i].next, &MsgFreeList);
-    }
-}
-
-/**
- * @brief Get message buffer from pool.
- *
- * Get a message buffer from the pool of free ones @ref MsgFreeList.
- *
- * @return Pointer to the message buffer taken from the pool.
- */
-static msgbuf_t *getMsg(void)
-{
-    if (list_empty(&MsgFreeList)) {
-	RDP_log(-1, "%s: no more elements in MsgFreeList\n", __func__);
-    } else {
-	msgbuf_t *mp;
-	/* get list's first element */
-	mp = list_entry(MsgFreeList.next, msgbuf_t, next);
-	list_del(&mp->next);
-	mp->node = -1;
-
-	return mp;
-    }
-    return NULL;
-}
-
-/**
- * @brief Put message buffer back to pool.
- *
- * Put a message buffer back to the pool of free ones @ref MsgFreeList.
- *
- * @param mp The message buffer to be put back.
- *
- * @return No return value.
- */
-static void putMsg(msgbuf_t *mp)
-{
-    list_add_tail(&mp->next, &MsgFreeList);
-}
-
-/* ---------------------------------------------------------------------- */
 
 /**
  * Pool of small messages ready to use. Initialized by initSMsgList().
@@ -428,6 +334,111 @@ static void putSMsg(Smsg_t *mp)
 {
     mp->next = SMsgFreeList;
     SMsgFreeList = mp;
+}
+
+/* ---------------------------------------------------------------------- */
+
+/**
+ * Prototype of a large (or normal) RDP message.
+ */
+typedef struct {
+    rdphdr_t header;                /**< Message header */
+    char data[RDP_MAX_DATA_SIZE];   /**< Body for large pakets */
+} Lmsg_t;
+
+/**
+ * Control info for each message buffer
+ */
+typedef struct {
+    int node;                       /**< ID of connection */
+    list_t next;                    /**< Use to put into @ref MsgFreeList etc.*/
+    list_t nxtACK;                  /**< Use to put into @ref AckList etc.*/
+    int len;                        /**< Length of body */
+    union {
+	Smsg_t *small;              /**< Pointer to a small msg */
+	Lmsg_t *large;              /**< Pointer to a large msg */
+    } msg;                          /**< The actual message */
+} msgbuf_t;
+
+/**
+ * Pool of message buffers ready to use. Initialized by initMsgList().
+ * To get a buffer from this pool, use getMsg(), to put it back into
+ * it use putMsg().
+ */
+static LIST_HEAD(MsgFreeList);
+
+/**
+ * @brief Initialize the message pool.
+ *
+ * Initialize the pool of message buffers @ref MsgFreeList for @a nodes nodes.
+ * For now @ref MAX_WINDOW_SIZE * @a nodes message buffer will be allocated.
+ *
+ * @param nodes The number of nodes the message buffer pool has to serve.
+ *
+ * @return No return value.
+ */
+static void initMsgList(int nodes)
+{
+    int i, count;
+    msgbuf_t *buf;
+
+    count = nodes * MAX_WINDOW_SIZE;
+    buf = malloc(count * sizeof(*buf));
+    if (!buf) RDP_exit(errno, "%s", __func__);
+
+    for (i=0; i<count; i++) {
+	buf[i].node = -1;
+	INIT_LIST_HEAD(&buf[i].nxtACK);
+	buf[i].len = -1;
+	buf[i].msg.small = NULL;
+	list_add_tail(&buf[i].next, &MsgFreeList);
+    }
+}
+
+/**
+ * @brief Get message buffer from pool.
+ *
+ * Get a message buffer from the pool of free ones @ref MsgFreeList.
+ *
+ * @return Pointer to the message buffer taken from the pool.
+ */
+static msgbuf_t *getMsg(void)
+{
+    if (list_empty(&MsgFreeList)) {
+	RDP_log(-1, "%s: no more elements in MsgFreeList\n", __func__);
+    } else {
+	msgbuf_t *mp;
+	/* get list's first element */
+	mp = list_entry(MsgFreeList.next, msgbuf_t, next);
+	list_del(&mp->next);
+	mp->node = -1;
+
+	return mp;
+    }
+    return NULL;
+}
+
+/**
+ * @brief Put message buffer back to pool.
+ *
+ * Put a message buffer back to the pool of free ones @ref MsgFreeList.
+ *
+ * @param mp The message buffer to be put back.
+ *
+ * @return No return value.
+ */
+static void putMsg(msgbuf_t *mp)
+{
+    if (mp->len > RDP_SMALL_DATA_SIZE) {    /* release msg frame */
+	free(mp->msg.large);                /* free memory */
+    } else {
+	putSMsg(mp->msg.small);             /* back to freelist */
+    }
+    mp->msg.small = NULL;                   /* invalidate message buffer */
+    list_del(&mp->nxtACK);                  /* remove msgbuf from ACK-list */
+    INIT_LIST_HEAD(&mp->nxtACK);
+    list_del(&mp->next);                    /* remove msgbuf from list */
+    list_add_tail(&mp->next, &MsgFreeList);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -733,126 +744,6 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 
 /* ---------------------------------------------------------------------- */
 
-/** Double linked list of messages with pending ACK */
-typedef struct ackent_ {
-    list_t next;             /**< Use to put into @ref AckList and
-			      * @ref AckFreeList */
-    msgbuf_t *bufptr;        /**< Pointer to corresponding msg buffer */
-} ackent_t;
-
-static LIST_HEAD(AckList);     /**< List of pending ACKs */
-static LIST_HEAD(AckFreeList); /**< Pool of free ACK buffers */
-
-/**
- * @brief Initialize the pool of ACK buffers and the ACK list.
- *
- * Initialize the pool of ACK buffers @ref AckFreeList for @a nodes nodes.
- * For now @ref MAX_WINDOW_SIZE * @a nodes ACK buffers will be allocated.
- * Furthermore the ACK list is initialized in an empty state.
- *
- * @param nodes The number of nodes the ACK buffer pool has to serve.
- *
- * @return No return value.
- */
-static void initAckList(int nodes)
-{
-    ackent_t *ackbuf;
-    int i;
-    int count;
-
-    /* Max set size is nodes * MAX_WINDOW_SIZE !! */
-    count = nodes * MAX_WINDOW_SIZE;
-    ackbuf = malloc(count * sizeof(*ackbuf));
-    if (!ackbuf) RDP_exit(errno, "%s", __func__);
-
-    for (i=0; i<count; i++) {
-	ackbuf[i].bufptr = NULL;
-	list_add_tail(&ackbuf[i].next, &AckFreeList);
-    }
-}
-
-/**
- * @brief Get ACK buffer from pool.
- *
- * Get a ACK buffer from the pool of free ones @ref AckFreeList.
- *
- * @return Pointer to the ACK buffer taken from the pool.
- */
-static ackent_t *getAckEnt(void)
-{
-    if (list_empty(&AckFreeList)) {
-	RDP_log(-1, "%s: no more elements in AckFreeList\n", __func__);
-    } else {
-	ackent_t *ap;
-	/* get list's first element */
-	ap = list_entry(AckFreeList.next, ackent_t, next);
-	list_del(&ap->next);
-
-	return ap;
-    }
-    return NULL;
-}
-
-/**
- * @brief Put ACK buffer back to pool.
- *
- * Put a ACK buffer back to the pool of free ones @ref AckFreeList.
- *
- * @param ap The ACK buffer to be put back.
- *
- * @return No return value.
- */
-static void putAckEnt(ackent_t *ap)
-{
-    ap->bufptr = NULL;
-    list_add(&ap->next, &AckFreeList);
-}
-
-/**
- * @brief Enqueue a message to the ACK list.
- *
- * Append a message to the list of messages waiting to be
- * ACKed. Therefor an ACK buffer is taken from the pool using
- * getAckEnt(), configured appropriately and appended to the list of
- * buffer waiting to be ACKed.
- *
- * @param Pointer to the message to be appended.
- *
- * @return Pointer to the ACK buffer taken from the pool.
- */
-static ackent_t *enqAck(msgbuf_t *bufptr)
-{
-    ackent_t *ap;
-
-    ap = getAckEnt();
-
-    if (!ap) {
-	RDP_log(-1, "%s: no ACK buffer available\n", __func__);
-    } else {
-	ap->bufptr = bufptr;
-	list_add_tail(&ap->next, &AckList);
-    }
-
-    return ap;
-}
-
-/**
- * @brief Dequeue ACK buffer.
- *
- * Remove a ACK buffer from the list of buffers waiting to be ACKed.
- *
- * @param ap Pointer to the message to be removed.
- *
- * @return No return value.
- */
-static void deqAck(ackent_t *ap)
-{
-    list_del(&ap->next);
-    putAckEnt(ap);
-}
-
-/* ---------------------------------------------------------------------- */
-
 /**
  * @brief Send a SYN message.
  *
@@ -1051,13 +942,6 @@ static void clearMsgQ(int node)
 	}
 	RDP_log(RDP_LOG_DROP, "%s: drop msg %x to %d\n",
 		__func__, psntoh32(mp->msg.small->header.seqno), node);
-	if (mp->len > RDP_SMALL_DATA_SIZE) {    /* release msg frame */
-	    free(mp->msg.large);                /* free memory */
-	} else {
-	    putSMsg(mp->msg.small);             /* back to freelist */
-	}
-	deqAck(mp->ackptr);                     /* dequeue ack */
-	list_del(&mp->next);                    /* remove msgbuf from list */
 	putMsg(mp);                             /* back to freelist */
     }
 
@@ -1458,14 +1342,6 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
 	    }
 	    RDP_log(RDP_LOG_DROP, "%s: drop msg %d to %d\n",
 		    __func__, psntoh32(mp->msg.small->header.seqno), node);
-	    /* release msg frame */
-	    if (mp->len > RDP_SMALL_DATA_SIZE) {
-		free(mp->msg.large);       /* free memory */
-	    } else {
-		putSMsg(mp->msg.small);    /* back to freelist */
-	    }
-	    deqAck(mp->ackptr);            /* dequeue ack */
-	    list_del(&mp->next);           /* remove msgbuf from list */
 	    putMsg(mp);                    /* back to freelist */
 	    cp->window++;                  /* another packet allowed to send */
 	} else {
@@ -1508,15 +1384,9 @@ static void handleTimeoutRDP(void)
 
     for (a = (&AckList)->next, next = a->next; a != (&AckList);
 	 a = next, next = a->next) {
-	ackent_t *ap = list_entry(a, ackent_t, next);
-	msgbuf_t *mp = ap->bufptr;
-	int node;
+	msgbuf_t *mp = list_entry(a, msgbuf_t, nxtACK);
+	int node = mp->node;
 
-	if (!mp) {
-	    RDP_log(-1, "%s: mp is NULL for ap %p\n", __func__, ap);
-	    break;
-	}
-	node = mp->node;
 	if (timercmp(&conntable[node].tmout, &tv, <)) { /* msg has a timeout */
 	    /*
 	     * ap (and also next) may become invalid due to a call
@@ -1524,8 +1394,8 @@ static void handleTimeoutRDP(void)
 	     * ap pointing to a different node (which is save).
 	     */
 	    while (next != &AckList) {
-		ackent_t *nap = list_entry(next, ackent_t, next);
-		if (nap->bufptr->node != node) break;
+		msgbuf_t *nmp = list_entry(a, msgbuf_t, nxtACK);
+		if (nmp->node != node) break;
 		next = next->next;
 	    }
 
@@ -1605,16 +1475,9 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 	    /* release msg frame */
 	    RDP_log(RDP_LOG_ACKS, "%s: release buffer seqno=%x to %d\n",
 		    __func__, psntoh32(mp->msg.small->header.seqno), fromnode);
-	    if (mp->len > RDP_SMALL_DATA_SIZE) {
-		free(mp->msg.large);       /* free memory */
-	    } else {
-		putSMsg(mp->msg.small);    /* back to freelist */
-	    }
+	    putMsg(mp);                    /* back to freelist */
 	    cp->window++;                  /* another packet allowed to send */
 	    cp->ackExpected++;             /* inc ack count */
-	    deqAck(mp->ackptr);            /* dequeue ack */
-	    list_del(&mp->next);           /* remove msgbuf from list */
-	    putMsg(mp);                    /* back to freelist */
 	    cp->retrans = 0;               /* start new retransmission count */
 	} else {
 	    break;  /* everything done */
@@ -2027,7 +1890,6 @@ int initRDP(int nodes, unsigned short portno, FILE* logfile,
 
     initMsgList(nodes);
     initSMsgList(nodes);
-    initAckList(nodes);
 
     if (!portno) portno = DEFAULT_RDP_PORT;
     initConntable(nodes, hosts, htons(portno));
@@ -2237,9 +2099,8 @@ int Rsendto(int node, void *buf, size_t len)
     }
     list_add_tail(&mp->next, &conntable[node].pendList);
 
-    /* setup Ack buffer */
+    /* prepare basic message settings */    
     mp->node = node;
-    mp->ackptr = enqAck(mp);
     mp->len = len;
 
     /*
@@ -2256,6 +2117,9 @@ int Rsendto(int node, void *buf, size_t len)
 
     /* copy msg data */
     memcpy(mp->msg.small->data, buf, len);
+
+    /* Add to ACK-list */
+    list_add_tail(&mp->nxtACK, &AckList);
 
     /*
      * counters (window, msgPending, frameToSend) have to be updated
