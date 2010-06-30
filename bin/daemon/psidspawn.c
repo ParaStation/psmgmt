@@ -2117,7 +2117,7 @@ void deleteSpawnTasks(PSnodes_ID_t node)
 {
     list_t *t;
 
-    PSID_log(PSID_LOG_SPAWN, "%s(%d)", __func__, node);
+    PSID_log(PSID_LOG_SPAWN, "%s(%d)\n", __func__, node);
 
     list_for_each(t, &spawnTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
@@ -2138,7 +2138,7 @@ static void cleanupSpawnTasks(void)
 {
     list_t *t, *tmp;
 
-    PSID_log(PSID_LOG_VERB, "%s()", __func__);
+    PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
 
     list_for_each_safe(t, tmp, &spawnTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
