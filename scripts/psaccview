@@ -173,7 +173,7 @@ GetOptions(
 	   'listtotal|ls'  => \$listtotal,
 	   'selectsum|ss=s'=> \$conf{'sel'}{'sum'},
 	   'selectjob|sj=s'=> \$conf{'sel'}{'job'},
-	   'norcfile=s'	   => \$norcfile,
+	   'norcfile'	   => \$norcfile,
 	   'timeout=s'	   => \$conf{'all'}{'timeout'},
 	   'help|?'	   => \$help,
 	   'version|v'     => \$version
