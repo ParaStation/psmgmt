@@ -3,7 +3,7 @@
 #               ParaStation
 #
 # Copyright (C) 1999-2004 ParTec AG, Karlsruhe
-# Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
 #
 # $Id$
 #
@@ -51,13 +51,14 @@ $conf{'sort'}{'job'}		= "user";
 $conf{'sort'}{'user'}		= "user";
 $conf{'sort'}{'group'}		= "group";
 
-# general display options
+# general options
 $conf{'all'}{'noheader'}	= "no";
 $conf{'all'}{'human'}		= "no";
 $conf{'all'}{'clocktime'}	= "no";
 $conf{'all'}{'fulljobname'}	= "no";
 $conf{'all'}{'nospace'}		= "no";
 $conf{'all'}{'rowspace'}	= "2";
+$conf{'all'}{'timeout'}		= "no";
 $conf{'crit'}{'timespan'}	= "month";
 
 # display options for summary views
@@ -141,38 +142,41 @@ my $confptr = \%conf;
 my $help=0; my $version; my $rev = '$Revision$';
 my $human; ; my $nospace; my $noheader; my $fulljobname; my $clocktime;
 my $pedantic; my $listjobs; my $listuser; my $listgroup; my $listtotal;
+my $timespan; my $last_days;
 
 ## parse argv
 GetOptions(
-	   'sortjob=s'    => \$conf{'sort'}{'job'},
-	   'sortuser=s'   => \$conf{'sort'}{'user'},
-	   'sortgroup=s'  => \$conf{'sort'}{'group'},
-	   'human|h'      => \$human,
-	   'noheader|nh'  => \$noheader,
-	   'fulljob|fj'   => \$fulljobname,
-	   'nospace|ns'   => \$nospace,
-	   'pedantic'	  => \$pedantic,
-	   'clocktime|ct' => \$clocktime,
+	   'sortjob=s'     => \$conf{'sort'}{'job'},
+	   'sortuser=s'    => \$conf{'sort'}{'user'},
+	   'sortgroup=s'   => \$conf{'sort'}{'group'},
+	   'human|h'       => \$human,
+	   'noheader|nh'   => \$noheader,
+	   'fulljob|fj'    => \$fulljobname,
+	   'nospace|ns'    => \$nospace,
+	   'pedantic'	   => \$pedantic,
+	   'clocktime|ct'  => \$clocktime,
 	   'accountdir|l=s'=> \$conf{'all'}{'account_dir'},
-	   'timespan|t=s' => \$conf{'crit'}{'timespan'},
-	   'begin|tb=s'	  => \$conf{'crit'}{'begin'},
-	   'end|te=s'	  => \$conf{'crit'}{'end'},
-	   'exit|e=s'     => \$conf{'crit'}{'exit'},
-	   'queue|q=s'    => \$conf{'crit'}{'queue'},
-	   'user|u=s'     => \$conf{'crit'}{'user'},
-	   'group|g=s'    => \$conf{'crit'}{'group'},
-	   'jobname|j=s'  => \$conf{'crit'}{'jobname'},
-	   'jobid|i=s'    => \$conf{'crit'}{'jobid'},
-	   'node|n=s'	  => \$conf{'crit'}{'node'},
-	   'listjobs|lj'  => \$listjobs,
-	   'listuser|lu'  => \$listuser,
-	   'listgroup|lg' => \$listgroup,
-	   'listtotal|ls' => \$listtotal,
+	   'timespan|t=s'  => \$timespan,
+	   'last_days|ld=s'=> \$last_days,
+	   'begin|tb=s'	   => \$conf{'crit'}{'begin'},
+	   'end|te=s'	   => \$conf{'crit'}{'end'},
+	   'exit|e=s'      => \$conf{'crit'}{'exit'},
+	   'queue|q=s'     => \$conf{'crit'}{'queue'},
+	   'user|u=s'      => \$conf{'crit'}{'user'},
+	   'group|g=s'     => \$conf{'crit'}{'group'},
+	   'jobname|j=s'   => \$conf{'crit'}{'jobname'},
+	   'jobid|i=s'     => \$conf{'crit'}{'jobid'},
+	   'node|n=s'	   => \$conf{'crit'}{'node'},
+	   'listjobs|lj'   => \$listjobs,
+	   'listuser|lu'   => \$listuser,
+	   'listgroup|lg'  => \$listgroup,
+	   'listtotal|ls'  => \$listtotal,
 	   'selectsum|ss=s'=> \$conf{'sel'}{'sum'},
 	   'selectjob|sj=s'=> \$conf{'sel'}{'job'},
-	   'norcfile'	  => \$norcfile,
-	   'help|?'	  => \$help,
-	   'version|v'    => \$version
+	   'norcfile=s'	   => \$norcfile,
+	   'timeout=s'	   => \$conf{'all'}{'timeout'},
+	   'help|?'	   => \$help,
+	   'version|v'     => \$version
 )or pod2usage(2);
 pod2usage(1) if $help;
 
@@ -220,12 +224,22 @@ foreach my $avg ( keys %{$confptr->{'avg'}} ) {
 }
 
 # check for wrong cmd line options
+if ($timespan || $last_days) {
+    undef $conf{'crit'}{'timespan'};
+    undef $conf{'crit'}{'last_days'};
+    $conf{'crit'}{'timespan'} = $timespan if $timespan;
+    $conf{'crit'}{'last_days'} = $last_days if $last_days;
+}
 my $timespanlist = '^(today|week|month|year|all)$';
 die "Invalid timespan option (--timespan)\n" if $conf{'crit'}{'timespan'} &&
     $conf{'crit'}{'timespan'} !~ /$timespanlist/;
-die "Invalid begin option (--begin)\n" if $conf{'crit'}{'begin'} &&
+die "Invalid option --last_days\n" if $conf{'crit'}{'last_days'} &&
+    $conf{'crit'}{'last_days'} !~ /^\d+$/;
+die "Option --timespan and --last_days a mutal exclusive\n" if $conf{'crit'}{'timespan'} &&
+    $conf{'crit'}{'last_days'};
+die "Invalid option --begin\n" if $conf{'crit'}{'begin'} &&
     $conf{'crit'}{'begin'} !~ /^\d{8}$/;
-die "Invalid end option (--end)\n" if $conf{'crit'}{'end'} &&
+die "Invalid option --end\n" if $conf{'crit'}{'end'} &&
     $conf{'crit'}{'end'} !~ /^\d{8}$/;
 
 # parse and apply summary select options
@@ -294,6 +308,7 @@ $conf{'all'}{'clocktime'} = "yes" if $clocktime;
 $conf{'all'}{'pedantic'} = "yes" if $pedantic;
 
 my $meastime = time;
+my $timeout = ($conf{'all'}{'timeout'} =~ /^[+-]?\d+$/)? $conf{'all'}{'timeout'} : "";
 
 # calc time for filename
 my $tbegin, my $tend;
@@ -309,6 +324,7 @@ opendir(DIR, $ps_acc_dir) or die("Can't open accounting dir: $ps_acc_dir\n");
 my $lasterror = "none";
 while ( defined (my $filename = readdir(DIR))) {
     my $show = "cat";
+    die ("timeout: parsing takes to long time\n") if ($timeout ne "" && (time - $meastime) > $timeout);
     if($filename =~ /\.(gz)$/){$show = "gzip -cd"; }
     if($filename =~ /\.(bz2)$/){$show = "bzip2 -cd"; }
     (my $basename) = $filename  =~ m/^([A-Z0-9_.-]+)$/ig;
@@ -610,30 +626,39 @@ sub display_acc_data {
 	}
 	print "\n";
     }
-    print "\n\n";
+    print "\n\n" if(!($conf{'all'}{'nospace'} eq "yes"));
 }
 
 # calculate the file time range
 sub calcTimeRange {
     my @date = localtime(time);
-    my $timespan = $conf{'crit'}{'timespan'};
     $date[4]++;
     $date[5] += 1900;
-
+    $tbegin = sprintf("%04d%02d%02d",$date[5],$date[4],$date[3]);
     $tend = sprintf("%04d%02d%02d",$date[5],$date[4],$date[3]);
-    $tbegin = $tend if $timespan eq "today";
-    $tbegin = sprintf("%04d%02d01",$date[5],$date[4]) if $timespan eq "month";
-    $tbegin = sprintf("%04d0101",$date[5]) if $timespan eq "year";
-    if($timespan eq "week"){
-	    @date = localtime(time - ($date[6] * 86400));
-	    $date[4]++;
-	    $date[5] += 1900;
-	    $tbegin = sprintf("%04d%02d%02d",$date[5],$date[4],$date[3]);
+    
+    if ($conf{'crit'}{'timespan'}) {
+	my $timespan = $conf{'crit'}{'timespan'};
+	$tbegin = $tend if $timespan eq "today";
+	$tbegin = sprintf("%04d%02d01",$date[5],$date[4]) if $timespan eq "month";
+	$tbegin = sprintf("%04d0101",$date[5]) if $timespan eq "year";
+	if($timespan eq "week"){
+		@date = localtime(time - ($date[6] * 86400));
+		$date[4]++;
+		$date[5] += 1900;
+		$tbegin = sprintf("%04d%02d%02d",$date[5],$date[4],$date[3]);
+	}
+	$tbegin = 1 if $timespan eq "all";
+    } elsif ($conf{'crit'}{'last_days'}) {
+	my $ld = $conf{'crit'}{'last_days'};
+	@date = localtime(time - (86400 * $ld));
+	$date[4]++;
+	$date[5] += 1900;
+	$tbegin = sprintf("%04d%02d%02d",$date[5],$date[4],$date[3]);
     }
 
     $tend = $conf{'crit'}{'end'} if $conf{'crit'}{'end'};
     $tbegin = $conf{'crit'}{'begin'} if $conf{'crit'}{'begin'};
-    $tbegin = 1 if $timespan eq "all";
 }
 
 ## Process data
@@ -852,8 +877,8 @@ sub formatmem {
 }
 
 # display needed parsing time
-my $meetime = time;
 if (!($conf{'all'}{'noheader'} eq "yes")) {
+    my $meetime = time;
     print "Used parse time: ".formattime($meetime - $meastime)."\n";
 }
 
@@ -997,6 +1022,14 @@ Example: -sj "user,group,jobname,procs,exit"
 
 Selects a period of time. Valid values are 'today', 'week', 'month', 'year', 'all'.
 
+Example: -t week
+This will only display the current week beginning at monday, which can be 1-7 days of accounting data.
+
+=item B<--last_days -ld> <days>
+
+Example: --last_days 30
+This option will show the last 30 days of accounting data. This option is mutal exclusive with --timespan.
+
 =item B<--nospace -ns>
 
 Output all information with spaces quoted for better parsing reasons
@@ -1036,6 +1069,10 @@ Valid values are:
 =item B<--norcfile>
 
 Do not read any rcfiles.
+
+=item B<--timeout>
+
+Defines a timeout after which the script will stop parsing with an error message.
 
 =item B<--version -v>
 
