@@ -127,10 +127,7 @@ struct timeval RESEND_TIMEOUT = {0, 300000}; /* sec, usec */
 /** Timeout for closed connections = 2sec */
 struct timeval CLOSED_TIMEOUT = {2, 0}; /* sec, usec */
 
-/**
- * The timeout used for RDP timer = 100 msec. The is a const for now
- * and can only changed in the sources.
- */
+/** The timeout used for RDP timer = 100 msec. Change via setTmOutRDP() */
 struct timeval RDPTimeout = {0, 100000}; /* sec, usec */
 
 /** The actual packet-loss rate. Get/set by getPktLossRDP()/setPktLossRDP() */
@@ -350,14 +347,16 @@ typedef struct {
  * Control info for each message buffer
  */
 typedef struct {
-    int node;                       /**< ID of connection */
     list_t next;                    /**< Use to put into @ref MsgFreeList etc.*/
-    list_t nxtACK;                  /**< Use to put into @ref AckList etc.*/
+    list_t nxtACK;                  /**< Use to put into @ref AckList */
+    int node;                       /**< ID of connection */
     int len;                        /**< Length of body */
     union {
 	Smsg_t *small;              /**< Pointer to a small msg */
 	Lmsg_t *large;              /**< Pointer to a large msg */
     } msg;                          /**< The actual message */
+    char deleted;                   /**< Flag message as gone. Cleanup
+				     * during next timeout */
 } msgbuf_t;
 
 /**
@@ -388,9 +387,10 @@ static void initMsgList(int nodes)
 
     for (i=0; i<count; i++) {
 	buf[i].node = -1;
-	INIT_LIST_HEAD(&buf[i].nxtACK);
 	buf[i].len = -1;
+	INIT_LIST_HEAD(&buf[i].nxtACK);
 	buf[i].msg.small = NULL;
+	buf[i].deleted = 0;
 	list_add_tail(&buf[i].next, &MsgFreeList);
     }
 }
@@ -411,7 +411,6 @@ static msgbuf_t *getMsg(void)
 	/* get list's first element */
 	mp = list_entry(MsgFreeList.next, msgbuf_t, next);
 	list_del(&mp->next);
-	mp->node = -1;
 
 	return mp;
     }
@@ -435,6 +434,8 @@ static void putMsg(msgbuf_t *mp)
 	putSMsg(mp->msg.small);             /* back to freelist */
     }
     mp->msg.small = NULL;                   /* invalidate message buffer */
+    mp->node = -1;
+    mp->deleted = 0;
     list_del(&mp->nxtACK);                  /* remove msgbuf from ACK-list */
     INIT_LIST_HEAD(&mp->nxtACK);
     list_del(&mp->next);                    /* remove msgbuf from list */
@@ -928,11 +929,13 @@ RDPDeadbuf deadbuf;
 static void clearMsgQ(int node)
 {
     Rconninfo_t *cp = &conntable[node];
-    list_t *m, *tmp;
+    list_t *m;
+    int blocked = Timer_block(timerID, 1);
 
-    /* Decline all pending messages */
-    list_for_each_safe(m, tmp, &cp->pendList) {
+    list_for_each(m, &cp->pendList) {
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
+
+	if (mp->deleted) continue;
 
 	if (RDPCallback) { /* give msg back to upper layer */
 	    deadbuf.dst = node;
@@ -942,11 +945,13 @@ static void clearMsgQ(int node)
 	}
 	RDP_log(RDP_LOG_DROP, "%s: drop msg %x to %d\n",
 		__func__, psntoh32(mp->msg.small->header.seqno), node);
-	putMsg(mp);                             /* back to freelist */
+	mp->deleted = 1;
     }
 
     cp->ackExpected = cp->frameToSend;          /* restore initial setting */
     cp->window = MAX_WINDOW_SIZE;               /* restore window size */
+
+    Timer_block(timerID, blocked);
 }
 
 /**
@@ -1018,7 +1023,7 @@ static void closeConnection(int node, int callback, int silent)
 static void resendMsgs(int node)
 {
     struct timeval tv;
-    list_t *m, *tmp;
+    list_t *m;
 
     if (list_empty(&conntable[node].pendList)) {
 	RDP_log(RDP_LOG_ACKS, "%s: no pending messages\n", __func__);
@@ -1055,9 +1060,14 @@ static void resendMsgs(int node)
 	sendSYNACK(node);
 	break;
     case ACTIVE:
-	list_for_each_safe(m, tmp, &conntable[node].pendList) {
+    {
+	int blocked = Timer_block(timerID, 1);
+	list_for_each(m, &conntable[node].pendList) {
 	    int ret;
 	    msgbuf_t *mp = list_entry(m, msgbuf_t, next);
+
+	    if (mp->deleted) continue;
+
 	    RDP_log(RDP_LOG_ACKS, "%s: %d to %d\n",
 		    __func__, psntoh32(mp->msg.small->header.seqno), mp->node);
 	    /* update ackinfo */
@@ -1068,7 +1078,10 @@ static void resendMsgs(int node)
 	    if (ret < 0) break;
 	}
 	conntable[node].ackPending = 0;
+
+	Timer_block(timerID, blocked);
 	break;
+    }
     default:
 	RDP_log(-1, "%s: unknown state %d for %d\n",
 		__func__, conntable[node].state, node);
@@ -1316,7 +1329,8 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
 {
     Rconninfo_t *cp;
     int count = 0, callback;
-    list_t *m, *tmp;
+    list_t *m;
+    int blocked = Timer_block(timerID, 1);
 
     RDP_log(RDP_LOG_CNTR, "%s\n", __func__);
 
@@ -1324,14 +1338,15 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
 
     callback = !cp->window;
 
-    Timer_block(timerID, 1);
-
     cp->frameExpected = newExpected;     /* Accept initial seqno */
     cp->frameToSend = newSend;
     cp->ackExpected = newSend;
 
-    list_for_each_safe(m, tmp, &cp->pendList) {
+    list_for_each(m, &cp->pendList) {
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
+
+	if (mp->deleted) continue;
+
 	if (RSEQCMP((int)psntoh32(mp->msg.small->header.seqno), newSend) < 0) {
 	    /* current msg precedes NACKed msg */
 	    if (RDPCallback) { /* give msg back to upper layer */
@@ -1342,7 +1357,7 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
 	    }
 	    RDP_log(RDP_LOG_DROP, "%s: drop msg %d to %d\n",
 		    __func__, psntoh32(mp->msg.small->header.seqno), node);
-	    putMsg(mp);                    /* back to freelist */
+	    mp->deleted = 1;
 	    cp->window++;                  /* another packet allowed to send */
 	} else {
 	    /* resequence outstanding mgs's */
@@ -1353,10 +1368,10 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
 	}
     }
 
-    /* Update this before callback. New messages might be sent within callback. */
+    /* Update before callback. New messages might be sent within callback. */
     cp->msgPending = count;
 
-    Timer_block(timerID, 0);
+    Timer_block(timerID, blocked);
 
     if (callback && cp->window && RDPCallback) {
 	RDPCallback(RDP_CAN_CONTINUE, &node);
@@ -1377,31 +1392,34 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
  */
 static void handleTimeoutRDP(void)
 {
-    list_t *a, *next;
+    list_t *a, *tmp;
     struct timeval tv;
 
     gettimeofday(&tv, NULL);
 
-    for (a = (&AckList)->next, next = a->next; a != (&AckList);
-	 a = next, next = a->next) {
+    list_for_each(a, &AckList) {
 	msgbuf_t *mp = list_entry(a, msgbuf_t, nxtACK);
 	int node = mp->node;
 
-	if (timercmp(&conntable[node].tmout, &tv, <)) { /* msg has a timeout */
-	    /*
-	     * ap (and also next) may become invalid due to a call
-	     * of closeConnection(), therefore look for the first
-	     * ap pointing to a different node (which is save).
-	     */
-	    while (next != &AckList) {
-		msgbuf_t *nmp = list_entry(a, msgbuf_t, nxtACK);
-		if (nmp->node != node) break;
-		next = next->next;
-	    }
+	if (mp->deleted) continue;
 
+	if (timercmp(&conntable[node].tmout, &tv, <)) {
+	    /* msg has a timeout */
 	    resendMsgs(node);
 	}
     }
+
+    /*
+     * Actually cleanup invalidated messages. This should be safe here
+     * since we're inside the timeout-handler (i.e. timer is blocked)
+     * and nothing else is done within this loop
+     */
+    list_for_each_safe(a, tmp, &AckList) {
+	msgbuf_t *mp = list_entry(a, msgbuf_t, nxtACK);
+
+	if (mp->deleted) putMsg(mp);
+    }
+
 }
 
 /**
@@ -1428,7 +1446,8 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 {
     Rconninfo_t *cp;
     int callback;
-    list_t *m, *tmp;
+    list_t *m;
+    int blocked;
 
     if ((hdr->type == RDP_SYN) || (hdr->type == RDP_SYNACK)) return;
     /* these packets are used for initialization only */
@@ -1458,10 +1477,13 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 	}
     }
 
-    Timer_block(timerID, 1);
+    blocked = Timer_block(timerID, 1);
 
-    list_for_each_safe(m, tmp, &cp->pendList) {
+    list_for_each(m, &cp->pendList) {
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
+
+	if (mp->deleted) continue;
+
 	RDP_log(RDP_LOG_ACKS, "%s: compare seqno %d with %d\n",
 		__func__, psntoh32(mp->msg.small->header.seqno), hdr->ackno);
 	if (RSEQCMP((int)psntoh32(mp->msg.small->header.seqno), hdr->ackno) <= 0) {
@@ -1475,7 +1497,7 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 	    /* release msg frame */
 	    RDP_log(RDP_LOG_ACKS, "%s: release buffer seqno=%x to %d\n",
 		    __func__, psntoh32(mp->msg.small->header.seqno), fromnode);
-	    putMsg(mp);                    /* back to freelist */
+	    mp->deleted = 1;
 	    cp->window++;                  /* another packet allowed to send */
 	    cp->ackExpected++;             /* inc ack count */
 	    cp->retrans = 0;               /* start new retransmission count */
@@ -1484,7 +1506,7 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 	}
     }
 
-    Timer_block(timerID, 0);
+    Timer_block(timerID, blocked);
 
     if (callback && cp->window && RDPCallback) {
 	RDPCallback(RDP_CAN_CONTINUE, &fromnode);
@@ -2099,7 +2121,7 @@ int Rsendto(int node, void *buf, size_t len)
     }
     list_add_tail(&mp->next, &conntable[node].pendList);
 
-    /* prepare basic message settings */    
+    /* prepare basic message settings */
     mp->node = node;
     mp->len = len;
 
