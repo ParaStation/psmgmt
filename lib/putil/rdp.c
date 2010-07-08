@@ -90,6 +90,44 @@ typedef enum {
 #define RDP_NACK     0x5  /**< negative acknowledgement */
 #define RDP_SYNNACK  0x6  /**< NACK to reestablish broken connection */
 
+static struct {
+    int id;
+    char *name;
+} RDPTypes[] = {
+    { RDP_DATA,    "RDP_DATA"   },
+    { RDP_SYN,     "RDP_SYN"    },
+    { RDP_ACK,     "RDP_ACK"    },
+    { RDP_SYNACK,  "RDP_SYNACK" },
+    { RDP_NACK,    "RDP_NACK"   },
+    { RDP_SYNNACK, "RDP_SYNNACK"},
+    {0,NULL}
+};
+
+/**
+ * @brief String describing RDP message type
+ *
+ * Return a strings describing the RDP message type @a msgtype in a
+ * human readable way.
+ *
+ * @param msgType RDP message type to describe
+ *
+ * @return A static string describing the RDP message type is returned.
+ */
+static char *RDPMsgString(int msgtype)
+{
+    static char txt[30];
+    int i = 0;
+
+    while (RDPTypes[i].name && RDPTypes[i].id != msgtype) i++;
+
+    if (RDPTypes[i].name) {
+	return RDPTypes[i].name;
+    } else {
+	snprintf(txt, sizeof(txt), "RDP type 0x%x UNKNOWN", msgtype);
+	return txt;
+    }
+}
+
 /** The RDP Packet Header */
 typedef struct {
     int16_t type;         /**< packet type */
@@ -693,12 +731,6 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 	msg->ackno = pshton32(msg->ackno);
 	msg->connid = pshton32(msg->connid);
     }
-    {
-	/* @todo special debug to hunt #442 */
-	rdphdr_t *msg = buf;
-	if (node == myID) RDP_log(-1, "%s: send message type %d to myself\n",
-				  __func__, psntoh16(msg->type));
-    }
  restart:
     ret = sendto(sock, buf, len, flags, to, tolen);
     if (ret < 0) {
@@ -989,7 +1021,6 @@ static void closeConnection(int node, int callback, int silent)
     conntable[node].state = CLOSED;
     conntable[node].ackPending = 0;
     conntable[node].msgPending = 0;
-    conntable[node].ConnID_in = -1;
     conntable[node].ConnID_out = random();
     conntable[node].retrans = 0;
     conntable[node].totRetrans = 0;
@@ -1115,71 +1146,61 @@ static void resendMsgs(int node)
  */
 static void updateState(rdphdr_t *hdr, int node)
 {
-    Rconninfo_t *cp;
-    cp = &conntable[node];
+    Rconninfo_t *cp = &conntable[node];
+    int logLevel = RDP_LOG_CNTR;
 
     switch (cp->state) {
     case CLOSED:
-	 /*
-	  * CLOSED & RDP_SYN -> SYN_RECVD
-	  * ELSE -> ERROR !! (SYN has to be received first !!)
-	  *         possible reason: node has been restarted without
-	  *            notifying other nodes
-	  *         action: reinitialize connection
-	  */
 	switch (hdr->type) {
 	case RDP_SYN:
 	    cp->state = SYN_RECVD;
-	    cp->frameExpected = hdr->seqno; /* Accept initial seqno */
-	    cp->ConnID_in = hdr->connid;    /* Accept connection ID */
+	    cp->frameExpected = hdr->seqno;
+	    cp->ConnID_in = hdr->connid;
 	    RDP_log(RDP_LOG_CNTR,
-		    "%s: state(%d): CLOSED -> SYN_RECVD, FE=%x\n",
-		    __func__, node, cp->frameExpected);
+		    "%s: state(%d): CLOSED -> SYN_RECVD on %s, FE=%x\n",
+		    __func__, node, RDPMsgString(hdr->type),
+		    cp->frameExpected);
 	    sendSYNACK(node);
 	    break;
 	case RDP_DATA:
-	    cp->state = SYN_SENT;
-	    RDP_log(RDP_LOG_CNTR,
-		    "%s: state(%d): CLOSED -> SYN_SENT, FE=%x\n",
-		    __func__, node, cp->frameExpected);
-	    sendSYNNACK(node, hdr->seqno);
-	    break;
+	    if (cp->ConnID_in == hdr->connid) {
+		/* know this one from former times */
+		cp->state = SYN_SENT;
+		RDP_log(-1, "%s: state(%d): CLOSED -> SYN_SENT on %s, FE=%x\n",
+			__func__, node, RDPMsgString(hdr->type),
+			cp->frameExpected);
+		sendSYNNACK(node, hdr->seqno);
+		break;
+	    } /* else fall through */
 	default:
 	    cp->state = SYN_SENT;
-	    RDP_log(RDP_LOG_CNTR,
-		    "%s: state(%d): CLOSED -> SYN_SENT, FE=%x\n",
-		    __func__, node, cp->frameExpected);
+	    RDP_log(-1, "%s: state(%d): CLOSED -> SYN_SENT on %s, FE=%x\n",
+		    __func__, node, RDPMsgString(hdr->type),
+		    cp->frameExpected);
 	    sendSYN(node);
 	    break;
 	}
 	break;
     case SYN_SENT:
-	/*
-	 * SYN_SENT & RDP_SYN -> SYN_RECVD
-	 * SYN_SENT & RDP_SYNACK -> ACTIVE
-	 * ELSE -> ERROR (SYN from partner still missing )
-	 *         possible reason: node has been restarted, SYN was sent, but
-	 *                          not yet processed by partner
-	 *                          (or SYN was lost)
-	 *          action: reinitialize connection
-	 */
 	switch (hdr->type) {
 	case RDP_SYN:
 	    cp->state = SYN_RECVD;
-	    cp->frameExpected = hdr->seqno; /* Accept initial seqno */
-	    cp->ConnID_in = hdr->connid;    /* Accept connection ID */
+	    cp->frameExpected = hdr->seqno;
+	    cp->ConnID_in = hdr->connid;
 	    RDP_log(RDP_LOG_CNTR,
-		    "%s: state(%d): SYN_SENT -> SYN_RECVD, FE=%x\n",
-		    __func__, node, cp->frameExpected);
+		    "%s: state(%d): SYN_SENT -> SYN_RECVD on %s, FE=%x\n",
+		    __func__, node, RDPMsgString(hdr->type),
+		    cp->frameExpected);
 	    sendSYNACK(node);
 	    break;
 	case RDP_SYNACK:
 	    cp->state = ACTIVE;
-	    cp->frameExpected = hdr->seqno; /* Accept initial seqno */
-	    cp->ConnID_in = hdr->connid;    /* Accept connection ID */
+	    cp->frameExpected = hdr->seqno;
+	    cp->ConnID_in = hdr->connid;
 	    RDP_log(RDP_LOG_CNTR,
-		    "%s: state(%d): SYN_SENT -> ACTIVE, FE=%x\n",
-		    __func__, node, cp->frameExpected);
+		    "%s: state(%d): SYN_SENT -> ACTIVE on %s, FE=%x\n",
+		    __func__, node, RDPMsgString(hdr->type),
+		    cp->frameExpected);
 	    if (cp->msgPending){
 		resendMsgs(node);
 		cp->frameToSend += cp->msgPending;
@@ -1192,50 +1213,44 @@ static void updateState(rdphdr_t *hdr, int node)
 	    }
 	    break;
 	default:
-	    RDP_log(RDP_LOG_CNTR, "%s: state(%d): stay in SYN_SENT,  FE=%x\n",
-		    __func__, node, cp->frameExpected);
+	    RDP_log(-1, "%s: state(%d): stay in SYN_SENT on %s, FE=%x\n",
+		    __func__, node, RDPMsgString(hdr->type),
+		    cp->frameExpected);
 	    sendSYN(node);
 	    break;
 	}
 	break;
     case SYN_RECVD:
-	/*
-	 * SYN_RECVD & SYN -> SYN_RECVD / sendSYNACK
-	 * SYN_RECVD & NACK/SYNACK -> SYN_SENT / sendSYN
-	 * SYN_RECVD & if ACK then ACTIVE, else SYN/SYN_SENT
-	 * SYN_RECVD & RDP_SYNACK -> ACTIVE
-	 * ELSE -> ERROR (SYN from partner still missing )
-	 *         possible reason: node has been restarted, SYN was sent, but
-	 *                          not yet processed by partner
-	 *                          (or SYN was lost)
-	 *          action: reinitialize connection
-	 */
 	switch (hdr->type) {
 	case RDP_SYN:
-	    cp->frameExpected = hdr->seqno;     /* Accept initial seqno */
+	    cp->frameExpected = hdr->seqno;
 	    if (hdr->connid != cp->ConnID_in) { /* NEW CONNECTION */
 		cp->ConnID_in = hdr->connid;    /* Accept connection ID */
-		RDP_log(RDP_LOG_CNTR,
-			"%s: new connection in SYN_RECVD for %d, FE=%x\n",
-			__func__, node, cp->frameExpected);
+		RDP_log(-1,
+			"%s: state(%d) new conn in SYN_RECVD on %s, FE=%x\n",
+			__func__, node, RDPMsgString(hdr->type),
+			cp->frameExpected);
 	    } else {
 		RDP_log(RDP_LOG_CNTR,
-			"%s: state(%d): stay in SYN_RECVD, FE=%x\n",
-			__func__, node, cp->frameExpected);
+			"%s: state(%d): stay in SYN_RECVD on %s, FE=%x\n",
+			__func__, node, RDPMsgString(hdr->type),
+			cp->frameExpected);
 	    }
 	    sendSYNACK(node);
 	    break;
 	case RDP_SYNACK:
-	    cp->frameExpected = hdr->seqno; /* Accept initial seqno */
-	    if (hdr->connid != cp->ConnID_in) { /* New connection */
-		cp->ConnID_in = hdr->connid;    /* Accept connection ID */
+	    cp->frameExpected = hdr->seqno;
+	    if (hdr->connid != cp->ConnID_in) {
+		cp->ConnID_in = hdr->connid;
+		logLevel = -1;
 	    }
 	case RDP_ACK:
 	case RDP_DATA:
 	    cp->state = ACTIVE;
-	    RDP_log(RDP_LOG_CNTR,
-		    "%s: state(%d): SYN_RECVD -> ACTIVE, FE=%x\n",
-		    __func__, node, cp->frameExpected);
+	    RDP_log(logLevel,
+		    "%s: state(%d): SYN_RECVD -> ACTIVE on %s, FE=%x\n",
+		    __func__, node, RDPMsgString(hdr->type),
+		    cp->frameExpected);
 	    if (cp->msgPending) {
 		resendMsgs(node);
 		cp->frameToSend += cp->msgPending;
@@ -1249,54 +1264,58 @@ static void updateState(rdphdr_t *hdr, int node)
 	    break;
 	default:
 	    cp->state = SYN_SENT;
-	    RDP_log(RDP_LOG_CNTR,
-		    "%s: state(%d): SYN_RECVD -> SYN_SENT, FE=%x\n",
-		    __func__, node, cp->frameExpected);
+	    RDP_log(-1, "%s: state(%d): SYN_RECVD -> SYN_SENT on %s, FE=%x\n",
+		    __func__, node, RDPMsgString(hdr->type),
+		    cp->frameExpected);
 	    sendSYN(node);
 	    break;
 	}
 	break;
     case ACTIVE:
-	if (hdr->connid != cp->ConnID_in) { /* New Connection */
-	    // RDP_log(RDP_LOG_CNTR, "%s: new connection from %d, FE=%x, seqno=%x" @todo #442
-	    RDP_log(-1, "%s: new connection from %d, FE=%x, seqno=%x"
-		    " in ACTIVE State [%d:%d]\n", __func__, node,
-		    cp->frameExpected, hdr->seqno, hdr->connid, cp->ConnID_in);
-	    closeConnection(node, 1, 0);
+	if (hdr->connid != cp->ConnID_in) {
+	    int32_t oldFE = cp->frameExpected;
+	    /* New Connection */
 	    switch (hdr->type) {
 	    case RDP_SYN:
+		closeConnection(node, 1, 0);
 	    case RDP_SYNNACK:
 		cp->state = SYN_RECVD;
-		cp->frameExpected = hdr->seqno; /* Accept initial seqno */
-		cp->ConnID_in = hdr->connid;    /* Accept connection ID */
-		RDP_log(RDP_LOG_CNTR,
-			"%s: state(%d): ACTIVE -> SYN_RECVD, FE=%x\n",
-			__func__, node, cp->frameExpected);
+		cp->frameExpected = hdr->seqno;
+		cp->ConnID_in = hdr->connid;
+		RDP_log(-1, "%s: state(%d): ACTIVE -> SYN_RECVD (%x vs %x)"
+			" on %s, FE=%x, seqno=%x\n", __func__, node,
+			hdr->connid, cp->ConnID_in, RDPMsgString(hdr->type),
+			oldFE, cp->frameExpected);
 		sendSYNACK(node);
 		break;
 	    case RDP_SYNACK:
+		closeConnection(node, 1, 0);
 		cp->state = SYN_RECVD;
-		cp->frameExpected = hdr->seqno; /* Accept initial seqno */
-		cp->ConnID_in = hdr->connid;    /* Accept connection ID */
-		/* RDP_log(RDP_LOG_CNTR, @todo test with -1 */
-		RDP_log(-1,
-			"%s: state(%d): ACTIVE -> SYN_RECVD on SYNACK, FE=%x\n",
-			__func__, node, cp->frameExpected);
+		cp->frameExpected = hdr->seqno;
+		cp->ConnID_in = hdr->connid;
+		RDP_log(-1, "%s: state(%d): ACTIVE -> SYN_RECVD (%x vs %x)"
+			" on %s, FE=%x, seqno=%x\n", __func__, node,
+			hdr->connid, cp->ConnID_in, RDPMsgString(hdr->type),
+			oldFE, cp->frameExpected);
 		sendSYN(node);
 		break;
 	    default:
+		RDP_log(-1, "%s: state(%d): ACTIVE -> CLOSED (%x vs %x)"
+			" on %s, FE=%x, seqno=%x\n", __func__, node,
+			hdr->connid, cp->ConnID_in, RDPMsgString(hdr->type),
+			oldFE, cp->frameExpected);
+		closeConnection(node, 1, 0);
 		break;
 	    }
 	} else { /* SYN Packet on OLD Connection (probably lost answers) */
 	    switch (hdr->type) {
 	    case RDP_SYN:
-		RDP_log(-1, "%s: ACTIVE -> SYNRECVD\n", __func__); // @todo #442
 		closeConnection(node, 1, 0);
 		cp->state = SYN_RECVD;
-		cp->frameExpected = hdr->seqno; /* Accept new seqno */
-		RDP_log(RDP_LOG_CNTR,
-			"%s: state(%d): ACTIVE -> SYN_RECVD, FE=%x\n",
-			__func__, node, cp->frameExpected);
+		cp->frameExpected = hdr->seqno;
+		RDP_log(-1, "%s: state(%d) ACTIVE -> SYN_RECVD on %s, FE=%x\n",
+			__func__, node, RDPMsgString(hdr->type),
+			cp->frameExpected);
 		sendSYNACK(node);
 		break;
 	    default:
@@ -1320,15 +1339,15 @@ static void updateState(rdphdr_t *hdr, int node)
  * This is usually called upon reestablishing a disturbed connection.
  *
  * @param node The node number of the connection to be cleared.
- * @param newExpected The next frame expected from @a node.
+ *
  * @param newSend The number of the next paket to send.
  *
  * @return The number of resequenced pakets.
  */
-static int resequenceMsgQ(int node, int newExpected, int newSend)
+static int resequenceMsgQ(int node, int newSend)
 {
     Rconninfo_t *cp;
-    int count = 0, callback;
+    int count = 0;
     list_t *m;
     int blocked = Timer_block(timerID, 1);
 
@@ -1336,9 +1355,6 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
 
     cp = &conntable[node];
 
-    callback = !cp->window;
-
-    cp->frameExpected = newExpected;     /* Accept initial seqno */
     cp->frameToSend = newSend;
     cp->ackExpected = newSend;
 
@@ -1358,7 +1374,6 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
 	    RDP_log(RDP_LOG_DROP, "%s: drop msg %d to %d\n",
 		    __func__, psntoh32(mp->msg.small->header.seqno), node);
 	    mp->deleted = 1;
-	    cp->window++;                  /* another packet allowed to send */
 	} else {
 	    /* resequence outstanding mgs's */
 	    RDP_log(RDP_LOG_CNTR, "%s: SeqNo: %x -> %x\n", __func__,
@@ -1368,14 +1383,9 @@ static int resequenceMsgQ(int node, int newExpected, int newSend)
 	}
     }
 
-    /* Update before callback. New messages might be sent within callback. */
     cp->msgPending = count;
 
     Timer_block(timerID, blocked);
-
-    if (callback && cp->window && RDPCallback) {
-	RDPCallback(RDP_CAN_CONTINUE, &node);
-    }
 
     return count;
 }
@@ -1417,7 +1427,16 @@ static void handleTimeoutRDP(void)
     list_for_each_safe(a, tmp, &AckList) {
 	msgbuf_t *mp = list_entry(a, msgbuf_t, nxtACK);
 
-	if (mp->deleted) putMsg(mp);
+	if (mp->deleted) {
+	    int node = mp->node;
+	    Rconninfo_t *cp = &conntable[node];
+	    int callback = !cp->window;
+
+	    putMsg(mp);
+	    cp->window++;
+
+	    if (callback && RDPCallback) RDPCallback(RDP_CAN_CONTINUE, &node);
+	}
     }
 
 }
@@ -1445,7 +1464,6 @@ static void handleTimeoutRDP(void)
 static void doACK(rdphdr_t *hdr, int fromnode)
 {
     Rconninfo_t *cp;
-    int callback;
     list_t *m;
     int blocked;
 
@@ -1454,15 +1472,14 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 
     cp = &conntable[fromnode];
 
-    callback = !cp->window;
-
     RDP_log(RDP_LOG_ACKS,
 	    "process ACK from %d [Type=%d, seq=%x, AE=%x, got=%x]\n",
 	    fromnode, hdr->type, hdr->seqno, cp->ackExpected, hdr->ackno);
 
     if (hdr->connid != cp->ConnID_in) { /* New Connection */
-	RDP_log(-1, "unable to process ACK for new conn to %d (%x vs. %x)\n",
+	RDP_log(-1, "unable to process ACK for new conn to %d (%x vs %x)\n",
 		fromnode, hdr->connid, cp->ConnID_in);
+	updateState(hdr, fromnode);
 	return;
     }
 
@@ -1498,7 +1515,6 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 	    RDP_log(RDP_LOG_ACKS, "%s: release buffer seqno=%x to %d\n",
 		    __func__, psntoh32(mp->msg.small->header.seqno), fromnode);
 	    mp->deleted = 1;
-	    cp->window++;                  /* another packet allowed to send */
 	    cp->ackExpected++;             /* inc ack count */
 	    cp->retrans = 0;               /* start new retransmission count */
 	} else {
@@ -1507,10 +1523,6 @@ static void doACK(rdphdr_t *hdr, int fromnode)
     }
 
     Timer_block(timerID, blocked);
-
-    if (callback && cp->window && RDPCallback) {
-	RDPCallback(RDP_CAN_CONTINUE, &fromnode);
-    }
 }
 
 /**
@@ -1528,9 +1540,10 @@ static void doACK(rdphdr_t *hdr, int fromnode)
  */
 static void handleControlPacket(rdphdr_t *hdr, int node)
 {
+    RDP_log((hdr->type == RDP_ACK) ? RDP_LOG_ACKS : RDP_LOG_CNTR,
+	    "%s: got %s from %d\n", __func__, RDPMsgString(hdr->type), node);
     switch (hdr->type) {
     case RDP_ACK:
-	RDP_log(RDP_LOG_ACKS, "%s: got ACK from %d\n", __func__, node);
 	if (conntable[node].state != ACTIVE) {
 	    updateState(hdr, node);
 	} else {
@@ -1538,7 +1551,6 @@ static void handleControlPacket(rdphdr_t *hdr, int node)
 	}
 	break;
     case RDP_NACK:
-	RDP_log(RDP_LOG_CNTR, "%s: got NACK from %d\n", __func__, node);
 	if (conntable[node].state != ACTIVE) {
 	    updateState(hdr, node);
 	} else {
@@ -1547,17 +1559,12 @@ static void handleControlPacket(rdphdr_t *hdr, int node)
 	if (conntable[node].state == ACTIVE) resendMsgs(node);
 	break;
     case RDP_SYN:
-	RDP_log(RDP_LOG_CNTR, "%s: got SYN from %d\n", __func__, node);
-	updateState(hdr, node);
-	break;
     case RDP_SYNACK:
-	RDP_log(RDP_LOG_CNTR, "%s: got SYNACK from %d\n", __func__, node);
 	updateState(hdr, node);
 	break;
     case RDP_SYNNACK:
-	RDP_log(RDP_LOG_CNTR, "%s: got SYNNACK from %d\n", __func__, node);
 	updateState(hdr, node);
-	resequenceMsgQ(node, hdr->seqno, hdr->ackno);
+	resequenceMsgQ(node, hdr->ackno);
 	break;
     default:
 	RDP_log(-1, "%s: delete unknown msg", __func__);
@@ -2058,7 +2065,7 @@ int Rsendto(int node, void *buf, size_t len)
 	return -1;
     }
 
-    if (conntable[node].window == 0) {
+    if (!conntable[node].window) {
 	/* transmission window full */
 	RDP_log(RDP_LOG_CONN, "%s: window to %d full\n", __func__, node);
 	errno = EAGAIN;
