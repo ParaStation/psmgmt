@@ -857,14 +857,14 @@ static void sendSYNACK(int node)
  *
  * @return No return value.
  */
-static void sendSYNNACK(int node, int oldseq)
+static void sendSYNNACK(int node)
 {
     rdphdr_t hdr;
 
     hdr.type = RDP_SYNNACK;
     hdr.len = 0;
     hdr.seqno = conntable[node].frameToSend;       /* Tell initial seqno */
-    hdr.ackno = oldseq;                            /* NACK for old seqno */
+    hdr.ackno = conntable[node].frameExpected-1;   /* The frame I expect */
     hdr.connid = conntable[node].ConnID_out;
     RDP_log(RDP_LOG_CNTR, "%s: to %d, NFTS=%x, FE=%x\n", __func__, node,
 	    hdr.seqno, hdr.ackno);
@@ -1169,7 +1169,7 @@ static void updateState(rdphdr_t *hdr, int node)
 		RDP_log(-1, "%s: state(%d): CLOSED -> SYN_SENT on %s, FE=%x\n",
 			__func__, node, RDPMsgString(hdr->type),
 			cp->frameExpected);
-		sendSYNNACK(node, hdr->seqno);
+		sendSYNNACK(node);
 		break;
 	    } /* else fall through */
 	default:
@@ -1331,66 +1331,6 @@ static void updateState(rdphdr_t *hdr, int node)
 
 
 /**
- * @brief Resequence message queue of a connection.
- *
- * Resequence the message queue of the connection to node @a node, i.e. throw
- * away undeliverable message (and inform calling process via
- * @ref RDPCallback()) and resequence all other messages.
- * This is usually called upon reestablishing a disturbed connection.
- *
- * @param node The node number of the connection to be cleared.
- *
- * @param newSend The number of the next paket to send.
- *
- * @return The number of resequenced pakets.
- */
-static int resequenceMsgQ(int node, int newSend)
-{
-    Rconninfo_t *cp;
-    int count = 0;
-    list_t *m;
-    int blocked = Timer_block(timerID, 1);
-
-    RDP_log(RDP_LOG_CNTR, "%s\n", __func__);
-
-    cp = &conntable[node];
-
-    cp->frameToSend = newSend;
-    cp->ackExpected = newSend;
-
-    list_for_each(m, &cp->pendList) {
-	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
-
-	if (mp->deleted) continue;
-
-	if (RSEQCMP((int)psntoh32(mp->msg.small->header.seqno), newSend) < 0) {
-	    /* current msg precedes NACKed msg */
-	    if (RDPCallback) { /* give msg back to upper layer */
-		deadbuf.dst = node;
-		deadbuf.buf = mp->msg.small->data;
-		deadbuf.buflen = mp->len;
-		RDPCallback(RDP_PKT_UNDELIVERABLE, &deadbuf);
-	    }
-	    RDP_log(RDP_LOG_DROP, "%s: drop msg %d to %d\n",
-		    __func__, psntoh32(mp->msg.small->header.seqno), node);
-	    mp->deleted = 1;
-	} else {
-	    /* resequence outstanding mgs's */
-	    RDP_log(RDP_LOG_CNTR, "%s: SeqNo: %x -> %x\n", __func__,
-		    psntoh32(mp->msg.small->header.seqno), newSend + count);
-	    mp->msg.small->header.seqno = pshton32(newSend + count);
-	    count++;
-	}
-    }
-
-    cp->msgPending = count;
-
-    Timer_block(timerID, blocked);
-
-    return count;
-}
-
-/**
  * @brief Timeout handler to be registered in Timer facility.
  *
  * Timeout handler called from Timer facility every time @ref RDPTimeout
@@ -1526,6 +1466,50 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 }
 
 /**
+ * @brief Resequence message queue of a connection.
+ *
+ * Resequence the message queue of the connection to node @a node,
+ * i.e. ACK all messages received on the other side and set msgPending
+ * for this connection accordingly.
+ *
+ * This is usually called upon reestablishing a disturbed connection.
+ *
+ * @param hdr The packet header with the ACK in
+ *
+ * @param fromnode The node @a hdr was received from and whose ACK
+ * and msgPending information has to be updated.
+ *
+ * @return The number of resequenced pakets.
+ */
+static int resequenceMsgQ(rdphdr_t *hdr, int fromnode)
+{
+    Rconninfo_t *cp = &conntable[fromnode];;
+    int count = 0;
+    list_t *m;
+    int blocked = Timer_block(timerID, 1);
+
+    RDP_log(RDP_LOG_CNTR, "%s\n", __func__);
+
+    doACK(hdr, fromnode);
+
+    cp->frameToSend = cp->ackExpected;
+
+    list_for_each(m, &cp->pendList) {
+	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
+
+	if (mp->deleted) continue;
+
+	count++;
+    }
+
+    cp->msgPending = count;
+
+    Timer_block(timerID, blocked);
+
+    return count;
+}
+
+/**
  * @brief Handle control packets.
  *
  * Handle the control packet @a hdr received from node @a
@@ -1564,7 +1548,7 @@ static void handleControlPacket(rdphdr_t *hdr, int node)
 	break;
     case RDP_SYNNACK:
 	updateState(hdr, node);
-	resequenceMsgQ(node, hdr->ackno);
+	resequenceMsgQ(hdr, node);
 	break;
     default:
 	RDP_log(-1, "%s: delete unknown msg", __func__);
@@ -1846,7 +1830,8 @@ static int handleRDP(int fd, void *info)
     }
 
     /* Check DATA_MSG for Retransmissions */
-    if (RSEQCMP(msg.header.seqno, conntable[fromnode].frameExpected)) {
+    if (RSEQCMP(msg.header.seqno, conntable[fromnode].frameExpected)
+	|| conntable[fromnode].state != ACTIVE) {
 	/* Wrong seq */
 	slen = sizeof(sin);
 	ret = MYrecvfrom(fd, &msg, sizeof(msg), 0,
