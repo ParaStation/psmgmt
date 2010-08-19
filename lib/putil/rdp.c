@@ -1290,10 +1290,10 @@ static void updateState(rdphdr_t *hdr, int node)
 		break;
 	    case RDP_SYNACK:
 		closeConnection(node, 1, 0);
-		cp->state = SYN_RECVD;
+		cp->state = SYN_SENT;
 		cp->frameExpected = hdr->seqno;
 		cp->ConnID_in = hdr->connid;
-		RDP_log(-1, "%s: state(%d): ACTIVE -> SYN_RECVD (%x vs %x)"
+		RDP_log(-1, "%s: state(%d): ACTIVE -> SYN_SENT (%x vs %x)"
 			" on %s, FE=%x, seqno=%x\n", __func__, node,
 			hdr->connid, cp->ConnID_in, RDPMsgString(hdr->type),
 			oldFE, cp->frameExpected);
@@ -1313,12 +1313,16 @@ static void updateState(rdphdr_t *hdr, int node)
 		closeConnection(node, 1, 0);
 		cp->state = SYN_RECVD;
 		cp->frameExpected = hdr->seqno;
-		RDP_log(-1, "%s: state(%d) ACTIVE -> SYN_RECVD on %s, FE=%x\n",
+		RDP_log(-1,
+			"%s: state(%d): ACTIVE -> SYN_RECVD on %s, FE=%x\n",
 			__func__, node, RDPMsgString(hdr->type),
 			cp->frameExpected);
 		sendSYNACK(node);
 		break;
 	    default:
+		RDP_log(-1, "%s: state(%d): stay in  ACTIVE on %s, FE=%x\n",
+			__func__, node, RDPMsgString(hdr->type),
+			cp->frameExpected);
 		break;
 	    }
 	}
