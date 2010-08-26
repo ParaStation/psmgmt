@@ -383,7 +383,6 @@ static void initSigHandlers(void)
     signal(SIGQUIT  ,sighandler);
     signal(SIGILL   ,sighandler);
     signal(SIGTRAP  ,sighandler);
-    signal(SIGBUS   ,sighandler);
     signal(SIGFPE   ,sighandler);
     signal(SIGUSR1  ,sighandler);
     signal(SIGUSR2  ,sighandler);
@@ -697,11 +696,12 @@ int main(int argc, const char *argv[])
 	}
     }
 
-    /* Catch SIGSEGV and SIGABRT if core dumps are suppressed */
+    /* Catch SIGSEGV, SIGABRT and SIGBUS only if core dumps are suppressed */
     getrlimit(RLIMIT_CORE, &rlimit);
     if (!rlimit.rlim_cur) {
-	signal(SIGSEGV ,sighandler);
-	signal(SIGABRT ,sighandler);
+	signal(SIGSEGV, sighandler);
+	signal(SIGABRT, sighandler);
+	signal(SIGBUS, sighandler);
     }
     if (config->coreDir) {
 	if (chdir(config->coreDir) < 0) {
