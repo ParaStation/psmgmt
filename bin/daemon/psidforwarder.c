@@ -41,19 +41,6 @@ static char vcid[] __attribute__((used)) =
 
 #include "psidforwarder.h"
 
-typedef struct {
-    int session;
-    unsigned long maxThreads;
-    uint64_t avgThreads;
-    uint64_t avgThreadsCount;
-    unsigned long maxVsize;
-    long maxRss;
-    uint64_t avgVsize;
-    uint64_t avgVsizeCount;
-    uint64_t avgRss;
-    uint64_t avgRssCount;
-} AccountData;
-
 /**
  * Verbosity of Forwarder (1=Yes, 0=No)
  *
@@ -105,15 +92,6 @@ static enum {
 
 /** List of messages waiting to be sent */
 LIST_HEAD(oldMsgs);
-
-/** Set to 1 if the forwarder should do accounting */
-int accounting = 0;
-
-/** Interval in sec for polling on accounting information, e.g. memory */
-int acctPollTime = 0;
-
-/** Structure which holds the accounting information */
-AccountData accData;
 
 /**
  * Timeout for connecting to logger. This will be set according to the
@@ -170,241 +148,6 @@ static void closePMIAcceptSocket(void)
 	close(PMISock);
 	PMISock = -1;
     }
-}
-
-/**
- * @brief Finds all child processes auf @pid and
- * returns the sum of the used vmem in kb.
- *
- * @param pid The pid of the parent process.
- *
- * @param buf Buffer for reading the proc structure.
- *
- * @param size The size of the buffer.
- *
- * @param dir Handle to directory where to read the
- * information ("/proc/")
- *
- * @return Returns the sum of the used vmem by all childs.
- */
-static long getAllChildsVMem(int pid, char *buf, int size, DIR *dir)
-{
-    /** Format string of /proc/pid/stat */
-    static char stat_format[] = "%*d %*s %*c %d %*d %*d %*d %*d %*u %*u \
-    %*u %*u %*u %*d %*d %*d %*d %*d %*d %*u \
-    %*u %*u %lu %*ld %*u %*u %*u %*u %*u \
-    %*u %*u %*u %*u %*u %*u %*u %*u %*d %*d";
-
-    FILE *fd;
-    struct dirent *dent;
-    int newpid, ppid;
-    unsigned long vmem = 0;
-    unsigned long newvmem = 0;
-
-    rewinddir(dir);
-
-    while ((dent = readdir(dir)) != NULL){
-	if (!isdigit(dent->d_name[0])){
-	    continue;
-	}
-	newpid = atoi(dent->d_name);
-
-	if (!isdigit(newpid) || newpid < 0) {
-	    continue;
-	}
-
-	snprintf(buf, size, "/proc/%i/stat", newpid);
-	if ((fd = fopen(buf,"r")) == NULL) {
-	    continue;
-	}
-	if ((fscanf(fd, stat_format, &ppid, &newvmem)) != 2) {
-	    fclose(fd);
-	    continue;
-	}
-	fclose(fd);
-	if (ppid == pid) {
-	    vmem += newvmem;
-	    vmem += getAllChildsVMem(newpid, buf, size, dir);
-	}
-    }
-    return vmem;
-}
-
-/**
- * @brief Finds all child processes auf @pid and
- * returns the sum of the used rss(mem).
- *
- * @param pid The pid of the parent process.
- *
- * @param buf Buffer for reading the proc structure.
- *
- * @param size The size of the buffer.
- *
- * @param dir Handle to directory where to read the
- * information ("/proc/")
- *
- * @return Returns the sum of the used rss by all childs.
- */
-static long getAllChildsMem(int pid, char *buf, int size, DIR *dir)
-{
-    /** Format string of /proc/pid/stat */
-    static char stat_format[] = "%*d %*s %*c %d %*d %*d %*d %*d %*u %*u \
-    %*u %*u %*u %*d %*d %*d %*d %*d %*d %*u \
-    %*u %*u %*lu %ld %*u %*u %*u %*u %*u \
-    %*u %*u %*u %*u %*u %*u %*u %*u %*d %*d";
-
-    FILE *fd;
-    struct dirent *dent;
-    int newpid, ppid;
-    long mem = 0;
-    long newmem = 0;
-
-    rewinddir(dir);
-
-    while ((dent = readdir(dir)) != NULL){
-	if (!isdigit(dent->d_name[0])){
-	    continue;
-	}
-	newpid = atoi(dent->d_name);
-
-	if (!isdigit(newpid) || newpid < 0) {
-	    continue;
-	}
-
-	snprintf(buf, size, "/proc/%i/stat", newpid);
-	if ((fd = fopen(buf,"r")) == NULL) {
-	    continue;
-	}
-
-	if ((fscanf(fd, stat_format, &ppid, &newmem)) != 2) {
-	    fclose(fd);
-	    continue;
-	}
-	fclose(fd);
-
-	if (ppid == pid) {
-	    mem += newmem;
-	    mem += getAllChildsMem(newpid, buf, size, dir);
-	}
-    }
-    return mem;
-}
-
-/**
- * @brief Update Accounting Data.
- *
- * Reads data from /proc/pid/stat and updates the
- * accounting data structure accData. Used for generating
- * accounting files and to replace the resmom of torque.
- * For accounting the memory usage the rss and vsize or monitored.
- *
- * VSIZE (Virtual memory SIZE) - The amount of memory the process is
- * currently using. This includes the amount in RAM and the amount in
- * swap.
- *
- * RSS (Resident Set Size) - The portion of a process that exists in
- * physical memory (RAM). The rest of the program exists in swap. If
- * the computer has not used swap, this number will be equal to VSIZE.
- *
- * @return No return value.
- */
-static void updateAccountData(void)
-{
-    /** Format string of /proc/pid/stat */
-    static char stat_format[] =
-		    "%*d "	    /* pid */
-		    "%*s "	    /* comm */
-		    "%*c "	    /* state */
-		    "%*d %*d "	    /* ppid pgrp */
-		    "%d "	    /* session */
-		    "%*d "	    /* tty_nr */
-		    "%*d "	    /* tpgid */
-		    "%*u "	    /* flags */
-		    "%*lu %*lu "    /* minflt cminflt */
-		    "%*lu %*lu "    /* majflt cmajflt */
-		    "%*lu %*lu "    /* utime stime */
-		    "%*lu %*lu "    /* cutime cstime */
-		    "%*d "	    /* priority */
-		    "%*d "	    /* nice */
-		    "%lu "	    /* num_threads */
-		    "%*u "	    /* itrealvalue */
-		    "%*u "	    /* starttime */
-		    "%lu %lu "	    /* vsize rss*/
-		    "%*u "	    /* rlim */
-		    "%*u %*u "	    /* startcode endcode startstack */
-		    "%*u "	    /* startstack */
-		    "%*u %*u "	    /* kstkesp kstkeip */
-		    "%*u %*u "	    /* signal blocked */
-		    "%*u %*u "	    /* sigignore sigcatch */
-		    "%*u "	    /* wchan */
-		    "%*u %*u "	    /* nswap cnswap */
-		    "%*d "	    /* exit_signal (kernel 2.1.22) */
-		    "%*d "	    /* processor  (kernel 2.2.8) */
-		    "%*lu "	    /* rt_priority (kernel 2.5.19) */
-		    "%*lu "	    /* policy (kernel 2.5.19) */
-		    "%*llu";	    /* delayacct_blkio_ticks (kernel 2.6.18) */
-    int pid, res;
-    long rssnew;
-    unsigned long vsizenew = 0, newthreads = 0;
-    static char buf[1024];
-    FILE *fd;
-    DIR *dir;
-    static int rate = 0;
-
-    pid = PSC_getPID(childTask->tid);
-
-    if (rate <= 0) {
-	rate = sysconf(_SC_CLK_TCK);
-	if (rate < 0) {
-	    PSID_warn(-1, errno, "%s: sysconf(_SC_CLK_TCK) failed", __func__);
-	    acctPollTime = 0;
-	    return;
-	}
-    }
-
-    snprintf(buf, sizeof(buf), "/proc/%i/stat", pid);
-    if (!(fd = fopen(buf,"r"))) {
-	PSID_warn(-1, errno, "%s: fopen(/proc/%i/stat) failed", __func__, pid);
-	acctPollTime = 0;
-	return;
-    }
-
-    res = fscanf(fd, stat_format,
-	    &accData.session,
-	    &newthreads,
-	    &vsizenew,
-	    &rssnew);
-
-    fclose(fd);
-
-    if (res != 4) {
-	PSID_log(-1, "%s: error reading accounting data,"
-		 " invalid kernel version?\n", __func__);
-	acctPollTime = 0;
-	return;
-    }
-
-    /* get mem and vmem for all childs  */
-    if ((dir = opendir("/proc/"))) {
-	rssnew += getAllChildsMem(pid, buf, sizeof(buf), dir);
-	vsizenew += getAllChildsVMem(pid, buf, sizeof(buf), dir);
-	closedir(dir);
-    }
-
-    /* set rss (resident set size) */
-    if (rssnew > accData.maxRss) accData.maxRss = rssnew;
-    accData.avgRss += rssnew;
-    accData.avgRssCount++;
-
-    /* set virtual mem */
-    if (vsizenew > accData.maxVsize) accData.maxVsize = vsizenew;
-    accData.avgVsize += vsizenew;
-    accData.avgVsizeCount++;
-
-    /* set max threads */
-    if (newthreads > accData.maxThreads) accData.maxThreads = newthreads;
-    accData.avgThreads += newthreads;
-    accData.avgThreadsCount++;
 }
 
 /**
@@ -1220,9 +963,6 @@ static void sendAcctData(struct rusage rusage, int status)
     char *ptr = msg.buf;
     struct timeval now, walltime;
     long pagesize;
-    uint64_t avgRss;
-    uint64_t avgVsize;
-    uint64_t avgThreads;
 
     msg.header.type = PSP_CD_ACCOUNT;
     msg.header.dest = PSC_getTID(-1, 0);
@@ -1252,6 +992,11 @@ static void sendAcctData(struct rusage rusage, int status)
     ptr += sizeof(gid_t);
     msg.header.len += sizeof(gid_t);
 
+    /* child's pid */
+    *(pid_t *)ptr = PSC_getPID(childTask->tid);
+    ptr += sizeof(pid_t);
+    msg.header.len += sizeof(pid_t);
+
     /* actual rusage structure */
     memcpy(ptr, &rusage, sizeof(rusage));
     ptr += sizeof(rusage);
@@ -1265,16 +1010,6 @@ static void sendAcctData(struct rusage rusage, int status)
     ptr += sizeof(uint64_t);
     msg.header.len += sizeof(uint64_t);
 
-    /* size of max used mem */
-    *(uint64_t *)ptr = (uint64_t)accData.maxRss;
-    ptr += sizeof(uint64_t);
-    msg.header.len += sizeof(uint64_t);
-
-    /* size of max used vmem */
-    *(uint64_t *)ptr = (uint64_t)accData.maxVsize;
-    ptr += sizeof(uint64_t);
-    msg.header.len += sizeof(uint64_t);
-
     /* walltime used by child */
     gettimeofday(&now, NULL);
     timersub(&now, &childTask->started, &walltime);
@@ -1282,50 +1017,16 @@ static void sendAcctData(struct rusage rusage, int status)
     ptr += sizeof(walltime);
     msg.header.len += sizeof(walltime);
 
-    /* number of max threads */
-    *(uint32_t *)ptr = accData.maxThreads;
-    ptr += sizeof(uint32_t);
-    msg.header.len += sizeof(uint32_t);
-
-    /* session id of job */
-    *(int32_t *)ptr = accData.session;
-    ptr += sizeof(int32_t);
-    msg.header.len += sizeof(int32_t);
-
     /* child's return status */
     *(int32_t *)ptr = status;
     ptr += sizeof(int32_t);
     msg.header.len += sizeof(int32_t);
 
-    /* size of average used mem */
-    if (accData.avgRss < 1 || accData.avgRssCount < 1) {
-	avgRss = 0;
-    } else {
-	avgRss = (accData.avgRss / accData.avgRssCount);
-    }
-    *(uint64_t *)ptr = (uint64_t) avgRss;
-    ptr += sizeof(uint64_t);
-    msg.header.len += sizeof(uint64_t);
-
-    /* size of average used vmem */
-    if (accData.avgVsize < 1 || accData.avgVsizeCount < 1) {
-	avgVsize = 0;
-    } else {
-	avgVsize = (accData.avgVsize / accData.avgVsizeCount);
-    }
-    *(uint64_t *)ptr = (uint64_t) avgVsize;
-    ptr += sizeof(uint64_t);
-    msg.header.len += sizeof(uint64_t);
-
-    /* number of average threads */
-    if (accData.avgThreads < 1 || accData.avgThreadsCount < 1) {
-	avgThreads = 0;
-    } else {
-	avgThreads = (accData.avgThreads / accData.avgThreadsCount);
-    }
-    *(uint64_t *)ptr = (uint64_t) avgThreads;
-    ptr += sizeof(uint64_t);
-    msg.header.len += sizeof(uint64_t);
+    /* extended msg flag, will be overwritten
+     * by accounting plugin */
+    *(int32_t *)ptr = 0;
+    ptr += sizeof(int32_t);
+    msg.header.len += sizeof(int32_t);
 
     sendDaemonMsg((DDMsg_t *)&msg);
 }
@@ -1481,7 +1182,7 @@ static void sighandler(int sig)
 	}
 
 	/* Send ACCOUNT message to daemon; will forward to accounters */
-	if (accounting && childTask->group != TG_ADMINTASK
+	if (childTask->group != TG_ADMINTASK
 	    && childTask->group != TG_SERVICE
 	    && childTask->group != TG_SERVICE_SIG) {
 	    sendAcctData(rusage, status);
@@ -1797,7 +1498,6 @@ static void loop(void)
     struct timeval mytv={2,0}, atv;
     char buf[4000], obuf[120];
     int n;
-    time_t timeacc = 0, now;
     size_t total;
     PSLog_msg_t type;
 
@@ -1910,16 +1610,6 @@ static void loop(void)
 		}
 	    }
 	}
-	/* update Accounting Data*/
-	if (accounting && acctPollTime
-	    && childTask->group != TG_ADMINTASK
-	    && childTask->group != TG_SERVICE
-	    && childTask->group != TG_SERVICE_SIG
-	    && ((now = time(0)) - timeacc) > acctPollTime) {
-	    timeacc = now;
-	    updateAccountData();
-	}
-
 	PSID_blockSig(0, SIGCHLD);
     }
 
@@ -1948,16 +1638,13 @@ static void waitForChildsDead(void)
 
 /* see header file for docu */
 void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
-		    PMItype_t PMItype, int doAccounting, int acctPollInterval)
+		    PMItype_t PMItype)
 {
     char *envStr, *timeoutStr;
     long flags, val;
-    struct utsname uts;
 
     childTask = task;
     daemonSock = daemonfd;
-    accounting = doAccounting;
-    acctPollTime = acctPollInterval;
 
     stdinSock = task->stdin_fd;
     stdoutSock = task->stdout_fd;
@@ -2027,29 +1714,6 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
     if (pmiType == PMI_OVER_UNIX) {
 	/* init the pmi interface */
 	pmi_init(PMIClientSock, childTask->loggertid, childTask->rank);
-    }
-
-    /* read plattform version */
-    if (uname(&uts)) {
-	PSID_log(-1, "%s: uname failed\n", __func__);
-    } else {
-	if (!!strcmp(uts.sysname, "Linux")) {
-	    /* disable extended accouting if we are not running on linux */
-	    accounting = 0;
-	}
-    }
-
-    /* init accouting */
-    if (accounting && acctPollTime) {
-	/* accouting data structure */
-	accData.session = 0;
-	accData.maxThreads = 0;
-	accData.maxVsize = 0;
-	accData.maxRss = 0;
-	accData.avgRss = 0;
-	accData.avgRssCount = 0;
-	accData.avgVsize = 0;
-	accData.avgVsizeCount = 0;
     }
 
     /* call the loop which does all the work */

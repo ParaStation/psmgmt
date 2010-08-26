@@ -1020,6 +1020,7 @@ static void handleAccEndMsg(char *msgptr, char *chead, PStask_ID_t sender)
 	uint64_t avgthreads =  0;
 	uint32_t threads = 0;
 	int32_t cputime = 0;
+	int32_t extended = 0;
 
 	/* check rank of child */
 	if (rank < 0) {
@@ -1034,6 +1035,9 @@ static void handleAccEndMsg(char *msgptr, char *chead, PStask_ID_t sender)
 	/* ping logger to check if it is still alive */
 	PSI_kill(job->logger, 0, 1);
 
+	/* pid */
+	ptr += sizeof(pid_t);
+
 	/* actual rusage structure */
 	memcpy(&(job->rusage), ptr, sizeof(job->rusage));
 	ptr += sizeof(job->rusage);
@@ -1046,16 +1050,6 @@ static void handleAccEndMsg(char *msgptr, char *chead, PStask_ID_t sender)
 	}
 	ptr += sizeof(uint64_t);
 
-	/* size of max used mem */
-	maxrss = *(uint64_t *) ptr;
-	job->maxrss += pagesize * maxrss;
-	ptr += sizeof(uint64_t);
-
-	/* size of max used vmem */
-	maxvsize = *(uint64_t *) ptr;
-	job->maxvsize += maxvsize;
-	ptr += sizeof(uint64_t);
-
 	/* walltime used by child */
 	memcpy(&walltime, ptr, sizeof(walltime));
 	ptr += sizeof(walltime);
@@ -1063,43 +1057,53 @@ static void handleAccEndMsg(char *msgptr, char *chead, PStask_ID_t sender)
 	    job->walltime = walltime;
 	}
 
-	/* number of threads */
-	threads = *(uint32_t *) ptr;
-	job->threads += threads;
-	ptr += sizeof(uint32_t);
-
-	/* session id */
-	if (!job->session) job->session = *(int32_t *) ptr;
-	ptr += sizeof(int32_t);
-
 	/* exit status */
 	exitStatus = *(int32_t *) ptr;
 	if (exitStatus != 0) job->exitStatus = exitStatus;
 	ptr += sizeof(int32_t);
 
-	/* size of average used mem */
-	avgrss = *(uint64_t *) ptr;
-	job->avgrss += pagesize * avgrss;
-	ptr += sizeof(uint64_t);
+	/* check for extended info */
+	extended = *(int32_t *) ptr;
+	ptr += sizeof(int32_t);
 
-	/* size of average used vmem */
-	avgvsize = *(uint64_t *) ptr;
-	job->avgvsize += avgvsize;
-	ptr += sizeof(uint64_t);
-
-	/* number of average threads */
-	avgthreads = *(uint64_t *) ptr;
-	job->avgthreads += avgthreads;
-	ptr += sizeof(uint64_t);
-
-	/* set flags to monitor extended and non extended messages */
-	if (!pagesize || !maxrss || !maxvsize || !threads
-	    || !avgrss || !avgvsize || !avgthreads) {
-	    job->noextendedInfo = 1;
-	}
-	if (pagesize || maxrss || maxvsize || threads || avgrss
-	    || avgthreads || avgvsize) {
+	if (extended) {
 	    job->extendedInfo = 1;
+
+	    /* size of max used mem */
+	    maxrss = *(uint64_t *) ptr;
+	    job->maxrss += pagesize * maxrss;
+	    ptr += sizeof(uint64_t);
+
+	    /* size of max used vmem */
+	    maxvsize = *(uint64_t *) ptr;
+	    job->maxvsize += maxvsize;
+	    ptr += sizeof(uint64_t);
+
+	    /* number of threads */
+	    threads = *(uint32_t *) ptr;
+	    job->threads += threads;
+	    ptr += sizeof(uint32_t);
+
+	    /* session id */
+	    if (!job->session) job->session = *(int32_t *) ptr;
+	    ptr += sizeof(int32_t);
+
+	    /* size of average used mem */
+	    avgrss = *(uint64_t *) ptr;
+	    job->avgrss += pagesize * avgrss;
+	    ptr += sizeof(uint64_t);
+
+	    /* size of average used vmem */
+	    avgvsize = *(uint64_t *) ptr;
+	    job->avgvsize += avgvsize;
+	    ptr += sizeof(uint64_t);
+
+	    /* number of average threads */
+	    avgthreads = *(uint64_t *) ptr;
+	    job->avgthreads += avgthreads;
+	    ptr += sizeof(uint64_t);
+	} else {
+	    job->noextendedInfo = 1;
 	}
 
 	/* calculate used cputime */
@@ -1716,9 +1720,9 @@ static void getNodeInformation()
 	} else {
 	    accNodes[n].protoVersion = val;
 
-	    /* make sure we have at least protocol version 401 */
-	    if (val < 401) {
-		alog("%s: need deamon protocol >= 401, please update "
+	    /* make sure we have at least protocol version 406 */
+	    if (val < 406) {
+		alog("%s: need deamon protocol >= 406, please update "
 		     "node:%i\n", __func__, n);
 		exit(EXIT_FAILURE);
 	    }

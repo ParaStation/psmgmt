@@ -51,12 +51,6 @@ typedef enum {
  * process' live and to supply post mortem failure and usage
  * information to the parent process.
  *
- * Furthermore the forwarder generates accounting messages, if @a
- * doAccounting is set different from 0. Every @a acctPollInterval
- * seconds the forwarder will poll on the /proc filesystem in order to
- * get more detailed information like memory consumption, etc. If @a
- * acctPollInterval is set to 0, no polling will take place.
- *
  * If @a eno is different from 0, the forwarder expects that something
  * went wrong during creation of the child process. Thus, a
  * PSP_CD_SPAWNFAILED message will be sent to the parent process. For
@@ -76,15 +70,10 @@ typedef enum {
  * @param PMItype Defines if the pmi client is connected over tcp/ip or
  * over an unix domain socket which is the default.
  *
- * @param doAccounting Set to true if the forwarder should do accouting.
- *
- * @param acctPollInterval Interval in sec the forwarder will poll the
- * /proc filesystem for more detailed accounting information.
- *
  * @return No return value.
  */
 void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
-		    PMItype_t PMItype, int doAccounting, int acctPollInterval);
+		    PMItype_t PMItype);
 
 /**
  * @brief Send a message to the local daemon.

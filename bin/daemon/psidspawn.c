@@ -1359,8 +1359,7 @@ restart:
 
 error:
     /* Release the waiting daemon and exec forwarder */
-    PSID_forwarder(task, daemonfd, eno, PMIforwarderSock, pmiType,
-		   PSID_getNumAcct(), PSIDnodes_acctPollI(PSC_getMyID()));
+    PSID_forwarder(task, daemonfd, eno, PMIforwarderSock, pmiType);
 
     /* never reached */
     exit(0);
