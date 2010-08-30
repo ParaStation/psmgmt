@@ -1,0 +1,26 @@
+psmgmt NEWS -- history of user-visible changes.
+
+Copyright (C) 2010 ParTec Cluster Competence Center GmbH, Munich
+
+Please send bug reports, questions and suggestions to <support@suse.de>
+
+Version 5.0.28:
+===============
+
+Bugfixes:
+ - Various improvements in RDP protocol (#386).
+ - Fix possible race-condition when resequencing RDP messages (#327).
+    this might lead to the behavior described in #327.
+ - Improved startup of psid on huge cluster with few active nodes.
+ - psaccview: option --norcfile doesn't need a parameter
+ - psaccview: don't display empty lines when using option --nospace
+
+Enhancements:
+ - Improved logging from RDP's state-machine.
+ - psaccview: new option --last_days to show the last x days of accounting data.
+ - psaccview: new option --timeout will stop parsing if the timeout is reached.
+ - Allow service-tasks to explicitely request signals on children's end (#554).
+
+Additional changes:
+ - If core-dump are enabled, psid does not catch SIGBUS any longer.
+ - Extended accounting functionality moved into plugin.
