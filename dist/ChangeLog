@@ -1,3 +1,119 @@
+Version psmgmt-5.0.28:
+======================
+------------------------------------------------------------------------
+r8297 | eicker | 2010-08-30 10:34:56 +0200 (Mon, 30 Aug 2010) | 2 lines
+
+Start new condensed changelog in NEWS.
+
+------------------------------------------------------------------------
+r8294 | eicker | 2010-08-26 18:28:40 +0200 (Thu, 26 Aug 2010) | 2 lines
+
+Enhancement: Don't catch SIGBUS, if core-dump are enabled.
+
+------------------------------------------------------------------------
+r8293 | eicker | 2010-08-26 18:13:10 +0200 (Thu, 26 Aug 2010) | 7 lines
+
+Merge from Michael's branch preparing for accounting-plugin:
+Bugfix: extended accouting information can be valid even if some values
+    are zero
+Enhancement: removed all accouting functions from forwarder, the new
+    accounting plugin will be responsible for extended accouting now.
+Enhancement: improved detection of extended accounting information
+
+------------------------------------------------------------------------
+r8271 | eicker | 2010-08-19 12:01:07 +0200 (Thu, 19 Aug 2010) | 4 lines
+
+Bugfix: Save RDP's state-machine from infinite loop. This should fix
+    #386.
+Enhancement: Improved logging from RDP's state-machine.
+
+------------------------------------------------------------------------
+r8230 | eicker | 2010-07-09 02:03:38 +0200 (Fri, 09 Jul 2010) | 4 lines
+
+Bugfix: RDP interprets SYNNACK as NACK plus request for synchronization.
+Bugfix: Don't tell caller to do Rrecvfrom when receiving RDP_DATA on
+    CLOSED conn.
+
+------------------------------------------------------------------------
+r8229 | eicker | 2010-07-09 01:17:00 +0200 (Fri, 09 Jul 2010) | 8 lines
+
+Improve problem reporting from within RDP.
+Don't overwrite ConnID_in when shutting down conn. This should help to
+    detect conns closed just on one side. Send SYNNACK then.
+Bugfix: Don't close conn when SYNNACK was received.
+Bugfix: Improve RDP's behavior on unexpected msgs on ACTIVE conns.
+Bugfix: Delay grow of RDP's window until msgbug is actually there. Same
+    holds for RDP_CAN_CONTINUE callback.
+
+------------------------------------------------------------------------
+r8228 | eicker | 2010-07-08 22:07:46 +0200 (Thu, 08 Jul 2010) | 5 lines
+
+Bugfix: Ensure that RDP's lists are not screwed up. For this, items are
+    removed from lists only during timeout-handling. Should help with #386.
+Bugfix: Ensure that RDP's timeout-handler is not called while looping
+    over list. Should help with #386.
+
+------------------------------------------------------------------------
+r8226 | rauh | 2010-07-07 17:26:41 +0200 (Wed, 07 Jul 2010) | 2 lines
+
+Bugfix: option --norcfile of psaccview doesn't need a parameter
+
+------------------------------------------------------------------------
+r8225 | rauh | 2010-07-07 16:01:26 +0200 (Wed, 07 Jul 2010) | 5 lines
+
+Bugfix: don't display empty lines when using option --nospace
+Enhancement: new option --last_days to show the last x days of accounting data.
+Enhancement: new option --timeout will stop parsing if the timeout is reached.
+This version will help fixing ticket #715 and #716
+
+------------------------------------------------------------------------
+r8214 | eicker | 2010-06-30 12:31:16 +0200 (Wed, 30 Jun 2010) | 2 lines
+
+Improve debug messages.
+
+------------------------------------------------------------------------
+r8206 | eicker | 2010-06-28 09:05:05 +0200 (Mon, 28 Jun 2010) | 2 lines
+
+Enhancement: Get rid of extra structures for ACKs within RDP.
+
+------------------------------------------------------------------------
+r8205 | eicker | 2010-06-25 19:33:26 +0200 (Fri, 25 Jun 2010) | 4 lines
+
+Bugfix: Fix possible race-condition when resequencing RDP messages. This
+    might lead to consecutive messages with same seqno. As a consequence
+    this might lead to the behavior described in #327.
+
+------------------------------------------------------------------------
+r8190 | eicker | 2010-06-22 11:48:13 +0200 (Tue, 22 Jun 2010) | 2 lines
+
+Push new version for QPACE.
+
+------------------------------------------------------------------------
+r8180 | eicker | 2010-06-17 20:50:22 +0200 (Thu, 17 Jun 2010) | 3 lines
+
+Prevent handleDroppedMsg to call send_DAEMONCONNECT() recursively. This
+    might lead to hangs on large clusters with few nodes up.
+
+------------------------------------------------------------------------
+r8179 | eicker | 2010-06-17 19:45:38 +0200 (Thu, 17 Jun 2010) | 4 lines
+
+After becoming master, start lurking for other node with the next ID
+    instead of 0. This should help on large systems with only few nodes
+    running since nodes from 0 to myID were just checked.
+
+------------------------------------------------------------------------
+r8165 | eicker | 2010-05-25 11:54:38 +0200 (Tue, 25 May 2010) | 3 lines
+
+Bugfix: Allow service-tasks to explicitely request signals on childs
+    end. This should fix #554.
+
+------------------------------------------------------------------------
+r8161 | eicker | 2010-05-19 08:08:05 +0200 (Wed, 19 May 2010) | 2 lines
+
+New version (psmgmt-5.0.27)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.27:
 ======================
 ------------------------------------------------------------------------

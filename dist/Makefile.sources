@@ -108,6 +108,7 @@ configure.ac \
 dist/ChangeLog \
 dist/Makefile \
 dist/Makefile.sources \
+dist/NEWS \
 dist/psmgmt.spec.templ \
 doc/Makefile.in \
 doc/parastation.conf \
