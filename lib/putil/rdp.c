@@ -1174,7 +1174,8 @@ static void updateState(rdphdr_t *hdr, int node)
 	    } /* else fall through */
 	default:
 	    cp->state = SYN_SENT;
-	    RDP_log(-1, "%s: state(%d): CLOSED -> SYN_SENT on %s, FE=%x\n",
+	    RDP_log(RDP_LOG_CNTR,
+		    "%s: state(%d): CLOSED -> SYN_SENT on %s, FE=%x\n",
 		    __func__, node, RDPMsgString(hdr->type),
 		    cp->frameExpected);
 	    sendSYN(node);
@@ -1213,7 +1214,8 @@ static void updateState(rdphdr_t *hdr, int node)
 	    }
 	    break;
 	default:
-	    RDP_log(-1, "%s: state(%d): stay in SYN_SENT on %s, FE=%x\n",
+	    RDP_log(RDP_LOG_CNTR,
+		    "%s: state(%d): stay in SYN_SENT on %s, FE=%x\n",
 		    __func__, node, RDPMsgString(hdr->type),
 		    cp->frameExpected);
 	    sendSYN(node);
@@ -1320,7 +1322,8 @@ static void updateState(rdphdr_t *hdr, int node)
 		sendSYNACK(node);
 		break;
 	    default:
-		RDP_log(-1, "%s: state(%d): stay in  ACTIVE on %s, FE=%x\n",
+		RDP_log(RDP_LOG_CNTR,
+			"%s: state(%d): stay in ACTIVE on %s, FE=%x\n",
 			__func__, node, RDPMsgString(hdr->type),
 			cp->frameExpected);
 		break;
