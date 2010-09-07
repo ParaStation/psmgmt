@@ -88,7 +88,7 @@ static void rescaleActPeriods(struct timeval *newTimeout)
     list_t *t;
     struct itimerval itv;
 
-    memcpy(&actPeriod, newTimeout, sizeof(actPeriod));
+    actPeriod = *newTimeout;
 
     /* Change all periods */
     list_for_each(t, &timerList) {
@@ -168,18 +168,16 @@ static int deleteTimer(Timer_t *timer)
     } else if (timercmp(&timer->timeout, &actPeriod, ==)) {
 	/* timer with actPeriod removed, search and set new one */
 	list_t *t;
-	struct timeval oldActPeriod;
-
-	memcpy(&oldActPeriod, &actPeriod, sizeof(oldActPeriod));
+	struct timeval oldActPeriod = actPeriod;
 
 	/* search new actPeriod */
-	memcpy(&actPeriod, &maxPeriod, sizeof(actPeriod));
+	actPeriod = maxPeriod;
 
 	list_for_each(t, &timerList) {
 	    Timer_t *timer = list_entry(t, Timer_t, next);
 	    if (timer->deleted) continue;
 	    if (timercmp(&timer->timeout, &actPeriod, <)) {
-		memcpy(&actPeriod, &timer->timeout, sizeof(actPeriod));
+		actPeriod = timer->timeout;
 	    }
 	}
 
