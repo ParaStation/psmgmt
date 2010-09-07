@@ -153,9 +153,10 @@ static void allocMasterSpace(void)
 
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	gettimeofday(&clientStat[node].lastPing, NULL);
-	clientStat[node].missCounter = 0;
 	clientStat[node].jobs = (PSID_Jobs_t) { .normal = 0, .total = 0 };
 	clientStat[node].mem = (PSID_Mem_t) { -1, -1 };
+	clientStat[node].missCounter = 0;
+	clientStat[node].wrongClient = 0;
     }
 }
 
