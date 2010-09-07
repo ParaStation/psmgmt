@@ -156,7 +156,7 @@ static void allocMasterSpace(void)
 	clientStat[node].jobs = (PSID_Jobs_t) { .normal = 0, .total = 0 };
 	clientStat[node].mem = (PSID_Mem_t) { -1, -1 };
 	clientStat[node].missCounter = 0;
-	clientStat[node].wrongClient = 0;
+	clientStat[node].wrongClients = 0;
     }
 }
 
