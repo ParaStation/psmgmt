@@ -38,8 +38,10 @@ esac
 
 if test x$gcc_cv_libc_provides_ssp = xyes; then
    TARGET_LIBC_PROVIDES_SSP=yes
+   CFLAG_SSP="-fstack-protector-all"
 else
    TARGET_LIBC_PROVIDES_SSP=no
+   CFLAG_SSP=
 fi
 
 AC_SEARCH_LIBS([numa_available], [numa], [HAVE_LIBNUMA=yes;
@@ -63,6 +65,7 @@ AC_SEARCH_LIBS([using_history], [history], [],
 AC_SUBST([CFLAG_WALL])
 AC_SUBST([CFLAG_G])
 AC_SUBST([CFLAG_COMPAT])
+AC_SUBST([CFLAG_SSP])
 AC_SUBST([CPPFLAG_MMD])
 AC_SUBST([DEPEXTENSION])
 AC_SUBST([LIBS])

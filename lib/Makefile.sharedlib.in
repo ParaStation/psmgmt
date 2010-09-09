@@ -11,10 +11,8 @@
 #         Norbert Eicker <eicker@par-tec.de>
 #############################################################################
 
-TARGET_LIBC_PROVIDES_SSP=@TARGET_LIBC_PROVIDES_SSP@
-
 LDFLAGS += $(CFLAGS)
-CFLAGS += @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
+CFLAGS += @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@ @CFLAG_SSP@
 CPPFLAGS += $(LIBINC) @CPPFLAG_MMD@
 
 _LIBDEPS := $(LIBOBJS:.o=@DEPEXTENSION@)
@@ -24,9 +22,6 @@ VPATH += $(LIBVPATH)
 all: $(LIBDSTDIR)/lib$(LIBNAME).so
 
 COMPILE.c-shared = $(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -fPIC -DPIC
-ifeq ($(TARGET_LIBC_PROVIDES_SSP),yes)
-COMPILE.c-shared += -fno-stack-protector
-endif
 COMPILE.c-shared += -c
 %.o: %.c
 	$(COMPILE.c-shared) $(OUTPUT_OPTION) $<

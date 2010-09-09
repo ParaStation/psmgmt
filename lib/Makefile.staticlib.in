@@ -11,7 +11,7 @@
 #         Norbert Eicker <eicker@par-tec.de>
 #############################################################################
 
-CFLAGS += @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
+CFLAGS += @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@ @CFLAG_SSP@
 CPPFLAGS += $(LIBINC) @CPPFLAG_MMD@
 RANLIB := @RANLIB@
 
