@@ -118,7 +118,7 @@ function parse()
 	    ;;
 	-n|${prearg}node)
 	    if [ "${cmd_line_nodes-0}" = 0 ];then
-		NODES=(${NODES[*]} $(NameExpand "$2"))
+		NODES=(${NODES[*]} $(psnameexpand "$2"))
 		nopts=2
 	    fi
 	    ;;
@@ -135,7 +135,7 @@ function parse()
 	    nopts=2
 	    ;;
 	-x|${prearg}xnode)
-	    XNODES=(${XNODES[*]} $(NameExpand "$2"))
+	    XNODES=(${XNODES[*]} $(psnameexpand "$2"))
 	    nopts=2
 	    ;;
 	${prearg}autocd)
@@ -175,273 +175,139 @@ function cleanup
 #
 # merge hostnames (e.g. host001 host002 to host[001-002])
 #
-###=== fg functions start ===
-# $1: name expression
-# $2: width (optional)
-function SingleNameExpand()
-{
-	local prefix
-	local rangelist
-	local suffix
-#	local rangefrom		# required if using printf with $format
-#	local rangeto
-#	local -i width
-#	local format
-	local nlist=""
-	local name
-	local -i gwidth=${2:-0}
-	local range
-
-	prefix=${1%%\[*\]*};
-	rangelist=${1##$prefix};
-	suffix=${rangelist#*\]};
-	rangelist=${rangelist%"$suffix"};
-	rangelist=${rangelist/\[/}
-	rangelist=${rangelist/\]/}
-	[[ $range =~ [^0-9-] ]] && return 1
-#	rangefrom=${rangelist%-*};	# required if using printf with $format
-#	rangeto=${rangelist#*-};
-#	width=${#rangefrom}
-
-#	Empty prefix is allowed, return a list of numbers (ids)
-#	[ -z "$prefix" ] && { return 1; }
-
-	[ -z "$rangelist" ] && {	# there is no range at all
-		echo $prefix$suffix;
-		return 0;
-	}
-
-	[[ "$suffix" =~ \[*\] ]] && {
-		suffix=$(SingleNameExpand $suffix)
-		[ $? -gt 0 ] && return 1
-	}
-
-	for range in ${rangelist//","/" "}
-	do
-		[[ $range =~ [^0-9-] ]] && return 1
-		local rangefromstr=${range%-*};
-		[ -z "$rangefromstr" ] && return 1
-		local -i rangefrom=10#${rangefromstr}
-		local -i rangeto=10#${range#*-};
-		local -i width=${#rangefromstr}
-
-		(( width < gwidth )) && width=$gwidth
-		(( gwidth == 0 )) && gwidth=$width
-#		local format="%s%0${width}d%s"
-
-		(( rangefrom > rangeto )) && { return 1; }
-
-		while (( rangefrom <= rangeto ))
-		do
-			for suf in ${suffix}X	# add X to handle empty list
-			do
-#				don't use printf, it's slow!!!
-#				name=$(printf ${format} "$prefix" "$rangefrom" "$suf")
-				local leadin=""
-				local -i n
-				let n=$width-${#rangefrom};
-				while (( n > 0 ))
-				do
-					leadin="${leadin}0"
-					let n--
-				done
-				name=$prefix$leadin$rangefrom$suf
-				name=${name%X}
-				# check for duplicate nodes
-#				[[ $nlist =~ "[ ]+$name[ ]+" ]] && {
-#					return 1
-#				}
-				nlist="${nlist}${name} "
-			done
-			let rangefrom++
-
-		done
-	done
-	echo $nlist
-	return
+function psregexp(){
+    # see ftp://ftp.cwru.edu/pub/bash/FAQ E14, why we
+    # need a function for it.
+    [[ "$1" =~ $2 ]]
 }
 
-# $1: name list expression, like jj[01-3]c[08-10,12],jf02c[02-3]s
-# $2: width (optional)
-function NameExpand()
-{
-	local nlist=""
-	local name
-	local pattern
 
-	# bash lacks of the ability to match these patterns
-	for i in $(echo $1 | sed -e 's/\([]a-zA-Z_]\),/\1 /g' -e 's/,\([a-zA-Z_]\)/ \1/g')
-	do
-		local list="$(SingleNameExpand $i $2)"
-		[ $? -gt 0 ] && return 1
-		for name in $list
-		do
-			# check for duplicate nodes
-			pattern="^${name} | ${name} "
-			[[ $nlist =~ $pattern ]] && {
-				return 1
-			}
-		done
-		# new list is valid, append it to already known list of nodes
-		nlist="$nlist$list "
-	done
-	echo $nlist
+function psnameexpand_group(){
+    local name="$1"
 
-	return
+    # Split "," separated elements
+    while psregexp "$name" '^([^,]*),(.*)'; do
+	name="${BASH_REMATCH[2]}"
+	psnameexpand_group "${BASH_REMATCH[1]}"
+    done
+
+    # nummeric range?
+    if psregexp "$name" '^([0-9]+)-([0-9]+)'; then
+	# yes
+	local from="${BASH_REMATCH[1]}" to="${BASH_REMATCH[2]}"
+	seq -f "%0${#from}g" "$from" "$to"
+    else
+	echo "$name"
+    fi
 }
 
-# $1: eat count
-# $2-: names
-function NameCompressLevel()
-{
-	local x1=$@
-	local -i eatcount=$1; shift
-	local suffix=${1##*[][0-9]}
-	local name=${1%$suffix}; shift
-	# rip off all aa[1-2] as indicated by eatcount
-	local -i i=$eatcount
-	while [[ $name =~ [a-z]*[][0-9,-]+$ ]]
-	do
-		(( i-- <= 0 )) && break
-		ripoff=${BASH_REMATCH[0]}
-		suffix=$ripoff$suffix
-		ripoff=${ripoff/[/\\[}
-		ripoff=${ripoff/]/\\]}
-		name=${name%$ripoff}
+
+function psnameexpand(){
+    #-- Expand names with group syntax (e.g. node[03-06,09],nodex
+    #-- parameters:
+    #   $*: names to expand
+    #-- Result newline separated list of names usable for
+    #   for i in $(psnameexpand "$names"); do
+    #
+
+    # Call psnameexpand with all arguments:
+    while [ $# -gt 1 ]; do psnameexpand "$1"; shift; done
+
+    local name="$1"
+
+    # Split "," separated names, but keep "[x,y]"
+    while psregexp "$name" '^(([^[,]|\[[^]]*\])*),(.*)'; do
+	name="${BASH_REMATCH[3]}"
+	psnameexpand "${BASH_REMATCH[1]}"
+    done
+
+    # Expand first group "[]"
+    if psregexp "$name" '^([^[]*)\[([^]]*)\](.*)'; then
+	local i
+	local prefix="${BASH_REMATCH[1]}" postfix="${BASH_REMATCH[3]}"
+	for i in $(psnameexpand_group "${BASH_REMATCH[2]}"|tr ' ' ,); do
+	    # transforming ' ' to ',' will preserve ' ' in groups. '\t' will
+	    # still be lost.
+	    psnameexpand "${prefix}${i//,/ }${postfix}"
 	done
+    else
+	# No groups left.
+	# In case of a nummeric range psnameexpand_group will evaluate
+	# it. Else psnameexpand_group is like a 'echo "$name"'
+	psnameexpand_group "$name"
+    fi
+}
 
-	local numstr=${name};
-	numstr=${numstr##*[a-zA-Z_]}
-	local -i num=10#${numstr}
-	local prefix=${name%$numstr}
 
-	local suffix2="" prefix2="" name2="" numstr2
-	local -i num2
-	local -i rangefrom=10#$num
-	local -i rangeto=10#$num
-	local nlist=""
-	local width=${#numstr}
-	local range=""
+function psnamecompress(){
+    local name
+    local pre num post
+    local start group
+    local last=("$@") result=()
 
-	while [ $# -gt 0 ]
-	do
-		local x2=$1
-		suffix2=${1##*[][0-9]}
-		name2=${1%$suffix2}; shift
-		# rip off all aa[1-2] as indicated by eatcount
-		i=$eatcount
-		while [[ $name2 =~ [a-z]*[][0-9,-]+$ ]]
-		do
-			(( i-- <= 0 )) && break
-			ripoff=${BASH_REMATCH[0]}
-			suffix2=$ripoff$suffix2
-			ripoff=${ripoff/[/\\[}
-			ripoff=${ripoff/]/\\]}
-			name2=${name2%$ripoff}
-		done
+    while true; do
+	for name in "${last[@]}" $'end\001end'; do
+	    # In range?
+	    if [ -n "$start" ]; then
+		local lnum="$num"
 
-		numstr2=${name2};
-		numstr2=${numstr2##*[a-zA-Z_]}
-		prefix2=${name2%$numstr2}
-		num2=10#${numstr2}
+		# eval next expected number
+		num=$((10#$num + 1))
+		while (( "${#num}" < "${#start}" ));do num="0$num"; done
 
-		[ "$suffix" == "$suffix2" -a "$prefix" == "$prefix2" ] && {
-			if (( num2 == rangeto ))
-			then
-				return 1
-			fi
-			if (( num2 == rangeto+1 ))
-			then
-				let rangeto++
-				continue;
-			fi
-		}
-
-		# found a hole
-		rangefromstring=$rangefrom
-		if [ -z "$range" ]
-		then
-			while (( ${#rangefromstring} < width ))
-			do
-				rangefromstring="0$rangefromstring"
-			done
-#			range="["
-		else
-			range="$range,"
+		if [ "${pre}${num}${post}" = "$name" ]; then
+		    # expected value. $name is in a range.
+		    continue
 		fi
-		if (( rangefrom == rangeto ))
-		then
-			range="$range$numstr"
-		else
-			range="$range$rangefromstring-$rangeto"
+
+		# flush current range
+		[ -n "$group" ] && group="$group,"
+		case $((10#$num - 10#$start)) in
+		    1) group="${group}${start}";;
+		    2) group="${group}${start},${lnum}";;
+		    *) group="${group}${start}-${lnum}";;
+		esac
+		start=""
+
+		if psregexp "$name" '^(([^[0-9]|[0-9]+[^[0-9])*)([0-9]+)(.*)' &&
+		    [ "$pre" = "${BASH_REMATCH[1]}" ] &&
+		    [ "$post" = "${BASH_REMATCH[4]}" ]; then
+		    # Not in range, but in same group
+		    num="${BASH_REMATCH[3]}"
+		    start="$num"
+		    continue
 		fi
-		if [ "$suffix" != "$suffix2" -o "$prefix" != "$prefix2" ]
-		then
-			[ "$range" != "$numstr" ] && range="[$range]"
-			# found a 'big' hole!
-			nlist="$nlist$prefix$range$suffix "
-			range=""
-		fi
-		rangefrom=$num2
-		rangeto=$num2
-		suffix=$suffix2
-		prefix=$prefix2
-		num=$num2
-		numstr=$numstr2
+
+		# Complete new name, flush current group
+		result=( "${result[@]}" "${pre}[${group}]$post" )
+		group=""
+		ngroup=""
+	    fi
+
+	    # End of loop?
+	    [ "$name" = $'end\001end' ] && break
+
+	    # New range?
+	    if psregexp "$name" '^(([^[0-9]|[0-9]+[^[0-9])*)([0-9]+)(.*)'; then
+		pre="${BASH_REMATCH[1]}" num="${BASH_REMATCH[3]}" post="${BASH_REMATCH[4]}"
+		start="$num"
+	    else
+		result=("${result[@]}" "$name")
+	    fi
+	    :
 	done
-	rangefromstring=$rangefrom
-	if [ -z "$range" ]
-	then
-		while (( ${#rangefromstring} < width ))
-		do
-			rangefromstring="0$rangefromstring"
-		done
-#		range="["
-	else
-		range="$range,"
+	if [ "${last[*]}" == "${result[*]}" ]; then
+	    break;
 	fi
-	if [ $rangefrom == $rangeto ]
-	then
-		range="$range$numstr"
-	else
-		range="$range$rangefromstring-$rangeto"
-	fi
-	[ "$range" != "$numstr" ] && range="[$range]"
-	nlist="$nlist$prefix$range$suffix "
-	echo $nlist
-	return
+
+	last=("${result[@]}")
+	result=()
+    done
+
+    # echo result with removed "one element group" group symbol "[]".
+    (export IFS=','; echo "${result[*]}") | sed 's/\[\([0-9]\+\)\]/\1/g'
 }
 
-function NameCompress()
-{
-	local -ir maxloops=5
-	local -i loop=1
-	local list
-	local previouslist
-
-#	previouslist=$(echo $* | tr ' ,' '\n' | sort -n | tr '\n' ' ')
-	previouslist=$(echo $* |
-		sed -e 's/,/\n/g' -e 's/ /\n/g' -e 's/\([0-9]\+\)/:\1:/g' |
-		sort -t \: -n -k 1 -k 2 -k 3 -k 4 -k 5 |
-		sed -e 's/://g' | tr '\n' ' '
-		)
-	[[ "$previouslist" =~ [^a-zA-Z0-9_\ ] ]] && {
-		return 1
-	}
-
-	list=$(NameCompressLevel 0 $previouslist)
-	while [ "$list" != "$previouslist" ]
-	do
-		previouslist=$list
-		[[ "$list" =~ " "  ]]  &&
-			list=$(NameCompressLevel $loop $previouslist) || break
-
-		(( ++loop > maxloops )) && break
-	done
-	echo ${list//" "/","}
-}
-
-###=== fg functions end ===
 
 #
 # remove $1 from nodelist
@@ -565,7 +431,7 @@ if [ "$VERBOSE" = 1 ];then
 cat <<EOF
 CONFIG  ${D_CONFIG}
 NODES   ${NODES[*]}
-NODESSHORT $(NameCompress ${NODES[*]})
+NODESSHORT $(psnamecompress ${NODES[*]})
 RCMD    $RCMD
 COMMAND $COMMAND
 EOF
@@ -629,7 +495,7 @@ for ((i = 0; i < ${#NODES[*]} ; i++)); do
 		fi
 	    fi
 	done
-	echo "=== $(NameCompress $hosts)"
+	echo "=== $(psnamecompress $hosts)"
 	cat ${OUTPUTS[$i]}
     fi
 done
