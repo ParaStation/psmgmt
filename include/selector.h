@@ -130,9 +130,20 @@ typedef int Selector_CB_t (int, void *);
  * @param selectHandler If data on @a fd is pending during a call to
  * Sselect(), this functions is called. @a fd is passed as an
  * argument. Sselect() expects the return values as follows:
- *  - -1 If an error occured and Sselect() is expected to stop.
+ *
+ *  - -1 An error occured and Sselect() is expected to stop. Passing
+ *       this value to Sselect() lets the current call to it return
+ *       with -1. Thus, errno should be set appropriately before
+ *       returning it. This return-value is intended for fatal
+ *       situations where continueing within Sselect() makes no sense
+ *       at all like running out of memory, etc.  For isolated
+ *       problems like the file-descriptor handled was detected to be
+ *       closed and cleaned-up subsequently a return-value of 0 is
+ *       more apropriately.
+ *
  *  - 0  If no pending data on @a fd remained. Sselect() will continue watching
  *       its descriptor-set then.
+ *
  *  - 1  If there is still pending data on @a fd. This forces Sselect() to
  *       pass @a fd to its own caller.
  *
